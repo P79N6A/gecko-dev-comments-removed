@@ -9,8 +9,37 @@
 
 
 
-#include "mozilla/FloatingPoint.h"
-#include "mozilla/ThreadLocal.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include <ctype.h>
 #include <stdarg.h>
@@ -18,94 +47,73 @@
 #include <string.h>
 #include <sys/stat.h>
 #include "jstypes.h"
+#include "jsstdint.h"
+#include "jsarena.h"
 #include "jsutil.h"
 #include "jsclist.h"
+#include "jsdhash.h"
 #include "jsprf.h"
 #include "jsapi.h"
 #include "jsarray.h"
 #include "jsatom.h"
 #include "jsbool.h"
+#include "jsbuiltins.h"
 #include "jsclone.h"
 #include "jscntxt.h"
 #include "jsversion.h"
 #include "jsdate.h"
-#include "jsdtoa.h"
+#include "jsemit.h"
 #include "jsexn.h"
 #include "jsfun.h"
 #include "jsgc.h"
+#include "jsgcmark.h"
 #include "jsinterp.h"
 #include "jsiter.h"
 #include "jslock.h"
 #include "jsmath.h"
-#include "jsnativestack.h"
 #include "jsnum.h"
 #include "json.h"
 #include "jsobj.h"
 #include "jsopcode.h"
-#include "jsprobes.h"
+#include "jsparse.h"
 #include "jsproxy.h"
+#include "jsregexp.h"
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsstr.h"
+#include "jstracer.h"
 #include "prmjtime.h"
+#include "jsstaticcheck.h"
+#include "jsvector.h"
 #include "jsweakmap.h"
 #include "jswrapper.h"
 #include "jstypedarray.h"
-#include "jsxml.h"
-
-#include "builtin/Eval.h"
-#include "builtin/MapObject.h"
-#include "builtin/RegExp.h"
-#include "builtin/ParallelArray.h"
-#include "ds/LifoAlloc.h"
-#include "frontend/BytecodeCompiler.h"
-#include "gc/Marking.h"
-#include "gc/Memory.h"
-#include "js/MemoryMetrics.h"
-#include "vm/NumericConversions.h"
-#include "vm/StringBuffer.h"
-#include "vm/Xdr.h"
-#include "yarr/BumpPointerAllocator.h"
 
 #include "jsatominlines.h"
-#include "jsinferinlines.h"
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
+#include "jsregexpinlines.h"
 #include "jsscriptinlines.h"
+#include "jsstrinlines.h"
+#include "assembler/wtf/Platform.h"
 
-#include "vm/ObjectImpl-inl.h"
-#include "vm/RegExpObject-inl.h"
-#include "vm/RegExpStatics-inl.h"
 #include "vm/Stack-inl.h"
-#include "vm/String-inl.h"
 
 #if ENABLE_YARR_JIT
 #include "assembler/jit/ExecutableAllocator.h"
 #include "methodjit/Logging.h"
 #endif
 
+#if JS_HAS_XML_SUPPORT
+#include "jsxml.h"
+#endif
+
+#ifdef JS_METHODJIT
+#include "ion/Ion.h"
+#endif
+
 using namespace js;
 using namespace js::gc;
-using namespace js::types;
-using js::frontend::Parser;
-
-bool
-JS::detail::CallMethodIfWrapped(JSContext *cx, IsAcceptableThis test, NativeImpl impl,
-                               CallArgs args)
-{
-    const Value &thisv = args.thisv();
-    JS_ASSERT(!test(thisv));
-
-    if (thisv.isObject()) {
-        JSObject &thisObj = args.thisv().toObject();
-        if (thisObj.isProxy())
-            return Proxy::nativeCall(cx, test, impl, args);
-    }
-
-    ReportIncompatible(cx, args);
-    return false;
-}
-
 
 
 
@@ -122,12 +130,12 @@ class AutoVersionAPI
     bool        oldHasVersionOverride;
     JSVersion   oldVersionOverride;
 #ifdef DEBUG
-    unsigned       oldCompileOptions;
+    uintN       oldCompileOptions;
 #endif
     JSVersion   newVersion;
 
   public:
-    AutoVersionAPI(JSContext *cx, JSVersion newVersion)
+    explicit AutoVersionAPI(JSContext *cx, JSVersion newVersion)
       : cx(cx),
         oldDefaultVersion(cx->getDefaultVersion()),
         oldHasVersionOverride(cx->isVersionOverridden()),
@@ -136,11 +144,12 @@ class AutoVersionAPI
         , oldCompileOptions(cx->getCompileOptions())
 #endif
     {
-#if JS_HAS_XML_SUPPORT
         
-        
-        newVersion = JSVersion(newVersion | (oldDefaultVersion & VersionFlags::ALLOW_XML));
-#endif
+
+
+
+
+        VersionSetAnonFunFix(&newVersion, OptionsHasAnonFunFix(cx->getCompileOptions()));
         this->newVersion = newVersion;
         cx->clearVersionOverride();
         cx->setDefaultVersion(newVersion);
@@ -165,24 +174,26 @@ class AutoVersionAPI
 #define JS_ADDRESSOF_VA_LIST(ap) (&(ap))
 #endif
 
-#ifdef JS_USE_JSID_STRUCT_TYPES
-jsid JS_DEFAULT_XML_NAMESPACE_ID = { size_t(JSID_TYPE_DEFAULT_XML_NAMESPACE) };
-jsid JSID_VOID  = { size_t(JSID_TYPE_VOID) };
-jsid JSID_EMPTY = { size_t(JSID_TYPE_OBJECT) };
+#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
+JS_PUBLIC_DATA(jsid) JS_DEFAULT_XML_NAMESPACE_ID = { size_t(JSID_TYPE_DEFAULT_XML_NAMESPACE) };
+JS_PUBLIC_DATA(jsid) JSID_VOID  = { size_t(JSID_TYPE_VOID) };
+JS_PUBLIC_DATA(jsid) JSID_EMPTY = { size_t(JSID_TYPE_OBJECT) };
 #endif
 
-const jsval JSVAL_NULL  = IMPL_TO_JSVAL(BUILD_JSVAL(JSVAL_TAG_NULL,      0));
-const jsval JSVAL_ZERO  = IMPL_TO_JSVAL(BUILD_JSVAL(JSVAL_TAG_INT32,     0));
-const jsval JSVAL_ONE   = IMPL_TO_JSVAL(BUILD_JSVAL(JSVAL_TAG_INT32,     1));
-const jsval JSVAL_FALSE = IMPL_TO_JSVAL(BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_FALSE));
-const jsval JSVAL_TRUE  = IMPL_TO_JSVAL(BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_TRUE));
-const jsval JSVAL_VOID  = IMPL_TO_JSVAL(BUILD_JSVAL(JSVAL_TAG_UNDEFINED, 0));
+#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
+JS_PUBLIC_DATA(jsval) JSVAL_NULL  = { BUILD_JSVAL(JSVAL_TAG_NULL,      0) };
+JS_PUBLIC_DATA(jsval) JSVAL_ZERO  = { BUILD_JSVAL(JSVAL_TAG_INT32,     0) };
+JS_PUBLIC_DATA(jsval) JSVAL_ONE   = { BUILD_JSVAL(JSVAL_TAG_INT32,     1) };
+JS_PUBLIC_DATA(jsval) JSVAL_FALSE = { BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_FALSE) };
+JS_PUBLIC_DATA(jsval) JSVAL_TRUE  = { BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_TRUE) };
+JS_PUBLIC_DATA(jsval) JSVAL_VOID  = { BUILD_JSVAL(JSVAL_TAG_UNDEFINED, 0) };
+#endif
 
 
 JS_STATIC_ASSERT((jschar)-1 > 0);
 JS_STATIC_ASSERT(sizeof(jschar) == 2);
 
-JS_PUBLIC_API(int64_t)
+JS_PUBLIC_API(int64)
 JS_Now()
 {
     return PRMJ_Now();
@@ -191,19 +202,19 @@ JS_Now()
 JS_PUBLIC_API(jsval)
 JS_GetNaNValue(JSContext *cx)
 {
-    return cx->runtime->NaNValue;
+    return Jsvalify(cx->runtime->NaNValue);
 }
 
 JS_PUBLIC_API(jsval)
 JS_GetNegativeInfinityValue(JSContext *cx)
 {
-    return cx->runtime->negativeInfinityValue;
+    return Jsvalify(cx->runtime->negativeInfinityValue);
 }
 
 JS_PUBLIC_API(jsval)
 JS_GetPositiveInfinityValue(JSContext *cx)
 {
-    return cx->runtime->positiveInfinityValue;
+    return Jsvalify(cx->runtime->positiveInfinityValue);
 }
 
 JS_PUBLIC_API(jsval)
@@ -215,7 +226,7 @@ JS_GetEmptyStringValue(JSContext *cx)
 JS_PUBLIC_API(JSString *)
 JS_GetEmptyString(JSRuntime *rt)
 {
-    JS_ASSERT(rt->hasContexts());
+    JS_ASSERT(rt->state == JSRTS_UP);
     return rt->emptyString;
 }
 
@@ -236,47 +247,11 @@ TryArgumentFormatter(JSContext *cx, const char **formatp, JSBool fromJS, jsval *
     return JS_FALSE;
 }
 
-static void
-AssertHeapIsIdle(JSRuntime *rt)
-{
-    JS_ASSERT(rt->heapState == JSRuntime::Idle);
-}
-
-static void
-AssertHeapIsIdle(JSContext *cx)
-{
-    AssertHeapIsIdle(cx->runtime);
-}
-
-static void
-AssertHeapIsIdleOrIterating(JSRuntime *rt)
-{
-    JS_ASSERT(rt->heapState != JSRuntime::Collecting);
-}
-
-static void
-AssertHeapIsIdleOrIterating(JSContext *cx)
-{
-    AssertHeapIsIdleOrIterating(cx->runtime);
-}
-
-static void
-AssertHeapIsIdleOrStringIsFlat(JSContext *cx, JSString *str)
-{
-    
-
-
-
-    JS_ASSERT_IF(cx->runtime->isHeapBusy(), str->isFlat());
-}
-
 JS_PUBLIC_API(JSBool)
-JS_ConvertArguments(JSContext *cx, unsigned argc, jsval *argv, const char *format, ...)
+JS_ConvertArguments(JSContext *cx, uintN argc, jsval *argv, const char *format, ...)
 {
     va_list ap;
     JSBool ok;
-
-    AssertHeapIsIdle(cx);
 
     va_start(ap, format);
     ok = JS_ConvertArgumentsVA(cx, argc, argv, format, ap);
@@ -285,16 +260,16 @@ JS_ConvertArguments(JSContext *cx, unsigned argc, jsval *argv, const char *forma
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ConvertArgumentsVA(JSContext *cx, unsigned argc, jsval *argv, const char *format, va_list ap)
+JS_ConvertArgumentsVA(JSContext *cx, uintN argc, jsval *argv, const char *format, va_list ap)
 {
     jsval *sp;
     JSBool required;
     char c;
-    double d;
+    JSFunction *fun;
+    jsdouble d;
     JSString *str;
-    RootedObject obj(cx);
+    JSObject *obj;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, JSValueArray(argv - 2, argc + 2));
     sp = argv;
@@ -308,7 +283,8 @@ JS_ConvertArgumentsVA(JSContext *cx, unsigned argc, jsval *argv, const char *for
         }
         if (sp == argv + argc) {
             if (required) {
-                if (JSFunction *fun = ReportIfNotFunction(cx, argv[-2])) {
+                fun = js_ValueToFunction(cx, Valueify(&argv[-2]), 0);
+                if (fun) {
                     char numBuf[12];
                     JS_snprintf(numBuf, sizeof numBuf, "%u", argc);
                     JSAutoByteString funNameBytes;
@@ -323,36 +299,36 @@ JS_ConvertArgumentsVA(JSContext *cx, unsigned argc, jsval *argv, const char *for
         }
         switch (c) {
           case 'b':
-            *va_arg(ap, JSBool *) = ToBoolean(*sp);
+            *va_arg(ap, JSBool *) = js_ValueToBoolean(Valueify(*sp));
             break;
           case 'c':
-            if (!JS_ValueToUint16(cx, *sp, va_arg(ap, uint16_t *)))
+            if (!JS_ValueToUint16(cx, *sp, va_arg(ap, uint16 *)))
                 return JS_FALSE;
             break;
           case 'i':
-            if (!JS_ValueToECMAInt32(cx, *sp, va_arg(ap, int32_t *)))
+            if (!JS_ValueToECMAInt32(cx, *sp, va_arg(ap, int32 *)))
                 return JS_FALSE;
             break;
           case 'u':
-            if (!JS_ValueToECMAUint32(cx, *sp, va_arg(ap, uint32_t *)))
+            if (!JS_ValueToECMAUint32(cx, *sp, va_arg(ap, uint32 *)))
                 return JS_FALSE;
             break;
           case 'j':
-            if (!JS_ValueToInt32(cx, *sp, va_arg(ap, int32_t *)))
+            if (!JS_ValueToInt32(cx, *sp, va_arg(ap, int32 *)))
                 return JS_FALSE;
             break;
           case 'd':
-            if (!JS_ValueToNumber(cx, *sp, va_arg(ap, double *)))
+            if (!JS_ValueToNumber(cx, *sp, va_arg(ap, jsdouble *)))
                 return JS_FALSE;
             break;
           case 'I':
             if (!JS_ValueToNumber(cx, *sp, &d))
                 return JS_FALSE;
-            *va_arg(ap, double *) = ToInteger(d);
+            *va_arg(ap, jsdouble *) = js_DoubleToInteger(d);
             break;
           case 'S':
           case 'W':
-            str = ToString(cx, *sp);
+            str = js_ValueToString(cx, Valueify(*sp));
             if (!str)
                 return JS_FALSE;
             *sp = STRING_TO_JSVAL(str);
@@ -366,17 +342,17 @@ JS_ConvertArgumentsVA(JSContext *cx, unsigned argc, jsval *argv, const char *for
             }
             break;
           case 'o':
-            if (!js_ValueToObjectOrNull(cx, *sp, &obj))
+            if (!js_ValueToObjectOrNull(cx, Valueify(*sp), &obj))
                 return JS_FALSE;
             *sp = OBJECT_TO_JSVAL(obj);
             *va_arg(ap, JSObject **) = obj;
             break;
           case 'f':
-            obj = ReportIfNotFunction(cx, *sp);
+            obj = js_ValueToFunctionObject(cx, Valueify(sp), 0);
             if (!obj)
                 return JS_FALSE;
             *sp = OBJECT_TO_JSVAL(obj);
-            *va_arg(ap, JSFunction **) = obj->toFunction();
+            *va_arg(ap, JSFunction **) = GET_FUNCTION_PRIVATE(cx, obj);
             break;
           case 'v':
             *va_arg(ap, jsval *) = *sp;
@@ -413,7 +389,7 @@ JS_AddArgumentFormatter(JSContext *cx, const char *format, JSArgumentFormatter f
             goto out;
         mpp = &map->next;
     }
-    map = cx->pod_malloc<JSArgumentFormatMap>();
+    map = (JSArgumentFormatMap *) cx->malloc_(sizeof *map);
     if (!map)
         return JS_FALSE;
     map->format = format;
@@ -436,7 +412,7 @@ JS_RemoveArgumentFormatter(JSContext *cx, const char *format)
     while ((map = *mpp) != NULL) {
         if (map->length == length && !strcmp(map->format, format)) {
             *mpp = map->next;
-            js_free(map);
+            cx->free_(map);
             return;
         }
         mpp = &map->next;
@@ -444,45 +420,43 @@ JS_RemoveArgumentFormatter(JSContext *cx, const char *format)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ConvertValue(JSContext *cx, jsval valueArg, JSType type, jsval *vp)
+JS_ConvertValue(JSContext *cx, jsval v, JSType type, jsval *vp)
 {
-    RootedValue value(cx, valueArg);
     JSBool ok;
-    RootedObject obj(cx);
+    JSObject *obj;
     JSString *str;
-    double d;
+    jsdouble d;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
+    assertSameCompartment(cx, v);
     switch (type) {
       case JSTYPE_VOID:
         *vp = JSVAL_VOID;
         ok = JS_TRUE;
         break;
       case JSTYPE_OBJECT:
-        ok = js_ValueToObjectOrNull(cx, value, &obj);
+        ok = js_ValueToObjectOrNull(cx, Valueify(v), &obj);
         if (ok)
             *vp = OBJECT_TO_JSVAL(obj);
         break;
       case JSTYPE_FUNCTION:
-        *vp = value;
-        obj = ReportIfNotFunction(cx, *vp);
+        *vp = v;
+        obj = js_ValueToFunctionObject(cx, Valueify(vp), JSV2F_SEARCH_STACK);
         ok = (obj != NULL);
         break;
       case JSTYPE_STRING:
-        str = ToString(cx, value);
+        str = js_ValueToString(cx, Valueify(v));
         ok = (str != NULL);
         if (ok)
             *vp = STRING_TO_JSVAL(str);
         break;
       case JSTYPE_NUMBER:
-        ok = JS_ValueToNumber(cx, value, &d);
+        ok = JS_ValueToNumber(cx, v, &d);
         if (ok)
             *vp = DOUBLE_TO_JSVAL(d);
         break;
       case JSTYPE_BOOLEAN:
-        *vp = BooleanValue(ToBoolean(value));
+        *vp = BOOLEAN_TO_JSVAL(js_ValueToBoolean(Valueify(v)));
         return JS_TRUE;
       default: {
         char numBuf[12];
@@ -496,222 +470,157 @@ JS_ConvertValue(JSContext *cx, jsval valueArg, JSType type, jsval *vp)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ValueToObject(JSContext *cx, jsval valueArg, JSObject **objpArg)
+JS_ValueToObject(JSContext *cx, jsval v, JSObject **objp)
 {
-    RootedValue value(cx, valueArg);
-    RootedObject objp(cx, *objpArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-    if (!js_ValueToObjectOrNull(cx, value, &objp))
-        return false;
-    *objpArg = objp;
-    return true;
+    assertSameCompartment(cx, v);
+    return js_ValueToObjectOrNull(cx, Valueify(v), objp);
 }
 
 JS_PUBLIC_API(JSFunction *)
-JS_ValueToFunction(JSContext *cx, jsval valueArg)
+JS_ValueToFunction(JSContext *cx, jsval v)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-    return ReportIfNotFunction(cx, value);
+    assertSameCompartment(cx, v);
+    return js_ValueToFunction(cx, Valueify(&v), JSV2F_SEARCH_STACK);
 }
 
 JS_PUBLIC_API(JSFunction *)
-JS_ValueToConstructor(JSContext *cx, jsval valueArg)
+JS_ValueToConstructor(JSContext *cx, jsval v)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-    return ReportIfNotFunction(cx, value);
+    assertSameCompartment(cx, v);
+    return js_ValueToFunction(cx, Valueify(&v), JSV2F_SEARCH_STACK);
 }
 
 JS_PUBLIC_API(JSString *)
-JS_ValueToString(JSContext *cx, jsval valueArg)
+JS_ValueToString(JSContext *cx, jsval v)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-    return ToString(cx, value);
+    assertSameCompartment(cx, v);
+    return js_ValueToString(cx, Valueify(v));
 }
 
 JS_PUBLIC_API(JSString *)
-JS_ValueToSource(JSContext *cx, jsval valueArg)
+JS_ValueToSource(JSContext *cx, jsval v)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-    return js_ValueToSource(cx, value);
+    assertSameCompartment(cx, v);
+    return js_ValueToSource(cx, Valueify(v));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ValueToNumber(JSContext *cx, jsval valueArg, double *dp)
+JS_ValueToNumber(JSContext *cx, jsval v, jsdouble *dp)
 {
-    RootedValue value(cx, valueArg);
-    return JS::ToNumber(cx, value, dp);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_DoubleIsInt32(double d, int32_t *ip)
-{
-    return MOZ_DOUBLE_IS_INT32(d, ip);
-}
-
-JS_PUBLIC_API(int32_t)
-JS_DoubleToInt32(double d)
-{
-    return ToInt32(d);
-}
-
-JS_PUBLIC_API(uint32_t)
-JS_DoubleToUint32(double d)
-{
-    return ToUint32(d);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_ValueToECMAInt32(JSContext *cx, jsval valueArg, int32_t *ip)
-{
-    RootedValue value(cx, valueArg);
-    return JS::ToInt32(cx, value, ip);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_ValueToECMAUint32(JSContext *cx, jsval valueArg, uint32_t *ip)
-{
-    RootedValue value(cx, valueArg);
-    return JS::ToUint32(cx, value, ip);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_ValueToInt64(JSContext *cx, jsval valueArg, int64_t *ip)
-{
-    RootedValue value(cx, valueArg);
-    return JS::ToInt64(cx, value, ip);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_ValueToUint64(JSContext *cx, jsval valueArg, uint64_t *ip)
-{
-    RootedValue value(cx, valueArg);
-    return JS::ToUint64(cx, value, ip);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_ValueToInt32(JSContext *cx, jsval vArg, int32_t *ip)
-{
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-
-    RootedValue v(cx, vArg);
     assertSameCompartment(cx, v);
 
-    if (v.isInt32()) {
-        *ip = v.toInt32();
-        return true;
-    }
-
-    double d;
-    if (v.isDouble()) {
-        d = v.toDouble();
-    } else if (!ToNumberSlow(cx, v, &d)) {
-        return false;
-    }
-
-    if (MOZ_DOUBLE_IS_NaN(d) || d <= -2147483649.0 || 2147483648.0 <= d) {
-        js_ReportValueError(cx, JSMSG_CANT_CONVERT,
-                            JSDVG_SEARCH_STACK, v, NullPtr());
-        return false;
-    }
-
-    *ip = (int32_t) floor(d + 0.5);  
-    return true;
+    AutoValueRooter tvr(cx, Valueify(v));
+    return ValueToNumber(cx, tvr.value(), dp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ValueToUint16(JSContext *cx, jsval valueArg, uint16_t *ip)
+JS_DoubleIsInt32(jsdouble d, jsint *ip)
 {
-    RootedValue value(cx, valueArg);
-    return ToUint16(cx, value, ip);
+    return JSDOUBLE_IS_INT32(d, (int32_t *)ip);
+}
+
+JS_PUBLIC_API(int32)
+JS_DoubleToInt32(jsdouble d)
+{
+    return js_DoubleToECMAInt32(d);
+}
+
+JS_PUBLIC_API(uint32)
+JS_DoubleToUint32(jsdouble d)
+{
+    return js_DoubleToECMAUint32(d);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ValueToBoolean(JSContext *cx, jsval valueArg, JSBool *bp)
+JS_ValueToECMAInt32(JSContext *cx, jsval v, int32 *ip)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-    *bp = ToBoolean(value);
+    assertSameCompartment(cx, v);
+
+    AutoValueRooter tvr(cx, Valueify(v));
+    return ValueToECMAInt32(cx, tvr.value(), (int32_t *)ip);
+}
+
+JS_PUBLIC_API(JSBool)
+JS_ValueToECMAUint32(JSContext *cx, jsval v, uint32 *ip)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, v);
+
+    AutoValueRooter tvr(cx, Valueify(v));
+    return ValueToECMAUint32(cx, tvr.value(), (uint32_t *)ip);
+}
+
+JS_PUBLIC_API(JSBool)
+JS_ValueToInt32(JSContext *cx, jsval v, int32 *ip)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, v);
+
+    AutoValueRooter tvr(cx, Valueify(v));
+    return ValueToInt32(cx, tvr.value(), (int32_t *)ip);
+}
+
+JS_PUBLIC_API(JSBool)
+JS_ValueToUint16(JSContext *cx, jsval v, uint16 *ip)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, v);
+
+    AutoValueRooter tvr(cx, Valueify(v));
+    return ValueToUint16(cx, tvr.value(), (uint16_t *)ip);
+}
+
+JS_PUBLIC_API(JSBool)
+JS_ValueToBoolean(JSContext *cx, jsval v, JSBool *bp)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, v);
+    *bp = js_ValueToBoolean(Valueify(v));
     return JS_TRUE;
 }
 
 JS_PUBLIC_API(JSType)
-JS_TypeOfValue(JSContext *cx, jsval valueArg)
+JS_TypeOfValue(JSContext *cx, jsval v)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-    return TypeOfValue(cx, value);
+    assertSameCompartment(cx, v);
+    return TypeOfValue(cx, Valueify(v));
 }
 
 JS_PUBLIC_API(const char *)
 JS_GetTypeName(JSContext *cx, JSType type)
 {
-    if ((unsigned)type >= (unsigned)JSTYPE_LIMIT)
+    if ((uintN)type >= (uintN)JSTYPE_LIMIT)
         return NULL;
     return JS_TYPE_STR(type);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_StrictlyEqual(JSContext *cx, jsval value1Arg, jsval value2Arg, JSBool *equal)
+JS_StrictlyEqual(JSContext *cx, jsval v1, jsval v2, JSBool *equal)
 {
-    RootedValue value1(cx, value1Arg);
-    RootedValue value2(cx, value2Arg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value1, value2);
-    bool eq;
-    if (!StrictlyEqual(cx, value1, value2, &eq))
-        return false;
-    *equal = eq;
-    return true;
+    assertSameCompartment(cx, v1, v2);
+    return StrictlyEqual(cx, Valueify(v1), Valueify(v2), equal);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_LooselyEqual(JSContext *cx, jsval value1Arg, jsval value2Arg, JSBool *equal)
+JS_LooselyEqual(JSContext *cx, jsval v1, jsval v2, JSBool *equal)
 {
-    RootedValue value1(cx, value1Arg);
-    RootedValue value2(cx, value2Arg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value1, value2);
-    bool eq;
-    if (!LooselyEqual(cx, value1, value2, &eq))
-        return false;
-    *equal = eq;
-    return true;
+    assertSameCompartment(cx, v1, v2);
+    return LooselyEqual(cx, Valueify(v1), Valueify(v2), equal);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SameValue(JSContext *cx, jsval value1Arg, jsval value2Arg, JSBool *same)
+JS_SameValue(JSContext *cx, jsval v1, jsval v2, JSBool *same)
 {
-    RootedValue value1(cx, value1Arg);
-    RootedValue value2(cx, value2Arg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value1, value2);
-    bool s;
-    if (!SameValue(cx, value1, value2, &s))
-        return false;
-    *same = s;
-    return true;
+    assertSameCompartment(cx, v1, v2);
+    return SameValue(cx, Valueify(v1), Valueify(v2), same);
 }
 
 JS_PUBLIC_API(JSBool)
@@ -733,301 +642,89 @@ JS_IsBuiltinFunctionConstructor(JSFunction *fun)
 
 
 
-static JSBool js_NewRuntimeWasCalled = JS_FALSE;
-
-
-
-
-namespace JS {
-mozilla::ThreadLocal<JSRuntime *> TlsRuntime;
-
 #ifdef DEBUG
-JS_FRIEND_API(void)
-EnterAssertNoGCScope()
-{
-    ++TlsRuntime.get()->gcAssertNoGCDepth;
-}
-
-JS_FRIEND_API(void)
-LeaveAssertNoGCScope()
-{
-    --TlsRuntime.get()->gcAssertNoGCDepth;
-    JS_ASSERT(TlsRuntime.get()->gcAssertNoGCDepth >= 0);
-}
-
-JS_FRIEND_API(bool)
-InNoGCScope()
-{
-    return TlsRuntime.get()->gcAssertNoGCDepth > 0;
-}
-
-JS_FRIEND_API(bool)
-NeedRelaxedRootChecks()
-{
-    return TlsRuntime.get()->gcRelaxRootChecks;
-}
-#else
-JS_FRIEND_API(void) EnterAssertNoGCScope() {}
-JS_FRIEND_API(void) LeaveAssertNoGCScope() {}
-JS_FRIEND_API(bool) InNoGCScope() { return false; }
-JS_FRIEND_API(bool) NeedRelaxedRootChecks() { return false; }
+static JSBool js_NewRuntimeWasCalled = JS_FALSE;
 #endif
-
-} 
-
-static const JSSecurityCallbacks NullSecurityCallbacks = { };
 
 JSRuntime::JSRuntime()
-  : atomsCompartment(NULL),
-#ifdef JS_THREADSAFE
-    ownerThread_(NULL),
-#endif
-    tempLifoAlloc(TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
-    freeLifoAlloc(TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
-    execAlloc_(NULL),
-    bumpAlloc_(NULL),
-#ifdef JS_METHODJIT
-    jaegerRuntime_(NULL),
-#endif
-    selfHostedGlobal_(NULL),
-    nativeStackBase(0),
-    nativeStackQuota(0),
-    interpreterFrames(NULL),
-    cxCallback(NULL),
-    destroyCompartmentCallback(NULL),
-    compartmentNameCallback(NULL),
-    activityCallback(NULL),
-    activityCallbackArg(NULL),
-#ifdef JS_THREADSAFE
-    suspendCount(0),
-    requestDepth(0),
-# ifdef DEBUG
-    checkRequestDepth(0),
-# endif
-#endif
-    gcSystemAvailableChunkListHead(NULL),
-    gcUserAvailableChunkListHead(NULL),
-    gcKeepAtoms(0),
-    gcBytes(0),
-    gcMaxBytes(0),
-    gcMaxMallocBytes(0),
-    gcNumArenasFreeCommitted(0),
-    gcVerifyPreData(NULL),
-    gcVerifyPostData(NULL),
-    gcChunkAllocationSinceLastGC(false),
-    gcNextFullGCTime(0),
-    gcLastGCTime(0),
-    gcJitReleaseTime(0),
-    gcMode(JSGC_MODE_GLOBAL),
-    gcHighFrequencyGC(false),
-    gcHighFrequencyTimeThreshold(1000),
-    gcHighFrequencyLowLimitBytes(100 * 1024 * 1024),
-    gcHighFrequencyHighLimitBytes(500 * 1024 * 1024),
-    gcHighFrequencyHeapGrowthMax(3.0),
-    gcHighFrequencyHeapGrowthMin(1.5),
-    gcLowFrequencyHeapGrowth(1.5),
-    gcDynamicHeapGrowth(false),
-    gcDynamicMarkSlice(false),
-    gcShouldCleanUpEverything(false),
-    gcIsNeeded(0),
-    gcWeakMapList(NULL),
-    gcStats(thisFromCtor()),
-    gcNumber(0),
-    gcStartNumber(0),
-    gcIsFull(false),
-    gcTriggerReason(gcreason::NO_REASON),
-    gcStrictCompartmentChecking(false),
-    gcDisableStrictProxyCheckingCount(0),
-    gcIncrementalState(gc::NO_INCREMENTAL),
-    gcLastMarkSlice(false),
-    gcSweepOnBackgroundThread(false),
-    gcSweepingCompartments(NULL),
-    gcSweepPhase(0),
-    gcSweepCompartmentIndex(0),
-    gcSweepKindIndex(0),
-    gcArenasAllocatedDuringSweep(NULL),
-    gcInterFrameGC(0),
-    gcSliceBudget(SliceBudget::Unlimited),
-    gcIncrementalEnabled(true),
-    gcExactScanningEnabled(true),
-#ifdef DEBUG
-    gcRelaxRootChecks(false),
-    gcAssertNoGCDepth(0),
-#endif
-    gcPoke(false),
-    heapState(Idle),
-#ifdef JS_GC_ZEAL
-    gcZeal_(0),
-    gcZealFrequency(0),
-    gcNextScheduled(0),
-    gcDeterministicOnly(false),
-    gcIncrementalLimit(0),
-#endif
-    gcValidate(true),
-    gcCallback(NULL),
-    gcSliceCallback(NULL),
-    gcFinalizeCallback(NULL),
-    analysisPurgeCallback(NULL),
-    analysisPurgeTriggerBytes(0),
-    gcMallocBytes(0),
-    gcBlackRootsTraceOp(NULL),
-    gcBlackRootsData(NULL),
-    gcGrayRootsTraceOp(NULL),
-    gcGrayRootsData(NULL),
-    autoGCRooters(NULL),
-    scriptAndCountsVector(NULL),
-    NaNValue(UndefinedValue()),
-    negativeInfinityValue(UndefinedValue()),
-    positiveInfinityValue(UndefinedValue()),
-    emptyString(NULL),
-    sourceHook(NULL),
-    debugMode(false),
-    spsProfiler(thisFromCtor()),
-    profilingScripts(false),
-    alwaysPreserveCode(false),
-    hadOutOfMemory(false),
-    debugScopes(NULL),
-    data(NULL),
-    gcLock(NULL),
-    gcHelperThread(thisFromCtor()),
-#ifdef JS_THREADSAFE
-    sourceCompressorThread(thisFromCtor()),
-#endif
-    defaultFreeOp_(thisFromCtor(), false),
-    debuggerMutations(0),
-    securityCallbacks(const_cast<JSSecurityCallbacks *>(&NullSecurityCallbacks)),
-    DOMcallbacks(NULL),
-    destroyPrincipals(NULL),
-    structuredCloneCallbacks(NULL),
-    telemetryCallback(NULL),
-    propertyRemovals(0),
-    thousandsSeparator(0),
-    decimalSeparator(0),
-    numGrouping(0),
-    waiveGCQuota(false),
-    mathCache_(NULL),
-    dtoaState(NULL),
-    trustedPrincipals_(NULL),
-    wrapObjectCallback(TransparentObjectWrapper),
-    sameCompartmentWrapObjectCallback(NULL),
-    preWrapObjectCallback(NULL),
-    preserveWrapperCallback(NULL),
-#ifdef DEBUG
-    noGCOrAllocationCheck(0),
-#endif
-    inOOMReport(0),
-    jitHardening(false)
+  : gcChunkAllocator(&defaultGCChunkAllocator)
 {
     
     JS_INIT_CLIST(&contextList);
-    JS_INIT_CLIST(&debuggerList);
-
-    PodZero(&debugHooks);
-    PodZero(&atomState);
-
-#if JS_STACK_GROWTH_DIRECTION > 0
-    nativeStackLimit = UINTPTR_MAX;
-#endif
+    JS_INIT_CLIST(&trapList);
+    JS_INIT_CLIST(&watchPointList);
 }
 
 bool
-JSRuntime::init(uint32_t maxbytes)
+JSRuntime::init(uint32 maxbytes)
 {
-#ifdef JS_THREADSAFE
-    ownerThread_ = PR_GetCurrentThread();
-#endif
-
-    JS::TlsRuntime.set(this);
-
 #ifdef JS_METHODJIT_SPEW
     JMCheckLogging();
 #endif
 
-#if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
-    PodArrayZero(thingGCRooters);
+#ifdef DEBUG
+    functionMeterFilename = getenv("JS_FUNCTION_STATFILE");
+    if (functionMeterFilename) {
+        if (!methodReadBarrierCountMap.init())
+            return false;
+        if (!unjoinedFunctionCountMap.init())
+            return false;
+    }
+    propTreeStatFilename = getenv("JS_PROPTREE_STATFILE");
+    propTreeDumpFilename = getenv("JS_PROPTREE_DUMPFILE");
+#endif
+
+#ifdef JS_TRACER
+    InitJIT();
 #endif
 
     if (!js_InitGC(this, maxbytes))
         return false;
 
-    if (!gcMarker.init())
-        return false;
-
-    const char *size = getenv("JSGC_MARK_STACK_LIMIT");
-    if (size)
-        SetMarkStackLimit(this, atoi(size));
-
     if (!(atomsCompartment = this->new_<JSCompartment>(this)) ||
-        !atomsCompartment->init(NULL) ||
-        !compartments.append(atomsCompartment))
-    {
-        js_delete(atomsCompartment);
+        !atomsCompartment->init() ||
+        !compartments.append(atomsCompartment)) {
+        Foreground::delete_(atomsCompartment);
         return false;
     }
 
-    atomsCompartment->isSystemCompartment = true;
-    atomsCompartment->setGCLastBytes(8192, 8192, GC_NORMAL);
+    atomsCompartment->setGCLastBytes(8192);
 
-    if (!InitAtomState(this))
+    if (!js_InitAtomState(this))
         return false;
 
-    if (!InitRuntimeNumberState(this))
-        return false;
-
-    dtoaState = js_NewDtoaState();
-    if (!dtoaState)
-        return false;
-
-    if (!stackSpace.init())
-        return false;
-
-    if (!scriptFilenameTable.init())
-        return false;
+    wrapObjectCallback = js::TransparentObjectWrapper;
 
 #ifdef JS_THREADSAFE
-    if (!sourceCompressorThread.init())
+    
+    if (!js_SetupLocks(8, 16))
+        return false;
+    rtLock = JS_NEW_LOCK();
+    if (!rtLock)
+        return false;
+    stateChange = JS_NEW_CONDVAR(gcLock);
+    if (!stateChange)
+        return false;
+    debuggerLock = JS_NEW_LOCK();
+    if (!debuggerLock)
         return false;
 #endif
 
-    if (!evalCache.init())
-        return false;
-
-    debugScopes = this->new_<DebugScopes>(this);
-    if (!debugScopes || !debugScopes->init()) {
-        js_delete(debugScopes);
-        return false;
-    }
-
-    nativeStackBase = GetNativeStackBase();
-    return true;
+    debugMode = JS_FALSE;
+    return js_InitThreads(this);
 }
 
 JSRuntime::~JSRuntime()
 {
-#ifdef JS_THREADSAFE
-    clearOwnerThread();
-#endif
-
-    js_delete(debugScopes);
-
-    
-
-
-
-    FreeScriptFilenames(this);
-
-#ifdef JS_THREADSAFE
-    sourceCompressorThread.finish();
-#endif
-
 #ifdef DEBUG
     
     if (!JS_CLIST_IS_EMPTY(&contextList)) {
-        unsigned cxcount = 0;
-        for (ContextIter acx(this); !acx.done(); acx.next()) {
+        JSContext *cx, *iter = NULL;
+        uintN cxcount = 0;
+        while ((cx = js_ContextIterator(this, JS_TRUE, &iter)) != NULL) {
             fprintf(stderr,
 "JS API usage error: found live context at %p\n",
-                    (void *) acx.get());
+                    (void *) cx);
             cxcount++;
         }
         fprintf(stderr,
@@ -1036,79 +733,36 @@ JSRuntime::~JSRuntime()
     }
 #endif
 
-    FinishRuntimeNumberState(this);
-    FinishAtomState(this);
+#ifdef JS_TRACER
+    FinishJIT();
+#endif
 
-    if (dtoaState)
-        js_DestroyDtoaState(dtoaState);
+    js_FinishThreads(this);
+    js_FreeRuntimeScriptState(this);
+    js_FinishAtomState(this);
 
     js_FinishGC(this);
 #ifdef JS_THREADSAFE
     if (gcLock)
-        PR_DestroyLock(gcLock);
-#endif
-
-    js_delete(bumpAlloc_);
-    js_delete(mathCache_);
-#ifdef JS_METHODJIT
-    js_delete(jaegerRuntime_);
-#endif
-    js_delete(execAlloc_);  
-}
-
-#ifdef JS_THREADSAFE
-void
-JSRuntime::setOwnerThread()
-{
-    JS_ASSERT(ownerThread_ == (void *)0xc1ea12);  
-    JS_ASSERT(requestDepth == 0);
-    JS_ASSERT(js_NewRuntimeWasCalled);
-    JS_ASSERT(JS::TlsRuntime.get() == NULL);
-    ownerThread_ = PR_GetCurrentThread();
-    JS::TlsRuntime.set(this);
-    nativeStackBase = GetNativeStackBase();
-    if (nativeStackQuota)
-        JS_SetNativeStackQuota(this, nativeStackQuota);
-}
-
-void
-JSRuntime::clearOwnerThread()
-{
-    assertValidThread();
-    JS_ASSERT(requestDepth == 0);
-    JS_ASSERT(js_NewRuntimeWasCalled);
-    ownerThread_ = (void *)0xc1ea12;  
-    JS::TlsRuntime.set(NULL);
-    nativeStackBase = 0;
-#if JS_STACK_GROWTH_DIRECTION > 0
-    nativeStackLimit = UINTPTR_MAX;
-#else
-    nativeStackLimit = 0;
+        JS_DESTROY_LOCK(gcLock);
+    if (gcDone)
+        JS_DESTROY_CONDVAR(gcDone);
+    if (requestDone)
+        JS_DESTROY_CONDVAR(requestDone);
+    if (rtLock)
+        JS_DESTROY_LOCK(rtLock);
+    if (stateChange)
+        JS_DESTROY_CONDVAR(stateChange);
+    if (debuggerLock)
+        JS_DESTROY_LOCK(debuggerLock);
 #endif
 }
-
-JS_FRIEND_API(void)
-JSRuntime::abortIfWrongThread() const
-{
-    if (ownerThread_ != PR_GetCurrentThread())
-        MOZ_CRASH();
-    if (this != JS::TlsRuntime.get())
-        MOZ_CRASH();
-}
-
-JS_FRIEND_API(void)
-JSRuntime::assertValidThread() const
-{
-    JS_ASSERT(ownerThread_ == PR_GetCurrentThread());
-    JS_ASSERT(this == JS::TlsRuntime.get());
-}
-#endif  
 
 JS_PUBLIC_API(JSRuntime *)
-JS_NewRuntime(uint32_t maxbytes)
+JS_NewRuntime(uint32 maxbytes)
 {
-    if (!js_NewRuntimeWasCalled) {
 #ifdef DEBUG
+    if (!js_NewRuntimeWasCalled) {
         
 
 
@@ -1123,7 +777,7 @@ JS_NewRuntime(uint32_t maxbytes)
 
 #define MSG_DEF(name, number, count, exception, format)                       \
     JS_BEGIN_MACRO                                                            \
-        unsigned numfmtspecs = 0;                                                \
+        uintN numfmtspecs = 0;                                                \
         const char *fmt;                                                      \
         for (fmt = format; *fmt != '\0'; fmt++) {                             \
             if (*fmt == '{' && isdigit(fmt[1]))                               \
@@ -1133,40 +787,60 @@ JS_NewRuntime(uint32_t maxbytes)
     JS_END_MACRO;
 #include "js.msg"
 #undef MSG_DEF
-#endif 
-
-        InitMemorySubsystem();
-
-        if (!JS::TlsRuntime.init())
-            return NULL;
 
         js_NewRuntimeWasCalled = JS_TRUE;
     }
+#endif 
 
-    JSRuntime *rt = js_new<JSRuntime>();
-    if (!rt)
+    void *mem = OffTheBooks::calloc_(sizeof(JSRuntime));
+    if (!mem)
         return NULL;
 
+#ifdef JS_METHODJIT
+    if (!ion::InitializeIon())
+        return NULL;
+#endif
+
+    JSRuntime *rt = new (mem) JSRuntime();
     if (!rt->init(maxbytes)) {
         JS_DestroyRuntime(rt);
         return NULL;
     }
 
-    Probes::createRuntime(rt);
     return rt;
 }
 
 JS_PUBLIC_API(void)
 JS_DestroyRuntime(JSRuntime *rt)
 {
-    Probes::destroyRuntime(rt);
-    js_delete(rt);
+    Foreground::delete_(rt);
 }
+
+#ifdef JS_REPRMETER
+namespace reprmeter {
+    extern void js_DumpReprMeter();
+}
+#endif
 
 JS_PUBLIC_API(void)
 JS_ShutDown(void)
 {
-    Probes::shutdown();
+#ifdef MOZ_TRACEVIS
+    StopTraceVis();
+#endif
+
+#ifdef JS_OPMETER
+    extern void js_DumpOpMeters();
+    js_DumpOpMeters();
+#endif
+
+#ifdef JS_REPRMETER
+    reprmeter::js_DumpReprMeter();
+#endif
+
+#ifdef JS_THREADSAFE
+    js_CleanupLocks();
+#endif
     PRMJ_NowShutdown();
 }
 
@@ -1186,16 +860,33 @@ JS_SetRuntimePrivate(JSRuntime *rt, void *data)
 static void
 StartRequest(JSContext *cx)
 {
-    JSRuntime *rt = cx->runtime;
-    rt->assertValidThread();
+    JSThread *t = cx->thread();
+    JS_ASSERT(CURRENT_THREAD_IS_ME(t));
 
-    if (rt->requestDepth) {
-        rt->requestDepth++;
+    if (t->data.requestDepth) {
+        t->data.requestDepth++;
     } else {
-        
-        rt->requestDepth = 1;
+        JSRuntime *rt = cx->runtime;
+        AutoLockGC lock(rt);
 
-        if (rt->activityCallback)
+        
+        if (rt->gcThread != cx->thread()) {
+            while (rt->gcThread)
+                JS_AWAIT_GC_DONE(rt);
+        }
+
+        
+        rt->requestCount++;
+        t->data.requestDepth = 1;
+
+        
+
+
+
+        if (t->data.interruptFlags)
+            JS_ATOMIC_INCREMENT(&rt->interruptCounter);
+
+        if (rt->requestCount == 1 && rt->activityCallback)
             rt->activityCallback(rt->activityCallbackArg, true);
     }
 }
@@ -1203,17 +894,37 @@ StartRequest(JSContext *cx)
 static void
 StopRequest(JSContext *cx)
 {
-    JSRuntime *rt = cx->runtime;
-    rt->assertValidThread();
-    JS_ASSERT(rt->requestDepth != 0);
-    if (rt->requestDepth != 1) {
-        rt->requestDepth--;
+    JSThread *t = cx->thread();
+    JS_ASSERT(CURRENT_THREAD_IS_ME(t));
+    JS_ASSERT(t->data.requestDepth != 0);
+    if (t->data.requestDepth != 1) {
+        t->data.requestDepth--;
     } else {
-        rt->conservativeGC.updateForRequestEnd(rt->suspendCount);
-        rt->requestDepth = 0;
+        LeaveTrace(cx);  
 
-        if (rt->activityCallback)
-            rt->activityCallback(rt->activityCallbackArg, false);
+        t->data.conservativeGC.updateForRequestEnd(t->suspendCount);
+
+        
+        JSRuntime *rt = cx->runtime;
+        AutoLockGC lock(rt);
+
+        t->data.requestDepth = 0;
+
+        
+
+
+
+        if (t->data.interruptFlags)
+            JS_ATOMIC_DECREMENT(&rt->interruptCounter);
+
+        
+        JS_ASSERT(rt->requestCount > 0);
+        rt->requestCount--;
+        if (rt->requestCount == 0) {
+            JS_NOTIFY_REQUEST_DONE(rt);
+            if (rt->activityCallback)
+                rt->activityCallback(rt->activityCallbackArg, false);
+        }
     }
 }
 #endif 
@@ -1247,19 +958,19 @@ JS_YieldRequest(JSContext *cx)
 #endif
 }
 
-JS_PUBLIC_API(unsigned)
+JS_PUBLIC_API(jsrefcount)
 JS_SuspendRequest(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
-    JSRuntime *rt = cx->runtime;
-    rt->assertValidThread();
+    JSThread *t = cx->thread();
+    JS_ASSERT(CURRENT_THREAD_IS_ME(t));
 
-    unsigned saveDepth = rt->requestDepth;
+    jsrefcount saveDepth = t->data.requestDepth;
     if (!saveDepth)
         return 0;
 
-    rt->suspendCount++;
-    rt->requestDepth = 1;
+    t->suspendCount++;
+    t->data.requestDepth = 1;
     StopRequest(cx);
     return saveDepth;
 #else
@@ -1268,42 +979,43 @@ JS_SuspendRequest(JSContext *cx)
 }
 
 JS_PUBLIC_API(void)
-JS_ResumeRequest(JSContext *cx, unsigned saveDepth)
+JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth)
 {
 #ifdef JS_THREADSAFE
-    JSRuntime *rt = cx->runtime;
-    rt->assertValidThread();
+    JSThread *t = cx->thread();
+    JS_ASSERT(CURRENT_THREAD_IS_ME(t));
     if (saveDepth == 0)
         return;
     JS_ASSERT(saveDepth >= 1);
-    JS_ASSERT(!rt->requestDepth);
-    JS_ASSERT(rt->suspendCount);
+    JS_ASSERT(!t->data.requestDepth);
+    JS_ASSERT(t->suspendCount);
     StartRequest(cx);
-    rt->requestDepth = saveDepth;
-    rt->suspendCount--;
+    t->data.requestDepth = saveDepth;
+    t->suspendCount--;
 #endif
 }
 
 JS_PUBLIC_API(JSBool)
-JS_IsInRequest(JSRuntime *rt)
+JS_IsInRequest(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
-    rt->assertValidThread();
-    return rt->requestDepth != 0;
+    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread()));
+    return JS_THREAD_DATA(cx)->requestDepth != 0;
 #else
     return false;
 #endif
 }
 
-JS_PUBLIC_API(JSBool)
-JS_IsInSuspendedRequest(JSRuntime *rt)
+JS_PUBLIC_API(void)
+JS_Lock(JSRuntime *rt)
 {
-#ifdef JS_THREADSAFE
-    rt->assertValidThread();
-    return rt->suspendCount != 0;
-#else
-    return false;
-#endif
+    JS_LOCK_RUNTIME(rt);
+}
+
+JS_PUBLIC_API(void)
+JS_Unlock(JSRuntime *rt)
+{
+    JS_UNLOCK_RUNTIME(rt);
 }
 
 JS_PUBLIC_API(JSContextCallback)
@@ -1319,19 +1031,25 @@ JS_SetContextCallback(JSRuntime *rt, JSContextCallback cxCallback)
 JS_PUBLIC_API(JSContext *)
 JS_NewContext(JSRuntime *rt, size_t stackChunkSize)
 {
-    return NewContext(rt, stackChunkSize);
+    return js_NewContext(rt, stackChunkSize);
 }
 
 JS_PUBLIC_API(void)
 JS_DestroyContext(JSContext *cx)
 {
-    DestroyContext(cx, DCM_FORCE_GC);
+    js_DestroyContext(cx, JSDCM_FORCE_GC);
 }
 
 JS_PUBLIC_API(void)
 JS_DestroyContextNoGC(JSContext *cx)
 {
-    DestroyContext(cx, DCM_NO_GC);
+    js_DestroyContext(cx, JSDCM_NO_GC);
+}
+
+JS_PUBLIC_API(void)
+JS_DestroyContextMaybeGC(JSContext *cx)
+{
+    js_DestroyContext(cx, JSDCM_MAYBE_GC);
 }
 
 JS_PUBLIC_API(void *)
@@ -1346,18 +1064,6 @@ JS_SetContextPrivate(JSContext *cx, void *data)
     cx->data = data;
 }
 
-JS_PUBLIC_API(void *)
-JS_GetSecondContextPrivate(JSContext *cx)
-{
-    return cx->data2;
-}
-
-JS_PUBLIC_API(void)
-JS_SetSecondContextPrivate(JSContext *cx, void *data)
-{
-    cx->data2 = data;
-}
-
 JS_PUBLIC_API(JSRuntime *)
 JS_GetRuntime(JSContext *cx)
 {
@@ -1367,11 +1073,7 @@ JS_GetRuntime(JSContext *cx)
 JS_PUBLIC_API(JSContext *)
 JS_ContextIterator(JSRuntime *rt, JSContext **iterp)
 {
-    JSContext *cx = *iterp;
-    JSCList *next = cx ? cx->link.next : rt->contextList.next;
-    cx = (next == &rt->contextList) ? NULL : JSContext::fromLinkField(next);
-    *iterp = cx;
-    return cx;
+    return js_ContextIterator(rt, JS_TRUE, iterp);
 }
 
 JS_PUBLIC_API(JSVersion)
@@ -1388,7 +1090,7 @@ JS_SetVersion(JSContext *cx, JSVersion newVersion)
     JSVersion newVersionNumber = newVersion;
 
 #ifdef DEBUG
-    unsigned coptsBefore = cx->getCompileOptions();
+    uintN coptsBefore = cx->getCompileOptions();
 #endif
     JSVersion oldVersion = cx->findVersion();
     JSVersion oldVersionNumber = VersionNumber(oldVersion);
@@ -1446,7 +1148,7 @@ JS_StringToVersion(const char *string)
     return JSVERSION_UNKNOWN;
 }
 
-JS_PUBLIC_API(uint32_t)
+JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx)
 {
     
@@ -1457,37 +1159,33 @@ JS_GetOptions(JSContext *cx)
     return cx->allOptions();
 }
 
-static unsigned
-SetOptionsCommon(JSContext *cx, unsigned options)
+static uintN
+SetOptionsCommon(JSContext *cx, uintN options)
 {
     JS_ASSERT((options & JSALLOPTION_MASK) == options);
-    unsigned oldopts = cx->allOptions();
-    unsigned newropts = options & JSRUNOPTION_MASK;
-    unsigned newcopts = options & JSCOMPILEOPTION_MASK;
+    uintN oldopts = cx->allOptions();
+    uintN newropts = options & JSRUNOPTION_MASK;
+    uintN newcopts = options & JSCOMPILEOPTION_MASK;
     cx->setRunOptions(newropts);
     cx->setCompileOptions(newcopts);
     cx->updateJITEnabled();
     return oldopts;
 }
 
-JS_PUBLIC_API(uint32_t)
-JS_SetOptions(JSContext *cx, uint32_t options)
+JS_PUBLIC_API(uint32)
+JS_SetOptions(JSContext *cx, uint32 options)
 {
+    AutoLockGC lock(cx->runtime);
     return SetOptionsCommon(cx, options);
 }
 
-JS_PUBLIC_API(uint32_t)
-JS_ToggleOptions(JSContext *cx, uint32_t options)
+JS_PUBLIC_API(uint32)
+JS_ToggleOptions(JSContext *cx, uint32 options)
 {
-    unsigned oldopts = cx->allOptions();
-    unsigned newopts = oldopts ^ options;
+    AutoLockGC lock(cx->runtime);
+    uintN oldopts = cx->allOptions();
+    uintN newopts = oldopts ^ options;
     return SetOptionsCommon(cx, newopts);
-}
-
-JS_PUBLIC_API(void)
-JS_SetJitHardening(JSRuntime *rt, JSBool enabled)
-{
-    rt->setJitHardening(!!enabled);
 }
 
 JS_PUBLIC_API(const char *)
@@ -1496,104 +1194,129 @@ JS_GetImplementationVersion(void)
     return "JavaScript-C 1.8.5+ 2011-04-16";
 }
 
-JS_PUBLIC_API(void)
-JS_SetDestroyCompartmentCallback(JSRuntime *rt, JSDestroyCompartmentCallback callback)
+JS_PUBLIC_API(JSCompartmentCallback)
+JS_SetCompartmentCallback(JSRuntime *rt, JSCompartmentCallback callback)
 {
-    rt->destroyCompartmentCallback = callback;
-}
-
-JS_PUBLIC_API(void)
-JS_SetCompartmentNameCallback(JSRuntime *rt, JSCompartmentNameCallback callback)
-{
-    rt->compartmentNameCallback = callback;
+    JSCompartmentCallback old = rt->compartmentCallback;
+    rt->compartmentCallback = callback;
+    return old;
 }
 
 JS_PUBLIC_API(JSWrapObjectCallback)
 JS_SetWrapObjectCallbacks(JSRuntime *rt,
                           JSWrapObjectCallback callback,
-                          JSSameCompartmentWrapObjectCallback sccallback,
                           JSPreWrapCallback precallback)
 {
     JSWrapObjectCallback old = rt->wrapObjectCallback;
     rt->wrapObjectCallback = callback;
-    rt->sameCompartmentWrapObjectCallback = sccallback;
     rt->preWrapObjectCallback = precallback;
     return old;
 }
 
-JS_PUBLIC_API(JSCompartment *)
-JS_EnterCompartment(JSContext *cx, JSRawObject target)
+JS_PUBLIC_API(JSCrossCompartmentCall *)
+JS_EnterCrossCompartmentCall(JSContext *cx, JSObject *target)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
-    JSCompartment *oldCompartment = cx->compartment;
-    cx->enterCompartment(target->compartment());
-    return oldCompartment;
+    JS_ASSERT(target);
+    AutoCompartment *call = cx->new_<AutoCompartment>(cx, target);
+    if (!call)
+        return NULL;
+    if (!call->enter()) {
+        Foreground::delete_(call);
+        return NULL;
+    }
+    return reinterpret_cast<JSCrossCompartmentCall *>(call);
 }
 
-JS_PUBLIC_API(JSCompartment *)
-JS_EnterCompartmentOfScript(JSContext *cx, JSScript *target)
+JS_PUBLIC_API(JSCrossCompartmentCall *)
+JS_EnterCrossCompartmentCallScript(JSContext *cx, JSScript *target)
 {
-    AssertHeapIsIdle(cx);
+    static JSClass dummy_class = {
+        "jdummy",
+        JSCLASS_GLOBAL_FLAGS,
+        JS_PropertyStub,  JS_PropertyStub,
+        JS_PropertyStub,  JS_StrictPropertyStub,
+        JS_EnumerateStub, JS_ResolveStub,
+        JS_ConvertStub,   NULL,
+        JSCLASS_NO_OPTIONAL_MEMBERS
+    };
+
     CHECK_REQUEST(cx);
-    GlobalObject &global = target->global();
-    return JS_EnterCompartment(cx, &global);
+
+    JS_ASSERT(target);
+    JSObject *scriptObject = target->u.object;
+    if (!scriptObject) {
+        SwitchToCompartment sc(cx, target->compartment);
+        scriptObject = JS_NewGlobalObject(cx, &dummy_class);
+        if (!scriptObject)
+            return NULL;
+    }
+    return JS_EnterCrossCompartmentCall(cx, scriptObject);
 }
 
 JS_PUBLIC_API(void)
-JS_LeaveCompartment(JSContext *cx, JSCompartment *oldCompartment)
+JS_LeaveCrossCompartmentCall(JSCrossCompartmentCall *call)
 {
-    AssertHeapIsIdle(cx);
+    AutoCompartment *realcall = reinterpret_cast<AutoCompartment *>(call);
+    CHECK_REQUEST(realcall->context);
+    realcall->leave();
+    Foreground::delete_(realcall);
+}
+
+bool
+JSAutoEnterCompartment::enter(JSContext *cx, JSObject *target)
+{
+    JS_ASSERT(!call);
+    if (cx->compartment == target->getCompartment()) {
+        call = reinterpret_cast<JSCrossCompartmentCall*>(1);
+        return true;
+    }
+    call = JS_EnterCrossCompartmentCall(cx, target);
+    return call != NULL;
+}
+
+void
+JSAutoEnterCompartment::enterAndIgnoreErrors(JSContext *cx, JSObject *target)
+{
+    (void) enter(cx, target);
+}
+
+namespace JS {
+
+bool
+AutoEnterScriptCompartment::enter(JSContext *cx, JSScript *target)
+{
+    JS_ASSERT(!call);
+    if (cx->compartment == target->compartment) {
+        call = reinterpret_cast<JSCrossCompartmentCall*>(1);
+        return true;
+    }
+    call = JS_EnterCrossCompartmentCallScript(cx, target);
+    return call != NULL;
+}
+
+} 
+
+JS_PUBLIC_API(void *)
+JS_SetCompartmentPrivate(JSContext *cx, JSCompartment *compartment, void *data)
+{
     CHECK_REQUEST(cx);
-    cx->leaveCompartment(oldCompartment);
-}
-
-JSAutoCompartment::JSAutoCompartment(JSContext *cx, JSRawObject target)
-  : cx_(cx),
-    oldCompartment_(cx->compartment)
-{
-    AssertHeapIsIdleOrIterating(cx_);
-    cx_->enterCompartment(target->compartment());
-}
-
-JSAutoCompartment::JSAutoCompartment(JSContext *cx, JSScript *target)
-  : cx_(cx),
-    oldCompartment_(cx->compartment)
-{
-    AssertHeapIsIdleOrIterating(cx_);
-    cx_->enterCompartment(target->compartment());
-}
-
-JSAutoCompartment::JSAutoCompartment(JSContext *cx, JSStackFrame *target)
-  : cx_(cx),
-    oldCompartment_(cx->compartment)
-{
-    AssertHeapIsIdleOrIterating(cx_);
-    cx_->enterCompartment(Valueify(target)->global().compartment());
-}
-
-JSAutoCompartment::~JSAutoCompartment()
-{
-    cx_->leaveCompartment(oldCompartment_);
-}
-
-JS_PUBLIC_API(void)
-JS_SetCompartmentPrivate(JSCompartment *compartment, void *data)
-{
+    void *old = compartment->data;
     compartment->data = data;
+    return old;
 }
 
 JS_PUBLIC_API(void *)
-JS_GetCompartmentPrivate(JSCompartment *compartment)
+JS_GetCompartmentPrivate(JSContext *cx, JSCompartment *compartment)
 {
+    CHECK_REQUEST(cx);
     return compartment->data;
 }
 
 JS_PUBLIC_API(JSBool)
 JS_WrapObject(JSContext *cx, JSObject **objp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return cx->compartment->wrap(cx, objp);
 }
@@ -1601,111 +1324,106 @@ JS_WrapObject(JSContext *cx, JSObject **objp)
 JS_PUBLIC_API(JSBool)
 JS_WrapValue(JSContext *cx, jsval *vp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    return cx->compartment->wrap(cx, vp);
+    return cx->compartment->wrap(cx, Valueify(vp));
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 JS_PUBLIC_API(JSObject *)
-JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
+JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
 {
-    RootedObject origobj(cx, origobjArg);
-    RootedObject target(cx, targetArg);
-    AssertHeapIsIdle(cx);
-    JS_ASSERT(origobj != target);
-    JS_ASSERT(!IsCrossCompartmentWrapper(origobj));
-    JS_ASSERT(!IsCrossCompartmentWrapper(target));
-
-    
-
-
-
-
-
-    if (cx->runtime->gcIncrementalState != NO_INCREMENTAL) {
-        PrepareForIncrementalGC(cx->runtime);
-        FinishIncrementalGC(cx->runtime, gcreason::TRANSPLANT);
-    }
-
-    JSCompartment *destination = target->compartment();
+     
+     
+     
+    JSCompartment *destination = target->getCompartment();
     WrapperMap &map = destination->crossCompartmentWrappers;
     Value origv = ObjectValue(*origobj);
-    JSObject *newIdentity;
+    JSObject *obj;
 
-    if (origobj->compartment() == destination) {
+    if (origobj->getCompartment() == destination) {
         
         
         
         
-        if (!origobj->swap(cx, target))
+        
+        
+        
+        
+        if (origobj != target && !origobj->swap(cx, target))
             return NULL;
-        newIdentity = origobj;
+        obj = origobj;
     } else if (WrapperMap::Ptr p = map.lookup(origv)) {
         
         
         
-        newIdentity = &p->value.toObject();
-
         
         
+        obj = &p->value.toObject();
         map.remove(p);
-        NukeCrossCompartmentWrapper(newIdentity);
-
-        if (!newIdentity->swap(cx, target))
+        if (!obj->swap(cx, target))
             return NULL;
     } else {
         
-        newIdentity = target;
+        
+        obj = target;
     }
 
     
     
-    if (!RemapAllWrappersForObject(cx, origobj, newIdentity))
+    
+    
+    
+    Value targetv = ObjectValue(*obj);
+    CompartmentVector &vector = cx->runtime->compartments;
+    AutoValueVector toTransplant(cx);
+    if (!toTransplant.reserve(vector.length()))
         return NULL;
 
-    
-    if (origobj->compartment() != destination) {
-        RootedObject newIdentityWrapper(cx, newIdentity);
-        AutoCompartment ac(cx, origobj);
-        if (!JS_WrapObject(cx, newIdentityWrapper.address()))
+    for (JSCompartment **p = vector.begin(), **end = vector.end(); p != end; ++p) {
+        WrapperMap &pmap = (*p)->crossCompartmentWrappers;
+        if (WrapperMap::Ptr wp = pmap.lookup(origv)) {
+            
+            toTransplant.infallibleAppend(wp->value);
+        }
+    }
+
+    for (Value *begin = toTransplant.begin(), *end = toTransplant.end(); begin != end; ++begin) {
+        JSObject *wobj = &begin->toObject();
+        JSCompartment *wcompartment = wobj->compartment();
+        WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
+        JS_ASSERT(pmap.lookup(origv));
+        pmap.remove(origv);
+
+        
+        
+        AutoCompartment ac(cx, wobj);
+        JSObject *tobj = obj;
+        if (!ac.enter() || !wcompartment->wrap(cx, &tobj))
             return NULL;
-        if (!origobj->swap(cx, newIdentityWrapper))
+
+        
+        
+        
+        
+        JS_ASSERT(tobj != wobj);
+        if (!wobj->swap(cx, tobj))
             return NULL;
-        origobj->compartment()->crossCompartmentWrappers.put(ObjectValue(*newIdentity), origv);
+        pmap.put(targetv, ObjectValue(*wobj));
     }
 
     
-    
-    return newIdentity;
+    if (origobj->getCompartment() != destination) {
+        AutoCompartment ac(cx, origobj);
+        JSObject *tobj = obj;
+        if (!ac.enter() || !JS_WrapObject(cx, &tobj))
+            return NULL;
+        if (!origobj->swap(cx, tobj))
+            return NULL;
+        origobj->getCompartment()->crossCompartmentWrappers.put(targetv, origv);
+    }
+
+    return obj;
 }
+
 
 
 
@@ -1716,24 +1434,13 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
 
 JS_FRIEND_API(JSObject *)
 js_TransplantObjectWithWrapper(JSContext *cx,
-                               JSObject *origobjArg,
-                               JSObject *origwrapperArg,
-                               JSObject *targetobjArg,
-                               JSObject *targetwrapperArg)
+                               JSObject *origobj,
+                               JSObject *origwrapper,
+                               JSObject *targetobj,
+                               JSObject *targetwrapper)
 {
-    RootedObject origobj(cx, origobjArg);
-    RootedObject origwrapper(cx, origwrapperArg);
-    RootedObject targetobj(cx, targetobjArg);
-    RootedObject targetwrapper(cx, targetwrapperArg);
-
-    AssertHeapIsIdle(cx);
-    JS_ASSERT(!IsCrossCompartmentWrapper(origobj));
-    JS_ASSERT(!IsCrossCompartmentWrapper(origwrapper));
-    JS_ASSERT(!IsCrossCompartmentWrapper(targetobj));
-    JS_ASSERT(!IsCrossCompartmentWrapper(targetwrapper));
-
-    JSObject *newWrapper;
-    JSCompartment *destination = targetobj->compartment();
+    JSObject *obj;
+    JSCompartment *destination = targetobj->getCompartment();
     WrapperMap &map = destination->crossCompartmentWrappers;
 
     
@@ -1745,114 +1452,141 @@ js_TransplantObjectWithWrapper(JSContext *cx,
     if (WrapperMap::Ptr p = map.lookup(origv)) {
         
         
-        newWrapper = &p->value.toObject();
-
-        
-        
+        obj = &p->value.toObject();
         map.remove(p);
-        NukeCrossCompartmentWrapper(newWrapper);
-
-        if (!newWrapper->swap(cx, targetwrapper))
+        if (!obj->swap(cx, targetwrapper))
             return NULL;
     } else {
         
-        newWrapper = targetwrapper;
+        
+        obj = targetwrapper;
     }
 
     
     
     
-    if (!RemapAllWrappersForObject(cx, origobj, targetobj))
+    
+    Value targetv = ObjectValue(*targetobj);
+    CompartmentVector &vector = cx->runtime->compartments;
+    AutoValueVector toTransplant(cx);
+    if (!toTransplant.reserve(vector.length()))
         return NULL;
 
-    
-    
+    for (JSCompartment **p = vector.begin(), **end = vector.end(); p != end; ++p) {
+        WrapperMap &pmap = (*p)->crossCompartmentWrappers;
+        if (WrapperMap::Ptr wp = pmap.lookup(origv)) {
+            
+            toTransplant.infallibleAppend(wp->value);
+        }
+    }
+
+    for (Value *begin = toTransplant.begin(), *end = toTransplant.end(); begin != end; ++begin) {
+        JSObject *wobj = &begin->toObject();
+        JSCompartment *wcompartment = wobj->compartment();
+        WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
+        JS_ASSERT(pmap.lookup(origv));
+        pmap.remove(origv);
+
+        
+        
+        AutoCompartment ac(cx, wobj);
+
+        JSObject *tobj = targetobj;
+        if (!ac.enter() || !wcompartment->wrap(cx, &tobj))
+            return NULL;
+
+        
+        
+        
+        
+        JS_ASSERT(tobj != wobj);
+        if (!wobj->swap(cx, tobj))
+            return NULL;
+        pmap.put(targetv, ObjectValue(*wobj));
+    }
+
     
     
     
     {
         AutoCompartment ac(cx, origobj);
-
-        
-        
-        
-        
-        
-        RootedObject reflectorGuts(cx, NewDeadProxyObject(cx, JS_GetGlobalForObject(cx, origobj)));
-        if (!reflectorGuts || !origobj->swap(cx, reflectorGuts))
+        JSObject *tobj = obj;
+        if (!ac.enter() || !JS_WrapObject(cx, &tobj))
             return NULL;
-
-        
-        RootedObject wrapperGuts(cx, targetobj);
-        if (!JS_WrapObject(cx, wrapperGuts.address()))
+        if (!origwrapper->swap(cx, tobj))
             return NULL;
-        if (!origwrapper->swap(cx, wrapperGuts))
-            return NULL;
-        origwrapper->compartment()->crossCompartmentWrappers.put(ObjectValue(*targetobj),
-                                                                 ObjectValue(*origwrapper));
+        origwrapper->getCompartment()->crossCompartmentWrappers.put(targetv,
+                                                                    ObjectValue(*origwrapper));
     }
 
-    return newWrapper;
-}
-
-
-
-
-
-
-JS_PUBLIC_API(JSBool)
-JS_RefreshCrossCompartmentWrappers(JSContext *cx, JSObject *objArg)
-{
-    RootedObject obj(cx, objArg);
-    return RemapAllWrappersForObject(cx, obj, obj);
+    return obj;
 }
 
 JS_PUBLIC_API(JSObject *)
 JS_GetGlobalObject(JSContext *cx)
 {
-    return cx->maybeDefaultCompartmentObject();
+    return cx->globalObject;
 }
 
 JS_PUBLIC_API(void)
-JS_SetGlobalObject(JSContext *cx, JSRawObject obj)
+JS_SetGlobalObject(JSContext *cx, JSObject *obj)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
-    cx->setDefaultCompartmentObject(obj);
+    cx->globalObject = obj;
+    if (!cx->running())
+        cx->resetCompartment();
 }
 
 JS_PUBLIC_API(JSBool)
-JS_InitStandardClasses(JSContext *cx, JSObject *objArg)
+JS_InitStandardClasses(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
-    cx->setDefaultCompartmentObjectIfUnset(obj);
+    
+
+
+
+
+    if (!cx->globalObject)
+        JS_SetGlobalObject(cx, obj);
     assertSameCompartment(cx, obj);
 
-    Rooted<GlobalObject*> global(cx, &obj->global());
-    return GlobalObject::initStandardClasses(cx, global);
+    return obj->asGlobal()->initStandardClasses(cx);
 }
 
-#define CLASP(name)                 (&name##Class)
-#define TYPED_ARRAY_CLASP(type)     (&TypedArray::classes[TypedArray::type])
-#define EAGER_ATOM(name)            NAME_OFFSET(name)
-#define EAGER_CLASS_ATOM(name)      CLASS_NAME_OFFSET(name)
+#define CLASP(name)                 (&js_##name##Class)
+#define TYPED_ARRAY_CLASP(type)     (&TypedArray::fastClasses[TypedArray::type])
+#define EAGER_ATOM(name)            ATOM_OFFSET(name), NULL
+#define EAGER_CLASS_ATOM(name)      CLASS_ATOM_OFFSET(name), NULL
 #define EAGER_ATOM_AND_CLASP(name)  EAGER_CLASS_ATOM(name), CLASP(name)
+#define LAZY_ATOM(name)             ATOM_OFFSET(lazy.name), js_##name##_str
 
 typedef struct JSStdName {
-    JSClassInitializerOp init;
+    JSObjectOp  init;
     size_t      atomOffset;     
+    const char  *name;          
     Class       *clasp;
 } JSStdName;
 
-static PropertyName *
-StdNameToPropertyName(JSContext *cx, JSStdName *stdn)
+static JSAtom *
+StdNameToAtom(JSContext *cx, JSStdName *stdn)
 {
-    return OFFSET_TO_NAME(cx->runtime, stdn->atomOffset);
+    size_t offset;
+    JSAtom *atom;
+    const char *name;
+
+    offset = stdn->atomOffset;
+    atom = OFFSET_TO_ATOM(cx->runtime, offset);
+    if (!atom) {
+        name = stdn->name;
+        if (name) {
+            atom = js_Atomize(cx, name, strlen(name), InternAtom);
+            OFFSET_TO_ATOM(cx->runtime, offset) = atom;
+        }
+    }
+    return atom;
 }
 
 
@@ -1860,8 +1594,8 @@ StdNameToPropertyName(JSContext *cx, JSStdName *stdn)
 
 
 static JSStdName standard_class_atoms[] = {
-    {js_InitFunctionClass,              EAGER_ATOM_AND_CLASP(Function)},
-    {js_InitObjectClass,                EAGER_ATOM_AND_CLASP(Object)},
+    {js_InitFunctionAndObjectClasses,   EAGER_ATOM_AND_CLASP(Function)},
+    {js_InitFunctionAndObjectClasses,   EAGER_ATOM_AND_CLASP(Object)},
     {js_InitArrayClass,                 EAGER_ATOM_AND_CLASP(Array)},
     {js_InitBooleanClass,               EAGER_ATOM_AND_CLASP(Boolean)},
     {js_InitDateClass,                  EAGER_ATOM_AND_CLASP(Date)},
@@ -1879,12 +1613,9 @@ static JSStdName standard_class_atoms[] = {
     {js_InitIteratorClasses,            EAGER_ATOM_AND_CLASP(StopIteration)},
 #endif
     {js_InitJSONClass,                  EAGER_ATOM_AND_CLASP(JSON)},
-    {js_InitTypedArrayClasses,          EAGER_CLASS_ATOM(ArrayBuffer), &js::ArrayBufferObject::protoClass},
-    {js_InitWeakMapClass,               EAGER_CLASS_ATOM(WeakMap), &js::WeakMapClass},
-    {js_InitMapClass,                   EAGER_CLASS_ATOM(Map), &js::MapObject::class_},
-    {js_InitSetClass,                   EAGER_CLASS_ATOM(Set), &js::SetObject::class_},
-    {js_InitParallelArrayClass,         EAGER_CLASS_ATOM(ParallelArray), &js::ParallelArrayObject::class_},
-    {NULL,                              0, NULL}
+    {js_InitTypedArrayClasses,          EAGER_CLASS_ATOM(ArrayBuffer), &js::ArrayBuffer::jsclass},
+    {js_InitWeakMapClass,               EAGER_CLASS_ATOM(WeakMap), &WeakMap::jsclass},
+    {NULL,                              0, NULL, NULL}
 };
 
 
@@ -1898,20 +1629,20 @@ static JSStdName standard_class_names[] = {
     
     {js_InitNumberClass,        EAGER_ATOM(NaN), CLASP(Number)},
     {js_InitNumberClass,        EAGER_ATOM(Infinity), CLASP(Number)},
-    {js_InitNumberClass,        EAGER_ATOM(isNaN), CLASP(Number)},
-    {js_InitNumberClass,        EAGER_ATOM(isFinite), CLASP(Number)},
-    {js_InitNumberClass,        EAGER_ATOM(parseFloat), CLASP(Number)},
-    {js_InitNumberClass,        EAGER_ATOM(parseInt), CLASP(Number)},
+    {js_InitNumberClass,        LAZY_ATOM(isNaN), CLASP(Number)},
+    {js_InitNumberClass,        LAZY_ATOM(isFinite), CLASP(Number)},
+    {js_InitNumberClass,        LAZY_ATOM(parseFloat), CLASP(Number)},
+    {js_InitNumberClass,        LAZY_ATOM(parseInt), CLASP(Number)},
 
     
-    {js_InitStringClass,        EAGER_ATOM(escape), CLASP(String)},
-    {js_InitStringClass,        EAGER_ATOM(unescape), CLASP(String)},
-    {js_InitStringClass,        EAGER_ATOM(decodeURI), CLASP(String)},
-    {js_InitStringClass,        EAGER_ATOM(encodeURI), CLASP(String)},
-    {js_InitStringClass,        EAGER_ATOM(decodeURIComponent), CLASP(String)},
-    {js_InitStringClass,        EAGER_ATOM(encodeURIComponent), CLASP(String)},
+    {js_InitStringClass,        LAZY_ATOM(escape), CLASP(String)},
+    {js_InitStringClass,        LAZY_ATOM(unescape), CLASP(String)},
+    {js_InitStringClass,        LAZY_ATOM(decodeURI), CLASP(String)},
+    {js_InitStringClass,        LAZY_ATOM(encodeURI), CLASP(String)},
+    {js_InitStringClass,        LAZY_ATOM(decodeURIComponent), CLASP(String)},
+    {js_InitStringClass,        LAZY_ATOM(encodeURIComponent), CLASP(String)},
 #if JS_HAS_UNEVAL
-    {js_InitStringClass,        EAGER_ATOM(uneval), CLASP(String)},
+    {js_InitStringClass,        LAZY_ATOM(uneval), CLASP(String)},
 #endif
 
     
@@ -1925,14 +1656,17 @@ static JSStdName standard_class_names[] = {
     {js_InitExceptionClasses,   EAGER_CLASS_ATOM(URIError), CLASP(Error)},
 
 #if JS_HAS_XML_SUPPORT
-    {js_InitXMLClass,           EAGER_ATOM(XMLList), CLASP(XML)},
-    {js_InitXMLClass,           EAGER_ATOM(isXMLName), CLASP(XML)},
+    {js_InitXMLClass,           LAZY_ATOM(XMLList), CLASP(XML)},
+    {js_InitXMLClass,           LAZY_ATOM(isXMLName), CLASP(XML)},
 #endif
 
-    {js_InitIteratorClasses,    EAGER_CLASS_ATOM(Iterator), &PropertyIteratorObject::class_},
+#if JS_HAS_GENERATORS
+    {js_InitIteratorClasses,    EAGER_ATOM_AND_CLASP(Iterator)},
+    {js_InitIteratorClasses,    EAGER_ATOM_AND_CLASP(Generator)},
+#endif
 
     
-    {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(ArrayBuffer),  &ArrayBufferClass},
+    {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(ArrayBuffer), &js::ArrayBuffer::jsclass},
     {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(Int8Array),    TYPED_ARRAY_CLASP(TYPE_INT8)},
     {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(Uint8Array),   TYPED_ARRAY_CLASP(TYPE_UINT8)},
     {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(Int16Array),   TYPED_ARRAY_CLASP(TYPE_INT16)},
@@ -1943,12 +1677,10 @@ static JSStdName standard_class_names[] = {
     {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(Float64Array), TYPED_ARRAY_CLASP(TYPE_FLOAT64)},
     {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(Uint8ClampedArray),
                                 TYPED_ARRAY_CLASP(TYPE_UINT8_CLAMPED)},
-    {js_InitTypedArrayClasses,  EAGER_CLASS_ATOM(DataView),     &DataViewClass},
 
-    {js_InitWeakMapClass,       EAGER_ATOM_AND_CLASP(WeakMap)},
     {js_InitProxyClass,         EAGER_ATOM_AND_CLASP(Proxy)},
 
-    {NULL,                      0, NULL}
+    {NULL,                      0, NULL, NULL}
 };
 
 static JSStdName object_prototype_names[] = {
@@ -1961,58 +1693,56 @@ static JSStdName object_prototype_names[] = {
     {js_InitObjectClass,        EAGER_ATOM(toLocaleString), CLASP(Object)},
     {js_InitObjectClass,        EAGER_ATOM(valueOf), CLASP(Object)},
 #if JS_HAS_OBJ_WATCHPOINT
-    {js_InitObjectClass,        EAGER_ATOM(watch), CLASP(Object)},
-    {js_InitObjectClass,        EAGER_ATOM(unwatch), CLASP(Object)},
+    {js_InitObjectClass,        LAZY_ATOM(watch), CLASP(Object)},
+    {js_InitObjectClass,        LAZY_ATOM(unwatch), CLASP(Object)},
 #endif
-    {js_InitObjectClass,        EAGER_ATOM(hasOwnProperty), CLASP(Object)},
-    {js_InitObjectClass,        EAGER_ATOM(isPrototypeOf), CLASP(Object)},
-    {js_InitObjectClass,        EAGER_ATOM(propertyIsEnumerable), CLASP(Object)},
+    {js_InitObjectClass,        LAZY_ATOM(hasOwnProperty), CLASP(Object)},
+    {js_InitObjectClass,        LAZY_ATOM(isPrototypeOf), CLASP(Object)},
+    {js_InitObjectClass,        LAZY_ATOM(propertyIsEnumerable), CLASP(Object)},
 #if OLD_GETTER_SETTER_METHODS
-    {js_InitObjectClass,        EAGER_ATOM(defineGetter), CLASP(Object)},
-    {js_InitObjectClass,        EAGER_ATOM(defineSetter), CLASP(Object)},
-    {js_InitObjectClass,        EAGER_ATOM(lookupGetter), CLASP(Object)},
-    {js_InitObjectClass,        EAGER_ATOM(lookupSetter), CLASP(Object)},
+    {js_InitObjectClass,        LAZY_ATOM(defineGetter), CLASP(Object)},
+    {js_InitObjectClass,        LAZY_ATOM(defineSetter), CLASP(Object)},
+    {js_InitObjectClass,        LAZY_ATOM(lookupGetter), CLASP(Object)},
+    {js_InitObjectClass,        LAZY_ATOM(lookupSetter), CLASP(Object)},
 #endif
 
-    {NULL,                      0, NULL}
+    {NULL,                      0, NULL, NULL}
 };
 
 JS_PUBLIC_API(JSBool)
-JS_ResolveStandardClass(JSContext *cx, JSObject *objArg, jsid id, JSBool *resolved)
+JS_ResolveStandardClass(JSContext *cx, JSObject *obj, jsid id, JSBool *resolved)
 {
-    RootedObject obj(cx, objArg);
     JSString *idstr;
     JSRuntime *rt;
     JSAtom *atom;
     JSStdName *stdnm;
-    unsigned i;
+    uintN i;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id);
-    *resolved = false;
+    *resolved = JS_FALSE;
 
     rt = cx->runtime;
-    if (!rt->hasContexts() || !JSID_IS_ATOM(id))
-        return true;
+    JS_ASSERT(rt->state != JSRTS_DOWN);
+    if (rt->state == JSRTS_LANDING || !JSID_IS_ATOM(id))
+        return JS_TRUE;
 
     idstr = JSID_TO_STRING(id);
 
     
     atom = rt->atomState.typeAtoms[JSTYPE_VOID];
     if (idstr == atom) {
-        *resolved = true;
-        RootedValue undefinedValue(cx, UndefinedValue());
-        return JSObject::defineProperty(cx, obj, atom->asPropertyName(), undefinedValue,
-                                        JS_PropertyStub, JS_StrictPropertyStub,
-                                        JSPROP_PERMANENT | JSPROP_READONLY);
+        *resolved = JS_TRUE;
+        return obj->defineProperty(cx, ATOM_TO_JSID(atom), UndefinedValue(),
+                                   PropertyStub, StrictPropertyStub,
+                                   JSPROP_PERMANENT | JSPROP_READONLY);
     }
 
     
     stdnm = NULL;
     for (i = 0; standard_class_atoms[i].init; i++) {
         JS_ASSERT(standard_class_atoms[i].clasp);
-        atom = OFFSET_TO_NAME(rt, standard_class_atoms[i].atomOffset);
+        atom = OFFSET_TO_ATOM(rt, standard_class_atoms[i].atomOffset);
         if (idstr == atom) {
             stdnm = &standard_class_atoms[i];
             break;
@@ -2023,9 +1753,9 @@ JS_ResolveStandardClass(JSContext *cx, JSObject *objArg, jsid id, JSBool *resolv
         
         for (i = 0; standard_class_names[i].init; i++) {
             JS_ASSERT(standard_class_names[i].clasp);
-            atom = StdNameToPropertyName(cx, &standard_class_names[i]);
+            atom = StdNameToAtom(cx, &standard_class_names[i]);
             if (!atom)
-                return false;
+                return JS_FALSE;
             if (idstr == atom) {
                 stdnm = &standard_class_names[i];
                 break;
@@ -2040,9 +1770,9 @@ JS_ResolveStandardClass(JSContext *cx, JSObject *objArg, jsid id, JSBool *resolv
 
             for (i = 0; object_prototype_names[i].init; i++) {
                 JS_ASSERT(object_prototype_names[i].clasp);
-                atom = StdNameToPropertyName(cx, &object_prototype_names[i]);
+                atom = StdNameToAtom(cx, &object_prototype_names[i]);
                 if (!atom)
-                    return false;
+                    return JS_FALSE;
                 if (idstr == atom) {
                     stdnm = &object_prototype_names[i];
                     break;
@@ -2058,71 +1788,57 @@ JS_ResolveStandardClass(JSContext *cx, JSObject *objArg, jsid id, JSBool *resolv
 
         JS_ASSERT(obj->isGlobal());
         if (stdnm->clasp->flags & JSCLASS_IS_ANONYMOUS)
-            return true;
+            return JS_TRUE;
 
         if (IsStandardClassResolved(obj, stdnm->clasp))
-            return true;
-
-#if JS_HAS_XML_SUPPORT
-        if ((stdnm->init == js_InitXMLClass ||
-             stdnm->init == js_InitNamespaceClass ||
-             stdnm->init == js_InitQNameClass) &&
-            !VersionHasAllowXML(cx->findVersion()))
-        {
-            return true;
-        }
-#endif
+            return JS_TRUE;
 
         if (!stdnm->init(cx, obj))
-            return false;
-        *resolved = true;
+            return JS_FALSE;
+        *resolved = JS_TRUE;
     }
-    return true;
+    return JS_TRUE;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_EnumerateStandardClasses(JSContext *cx, JSObject *objArg)
+JS_EnumerateStandardClasses(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
+    JSRuntime *rt;
+    JSAtom *atom;
+    uintN i;
+
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
+    rt = cx->runtime;
 
     
 
 
 
-    RootedPropertyName undefinedName(cx, cx->runtime->atomState.typeAtoms[JSTYPE_VOID]);
-    RootedValue undefinedValue(cx, UndefinedValue());
-    if (!obj->nativeContains(cx, undefinedName) &&
-        !JSObject::defineProperty(cx, obj, undefinedName, undefinedValue,
-                                  JS_PropertyStub, JS_StrictPropertyStub,
-                                  JSPROP_PERMANENT | JSPROP_READONLY)) {
-        return false;
+    atom = rt->atomState.typeAtoms[JSTYPE_VOID];
+    if (!obj->nativeContains(ATOM_TO_JSID(atom)) &&
+        !obj->defineProperty(cx, ATOM_TO_JSID(atom), UndefinedValue(),
+                             PropertyStub, StrictPropertyStub,
+                             JSPROP_PERMANENT | JSPROP_READONLY)) {
+        return JS_FALSE;
     }
 
     
-    for (unsigned i = 0; standard_class_atoms[i].init; i++) {
-        const JSStdName &stdnm = standard_class_atoms[i];
-        if (!js::IsStandardClassResolved(obj, stdnm.clasp)
-#if JS_HAS_XML_SUPPORT
-            && ((stdnm.init != js_InitXMLClass &&
-                 stdnm.init != js_InitNamespaceClass &&
-                 stdnm.init != js_InitQNameClass) ||
-                VersionHasAllowXML(cx->findVersion()))
-#endif
-            )
+    for (i = 0; standard_class_atoms[i].init; i++) {
+        if (!js::IsStandardClassResolved(obj, standard_class_atoms[i].clasp) &&
+            !standard_class_atoms[i].init(cx, obj))
         {
-            if (!stdnm.init(cx, obj))
-                return false;
+                return JS_FALSE;
         }
     }
 
-    return true;
+    return JS_TRUE;
 }
 
-static JSIdArray *
-NewIdArray(JSContext *cx, int length)
+namespace js {
+
+JSIdArray *
+NewIdArray(JSContext *cx, jsint length)
 {
     JSIdArray *ida;
 
@@ -2133,11 +1849,13 @@ NewIdArray(JSContext *cx, int length)
     return ida;
 }
 
+}
+
 
 
 
 static JSIdArray *
-SetIdArrayLength(JSContext *cx, JSIdArray *ida, int length)
+SetIdArrayLength(JSContext *cx, JSIdArray *ida, jsint length)
 {
     JSIdArray *rida;
 
@@ -2153,41 +1871,42 @@ SetIdArrayLength(JSContext *cx, JSIdArray *ida, int length)
 }
 
 static JSIdArray *
-AddNameToArray(JSContext *cx, PropertyName *name, JSIdArray *ida, int *ip)
+AddAtomToArray(JSContext *cx, JSAtom *atom, JSIdArray *ida, jsint *ip)
 {
-    int i = *ip;
-    int length = ida->length;
+    jsint i, length;
+
+    i = *ip;
+    length = ida->length;
     if (i >= length) {
-        ida = SetIdArrayLength(cx, ida, Max(length * 2, 8));
+        ida = SetIdArrayLength(cx, ida, JS_MAX(length * 2, 8));
         if (!ida)
             return NULL;
         JS_ASSERT(i < ida->length);
     }
-    ida->vector[i].init(NameToId(name));
+    ida->vector[i] = ATOM_TO_JSID(atom);
     *ip = i + 1;
     return ida;
 }
 
 static JSIdArray *
-EnumerateIfResolved(JSContext *cx, Handle<JSObject*> obj, Handle<PropertyName*> name,
-                    JSIdArray *ida, int *ip, JSBool *foundp)
+EnumerateIfResolved(JSContext *cx, JSObject *obj, JSAtom *atom, JSIdArray *ida,
+                    jsint *ip, JSBool *foundp)
 {
-    *foundp = obj->nativeContains(cx, name);
+    *foundp = obj->nativeContains(ATOM_TO_JSID(atom));
     if (*foundp)
-        ida = AddNameToArray(cx, name, ida, ip);
+        ida = AddAtomToArray(cx, atom, ida, ip);
     return ida;
 }
 
 JS_PUBLIC_API(JSIdArray *)
-JS_EnumerateResolvedStandardClasses(JSContext *cx, JSObject *objArg, JSIdArray *ida)
+JS_EnumerateResolvedStandardClasses(JSContext *cx, JSObject *obj, JSIdArray *ida)
 {
-    RootedObject obj(cx, objArg);
     JSRuntime *rt;
-    int i, j, k;
+    jsint i, j, k;
+    JSAtom *atom;
     JSBool found;
-    JSClassInitializerOp init;
+    JSObjectOp init;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, ida);
     rt = cx->runtime;
@@ -2201,15 +1920,15 @@ JS_EnumerateResolvedStandardClasses(JSContext *cx, JSObject *objArg, JSIdArray *
     }
 
     
-    Rooted<PropertyName*> name(cx, rt->atomState.typeAtoms[JSTYPE_VOID]);
-    ida = EnumerateIfResolved(cx, obj, name, ida, &i, &found);
+    atom = rt->atomState.typeAtoms[JSTYPE_VOID];
+    ida = EnumerateIfResolved(cx, obj, atom, ida, &i, &found);
     if (!ida)
         return NULL;
 
     
     for (j = 0; standard_class_atoms[j].init; j++) {
-        name = OFFSET_TO_NAME(rt, standard_class_atoms[j].atomOffset);
-        ida = EnumerateIfResolved(cx, obj, name, ida, &i, &found);
+        atom = OFFSET_TO_ATOM(rt, standard_class_atoms[j].atomOffset);
+        ida = EnumerateIfResolved(cx, obj, atom, ida, &i, &found);
         if (!ida)
             return NULL;
 
@@ -2218,8 +1937,8 @@ JS_EnumerateResolvedStandardClasses(JSContext *cx, JSObject *objArg, JSIdArray *
 
             for (k = 0; standard_class_names[k].init; k++) {
                 if (standard_class_names[k].init == init) {
-                    name = StdNameToPropertyName(cx, &standard_class_names[k]);
-                    ida = AddNameToArray(cx, name, ida, &i);
+                    atom = StdNameToAtom(cx, &standard_class_names[k]);
+                    ida = AddAtomToArray(cx, atom, ida, &i);
                     if (!ida)
                         return NULL;
                 }
@@ -2227,8 +1946,8 @@ JS_EnumerateResolvedStandardClasses(JSContext *cx, JSObject *objArg, JSIdArray *
 
             if (init == js_InitObjectClass) {
                 for (k = 0; object_prototype_names[k].init; k++) {
-                    name = StdNameToPropertyName(cx, &object_prototype_names[k]);
-                    ida = AddNameToArray(cx, name, ida, &i);
+                    atom = StdNameToAtom(cx, &object_prototype_names[k]);
+                    ida = AddAtomToArray(cx, atom, ida, &i);
                     if (!ida)
                         return NULL;
                 }
@@ -2244,155 +1963,90 @@ JS_EnumerateResolvedStandardClasses(JSContext *cx, JSObject *objArg, JSIdArray *
 #undef EAGER_ATOM
 #undef EAGER_CLASS_ATOM
 #undef EAGER_ATOM_CLASP
+#undef LAZY_ATOM
 
 JS_PUBLIC_API(JSBool)
-JS_GetClassObject(JSContext *cx, JSRawObject obj, JSProtoKey key, JSObject **objpArg)
+JS_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key, JSObject **objp)
 {
-    RootedObject objp(cx, *objpArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-
-    assertSameCompartment(cx, obj);
-    if (!js_GetClassObject(cx, obj, key, &objp))
-        return false;
-    *objpArg = objp;
-    return true;
-}
-
-JS_PUBLIC_API(JSBool)
-JS_GetClassPrototype(JSContext *cx, JSProtoKey key, JSObject **objp_)
-{
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-
-    RootedObject objp(cx);
-    bool result = js_GetClassPrototype(cx, key, &objp);
-    *objp_ = objp;
-    return result;
-}
-
-JS_PUBLIC_API(JSProtoKey)
-JS_IdentifyClassPrototype(JSContext *cx, JSObject *obj)
-{
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
-    JS_ASSERT(!IsCrossCompartmentWrapper(obj));
-    return js_IdentifyClassPrototype(obj);
+    return js_GetClassObject(cx, obj, key, objp);
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_GetObjectPrototype(JSContext *cx, JSRawObject forObj)
+JS_GetScopeChain(JSContext *cx)
 {
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, forObj);
-    return forObj->global().getOrCreateObjectPrototype(cx);
+    return GetScopeChain(cx);
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_GetFunctionPrototype(JSContext *cx, JSRawObject forObj)
+JS_GetGlobalForObject(JSContext *cx, JSObject *obj)
 {
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, forObj);
-    return forObj->global().getOrCreateFunctionPrototype(cx);
-}
-
-JS_PUBLIC_API(JSObject *)
-JS_GetGlobalForObject(JSContext *cx, JSRawObject obj)
-{
-    AssertHeapIsIdle(cx);
     assertSameCompartment(cx, obj);
-    return &obj->global();
-}
-
-JS_PUBLIC_API(JSObject *)
-JS_GetGlobalForCompartmentOrNull(JSContext *cx, JSCompartment *c)
-{
-    AssertHeapIsIdleOrIterating(cx);
-    assertSameCompartment(cx, c);
-    return c->maybeGlobal();
+    return obj->getGlobal();
 }
 
 JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForScopeChain(JSContext *cx)
 {
-    AssertHeapIsIdleOrIterating(cx);
     CHECK_REQUEST(cx);
-    return cx->global();
+    return GetGlobalForScopeChain(cx);
 }
 
 JS_PUBLIC_API(jsval)
 JS_ComputeThis(JSContext *cx, jsval *vp)
 {
-    AssertHeapIsIdle(cx);
     assertSameCompartment(cx, JSValueArray(vp, 2));
-    CallReceiver call = CallReceiverFromVp(vp);
+    CallReceiver call = CallReceiverFromVp(Valueify(vp));
     if (!BoxNonStrictThis(cx, call))
         return JSVAL_NULL;
-    return call.thisv();
-}
-
-JS_PUBLIC_API(void)
-JS_MallocInCompartment(JSCompartment *comp, size_t nbytes)
-{
-    comp->mallocInCompartment(nbytes);
-}
-
-JS_PUBLIC_API(void)
-JS_FreeInCompartment(JSCompartment *comp, size_t nbytes)
-{
-    comp->freeInCompartment(nbytes);
+    return Jsvalify(call.thisv());
 }
 
 JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes)
 {
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
     return cx->malloc_(nbytes);
 }
 
 JS_PUBLIC_API(void *)
 JS_realloc(JSContext *cx, void *p, size_t nbytes)
 {
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
     return cx->realloc_(p, nbytes);
 }
 
 JS_PUBLIC_API(void)
 JS_free(JSContext *cx, void *p)
 {
-    return js_free(p);
-}
-
-JS_PUBLIC_API(void)
-JS_freeop(JSFreeOp *fop, void *p)
-{
-    return FreeOp::get(fop)->free_(p);
-}
-
-JS_PUBLIC_API(JSFreeOp *)
-JS_GetDefaultFreeOp(JSRuntime *rt)
-{
-    return rt->defaultFreeOp();
+    return cx->free_(p);
 }
 
 JS_PUBLIC_API(void)
 JS_updateMallocCounter(JSContext *cx, size_t nbytes)
 {
-    return cx->runtime->updateMallocCounter(cx, nbytes);
+    return cx->runtime->updateMallocCounter(nbytes);
 }
 
 JS_PUBLIC_API(char *)
 JS_strdup(JSContext *cx, const char *s)
 {
-    AssertHeapIsIdle(cx);
-    size_t n = strlen(s) + 1;
-    void *p = cx->malloc_(n);
+    size_t n;
+    void *p;
+
+    n = strlen(s) + 1;
+    p = cx->malloc_(n);
     if (!p)
         return NULL;
-    return (char *)js_memcpy(p, s, n);
+    return (char *)memcpy(p, s, n);
+}
+
+JS_PUBLIC_API(JSBool)
+JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval)
+{
+    d = JS_CANONICALIZE_NAN(d);
+    Valueify(rval)->setNumber(d);
+    return JS_TRUE;
 }
 
 #undef JS_AddRoot
@@ -2400,15 +2054,13 @@ JS_strdup(JSContext *cx, const char *s)
 JS_PUBLIC_API(JSBool)
 JS_AddValueRoot(JSContext *cx, jsval *vp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    return js_AddRoot(cx, vp, NULL);
+    return js_AddRoot(cx, Valueify(vp), NULL);
 }
 
 JS_PUBLIC_API(JSBool)
 JS_AddStringRoot(JSContext *cx, JSString **rp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_AddGCThingRoot(cx, (void **)rp, NULL);
 }
@@ -2416,7 +2068,6 @@ JS_AddStringRoot(JSContext *cx, JSString **rp)
 JS_PUBLIC_API(JSBool)
 JS_AddObjectRoot(JSContext *cx, JSObject **rp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_AddGCThingRoot(cx, (void **)rp, NULL);
 }
@@ -2424,7 +2075,6 @@ JS_AddObjectRoot(JSContext *cx, JSObject **rp)
 JS_PUBLIC_API(JSBool)
 JS_AddGCThingRoot(JSContext *cx, void **rp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_AddGCThingRoot(cx, (void **)rp, NULL);
 }
@@ -2432,15 +2082,13 @@ JS_AddGCThingRoot(JSContext *cx, void **rp)
 JS_PUBLIC_API(JSBool)
 JS_AddNamedValueRoot(JSContext *cx, jsval *vp, const char *name)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    return js_AddRoot(cx, vp, name);
+    return js_AddRoot(cx, Valueify(vp), name);
 }
 
 JS_PUBLIC_API(JSBool)
 JS_AddNamedStringRoot(JSContext *cx, JSString **rp, const char *name)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_AddGCThingRoot(cx, (void **)rp, name);
 }
@@ -2448,15 +2096,6 @@ JS_AddNamedStringRoot(JSContext *cx, JSString **rp, const char *name)
 JS_PUBLIC_API(JSBool)
 JS_AddNamedObjectRoot(JSContext *cx, JSObject **rp, const char *name)
 {
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    return js_AddGCThingRoot(cx, (void **)rp, name);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_AddNamedScriptRoot(JSContext *cx, JSScript **rp, const char *name)
-{
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_AddGCThingRoot(cx, (void **)rp, name);
 }
@@ -2464,70 +2103,36 @@ JS_AddNamedScriptRoot(JSContext *cx, JSScript **rp, const char *name)
 JS_PUBLIC_API(JSBool)
 JS_AddNamedGCThingRoot(JSContext *cx, void **rp, const char *name)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_AddGCThingRoot(cx, (void **)rp, name);
 }
 
-
-
-JS_PUBLIC_API(void)
+JS_PUBLIC_API(JSBool)
 JS_RemoveValueRoot(JSContext *cx, jsval *vp)
 {
     CHECK_REQUEST(cx);
-    js_RemoveRoot(cx->runtime, (void *)vp);
+    return js_RemoveRoot(cx->runtime, (void *)vp);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API(JSBool)
 JS_RemoveStringRoot(JSContext *cx, JSString **rp)
 {
     CHECK_REQUEST(cx);
-    js_RemoveRoot(cx->runtime, (void *)rp);
+    return js_RemoveRoot(cx->runtime, (void *)rp);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API(JSBool)
 JS_RemoveObjectRoot(JSContext *cx, JSObject **rp)
 {
     CHECK_REQUEST(cx);
-    js_RemoveRoot(cx->runtime, (void *)rp);
+    return js_RemoveRoot(cx->runtime, (void *)rp);
 }
 
-JS_PUBLIC_API(void)
-JS_RemoveScriptRoot(JSContext *cx, JSScript **rp)
-{
-    CHECK_REQUEST(cx);
-    js_RemoveRoot(cx->runtime, (void *)rp);
-}
-
-JS_PUBLIC_API(void)
+JS_PUBLIC_API(JSBool)
 JS_RemoveGCThingRoot(JSContext *cx, void **rp)
 {
     CHECK_REQUEST(cx);
-    js_RemoveRoot(cx->runtime, (void *)rp);
-}
-
-JS_PUBLIC_API(void)
-JS_RemoveValueRootRT(JSRuntime *rt, jsval *vp)
-{
-    js_RemoveRoot(rt, (void *)vp);
-}
-
-JS_PUBLIC_API(void)
-JS_RemoveStringRootRT(JSRuntime *rt, JSString **rp)
-{
-    js_RemoveRoot(rt, (void *)rp);
-}
-
-JS_PUBLIC_API(void)
-JS_RemoveObjectRootRT(JSRuntime *rt, JSObject **rp)
-{
-    js_RemoveRoot(rt, (void *)rp);
-}
-
-JS_PUBLIC_API(void)
-JS_RemoveScriptRootRT(JSRuntime *rt, JSScript **rp)
-{
-    js_RemoveRoot(rt, (void *)rp);
+    return js_RemoveRoot(cx->runtime, (void *)rp);
 }
 
 JS_NEVER_INLINE JS_PUBLIC_API(void)
@@ -2547,7 +2152,7 @@ JS_DumpNamedRoots(JSRuntime *rt,
 
 #endif 
 
-JS_PUBLIC_API(uint32_t)
+JS_PUBLIC_API(uint32)
 JS_MapGCRoots(JSRuntime *rt, JSGCRootMapFun map, void *data)
 {
     return js_MapGCRoots(rt, map, data);
@@ -2558,7 +2163,6 @@ JS_LockGCThing(JSContext *cx, void *thing)
 {
     JSBool ok;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     ok = js_LockGCThingRT(cx->runtime, thing);
     if (!ok)
@@ -2575,7 +2179,6 @@ JS_LockGCThingRT(JSRuntime *rt, void *thing)
 JS_PUBLIC_API(JSBool)
 JS_UnlockGCThing(JSContext *cx, void *thing)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     js_UnlockGCThingRT(cx->runtime, thing);
     return true;
@@ -2589,43 +2192,36 @@ JS_UnlockGCThingRT(JSRuntime *rt, void *thing)
 }
 
 JS_PUBLIC_API(void)
-JS_SetExtraGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data)
+JS_SetExtraGCRoots(JSRuntime *rt, JSTraceDataOp traceOp, void *data)
 {
-    AssertHeapIsIdle(rt);
-    rt->gcBlackRootsTraceOp = traceOp;
-    rt->gcBlackRootsData = data;
-}
-
-JS_PUBLIC_API(void)
-JS_TracerInit(JSTracer *trc, JSRuntime *rt, JSTraceCallback callback)
-{
-    InitTracer(trc, rt, callback);
+    rt->gcExtraRootsTraceOp = traceOp;
+    rt->gcExtraRootsData = data;
 }
 
 JS_PUBLIC_API(void)
 JS_TraceRuntime(JSTracer *trc)
 {
-    AssertHeapIsIdle(trc->runtime);
     TraceRuntime(trc);
 }
 
 JS_PUBLIC_API(void)
-JS_TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind)
+JS_CallTracer(JSTracer *trc, void *thing, uint32 kind)
 {
-    js::TraceChildren(trc, thing, kind);
+    JS_ASSERT(thing);
+    MarkKind(trc, thing, kind);
 }
 
-JS_PUBLIC_API(void)
-JS_CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind)
-{
-    js::CallTracer(trc, thing, kind);
-}
+#ifdef DEBUG
+
+#ifdef HAVE_XPCONNECT
+#include "dump_xpc.h"
+#endif
 
 JS_PUBLIC_API(void)
-JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc, void *thing,
-                     JSGCTraceKind kind, JSBool details)
+JS_PrintTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc, void *thing, uint32 kind,
+                       JSBool details)
 {
-    const char *name = NULL; 
+    const char *name;
     size_t n;
 
     if (bufsize == 0)
@@ -2634,7 +2230,20 @@ JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc, void *thing,
     switch (kind) {
       case JSTRACE_OBJECT:
       {
-        name = static_cast<JSObject *>(thing)->getClass()->name;
+        JSObject *obj = (JSObject *)thing;
+        Class *clasp = obj->getClass();
+
+        name = clasp->name;
+#ifdef HAVE_XPCONNECT
+        if (clasp->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS) {
+            void *privateThing = obj->getPrivate();
+            if (privateThing) {
+                const char *xpcClassName = GetXPCObjectClassName(privateThing);
+                if (xpcClassName)
+                    name = xpcClassName;
+            }
+        }
+#endif
         break;
       }
 
@@ -2644,20 +2253,8 @@ JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc, void *thing,
                : "string";
         break;
 
-      case JSTRACE_SCRIPT:
-        name = "script";
-        break;
-
       case JSTRACE_SHAPE:
         name = "shape";
-        break;
-
-      case JSTRACE_BASE_SHAPE:
-        name = "base_shape";
-        break;
-
-      case JSTRACE_TYPE_OBJECT:
-        name = "type_object";
         break;
 
 #if JS_HAS_XML_SUPPORT
@@ -2665,47 +2262,48 @@ JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc, void *thing,
         name = "xml";
         break;
 #endif
+      default:
+        JS_ASSERT(0);
+        return;
+        break;
     }
 
     n = strlen(name);
     if (n > bufsize - 1)
         n = bufsize - 1;
-    js_memcpy(buf, name, n + 1);
+    memcpy(buf, name, n + 1);
     buf += n;
     bufsize -= n;
-    *buf = '\0';
 
     if (details && bufsize > 2) {
+        *buf++ = ' ';
+        bufsize--;
+
         switch (kind) {
           case JSTRACE_OBJECT:
           {
-            JSObject *obj = (JSObject *)thing;
+            JSObject  *obj = (JSObject *)thing;
             Class *clasp = obj->getClass();
-            if (clasp == &FunctionClass) {
-                JSFunction *fun = obj->toFunction();
+            if (clasp == &js_FunctionClass) {
+                JSFunction *fun = GET_FUNCTION_PRIVATE(trc->context, obj);
                 if (!fun) {
-                    JS_snprintf(buf, bufsize, " <newborn>");
-                } else if (fun != obj) {
-                    JS_snprintf(buf, bufsize, " %p", fun);
+                    JS_snprintf(buf, bufsize, "<newborn>");
+                } else if (FUN_OBJECT(fun) != obj) {
+                    JS_snprintf(buf, bufsize, "%p", fun);
                 } else {
-                    if (fun->displayAtom()) {
-                        *buf++ = ' ';
-                        bufsize--;
-                        PutEscapedString(buf, bufsize, fun->displayAtom(), 0);
-                    }
+                    if (fun->atom)
+                        PutEscapedString(buf, bufsize, fun->atom, 0);
                 }
             } else if (clasp->flags & JSCLASS_HAS_PRIVATE) {
-                JS_snprintf(buf, bufsize, " %p", obj->getPrivate());
+                JS_snprintf(buf, bufsize, "%p", obj->getPrivate());
             } else {
-                JS_snprintf(buf, bufsize, " <no private>");
+                JS_snprintf(buf, bufsize, "<no private>");
             }
             break;
           }
 
           case JSTRACE_STRING:
           {
-            *buf++ = ' ';
-            bufsize--;
             JSString *str = (JSString *)thing;
             if (str->isLinear())
                 PutEscapedString(buf, bufsize, &str->asLinear(), 0);
@@ -2714,17 +2312,11 @@ JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc, void *thing,
             break;
           }
 
-          case JSTRACE_SCRIPT:
+          case JSTRACE_SHAPE:
           {
-            JSScript *script = static_cast<JSScript *>(thing);
-            JS_snprintf(buf, bufsize, " %s:%u", script->filename, unsigned(script->lineno));
+            JS_snprintf(buf, bufsize, "<shape>");
             break;
           }
-
-          case JSTRACE_SHAPE:
-          case JSTRACE_BASE_SHAPE:
-          case JSTRACE_TYPE_OBJECT:
-            break;
 
 #if JS_HAS_XML_SUPPORT
           case JSTRACE_XML:
@@ -2732,38 +2324,23 @@ JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc, void *thing,
             extern const char *js_xml_class_str[];
             JSXML *xml = (JSXML *)thing;
 
-            JS_snprintf(buf, bufsize, " %s", js_xml_class_str[xml->xml_class]);
+            JS_snprintf(buf, bufsize, "%s", js_xml_class_str[xml->xml_class]);
             break;
           }
 #endif
+          default:
+            JS_ASSERT(0);
+            break;
         }
     }
     buf[bufsize - 1] = '\0';
 }
 
-extern JS_PUBLIC_API(const char *)
-JS_GetTraceEdgeName(JSTracer *trc, char *buffer, int bufferSize)
-{
-    if (trc->debugPrinter) {
-        trc->debugPrinter(trc, buffer, bufferSize);
-        return buffer;
-    }
-    if (trc->debugPrintIndex != (size_t) - 1) {
-        JS_snprintf(buffer, bufferSize, "%s[%lu]",
-                    (const char *)trc->debugPrintArg,
-                    trc->debugPrintIndex);
-        return buffer;
-    }
-    return (const char*)trc->debugPrintArg;
-}
-
-#ifdef DEBUG
-
 typedef struct JSHeapDumpNode JSHeapDumpNode;
 
 struct JSHeapDumpNode {
     void            *thing;
-    JSGCTraceKind   kind;
+    uint32          kind;
     JSHeapDumpNode  *next;          
     JSHeapDumpNode  *parent;        
 
@@ -2771,12 +2348,10 @@ struct JSHeapDumpNode {
 
 };
 
-typedef HashSet<void *, PointerHasher<void *, 3>, SystemAllocPolicy> VisitedSet;
-
 typedef struct JSDumpingTracer {
     JSTracer            base;
-    VisitedSet          visited;
-    bool                ok;
+    JSDHashTable        visited;
+    JSBool              ok;
     void                *startThing;
     void                *thingToFind;
     void                *thingToIgnore;
@@ -2786,15 +2361,22 @@ typedef struct JSDumpingTracer {
 } JSDumpingTracer;
 
 static void
-DumpNotify(JSTracer *trc, void **thingp, JSGCTraceKind kind)
+DumpNotify(JSTracer *trc, void *thing, uint32 kind)
 {
-    JS_ASSERT(trc->callback == DumpNotify);
+    JSDumpingTracer *dtrc;
+    JSContext *cx;
+    JSDHashEntryStub *entry;
+    JSHeapDumpNode *node;
+    const char *edgeName;
+    size_t edgeNameSize;
 
-    JSDumpingTracer *dtrc = (JSDumpingTracer *)trc;
-    void *thing = *thingp;
+    JS_ASSERT(trc->callback == DumpNotify);
+    dtrc = (JSDumpingTracer *)trc;
 
     if (!dtrc->ok || thing == dtrc->thingToIgnore)
         return;
+
+    cx = trc->context;
 
     
 
@@ -2813,21 +2395,34 @@ DumpNotify(JSTracer *trc, void **thingp, JSGCTraceKind kind)
 
         if (thing == dtrc->startThing)
             return;
-        VisitedSet::AddPtr p = dtrc->visited.lookupForAdd(thing);
-        if (p)
-            return;
-        if (!dtrc->visited.add(p, thing)) {
-            dtrc->ok = false;
+        entry = (JSDHashEntryStub *)
+            JS_DHashTableOperate(&dtrc->visited, thing, JS_DHASH_ADD);
+        if (!entry) {
+            JS_ReportOutOfMemory(cx);
+            dtrc->ok = JS_FALSE;
             return;
         }
+        if (entry->key)
+            return;
+        entry->key = thing;
     }
 
-    const char *edgeName = JS_GetTraceEdgeName(&dtrc->base, dtrc->buffer, sizeof(dtrc->buffer));
-    size_t edgeNameSize = strlen(edgeName) + 1;
-    size_t bytes = offsetof(JSHeapDumpNode, edgeName) + edgeNameSize;
-    JSHeapDumpNode *node = (JSHeapDumpNode *) js_malloc(bytes);
+    if (dtrc->base.debugPrinter) {
+        dtrc->base.debugPrinter(trc, dtrc->buffer, sizeof(dtrc->buffer));
+        edgeName = dtrc->buffer;
+    } else if (dtrc->base.debugPrintIndex != (size_t)-1) {
+        JS_snprintf(dtrc->buffer, sizeof(dtrc->buffer), "%s[%lu]",
+                    (const char *)dtrc->base.debugPrintArg,
+                    dtrc->base.debugPrintIndex);
+        edgeName = dtrc->buffer;
+    } else {
+        edgeName = (const char*)dtrc->base.debugPrintArg;
+    }
+
+    edgeNameSize = strlen(edgeName) + 1;
+    node = (JSHeapDumpNode *) cx->malloc_(offsetof(JSHeapDumpNode, edgeName) + edgeNameSize);
     if (!node) {
-        dtrc->ok = false;
+        dtrc->ok = JS_FALSE;
         return;
     }
 
@@ -2835,7 +2430,7 @@ DumpNotify(JSTracer *trc, void **thingp, JSGCTraceKind kind)
     node->kind = kind;
     node->next = NULL;
     node->parent = dtrc->parentNode;
-    js_memcpy(node->edgeName, edgeName, edgeNameSize);
+    memcpy(node->edgeName, edgeName, edgeNameSize);
 
     JS_ASSERT(!*dtrc->lastNodep);
     *dtrc->lastNodep = node;
@@ -2848,10 +2443,11 @@ DumpNode(JSDumpingTracer *dtrc, FILE* fp, JSHeapDumpNode *node)
 {
     JSHeapDumpNode *prev, *following;
     size_t chainLimit;
+    JSBool ok;
     enum { MAX_PARENTS_TO_PRINT = 10 };
 
-    JS_GetTraceThingInfo(dtrc->buffer, sizeof dtrc->buffer,
-                         &dtrc->base, node->thing, node->kind, JS_TRUE);
+    JS_PrintTraceThingInfo(dtrc->buffer, sizeof dtrc->buffer,
+                           &dtrc->base, node->thing, node->kind, JS_TRUE);
     if (fprintf(fp, "%p %-22s via ", node->thing, dtrc->buffer) < 0)
         return JS_FALSE;
 
@@ -2880,21 +2476,21 @@ DumpNode(JSDumpingTracer *dtrc, FILE* fp, JSHeapDumpNode *node)
 
     node = prev;
     prev = following;
-    bool ok = true;
+    ok = JS_TRUE;
     do {
         
         if (ok) {
             if (!prev) {
                 
                 if (fputs(node->edgeName, fp) < 0)
-                    ok = false;
+                    ok = JS_FALSE;
             } else {
-                JS_GetTraceThingInfo(dtrc->buffer, sizeof dtrc->buffer,
-                                     &dtrc->base, prev->thing, prev->kind,
-                                     JS_FALSE);
+                JS_PrintTraceThingInfo(dtrc->buffer, sizeof dtrc->buffer,
+                                       &dtrc->base, prev->thing, prev->kind,
+                                       JS_FALSE);
                 if (fprintf(fp, "(%p %s).%s",
                            prev->thing, dtrc->buffer, node->edgeName) < 0) {
-                    ok = false;
+                    ok = JS_FALSE;
                 }
             }
         }
@@ -2908,36 +2504,43 @@ DumpNode(JSDumpingTracer *dtrc, FILE* fp, JSHeapDumpNode *node)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DumpHeap(JSRuntime *rt, FILE *fp, void* startThing, JSGCTraceKind startKind,
+JS_DumpHeap(JSContext *cx, FILE *fp, void* startThing, uint32 startKind,
             void *thingToFind, size_t maxDepth, void *thingToIgnore)
 {
-    if (maxDepth == 0)
-        return true;
-
     JSDumpingTracer dtrc;
-    if (!dtrc.visited.init())
-        return false;
-    JS_TracerInit(&dtrc.base, rt, DumpNotify);
-    dtrc.ok = true;
+    JSHeapDumpNode *node, *children, *next, *parent;
+    size_t depth;
+    JSBool thingToFindWasTraced;
+
+    if (maxDepth == 0)
+        return JS_TRUE;
+
+    JS_TRACER_INIT(&dtrc.base, cx, DumpNotify);
+    if (!JS_DHashTableInit(&dtrc.visited, JS_DHashGetStubOps(),
+                           NULL, sizeof(JSDHashEntryStub),
+                           JS_DHASH_DEFAULT_CAPACITY(100))) {
+        JS_ReportOutOfMemory(cx);
+        return JS_FALSE;
+    }
+    dtrc.ok = JS_TRUE;
     dtrc.startThing = startThing;
     dtrc.thingToFind = thingToFind;
     dtrc.thingToIgnore = thingToIgnore;
     dtrc.parentNode = NULL;
-    JSHeapDumpNode *node = NULL;
+    node = NULL;
     dtrc.lastNodep = &node;
     if (!startThing) {
-        JS_ASSERT(startKind == JSTRACE_OBJECT);
+        JS_ASSERT(startKind == 0);
         TraceRuntime(&dtrc.base);
     } else {
         JS_TraceChildren(&dtrc.base, startThing, startKind);
     }
 
+    depth = 1;
     if (!node)
-        return dtrc.ok;
+        goto dump_out;
 
-    size_t depth = 1;
-    JSHeapDumpNode *children, *next, *parent;
-    bool thingToFindWasTraced = thingToFind && thingToFind == startThing;
+    thingToFindWasTraced = thingToFind && thingToFind == startThing;
     for (;;) {
         
 
@@ -2969,19 +2572,21 @@ JS_DumpHeap(JSRuntime *rt, FILE *fp, void* startThing, JSGCTraceKind startKind,
         for (;;) {
             next = node->next;
             parent = node->parent;
-            js_free(node);
+            cx->free_(node);
             node = next;
             if (node)
                 break;
             if (!parent)
-                return dtrc.ok;
+                goto dump_out;
             JS_ASSERT(depth > 1);
             --depth;
             node = parent;
         }
     }
 
+  dump_out:
     JS_ASSERT(depth == 1);
+    JS_DHashTableFinish(&dtrc.visited);
     return dtrc.ok;
 }
 
@@ -2994,236 +2599,227 @@ JS_IsGCMarkingTracer(JSTracer *trc)
 }
 
 JS_PUBLIC_API(void)
-JS_GC(JSRuntime *rt)
+JS_GC(JSContext *cx)
 {
-    AssertHeapIsIdle(rt);
-    PrepareForFullGC(rt);
-    GC(rt, GC_NORMAL, gcreason::API);
+    LeaveTrace(cx);
+
+    
+    if (cx->tempPool.current == &cx->tempPool.first)
+        JS_FinishArenaPool(&cx->tempPool);
+    js_GC(cx, NULL, GC_NORMAL);
 }
 
 JS_PUBLIC_API(void)
 JS_MaybeGC(JSContext *cx)
 {
+    LeaveTrace(cx);
+
+    
+    if (cx->tempPool.current == &cx->tempPool.first)
+        JS_FinishArenaPool(&cx->tempPool);
+
     MaybeGC(cx);
 }
 
-JS_PUBLIC_API(void)
-JS_SetGCCallback(JSRuntime *rt, JSGCCallback cb)
+JS_PUBLIC_API(JSGCCallback)
+JS_SetGCCallback(JSContext *cx, JSGCCallback cb)
 {
-    AssertHeapIsIdle(rt);
-    rt->gcCallback = cb;
+    CHECK_REQUEST(cx);
+    return JS_SetGCCallbackRT(cx->runtime, cb);
 }
 
-JS_PUBLIC_API(void)
-JS_SetFinalizeCallback(JSRuntime *rt, JSFinalizeCallback cb)
+JS_PUBLIC_API(JSGCCallback)
+JS_SetGCCallbackRT(JSRuntime *rt, JSGCCallback cb)
 {
-    AssertHeapIsIdle(rt);
-    rt->gcFinalizeCallback = cb;
+    JSGCCallback oldcb;
+
+    oldcb = rt->gcCallback;
+    rt->gcCallback = cb;
+    return oldcb;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_IsAboutToBeFinalized(void *thing)
+JS_IsAboutToBeFinalized(JSContext *cx, void *thing)
 {
-    gc::Cell *t = static_cast<gc::Cell *>(thing);
-    bool isMarked = IsCellMarked(&t);
-    JS_ASSERT(t == thing);
-    return !isMarked;
+    JS_ASSERT(thing);
+    JS_ASSERT(!cx->runtime->gcMarkingTracer);
+    return IsAboutToBeFinalized(cx, thing);
 }
 
 JS_PUBLIC_API(void)
-JS_SetGCParameter(JSRuntime *rt, JSGCParamKey key, uint32_t value)
+JS_SetGCParameter(JSRuntime *rt, JSGCParamKey key, uint32 value)
 {
     switch (key) {
-      case JSGC_MAX_BYTES: {
-        JS_ASSERT(value >= rt->gcBytes);
+      case JSGC_MAX_BYTES:
         rt->gcMaxBytes = value;
         break;
-      }
       case JSGC_MAX_MALLOC_BYTES:
         rt->setGCMaxMallocBytes(value);
         break;
-      case JSGC_SLICE_TIME_BUDGET:
-        rt->gcSliceBudget = SliceBudget::TimeBudget(value);
-        break;
-      case JSGC_MARK_STACK_LIMIT:
-        js::SetMarkStackLimit(rt, value);
-        break;
-      case JSGC_HIGH_FREQUENCY_TIME_LIMIT:
-        rt->gcHighFrequencyTimeThreshold = value;
-        break;
-      case JSGC_HIGH_FREQUENCY_LOW_LIMIT:
-        rt->gcHighFrequencyLowLimitBytes = value * 1024 * 1024;
-        break;
-      case JSGC_HIGH_FREQUENCY_HIGH_LIMIT:
-        rt->gcHighFrequencyHighLimitBytes = value * 1024 * 1024;
-        break;
-      case JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX:
-        rt->gcHighFrequencyHeapGrowthMax = value / 100.0;
-        break;
-      case JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN:
-        rt->gcHighFrequencyHeapGrowthMin = value / 100.0;
-        break;
-      case JSGC_LOW_FREQUENCY_HEAP_GROWTH:
-        rt->gcLowFrequencyHeapGrowth = value / 100.0;
-        break;
-      case JSGC_DYNAMIC_HEAP_GROWTH:
-        rt->gcDynamicHeapGrowth = value;
-        break;
-      case JSGC_DYNAMIC_MARK_SLICE:
-        rt->gcDynamicMarkSlice = value;
-        break;
-      case JSGC_ANALYSIS_PURGE_TRIGGER:
-        rt->analysisPurgeTriggerBytes = value * 1024 * 1024;
+      case JSGC_STACKPOOL_LIFESPAN:
+        rt->gcEmptyArenaPoolLifespan = value;
         break;
       default:
         JS_ASSERT(key == JSGC_MODE);
         rt->gcMode = JSGCMode(value);
         JS_ASSERT(rt->gcMode == JSGC_MODE_GLOBAL ||
-                  rt->gcMode == JSGC_MODE_COMPARTMENT ||
-                  rt->gcMode == JSGC_MODE_INCREMENTAL);
+                  rt->gcMode == JSGC_MODE_COMPARTMENT);
         return;
     }
 }
 
-JS_PUBLIC_API(uint32_t)
+JS_PUBLIC_API(uint32)
 JS_GetGCParameter(JSRuntime *rt, JSGCParamKey key)
 {
     switch (key) {
       case JSGC_MAX_BYTES:
-        return uint32_t(rt->gcMaxBytes);
+        return rt->gcMaxBytes;
       case JSGC_MAX_MALLOC_BYTES:
         return rt->gcMaxMallocBytes;
+      case JSGC_STACKPOOL_LIFESPAN:
+        return rt->gcEmptyArenaPoolLifespan;
       case JSGC_BYTES:
-        return uint32_t(rt->gcBytes);
+        return rt->gcBytes;
       case JSGC_MODE:
-        return uint32_t(rt->gcMode);
+        return uint32(rt->gcMode);
       case JSGC_UNUSED_CHUNKS:
-        return uint32_t(rt->gcChunkPool.getEmptyCount());
-      case JSGC_TOTAL_CHUNKS:
-        return uint32_t(rt->gcChunkSet.count() + rt->gcChunkPool.getEmptyCount());
-      case JSGC_SLICE_TIME_BUDGET:
-        return uint32_t(rt->gcSliceBudget > 0 ? rt->gcSliceBudget / PRMJ_USEC_PER_MSEC : 0);
-      case JSGC_MARK_STACK_LIMIT:
-        return rt->gcMarker.sizeLimit();
-      case JSGC_HIGH_FREQUENCY_TIME_LIMIT:
-        return rt->gcHighFrequencyTimeThreshold;
-      case JSGC_HIGH_FREQUENCY_LOW_LIMIT:
-        return rt->gcHighFrequencyLowLimitBytes / 1024 / 1024;
-      case JSGC_HIGH_FREQUENCY_HIGH_LIMIT:
-        return rt->gcHighFrequencyHighLimitBytes / 1024 / 1024;
-      case JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX:
-        return uint32_t(rt->gcHighFrequencyHeapGrowthMax * 100);
-      case JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN:
-        return uint32_t(rt->gcHighFrequencyHeapGrowthMin * 100);
-      case JSGC_LOW_FREQUENCY_HEAP_GROWTH:
-        return uint32_t(rt->gcLowFrequencyHeapGrowth * 100);
-      case JSGC_DYNAMIC_HEAP_GROWTH:
-        return rt->gcDynamicHeapGrowth;
-      case JSGC_DYNAMIC_MARK_SLICE:
-        return rt->gcDynamicMarkSlice;
-      case JSGC_ANALYSIS_PURGE_TRIGGER:
-        return rt->analysisPurgeTriggerBytes / 1024 / 1024;
+        return uint32(rt->gcChunksWaitingToExpire);
       default:
         JS_ASSERT(key == JSGC_NUMBER);
-        return uint32_t(rt->gcNumber);
+        return rt->gcNumber;
     }
 }
 
 JS_PUBLIC_API(void)
-JS_SetGCParameterForThread(JSContext *cx, JSGCParamKey key, uint32_t value)
+JS_SetGCParameterForThread(JSContext *cx, JSGCParamKey key, uint32 value)
 {
     JS_ASSERT(key == JSGC_MAX_CODE_CACHE_BYTES);
+#ifdef JS_TRACER
+    SetMaxCodeCacheBytes(cx, value);
+#endif
 }
 
-JS_PUBLIC_API(uint32_t)
+JS_PUBLIC_API(uint32)
 JS_GetGCParameterForThread(JSContext *cx, JSGCParamKey key)
 {
     JS_ASSERT(key == JSGC_MAX_CODE_CACHE_BYTES);
+#ifdef JS_TRACER
+    return JS_THREAD_DATA(cx)->maxCodeCacheBytes;
+#else
     return 0;
-}
-
-JS_PUBLIC_API(JSString *)
-JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length,
-                     const JSStringFinalizer *fin)
-{
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    JSString *s = JSExternalString::new_(cx, chars, length, fin);
-    Probes::createString(cx, s, length);
-    return s;
-}
-
-extern JS_PUBLIC_API(JSBool)
-JS_IsExternalString(JSString *str)
-{
-    return str->isExternal();
-}
-
-extern JS_PUBLIC_API(const JSStringFinalizer *)
-JS_GetExternalStringFinalizer(JSString *str)
-{
-    return str->asExternal().externalFinalizer();
+#endif
 }
 
 JS_PUBLIC_API(void)
-JS_SetNativeStackQuota(JSRuntime *rt, size_t stackSize)
+JS_FlushCaches(JSContext *cx)
 {
-    rt->nativeStackQuota = stackSize;
-    if (!rt->nativeStackBase)
-        return;
+#ifdef JS_TRACER
+    FlushJITCache(cx, &cx->compartment->traceMonitor);
+#endif
+}
+
+JS_PUBLIC_API(intN)
+JS_AddExternalStringFinalizer(JSStringFinalizeOp finalizer)
+{
+    return JSExternalString::changeFinalizer(NULL, finalizer);
+}
+
+JS_PUBLIC_API(intN)
+JS_RemoveExternalStringFinalizer(JSStringFinalizeOp finalizer)
+{
+    return JSExternalString::changeFinalizer(finalizer, NULL);
+}
+
+JS_PUBLIC_API(JSString *)
+JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length, intN type)
+{
+    CHECK_REQUEST(cx);
+    return JSExternalString::new_(cx, chars, length, type, NULL);
+}
+
+extern JS_PUBLIC_API(JSString *)
+JS_NewExternalStringWithClosure(JSContext *cx, const jschar *chars, size_t length,
+                                intN type, void *closure)
+{
+    CHECK_REQUEST(cx);
+    return JSExternalString::new_(cx, chars, length, type, closure);
+}
+
+extern JS_PUBLIC_API(JSBool)
+JS_IsExternalString(JSContext *cx, JSString *str)
+{
+    CHECK_REQUEST(cx);
+    return str->isExternal();
+}
+
+extern JS_PUBLIC_API(void *)
+JS_GetExternalStringClosure(JSContext *cx, JSString *str)
+{
+    CHECK_REQUEST(cx);
+    return str->asExternal().externalClosure();
+}
+
+JS_PUBLIC_API(void)
+JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr)
+{
+#if JS_STACK_GROWTH_DIRECTION > 0
+    if (limitAddr == 0)
+        limitAddr = jsuword(-1);
+#endif
+    cx->stackLimit = limitAddr;
+}
+
+JS_PUBLIC_API(void)
+JS_SetNativeStackQuota(JSContext *cx, size_t stackSize)
+{
+#ifdef JS_THREADSAFE
+    JS_ASSERT(cx->thread());
+#endif
 
 #if JS_STACK_GROWTH_DIRECTION > 0
     if (stackSize == 0) {
-        rt->nativeStackLimit = UINTPTR_MAX;
+        cx->stackLimit = jsuword(-1);
     } else {
-        JS_ASSERT(rt->nativeStackBase <= size_t(-1) - stackSize);
-        rt->nativeStackLimit = rt->nativeStackBase + stackSize - 1;
+        jsuword stackBase = reinterpret_cast<jsuword>(JS_THREAD_DATA(cx)->nativeStackBase);
+        JS_ASSERT(stackBase <= size_t(-1) - stackSize);
+        cx->stackLimit = stackBase + stackSize - 1;
     }
 #else
     if (stackSize == 0) {
-        rt->nativeStackLimit = 0;
+        cx->stackLimit = 0;
     } else {
-        JS_ASSERT(rt->nativeStackBase >= stackSize);
-        rt->nativeStackLimit = rt->nativeStackBase - (stackSize - 1);
+        jsuword stackBase = reinterpret_cast<jsuword>(JS_THREAD_DATA(cx)->nativeStackBase);
+        JS_ASSERT(stackBase >= stackSize);
+        cx->stackLimit = stackBase - (stackSize - 1);
     }
 #endif
 }
 
-
-
-JS_PUBLIC_API(int)
-JS_IdArrayLength(JSContext *cx, JSIdArray *ida)
+JS_PUBLIC_API(void)
+JS_SetScriptStackQuota(JSContext *cx, size_t quota)
 {
-    return ida->length;
+    cx->scriptStackQuota = quota;
 }
 
-JS_PUBLIC_API(jsid)
-JS_IdArrayGet(JSContext *cx, JSIdArray *ida, int index)
-{
-    JS_ASSERT(index >= 0 && index < ida->length);
-    return ida->vector[index];
-}
+
 
 JS_PUBLIC_API(void)
 JS_DestroyIdArray(JSContext *cx, JSIdArray *ida)
 {
-    DestroyIdArray(cx->runtime->defaultFreeOp(), ida);
+    cx->free_(ida);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ValueToId(JSContext *cx, jsval valueArg, jsid *idp)
+JS_ValueToId(JSContext *cx, jsval v, jsid *idp)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-    return ValueToId(cx, value, idp);
+    assertSameCompartment(cx, v);
+    return ValueToId(cx, Valueify(v), idp);
 }
 
 JS_PUBLIC_API(JSBool)
 JS_IdToValue(JSContext *cx, jsid id, jsval *vp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     *vp = IdToJsval(id);
     assertSameCompartment(cx, *vp);
@@ -3231,88 +2827,70 @@ JS_IdToValue(JSContext *cx, jsid id, jsval *vp)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefaultValue(JSContext *cx, JSObject *objArg, JSType hint, jsval *vp)
-{
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    JS_ASSERT(obj != NULL);
-    JS_ASSERT(hint == JSTYPE_VOID || hint == JSTYPE_STRING || hint == JSTYPE_NUMBER);
-
-    RootedValue value(cx);
-    if (!JSObject::defaultValue(cx, obj, hint, &value))
-        return false;
-
-    *vp = value;
-    return true;
-}
-
-JS_PUBLIC_API(JSBool)
-JS_PropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp)
+JS_PropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
     return JS_TRUE;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_StrictPropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict, JSMutableHandleValue vp)
+JS_StrictPropertyStub(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
     return JS_TRUE;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_EnumerateStub(JSContext *cx, JSHandleObject obj)
+JS_EnumerateStub(JSContext *cx, JSObject *obj)
 {
     return JS_TRUE;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ResolveStub(JSContext *cx, JSHandleObject obj, JSHandleId id)
+JS_ResolveStub(JSContext *cx, JSObject *obj, jsid id)
 {
     return JS_TRUE;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ConvertStub(JSContext *cx, JSHandleObject obj, JSType type, JSMutableHandleValue vp)
+JS_ConvertStub(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
 {
     JS_ASSERT(type != JSTYPE_OBJECT && type != JSTYPE_FUNCTION);
-    JS_ASSERT(obj);
-    return DefaultValue(cx, obj, type, vp);
+    return js_TryValueOf(cx, obj, type, Valueify(vp));
 }
 
+JS_PUBLIC_API(void)
+JS_FinalizeStub(JSContext *cx, JSObject *obj)
+{}
+
 JS_PUBLIC_API(JSObject *)
-JS_InitClass(JSContext *cx, JSObject *objArg, JSObject *parent_protoArg,
-             JSClass *clasp, JSNative constructor, unsigned nargs,
+JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
+             JSClass *clasp, JSNative constructor, uintN nargs,
              JSPropertySpec *ps, JSFunctionSpec *fs,
              JSPropertySpec *static_ps, JSFunctionSpec *static_fs)
 {
-    RootedObject obj(cx, objArg);
-    RootedObject parent_proto(cx, parent_protoArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, parent_proto);
-    return js_InitClass(cx, obj, parent_proto, Valueify(clasp), constructor,
-                        nargs, ps, fs, static_ps, static_fs);
+    return js_InitClass(cx, obj, parent_proto, Valueify(clasp),
+                        Valueify(constructor), nargs,
+                        ps, fs, static_ps, static_fs);
 }
 
-JS_PUBLIC_API(JSBool)
-JS_LinkConstructorAndPrototype(JSContext *cx, JSObject *ctorArg, JSObject *protoArg)
-{
-    RootedObject ctor(cx, ctorArg);
-    RootedObject proto(cx, protoArg);
-    return LinkConstructorAndPrototype(cx, ctor, proto);
-}
-
+#ifdef JS_THREADSAFE
 JS_PUBLIC_API(JSClass *)
-JS_GetClass(RawObject obj)
+JS_GetClass(JSContext *cx, JSObject *obj)
 {
-    return obj->getJSClass();
+    return Jsvalify(obj->getClass());
 }
+#else
+JS_PUBLIC_API(JSClass *)
+JS_GetClass(JSObject *obj)
+{
+    return Jsvalify(obj->getClass());
+}
+#endif
 
 JS_PUBLIC_API(JSBool)
-JS_InstanceOf(JSContext *cx, JSObject *objArg, JSClass *clasp, jsval *argv)
+JS_InstanceOf(JSContext *cx, JSObject *obj, JSClass *clasp, jsval *argv)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 #ifdef DEBUG
     if (argv) {
@@ -3322,100 +2900,96 @@ JS_InstanceOf(JSContext *cx, JSObject *objArg, JSClass *clasp, jsval *argv)
 #endif
     if (!obj || obj->getJSClass() != clasp) {
         if (argv)
-            ReportIncompatibleMethod(cx, CallReceiverFromArgv(argv), Valueify(clasp));
+            ReportIncompatibleMethod(cx, Valueify(argv - 2), Valueify(clasp));
         return false;
     }
     return true;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_HasInstance(JSContext *cx, JSObject *objArg, jsval valueArg, JSBool *bp)
+JS_HasInstance(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
 {
-    RootedObject obj(cx, objArg);
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
-    assertSameCompartment(cx, obj, value);
-    return HasInstance(cx, obj, &value, bp);
+    assertSameCompartment(cx, obj, v);
+    return HasInstance(cx, obj, Valueify(&v), bp);
 }
 
 JS_PUBLIC_API(void *)
-JS_GetPrivate(RawObject obj)
+JS_GetPrivate(JSContext *cx, JSObject *obj)
 {
-    
     return obj->getPrivate();
 }
 
-JS_PUBLIC_API(void)
-JS_SetPrivate(RawObject obj, void *data)
+JS_PUBLIC_API(JSBool)
+JS_SetPrivate(JSContext *cx, JSObject *obj, void *data)
 {
-    
     obj->setPrivate(data);
+    return true;
 }
 
 JS_PUBLIC_API(void *)
-JS_GetInstancePrivate(JSContext *cx, JSObject *objArg, JSClass *clasp, jsval *argv)
+JS_GetInstancePrivate(JSContext *cx, JSObject *obj, JSClass *clasp, jsval *argv)
 {
-    RootedObject obj(cx, objArg);
     if (!JS_InstanceOf(cx, obj, clasp, argv))
         return NULL;
     return obj->getPrivate();
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_GetPrototype(RawObject obj)
+JS_GetPrototype(JSContext *cx, JSObject *obj)
 {
-    return obj->getProto();
+    JSObject *proto;
+
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj);
+    proto = obj->getProto();
+
+    
+    return proto && !proto->isNewborn() ? proto : NULL;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetPrototype(JSContext *cx, JSObject *objArg, JSObject *protoArg)
+JS_SetPrototype(JSContext *cx, JSObject *obj, JSObject *proto)
 {
-    RootedObject obj(cx, objArg);
-    RootedObject proto(cx, protoArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, proto);
-
     return SetProto(cx, obj, proto, JS_FALSE);
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_GetParent(RawObject obj)
+JS_GetParent(JSContext *cx, JSObject *obj)
 {
-    JS_ASSERT(!obj->isScope());
-    return obj->getParent();
+    assertSameCompartment(cx, obj);
+    JSObject *parent = obj->getParent();
+
+    
+    return parent && !parent->isNewborn() ? parent : NULL;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetParent(JSContext *cx, JSObject *objArg, JSObject *parentArg)
+JS_SetParent(JSContext *cx, JSObject *obj, JSObject *parent)
 {
-    RootedObject obj(cx, objArg);
-    RootedObject parent(cx, parentArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    JS_ASSERT(!obj->isScope());
     JS_ASSERT(parent || !obj->getParent());
     assertSameCompartment(cx, obj, parent);
-
-    return JSObject::setParent(cx, obj, parent);
+    obj->setParent(parent);
+    return true;
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_GetConstructor(JSContext *cx, JSObject *protoArg)
+JS_GetConstructor(JSContext *cx, JSObject *proto)
 {
-    RootedObject proto(cx, protoArg);
-    RootedValue cval(cx);
+    Value cval;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, proto);
     {
         JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
 
-        if (!JSObject::getProperty(cx, proto, proto, cx->runtime->atomState.constructorAtom, &cval))
+        if (!proto->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.constructorAtom), &cval))
             return NULL;
     }
-    if (!IsFunctionObject(cval)) {
+    JSObject *funobj;
+    if (!IsFunctionObject(cval, &funobj)) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NO_CONSTRUCTOR,
                              proto->getClass()->name);
         return NULL;
@@ -3424,12 +2998,20 @@ JS_GetConstructor(JSContext *cx, JSObject *protoArg)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetObjectId(JSContext *cx, JSRawObject obj, jsid *idp)
+JS_GetObjectId(JSContext *cx, JSObject *obj, jsid *idp)
 {
-    AssertHeapIsIdle(cx);
     assertSameCompartment(cx, obj);
     *idp = OBJECT_TO_JSID(obj);
     return JS_TRUE;
+}
+
+JS_PUBLIC_API(JSObject *)
+JS_NewGlobalObject(JSContext *cx, JSClass *clasp)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    CHECK_REQUEST(cx);
+
+    return GlobalObject::create(cx, Valueify(clasp));
 }
 
 class AutoHoldCompartment {
@@ -3450,12 +3032,9 @@ class AutoHoldCompartment {
 };
 
 JS_PUBLIC_API(JSObject *)
-JS_NewGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals)
+JS_NewCompartmentAndGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-
     JSCompartment *compartment = NewCompartment(cx, principals);
     if (!compartment)
         return NULL;
@@ -3463,110 +3042,88 @@ JS_NewGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals)
     AutoHoldCompartment hold(compartment);
 
     JSCompartment *saved = cx->compartment;
-    cx->setCompartment(compartment);
-    GlobalObject *global = GlobalObject::create(cx, Valueify(clasp));
-    cx->setCompartment(saved);
+    cx->compartment = compartment;
+    JSObject *obj = JS_NewGlobalObject(cx, clasp);
+    cx->compartment = saved;
 
-    return global;
+    return obj;
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_NewObject(JSContext *cx, JSClass *jsclasp, JSObject *protoArg, JSObject *parentArg)
+JS_NewObject(JSContext *cx, JSClass *jsclasp, JSObject *proto, JSObject *parent)
 {
-    RootedObject proto(cx, protoArg);
-    RootedObject parent(cx, parentArg);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, proto, parent);
 
     Class *clasp = Valueify(jsclasp);
     if (!clasp)
-        clasp = &ObjectClass;    
+        clasp = &js_ObjectClass;    
 
-    JS_ASSERT(clasp != &FunctionClass);
+    JS_ASSERT(clasp != &js_FunctionClass);
     JS_ASSERT(!(clasp->flags & JSCLASS_IS_GLOBAL));
 
-    JSObject *obj = NewObjectWithClassProto(cx, clasp, proto, parent);
-    AutoAssertNoGC nogc;
-    if (obj) {
-        if (clasp->ext.equality)
-            MarkTypeObjectFlags(cx, obj, OBJECT_FLAG_SPECIAL_EQUALITY);
-    }
+    JSObject *obj = NewNonFunction<WithProto::Class>(cx, clasp, proto, parent);
+    if (obj)
+        obj->syncSpecialEquality();
 
     JS_ASSERT_IF(obj, obj->getParent());
     return obj;
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_NewObjectWithGivenProto(JSContext *cx, JSClass *jsclasp, JSObject *protoArg, JSObject *parentArg)
+JS_NewObjectWithGivenProto(JSContext *cx, JSClass *jsclasp, JSObject *proto, JSObject *parent)
 {
-    RootedObject proto(cx, protoArg);
-    RootedObject parent(cx, parentArg);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, proto, parent);
 
     Class *clasp = Valueify(jsclasp);
     if (!clasp)
-        clasp = &ObjectClass;    
+        clasp = &js_ObjectClass;    
 
-    JS_ASSERT(clasp != &FunctionClass);
+    JS_ASSERT(clasp != &js_FunctionClass);
     JS_ASSERT(!(clasp->flags & JSCLASS_IS_GLOBAL));
 
-    JSObject *obj = NewObjectWithGivenProto(cx, clasp, proto, parent);
-    AutoAssertNoGC nogc;
+    JSObject *obj = NewNonFunction<WithProto::Given>(cx, clasp, proto, parent);
     if (obj)
-        MarkTypeObjectUnknownProperties(cx, obj->type());
+        obj->syncSpecialEquality();
     return obj;
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_NewObjectForConstructor(JSContext *cx, JSClass *clasp, const jsval *vp)
+JS_NewObjectForConstructor(JSContext *cx, const jsval *vp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, *vp);
 
-    RootedObject obj(cx, JSVAL_TO_OBJECT(*vp));
-    return js_CreateThis(cx, Valueify(clasp), obj);
+    return js_CreateThis(cx, JSVAL_TO_OBJECT(*vp));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_IsExtensible(JSRawObject obj)
+JS_IsExtensible(JSObject *obj)
 {
     return obj->isExtensible();
 }
 
 JS_PUBLIC_API(JSBool)
-JS_IsNative(JSRawObject obj)
+JS_IsNative(JSObject *obj)
 {
     return obj->isNative();
 }
 
-JS_PUBLIC_API(JSRuntime *)
-JS_GetObjectRuntime(JSRawObject obj)
-{
-    return obj->compartment()->rt;
-}
-
 JS_PUBLIC_API(JSBool)
-JS_FreezeObject(JSContext *cx, JSObject *objArg)
+JS_FreezeObject(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
 
-    return JSObject::freeze(cx, obj);
+    return obj->freeze(cx);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DeepFreezeObject(JSContext *cx, JSObject *objArg)
+JS_DeepFreezeObject(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
 
@@ -3574,50 +3131,80 @@ JS_DeepFreezeObject(JSContext *cx, JSObject *objArg)
     if (!obj->isExtensible())
         return true;
 
-    if (!JSObject::freeze(cx, obj))
+    if (!obj->freeze(cx))
         return false;
 
     
-    for (uint32_t i = 0, n = obj->slotSpan(); i < n; ++i) {
+    for (uint32 i = 0, n = obj->slotSpan(); i < n; ++i) {
         const Value &v = obj->getSlot(i);
         if (v.isPrimitive())
             continue;
-        RootedObject obj(cx, &v.toObject());
-        if (!JS_DeepFreezeObject(cx, obj))
+        if (!JS_DeepFreezeObject(cx, &v.toObject()))
             return false;
     }
 
     return true;
 }
 
-static JSBool
-LookupPropertyById(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
-                   MutableHandleObject objp, MutableHandleShape propp)
+JS_PUBLIC_API(JSObject *)
+JS_ConstructObject(JSContext *cx, JSClass *jsclasp, JSObject *proto, JSObject *parent)
 {
-    AssertHeapIsIdle(cx);
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, proto, parent);
+    Class *clasp = Valueify(jsclasp);
+    if (!clasp)
+        clasp = &js_ObjectClass;    
+    return js_ConstructObject(cx, clasp, proto, parent, 0, NULL);
+}
+
+JS_PUBLIC_API(JSObject *)
+JS_ConstructObjectWithArguments(JSContext *cx, JSClass *jsclasp, JSObject *proto,
+                                JSObject *parent, uintN argc, jsval *argv)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, proto, parent, JSValueArray(argv, argc));
+    Class *clasp = Valueify(jsclasp);
+    if (!clasp)
+        clasp = &js_ObjectClass;    
+    return js_ConstructObject(cx, clasp, proto, parent, argc, Valueify(argv));
+}
+
+static JSBool
+LookupPropertyById(JSContext *cx, JSObject *obj, jsid id, uintN flags,
+                   JSObject **objp, JSProperty **propp)
+{
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id);
 
     JSAutoResolveFlags rf(cx, flags);
-    return JSObject::lookupGeneric(cx, obj, id, objp, propp);
+    id = js_CheckForStringIndex(id);
+    return obj->lookupProperty(cx, id, objp, propp);
 }
 
 #define AUTO_NAMELEN(s,n)   (((n) == (size_t)-1) ? js_strlen(s) : (n))
 
 static JSBool
-LookupResult(JSContext *cx, HandleObject obj, HandleObject obj2, jsid id,
-             HandleShape shape, Value *vp)
+LookupResult(JSContext *cx, JSObject *obj, JSObject *obj2, jsid id,
+             JSProperty *prop, Value *vp)
 {
-    if (!shape) {
+    if (!prop) {
         
         vp->setUndefined();
         return JS_TRUE;
     }
 
     if (obj2->isNative()) {
+        Shape *shape = (Shape *) prop;
+
+        if (shape->isMethod()) {
+            AutoShapeRooter root(cx, shape);
+            vp->setObject(shape->methodObject());
+            return !!obj2->methodReadBarrier(cx, *shape, vp);
+        }
+
         
-        if (shape->hasSlot()) {
-            *vp = obj2->nativeGetSlot(shape->slot());
+        if (obj2->containsSlot(shape->slot)) {
+            *vp = obj2->nativeGetSlot(shape->slot);
             return true;
         }
     } else {
@@ -3625,7 +3212,7 @@ LookupResult(JSContext *cx, HandleObject obj, HandleObject obj2, jsid id,
             return js_GetDenseArrayElementValue(cx, obj2, id, vp);
         if (obj2->isProxy()) {
             AutoPropertyDescriptorRooter desc(cx);
-            if (!Proxy::getPropertyDescriptor(cx, obj2, id, false, &desc))
+            if (!JSProxy::getPropertyDescriptor(cx, obj2, id, false, &desc))
                 return false;
             if (!(desc.attrs & JSPROP_SHARED)) {
                 *vp = desc.value;
@@ -3640,84 +3227,62 @@ LookupResult(JSContext *cx, HandleObject obj, HandleObject obj2, jsid id,
 }
 
 JS_PUBLIC_API(JSBool)
-JS_LookupPropertyById(JSContext *cx, JSObject *objArg, jsid idArg, jsval *vp)
+JS_LookupPropertyById(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
-    RootedId id(cx, idArg);
-    RootedObject obj(cx, objArg);
-    RootedObject obj2(cx);
-    RootedShape prop(cx);
-
+    JSObject *obj2;
+    JSProperty *prop;
     return LookupPropertyById(cx, obj, id, JSRESOLVE_QUALIFIED, &obj2, &prop) &&
-           LookupResult(cx, obj, obj2, id, prop, vp);
+           LookupResult(cx, obj, obj2, id, prop, Valueify(vp));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_LookupElement(JSContext *cx, JSObject *objArg, uint32_t index, jsval *vp)
+JS_LookupElement(JSContext *cx, JSObject *obj, jsint index, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    CHECK_REQUEST(cx);
-    jsid id;
-    if (!IndexToId(cx, index, &id))
-        return false;
-    return JS_LookupPropertyById(cx, obj, id, vp);
+    return JS_LookupPropertyById(cx, obj, INT_TO_JSID(index), vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_LookupProperty(JSContext *cx, JSObject *objArg, const char *name, jsval *vp)
+JS_LookupProperty(JSContext *cx, JSObject *obj, const char *name, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    return atom && JS_LookupPropertyById(cx, obj, AtomToId(atom), vp);
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_LookupPropertyById(cx, obj, ATOM_TO_JSID(atom), vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_LookupUCProperty(JSContext *cx, JSObject *objArg, const jschar *name, size_t namelen, jsval *vp)
+JS_LookupUCProperty(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
-    return atom && JS_LookupPropertyById(cx, obj, AtomToId(atom), vp);
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    return atom && JS_LookupPropertyById(cx, obj, ATOM_TO_JSID(atom), vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_LookupPropertyWithFlagsById(JSContext *cx, JSObject *objArg, jsid id_, unsigned flags,
-                               JSObject **objpArg, jsval *vp)
+JS_LookupPropertyWithFlagsById(JSContext *cx, JSObject *obj, jsid id, uintN flags,
+                               JSObject **objp, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    RootedObject objp(cx, *objpArg);
-    RootedId id(cx, id_);
-    RootedShape prop(cx);
+    JSBool ok;
+    JSProperty *prop;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id);
-    if (!(obj->isNative()
-          ? LookupPropertyWithFlags(cx, obj, id, flags, &objp, &prop)
-          : JSObject::lookupGeneric(cx, obj, id, &objp, &prop)))
-        return false;
-
-    if (!LookupResult(cx, obj, objp, id, prop, vp))
-        return false;
-
-    *objpArg = objp;
-    return true;
+    ok = obj->isNative()
+         ? LookupPropertyWithFlags(cx, obj, id, flags, objp, &prop)
+         : obj->lookupProperty(cx, id, objp, &prop);
+    return ok && LookupResult(cx, obj, *objp, id, prop, Valueify(vp));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_LookupPropertyWithFlags(JSContext *cx, JSObject *objArg, const char *name, unsigned flags, jsval *vp)
+JS_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, const char *name, uintN flags, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
     JSObject *obj2;
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    return atom && JS_LookupPropertyWithFlagsById(cx, obj, AtomToId(atom), flags, &obj2, vp);
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_LookupPropertyWithFlagsById(cx, obj, ATOM_TO_JSID(atom), flags, &obj2, vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_HasPropertyById(JSContext *cx, JSObject *objArg, jsid idArg, JSBool *foundp)
+JS_HasPropertyById(JSContext *cx, JSObject *obj, jsid id, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, idArg);
-    RootedObject obj2(cx);
-    RootedShape prop(cx);
+    JSObject *obj2;
+    JSProperty *prop;
     JSBool ok = LookupPropertyById(cx, obj, id, JSRESOLVE_QUALIFIED | JSRESOLVE_DETECTING,
                                    &obj2, &prop);
     *foundp = (prop != NULL);
@@ -3725,45 +3290,34 @@ JS_HasPropertyById(JSContext *cx, JSObject *objArg, jsid idArg, JSBool *foundp)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_HasElement(JSContext *cx, JSObject *objArg, uint32_t index, JSBool *foundp)
+JS_HasElement(JSContext *cx, JSObject *obj, jsint index, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    jsid id;
-    if (!IndexToId(cx, index, &id))
-        return false;
-    return JS_HasPropertyById(cx, obj, id, foundp);
+    return JS_HasPropertyById(cx, obj, INT_TO_JSID(index), foundp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_HasProperty(JSContext *cx, JSObject *objArg, const char *name, JSBool *foundp)
+JS_HasProperty(JSContext *cx, JSObject *obj, const char *name, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    return atom && JS_HasPropertyById(cx, obj, AtomToId(atom), foundp);
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_HasPropertyById(cx, obj, ATOM_TO_JSID(atom), foundp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_HasUCProperty(JSContext *cx, JSObject *objArg, const jschar *name, size_t namelen, JSBool *foundp)
+JS_HasUCProperty(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
-    return atom && JS_HasPropertyById(cx, obj, AtomToId(atom), foundp);
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    return atom && JS_HasPropertyById(cx, obj, ATOM_TO_JSID(atom), foundp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_AlreadyHasOwnPropertyById(JSContext *cx, JSObject *objArg, jsid id_, JSBool *foundp)
+JS_AlreadyHasOwnPropertyById(JSContext *cx, JSObject *obj, jsid id, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, id_);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id);
 
     if (!obj->isNative()) {
-        RootedObject obj2(cx);
-        RootedShape prop(cx);
+        JSObject *obj2;
+        JSProperty *prop;
 
         if (!LookupPropertyById(cx, obj, id, JSRESOLVE_QUALIFIED | JSRESOLVE_DETECTING,
                                 &obj2, &prop)) {
@@ -3773,115 +3327,36 @@ JS_AlreadyHasOwnPropertyById(JSContext *cx, JSObject *objArg, jsid id_, JSBool *
         return JS_TRUE;
     }
 
-    *foundp = obj->nativeContains(cx, id);
+    *foundp = obj->nativeContains(id);
     return JS_TRUE;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_AlreadyHasOwnElement(JSContext *cx, JSObject *objArg, uint32_t index, JSBool *foundp)
+JS_AlreadyHasOwnElement(JSContext *cx, JSObject *obj, jsint index, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    jsid id;
-    if (!IndexToId(cx, index, &id))
-        return false;
-    return JS_AlreadyHasOwnPropertyById(cx, obj, id, foundp);
+    return JS_AlreadyHasOwnPropertyById(cx, obj, INT_TO_JSID(index), foundp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_AlreadyHasOwnProperty(JSContext *cx, JSObject *objArg, const char *name, JSBool *foundp)
+JS_AlreadyHasOwnProperty(JSContext *cx, JSObject *obj, const char *name, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    return atom && JS_AlreadyHasOwnPropertyById(cx, obj, AtomToId(atom), foundp);
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_AlreadyHasOwnPropertyById(cx, obj, ATOM_TO_JSID(atom), foundp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_AlreadyHasOwnUCProperty(JSContext *cx, JSObject *objArg, const jschar *name, size_t namelen,
+JS_AlreadyHasOwnUCProperty(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen,
                            JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
-    return atom && JS_AlreadyHasOwnPropertyById(cx, obj, AtomToId(atom), foundp);
-}
-
-
-
-
-static JSPropertyOpWrapper
-GetterWrapper(JSPropertyOp getter)
-{
-    JSPropertyOpWrapper ret;
-    ret.op = getter;
-    ret.info = NULL;
-    return ret;
-}
-
-static JSStrictPropertyOpWrapper
-SetterWrapper(JSStrictPropertyOp setter)
-{
-    JSStrictPropertyOpWrapper ret;
-    ret.op = setter;
-    ret.info = NULL;
-    return ret;
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    return atom && JS_AlreadyHasOwnPropertyById(cx, obj, ATOM_TO_JSID(atom), foundp);
 }
 
 static JSBool
-DefinePropertyById(JSContext *cx, HandleObject obj, HandleId id, HandleValue value,
-                   const JSPropertyOpWrapper &get, const JSStrictPropertyOpWrapper &set,
-                   unsigned attrs, unsigned flags, int tinyid)
+DefinePropertyById(JSContext *cx, JSObject *obj, jsid id, const Value &value,
+                   PropertyOp getter, StrictPropertyOp setter, uintN attrs,
+                   uintN flags, intN tinyid)
 {
-    PropertyOp getter = get.op;
-    StrictPropertyOp setter = set.op;
-    
-
-
-
-
-
-    if (attrs & (JSPROP_GETTER | JSPROP_SETTER))
-        attrs &= ~JSPROP_READONLY;
-
-    
-
-
-
-
-
-    if (attrs & JSPROP_NATIVE_ACCESSORS) {
-        JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
-        attrs &= ~JSPROP_NATIVE_ACCESSORS;
-        if (getter) {
-            RootedObject global(cx, (JSObject*) &obj->global());
-            JSFunction *getobj = JS_NewFunction(cx, (Native) getter, 0, 0, global, NULL);
-            if (!getobj)
-                return false;
-
-            if (get.info)
-                getobj->setJitInfo(get.info);
-
-            getter = JS_DATA_TO_FUNC_PTR(PropertyOp, getobj);
-            attrs |= JSPROP_GETTER;
-        }
-        if (setter) {
-            
-            AutoRooterGetterSetter getRoot(cx, JSPROP_GETTER, &getter, NULL);
-            RootedObject global(cx, (JSObject*) &obj->global());
-            JSFunction *setobj = JS_NewFunction(cx, (Native) setter, 1, 0, global, NULL);
-            if (!setobj)
-                return false;
-
-            if (set.info)
-                setobj->setJitInfo(set.info);
-
-            setter = JS_DATA_TO_FUNC_PTR(StrictPropertyOp, setobj);
-            attrs |= JSPROP_SETTER;
-        }
-    }
-
-
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id, value,
                             (attrs & JSPROP_GETTER)
@@ -3891,175 +3366,138 @@ DefinePropertyById(JSContext *cx, HandleObject obj, HandleId id, HandleValue val
                             ? JS_FUNC_TO_DATA_PTR(JSObject *, setter)
                             : NULL);
 
-    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
+    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED | JSRESOLVE_DECLARING);
     if (flags != 0 && obj->isNative()) {
         return !!DefineNativeProperty(cx, obj, id, value, getter, setter,
                                       attrs, flags, tinyid);
     }
-    return JSObject::defineGeneric(cx, obj, id, value, getter, setter, attrs);
+    return obj->defineProperty(cx, id, value, getter, setter, attrs);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefinePropertyById(JSContext *cx, JSObject *objArg, jsid idArg, jsval valueArg,
-                      JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs)
+JS_DefinePropertyById(JSContext *cx, JSObject *obj, jsid id, jsval value,
+                      JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, idArg);
-    RootedValue value(cx, valueArg);
-    return DefinePropertyById(cx, obj, id, value, GetterWrapper(getter),
-                              SetterWrapper(setter), attrs, 0, 0);
+    return DefinePropertyById(cx, obj, id, Valueify(value), Valueify(getter),
+                              Valueify(setter), attrs, 0, 0);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefineElement(JSContext *cx, JSObject *objArg, uint32_t index, jsval valueArg,
-                 JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs)
+JS_DefineElement(JSContext *cx, JSObject *obj, jsint index, jsval value,
+                 JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs)
 {
-    RootedObject obj(cx, objArg);
-    RootedValue value(cx, valueArg);
-    AutoRooterGetterSetter gsRoot(cx, attrs, &getter, &setter);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    RootedId id(cx);
-    if (!IndexToId(cx, index, id.address()))
-        return false;
-    return DefinePropertyById(cx, obj, id, value, GetterWrapper(getter),
-                              SetterWrapper(setter), attrs, 0, 0);
+    return DefinePropertyById(cx, obj, INT_TO_JSID(index), Valueify(value),
+                              Valueify(getter), Valueify(setter), attrs, 0, 0);
 }
 
 static JSBool
-DefineProperty(JSContext *cx, JSHandleObject obj, const char *name, const Value &value_,
-               const JSPropertyOpWrapper &getter, const JSStrictPropertyOpWrapper &setter,
-               unsigned attrs, unsigned flags, int tinyid)
+DefineProperty(JSContext *cx, JSObject *obj, const char *name, const Value &value,
+               PropertyOp getter, StrictPropertyOp setter, uintN attrs,
+               uintN flags, intN tinyid)
 {
-    RootedValue value(cx, value_);
-    AutoRooterGetterSetter gsRoot(cx, attrs, const_cast<JSPropertyOp *>(&getter.op),
-                                  const_cast<JSStrictPropertyOp *>(&setter.op));
-    RootedId id(cx);
+    jsid id;
+    JSAtom *atom;
 
     if (attrs & JSPROP_INDEX) {
         id = INT_TO_JSID(intptr_t(name));
+        atom = NULL;
         attrs &= ~JSPROP_INDEX;
     } else {
-        JSAtom *atom = Atomize(cx, name, strlen(name));
+        atom = js_Atomize(cx, name, strlen(name));
         if (!atom)
             return JS_FALSE;
-        id = AtomToId(atom);
+        id = ATOM_TO_JSID(atom);
     }
-
     return DefinePropertyById(cx, obj, id, value, getter, setter, attrs, flags, tinyid);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefineProperty(JSContext *cx, JSObject *objArg, const char *name, jsval valueArg,
-                  PropertyOp getter, JSStrictPropertyOp setter, unsigned attrs)
+JS_DefineProperty(JSContext *cx, JSObject *obj, const char *name, jsval value,
+                  JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs)
 {
-    RootedObject obj(cx, objArg);
-    RootedValue value(cx, valueArg);
-    return DefineProperty(cx, obj, name, value, GetterWrapper(getter),
-                          SetterWrapper(setter), attrs, 0, 0);
+    return DefineProperty(cx, obj, name, Valueify(value), Valueify(getter),
+                          Valueify(setter), attrs, 0, 0);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefinePropertyWithTinyId(JSContext *cx, JSObject *objArg, const char *name, int8_t tinyid,
-                            jsval valueArg, PropertyOp getter, JSStrictPropertyOp setter, unsigned attrs)
+JS_DefinePropertyWithTinyId(JSContext *cx, JSObject *obj, const char *name, int8 tinyid,
+                            jsval value, JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs)
 {
-    RootedObject obj(cx, objArg);
-    RootedValue value(cx, valueArg);
-    return DefineProperty(cx, obj, name, value, GetterWrapper(getter),
-                          SetterWrapper(setter), attrs, Shape::HAS_SHORTID, tinyid);
+    return DefineProperty(cx, obj, name, Valueify(value), Valueify(getter),
+                          Valueify(setter), attrs, Shape::HAS_SHORTID, tinyid);
 }
 
 static JSBool
-DefineUCProperty(JSContext *cx, JSHandleObject obj, const jschar *name, size_t namelen,
-                 const Value &value_, PropertyOp getter, StrictPropertyOp setter, unsigned attrs,
-                 unsigned flags, int tinyid)
+DefineUCProperty(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen,
+                 const Value &value, PropertyOp getter, StrictPropertyOp setter, uintN attrs,
+                 uintN flags, intN tinyid)
 {
-    RootedValue value(cx, value_);
-    AutoRooterGetterSetter gsRoot(cx, attrs, &getter, &setter);
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
-    if (!atom)
-        return false;
-    RootedId id(cx, AtomToId(atom));
-    return DefinePropertyById(cx, obj, id, value, GetterWrapper(getter),
-                              SetterWrapper(setter), attrs, flags, tinyid);
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    return atom && DefinePropertyById(cx, obj, ATOM_TO_JSID(atom), value, getter, setter, attrs,
+                                      flags, tinyid);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefineUCProperty(JSContext *cx, JSObject *objArg, const jschar *name, size_t namelen,
-                    jsval valueArg, JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs)
+JS_DefineUCProperty(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen,
+                    jsval value, JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs)
 {
-    RootedObject obj(cx, objArg);
-    RootedValue value(cx, valueArg);
-    return DefineUCProperty(cx, obj, name, namelen, value, getter, setter, attrs, 0, 0);
+    return DefineUCProperty(cx, obj, name, namelen, Valueify(value),
+                            Valueify(getter), Valueify(setter), attrs, 0, 0);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefineUCPropertyWithTinyId(JSContext *cx, JSObject *objArg, const jschar *name, size_t namelen,
-                              int8_t tinyid, jsval valueArg,
-                              JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs)
+JS_DefineUCPropertyWithTinyId(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen,
+                              int8 tinyid, jsval value,
+                              JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs)
 {
-    RootedObject obj(cx, objArg);
-    RootedValue value(cx, valueArg);
-    return DefineUCProperty(cx, obj, name, namelen, value, getter, setter, attrs,
-                            Shape::HAS_SHORTID, tinyid);
+    return DefineUCProperty(cx, obj, name, namelen, Valueify(value), Valueify(getter),
+                            Valueify(setter), attrs, Shape::HAS_SHORTID, tinyid);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefineOwnProperty(JSContext *cx, JSObject *objArg, jsid idArg, jsval descriptor, JSBool *bp)
+JS_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id, jsval descriptor, JSBool *bp)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, idArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id, descriptor);
-
-    return js_DefineOwnProperty(cx, obj, id, descriptor, bp);
+    return js_DefineOwnProperty(cx, obj, id, Valueify(descriptor), bp);
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_DefineObject(JSContext *cx, JSObject *objArg, const char *name, JSClass *jsclasp,
-                JSObject *protoArg, unsigned attrs)
+JS_DefineObject(JSContext *cx, JSObject *obj, const char *name, JSClass *jsclasp,
+                JSObject *proto, uintN attrs)
 {
-    RootedObject obj(cx, objArg);
-    RootedObject proto(cx, protoArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, proto);
 
     Class *clasp = Valueify(jsclasp);
     if (!clasp)
-        clasp = &ObjectClass;    
+        clasp = &js_ObjectClass;    
 
-    RootedObject nobj(cx, NewObjectWithClassProto(cx, clasp, proto, obj));
+    JSObject *nobj = NewObject<WithProto::Class>(cx, clasp, proto, obj);
     if (!nobj)
         return NULL;
 
-    if (!DefineProperty(cx, obj, name, ObjectValue(*nobj), GetterWrapper(NULL),
-                        SetterWrapper(NULL), attrs, 0, 0))
-    {
+    nobj->syncSpecialEquality();
+
+    if (!DefineProperty(cx, obj, name, ObjectValue(*nobj), NULL, NULL, attrs, 0, 0))
         return NULL;
-    }
 
     return nobj;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefineConstDoubles(JSContext *cx, JSObject *objArg, JSConstDoubleSpec *cds)
+JS_DefineConstDoubles(JSContext *cx, JSObject *obj, JSConstDoubleSpec *cds)
 {
-    RootedObject obj(cx, objArg);
     JSBool ok;
-    unsigned attrs;
+    uintN attrs;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    JSPropertyOpWrapper noget = GetterWrapper(NULL);
-    JSStrictPropertyOpWrapper noset = SetterWrapper(NULL);
     for (ok = JS_TRUE; cds->name; cds++) {
         Value value = DoubleValue(cds->dval);
         attrs = cds->flags;
         if (!attrs)
             attrs = JSPROP_READONLY | JSPROP_PERMANENT;
-        ok = DefineProperty(cx, obj, cds->name, value, noget, noset, attrs, 0, 0);
+        ok = DefineProperty(cx, obj, cds->name, value, NULL, NULL, attrs, 0, 0);
         if (!ok)
             break;
     }
@@ -4067,12 +3505,13 @@ JS_DefineConstDoubles(JSContext *cx, JSObject *objArg, JSConstDoubleSpec *cds)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefineProperties(JSContext *cx, JSObject *objArg, JSPropertySpec *ps)
+JS_DefineProperties(JSContext *cx, JSObject *obj, JSPropertySpec *ps)
 {
-    RootedObject obj(cx, objArg);
     JSBool ok;
+
     for (ok = true; ps->name; ps++) {
-        ok = DefineProperty(cx, obj, ps->name, UndefinedValue(), ps->getter, ps->setter,
+        ok = DefineProperty(cx, obj, ps->name, UndefinedValue(),
+                            Valueify(ps->getter), Valueify(ps->setter),
                             ps->flags, Shape::HAS_SHORTID, ps->tinyid);
         if (!ok)
             break;
@@ -4080,17 +3519,90 @@ JS_DefineProperties(JSContext *cx, JSObject *objArg, JSPropertySpec *ps)
     return ok;
 }
 
+JS_PUBLIC_API(JSBool)
+JS_AliasProperty(JSContext *cx, JSObject *obj, const char *name, const char *alias)
+{
+    JSObject *obj2;
+    JSProperty *prop;
+    JSBool ok;
+    Shape *shape;
+
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj);
+
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    if (!atom)
+        return JS_FALSE;
+    if (!LookupPropertyById(cx, obj, ATOM_TO_JSID(atom), JSRESOLVE_QUALIFIED, &obj2, &prop))
+        return JS_FALSE;
+    if (!prop) {
+        js_ReportIsNotDefined(cx, name);
+        return JS_FALSE;
+    }
+    if (obj2 != obj || !obj->isNative()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_ALIAS,
+                             alias, name, obj2->getClass()->name);
+        return JS_FALSE;
+    }
+    atom = js_Atomize(cx, alias, strlen(alias));
+    if (!atom) {
+        ok = JS_FALSE;
+    } else {
+        shape = (Shape *)prop;
+        ok = (js_AddNativeProperty(cx, obj, ATOM_TO_JSID(atom),
+                                   shape->getter(), shape->setter(), shape->slot,
+                                   shape->attributes(), shape->getFlags() | Shape::ALIAS,
+                                   shape->shortid)
+              != NULL);
+    }
+    return ok;
+}
+
+JS_PUBLIC_API(JSBool)
+JS_AliasElement(JSContext *cx, JSObject *obj, const char *name, jsint alias)
+{
+    JSObject *obj2;
+    JSProperty *prop;
+    Shape *shape;
+
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj);
+
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    if (!atom)
+        return JS_FALSE;
+    if (!LookupPropertyById(cx, obj, ATOM_TO_JSID(atom), JSRESOLVE_QUALIFIED, &obj2, &prop))
+        return JS_FALSE;
+    if (!prop) {
+        js_ReportIsNotDefined(cx, name);
+        return JS_FALSE;
+    }
+    if (obj2 != obj || !obj->isNative()) {
+        char numBuf[12];
+        JS_snprintf(numBuf, sizeof numBuf, "%ld", (long)alias);
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_ALIAS,
+                             numBuf, name, obj2->getClass()->name);
+        return JS_FALSE;
+    }
+    shape = (Shape *)prop;
+    return js_AddNativeProperty(cx, obj, INT_TO_JSID(alias),
+                                shape->getter(), shape->setter(), shape->slot,
+                                shape->attributes(), shape->getFlags() | Shape::ALIAS,
+                                shape->shortid)
+           != NULL;
+}
+
 static JSBool
-GetPropertyDescriptorById(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
+GetPropertyDescriptorById(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                           JSBool own, PropertyDescriptor *desc)
 {
-    RootedObject obj2(cx);
-    RootedShape shape(cx);
+    JSObject *obj2;
+    JSProperty *prop;
 
-    if (!LookupPropertyById(cx, obj, id, flags, &obj2, &shape))
+    if (!LookupPropertyById(cx, obj, id, flags, &obj2, &prop))
         return JS_FALSE;
 
-    if (!shape || (own && obj != obj2)) {
+    if (!prop || (own && obj != obj2)) {
         desc->obj = NULL;
         desc->attrs = 0;
         desc->getter = NULL;
@@ -4101,21 +3613,29 @@ GetPropertyDescriptorById(JSContext *cx, HandleObject obj, HandleId id, unsigned
 
     desc->obj = obj2;
     if (obj2->isNative()) {
+        Shape *shape = (Shape *) prop;
         desc->attrs = shape->attributes();
-        desc->getter = shape->getter();
-        desc->setter = shape->setter();
-        if (shape->hasSlot())
-            desc->value = obj2->nativeGetSlot(shape->slot());
-        else
-            desc->value.setUndefined();
+
+        if (shape->isMethod()) {
+            desc->getter = PropertyStub;
+            desc->setter = StrictPropertyStub;
+            desc->value.setObject(shape->methodObject());
+        } else {
+            desc->getter = shape->getter();
+            desc->setter = shape->setter();
+            if (obj2->containsSlot(shape->slot))
+                desc->value = obj2->nativeGetSlot(shape->slot);
+            else
+                desc->value.setUndefined();
+        }
     } else {
         if (obj2->isProxy()) {
             JSAutoResolveFlags rf(cx, flags);
             return own
-                   ? Proxy::getOwnPropertyDescriptor(cx, obj2, id, false, desc)
-                   : Proxy::getPropertyDescriptor(cx, obj2, id, false, desc);
+                   ? JSProxy::getOwnPropertyDescriptor(cx, obj2, id, false, desc)
+                   : JSProxy::getPropertyDescriptor(cx, obj2, id, false, desc);
         }
-        if (!JSObject::getGenericAttributes(cx, obj2, id, &desc->attrs))
+        if (!obj2->getAttributes(cx, id, &desc->attrs))
             return false;
         desc->getter = NULL;
         desc->setter = NULL;
@@ -4125,487 +3645,275 @@ GetPropertyDescriptorById(JSContext *cx, HandleObject obj, HandleId id, unsigned
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetPropertyDescriptorById(JSContext *cx, JSObject *objArg, jsid idArg, unsigned flags,
-                             JSPropertyDescriptor *desc_)
+JS_GetPropertyDescriptorById(JSContext *cx, JSObject *obj, jsid id, uintN flags,
+                             JSPropertyDescriptor *desc)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, idArg);
-    AutoPropertyDescriptorRooter desc(cx);
-    if (!GetPropertyDescriptorById(cx, obj, id, flags, JS_FALSE, &desc))
-        return false;
-    *desc_ = desc;
-    return true;
+    return GetPropertyDescriptorById(cx, obj, id, flags, JS_FALSE, Valueify(desc));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetPropertyAttrsGetterAndSetterById(JSContext *cx, JSObject *objArg, jsid idArg,
-                                       unsigned *attrsp, JSBool *foundp,
+JS_GetPropertyAttrsGetterAndSetterById(JSContext *cx, JSObject *obj, jsid id,
+                                       uintN *attrsp, JSBool *foundp,
                                        JSPropertyOp *getterp, JSStrictPropertyOp *setterp)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, idArg);
-    AutoPropertyDescriptorRooter desc(cx);
+    PropertyDescriptor desc;
     if (!GetPropertyDescriptorById(cx, obj, id, JSRESOLVE_QUALIFIED, JS_FALSE, &desc))
         return false;
 
     *attrsp = desc.attrs;
     *foundp = (desc.obj != NULL);
     if (getterp)
-        *getterp = desc.getter;
+        *getterp = Jsvalify(desc.getter);
     if (setterp)
-        *setterp = desc.setter;
+        *setterp = Jsvalify(desc.setter);
     return true;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetPropertyAttributes(JSContext *cx, JSObject *objArg, const char *name,
-                         unsigned *attrsp, JSBool *foundp)
+JS_GetPropertyAttributes(JSContext *cx, JSObject *obj, const char *name,
+                         uintN *attrsp, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    return atom && JS_GetPropertyAttrsGetterAndSetterById(cx, obj, AtomToId(atom),
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_GetPropertyAttrsGetterAndSetterById(cx, obj, ATOM_TO_JSID(atom),
                                                           attrsp, foundp, NULL, NULL);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetUCPropertyAttributes(JSContext *cx, JSObject *objArg, const jschar *name, size_t namelen,
-                           unsigned *attrsp, JSBool *foundp)
+JS_GetUCPropertyAttributes(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen,
+                           uintN *attrsp, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
-    return atom && JS_GetPropertyAttrsGetterAndSetterById(cx, obj, AtomToId(atom),
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    return atom && JS_GetPropertyAttrsGetterAndSetterById(cx, obj, ATOM_TO_JSID(atom),
                                                           attrsp, foundp, NULL, NULL);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetPropertyAttrsGetterAndSetter(JSContext *cx, JSObject *objArg, const char *name,
-                                   unsigned *attrsp, JSBool *foundp,
+JS_GetPropertyAttrsGetterAndSetter(JSContext *cx, JSObject *obj, const char *name,
+                                   uintN *attrsp, JSBool *foundp,
                                    JSPropertyOp *getterp, JSStrictPropertyOp *setterp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    return atom && JS_GetPropertyAttrsGetterAndSetterById(cx, obj, AtomToId(atom),
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_GetPropertyAttrsGetterAndSetterById(cx, obj, ATOM_TO_JSID(atom),
                                                           attrsp, foundp, getterp, setterp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetUCPropertyAttrsGetterAndSetter(JSContext *cx, JSObject *objArg,
+JS_GetUCPropertyAttrsGetterAndSetter(JSContext *cx, JSObject *obj,
                                      const jschar *name, size_t namelen,
-                                     unsigned *attrsp, JSBool *foundp,
+                                     uintN *attrsp, JSBool *foundp,
                                      JSPropertyOp *getterp, JSStrictPropertyOp *setterp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
-    return atom && JS_GetPropertyAttrsGetterAndSetterById(cx, obj, AtomToId(atom),
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    return atom && JS_GetPropertyAttrsGetterAndSetterById(cx, obj, ATOM_TO_JSID(atom),
                                                           attrsp, foundp, getterp, setterp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetOwnPropertyDescriptor(JSContext *cx, JSObject *objArg, jsid idArg, jsval *vp)
+JS_GetOwnPropertyDescriptor(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, idArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-
-    return GetOwnPropertyDescriptor(cx, obj, id, vp);
+    return js_GetOwnPropertyDescriptor(cx, obj, id, Valueify(vp));
 }
 
 static JSBool
-SetPropertyAttributesById(JSContext *cx, HandleObject obj, HandleId id, unsigned attrs, JSBool *foundp)
+SetPropertyAttributesById(JSContext *cx, JSObject *obj, jsid id, uintN attrs, JSBool *foundp)
 {
-    RootedObject obj2(cx);
-    RootedShape shape(cx);
+    JSObject *obj2;
+    JSProperty *prop;
 
-    if (!LookupPropertyById(cx, obj, id, JSRESOLVE_QUALIFIED, &obj2, &shape))
+    if (!LookupPropertyById(cx, obj, id, JSRESOLVE_QUALIFIED, &obj2, &prop))
         return false;
-    if (!shape || obj != obj2) {
+    if (!prop || obj != obj2) {
         *foundp = false;
         return true;
     }
     JSBool ok = obj->isNative()
-                ? JSObject::changePropertyAttributes(cx, obj, shape, attrs)
-                : JSObject::setGenericAttributes(cx, obj, id, &attrs);
+                ? js_SetNativeAttributes(cx, obj, (Shape *) prop, attrs)
+                : obj->setAttributes(cx, id, &attrs);
     if (ok)
         *foundp = true;
     return ok;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetPropertyAttributes(JSContext *cx, JSObject *objArg, const char *name,
-                         unsigned attrs, JSBool *foundp)
+JS_SetPropertyAttributes(JSContext *cx, JSObject *obj, const char *name,
+                         uintN attrs, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    RootedId id(cx, AtomToId(atom));
-    return atom && SetPropertyAttributesById(cx, obj, id, attrs, foundp);
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && SetPropertyAttributesById(cx, obj, ATOM_TO_JSID(atom), attrs, foundp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetUCPropertyAttributes(JSContext *cx, JSObject *objArg, const jschar *name, size_t namelen,
-                           unsigned attrs, JSBool *foundp)
+JS_SetUCPropertyAttributes(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen,
+                           uintN attrs, JSBool *foundp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
-    RootedId id(cx, AtomToId(atom));
-    return atom && SetPropertyAttributesById(cx, obj, id, attrs, foundp);
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    return atom && SetPropertyAttributesById(cx, obj, ATOM_TO_JSID(atom), attrs, foundp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetPropertyById(JSContext *cx, JSObject *objArg, jsid idArg, jsval *vp)
+JS_GetPropertyById(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
-    return JS_ForwardGetPropertyTo(cx, objArg, idArg, objArg, vp);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_ForwardGetPropertyTo(JSContext *cx, JSObject *objArg, jsid idArg, JSObject *onBehalfOfArg, jsval *vp)
-{
-    RootedObject obj(cx, objArg);
-    RootedObject onBehalfOf(cx, onBehalfOfArg);
-    RootedId id(cx, idArg);
-
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id);
-    assertSameCompartment(cx, onBehalfOf);
     JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
-
-    RootedValue value(cx);
-    if (!JSObject::getGeneric(cx, obj, onBehalfOf, id, &value))
-        return false;
-
-    *vp = value;
-    return true;
+    return obj->getProperty(cx, id, Valueify(vp));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetPropertyByIdDefault(JSContext *cx, JSObject *objArg, jsid idArg, jsval defArg, jsval *vp)
+JS_GetPropertyByIdDefault(JSContext *cx, JSObject *obj, jsid id, jsval def, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, idArg);
-    RootedValue def(cx, defArg);
-
-    RootedValue value(cx);
-    if (!baseops::GetPropertyDefault(cx, obj, id, def, &value))
-        return false;
-
-    *vp = value;
-    return true;
+    return GetPropertyDefault(cx, obj, id, Valueify(def), Valueify(vp));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetElement(JSContext *cx, JSObject *objArg, uint32_t index, jsval *vp)
+JS_GetElement(JSContext *cx, JSObject *obj, jsint index, jsval *vp)
 {
-    return JS_ForwardGetElementTo(cx, objArg, index, objArg, vp);
+    return JS_GetPropertyById(cx, obj, INT_TO_JSID(index), vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ForwardGetElementTo(JSContext *cx, JSObject *objArg, uint32_t index, JSObject *onBehalfOfArg, jsval *vp)
+JS_GetProperty(JSContext *cx, JSObject *obj, const char *name, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    RootedObject onBehalfOf(cx, onBehalfOfArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj);
-    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
-
-    RootedValue value(cx);
-    if (!JSObject::getElement(cx, obj, onBehalfOf, index, &value))
-        return false;
-
-    *vp = value;
-    return true;
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_GetPropertyById(cx, obj, ATOM_TO_JSID(atom), vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetElementIfPresent(JSContext *cx, JSObject *objArg, uint32_t index, JSObject *onBehalfOfArg, jsval *vp, JSBool* present)
+JS_GetPropertyDefault(JSContext *cx, JSObject *obj, const char *name, jsval def, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    RootedObject onBehalfOf(cx, onBehalfOfArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj);
-    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
-
-    RootedValue value(cx);
-    bool isPresent;
-    if (!JSObject::getElementIfPresent(cx, obj, onBehalfOf, index, &value, &isPresent))
-        return false;
-
-    *vp = value;
-    *present = isPresent;
-    return true;
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_GetPropertyByIdDefault(cx, obj, ATOM_TO_JSID(atom), def, vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetProperty(JSContext *cx, JSObject *objArg, const char *name, jsval *vp)
+JS_GetUCProperty(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    return atom && JS_GetPropertyById(cx, obj, AtomToId(atom), vp);
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    return atom && JS_GetPropertyById(cx, obj, ATOM_TO_JSID(atom), vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetPropertyDefault(JSContext *cx, JSObject *objArg, const char *name, jsval def, jsval *vp)
+JS_GetMethodById(JSContext *cx, JSObject *obj, jsid id, JSObject **objp, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    return atom && JS_GetPropertyByIdDefault(cx, obj, AtomToId(atom), def, vp);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_GetUCProperty(JSContext *cx, JSObject *objArg, const jschar *name, size_t namelen, jsval *vp)
-{
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
-    return atom && JS_GetPropertyById(cx, obj, AtomToId(atom), vp);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_GetMethodById(JSContext *cx, JSObject *objArg, jsid idArg, JSObject **objp, jsval *vp)
-{
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, idArg);
-
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id);
-
-    RootedValue value(cx);
-    if (!GetMethod(cx, obj, id, 0, &value))
+    if (!js_GetMethod(cx, obj, id, JSGET_METHOD_BARRIER, Valueify(vp)))
         return JS_FALSE;
-    *vp = value;
-
     if (objp)
         *objp = obj;
     return JS_TRUE;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetMethod(JSContext *cx, JSObject *objArg, const char *name, JSObject **objp, jsval *vp)
+JS_GetMethod(JSContext *cx, JSObject *obj, const char *name, JSObject **objp, jsval *vp)
 {
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    return atom && JS_GetMethodById(cx, objArg, AtomToId(atom), objp, vp);
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_GetMethodById(cx, obj, ATOM_TO_JSID(atom), objp, vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetPropertyById(JSContext *cx, JSObject *objArg, jsid idArg, jsval *vp)
+JS_SetPropertyById(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, idArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id);
     JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED | JSRESOLVE_ASSIGNING);
-
-    RootedValue value(cx, *vp);
-    if (!JSObject::setGeneric(cx, obj, obj, id, &value, false))
-        return false;
-
-    *vp = value;
-    return true;
+    return obj->setProperty(cx, id, Valueify(vp), false);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetElement(JSContext *cx, JSObject *objArg, uint32_t index, jsval *vp)
+JS_SetElement(JSContext *cx, JSObject *obj, jsint index, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj, *vp);
-    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED | JSRESOLVE_ASSIGNING);
-
-    RootedValue value(cx, *vp);
-    if (!JSObject::setElement(cx, obj, obj, index, &value, false))
-        return false;
-
-    *vp = value;
-    return true;
+    return JS_SetPropertyById(cx, obj, INT_TO_JSID(index), vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetProperty(JSContext *cx, JSObject *objArg, const char *name, jsval *vp)
+JS_SetProperty(JSContext *cx, JSObject *obj, const char *name, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    return atom && JS_SetPropertyById(cx, obj, AtomToId(atom), vp);
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_SetPropertyById(cx, obj, ATOM_TO_JSID(atom), vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetUCProperty(JSContext *cx, JSObject *objArg, const jschar *name, size_t namelen, jsval *vp)
+JS_SetUCProperty(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen, jsval *vp)
 {
-    RootedObject obj(cx, objArg);
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
-    return atom && JS_SetPropertyById(cx, obj, AtomToId(atom), vp);
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    return atom && JS_SetPropertyById(cx, obj, ATOM_TO_JSID(atom), vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DeletePropertyById2(JSContext *cx, JSObject *objArg, jsid id, jsval *rval)
+JS_DeletePropertyById2(JSContext *cx, JSObject *obj, jsid id, jsval *rval)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id);
     JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
-
-    RootedValue value(cx);
-
-    if (JSID_IS_SPECIAL(id)) {
-        Rooted<SpecialId> sid(cx, JSID_TO_SPECIALID(id));
-        if (!JSObject::deleteSpecial(cx, obj, sid, &value, false))
-            return false;
-    } else {
-        if (!JSObject::deleteByValue(cx, obj, IdToValue(id), &value, false))
-            return false;
-    }
-
-    *rval = value;
-    return true;
+    return obj->deleteProperty(cx, id, Valueify(rval), false);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DeleteElement2(JSContext *cx, JSObject *objArg, uint32_t index, jsval *rval)
+JS_DeleteElement2(JSContext *cx, JSObject *obj, jsint index, jsval *rval)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj);
-    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
-
-    RootedValue value(cx);
-    if (!JSObject::deleteElement(cx, obj, index, &value, false))
-        return false;
-
-    *rval = value;
-    return true;
+    return JS_DeletePropertyById2(cx, obj, INT_TO_JSID(index), rval);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DeleteProperty2(JSContext *cx, JSObject *objArg, const char *name, jsval *rval)
+JS_DeleteProperty2(JSContext *cx, JSObject *obj, const char *name, jsval *rval)
 {
-    RootedObject obj(cx, objArg);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj);
-    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
-
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    if (!atom)
-        return false;
-
-    RootedValue value(cx);
-    if (!JSObject::deleteByValue(cx, obj, StringValue(atom), &value, false))
-        return false;
-
-    *rval = value;
-    return true;
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    return atom && JS_DeletePropertyById2(cx, obj, ATOM_TO_JSID(atom), rval);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DeleteUCProperty2(JSContext *cx, JSObject *objArg, const jschar *name, size_t namelen, jsval *rval)
+JS_DeleteUCProperty2(JSContext *cx, JSObject *obj, const jschar *name, size_t namelen, jsval *rval)
 {
-    RootedObject obj(cx, objArg);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj);
-    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
-
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
-    if (!atom)
-        return false;
-
-    RootedValue value(cx);
-    if (!JSObject::deleteByValue(cx, obj, StringValue(atom), &value, false))
-        return false;
-
-    *rval = value;
-    return true;
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    return atom && JS_DeletePropertyById2(cx, obj, ATOM_TO_JSID(atom), rval);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DeletePropertyById(JSContext *cx, JSObject *objArg, jsid idArg)
+JS_DeletePropertyById(JSContext *cx, JSObject *obj, jsid id)
 {
     jsval junk;
-    return JS_DeletePropertyById2(cx, objArg, idArg, &junk);
+    return JS_DeletePropertyById2(cx, obj, id, &junk);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DeleteElement(JSContext *cx, JSObject *objArg, uint32_t index)
+JS_DeleteElement(JSContext *cx, JSObject *obj, jsint index)
 {
     jsval junk;
-    return JS_DeleteElement2(cx, objArg, index, &junk);
+    return JS_DeleteElement2(cx, obj, index, &junk);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DeleteProperty(JSContext *cx, JSObject *objArg, const char *name)
+JS_DeleteProperty(JSContext *cx, JSObject *obj, const char *name)
 {
     jsval junk;
-    return JS_DeleteProperty2(cx, objArg, name, &junk);
-}
-
-static Shape *
-LastConfigurableShape(JSObject *obj)
-{
-    for (Shape::Range r(obj->lastProperty()->all()); !r.empty(); r.popFront()) {
-        Shape *shape = &r.front();
-        if (shape->configurable())
-            return shape;
-    }
-    return NULL;
+    return JS_DeleteProperty2(cx, obj, name, &junk);
 }
 
 JS_PUBLIC_API(void)
-JS_ClearNonGlobalObject(JSContext *cx, JSObject *objArg)
+JS_ClearScope(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
 
-    JS_ASSERT(!obj->isGlobal());
+    JSFinalizeOp clearOp = obj->getOps()->clear;
+    if (clearOp)
+        clearOp(cx, obj);
 
-    if (!obj->isNative())
-        return;
-
-    
-    while (Shape *shape = LastConfigurableShape(obj)) {
-        if (!obj->removeProperty(cx, shape->propid()))
-            return;
-    }
+    if (obj->isNative())
+        js_ClearNative(cx, obj);
 
     
-    for (Shape::Range r(obj->lastProperty()->all()); !r.empty(); r.popFront()) {
-        Shape *shape = &r.front();
-        if (shape->isDataDescriptor() &&
-            shape->writable() &&
-            shape->hasDefaultSetter() &&
-            shape->hasSlot()) {
-            obj->nativeSetSlot(shape->slot(), UndefinedValue());
-        }
-    }
-}
+    if (obj->isGlobal())
+        obj->asGlobal()->clear(cx);
 
-JS_PUBLIC_API(void)
-JS_SetAllNonReservedSlotsToUndefined(JSContext *cx, JSObject *objArg)
-{
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj);
-
-    if (!obj->isNative())
-        return;
-
-    Class *clasp = obj->getClass();
-    unsigned numReserved = JSCLASS_RESERVED_SLOTS(clasp);
-    unsigned numSlots = obj->slotSpan();
-    for (unsigned i = numReserved; i < numSlots; i++)
-        obj->setSlot(i, UndefinedValue());
+    js_InitRandom(cx);
 }
 
 JS_PUBLIC_API(JSIdArray *)
-JS_Enumerate(JSContext *cx, JSObject *objArg)
+JS_Enumerate(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
 
@@ -4613,6 +3921,8 @@ JS_Enumerate(JSContext *cx, JSObject *objArg)
     JSIdArray *ida;
     if (!GetPropertyNames(cx, obj, JSITER_OWNONLY, &props) || !VectorToIdArray(cx, props, &ida))
         return NULL;
+    for (size_t n = 0; n < size_t(ida->length); ++n)
+        JS_ASSERT(js_CheckForStringIndex(ida->vector[n]) == ida->vector[n]);
     return ida;
 }
 
@@ -4623,10 +3933,10 @@ JS_Enumerate(JSContext *cx, JSObject *objArg)
 
 
 
-const uint32_t JSSLOT_ITER_INDEX = 0;
+const uint32 JSSLOT_ITER_INDEX = 0;
 
 static void
-prop_iter_finalize(FreeOp *fop, JSObject *obj)
+prop_iter_finalize(JSContext *cx, JSObject *obj)
 {
     void *pdata = obj->getPrivate();
     if (!pdata)
@@ -4635,7 +3945,7 @@ prop_iter_finalize(FreeOp *fop, JSObject *obj)
     if (obj->getSlot(JSSLOT_ITER_INDEX).toInt32() >= 0) {
         
         JSIdArray *ida = (JSIdArray *) pdata;
-        DestroyIdArray(fop, ida);
+        JS_DestroyIdArray(cx, ida);
     }
 }
 
@@ -4648,13 +3958,7 @@ prop_iter_trace(JSTracer *trc, JSObject *obj)
 
     if (obj->getSlot(JSSLOT_ITER_INDEX).toInt32() < 0) {
         
-
-
-
-
-        Shape *tmp = (Shape *)pdata;
-        MarkShapeUnbarriered(trc, &tmp, "prop iter shape");
-        obj->setPrivateUnbarriered(tmp);
+        MarkShape(trc, (Shape *)pdata, "prop iter shape");
     } else {
         
         JSIdArray *ida = (JSIdArray *) pdata;
@@ -4664,15 +3968,17 @@ prop_iter_trace(JSTracer *trc, JSObject *obj)
 
 static Class prop_iter_class = {
     "PropertyIterator",
-    JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_HAS_RESERVED_SLOTS(1),
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
+    JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(1),
+    PropertyStub,         
+    PropertyStub,         
+    PropertyStub,         
+    StrictPropertyStub,   
+    EnumerateStub,
+    ResolveStub,
+    ConvertStub,
     prop_iter_finalize,
+    NULL,           
+    NULL,           
     NULL,           
     NULL,           
     NULL,           
@@ -4681,47 +3987,51 @@ static Class prop_iter_class = {
 };
 
 JS_PUBLIC_API(JSObject *)
-JS_NewPropertyIterator(JSContext *cx, JSObject *objArg)
+JS_NewPropertyIterator(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
+    JSObject *iterobj;
+    const void *pdata;
+    jsint index;
+    JSIdArray *ida;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
-
-    RootedObject iterobj(cx, NewObjectWithClassProto(cx, &prop_iter_class, NULL, obj));
+    iterobj = NewNonFunction<WithProto::Class>(cx, &prop_iter_class, NULL, obj);
     if (!iterobj)
         return NULL;
 
-    int index;
     if (obj->isNative()) {
         
-        iterobj->setPrivateGCThing(obj->lastProperty());
+        pdata = obj->lastProperty();
         index = -1;
     } else {
         
-        JSIdArray *ida = JS_Enumerate(cx, obj);
+
+
+
+
+
+        AutoObjectRooter tvr(cx, iterobj);
+        ida = JS_Enumerate(cx, obj);
         if (!ida)
             return NULL;
-        iterobj->setPrivate((void *)ida);
+        pdata = ida;
         index = ida->length;
     }
 
     
-    iterobj->setSlot(JSSLOT_ITER_INDEX, Int32Value(index));
+    iterobj->setPrivate(const_cast<void *>(pdata));
+    iterobj->getSlotRef(JSSLOT_ITER_INDEX).setInt32(index);
     return iterobj;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_NextProperty(JSContext *cx, JSObject *iterobjArg, jsid *idp)
+JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp)
 {
-    RootedObject iterobj(cx, iterobjArg);
-    AutoAssertNoGC nogc;
-    int32_t i;
-    Shape *shape;
+    jsint i;
+    const Shape *shape;
     JSIdArray *ida;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, iterobj);
     i = iterobj->getSlot(JSSLOT_ITER_INDEX).toInt32();
@@ -4730,15 +4040,15 @@ JS_NextProperty(JSContext *cx, JSObject *iterobjArg, jsid *idp)
         JS_ASSERT(iterobj->getParent()->isNative());
         shape = (Shape *) iterobj->getPrivate();
 
-        while (shape->previous() && !shape->enumerable())
+        while (shape->previous() && (!shape->enumerable() || shape->isAlias()))
             shape = shape->previous();
 
         if (!shape->previous()) {
-            JS_ASSERT(shape->isEmptyShape());
+            JS_ASSERT(JSID_IS_EMPTY(shape->propid));
             *idp = JSID_VOID;
         } else {
-            iterobj->setPrivateGCThing(const_cast<Shape *>(shape->previous().get()));
-            *idp = shape->propid();
+            iterobj->setPrivate(const_cast<Shape *>(shape->previous()));
+            *idp = shape->propid;
         }
     } else {
         
@@ -4756,273 +4066,265 @@ JS_NextProperty(JSContext *cx, JSObject *iterobjArg, jsid *idp)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ArrayIterator(JSContext *cx, unsigned argc, jsval *vp)
+JS_GetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, jsval *vp)
 {
-    CallArgs args = CallArgsFromVp(argc, vp);
-    Rooted<Value> target(cx, args.thisv());
-    AssertHeapIsIdle(cx);
-    assertSameCompartment(cx, target);
     CHECK_REQUEST(cx);
-
-    JSObject *iterobj = ElementIteratorObject::create(cx, target);
-    if (!iterobj)
-        return false;
-    vp->setObject(*iterobj);
-    return true;
+    assertSameCompartment(cx, obj);
+    return js_GetReservedSlot(cx, obj, index, Valueify(vp));
 }
 
-JS_PUBLIC_API(jsval)
-JS_GetReservedSlot(RawObject obj, uint32_t index)
+JS_PUBLIC_API(JSBool)
+JS_SetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, jsval v)
 {
-    return obj->getReservedSlot(index);
-}
-
-JS_PUBLIC_API(void)
-JS_SetReservedSlot(RawObject obj, uint32_t index, RawValue value)
-{
-    obj->setReservedSlot(index, value);
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj, v);
+    return js_SetReservedSlot(cx, obj, index, Valueify(v));
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_NewArrayObject(JSContext *cx, int length, jsval *vector)
+JS_NewArrayObject(JSContext *cx, jsint length, jsval *vector)
 {
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-
-    assertSameCompartment(cx, JSValueArray(vector, vector ? (uint32_t)length : 0));
-    return NewDenseCopiedArray(cx, (uint32_t)length, vector);
+    
+    assertSameCompartment(cx, JSValueArray(vector, vector ? (jsuint)length : 0));
+    return NewDenseCopiedArray(cx, (jsuint)length, Valueify(vector));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_IsArrayObject(JSContext *cx, JSObject *objArg)
+JS_IsArrayObject(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
     assertSameCompartment(cx, obj);
-    return ObjectClassIs(*obj, ESClass_Array, cx);
+    return obj->isArray() ||
+           (obj->isWrapper() && obj->unwrap()->isArray());
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetArrayLength(JSContext *cx, JSObject *objArg, uint32_t *lengthp)
+JS_GetArrayLength(JSContext *cx, JSObject *obj, jsuint *lengthp)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
-    return GetLengthProperty(cx, obj, lengthp);
+    return js_GetLengthProperty(cx, obj, lengthp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetArrayLength(JSContext *cx, JSObject *objArg, uint32_t length)
+JS_SetArrayLength(JSContext *cx, JSObject *obj, jsuint length)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
-    return SetLengthProperty(cx, obj, length);
+    return js_SetLengthProperty(cx, obj, length);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_CheckAccess(JSContext *cx, JSObject *objArg, jsid idArg, JSAccessMode mode,
-               jsval *vp, unsigned *attrsp)
+JS_HasArrayLength(JSContext *cx, JSObject *obj, jsuint *lengthp)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, idArg);
-    RootedValue value(cx, *vp);
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj);
+    return js_HasLengthProperty(cx, obj, lengthp);
+}
 
-    AssertHeapIsIdle(cx);
+JS_PUBLIC_API(JSBool)
+JS_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
+               jsval *vp, uintN *attrsp)
+{
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id);
-    JSBool status = CheckAccess(cx, obj, id, mode, &value, attrsp);
-    *vp = value;
-    return status;
+    return CheckAccess(cx, obj, id, mode, Valueify(vp), attrsp);
 }
 
-JS_PUBLIC_API(void)
-JS_HoldPrincipals(JSPrincipals *principals)
+#ifdef JS_THREADSAFE
+JS_PUBLIC_API(jsrefcount)
+JS_HoldPrincipals(JSContext *cx, JSPrincipals *principals)
 {
-    JS_ATOMIC_INCREMENT(&principals->refcount);
+    return JS_ATOMIC_INCREMENT(&principals->refcount);
 }
 
-JS_PUBLIC_API(void)
-JS_DropPrincipals(JSRuntime *rt, JSPrincipals *principals)
+JS_PUBLIC_API(jsrefcount)
+JS_DropPrincipals(JSContext *cx, JSPrincipals *principals)
 {
-    int rc = JS_ATOMIC_DECREMENT(&principals->refcount);
+    jsrefcount rc = JS_ATOMIC_DECREMENT(&principals->refcount);
     if (rc == 0)
-        rt->destroyPrincipals(principals);
+        principals->destroy(cx, principals);
+    return rc;
+}
+#endif
+
+JS_PUBLIC_API(JSSecurityCallbacks *)
+JS_SetRuntimeSecurityCallbacks(JSRuntime *rt, JSSecurityCallbacks *callbacks)
+{
+    JSSecurityCallbacks *oldcallbacks;
+
+    oldcallbacks = rt->securityCallbacks;
+    rt->securityCallbacks = callbacks;
+    return oldcallbacks;
 }
 
-JS_PUBLIC_API(void)
-JS_SetSecurityCallbacks(JSRuntime *rt, const JSSecurityCallbacks *scb)
+JS_PUBLIC_API(JSSecurityCallbacks *)
+JS_GetRuntimeSecurityCallbacks(JSRuntime *rt)
 {
-    JS_ASSERT(scb != &NullSecurityCallbacks);
-    rt->securityCallbacks = scb ? scb : &NullSecurityCallbacks;
+  return rt->securityCallbacks;
 }
 
-JS_PUBLIC_API(const JSSecurityCallbacks *)
-JS_GetSecurityCallbacks(JSRuntime *rt)
+JS_PUBLIC_API(JSSecurityCallbacks *)
+JS_SetContextSecurityCallbacks(JSContext *cx, JSSecurityCallbacks *callbacks)
 {
-    return (rt->securityCallbacks != &NullSecurityCallbacks) ? rt->securityCallbacks : NULL;
+    JSSecurityCallbacks *oldcallbacks;
+
+    oldcallbacks = cx->securityCallbacks;
+    cx->securityCallbacks = callbacks;
+    return oldcallbacks;
 }
 
-JS_PUBLIC_API(void)
-JS_SetTrustedPrincipals(JSRuntime *rt, JSPrincipals *prin)
+JS_PUBLIC_API(JSSecurityCallbacks *)
+JS_GetSecurityCallbacks(JSContext *cx)
 {
-    rt->setTrustedPrincipals(prin);
-}
-
-extern JS_PUBLIC_API(void)
-JS_InitDestroyPrincipalsCallback(JSRuntime *rt, JSDestroyPrincipalsOp destroyPrincipals)
-{
-    JS_ASSERT(destroyPrincipals);
-    JS_ASSERT(!rt->destroyPrincipals);
-    rt->destroyPrincipals = destroyPrincipals;
+  return cx->securityCallbacks
+         ? cx->securityCallbacks
+         : cx->runtime->securityCallbacks;
 }
 
 JS_PUBLIC_API(JSFunction *)
-JS_NewFunction(JSContext *cx, JSNative native, unsigned nargs, unsigned flags,
-               JSObject *parentArg, const char *name)
+JS_NewFunction(JSContext *cx, JSNative native, uintN nargs, uintN flags,
+               JSObject *parent, const char *name)
 {
-    RootedObject parent(cx, parentArg);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
     JSAtom *atom;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, parent);
 
     if (!name) {
         atom = NULL;
     } else {
-        atom = Atomize(cx, name, strlen(name));
+        atom = js_Atomize(cx, name, strlen(name));
         if (!atom)
             return NULL;
     }
-
-    return js_NewFunction(cx, NULL, native, nargs, flags, parent, atom);
+    return js_NewFunction(cx, NULL, Valueify(native), nargs, flags, parent, atom);
 }
 
 JS_PUBLIC_API(JSFunction *)
-JS_NewFunctionById(JSContext *cx, JSNative native, unsigned nargs, unsigned flags, JSObject *parentArg,
+JS_NewFunctionById(JSContext *cx, JSNative native, uintN nargs, uintN flags, JSObject *parent,
                    jsid id)
 {
-    RootedObject parent(cx, parentArg);
     JS_ASSERT(JSID_IS_STRING(id));
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, parent);
 
-    return js_NewFunction(cx, NULL, native, nargs, flags, parent, JSID_TO_ATOM(id));
+    return js_NewFunction(cx, NULL, Valueify(native), nargs, flags, parent, JSID_TO_ATOM(id));
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_CloneFunctionObject(JSContext *cx, JSObject *funobjArg, JSRawObject parentArg)
+JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent)
 {
-    RootedObject funobj(cx, funobjArg);
-    RootedObject parent(cx, parentArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, parent);  
+    if (!parent) {
+        if (cx->running())
+            parent = GetScopeChain(cx, cx->fp());
+        if (!parent)
+            parent = cx->globalObject;
+        JS_ASSERT(parent);
+    }
 
-    if (!parent)
-        parent = cx->global();
+    if (funobj->getClass() != &js_FunctionClass) {
+        
 
-    if (!funobj->isFunction()) {
-        ReportIsNotFunction(cx, ObjectValue(*funobj));
+
+
+        Value v = ObjectValue(*funobj);
+        js_ReportIsNotFunction(cx, &v, 0);
         return NULL;
     }
+
+    JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
+    if (!FUN_FLAT_CLOSURE(fun))
+        return CloneFunctionObject(cx, fun, parent);
 
     
 
 
 
-    RootedFunction fun(cx, funobj->toFunction());
-    if (fun->isInterpreted() && (fun->script()->enclosingStaticScope() ||
-        (fun->script()->compileAndGo && !parent->isGlobal())))
-    {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_CLONE_FUNOBJ_SCOPE);
+
+
+
+
+
+
+
+
+    JSObject *clone = js_AllocFlatClosure(cx, fun, parent);
+    if (!clone)
         return NULL;
+
+    JSUpvarArray *uva = fun->script()->upvars();
+    uint32 i = uva->length;
+    JS_ASSERT(i != 0);
+
+    for (Shape::Range r(fun->script()->bindings.lastUpvar()); i-- != 0; r.popFront()) {
+        JSObject *obj = parent;
+        int skip = uva->vector[i].level();
+        while (--skip > 0) {
+            if (!obj) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_BAD_CLONE_FUNOBJ_SCOPE);
+                return NULL;
+            }
+            obj = obj->getParent();
+        }
+
+        if (!obj->getProperty(cx, r.front().propid, clone->getFlatClosureUpvars() + i))
+            return NULL;
     }
 
-    if (fun->isBoundFunction()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_CLONE_OBJECT);
-        return NULL;
-    }
-
-    return CloneFunctionObject(cx, fun, parent, fun->getAllocKind());
+    return clone;
 }
 
 JS_PUBLIC_API(JSObject *)
 JS_GetFunctionObject(JSFunction *fun)
 {
-    return fun;
+    return FUN_OBJECT(fun);
 }
 
 JS_PUBLIC_API(JSString *)
 JS_GetFunctionId(JSFunction *fun)
 {
-    return fun->atom();
+    return fun->atom;
 }
 
-JS_PUBLIC_API(JSString *)
-JS_GetFunctionDisplayId(JSFunction *fun)
-{
-    return fun->displayAtom();
-}
-
-JS_PUBLIC_API(unsigned)
+JS_PUBLIC_API(uintN)
 JS_GetFunctionFlags(JSFunction *fun)
 {
     return fun->flags;
 }
 
-JS_PUBLIC_API(uint16_t)
+JS_PUBLIC_API(uint16)
 JS_GetFunctionArity(JSFunction *fun)
 {
     return fun->nargs;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ObjectIsFunction(JSContext *cx, RawObject obj)
+JS_ObjectIsFunction(JSContext *cx, JSObject *obj)
 {
-    return obj->isFunction();
+    return obj->getClass() == &js_FunctionClass;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ObjectIsCallable(JSContext *cx, RawObject obj)
+JS_ObjectIsCallable(JSContext *cx, JSObject *obj)
 {
     return obj->isCallable();
 }
 
-JS_PUBLIC_API(JSBool)
-JS_IsNativeFunction(JSRawObject funobj, JSNative call)
+static JSBool
+js_generic_native_method_dispatcher(JSContext *cx, uintN argc, Value *vp)
 {
-    if (!funobj->isFunction())
-        return false;
-    JSFunction *fun = funobj->toFunction();
-    return fun->isNative() && fun->native() == call;
-}
-
-JS_PUBLIC_API(JSObject*)
-JS_BindCallable(JSContext *cx, JSObject *targetArg, JSRawObject newThis)
-{
-    RootedObject target(cx, targetArg);
-    RootedValue thisArg(cx, ObjectValue(*newThis));
-    return js_fun_bind(cx, target, thisArg, NULL, 0);
-}
-
-JSBool
-js_generic_native_method_dispatcher(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    JSFunctionSpec *fs = (JSFunctionSpec *)
-        vp->toObject().toFunction()->getExtendedSlot(0).toPrivate();
+    JSFunctionSpec *fs = (JSFunctionSpec *) vp->toObject().getReservedSlot(0).toPrivate();
     JS_ASSERT((fs->flags & JSFUN_GENERIC_NATIVE) != 0);
 
     if (argc < 1) {
-        js_ReportMissingArg(cx, args.calleev(), 0);
+        js_ReportMissingArg(cx, *vp, 0);
         return JS_FALSE;
     }
 
@@ -5037,29 +4339,29 @@ js_generic_native_method_dispatcher(JSContext *cx, unsigned argc, Value *vp)
     
     vp[2 + --argc].setUndefined();
 
-    return fs->call.op(cx, argc, vp);
+    Native native =
+#ifdef JS_TRACER
+                    (fs->flags & JSFUN_TRCINFO)
+                    ? JS_FUNC_TO_DATA_PTR(JSNativeTraceInfo *, fs->call)->native
+                    :
+#endif
+                      Valueify(fs->call);
+    return native(cx, argc, vp);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefineFunctions(JSContext *cx, JSObject *objArg, JSFunctionSpec *fs)
+JS_DefineFunctions(JSContext *cx, JSObject *obj, JSFunctionSpec *fs)
 {
-    RootedObject obj(cx, objArg);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    unsigned flags;
-    RootedObject ctor(cx);
+    uintN flags;
+    JSObject *ctor;
     JSFunction *fun;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
+    ctor = NULL;
     for (; fs->name; fs++) {
         flags = fs->flags;
-
-        RootedAtom atom(cx, Atomize(cx, fs->name, strlen(fs->name)));
-        if (!atom)
-            return JS_FALSE;
-
-        Rooted<jsid> id(cx, AtomToId(atom));
 
         
 
@@ -5073,8 +4375,10 @@ JS_DefineFunctions(JSContext *cx, JSObject *objArg, JSFunctionSpec *fs)
             }
 
             flags &= ~JSFUN_GENERIC_NATIVE;
-            fun = js_DefineFunction(cx, ctor, id, js_generic_native_method_dispatcher,
-                                    fs->nargs + 1, flags, NULL, JSFunction::ExtendedFinalizeKind);
+            fun = JS_DefineFunction(cx, ctor, fs->name,
+                                    Jsvalify(js_generic_native_method_dispatcher),
+                                    fs->nargs + 1,
+                                    flags & ~JSFUN_TRCINFO);
             if (!fun)
                 return JS_FALSE;
 
@@ -5082,354 +4386,179 @@ JS_DefineFunctions(JSContext *cx, JSObject *objArg, JSFunctionSpec *fs)
 
 
 
-            fun->setExtendedSlot(0, PrivateValue(fs));
+            Value priv = PrivateValue(fs);
+            if (!js_SetReservedSlot(cx, FUN_OBJECT(fun), 0, priv))
+                return JS_FALSE;
         }
 
-        fun = js_DefineFunction(cx, obj, id, fs->call.op, fs->nargs, flags, fs->selfHostedName);
+        fun = JS_DefineFunction(cx, obj, fs->name, fs->call, fs->nargs, flags);
         if (!fun)
             return JS_FALSE;
-        if (fs->call.info)
-            fun->setJitInfo(fs->call.info);
     }
     return JS_TRUE;
 }
 
 JS_PUBLIC_API(JSFunction *)
-JS_DefineFunction(JSContext *cx, JSObject *objArg, const char *name, JSNative call,
-                  unsigned nargs, unsigned attrs)
+JS_DefineFunction(JSContext *cx, JSObject *obj, const char *name, JSNative call,
+                  uintN nargs, uintN attrs)
 {
-    RootedObject obj(cx, objArg);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
-    JSAtom *atom = Atomize(cx, name, strlen(name));
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
     if (!atom)
         return NULL;
-    Rooted<jsid> id(cx, AtomToId(atom));
-    return js_DefineFunction(cx, obj, id, call, nargs, attrs);
+    return js_DefineFunction(cx, obj, ATOM_TO_JSID(atom), Valueify(call), nargs, attrs);
 }
 
 JS_PUBLIC_API(JSFunction *)
-JS_DefineUCFunction(JSContext *cx, JSObject *objArg,
+JS_DefineUCFunction(JSContext *cx, JSObject *obj,
                     const jschar *name, size_t namelen, JSNative call,
-                    unsigned nargs, unsigned attrs)
+                    uintN nargs, uintN attrs)
 {
-    RootedObject obj(cx, objArg);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
-    JSAtom *atom = AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
+    JSAtom *atom = js_AtomizeChars(cx, name, AUTO_NAMELEN(name, namelen));
     if (!atom)
         return NULL;
-    Rooted<jsid> id(cx, AtomToId(atom));
-    return js_DefineFunction(cx, obj, id, call, nargs, attrs);
+    return js_DefineFunction(cx, obj, ATOM_TO_JSID(atom), Valueify(call), nargs, attrs);
 }
 
 extern JS_PUBLIC_API(JSFunction *)
-JS_DefineFunctionById(JSContext *cx, JSObject *objArg, jsid id_, JSNative call,
-                      unsigned nargs, unsigned attrs)
+JS_DefineFunctionById(JSContext *cx, JSObject *obj, jsid id, JSNative call,
+                    uintN nargs, uintN attrs)
 {
-    RootedObject obj(cx, objArg);
-    RootedId id(cx, id_);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
-    return js_DefineFunction(cx, obj, id, call, nargs, attrs);
+    return js_DefineFunction(cx, obj, id, Valueify(call), nargs, attrs);
 }
 
-struct AutoLastFrameCheck {
-    AutoLastFrameCheck(JSContext *cx JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : cx(cx) {
-        JS_ASSERT(cx);
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    ~AutoLastFrameCheck() {
-        if (cx->isExceptionPending() &&
-            !JS_IsRunning(cx) &&
-            !cx->hasRunOption(JSOPTION_DONT_REPORT_UNCAUGHT)) {
-            js_ReportUncaughtException(cx);
-        }
-    }
-
-  private:
-    JSContext       *cx;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-
-#if defined(HAVE_GETC_UNLOCKED)
-# define fast_getc getc_unlocked
-#elif defined(HAVE__GETC_NOLOCK)
-# define fast_getc _getc_nolock
-#else
-# define fast_getc getc
-#endif
-
-typedef Vector<char, 8, TempAllocPolicy> FileContents;
-
-static bool
-ReadCompleteFile(JSContext *cx, FILE *fp, FileContents &buffer)
+inline static void
+LAST_FRAME_EXCEPTION_CHECK(JSContext *cx, bool result)
 {
-    
-    struct stat st;
-    int ok = fstat(fileno(fp), &st);
-    if (ok != 0)
-        return false;
-    if (st.st_size > 0) {
-        if (!buffer.reserve(st.st_size))
-            return false;
-    }
-
-    
-    
-    
-    
-    for (;;) {
-        int c = fast_getc(fp);
-        if (c == EOF)
-            break;
-        if (!buffer.append(c))
-            return false;
-    }
-
-    return true;
+    if (!result && !cx->hasRunOption(JSOPTION_DONT_REPORT_UNCAUGHT))
+        js_ReportUncaughtException(cx);
 }
 
-class AutoFile
+inline static void
+LAST_FRAME_CHECKS(JSContext *cx, bool result)
 {
-    FILE *fp_;
-  public:
-    AutoFile()
-      : fp_(NULL)
-    {}
-    ~AutoFile()
-    {
-        if (fp_ && fp_ != stdin)
-            fclose(fp_);
+    if (!JS_IsRunning(cx)) {
+        LAST_FRAME_EXCEPTION_CHECK(cx, result);
     }
-    FILE *fp() const { return fp_; }
-    bool open(JSContext *cx, const char *filename);
-    bool readAll(JSContext *cx, FileContents &buffer)
-    {
-        JS_ASSERT(fp_);
-        return ReadCompleteFile(cx, fp_, buffer);
-    }
-};
-
-
-
-
-
-bool
-AutoFile::open(JSContext *cx, const char *filename)
-{
-    if (!filename || strcmp(filename, "-") == 0) {
-        fp_ = stdin;
-    } else {
-        fp_ = fopen(filename, "r");
-        if (!fp_) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_OPEN,
-                                 filename, "No such file or directory");
-            return false;
-        }
-    }
-    return true;
 }
 
-
-JS::CompileOptions::CompileOptions(JSContext *cx)
-    : principals(NULL),
-      originPrincipals(NULL),
-      version(cx->findVersion()),
-      versionSet(false),
-      utf8(false),
-      filename(NULL),
-      lineno(1),
-      compileAndGo(cx->hasRunOption(JSOPTION_COMPILE_N_GO)),
-      noScriptRval(cx->hasRunOption(JSOPTION_NO_SCRIPT_RVAL)),
-      selfHostingMode(false),
-      sourcePolicy(SAVE_SOURCE)
+inline static uint32
+JS_OPTIONS_TO_TCFLAGS(JSContext *cx)
 {
+    return (cx->hasRunOption(JSOPTION_COMPILE_N_GO) ? TCF_COMPILE_N_GO : 0) |
+           (cx->hasRunOption(JSOPTION_NO_SCRIPT_RVAL) ? TCF_NO_SCRIPT_RVAL : 0);
 }
 
-JSScript *
-JS::Compile(JSContext *cx, HandleObject obj, CompileOptions options,
-            const jschar *chars, size_t length)
+static JSObject *
+CompileUCScriptForPrincipalsCommon(JSContext *cx, JSObject *obj, JSPrincipals *principals,
+                                      const jschar *chars, size_t length,
+                                      const char *filename, uintN lineno, JSVersion version)
 {
-    Maybe<AutoVersionAPI> mava;
-    if (options.versionSet) {
-        mava.construct(cx, options.version);
-        
-        options.version = mava.ref().version();
-    }
-
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj, options.principals, options.originPrincipals);
-    AutoLastFrameCheck lfc(cx);
+    assertSameCompartment(cx, obj, principals);
 
-    return frontend::CompileScript(cx, obj, NULL, options, chars, length);
+    uint32 tcflags = JS_OPTIONS_TO_TCFLAGS(cx) | TCF_NEED_MUTABLE_SCRIPT;
+    JSScript *script = Compiler::compileScript(cx, obj, NULL, principals, tcflags,
+                                               chars, length, filename, lineno, version);
+    JSObject *scriptObj = NULL;
+    if (script) {
+        scriptObj = js_NewScriptObject(cx, script);
+        if (!scriptObj)
+            js_DestroyScript(cx, script);
+    }
+    LAST_FRAME_CHECKS(cx, scriptObj);
+    return scriptObj;
 }
 
-JSScript *
-JS::Compile(JSContext *cx, HandleObject obj, CompileOptions options,
-            const char *bytes, size_t length)
-{
-    jschar *chars;
-    if (options.utf8)
-        chars = InflateString(cx, bytes, &length, CESU8Encoding);
-    else
-        chars = InflateString(cx, bytes, &length);
-    if (!chars)
-        return NULL;
-
-    JSScript *script = Compile(cx, obj, options, chars, length);
-    js_free(chars);
-    return script;
-}
-
-JSScript *
-JS::Compile(JSContext *cx, HandleObject obj, CompileOptions options, FILE *fp)
-{
-    FileContents buffer(cx);
-    if (!ReadCompleteFile(cx, fp, buffer))
-        return NULL;
-
-    JSScript *script = Compile(cx, obj, options, buffer.begin(), buffer.length());
-    return script;
-}
-
-JSScript *
-JS::Compile(JSContext *cx, HandleObject obj, CompileOptions options, const char *filename)
-{
-    AutoFile file;
-    if (!file.open(cx, filename))
-        return NULL;
-    options = options.setFileAndLine(filename, 1);
-    JSScript *script = Compile(cx, obj, options, file.fp());
-    return script;
-}
-
-extern JS_PUBLIC_API(JSScript *)
-JS_CompileUCScriptForPrincipalsVersion(JSContext *cx, JSObject *objArg,
+extern JS_PUBLIC_API(JSObject *)
+JS_CompileUCScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                        JSPrincipals *principals,
                                        const jschar *chars, size_t length,
-                                       const char *filename, unsigned lineno,
+                                       const char *filename, uintN lineno,
                                        JSVersion version)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setFileAndLine(filename, lineno)
-           .setVersion(version);
-
-    return Compile(cx, obj, options, chars, length);
+    AutoVersionAPI avi(cx, version);
+    return CompileUCScriptForPrincipalsCommon(cx, obj, principals, chars, length, filename, lineno,
+                                              avi.version());
 }
 
-extern JS_PUBLIC_API(JSScript *)
-JS_CompileUCScriptForPrincipalsVersionOrigin(JSContext *cx, JSObject *objArg,
-                                             JSPrincipals *principals,
-                                             JSPrincipals *originPrincipals,
-                                             const jschar *chars, size_t length,
-                                             const char *filename, unsigned lineno,
-                                             JSVersion version)
-{
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setOriginPrincipals(originPrincipals)
-           .setFileAndLine(filename, lineno)
-           .setVersion(version);
-
-    return Compile(cx, obj, options, chars, length);
-}
-
-JS_PUBLIC_API(JSScript *)
-JS_CompileUCScriptForPrincipals(JSContext *cx, JSObject *objArg, JSPrincipals *principals,
+JS_PUBLIC_API(JSObject *)
+JS_CompileUCScriptForPrincipals(JSContext *cx, JSObject *obj, JSPrincipals *principals,
                                 const jschar *chars, size_t length,
-                                const char *filename, unsigned lineno)
+                                const char *filename, uintN lineno)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setFileAndLine(filename, lineno);
-
-    return Compile(cx, obj, options, chars, length);
+    return CompileUCScriptForPrincipalsCommon(cx, obj, principals, chars, length, filename, lineno,
+                                              cx->findVersion());
 }
 
-JS_PUBLIC_API(JSScript *)
-JS_CompileUCScript(JSContext *cx, JSObject *objArg, const jschar *chars, size_t length,
-                   const char *filename, unsigned lineno)
+JS_PUBLIC_API(JSObject *)
+JS_CompileUCScript(JSContext *cx, JSObject *obj, const jschar *chars, size_t length,
+                   const char *filename, uintN lineno)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setFileAndLine(filename, lineno);
-
-    return Compile(cx, obj, options, chars, length);
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    return JS_CompileUCScriptForPrincipals(cx, obj, NULL, chars, length, filename, lineno);
 }
 
-JS_PUBLIC_API(JSScript *)
-JS_CompileScriptForPrincipalsVersion(JSContext *cx, JSObject *objArg,
+JS_PUBLIC_API(JSObject *)
+JS_CompileScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                      JSPrincipals *principals,
                                      const char *bytes, size_t length,
-                                     const char *filename, unsigned lineno,
+                                     const char *filename, uintN lineno,
                                      JSVersion version)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setFileAndLine(filename, lineno)
-           .setVersion(version);
-
-    return Compile(cx, obj, options, bytes, length);
+    AutoVersionAPI ava(cx, version);
+    return JS_CompileScriptForPrincipals(cx, obj, principals, bytes, length, filename, lineno);
 }
 
-JS_PUBLIC_API(JSScript *)
-JS_CompileScriptForPrincipals(JSContext *cx, JSObject *objArg,
+JS_PUBLIC_API(JSObject *)
+JS_CompileScriptForPrincipals(JSContext *cx, JSObject *obj,
                               JSPrincipals *principals,
                               const char *bytes, size_t length,
-                              const char *filename, unsigned lineno)
+                              const char *filename, uintN lineno)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setFileAndLine(filename, lineno);
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    CHECK_REQUEST(cx);
 
-    return Compile(cx, obj, options, bytes, length);
+    jschar *chars = js_InflateString(cx, bytes, &length);
+    if (!chars)
+        return NULL;
+    JSObject *scriptObj =
+        JS_CompileUCScriptForPrincipals(cx, obj, principals, chars, length, filename, lineno);
+    cx->free_(chars);
+    return scriptObj;
 }
 
-JS_PUBLIC_API(JSScript *)
-JS_CompileScript(JSContext *cx, JSObject *objArg, const char *bytes, size_t length,
-                 const char *filename, unsigned lineno)
+JS_PUBLIC_API(JSObject *)
+JS_CompileScript(JSContext *cx, JSObject *obj, const char *bytes, size_t length,
+                 const char *filename, uintN lineno)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setFileAndLine(filename, lineno);
-
-    return Compile(cx, obj, options, bytes, length);
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    return JS_CompileScriptForPrincipals(cx, obj, NULL, bytes, length, filename, lineno);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_BufferIsCompilableUnit(JSContext *cx, JSBool bytes_are_utf8, JSObject *objArg, const char *bytes, size_t length)
+JS_BufferIsCompilableUnit(JSContext *cx, JSBool bytes_are_utf8, JSObject *obj, const char *bytes, size_t length)
 {
-    RootedObject obj(cx, objArg);
     jschar *chars;
     JSBool result;
     JSExceptionState *exnState;
     JSErrorReporter older;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
     if (bytes_are_utf8)
-        chars = InflateString(cx, bytes, &length, CESU8Encoding);
+        chars = js_InflateString(cx, bytes, &length, JS_TRUE);
     else
-        chars = InflateString(cx, bytes, &length);
+        chars = js_InflateString(cx, bytes, &length);
     if (!chars)
         return JS_TRUE;
 
@@ -5440,10 +4569,8 @@ JS_BufferIsCompilableUnit(JSContext *cx, JSBool bytes_are_utf8, JSObject *objArg
     result = JS_TRUE;
     exnState = JS_SaveExceptionState(cx);
     {
-        CompileOptions options(cx);
-        options.setCompileAndGo(false);
-        Parser parser(cx, options, chars, length,  true);
-        if (parser.init()) {
+        Parser parser(cx);
+        if (parser.init(chars, length, NULL, 1, cx->findVersion())) {
             older = JS_SetErrorReporter(cx, NULL);
             if (!parser.parse(obj) &&
                 parser.tokenStream.isUnexpectedEOF()) {
@@ -5457,517 +4584,534 @@ JS_BufferIsCompilableUnit(JSContext *cx, JSBool bytes_are_utf8, JSObject *objArg
             JS_SetErrorReporter(cx, older);
         }
     }
-    js_free(chars);
+    cx->free_(chars);
     JS_RestoreExceptionState(cx, exnState);
     return result;
 }
 
-JS_PUBLIC_API(JSScript *)
-JS_CompileUTF8File(JSContext *cx, JSObject *objArg, const char *filename)
+
+#if defined(HAVE_GETC_UNLOCKED)
+# define fast_getc getc_unlocked
+#elif defined(HAVE__GETC_NOLOCK)
+# define fast_getc _getc_nolock
+#else
+# define fast_getc getc
+#endif
+
+static JSObject *
+CompileFileHelper(JSContext *cx, JSObject *obj, JSPrincipals *principals,
+                  const char* filename, FILE *fp)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setUTF8(true)
-           .setFileAndLine(filename, 1);
+    struct stat st;
+    int ok = fstat(fileno(fp), &st);
+    if (ok != 0)
+        return NULL;
 
-    return Compile(cx, obj, options, filename);
-}
+    jschar *buf = NULL;
+    size_t len = st.st_size;
+    size_t i = 0;
+    JSScript *script;
 
-JS_PUBLIC_API(JSScript *)
-JS_CompileUTF8FileHandleForPrincipals(JSContext *cx, JSObject *objArg, const char *filename,
-                                      FILE *file, JSPrincipals *principals)
-{
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setUTF8(true)
-           .setFileAndLine(filename, 1)
-           .setPrincipals(principals);
+    
+    if (fp == stdin) {
+        JS_ASSERT(len == 0);
+        len = 8;  
+        int c;
+        bool hitEOF = false;
+        while (!hitEOF) {
+            len *= 2;
+            jschar* tmpbuf = (jschar *) cx->realloc_(buf, len * sizeof(jschar));
+            if (!tmpbuf) {
+                cx->free_(buf);
+                return NULL;
+            }
+            buf = tmpbuf;
 
-    return Compile(cx, obj, options, file);
-}
+            while (i < len) {
+                c = fast_getc(fp);
+                if (c == EOF) {
+                    hitEOF = true;
+                    break;
+                }
+                buf[i++] = (jschar) (unsigned char) c;
+            }
+        }
+    } else {
+        buf = (jschar *) cx->malloc_(len * sizeof(jschar));
+        if (!buf)
+            return NULL;
 
-JS_PUBLIC_API(JSScript *)
-JS_CompileUTF8FileHandleForPrincipalsVersion(JSContext *cx, JSObject *objArg, const char *filename,
-                                             FILE *file, JSPrincipals *principals, JSVersion version)
-{
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setUTF8(true)
-           .setFileAndLine(filename, 1)
-           .setPrincipals(principals)
-           .setVersion(version);
+        int c;
+        while ((c = fast_getc(fp)) != EOF)
+            buf[i++] = (jschar) (unsigned char) c;
+    }
 
-    return Compile(cx, obj, options, file);
-}
+    JS_ASSERT(i <= len);
+    len = i;
+    uint32 tcflags = JS_OPTIONS_TO_TCFLAGS(cx) | TCF_NEED_MUTABLE_SCRIPT;
+    script = Compiler::compileScript(cx, obj, NULL, principals, tcflags, buf, len, filename, 1,
+                                     cx->findVersion());
+    cx->free_(buf);
+    if (!script)
+        return NULL;
 
-JS_PUBLIC_API(JSScript *)
-JS_CompileUTF8FileHandle(JSContext *cx, JSObject *objArg, const char *filename, FILE *file)
-{
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setUTF8(true)
-           .setFileAndLine(filename, 1);
+    JSObject *scriptObj = js_NewScriptObject(cx, script);
+    if (!scriptObj)
+        js_DestroyScript(cx, script);
 
-    return Compile(cx, obj, options, file);
+    return scriptObj;
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_GetGlobalFromScript(JSScript *script)
-{
-    JS_ASSERT(!script->isCachedEval);
-    return &script->global();
-}
-
-JS_PUBLIC_API(JSFunction *)
-JS::CompileFunction(JSContext *cx, HandleObject obj, CompileOptions options,
-                    const char *name, unsigned nargs, const char **argnames,
-                    const jschar *chars, size_t length)
-{
-    Maybe<AutoVersionAPI> mava;
-    if (options.versionSet) {
-        mava.construct(cx, options.version);
-        
-        options.version = mava.ref().version();
-    }
-
-    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj, options.principals, options.originPrincipals);
-    AutoLastFrameCheck lfc(cx);
-
-    RootedAtom funAtom(cx);
-    if (name) {
-        funAtom = Atomize(cx, name, strlen(name));
-        if (!funAtom)
-            return NULL;
-    }
-
-    AutoNameVector formals(cx);
-    for (unsigned i = 0; i < nargs; i++) {
-        RootedAtom argAtom(cx, Atomize(cx, argnames[i], strlen(argnames[i])));
-        if (!argAtom || !formals.append(argAtom->asPropertyName()))
-            return NULL;
-    }
-
-    RootedFunction fun(cx, js_NewFunction(cx, NULL, NULL, 0, JSFUN_INTERPRETED, obj, funAtom));
-    if (!fun)
-        return NULL;
-
-    if (!frontend::CompileFunctionBody(cx, fun, options, formals, chars, length))
-        return NULL;
-
-    if (obj && funAtom) {
-        Rooted<jsid> id(cx, AtomToId(funAtom));
-        RootedValue value(cx, ObjectValue(*fun));
-        if (!JSObject::defineGeneric(cx, obj, id, value, NULL, NULL, JSPROP_ENUMERATE))
-            return NULL;
-    }
-
-    return fun;
-}
-
-JS_PUBLIC_API(JSFunction *)
-JS::CompileFunction(JSContext *cx, HandleObject obj, CompileOptions options,
-                    const char *name, unsigned nargs, const char **argnames,
-                    const char *bytes, size_t length)
-{
-    jschar *chars;
-    if (options.utf8)
-        chars = InflateString(cx, bytes, &length, CESU8Encoding);
-    else
-        chars = InflateString(cx, bytes, &length);
-    if (!chars)
-        return NULL;
-
-    JSFunction *fun = CompileFunction(cx, obj, options, name, nargs, argnames, chars, length);
-    js_free(chars);
-    return fun;
-}
-
-JS_PUBLIC_API(JSFunction *)
-JS_CompileUCFunctionForPrincipalsVersion(JSContext *cx, JSObject *obj_,
-                                         JSPrincipals *principals, const char *name,
-                                         unsigned nargs, const char **argnames,
-                                         const jschar *chars, size_t length,
-                                         const char *filename, unsigned lineno,
-                                         JSVersion version)
-{
-    RootedObject obj(cx, obj_);
-
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setFileAndLine(filename, lineno)
-           .setVersion(version);
-
-    return CompileFunction(cx, obj, options, name, nargs, argnames, chars, length);
-}
-
-JS_PUBLIC_API(JSFunction *)
-JS_CompileUCFunctionForPrincipals(JSContext *cx, JSObject *objArg,
-                                  JSPrincipals *principals, const char *name,
-                                  unsigned nargs, const char **argnames,
-                                  const jschar *chars, size_t length,
-                                  const char *filename, unsigned lineno)
-{
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setFileAndLine(filename, lineno);
-
-    return CompileFunction(cx, obj, options, name, nargs, argnames, chars, length);
-}
-
-JS_PUBLIC_API(JSFunction *)
-JS_CompileUCFunction(JSContext *cx, JSObject *objArg, const char *name,
-                     unsigned nargs, const char **argnames,
-                     const jschar *chars, size_t length,
-                     const char *filename, unsigned lineno)
-{
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setFileAndLine(filename, lineno);
-
-    return CompileFunction(cx, obj, options, name, nargs, argnames, chars, length);
-}
-
-JS_PUBLIC_API(JSFunction *)
-JS_CompileFunctionForPrincipals(JSContext *cx, JSObject *objArg,
-                                JSPrincipals *principals, const char *name,
-                                unsigned nargs, const char **argnames,
-                                const char *bytes, size_t length,
-                                const char *filename, unsigned lineno)
-{
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setFileAndLine(filename, lineno);
-
-    return CompileFunction(cx, obj, options, name, nargs, argnames, bytes, length);
-}
-
-JS_PUBLIC_API(JSFunction *)
-JS_CompileFunction(JSContext *cx, JSObject *objArg, const char *name,
-                   unsigned nargs, const char **argnames,
-                   const char *bytes, size_t length,
-                   const char *filename, unsigned lineno)
-{
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setFileAndLine(filename, lineno);
-
-    return CompileFunction(cx, obj, options, name, nargs, argnames, bytes, length);
-}
-
-JS_PUBLIC_API(JSString *)
-JS_DecompileScript(JSContext *cx, JSScript *script, const char *name, unsigned indent)
+JS_CompileFile(JSContext *cx, JSObject *obj, const char *filename)
 {
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
 
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    RootedFunction fun(cx, script->function());
-    if (fun)
-        return JS_DecompileFunction(cx, fun, indent);
-    return script->sourceData(cx);
-}
-
-JS_PUBLIC_API(JSString *)
-JS_DecompileFunction(JSContext *cx, JSFunction *funArg, unsigned indent)
-{
-    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, funArg);
-    RootedFunction fun(cx, funArg);
-    return FunctionToString(cx, fun, false, !(indent & JS_DONT_PRETTY_PRINT));
-}
-
-JS_PUBLIC_API(JSString *)
-JS_DecompileFunctionBody(JSContext *cx, JSFunction *funArg, unsigned indent)
-{
-    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, funArg);
-    RootedFunction fun(cx, funArg);
-    return FunctionToString(cx, fun, true, !(indent & JS_DONT_PRETTY_PRINT));
-}
-
-JS_NEVER_INLINE JS_PUBLIC_API(JSBool)
-JS_ExecuteScript(JSContext *cx, JSObject *objArg, JSScript *scriptArg, jsval *rval)
-{
-    RootedObject obj(cx, objArg);
-    RootedScript script(cx, scriptArg);
-
-    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
-    if (cx->compartment != obj->compartment())
-        *(volatile int *) 0 = 0xf0;
-    AutoLastFrameCheck lfc(cx);
+    JSObject *scriptObj = NULL;
+    do {
+        FILE *fp;
+        if (!filename || strcmp(filename, "-") == 0) {
+            fp = stdin;
+        } else {
+            fp = fopen(filename, "r");
+            if (!fp) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_OPEN,
+                                     filename, "No such file or directory");
+                break;
+            }
+        }
 
-    
+        scriptObj = CompileFileHelper(cx, obj, NULL, filename, fp);
+        if (fp != stdin)
+            fclose(fp);
+    } while (false);
 
+    LAST_FRAME_CHECKS(cx, scriptObj);
+    return scriptObj;
+}
 
+JS_PUBLIC_API(JSObject *)
+JS_CompileFileHandleForPrincipals(JSContext *cx, JSObject *obj, const char *filename,
+                                  FILE *file, JSPrincipals *principals)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
 
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj, principals);
+    JSObject *scriptObj = CompileFileHelper(cx, obj, principals, filename, file);
+    LAST_FRAME_CHECKS(cx, scriptObj);
+    return scriptObj;
+}
 
+JS_PUBLIC_API(JSObject *)
+JS_CompileFileHandleForPrincipalsVersion(JSContext *cx, JSObject *obj, const char *filename,
+                                         FILE *file, JSPrincipals *principals, JSVersion version)
+{
+    AutoVersionAPI ava(cx, version);
+    return JS_CompileFileHandleForPrincipals(cx, obj, filename, file, principals);
+}
 
+JS_PUBLIC_API(JSObject *)
+JS_CompileFileHandle(JSContext *cx, JSObject *obj, const char *filename, FILE *file)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    return JS_CompileFileHandleForPrincipals(cx, obj, filename, file, NULL);
+}
 
+JS_PUBLIC_API(JSScript *)
+JS_GetScriptFromObject(JSObject *scriptObj)
+{
+    JS_ASSERT(scriptObj->isScript());
 
-    if (script->compartment() != obj->compartment()) {
-        script = CloneScript(cx, NullPtr(), NullPtr(), script);
-        if (!script.get())
-            return false;
+    return (JSScript *) scriptObj->getPrivate();
+}
+
+static JSFunction *
+CompileUCFunctionForPrincipalsCommon(JSContext *cx, JSObject *obj,
+                                     JSPrincipals *principals, const char *name,
+                                     uintN nargs, const char **argnames,
+                                     const jschar *chars, size_t length,
+                                     const char *filename, uintN lineno, JSVersion version)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    JSFunction *fun;
+    JSAtom *funAtom, *argAtom;
+    uintN i;
+
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj, principals);
+    if (!name) {
+        funAtom = NULL;
     } else {
-        script = scriptArg;
+        funAtom = js_Atomize(cx, name, strlen(name));
+        if (!funAtom) {
+            fun = NULL;
+            goto out2;
+        }
     }
 
-    return Execute(cx, script, *obj, rval);
+    fun = js_NewFunction(cx, NULL, NULL, 0, JSFUN_INTERPRETED, obj, funAtom);
+    if (!fun)
+        goto out2;
+
+    {
+        EmptyShape *emptyCallShape = EmptyShape::getEmptyCallShape(cx);
+        if (!emptyCallShape) {
+            fun = NULL;
+            goto out2;
+        }
+        AutoShapeRooter shapeRoot(cx, emptyCallShape);
+
+        AutoObjectRooter tvr(cx, FUN_OBJECT(fun));
+        MUST_FLOW_THROUGH("out");
+
+        Bindings bindings(cx, emptyCallShape);
+        AutoBindingsRooter root(cx, bindings);
+        for (i = 0; i < nargs; i++) {
+            argAtom = js_Atomize(cx, argnames[i], strlen(argnames[i]));
+            if (!argAtom) {
+                fun = NULL;
+                goto out2;
+            }
+
+            uint16 dummy;
+            if (!bindings.addArgument(cx, argAtom, &dummy)) {
+                fun = NULL;
+                goto out2;
+            }
+        }
+
+        if (!Compiler::compileFunctionBody(cx, fun, principals, &bindings,
+                                           chars, length, filename, lineno, version)) {
+            fun = NULL;
+            goto out2;
+        }
+
+        if (obj && funAtom &&
+            !obj->defineProperty(cx, ATOM_TO_JSID(funAtom), ObjectValue(*fun),
+                                 NULL, NULL, JSPROP_ENUMERATE)) {
+            fun = NULL;
+        }
+
+#ifdef JS_SCOPE_DEPTH_METER
+        if (fun && obj) {
+            JSObject *pobj = obj;
+            uintN depth = 1;
+
+            while ((pobj = pobj->getParent()) != NULL)
+                ++depth;
+            JS_BASIC_STATS_ACCUM(&cx->runtime->hostenvScopeDepthStats, depth);
+        }
+#endif
+    }
+
+  out2:
+    LAST_FRAME_CHECKS(cx, fun);
+    return fun;
+}
+JS_PUBLIC_API(JSFunction *)
+JS_CompileUCFunctionForPrincipalsVersion(JSContext *cx, JSObject *obj,
+                                         JSPrincipals *principals, const char *name,
+                                         uintN nargs, const char **argnames,
+                                         const jschar *chars, size_t length,
+                                         const char *filename, uintN lineno,
+                                         JSVersion version)
+{
+    AutoVersionAPI avi(cx, version);
+    return CompileUCFunctionForPrincipalsCommon(cx, obj, principals, name, nargs, argnames, chars,
+                                                length, filename, lineno, avi.version());
+}
+
+JS_PUBLIC_API(JSFunction *)
+JS_CompileUCFunctionForPrincipals(JSContext *cx, JSObject *obj,
+                                  JSPrincipals *principals, const char *name,
+                                  uintN nargs, const char **argnames,
+                                  const jschar *chars, size_t length,
+                                  const char *filename, uintN lineno)
+{
+    return CompileUCFunctionForPrincipalsCommon(cx, obj, principals, name, nargs, argnames, chars,
+                                                length, filename, lineno, cx->findVersion());
+}
+
+JS_PUBLIC_API(JSFunction *)
+JS_CompileUCFunction(JSContext *cx, JSObject *obj, const char *name,
+                     uintN nargs, const char **argnames,
+                     const jschar *chars, size_t length,
+                     const char *filename, uintN lineno)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    return JS_CompileUCFunctionForPrincipals(cx, obj, NULL, name, nargs, argnames,
+                                             chars, length, filename, lineno);
+}
+
+JS_PUBLIC_API(JSFunction *)
+JS_CompileFunctionForPrincipals(JSContext *cx, JSObject *obj,
+                                JSPrincipals *principals, const char *name,
+                                uintN nargs, const char **argnames,
+                                const char *bytes, size_t length,
+                                const char *filename, uintN lineno)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    jschar *chars = js_InflateString(cx, bytes, &length);
+    if (!chars)
+        return NULL;
+    JSFunction *fun = JS_CompileUCFunctionForPrincipals(cx, obj, principals, name,
+                                                        nargs, argnames, chars, length,
+                                                        filename, lineno);
+    cx->free_(chars);
+    return fun;
+}
+
+JS_PUBLIC_API(JSFunction *)
+JS_CompileFunction(JSContext *cx, JSObject *obj, const char *name,
+                   uintN nargs, const char **argnames,
+                   const char *bytes, size_t length,
+                   const char *filename, uintN lineno)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    return JS_CompileFunctionForPrincipals(cx, obj, NULL, name, nargs, argnames, bytes, length,
+                                           filename, lineno);
+}
+
+JS_PUBLIC_API(JSString *)
+JS_DecompileScript(JSContext *cx, JSScript *script, const char *name, uintN indent)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    JSPrinter *jp;
+    JSString *str;
+
+    CHECK_REQUEST(cx);
+#ifdef DEBUG
+    if (cx->compartment != script->compartment)
+        CompartmentChecker::fail(cx->compartment, script->compartment);
+#endif
+    jp = js_NewPrinter(cx, name, NULL,
+                       indent & ~JS_DONT_PRETTY_PRINT,
+                       !(indent & JS_DONT_PRETTY_PRINT),
+                       false, false);
+    if (!jp)
+        return NULL;
+    if (js_DecompileScript(jp, script))
+        str = js_GetPrinterOutput(jp);
+    else
+        str = NULL;
+    js_DestroyPrinter(jp);
+    return str;
+}
+
+JS_PUBLIC_API(JSString *)
+JS_DecompileScriptObject(JSContext *cx, JSObject *scriptObj, const char *name, uintN indent)
+{
+    return JS_DecompileScript(cx, scriptObj->getScript(), name, indent);
+}
+
+JS_PUBLIC_API(JSString *)
+JS_DecompileFunction(JSContext *cx, JSFunction *fun, uintN indent)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, fun);
+    return js_DecompileToString(cx, "JS_DecompileFunction", fun,
+                                indent & ~JS_DONT_PRETTY_PRINT,
+                                !(indent & JS_DONT_PRETTY_PRINT),
+                                false, false, js_DecompileFunction);
+}
+
+JS_PUBLIC_API(JSString *)
+JS_DecompileFunctionBody(JSContext *cx, JSFunction *fun, uintN indent)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, fun);
+    return js_DecompileToString(cx, "JS_DecompileFunctionBody", fun,
+                                indent & ~JS_DONT_PRETTY_PRINT,
+                                !(indent & JS_DONT_PRETTY_PRINT),
+                                false, false, js_DecompileFunctionBody);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ExecuteScriptVersion(JSContext *cx, JSObject *objArg, JSScript *script, jsval *rval,
-                        JSVersion version)
+JS_ExecuteScript(JSContext *cx, JSObject *obj, JSObject *scriptObj, jsval *rval)
 {
-    RootedObject obj(cx, objArg);
-    AutoVersionAPI ava(cx, version);
-    return JS_ExecuteScript(cx, obj, script, rval);
-}
-
-extern JS_PUBLIC_API(bool)
-JS::Evaluate(JSContext *cx, HandleObject obj, CompileOptions options,
-             const jschar *chars, size_t length, jsval *rval)
-{
-    Maybe<AutoVersionAPI> mava;
-    if (options.versionSet) {
-        mava.construct(cx, options.version);
-        
-        options.version = mava.ref().version();
-    }
-
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
+
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj, options.principals, options.originPrincipals);
-    AutoLastFrameCheck lfc(cx);
+    assertSameCompartment(cx, obj, scriptObj);
 
-    options.setCompileAndGo(true);
-    options.setNoScriptRval(!rval);
-    RootedScript script(cx, frontend::CompileScript(cx, obj, NULL, options, chars, length));
-    if (!script)
-        return false;
-
-    JS_ASSERT(script->getVersion() == options.version);
-
-    return Execute(cx, script, *obj, rval);
-}
-
-extern JS_PUBLIC_API(bool)
-JS::Evaluate(JSContext *cx, HandleObject obj, CompileOptions options,
-             const char *bytes, size_t length, jsval *rval)
-{
-    jschar *chars;
-    if (options.utf8)
-        chars = InflateString(cx, bytes, &length, CESU8Encoding);
-    else
-        chars = InflateString(cx, bytes, &length);
-    if (!chars)
-        return false;
-
-    bool ok = Evaluate(cx, obj, options, chars, length, rval);
-    js_free(chars);
+    JSBool ok = Execute(cx, *obj, scriptObj->getScript(), NULL, 0, Valueify(rval));
+    LAST_FRAME_CHECKS(cx, ok);
     return ok;
 }
 
-extern JS_PUBLIC_API(bool)
-JS::Evaluate(JSContext *cx, HandleObject obj, CompileOptions options,
-             const char *filename, jsval *rval)
+JS_PUBLIC_API(JSBool)
+JS_ExecuteScriptVersion(JSContext *cx, JSObject *obj, JSObject *scriptObj, jsval *rval,
+                        JSVersion version)
 {
-    FileContents buffer(cx);
-    {
-        AutoFile file;
-        if (!file.open(cx, filename) || !file.readAll(cx, buffer))
-            return false;
+    AutoVersionAPI ava(cx, version);
+    return JS_ExecuteScript(cx, obj, scriptObj, rval);
+}
+
+bool
+EvaluateUCScriptForPrincipalsCommon(JSContext *cx, JSObject *obj,
+                                    JSPrincipals *principals,
+                                    const jschar *chars, uintN length,
+                                    const char *filename, uintN lineno,
+                                    jsval *rval, JSVersion compileVersion)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+
+    CHECK_REQUEST(cx);
+    JSScript *script = Compiler::compileScript(cx, obj, NULL, principals,
+                                               !rval
+                                               ? TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL
+                                               : TCF_COMPILE_N_GO,
+                                               chars, length, filename, lineno, compileVersion);
+    if (!script) {
+        LAST_FRAME_CHECKS(cx, script);
+        return false;
     }
+    JS_ASSERT(script->getVersion() == compileVersion);
+    bool ok = Execute(cx, *obj, script, NULL, 0, Valueify(rval));
+    LAST_FRAME_CHECKS(cx, ok);
+    js_DestroyScript(cx, script);
+    return ok;
 
-    options = options.setFileAndLine(filename, 1);
-    return Evaluate(cx, obj, options, buffer.begin(), buffer.length(), rval);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_EvaluateUCScriptForPrincipals(JSContext *cx, JSObject *objArg,
-                                 JSPrincipals *principals,
-                                 const jschar *chars, unsigned length,
-                                 const char *filename, unsigned lineno,
-                                 jsval *rval)
-{
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setFileAndLine(filename, lineno);
-
-    return Evaluate(cx, obj, options, chars, length, rval);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_EvaluateUCScriptForPrincipalsVersion(JSContext *cx, JSObject *objArg,
+JS_EvaluateUCScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                         JSPrincipals *principals,
-                                        const jschar *chars, unsigned length,
-                                        const char *filename, unsigned lineno,
+                                        const jschar *chars, uintN length,
+                                        const char *filename, uintN lineno,
                                         jsval *rval, JSVersion version)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setFileAndLine(filename, lineno)
-           .setVersion(version);
-
-    return Evaluate(cx, obj, options, chars, length, rval);
-}
-
-extern JS_PUBLIC_API(JSBool)
-JS_EvaluateUCScriptForPrincipalsVersionOrigin(JSContext *cx, JSObject *objArg,
-                                              JSPrincipals *principals,
-                                              JSPrincipals *originPrincipals,
-                                              const jschar *chars, unsigned length,
-                                              const char *filename, unsigned lineno,
-                                              jsval *rval, JSVersion version)
-{
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setOriginPrincipals(originPrincipals)
-           .setFileAndLine(filename, lineno)
-           .setVersion(version);
-
-    return Evaluate(cx, obj, options, chars, length, rval);
+    AutoVersionAPI avi(cx, version);
+    return EvaluateUCScriptForPrincipalsCommon(cx, obj, principals, chars, length,
+                                               filename, lineno, rval, avi.version());
 }
 
 JS_PUBLIC_API(JSBool)
-JS_EvaluateUCScript(JSContext *cx, JSObject *objArg, const jschar *chars, unsigned length,
-                    const char *filename, unsigned lineno, jsval *rval)
+JS_EvaluateUCScriptForPrincipals(JSContext *cx, JSObject *obj,
+                                 JSPrincipals *principals,
+                                 const jschar *chars, uintN length,
+                                 const char *filename, uintN lineno,
+                                 jsval *rval)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setFileAndLine(filename, lineno);
+    return EvaluateUCScriptForPrincipalsCommon(cx, obj, principals, chars, length,
+                                               filename, lineno, rval, cx->findVersion());
+}
 
-    return Evaluate(cx, obj, options, chars, length, rval);
+JS_PUBLIC_API(JSBool)
+JS_EvaluateUCScript(JSContext *cx, JSObject *obj, const jschar *chars, uintN length,
+                    const char *filename, uintN lineno, jsval *rval)
+{
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    return JS_EvaluateUCScriptForPrincipals(cx, obj, NULL, chars, length, filename, lineno, rval);
 }
 
 
 JS_PUBLIC_API(JSBool)
-JS_EvaluateScriptForPrincipals(JSContext *cx, JSObject *objArg, JSPrincipals *principals,
-                               const char *bytes, unsigned nbytes,
-                               const char *filename, unsigned lineno, jsval *rval)
+JS_EvaluateScriptForPrincipals(JSContext *cx, JSObject *obj, JSPrincipals *principals,
+                               const char *bytes, uintN nbytes,
+                               const char *filename, uintN lineno, jsval *rval)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setFileAndLine(filename, lineno);
-
-    return Evaluate(cx, obj, options, bytes, nbytes, rval);
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    size_t length = nbytes;
+    jschar *chars = js_InflateString(cx, bytes, &length);
+    if (!chars)
+        return JS_FALSE;
+    JSBool ok = JS_EvaluateUCScriptForPrincipals(cx, obj, principals, chars, length,
+                                                 filename, lineno, rval);
+    cx->free_(chars);
+    return ok;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_EvaluateScriptForPrincipalsVersion(JSContext *cx, JSObject *objArg, JSPrincipals *principals,
-                                      const char *bytes, unsigned nbytes,
-                                      const char *filename, unsigned lineno, jsval *rval,
-                                      JSVersion version)
+JS_EvaluateScriptForPrincipalsVersion(JSContext *cx, JSObject *obj, JSPrincipals *principals,
+                                      const char *bytes, uintN nbytes,
+                                      const char *filename, uintN lineno, jsval *rval, JSVersion version)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setVersion(version)
-           .setFileAndLine(filename, lineno);
-
-    return Evaluate(cx, obj, options, bytes, nbytes, rval);
+    AutoVersionAPI avi(cx, version);
+    return JS_EvaluateScriptForPrincipals(cx, obj, principals, bytes, nbytes, filename, lineno,
+                                          rval);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_EvaluateScript(JSContext *cx, JSObject *objArg, const char *bytes, unsigned nbytes,
-                  const char *filename, unsigned lineno, jsval *rval)
+JS_EvaluateScript(JSContext *cx, JSObject *obj, const char *bytes, uintN nbytes,
+                  const char *filename, uintN lineno, jsval *rval)
 {
-    RootedObject obj(cx, objArg);
-    CompileOptions options(cx);
-    options.setFileAndLine(filename, lineno);
-
-    return Evaluate(cx, obj, options, bytes, nbytes, rval);
+    JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
+    return JS_EvaluateScriptForPrincipals(cx, obj, NULL, bytes, nbytes, filename, lineno, rval);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_CallFunction(JSContext *cx, JSObject *objArg, JSFunction *fun, unsigned argc, jsval *argv,
+JS_CallFunction(JSContext *cx, JSObject *obj, JSFunction *fun, uintN argc, jsval *argv,
                 jsval *rval)
 {
-    RootedObject obj(cx, objArg);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, fun, JSValueArray(argv, argc));
-    AutoLastFrameCheck lfc(cx);
-
-    return Invoke(cx, ObjectOrNullValue(obj), ObjectValue(*fun), argc, argv, rval);
+    JSBool ok = ExternalInvoke(cx, ObjectOrNullValue(obj), ObjectValue(*fun), argc,
+                               Valueify(argv), Valueify(rval));
+    LAST_FRAME_CHECKS(cx, ok);
+    return ok;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_CallFunctionName(JSContext *cx, JSObject *objArg, const char *name, unsigned argc, jsval *argv,
+JS_CallFunctionName(JSContext *cx, JSObject *obj, const char *name, uintN argc, jsval *argv,
                     jsval *rval)
 {
-    RootedObject obj(cx, objArg);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, JSValueArray(argv, argc));
-    AutoLastFrameCheck lfc(cx);
 
-    JSAtom *atom = Atomize(cx, name, strlen(name));
-    if (!atom)
-        return false;
-
-    RootedValue v(cx);
-    RootedId id(cx, AtomToId(atom));
-    return GetMethod(cx, obj, id, 0, &v) &&
-           Invoke(cx, ObjectOrNullValue(obj), v, argc, argv, rval);
+    AutoValueRooter tvr(cx);
+    JSAtom *atom = js_Atomize(cx, name, strlen(name));
+    JSBool ok =
+        atom &&
+        js_GetMethod(cx, obj, ATOM_TO_JSID(atom), JSGET_NO_METHOD_BARRIER, tvr.addr()) &&
+        ExternalInvoke(cx, ObjectOrNullValue(obj), tvr.value(), argc, Valueify(argv),
+                       Valueify(rval));
+    LAST_FRAME_CHECKS(cx, ok);
+    return ok;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_CallFunctionValue(JSContext *cx, JSObject *objArg, jsval fval, unsigned argc, jsval *argv,
+JS_CallFunctionValue(JSContext *cx, JSObject *obj, jsval fval, uintN argc, jsval *argv,
                      jsval *rval)
 {
-    RootedObject obj(cx, objArg);
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
-    AssertHeapIsIdle(cx);
+
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, fval, JSValueArray(argv, argc));
-    AutoLastFrameCheck lfc(cx);
-
-    return Invoke(cx, ObjectOrNullValue(obj), fval, argc, argv, rval);
+    JSBool ok = ExternalInvoke(cx, ObjectOrNullValue(obj), Valueify(fval), argc, Valueify(argv),
+                               Valueify(rval));
+    LAST_FRAME_CHECKS(cx, ok);
+    return ok;
 }
 
 namespace JS {
 
 JS_PUBLIC_API(bool)
-Call(JSContext *cx, jsval thisv, jsval fval, unsigned argc, jsval *argv, jsval *rval)
+Call(JSContext *cx, jsval thisv, jsval fval, uintN argc, jsval *argv, jsval *rval)
 {
-    AssertHeapIsIdle(cx);
+    JSBool ok;
+
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, thisv, fval, JSValueArray(argv, argc));
-    AutoLastFrameCheck lfc(cx);
-
-    return Invoke(cx, thisv, fval, argc, argv, rval);
+    ok = ExternalInvoke(cx, Valueify(thisv), Valueify(fval), argc, Valueify(argv), Valueify(rval));
+    LAST_FRAME_CHECKS(cx, ok);
+    return ok;
 }
 
 } 
 
 JS_PUBLIC_API(JSObject *)
-JS_New(JSContext *cx, JSObject *ctorArg, unsigned argc, jsval *argv)
+JS_New(JSContext *cx, JSObject *ctor, uintN argc, jsval *argv)
 {
-    RootedObject ctor(cx, ctorArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, ctor, JSValueArray(argv, argc));
-    AutoLastFrameCheck lfc(cx);
 
     
     
@@ -5977,32 +5121,39 @@ JS_New(JSContext *cx, JSObject *ctorArg, unsigned argc, jsval *argv)
     if (!cx->stack.pushInvokeArgs(cx, argc, &args))
         return NULL;
 
-    args.setCallee(ObjectValue(*ctor));
-    args.setThis(NullValue());
-    PodCopy(args.array(), argv, argc);
+    args.calleev().setObject(*ctor);
+    args.thisv().setNull();
+    memcpy(args.argv(), argv, argc * sizeof(jsval));
 
-    if (!InvokeConstructor(cx, args))
-        return NULL;
+    bool ok = InvokeConstructor(cx, args);
 
-    if (!args.rval().isObject()) {
-        
+    JSObject *obj = NULL;
+    if (ok) {
+        if (args.rval().isObject()) {
+            obj = &args.rval().toObject();
+        } else {
+            
 
 
 
-        JSAutoByteString bytes;
-        if (js_ValueToPrintable(cx, args.rval(), &bytes)) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_NEW_RESULT,
-                                 bytes.ptr());
+            JSAutoByteString bytes;
+            if (js_ValueToPrintable(cx, args.rval(), &bytes)) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_NEW_RESULT,
+                                     bytes.ptr());
+            }
         }
-        return NULL;
     }
 
-    return &args.rval().toObject();
+    LAST_FRAME_CHECKS(cx, ok);
+    return obj;
 }
 
 JS_PUBLIC_API(JSOperationCallback)
 JS_SetOperationCallback(JSContext *cx, JSOperationCallback callback)
 {
+#ifdef JS_THREADSAFE
+    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread()));
+#endif
     JSOperationCallback old = cx->operationCallback;
     cx->operationCallback = callback;
     return old;
@@ -6015,52 +5166,68 @@ JS_GetOperationCallback(JSContext *cx)
 }
 
 JS_PUBLIC_API(void)
-JS_TriggerOperationCallback(JSRuntime *rt)
+JS_TriggerOperationCallback(JSContext *cx)
 {
-    rt->triggerOperationCallback();
+#ifdef JS_THREADSAFE
+    AutoLockGC lock(cx->runtime);
+#endif
+    TriggerOperationCallback(cx);
+}
+
+JS_PUBLIC_API(void)
+JS_TriggerAllOperationCallbacks(JSRuntime *rt)
+{
+#ifdef JS_THREADSAFE
+    AutoLockGC lock(rt);
+#endif
+    TriggerAllOperationCallbacks(rt);
 }
 
 JS_PUBLIC_API(JSBool)
 JS_IsRunning(JSContext *cx)
 {
-    return cx->hasfp();
+    
+
+
+
+
+    VOUCH_DOES_NOT_REQUIRE_STACK();
+
+#ifdef JS_TRACER
+    JS_ASSERT_IF(JS_ON_TRACE(cx) && JS_TRACE_MONITOR_ON_TRACE(cx)->tracecx == cx, cx->running());
+#endif
+    StackFrame *fp = cx->maybefp();
+    while (fp && fp->isDummyFrame())
+        fp = fp->prev();
+    return fp != NULL;
 }
 
-JS_PUBLIC_API(JSBool)
+JS_PUBLIC_API(JSStackFrame *)
 JS_SaveFrameChain(JSContext *cx)
 {
-    AssertHeapIsIdleOrIterating(cx);
     CHECK_REQUEST(cx);
-    return cx->saveFrameChain();
+    StackFrame *fp = js_GetTopStackFrame(cx);
+    if (!fp)
+        return NULL;
+    cx->stack.saveActiveSegment();
+    return Jsvalify(fp);
 }
 
 JS_PUBLIC_API(void)
-JS_RestoreFrameChain(JSContext *cx)
+JS_RestoreFrameChain(JSContext *cx, JSStackFrame *fp)
 {
-    AssertHeapIsIdleOrIterating(cx);
     CHECK_REQUEST(cx);
-    cx->restoreFrameChain();
+    JS_ASSERT_NOT_ON_TRACE(cx);
+    JS_ASSERT(!cx->running());
+    if (!fp)
+        return;
+    cx->stack.restoreSegment();
 }
-
-#ifdef MOZ_TRACE_JSCALLS
-JS_PUBLIC_API(void)
-JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb)
-{
-    cx->functionCallback = fcb;
-}
-
-JS_PUBLIC_API(JSFunctionCallback)
-JS_GetFunctionCallback(JSContext *cx)
-{
-    return cx->functionCallback;
-}
-#endif
 
 
 JS_PUBLIC_API(JSString *)
 JS_NewStringCopyN(JSContext *cx, const char *s, size_t n)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_NewStringCopyN(cx, s, n);
 }
@@ -6072,24 +5239,22 @@ JS_NewStringCopyZ(JSContext *cx, const char *s)
     jschar *js;
     JSString *str;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    if (!s || !*s)
+    if (!s)
         return cx->runtime->emptyString;
     n = strlen(s);
-    js = InflateString(cx, s, &n);
+    js = js_InflateString(cx, s, &n);
     if (!js)
         return NULL;
     str = js_NewString(cx, js, n);
     if (!str)
-        js_free(js);
+        cx->free_(js);
     return str;
 }
 
 JS_PUBLIC_API(JSBool)
 JS_StringHasBeenInterned(JSContext *cx, JSString *str)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
     if (!str->isAtom())
@@ -6098,21 +5263,11 @@ JS_StringHasBeenInterned(JSContext *cx, JSString *str)
     return AtomIsInterned(cx, &str->asAtom());
 }
 
-JS_PUBLIC_API(jsid)
-INTERNED_STRING_TO_JSID(JSContext *cx, JSString *str)
-{
-    JS_ASSERT(str);
-    JS_ASSERT(((size_t)str & JSID_TYPE_MASK) == 0);
-    JS_ASSERT_IF(cx, JS_StringHasBeenInterned(cx, str));
-    return AtomToId(&str->asAtom());
-}
-
 JS_PUBLIC_API(JSString *)
 JS_InternJSString(JSContext *cx, JSString *str)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    JSAtom *atom = AtomizeString(cx, str, InternAtom);
+    JSAtom *atom = js_AtomizeString(cx, str, InternAtom);
     JS_ASSERT_IF(atom, JS_StringHasBeenInterned(cx, atom));
     return atom;
 }
@@ -6120,15 +5275,8 @@ JS_InternJSString(JSContext *cx, JSString *str)
 JS_PUBLIC_API(JSString *)
 JS_InternString(JSContext *cx, const char *s)
 {
-    return JS_InternStringN(cx, s, strlen(s));
-}
-
-JS_PUBLIC_API(JSString *)
-JS_InternStringN(JSContext *cx, const char *s, size_t length)
-{
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    JSAtom *atom = Atomize(cx, s, length, InternAtom);
+    JSAtom *atom = js_Atomize(cx, s, strlen(s), InternAtom);
     JS_ASSERT_IF(atom, JS_StringHasBeenInterned(cx, atom));
     return atom;
 }
@@ -6136,7 +5284,6 @@ JS_InternStringN(JSContext *cx, const char *s, size_t length)
 JS_PUBLIC_API(JSString *)
 JS_NewUCString(JSContext *cx, jschar *chars, size_t length)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_NewString(cx, chars, length);
 }
@@ -6144,7 +5291,6 @@ JS_NewUCString(JSContext *cx, jschar *chars, size_t length)
 JS_PUBLIC_API(JSString *)
 JS_NewUCStringCopyN(JSContext *cx, const jschar *s, size_t n)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_NewStringCopyN(cx, s, n);
 }
@@ -6152,7 +5298,6 @@ JS_NewUCStringCopyN(JSContext *cx, const jschar *s, size_t n)
 JS_PUBLIC_API(JSString *)
 JS_NewUCStringCopyZ(JSContext *cx, const jschar *s)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     if (!s)
         return cx->runtime->emptyString;
@@ -6162,9 +5307,8 @@ JS_NewUCStringCopyZ(JSContext *cx, const jschar *s)
 JS_PUBLIC_API(JSString *)
 JS_InternUCStringN(JSContext *cx, const jschar *s, size_t length)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    JSAtom *atom = AtomizeChars(cx, s, length, InternAtom);
+    JSAtom *atom = js_AtomizeChars(cx, s, length, InternAtom);
     JS_ASSERT_IF(atom, JS_StringHasBeenInterned(cx, atom));
     return atom;
 }
@@ -6184,7 +5328,6 @@ JS_GetStringLength(JSString *str)
 JS_PUBLIC_API(const jschar *)
 JS_GetStringCharsZ(JSContext *cx, JSString *str)
 {
-    AssertHeapIsIdleOrStringIsFlat(cx, str);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, str);
     return str->getCharsZ(cx);
@@ -6193,7 +5336,6 @@ JS_GetStringCharsZ(JSContext *cx, JSString *str)
 JS_PUBLIC_API(const jschar *)
 JS_GetStringCharsZAndLength(JSContext *cx, JSString *str, size_t *plength)
 {
-    AssertHeapIsIdleOrStringIsFlat(cx, str);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, str);
     *plength = str->length();
@@ -6203,7 +5345,6 @@ JS_GetStringCharsZAndLength(JSContext *cx, JSString *str, size_t *plength)
 JS_PUBLIC_API(const jschar *)
 JS_GetStringCharsAndLength(JSContext *cx, JSString *str, size_t *plength)
 {
-    AssertHeapIsIdleOrStringIsFlat(cx, str);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, str);
     *plength = str->length();
@@ -6227,7 +5368,6 @@ JS_GetInternedStringCharsAndLength(JSString *str, size_t *plength)
 extern JS_PUBLIC_API(JSFlatString *)
 JS_FlattenString(JSContext *cx, JSString *str)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, str);
     return str->getCharsZ(cx) ? (JSFlatString *)str : NULL;
@@ -6240,20 +5380,14 @@ JS_GetFlatStringChars(JSFlatString *str)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_CompareStrings(JSContext *cx, JSString *str1, JSString *str2, int32_t *result)
+JS_CompareStrings(JSContext *cx, JSString *str1, JSString *str2, int32 *result)
 {
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-
     return CompareStrings(cx, str1, str2, result);
 }
 
 JS_PUBLIC_API(JSBool)
 JS_StringEqualsAscii(JSContext *cx, JSString *str, const char *asciiBytes, JSBool *match)
 {
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-
     JSLinearString *linearStr = str->ensureLinear(cx);
     if (!linearStr)
         return false;
@@ -6276,7 +5410,6 @@ JS_PutEscapedFlatString(char *buffer, size_t size, JSFlatString *str, char quote
 JS_PUBLIC_API(size_t)
 JS_PutEscapedString(JSContext *cx, char *buffer, size_t size, JSString *str, char quote)
 {
-    AssertHeapIsIdle(cx);
     JSLinearString *linearStr = str->ensureLinear(cx);
     if (!linearStr)
         return size_t(-1);
@@ -6293,7 +5426,6 @@ JS_FileEscapedString(FILE *fp, JSString *str, char quote)
 JS_PUBLIC_API(JSString *)
 JS_NewGrowableString(JSContext *cx, jschar *chars, size_t length)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_NewString(cx, chars, length);
 }
@@ -6301,7 +5433,6 @@ JS_NewGrowableString(JSContext *cx, jschar *chars, size_t length)
 JS_PUBLIC_API(JSString *)
 JS_NewDependentString(JSContext *cx, JSString *str, size_t start, size_t length)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_NewDependentString(cx, str, start, length);
 }
@@ -6309,30 +5440,30 @@ JS_NewDependentString(JSContext *cx, JSString *str, size_t start, size_t length)
 JS_PUBLIC_API(JSString *)
 JS_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    Rooted<JSString*> lstr(cx, left);
-    Rooted<JSString*> rstr(cx, right);
-    return js_ConcatStrings(cx, lstr, rstr);
+    return js_ConcatStrings(cx, left, right);
 }
 
 JS_PUBLIC_API(const jschar *)
 JS_UndependString(JSContext *cx, JSString *str)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return str->getCharsZ(cx);
 }
 
 JS_PUBLIC_API(JSBool)
+JS_MakeStringImmutable(JSContext *cx, JSString *str)
+{
+    CHECK_REQUEST(cx);
+    return !!str->ensureFixed(cx);
+}
+
+JS_PUBLIC_API(JSBool)
 JS_EncodeCharacters(JSContext *cx, const jschar *src, size_t srclen, char *dst, size_t *dstlenp)
 {
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-
     size_t n;
     if (!dst) {
-        n = GetDeflatedStringLength(cx, src, srclen);
+        n = js_GetDeflatedStringLength(cx, src, srclen);
         if (n == (size_t)-1) {
             *dstlenp = 0;
             return JS_FALSE;
@@ -6341,51 +5472,38 @@ JS_EncodeCharacters(JSContext *cx, const jschar *src, size_t srclen, char *dst, 
         return JS_TRUE;
     }
 
-    return DeflateStringToBuffer(cx, src, srclen, dst, dstlenp);
+    return js_DeflateStringToBuffer(cx, src, srclen, dst, dstlenp);
 }
 
 JS_PUBLIC_API(JSBool)
 JS_DecodeBytes(JSContext *cx, const char *src, size_t srclen, jschar *dst, size_t *dstlenp)
 {
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    return InflateStringToBuffer(cx, src, srclen, dst, dstlenp);
+    return js_InflateStringToBuffer(cx, src, srclen, dst, dstlenp);
 }
 
 JS_PUBLIC_API(JSBool)
 JS_DecodeUTF8(JSContext *cx, const char *src, size_t srclen, jschar *dst,
               size_t *dstlenp)
 {
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    return InflateUTF8StringToBuffer(cx, src, srclen, dst, dstlenp);
+    return js_InflateUTF8StringToBuffer(cx, src, srclen, dst, dstlenp);
 }
 
 JS_PUBLIC_API(char *)
 JS_EncodeString(JSContext *cx, JSString *str)
 {
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-
     const jschar *chars = str->getChars(cx);
     if (!chars)
         return NULL;
-    return DeflateString(cx, chars, str->length());
+    return js_DeflateString(cx, chars, str->length());
 }
 
 JS_PUBLIC_API(size_t)
 JS_GetStringEncodingLength(JSContext *cx, JSString *str)
 {
-    
-    if (cx) {
-        AssertHeapIsIdle(cx);
-        CHECK_REQUEST(cx);
-    }
-
     const jschar *chars = str->getChars(cx);
     if (!chars)
         return size_t(-1);
-    return GetDeflatedStringLength(cx, chars, str->length());
+    return js_GetDeflatedStringLength(cx, chars, str->length());
 }
 
 JS_PUBLIC_API(size_t)
@@ -6400,12 +5518,12 @@ JS_EncodeStringToBuffer(JSString *str, char *buffer, size_t length)
     const jschar *chars = str->getChars(NULL);
     if (!chars)
         return size_t(-1);
-    if (DeflateStringToBuffer(NULL, chars, str->length(), buffer, &writtenLength)) {
+    if (js_DeflateStringToBuffer(NULL, chars, str->length(), buffer, &writtenLength)) {
         JS_ASSERT(writtenLength <= length);
         return writtenLength;
     }
     JS_ASSERT(writtenLength <= length);
-    size_t necessaryLength = GetDeflatedStringLength(NULL, chars, str->length());
+    size_t necessaryLength = js_GetDeflatedStringLength(NULL, chars, str->length());
     if (necessaryLength == size_t(-1))
         return size_t(-1);
     if (writtenLength != length) {
@@ -6417,63 +5535,48 @@ JS_EncodeStringToBuffer(JSString *str, char *buffer, size_t length)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_Stringify(JSContext *cx, jsval *vp, JSObject *replacerArg, jsval space,
+JS_Stringify(JSContext *cx, jsval *vp, JSObject *replacer, jsval space,
              JSONWriteCallback callback, void *data)
 {
-    RootedObject replacer(cx, replacerArg);
-    RootedValue value(cx, *vp);
-
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, replacer, space);
     StringBuffer sb(cx);
-    if (!js_Stringify(cx, &value, replacer, space, sb))
+    Value spacev = Valueify(space);
+    if (!js_Stringify(cx, Valueify(vp), replacer, spacev, sb))
         return false;
-    *vp = value;
-    if (sb.empty()) {
-        JSAtom *nullAtom = cx->runtime->atomState.nullAtom;
-        return callback(nullAtom->chars(), nullAtom->length(), data);
-    }
     return callback(sb.begin(), sb.length(), data);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ParseJSON(JSContext *cx, const jschar *chars, uint32_t len, jsval *vp)
+JS_TryJSON(JSContext *cx, jsval *vp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-
-    RootedValue reviver(cx, NullValue()), value(cx);
-    if (!ParseJSONWithReviver(cx, chars, len, reviver, &value))
-        return false;
-
-    *vp = value;
-    return true;
+    assertSameCompartment(cx, *vp);
+    return js_TryJSON(cx, Valueify(vp));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ParseJSONWithReviver(JSContext *cx, const jschar *chars, uint32_t len, jsval reviverArg, jsval *vp)
+JS_ParseJSON(JSContext *cx, const jschar *chars, uint32 len, jsval *vp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
-    RootedValue reviver(cx, reviverArg), value(cx);
-    if (!ParseJSONWithReviver(cx, chars, len, reviver, &value))
-        return false;
-
-    *vp = value;
-    return true;
+    return ParseJSONWithReviver(cx, chars, len, NullValue(), Valueify(vp));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ReadStructuredClone(JSContext *cx, const uint64_t *buf, size_t nbytes,
-                       uint32_t version, jsval *vp,
+JS_ParseJSONWithReviver(JSContext *cx, const jschar *chars, uint32 len, jsval reviver, jsval *vp)
+{
+    CHECK_REQUEST(cx);
+
+    return ParseJSONWithReviver(cx, chars, len, Valueify(reviver), Valueify(vp));
+}
+
+JS_PUBLIC_API(JSBool)
+JS_ReadStructuredClone(JSContext *cx, const uint64 *buf, size_t nbytes,
+                       uint32 version, jsval *vp,
                        const JSStructuredCloneCallbacks *optionalCallbacks,
                        void *closure)
 {
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-
     if (version > JS_STRUCTURED_CLONE_VERSION) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_CLONE_VERSION);
         return false;
@@ -6482,135 +5585,34 @@ JS_ReadStructuredClone(JSContext *cx, const uint64_t *buf, size_t nbytes,
         optionalCallbacks ?
         optionalCallbacks :
         cx->runtime->structuredCloneCallbacks;
-    return ReadStructuredClone(cx, buf, nbytes, vp, callbacks, closure);
+    return ReadStructuredClone(cx, buf, nbytes, Valueify(vp), callbacks, closure);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_WriteStructuredClone(JSContext *cx, jsval valueArg, uint64_t **bufp, size_t *nbytesp,
+JS_WriteStructuredClone(JSContext *cx, jsval v, uint64 **bufp, size_t *nbytesp,
                         const JSStructuredCloneCallbacks *optionalCallbacks,
                         void *closure)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-
     const JSStructuredCloneCallbacks *callbacks =
         optionalCallbacks ?
         optionalCallbacks :
         cx->runtime->structuredCloneCallbacks;
-    return WriteStructuredClone(cx, value, (uint64_t **) bufp, nbytesp, callbacks, closure);
+    return WriteStructuredClone(cx, Valueify(v), (uint64_t **) bufp, nbytesp,
+                                callbacks, closure);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_StructuredClone(JSContext *cx, jsval valueArg, jsval *vp,
+JS_StructuredClone(JSContext *cx, jsval v, jsval *vp,
                    const JSStructuredCloneCallbacks *optionalCallbacks,
                    void *closure)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-
     const JSStructuredCloneCallbacks *callbacks =
         optionalCallbacks ?
         optionalCallbacks :
         cx->runtime->structuredCloneCallbacks;
     JSAutoStructuredCloneBuffer buf;
-    return buf.write(cx, value, callbacks, closure) &&
-           buf.read(cx, vp, callbacks, closure);
-}
-
-void
-JSAutoStructuredCloneBuffer::clear()
-{
-    if (data_) {
-        js_free(data_);
-        data_ = NULL;
-        nbytes_ = 0;
-        version_ = 0;
-    }
-}
-
-void
-JSAutoStructuredCloneBuffer::adopt(uint64_t *data, size_t nbytes, uint32_t version)
-{
-    clear();
-    data_ = data;
-    nbytes_ = nbytes;
-    version_ = version;
-}
-
-bool
-JSAutoStructuredCloneBuffer::copy(const uint64_t *srcData, size_t nbytes, uint32_t version)
-{
-    uint64_t *newData = static_cast<uint64_t *>(js_malloc(nbytes));
-    if (!newData)
-        return false;
-
-    js_memcpy(newData, srcData, nbytes);
-
-    clear();
-    data_ = newData;
-    nbytes_ = nbytes;
-    version_ = version;
-    return true;
-}
-void
-JSAutoStructuredCloneBuffer::steal(uint64_t **datap, size_t *nbytesp, uint32_t *versionp)
-{
-    *datap = data_;
-    *nbytesp = nbytes_;
-    if (versionp)
-        *versionp = version_;
-
-    data_ = NULL;
-    nbytes_ = 0;
-    version_ = 0;
-}
-
-bool
-JSAutoStructuredCloneBuffer::read(JSContext *cx, jsval *vp,
-                                  const JSStructuredCloneCallbacks *optionalCallbacks,
-                                  void *closure) const
-{
-    JS_ASSERT(cx);
-    JS_ASSERT(data_);
-    return !!JS_ReadStructuredClone(cx, data_, nbytes_, version_, vp,
-                                    optionalCallbacks, closure);
-}
-
-bool
-JSAutoStructuredCloneBuffer::write(JSContext *cx, jsval valueArg,
-                                   const JSStructuredCloneCallbacks *optionalCallbacks,
-                                   void *closure)
-{
-    RootedValue value(cx, valueArg);
-    clear();
-    bool ok = !!JS_WriteStructuredClone(cx, value, &data_, &nbytes_,
-                                        optionalCallbacks, closure);
-    if (!ok) {
-        data_ = NULL;
-        nbytes_ = 0;
-        version_ = JS_STRUCTURED_CLONE_VERSION;
-    }
-    return ok;
-}
-
-void
-JSAutoStructuredCloneBuffer::swap(JSAutoStructuredCloneBuffer &other)
-{
-    uint64_t *data = other.data_;
-    size_t nbytes = other.nbytes_;
-    uint32_t version = other.version_;
-
-    other.data_ = this->data_;
-    other.nbytes_ = this->nbytes_;
-    other.version_ = this->version_;
-
-    this->data_ = data;
-    this->nbytes_ = nbytes;
-    this->version_ = version;
+    return buf.write(cx, v, callbacks, closure) &&
+           buf.read(vp, cx, callbacks, closure);
 }
 
 JS_PUBLIC_API(void)
@@ -6620,7 +5622,7 @@ JS_SetStructuredCloneCallbacks(JSRuntime *rt, const JSStructuredCloneCallbacks *
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ReadUint32Pair(JSStructuredCloneReader *r, uint32_t *p1, uint32_t *p2)
+JS_ReadUint32Pair(JSStructuredCloneReader *r, uint32 *p1, uint32 *p2)
 {
     return r->input().readPair((uint32_t *) p1, (uint32_t *) p2);
 }
@@ -6632,7 +5634,7 @@ JS_ReadBytes(JSStructuredCloneReader *r, void *p, size_t len)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_WriteUint32Pair(JSStructuredCloneWriter *w, uint32_t tag, uint32_t data)
+JS_WriteUint32Pair(JSStructuredCloneWriter *w, uint32 tag, uint32 data)
 {
     return w->output().writePair(tag, data);
 }
@@ -6675,7 +5677,6 @@ JS_ReportError(JSContext *cx, const char *format, ...)
 {
     va_list ap;
 
-    AssertHeapIsIdle(cx);
     va_start(ap, format);
     js_ReportErrorVA(cx, JSREPORT_ERROR, format, ap);
     va_end(ap);
@@ -6683,31 +5684,22 @@ JS_ReportError(JSContext *cx, const char *format, ...)
 
 JS_PUBLIC_API(void)
 JS_ReportErrorNumber(JSContext *cx, JSErrorCallback errorCallback,
-                     void *userRef, const unsigned errorNumber, ...)
+                     void *userRef, const uintN errorNumber, ...)
 {
     va_list ap;
+
     va_start(ap, errorNumber);
-    JS_ReportErrorNumberVA(cx, errorCallback, userRef, errorNumber, ap);
+    js_ReportErrorNumberVA(cx, JSREPORT_ERROR, errorCallback, userRef,
+                           errorNumber, JS_TRUE, ap);
     va_end(ap);
 }
 
 JS_PUBLIC_API(void)
-JS_ReportErrorNumberVA(JSContext *cx, JSErrorCallback errorCallback,
-                       void *userRef, const unsigned errorNumber,
-                       va_list ap)
-{
-    AssertHeapIsIdle(cx);
-    js_ReportErrorNumberVA(cx, JSREPORT_ERROR, errorCallback, userRef,
-                           errorNumber, JS_TRUE, ap);
-}
-
-JS_PUBLIC_API(void)
 JS_ReportErrorNumberUC(JSContext *cx, JSErrorCallback errorCallback,
-                     void *userRef, const unsigned errorNumber, ...)
+                     void *userRef, const uintN errorNumber, ...)
 {
     va_list ap;
 
-    AssertHeapIsIdle(cx);
     va_start(ap, errorNumber);
     js_ReportErrorNumberVA(cx, JSREPORT_ERROR, errorCallback, userRef,
                            errorNumber, JS_FALSE, ap);
@@ -6720,7 +5712,6 @@ JS_ReportWarning(JSContext *cx, const char *format, ...)
     va_list ap;
     JSBool ok;
 
-    AssertHeapIsIdle(cx);
     va_start(ap, format);
     ok = js_ReportErrorVA(cx, JSREPORT_WARNING, format, ap);
     va_end(ap);
@@ -6728,14 +5719,13 @@ JS_ReportWarning(JSContext *cx, const char *format, ...)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ReportErrorFlagsAndNumber(JSContext *cx, unsigned flags,
+JS_ReportErrorFlagsAndNumber(JSContext *cx, uintN flags,
                              JSErrorCallback errorCallback, void *userRef,
-                             const unsigned errorNumber, ...)
+                             const uintN errorNumber, ...)
 {
     va_list ap;
     JSBool ok;
 
-    AssertHeapIsIdle(cx);
     va_start(ap, errorNumber);
     ok = js_ReportErrorNumberVA(cx, flags, errorCallback, userRef,
                                 errorNumber, JS_TRUE, ap);
@@ -6744,14 +5734,13 @@ JS_ReportErrorFlagsAndNumber(JSContext *cx, unsigned flags,
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ReportErrorFlagsAndNumberUC(JSContext *cx, unsigned flags,
+JS_ReportErrorFlagsAndNumberUC(JSContext *cx, uintN flags,
                                JSErrorCallback errorCallback, void *userRef,
-                               const unsigned errorNumber, ...)
+                               const uintN errorNumber, ...)
 {
     va_list ap;
     JSBool ok;
 
-    AssertHeapIsIdle(cx);
     va_start(ap, errorNumber);
     ok = js_ReportErrorNumberVA(cx, flags, errorCallback, userRef,
                                 errorNumber, JS_FALSE, ap);
@@ -6772,12 +5761,6 @@ JS_ReportAllocationOverflow(JSContext *cx)
 }
 
 JS_PUBLIC_API(JSErrorReporter)
-JS_GetErrorReporter(JSContext *cx)
-{
-    return cx->errorReporter;
-}
-
-JS_PUBLIC_API(JSErrorReporter)
 JS_SetErrorReporter(JSContext *cx, JSErrorReporter er)
 {
     JSErrorReporter older;
@@ -6795,162 +5778,145 @@ JS_SetErrorReporter(JSContext *cx, JSErrorReporter er)
 JS_PUBLIC_API(JSObject *)
 JS_NewDateObject(JSContext *cx, int year, int mon, int mday, int hour, int min, int sec)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_NewDateObject(cx, year, mon, mday, hour, min, sec);
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_NewDateObjectMsec(JSContext *cx, double msec)
+JS_NewDateObjectMsec(JSContext *cx, jsdouble msec)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     return js_NewDateObjectMsec(cx, msec);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ObjectIsDate(JSContext *cx, JSRawObject obj)
+JS_ObjectIsDate(JSContext *cx, JSObject *obj)
 {
-    AssertHeapIsIdle(cx);
     JS_ASSERT(obj);
     return obj->isDate();
 }
 
-JS_PUBLIC_API(void)
-JS_ClearDateCaches(JSContext *cx)
-{
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    js_ClearDateCaches();
-}
-
 
 
 
 
 
 JS_PUBLIC_API(JSObject *)
-JS_NewRegExpObject(JSContext *cx, JSObject *objArg, char *bytes, size_t length, unsigned flags)
+JS_NewRegExpObject(JSContext *cx, JSObject *obj, char *bytes, size_t length, uintN flags)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    jschar *chars = InflateString(cx, bytes, &length);
+    jschar *chars = js_InflateString(cx, bytes, &length);
     if (!chars)
         return NULL;
-
-    RegExpStatics *res = obj->asGlobal().getRegExpStatics();
-    RegExpObject *reobj = RegExpObject::create(cx, res, chars, length, RegExpFlag(flags), NULL);
-    js_free(chars);
+    RegExpStatics *res = RegExpStatics::extractFrom(obj->asGlobal());
+    JSObject *reobj = RegExp::createObject(cx, res, chars, length, flags);
+    cx->free_(chars);
     return reobj;
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_NewUCRegExpObject(JSContext *cx, JSObject *objArg, jschar *chars, size_t length, unsigned flags)
+JS_NewUCRegExpObject(JSContext *cx, JSObject *obj, jschar *chars, size_t length, uintN flags)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    RegExpStatics *res = obj->asGlobal().getRegExpStatics();
-    return RegExpObject::create(cx, res, chars, length, RegExpFlag(flags), NULL);
+    RegExpStatics *res = RegExpStatics::extractFrom(obj->asGlobal());
+    return RegExp::createObject(cx, res, chars, length, flags);
 }
 
 JS_PUBLIC_API(void)
-JS_SetRegExpInput(JSContext *cx, JSObject *objArg, JSString *input, JSBool multiline)
+JS_SetRegExpInput(JSContext *cx, JSObject *obj, JSString *input, JSBool multiline)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, input);
 
-    obj->asGlobal().getRegExpStatics()->reset(cx, input, !!multiline);
+    RegExpStatics::extractFrom(obj->asGlobal())->reset(input, !!multiline);
 }
 
 JS_PUBLIC_API(void)
-JS_ClearRegExpStatics(JSContext *cx, JSObject *objArg)
+JS_ClearRegExpStatics(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     JS_ASSERT(obj);
 
-    obj->asGlobal().getRegExpStatics()->clear();
+    RegExpStatics::extractFrom(obj->asGlobal())->clear();
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ExecuteRegExp(JSContext *cx, JSObject *objArg, JSObject *reobjArg, jschar *chars, size_t length,
+JS_ExecuteRegExp(JSContext *cx, JSObject *obj, JSObject *reobj, jschar *chars, size_t length,
                  size_t *indexp, JSBool test, jsval *rval)
 {
-    RootedObject obj(cx, objArg);
-    RootedObject reobj(cx, reobjArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
-    RegExpStatics *res = obj->asGlobal().getRegExpStatics();
-    return ExecuteRegExp(cx, res, reobj->asRegExp(), NULL, chars, length,
-                         indexp, test ? RegExpTest : RegExpExec, rval);
+    RegExp *re = RegExp::extractFrom(reobj);
+    if (!re)
+        return false;
+
+    JSString *str = js_NewStringCopyN(cx, chars, length);
+    if (!str)
+        return false;
+
+    return re->execute(cx, RegExpStatics::extractFrom(obj->asGlobal()), str, indexp, test,
+                       Valueify(rval));
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_NewRegExpObjectNoStatics(JSContext *cx, char *bytes, size_t length, unsigned flags)
+JS_NewRegExpObjectNoStatics(JSContext *cx, char *bytes, size_t length, uintN flags)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    jschar *chars = InflateString(cx, bytes, &length);
+    jschar *chars = js_InflateString(cx, bytes, &length);
     if (!chars)
         return NULL;
-    RegExpObject *reobj = RegExpObject::createNoStatics(cx, chars, length, RegExpFlag(flags), NULL);
-    js_free(chars);
-    return reobj;
+    JSObject *obj = RegExp::createObjectNoStatics(cx, chars, length, flags);
+    cx->free_(chars);
+    return obj;
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_NewUCRegExpObjectNoStatics(JSContext *cx, jschar *chars, size_t length, unsigned flags)
+JS_NewUCRegExpObjectNoStatics(JSContext *cx, jschar *chars, size_t length, uintN flags)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    return RegExpObject::createNoStatics(cx, chars, length, RegExpFlag(flags), NULL);
+    return RegExp::createObjectNoStatics(cx, chars, length, flags);
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ExecuteRegExpNoStatics(JSContext *cx, JSObject *objArg, jschar *chars, size_t length,
+JS_ExecuteRegExpNoStatics(JSContext *cx, JSObject *obj, jschar *chars, size_t length,
                           size_t *indexp, JSBool test, jsval *rval)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
-    return ExecuteRegExp(cx, NULL, obj->asRegExp(), NULL, chars, length, indexp,
-                         test ? RegExpTest : RegExpExec, rval);
+    RegExp *re = RegExp::extractFrom(obj);
+    if (!re)
+        return false;
+
+    JSString *str = js_NewStringCopyN(cx, chars, length);
+    if (!str)
+        return false;
+
+    return re->executeNoStatics(cx, str, indexp, test, Valueify(rval));
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ObjectIsRegExp(JSContext *cx, JSObject *objArg)
+JS_ObjectIsRegExp(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     JS_ASSERT(obj);
     return obj->isRegExp();
 }
 
-JS_PUBLIC_API(unsigned)
-JS_GetRegExpFlags(JSContext *cx, JSObject *objArg)
+JS_PUBLIC_API(uintN)
+JS_GetRegExpFlags(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
-    return obj->asRegExp().getFlags();
+    RegExp *re = RegExp::extractFrom(obj);
+    return re->getFlags();
 }
 
 JS_PUBLIC_API(JSString *)
-JS_GetRegExpSource(JSContext *cx, JSObject *objArg)
+JS_GetRegExpSource(JSContext *cx, JSObject *obj)
 {
-    RootedObject obj(cx, objArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
-    return obj->asRegExp().getSource();
+    RegExp *re = RegExp::extractFrom(obj);
+    return re->getSource();
 }
 
 
@@ -6958,14 +5924,12 @@ JS_GetRegExpSource(JSContext *cx, JSObject *objArg)
 JS_PUBLIC_API(void)
 JS_SetLocaleCallbacks(JSContext *cx, JSLocaleCallbacks *callbacks)
 {
-    AssertHeapIsIdle(cx);
     cx->localeCallbacks = callbacks;
 }
 
 JS_PUBLIC_API(JSLocaleCallbacks *)
 JS_GetLocaleCallbacks(JSContext *cx)
 {
-    
     return cx->localeCallbacks;
 }
 
@@ -6974,46 +5938,53 @@ JS_GetLocaleCallbacks(JSContext *cx)
 JS_PUBLIC_API(JSBool)
 JS_IsExceptionPending(JSContext *cx)
 {
-    
     return (JSBool) cx->isExceptionPending();
 }
 
 JS_PUBLIC_API(JSBool)
 JS_GetPendingException(JSContext *cx, jsval *vp)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     if (!cx->isExceptionPending())
         return JS_FALSE;
-    *vp = cx->getPendingException();
+    Valueify(*vp) = cx->getPendingException();
     assertSameCompartment(cx, *vp);
     return JS_TRUE;
 }
 
 JS_PUBLIC_API(void)
-JS_SetPendingException(JSContext *cx, jsval valueArg)
+JS_SetPendingException(JSContext *cx, jsval v)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-    cx->setPendingException(value);
+    assertSameCompartment(cx, v);
+    cx->setPendingException(Valueify(v));
 }
 
 JS_PUBLIC_API(void)
 JS_ClearPendingException(JSContext *cx)
 {
-    AssertHeapIsIdle(cx);
     cx->clearPendingException();
 }
 
 JS_PUBLIC_API(JSBool)
 JS_ReportPendingException(JSContext *cx)
 {
-    AssertHeapIsIdle(cx);
+    JSBool ok;
+    JSPackedBool save;
+
     CHECK_REQUEST(cx);
 
-    return js_ReportUncaughtException(cx);
+    
+
+
+
+
+
+    save = cx->generatingError;
+    cx->generatingError = JS_TRUE;
+    ok = js_ReportUncaughtException(cx);
+    cx->generatingError = save;
+    return ok;
 }
 
 struct JSExceptionState {
@@ -7026,13 +5997,12 @@ JS_SaveExceptionState(JSContext *cx)
 {
     JSExceptionState *state;
 
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    state = cx->pod_malloc<JSExceptionState>();
+    state = (JSExceptionState *) cx->malloc_(sizeof(JSExceptionState));
     if (state) {
         state->throwing = JS_GetPendingException(cx, &state->exception);
         if (state->throwing && JSVAL_IS_GCTHING(state->exception))
-            js_AddRoot(cx, &state->exception, "JSExceptionState.exception");
+            js_AddRoot(cx, Valueify(&state->exception), "JSExceptionState.exception");
     }
     return state;
 }
@@ -7040,7 +6010,6 @@ JS_SaveExceptionState(JSContext *cx)
 JS_PUBLIC_API(void)
 JS_RestoreExceptionState(JSContext *cx, JSExceptionState *state)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     if (state) {
         if (state->throwing)
@@ -7054,32 +6023,28 @@ JS_RestoreExceptionState(JSContext *cx, JSExceptionState *state)
 JS_PUBLIC_API(void)
 JS_DropExceptionState(JSContext *cx, JSExceptionState *state)
 {
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     if (state) {
         if (state->throwing && JSVAL_IS_GCTHING(state->exception)) {
             assertSameCompartment(cx, state->exception);
             JS_RemoveValueRoot(cx, &state->exception);
         }
-        js_free(state);
+        cx->free_(state);
     }
 }
 
 JS_PUBLIC_API(JSErrorReport *)
-JS_ErrorFromException(JSContext *cx, jsval valueArg)
+JS_ErrorFromException(JSContext *cx, jsval v)
 {
-    RootedValue value(cx, valueArg);
-    AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-    return js_ErrorFromException(cx, value);
+    assertSameCompartment(cx, v);
+    return js_ErrorFromException(cx, v);
 }
 
 JS_PUBLIC_API(JSBool)
 JS_ThrowReportedError(JSContext *cx, const char *message,
                       JSErrorReport *reportp)
 {
-    AssertHeapIsIdle(cx);
     return JS_IsRunning(cx) &&
            js_ErrorToException(cx, message, reportp, NULL, NULL);
 }
@@ -7087,98 +6052,88 @@ JS_ThrowReportedError(JSContext *cx, const char *message,
 JS_PUBLIC_API(JSBool)
 JS_ThrowStopIteration(JSContext *cx)
 {
-    AssertHeapIsIdle(cx);
     return js_ThrowStopIteration(cx);
 }
 
-JS_PUBLIC_API(intptr_t)
-JS_GetCurrentThread()
+
+
+
+
+JS_PUBLIC_API(jsword)
+JS_GetContextThread(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
-    return reinterpret_cast<intptr_t>(PR_GetCurrentThread());
+    return reinterpret_cast<jsword>(JS_THREAD_ID(cx));
 #else
     return 0;
 #endif
 }
 
-extern JS_PUBLIC_API(void)
-JS_ClearRuntimeThread(JSRuntime *rt)
+
+
+
+
+JS_PUBLIC_API(jsword)
+JS_SetContextThread(JSContext *cx)
 {
-    AssertHeapIsIdle(rt);
 #ifdef JS_THREADSAFE
-    rt->clearOwnerThread();
+    JS_ASSERT(!cx->outstandingRequests);
+    if (cx->thread()) {
+        JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread()));
+        return reinterpret_cast<jsword>(cx->thread()->id);
+    }
+
+    if (!js_InitContextThread(cx)) {
+        js_ReportOutOfMemory(cx);
+        return -1;
+    }
+
+    
+    JS_UNLOCK_GC(cx->runtime);
 #endif
+    return 0;
 }
 
-extern JS_PUBLIC_API(void)
-JS_SetRuntimeThread(JSRuntime *rt)
+JS_PUBLIC_API(jsword)
+JS_ClearContextThread(JSContext *cx)
 {
-    AssertHeapIsIdle(rt);
 #ifdef JS_THREADSAFE
-    rt->setOwnerThread();
-#endif
-}
+    
 
-extern JS_NEVER_INLINE JS_PUBLIC_API(void)
-JS_AbortIfWrongThread(JSRuntime *rt)
-{
-    rt->abortIfWrongThread();
+
+
+
+    JS_ASSERT(cx->outstandingRequests == 0);
+    JSThread *t = cx->thread();
+    if (!t)
+        return 0;
+    JS_ASSERT(CURRENT_THREAD_IS_ME(t));
+
+    
+
+
+
+    JSRuntime *rt = cx->runtime;
+    AutoLockGC lock(rt);
+    js_WaitForGC(rt);
+    js_ClearContextThread(cx);
+    JS_ASSERT_IF(JS_CLIST_IS_EMPTY(&t->contextList), !t->data.requestDepth);
+
+    
+
+
+
+    return reinterpret_cast<jsword>(t->id);
+#else
+    return 0;
+#endif
 }
 
 #ifdef JS_GC_ZEAL
 JS_PUBLIC_API(void)
-JS_SetGCZeal(JSContext *cx, uint8_t zeal, uint32_t frequency)
+JS_SetGCZeal(JSContext *cx, uint8 zeal)
 {
-    const char *env = getenv("JS_GC_ZEAL");
-    if (env) {
-        if (0 == strcmp(env, "help")) {
-            printf("Format: JS_GC_ZEAL=N[,F]\n"
-                   "N indicates \"zealousness\":\n"
-                   "  0: no additional GCs\n"
-                   "  1: additional GCs at common danger points\n"
-                   "  2: GC every F allocations (default: 100)\n"
-                   "  3: GC when the window paints (browser only)\n"
-                   "  4: Verify pre write barriers between instructions\n"
-                   "  5: Verify pre write barriers between paints\n"
-                   "  6: Verify stack rooting (ignoring XML and Reflect)\n"
-                   "  7: Verify stack rooting (all roots)\n"
-                   "  8: Incremental GC in two slices: 1) mark roots 2) finish collection\n"
-                   "  9: Incremental GC in two slices: 1) mark all 2) new marking and finish\n"
-                   " 10: Incremental GC in multiple slices\n"
-                   " 11: Verify post write barriers between instructions\n"
-                   " 12: Verify post write barriers between paints\n"
-                   " 13: Purge analysis state every F allocations (default: 100)\n");
-        }
-        const char *p = strchr(env, ',');
-        zeal = atoi(env);
-        frequency = p ? atoi(p + 1) : JS_DEFAULT_ZEAL_FREQ;
-    }
-
-    JSRuntime *rt = cx->runtime;
-
-    if (zeal == 0) {
-        if (rt->gcVerifyPreData)
-            VerifyBarriers(rt, PreBarrierVerifier);
-        if (rt->gcVerifyPostData)
-            VerifyBarriers(rt, PostBarrierVerifier);
-    }
-
-#ifdef JS_METHODJIT
-    
-    for (CompartmentsIter c(rt); !c.done(); c.next())
-        mjit::ClearAllFrames(c);
-#endif
-
-    bool schedule = zeal >= js::gc::ZealAllocValue;
-    rt->gcZeal_ = zeal;
-    rt->gcZealFrequency = frequency;
-    rt->gcNextScheduled = schedule ? frequency : 0;
-}
-
-JS_PUBLIC_API(void)
-JS_ScheduleGC(JSContext *cx, uint32_t count)
-{
-    cx->runtime->gcNextScheduled = count;
+    cx->runtime->gcZeal = zeal;
 }
 #endif
 
@@ -7197,137 +6152,3 @@ BOOL WINAPI DllMain (HINSTANCE hDLL, DWORD dwReason, LPVOID lpReserved)
 }
 
 #endif
-
-JS_PUBLIC_API(JSBool)
-JS_IndexToId(JSContext *cx, uint32_t index, jsid *id)
-{
-    return IndexToId(cx, index, id);
-}
-
-JS_PUBLIC_API(JSBool)
-JS_IsIdentifier(JSContext *cx, JSString *str, JSBool *isIdentifier)
-{
-    assertSameCompartment(cx, str);
-
-    JSLinearString* linearStr = str->ensureLinear(cx);
-    if (!linearStr)
-        return false;
-
-    *isIdentifier = js::frontend::IsIdentifier(linearStr);
-    return true;
-}
-
-JS_PUBLIC_API(JSBool)
-JS_DescribeScriptedCaller(JSContext *cx, JSScript **script, unsigned *lineno)
-{
-    if (script)
-        *script = NULL;
-    if (lineno)
-        *lineno = 0;
-
-    ScriptFrameIter i(cx);
-    if (i.done())
-        return JS_FALSE;
-
-    if (script)
-        *script = i.script();
-    if (lineno)
-        *lineno = js::PCToLineNumber(i.script(), i.pc());
-    return JS_TRUE;
-}
-
-#ifdef JS_THREADSAFE
-static PRStatus
-CallOnce(void *func)
-{
-    JSInitCallback init = JS_DATA_TO_FUNC_PTR(JSInitCallback, func);
-    return init() ? PR_SUCCESS : PR_FAILURE;
-}
-#endif
-
-JS_PUBLIC_API(JSBool)
-JS_CallOnce(JSCallOnceType *once, JSInitCallback func)
-{
-#ifdef JS_THREADSAFE
-    return PR_CallOnceWithArg(once, CallOnce, JS_FUNC_TO_DATA_PTR(void *, func)) == PR_SUCCESS;
-#else
-    if (!*once) {
-        *once = true;
-        return func();
-    } else {
-        return JS_TRUE;
-    }
-#endif
-}
-
-namespace JS {
-
-AutoGCRooter::AutoGCRooter(JSContext *cx, ptrdiff_t tag)
-  : down(cx->runtime->autoGCRooters), tag(tag), stackTop(&cx->runtime->autoGCRooters)
-{
-    JS_ASSERT(this != *stackTop);
-    *stackTop = this;
-}
-
-#ifdef DEBUG
-JS_PUBLIC_API(void)
-AssertArgumentsAreSane(JSContext *cx, const JS::Value &value)
-{
-    AssertHeapIsIdle(cx);
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, value);
-}
-#endif 
-
-} 
-
-JS_PUBLIC_API(void *)
-JS_EncodeScript(JSContext *cx, JSScript *script, uint32_t *lengthp)
-{
-    XDREncoder encoder(cx);
-    if (!encoder.codeScript(&script))
-        return NULL;
-    return encoder.forgetData(lengthp);
-}
-
-JS_PUBLIC_API(void *)
-JS_EncodeInterpretedFunction(JSContext *cx, JSRawObject funobjArg, uint32_t *lengthp)
-{
-    XDREncoder encoder(cx);
-    RootedObject funobj(cx, funobjArg);
-    if (!encoder.codeFunction(&funobj))
-        return NULL;
-    return encoder.forgetData(lengthp);
-}
-
-JS_PUBLIC_API(JSScript *)
-JS_DecodeScript(JSContext *cx, const void *data, uint32_t length,
-                JSPrincipals *principals, JSPrincipals *originPrincipals)
-{
-    XDRDecoder decoder(cx, data, length, principals, originPrincipals);
-    JSScript *script;
-    if (!decoder.codeScript(&script))
-        return NULL;
-    return script;
-}
-
-JS_PUBLIC_API(JSObject *)
-JS_DecodeInterpretedFunction(JSContext *cx, const void *data, uint32_t length,
-                             JSPrincipals *principals, JSPrincipals *originPrincipals)
-{
-    XDRDecoder decoder(cx, data, length, principals, originPrincipals);
-    RootedObject funobj(cx);
-    if (!decoder.codeFunction(&funobj))
-        return NULL;
-    return funobj;
-}
-
-JS_PUBLIC_API(JSObject *)
-JS_GetScriptedGlobal(JSContext *cx)
-{
-    ScriptFrameIter i(cx);
-    if (i.done())
-        return cx->global();
-    return &i.fp()->global();
-}
-

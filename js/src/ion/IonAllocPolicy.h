@@ -39,27 +39,22 @@
 
 
 
-#ifndef jsion_temp_alloc_policy_h__
-#define jsion_temp_alloc_policy_h__
+#ifndef jsion_ion_alloc_policy_h__
+#define jsion_ion_alloc_policy_h__
 
 #include "jscntxt.h"
 #include "jsarena.h"
 
+#include "Ion.h"
+
 namespace js {
 namespace ion {
 
-class TempAllocPolicy
+class IonAllocPolicy
 {
-    JSContext *cx;
-
   public:
-    TempAllocPolicy(JSContext *cx)
-      : cx(cx)
-    { }
-    TempAllocPolicy(const TempAllocPolicy &policy)
-      : cx(policy.cx)
-    { }
     void *malloc_(size_t bytes) {
+        JSContext *cx = GetIonContext()->cx;
         void *p;
         JS_ARENA_ALLOCATE(p, &cx->tempPool, bytes);
         return p;
@@ -100,9 +95,8 @@ struct TempAllocator
 
 struct TempObject
 {
-    void *operator new(size_t nbytes);
-    inline void *operator new(size_t nbytes, TempAllocator &alloc) {
-        return alloc.allocate(nbytes);
+    inline void *operator new(size_t nbytes) {
+        return GetIonContext()->temp->allocate(nbytes);
     }
 };
 

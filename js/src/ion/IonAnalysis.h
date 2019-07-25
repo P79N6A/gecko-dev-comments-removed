@@ -49,7 +49,7 @@ class MIRGenerator;
 class MIRGraph;
 
 bool
-ApplyTypeInformation(MIRGenerator *gen, MIRGraph &graph);
+ApplyTypeInformation(MIRGraph &graph);
 
 } 
 } 
