@@ -93,6 +93,11 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
                                char **location,
                                jsval *exception);
 
+    nsresult ImportInto(const nsACString & aLocation,
+                        JSObject * targetObj,
+                        JSContext * callercx,
+                        JSObject * *_retval);
+
     nsCOMPtr<nsIComponentManager> mCompMgr;
     nsCOMPtr<nsIJSRuntimeService> mRuntimeService;
     nsCOMPtr<nsIThreadJSContextStack> mContextStack;
