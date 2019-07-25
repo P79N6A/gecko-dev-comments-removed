@@ -204,7 +204,7 @@ class nsHtml5Highlighter
     
 
 
-    void EndCharacters();
+    void EndCharactersAndStartMarkupRun();
 
     
 
