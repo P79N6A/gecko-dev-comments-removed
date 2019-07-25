@@ -111,10 +111,6 @@ TCPSocket.prototype = {
     close: 'r',
     send: 'r',
     readyState: 'r',
-    CONNECTING: 'r',
-    OPEN: 'r',
-    CLOSING: 'r',
-    CLOSED: 'r',
     binaryType: 'r',
     onopen: 'rw',
     ondrain: 'rw',
@@ -122,12 +118,6 @@ TCPSocket.prototype = {
     onerror: 'rw',
     onclose: 'rw'
   },
-  
-  CONNECTING: kCONNECTING,
-  OPEN: kOPEN,
-  CLOSING: kCLOSING,
-  CLOSED: kCLOSED,
-
   
   _binaryType: null,
 
