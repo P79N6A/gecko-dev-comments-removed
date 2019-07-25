@@ -650,7 +650,8 @@ WeaveSvc.prototype = {
       reason = kSyncNotLoggedIn;
     else if (Svc.IO.offline)
       reason = kSyncNetworkOffline;
-    else if (Svc.Private.privateBrowsingEnabled)
+    else if (Svc.Private && Svc.Private.privateBrowsingEnabled)
+      
       reason = kSyncInPrivateBrowsing;
     else if (Svc.Prefs.get("schedule", 0) != 1)
       reason = kSyncNotScheduled;
