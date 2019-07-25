@@ -760,15 +760,22 @@ PartialInterpret(VMFrame &f)
 JS_STATIC_ASSERT(JSOP_NOP == 0);
 
 
-static inline JSOp
+
+
+
+
+
+
+
+static inline bool
 FrameIsFinished(JSContext *cx)
 {
     JSOp op = JSOp(*cx->regs->pc);
     return (op == JSOP_RETURN ||
             op == JSOP_RETRVAL ||
             op == JSOP_STOP)
-        ? op
-        : JSOP_NOP;
+        ? true
+        : cx->fp()->finishedInInterpreter();
 }
 
 
