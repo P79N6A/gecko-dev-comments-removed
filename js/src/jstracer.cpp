@@ -1726,24 +1726,45 @@ isPromote(LIns* ins)
 
 
 
-static bool
-IsOverflowSafe(LOpcode op, LIns* i)
+static void
+ChecksRequired(LOpcode op, LIns* op1, LIns* op2,
+               bool* needsOverflowCheck, bool* needsNegZeroCheck)
 {
-    LIns* c;
+    Interval x = Interval::of(op1, 3);
+    Interval y = Interval::of(op2, 3);
+    Interval z(0, 0);
+
     switch (op) {
       case LIR_addi:
+        z = Interval::add(x, y);
+        *needsNegZeroCheck = false;
+        break;
+
       case LIR_subi:
-          return (i->isop(LIR_andi) && ((c = i->oprnd2())->isImmI()) &&
-                  ((c->immI() & 0xc0000000) == 0)) ||
-                 (i->isop(LIR_rshi) && ((c = i->oprnd2())->isImmI()) &&
-                  ((c->immI() > 0)));
-    default:
-        JS_ASSERT(op == LIR_muli);
+        z = Interval::sub(x, y);
+        *needsNegZeroCheck = false;
+        break;
+        
+      case LIR_muli: {
+        z = Interval::mul(x, y);
+        
+        
+        
+        
+        
+        
+        
+        
+        *needsNegZeroCheck = (x.canBeZero() && y.canBeNegative()) ||
+                             (y.canBeZero() && x.canBeNegative());
+        break;
+      }
+
+      default:
+        JS_NOT_REACHED("needsOverflowCheck");
     }
-    return (i->isop(LIR_andi) && ((c = i->oprnd2())->isImmI()) &&
-            ((c->immI() & 0xffff0000) == 0)) ||
-           (i->isop(LIR_rshui) && ((c = i->oprnd2())->isImmI()) &&
-            ((c->immI() >= 16)));
+
+    *needsOverflowCheck = z.hasOverflowed;
 }
 
 class FuncFilter: public LirWriter
@@ -8308,7 +8329,7 @@ TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
 
 
 
-    VMSideExit* exit;
+    VMSideExit* exit = NULL;
     LIns* result;
     switch (v) {
 #if defined NANOJIT_IA32 || defined NANOJIT_X64
@@ -8378,13 +8399,20 @@ TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
 
 
 
-        if (!IsOverflowSafe(v, d0) || !IsOverflowSafe(v, d1)) {
+        bool needsOverflowCheck = true, needsNegZeroCheck = true;
+        ChecksRequired(v, d0, d1, &needsOverflowCheck, &needsNegZeroCheck);
+        if (needsOverflowCheck) {
             exit = snapshot(OVERFLOW_EXIT);
             result = guard_xov(v, d0, d1, exit);
-            if (v == LIR_muli) 
-                guard(false, lir->insEqI_0(result), exit);
         } else {
             result = lir->ins2(v, d0, d1);
+        }
+        if (needsNegZeroCheck) {
+            
+            JS_ASSERT(v == LIR_muli);
+            if (!exit)
+                exit = snapshot(OVERFLOW_EXIT);
+            guard(false, lir->insEqI_0(result), exit);
         }
         break;
     }
