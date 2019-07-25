@@ -192,9 +192,6 @@ public class GeckoLayerClient implements GeckoEventListener,
             RectF position = mGeckoViewport.getViewport();
             mRootLayer.setPositionAndResolution(RectUtils.round(position), mGeckoViewport.getZoomFactor());
 
-            
-            mRootLayer.performUpdates(null);
-
             Log.e(LOGTAG, "### updateViewport onlyUpdatePageSize=" + onlyUpdatePageSize +
                   " getTileViewport " + mGeckoViewport);
 
