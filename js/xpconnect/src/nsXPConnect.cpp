@@ -2637,6 +2637,112 @@ SetLocationForGlobal(JSObject *global, nsIURI *locationURI)
 
 } 
 
+static void
+NoteJSChildGrayWrapperShim(void *data, void *thing)
+{
+    TraversalTracer *trc = static_cast<TraversalTracer*>(data);
+    NoteJSChild(trc, thing, js_GetGCThingTraceKind(thing));
+}
+
+static void
+TraverseObjectShim(void *data, void *thing)
+{
+    nsCycleCollectionTraversalCallback *cb =
+        static_cast<nsCycleCollectionTraversalCallback*>(data);
+
+    MOZ_ASSERT(js_GetGCThingTraceKind(thing) == JSTRACE_OBJECT);
+    TraverseGCThing(TRAVERSE_CPP, thing, JSTRACE_OBJECT, *cb);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class JSCompartmentParticipant : public nsCycleCollectionParticipant
+{
+public:
+    static NS_METHOD TraverseImpl(JSCompartmentParticipant *that, void *p,
+                                  nsCycleCollectionTraversalCallback &cb)
+    {
+        MOZ_ASSERT(!cb.WantAllTraces());
+        JSCompartment *c = static_cast<JSCompartment*>(p);
+
+        
+
+
+
+
+
+
+
+
+
+        cb.DescribeGCedNode(false, sizeof(js::shadow::Object), "JS Compartment");
+
+        
+
+
+
+
+
+
+        TraversalTracer trc(cb);
+        JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->GetJSRuntime();
+        JS_TracerInit(&trc, rt, NoteJSChildTracerShim);
+        trc.eagerlyTraceWeakMaps = false;
+        js::VisitGrayWrapperTargets(c, NoteJSChildGrayWrapperShim, &trc);
+
+        
+
+
+
+        js::IterateGrayObjects(c, TraverseObjectShim, &cb);
+
+        return NS_OK;
+    }
+
+    static NS_METHOD RootImpl(void *p)
+    {
+        return NS_OK;
+    }
+    
+    static NS_METHOD UnlinkImpl(void *p)
+    {
+        return NS_OK;
+    }
+
+    static NS_METHOD UnrootImpl(void *p)
+    {
+        return NS_OK;
+    }
+};
+
+static CCParticipantVTable<JSCompartmentParticipant>::Type JSCompartment_cycleCollectorGlobal = {
+    NS_IMPL_CYCLE_COLLECTION_NATIVE_VTABLE(JSCompartmentParticipant)
+};
+
+nsCycleCollectionParticipant *
+xpc_JSCompartmentParticipant()
+{
+    return JSCompartment_cycleCollectorGlobal.GetParticipant();
+}
+
 NS_IMETHODIMP
 nsXPConnect::SetDebugModeWhenPossible(bool mode, bool allowSyncDisable)
 {
