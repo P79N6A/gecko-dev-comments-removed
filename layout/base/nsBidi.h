@@ -521,6 +521,15 @@ public:
 
   nsresult GetDirection(nsBidiDirection* aDirection);
 
+  
+
+
+
+
+
+
+  nsresult GetParaLevel(nsBidiLevel* aParaLevel);
+
 #ifdef FULL_BIDI_ENGINE
   
 
@@ -563,15 +572,6 @@ public:
 
 
   nsresult GetLength(PRInt32* aLength);
-
-  
-
-
-
-
-
-
-  nsresult GetParaLevel(nsBidiLevel* aParaLevel);
 
   
 

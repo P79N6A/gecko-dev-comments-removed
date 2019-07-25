@@ -50,6 +50,8 @@
 #include "nsPlaceholderFrame.h"
 #include "nsCSSFrameConstructor.h"
 
+using namespace::mozilla;
+
 nsIFrame*
 NS_NewFirstLetterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
@@ -215,8 +217,22 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     
     nsHTMLReflowState rs(aPresContext, aReflowState, kid, availSize);
     nsLineLayout ll(aPresContext, nsnull, &aReflowState, nsnull);
+
+    
+    
+    
+    
+    PRUint8 direction;
+    nsIFrame* containerFrame = ll.GetLineContainerFrame();
+    if (containerFrame->GetStyleTextReset()->mUnicodeBidi &
+        NS_STYLE_UNICODE_BIDI_PLAINTEXT) {
+      FramePropertyTable *propTable = aPresContext->PropertyTable();
+      direction = NS_PTR_TO_INT32(propTable->Get(kid, BaseLevelProperty())) & 1;
+    } else {
+      direction = containerFrame->GetStyleVisibility()->mDirection;
+    }
     ll.BeginLineReflow(bp.left, bp.top, availSize.width, NS_UNCONSTRAINEDSIZE,
-                       false, true);
+                       false, true, direction);
     rs.mLineLayout = &ll;
     ll.SetInFirstLetter(true);
     ll.SetFirstLetterStyleOK(true);
