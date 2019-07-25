@@ -479,8 +479,6 @@ public:
 
   void SetBFCacheEntry(nsISHEntry* aSHEntry) {
     mSHEntry = aSHEntry;
-    
-    mShellIsHidden = !!aSHEntry;
   }
 
   nsISHEntry* GetBFCacheEntry() const { return mSHEntry; }
@@ -1622,10 +1620,6 @@ protected:
   
   
   PRPackedBool mIsInitialDocumentInWindow;
-
-  
-  
-  PRPackedBool mShellIsHidden;
 
   PRPackedBool mIsRegularHTML;
   PRPackedBool mIsXUL;
