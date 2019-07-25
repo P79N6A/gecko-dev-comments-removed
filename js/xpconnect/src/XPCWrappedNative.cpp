@@ -326,6 +326,152 @@ FinishCreate(XPCCallContext& ccx,
              XPCWrappedNative** resultWrapper);
 
 
+
+
+
+
+
+
+
+
+
+nsresult
+XPCWrappedNative::WrapNewGlobal(XPCCallContext &ccx, xpcObjectHelper &nativeHelper,
+                                nsIPrincipal *principal, bool initStandardClasses,
+                                XPCWrappedNative **wrappedGlobal)
+{
+    bool success;
+    nsresult rv;
+    nsISupports *identity = nativeHelper.GetCanonical();
+
+    
+    MOZ_ASSERT(nativeHelper.GetScriptableFlags() & nsIXPCScriptable::IS_GLOBAL_OBJECT);
+
+    
+    MOZ_ASSERT(!nativeHelper.GetWrapperCache() ||
+               !nativeHelper.GetWrapperCache()->GetWrapperPreserveColor());
+
+    
+    XPCNativeScriptableCreateInfo sciProto;
+    XPCNativeScriptableCreateInfo sciMaybe;
+    const XPCNativeScriptableCreateInfo& sciWrapper =
+        GatherScriptableCreateInfo(identity, nativeHelper.GetClassInfo(),
+                                   sciProto, sciMaybe);
+
+    
+    
+    XPCNativeScriptableInfo *si = XPCNativeScriptableInfo::Construct(ccx, &sciWrapper);
+    MOZ_ASSERT(si);
+
+    
+    JSClass *clasp = si->GetJSClass();
+    MOZ_ASSERT(clasp->flags & JSCLASS_IS_GLOBAL);
+
+    
+    JSObject *global;
+    JSCompartment *compartment;
+    rv = xpc_CreateGlobalObject(ccx, clasp, principal, nsnull, false,
+                                &global, &compartment);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    JSAutoEnterCompartment ac;
+    success = ac.enter(ccx, global);
+    MOZ_ASSERT(success);
+
+    
+    
+    
+    
+    
+    if (initStandardClasses && ! JS_InitStandardClasses(ccx, global))
+        return NS_ERROR_FAILURE;
+
+    
+    
+    XPCWrappedNativeScope *scope = XPCWrappedNativeScope::GetNewOrUsed(ccx, global, identity);
+    MOZ_ASSERT(scope);
+
+    
+    XPCWrappedNativeProto *proto =
+        XPCWrappedNativeProto::GetNewOrUsed(ccx, scope, nativeHelper.GetClassInfo(), &sciProto,
+                                            UNKNOWN_OFFSETS,  false);
+    if (!proto)
+        return NS_ERROR_FAILURE;
+    proto->CacheOffsets(identity);
+
+    
+    MOZ_ASSERT(proto->GetJSProtoObject());
+    success = JS_SplicePrototype(ccx, global, proto->GetJSProtoObject());
+    if (!success)
+        return NS_ERROR_FAILURE;
+
+    
+    nsRefPtr<XPCWrappedNative> wrapper = new XPCWrappedNative(identity, proto);
+
+    
+    nativeHelper.forgetCanonical();
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    XPCNativeScriptableInfo* siProto = proto->GetScriptableInfo();
+    if (siProto && siProto->GetCallback() == sciWrapper.GetCallback()) {
+        wrapper->mScriptableInfo = siProto;
+        delete si;
+    } else {
+        wrapper->mScriptableInfo = si;
+    }
+
+    
+    wrapper->mFlatJSObject = global;
+
+    
+    JS_SetPrivate(global, wrapper);
+
+    
+    
+    
+    
+    AutoMarkingWrappedNativePtr wrapperMarker(ccx, wrapper);
+
+    
+    
+    
+    
+    success = wrapper->FinishInit(ccx);
+    MOZ_ASSERT(success);
+
+    
+    
+    
+    
+    
+    XPCNativeInterface* iface = XPCNativeInterface::GetNewOrUsed(ccx, &NS_GET_IID(nsISupports));
+    MOZ_ASSERT(iface);
+    nsresult status;
+    success = wrapper->FindTearOff(ccx, iface, false, &status);
+    if (!success)
+        return status;
+
+    
+    
+    
+    return FinishCreate(ccx, scope, iface, nativeHelper.GetWrapperCache(),
+                        wrapper, wrappedGlobal);
+}
+
+
 nsresult
 XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
                                xpcObjectHelper& helper,
