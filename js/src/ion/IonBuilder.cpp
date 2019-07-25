@@ -245,6 +245,10 @@ IonBuilder::build()
 
     
     
+    rewriteParameters();
+
+    
+    
     
     
     
@@ -359,6 +363,7 @@ IonBuilder::rewriteParameters()
         
         
         
+        current->add(actual);
         current->rewriteSlot(i, actual);
     }
 }
@@ -710,6 +715,9 @@ IonBuilder::inspectOpcode(JSOp op)
 
       case JSOP_LENGTH:
         return jsop_length();
+
+      case JSOP_THIS:
+        return jsop_this();
 
       case JSOP_GETPROP:
         return jsop_getprop(info().getAtom(pc));
@@ -2993,4 +3001,20 @@ IonBuilder::jsop_getprop(JSAtom *atom)
         return false;
 
     return pushTypeBarrier(ins, types, barrier);
+}
+
+bool
+IonBuilder::jsop_this()
+{
+    if (!info().fun())
+        return abort("JSOP_THIS outside of a JSFunction.");
+
+    
+    MDefinition *thisParam = current->getSlot(info().thisSlot());
+
+    if (thisParam->type() != MIRType_Object)
+        return abort("Cannot compile JSOP_THIS, not an object.");
+
+    current->pushSlot(info().thisSlot());
+    return true;
 }
