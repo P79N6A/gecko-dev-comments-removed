@@ -94,7 +94,7 @@
 #define SAMPLE_MARKER(info)
 
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(XP_MACOSX)
 
 #include "sps_sampler.h"
 
