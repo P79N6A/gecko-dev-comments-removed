@@ -1243,6 +1243,20 @@ window[tabsontop="false"] richlistitem[type~="action"][actiontype="switchtab"][s
 }
 
 
+
+#share-button {
+  list-style-image: url(chrome://browser/skin/share-button.png);
+}
+
+#share-button:not([shared]):not([disabled]):hover {
+  list-style-image: url(chrome://browser/skin/share-button-active.png);
+}
+
+#share-button[shared] {
+  list-style-image: url(chrome://browser/skin/share-button-shared.png);
+}
+
+
 #star-button {
   list-style-image: url("chrome://browser/skin/places/star-icons.png");
   -moz-image-region: rect(0, 16px, 16px, 0);
