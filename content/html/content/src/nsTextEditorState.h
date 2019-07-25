@@ -255,6 +255,7 @@ private:
     PRBool mGuardSet;
   };
   friend class InitializationGuard;
+  friend class PrepareEditorEvent;
 
   nsITextControlElement* const mTextCtrlElement;
   nsRefPtr<nsTextInputSelectionImpl> mSelCon;
@@ -270,6 +271,7 @@ private:
   mutable nsString mCachedValue; 
   PRPackedBool mEditorInitialized;
   PRPackedBool mInitializing; 
+  PRPackedBool mValueTransferInProgress; 
 };
 
 #endif

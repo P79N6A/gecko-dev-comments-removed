@@ -934,7 +934,8 @@ nsTextEditorState::nsTextEditorState(nsITextControlElement* aOwningElement)
     mBoundFrame(nsnull),
     mTextListener(nsnull),
     mEditorInitialized(PR_FALSE),
-    mInitializing(PR_FALSE)
+    mInitializing(PR_FALSE),
+    mValueTransferInProgress(PR_FALSE)
 {
   MOZ_COUNT_CTOR(nsTextEditorState);
 }
@@ -1013,6 +1014,7 @@ public:
     , mOwnerContent(aOwnerContent)
     , mCurrentValue(aCurrentValue)
   {
+    mState.mValueTransferInProgress = PR_TRUE;
   }
 
   NS_IMETHOD Run() {
@@ -1023,6 +1025,8 @@ public:
     }
 
     mState.PrepareEditor(value);
+
+    mState.mValueTransferInProgress = PR_FALSE;
 
     return NS_OK;
   }
@@ -1498,7 +1502,10 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
   mBoundFrame = nsnull;
 
   
-  SetValue(value, PR_FALSE);
+  
+  if (!mValueTransferInProgress) {
+    SetValue(value, PR_FALSE);
+  }
 
   if (mRootNode && mMutationObserver) {
     mRootNode->RemoveMutationObserver(mMutationObserver);
