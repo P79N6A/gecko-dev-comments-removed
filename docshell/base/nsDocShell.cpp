@@ -2854,10 +2854,35 @@ nsDocShell::CanAccessItem(nsIDocShellTreeItem* aTargetItem,
     
     
     
+    
+    
+    
 
     if (aTargetItem == aAccessingItem) {
         
-        return true;  
+        return true;
+    }
+
+    nsCOMPtr<nsIDocShell> targetDS = do_QueryInterface(aTargetItem);
+    nsCOMPtr<nsIDocShell> accessingDS = do_QueryInterface(aAccessingItem);
+    if (!!targetDS != !!accessingDS) {
+        
+        return false;
+    }
+
+    if (targetDS && accessingDS) {
+        bool targetInBrowser = false, accessingInBrowser = false;
+        targetDS->GetIsInBrowserElement(&targetInBrowser);
+        accessingDS->GetIsInBrowserElement(&accessingInBrowser);
+
+        PRUint32 targetAppId = 0, accessingAppId = 0;
+        targetDS->GetAppId(&targetAppId);
+        accessingDS->GetAppId(&accessingAppId);
+
+        if (targetInBrowser != accessingInBrowser ||
+            targetAppId != accessingAppId) {
+            return false;
+        }
     }
 
     nsCOMPtr<nsIDocShellTreeItem> accessingRoot;
