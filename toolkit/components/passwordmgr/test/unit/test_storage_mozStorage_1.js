@@ -56,7 +56,7 @@ file.append(filename);
 if(file.exists())
     file.remove(false);
 
-testdesc = "Initialize with a non-existent data file";
+testdesc = "Initialize with a nonexistent data file";
 
 storage = LoginTest.reloadStorage(OUTDIR, filename);
 

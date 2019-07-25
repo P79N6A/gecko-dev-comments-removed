@@ -21,7 +21,7 @@
 
 SimpleTest.waitForExplicitFinish();
 xhr = new XMLHttpRequest();
-xhr.open("GET", "non-existing_url", true);
+xhr.open("GET", "nonexistent_url", true);
 xhr.send(null);
 xhr.abort();
 xhr.open("GET", ".", true);

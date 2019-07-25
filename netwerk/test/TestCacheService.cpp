@@ -111,12 +111,12 @@ TestMemoryObjectCache()
 
     
     printf("\nTest ACCESS_READ:\n");
-    rv = session->OpenCacheEntry(NS_LITERAL_CSTRING("non-existent entry"),
+    rv = session->OpenCacheEntry(NS_LITERAL_CSTRING("nonexistent entry"),
                                  nsICache::ACCESS_READ,
                                  nsICache::BLOCKING,
                                  getter_AddRefs(descriptor));
     if (rv != NS_ERROR_CACHE_KEY_NOT_FOUND)
-        printf("OpenCacheEntry(ACCESS_READ) returned: %x for non-existent entry\n", rv);
+        printf("OpenCacheEntry(ACCESS_READ) returned: %x for nonexistent entry\n", rv);
 
     NS_NAMED_LITERAL_CSTRING(cacheKey, "http://www.mozilla.org/somekey");
 

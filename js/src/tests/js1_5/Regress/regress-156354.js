@@ -47,7 +47,7 @@
 var gTestfile = 'regress-156354.js';
 var UBound = 0;
 var BUGNUMBER = 156354;
-var summary = 'Testing propertyIsEnumerable() on non-existent property';
+var summary = 'Testing propertyIsEnumerable() on nonexistent property';
 var status = '';
 var statusitems = [];
 var actual = '';

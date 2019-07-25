@@ -1,14 +1,14 @@
 function test() {
   
   var hasItem = Application.storage.has("fuel-test-missing");
-  is(hasItem, false, "Check 'Application.storage.has' for non-existing item");
+  is(hasItem, false, "Check 'Application.storage.has' for nonexistent item");
   Application.storage.set("fuel-test", "dummy");
   hasItem = Application.storage.has("fuel-test");
   is(hasItem, true, "Check 'Application.storage.has' for existing item");
 
   
   var itemValue = Application.storage.get("fuel-test-missing", "default");
-  is(itemValue, "default", "Check 'Application.storage.get' for non-existing item");
+  is(itemValue, "default", "Check 'Application.storage.get' for nonexistent item");
   itemValue = Application.storage.get("fuel-test", "default");
   is(itemValue, "dummy", "Check 'Application.storage.get' for existing item");
 

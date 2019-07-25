@@ -2154,7 +2154,7 @@ nsHTMLDocument::Close()
     
     
     NS_ASSERTION(mWyciwygChannel, "nsHTMLDocument::Close(): Trying to remove "
-                 "non-existent wyciwyg channel!");
+                 "nonexistent wyciwyg channel!");
     RemoveWyciwygChannel();
     NS_ASSERTION(!mWyciwygChannel, "nsHTMLDocument::Close(): "
                  "nsIWyciwygChannel could not be removed!");
