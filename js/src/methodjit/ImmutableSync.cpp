@@ -36,6 +36,9 @@
 
 
 
+
+#if defined JS_NUNBOX32
+
 #include "FrameEntry.h"
 #include "FrameState.h"
 #include "FrameState-inl.h"
@@ -269,4 +272,6 @@ ImmutableSync::syncNormal(FrameEntry *fe)
         avail.putReg(fe->type.reg());
     }
 }
+
+#endif 
 
