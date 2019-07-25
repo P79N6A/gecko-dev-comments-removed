@@ -1061,6 +1061,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       NS_SubtractHint(aMinChange, nsChangeHint_ClearAncestorIntrinsics);
   }
 
+  aMinChange = NS_SubtractHint(aMinChange, nsChangeHint_UpdateOverflow);
+
   
   
   
