@@ -2961,6 +2961,24 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         
         
         StopTrackingDragGesture();
+
+        
+        
+        
+        EnsureDocument(mPresContext);
+        nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+        if (mDocument && fm) {
+          nsCOMPtr<nsIDOMWindow> currentWindow;
+          fm->GetFocusedWindow(getter_AddRefs(currentWindow));
+          if (currentWindow && currentWindow != mDocument->GetWindow() &&
+              !nsContentUtils::IsChromeDoc(mDocument)) {
+            nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(currentWindow);
+            nsCOMPtr<nsIDocument> currentDoc = do_QueryInterface(win->GetExtantDocument());
+            if (nsContentUtils::IsChromeDoc(currentDoc)) {
+              fm->SetFocusedWindow(mDocument->GetWindow());
+            }
+          }
+        }
       }
       SetActiveManager(this, activeContent);
     }
