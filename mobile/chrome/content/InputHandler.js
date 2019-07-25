@@ -234,6 +234,10 @@ InputHandler.prototype = {
     if (this._ignoreEvents)
       return;
 
+    
+    if (aEvent.target.localName == "browser")
+      return;
+
     if (this._suppressNextClick && aEvent.type == "click") {
       this._suppressNextClick = false;
       aEvent.stopPropagation();
@@ -347,16 +351,6 @@ MouseModule.prototype = {
     if (aEvent.button !== 0 && aEvent.type != "contextmenu")
       return;
 
-    try {
-      if (aEvent.view != window) {
-        
-        
-        
-        
-        
-      }
-    } catch (e) {};
-
     switch (aEvent.type) {
       case "mousedown":
         this._onMouseDown(aEvent);
@@ -433,38 +427,28 @@ MouseModule.prototype = {
 
     
     
-    let target = (aEvent.view == window) ? aEvent.target : getBrowser();
-    let [targetScrollbox, targetScrollInterface]
-      = this.getScrollboxFromElement(target);
-    let targetDragger = targetScrollbox ? targetScrollbox.customDragger : null;
-    if (!targetDragger && targetScrollInterface)
-      targetDragger = this._defaultDragger;
+    let [targetScrollbox, targetScrollInterface, dragger]
+      = this.getScrollboxFromElement(aEvent.target);
 
     
     let oldDragger = this._dragger;
-    if (this._kinetic.isActive() && targetDragger != oldDragger)
+    if (this._kinetic.isActive() && this._dragger != dragger)
       this._kinetic.end();
 
-    
-    let targetClicker = this.getClickerFromElement(target);
+    let targetClicker = this.getClickerFromElement(aEvent.target);
 
     this._targetScrollInterface = targetScrollInterface;
-    this._dragger = targetDragger;
+    this._dragger = dragger;
     this._clicker = (targetClicker) ? targetClicker.customClicker : null;
 
     if (this._clicker)
       this._clicker.mouseDown(aEvent.clientX, aEvent.clientY);
 
-    let draggable = this._dragger ? this._dragger.isDraggable(targetScrollbox, targetScrollInterface) : {};
-    if (this._dragger && (draggable.xDraggable || draggable.yDraggable))
+    if (this._dragger && this._dragger.isDraggable(targetScrollbox, targetScrollInterface))
       this._doDragStart(aEvent);
-    else
-      this._dragger = null;
 
     if (this._targetIsContent(aEvent)) {
       this._recordEvent(aEvent);
-      aEvent.stopPropagation();
-      aEvent.preventDefault();
     }
     else {
       if (this._clickTimeout) {
@@ -475,7 +459,8 @@ MouseModule.prototype = {
 
       if (this._dragger) {
         
-        dragData.locked = !draggable.xDraggable || !draggable.yDraggable;
+        let draggable = this._dragger.isDraggable();
+        dragData.locked = !draggable.x || !draggable.y;
       }
     }
   },
@@ -499,8 +484,6 @@ MouseModule.prototype = {
     }
 
     if (this._targetIsContent(aEvent)) {
-      aEvent.stopPropagation();
-      aEvent.preventDefault();
       
       this._recordEvent(aEvent);
       let commitToClicker = this._clicker && dragData.isClick() && (this._downUpEvents.length > 1);
@@ -562,7 +545,8 @@ MouseModule.prototype = {
 
 
   _targetIsContent: function _targetIsContent(aEvent) {
-    return aEvent.view !== window || aEvent.target.tagName == "browser";
+    let target = aEvent.target;
+    return target && target.id == "inputhandler-overlay";
   },
 
   
@@ -716,7 +700,7 @@ MouseModule.prototype = {
       let sX = {}, sY = {};
       scroller.getScrolledSize(sX, sY);
       let rect = target.getBoundingClientRect();
-      return { xDraggable: sX.value > rect.width, yDraggable: sY.value > rect.height };
+      return { x: sX.value > rect.width, y: sY.value > rect.height };
     },
 
     dragStart: function dragStart(cx, cy, target, scroller) {},
@@ -760,12 +744,10 @@ MouseModule.prototype = {
   getScrollboxFromElement: function getScrollboxFromElement(elem) {
     let scrollbox = null;
     let qinterface = null;
-    let prev = null;
 
     for (; elem; elem = elem.parentNode) {
       try {
         if (elem.ignoreDrag) {
-          prev = elem;
           break;
         }
 
@@ -788,9 +770,8 @@ MouseModule.prototype = {
       } catch (e) { 
 
  }
-      prev = elem;
     }
-    return [scrollbox, qinterface, prev];
+    return [scrollbox, qinterface, elem.customDragger || this._defaultDragger];
   },
 
   
@@ -1320,7 +1301,7 @@ GestureModule.prototype = {
     this._owner.grab(this);
 
     
-    
+    document.getElementById("tile-container").customClicker.panBegin();
 
     
     this._pinchZoom = new AnimatedZoom(bv);

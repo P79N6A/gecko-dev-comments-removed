@@ -157,9 +157,10 @@ var Browser = {
     
 
     
-    container.customClicker = new ContentCustomClicker();
-    container.customKeySender = new ContentCustomKeySender();
-    container.customDragger = new Browser.MainDragger();
+    let inputHandlerOverlay = document.getElementById("inputhandler-overlay");
+    inputHandlerOverlay.customClicker = new ContentCustomClicker();
+    inputHandlerOverlay.customKeySender = new ContentCustomKeySender();
+    inputHandlerOverlay.customDragger = new Browser.MainDragger();
 
     
     
@@ -254,7 +255,7 @@ var Browser = {
     BrowserUI.init();
 
     
-    ih = new InputHandler(container);
+    ih = new InputHandler(inputHandlerOverlay);
 
     window.controllers.appendController(this);
     window.controllers.appendController(BrowserUI);
@@ -1051,7 +1052,7 @@ Browser.MainDragger = function MainDragger() {
 
 Browser.MainDragger.prototype = {
   isDraggable: function isDraggable(target, scroller) {
-    return { xDraggable: true, yDraggable: true };
+    return { x: true, y: true };
   },
 
   dragStart: function dragStart(clientX, clientY, target, scroller) {
