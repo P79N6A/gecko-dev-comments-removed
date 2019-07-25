@@ -643,13 +643,38 @@ ImageDocument::CreateSyntheticDocument()
   nsresult rv = MediaDocument::CreateSyntheticDocument();
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  
+  
+  
+  Element* head = GetHeadElement();
+  if (!head) {
+    NS_WARNING("no head on image document!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsINodeInfo> nodeInfo;
+  nodeInfo = mNodeInfoManager->GetNodeInfo(nsGkAtoms::style, nsnull,
+                                           kNameSpaceID_XHTML,
+                                           nsIDOMNode::ELEMENT_NODE);
+  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
+  nsRefPtr<nsGenericHTMLElement> styleContent = NS_NewHTMLStyleElement(nodeInfo.forget());
+  if (!styleContent) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  styleContent->SetInnerHTML(NS_LITERAL_STRING("img { display: block; }"));
+  head->AppendChildTo(styleContent, PR_FALSE);
+
+  
   Element* body = GetBodyElement();
   if (!body) {
     NS_WARNING("no body on image document!");
     return NS_ERROR_FAILURE;
   }
 
-  nsCOMPtr<nsINodeInfo> nodeInfo;
   nodeInfo = mNodeInfoManager->GetNodeInfo(nsGkAtoms::img, nsnull,
                                            kNameSpaceID_XHTML,
                                            nsIDOMNode::ELEMENT_NODE);
