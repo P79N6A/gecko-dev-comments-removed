@@ -717,12 +717,15 @@ WidgetStack.prototype = {
 
   
   
-  updateSize: function updateSize() {
+  updateSize: function updateSize(width, height) {
     
-    let rect = this._el.getBoundingClientRect();
-    this._viewingRect.width = rect.width;
-    this._viewingRect.height = rect.height;
-
+    if (width == undefined || height == undefined) {
+      let rect = this._el.getBoundingClientRect();
+      width = rect.width;
+      height = rect.height;
+    }
+    this._viewingRect.width = width;
+    this._viewingRect.height = height;
     this._adjustViewingRect();
   },
 
