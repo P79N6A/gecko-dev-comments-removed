@@ -687,6 +687,9 @@ WeaveSvc.prototype = {
     let self = yield;
 
     
+    let useThresh = !fullSync;
+
+    
     
     
     let reason = this._checkSync();
@@ -771,9 +774,9 @@ WeaveSvc.prototype = {
 
 
   sync: function WeaveSvc_sync(onComplete, fullSync) {
-    let useThresh = false; 
+    fullSync = true; 
     this._catchAll(this._notify("sync", "", this._localLock(this._sync))).
-      async(this, onComplete, useThresh);
+      async(this, onComplete, fullSync);
   },
 
   
