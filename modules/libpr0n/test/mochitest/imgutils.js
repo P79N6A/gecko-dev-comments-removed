@@ -4,6 +4,7 @@
 
 
 
+
 function clearImageCache()
 {
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
@@ -118,4 +119,17 @@ function getImagePref(pref)
   }
   else
     return null;
+}
+
+
+function ImageDecoderObserverStub()
+{
+  this.onStartRequest = function onStartRequest(aRequest)                 {}
+  this.onStartDecode = function onStartDecode(aRequest)                   {}
+  this.onStartContainer = function onStartContainer(aRequest, aContainer) {}
+  this.onStartFrame = function onStartFrame(aRequest, aFrame)             {}
+  this.onStopFrame = function onStopFrame(aRequest, aFrame)               {}
+  this.onStopContainer = function onStopContainer(aRequest, aContainer)   {}
+  this.onStopDecode = function onStopDecode(aRequest, status, statusArg)  {}
+  this.onStopRequest = function onStopRequest(aRequest, aIsLastPart)      {}
 }
