@@ -38,34 +38,13 @@
 
 
 
+
 #ifndef ArgumentsObject_h___
 #define ArgumentsObject_h___
 
 #include "jsfun.h"
 
-#ifdef JS_POLYIC
-class GetPropCompiler;
-#endif
-
 namespace js {
-
-#ifdef JS_POLYIC
-struct VMFrame;
-namespace mjit {
-namespace ic {
-struct PICInfo;
-struct GetElementIC;
-
-
-#ifdef GetProp
-#undef GetProp
-#endif
-void JS_FASTCALL GetProp(VMFrame &f, ic::PICInfo *pic);
-}
-}
-#endif
-
-struct EmptyShape;
 
 
 
@@ -81,6 +60,12 @@ struct ArgumentsData
 
 
     HeapValue   callee;
+
+    
+
+
+
+    size_t      *deletedBits;
 
     
 
@@ -147,29 +132,18 @@ class ArgumentsObject : public JSObject
     static const uint32_t DATA_SLOT = 1;
     static const uint32_t STACK_FRAME_SLOT = 2;
 
-  public:
-    static const uint32_t RESERVED_SLOTS = 3;
-    static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4;
-
-  private:
     
     static const uint32_t LENGTH_OVERRIDDEN_BIT = 0x1;
     static const uint32_t PACKED_BITS_COUNT = 1;
-
-    
-
-
-
-#ifdef JS_POLYIC
-    friend class ::GetPropCompiler;
-    friend struct mjit::ic::GetElementIC;
-#endif
 
     void initInitialLength(uint32_t length);
     void initData(ArgumentsData *data);
     static ArgumentsObject *create(JSContext *cx, uint32_t argc, JSObject &callee);
 
   public:
+    static const uint32_t RESERVED_SLOTS = 3;
+    static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4;
+
     
     static bool create(JSContext *cx, StackFrame *fp);
 
@@ -214,8 +188,25 @@ class ArgumentsObject : public JSObject
 
     inline js::ArgumentsData *data() const;
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    inline bool isElementDeleted(uint32_t i) const;
+    inline bool isAnyElementDeleted() const;
+    inline void markElementDeleted(uint32_t i);
+
     inline const js::Value &element(uint32_t i) const;
-    inline const js::Value *elements() const;
     inline void setElement(uint32_t i, const js::Value &v);
 
     

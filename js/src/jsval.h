@@ -275,7 +275,6 @@ typedef uint64_t JSValueShiftedTag;
 typedef enum JSWhyMagic
 {
     JS_ARRAY_HOLE,               
-    JS_ARGS_HOLE,                
     JS_NATIVE_ENUMERATE,         
 
 
@@ -289,6 +288,7 @@ typedef enum JSWhyMagic
     JS_UNASSIGNED_ARGUMENTS,     
     JS_OPTIMIZED_ARGUMENTS,      
     JS_IS_CONSTRUCTING,          
+    JS_OVERWRITTEN_CALLEE,       
     JS_GENERIC_MAGIC             
 } JSWhyMagic;
 
