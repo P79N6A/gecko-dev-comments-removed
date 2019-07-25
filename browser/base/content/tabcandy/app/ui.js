@@ -812,7 +812,13 @@ UIClass.prototype = {
     
     var isAnimating = iQ.isAnimating();
     if( force == false){
-      if( isAnimating || !Page.isTabCandyFocused() ) return;   }   
+      if( isAnimating || !Page.isTabCandyFocused() ) {
+        
+        
+        
+        return;   
+      }
+    }   
         
     var items = Items.getTopLevelItems();
     var itemBounds = new Rect(this.pageBounds);
