@@ -128,24 +128,6 @@ nsMIMEHeaderParamImpl::GetParameter(const nsACString& aHeaderVal,
 
 
 
-void RemoveQuotedStringEscapes(char *src)
-{
-  char *dst = src;
-
-  for (char *c = src; *c; c += 1)
-  {
-    if (c[0] == '\\' && c[1])
-    {
-      
-      ++c;
-    }
-    *dst++ = *c;
-  }
-  *dst = 0;
-}
-
-
-
 
 
 
@@ -234,8 +216,6 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
     if (*str == '=') ++str;
     while (nsCRT::IsAsciiSpace(*str)) ++str;
 
-    PRBool needUnquote = PR_FALSE;
-    
     if (*str != '"')
     {
       
@@ -248,8 +228,6 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
     }
     else
     {
-      
-      needUnquote = PR_TRUE;
       
       ++str;
       valueStart = str;
@@ -273,14 +251,8 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
       
       nsCAutoString tempStr(valueStart, valueEnd - valueStart);
       tempStr.StripChars("\r\n");
-      char *res = ToNewCString(tempStr);
-      NS_ENSURE_TRUE(*res, NS_ERROR_OUT_OF_MEMORY);
-      
-      if (needUnquote)
-        RemoveQuotedStringEscapes(res);
-            
-      *aResult = res;
-      
+      *aResult = ToNewCString(tempStr);
+      NS_ENSURE_TRUE(*aResult, NS_ERROR_OUT_OF_MEMORY);
       
     }
     
