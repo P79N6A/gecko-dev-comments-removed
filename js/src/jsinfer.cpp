@@ -3950,7 +3950,7 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
 
 
 
-    if (script->function()->isHeavyweight() || cx->compartment->debugMode) {
+    if (script->function()->isHeavyweight() || cx->compartment->debugMode || localsAliasStack()) {
         MarkArgumentsCreated(cx, script);
         return;
     }

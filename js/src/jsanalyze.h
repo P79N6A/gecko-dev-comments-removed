@@ -894,6 +894,7 @@ class ScriptAnalysis
     bool isInlineable;
     uint32 numReturnSites_;
     bool modifiesArguments_;
+    bool localsAliasStack_;
 
     
     uint32 *definedLocals;
@@ -941,6 +942,12 @@ class ScriptAnalysis
 
 
     bool modifiesArguments() { return modifiesArguments_; }
+
+    
+
+
+
+    bool localsAliasStack() { return localsAliasStack_; }
 
     
 
@@ -1076,6 +1083,10 @@ class ScriptAnalysis
         return v.kind() != SSAValue::EMPTY &&
             (v.kind() != SSAValue::VAR || !v.varInitial());
     }
+
+    
+
+
 
     SSAUseChain *& useChain(const SSAValue &v) {
         JS_ASSERT(trackUseChain(v));

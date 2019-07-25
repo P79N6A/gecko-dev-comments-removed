@@ -642,7 +642,11 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             jsbytecode *next = pc + JSOP_GETLOCAL_LENGTH;
             if (JSOp(*next) != JSOP_POP || jumpTarget(next)) {
                 uint32 local = GET_SLOTNO(pc);
-                if (local < script->nfixed && !localDefined(local, offset)) {
+                if (local >= script->nfixed) {
+                    localsAliasStack_ = true;
+                    break;
+                }
+                if (!localDefined(local, offset)) {
                     setLocal(local, LOCAL_USE_BEFORE_DEF);
                     isInlineable = false;
                 }
@@ -656,7 +660,12 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_LOCALINC:
           case JSOP_LOCALDEC: {
             uint32 local = GET_SLOTNO(pc);
-            if (local < script->nfixed && !localDefined(local, offset)) {
+            if (local >= script->nfixed) {
+                localsAliasStack_ = true;
+                break;
+            }
+
+            if (!localDefined(local, offset)) {
                 setLocal(local, LOCAL_USE_BEFORE_DEF);
                 isInlineable = false;
             }
@@ -665,6 +674,10 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
           case JSOP_SETLOCAL: {
             uint32 local = GET_SLOTNO(pc);
+            if (local >= script->nfixed) {
+                localsAliasStack_ = true;
+                break;
+            }
 
             
 
@@ -673,7 +686,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
 
 
-            if (local < script->nfixed && definedLocals[local] == LOCAL_CONDITIONALLY_DEFINED) {
+            if (definedLocals[local] == LOCAL_CONDITIONALLY_DEFINED) {
                 if (forwardJump) {
                     
                     uint32 *newArray = ArenaArray<uint32>(pool, defineCount + 1);
