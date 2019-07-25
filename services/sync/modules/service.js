@@ -978,6 +978,8 @@ WeaveSvc.prototype = {
     
     if (this._syncTimer)
       this._syncTimer.clear();
+    if (this._heartbeatTimer)
+      this._heartbeatTimer.clear();
 
     
     try {
@@ -1050,6 +1052,63 @@ WeaveSvc.prototype = {
 
     
     this.nextSync = Date.now() + interval;
+
+    
+    if (this.numClients == 1)
+      this._scheduleHeartbeat();
+  },
+
+  
+
+
+
+
+
+  _doHeartbeat: function WeaveSvc__doHeartbeat() {
+    if (this._heartbeatTimer)
+      this._heartbeatTimer.clear();
+
+    let info = null;
+    try {
+      info = new Resource(this.infoURL).get();
+      if (info && info.success) {
+        
+        
+        this._log.trace("Remote timestamp:" + info.obj["clients"] + 
+                        " Local timestamp: " + Clients.lastSync);
+        if (info.obj["clients"] > Clients.lastSync) {
+          this._log.debug("New clients detected, triggering a full sync");
+          this.syncOnIdle();
+          return;
+        }
+      }
+      else {
+        this._checkServerError(info);
+        this._log.debug("Heartbeat failed. HTTP Error: " + info.status);
+      }
+    } catch(ex) {
+      
+      this._log.debug("Heartbeat failed unexpectedly: " + ex);
+    } 
+
+    
+    this._scheduleHeartbeat();
+  },
+
+  
+
+
+
+
+  _scheduleHeartbeat: function WeaveSvc__scheduleNextHeartbeat() {
+    let interval = MULTI_DESKTOP_SYNC;
+    if (this.nextSync < Date.now() + interval ||
+        Status.enforceBackoff)
+      return;
+
+    this._log.trace("Setting up heartbeat, next ping in " + 
+                    Math.ceil(interval / 1000) + " sec.");
+    Utils.delay(function() this._doHeartbeat(), interval, this, "_heartbeatTimer");
   },
 
   _syncErrors: 0,
