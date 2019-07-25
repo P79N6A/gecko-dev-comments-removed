@@ -202,9 +202,6 @@ SessionStoreService.prototype = {
   _inPrivateBrowsing: false,
 
   
-  _clearingOnShutdown: false,
-
-  
   _restoreLastWindow: false,
 
   
@@ -454,7 +451,13 @@ SessionStoreService.prototype = {
     case "quit-application":
       if (aData == "restart") {
         this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
-        this._clearingOnShutdown = false;
+        
+        
+        
+        
+        
+        
+        Services.obs.removeObserver(this, "browser:purge-session-history");
       }
       else if (this._resume_session_once_on_shutdown != null) {
         
@@ -469,6 +472,12 @@ SessionStoreService.prototype = {
       this._uninit();
       break;
     case "browser:purge-session-history": 
+      this._clearDisk();
+      
+      
+      
+      if (this._loadState == STATE_QUITTING)
+        return;
       let openWindows = {};
       this._forEachBrowserWindow(function(aWindow) {
         Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
@@ -487,7 +496,6 @@ SessionStoreService.prototype = {
       }
       
       this._closedWindows = [];
-      this._clearDisk();
       
       var win = this._getMostRecentBrowserWindow();
       if (win)
@@ -497,8 +505,6 @@ SessionStoreService.prototype = {
       
       if ("_stateBackup" in this)
         delete this._stateBackup;
-      if (this._loadState == STATE_QUITTING)
-        this._clearingOnShutdown = true;
       break;
     case "browser:purge-domain-data":
       
@@ -3368,9 +3374,6 @@ SessionStoreService.prototype = {
 
 
   _doResumeSession: function sss_doResumeSession() {
-    if (this._clearingOnShutdown)
-      return false;
-
     return this._prefBranch.getIntPref("startup.page") == 3 ||
            this._prefBranch.getBoolPref("sessionstore.resume_session_once");
   },
