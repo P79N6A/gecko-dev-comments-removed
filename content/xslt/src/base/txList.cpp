@@ -60,55 +60,9 @@ txList::~txList() {
     clear();
 } 
 
-nsresult txList::insert(int index, void* objPtr)
-{
-    if (index >= itemCount) {
-        return insertBefore(objPtr, 0);
-    }
-    
-    ListItem* nextItem = firstItem;
-    for (int i = 0; i < index; i++)
-        nextItem = nextItem->nextItem;
-    return insertBefore(objPtr, nextItem);
-} 
-
 nsresult txList::add(void* objPtr)
 {
     return insertBefore(objPtr, 0);
-} 
-
-
-
-
-
-
-
-
-
-
-void* txList::get(int index) {
-
-    if (index < 0 || index >= itemCount)
-        return 0;
-
-    int c = 0;
-    ListItem* item = firstItem;
-    while ((c != index) && item) {
-        item = item->nextItem;
-        ++c;
-    }
-
-    if (item)
-        return item->objPtr;
-    return 0;
-} 
-
-txList::ListItem* txList::getFirstItem() {
-    return firstItem;
-} 
-
-txList::ListItem* txList::getLastItem() {
-    return lastItem;
 } 
 
 
@@ -177,20 +131,6 @@ nsresult txList::insertBefore(void* objPtr, ListItem* refItem)
     ++itemCount;
     
     return NS_OK;
-} 
-
-void* txList::remove(void* objPtr) {
-   ListItem* item = firstItem;
-   while (item) {
-      if (item->objPtr == objPtr) {
-         remove(item);
-         delete item;
-         return objPtr;
-      }
-      item = item->nextItem;
-   }
-   
-   return 0;
 } 
 
 txList::ListItem* txList::remove(ListItem* item) {
@@ -292,21 +232,6 @@ bool txListIterator::hasNext() {
 
 
 
-
-
-bool txListIterator::hasPrevious() {
-    bool hasPrevious = false;
-    if (currentItem)
-        hasPrevious = (currentItem->prevItem != 0);
-    else if (atEndOfList)
-        hasPrevious = (list->lastItem != 0);
-
-    return hasPrevious;
-} 
-
-
-
-
 void* txListIterator::next() {
 
     void* obj = 0;
@@ -352,40 +277,6 @@ void* txListIterator::current() {
         return currentItem->objPtr;
 
     return 0;
-} 
-
-
-
-
-void* txListIterator::advance(int i) {
-
-    void* obj = 0;
-
-    if (i > 0) {
-        if (!currentItem && !atEndOfList) {
-            currentItem = list->firstItem;
-            --i;
-        }
-        for (; currentItem && i > 0; i--)
-            currentItem = currentItem->nextItem;
-        
-        atEndOfList = currentItem == 0;
-    }
-    else if (i < 0) {
-        if (!currentItem && atEndOfList) {
-            currentItem = list->lastItem;
-            ++i;
-        }
-        for (; currentItem && i < 0; i++)
-            currentItem = currentItem->prevItem;
-
-        atEndOfList = false;
-    }
-
-    if (currentItem)
-        obj = currentItem->objPtr;
-
-    return obj;
 } 
 
 

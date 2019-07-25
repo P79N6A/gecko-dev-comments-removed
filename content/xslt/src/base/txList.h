@@ -65,13 +65,6 @@ public:
     
 
 
-
-
-    void* get(int index);
-
-    
-
-
     PRInt32 getLength();
 
     
@@ -85,18 +78,8 @@ public:
     
 
 
-    nsresult insert(int index, void* objPtr);
-
-    
-
-
     nsresult add(void* objPtr);
 
-    
-
-
-    void* remove(void* objPtr);
-    
     
 
 
@@ -109,9 +92,6 @@ protected:
         ListItem* prevItem;
         void* objPtr;
     };
-
-    ListItem* getFirstItem();
-    ListItem* getLastItem();
 
     
 
@@ -169,13 +149,6 @@ public:
     
 
 
-
-
-    bool  hasPrevious();
-
-    
-
-
     void* next();
 
     
@@ -188,11 +161,6 @@ public:
 
     void* current();
     
-    
-
-
-    void* advance(int i);
-
     
 
 
