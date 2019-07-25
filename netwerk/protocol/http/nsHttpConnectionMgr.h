@@ -137,6 +137,9 @@ public:
     
     nsresult ProcessPendingQ(nsHttpConnectionInfo *);
 
+    
+    void GetConnection(nsHttpConnectionInfo *, PRUint8 caps,
+                       nsHttpConnection **);
 private:
     virtual ~nsHttpConnectionMgr();
 

@@ -637,6 +637,18 @@ nsHttpConnectionMgr::AtActiveConnectionLimit(nsConnectionEntry *ent, PRUint8 cap
 }
 
 void
+nsHttpConnectionMgr::GetConnection(nsHttpConnectionInfo *ci,
+                                   PRUint8 caps,
+                                   nsHttpConnection **result)
+{
+    NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+    nsCStringKey key(ci->HashKey());
+    nsConnectionEntry *ent = (nsConnectionEntry *) mCT.Get(&key);
+    if (!ent) return;
+    GetConnection(ent, caps, result);
+}
+
+void
 nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
                                    nsHttpConnection **result)
 {
@@ -704,6 +716,11 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
         }
     }
 
+    
+    ent->mActiveConns.AppendElement(conn);
+    mNumActiveConns++;
+    NS_ADDREF(conn);
+
     *result = conn;
 }
 
@@ -727,11 +744,6 @@ nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
         if (BuildPipeline(ent, trans, &pipeline))
             trans = pipeline;
     }
-
-    
-    ent->mActiveConns.AppendElement(conn);
-    mNumActiveConns++;
-    NS_ADDREF(conn);
 
     
     trans->SetConnection(handle);
@@ -847,15 +859,6 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
 
         
         trans->SetConnection(nsnull);
-
-        
-        
-        if (ent->mActiveConns.RemoveElement(conn))
-            mNumActiveConns--;
-        else {
-            NS_ERROR("sticky connection not found in active list");
-            return NS_ERROR_UNEXPECTED;
-        }
     }
     else
         GetConnection(ent, caps, &conn);
