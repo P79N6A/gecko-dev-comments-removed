@@ -484,7 +484,7 @@ nsEditor::SetFlags(PRUint32 aFlags)
     if (NS_SUCCEEDED(rv)) {
       
       
-      nsIMEStateManager::UpdateIMEState(newState);
+      nsIMEStateManager::UpdateIMEState(newState, focusedContent);
     }
   }
 

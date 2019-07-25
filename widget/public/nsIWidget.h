@@ -44,6 +44,7 @@
 #include "nsRect.h"
 #include "nsPoint.h"
 #include "nsRegion.h"
+#include "nsString.h"
 
 #include "prthread.h"
 #include "nsEvent.h"
@@ -121,6 +122,11 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_IWIDGET_IID \
   { 0xcc443f0b, 0xaf39, 0x415d, \
     { 0x9c, 0x4b, 0x7e, 0x06, 0xea, 0xa8, 0xb1, 0x3b } }
+
+
+#define NS_IWIDGET_MOZILLA_2_0_BRANCH_IID \
+  { 0xd64532e0, 0x03d6, 0x421c, \
+    { 0x8e, 0x63, 0xda, 0x2c, 0xff, 0x62, 0x48, 0x25 } }
 
 
 
@@ -225,6 +231,18 @@ struct nsIMEUpdatePreference {
   }
   PRPackedBool mWantUpdates;
   PRPackedBool mWantHints;
+};
+
+
+
+
+
+
+struct IMEContext {
+  PRUint32 mStatus;
+
+  
+  nsString mHTMLInputType;
 };
 
 
@@ -1343,5 +1361,20 @@ protected:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget, NS_IWIDGET_IID)
+
+class nsIWidget_MOZILLA_2_0_BRANCH : public nsIWidget {
+  public:
+    NS_DECLARE_STATIC_IID_ACCESSOR(NS_IWIDGET_MOZILLA_2_0_BRANCH_IID)
+
+    
+
+
+
+
+
+    NS_IMETHOD SetInputMode(const IMEContext& aContext) = 0;
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget_MOZILLA_2_0_BRANCH, NS_IWIDGET_MOZILLA_2_0_BRANCH_IID)
 
 #endif 

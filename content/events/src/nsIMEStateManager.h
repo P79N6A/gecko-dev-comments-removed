@@ -86,10 +86,11 @@ public:
   
   
   
-  static void UpdateIMEState(PRUint32 aNewIMEState);
+  static void UpdateIMEState(PRUint32 aNewIMEState, nsIContent* aContent);
 
 protected:
-  static void SetIMEState(PRUint32 aState, nsIWidget* aWidget);
+  static void SetIMEState(PRUint32 aState, nsIContent* aContent,
+                          nsIWidget* aWidget);
   static PRUint32 GetNewIMEState(nsPresContext* aPresContext,
                                  nsIContent* aContent);
 
