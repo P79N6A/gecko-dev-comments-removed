@@ -367,6 +367,11 @@ public:
   TrimmedOffsets GetTrimmedOffsets(const nsTextFragment* aFrag,
                                    PRBool aTrimAfter);
 
+  
+  void ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
+                  nsIRenderingContext* aRenderingContext, PRBool aShouldBlink,
+                  nsHTMLReflowMetrics& aMetrics, nsReflowStatus& aStatus);
+
 protected:
   virtual ~nsTextFrame();
 

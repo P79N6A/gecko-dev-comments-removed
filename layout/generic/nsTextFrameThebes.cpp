@@ -6195,11 +6195,37 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
 {
   DO_GLOBAL_REFLOW_COUNT("nsTextFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aMetrics, aStatus);
+
+  
+  
+  
+  if (!aReflowState.mLineLayout) {
+    ClearMetrics(aMetrics);
+    aStatus = NS_FRAME_COMPLETE;
+    return NS_OK;
+  }
+
+  ReflowText(*aReflowState.mLineLayout, aReflowState.availableWidth,
+             aReflowState.rendContext, aReflowState.mFlags.mBlinks,
+             aMetrics, aStatus);
+
+  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
+  return NS_OK;
+}
+
+void
+nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
+                        nsIRenderingContext* aRenderingContext,
+                        PRBool aShouldBlink,
+                        nsHTMLReflowMetrics& aMetrics,
+                        nsReflowStatus& aStatus)
+{
 #ifdef NOISY_REFLOW
   ListTag(stdout);
-  printf(": BeginReflow: availableSize=%d,%d\n",
-         aReflowState.availableWidth, aReflowState.availableHeight);
+  printf(": BeginReflow: availableWidth=%d\n", aAvailableWidth);
 #endif
+
+  nsPresContext* presContext = PresContext();
 
   
   
@@ -6217,21 +6243,16 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   PRInt32 maxContentLength = GetInFlowContentLength();
 
   
-  
-  
-  
-  if (!aReflowState.mLineLayout || !maxContentLength) {
+  if (!maxContentLength) {
     ClearMetrics(aMetrics);
     aStatus = NS_FRAME_COMPLETE;
-    return NS_OK;
+    return;
   }
 
-  nsLineLayout& lineLayout = *aReflowState.mLineLayout;
-
-  if (aReflowState.mFlags.mBlinks) {
+  if (aShouldBlink) {
     if (0 == (mState & TEXT_BLINK_ON)) {
       mState |= TEXT_BLINK_ON;
-      nsBlinkTimer::AddBlinkFrame(aPresContext, this);
+      nsBlinkTimer::AddBlinkFrame(presContext, this);
     }
   }
   else {
@@ -6243,14 +6264,14 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
 
   const nsStyleText* textStyle = GetStyleText();
 
-  PRBool atStartOfLine = lineLayout.LineAtStart();
+  PRBool atStartOfLine = aLineLayout.LineAtStart();
   if (atStartOfLine) {
     AddStateBits(TEXT_START_OF_LINE);
   }
 
   PRUint32 flowEndInTextRun;
-  nsIFrame* lineContainer = lineLayout.GetLineContainerFrame();
-  gfxContext* ctx = aReflowState.rendContext->ThebesContext();
+  nsIFrame* lineContainer = aLineLayout.GetLineContainerFrame();
+  gfxContext* ctx = aRenderingContext->ThebesContext();
   const nsTextFragment* frag = mContent->GetText();
 
   
@@ -6290,21 +6311,21 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   PRBool completedFirstLetter = PR_FALSE;
   
   
-  if (lineLayout.GetInFirstLetter() || lineLayout.GetInFirstLine()) {
-    SetLength(maxContentLength, &lineLayout);
+  if (aLineLayout.GetInFirstLetter() || aLineLayout.GetInFirstLine()) {
+    SetLength(maxContentLength, &aLineLayout);
 
-    if (lineLayout.GetInFirstLetter()) {
+    if (aLineLayout.GetInFirstLetter()) {
       
       
       
       ClearTextRun();
       
       gfxSkipCharsIterator iter =
-        EnsureTextRun(ctx, lineContainer, lineLayout.GetLine(), &flowEndInTextRun);
+        EnsureTextRun(ctx, lineContainer, aLineLayout.GetLine(), &flowEndInTextRun);
 
       if (mTextRun) {
         PRInt32 firstLetterLength = length;
-        if (lineLayout.GetFirstLetterStyleOK()) {
+        if (aLineLayout.GetFirstLetterStyleOK()) {
           completedFirstLetter =
             FindFirstLetterRange(frag, mTextRun, offset, iter, &firstLetterLength);
           if (newLineOffset >= 0) {
@@ -6333,7 +6354,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
         
         
         
-        SetLength(offset + length - GetContentOffset(), &lineLayout);
+        SetLength(offset + length - GetContentOffset(), &aLineLayout);
         
         ClearTextRun();
       }
@@ -6341,7 +6362,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   gfxSkipCharsIterator iter =
-    EnsureTextRun(ctx, lineContainer, lineLayout.GetLine(), &flowEndInTextRun);
+    EnsureTextRun(ctx, lineContainer, aLineLayout.GetLine(), &flowEndInTextRun);
 
   if (mTextRun && iter.GetOriginalEnd() < offset + length) {
     
@@ -6350,13 +6371,13 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     
     ClearTextRun();
     iter = EnsureTextRun(ctx, lineContainer,
-                         lineLayout.GetLine(), &flowEndInTextRun);
+                         aLineLayout.GetLine(), &flowEndInTextRun);
   }
 
   if (!mTextRun) {
     ClearMetrics(aMetrics);
     aStatus = NS_FRAME_COMPLETE;
-    return NS_OK;
+    return;
   }
 
   NS_ASSERTION(gfxSkipCharsIterator(iter).ConvertOriginalToSkipped(offset + length)
@@ -6369,7 +6390,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   iter.SetOriginalOffset(offset);
   nscoord xOffsetForTabs = (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TAB) ?
-    (lineLayout.GetCurrentFrameXDistanceFromBlock() -
+    (aLineLayout.GetCurrentFrameXDistanceFromBlock() -
        lineContainer->GetUsedBorderAndPadding().left)
     : -1;
   PropertyProvider provider(mTextRun, textStyle, frag, this, iter, length,
@@ -6388,7 +6409,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
 #endif
 
   PRInt32 limitLength = length;
-  PRInt32 forceBreak = lineLayout.GetForcedBreakPosition(mContent);
+  PRInt32 forceBreak = aLineLayout.GetForcedBreakPosition(mContent);
   PRBool forceBreakAfter = PR_FALSE;
   if (forceBreak >= offset + length) {
     forceBreakAfter = forceBreak == offset + length;
@@ -6418,16 +6439,16 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   PRUint32 transformedLastBreak = 0;
   PRBool usedHyphenation;
   gfxFloat trimmedWidth = 0;
-  gfxFloat availWidth = aReflowState.availableWidth;
+  gfxFloat availWidth = aAvailableWidth;
   PRBool canTrimTrailingWhitespace = !textStyle->WhiteSpaceIsSignificant();
   PRInt32 unusedOffset;  
   gfxBreakPriority breakPriority;
-  lineLayout.GetLastOptionalBreakPosition(&unusedOffset, &breakPriority);
+  aLineLayout.GetLastOptionalBreakPosition(&unusedOffset, &breakPriority);
   PRUint32 transformedCharsFit =
     mTextRun->BreakAndMeasureText(transformedOffset, transformedLength,
                                   (GetStateBits() & TEXT_START_OF_LINE) != 0,
                                   availWidth,
-                                  &provider, !lineLayout.LineIsBreakable(),
+                                  &provider, !aLineLayout.LineIsBreakable(),
                                   canTrimTrailingWhitespace ? &trimmedWidth : nsnull,
                                   &textMetrics, boundingBoxType, ctx,
                                   &usedHyphenation, &transformedLastBreak,
@@ -6501,9 +6522,9 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   if (!brokeText && lastBreak >= 0) {
     
     
-    NS_ASSERTION(textMetrics.mAdvanceWidth - trimmableWidth <= aReflowState.availableWidth,
+    NS_ASSERTION(textMetrics.mAdvanceWidth - trimmableWidth <= aAvailableWidth,
                  "If the text doesn't fit, and we have a break opportunity, why didn't MeasureText use it?");
-    lineLayout.NotifyOptionalBreakPosition(mContent, lastBreak, PR_TRUE, breakPriority);
+    aLineLayout.NotifyOptionalBreakPosition(mContent, lastBreak, PR_TRUE, breakPriority);
   }
 
   PRInt32 contentLength = offset + charsFit - GetContentOffset();
@@ -6553,7 +6574,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   aMetrics.mOverflowArea.UnionRect(boundingBox,
                                    nsRect(0, 0, aMetrics.width, aMetrics.height));
 
-  UnionTextDecorationOverflow(aPresContext, provider, &aMetrics.mOverflowArea);
+  UnionTextDecorationOverflow(presContext, provider, &aMetrics.mOverflowArea);
 
   
   
@@ -6565,13 +6586,13 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   
   if (transformedCharsFit > 0) {
-    lineLayout.SetTrimmableWidth(NSToCoordFloor(trimmableWidth));
+    aLineLayout.SetTrimmableWidth(NSToCoordFloor(trimmableWidth));
     AddStateBits(TEXT_HAS_NONCOLLAPSED_CHARACTERS);
   }
   if (charsFit > 0 && charsFit == length &&
       HasSoftHyphenBefore(frag, mTextRun, offset, end)) {
     
-    lineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
+    aLineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
         textMetrics.mAdvanceWidth + provider.GetHyphenWidth() <= availWidth,
                                            eNormalBreak);
   }
@@ -6592,8 +6613,8 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     if (textMetrics.mAdvanceWidth - trimmableWidth > availWidth) {
       breakAfter = PR_TRUE;
     } else {
-      lineLayout.NotifyOptionalBreakPosition(mContent, offset + length, PR_TRUE,
-                                             eNormalBreak);
+      aLineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
+                                              PR_TRUE, eNormalBreak);
     }
   }
 
@@ -6607,12 +6628,12 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   } else if (contentLength > 0 && mContentOffset + contentLength - 1 == newLineOffset) {
     
     aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
-    lineLayout.SetLineEndsInBR(PR_TRUE);
+    aLineLayout.SetLineEndsInBR(PR_TRUE);
   } else if (breakAfter) {
     aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
   }
   if (completedFirstLetter) {
-    lineLayout.SetFirstLetterStyleOK(PR_FALSE);
+    aLineLayout.SetFirstLetterStyleOK(PR_FALSE);
     aStatus |= NS_INLINE_BREAK_FIRST_LETTER_COMPLETE;
   }
 
@@ -6648,11 +6669,11 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
 
     NS_ASSERTION(numJustifiableCharacters <= charsFit,
                  "Bad justifiable character count");
-    lineLayout.SetTextJustificationWeights(numJustifiableCharacters,
+    aLineLayout.SetTextJustificationWeights(numJustifiableCharacters,
         charsFit - numJustifiableCharacters);
   }
 
-  SetLength(contentLength, &lineLayout);
+  SetLength(contentLength, &aLineLayout);
 
   if (mContent->HasFlag(NS_TEXT_IN_SELECTION)) {
     SelectionDetails* details = GetSelectionDetails();
@@ -6672,8 +6693,6 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
          aMetrics.width, aMetrics.height, aMetrics.ascent,
          aStatus);
 #endif
-  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
-  return NS_OK;
 }
 
  PRBool
