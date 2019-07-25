@@ -1454,7 +1454,15 @@ nsDocAccessible::RecreateAccessible(nsINode* aNode)
       mNodeToAccessibleMap.Remove(oldAccessible->GetNode());
 
   } else {
+    
+    
+    
+    
+    
+    
     parent = GetAccService()->GetContainerAccessible(aNode, mWeakShell);
+    if (!parent)
+      return;
   }
 
   
