@@ -370,6 +370,7 @@ class TokenStream
 
   private:
     static JSAtom *atomize(JSContext *cx, CharBuffer &cb);
+    bool putIdentInTokenbuf(const jschar *identStart);
 
     
 
@@ -535,6 +536,12 @@ class TokenStream
         const jschar *addressOfNextRawChar() {
             JS_ASSERT(ptr);     
             return ptr;
+        }
+
+        
+        void setAddressOfNextRawChar(const jschar *a) {
+            JS_ASSERT(a);
+            ptr = a;
         }
 
 #ifdef DEBUG
