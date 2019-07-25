@@ -806,7 +806,7 @@ class FrameState
     
 
 
-    inline void unpinKilledReg(RegisterID reg);
+    inline void unpinKilledReg(AnyRegisterID reg);
 
     
     MaybeRegisterID maybePinData(FrameEntry *fe);
