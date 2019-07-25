@@ -38,6 +38,7 @@
 
 #include "nsIMemoryReporter.h"
 #include "nsMemory.h"
+#include "CheckedInt.h"
 
 #include "gfxASurface.h"
 #include "gfxContext.h"
@@ -83,6 +84,8 @@
 #include "nsCOMPtr.h"
 #include "nsIConsoleService.h"
 #include "nsServiceManagerUtils.h"
+
+using mozilla::CheckedInt;
 
 static cairo_user_data_key_t gfxasurface_pointer_key;
 
@@ -353,32 +356,36 @@ gfxASurface::CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit)
         return PR_FALSE;
     }
 
+    
+    if (limit && (sz.width > limit || sz.height > limit)) {
+        NS_WARNING("Surface size too large (exceeds caller's limit)!");
+        return PR_FALSE;
+    }
+
 #if defined(XP_MACOSX)
     
+    
     if (sz.height > SHRT_MAX) {
-        NS_WARNING("Surface size too large (would overflow)!");
+        NS_WARNING("Surface size too large (exceeds CoreGraphics limit)!");
         return PR_FALSE;
     }
 #endif
 
     
-    PRInt32 tmp = sz.width * sz.height;
-    if (tmp && tmp / sz.height != sz.width) {
+    CheckedInt<PRInt32> tmp = sz.width;
+    tmp *= sz.height;
+    if (!tmp.valid()) {
         NS_WARNING("Surface size too large (would overflow)!");
         return PR_FALSE;
     }
 
     
-    tmp = tmp * 4;
-    if (tmp && tmp / 4 != sz.width * sz.height) {
-        NS_WARNING("Surface size too large (would overflow)!");
+    
+    tmp *= 4;
+    if (!tmp.valid()) {
+        NS_WARNING("Allocation too large (would overflow)!");
         return PR_FALSE;
     }
-
-    
-    if (limit &&
-        (sz.width > limit || sz.height > limit))
-        return PR_FALSE;
 
     return PR_TRUE;
 }
