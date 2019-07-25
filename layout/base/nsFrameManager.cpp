@@ -635,9 +635,8 @@ VerifyContextParent(nsPresContext* aPresContext, nsIFrame* aFrame,
   if (childStyleIfVisited &&
       !((childStyleIfVisited->GetRuleNode() != aContext->GetRuleNode() &&
          childStyleIfVisited->GetParent() == aContext->GetParent()) ||
-        (childStyleIfVisited->GetRuleNode() == aContext->GetRuleNode() &&
-         childStyleIfVisited->GetParent() ==
-         aContext->GetParent()->GetStyleIfVisited()))) {
+        childStyleIfVisited->GetParent() ==
+          aContext->GetParent()->GetStyleIfVisited())) {
     NS_ERROR("Visited style has wrong parent");
     DumpContext(aFrame, aContext);
     fputs("\n", stdout);
