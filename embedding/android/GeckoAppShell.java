@@ -116,7 +116,6 @@ public class GeckoAppShell
     
     public static native void nativeInit();
     public static native void nativeRun(String args);
-    public static native void nativeQuit();
 
     
     public static native void setSurfaceView(GeckoSurfaceView sv);
@@ -706,7 +705,14 @@ public class GeckoAppShell
             Log.i("GeckoAppJava", "we're done, good bye");
             GeckoApp.mAppContext.finish();
         }
-        System.exit(0);
+        getHandler().postDelayed(new Runnable() {
+            
+            
+            public void run() {
+                Log.w("GeckoAppShell", "Killing via System.exit()");
+                System.exit(0);
+            }
+        }, 5000);
     }
     static void scheduleRestart() {
         Log.i("GeckoAppJava", "scheduling restart");
