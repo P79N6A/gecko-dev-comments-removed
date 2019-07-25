@@ -780,6 +780,19 @@ RadioInterfaceLayer.prototype = {
       return;
     }
 
+    
+    
+    
+    
+
+    let mwi = message.mwi;
+    if (mwi) {
+      mwi.returnNumber = message.sender || null;
+      mwi.returnMessage = message.fullBody || null;
+      ppmm.sendAsyncMessage("RIL:VoicemailNotification", mwi);
+      return;
+    }
+
     let id = gSmsDatabaseService.saveReceivedMessage(message.sender || null,
                                                      message.fullBody || null,
                                                      message.timestamp);
@@ -790,6 +803,7 @@ RadioInterfaceLayer.prototype = {
                                            message.fullBody || null,
                                            message.timestamp,
                                            false);
+
     Services.obs.notifyObservers(sms, kSmsReceivedObserverTopic, null);
   },
 

@@ -3969,12 +3969,18 @@ let GsmPDUHelper = {
 
 
 
+  readUserDataHeader: function readUserDataHeader(msg) {
+    
 
 
 
 
 
-  readUserDataHeader: function readUserDataHeader() {
+
+
+
+
+
     let header = {
       length: 0,
       langIndex: PDU_NL_IDENTIFIER_DEFAULT,
@@ -3982,10 +3988,14 @@ let GsmPDUHelper = {
     };
 
     header.length = this.readHexOctet();
+    if (DEBUG) debug("Read UDH length: " + header.length);
+
     let dataAvailable = header.length;
     while (dataAvailable >= 2) {
       let id = this.readHexOctet();
       let length = this.readHexOctet();
+      if (DEBUG) debug("Read UDH id: " + id + ", length: " + length);
+
       dataAvailable -= 2;
 
       switch (id) {
@@ -4001,7 +4011,7 @@ let GsmPDUHelper = {
           }
           break;
         }
-        case PDU_IEI_APPLICATION_PORT_ADDREESING_SCHEME_8BIT: {
+        case PDU_IEI_APPLICATION_PORT_ADDRESSING_SCHEME_8BIT: {
           let dstp = this.readHexOctet();
           let orip = this.readHexOctet();
           dataAvailable -= 2;
@@ -4016,7 +4026,7 @@ let GsmPDUHelper = {
           header.originatorPort = orip;
           break;
         }
-        case PDU_IEI_APPLICATION_PORT_ADDREESING_SCHEME_16BIT: {
+        case PDU_IEI_APPLICATION_PORT_ADDRESSING_SCHEME_16BIT: {
           let dstp = (this.readHexOctet() << 8) | this.readHexOctet();
           let orip = (this.readHexOctet() << 8) | this.readHexOctet();
           dataAvailable -= 4;
@@ -4056,6 +4066,41 @@ let GsmPDUHelper = {
             header.langIndex = langIndex;
           }
           break;
+        case PDU_IEI_SPECIAL_SMS_MESSAGE_INDICATION:
+          let msgInd = this.readHexOctet() & 0xFF;
+          let msgCount = this.readHexOctet();
+          dataAvailable -= 2;
+
+
+          
+
+
+
+
+
+
+          let storeType = msgInd & PDU_MWI_STORE_TYPE_BIT;
+          let mwi = msg.mwi;
+          if (!mwi) {
+            mwi = msg.mwi = {};
+          }
+
+          if (storeType == PDU_MWI_STORE_TYPE_STORE) {
+            
+            
+            mwi.discard = false;
+          } else if (mwi.discard === undefined) {
+            
+            
+            mwi.discard = true;
+          }
+
+          mwi.msgCount = msgCount & 0xFF;
+          mwi.active = mwi.msgCount > 0;
+
+          if (DEBUG) debug("MWI in TP_UDH received: " + JSON.stringify(mwi));
+
+          break;
         default:
           if (DEBUG) {
             debug("readUserDataHeader: unsupported IEI(" + id
@@ -4083,7 +4128,7 @@ let GsmPDUHelper = {
       throw new Error("Illegal user data header found!");
     }
 
-    return header;
+    msg.header = header;
   },
 
   
@@ -4258,9 +4303,21 @@ let GsmPDUHelper = {
         switch (msg.epid) {
           case PDU_PID_SHORT_MESSAGE_TYPE_0:
             return;
+          case PDU_PID_RETURN_CALL_MESSAGE:
+            
+            
+            let mwi = msg.mwi = {};
+
+            
+            mwi.active = true;
+            mwi.discard = false;
+            mwi.msgCount = GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN;
+            if (DEBUG) debug("TP-PID got return call message: " + msg.sender);
+            return;
         }
         break;
     }
+
     msg.epid = PDU_PID_DEFAULT;
   },
 
@@ -4274,6 +4331,10 @@ let GsmPDUHelper = {
 
   readDataCodingScheme: function readDataCodingScheme(msg) {
     let dcs = this.readHexOctet();
+    if (DEBUG) debug("PDU: read dcs: " + dcs);
+
+    
+    this.readMessageWaitingFromDCS(msg, dcs);
 
     
     let encoding = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
@@ -4311,6 +4372,48 @@ let GsmPDUHelper = {
     msg.encoding = encoding;
 
     if (DEBUG) debug("PDU: message encoding is " + encoding + " bit.");
+  },
+
+  readMessageWaitingFromDCS: function readMessageWaitingFromDCS(msg, dcs) {
+    
+    
+    
+    let codingGroup = dcs & PDU_DCS_CODING_GROUP_BITS;
+
+    if (codingGroup == PDU_DCS_CODING_GROUP_7BITS_DISCARD ||
+        codingGroup == PDU_DCS_CODING_GROUP_7BITS_STORE ||
+        codingGroup == PDU_DCS_CODING_GROUP_16BITS_STORE) {
+
+      
+      let active = (dcs & PDU_DCS_MWI_ACTIVE_BITS) == PDU_DCS_MWI_ACTIVE_VALUE;
+
+      
+      switch (dcs & PDU_DCS_MWI_TYPE_BITS) {
+        case PDU_DCS_MWI_TYPE_VOICEMAIL:
+          let mwi = msg.mwi;
+          if (!mwi) {
+            mwi = msg.mwi = {};
+          }
+
+          mwi.active = active;
+          mwi.discard = codingGroup == PDU_DCS_CODING_GROUP_7BITS_DISCARD;
+          mwi.msgCount = active ? GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN : 0;
+
+          if (DEBUG) {
+            debug("MWI in DCS received for voicemail: " + JSON.stringify(mwi));
+          }
+          break;
+        case PDU_DCS_MWI_TYPE_FAX:
+          if (DEBUG) debug("MWI in DCS received for fax");
+          break;
+        case PDU_DCS_MWI_TYPE_EMAIL:
+          if (DEBUG) debug("MWI in DCS received for email");
+          break;
+        default:
+          if (DEBUG) debug("MWI in DCS received for \"other\"");
+          break;
+      }
+    }
   },
 
   
@@ -4356,7 +4459,7 @@ let GsmPDUHelper = {
 
     let paddingBits = 0;
     if (msg.udhi) {
-      msg.header = this.readUserDataHeader();
+      this.readUserDataHeader(msg);
 
       if (msg.encoding == PDU_DCS_MSG_CODING_7BITS_ALPHABET) {
         let headerBits = (msg.header.length + 1) * 8;
@@ -4368,6 +4471,8 @@ let GsmPDUHelper = {
         length -= (msg.header.length + 1);
       }
     }
+
+    if (DEBUG) debug("After header, " + length + " septets left of user data");
 
     msg.body = null;
     msg.data = null;
@@ -4460,7 +4565,9 @@ let GsmPDUHelper = {
       pid:       null, 
       epid:      null, 
       dcs:       null, 
-      encoding:  null, 
+      mwi:       null, 
+      replace:  false, 
+      header:    null, 
       body:      null, 
       data:      null, 
       timestamp: null, 
