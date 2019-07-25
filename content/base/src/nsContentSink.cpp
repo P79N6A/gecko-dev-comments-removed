@@ -559,6 +559,51 @@ static const PRUnichar kEqualsCh = PRUnichar('=');
 static const PRUnichar kLessThanCh = PRUnichar('<');
 static const PRUnichar kGreaterThanCh = PRUnichar('>');
 
+
+
+
+
+PRBool
+nsContentSink::LinkContextIsOurDocument(const nsSubstring& aAnchor)
+{
+  if (aAnchor.IsEmpty()) {
+    
+    return PR_TRUE;
+  }
+
+  nsIURI* docUri = mDocument->GetDocumentURI();
+
+  
+  
+  
+  nsCOMPtr<nsIURI> contextUri;
+  nsresult rv = docUri->CloneIgnoringRef(getter_AddRefs(contextUri));
+  
+  if (NS_FAILED(rv)) {
+    
+    return PR_FALSE;
+  }
+  
+  
+  nsCOMPtr<nsIURI> resolvedUri;
+  rv = NS_NewURI(getter_AddRefs(resolvedUri), aAnchor,
+      nsnull, contextUri);
+  
+  if (NS_FAILED(rv)) {
+    
+    return PR_FALSE;
+  }
+
+  PRBool same;
+  rv = contextUri->Equals(resolvedUri, &same); 
+  if (NS_FAILED(rv)) {
+    
+    return PR_FALSE;
+  }
+
+  return same;
+}
+
 nsresult
 nsContentSink::ProcessLinkHeader(nsIContent* aElement,
                                  const nsAString& aLinkData)
@@ -571,6 +616,7 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
   nsAutoString title;
   nsAutoString type;
   nsAutoString media;
+  nsAutoString anchor;
 
   
   nsAutoString stringList(aLinkData);
@@ -699,6 +745,11 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
               
               ToLowerCase(media);
             }
+          } else if (attr.LowerCaseEqualsLiteral("anchor")) {
+            if (anchor.IsEmpty()) {
+              anchor = value;
+              anchor.StripWhitespace();
+            }
           }
         }
       }
@@ -709,7 +760,7 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
 
       href.Trim(" \t\n\r\f"); 
       if (!href.IsEmpty() && !rel.IsEmpty()) {
-        rv = ProcessLink(aElement, href, rel, title, type, media);
+        rv = ProcessLink(aElement, anchor, href, rel, title, type, media);
       }
 
       href.Truncate();
@@ -717,14 +768,15 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
       title.Truncate();
       type.Truncate();
       media.Truncate();
+      anchor.Truncate();
     }
 
     start = ++end;
   }
-
+                
   href.Trim(" \t\n\r\f"); 
   if (!href.IsEmpty() && !rel.IsEmpty()) {
-    rv = ProcessLink(aElement, href, rel, title, type, media);
+    rv = ProcessLink(aElement, anchor, href, rel, title, type, media);
   }
 
   return rv;
@@ -733,14 +785,22 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
 
 nsresult
 nsContentSink::ProcessLink(nsIContent* aElement,
-                           const nsSubstring& aHref, const nsSubstring& aRel,
-                           const nsSubstring& aTitle, const nsSubstring& aType,
-                           const nsSubstring& aMedia)
+                           const nsSubstring& aAnchor, const nsSubstring& aHref,
+                           const nsSubstring& aRel, const nsSubstring& aTitle,
+                           const nsSubstring& aType, const nsSubstring& aMedia)
 {
   
   nsTArray<nsString> linkTypes;
   nsStyleLinkElement::ParseLinkTypes(aRel, linkTypes);
 
+  
+  
+  
+  
+  if (!LinkContextIsOurDocument(aAnchor)) {
+    return NS_OK;
+  }
+  
   PRBool hasPrefetch = linkTypes.Contains(NS_LITERAL_STRING("prefetch"));
   
   if (hasPrefetch || linkTypes.Contains(NS_LITERAL_STRING("next"))) {
