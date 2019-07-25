@@ -2272,21 +2272,8 @@ NS_IMETHODIMP nsEditor::ScrollSelectionIntoView(PRBool aScrollToAnchor)
     if (aScrollToAnchor)
       region = nsISelectionController::SELECTION_ANCHOR_REGION;
 
-    PRBool syncScroll = PR_TRUE;
-    PRUint32 flags = 0;
-
-    if (NS_SUCCEEDED(GetFlags(&flags)))
-    {
-      
-      
-      
-      syncScroll = !(flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask);
-    }
-
-    
-    
     selCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
-                                    region, syncScroll);
+                                    region, PR_FALSE);
   }
 
   return NS_OK;
