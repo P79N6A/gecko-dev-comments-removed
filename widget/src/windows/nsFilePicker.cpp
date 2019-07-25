@@ -291,8 +291,16 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
     ofn.nMaxFile     = FILE_BUFFER_SIZE;
     ofn.Flags = OFN_SHAREAWARE | OFN_LONGNAMES | OFN_OVERWRITEPROMPT |
                 OFN_HIDEREADONLY | OFN_PATHMUSTEXIST | OFN_ENABLESIZING | 
-                OFN_EXPLORER | OFN_ENABLEHOOK;
-    ofn.lpfnHook = FilePickerHook;
+                OFN_EXPLORER;
+
+    
+    
+    
+    
+    if (nsWindow::GetWindowsVersion() < VISTA_VERSION) {
+      ofn.lpfnHook = FilePickerHook;
+      ofn.Flags |= OFN_ENABLEHOOK;
+    }
 
     
     nsCOMPtr<nsIPrivateBrowsingService> pbs =
@@ -359,10 +367,19 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
         
         
         
-        ofn.lpfnHook = MultiFilePickerHook;
-        fileBuffer.forget();
-        result = ::GetOpenFileNameW(&ofn);
-        fileBuffer = ofn.lpstrFile;
+        
+        
+        
+        
+        if (nsWindow::GetWindowsVersion() < VISTA_VERSION) {
+          ofn.lpfnHook = MultiFilePickerHook;
+          fileBuffer.forget();
+          result = ::GetOpenFileNameW(&ofn);
+          fileBuffer = ofn.lpstrFile;
+        }
+        else {
+          result = ::GetOpenFileNameW(&ofn);
+        }
       }
       else if (mMode == modeSave) {
         ofn.Flags |= OFN_NOREADONLYRETURN;
