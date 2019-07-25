@@ -96,7 +96,7 @@ def WindowsPathToMsysPath(path):
     and expect MSYS paths."""
     if sys.platform != 'win32':
         return path
-    (drive, path) = os.path.splitdrive(os.path.abspath(path))     
+    (drive, path) = os.path.splitdrive(os.path.abspath(path))
     return "/" + drive[0] + path.replace('\\','/')
 
 def AppendOptionalArgsToSSHCommandline(cmdline, port, ssh_key):
