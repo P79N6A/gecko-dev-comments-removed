@@ -1303,6 +1303,14 @@ JSD_GetValueFunctionName(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
+extern JSD_PUBLIC_API(JSFunction*)
+JSD_GetValueFunction(JSDContext* jsdc, JSDValue* jsdval);
+
+
+
+
+
+
 
 extern JSD_PUBLIC_API(uintN)
 JSD_GetCountOfProperties(JSDContext* jsdc, JSDValue* jsdval);
