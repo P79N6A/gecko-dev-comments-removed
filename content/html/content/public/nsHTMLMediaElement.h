@@ -50,7 +50,6 @@
 #include "nsIObserver.h"
 #include "ImageLayers.h"
 #include "nsAudioStream.h"
-#include "nsTimeRanges.h"
 
 
 
@@ -624,12 +623,6 @@ protected:
   
   
   PRBool mAllowAudioData;
-
-  
-  nsTimeRanges mPlayed;
-
-  
-  double mCurrentPlayRangeStart;
 
   
   
