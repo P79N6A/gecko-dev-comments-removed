@@ -41,6 +41,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsMathMLContainerFrame.h"
+#include "nsIDOMEventListener.h"
 
 
 
@@ -87,29 +88,12 @@ private:
   void MouseOver();
   void MouseOut();
 
-  class MouseListener : public nsIDOMMouseListener {
+  class MouseListener : public nsIDOMEventListener
+  {
     NS_DECL_ISUPPORTS
+    NS_DECL_NSIDOMEVENTLISTENER
 
     MouseListener(nsMathMLmactionFrame* aOwner) : mOwner(aOwner) { };
-
-
-
-#if DEBUG_mouse
-#define MOUSE(_msg) printf("maction:%p MOUSE: "#_msg" ...\n", mOwner);
-#else
-#define MOUSE(_msg)
-#endif
-
-    
-    NS_IMETHOD MouseDown(nsIDOMEvent* aMouseEvent)  { MOUSE(down) return NS_OK; }
-    NS_IMETHOD MouseUp(nsIDOMEvent* aMouseEvent) { MOUSE(up) return NS_OK; }
-    NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent);
-    NS_IMETHOD MouseDblClick(nsIDOMEvent* aMouseEvent) { MOUSE(dblclik) return NS_OK; }
-    NS_IMETHOD MouseOver(nsIDOMEvent* aMouseEvent);
-    NS_IMETHOD MouseOut(nsIDOMEvent* aMouseEvent);
-
-    
-    NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent)  { MOUSE(event); return NS_OK; }
 
     nsMathMLmactionFrame* mOwner;
   };
