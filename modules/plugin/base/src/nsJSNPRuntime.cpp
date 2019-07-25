@@ -36,7 +36,9 @@
 
 
 
+#ifdef MOZ_IPC
 #include "base/basictypes.h"
+#endif
 
 
 #include "jscntxt.h"
@@ -57,9 +59,11 @@
 
 using namespace mozilla::plugins::parent;
 
+#ifdef MOZ_IPC
 #include "mozilla/plugins/PluginScriptableObjectParent.h"
 using mozilla::plugins::PluginScriptableObjectParent;
 using mozilla::plugins::ParentNPObject;
+#endif
 
 
 
@@ -93,7 +97,11 @@ namespace {
 inline bool
 NPObjectIsOutOfProcessProxy(NPObject *obj)
 {
+#ifdef MOZ_IPC
   return obj->_class == PluginScriptableObjectParent::GetClass();
+#else
+  return false;
+#endif
 }
 
 } 
@@ -1328,6 +1336,7 @@ NPObjWrapper_GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 
   NPIdentifier identifier = JSIdToNPIdentifier(id);
 
+#ifdef MOZ_IPC
   if (NPObjectIsOutOfProcessProxy(npobj)) {
     PluginScriptableObjectParent* actor =
       static_cast<ParentNPObject*>(npobj)->parent;
@@ -1359,6 +1368,7 @@ NPObjWrapper_GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
     }
     return JS_TRUE;
   }
+#endif
 
   hasProperty = npobj->_class->hasProperty(npobj, identifier);
   if (!ReportExceptionIfPending(cx))
@@ -2292,9 +2302,7 @@ static void
 NPObjectMember_Trace(JSTracer *trc, JSObject *obj)
 {
   NPObjectMemberPrivate *memberPrivate =
-    (NPObjectMemberPrivate *)::JS_GetInstancePrivate(trc->context, obj,
-                                                     &sNPObjectMemberClass,
-                                                     nsnull);
+    (NPObjectMemberPrivate *)::JS_GetPrivate(trc->context, obj);
   if (!memberPrivate)
     return;
 
