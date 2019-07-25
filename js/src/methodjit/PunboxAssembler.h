@@ -159,25 +159,30 @@ class PunboxAssembler : public JSC::MacroAssembler
 
 
 
-    Label storeValueWithAddressOffsetPatch(RegisterID type, RegisterID payload, Address address) {
-        storeValueFromComponents(type, payload, address);
-        return label();
+    DataLabel32 storeValueWithAddressOffsetPatch(RegisterID type, RegisterID payload, Address address) {
+        move(type, Registers::ValueReg);
+        orPtr(payload, Registers::ValueReg);
+        return storePtrWithAddressOffsetPatch(Registers::ValueReg, address);
     }
 
     
-    Label storeValueWithAddressOffsetPatch(ImmTag type, RegisterID payload, Address address) {
-        storeValueFromComponents(type, payload, address);
-        return label();
+    DataLabel32 storeValueWithAddressOffsetPatch(ImmTag type, RegisterID payload, Address address) {
+        move(type, Registers::ValueReg);
+        orPtr(payload, Registers::ValueReg);
+        return storePtrWithAddressOffsetPatch(Registers::ValueReg, address);
     }
 
     
-    Label storeValueWithAddressOffsetPatch(const Value &v, Address address) {
-        storeValue(v, address);
-        return label();
+    DataLabel32 storeValueWithAddressOffsetPatch(const Value &v, Address address) {
+        jsval_layout jv;
+        jv.asBits = JSVAL_BITS(Jsvalify(v));
+
+        move(ImmPtr(reinterpret_cast<void*>(jv.asBits)), Registers::ValueReg);
+        return storePtrWithAddressOffsetPatch(Registers::ValueReg, valueOf(address));
     }
 
     
-    Label storeValueWithAddressOffsetPatch(const ValueRemat &vr, Address address) {
+    DataLabel32 storeValueWithAddressOffsetPatch(const ValueRemat &vr, Address address) {
         if (vr.isConstant()) {
             return storeValueWithAddressOffsetPatch(vr.value(), address);
         } else if (vr.isTypeKnown()) {

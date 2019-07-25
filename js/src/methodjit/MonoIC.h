@@ -106,8 +106,6 @@ struct MICInfo {
 
     
 
-    
-
 
 
 
