@@ -51,7 +51,6 @@
 #include "jsbit.h"
 #include "jsgcchunk.h"
 #include "jsutil.h"
-#include "jstask.h"
 #include "jsvector.h"
 #include "jsversion.h"
 #include "jsobj.h"
@@ -188,17 +187,11 @@ TraceRuntime(JSTracer *trc);
 extern JS_REQUIRES_STACK JS_FRIEND_API(void)
 MarkContext(JSTracer *trc, JSContext *acx);
 
-} 
-
-
-
-
-#ifndef JS_THREADSAFE
-# define js_TriggerGC(cx, gcLocked)    js_TriggerGC (cx)
-#endif
 
 extern void
-js_TriggerGC(JSContext *cx, JSBool gcLocked);
+TriggerGC(JSRuntime *rt);
+
+} 
 
 
 
@@ -373,9 +366,15 @@ namespace js {
 
 
 
-class BackgroundSweepTask : public JSBackgroundTask {
+class GCHelperThread {
     static const size_t FREE_ARRAY_SIZE = size_t(1) << 16;
     static const size_t FREE_ARRAY_LENGTH = FREE_ARRAY_SIZE / sizeof(void *);
+
+    PRThread*         thread;
+    PRCondVar*        wakeup;
+    PRCondVar*        sweepingDone;
+    bool              shutdown;
+    bool              sweeping;
 
     Vector<void **, 16, js::SystemAllocPolicy> freeVector;
     void            **freeCursor;
@@ -391,18 +390,37 @@ class BackgroundSweepTask : public JSBackgroundTask {
         js_free(array);
     }
 
-  public:
-    BackgroundSweepTask()
-        : freeCursor(NULL), freeCursorEnd(NULL) { }
+    static void threadMain(void* arg);
 
+    void threadLoop(JSRuntime *rt);
+    void doSweep();
+
+  public:
+    GCHelperThread()
+      : thread(NULL),
+        wakeup(NULL),
+        sweepingDone(NULL),
+        shutdown(false),
+        sweeping(false),
+        freeCursor(NULL),
+        freeCursorEnd(NULL) { }
+    
+    bool init(JSRuntime *rt);
+    void finish(JSRuntime *rt);
+    
+    
+    void startBackgroundSweep(JSRuntime *rt);
+    
+    
+    void waitBackgroundSweepEnd(JSRuntime *rt);
+    
     void freeLater(void *ptr) {
+        JS_ASSERT(!sweeping);
         if (freeCursor != freeCursorEnd)
             *freeCursor++ = ptr;
         else
             replenishAndFreeLater(ptr);
     }
-
-    virtual void run();
 };
 
 #endif 
@@ -462,7 +480,7 @@ struct ConservativeGCThreadData {
             nativeStackTop = NULL;
     }
 #endif
-   
+
     bool hasStackToScan() const {
         return !!nativeStackTop;
     }
@@ -483,7 +501,7 @@ struct GCMarker : public JSTracer {
 #if defined(JS_DUMP_CONSERVATIVE_GC_ROOTS) || defined(JS_GCMETER)
     ConservativeGCStats conservativeStats;
 #endif
-   
+
 #ifdef JS_DUMP_CONSERVATIVE_GC_ROOTS
     struct ConservativeRoot { void *thing; uint32 traceKind; };
     Vector<ConservativeRoot, 0, SystemAllocPolicy> conservativeRoots;
