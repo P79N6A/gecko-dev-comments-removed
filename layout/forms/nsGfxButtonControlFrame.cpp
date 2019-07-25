@@ -112,7 +112,7 @@ nsGfxButtonControlFrame::GetFrameName(nsAString& aResult) const
 
 
 nsresult
-nsGfxButtonControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
+nsGfxButtonControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
   nsXPIDLString label;
   GetLabel(label);

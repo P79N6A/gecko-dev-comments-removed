@@ -187,7 +187,7 @@ nsIsIndexFrame::SetFocus(PRBool aOn, PRBool aRepaint)
 }
 
 nsresult
-nsIsIndexFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
+nsIsIndexFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
   
   nsCOMPtr<nsIDocument> doc = mContent->GetDocument();

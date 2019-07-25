@@ -1022,10 +1022,6 @@ nsFrameConstructorState::PushAbsoluteContainingBlock(nsIFrame* aNewAbsoluteConta
 
   mFixedPosIsAbsPos = (aNewAbsoluteContainingBlock &&
                        aNewAbsoluteContainingBlock->GetStyleDisplay()->HasTransform());
-
-  if (aNewAbsoluteContainingBlock) {
-    aNewAbsoluteContainingBlock->MarkAsAbsoluteContainingBlock();
-  }
 }
 
 void
@@ -1221,14 +1217,7 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
   nsresult rv = NS_OK;
   if (childList.IsEmpty() &&
       (containingBlock->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    
-    
-    if (aChildListName == containingBlock->GetAbsoluteListName()) {
-      rv = containingBlock->GetAbsoluteContainingBlock()->
-           SetInitialChildList(containingBlock, aChildListName, aFrameItems);
-    } else {
-      rv = containingBlock->SetInitialChildList(aChildListName, aFrameItems);
-    }
+    rv = containingBlock->SetInitialChildList(aChildListName, aFrameItems);
   } else {
     
     
@@ -1246,7 +1235,7 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
     if (!lastChild ||
         nsLayoutUtils::CompareTreePosition(lastChild, firstNewFrame, containingBlock) < 0) {
       
-      rv = mFrameManager->AppendFrames(containingBlock, aChildListName, aFrameItems);
+      rv = containingBlock->AppendFrames(aChildListName, aFrameItems);
     } else {
       
       nsIFrame* insertionPoint = nsnull;
@@ -1261,8 +1250,8 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
         }
         insertionPoint = f;
       }
-      rv = mFrameManager->InsertFrames(containingBlock, aChildListName,
-                                       insertionPoint, aFrameItems);
+      rv = containingBlock->InsertFrames(aChildListName, insertionPoint,
+                                         aFrameItems);
     }
   }
 
@@ -2569,8 +2558,6 @@ nsCSSFrameConstructor::ConstructRootFrame(nsIFrame** aNewFrame)
 
   
   mFixedContainingBlock = viewportFrame;
-  
-  mFixedContainingBlock->MarkAsAbsoluteContainingBlock();
 
   *aNewFrame = viewportFrame;
   return NS_OK;
@@ -2855,8 +2842,6 @@ nsCSSFrameConstructor::ConstructPageFrame(nsIPresShell*  aPresShell,
   pageContentFrame->Init(nsnull, aPageFrame, prevPageContentFrame);
   SetInitialSingleChild(aPageFrame, pageContentFrame);
   mFixedContainingBlock = pageContentFrame;
-  
-  mFixedContainingBlock->MarkAsAbsoluteContainingBlock();
 
   nsRefPtr<nsStyleContext> canvasPseudoStyle;
   canvasPseudoStyle = styleSet->ResolveAnonymousBoxStyle(nsCSSAnonBoxes::canvas,
@@ -3866,7 +3851,7 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
                                              PendingBinding*          aPendingBinding,
                                              nsFrameItems&            aChildItems)
 {
-  nsAutoTArray<nsIContent*, 4> newAnonymousItems;
+  nsAutoTArray<nsIAnonymousContentCreator::ContentInfo, 4> newAnonymousItems;
   nsresult rv = GetAnonymousContent(aParent, aParentFrame, newAnonymousItems);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3883,8 +3868,9 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
                "How can that happen if we have nodes to construct frames for?");
 
   for (PRUint32 i=0; i < count; i++) {
-    nsIContent* content = newAnonymousItems[i];
+    nsIContent* content = newAnonymousItems[i].mContent;
     NS_ASSERTION(content, "null anonymous content?");
+    NS_ASSERTION(!newAnonymousItems[i].mStyleContext, "Unexpected style context");
 
     nsIFrame* newFrame = creator->CreateFrameFor(content);
     if (newFrame) {
@@ -3904,7 +3890,7 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
 nsresult
 nsCSSFrameConstructor::GetAnonymousContent(nsIContent* aParent,
                                            nsIFrame* aParentFrame,
-                                           nsTArray<nsIContent*>& aContent)
+                                           nsTArray<nsIAnonymousContentCreator::ContentInfo>& aContent)
 {
   nsIAnonymousContentCreator* creator = do_QueryFrame(aParentFrame);
   if (!creator)
@@ -3916,7 +3902,7 @@ nsCSSFrameConstructor::GetAnonymousContent(nsIContent* aParent,
   PRUint32 count = aContent.Length();
   for (PRUint32 i=0; i < count; i++) {
     
-    nsIContent* content = aContent[i];
+    nsIContent* content = aContent[i].mContent;
     NS_ASSERTION(content, "null anonymous content?");
 
     
@@ -5552,7 +5538,7 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
 #ifdef MOZ_XUL
             nsGkAtoms::XULLabelFrame == frameType ||
 #endif
-            (nsGkAtoms::inlineFrame == frameType && wrappedFrame->IsAbsoluteContainer())) {
+            nsGkAtoms::positionedInlineFrame == frameType) {
           containingBlock = wrappedFrame;
         } else if (nsGkAtoms::fieldSetFrame == frameType) {
           
@@ -8516,6 +8502,13 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
     }
+  
+  } else if (nsGkAtoms::positionedInlineFrame == frameType) {
+    newFrame = NS_NewPositionedInlineFrame(shell, styleContext);
+
+    if (newFrame) {
+      newFrame->Init(content, aParentFrame, aFrame);
+    }
 
   } else if (nsGkAtoms::pageFrame == frameType) {
     nsIFrame* canvasFrame;
@@ -9542,18 +9535,19 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
   
   
   
-  nsAutoTArray<nsIContent*, 4> anonymousItems;
+  nsAutoTArray<nsIAnonymousContentCreator::ContentInfo, 4> anonymousItems;
   GetAnonymousContent(aContent, aFrame, anonymousItems);
   for (PRUint32 i = 0; i < anonymousItems.Length(); ++i) {
 #ifdef DEBUG
     nsIAnonymousContentCreator* creator = do_QueryFrame(aFrame);
-    NS_ASSERTION(!creator || !creator->CreateFrameFor(anonymousItems[i]),
+    NS_ASSERTION(!creator ||
+                 !creator->CreateFrameFor(anonymousItems[i].mContent),
                  "If you need to use CreateFrameFor, you need to call "
                  "CreateAnonymousFrames manually and not follow the standard "
                  "ProcessChildren() codepath for this frame");
 #endif
-    AddFrameConstructionItems(aState, anonymousItems[i], PR_TRUE, aFrame,
-                              itemsToConstruct);
+    AddFrameConstructionItems(aState, anonymousItems[i].mContent, PR_TRUE,
+                              aFrame, itemsToConstruct);
   }
 
   if (!aFrame->IsLeaf()) {
@@ -10726,7 +10720,11 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
     NS_STYLE_DISPLAY_INLINE == aDisplay->mDisplay &&
     (NS_STYLE_POSITION_RELATIVE == aDisplay->mPosition ||
      aDisplay->HasTransform());
-  newFrame = NS_NewInlineFrame(mPresShell, styleContext);
+  if (positioned) {
+    newFrame = NS_NewPositionedInlineFrame(mPresShell, styleContext);
+  } else {
+    newFrame = NS_NewInlineFrame(mPresShell, styleContext);
+  }
 
   
   InitAndRestoreFrame(aState, content, aParentFrame, nsnull, newFrame);
@@ -10735,7 +10733,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
                                                   
                                                   
 
-  if (positioned) {
+  if (positioned) {                            
     
     
     aState.PushAbsoluteContainingBlock(newFrame, absoluteSaveState);
@@ -10834,14 +10832,16 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
 
     
     
-    nsIFrame* inlineFrame = NS_NewInlineFrame(mPresShell, styleContext);
+    nsIFrame* inlineFrame;
+    if (aIsPositioned) {
+      inlineFrame = NS_NewPositionedInlineFrame(mPresShell, styleContext);
+    }
+    else {
+      inlineFrame = NS_NewInlineFrame(mPresShell, styleContext);
+    }
 
     InitAndRestoreFrame(aState, content, parentFrame, nsnull, inlineFrame,
                         PR_FALSE);
-
-    if (aIsPositioned) {
-      inlineFrame->MarkAsAbsoluteContainingBlock();
-    }
 
     if (aChildItems.NotEmpty()) {
       nsFrameList::FrameLinkEnumerator firstBlock(aChildItems);

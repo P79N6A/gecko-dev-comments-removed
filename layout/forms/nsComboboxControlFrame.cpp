@@ -991,7 +991,7 @@ nsComboboxControlFrame::GetContentInsertionFrame() {
 }
 
 nsresult
-nsComboboxControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
+nsComboboxControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
   
   

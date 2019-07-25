@@ -218,7 +218,7 @@ PRBool CapturePickerAcceptCallback(const nsAString& aAccept, void* aClosure)
 }
 
 nsresult
-nsFileControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
+nsFileControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
   
   nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
