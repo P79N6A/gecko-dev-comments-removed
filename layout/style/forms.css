@@ -114,6 +114,20 @@ input > .anonymous-div {
   line-height: -moz-block-height;
 }
 
+
+
+
+
+@-moz-document url-prefix(chrome://) {
+  input.uri-element-right-align:-moz-locale-dir(rtl) > .anonymous-div {
+    text-align: right !important;
+  }
+
+  input.uri-element-right-align:-moz-locale-dir(rtl) > .anonymous-div[dir=ltr] {
+    text-align: left !important;
+  }
+}
+
 textarea {
   margin: 1px 0 1px 0;
   border: 2px inset ThreeDFace;
