@@ -272,7 +272,7 @@ struct TypeSet
     ObjectKind getKnownObjectKind(JSContext *cx, JSScript *script);
 
     
-    bool hasGetterSetter(JSContext *cx, JSScript *script);
+    bool knownNonEmpty(JSContext *cx, JSScript *script);
 };
 
 
