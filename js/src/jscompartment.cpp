@@ -814,7 +814,7 @@ JSCompartment::markBreakpointsIteratively(JSTracer *trc)
         
         
         if (site->trapHandler &&
-            (!site->scriptObject || IsAboutToBeFinalized(cx, site->scriptObject)))
+            (!site->scriptObject || !IsAboutToBeFinalized(cx, site->scriptObject)))
         {
             if (site->trapClosure.isMarkable() &&
                 IsAboutToBeFinalized(cx, site->trapClosure.toGCThing()))
