@@ -484,22 +484,7 @@ nsHTMLEditRules::AfterEditInner(PRInt32 action, nsIEditor::EDirection aDirection
       res = mHTMLEditor->CollapseAdjacentTextNodes(mDocChangeRange);
       NS_ENSURE_SUCCESS(res, res);
     }
-    
-    
-    
-    
-    if (
-        
-        (action == nsHTMLEditor::kOpInsertElement) ||
-        (action == nsHTMLEditor::kOpInsertQuotation) ||
-        (action == nsEditor::kOpInsertNode) ||
-        (action == nsHTMLEditor::kOpHTMLPaste ||
-        (action == nsHTMLEditor::kOpLoadHTML)))
-    {
-      res = ReplaceNewlines(mDocChangeRange);
-      NS_ENSURE_SUCCESS(res, res);
-    }
-    
+
     
     res = RemoveEmptyNodes();
     NS_ENSURE_SUCCESS(res, res);
