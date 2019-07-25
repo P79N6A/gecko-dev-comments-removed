@@ -282,7 +282,7 @@ protected:
   
   
   
-  void Wait(PRUint32 aMs);
+  void Wait(PRInt64 aMs);
 
   
   void UpdateReadyState();

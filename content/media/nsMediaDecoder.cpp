@@ -335,7 +335,8 @@ PRBool nsMediaDecoder::CanPlayThrough()
   
   
   
-  PRInt64 readAheadMargin = stats.mPlaybackRate * CAN_PLAY_THROUGH_MARGIN;
+  PRInt64 readAheadMargin =
+    static_cast<PRInt64>(stats.mPlaybackRate * CAN_PLAY_THROUGH_MARGIN);
   return stats.mTotalBytes == stats.mDownloadPosition ||
          stats.mDownloadPosition > stats.mPlaybackPosition + readAheadMargin;
 }
