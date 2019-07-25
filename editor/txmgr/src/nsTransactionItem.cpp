@@ -223,7 +223,10 @@ nsTransactionItem::UndoTransaction(nsTransactionManager *aTxMgr)
     return result;
   }
 
-  NS_ENSURE_TRUE(mTransaction, NS_OK);
+  
+  
+  if (!mTransaction)
+    return NS_OK;
 
   result = mTransaction->UndoTransaction();
 
