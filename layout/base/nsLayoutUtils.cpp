@@ -223,7 +223,7 @@ nsLayoutUtils::GetLastContinuationWithChild(nsIFrame* aFrame)
 {
   NS_PRECONDITION(aFrame, "NULL frame pointer");
   aFrame = aFrame->GetLastContinuation();
-  while (!aFrame->GetFirstChild(nsnull) &&
+  while (!aFrame->GetFirstPrincipalChild() &&
          aFrame->GetPrevContinuation()) {
     aFrame = aFrame->GetPrevContinuation();
   }
@@ -244,7 +244,7 @@ GetFirstChildFrame(nsIFrame*       aFrame,
   NS_PRECONDITION(aFrame, "NULL frame pointer");
 
   
-  nsIFrame* childFrame = aFrame->GetFirstChild(nsnull);
+  nsIFrame* childFrame = aFrame->GetFirstPrincipalChild();
 
   
   
@@ -272,9 +272,10 @@ GetLastChildFrame(nsIFrame*       aFrame,
   NS_PRECONDITION(aFrame, "NULL frame pointer");
 
   
-  nsIFrame* lastParentContinuation = nsLayoutUtils::GetLastContinuationWithChild(aFrame);
-
-  nsIFrame* lastChildFrame = lastParentContinuation->GetLastChild(nsnull);
+  nsIFrame* lastParentContinuation =
+    nsLayoutUtils::GetLastContinuationWithChild(aFrame);
+  nsIFrame* lastChildFrame =
+    lastParentContinuation->GetLastChild(nsIFrame::kPrincipalList);
   if (lastChildFrame) {
     
     
@@ -296,18 +297,18 @@ GetLastChildFrame(nsIFrame*       aFrame,
 }
 
 
-nsIAtom*
+nsIFrame::ChildListID
 nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
 {
-  nsIAtom*      listName;
+  nsIFrame::ChildListID id = nsIFrame::kPrincipalList;
 
   if (aChildFrame->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
     nsIFrame* pif = aChildFrame->GetPrevInFlow();
     if (pif->GetParent() == aChildFrame->GetParent()) {
-      listName = nsGkAtoms::excessOverflowContainersList;
+      id = nsIFrame::kExcessOverflowContainersList;
     }
     else {
-      listName = nsGkAtoms::overflowContainersList;
+      id = nsIFrame::kOverflowContainersList;
     }
   }
   
@@ -316,12 +317,12 @@ nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
     const nsStyleDisplay* disp = aChildFrame->GetStyleDisplay();
 
     if (NS_STYLE_POSITION_ABSOLUTE == disp->mPosition) {
-      listName = nsGkAtoms::absoluteList;
+      id = nsIFrame::kAbsoluteList;
     } else if (NS_STYLE_POSITION_FIXED == disp->mPosition) {
       if (nsLayoutUtils::IsReallyFixedPos(aChildFrame)) {
-        listName = nsGkAtoms::fixedList;
+        id = nsIFrame::kFixedList;
       } else {
-        listName = nsGkAtoms::absoluteList;
+        id = nsIFrame::kAbsoluteList;
       }
 #ifdef MOZ_XUL
     } else if (NS_STYLE_DISPLAY_POPUP == disp->mDisplay) {
@@ -336,12 +337,12 @@ nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
       
       
       
-      return nsGkAtoms::popupList;
+      return nsIFrame::kPopupList;
 #endif
     } else {
       NS_ASSERTION(aChildFrame->GetStyleDisplay()->IsFloating(),
                    "not a floated frame");
-      listName = nsGkAtoms::floatList;
+      id = nsIFrame::kFloatList;
     }
 
   } else {
@@ -349,17 +350,19 @@ nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
     if (nsGkAtoms::menuPopupFrame == childType) {
       nsIFrame* parent = aChildFrame->GetParent();
       nsIFrame* firstPopup = (parent)
-                             ? parent->GetFirstChild(nsGkAtoms::popupList)
+                             ? parent->GetFirstChild(nsIFrame::kPopupList)
                              : nsnull;
       NS_ASSERTION(!firstPopup || !firstPopup->GetNextSibling(),
                    "We assume popupList only has one child, but it has more.");
-      listName = firstPopup == aChildFrame ? nsGkAtoms::popupList : nsnull;
+      id = firstPopup == aChildFrame
+             ? nsIFrame::kPopupList
+             : nsIFrame::kPrincipalList;
     } else if (nsGkAtoms::tableColGroupFrame == childType) {
-      listName = nsGkAtoms::colGroupList;
+      id = nsIFrame::kColGroupList;
     } else if (nsGkAtoms::tableCaptionFrame == aChildFrame->GetType()) {
-      listName = nsGkAtoms::captionList;
+      id = nsIFrame::kCaptionList;
     } else {
-      listName = nsnull;
+      id = nsIFrame::kPrincipalList;
     }
   }
 
@@ -367,14 +370,14 @@ nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
   
   
   nsIFrame* parent = aChildFrame->GetParent();
-  PRBool found = parent->GetChildList(listName).ContainsFrame(aChildFrame);
+  PRBool found = parent->GetChildList(id).ContainsFrame(aChildFrame);
   if (!found) {
     if (!(aChildFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
-      found = parent->GetChildList(nsGkAtoms::overflowList)
+      found = parent->GetChildList(nsIFrame::kOverflowList)
                 .ContainsFrame(aChildFrame);
     }
     else if (aChildFrame->GetStyleDisplay()->IsFloating()) {
-      found = parent->GetChildList(nsGkAtoms::overflowOutOfFlowList)
+      found = parent->GetChildList(nsIFrame::kOverflowOutOfFlowList)
                 .ContainsFrame(aChildFrame);
     }
     
@@ -382,7 +385,7 @@ nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
   }
 #endif
 
-  return listName;
+  return id;
 }
 
 
@@ -436,7 +439,7 @@ nsIFrame*
 nsLayoutUtils::GetStyleFrame(nsIFrame* aFrame)
 {
   if (aFrame->GetType() == nsGkAtoms::tableOuterFrame) {
-    nsIFrame* inner = aFrame->GetFirstChild(nsnull);
+    nsIFrame* inner = aFrame->GetFirstPrincipalChild();
     NS_ASSERTION(inner, "Outer table must have an inner");
     return inner;
   }
@@ -1448,7 +1451,7 @@ GetNextPage(nsIFrame* aPageContentFrame)
     return nsnull;
   NS_ASSERTION(nextPageFrame->GetType() == nsGkAtoms::pageFrame,
                "pageFrame's sibling is not a page frame...");
-  nsIFrame* f = nextPageFrame->GetFirstChild(nsnull);
+  nsIFrame* f = nextPageFrame->GetFirstPrincipalChild();
   NS_ASSERTION(f, "pageFrame has no page content frame!");
   NS_ASSERTION(f->GetType() == nsGkAtoms::pageContentFrame,
                "pageFrame's child is not page content!");
@@ -1799,8 +1802,8 @@ AddBoxesForFrame(nsIFrame* aFrame,
   nsIAtom* pseudoType = aFrame->GetStyleContext()->GetPseudo();
 
   if (pseudoType == nsCSSAnonBoxes::tableOuter) {
-    AddBoxesForFrame(aFrame->GetFirstChild(nsnull), aCallback);
-    nsIFrame* kid = aFrame->GetFirstChild(nsGkAtoms::captionList);
+    AddBoxesForFrame(aFrame->GetFirstPrincipalChild(), aCallback);
+    nsIFrame* kid = aFrame->GetFirstChild(nsIFrame::kCaptionList);
     if (kid) {
       AddBoxesForFrame(kid, aCallback);
     }
@@ -1808,7 +1811,7 @@ AddBoxesForFrame(nsIFrame* aFrame,
              pseudoType == nsCSSAnonBoxes::mozAnonymousPositionedBlock ||
              pseudoType == nsCSSAnonBoxes::mozMathMLAnonymousBlock ||
              pseudoType == nsCSSAnonBoxes::mozXULAnonymousBlock) {
-    for (nsIFrame* kid = aFrame->GetFirstChild(nsnull); kid; kid = kid->GetNextSibling()) {
+    for (nsIFrame* kid = aFrame->GetFirstPrincipalChild(); kid; kid = kid->GetNextSibling()) {
       AddBoxesForFrame(kid, aCallback);
     }
   } else {
@@ -3073,7 +3076,7 @@ nsLayoutUtils::GetFirstLinePosition(const nsIFrame* aFrame,
 
     if (fType == nsGkAtoms::fieldSetFrame) {
       LinePosition kidPosition;
-      nsIFrame* kid = aFrame->GetFirstChild(nsnull);
+      nsIFrame* kid = aFrame->GetFirstPrincipalChild();
       
       if (GetFirstLinePosition(kid, &kidPosition)) {
         *aResult = kidPosition + kid->GetPosition().y;
@@ -3754,7 +3757,7 @@ nsLayoutUtils::GetFrameTransparency(nsIFrame* aBackgroundFrame,
   
   
   if (aBackgroundFrame->GetType() == nsGkAtoms::viewportFrame &&
-      !aBackgroundFrame->GetFirstChild(nsnull)) {
+      !aBackgroundFrame->GetFirstPrincipalChild()) {
     return eTransparencyOpaque;
   }
 

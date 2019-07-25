@@ -82,11 +82,11 @@ nsMathMLmfencedFrame::InheritAutomaticData(nsIFrame* aParent)
 }
 
 NS_IMETHODIMP
-nsMathMLmfencedFrame::SetInitialChildList(nsIAtom*        aListName,
+nsMathMLmfencedFrame::SetInitialChildList(ChildListID     aListID,
                                           nsFrameList&    aChildList)
 {
   
-  nsresult rv = nsMathMLContainerFrame::SetInitialChildList(aListName, aChildList);
+  nsresult rv = nsMathMLContainerFrame::SetInitialChildList(aListID, aChildList);
   if (NS_FAILED(rv)) return rv;
 
   
@@ -273,7 +273,7 @@ nsMathMLmfencedFrame::Reflow(nsPresContext*          aPresContext,
 
   nsReflowStatus childStatus;
   nsSize availSize(aReflowState.ComputedWidth(), NS_UNCONSTRAINEDSIZE);
-  nsIFrame* firstChild = GetFirstChild(nsnull);
+  nsIFrame* firstChild = GetFirstPrincipalChild();
   nsIFrame* childFrame = firstChild;
   nscoord ascent = 0, descent = 0;
   if (firstChild || mOpenChar || mCloseChar || mSeparatorsCount > 0) {
@@ -606,7 +606,7 @@ nsMathMLmfencedFrame::GetIntrinsicWidth(nsRenderingContext* aRenderingContext)
   }
 
   PRInt32 i = 0;
-  nsIFrame* childFrame = GetFirstChild(nsnull);
+  nsIFrame* childFrame = GetFirstPrincipalChild();
   while (childFrame) {
     
     

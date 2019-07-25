@@ -3359,7 +3359,7 @@ nsIPresShell::GetRootScrollFrame() const
   
   if (!rootFrame || nsGkAtoms::viewportFrame != rootFrame->GetType())
     return nsnull;
-  nsIFrame* theFrame = rootFrame->GetFirstChild(nsnull);
+  nsIFrame* theFrame = rootFrame->GetFirstPrincipalChild();
   if (!theFrame || nsGkAtoms::scrollFrame != theFrame->GetType())
     return nsnull;
   return theFrame;
@@ -6605,7 +6605,7 @@ PresShell::HandleEvent(nsIView         *aView,
                 capturingContent->IsHTML()) {
               
               
-              nsIFrame* childFrame = captureFrame->GetChildList(nsGkAtoms::selectPopupList).FirstChild();
+              nsIFrame* childFrame = captureFrame->GetChildList(nsIFrame::kSelectPopupList).FirstChild();
               if (childFrame) {
                 captureFrame = childFrame;
               }
@@ -8468,7 +8468,7 @@ FindTopFrame(nsIFrame* aRoot)
     }
 
     
-    nsIFrame* kid = aRoot->GetFirstChild(nsnull);
+    nsIFrame* kid = aRoot->GetFirstPrincipalChild();
     while (nsnull != kid) {
       nsIFrame* result = FindTopFrame(kid);
       if (nsnull != result) {
@@ -9102,7 +9102,7 @@ static void RecurseIndiTotals(nsPresContext* aPresContext,
     nsMemory::Free(name);
   }
 
-  nsIFrame* child = aParentFrame->GetFirstChild(nsnull);
+  nsIFrame* child = aParentFrame->GetFirstPrincipalChild();
   while (child) {
     RecurseIndiTotals(aPresContext, aHT, child, aLevel+1);
     child = child->GetNextSibling();

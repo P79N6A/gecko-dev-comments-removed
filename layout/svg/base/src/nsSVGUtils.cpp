@@ -874,7 +874,7 @@ nsSVGUtils::GetCanvasTM(nsIFrame *aFrame)
 void 
 nsSVGUtils::NotifyChildrenOfSVGChange(nsIFrame *aFrame, PRUint32 aFlags)
 {
-  nsIFrame *kid = aFrame->GetFirstChild(nsnull);
+  nsIFrame *kid = aFrame->GetFirstPrincipalChild();
 
   while (kid) {
     nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
@@ -1087,7 +1087,7 @@ nsSVGUtils::HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint)
   
   
   nsIFrame* result = nsnull;
-  for (nsIFrame* current = aFrame->GetChildList(nsnull).LastChild();
+  for (nsIFrame* current = aFrame->PrincipalChildList().LastChild();
        current;
        current = current->GetPrevSibling()) {
     nsISVGChildFrame* SVGFrame = do_QueryFrame(current);

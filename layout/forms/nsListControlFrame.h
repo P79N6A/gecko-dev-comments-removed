@@ -85,7 +85,7 @@ public:
                          nsGUIEvent* aEvent,
                          nsEventStatus* aEventStatus);
   
-  NS_IMETHOD SetInitialChildList(nsIAtom*        aListName,
+  NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
 
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);

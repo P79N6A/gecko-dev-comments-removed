@@ -66,22 +66,23 @@ class nsPresContext;
 
 
 
-
 class nsAbsoluteContainingBlock
 {
 public:
-  nsAbsoluteContainingBlock(nsIAtom* aChildListName)
+  typedef nsIFrame::ChildListID ChildListID;
+
+  nsAbsoluteContainingBlock(ChildListID aChildListID)
 #ifdef DEBUG
-    : mChildListName(aChildListName)
+    : mChildListID(aChildListID)
 #endif
   {
-    NS_ASSERTION(mChildListName == nsGkAtoms::absoluteList ||
-                 mChildListName == nsGkAtoms::fixedList,
+    NS_ASSERTION(mChildListID == nsIFrame::kAbsoluteList ||
+                 mChildListID == nsIFrame::kFixedList,
                  "should either represent position:fixed or absolute content");
   }
 
 #ifdef DEBUG
-  nsIAtom* GetChildListName() const { return mChildListName; }
+  ChildListID GetChildListID() const { return mChildListID; }
 #endif
 
   const nsFrameList& GetChildList() const { return mAbsoluteFrames; }
@@ -93,17 +94,17 @@ public:
   }
 
   nsresult SetInitialChildList(nsIFrame*       aDelegatingFrame,
-                               nsIAtom*        aListName,
+                               ChildListID     aListID,
                                nsFrameList&    aChildList);
   nsresult AppendFrames(nsIFrame*      aDelegatingFrame,
-                        nsIAtom*       aListName,
+                        ChildListID    aListID,
                         nsFrameList&   aFrameList);
   nsresult InsertFrames(nsIFrame*      aDelegatingFrame,
-                        nsIAtom*       aListName,
+                        ChildListID    aListID,
                         nsIFrame*      aPrevFrame,
                         nsFrameList&   aFrameList);
   void RemoveFrame(nsIFrame*      aDelegatingFrame,
-                   nsIAtom*       aListName,
+                   ChildListID    aListID,
                    nsIFrame*      aOldFrame);
 
   
@@ -167,7 +168,7 @@ protected:
   nsFrameList mAbsoluteFrames;  
 
 #ifdef DEBUG
-  nsIAtom* const mChildListName; 
+  ChildListID const mChildListID; 
 
   
   void PrettyUC(nscoord aSize,

@@ -304,7 +304,7 @@ void nsListControlFrame::PaintFocus(nsRenderingContext& aRC, nsPoint aPt)
     if (!childframe) {
       
       
-      childframe = containerFrame->GetFirstChild(nsnull);
+      childframe = containerFrame->GetFirstPrincipalChild();
       if (childframe && !childframe->GetContent()->IsElement()) {
         childframe = nsnull;
       }
@@ -387,7 +387,7 @@ static nscoord
 GetMaxOptionHeight(nsIFrame* aContainer)
 {
   nscoord result = 0;
-  for (nsIFrame* option = aContainer->GetFirstChild(nsnull);
+  for (nsIFrame* option = aContainer->GetFirstPrincipalChild();
        option; option = option->GetNextSibling()) {
     nscoord optionHeight;
     if (nsCOMPtr<nsIDOMHTMLOptGroupElement>
@@ -1032,7 +1032,7 @@ nsListControlFrame::HandleEvent(nsPresContext* aPresContext,
 
 
 NS_IMETHODIMP
-nsListControlFrame::SetInitialChildList(nsIAtom*       aListName,
+nsListControlFrame::SetInitialChildList(ChildListID    aListID,
                                         nsFrameList&   aChildList)
 {
   
@@ -1041,7 +1041,7 @@ nsListControlFrame::SetInitialChildList(nsIAtom*       aListName,
     mIsAllFramesHere    = PR_FALSE;
     mHasBeenInitialized = PR_FALSE;
   }
-  nsresult rv = nsHTMLScrollFrame::SetInitialChildList(aListName, aChildList);
+  nsresult rv = nsHTMLScrollFrame::SetInitialChildList(aListID, aChildList);
 
   
   

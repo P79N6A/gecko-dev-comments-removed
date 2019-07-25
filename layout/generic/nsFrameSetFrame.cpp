@@ -476,18 +476,18 @@ nsHTMLFramesetFrame::Init(nsIContent*      aContent,
 }
 
 NS_IMETHODIMP
-nsHTMLFramesetFrame::SetInitialChildList(nsIAtom*     aListName,
+nsHTMLFramesetFrame::SetInitialChildList(ChildListID  aListID,
                                          nsFrameList& aChildList)
 {
   
   
   
   
-  if (!aListName && aChildList.IsEmpty()) {
+  if (aListID == kPrincipalList && aChildList.IsEmpty()) {
     return NS_OK;
   }
 
-  return nsHTMLContainerFrame::SetInitialChildList(aListName, aChildList);
+  return nsHTMLContainerFrame::SetInitialChildList(aListID, aChildList);
 }
 
 

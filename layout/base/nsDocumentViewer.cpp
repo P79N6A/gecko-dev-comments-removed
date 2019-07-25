@@ -3783,7 +3783,7 @@ DocumentViewerImpl::PrintPreviewNavigate(PRInt16 aType, PRInt32 aPageNum)
   
   
   nscoord gap = 0;
-  nsIFrame* pageFrame = seqFrame->GetFirstChild(nsnull);
+  nsIFrame* pageFrame = seqFrame->GetFirstPrincipalChild();
   while (pageFrame != nsnull) {
     nsRect pageRect = pageFrame->GetRect();
     if (pageNum == 1) {

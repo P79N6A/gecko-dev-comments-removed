@@ -661,7 +661,7 @@ nsSplitterFrameInner::MouseDown(nsIDOMEvent* aMouseEvent)
 
   
   nsPresContext* outerPresContext = mOuter->PresContext();
-  const nsFrameList& siblingList(mParentBox->GetChildList(nsnull));
+  const nsFrameList& siblingList(mParentBox->PrincipalChildList());
   PRInt32 childIndex = siblingList.IndexOf(mOuter);
   
   

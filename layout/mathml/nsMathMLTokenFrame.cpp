@@ -144,11 +144,11 @@ nsMathMLTokenFrame::Init(nsIContent*      aContent,
 }
 
 NS_IMETHODIMP
-nsMathMLTokenFrame::SetInitialChildList(nsIAtom*        aListName,
+nsMathMLTokenFrame::SetInitialChildList(ChildListID     aListID,
                                         nsFrameList&    aChildList)
 {
   
-  nsresult rv = nsMathMLContainerFrame::SetInitialChildList(aListName, aChildList);
+  nsresult rv = nsMathMLContainerFrame::SetInitialChildList(aListID, aChildList);
   if (NS_FAILED(rv))
     return rv;
 
@@ -171,7 +171,7 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
   aDesiredSize.mBoundingMetrics = nsBoundingMetrics();
 
   nsSize availSize(aReflowState.ComputedWidth(), NS_UNCONSTRAINEDSIZE);
-  nsIFrame* childFrame = GetFirstChild(nsnull);
+  nsIFrame* childFrame = GetFirstPrincipalChild();
   while (childFrame) {
     
     nsHTMLReflowMetrics childDesiredSize(aDesiredSize.mFlags
@@ -183,7 +183,7 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
     
     if (NS_FAILED(rv)) {
       
-      DidReflowChildren(GetFirstChild(nsnull), childFrame);
+      DidReflowChildren(GetFirstPrincipalChild(), childFrame);
       return rv;
     }
 
@@ -211,7 +211,7 @@ nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
                           nsHTMLReflowMetrics& aDesiredSize)
 {
   mBoundingMetrics = nsBoundingMetrics();
-  for (nsIFrame* childFrame = GetFirstChild(nsnull); childFrame;
+  for (nsIFrame* childFrame = GetFirstPrincipalChild(); childFrame;
        childFrame = childFrame->GetNextSibling()) {
     nsHTMLReflowMetrics childSize;
     GetReflowAndBoundingMetricsFor(childFrame, childSize,
@@ -233,7 +233,7 @@ nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
 
   if (aPlaceOrigin) {
     nscoord dy, dx = 0;
-    for (nsIFrame* childFrame = GetFirstChild(nsnull); childFrame;
+    for (nsIFrame* childFrame = GetFirstPrincipalChild(); childFrame;
          childFrame = childFrame->GetNextSibling()) {
       nsHTMLReflowMetrics childSize;
       GetReflowAndBoundingMetricsFor(childFrame, childSize,
@@ -404,7 +404,7 @@ SetQuote(nsIFrame* aFrame, nsString& aValue, PRBool aNotify)
   if (!aFrame)
     return;
 
-  nsIFrame* textFrame = aFrame->GetFirstChild(nsnull);
+  nsIFrame* textFrame = aFrame->GetFirstPrincipalChild();
   if (!textFrame)
     return;
 

@@ -491,7 +491,7 @@ nsComputedDOMStyle::GetPropertyCSSValue(const nsAString& aPropertyName,
       if (type == nsGkAtoms::tableOuterFrame) {
         
         
-        mInnerFrame = mOuterFrame->GetFirstChild(nsnull);
+        mInnerFrame = mOuterFrame->GetFirstPrincipalChild();
         NS_ASSERTION(mInnerFrame, "Outer table must have an inner");
         NS_ASSERTION(!mInnerFrame->GetNextSibling(),
                      "Outer table frames should have just one child, "
@@ -3188,7 +3188,7 @@ nsComputedDOMStyle::GetAbsoluteOffset(mozilla::css::Side aSide)
       
       
       
-      nsIFrame* scrollingChild = container->GetFirstChild(nsnull);
+      nsIFrame* scrollingChild = container->GetFirstPrincipalChild();
       nsIScrollableFrame *scrollFrame = do_QueryFrame(scrollingChild);
       if (scrollFrame) {
         scrollbarSizes = scrollFrame->GetActualScrollbarSizes();

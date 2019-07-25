@@ -384,7 +384,7 @@ nsAccessibilityService::CreateHTMLObjectFrameAccessible(nsObjectFrame* aFrame,
 
   
   
-  nsIFrame* frame = aFrame->GetFirstChild(nsnull);
+  nsIFrame* frame = aFrame->GetFirstPrincipalChild();
   return frame ? frame->CreateAccessible() : nsnull;
 }
 

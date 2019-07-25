@@ -723,7 +723,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
         pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock)
       break;
     
-    frameForArea = frameForArea->GetFirstChild(nsnull);
+    frameForArea = frameForArea->GetFirstPrincipalChild();
     NS_ASSERTION(frameForArea, "anonymous block with no children?");
   } while (frameForArea);
   nsRect innerRect; 
@@ -2571,7 +2571,7 @@ PrepareBackgroundLayer(nsPresContext* aPresContext,
       break;
     }
   } else if (frameType == nsGkAtoms::canvasFrame) {
-    geometryFrame = aForFrame->GetFirstChild(nsnull);
+    geometryFrame = aForFrame->GetFirstPrincipalChild();
     
     
     

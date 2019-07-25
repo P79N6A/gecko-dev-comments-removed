@@ -267,7 +267,7 @@ nsScrollbarButtonFrame::GetChildWithTag(nsPresContext* aPresContext,
                                         nsIFrame*& result)
 {
   
-  nsIFrame* childFrame = start->GetFirstChild(nsnull);
+  nsIFrame* childFrame = start->GetFirstPrincipalChild();
   while (nsnull != childFrame) 
   {    
     

@@ -429,7 +429,7 @@ nsBoxObject::GetFirstChild(nsIDOMElement * *aFirstVisibleChild)
   *aFirstVisibleChild = nsnull;
   nsIFrame* frame = GetFrame(PR_FALSE);
   if (!frame) return NS_OK;
-  nsIFrame* firstFrame = frame->GetFirstChild(nsnull);
+  nsIFrame* firstFrame = frame->GetFirstPrincipalChild();
   if (!firstFrame) return NS_OK;
   
   nsCOMPtr<nsIDOMElement> el = do_QueryInterface(firstFrame->GetContent());
@@ -476,7 +476,7 @@ nsBoxObject::GetPreviousSibling(nsIFrame* aParentFrame, nsIFrame* aFrame,
                                 nsIDOMElement** aResult)
 {
   *aResult = nsnull;
-  nsIFrame* nextFrame = aParentFrame->GetFirstChild(nsnull);
+  nsIFrame* nextFrame = aParentFrame->GetFirstPrincipalChild();
   nsIFrame* prevFrame = nsnull;
   while (nextFrame) {
     if (nextFrame == aFrame)

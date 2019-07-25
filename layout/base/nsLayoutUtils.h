@@ -105,7 +105,7 @@ public:
 
 
 
-  static nsIAtom* GetChildListNameFor(nsIFrame* aChildFrame);
+  static nsIFrame::ChildListID GetChildListNameFor(nsIFrame* aChildFrame);
 
   
 

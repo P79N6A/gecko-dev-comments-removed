@@ -163,10 +163,10 @@ nsBoxFrame::~nsBoxFrame()
 }
 
 NS_IMETHODIMP
-nsBoxFrame::SetInitialChildList(nsIAtom*        aListName,
+nsBoxFrame::SetInitialChildList(ChildListID     aListID,
                                 nsFrameList&    aChildList)
 {
-  nsresult r = nsContainerFrame::SetInitialChildList(aListName, aChildList);
+  nsresult r = nsContainerFrame::SetInitialChildList(aListID, aChildList);
   if (r == NS_OK) {
     
     nsBoxLayoutState state(PresContext());
@@ -995,10 +995,10 @@ nsBoxFrame::MarkIntrinsicWidthsDirty()
 }
 
 NS_IMETHODIMP
-nsBoxFrame::RemoveFrame(nsIAtom*        aListName,
+nsBoxFrame::RemoveFrame(ChildListID     aListID,
                         nsIFrame*       aOldFrame)
 {
-  NS_PRECONDITION(!aListName, "We don't support out-of-flow kids");
+  NS_PRECONDITION(aListID == kPrincipalList, "We don't support out-of-flow kids");
   nsPresContext* presContext = PresContext();
   nsBoxLayoutState state(presContext);
 
@@ -1020,7 +1020,7 @@ nsBoxFrame::RemoveFrame(nsIAtom*        aListName,
 }
 
 NS_IMETHODIMP
-nsBoxFrame::InsertFrames(nsIAtom*        aListName,
+nsBoxFrame::InsertFrames(ChildListID     aListID,
                          nsIFrame*       aPrevFrame,
                          nsFrameList&    aFrameList)
 {
@@ -1028,7 +1028,7 @@ nsBoxFrame::InsertFrames(nsIAtom*        aListName,
                 "inserting after sibling frame with different parent");
    NS_ASSERTION(!aPrevFrame || mFrames.ContainsFrame(aPrevFrame),
                 "inserting after sibling frame not in our child list");
-   NS_PRECONDITION(!aListName, "We don't support out-of-flow kids");
+   NS_PRECONDITION(aListID == kPrincipalList, "We don't support out-of-flow kids");
    nsBoxLayoutState state(PresContext());
 
    
@@ -1059,10 +1059,10 @@ nsBoxFrame::InsertFrames(nsIAtom*        aListName,
 
 
 NS_IMETHODIMP
-nsBoxFrame::AppendFrames(nsIAtom*        aListName,
+nsBoxFrame::AppendFrames(ChildListID     aListID,
                          nsFrameList&    aFrameList)
 {
-   NS_PRECONDITION(!aListName, "We don't support out-of-flow kids");
+   NS_PRECONDITION(aListID == kPrincipalList, "We don't support out-of-flow kids");
    nsBoxLayoutState state(PresContext());
 
    
@@ -1097,7 +1097,7 @@ nsBoxFrame::AppendFrames(nsIAtom*        aListName,
 nsBoxFrame::GetContentInsertionFrame()
 {
   if (GetStateBits() & NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK)
-    return GetFirstChild(nsnull)->GetContentInsertionFrame();
+    return GetFirstPrincipalChild()->GetContentInsertionFrame();
   return nsContainerFrame::GetContentInsertionFrame();
 }
 

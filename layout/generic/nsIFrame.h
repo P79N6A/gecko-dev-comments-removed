@@ -598,8 +598,7 @@ public:
 
 
 
-
-  NS_IMETHOD  SetInitialChildList(nsIAtom*        aListName,
+  NS_IMETHOD  SetInitialChildList(ChildListID     aListID,
                                   nsFrameList&    aChildList) = 0;
 
   
@@ -617,8 +616,7 @@ public:
 
 
 
-
-  NS_IMETHOD AppendFrames(nsIAtom*        aListName,
+  NS_IMETHOD AppendFrames(ChildListID     aListID,
                           nsFrameList&    aFrameList) = 0;
 
   
@@ -637,8 +635,7 @@ public:
 
 
 
-
-  NS_IMETHOD InsertFrames(nsIAtom*        aListName,
+  NS_IMETHOD InsertFrames(ChildListID     aListID,
                           nsIFrame*       aPrevFrame,
                           nsFrameList&    aFrameList) = 0;
 
@@ -657,8 +654,7 @@ public:
 
 
 
-
-  NS_IMETHOD RemoveFrame(nsIAtom*        aListName,
+  NS_IMETHOD RemoveFrame(ChildListID     aListID,
                          nsIFrame*       aOldFrame) = 0;
 
   
@@ -2597,7 +2593,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
   {
     
     
-    return IsBoxFrame() ? GetFirstChild(nsnull) : nsnull;
+    return IsBoxFrame() ? GetFirstPrincipalChild() : nsnull;
   }
   nsIBox* GetNextBox() const
   {

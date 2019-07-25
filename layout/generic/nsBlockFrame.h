@@ -84,11 +84,6 @@ class nsIntervalSet;
 
 
 
-#define NS_BLOCK_LIST_COUNT  (NS_CONTAINER_LIST_COUNT_INCL_OC + 5)
-
-
-
-
 
 
 
@@ -134,8 +129,6 @@ class nsIntervalSet;
 
 
 
-
-
  
 class nsBlockFrame : public nsBlockFrameSuper
 {
@@ -173,19 +166,19 @@ public:
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
-  NS_IMETHOD SetInitialChildList(nsIAtom*        aListName,
+  NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
-  NS_IMETHOD  AppendFrames(nsIAtom*        aListName,
+  NS_IMETHOD  AppendFrames(ChildListID     aListID,
                            nsFrameList&    aFrameList);
-  NS_IMETHOD  InsertFrames(nsIAtom*        aListName,
+  NS_IMETHOD  InsertFrames(ChildListID     aListID,
                            nsIFrame*       aPrevFrame,
                            nsFrameList&    aFrameList);
-  NS_IMETHOD  RemoveFrame(nsIAtom*        aListName,
+  NS_IMETHOD  RemoveFrame(ChildListID     aListID,
                           nsIFrame*       aOldFrame);
-  virtual nsFrameList GetChildList(nsIAtom* aListName) const;
+  virtual nsFrameList GetChildList(ChildListID aListID) const;
+  virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
   virtual nscoord GetBaseline() const;
   virtual nscoord GetCaretBaseline() const;
-  virtual nsIAtom* GetAdditionalChildListName(PRInt32 aIndex) const;
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
   virtual nsSplittableType GetSplittableType() const;
   virtual PRBool IsContainingBlock() const;
@@ -341,7 +334,7 @@ protected:
     : nsHTMLContainerFrame(aContext)
     , mMinWidth(NS_INTRINSIC_WIDTH_UNKNOWN)
     , mPrefWidth(NS_INTRINSIC_WIDTH_UNKNOWN)
-    , mAbsoluteContainer(nsGkAtoms::absoluteList)
+    , mAbsoluteContainer(kAbsoluteList)
   {
 #ifdef DEBUG
   InitDebugFlags();

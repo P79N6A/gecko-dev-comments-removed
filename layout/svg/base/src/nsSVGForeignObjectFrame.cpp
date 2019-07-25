@@ -202,7 +202,7 @@ nsSVGForeignObjectFrame::PaintSVG(nsSVGRenderState *aContext,
   if (IsDisabled())
     return NS_OK;
 
-  nsIFrame* kid = GetFirstChild(nsnull);
+  nsIFrame* kid = GetFirstPrincipalChild();
   if (!kid)
     return NS_OK;
 
@@ -287,7 +287,7 @@ nsSVGForeignObjectFrame::GetFrameForPoint(const nsPoint &aPoint)
   if (IsDisabled() || (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD))
     return nsnull;
 
-  nsIFrame* kid = GetFirstChild(nsnull);
+  nsIFrame* kid = GetFirstPrincipalChild();
   if (!kid)
     return nsnull;
 
@@ -490,7 +490,7 @@ void nsSVGForeignObjectFrame::RequestReflow(nsIPresShell::IntrinsicDirty aType)
     
     return;
 
-  nsIFrame* kid = GetFirstChild(nsnull);
+  nsIFrame* kid = GetFirstPrincipalChild();
   if (!kid)
     return;
 
@@ -519,7 +519,7 @@ nsSVGForeignObjectFrame::MaybeReflowFromOuterSVGFrame()
     return;
   }
 
-  nsIFrame* kid = GetFirstChild(nsnull);
+  nsIFrame* kid = GetFirstPrincipalChild();
 
   
   
@@ -555,7 +555,7 @@ nsSVGForeignObjectFrame::DoReflow()
     return;
 
   nsPresContext *presContext = PresContext();
-  nsIFrame* kid = GetFirstChild(nsnull);
+  nsIFrame* kid = GetFirstPrincipalChild();
   if (!kid)
     return;
 

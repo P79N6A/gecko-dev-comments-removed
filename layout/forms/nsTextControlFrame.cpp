@@ -268,7 +268,7 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
     
     
     nsMargin childPadding;
-    nsIFrame* firstChild = GetFirstChild(nsnull);
+    nsIFrame* firstChild = GetFirstPrincipalChild();
     if (firstChild && firstChild->GetStylePadding()->GetPadding(childPadding)) {
       aIntrinsicSize.width += childPadding.LeftRight();
     } else {
@@ -293,7 +293,7 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
 
   
   if (IsTextArea()) {
-    nsIFrame* first = GetFirstChild(nsnull);
+    nsIFrame* first = GetFirstPrincipalChild();
 
     nsIScrollableFrame *scrollableFrame = do_QueryFrame(first);
     NS_ASSERTION(scrollableFrame, "Child must be scrollable");
@@ -1416,12 +1416,12 @@ nsTextControlFrame::CheckFireOnChange()
 
 
 NS_IMETHODIMP
-nsTextControlFrame::SetInitialChildList(nsIAtom*        aListName,
+nsTextControlFrame::SetInitialChildList(ChildListID     aListID,
                                         nsFrameList&    aChildList)
 {
-  nsresult rv = nsBoxFrame::SetInitialChildList(aListName, aChildList);
+  nsresult rv = nsBoxFrame::SetInitialChildList(aListID, aChildList);
 
-  nsIFrame* first = GetFirstChild(nsnull);
+  nsIFrame* first = GetFirstPrincipalChild();
 
   
   

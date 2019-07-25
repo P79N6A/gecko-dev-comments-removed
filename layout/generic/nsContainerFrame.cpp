@@ -109,7 +109,7 @@ nsContainerFrame::Init(nsIContent* aContent,
 }
 
 NS_IMETHODIMP
-nsContainerFrame::SetInitialChildList(nsIAtom*     aListName,
+nsContainerFrame::SetInitialChildList(ChildListID  aListID,
                                       nsFrameList& aChildList)
 {
   nsresult  result;
@@ -118,7 +118,7 @@ nsContainerFrame::SetInitialChildList(nsIAtom*     aListName,
     
     NS_NOTREACHED("unexpected second call to SetInitialChildList");
     result = NS_ERROR_UNEXPECTED;
-  } else if (aListName) {
+  } else if (aListID != kPrincipalList) {
     
     NS_NOTREACHED("unknown frame list");
     result = NS_ERROR_INVALID_ARG;
@@ -133,12 +133,12 @@ nsContainerFrame::SetInitialChildList(nsIAtom*     aListName,
 }
 
 NS_IMETHODIMP
-nsContainerFrame::AppendFrames(nsIAtom*  aListName,
+nsContainerFrame::AppendFrames(ChildListID  aListID,
                                nsFrameList& aFrameList)
 {
-  if (nsnull != aListName) {
+  if (aListID != kPrincipalList) {
 #ifdef IBMBIDI
-    if (aListName != nsGkAtoms::nextBidi)
+    if (aListID != kNoReflowPrincipalList)
 #endif
     {
       NS_ERROR("unexpected child list");
@@ -150,7 +150,7 @@ nsContainerFrame::AppendFrames(nsIAtom*  aListName,
 
     
 #ifdef IBMBIDI
-    if (nsnull == aListName)
+    if (aListID == kPrincipalList)
 #endif
     {
       PresContext()->PresShell()->
@@ -162,16 +162,16 @@ nsContainerFrame::AppendFrames(nsIAtom*  aListName,
 }
 
 NS_IMETHODIMP
-nsContainerFrame::InsertFrames(nsIAtom*  aListName,
+nsContainerFrame::InsertFrames(ChildListID aListID,
                                nsIFrame* aPrevFrame,
                                nsFrameList& aFrameList)
 {
   NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == this,
                "inserting after sibling frame with different parent");
 
-  if (nsnull != aListName) {
+  if (aListID != kPrincipalList) {
 #ifdef IBMBIDI
-    if (aListName != nsGkAtoms::nextBidi)
+    if (aListID != kNoReflowPrincipalList)
 #endif
     {
       NS_ERROR("unexpected child list");
@@ -183,7 +183,7 @@ nsContainerFrame::InsertFrames(nsIAtom*  aListName,
     mFrames.InsertFrames(this, aPrevFrame, aFrameList);
 
 #ifdef IBMBIDI
-    if (nsnull == aListName)
+    if (aListID == kPrincipalList)
 #endif
     {
       PresContext()->PresShell()->
@@ -195,12 +195,12 @@ nsContainerFrame::InsertFrames(nsIAtom*  aListName,
 }
 
 NS_IMETHODIMP
-nsContainerFrame::RemoveFrame(nsIAtom*  aListName,
+nsContainerFrame::RemoveFrame(ChildListID aListID,
                               nsIFrame* aOldFrame)
 {
-  if (nsnull != aListName) {
+  if (aListID != kPrincipalList) {
 #ifdef IBMBIDI
-    if (nsGkAtoms::nextBidi != aListName)
+    if (kNoReflowPrincipalList != aListID)
 #endif
     {
       NS_ERROR("unexpected child list");
@@ -215,7 +215,7 @@ nsContainerFrame::RemoveFrame(nsIAtom*  aListName,
     
     PRBool generateReflowCommand = PR_TRUE;
 #ifdef IBMBIDI
-    if (nsGkAtoms::nextBidi == aListName) {
+    if (kNoReflowPrincipalList == aListID) {
       generateReflowCommand = PR_FALSE;
     }
 #endif
@@ -239,7 +239,7 @@ nsContainerFrame::RemoveFrame(nsIAtom*  aListName,
       } else {
         
         
-        parent->RemoveFrame(nsnull, aOldFrame);
+        parent->RemoveFrame(kPrincipalList, aOldFrame);
         break;
       }
       aOldFrame = oldFrameNextContinuation;

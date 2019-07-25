@@ -105,7 +105,7 @@ nsFirstLetterFrame::Init(nsIContent*      aContent,
 }
 
 NS_IMETHODIMP
-nsFirstLetterFrame::SetInitialChildList(nsIAtom*     aListName,
+nsFirstLetterFrame::SetInitialChildList(ChildListID  aListID,
                                         nsFrameList& aChildList)
 {
   nsFrameManager *frameManager = PresContext()->FrameManager();
@@ -354,7 +354,7 @@ nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresCont
   
   
   nsFrameList temp(continuation, continuation);
-  rv = parent->InsertFrames(nsGkAtoms::nextBidi, placeholderFrame, temp);
+  rv = parent->InsertFrames(kNoReflowPrincipalList, placeholderFrame, temp);
 
   *aContinuation = continuation;
   return rv;

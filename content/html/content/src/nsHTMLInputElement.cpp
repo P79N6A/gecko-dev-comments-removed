@@ -1707,7 +1707,7 @@ nsHTMLInputElement::Focus()
     
     nsIFrame* frame = GetPrimaryFrame();
     if (frame) {
-      nsIFrame* childFrame = frame->GetFirstChild(nsnull);
+      nsIFrame* childFrame = frame->GetFirstPrincipalChild();
       while (childFrame) {
         
         nsCOMPtr<nsIFormControl> formCtrl =

@@ -620,7 +620,7 @@ nsFileControlFrame::GetTextControlFrame(nsPresContext* aPresContext, nsIFrame* a
   nsNewFrame* result = nsnull;
 #ifndef DEBUG_NEWFRAME
   
-  nsIFrame* childFrame = aStart->GetFirstChild(nsnull);
+  nsIFrame* childFrame = aStart->GetFirstPrincipalChild();
 
   while (childFrame) {
     

@@ -1449,7 +1449,7 @@ nsGenericHTMLElement::GetFormControlFrame(PRBool aFlushFrames)
 
     
     
-    for (frame = frame->GetFirstChild(nsnull);
+    for (frame = frame->GetFirstPrincipalChild();
          frame;
          frame = frame->GetNextSibling()) {
       form_frame = do_QueryFrame(frame);

@@ -99,16 +99,16 @@ public:
   
   
   
-  NS_IMETHOD AppendFrames(nsIAtom*        aListName,
+  NS_IMETHOD AppendFrames(ChildListID     aListID,
                           nsFrameList&    aFrameList);
-  NS_IMETHOD InsertFrames(nsIAtom*        aListName,
+  NS_IMETHOD InsertFrames(ChildListID     aListID,
                           nsIFrame*       aPrevFrame,
                           nsFrameList&    aFrameList);
-  NS_IMETHOD RemoveFrame(nsIAtom*        aListName,
+  NS_IMETHOD RemoveFrame(ChildListID     aListID,
                          nsIFrame*       aOldFrame);
 
   virtual nsIFrame* GetContentInsertionFrame() {
-    return GetFirstChild(nsnull)->GetContentInsertionFrame();
+    return GetFirstPrincipalChild()->GetContentInsertionFrame();
   }
 
   virtual nsMargin GetUsedMargin() const;

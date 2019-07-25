@@ -254,7 +254,7 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsRenderingContext& aRenderingCo
     PRBool firstTime = PR_TRUE;
     nsBoundingMetrics bm, bmChild;
     nsIFrame* childFrame =
-      stretchAll ? GetFirstChild(nsnull) : mPresentationData.baseFrame;
+      stretchAll ? GetFirstPrincipalChild() : mPresentationData.baseFrame;
     while (childFrame) {
       
       nsIMathMLFrame* mathMLFrame = do_QueryFrame(childFrame);
@@ -512,7 +512,7 @@ nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
   
   
   if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
-    DidReflowChildren(GetFirstChild(nsnull));
+    DidReflowChildren(GetFirstPrincipalChild());
     return rv;
   }
 
@@ -559,7 +559,7 @@ nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
       {
         
         
-        nsIFrame* childFrame = GetFirstChild(nsnull);
+        nsIFrame* childFrame = GetFirstPrincipalChild();
         for ( ; childFrame; childFrame = childFrame->GetNextSibling()) {
           NS_ASSERTION(!(childFrame->GetStateBits() & NS_FRAME_IN_REFLOW),
                        "DidReflow() was never called");
@@ -615,7 +615,7 @@ nsMathMLContainerFrame::PropagatePresentationDataFor(nsIFrame*       aFrame,
   }
   else {
     
-    nsIFrame* childFrame = aFrame->GetFirstChild(nsnull);
+    nsIFrame* childFrame = aFrame->GetFirstPrincipalChild();
     while (childFrame) {
       PropagatePresentationDataFor(childFrame,
         aFlagsValues, aFlagsToUpdate);
@@ -634,7 +634,7 @@ nsMathMLContainerFrame::PropagatePresentationDataFromChildAt(nsIFrame*       aPa
   if (!aParentFrame || !aFlagsToUpdate)
     return;
   PRInt32 index = 0;
-  nsIFrame* childFrame = aParentFrame->GetFirstChild(nsnull);
+  nsIFrame* childFrame = aParentFrame->GetFirstPrincipalChild();
   while (childFrame) {
     if ((index >= aFirstChildIndex) &&
         ((aLastChildIndex <= 0) || ((aLastChildIndex > 0) &&
@@ -696,7 +696,7 @@ nsMathMLContainerFrame::RebuildAutomaticDataForChildren(nsIFrame* aParentFrame)
   
   
   
-  nsIFrame* childFrame = aParentFrame->GetFirstChild(nsnull);
+  nsIFrame* childFrame = aParentFrame->GetFirstPrincipalChild();
   while (childFrame) {
     nsIMathMLFrame* childMathMLFrame = do_QueryFrame(childFrame);
     if (childMathMLFrame) {
@@ -794,10 +794,10 @@ nsMathMLContainerFrame::ChildListChanged(PRInt32 aModType)
 }
 
 NS_IMETHODIMP
-nsMathMLContainerFrame::AppendFrames(nsIAtom*        aListName,
+nsMathMLContainerFrame::AppendFrames(ChildListID     aListID,
                                      nsFrameList&    aFrameList)
 {
-  if (aListName) {
+  if (aListID != kPrincipalList) {
     return NS_ERROR_INVALID_ARG;
   }
   mFrames.AppendFrames(this, aFrameList);
@@ -805,11 +805,11 @@ nsMathMLContainerFrame::AppendFrames(nsIAtom*        aListName,
 }
 
 NS_IMETHODIMP
-nsMathMLContainerFrame::InsertFrames(nsIAtom*        aListName,
+nsMathMLContainerFrame::InsertFrames(ChildListID     aListID,
                                      nsIFrame*       aPrevFrame,
                                      nsFrameList&    aFrameList)
 {
-  if (aListName) {
+  if (aListID != kPrincipalList) {
     return NS_ERROR_INVALID_ARG;
   }
   
@@ -818,10 +818,10 @@ nsMathMLContainerFrame::InsertFrames(nsIAtom*        aListName,
 }
 
 NS_IMETHODIMP
-nsMathMLContainerFrame::RemoveFrame(nsIAtom*        aListName,
+nsMathMLContainerFrame::RemoveFrame(ChildListID     aListID,
                                     nsIFrame*       aOldFrame)
 {
-  if (aListName) {
+  if (aListID != kPrincipalList) {
     return NS_ERROR_INVALID_ARG;
   }
   
@@ -1337,7 +1337,7 @@ static ForceReflow gForceReflow;
 void
 nsMathMLContainerFrame::SetIncrementScriptLevel(PRInt32 aChildIndex, PRBool aIncrement)
 {
-  nsIFrame* child = GetChildList(nsnull).FrameAt(aChildIndex);
+  nsIFrame* child = PrincipalChildList().FrameAt(aChildIndex);
   if (!child)
     return;
   nsIContent* content = child->GetContent();
@@ -1362,7 +1362,7 @@ GetInterFrameSpacingFor(PRInt32         aScriptLevel,
                         nsIFrame*       aParentFrame,
                         nsIFrame*       aChildFrame)
 {
-  nsIFrame* childFrame = aParentFrame->GetFirstChild(nsnull);
+  nsIFrame* childFrame = aParentFrame->GetFirstPrincipalChild();
   if (!childFrame || aChildFrame == childFrame)
     return 0;
 
@@ -1437,7 +1437,7 @@ nsMathMLContainerFrame::DidReflowChildren(nsIFrame* aFirst, nsIFrame* aStop)
     NS_ASSERTION(frame, "aStop isn't a sibling");
     if (frame->GetStateBits() & NS_FRAME_IN_REFLOW) {
       
-      nsIFrame* grandchild = frame->GetFirstChild(nsnull);
+      nsIFrame* grandchild = frame->GetFirstPrincipalChild();
       if (grandchild)
         DidReflowChildren(grandchild, nsnull);
 
@@ -1475,7 +1475,7 @@ nsMathMLContainerFrame::TransmitAutomaticDataForMrowLikeElement()
   PRBool embellishedOpFound = PR_FALSE;
   nsEmbellishData embellishData;
   
-  for (childFrame = GetFirstChild(nsnull);
+  for (childFrame = GetFirstPrincipalChild();
        childFrame;
        childFrame = childFrame->GetNextSibling()) {
     nsIMathMLFrame* mathMLFrame = do_QueryFrame(childFrame);

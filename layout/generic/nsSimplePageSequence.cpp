@@ -588,7 +588,7 @@ nsSimplePageSequenceFrame::PrintNextPage()
     height -= mMargin.top + mMargin.bottom;
     width  -= mMargin.left + mMargin.right;
     nscoord selectionY = height;
-    nsIFrame* conFrame = mCurrentPageFrame->GetFirstChild(nsnull);
+    nsIFrame* conFrame = mCurrentPageFrame->GetFirstPrincipalChild();
     if (mSelectionHeight >= 0) {
       conFrame->SetPosition(conFrame->GetPosition() + nsPoint(0, -mYSelOffset));
       nsContainerFrame::PositionChildViews(conFrame);
@@ -680,7 +680,7 @@ nsSimplePageSequenceFrame::PaintPageSequence(nsRenderingContext& aRenderingConte
 
   
   
-  nsIFrame* child = GetFirstChild(nsnull);
+  nsIFrame* child = GetFirstPrincipalChild();
   while (child) {
     nsPoint pt = child->GetPosition();
     

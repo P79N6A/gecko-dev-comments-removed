@@ -165,8 +165,8 @@ nsPlaceholderFrame::DestroyFrom(nsIFrame* aDestructRoot)
     if (shell->FrameManager() &&
         ((GetStateBits() & PLACEHOLDER_FOR_POPUP) ||
          !nsLayoutUtils::IsProperAncestorFrame(aDestructRoot, oof))) {
-      nsIAtom* listName = nsLayoutUtils::GetChildListNameFor(oof);
-      shell->FrameManager()->RemoveFrame(listName, oof);
+      ChildListID listId = nsLayoutUtils::GetChildListNameFor(oof);
+      shell->FrameManager()->RemoveFrame(listId, oof);
     }
     
   }

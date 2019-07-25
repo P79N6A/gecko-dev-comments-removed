@@ -59,14 +59,6 @@ class nsStyleContext;
 struct nsTableReflowState;
 struct nsStylePosition;
 
-
-
-
-
-#define NS_TABLE_FRAME_COLGROUP_LIST_INDEX 0
-#define NS_TABLE_FRAME_OVERFLOW_LIST_INDEX 1
-#define NS_TABLE_FRAME_LAST_LIST_INDEX    NS_TABLE_FRAME_OVERFLOW_LIST_INDEX
-
 static inline PRBool IS_TABLE_CELL(nsIAtom* frameType) {
   return nsGkAtoms::tableCellFrame == frameType ||
     nsGkAtoms::bcTableCellFrame == frameType;
@@ -124,8 +116,6 @@ private:
   nsDisplayTableItem*   mPushedItem;
 #endif
 };
-
-
 
 
 
@@ -195,12 +185,12 @@ public:
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
-  NS_IMETHOD AppendFrames(nsIAtom*        aListName,
+  NS_IMETHOD AppendFrames(ChildListID     aListID,
                           nsFrameList&    aFrameList);
-  NS_IMETHOD InsertFrames(nsIAtom*        aListName,
+  NS_IMETHOD InsertFrames(ChildListID     aListID,
                           nsIFrame*       aPrevFrame,
                           nsFrameList&    aFrameList);
-  NS_IMETHOD RemoveFrame(nsIAtom*        aListName,
+  NS_IMETHOD RemoveFrame(ChildListID     aListID,
                          nsIFrame*       aOldFrame);
 
   virtual nsMargin GetUsedBorder() const;
@@ -251,13 +241,11 @@ public:
   
 
 
-  NS_IMETHOD SetInitialChildList(nsIAtom*        aListName,
+  NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
 
-  virtual nsFrameList GetChildList(nsIAtom* aListName) const;
-
-  
-  virtual nsIAtom* GetAdditionalChildListName(PRInt32 aIndex) const;
+  virtual nsFrameList GetChildList(ChildListID aListID) const;
+  virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,

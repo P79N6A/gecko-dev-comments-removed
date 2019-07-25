@@ -129,7 +129,7 @@ nsTableCaptionFrame::GetParentStyleContextFrame(nsPresContext* aPresContext,
   
   nsIFrame* outerFrame = GetParent();
   if (outerFrame && outerFrame->GetType() == nsGkAtoms::tableOuterFrame) {
-    nsIFrame* innerFrame = outerFrame->GetFirstChild(nsnull);
+    nsIFrame* innerFrame = outerFrame->GetFirstPrincipalChild();
     if (innerFrame) {
       *aProviderFrame =
         nsFrame::CorrectStyleParentFrame(innerFrame,
@@ -239,16 +239,16 @@ nsTableOuterFrame::GetChildLists(nsTArray<ChildList>* aLists) const
 }
 
 NS_IMETHODIMP 
-nsTableOuterFrame::SetInitialChildList(nsIAtom*        aListName,
+nsTableOuterFrame::SetInitialChildList(ChildListID     aListID,
                                        nsFrameList&    aChildList)
 {
-  if (nsGkAtoms::captionList == aListName) {
+  if (kCaptionList == aListID) {
     
     mCaptionFrames.SetFrames(aChildList);
     mCaptionFrame = mCaptionFrames.FirstChild();
   }
   else {
-    NS_ASSERTION(!aListName, "wrong childlist");
+    NS_ASSERTION(aListID == kPrincipalList, "wrong childlist");
     NS_ASSERTION(mFrames.IsEmpty(), "Frame leak!");
     mInnerTableFrame = nsnull;
     if (aChildList.NotEmpty()) {
@@ -267,14 +267,14 @@ nsTableOuterFrame::SetInitialChildList(nsIAtom*        aListName,
 }
 
 NS_IMETHODIMP
-nsTableOuterFrame::AppendFrames(nsIAtom*        aListName,
+nsTableOuterFrame::AppendFrames(ChildListID     aListID,
                                 nsFrameList&    aFrameList)
 {
   nsresult rv;
 
   
   
-  if (nsGkAtoms::captionList == aListName) {
+  if (kCaptionList == aListID) {
     NS_ASSERTION(aFrameList.IsEmpty() ||
                  aFrameList.FirstChild()->GetType() == nsGkAtoms::tableCaptionFrame,
                  "appending non-caption frame to captionList");
@@ -297,11 +297,11 @@ nsTableOuterFrame::AppendFrames(nsIAtom*        aListName,
 }
 
 NS_IMETHODIMP
-nsTableOuterFrame::InsertFrames(nsIAtom*        aListName,
+nsTableOuterFrame::InsertFrames(ChildListID     aListID,
                                 nsIFrame*       aPrevFrame,
                                 nsFrameList&    aFrameList)
 {
-  if (nsGkAtoms::captionList == aListName) {
+  if (kCaptionList == aListID) {
     NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == this,
                  "inserting after sibling frame with different parent");
     NS_ASSERTION(aFrameList.IsEmpty() ||
@@ -319,17 +319,17 @@ nsTableOuterFrame::InsertFrames(nsIAtom*        aListName,
   }
   else {
     NS_PRECONDITION(!aPrevFrame, "invalid previous frame");
-    return AppendFrames(aListName, aFrameList);
+    return AppendFrames(aListID, aFrameList);
   }
 }
 
 NS_IMETHODIMP
-nsTableOuterFrame::RemoveFrame(nsIAtom*        aListName,
+nsTableOuterFrame::RemoveFrame(ChildListID     aListID,
                                nsIFrame*       aOldFrame)
 {
   
   
-  NS_PRECONDITION(nsGkAtoms::captionList == aListName, "can't remove inner frame");
+  NS_PRECONDITION(kCaptionList == aListID, "can't remove inner frame");
 
   if (HasSideCaption()) {
     

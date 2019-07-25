@@ -945,7 +945,7 @@ void nsAccessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame
                                         nsAccessibilityAtoms::inlineFrame)) {
       
       
-      iterNextFrame = iterFrame->GetFirstChild(nsnull);
+      iterNextFrame = iterFrame->GetFirstPrincipalChild();
     }
 
     if (iterNextFrame) 

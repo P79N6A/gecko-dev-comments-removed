@@ -377,13 +377,13 @@ SplitInlineAncestors(nsIFrame*     aFrame)
     }
     
     
-    rv = newParent->InsertFrames(nsGkAtoms::nextBidi, nsnull, tail);
+    rv = newParent->InsertFrames(nsIFrame::kNoReflowPrincipalList, nsnull, tail);
     if (NS_FAILED(rv)) {
       return rv;
     }
     
     nsFrameList temp(newParent, newParent);
-    rv = grandparent->InsertFrames(nsGkAtoms::nextBidi, parent, temp);
+    rv = grandparent->InsertFrames(nsIFrame::kNoReflowPrincipalList, parent, temp);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -467,7 +467,7 @@ CreateContinuation(nsIFrame*  aFrame,
   
   
   nsFrameList temp(*aNewFrame, *aNewFrame);
-  rv = parent->InsertFrames(nsGkAtoms::nextBidi, aFrame, temp);
+  rv = parent->InsertFrames(nsIFrame::kNoReflowPrincipalList, aFrame, temp);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -540,7 +540,7 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
     block->RemoveStateBits(NS_BLOCK_NEEDS_BIDI_RESOLUTION);
     nsBlockInFlowLineIterator lineIter(block, block->begin_lines(), PR_FALSE);
     bpd.mPrevFrame = nsnull;
-    TraverseFrames(aBlockFrame, &lineIter, block->GetFirstChild(nsnull), &bpd);
+    TraverseFrames(aBlockFrame, &lineIter, block->GetFirstPrincipalChild(), &bpd);
   }
 
   if (ch != 0) {
@@ -790,7 +790,7 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
 
 
 PRBool IsBidiLeaf(nsIFrame* aFrame) {
-  nsIFrame* kid = aFrame->GetFirstChild(nsnull);
+  nsIFrame* kid = aFrame->GetFirstPrincipalChild();
   return !kid
     || !aFrame->IsFrameOfType(nsIFrame::eBidiInlineContainer);
 }
@@ -999,7 +999,7 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
     }
     else {
       
-      nsIFrame* kid = frame->GetFirstChild(nsnull);
+      nsIFrame* kid = frame->GetFirstPrincipalChild();
       TraverseFrames(aBlockFrame, aLineIter, kid, aBpd);
     }
 
@@ -1028,7 +1028,7 @@ nsBidiPresUtils::ReorderFrames(nsIFrame*            aFirstFrameOnLine,
 {
   
   if (aFirstFrameOnLine->GetType() == nsGkAtoms::lineFrame) {
-    aFirstFrameOnLine = aFirstFrameOnLine->GetFirstChild(nsnull);
+    aFirstFrameOnLine = aFirstFrameOnLine->GetFirstPrincipalChild();
     if (!aFirstFrameOnLine)
       return;
     
@@ -1045,7 +1045,7 @@ nsBidiPresUtils::GetFrameEmbeddingLevel(nsIFrame* aFrame)
 {
   nsIFrame* firstLeaf = aFrame;
   while (!IsBidiLeaf(firstLeaf)) {
-    nsIFrame* firstChild = firstLeaf->GetFirstChild(nsnull);
+    nsIFrame* firstChild = firstLeaf->GetFirstPrincipalChild();
     nsIFrame* realFrame = nsPlaceholderFrame::GetRealFrameFor(firstChild);
     firstLeaf = (realFrame->GetType() == nsGkAtoms::letterFrame) ?
                  realFrame : firstChild;
@@ -1058,7 +1058,7 @@ nsBidiPresUtils::GetFrameBaseLevel(nsIFrame* aFrame)
 {
   nsIFrame* firstLeaf = aFrame;
   while (!IsBidiLeaf(firstLeaf)) {
-    firstLeaf = firstLeaf->GetFirstChild(nsnull);
+    firstLeaf = firstLeaf->GetFirstPrincipalChild();
   }
   return NS_GET_BASE_LEVEL(firstLeaf);
 }
@@ -1207,7 +1207,7 @@ nsBidiPresUtils::RepositionFrame(nsIFrame*              aFrame,
     
     
     nsTArray<nsIFrame*> childList;
-    nsIFrame *frame = aFrame->GetFirstChild(nsnull);
+    nsIFrame *frame = aFrame->GetFirstPrincipalChild();
     if (frame && aIsOddLevel) {
       childList.AppendElement((nsIFrame*)nsnull);
       while (frame) {
@@ -1255,7 +1255,7 @@ nsBidiPresUtils::InitContinuationStates(nsIFrame*              aFrame,
   if (!IsBidiLeaf(aFrame)) {
     
     nsIFrame* frame;
-    for (frame = aFrame->GetFirstChild(nsnull);
+    for (frame = aFrame->GetFirstPrincipalChild();
          frame;
          frame = frame->GetNextSibling()) {
       InitContinuationStates(frame,
