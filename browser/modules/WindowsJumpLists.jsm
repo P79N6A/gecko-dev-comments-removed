@@ -141,7 +141,7 @@ var tasksCfg = [
     get title()       _getString("taskbar.tasks.newTab.label"),
     get description() _getString("taskbar.tasks.newTab.description"),
     args:             "-new-tab about:blank",
-    iconIndex:        0, 
+    iconIndex:        3, 
     open:             true,
     close:            true, 
                             
@@ -153,7 +153,7 @@ var tasksCfg = [
     get title()       _getString("taskbar.tasks.newWindow.label"),
     get description() _getString("taskbar.tasks.newWindow.description"),
     args:             "-browser",
-    iconIndex:        0, 
+    iconIndex:        2, 
     open:             true,
     close:            true, 
                             
@@ -174,7 +174,7 @@ var tasksCfg = [
         return _getString("taskbar.tasks.enterPrivacyMode.description");
     },
     args:             "-private-toggle",
-    iconIndex:        0, 
+    iconIndex:        4, 
     get open() {
       
       return !_privateBrowsingSvc.autoStarted;
