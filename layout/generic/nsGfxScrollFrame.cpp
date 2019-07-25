@@ -82,6 +82,7 @@
 #include "mozilla/dom/Element.h"
 #include "FrameLayerBuilder.h"
 #include "nsSMILKeySpline.h"
+#include "nsSubDocumentFrame.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -196,16 +197,20 @@ nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
       nsRect damage = aDamageRect + nsPoint(aX, aY);
       
       nsRect parentDamage;
-      
-      
-      
-      nsRect displayport;
-      bool usingDisplayport = nsLayoutUtils::GetDisplayPort(GetContent(),
-                                                              &displayport);
-      if (usingDisplayport) {
-        parentDamage.IntersectRect(damage, displayport);
+      if (mInner.IsIgnoringViewportClipping()) {
+        parentDamage = damage;
       } else {
-        parentDamage.IntersectRect(damage, mInner.mScrollPort);
+        
+        
+        
+        nsRect displayport;
+        bool usingDisplayport = nsLayoutUtils::GetDisplayPort(GetContent(),
+                                                                &displayport);
+        if (usingDisplayport) {
+          parentDamage.IntersectRect(damage, displayport);
+        } else {
+          parentDamage.IntersectRect(damage, mInner.mScrollPort);
+        }
       }
 
       if (IsScrollingActive()) {
@@ -283,7 +288,7 @@ struct ScrollReflowState {
   nsMargin mComputedBorder;
 
   
-  nsRect mContentsOverflowArea;
+  nsOverflowAreas mContentsOverflowAreas;
   bool mReflowedContentsWithHScrollbar;
   bool mReflowedContentsWithVScrollbar;
 
@@ -427,7 +432,8 @@ nsHTMLScrollFrame::TryLayout(ScrollReflowState* aState,
                                                                                 
   if (!aForce) {
     nsRect scrolledRect =
-      mInner.GetScrolledRectInternal(aState->mContentsOverflowArea, scrollPortSize);
+      mInner.GetScrolledRectInternal(aState->mContentsOverflowAreas.ScrollableOverflow(),
+                                     scrollPortSize);
     nscoord oneDevPixel = aState->mBoxState.PresContext()->DevPixelsToAppUnits(1);
 
     
@@ -566,7 +572,7 @@ nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowState* aState,
   
   aMetrics->UnionOverflowAreasWithDesiredBounds();
 
-  aState->mContentsOverflowArea = aMetrics->ScrollableOverflow();
+  aState->mContentsOverflowAreas = aMetrics->mOverflowAreas;
   aState->mReflowedContentsWithHScrollbar = aAssumeHScroll;
   aState->mReflowedContentsWithVScrollbar = aAssumeVScroll;
   
@@ -718,7 +724,9 @@ nsHTMLScrollFrame::PlaceScrollArea(const ScrollReflowState& aState,
   nsRect scrolledArea;
   
   nsSize portSize = mInner.mScrollPort.Size();
-  nsRect scrolledRect = mInner.GetScrolledRectInternal(aState.mContentsOverflowArea, portSize);
+  nsRect scrolledRect =
+    mInner.GetScrolledRectInternal(aState.mContentsOverflowAreas.ScrollableOverflow(),
+                                   portSize);
   scrolledArea.UnionRectEdges(scrolledRect,
                               nsRect(nsPoint(0,0), portSize));
 
@@ -925,6 +933,10 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
     state.mComputedBorder.TopBottom();
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
+  if (mInner.IsIgnoringViewportClipping()) {
+    aDesiredSize.mOverflowAreas.UnionWith(
+      state.mContentsOverflowAreas + mInner.mScrolledFrame->GetPosition());
+  }
 
   CheckInvalidateSizeChange(aDesiredSize);
 
@@ -1687,6 +1699,15 @@ InvalidateFixedBackgroundFrames(nsIFrame* aRootFrame,
   list.DeleteAll();
 }
 
+bool nsGfxScrollFrameInner::IsIgnoringViewportClipping() const
+{
+  if (!mIsRoot)
+    return false;
+  nsSubDocumentFrame* subdocFrame = static_cast<nsSubDocumentFrame*>
+    (nsLayoutUtils::GetCrossDocParentFrame(mOuter->PresContext()->PresShell()->GetRootFrame()));
+  return subdocFrame && !subdocFrame->ShouldClipSubdocument();
+}
+
 bool nsGfxScrollFrameInner::IsAlwaysActive() const
 {
   
@@ -1721,7 +1742,7 @@ void nsGfxScrollFrameInner::MarkActive()
   }
 }
 
-void nsGfxScrollFrameInner::ScrollVisual()
+void nsGfxScrollFrameInner::ScrollVisual(nsPoint aOldScrolledFramePos)
 {
   nsRootPresContext* rootPresContext = mOuter->PresContext()->GetRootPresContext();
   if (!rootPresContext) {
@@ -1748,9 +1769,15 @@ void nsGfxScrollFrameInner::ScrollVisual()
   }
 
   nsRect invalidateRect, displayport;
-  invalidateRect =
-    (nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayport)) ?
-    displayport : mScrollPort;
+  if (IsIgnoringViewportClipping()) {
+    nsRect visualOverflow = mScrolledFrame->GetVisualOverflowRect();
+    invalidateRect.UnionRect(visualOverflow + mScrolledFrame->GetPosition(),
+            visualOverflow + aOldScrolledFramePos);
+  } else {
+    invalidateRect =
+      (nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayport)) ?
+      displayport : mScrollPort;
+  }
 
   mOuter->InvalidateWithFlags(invalidateRect, flags);
 
@@ -1820,12 +1847,13 @@ nsGfxScrollFrameInner::ScrollToImpl(nsPoint aPt)
   for (PRUint32 i = 0; i < mListeners.Length(); i++) {
     mListeners[i]->ScrollPositionWillChange(pt.x, pt.y);
   }
-  
+
+  nsPoint oldScrollFramePos = mScrolledFrame->GetPosition();
   
   mScrolledFrame->SetPosition(mScrollPort.TopLeft() - pt);
 
   
-  ScrollVisual();
+  ScrollVisual(oldScrollFramePos);
 
   presContext->PresShell()->SynthesizeMouseMove(true);
   UpdateScrollbarPosition();
@@ -1937,7 +1965,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
   }
 
-  if (aBuilder->GetIgnoreScrollFrame() == mOuter) {
+  if (aBuilder->GetIgnoreScrollFrame() == mOuter || IsIgnoringViewportClipping()) {
     
     
     

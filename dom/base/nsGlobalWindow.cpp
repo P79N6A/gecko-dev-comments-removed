@@ -1273,6 +1273,11 @@ nsGlobalWindow::FreeInnerObjects(bool aClearScope)
   NS_ASSERTION(IsInnerWindow(), "Don't free inner objects on an outer window");
 
   
+  
+  
+  NotifyDOMWindowDestroyed(this);
+
+  
   nsIScriptContext *scx = GetContextInternal();
   JSContext *cx = scx ? scx->GetNativeContext() : nsnull;
   mozilla::dom::workers::CancelWorkersForWindow(cx, this);
@@ -1296,6 +1301,11 @@ nsGlobalWindow::FreeInnerObjects(bool aClearScope)
   mLocation = nsnull;
   mHistory = nsnull;
 
+  if (mNavigator) {
+    mNavigator->Invalidate();
+    mNavigator = nsnull;
+  }
+
   if (mDocument) {
     NS_ASSERTION(mDoc, "Why is mDoc null?");
 
@@ -1307,9 +1317,6 @@ nsGlobalWindow::FreeInnerObjects(bool aClearScope)
   if (mDocument)
     nsCycleCollector_DEBUG_shouldBeFreed(nsCOMPtr<nsISupports>(do_QueryInterface(mDocument)));
 #endif
-
-  
-  NotifyDOMWindowDestroyed(this);
 
   
   mDocument = nsnull;
@@ -1733,7 +1740,6 @@ public:
 
   WindowStateHolder(nsGlobalWindow *aWindow,
                     nsIXPConnectJSObjectHolder *aHolder,
-                    Navigator *aNavigator,
                     nsIXPConnectJSObjectHolder *aOuterProto,
                     nsIXPConnectJSObjectHolder *aOuterRealProto);
 
@@ -1741,7 +1747,6 @@ public:
   nsIXPConnectJSObjectHolder *GetInnerWindowHolder()
   { return mInnerWindowHolder; }
 
-  Navigator* GetNavigator() { return mNavigator; }
   nsIXPConnectJSObjectHolder* GetOuterProto() { return mOuterProto; }
   nsIXPConnectJSObjectHolder* GetOuterRealProto() { return mOuterRealProto; }
 
@@ -1750,7 +1755,6 @@ public:
     mInnerWindow = nsnull;
 
     mInnerWindowHolder = nsnull;
-    mNavigator = nsnull;
     mOuterProto = nsnull;
     mOuterRealProto = nsnull;
   }
@@ -1762,7 +1766,6 @@ protected:
   
   
   nsCOMPtr<nsIXPConnectJSObjectHolder> mInnerWindowHolder;
-  nsRefPtr<Navigator> mNavigator;
   nsCOMPtr<nsIXPConnectJSObjectHolder> mOuterProto;
   nsCOMPtr<nsIXPConnectJSObjectHolder> mOuterRealProto;
 };
@@ -1771,11 +1774,9 @@ NS_DEFINE_STATIC_IID_ACCESSOR(WindowStateHolder, WINDOWSTATEHOLDER_IID)
 
 WindowStateHolder::WindowStateHolder(nsGlobalWindow *aWindow,
                                      nsIXPConnectJSObjectHolder *aHolder,
-                                     Navigator *aNavigator,
                                      nsIXPConnectJSObjectHolder *aOuterProto,
                                      nsIXPConnectJSObjectHolder *aOuterRealProto)
   : mInnerWindow(aWindow),
-    mNavigator(aNavigator),
     mOuterProto(aOuterProto),
     mOuterRealProto(aOuterRealProto)
 {
@@ -1933,32 +1934,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   
   
   
-  if (!reUseInnerWindow && mNavigator && oldPrincipal) {
-    bool equal;
-    rv = oldPrincipal->Equals(aDocument->NodePrincipal(), &equal);
-
-    if (NS_FAILED(rv) || !equal) {
-      
-      
-      
-      mNavigator->SetDocShell(nsnull);
-
-      mNavigator = nsnull;
-    }
-  }
-
-  if (mNavigator && aDocument != oldDoc) {
-    
-    
-    
-    
-
-    mNavigator->LoadingNewDocument();
-  }
-
-  
-  
-  
   mDocument = do_QueryInterface(aDocument);
   mDoc = aDocument;
 
@@ -1973,8 +1948,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   nsRefPtr<nsGlobalWindow> newInnerWindow;
 
   bool thisChrome = IsChromeWindow();
-  nsCOMPtr<nsIXPConnectJSObjectHolder> navigatorHolder;
-  jsval nav;
 
   bool isChrome = false;
 
@@ -1994,11 +1967,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   
   mContext->ClearScope(mJSObject, false);
 
-  
-  
-  
-  nsIXPConnect *xpc = nsContentUtils::XPConnect();
-  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
   if (reUseInnerWindow) {
     
     NS_ASSERTION(!currentInner->IsFrozen(),
@@ -2023,15 +1991,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       mInnerWindowHolder = wsh->GetInnerWindowHolder();
       
       NS_ASSERTION(newInnerWindow, "Got a state without inner window");
-
-      
-      mNavigator = wsh->GetNavigator();
-
-      if (mNavigator) {
-        
-        mNavigator->SetDocShell(mDocShell);
-        mNavigator->LoadingNewDocument();
-      }
     } else if (thisChrome) {
       newInnerWindow = new nsGlobalChromeWindow(this);
       isChrome = true;
@@ -2039,21 +1998,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       newInnerWindow = new nsGlobalModalWindow(this);
     } else {
       newInnerWindow = new nsGlobalWindow(this);
-    }
-
-    if (currentInner && currentInner->mJSObject) {
-      if (mNavigator && !aState) {
-        
-        
-        
-        
-
-        nsIDOMNavigator* navigator =
-          static_cast<nsIDOMNavigator*>(mNavigator.get());
-        nsContentUtils::WrapNative(cx, currentInner->mJSObject, navigator,
-                                   &NS_GET_IID(nsIDOMNavigator), &nav,
-                                   getter_AddRefs(navigatorHolder));
-      }
     }
 
     if (!aState) {
@@ -2289,33 +2233,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       
       rv = mContext->InitClasses(newInnerWindow->mJSObject);
       NS_ENSURE_SUCCESS(rv, rv);
-
-      if (navigatorHolder) {
-        JS_ASSERT(JSVAL_IS_OBJECT(nav));
-
-        if (js::GetObjectCompartment(JSVAL_TO_OBJECT(nav)) ==
-            js::GetObjectCompartment(newInnerWindow->mJSObject)) {
-          
-
-          ::JS_DefineProperty(cx, newInnerWindow->mJSObject, "navigator",
-                              nav, nsnull, nsnull,
-                              JSPROP_ENUMERATE | JSPROP_PERMANENT |
-                              JSPROP_READONLY);
-
-          
-          
-          
-          
-          nsIDOMNavigator* navigator =
-            static_cast<nsIDOMNavigator*>(mNavigator);
-
-          xpc->
-            ReparentWrappedNativeIfFound(cx, JSVAL_TO_OBJECT(nav),
-                                         newInnerWindow->mJSObject,
-                                         navigator,
-                                         getter_AddRefs(navigatorHolder));
-        }
-      }
     }
 
     if (mArguments) {
@@ -2502,8 +2419,8 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
 
   mDocShell = aDocShell;        
 
-  if (mNavigator)
-    mNavigator->SetDocShell(aDocShell);
+  NS_ASSERTION(!mNavigator, "Non-null mNavigator in outer window!");
+
   if (mFrames)
     mFrames->SetDocShell(aDocShell);
   if (mScreen)
@@ -2999,12 +2916,12 @@ nsGlobalWindow::GetSelf(nsIDOMWindow** aWindow)
 NS_IMETHODIMP
 nsGlobalWindow::GetNavigator(nsIDOMNavigator** aNavigator)
 {
-  FORWARD_TO_OUTER(GetNavigator, (aNavigator), NS_ERROR_NOT_INITIALIZED);
+  FORWARD_TO_INNER(GetNavigator, (aNavigator), NS_ERROR_NOT_INITIALIZED);
 
   *aNavigator = nsnull;
 
   if (!mNavigator) {
-    mNavigator = new Navigator(mDocShell);
+    mNavigator = new Navigator(this);
   }
 
   NS_ADDREF(*aNavigator = mNavigator);
@@ -3964,6 +3881,10 @@ nsGlobalWindow::MozRequestAnimationFrame(nsIFrameRequestCallback* aCallback)
 
   if (!mDoc) {
     return NS_OK;
+  }
+
+  if (!aCallback) {
+    return NS_ERROR_XPC_BAD_CONVERT_JS;
   }
 
   mDoc->ScheduleFrameRequestCallback(aCallback);
@@ -9960,7 +9881,6 @@ nsGlobalWindow::SaveWindowState(nsISupports **aState)
 
   nsCOMPtr<nsISupports> state = new WindowStateHolder(inner,
                                                       mInnerWindowHolder,
-                                                      mNavigator,
                                                       proto,
                                                       realProtoHolder);
   NS_ENSURE_TRUE(state, NS_ERROR_OUT_OF_MEMORY);
@@ -10404,7 +10324,7 @@ nsGlobalChromeWindow::BeginWindowMove(nsIDOMEvent *aMouseDownEvent, nsIDOMElemen
     nsIFrame* frame = panel->GetPrimaryFrame();
     NS_ENSURE_TRUE(frame && frame->GetType() == nsGkAtoms::menuPopupFrame, NS_OK);
 
-    (static_cast<nsMenuPopupFrame*>(frame))->GetWidget(getter_AddRefs(widget));
+    widget = (static_cast<nsMenuPopupFrame*>(frame))->GetWidget();
   }
   else {
 #endif
