@@ -218,13 +218,13 @@ StackSpace::mark(JSTracer *trc)
 
             
             JSStackFrame *fp = css->getCurrentFrame();
-            ConservativelyMarkValueRange(trc, fp->slots(), end);
+            MarkStackRangeConservatively(trc, fp->slots(), end);
 
             
             JSStackFrame *initialFrame = css->getInitialFrame();
             for (JSStackFrame *f = fp; f != initialFrame; f = f->down) {
                 js_TraceStackFrame(trc, f);
-                ConservativelyMarkValueRange(trc, f->down->slots(), f->argEnd());
+                MarkStackRangeConservatively(trc, f->down->slots(), f->argEnd());
             }
 
             

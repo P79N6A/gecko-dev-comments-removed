@@ -49,10 +49,22 @@
 #include "jspubtd.h"
 #include "jsdhash.h"
 #include "jsbit.h"
+#include "jsgcchunk.h"
 #include "jsutil.h"
 #include "jstask.h"
 #include "jsvector.h"
 #include "jsversion.h"
+
+#if !defined JS_DUMP_CONSERVATIVE_GC_ROOTS && defined DEBUG
+# define JS_DUMP_CONSERVATIVE_GC_ROOTS 1
+#endif
+
+#if defined JS_GCMETER
+const bool JS_WANT_GC_METER_PRINT = true;
+#elif defined DEBUG
+# define JS_GCMETER 1
+const bool JS_WANT_GC_METER_PRINT = false;
+#endif
 
 #define JSTRACE_XML         2
 
@@ -295,7 +307,6 @@ js_NewGCXML(JSContext *cx)
 #endif
 
 struct JSGCArena;
-struct JSGCChunkInfo;
 
 struct JSGCArenaList {
     JSGCArena       *head;          
@@ -388,6 +399,31 @@ class BackgroundSweepTask : public JSBackgroundTask {
 
 #endif 
 
+
+struct GCChunkInfo;
+
+struct GCChunkHasher {
+    typedef jsuword Lookup;
+
+    
+
+
+
+    static HashNumber hash(jsuword chunk) {
+        JS_ASSERT(!(chunk & GC_CHUNK_MASK));
+        return HashNumber(chunk >> GC_CHUNK_SHIFT);
+    }
+
+    static bool match(jsuword k, jsuword l) {
+        JS_ASSERT(!(k & GC_CHUNK_MASK));
+        JS_ASSERT(!(l & GC_CHUNK_MASK));
+        return k == l;
+    }
+};
+
+typedef HashSet<jsuword, GCChunkHasher, SystemAllocPolicy> GCChunkSet;
+typedef Vector<GCChunkInfo *, 32, SystemAllocPolicy> GCChunkInfoVector;
+
 struct ConservativeGCThreadData {
 
     
@@ -408,36 +444,87 @@ struct ConservativeGCThreadData {
     bool isEnabled() const { return enableCount > 0; }
 };
 
-} 
 
-#define JS_DUMP_CONSERVATIVE_GC_ROOTS 1
+
+
+
+enum ConservativeGCTest {
+    CGCT_VALID,
+    CGCT_LOWBITSET, 
+    CGCT_NOTARENA,  
+    CGCT_NOTCHUNK,  
+    CGCT_FREEARENA, 
+    CGCT_WRONGTAG,  
+    CGCT_NOTLIVE,   
+    CGCT_END
+};
+
+struct ConservativeGCStats {
+    uint32  counter[CGCT_END];  
+
+
+    void add(const ConservativeGCStats &another) {
+        for (size_t i = 0; i != JS_ARRAY_LENGTH(counter); ++i)
+            counter[i] += another.counter[i];
+    }
+
+    void dump(FILE *fp);
+};
+
+struct GCMarker : public JSTracer {
+  private:
+    
+    uint32 color;
+
+    
+    JSGCArena           *unmarkedArenaStackTop;
+#ifdef DEBUG
+    size_t              markLaterCount;
+#endif
+
+  public:
+#if defined(JS_DUMP_CONSERVATIVE_GC_ROOTS) || defined(JS_GCMETER)
+    ConservativeGCStats conservativeStats;
+#endif
+   
+#ifdef JS_DUMP_CONSERVATIVE_GC_ROOTS
+    struct ConservativeRoot { void *thing; uint32 traceKind; };
+    Vector<ConservativeRoot, 0, SystemAllocPolicy> conservativeRoots;
+    const char *conservativeDumpFileName;
+
+    void dumpConservativeRoots();
+#endif
+
+    js::Vector<JSObject *, 0, js::SystemAllocPolicy> arraysToSlowify;
+
+  public:
+    explicit GCMarker(JSContext *cx);
+    ~GCMarker();
+
+    uint32 getMarkColor() const {
+        return color;
+    }
+
+    void setMarkColor(uint32 newColor) {
+        
+
+
+
+        markDelayedChildren();
+        color = newColor;
+    }
+
+    void delayMarkingChildren(void *thing);
+
+    JS_FRIEND_API(void) markDelayedChildren();
+
+    void slowifyArrays();
+};
+
+} 
 
 extern void
 js_FinalizeStringRT(JSRuntime *rt, JSString *str);
-
-#if defined JS_GCMETER
-const bool JS_WANT_GC_METER_PRINT = true;
-#elif defined DEBUG
-# define JS_GCMETER 1
-const bool JS_WANT_GC_METER_PRINT = false;
-#endif
-
-#if defined JS_GCMETER || defined JS_DUMP_CONSERVATIVE_GC_ROOTS
-
-struct JSConservativeGCStats {
-    uint32  words;      
-    uint32  lowbitset;  
-    uint32  notarena;   
-    uint32  notchunk;   
-    uint32  freearena;  
-    uint32  wrongtag;   
-    uint32  notlive;    
-    uint32  gcthings;   
-    uint32  unmarked;   
-
-};
-
-#endif
 
 #ifdef JS_GCMETER
 
@@ -487,7 +574,7 @@ struct JSGCStats {
 
     JSGCArenaStats  arenaStats[FINALIZE_LIMIT];
 
-    JSConservativeGCStats conservative;
+    js::ConservativeGCStats conservative;
 };
 
 extern JS_FRIEND_API(void)
@@ -586,9 +673,6 @@ MarkValue(JSTracer *trc, const js::Value &v, const char *name)
     MarkValueRaw(trc, v);
 }
 
-void
-ConservativelyMarkValueRange(JSTracer *trc, Value *beg, Value *end);
-
 static inline void
 MarkValueRange(JSTracer *trc, Value *beg, Value *end, const char *name)
 {
@@ -603,6 +687,9 @@ MarkValueRange(JSTracer *trc, size_t len, Value *vec, const char *name)
 {
     MarkValueRange(trc, vec, vec + len, name);
 }
+
+void
+MarkStackRangeConservatively(JSTracer *trc, Value *begin, Value *end);
 
 static inline void
 MarkId(JSTracer *trc, jsid id)

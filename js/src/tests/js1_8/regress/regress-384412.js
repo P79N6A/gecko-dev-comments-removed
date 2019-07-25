@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-384412.js';
 
 var BUGNUMBER = 384412;
 var summary = 'Exercise frame handling code';
