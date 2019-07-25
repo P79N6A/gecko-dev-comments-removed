@@ -63,6 +63,7 @@ let tests = [
     expected: testURL,
     setup: function() {
       gURLBar.value = testActionURL;
+      gURLBar.valueIsTyped = true;
       is(gURLBar.value, testActionURL, "gURLBar.value starts with correct value");
 
       
@@ -103,6 +104,7 @@ let tests = [
     setup: function() {
       
       gURLBar.value = testActionURL;
+      gURLBar.valueIsTyped = true;
       
       is(gURLBar.value, testActionURL, "gURLBar.value starts with correct value");
 
