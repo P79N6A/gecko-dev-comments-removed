@@ -76,7 +76,9 @@ function startupHttpd(baseDir, port) {
 
 
 function addPermissions(urls) {
-  let permissions = ['indexedDB', 'webapps-manage', 'offline-app'];
+  let permissions = [
+    'indexedDB', 'indexedDB-unlimited', 'webapps-manage', 'offline-app'
+  ];
   urls.forEach(function(url) {
     let uri = Services.io.newURI(url, null, null);
     let allow = Ci.nsIPermissionManager.ALLOW_ACTION;
