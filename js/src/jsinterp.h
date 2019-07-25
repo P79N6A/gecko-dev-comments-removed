@@ -83,9 +83,12 @@ enum JSFrameFlags {
 
 struct JSStackFrame
 {
-    jsbytecode          *imacpc;        
+  private:
     JSObject            *callobj;       
     JSObject            *argsobj;       
+
+  public:
+    jsbytecode          *imacpc;        
     JSScript            *script;        
     js::Value           thisv;          
     JSFunction          *fun;           
@@ -149,19 +152,6 @@ struct JSStackFrame
 
     void            *padding;
 
-    void putActivationObjects(JSContext *cx) {
-        
-
-
-
-        if (callobj) {
-            js_PutCallObject(cx, this);
-            JS_ASSERT(!argsobj);
-        } else if (argsobj) {
-            js_PutArgsObject(cx, this);
-        }
-    }
-
     
     jsbytecode *pc(JSContext *cx) const;
 
@@ -175,6 +165,71 @@ struct JSStackFrame
 
     js::Value *base() const {
         return slots() + script->nfixed;
+    }
+
+    
+
+    bool hasCallObj() const {
+        return callobj != NULL;
+    }
+
+    JSObject* getCallObj() const {
+        JS_ASSERT(hasCallObj());
+        return callobj;
+    }
+
+    JSObject* maybeCallObj() const {
+        return callobj;
+    }
+
+    void setCallObj(JSObject *obj) {
+        callobj = obj;
+    }
+
+    static size_t offsetCallObj() {
+        return offsetof(JSStackFrame, callobj);
+    }
+
+    
+
+    bool hasArgsObj() const {
+        return argsobj != NULL;
+    }
+
+    JSObject* getArgsObj() const {
+        JS_ASSERT(hasArgsObj());
+        return argsobj;
+    }
+
+    JSObject* maybeArgsObj() const {
+        return argsobj;
+    }
+
+    void setArgsObj(JSObject *obj) {
+        argsobj = obj;
+    }
+
+    JSObject** addressArgsObj() {
+        return &argsobj;
+    }
+
+    static size_t offsetArgsObj() {
+        return offsetof(JSStackFrame, argsobj);
+    }
+
+    
+
+    void putActivationObjects(JSContext *cx) {
+        
+
+
+
+        if (hasCallObj()) {
+            js_PutCallObject(cx, this);
+            JS_ASSERT(!hasArgsObj());
+        } else if (hasArgsObj()) {
+            js_PutArgsObject(cx, this);
+        }
     }
 
     const js::Value &calleeValue() {
