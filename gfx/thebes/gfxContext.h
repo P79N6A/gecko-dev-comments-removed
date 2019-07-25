@@ -132,6 +132,14 @@ public:
     
 
 
+
+
+
+    void FillWithOpacity(gfxFloat aOpacity);
+
+    
+
+
     void NewPath();
 
     

@@ -743,14 +743,7 @@ BasicImageLayer::PaintContext(gfxPattern* aPattern,
   
   aContext->Rectangle(gfxRect(0, 0, aSize.width, aSize.height));
   aContext->SetPattern(aPattern);
-  if (aOpacity != 1.0) {
-    aContext->Save();
-    aContext->Clip();
-    aContext->Paint(aOpacity);
-    aContext->Restore();
-  } else {
-    aContext->Fill();
-  }
+  aContext->FillWithOpacity(aOpacity);
 }
 
 class BasicColorLayer : public ColorLayer, BasicImplData {
@@ -962,14 +955,7 @@ BasicCanvasLayer::PaintWithOpacity(gfxContext* aContext,
   
   aContext->Rectangle(gfxRect(0, 0, mBounds.width, mBounds.height));
   aContext->SetPattern(pat);
-  if (aOpacity != 1.0) {
-    aContext->Save();
-    aContext->Clip();
-    aContext->Paint(aOpacity);
-    aContext->Restore();
-  } else {
-    aContext->Fill();
-  }
+  aContext->FillWithOpacity(aOpacity);
 
   if (mNeedsYFlip) {
     aContext->SetMatrix(m);
@@ -2496,7 +2482,7 @@ BasicShadowCanvasLayer::Paint(gfxContext* aContext,
   
   aContext->Rectangle(r);
   aContext->SetPattern(pat);
-  aContext->Fill();
+  aContext->FillWithOpacity(GetEffectiveOpacity());
 }
 
 
