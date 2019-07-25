@@ -53,6 +53,9 @@
 #include "plstr.h"
 #include "prtime.h"
 #include "nsString.h"
+#include "mozilla/AutoRestore.h"
+
+using namespace mozilla;
 
 
 
@@ -1915,13 +1918,12 @@ nsSMILTimedElement::UpdateCurrentInterval(PRBool aForceChangeNotice)
   
   
   
+  AutoRestore<PRUint16> depthRestorer(mUpdateIntervalRecursionDepth);
   if (++mUpdateIntervalRecursionDepth > sMaxUpdateIntervalRecursionDepth) {
     NS_ABORT_IF_FALSE(PR_FALSE,
         "Update current interval recursion depth exceeded threshold");
     return;
   }
-  
-  
 
   
   const nsSMILInstanceTime* beginTime = mElementState == STATE_ACTIVE
@@ -1981,8 +1983,6 @@ nsSMILTimedElement::UpdateCurrentInterval(PRBool aForceChangeNotice)
       ResetCurrentInterval();
     }
   }
-
-  --mUpdateIntervalRecursionDepth;
 }
 
 void
