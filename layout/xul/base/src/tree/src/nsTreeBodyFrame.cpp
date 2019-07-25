@@ -4200,7 +4200,7 @@ nsTreeBodyFrame::PseudoMatches(nsCSSSelector* aSelector)
   
   
   
-  nsPseudoClassList* curr = aSelector->mPseudoClassList;
+  nsAtomList* curr = aSelector->mClassList;
   while (curr) {
     PRInt32 index;
     mScratchArray->GetIndexOf(curr->mAtom, &index);
