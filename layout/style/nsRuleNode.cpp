@@ -2903,16 +2903,34 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   
   const nsCSSValue* featureSettingsValue =
     aRuleData->ValueForFontFeatureSettings();
-  if (eCSSUnit_Inherit == featureSettingsValue->GetUnit()) {
+
+  switch (featureSettingsValue->GetUnit()) {
+  case eCSSUnit_Null:
+    break;
+
+  case eCSSUnit_Normal:
+  case eCSSUnit_Initial:
+    aFont->mFont.fontFeatureSettings.Clear();
+    break;
+
+  case eCSSUnit_Inherit:
     aCanStoreInRuleTree = false;
-    aFont->mFont.featureSettings = aParentFont->mFont.featureSettings;
-  } else if (eCSSUnit_Normal == featureSettingsValue->GetUnit() ||
-             eCSSUnit_Initial == featureSettingsValue->GetUnit()) {
-    aFont->mFont.featureSettings.Truncate();
-  } else if (eCSSUnit_System_Font == featureSettingsValue->GetUnit()) {
-    aFont->mFont.featureSettings = systemFont.featureSettings;
-  } else if (eCSSUnit_String == featureSettingsValue->GetUnit()) {
-    featureSettingsValue->GetStringValue(aFont->mFont.featureSettings);
+    aFont->mFont.fontFeatureSettings = aParentFont->mFont.fontFeatureSettings;
+    break;
+
+  case eCSSUnit_System_Font:
+    aFont->mFont.fontFeatureSettings = systemFont.fontFeatureSettings;
+    break;
+
+  case eCSSUnit_PairList:
+  case eCSSUnit_PairListDep:
+    ComputeFontFeatures(featureSettingsValue->GetPairListValue(),
+                        aFont->mFont.fontFeatureSettings);
+    break;
+
+  default:
+    NS_ABORT_IF_FALSE(false, "unexpected value unit");
+    break;
   }
 
   
@@ -2984,6 +3002,36 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
     SetFactor(*sizeAdjustValue, aFont->mFont.sizeAdjust,
               aCanStoreInRuleTree, aParentFont->mFont.sizeAdjust, 0.0f,
               SETFCT_NONE);
+}
+
+ void
+nsRuleNode::ComputeFontFeatures(const nsCSSValuePairList *aFeaturesList,
+                                nsTArray<gfxFontFeature>& aFeatureSettings)
+{
+  aFeatureSettings.Clear();
+  for (const nsCSSValuePairList* p = aFeaturesList; p; p = p->mNext) {
+    gfxFontFeature feat = {0, 0};
+
+    NS_ABORT_IF_FALSE(aFeaturesList->mXValue.GetUnit() == eCSSUnit_String,
+                      "unexpected value unit");
+
+    
+    nsAutoString tag;
+    p->mXValue.GetStringValue(tag);
+    if (tag.Length() != 4) {
+      continue;
+    }
+    
+    
+    feat.mTag = (tag[0] << 24) | (tag[1] << 16) | (tag[2] << 8)  | tag[3];
+
+    
+    NS_ASSERTION(p->mYValue.GetUnit() == eCSSUnit_Integer,
+                 "should have found an integer unit");
+    feat.mValue = p->mYValue.GetIntValue();
+
+    aFeatureSettings.AppendElement(feat);
+  }
 }
 
 
