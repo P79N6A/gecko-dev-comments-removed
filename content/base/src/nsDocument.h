@@ -95,7 +95,13 @@
 #include "nsGkAtoms.h"
 #include "nsIApplicationCache.h"
 #include "nsIApplicationCacheContainer.h"
+
+
+#include "nsHTMLStyleSheet.h"
+#include "nsHTMLCSSStyleSheet.h"
+
 #include "nsStyleSet.h"
+#include "nsXMLEventsManager.h"
 #include "pldhash.h"
 #include "nsAttrAndChildArray.h"
 #include "nsDOMAttributeMap.h"
@@ -129,9 +135,6 @@ struct nsRadioGroupStruct;
 class nsOnloadBlocker;
 class nsUnblockOnloadEvent;
 class nsChildContentList;
-class nsXMLEventsManager;
-class nsHTMLStyleSheet;
-class nsHTMLCSSStyleSheet;
 
 
 
@@ -926,15 +929,6 @@ public:
 
   
   void AsyncBlockOnload();
-
-  already_AddRefed<nsContentList>
-    GetElementsByTagName(const nsAString& aTagName);
-  already_AddRefed<nsContentList>
-    GetElementsByTagNameNS(const nsAString& aNamespaceURI,
-                           const nsAString& aLocalName);
-
-  virtual mozilla::dom::Element *GetElementById(const nsAString& aElementId,
-                                                nsresult *aResult);
 
 protected:
   friend class nsNodeUtils;

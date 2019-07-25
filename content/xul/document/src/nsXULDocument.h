@@ -90,17 +90,17 @@ public:
     NS_ERROR("Should never be called");
   }
 
-  mozilla::dom::Element* GetFirstElement();
+  nsIContent* GetFirstContent();
   void AppendAll(nsCOMArray<nsIContent>* aElements);
   
 
 
-  PRBool AddElement(mozilla::dom::Element* aElement);
+  PRBool AddContent(nsIContent* aContent);
   
 
 
 
-  PRBool RemoveElement(mozilla::dom::Element* aElement);
+  PRBool RemoveContent(nsIContent* aContent);
 
 private:
   nsSmallVoidArray mRefContentList;
@@ -166,12 +166,8 @@ public:
     NS_IMETHOD CloneNode(PRBool deep, nsIDOMNode **_retval);
 
     
-    NS_IMETHOD GetElementById(const nsAString& aId, nsIDOMElement** aReturn)
-    {
-        return nsDocument::GetElementById(aId, aReturn);
-    }
-    virtual mozilla::dom::Element* GetElementById(const nsAString & elementId,
-                                                  nsresult *aResult);
+    NS_IMETHOD GetElementById(const nsAString & elementId,
+                              nsIDOMElement **_retval); 
 
     
     NS_DECL_NSIDOMXULDOCUMENT
@@ -211,9 +207,9 @@ protected:
     nsresult StartLayout(void);
 
     nsresult
-    AddElementToRefMap(mozilla::dom::Element* aElement);
+    AddElementToRefMap(nsIContent* aElement);
     void
-    RemoveElementFromRefMap(mozilla::dom::Element* aElement);
+    RemoveElementFromRefMap(nsIContent* aElement);
 
     nsresult GetViewportSize(PRInt32* aWidth, PRInt32* aHeight);
 
