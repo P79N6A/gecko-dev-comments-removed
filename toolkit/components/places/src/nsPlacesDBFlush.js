@@ -47,9 +47,7 @@ const Cr = Components.results;
 const Cu = Components.utils;
 
 
-
-
-const kTopicShutdown = "places-teardown";
+const kTopicShutdown = "places-connection-closing";
 const kSyncFinished = "places-sync-finished";
 const kDebugStopSync = "places-debug-stop-sync";
 const kDebugStartSync = "places-debug-start-sync";
@@ -126,21 +124,8 @@ nsPlacesDBFlush.prototype = {
       }
 
       
-      
-      
-      
-      Services.tm.mainThread.dispatch({
-        _self: this,
-        run: function() {
-          
-          this._self._flushWithQueries([kQuerySyncPlacesId, kQuerySyncHistoryVisitsId]);
-
-          
-          
-          this._self._finalizeInternalStatements();
-          this._self._db.asyncClose();
-        }
-      }, Ci.nsIThread.DISPATCH_NORMAL);
+      this._flushWithQueries([kQuerySyncPlacesId, kQuerySyncHistoryVisitsId]);
+      this._finalizeInternalStatements();
     }
     else if (aTopic == "nsPref:changed" && aData == kSyncPrefName) {
       

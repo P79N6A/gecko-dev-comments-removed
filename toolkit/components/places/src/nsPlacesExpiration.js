@@ -80,7 +80,8 @@ const nsPlacesExpirationFactory = {
 
 
 
-const TOPIC_SHUTDOWN = "places-shutdown";
+
+const TOPIC_SHUTDOWN = "places-will-close-connection";
 const TOPIC_PREF_CHANGED = "nsPref:changed";
 const TOPIC_DEBUG_START_EXPIRATION = "places-debug-start-expiration";
 const TOPIC_EXPIRATION_FINISHED = "places-expiration-finished";
@@ -524,22 +525,14 @@ nsPlacesExpiration.prototype = {
 
       
       
-      let self = this;
-      Services.tm.mainThread.dispatch({
-        run: function() {
-          
-          
-          let hasRecentClearHistory =
-            Date.now() - self._lastClearHistoryTime <
-              SHUTDOWN_WITH_RECENT_CLEARHISTORY_TIMEOUT_SECONDS * 1000;
-          let action = hasRecentClearHistory ||
-                       self.status != STATUS.DIRTY ? ACTION.CLEAN_SHUTDOWN
-                                                   : ACTION.SHUTDOWN;
-          self._expireWithActionAndLimit(action, LIMIT.LARGE);
-
-          self._finalizeInternalStatements();
-        }
-      }, Ci.nsIThread.DISPATCH_NORMAL);
+      let hasRecentClearHistory =
+        Date.now() - this._lastClearHistoryTime <
+          SHUTDOWN_WITH_RECENT_CLEARHISTORY_TIMEOUT_SECONDS * 1000;
+      let action = hasRecentClearHistory ||
+                   this.status != STATUS.DIRTY ? ACTION.CLEAN_SHUTDOWN
+                                               : ACTION.SHUTDOWN;
+      this._expireWithActionAndLimit(action, LIMIT.LARGE);
+      this._finalizeInternalStatements();
     }
     else if (aTopic == TOPIC_PREF_CHANGED) {
       this._loadPrefs();

@@ -226,7 +226,6 @@ BrowserGlue.prototype = {
           this._isPlacesShutdownObserver = false;
         }
         
-        
         this._onProfileShutdown();
         break;
       case "idle":
