@@ -41,8 +41,21 @@
 #include <string>
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+#define GLIBCXX_VERSION(a, b, c) (((a) << 16) | ((b) << 8) | (c))
+
 namespace std {
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 2)
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 9)
     
     template ostream& ostream::_M_insert(double);
     template ostream& ostream::_M_insert(long);
@@ -51,7 +64,7 @@ namespace std {
     template istream& istream::_M_extract(double&);
 #endif
 #ifdef DEBUG
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 5)
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 14)
     
 
     template char *string::_S_construct_aux_2(size_type, char, allocator<char> const&);
@@ -70,7 +83,7 @@ namespace std {
 }
 
 namespace std __attribute__((visibility("default"))) {
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 5)
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 14)
     
     struct _List_node_base
     {
@@ -82,7 +95,7 @@ namespace std __attribute__((visibility("default"))) {
                       _List_node_base * const __last) throw();
 
 
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 6)
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 15)
         static void swap(_List_node_base& __x, _List_node_base& __y) throw ();
     };
 
@@ -98,7 +111,7 @@ namespace std __attribute__((visibility("default"))) {
         void _M_transfer(_List_node_base * const __first,
                          _List_node_base * const __last) throw();
 
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 6)
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 15)
         static void swap(_List_node_base& __x, _List_node_base& __y) throw ();
 #endif
     };
@@ -124,7 +137,7 @@ namespace std __attribute__((visibility("default"))) {
                                                  (std::_List_node_base * const)__last);
     }
 
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 6)
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 15)
     void
     _List_node_base::swap(_List_node_base& __x, _List_node_base& __y) throw ()
     {
@@ -136,7 +149,7 @@ namespace std __attribute__((visibility("default"))) {
 
 #endif
 
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 4)
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 11)
     
 
 
