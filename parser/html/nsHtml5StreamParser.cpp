@@ -1159,13 +1159,11 @@ nsHtml5StreamParser::ContinueAfterScripts(nsHtml5Tokenizer* aTokenizer,
       mSpeculations.RemoveElementAt(0);
       if (mSpeculations.IsEmpty()) {
         
-        if (mTreeBuilder->IsDiscretionaryFlushSafe()) {
-          
-          
-          
-          mTreeBuilder->SetOpSink(mExecutor);
-          mTreeBuilder->Flush();
-        }
+        
+        
+        
+        mTreeBuilder->SetOpSink(mExecutor);
+        mTreeBuilder->Flush(PR_TRUE);
         mTreeBuilder->SetOpSink(mExecutor->GetStage());
         mExecutor->StartReadingFromStage();
         mSpeculating = PR_FALSE;
@@ -1268,15 +1266,9 @@ nsHtml5StreamParser::TimerFlush()
 
   
   
-  
-  
-  
-  
-  if (mTreeBuilder->IsDiscretionaryFlushSafe()) {
-    if (mTreeBuilder->Flush()) {
-      if (NS_FAILED(NS_DispatchToMainThread(mExecutorFlusher))) {
-        NS_WARNING("failed to dispatch executor flush event");
-      }
+  if (mTreeBuilder->Flush(PR_TRUE)) {
+    if (NS_FAILED(NS_DispatchToMainThread(mExecutorFlusher))) {
+      NS_WARNING("failed to dispatch executor flush event");
     }
   }
 }
