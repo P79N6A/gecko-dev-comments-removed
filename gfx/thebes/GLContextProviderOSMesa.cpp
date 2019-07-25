@@ -47,6 +47,8 @@
 #include "gfxASurface.h"
 #include "gfxImageSurface.h"
 
+#include "gfxCrashReporterUtils.h"
+
 
 #define OSMESA_RGBA     GL_RGBA
 #define OSMESA_BGRA     0x1
