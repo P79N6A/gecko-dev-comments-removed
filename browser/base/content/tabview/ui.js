@@ -479,6 +479,17 @@ let UI = {
     let event = document.createEvent("Events");
     event.initEvent("tabviewshown", true, false);
 
+    
+    
+    
+    
+    let activeGroupItem = null;
+    if (!GroupItems.getActiveOrphanTab()) {
+      activeGroupItem = GroupItems.getActiveGroupItem();
+      if (activeGroupItem && activeGroupItem.closeIfEmpty())
+        activeGroupItem = null;
+    }
+
     if (zoomOut && currentTab && currentTab._tabViewTabItem) {
       item = currentTab._tabViewTabItem;
       
@@ -492,11 +503,8 @@ let UI = {
 
         self.setActiveTab(item);
 
-        if (item.parent) {
-          var activeGroupItem = GroupItems.getActiveGroupItem();
-          if (activeGroupItem)
-            activeGroupItem.setTopChild(item);
-        }
+        if (activeGroupItem && item.parent)
+          activeGroupItem.setTopChild(item);
 
         self._resize(true);
         dispatchEvent(event);
@@ -591,8 +599,10 @@ let UI = {
   
   
   storageBusy: function UI_storageBusy() {
-    if (!this._storageBusyCount)
+    if (!this._storageBusyCount) {
       TabItems.pauseReconnecting();
+      GroupItems.pauseAutoclose();
+    }
     
     this._storageBusyCount++;
   },
@@ -610,6 +620,7 @@ let UI = {
   
       TabItems.resumeReconnecting();
       GroupItems._updateTabBar();
+      GroupItems.resumeAutoclose();
     }
   },
 

@@ -619,6 +619,21 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
+  
+  closeIfEmpty: function() {
+    if (!this._children.length && !this.locked.close && !this.getTitle() &&
+        !GroupItems.getUnclosableGroupItemId() &&
+        !GroupItems._autoclosePaused) {
+      this.close();
+      return true;
+    }
+    return false;
+  },
+
+  
+  
+  
   _unhide: function GroupItem__unhide() {
     let self = this;
 
@@ -864,7 +879,9 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         item.groupItemData = {};
 
         item.addSubscriber(this, "close", function() {
-          self.remove(item);
+          let dontClose = !item.closedManually && gBrowser._numPinnedTabs > 0;
+          self.remove(item, { dontClose: dontClose });
+
           if (self._children.length > 0 && self._activeTab) {
             GroupItems.setActiveGroupItem(self);
             UI.setActiveTab(self._activeTab);
@@ -950,17 +967,11 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       if (typeof item.setResizable == 'function')
         item.setResizable(true, options.immediately);
 
-      if (this._children.length == 0 && !this.locked.close && !this.getTitle() && 
-          !options.dontClose) {
-        if (!GroupItems.getUnclosableGroupItemId()) {
-          this.close();
-          this._makeClosestTabActive();
-        } else {
-          
-        }
-      } else if (!options.dontArrange) {
+      let closed = options.dontClose ? false : this.closeIfEmpty();
+      if (closed)
+        this._makeClosestTabActive();
+      else if (!options.dontArrage)
         this.arrange({animate: !options.immediately});
-      }
 
       this._sendToSubscribers("childRemoved",{ groupItemId: this.id, item: item });
     } catch(e) {
@@ -1657,6 +1668,7 @@ let GroupItems = {
   _arrangesPending: [],
   _removingHiddenGroups: false,
   _delayedModUpdates: [],
+  _autoclosePaused: false,
   minGroupHeight: 110,
   minGroupWidth: 125,
 
@@ -2412,5 +2424,21 @@ let GroupItems = {
         groupItem.$closeButton.show();
       });
     }
+  },
+
+  
+  
+  
+  
+  
+  pauseAutoclose: function GroupItems_pauseAutoclose() {
+    this._autoclosePaused = true;
+  },
+
+  
+  
+  
+  resumeAutoclose: function GroupItems_resumeAutoclose() {
+    this._autoclosePaused = false;
   }
 };
