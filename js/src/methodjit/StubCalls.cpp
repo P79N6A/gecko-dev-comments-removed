@@ -2021,3 +2021,102 @@ stubs::Iter(VMFrame &f, uint32 flags)
     JS_ASSERT(!f.regs.sp[-1].isPrimitive());
 }
 
+static void 
+InitPropOrMethod(VMFrame &f, JSAtom *atom, JSOp op)
+{
+    JSContext *cx = f.cx;
+    JSRuntime *rt = cx->runtime;
+    JSFrameRegs &regs = f.regs;
+
+    
+    JS_ASSERT(regs.sp - f.fp->base() >= 2);
+    Value rval;
+    rval = regs.sp[-1];
+
+    
+    JSObject *obj = &regs.sp[-2].asObject();
+    JS_ASSERT(obj->isNative());
+    JS_ASSERT(!obj->getClass()->reserveSlots);
+
+    JSScope *scope = obj->scope();
+
+    
+
+
+
+
+
+
+
+
+
+
+    PropertyCacheEntry *entry;
+    JSScopeProperty *sprop;
+    if (CX_OWNS_OBJECT_TITLE(cx, obj) &&
+        JS_PROPERTY_CACHE(cx).testForInit(rt, regs.pc, obj, scope, &sprop, &entry) &&
+        sprop->hasDefaultSetter() &&
+        sprop->parent == scope->lastProperty())
+    {
+        
+        uint32 slot = sprop->slot;
+        JS_ASSERT(slot == scope->freeslot);
+        if (slot < obj->numSlots()) {
+            ++scope->freeslot;
+        } else {
+            if (!js_AllocSlot(cx, obj, &slot))
+                THROW();
+            JS_ASSERT(slot == sprop->slot);
+        }
+
+        JS_ASSERT(!scope->lastProperty() ||
+                  scope->shape == scope->lastProperty()->shape);
+        if (scope->table) {
+            JSScopeProperty *sprop2 =
+                scope->addProperty(cx, sprop->id, sprop->getter(), sprop->setter(), slot,
+                                   sprop->attributes(), sprop->getFlags(), sprop->shortid);
+            if (!sprop2) {
+                js_FreeSlot(cx, obj, slot);
+                THROW();
+            }
+            JS_ASSERT(sprop2 == sprop);
+        } else {
+            JS_ASSERT(!scope->isSharedEmpty());
+            scope->extend(cx, sprop);
+        }
+
+        
+
+
+
+
+        obj->lockedSetSlot(slot, rval);
+    } else {
+        PCMETER(JS_PROPERTY_CACHE(cx).inipcmisses++);
+
+        
+        jsid id = ATOM_TO_JSID(atom);
+
+        
+        if (!CheckRedeclaration(cx, obj, id, JSPROP_INITIALIZER, NULL, NULL))
+            THROW();
+
+        uintN defineHow = (op == JSOP_INITMETHOD)
+                          ? JSDNP_CACHE_RESULT | JSDNP_SET_METHOD
+                          : JSDNP_CACHE_RESULT;
+        if (!(JS_UNLIKELY(atom == cx->runtime->atomState.protoAtom)
+              ? js_SetPropertyHelper(cx, obj, id, defineHow, &rval)
+              : js_DefineNativeProperty(cx, obj, id, rval, NULL, NULL,
+                                        JSPROP_ENUMERATE, 0, 0, NULL,
+                                        defineHow))) {
+            THROW();
+        }
+    }
+}
+
+void JS_FASTCALL
+stubs::InitProp(VMFrame &f, JSAtom *atom)
+{
+    InitPropOrMethod(f, atom, JSOP_INITPROP);
+}
+
