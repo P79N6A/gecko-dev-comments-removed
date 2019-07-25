@@ -261,9 +261,12 @@ TypeAnalyzer::rewriteUses(MInstruction *old, MInstruction *ins)
         
         
         
+        
+        
         MIRType required = use->requiredInputType(iter->index());
-        if (required != MIRType_Any && required != ins->type())
-        {
+        if ((required != MIRType_Any && required != ins->type()) || use->isSnapshot()) {
+            if (use->isSnapshot())
+                ins->rewritesDef();
             iter.next();
             continue;
         }

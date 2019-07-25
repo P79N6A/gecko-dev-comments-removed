@@ -199,11 +199,24 @@ class MInstruction
     uint32 id_;             
     MIRType resultType_;    
     uint32 usedTypes_;      
-    bool inWorklist_;       
+    uint32 flags_;          
 
   private:
+    static const uint32 IN_WORKLIST = (1 << 0);
+    static const uint32 REWRITES_DEF = (1 << 1);
+
     void setBlock(MBasicBlock *block) {
         block_ = block;
+    }
+
+    bool hasFlags(uint32 flags) const {
+        return (flags_ & flags) == flags;
+    }
+    void removeFlags(uint32 flags) {
+        flags_ &= ~flags;
+    }
+    void setFlags(uint32 flags) {
+        flags_ |= flags;
     }
 
   public:
@@ -213,7 +226,7 @@ class MInstruction
         id_(0),
         resultType_(MIRType_None),
         usedTypes_(0),
-        inWorklist_(0)
+        flags_(0)
     { }
 
     virtual Opcode op() const = 0;
@@ -228,18 +241,18 @@ class MInstruction
         id_ = id;
     }
     bool inWorklist() const {
-        return inWorklist_;
+        return hasFlags(IN_WORKLIST);
     }
     void setInWorklist() {
         JS_ASSERT(!inWorklist());
-        inWorklist_ = true;
+        setFlags(IN_WORKLIST);
     }
     void setInWorklistUnchecked() {
-        inWorklist_ = true;
+        setFlags(IN_WORKLIST);
     }
     void setNotInWorklist() {
         JS_ASSERT(inWorklist());
-        inWorklist_ = false;
+        removeFlags(IN_WORKLIST);
     }
 
     MBasicBlock *block() const {
@@ -283,6 +296,28 @@ class MInstruction
     
     virtual bool adjustForInputs() {
         return false;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool rewritesDef() const {
+        return hasFlags(REWRITES_DEF);
+    }
+    void setRewritesDef() {
+        setFlags(REWRITES_DEF);
+    }
+    virtual MInstruction *rewrittenDef() const {
+        JS_NOT_REACHED("Opcodes which can rewrite defs must implement this.");
+        return NULL;
     }
 
     
@@ -611,6 +646,10 @@ class MUnbox : public MUnaryInstruction
 
     MIRType requiredInputType(size_t index) const {
         return MIRType_Value;
+    }
+
+    MInstruction *rewrittenDef() const {
+        return getInput(0);
     }
 };
 
