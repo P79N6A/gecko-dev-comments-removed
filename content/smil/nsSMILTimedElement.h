@@ -83,6 +83,17 @@ public:
 
 
 
+  mozilla::dom::Element* GetTargetElement()
+  {
+    return mAnimationElement ?
+        mAnimationElement->GetTargetElementContent() :
+        nsnull;
+  }
+
+  
+
+
+
   
 
 
@@ -318,6 +329,12 @@ public:
 
 
   void BindToTree(nsIContent* aContextNode);
+
+  
+
+
+
+  void HandleTargetElementChange(mozilla::dom::Element* aNewTarget);
 
   
 

@@ -84,6 +84,8 @@ public:
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
+  virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, PRBool aNotify);
 
   
   virtual const Element& AsElement() const;
@@ -103,6 +105,7 @@ protected:
 
   void UpdateHrefTarget(nsIContent* aNodeForContext,
                         const nsAString& aHrefStr);
+  void AnimationTargetChanged();
 
   class TargetReference : public nsReferencedElement {
   public:
@@ -114,7 +117,7 @@ protected:
     
     virtual void ElementChanged(Element* aFrom, Element* aTo) {
       nsReferencedElement::ElementChanged(aFrom, aTo);
-      mAnimationElement->AnimationNeedsResample();
+      mAnimationElement->AnimationTargetChanged();
     }
 
     
