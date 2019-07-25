@@ -1434,6 +1434,9 @@ public:
 protected:
   void QueryIsActive();
   nsresult UpdateImageLockingState();
+
+private:
+  nscolor GetDefaultBackgroundColorToDraw();
 };
 
 NS_IMPL_ISUPPORTS1(PresShell::MemoryReporter, nsIMemoryMultiReporter)
@@ -5851,6 +5854,14 @@ static PRBool IsTransparentContainerElement(nsPresContext* aPresContext)
          containerElement->HasAttr(kNameSpaceID_None, nsGkAtoms::transparent);
 }
 
+nscolor PresShell::GetDefaultBackgroundColorToDraw()
+{
+  if (!mPresContext || !mPresContext->GetBackgroundColorDraw()) {
+    return NS_RGB(255,255,255);
+  }
+  return mPresContext->DefaultBackgroundColor();
+}
+
 void PresShell::UpdateCanvasBackground()
 {
   
@@ -5870,7 +5881,7 @@ void PresShell::UpdateCanvasBackground()
     if (GetPresContext()->IsRootContentDocument() &&
         !IsTransparentContainerElement(mPresContext)) {
       mCanvasBackgroundColor =
-        NS_ComposeColors(mPresContext->DefaultBackgroundColor(), mCanvasBackgroundColor);
+        NS_ComposeColors(GetDefaultBackgroundColorToDraw(), mCanvasBackgroundColor);
     }
   }
 
@@ -5878,7 +5889,7 @@ void PresShell::UpdateCanvasBackground()
   
   
   if (!FrameConstructor()->GetRootElementFrame()) {
-    mCanvasBackgroundColor = mPresContext->DefaultBackgroundColor();
+    mCanvasBackgroundColor = GetDefaultBackgroundColorToDraw();
   }
 }
 
@@ -5893,7 +5904,7 @@ nscolor PresShell::ComputeBackstopColor(nsIView* aDisplayRoot)
   
   
   
-  return GetPresContext()->DefaultBackgroundColor();
+  return GetDefaultBackgroundColorToDraw();
 }
 
 struct PaintParams {
