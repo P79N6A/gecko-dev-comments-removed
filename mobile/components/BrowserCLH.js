@@ -50,6 +50,17 @@ BrowserCLH.prototype = {
   
   
   handle: function fs_handle(cmdLine) {
+    
+    
+    
+    
+    
+    
+    if (cmdLine.findFlag("silent", false) > -1) {
+      let searchService = Cc["@mozilla.org/browser/search-service;1"].
+                          getService(Ci.nsIBrowserSearchService);
+    }
+
     let win;
     try {
       var windowMediator =
