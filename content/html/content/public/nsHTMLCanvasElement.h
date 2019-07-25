@@ -157,10 +157,10 @@ public:
 
 
 
-  already_AddRefed<CanvasLayer> GetCanvasLayer(CanvasLayer *aOldLayer,
+  already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
+                                               CanvasLayer *aOldLayer,
                                                LayerManager *aManager);
 
-  
   
   
   void MarkContextClean();
