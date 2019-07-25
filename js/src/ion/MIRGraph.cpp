@@ -472,8 +472,11 @@ void
 MBasicBlock::assertUsesAreNotWithin(MUse *use)
 {
 #ifdef DEBUG
-    for (; use; use = use->next())
-        JS_ASSERT(use->ins()->block()->id() < id());
+    for (; use; use = use->next()) {
+        if (!use->node()->isDefinition())
+            continue;
+        JS_ASSERT(use->node()->toDefinition()->block()->id() < id());
+    }
 #endif
 }
 
@@ -511,12 +514,12 @@ MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
         MUse *use = entryDef->uses();
         MUse *prev = NULL;
         while (use) {
-            JS_ASSERT(use->ins()->getOperand(use->index()) == entryDef);
+            JS_ASSERT(use->node()->getOperand(use->index()) == entryDef);
 
             
             
             
-            if (use->ins()->block()->id() < id()) {
+            if (use->node()->block()->id() < id()) {
                 assertUsesAreNotWithin(use);
                 break;
             }
@@ -525,7 +528,7 @@ MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
             
             
             MUse *next = use->next();
-            use->ins()->replaceOperand(prev, use, phi);
+            use->node()->replaceOperand(prev, use, phi);
             use = next;
         }
 

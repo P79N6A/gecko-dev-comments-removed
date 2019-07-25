@@ -85,6 +85,51 @@ class MInstruction;
 class MBasicBlock;
 class MUse;
 class MIRGraph;
+class MUseIterator;
+
+
+
+
+
+
+
+
+class MNode : public TempObject
+{
+  public:
+    enum Kind {
+        Definition,
+        Snapshot
+    };
+
+    virtual Kind kind() const = 0;
+
+    
+    virtual MDefinition *getOperand(size_t index) const = 0;
+    virtual size_t numOperands() const = 0;
+
+    bool isDefinition() const {
+        return kind() == Definition;
+    }
+    bool isSnapshot() const {
+        return kind() == Snapshot;
+    }
+
+    
+    virtual MBasicBlock *block() const = 0;
+
+    
+    
+    void replaceOperand(MUse *prev, MUse *use, MDefinition *ins);
+    void replaceOperand(MUseIterator &use, MDefinition *ins);
+    void replaceOperand(size_t index, MDefinition *ins);
+
+    inline MDefinition *toDefinition();
+
+  protected:
+    
+    virtual void setOperand(size_t index, MDefinition *operand) = 0;
+};
 
 
 class MUse : public TempObject
@@ -92,11 +137,11 @@ class MUse : public TempObject
     friend class MDefinition;
 
     MUse *next_;            
-    MDefinition *ins_;     
+    MNode *node_;           
     uint32 index_;          
 
-    MUse(MUse *next, MDefinition *owner, uint32 index)
-      : next_(next), ins_(owner), index_(index)
+    MUse(MUse *next, MNode *owner, uint32 index)
+      : next_(next), node_(owner), index_(index)
     { }
 
     void setNext(MUse *next) {
@@ -104,13 +149,13 @@ class MUse : public TempObject
     }
 
   public:
-    static inline MUse *New(MUse *next, MDefinition *owner, uint32 index)
+    static inline MUse *New(MUse *next, MNode *owner, uint32 index)
     {
         return new MUse(next, owner, index);
     }
 
-    MDefinition *ins() const {
-        return ins_;
+    MNode *node() const {
+        return node_;
     }
     uint32 index() const {
         return index_;
@@ -154,7 +199,7 @@ class MUseIterator
 };
 
 
-class MDefinition : public TempObject
+class MDefinition : public MNode
 {
     friend class MBasicBlock;
     friend class Loop;
@@ -171,6 +216,7 @@ class MDefinition : public TempObject
     MBasicBlock *block_;    
     MUse *uses_;            
     uint32 id_;             
+                            
     uint32 valueNumber_;    
     MIRType resultType_;    
     uint32 usedTypes_;      
@@ -213,6 +259,10 @@ class MDefinition : public TempObject
 
     virtual HashNumber valueHash() const;
     virtual bool congruentTo(MDefinition* const &ins) const;
+
+    MNode::Kind kind() const {
+        return MNode::Definition;
+    }
 
     uint32 id() const {
         JS_ASSERT(block_);
@@ -282,10 +332,6 @@ class MDefinition : public TempObject
     size_t useCount() const;
 
     
-    virtual MDefinition *getOperand(size_t index) const = 0;
-    virtual size_t numOperands() const = 0;
-
-    
     virtual MIRType requiredInputType(size_t index) const {
         return MIRType_None;
     }
@@ -329,12 +375,6 @@ class MDefinition : public TempObject
         setFlags(EMIT_AT_USES);
     }
 
-    
-    
-    void replaceOperand(MUse *prev, MUse *use, MDefinition *ins);
-    void replaceOperand(MUseIterator &use, MDefinition *ins);
-    void replaceOperand(size_t index, MDefinition *ins);
-
     void addUse(MDefinition *ins, size_t index) {
         uses_ = MUse::New(uses_, ins, index);
     }
@@ -342,7 +382,7 @@ class MDefinition : public TempObject
     
     
     void addUse(MUse *use) {
-        JS_ASSERT(use->ins()->getOperand(use->index()) == this);
+        JS_ASSERT(use->node()->getOperand(use->index()) == this);
         use->setNext(uses_);
         uses_ = use;
     }
@@ -398,10 +438,6 @@ class MDefinition : public TempObject
     bool isInstruction() const {
         return isPhi();
     }
-
-  protected:
-    
-    virtual void setOperand(size_t index, MDefinition *operand) = 0;
 
     
     void initOperand(size_t index, MDefinition *ins) {
@@ -920,6 +956,12 @@ MUseIterator::unlink()
     }
 MIR_OPCODE_LIST(OPCODE_CASTS)
 #undef OPCODE_CASTS
+
+MDefinition *MNode::toDefinition()
+{
+    JS_ASSERT(isDefinition());
+    return (MDefinition *)this;
+}
 
 MInstruction *MDefinition::toInstruction()
 {
