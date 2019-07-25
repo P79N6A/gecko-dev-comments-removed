@@ -239,7 +239,6 @@ static PRLogModuleInfo *nsObjectFrameLM = PR_NewLogModule("nsObjectFrame");
 #endif
 
 using namespace mozilla;
-using namespace mozilla::plugins;
 using namespace mozilla::layers;
 
 
