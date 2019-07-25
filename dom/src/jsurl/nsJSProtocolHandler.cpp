@@ -267,7 +267,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         
         nsCOMPtr<nsIPrincipal> objectPrincipal;
         rv = securityManager->
-            GetObjectPrincipal((JSContext*)scriptContext->GetNativeContext(),
+            GetObjectPrincipal(scriptContext->GetNativeContext(),
                                globalJSObject,
                                getter_AddRefs(objectPrincipal));
         if (NS_FAILED(rv))
@@ -294,7 +294,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
 
         
         
-        JSContext *cx = (JSContext*)scriptContext->GetNativeContext();
+        JSContext *cx = scriptContext->GetNativeContext();
         JSAutoRequest ar(cx);
 
         PRBool ok;
@@ -373,7 +373,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         
         
         
-        JSContext *cx = (JSContext*)scriptContext->GetNativeContext();
+        JSContext *cx = scriptContext->GetNativeContext();
         JSAutoRequest ar(cx);
         ::JS_ReportPendingException(cx);
     }

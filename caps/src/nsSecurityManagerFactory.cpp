@@ -325,7 +325,7 @@ static JSFunctionSpec PrivilegeManager_static_methods[] = {
 NS_IMETHODIMP 
 nsSecurityNameSet::InitializeNameSet(nsIScriptContext* aScriptContext)
 {
-    JSContext *cx = (JSContext *) aScriptContext->GetNativeContext();
+    JSContext* cx = aScriptContext->GetNativeContext();
     JSObject *global = JS_GetGlobalObject(cx);
     OBJ_TO_INNER_OBJECT(cx, global);
 

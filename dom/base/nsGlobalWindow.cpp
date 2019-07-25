@@ -1261,9 +1261,7 @@ nsGlobalWindow::FreeInnerObjects(PRBool aClearScope)
 
   
   nsIScriptContext *scx = GetContextInternal();
-  JSContext *cx = scx ?
-                  static_cast<JSContext*>(scx->GetNativeContext()) :
-                  nsnull;
+  JSContext *cx = scx ? scx->GetNativeContext() : nsnull;
   mozilla::dom::workers::CancelWorkersForWindow(cx, this);
 
   
@@ -1864,7 +1862,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   nsIScriptContext *scx = GetContextInternal();
   NS_ENSURE_TRUE(scx, NS_ERROR_NOT_INITIALIZED);
 
-  JSContext *cx = (JSContext *)scx->GetNativeContext();
+  JSContext *cx = scx->GetNativeContext();
 #ifndef MOZ_DISABLE_DOMCRYPTO
   
   if (mCrypto) {
@@ -2860,7 +2858,7 @@ nsGlobalWindow::DefineArgumentsProperty(nsIArray *aArguments)
   JSContext *cx;
   nsIScriptContext *ctx = GetOuterWindowInternal()->mContext;
   NS_ENSURE_TRUE(aArguments && ctx &&
-                 (cx = (JSContext *)ctx->GetNativeContext()),
+                 (cx = ctx->GetNativeContext()),
                  NS_ERROR_NOT_INITIALIZED);
 
   if (mIsModalContentWindow) {
@@ -6101,7 +6099,7 @@ PostMessageEvent::Run()
   JSContext* cx = nsnull;
   nsIScriptContext* scriptContext = mTargetWindow->GetContext();
   if (scriptContext) {
-    cx = (JSContext*)scriptContext->GetNativeContext();
+    cx = scriptContext->GetNativeContext();
   }
 
   if (!cx) {
@@ -9805,7 +9803,7 @@ nsGlobalWindow::BuildURIfromBase(const char *aURL, nsIURI **aBuiltURI,
     
     
 
-    cx = (JSContext *)scx->GetNativeContext();
+    cx = scx->GetNativeContext();
   } else {
     
     nsCOMPtr<nsIThreadJSContextStack> stack(do_GetService(sJSStackContractID));
@@ -9908,7 +9906,7 @@ nsGlobalWindow::SaveWindowState(nsISupports **aState)
   inner->Freeze();
 
   
-  JSContext *cx = (JSContext *)mContext->GetNativeContext();
+  JSContext *cx = mContext->GetNativeContext();
   JSAutoRequest req(cx);
 
   nsIXPConnect *xpc = nsContentUtils::XPConnect();
@@ -10001,9 +9999,7 @@ nsGlobalWindow::SuspendTimeouts(PRUint32 aIncrease,
 
     
     nsIScriptContext *scx = GetContextInternal();
-    JSContext *cx = scx ?
-                    static_cast<JSContext*>(scx->GetNativeContext()) :
-                    nsnull;
+    JSContext *cx = scx ? scx->GetNativeContext() : nsnull;
     mozilla::dom::workers::SuspendWorkersForWindow(cx, this);
 
     TimeStamp now = TimeStamp::Now();
@@ -10079,9 +10075,7 @@ nsGlobalWindow::ResumeTimeouts(PRBool aThawChildren)
 
     
     nsIScriptContext *scx = GetContextInternal();
-    JSContext *cx = scx ?
-                    static_cast<JSContext*>(scx->GetNativeContext()) :
-                    nsnull;
+    JSContext *cx = scx ? scx->GetNativeContext() : nsnull;
     mozilla::dom::workers::ResumeWorkersForWindow(cx, this);
 
     
@@ -10529,7 +10523,7 @@ nsGlobalChromeWindow::GetMessageManager(nsIChromeFrameMessageManager** aManager)
   if (!mMessageManager) {
     nsIScriptContext* scx = GetContextInternal();
     NS_ENSURE_STATE(scx);
-    JSContext* cx = (JSContext *)scx->GetNativeContext();
+    JSContext* cx = scx->GetNativeContext();
     NS_ENSURE_STATE(cx);
     nsCOMPtr<nsIChromeFrameMessageManager> globalMM =
       do_GetService("@mozilla.org/globalmessagemanager;1");

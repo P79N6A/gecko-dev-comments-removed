@@ -41,7 +41,6 @@
 
 
 
-
 #include "jsapi.h"
 #include "jsdbgapi.h"
 
@@ -1286,11 +1285,10 @@ nsContentUtils::GetContextFromDocument(nsIDocument *aDocument)
   nsIScriptContext *scx = sgo->GetContext();
   if (!scx) {
     
-
     return nsnull;
   }
 
-  return (JSContext *)scx->GetNativeContext();
+  return scx->GetNativeContext();
 }
 
 
@@ -2559,7 +2557,7 @@ nsCxPusher::Push(nsIDOMEventTarget *aCurrentTarget)
   JSContext* cx = nsnull;
 
   if (scx) {
-    cx = static_cast<JSContext*>(scx->GetNativeContext());
+    cx = scx->GetNativeContext();
     
     NS_ENSURE_TRUE(cx, PR_FALSE);
   }

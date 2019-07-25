@@ -728,7 +728,7 @@ nsXULPDGlobalObject::EnsureScriptEnvironment(PRUint32 lang_id)
   
   
   {
-    JSContext *cx = (JSContext *)ctxNew->GetNativeContext();
+    JSContext *cx = ctxNew->GetNativeContext();
     JSAutoRequest ar(cx);
 
     nsIPrincipal *principal = GetPrincipal();

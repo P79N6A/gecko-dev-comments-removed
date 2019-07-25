@@ -34,8 +34,8 @@
 
 
 
-#ifndef nsJSEnvironment_h___
-#define nsJSEnvironment_h___
+#ifndef nsJSEnvironment_h
+#define nsJSEnvironment_h
 
 #include "nsIScriptContext.h"
 #include "nsIScriptRuntime.h"
@@ -129,7 +129,7 @@ public:
 
   virtual void SetDefaultLanguageVersion(PRUint32 aVersion);
   virtual nsIScriptGlobalObject *GetGlobalObject();
-  virtual void *GetNativeContext();
+  virtual JSContext* GetNativeContext();
   virtual void *GetNativeGlobal();
   virtual nsresult CreateNativeGlobalForInner(
                                       nsIScriptGlobalObject *aGlobal,

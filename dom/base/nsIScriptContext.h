@@ -43,6 +43,7 @@
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
 #include "nsIProgrammingLanguage.h"
+#include "jspubtd.h"
 
 class nsIScriptGlobalObject;
 class nsIScriptSecurityManager;
@@ -73,15 +74,12 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-  { 0xad76079b, 0xd408, 0x4159, \
-    {0xb7, 0x3f, 0x41, 0x08, 0x77, 0xff, 0x9b, 0x47 } }
+{ 0x827d1e82, 0x5aab, 0x4e3a, \
+  { 0x88, 0x76, 0x53, 0xf7, 0xed, 0x1e, 0x3f, 0xbe } }
 
 
 
 #define SCRIPTVERSION_DEFAULT JSVERSION_DEFAULT
-
-
-
 
 
 
@@ -292,7 +290,7 @@ public:
 
 
 
-  virtual void *GetNativeContext() = 0;
+  virtual JSContext* GetNativeContext() = 0;
 
   
 
