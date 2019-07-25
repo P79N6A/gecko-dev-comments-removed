@@ -149,9 +149,28 @@ let Utils = {
 
   
   makeGUID: function makeGUID() {
-    let uuidgen = Cc["@mozilla.org/uuid-generator;1"].
-                  getService(Ci.nsIUUIDGenerator);
-    return uuidgen.generateUUID().toString().replace(/[{}]/g, '');
+    
+    const code =
+      "!()*-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~";
+
+    let guid = "";
+    let num = 0;
+    let val;
+
+    
+    for (let i = 0; i < 10; i++) {
+      
+      if (i == 0 || i == 5)
+        num = Math.random();
+
+      
+      num *= 70;
+      val = Math.floor(num);
+      guid += code[val];
+      num -= val;
+    }
+
+    return guid;
   },
 
   anno: function anno(id, anno, val, expire) {
