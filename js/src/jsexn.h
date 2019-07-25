@@ -104,6 +104,8 @@ js_GetLocalizedErrorMessage(JSContext* cx, void *userRef, const char *locale,
 
 
 
+
+
 extern JSObject *
 js_CopyErrorObject(JSContext *cx, JSObject *errobj, JSObject *scope);
 
