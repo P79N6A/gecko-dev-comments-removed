@@ -1054,7 +1054,7 @@ pref("devtools.editor.expandtab", true);
 
 
 
-pref("devtools.editor.component", "textarea");
+pref("devtools.editor.component", "orion");
 
 
 
