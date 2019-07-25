@@ -60,16 +60,6 @@ AppProtocolHandler.prototype = {
     }
 
     
-    
-    let lastSlash = fileSpec.lastIndexOf("/");
-    if (lastSlash == fileSpec.length - 1) {
-      fileSpec += "index.html";
-    } else if (fileSpec[lastSlash + 1] == '#') {
-      let anchor = fileSpec.substring(lastSlash + 1);
-      fileSpec = fileSpec.substring(0, lastSlash) + "/index.html" + anchor;
-    }
-
-    
     let uri = "jar:file://" + this.basePath + appId + "/application.zip!" + fileSpec;
     let channel = Services.io.newChannel(uri, null, null);
     channel.QueryInterface(Ci.nsIJARChannel).setAppURI(aURI);
