@@ -85,7 +85,7 @@ public:
   NS_DECL_NSIDOMHTMLLINKELEMENT
 
   
-  
+  NS_DECL_SIZEOF_EXCLUDING_THIS
 
   
   NS_IMETHOD    LinkAdded();
@@ -458,3 +458,11 @@ nsHTMLLinkElement::IntrinsicState() const
 {
   return Link::LinkState() | nsGenericHTMLElement::IntrinsicState();
 }
+
+size_t
+nsHTMLLinkElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return nsGenericHTMLElement::SizeOfExcludingThis(aMallocSizeOf) +
+         Link::SizeOfExcludingThis(aMallocSizeOf);
+}
+
