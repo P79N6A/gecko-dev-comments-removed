@@ -46,6 +46,7 @@ const {classes: CC, interfaces: CI, utils: CU} = Components;
 
 CU.import("resource://services-sync/service.js");
 CU.import("resource://services-sync/constants.js");
+CU.import("resource://services-sync/engines.js");
 CU.import("resource://services-sync/async.js");
 CU.import("resource://services-sync/util.js");
 CU.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -103,6 +104,7 @@ let TPS =
   _phaselist: {},
   _operations_pending: 0,
   _loggedIn: false,
+  _enabledEngines: null,
 
   DumpError: function (msg) {
     this._errors++;
@@ -489,8 +491,35 @@ let TPS =
     this.RunNextTestAction();
   },
 
-  RunTestPhase: function (file, phase, logpath) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  RunTestPhase: function (file, phase, logpath, options) {
     try {
+      let settings = options || {};
+
       Logger.init(logpath);
       Logger.logInfo("Sync version: " + WEAVE_VERSION);
       Logger.logInfo("Firefox builddate: " + Services.appinfo.appBuildID);
@@ -522,6 +551,23 @@ let TPS =
         this.DumpError("no profile defined for phase " + this._currentPhase);
         return;
       }
+
+      
+      
+      if (settings.ignoreUnusedEngines && Array.isArray(this._enabledEngines)) {
+        let names = {};
+        for each (let name in this._enabledEngines) {
+          names[name] = true;
+        }
+
+        for each (let engine in Engines.getEnabled()) {
+          if (!(engine.name in names)) {
+            Logger.logInfo("Unregistering unused engine: " + engine.name);
+            Engines.unregister(engine);
+          }
+        }
+      }
+
       Logger.logInfo("Starting phase " + parseInt(phase, 10) + "/" +
                      Object.keys(this._phaselist).length);
 
@@ -559,8 +605,40 @@ let TPS =
     }
   },
 
+  
+
+
+
+
+
+
+
+
+
   Phase: function Test__Phase(phasename, fnlist) {
     this._phaselist[phasename] = fnlist;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  EnableEngines: function EnableEngines(names) {
+    if (!Array.isArray(names)) {
+      throw new Error("Argument to RestrictEngines() is not an array: "
+                      + typeof(names));
+    }
+
+    this._enabledEngines = names;
   },
 
   RunMozmillTest: function TPS__RunMozmillTest(testfile) {
