@@ -73,7 +73,6 @@ function run_test() {
   var resURI = res.newURI("resource://gre/modules/XPCOMUtils.jsm", null, null);
   dump("resURI: " + resURI + "\n");
   var filePath = res.resolveURI(resURI);
-  do_check_eq(filePath.indexOf("file://"), 0);
   var scope3 = {};
   Components.utils.import(filePath, scope3);
   do_check_eq(typeof(scope3.XPCOMUtils), "object");
