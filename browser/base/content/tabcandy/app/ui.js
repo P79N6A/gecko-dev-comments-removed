@@ -344,65 +344,66 @@ window.Page = {
     let focusTab = tab;
     let currentTab = UI.currentTab;
     let currentWindow = Utils.getCurrentWindow();
-    let doSetup = false;
     let self = this;
     
     UI.currentTab = focusTab;
     
-    if (this.isTabCandyVisible()) {
-      if (!this.closedLastVisibleTab && !this.closedSelectedTabInTabCandy) {
-        this.showChrome();
-        doSetup = true;
-      }
-    } else
-      doSetup = true;
-    
-    if (doSetup) {
-      iQ.timeout(function() { 
-        
-        if (Page.stopZoomPreparation) {
-          self.stopZoomPreparation = false;
-          return;
-        }
-        let visibleTabCount = Tabbar.getVisibleTabCount();
-   
-        if (focusTab != UI.currentTab) {
-          
-          return;
-        }
-         
-        let newItem = null;
-        if (focusTab && focusTab.mirror)
-          newItem = TabItems.getItemByTabElement(focusTab.mirror.el);
-    
-        if (newItem)
-          Groups.setActiveGroup(newItem.parent);
-  
-        
-        let oldItem = null;
-        if (currentTab && currentTab.mirror)
-          oldItem = TabItems.getItemByTabElement(currentTab.mirror.el);
-  
-        if (newItem != oldItem) {
-          if (oldItem)
-            oldItem.setZoomPrep(false);
-          
-          
-          
-          if (visibleTabCount > 0) {
-            if (newItem)
-              newItem.setZoomPrep(true);
-          }
-        } else {
-          
-          
-          if (oldItem)
-            oldItem.setZoomPrep(true);
-        }
-      }, 1);
+    if (this.isTabCandyVisible() && (this.closedLastVisibleTab || this.closedSelectedTabInTabCandy)) {
+      this.closedLastVisibleTab = false;
+      this.closedSelectedTabInTabCandy = false;
+      return;      
     }
+
+    
+    if (this.isTabCandyVisible())
+      this.showChrome();
+
+    
     this.closedLastVisibleTab = false;
     this.closedSelectedTabInTabCandy = false;
+    
+    iQ.timeout(function() { 
+      
+      if (Page.stopZoomPreparation) {
+        self.stopZoomPreparation = false;
+        return;
+      }
+      let visibleTabCount = Tabbar.getVisibleTabCount();
+ 
+      if (focusTab != UI.currentTab) {
+        
+        return;
+      }
+       
+      let newItem = null;
+      if (focusTab && focusTab.mirror)
+        newItem = TabItems.getItemByTabElement(focusTab.mirror.el);
+  
+      if (newItem)
+        Groups.setActiveGroup(newItem.parent);
+
+      
+      let oldItem = null;
+      if (currentTab && currentTab.mirror)
+        oldItem = TabItems.getItemByTabElement(currentTab.mirror.el);
+
+      if (newItem != oldItem) {
+        if (oldItem)
+          oldItem.setZoomPrep(false);
+        
+        
+        
+        if (visibleTabCount > 0) {
+          if (newItem)
+            newItem.setZoomPrep(true);
+        }
+      } else {
+        
+        
+        if (oldItem)
+          oldItem.setZoomPrep(true);
+      }
+    }, 1);
   },
 
   
@@ -1074,9 +1075,7 @@ UIClass.prototype = {
 
   
   saveVisibility: function(isVisible) {
-    Utils.log("isVisible: " + isVisible);
-    Storage.saveVisibilityData(
-      Utils.getCurrentWindow(), { visible: isVisible });
+    Storage.saveVisibilityData(Utils.getCurrentWindow(), { visible: isVisible });
   },
 
   
