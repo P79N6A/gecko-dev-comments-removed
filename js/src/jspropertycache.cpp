@@ -85,6 +85,16 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
 
     uintN protoIndex = 0;
     while (tmp != pobj) {
+
+        
+
+
+
+        if (tmp->hasUncacheableProto()) {
+            PCMETER(noprotos++);
+            return JS_NO_PROP_CACHE_FILL;
+        }
+
         tmp = tmp->getProto();
 
         

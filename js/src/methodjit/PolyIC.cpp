@@ -658,6 +658,13 @@ IsCacheableProtoChain(JSObject *obj, JSObject *holder)
 
 
 
+        if (obj->hasUncacheableProto())
+            return false;
+
+        
+
+
+
 
         JSObject *proto = obj->getProto();
         if (!proto || !proto->isNative())
@@ -2941,7 +2948,11 @@ SetElementIC::attachHoleStub(VMFrame &f, JSObject *obj, int32 keyval)
     
     
     
+    if (obj->hasUncacheableProto())
+        return disable(cx, "uncacheable array prototype");
     for (JSObject *pobj = obj->getProto(); pobj; pobj = pobj->getProto()) {
+        if (pobj->hasUncacheableProto())
+            return disable(cx, "uncacheable array prototype");
         if (!pobj->isNative())
             return disable(cx, "non-native array prototype");
         masm.move(ImmPtr(pobj), objReg);

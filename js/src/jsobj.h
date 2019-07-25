@@ -582,6 +582,15 @@ struct JSObject : js::gc::Cell
     inline bool isVarObj() const;
     inline bool setVarObj(JSContext *cx);
 
+    
+
+
+
+
+
+    inline bool hasUncacheableProto() const;
+    inline bool setUncacheableProto(JSContext *cx);
+
     bool generateOwnShape(JSContext *cx, js::Shape *newShape = NULL);
 
   private:
