@@ -216,6 +216,12 @@ ThebesLayerD3D10::Validate()
   }
 
   if (!mValidRegion.IsEqual(mVisibleRegion)) {
+    LayerManagerD3D10::CallbackInfo cbInfo = mD3DManager->GetCallbackInfo();
+    if (!cbInfo.Callback) {
+      NS_ERROR("D3D10 should never need to update ThebesLayers in an empty transaction");
+      return;
+    }
+
     
 
 
