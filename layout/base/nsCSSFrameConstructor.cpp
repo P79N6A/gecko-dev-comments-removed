@@ -12234,6 +12234,13 @@ Iterator::DeleteItemsTo(const Iterator& aEnd)
 bool
 nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
 {
+  
+  
+  
+  if (aFrame->GetType() == nsGkAtoms::tableFrame) {
+    return true;
+  }
+
   const nsStyleDisplay* display = aFrame->GetStyleDisplay();
   
   if (display->mPosition == NS_STYLE_POSITION_STATIC) {
