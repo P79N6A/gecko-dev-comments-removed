@@ -41,6 +41,9 @@
 
 
 
+
+#include <limits.h> 
+
 #include <new>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -213,13 +216,12 @@ js_CurrentThreadAndLockGC(JSRuntime *rt)
     }
     JS_ASSERT(thread->id == id);
 
-#ifdef DEBUG
-    char* gnsb = (char*) GetNativeStackBase();
-    JS_ASSERT(gnsb + 0      == (char*) thread->data.nativeStackBase ||
-              
-              gnsb + 0x1000 == (char*) thread->data.nativeStackBase ||
-              gnsb + 0x2000 == (char*) thread->data.nativeStackBase ||
-              gnsb + 0x3000 == (char*) thread->data.nativeStackBase);
+    
+
+
+
+#ifndef __GLIBC__
+    JS_ASSERT(GetNativeStackBase() == thread->data.nativeStackBase);
 #endif
 
     return thread;
