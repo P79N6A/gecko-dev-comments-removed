@@ -7253,7 +7253,9 @@ nsDocShell::RestoreFromHistory()
     mLSHE->GetRefreshURIList(getter_AddRefs(refreshURIList));
 
     
+    mIsRestoringDocument = true; 
     rv = mContentViewer->Open(windowState, mLSHE);
+    mIsRestoringDocument = false;
 
     
     

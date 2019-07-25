@@ -262,6 +262,15 @@ CheckXSLTParamPI(nsIDOMProcessingInstruction* aPi,
 NS_IMETHODIMP
 nsXMLContentSink::DidBuildModel(bool aTerminated)
 {
+  if (!mParser) {
+    
+    
+    
+    
+    
+    return NS_OK;
+  }
+
   DidBuildModelImpl(aTerminated);
 
   if (mXSLTProcessor) {
