@@ -261,6 +261,13 @@ let WeaveGlue = {
       if (this.setupData) {
         if (this.setupData.serverURL && this.setupData.serverURL.length)
           Weave.Service.serverURL = this.setupData.serverURL;
+
+        
+        
+        this.observe(null, "", "");
+
+        
+        
         Weave.Service.login(Weave.Service.username, this.setupData.password, this.setupData.synckey);
       } else {
         
