@@ -153,8 +153,6 @@ struct PendingProxyOperation {
 };
 
 struct ThreadData {
-    JSRuntime           *rt;
-
     
 
 
@@ -200,45 +198,23 @@ struct ThreadData {
     LifoAlloc           tempLifoAlloc;
 
   private:
-    
+    js::RegExpPrivateCache       *repCache;
 
-
-
-    JSC::ExecutableAllocator    *execAlloc;
-    WTF::BumpPointerAllocator   *bumpAlloc;
-    js::RegExpPrivateCache      *repCache;
-
-    JSC::ExecutableAllocator *createExecutableAllocator(JSContext *cx);
-    WTF::BumpPointerAllocator *createBumpPointerAllocator(JSContext *cx);
-    js::RegExpPrivateCache *createRegExpPrivateCache(JSContext *cx);
+    js::RegExpPrivateCache *createRegExpPrivateCache(JSRuntime *rt);
 
   public:
-    JSC::ExecutableAllocator *getOrCreateExecutableAllocator(JSContext *cx) {
-        if (execAlloc)
-            return execAlloc;
+    js::RegExpPrivateCache *getRegExpPrivateCache() { return repCache; }
 
-        return createExecutableAllocator(cx);
-    }
-
-    WTF::BumpPointerAllocator *getOrCreateBumpPointerAllocator(JSContext *cx) {
-        if (bumpAlloc)
-            return bumpAlloc;
-
-        return createBumpPointerAllocator(cx);
-    }
-
-    js::RegExpPrivateCache *getRegExpPrivateCache() {
-        return repCache;
-    }
-    js::RegExpPrivateCache *getOrCreateRegExpPrivateCache(JSContext *cx) {
+    
+    js::RegExpPrivateCache *getOrCreateRegExpPrivateCache(JSRuntime *rt) {
         if (repCache)
             return repCache;
 
-        return createRegExpPrivateCache(cx);
+        return createRegExpPrivateCache(rt);
     }
 
     
-    void purgeRegExpPrivateCache();
+    void purgeRegExpPrivateCache(JSRuntime *rt);
 
     
 
@@ -264,7 +240,7 @@ struct ThreadData {
     size_t              noGCOrAllocationCheck;
 #endif
 
-    ThreadData(JSRuntime *rt);
+    ThreadData();
     ~ThreadData();
 
     bool init();
