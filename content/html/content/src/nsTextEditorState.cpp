@@ -584,6 +584,8 @@ public:
 
   void SetFrame(nsTextControlFrame *aFrame){mFrame = aFrame;}
 
+  void SettingValue(PRBool aValue) { mSettingValue = aValue; }
+
   NS_DECL_ISUPPORTS
 
   NS_DECL_NSISELECTIONLISTENER
@@ -620,6 +622,11 @@ protected:
 
 
   PRPackedBool    mHadRedoItems;
+  
+
+
+
+  PRPackedBool mSettingValue;
 };
 
 
@@ -633,6 +640,7 @@ nsTextInputListener::nsTextInputListener(nsITextControlElement* aTxtCtrlElement)
 , mSelectionWasCollapsed(PR_TRUE)
 , mHadUndoItems(PR_FALSE)
 , mHadRedoItems(PR_FALSE)
+, mSettingValue(PR_FALSE)
 {
 }
 
@@ -842,7 +850,9 @@ nsTextInputListener::EditAction()
   
   mFrame->FireOnInput();
 
-  mTxtCtrlElement->OnValueChanged(PR_TRUE);
+  if (!mSettingValue) {
+    mTxtCtrlElement->OnValueChanged(PR_TRUE);
+  }
 
   return NS_OK;
 }
@@ -1715,6 +1725,8 @@ nsTextEditorState::SetValue(const nsAString& aValue, PRBool aUserInput)
         flags |= nsIPlaintextEditor::eEditorDontEchoPassword;
         mEditor->SetFlags(flags);
 
+        mTextListener->SettingValue(PR_TRUE);
+
         
         PRInt32 savedMaxLength;
         plaintextEditor->GetMaxTextLength(&savedMaxLength);
@@ -1725,6 +1737,9 @@ nsTextEditorState::SetValue(const nsAString& aValue, PRBool aUserInput)
         } else {
           plaintextEditor->InsertText(insertValue);
         }
+
+        mTextListener->SettingValue(PR_FALSE);
+
         if (!weakFrame.IsAlive()) {
           
           
