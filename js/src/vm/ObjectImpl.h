@@ -192,7 +192,7 @@ class ObjectImpl : public gc::Cell
     inline bool isArray() const;
 
     inline HeapSlotArray getDenseArrayElements();
-    inline const Value & getDenseArrayElement(unsigned idx);
+    inline const Value & getDenseArrayElement(uint32_t idx);
     inline uint32_t getDenseArrayInitializedLength();
 
   protected:
@@ -207,10 +207,10 @@ class ObjectImpl : public gc::Cell
 
 
 
-    inline void getSlotRangeUnchecked(size_t start, size_t length,
+    inline void getSlotRangeUnchecked(uint32_t start, uint32_t length,
                                       HeapSlot **fixedStart, HeapSlot **fixedEnd,
                                       HeapSlot **slotsStart, HeapSlot **slotsEnd);
-    inline void getSlotRange(size_t start, size_t length,
+    inline void getSlotRange(uint32_t start, uint32_t length,
                              HeapSlot **fixedStart, HeapSlot **fixedEnd,
                              HeapSlot **slotsStart, HeapSlot **slotsEnd);
 
@@ -219,22 +219,22 @@ class ObjectImpl : public gc::Cell
     friend struct Shape;
     friend class NewObjectCache;
 
-    inline bool hasContiguousSlots(size_t start, size_t count) const;
+    inline bool hasContiguousSlots(uint32_t start, uint32_t count) const;
 
-    inline void invalidateSlotRange(size_t start, size_t count);
-    inline void initializeSlotRange(size_t start, size_t count);
-
-    
-
-
-
-    void initSlotRange(size_t start, const Value *vector, size_t length);
+    inline void invalidateSlotRange(uint32_t start, uint32_t count);
+    inline void initializeSlotRange(uint32_t start, uint32_t count);
 
     
 
 
 
-    void copySlotRange(size_t start, const Value *vector, size_t length);
+    void initSlotRange(uint32_t start, const Value *vector, uint32_t length);
+
+    
+
+
+
+    void copySlotRange(uint32_t start, const Value *vector, uint32_t length);
 
 #ifdef DEBUG
     enum SentinelAllowed {
@@ -246,7 +246,7 @@ class ObjectImpl : public gc::Cell
 
 
 
-    bool slotInRange(unsigned slot, SentinelAllowed sentinel = SENTINEL_NOT_ALLOWED) const;
+    bool slotInRange(uint32_t slot, SentinelAllowed sentinel = SENTINEL_NOT_ALLOWED) const;
 #endif
 
     
@@ -274,7 +274,7 @@ class ObjectImpl : public gc::Cell
         return type_;
     }
 
-    size_t numFixedSlots() const {
+    uint32_t numFixedSlots() const {
         return reinterpret_cast<const shadow::Object *>(this)->numFixedSlots();
     }
 
@@ -293,7 +293,7 @@ class ObjectImpl : public gc::Cell
     inline uint32_t slotSpan() const;
 
     
-    inline size_t numDynamicSlots() const;
+    inline uint32_t numDynamicSlots() const;
 
     const Shape * nativeLookup(JSContext *cx, jsid id);
 
@@ -320,22 +320,22 @@ class ObjectImpl : public gc::Cell
 
     inline bool inDictionaryMode() const;
 
-    const Value &getSlot(unsigned slot) const {
+    const Value &getSlot(uint32_t slot) const {
         MOZ_ASSERT(slotInRange(slot));
-        size_t fixed = numFixedSlots();
+        uint32_t fixed = numFixedSlots();
         if (slot < fixed)
             return fixedSlots()[slot];
         return slots[slot - fixed];
     }
 
-    HeapSlot *getSlotAddressUnchecked(unsigned slot) {
-        size_t fixed = numFixedSlots();
+    HeapSlot *getSlotAddressUnchecked(uint32_t slot) {
+        uint32_t fixed = numFixedSlots();
         if (slot < fixed)
             return fixedSlots() + slot;
         return slots + (slot - fixed);
     }
 
-    HeapSlot *getSlotAddress(unsigned slot) {
+    HeapSlot *getSlotAddress(uint32_t slot) {
         
 
 
@@ -345,32 +345,32 @@ class ObjectImpl : public gc::Cell
         return getSlotAddressUnchecked(slot);
     }
 
-    HeapSlot &getSlotRef(unsigned slot) {
+    HeapSlot &getSlotRef(uint32_t slot) {
         MOZ_ASSERT(slotInRange(slot));
         return *getSlotAddress(slot);
     }
 
-    inline HeapSlot &nativeGetSlotRef(unsigned slot);
-    inline const Value &nativeGetSlot(unsigned slot) const;
+    inline HeapSlot &nativeGetSlotRef(uint32_t slot);
+    inline const Value &nativeGetSlot(uint32_t slot) const;
 
-    inline void setSlot(unsigned slot, const Value &value);
-    inline void initSlot(unsigned slot, const Value &value);
-    inline void initSlotUnchecked(unsigned slot, const Value &value);
+    inline void setSlot(uint32_t slot, const Value &value);
+    inline void initSlot(uint32_t slot, const Value &value);
+    inline void initSlotUnchecked(uint32_t slot, const Value &value);
 
     
 
-    HeapSlot &getFixedSlotRef(unsigned slot) {
+    HeapSlot &getFixedSlotRef(uint32_t slot) {
         MOZ_ASSERT(slot < numFixedSlots());
         return fixedSlots()[slot];
     }
 
-    const Value &getFixedSlot(unsigned slot) const {
+    const Value &getFixedSlot(uint32_t slot) const {
         MOZ_ASSERT(slot < numFixedSlots());
         return fixedSlots()[slot];
     }
 
-    inline void setFixedSlot(unsigned slot, const Value &value);
-    inline void initFixedSlot(unsigned slot, const Value &value);
+    inline void setFixedSlot(uint32_t slot, const Value &value);
+    inline void initFixedSlot(uint32_t slot, const Value &value);
 
     
 
@@ -378,7 +378,7 @@ class ObjectImpl : public gc::Cell
 
 
 
-    static inline size_t dynamicSlotsCount(size_t nfixed, size_t span);
+    static inline uint32_t dynamicSlotsCount(uint32_t nfixed, uint32_t span);
 
     
     inline size_t sizeOfThis() const;
@@ -428,7 +428,7 @@ class ObjectImpl : public gc::Cell
     inline void initPrivate(void *data);
 
     
-    inline void *getPrivate(size_t nfixed) const;
+    inline void *getPrivate(uint32_t nfixed) const;
 
     
     static size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
