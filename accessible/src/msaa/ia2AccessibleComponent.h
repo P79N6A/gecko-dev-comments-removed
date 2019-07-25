@@ -38,14 +38,12 @@
 
 
 
-#ifndef _ACCESSIBLE_COMPONENt_H
-#define _ACCESSIBLE_COMPONENT_H
-
-#include "nsISupports.h"
+#ifndef IA2_ACCESSIBLE_COMPONENT_H_
+#define IA2_ACCESSIBLE_COMPONENT_H_
 
 #include "AccessibleComponent.h"
 
-class CAccessibleComponent: public IAccessibleComponent
+class ia2AccessibleComponent : public IAccessibleComponent
 {
 public:
 
@@ -62,9 +60,6 @@ public:
 
   virtual  HRESULT STDMETHODCALLTYPE get_background(
        IA2Color *background);
-
-  
-  NS_IMETHOD QueryInterface(const nsIID& uuid, void** result) = 0;
 };
 
 #endif
