@@ -160,6 +160,12 @@ class HeapReverser : public JSTracer {
 
 
 
+
+
+
+
+
+
     Vector<jsval, 0, SystemAllocPolicy> roots;
     AutoArrayRooter rooter;
 
@@ -218,7 +224,8 @@ class HeapReverser : public JSTracer {
     
     static void traverseEdgeWithThis(JSTracer *tracer, void **thingp, JSGCTraceKind kind) {
         HeapReverser *reverser = static_cast<HeapReverser *>(tracer);
-        reverser->traversalStatus = reverser->traverseEdge(*thingp, kind);
+        if (!reverser->traverseEdge(*thingp, kind))
+            reverser->traversalStatus = false;
     }
 
     
@@ -231,10 +238,11 @@ class HeapReverser : public JSTracer {
 };
 
 bool
-HeapReverser::traverseEdge(void *cell, JSGCTraceKind kind) {
-    
-    if (!parent) {
-        if (!roots.append(nodeToValue(cell, kind)))
+HeapReverser::traverseEdge(void *cell, JSGCTraceKind kind)
+{
+    jsval v = nodeToValue(cell, kind);
+    if (v.isObject()) {
+        if (!roots.append(v))
             return false;
         rooter.changeArray(roots.begin(), roots.length());
     }
@@ -267,7 +275,10 @@ HeapReverser::traverseEdge(void *cell, JSGCTraceKind kind) {
 }
 
 bool
-HeapReverser::reverseHeap() {
+HeapReverser::reverseHeap()
+{
+    traversalStatus = true;
+
     
     JS_TraceRuntime(this);
     if (!traversalStatus)
