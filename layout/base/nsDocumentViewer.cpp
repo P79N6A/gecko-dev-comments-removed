@@ -2320,9 +2320,13 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
   if (!view)
     return NS_ERROR_OUT_OF_MEMORY;
 
+  PRBool isExternalResource = !!mDocument->GetDisplayDocument();
+
   
   
-  if (mParentWidget || !aContainerView) {
+  
+  
+  if (!isExternalResource && (mParentWidget || !aContainerView)) {
     
     
     
@@ -2343,11 +2347,12 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
       
       rv = view->AttachToTopLevelWidget(mParentWidget);
     }
+    else if (!aContainerView && mParentWidget) {
+      rv = view->CreateWidgetForParent(kWidgetCID, mParentWidget, initDataPtr,
+                                       PR_TRUE, PR_FALSE);
+    }
     else {
-      nsNativeWidget nw = (aContainerView != nsnull || !mParentWidget) ?
-                 nsnull : mParentWidget->GetNativeData(NS_NATIVE_WIDGET);
-      rv = view->CreateWidget(kWidgetCID, initDataPtr,
-                              nw, PR_TRUE, PR_FALSE);
+      rv = view->CreateWidget(kWidgetCID, initDataPtr, PR_TRUE, PR_FALSE);
     }
     if (NS_FAILED(rv))
       return rv;

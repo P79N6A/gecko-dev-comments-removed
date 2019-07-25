@@ -120,11 +120,25 @@ public:
   
   nsresult CreateWidget(const nsIID &aWindowIID,
                         nsWidgetInitData *aWidgetInitData,
-                        nsNativeWidget aNative,
                         PRBool aEnableDragDrop,
                         PRBool aResetVisibility,
-                        nsContentType aContentType,
-                        nsIWidget* aParentWidget);
+                        nsContentType aContentType);
+
+  
+  nsresult CreateWidgetForParent(const nsIID &aWindowIID,
+                                 nsIWidget* aParentWidget,
+                                 nsWidgetInitData *aWidgetInitData,
+                                 PRBool aEnableDragDrop,
+                                 PRBool aResetVisibility,
+                                 nsContentType aContentType);
+
+  
+  nsresult CreateWidgetForPopup(const nsIID &aWindowIID,
+                                nsWidgetInitData *aWidgetInitData,
+                                nsIWidget* aParentWidget,
+                                PRBool aEnableDragDrop,
+                                PRBool aResetVisibility,
+                                nsContentType aContentType);
 
   
   
@@ -196,7 +210,7 @@ protected:
   nsRegion*    mDirtyRegion;
 
 private:
-  void InitializeWindow(bool aEnableDragDrop, bool aResetVisibility);
+  void InitializeWindow(PRBool aEnableDragDrop, PRBool aResetVisibility);
 };
 
 #endif
