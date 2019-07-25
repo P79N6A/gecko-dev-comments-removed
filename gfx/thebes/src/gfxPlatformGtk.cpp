@@ -164,6 +164,12 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
                                        gfxASurface::gfxImageFormat imageFormat)
 {
     nsRefPtr<gfxASurface> newSurface = nsnull;
+    PRBool sizeOk = PR_TRUE;
+
+    if (size.width >= GDK_PIXMAP_SIZE_MAX ||
+        size.height >= GDK_PIXMAP_SIZE_MAX)
+        sizeOk = PR_FALSE;
+
 #ifdef MOZ_X11
     
     
@@ -172,6 +178,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
     if (!display)
         return nsnull;
 
+    GdkPixmap* pixmap = nsnull;
     
     if (gfxASurface::ImageFormatRGB24 == imageFormat
         && 16 == gdk_visual_get_system()->depth)
@@ -180,20 +187,37 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
     XRenderPictFormat* xrenderFormat =
         gfxXlibSurface::FindRenderFormat(display, imageFormat);
 
-    if (xrenderFormat) {
-        newSurface = new gfxXlibSurface(display, xrenderFormat, size);
-        if (newSurface && newSurface->CairoStatus() != 0) {
+    if (xrenderFormat && sizeOk) {
+        pixmap = gdk_pixmap_new(nsnull, size.width, size.height,
+                                xrenderFormat->depth);
+
+        if (pixmap) {
+            gdk_drawable_set_colormap(GDK_DRAWABLE(pixmap), nsnull);
+            newSurface = new gfxXlibSurface(display,
+                                            GDK_PIXMAP_XID(GDK_DRAWABLE(pixmap)),
+                                            xrenderFormat,
+                                            size);
+        }
+
+        if (newSurface && newSurface->CairoStatus() == 0) {
+            
+            
+            SetGdkDrawable(newSurface, GDK_DRAWABLE(pixmap));
+        } else {
             
             
             newSurface = nsnull;
         }
+
+        
+        if (pixmap)
+            g_object_unref(pixmap);
     }
 #endif
 
 #ifdef MOZ_DFB
-    if (size.width < GDK_PIXMAP_SIZE_MAX && size.height < GDK_PIXMAP_SIZE_MAX) {
+    if (sizeOk)
         newSurface = new gfxDirectFBSurface(size, imageFormat);
-    }
 #endif
 
 
