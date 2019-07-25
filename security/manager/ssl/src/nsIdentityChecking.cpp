@@ -81,6 +81,12 @@ struct nsMyTrustedEVInfo
 };
 
 static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
+  
+
+
+
+
+
   {
     
     "2.16.840.1.114171.500.9",
@@ -302,6 +308,18 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "2.16.840.1.114413.1.7.23.3",
     "Go Daddy EV OID a",
     SEC_OID_UNKNOWN,
+    "47:BE:AB:C9:22:EA:E8:0E:78:78:34:62:A7:9F:45:C2:54:FD:E6:8B",
+    "MIGDMQswCQYDVQQGEwJVUzEQMA4GA1UECBMHQXJpem9uYTETMBEGA1UEBxMKU2Nv"
+    "dHRzZGFsZTEaMBgGA1UEChMRR29EYWRkeS5jb20sIEluYy4xMTAvBgNVBAMTKEdv"
+    "IERhZGR5IFJvb3QgQ2VydGlmaWNhdGUgQXV0aG9yaXR5IC0gRzI=",
+    "AA==",
+    nsnull
+  },
+  {
+    
+    "2.16.840.1.114413.1.7.23.3",
+    "Go Daddy EV OID a",
+    SEC_OID_UNKNOWN,
     "31:7A:2A:D0:7F:2B:33:5E:F5:A1:C3:4E:4B:57:E8:B7:D8:F1:FC:A6",
     "MIG7MSQwIgYDVQQHExtWYWxpQ2VydCBWYWxpZGF0aW9uIE5ldHdvcmsxFzAVBgNV"
     "BAoTDlZhbGlDZXJ0LCBJbmMuMTUwMwYDVQQLEyxWYWxpQ2VydCBDbGFzcyAyIFBv"
@@ -332,6 +350,19 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "MGgxCzAJBgNVBAYTAlVTMSUwIwYDVQQKExxTdGFyZmllbGQgVGVjaG5vbG9naWVz"
     "LCBJbmMuMTIwMAYDVQQLEylTdGFyZmllbGQgQ2xhc3MgMiBDZXJ0aWZpY2F0aW9u"
     "IEF1dGhvcml0eQ==",
+    "AA==",
+    nsnull
+  },
+  {
+    
+    "2.16.840.1.114414.1.7.23.3",
+    "Go Daddy EV OID b",
+    SEC_OID_UNKNOWN,
+    "B5:1C:06:7C:EE:2B:0C:3D:F8:55:AB:2D:92:F4:FE:39:D4:E7:0F:0E",
+    "MIGPMQswCQYDVQQGEwJVUzEQMA4GA1UECBMHQXJpem9uYTETMBEGA1UEBxMKU2Nv"
+    "dHRzZGFsZTElMCMGA1UEChMcU3RhcmZpZWxkIFRlY2hub2xvZ2llcywgSW5jLjEy"
+    "MDAGA1UEAxMpU3RhcmZpZWxkIFJvb3QgQ2VydGlmaWNhdGUgQXV0aG9yaXR5IC0g"
+    "RzI=",
     "AA==",
     nsnull
   },
@@ -474,6 +505,84 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "IgYDVQQLExtUQyBUcnVzdENlbnRlciBVbml2ZXJzYWwgQ0ExKDAmBgNVBAMTH1RD"
     "IFRydXN0Q2VudGVyIFVuaXZlcnNhbCBDQSBJSUk=",
     "YyUAAQACFI0zFQLkbPQ=",
+    nsnull
+  },
+  {
+    
+    "1.3.6.1.4.1.34697.2.1",
+    "AffirmTrust EV OID a",
+    SEC_OID_UNKNOWN,
+    "F9:B5:B6:32:45:5F:9C:BE:EC:57:5F:80:DC:E9:6E:2C:C7:B2:78:B7",
+    "MEQxCzAJBgNVBAYTAlVTMRQwEgYDVQQKDAtBZmZpcm1UcnVzdDEfMB0GA1UEAwwW"
+    "QWZmaXJtVHJ1c3QgQ29tbWVyY2lhbA==",
+    "d3cGJyapsXw=",
+    nsnull
+  },
+  {
+    
+    "1.3.6.1.4.1.34697.2.2",
+    "AffirmTrust EV OID b",
+    SEC_OID_UNKNOWN,
+    "29:36:21:02:8B:20:ED:02:F5:66:C5:32:D1:D6:ED:90:9F:45:00:2F",
+    "MEQxCzAJBgNVBAYTAlVTMRQwEgYDVQQKDAtBZmZpcm1UcnVzdDEfMB0GA1UEAwwW"
+    "QWZmaXJtVHJ1c3QgTmV0d29ya2luZw==",
+    "fE8EORzUmS0=",
+    nsnull
+  },
+  {
+    
+    "1.3.6.1.4.1.34697.2.3",
+    "AffirmTrust EV OID c",
+    SEC_OID_UNKNOWN,
+    "D8:A6:33:2C:E0:03:6F:B1:85:F6:63:4F:7D:6A:06:65:26:32:28:27",
+    "MEExCzAJBgNVBAYTAlVTMRQwEgYDVQQKDAtBZmZpcm1UcnVzdDEcMBoGA1UEAwwT"
+    "QWZmaXJtVHJ1c3QgUHJlbWl1bQ==",
+    "bYwURrGmCu4=",
+    nsnull
+  },
+  {
+    
+    "1.3.6.1.4.1.34697.2.4",
+    "AffirmTrust EV OID d",
+    SEC_OID_UNKNOWN,
+    "B8:23:6B:00:2F:1D:16:86:53:01:55:6C:11:A4:37:CA:EB:FF:C3:BB",
+    "MEUxCzAJBgNVBAYTAlVTMRQwEgYDVQQKDAtBZmZpcm1UcnVzdDEgMB4GA1UEAwwX"
+    "QWZmaXJtVHJ1c3QgUHJlbWl1bSBFQ0M=",
+    "dJclisc/elQ=",
+    nsnull
+  },
+  {
+    
+    "1.2.616.1.113527.2.5.1.1",
+    "Certum EV OID",
+    SEC_OID_UNKNOWN,
+    "07:E0:32:E0:20:B7:2C:3F:19:2F:06:28:A2:59:3A:19:A7:0F:06:9E",
+    "MH4xCzAJBgNVBAYTAlBMMSIwIAYDVQQKExlVbml6ZXRvIFRlY2hub2xvZ2llcyBT"
+    "LkEuMScwJQYDVQQLEx5DZXJ0dW0gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxIjAg"
+    "BgNVBAMTGUNlcnR1bSBUcnVzdGVkIE5ldHdvcmsgQ0E=",
+    "BETA",
+    nsnull
+  },
+  {
+    
+    "1.3.6.1.4.1.14777.6.1.1",
+    "Izenpe EV OID 1",
+    SEC_OID_UNKNOWN,
+    "2F:78:3D:25:52:18:A7:4A:65:39:71:B5:2C:A2:9C:45:15:6F:E9:19",
+    "MDgxCzAJBgNVBAYTAkVTMRQwEgYDVQQKDAtJWkVOUEUgUy5BLjETMBEGA1UEAwwK"
+    "SXplbnBlLmNvbQ==",
+    "ALC3WhZIX7/hy/WL1xnmfQ==",
+    nsnull
+  },
+  {
+    
+    "1.3.6.1.4.1.14777.6.1.2",
+    "Izenpe EV OID 2",
+    SEC_OID_UNKNOWN,
+    "2F:78:3D:25:52:18:A7:4A:65:39:71:B5:2C:A2:9C:45:15:6F:E9:19",
+    "MDgxCzAJBgNVBAYTAkVTMRQwEgYDVQQKDAtJWkVOUEUgUy5BLjETMBEGA1UEAwwK"
+    "SXplbnBlLmNvbQ==",
+    "ALC3WhZIX7/hy/WL1xnmfQ==",
     nsnull
   },
   {
