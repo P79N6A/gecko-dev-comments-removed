@@ -514,6 +514,11 @@ public:
     virtual void ReadOtherFamilyNames(gfxPlatformFontList *aPlatformFontList);
 
     
+    void SetOtherFamilyNamesInitialized() {
+        mOtherFamilyNamesInitialized = PR_TRUE;
+    }
+
+    
     
     virtual void ReadFaceNames(gfxPlatformFontList *aPlatformFontList,
                                PRBool aNeedFullnamePostscriptNames);

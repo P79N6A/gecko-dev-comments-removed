@@ -418,16 +418,18 @@ gfxPlatformFontList::FindFamily(const nsAString& aFamily)
     }
 
     
-    if ((familyEntry = mOtherFamilyNames.GetWeak(key, &found))) {
+    if ((familyEntry = mOtherFamilyNames.GetWeak(key, &found)) != nsnull) {
         return familyEntry;
     }
 
     
     
     
-    if (!mOtherFamilyNamesInitialized) {
+    
+    
+    if (!mOtherFamilyNamesInitialized && !IsASCII(aFamily)) {
         InitOtherFamilyNames();
-        if ((familyEntry = mOtherFamilyNames.GetWeak(key, &found))) {
+        if ((familyEntry = mOtherFamilyNames.GetWeak(key, &found)) != nsnull) {
             return familyEntry;
         }
     }
