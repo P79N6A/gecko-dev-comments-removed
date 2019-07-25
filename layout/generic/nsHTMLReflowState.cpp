@@ -289,6 +289,19 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
 
   InitResizeFlags(aPresContext, type);
 
+  nsIFrame *parent = frame->GetParent();
+  if (parent &&
+      (parent->GetStateBits() & NS_FRAME_IN_CONSTRAINED_HEIGHT) &&
+      !(parent->GetType() == nsGkAtoms::scrollFrame &&
+        parent->GetStyleDisplay()->mOverflowY != NS_STYLE_OVERFLOW_HIDDEN)) {
+    frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
+  } else if (mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto ||
+             mStylePosition->mMaxHeight.GetUnit() != eStyleUnit_None) {
+    frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
+  } else {
+    frame->RemoveStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
+  }
+
   NS_WARN_IF_FALSE((mFrameType == NS_CSS_FRAME_TYPE_INLINE &&
                     !frame->IsFrameOfType(nsIFrame::eReplaced)) ||
                    type == nsGkAtoms::textFrame ||
@@ -352,6 +365,31 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
   mFlags.mHResize = !(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
                     frame->GetSize().width !=
                       mComputedWidth + mComputedBorderPadding.LeftRight();
+  if (mFlags.mHResize &&
+      nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    frame->AddStateBits(NS_FRAME_IS_DIRTY);
+  }
 
   
   
@@ -2111,10 +2149,13 @@ GetNormalLineHeight(nsFontMetrics* aFontMetrics)
   return normalLineHeight;
 }
 
-static nscoord
+static inline nscoord
 ComputeLineHeight(nsStyleContext* aStyleContext,
-                  nscoord aBlockHeight)
+                  nscoord aBlockHeight,
+                  bool* aIsBlockHeight)
 {
+  *aIsBlockHeight = false;
+
   const nsStyleCoord& lhCoord = aStyleContext->GetStyleText()->mLineHeight;
 
   if (lhCoord.GetUnit() == eStyleUnit_Coord)
@@ -2134,8 +2175,10 @@ ComputeLineHeight(nsStyleContext* aStyleContext,
   if (lhCoord.GetUnit() == eStyleUnit_Enumerated) {
     NS_ASSERTION(lhCoord.GetIntValue() == NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT,
                  "bad line-height value");
-    if (aBlockHeight != NS_AUTOHEIGHT)
+    if (aBlockHeight != NS_AUTOHEIGHT) {
+      *aIsBlockHeight = true;
       return aBlockHeight;
+    }
   }
 
   nsRefPtr<nsFontMetrics> fm;
@@ -2151,18 +2194,26 @@ nsHTMLReflowState::CalcLineHeight() const
     nsLayoutUtils::IsNonWrapperBlock(frame) ? mComputedHeight :
     (mCBReflowState ? mCBReflowState->mComputedHeight : NS_AUTOHEIGHT);
 
-  return CalcLineHeight(frame->GetStyleContext(), blockHeight);
+  return CalcLineHeight(frame->GetStyleContext(), blockHeight,
+                        nsLayoutUtils::FontSizeInflationFor(*this));
 }
 
  nscoord
 nsHTMLReflowState::CalcLineHeight(nsStyleContext* aStyleContext,
-                                  nscoord aBlockHeight)
+                                  nscoord aBlockHeight,
+                                  float aFontSizeInflation)
 {
   NS_PRECONDITION(aStyleContext, "Must have a style context");
-  
-  nscoord lineHeight = ComputeLineHeight(aStyleContext, aBlockHeight);
+
+  bool isBlockHeight;
+  nscoord lineHeight =
+    ComputeLineHeight(aStyleContext, aBlockHeight, &isBlockHeight);
 
   NS_ASSERTION(lineHeight >= 0, "ComputeLineHeight screwed up");
+
+  if (aFontSizeInflation != 1.0f && !isBlockHeight) {
+    lineHeight = NSToCoordRound(lineHeight * aFontSizeInflation);
+  }
 
   return lineHeight;
 }

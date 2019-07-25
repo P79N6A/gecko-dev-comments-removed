@@ -74,6 +74,7 @@
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
 using namespace mozilla::layout;
+using namespace mozilla::widget;
 
 
 
@@ -563,63 +564,57 @@ TabParent::RecvEndIMEComposition(const bool& aCancel,
 }
 
 bool
-TabParent::RecvGetIMEEnabled(PRUint32* aValue)
+TabParent::RecvGetInputContext(PRInt32* aIMEEnabled,
+                               PRInt32* aIMEOpen)
 {
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget) {
-    *aValue = nsIWidget::IME_STATUS_DISABLED;
+    *aIMEEnabled = IMEState::DISABLED;
+    *aIMEOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
     return true;
   }
 
-  IMEContext context;
-  widget->GetInputMode(context);
-  *aValue = context.mStatus;
+  InputContext context = widget->GetInputContext();
+  *aIMEEnabled = static_cast<PRInt32>(context.mIMEState.mEnabled);
+  *aIMEOpen = static_cast<PRInt32>(context.mIMEState.mOpen);
   return true;
 }
 
 bool
-TabParent::RecvSetInputMode(const PRUint32& aValue, const nsString& aType, const nsString& aAction, const PRUint32& aReason)
+TabParent::RecvSetInputContext(const PRInt32& aIMEEnabled,
+                               const PRInt32& aIMEOpen,
+                               const nsString& aType,
+                               const nsString& aActionHint,
+                               const PRInt32& aCause,
+                               const PRInt32& aFocusChange)
 {
   
   
-  mIMETabParent = aValue & nsIContent::IME_STATUS_MASK_ENABLED ? this : nsnull;
+  
+  mIMETabParent =
+    aIMEEnabled != static_cast<PRInt32>(IMEState::DISABLED) ? this : nsnull;
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget || !AllowContentIME())
     return true;
 
-  IMEContext context;
-  context.mStatus = aValue;
+  InputContext context;
+  context.mIMEState.mEnabled = static_cast<IMEState::Enabled>(aIMEEnabled);
+  context.mIMEState.mOpen = static_cast<IMEState::Open>(aIMEOpen);
   context.mHTMLInputType.Assign(aType);
-  context.mActionHint.Assign(aAction);
-  context.mReason = aReason;
-  widget->SetInputMode(context);
+  context.mActionHint.Assign(aActionHint);
+  InputContextAction action(
+    static_cast<InputContextAction::Cause>(aCause),
+    static_cast<InputContextAction::FocusChange>(aFocusChange));
+  widget->SetInputContext(context, action);
 
   nsCOMPtr<nsIObserverService> observerService = mozilla::services::GetObserverService();
   if (!observerService)
     return true;
 
   nsAutoString state;
-  state.AppendInt(aValue);
+  state.AppendInt(aIMEEnabled);
   observerService->NotifyObservers(nsnull, "ime-enabled-state-changed", state.get());
 
-  return true;
-}
-
-bool
-TabParent::RecvGetIMEOpenState(bool* aValue)
-{
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (widget)
-    widget->GetIMEOpenState(aValue);
-  return true;
-}
-
-bool
-TabParent::RecvSetIMEOpenState(const bool& aValue)
-{
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (widget && AllowContentIME())
-    widget->SetIMEOpenState(aValue);
   return true;
 }
 

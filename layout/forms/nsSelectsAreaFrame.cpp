@@ -234,7 +234,7 @@ nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext,
   
   
   if (list->MightNeedSecondPass()) {
-    nscoord newHeightOfARow = list->CalcHeightOfARow();
+    nscoord newHeightOfARow = list->CalcHeightOfARow(aReflowState);
     
     
     

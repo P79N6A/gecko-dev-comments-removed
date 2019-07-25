@@ -194,8 +194,9 @@ public:
     NS_IMETHOD         GetAttention(PRInt32 aCycleCount);
     NS_IMETHOD         BeginResizeDrag   (nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical);
 
-    NS_IMETHODIMP      SetInputMode(const IMEContext& aContext);
-    NS_IMETHODIMP      GetInputMode(IMEContext& aContext);
+    NS_IMETHOD_(void) SetInputContext(const InputContext& aContext,
+                                      const InputContextAction& aAction);
+    NS_IMETHOD_(InputContext) GetInputContext();
 
     
     
@@ -250,7 +251,7 @@ protected:
     
     nsSizeMode         mLastSizeMode;
 
-    IMEContext          mIMEContext;
+    InputContext mInputContext;
 
     
 
@@ -345,7 +346,7 @@ private:
     MozQWidget*        createQWidget(MozQWidget* parent,
                                      nsNativeWidget nativeParent,
                                      nsWidgetInitData* aInitData);
-    void               SetSoftwareKeyboardState(bool aOpen);
+    void               SetSoftwareKeyboardState(bool aOpen, const InputContextAction& aAction);
 
     MozQWidget*        mWidget;
 

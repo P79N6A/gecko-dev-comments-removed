@@ -40,11 +40,12 @@
 #define nsIMEStateManager_h__
 
 #include "nscore.h"
+#include "nsIWidget.h"
 
 class nsIContent;
+class nsIDOMMouseEvent;
 class nsPIDOMWindow;
 class nsPresContext;
-class nsIWidget;
 class nsTextStateManager;
 class nsISelection;
 
@@ -54,13 +55,23 @@ class nsISelection;
 
 class nsIMEStateManager
 {
+protected:
+  typedef mozilla::widget::IMEState IMEState;
+  typedef mozilla::widget::InputContext InputContext;
+  typedef mozilla::widget::InputContextAction InputContextAction;
+
 public:
   static nsresult OnDestroyPresContext(nsPresContext* aPresContext);
   static nsresult OnRemoveContent(nsPresContext* aPresContext,
                                   nsIContent* aContent);
+  
+
+
+
+
   static nsresult OnChangeFocus(nsPresContext* aPresContext,
                                 nsIContent* aContent,
-                                PRUint32 aReason);
+                                InputContextAction::Cause aCause);
   static void OnInstalledMenuKeyboardListener(bool aInstalling);
 
   
@@ -85,14 +96,27 @@ public:
   
   
   
+  static void UpdateIMEState(const IMEState &aNewIMEState,
+                             nsIContent* aContent);
+
   
   
-  static void UpdateIMEState(PRUint32 aNewIMEState, nsIContent* aContent);
+  
+  
+  
+  static void OnClickInEditor(nsPresContext* aPresContext,
+                              nsIContent* aContent,
+                              nsIDOMMouseEvent* aMouseEvent);
 
 protected:
-  static void SetIMEState(PRUint32 aState, nsIContent* aContent,
-                          nsIWidget* aWidget, PRUint32 aReason);
-  static PRUint32 GetNewIMEState(nsPresContext* aPresContext,
+  static nsresult OnChangeFocusInternal(nsPresContext* aPresContext,
+                                        nsIContent* aContent,
+                                        InputContextAction aAction);
+  static void SetIMEState(const IMEState &aState,
+                          nsIContent* aContent,
+                          nsIWidget* aWidget,
+                          InputContextAction aAction);
+  static IMEState GetNewIMEState(nsPresContext* aPresContext,
                                  nsIContent* aContent);
 
   static nsIWidget* GetWidget(nsPresContext* aPresContext);

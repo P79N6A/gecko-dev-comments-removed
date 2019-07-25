@@ -428,6 +428,10 @@ DOMCI_CLASS(GeoPositionError)
 
 DOMCI_CLASS(MozBatteryManager)
 
+DOMCI_CLASS(MozSmsManager)
+DOMCI_CLASS(MozSmsMessage)
+DOMCI_CLASS(MozSmsEvent)
+
 
 DOMCI_CLASS(CSSFontFaceRule)
 DOMCI_CLASS(CSSFontFaceStyleDecl)

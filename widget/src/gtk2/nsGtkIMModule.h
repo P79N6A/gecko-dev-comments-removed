@@ -47,6 +47,7 @@
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "nsGUIEvent.h"
+#include "nsIWidget.h"
 
 
 
@@ -58,6 +59,10 @@ class nsWindow;
 
 class nsGtkIMModule
 {
+protected:
+    typedef mozilla::widget::InputContext InputContext;
+    typedef mozilla::widget::InputContextAction InputContextAction;
+
 public:
     nsrefcnt AddRef()
     {
@@ -112,8 +117,10 @@ public:
 
     
     nsresult ResetInputState(nsWindow* aCaller);
-    nsresult SetInputMode(nsWindow* aCaller, const IMEContext* aContext);
-    nsresult GetInputMode(IMEContext* aContext);
+    void SetInputContext(nsWindow* aCaller,
+                         const InputContext* aContext,
+                         const InputContextAction* aAction);
+    InputContext GetInputContext();
     nsresult CancelIMEComposition(nsWindow* aCaller);
 
     
@@ -150,7 +157,7 @@ protected:
 
     
     
-    IMEContext mIMEContext;
+    InputContext mInputContext;
 
     
     

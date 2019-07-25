@@ -103,8 +103,7 @@ public:
 
   PRUint32 Length() const {
     NS_ABORT_IF_FALSE(mItems.Length() == 0 ||
-                      mItems.Length() ==
-                        const_cast<DOMSVGLengthList*>(this)->InternalList().Length(),
+                      mItems.Length() == InternalList().Length(),
                       "DOM wrapper's list length is out of sync");
     return mItems.Length();
   }
@@ -116,7 +115,7 @@ public:
 
 private:
 
-  nsSVGElement* Element() {
+  nsSVGElement* Element() const {
     return mAList->mElement;
   }
 
@@ -143,7 +142,7 @@ private:
 
 
 
-  SVGLengthList& InternalList();
+  SVGLengthList& InternalList() const;
 
   
   void EnsureItemAt(PRUint32 aIndex);

@@ -126,7 +126,7 @@ public:
     
     
     
-    void* mEventHandler;
+    JSObject* mEventHandler;
 
 #ifdef XUL_PROTOTYPE_ATTRIBUTE_METERING
     

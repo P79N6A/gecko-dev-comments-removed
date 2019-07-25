@@ -118,9 +118,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xEAAF1019, 0x0CD8, 0x4DD8, \
-    { 0xBE, 0xB9, 0x8D, 0x8D, 0xEB, 0x52, 0xFC, 0xF6 } }
-
+  { 0x34460b01, 0x3dc2, 0x4b58, \
+    { 0x8e, 0xd3, 0x7e, 0x7c, 0x33, 0xb5, 0x78, 0x8b } }
 
 
 
@@ -231,31 +230,90 @@ struct nsIMEUpdatePreference {
 
 
 
-struct IMEContext {
-  PRUint32 mStatus;
+
+namespace mozilla {
+namespace widget {
+
+struct IMEState {
+  
+
+
+
+
+
+
+
+
+  enum Enabled {
+    
+
+
+
+    DISABLED,
+    
+
+
+    ENABLED,
+    
+
+
+
+
+
+    PASSWORD,
+    
+
+
+
+
+
+    PLUGIN
+  };
+  Enabled mEnabled;
 
   
-  enum {
-    FOCUS_REMOVED       = 0x0001,
-    FOCUS_MOVED_UNKNOWN = 0x0002,
-    FOCUS_MOVED_BY_MOVEFOCUS = 0x0004,
-    FOCUS_MOVED_BY_MOUSE = 0x0008,
-    FOCUS_MOVED_BY_KEY = 0x0010,
-    FOCUS_MOVED_TO_MENU = 0x0020,
-    FOCUS_MOVED_FROM_MENU = 0x0040,
-    EDITOR_STATE_MODIFIED = 0x0080,
-    FOCUS_FROM_CONTENT_PROCESS = 0x0100
-  };
 
-  bool FocusMovedByUser() const {
-    return (mReason & FOCUS_MOVED_BY_MOUSE) || (mReason & FOCUS_MOVED_BY_KEY);
-  };
 
-  bool FocusMovedInContentProcess() const {
-    return (mReason & FOCUS_FROM_CONTENT_PROCESS);
-  };
 
-  PRUint32 mReason;
+
+  enum Open {
+    
+
+
+
+    OPEN_STATE_NOT_SUPPORTED,
+    
+
+
+
+    DONT_CHANGE_OPEN_STATE = OPEN_STATE_NOT_SUPPORTED,
+    
+
+
+
+
+
+    OPEN,
+    
+
+
+
+
+
+    CLOSED
+  };
+  Open mOpen;
+
+  IMEState() : mEnabled(ENABLED), mOpen(DONT_CHANGE_OPEN_STATE) { }
+
+  IMEState(Enabled aEnabled, Open aOpen = DONT_CHANGE_OPEN_STATE) :
+    mEnabled(aEnabled), mOpen(aOpen)
+  {
+  }
+};
+
+struct InputContext {
+  IMEState mIMEState;
 
   
   nsString mHTMLInputType;
@@ -264,6 +322,67 @@ struct IMEContext {
   nsString mActionHint;
 };
 
+struct InputContextAction {
+  
+
+
+
+  enum Cause {
+    
+    
+    CAUSE_UNKNOWN,
+    
+    
+    CAUSE_UNKNOWN_CHROME,
+    
+    CAUSE_KEY,
+    
+    CAUSE_MOUSE
+  };
+  Cause mCause;
+
+  
+
+
+  enum FocusChange {
+    FOCUS_NOT_CHANGED,
+    
+    GOT_FOCUS,
+    
+    LOST_FOCUS,
+    
+    
+    MENU_GOT_PSEUDO_FOCUS,
+    
+    
+    MENU_LOST_PSEUDO_FOCUS
+  };
+  FocusChange mFocusChange;
+
+  bool ContentGotFocusByTrustedCause() const {
+    return (mFocusChange == GOT_FOCUS &&
+            mCause != CAUSE_UNKNOWN);
+  }
+
+  bool UserMightRequestOpenVKB() const {
+    return (mFocusChange == FOCUS_NOT_CHANGED &&
+            mCause == CAUSE_MOUSE);
+  }
+
+  InputContextAction() :
+    mCause(CAUSE_UNKNOWN), mFocusChange(FOCUS_NOT_CHANGED)
+  {
+  }
+
+  InputContextAction(Cause aCause,
+                     FocusChange aFocusChange = FOCUS_NOT_CHANGED) :
+    mCause(aCause), mFocusChange(aFocusChange)
+  {
+  }
+};
+
+} 
+} 
 
 
 
@@ -277,6 +396,9 @@ class nsIWidget : public nsISupports {
     typedef mozilla::layers::LayerManager LayerManager;
     typedef LayerManager::LayersBackend LayersBackend;
     typedef mozilla::layers::PLayersChild PLayersChild;
+    typedef mozilla::widget::IMEState IMEState;
+    typedef mozilla::widget::InputContext InputContext;
+    typedef mozilla::widget::InputContextAction InputContextAction;
 
     
     struct ThemeGeometry {
@@ -1249,79 +1371,18 @@ class nsIWidget : public nsISupports {
     
 
 
-
-
-    NS_IMETHOD SetIMEOpenState(bool aState) = 0;
-
-    
-
-
-
-
-    NS_IMETHOD GetIMEOpenState(bool* aState) = 0;
-
-    
-
-
-
-
-
-
-
-
-    enum IMEStatus {
-      
-
-
-
-      IME_STATUS_DISABLED = 0,
-      
-
-
-      IME_STATUS_ENABLED = 1,
-      
-
-
-
-
-
-      IME_STATUS_PASSWORD = 2,
-      
-
-
-
-
-
-      IME_STATUS_PLUGIN = 3
-    };
-
-    
-
-
-    NS_IMETHOD SetIMEEnabled(PRUint32 aState) = 0;
-
-    
-
-
-    NS_IMETHOD GetIMEEnabled(PRUint32* aState) = 0;
-
-    
-
-
     NS_IMETHOD CancelIMEComposition() = 0;
 
     
 
 
-
-
-
-    NS_IMETHOD SetInputMode(const IMEContext& aContext) = 0;
+    NS_IMETHOD_(void) SetInputContext(const InputContext& aContext,
+                                      const InputContextAction& aAction) = 0;
 
     
 
 
-    NS_IMETHOD GetInputMode(IMEContext& aContext) = 0;
+    NS_IMETHOD_(InputContext) GetInputContext() = 0;
 
     
 

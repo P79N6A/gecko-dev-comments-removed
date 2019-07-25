@@ -71,14 +71,23 @@ public:
     operator PRUint8() const
         {return flags;}
 
-    bool IsPointer() const
-        {return 0 != (XPT_TDP_IS_POINTER(flags));}
-
-    bool IsReference() const
-        {return 0 != (XPT_TDP_IS_REFERENCE(flags));}
-
-    bool IsArithmetic() const     
+    
+    
+    
+    
+    
+    
+    
+    bool IsArithmetic() const
         {return flags <= T_WCHAR;}
+
+    
+    
+    
+    
+    
+    bool deprecated_IsPointer() const
+        {return !IsArithmetic() && TagPart() != T_JSVAL;}
 
     bool IsInterfacePointer() const
         {  switch (TagPart()) {

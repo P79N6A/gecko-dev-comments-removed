@@ -628,8 +628,6 @@ pref("javascript.options.strict.debug",     true);
 pref("javascript.options.relimit",          true);
 pref("javascript.options.methodjit.content", true);
 pref("javascript.options.methodjit.chrome",  true);
-pref("javascript.options.jitprofiling.content", true);
-pref("javascript.options.jitprofiling.chrome",  true);
 pref("javascript.options.pccounts.content", false);
 pref("javascript.options.pccounts.chrome",  false);
 pref("javascript.options.methodjit_always", false);
@@ -1468,23 +1466,21 @@ pref("dom.max_script_run_time", 10);
 
 
 
-#ifndef DEBUG
-pref("hangmonitor.timeout", 30);
-#else
+
+
 pref("hangmonitor.timeout", 0);
-#endif
 
 #ifndef DEBUG
 
 
-pref("dom.ipc.plugins.timeoutSecs", 45);
+pref("dom.ipc.plugins.timeoutSecs", 25);
 
 
 
 pref("dom.ipc.plugins.parentTimeoutSecs", 15);
 
 
-pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
+pref("dom.ipc.plugins.processLaunchTimeoutSecs", 25);
 #else
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
@@ -1543,6 +1539,29 @@ pref("font.minimum-size.x-cans", 0);
 pref("font.minimum-size.x-western", 0);
 pref("font.minimum-size.x-unicode", 0);
 pref("font.minimum-size.x-user-def", 0);
+
+
+
+
+
+
+
+
+
+
+
+pref("font.size.inflation.emPerLine", 0);
+
+
+
+
+
+
+
+
+
+
+pref("font.size.inflation.minTwips", 0);
 
 #ifdef XP_WIN
 
@@ -3372,6 +3391,10 @@ pref("layout.3d-transforms.enabled", true);
 
 
 pref("dom.battery.enabled", true);
+
+
+pref("dom.sms.enabled", false);
+pref("dom.sms.whitelist", "");
 
 
 pref("browser.dom.window.dump.enabled", false);

@@ -179,22 +179,12 @@ public:
   
 
 
-  bool ScheduleBeforePaintEvent(nsIDocument* aDocument);
+  void ScheduleFrameRequestCallbacks(nsIDocument* aDocument);
 
   
 
 
-  void ScheduleAnimationFrameListeners(nsIDocument* aDocument);
-
-  
-
-
-  void RevokeBeforePaintEvent(nsIDocument* aDocument);
-
-  
-
-
-  void RevokeAnimationFrameListeners(nsIDocument* aDocument);
+  void RevokeFrameRequestCallbacks(nsIDocument* aDocument);
 
   
 
@@ -256,8 +246,8 @@ private:
   PRInt32 GetRefreshTimerInterval() const;
   PRInt32 GetRefreshTimerType() const;
 
-  bool HaveAnimationFrameListeners() const {
-    return mAnimationFrameListenerDocs.Length() != 0;
+  bool HaveFrameRequestCallbacks() const {
+    return mFrameRequestCallbackDocs.Length() != 0;
   }
 
   nsCOMPtr<nsITimer> mTimer;
@@ -283,9 +273,7 @@ private:
   nsAutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
   nsAutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
   
-  nsTArray< nsCOMPtr<nsIDocument> > mBeforePaintTargets;
-  
-  nsTArray<nsIDocument*> mAnimationFrameListenerDocs;
+  nsTArray<nsIDocument*> mFrameRequestCallbackDocs;
 
   
   

@@ -369,6 +369,9 @@ public:
 
 
   nsIFrame* GetLineContainerFrame() const { return mBlockReflowState->frame; }
+  const nsHTMLReflowState* GetLineContainerRS() const {
+    return mBlockReflowState;
+  }
   const nsLineList::iterator* GetLine() const {
     return GetFlag(LL_GOTLINEBOX) ? &mLineBox : nsnull;
   }
@@ -546,6 +549,8 @@ protected:
   nscoord mTopEdge;
   nscoord mMaxTopBoxHeight;
   nscoord mMaxBottomBoxHeight;
+
+  nscoord mInflationMinFontSize;
 
   
   

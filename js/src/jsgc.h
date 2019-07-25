@@ -1319,9 +1319,6 @@ typedef struct JSPtrTable {
 } JSPtrTable;
 
 extern JSBool
-js_RegisterCloseableIterator(JSContext *cx, JSObject *obj);
-
-extern JSBool
 js_LockGCThingRT(JSRuntime *rt, void *thing);
 
 extern void
@@ -1687,11 +1684,9 @@ struct GCMarker : public JSTracer {
 
 
 
-
-
-    void setMarkColor(uint32 newColor) {
-        
-        color = newColor;
+    void setMarkColorGray() {
+        JS_ASSERT(color == gc::BLACK);
+        color = gc::GRAY;
     }
 
     void delayMarkingChildren(const void *thing);

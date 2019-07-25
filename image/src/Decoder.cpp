@@ -187,6 +187,20 @@ Decoder::FlushInvalidations()
 
   
   if (mObserver) {
+#ifdef XP_MACOSX
+    
+    
+    
+    PRInt32 width;
+    PRInt32 height;
+
+    mImage.GetWidth(&width);
+    mImage.GetHeight(&height);
+    nsIntRect mImageBound(0, 0, width, height);
+
+    mInvalidRect.Inflate(1);
+    mInvalidRect = mInvalidRect.Intersect(mImageBound);
+#endif
     bool isCurrentFrame = mImage.GetCurrentFrameIndex() == (mFrameCount - 1);
     mObserver->OnDataAvailable(nsnull, isCurrentFrame, &mInvalidRect);
   }

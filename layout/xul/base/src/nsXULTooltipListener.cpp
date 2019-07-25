@@ -305,11 +305,13 @@ nsXULTooltipListener::AddTooltipSupport(nsIContent* aNode)
   if (!aNode)
     return NS_ERROR_NULL_POINTER;
 
-  nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(aNode));
-  evtTarget->AddEventListener(NS_LITERAL_STRING("mouseout"), this, false);
-  evtTarget->AddEventListener(NS_LITERAL_STRING("mousemove"), this, false);
-  evtTarget->AddEventListener(NS_LITERAL_STRING("dragstart"), this, true);
-  
+  aNode->AddSystemEventListener(NS_LITERAL_STRING("mouseout"), this,
+                                false, false);
+  aNode->AddSystemEventListener(NS_LITERAL_STRING("mousemove"), this,
+                                false, false);
+  aNode->AddSystemEventListener(NS_LITERAL_STRING("dragstart"), this,
+                                true, false);
+
   return NS_OK;
 }
 
@@ -319,10 +321,9 @@ nsXULTooltipListener::RemoveTooltipSupport(nsIContent* aNode)
   if (!aNode)
     return NS_ERROR_NULL_POINTER;
 
-  nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(aNode));
-  evtTarget->RemoveEventListener(NS_LITERAL_STRING("mouseout"), this, false);
-  evtTarget->RemoveEventListener(NS_LITERAL_STRING("mousemove"), this, false);
-  evtTarget->RemoveEventListener(NS_LITERAL_STRING("dragstart"), this, true);
+  aNode->RemoveSystemEventListener(NS_LITERAL_STRING("mouseout"), this, false);
+  aNode->RemoveSystemEventListener(NS_LITERAL_STRING("mousemove"), this, false);
+  aNode->RemoveSystemEventListener(NS_LITERAL_STRING("dragstart"), this, true);
 
   return NS_OK;
 }
@@ -417,21 +418,24 @@ nsXULTooltipListener::ShowTooltip()
 
       
       
-      nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(currentTooltip));
-      evtTarget->AddEventListener(NS_LITERAL_STRING("popuphiding"), 
-                                  this, false);
+      currentTooltip->AddSystemEventListener(NS_LITERAL_STRING("popuphiding"), 
+                                             this, false, false);
 
       
       nsIDocument* doc = sourceNode->GetDocument();
       if (doc) {
-        evtTarget = do_QueryInterface(doc);
-        evtTarget->AddEventListener(NS_LITERAL_STRING("DOMMouseScroll"), 
+        
+        
+        
+        
+        
+        doc->AddSystemEventListener(NS_LITERAL_STRING("DOMMouseScroll"),
                                     this, true);
-        evtTarget->AddEventListener(NS_LITERAL_STRING("mousedown"), 
+        doc->AddSystemEventListener(NS_LITERAL_STRING("mousedown"),
                                     this, true);
-        evtTarget->AddEventListener(NS_LITERAL_STRING("mouseup"), 
-                                    this, true);                                    
-        evtTarget->AddEventListener(NS_LITERAL_STRING("keydown"), 
+        doc->AddSystemEventListener(NS_LITERAL_STRING("mouseup"),
+                                    this, true);
+        doc->AddSystemEventListener(NS_LITERAL_STRING("keydown"),
                                     this, true);
       }
       mSourceNode = nsnull;
@@ -660,11 +664,12 @@ nsXULTooltipListener::DestroyTooltip()
     nsCOMPtr<nsIDocument> doc = currentTooltip->GetDocument();
     if (doc) {
       
-      nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(doc));
-      evtTarget->RemoveEventListener(NS_LITERAL_STRING("DOMMouseScroll"), this, true);
-      evtTarget->RemoveEventListener(NS_LITERAL_STRING("mousedown"), this, true);
-      evtTarget->RemoveEventListener(NS_LITERAL_STRING("mouseup"), this, true);
-      evtTarget->RemoveEventListener(NS_LITERAL_STRING("keydown"), this, true);
+      doc->RemoveSystemEventListener(NS_LITERAL_STRING("DOMMouseScroll"), this,
+                                     true);
+      doc->RemoveSystemEventListener(NS_LITERAL_STRING("mousedown"), this,
+                                     true);
+      doc->RemoveSystemEventListener(NS_LITERAL_STRING("mouseup"), this, true);
+      doc->RemoveSystemEventListener(NS_LITERAL_STRING("keydown"), this, true);
     }
 
     

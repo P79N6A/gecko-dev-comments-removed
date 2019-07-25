@@ -96,12 +96,14 @@
 #include "nsEditorUtils.h"
 #include "nsWSRunObject.h"
 #include "nsGkAtoms.h"
+#include "nsIWidget.h"
 
 #include "nsIFrame.h"
 #include "nsIParserService.h"
 #include "mozilla/dom/Element.h"
 
 using namespace mozilla;
+using namespace mozilla::widget;
 
 
 static char hrefText[] = "href";
@@ -908,6 +910,15 @@ nsHTMLEditor::IsBlockNode(nsIDOMNode *aNode)
 {
   bool isBlock;
   NodeIsBlockStatic(aNode, &isBlock);
+  return isBlock;
+}
+
+bool
+nsHTMLEditor::IsBlockNode(nsINode *aNode)
+{
+  bool isBlock;
+  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aNode);
+  NodeIsBlockStatic(node, &isBlock);
   return isBlock;
 }
 
@@ -3901,9 +3912,14 @@ nsHTMLEditor::FindUserSelectAllNode(nsIDOMNode* aNode)
 NS_IMETHODIMP_(bool)
 nsHTMLEditor::IsModifiableNode(nsIDOMNode *aNode)
 {
-  nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  return IsModifiableNode(node);
+}
 
-  return !content || content->IsEditable();
+bool
+nsHTMLEditor::IsModifiableNode(nsINode *aNode)
+{
+  return !aNode || aNode->IsEditable();
 }
 
 static nsresult SetSelectionAroundHeadChildren(nsCOMPtr<nsISelection> aSelection, nsWeakPtr aDocWeak)
@@ -4690,13 +4706,18 @@ nsresult
 nsHTMLEditor::GetPriorHTMLNode(nsIDOMNode *inNode, nsCOMPtr<nsIDOMNode> *outNode, bool bNoBlockCrossing)
 {
   NS_ENSURE_TRUE(outNode, NS_ERROR_NULL_POINTER);
-  nsresult res = GetPriorNode(inNode, true, address_of(*outNode), bNoBlockCrossing);
+
+  nsIContent* activeEditingHost = GetActiveEditingHost();
+  if (!activeEditingHost) {
+    *outNode = nsnull;
+    return NS_OK;
+  }
+
+  nsresult res = GetPriorNode(inNode, true, address_of(*outNode), bNoBlockCrossing, activeEditingHost);
   NS_ENSURE_SUCCESS(res, res);
   
-  
-  if (*outNode && !IsNodeInActiveEditor(*outNode)) {
-    *outNode = nsnull;
-  }
+  NS_ASSERTION(!*outNode || IsNodeInActiveEditor(*outNode),
+               "GetPriorNode screwed up");
   return res;
 }
 
@@ -4708,13 +4729,18 @@ nsresult
 nsHTMLEditor::GetPriorHTMLNode(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMPtr<nsIDOMNode> *outNode, bool bNoBlockCrossing)
 {
   NS_ENSURE_TRUE(outNode, NS_ERROR_NULL_POINTER);
-  nsresult res = GetPriorNode(inParent, inOffset, true, address_of(*outNode), bNoBlockCrossing);
+
+  nsIContent* activeEditingHost = GetActiveEditingHost();
+  if (!activeEditingHost) {
+    *outNode = nsnull;
+    return NS_OK;
+  }
+
+  nsresult res = GetPriorNode(inParent, inOffset, true, address_of(*outNode), bNoBlockCrossing, activeEditingHost);
   NS_ENSURE_SUCCESS(res, res);
   
-  
-  if (*outNode && !IsNodeInActiveEditor(*outNode)) {
-    *outNode = nsnull;
-  }
+  NS_ASSERTION(!*outNode || IsNodeInActiveEditor(*outNode),
+               "GetPriorNode screwed up");
   return res;
 }
 
@@ -4922,10 +4948,11 @@ nsHTMLEditor::GetLastEditableLeaf(nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutL
 }
 
 bool
-nsHTMLEditor::IsTextInDirtyFrameVisible(nsIDOMNode *aNode)
+nsHTMLEditor::IsTextInDirtyFrameVisible(nsIContent *aNode)
 {
   bool isEmptyTextNode;
-  nsresult res = IsVisTextNode(aNode, &isEmptyTextNode, false);
+  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aNode);
+  nsresult res = IsVisTextNode(node, &isEmptyTextNode, false);
   if (NS_FAILED(res))
   {
     
@@ -4942,7 +4969,7 @@ nsHTMLEditor::IsTextInDirtyFrameVisible(nsIDOMNode *aNode)
 
 
 nsresult
-nsHTMLEditor::IsVisTextNode( nsIDOMNode *aNode, 
+nsHTMLEditor::IsVisTextNode( nsIDOMNode* aNode, 
                              bool *outIsEmptyNode, 
                              bool aSafeToAskFrames)
 {
@@ -5994,6 +6021,41 @@ nsHTMLEditor::IsAcceptableInputEvent(nsIDOMEvent* aEvent)
   
   nsCOMPtr<nsIContent> targetContent = do_QueryInterface(target);
   NS_ENSURE_TRUE(targetContent, false);
+
+  
+  
+  nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aEvent);
+  if (mouseEvent) {
+    nsIContent* editingHost = GetActiveEditingHost();
+    
+    
+    if (!editingHost) {
+      return false;
+    }
+    
+    
+    if (targetContent == document->GetRootElement() &&
+        !targetContent->HasFlag(NODE_IS_EDITABLE) &&
+        editingHost == document->GetBodyElement()) {
+      targetContent = editingHost;
+    }
+    
+    
+    if (!nsContentUtils::ContentIsDescendantOf(targetContent, editingHost)) {
+      return false;
+    }
+    
+    
+    if (targetContent->HasIndependentSelection()) {
+      return false;
+    }
+    
+    return targetContent->HasFlag(NODE_IS_EDITABLE);
+  }
+
+  
+  
+  
   if (!targetContent->HasFlag(NODE_IS_EDITABLE) ||
       targetContent->HasIndependentSelection()) {
     return false;
@@ -6007,14 +6069,14 @@ nsHTMLEditor::IsAcceptableInputEvent(nsIDOMEvent* aEvent)
 }
 
 NS_IMETHODIMP
-nsHTMLEditor::GetPreferredIMEState(PRUint32 *aState)
+nsHTMLEditor::GetPreferredIMEState(IMEState *aState)
 {
-  if (IsReadonly() || IsDisabled()) {
-    *aState = nsIContent::IME_STATUS_DISABLE;
-    return NS_OK;
-  }
-
   
-  *aState = nsIContent::IME_STATUS_ENABLE;
+  aState->mOpen = IMEState::DONT_CHANGE_OPEN_STATE;
+  if (IsReadonly() || IsDisabled()) {
+    aState->mEnabled = IMEState::DISABLED;
+  } else {
+    aState->mEnabled = IMEState::ENABLED;
+  }
   return NS_OK;
 }

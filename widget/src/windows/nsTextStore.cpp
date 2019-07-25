@@ -46,6 +46,7 @@
 #include "mozilla/Preferences.h"
 
 using namespace mozilla;
+using namespace mozilla::widget;
 
 
 
@@ -87,7 +88,7 @@ nsTextStore::~nsTextStore()
 
 bool
 nsTextStore::Create(nsWindow* aWindow,
-                    PRUint32 aIMEState)
+                    IMEState::Enabled aIMEEnabled)
 {
   if (!mDocumentMgr) {
     
@@ -100,7 +101,7 @@ nsTextStore::Create(nsWindow* aWindow,
                                      static_cast<ITextStoreACP*>(this),
                                      getter_AddRefs(mContext), &mEditCookie);
     if (SUCCEEDED(hr)) {
-      SetInputModeInternal(aIMEState);
+      SetInputContextInternal(aIMEEnabled);
       hr = mDocumentMgr->Push(mContext);
     }
     if (SUCCEEDED(hr)) {
@@ -1477,7 +1478,7 @@ nsTextStore::OnEndComposition(ITfCompositionView* pComposition)
 nsresult
 nsTextStore::OnFocusChange(bool aFocus,
                            nsWindow* aWindow,
-                           PRUint32 aIMEEnabled)
+                           IMEState::Enabled aIMEEnabled)
 {
   
   if (!sTsfThreadMgr || !sTsfTextStore)
@@ -1630,14 +1631,14 @@ nsTextStore::GetIMEOpenState(void)
 }
 
 void
-nsTextStore::SetInputModeInternal(PRUint32 aState)
+nsTextStore::SetInputContextInternal(IMEState::Enabled aState)
 {
   PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
-         ("TSF: SetInputMode, state=%lu\n", aState));
+         ("TSF: SetInputContext, state=%ld\n", static_cast<PRInt32>(aState)));
 
   VARIANT variant;
   variant.vt = VT_I4;
-  variant.lVal = aState != nsIWidget::IME_STATUS_ENABLED;
+  variant.lVal = (aState != IMEState::ENABLED);
 
   
   

@@ -169,7 +169,7 @@ public:
 
   
   
-  nsIURI* URI() { return mURI; }
+  nsIURI* URI() const { return mURI; }
   
   
   

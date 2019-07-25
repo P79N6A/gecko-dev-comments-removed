@@ -714,12 +714,21 @@ private:
 };
 
 
+struct WeakMapping
+{
+    
+    PtrInfo *mMap;
+    PtrInfo *mKey;
+    PtrInfo *mVal;
+};
+
 class GCGraphBuilder;
 
 struct GCGraph
 {
     NodePool mNodes;
     EdgePool mEdges;
+    nsTArray<WeakMapping> mWeakMaps;
     PRUint32 mRootCount;
 #ifdef DEBUG_CC
     ReversedEdge *mReversedEdges;
@@ -1083,6 +1092,7 @@ struct nsCycleCollector
     void SelectPurple(GCGraphBuilder &builder);
     void MarkRoots(GCGraphBuilder &builder);
     void ScanRoots();
+    void ScanWeakMaps();
 
     
     bool CollectWhite(nsICycleCollectorListener *aListener);
@@ -1116,6 +1126,7 @@ struct nsCycleCollector
     {
         mGraph.mNodes.Clear();
         mGraph.mEdges.Clear();
+        mGraph.mWeakMaps.Clear();
         mGraph.mRootCount = 0;
     }
 
@@ -1487,6 +1498,7 @@ class GCGraphBuilder : public nsCycleCollectionTraversalCallback
 private:
     NodePool::Builder mNodeBuilder;
     EdgePool::Builder mEdgeBuilder;
+    nsTArray<WeakMapping> &mWeakMaps;
     PLDHashTable mPtrToNodeMap;
     PtrInfo *mCurrPi;
     nsCycleCollectionLanguageRuntime **mRuntimes; 
@@ -1513,6 +1525,7 @@ public:
         return AddNode(s, aParticipant);
     }
 #endif
+    PtrInfo* AddWeakMapNode(void* node);
     void Traverse(PtrInfo* aPtrInfo);
     void SetLastChild();
 
@@ -1543,6 +1556,7 @@ private:
                                      nsCycleCollectionParticipant *participant);
     NS_IMETHOD_(void) NoteScriptChild(PRUint32 langID, void *child);
     NS_IMETHOD_(void) NoteNextEdgeName(const char* name);
+    NS_IMETHOD_(void) NoteWeakMapping(void *map, void *key, void *val);
 };
 
 GCGraphBuilder::GCGraphBuilder(GCGraph &aGraph,
@@ -1550,6 +1564,7 @@ GCGraphBuilder::GCGraphBuilder(GCGraph &aGraph,
                                nsICycleCollectorListener *aListener)
     : mNodeBuilder(aGraph.mNodes),
       mEdgeBuilder(aGraph.mEdges),
+      mWeakMaps(aGraph.mWeakMaps),
       mRuntimes(aRuntimes),
       mListener(aListener)
 {
@@ -1812,6 +1827,34 @@ GCGraphBuilder::NoteNextEdgeName(const char* name)
     }
 }
 
+PtrInfo*
+GCGraphBuilder::AddWeakMapNode(void *node)
+{
+    nsCycleCollectionParticipant *cp;
+    NS_ASSERTION(node, "Weak map node should be non-null.");
+
+    if (!xpc_GCThingIsGrayCCThing(node) && !WantAllTraces())
+        return nsnull;
+
+    cp = mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]->ToParticipant(node);
+    NS_ASSERTION(cp, "Javascript runtime participant should be non-null.");
+    return AddNode(node, cp);
+}
+
+NS_IMETHODIMP_(void)
+GCGraphBuilder::NoteWeakMapping(void *map, void *key, void *val)
+{
+    PtrInfo *valNode = AddWeakMapNode(val);
+
+    if (!valNode)
+        return;
+
+    WeakMapping *mapping = mWeakMaps.AppendElement();
+    mapping->mMap = map ? AddWeakMapNode(map) : nsnull;
+    mapping->mKey = key ? AddWeakMapNode(key) : nsnull;
+    mapping->mVal = valNode;
+}
+
 static bool
 AddPurpleRoot(GCGraphBuilder &builder, nsISupports *root)
 {
@@ -1947,6 +1990,38 @@ struct scanVisitor
     PRUint32 &mWhiteNodeCount;
 };
 
+
+
+void
+nsCycleCollector::ScanWeakMaps()
+{
+    bool anyChanged;
+    do {
+        anyChanged = false;
+        for (PRUint32 i = 0; i < mGraph.mWeakMaps.Length(); i++) {
+            WeakMapping *wm = &mGraph.mWeakMaps[i];
+
+            
+            uint32 mColor = wm->mMap ? wm->mMap->mColor : black;
+            uint32 kColor = wm->mKey ? wm->mKey->mColor : black;
+            PtrInfo *v = wm->mVal;
+
+            
+            
+            
+            
+            NS_ASSERTION(mColor != grey, "Uncolored weak map");
+            NS_ASSERTION(kColor != grey, "Uncolored weak map key");
+            NS_ASSERTION(v->mColor != grey, "Uncolored weak map value");
+
+            if (mColor == black && kColor == black && v->mColor != black) {
+                GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mWhiteNodeCount)).Walk(v);
+                anyChanged = true;
+            }
+        }
+    } while (anyChanged);
+}
+
 void
 nsCycleCollector::ScanRoots()
 {
@@ -1956,6 +2031,8 @@ nsCycleCollector::ScanRoots()
     
     
     GraphWalker<scanVisitor>(scanVisitor(mWhiteNodeCount)).WalkFromRoots(mGraph); 
+
+    ScanWeakMaps();
 
 #ifdef DEBUG_CC
     
@@ -2384,6 +2461,7 @@ public:
     NS_IMETHOD_(void) NoteNativeChild(void *child,
                                      nsCycleCollectionParticipant *participant) {}
     NS_IMETHOD_(void) NoteNextEdgeName(const char* name) {}
+    NS_IMETHOD_(void) NoteWeakMapping(void *map, void *key, void *val) {}
 };
 
 char *Suppressor::sSuppressionList = nsnull;

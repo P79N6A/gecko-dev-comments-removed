@@ -1280,6 +1280,7 @@ struct nsStyleText {
   PRUint8 mWhiteSpace;                  
   PRUint8 mWordWrap;                    
   PRUint8 mHyphens;                     
+  PRUint8 mTextSizeAdjust;              
   PRInt32 mTabSize;                     
 
   nsStyleCoord  mLetterSpacing;         

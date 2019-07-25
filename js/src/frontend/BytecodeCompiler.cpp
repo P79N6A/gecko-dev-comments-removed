@@ -433,10 +433,7 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *prin
 
 
 
-
-
-    tokenStream.mungeCurrentToken(TOK_LC);
-    ParseNode *pn = fn ? parser.functionBody() : NULL;
+    ParseNode *pn = fn ? parser.functionBody(Parser::StatementListBody) : NULL;
     if (pn) {
         if (!CheckStrictParameters(cx, &funbce)) {
             pn = NULL;

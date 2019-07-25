@@ -334,6 +334,11 @@ nsSMILTimeValueSpec::RegisterEventListener(Element* aTarget)
   if (!aTarget)
     return;
 
+  
+  if (mParams.mType == nsSMILTimeValueSpecParams::ACCESSKEY &&
+      !aTarget->GetOwnerDocument()->IsScriptEnabled())
+    return;
+
   if (!mEventListener) {
     mEventListener = new EventListener(this);
   }

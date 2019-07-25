@@ -420,8 +420,13 @@ public:
 
 
 
+
+
+
+
   static nscoord CalcLineHeight(nsStyleContext* aStyleContext,
-                                nscoord aBlockHeight);
+                                nscoord aBlockHeight,
+                                float aFontSizeInflation);
 
 
   void ComputeContainingBlockRectangle(nsPresContext*          aPresContext,

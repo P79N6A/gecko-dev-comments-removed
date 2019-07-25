@@ -710,7 +710,7 @@ nsresult
 nsImageMap::GetBoundsForAreaContent(nsIContent *aContent,
                                     nsRect& aBounds)
 {
-  NS_ENSURE_TRUE(aContent, NS_ERROR_INVALID_ARG);
+  NS_ENSURE_TRUE(aContent && mImageFrame, NS_ERROR_INVALID_ARG);
 
   
   PRUint32 i, n = mAreas.Length();
@@ -718,10 +718,7 @@ nsImageMap::GetBoundsForAreaContent(nsIContent *aContent,
     Area* area = mAreas.ElementAt(i);
     if (area->mArea == aContent) {
       aBounds = nsRect();
-      nsIFrame* frame = aContent->GetPrimaryFrame();
-      if (frame) {
-        area->GetRect(frame, aBounds);
-      }
+      area->GetRect(mImageFrame, aBounds);
       return NS_OK;
     }
   }
@@ -738,10 +735,10 @@ nsImageMap::FreeAreas()
                  "Unexpected primary frame");
     area->mArea->SetPrimaryFrame(nsnull);
 
-    area->mArea->RemoveEventListener(NS_LITERAL_STRING("focus"), this,
-                                     false);
-    area->mArea->RemoveEventListener(NS_LITERAL_STRING("blur"), this,
-                                     false);
+    area->mArea->RemoveSystemEventListener(NS_LITERAL_STRING("focus"), this,
+                                           false);
+    area->mArea->RemoveSystemEventListener(NS_LITERAL_STRING("blur"), this,
+                                           false);
     delete area;
   }
   mAreas.Clear();
@@ -859,10 +856,10 @@ nsImageMap::AddArea(nsIContent* aArea)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  aArea->AddEventListener(NS_LITERAL_STRING("focus"), this, false,
-                          false);
-  aArea->AddEventListener(NS_LITERAL_STRING("blur"), this, false,
-                          false);
+  aArea->AddSystemEventListener(NS_LITERAL_STRING("focus"), this, false,
+                                false);
+  aArea->AddSystemEventListener(NS_LITERAL_STRING("blur"), this, false,
+                                false);
 
   
   
@@ -998,11 +995,10 @@ nsImageMap::HandleEvent(nsIDOMEvent* aEvent)
           
           area->HasFocus(focus);
           
-          nsIFrame* imgFrame = targetContent->GetPrimaryFrame();
-          if (imgFrame) {
+          if (mImageFrame) {
             nsRect dmgRect;
-            area->GetRect(imgFrame, dmgRect);
-            imgFrame->Invalidate(dmgRect);
+            area->GetRect(mImageFrame, dmgRect);
+            mImageFrame->Invalidate(dmgRect);
           }
           break;
         }

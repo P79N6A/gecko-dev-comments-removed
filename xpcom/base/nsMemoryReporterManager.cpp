@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsServiceManagerUtils.h"
@@ -856,3 +857,11 @@ NS_UnregisterMemoryMultiReporter (nsIMemoryMultiReporter *reporter)
     return mgr->UnregisterMultiReporter(reporter);
 }
 
+namespace mozilla {
+
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(MemoryReporterMallocSizeOf, "default")
+
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(MemoryReporterMallocSizeOfForCounterInc, "default")
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(MemoryReporterMallocSizeOfForCounterDec, "default")
+
+}

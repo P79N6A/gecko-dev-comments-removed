@@ -251,10 +251,14 @@ public:
     PL_DHashTableEnumerate(&mTable, PL_DHashStubEnumRemove, nsnull);
   }
 
-  PRUint64 SizeOf()
+  
+
+
+
+  size_t ShallowSizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf)
   {
     if (IsInitialized()) {
-      return PL_DHashTableSizeOf(&mTable);
+      return PL_DHashTableShallowSizeOfExcludingThis(&mTable, mallocSizeOf);
     }
     return 0;
   }

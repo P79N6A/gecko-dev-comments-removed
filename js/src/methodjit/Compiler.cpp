@@ -1746,7 +1746,7 @@ mjit::Compiler::generateMethod()
                 if (!frame.syncForBranch(target, Uses(0)))
                     return Compile_Error;
                 Jump j = masm.jump();
-                if (!jumpAndTrace(j, target))
+                if (!jumpAndRun(j, target))
                     return Compile_Error;
             }
             fallthrough = false;
@@ -4432,7 +4432,7 @@ mjit::Compiler::constantFoldBranch(jsbytecode *target, bool taken)
         if (!frame.syncForBranch(target, Uses(0)))
             return false;
         Jump j = masm.jump();
-        if (!jumpAndTrace(j, target))
+        if (!jumpAndRun(j, target))
             return false;
     } else {
         
@@ -4466,7 +4466,7 @@ mjit::Compiler::emitStubCmpOp(BoolStub stub, jsbytecode *target, JSOp fused)
     JS_ASSERT(fused == JSOP_IFEQ || fused == JSOP_IFNE);
     Jump j = masm.branchTest32(GetStubCompareCondition(fused), Registers::ReturnReg,
                                Registers::ReturnReg);
-    return jumpAndTrace(j, target);
+    return jumpAndRun(j, target);
 }
 
 void
@@ -6235,7 +6235,7 @@ mjit::Compiler::iterMore(jsbytecode *target)
     stubcc.rejoin(Changes(1));
     frame.freeReg(tempreg);
 
-    return jumpAndTrace(jFast, target, &j);
+    return jumpAndRun(jFast, target, &j);
 }
 
 void
@@ -7164,13 +7164,8 @@ mjit::Compiler::finishLoop(jsbytecode *head)
 
 
 
-
-
-
-
-
 bool
-mjit::Compiler::jumpAndTrace(Jump j, jsbytecode *target, Jump *slow, bool *trampoline)
+mjit::Compiler::jumpAndRun(Jump j, jsbytecode *target, Jump *slow, bool *trampoline)
 {
     if (trampoline)
         *trampoline = false;
@@ -7445,7 +7440,7 @@ mjit::Compiler::jsop_tableswitch(jsbytecode *pc)
         stubcc.masm.jump(Registers::ReturnReg);
     }
     frame.pop();
-    return jumpAndTrace(defaultCase, originalPC + defaultTarget);
+    return jumpAndRun(defaultCase, originalPC + defaultTarget);
 #endif
 }
 

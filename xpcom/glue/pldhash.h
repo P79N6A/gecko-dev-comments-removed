@@ -583,9 +583,9 @@ PL_DHashTableEnumerate(PLDHashTable *table, PLDHashEnumerator etor, void *arg);
 
 
 
-
-NS_COM_GLUE PRUint64
-PL_DHashTableSizeOf(PLDHashTable *table);
+NS_COM_GLUE size_t
+PL_DHashTableShallowSizeOfExcludingThis(PLDHashTable *table,
+                                        nsMallocSizeOfFun mallocSizeOf);
 
 #ifdef DEBUG
 

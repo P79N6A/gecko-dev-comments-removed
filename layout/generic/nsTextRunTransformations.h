@@ -133,7 +133,8 @@ public:
   }
 
   
-  virtual PRUint64 ComputeSize();
+  virtual NS_MUST_OVERRIDE size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf);
+  virtual NS_MUST_OVERRIDE size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
 
   nsTransformingTextRunFactory       *mFactory;
   nsTArray<nsRefPtr<nsStyleContext> > mStyles;

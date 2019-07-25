@@ -166,10 +166,4 @@ void ScaleDisplayByAspectRatio(nsIntSize& aDisplay, float aAspectRatio);
 #define MEDIA_THREAD_STACK_SIZE nsIThreadManager::DEFAULT_STACK_SIZE
 #endif
 
-
-
-#if defined(ANDROID)
-#define REMOTE_AUDIO 1
-#endif
-
 #endif

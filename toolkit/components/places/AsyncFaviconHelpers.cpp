@@ -873,6 +873,10 @@ AsyncGetFaviconURLForPage::Run()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  if (iconSpec.IsEmpty())
+    return NS_OK;
+
+  
   IconData iconData;
   iconData.spec.Assign(iconSpec);
 

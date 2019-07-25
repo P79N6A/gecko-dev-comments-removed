@@ -240,13 +240,15 @@ public:
 
 
 
-  void InvalidateFocus();
+
+
+  void InvalidateFocus(const nsHTMLReflowState* aReflowState = nsnull);
 
   
 
 
 
-  nscoord CalcHeightOfARow();
+  nscoord CalcHeightOfARow(const nsHTMLReflowState& aReflowState);
 
   
 
@@ -333,7 +335,10 @@ protected:
 
 
 
-  virtual void ResetList(bool aAllowScrolling);
+
+
+  virtual void ResetList(bool aAllowScrolling,
+                         const nsHTMLReflowState* aReflowState = nsnull);
 
   nsListControlFrame(nsIPresShell* aShell, nsIDocument* aDocument, nsStyleContext* aContext);
   virtual ~nsListControlFrame();
@@ -373,7 +378,7 @@ protected:
   bool     IsLeftButton(nsIDOMEvent* aMouseEvent);
 
   
-  nscoord  CalcFallbackRowHeight();
+  nscoord  CalcFallbackRowHeight(float aFontSizeInflation);
 
   
   

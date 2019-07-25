@@ -57,8 +57,6 @@
 #include "nsFrameSelection.h"
 
 
-#define BR_USING_CENTERED_FONT_BASELINE NS_FRAME_STATE_BIT(63)
-
 class BRFrame : public nsFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -99,6 +97,8 @@ public:
 protected:
   BRFrame(nsStyleContext* aContext) : nsFrame(aContext) {}
   virtual ~BRFrame();
+
+  nscoord mAscent;
 };
 
 nsIFrame*
@@ -126,7 +126,6 @@ BRFrame::Reflow(nsPresContext* aPresContext,
                        
   aMetrics.width = 0;
   aMetrics.ascent = 0;
-  RemoveStateBits(BR_USING_CENTERED_FONT_BASELINE);
 
   
   
@@ -151,14 +150,14 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       
       
       nsRefPtr<nsFontMetrics> fm;
-      nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
+      nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
+        nsLayoutUtils::FontSizeInflationFor(aReflowState));
       aReflowState.rendContext->SetFont(fm); 
       if (fm) {
         nscoord logicalHeight = aReflowState.CalcLineHeight();
         aMetrics.height = logicalHeight;
         aMetrics.ascent =
           nsLayoutUtils::GetCenteredFontBaseline(fm, logicalHeight);
-        AddStateBits(BR_USING_CENTERED_FONT_BASELINE);
       }
       else {
         aMetrics.ascent = aMetrics.height = 0;
@@ -188,6 +187,8 @@ BRFrame::Reflow(nsPresContext* aPresContext,
   }
 
   aMetrics.SetOverflowAreasToDesiredBounds();
+
+  mAscent = aMetrics.ascent;
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
   return NS_OK;
@@ -232,18 +233,7 @@ BRFrame::GetType() const
 nscoord
 BRFrame::GetBaseline() const
 {
-  nscoord ascent = 0;
-  nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
-  if (fm) {
-    nscoord logicalHeight = GetRect().height;
-    if (GetStateBits() & BR_USING_CENTERED_FONT_BASELINE) {
-      ascent = nsLayoutUtils::GetCenteredFontBaseline(fm, logicalHeight);
-    } else {
-      ascent = fm->MaxAscent() + GetUsedBorderAndPadding().top;
-    }
-  }
-  return NS_MIN(mRect.height, ascent);
+  return mAscent;
 }
 
 nsIFrame::ContentOffsets BRFrame::CalcContentOffsetsFromFramePoint(nsPoint aPoint)

@@ -1233,7 +1233,7 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub,
 
 
 
-        if (!jumpAndTrace(fast, target, &stubBranch, ptrampoline))
+        if (!jumpAndRun(fast, target, &stubBranch, ptrampoline))
             return false;
 
 #ifdef JS_MONOIC
@@ -1452,7 +1452,7 @@ mjit::Compiler::jsop_relational_double(JSOp op, BoolStub stub, jsbytecode *targe
 
 
 
-        if (!jumpAndTrace(j, target, &sj))
+        if (!jumpAndRun(j, target, &sj))
             return false;
     } else {
         stubcc.leave();
@@ -1518,7 +1518,7 @@ mjit::Compiler::jsop_relational_int(JSOp op, jsbytecode *target, JSOp fused)
         Jump sj = stubcc.masm.branchTest32(GetStubCompareCondition(fused),
                                            Registers::ReturnReg, Registers::ReturnReg);
 
-        return jumpAndTrace(fast, target, &sj);
+        return jumpAndRun(fast, target, &sj);
     } else {
         RegisterID result = frame.allocReg();
         RegisterID lreg = frame.tempRegForData(lhs);
@@ -1656,7 +1656,6 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
         Jump j2 = stubcc.masm.jump();
         stubcc.crossJump(j2, masm.label());
 
-        
         if (hasDoublePath) {
             j.linkTo(stubcc.masm.label(), &stubcc.masm);
             doubleTest.get().linkTo(stubcc.masm.label(), &stubcc.masm);
@@ -1667,7 +1666,7 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
 
 
 
-        if (!jumpAndTrace(fast, target, &j))
+        if (!jumpAndRun(fast, target, &j))
             return false;
 
         

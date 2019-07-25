@@ -74,8 +74,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x164ea909, 0x5cee, 0x4e20, \
-  { 0x9f, 0xed, 0x43, 0x13, 0xab, 0xac, 0x1c, 0xd3 } }
+{ 0x39b3ea7c, 0xdc26, 0x4756, \
+  { 0xa0, 0x3c, 0x13, 0xa0, 0x42, 0x03, 0x07, 0x6a } }
 
 
 
@@ -221,7 +221,7 @@ public:
 
 
   virtual nsresult CallEventHandler(nsISupports* aTarget,
-                                    JSObject* aScope, void* aHandler,
+                                    JSObject* aScope, JSObject* aHandler,
                                     nsIArray *argv, nsIVariant **rval) = 0;
 
   
@@ -247,7 +247,7 @@ public:
 
   virtual nsresult BindCompiledEventHandler(nsISupports* aTarget,
                                             JSObject* aScope,
-                                            void* aHandler,
+                                            JSObject* aHandler,
                                             nsScriptObjectHolder& aBoundHandler) = 0;
 
   
@@ -257,7 +257,7 @@ public:
 
 
 
-  virtual nsresult CompileFunction(void* aTarget,
+  virtual nsresult CompileFunction(JSObject* aTarget,
                                    const nsACString& aName,
                                    PRUint32 aArgCount,
                                    const char** aArgArray,
@@ -266,7 +266,7 @@ public:
                                    PRUint32 aLineNo,
                                    PRUint32 aVersion,
                                    bool aShared,
-                                   void **aFunctionObject) = 0;
+                                   JSObject** aFunctionObject) = 0;
 
   
 
@@ -302,7 +302,7 @@ public:
                                       nsIScriptGlobalObject *aNewInner,
                                       bool aIsChrome,
                                       nsIPrincipal *aPrincipal,
-                                      void **aNativeGlobal,
+                                      JSObject** aNativeGlobal,
                                       nsISupports **aHolder) = 0;
 
   
@@ -311,7 +311,7 @@ public:
 
 
   virtual nsresult ConnectToInner(nsIScriptGlobalObject *aNewInner,
-                                  void *aOuterGlobal) = 0;
+                                  JSObject *aOuterGlobal) = 0;
 
 
   
@@ -330,7 +330,7 @@ public:
   
 
 
-  virtual nsresult SetOuterObject(void *aOuterObject) = 0;
+  virtual nsresult SetOuterObject(JSObject* aOuterObject) = 0;
 
   
 
@@ -428,7 +428,7 @@ public:
 
 
 
-  virtual nsresult InitClasses(void *aGlobalObj) = 0;
+  virtual nsresult InitClasses(JSObject* aGlobalObj) = 0;
 
   
 

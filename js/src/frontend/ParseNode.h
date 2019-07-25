@@ -68,8 +68,10 @@ enum ParseNodeKind {
     PNK_BITOR,
     PNK_BITXOR,
     PNK_BITAND,
-    PNK_PLUS,
-    PNK_MINUS,
+    PNK_POS,
+    PNK_NEG,
+    PNK_ADD,
+    PNK_SUB,
     PNK_STAR,
     PNK_DIV,
     PNK_MOD,
@@ -78,7 +80,8 @@ enum ParseNodeKind {
     PNK_DOT,
     PNK_LB,
     PNK_RB,
-    PNK_LC,
+    PNK_STATEMENTLIST,
+    PNK_XMLCURLYEXPR,
     PNK_RC,
     PNK_LP,
     PNK_RP,
@@ -97,12 +100,13 @@ enum ParseNodeKind {
     PNK_CASE,
     PNK_DEFAULT,
     PNK_WHILE,
-    PNK_DO,
+    PNK_DOWHILE,
     PNK_FOR,
     PNK_BREAK,
     PNK_CONTINUE,
     PNK_IN,
     PNK_VAR,
+    PNK_CONST,
     PNK_WITH,
     PNK_RETURN,
     PNK_NEW,
@@ -116,6 +120,7 @@ enum ParseNodeKind {
     PNK_THROW,
     PNK_INSTANCEOF,
     PNK_DEBUGGER,
+    PNK_DEFXMLNS,
     PNK_XMLSTAGO,
     PNK_XMLETAGO,
     PNK_XMLPTAGC,
@@ -141,6 +146,7 @@ enum ParseNodeKind {
     PNK_LEXICALSCOPE,
     PNK_LET,
     PNK_SEQ,
+    PNK_FORIN,
     PNK_FORHEAD,
     PNK_ARGSBODY,
     PNK_UPVARS,
@@ -191,6 +197,10 @@ enum ParseNodeKind {
 
     PNK_LIMIT 
 };
+
+
+
+
 
 
 
@@ -710,10 +720,11 @@ struct ParseNode {
 #define PND_USE2DEF_FLAGS (PND_ASSIGNED | PND_FUNARG | PND_CLOSED)
 
 
-#define PNX_STRCAT      0x01            /* PNK_PLUS list has string term */
-#define PNX_CANTFOLD    0x02            /* PNK_PLUS list has unfoldable term */
-#define PNX_POPVAR      0x04            /* PNK_VAR last result needs popping */
-#define PNX_FORINVAR    0x08            /* PNK_VAR is left kid of PNK_IN node,
+#define PNX_STRCAT      0x01            /* PNK_ADD list has string term */
+#define PNX_CANTFOLD    0x02            /* PNK_ADD list has unfoldable term */
+#define PNX_POPVAR      0x04            /* PNK_VAR or PNK_CONST last result
+                                           needs popping */
+#define PNX_FORINVAR    0x08            /* PNK_VAR is left kid of PNK_FORIN node
                                            which is left kid of PNK_FOR */
 #define PNX_ENDCOMMA    0x10            /* array literal has comma at end */
 #define PNX_XMLROOT     0x20            /* top-most node in XML literal tree */

@@ -84,6 +84,12 @@ class nsIRangeUtils;
 class nsILinkHandler;
 struct PropItem;
 
+namespace mozilla {
+namespace widget {
+struct IMEState;
+} 
+} 
+
 
 
 
@@ -161,7 +167,7 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
   
-  NS_IMETHOD GetPreferredIMEState(PRUint32 *aState);
+  NS_IMETHOD GetPreferredIMEState(mozilla::widget::IMEState *aState);
 
   
 
@@ -378,6 +384,7 @@ public:
                             PRInt32 *aInOutOffset,
                             nsIDOMDocument *aDoc);
   NS_IMETHOD_(bool) IsModifiableNode(nsIDOMNode *aNode);
+  virtual bool IsModifiableNode(nsINode *aNode);
 
   NS_IMETHOD SelectAll();
 
@@ -411,7 +418,7 @@ public:
   
   nsresult CollapseSelectionToDeepestNonTableFirstChild(nsISelection *aSelection, nsIDOMNode *aNode);
 
-  virtual bool IsTextInDirtyFrameVisible(nsIDOMNode *aNode);
+  virtual bool IsTextInDirtyFrameVisible(nsIContent *aNode);
 
   nsresult IsVisTextNode( nsIDOMNode *aNode, 
                           bool *outIsEmptyNode, 
@@ -541,6 +548,7 @@ protected:
   NS_IMETHOD IsRootTag(nsString &aTag, bool &aIsTag);
 
   virtual bool IsBlockNode(nsIDOMNode *aNode);
+  virtual bool IsBlockNode(nsINode *aNode);
   
   static nsCOMPtr<nsIDOMNode> GetEnclosingTable(nsIDOMNode *aNode);
 

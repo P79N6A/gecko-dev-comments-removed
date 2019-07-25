@@ -683,7 +683,7 @@ struct JITScript {
     void nukeScriptDependentICs();
 
     
-    size_t scriptDataSize(JSUsableSizeFun usf);
+    size_t scriptDataSize(JSMallocSizeOfFun mallocSizeOf);
 
     jsbytecode *nativeToPC(void *returnAddress, CallSite **pinline) const;
 

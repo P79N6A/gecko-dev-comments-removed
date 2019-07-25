@@ -100,7 +100,7 @@ nsRefreshDriver::GetRefreshTimerType() const
   if (mThrottled) {
     return nsITimer::TYPE_ONE_SHOT;
   }
-  if (HaveAnimationFrameListeners() || sPrecisePref) {
+  if (HaveFrameRequestCallbacks() || sPrecisePref) {
     return nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP;
   }
   return nsITimer::TYPE_REPEATING_SLACK;
@@ -269,8 +269,7 @@ nsRefreshDriver::ObserverCount() const
   
   sum += mStyleFlushObservers.Length();
   sum += mLayoutFlushObservers.Length();
-  sum += mBeforePaintTargets.Length();
-  sum += mAnimationFrameListenerDocs.Length();
+  sum += mFrameRequestCallbackDocs.Length();
   return sum;
 }
 
@@ -366,33 +365,18 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
 
     if (i == 0) {
       
-      
-      
-      nsTArray< nsCOMPtr<nsIDocument> > targets;
-      targets.SwapElements(mBeforePaintTargets);
-      for (PRUint32 i = 0; i < targets.Length(); ++i) {
-        targets[i]->BeforePaintEventFiring();
-      }
-
-      
-      nsIDocument::AnimationListenerList animationListeners;
-      for (PRUint32 i = 0; i < mAnimationFrameListenerDocs.Length(); ++i) {
-        mAnimationFrameListenerDocs[i]->
-          TakeAnimationFrameListeners(animationListeners);
+      nsIDocument::FrameRequestCallbackList frameRequestCallbacks;
+      for (PRUint32 i = 0; i < mFrameRequestCallbackDocs.Length(); ++i) {
+        mFrameRequestCallbackDocs[i]->
+          TakeFrameRequestCallbacks(frameRequestCallbacks);
       }
       
       
-      mAnimationFrameListenerDocs.Clear();
+      mFrameRequestCallbackDocs.Clear();
 
       PRInt64 eventTime = mMostRecentRefreshEpochTime / PR_USEC_PER_MSEC;
-      for (PRUint32 i = 0; i < targets.Length(); ++i) {
-        nsEvent ev(true, NS_BEFOREPAINT);
-        ev.time = eventTime;
-        nsEventDispatcher::Dispatch(targets[i], nsnull, &ev);
-      }
-
-      for (PRUint32 i = 0; i < animationListeners.Length(); ++i) {
-        animationListeners[i]->OnBeforePaint(eventTime);
+      for (PRUint32 i = 0; i < frameRequestCallbacks.Length(); ++i) {
+        frameRequestCallbacks[i]->Sample(eventTime);
       }
 
       
@@ -541,39 +525,22 @@ nsRefreshDriver::IsRefreshObserver(nsARefreshObserver *aObserver,
 }
 #endif
 
-bool
-nsRefreshDriver::ScheduleBeforePaintEvent(nsIDocument* aDocument)
-{
-  NS_ASSERTION(mBeforePaintTargets.IndexOf(aDocument) ==
-               mBeforePaintTargets.NoIndex,
-               "Shouldn't have a paint event posted for this document");
-  bool appended = mBeforePaintTargets.AppendElement(aDocument) != nsnull;
-  EnsureTimerStarted(false);
-  return appended;
-}
-
 void
-nsRefreshDriver::ScheduleAnimationFrameListeners(nsIDocument* aDocument)
+nsRefreshDriver::ScheduleFrameRequestCallbacks(nsIDocument* aDocument)
 {
-  NS_ASSERTION(mAnimationFrameListenerDocs.IndexOf(aDocument) ==
-               mAnimationFrameListenerDocs.NoIndex,
+  NS_ASSERTION(mFrameRequestCallbackDocs.IndexOf(aDocument) ==
+               mFrameRequestCallbackDocs.NoIndex,
                "Don't schedule the same document multiple times");
-  mAnimationFrameListenerDocs.AppendElement(aDocument);
+  mFrameRequestCallbackDocs.AppendElement(aDocument);
   
   
   EnsureTimerStarted(false);
 }
 
 void
-nsRefreshDriver::RevokeBeforePaintEvent(nsIDocument* aDocument)
+nsRefreshDriver::RevokeFrameRequestCallbacks(nsIDocument* aDocument)
 {
-  mBeforePaintTargets.RemoveElement(aDocument);
-}
-
-void
-nsRefreshDriver::RevokeAnimationFrameListeners(nsIDocument* aDocument)
-{
-  mAnimationFrameListenerDocs.RemoveElement(aDocument);
+  mFrameRequestCallbackDocs.RemoveElement(aDocument);
   
   
 }
