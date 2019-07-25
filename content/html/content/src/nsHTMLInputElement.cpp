@@ -124,9 +124,7 @@
 #include "nsTextEditRules.h"
 
 
-#include "jsapi.h"    
-                      
-#include "jsregexp.h" 
+#include "jsapi.h"
 #include "jscntxt.h"
 
 #include "nsHTMLInputElement.h"
@@ -170,20 +168,6 @@ static const nsAttrValue::EnumTable kInputTypeTable[] = {
 
 
 static const nsAttrValue::EnumTable* kInputDefaultType = &kInputTypeTable[12];
-
-static const PRUint8 NS_INPUT_AUTOCOMPLETE_OFF     = 0;
-static const PRUint8 NS_INPUT_AUTOCOMPLETE_ON      = 1;
-static const PRUint8 NS_INPUT_AUTOCOMPLETE_DEFAULT = 2;
-
-static const nsAttrValue::EnumTable kInputAutocompleteTable[] = {
-  { "", NS_INPUT_AUTOCOMPLETE_DEFAULT },
-  { "on", NS_INPUT_AUTOCOMPLETE_ON },
-  { "off", NS_INPUT_AUTOCOMPLETE_OFF },
-  { 0 }
-};
-
-
-static const nsAttrValue::EnumTable* kInputDefaultAutocomplete = &kInputAutocompleteTable[0];
 
 #define NS_INPUT_ELEMENT_STATE_IID                 \
 { /* dc3b3d14-23e2-4479-b513-7b369343e3a0 */       \
@@ -307,8 +291,10 @@ AsyncClickHandler::Run()
   if (!filePicker)
     return NS_ERROR_FAILURE;
 
-  nsFileControlFrame* frame =
-    static_cast<nsFileControlFrame*>(mInput->GetPrimaryFrame());
+  nsFileControlFrame* frame = static_cast<nsFileControlFrame*>(mInput->GetPrimaryFrame());
+  nsTextControlFrame* textFrame = nsnull;
+  if (frame)
+    textFrame = static_cast<nsTextControlFrame*>(frame->GetTextFrame());
 
   PRBool multi;
   rv = mInput->GetMultiple(&multi);
@@ -383,13 +369,16 @@ AsyncClickHandler::Run()
   }
 
   
+  if (textFrame)
+    textFrame->InitFocusedValue();
+
+  
   PRInt16 mode;
   rv = filePicker->Show(&mode);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (mode == nsIFilePicker::returnCancel) {
+  if (mode == nsIFilePicker::returnCancel)
     return NS_OK;
-  }
-
+  
   
   nsCOMArray<nsIDOMFile> newFiles;
   if (multi) {
@@ -399,9 +388,7 @@ AsyncClickHandler::Run()
 
     nsCOMPtr<nsISupports> tmp;
     PRBool prefSaved = PR_FALSE;
-    PRBool loop = PR_TRUE;
-    while (NS_SUCCEEDED(iter->HasMoreElements(&loop)) && loop) {
-      iter->GetNext(getter_AddRefs(tmp));
+    while (NS_SUCCEEDED(iter->GetNext(getter_AddRefs(tmp)))) {
       nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(tmp);
       if (localFile) {
         nsString unicodePath;
@@ -444,11 +431,18 @@ AsyncClickHandler::Run()
     
     
     
+    PRBool oldState;
+    if (textFrame) {
+      oldState = textFrame->GetFireChangeEventState();
+      textFrame->SetFireChangeEventState(PR_TRUE);
+    }
+
     mInput->SetFiles(newFiles);
-    nsContentUtils::DispatchTrustedEvent(mInput->GetOwnerDoc(),
-                                         static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
-                                         NS_LITERAL_STRING("change"), PR_FALSE,
-                                         PR_FALSE);
+    if (textFrame) {
+      textFrame->SetFireChangeEventState(oldState);
+      
+      textFrame->CheckFireOnChange();
+    }
   }
 
   return NS_OK;
@@ -963,8 +957,6 @@ NS_IMPL_STRING_ATTR(nsHTMLInputElement, Accept, accept)
 NS_IMPL_STRING_ATTR(nsHTMLInputElement, AccessKey, accesskey)
 NS_IMPL_STRING_ATTR(nsHTMLInputElement, Align, align)
 NS_IMPL_STRING_ATTR(nsHTMLInputElement, Alt, alt)
-NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLInputElement, Autocomplete, autocomplete,
-                                kInputDefaultAutocomplete->tag)
 NS_IMPL_BOOL_ATTR(nsHTMLInputElement, Autofocus, autofocus)
 
 NS_IMPL_BOOL_ATTR(nsHTMLInputElement, Disabled, disabled)
@@ -973,7 +965,6 @@ NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLInputElement, FormEnctype, formenctype,
                                 kFormDefaultEnctype->tag)
 NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLInputElement, FormMethod, formmethod,
                                 kFormDefaultMethod->tag)
-NS_IMPL_BOOL_ATTR(nsHTMLInputElement, FormNoValidate, formnovalidate)
 NS_IMPL_STRING_ATTR(nsHTMLInputElement, FormTarget, formtarget)
 NS_IMPL_BOOL_ATTR(nsHTMLInputElement, Multiple, multiple)
 NS_IMPL_NON_NEGATIVE_INT_ATTR(nsHTMLInputElement, MaxLength, maxlength)
@@ -2443,9 +2434,6 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             
             if (presShell && (event.message != NS_FORM_SUBMIT ||
                               mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate) ||
-                              
-                              
-                              HasAttr(kNameSpaceID_None, nsGkAtoms::formnovalidate) ||
                               mForm->CheckValidFormSubmission())) {
               
               nsRefPtr<nsHTMLFormElement> form(mForm);
@@ -2542,10 +2530,6 @@ nsHTMLInputElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 void
 nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
 {
-  ValueModeType aOldValueMode = GetValueMode();
-  nsAutoString aOldValue;
-  GetValue(aOldValue);
-
   
   PRBool isNewTypeSingleLine =
     IsSingleLineTextControlInternal(PR_FALSE, aNewType);
@@ -2562,39 +2546,14 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
   mType = aNewType;
 
   
-
-
-
-  switch (GetValueMode()) {
-    case VALUE_MODE_DEFAULT:
-    case VALUE_MODE_DEFAULT_ON:
-      
-      
-      
-      if (aOldValueMode == VALUE_MODE_VALUE && !aOldValue.IsEmpty()) {
-        SetAttr(kNameSpaceID_None, nsGkAtoms::value, aOldValue, PR_TRUE);
-      }
-      break;
-    case VALUE_MODE_VALUE:
-      
-      
-      
-      {
-        nsAutoString value;
-        if (aOldValueMode != VALUE_MODE_VALUE) {
-          GetAttr(kNameSpaceID_None, nsGkAtoms::value, value);
-        } else {
-          
-          GetValue(value);
-        }
-        SetValueInternal(value, PR_FALSE, PR_FALSE);
-      }
-      break;
-    case VALUE_MODE_FILENAME:
-    default:
-      
-      
-      break;
+  
+  
+  
+  if (IsSingleLineTextControlInternal(PR_FALSE, mType)) {
+    nsAutoString value;
+    GetValue(value);
+    
+    SetValueInternal(value, PR_FALSE, PR_FALSE);
   }
 
   
@@ -2686,9 +2645,6 @@ nsHTMLInputElement::ParseAttribute(PRInt32 aNamespaceID,
     }
     if (aAttribute == nsGkAtoms::formenctype) {
       return aResult.ParseEnumValue(aValue, kFormEnctypeTable, PR_FALSE);
-    }
-    if (aAttribute == nsGkAtoms::autocomplete) {
-      return aResult.ParseEnumValue(aValue, kInputAutocompleteTable, PR_FALSE);
     }
     if (ParseImageAttribute(aAttribute, aValue, aResult)) {
       
@@ -4050,25 +4006,18 @@ nsHTMLInputElement::IsPatternMatching(nsAString& aValue, nsAString& aPattern,
   aPattern.Insert(NS_LITERAL_STRING("^(?:"), 0);
   aPattern.Append(NS_LITERAL_STRING(")$"));
 
-  JSObject* re = JS_NewUCRegExpObject(ctx, reinterpret_cast<jschar*>
-                                             (aPattern.BeginWriting()),
-                                      aPattern.Length(), 0);
+  JSObject* re = JS_NewUCRegExpObjectNoStatics(ctx, reinterpret_cast<jschar*>
+                                                 (aPattern.BeginWriting()),
+                                                aPattern.Length(), 0);
   NS_ENSURE_TRUE(re, PR_TRUE);
 
-  js::AutoObjectRooter re_root(ctx, re);
-  js::AutoStringRooter tvr(ctx);
-  js::RegExpStatics statics(ctx);
   jsval rval = JSVAL_NULL;
   size_t idx = 0;
   JSBool res;
 
-  js_SaveAndClearRegExpStatics(ctx, &statics, &tvr);
-
-  res = JS_ExecuteRegExp(ctx, re, reinterpret_cast<jschar*>
+  res = JS_ExecuteRegExpNoStatics(ctx, re, reinterpret_cast<jschar*>
                                     (aValue.BeginWriting()),
-                         aValue.Length(), &idx, JS_TRUE, &rval);
-
-  js_RestoreRegExpStatics(ctx, &statics);
+                                  aValue.Length(), &idx, JS_TRUE, &rval);
 
   return res == JS_FALSE || rval != JSVAL_NULL;
 }

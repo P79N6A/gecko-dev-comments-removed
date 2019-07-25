@@ -487,7 +487,8 @@ protected:
       }
 
       
-      JS_ClearRegExpStatics(aCx);
+      if (JSObject *global = JS_GetGlobalObject(aCx))
+          JS_ClearRegExpStatics(aCx, global);
 
       runnable->Run();
     }

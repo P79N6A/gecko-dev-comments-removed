@@ -3340,7 +3340,10 @@ nsJSContext::ClearScope(void *aGlobalObj, PRBool aClearFromProtoChain)
   if (aGlobalObj) {
     JSObject *obj = (JSObject *)aGlobalObj;
     JSAutoRequest ar(mContext);
-    ::JS_ClearScope(mContext, obj);
+    JS_ClearScope(mContext, obj);
+    if (!obj->getParent()) {
+      JS_ClearRegExpStatics(mContext, obj);
+    }
 
     
     
@@ -3367,8 +3370,6 @@ nsJSContext::ClearScope(void *aGlobalObj, PRBool aClearFromProtoChain)
         ::JS_ClearScope(mContext, o);
     }
   }
-
-  ::JS_ClearRegExpStatics(mContext);
 
   if (stack) {
     stack->Pop(nsnull);

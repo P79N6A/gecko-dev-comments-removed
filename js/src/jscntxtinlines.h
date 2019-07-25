@@ -45,6 +45,22 @@
 #include "jsparse.h"
 #include "jsstaticcheck.h"
 #include "jsxml.h"
+#include "jsregexp.h"
+
+inline js::RegExpStatics *
+JSContext::regExpStatics()
+{
+    VOUCH_HAVE_STACK();
+    
+
+
+
+
+    JS_ASSERT(hasfp());
+    JSObject *global = fp()->scopeChain().getGlobal();
+    js::RegExpStatics *res = js::RegExpStatics::extractFrom(global);
+    return res;
+}
 
 inline bool
 JSContext::ensureGeneratorStackSpace()
