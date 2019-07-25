@@ -268,6 +268,18 @@ JSVAL_IS_UNDERLYING_TYPE_OF_PRIVATE(jsval v)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #define JSID_STRING_TYPE                 0x0
 #define JSID_INT_TYPE                    0x1
 #define JSID_OBJECT_TYPE                 0x2
@@ -401,7 +413,6 @@ JSID_IS_VOID(jsid id)
                  JSID_BITS(id) == JSID_VOID_TYPE);
     return ((size_t)JSID_BITS(id) == JSID_VOID_TYPE);
 }
-
 
 #ifdef DEBUG
 extern JS_PUBLIC_DATA(jsid) JSID_VOID;

@@ -802,9 +802,7 @@ js_SuppressDeletedProperty(JSContext *cx, JSObject *obj, jsid id)
       again:
         NativeIterator *ni = iterobj->getNativeIterator();
         
-        if (ni->flags & JSITER_FOREACH)
-            continue;
-        if (ni->obj == obj && ni->props_cursor < ni->props_end) {
+        if ((ni->flags & JSITER_FOREACH) && ni->obj == obj && ni->props_cursor < ni->props_end) {
             
             jsid *props_cursor = (jsid *)ni->props_cursor;
             jsid *props_end = (jsid *)ni->props_end;
