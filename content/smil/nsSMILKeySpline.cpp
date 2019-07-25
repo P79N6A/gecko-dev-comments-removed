@@ -4,7 +4,7 @@
 
 
 #include "nsSMILKeySpline.h"
-#include "prtypes.h"
+#include "mozilla/StandardInteger.h"
 #include <math.h>
 
 #define NEWTON_ITERATIONS          4

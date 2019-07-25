@@ -9,6 +9,7 @@
 
 #include "prtypes.h"
 #include "limits.h"
+#include "mozilla/StandardInteger.h"
 
 
 

@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#include "prtypes.h"
+#include "mozilla/StandardInteger.h"
 
 
 
