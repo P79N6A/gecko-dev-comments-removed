@@ -767,8 +767,9 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
     } else {
       
       
-      NS_ASSERTION(state.mRegionToDraw.IsEmpty(),
-                   "If we need to draw, we should have a context");
+      
+      NS_WARN_IF_FALSE(state.mRegionToDraw.IsEmpty(),
+                       "No context when we have something to draw; resource exhaustion?");
     }
   }
 
