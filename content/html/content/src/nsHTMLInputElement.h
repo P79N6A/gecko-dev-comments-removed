@@ -493,6 +493,11 @@ protected:
 
   PRBool DoesPatternApply() const;
 
+  
+
+
+  bool MaxLengthApplies() const { return IsSingleLineTextControlInternal(PR_FALSE, mType); }
+
   void FreeData();
   nsTextEditorState *GetEditorState() const;
 
