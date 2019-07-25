@@ -1129,6 +1129,12 @@ pref("browser.newtab.preload", false);
 pref("browser.newtabpage.enabled", true);
 
 
+pref("browser.newtabpage.rows", 3);
+
+
+pref("browser.newtabpage.columns", 3);
+
+
 pref("full-screen-api.enabled", true);
 
 

@@ -25,6 +25,12 @@ XPCOMUtils.defineLazyGetter(this, "gPrincipal", function () {
 const PREF_NEWTAB_ENABLED = "browser.newtabpage.enabled";
 
 
+const PREF_NEWTAB_ROWS = "browser.newtabpage.rows";
+
+
+const PREF_NEWTAB_COLUMNS = "browser.newtabpage.columns";
+
+
 const HISTORY_RESULTS_LIMIT = 100;
 
 
@@ -182,6 +188,60 @@ let AllPages = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference])
 };
+
+
+
+
+let GridPrefs = {
+  
+
+
+  _gridRows: null,
+  get gridRows() {
+    if (!this._gridRows) {
+      this._gridRows = Math.max(1, Services.prefs.getIntPref(PREF_NEWTAB_ROWS));
+    }
+
+    return this._gridRows;
+  },
+
+  
+
+
+  _gridColumns: null,
+  get gridColumns() {
+    if (!this._gridColumns) {
+      this._gridColumns = Math.max(1, Services.prefs.getIntPref(PREF_NEWTAB_COLUMNS));
+    }
+
+    return this._gridColumns;
+  },
+
+
+  
+
+
+  init: function GridPrefs_init() {
+    Services.prefs.addObserver(PREF_NEWTAB_ROWS, this, false);
+    Services.prefs.addObserver(PREF_NEWTAB_COLUMNS, this, false);
+  },
+
+  
+
+
+
+  observe: function GridPrefs_observe(aSubject, aTopic, aData) {
+    if (aData == PREF_NEWTAB_ROWS) {
+      this._gridRows = null;
+    } else {
+      this._gridColumns = null;
+    }
+
+    AllPages.update();
+  }
+};
+
+GridPrefs.init();
 
 
 
@@ -606,5 +666,6 @@ let NewTabUtils = {
   allPages: AllPages,
   linkChecker: LinkChecker,
   pinnedLinks: PinnedLinks,
-  blockedLinks: BlockedLinks
+  blockedLinks: BlockedLinks,
+  gridPrefs: GridPrefs
 };

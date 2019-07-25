@@ -22,17 +22,8 @@ let gGrid = {
   
 
 
-  get cells() {
-    let cells = [];
-    let children = this.node.querySelectorAll(".newtab-cell");
-    for (let i = 0; i < children.length; i++)
-      cells.push(new Cell(this, children[i]));
-
-    
-    Object.defineProperty(this, "cells", {value: cells, enumerable: true});
-
-    return cells;
-  },
+  _cells: null,
+  get cells() this._cells,
 
   
 
@@ -46,7 +37,7 @@ let gGrid = {
   init: function Grid_init() {
     this._node = document.getElementById("newtab-grid");
     this._createSiteFragment();
-    this._draw();
+    this._render();
   },
 
   
@@ -75,7 +66,7 @@ let gGrid = {
     }, this);
 
     
-    this._draw();
+    this._render();
   },
 
   
@@ -90,6 +81,32 @@ let gGrid = {
 
   unlock: function Grid_unlock() {
     this.node.removeAttribute("locked");
+  },
+
+  
+
+
+  _renderGrid: function Grid_renderGrid() {
+    let row = document.createElementNS(HTML_NAMESPACE, "div");
+    let cell = document.createElementNS(HTML_NAMESPACE, "div");
+    row.classList.add("newtab-row");
+    cell.classList.add("newtab-cell");
+
+    
+    this._node.innerHTML = "";
+
+    
+    for (let i = 0; i < gGridPrefs.gridColumns; i++) {
+      row.appendChild(cell.cloneNode(true));
+    }
+    
+    for (let j = 0; j < gGridPrefs.gridRows; j++) {
+      this._node.appendChild(row.cloneNode(true));
+    }
+
+    
+    let cellElements = this.node.querySelectorAll(".newtab-cell");
+    this._cells = [new Cell(this, cell) for (cell of cellElements)];
   },
 
   
@@ -118,9 +135,8 @@ let gGrid = {
   
 
 
-  _draw: function Grid_draw() {
+  _renderSites: function Grid_renderSites() {
     let cells = this.cells;
-
     
     let links = gLinks.getLinks();
     let length = Math.min(links.length, cells.length);
@@ -129,5 +145,24 @@ let gGrid = {
       if (links[i])
         this.createSite(links[i], cells[i]);
     }
+  },
+
+  
+
+
+  _render: function Grid_render() {
+    if (this._shouldRenderGrid()) {
+      this._renderGrid();
+    }
+
+    this._renderSites();
+  },
+
+  _shouldRenderGrid : function Grid_shouldRenderGrid() {
+    let rowsLength = this._node.querySelectorAll(".newtab-row").length;
+    let cellsLength = this._node.querySelectorAll(".newtab-cell").length;
+
+    return (rowsLength != gGridPrefs.gridRows ||
+            cellsLength != (gGridPrefs.gridRows * gGridPrefs.gridColumns));
   }
 };
