@@ -94,6 +94,24 @@
              }
              return ctypes.CDataFinalizer(maybe, _CloseHandle);
            });
+
+       
+
+
+
+       Types.maybe_find_HANDLE =
+         new Type("maybe_find_HANDLE",
+           Types.HANDLE.implementation,
+           function (maybe) {
+             if (ctypes.cast(maybe, ctypes.int).value == invalid_handle) {
+               
+               
+               
+               return invalid_handle;
+             }
+             return ctypes.CDataFinalizer(maybe, _FindClose);
+           });
+
        let invalid_handle = exports.OS.Constants.Win.INVALID_HANDLE_VALUE;
 
        Types.DWORD = Types.int32_t;
@@ -122,6 +140,40 @@
          new Type("zero_or_nothing",
                   Types.bool.implementation);
 
+       Types.FILETIME =
+         new Type("FILETIME",
+                  ctypes.StructType("FILETIME", [
+                  { lo: Types.DWORD.implementation },
+                  { hi: Types.DWORD.implementation }]));
+              
+       Types.FindData =
+         new Type("FIND_DATA",
+                  ctypes.StructType("FIND_DATA", [
+                    { dwFileAttributes: ctypes.uint32_t },
+                    { ftCreationTime:   Types.FILETIME.implementation },
+                    { ftLastAccessTime: Types.FILETIME.implementation },
+                    { ftLastWriteTime:  Types.FILETIME.implementation },
+                    { nFileSizeHigh:    Types.DWORD.implementation },
+                    { nFileSizeLow:     Types.DWORD.implementation },
+                    { dwReserved0:      Types.DWORD.implementation },
+                    { dwReserved1:      Types.DWORD.implementation },
+                    { cFileName:        ctypes.ArrayType(ctypes.jschar, exports.OS.Constants.Win.MAX_PATH) },
+                    { cAlternateFileName: ctypes.ArrayType(ctypes.jschar, 14) }
+                      ]));
+                  
+       Types.SystemTime =
+         new Type("SystemTime",
+                  ctypes.StructType("SystemTime", [
+                  { wYear:      ctypes.int16_t },
+                  { wMonth:     ctypes.int16_t },
+                  { wDayOfWeek: ctypes.int16_t },
+                  { wDay:       ctypes.int16_t },
+                  { wHour:      ctypes.int16_t },
+                  { wMinute:    ctypes.int16_t },
+                  { wSecond:    ctypes.int16_t },
+                  { wMilliSeconds: ctypes.int16_t }
+                  ]));
+
        
        
        let _CloseHandle =
@@ -131,6 +183,15 @@
 
        WinFile.CloseHandle = function(fd) {
          return fd.dispose(); 
+       };
+
+       let _FindClose =
+         libc.declare("CloseHandle", ctypes.winapi_abi,
+                        ctypes.bool,
+                         ctypes.voidptr_t);
+
+       WinFile.FindClose = function(handle) {
+         return handle.dispose(); 
        };
 
        
@@ -157,6 +218,24 @@
          declareFFI("DeleteFileW", ctypes.winapi_abi,
                      Types.zero_or_nothing,
                        Types.jschar.in_ptr);
+
+       WinFile.FileTimeToSystemTime =
+         declareFFI("FileTimeToSystemTime", ctypes.winapi_abi,
+                     Types.zero_or_nothing,
+                    Types.FILETIME.in_ptr,
+                     Types.SystemTime.out_ptr);
+
+       WinFile.FindFirstFile =
+         declareFFI("FindFirstFileW", ctypes.winapi_abi,
+                     Types.maybe_find_HANDLE,
+                    Types.jschar.in_ptr,
+                       Types.FindData.out_ptr);
+
+       WinFile.FindNextFile =
+         declareFFI("FindNextFileW", ctypes.winapi_abi,
+                     Types.zero_or_nothing,
+                       Types.HANDLE,
+                       Types.FindData.out_ptr);
 
        WinFile.FormatMessage =
          declareFFI("FormatMessageW", ctypes.winapi_abi,
@@ -194,6 +273,11 @@
                     Types.DWORD.out_ptr,
                     Types.void_t.inout_ptr 
          );
+
+       WinFile.RemoveDirectory =
+         declareFFI("RemoveDirectoryW", ctypes.winapi_abi,
+                     Types.zero_or_nothing,
+                       Types.jschar.in_ptr);
 
        WinFile.SetCurrentDirectory =
          declareFFI("SetCurrentDirectoryW", ctypes.winapi_abi,
