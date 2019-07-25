@@ -111,6 +111,7 @@ class imgIRequest;
 class nsISHEntry;
 class nsDOMNavigationTiming;
 class nsWindowSizes;
+class nsIObjectLoadingContent;
 
 namespace mozilla {
 namespace css {
@@ -1565,6 +1566,10 @@ public:
   
   
   virtual nsresult SetImageLockingState(bool aLocked) = 0;
+
+  virtual nsresult AddPlugin(nsIObjectLoadingContent* aPlugin) = 0;
+  virtual void RemovePlugin(nsIObjectLoadingContent* aPlugin) = 0;
+  virtual void GetPlugins(nsTArray<nsIObjectLoadingContent*>& aPlugins) = 0;
 
   virtual nsresult GetStateObject(nsIVariant** aResult) = 0;
 
