@@ -2429,7 +2429,7 @@ public:
 
 
 
-  virtual nsIFrame* GetParentStyleContextFrame() = 0;
+  virtual nsIFrame* GetParentStyleContextFrame() const = 0;
 
   
 

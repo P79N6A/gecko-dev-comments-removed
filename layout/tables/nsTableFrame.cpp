@@ -162,7 +162,7 @@ struct BCPropertyData
 };
 
 nsIFrame*
-nsTableFrame::GetParentStyleContextFrame()
+nsTableFrame::GetParentStyleContextFrame() const
 {
   
   
