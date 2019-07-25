@@ -368,7 +368,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
             wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
                                         ExposedPropertiesOnly>::singleton;
         }
-    } else if (AccessCheck::isSameOrigin(origin, target)) {
+    } else if (AccessCheck::subsumes(target, origin)) {
         
         
         

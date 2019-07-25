@@ -32,8 +32,9 @@ GetCompartmentPrincipal(JSCompartment *compartment)
     return nsJSPrincipals::get(JS_GetCompartmentPrincipals(compartment));
 }
 
+
 bool
-AccessCheck::isSameOrigin(JSCompartment *a, JSCompartment *b)
+AccessCheck::subsumes(JSCompartment *a, JSCompartment *b)
 {
     nsIPrincipal *aprin = GetCompartmentPrincipal(a);
     nsIPrincipal *bprin = GetCompartmentPrincipal(b);
@@ -44,14 +45,11 @@ AccessCheck::isSameOrigin(JSCompartment *a, JSCompartment *b)
     if (!aprin || !bprin)
         return true;
 
-    bool equals;
-    nsresult rv = aprin->EqualsIgnoringDomain(bprin, &equals);
-    if (NS_FAILED(rv)) {
-        NS_ERROR("unable to ask about equality");
-        return false;
-    }
+    bool subsumes;
+    nsresult rv = aprin->SubsumesIgnoringDomain(bprin, &subsumes);
+    NS_ENSURE_SUCCESS(rv, false);
 
-    return equals;
+    return subsumes;
 }
 
 bool
@@ -77,8 +75,8 @@ AccessCheck::isLocationObjectSameOrigin(JSContext *cx, JSObject *wrapper)
 
     
     return obj &&
-           (isSameOrigin(js::GetObjectCompartment(wrapper),
-                         js::GetObjectCompartment(obj)) ||
+           (subsumes(js::GetObjectCompartment(wrapper),
+                     js::GetObjectCompartment(obj)) ||
             documentDomainMakesSameOrigin(cx, obj));
 }
 
