@@ -179,6 +179,8 @@ const char *const js_common_atom_names[] = {
     js_value_str,               
     js_test_str,                
     "use strict",               
+    "loc",                      
+    "line",                     
 
 #if JS_HAS_XML_SUPPORT
     js_etago_str,               
