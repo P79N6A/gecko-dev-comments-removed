@@ -6059,14 +6059,19 @@ IsInlineFrame(nsIFrame *aFrame)
 }
 
 void 
-nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
+nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
+                                 nsSize aNewSize)
 {
+  nsRect bounds(nsPoint(0, 0), aNewSize);
+
   
   
   
-  NS_ASSERTION(aNewSize.width == 0 || aNewSize.height == 0 ||
-               aOverflowArea->Contains(nsRect(nsPoint(0, 0), aNewSize)),
-               "Computed overflow area must contain frame bounds");
+  NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+    NS_ASSERTION(aNewSize.width == 0 || aNewSize.height == 0 ||
+                 aOverflowAreas.Overflow(otype).Contains(nsRect(nsPoint(0,0), aNewSize)),
+                 "Computed overflow area must contain frame bounds");
+  }
 
   
   
@@ -6078,7 +6083,7 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
                "If one overflow is clip, the other should be too");
   if (disp->mOverflowX == NS_STYLE_OVERFLOW_CLIP) {
     
-    *aOverflowArea = nsRect(nsPoint(0, 0), aNewSize);
+    aOverflowAreas.SetAllTo(bounds);
   }
 
   
@@ -6086,33 +6091,43 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
   
   
   if (aNewSize.width != 0 || !IsInlineFrame(this)) {
-    aOverflowArea->UnionRectIncludeEmpty(*aOverflowArea,
-                                         nsRect(nsPoint(0, 0), aNewSize));
+    NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+      nsRect& o = aOverflowAreas.Overflow(otype);
+      o.UnionRectIncludeEmpty(o, bounds);
+    }
   }
 
   
   
   if (!IsBoxWrapped() && IsThemed(disp)) {
-    nsRect r(nsPoint(0, 0), aNewSize);
+    nsRect r(bounds);
     nsPresContext *presContext = PresContext();
     if (presContext->GetTheme()->
           GetWidgetOverflow(presContext->DeviceContext(), this,
                             disp->mAppearance, &r)) {
-      aOverflowArea->UnionRectIncludeEmpty(*aOverflowArea, r);
+      NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+        nsRect& o = aOverflowAreas.Overflow(otype);
+        o.UnionRectIncludeEmpty(o, r);
+      }
     }
   }
+
   
   PRBool hasOutlineOrEffects;
-  *aOverflowArea =
+  aOverflowAreas.VisualOverflow() =
     ComputeOutlineAndEffectsRect(this, &hasOutlineOrEffects,
-                                 *aOverflowArea, aNewSize, PR_TRUE);
+                                 aOverflowAreas.VisualOverflow(), aNewSize,
+                                 PR_TRUE);
 
   
   PRBool didHaveAbsPosClip = (GetStateBits() & NS_FRAME_HAS_CLIP) != 0;
   nsRect absPosClipRect;
   PRBool hasAbsPosClip = GetAbsPosClipRect(disp, &absPosClipRect, aNewSize);
   if (hasAbsPosClip) {
-    aOverflowArea->IntersectRect(*aOverflowArea, absPosClipRect);
+    NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+      nsRect& o = aOverflowAreas.Overflow(otype);
+      o.IntersectRect(o, absPosClipRect);
+    }
     AddStateBits(NS_FRAME_HAS_CLIP);
   } else {
     RemoveStateBits(NS_FRAME_HAS_CLIP);
@@ -6121,32 +6136,30 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
   
   PRBool hasTransform = IsTransformed();
   if (hasTransform) {
-    Properties().
-      Set(nsIFrame::PreTransformBBoxProperty(), new nsRect(*aOverflowArea));
+    Properties().Set(nsIFrame::PreTransformBBoxProperty(),
+                     new nsRect(aOverflowAreas.VisualOverflow()));
     
 
 
 
     nsRect newBounds(nsPoint(0, 0), aNewSize);
-    *aOverflowArea = nsDisplayTransform::TransformRect(*aOverflowArea, this, nsPoint(0, 0), &newBounds);
-  }
-
-  PRBool overflowChanged;
-  if (!aOverflowArea->IsExactEqual(nsRect(nsPoint(0, 0), aNewSize))) {
-    overflowChanged = !aOverflowArea->IsExactEqual(GetOverflowRect());
-    SetOverflowRect(*aOverflowArea);
-  }
-  else {
-    if (HasOverflowRect()) {
-      
-      ClearOverflowRect();
-      overflowChanged = PR_TRUE;
-    } else {
-      overflowChanged = PR_FALSE;
+    
+    NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+      nsRect& o = aOverflowAreas.Overflow(otype);
+      o = nsDisplayTransform::TransformRect(o, this, nsPoint(0, 0), &newBounds);
     }
   }
 
-  if (overflowChanged) {
+  PRBool visualOverflowChanged =
+    GetVisualOverflowRect() != aOverflowAreas.VisualOverflow();
+
+  if (aOverflowAreas != nsOverflowAreas(bounds, bounds)) {
+    SetOverflowAreas(aOverflowAreas);
+  } else {
+    ClearOverflowRects();
+  }
+
+  if (visualOverflowChanged) {
     if (hasOutlineOrEffects) {
       
       
@@ -6159,7 +6172,7 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
       
       
       
-      Invalidate(*aOverflowArea);
+      Invalidate(aOverflowAreas.VisualOverflow());
     } else if (hasAbsPosClip || didHaveAbsPosClip) {
       
       
@@ -6167,7 +6180,7 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
       
       
       
-      Invalidate(*aOverflowArea);
+      Invalidate(aOverflowAreas.VisualOverflow());
     } else if (hasTransform) {
       
       
@@ -6184,7 +6197,8 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
       
       
       
-      InvalidateLayer(*aOverflowArea, nsDisplayItem::TYPE_TRANSFORM);
+      InvalidateLayer(aOverflowAreas.VisualOverflow(),
+                      nsDisplayItem::TYPE_TRANSFORM);
     }
   }
 }
@@ -6813,7 +6827,7 @@ nsFrame::DoLayout(nsBoxLayoutState& aState)
   nsSize size(GetSize());
   desiredSize.mOverflowArea.UnionRect(desiredSize.mOverflowArea,
                                       nsRect(nsPoint(0, 0), size));
-  FinishAndStoreOverflow(&desiredSize.mOverflowArea, size);
+  FinishAndStoreOverflow(desiredSize.mOverflowAreas, size);
 
   SyncLayout(aState);
 

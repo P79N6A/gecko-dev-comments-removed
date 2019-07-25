@@ -2138,10 +2138,12 @@ public:
 
 
 
-  void FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize);
+  void FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
+                              nsSize aNewSize);
 
   void FinishAndStoreOverflow(nsHTMLReflowMetrics* aMetrics) {
-    FinishAndStoreOverflow(&aMetrics->mOverflowArea, nsSize(aMetrics->width, aMetrics->height));
+    FinishAndStoreOverflow(aMetrics->mOverflowAreas,
+                           nsSize(aMetrics->width, aMetrics->height));
   }
 
   
