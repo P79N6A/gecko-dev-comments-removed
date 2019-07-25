@@ -1508,6 +1508,8 @@ Tab.prototype = {
     this.browser.removeEventListener("pagehide", this, true);
     this.browser.removeEventListener("pageshow", this, true);
 
+    Services.obs.removeObserver(this, "document-shown");
+
     
     
     let selectedPanel = BrowserApp.deck.selectedPanel;
