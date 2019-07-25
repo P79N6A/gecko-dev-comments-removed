@@ -12,13 +12,15 @@ function test() {
   
   testTab = gBrowser.addTab("about:blank");
 
-  showTabView(onTabViewShown);
+  window.addEventListener("tabviewshown", onTabViewWindowLoaded, false);
+  TabView.toggle();
 }
 
-function onTabViewShown() {
+function onTabViewWindowLoaded() {
+  window.removeEventListener("tabviewshown", onTabViewWindowLoaded, false);
   ok(TabView.isVisible(), "Tab View is visible");
 
-  contentWindow = TabView.getContentWindow();
+  contentWindow = document.getElementById("tab-view").contentWindow;
 
   
   let testGroupRect = new contentWindow.Rect(20, 20, 300, 300);
@@ -37,12 +39,7 @@ function onTabViewShown() {
   ok(testTab._tabViewTabItem, "tab item exists after adding to group");
 
   
-  let thumbnailUpdateCount = 0;
-  function onUpdate() thumbnailUpdateCount++;
-  testTabItem.addSubscriber("thumbnailUpdated", onUpdate);
-  registerCleanupFunction(function () {
-    testTabItem.removeSubscriber("thumbnailUpdated", onUpdate)
-  });
+  let initialUpdateTime = testTabItem._lastTabUpdateTime;
 
   
   let resizer = contentWindow.iQ('.iq-resizable-handle', testGroup.container)[0];
@@ -72,7 +69,9 @@ function onTabViewShown() {
   });
   funcChain.push(function() {
     
-    ok(thumbnailUpdateCount > 0, "Tab has been updated");
+    let lastTime = testTabItem._lastTabUpdateTime;
+    let hbTiming = contentWindow.TabItems._heartbeatTiming;
+    ok((lastTime - initialUpdateTime) > hbTiming, "Tab has been updated:"+lastTime+"-"+initialUpdateTime+">"+hbTiming);
 
     
     testGroup.remove(testTab._tabViewTabItem);

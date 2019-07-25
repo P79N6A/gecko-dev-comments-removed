@@ -68,7 +68,7 @@ function setupTwo(win) {
 
           let restoredContentWindow = restoredWin.TabView.getContentWindow();
           
-          restoredContentWindow.TabItems.pausePainting();
+          restoredContentWindow.TabItems._pauseUpdateForTest = true;
 
           let nextStep = function() {
             
@@ -130,17 +130,17 @@ function updateAndCheck() {
   
   let contentWindow = restoredWin.TabView.getContentWindow();
 
-  contentWindow.TabItems.resumePainting();
+  contentWindow.TabItems._pauseUpdateForTest = false;
 
   let tabItems = contentWindow.TabItems.getItems();
   tabItems.forEach(function(tabItem) {
-    tabItem.addSubscriber("thumbnailUpdated", function onUpdated() {
-      tabItem.removeSubscriber("thumbnailUpdated", onUpdated);
+    tabItem.addSubscriber("updated", function onUpdated() {
+      tabItem.removeSubscriber("updated", onUpdated);
       ok(!tabItem.isShowingCachedData(),
          "Tab item is not showing cached data anymore. " +
          tabItem.tab.linkedBrowser.currentURI.spec);
     });
-    contentWindow.TabItems.addToUpdateQueue(tabItem.tab);
+    contentWindow.TabItems.update(tabItem.tab);
   });
 
   
