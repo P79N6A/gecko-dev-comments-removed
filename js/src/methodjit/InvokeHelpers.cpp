@@ -81,7 +81,7 @@ FindExceptionHandler(JSContext *cx)
     JSScript *script = fp->script();
 
 top:
-    if (cx->throwing && script->trynotesOffset) {
+    if (cx->throwing && JSScript::isValidOffset(script->trynotesOffset)) {
         
         unsigned offset = cx->regs->pc - script->main;
 

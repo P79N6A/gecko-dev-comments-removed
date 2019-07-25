@@ -213,6 +213,11 @@ struct JSScript {
     uint16          version;    
     uint16          nfixed;     
 
+
+    
+
+
+
     uint8           objectsOffset;  
 
 
@@ -221,9 +226,7 @@ struct JSScript {
     uint8           regexpsOffset;  
 
     uint8           trynotesOffset; 
-
     uint8           globalsOffset;  
-
     uint8           constOffset;    
 
     bool            noScriptRval:1; 
@@ -316,34 +319,37 @@ struct JSScript {
     
     jssrcnote *notes() { return (jssrcnote *)(code + length); }
 
+    static const uint8 INVALID_OFFSET = 0xFF;
+    static bool isValidOffset(uint8 offset) { return offset != INVALID_OFFSET; }
+
     JSObjectArray *objects() {
-        JS_ASSERT(objectsOffset != 0);
-        return (JSObjectArray *)((uint8 *) this + objectsOffset);
+        JS_ASSERT(isValidOffset(objectsOffset));
+        return (JSObjectArray *)((uint8 *) (this + 1) + objectsOffset);
     }
 
     JSUpvarArray *upvars() {
-        JS_ASSERT(upvarsOffset != 0);
-        return (JSUpvarArray *) ((uint8 *) this + upvarsOffset);
+        JS_ASSERT(isValidOffset(upvarsOffset));
+        return (JSUpvarArray *) ((uint8 *) (this + 1) + upvarsOffset);
     }
 
     JSObjectArray *regexps() {
-        JS_ASSERT(regexpsOffset != 0);
-        return (JSObjectArray *) ((uint8 *) this + regexpsOffset);
+        JS_ASSERT(isValidOffset(regexpsOffset));
+        return (JSObjectArray *) ((uint8 *) (this + 1) + regexpsOffset);
     }
 
     JSTryNoteArray *trynotes() {
-        JS_ASSERT(trynotesOffset != 0);
-        return (JSTryNoteArray *) ((uint8 *) this + trynotesOffset);
+        JS_ASSERT(isValidOffset(trynotesOffset));
+        return (JSTryNoteArray *) ((uint8 *) (this + 1) + trynotesOffset);
     }
 
     js::GlobalSlotArray *globals() {
-        JS_ASSERT(globalsOffset != 0);
-        return (js::GlobalSlotArray *) ((uint8 *)this + globalsOffset);
+        JS_ASSERT(isValidOffset(globalsOffset));
+        return (js::GlobalSlotArray *) ((uint8 *) (this + 1) + globalsOffset);
     }
 
     JSConstArray *consts() {
-        JS_ASSERT(constOffset != 0);
-        return (JSConstArray *) ((uint8 *) this + constOffset);
+        JS_ASSERT(isValidOffset(constOffset));
+        return (JSConstArray *) ((uint8 *) (this + 1) + constOffset);
     }
 
     JSAtom *getAtom(size_t index) {
