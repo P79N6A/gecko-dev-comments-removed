@@ -45,6 +45,11 @@
 
 
 
+#ifdef MOZ_IPC
+#include "GeckoChildProcessHost.h"
+#include "base/process_util.h"
+#endif
+
 #include "prlink.h"
 #include "prnetdb.h"
 #include "nsXPCOM.h"
@@ -103,13 +108,13 @@ static nsresult toCFURLRef(nsIFile* file, CFURLRef& outURL)
 
 PRBool nsPluginsDir::IsPluginFile(nsIFile* file)
 {
-  nsCString temp;
-  file->GetNativeLeafName(temp);
+  nsCString fileName;
+  file->GetNativeLeafName(fileName);
   
 
 
 
-  if (!strcmp(temp.get(), "VerifiedDownloadPlugin.plugin")) {
+  if (!strcmp(fileName.get(), "VerifiedDownloadPlugin.plugin")) {
     NS_WARNING("Preventing load of VerifiedDownloadPlugin.plugin (see bug 436575)");
     return PR_FALSE;
   }
@@ -125,7 +130,27 @@ PRBool nsPluginsDir::IsPluginFile(nsIFile* file)
     UInt32 packageType, packageCreator;
     ::CFBundleGetPackageInfo(pluginBundle, &packageType, &packageCreator);
     if (packageType == 'BRPL' || packageType == 'IEPL' || packageType == 'NSPL') {
+#ifdef MOZ_IPC
+      
+      char executablePath[PATH_MAX];
+      executablePath[0] = '\0';
+      if (!::CFURLGetFileSystemRepresentation(pluginURL, true, (UInt8*)&executablePath, PATH_MAX)) {
+        executablePath[0] = '\0';
+      }
+
+      uint32 pluginLibArchitectures;
+      nsresult rv = mozilla::ipc::GeckoChildProcessHost::GetArchitecturesForBinary(executablePath, &pluginLibArchitectures);
+      if (NS_FAILED(rv)) {
+        return PR_FALSE;
+      }
+
+      uint32 containerArchitectures = mozilla::ipc::GeckoChildProcessHost::GetSupportedArchitecturesForProcessType(GeckoProcessType_Plugin);
+
+      
+      isPluginFile = !!(containerArchitectures & pluginLibArchitectures);
+#else
       isPluginFile = !!::CFBundlePreflightExecutable(pluginBundle, NULL);
+#endif
     }
     ::CFRelease(pluginBundle);
   }
