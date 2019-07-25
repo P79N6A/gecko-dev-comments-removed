@@ -618,7 +618,11 @@ window.addEventListener('ContentStart', function ss_onContentStart() {
       context.drawWindow(window, 0, 0, width, height,
                          'rgb(255,255,255)', flags);
 
-      shell.sendChromeEvent({
+      
+      
+      
+      shell.sendEvent(getContentWindow(), 'mozChromeEvent', {
+        __exposedProps__: { type: 'r', file: 'r' },
         type: 'take-screenshot-success',
         file: canvas.mozGetAsFile('screenshot', 'image/png')
       });
