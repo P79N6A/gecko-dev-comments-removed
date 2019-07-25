@@ -53,10 +53,8 @@
 
 #include "gc/Barrier.h"
 
-#ifdef JS_ION
 namespace js { namespace ion { struct IonScript; }}
 # define ION_DISABLED_SCRIPT ((js::ion::IonScript *)0x1)
-#endif
 
 
 
@@ -339,13 +337,11 @@ namespace js { namespace mjit { struct JITScript; } }
 namespace js { namespace ion { struct IonScript; } }
 #endif
 
-#ifdef JS_ION
 namespace js {
 namespace ion {
     struct IonScript;
 }
 }
-#endif
 
 namespace js {
 
@@ -542,15 +538,11 @@ struct JSScript : public js::gc::Cell {
     
     js::ScriptOpcodeCounts pcCounters;
 	
-#ifdef JS_ION
     js::ion::IonScript *ion;          
 
     bool hasIonScript() const {
         return ion && ion != ION_DISABLED_SCRIPT;
     }
-#elif JS_BITS_PER_WORD == 32
-    void *padding_;
-#endif
 
   private:
     js::DebugScript     *debug;
