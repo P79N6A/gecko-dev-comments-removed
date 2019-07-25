@@ -731,6 +731,158 @@ NS_IMPL_ISUPPORTS1(
 , Step
 )
 
+
+
+
+struct SetTitleData : public FailSafeFinishTask
+{
+  nsCOMPtr<nsIURI> uri;
+  nsString title;
+};
+
+
+
+
+class TitleNotifyStep: public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  TitleNotifyStep(nsAutoPtr<SetTitleData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+    history->NotifyTitleChange(mData->uri, mData->title);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<SetTitleData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  TitleNotifyStep
+, mozIStorageStatementCallback
+)
+
+
+
+
+class SetTitleStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  SetTitleStep(nsAutoPtr<SetTitleData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    if (!aResultSet) {
+      
+      return NS_OK;
+    }
+
+    nsCOMPtr<mozIStorageRow> row;
+    nsresult rv = aResultSet->GetNextRow(getter_AddRefs(row));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsAutoString title;
+    rv = row->GetString(2, title);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    
+    if (mData->title.Equals(title) || (mData->title.IsVoid() && title.IsVoid()))
+      return NS_OK;
+
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+
+    nsCOMPtr<mozIStorageStatement> stmt =
+      history->GetStatementById(DB_SET_PLACE_TITLE);
+    NS_ENSURE_STATE(stmt);
+
+    if (mData->title.IsVoid()) {
+      rv = stmt->BindNullByName(NS_LITERAL_CSTRING("page_title"));
+    }
+    else {
+      rv = stmt->BindStringByName(
+        NS_LITERAL_CSTRING("page_title"),
+        StringHead(mData->title, TITLE_LENGTH_MAX)
+      );
+    }
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mData->uri);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<Step> step = new TitleNotifyStep(mData);
+    rv = step->ExecuteAsync(stmt);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<SetTitleData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  SetTitleStep
+, mozIStorageStatementCallback
+)
+
+
+
+
+class StartSetURITitleStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  StartSetURITitleStep(nsAutoPtr<SetTitleData> aData)
+  : mData(aData)
+  {
+    mData->AppendTask(this);
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+
+    
+    nsCOMPtr<mozIStorageStatement> stmt =
+      history->GetStatementById(DB_GET_URL_PAGE_INFO);
+    NS_ENSURE_STATE(stmt);
+
+    nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mData->uri);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<Step> step = new SetTitleStep(mData);
+    rv = step->ExecuteAsync(stmt);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<SetTitleData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  StartSetURITitleStep
+, Step
+)
+
 } 
 
 
@@ -1051,6 +1203,51 @@ History::UnregisterVisitedCallback(nsIURI* aURI,
   if (observers.IsEmpty()) {
     mObservers.RemoveEntry(aURI);
   }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+History::SetURITitle(nsIURI* aURI, const nsAString& aTitle)
+{
+  NS_PRECONDITION(aURI, "Must pass a non-null URI!");
+  if (mShuttingDown) {
+    return NS_OK;
+  }
+
+  nsNavHistory* history = nsNavHistory::GetHistoryService();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  NS_ENSURE_TRUE(history, NS_ERROR_FAILURE);
+
+  PRBool canAdd;
+  nsresult rv = history->CanAddURI(aURI, &canAdd);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!canAdd) {
+    return NS_OK;
+  }
+
+  nsAutoPtr<SetTitleData> data(new SetTitleData());
+  NS_ENSURE_STATE(data);
+
+  data->uri = aURI;
+
+  if (aTitle.IsEmpty()) {
+    data->title.SetIsVoid(PR_TRUE);
+  }
+  else {
+    data->title.Assign(aTitle);
+  }
+
+  nsCOMPtr<Step> task(new StartSetURITitleStep(data));
 
   return NS_OK;
 }
