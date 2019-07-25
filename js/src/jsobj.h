@@ -2000,6 +2000,17 @@ js_InferFlags(JSContext *cx, uintN defaultFlags);
 JSBool
 js_Object(JSContext *cx, uintN argc, js::Value *vp);
 
+
+
+
+
+
+
+
+extern JS_FRIEND_API(JSBool)
+js_GetClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey,
+                     JSObject **protop, js::Class *clasp = NULL);
+
 namespace js {
 
 extern bool

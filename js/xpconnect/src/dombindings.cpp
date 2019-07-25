@@ -1312,10 +1312,7 @@ NoBase::getPrototype(JSContext *cx, XPCWrappedNativeScope *scope)
     
     
     
-    JSObject* proto;
-    if (!js_GetClassPrototype(cx, scope->GetGlobalJSObject(), JSProto_Object, &proto))
-        return NULL;
-    return proto;
+    return JS_GetObjectPrototype(cx, scope->GetGlobalJSObject());
 }
 
 
