@@ -3931,6 +3931,9 @@ js_GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars, size_t nchars
         if (0xD800 <= c && c <= 0xDFFF) {
             
             chars++;
+
+            
+            nbytes--;
             if (c >= 0xDC00 || chars == end)
                 goto bad_surrogate;
             c2 = *chars;
