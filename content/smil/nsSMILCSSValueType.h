@@ -103,10 +103,17 @@ public:
 
 
 
+
+
+
+
+
+
   static void ValueFromString(nsCSSProperty aPropID,
                               Element* aTargetElement,
                               const nsAString& aString,
-                              nsSMILValue& aValue);
+                              nsSMILValue& aValue,
+                              PRBool* aIsContextSensitive);
 
   
 

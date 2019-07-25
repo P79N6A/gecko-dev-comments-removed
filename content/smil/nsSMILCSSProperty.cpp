@@ -146,8 +146,14 @@ nsSMILCSSProperty::GetBaseValue() const
 
   
   if (didGetComputedVal) {
+    
+    
+    
+    
+    
     nsSMILCSSValueType::ValueFromString(mPropID, mElement,
-                                        computedStyleVal, baseValue);
+                                        computedStyleVal, baseValue,
+                                        nsnull);
   }
   return baseValue;
 }
@@ -160,22 +166,9 @@ nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
 {
   NS_ENSURE_TRUE(IsPropertyAnimatable(mPropID), NS_ERROR_FAILURE);
 
-  nsSMILCSSValueType::ValueFromString(mPropID, mElement, aStr, aValue);
-  if (aValue.IsNull()) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  aPreventCachingOfSandwich = PR_TRUE;
-  return NS_OK;
+  nsSMILCSSValueType::ValueFromString(mPropID, mElement, aStr, aValue,
+      &aPreventCachingOfSandwich);
+  return aValue.IsNull() ? NS_ERROR_FAILURE : NS_OK;
 }
 
 nsresult
