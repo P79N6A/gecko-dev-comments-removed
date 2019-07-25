@@ -53,31 +53,6 @@
 
 
 
-typedef enum {
-  eBidiCat_Undefined,
-  eBidiCat_L,          
-  eBidiCat_R,          
-  eBidiCat_AL,         
-  eBidiCat_AN,         
-  eBidiCat_EN,         
-  eBidiCat_ES,         
-  eBidiCat_ET,         
-  eBidiCat_CS,         
-  eBidiCat_ON,         
-  eBidiCat_NSM,        
-  eBidiCat_BN,         
-  eBidiCat_B,          
-  eBidiCat_S,          
-  eBidiCat_WS,         
-  eBidiCat_CC = 0xf,   
-                       
-  eBidiCat_LRE = 0x2a, 
-  eBidiCat_RLE = 0x2b, 
-  eBidiCat_PDF = 0x2c, 
-  eBidiCat_LRO = 0x2d, 
-  eBidiCat_RLO = 0x2e  
-} eBidiCategory;
-
 enum nsCharType   { 
   eCharType_LeftToRight              = 0, 
   eCharType_RightToLeft              = 1, 
@@ -140,11 +115,6 @@ typedef enum nsCharType nsCharType;
 
 
   nsresult HandleNumbers(PRUnichar* aBuffer, PRUint32 aSize, PRUint32  aNumFlag);
-
-  
-
-
-  nsCharType GetCharType(PRUint32 aChar);
 
   
 
