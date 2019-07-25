@@ -575,7 +575,7 @@ var Browser = {
     
     ImagePreloader.cache();
 
-    messageManager.addMessageListener("FennecViewportMetadata", this);
+    messageManager.addMessageListener("Browser:ViewportMetadata", this);
     messageManager.addMessageListener("Browser:MozApplicationManifest", OfflineApps);
 
     
@@ -1402,7 +1402,7 @@ var Browser = {
 
   receiveMessage: function receiveMessage(aMessage) {
     switch (aMessage.name) {
-      case "FennecViewportMetadata":
+      case "Browser:ViewportMetadata":
         let tab = Browser.getTabForBrowser(aMessage.target);
         tab.updateViewportMetadata(aMessage.json);
         break;
