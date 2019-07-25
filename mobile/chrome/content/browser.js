@@ -1197,6 +1197,10 @@ Browser.MainDragger = function MainDragger() {
 
   Elements.browsers.addEventListener("PanBegin", this, false);
   Elements.browsers.addEventListener("PanFinished", this, false);
+
+  
+  
+  this.contentMouseCapture = false;
 };
 
 Browser.MainDragger.prototype = {
@@ -1228,47 +1232,41 @@ Browser.MainDragger.prototype = {
     let doffset = new Point(dx, dy);
 
     
-    let panOffset = this._panControlsAwayOffset(doffset);
+    
+    
+    let sidebarOffset = this._getSidebarOffset(doffset);
 
     
-    if (panOffset.x != 0 && !this._stopAtSidebar) {
-      this._stopAtSidebar = panOffset.x; 
+    if (sidebarOffset.x != 0)
+      this._blockSidebars(sidebarOffset);
+
+    if (!this.contentMouseCapture)
+      this._panContent(doffset);
+
+    if (this._hitSidebar && aIsKinetic)
+      return false; 
+
+    
+    
+    if (!this.contentMouseCapture || sidebarOffset.x != 0 || sidebarOffset.y > 0)
+      this._panChrome(doffset, sidebarOffset);
+
+    this._updateScrollbars();
+
+    return !doffset.equals(dx, dy);
+  },
+
+  _blockSidebars: function md_blockSidebars(aSidebarOffset) {
+    
+    if (!this._stopAtSidebar) {
+      this._stopAtSidebar = aSidebarOffset.x; 
+
+      
       this._sidebarTimeout = setTimeout(function(self) {
         self._stopAtSidebar = 0;
         self._sidebarTimeout = null;
       }, 350, this);
     }
-
-    if (this._contentView && !this._contentView.isRoot()) {
-      this._panContentView(this._contentView, doffset);
-      
-      
-    }
-
-    
-    this._panContentView(getBrowser().getRootView(), doffset);
-
-    if (this._hitSidebar && aIsKinetic)
-      return; 
-
-    
-    
-    let offsetX = doffset.x;
-    if ((this._stopAtSidebar > 0 && offsetX > 0) ||
-        (this._stopAtSidebar < 0 && offsetX < 0)) {
-      if (offsetX != panOffset.x)
-        this._hitSidebar = true;
-      doffset.x = panOffset.x;
-    } else {
-      doffset.add(panOffset);
-    }
-
-    Browser.tryFloatToolbar(doffset.x, 0);
-    this._panScroller(Browser.controlsScrollboxScroller, doffset);
-    this._panScroller(Browser.pageScrollboxScroller, doffset);
-    this._updateScrollbars();
-
-    return !doffset.equals(dx, dy);
   },
 
   handleEvent: function handleEvent(aEvent) {
@@ -1299,8 +1297,38 @@ Browser.MainDragger.prototype = {
     }
   },
 
+  _panContent: function md_panContent(aOffset) {
+    if (this._contentView && !this._contentView.isRoot()) {
+      this._panContentView(this._contentView, aOffset);
+      
+      
+    }
+    
+    this._panContentView(getBrowser().getRootView(), aOffset);
+  },
+
+  _panChrome: function md_panSidebars(aOffset, aSidebarOffset) {
+    
+    let offsetX = aOffset.x;
+    if ((this._stopAtSidebar > 0 && offsetX > 0) ||
+        (this._stopAtSidebar < 0 && offsetX < 0)) {
+      if (offsetX != aSidebarOffset.x)
+        this._hitSidebar = true;
+      aOffset.x = aSidebarOffset.x;
+    } else {
+      aOffset.add(aSidebarOffset);
+    }
+
+    Browser.tryFloatToolbar(aOffset.x, 0);
+
+    
+    this._panScroller(Browser.controlsScrollboxScroller, aOffset);
+    
+    this._panScroller(Browser.pageScrollboxScroller, aOffset);
+  },
+
   
-  _panControlsAwayOffset: function(doffset) {
+  _getSidebarOffset: function(doffset) {
     let x = 0, y = 0, rect;
 
     rect = Rect.fromRect(Browser.pageScrollbox.getBoundingClientRect()).map(Math.round);
@@ -1603,6 +1631,7 @@ const ContentTouchHandler = {
     document.addEventListener("TapSingle", this, false);
     document.addEventListener("TapDouble", this, false);
     document.addEventListener("TapLong", this, false);
+    document.addEventListener("TapMove", this, false);
 
     document.addEventListener("PanBegin", this, false);
     document.addEventListener("PopupChanged", this, false);
@@ -1619,8 +1648,8 @@ const ContentTouchHandler = {
     
     
     messageManager.addMessageListener("Browser:ContextMenu", this);
-
     messageManager.addMessageListener("Browser:Highlight", this);
+    messageManager.addMessageListener("Browser:CaptureEvents", this);
   },
 
   handleEvent: function handleEvent(aEvent) {
@@ -1661,18 +1690,21 @@ const ContentTouchHandler = {
                 this.tapSingle(aEvent.clientX, aEvent.clientY, aEvent.modifiers);
                 aEvent.preventDefault();
               }
-            } else {
-              this.tapUp(aEvent.clientX, aEvent.clientY);
             }
+            this._dispatchMouseEvent("Browser:MouseUp", aEvent.clientX, aEvent.clientY);
             break;
           case "TapSingle":
             this.tapSingle(aEvent.clientX, aEvent.clientY, aEvent.modifiers);
+            this._dispatchMouseEvent("Browser:MouseUp", aEvent.clientX, aEvent.clientY);
             break;
           case "TapDouble":
             this.tapDouble(aEvent.clientX, aEvent.clientY, aEvent.modifiers);
             break;
           case "TapLong":
             this.tapLong(aEvent.clientX, aEvent.clientY);
+            break;
+          case "TapMove":
+            this.tapMove(aEvent.clientX, aEvent.clientY);
             break;
         }
       }
@@ -1693,6 +1725,9 @@ const ContentTouchHandler = {
           event.initEvent("CancelTouchSequence", true, false);
           document.dispatchEvent(event);
         }
+        break;
+      case "Browser:CaptureEvents":
+        Elements.browsers.customDragger.contentMouseCapture = aMessage.json.panning;
         break;
     }
   },
@@ -1735,6 +1770,7 @@ const ContentTouchHandler = {
     try {
       fl.activateRemoteFrame();
     } catch (e) {}
+    Elements.browsers.customDragger.contentMouseCapture = false;
     this._dispatchMouseEvent("Browser:MouseDown", aX, aY);
   },
 
@@ -1750,7 +1786,11 @@ const ContentTouchHandler = {
   tapSingle: function tapSingle(aX, aY, aModifiers) {
     
     if (!ContextHelper.popupState)
-      this._dispatchMouseEvent("Browser:MouseUp", aX, aY, { modifiers: aModifiers });
+      this._dispatchMouseEvent("Browser:MouseClick", aX, aY, { modifiers: aModifiers });
+  },
+
+  tapMove: function tapMove(aX, aY) {
+    this._dispatchMouseEvent("Browser:MouseMove", aX, aY);
   },
 
   tapDouble: function tapDouble(aX, aY, aModifiers) {
