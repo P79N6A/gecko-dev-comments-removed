@@ -131,8 +131,6 @@
 
 #include "vm/ArgumentsObject.h"
 
-#include "ds/Sort.h"
-
 #include "jsarrayinlines.h"
 #include "jsatominlines.h"
 #include "jscntxtinlines.h"
@@ -209,7 +207,7 @@ StringIsArrayIndex(JSLinearString *str, jsuint *indexp)
     if (length == 0 || length > (sizeof("4294967294") - 1) || !JS7_ISDEC(*s))
         return false;
 
-    uint32 c = 0, previous = 0;
+    uint32 c = 0, previous = 0;    
     uint32 index = JS7_UNDEC(*s++);
 
     
@@ -226,13 +224,13 @@ StringIsArrayIndex(JSLinearString *str, jsuint *indexp)
     }
 
     
-    if (previous < (MAX_ARRAY_INDEX / 10) || (previous == (MAX_ARRAY_INDEX / 10) &&
+    if (previous < (MAX_ARRAY_INDEX / 10) || (previous == (MAX_ARRAY_INDEX / 10) && 
         c <= (MAX_ARRAY_INDEX % 10))) {
         JS_ASSERT(index <= MAX_ARRAY_INDEX);
         *indexp = index;
         return true;
     }
-
+    
     return false;
 }
 
@@ -1982,104 +1980,239 @@ array_reverse(JSContext *cx, uintN argc, Value *vp)
     return true;
 }
 
-namespace {
+typedef struct MSortArgs {
+    size_t       elsize;
+    JSComparator cmp;
+    void         *arg;
+    JSBool       isValue;
+} MSortArgs;
 
-inline bool
-CompareStringValues(JSContext *cx, const Value &a, const Value &b, bool *lessOrEqualp)
+
+static JSBool
+MergeArrays(MSortArgs *msa, void *src, void *dest, size_t run1, size_t run2)
 {
-    if (!JS_CHECK_OPERATION_LIMIT(cx))
-        return false;
+    void *arg, *a, *b, *c;
+    size_t elsize, runtotal;
+    int cmp_result;
+    JSComparator cmp;
+    JSBool isValue;
 
-    JSString *astr = a.toString();
-    JSString *bstr = b.toString();
-    int32 result;
-    if (!CompareStrings(cx, astr, bstr, &result))
-        return false;
+    runtotal = run1 + run2;
 
-    *lessOrEqualp = (result <= 0);
-    return true;
+    elsize = msa->elsize;
+    cmp = msa->cmp;
+    arg = msa->arg;
+    isValue = msa->isValue;
+
+#define CALL_CMP(a, b) \
+    if (!cmp(arg, (a), (b), &cmp_result)) return JS_FALSE;
+
+    
+    b = (char *)src + run1 * elsize;
+    a = (char *)b - elsize;
+    CALL_CMP(a, b);
+    if (cmp_result <= 0) {
+        memcpy(dest, src, runtotal * elsize);
+        return JS_TRUE;
+    }
+
+#define COPY_ONE(p,q,n) \
+    (isValue ? (void)(*(Value*)p = *(Value*)q) : (void)memcpy(p, q, n))
+
+    a = src;
+    c = dest;
+    for (; runtotal != 0; runtotal--) {
+        JSBool from_a = run2 == 0;
+        if (!from_a && run1 != 0) {
+            CALL_CMP(a,b);
+            from_a = cmp_result <= 0;
+        }
+
+        if (from_a) {
+            COPY_ONE(c, a, elsize);
+            run1--;
+            a = (char *)a + elsize;
+        } else {
+            COPY_ONE(c, b, elsize);
+            run2--;
+            b = (char *)b + elsize;
+        }
+        c = (char *)c + elsize;
+    }
+#undef COPY_ONE
+#undef CALL_CMP
+
+    return JS_TRUE;
 }
 
-struct SortComparatorStrings {
-    JSContext   *const cx;
 
-    SortComparatorStrings(JSContext *cx)
-      : cx(cx) {}
 
-    bool operator()(const Value &a, const Value &b, bool *lessOrEqualp) {
-        return CompareStringValues(cx, a, b, lessOrEqualp);
-    }
-};
 
-struct StringValuePair {
-    Value   str;
-    Value   v;
-};
-
-struct SortComparatorStringValuePairs {
-    JSContext   *const cx;
-
-    SortComparatorStringValuePairs(JSContext *cx)
-      : cx(cx) {}
-
-    bool operator()(const StringValuePair &a, const StringValuePair &b, bool *lessOrEqualp) {
-        return CompareStringValues(cx, a.str, b.str, lessOrEqualp);
-    }
-};
-
-struct SortComparatorFunction {
-    JSContext          *const cx;
-    const Value        &fval;
-    InvokeArgsGuard    &ag;
-
-    SortComparatorFunction(JSContext *cx, const Value &fval, InvokeArgsGuard &ag)
-      : cx(cx), fval(fval), ag(ag) { }
-
-    bool JS_REQUIRES_STACK operator()(const Value &a, const Value &b, bool *lessOrEqualp);
-};
 
 bool
-SortComparatorFunction::operator()(const Value &a, const Value &b, bool *lessOrEqualp)
+js_MergeSort(void *src, size_t nel, size_t elsize,
+             JSComparator cmp, void *arg, void *tmp,
+             JSMergeSortElemType elemType)
 {
+    void *swap, *vec1, *vec2;
+    MSortArgs msa;
+    size_t i, j, lo, hi, run;
+    int cmp_result;
+
+    JS_ASSERT_IF(JS_SORTING_VALUES, elsize == sizeof(Value));
+    bool isValue = elemType == JS_SORTING_VALUES;
+
+    
+#define COPY_ONE(p,q,n) \
+    (isValue ? (void)(*(Value*)p = *(Value*)q) : (void)memcpy(p, q, n))
+#define CALL_CMP(a, b) \
+    if (!cmp(arg, (a), (b), &cmp_result)) return JS_FALSE;
+#define INS_SORT_INT 4
+
     
 
 
 
-    JS_ASSERT(!a.isMagic() && !a.isUndefined());
-    JS_ASSERT(!a.isMagic() && !b.isUndefined());
+    for (lo = 0; lo < nel; lo += INS_SORT_INT) {
+        hi = lo + INS_SORT_INT;
+        if (hi >= nel)
+            hi = nel;
+        for (i = lo + 1; i < hi; i++) {
+            vec1 = (char *)src + i * elsize;
+            vec2 = (char *)vec1 - elsize;
+            for (j = i; j > lo; j--) {
+                CALL_CMP(vec2, vec1);
+                
+                if (cmp_result <= 0) {
+                    break;
+                }
+
+                
+                COPY_ONE(tmp, vec2, elsize);
+                COPY_ONE(vec2, vec1, elsize);
+                COPY_ONE(vec1, tmp, elsize);
+                vec1 = vec2;
+                vec2 = (char *)vec1 - elsize;
+            }
+        }
+    }
+#undef CALL_CMP
+#undef COPY_ONE
+
+    msa.elsize = elsize;
+    msa.cmp = cmp;
+    msa.arg = arg;
+    msa.isValue = isValue;
+
+    vec1 = src;
+    vec2 = tmp;
+    for (run = INS_SORT_INT; run < nel; run *= 2) {
+        for (lo = 0; lo < nel; lo += 2 * run) {
+            hi = lo + run;
+            if (hi >= nel) {
+                memcpy((char *)vec2 + lo * elsize, (char *)vec1 + lo * elsize,
+                       (nel - lo) * elsize);
+                break;
+            }
+            if (!MergeArrays(&msa, (char *)vec1 + lo * elsize,
+                             (char *)vec2 + lo * elsize, run,
+                             hi + run > nel ? nel - hi : run)) {
+                return JS_FALSE;
+            }
+        }
+        swap = vec1;
+        vec1 = vec2;
+        vec2 = swap;
+    }
+    if (src != vec1)
+        memcpy(src, tmp, nel * elsize);
+
+    return JS_TRUE;
+}
+
+struct CompareArgs
+{
+    JSContext          *context;
+    InvokeArgsGuard    args;
+    Value              fval;
+
+    CompareArgs(JSContext *cx, Value fval)
+      : context(cx), fval(fval)
+    {}
+};
+
+static JS_REQUIRES_STACK JSBool
+sort_compare(void *arg, const void *a, const void *b, int *result)
+{
+    const Value *av = (const Value *)a, *bv = (const Value *)b;
+    CompareArgs *ca = (CompareArgs *) arg;
+    JSContext *cx = ca->context;
+
+    
+
+
+
+    JS_ASSERT(!av->isMagic() && !av->isUndefined());
+    JS_ASSERT(!av->isMagic() && !bv->isUndefined());
 
     if (!JS_CHECK_OPERATION_LIMIT(cx))
-        return false;
+        return JS_FALSE;
 
+    InvokeArgsGuard &ag = ca->args;
     if (!ag.pushed() && !cx->stack.pushInvokeArgs(cx, 2, &ag))
-        return false;
+        return JS_FALSE;
         
-    ag.setCallee(fval);
+    ag.setCallee(ca->fval);
     ag.thisv() = UndefinedValue();
-    ag[0] = a;
-    ag[1] = b;
+    ag[0] = *av;
+    ag[1] = *bv;
 
     if (!Invoke(cx, ag))
-        return false;
+        return JS_FALSE;
 
     jsdouble cmp;
     if (!ToNumber(cx, ag.rval(), &cmp))
-        return false;
+        return JS_FALSE;
+
+    
+    *result = 0;
+    if (!JSDOUBLE_IS_NaN(cmp) && cmp != 0)
+        *result = cmp > 0 ? 1 : -1;
 
     
 
 
 
 
-    *lessOrEqualp = (JSDOUBLE_IS_NaN(cmp) || cmp <= 0);
-    return true;
+
+    return JS_TRUE;
 }
 
-} 
+typedef JSBool (JS_REQUIRES_STACK *JSRedComparator)(void*, const void*,
+                                                    const void*, int *);
+
+static inline JS_IGNORE_STACK JSComparator
+comparator_stack_cast(JSRedComparator func)
+{
+    return func;
+}
+
+static int
+sort_compare_strings(void *arg, const void *a, const void *b, int *result)
+{
+    JSContext *cx = (JSContext *)arg;
+    JSString *astr = ((const Value *)a)->toString();
+    JSString *bstr = ((const Value *)b)->toString();
+    return JS_CHECK_OPERATION_LIMIT(cx) && CompareStrings(cx, astr, bstr, result);
+}
 
 JSBool
 js::array_sort(JSContext *cx, uintN argc, Value *vp)
 {
+    jsuint len, newlen, i, undefs;
+    size_t elemsize;
+    JSString *str;
+    
     CallArgs args = CallArgsFromVp(argc, vp);
     Value fval;
     if (args.length() > 0 && !args[0].isUndefined()) {
@@ -2095,8 +2228,6 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
     JSObject *obj = ToObject(cx, &args.thisv());
     if (!obj)
         return false;
-
-    jsuint len;
     if (!js_GetLengthProperty(cx, obj, &len))
         return false;
     if (len == 0) {
@@ -2126,11 +2257,22 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
 
 
 
-    size_t n, undefs;
     {
-        AutoValueVector vec(cx);
-        if (!vec.reserve(2 * size_t(len)))
+        Value *vec = (Value *) cx->malloc_(2 * size_t(len) * sizeof(Value));
+        if (!vec)
             return false;
+
+        DEFINE_LOCAL_CLASS_OF_STATIC_FUNCTION(AutoFreeVector) {
+            JSContext *const cx;
+            Value *&vec;
+           public:
+            AutoFreeVector(JSContext *cx, Value *&vec) : cx(cx), vec(vec) { }
+            ~AutoFreeVector() {
+                cx->free_(vec);
+            }
+        } free_(cx, vec);
+
+        AutoArrayRooter tvr(cx, 0, vec);
 
         
 
@@ -2141,33 +2283,46 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
 
 
         undefs = 0;
+        newlen = 0;
         bool allStrings = true;
-        for (size_t i = 0; i < len; i++) {
+        for (i = 0; i < len; i++) {
             if (!JS_CHECK_OPERATION_LIMIT(cx))
                 return false;
 
             
             JSBool hole;
-            Value v;
-            if (!GetElement(cx, obj, i, &hole, &v))
+            vec[newlen].setNull();
+            tvr.changeLength(newlen + 1);
+            if (!GetElement(cx, obj, i, &hole, &vec[newlen]))
                 return false;
+
             if (hole)
                 continue;
-            if (v.isUndefined()) {
+
+            if (vec[newlen].isUndefined()) {
                 ++undefs;
                 continue;
             }
-            vec.infallibleAppend(v);
-            allStrings = allStrings && v.isString();
+
+            allStrings = allStrings && vec[newlen].isString();
+
+            ++newlen;
         }
 
-        n = vec.length();
-        if (n == 0) {
+        if (newlen == 0) {
             args.rval().setObject(*obj);
             return true; 
         }
 
-        JS_ALWAYS_TRUE(vec.resize(n * 2));
+        
+
+
+
+
+
+        Value *mergesort_tmp = vec + newlen;
+        MakeRangeGCSafe(mergesort_tmp, newlen);
+        tvr.changeLength(newlen * 2);
 
         
         if (fval.isNull()) {
@@ -2176,8 +2331,7 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
 
 
             if (allStrings) {
-                if (!MergeSort(vec.begin(), n, vec.begin() + n, SortComparatorStrings(cx)))
-                    return false;
+                elemsize = sizeof(Value);
             } else {
                 
 
@@ -2188,13 +2342,35 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
 
 
 
-                size_t i = n;
+
+
+
+
+
+
+
+
+
+#if JS_BITS_PER_WORD == 32
+                if (size_t(newlen) > size_t(-1) / (4 * sizeof(Value))) {
+                    js_ReportAllocationOverflow(cx);
+                    return false;
+                }
+#endif
+
+                
+
+
+
+
+
+                i = newlen;
                 do {
                     --i;
                     if (!JS_CHECK_OPERATION_LIMIT(cx))
                         return false;
                     const Value &v = vec[i];
-                    JSString *str = js_ValueToString(cx, v);
+                    str = js_ValueToString(cx, v);
                     if (!str)
                         return false;
                     
@@ -2203,16 +2379,25 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
                     vec[2 * i].setString(str);
                 } while (i != 0);
 
-                AutoValueVector extraScratch(cx);
-                if (!extraScratch.resize(n * 2))
-                    return false;
-                if (!MergeSort(reinterpret_cast<StringValuePair *>(vec.begin()), n,
-                               reinterpret_cast<StringValuePair *>(extraScratch.begin()),
-                               SortComparatorStringValuePairs(cx))) {
+                JS_ASSERT(tvr.array == vec);
+                vec = (Value *) cx->realloc_(vec, 4 * size_t(newlen) * sizeof(Value));
+                if (!vec) {
+                    vec = tvr.array;  
                     return false;
                 }
-
+                mergesort_tmp = vec + 2 * newlen;
+                MakeRangeGCSafe(mergesort_tmp, 2 * newlen);
+                tvr.changeArray(vec, newlen * 4);
+                elemsize = 2 * sizeof(Value);
+            }
+            if (!js_MergeSort(vec, size_t(newlen), elemsize,
+                              sort_compare_strings, cx, mergesort_tmp,
+                              JS_SORTING_GENERIC)) {
+                return false;
+            }
+            if (!allStrings) {
                 
+
 
 
 
@@ -2220,13 +2405,14 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
                 i = 0;
                 do {
                     vec[i] = vec[2 * i + 1];
-                } while (++i != n);
+                } while (++i != newlen);
             }
         } else {
-            InvokeArgsGuard args;
-            if (!MergeSort(vec.begin(), n, vec.begin() + n,
-                           SortComparatorFunction(cx, fval, args)))
-            {
+            CompareArgs ca(cx, fval);
+            if (!js_MergeSort(vec, size_t(newlen), sizeof(Value),
+                              comparator_stack_cast(sort_compare),
+                              &ca, mergesort_tmp,
+                              JS_SORTING_VALUES)) {
                 return false;
             }
         }
@@ -2236,20 +2422,22 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
 
 
 
-        vec.resize(n);
-        if (!InitArrayElements(cx, obj, 0, n, vec.begin(), false))
+        tvr.changeLength(newlen);
+        if (!InitArrayElements(cx, obj, 0, newlen, vec, false))
             return false;
     }
 
     
     while (undefs != 0) {
         --undefs;
-        if (!JS_CHECK_OPERATION_LIMIT(cx) || !SetArrayElement(cx, obj, n++, UndefinedValue()))
+        if (!JS_CHECK_OPERATION_LIMIT(cx) ||
+            !SetArrayElement(cx, obj, newlen++, UndefinedValue())) {
             return false;
+        }
     }
 
     
-    while (len > n) {
+    while (len > newlen) {
         if (!JS_CHECK_OPERATION_LIMIT(cx) || DeleteArrayElement(cx, obj, --len, true) < 0)
             return false;
     }
@@ -2398,7 +2586,7 @@ array_pop_dense(JSContext *cx, JSObject* obj, CallArgs &args)
     }
 
     index--;
-
+    
     JSBool hole;
     Value elt;
     if (!GetElement(cx, obj, index, &hole, &elt))
@@ -3204,7 +3392,7 @@ array_readonlyCommon(JSContext *cx, CallArgs &args)
     args.rval() = Behavior::lateExitValue();
     return true;
  }
-
+ 
 
 static JSBool
 array_every(JSContext *cx, uintN argc, Value *vp)
