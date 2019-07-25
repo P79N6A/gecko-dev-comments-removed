@@ -63,33 +63,6 @@ const kXLinkNamespace = "http://www.w3.org/1999/xlink";
 
 
 
-
-const kPanDeceleration = 0.999;
-
-
-const kSwipeLength = 500;
-
-
-
-const kDragThreshold = 10;
-
-
-const kLockBreakThreshold = 100;
-
-
-
-const kMinKineticSpeed = 0.015;
-
-
-
-const kMaxKineticSpeed = 9;
-
-
-
-const kAxisLockRatio = 5;
-
-
-
 const kElementsReceivingInput = {
     applet: true,
     audio: true,
