@@ -273,7 +273,7 @@ MapAlignedPages(size_t size, size_t alignment)
 
 	
     void *p = mmap((caddr_t) alignment, size, PROT_READ | PROT_WRITE,
-                     MAP_PRIVATE | MAP_NOSYNC | MAP_ALIGN | MAP_ANON | MAP_32BIT, -1, 0);
+                     MAP_PRIVATE | MAP_NOSYNC | MAP_ALIGN | MAP_ANON, -1, 0);
     if (p == MAP_FAILED)
         return NULL;
     return p;
@@ -289,7 +289,7 @@ MapPages(void *addr, size_t size)
 
 
 	
-    void *p = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_32BIT,
+    void *p = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON,
                    -1, 0);
     if (p == MAP_FAILED)
         return NULL;
