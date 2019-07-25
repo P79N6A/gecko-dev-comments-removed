@@ -446,9 +446,8 @@ public:
 
 
 
-  static void GetNodeLocation(nsIDOMNode* aChild,
-                              nsCOMPtr<nsIDOMNode>* outParent,
-                              PRInt32* outOffset);
+  static already_AddRefed<nsIDOMNode> GetNodeLocation(nsIDOMNode* aChild,
+                                                      PRInt32* outOffset);
 
   
 

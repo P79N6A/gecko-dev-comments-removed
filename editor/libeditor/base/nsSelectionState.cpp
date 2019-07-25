@@ -256,10 +256,8 @@ nsRangeUpdater::SelAdjDeleteNode(nsIDOMNode *aNode)
     return;
   }
 
-  nsCOMPtr<nsIDOMNode> parent;
   PRInt32 offset = 0;
-  
-  nsEditor::GetNodeLocation(aNode, address_of(parent), &offset);
+  nsCOMPtr<nsIDOMNode> parent = nsEditor::GetNodeLocation(aNode, &offset);
   
   
   nsRangeStore *item;
@@ -314,9 +312,8 @@ nsRangeUpdater::SelAdjSplitNode(nsIDOMNode *aOldRightNode, PRInt32 aOffset, nsID
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDOMNode> parent;
   PRInt32 offset;
-  nsEditor::GetNodeLocation(aOldRightNode, address_of(parent), &offset);
+  nsCOMPtr<nsIDOMNode> parent = nsEditor::GetNodeLocation(aOldRightNode, &offset);
   
   
   nsresult result = SelAdjInsertNode(parent,offset-1);

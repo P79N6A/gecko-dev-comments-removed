@@ -228,8 +228,7 @@ nsresult nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
     
     
 
-    GetNodeLocation(userSelectNode, address_of(newSelectionParent),
-                    &newSelectionOffset);
+    newSelectionParent = GetNodeLocation(userSelectNode, &newSelectionOffset);
 
     NS_ENSURE_TRUE(newSelectionParent, NS_ERROR_FAILURE);
   }
