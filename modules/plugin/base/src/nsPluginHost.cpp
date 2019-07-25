@@ -1253,6 +1253,8 @@ NS_IMETHODIMP nsPluginHost::SetUpPluginInstance(const char *aMimeType,
                                                 nsIURI *aURL,
                                                 nsIPluginInstanceOwner *aOwner)
 {
+  NS_ENSURE_ARG_POINTER(aOwner);
+
   nsresult rv = NS_OK;
 
   rv = TrySetUpPluginInstance(aMimeType, aURL, aOwner);
@@ -1265,8 +1267,7 @@ NS_IMETHODIMP nsPluginHost::SetUpPluginInstance(const char *aMimeType,
     
     
     nsCOMPtr<nsIDocument> document;
-    if (aOwner)
-      aOwner->GetDocument(getter_AddRefs(document));
+    aOwner->GetDocument(getter_AddRefs(document));
 
     nsCOMPtr<nsIDocument> currentdocument = do_QueryReferent(mCurrentDocument);
     if (document == currentdocument)
