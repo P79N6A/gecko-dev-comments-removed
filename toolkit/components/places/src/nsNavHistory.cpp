@@ -133,10 +133,8 @@ using namespace mozilla::places;
 
 
 
-#define DATABASE_CACHE_TO_CHECKPOINT_PERCENTAGE 10
 
-
-#define DATABASE_MAX_CHECKPOINT_PAGES 1000
+#define DATABASE_MAX_WAL_SIZE_IN_KIBIBYTES 512
 
 
 
@@ -769,13 +767,6 @@ nsNavHistory::InitDB()
   
   
   
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "PRAGMA synchronous = FULL"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
   PRInt32 cachePercentage;
   if (NS_FAILED(mPrefBranch->GetIntPref(PREF_CACHE_TO_MEMORY_PERCENTAGE,
                                         &cachePercentage)))
@@ -798,25 +789,30 @@ nsNavHistory::InitDB()
 
   
   
-  if (NS_FAILED(SetJournalMode(JOURNAL_WAL))) {
+  if (NS_SUCCEEDED(SetJournalMode(JOURNAL_WAL))) {
+    
+    
+    
+    
+    PRInt32 checkpointPages =
+      static_cast<PRInt32>(DATABASE_MAX_WAL_SIZE_IN_KIBIBYTES * 1024 / mDBPageSize);
+    nsCAutoString checkpointPragma("PRAGMA wal_autocheckpoint = ");
+    checkpointPragma.AppendInt(checkpointPages);
+    rv = mDBConn->ExecuteSimpleSQL(checkpointPragma);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  else {
     
     
     
     (void)SetJournalMode(JOURNAL_TRUNCATE);
-  }
 
-  
-  
-  
-  
-  PRInt32 checkpointPages = NS_MIN(
-    static_cast<PRInt32>(cachePages * DATABASE_CACHE_TO_CHECKPOINT_PERCENTAGE / 100),
-    DATABASE_MAX_CHECKPOINT_PAGES
-  );
-  nsCAutoString checkpointPragma("PRAGMA wal_autocheckpoint = ");
-  checkpointPragma.AppendInt(checkpointPages);
-  rv = mDBConn->ExecuteSimpleSQL(checkpointPragma);
-  NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "PRAGMA synchronous = FULL"));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   
