@@ -371,6 +371,10 @@ SessionStoreService.prototype = {
 
 
   init: function sss_init(aWindow) {
+    
+    if (!this._initialized)
+      this.initService();
+
     if (!aWindow || this._loadState == STATE_RUNNING) {
       
       
@@ -385,10 +389,6 @@ SessionStoreService.prototype = {
         this._loadState = STATE_RUNNING;
       return;
     }
-
-    
-    if (!this._initialized)
-      this.initService();
 
     
     this.onLoad(aWindow);
