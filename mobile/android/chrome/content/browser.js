@@ -2015,18 +2015,36 @@ Tab.prototype = {
             list.push("[" + rel + "]");
         }
 
+        
+        let maxSize = 0;
+
+        
+        
+        if (target.hasAttribute("sizes")) {
+          let sizes = target.getAttribute("sizes").toLowerCase();
+
+          if (sizes == "any") {
+            
+            maxSize = -1; 
+          } else {
+            let tokens = sizes.split(" ");
+            tokens.forEach(function(token) {
+              
+              let [w, h] = token.split("x");
+              maxSize = Math.max(maxSize, Math.max(w, h));
+            });
+          }
+        }
+
         let json = {
           type: "DOMLinkAdded",
           tabID: this.id,
           href: resolveGeckoURI(target.href),
           charset: target.ownerDocument.characterSet,
           title: target.title,
-          rel: list.join(" ")
+          rel: list.join(" "),
+          size: maxSize
         };
-
-        
-        if (target.hasAttribute("sizes"))
-          json.sizes = target.getAttribute("sizes");
 
         sendMessageToJava({ gecko: json });
         break;
