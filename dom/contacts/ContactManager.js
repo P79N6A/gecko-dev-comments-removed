@@ -152,7 +152,10 @@ const CONTACT_CONTRACTID = "@mozilla.org/contact;1";
 const CONTACT_CID        = Components.ID("{da0f7040-388b-11e1-b86c-0800200c9a66}");
 const nsIDOMContact      = Components.interfaces.nsIDOMContact;
 
-function Contact() { debug("Contact constr: "); };
+
+
+
+function Contact() { debug("Contact constr: "); this.wrappedJSObject = this; };
 
 Contact.prototype = {
   
@@ -319,9 +322,9 @@ ContactManager.prototype = {
   _convertContactsArray: function(aContacts) {
     let contacts = new Array();
     for (let i in aContacts) {
-      let newContact = new Contact();
+      let newContact = Components.classes['@mozilla.org/contact;1'].createInstance();
       newContact.init(aContacts[i].properties);
-      this._setMetaData(newContact, aContacts[i]);
+      this._setMetaData(newContact.wrappedJSObject, aContacts[i]);
       contacts.push(newContact);
     }
     return contacts;
