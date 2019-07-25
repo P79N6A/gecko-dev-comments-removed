@@ -2574,9 +2574,15 @@ bool
 nsDisplayTransform::ShouldPrerenderTransformedContent(nsDisplayListBuilder* aBuilder,
                                                       nsIFrame* aFrame)
 {
-  return aFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer) &&
-         aFrame->GetVisualOverflowRectRelativeToSelf().Size() <=
-          aBuilder->ReferenceFrame()->GetSize();
+  if (aFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer)) {
+    nsSize refSize = aBuilder->ReferenceFrame()->GetSize();
+    
+    
+    
+    refSize += nsSize(refSize.width / 8, refSize.height / 8);
+    return aFrame->GetVisualOverflowRectRelativeToSelf().Size() <= refSize;
+  }
+  return false;
 }
 
 
