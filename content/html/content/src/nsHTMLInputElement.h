@@ -303,6 +303,11 @@ public:
     return HasAttr(kNameSpaceID_None, nsGkAtoms::checked);
   }
 
+  
+
+
+  void FireChangeEventIfNeeded();
+
 protected:
   
   
@@ -585,6 +590,15 @@ protected:
   nsRefPtr<nsDOMFileList>  mFileList;
 
   nsString mStaticDocFileList;
+  
+  
+
+
+
+
+
+
+  nsString mFocusedValue;  
 
   
 

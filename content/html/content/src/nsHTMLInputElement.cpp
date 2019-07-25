@@ -1021,6 +1021,9 @@ nsHTMLInputElement::SetValue(const nsAString& aValue)
   }
   else {
     SetValueInternal(aValue, false, true);
+    if (IsSingleLineTextControl(false)) {
+      GetValueInternal(mFocusedValue);
+    }
   }
 
   return NS_OK;
@@ -1328,6 +1331,24 @@ nsHTMLInputElement::AfterSetFiles(bool aSetValueChanged)
   }
 
   UpdateAllValidityStates(true);
+}
+
+void
+nsHTMLInputElement::FireChangeEventIfNeeded()
+{
+  nsString value;
+  GetValueInternal(value);
+
+  if (!IsSingleLineTextControl(false) || mFocusedValue.Equals(value)) {
+    return;
+  }
+
+  
+  mFocusedValue = value;
+  nsContentUtils::DispatchTrustedEvent(OwnerDoc(),
+                                       static_cast<nsIContent*>(this), 
+                                       NS_LITERAL_STRING("change"), true,
+                                       false);
 }
 
 const nsCOMArray<nsIDOMFile>&
@@ -1808,7 +1829,7 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   
   if (!aVisitor.mPresContext) {
     return nsGenericHTMLElement::PreHandleEvent(aVisitor);
-  }
+  } 
   
   
   
@@ -1908,13 +1929,7 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 
   
   if (aVisitor.mEvent->message == NS_BLUR_CONTENT) {
-    nsIFrame* primaryFrame = GetPrimaryFrame();
-    if (primaryFrame) {
-      nsITextControlFrame* textFrame = do_QueryFrame(primaryFrame);
-      if (textFrame) {
-        textFrame->CheckFireOnChange();
-      }
-    }
+    FireChangeEventIfNeeded();
   }
 
   return nsGenericHTMLFormElement::PreHandleEvent(aVisitor);
@@ -1947,6 +1962,10 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 
   if (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
       aVisitor.mEvent->message == NS_BLUR_CONTENT) {
+    if (aVisitor.mEvent->message == NS_FOCUS_CONTENT && 
+        IsSingleLineTextControl(false)) {
+      GetValueInternal(mFocusedValue);
+    }
 
     UpdateValidityUIBits(aVisitor.mEvent->message == NS_FOCUS_CONTENT);
 
@@ -2195,16 +2214,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
               (keyEvent->keyCode == NS_VK_RETURN ||
                keyEvent->keyCode == NS_VK_ENTER) &&
                IsSingleLineTextControl(false, mType)) {
-            nsIFrame* primaryFrame = GetPrimaryFrame();
-            if (primaryFrame) {
-              nsITextControlFrame* textFrame = do_QueryFrame(primaryFrame);
-
-              
-              if (textFrame) {
-                textFrame->CheckFireOnChange();
-              }
-            }
-
+            FireChangeEventIfNeeded();   
             rv = MaybeSubmitForm(aVisitor.mPresContext);
             NS_ENSURE_SUCCESS(rv, rv);
           }
@@ -2441,6 +2451,14 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
         
         break;
     }
+    
+    
+    if (isNewTypeSingleLine && !isCurrentTypeSingleLine) {
+      GetValueInternal(mFocusedValue);
+    }
+    else if (!isNewTypeSingleLine && isCurrentTypeSingleLine) {
+      mFocusedValue.Truncate();
+    } 
   }
 
   

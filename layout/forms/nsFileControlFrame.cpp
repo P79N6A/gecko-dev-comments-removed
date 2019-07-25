@@ -375,10 +375,6 @@ nsFileControlFrame::CaptureMouseListener::HandleEvent(nsIDOMEvent* aMouseEvent)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsTextControlFrame* textControlFrame = mFrame->GetTextControlFrame();
-  textControlFrame->InitFocusedValue();
-
-  
   PRUint32 result;
   rv = capturePicker->Show(&result);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -411,13 +407,12 @@ nsFileControlFrame::CaptureMouseListener::HandleEvent(nsIDOMEvent* aMouseEvent)
     
     
     
-    bool oldState = textControlFrame->GetFireChangeEventState();
-    textControlFrame->SetFireChangeEventState(true);
+   
     inputElement->SetFiles(newFiles, true);
-    textControlFrame->SetFireChangeEventState(oldState);
-
     
-    textControlFrame->CheckFireOnChange();
+    
+    
+    inputElement->FireChangeEventIfNeeded();
   }
 
   return NS_OK;
@@ -478,12 +473,9 @@ nsFileControlFrame::BrowseMouseListener::HandleEvent(nsIDOMEvent* aEvent)
     nsCOMPtr<nsIDOMFileList> fileList;
     dataTransfer->GetFiles(getter_AddRefs(fileList));
 
-    nsTextControlFrame* textControlFrame = mFrame->GetTextControlFrame();
-    bool oldState = textControlFrame->GetFireChangeEventState();
-    textControlFrame->SetFireChangeEventState(true);
+    
     inputElement->SetFiles(fileList, true);
-    textControlFrame->SetFireChangeEventState(oldState);
-    textControlFrame->CheckFireOnChange();
+    inputElement->FireChangeEventIfNeeded();
   }
 
   return NS_OK;
