@@ -45,6 +45,46 @@
 namespace mozilla {
 namespace layers {
 
+
+
+
+
+
+
+
+
+
+
+
+
+class GLTexture {
+  typedef mozilla::gl::GLContext GLContext;
+
+public:
+  GLTexture() : mTexture(0) {}
+  ~GLTexture() { Release(); }
+
+  
+
+
+  void Allocate(GLContext *aContext);
+  
+
+
+
+  void TakeFrom(GLTexture *aOther);
+
+  PRBool IsAllocated() { return mTexture != 0; }
+  GLuint GetTextureID() { return mTexture; }
+  GLContext *GetGLContext() { return mContext; }
+
+private:
+  void Release();
+
+  nsRefPtr<GLContext> mContext;
+  GLuint mTexture;
+};
+
 class THEBES_API ImageContainerOGL : public ImageContainer
 {
 public:
@@ -91,8 +131,10 @@ public:
 
 class THEBES_API PlanarYCbCrImageOGL : public PlanarYCbCrImage
 {
+  typedef mozilla::gl::GLContext GLContext;
+
 public:
-  PlanarYCbCrImageOGL(LayerManagerOGL *aManager);
+  PlanarYCbCrImageOGL();
 
   virtual void SetData(const Data &aData);
 
@@ -100,40 +142,33 @@ public:
 
 
 
-  void AllocateTextures();
-  
-
-
-
-
-
-
-  void FreeTextures();
+  void AllocateTextures(LayerManagerOGL *aManager);
   PRBool HasData() { return mHasData; }
+  PRBool HasTextures()
+  {
+    return mTextures[0].IsAllocated() && mTextures[1].IsAllocated() &&
+           mTextures[2].IsAllocated();
+  }
 
   nsAutoArrayPtr<PRUint8> mBuffer;
-  LayerManagerOGL *mManager;
+  GLTexture mTextures[3];
   Data mData;
   gfxIntSize mSize;
-  GLuint mTextures[3];
   PRPackedBool mHasData;
 };
 
 
 class THEBES_API CairoImageOGL : public CairoImage
 {
+  typedef mozilla::gl::GLContext GLContext;
+
 public:
-  CairoImageOGL(LayerManagerOGL *aManager)
-    : CairoImage(NULL)
-    , mManager(aManager)
-  { }
-  ~CairoImageOGL();
+  CairoImageOGL(LayerManagerOGL *aManager);
 
-  virtual void SetData(const Data &aData);
+  void SetData(const Data &aData);
 
-  GLuint mTexture;
+  GLTexture mTexture;
   gfxIntSize mSize;
-  LayerManagerOGL *mManager;
 };
 
 } 
