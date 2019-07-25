@@ -70,6 +70,7 @@
 #include "nsFrameManager.h"
 #include "nsHTMLReflowState.h"
 #include "nsIObjectLoadingContent.h"
+#include "mozilla/Preferences.h"
 
 
 #include "nsPresContext.h"
@@ -79,6 +80,8 @@
 #include "nsIViewManager.h"
 #include "nsDOMError.h"
 #include "nsIMenuFrame.h"
+
+using namespace mozilla;
 
 
 
@@ -175,7 +178,7 @@ nsXULPopupListener::PreLaunchPopup(nsIDOMEvent* aMouseEvent)
     
     
     PRBool eventEnabled =
-      nsContentUtils::GetBoolPref("dom.event.contextmenu.enabled", PR_TRUE);
+      Preferences::GetBool("dom.event.contextmenu.enabled", PR_TRUE);
     if (!eventEnabled) {
       
       

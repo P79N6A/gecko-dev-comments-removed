@@ -41,7 +41,9 @@
 
 #include "mozilla/dom/PBrowserChild.h"
 #include "TabChild.h"
+#include "mozilla/Preferences.h"
 
+using namespace mozilla;
 using namespace mozilla::dom;
 
 
@@ -109,13 +111,14 @@ nsDOMDesktopNotification::nsDOMDesktopNotification(const nsAString & title,
   mOwner = aWindow;
   mScriptContext = aScriptContext;
 
-  if (nsContentUtils::GetBoolPref("notification.disabled", PR_FALSE))
+  if (Preferences::GetBool("notification.disabled", PR_FALSE)) {
     return;
+  }
 
   
   
-  if (nsContentUtils::GetBoolPref("notification.prompt.testing", PR_FALSE) &&
-      nsContentUtils::GetBoolPref("notification.prompt.testing.allow", PR_TRUE)) {
+  if (Preferences::GetBool("notification.prompt.testing", PR_FALSE) &&
+      Preferences::GetBool("notification.prompt.testing.allow", PR_TRUE)) {
     mAllow = PR_TRUE;
     return;
   }

@@ -87,6 +87,7 @@ static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 
 #include "nsContentUtils.h"
 #include "nsThreadUtils.h"
+#include "mozilla/Preferences.h"
 
 
 #include "nsPresContext.h"
@@ -112,6 +113,8 @@ static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 #endif 
 
 #include "nsDOMError.h"
+
+using namespace mozilla;
 
 
 
@@ -730,7 +733,7 @@ nsFrameSelection::nsFrameSelection()
 
   
   
-  if (nsContentUtils::GetBoolPref("clipboard.autocopy")) {
+  if (Preferences::GetBool("clipboard.autocopy")) {
     nsAutoCopyListener *autoCopy = nsAutoCopyListener::GetInstance();
 
     if (autoCopy) {

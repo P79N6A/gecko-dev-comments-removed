@@ -130,6 +130,8 @@
 #include "CSSCalc.h"
 #include "nsAbsoluteContainingBlock.h"
 
+#include "mozilla/Preferences.h"
+
 using namespace mozilla;
 using namespace mozilla::layers;
 
@@ -2354,7 +2356,7 @@ nsFrame::HandleMultiplePress(nsPresContext* aPresContext,
   if (me->clickCount == 4) {
     beginAmount = endAmount = eSelectParagraph;
   } else if (me->clickCount == 3) {
-    if (nsContentUtils::GetBoolPref("browser.triple_click_selects_paragraph")) {
+    if (Preferences::GetBool("browser.triple_click_selects_paragraph")) {
       beginAmount = endAmount = eSelectParagraph;
     } else {
       beginAmount = eSelectBeginLine;
@@ -5650,7 +5652,7 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
         
         
         wordSelectEatSpace = aPos->mDirection == eDirNext &&
-          nsContentUtils::GetBoolPref("layout.word_select.eat_space_to_next_word");
+          Preferences::GetBool("layout.word_select.eat_space_to_next_word");
       }
       
       
@@ -5958,7 +5960,7 @@ nsFrame::BreakWordBetweenPunctuation(const PeekWordState* aState,
     
     return PR_TRUE;
   }
-  if (!nsContentUtils::GetBoolPref("layout.word_select.stop_at_punctuation")) {
+  if (!Preferences::GetBool("layout.word_select.stop_at_punctuation")) {
     
     
     return PR_FALSE;

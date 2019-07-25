@@ -123,6 +123,7 @@ static const char kPrintingPromptService[] = "@mozilla.org/embedcomp/printingpro
 #include "nsContentUtils.h"
 #include "nsIPresShell.h"
 #include "nsLayoutUtils.h"
+#include "mozilla/Preferences.h"
 
 #include "nsViewsCID.h"
 #include "nsWidgetsCID.h"
@@ -165,6 +166,7 @@ static const char kPrintingPromptService[] = "@mozilla.org/embedcomp/printingpro
 #include "nsIURIFixup.h"
 #include "mozilla/dom/Element.h"
 
+using namespace mozilla;
 using namespace mozilla::dom;
 
 
@@ -597,8 +599,8 @@ nsPrintEngine::DoCommonPrint(PRBool                  aIsPrintPreview,
     mPrt->mPrintSettings->GetPrintSilent(&printSilently);
 
     
-    printSilently = nsContentUtils::GetBoolPref("print.always_print_silent",
-                                                printSilently);
+    printSilently =
+      Preferences::GetBool("print.always_print_silent", printSilently);
 
     
     
@@ -1012,8 +1014,7 @@ nsPrintEngine::ShowPrintProgress(PRBool aIsForPrinting, PRBool& aDoNotify)
   
   
   if (!mProgressDialogIsShown) {
-    showProgresssDialog =
-      nsContentUtils::GetBoolPref("print.show_print_progress");
+    showProgresssDialog = Preferences::GetBool("print.show_print_progress");
   }
 
   

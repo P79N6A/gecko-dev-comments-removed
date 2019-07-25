@@ -68,6 +68,7 @@
 #include "nsMenuPopupFrame.h"
 #include "nsTextFragment.h"
 #include "nsThemeConstants.h"
+#include "mozilla/Preferences.h"
 
 
 
@@ -78,6 +79,8 @@ static const PRInt32 kMinBidiIndicatorPixels = 2;
 #include "nsIBidiKeyboard.h"
 #include "nsContentUtils.h"
 #endif 
+
+using namespace mozilla;
 
 
 
@@ -225,7 +228,7 @@ nsresult nsCaret::Init(nsIPresShell *inPresShell)
     StartBlinking();
   }
 #ifdef IBMBIDI
-  mBidiUI = nsContentUtils::GetBoolPref("bidi.browser.ui");
+  mBidiUI = Preferences::GetBool("bidi.browser.ui");
 #endif
 
   return NS_OK;
