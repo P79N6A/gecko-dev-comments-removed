@@ -177,13 +177,6 @@ nsChromeRegistry::GetService()
 nsresult
 nsChromeRegistry::Init()
 {
-  
-  
-  
-  
-  NS_ASSERTION(nsCOMPtr<nsIIOService>(mozilla::services::GetIOService()),
-               "I/O service not registered or available early enough?");
-
   if (!mOverrideTable.Init())
     return NS_ERROR_FAILURE;
 
