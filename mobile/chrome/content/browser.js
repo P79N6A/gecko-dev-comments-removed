@@ -278,8 +278,16 @@ var Browser = {
       
       let restorePosition = Browser.controlsPosition || { hideSidebars: true };
       if (restorePosition.hideSidebars) {
-        restorePosition.hideSidebars = false;
+        
+        
+        let x = {}, y = {};
         Browser.hideSidebars();
+        Browser.controlsScrollboxScroller.getPosition(x, y);
+        if (x.value > 0) {
+          
+          restorePosition.hideSidebars = false;
+          restorePosition.x = x.value;
+        }
       } else {
         
         if (restorePosition.x) {
