@@ -574,7 +574,10 @@ class CallCompiler : public BaseCompiler
         
         
         
-        size_t offset = JSScript::jitHandleOffset(callingNew, f.cx->compartment->needsBarrier());
+        masm.loadPtr(Address(t0, JSScript::offsetOfJITInfo()), t0);
+        Jump hasNoJitInfo = masm.branchPtr(Assembler::Equal, t0, ImmPtr(NULL));
+        size_t offset = JSScript::JITScriptSet::jitHandleOffset(callingNew,
+                                                                f.cx->compartment->needsBarrier());
         masm.loadPtr(Address(t0, offset), t0);
         Jump hasNoJitCode = masm.branchPtr(Assembler::BelowOrEqual, t0,
                                            ImmPtr(JSScript::JITScriptHandle::UNJITTABLE));
@@ -583,6 +586,7 @@ class CallCompiler : public BaseCompiler
 
         Jump hasCode = masm.branchPtr(Assembler::NotEqual, t0, ImmPtr(0));
 
+        hasNoJitInfo.linkTo(masm.label(), &masm);
         hasNoJitCode.linkTo(masm.label(), &masm);
 
         

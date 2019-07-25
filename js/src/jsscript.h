@@ -379,6 +379,26 @@ struct JSScript : public js::gc::Cell
 
         static void staticAsserts();
     };
+
+    
+    struct JITScriptSet
+    {
+        JITScriptHandle jitHandleNormal;          
+        JITScriptHandle jitHandleNormalBarriered; 
+        JITScriptHandle jitHandleCtor;            
+        JITScriptHandle jitHandleCtorBarriered;   
+
+        static size_t jitHandleOffset(bool constructing, bool barriers) {
+            return constructing
+                ? (barriers
+                   ? offsetof(JITScriptSet, jitHandleCtorBarriered)
+                   : offsetof(JITScriptSet, jitHandleCtor))
+                : (barriers
+                   ? offsetof(JITScriptSet, jitHandleNormalBarriered)
+                   : offsetof(JITScriptSet, jitHandleNormal));
+        }
+    };
+
 #endif  
 
     
@@ -421,15 +441,11 @@ struct JSScript : public js::gc::Cell
     
     js::types::TypeScript *types;
 
-  public:
+  private:
 #ifdef JS_METHODJIT
-    JITScriptHandle jitHandleNormal;          
-    JITScriptHandle jitHandleNormalBarriered; 
-    JITScriptHandle jitHandleCtor;            
-    JITScriptHandle jitHandleCtorBarriered;   
+    JITScriptSet *jitInfo;
 #endif
 
-  private:
     js::HeapPtrFunction function_;
 
     
@@ -449,7 +465,7 @@ struct JSScript : public js::gc::Cell
 
 
 
-#if !defined(JS_METHODJIT) && JS_BITS_PER_WORD == 32
+#if JS_BITS_PER_WORD == 32
     uint32_t        pad32;
 #endif
 
@@ -666,27 +682,26 @@ struct JSScript : public js::gc::Cell
     
     friend class js::mjit::CallCompiler;
 
-    static size_t jitHandleOffset(bool constructing, bool barriers) {
-        return constructing
-            ? (barriers ? offsetof(JSScript, jitHandleCtorBarriered) : offsetof(JSScript, jitHandleCtor))
-            : (barriers ? offsetof(JSScript, jitHandleNormalBarriered) : offsetof(JSScript, jitHandleNormal));
+  public:
+    bool hasJITInfo() {
+        return jitInfo != NULL;
     }
 
-  public:
-    bool hasJITCode() {
-        return jitHandleNormal.isValid()
-            || jitHandleNormalBarriered.isValid()
-            || jitHandleCtor.isValid()
-            || jitHandleCtorBarriered.isValid();
-    }
+    static size_t offsetOfJITInfo() { return offsetof(JSScript, jitInfo); }
+
+    inline bool ensureHasJITInfo(JSContext *cx);
+    inline void destroyJITInfo(js::FreeOp *fop);
 
     JITScriptHandle *jitHandle(bool constructing, bool barriers) {
+        JS_ASSERT(jitInfo);
         return constructing
-               ? (barriers ? &jitHandleCtorBarriered : &jitHandleCtor)
-               : (barriers ? &jitHandleNormalBarriered : &jitHandleNormal);
+               ? (barriers ? &jitInfo->jitHandleCtorBarriered : &jitInfo->jitHandleCtor)
+               : (barriers ? &jitInfo->jitHandleNormalBarriered : &jitInfo->jitHandleNormal);
     }
 
     js::mjit::JITScript *getJIT(bool constructing, bool barriers) {
+        if (!jitInfo)
+            return NULL;
         JITScriptHandle *jith = jitHandle(constructing, barriers);
         return jith->isValid() ? jith->getValid() : NULL;
     }
