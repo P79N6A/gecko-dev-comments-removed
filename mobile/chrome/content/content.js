@@ -1244,6 +1244,7 @@ var TouchEventHandler = {
 
     if (this.isCancellable) {
       sendAsyncMessage("Browser:CaptureEvents", { messageId: json.messageId,
+                                                  click: cancelled && aMessage.name == "Browser:MouseDown",
                                                   panning: cancelled });
       
       
