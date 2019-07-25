@@ -12,6 +12,7 @@
 
 
 #include "mozIStorageFunction.h"
+#include "mozilla/Attributes.h"
 
 class mozIStorageConnection;
 
@@ -52,7 +53,7 @@ namespace places {
 
 
 
-class MatchAutoCompleteFunction : public mozIStorageFunction
+class MatchAutoCompleteFunction MOZ_FINAL : public mozIStorageFunction
 {
 public:
   NS_DECL_ISUPPORTS
@@ -189,7 +190,7 @@ private:
 
 
 
-class CalculateFrecencyFunction : public mozIStorageFunction
+class CalculateFrecencyFunction MOZ_FINAL : public mozIStorageFunction
 {
 public:
   NS_DECL_ISUPPORTS
@@ -210,30 +211,7 @@ public:
 
 
 
-class GenerateGUIDFunction : public mozIStorageFunction
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_MOZISTORAGEFUNCTION
-
-  
-
-
-
-
-
-  static nsresult create(mozIStorageConnection *aDBConn);
-};
-
-
-
-
-
-
-
-
-
-class GetUnreversedHostFunction : public mozIStorageFunction
+class GenerateGUIDFunction MOZ_FINAL : public mozIStorageFunction
 {
 public:
   NS_DECL_ISUPPORTS
@@ -256,12 +234,35 @@ public:
 
 
 
+class GetUnreversedHostFunction MOZ_FINAL : public mozIStorageFunction
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_MOZISTORAGEFUNCTION
+
+  
 
 
 
 
 
-class FixupURLFunction : public mozIStorageFunction
+  static nsresult create(mozIStorageConnection *aDBConn);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class FixupURLFunction MOZ_FINAL : public mozIStorageFunction
 {
 public:
   NS_DECL_ISUPPORTS
