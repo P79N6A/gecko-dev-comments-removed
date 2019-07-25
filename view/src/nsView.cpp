@@ -694,67 +694,56 @@ nsresult nsView::CreateWidget(const nsIID &aWindowIID,
 
   if (NS_OK == LoadWidget(aWindowIID))
   {
-    PRBool usewidgets;
     nsCOMPtr<nsIDeviceContext> dx;
     mViewManager->GetDeviceContext(*getter_AddRefs(dx));
-    dx->SupportsNativeWidgets(usewidgets);
 
-    if (PR_TRUE == usewidgets)
+    PRBool initDataPassedIn = PR_TRUE;
+    nsWidgetInitData initData;
+    if (!aWidgetInitData) {
+      
+      
+      initDataPassedIn = PR_FALSE;
+      initData.clipChildren = PR_TRUE; 
+      initData.clipSiblings = PR_TRUE; 
+      aWidgetInitData = &initData;
+    }
+    aWidgetInitData->mContentType = aContentType;
+
+    if (aNative && aWidgetInitData->mWindowType != eWindowType_popup)
+      mWindow->Create(nsnull, aNative, trect, ::HandleEvent, dx, nsnull, nsnull, aWidgetInitData);
+    else
     {
-      PRBool initDataPassedIn = PR_TRUE;
-      nsWidgetInitData initData;
-      if (!aWidgetInitData) {
-        
-        
-        initDataPassedIn = PR_FALSE;
-        initData.clipChildren = PR_TRUE; 
-        initData.clipSiblings = PR_TRUE; 
-        aWidgetInitData = &initData;
-      }
-      aWidgetInitData->mContentType = aContentType;
-
-      if (aNative && aWidgetInitData->mWindowType != eWindowType_popup)
-        mWindow->Create(nsnull, aNative, trect, ::HandleEvent, dx, nsnull, nsnull, aWidgetInitData);
-      else
-      {
-        if (!initDataPassedIn && GetParent() && 
+      if (!initDataPassedIn && GetParent() && 
           GetParent()->GetViewManager() != mViewManager)
-          initData.mListenForResizes = PR_TRUE;
-        if (aParentWidget) {
-          NS_ASSERTION(aWidgetInitData->mWindowType == eWindowType_popup,
-                       "popup widget type expected");
-          mWindow->Create(aParentWidget, nsnull, trect,
+        initData.mListenForResizes = PR_TRUE;
+      if (aParentWidget) {
+        NS_ASSERTION(aWidgetInitData->mWindowType == eWindowType_popup,
+                     "popup widget type expected");
+        mWindow->Create(aParentWidget, nsnull, trect,
+                        ::HandleEvent, dx, nsnull, nsnull, aWidgetInitData);
+      }
+      else {
+        nsIWidget* parentWidget = GetParent() ? GetParent()->GetNearestWidget(nsnull)
+                                              : nsnull;
+        if (aWidgetInitData->mWindowType == eWindowType_popup) {
+          
+          
+          if (!parentWidget)
+            return NS_ERROR_FAILURE;
+          mWindow->Create(nsnull, parentWidget->GetNativeData(NS_NATIVE_WIDGET), trect,
+                          ::HandleEvent, dx, nsnull, nsnull, aWidgetInitData);
+        } else {
+          mWindow->Create(parentWidget, nsnull, trect,
                           ::HandleEvent, dx, nsnull, nsnull, aWidgetInitData);
         }
-        else {
-          nsIWidget* parentWidget = GetParent() ? GetParent()->GetNearestWidget(nsnull)
-                                                : nsnull;
-          if (aWidgetInitData->mWindowType == eWindowType_popup) {
-            
-            
-            if (!parentWidget)
-              return NS_ERROR_FAILURE;
-            mWindow->Create(nsnull, parentWidget->GetNativeData(NS_NATIVE_WIDGET), trect,
-                            ::HandleEvent, dx, nsnull, nsnull, aWidgetInitData);
-          } else {
-            mWindow->Create(parentWidget, nsnull, trect,
-                            ::HandleEvent, dx, nsnull, nsnull, aWidgetInitData);
-          }
-        }
       }
-      if (aEnableDragDrop) {
-        mWindow->EnableDragDrop(PR_TRUE);
-      }
-      
-      
-      UpdateNativeWidgetZIndexes(this, FindNonAutoZIndex(this));
-    } else {
-      
-      
-      
-      mWindow->Resize(trect.x, trect.y, trect.width, trect.height,
-                      PR_FALSE);
     }
+    if (aEnableDragDrop) {
+      mWindow->EnableDragDrop(PR_TRUE);
+    }
+      
+    
+    UpdateNativeWidgetZIndexes(this, FindNonAutoZIndex(this));
   }
 
   
