@@ -4706,8 +4706,7 @@ xml_trace_vector(JSTracer *trc, JSXML **vec, uint32 len)
 
 
 static JSBool
-xml_lookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
-                   JSProperty **propp)
+xml_lookupGeneric(JSContext *cx, JSObject *obj, jsid id, JSObject **objp, JSProperty **propp)
 {
     JSBool found;
     JSXML *xml;
@@ -4744,6 +4743,13 @@ xml_lookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
 }
 
 static JSBool
+xml_lookupProperty(JSContext *cx, JSObject *obj, PropertyName *name, JSObject **objp,
+                   JSProperty **propp)
+{
+    return xml_lookupGeneric(cx, obj, ATOM_TO_JSID(name), objp, propp);
+}
+
+static JSBool
 xml_lookupElement(JSContext *cx, JSObject *obj, uint32 index, JSObject **objp,
                   JSProperty **propp)
 {
@@ -4773,7 +4779,7 @@ xml_lookupElement(JSContext *cx, JSObject *obj, uint32 index, JSObject **objp,
 static JSBool
 xml_lookupSpecial(JSContext *cx, JSObject *obj, SpecialId sid, JSObject **objp, JSProperty **propp)
 {
-    return xml_lookupProperty(cx, obj, SPECIALID_TO_JSID(sid), objp, propp);
+    return xml_lookupGeneric(cx, obj, SPECIALID_TO_JSID(sid), objp, propp);
 }
 
 static JSBool
@@ -5298,7 +5304,7 @@ JS_FRIEND_DATA(Class) js::XMLClass = {
     xml_trace,
     JS_NULL_CLASS_EXT,
     {
-        xml_lookupProperty,
+        xml_lookupGeneric,
         xml_lookupProperty,
         xml_lookupElement,
         xml_lookupSpecial,
@@ -7668,7 +7674,7 @@ js_FindXMLProperty(JSContext *cx, const Value &nameval, JSObject **objp, jsid *i
                 return JS_TRUE;
             }
         } else if (!JSID_IS_VOID(funid)) {
-            if (!target->lookupProperty(cx, funid, &pobj, &prop))
+            if (!target->lookupGeneric(cx, funid, &pobj, &prop))
                 return JS_FALSE;
             if (prop) {
                 *idp = funid;
