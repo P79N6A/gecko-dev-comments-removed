@@ -484,11 +484,13 @@ public:
 
 
 
+
   virtual void DrawSurfaceWithShadow(SourceSurface *aSurface,
                                      const Point &aDest,
                                      const Color &aColor,
                                      const Point &aOffset,
-                                     Float aSigma) = 0;
+                                     Float aSigma,
+                                     CompositionOp aOperator) = 0;
 
   
 
