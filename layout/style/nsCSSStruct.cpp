@@ -61,11 +61,6 @@ nsCSSFont::~nsCSSFont(void)
 
 
 nsCSSColor::nsCSSColor(void)
-  : mBackImage(nsnull)
-  , mBackRepeat(nsnull)
-  , mBackAttachment(nsnull)
-  , mBackClip(nsnull)
-  , mBackOrigin(nsnull)
 {
   MOZ_COUNT_CTOR(nsCSSColor);
 }
@@ -73,18 +68,11 @@ nsCSSColor::nsCSSColor(void)
 nsCSSColor::~nsCSSColor(void)
 {
   MOZ_COUNT_DTOR(nsCSSColor);
-
-  delete mBackImage;
-  delete mBackRepeat;
-  delete mBackAttachment;
-  delete mBackClip;
-  delete mBackOrigin;
 }
 
 
 
 nsCSSText::nsCSSText(void)
-  : mTextShadow(nsnull)
 {
   MOZ_COUNT_CTOR(nsCSSText);
 }
@@ -92,7 +80,6 @@ nsCSSText::nsCSSText(void)
 nsCSSText::~nsCSSText(void)
 {
   MOZ_COUNT_DTOR(nsCSSText);
-  delete mTextShadow;
 }
 
 
@@ -137,45 +124,7 @@ nsCSSCornerSizes::corners[4] = {
 
 
 
-nsCSSValueListRect::nsCSSValueListRect(void)
-  : mTop(nsnull),
-    mRight(nsnull),
-    mBottom(nsnull),
-    mLeft(nsnull)
-{
-  MOZ_COUNT_CTOR(nsCSSValueListRect);
-}
-
-nsCSSValueListRect::nsCSSValueListRect(const nsCSSValueListRect& aCopy)
-  : mTop(aCopy.mTop),
-    mRight(aCopy.mRight),
-    mBottom(aCopy.mBottom),
-    mLeft(aCopy.mLeft)
-{
-  MOZ_COUNT_CTOR(nsCSSValueListRect);
-}
-
-nsCSSValueListRect::~nsCSSValueListRect()
-{
-  MOZ_COUNT_DTOR(nsCSSValueListRect);
-}
-
- const nsCSSValueListRect::side_type
-nsCSSValueListRect::sides[4] = {
-  &nsCSSValueListRect::mTop,
-  &nsCSSValueListRect::mRight,
-  &nsCSSValueListRect::mBottom,
-  &nsCSSValueListRect::mLeft,
-};
-
-
-
-
-nsCSSDisplay::nsCSSDisplay(void) : mTransform(nsnull)
-  , mTransitionProperty(nsnull)
-  , mTransitionDuration(nsnull)
-  , mTransitionTimingFunction(nsnull)
-  , mTransitionDelay(nsnull)
+nsCSSDisplay::nsCSSDisplay(void)
 {
   MOZ_COUNT_CTOR(nsCSSDisplay);
 }
@@ -188,7 +137,6 @@ nsCSSDisplay::~nsCSSDisplay(void)
 
 
 nsCSSMargin::nsCSSMargin(void)
-  : mBoxShadow(nsnull)
 {
   MOZ_COUNT_CTOR(nsCSSMargin);
 }
@@ -196,7 +144,6 @@ nsCSSMargin::nsCSSMargin(void)
 nsCSSMargin::~nsCSSMargin(void)
 {
   MOZ_COUNT_DTOR(nsCSSMargin);
-  delete mBoxShadow;
 }
 
 
@@ -262,7 +209,6 @@ nsCSSPage::~nsCSSPage(void)
 
 
 nsCSSContent::nsCSSContent(void)
-  : mContent(nsnull)
 {
   MOZ_COUNT_CTOR(nsCSSContent);
 }
@@ -270,13 +216,11 @@ nsCSSContent::nsCSSContent(void)
 nsCSSContent::~nsCSSContent(void)
 {
   MOZ_COUNT_DTOR(nsCSSContent);
-  delete mContent;
 }
 
 
 
 nsCSSUserInterface::nsCSSUserInterface(void)
-  : mCursor(nsnull)
 {
   MOZ_COUNT_CTOR(nsCSSUserInterface);
 }
@@ -284,7 +228,6 @@ nsCSSUserInterface::nsCSSUserInterface(void)
 nsCSSUserInterface::~nsCSSUserInterface(void)
 {
   MOZ_COUNT_DTOR(nsCSSUserInterface);
-  delete mCursor;
 }
 
 
@@ -325,7 +268,7 @@ nsCSSColumn::~nsCSSColumn(void)
 
 
 
-nsCSSSVG::nsCSSSVG(void) : mStrokeDasharray(nsnull)
+nsCSSSVG::nsCSSSVG(void)
 {
   MOZ_COUNT_CTOR(nsCSSSVG);
 }
@@ -333,5 +276,4 @@ nsCSSSVG::nsCSSSVG(void) : mStrokeDasharray(nsnull)
 nsCSSSVG::~nsCSSSVG(void)
 {
   MOZ_COUNT_DTOR(nsCSSSVG);
-  delete mStrokeDasharray;
 }
