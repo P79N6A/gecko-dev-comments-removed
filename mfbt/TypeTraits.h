@@ -49,6 +49,34 @@ struct Conditional<false, A, B>
     typedef B Type;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<bool B, typename T = void>
+struct EnableIf
+{};
+
+template<typename T>
+struct EnableIf<true, T>
+{
+    typedef T Type;
+};
+
 } 
 
 #endif  
