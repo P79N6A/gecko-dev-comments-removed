@@ -4043,13 +4043,9 @@ NewCompartment(JSContext *cx, JSPrincipals *principals)
 
     JSCompartment *compartment = cx->new_<JSCompartment>(rt);
     if (compartment && compartment->init(cx)) {
+
         
-        
-        compartment->isSystemCompartment = principals && rt->trustedPrincipals() == principals;
-        if (principals) {
-            compartment->principals = principals;
-            JS_HoldPrincipals(principals);
-        }
+        JS_SetCompartmentPrincipals(compartment, principals);
 
         compartment->setGCLastBytes(8192, 8192, GC_NORMAL);
 
