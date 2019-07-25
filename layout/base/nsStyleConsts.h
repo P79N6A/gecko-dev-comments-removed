@@ -207,6 +207,9 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_COLOR_MOZ_VISITEDHYPERLINKTEXT       -5
 #define NS_COLOR_MOZ_ACTIVEHYPERLINKTEXT        -6
 
+#define NS_COLOR_OBJECTFILL                     -7
+#define NS_COLOR_OBJECTSTROKE                   -8
+
 
 #define NS_STYLE_ANIMATION_DIRECTION_NORMAL       0
 #define NS_STYLE_ANIMATION_DIRECTION_REVERSE      1
