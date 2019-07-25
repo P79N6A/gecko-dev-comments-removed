@@ -351,7 +351,10 @@ js::ion::SetPropertyCache(JSContext *cx, size_t cacheIndex, JSObject *obj, const
     Value v = value;
     
     
-    if (cache.stubCount() < MAX_STUBS && obj->isNative()) {
+    if (cache.stubCount() < MAX_STUBS &&
+        obj->isNative() &&
+        !obj->watched())
+    {
         cache.incrementStubCount();
 
         jsid id = ATOM_TO_JSID(atom);
