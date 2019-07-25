@@ -8,6 +8,7 @@
 #include <cstring>
 #include <stdint.h>
 #include <vector>
+#include <zlib.h>
 #include "Utils.h"
 
 #undef DEBUG
@@ -61,10 +62,30 @@ public:
     Stream(): compressedBuf(NULL), compressedSize(0), uncompressedSize(0)
             , type(STORE) { }
 
+    
+
+
     const void *GetBuffer() { return compressedBuf; }
     size_t GetSize() { return compressedSize; }
     size_t GetUncompressedSize() { return uncompressedSize; }
     Type GetType() { return type; }
+
+    
+
+
+
+
+    z_stream GetZStream(void *buf)
+    {
+      z_stream zStream;
+      memset(&zStream, 0, sizeof(zStream));
+      zStream.avail_in = compressedSize;
+      zStream.next_in = reinterpret_cast<Bytef *>(
+                        const_cast<void *>(compressedBuf));
+      zStream.avail_out = uncompressedSize;
+      zStream.next_out = static_cast<Bytef *>(buf);
+      return zStream;
+    }
 
   protected:
     friend class Zip;

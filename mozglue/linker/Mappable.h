@@ -5,6 +5,7 @@
 #ifndef Mappable_h
 #define Mappable_h
 
+#include <sys/types.h>
 #include "Zip.h"
 #include "mozilla/RefPtr.h"
 #include "zlib.h"
@@ -52,14 +53,62 @@ public:
   virtual void *mmap(const void *addr, size_t length, int prot, int flags, off_t offset);
   virtual void finalize();
 
-private:
+protected:
   MappableFile(int fd): fd(fd) { }
 
+private:
   
   AutoCloseFD fd;
 };
 
+
+
+
+
+class MappableExtractFile: public MappableFile
+{
+public:
+  ~MappableExtractFile();
+
+  
+
+
+
+  static MappableExtractFile *Create(const char *name, Zip::Stream *stream);
+
+  
+
+
+  char *GetPath() {
+    return path;
+  }
+private:
+  MappableExtractFile(int fd, char *path)
+  : MappableFile(fd), path(path), pid(getpid()) { }
+
+  
+
+
+
+  struct AutoUnlinkFileTraits: public AutoDeleteArrayTraits<char>
+  {
+    static void clean(char *value)
+    {
+      unlink(value);
+      AutoDeleteArrayTraits<char>::clean(value);
+    }
+  };
+  typedef AutoClean<AutoUnlinkFileTraits> AutoUnlinkFile;
+
+  
+  AutoUnlinkFile path;
+
+  
+  pid_t pid;
+};
+
 class _MappableBuffer;
+
 
 
 
@@ -87,7 +136,7 @@ private:
   mozilla::RefPtr<Zip> zip;
 
   
-  _MappableBuffer *buffer;
+  AutoDeletePtr<_MappableBuffer> buffer;
 
   
   z_stream zStream;

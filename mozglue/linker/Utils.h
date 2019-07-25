@@ -53,45 +53,121 @@ typedef le_to_cpu<le_uint16> le_uint32;
 
 
 
-class AutoCloseFD
+
+
+
+
+
+
+
+
+
+template <typename Traits>
+class AutoClean
 {
+  typedef typename Traits::type T;
 public:
-  AutoCloseFD(): fd(-1) { }
-  AutoCloseFD(int fd): fd(fd) { }
-  ~AutoCloseFD()
+  AutoClean(): value(Traits::None()) { }
+  AutoClean(const T& value): value(value) { }
+  ~AutoClean()
   {
-    if (fd != -1)
-      close(fd);
+    if (value != Traits::None())
+      Traits::clean(value);
   }
 
-  operator int() const
+  operator const T&() const { return value; }
+  const T& operator->() const { return value; }
+  const T& get() const { return value; }
+
+  T forget()
   {
-    return fd;
+    T _value = value;
+    value = Traits::None();
+    return _value;
   }
 
-  int forget()
+  bool operator ==(T other) const
   {
-    int _fd = fd;
-    fd = -1;
-    return _fd;
+    return value == other;
   }
 
-  bool operator ==(int other) const
+  AutoClean& operator =(T other)
   {
-    return fd == other;
-  }
-
-  int operator =(int other)
-  {
-    if (fd != -1)
-      close(fd);
-    fd = other;
-    return fd;
+    if (value != Traits::None())
+      Traits::clean(value);
+    value = other;
+    return *this;
   }
 
 private:
-  int fd;
+  T value;
 };
+
+
+
+
+
+#define AUTOCLEAN_TEMPLATE(name, Traits) \
+template <typename T> \
+struct name: public AutoClean<Traits<T> > \
+{ \
+  using AutoClean<Traits<T> >::operator =; \
+  name(): AutoClean<Traits<T> >() { } \
+  name(typename Traits<T>::type ptr): AutoClean<Traits<T> >(ptr) { } \
+}
+
+
+
+
+struct AutoCloseFDTraits
+{
+  typedef int type;
+  static int None() { return -1; }
+  static void clean(int fd) { close(fd); }
+};
+typedef AutoClean<AutoCloseFDTraits> AutoCloseFD;
+
+
+
+
+
+
+
+
+template <typename T>
+struct AutoFreePtrTraits
+{
+  typedef T *type;
+  static T *None() { return NULL; }
+  static void clean(T *ptr) { free(ptr); }
+};
+AUTOCLEAN_TEMPLATE(AutoFreePtr, AutoFreePtrTraits);
+
+
+
+
+
+
+
+template <typename T>
+struct AutoDeletePtrTraits: public AutoFreePtrTraits<T>
+{
+  static void clean(T *ptr) { delete ptr; }
+};
+AUTOCLEAN_TEMPLATE(AutoDeletePtr, AutoDeletePtrTraits);
+
+
+
+
+
+
+
+template <typename T>
+struct AutoDeleteArrayTraits: public AutoFreePtrTraits<T>
+{
+  static void clean(T *ptr) { delete [] ptr; }
+};
+AUTOCLEAN_TEMPLATE(AutoDeleteArray, AutoDeleteArrayTraits);
 
 
 

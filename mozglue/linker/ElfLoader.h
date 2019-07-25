@@ -6,6 +6,7 @@
 #define ElfLoader_h
 
 #include <vector>
+#include <dlfcn.h>
 
 #undef DEBUG
 #include "mozilla/RefPtr.h"

@@ -203,8 +203,18 @@ ElfLoader::Load(const char *path, int flags, LibHandle *parent)
     zip = zips.GetZip(zip_path);
     Zip::Stream s;
     if (zip && zip->GetStream(subpath, &s)) {
-      if (s.GetType() == Zip::Stream::DEFLATE)
-        mappable = MappableDeflate::Create(name, zip, &s);
+      if (s.GetType() == Zip::Stream::DEFLATE) {
+        
+
+
+
+        const char *extract = getenv("MOZ_LINKER_EXTRACT");
+        if (extract && !strncmp(extract, "1", 2 ))
+          mappable = MappableExtractFile::Create(name, &s);
+        
+        if (!mappable)
+          mappable = MappableDeflate::Create(name, zip, &s);
+      }
     }
   }
   
