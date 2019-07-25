@@ -180,10 +180,23 @@ nsImageLoadingContent::OnStartRequest(imgIRequest* aRequest)
 NS_IMETHODIMP
 nsImageLoadingContent::OnStartDecode(imgIRequest* aRequest)
 {
+  nsresult rv;
+
   
   if (aRequest == mCurrentRequest) {
-    NS_ABORT_IF_FALSE(!mBlockingOnload, "Shouldn't already be blocking");
-    SetBlockingOnload(PR_TRUE);
+
+    
+    
+    PRUint32 loadFlags;
+    rv = aRequest->GetLoadFlags(&loadFlags);
+    PRBool background =
+      (NS_SUCCEEDED(rv) && (loadFlags & nsIRequest::LOAD_BACKGROUND));
+
+    
+    if (!background) {
+      NS_ABORT_IF_FALSE(!mBlockingOnload, "Shouldn't already be blocking");
+      SetBlockingOnload(PR_TRUE);
+    }
   }
 
   LOOP_OVER_OBSERVERS(OnStartDecode(aRequest));
