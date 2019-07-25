@@ -368,6 +368,17 @@ static WindowsDllInterceptor sUser32Intercept;
 
 
 
+static const int MIN_OPAQUE_RECT_HEIGHT_FOR_GLASS_MARGINS = 50;
+
+
+
+
+static const int MAX_HORIZONTAL_GLASS_MARGIN = 5;
+
+
+
+
+
 
 
 
@@ -2574,11 +2585,11 @@ void nsWindow::UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
 
   
   
-  if (opaqueRegion.IsEmpty() || mHideChrome) {
-    
-    margins.cxLeftWidth = margins.cxRightWidth = 
-      margins.cyTopHeight = margins.cyBottomHeight = -1;
-  } else {
+  
+  
+  margins.cxLeftWidth = margins.cxRightWidth =
+    margins.cyTopHeight = margins.cyBottomHeight = -1;
+  if (!opaqueRegion.IsEmpty() && !mHideChrome) {
     nsIntRect pluginBounds;
     for (nsIWidget* child = GetFirstChild(); child; child = child->GetNextSibling()) {
       nsWindowType type;
@@ -2601,17 +2612,21 @@ void nsWindow::UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
     
     
     nsIntRect largest = opaqueRegion.GetLargestRectangle(pluginBounds);
-    margins.cxLeftWidth = largest.x;
-    margins.cxRightWidth = clientBounds.width - largest.XMost();
-    margins.cyBottomHeight = clientBounds.height - largest.YMost();
+    if (largest.x <= MAX_HORIZONTAL_GLASS_MARGIN &&
+        clientBounds.width - largest.XMost() <= MAX_HORIZONTAL_GLASS_MARGIN &&
+        largest.height >= MIN_OPAQUE_RECT_HEIGHT_FOR_GLASS_MARGINS) {
+      margins.cxLeftWidth = largest.x;
+      margins.cxRightWidth = clientBounds.width - largest.XMost();
+      margins.cyBottomHeight = clientBounds.height - largest.YMost();
 
-    if (mCustomNonClient) {
-      
-      
-      largest.y = PR_MAX(largest.y, 
-                         nsUXThemeData::sCommandButtons[CMDBUTTONIDX_BUTTONBOX].cy);
+      if (mCustomNonClient) {
+        
+        
+        largest.y = PR_MAX(largest.y,
+                           nsUXThemeData::sCommandButtons[CMDBUTTONIDX_BUTTONBOX].cy);
+      }
+      margins.cyTopHeight = largest.y;
     }
-    margins.cyTopHeight = largest.y;
   }
 
   
