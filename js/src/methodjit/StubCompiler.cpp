@@ -57,79 +57,37 @@ StubCompiler::linkExit(Jump j)
 }
 
 void
-StubCompiler::syncAndSpill()
+StubCompiler::leave()
 {
-    frame.sync(masm);
+    JaegerSpew(JSpew_Insns, " ---- BEGIN STUB SPILL CODE ---- \n");
+    frame.sync(masm, snapshot);
+    JaegerSpew(JSpew_Insns, " ---- END STUB SPILL CODE ---- \n");
+    JaegerSpew(JSpew_Insns, " ---- BEGIN STUB CALL CODE ---- \n");
 }
 
-void *
-StubCompiler::getCallTarget(void *fun)
+void
+StubCompiler::rejoin(uint32 invalidationDepth)
 {
-#ifdef JS_CPU_ARM
-    
-
-
-
-
-
-
-
-
-
-
-    void *pfun = JS_FUNC_TO_DATA_PTR(void *, JaegerStubVeneer);
-
-    
-
-
-
-
-    masm.move(Imm32(intptr_t(fun)), ARMRegisters::ip);
-#else
-    
-
-
-
-
-    void *pfun = fun;
-#endif
-    return pfun;
+    JaegerSpew(JSpew_Insns, " ---- BEGIN STUB RESTORE CODE ---- \n");
+    frame.merge(masm, snapshot, invalidationDepth);
+    JaegerSpew(JSpew_Insns, " ---- END STUB RESTORE CODE ---- \n");
 }
 
 typedef JSC::MacroAssembler::RegisterID RegisterID;
 typedef JSC::MacroAssembler::ImmPtr ImmPtr;
 typedef JSC::MacroAssembler::Imm32 Imm32;
 
-
-#if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
-static const RegisterID ClobberInCall = JSC::X86Registers::ecx;
-#elif defined(JS_CPU_ARM)
-static const RegisterID ClobberInCall = JSC::ARMRegisters::r2;
-#endif
-
-JS_STATIC_ASSERT(ClobberInCall != Registers::ArgReg1);
-
 JSC::MacroAssembler::Call
-StubCompiler::scall(void *ptr)
+StubCompiler::stubCall(void *ptr)
 {
-    void *pfun = getCallTarget(ptr);
+    Call cl = masm.stubCall(ptr, cc.getPC(), frame.stackDepth() + script->nfixed);
+    JaegerSpew(JSpew_Insns, " ---- END STUB CALL CODE ---- \n");
+    return cl;
+}
 
-    
-    masm.storePtr(ImmPtr(cc.getPC()),
-                  FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, pc)));
-
-    
-    masm.addPtr(Imm32(sizeof(JSStackFrame) +
-                (frame.stackDepth() + script->nfixed) * sizeof(jsval)),
-                FrameState::FpReg, ClobberInCall);
-
-    
-    masm.storePtr(ClobberInCall,
-                  FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, sp)));
-    
-    
-    masm.move(Assembler::stackPointerRegister, Registers::ArgReg0);
-
-    return masm.call(pfun);
+void
+StubCompiler::finalize(uint8* ncode)
+{
+    masm.finalize(ncode);
 }
 

@@ -293,3 +293,234 @@ js_InternalThrow(VMFrame &f)
     return cx->fp->script->pcToNative(pc);
 }
 
+#define NATIVE_SET(cx,obj,sprop,entry,vp)                                     \
+    JS_BEGIN_MACRO                                                            \
+        if (sprop->hasDefaultSetter() &&                                      \
+            (sprop)->slot != SPROP_INVALID_SLOT &&                            \
+            !obj->scope()->brandedOrHasMethodBarrier()) {                     \
+            /* Fast path for, e.g., plain Object instance properties. */      \
+            obj->setSlot(sprop->slot, *vp);                                   \
+        } else {                                                              \
+            if (!js_NativeSet(cx, obj, sprop, false, vp))                     \
+                THROW();                                                      \
+        }                                                                     \
+    JS_END_MACRO
+
+static inline JSObject *
+ValueToObject(JSContext *cx, Value *vp)
+{
+    if (vp->isObject())
+        return &vp->asObject();
+    if (!js_ValueToNonNullObject(cx, *vp, vp))
+        return NULL;
+    return &vp->asObject();
+}
+
+void JS_FASTCALL
+mjit::stubs::SetName(VMFrame &f, uint32 index)
+{
+    JSContext *cx = f.cx;
+
+    Value &rref = f.regs.sp[-1];
+    Value &lref = f.regs.sp[-2];
+    JSObject *obj = ValueToObject(cx, &lref);
+    if (!obj)
+        THROW();
+
+    do {
+        PropertyCache *cache = &JS_PROPERTY_CACHE(cx);
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        PropertyCacheEntry *entry;
+        JSObject *obj2;
+        JSAtom *atom;
+        if (cache->testForSet(cx, f.regs.pc, obj, &entry, &obj2, &atom)) {
+            
+
+
+
+
+
+
+
+
+            JS_ASSERT(entry->vword.isSprop());
+            JSScopeProperty *sprop = entry->vword.toSprop();
+            JS_ASSERT_IF(sprop->isDataDescriptor(), sprop->writable());
+            JS_ASSERT_IF(sprop->hasSlot(), entry->vcapTag() == 0);
+
+            JSScope *scope = obj->scope();
+            JS_ASSERT(!scope->sealed());
+
+            
+
+
+
+
+
+            bool checkForAdd;
+            if (!sprop->hasSlot()) {
+                if (entry->vcapTag() == 0 ||
+                    ((obj2 = obj->getProto()) &&
+                     obj2->isNative() &&
+                     obj2->shape() == entry->vshape())) {
+                    goto fast_set_propcache_hit;
+                }
+
+                
+                checkForAdd = false;
+            } else if (!scope->isSharedEmpty()) {
+                if (sprop == scope->lastProperty() || scope->hasProperty(sprop)) {
+                  fast_set_propcache_hit:
+                    PCMETER(cache->pchits++);
+                    PCMETER(cache->setpchits++);
+                    NATIVE_SET(cx, obj, sprop, entry, &rref);
+                    break;
+                }
+                checkForAdd = sprop->hasSlot() && sprop->parent == scope->lastProperty();
+            } else {
+                
+
+
+
+
+                JS_ASSERT(CX_OWNS_OBJECT_TITLE(cx, obj));
+                scope = js_GetMutableScope(cx, obj);
+                JS_ASSERT(CX_OWNS_OBJECT_TITLE(cx, obj));
+                if (!scope)
+                    THROW();
+                checkForAdd = !sprop->parent;
+            }
+
+            uint32 slot;
+            if (checkForAdd &&
+                entry->vshape() == cx->runtime->protoHazardShape &&
+                sprop->hasDefaultSetter() &&
+                (slot = sprop->slot) == scope->freeslot) {
+                
+
+
+
+
+
+
+
+
+
+                PCMETER(cache->pchits++);
+                PCMETER(cache->addpchits++);
+
+                
+
+
+
+
+                if (slot < obj->numSlots() &&
+                    !obj->getClass()->reserveSlots) {
+                    ++scope->freeslot;
+                } else {
+                    if (!js_AllocSlot(cx, obj, &slot))
+                        THROW();
+                }
+
+                
+
+
+
+
+
+
+
+
+
+                if (slot != sprop->slot || scope->table) {
+                    JSScopeProperty *sprop2 =
+                        scope->putProperty(cx, sprop->id,
+                                           sprop->getter(), sprop->setter(),
+                                           slot, sprop->attributes(),
+                                           sprop->getFlags(), sprop->shortid);
+                    if (!sprop2) {
+                        js_FreeSlot(cx, obj, slot);
+                        THROW();
+                    }
+                    sprop = sprop2;
+                } else {
+                    scope->extend(cx, sprop);
+                }
+
+                
+
+
+
+
+
+                TRACE_2(SetPropHit, entry, sprop);
+                obj->lockedSetSlot(slot, rref);
+
+                
+
+
+
+
+                js_PurgeScopeChain(cx, obj, sprop->id);
+                break;
+            }
+            PCMETER(cache->setpcmisses++);
+            atom = NULL;
+        } else if (!atom) {
+            
+
+
+
+            JSScopeProperty *sprop = NULL;
+            if (obj == obj2) {
+                sprop = entry->vword.toSprop();
+                JS_ASSERT(sprop->writable());
+                JS_ASSERT(!obj2->scope()->sealed());
+                NATIVE_SET(cx, obj, sprop, entry, &rref);
+            }
+            if (sprop)
+                break;
+        }
+
+        if (!atom)
+            atom = f.fp->script->getAtom(index);
+        jsid id = ATOM_TO_JSID(atom);
+        if (entry && JS_LIKELY(obj->map->ops->setProperty == js_SetProperty)) {
+            uintN defineHow;
+            JSOp op = JSOp(*f.regs.pc);
+            if (op == JSOP_SETMETHOD)
+                defineHow = JSDNP_CACHE_RESULT | JSDNP_SET_METHOD;
+            else if (op == JSOP_SETNAME)
+                defineHow = JSDNP_CACHE_RESULT | JSDNP_UNQUALIFIED;
+            else
+                defineHow = JSDNP_CACHE_RESULT;
+            if (!js_SetPropertyHelper(cx, obj, id, defineHow, &rref))
+                THROW();
+        } else {
+            if (!obj->setProperty(cx, id, &rref))
+                THROW();
+        }
+    } while (0);
+
+    f.regs.sp[-2] = f.regs.sp[-1];
+}
+
