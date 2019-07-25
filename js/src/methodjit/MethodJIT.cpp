@@ -330,8 +330,15 @@ SYMBOL_STRING(JaegerFromTracer) ":"         "\n"
 
 # elif defined(JS_CPU_ARM)
 
-JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) == (sizeof(VMFrame)-4));
 JS_STATIC_ASSERT(sizeof(VMFrame) == 80);
+JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) ==          (4*19));
+JS_STATIC_ASSERT(offsetof(VMFrame, entryFp) ==          (4*10));
+JS_STATIC_ASSERT(offsetof(VMFrame, stackLimit) ==       (4*9));
+JS_STATIC_ASSERT(offsetof(VMFrame, cx) ==               (4*8));
+JS_STATIC_ASSERT(offsetof(VMFrame, fp) ==               (4*7));
+JS_STATIC_ASSERT(offsetof(VMFrame, oldRegs) ==          (4*4));
+JS_STATIC_ASSERT(offsetof(VMFrame, previous) ==         (4*3));
+JS_STATIC_ASSERT(offsetof(VMFrame, scriptedReturn) ==   (4*0));
 
 asm volatile (
 ".text\n"
@@ -374,16 +381,19 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
 
 
 
+
     
     
 
 
 "   push    {r4-r11,lr}"                        "\n"
     
-"   push    {r0,r3}"                            "\n"    
+"   push    {r1}"                               "\n"    
+"   push    {r3}"                               "\n"    
+"   push    {r0}"                               "\n"    
 "   push    {r1}"                               "\n"    
     
-"   sub     sp, sp, #(4*8)"                     "\n"
+"   sub     sp, sp, #(4*7)"                     "\n"
 
 "   mov     r0, sp"                             "\n"
 "   mov     r4, r2"                             "\n"    
@@ -404,7 +414,7 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
 "   bl  " SYMBOL_STRING_RELOC(UnsetVMFrameRegs) "\n"
 
     
-"   add     sp, sp, #(4*8 + 4*3)"               "\n"
+"   add     sp, sp, #(4*7 + 4*4)"               "\n"
 
     
 "   mov     r0, #1"                         "\n"
@@ -427,7 +437,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 "   bxne    r0"                             "\n"
 
     
-"   add     sp, sp, #(4*8 + 4*3)"               "\n"
+"   add     sp, sp, #(4*7 + 4*4)"           "\n"
 
 "   pop     {r4-r11,pc}"                    "\n"
 );
