@@ -53,7 +53,8 @@ let FormAssistant = {
           checkbox: true,
           radio: true,
           reset: true,
-          submit: true
+          submit: true,
+          image: true
         };
     
         if (evt.target instanceof HTMLSelectElement) { 
@@ -156,6 +157,10 @@ let FormAssistant = {
   },
 
   tryShowIme: function(element) {
+    if (!element) {
+      return;
+    }
+
     
     
     let readonly = element.getAttribute("readonly");
