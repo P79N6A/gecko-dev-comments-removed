@@ -57,6 +57,7 @@ function getBrowser() {
 }
 
 const kDefaultTextZoom = 1.2;
+const kDefaultBrowserWidth = 1024;
 
 var ws = null;
 var ih = null;
@@ -80,7 +81,9 @@ var Browser = {
     let browserContainer = document.getElementById("browser-container");
     ws = new WidgetStack(browserContainer);
     
+    
     ws.beginUpdateBatch();
+    
     
     window.gSidebarVisible = false;
     function panHandler(vr, dx, dy) {
@@ -124,6 +127,16 @@ var Browser = {
       containerStyle.width = containerStyle.maxWidth = w + "px";
       containerStyle.height = containerStyle.maxHeight = h + "px";
 
+      
+      let browsers = Browser.browsers;
+      if (browsers) {
+        let scaledH = (kDefaultBrowserWidth * (h / w));
+        for (let i=0; i<browsers.length; i++) {
+          let browserStyle = browsers[i].style;
+          browserStyle.height = scaledH + "px";
+        }
+      }
+      
       ws.updateSize(w, h);
     }
     window.addEventListener("resize", resizeHandler, false);
@@ -285,9 +298,9 @@ var Browser = {
     return this._tabs[index];
   },
 
-  getTabFromContent: function(content) {
+  getTabFromChrome: function(chromeTab) {
     for (var t = 0; t < this._tabs.length; t++) {
-      if (this._tabs[t].content == content)
+      if (this._tabs[t].chromeTab == chromeTab)
         return this._tabs[t];
     }
     return null;
@@ -301,7 +314,7 @@ var Browser = {
 
     let event = document.createEvent("Events");
     event.initEvent("TabOpen", true, false);
-    newTab.content.dispatchEvent(event);
+    newTab.chromeTab.dispatchEvent(event);
 
     if (bringFront)
       this.selectedTab = newTab;
@@ -311,7 +324,7 @@ var Browser = {
 
   closeTab: function(tab) {
     if (tab instanceof XULElement)
-      tab = this.getTabFromContent(tab);
+      tab = this.getTabFromChrome(tab);
 
     if (!tab)
       return;
@@ -327,7 +340,7 @@ var Browser = {
 
     let event = document.createEvent("Events");
     event.initEvent("TabClose", true, false);
-    tab.content.dispatchEvent(event);
+    tab.chromeTab.dispatchEvent(event);
 
     this.selectedTab = nextTab;
 
@@ -346,7 +359,7 @@ var Browser = {
 
   set selectedTab(tab) {
     if (tab instanceof XULElement)
-      tab = this.getTabFromContent(tab);
+      tab = this.getTabFromChrome(tab);
 
     if (!tab || this._selectedTab == tab)
       return;
@@ -356,7 +369,7 @@ var Browser = {
 
     ws.beginUpdateBatch();
     this._canvasBrowser.setCurrentBrowser(this.selectedBrowser, firstTab);
-    document.getElementById("tabs").selectedItem = tab.content;
+    document.getElementById("tabs").selectedItem = tab.chromeTab;
 
     ws.panTo(0, -BrowserUI.toolbarH);
 
@@ -375,7 +388,7 @@ var Browser = {
 
       let event = document.createEvent("Events");
       event.initEvent("TabSelect", true, false);
-      tab.content.dispatchEvent(event);
+      tab.chromeTab.dispatchEvent(event);
     }
     ws.endUpdateBatch(true);
   },
@@ -1317,14 +1330,14 @@ Tab.prototype = {
   _state: null,
   _listener: null,
   _loading: false,
-  _content: null,
+  _chromeTab: null,
 
   get browser() {
     return this._browser;
   },
 
-  get content() {
-    return this._content;
+  get chromeTab() {
+    return this._chromeTab;
   },
 
   isLoading: function() {
@@ -1336,41 +1349,48 @@ Tab.prototype = {
   },
 
   create: function(uri) {
-    this._content = document.createElement("richlistitem");
-    this._content.setAttribute("type", "documenttab");
-    document.getElementById("tabs").addTab(this._content);
+    this._chromeTab = document.createElement("richlistitem");
+    this._chromeTab.setAttribute("type", "documenttab");
+    document.getElementById("tabs").addTab(this._chromeTab);
 
     this._createBrowser(uri);
   },
 
   destroy: function() {
     this._destroyBrowser();
-    document.getElementById("tabs").removeTab(this._content);
+    document.getElementById("tabs").removeTab(this._chromeTab);
+    this._chromeTab = null;
   },
 
   _createBrowser: function(uri) {
     if (this._browser)
       throw "Browser already exists";
 
+    
+    let scaledHeight = kDefaultBrowserWidth * (window.innerHeight / window.innerWidth);
     let browser = this._browser = document.createElement("browser");
-    browser.className = "deckbrowser-browser";
-    browser.setAttribute("style", "overflow: hidden; visibility: hidden; width: 1024px; height: 800px;");
+    browser.setAttribute("style", "overflow: hidden; visibility: hidden; width: " + kDefaultBrowserWidth + "px; height: " + scaledHeight + "px;");
+    browser.setAttribute("type", "content");
+    browser.setAttribute("src", uri);
+
+    
     let canvas = document.getElementById("browser-canvas");
     browser.setAttribute("contextmenu", canvas.getAttribute("contextmenu"));
     let autocompletepopup = canvas.getAttribute("autocompletepopup");
     if (autocompletepopup)
       browser.setAttribute("autocompletepopup", autocompletepopup);
-    browser.setAttribute("type", "content");
-    browser.setAttribute("src", uri);
 
+    
     document.getElementById("browsers").appendChild(browser);
 
+    
     this._listener = new ProgressController(this);
     browser.addProgressListener(this._listener);
   },
 
   _destroyBrowser: function() {
     document.getElementById("browsers").removeChild(this._browser);
+    this._browser = null;
   },
 
   saveState: function() {
@@ -1433,6 +1453,6 @@ Tab.prototype = {
       return;
 
     let srcCanvas = (Browser.selectedBrowser == this._browser) ? document.getElementById("browser-canvas") : null;
-    this._content.updateThumbnail(this._browser, srcCanvas);
+    this._chromeTab.updateThumbnail(this._browser, srcCanvas);
   }
 }
