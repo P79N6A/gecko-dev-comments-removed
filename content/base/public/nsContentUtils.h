@@ -133,6 +133,7 @@ class nsIObserver;
 class nsPresContext;
 class nsIChannel;
 struct nsIntMargin;
+class nsPIDOMWindow;
 
 #ifndef have_PrefChangedFunc_typedef
 typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
@@ -443,6 +444,12 @@ public:
 
 
   static nsIDocShell *GetDocShellFromCaller();
+
+  
+
+
+
+  static nsPIDOMWindow *GetWindowFromCaller();
 
   
 
