@@ -211,9 +211,7 @@ function get_actual_results() {
 
 
 
-
-
-function get_expected_results(aSortBy, aLocalExpected, aRemoteExpected) {
+function get_expected_results(aSortBy, aLocalExpected) {
   var expectedOrder = null, unknownOrder = null;
   switch (aSortBy) {
     case "relevancescore":
@@ -246,7 +244,7 @@ function get_expected_results(aSortBy, aLocalExpected, aRemoteExpected) {
     if (aId.indexOf("addon") == 0 || aId.indexOf("install") == 0)
       return aLocalExpected;
     if (aId.indexOf("remote") == 0)
-      return aRemoteExpected;
+      return !aLocalExpected;
 
     return false;
   }
@@ -268,18 +266,16 @@ function get_expected_results(aSortBy, aLocalExpected, aRemoteExpected) {
 
 
 
-
-
-function check_results(aQuery, aSortBy, aReverseOrder, aFilterLocal, aFilterRemote) {
-  var localFilterChecked = gManagerWindow.document.getElementById("search-filter-local").checked;
-  var remoteFilterChecked = gManagerWindow.document.getElementById("search-filter-remote").checked;
-  is(localFilterChecked, !aFilterLocal, "Local filter should be checked if showing local items");
-  is(remoteFilterChecked, !aFilterRemote, "Remote filter should be checked if showing remote items");
+function check_results(aQuery, aSortBy, aReverseOrder, aShowLocal) {
+  var localFilterSelected = gManagerWindow.document.getElementById("search-filter-local").selected;
+  var remoteFilterSelected = gManagerWindow.document.getElementById("search-filter-remote").selected;
+  is(localFilterSelected, aShowLocal, "Local filter should be selected if showing local items");
+  is(remoteFilterSelected, !aShowLocal, "Remote filter should be selected if showing remote items");
 
   
   var expectedOrder = [], unknownOrder = [];
   if (aQuery == QUERY)
-    [expectedOrder, unknownOrder] = get_expected_results(aSortBy, !aFilterLocal, !aFilterRemote);
+    [expectedOrder, unknownOrder] = get_expected_results(aSortBy, aShowLocal);
 
   
   var actualResults = get_actual_results();
@@ -331,22 +327,12 @@ function check_filtered_results(aQuery, aSortBy, aReverseOrder) {
   list.ensureElementIsVisible(localFilter);
 
   
-  check_results(aQuery, aSortBy, aReverseOrder, false, false);
-
-  
   EventUtils.synthesizeMouse(localFilter, 2, 2, { }, gManagerWindow);
-  check_results(aQuery, aSortBy, aReverseOrder, true, false);
+  check_results(aQuery, aSortBy, aReverseOrder, true);
 
   
   EventUtils.synthesizeMouse(remoteFilter, 2, 2, { }, gManagerWindow);
-  check_results(aQuery, aSortBy, aReverseOrder, true, true);
-
-  
-  EventUtils.synthesizeMouse(localFilter, 2, 2, { }, gManagerWindow);
-  check_results(aQuery, aSortBy, aReverseOrder, false, true);
-
-  
-  EventUtils.synthesizeMouse(remoteFilter, 2, 2, { }, gManagerWindow);
+  check_results(aQuery, aSortBy, aReverseOrder, false);
 }
 
 
@@ -417,7 +403,7 @@ add_test(function() {
 
 add_test(function() {
   search(QUERY, false, function() {
-    check_results(QUERY, "relevancescore", false);
+    check_filtered_results(QUERY, "relevancescore", false);
 
     var list = gManagerWindow.document.getElementById("search-list");
     var results = get_actual_results();
@@ -507,7 +493,7 @@ add_test(function() {
 
 add_test(function() {
   search("", true, function() {
-    check_results(QUERY, "dateUpdated", true);
+    check_filtered_results(QUERY, "dateUpdated", true);
     run_next_test();
   });
 });
@@ -525,7 +511,7 @@ add_test(function() {
 
 add_test(function() {
   search(QUERY, true, function() {
-    check_results(QUERY, "dateUpdated", true);
+    check_filtered_results(QUERY, "dateUpdated", true);
     run_next_test();
   });
 });
