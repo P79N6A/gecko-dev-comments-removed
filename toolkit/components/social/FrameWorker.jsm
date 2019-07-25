@@ -99,7 +99,7 @@ FrameWorker.prototype = {
                      'atob', 'btoa', 'clearInterval', 'clearTimeout', 'dump',
                      'setInterval', 'setTimeout', 'XMLHttpRequest',
                      'MozBlobBuilder', 'FileReader', 'Blob',
-                     'navigator', 'location'];
+                     'location'];
     workerAPI.forEach(function(fn) {
       try {
         
@@ -109,6 +109,25 @@ FrameWorker.prototype = {
         Cu.reportError("FrameWorker: failed to import API "+fn+"\n"+e+"\n");
       }
     });
+    
+    
+    let navigator = {
+      __exposedProps__: {
+        "appName": "r",
+        "appVersion": "r",
+        "platform": "r",
+        "userAgent": "r",
+        "onLine": "r"
+      },
+      
+      appName: workerWindow.navigator.appName,
+      appVersion: workerWindow.navigator.appVersion,
+      platform: workerWindow.navigator.platform,
+      userAgent: workerWindow.navigator.userAgent,
+      
+      get onLine() workerWindow.navigator.onLine
+    };
+    sandbox.navigator = navigator;
 
     
     
