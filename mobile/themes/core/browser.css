@@ -55,7 +55,7 @@ toolbarbutton.urlbar-button {
   -moz-margin-start: 8px; 
 }
 
-%ifdef MOZ_PLATFORM_MAEMO
+%ifndef ANDROID
 
 #tool-app-switch {
   margin-top: -8px; 
@@ -394,7 +394,7 @@ toolbarbutton.page-button {
   list-style-image: url("chrome://browser/skin/images/settings-active-rtl-64.png");
 }
 
-%ifdef MOZ_PLATFORM_MAEMO
+%ifndef ANDROID
 
 #tool-panel-close {
   -moz-margin-end: -8px; 
