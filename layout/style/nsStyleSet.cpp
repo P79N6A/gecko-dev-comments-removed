@@ -191,7 +191,7 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
 {
   mRuleProcessors[aType] = nsnull;
   if (mAuthorStyleDisabled && (aType == eDocSheet || 
-                               aType == eHTMLPresHintSheet ||
+                               aType == ePresHintSheet ||
                                aType == eStyleAttrSheet)) {
     
     return NS_OK;
@@ -308,7 +308,7 @@ nsStyleSet::SetAuthorStyleDisabled(PRBool aStyleDisabled)
     mAuthorStyleDisabled = aStyleDisabled;
     BeginUpdate();
     mDirty |= 1 << eDocSheet |
-              1 << eHTMLPresHintSheet |
+              1 << ePresHintSheet |
               1 << eStyleAttrSheet;
     return EndUpdate();
   }
@@ -603,10 +603,10 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   nsRuleNode* lastUserRN = aRuleWalker->CurrentNode();
   PRBool haveImportantUserRules = !aRuleWalker->GetCheckForImportantRules();
 
-  aRuleWalker->SetLevel(eHTMLPresHintSheet, PR_FALSE, PR_FALSE);
-  if (mRuleProcessors[eHTMLPresHintSheet])
-    (*aCollectorFunc)(mRuleProcessors[eHTMLPresHintSheet], aData);
-  nsRuleNode* lastHTMLPresHintRN = aRuleWalker->CurrentNode();
+  aRuleWalker->SetLevel(ePresHintSheet, PR_FALSE, PR_FALSE);
+  if (mRuleProcessors[ePresHintSheet])
+    (*aCollectorFunc)(mRuleProcessors[ePresHintSheet], aData);
+  nsRuleNode* lastPresHintRN = aRuleWalker->CurrentNode();
   
   aRuleWalker->SetLevel(eDocSheet, PR_FALSE, PR_TRUE);
   PRBool cutOffInheritance = PR_FALSE;
@@ -634,11 +634,11 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
 
   if (haveImportantDocRules) {
     aRuleWalker->SetLevel(eDocSheet, PR_TRUE, PR_FALSE);
-    AddImportantRules(lastDocRN, lastHTMLPresHintRN, aRuleWalker);  
+    AddImportantRules(lastDocRN, lastPresHintRN, aRuleWalker);  
   }
 #ifdef DEBUG
   else {
-    AssertNoImportantRules(lastDocRN, lastHTMLPresHintRN);
+    AssertNoImportantRules(lastDocRN, lastPresHintRN);
   }
 #endif
 
@@ -653,8 +653,8 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
 #endif
 
 #ifdef DEBUG
-  AssertNoCSSRules(lastHTMLPresHintRN, lastUserRN);
-  AssertNoImportantRules(lastHTMLPresHintRN, lastUserRN); 
+  AssertNoCSSRules(lastPresHintRN, lastUserRN);
+  AssertNoImportantRules(lastPresHintRN, lastUserRN); 
 #endif
 
   if (haveImportantUserRules) {
@@ -703,8 +703,8 @@ nsStyleSet::WalkRuleProcessors(nsIStyleRuleProcessor::EnumFunc aFunc,
   if (!skipUserStyles && mRuleProcessors[eUserSheet]) 
     (*aFunc)(mRuleProcessors[eUserSheet], aData);
 
-  if (mRuleProcessors[eHTMLPresHintSheet])
-    (*aFunc)(mRuleProcessors[eHTMLPresHintSheet], aData);
+  if (mRuleProcessors[ePresHintSheet])
+    (*aFunc)(mRuleProcessors[ePresHintSheet], aData);
   
   PRBool cutOffInheritance = PR_FALSE;
   if (mBindingManager) {
