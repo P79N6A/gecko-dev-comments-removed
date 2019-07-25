@@ -23,6 +23,11 @@
 
 #define JSCLASS_DOM_GLOBAL JSCLASS_USERBIT1
 
+
+
+
+#define DOM_PROTO_INSTANCE_CLASS_SLOT 0
+
 namespace mozilla {
 namespace dom {
 

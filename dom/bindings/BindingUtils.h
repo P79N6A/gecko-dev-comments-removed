@@ -303,11 +303,14 @@ struct Prefable {
 
 
 
+
+
 JSObject*
 CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* receiver,
                        JSObject* protoProto, JSClass* protoClass,
                        JSClass* constructorClass, JSNative constructor,
-                       unsigned ctorNargs, Prefable<JSFunctionSpec>* methods,
+                       unsigned ctorNargs, JSClass* instanceClass,
+                       Prefable<JSFunctionSpec>* methods,
                        Prefable<JSPropertySpec>* properties,
                        Prefable<ConstantSpec>* constants,
                        Prefable<JSFunctionSpec>* staticMethods, const char* name);
@@ -551,6 +554,12 @@ GetParentPointer(const ParentObject& aObject)
 {
   return ToSupports(aObject.mObject);
 }
+
+
+
+JSBool
+InstanceClassHasProtoAtDepth(JSHandleObject protoObject, uint32_t protoID,
+                             uint32_t depth);
 
 
 

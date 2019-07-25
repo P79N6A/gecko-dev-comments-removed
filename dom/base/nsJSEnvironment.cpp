@@ -3959,7 +3959,6 @@ SourceHook(JSContext *cx, JSScript *script, jschar **src, uint32_t *length)
 }
 
 
-
 nsresult
 nsJSRuntime::Init()
 {
@@ -4011,6 +4010,11 @@ nsJSRuntime::Init()
     NS_DOMStructuredCloneError
   };
   JS_SetStructuredCloneCallbacks(sRuntime, &cloneCallbacks);
+
+  static js::DOMCallbacks DOMcallbacks = {
+    InstanceClassHasProtoAtDepth
+  };
+  SetDOMCallbacks(sRuntime, &DOMcallbacks);
 
   
   Preferences::RegisterCallback(MaxScriptRunTimePrefChangedCallback,
