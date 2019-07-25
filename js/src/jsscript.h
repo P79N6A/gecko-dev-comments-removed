@@ -683,7 +683,7 @@ struct JSScript : public js::gc::Cell {
     }
 
     
-    JS_FRIEND_API(size_t) jitDataSize(size_t(*mus)(void *));
+    JS_FRIEND_API(size_t) jitDataSize(JSUsableSizeFun usf);
     
 #endif
 
@@ -691,7 +691,13 @@ struct JSScript : public js::gc::Cell {
         return code + mainOffset;
     }
 
-    JS_FRIEND_API(size_t) dataSize();   
+    
+
+
+
+
+    JS_FRIEND_API(size_t) dataSize();                       
+    JS_FRIEND_API(size_t) dataSize(JSUsableSizeFun usf);    
     uint32 numNotes();                  
 
     

@@ -411,7 +411,7 @@ class JSString : public js::gc::Cell
 
     
 
-    JS_FRIEND_API(size_t) charsHeapSize();
+    JS_FRIEND_API(size_t) charsHeapSize(JSUsableSizeFun usf);
 
     
 

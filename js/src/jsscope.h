@@ -251,13 +251,13 @@ struct PropertyTable {
     
     static size_t sizeOfEntries(size_t cap) { return cap * sizeof(Shape *); }
 
-    size_t sizeOf(size_t(*mus)(void *)) const {
-        if (mus) {
-            size_t usable = mus((void*)this) + mus(entries);
-            if (usable)
-                return usable;
-        }
-        return sizeOfEntries(capacity()) + sizeof(PropertyTable);
+    
+
+
+
+    size_t sizeOf(JSUsableSizeFun usf) const {
+        size_t usable = usf((void*)this) + usf(entries);
+        return usable ? usable : sizeOfEntries(capacity()) + sizeof(PropertyTable);
     }
 
     
@@ -357,6 +357,7 @@ struct Shape : public js::gc::Cell
 
   protected:
     mutable js::Shape   *parent;        
+    
     union {
         mutable js::KidsPointer kids;   
 
@@ -443,6 +444,17 @@ struct Shape : public js::gc::Cell
     js::PropertyTable *getTable() const {
         JS_ASSERT(hasTable());
         return table;
+    }
+
+    size_t sizeOfPropertyTable(JSUsableSizeFun usf) const {
+        return hasTable() ? getTable()->sizeOf(usf) : 0;
+    }
+
+    size_t sizeOfKids(JSUsableSizeFun usf) const {
+        
+        return (!inDictionary() && kids.isHash())
+             ? kids.toHash()->sizeOf(usf, true)
+             : 0;
     }
 
     bool isNative() const { return this != &sharedNonNative; }
