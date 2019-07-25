@@ -1060,8 +1060,9 @@ GestureModule.prototype = {
     this._pinchZoom = AnimatedZoom;
     this._pinchStartRect = AnimatedZoom.getStartRect();
 
-    
-    this._pinchStartScale = this._pinchScale = getBrowser().scale;
+    let browser = getBrowser();
+    this._pinchStartScale = this._pinchScale = browser.scale;
+
     this._ignoreNextUpdate = true; 
 
     
@@ -1070,8 +1071,9 @@ GestureModule.prototype = {
     this._scalingFactor = Services.prefs.getIntPref("browser.ui.pinch.scalingFactor");
 
     
-    this._pinchStartX = aEvent.clientX;
-    this._pinchStartY = aEvent.clientY;
+    this._browserBCR = browser.getBoundingClientRect();
+    this._pinchStartX = aEvent.clientX - this._browserBCR.left;
+    this._pinchStartY = aEvent.clientY - this._browserBCR.top;
   },
 
   _pinchUpdate: function _pinchUpdate(aEvent) {
@@ -1086,7 +1088,8 @@ GestureModule.prototype = {
 
     let startScale = this._pinchStartScale;
     let scaleRatio = startScale / newScale;
-    let [cX, cY] = [aEvent.clientX, aEvent.clientY];
+    let cX = aEvent.clientX - this._browserBCR.left;
+    let cY = aEvent.clientY - this._browserBCR.top;
 
     
     let rect = this._pinchStartRect.clone();
