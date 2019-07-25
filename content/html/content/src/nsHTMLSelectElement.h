@@ -301,7 +301,9 @@ public:
                              PRBool aNotify);
   
   virtual nsresult DoneAddingChildren(PRBool aHaveNotified);
-  virtual PRBool IsDoneAddingChildren();
+  virtual PRBool IsDoneAddingChildren() {
+    return mIsDoneAddingChildren;
+  }
 
   virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
@@ -348,7 +350,7 @@ protected:
 
 
 
-  void FindSelectedIndex(PRInt32 aStartIndex);
+  void FindSelectedIndex(PRInt32 aStartIndex, PRBool aNotify);
   
 
 
@@ -496,7 +498,7 @@ protected:
   
 
 
-  void RebuildOptionsArray();
+  void RebuildOptionsArray(PRBool aNotify);
 
 #ifdef DEBUG
   void VerifyOptionsArray();
@@ -506,6 +508,10 @@ protected:
   {
     return PR_TRUE;
   }
+
+  nsresult SetSelectedIndexInternal(PRInt32 aIndex, PRBool aNotify);
+
+  void SetSelectionChanged(PRBool aValue, PRBool aNotify);
 
   
   nsRefPtr<nsHTMLOptionCollection> mOptions;
@@ -521,6 +527,15 @@ protected:
 
 
   PRPackedBool    mInhibitStateRestoration;
+  
+
+
+  PRPackedBool    mSelectionHasChanged;
+  
+
+
+  PRPackedBool    mDefaultSelectionSet;
+
   
   PRUint32  mNonOptionChildren;
   
