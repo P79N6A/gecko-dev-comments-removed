@@ -120,6 +120,20 @@ public:
     
 
 
+
+
+
+
+
+
+
+
+    static bool AreModifiersActive(Modifiers aModifiers,
+                                   guint aModifierState);
+
+    
+
+
     static void InitInputEvent(nsInputEvent& aInputEvent,
                                guint aModifierState);
 
@@ -209,20 +223,6 @@ protected:
 #ifdef PR_LOGGING
     static const char* GetModifierName(Modifier aModifier);
 #endif 
-
-    
-
-
-
-
-
-
-
-
-
-
-    bool AreModifiersActive(Modifiers aModifiers,
-                            guint aModifierState) const;
 
     
 
