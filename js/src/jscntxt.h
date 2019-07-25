@@ -183,6 +183,13 @@ struct ConservativeGCData
     }
 };
 
+
+
+
+
+
+
+
 class FreeOp : public JSFreeOp {
     bool        shouldFreeLater_;
     bool        onBackgroundThread_;
