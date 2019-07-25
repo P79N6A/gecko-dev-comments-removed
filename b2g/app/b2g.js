@@ -385,9 +385,6 @@ pref("dom.mozAlarms.enabled", true);
 pref("dom.mozSettings.enabled", true);
 
 
-pref("b2g.ignoreXFrameOptions", true);
-
-
 pref("device.camera.enabled", true);
 pref("media.realtime_decoder.enabled", true);
 
