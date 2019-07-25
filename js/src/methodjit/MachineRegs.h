@@ -118,7 +118,7 @@ struct Registers {
 #elif defined(JS_CPU_X64)
     static const RegisterID JSFrameReg = JSC::X86Registers::ebx;
 #elif defined(JS_CPU_ARM)
-    static const RegisterID JSFrameReg = JSC::ARMRegisters::r11;
+    static const RegisterID JSFrameReg = JSC::ARMRegisters::r10;
 #elif defined(JS_CPU_SPARC)
     static const RegisterID JSFrameReg = JSC::SparcRegisters::l0;
 #endif
@@ -225,8 +225,7 @@ struct Registers {
         | (1 << JSC::ARMRegisters::r6)
         | (1 << JSC::ARMRegisters::r7)
     
-        | (1 << JSC::ARMRegisters::r9)
-        | (1 << JSC::ARMRegisters::r10);
+        | (1 << JSC::ARMRegisters::r9);
     
     
     

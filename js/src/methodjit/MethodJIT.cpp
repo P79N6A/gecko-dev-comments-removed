@@ -482,7 +482,7 @@ JS_STATIC_ASSERT(VMFrame::offsetOfFp ==                 (4*7));
 JS_STATIC_ASSERT(offsetof(VMFrame, scratch) ==          (4*3));
 JS_STATIC_ASSERT(offsetof(VMFrame, previous) ==         (4*2));
 
-JS_STATIC_ASSERT(JSFrameReg == JSC::ARMRegisters::r11);
+JS_STATIC_ASSERT(JSFrameReg == JSC::ARMRegisters::r10);
 JS_STATIC_ASSERT(JSReturnReg_Type == JSC::ARMRegisters::r5);
 JS_STATIC_ASSERT(JSReturnReg_Data == JSC::ARMRegisters::r4);
 
@@ -548,7 +548,7 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
     
 "   mov     r4, r2"                             "\n"
     
-"   mov     r11, r1"                            "\n"
+"   mov     r10, r1"                            "\n"
 
 "   mov     r0, sp"                             "\n"
 "   blx  " SYMBOL_STRING_VMFRAME(SetVMFrameRegs)   "\n"
@@ -564,7 +564,7 @@ asm (
 FUNCTION_HEADER_EXTRA
 ".globl " SYMBOL_STRING(JaegerTrampolineReturn)   "\n"
 SYMBOL_STRING(JaegerTrampolineReturn) ":"         "\n"
-"   strd    r4, r5, [r11, #24]"             "\n" 
+"   strd    r4, r5, [r10, #24]"             "\n" 
 
     
 "   mov     r0, sp"                         "\n"
@@ -610,8 +610,8 @@ FUNCTION_HEADER_EXTRA
 SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
     
 
-"   ldr     r11, [r11, #(4*4)]"             "\n"    
-"   str     r11, [sp, #(4*7)]"              "\n"    
+"   ldr     r10, [r10, #(4*4)]"             "\n"    
+"   str     r10, [sp, #(4*7)]"              "\n"    
     
 
 FUNCTION_HEADER_EXTRA
@@ -623,8 +623,8 @@ SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
 "   mov     r0, r4"                         "\n"    
 "   blx  " SYMBOL_STRING_RELOC(js_InternalInterpret) "\n"
 "   cmp     r0, #0"                         "\n"
-"   ldr     ip, [sp, #(4*7)]"               "\n"    
-"   ldrd    r4, r5, [ip, #(4*6)]"           "\n"    
+"   ldr     r10, [sp, #(4*7)]"              "\n"    
+"   ldrd    r4, r5, [r10, #(4*6)]"          "\n"    
 "   ldr     r1, [sp, #(4*3)]"               "\n"    
 "   it      ne"                             "\n"
 "   bxne    r0"                             "\n"
