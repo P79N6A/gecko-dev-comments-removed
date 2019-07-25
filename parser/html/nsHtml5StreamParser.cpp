@@ -589,7 +589,7 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
     }
   }
   
-  if (mCharsetSource < kCharsetFromChannel) {
+  if (mCharsetSource <= kCharsetFromMetaPrescan) {
     
     
     return NS_OK;
@@ -751,7 +751,7 @@ nsHtml5StreamParser::OnDataAvailable(nsIRequest* aRequest,
   return rv;
 }
 
-void
+PRBool
 nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
 {
   
@@ -759,11 +759,11 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
   
   NS_ASSERTION(IsParserThread(), "Wrong thread!");
   if (mCharsetSource >= kCharsetFromMetaTag) { 
-    return;
+    return PR_FALSE;
   }
 
   if (mReparseForbidden) {
-    return; 
+    return PR_FALSE; 
   }
 
   nsCAutoString newEncoding;
@@ -779,17 +779,17 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
   nsCOMPtr<nsICharsetAlias> calias(do_GetService(kCharsetAliasCID, &rv));
   if (NS_FAILED(rv)) {
     NS_NOTREACHED("Charset alias service not available.");
-    return;
+    return PR_FALSE;
   }
   PRBool eq;
   rv = calias->Equals(newEncoding, mCharset, &eq);
   if (NS_FAILED(rv)) {
     NS_NOTREACHED("Charset name equality check failed.");
-    return;
+    return PR_FALSE;
   }
   if (eq) {
     mCharsetSource = kCharsetFromMetaTag; 
-    return;
+    return PR_FALSE;
   }
   
   
@@ -799,7 +799,7 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
   rv = calias->GetPreferred(newEncoding, preferred);
   if (NS_FAILED(rv)) {
     
-    return;
+    return PR_FALSE;
   }
   
   if (preferred.LowerCaseEqualsLiteral("utf-16") ||
@@ -814,7 +814,7 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
       preferred.LowerCaseEqualsLiteral("x-imap4-modified-utf7") ||
       preferred.LowerCaseEqualsLiteral("x-user-defined")) {
     
-    return;
+    return PR_FALSE;
   }
 
   mTreeBuilder->NeedsCharsetSwitchTo(preferred);
@@ -823,6 +823,7 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
   
   
   
+  return PR_TRUE;
 }
 
 void

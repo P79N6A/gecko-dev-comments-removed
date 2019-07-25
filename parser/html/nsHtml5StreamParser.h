@@ -138,7 +138,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    void internalEncodingDeclaration(nsString* aEncoding);
+    PRBool internalEncodingDeclaration(nsString* aEncoding);
 
     
 
