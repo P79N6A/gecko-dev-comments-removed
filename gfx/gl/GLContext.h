@@ -52,10 +52,6 @@
 #include <windows.h>
 #endif
 
-#ifdef DEBUG
-#include "mozilla/Monitor.h"
-#endif
-
 #include "GLDefs.h"
 #include "gfxASurface.h"
 #include "gfxImageSurface.h"
@@ -608,13 +604,7 @@ public:
 
     bool MakeCurrent(bool aForce = false) {
 #ifdef DEBUG
-        MonitorAutoLock lock(sCurrentGLContextMonitor);
-        GLContext *currentGLContext = NULL;
-
-        if (sCurrentGLContextTLS == -1)
-            PR_NewThreadPrivateIndex(&sCurrentGLContextTLS, NULL);
-
-        PR_SetThreadPrivate(sCurrentGLContextTLS, this);
+        sCurrentGLContext = this;
 #endif
         return MakeCurrentImpl(aForce);
     }
@@ -1518,10 +1508,7 @@ protected:
     
     
     
-    
-    
-    static Monitor sCurrentGLContextMonitor;
-    static PRUintn sCurrentGLContextTLS;
+    static THEBES_API GLContext* sCurrentGLContext;
 #endif
 
     void UpdateActualFormat();
@@ -1645,18 +1632,21 @@ public:
 
     void BeforeGLCall(const char* glFunction) {
         if (DebugMode()) {
-            MonitorAutoLock lock(sCurrentGLContextMonitor);
-            GLContext *currentGLContext = NULL;
-
-            if (sCurrentGLContextTLS != -1)
-                currentGLContext = (GLContext*)PR_GetThreadPrivate(sCurrentGLContextTLS);
-
+            
+            
+            
+            if (!NS_IsMainThread()) {
+                NS_ERROR("OpenGL call from non-main thread. While this is fine in itself, "
+                         "the OpenGL debug mode, which is currently enabled, doesn't support this. "
+                         "It needs to be patched by making GLContext::sCurrentGLContext be thread-local.\n");
+                NS_ABORT();
+            }
             if (DebugMode() & DebugTrace)
                 printf_stderr("[gl:%p] > %s\n", this, glFunction);
-            if (this != currentGLContext) {
+            if (this != sCurrentGLContext) {
                 printf_stderr("Fatal: %s called on non-current context %p. "
                               "The current context for this thread is %p.\n",
-                               glFunction, this, currentGLContext);
+                               glFunction, this, sCurrentGLContext);
                 NS_ABORT();
             }
         }
