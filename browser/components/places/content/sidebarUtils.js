@@ -86,7 +86,7 @@ var SidebarUtils = {
     else if (!mouseInGutter && openInTabs &&
             aEvent.originalTarget.localName == "treechildren") {
       tbo.view.selection.select(row.value);
-      PlacesUIUtils.openContainerNodeInTabs(aTree.selectedNode, aEvent, tbo.view);
+      PlacesUIUtils.openContainerNodeInTabs(aTree.selectedNode, aEvent);
     }
     else if (!mouseInGutter && !isContainer &&
              aEvent.originalTarget.localName == "treechildren") {
@@ -94,16 +94,13 @@ var SidebarUtils = {
       
       
       tbo.view.selection.select(row.value);
-      PlacesUIUtils.openNodeWithEvent(aTree.selectedNode, aEvent, tbo.view);
+      PlacesUIUtils.openNodeWithEvent(aTree.selectedNode, aEvent);
     }
   },
 
   handleTreeKeyPress: function SU_handleTreeKeyPress(aEvent) {
-    
-    let node = aEvent.target.selectedNode;
-    let view = PlacesUIUtils.getViewForNode(node);
     if (aEvent.keyCode == KeyEvent.DOM_VK_RETURN)
-      PlacesUIUtils.openNodeWithEvent(node, aEvent, view);
+      PlacesUIUtils.openNodeWithEvent(aEvent.target.selectedNode, aEvent);
   },
 
   

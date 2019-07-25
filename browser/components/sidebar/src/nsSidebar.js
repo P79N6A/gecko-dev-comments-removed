@@ -104,10 +104,8 @@ function (aTitle, aContentURL, aCustomizeURL, aPersist)
 {
     var WINMEDSVC = Components.classes['@mozilla.org/appshell/window-mediator;1']
                               .getService(Components.interfaces.nsIWindowMediator);
-
-    
-    
     var win = WINMEDSVC.getMostRecentWindow( "navigator:browser" );
+                                                                                
     if (!sidebarURLSecurityCheck(aContentURL))
       return;
 
@@ -119,16 +117,7 @@ function (aTitle, aContentURL, aCustomizeURL, aPersist)
     }
     catch(ex) { return; }
 
-    win.PlacesUIUtils.showBookmarkDialog({ action: "add"
-                                         , type: "bookmark"
-                                         , hiddenRows: [ "description"
-                                                       , "keyword"
-                                                       , "location"
-                                                       , "loadInSidebar" ]
-                                         , uri: uri
-                                         , title: aTitle
-                                         , loadBookmarkInSidebar: true
-                                         }, win);
+    win.PlacesUIUtils.showMinimalAddBookmarkUI(uri, aTitle, null, null, true, true);
 }
 
 nsSidebar.prototype.validateSearchEngine =

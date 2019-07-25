@@ -316,21 +316,59 @@ var PlacesUIUtils = {
     return null;
   },
 
-  _reportDeprecatedAddBookmarkMethod:
-  function PUIU__reportDeprecatedAddBookmarkMethod() {
-    let oldFuncName = arugments.callee.caller.name.slice(5); 
-    Cu.reportError(oldFuncName + " is deprecated and will be removed in a \
-                   future release.  Use showBookmarkDialog instead");
-  },
+  
+
+
+
+
+
+
+
 
   
 
 
-  showAddBookmarkUI: function PUIU_showAddBookmarkUI(
-    aURI, aTitle, aDescription, aDefaultInsertionPoint, aShowPicker,
-    aLoadInSidebar, aKeyword, aPostData, aCharSet) {
-    this._reportDeprecatedAddBookmarkMethod();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  showAddBookmarkUI: function PUIU_showAddBookmarkUI(aURI,
+                                                     aTitle,
+                                                     aDescription,
+                                                     aDefaultInsertionPoint,
+                                                     aShowPicker,
+                                                     aLoadInSidebar,
+                                                     aKeyword,
+                                                     aPostData,
+                                                     aCharSet) {
     var info = {
       action: "add",
       type: "bookmark"
@@ -363,18 +401,25 @@ var PlacesUIUtils = {
         info.charSet = aCharSet;
     }
 
-    return this.showBookmarkDialog(info);
+    return this._showBookmarkDialog(info);
   },
 
   
 
 
-  showMinimalAddBookmarkUI:
-  function PUIU_showMinimalAddBookmarkUI(
-    aURI, aTitle, aDescription, aDefaultInsertionPoint, aShowPicker,
-    aLoadInSidebar, aKeyword, aPostData, aCharSet) {
-    this._reportDeprecatedAddBookmarkMethod();
 
+
+
+
+
+
+
+
+  showMinimalAddBookmarkUI:
+  function PUIU_showMinimalAddBookmarkUI(aURI, aTitle, aDescription,
+                                         aDefaultInsertionPoint, aShowPicker,
+                                         aLoadInSidebar, aKeyword, aPostData,
+                                         aCharSet) {
     var info = {
       action: "add",
       type: "bookmark",
@@ -414,10 +459,29 @@ var PlacesUIUtils = {
     else
       info.hiddenRows.push("keyword");
 
-    return this.showBookmarkDialog(info);
+    return this._showBookmarkDialog(info, true);
   },
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   showAddLivemarkUI: function PUIU_showAddLivemarkURI(aFeedURI,
@@ -426,8 +490,6 @@ var PlacesUIUtils = {
                                                       aDescription,
                                                       aDefaultInsertionPoint,
                                                       aShowPicker) {
-    this._reportDeprecatedAddBookmarkMethod();
-
     var info = {
       action: "add",
       type: "livemark"
@@ -450,19 +512,21 @@ var PlacesUIUtils = {
       if (!aShowPicker)
         info.hiddenRows = ["folderPicker"];
     }
-    return this.showBookmarkDialog(info);
+    return this._showBookmarkDialog(info);
   },
 
   
 
 
+
+
+
+
+
   showMinimalAddLivemarkUI:
-  function PUIU_showMinimalAddLivemarkURI(
-    aFeedURI, aSiteURI, aTitle, aDescription, aDefaultInsertionPoint,
-    aShowPicker) {
-
-    this._reportDeprecatedAddBookmarkMethod();
-
+  function PUIU_showMinimalAddLivemarkURI(aFeedURI, aSiteURI, aTitle,
+                                          aDescription, aDefaultInsertionPoint,
+                                          aShowPicker) {
     var info = {
       action: "add",
       type: "livemark",
@@ -486,15 +550,19 @@ var PlacesUIUtils = {
       if (!aShowPicker)
         info.hiddenRows.push("folderPicker");
     }
-    return this.showBookmarkDialog(info);
+    return this._showBookmarkDialog(info, true);
   },
 
   
 
 
-  showMinimalAddMultiBookmarkUI: function PUIU_showAddMultiBookmarkUI(aURIList) {
-    this._reportDeprecatedAddBookmarkMethod();
 
+
+
+
+
+
+  showMinimalAddMultiBookmarkUI: function PUIU_showAddMultiBookmarkUI(aURIList) {
     if (aURIList.length == 0)
       throw("showAddMultiBookmarkUI expects a list of nsIURI objects");
     var info = {
@@ -503,31 +571,46 @@ var PlacesUIUtils = {
       hiddenRows: ["description"],
       URIList: aURIList
     };
-    return this.showBookmarkDialog(info);
+    return this._showBookmarkDialog(info, true);
   },
 
   
 
 
-  showItemProperties: function PUIU_showItemProperties(aItemId, aType, aReadOnly) {
-    this._reportDeprecatedAddBookmarkMethod();
 
+
+
+
+
+
+
+
+  showItemProperties: function PUIU_showItemProperties(aItemId, aType, aReadOnly) {
     var info = {
       action: "edit",
       type: aType,
       itemId: aItemId,
       readOnly: aReadOnly
     };
-    return this.showBookmarkDialog(info);
+    return this._showBookmarkDialog(info);
   },
 
   
 
 
+
+
+
+
+
+
+
+
+
+
+
   showAddFolderUI:
   function PUIU_showAddFolderUI(aTitle, aDefaultInsertionPoint, aShowPicker) {
-    this._reportDeprecatedAddBookmarkMethod();
-
     var info = {
       action: "add",
       type: "folder",
@@ -543,9 +626,8 @@ var PlacesUIUtils = {
       if (!aShowPicker)
         info.hiddenRows.push("folderPicker");
     }
-    return this.showBookmarkDialog(info);
+    return this._showBookmarkDialog(info);
   },
-
 
   
 
@@ -559,29 +641,26 @@ var PlacesUIUtils = {
 
 
 
-  showBookmarkDialog:
-  function PUIU_showBookmarkDialog(aInfo, aParentWindow) {
-    if (!aParentWindow) {
-      aParentWindow = this._getWindow(null);
-    }
-
-    
-    
-    let minimalUI = "hiddenRows" in aInfo &&
-                    aInfo.hiddenRows.indexOf("folderPicker") != -1;
-    let dialogURL = minimalUI ?
+  _showBookmarkDialog: function PUIU__showBookmarkDialog(aInfo, aMinimalUI) {
+    var dialogURL = aMinimalUI ?
                     "chrome://browser/content/places/bookmarkProperties2.xul" :
                     "chrome://browser/content/places/bookmarkProperties.xul";
 
-    let features =
-      "centerscreen,chrome,modal,resizable=" + (minimalUI ? "yes" : "no");
-
-    aParentWindow.openDialog(dialogURL, "",  features, aInfo);
+    var features;
+    if (aMinimalUI)
+      features = "centerscreen,chrome,modal,resizable=yes";
+    else
+      features = "centerscreen,chrome,modal,resizable=no";
+    this._getCurrentActiveWin().openDialog(dialogURL, "",  features, aInfo);
     return ("performed" in aInfo && aInfo.performed);
   },
 
   _getTopBrowserWin: function PUIU__getTopBrowserWin() {
     return Services.wm.getMostRecentWindow("navigator:browser");
+  },
+
+  _getCurrentActiveWin: function PUIU__getCurrentActiveWin() {
+    return focusManager.activeWindow;
   },
 
   
@@ -710,8 +789,7 @@ var PlacesUIUtils = {
   
 
 
-  _confirmOpenInTabs:
-  function PUIU__confirmOpenInTabs(numTabsToOpen, aWindow) {
+  _confirmOpenInTabs: function PUIU__confirmOpenInTabs(numTabsToOpen) {
     const WARN_ON_OPEN_PREF = "browser.tabs.warnOnOpen";
     var reallyOpen = true;
 
@@ -729,7 +807,7 @@ var PlacesUIUtils = {
                              GetStringFromName("brandShortName");
 
         var buttonPressed = Services.prompt.confirmEx(
-          aWindow,
+          this._getCurrentActiveWin(),
           this.getString("tabs.openWarningTitle"),
           this.getFormattedString(messageKey, [numTabsToOpen, brandShortName]),
           (Services.prompt.BUTTON_TITLE_IS_STRING * Services.prompt.BUTTON_POS_0) +
@@ -753,7 +831,7 @@ var PlacesUIUtils = {
   
 
 
-  _openTabset: function PUIU__openTabset(aItemsToOpen, aEvent, aWindow) {
+  _openTabset: function PUIU__openTabset(aItemsToOpen, aEvent) {
     if (!aItemsToOpen.length)
       return;
 
@@ -768,75 +846,37 @@ var PlacesUIUtils = {
       urls.push(item.uri);
     }
 
-    var where = aWindow.whereToOpenLink(aEvent, false, true);
+    var browserWindow = this._getTopBrowserWin();
+    var where = browserWindow ?
+                browserWindow.whereToOpenLink(aEvent, false, true) : "window";
     if (where == "window") {
-      aWindow.openDialog(win.getBrowserURL(), "_blank",
-                             "chrome,all,dialog=no", urls.join("|"));
+      let win = this._getCurrentActiveWin();
+      win.openDialog(win.getBrowserURL(), "_blank",
+                     "chrome,all,dialog=no", urls.join("|"));
       return;
     }
 
     var loadInBackground = where == "tabshifted" ? true : false;
     var replaceCurrentTab = where == "tab" ? false : true;
-    var browserWindow = this._getTopBrowserWin();
     browserWindow.gBrowser.loadTabs(urls, loadInBackground, replaceCurrentTab);
   },
 
-  
-
-
-
-  _getWindow: function PUIU__getWindow(aView) {
-    if (aView) {
-      
-      if (aView instanceof Components.interfaces.nsIDOMNode)
-        return aView.ownerDocument.defaultView;
-
-      return Cu.getGlobalForObject(aView);
-    }
-
-    let caller = arguments.callee.caller;
-
-    
-    if (aView === null) {
-      Components.utils.reportError("The api has changed. A window should be \
-                                    passed to " + caller.name + ".  Not \
-                                    passing a window will throw in a future \
-                                    release.");
-    }
-    else {
-      Components.utils.reportError("The api has changed. A places view \
-                                    should be passed to " + caller.name + ".  \
-                                    Not passing a view will throw in a future \
-                                    release.");
-    }
-
-    
-    
-    let topBrowserWin = this._getTopBrowserWin();
-    return topBrowserWin ? topBrowserWin : focusManager.focusedWindow;
-  },
-
-  openContainerNodeInTabs:
-  function PUIU_openContainerInTabs(aNode, aEvent, aView) {
-    let window = this._getWindow(aView);
-
-    let urlsToOpen = PlacesUtils.getURLsForContainerNode(aNode);
-    if (!this._confirmOpenInTabs(urlsToOpen.length, window))
+  openContainerNodeInTabs: function PUIU_openContainerInTabs(aNode, aEvent) {
+    var urlsToOpen = PlacesUtils.getURLsForContainerNode(aNode);
+    if (!this._confirmOpenInTabs(urlsToOpen.length))
       return;
 
-    this._openTabset(urlsToOpen, aEvent, window);
+    this._openTabset(urlsToOpen, aEvent);
   },
 
-  openURINodesInTabs: function PUIU_openURINodesInTabs(aNodes, aEvent, aView) {
-    let window = this._getWindow(aView);
-
-    let urlsToOpen = [];
+  openURINodesInTabs: function PUIU_openURINodesInTabs(aNodes, aEvent) {
+    var urlsToOpen = [];
     for (var i=0; i < aNodes.length; i++) {
       
       if (PlacesUtils.nodeIsURI(aNodes[i]))
         urlsToOpen.push({uri: aNodes[i].uri, isBookmark: PlacesUtils.nodeIsBookmark(aNodes[i])});
     }
-    this._openTabset(urlsToOpen, aEvent, window);
+    this._openTabset(urlsToOpen, aEvent);
   },
 
   
@@ -849,12 +889,8 @@ var PlacesUIUtils = {
 
 
 
-
-
-  openNodeWithEvent:
-  function PUIU_openNodeWithEvent(aNode, aEvent, aView) {
-    let window = this._getWindow(aView);
-    this._openNodeIn(aNode, window.whereToOpenLink(aEvent), window);
+  openNodeWithEvent: function PUIU_openNodeWithEvent(aNode, aEvent) {
+    this.openNodeIn(aNode, this._getCurrentActiveWin().whereToOpenLink(aEvent));
   },
 
   
@@ -862,15 +898,10 @@ var PlacesUIUtils = {
 
 
 
-  openNodeIn: function PUIU_openNodeIn(aNode, aWhere, aView) {
-    let window = this._getWindow(aView);
-    this._openNodeIn(aNode, aWhere, window);
-  },
-
-  _openNodeIn: function PUIU_openNodeIn(aNode, aWhere, aWindow) {
+  openNodeIn: function PUIU_openNodeIn(aNode, aWhere) {
     if (aNode && PlacesUtils.nodeIsURI(aNode) &&
-        this.checkURLSecurity(aNode, aWindow)) {
-      let isBookmark = PlacesUtils.nodeIsBookmark(aNode);
+        this.checkURLSecurity(aNode, this._getCurrentActiveWin())) {
+      var isBookmark = PlacesUtils.nodeIsBookmark(aNode);
 
       if (isBookmark)
         this.markPageAsFollowedBookmark(aNode.uri);
@@ -882,14 +913,14 @@ var PlacesUIUtils = {
       if (aWhere == "current" && isBookmark) {
         if (PlacesUtils.annotations
                        .itemHasAnnotation(aNode.itemId, this.LOAD_IN_SIDEBAR_ANNO)) {
-          let browserWin = this._getTopBrowserWin();
+          var browserWin = this._getTopBrowserWin();
           if (browserWin) {
             browserWin.openWebPanel(aNode.title, aNode.uri);
             return;
           }
         }
       }
-      aWindow.openUILinkIn(aNode.uri, aWhere);
+      this._getCurrentActiveWin().openUILinkIn(aNode.uri, aWhere);
     }
   },
 
