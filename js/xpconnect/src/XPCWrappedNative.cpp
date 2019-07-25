@@ -1642,8 +1642,6 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
             if (!newobj)
                 return NS_ERROR_FAILURE;
 
-            JS_SetPrivate(flat, nsnull);
-
             JSObject *propertyHolder =
                 JS_NewObjectWithGivenProto(ccx, NULL, NULL, aNewParent);
             if (!propertyHolder || !JS_CopyPropertiesFrom(ccx, propertyHolder, flat))
@@ -1658,6 +1656,17 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                     !wrapper->GetSameCompartmentSecurityWrapper(ccx))
                     return NS_ERROR_FAILURE;
             }
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            JS_SetPrivate(flat, nsnull);
 
             JSObject *ww = wrapper->GetWrapper();
             if (ww) {
