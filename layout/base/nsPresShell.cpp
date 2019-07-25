@@ -4722,7 +4722,12 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
   NS_ASSERTION(aType >= Flush_Frames, "Why did we get called?");
 
   PRBool isSafeToFlush = IsSafeToFlush();
-  isSafeToFlush = isSafeToFlush && nsContentUtils::IsSafeToRunScript();
+
+  
+  
+  if (mDocument->GetScriptGlobalObject()) {
+    isSafeToFlush = isSafeToFlush && nsContentUtils::IsSafeToRunScript();
+  }
 
   NS_ASSERTION(!isSafeToFlush || mViewManager, "Must have view manager");
   
