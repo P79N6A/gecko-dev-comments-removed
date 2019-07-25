@@ -174,7 +174,6 @@ public:
   
   nsPresContext*    mPresContext;
   mozilla::dom::Element* mElement;       
-  nsIContent*       mParentContent; 
   nsRuleWalker*     mRuleWalker; 
   
   
