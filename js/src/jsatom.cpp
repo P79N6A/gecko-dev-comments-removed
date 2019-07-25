@@ -156,9 +156,11 @@ const char *const js_common_atom_names[] = {
     js_source_str,              
     js_stack_str,               
     js_sticky_str,              
+    js_toGMTString_str,         
     js_toLocaleString_str,      
     js_toSource_str,            
     js_toString_str,            
+    js_toUTCString_str,         
     js_valueOf_str,             
     js_toJSON_str,              
     "(void 0)",                 
@@ -250,9 +252,11 @@ const char js_set_str[]             = "set";
 const char js_source_str[]          = "source";
 const char js_stack_str[]           = "stack";
 const char js_sticky_str[]          = "sticky";
+const char js_toGMTString_str[]     = "toGMTString";
+const char js_toLocaleString_str[]  = "toLocaleString";
 const char js_toSource_str[]        = "toSource";
 const char js_toString_str[]        = "toString";
-const char js_toLocaleString_str[]  = "toLocaleString";
+const char js_toUTCString_str[]     = "toUTCString";
 const char js_undefined_str[]       = "undefined";
 const char js_valueOf_str[]         = "valueOf";
 const char js_toJSON_str[]          = "toJSON";

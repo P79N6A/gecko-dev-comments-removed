@@ -2322,20 +2322,32 @@ js_Date(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 JSObject *
 js_InitDateClass(JSContext *cx, JSObject *obj)
 {
-    JSObject *proto;
-
     
     LocalTZA = -(PRMJ_LocalGMTDifference() * msPerSecond);
-    proto = js_InitClass(cx, obj, NULL, &js_DateClass, js_Date, MAXARGS,
-                         NULL, date_methods, NULL, date_static_methods);
+    JSObject *proto = js_InitClass(cx, obj, NULL, &js_DateClass, js_Date, MAXARGS,
+                                   NULL, date_methods, NULL, date_static_methods);
     if (!proto)
         return NULL;
+
+    AutoObjectRooter tvr(cx, proto);
 
     SetDateToNaN(cx, proto);
 
     
-    if (!JS_AliasProperty(cx, proto, "toUTCString", "toGMTString"))
+
+
+
+
+
+
+    AutoValueRooter toUTCStringFun(cx);
+    jsid toUTCStringId = ATOM_TO_JSID(cx->runtime->atomState.toUTCStringAtom);
+    jsid toGMTStringId = ATOM_TO_JSID(cx->runtime->atomState.toGMTStringAtom);
+    if (!js_GetProperty(cx, proto, toUTCStringId, toUTCStringFun.addr()) ||
+        !js_DefineProperty(cx, proto, toGMTStringId, toUTCStringFun.value(),
+                           JS_PropertyStub, JS_PropertyStub, 0)) {
         return NULL;
+    }
 
     return proto;
 }
