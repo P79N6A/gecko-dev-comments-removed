@@ -5522,15 +5522,23 @@ JSObject::splicePrototype(JSContext *cx, JSObject *proto)
 void
 JSObject::makeLazyType(JSContext *cx)
 {
-    JS_ASSERT(cx->typeInferenceEnabled() && hasLazyType());
-    AutoEnterTypeInference enter(cx);
+    JS_ASSERT(hasLazyType());
 
     TypeObject *type = cx->compartment->types.newTypeObject(cx, NULL,
                                                             JSProto_Object, getProto());
     if (!type) {
-        cx->compartment->types.setPendingNukeTypes(cx);
+        if (cx->typeInferenceEnabled())
+            cx->compartment->types.setPendingNukeTypes(cx);
         return;
     }
+
+    if (!cx->typeInferenceEnabled()) {
+        
+        type_ = type;
+        return;
+    }
+
+    AutoEnterTypeInference enter(cx);
 
     
 
