@@ -115,8 +115,7 @@ const CAPABILITIES = [
 
 
 
-const INTERNAL_KEYS = ["_tabStillLoading", "_hosts", "_formDataSaved",
-                       "_shouldRestore"];
+const INTERNAL_KEYS = ["_tabStillLoading", "_hosts", "_formDataSaved"];
 
 
 const TAB_EVENTS = ["TabOpen", "TabClose", "TabSelect", "TabShow", "TabHide",
@@ -525,8 +524,6 @@ SessionStoreService.prototype = {
       
       if ("_stateBackup" in this)
         delete this._stateBackup;
-
-      this._clearRestoringWindows();
       break;
     case "browser:purge-domain-data":
       
@@ -577,8 +574,6 @@ SessionStoreService.prototype = {
       }
       if (this._loadState == STATE_RUNNING)
         this.saveState(true);
-
-      this._clearRestoringWindows();
       break;
     case "nsPref:changed": 
       switch (aData) {
@@ -654,8 +649,6 @@ SessionStoreService.prototype = {
         delete this._stateBackup;
         break;
       }
-
-      this._clearRestoringWindows();
       break;
     case "private-browsing-change-granted":
       if (aData == "enter") {
@@ -668,8 +661,6 @@ SessionStoreService.prototype = {
       
       
       this._resetRestoringState();
-
-      this._clearRestoringWindows();
       break;
     }
   },
@@ -720,8 +711,6 @@ SessionStoreService.prototype = {
         this.saveStateDelayed(win);
         break;
     }
-
-    this._clearRestoringWindows();
   },
 
   
@@ -921,13 +910,7 @@ SessionStoreService.prototype = {
                                                   tabbrowser.selectedTab);
         this._updateCookies([winData]);
       }
-
-#ifndef XP_MACOSX
       
-      
-      winData._shouldRestore = true;
-#endif
-
       
       if (winData.tabs.length > 1 ||
           (winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0]))) {
@@ -3402,22 +3385,6 @@ SessionStoreService.prototype = {
     if (!oState)
       return;
 
-#ifndef XP_MACOSX
-    
-    
-    
-    while (oState._closedWindows.length) {
-      let i = oState._closedWindows.length - 1;
-      if (oState._closedWindows[i]._shouldRestore) {
-        oState.windows.unshift(oState._closedWindows.pop());
-      }
-      else {
-        
-        break;
-      }
-    }
-#endif
-
     if (pinnedOnly) {
       
       
@@ -4004,12 +3971,6 @@ SessionStoreService.prototype = {
       spliceTo = normalWindowIndex + 1;
 #endif
     this._closedWindows.splice(spliceTo);
-  },
-
-  _clearRestoringWindows: function sss__clearRestoringWindows() {
-    for (let i = 0; i < this._closedWindows.length; i++) {
-      delete this._closedWindows[i]._shouldRestore;
-    }
   },
 
   
