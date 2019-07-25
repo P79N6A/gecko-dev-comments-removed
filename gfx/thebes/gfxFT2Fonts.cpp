@@ -805,7 +805,9 @@ gfxFT2FontGroup::AddRange(gfxTextRun *aTextRun, gfxFT2Font *font, const PRUnicha
             }
 
             
-            advance = MOZ_FT_TRUNC(advance) * appUnitsPerDevUnit;
+            
+            
+            advance = ((advance * appUnitsPerDevUnit + 32) >> 6);
         }
 #ifdef DEBUG_thebes_2
         printf(" gid=%d, advance=%d (%s)\n", gid, advance,
