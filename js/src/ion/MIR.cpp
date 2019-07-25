@@ -520,11 +520,19 @@ MBinaryArithInstruction::foldsTo(bool useValueNumbers)
     if (MDefinition *folded = EvaluateConstantOperands(this))
         return folded;
 
-    if (IsConstant(lhs, getIdentity()))
-        return rhs; 
+    
+    if (isAdd() && specialization_ != MIRType_Int32)
+        return this;
 
     if (IsConstant(rhs, getIdentity()))
         return lhs;
+
+    
+    if (isSub())
+        return this;
+
+    if (IsConstant(lhs, getIdentity()))
+        return rhs; 
 
     return this;
 }
