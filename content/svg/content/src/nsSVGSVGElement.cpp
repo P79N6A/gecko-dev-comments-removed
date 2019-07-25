@@ -1180,12 +1180,29 @@ nsSVGSVGElement::GetLength(PRUint8 aCtxType)
 
 
  gfxMatrix
-nsSVGSVGElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix) const
+nsSVGSVGElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
+                                          TransformTypes aWhich) const
 {
+  NS_ABORT_IF_FALSE(aWhich != eChildToUserSpace || aMatrix.IsIdentity(),
+                    "Skipping eUserSpaceToParent transforms makes no sense");
+
   if (IsInner()) {
     float x, y;
     const_cast<nsSVGSVGElement*>(this)->GetAnimatedLengthValues(&x, &y, nsnull);
-    return GetViewBoxTransform() * gfxMatrix().Translate(gfxPoint(x, y)) * aMatrix;
+    if (aWhich == eAllTransforms) {
+      
+      return GetViewBoxTransform() * gfxMatrix().Translate(gfxPoint(x, y)) * aMatrix;
+    }
+    if (aWhich == eUserSpaceToParent) {
+      return gfxMatrix().Translate(gfxPoint(x, y)) * aMatrix;
+    }
+    NS_ABORT_IF_FALSE(aWhich == eChildToUserSpace, "Unknown TransformTypes");
+    return GetViewBoxTransform(); 
+  }
+
+  if (aWhich == eUserSpaceToParent) {
+    
+    return aMatrix;
   }
 
   if (IsRoot()) {

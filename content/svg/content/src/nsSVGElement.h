@@ -151,11 +151,36 @@ public:
   
   nsSVGSVGElement* GetCtx() const;
 
+  enum TransformTypes {
+     eAllTransforms
+    ,eUserSpaceToParent
+    ,eChildToUserSpace
+  };
   
 
 
 
-  virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix) const;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
+                      TransformTypes aWhich = eAllTransforms) const;
 
   
   
