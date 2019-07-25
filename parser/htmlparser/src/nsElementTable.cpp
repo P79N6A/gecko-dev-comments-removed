@@ -1076,16 +1076,6 @@ const nsHTMLElement gHTMLElements[] = {
 #endif
   {
     
-                                 eHTMLTag_spacer,
-              eHTMLTag_unknown,eHTMLTag_unknown,
-              &gRootTags,&gRootTags,
-     0,0,0,0,
-              kExtensions, kNone, kNone,
-           kNonContainer,kDefaultPropRange,
-                0,0,
-  },
-  {
-    
           
           
 
