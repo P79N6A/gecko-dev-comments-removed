@@ -1844,16 +1844,21 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   PRBool hasResizer = HasResizer();
+  nsDisplayListCollection scrollParts;
   for (nsIFrame* kid = mOuter->GetFirstChild(nsnull); kid; kid = kid->GetNextSibling()) {
     if (kid != mScrolledFrame) {
       if (kid == mScrollCornerBox && hasResizer) {
         
         continue;
       }
-      rv = mOuter->BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+      rv = mOuter->BuildDisplayListForChild(aBuilder, kid, aDirtyRect, scrollParts,
+                                            nsIFrame::DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
+  
+  
+  aLists.BorderBackground()->AppendToTop(scrollParts.PositionedDescendants());
 
   
   
@@ -1881,10 +1886,14 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
+  
   if (hasResizer && mScrollCornerBox) {
-    rv = mOuter->BuildDisplayListForChild(aBuilder, mScrollCornerBox, aDirtyRect, aLists,
-                                          nsIFrame::DISPLAY_CHILD_FORCE_PSEUDO_STACKING_CONTEXT);
+    rv = mOuter->BuildDisplayListForChild(aBuilder, mScrollCornerBox, aDirtyRect, scrollParts,
+                                          nsIFrame::DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
     NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    aLists.Content()->AppendToTop(scrollParts.PositionedDescendants());
   }
 
   return NS_OK;
