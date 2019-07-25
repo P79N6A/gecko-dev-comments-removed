@@ -423,8 +423,19 @@ JSObject::toDictionaryMode(JSContext *cx)
 
     uint32 span = slotSpan();
 
-    if (!Shape::newDictionaryList(cx, &shape_))
+    
+
+
+
+
+
+    Shape *last = lastProperty();
+    if (!Shape::newDictionaryList(cx, &last))
         return false;
+
+    JS_ASSERT(last->listp == &last);
+    last->listp = &shape_;
+    shape_ = last;
 
     JS_ASSERT(lastProperty()->hasTable());
     lastProperty()->base()->setSlotSpan(span);
