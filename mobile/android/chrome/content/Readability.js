@@ -458,18 +458,29 @@ Readability.prototype = {
 
         
         if (node.tagName === "DIV") {
-          if (node.innerHTML.search(this.REGEXPS.divToPElements) === -1) {
-            let newNode = doc.createElement('p');
-            newNode.innerHTML = node.innerHTML;
+          
+          
+          
+          
+          let pIndex = this._getSinglePIndexInsideDiv(node);
+
+          if (node.innerHTML.search(this.REGEXPS.divToPElements) === -1 || pIndex >= 0) {
+            let newNode;
+            if (pIndex >= 0) {
+              newNode = node.childNodes[pIndex];
+            } else {
+              newNode = doc.createElement('p');
+              newNode.innerHTML = node.innerHTML;
+
+              
+              newNode._index = nodeIndex;
+              allElements[nodeIndex] = newNode;
+
+              nodesToScore[nodesToScore.length] = newNode;
+            }
+
             node.parentNode.replaceChild(newNode, node);
-
-            
-            newNode._index = nodeIndex;
-            allElements[nodeIndex] = newNode;
             purgeNode(node);
-
-            nodeIndex -= 1;
-            nodesToScore[nodesToScore.length] = node;
           } else {
             
             for (let i = 0, il = node.childNodes.length; i < il; i += 1) {
@@ -707,6 +718,36 @@ Readability.prototype = {
       if (scripts[i].parentNode)
           scripts[i].parentNode.removeChild(scripts[i]);
     }
+  },
+
+  
+
+
+
+
+
+
+  _getSinglePIndexInsideDiv: function(e) {
+    let childNodes = e.childNodes;
+    let pIndex = -1;
+
+    for (let i = childNodes.length; --i >= 0;) {
+      let node = childNodes[i];
+
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.tagName !== "P")
+          return -1;
+
+        if (pIndex >= 0)
+          return -1;
+
+        pIndex = i;
+      } else if (node.nodeType == Node.TEXT_NODE && this._getInnerText(node, false)) {
+        return -1;
+      }
+    }
+
+    return pIndex;
   },
 
   
