@@ -73,13 +73,11 @@ public:
   nsXFormsAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
-
-  
-  NS_IMETHOD GetValue(nsAString& aValue);
-
-  
   
   virtual void Description(nsString& aDescription);
+
+  
+  virtual void Value(nsString& aValue);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
@@ -189,8 +187,10 @@ public:
   nsXFormsSelectableItemAccessible(nsIContent* aContent,
                                    nsDocAccessible* aDoc);
 
-  NS_IMETHOD GetValue(nsAString& aValue);
   NS_IMETHOD DoAction(PRUint8 aIndex);
+
+  
+  virtual void Value(nsString& aValue);
 
   
   virtual PRUint8 ActionCount();

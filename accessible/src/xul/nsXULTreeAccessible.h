@@ -75,12 +75,10 @@ public:
                                            nsAccessible)
 
   
-  NS_IMETHOD GetValue(nsAString& aValue);
-
-  
   virtual void Shutdown();
 
   
+  virtual void Value(nsString& aValue);
   virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual nsAccessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,

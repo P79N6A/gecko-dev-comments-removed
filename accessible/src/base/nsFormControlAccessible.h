@@ -59,9 +59,7 @@ public:
   NS_DECL_NSIACCESSIBLEVALUE
 
   
-  NS_IMETHOD GetValue(nsAString &aValue);
-
-  
+  virtual void Value(nsString& aValue);
   virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 

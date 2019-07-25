@@ -138,6 +138,11 @@ public:
   
 
 
+  virtual void Value(nsString& aValue);
+
+  
+
+
   inline already_AddRefed<nsIDOMNode> DOMNode() const
   {
     nsIDOMNode *DOMNode = nsnull;

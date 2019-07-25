@@ -285,9 +285,11 @@ __try {
   if (!xpAccessible || xpAccessible->IsDefunct())
     return E_FAIL;
 
+  if (xpAccessible->NativeRole() == roles::PASSWORD_TEXT)
+    return E_ACCESSDENIED;
+
   nsAutoString value;
-  if (NS_FAILED(xpAccessible->GetValue(value)))
-    return E_FAIL;
+  xpAccessible->Value(value);
 
   
   

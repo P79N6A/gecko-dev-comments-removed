@@ -105,12 +105,10 @@ public:
   NS_DECL_OR_FORWARD_NSIACCESSIBLETABLE_WITH_XPCACCESSIBLETABLE
 
   
-  NS_IMETHOD GetValue(nsAString& aValue);
-
-  
   virtual void Shutdown();
 
   
+  virtual void Value(nsString& aValue);
   virtual mozilla::a11y::TableAccessible* AsTable() { return this; }
   virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
