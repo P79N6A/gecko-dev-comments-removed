@@ -248,7 +248,11 @@ DebuggerPane.prototype = {
   
 
 
-  close: function DP_close() {
+
+
+
+
+  close: function DP_close(aCloseCallback) {
     if (!this._win) {
       return;
     }
@@ -259,6 +263,16 @@ DebuggerPane.prototype = {
     DebuggerPreferences.height = this._frame.height;
     this._frame.removeEventListener("Debugger:Close", this.close, true);
     this._frame.removeEventListener("unload", this.close, true);
+
+    
+    
+    if (typeof(aCloseCallback) == "function") {
+      let frame = this._frame;
+      frame.addEventListener("unload", function onUnload() {
+        frame.removeEventListener("unload", onUnload, true);
+        aCloseCallback();
+      }, true)
+    }
 
     this._nbox.removeChild(this._splitter);
     this._nbox.removeChild(this._frame);
