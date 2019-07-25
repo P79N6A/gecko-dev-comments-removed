@@ -64,13 +64,13 @@ class nsTPtrArray : public nsTArray<E*> {
 
     
     explicit nsTPtrArray(size_type capacity) {
-      SetCapacity(capacity);
+      this->SetCapacity(capacity);
     }
     
     
     
     nsTPtrArray(const self_type& other) {
-      AppendElements(other);
+      this->AppendElements(other);
     }
 
     
