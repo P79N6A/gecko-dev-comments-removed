@@ -117,9 +117,6 @@ public:
   nsStyleAnimation::Value* AddEmptyValue(nsCSSProperty aProperty)
   {
     PropertyValuePair *p = mPropertyValuePairs.AppendElement();
-    if (!p) {
-      return nsnull;
-    }
     p->mProperty = aProperty;
     return &p->mValue;
   }
@@ -130,7 +127,7 @@ public:
   };
 
 private:
-  nsTArray<PropertyValuePair> mPropertyValuePairs;
+  InfallibleTArray<PropertyValuePair> mPropertyValuePairs;
 };
 
 class ComputedTimingFunction {
