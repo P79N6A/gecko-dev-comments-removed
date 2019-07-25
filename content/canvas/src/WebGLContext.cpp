@@ -80,7 +80,7 @@ WebGLContextOptions::WebGLContextOptions()
 {
     
     if (Preferences::GetBool("webgl.default-no-alpha", false))
-        alpha = false
+        alpha = false;
 }
 
 WebGLContext::WebGLContext()
