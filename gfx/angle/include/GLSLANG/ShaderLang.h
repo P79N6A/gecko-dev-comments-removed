@@ -6,6 +6,26 @@
 #ifndef _COMPILER_INTERFACE_INCLUDED_
 #define _COMPILER_INTERFACE_INCLUDED_
 
+#ifdef MOZILLA_VERSION
+#include "nscore.h"
+
+#ifdef WIN32
+# if !defined(MOZ_ENABLE_LIBXUL) && !defined(MOZ_STATIC_BUILD)
+#  ifdef ANGLE_BUILD
+#   define ANGLE_API NS_EXPORT
+#  else
+#   define ANGLE_API NS_IMPORT
+#  endif
+# else
+#  define ANGLE_API
+# endif
+#else
+# define ANGLE_API NS_EXTERNAL_VIS
+#endif
+#else
+#define ANGLE_API
+#endif
+
 
 
 
@@ -77,11 +97,11 @@ typedef enum {
 
 
 
-int ShInitialize();
+ANGLE_API int ShInitialize();
 
 
 
-int ShFinalize();
+ANGLE_API int ShFinalize();
 
 
 
@@ -107,7 +127,7 @@ typedef struct
 
 
 
-void ShInitBuiltInResources(ShBuiltInResources* resources);
+ANGLE_API void ShInitBuiltInResources(ShBuiltInResources* resources);
 
 
 
@@ -127,9 +147,9 @@ typedef void* ShHandle;
 
 
 
-ShHandle ShConstructCompiler(ShShaderType type, ShShaderSpec spec,
+ANGLE_API ShHandle ShConstructCompiler(ShShaderType type, ShShaderSpec spec,
                              const ShBuiltInResources* resources);
-void ShDestruct(ShHandle handle);
+ANGLE_API void ShDestruct(ShHandle handle);
 
 
 
@@ -149,7 +169,7 @@ void ShDestruct(ShHandle handle);
 
 
 
-int ShCompile(
+ANGLE_API int ShCompile(
     const ShHandle handle,
     const char* const shaderStrings[],
     const int numStrings,
@@ -175,7 +195,7 @@ int ShCompile(
 
 
 
-void ShGetInfo(const ShHandle handle, ShShaderInfo pname, int* params);
+ANGLE_API void ShGetInfo(const ShHandle handle, ShShaderInfo pname, int* params);
 
 
 
@@ -185,7 +205,7 @@ void ShGetInfo(const ShHandle handle, ShShaderInfo pname, int* params);
 
 
 
-void ShGetInfoLog(const ShHandle handle, char* infoLog);
+ANGLE_API void ShGetInfoLog(const ShHandle handle, char* infoLog);
 
 
 
@@ -195,7 +215,7 @@ void ShGetInfoLog(const ShHandle handle, char* infoLog);
 
 
 
-void ShGetObjectCode(const ShHandle handle, char* objCode);
+ANGLE_API void ShGetObjectCode(const ShHandle handle, char* objCode);
 
 
 
@@ -211,7 +231,7 @@ void ShGetObjectCode(const ShHandle handle, char* objCode);
 
 
 
-void ShGetActiveAttrib(const ShHandle handle,
+ANGLE_API void ShGetActiveAttrib(const ShHandle handle,
                        int index,
                        int* length,
                        int* size,
@@ -232,7 +252,7 @@ void ShGetActiveAttrib(const ShHandle handle,
 
 
 
-void ShGetActiveUniform(const ShHandle handle,
+ANGLE_API void ShGetActiveUniform(const ShHandle handle,
                         int index,
                         int* length,
                         int* size,
