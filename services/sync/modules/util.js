@@ -864,6 +864,38 @@ let Utils = {
   
 
 
+
+  passphraseStrength: function passphraseStrength(value) {
+    let bits = 0;
+
+    
+    if (value.length)
+      bits = 4;
+
+    
+    if (value.length > 1)
+      bits += Math.min(value.length - 1, 7) * 2;
+
+    
+    
+    if (value.length > 8)
+      bits += Math.min(value.length - 8, 12) * 1.5;
+
+    
+    if (value.length > 20)
+      bits += value.length - 20;
+
+    
+    if ([char.charCodeAt() for each (char in value.toLowerCase())]
+        .some(function(chr) chr < 97 || chr > 122))
+      bits += 6;
+      
+    return bits;
+  },
+
+  
+
+
   arraySub: function arraySub(minuend, subtrahend) {
     return minuend.filter(function(i) subtrahend.indexOf(i) == -1);
   },
