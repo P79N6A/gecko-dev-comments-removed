@@ -246,14 +246,6 @@ TypeAnalyzer::propagate()
     return true;
 }
 
-bool
-TypeAnalyzer::canSpecializeAtDef(MInstruction *ins)
-{
-    
-    
-    return ins->snapshot() || ins->isPhi();
-}
-
 
 
 
@@ -266,13 +258,12 @@ TypeAnalyzer::rewriteUses(MInstruction *old, MInstruction *ins)
     while (iter.more()) {
         MInstruction *use = iter->ins();
 
+        
+        
+        
         MIRType required = use->requiredInputType(iter->index());
-        if ((required != MIRType_Any && required != ins->type()) ||
-            use == ins->snapshot())
+        if (required != MIRType_Any && required != ins->type())
         {
-            
-            
-            
             iter.next();
             continue;
         }
@@ -300,15 +291,11 @@ TypeAnalyzer::specializePhi(MPhi *phi)
         
         if (ins->type() != MIRType_Value)
             return true;
-
-        if (!canSpecializeAtDef(ins))
-            return true;
     }
 
     MBasicBlock *block = phi->block();
     MUnbox *unbox = MUnbox::New(phi, usedAs);
     block->insertAfter(*block->begin(), unbox);
-    unbox->assignSnapshot(block->entrySnapshot());
     rewriteUses(phi, unbox);
 
     return true;
@@ -322,16 +309,13 @@ TypeAnalyzer::fixup(MInstruction *ins)
 
     
     MIRType usedAs = ins->usedAsType();
-    if (usedAs != MIRType_Value && ins->type() == MIRType_Value && canSpecializeAtDef(ins)) {
+    if (usedAs != MIRType_Value && ins->type() == MIRType_Value) {
         MUnbox *unbox = MUnbox::New(ins, usedAs);
         MBasicBlock *block = ins->block();
-        if (ins->isPhi()) {
+        if (ins->isPhi())
             block->insertAfter(*block->begin(), unbox);
-            unbox->assignSnapshot(block->entrySnapshot());
-        } else {
+        else
             block->insertAfter(ins, unbox);
-            unbox->assignSnapshot(ins->snapshot());
-        }
         rewriteUses(ins, unbox);
     }
 
@@ -361,7 +345,6 @@ TypeAnalyzer::fixup(MInstruction *ins)
             
             MUnbox *unbox = MUnbox::New(ins, required);
             use->block()->insertBefore(use, unbox);
-            unbox->assignSnapshot(use->snapshot());
             use->replaceOperand(uses, unbox);
         } else {
             

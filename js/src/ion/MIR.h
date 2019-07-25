@@ -199,7 +199,6 @@ class MInstruction
     uint32 id_;             
     MIRType resultType_;    
     uint32 usedTypes_;      
-    MSnapshot *snapshot_;   
     bool inWorklist_;       
 
   private:
@@ -214,7 +213,6 @@ class MInstruction
         id_(0),
         resultType_(MIRType_None),
         usedTypes_(0),
-        snapshot_(NULL),
         inWorklist_(0)
     { }
 
@@ -243,15 +241,6 @@ class MInstruction
         JS_ASSERT(inWorklist());
         inWorklist_ = false;
     }
-    MSnapshot *snapshot() const {
-        return snapshot_;
-    }
-
-    
-    
-    
-    
-    inline void assignSnapshot(MSnapshot *snapshot);
 
     MBasicBlock *block() const {
         JS_ASSERT(block_);
@@ -756,16 +745,6 @@ MUseIterator::unlink()
     MUse *old = use;
     use = def->removeUse(prev(), use);
     return old;
-}
-
-void
-MInstruction::assignSnapshot(MSnapshot *snapshot)
-{
-    JS_ASSERT(!snapshot_);
-    JS_ASSERT(snapshot);
-    JS_ASSERT(snapshot->id() < id());
-    JS_ASSERT(snapshot->block() == block());
-    snapshot_ = snapshot;
 }
 
 

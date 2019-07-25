@@ -156,6 +156,8 @@ class IonBuilder : public MIRGenerator
     IonBuilder(JSContext *cx, JSScript *script, JSFunction *fun, TempAllocator &temp,
                MIRGraph &graph, TypeOracle *oracle);
 
+    static void SetupOpcodeFlags();
+
   public:
     bool build();
 
@@ -203,7 +205,9 @@ class IonBuilder : public MIRGenerator
 
     
     
-    MSnapshot *takeSnapshot();
+    bool snapshotAfter();
+    bool snapshotBefore();
+    bool snapshot(jsbytecode *pc);
 
     bool pushConstant(const Value &v);
     bool jsop_binary(JSOp op);
@@ -216,6 +220,7 @@ class IonBuilder : public MIRGenerator
     Vector<CFGState, 8, IonAllocPolicy> cfgStack_;
     Vector<LoopInfo, 4, IonAllocPolicy> loops_;
     TypeOracle *oracle;
+    bool sideEffectsOccurred_;
 };
 
 } 

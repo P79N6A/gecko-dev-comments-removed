@@ -59,10 +59,20 @@ IonBuilder::IonBuilder(JSContext *cx, JSScript *script, JSFunction *fun, TempAll
                        MIRGraph &graph, TypeOracle *oracle)
   : MIRGenerator(temp, script, fun, graph),
     cx(cx),
-    oracle(oracle)
+    oracle(oracle),
+    sideEffectsOccurred_(false)
 {
     pc = script->code;
     atoms = script->atomMap.vector;
+}
+
+static bool SnapshotBefore[256];
+
+void
+IonBuilder::SetupOpcodeFlags()
+{
+    SnapshotBefore[JSOP_BITAND] = true;
+    SnapshotBefore[JSOP_ADD] = true;
 }
 
 static inline int32
@@ -261,9 +271,21 @@ IonBuilder::traverseBytecode()
         }
 
         
+        
+
         JSOp op = JSOp(*pc);
+        if (SnapshotBefore[op] && !snapshotBefore())
+            return false;
+
         if (!inspectOpcode(op))
             return false;
+
+        if (sideEffectsOccurred_) {
+            JS_ASSERT(JSOp(*pc) == op);
+            sideEffectsOccurred_ = false;
+            if (!snapshotAfter())
+                return false;
+        }
 
         pc += js_CodeSpec[op].length;
     }
@@ -1149,9 +1171,6 @@ bool
 IonBuilder::jsop_binary(JSOp op)
 {
     
-    MSnapshot *snapshot = takeSnapshot();
-
-    
     MInstruction *right = current->pop();
     MInstruction *left = current->pop();
 
@@ -1172,7 +1191,6 @@ IonBuilder::jsop_binary(JSOp op)
 
     current->add(ins);
     ins->infer(oracle->binaryOp(script, pc));
-    ins->assignSnapshot(snapshot);
 
     current->push(ins);
     return true;
@@ -1196,13 +1214,61 @@ IonBuilder::newLoopHeader(MBasicBlock *predecessor, jsbytecode *pc)
     return block;
 }
 
-MSnapshot *
-IonBuilder::takeSnapshot()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+IonBuilder::snapshot(jsbytecode *pc)
 {
     MSnapshot *snapshot = MSnapshot::New(current, pc);
     if (!snapshot)
-        return NULL;
+        return false;
     current->add(snapshot);
-    return snapshot;
+    return true;
+}
+
+bool
+IonBuilder::snapshotAfter()
+{
+    return snapshot(GetNextPc(pc));
+}
+
+bool
+IonBuilder::snapshotBefore()
+{
+    return snapshot(pc);
 }
 

@@ -58,12 +58,15 @@ class LIRGeneratorX86 : public LIRGenerator
     
     
     LUse useType(MInstruction *mir);
+    LUse usePayload(MInstruction *mir, LUse::Policy);
     LUse usePayloadInRegister(MInstruction *mir);
 
     
     
     
     void fillBoxUses(LInstruction *lir, size_t n, MInstruction *mir);
+
+    void fillSnapshot(LSnapshot *snapshot);
 
   public:
     bool visitBox(MBox *box);
