@@ -399,6 +399,11 @@ let UI = {
       return;
 
     
+    
+    if (!gBrowser.selectedTab.pinned)
+      TabItems._update(gBrowser.selectedTab);
+
+    
     this._initPageDirection();
 
     var self = this;
@@ -453,6 +458,9 @@ let UI = {
       self.setActiveTab(null);
       dispatchEvent(event);
     }
+
+    
+    GroupItems.flushAppTabUpdates();
 
     TabItems.resumePainting();
   },
