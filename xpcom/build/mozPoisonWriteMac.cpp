@@ -31,8 +31,71 @@ struct FuncData {
                            
 };
 
-typedef ssize_t (*write_t)(int fd, const void *buf, size_t count);
+
+typedef ssize_t (*aio_write_t)(struct aiocb *aiocbp);
+ssize_t wrap_aio_write(struct aiocb *aiocbp);
+FuncData aio_write_data = { 0, (void*) wrap_aio_write, (void*) aio_write };
+ssize_t wrap_aio_write(struct aiocb *aiocbp) {
+    MOZ_ASSERT(0);
+    aio_write_t old_write = (aio_write_t) aio_write_data.Buffer;
+    return old_write(aiocbp);
+}
+
+
+
+typedef ssize_t (*pwrite_t)(int fd, const void *buf, size_t nbyte, off_t offset);
+template<FuncData &foo>
+ssize_t wrap_pwrite_temp(int fd, const void *buf, size_t nbyte, off_t offset) {
+    MOZ_ASSERT(0);
+    pwrite_t old_write = (pwrite_t) foo.Buffer;
+    return old_write(fd, buf, nbyte, offset);
+}
+
+
+
+
+#define DEFINE_PWRITE_DATA(X, NAME)                                        \
+ssize_t wrap_ ## X (int fd, const void *buf, size_t nbyte, off_t offset);  \
+FuncData X ## _data = { NAME, (void*) wrap_ ## X };                        \
+ssize_t wrap_ ## X (int fd, const void *buf, size_t nbyte, off_t offset) { \
+    return wrap_pwrite_temp<X ## _data>(fd, buf, nbyte, offset);           \
+}
+
+
+DEFINE_PWRITE_DATA(pwrite, "pwrite")
+
+DEFINE_PWRITE_DATA(pwrite_NOCANCEL_UNIX2003, "pwrite$NOCANCEL$UNIX2003");
+DEFINE_PWRITE_DATA(pwrite_UNIX2003, "pwrite$UNIX2003");
+
+DEFINE_PWRITE_DATA(pwrite_NOCANCEL, "pwrite$NOCANCEL");
+
 void AbortOnBadWrite(int fd, const void *wbuf, size_t count);
+
+typedef ssize_t (*writev_t)(int fd, const struct iovec *iov, int iovcnt);
+template<FuncData &foo>
+ssize_t wrap_writev_temp(int fd, const struct iovec *iov, int iovcnt) {
+    AbortOnBadWrite(fd, 0, iovcnt);
+    writev_t old_write = (writev_t) foo.Buffer;
+    return old_write(fd, iov, iovcnt);
+}
+
+
+#define DEFINE_WRITEV_DATA(X, NAME)                                  \
+ssize_t wrap_ ## X (int fd, const struct iovec *iov, int iovcnt);    \
+FuncData X ## _data = { NAME, (void*) wrap_ ## X };                  \
+ssize_t wrap_ ## X (int fd, const struct iovec *iov, int iovcnt) {   \
+    return wrap_writev_temp<X ## _data>(fd, iov, iovcnt);            \
+}
+
+
+DEFINE_WRITEV_DATA(writev, "writev");
+
+DEFINE_WRITEV_DATA(writev_NOCANCEL_UNIX2003, "writev$NOCANCEL$UNIX2003");
+DEFINE_WRITEV_DATA(writev_UNIX2003, "writev$UNIX2003");
+
+DEFINE_WRITEV_DATA(writev_NOCANCEL, "writev$NOCANCEL");
+
+typedef ssize_t (*write_t)(int fd, const void *buf, size_t count);
 template<FuncData &foo>
 ssize_t wrap_write_temp(int fd, const void *buf, size_t count) {
     AbortOnBadWrite(fd, buf, count);
@@ -41,18 +104,7 @@ ssize_t wrap_write_temp(int fd, const void *buf, size_t count) {
 }
 
 
-
-
-
-#define DEFINE_F_DATA(X)                                             \
-ssize_t wrap_ ## X (int fd, const void *buf, size_t count);          \
-FuncData X ## _data = { 0, (void*) wrap_ ## X, (void*) X };          \
-ssize_t wrap_ ## X (int fd, const void *buf, size_t count) {         \
-    return wrap_write_temp<X ## _data>(fd, buf, count);              \
-}
-
-
-#define DEFINE_F_DATA_DYN(X, NAME)                                   \
+#define DEFINE_WRITE_DATA(X, NAME)                                   \
 ssize_t wrap_ ## X (int fd, const void *buf, size_t count);          \
 FuncData X ## _data = { NAME, (void*) wrap_ ## X };                  \
 ssize_t wrap_ ## X (int fd, const void *buf, size_t count) {         \
@@ -60,45 +112,12 @@ ssize_t wrap_ ## X (int fd, const void *buf, size_t count) {         \
 }
 
 
-#define DEFINE_F_DATA_ABORT(X)                                       \
-void wrap_ ## X() { abort(); }                                       \
-FuncData X ## _data = { 0, (void*) wrap_ ## X, (void*) X }
+DEFINE_WRITE_DATA(write, "write");
 
+DEFINE_WRITE_DATA(write_NOCANCEL_UNIX2003, "write$NOCANCEL$UNIX2003");
+DEFINE_WRITE_DATA(write_UNIX2003, "write$UNIX2003");
 
-#define DEFINE_F_DATA_ABORT_DYN(X, NAME)                             \
-void wrap_ ## X() { abort(); }                                       \
-FuncData X ## _data = { NAME, (void*) wrap_ ## X }
-
-DEFINE_F_DATA_ABORT(aio_write);
-DEFINE_F_DATA_ABORT(pwrite);
-
-
-DEFINE_F_DATA_ABORT_DYN(writev_NOCANCEL_UNIX2003, "writev$NOCANCEL$UNIX2003");
-DEFINE_F_DATA_ABORT_DYN(writev_UNIX2003, "writev$UNIX2003");
-DEFINE_F_DATA_ABORT_DYN(pwrite_NOCANCEL_UNIX2003, "pwrite$NOCANCEL$UNIX2003");
-DEFINE_F_DATA_ABORT_DYN(pwrite_UNIX2003, "pwrite$UNIX2003");
-
-
-DEFINE_F_DATA_ABORT_DYN(writev_NOCANCEL, "writev$NOCANCEL");
-DEFINE_F_DATA_ABORT_DYN(pwrite_NOCANCEL, "pwrite$NOCANCEL");
-
-DEFINE_F_DATA(write);
-
-typedef ssize_t (*writev_t)(int fd, const struct iovec *iov, int iovcnt);
-ssize_t wrap_writev(int fd, const struct iovec *iov, int iovcnt);
-FuncData writev_data = { 0, (void*) wrap_writev, (void*) writev };
-ssize_t wrap_writev(int fd, const struct iovec *iov, int iovcnt) {
-    AbortOnBadWrite(fd, 0, iovcnt);
-    writev_t old_write = (writev_t) writev_data.Buffer;
-    return old_write(fd, iov, iovcnt);
-}
-
-
-DEFINE_F_DATA_DYN(write_NOCANCEL_UNIX2003, "write$NOCANCEL$UNIX2003");
-DEFINE_F_DATA_DYN(write_UNIX2003, "write$UNIX2003");
-
-
-DEFINE_F_DATA_DYN(write_NOCANCEL, "write$NOCANCEL");
+DEFINE_WRITE_DATA(write_NOCANCEL, "write$NOCANCEL");
 
 FuncData *Functions[] = { &aio_write_data,
 
