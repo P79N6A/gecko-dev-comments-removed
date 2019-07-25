@@ -56,21 +56,6 @@ namespace a11y {
 
 FocusManager* FocusMgr();
 
-#ifdef MOZ_ACCESSIBILITY_ATK
-
-
-
-
-
-void PreInit();
-
-
-
-
-
-bool ShouldA11yBeEnabled();
-#endif
-
 } 
 } 
 
