@@ -55,8 +55,13 @@ notification[type="geo"] {
   -moz-binding: url("chrome://browser/content/bindings.xml#popup_autocomplete_result");
 }
 
-autocompleteresult[value=""] {
+
+autocompleteresult[value=""]:first-child {
   visibility: hidden;
+}
+
+autocompleteresult[value=""]:not(:first-child) {
+  display: none;
 }
 
 placeitem {
