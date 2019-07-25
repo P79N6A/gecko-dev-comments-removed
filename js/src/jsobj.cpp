@@ -3976,6 +3976,37 @@ bad:
     return NULL;
 }
 
+
+
+
+
+
+
+
+
+
+bool
+IsStandardClassResolved(JSObject *obj, js::Class *clasp)
+{
+    JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
+
+    
+    return (obj->getReservedSlot(key) != UndefinedValue());
+}
+
+void
+MarkStandardClassInitializedNoProto(JSObject* obj, js::Class *clasp)
+{
+    JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
+
+    
+
+
+
+    if (obj->getReservedSlot(key) == UndefinedValue())
+        obj->setSlot(key, BooleanValue(true));
+}
+
 }
 
 JSObject *

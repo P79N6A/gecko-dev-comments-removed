@@ -1774,8 +1774,7 @@ JS_ResolveStandardClass(JSContext *cx, JSObject *obj, jsid id, JSBool *resolved)
         if (stdnm->clasp->flags & JSCLASS_IS_ANONYMOUS)
             return JS_TRUE;
 
-        JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(stdnm->clasp);
-        if (obj->getReservedSlot(key).isObject())
+        if (IsStandardClassResolved(obj, stdnm->clasp))
             return JS_TRUE;
 
         if (!stdnm->init(cx, obj))
@@ -1797,6 +1796,9 @@ JS_EnumerateStandardClasses(JSContext *cx, JSObject *obj)
     rt = cx->runtime;
 
     
+
+
+
     atom = rt->atomState.typeAtoms[JSTYPE_VOID];
     if (!obj->nativeContains(ATOM_TO_JSID(atom)) &&
         !obj->defineProperty(cx, ATOM_TO_JSID(atom), UndefinedValue(),
@@ -1807,10 +1809,10 @@ JS_EnumerateStandardClasses(JSContext *cx, JSObject *obj)
 
     
     for (i = 0; standard_class_atoms[i].init; i++) {
-        atom = OFFSET_TO_ATOM(rt, standard_class_atoms[i].atomOffset);
-        if (!obj->nativeContains(ATOM_TO_JSID(atom)) &&
-            !standard_class_atoms[i].init(cx, obj)) {
-            return JS_FALSE;
+        if (!js::IsStandardClassResolved(obj, standard_class_atoms[i].clasp) &&
+            !standard_class_atoms[i].init(cx, obj))
+        {
+                return JS_FALSE;
         }
     }
 
