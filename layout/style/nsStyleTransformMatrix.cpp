@@ -47,6 +47,7 @@
 #include "nsCSSKeywords.h"
 #include "nsMathUtils.h"
 #include "CSSCalc.h"
+#include "nsCSSStruct.h"
 
 namespace css = mozilla::css;
 
@@ -593,6 +594,39 @@ nsStyleTransformMatrix::SetToTransformFunction(const nsCSSValue::Array * aData,
   default:
     NS_NOTREACHED("Unknown transform function!");
   }
+}
+
+
+
+
+
+
+
+
+
+
+ nsStyleTransformMatrix
+nsStyleTransformMatrix::ReadTransforms(const nsCSSValueList* aList,
+                                       nsStyleContext* aContext,
+                                       nsPresContext* aPresContext,
+                                       PRBool &aCanStoreInRuleTree)
+{
+  nsStyleTransformMatrix result;
+
+  for (const nsCSSValueList* curr = aList; curr != nsnull; curr = curr->mNext) {
+    const nsCSSValue &currElem = curr->mValue;
+    NS_ASSERTION(currElem.GetUnit() == eCSSUnit_Function,
+                 "Stream should consist solely of functions!");
+    NS_ASSERTION(currElem.GetArrayValue()->Count() >= 1,
+                 "Incoming function is too short!");
+
+    
+    nsStyleTransformMatrix currMatrix;
+    currMatrix.SetToTransformFunction(currElem.GetArrayValue(), aContext,
+                                      aPresContext, aCanStoreInRuleTree);
+    result *= currMatrix;
+  }
+  return result;
 }
 
 

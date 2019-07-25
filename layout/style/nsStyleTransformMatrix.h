@@ -45,6 +45,8 @@
 #include "gfxMatrix.h"
 #include "nsRect.h"
 
+struct nsCSSValueList;
+
 
 
 
@@ -120,6 +122,14 @@ class nsStyleTransformMatrix
                               nsPresContext* aPresContext,
                               PRBool& aCanStoreInRuleTree);
 
+  
+
+
+
+  static nsStyleTransformMatrix ReadTransforms(const nsCSSValueList* aList,
+                                               nsStyleContext* aContext,
+                                               nsPresContext* aPresContext,
+                                               PRBool &aCanStoreInRuleTree);
   
 
 
