@@ -583,9 +583,10 @@ abstract public class GeckoApp
                 
                 String viewportJSON = viewportMetrics.toJSON();
                 
+                
                 if (viewportJSON.equals(mLastViewport) &&
-                    mLastTitle.equals(lastHistoryEntry.mTitle) &&
-                    mLastSnapshotUri.equals(lastHistoryEntry.mUri))
+                    lastHistoryEntry.mTitle.equals(mLastTitle) &&
+                    lastHistoryEntry.mUri.equals(mLastSnapshotUri))
                     return; 
 
                 mLastViewport = viewportJSON;
