@@ -103,9 +103,12 @@ public:
 
 private:
   void Unmap();
+  void Destroy();
 
   
   int mShmFd;
+  
+  size_t mAllocSize;
   
   size_t mSize;
   
