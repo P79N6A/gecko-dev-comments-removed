@@ -5756,7 +5756,7 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
   case eCSSProperty__moz_background_clip:
     
     return ParseVariant(aValue, VARIANT_HK,
-                        nsCSSProps::kBackgroundClipKTable);
+                        nsCSSProps::kBackgroundOriginKTable);
   case eCSSProperty_background_color:
     return ParseVariant(aValue, VARIANT_HC, nsnull);
   case eCSSProperty_background_image:
@@ -6512,15 +6512,7 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundItem& aItem,
     
     
       } else if (nsCSSProps::FindKeyword(keyword,
-                   nsCSSProps::kBackgroundClipKTable, dummy)) {
-        
-        
-        
-        NS_ASSERTION(
-          nsCSSProps::kBackgroundClipKTable[0] == eCSSKeyword_border &&
-          nsCSSProps::kBackgroundClipKTable[2] == eCSSKeyword_padding &&
-          nsCSSProps::kBackgroundClipKTable[4] == eCSSKeyword_UNKNOWN,
-          "need to rewrite this code");
+                   nsCSSProps::kBackgroundOriginKTable, dummy)) {
         if (haveOrigin)
           return PR_FALSE;
         haveOrigin = PR_TRUE;
@@ -6533,8 +6525,8 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundItem& aItem,
                          NS_STYLE_BG_ORIGIN_BORDER);
         PR_STATIC_ASSERT(NS_STYLE_BG_CLIP_PADDING ==
                          NS_STYLE_BG_ORIGIN_PADDING);
-        
-        
+        PR_STATIC_ASSERT(NS_STYLE_BG_CLIP_CONTENT ==
+                         NS_STYLE_BG_ORIGIN_CONTENT);
         
         aItem.mClip = aItem.mOrigin;
       
