@@ -415,6 +415,19 @@ nsNPAPIPluginInstance::Start()
   
   mRunning = RUNNING;
 
+#if MOZ_WIDGET_ANDROID
+  
+  
+  
+  
+  
+  JNIEnv* env = AndroidBridge::GetJNIEnv();
+  if (!env)
+    return NS_ERROR_FAILURE;
+
+  mozilla::AutoLocalJNIFrame frame(env);
+#endif
+
   nsresult newResult = library->NPP_New((char*)mimetype, &mNPP, (PRUint16)mode, count, (char**)names, (char**)values, NULL, &error);
   mInPluginInitCall = oldVal;
 
