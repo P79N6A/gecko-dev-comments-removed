@@ -576,7 +576,7 @@ let Utils = {
   
   
   isDOMElement: function(object) {
-    return (object && typeof(object.nodeType) != 'undefined' ? true : false);
+    return object instanceof Ci.nsIDOMElement;
   },
 
   
