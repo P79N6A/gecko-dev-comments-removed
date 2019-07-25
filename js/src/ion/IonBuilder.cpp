@@ -693,7 +693,8 @@ IonBuilder::finishLoop(CFGState &state, MBasicBlock *successor)
     
     if (!state.loop.entry->setBackedge(current))
         return ControlStatus_Error;
-    successor->inheritPhis(state.loop.entry);
+    if (successor)
+        successor->inheritPhis(state.loop.entry);
 
     if (state.loop.breaks) {
         
@@ -708,11 +709,13 @@ IonBuilder::finishLoop(CFGState &state, MBasicBlock *successor)
         if (!block)
             return ControlStatus_Error;
 
-        
-        
-        successor->end(MGoto::New(block));
-        if (!block->addPredecessor(successor))
-            return ControlStatus_Error;
+        if (successor) {
+            
+            
+            successor->end(MGoto::New(block));
+            if (!block->addPredecessor(successor))
+                return ControlStatus_Error;
+        }
         successor = block;
     }
 
