@@ -154,9 +154,10 @@ already_AddRefed<gfxImageSurface> gfxQuartzSurface::GetAsImageSurface()
     
     
     
-    img->Release();
+    gfxImageSurface* imgSurface = static_cast<gfxImageSurface*> (img.forget().get());
+    imgSurface->Release();
 
-    return static_cast<gfxImageSurface*>(img.forget().get());
+    return imgSurface;
 }
 
 gfxQuartzSurface::~gfxQuartzSurface()
