@@ -4067,12 +4067,21 @@ var FormAssistant = {
         if (!this._currentInputElement)
           break;
 
-        this._currentInputElement.QueryInterface(Ci.nsIDOMNSEditableElement).setUserInput(aData);
+        let editableElement = this._currentInputElement.QueryInterface(Ci.nsIDOMNSEditableElement);
+
+        
+        
+        try {
+          let imeEditor = editableElement.editor.QueryInterface(Ci.nsIEditorIMESupport);
+          if (imeEditor.composing)
+            imeEditor.forceCompositionEnd();
+        } catch (e) {}
+
+        editableElement.setUserInput(aData);
 
         let event = this._currentInputElement.ownerDocument.createEvent("Events");
         event.initEvent("DOMAutoComplete", true, true);
         this._currentInputElement.dispatchEvent(event);
-
         break;
 
       case "FormAssist:Blocklisted":
