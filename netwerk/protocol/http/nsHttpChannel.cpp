@@ -130,6 +130,7 @@ nsHttpChannel::nsHttpChannel()
     , mCacheForOfflineUse(PR_FALSE)
     , mCachingOpportunistically(PR_FALSE)
     , mFallbackChannel(PR_FALSE)
+    , mTracingEnabled(PR_TRUE)
     , mCustomConditionalRequest(PR_FALSE)
     , mFallingBack(PR_FALSE)
     , mWaitingForRedirectCallback(PR_FALSE)
@@ -2557,7 +2558,13 @@ nsHttpChannel::CheckCache()
     PRBool canAddImsHeader = PR_TRUE;
 
     
-    if (mLoadFlags & LOAD_FROM_CACHE) {
+    if (ResponseWouldVary()) {
+        LOG(("Validating based on Vary headers returning TRUE\n"));
+        canAddImsHeader = PR_FALSE;
+        doValidation = PR_TRUE;
+    }
+    
+    else if (mLoadFlags & LOAD_FROM_CACHE) {
         LOG(("NOT validating based on LOAD_FROM_CACHE load flag\n"));
         doValidation = PR_FALSE;
     }
@@ -2589,12 +2596,6 @@ nsHttpChannel::CheckCache()
         doValidation = PR_TRUE;
     }
 
-    else if (ResponseWouldVary()) {
-        LOG(("Validating based on Vary headers returning TRUE\n"));
-        canAddImsHeader = PR_FALSE;
-        doValidation = PR_TRUE;
-    }
-    
     else if (MustValidateBasedOnQueryUrl()) {
         LOG(("Validating based on RFC 2616 section 13.9 "
              "(query-url w/o explicit expiration-time)\n"));
@@ -3548,6 +3549,7 @@ NS_INTERFACE_MAP_BEGIN(nsHttpChannel)
     NS_INTERFACE_MAP_ENTRY(nsIProtocolProxyCallback)
     NS_INTERFACE_MAP_ENTRY(nsIProxiedChannel)
     NS_INTERFACE_MAP_ENTRY(nsIHttpAuthenticableChannel)
+    NS_INTERFACE_MAP_ENTRY(nsITraceableChannel)
     NS_INTERFACE_MAP_ENTRY(nsIApplicationCacheContainer)
     NS_INTERFACE_MAP_ENTRY(nsIApplicationCacheChannel)
     NS_INTERFACE_MAP_ENTRY(nsIAsyncVerifyRedirectCallback)
@@ -3649,6 +3651,9 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     if (mCanceled)
         return mStatus;
 
+    if (mTimingEnabled)
+        mAsyncOpenTime = mozilla::TimeStamp::Now();
+
     rv = NS_CheckPortSafety(mURI);
     if (NS_FAILED(rv))
         return rv;
@@ -3657,16 +3662,10 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        mDNSPrefetch = new nsDNSPrefetch(mURI, mTimingEnabled);
-        mDNSPrefetch->PrefetchHigh();
+        nsRefPtr<nsDNSPrefetch> prefetch = new nsDNSPrefetch(mURI);
+        if (prefetch) {
+            prefetch->PrefetchHigh();
+        }
     }
     
     
@@ -3700,12 +3699,6 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     
     if (mLoadGroup)
         mLoadGroup->AddRequest(this, nsnull);
-
-    
-    
-    
-    if (mTimingEnabled)
-        mAsyncOpenTime = mozilla::TimeStamp::Now();
 
     
     
@@ -3834,9 +3827,7 @@ nsHttpChannel::GetAsyncOpen(mozilla::TimeStamp* _retval) {
 
 NS_IMETHODIMP
 nsHttpChannel::GetDomainLookupStart(mozilla::TimeStamp* _retval) {
-    if (mDNSPrefetch && mDNSPrefetch->TimingsValid())
-        *_retval = mDNSPrefetch->StartTimestamp();
-    else if (mTransaction)
+    if (mTransaction)
         *_retval = mTransaction->Timings().domainLookupStart;
     else
         *_retval = mTransactionTimings.domainLookupStart;
@@ -3845,9 +3836,7 @@ nsHttpChannel::GetDomainLookupStart(mozilla::TimeStamp* _retval) {
 
 NS_IMETHODIMP
 nsHttpChannel::GetDomainLookupEnd(mozilla::TimeStamp* _retval) {
-    if (mDNSPrefetch && mDNSPrefetch->TimingsValid())
-        *_retval = mDNSPrefetch->EndTimestamp();
-    else if (mTransaction)
+    if (mTransaction)
         *_retval = mTransaction->Timings().domainLookupEnd;
     else
         *_retval = mTransactionTimings.domainLookupEnd;
@@ -4198,15 +4187,6 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         mTransactionTimings = mTransaction->Timings();
         mTransaction = nsnull;
         mTransactionPump = 0;
-
-        
-        if (mDNSPrefetch && mDNSPrefetch->TimingsValid()) {
-            mTransactionTimings.domainLookupStart =
-                mDNSPrefetch->StartTimestamp();
-            mTransactionTimings.domainLookupEnd =
-                mDNSPrefetch->EndTimestamp();
-        }
-        mDNSPrefetch = nsnull;
 
         
         if (authRetry) {
@@ -4970,6 +4950,54 @@ nsHttpChannel::PopRedirectAsyncFunc(nsContinueRedirectionFunc func)
 
 
 
+
+
+class nsStreamListenerWrapper : public nsIStreamListener
+{
+public:
+    nsStreamListenerWrapper(nsIStreamListener *listener);
+
+    NS_DECL_ISUPPORTS
+    NS_FORWARD_NSIREQUESTOBSERVER(mListener->)
+    NS_FORWARD_NSISTREAMLISTENER(mListener->)
+
+private:
+    ~nsStreamListenerWrapper() {}
+    nsCOMPtr<nsIStreamListener> mListener;
+};
+
+nsStreamListenerWrapper::nsStreamListenerWrapper(nsIStreamListener *listener)
+    : mListener(listener) 
+{
+    NS_ASSERTION(mListener, "no stream listener specified");
+}
+
+NS_IMPL_ISUPPORTS2(nsStreamListenerWrapper,
+                   nsIStreamListener,
+                   nsIRequestObserver)
+
+
+
+
+
+NS_IMETHODIMP
+nsHttpChannel::SetNewListener(nsIStreamListener *aListener, nsIStreamListener **_retval)
+{
+    if (!mTracingEnabled)
+        return NS_ERROR_FAILURE;
+
+    NS_ENSURE_ARG_POINTER(aListener);
+
+    nsCOMPtr<nsIStreamListener> wrapper = 
+        new nsStreamListenerWrapper(mListener);
+
+    if (!wrapper)
+        return NS_ERROR_OUT_OF_MEMORY;
+
+    wrapper.forget(_retval);
+    mListener = aListener;
+    return NS_OK;
+}
 
 void
 nsHttpChannel::MaybeInvalidateCacheEntryForSubsequentGet()
