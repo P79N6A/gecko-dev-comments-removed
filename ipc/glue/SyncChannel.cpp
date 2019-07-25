@@ -42,7 +42,7 @@
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"
 
-using mozilla::MutexAutoLock;
+using mozilla::MonitorAutoLock;
 
 template<>
 struct RunnableMethodTraits<mozilla::ipc::SyncChannel>
@@ -57,18 +57,28 @@ namespace ipc {
 const int32 SyncChannel::kNoTimeout = PR_INT32_MIN;
 
 SyncChannel::SyncChannel(SyncListener* aListener)
-  : AsyncChannel(aListener),
-    mPendingReply(0),
-    mProcessingSyncMessage(false),
-    mNextSeqno(0),
-    mTimeoutMs(kNoTimeout)
+  : AsyncChannel(aListener)
+  , mPendingReply(0)
+  , mProcessingSyncMessage(false)
+  , mNextSeqno(0)
+  , mTimeoutMs(kNoTimeout)
+#ifdef OS_WIN
+  , mTopFrame(NULL)
+#endif
 {
-  MOZ_COUNT_CTOR(SyncChannel);
+    MOZ_COUNT_CTOR(SyncChannel);
+#ifdef OS_WIN
+    mEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    NS_ASSERTION(mEvent, "CreateEvent failed! Nothing is going to work!");
+#endif
 }
 
 SyncChannel::~SyncChannel()
 {
     MOZ_COUNT_DTOR(SyncChannel);
+#ifdef OS_WIN
+    CloseHandle(mEvent);
+#endif
 }
 
 
@@ -78,7 +88,7 @@ bool
 SyncChannel::EventOccurred()
 {
     AssertWorkerThread();
-    mMutex.AssertCurrentThreadOwns();
+    mMonitor.AssertCurrentThreadOwns();
     NS_ABORT_IF_FALSE(AwaitingSyncReply(), "not in wait loop");
 
     return (!Connected() || 0 != mRecvd.type());
@@ -88,14 +98,18 @@ bool
 SyncChannel::Send(Message* msg, Message* reply)
 {
     AssertWorkerThread();
-    mMutex.AssertNotCurrentThreadOwns();
+    mMonitor.AssertNotCurrentThreadOwns();
     NS_ABORT_IF_FALSE(!ProcessingSyncMessage(),
                       "violation of sync handler invariant");
     NS_ABORT_IF_FALSE(msg->is_sync(), "can only Send() sync messages here");
 
+#ifdef OS_WIN
+    SyncStackFrame frame(this, false);
+#endif
+
     msg->set_seqno(NextSeqno());
 
-    MutexAutoLock lock(mMutex);
+    MonitorAutoLock lock(mMonitor);
 
     if (!Connected()) {
         ReportConnectionError("SyncChannel");
@@ -104,9 +118,7 @@ SyncChannel::Send(Message* msg, Message* reply)
 
     mPendingReply = msg->type() + 1;
     int32 msgSeqno = msg->seqno();
-    mIOLoop->PostTask(
-        FROM_HERE,
-        NewRunnableMethod(this, &SyncChannel::OnSend, msg));
+    SendThroughTransport(msg);
 
     while (1) {
         bool maybeTimedOut = !SyncChannel::WaitForNotify();
@@ -169,11 +181,9 @@ SyncChannel::OnDispatchMessage(const Message& msg)
     reply->set_seqno(msg.seqno());
 
     {
-        MutexAutoLock lock(mMutex);
+        MonitorAutoLock lock(mMonitor);
         if (ChannelConnected == mChannelState)
-            mIOLoop->PostTask(
-                FROM_HERE,
-                NewRunnableMethod(this, &SyncChannel::OnSend, reply));
+            SendThroughTransport(reply);
     }
 }
 
@@ -190,7 +200,10 @@ SyncChannel::OnMessageReceived(const Message& msg)
         return AsyncChannel::OnMessageReceived(msg);
     }
 
-    MutexAutoLock lock(mMutex);
+    MonitorAutoLock lock(mMonitor);
+
+    if (MaybeInterceptSpecialIOMessage(msg))
+        return;
 
     if (!AwaitingSyncReply()) {
         
@@ -210,11 +223,15 @@ SyncChannel::OnChannelError()
 {
     AssertIOThread();
 
-    AsyncChannel::OnChannelError();
+    MonitorAutoLock lock(mMonitor);
 
-    MutexAutoLock lock(mMutex);
+    if (ChannelClosing != mChannelState)
+        mChannelState = ChannelError;
+
     if (AwaitingSyncReply())
         NotifyWorkerThread();
+
+    PostErrorNotifyTask();
 }
 
 
@@ -236,11 +253,11 @@ bool
 SyncChannel::ShouldContinueFromTimeout()
 {
     AssertWorkerThread();
-    mMutex.AssertCurrentThreadOwns();
+    mMonitor.AssertCurrentThreadOwns();
 
     bool cont;
     {
-        MutexAutoUnlock unlock(mMutex);
+        MonitorAutoUnlock unlock(mMonitor);
         cont = static_cast<SyncListener*>(mListener)->OnReplyTimeout();
     }
 
@@ -278,7 +295,7 @@ SyncChannel::WaitForNotify()
     
     PRIntervalTime waitStart = PR_IntervalNow();
 
-    mCvar.Wait(timeout);
+    mMonitor.Wait(timeout);
 
     
     
@@ -288,7 +305,7 @@ SyncChannel::WaitForNotify()
 void
 SyncChannel::NotifyWorkerThread()
 {
-    mCvar.Notify();
+    mMonitor.Notify();
 }
 
 #endif  

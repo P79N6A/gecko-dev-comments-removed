@@ -311,7 +311,7 @@ protected:
 
     
     size_t StackDepth() const {
-        mMutex.AssertCurrentThreadOwns();
+        mMonitor.AssertCurrentThreadOwns();
         return mStack.size();
     }
 

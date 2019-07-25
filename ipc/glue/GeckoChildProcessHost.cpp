@@ -74,7 +74,7 @@
 #include "APKOpen.h"
 #endif
 
-using mozilla::ReentrantMonitorAutoEnter;
+using mozilla::MonitorAutoLock;
 using mozilla::ipc::GeckoChildProcessHost;
 
 #ifdef ANDROID
@@ -95,7 +95,7 @@ GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
                                              base::WaitableEventWatcher::Delegate* aDelegate)
   : ChildProcessHost(RENDER_PROCESS), 
     mProcessType(aProcessType),
-    mReentrantMonitor("mozilla.ipc.GeckChildProcessHost.mReentrantMonitor"),
+    mMonitor("mozilla.ipc.GeckChildProcessHost.mMonitor"),
     mLaunched(false),
     mChannelInitialized(false),
     mDelegate(aDelegate),
@@ -289,14 +289,14 @@ GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts, int aTime
                                      aExtraOpts, arch));
   
   
-  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  MonitorAutoLock lock(mMonitor);
   PRIntervalTime waitStart = PR_IntervalNow();
   PRIntervalTime current;
 
   
   
   while (!mLaunched) {
-    mon.Wait(timeoutTicks);
+    lock.Wait(timeoutTicks);
 
     if (timeoutTicks != PR_INTERVAL_NO_TIMEOUT) {
       current = PR_IntervalNow();
@@ -327,9 +327,9 @@ GeckoChildProcessHost::AsyncLaunch(std::vector<std::string> aExtraOpts)
 
   
   
-  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  MonitorAutoLock lock(mMonitor);
   while (!mChannelInitialized) {
-    mon.Wait();
+    lock.Wait();
   }
 
   return true;
@@ -340,9 +340,9 @@ GeckoChildProcessHost::InitializeChannel()
 {
   CreateChannel();
 
-  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  MonitorAutoLock lock(mMonitor);
   mChannelInitialized = true;
-  mon.Notify();
+  lock.Notify();
 }
 
 PRInt32 GeckoChildProcessHost::mChildCounter = 0;
@@ -644,13 +644,13 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
 void
 GeckoChildProcessHost::OnChannelConnected(int32 peer_pid)
 {
-  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  MonitorAutoLock lock(mMonitor);
   mLaunched = true;
 
   if (!base::OpenPrivilegedProcessHandle(peer_pid, &mChildProcessHandle))
       NS_RUNTIMEABORT("can't open handle to child process");
 
-  mon.Notify();
+  lock.Notify();
 }
 
 
