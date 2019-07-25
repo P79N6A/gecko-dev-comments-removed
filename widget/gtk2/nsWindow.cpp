@@ -4913,9 +4913,15 @@ nsWindow::GrabPointer(void)
                                              GDK_POINTER_MOTION_MASK),
                               (GdkWindow *)NULL, NULL, GDK_CURRENT_TIME);
 
-    if (retval != GDK_GRAB_SUCCESS) {
-        LOG(("GrabPointer: pointer grab failed\n"));
+    if (retval == GDK_GRAB_NOT_VIEWABLE) {
+        LOG(("GrabPointer: window not viewable; will retry\n"));
         mRetryPointerGrab = true;
+    } else if (retval != GDK_GRAB_SUCCESS) {
+        LOG(("GrabPointer: pointer grab failed: %i\n", retval));
+        
+        
+        
+        check_for_rollup(0, 0, false, true);
     }
 }
 
