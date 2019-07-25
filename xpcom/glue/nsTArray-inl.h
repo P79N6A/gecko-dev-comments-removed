@@ -55,11 +55,11 @@ nsTArray_base<Alloc>::~nsTArray_base() {
 }
 
 template<class Alloc>
-nsTArrayHeader* nsTArray_base<Alloc>::GetAutoArrayBufferUnsafe(size_t elemAlign) {
+const nsTArrayHeader* nsTArray_base<Alloc>::GetAutoArrayBufferUnsafe(size_t elemAlign) const {
   
   
 
-  void* autoBuf = &reinterpret_cast<nsAutoArrayBase<nsTArray<PRUint32>, 1>*>(this)->mAutoBuf;
+  const void* autoBuf = &reinterpret_cast<const nsAutoArrayBase<nsTArray<PRUint32>, 1>*>(this)->mAutoBuf;
 
   
   
@@ -74,14 +74,14 @@ nsTArrayHeader* nsTArray_base<Alloc>::GetAutoArrayBufferUnsafe(size_t elemAlign)
   
   NS_ABORT_IF_FALSE(elemAlign <= 4 || elemAlign == 8, "unsupported alignment.");
   if (sizeof(void*) == 4 && elemAlign == 8) {
-    autoBuf = reinterpret_cast<char*>(autoBuf) + 4;
+    autoBuf = reinterpret_cast<const char*>(autoBuf) + 4;
   }
 
-  return reinterpret_cast<Header*>(autoBuf);
+  return reinterpret_cast<const Header*>(autoBuf);
 }
 
 template<class Alloc>
-bool nsTArray_base<Alloc>::UsesAutoArrayBuffer() {
+bool nsTArray_base<Alloc>::UsesAutoArrayBuffer() const {
   if (!mHdr->mIsAutoArray) {
     return PR_FALSE;
   }
@@ -118,8 +118,8 @@ bool nsTArray_base<Alloc>::UsesAutoArrayBuffer() {
   PR_STATIC_ASSERT(sizeof(nsTArrayHeader) > 4);
 
 #ifdef DEBUG
-  PRPtrdiff diff = reinterpret_cast<char*>(GetAutoArrayBuffer(8)) -
-                   reinterpret_cast<char*>(GetAutoArrayBuffer(4));
+  PRPtrdiff diff = reinterpret_cast<const char*>(GetAutoArrayBuffer(8)) -
+                   reinterpret_cast<const char*>(GetAutoArrayBuffer(4));
   NS_ABORT_IF_FALSE(diff >= 0 && diff <= 4, "GetAutoArrayBuffer doesn't do what we expect.");
 #endif
 

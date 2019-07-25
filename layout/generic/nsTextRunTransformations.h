@@ -132,6 +132,9 @@ public:
     }
   }
 
+  
+  virtual PRUint64 ComputeSize();
+
   nsTransformingTextRunFactory       *mFactory;
   nsTArray<nsRefPtr<nsStyleContext> > mStyles;
   nsTArray<bool>              mCapitalize;

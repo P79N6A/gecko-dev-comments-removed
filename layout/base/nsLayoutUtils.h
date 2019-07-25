@@ -1436,6 +1436,20 @@ public:
   
 
 
+
+
+
+
+
+
+
+
+  static nsresult GetTextRunMemoryForFrames(nsIFrame* aFrame,
+                                            PRUint64* aTotal);
+
+  
+
+
   static bool Are3DTransformsEnabled();
 
   static void Shutdown();

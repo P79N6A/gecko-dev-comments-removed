@@ -3115,6 +3115,29 @@ AccountStorageForTextRun(gfxTextRun *aTextRun, PRInt32 aSign)
 }
 #endif
 
+static PRUint64
+GlyphStorageAllocCount(PRUint32 aLength, PRUint32 aFlags)
+{
+    
+    PRUint64 allocCount = aLength;
+
+    
+    if (!(aFlags & gfxTextRunFactory::TEXT_IS_PERSISTENT)) {
+        
+        
+        typedef gfxTextRun::CompressedGlyph CompressedGlyph;
+        if (aFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
+            allocCount += (aLength + sizeof(CompressedGlyph) - 1) /
+                          sizeof(CompressedGlyph);
+        } else {
+            allocCount += (aLength * sizeof(PRUnichar) +
+                              sizeof(CompressedGlyph) - 1) /
+                          sizeof(CompressedGlyph);
+        }
+    }
+    return allocCount;
+}
+
 
 
 
@@ -3129,21 +3152,7 @@ gfxTextRun::AllocateStorage(const void*& aText, PRUint32 aLength, PRUint32 aFlag
     
     
 
-    
-    PRUint64 allocCount = aLength;
-
-    
-    if (!(aFlags & gfxTextRunFactory::TEXT_IS_PERSISTENT)) {
-        
-        
-        if (aFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
-            allocCount += (aLength + sizeof(CompressedGlyph)-1)
-                          / sizeof(CompressedGlyph);
-        } else {
-            allocCount += (aLength*sizeof(PRUnichar) + sizeof(CompressedGlyph)-1)
-                          / sizeof(CompressedGlyph);
-        }
-    }
+    PRUint64 allocCount = GlyphStorageAllocCount(aLength, aFlags);
 
     
     
@@ -4469,6 +4478,31 @@ gfxTextRun::ClusterIterator::ClusterAdvance(PropertyProvider *aProvider) const
     }
 
     return mTextRun->GetAdvanceWidth(mCurrentChar, ClusterLength(), aProvider);
+}
+
+PRUint64
+gfxTextRun::ComputeSize()
+{
+    PRUint64 total = moz_malloc_usable_size(this);
+    if (total == 0) {
+        total = sizeof(gfxTextRun);
+    }
+
+    PRUint64 glyphDataSize = moz_malloc_usable_size(mCharacterGlyphs);
+    if (glyphDataSize == 0) {
+        
+        glyphDataSize = sizeof(CompressedGlyph) *
+            GlyphStorageAllocCount(mCharacterCount, mFlags);
+    }
+    total += glyphDataSize;
+
+    if (mDetailedGlyphs) {
+        total += mDetailedGlyphs->SizeOf();
+    }
+
+    total += mGlyphRuns.SizeOf();
+
+    return total;
 }
 
 

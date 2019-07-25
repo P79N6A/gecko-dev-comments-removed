@@ -1353,7 +1353,15 @@ public:
 
 
 
-        TEXT_OPTIMIZE_SPEED          = 0x0100
+        TEXT_OPTIMIZE_SPEED          = 0x0100,
+        
+
+
+
+
+
+
+        TEXT_RUN_SIZE_ACCOUNTED      = 0x0200
     };
 
     
@@ -2038,6 +2046,21 @@ public:
     
     PRUint64 GetUserFontSetGeneration() { return mUserFontSetGeneration; }
 
+    
+    
+    virtual PRUint64 ComputeSize();
+
+    void AccountForSize(PRUint64* aTotal)  {
+        if (mFlags & gfxTextRunFactory::TEXT_RUN_SIZE_ACCOUNTED) {
+            return;
+        }
+        mFlags |= gfxTextRunFactory::TEXT_RUN_SIZE_ACCOUNTED;
+        *aTotal += ComputeSize();
+    }
+    void ClearSizeAccounted() {
+        mFlags &= ~gfxTextRunFactory::TEXT_RUN_SIZE_ACCOUNTED;
+    }
+
 #ifdef DEBUG
     
     PRUint32 mCachedWords;
@@ -2206,6 +2229,11 @@ private:
                 }
             }
             return details;
+        }
+
+        PRUint32 SizeOf() {
+            return sizeof(DetailedGlyphStore) +
+                mDetails.SizeOf() + mOffsetToIndex.SizeOf();
         }
 
     private:

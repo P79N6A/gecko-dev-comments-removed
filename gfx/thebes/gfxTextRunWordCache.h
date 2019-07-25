@@ -105,6 +105,15 @@ public:
 
     static void Flush();
 
+    
+
+
+
+
+
+
+    static void ComputeStorage(PRUint64 *aTotal);
+
 protected:
     friend class gfxPlatform;
 
