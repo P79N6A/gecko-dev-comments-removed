@@ -76,8 +76,8 @@ function init(aEvent)
 #ifdef MOZ_OFFICIAL_BRANDING
   
   
-  let chromeRegistry = Cc["@mozilla.org/chrome/chrome-registry;1"].
-                       getService(Ci.nsIXULChromeRegistry);
+  let chromeRegistry = Components.classes["@mozilla.org/chrome/chrome-registry;1"].
+                       getService(Components.interfaces.nsIXULChromeRegistry);
   let currentLocale = chromeRegistry.getSelectedLocale("global");
   if (currentLocale != "en-US" && currentLocale != "en-GB") {
     document.getElementById("extra-trademark").hidden = true;
