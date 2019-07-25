@@ -1294,7 +1294,7 @@ var Browser = {
       this._slideMultiplier = 3;
     } else {
       
-      document.getElementById("tabs-sidebar").style.visibility = "visible";
+      TabsPopup.show();
       this._setSidebarOffset(ltr ? ViewableAreaObserver.sidebarWidth : 0);
       this._slideMultiplier = 6;
     }
@@ -1309,9 +1309,7 @@ var Browser = {
   ungrabSidebar: function ungrabSidebar() {
     if (!this._grabbedSidebar)
       return;
-
     this._grabbedSidebar = false;
-    document.getElementById("tabs-sidebar").style.visibility = "";
 
     let finalOffset = this._sidebarOffset;
     this._setSidebarOffset(0);
@@ -1320,7 +1318,8 @@ var Browser = {
     if (finalOffset > (ViewableAreaObserver.sidebarWidth / 2) ^ rtl)
       TabsPopup.hide();
     else
-      TabsPopup.show();
+      
+      ViewableAreaObserver.update();
   },
 
   
