@@ -761,19 +761,7 @@ struct GetPropHelper {
     }
 
     LookupStatus lookup() {
-        
-
-
-
-
-
-        JSObject *aobj = obj;
-        if (obj->isDenseArray()) {
-            if (name == cx->runtime->atomState.protoAtom)
-                return ic.disable(cx, "__proto__");
-            aobj = obj->getProto();
-        }
-
+        JSObject *aobj = js_GetProtoIfDenseArray(obj);
         if (!aobj->isNative())
             return ic.disable(f, "non-native");
 
