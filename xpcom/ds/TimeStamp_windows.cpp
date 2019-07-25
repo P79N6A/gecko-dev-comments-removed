@@ -202,11 +202,20 @@ static ULONGLONG sLastCalibrated;
 
 
 
-static bool sFallBackToGTC = false;
 
 
 
-static bool sForceRecalibrate = false;
+
+
+
+
+static union CalibrationFlags {
+  struct {
+    bool fallBackToGTC;
+    bool forceRecalibrate;
+  } flags;
+  uint32_t dwordValue;
+} sCalibrationFlags;
 
 
 namespace mozilla {
@@ -313,8 +322,11 @@ StandbyObserver::Observe(nsISupports *subject,
 
   
   
-  sFallBackToGTC = false;
-  sForceRecalibrate = true;
+  CalibrationFlags value;
+  value.flags.fallBackToGTC = false;
+  value.flags.forceRecalibrate = true;
+  sCalibrationFlags.dwordValue = value.dwordValue; 
+
   LOG(("TimeStamp: system has woken up, reset GTC fallback"));
 
   return NS_OK;
@@ -448,7 +460,7 @@ PerformanceCounter()
 static inline void
 RecordFlaw()
 {
-  sFallBackToGTC = true;
+  sCalibrationFlags.flags.fallBackToGTC = true;
 
   LOG(("TimeStamp: falling back to GTC :("));
 
@@ -481,14 +493,16 @@ RecordFlaw()
 static inline bool
 CheckCalibration(LONGLONG overflow, ULONGLONG qpc, ULONGLONG gtc)
 {
-  if (sFallBackToGTC) {
+  CalibrationFlags value;
+  value.dwordValue = sCalibrationFlags.dwordValue; 
+  if (value.flags.fallBackToGTC) {
     
     return false;
   }
 
   ULONGLONG sinceLastCalibration = gtc - sLastCalibrated;
 
-  if (overflow && !sForceRecalibrate) {
+  if (overflow && !value.flags.forceRecalibrate) {
     
     
     
@@ -504,19 +518,21 @@ CheckCalibration(LONGLONG overflow, ULONGLONG qpc, ULONGLONG gtc)
     if (trend > ms2mt(kOverflowLimit)) {
       
       
+      AutoCriticalSection lock(&sTimeStampLock);
       RecordFlaw();
       return false;
     }
   }
 
-  if (sinceLastCalibration > kCalibrationInterval || sForceRecalibrate) {
+  if (sinceLastCalibration > kCalibrationInterval || value.flags.forceRecalibrate) {
     
+    AutoCriticalSection lock(&sTimeStampLock);
     sSkew = qpc - ms2mt(gtc);
     sLastCalibrated = gtc;
     LOG(("TimeStamp: new skew is %1.2fms (force:%d)",
-      mt2ms_d(sSkew), sForceRecalibrate));
+      mt2ms_d(sSkew), value.flags.forceRecalibrate));
 
-    sForceRecalibrate = false;
+    sCalibrationFlags.flags.forceRecalibrate = false;
   }
 
   return true;
@@ -570,10 +586,6 @@ CalibratedPerformanceCounter()
   
   ULONGLONG gtc = sGetTickCount64();
 
-  ULONGLONG result;
-  {
-  AutoCriticalSection lock(&sTimeStampLock);
-
   LONGLONG diff = qpc - ms2mt(gtc) - sSkew;
   LONGLONG overflow = 0;
 
@@ -584,7 +596,7 @@ CalibratedPerformanceCounter()
     overflow = diff - sOverrunThreshold;
   }
 
-  result = qpc;
+  ULONGLONG result = qpc;
   if (!CheckCalibration(overflow, qpc, gtc)) {
     
     result = ms2mt(gtc) + sSkew;
@@ -594,7 +606,6 @@ CalibratedPerformanceCounter()
   LOG(("TimeStamp: result = %1.2fms, diff = %1.4fms",
       mt2ms_d(result), mt2ms_d(diff)));
 #endif
-  }
 
   return AtomicStoreIfGreaterThan(&sLastResult, result);
 }
@@ -671,7 +682,7 @@ TimeStamp::Startup()
   if (!QPCAvailable) {
     
     sFrequencyPerSec = 1;
-    sFallBackToGTC = true;
+    sCalibrationFlags.flags.fallBackToGTC = true;
     InitResolution();
 
     LOG(("TimeStamp: using GetTickCount"));
