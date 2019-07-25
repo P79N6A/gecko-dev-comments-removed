@@ -70,7 +70,7 @@ var Drag = function(item, event, isResizing) {
     this.$el = iQ(this.el);
     this.parent = this.item.parent;
     this.startPosition = new Point(event.clientX, event.clientY);
-    this.startTime = + new Date; 
+    this.startTime = Date.now();
 
     this.item.isDragging = true;
     this.item.setZ(999999);
@@ -256,7 +256,7 @@ Drag.prototype = {
     this.snap('topleft',true);
 
     if (this.parent && this.parent.expanded) {
-      var now = + new Date; 
+      var now = Date.now();
       var distance = this.startPosition.distance(new Point(event.clientX, event.clientY));
       if (distance > 100) {
         this.parent.remove(this.item);

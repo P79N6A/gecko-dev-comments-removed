@@ -300,7 +300,7 @@ TabMirror.prototype = {
   
   _heartbeat: function() {
     try {
-      var now = + new Date; 
+      var now = Date.now();
       var count = Tabs.length;
       if (count && this.paintingPaused <= 0) {
         this.heartbeatIndex++;
@@ -353,8 +353,7 @@ TabMirror.prototype = {
             if (mirror.isShowingCachedData && mirror.okayToHideCache) 
               mirror.hideCachedData();
 
-						
-            if ((+ new Date) - mirror.needsPaint > 5000) 
+            if (Date.now() - mirror.needsPaint > 5000) 
               mirror.needsPaint = 0;
           }
         }
