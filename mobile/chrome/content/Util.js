@@ -46,10 +46,10 @@
 Cu.import("resource://gre/modules/Geometry.jsm");
 
 let Util = {
-  bindAll: function bindAll(instance) {
-    for (let key in instance)
-      if (instance[key] instanceof Function)
-        instance[key] = instance[key].bind(instance);
+  bind: function bind(f, thisObj) {
+    return function() {
+      return f.apply(thisObj, arguments);
+    };
   },
 
   
@@ -134,6 +134,34 @@ let Util = {
 
   clamp: function(num, min, max) {
     return Math.max(min, Math.min(max, num));
+  },
+
+  
+
+
+
+
+
+
+
+  needHomepageOverride: function needHomepageOverride() {
+    let savedmstone = null;
+    try {
+      savedmstone = Services.prefs.getCharPref("browser.startup.homepage_override.mstone");
+    } catch (e) {}
+
+    if (savedmstone == "ignore")
+      return "none";
+
+#expand    let ourmstone = "__MOZ_APP_VERSION__";
+
+    if (ourmstone != savedmstone) {
+      Services.prefs.setCharPref("browser.startup.homepage_override.mstone", ourmstone);
+
+      return (savedmstone ? "new version" : "new profile");
+    }
+
+    return "none";
   },
 
   
