@@ -37,6 +37,7 @@
 #include "prlock.h"
 #include "nsRegion.h"
 #include "nsISupportsImpl.h"
+#include "nsTArray.h"
 
 
 
@@ -1297,6 +1298,252 @@ nsIntRegion nsRegion::ToOutsidePixels(nscoord aAppUnitsPerPixel) const {
     result.Or(result, deviceRect);
   }
   return result;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+namespace {
+  
+  
+  class AxisPartition {
+  public:
+    
+    
+    void InsertCoord(nscoord c) {
+      PRUint32 i;
+      if (!mStops.GreatestIndexLtEq(c, i)) {
+        mStops.InsertElementAt(i, c);
+      }
+    }
+
+    
+    
+    PRInt32 IndexOf(nscoord p) const {
+      return mStops.BinaryIndexOf(p);
+    }
+
+    
+    
+    nscoord StopAt(PRInt32 index) const {
+      return mStops[index];
+    }
+
+    
+    
+    
+    nscoord StopSize(PRInt32 index) const {
+      return mStops[index+1] - mStops[index];
+    }
+
+    
+    PRInt32 GetNumStops() const { return mStops.Length(); }
+
+  private:
+    nsTArray<nscoord> mStops;
+  };
+
+  const PRInt64 kVeryLargeNegativeNumber = 0xffff000000000000;
+
+  
+  
+  PRInt64 MaxSum1D(const nsTArray<PRInt64> &A, PRInt32 n,
+                   PRInt32 *minIdx, PRInt32 *maxIdx) {
+    
+    PRInt64 min = 0,
+            max = 0;
+    PRInt32 currentMinIdx = 0;
+
+    *minIdx = 0;
+    *maxIdx = 0;
+
+    
+    
+    for(PRInt32 i = 1; i < n; i++) {
+      PRInt64 cand = A[i] - min;
+      if (cand > max) {
+        max = cand;
+        *minIdx = currentMinIdx;
+        *maxIdx = i;
+      }
+      if (min > A[i]) {
+        min = A[i];
+        currentMinIdx = i;
+      }
+    }
+
+    return max;
+  }
+}
+
+nsRect nsRegion::GetLargestRectangle () const {
+  nsRect bestRect;
+
+  if (!mRectCount)
+    return bestRect;
+
+  AxisPartition xaxis, yaxis;
+
+  
+  nsRegionRectIterator iter(*this);
+  const nsRect *currentRect;
+  while ((currentRect = iter.Next())) {
+    xaxis.InsertCoord(currentRect->x);
+    xaxis.InsertCoord(currentRect->XMost());
+    yaxis.InsertCoord(currentRect->y);
+    yaxis.InsertCoord(currentRect->YMost());
+  }
+
+  
+  
+  
+  PRInt32 matrixHeight = yaxis.GetNumStops() - 1;
+  PRInt32 matrixWidth = xaxis.GetNumStops() - 1;
+  PRInt32 matrixSize = matrixHeight * matrixWidth;
+  nsTArray<PRInt64> areas(matrixSize);
+  areas.SetLength(matrixSize);
+  memset(areas.Elements(), 0, matrixSize * sizeof PRInt64);
+
+  iter.Reset();
+  while ((currentRect = iter.Next())) {
+    PRInt32 xstart = xaxis.IndexOf(currentRect->x);
+    PRInt32 xend = xaxis.IndexOf(currentRect->XMost());
+    PRInt32 y = yaxis.IndexOf(currentRect->y);
+    PRInt32 yend = yaxis.IndexOf(currentRect->YMost());
+
+    for (; y < yend; y++) {
+      nscoord height = yaxis.StopSize(y);
+      for (PRInt32 x = xstart; x < xend; x++) {
+        nscoord width = xaxis.StopSize(x);
+        areas[y*matrixWidth+x] = width*PRInt64(height);
+      }
+    }
+  }
+
+  
+  {
+    
+    PRInt32 m = matrixHeight + 1;
+    PRInt32 n = matrixWidth + 1;
+    nsTArray<PRInt64> pareas(m*n);
+    pareas.SetLength(m*n);
+    
+    for (PRInt32 x = 0; x < n; x++)
+      pareas[x] = 0;
+    for (PRInt32 y = 1; y < m; y++) {
+      
+      pareas[y*n] = 0;
+      for (PRInt32 x = 1; x < n; x++) {
+        PRInt64 area = areas[(y-1)*matrixWidth+x-1];
+        if (!area)
+          area = kVeryLargeNegativeNumber;
+        area += pareas[    y*n+x-1]
+              + pareas[(y-1)*n+x  ]
+              - pareas[(y-1)*n+x-1];
+        pareas[y*n+x] = area;
+      }
+    }
+
+    
+    areas.SetLength(0);
+
+    PRInt64 bestArea = 0;
+    struct {
+      PRInt32 left, top, right, bottom;
+    } bestRectIndices;
+    for (PRInt32 m1 = 0; m1 < m; m1++) {
+      for (PRInt32 m2 = m1+1; m2 < m; m2++) {
+        nsTArray<PRInt64> B;
+        B.SetLength(n);
+        for (PRInt32 i = 0; i < n; i++)
+          B[i] = pareas[m2*n+i] - pareas[m1*n+i];
+        PRInt32 minIdx, maxIdx;
+        PRInt64 area = MaxSum1D(B, n, &minIdx, &maxIdx);
+        if (area > bestArea) {
+          bestRectIndices.left = minIdx;
+          bestRectIndices.top = m1;
+          bestRectIndices.right = maxIdx;
+          bestRectIndices.bottom = m2;
+          bestArea = area;
+        }
+      }
+    }
+
+    bestRect.MoveTo(xaxis.StopAt(bestRectIndices.left),
+                    yaxis.StopAt(bestRectIndices.top));
+    bestRect.SizeTo(xaxis.StopAt(bestRectIndices.right) - bestRect.x,
+                    yaxis.StopAt(bestRectIndices.bottom) - bestRect.y);
+  }
+
+  return bestRect;
 }
 
 void nsRegion::SimplifyOutward (PRUint32 aMaxRects)

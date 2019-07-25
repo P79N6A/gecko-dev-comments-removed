@@ -179,6 +179,7 @@ public:
   PRUint32 GetNumRects () const { return mRectCount; }
   const nsRect& GetBounds () const { return mBoundRect; }
   nsIntRegion ToOutsidePixels (nscoord aAppUnitsPerPixel) const;
+  nsRect GetLargestRectangle () const;
 
   
 
@@ -409,6 +410,7 @@ public:
   }
   PRUint32 GetNumRects () const { return mImpl.GetNumRects (); }
   nsIntRect GetBounds () const { return FromRect (mImpl.GetBounds ()); }
+  nsIntRect GetLargestRectangle () const { return FromRect (mImpl.GetLargestRectangle()); }
 
   
 

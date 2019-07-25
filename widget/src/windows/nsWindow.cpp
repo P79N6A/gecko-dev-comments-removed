@@ -2066,6 +2066,8 @@ void nsWindow::UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
   nsIntRegion opaqueRegion;
   opaqueRegion.Sub(clientBounds, mPossiblyTransparentRegion);
   opaqueRegion.Or(opaqueRegion, childWindowRegion);
+  
+  opaqueRegion.And(opaqueRegion, clientBounds);
   MARGINS margins = { 0, 0, 0, 0 };
   DWORD_PTR dwStyle = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
   
@@ -2073,17 +2075,7 @@ void nsWindow::UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
     margins.cxLeftWidth = -1;
   } else {
     
-    nsIntRegionRectIterator rgnIter(opaqueRegion);
-    const nsIntRect *currentRect = rgnIter.Next();
-    nsIntRect largest = *currentRect;
-    nscoord largestArea = largest.width * largest.height;
-    while (currentRect = rgnIter.Next()) {
-      nscoord area = currentRect->width * currentRect->height;
-      if (area > largestArea) {
-        largest = *currentRect;
-        largestArea = area;
-      }
-    }
+    nsIntRect largest = opaqueRegion.GetLargestRectangle();
     margins.cxLeftWidth = largest.x;
     margins.cxRightWidth = clientBounds.width - largest.XMost();
     margins.cyTopHeight = largest.y;
