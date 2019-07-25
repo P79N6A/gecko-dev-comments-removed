@@ -85,7 +85,7 @@ add_test(function() {
 
 add_test(function() {
   var sorters = gManagerWindow.document.getElementById("list-sorters");
-  var nameSorter = gManagerWindow.document.getAnonymousElementByAttribute(sorters, "anonid", "btn-date");
+  var nameSorter = gManagerWindow.document.getAnonymousElementByAttribute(sorters, "anonid", "date-btn");
   EventUtils.synthesizeMouseAtCenter(nameSorter, { }, gManagerWindow);
 
   check_order([
@@ -102,7 +102,7 @@ add_test(function() {
 
 add_test(function() {
   var sorters = gManagerWindow.document.getElementById("list-sorters");
-  var nameSorter = gManagerWindow.document.getAnonymousElementByAttribute(sorters, "anonid", "btn-name");
+  var nameSorter = gManagerWindow.document.getAnonymousElementByAttribute(sorters, "anonid", "name-btn");
   EventUtils.synthesizeMouseAtCenter(nameSorter, { }, gManagerWindow);
 
   check_order([
