@@ -890,21 +890,21 @@ js_CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
     JS_ASSERT_IF(attrs == JSPROP_INITIALIZER, !propp);
 
     if (!obj->lookupProperty(cx, id, &obj2, &prop))
-        return JS_FALSE;
+        return false;
     if (!prop)
-        return JS_TRUE;
+        return true;
+    if (obj2->isNative()) {
+        oldAttrs = ((JSScopeProperty *) prop)->attributes();
 
-    
-    if (!obj2->getAttributes(cx, id, prop, &oldAttrs)) {
-        obj2->dropProperty(cx, prop);
-        return JS_FALSE;
+        
+        if (!propp)
+            JS_UNLOCK_OBJ(cx, obj2);
+    } else {
+        if (!obj2->getAttributes(cx, id, &oldAttrs))
+            return false;
     }
 
-    
-
-
     if (!propp) {
-        obj2->dropProperty(cx, prop);
         prop = NULL;
     } else {
         *objp = obj2;

@@ -359,11 +359,8 @@ typedef JSBool
 
 
 
-
-
 typedef JSBool
-(* JSAttributesOp)(JSContext *cx, JSObject *obj, jsid id, JSProperty *prop,
-                   uintN *attrsp);
+(* JSAttributesOp)(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
 
 
 
@@ -373,15 +370,6 @@ typedef JSBool
 typedef JSBool
 (* JSCheckAccessIdOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                       jsval *vp, uintN *attrsp);
-
-
-
-
-
-
-
-typedef void
-(* JSPropertyRefOp)(JSContext *cx, JSObject *obj, JSProperty *prop);
 
 
 
