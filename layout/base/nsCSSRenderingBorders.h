@@ -137,6 +137,7 @@ struct nsCSSBorderRenderer {
   
   PRPackedBool mOneUnitBorder;
   PRPackedBool mNoBorderRadius;
+  PRPackedBool mAvoidStroke;
 
   
   
