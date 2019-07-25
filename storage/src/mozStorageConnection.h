@@ -101,7 +101,8 @@ public:
 
 
 
-  nsresult initialize(nsIFile *aDatabaseFile);
+  nsresult initialize(nsIFile *aDatabaseFile,
+                      const char* aVFSName = NULL);
 
   
   sqlite3 *GetNativeConnection() { return mDBConn; }
