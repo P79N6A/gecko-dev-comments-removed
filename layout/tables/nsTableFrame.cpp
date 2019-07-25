@@ -4615,7 +4615,7 @@ nsTableFrame::BCRecalcNeeded(nsStyleContext* aOldStyleContext,
   nsChangeHint change = newStyleData->CalcDifference(*oldStyleData);
   if (!change)
     return false;
-  if (change & nsChangeHint_ReflowFrame)
+  if (change & nsChangeHint_NeedReflow)
     return true; 
   if (change & nsChangeHint_RepaintFrame) {
     
