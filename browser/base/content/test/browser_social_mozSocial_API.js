@@ -59,6 +59,8 @@ var tests = {
           
           ok(true, "got sidebar message");
           gotSidebarMessage = true;
+          
+          port.postMessage({topic: "test-ambient-notification"});
           checkNext();
           break;
       }
