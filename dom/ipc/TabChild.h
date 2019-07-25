@@ -154,11 +154,13 @@ public:
 
 
 
+    static void PreloadSlowThings();
 
+    
+    static already_AddRefed<TabChild> 
+    Create(uint32_t aChromeFlags, bool aIsBrowserElement, uint32_t aAppId);
 
-    TabChild(uint32_t aChromeFlags, bool aIsBrowserElement, uint32_t aAppId);
     virtual ~TabChild();
-    nsresult Init();
 
     uint32_t GetAppId() { return mAppId; }
 
@@ -259,6 +261,9 @@ public:
 
     nsIPrincipal* GetPrincipal() { return mPrincipal; }
 
+    
+    void GetDPI(float* aDPI);
+
     void SetBackgroundColor(const nscolor& aColor);
 
     void NotifyPainted();
@@ -281,12 +286,26 @@ protected:
     virtual bool DeallocPIndexedDB(PIndexedDBChild* aActor);
 
 private:
+    
+
+
+
+
+
+
+    TabChild(uint32_t aChromeFlags, bool aIsBrowserElement, uint32_t aAppId);
+
+    nsresult Init();
+
+    void SetAppBrowserConfig(bool aIsBrowserElement, uint32_t aAppId);
+
     bool UseDirectCompositor();
 
     void ActorDestroy(ActorDestroyReason why);
 
-    bool InitTabChildGlobal();
-    bool InitWidget(const nsIntSize& size);
+    enum FrameScriptLoading { DONT_LOAD_SCRIPTS, DEFAULT_LOAD_SCRIPTS };
+    bool InitTabChildGlobal(FrameScriptLoading aScriptLoading = DEFAULT_LOAD_SCRIPTS);
+    bool InitRenderingState();
     void DestroyWindow();
 
     
@@ -316,10 +335,11 @@ private:
     nsIntRect mOuterRect;
     nscolor mLastBackgroundColor;
     ScrollingBehavior mScrolling;
+    uint32_t mAppId;
     bool mDidFakeShow;
     bool mIsBrowserElement;
     bool mNotified;
-    uint32_t mAppId;
+    bool mTriedBrowserInit;
 
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);
 };
