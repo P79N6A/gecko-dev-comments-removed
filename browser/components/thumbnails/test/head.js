@@ -8,6 +8,8 @@ registerCleanupFunction(function () {
     gBrowser.removeTab(gBrowser.tabs[1]);
 });
 
+let cachedXULDocument;
+
 
 
 
@@ -54,7 +56,7 @@ function next() {
 
 function addTab(aURI) {
   let tab = gBrowser.selectedTab = gBrowser.addTab(aURI);
-  whenBrowserLoaded(tab.linkedBrowser);
+  whenLoaded(tab.linkedBrowser);
 }
 
 
@@ -63,7 +65,7 @@ function addTab(aURI) {
 
 function navigateTo(aURI) {
   let browser = gBrowser.selectedTab.linkedBrowser;
-  whenBrowserLoaded(browser);
+  whenLoaded(browser);
   browser.loadURI(aURI);
 }
 
@@ -72,11 +74,77 @@ function navigateTo(aURI) {
 
 
 
-function whenBrowserLoaded(aBrowser) {
-  aBrowser.addEventListener("load", function onLoad() {
-    aBrowser.removeEventListener("load", onLoad, true);
-    executeSoon(next);
+
+function whenLoaded(aElement, aCallback) {
+  aElement.addEventListener("load", function onLoad() {
+    aElement.removeEventListener("load", onLoad, true);
+    executeSoon(aCallback || next);
   }, true);
+}
+
+
+
+
+
+
+
+
+
+function captureAndCheckColor(aRed, aGreen, aBlue, aMessage) {
+  let window = gBrowser.selectedTab.linkedBrowser.contentWindow;
+
+  let key = Date.now();
+  let data = PageThumbs.capture(window);
+
+  
+  PageThumbs.store(key, data, function () {
+    let width = 100, height = 100;
+    let thumb = PageThumbs.getThumbnailURL(key, width, height);
+
+    getXULDocument(function (aDocument) {
+      let htmlns = "http://www.w3.org/1999/xhtml";
+      let img = aDocument.createElementNS(htmlns, "img");
+      img.setAttribute("src", thumb);
+
+      whenLoaded(img, function () {
+        let canvas = aDocument.createElementNS(htmlns, "canvas");
+        canvas.setAttribute("width", width);
+        canvas.setAttribute("height", height);
+
+        
+        let ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        checkCanvasColor(ctx, aRed, aGreen, aBlue, aMessage);
+
+        next();
+      });
+    });
+  });
+}
+
+
+
+
+
+
+function getXULDocument(aCallback) {
+  let hiddenWindow = Services.appShell.hiddenDOMWindow;
+  let doc = cachedXULDocument || hiddenWindow.document;
+
+  if (doc instanceof XULDocument) {
+    aCallback(cachedXULDocument = doc);
+    return;
+  }
+
+  let iframe = doc.createElement("iframe");
+  iframe.setAttribute("src", "chrome://global/content/mozilla.xhtml");
+
+  iframe.addEventListener("DOMContentLoaded", function onLoad() {
+    iframe.removeEventListener("DOMContentLoaded", onLoad, false);
+    aCallback(cachedXULDocument = iframe.contentDocument);
+  }, false);
+
+  doc.body.appendChild(iframe);
 }
 
 
