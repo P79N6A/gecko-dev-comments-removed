@@ -1138,6 +1138,16 @@ public:
 
   static nsIContent*
     GetEditableRootContentByContentEditable(nsIDocument* aDocument);
+
+  
+
+
+
+  static PRBool NeedsPrintPreviewBackground(nsPresContext* aPresContext) {
+    return aPresContext->IsRootPaginatedDocument() &&
+      (aPresContext->Type() == nsPresContext::eContext_PrintPreview ||
+       aPresContext->Type() == nsPresContext::eContext_PageLayout);
+  }
 };
 
 class nsSetAttrRunnable : public nsRunnable

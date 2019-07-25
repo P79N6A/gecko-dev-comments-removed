@@ -1290,14 +1290,11 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
   nsIAtom* frameType = aFrame->GetType();
   
   
-  if (frameType == nsGkAtoms::viewportFrame &&
-      presContext->IsRootPaginatedDocument() &&
-      (presContext->Type() == nsPresContext::eContext_PrintPreview ||
-       presContext->Type() == nsPresContext::eContext_PageLayout)) {
+  if (frameType == nsGkAtoms::viewportFrame && 
+      nsLayoutUtils::NeedsPrintPreviewBackground(presContext)) {
     nsRect bounds = nsRect(builder.ToReferenceFrame(aFrame),
                            aFrame->GetSize());
-    rv = list.AppendNewToBottom(new (&builder) nsDisplaySolidColor(
-           aFrame, bounds, NS_RGB(115, 115, 115)));
+    rv = presShell->AddPrintPreviewBackgroundItem(builder, list, aFrame, bounds);
   } else if (frameType != nsGkAtoms::pageFrame) {
     
     

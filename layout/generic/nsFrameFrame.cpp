@@ -415,10 +415,12 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
   }
 
+  nsPresContext* presContext = presShell->GetPresContext();
+
   nsDisplayList childItems;
 
   PRInt32 parentAPD = PresContext()->AppUnitsPerDevPixel();
-  PRInt32 subdocAPD = presShell->GetPresContext()->AppUnitsPerDevPixel();
+  PRInt32 subdocAPD = presContext->AppUnitsPerDevPixel();
 
   nsRect dirty;
   if (subdocRootFrame) {
@@ -459,12 +461,22 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     } else {
       bounds = subdocBoundsInParentUnits;
     }
+
     
     
     
-    rv = presShell->AddCanvasBackgroundColorItem(
-           *aBuilder, childItems, subdocRootFrame ? subdocRootFrame : this,
-           bounds, NS_RGBA(0,0,0,0), PR_TRUE);
+    if (nsLayoutUtils::NeedsPrintPreviewBackground(presContext)) {
+      rv = presShell->AddPrintPreviewBackgroundItem(
+             *aBuilder, childItems, subdocRootFrame ? subdocRootFrame : this,
+             bounds);
+    } else {
+      
+      
+      
+      rv = presShell->AddCanvasBackgroundColorItem(
+             *aBuilder, childItems, subdocRootFrame ? subdocRootFrame : this,
+             bounds, NS_RGBA(0,0,0,0), PR_TRUE);
+    }
   }
 
   if (NS_SUCCEEDED(rv)) {
