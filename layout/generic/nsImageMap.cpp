@@ -121,6 +121,7 @@ static void logMessage(nsIContent*      aContent,
   nsIDocument* doc = aContent->OwnerDoc();
 
   nsContentUtils::ReportToConsole(
+     aFlags, "ImageMap", doc,
      nsContentUtils::eLAYOUT_PROPERTIES,
      aMessageName,
      nsnull,  
@@ -128,11 +129,7 @@ static void logMessage(nsIContent*      aContent,
      nsnull,
      PromiseFlatString(NS_LITERAL_STRING("coords=\"") +
                        aCoordsSpec +
-                       NS_LITERAL_STRING("\"")), 
-     0, 
-     0, 
-     aFlags,
-     "ImageMap", doc);
+                       NS_LITERAL_STRING("\""))); 
 }
 
 void Area::ParseCoords(const nsAString& aSpec)

@@ -753,6 +753,9 @@ public:
 
 
 
+
+
+
   enum PropertiesFile {
     eCSS_PROPERTIES,
     eXBL_PROPERTIES,
@@ -767,45 +770,18 @@ public:
     eCOMMON_DIALOG_PROPERTIES,
     PropertiesFile_COUNT
   };
-  static nsresult ReportToConsole(PropertiesFile aFile,
-                                  const char *aMessageName,
-                                  const PRUnichar **aParams,
-                                  PRUint32 aParamsLength,
-                                  nsIURI* aURI,
-                                  const nsAFlatString& aSourceLine,
-                                  PRUint32 aLineNumber,
-                                  PRUint32 aColumnNumber,
-                                  PRUint32 aErrorFlags,
+  static nsresult ReportToConsole(PRUint32 aErrorFlags,
                                   const char *aCategory,
-                                  PRUint64 aInnerWindowId = 0);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult ReportToConsole(PropertiesFile aFile,
+                                  nsIDocument* aDocument,
+                                  PropertiesFile aFile,
                                   const char *aMessageName,
-                                  const PRUnichar **aParams,
-                                  PRUint32 aParamsLength,
-                                  nsIURI* aURI,
-                                  const nsAFlatString& aSourceLine,
-                                  PRUint32 aLineNumber,
-                                  PRUint32 aColumnNumber,
-                                  PRUint32 aErrorFlags,
-                                  const char *aCategory,
-                                  nsIDocument* aDocument);
+                                  const PRUnichar **aParams = nsnull,
+                                  PRUint32 aParamsLength = 0,
+                                  nsIURI* aURI = nsnull,
+                                  const nsAFlatString& aSourceLine
+                                    = EmptyString(),
+                                  PRUint32 aLineNumber = 0,
+                                  PRUint32 aColumnNumber = 0);
 
   
 

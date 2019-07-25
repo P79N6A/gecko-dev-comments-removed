@@ -3081,12 +3081,10 @@ nsGenericElement::UnbindFromTree(bool aDeep, bool aNullParent)
     if (IsFullScreenAncestor()) {
       
       
-      nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
-                                      "RemovedFullScreenElement",
-                                      nsnull, 0, nsnull,
-                                      EmptyString(), 0, 0,
-                                      nsIScriptError::warningFlag,
-                                      "DOM", OwnerDoc());
+      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                      "DOM", OwnerDoc(),
+                                      nsContentUtils::eDOM_PROPERTIES,
+                                      "RemovedFullScreenElement");
       
       nsIDocument::ExitFullScreen(false);
     }

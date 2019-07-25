@@ -3470,12 +3470,10 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
   
   
   if (!nsContentUtils::IsRequestFullScreenAllowed()) {
-    nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
-                                    "FullScreenDeniedNotInputDriven",
-                                    nsnull, 0, nsnull,
-                                    EmptyString(), 0, 0,
-                                    nsIScriptError::warningFlag,
-                                    "DOM", OwnerDoc());
+    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                    "DOM", OwnerDoc(),
+                                    nsContentUtils::eDOM_PROPERTIES,
+                                    "FullScreenDeniedNotInputDriven");
     nsRefPtr<nsPLDOMEvent> e =
       new nsPLDOMEvent(OwnerDoc(),
                        NS_LITERAL_STRING("mozfullscreenerror"),

@@ -707,17 +707,10 @@ static void LogMessage(const char* aWarning, nsPIDOMWindow* aWindow)
   if (aWindow) {
     doc = do_QueryInterface(aWindow->GetExtantDocument());
   }
-  nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
-                                  aWarning,
-                                  nsnull,
-                                  0,
-                                  nsnull, 
-                                  EmptyString(),
-                                  0,
-                                  0,
-                                  nsIScriptError::warningFlag,
-                                  "DOM",
-                                  doc);
+  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                  "DOM", doc,
+                                  nsContentUtils::eDOM_PROPERTIES,
+                                  aWarning);
 }
 
 
