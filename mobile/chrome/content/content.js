@@ -47,14 +47,14 @@ const ElementTouchHelper = {
                                                true,   
                                                false); 
 
+    
+    if (this._isElementClickable(target))
+      return target;
+
     let nodes = aWindowUtils.nodesFromRect(aX, aY, this.radius.top,
                                                    this.radius.right,
                                                    this.radius.bottom,
                                                    this.radius.left, true, false);
-
-    
-    if (this._isElementClickable(target, nodes))
-      return target;
 
     let threshold = Number.POSITIVE_INFINITY;
     for (let i = 0; i < nodes.length; i++) {
@@ -78,26 +78,15 @@ const ElementTouchHelper = {
     return target;
   },
 
-  _isElementClickable: function _isElementClickable(aElement, aElementsInRect) {
-    let isClickable = this._hasMouseListener(aElement);
-
-    
-    if (aElement && !isClickable && aElementsInRect) {
-      let parentNode = aElement.parentNode;
-      let count = aElementsInRect.length;
-      for (let i = 0; i < count && parentNode; i++) {
-        if (aElementsInRect[i] != parentNode)
-          continue;
-
-        isClickable = this._hasMouseListener(parentNode);
-        if (isClickable)
-          break;
-
-        parentNode = parentNode.parentNode;
-      }
+  _isElementClickable: function _isElementClickable(aElement) {
+    const selector = "a,:link,:visited,[role=button],button,input,select,textarea,label";
+    for (let elem = aElement; elem; elem = elem.parentNode) {
+      if (this._hasMouseListener(elem))
+        return true;
+      if (elem.mozMatchesSelector && elem.mozMatchesSelector(selector))
+        return true;
     }
-
-    return aElement && (isClickable || aElement.mozMatchesSelector("a,*:link,*:visited,*[role=button],button,input,select,label"));
+    return false;
   },
 
   _computeDistanceFromRect: function _computeDistanceFromRect(aX, aY, aRect) {
