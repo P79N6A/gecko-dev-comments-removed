@@ -1891,10 +1891,8 @@ TypeCompartment::init(JSContext *cx)
 {
     PodZero(this);
 
-#ifndef JS_CPU_ARM
     if (cx && cx->getRunOptions() & JSOPTION_TYPE_INFERENCE)
         inferenceEnabled = true;
-#endif
 }
 
 TypeObject *
@@ -3220,6 +3218,14 @@ ScriptAnalysis::resolveNameAccess(JSContext *cx, jsid id, bool addDependency)
         } else if (kind != NONE) {
             return access;
         }
+
+        
+
+
+
+
+        if (atom == CallObjectLambdaName(script->function()))
+            return access;
 
         if (!script->nesting()->parent)
             return access;

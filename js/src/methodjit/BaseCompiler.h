@@ -281,13 +281,13 @@ class AutoReserveICSpace {
     }
 };
 
-# define RESERVE_IC_SPACE(__masm)       AutoReserveICSpace<128> arics(__masm)
+# define RESERVE_IC_SPACE(__masm)       AutoReserveICSpace<256> arics(__masm)
 # define CHECK_IC_SPACE()               arics.check()
 
 
 
 
-# define RESERVE_OOL_SPACE(__masm)      AutoReserveICSpace<256> arics_ool(__masm)
+# define RESERVE_OOL_SPACE(__masm)      AutoReserveICSpace<2048> arics_ool(__masm)
 
 
 
