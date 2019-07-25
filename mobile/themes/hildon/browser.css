@@ -405,6 +405,11 @@ toolbarbutton.page-button {
 }
 
 
+.download-retry-failed {
+  color: red !important;
+}
+
+
 @media (orientation: landscape) {
   #console-filter-warnings,
   #console-filter-messages {

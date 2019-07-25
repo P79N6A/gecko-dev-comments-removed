@@ -275,7 +275,6 @@ var DownloadsView = {
     let strings = document.getElementById("bundle_browser");
 
     let status = "";
-    let state = Number(aItem.getAttribute("state"));
 
     
     let fileSize = Number(aItem.getAttribute("maxBytes"));
