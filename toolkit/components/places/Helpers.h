@@ -173,6 +173,16 @@ bool IsValidGUID(const nsCString& aGUID);
 
 
 
+
+
+
+
+
+void TruncateTitle(const nsACString& aTitle, nsACString& aTrimmed);
+
+
+
+
 template<typename StatementType>
 class FinalizeStatementCacheProxy : public nsRunnable
 {
