@@ -103,7 +103,12 @@ class ImmutableSync
     void syncNormal(FrameEntry *fe);
     RegisterID ensureDataReg(FrameEntry *fe, SyncEntry &e);
     RegisterID ensureTypeReg(FrameEntry *fe, SyncEntry &e);
+
     RegisterID allocReg();
+    void freeReg(RegisterID reg);
+
+    
+    RegisterID doAllocReg();
 
     inline SyncEntry &entryFor(FrameEntry *fe);
 
