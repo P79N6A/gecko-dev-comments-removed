@@ -411,6 +411,10 @@ pref("dom.sms.enabled", true);
 pref("dom.sms.whitelist", "file://,http://localhost:7777");
 
 
+pref("dom.mozContacts.enabled", true);
+pref("dom.mozContacts.whitelist", "http://localhost:7777");
+
+
 pref("b2g.ignoreXFrameOptions", true);
 
 

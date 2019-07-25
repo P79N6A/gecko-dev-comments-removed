@@ -3440,6 +3440,10 @@ pref("dom.sms.enabled", false);
 pref("dom.sms.whitelist", "");
 
 
+pref("dom.mozContacts.enabled", false);
+pref("dom.mozContacts.whitelist", "");
+
+
 pref("browser.dom.window.dump.enabled", false);
 
 
