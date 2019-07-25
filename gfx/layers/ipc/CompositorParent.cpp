@@ -83,9 +83,19 @@ CompositorParent::Destroy()
 }
 
 bool
-CompositorParent::RecvStop()
+CompositorParent::RecvWillStop()
 {
   mPaused = true;
+
+  
+  mLayerManager->Destroy();
+
+  return true;
+}
+
+bool
+CompositorParent::RecvStop()
+{
   Destroy();
   return true;
 }

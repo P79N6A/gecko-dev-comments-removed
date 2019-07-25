@@ -135,6 +135,17 @@ nsBaseWidget::nsBaseWidget()
 }
 
 
+static void DestroyCompositor(CompositorParent* aCompositorParent,
+                              CompositorChild* aCompositorChild,
+                              Thread* aCompositorThread)
+{
+    aCompositorChild->Destroy();
+    delete aCompositorThread;
+    aCompositorParent->Release();
+    aCompositorChild->Release();
+}
+
+
 
 
 
@@ -153,8 +164,23 @@ nsBaseWidget::~nsBaseWidget()
   }
 
   if (mCompositorChild) {
-    mCompositorChild->Destroy();
-    delete mCompositorThread;
+    mCompositorChild->SendWillStop();
+
+    
+    
+    
+    
+    
+    
+    
+    MessageLoop::current()->
+      PostTask(FROM_HERE,
+               NewRunnableFunction(DestroyCompositor, mCompositorParent,
+                                   mCompositorChild, mCompositorThread));
+    
+    
+    mCompositorParent.forget();
+    mCompositorChild.forget();
   }
 
 #ifdef NOISY_WIDGET_LEAKS
