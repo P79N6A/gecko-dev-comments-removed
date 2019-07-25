@@ -177,6 +177,10 @@ public:
 
   
   
+  bool CanUseChromePersist();
+
+  
+  
   static PRBool
   CanUseStorage(PRPackedBool* aSessionOnly);
 
@@ -265,6 +269,8 @@ protected:
   friend class nsIDOMStorage2;
   nsPIDOMStorage* mSecurityChecker;
   nsPIDOMStorage* mEventBroadcaster;
+
+  bool mCanUseChromePersist;
 
 public:
   
