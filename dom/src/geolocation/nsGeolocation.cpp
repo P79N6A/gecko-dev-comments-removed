@@ -741,11 +741,6 @@ nsGeolocationService::StartDevice()
   if (!sGeoEnabled)
     return NS_ERROR_NOT_AVAILABLE;
 
-  
-  
-  
-  SetDisconnectTimer();
-
 #ifdef MOZ_IPC
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     ContentChild* cpc = ContentChild::GetSingleton();
@@ -755,18 +750,26 @@ nsGeolocationService::StartDevice()
 #endif
 
   
-  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-  if (!obs)
-    return NS_ERROR_FAILURE;
+  nsresult rv = NS_ERROR_NOT_AVAILABLE;
+  for (PRUint32 i = mProviders.Count() - 1; i != PRUint32(-1); --i) {
+    
+    
+    nsresult temp = mProviders[i]->Startup();
+    if (NS_SUCCEEDED(temp)) {
+      rv = NS_OK;
 
-  for (PRUint32 i = 0; i < mProviders.Count(); i++) {
-    mProviders[i]->Startup();
-    mProviders[i]->Watch(this);
-    obs->NotifyObservers(mProviders[i],
-                         "geolocation-device-events",
-                         NS_LITERAL_STRING("starting").get());
+      mProviders[i]->Watch(this);
+    }
   }
   
+  if (NS_FAILED(rv)) 
+    return NS_ERROR_NOT_AVAILABLE;
+  
+  
+  
+  
+  SetDisconnectTimer();
+
   return NS_OK;
 }
 
@@ -799,15 +802,8 @@ nsGeolocationService::StopDevice()
   }
 #endif
 
-  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-  if (!obs)
-    return;
-
-  for (PRUint32 i = 0; i <mProviders.Count(); i++) {
+  for (PRUint32 i = mProviders.Count() - 1; i != PRUint32(-1); --i) {
     mProviders[i]->Shutdown();
-    obs->NotifyObservers(mProviders[i],
-                         "geolocation-device-events",
-                         NS_LITERAL_STRING("shutdown").get());
   }
 }
 
@@ -948,11 +944,7 @@ nsGeolocation::Shutdown()
 PRBool
 nsGeolocation::HasActiveCallbacks()
 {
-  for (PRUint32 i = 0; i < mWatchingCallbacks.Length(); i++)
-    if (mWatchingCallbacks[i]->IsActive())
-      return PR_TRUE;
-
-  return PR_FALSE;
+  return mWatchingCallbacks.Length() != 0;
 }
 
 void
