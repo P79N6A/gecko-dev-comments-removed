@@ -44,6 +44,9 @@
 #include "mozilla/plugins/StreamNotifyChild.h"
 #if defined(OS_WIN)
 #include "mozilla/gfx/SharedDIBWin.h"
+#elif defined(OS_MACOSX)
+#include "nsCoreAnimationSupport.h"
+#include "base/timer.h"
 #endif
 
 #include "npfunctions.h"
@@ -51,17 +54,22 @@
 #include "nsTArray.h"
 #include "ChildAsyncCall.h"
 #include "ChildTimer.h"
+#include "nsRect.h"
+#include "nsTHashtable.h"
+#include "mozilla/PaintTracker.h"
 
 namespace mozilla {
 namespace plugins {
 
 class PBrowserStreamChild;
 class BrowserStreamChild;
+class StreamNotifyChild;
 
 class PluginInstanceChild : public PPluginInstanceChild
 {
     friend class BrowserStreamChild;
     friend class PluginStreamChild;
+    friend class StreamNotifyChild; 
 
 #ifdef OS_WIN
     friend LRESULT CALLBACK PluginWindowProc(HWND hWnd,
@@ -71,12 +79,8 @@ class PluginInstanceChild : public PPluginInstanceChild
 #endif
 
 protected:
-    virtual bool AnswerNPP_SetWindow(const NPRemoteWindow& window, NPError* rv);
+    virtual bool AnswerNPP_SetWindow(const NPRemoteWindow& window);
 
-    virtual bool
-    AnswerNPP_GetValue_NPPVpluginWindow(bool* windowed, NPError* rv);
-    virtual bool
-    AnswerNPP_GetValue_NPPVpluginTransparent(bool* transparent, NPError* rv);
     virtual bool
     AnswerNPP_GetValue_NPPVpluginNeedsXEmbed(bool* needs, NPError* rv);
     virtual bool
@@ -88,6 +92,22 @@ protected:
 
     virtual bool
     AnswerNPP_HandleEvent(const NPRemoteEvent& event, int16_t* handled);
+    virtual bool
+    AnswerNPP_HandleEvent_Shmem(const NPRemoteEvent& event, Shmem& mem, int16_t* handled, Shmem* rtnmem);
+    virtual bool
+    AnswerNPP_HandleEvent_IOSurface(const NPRemoteEvent& event, const uint32_t& surface, int16_t* handled);
+
+    NS_OVERRIDE
+    virtual bool
+    AnswerPaint(const NPRemoteEvent& event, int16_t* handled)
+    {
+        PaintTracker pt;
+        return AnswerNPP_HandleEvent(event, handled);
+    }
+
+    NS_OVERRIDE
+    virtual bool
+    RecvWindowPosChanged(const NPRemoteEvent& event);
 
     virtual bool
     AnswerNPP_Destroy(NPError* result);
@@ -98,8 +118,8 @@ protected:
     virtual bool
     DeallocPPluginScriptableObject(PPluginScriptableObjectChild* aObject);
 
-    virtual bool
-    AnswerPPluginScriptableObjectConstructor(PPluginScriptableObjectChild* aActor);
+    NS_OVERRIDE virtual bool
+    RecvPPluginScriptableObjectConstructor(PPluginScriptableObjectChild* aActor);
 
     virtual PBrowserStreamChild*
     AllocPBrowserStream(const nsCString& url,
@@ -152,7 +172,7 @@ protected:
     AnswerUpdateWindow();
 
 public:
-    PluginInstanceChild(const NPPluginFuncs* aPluginIface);
+    PluginInstanceChild(const NPPluginFuncs* aPluginIface, const nsCString& aMimeType);
 
     virtual ~PluginInstanceChild();
 
@@ -178,12 +198,35 @@ public:
 
     void InvalidateRect(NPRect* aInvalidRect);
 
-    bool NotifyStream(StreamNotifyChild* notifyData, NPReason reason);
-
     uint32_t ScheduleTimer(uint32_t interval, bool repeat, TimerFunc func);
     void UnscheduleTimer(uint32_t id);
 
+    void AsyncCall(PluginThreadCallback aFunc, void* aUserData);
+
 private:
+    friend class PluginModuleChild;
+
+    
+    enum PluginQuirks {
+        
+        
+        
+        QUIRK_SILVERLIGHT_WINLESS_INPUT_TRANSLATION     = 1 << 0,
+        
+        
+        
+        QUIRK_WINLESS_TRACKPOPUP_HOOK                   = 1 << 1,
+        
+        
+        
+        QUIRK_FLASH_THROTTLE_WMUSER_EVENTS              = 1 << 2,
+    };
+
+    void InitQuirksModes(const nsCString& aMimeType);
+
+    NPError
+    InternalGetNPObjectForValue(NPNVariable aValue,
+                                NPObject** aObject);
 
 #if defined(OS_WIN)
     static bool RegisterWindowClass();
@@ -192,11 +235,12 @@ private:
     void ReparentPluginWindow(HWND hWndParent);
     void SizePluginWindow(int width, int height);
     int16_t WinlessHandleEvent(NPEvent& event);
-    void SetNestedInputEventHook();
-    void ResetNestedEventHook();
-    void SetNestedInputPumpHook();
-    void ResetPumpHooks();
-    void InternalCallSetNestedEventState(bool aState);
+    void CreateWinlessPopupSurrogate();
+    void DestroyWinlessPopupSurrogate();
+    void InitPopupMenuHook();
+    void SetupFlashMsgThrottle();
+    void UnhookWinlessFlashThrottle();
+    void FlashThrottleMessage(HWND, UINT, WPARAM, LPARAM, bool);
     static LRESULT CALLBACK DummyWindowProc(HWND hWnd,
                                             UINT message,
                                             WPARAM wParam,
@@ -205,21 +249,62 @@ private:
                                              UINT message,
                                              WPARAM wParam,
                                              LPARAM lParam);
-    static VOID CALLBACK PumpTimerProc(HWND hwnd,
-                                       UINT uMsg,
-                                       UINT_PTR idEvent,
-                                       DWORD dwTime);
-    static LRESULT CALLBACK NestedInputEventHook(int code,
-                                                 WPARAM wParam,
-                                                 LPARAM lParam);
-    static LRESULT CALLBACK NestedInputPumpHook(int code,
-                                                WPARAM wParam,
-                                                LPARAM lParam);
+    static BOOL WINAPI TrackPopupHookProc(HMENU hMenu,
+                                          UINT uFlags,
+                                          int x,
+                                          int y,
+                                          int nReserved,
+                                          HWND hWnd,
+                                          CONST RECT *prcRect);
+    static BOOL CALLBACK EnumThreadWindowsCallback(HWND hWnd,
+                                                   LPARAM aParam);
+    static LRESULT CALLBACK WinlessHiddenFlashWndProc(HWND hWnd,
+                                                      UINT message,
+                                                      WPARAM wParam,
+                                                      LPARAM lParam);
+
+    class FlashThrottleAsyncMsg : public ChildAsyncCall
+    {
+      public:
+        FlashThrottleAsyncMsg();
+        FlashThrottleAsyncMsg(PluginInstanceChild* aInst, 
+                              HWND aWnd, UINT aMsg,
+                              WPARAM aWParam, LPARAM aLParam,
+                              bool isWindowed)
+          : ChildAsyncCall(aInst, nsnull, nsnull),
+          mWnd(aWnd),
+          mMsg(aMsg),
+          mWParam(aWParam),
+          mLParam(aLParam),
+          mWindowed(isWindowed)
+        {}
+
+        NS_OVERRIDE void Run();
+
+        WNDPROC GetProc();
+        HWND GetWnd() { return mWnd; }
+        UINT GetMsg() { return mMsg; }
+        WPARAM GetWParam() { return mWParam; }
+        LPARAM GetLParam() { return mLParam; }
+
+      private:
+        HWND                 mWnd;
+        UINT                 mMsg;
+        WPARAM               mWParam;
+        LPARAM               mLParam;
+        bool                 mWindowed;
+    };
+
 #endif
 
     const NPPluginFuncs* mPluginIface;
     NPP_t mData;
     NPWindow mWindow;
+    int mQuirks;
+
+    
+    PluginScriptableObjectChild* mCachedWindowActor;
+    PluginScriptableObjectChild* mCachedElementActor;
 
 #if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
     NPSetWindowCallbackStruct mWsInfo;
@@ -227,22 +312,32 @@ private:
     HWND mPluginWindowHWND;
     WNDPROC mPluginWndProc;
     HWND mPluginParentHWND;
-    HHOOK mNestedEventHook;
-    HHOOK mNestedPumpHook;
     int mNestedEventLevelDepth;
-    bool mNestedEventState;
     HWND mCachedWinlessPluginHWND;
-    UINT_PTR mEventPumpTimer;
+    HWND mWinlessPopupSurrogateHWND;
+    nsIntPoint mPluginSize;
+    nsIntPoint mPluginOffset;
+    WNDPROC mWinlessThrottleOldWndProc;
+    HWND mWinlessHiddenMsgHWND;
 #endif
 
     friend class ChildAsyncCall;
+
+    Mutex mAsyncCallMutex;
     nsTArray<ChildAsyncCall*> mPendingAsyncCalls;
     nsTArray<nsAutoPtr<ChildTimer> > mTimers;
+
+    
+
+
+
+
+    nsAutoPtr< nsTHashtable<DeletingObjectEntry> > mDeletingHash;
 
 #if defined(OS_WIN)
 private:
     
-    bool SharedSurfaceSetWindow(const NPRemoteWindow& aWindow, NPError* rv);
+    bool SharedSurfaceSetWindow(const NPRemoteWindow& aWindow);
     int16_t SharedSurfacePaint(NPEvent& evcopy);
     void SharedSurfaceRelease();
     bool AlphaExtractCacheSetup();
@@ -262,6 +357,21 @@ private:
       HDC             hdc;
       HBITMAP         bmp;
     } mAlphaExtract;
+#endif
+#if defined(OS_MACOSX)
+private:
+    CGColorSpaceRef       mShColorSpace;
+    CGContextRef          mShContext;
+    int16_t               mDrawingModel;
+    nsCARenderer          mCARenderer;
+
+public:
+    const NPCocoaEvent* getCurrentEvent() {
+        return mCurrentEvent;
+    }
+
+private:
+    const NPCocoaEvent   *mCurrentEvent;
 #endif
 };
 

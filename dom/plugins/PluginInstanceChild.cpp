@@ -112,6 +112,7 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
     , mShColorSpace(nsnull)
     , mShContext(nsnull)
     , mDrawingModel(NPDrawingModelCoreGraphics)
+    , mCurrentEvent(nsnull)
 #endif
 {
     memset(&mWindow, 0, sizeof(mWindow));
@@ -542,6 +543,12 @@ PluginInstanceChild::AnswerNPP_HandleEvent(const NPRemoteEvent& event,
 #ifdef XP_MACOSX
     
     NPCocoaEvent evcopy = event.event;
+
+    
+    AutoRestore<const NPCocoaEvent*> savePreviousEvent(mCurrentEvent);
+
+    
+    mCurrentEvent = &event.event;
 #else
     
     NPEvent evcopy = event.event;
