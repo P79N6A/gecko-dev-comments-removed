@@ -1370,6 +1370,9 @@ function prepareForStartup() {
   gBrowser.addEventListener("PluginOutdated",     gPluginHandler, true);
   gBrowser.addEventListener("PluginDisabled",     gPluginHandler, true);
   gBrowser.addEventListener("NewPluginInstalled", gPluginHandler.newPluginInstalled, true);
+#ifdef XP_MACOSX
+  gBrowser.addEventListener("npapi-carbon-event-model-failure", gPluginHandler, true);
+#endif 
 
   Services.obs.addObserver(gPluginHandler.pluginCrashed, "plugin-crashed", false);
 
@@ -6620,6 +6623,7 @@ var gPluginHandler = {
   handleEvent : function(event) {
     let self = gPluginHandler;
     let plugin = event.target;
+    let hideBarPrefName;
 
     
     if (!(plugin instanceof Ci.nsIObjectLoadingContent))
@@ -6639,7 +6643,7 @@ var gPluginHandler = {
         
       case "PluginBlocklisted":
       case "PluginOutdated":
-        let hideBarPrefName = event.type == "PluginOutdated" ?
+        hideBarPrefName = event.type == "PluginOutdated" ?
                                 "plugins.hide_infobar_for_outdated_plugin" :
                                 "plugins.hide_infobar_for_missing_plugin";
         if (gPrefService.getBoolPref(hideBarPrefName))
@@ -6647,7 +6651,15 @@ var gPluginHandler = {
 
         self.pluginUnavailable(plugin, event.type);
         break;
+#ifdef XP_MACOSX
+      case "npapi-carbon-event-model-failure":
+        hideBarPrefName = "plugins.hide_infobar_for_carbon_failure_plugin";
+        if (gPrefService.getBoolPref(hideBarPrefName))
+          return;
 
+        self.pluginUnavailable(plugin, event.type);
+        break;
+#endif
       case "PluginDisabled":
         self.addLinkClickCallback(plugin, "managePlugins");
         break;
@@ -6705,7 +6717,6 @@ var gPluginHandler = {
     openHelpLink("plugin-crashed", false);
   },
 
-
   
   pluginUnavailable: function (plugin, eventType) {
     let browser = gBrowser.getBrowserForDocument(plugin.ownerDocument
@@ -6751,6 +6762,23 @@ var gPluginHandler = {
       }
     }
 
+#ifdef XP_MACOSX
+    function carbonFailurePluginsRestartBrowser()
+    {
+      
+      let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].
+                         createInstance(Ci.nsISupportsPRBool);
+      Services.obs.notifyObservers(cancelQuit, "quit-application-requested", null);
+ 
+      
+      if (cancelQuit.data)
+        return;
+
+      let as = Cc["@mozilla.org/toolkit/app-startup;1"].getService(Ci.nsIAppStartup);
+      as.quit(Ci.nsIAppStartup.eRestarti386 | Ci.nsIAppStartup.eRestart | Ci.nsIAppStartup.eAttemptQuit);
+    }
+#endif
+
     let notifications = {
       PluginBlocklisted : {
                             barID   : "blocked-plugins",
@@ -6790,9 +6818,36 @@ var gPluginHandler = {
                                          popup     : null,
                                          callback  : showPluginsMissing
                                       }],
-                          }
+                            },
+#ifdef XP_MACOSX
+      "npapi-carbon-event-model-failure" : {
+                                             barID    : "carbon-failure-plugins",
+                                             iconURL  : "chrome://mozapps/skin/plugins/notifyPluginGeneric.png",
+                                             message  : gNavigatorBundle.getString("carbonFailurePluginsMessage.title"),
+                                             buttons: [{
+                                                         label     : gNavigatorBundle.getString("carbonFailurePluginsMessage.restartButton.label"),
+                                                         accessKey : gNavigatorBundle.getString("carbonFailurePluginsMessage.restartButton.accesskey"),
+                                                         popup     : null,
+                                                         callback  : carbonFailurePluginsRestartBrowser
+                                                      }],
+                            }
+#endif
     };
+#ifdef XP_MACOSX
+    if (eventType == "npapi-carbon-event-model-failure") {
 
+      let carbonFailureNotification = 
+        notificationBox.getNotificationWithValue("carbon-failure-plugins");
+
+      if (carbonFailureNotification)
+         carbonFailureNotification.close();
+
+      let macutils = Cc["@mozilla.org/xpcom/mac-utils;1"].getService(Ci.nsIMacUtils);
+      
+      if (!macutils.isUniversalBinary)
+        eventType = "PluginNotFound";
+    }
+#endif
     if (eventType == "PluginBlocklisted") {
       if (blockedNotification || missingNotification)
         return;
