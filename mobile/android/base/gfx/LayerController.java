@@ -114,12 +114,6 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
     
 
-
-
-    public static final IntSize MIN_BUFFER = new IntSize(512, 1024);
-
-    
-
     private int mTimeout = 200;
 
     private boolean allowDefaultActions = true;
