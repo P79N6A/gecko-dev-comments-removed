@@ -935,6 +935,16 @@ public:
   virtual NS_HIDDEN_(nsresult) RemoveImage(imgIRequest* aImage);
   virtual NS_HIDDEN_(nsresult) SetImageLockingState(bool aLocked);
 
+  
+  
+  virtual nsresult AddPlugin(nsIObjectLoadingContent* aPlugin);
+  
+  
+  virtual void RemovePlugin(nsIObjectLoadingContent* aPlugin);
+  
+  
+  virtual void GetPlugins(nsTArray<nsIObjectLoadingContent*>& aPlugins);
+
   virtual nsresult GetStateObject(nsIVariant** aResult);
 
   virtual nsDOMNavigationTiming* GetNavigationTiming() const;
@@ -1299,6 +1309,9 @@ private:
 
   
   nsDataHashtable< nsPtrHashKey<imgIRequest>, PRUint32> mImageTracker;
+
+  
+  nsTHashtable< nsPtrHashKey<nsIObjectLoadingContent> > mPlugins;
 
   VisibilityState mVisibilityState;
 

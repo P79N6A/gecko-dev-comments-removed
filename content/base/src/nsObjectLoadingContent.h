@@ -244,6 +244,12 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     static void DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, bool aDelayedStop);
 
+    nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                        nsIContent* aBindingParent,
+                        bool aCompileEventHandler);
+    void UnbindFromTree(bool aDeep = true,
+                        bool aNullParent = true);
+
   private:
 
     void NotifyContentObjectWrapper();
@@ -398,6 +404,10 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
     
     bool                        mShouldPlay : 1;
+
+    
+    
+    bool                        mActivated : 1;
 
     
     
