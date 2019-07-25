@@ -81,6 +81,35 @@ var Utils = {
   },
     
   
+  
+  
+  ilog: function(){ 
+    
+    if( window.firebug ){
+      window.firebug.d.console.cmd.log.apply(null, arguments);
+      return;
+    }
+    
+    
+    $('<link rel="stylesheet" href="../../js/firebuglite/firebug-lite.css"/>')
+      .appendTo("head");
+    
+    $('<script src="../../js/firebuglite/firebug-lite.js"></script>')
+      .appendTo("body");
+    
+    var args = arguments;
+    
+    (function(){
+      var fb = window.firebug;
+      if(fb && fb.version){
+        fb.init();
+        fb.win.setHeight(100);
+        fb.d.console.cmd.log.apply(null, args);
+        }
+      else{setTimeout(arguments.callee);}
+    })();
+  },
+  
   log: function() { 
     var text = this.expandArgumentsForLog(arguments);
     consoleService.logStringMessage(text);
