@@ -5062,6 +5062,13 @@ nsTextFrame::GetCharacterOffsetAtFramePointInternal(const nsPoint &aPoint,
     
     selectedOffset =
         provider.GetStart().GetOriginalOffset() + provider.GetOriginalLength();
+    
+    
+    
+    if (GetStyleText()->NewlineIsSignificant() &&
+        HasTerminalNewline()) {
+      --selectedOffset;
+    }
   }
 
   offsets.content = GetContent();
