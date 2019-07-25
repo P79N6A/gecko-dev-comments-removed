@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include "nscore.h"
+#include <limits>
 
 
 
@@ -193,7 +194,7 @@ NS_StringContainerInit(nsStringContainer &aContainer);
 XPCOM_API(nsresult)
 NS_StringContainerInit2
   (nsStringContainer &aContainer, const PRUnichar *aData = nullptr,
-   uint32_t aDataLength = PR_UINT32_MAX, uint32_t aFlags = 0);
+   uint32_t aDataLength = UINT32_MAX, uint32_t aFlags = 0);
 
 
 
@@ -292,7 +293,7 @@ NS_StringCloneData
 XPCOM_API(nsresult)
 NS_StringSetData
   (nsAString &aStr, const PRUnichar *aData,
-   uint32_t aDataLength = PR_UINT32_MAX);
+   uint32_t aDataLength = UINT32_MAX);
 
 
 
@@ -323,7 +324,7 @@ NS_StringSetData
 XPCOM_API(nsresult)
 NS_StringSetDataRange
   (nsAString &aStr, uint32_t aCutOffset, uint32_t aCutLength,
-   const PRUnichar *aData, uint32_t aDataLength = PR_UINT32_MAX);
+   const PRUnichar *aData, uint32_t aDataLength = UINT32_MAX);
 
 
 
@@ -362,9 +363,9 @@ NS_StringCopy
 
 inline NS_HIDDEN_(nsresult)
 NS_StringAppendData(nsAString &aStr, const PRUnichar *aData,
-                    uint32_t aDataLength = PR_UINT32_MAX)
+                    uint32_t aDataLength = UINT32_MAX)
 {
-  return NS_StringSetDataRange(aStr, PR_UINT32_MAX, 0, aData, aDataLength);
+  return NS_StringSetDataRange(aStr, UINT32_MAX, 0, aData, aDataLength);
 }
 
 
@@ -387,7 +388,7 @@ NS_StringAppendData(nsAString &aStr, const PRUnichar *aData,
 
 inline NS_HIDDEN_(nsresult)
 NS_StringInsertData(nsAString &aStr, uint32_t aOffset, const PRUnichar *aData,
-                    uint32_t aDataLength = PR_UINT32_MAX)
+                    uint32_t aDataLength = UINT32_MAX)
 {
   return NS_StringSetDataRange(aStr, aOffset, 0, aData, aDataLength);
 }
@@ -498,7 +499,7 @@ NS_CStringContainerInit(nsCStringContainer &aContainer);
 XPCOM_API(nsresult)
 NS_CStringContainerInit2
   (nsCStringContainer &aContainer, const char *aData = nullptr,
-   uint32_t aDataLength = PR_UINT32_MAX, uint32_t aFlags = 0);
+   uint32_t aDataLength = UINT32_MAX, uint32_t aFlags = 0);
 
 
 
@@ -597,7 +598,7 @@ NS_CStringCloneData
 XPCOM_API(nsresult)
 NS_CStringSetData
   (nsACString &aStr, const char *aData,
-   uint32_t aDataLength = PR_UINT32_MAX);
+   uint32_t aDataLength = UINT32_MAX);
 
 
 
@@ -628,7 +629,7 @@ NS_CStringSetData
 XPCOM_API(nsresult)
 NS_CStringSetDataRange
   (nsACString &aStr, uint32_t aCutOffset, uint32_t aCutLength,
-   const char *aData, uint32_t aDataLength = PR_UINT32_MAX);
+   const char *aData, uint32_t aDataLength = UINT32_MAX);
 
 
 
@@ -667,9 +668,9 @@ NS_CStringCopy
 
 inline NS_HIDDEN_(nsresult)
 NS_CStringAppendData(nsACString &aStr, const char *aData,
-                    uint32_t aDataLength = PR_UINT32_MAX)
+                    uint32_t aDataLength = UINT32_MAX)
 {
-  return NS_CStringSetDataRange(aStr, PR_UINT32_MAX, 0, aData, aDataLength);
+  return NS_CStringSetDataRange(aStr, UINT32_MAX, 0, aData, aDataLength);
 }
 
 
@@ -692,7 +693,7 @@ NS_CStringAppendData(nsACString &aStr, const char *aData,
 
 inline NS_HIDDEN_(nsresult)
 NS_CStringInsertData(nsACString &aStr, uint32_t aOffset, const char *aData,
-                    uint32_t aDataLength = PR_UINT32_MAX)
+                    uint32_t aDataLength = UINT32_MAX)
 {
   return NS_CStringSetDataRange(aStr, aOffset, 0, aData, aDataLength);
 }

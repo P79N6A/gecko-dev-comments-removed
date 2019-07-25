@@ -23,8 +23,8 @@
 
 
 
-#include "prtypes.h"
 #include "mozilla/StandardInteger.h"
+#include "stddef.h"
 
 
 
