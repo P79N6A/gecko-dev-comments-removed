@@ -1280,8 +1280,10 @@ nsXMLHttpRequest::CloseRequestWithError(const nsAString& aType,
   mState |= aFlag;
 
   
-  if (mState & XML_HTTP_REQUEST_DELETED)
+  if (mState & XML_HTTP_REQUEST_DELETED) {
+    mState &= ~XML_HTTP_REQUEST_SYNCLOOPING;
     return;
+  }
 
   if (!(mState & (XML_HTTP_REQUEST_UNSENT |
                   XML_HTTP_REQUEST_OPENED |
@@ -1319,45 +1321,52 @@ nsXMLHttpRequest::Abort()
 
 
 NS_IMETHODIMP
-nsXMLHttpRequest::GetAllResponseHeaders(nsAString& aResponseHeaders)
+nsXMLHttpRequest::GetAllResponseHeaders(char **_retval)
 {
-  aResponseHeaders.Truncate();
+  NS_ENSURE_ARG_POINTER(_retval);
+  *_retval = nsnull;
 
   
   
   if (mState & (XML_HTTP_REQUEST_UNSENT |
                 XML_HTTP_REQUEST_OPENED | XML_HTTP_REQUEST_SENT)) {
+    *_retval = ToNewCString(EmptyString());
     return NS_OK;
   }
 
   if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
+    *_retval = ToNewCString(EmptyString());
     return NS_OK;
   }
 
-  if (nsCOMPtr<nsIHttpChannel> httpChannel = GetCurrentHttpChannel()) {
+  nsCOMPtr<nsIHttpChannel> httpChannel = GetCurrentHttpChannel();
+
+  if (httpChannel) {
     nsRefPtr<nsHeaderVisitor> visitor = new nsHeaderVisitor();
-    if (NS_SUCCEEDED(httpChannel->VisitResponseHeaders(visitor))) {
-      aResponseHeaders = NS_ConvertUTF8toUTF16(visitor->Headers());
+    nsresult rv = httpChannel->VisitResponseHeaders(visitor);
+    if (NS_SUCCEEDED(rv))
+      *_retval = ToNewCString(visitor->Headers());
+  } else if (mChannel) {
+    
+    nsCString value;
+    if (NS_SUCCEEDED(mChannel->GetContentType(value))) {
+      nsCString headers;
+      headers.Append("Content-Type: ");
+      headers.Append(value);
+      if (NS_SUCCEEDED(mChannel->GetContentCharset(value)) &&
+          !value.IsEmpty()) {
+        headers.Append(";charset=");
+        headers.Append(value);
+      }
+      headers.Append('\n');
+      *_retval = ToNewCString(headers);
     }
-    return NS_OK;
   }
 
-  if (!mChannel) {
-    return NS_OK;
+  if (!*_retval) {
+    *_retval = ToNewCString(EmptyString());
   }
 
-  
-  nsCAutoString value;
-  if (NS_SUCCEEDED(mChannel->GetContentType(value))) {
-    aResponseHeaders.AppendLiteral("Content-Type: ");
-    aResponseHeaders.Append(NS_ConvertUTF8toUTF16(value));
-    if (NS_SUCCEEDED(mChannel->GetContentCharset(value)) &&
-        !value.IsEmpty()) {
-      aResponseHeaders.AppendLiteral(";charset=");
-      aResponseHeaders.Append(NS_ConvertUTF8toUTF16(value));
-    }
-    aResponseHeaders.Append('\n');
-  }
   return NS_OK;
 }
 
