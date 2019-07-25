@@ -139,14 +139,14 @@ void PluginWindowEvent::Init(const PluginWindowWeakRef &ref, HWND aWnd,
 class nsDelayedPopupsEnabledEvent : public nsRunnable
 {
 public:
-  nsDelayedPopupsEnabledEvent(nsIPluginInstance *inst)
+  nsDelayedPopupsEnabledEvent(nsNPAPIPluginInstance *inst)
     : mInst(inst)
   {}
 
   NS_DECL_NSIRUNNABLE
 
 private:
-  nsCOMPtr<nsIPluginInstance> mInst;
+  nsRefPtr<nsNPAPIPluginInstance> mInst;
 };
 
 NS_IMETHODIMP nsDelayedPopupsEnabledEvent::Run()
@@ -173,7 +173,7 @@ public:
   nsPluginNativeWindowOS2();
   virtual ~nsPluginNativeWindowOS2();
 
-  virtual nsresult CallSetWindow(nsCOMPtr<nsIPluginInstance> &aPluginInstance);
+  virtual nsresult CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> &aPluginInstance);
 
 private:
   nsresult SubclassAndAssociateWindow();
@@ -199,7 +199,7 @@ public:
 
 
 static PRBool ProcessFlashMessageDelayed(nsPluginNativeWindowOS2 * aWin,
-                                         nsIPluginInstance * aInst,
+                                         nsNPAPIPluginInstance * aInst,
                                          HWND hWnd, ULONG msg,
                                          MPARAM mp1, MPARAM mp2)
 {
@@ -240,7 +240,7 @@ static MRESULT EXPENTRY PluginWndProc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM m
   
   
   
-  nsCOMPtr<nsIPluginInstance> inst;
+  nsRefPtr<nsNPAPIPluginInstance> inst;
   win->GetPluginInstance(inst);
 
   
@@ -421,7 +421,7 @@ NS_IMETHODIMP PluginWindowEvent::Run()
   if (!hWnd)
     return NS_OK;
 
-  nsCOMPtr<nsIPluginInstance> inst;
+  nsRefPtr<nsNPAPIPluginInstance> inst;
   win->GetPluginInstance(inst);
 
   if (GetMsg() == WM_USER_FLASH)
@@ -472,7 +472,7 @@ nsPluginNativeWindowOS2::GetPluginWindowEvent(HWND aWnd, ULONG aMsg, MPARAM aMp1
   return event;
 }
 
-nsresult nsPluginNativeWindowOS2::CallSetWindow(nsCOMPtr<nsIPluginInstance> &aPluginInstance)
+nsresult nsPluginNativeWindowOS2::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> &aPluginInstance)
 {
   
   
