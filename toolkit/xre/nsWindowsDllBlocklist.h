@@ -102,7 +102,7 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
 
   
   
-  {"vksaver.dll", MAKE_VERSION(1,0,0,1)},
+  {"vksaver.dll", MAKE_VERSION(2,2,2,0)},
 
   
   {"rlxf.dll", MAKE_VERSION(1,2,323,1)},
