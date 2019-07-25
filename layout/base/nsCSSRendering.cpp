@@ -1651,6 +1651,16 @@ nsCSSRendering::DetermineBackgroundColor(nsPresContext* aPresContext,
       bgColor = NS_RGBA(0,0,0,0);
   }
 
+  const nsStyleBackground *bg = aStyleContext->GetStyleBackground();
+
+  
+  if (aDrawBackgroundColor &&
+      bg->BottomLayer().mRepeat.mXRepeat == NS_STYLE_BG_REPEAT_REPEAT &&
+      bg->BottomLayer().mRepeat.mYRepeat == NS_STYLE_BG_REPEAT_REPEAT &&
+      bg->BottomLayer().mImage.IsOpaque()) {
+    aDrawBackgroundColor = false;
+  }
+
   return bgColor;
 }
 
@@ -2278,13 +2288,6 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   
   aPresContext->SetupBackgroundImageLoaders(aForFrame, bg);
-
-  
-  if (drawBackgroundColor &&
-      bg->BottomLayer().mRepeat.mXRepeat == NS_STYLE_BG_REPEAT_REPEAT &&
-      bg->BottomLayer().mRepeat.mYRepeat == NS_STYLE_BG_REPEAT_REPEAT &&
-      bg->BottomLayer().mImage.IsOpaque())
-    drawBackgroundColor = false;
 
   
   
