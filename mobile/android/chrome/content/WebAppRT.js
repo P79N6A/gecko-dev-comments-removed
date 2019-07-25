@@ -23,7 +23,7 @@ var WebAppRT = {
     
     pref("xpinstall.enabled", false),
     
-    pref("toolkit.telemetry.prompted", true)
+    pref("toolkit.telemetry.prompted", 2)
   ],
 
   init: function(isUpdate) {
