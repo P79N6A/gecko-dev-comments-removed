@@ -589,12 +589,43 @@ let Utils = {
   },
 
   
-  
-  makeTimerForCall: function makeTimerForCall(cb) {
-    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    timer.initWithCallback(new Utils.EventListener(cb),
-                           0, timer.TYPE_ONE_SHOT);
-    return timer;
+
+
+
+
+  delay: function delay(callback, wait, thisObj, name) {
+    
+    wait = wait || 0;
+
+    
+    thisObj = thisObj || {};
+
+    
+    if (thisObj[name] instanceof Ci.nsITimer) {
+      thisObj[name].delay = wait;
+      return;
+    }
+
+    
+    let timer = {};
+    timer.__proto__ = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+
+    
+    timer.clear = function() {
+      thisObj[name] = null;
+      timer.cancel();
+    };
+
+    
+    timer.initWithCallback({
+      notify: function notify() {
+        
+        timer.clear();
+        callback.call(thisObj, timer);
+      }
+    }, wait, timer.TYPE_ONE_SHOT);
+
+    return thisObj[name] = timer;
   },
 
   open: function open(pathOrFile, mode, perms) {
@@ -742,35 +773,6 @@ let Utils = {
       this.__prefs.QueryInterface(Ci.nsIPrefBranch2);
     }
     return this.__prefs;
-  },
-
-  
-
-
-
-
-  EventListener: function Weave_EventListener(handler, eventName) {
-    this._handler = handler;
-    this._eventName = eventName;
-    this._log = Log4Moz.repository.getLogger("Async.EventHandler");
-    this._log.level =
-      Log4Moz.Level[Utils.prefs.getCharPref("log.logger.async")];
-  }
-};
-
-Utils.EventListener.prototype = {
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsITimerCallback, Ci.nsISupports]),
-
-  
-  handleEvent: function EL_handleEvent(event) {
-    this._log.trace("Handling event " + this._eventName);
-    this._handler(event);
-  },
-
-  
-  notify: function EL_notify(timer) {
-    
-    this._handler(timer);
   }
 };
 
