@@ -2261,10 +2261,21 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
     
     
-    mContext->ConnectToInner(newInnerWindow, mJSObject);
+#ifdef DEBUG
+    JSObject* newInnerJSObject = newInnerWindow->FastGetGlobalJSObject();
+#endif
+
+    
+    
+    
+    
+    JS_SetGlobalObject(cx, mJSObject);
+    NS_ASSERTION(JS_GetPrototype(mJSObject) ==
+                 JS_GetPrototype(newInnerJSObject),
+                 "outer and inner globals should have the same prototype");
 
     nsCOMPtr<nsIContent> frame = do_QueryInterface(GetFrameElementInternal());
-    if (frame && frame->OwnerDoc()) {
+    if (frame) {
       nsPIDOMWindow* parentWindow = frame->OwnerDoc()->GetWindow();
       if (parentWindow && parentWindow->TimeoutSuspendCount()) {
         SuspendTimeouts(parentWindow->TimeoutSuspendCount());

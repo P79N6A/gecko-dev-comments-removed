@@ -308,15 +308,6 @@ public:
   
 
 
-
-
-  virtual nsresult ConnectToInner(nsIScriptGlobalObject *aNewInner,
-                                  JSObject *aOuterGlobal) = 0;
-
-
-  
-
-
   virtual nsresult InitContext() = 0;
 
   
