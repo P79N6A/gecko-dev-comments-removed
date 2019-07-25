@@ -699,19 +699,8 @@ menuitem.bookmark-item {
 }
 
 #nav-bar .toolbarbutton-1 > .toolbarbutton-menubutton-button > .toolbarbutton-icon,
-#nav-bar .toolbarbutton-1 > .toolbarbutton-icon {
+#nav-bar .toolbarbutton-1:not(:-moz-any(@primaryToolbarButtons@)) > .toolbarbutton-icon {
   margin: 1px;
-  width: 16px;
-  height: 16px;
-}
-
-
-
-
-:-moz-any(@primaryToolbarButtons@) > .toolbarbutton-icon {
-  margin: 0 !important;
-  width: auto !important;
-  height: auto !important;
 }
 
 toolbar[mode="full"] .toolbarbutton-1,
