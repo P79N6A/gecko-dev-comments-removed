@@ -184,10 +184,19 @@ FrameState::push(Address address)
     
     fe->resetUnsynced();
 
+    
+    bool free = freeRegs.hasReg(address.base);
+    if (free)
+        freeRegs.takeReg(address.base);
+
     RegisterID reg = alloc(fe, RematInfo::DATA, true);
     masm.loadData32(address, reg);
     fe->data.setRegister(reg);
+
     
+    if (free)
+        freeRegs.putReg(address.base);
+
     reg = alloc(fe, RematInfo::TYPE, true);
     masm.loadTypeTag(address, reg);
     fe->type.setRegister(reg);

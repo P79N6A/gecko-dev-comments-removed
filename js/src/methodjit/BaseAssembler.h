@@ -100,6 +100,20 @@ class BaseAssembler : public JSC::MacroAssembler
     
 
 
+    Address objSlotRef(JSObject *obj, RegisterID reg, uint32 slot) {
+        if (slot < JS_INITIAL_NSLOTS) {
+            void *vp = &obj->getSlotRef(slot);
+            move(ImmPtr(vp), reg);
+            return Address(reg, 0);
+        }
+        move(ImmPtr(&obj->dslots), reg);
+        loadPtr(reg, reg);
+        return Address(reg, (slot - JS_INITIAL_NSLOTS) * sizeof(Value));
+    }
+
+    
+
+
     void * getCallTarget(void *fun) {
 #ifdef JS_CPU_ARM
         
