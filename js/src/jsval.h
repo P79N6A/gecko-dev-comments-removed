@@ -328,6 +328,7 @@ typedef union jsval_layout
         } payload;
     } s;
     double asDouble;
+    void *asPtr;
 } jsval_layout;
 # endif 
 #endif  
