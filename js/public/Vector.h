@@ -213,6 +213,8 @@ struct VectorImpl<T, N, AP, true>
 template <class T, size_t N, class AllocPolicy>
 class Vector : private AllocPolicy
 {
+    typedef typename tl::StaticAssert<!tl::IsPostBarrieredType<T>::result>::result _;
+
     
 
     static const bool sElemIsPod = tl::IsPodType<T>::result;
