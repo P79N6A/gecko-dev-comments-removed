@@ -1768,6 +1768,7 @@ struct JSContext
     friend bool js::Interpret(JSContext *, JSStackFrame *, uintN, JSInterpMode);
 
     void resetCompartment();
+    void wrapPendingException();
 
     
     void setCurrentRegs(JSFrameRegs *regs) {

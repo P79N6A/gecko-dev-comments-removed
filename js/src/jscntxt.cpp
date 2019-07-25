@@ -2019,14 +2019,8 @@ JSContext::resetCompartment()
 
     compartment = scopeobj->compartment();
 
-    
-
-
-
-
-
     if (isExceptionPending())
-        (void) compartment->wrapException(this);
+        wrapPendingException();
     return;
 
 error:
@@ -2036,6 +2030,21 @@ error:
 
 
     compartment = NULL;
+}
+
+
+
+
+
+
+
+void
+JSContext::wrapPendingException()
+{
+    Value v = getPendingException();
+    clearPendingException();
+    if (compartment->wrap(this, &v))
+        setPendingException(v);
 }
 
 void
