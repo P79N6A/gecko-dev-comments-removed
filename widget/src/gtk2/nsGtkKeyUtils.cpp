@@ -190,7 +190,7 @@ struct nsKeyConverter nsSunKeycodes[] = {
 int
 GdkKeyCodeToDOMKeyCode(int aKeysym)
 {
-    int i, length = 0;
+    unsigned int i;
 
     
     
@@ -213,16 +213,14 @@ GdkKeyCodeToDOMKeyCode(int aKeysym)
 
 #ifdef SOLARIS
     
-    length = sizeof(nsSunKeycodes) / sizeof(struct nsKeyConverter);
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < NS_ARRAY_LENGTH(nsSunKeycodes); i++) {
         if (nsSunKeycodes[i].keysym == aKeysym)
             return(nsSunKeycodes[i].vkCode);
     }
 #endif 
 
     
-    length = sizeof(nsKeycodes) / sizeof(struct nsKeyConverter);
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < NS_ARRAY_LENGTH(nsKeycodes); i++) {
         if (nsKeycodes[i].keysym == aKeysym)
             return(nsKeycodes[i].vkCode);
     }
@@ -237,7 +235,7 @@ GdkKeyCodeToDOMKeyCode(int aKeysym)
 int
 DOMKeyCodeToGdkKeyCode(int aKeysym)
 {
-    int i, length = 0;
+    unsigned int i;
 
     
     
@@ -257,8 +255,7 @@ DOMKeyCodeToGdkKeyCode(int aKeysym)
       return aKeysym - NS_VK_NUMPAD0 + GDK_KP_0;
 
     
-    length = NS_ARRAY_LENGTH(nsKeycodes);
-    for (i = 0; i < length; ++i) {
+    for (i = 0; i < NS_ARRAY_LENGTH(nsKeycodes); ++i) {
       if (nsKeycodes[i].vkCode == aKeysym) {
         return nsKeycodes[i].keysym;
       }
