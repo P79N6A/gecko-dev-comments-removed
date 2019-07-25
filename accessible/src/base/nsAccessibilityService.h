@@ -197,7 +197,7 @@ public:
 
 
   Accessible* GetOrCreateAccessible(nsINode* aNode, DocAccessible* aDoc,
-                                    bool* aIsSubtreeHidden = nsnull);
+                                    bool* aIsSubtreeHidden = nullptr);
 
 private:
   

@@ -361,12 +361,12 @@ gfxFT2LockedFace::CharVariantFunction
 gfxFT2LockedFace::FindCharVariantFunction()
 {
     
-    PRLibrary *lib = nsnull;
+    PRLibrary *lib = nullptr;
     CharVariantFunction function =
         reinterpret_cast<CharVariantFunction>
         (PR_FindFunctionSymbolAndLibrary("FT_Face_GetCharVariantIndex", &lib));
     if (!lib) {
-        return nsnull;
+        return nullptr;
     }
 
     FT_Int major;
@@ -379,7 +379,7 @@ gfxFT2LockedFace::FindCharVariantFunction()
     
     if (major == 2 && minor == 4 && patch < 4 &&
         PR_FindFunctionSymbol(lib, "FT_Alloc")) {
-        function = nsnull;
+        function = nullptr;
     }
 
     

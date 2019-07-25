@@ -49,7 +49,7 @@ clearPrefEntry(PLDHashTable *table, PLDHashEntryHdr *entry)
     }
     
     
-    pref->key = nsnull;
+    pref->key = nullptr;
     memset(entry, 0, table->entrySize);
 }
 
@@ -68,7 +68,7 @@ matchPrefEntry(PLDHashTable*, const PLDHashEntryHdr* entry,
     return (strcmp(prefEntry->key, otherKey) == 0);
 }
 
-PLDHashTable        gHashTable = { nsnull };
+PLDHashTable        gHashTable = { nullptr };
 static PLArenaPool  gPrefNameArena;
 bool                gDirty = false;
 
@@ -87,7 +87,7 @@ static PLDHashTableOps     pref_HashTableOps = {
     PL_DHashMoveEntryStub,
     clearPrefEntry,
     PL_DHashFinalizeStub,
-    nsnull,
+    nullptr,
 };
 
 
@@ -151,10 +151,10 @@ static nsresult pref_HashPref(const char *key, PrefValue value, PrefType type, P
 nsresult PREF_Init()
 {
     if (!gHashTable.ops) {
-        if (!PL_DHashTableInit(&gHashTable, &pref_HashTableOps, nsnull,
+        if (!PL_DHashTableInit(&gHashTable, &pref_HashTableOps, nullptr,
                                sizeof(PrefHashEntry),
                                PREF_HASHTABLE_INITIAL_SIZE)) {
-            gHashTable.ops = nsnull;
+            gHashTable.ops = nullptr;
             return NS_ERROR_OUT_OF_MEMORY;
         }
 
@@ -189,7 +189,7 @@ void PREF_CleanupPrefs()
 {
     if (gHashTable.ops) {
         PL_DHashTableFinish(&gHashTable);
-        gHashTable.ops = nsnull;
+        gHashTable.ops = nullptr;
         PL_FinishArenaPool(&gPrefNameArena);
     }
 }
@@ -588,7 +588,7 @@ PREF_ClearAllUserPrefs()
     if (!gHashTable.ops)
         return NS_ERROR_NOT_INITIALIZED;
 
-    PL_DHashTableEnumerate(&gHashTable, pref_ClearUserPref, nsnull);
+    PL_DHashTableEnumerate(&gHashTable, pref_ClearUserPref, nullptr);
 
     gDirty = true;
     return NS_OK;
@@ -663,7 +663,7 @@ PrefHashEntry* pref_HashTableLookup(const void *key)
         static_cast<PrefHashEntry*>(PL_DHashTableOperate(&gHashTable, key, PL_DHASH_LOOKUP));
 
     if (PL_DHASH_ENTRY_IS_FREE(result))
-        return nsnull;
+        return nullptr;
 
     return result;
 }
@@ -785,8 +785,8 @@ PREF_RegisterCallback(const char *pref_node,
                        PrefChangedFunc callback,
                        void * instance_data)
 {
-    NS_PRECONDITION(pref_node, "pref_node must not be nsnull");
-    NS_PRECONDITION(callback, "callback must not be nsnull");
+    NS_PRECONDITION(pref_node, "pref_node must not be nullptr");
+    NS_PRECONDITION(callback, "callback must not be nullptr");
 
     struct CallbackNode* node = (struct CallbackNode*) malloc(sizeof(struct CallbackNode));
     if (node)
@@ -842,7 +842,7 @@ PREF_UnregisterCallback(const char *pref_node,
             {
                 
                 
-                node->func = nsnull;
+                node->func = nullptr;
                 gShouldCleanupDeadNodes = true;
                 prev_node = node;
                 node = node->next;

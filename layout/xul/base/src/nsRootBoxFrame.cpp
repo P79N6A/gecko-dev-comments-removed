@@ -24,11 +24,11 @@ nsIRootBox*
 nsIRootBox::GetRootBox(nsIPresShell* aShell)
 {
   if (!aShell) {
-    return nsnull;
+    return nullptr;
   }
   nsIFrame* rootFrame = aShell->FrameManager()->GetRootFrame();
   if (!rootFrame) {
-    return nsnull;
+    return nullptr;
   }
 
   if (rootFrame) {
@@ -114,7 +114,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsRootBoxFrame)
 nsRootBoxFrame::nsRootBoxFrame(nsIPresShell* aShell, nsStyleContext* aContext):
   nsBoxFrame(aShell, aContext, true)
 {
-  mPopupSetFrame = nsnull;
+  mPopupSetFrame = nullptr;
 
   nsCOMPtr<nsBoxLayout> layout;
   NS_NewStackLayout(aShell, layout);

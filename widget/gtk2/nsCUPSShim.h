@@ -66,7 +66,7 @@ class nsCUPSShim {
 
 
 
-        bool IsInitialized() { return nsnull != mCupsLib; }
+        bool IsInitialized() { return nullptr != mCupsLib; }
 
         
 

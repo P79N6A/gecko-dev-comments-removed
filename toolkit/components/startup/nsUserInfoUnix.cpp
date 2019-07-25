@@ -36,7 +36,7 @@ NS_IMPL_ISUPPORTS1(nsUserInfo,nsIUserInfo)
 NS_IMETHODIMP
 nsUserInfo::GetFullname(PRUnichar **aFullname)
 {
-    struct passwd *pw = nsnull;
+    struct passwd *pw = nullptr;
 
     pw = getpwuid (geteuid());
 
@@ -81,7 +81,7 @@ nsUserInfo::GetFullname(PRUnichar **aFullname)
 NS_IMETHODIMP 
 nsUserInfo::GetUsername(char * *aUsername)
 {
-    struct passwd *pw = nsnull;
+    struct passwd *pw = nullptr;
 
     
     pw = getpwuid(geteuid());
@@ -103,7 +103,7 @@ nsUserInfo::GetDomain(char * *aDomain)
     nsresult rv = NS_ERROR_FAILURE;
 
     struct utsname buf;
-    char *domainname = nsnull;
+    char *domainname = nullptr;
 
     
     if (uname(&buf)) { 

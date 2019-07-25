@@ -225,7 +225,7 @@ private:
     
     
     nsresult AddExistingItems(PRUint32 aType,
-                              nsTArray<nsCString>* namespaceFilter = nsnull);
+                              nsTArray<nsCString>* namespaceFilter = nullptr);
     nsresult ScheduleImplicit();
     nsresult AssociateDocuments(nsIApplicationCache* cache);
 

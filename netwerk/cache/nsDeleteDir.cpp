@@ -43,7 +43,7 @@ private:
 };
 
 
-nsDeleteDir * nsDeleteDir::gInstance = nsnull;
+nsDeleteDir * nsDeleteDir::gInstance = nullptr;
 
 nsDeleteDir::nsDeleteDir()
   : mLock("nsDeleteDir.mLock"),
@@ -51,12 +51,12 @@ nsDeleteDir::nsDeleteDir()
     mShutdownPending(false),
     mStopDeleting(false)
 {
-  NS_ASSERTION(gInstance==nsnull, "multiple nsCacheService instances!");
+  NS_ASSERTION(gInstance==nullptr, "multiple nsCacheService instances!");
 }
 
 nsDeleteDir::~nsDeleteDir()
 {
-  gInstance = nsnull;
+  gInstance = nullptr;
 }
 
 nsresult
@@ -156,7 +156,7 @@ nsDeleteDir::DestroyThread()
     return;
 
   NS_DispatchToMainThread(new nsDestroyThreadEvent(mThread));
-  mThread = nsnull;
+  mThread = nullptr;
 }
 
 void
@@ -255,7 +255,7 @@ nsDeleteDir::DeleteDir(nsIFile *dirIn, bool moveToTrash, PRUint32 delay)
     
     
     
-    rv = dir->MoveToNative(nsnull, leaf);
+    rv = dir->MoveToNative(nullptr, leaf);
 #endif
     if (NS_FAILED(rv))
       return rv;

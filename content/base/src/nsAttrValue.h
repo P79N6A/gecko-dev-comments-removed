@@ -249,7 +249,7 @@ public:
   bool ParseEnumValue(const nsAString& aValue,
                         const EnumTable* aTable,
                         bool aCaseSensitive,
-                        const EnumTable* aDefaultValue = nsnull);
+                        const EnumTable* aDefaultValue = nullptr);
 
   
 
@@ -420,7 +420,7 @@ private:
                           bool* aStrict,
                           PRInt32* aErrorCode,
                           bool aCanBePercent = false,
-                          bool* aIsPercent = nsnull) const;
+                          bool* aIsPercent = nullptr) const;
   
   
   PRInt32 EnumTableEntryToValue(const EnumTable* aEnumTable,

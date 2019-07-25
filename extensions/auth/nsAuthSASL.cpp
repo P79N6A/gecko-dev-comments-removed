@@ -57,7 +57,7 @@ nsAuthSASL::Init(const char *serviceName,
     
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mInnerModule->Init(serviceName, serviceFlags, nsnull, nsnull, nsnull);
+    mInnerModule->Init(serviceName, serviceFlags, nullptr, nullptr, nullptr);
 
     return NS_OK;
 }

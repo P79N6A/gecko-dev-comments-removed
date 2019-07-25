@@ -49,7 +49,7 @@ public:
   
   
   
-  bool IsTrivial(nsISVGChildFrame **aSingleChild = nsnull);
+  bool IsTrivial(nsISVGChildFrame **aSingleChild = nullptr);
 
   bool IsValid();
 

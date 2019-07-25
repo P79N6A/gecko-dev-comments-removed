@@ -59,7 +59,7 @@ IsInitialized()
 
 
 
-static void Init(nsIFile *aGrePath = nsnull, nsIFile *aAppPath = nsnull);
+static void Init(nsIFile *aGrePath = nullptr, nsIFile *aAppPath = nullptr);
 
 
 

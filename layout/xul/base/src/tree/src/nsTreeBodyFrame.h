@@ -396,7 +396,7 @@ public:
   static
   already_AddRefed<nsTreeColumn> GetColumnImpl(nsITreeColumn* aUnknownCol) {
     if (!aUnknownCol)
-      return nsnull;
+      return nullptr;
 
     nsTreeColumn* col;
     aUnknownCol->QueryInterface(NS_GET_IID(nsTreeColumn), (void**)&col);
@@ -434,7 +434,7 @@ protected:
   public:
     NS_DECL_NSIRUNNABLE
     ScrollEvent(nsTreeBodyFrame *aInner) : mInner(aInner) {}
-    void Revoke() { mInner = nsnull; }
+    void Revoke() { mInner = nullptr; }
   private:
     nsTreeBodyFrame* mInner;
   };

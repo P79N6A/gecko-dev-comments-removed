@@ -32,13 +32,13 @@ nsStreamListenerTee::OnStopRequest(nsIRequest *request,
     NS_ENSURE_TRUE(mListener, NS_ERROR_NOT_INITIALIZED);
     
     if (mInputTee) {
-        mInputTee->SetSink(nsnull);
+        mInputTee->SetSink(nullptr);
         mInputTee = 0;
     }
 
     
     if (mEventTarget) {
-        nsIOutputStream *sink = nsnull;
+        nsIOutputStream *sink = nullptr;
         mSink.swap(sink);
         NS_ProxyRelease(mEventTarget, sink);
     }

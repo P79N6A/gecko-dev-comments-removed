@@ -109,7 +109,7 @@ public:
   
   void Cancel();
 
-  void DropChannel() { mChannel = nsnull; }
+  void DropChannel() { mChannel = nullptr; }
 
   void StartedLoading(nsIStreamLoader *aStreamLoader);
 

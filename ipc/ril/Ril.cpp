@@ -110,7 +110,7 @@ public:
             return;
         }
         sTask->Cancel();
-        sTask = nsnull;
+        sTask = nullptr;
     }
 
 private:
@@ -124,7 +124,7 @@ void RilReconnectTask::Run() {
     
     
     
-    sTask = nsnull;
+    sTask = nullptr;
     if (mCanceled) {
         return;
     }
@@ -339,7 +339,7 @@ DisconnectFromRil(Monitor* aMonitor)
     RilReconnectTask::CancelIt();
     
     
-    sClient = nsnull;
+    sClient = nullptr;
     {
         MonitorAutoLock lock(*aMonitor);
         lock.Notify();
@@ -379,7 +379,7 @@ SendRilRawData(RilRawData** aMessage)
     }
 
     RilRawData *msg = *aMessage;
-    *aMessage = nsnull;
+    *aMessage = nullptr;
 
     {
         MutexAutoLock lock(sClient->mMutex);
@@ -404,7 +404,7 @@ StopRil()
         lock.Wait();
     }
 
-    sConsumer = nsnull;
+    sConsumer = nullptr;
 }
 
 

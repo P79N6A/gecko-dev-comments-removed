@@ -110,7 +110,7 @@ main(int argc, char** argv)
         return 1;
     }
 
-    NS_InitXPCOM2(nsnull, nsnull, nsnull);
+    NS_InitXPCOM2(nullptr, nullptr, nullptr);
 
     
     

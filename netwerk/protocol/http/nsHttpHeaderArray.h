@@ -70,7 +70,7 @@ public:
     
     bool HasHeaderValue(nsHttpAtom header, const char *value) const
     {
-        return FindHeaderValue(header, value) != nsnull;
+        return FindHeaderValue(header, value) != nullptr;
     }
 
     nsresult VisitHeaders(nsIHttpHeaderVisitor *visitor);
@@ -78,8 +78,8 @@ public:
     
     
     nsresult ParseHeaderLine(const char *line,
-                             nsHttpAtom *header=nsnull,
-                             char **value=nsnull);
+                             nsHttpAtom *header=nullptr,
+                             char **value=nullptr);
 
     void Flatten(nsACString &, bool pruneProxyHeaders=false);
 

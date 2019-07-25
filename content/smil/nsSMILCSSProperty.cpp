@@ -115,7 +115,7 @@ nsSMILCSSProperty::GetBaseValue() const
     
     nsSMILCSSValueType::ValueFromString(mPropID, mElement,
                                         computedStyleVal, baseValue,
-                                        nsnull);
+                                        nullptr);
   }
   return baseValue;
 }

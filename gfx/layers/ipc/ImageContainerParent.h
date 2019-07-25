@@ -98,7 +98,7 @@ protected:
   virtual PGrallocBufferParent*
   AllocPGrallocBuffer(const gfxIntSize&, const gfxContentType&,
                       MaybeMagicGrallocBufferHandle*) MOZ_OVERRIDE
-  { return nsnull; }
+  { return nullptr; }
 
   virtual bool
   DeallocPGrallocBuffer(PGrallocBufferParent* actor) MOZ_OVERRIDE

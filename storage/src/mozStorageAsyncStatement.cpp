@@ -65,28 +65,28 @@ public:
       return NS_OK;
     }
 
-    *_helper = nsnull;
+    *_helper = nullptr;
     return NS_OK;
   }
 
   NS_IMETHODIMP
   GetContractID(char **_contractID)
   {
-    *_contractID = nsnull;
+    *_contractID = nullptr;
     return NS_OK;
   }
 
   NS_IMETHODIMP
   GetClassDescription(char **_desc)
   {
-    *_desc = nsnull;
+    *_desc = nullptr;
     return NS_OK;
   }
 
   NS_IMETHODIMP
   GetClassID(nsCID **_id)
   {
-    *_id = nsnull;
+    *_id = nullptr;
     return NS_OK;
   }
 
@@ -189,7 +189,7 @@ AsyncStatement::getParams()
   if (!mParamsArray) {
     nsCOMPtr<mozIStorageBindingParamsArray> array;
     rv = NewBindingParamsArray(getter_AddRefs(array));
-    NS_ENSURE_SUCCESS(rv, nsnull);
+    NS_ENSURE_SUCCESS(rv, nullptr);
 
     mParamsArray = static_cast<BindingParamsArray *>(array.get());
   }
@@ -197,14 +197,14 @@ AsyncStatement::getParams()
   
   if (mParamsArray->length() == 0) {
     nsRefPtr<AsyncBindingParams> params(new AsyncBindingParams(mParamsArray));
-    NS_ENSURE_TRUE(params, nsnull);
+    NS_ENSURE_TRUE(params, nullptr);
 
     rv = mParamsArray->AddParams(params);
-    NS_ENSURE_SUCCESS(rv, nsnull);
+    NS_ENSURE_SUCCESS(rv, nullptr);
 
     
     
-    params->unlock(nsnull);
+    params->unlock(nullptr);
 
     
     
@@ -235,7 +235,7 @@ AsyncStatement::~AsyncStatement()
   if (!onCallingThread) {
     
     
-    Connection *forgottenConn = nsnull;
+    Connection *forgottenConn = nullptr;
     mDBConnection.swap(forgottenConn);
     (void)::NS_ProxyRelease(forgottenConn->threadOpenedOn,
                             static_cast<mozIStorageConnection *>(forgottenConn));
@@ -254,8 +254,8 @@ AsyncStatement::cleanupJSHelpers()
       do_QueryWrappedNative(wrapper);
     AsyncStatementParams *params =
       static_cast<AsyncStatementParams *>(iParams.get());
-    params->mStatement = nsnull;
-    mStatementParamsHolder = nsnull;
+    params->mStatement = nullptr;
+    mStatementParamsHolder = nullptr;
   }
 }
 
@@ -308,7 +308,7 @@ AsyncStatement::getAsyncStatement(sqlite3_stmt **_stmt)
       PR_LOG(gStorageLog, PR_LOG_ERROR,
              ("Statement was: '%s'", mSQLString.get()));
 #endif
-      *_stmt = nsnull;
+      *_stmt = nullptr;
       return rc;
     }
 
@@ -331,7 +331,7 @@ AsyncStatement::getAsynchronousStatementData(StatementData &_data)
 
   
   
-  _data = StatementData(nsnull, bindingParamsArray(), this);
+  _data = StatementData(nullptr, bindingParamsArray(), this);
 
   return NS_OK;
 }
@@ -340,7 +340,7 @@ already_AddRefed<mozIStorageBindingParams>
 AsyncStatement::newBindingParams(mozIStorageBindingParamsArray *aOwner)
 {
   if (mFinalized)
-    return nsnull;
+    return nullptr;
 
   nsCOMPtr<mozIStorageBindingParams> params(new AsyncBindingParams(aOwner));
   return params.forget();

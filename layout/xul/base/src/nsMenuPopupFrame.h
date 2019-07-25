@@ -215,11 +215,11 @@ public:
     if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
       return static_cast<nsMenuFrame *>(parent);
     }
-    return nsnull;
+    return nullptr;
   }
 
   static nsIContent* GetTriggerContent(nsMenuPopupFrame* aMenuPopupFrame);
-  void ClearTriggerContent() { mTriggerContent = nsnull; }
+  void ClearTriggerContent() { mTriggerContent = nullptr; }
 
   
   

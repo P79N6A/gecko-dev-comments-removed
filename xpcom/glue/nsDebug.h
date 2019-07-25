@@ -117,19 +117,19 @@
 
 
 #define NS_WARNING(str)                                       \
-  NS_DebugBreak(NS_DEBUG_WARNING, str, nsnull, __FILE__, __LINE__)
+  NS_DebugBreak(NS_DEBUG_WARNING, str, nullptr, __FILE__, __LINE__)
 
 
 
 
 #define NS_ABORT()                                            \
-  NS_DebugBreak(NS_DEBUG_ABORT, nsnull, nsnull, __FILE__, __LINE__)
+  NS_DebugBreak(NS_DEBUG_ABORT, nullptr, nullptr, __FILE__, __LINE__)
 
 
 
 
 #define NS_BREAK()                                            \
-  NS_DebugBreak(NS_DEBUG_BREAK, nsnull, nsnull, __FILE__, __LINE__)
+  NS_DebugBreak(NS_DEBUG_BREAK, nullptr, nullptr, __FILE__, __LINE__)
 
 #else 
 
@@ -237,7 +237,7 @@
 
 
 #define NS_RUNTIMEABORT(msg)                                    \
-  NS_DebugBreak(NS_DEBUG_ABORT, msg, nsnull, __FILE__, __LINE__)
+  NS_DebugBreak(NS_DEBUG_ABORT, msg, nullptr, __FILE__, __LINE__)
 
 
 

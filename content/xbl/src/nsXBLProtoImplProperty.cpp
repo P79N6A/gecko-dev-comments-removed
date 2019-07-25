@@ -20,8 +20,8 @@ nsXBLProtoImplProperty::nsXBLProtoImplProperty(const PRUnichar* aName,
                                                const PRUnichar* aSetter,
                                                const PRUnichar* aReadOnly) :
   nsXBLProtoImplMember(aName), 
-  mGetterText(nsnull),
-  mSetterText(nsnull),
+  mGetterText(nullptr),
+  mSetterText(nullptr),
   mJSAttributes(JSPROP_ENUMERATE)
 #ifdef DEBUG
   , mIsCompiled(false)
@@ -44,8 +44,8 @@ nsXBLProtoImplProperty::nsXBLProtoImplProperty(const PRUnichar* aName,
 nsXBLProtoImplProperty::nsXBLProtoImplProperty(const PRUnichar* aName,
                                                const bool aIsReadOnly)
   : nsXBLProtoImplMember(aName),
-    mGetterText(nsnull),
-    mSetterText(nsnull),
+    mGetterText(nullptr),
+    mSetterText(nullptr),
     mJSAttributes(JSPROP_ENUMERATE)
 #ifdef DEBUG
   , mIsCompiled(false)
@@ -153,7 +153,7 @@ nsXBLProtoImplProperty::InstallMember(nsIScriptContext* aContext,
 
   
   if ((mJSGetterObject || mJSSetterObject) && aTargetClassObject) {
-    JSObject * getter = nsnull;
+    JSObject * getter = nullptr;
     JSAutoRequest ar(cx);
     JSAutoEnterCompartment ac;
 
@@ -164,7 +164,7 @@ nsXBLProtoImplProperty::InstallMember(nsIScriptContext* aContext,
       if (!(getter = ::JS_CloneFunctionObject(cx, mJSGetterObject, globalObject)))
         return NS_ERROR_OUT_OF_MEMORY;
 
-    JSObject * setter = nsnull;
+    JSObject * setter = nullptr;
     if (mJSSetterObject)
       if (!(setter = ::JS_CloneFunctionObject(cx, mJSSetterObject, globalObject)))
         return NS_ERROR_OUT_OF_MEMORY;
@@ -210,12 +210,12 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
     nsDependentString getter(mGetterText->GetText());
     if (!getter.IsEmpty()) {
       
-      JSObject* getterObject = nsnull;
+      JSObject* getterObject = nullptr;
       rv = aContext->CompileFunction(aClassObject,
                                      NS_LITERAL_CSTRING("get_") +
                                      NS_ConvertUTF16toUTF8(mName),
                                      0,
-                                     nsnull,
+                                     nullptr,
                                      getter, 
                                      functionUri.get(),
                                      mGetterText->GetLineNumber(),
@@ -233,7 +233,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
         mJSAttributes |= JSPROP_GETTER | JSPROP_SHARED;
       }
       if (NS_FAILED(rv)) {
-        mJSGetterObject = nsnull;
+        mJSGetterObject = nullptr;
         mJSAttributes &= ~JSPROP_GETTER;
         
       }
@@ -242,7 +242,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
 
   if (!deletedGetter) {  
     delete mGetterText;
-    mJSGetterObject = nsnull;
+    mJSGetterObject = nullptr;
   }
   
   if (NS_FAILED(rv)) {
@@ -260,7 +260,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
     nsDependentString setter(mSetterText->GetText());
     if (!setter.IsEmpty()) {
       
-      JSObject* setterObject = nsnull;
+      JSObject* setterObject = nullptr;
       rv = aContext->CompileFunction(aClassObject,
                                      NS_LITERAL_CSTRING("set_") +
                                      NS_ConvertUTF16toUTF8(mName),
@@ -283,7 +283,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
         mJSAttributes |= JSPROP_SETTER | JSPROP_SHARED;
       }
       if (NS_FAILED(rv)) {
-        mJSSetterObject = nsnull;
+        mJSSetterObject = nullptr;
         mJSAttributes &= ~JSPROP_SETTER;
         
       }
@@ -292,7 +292,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
 
   if (!deletedSetter) {  
     delete mSetterText;
-    mJSSetterObject = nsnull;
+    mJSSetterObject = nullptr;
   }
 
 #ifdef DEBUG

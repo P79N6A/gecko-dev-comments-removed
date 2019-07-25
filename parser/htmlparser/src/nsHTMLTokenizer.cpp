@@ -72,7 +72,7 @@ nsHTMLTokenizer::nsHTMLTokenizer(nsDTDMode aParseMode,
                 (mFlags & NS_IPARSER_FLAG_VIEW_SOURCE),
               "Why isn't this XML document going through our XML parser?");
 
-  mTokenAllocator = nsnull;
+  mTokenAllocator = nullptr;
   mTokenScanPos = 0;
 }
 
@@ -474,7 +474,7 @@ nsresult
 nsHTMLTokenizer::ConsumeToken(nsScanner& aScanner, bool& aFlushTokens)
 {
   PRUnichar theChar;
-  CToken* theToken = nsnull;
+  CToken* theToken = nullptr;
 
   nsresult result = aScanner.Peek(theChar);
 
@@ -631,7 +631,7 @@ nsHTMLTokenizer::ConsumeAttributes(PRUnichar aChar,
       static_cast<CAttributeToken*>
                  (theAllocator->CreateTokenOfType(eToken_attribute,
                                                      eHTMLTag_unknown));
-    if (NS_LIKELY(theToken != nsnull)) {
+    if (NS_LIKELY(theToken != nullptr)) {
       
       result = theToken->Consume(aChar, aScanner, mFlags);
 
@@ -806,7 +806,7 @@ nsHTMLTokenizer::ConsumeStartTag(PRUnichar aChar,
         
         if (kEOF != result) {
           AddToken(text, NS_OK, &mTokenDeque, theAllocator);
-          CToken* endToken = nsnull;
+          CToken* endToken = nullptr;
 
           if (NS_SUCCEEDED(result) && done) {
             PRUnichar theChar;
@@ -837,7 +837,7 @@ nsHTMLTokenizer::ConsumeStartTag(PRUnichar aChar,
             endToken = theAllocator->CreateTokenOfType(eToken_end, theTag,
                                                        endTagName);
             AddToken(endToken, result, &mTokenDeque, theAllocator);
-            if (NS_LIKELY(endToken != nsnull)) {
+            if (NS_LIKELY(endToken != nullptr)) {
               endToken->SetInError(true);
             }
             else {
@@ -1071,7 +1071,7 @@ nsHTMLTokenizer::ConsumeText(CToken*& aToken, nsScanner& aScanner)
     if (NS_FAILED(result)) {
       if (0 == theToken->GetTextLength()) {
         IF_FREE(aToken, mTokenAllocator);
-        aToken = nsnull;
+        aToken = nullptr;
       } else {
         result = NS_OK;
       }

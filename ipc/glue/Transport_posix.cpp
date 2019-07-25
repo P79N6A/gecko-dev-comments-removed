@@ -28,7 +28,7 @@ CreateTransport(ProcessHandle , ProcessHandle ,
   
   wstring id = ChildProcessInfo::GenerateRandomChannelID(aOne);
   
-  Transport t(id, Transport::MODE_SERVER, nsnull);
+  Transport t(id, Transport::MODE_SERVER, nullptr);
   int fd1 = t.GetServerFileDescriptor();
   int fd2, dontcare;
   t.GetClientFileDescriptorMapping(&fd2, &dontcare);
@@ -52,7 +52,7 @@ CreateTransport(ProcessHandle , ProcessHandle ,
 Transport*
 OpenDescriptor(const TransportDescriptor& aTd, Transport::Mode aMode)
 {
-  return new Transport(aTd.mFd.fd, aMode, nsnull);
+  return new Transport(aTd.mFd.fd, aMode, nullptr);
 }
 
 void

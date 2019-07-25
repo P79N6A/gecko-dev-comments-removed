@@ -106,7 +106,7 @@ main(int aArgc,
   }
 
   
-  (void)NS_ProcessPendingEvents(nsnull);
+  (void)NS_ProcessPendingEvents(nullptr);
 
   
   if (gPassedTests == gTotalTests) {

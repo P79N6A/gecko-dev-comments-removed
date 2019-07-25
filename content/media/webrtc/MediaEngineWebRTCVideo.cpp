@@ -237,7 +237,7 @@ MediaEngineWebRTCVideoSource::Snapshot(PRUint32 aDuration, nsIDOMFile** aFile)
 
 
 
-  *aFile = nsnull;
+  *aFile = nullptr;
   if (!mInitDone || mState != kAllocated) {
     return NS_ERROR_FAILURE;
   }

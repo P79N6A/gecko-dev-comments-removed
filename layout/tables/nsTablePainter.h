@@ -196,7 +196,7 @@ class TableBackgroundPainter
       TableBackgroundData  mCol;
       TableBackgroundData* mColGroup; 
       ColData() {
-        mColGroup = nsnull;
+        mColGroup = nullptr;
       }
     };
 

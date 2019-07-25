@@ -71,8 +71,8 @@ public:
     NS_ABORT_IF_FALSE(IndexIsValid(), "Bad index for DOMSVGPoint!");
   }
 
-  DOMSVGPoint(const DOMSVGPoint *aPt = nsnull)
-    : mList(nsnull)
+  DOMSVGPoint(const DOMSVGPoint *aPt = nullptr)
+    : mList(nullptr)
     , mListIndex(0)
     , mIsReadonly(false)
     , mIsAnimValItem(false)
@@ -83,7 +83,7 @@ public:
   }
 
   DOMSVGPoint(float aX, float aY)
-    : mList(nsnull)
+    : mList(nullptr)
     , mListIndex(0)
     , mIsReadonly(false)
     , mIsAnimValItem(false)
@@ -93,7 +93,7 @@ public:
   }
 
   DOMSVGPoint(const gfxPoint &aPt)
-    : mList(nsnull)
+    : mList(nullptr)
     , mListIndex(0)
     , mIsReadonly(false)
     , mIsAnimValItem(false)
@@ -110,7 +110,7 @@ public:
     
     
     if (mList) {
-      mList->mItems[mListIndex] = nsnull;
+      mList->mItems[mListIndex] = nullptr;
     }
   }
 

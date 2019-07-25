@@ -210,7 +210,7 @@ ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
   
   
   gfxRect contentBounds, displayPort;
-  ContainerLayer* scrollableLayer = nsnull;
+  ContainerLayer* scrollableLayer = nullptr;
   for (ContainerLayer* parent = aLayer->GetParent(); parent; parent = parent->GetParent()) {
       const FrameMetrics& parentMetrics = parent->GetFrameMetrics();
       if (parentMetrics.IsScrollable())

@@ -28,7 +28,7 @@ const int DISPLAY_DIM_TIMEOUT = 10620;
 nsScreenQt::nsScreenQt(int aScreen)
     : mScreen(aScreen)
 #ifdef MOZ_ENABLE_QMSYSTEM2
-    , mDisplayState(nsnull)
+    , mDisplayState(nullptr)
 #endif
 {
     
@@ -40,7 +40,7 @@ nsScreenQt::~nsScreenQt()
 {
 #ifdef MOZ_ENABLE_QMSYSTEM2
     delete mDisplayState;
-    mDisplayState = nsnull;
+    mDisplayState = nullptr;
 #endif
 }
 
@@ -105,7 +105,7 @@ nsScreenQt::ApplyMinimumBrightness(PRUint32 aType)
     
     
     delete mDisplayState;
-    mDisplayState = nsnull;
+    mDisplayState = nullptr;
 
     if( aType == BRIGHTNESS_FULL) {
         mDisplayState = new MeeGo::QmDisplayState();

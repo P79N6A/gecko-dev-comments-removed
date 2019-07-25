@@ -52,7 +52,7 @@ public:
   
   void Invalidate();
   ImageContainer* GetImageContainer() { return mImageContainer; }
-  void ForgetElement() { mElement = nsnull; }
+  void ForgetElement() { mElement = nullptr; }
 
 protected:
   

@@ -299,7 +299,7 @@ void SortLayersBy3DZOrder(nsTArray<Layer*>& aLayers)
     if (noIncoming.IsEmpty() && graph.GetEdgeCount()) {
       
       PRUint32 minEdges = UINT_MAX;
-      Layer* minNode = nsnull;
+      Layer* minNode = nullptr;
       for (PRUint32 i = 0; i < aLayers.Length(); i++) {
         PRUint32 edgeCount = graph.NumEdgesTo(aLayers.ElementAt(i));
         if (edgeCount && edgeCount < minEdges) {

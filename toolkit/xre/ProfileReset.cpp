@@ -38,8 +38,8 @@ CreateResetProfile(nsIToolkitProfileService* aProfileSvc, nsIToolkitProfile* *aN
   
   nsCAutoString newProfileName("default-");
   newProfileName.Append(nsPrintfCString("%lld", PR_Now() / 1000));
-  nsresult rv = aProfileSvc->CreateProfile(nsnull, 
-                                           nsnull, 
+  nsresult rv = aProfileSvc->CreateProfile(nullptr, 
+                                           nullptr, 
                                            newProfileName,
                                            getter_AddRefs(newProfile));
   if (NS_FAILED(rv)) return rv;
@@ -114,7 +114,7 @@ ProfileResetCleanup(nsIToolkitProfile* aOldProfile)
   if (!appStartup) return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIDOMWindow> progressWindow;
-  rv = windowWatcher->OpenWindow(nsnull,
+  rv = windowWatcher->OpenWindow(nullptr,
                                  kResetProgressURL,
                                  "_blank",
                                  "centerscreen,chrome,titlebar",

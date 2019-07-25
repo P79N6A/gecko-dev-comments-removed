@@ -83,7 +83,7 @@ public:
 
 
 
-  const T& GetLast(Time* aTime = nsnull) const
+  const T& GetLast(Time* aTime = nullptr) const
   {
     if (mChanges.IsEmpty()) {
       if (aTime) {
@@ -127,7 +127,7 @@ public:
 
 
 
-  const T& GetAt(Time aTime, Time* aEnd = nsnull, Time* aStart = nsnull) const
+  const T& GetAt(Time aTime, Time* aEnd = nullptr, Time* aStart = nullptr) const
   {
     if (mChanges.IsEmpty() || aTime < mChanges[0].mTime) {
       if (aStart) {

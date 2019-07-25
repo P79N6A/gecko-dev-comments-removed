@@ -33,7 +33,7 @@ gfxQuartzNativeDrawing::BeginNativeDrawing()
     gfxPoint deviceOffset;
     nsRefPtr<gfxASurface> surf = mContext->CurrentSurface(&deviceOffset.x, &deviceOffset.y);
     if (!surf || surf->CairoStatus())
-        return nsnull;
+        return nullptr;
 
     
     
@@ -48,7 +48,7 @@ gfxQuartzNativeDrawing::BeginNativeDrawing()
         
         mCGContext = cairo_quartz_get_cg_context_with_clip(mSurfaceContext->GetCairo());
         if (!mCGContext)
-            return nsnull;
+            return nullptr;
 
         gfxMatrix m = mContext->CurrentMatrix();
         CGContextTranslateCTM(mCGContext, deviceOffset.x, deviceOffset.y);
@@ -78,7 +78,7 @@ gfxQuartzNativeDrawing::BeginNativeDrawing()
         mQuartzSurface = new gfxQuartzSurface(mNativeRect.Size(),
                                               gfxASurface::ImageFormatARGB32);
         if (mQuartzSurface->CairoStatus())
-            return nsnull;
+            return nullptr;
         mSurfaceContext = new gfxContext(mQuartzSurface);
 
         

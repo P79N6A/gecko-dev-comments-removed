@@ -167,7 +167,7 @@ public:
 
   nsGeolocation();
 
-  nsresult Init(nsIDOMWindow* contentDom=nsnull);
+  nsresult Init(nsIDOMWindow* contentDom=nullptr);
 
   
   void Update(nsIDOMGeoPosition* aPosition);

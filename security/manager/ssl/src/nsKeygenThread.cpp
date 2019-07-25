@@ -24,17 +24,17 @@ nsKeygenThread::nsKeygenThread()
  keygenReady(false),
  statusDialogClosed(false),
  alreadyReceivedParams(false),
- privateKey(nsnull),
- publicKey(nsnull),
- slot(nsnull),
+ privateKey(nullptr),
+ publicKey(nullptr),
+ slot(nullptr),
  flags(0),
- altSlot(nsnull),
+ altSlot(nullptr),
  altFlags(0),
- usedSlot(nsnull),
+ usedSlot(nullptr),
  keyGenMechanism(0),
- params(nsnull),
- wincx(nsnull),
- threadHandle(nsnull)
+ params(nullptr),
+ wincx(nullptr),
+ threadHandle(nullptr)
 {
 }
 
@@ -66,9 +66,9 @@ void nsKeygenThread::SetParams(
  
     if (!alreadyReceivedParams) {
       alreadyReceivedParams = true;
-      slot = (a_slot) ? PK11_ReferenceSlot(a_slot) : nsnull;
+      slot = (a_slot) ? PK11_ReferenceSlot(a_slot) : nullptr;
       flags = a_flags;
-      altSlot = (a_alternative_slot) ? PK11_ReferenceSlot(a_alternative_slot) : nsnull;
+      altSlot = (a_alternative_slot) ? PK11_ReferenceSlot(a_alternative_slot) : nullptr;
       altFlags = a_alternative_flags;
       keyGenMechanism = a_keyGenMechanism;
       params = a_params;
@@ -231,7 +231,7 @@ void nsKeygenThread::Run(void)
     if (!statusDialogClosed && mNotifyObserver)
       notifyObserver = mNotifyObserver;
 
-    mNotifyObserver = nsnull;
+    mNotifyObserver = nullptr;
   }
 
   if (notifyObserver) {
@@ -247,7 +247,7 @@ void nsKeygenThread::Join()
     return;
   
   PR_JoinThread(threadHandle);
-  threadHandle = nsnull;
+  threadHandle = nullptr;
 
   return;
 }

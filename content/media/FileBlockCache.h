@@ -108,7 +108,7 @@ public:
     }
     bool IsWrite() const {
       return mSourceBlockIndex == -1 &&
-             mData.get() != nsnull;
+             mData.get() != nullptr;
     }
   };
 

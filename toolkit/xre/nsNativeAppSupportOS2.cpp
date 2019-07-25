@@ -1114,7 +1114,7 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
                     printf( "Handling dde XTYP_REQUEST request: [%s]...\n", url.get() );
 #endif
                     
-                    HandleCommandLine(url.get(), nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
+                    HandleCommandLine(url.get(), nullptr, nsICommandLine::STATE_REMOTE_EXPLICIT);
                     
                     result = CreateDDEData( 1 );
                     break;
@@ -1279,7 +1279,7 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
             printf( "Handling dde XTYP_REQUEST request: [%s]...\n", url.get() );
 #endif
             
-            HandleCommandLine(url.get(), nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
+            HandleCommandLine(url.get(), nullptr, nsICommandLine::STATE_REMOTE_EXPLICIT);
 
             
 
@@ -1625,7 +1625,7 @@ protected:
   JSContext                         *mContext;
 };
 
-SafeJSContext::SafeJSContext() : mContext(nsnull) {
+SafeJSContext::SafeJSContext() : mContext(nullptr) {
 }
 
 SafeJSContext::~SafeJSContext() {
@@ -1721,7 +1721,7 @@ nsNativeAppSupportOS2::OpenBrowserWindow()
         (do_CreateInstance("@mozilla.org/toolkit/command-line;1"));
     NS_ENSURE_TRUE(cmdLine, NS_ERROR_FAILURE);
 
-    rv = cmdLine->Init(0, argv, nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
+    rv = cmdLine->Init(0, argv, nullptr, nsICommandLine::STATE_REMOTE_EXPLICIT);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return cmdLine->Run();

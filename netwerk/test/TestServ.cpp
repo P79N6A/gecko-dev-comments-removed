@@ -17,7 +17,7 @@
 
 
 
-static PRLogModuleInfo *gTestLog = nsnull;
+static PRLogModuleInfo *gTestLog = nullptr;
 #endif
 #define LOG(args) PR_LOG(gTestLog, PR_LOG_DEBUG, args)
 
@@ -126,7 +126,7 @@ main(int argc, char* argv[])
 
 
 
-    rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
+    rv = NS_InitXPCOM2(nullptr, nullptr, nullptr);
     if (NS_FAILED(rv)) return rv;
 
     {
@@ -140,6 +140,6 @@ main(int argc, char* argv[])
         PumpEvents();
     } 
     
-    NS_ShutdownXPCOM(nsnull);
+    NS_ShutdownXPCOM(nullptr);
     return rv;
 }

@@ -8,7 +8,7 @@
 #include "nscore.h"  
 #include "nsGTKToolkit.h"
 
-nsGTKToolkit* nsGTKToolkit::gToolkit = nsnull;
+nsGTKToolkit* nsGTKToolkit::gToolkit = nullptr;
 
 
 
@@ -16,7 +16,7 @@ nsGTKToolkit* nsGTKToolkit::gToolkit = nsnull;
 
 
 nsGTKToolkit::nsGTKToolkit()
-  : mSharedGC(nsnull), mFocusTimestamp(0)
+  : mSharedGC(nullptr), mFocusTimestamp(0)
 {
     CreateSharedGC();
 }

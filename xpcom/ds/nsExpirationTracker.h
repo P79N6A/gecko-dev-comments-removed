@@ -231,7 +231,7 @@ template <class T, PRUint32 K> class nsExpirationTracker {
           ++mGeneration;
           mIndex = 0;
         }
-        return nsnull;
+        return nullptr;
       }
     };
     
@@ -312,7 +312,7 @@ template <class T, PRUint32 K> class nsExpirationTracker {
       
       if (tracker->IsEmpty()) {
         tracker->mTimer->Cancel();
-        tracker->mTimer = nsnull;
+        tracker->mTimer = nullptr;
       }
     }
 

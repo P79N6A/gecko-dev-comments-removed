@@ -131,7 +131,7 @@ struct ParamTraits<GeoPosition>
     }
 
     DOMTimeStamp timeStamp;
-    GeoPositionCoords coords = nsnull;
+    GeoPositionCoords coords = nullptr;
 
     
     if (!(   ReadParam(aMsg, aIter, &timeStamp)

@@ -62,7 +62,7 @@
 #endif
 
 #ifdef PR_LOGGING
-PRLogModuleInfo* nsURILoader::mLog = nsnull;
+PRLogModuleInfo* nsURILoader::mLog = nullptr;
 #endif
 
 #define LOG(args) PR_LOG(nsURILoader::mLog, PR_LOG_DEBUG, args)
@@ -475,7 +475,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
     if (mContentType != anyType) {
       rv = ConvertData(request, m_contentListener, mContentType, anyType);
       if (NS_FAILED(rv)) {
-        m_targetStreamListener = nsnull;
+        m_targetStreamListener = nullptr;
       } else if (m_targetStreamListener) {
         
         
@@ -536,7 +536,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
                                      getter_AddRefs(m_targetStreamListener));
     if (NS_FAILED(rv)) {
       request->SetLoadFlags(loadFlags);
-      m_targetStreamListener = nsnull;
+      m_targetStreamListener = nullptr;
     }
   }
       
@@ -585,7 +585,7 @@ nsDocumentOpenInfo::ConvertData(nsIRequest *request,
   
   nextLink->m_contentListener = aListener;
   
-  nextLink->m_targetStreamListener = nsnull;
+  nextLink->m_targetStreamListener = nullptr;
 
   
   
@@ -641,7 +641,7 @@ nsDocumentOpenInfo::TryContentListener(nsIURIContentListener* aListener,
 
     if (NS_FAILED(rv)) {
       
-      m_targetStreamListener = nsnull;
+      m_targetStreamListener = nullptr;
     }
 
     LOG(("  Found conversion: %s", m_targetStreamListener ? "yes" : "no"));
@@ -649,7 +649,7 @@ nsDocumentOpenInfo::TryContentListener(nsIURIContentListener* aListener,
     
     
     
-    return m_targetStreamListener != nsnull;
+    return m_targetStreamListener != nullptr;
   }
 
   
@@ -682,7 +682,7 @@ nsDocumentOpenInfo::TryContentListener(nsIURIContentListener* aListener,
     
     
     aChannel->SetLoadFlags(loadFlags);
-    m_targetStreamListener = nsnull;
+    m_targetStreamListener = nullptr;
     return false;
   }
 
@@ -691,7 +691,7 @@ nsDocumentOpenInfo::TryContentListener(nsIURIContentListener* aListener,
     
     
     LOG(("  Listener has aborted the load"));
-    m_targetStreamListener = nsnull;
+    m_targetStreamListener = nullptr;
   }
 
   NS_ASSERTION(abort || m_targetStreamListener, "DoContent returned no listener?");
@@ -781,7 +781,7 @@ NS_IMETHODIMP nsURILoader::OpenURI(nsIChannel *channel,
     
 
     
-    rv = channel->AsyncOpen(loader, nsnull);
+    rv = channel->AsyncOpen(loader, nullptr);
 
     
     if (rv == NS_ERROR_NO_CONTENT) {
@@ -876,10 +876,10 @@ nsresult nsURILoader::OpenChannel(nsIChannel* channel,
     
     
     
-    loadGroup->AddRequest(channel, nsnull);
+    loadGroup->AddRequest(channel, nullptr);
 
    if (oldGroup) {
-      oldGroup->RemoveRequest(channel, nsnull, NS_BINDING_RETARGETED);
+      oldGroup->RemoveRequest(channel, nullptr, NS_BINDING_RETARGETED);
     }
   }
 

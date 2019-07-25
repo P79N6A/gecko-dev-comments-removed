@@ -122,7 +122,7 @@ nsLDAPSyncQuery::OnLDAPInit(nsILDAPConnection *aConn, nsresult aStatus)
 
     
     
-    rv = mOperation->Init(mConnection, selfProxy, nsnull);
+    rv = mOperation->Init(mConnection, selfProxy, nullptr);
     if (NS_FAILED(rv)) {
         FinishLDAPQuery();
         return NS_ERROR_UNEXPECTED; 
@@ -263,7 +263,7 @@ nsLDAPSyncQuery::StartLDAPSearch()
 
     
     
-    rv = mOperation->Init(mConnection, selfProxy, nsnull);
+    rv = mOperation->Init(mConnection, selfProxy, nullptr);
     if (NS_FAILED(rv)) {
         NS_ERROR("nsLDAPSyncQuery::StartLDAPSearch(): couldn't "
                  "initialize LDAP operation");
@@ -361,7 +361,7 @@ nsresult nsLDAPSyncQuery::InitConnection()
     }
 
     rv = mConnection->Init(mServerURL, EmptyCString(), selfProxy,
-                           nsnull, mProtocolVersion);
+                           nullptr, mProtocolVersion);
     if (NS_FAILED(rv)) {
         FinishLDAPQuery();
         return NS_ERROR_UNEXPECTED; 

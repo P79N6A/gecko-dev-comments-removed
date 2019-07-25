@@ -172,7 +172,7 @@ nsSVGTextFrame::NotifySVGChanged(PRUint32 aFlags)
       updateGlyphMetrics = true;
     }
     
-    mCanvasTM = nsnull;
+    mCanvasTM = nullptr;
   }
 
   if (updateGlyphMetrics) {

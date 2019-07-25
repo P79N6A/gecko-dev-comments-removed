@@ -22,7 +22,7 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                jsval *rval      )
     :   mState(INIT_FAILED),
         mXPC(nsXPConnect::GetXPConnect()),
-        mXPCContext(nsnull),
+        mXPCContext(nullptr),
         mJSContext(cx),
         mContextPopRequired(false),
         mDestroyJSContextInDestructor(false),
@@ -41,7 +41,7 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                XPCWrappedNativeTearOff* tearOff)
     :   mState(INIT_FAILED),
         mXPC(nsXPConnect::GetXPConnect()),
-        mXPCContext(nsnull),
+        mXPCContext(nullptr),
         mJSContext(cx),
         mContextPopRequired(false),
         mDestroyJSContextInDestructor(false),
@@ -50,9 +50,9 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         mWrapper(wrapper),
         mTearOff(tearOff)
 {
-    Init(callerLanguage, callBeginRequest, obj, nsnull,
+    Init(callerLanguage, callBeginRequest, obj, nullptr,
          WRAPPER_PASSED_TO_CONSTRUCTOR, JSID_VOID, NO_ARGS,
-         nsnull, nsnull);
+         nullptr, nullptr);
 }
 
 void
@@ -73,7 +73,7 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
 
     if (!stack) {
         
-        mJSContext = nsnull;
+        mJSContext = nullptr;
         return;
     }
 
@@ -137,7 +137,7 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
 
     mState = HAVE_OBJECT;
 
-    mTearOff = nsnull;
+    mTearOff = nullptr;
     if (wrapperInitOptions == INIT_SHOULD_LOOKUP_WRAPPER) {
         mWrapper = XPCWrappedNative::GetWrappedNativeOfJSObject(mJSContext, obj,
                                                                 funobj,
@@ -147,7 +147,7 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
             mFlattenedJSObject = mWrapper->GetFlatJSObject();
 
             if (mTearOff)
-                mScriptableInfo = nsnull;
+                mScriptableInfo = nullptr;
             else
                 mScriptableInfo = mWrapper->GetScriptableInfo();
         } else {
@@ -173,26 +173,26 @@ XPCCallContext::SetName(jsid name)
     mName = name;
 
     if (mTearOff) {
-        mSet = nsnull;
+        mSet = nullptr;
         mInterface = mTearOff->GetInterface();
         mMember = mInterface->FindMember(name);
         mStaticMemberIsLocal = true;
         if (mMember && !mMember->IsConstant())
             mMethodIndex = mMember->GetIndex();
     } else {
-        mSet = mWrapper ? mWrapper->GetSet() : nsnull;
+        mSet = mWrapper ? mWrapper->GetSet() : nullptr;
 
         if (mSet &&
             mSet->FindMember(name, &mMember, &mInterface,
                              mWrapper->HasProto() ?
                              mWrapper->GetProto()->GetSet() :
-                             nsnull,
+                             nullptr,
                              &mStaticMemberIsLocal)) {
             if (mMember && !mMember->IsConstant())
                 mMethodIndex = mMember->GetIndex();
         } else {
-            mMember = nsnull;
-            mInterface = nsnull;
+            mMember = nullptr;
+            mInterface = nullptr;
             mStaticMemberIsLocal = false;
         }
     }
@@ -211,9 +211,9 @@ XPCCallContext::SetCallInfo(XPCNativeInterface* iface, XPCNativeMember* member,
 
     
     if (mTearOff && mTearOff->GetInterface() != iface)
-        mTearOff = nsnull;
+        mTearOff = nullptr;
 
-    mSet = nsnull;
+    mSet = nullptr;
     mInterface = iface;
     mMember = member;
     mMethodIndex = mMember->GetIndex() + (isSetter ? 1 : 0);
@@ -231,9 +231,9 @@ XPCCallContext::SetArgsAndResultPtr(unsigned argc,
     CHECK_STATE(HAVE_OBJECT);
 
     if (mState < HAVE_NAME) {
-        mSet = nsnull;
-        mInterface = nsnull;
-        mMember = nsnull;
+        mSet = nullptr;
+        mInterface = nullptr;
+        mMember = nullptr;
         mStaticMemberIsLocal = false;
     }
 
@@ -257,7 +257,7 @@ XPCCallContext::CanCallNow()
     if (!mTearOff) {
         mTearOff = mWrapper->FindTearOff(*this, mInterface, false, &rv);
         if (!mTearOff || mTearOff->GetInterface() != mInterface) {
-            mTearOff = nsnull;
+            mTearOff = nullptr;
             return NS_FAILED(rv) ? rv : NS_ERROR_UNEXPECTED;
         }
     }
@@ -276,7 +276,7 @@ XPCCallContext::SystemIsBeingShutDown()
     
     
     NS_WARNING("Shutting Down XPConnect even through there is a live XPCCallContext");
-    mXPCContext = nsnull;
+    mXPCContext = nullptr;
     mState = SYSTEM_SHUTDOWN;
     if (mPrevCallContext)
         mPrevCallContext->SystemIsBeingShutDown();
@@ -294,7 +294,7 @@ XPCCallContext::~XPCCallContext()
         DebugOnly<XPCCallContext*> old = XPCJSRuntime::Get()->SetCallContext(mPrevCallContext);
         NS_ASSERTION(old == this, "bad pop from per thread data");
 
-        shouldReleaseXPC = mPrevCallContext == nsnull;
+        shouldReleaseXPC = mPrevCallContext == nullptr;
     }
 
     
@@ -379,7 +379,7 @@ XPCCallContext::DeleteString(nsAString *string)
 NS_IMETHODIMP
 XPCCallContext::GetCallee(nsISupports * *aCallee)
 {
-    nsISupports* temp = mWrapper ? mWrapper->GetIdentityObject() : nsnull;
+    nsISupports* temp = mWrapper ? mWrapper->GetIdentityObject() : nullptr;
     NS_IF_ADDREF(temp);
     *aCallee = temp;
     return NS_OK;
@@ -417,7 +417,7 @@ XPCCallContext::GetCalleeInterface(nsIInterfaceInfo * *aCalleeInterface)
 NS_IMETHODIMP
 XPCCallContext::GetCalleeClassInfo(nsIClassInfo * *aCalleeClassInfo)
 {
-    nsIClassInfo* temp = mWrapper ? mWrapper->GetClassInfo() : nsnull;
+    nsIClassInfo* temp = mWrapper ? mWrapper->GetClassInfo() : nullptr;
     NS_IF_ADDREF(temp);
     *aCalleeClassInfo = temp;
     return NS_OK;

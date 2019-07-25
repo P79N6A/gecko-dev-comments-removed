@@ -26,7 +26,7 @@ nsresult nsDateTimeFormatMac::Initialize(nsILocale* locale)
   nsresult res;
 
   
-  if (nsnull == locale) {
+  if (nullptr == locale) {
     if (!mLocale.IsEmpty() &&
         mLocale.Equals(mAppLocale, nsCaseInsensitiveStringComparator())) {
       return NS_OK;
@@ -58,7 +58,7 @@ nsresult nsDateTimeFormatMac::Initialize(nsILocale* locale)
   }
   
   
-  if (nsnull == locale) {
+  if (nullptr == locale) {
     mUseDefaultLocale = true;
   }
   else {

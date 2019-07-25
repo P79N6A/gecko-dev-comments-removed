@@ -360,7 +360,7 @@ Shmem::Alloc(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
   NS_ABORT_IF_FALSE(!aProtect || !aUnsafe, "protect => !unsafe");
 
   size_t pageSize = SharedMemory::SystemPageSize();
-  SharedMemory* segment = nsnull;
+  SharedMemory* segment = nullptr;
   
   size_t segmentSize = SharedMemory::PageAlignedSize(aNBytes + 2*pageSize);
 
@@ -490,7 +490,7 @@ Shmem::Alloc(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
              bool ,
              bool )
 {
-  SharedMemory *segment = nsnull;
+  SharedMemory *segment = nullptr;
 
   if (aType == SharedMemory::TYPE_BASIC)
     segment = CreateSegment(SharedMemory::PageAlignedSize(aNBytes + sizeof(uint32)),

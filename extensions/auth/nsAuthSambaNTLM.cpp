@@ -12,8 +12,8 @@
 #include <stdlib.h>
 
 nsAuthSambaNTLM::nsAuthSambaNTLM()
-    : mInitialMessage(nsnull), mChildPID(nsnull), mFromChildFD(nsnull),
-      mToChildFD(nsnull)
+    : mInitialMessage(nullptr), mChildPID(nullptr), mFromChildFD(nullptr),
+      mToChildFD(nullptr)
 {
 }
 
@@ -30,16 +30,16 @@ nsAuthSambaNTLM::Shutdown()
 {
     if (mFromChildFD) {
         PR_Close(mFromChildFD);
-        mFromChildFD = nsnull;
+        mFromChildFD = nullptr;
     }
     if (mToChildFD) {
         PR_Close(mToChildFD);
-        mToChildFD = nsnull;
+        mToChildFD = nullptr;
     }
     if (mChildPID) {
         PRInt32 exitCode;
         PR_WaitProcess(mChildPID, &exitCode);
-        mChildPID = nsnull;
+        mChildPID = nullptr;
     }
 }
 
@@ -78,7 +78,7 @@ SpawnIOChild(char* const* aArgs, PRProcess** aPID,
     PR_ProcessAttrSetStdioRedirect(attr, PR_StandardInput, toChildPipeRead);
     PR_ProcessAttrSetStdioRedirect(attr, PR_StandardOutput, fromChildPipeWrite);   
 
-    PRProcess* process = PR_CreateProcess(aArgs[0], aArgs, nsnull, attr);
+    PRProcess* process = PR_CreateProcess(aArgs[0], aArgs, nullptr, attr);
     PR_DestroyProcessAttr(attr);
     PR_Close(fromChildPipeWrite);
     PR_Close(toChildPipeRead);
@@ -151,7 +151,7 @@ static PRUint8* ExtractMessage(const nsACString& aLine, PRUint32* aLen)
         
         
         NS_WARNING("Base64 encoded block should be a multiple of 4 chars");
-        return nsnull;
+        return nullptr;
     } 
 
     
@@ -162,7 +162,7 @@ static PRUint8* ExtractMessage(const nsACString& aLine, PRUint32* aLen)
             break;
     }
     *aLen = (length/4)*3 - numEquals;
-    return reinterpret_cast<PRUint8*>(PL_Base64Decode(s, length, nsnull));
+    return reinterpret_cast<PRUint8*>(PL_Base64Decode(s, length, nullptr));
 }
 
 nsresult
@@ -177,7 +177,7 @@ nsAuthSambaNTLM::SpawnNTLMAuthHelper()
         "--helper-protocol", "ntlmssp-client-1",
         "--use-cached-creds",
         "--username", username,
-        nsnull
+        nullptr
     };
 
     bool isOK = SpawnIOChild(const_cast<char* const*>(args), &mChildPID, &mFromChildFD, &mToChildFD);
@@ -229,7 +229,7 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
     }
 
     
-    char* encoded = PL_Base64Encode(static_cast<const char*>(inToken), inTokenLen, nsnull);
+    char* encoded = PL_Base64Encode(static_cast<const char*>(inToken), inTokenLen, nullptr);
     if (!encoded)
         return NS_ERROR_OUT_OF_MEMORY;
 

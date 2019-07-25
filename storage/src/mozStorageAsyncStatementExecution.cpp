@@ -204,7 +204,7 @@ AsyncExecuteStatements::AsyncExecuteStatements(StatementDataArray &aStatements,
                                                Connection *aConnection,
                                                mozIStorageStatementCallback *aCallback)
 : mConnection(aConnection)
-, mTransactionManager(nsnull)
+, mTransactionManager(nullptr)
 , mCallback(aCallback)
 , mCallingThread(::do_GetCurrentThread())
 , mMaxWait(TimeDuration::FromMilliseconds(MAX_MILLISECONDS_BETWEEN_RESULTS))
@@ -243,7 +243,7 @@ AsyncExecuteStatements::bindExecuteAndProcessStatement(StatementData &aData,
 {
   mMutex.AssertNotCurrentThreadOwns();
 
-  sqlite3_stmt *aStatement = nsnull;
+  sqlite3_stmt *aStatement = nullptr;
   
   (void)aData.getSqliteStatement(&aStatement);
   NS_ASSERTION(aStatement, "You broke the code; do not call here like that!");
@@ -448,7 +448,7 @@ AsyncExecuteStatements::notifyComplete()
       (void)mTransactionManager->Rollback();
     }
     delete mTransactionManager;
-    mTransactionManager = nsnull;
+    mTransactionManager = nullptr;
   }
 
   
@@ -459,7 +459,7 @@ AsyncExecuteStatements::notifyComplete()
                "Should have given up ownership of mStatements!");
 
   
-  mCallback = nsnull;
+  mCallback = nullptr;
 
   (void)mCallingThread->Dispatch(completionEvent, NS_DISPATCH_NORMAL);
 
@@ -510,7 +510,7 @@ AsyncExecuteStatements::notifyResults()
 
   nsresult rv = mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
   if (NS_SUCCEEDED(rv))
-    mResultSet = nsnull; 
+    mResultSet = nullptr; 
   return rv;
 }
 

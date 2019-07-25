@@ -174,8 +174,8 @@ protected:
 
   void InitOffsets(nscoord aContainingBlockWidth,
                    nsIAtom* aFrameType,
-                   const nsMargin *aBorder = nsnull,
-                   const nsMargin *aPadding = nsnull);
+                   const nsMargin *aBorder = nullptr,
+                   const nsMargin *aPadding = nullptr);
 
   
 
@@ -376,8 +376,8 @@ public:
   void Init(nsPresContext* aPresContext,
             nscoord         aContainingBlockWidth = -1,
             nscoord         aContainingBlockHeight = -1,
-            const nsMargin* aBorder = nsnull,
-            const nsMargin* aPadding = nsnull);
+            const nsMargin* aBorder = nullptr,
+            const nsMargin* aPadding = nullptr);
   
 
 

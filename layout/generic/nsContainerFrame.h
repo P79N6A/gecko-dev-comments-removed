@@ -188,7 +188,7 @@ public:
                        nscoord                        aY,
                        PRUint32                       aFlags,
                        nsReflowStatus&                aStatus,
-                       nsOverflowContinuationTracker* aTracker = nsnull);
+                       nsOverflowContinuationTracker* aTracker = nullptr);
 
   
 

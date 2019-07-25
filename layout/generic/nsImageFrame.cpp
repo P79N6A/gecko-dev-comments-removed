@@ -88,7 +88,7 @@ using namespace mozilla::layers;
 using namespace mozilla::dom;
 
 
-nsImageFrame::IconLoad* nsImageFrame::gIconLoad = nsnull;
+nsImageFrame::IconLoad* nsImageFrame::gIconLoad = nullptr;
 
 
 nsIIOService* nsImageFrame::sIOService;
@@ -171,7 +171,7 @@ nsImageFrame::CreateAccessible()
     }
   }
 
-  return nsnull;
+  return nullptr;
 }
 #endif
 
@@ -216,10 +216,10 @@ nsImageFrame::DestroyFrom(nsIFrame* aDestructRoot)
       imageLoader->RemoveObserver(mListener);
     }
     
-    reinterpret_cast<nsImageListener*>(mListener.get())->SetFrame(nsnull);
+    reinterpret_cast<nsImageListener*>(mListener.get())->SetFrame(nullptr);
   }
   
-  mListener = nsnull;
+  mListener = nullptr;
 
   
   if (mDisplayingIcon)
@@ -1200,7 +1200,7 @@ nsDisplayImage::GetContainer()
 {
   nsRefPtr<ImageContainer> container;
   nsresult rv = mImage->GetImageContainer(getter_AddRefs(container));
-  NS_ENSURE_SUCCESS(rv, nsnull);
+  NS_ENSURE_SUCCESS(rv, nullptr);
   return container.forget();
 }
 
@@ -1263,7 +1263,7 @@ nsDisplayImage::BuildLayer(nsDisplayListBuilder* aBuilder,
 {
   nsRefPtr<ImageContainer> container;
   nsresult rv = mImage->GetImageContainer(getter_AddRefs(container));
-  NS_ENSURE_SUCCESS(rv, nsnull);
+  NS_ENSURE_SUCCESS(rv, nullptr);
 
   nsRefPtr<ImageLayer> layer = aManager->CreateImageLayer();
   layer->SetContainer(container);
@@ -1311,7 +1311,7 @@ nsImageFrame::PaintImage(nsRenderingContext& aRenderingContext, nsPoint aPt,
     aFlags);
 
   nsImageMap* map = GetImageMap();
-  if (nsnull != map) {
+  if (nullptr != map) {
     aRenderingContext.PushState();
     aRenderingContext.SetColor(NS_RGB(0, 0, 0));
     aRenderingContext.SetLineStyle(nsLineStyle_kDotted);
@@ -1516,8 +1516,8 @@ nsImageFrame::GetAnchorHREFTargetAndNode(nsIURI** aHref, nsString& aTarget,
 {
   bool status = false;
   aTarget.Truncate();
-  *aHref = nsnull;
-  *aNode = nsnull;
+  *aHref = nullptr;
+  *aNode = nullptr;
 
   
   for (nsIContent* content = mContent->GetParent();
@@ -1528,7 +1528,7 @@ nsImageFrame::GetAnchorHREFTargetAndNode(nsIURI** aHref, nsString& aTarget,
       if (href) {
         href->Clone(aHref);
       }
-      status = (*aHref != nsnull);
+      status = (*aHref != nullptr);
 
       nsCOMPtr<nsIDOMHTMLAnchorElement> anchor(do_QueryInterface(content));
       if (anchor) {
@@ -1555,7 +1555,7 @@ nsImageFrame::GetContentForEvent(nsEvent* aEvent,
   
   
   nsIContent* capturingContent =
-    NS_IS_MOUSE_EVENT(aEvent) ? nsIPresShell::GetCapturingContent() : nsnull;
+    NS_IS_MOUSE_EVENT(aEvent) ? nsIPresShell::GetCapturingContent() : nullptr;
   if (capturingContent && capturingContent->GetPrimaryFrame() == this) {
     *aContent = capturingContent;
     NS_IF_ADDREF(*aContent);
@@ -1564,7 +1564,7 @@ nsImageFrame::GetContentForEvent(nsEvent* aEvent,
 
   nsImageMap* map = GetImageMap();
 
-  if (nsnull != map) {
+  if (nullptr != map) {
     nsIntPoint p;
     TranslateEventCoords(
       nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this), p);
@@ -1594,7 +1594,7 @@ nsImageFrame::HandleEvent(nsPresContext* aPresContext,
       aEvent->message == NS_MOUSE_MOVE) {
     nsImageMap* map = GetImageMap();
     bool isServerMap = IsServerImageMap();
-    if ((nsnull != map) || isServerMap) {
+    if ((nullptr != map) || isServerMap) {
       nsIntPoint p;
       TranslateEventCoords(
         nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this), p);
@@ -1603,7 +1603,7 @@ nsImageFrame::HandleEvent(nsPresContext* aPresContext,
       
       
       
-      if (nsnull != map) {
+      if (nullptr != map) {
         inside = !!map->GetArea(p.x, p.y);
       }
 
@@ -1648,7 +1648,7 @@ nsImageFrame::GetCursor(const nsPoint& aPoint,
                         nsIFrame::Cursor& aCursor)
 {
   nsImageMap* map = GetImageMap();
-  if (nsnull != map) {
+  if (nullptr != map) {
     nsIntPoint p;
     TranslateEventCoords(aPoint, p);
     nsCOMPtr<nsIContent> area = map->GetArea(p.x, p.y);
@@ -1748,10 +1748,10 @@ PRIntn
 nsImageFrame::GetSkipSides() const
 {
   PRIntn skip = 0;
-  if (nsnull != GetPrevInFlow()) {
+  if (nullptr != GetPrevInFlow()) {
     skip |= 1 << NS_SIDE_TOP;
   }
-  if (nsnull != GetNextInFlow()) {
+  if (nullptr != GetNextInFlow()) {
     skip |= 1 << NS_SIDE_BOTTOM;
   }
   return skip;
@@ -1796,18 +1796,18 @@ nsImageFrame::LoadIcon(const nsAString& aSpec,
   nsLoadFlags loadFlags = nsIRequest::LOAD_NORMAL;
 
   return il->LoadImage(realURI,     
-                       nsnull,      
+                       nullptr,      
 
 
-                       nsnull,      
-                       nsnull,      
+                       nullptr,      
+                       nullptr,      
                        loadGroup,
                        gIconLoad,
-                       nsnull,      
+                       nullptr,      
                        loadFlags,
-                       nsnull,
-                       nsnull,
-                       nsnull,      
+                       nullptr,
+                       nullptr,
+                       nullptr,      
                        aRequest);
 }
 
@@ -1832,7 +1832,7 @@ nsImageFrame::SpecToURI(const nsAString& aSpec, nsIIOService *aIOService,
   nsCAutoString charset;
   GetDocumentCharacterSet(charset);
   NS_NewURI(aURI, aSpec, 
-            charset.IsEmpty() ? nsnull : charset.get(), 
+            charset.IsEmpty() ? nullptr : charset.get(), 
             baseURI, aIOService);
 }
 
@@ -1842,7 +1842,7 @@ nsImageFrame::GetLoadGroup(nsPresContext *aPresContext, nsILoadGroup **aLoadGrou
   if (!aPresContext)
     return;
 
-  NS_PRECONDITION(nsnull != aLoadGroup, "null OUT parameter pointer");
+  NS_PRECONDITION(nullptr != aLoadGroup, "null OUT parameter pointer");
 
   nsIPresShell *shell = aPresContext->GetPresShell();
 
@@ -1887,7 +1887,7 @@ NS_IMPL_ISUPPORTS2(nsImageFrame::IconLoad, nsIObserver,
 static const char* kIconLoadPrefs[] = {
   "browser.display.force_inline_alttext",
   "browser.display.show_image_placeholders",
-  nsnull
+  nullptr
 };
 
 nsImageFrame::IconLoad::IconLoad()
@@ -1904,11 +1904,11 @@ nsImageFrame::IconLoad::Shutdown()
   
   if (mLoadingImage) {
     mLoadingImage->CancelAndForgetObserver(NS_ERROR_FAILURE);
-    mLoadingImage = nsnull;
+    mLoadingImage = nullptr;
   }
   if (mBrokenImage) {
     mBrokenImage->CancelAndForgetObserver(NS_ERROR_FAILURE);
-    mBrokenImage = nsnull;
+    mBrokenImage = nullptr;
   }
 }
 
@@ -2123,7 +2123,7 @@ nsImageFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
  
   aData->trailingWhitespace = 0;
   aData->skipWhitespace = false;
-  aData->trailingTextFrame = nsnull;
+  aData->trailingTextFrame = nullptr;
   aData->currentLine += nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
                             this, nsLayoutUtils::MIN_WIDTH);
   aData->atStartOfLine = false;

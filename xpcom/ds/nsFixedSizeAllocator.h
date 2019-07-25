@@ -128,7 +128,7 @@ protected:
     FindBucket(size_t aSize);
 
 public:
-    nsFixedSizeAllocator() : mBuckets(nsnull) {}
+    nsFixedSizeAllocator() : mBuckets(nullptr) {}
 
     ~nsFixedSizeAllocator() {
         if (mBuckets)

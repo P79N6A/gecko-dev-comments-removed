@@ -365,7 +365,7 @@ OfflineCacheUpdateChild::Schedule()
 
     nsCOMPtr<nsPIDOMWindow> piWindow = 
         do_QueryInterface(mWindow);
-    mWindow = nsnull;
+    mWindow = nullptr;
 
     nsIDocShell *docshell = piWindow->GetDocShell();
 
@@ -394,7 +394,7 @@ OfflineCacheUpdateChild::Schedule()
       LOG(("Calling offline-cache-update-added"));
       observerService->NotifyObservers(static_cast<nsIOfflineCacheUpdate*>(this),
                                        "offline-cache-update-added",
-                                       nsnull);
+                                       nullptr);
       LOG(("Done offline-cache-update-added"));
     }
 
@@ -404,7 +404,7 @@ OfflineCacheUpdateChild::Schedule()
     
     
     
-    bool stickDocument = mDocument != nsnull; 
+    bool stickDocument = mDocument != nullptr; 
 
     
     
@@ -500,7 +500,7 @@ OfflineCacheUpdateChild::RecvFinish(const bool &succeeded,
         LOG(("Calling offline-cache-update-completed"));
         observerService->NotifyObservers(static_cast<nsIOfflineCacheUpdate*>(this),
                                          "offline-cache-update-completed",
-                                         nsnull);
+                                         nullptr);
         LOG(("Done offline-cache-update-completed"));
     }
 

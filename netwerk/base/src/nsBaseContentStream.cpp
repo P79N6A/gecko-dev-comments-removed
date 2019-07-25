@@ -23,11 +23,11 @@ nsBaseContentStream::DispatchCallback(bool async)
                                 mCallbackTarget);
     if (!callback)
       return;  
-    mCallback = nsnull;
+    mCallback = nullptr;
   } else {
     callback.swap(mCallback);
   }
-  mCallbackTarget = nsnull;
+  mCallbackTarget = nullptr;
 
   callback->OnInputStreamReady(this);
 }

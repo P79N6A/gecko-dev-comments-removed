@@ -138,7 +138,7 @@ class nsHtml5Parser : public nsIParser,
 
 
     NS_IMETHOD Parse(nsIURI* aURL,
-                     nsIRequestObserver* aListener = nsnull,
+                     nsIRequestObserver* aListener = nullptr,
                      void* aKey = 0,
                      nsDTDMode aMode = eDTDMode_autodetect);
 
@@ -241,7 +241,7 @@ class nsHtml5Parser : public nsIParser,
     void DropStreamParser() {
       if (mStreamParser) {
         mStreamParser->DropTimer();
-        mStreamParser = nsnull;
+        mStreamParser = nullptr;
       }
     }
     

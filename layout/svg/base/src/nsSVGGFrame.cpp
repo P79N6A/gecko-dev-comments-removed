@@ -56,7 +56,7 @@ nsSVGGFrame::NotifySVGChanged(PRUint32 aFlags)
 
   if (aFlags & TRANSFORM_CHANGED) {
     
-    mCanvasTM = nsnull;
+    mCanvasTM = nullptr;
   }
 
   nsSVGGFrameBase::NotifySVGChanged(aFlags);

@@ -63,9 +63,9 @@ nsBaseURLParser::ParseURL(const char *spec, PRInt32 specLen,
     if (specLen < 0)
         specLen = strlen(spec);
 
-    const char *stop = nsnull;
-    const char *colon = nsnull;
-    const char *slash = nsnull;
+    const char *stop = nullptr;
+    const char *colon = nullptr;
+    const char *slash = nullptr;
     const char *p;
     PRUint32 offset = 0;
     PRInt32 len = specLen;
@@ -97,7 +97,7 @@ nsBaseURLParser::ParseURL(const char *spec, PRInt32 specLen,
     }
     
     if (colon && stop && colon > stop)
-        colon = nsnull;
+        colon = nullptr;
 
     
     if (specLen == 0) {
@@ -370,7 +370,7 @@ nsNoAuthURLParser::ParseAfterScheme(const char *spec, PRInt32 specLen,
         break;
     case 2:
         {
-            const char *p = nsnull;
+            const char *p = nullptr;
             if (specLen > 2) {
                 
 #if defined(XP_WIN) || defined(XP_OS2)
@@ -550,14 +550,14 @@ nsAuthURLParser::ParseServerInfo(const char *serverinfo, PRInt32 serverinfoLen,
     
     
     const char *p = serverinfo + serverinfoLen - 1;
-    const char *colon = nsnull, *bracket = nsnull;
+    const char *colon = nullptr, *bracket = nullptr;
     for (; p > serverinfo; --p) {
         switch (*p) {
             case ']':
                 bracket = p;
                 break;
             case ':':
-                if (bracket == nsnull)
+                if (bracket == nullptr)
                     colon = p;
                 break;
             case ' ':

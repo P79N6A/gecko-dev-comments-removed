@@ -294,7 +294,7 @@ public:
     NS_ASSERTION(IsOuterWindow(),
                  "Inner window supports nsWrapperCache, fix WrapObject!");
     *triedToWrap = true;
-    return EnsureInnerWindow() ? GetWrapper() : nsnull;
+    return EnsureInnerWindow() ? GetWrapper() : nullptr;
   }
 
   
@@ -426,7 +426,7 @@ public:
     GetTop(getter_AddRefs(top));
     if (top)
       return static_cast<nsGlobalWindow *>(top.get());
-    return nsnull;
+    return nullptr;
   }
 
   inline nsGlobalWindow* GetScriptableTop()
@@ -436,7 +436,7 @@ public:
     if (top) {
       return static_cast<nsGlobalWindow *>(top.get());
     }
-    return nsnull;
+    return nullptr;
   }
 
   
@@ -559,20 +559,20 @@ public:
 
   static nsGlobalWindow* GetOuterWindowWithId(PRUint64 aWindowID) {
     if (!sWindowsById) {
-      return nsnull;
+      return nullptr;
     }
 
     nsGlobalWindow* outerWindow = sWindowsById->Get(aWindowID);
-    return outerWindow && !outerWindow->IsInnerWindow() ? outerWindow : nsnull;
+    return outerWindow && !outerWindow->IsInnerWindow() ? outerWindow : nullptr;
   }
 
   static nsGlobalWindow* GetInnerWindowWithId(PRUint64 aInnerWindowID) {
     if (!sWindowsById) {
-      return nsnull;
+      return nullptr;
     }
 
     nsGlobalWindow* innerWindow = sWindowsById->Get(aInnerWindowID);
-    return innerWindow && innerWindow->IsInnerWindow() ? innerWindow : nsnull;
+    return innerWindow && innerWindow->IsInnerWindow() ? innerWindow : nullptr;
   }
 
   static bool HasIndexedDBSupport();
@@ -640,7 +640,7 @@ protected:
   inline void MaybeClearInnerWindow(nsGlobalWindow* aExpectedInner)
   {
     if(mInnerWindow == aExpectedInner) {
-      mInnerWindow = nsnull;
+      mInnerWindow = nullptr;
     }
   }
 
@@ -740,7 +740,7 @@ protected:
 
   
   void RunTimeout(nsTimeout *aTimeout);
-  void RunTimeout() { RunTimeout(nsnull); }
+  void RunTimeout() { RunTimeout(nullptr); }
   
   bool RunTimeoutHandler(nsTimeout* aTimeout, nsIScriptContext* aScx);
   
@@ -813,7 +813,7 @@ protected:
 
   bool IsFrame()
   {
-    return GetParentInternal() != nsnull;
+    return GetParentInternal() != nullptr;
   }
 
   
@@ -1159,11 +1159,11 @@ NS_NewScriptGlobalObject(bool aIsChrome, bool aIsModalContentWindow)
   nsRefPtr<nsGlobalWindow> global;
 
   if (aIsChrome) {
-    global = new nsGlobalChromeWindow(nsnull);
+    global = new nsGlobalChromeWindow(nullptr);
   } else if (aIsModalContentWindow) {
-    global = new nsGlobalModalWindow(nsnull);
+    global = new nsGlobalModalWindow(nullptr);
   } else {
-    global = new nsGlobalWindow(nsnull);
+    global = new nsGlobalWindow(nullptr);
   }
 
   return global.forget();

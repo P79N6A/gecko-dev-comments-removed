@@ -83,7 +83,7 @@ protected:
 
 
   nsresult LoadImage(nsIURI* aNewURI, bool aForce, bool aNotify,
-                     nsIDocument* aDocument = nsnull,
+                     nsIDocument* aDocument = nullptr,
                      nsLoadFlags aLoadFlags = nsIRequest::LOAD_NORMAL);
 
   
@@ -159,7 +159,7 @@ private:
   struct ImageObserver {
     ImageObserver(imgIDecoderObserver* aObserver) :
       mObserver(aObserver),
-      mNext(nsnull)
+      mNext(nullptr)
     {
       MOZ_COUNT_CTOR(ImageObserver);
     }

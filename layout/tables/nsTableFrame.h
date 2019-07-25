@@ -57,7 +57,7 @@ private:
 class nsAutoPushCurrentTableItem
 {
 public:
-  nsAutoPushCurrentTableItem() : mBuilder(nsnull) {}
+  nsAutoPushCurrentTableItem() : mBuilder(nullptr) {}
   
   void Push(nsDisplayListBuilder* aBuilder, nsDisplayTableItem* aPushItem)
   {
@@ -355,7 +355,7 @@ public:
   virtual PRInt32  GetEffectiveRowSpan(PRInt32                 aStartRowIndex,
                                        const nsTableCellFrame& aCell) const;
   virtual PRInt32  GetEffectiveRowSpan(const nsTableCellFrame& aCell,
-                                       nsCellMap*              aCellMap = nsnull);
+                                       nsCellMap*              aCellMap = nullptr);
 
   
 
@@ -366,7 +366,7 @@ public:
 
 
   virtual PRInt32  GetEffectiveColSpan(const nsTableCellFrame& aCell,
-                                       nsCellMap*              aCellMap = nsnull) const;
+                                       nsCellMap*              aCellMap = nullptr) const;
 
   
 
@@ -591,8 +591,8 @@ public:
   
 
   void OrderRowGroups(RowGroupArray& aChildren,
-                      nsTableRowGroupFrame** aHead = nsnull,
-                      nsTableRowGroupFrame** aFoot = nsnull) const;
+                      nsTableRowGroupFrame** aHead = nullptr,
+                      nsTableRowGroupFrame** aFoot = nullptr) const;
 
   
   nsTableRowGroupFrame* GetTHead() const;

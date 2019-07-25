@@ -31,7 +31,7 @@ public:
   {
     if (mIMC) {
       ::ImmReleaseContext(mWnd, mIMC);
-      mIMC = nsnull;
+      mIMC = nullptr;
     }
   }
 
@@ -51,7 +51,7 @@ protected:
     NS_ERROR("Don't create nsIMEContext without window handle");
   }
 
-  nsIMEContext(const nsIMEContext &aSrc) : mWnd(nsnull), mIMC(nsnull)
+  nsIMEContext(const nsIMEContext &aSrc) : mWnd(nullptr), mIMC(nullptr)
   {
     NS_ERROR("Don't copy nsIMEContext");
   }
@@ -236,7 +236,7 @@ protected:
 
 
 
-  bool GetTargetClauseRange(PRUint32 *aOffset, PRUint32 *aLength = nsnull);
+  bool GetTargetClauseRange(PRUint32 *aOffset, PRUint32 *aLength = nullptr);
   void DispatchTextEvent(nsWindow* aWindow, const nsIMEContext &aIMEContext,
                          bool aCheckAttr = true);
   void SetTextRangeList(nsTArray<nsTextRange> &aTextRangeList);

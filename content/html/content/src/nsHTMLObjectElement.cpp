@@ -439,7 +439,7 @@ nsHTMLObjectElement::GetContentDocument(nsIDOMDocument **aContentDocument)
 {
   NS_ENSURE_ARG_POINTER(aContentDocument);
 
-  *aContentDocument = nsnull;
+  *aContentDocument = nullptr;
 
   if (!IsInDoc()) {
     return NS_OK;
@@ -525,7 +525,7 @@ nsHTMLObjectElement::StartObjectLoad(bool aNotify)
     
     
     
-    LoadObject(nsnull, aNotify, ctype);
+    LoadObject(nullptr, aNotify, ctype);
   }
   SetIsNetworkCreated(false);
 }

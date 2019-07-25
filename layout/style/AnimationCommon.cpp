@@ -31,7 +31,7 @@ CommonAnimationManager::Disconnect()
   
   RemoveAllElementData();
 
-  mPresContext = nsnull;
+  mPresContext = nullptr;
 }
 
 void

@@ -42,7 +42,7 @@ bool
 nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, PRUint32* oldFlags )
   {
     
-    *oldData = nsnull;
+    *oldData = nullptr;
     *oldFlags = 0;
 
     size_type curCapacity = Capacity();

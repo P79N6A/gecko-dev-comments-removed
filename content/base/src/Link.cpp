@@ -442,7 +442,7 @@ Link::ResetLinkState(bool aNotify)
   mLinkState = defaultState;
 
   
-  mCachedURI = nsnull;
+  mCachedURI = nullptr;
 
   
   
@@ -480,7 +480,7 @@ Link::GetURIToMutate()
 {
   nsCOMPtr<nsIURI> uri(GetURI());
   if (!uri) {
-    return nsnull;
+    return nullptr;
   }
   nsCOMPtr<nsIURI> clone;
   (void)uri->Clone(getter_AddRefs(clone));

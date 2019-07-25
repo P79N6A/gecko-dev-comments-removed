@@ -53,13 +53,13 @@ nsSMILMappedAttribute::GetBaseValue() const
     
     
     nsSMILCSSValueType::ValueFromString(mPropID, mElement,
-                                        baseStringValue, baseValue, nsnull);
+                                        baseStringValue, baseValue, nullptr);
   } else {
     
     
     
     void* buf = mElement->UnsetProperty(SMIL_MAPPED_ATTR_ANIMVAL,
-                                        attrName, nsnull);
+                                        attrName, nullptr);
     FlushChangesToTargetAttr();
 
     

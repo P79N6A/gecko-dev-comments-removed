@@ -42,7 +42,7 @@ DocAccessible*
 nsAccDocManager::GetDocAccessible(nsIDocument *aDocument)
 {
   if (!aDocument)
-    return nsnull;
+    return nullptr;
 
   
   nsAccessNode::GetApplicationAccessible()->EnsureChildren();
@@ -352,22 +352,22 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
   
   if (aDocument->IsInitialDocument() || !aDocument->IsVisible() ||
       aDocument->IsResourceDoc() || !aDocument->IsActive())
-    return nsnull;
+    return nullptr;
 
   
   nsIPresShell* presShell = aDocument->GetShell();
   if (!presShell || !presShell->GetRootFrame())
-    return nsnull;
+    return nullptr;
 
   
   
   nsIContent *rootElm = nsCoreUtils::GetRoleContent(aDocument);
   if (!rootElm)
-    return nsnull;
+    return nullptr;
 
   bool isRootDoc = nsCoreUtils::IsRootDocument(aDocument);
 
-  DocAccessible* parentDocAcc = nsnull;
+  DocAccessible* parentDocAcc = nullptr;
   if (!isRootDoc) {
     
     
@@ -375,7 +375,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
     NS_ASSERTION(parentDocAcc,
                  "Can't create an accessible for the document!");
     if (!parentDocAcc)
-      return nsnull;
+      return nullptr;
   }
 
   
@@ -390,7 +390,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
   
   if (!docAcc->Init()) {
     docAcc->Shutdown();
-    return nsnull;
+    return nullptr;
   }
   docAcc->SetRoleMapEntry(aria::GetRoleMap(aDocument));
 
@@ -399,7 +399,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
     Accessible* appAcc = nsAccessNode::GetApplicationAccessible();
     if (!appAcc->AppendChild(docAcc)) {
       docAcc->Shutdown();
-      return nsnull;
+      return nullptr;
     }
 
     
@@ -444,7 +444,7 @@ nsAccDocManager::GetFirstEntryInDocCache(const nsIDocument* aKey,
 void
 nsAccDocManager::ClearDocCache()
 {
-  DocAccessible* docAcc = nsnull;
+  DocAccessible* docAcc = nullptr;
   while (mDocAccessibleCache.EnumerateRead(GetFirstEntryInDocCache, static_cast<void*>(&docAcc))) {
     if (docAcc)
       docAcc->Shutdown();

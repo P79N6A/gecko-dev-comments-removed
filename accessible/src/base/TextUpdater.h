@@ -27,11 +27,11 @@ public:
 
 private:
   TextUpdater(DocAccessible* aDocument, TextLeafAccessible* aTextLeaf) :
-    mDocument(aDocument), mTextLeaf(aTextLeaf), mHyperText(nsnull),
+    mDocument(aDocument), mTextLeaf(aTextLeaf), mHyperText(nullptr),
     mTextOffset(-1) { }
 
   ~TextUpdater()
-    { mDocument = nsnull; mTextLeaf = nsnull; mHyperText = nsnull; }
+    { mDocument = nullptr; mTextLeaf = nullptr; mHyperText = nullptr; }
 
   
 

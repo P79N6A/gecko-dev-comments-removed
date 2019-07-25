@@ -153,13 +153,13 @@ main(int argc, char* argv[])
   printf("### launch daemon...\n");
 
   PRProcessAttr *attributes = PR_NewProcessAttr();
-  if (attributes == nsnull) {
+  if (attributes == nullptr) {
     printf("PR_NewProcessAttr() failed.\n");
     return -1;
   }
 
-  PRProcess *daemon = PR_CreateProcess("nsDnsAsyncLookup", nsnull, nsnull, attributes);
-  if (daemon == nsnull) {
+  PRProcess *daemon = PR_CreateProcess("nsDnsAsyncLookup", nullptr, nullptr, attributes);
+  if (daemon == nullptr) {
     printf("PR_CreateProcess failed.\n");
   } else {
     

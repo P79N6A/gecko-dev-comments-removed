@@ -99,7 +99,7 @@ public:
         if (!mCallback)
             return NS_OK;
 
-        SetResult(reason, nsnull);
+        SetResult(reason, nullptr);
         return DispatchCallback();
     }
 
@@ -116,7 +116,7 @@ public:
             return NS_OK;
         }
 
-        mCallback = nsnull;  
+        mCallback = nullptr;  
         return rv;
     }
 
@@ -156,11 +156,11 @@ private:
             if (NS_SUCCEEDED(mStatus))
                 mPPS->ApplyFilters(mURI, info, mProxyInfo);
             else
-                mProxyInfo = nsnull;
+                mProxyInfo = nullptr;
         }
 
         mCallback->OnProxyAvailable(this, mURI, mProxyInfo, mStatus);
-        mCallback = nsnull;  
+        mCallback = nullptr;  
     }
 
 private:
@@ -279,7 +279,7 @@ NS_IMPL_CI_INTERFACE_GETTER2(nsProtocolProxyService,
 
 nsProtocolProxyService::nsProtocolProxyService()
     : mFilterLocalHosts(false)
-    , mFilters(nsnull)
+    , mFilters(nullptr)
     , mProxyConfig(PROXYCONFIG_DIRECT)
     , mHTTPProxyPort(-1)
     , mFTPProxyPort(-1)
@@ -287,7 +287,7 @@ nsProtocolProxyService::nsProtocolProxyService()
     , mSOCKSProxyPort(-1)
     , mSOCKSProxyVersion(4)
     , mSOCKSProxyRemoteDNS(false)
-    , mPACMan(nsnull)
+    , mPACMan(nullptr)
     , mSessionStart(PR_Now())
     , mFailedProxyTimeout(30 * 60) 
 {
@@ -296,8 +296,8 @@ nsProtocolProxyService::nsProtocolProxyService()
 nsProtocolProxyService::~nsProtocolProxyService()
 {
     
-    NS_ASSERTION(mHostFiltersArray.Length() == 0 && mFilters == nsnull &&
-                 mPACMan == nsnull, "what happened to xpcom-shutdown?");
+    NS_ASSERTION(mHostFiltersArray.Length() == 0 && mFilters == nullptr &&
+                 mPACMan == nullptr, "what happened to xpcom-shutdown?");
 }
 
 
@@ -314,7 +314,7 @@ nsProtocolProxyService::Init()
         prefBranch->AddObserver(PROXY_PREF_BRANCH, this, false);
 
         
-        PrefsChanged(prefBranch, nsnull);
+        PrefsChanged(prefBranch, nullptr);
     }
 
     
@@ -337,11 +337,11 @@ nsProtocolProxyService::Observe(nsISupports     *aSubject,
         }
         if (mFilters) {
             delete mFilters;
-            mFilters = nsnull;
+            mFilters = nullptr;
         }
         if (mPACMan) {
             mPACMan->Shutdown();
-            mPACMan = nsnull;
+            mPACMan = nullptr;
         }
     }
     else {
@@ -388,7 +388,7 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
             if (!mSystemProxySettings)
                 mProxyConfig = PROXYCONFIG_DIRECT;
         } else {
-            mSystemProxySettings = nsnull;
+            mSystemProxySettings = nullptr;
         }
     }
 
@@ -570,7 +570,7 @@ nsProtocolProxyService::ExtractProxyInfo(const char *start,
                                          PRUint32 aResolveFlags,
                                          nsProxyInfo **result)
 {
-    *result = nsnull;
+    *result = nullptr;
     PRUint32 flags = 0;
 
     
@@ -584,7 +584,7 @@ nsProtocolProxyService::ExtractProxyInfo(const char *start,
     while (sp < end && *sp != ' ' && *sp != '\t') ++sp;
 
     PRUint32 len = sp - start;
-    const char *type = nsnull;
+    const char *type = nullptr;
     switch (len) {
     case 5:
         if (PL_strncasecmp(start, kProxyType_PROXY, 5) == 0)
@@ -604,7 +604,7 @@ nsProtocolProxyService::ExtractProxyInfo(const char *start,
         break;
     }
     if (type) {
-        const char *host = nsnull, *hostEnd = nsnull;
+        const char *host = nullptr, *hostEnd = nullptr;
         PRInt32 port = -1;
 
         
@@ -769,18 +769,18 @@ nsProtocolProxyService::ProcessPACString(const nsCString &pacString,
                                          nsIProxyInfo **result)
 {
     if (pacString.IsEmpty()) {
-        *result = nsnull;
+        *result = nullptr;
         return;
     }
 
     const char *proxies = pacString.get();
 
-    nsProxyInfo *pi = nsnull, *first = nsnull, *last = nsnull;
+    nsProxyInfo *pi = nullptr, *first = nullptr, *last = nullptr;
     while (*proxies) {
         proxies = ExtractProxyInfo(proxies, aResolveFlags, &pi);
         if (pi) {
             if (last) {
-                NS_ASSERTION(last->mNext == nsnull, "leaking nsProxyInfo");
+                NS_ASSERTION(last->mNext == nullptr, "leaking nsProxyInfo");
                 last->mNext = pi;
             }
             else
@@ -833,7 +833,7 @@ nsProtocolProxyService::Resolve(nsIURI *uri, PRUint32 flags,
     }
 
     if (usePAC && mPACMan) {
-        NS_ASSERTION(*result == nsnull, "we should not have a result yet");
+        NS_ASSERTION(*result == nullptr, "we should not have a result yet");
 
         
         if (flags & RESOLVE_NON_BLOCKING)
@@ -848,7 +848,7 @@ nsProtocolProxyService::Resolve(nsIURI *uri, PRUint32 flags,
             
             
             rv = NewProxyInfo_Internal(kProxyType_UNKNOWN, EmptyCString(), -1,
-                                       0, 0, nsnull, flags, result);
+                                       0, 0, nullptr, flags, result);
             if (NS_FAILED(rv))
                 return rv;
         }
@@ -915,7 +915,7 @@ nsProtocolProxyService::NewProxyInfo(const nsACString &aType,
 
     
     
-    const char *type = nsnull;
+    const char *type = nullptr;
     for (PRUint32 i=0; i<ArrayLength(types); ++i) {
         if (aType.LowerCaseEqualsASCII(types[i])) {
             type = types[i];
@@ -982,7 +982,7 @@ nsProtocolProxyService::RegisterFilter(nsIProtocolProxyFilter *filter,
     }
 
     
-    FilterLink *last = nsnull;
+    FilterLink *last = nullptr;
     for (FilterLink *iter = mFilters; iter; iter = iter->next) {
         if (position < iter->position) {
             if (last) {
@@ -1008,7 +1008,7 @@ nsProtocolProxyService::UnregisterFilter(nsIProtocolProxyFilter *filter)
     
     nsCOMPtr<nsISupports> givenObject = do_QueryInterface(filter);
 
-    FilterLink *last = nsnull;
+    FilterLink *last = nullptr;
     for (FilterLink *iter = mFilters; iter; iter = iter->next) {
         nsCOMPtr<nsISupports> object = do_QueryInterface(iter->filter);
         if (object == givenObject) {
@@ -1016,7 +1016,7 @@ nsProtocolProxyService::UnregisterFilter(nsIProtocolProxyFilter *filter)
                 last->next = iter->next;
             else
                 mFilters = iter->next;
-            iter->next = nsnull;
+            iter->next = nullptr;
             delete iter;
             return NS_OK;
         }
@@ -1165,7 +1165,7 @@ nsProtocolProxyService::LoadHostFilters(const char *filters)
 #endif
 
         mHostFiltersArray.AppendElement(hinfo);
-        hinfo = nsnull;
+        hinfo = nullptr;
 loser:
         delete hinfo;
     }
@@ -1240,7 +1240,7 @@ nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
     NS_ENSURE_ARG_POINTER(uri);
 
     *usePAC = false;
-    *result = nsnull;
+    *result = nullptr;
 
     if (!(info.flags & nsIProtocolHandler::ALLOWS_PROXY))
         return NS_OK;  
@@ -1288,8 +1288,8 @@ nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
     }
 
     
-    const char *type = nsnull;
-    const nsACString *host = nsnull;
+    const char *type = nullptr;
+    const nsACString *host = nullptr;
     PRInt32 port = -1;
 
     PRUint32 proxyFlags = 0;
@@ -1345,7 +1345,7 @@ nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
 
     if (type) {
         nsresult rv = NewProxyInfo_Internal(type, *host, port, proxyFlags,
-                                            PR_UINT32_MAX, nsnull, flags,
+                                            PR_UINT32_MAX, nullptr, flags,
                                             result);
         if (NS_FAILED(rv))
             return rv;
@@ -1387,7 +1387,7 @@ nsProtocolProxyService::PruneProxyInfo(const nsProtocolInfo &info,
 {
     if (!*list)
         return;
-    nsProxyInfo *head = nsnull;
+    nsProxyInfo *head = nullptr;
     CallQueryInterface(*list, &head);
     if (!head) {
         NS_NOTREACHED("nsIProxyInfo must QI to nsProxyInfo");
@@ -1404,7 +1404,7 @@ nsProtocolProxyService::PruneProxyInfo(const nsProtocolInfo &info,
 
     
     if (!(info.flags & nsIProtocolHandler::ALLOWS_PROXY_HTTP)) {
-        nsProxyInfo *last = nsnull, *iter = head; 
+        nsProxyInfo *last = nullptr, *iter = head; 
         while (iter) {
             if (iter->Type() == kProxyType_HTTP) {
                 
@@ -1413,7 +1413,7 @@ nsProtocolProxyService::PruneProxyInfo(const nsProtocolInfo &info,
                 else
                     head = iter->mNext;
                 nsProxyInfo *next = iter->mNext;
-                iter->mNext = nsnull;
+                iter->mNext = nullptr;
                 iter->Release();
                 iter = next;
             } else {
@@ -1443,7 +1443,7 @@ nsProtocolProxyService::PruneProxyInfo(const nsProtocolInfo &info,
         LOG(("All proxies are disabled, so trying all again"));
     else {
         
-        nsProxyInfo *last = nsnull; 
+        nsProxyInfo *last = nullptr; 
         for (iter = head; iter; ) {
             if (IsProxyDisabled(iter)) {
                 
@@ -1455,7 +1455,7 @@ nsProtocolProxyService::PruneProxyInfo(const nsProtocolInfo &info,
                 else
                     head = iter;
 
-                reject->mNext = nsnull;
+                reject->mNext = nullptr;
                 NS_RELEASE(reject);
                 continue;
             }

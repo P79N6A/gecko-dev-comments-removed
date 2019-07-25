@@ -134,7 +134,7 @@ nsHTMLEditor::CreateAnonymousElement(const nsAString & aTag, nsIDOMNode *  aPare
 {
   NS_ENSURE_ARG_POINTER(aParentNode);
   NS_ENSURE_ARG_POINTER(aReturn);
-  *aReturn = nsnull;
+  *aReturn = nullptr;
 
   nsCOMPtr<nsIContent> parentContent( do_QueryInterface(aParentNode) );
   NS_ENSURE_TRUE(parentContent, NS_OK);
@@ -303,7 +303,7 @@ nsHTMLEditor::CheckSelectionStateForAnonymousButtons(nsISelection * aSelection)
     
     
     res = GetElementOrParentByTagName(NS_LITERAL_STRING("td"),
-                                      nsnull,
+                                      nullptr,
                                       getter_AddRefs(cellElement));
     NS_ENSURE_SUCCESS(res, res);
   }

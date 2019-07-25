@@ -14,7 +14,7 @@
 
 
 BooleanResult::BooleanResult(bool boolean)
-    : txAExprResult(nsnull)
+    : txAExprResult(nullptr)
 {
     this->value = boolean;
 } 
@@ -44,7 +44,7 @@ BooleanResult::stringValuePointer()
     
     
     
-    return nsnull;
+    return nullptr;
 }
 
 bool BooleanResult::booleanValue() {

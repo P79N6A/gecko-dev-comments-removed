@@ -460,8 +460,8 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
   rv = editor->AddDocumentStateListener(mStateMaintainer);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = editor->Init(domDoc, nsnull ,
-                    nsnull, mEditorFlags);
+  rv = editor->Init(domDoc, nullptr ,
+                    nullptr, mEditorFlags);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsISelection> selection;
@@ -537,7 +537,7 @@ nsEditingSession::TearDownEditorOnWindow(nsIDOMWindow *aWindow)
   if (mLoadBlankDocTimer)
   {
     mLoadBlankDocTimer->Cancel();
-    mLoadBlankDocTimer = nsnull;
+    mLoadBlankDocTimer = nullptr;
   }
 
   mDoneSetup = false;
@@ -565,12 +565,12 @@ nsEditingSession::TearDownEditorOnWindow(nsIDOMWindow *aWindow)
   {
     
     
-    SetEditorOnControllers(aWindow, nsnull);
+    SetEditorOnControllers(aWindow, nullptr);
   }
 
   
   
-  editorDocShell->SetEditor(nsnull);
+  editorDocShell->SetEditor(nullptr);
 
   RemoveListenersAndControllers(aWindow, editor);
 
@@ -1041,7 +1041,7 @@ nsEditingSession::TimerCallback(nsITimer* aTimer, void* aClosure)
     nsCOMPtr<nsIWebNavigation> webNav(do_QueryInterface(docShell));
     if (webNav)
       webNav->LoadURI(NS_LITERAL_STRING("about:blank").get(),
-                      0, nsnull, nsnull, nsnull);
+                      0, nullptr, nullptr, nullptr);
   }
 }
 
@@ -1123,7 +1123,7 @@ nsIDocShell *
 nsEditingSession::GetDocShellFromWindow(nsIDOMWindow *aWindow)
 {
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aWindow);
-  NS_ENSURE_TRUE(window, nsnull);
+  NS_ENSURE_TRUE(window, nullptr);
 
   return window->GetDocShell();
 }
@@ -1356,7 +1356,7 @@ nsEditingSession::DetachFromWindow(nsIDOMWindow* aWindow)
   if (mLoadBlankDocTimer)
   {
     mLoadBlankDocTimer->Cancel();
-    mLoadBlankDocTimer = nsnull;
+    mLoadBlankDocTimer = nullptr;
   }
 
   
@@ -1368,7 +1368,7 @@ nsEditingSession::DetachFromWindow(nsIDOMWindow* aWindow)
 
   
   
-  mDocShell = nsnull;
+  mDocShell = nullptr;
 
   return NS_OK;
 }

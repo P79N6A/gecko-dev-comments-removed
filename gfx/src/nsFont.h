@@ -81,13 +81,13 @@ struct NS_GFX nsFont {
   nsFont(const char* aName, PRUint8 aStyle, PRUint8 aVariant,
          PRUint16 aWeight, PRInt16 aStretch, PRUint8 aDecoration,
          nscoord aSize, float aSizeAdjust=0.0f,
-         const nsString* aLanguageOverride = nsnull);
+         const nsString* aLanguageOverride = nullptr);
 
   
   nsFont(const nsString& aName, PRUint8 aStyle, PRUint8 aVariant,
          PRUint16 aWeight, PRInt16 aStretch, PRUint8 aDecoration,
          nscoord aSize, float aSizeAdjust=0.0f,
-         const nsString* aLanguageOverride = nsnull);
+         const nsString* aLanguageOverride = nullptr);
 
   
   nsFont(const nsFont& aFont);

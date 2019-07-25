@@ -120,12 +120,12 @@ nsDiskCacheBlockFile::Close(bool flush)
         PRStatus err = PR_Close(mFD);
         if (NS_SUCCEEDED(rv) && (err != PR_SUCCESS))
             rv = NS_ERROR_UNEXPECTED;
-        mFD = nsnull;
+        mFD = nullptr;
     }
 
      if (mBitMap) {
          delete [] mBitMap;
-         mBitMap = nsnull;
+         mBitMap = nullptr;
      }
         
     return rv;

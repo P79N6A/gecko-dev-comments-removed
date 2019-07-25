@@ -63,7 +63,7 @@ namespace TestProtocols {
 
 
 
-static PRLogModuleInfo *gTestLog = nsnull;
+static PRLogModuleInfo *gTestLog = nullptr;
 #endif
 #define LOG(args) PR_LOG(gTestLog, PR_LOG_DEBUG, args)
 
@@ -579,7 +579,7 @@ public:
           TestChannelEventSink *sink;
 
           sink = new TestChannelEventSink();
-          if (sink == nsnull)
+          if (sink == nullptr)
             return NS_ERROR_OUT_OF_MEMORY;
           NS_ADDREF(sink);
           rv = sink->QueryInterface(iid, result);
@@ -590,7 +590,7 @@ public:
           TestAuthPrompt *prompt;
 
           prompt = new TestAuthPrompt();
-          if (prompt == nsnull)
+          if (prompt == nullptr)
             return NS_ERROR_OUT_OF_MEMORY;
           NS_ADDREF(prompt);
           rv = prompt->QueryInterface(iid, result);
@@ -614,7 +614,7 @@ nsresult StartLoadingURL(const char* aUrlString)
     if (pService) {
         nsCOMPtr<nsIURI> pURL;
 
-        rv = pService->NewURI(nsDependentCString(aUrlString), nsnull, nsnull, getter_AddRefs(pURL));
+        rv = pService->NewURI(nsDependentCString(aUrlString), nullptr, nullptr, getter_AddRefs(pURL));
         if (NS_FAILED(rv)) {
             LOG(("ERROR: NewURI failed for %s [rv=%x]\n", aUrlString));
             return rv;
@@ -630,7 +630,7 @@ nsresult StartLoadingURL(const char* aUrlString)
 
         
         rv = NS_NewChannel(getter_AddRefs(pChannel), pURL, pService,
-                           nsnull,     
+                           nullptr,     
                            callbacks); 
         NS_RELEASE(callbacks);
         if (NS_FAILED(rv)) {
@@ -828,7 +828,7 @@ main(int argc, char* argv[])
 
 
 
-    rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
+    rv = NS_InitXPCOM2(nullptr, nullptr, nullptr);
     if (NS_FAILED(rv)) return rv;
 
     {
@@ -880,6 +880,6 @@ main(int argc, char* argv[])
         PumpEvents();
     } 
     
-    NS_ShutdownXPCOM(nsnull);
+    NS_ShutdownXPCOM(nullptr);
     return rv;
 }

@@ -25,13 +25,13 @@
 nsAttrValue::EnumTable nsSMILAnimationFunction::sAccumulateTable[] = {
       {"none", false},
       {"sum", true},
-      {nsnull, 0}
+      {nullptr, 0}
 };
 
 nsAttrValue::EnumTable nsSMILAnimationFunction::sAdditiveTable[] = {
       {"replace", false},
       {"sum", true},
-      {nsnull, 0}
+      {nullptr, 0}
 };
 
 nsAttrValue::EnumTable nsSMILAnimationFunction::sCalcModeTable[] = {
@@ -39,7 +39,7 @@ nsAttrValue::EnumTable nsSMILAnimationFunction::sCalcModeTable[] = {
       {"discrete", CALC_DISCRETE},
       {"paced", CALC_PACED},
       {"spline", CALC_SPLINE},
-      {nsnull, 0}
+      {nullptr, 0}
 };
 
 
@@ -53,7 +53,7 @@ nsSMILAnimationFunction::nsSMILAnimationFunction()
   : mSampleTime(-1),
     mRepeatIteration(0),
     mBeginTime(LL_MININT),
-    mAnimationElement(nsnull),
+    mAnimationElement(nullptr),
     mErrorFlags(0),
     mIsActive(false),
     mIsFrozen(false),
@@ -384,8 +384,8 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
   nsSMILCalcMode calcMode = GetCalcMode();
   if (calcMode != CALC_DISCRETE) {
     
-    const nsSMILValue* from = nsnull;
-    const nsSMILValue* to = nsnull;
+    const nsSMILValue* from = nullptr;
+    const nsSMILValue* to = nullptr;
     
     
     double intervalProgress = -1.f;

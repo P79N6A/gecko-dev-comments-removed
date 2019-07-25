@@ -28,7 +28,7 @@ nsProtectedAuthThread::nsProtectedAuthThread()
 : mMutex("nsProtectedAuthThread.mMutex")
 , mIAmRunning(false)
 , mLoginReady(false)
-, mThreadHandle(nsnull)
+, mThreadHandle(nullptr)
 , mSlot(0)
 , mLoginResult(SECFailure)
 {
@@ -143,5 +143,5 @@ void nsProtectedAuthThread::Join()
         return;
     
     PR_JoinThread(mThreadHandle);
-    mThreadHandle = nsnull;
+    mThreadHandle = nullptr;
 }

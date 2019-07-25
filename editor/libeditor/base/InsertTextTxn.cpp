@@ -130,7 +130,7 @@ NS_IMETHODIMP InsertTextTxn::Merge(nsITransaction *aTransaction, bool *aDidMerge
   {
     
     
-    InsertTextTxn *otherInsTxn = nsnull;
+    InsertTextTxn *otherInsTxn = nullptr;
     aTransaction->QueryInterface(InsertTextTxn::GetCID(), (void **)&otherInsTxn);
     if (otherInsTxn)
     {

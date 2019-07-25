@@ -55,8 +55,8 @@ DisableXULCacheChangedCallback(const char* aPref, void* aClosure)
 
 
 
-StartupCache*   nsXULPrototypeCache::gStartupCache = nsnull;
-nsXULPrototypeCache*  nsXULPrototypeCache::sInstance = nsnull;
+StartupCache*   nsXULPrototypeCache::gStartupCache = nullptr;
+nsXULPrototypeCache*  nsXULPrototypeCache::sInstance = nullptr;
 
 
 nsXULPrototypeCache::nsXULPrototypeCache()
@@ -142,24 +142,24 @@ nsXULPrototypeCache::GetPrototype(nsIURI* aURI)
 
     nsresult rv = BeginCaching(aURI);
     if (NS_FAILED(rv))
-        return nsnull;
+        return nullptr;
 
     
     nsCOMPtr<nsIObjectInputStream> ois;
     rv = GetInputStream(aURI, getter_AddRefs(ois));
     if (NS_FAILED(rv))
-        return nsnull;
+        return nullptr;
     
     nsRefPtr<nsXULPrototypeDocument> newProto;
     rv = NS_NewXULPrototypeDocument(getter_AddRefs(newProto));
     if (NS_FAILED(rv))
-        return nsnull;
+        return nullptr;
     
     rv = newProto->Read(ois);
     if (NS_SUCCEEDED(rv)) {
         rv = PutPrototype(newProto);
     } else {
-        newProto = nsnull;
+        newProto = nullptr;
     }
     
     mInputStreamTable.Remove(aURI);
@@ -193,7 +193,7 @@ nsXULPrototypeCache::GetScript(nsIURI* aURI)
 {
     CacheScriptEntry entry;
     if (!mScriptTable.Get(aURI, &entry)) {
-        return nsnull;
+        return nullptr;
     }
     return entry.mScriptObject;
 }
@@ -223,7 +223,7 @@ nsXULPrototypeCache::PutScript(nsIURI* aURI, JSScript* aScriptObject)
         NS_WARNING(message.get());
 #endif
         
-        ReleaseScriptObjectCallback(aURI, existingEntry, nsnull);
+        ReleaseScriptObjectCallback(aURI, existingEntry, nullptr);
     }
 
     CacheScriptEntry entry = {aScriptObject};
@@ -246,7 +246,7 @@ nsXULPrototypeCache::FlushScripts()
 {
     
     
-    mScriptTable.Enumerate(ReleaseScriptObjectCallback, nsnull);
+    mScriptTable.Enumerate(ReleaseScriptObjectCallback, nullptr);
 }
 
 
@@ -304,15 +304,15 @@ void
 nsXULPrototypeCache::FlushSkinFiles()
 {
   
-  mXBLDocTable.Enumerate(FlushSkinXBL, nsnull);
+  mXBLDocTable.Enumerate(FlushSkinXBL, nullptr);
 
   
-  mStyleSheetTable.Enumerate(FlushSkinSheets, nsnull);
+  mStyleSheetTable.Enumerate(FlushSkinSheets, nullptr);
 
   
   
   
-  mXBLDocTable.Enumerate(FlushScopedSkinStylesheets, nsnull);
+  mXBLDocTable.Enumerate(FlushScopedSkinStylesheets, nullptr);
 }
 
 
@@ -483,7 +483,7 @@ nsXULPrototypeCache::FinishOutputStream(nsIURI* uri)
 nsresult
 nsXULPrototypeCache::HasData(nsIURI* uri, bool* exists)
 {
-    if (mOutputStreamTable.Get(uri, nsnull)) {
+    if (mOutputStreamTable.Get(uri, nullptr)) {
         *exists = true;
         return NS_OK;
     }

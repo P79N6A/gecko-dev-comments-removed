@@ -69,7 +69,7 @@ public:
   virtual nsIFrame* GetNextInFlowVirtual() const { return GetNextInFlow(); }
   nsIFrame* GetNextInFlow() const {
     return mNextContinuation && (mNextContinuation->GetStateBits() & NS_FRAME_IS_FLUID_CONTINUATION) ? 
-      mNextContinuation : nsnull;
+      mNextContinuation : nullptr;
   }
   NS_IMETHOD SetNextInFlow(nsIFrame* aNextInFlow) {
     NS_ASSERTION (!aNextInFlow || GetType() == aNextInFlow->GetType(),
@@ -220,9 +220,9 @@ public:
     nscoord      mDeltaWidth;
   };
   TrimOutput TrimTrailingWhiteSpace(nsRenderingContext* aRC);
-  virtual nsresult GetRenderedText(nsAString* aString = nsnull,
-                                   gfxSkipChars* aSkipChars = nsnull,
-                                   gfxSkipCharsIterator* aSkipIter = nsnull,
+  virtual nsresult GetRenderedText(nsAString* aString = nullptr,
+                                   gfxSkipChars* aSkipChars = nullptr,
+                                   gfxSkipCharsIterator* aSkipIter = nullptr,
                                    PRUint32 aSkippedStartOffset = 0,
                                    PRUint32 aSkippedMaxLength = PR_UINT32_MAX);
 
@@ -354,10 +354,10 @@ public:
 
 
   gfxSkipCharsIterator EnsureTextRun(TextRunType aWhichTextRun,
-                                     gfxContext* aReferenceContext = nsnull,
-                                     nsIFrame* aLineContainer = nsnull,
-                                     const nsLineList::iterator* aLine = nsnull,
-                                     PRUint32* aFlowEndInTextRun = nsnull);
+                                     gfxContext* aReferenceContext = nullptr,
+                                     nsIFrame* aLineContainer = nullptr,
+                                     const nsLineList::iterator* aLine = nullptr,
+                                     PRUint32* aFlowEndInTextRun = nullptr);
 
   gfxTextRun* GetTextRun(TextRunType aWhichTextRun) {
     if (aWhichTextRun == eInflated || !HasFontSizeInflation())
@@ -385,9 +385,9 @@ public:
                     TextRunType aWhichTextRun);
 
   void ClearTextRuns() {
-    ClearTextRun(nsnull, nsTextFrame::eInflated);
+    ClearTextRun(nullptr, nsTextFrame::eInflated);
     if (HasFontSizeInflation()) {
-      ClearTextRun(nsnull, nsTextFrame::eNotInflated);
+      ClearTextRun(nullptr, nsTextFrame::eNotInflated);
     }
   }
 
@@ -548,7 +548,7 @@ protected:
                 const nsCharClipDisplayItem::ClipEdges& aClipEdges,
                 gfxFloat& aAdvanceWidth,
                 bool aDrawSoftHyphen,
-                const nscolor* const aDecorationOverrideColor = nsnull);
+                const nscolor* const aDecorationOverrideColor = nullptr);
 
   
   

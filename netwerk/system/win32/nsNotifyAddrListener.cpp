@@ -46,9 +46,9 @@ static void InitNetshellLibrary(void)
 static void FreeDynamicLibraries(void)
 {
     if (sNetshell) {
-        sNcFreeNetconProperties = nsnull;
+        sNcFreeNetconProperties = nullptr;
         FreeLibrary(sNetshell);
-        sNetshell = nsnull;
+        sNetshell = nullptr;
     }
 }
 
@@ -61,7 +61,7 @@ nsNotifyAddrListener::nsNotifyAddrListener()
     : mLinkUp(true)  
     , mStatusKnown(false)
     , mCheckAttempted(false)
-    , mShutdownEvent(nsnull)
+    , mShutdownEvent(nullptr)
 {
 }
 
@@ -105,7 +105,7 @@ nsNotifyAddrListener::Run()
 {
     PR_SetCurrentThreadName("Link Monitor");
 
-    HANDLE ev = CreateEvent(nsnull, FALSE, FALSE, nsnull);
+    HANDLE ev = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     NS_ENSURE_TRUE(ev, NS_ERROR_OUT_OF_MEMORY);
 
     HANDLE handles[2] = { ev, mShutdownEvent };
@@ -184,7 +184,7 @@ nsNotifyAddrListener::Shutdown(void)
     
     
     
-    mThread = nsnull;
+    mThread = nullptr;
 
     CloseHandle(mShutdownEvent);
     mShutdownEvent = NULL;

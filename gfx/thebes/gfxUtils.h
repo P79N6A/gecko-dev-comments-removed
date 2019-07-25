@@ -30,12 +30,12 @@ public:
 
 
     static void PremultiplyImageSurface(gfxImageSurface *aSourceSurface,
-                                        gfxImageSurface *aDestSurface = nsnull);
+                                        gfxImageSurface *aDestSurface = nullptr);
     static void UnpremultiplyImageSurface(gfxImageSurface *aSurface,
-                                          gfxImageSurface *aDestSurface = nsnull);
+                                          gfxImageSurface *aDestSurface = nullptr);
 
     static void ConvertBGRAtoRGBA(gfxImageSurface *aSourceSurface,
-                                  gfxImageSurface *aDestSurface = nsnull);
+                                  gfxImageSurface *aDestSurface = nullptr);
 
     
 

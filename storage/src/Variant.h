@@ -257,7 +257,7 @@ struct variant_blob_traits<PRUint8[]>
   {
     
     if (aData.Length() == 0) {
-      *_result = nsnull;
+      *_result = nullptr;
       *_type = nsIDataType::VTYPE_UINT8;
       *_size = 0;
       return NS_OK;

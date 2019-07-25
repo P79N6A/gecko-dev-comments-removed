@@ -470,7 +470,7 @@ public:
   virtual ~LayerOGL() { }
 
   virtual LayerOGL *GetFirstChildOGL() {
-    return nsnull;
+    return nullptr;
   }
 
   

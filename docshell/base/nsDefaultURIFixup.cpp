@@ -117,7 +117,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
     NS_ENSURE_ARG_POINTER(aURI);
 
     nsresult rv;
-    *aURI = nsnull;
+    *aURI = nullptr;
 
     nsCAutoString uriString(aStringURI);
     uriString.Trim(" ");  
@@ -220,7 +220,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
     if (ourHandler != extHandler || !PossiblyHostPortUrl(uriString)) {
         
         rv = NS_NewURI(aURI, uriString,
-                       bUseNonDefaultCharsetForURI ? GetCharsetForUrlBar() : nsnull);
+                       bUseNonDefaultCharsetForURI ? GetCharsetForUrlBar() : nullptr);
 
         if (!*aURI && rv != NS_ERROR_MALFORMED_URI) {
             return rv;
@@ -294,7 +294,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
           bUseNonDefaultCharsetForURI = true;
     } 
 
-    rv = NS_NewURI(aURI, uriString, bUseNonDefaultCharsetForURI ? GetCharsetForUrlBar() : nsnull);
+    rv = NS_NewURI(aURI, uriString, bUseNonDefaultCharsetForURI ? GetCharsetForUrlBar() : nullptr);
 
     
     
@@ -318,7 +318,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
 NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
                                               nsIURI **aURI)
 {
-    *aURI = nsnull;
+    *aURI = nullptr;
     NS_ENSURE_STATE(Preferences::GetRootBranch());
 
     
@@ -537,7 +537,7 @@ nsresult nsDefaultURIFixup::FileURIFixup(const nsACString& aStringURI,
     if (NS_SUCCEEDED(rv))
     {
         
-        if(NS_SUCCEEDED(NS_NewURI(aURI, uriSpecOut.get(), nsnull)))
+        if(NS_SUCCEEDED(NS_NewURI(aURI, uriSpecOut.get(), nullptr)))
             return NS_OK;
     } 
     return NS_ERROR_FAILURE;
@@ -821,7 +821,7 @@ nsresult nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
 nsresult NS_NewURIFixup(nsIURIFixup **aURIFixup)
 {
     nsDefaultURIFixup *fixup = new nsDefaultURIFixup;
-    if (fixup == nsnull)
+    if (fixup == nullptr)
     {
         return NS_ERROR_OUT_OF_MEMORY;
     }

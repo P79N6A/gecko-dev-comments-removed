@@ -112,7 +112,7 @@ nsSyncStreamListener::Close()
     
     if (mPipeIn) {
         mPipeIn->Close();
-        mPipeIn = nsnull;
+        mPipeIn = nullptr;
     }
     return NS_OK;
 }

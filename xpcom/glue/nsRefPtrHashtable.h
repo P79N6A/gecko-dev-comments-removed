@@ -40,7 +40,7 @@ public:
 
 
 
-  RefPtr* GetWeak(KeyType aKey, bool* aFound = nsnull) const;
+  RefPtr* GetWeak(KeyType aKey, bool* aFound = nullptr) const;
 };
 
 
@@ -97,7 +97,7 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Get
   
   
   if (pRefPtr)
-    *pRefPtr = nsnull;
+    *pRefPtr = nullptr;
 
   return false;
 }
@@ -120,7 +120,7 @@ nsRefPtrHashtable<KeyClass,RefPtr>::GetWeak
   
   if (aFound)
     *aFound = false;
-  return nsnull;
+  return nullptr;
 }
 
 
@@ -153,7 +153,7 @@ nsRefPtrHashtableMT<KeyClass,RefPtr>::Get
   
   
   if (pRefPtr)
-    *pRefPtr = nsnull;
+    *pRefPtr = nullptr;
 
   PR_Unlock(this->mLock);
 

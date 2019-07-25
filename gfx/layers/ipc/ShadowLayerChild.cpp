@@ -30,7 +30,7 @@ ShadowLayerChild::ActorDestroy(ActorDestroyReason why)
     
     
     mLayer->AsLayer()->Disconnect();
-    mLayer = nsnull;
+    mLayer = nullptr;
   }
 }
 

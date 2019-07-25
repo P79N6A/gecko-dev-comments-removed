@@ -79,7 +79,7 @@ public:
     
     
     if (mList) {
-      mList->mItems[mListIndex] = nsnull;
+      mList->mItems[mListIndex] = nullptr;
     }
   };
 

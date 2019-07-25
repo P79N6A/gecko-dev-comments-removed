@@ -47,7 +47,7 @@ SmsMessage::Create(PRInt32 aId,
                    JSContext* aCx,
                    nsIDOMMozSmsMessage** aMessage)
 {
-  *aMessage = nsnull;
+  *aMessage = nullptr;
 
   
   

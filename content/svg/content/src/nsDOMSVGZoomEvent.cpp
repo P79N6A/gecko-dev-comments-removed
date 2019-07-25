@@ -107,7 +107,7 @@ NS_IMETHODIMP nsDOMSVGZoomEvent::GetZoomRectScreen(nsIDOMSVGRect **aZoomRectScre
   
   
 
-  *aZoomRectScreen = nsnull;
+  *aZoomRectScreen = nullptr;
   NS_NOTYETIMPLEMENTED("nsDOMSVGZoomEvent::GetZoomRectScreen");
   return NS_ERROR_NOT_IMPLEMENTED;
 }

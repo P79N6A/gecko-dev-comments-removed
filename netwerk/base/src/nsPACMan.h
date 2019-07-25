@@ -95,7 +95,7 @@ public:
   
 
 
-  bool IsLoading() { return mLoader != nsnull; }
+  bool IsLoading() { return mLoader != nullptr; }
 
   
 

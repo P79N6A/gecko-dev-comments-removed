@@ -161,21 +161,21 @@ static mozilla::gfx::UserDataKey sSVGAutoRenderStateKey;
 SVGAutoRenderState::SVGAutoRenderState(nsRenderingContext *aContext,
                                        RenderMode aMode)
   : mContext(aContext)
-  , mOriginalRenderState(nsnull)
+  , mOriginalRenderState(nullptr)
   , mMode(aMode)
   , mPaintingToWindow(false)
 {
   mOriginalRenderState = aContext->RemoveUserData(&sSVGAutoRenderStateKey);
   
   
-  aContext->AddUserData(&sSVGAutoRenderStateKey, this, nsnull);
+  aContext->AddUserData(&sSVGAutoRenderStateKey, this, nullptr);
 }
 
 SVGAutoRenderState::~SVGAutoRenderState()
 {
   mContext->RemoveUserData(&sSVGAutoRenderStateKey);
   if (mOriginalRenderState) {
-    mContext->AddUserData(&sSVGAutoRenderStateKey, mOriginalRenderState, nsnull);
+    mContext->AddUserData(&sSVGAutoRenderStateKey, mOriginalRenderState, nullptr);
   }
 }
 
@@ -222,7 +222,7 @@ nsSVGUtils::Init()
 nsSVGSVGElement*
 nsSVGUtils::GetOuterSVGElement(nsSVGElement *aSVGElement)
 {
-  nsIContent *element = nsnull;
+  nsIContent *element = nullptr;
   nsIContent *ancestor = aSVGElement->GetFlattenedTreeParent();
 
   while (ancestor && ancestor->IsSVG() &&
@@ -234,7 +234,7 @@ nsSVGUtils::GetOuterSVGElement(nsSVGElement *aSVGElement)
   if (element && element->Tag() == nsGkAtoms::svg) {
     return static_cast<nsSVGSVGElement*>(element);
   }
-  return nsnull;
+  return nullptr;
 }
 
 void
@@ -254,7 +254,7 @@ nsSVGUtils::GetFontSize(Element *aElement)
 
   nsRefPtr<nsStyleContext> styleContext = 
     nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement,
-                                                         nsnull, nsnull);
+                                                         nullptr, nullptr);
   if (!styleContext) {
     
     NS_WARNING("Couldn't get style context for content in GetFontStyle");
@@ -292,7 +292,7 @@ nsSVGUtils::GetFontXHeight(Element *aElement)
 
   nsRefPtr<nsStyleContext> styleContext = 
     nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement,
-                                                         nsnull, nsnull);
+                                                         nullptr, nullptr);
   if (!styleContext) {
     
     NS_WARNING("Couldn't get style context for content in GetFontStyle");
@@ -474,13 +474,13 @@ nsSVGUtils::GetNearestViewportElement(nsIContent *aContent)
   while (element && element->IsSVG()) {
     if (EstablishesViewport(element)) {
       if (element->Tag() == nsGkAtoms::foreignObject) {
-        return nsnull;
+        return nullptr;
       }
       return nsCOMPtr<nsIDOMSVGElement>(do_QueryInterface(element)).forget();
     }
     element = element->GetFlattenedTreeParent();
   }
-  return nsnull;
+  return nullptr;
 }
 
 static gfxMatrix
@@ -566,7 +566,7 @@ nsSVGUtils::GetNearestSVGViewport(nsIFrame *aFrame)
 {
   NS_ASSERTION(aFrame->IsFrameOfType(nsIFrame::eSVG), "SVG frame expected");
   if (aFrame->GetType() == nsGkAtoms::svgOuterSVGFrame) {
-    return nsnull;
+    return nullptr;
   }
   while ((aFrame = aFrame->GetParent())) {
     NS_ASSERTION(aFrame->IsFrameOfType(nsIFrame::eSVG), "SVG frame expected");
@@ -576,7 +576,7 @@ nsSVGUtils::GetNearestSVGViewport(nsIFrame *aFrame)
     }
   }
   NS_NOTREACHED("This is not reached. It's only needed to compile.");
-  return nsnull;
+  return nullptr;
 }
 
 nsRect
@@ -591,7 +591,7 @@ nsSVGUtils::GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
     return aPreFilterRect;
   }
 
-  return filter->GetPostFilterBounds(aFrame, nsnull, &aPreFilterRect);
+  return filter->GetPostFilterBounds(aFrame, nullptr, &aPreFilterRect);
 }
 
 bool
@@ -669,7 +669,7 @@ nsSVGUtils::InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate,
       
       float x, y, width, height;
       static_cast<nsSVGSVGElement*>(aFrame->GetContent())->
-        GetAnimatedLengthValues(&x, &y, &width, &height, nsnull);
+        GetAnimatedLengthValues(&x, &y, &width, &height, nullptr);
       if (width <= 0.0f || height <= 0.0f) {
         return; 
       }
@@ -735,7 +735,7 @@ nsSVGUtils::ScheduleReflowSVG(nsIFrame *aFrame)
     return;
   }
 
-  nsSVGOuterSVGFrame *outerSVGFrame = nsnull;
+  nsSVGOuterSVGFrame *outerSVGFrame = nullptr;
 
   
   
@@ -851,7 +851,7 @@ nsSVGUtils::ObjectSpace(const gfxRect &aRect, const nsSVGLength2 *aLength)
     
     return axis * aLength->GetAnimValInSpecifiedUnits() / 100;
   }
-  return aLength->GetAnimValue(static_cast<nsSVGSVGElement*>(nsnull)) * axis;
+  return aLength->GetAnimValue(static_cast<nsSVGSVGElement*>(nullptr)) * axis;
 }
 
 float
@@ -892,7 +892,7 @@ nsSVGUtils::GetOuterSVGFrame(nsIFrame *aFrame)
     aFrame = aFrame->GetParent();
   }
 
-  return nsnull;
+  return nullptr;
 }
 
 nsIFrame*
@@ -900,7 +900,7 @@ nsSVGUtils::GetOuterSVGFrameAndCoveredRegion(nsIFrame* aFrame, nsRect* aRect)
 {
   nsISVGChildFrame* svg = do_QueryFrame(aFrame);
   if (!svg)
-    return nsnull;
+    return nullptr;
   *aRect = (aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) ?
              nsRect(0, 0, 0, 0) : svg->GetCoveredRegion();
   return GetOuterSVGFrame(aFrame);
@@ -1090,7 +1090,7 @@ public:
     nsISVGChildFrame *svgChildFrame = do_QueryFrame(aTarget);
     NS_ASSERTION(svgChildFrame, "Expected SVG frame here");
 
-    nsIntRect* dirtyRect = nsnull;
+    nsIntRect* dirtyRect = nullptr;
     nsIntRect tmpDirtyRect;
 
     
@@ -1243,7 +1243,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
 
   
   if (filterFrame) {
-    nsRect* dirtyRect = nsnull;
+    nsRect* dirtyRect = nullptr;
     nsRect tmpDirtyRect;
     if (aDirtyRect) {
       
@@ -1282,7 +1282,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
 
   nsRefPtr<gfxPattern> maskSurface =
     maskFrame ? maskFrame->ComputeMaskAlpha(aContext, aFrame,
-                                            matrix, opacity) : nsnull;
+                                            matrix, opacity) : nullptr;
 
   nsRefPtr<gfxPattern> clipMaskSurface;
   if (clipPathFrame && !isTrivialClip) {
@@ -1337,7 +1337,7 @@ nsSVGUtils::HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint)
 {
   
   
-  nsIFrame* result = nsnull;
+  nsIFrame* result = nullptr;
   for (nsIFrame* current = aFrame->PrincipalChildList().LastChild();
        current;
        current = current->GetPrevSibling()) {
@@ -1355,7 +1355,7 @@ nsSVGUtils::HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint)
   }
 
   if (result && !HitTestClip(aFrame, aPoint))
-    result = nsnull;
+    result = nullptr;
 
   return result;
 }
@@ -1691,7 +1691,7 @@ nsSVGUtils::GetFirstNonAAncestorFrame(nsIFrame* aStartFrame)
       return ancestorFrame;
     }
   }
-  return nsnull;
+  return nullptr;
 }
 
 #ifdef DEBUG

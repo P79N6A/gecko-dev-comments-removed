@@ -71,13 +71,13 @@ void DocLoadEventHandled(AccEvent* aEvent);
 
 
 void DocCreate(const char* aMsg, nsIDocument* aDocumentNode,
-               DocAccessible* aDocument = nsnull);
+               DocAccessible* aDocument = nullptr);
 
 
 
 
 void DocDestroy(const char* aMsg, nsIDocument* aDocumentNode,
-                DocAccessible* aDocument = nsnull);
+                DocAccessible* aDocument = nullptr);
 
 
 

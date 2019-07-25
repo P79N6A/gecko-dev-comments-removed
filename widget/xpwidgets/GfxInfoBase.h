@@ -73,7 +73,7 @@ protected:
   virtual nsresult GetFeatureStatusImpl(PRInt32 aFeature, PRInt32* aStatus,
                                         nsAString& aSuggestedDriverVersion,
                                         const nsTArray<GfxDriverInfo>& aDriverInfo,
-                                        OperatingSystem* aOS = nsnull);
+                                        OperatingSystem* aOS = nullptr);
 
   
   

@@ -95,7 +95,7 @@ nsAuthSSPI::nsAuthSSPI(pType package)
     : mServiceFlags(REQ_DEFAULT)
     , mMaxTokenLen(0)
     , mPackage(package)
-    , mCertDERData(nsnull)
+    , mCertDERData(nullptr)
     , mCertDERLength(0)
 {
     memset(&mCred, 0, sizeof(mCred));
@@ -123,7 +123,7 @@ nsAuthSSPI::Reset()
 
     if (mCertDERData){
         nsMemory::Free(mCertDERData);
-        mCertDERData = nsnull;
+        mCertDERData = nullptr;
         mCertDERLength = 0;   
     }
 
@@ -146,7 +146,7 @@ nsAuthSSPI::Init(const char *serviceName,
 
     mIsFirst = true;
     mCertDERLength = 0;
-    mCertDERData = nsnull;
+    mCertDERData = nullptr;
 
     
     
@@ -188,7 +188,7 @@ nsAuthSSPI::Init(const char *serviceName,
     TimeStamp useBefore;
 
     SEC_WINNT_AUTH_IDENTITY_W ai;
-    SEC_WINNT_AUTH_IDENTITY_W *pai = nsnull;
+    SEC_WINNT_AUTH_IDENTITY_W *pai = nullptr;
     
     
     
@@ -247,7 +247,7 @@ nsAuthSSPI::GetNextToken(const void *inToken,
     
     SecBuffer ib[2], ob;
     
-    char* sspi_cbt = nsnull;
+    char* sspi_cbt = nullptr;
     SEC_CHANNEL_BINDINGS pendpoint_binding;
 
     LOG(("entering nsAuthSSPI::GetNextToken()\n"));
@@ -282,10 +282,10 @@ nsAuthSSPI::GetNextToken(const void *inToken,
                 LOG(("Cannot restart authentication sequence!"));
                 return NS_ERROR_UNEXPECTED;
             }
-            ctxIn = nsnull;
+            ctxIn = nullptr;
             
             
-            inToken = nsnull;
+            inToken = nullptr;
             inTokenLen = 0;
         } else {
             ibd.ulVersion = SECBUFFER_VERSION;
@@ -345,7 +345,7 @@ nsAuthSSPI::GetNextToken(const void *inToken,
                     rv = crypto->Finish(false, hashString);
                 if (NS_FAILED(rv)) {
                     nsMemory::Free(mCertDERData);
-                    mCertDERData = nsnull;
+                    mCertDERData = nullptr;
                     mCertDERLength = 0;
                     nsMemory::Free(sspi_cbt);
                     return rv;
@@ -358,7 +358,7 @@ nsAuthSSPI::GetNextToken(const void *inToken,
           
                 
                 nsMemory::Free(mCertDERData);
-                mCertDERData = nsnull;
+                mCertDERData = nullptr;
                 mCertDERLength = 0;
             } 
 

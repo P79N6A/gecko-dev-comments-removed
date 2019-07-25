@@ -119,7 +119,7 @@ nsCanvasFrame::AppendFrames(ChildListID     aListID,
 #ifdef DEBUG
   nsFrame::VerifyDirtyBitSet(aFrameList);
 #endif
-  mFrames.AppendFrames(nsnull, aFrameList);
+  mFrames.AppendFrames(nullptr, aFrameList);
 
   PresContext()->PresShell()->
     FrameNeedsReflow(this, nsIPresShell::eTreeChange,
@@ -415,7 +415,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
       
       
       
-      mFrames.InsertFrames(this, nsnull, *overflow);
+      mFrames.InsertFrames(this, nullptr, *overflow);
     }
   }
 

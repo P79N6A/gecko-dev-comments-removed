@@ -59,10 +59,10 @@ void
 SVGDocumentWrapper::DestroyViewer()
 {
   if (mViewer) {
-    mViewer->GetDocument()->OnPageHide(false, nsnull);
-    mViewer->Close(nsnull);
+    mViewer->GetDocument()->OnPageHide(false, nullptr);
+    mViewer->Close(nullptr);
     mViewer->Destroy();
-    mViewer = nsnull;
+    mViewer = nullptr;
   }
 }
 
@@ -113,7 +113,7 @@ nsIFrame*
 SVGDocumentWrapper::GetRootLayoutFrame()
 {
   Element* rootElem = GetRootSVGElem();
-  return rootElem ? rootElem->GetPrimaryFrame() : nsnull;
+  return rootElem ? rootElem->GetPrimaryFrame() : nullptr;
 }
 
 void
@@ -226,13 +226,13 @@ SVGDocumentWrapper::OnStartRequest(nsIRequest* aRequest, nsISupports* ctxt)
                             getter_AddRefs(mLoadGroup));
 
   if (NS_SUCCEEDED(rv) &&
-      NS_SUCCEEDED(mListener->OnStartRequest(aRequest, nsnull))) {
+      NS_SUCCEEDED(mListener->OnStartRequest(aRequest, nullptr))) {
     mViewer->GetDocument()->SetIsBeingUsedAsImage();
     StopAnimation(); 
 
-    rv = mViewer->Init(nsnull, nsIntRect(0, 0, 0, 0));
+    rv = mViewer->Init(nullptr, nsIntRect(0, 0, 0, 0));
     if (NS_SUCCEEDED(rv)) {
-      rv = mViewer->Open(nsnull, nsnull);
+      rv = mViewer->Open(nullptr, nullptr);
     }
   }
   return rv;
@@ -258,7 +258,7 @@ SVGDocumentWrapper::OnStopRequest(nsIRequest* aRequest, nsISupports* ctxt,
       parser->ContinueInterruptedParsing();
     }
     FlushLayout();
-    mListener = nsnull;
+    mListener = nullptr;
 
     
     
@@ -285,9 +285,9 @@ SVGDocumentWrapper::Observe(nsISupports* aSubject,
     
     DestroyViewer();
     if (mListener)
-      mListener = nsnull;
+      mListener = nullptr;
     if (mLoadGroup)
-      mLoadGroup = nsnull;
+      mLoadGroup = nullptr;
 
     
     
@@ -344,7 +344,7 @@ SVGDocumentWrapper::SetupViewer(nsIRequest* aRequest,
   nsCOMPtr<nsIStreamListener> listener;
   rv = docLoaderFactory->CreateInstance("external-resource", chan,
                                         newLoadGroup,
-                                        SVG_MIMETYPE, nsnull, nsnull,
+                                        SVG_MIMETYPE, nullptr, nullptr,
                                         getter_AddRefs(listener),
                                         getter_AddRefs(viewer));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -417,15 +417,15 @@ nsSVGSVGElement*
 SVGDocumentWrapper::GetRootSVGElem()
 {
   if (!mViewer)
-    return nsnull; 
+    return nullptr; 
 
   nsIDocument* doc = mViewer->GetDocument();
   if (!doc)
-    return nsnull; 
+    return nullptr; 
 
   Element* rootElem = mViewer->GetDocument()->GetRootElement();
   if (!rootElem || !rootElem->IsSVG(nsGkAtoms::svg)) {
-    return nsnull;
+    return nullptr;
   }
 
   return static_cast<nsSVGSVGElement*>(rootElem);

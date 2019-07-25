@@ -75,14 +75,14 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
   
   nsIFrame* frame = DescendIntoBlockLevelFrame(aRS.frame);
   nsPresContext* prescontext = frame->PresContext();
-  nsBlockFrame* block = nsnull;
+  nsBlockFrame* block = nullptr;
   if (0 == aRS.mComputedBorderPadding.top) {
     block = nsLayoutUtils::GetAsBlock(frame);
     if (block) {
       bool topMarginRoot, unused;
       block->IsMarginRoot(&topMarginRoot, &unused);
       if (topMarginRoot) {
-        block = nsnull;
+        block = nullptr;
       }
     }
   }
@@ -100,7 +100,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
       bool anyLines = true;
       if (overflowLines) {
         nsBlockFrame::FrameLines* frames = block->GetOverflowLines();
-        nsLineList* lines = frames ? &frames->mLines : nsnull;
+        nsLineList* lines = frames ? &frames->mLines : nullptr;
         if (!lines) {
           anyLines = false;
         } else {
@@ -296,7 +296,7 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
     
     if (NS_FRAME_IS_FULLY_COMPLETE(aFrameReflowStatus)) {
       nsIFrame* kidNextInFlow = mFrame->GetNextInFlow();
-      if (nsnull != kidNextInFlow) {
+      if (nullptr != kidNextInFlow) {
         
         
         

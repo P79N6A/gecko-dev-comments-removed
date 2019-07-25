@@ -361,10 +361,10 @@ protected:
 #endif
 #endif
 
-  NS_DECLARE_FRAME_PROPERTY(LineCursorProperty, nsnull)
+  NS_DECLARE_FRAME_PROPERTY(LineCursorProperty, nullptr)
   nsLineBox* GetLineCursor() {
     return (GetStateBits() & NS_BLOCK_HAS_LINE_CURSOR) ?
-      static_cast<nsLineBox*>(Properties().Get(LineCursorProperty())) : nsnull;
+      static_cast<nsLineBox*>(Properties().Get(LineCursorProperty())) : nullptr;
   }
 
   nsLineBox* NewLineBox(nsIFrame* aFrame, bool aIsBlock) {

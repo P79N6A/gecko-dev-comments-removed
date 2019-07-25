@@ -93,7 +93,7 @@ nsXPCWrappedJS::AggregatedQueryInterface(REFNSIID aIID, void** aInstancePtr)
 NS_IMETHODIMP
 nsXPCWrappedJS::QueryInterface(REFNSIID aIID, void** aInstancePtr)
 {
-    if (nsnull == aInstancePtr) {
+    if (nullptr == aInstancePtr) {
         NS_PRECONDITION(0, "null pointer");
         return NS_ERROR_NULL_POINTER;
     }
@@ -281,9 +281,9 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
 {
     JSObject2WrappedJSMap* map;
     JSObject* rootJSObj;
-    nsXPCWrappedJS* root = nsnull;
-    nsXPCWrappedJS* wrapper = nsnull;
-    nsXPCWrappedJSClass* clazz = nsnull;
+    nsXPCWrappedJS* root = nullptr;
+    nsXPCWrappedJS* wrapper = nullptr;
+    nsXPCWrappedJSClass* clazz = nullptr;
     XPCJSRuntime* rt = ccx.GetRuntime();
     JSBool release_root = false;
 
@@ -310,8 +310,8 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
         XPCAutoLock lock(rt->GetMapLock());
         root = map->Find(rootJSObj);
         if (root) {
-            if ((nsnull != (wrapper = root->Find(aIID))) ||
-                (nsnull != (wrapper = root->FindInherited(aIID)))) {
+            if ((nullptr != (wrapper = root->Find(aIID))) ||
+                (nullptr != (wrapper = root->FindInherited(aIID)))) {
                 NS_ADDREF(wrapper);
                 goto return_wrapper;
             }
@@ -322,7 +322,7 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
         
         if (rootJSObj == aJSObj) {
             
-            wrapper = root = new nsXPCWrappedJS(ccx, aJSObj, clazz, nsnull,
+            wrapper = root = new nsXPCWrappedJS(ccx, aJSObj, clazz, nullptr,
                                                 aOuter);
             if (!root)
                 goto return_wrapper;
@@ -346,13 +346,13 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
             goto return_wrapper;
         } else {
             
-            nsXPCWrappedJSClass* rootClazz = nsnull;
+            nsXPCWrappedJSClass* rootClazz = nullptr;
             nsXPCWrappedJSClass::GetNewOrUsed(ccx, NS_GET_IID(nsISupports),
                                               &rootClazz);
             if (!rootClazz)
                 goto return_wrapper;
 
-            root = new nsXPCWrappedJS(ccx, rootJSObj, rootClazz, nsnull, aOuter);
+            root = new nsXPCWrappedJS(ccx, rootJSObj, rootClazz, nullptr, aOuter);
             NS_RELEASE(rootClazz);
 
             if (!root)
@@ -417,8 +417,8 @@ nsXPCWrappedJS::nsXPCWrappedJS(XPCCallContext& ccx,
     : mJSObj(aJSObj),
       mClass(aClass),
       mRoot(root ? root : this),
-      mNext(nsnull),
-      mOuter(root ? nsnull : aOuter),
+      mNext(nullptr),
+      mOuter(root ? nullptr : aOuter),
       mMainThread(NS_IsMainThread()),
       mMainThreadOnly(root && root->mMainThreadOnly)
 {
@@ -479,7 +479,7 @@ nsXPCWrappedJS::Unlink()
                 RemoveFromRootSet(rt->GetMapLock());
         }
 
-        mJSObj = nsnull;
+        mJSObj = nullptr;
     }
 
     if (mRoot == this) {
@@ -504,7 +504,7 @@ nsXPCWrappedJS::Unlink()
         XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
         if (rt->GetThreadRunningGC()) {
             rt->DeferredRelease(mOuter);
-            mOuter = nsnull;
+            mOuter = nullptr;
         } else {
             NS_RELEASE(mOuter);
         }
@@ -522,7 +522,7 @@ nsXPCWrappedJS::Find(REFNSIID aIID)
             return cur;
     }
 
-    return nsnull;
+    return nullptr;
 }
 
 
@@ -538,7 +538,7 @@ nsXPCWrappedJS::FindInherited(REFNSIID aIID)
             return cur;
     }
 
-    return nsnull;
+    return nullptr;
 }
 
 NS_IMETHODIMP
@@ -602,7 +602,7 @@ nsXPCWrappedJS::SystemIsBeingShutDown(JSRuntime* rt)
 
     
     
-    mJSObj = nsnull;
+    mJSObj = nullptr;
 
     
     if (mNext)

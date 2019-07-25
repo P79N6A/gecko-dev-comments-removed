@@ -97,7 +97,7 @@ public:
 
   nsXBLProtoImplField* FindField(const nsString& aFieldName) const
   {
-    return mImplementation ? mImplementation->FindField(aFieldName) : nsnull;
+    return mImplementation ? mImplementation->FindField(aFieldName) : nullptr;
   }
 
   
@@ -127,7 +127,7 @@ public:
   
   void SetImplementation(nsXBLProtoImpl* aImpl) { mImplementation = aImpl; }
   nsresult InstallImplementation(nsIContent* aBoundElement);
-  bool HasImplementation() const { return mImplementation != nsnull; }
+  bool HasImplementation() const { return mImplementation != nullptr; }
 
   void AttributeChanged(nsIAtom* aAttribute, PRInt32 aNameSpaceID,
                         bool aRemoveFlag, nsIContent* aChangedElement,
@@ -144,7 +144,7 @@ public:
   nsIStyleRuleProcessor* GetRuleProcessor();
   nsXBLPrototypeResources::sheet_array_type* GetStyleSheets();
 
-  bool HasInsertionPoints() { return mInsertionPointTable != nsnull; }
+  bool HasInsertionPoints() { return mInsertionPointTable != nullptr; }
   
   bool HasStyleSheets() {
     return mResources && mResources->mStyleSheetList.Length() > 0;

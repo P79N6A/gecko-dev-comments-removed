@@ -386,8 +386,8 @@ class nsIWidget : public nsISupports {
     NS_DECLARE_STATIC_IID_ACCESSOR(NS_IWIDGET_IID)
 
     nsIWidget()
-      : mLastChild(nsnull)
-      , mPrevSibling(nsnull)
+      : mLastChild(nullptr)
+      , mPrevSibling(nullptr)
     {}
 
         
@@ -423,7 +423,7 @@ class nsIWidget : public nsISupports {
                       const nsIntRect  &aRect,
                       EVENT_CALLBACK   aHandleEventFunction,
                       nsDeviceContext *aContext,
-                      nsWidgetInitData *aInitData = nsnull) = 0;
+                      nsWidgetInitData *aInitData = nullptr) = 0;
 
     
 
@@ -445,7 +445,7 @@ class nsIWidget : public nsISupports {
     CreateChild(const nsIntRect  &aRect,
                 EVENT_CALLBACK   aHandleEventFunction,
                 nsDeviceContext  *aContext,
-                nsWidgetInitData *aInitData = nsnull,
+                nsWidgetInitData *aInitData = nullptr,
                 bool             aForceUseIWidgetParent = false) = 0;
 
     
@@ -1038,16 +1038,16 @@ class nsIWidget : public nsISupports {
 
 
 
-    inline LayerManager* GetLayerManager(bool* aAllowRetaining = nsnull)
+    inline LayerManager* GetLayerManager(bool* aAllowRetaining = nullptr)
     {
-        return GetLayerManager(nsnull, mozilla::layers::LAYERS_NONE,
+        return GetLayerManager(nullptr, mozilla::layers::LAYERS_NONE,
                                LAYER_MANAGER_CURRENT, aAllowRetaining);
     }
 
     inline LayerManager* GetLayerManager(LayerManagerPersistence aPersistence,
-                                         bool* aAllowRetaining = nsnull)
+                                         bool* aAllowRetaining = nullptr)
     {
-        return GetLayerManager(nsnull, mozilla::layers::LAYERS_NONE,
+        return GetLayerManager(nullptr, mozilla::layers::LAYERS_NONE,
                                aPersistence, aAllowRetaining);
     }
 
@@ -1059,7 +1059,7 @@ class nsIWidget : public nsISupports {
     virtual LayerManager* GetLayerManager(PLayersChild* aShadowManager,
                                           LayersBackend aBackendHint,
                                           LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
-                                          bool* aAllowRetaining = nsnull) = 0;
+                                          bool* aAllowRetaining = nullptr) = 0;
 
     
 

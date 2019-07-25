@@ -24,7 +24,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS3(nsHTTPCompressConv,
 
 
 nsHTTPCompressConv::nsHTTPCompressConv()
-    : mListener(nsnull)
+    : mListener(nullptr)
     , mMode(HTTP_COMPRESS_IDENTITY)
     , mOutBuffer(NULL)
     , mInpBuffer(NULL)
@@ -116,7 +116,7 @@ nsHTTPCompressConv::OnDataAvailable(nsIRequest* request,
         
         
         PRUint32 n;
-        return iStr->ReadSegments(NS_DiscardSegment, nsnull, streamLen, &n);
+        return iStr->ReadSegments(NS_DiscardSegment, nullptr, streamLen, &n);
     }
 
     switch (mMode)
@@ -508,7 +508,7 @@ nsHTTPCompressConv::check_header(nsIInputStream *iStr, PRUint32 streamLen, nsres
 nsresult
 NS_NewHTTPCompressConv(nsHTTPCompressConv **aHTTPCompressConv)
 {
-    NS_PRECONDITION(aHTTPCompressConv != nsnull, "null ptr");
+    NS_PRECONDITION(aHTTPCompressConv != nullptr, "null ptr");
 
     if (!aHTTPCompressConv)
         return NS_ERROR_NULL_POINTER;

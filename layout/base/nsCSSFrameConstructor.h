@@ -344,7 +344,7 @@ public:
   nsresult GetInsertionPoint(nsIFrame*     aParentFrame,
                              nsIContent*   aChildContent,
                              nsIFrame**    aInsertionPoint,
-                             bool*       aMultiple = nsnull);
+                             bool*       aMultiple = nullptr);
 
   nsresult CreateListBoxContent(nsPresContext* aPresContext,
                                 nsIFrame*       aParentFrame,
@@ -1434,7 +1434,7 @@ private:
                            nsFrameItems&            aFrameItems,
                            const bool               aAllowBlockStyles,
                            PendingBinding*          aPendingBinding,
-                           nsIFrame*                aPossiblyLeafFrame = nsnull);
+                           nsIFrame*                aPossiblyLeafFrame = nullptr);
 
   nsIFrame* GetFrameFor(nsIContent* aContent);
 
@@ -1799,8 +1799,8 @@ private:
                                     nsIContent* aChild,
                                     bool* aIsAppend,
                                     bool* aIsRangeInsertSafe,
-                                    nsIContent* aStartSkipChild = nsnull,
-                                    nsIContent *aEndSkipChild = nsnull);
+                                    nsIContent* aStartSkipChild = nullptr,
+                                    nsIContent *aEndSkipChild = nullptr);
 
   
   

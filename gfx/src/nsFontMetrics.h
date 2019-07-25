@@ -50,7 +50,7 @@ public:
 
     nsresult Init(const nsFont& aFont, nsIAtom* aLanguage,
                   nsDeviceContext *aContext,
-                  gfxUserFontSet *aUserFontSet = nsnull);
+                  gfxUserFontSet *aUserFontSet = nullptr);
 
     
 

@@ -29,7 +29,7 @@ Row::initialize(sqlite3_stmt *aStatement)
   
   for (PRUint32 i = 0; i < mNumCols; i++) {
     
-    nsIVariant *variant = nsnull;
+    nsIVariant *variant = nullptr;
     int type = ::sqlite3_column_type(aStatement, i);
     switch (type) {
       case SQLITE_INTEGER:

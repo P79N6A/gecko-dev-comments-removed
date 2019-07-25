@@ -100,8 +100,8 @@ public:
 private:
   
   MediaManager()
-  : mBackend(nsnull)
-  , mMediaThread(nsnull) {
+  : mBackend(nullptr)
+  , mMediaThread(nullptr) {
     mActiveWindows.Init();
   };
   MediaManager(MediaManager const&) {};

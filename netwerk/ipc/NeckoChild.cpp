@@ -17,7 +17,7 @@
 namespace mozilla {
 namespace net {
 
-PNeckoChild *gNeckoChild = nsnull;
+PNeckoChild *gNeckoChild = nullptr;
 
 
 NeckoChild::NeckoChild()
@@ -51,7 +51,7 @@ void NeckoChild::DestroyNeckoChild()
 
   if (!alreadyDestroyed) {
     Send__delete__(gNeckoChild); 
-    gNeckoChild = nsnull;
+    gNeckoChild = nullptr;
     alreadyDestroyed = true;
   }
 }
@@ -85,7 +85,7 @@ NeckoChild::AllocPFTPChannel()
 {
   
   NS_RUNTIMEABORT("AllocPFTPChannel should not be called");
-  return nsnull;
+  return nullptr;
 }
 
 bool
@@ -103,7 +103,7 @@ NeckoChild::AllocPCookieService()
 {
   
   NS_NOTREACHED("AllocPCookieService should not be called");
-  return nsnull;
+  return nullptr;
 }
 
 bool 
@@ -138,7 +138,7 @@ PWebSocketChild*
 NeckoChild::AllocPWebSocket(PBrowserChild* browser)
 {
   NS_NOTREACHED("AllocPWebSocket should not be called");
-  return nsnull;
+  return nullptr;
 }
 
 bool

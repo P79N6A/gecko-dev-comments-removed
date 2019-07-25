@@ -39,7 +39,7 @@ int main()
   if (NS_FAILED(rv))
     return -1;
 
-  out = nsnull;
+  out = nullptr;
   
   nsCOMPtr<nsIInputStream> in;
   rv = stor->NewInputStream(0, getter_AddRefs(in));
@@ -58,7 +58,7 @@ int main()
   rv = in->Close();
   if (NS_FAILED(rv))
     return -1;
-  in = nsnull;
+  in = nullptr;
 
   
   
@@ -87,7 +87,7 @@ int main()
   if (NS_FAILED(rv))
     return -1;
 
-  out = nsnull;
+  out = nullptr;
 
   
   rv = stor->NewInputStream(0, getter_AddRefs(in));
@@ -104,7 +104,7 @@ int main()
   rv = in->Close();
   if (NS_FAILED(rv))
     return -1;
-  in = nsnull;
+  in = nullptr;
 
   return 0;
 }

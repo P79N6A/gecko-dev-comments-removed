@@ -104,7 +104,7 @@ public:
     
     
     
-    virtual nsHttpPipeline *QueryPipeline() { return nsnull; }
+    virtual nsHttpPipeline *QueryPipeline() { return nullptr; }
 
     
     

@@ -91,10 +91,10 @@ public:
 
   bool IsCSSEditableProperty(nsIContent* aNode, nsIAtom* aProperty,
                              const nsAString* aAttribute,
-                             const nsAString* aValue = nsnull);
+                             const nsAString* aValue = nullptr);
   bool IsCSSEditableProperty(nsIDOMNode* aNode, nsIAtom* aProperty,
                              const nsAString* aAttribute,
-                             const nsAString* aValue = nsnull);
+                             const nsAString* aValue = nullptr);
 
   
 

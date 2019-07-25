@@ -18,8 +18,8 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(FieldSet)
 
 nsHTMLFieldSetElement::nsHTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLFormElement(aNodeInfo)
-  , mElements(nsnull)
-  , mFirstLegend(nsnull)
+  , mElements(nullptr)
+  , mFirstLegend(nullptr)
 {
   
   SetBarredFromConstraintValidation(true);
@@ -92,7 +92,7 @@ nsHTMLFieldSetElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::disabled &&
       nsINode::GetFirstChild()) {
     if (!mElements) {
-      mElements = new nsContentList(this, MatchListedElements, nsnull, nsnull,
+      mElements = new nsContentList(this, MatchListedElements, nullptr, nullptr,
                                     true);
     }
 
@@ -135,7 +135,7 @@ NS_IMETHODIMP
 nsHTMLFieldSetElement::GetElements(nsIDOMHTMLCollection** aElements)
 {
   if (!mElements) {
-    mElements = new nsContentList(this, MatchListedElements, nsnull, nsnull,
+    mElements = new nsContentList(this, MatchListedElements, nullptr, nullptr,
                                   true);
   }
 
@@ -195,7 +195,7 @@ nsHTMLFieldSetElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
   if (mFirstLegend && (GetChildAt(aIndex) == mFirstLegend)) {
     
     nsIContent* child = mFirstLegend->GetNextSibling();
-    mFirstLegend = nsnull;
+    mFirstLegend = nullptr;
     firstLegendHasChanged = true;
 
     for (; child; child = child->GetNextSibling()) {
@@ -223,7 +223,7 @@ nsHTMLFieldSetElement::NotifyElementsForFirstLegendChange(bool aNotify)
 
 
   if (!mElements) {
-    mElements = new nsContentList(this, MatchListedElements, nsnull, nsnull,
+    mElements = new nsContentList(this, MatchListedElements, nullptr, nullptr,
                                   true);
   }
 

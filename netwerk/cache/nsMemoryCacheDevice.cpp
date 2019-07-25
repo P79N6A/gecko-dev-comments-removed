@@ -112,7 +112,7 @@ nsMemoryCacheDevice::FindEntry(nsCString * key, bool *collision)
 {
     mozilla::Telemetry::AutoTimer<mozilla::Telemetry::CACHE_MEMORY_SEARCH> timer;
     nsCacheEntry * entry = mMemCacheEntries.GetEntry(key);
-    if (!entry)  return nsnull;
+    if (!entry)  return nullptr;
 
     
     PR_REMOVE_AND_INIT_LINK(entry);

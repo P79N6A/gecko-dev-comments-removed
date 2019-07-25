@@ -150,7 +150,7 @@ class nsParser : public nsIParser,
 
 
     NS_IMETHOD Parse(nsIURI* aURL,
-                     nsIRequestObserver* aListener = nsnull,
+                     nsIRequestObserver* aListener = nullptr,
                      void* aKey = 0,
                      nsDTDMode aMode = eDTDMode_autodetect);
 

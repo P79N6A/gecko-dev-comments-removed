@@ -604,7 +604,7 @@ MediaStreamGraphImpl::RemoveStream(MediaStream* aStream)
     MonitorAutoLock lock(mMonitor);
     for (PRUint32 i = 0; i < mStreamUpdates.Length(); ++i) {
       if (mStreamUpdates[i].mStream == aStream) {
-        mStreamUpdates[i].mStream = nsnull;
+        mStreamUpdates[i].mStream = nullptr;
       }
     }
   }
@@ -1050,7 +1050,7 @@ MediaStreamGraphImpl::UpdateFirstActiveTracks(MediaStream* aStream)
 {
   StreamBuffer::Track* newTracksByType[MediaSegment::TYPE_COUNT];
   for (PRUint32 i = 0; i < ArrayLength(newTracksByType); ++i) {
-    newTracksByType[i] = nsnull;
+    newTracksByType[i] = nullptr;
   }
 
   for (StreamBuffer::TrackIter iter(aStream->mBuffer);
@@ -1075,7 +1075,7 @@ MediaStreamGraphImpl::CreateOrDestroyAudioStream(GraphTime aAudioOutputStartTime
       !(track = aStream->mBuffer.FindTrack(aStream->mFirstActiveTracks[MediaSegment::AUDIO]))) {
     if (aStream->mAudioOutput) {
       aStream->mAudioOutput->Shutdown();
-      aStream->mAudioOutput = nsnull;
+      aStream->mAudioOutput = nullptr;
     }
     return;
   }
@@ -1422,7 +1422,7 @@ MediaStreamGraphImpl::ShutdownThreads()
 
   if (mThread) {
     mThread->Shutdown();
-    mThread = nsnull;
+    mThread = nullptr;
   }
 }
 
@@ -1563,7 +1563,7 @@ MediaStreamGraphImpl::RunInStableState()
         
         
         LOG(PR_LOG_DEBUG, ("Disconnecting MediaStreamGraph %p", gGraph));
-        gGraph = nsnull;
+        gGraph = nullptr;
         
         
         
@@ -1648,7 +1648,7 @@ MediaStreamGraphImpl::AppendMessage(ControlMessage* aMessage)
     delete aMessage;
     if (IsEmpty()) {
       NS_ASSERTION(gGraph == this, "Switched managers during forced shutdown?");
-      gGraph = nsnull;
+      gGraph = nullptr;
       delete this;
     }
     return;
@@ -1678,7 +1678,7 @@ MediaStream::DestroyImpl()
 {
   if (mAudioOutput) {
     mAudioOutput->Shutdown();
-    mAudioOutput = nsnull;
+    mAudioOutput = nullptr;
   }
 }
 
@@ -1696,7 +1696,7 @@ MediaStream::Destroy()
     virtual void ProcessDuringShutdown()
     { UpdateAffectedStream(); }
   };
-  mWrapper = nsnull;
+  mWrapper = nullptr;
   GraphImpl()->AppendMessage(new Message(this));
 }
 

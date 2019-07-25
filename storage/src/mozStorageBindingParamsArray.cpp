@@ -30,7 +30,7 @@ BindingParamsArray::lock()
 
   
   
-  mOwningStatement = nsnull;
+  mOwningStatement = nullptr;
 }
 
 const StorageBaseStatementInternal *

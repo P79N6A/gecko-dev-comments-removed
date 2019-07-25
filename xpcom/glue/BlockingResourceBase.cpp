@@ -174,7 +174,7 @@ BlockingResourceBase::Release()
         
         
         BlockingResourceBase* curr = chainFront;
-        BlockingResourceBase* prev = nsnull;
+        BlockingResourceBase* prev = nullptr;
         while (curr && (prev = curr->mChainPrev) && (prev != this))
             curr = prev;
         if (prev == this)

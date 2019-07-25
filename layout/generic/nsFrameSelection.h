@@ -77,7 +77,7 @@ struct NS_STACK_CLASS nsPeekOffsetStruct
     , mIsKeyboardSelect(aIsKeyboardSelect)
     , mVisual(aVisual)
     , mResultContent()
-    , mResultFrame(nsnull)
+    , mResultFrame(nullptr)
     , mContentOffset(0)
     , mAttachForward(false)
   {

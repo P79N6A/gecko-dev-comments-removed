@@ -106,7 +106,7 @@ protected:
   nsresult ResetEvent();
   nsresult DispatchCurrentMessageEvent();
   nsresult ParseCharacter(PRUnichar aChr);
-  bool CheckCanRequestSrc(nsIURI* aSrc = nsnull);  
+  bool CheckCanRequestSrc(nsIURI* aSrc = nullptr);  
   nsresult CheckHealthOfRequestCallback(nsIRequest *aRequestCallback);
   nsresult OnRedirectVerifyCallback(nsresult result);
 

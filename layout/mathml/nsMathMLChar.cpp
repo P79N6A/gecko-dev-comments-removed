@@ -478,7 +478,7 @@ NS_IMPL_ISUPPORTS1(nsGlyphTableList, nsIObserver)
 
 
 
-static nsGlyphTableList* gGlyphTableList = nsnull;
+static nsGlyphTableList* gGlyphTableList = nullptr;
 
 static bool gInitialized = false;
 
@@ -550,7 +550,7 @@ nsGlyphTableList::GetGlyphTableFor(nsPresContext* aPresContext,
       return glyphTable;
     }
   }
-  return nsnull;
+  return nullptr;
 }
 
 nsGlyphTable*
@@ -654,7 +654,7 @@ InitGlobals(nsPresContext* aPresContext)
   }
   if (NS_FAILED(rv)) {
     delete gGlyphTableList;
-    gGlyphTableList = nsnull;
+    gGlyphTableList = nullptr;
     return rv;
   }
   
@@ -688,7 +688,7 @@ InitGlobals(nsPresContext* aPresContext)
   
   nsAutoString missingFamilyList;
 
-  font.EnumerateFamilies(MathFontEnumCallback, nsnull);
+  font.EnumerateFamilies(MathFontEnumCallback, nullptr);
   return rv;
 }
 
@@ -739,7 +739,7 @@ nsMathMLChar::SetData(nsPresContext* aPresContext,
   
   mDirection = NS_STRETCH_DIRECTION_UNSUPPORTED;
   mBoundingMetrics = nsBoundingMetrics();
-  mGlyphTable = nsnull;
+  mGlyphTable = nullptr;
   
   if (gGlyphTableList && (1 == mData.Length())) {
     mDirection = nsMathMLOperators::GetStretchyDirection(mData);
@@ -951,7 +951,7 @@ AddFallbackFonts(nsAString& aFontName, const nsAString& aFallbackFamilies)
   aFontName.EndReading(p_end);
 
   const PRUnichar *p = p_begin;
-  const PRUnichar *p_name = nsnull;
+  const PRUnichar *p_name = nullptr;
   while (p < p_end) {
     while (nsCRT::IsAsciiSpace(*p))
       if (++p == p_end)
@@ -1743,7 +1743,7 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
   }
   if (last->mSibling) {
     delete last->mSibling;
-    last->mSibling = nsnull;
+    last->mSibling = nullptr;
   }
   
   nsBoundingMetrics splitSize;
@@ -1768,7 +1768,7 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
     
     if (NS_FAILED(rv) || (NS_STRETCH_DIRECTION_UNSUPPORTED == child->mDirection)) {
       delete mSibling; 
-      mSibling = nsnull;
+      mSibling = nullptr;
       return NS_ERROR_FAILURE;
     }
     child->SetRect(nsRect(dx, dy, childSize.width, childSize.ascent+childSize.descent));

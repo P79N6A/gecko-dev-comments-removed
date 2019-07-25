@@ -74,7 +74,7 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
 {
   
   if (aTransferable) {
-    *aTransferable = nsnull;
+    *aTransferable = nullptr;
   }
 
   nsresult rv = NS_OK;
@@ -178,7 +178,7 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
       return rv;
   }
 
-  if ((doPutOnClipboard && clipboard) || aTransferable != nsnull) {
+  if ((doPutOnClipboard && clipboard) || aTransferable != nullptr) {
     
     nsCOMPtr<nsITransferable> trans = do_CreateInstance(kCTransferableCID);
     if (trans) {
@@ -250,11 +250,11 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
 
         
         if (actuallyPutOnClipboard)
-          clipboard->SetData(trans, nsnull, aClipboardID);
+          clipboard->SetData(trans, nullptr, aClipboardID);
       }
 
       
-      if (aTransferable != nsnull) {
+      if (aTransferable != nullptr) {
         trans.swap(*aTransferable);
       }
     }
@@ -268,7 +268,7 @@ nsCopySupport::HTMLCopy(nsISelection* aSel, nsIDocument* aDoc,
 {
   return SelectionCopyHelper(aSel, aDoc, true, aClipboardID,
                              nsIDocumentEncoder::SkipInvisibleContent,
-                             nsnull);
+                             nullptr);
 }
 
 nsresult
@@ -336,7 +336,7 @@ nsresult nsCopySupport::DoHooks(nsIDocument *aDoc, nsITransferable *aTrans,
 #ifdef DEBUG
       nsresult hookResult =
 #endif
-      override->OnCopyOrDrag(nsnull, aTrans, aDoPutOnClipboard);
+      override->OnCopyOrDrag(nullptr, aTrans, aDoPutOnClipboard);
       NS_ASSERTION(NS_SUCCEEDED(hookResult), "OnCopyOrDrag hook failed");
       if (!*aDoPutOnClipboard)
         break;
@@ -525,11 +525,11 @@ nsCopySupport::ImageCopy(nsIImageLoadingContent* aImageElement,
 
   
   if (selectionSupported) {
-    rv = clipboard->SetData(trans, nsnull, nsIClipboard::kSelectionClipboard);
+    rv = clipboard->SetData(trans, nullptr, nsIClipboard::kSelectionClipboard);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  return clipboard->SetData(trans, nsnull, nsIClipboard::kGlobalClipboard);
+  return clipboard->SetData(trans, nullptr, nsIClipboard::kGlobalClipboard);
 }
 
 static nsresult AppendString(nsITransferable *aTransferable,
@@ -609,11 +609,11 @@ static nsresult AppendDOMNode(nsITransferable *aTransferable,
 nsIContent*
 nsCopySupport::GetSelectionForCopy(nsIDocument* aDocument, nsISelection** aSelection)
 {
-  *aSelection = nsnull;
+  *aSelection = nullptr;
 
   nsIPresShell* presShell = aDocument->GetShell();
   if (!presShell)
-    return nsnull;
+    return nullptr;
 
   
   nsCOMPtr<nsPIDOMWindow> focusedWindow;
@@ -634,7 +634,7 @@ nsCopySupport::GetSelectionForCopy(nsIDocument* aDocument, nsISelection** aSelec
 
   
   NS_IF_ADDREF(*aSelection = presShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL));
-  return nsnull;
+  return nullptr;
 }
 
 bool
@@ -711,7 +711,7 @@ nsCopySupport::FireClipboardEvent(PRInt32 aType, nsIPresShell* aPresShell, nsISe
   if (Preferences::GetBool("dom.event.clipboardevents.enabled", true)) {
     nsEventStatus status = nsEventStatus_eIgnore;
     nsEvent evt(true, aType);
-    nsEventDispatcher::Dispatch(content, presShell->GetPresContext(), &evt, nsnull,
+    nsEventDispatcher::Dispatch(content, presShell->GetPresContext(), &evt, nullptr,
                                 &status);
     
     if (status == nsEventStatus_eConsumeNoDefault)

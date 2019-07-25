@@ -45,17 +45,17 @@ CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
   
   MOZ_ASSERT(!sCompositor);
 
-  nsRefPtr<CompositorChild> child(new CompositorChild(nsnull));
+  nsRefPtr<CompositorChild> child(new CompositorChild(nullptr));
   ProcessHandle handle;
   if (!base::OpenProcessHandle(aOtherProcess, &handle)) {
     
     NS_RUNTIMEABORT("Couldn't OpenProcessHandle() to parent process.");
-    return nsnull;
+    return nullptr;
   }
   if (!child->Open(aTransport, handle, XRE_GetIOMessageLoop(),
                 AsyncChannel::Child)) {
     NS_RUNTIMEABORT("Couldn't Open() Compositor channel.");
-    return nsnull;
+    return nullptr;
   }
   
   return sCompositor = child.forget().get();

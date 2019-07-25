@@ -63,7 +63,7 @@ nsSMILAnimationController::Disconnect()
 
   StopSampling(GetRefreshDriver());
 
-  mDocument = nsnull; 
+  mDocument = nullptr; 
 }
 
 
@@ -227,7 +227,7 @@ nsSMILAnimationController::CompositorTableEntryTraverse(
 void
 nsSMILAnimationController::Unlink()
 {
-  mLastCompositorTable = nsnull;
+  mLastCompositorTable = nullptr;
 }
 
 
@@ -434,7 +434,7 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
 
     
     
-    mLastCompositorTable->EnumerateEntries(DoClearAnimationEffects, nsnull);
+    mLastCompositorTable->EnumerateEntries(DoClearAnimationEffects, nullptr);
   }
 
   
@@ -442,7 +442,7 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
   
   
   
-  currentCompositorTable->EnumerateEntries(DoComposeAttribute, nsnull);
+  currentCompositorTable->EnumerateEntries(DoComposeAttribute, nullptr);
   mRunningSample = false;
 
   
@@ -459,8 +459,8 @@ nsSMILAnimationController::RewindElements()
   if (!rewindNeeded)
     return;
 
-  mAnimationElementTable.EnumerateEntries(RewindAnimation, nsnull);
-  mChildContainerTable.EnumerateEntries(ClearRewindNeeded, nsnull);
+  mAnimationElementTable.EnumerateEntries(RewindAnimation, nullptr);
+  mChildContainerTable.EnumerateEntries(ClearRewindNeeded, nullptr);
 }
 
  PR_CALLBACK PLDHashOperator
@@ -821,16 +821,16 @@ nsSMILAnimationController::GetRefreshDriver()
 {
   if (!mDocument) {
     NS_ERROR("Requesting refresh driver after document has disconnected!");
-    return nsnull;
+    return nullptr;
   }
 
   nsIPresShell* shell = mDocument->GetShell();
   if (!shell) {
-    return nsnull;
+    return nullptr;
   }
 
   nsPresContext* context = shell->GetPresContext();
-  return context ? context->RefreshDriver() : nsnull;
+  return context ? context->RefreshDriver() : nullptr;
 }
 
 void

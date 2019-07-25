@@ -51,8 +51,8 @@ public:
 
     nsDNSRecord(nsHostRecord *hostRecord)
         : mHostRecord(hostRecord)
-        , mIter(nsnull)
-        , mLastIter(nsnull)
+        , mIter(nullptr)
+        , mLastIter(nullptr)
         , mIterGenCnt(-1)
         , mDone(false) {}
 
@@ -110,7 +110,7 @@ nsDNSRecord::GetNextAddr(PRUint16 port, PRNetAddr *addr)
         else if (mIterGenCnt != mHostRecord->addr_info_gencnt) {
             
             
-            mIter = nsnull;
+            mIter = nullptr;
             mIterGenCnt = mHostRecord->addr_info_gencnt;
             startedFresh = true;
         }
@@ -127,8 +127,8 @@ nsDNSRecord::GetNextAddr(PRUint16 port, PRNetAddr *addr)
             
             
             mHostRecord->ResetBlacklist();
-            mLastIter = nsnull;
-            mIter = PR_EnumerateAddrInfo(nsnull, mHostRecord->addr_info,
+            mLastIter = nullptr;
+            mIter = PR_EnumerateAddrInfo(nullptr, mHostRecord->addr_info,
                                          port, addr);
         }
             
@@ -197,8 +197,8 @@ nsDNSRecord::HasMore(bool *result)
 NS_IMETHODIMP
 nsDNSRecord::Rewind()
 {
-    mIter = nsnull;
-    mLastIter = nsnull;
+    mIter = nullptr;
+    mLastIter = nullptr;
     mIterGenCnt = -1;
     mDone = false;
     return NS_OK;
@@ -279,7 +279,7 @@ nsDNSAsyncRequest::OnLookupComplete(nsHostResolver *resolver,
     }
 
     mListener->OnLookupComplete(this, rec, status);
-    mListener = nsnull;
+    mListener = nullptr;
 
     
     
@@ -475,7 +475,7 @@ nsDNSService::Shutdown()
     {
         MutexAutoLock lock(mLock);
         res = mResolver;
-        mResolver = nsnull;
+        mResolver = nullptr;
     }
     if (res)
         res->Shutdown();

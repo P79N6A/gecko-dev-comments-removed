@@ -114,7 +114,7 @@ AboutRedirector::NewChannel(nsIURI *aURI, nsIChannel **result)
     if (!strcmp(path.get(), kRedirMap[i].id)) {
       nsCOMPtr<nsIChannel> tempChannel;
       rv = ioService->NewChannel(nsDependentCString(kRedirMap[i].url),
-                                 nsnull, nsnull, getter_AddRefs(tempChannel));
+                                 nullptr, nullptr, getter_AddRefs(tempChannel));
       NS_ENSURE_SUCCESS(rv, rv);
 
       tempChannel->SetOriginalURI(aURI);
@@ -124,7 +124,7 @@ AboutRedirector::NewChannel(nsIURI *aURI, nsIChannel **result)
         
         
         
-        rv = tempChannel->SetOwner(nsnull);
+        rv = tempChannel->SetOwner(nullptr);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
@@ -157,7 +157,7 @@ nsresult
 AboutRedirector::Create(nsISupports *aOuter, REFNSIID aIID, void **result)
 {
   AboutRedirector* about = new AboutRedirector();
-  if (about == nsnull)
+  if (about == nullptr)
     return NS_ERROR_OUT_OF_MEMORY;
   NS_ADDREF(about);
   nsresult rv = about->QueryInterface(aIID, result);

@@ -150,7 +150,7 @@ static const XP_CHAR dumpFileExtension[] = {'.', 'd', 'm', 'p',
 static const XP_CHAR extraFileExtension[] = {'.', 'e', 'x', 't',
                                              'r', 'a', '\0'}; 
 
-static google_breakpad::ExceptionHandler* gExceptionHandler = nsnull;
+static google_breakpad::ExceptionHandler* gExceptionHandler = nullptr;
 
 static XP_CHAR* pendingDirectory;
 static XP_CHAR* crashReporterPath;
@@ -176,7 +176,7 @@ static XP_CHAR crashMarkerFilename[XP_PATH_MAX] = {0};
 
 static bool lastRunCrashID_checked = false;
 
-static nsString* lastRunCrashID = nsnull;
+static nsString* lastRunCrashID = nullptr;
 
 
 static const char kCrashTimeParameter[] = "CrashTime=";
@@ -213,8 +213,8 @@ static const int kAvailablePhysicalMemoryParameterLen =
 static Mutex* crashReporterAPILock;
 static Mutex* notesFieldLock;
 static AnnotationTable* crashReporterAPIData_Hash;
-static nsCString* crashReporterAPIData = nsnull;
-static nsCString* notesField = nsnull;
+static nsCString* crashReporterAPIData = nullptr;
+static nsCString* notesField = nullptr;
 
 
 static CrashGenerationServer* crashServer; 
@@ -890,7 +890,7 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
                      Filter,
 #endif
                      MinidumpCallback,
-                     nsnull,
+                     nullptr,
 #if defined(XP_WIN32)
                      google_breakpad::ExceptionHandler::HANDLER_ALL,
                      minidump_type,
@@ -960,7 +960,7 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
 
 bool GetEnabled()
 {
-  return gExceptionHandler != nsnull;
+  return gExceptionHandler != nullptr;
 }
 
 bool GetMinidumpPath(nsAString& aPath)
@@ -1211,31 +1211,31 @@ nsresult UnsetExceptionHandler()
   
   
   delete crashReporterAPIData_Hash;
-  crashReporterAPIData_Hash = nsnull;
+  crashReporterAPIData_Hash = nullptr;
 
   delete crashReporterAPILock;
-  crashReporterAPILock = nsnull;
+  crashReporterAPILock = nullptr;
 
   delete notesFieldLock;
-  notesFieldLock = nsnull;
+  notesFieldLock = nullptr;
 
   delete crashReporterAPIData;
-  crashReporterAPIData = nsnull;
+  crashReporterAPIData = nullptr;
 
   delete notesField;
-  notesField = nsnull;
+  notesField = nullptr;
 
   delete lastRunCrashID;
-  lastRunCrashID = nsnull;
+  lastRunCrashID = nullptr;
 
   if (pendingDirectory) {
     NS_Free(pendingDirectory);
-    pendingDirectory = nsnull;
+    pendingDirectory = nullptr;
   }
 
   if (crashReporterPath) {
     NS_Free(crashReporterPath);
-    crashReporterPath = nsnull;
+    crashReporterPath = nullptr;
   }
 
 #ifdef XP_MACOSX
@@ -1245,7 +1245,7 @@ nsresult UnsetExceptionHandler()
   if (!gExceptionHandler)
     return NS_ERROR_NOT_INITIALIZED;
 
-  gExceptionHandler = nsnull;
+  gExceptionHandler = nullptr;
 
   OOPDeinit();
 
@@ -1766,7 +1766,7 @@ nsresult SetSubmitReports(bool aSubmitReports)
       return rv;
     }
 
-    obsServ->NotifyObservers(nsnull, "submit-reports-pref-changed", nsnull);
+    obsServ->NotifyObservers(nullptr, "submit-reports-pref-changed", nullptr);
     return NS_OK;
 }
 

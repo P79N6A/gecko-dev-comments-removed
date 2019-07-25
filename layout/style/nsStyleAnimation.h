@@ -152,7 +152,7 @@ public:
                              const nsAString& aSpecifiedValue,
                              bool aUseSVGMode,
                              Value& aComputedValue,
-                             bool* aIsContextSensitive = nsnull);
+                             bool* aIsContextSensitive = nullptr);
 
   
 

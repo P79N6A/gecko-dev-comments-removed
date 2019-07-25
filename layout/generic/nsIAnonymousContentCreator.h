@@ -73,7 +73,7 @@ public:
 
 
 
-  virtual nsIFrame* CreateFrameFor(nsIContent* aContent) { return nsnull; }
+  virtual nsIFrame* CreateFrameFor(nsIContent* aContent) { return nullptr; }
 };
 
 #endif

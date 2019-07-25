@@ -10,7 +10,7 @@ using namespace mozilla::widget;
 
 PRInt32 GfxDriverInfo::allFeatures = 0;
 PRUint64 GfxDriverInfo::allDriverVersions = ~(PRUint64(0));
-GfxDeviceFamily* const GfxDriverInfo::allDevices = nsnull;
+GfxDeviceFamily* const GfxDriverInfo::allDevices = nullptr;
 
 GfxDeviceFamily* GfxDriverInfo::mDeviceFamilies[DeviceFamilyMax];
 nsAString* GfxDriverInfo::mDeviceVendors[DeviceVendorMax];
@@ -25,7 +25,7 @@ GfxDriverInfo::GfxDriverInfo()
     mComparisonOp(DRIVER_COMPARISON_IGNORED),
     mDriverVersion(0),
     mDriverVersionMax(0),
-    mSuggestedVersion(nsnull)
+    mSuggestedVersion(nullptr)
 {}
 
 GfxDriverInfo::GfxDriverInfo(OperatingSystem os, nsAString& vendor,

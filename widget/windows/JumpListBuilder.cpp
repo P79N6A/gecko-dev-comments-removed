@@ -64,7 +64,7 @@ JumpListBuilder::~JumpListBuilder()
 {
   mIOThread->Shutdown();
   Preferences::RemoveObserver(this, kPrefTaskbarEnabled);
-  mJumpListMgr = nsnull;
+  mJumpListMgr = nullptr;
   ::CoUninitialize();
 }
 
@@ -187,7 +187,7 @@ nsresult JumpListBuilder::RemoveIconCacheForItems(nsIMutableArray *items)
           
           
           
-          shortcut->SetFaviconPageUri(nsnull);
+          shortcut->SetFaviconPageUri(nullptr);
         }
       }
     }
@@ -468,8 +468,8 @@ nsresult JumpListBuilder::TransferIObjectArrayToIMutableArray(IObjectArray *objA
   nsCOMPtr<nsIJumpListItem> item;
 
   for (PRUint32 idx = 0; idx < count; idx++) {
-    IShellLinkW * pLink = nsnull;
-    IShellItem * pItem = nsnull;
+    IShellLinkW * pLink = nullptr;
+    IShellItem * pItem = nullptr;
 
     if (SUCCEEDED(objArray->GetAt(idx, IID_IShellLinkW, (LPVOID*)&pLink))) {
       nsCOMPtr<nsIJumpListShortcut> shortcut = 

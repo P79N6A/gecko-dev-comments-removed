@@ -32,7 +32,7 @@ protected:
     virtual ~nsDSURIContentListener();
 
     void DropDocShellreference() {
-        mDocShell = nsnull;
+        mDocShell = nullptr;
     }
 
     

@@ -119,7 +119,7 @@ public:
     if (!gBookmarksService) {
       nsCOMPtr<nsINavBookmarksService> serv =
         do_GetService(NS_NAVBOOKMARKSSERVICE_CONTRACTID);
-      NS_ENSURE_TRUE(serv, nsnull);
+      NS_ENSURE_TRUE(serv, nullptr);
       NS_ASSERTION(gBookmarksService,
                    "Should have static instance pointer now");
     }

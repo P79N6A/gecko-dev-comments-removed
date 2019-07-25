@@ -295,7 +295,7 @@ public:
         
         
         if (mRules.Length() == PR_INT16_MAX)
-            return nsnull;
+            return nullptr;
 
         return mRules.AppendElement(nsTemplateRule(aRuleNode, aAction,
                                     aQuerySet));
@@ -316,7 +316,7 @@ public:
         if (PRUint32(aIndex) < mRules.Length()) {
             return &mRules[aIndex];
         }
-        return nsnull;
+        return nullptr;
     }
 
     void Clear()

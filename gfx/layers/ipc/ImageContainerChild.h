@@ -120,7 +120,7 @@ protected:
   AllocPGrallocBuffer(const gfxIntSize&, const gfxContentType&,
                       MaybeMagicGrallocBufferHandle*) MOZ_OVERRIDE
 
-  { return nsnull; }
+  { return nullptr; }
 
   virtual bool
   DeallocPGrallocBuffer(PGrallocBufferChild* actor) MOZ_OVERRIDE

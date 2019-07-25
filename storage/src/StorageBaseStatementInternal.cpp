@@ -46,7 +46,7 @@ public:
   {
     if (mStatement->mAsyncStatement) {
       (void)::sqlite3_finalize(mStatement->mAsyncStatement);
-      mStatement->mAsyncStatement = nsnull;
+      mStatement->mAsyncStatement = nullptr;
     }
     (void)::NS_ProxyRelease(mConnection->threadOpenedOn, mStatement);
     return NS_OK;
@@ -89,11 +89,11 @@ public:
   NS_IMETHOD Run()
   {
     (void)::sqlite3_finalize(mAsyncStatement);
-    mAsyncStatement = nsnull;
+    mAsyncStatement = nullptr;
 
     
     
-    Connection *rawConnection = nsnull;
+    Connection *rawConnection = nullptr;
     mConnection.swap(rawConnection);
     (void)::NS_ProxyRelease(
       rawConnection->threadOpenedOn,
@@ -145,13 +145,13 @@ StorageBaseStatementInternal::destructorAsyncFinalize()
     nsCOMPtr<nsIRunnable> event =
       new LastDitchSqliteStatementFinalizer(mDBConnection, mAsyncStatement);
     if (NS_SUCCEEDED(target->Dispatch(event, NS_DISPATCH_NORMAL))) {
-      mAsyncStatement = nsnull;
+      mAsyncStatement = nullptr;
       return;
     }
   }
   
   (void)::sqlite3_finalize(mAsyncStatement);
-  mAsyncStatement = nsnull;
+  mAsyncStatement = nullptr;
 }
 
 NS_IMETHODIMP

@@ -282,7 +282,7 @@ public:
 
 
   void SetDisplayPort(const nsRect& aDisplayPort);
-  const nsRect* GetDisplayPort() { return mHasDisplayPort ? &mDisplayPort : nsnull; }
+  const nsRect* GetDisplayPort() { return mHasDisplayPort ? &mDisplayPort : nullptr; }
 
   
 
@@ -563,7 +563,7 @@ class nsDisplayItemLink {
   
   
 protected:
-  nsDisplayItemLink() : mAbove(nsnull) {}
+  nsDisplayItemLink() : mAbove(nullptr) {}
   nsDisplayItem* mAbove;  
   
   friend class nsDisplayList;
@@ -795,7 +795,7 @@ public:
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager,
                                              const ContainerParameters& aContainerParameters)
-  { return nsnull; }
+  { return nullptr; }
 
   
 
@@ -855,7 +855,7 @@ public:
 
 
 
-  virtual nsDisplayList* GetList() { return nsnull; }
+  virtual nsDisplayList* GetList() { return nullptr; }
 
   
 
@@ -907,7 +907,7 @@ protected:
   friend class nsDisplayList;
   
   nsDisplayItem() {
-    mAbove = nsnull;
+    mAbove = nullptr;
   }
   
   nsIFrame* mFrame;
@@ -953,7 +953,7 @@ public:
     mIsOpaque(false)
   {
     mTop = &mSentinel;
-    mSentinel.mAbove = nsnull;
+    mSentinel.mAbove = nullptr;
 #ifdef DEBUG
     mDidComputeVisibility = false;
 #endif
@@ -1020,7 +1020,7 @@ public:
       mTop->mAbove = aList->mSentinel.mAbove;
       mTop = aList->mTop;
       aList->mTop = &aList->mSentinel;
-      aList->mSentinel.mAbove = nsnull;
+      aList->mSentinel.mAbove = nullptr;
     }
   }
   
@@ -1036,7 +1036,7 @@ public:
       }
            
       aList->mTop = &aList->mSentinel;
-      aList->mSentinel.mAbove = nsnull;
+      aList->mSentinel.mAbove = nullptr;
     }
   }
   
@@ -1054,7 +1054,7 @@ public:
 
 
   nsDisplayItem* GetTop() const {
-    return mTop != &mSentinel ? static_cast<nsDisplayItem*>(mTop) : nsnull;
+    return mTop != &mSentinel ? static_cast<nsDisplayItem*>(mTop) : nullptr;
   }
   
 
@@ -1807,8 +1807,8 @@ public:
 
   virtual nsDisplayWrapList* WrapWithClone(nsDisplayListBuilder* aBuilder,
                                            nsDisplayItem* aItem) {
-    NS_NOTREACHED("We never returned nsnull for GetUnderlyingFrame!");
-    return nsnull;
+    NS_NOTREACHED("We never returned nullptr for GetUnderlyingFrame!");
+    return nullptr;
   }
 
   
@@ -2333,12 +2333,12 @@ public:
   static nsRect TransformRect(const nsRect &aUntransformedBounds, 
                               const nsIFrame* aFrame,
                               const nsPoint &aOrigin,
-                              const nsRect* aBoundsOverride = nsnull);
+                              const nsRect* aBoundsOverride = nullptr);
 
   static nsRect TransformRectOut(const nsRect &aUntransformedBounds, 
                                  const nsIFrame* aFrame,
                                  const nsPoint &aOrigin,
-                                 const nsRect* aBoundsOverride = nsnull);
+                                 const nsRect* aBoundsOverride = nullptr);
 
   
 
@@ -2392,12 +2392,12 @@ public:
   static gfx3DMatrix GetResultingTransformMatrix(const nsIFrame* aFrame,
                                                  const nsPoint& aOrigin,
                                                  float aAppUnitsPerPixel,
-                                                 const nsRect* aBoundsOverride = nsnull,
-                                                 const nsCSSValueList* aTransformOverride = nsnull,
-                                                 gfxPoint3D* aToMozOrigin = nsnull,
-                                                 gfxPoint3D* aToPerspectiveOrigin = nsnull,
-                                                 nscoord* aChildPerspective = nsnull, 
-                                                 nsIFrame** aOutAncestor = nsnull);
+                                                 const nsRect* aBoundsOverride = nullptr,
+                                                 const nsCSSValueList* aTransformOverride = nullptr,
+                                                 gfxPoint3D* aToMozOrigin = nullptr,
+                                                 gfxPoint3D* aToPerspectiveOrigin = nullptr,
+                                                 nscoord* aChildPerspective = nullptr, 
+                                                 nsIFrame** aOutAncestor = nullptr);
   
 
 
@@ -2452,7 +2452,7 @@ public:
     return (t == nsDisplayItem::TYPE_TEXT ||
             t == nsDisplayItem::TYPE_TEXT_DECORATION ||
             t == nsDisplayItem::TYPE_TEXT_SHADOW)
-      ? static_cast<nsCharClipDisplayItem*>(aItem) : nsnull;
+      ? static_cast<nsCharClipDisplayItem*>(aItem) : nullptr;
   }
 
   nscoord mLeftEdge;  

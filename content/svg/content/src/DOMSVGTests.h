@@ -60,7 +60,7 @@ public:
 
 
   bool PassesConditionalProcessingTests(
-         const nsString *aAcceptLangs = nsnull) const;
+         const nsString *aAcceptLangs = nullptr) const;
 
   
 

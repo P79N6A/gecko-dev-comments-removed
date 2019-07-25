@@ -266,7 +266,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
 
   
   
-  bool isClear = mBuffer == nsnull;
+  bool isClear = mBuffer == nullptr;
 
   if (destBuffer) {
     if (mBuffer) {

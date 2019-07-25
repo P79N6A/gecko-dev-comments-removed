@@ -58,7 +58,7 @@ public:
 
 
     gfxPoint FindPoint(gfxPoint aOffset,
-                       gfxFloat* aAngle = nsnull);
+                       gfxFloat* aAngle = nullptr);
 };
 
 #endif

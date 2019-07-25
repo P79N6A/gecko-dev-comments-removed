@@ -85,7 +85,7 @@ nsCookie::Create(const nsACString &aName,
   
   void *place = ::operator new(sizeof(nsCookie) + stringLength);
   if (!place)
-    return nsnull;
+    return nullptr;
 
   
   char *name, *value, *host, *path, *end;

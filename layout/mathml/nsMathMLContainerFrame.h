@@ -286,7 +286,7 @@ protected:
   GetReflowAndBoundingMetricsFor(nsIFrame*            aFrame,
                                  nsHTMLReflowMetrics& aReflowMetrics,
                                  nsBoundingMetrics&   aBoundingMetrics,
-                                 eMathMLFrameType*    aMathMLFrameType = nsnull);
+                                 eMathMLFrameType*    aMathMLFrameType = nullptr);
 
   
   
@@ -353,7 +353,7 @@ protected:
 
 
 
-  static void DidReflowChildren(nsIFrame* aFirst, nsIFrame* aStop = nsnull);
+  static void DidReflowChildren(nsIFrame* aFirst, nsIFrame* aStop = nullptr);
 
 private:
   class RowChildFrameIterator;

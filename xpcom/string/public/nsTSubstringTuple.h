@@ -30,13 +30,13 @@ class nsTSubstringTuple_CharT
     public:
 
       nsTSubstringTuple_CharT(const base_string_type* a, const base_string_type* b)
-        : mHead(nsnull)
+        : mHead(nullptr)
         , mFragA(a)
         , mFragB(b) {}
 
       nsTSubstringTuple_CharT(const self_type& head, const base_string_type* b)
         : mHead(&head)
-        , mFragA(nsnull) 
+        , mFragA(nullptr) 
         , mFragB(b) {}
 
         

@@ -59,10 +59,10 @@ nsresult nsDataObj::CStream::Init(nsIURI *pSourceURI)
 {
   nsresult rv;
   rv = NS_NewChannel(getter_AddRefs(mChannel), pSourceURI,
-                     nsnull, nsnull, nsnull,
+                     nullptr, nullptr, nullptr,
                      nsIRequest::LOAD_FROM_CACHE);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = mChannel->AsyncOpen(this, nsnull);
+  rv = mChannel->AsyncOpen(this, nullptr);
   NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
@@ -140,7 +140,7 @@ nsresult nsDataObj::CStream::WaitForCompletion()
   
   while (!mChannelRead) {
     
-    NS_ProcessNextEvent(nsnull, true);
+    NS_ProcessNextEvent(nullptr, true);
   }
 
   if (!mChannelData.Length())
@@ -348,7 +348,7 @@ static GUID CLSID_nsDataObj =
 
 
 nsDataObj::nsDataObj(nsIURI * uri)
-  : m_cRef(0), mTransferable(nsnull),
+  : m_cRef(0), mTransferable(nullptr),
     mIsAsyncMode(FALSE), mIsInOperation(FALSE)
 {
   mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS, 
@@ -811,7 +811,7 @@ nsDataObj :: GetDib ( const nsACString& inFlavor, FORMATETC &, STGMEDIUM & aSTG 
     
     
     nsImageToClipboard converter ( image );
-    HANDLE bits = nsnull;
+    HANDLE bits = nullptr;
     nsresult rv = converter.GetPicture ( &bits );
     if ( NS_SUCCEEDED(rv) && bits ) {
       aSTG.hGlobal = bits;
@@ -1240,7 +1240,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   if ( aFE.cfFormat == CF_TEXT ) {
     
     
-    char* plainTextData = nsnull;
+    char* plainTextData = nullptr;
     PRUnichar* castedUnicode = reinterpret_cast<PRUnichar*>(data);
     PRInt32 plainTextLen = 0;
     nsPrimitiveHelpers::ConvertUnicodeToPlatformPlainText ( castedUnicode, len / 2, &plainTextData, &plainTextLen );
@@ -1261,7 +1261,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
     
     
     NS_ConvertUTF16toUTF8 converter ( reinterpret_cast<PRUnichar*>(data) );
-    char* utf8HTML = nsnull;
+    char* utf8HTML = nullptr;
     nsresult rv = BuildPlatformHTML ( converter.get(), &utf8HTML );      
     
     nsMemory::Free(data);
@@ -1404,7 +1404,7 @@ HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG)
 
     
     nsImageToClipboard converter(image);
-    HANDLE bits = nsnull;
+    HANDLE bits = nullptr;
     rv = converter.GetPicture(&bits); 
 
     if (NS_FAILED(rv) || !bits)
@@ -1680,7 +1680,7 @@ void nsDataObj::SetTransferable(nsITransferable * aTransferable)
     NS_IF_RELEASE(mTransferable);
 
   mTransferable = aTransferable;
-  if (nsnull == mTransferable) {
+  if (nullptr == mTransferable) {
     return;
   }
 
@@ -1795,7 +1795,7 @@ nsDataObj :: ExtractShortcutTitle ( nsString & outTitle )
 nsresult 
 nsDataObj :: BuildPlatformHTML ( const char* inOurHTML, char** outPlatformHTML ) 
 {
-  *outPlatformHTML = nsnull;
+  *outPlatformHTML = nullptr;
 
   nsDependentCString inHTMLString(inOurHTML);
   const char* const numPlaceholder  = "00000000";
@@ -1959,7 +1959,7 @@ nsDataObj::ExtractUniformResourceLocatorW(FORMATETC& aFE, STGMEDIUM& aSTG )
 nsresult nsDataObj::GetDownloadDetails(nsIURI **aSourceURI,
                                        nsAString &aFilename)
 {
-  *aSourceURI = nsnull;
+  *aSourceURI = nullptr;
 
   NS_ENSURE_TRUE(mTransferable, NS_ERROR_FAILURE);
 

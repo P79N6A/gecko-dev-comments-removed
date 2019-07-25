@@ -55,7 +55,7 @@ nsHttpAuthManager::GetAuthIdentity(const nsACString & aScheme,
                                    nsAString & aUserName,
                                    nsAString & aUserPassword)
 {
-  nsHttpAuthEntry * entry = nsnull;
+  nsHttpAuthEntry * entry = nullptr;
   nsresult rv;
   if (!aPath.IsEmpty())
     rv = mAuthCache->GetAuthEntryForPath(PromiseFlatCString(aScheme).get(),
@@ -101,10 +101,10 @@ nsHttpAuthManager::SetAuthIdentity(const nsACString & aScheme,
                                   aPort,
                                   PromiseFlatCString(aPath).get(),
                                   PromiseFlatCString(aRealm).get(),
-                                  nsnull,  
-                                  nsnull,  
+                                  nullptr,  
+                                  nullptr,  
                                   &ident,
-                                  nsnull); 
+                                  nullptr); 
 }
 
 NS_IMETHODIMP

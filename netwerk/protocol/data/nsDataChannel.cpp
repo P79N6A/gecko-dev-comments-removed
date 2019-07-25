@@ -73,7 +73,7 @@ nsDataChannel::OpenContentStream(bool async, nsIInputStream **result,
         
         
         
-        char * decodedData = PL_Base64Decode(dataBuffer.get(), dataLen, nsnull);
+        char * decodedData = PL_Base64Decode(dataBuffer.get(), dataLen, nullptr);
         if (!decodedData) {
             return NS_ERROR_OUT_OF_MEMORY;
         }

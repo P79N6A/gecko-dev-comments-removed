@@ -26,7 +26,7 @@ GetViewElement(nsIDocument *aDocument, const nsAString &aId)
 {
   dom::Element* element = aDocument->GetElementById(aId);
   return (element && element->IsSVG(nsGkAtoms::view)) ?
-            static_cast<nsSVGViewElement*>(element) : nsnull;
+            static_cast<nsSVGViewElement*>(element) : nullptr;
 }
 
 void 
@@ -99,9 +99,9 @@ SVGFragmentIdentifier::ProcessSVGViewSpec(const nsAString &aViewSpec,
   
   
 
-  const nsAString *viewBoxParams = nsnull;
-  const nsAString *preserveAspectRatioParams = nsnull;
-  const nsAString *zoomAndPanParams = nsnull;
+  const nsAString *viewBoxParams = nullptr;
+  const nsAString *preserveAspectRatioParams = nullptr;
+  const nsAString *zoomAndPanParams = nullptr;
 
   
   PRInt32 bracketPos = aViewSpec.FindChar('(');

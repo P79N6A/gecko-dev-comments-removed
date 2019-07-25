@@ -13,7 +13,7 @@ namespace mozilla {
 nsresult FileBlockCache::Open(PRFileDesc* aFD)
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
-  NS_ENSURE_TRUE(aFD != nsnull, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(aFD != nullptr, NS_ERROR_FAILURE);
   {
     MonitorAutoLock mon(mFileMonitor);
     mFD = aFD;
@@ -21,7 +21,7 @@ nsresult FileBlockCache::Open(PRFileDesc* aFD)
   {
     MonitorAutoLock mon(mDataMonitor);
     nsresult res = NS_NewThread(getter_AddRefs(mThread),
-                                nsnull,
+                                nullptr,
                                 MEDIA_THREAD_STACK_SIZE);
     mIsOpen = NS_SUCCEEDED(res);
     return res;
@@ -30,7 +30,7 @@ nsresult FileBlockCache::Open(PRFileDesc* aFD)
 
 FileBlockCache::FileBlockCache()
   : mFileMonitor("nsMediaCache.Writer.IO.Monitor"),
-    mFD(nsnull),
+    mFD(nullptr),
     mFDCurrentPos(0),
     mDataMonitor("nsMediaCache.Writer.Data.Monitor"),
     mIsWriteScheduled(false),
@@ -48,7 +48,7 @@ FileBlockCache::~FileBlockCache()
     MonitorAutoLock mon(mFileMonitor);
     if (mFD) {
       PR_Close(mFD);
-      mFD = nsnull;
+      mFD = nullptr;
     }
   }
   MOZ_COUNT_DTOR(FileBlockCache);
@@ -70,7 +70,7 @@ void FileBlockCache::Close()
     
     
     nsCOMPtr<nsIRunnable> event = new ShutdownThreadEvent(mThread);
-    mThread = nsnull;
+    mThread = nullptr;
     NS_DispatchToMainThread(event);
   }
 }
@@ -84,7 +84,7 @@ nsresult FileBlockCache::WriteBlock(PRUint32 aBlockIndex, const PRUint8* aData)
 
   
   mBlockChanges.EnsureLengthAtLeast(aBlockIndex + 1);
-  bool blockAlreadyHadPendingChange = mBlockChanges[aBlockIndex] != nsnull;
+  bool blockAlreadyHadPendingChange = mBlockChanges[aBlockIndex] != nullptr;
   mBlockChanges[aBlockIndex] = new BlockChange(aData);
 
   if (!blockAlreadyHadPendingChange || !mChangeIndexList.Contains(aBlockIndex)) {
@@ -222,7 +222,7 @@ nsresult FileBlockCache::Run()
     
     
     if (mBlockChanges[blockIndex] == change) {
-      mBlockChanges[blockIndex] = nsnull;
+      mBlockChanges[blockIndex] = nullptr;
     }
   }
 
@@ -306,13 +306,13 @@ nsresult FileBlockCache::MoveBlock(PRInt32 aSourceBlockIndex, PRInt32 aDestBlock
   
   
   PRInt32 sourceIndex = aSourceBlockIndex;
-  BlockChange* sourceBlock = nsnull;
+  BlockChange* sourceBlock = nullptr;
   while ((sourceBlock = mBlockChanges[sourceIndex]) &&
           sourceBlock->IsMove()) {
     sourceIndex = sourceBlock->mSourceBlockIndex;
   }
 
-  if (mBlockChanges[aDestBlockIndex] == nsnull ||
+  if (mBlockChanges[aDestBlockIndex] == nullptr ||
       !mChangeIndexList.Contains(aDestBlockIndex)) {
     
     

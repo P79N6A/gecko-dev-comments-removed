@@ -198,7 +198,7 @@ public:
   
   nsresult PushStreamConverter(const char *fromType, const char *toType,
                                bool invalidatesContentLength = true,
-                               nsIStreamListener **converter = nsnull);
+                               nsIStreamListener **converter = nullptr);
 
 private:
   NS_DECL_NSISTREAMLISTENER
@@ -209,7 +209,7 @@ private:
 
   
   void CallbacksChanged() {
-    mProgressSink = nsnull;
+    mProgressSink = nullptr;
     mQueriedProgressSink = false;
     OnCallbacksChanged();
   }

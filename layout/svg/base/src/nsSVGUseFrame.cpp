@@ -122,7 +122,7 @@ nsSVGUseFrame::AttributeChanged(PRInt32         aNameSpaceID,
     if (aAttribute == nsGkAtoms::x ||
         aAttribute == nsGkAtoms::y) {
       
-      mCanvasTM = nsnull;
+      mCanvasTM = nullptr;
       nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
       nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
     } else if (aAttribute == nsGkAtoms::width ||
@@ -144,7 +144,7 @@ nsSVGUseFrame::AttributeChanged(PRInt32         aNameSpaceID,
              aAttribute == nsGkAtoms::href) {
     
     nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
-    useElement->mOriginal = nsnull;
+    useElement->mOriginal = nullptr;
     useElement->UnlinkSource();
     useElement->TriggerReclone();
   }
@@ -179,7 +179,7 @@ nsSVGUseFrame::ReflowSVG()
   
   float x, y;
   static_cast<nsSVGUseElement*>(mContent)->
-    GetAnimatedLengthValues(&x, &y, nsnull);
+    GetAnimatedLengthValues(&x, &y, nullptr);
   mRect.MoveTo(nsLayoutUtils::RoundGfxRectToAppRect(
                  gfxRect(x, y, 0.0, 0.0),
                  PresContext()->AppUnitsPerCSSPixel()).TopLeft());

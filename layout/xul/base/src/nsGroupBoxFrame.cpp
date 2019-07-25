@@ -215,14 +215,14 @@ nsGroupBoxFrame::GetCaptionBox(nsPresContext* aPresContext, nsRect& aCaptionRect
 
     
     if (!box)
-      return nsnull;
+      return nullptr;
 
     
     box = box->GetChildBox();
 
     
     if (!box)
-      return nsnull;
+      return nullptr;
 
     
     nsIBox* child = box->GetChildBox();

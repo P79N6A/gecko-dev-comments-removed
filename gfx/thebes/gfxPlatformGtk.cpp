@@ -56,7 +56,7 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::unicode;
 
-gfxFontconfigUtils *gfxPlatformGtk::sFontconfigUtils = nsnull;
+gfxFontconfigUtils *gfxPlatformGtk::sFontconfigUtils = nullptr;
 
 #ifndef MOZ_PANGO
 typedef nsDataHashtable<nsStringHashKey, nsRefPtr<FontFamily> > FontTable;
@@ -98,7 +98,7 @@ gfxPlatformGtk::gfxPlatformGtk()
 gfxPlatformGtk::~gfxPlatformGtk()
 {
     gfxFontconfigUtils::Shutdown();
-    sFontconfigUtils = nsnull;
+    sFontconfigUtils = nullptr;
 
 #ifdef MOZ_PANGO
     gfxPangoFontGroup::Shutdown();
@@ -173,7 +173,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
     }
 
     if (newSurface->CairoStatus()) {
-        newSurface = nsnull; 
+        newSurface = nullptr; 
     }
 
     if (newSurface && needsClear) {
@@ -536,7 +536,7 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile()
 #ifdef DEBUG_tor
                 fprintf(stderr, "Short EDID data\n");
 #endif
-                return nsnull;
+                return nullptr;
             }
 
             
@@ -594,7 +594,7 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile()
     }
 #endif
 
-    return nsnull;
+    return nullptr;
 }
 
 
@@ -613,7 +613,7 @@ gfxPlatformGtk::FindFontFamily(const nsAString& aName)
 
     nsRefPtr<FontFamily> ff;
     if (!gPlatformFonts->Get(name, &ff)) {
-        return nsnull;
+        return nullptr;
     }
     return ff.get();
 }
@@ -623,7 +623,7 @@ gfxPlatformGtk::FindFontEntry(const nsAString& aName, const gfxFontStyle& aFontS
 {
     nsRefPtr<FontFamily> ff = FindFontFamily(aName);
     if (!ff)
-        return nsnull;
+        return nullptr;
 
     return ff->FindFontEntry(aFontStyle);
 }
@@ -642,15 +642,15 @@ already_AddRefed<gfxFont>
 gfxPlatformGtk::FindFontForChar(PRUint32 aCh, gfxFont *aFont)
 {
     if (!gPlatformFonts || !gCodepointsWithNoFonts)
-        return nsnull;
+        return nullptr;
 
     
     if (gCodepointsWithNoFonts->test(aCh)) {
-        return nsnull;
+        return nullptr;
     }
 
     GlobalFontMatch data(aCh, GetScriptCode(aCh),
-                         (aFont ? aFont->GetStyle() : nsnull));
+                         (aFont ? aFont->GetStyle() : nullptr));
 
     
     gPlatformFonts->Enumerate(FindFontForCharProc, &data);
@@ -666,7 +666,7 @@ gfxPlatformGtk::FindFontForChar(PRUint32 aCh, gfxFont *aFont)
     
     gCodepointsWithNoFonts->set(aCh);
 
-    return nsnull;
+    return nullptr;
 }
 
 bool

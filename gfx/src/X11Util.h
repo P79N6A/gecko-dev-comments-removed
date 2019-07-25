@@ -123,14 +123,14 @@ public:
 
 
 
-    bool SyncAndGetError(Display *dpy, XErrorEvent *ev = nsnull);
+    bool SyncAndGetError(Display *dpy, XErrorEvent *ev = nullptr);
 
     
 
 
 
 
-    bool GetError(XErrorEvent *ev = nsnull);
+    bool GetError(XErrorEvent *ev = nullptr);
 };
 
 } 

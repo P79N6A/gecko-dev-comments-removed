@@ -112,7 +112,7 @@ BasicLayerManager::BasicLayerManager() :
 #ifdef DEBUG
   mPhase(PHASE_NONE),
 #endif
-  mWidget(nsnull)
+  mWidget(nullptr)
   , mDoubleBuffering(BUFFER_NONE), mUsingDefaultTarget(false)
   , mCachedSurfaceInUse(false)
   , mTransactionIncomplete(false)
@@ -126,7 +126,7 @@ BasicLayerManager::~BasicLayerManager()
 
   ClearCachedResources();
 
-  mRoot = nsnull;
+  mRoot = nullptr;
 
   MOZ_COUNT_DTOR(BasicLayerManager);
 }
@@ -446,14 +446,14 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
       }
     }
 
-    PaintLayer(mTarget, mRoot, aCallback, aCallbackData, nsnull);
+    PaintLayer(mTarget, mRoot, aCallback, aCallbackData, nullptr);
     if (mWidget) {
       FlashWidgetUpdateArea(mTarget);
     }
 
     if (!mTransactionIncomplete) {
       
-      mTarget = nsnull;
+      mTarget = nullptr;
     }
   }
 
@@ -510,7 +510,7 @@ BasicLayerManager::EndEmptyTransaction()
     return false;
   }
 
-  return EndTransactionInternal(nsnull, nsnull);
+  return EndTransactionInternal(nullptr, nullptr);
 }
 
 void
@@ -576,7 +576,7 @@ PixmanTransform(const gfxImageSurface *aDest,
 
   pixman_image_composite32(PIXMAN_OP_SRC,
                            src,
-                           nsnull,
+                           nullptr,
                            dest,
                            aDestOffset.x,
                            aDestOffset.y,
@@ -649,7 +649,7 @@ Transform3D(gfxASurface* aSource, gfxContext* aDest,
   PixmanTransform(destImage, sourceImage, translation * aTransform, offset);
 
   if (blitComplete) {
-    return nsnull;
+    return nullptr;
   }
 
   
@@ -791,7 +791,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
       HasShadowManager()) {
     
     static_cast<BasicImplData*>(aLayer->GetMaskLayer()->ImplData())
-      ->Paint(nsnull, nsnull);
+      ->Paint(nullptr, nullptr);
   }
 
   
@@ -877,7 +877,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
       }
       AutoSetOperator setOperator(aTarget, container->GetOperator());
       PaintWithMask(aTarget, aLayer->GetEffectiveOpacity(),
-                    HasShadowManager() ? nsnull : aLayer->GetMaskLayer());
+                    HasShadowManager() ? nullptr : aLayer->GetMaskLayer());
     }
   }
 
@@ -1029,7 +1029,7 @@ BasicShadowLayerManager::EndTransaction(DrawThebesLayerCallback aCallback,
   } else if (mShadowTarget) {
     
     ShadowLayerForwarder::ShadowDrawToTarget(mShadowTarget);
-    mShadowTarget = nsnull;
+    mShadowTarget = nullptr;
   }
 }
 

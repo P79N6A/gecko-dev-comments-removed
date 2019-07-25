@@ -36,7 +36,7 @@ static NS_DEFINE_CID(kZipReaderCID, NS_ZIPREADER_CID);
 
 
 
-static PRLogModuleInfo *gJarProtocolLog = nsnull;
+static PRLogModuleInfo *gJarProtocolLog = nullptr;
 #endif
 
 #define LOG(args)     PR_LOG(gJarProtocolLog, PR_LOG_DEBUG, args)
@@ -186,13 +186,13 @@ nsJARInputThunk::IsNonBlocking(bool *nonBlocking)
 
 
 nsJARChannel::nsJARChannel()
-    : mAppURI(nsnull)
+    : mAppURI(nullptr)
     , mContentLength(-1)
     , mLoadFlags(LOAD_NORMAL)
     , mStatus(NS_OK)
     , mIsPending(false)
     , mIsUnsafe(true)
-    , mJarInput(nsnull)
+    , mJarInput(nullptr)
 {
 #if defined(PR_LOGGING)
     if (!gJarProtocolLog)
@@ -360,7 +360,7 @@ nsJARChannel::EnsureJarInput(bool blocking)
         
         rv = NS_NewDownloader(getter_AddRefs(mDownloader), this);
         if (NS_SUCCEEDED(rv))
-            rv = NS_OpenURI(mDownloader, nsnull, mJarBaseURI, nsnull,
+            rv = NS_OpenURI(mDownloader, nullptr, mJarBaseURI, nullptr,
                             mLoadGroup, mCallbacks,
                             mLoadFlags & ~(LOAD_DOCUMENT_URI | LOAD_CALL_CONTENT_SNIFFERS));
     }
@@ -497,7 +497,7 @@ nsJARChannel::GetOwner(nsISupports **result)
     }
 
     if (!mJarInput) {
-        *result = nsnull;
+        *result = nullptr;
         return NS_OK;
     }
 
@@ -582,7 +582,7 @@ nsJARChannel::GetContentType(nsACString &result)
         
         
         
-        const char *ext = nsnull, *fileName = mJarEntry.get();
+        const char *ext = nullptr, *fileName = mJarEntry.get();
         PRInt32 len = mJarEntry.Length();
 
         
@@ -692,7 +692,7 @@ nsJARChannel::Open(nsIInputStream **stream)
     NS_ENSURE_TRUE(!mJarInput, NS_ERROR_IN_PROGRESS);
     NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
 
-    mJarFile = nsnull;
+    mJarFile = nullptr;
     mIsUnsafe = true;
 
     nsresult rv = EnsureJarInput(true);
@@ -718,7 +718,7 @@ nsJARChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
     NS_ENSURE_ARG_POINTER(listener);
     NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
 
-    mJarFile = nsnull;
+    mJarFile = nullptr;
     mIsUnsafe = true;
 
     
@@ -736,20 +736,20 @@ nsJARChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
         
         rv = NS_NewInputStreamPump(getter_AddRefs(mPump), mJarInput);
         if (NS_SUCCEEDED(rv))
-            rv = mPump->AsyncRead(this, nsnull);
+            rv = mPump->AsyncRead(this, nullptr);
 
         
         
         if (NS_FAILED(rv)) {
             mIsPending = false;
-            mListenerContext = nsnull;
-            mListener = nsnull;
+            mListenerContext = nullptr;
+            mListener = nullptr;
             return rv;
         }
     }
 
     if (mLoadGroup)
-        mLoadGroup->AddRequest(this, nsnull);
+        mLoadGroup->AddRequest(this, nullptr);
 
     return NS_OK;
 }
@@ -867,20 +867,20 @@ nsJARChannel::OnDownloadComplete(nsIDownloader *downloader,
     if (NS_SUCCEEDED(status)) {
         mJarFile = file;
     
-        rv = CreateJarInput(nsnull);
+        rv = CreateJarInput(nullptr);
         if (NS_SUCCEEDED(rv)) {
             
             rv = NS_NewInputStreamPump(getter_AddRefs(mPump), mJarInput);
             if (NS_SUCCEEDED(rv))
-                rv = mPump->AsyncRead(this, nsnull);
+                rv = mPump->AsyncRead(this, nullptr);
         }
         status = rv;
     }
 
     if (NS_FAILED(status)) {
         mStatus = status;
-        OnStartRequest(nsnull, nsnull);
-        OnStopRequest(nsnull, nsnull, status);
+        OnStartRequest(nullptr, nullptr);
+        OnStopRequest(nullptr, nullptr, status);
     }
 
     return NS_OK;
@@ -914,7 +914,7 @@ nsJARChannel::OnStopRequest(nsIRequest *req, nsISupports *ctx, nsresult status)
     }
 
     if (mLoadGroup)
-        mLoadGroup->RemoveRequest(this, nsnull, status);
+        mLoadGroup->RemoveRequest(this, nullptr, status);
 
     mPump = 0;
     NS_IF_RELEASE(mJarInput);
@@ -945,7 +945,7 @@ nsJARChannel::OnDataAvailable(nsIRequest *req, nsISupports *ctx,
     
     
     if (mProgressSink && NS_SUCCEEDED(rv) && !(mLoadFlags & LOAD_BACKGROUND))
-        mProgressSink->OnProgress(this, nsnull, PRUint64(offset + count),
+        mProgressSink->OnProgress(this, nullptr, PRUint64(offset + count),
                                   PRUint64(mContentLength));
 
     return rv; 

@@ -244,7 +244,7 @@ public:
         {return info == mInfo;}
     
     void     LockedInvalidateInterfaceInfo();
-    void     LockedInterfaceInfoDeathNotification() {mInfo = nsnull;}
+    void     LockedInterfaceInfoDeathNotification() {mInfo = nullptr;}
 
     xptiInterfaceEntry* Parent() const {
         NS_ASSERTION(IsFullyResolved(), "Parent() called while not resolved?");
@@ -367,7 +367,7 @@ public:
     xptiInterfaceInfo(xptiInterfaceEntry* entry);
 
     void Invalidate() 
-        {NS_IF_RELEASE(mParent); mEntry = nsnull;}
+        {NS_IF_RELEASE(mParent); mEntry = nullptr;}
 
 private:
 
@@ -415,7 +415,7 @@ public:
 
     xptiWorkingSet*  GetWorkingSet() {return &mWorkingSet;}
 
-    static Mutex& GetResolveLock(xptiInterfaceInfoManager* self = nsnull) 
+    static Mutex& GetResolveLock(xptiInterfaceInfoManager* self = nullptr) 
     {
         self = self ? self : GetSingleton();
         return self->mResolveLock;

@@ -162,7 +162,7 @@ public:
 
   bool PaintedByGecko();
 
-  nsIWidget* GetWidget() { return mInnerView ? mWidget : nsnull; }
+  nsIWidget* GetWidget() { return mInnerView ? mWidget : nullptr; }
 
   
 
@@ -187,7 +187,7 @@ protected:
                       const nsHTMLReflowState& aReflowState,
                       nsHTMLReflowMetrics& aDesiredSize);
 
-  bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false);
+  bool IsFocusable(PRInt32 *aTabIndex = nullptr, bool aWithMouse = false);
 
   
   bool IsHidden(bool aCheckVisibilityStyle = true) const;

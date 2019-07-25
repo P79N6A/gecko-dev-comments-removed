@@ -122,7 +122,7 @@ nsRequestObserverProxy::~nsRequestObserverProxy()
         
         
         
-        nsIRequestObserver *obs = nsnull;
+        nsIRequestObserver *obs = nullptr;
         mObserver.swap(obs);
         NS_ProxyRelease(mTarget, obs);
     }

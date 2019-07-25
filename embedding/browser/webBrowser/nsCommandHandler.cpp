@@ -12,7 +12,7 @@
 #include "nsPIDOMWindow.h"
 
 nsCommandHandler::nsCommandHandler() :
-    mWindow(nsnull)
+    mWindow(nullptr)
 {
 }
 
@@ -24,8 +24,8 @@ nsresult nsCommandHandler::GetCommandHandler(nsICommandHandler **aCommandHandler
 {
     NS_ENSURE_ARG_POINTER(aCommandHandler);
 
-    *aCommandHandler = nsnull;
-    if (mWindow == nsnull)
+    *aCommandHandler = nullptr;
+    if (mWindow == nullptr)
     {
         return NS_ERROR_FAILURE;
     }
@@ -40,7 +40,7 @@ nsresult nsCommandHandler::GetCommandHandler(nsICommandHandler **aCommandHandler
 
     nsCOMPtr<nsIDocShellTreeItem> docShellAsTreeItem =
       do_QueryInterface(window->GetDocShell());
-    nsIDocShellTreeOwner *treeOwner = nsnull;
+    nsIDocShellTreeOwner *treeOwner = nullptr;
     docShellAsTreeItem->GetTreeOwner(&treeOwner);
 
     
@@ -62,7 +62,7 @@ nsresult nsCommandHandler::GetCommandHandler(nsICommandHandler **aCommandHandler
         NS_RELEASE(treeOwner);
      }
 
-    *aCommandHandler = nsnull;
+    *aCommandHandler = nullptr;
 
     return NS_OK;
 }
@@ -83,13 +83,13 @@ NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP nsCommandHandler::GetWindow(nsIDOMWindow * *aWindow)
 {
-    *aWindow = nsnull;
+    *aWindow = nullptr;
     return NS_OK;
 }
 
 NS_IMETHODIMP nsCommandHandler::SetWindow(nsIDOMWindow * aWindow)
 {
-    if (aWindow == nsnull)
+    if (aWindow == nullptr)
     {
        return NS_ERROR_FAILURE;
     }
@@ -112,7 +112,7 @@ NS_IMETHODIMP nsCommandHandler::Exec(const char *aCommand, const char *aStatus, 
     
     if (commandHandler)
     {
-        *aResult = nsnull;
+        *aResult = nullptr;
         return commandHandler->Exec(aCommand, aStatus, aResult);
     }
 
@@ -135,7 +135,7 @@ NS_IMETHODIMP nsCommandHandler::Query(const char *aCommand, const char *aStatus,
     
     if (commandHandler)
     {
-        *aResult = nsnull;
+        *aResult = nullptr;
         return commandHandler->Query(aCommand, aStatus, aResult);
     }
 

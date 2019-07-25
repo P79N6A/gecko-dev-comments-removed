@@ -152,7 +152,7 @@ protected:
 
 
 
-  bool IsRootOfReplacedElementSubDoc(nsIFrame **aEmbeddingFrame = nsnull);
+  bool IsRootOfReplacedElementSubDoc(nsIFrame **aEmbeddingFrame = nullptr);
 
   
 

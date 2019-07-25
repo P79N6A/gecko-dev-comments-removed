@@ -200,14 +200,14 @@ public:
   nsresult ReplaceContainer(nsINode* inNode,
                             mozilla::dom::Element** outNode,
                             const nsAString& aNodeType,
-                            const nsAString* aAttribute = nsnull,
-                            const nsAString* aValue = nsnull,
+                            const nsAString* aAttribute = nullptr,
+                            const nsAString* aValue = nullptr,
                             bool aCloneAttributes = false);
   nsresult ReplaceContainer(nsIDOMNode *inNode, 
                             nsCOMPtr<nsIDOMNode> *outNode, 
                             const nsAString &aNodeType,
-                            const nsAString *aAttribute = nsnull,
-                            const nsAString *aValue = nsnull,
+                            const nsAString *aAttribute = nullptr,
+                            const nsAString *aValue = nullptr,
                             bool aCloneAttributes = false);
 
   nsresult RemoveContainer(nsINode* aNode);
@@ -215,13 +215,13 @@ public:
   nsresult InsertContainerAbove(nsIContent* aNode,
                                 mozilla::dom::Element** aOutNode,
                                 const nsAString& aNodeType,
-                                const nsAString* aAttribute = nsnull,
-                                const nsAString* aValue = nsnull);
+                                const nsAString* aAttribute = nullptr,
+                                const nsAString* aValue = nullptr);
   nsresult InsertContainerAbove(nsIDOMNode *inNode, 
                                 nsCOMPtr<nsIDOMNode> *outNode, 
                                 const nsAString &aNodeType,
-                                const nsAString *aAttribute = nsnull,
-                                const nsAString *aValue = nsnull);
+                                const nsAString *aAttribute = nullptr,
+                                const nsAString *aValue = nullptr);
   nsresult JoinNodes(nsINode* aNodeToKeep, nsIContent* aNodeToMove);
   nsresult MoveNode(nsIContent* aNode, nsINode* aParent, PRInt32 aOffset);
   nsresult MoveNode(nsIDOMNode *aNode, nsIDOMNode *aParent, PRInt32 aOffset);
@@ -788,7 +788,7 @@ public:
 
   virtual nsresult InsertFromDrop(nsIDOMEvent* aDropEvent) = 0;
 
-  virtual already_AddRefed<nsIDOMNode> FindUserSelectAllNode(nsIDOMNode* aNode) { return nsnull; }
+  virtual already_AddRefed<nsIDOMNode> FindUserSelectAllNode(nsIDOMNode* aNode) { return nullptr; }
 
   NS_STACK_CLASS class HandlingTrustedAction
   {

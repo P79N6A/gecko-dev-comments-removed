@@ -44,7 +44,7 @@ URIUtils::ResetWithSource(nsIDocument *aNewDoc, nsIDOMNode *aSourceNode)
     nsCOMPtr<nsINode> node = do_QueryInterface(aSourceNode);
     if (!node) {
         
-        aNewDoc->Reset(nsnull, nsnull);
+        aNewDoc->Reset(nullptr, nullptr);
         return;
     }
 
@@ -58,7 +58,7 @@ URIUtils::ResetWithSource(nsIDocument *aNewDoc, nsIDOMNode *aSourceNode)
         
         if (NS_FAILED(NS_NewChannel(getter_AddRefs(channel),
                                     sourceDoc->GetDocumentURI(),
-                                    nsnull,
+                                    nullptr,
                                     loadGroup))) {
             return;
         }

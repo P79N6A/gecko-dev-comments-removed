@@ -26,7 +26,7 @@ public:
   
 
 
-  virtual Accessible* Caption() { return nsnull; }
+  virtual Accessible* Caption() { return nullptr; }
 
   
 
@@ -46,7 +46,7 @@ public:
   
 
 
-  virtual Accessible* CellAt(PRUint32 aRowIdx, PRUint32 aColIdx) { return nsnull; }
+  virtual Accessible* CellAt(PRUint32 aRowIdx, PRUint32 aColIdx) { return nullptr; }
 
   
 

@@ -339,7 +339,7 @@ public:
 
 
   static void InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate = false,
-                               const nsRect *aBoundsSubArea = nsnull,
+                               const nsRect *aBoundsSubArea = nullptr,
                                PRUint32 aFlags = 0);
 
   

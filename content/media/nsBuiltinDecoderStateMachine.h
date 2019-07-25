@@ -252,7 +252,7 @@ public:
   void SetFragmentEndTime(PRInt64 aEndTime);
 
   
-  void ReleaseDecoder() { mDecoder = nsnull; }
+  void ReleaseDecoder() { mDecoder = nullptr; }
 
    
    

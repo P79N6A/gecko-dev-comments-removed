@@ -30,7 +30,7 @@ void
 nsHTMLWin32ObjectOwnerAccessible::Shutdown()
 {
   AccessibleWrap::Shutdown();
-  mNativeAccessible = nsnull;
+  mNativeAccessible = nullptr;
 }
 
 
@@ -66,7 +66,7 @@ nsHTMLWin32ObjectOwnerAccessible::CacheChildren()
 
 
 nsHTMLWin32ObjectAccessible::nsHTMLWin32ObjectAccessible(void* aHwnd) :
-  LeafAccessible(nsnull, nsnull)
+  LeafAccessible(nullptr, nullptr)
 {
   
   

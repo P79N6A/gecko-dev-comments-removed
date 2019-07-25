@@ -241,7 +241,7 @@ nsHTMLSharedObjectElement::GetClassInfoInternal()
   if (mNodeInfo->Equals(nsGkAtoms::embed)) {
     return NS_GetDOMClassInfoInstance(eDOMClassInfo_HTMLEmbedElement_id);
   }
-  return nsnull;
+  return nullptr;
 }
 
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLSharedObjectElement)
@@ -381,7 +381,7 @@ nsHTMLSharedObjectElement::GetSVGDocument(nsIDOMDocument **aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
 
-  *aResult = nsnull;
+  *aResult = nullptr;
 
   if (!IsInDoc()) {
     return NS_OK;
@@ -476,7 +476,7 @@ nsHTMLSharedObjectElement::StartObjectLoad(bool aNotify)
     
     
     
-    LoadObject(nsnull, aNotify, type);
+    LoadObject(nullptr, aNotify, type);
   }
   else {
     LoadObject(uri, aNotify, type);

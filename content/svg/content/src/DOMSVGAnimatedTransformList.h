@@ -94,8 +94,8 @@ private:
 
 
   DOMSVGAnimatedTransformList(nsSVGElement *aElement)
-    : mBaseVal(nsnull)
-    , mAnimVal(nsnull)
+    : mBaseVal(nullptr)
+    , mAnimVal(nullptr)
     , mElement(aElement)
   {}
 

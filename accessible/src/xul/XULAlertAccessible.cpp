@@ -58,5 +58,5 @@ XULAlertAccessible::ContainerWidget() const
   
   if (mParent && mParent->IsMenuButton())
     return mParent;
-  return nsnull;
+  return nullptr;
 }

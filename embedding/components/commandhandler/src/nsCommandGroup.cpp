@@ -46,7 +46,7 @@ NS_IMPL_ISUPPORTS1(nsGroupsEnumerator, nsISimpleEnumerator)
 nsGroupsEnumerator::nsGroupsEnumerator(nsHashtable& inHashTable)
 : mHashTable(inHashTable)
 , mIndex(-1)
-, mGroupNames(nsnull)
+, mGroupNames(nullptr)
 , mInitted(false)
 {
   
@@ -229,7 +229,7 @@ nsControllerCommandGroup::AddCommandToGroup(const char * aCommand, const char *a
 {
   nsCStringKey   groupKey(aGroup);  
   nsTArray<char*>* commandList;
-  if ((commandList = (nsTArray<char*> *)mGroupsHash.Get(&groupKey)) == nsnull)
+  if ((commandList = (nsTArray<char*> *)mGroupsHash.Get(&groupKey)) == nullptr)
   {
     
     commandList = new nsAutoTArray<char*, 8>;
