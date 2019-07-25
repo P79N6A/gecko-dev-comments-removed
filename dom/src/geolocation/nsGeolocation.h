@@ -150,9 +150,6 @@ public:
   nsIDOMGeoPosition* GetCachedPosition();
 
   
-  PRBool   HasGeolocationProvider();
-
-  
   nsresult StartDevice();
 
   
