@@ -82,6 +82,7 @@
 
 
 
+
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
@@ -1273,8 +1274,7 @@ JSClass js_ArrayClass = {
     "Array",
     JSCLASS_HAS_RESERVED_SLOTS(2) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Array) |
-    JSCLASS_NEW_ENUMERATE |
-    JSCLASS_CONSTRUCT_PROTOTYPE,
+    JSCLASS_NEW_ENUMERATE,
     JS_PropertyStub,    JS_PropertyStub,   JS_PropertyStub,   JS_PropertyStub,
     JS_EnumerateStub,   JS_ResolveStub,    js_TryValueOf,     array_finalize,
     array_getObjectOps, NULL,              NULL,              NULL,

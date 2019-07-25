@@ -5307,11 +5307,8 @@ CheckGlobalObjectShape(JSContext* cx, TraceMonitor* tm, JSObject* globalObj,
 
 
     if (!globalObj->scope()->hasOwnShape()) {
-        JS_LOCK_OBJ(cx, globalObj);
         JSScope *scope = js_GetMutableScope(cx, globalObj);
-        bool ok = scope && scope->globalObjectOwnShapeChange(cx);
-        JS_UNLOCK_OBJ(cx, globalObj);
-        if (!ok) {
+        if (!scope || !scope->globalObjectOwnShapeChange(cx)) {
             debug_only_print0(LC_TMTracer,
                               "Can't record: failed to give globalObj a unique shape.\n");
             return false;
@@ -13146,6 +13143,7 @@ TraceRecorder::denseArrayElement(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_
         }
 
         
+        JS_ASSERT(obj->isDenseArrayMinLenCapOk());
         LIns* minLenCap =
             addName(stobj_get_fslot(obj_ins, JSObject::JSSLOT_DENSE_ARRAY_MINLENCAP), "minLenCap");
         LIns* br2 = lir->insBranch(LIR_jf,
@@ -13176,6 +13174,7 @@ TraceRecorder::denseArrayElement(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_
     }
 
     
+    JS_ASSERT(obj->isDenseArrayMinLenCapOk());
     LIns* minLenCap =
         addName(stobj_get_fslot(obj_ins, JSObject::JSSLOT_DENSE_ARRAY_MINLENCAP), "minLenCap");
     guard(true,

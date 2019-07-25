@@ -417,8 +417,6 @@ struct JSObject {
     
     inline void staticAssertArrayLengthIsInPrivateSlot();
 
-    inline bool isDenseArrayMinLenCapOk() const;
-
     inline uint32 uncheckedGetArrayLength() const;
     inline uint32 uncheckedGetDenseArrayCapacity() const;
 
@@ -434,6 +432,8 @@ struct JSObject {
 
     inline uint32 getDenseArrayCapacity() const;
     inline void setDenseArrayCapacity(uint32 capacity); 
+
+    inline bool isDenseArrayMinLenCapOk(bool strictAboutLength = true) const;
 
     inline jsval getDenseArrayElement(uint32 i) const;
     inline void setDenseArrayElement(uint32 i, jsval v);

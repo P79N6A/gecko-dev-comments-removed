@@ -110,18 +110,26 @@ JSObject::setPrimitiveThis(jsval pthis)
     fslots[JSSLOT_PRIMITIVE_THIS] = pthis;
 }
 
-inline void JSObject::staticAssertArrayLengthIsInPrivateSlot()
+inline void
+JSObject::staticAssertArrayLengthIsInPrivateSlot()
 {
     JS_STATIC_ASSERT(JSSLOT_ARRAY_LENGTH == JSSLOT_PRIVATE);
 }
 
-inline bool JSObject::isDenseArrayMinLenCapOk() const
+inline bool
+JSObject::isDenseArrayMinLenCapOk(bool strictAboutLength) const
 {
     JS_ASSERT(isDenseArray());
     uint32 length = uncheckedGetArrayLength();
     uint32 capacity = uncheckedGetDenseArrayCapacity();
     uint32 minLenCap = uint32(fslots[JSSLOT_DENSE_ARRAY_MINLENCAP]);
-    return minLenCap == JS_MIN(length, capacity);
+
+    
+    
+    
+    return minLenCap == JS_MIN(length, capacity) ||
+           (!strictAboutLength && minLenCap == uint32(JSVAL_VOID) &&
+            length == uint32(JSVAL_VOID) && capacity == 0);
 }
 
 inline uint32
@@ -192,7 +200,7 @@ inline uint32
 JSObject::getDenseArrayCapacity() const
 {
     JS_ASSERT(isDenseArray());
-    JS_ASSERT(isDenseArrayMinLenCapOk());
+    JS_ASSERT(isDenseArrayMinLenCapOk(false));
     return uncheckedGetDenseArrayCapacity();
 }
 
