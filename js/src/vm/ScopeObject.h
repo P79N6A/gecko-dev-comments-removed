@@ -51,9 +51,9 @@ ScopeCoordinateName(JSRuntime *rt, JSScript *script, jsbytecode *pc);
 
 
 
-enum FrameIndexType { FrameIndex_Local, FrameIndex_Arg };
-extern FrameIndexType
-ScopeCoordinateToFrameIndex(JSScript *script, jsbytecode *pc, unsigned *index);
+enum FrameVarType { FrameVar_Local, FrameVar_Arg };
+extern FrameVarType
+ScopeCoordinateToFrameVar(JSScript *script, jsbytecode *pc, unsigned *index);
 
 
 
@@ -102,6 +102,9 @@ class ScopeObject : public JSObject
 
   public:
     
+    static const uint32_t CALL_BLOCK_RESERVED_SLOTS = 2;
+
+    
 
 
 
@@ -130,7 +133,7 @@ class CallObject : public ScopeObject
     create(JSContext *cx, JSScript *script, HandleObject enclosing, HandleFunction callee);
 
   public:
-    static const uint32_t RESERVED_SLOTS = 2;
+    static const uint32_t RESERVED_SLOTS = CALL_BLOCK_RESERVED_SLOTS;
 
     static CallObject *createForFunction(JSContext *cx, StackFrame *fp);
     static CallObject *createForStrictEval(JSContext *cx, StackFrame *fp);
@@ -213,7 +216,7 @@ class WithObject : public NestedScopeObject
 class BlockObject : public NestedScopeObject
 {
   public:
-    static const unsigned RESERVED_SLOTS = 2;
+    static const unsigned RESERVED_SLOTS = CALL_BLOCK_RESERVED_SLOTS;
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4_BACKGROUND;
 
     
@@ -224,8 +227,7 @@ class BlockObject : public NestedScopeObject
 
 
 
-    unsigned slotToLocalIndex(const Bindings &bindings, unsigned slot);
-    unsigned localIndexToSlot(const Bindings &bindings, uint32_t i);
+    unsigned slotToFrameLocal(JSScript *script, unsigned i);
 
   protected:
     
