@@ -149,7 +149,7 @@ AsyncChannel::ProcessLink::Open(mozilla::ipc::Transport* aTransport,
                           NewRunnableMethod(this, &ProcessLink::OnChannelOpened));
 
         
-        while (mChan->mChannelState != ChannelConnected) {
+        while (!mChan->Connected()) {
             mChan->mMonitor->Wait();
         }
     }
@@ -671,6 +671,7 @@ AsyncChannel::ProcessLink::OnChannelOpened()
     {
         MonitorAutoLock lock(*mChan->mMonitor);
         mChan->mChannelState = ChannelOpening;
+        lock.Notify();
     }
     mTransport->Connect();
 }

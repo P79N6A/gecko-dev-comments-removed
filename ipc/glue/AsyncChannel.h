@@ -208,7 +208,10 @@ protected:
 
     bool Connected() const {
         mMonitor->AssertCurrentThreadOwns();
-        return ChannelConnected == mChannelState;
+        
+        
+        return (ChannelOpening == mChannelState ||
+                ChannelConnected == mChannelState);
     }
 
     
