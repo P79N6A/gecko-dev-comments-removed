@@ -34,7 +34,6 @@
 #include <strings.h>    
 #include <errno.h>
 #include <stdarg.h>
-#include "v8-support.h"
 #include "platform.h"
 
 #include <string.h>
