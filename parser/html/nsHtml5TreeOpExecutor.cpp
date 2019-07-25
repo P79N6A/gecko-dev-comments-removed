@@ -59,6 +59,7 @@
 #include "nsHtml5StreamParser.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/Util.h" 
+#include "sampler.h"
 
 using namespace mozilla;
 
@@ -426,6 +427,7 @@ class nsHtml5FlushLoopGuard
 void
 nsHtml5TreeOpExecutor::RunFlushLoop()
 {
+  SAMPLE_LABEL("html5", "RunFlushLoop");
   if (mRunFlushLoopOnStack) {
     
     return;
