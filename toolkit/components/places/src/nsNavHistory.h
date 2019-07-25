@@ -61,6 +61,7 @@
 #include "nsICharsetResolver.h"
 #include "nsNetCID.h"
 #include "nsToolkitCompsCID.h"
+#include "nsThreadUtils.h"
 
 #include "nsINavBookmarksService.h"
 #include "nsIPrivateBrowsingService.h"
@@ -94,21 +95,11 @@
 #define TOPIC_AUTOCOMPLETE_FEEDBACK_UPDATED "places-autocomplete-feedback-updated"
 #endif
 
-
-
-
-
 #define TOPIC_PLACES_SHUTDOWN "places-shutdown"
 
 
 
-#define TOPIC_PLACES_WILL_CLOSE_CONNECTION "places-will-close-connection"
-
-
-#define TOPIC_PLACES_CONNECTION_CLOSING "places-connection-closing"
-
-#define TOPIC_PLACES_CONNECTION_CLOSED "places-connection-closed"
-
+#define TOPIC_PLACES_TEARDOWN "places-teardown"
 
 #define TOPIC_DATABASE_LOCKED "places-database-locked"
 
@@ -237,6 +228,16 @@ public:
   mozIStorageConnection* GetStorageConnection()
   {
     return mDBConn;
+  }
+
+  
+
+
+
+  void SetVacuumInProgress(bool aValue)
+  {
+    NS_ASSERTION(NS_IsMainThread(), "SetVacuumInProgress() off main thread!");
+    mVacuumInProgress = aValue;
   }
 
   
@@ -738,6 +739,10 @@ protected:
   
   bool mCanNotify;
   nsCategoryCache<nsINavHistoryObserver> mCacheObservers;
+
+  
+  nsCOMPtr<mozIStorageStatementCallback> mVacuumDBListener;
+  bool mVacuumInProgress;
 };
 
 
