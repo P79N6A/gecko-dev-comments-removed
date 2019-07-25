@@ -684,6 +684,8 @@ protected:
   
   void ClearStatus();
 
+  virtual void UpdateParentTarget();
+
   
   
   
