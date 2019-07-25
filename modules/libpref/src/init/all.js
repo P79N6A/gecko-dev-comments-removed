@@ -3697,6 +3697,8 @@ pref("social.enabled", false);
 
 pref("dom.idle-observers-api.fuzz_time.disabled", true);
 
+pref("toolkit.identity.debug", false);
+
 
 
 pref("dom.mozApps.dev_mode", false);
