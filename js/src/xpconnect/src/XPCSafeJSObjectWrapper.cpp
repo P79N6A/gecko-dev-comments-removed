@@ -282,7 +282,8 @@ WrapObject(JSContext *cx, JSObject *scope, jsval v, jsval *vp)
   
   
   JSObject *objToWrap = UnsafeUnwrapSecurityWrapper(cx, JSVAL_TO_OBJECT(v));
-  if (!objToWrap) {
+  if (!objToWrap ||
+      JS_TypeOfValue(cx, OBJECT_TO_JSVAL(objToWrap)) == JSTYPE_XML) {
     return ThrowException(NS_ERROR_INVALID_ARG, cx);
   }
 
