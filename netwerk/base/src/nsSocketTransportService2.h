@@ -205,6 +205,12 @@ private:
     
     nsresult    UpdatePrefs();
     PRInt32     mSendBufferSize;
+
+    
+#if defined(XP_WIN)
+    void ProbeMaxCount();
+#endif
+    bool mProbedMaxCount;
 };
 
 extern nsSocketTransportService *gSocketTransportService;
