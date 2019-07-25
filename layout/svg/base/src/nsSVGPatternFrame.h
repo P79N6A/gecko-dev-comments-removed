@@ -155,9 +155,6 @@ private:
 protected:
   
   PRPackedBool                      mLoopFlag;
-  
-  
-  PRPackedBool                      mPaintLoopFlag;
   PRPackedBool                      mNoHRefURI;
 };
 
