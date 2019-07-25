@@ -197,6 +197,7 @@ NewArguments(JSContext *cx, JSObject *parent, uint32 argc, JSObject *callee)
 static void
 PutArguments(JSContext *cx, JSObject *argsobj, Value *args)
 {
+    JS_ASSERT(argsobj->isNormalArguments());
     uint32 argc = argsobj->getArgsInitialLength();
     for (uint32 i = 0; i != argc; ++i) {
         if (!argsobj->getArgsElement(i).isMagic(JS_ARGS_HOLE))
@@ -230,7 +231,21 @@ js_GetArgsObject(JSContext *cx, JSStackFrame *fp)
         return argsobj;
 
     
-    argsobj->setPrivate(fp);
+
+
+
+
+
+
+
+
+    if (argsobj->isStrictArguments()) {
+        JS_ASSERT_IF(fp->argc > 0, argsobj->dslots[-1].toPrivateUint32() >= fp->argc);
+        memcpy(argsobj->dslots, fp->argv, fp->argc * sizeof(Value));
+    } else {
+        argsobj->setPrivate(fp);
+    }
+
     fp->setArgsObj(argsobj);
     return argsobj;
 }
@@ -239,9 +254,13 @@ void
 js_PutArgsObject(JSContext *cx, JSStackFrame *fp)
 {
     JSObject *argsobj = fp->getArgsObj();
-    JS_ASSERT(argsobj->getPrivate() == fp);
-    PutArguments(cx, argsobj, fp->argv);
-    argsobj->setPrivate(NULL);
+    if (argsobj->isNormalArguments()) {
+        JS_ASSERT(argsobj->getPrivate() == fp);
+        PutArguments(cx, argsobj, fp->argv);
+        argsobj->setPrivate(NULL);
+    } else {
+        JS_ASSERT(!argsobj->getPrivate());
+    }
     fp->setArgsObj(NULL);
 }
 
@@ -256,7 +275,17 @@ js_Arguments(JSContext *cx, JSObject *parent, uint32 argc, JSObject *callee)
     JSObject *argsobj = NewArguments(cx, parent, argc, callee);
     if (!argsobj)
         return NULL;
-    argsobj->setPrivate(JS_ARGUMENT_OBJECT_ON_TRACE);
+
+    if (callee->getFunctionPrivate()->inStrictMode()) {
+        
+
+
+
+        JS_ASSERT(!argsobj->getPrivate());
+    } else {
+        argsobj->setPrivate(JS_ARGUMENT_OBJECT_ON_TRACE);
+    }
+
     return argsobj;
 }
 #endif
@@ -268,6 +297,7 @@ JS_DEFINE_CALLINFO_4(extern, OBJECT, js_Arguments, CONTEXT, OBJECT, UINT32, OBJE
 JSBool JS_FASTCALL
 js_PutArguments(JSContext *cx, JSObject *argsobj, Value *args)
 {
+    JS_ASSERT(argsobj->isNormalArguments());
     JS_ASSERT(argsobj->getPrivate() == JS_ARGUMENT_OBJECT_ON_TRACE);
     PutArguments(cx, argsobj, args);
     argsobj->setPrivate(NULL);
@@ -637,14 +667,9 @@ StrictArgGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 
         uintN arg = uintN(JSID_TO_INT(id));
         if (arg < obj->getArgsInitialLength()) {
-            JSStackFrame *fp = (JSStackFrame *) obj->getPrivate();
-            if (fp) {
-                *vp = fp->argv[arg];
-            } else {
-                const Value &v = obj->getArgsElement(arg);
-                if (!v.isMagic(JS_ARGS_HOLE))
-                    *vp = v;
-            }
+            const Value &v = obj->getArgsElement(arg);
+            if (!v.isMagic(JS_ARGS_HOLE))
+                *vp = v;
         }
     } else {
         JS_ASSERT(JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom));

@@ -488,6 +488,16 @@ js_GetArgsValue(JSContext *cx, JSStackFrame *fp, js::Value *vp);
 extern JSBool
 js_GetArgsProperty(JSContext *cx, JSStackFrame *fp, jsid id, js::Value *vp);
 
+
+
+
+
+
+
+
+
+
+
 extern JSObject *
 js_GetArgsObject(JSContext *cx, JSStackFrame *fp);
 
