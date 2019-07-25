@@ -65,7 +65,7 @@
 #endif
 
 
-#ifdef cairo_public
+#ifdef MOZ_ENABLE_LIBXUL
 #   define PIXMAN_EXPORT cairo_public
 #else
 
