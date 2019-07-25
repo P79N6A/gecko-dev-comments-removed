@@ -1106,7 +1106,7 @@ var gViewController = {
             if (installs.length > 0) {
               
               AddonManager.installAddonsFromWebpage("application/x-xpinstall",
-                                                    this, null, installs);
+                                                    window, null, installs);
             }
             return;
           }
