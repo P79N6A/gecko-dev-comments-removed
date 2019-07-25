@@ -54,6 +54,10 @@ namespace ion {
 class JSONSpewer
 {
   private:
+    
+    
+    bool inFunction_;
+
     bool first_;
     FILE *fp_;
 
@@ -70,7 +74,8 @@ class JSONSpewer
 
   public:
     JSONSpewer()
-      : first_(true),
+      : inFunction_(false),
+        first_(true),
         fp_(NULL)
     { }
     ~JSONSpewer();
