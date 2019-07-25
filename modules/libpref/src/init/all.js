@@ -169,6 +169,9 @@ pref("media.enforce_same_site_origin", false);
 
 pref("media.cache_size", 512000);
 
+
+pref("media.volume_scale", "1.0");
+
 #ifdef MOZ_RAW
 pref("media.raw.enabled", true);
 #endif
