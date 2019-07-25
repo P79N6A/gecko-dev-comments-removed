@@ -906,6 +906,7 @@ pref("network.IDN.whitelist.cl", true);
 pref("network.IDN.whitelist.cn", true);
 pref("network.IDN.whitelist.de", true);
 pref("network.IDN.whitelist.dk", true);
+pref("network.IDN.whitelist.ee", true);
 pref("network.IDN.whitelist.es", true);
 pref("network.IDN.whitelist.fi", true);
 pref("network.IDN.whitelist.gr", true);
@@ -954,6 +955,8 @@ pref("network.IDN.whitelist.xn--xkc2al3hye2a", true);
 
 pref("network.IDN.whitelist.xn--wgbl6a", true);
 
+pref("network.IDN.whitelist.xn--90a3ac", true);
+
 pref("network.IDN.whitelist.xn--p1ai", true);
 
 pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true); 
@@ -962,6 +965,8 @@ pref("network.IDN.whitelist.xn--mgbqly7c0a67fbc", true);
 pref("network.IDN.whitelist.xn--mgbqly7cvafr", true);
 
 pref("network.IDN.whitelist.xn--ogbpf8fl", true);
+
+pref("network.IDN.whitelist.xn--o3cw4h", true);
 
 pref("network.IDN.whitelist.xn--kpry57d", true);  
 pref("network.IDN.whitelist.xn--kprw13d", true);  
