@@ -220,11 +220,7 @@ gfxContext::Rectangle(const gfxRect& rect, PRBool snapToPixels)
     if (snapToPixels) {
         gfxRect snappedRect(rect);
 
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
         if (UserToDevicePixelSnapped(snappedRect, PR_TRUE))
-#else
-        if (UserToDevicePixelSnapped(snappedRect))
-#endif
         {
             cairo_matrix_t mat;
             cairo_get_matrix(mCairo, &mat);
@@ -402,32 +398,31 @@ gfxContext::UserToDevicePixelSnapped(gfxRect& rect, PRBool ignoreScale) const
     
     cairo_matrix_t mat;
     cairo_get_matrix(mCairo, &mat);
-    if ((!ignoreScale && (mat.xx != 1.0 || mat.yy != 1.0)) ||
-        (mat.xy != 0.0 || mat.yx != 0.0))
+    if (!ignoreScale &&
+        (mat.xx != 1.0 || mat.yy != 1.0 || mat.xy != 0.0 || mat.yx != 0.0))
         return PR_FALSE;
 
     gfxPoint p1 = UserToDevice(rect.pos);
-    gfxPoint p2 = UserToDevice(rect.pos + rect.size);
-
-    gfxPoint p3 = UserToDevice(rect.pos + gfxSize(rect.size.width, 0.0));
-    gfxPoint p4 = UserToDevice(rect.pos + gfxSize(0.0, rect.size.height));
+    gfxPoint p2 = UserToDevice(rect.pos + gfxSize(rect.size.width, 0.0));
+    gfxPoint p3 = UserToDevice(rect.pos + rect.size);
 
     
-    if (p1.x != p4.x ||
-        p2.x != p3.x ||
-        p1.y != p3.y ||
-        p2.y != p4.y)
-        return PR_FALSE;
+    
+    
+    
+    
+    
+    if (p2 == gfxPoint(p1.x, p3.y) || p2 == gfxPoint(p3.x, p1.y)) {
+        p1.Round();
+        p3.Round();
 
-    p1.Round();
-    p2.Round();
+        rect.pos = gfxPoint(NS_MIN(p1.x, p3.x), NS_MIN(p1.y, p3.y));
+        rect.size = gfxSize(NS_MAX(p1.x, p3.x) - rect.pos.x,
+                            NS_MAX(p1.y, p3.y) - rect.pos.y);
+        return PR_TRUE;
+    }
 
-    gfxPoint pd = p2 - p1;
-
-    rect.pos = p1;
-    rect.size = gfxSize(pd.x, pd.y);
-
-    return PR_TRUE;
+    return PR_FALSE;
 }
 
 PRBool
