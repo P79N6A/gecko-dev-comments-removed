@@ -52,6 +52,7 @@
 #include "nsIPrefService.h"
 #include "nsIPrefBranch2.h"
 #include "nsServiceManagerUtils.h"
+#include "nsIOService.h"
 
 #include "mozilla/FunctionTimer.h"
 
@@ -394,6 +395,10 @@ nsSocketTransportService::Init()
 
     if (mShuttingDown)
         return NS_ERROR_UNEXPECTED;
+
+    
+    if (gIOService->IsOffline() && !gIOService->IsComingOnline())
+        return NS_ERROR_OFFLINE;
 
     if (!mThreadEvent) {
         mThreadEvent = PR_NewPollableEvent();

@@ -199,6 +199,8 @@ private:
     PRUint16 mMaxRequestDelay; 
     PRUint16 mMaxPipelinedRequests;
 
+    PRPackedBool mIsShuttingDown;
+
     
     
     
@@ -215,6 +217,7 @@ private:
                                  PRUint8 caps, nsHttpConnection *);
     PRBool   BuildPipeline(nsConnectionEntry *, nsAHttpTransaction *, nsHttpPipeline **);
     nsresult ProcessNewTransaction(nsHttpTransaction *);
+    nsresult EnsureSocketThreadTargetIfOnline();
 
     
     typedef void (nsHttpConnectionMgr:: *nsConnEventHandler)(PRInt32, void *);

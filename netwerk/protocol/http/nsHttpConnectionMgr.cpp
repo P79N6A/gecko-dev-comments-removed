@@ -43,6 +43,7 @@
 #include "nsAutoLock.h"
 #include "nsNetCID.h"
 #include "nsCOMPtr.h"
+#include "nsNetUtil.h"
 
 #include "nsIServiceManager.h"
 
@@ -88,6 +89,7 @@ nsHttpConnectionMgr::nsHttpConnectionMgr()
     , mNumActiveConns(0)
     , mNumIdleConns(0)
     , mTimeOfNextWakeUp(LL_MAXUINT)
+    , mIsShuttingDown(PR_FALSE)
 {
     LOG(("Creating nsHttpConnectionMgr @%x\n", this));
 }
@@ -101,6 +103,32 @@ nsHttpConnectionMgr::~nsHttpConnectionMgr()
 }
 
 nsresult
+nsHttpConnectionMgr::EnsureSocketThreadTargetIfOnline()
+{
+    nsresult rv;
+    nsCOMPtr<nsIEventTarget> sts;
+    nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
+    if (NS_SUCCEEDED(rv)) {
+        PRBool offline = PR_TRUE;
+        ioService->GetOffline(&offline);
+
+        if (!offline) {
+            sts = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
+        }
+    }
+
+    nsAutoMonitor mon(mMonitor);
+
+    
+    if (mSocketThreadTarget || mIsShuttingDown)
+        return NS_OK;
+
+    mSocketThreadTarget = sts;
+
+    return rv;
+}
+
+nsresult
 nsHttpConnectionMgr::Init(PRUint16 maxConns,
                           PRUint16 maxConnsPerHost,
                           PRUint16 maxConnsPerProxy,
@@ -111,28 +139,21 @@ nsHttpConnectionMgr::Init(PRUint16 maxConns,
 {
     LOG(("nsHttpConnectionMgr::Init\n"));
 
-    nsresult rv;
-    nsCOMPtr<nsIEventTarget> sts = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
-    if (NS_FAILED(rv)) return rv;
+    {
+        nsAutoMonitor mon(mMonitor);
 
-    nsAutoMonitor mon(mMonitor);
+        mMaxConns = maxConns;
+        mMaxConnsPerHost = maxConnsPerHost;
+        mMaxConnsPerProxy = maxConnsPerProxy;
+        mMaxPersistConnsPerHost = maxPersistConnsPerHost;
+        mMaxPersistConnsPerProxy = maxPersistConnsPerProxy;
+        mMaxRequestDelay = maxRequestDelay;
+        mMaxPipelinedRequests = maxPipelinedRequests;
 
-    
-    if (mSocketThreadTarget)
-        return NS_OK;
+        mIsShuttingDown = PR_FALSE;
+    }
 
-    
-    
-    mMaxConns = maxConns;
-    mMaxConnsPerHost = maxConnsPerHost;
-    mMaxConnsPerProxy = maxConnsPerProxy;
-    mMaxPersistConnsPerHost = maxPersistConnsPerHost;
-    mMaxPersistConnsPerProxy = maxPersistConnsPerProxy;
-    mMaxRequestDelay = maxRequestDelay;
-    mMaxPipelinedRequests = maxPipelinedRequests;
-
-    mSocketThreadTarget = sts;
-    return rv;
+    return EnsureSocketThreadTargetIfOnline();
 }
 
 nsresult
@@ -151,6 +172,7 @@ nsHttpConnectionMgr::Shutdown()
     
     
     
+    mIsShuttingDown = PR_TRUE;
     mSocketThreadTarget = 0;
 
     if (NS_FAILED(rv)) {
@@ -166,6 +188,12 @@ nsHttpConnectionMgr::Shutdown()
 nsresult
 nsHttpConnectionMgr::PostEvent(nsConnEventHandler handler, PRInt32 iparam, void *vparam)
 {
+    
+    
+    
+    
+    EnsureSocketThreadTargetIfOnline();
+
     nsAutoMonitor mon(mMonitor);
 
     nsresult rv;
@@ -285,6 +313,12 @@ nsHttpConnectionMgr::PruneDeadConnections()
 nsresult
 nsHttpConnectionMgr::GetSocketThreadTarget(nsIEventTarget **target)
 {
+    
+    
+    
+    
+    EnsureSocketThreadTargetIfOnline();
+
     nsAutoMonitor mon(mMonitor);
     NS_IF_ADDREF(*target = mSocketThreadTarget);
     return NS_OK;
