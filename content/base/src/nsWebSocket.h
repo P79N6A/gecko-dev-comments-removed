@@ -136,11 +136,6 @@ protected:
 
   nsCOMPtr<nsIWebSocketChannel> mChannel;
 
-  nsRefPtr<nsDOMEventListenerWrapper> mOnOpenListener;
-  nsRefPtr<nsDOMEventListenerWrapper> mOnErrorListener;
-  nsRefPtr<nsDOMEventListenerWrapper> mOnMessageListener;
-  nsRefPtr<nsDOMEventListenerWrapper> mOnCloseListener;
-
   
   nsString mOriginalURL;
   nsString mEffectiveURL;   

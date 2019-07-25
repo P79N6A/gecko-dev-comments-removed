@@ -252,6 +252,7 @@ protected:
 
 
   nsresult SetEventHandlerInternal(nsIScriptContext *aContext,
+                                   JSContext* aCx,
                                    JSObject* aScopeGlobal,
                                    nsIAtom* aName,
                                    JSObject *aHandler,
@@ -270,8 +271,10 @@ public:
 
 
 
+
   nsresult SetEventHandlerToJsval(nsIAtom *aEventName, JSContext *cx,
-                                  JSObject *aScope, const jsval &v);
+                                  JSObject *aScope, const jsval &v,
+                                  bool aExpectScriptContext);
   
 
 
