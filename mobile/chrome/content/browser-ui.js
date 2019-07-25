@@ -1450,6 +1450,7 @@ var FindHelperUI = {
 
     
     messageManager.addMessageListener("FindAssist:Show", this);
+    messageManager.addMessageListener("FindAssist:Hide", this);
 
     
     document.getElementById("tabs").addEventListener("TabSelect", this, true);
@@ -1462,6 +1463,11 @@ var FindHelperUI = {
       case "FindAssist:Show":
         if (json.rect)
           this._zoom(Rect.fromRect(json.rect));
+        break;
+
+      case "FindAssist:Hide":
+        if (this._container.getAttribute("type") == this.type)
+          this.hide();
         break;
     }
   },
