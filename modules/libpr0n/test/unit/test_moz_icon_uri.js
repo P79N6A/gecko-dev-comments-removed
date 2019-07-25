@@ -70,6 +70,16 @@ function run_test() {
   do_check_eq(iconURI.stockIcon, "foo");
 
   
+  currentSpec = "moz-icon://stock/?size=3";
+  try {
+    uri = ioService.newURI(currentSpec, null, null);
+  } catch (e) {
+    exception = true;
+  }
+  do_check_true(exception);
+  exception = false; 
+
+  
   
   currentSpec = "moz-icon:file://foo.txt";
   try {
