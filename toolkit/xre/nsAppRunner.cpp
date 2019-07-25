@@ -41,11 +41,6 @@
 
 
 
-#ifdef MOZ_IPC
-#include "mozilla/dom/ContentParent.h"
-using mozilla::dom::ContentParent;
-#endif
-
 #if defined(XP_OS2) && defined(MOZ_OS2_HIGH_MEMORY)
 
 #include <os2safe.h>
@@ -64,6 +59,11 @@ using mozilla::dom::ContentParent;
 #include "MozMeegoAppService.h"
 #endif 
 #endif 
+
+#ifdef MOZ_IPC
+#include "mozilla/dom/ContentParent.h"
+using mozilla::dom::ContentParent;
+#endif
 
 #include "nsAppRunner.h"
 #include "nsUpdateDriver.h"
