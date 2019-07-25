@@ -590,8 +590,9 @@ WeaveSvc.prototype = {
       if (!resp.success)
         throw resp;
 
+      
       this.passphrase = newphrase;
-
+      this.persistLogin();
       return true;
     }))(),
 
