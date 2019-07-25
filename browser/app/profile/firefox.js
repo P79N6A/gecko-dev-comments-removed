@@ -540,9 +540,6 @@ pref("browser.xul.error_pages.enabled", true);
 pref("browser.xul.error_pages.expert_bad_cert", false);
 
 
-pref("network.manage-offline-status", false);
-
-
 pref("network.protocol-handler.external.mailto", true); 
 pref("network.protocol-handler.external.news", true);   
 pref("network.protocol-handler.external.snews", true);  
