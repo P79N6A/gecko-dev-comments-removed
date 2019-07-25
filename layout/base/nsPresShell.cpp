@@ -154,7 +154,6 @@
 #include "nsHTMLMediaElement.h"
 #endif
 #include "nsSMILAnimationController.h"
-#include "mozilla/css/ImageLoader.h"
 
 #include "nsRefreshDriver.h"
 
@@ -2113,10 +2112,11 @@ PresShell::FireResizeEvent()
 void
 PresShell::SetIgnoreFrameDestruction(bool aIgnore)
 {
-  if (mDocument) {
+  if (mPresContext) {
     
     
-    mDocument->StyleImageLoader()->ClearAll();
+    
+    mPresContext->DestroyImageLoaders();
   }
   mIgnoreFrameDestruction = aIgnore;
 }
@@ -2129,7 +2129,7 @@ PresShell::NotifyDestroyingFrame(nsIFrame* aFrame)
   mPresContext->ForgetUpdatePluginGeometryFrame(aFrame);
 
   if (!mIgnoreFrameDestruction) {
-    mDocument->StyleImageLoader()->DropRequestsForFrame(aFrame);
+    mPresContext->StopImagesFor(aFrame);
 
     mFrameConstructor->NotifyDestroyingFrame(aFrame);
 

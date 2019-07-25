@@ -48,6 +48,7 @@
 #include "nsIContentViewer.h"
 #include "nsPIDOMWindow.h"
 #include "nsStyleSet.h"
+#include "nsImageLoader.h"
 #include "nsIContent.h"
 #include "nsIFrame.h"
 #include "nsIURL.h"
@@ -96,7 +97,6 @@
 #include "FrameLayerBuilder.h"
 #include "nsDOMMediaQueryList.h"
 #include "nsSMILAnimationController.h"
-#include "mozilla/css/ImageLoader.h"
 
 #ifdef IBMBIDI
 #include "nsBidiPresUtils.h"
@@ -193,6 +193,14 @@ IsVisualCharset(const nsCString& aCharset)
   }
 }
 #endif 
+
+
+static PLDHashOperator
+destroy_loads(nsIFrame* aKey, nsRefPtr<nsImageLoader>& aData, void* closure)
+{
+  aData->Destroy();
+  return PL_DHASH_NEXT;
+}
 
 #include "nsContentCID.h"
 
@@ -335,11 +343,27 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsPresContext)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsPresContext)
 
+static PLDHashOperator
+TraverseImageLoader(nsIFrame* aKey, nsRefPtr<nsImageLoader>& aData,
+                    void* aClosure)
+{
+  nsCycleCollectionTraversalCallback *cb =
+    static_cast<nsCycleCollectionTraversalCallback*>(aClosure);
+
+  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb, "mImageLoaders[i] item");
+  cb->NoteXPCOMChild(aData);
+
+  return PL_DHASH_NEXT;
+}
+
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsPresContext)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDocument);
   
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mEventManager, nsIObserver);
   
+
+  for (PRUint32 i = 0; i < IMAGE_LOAD_TYPE_COUNT; ++i)
+    tmp->mImageLoaders[i].Enumerate(TraverseImageLoader, &cb);
 
   
   
@@ -929,6 +953,10 @@ nsPresContext::Init(nsDeviceContext* aDeviceContext)
     mDeviceContext->FlushFontCache();
   mCurAppUnitsPerDevPixel = AppUnitsPerDevPixel();
 
+  for (PRUint32 i = 0; i < IMAGE_LOAD_TYPE_COUNT; ++i)
+    if (!mImageLoaders[i].Init())
+      return NS_ERROR_OUT_OF_MEMORY;
+
   mEventManager = new nsEventStateManager();
   NS_ADDREF(mEventManager);
 
@@ -1103,6 +1131,18 @@ nsPresContext::SetShell(nsIPresShell* aShell)
 }
 
 void
+nsPresContext::DestroyImageLoaders()
+{
+  
+  
+  
+  for (PRUint32 i = 0; i < IMAGE_LOAD_TYPE_COUNT; ++i) {
+    mImageLoaders[i].Enumerate(destroy_loads, nsnull);
+    mImageLoaders[i].Clear();
+  }
+}
+
+void
 nsPresContext::DoChangeCharSet(const nsCString& aCharSet)
 {
   UpdateCharSet(aCharSet);
@@ -1212,6 +1252,18 @@ static void SetImgAnimModeOnImgReq(imgIRequest* aImgReq, PRUint16 aMode)
   }
 }
 
+ 
+static PLDHashOperator
+set_animation_mode(nsIFrame* aKey, nsRefPtr<nsImageLoader>& aData, void* closure)
+{
+  for (nsImageLoader *loader = aData; loader;
+       loader = loader->GetNextLoader()) {
+    imgIRequest* imgReq = loader->GetRequest();
+    SetImgAnimModeOnImgReq(imgReq, (PRUint16)NS_PTR_TO_INT32(closure));
+  }
+  return PL_DHASH_NEXT;
+}
+
 
 
 
@@ -1267,12 +1319,14 @@ nsPresContext::SetImageAnimationModeInternal(PRUint16 aMode)
     return;
 
   
+  for (PRUint32 i = 0; i < IMAGE_LOAD_TYPE_COUNT; ++i)
+    mImageLoaders[i].Enumerate(set_animation_mode, NS_INT32_TO_PTR(aMode));
+
+  
   
   if (mShell != nsnull) {
     nsIDocument *doc = mShell->GetDocument();
     if (doc) {
-      doc->StyleImageLoader()->SetAnimationMode(aMode);
-
       Element *rootElement = doc->GetRootElement();
       if (rootElement) {
         SetImgAnimations(rootElement, aMode);
@@ -1356,6 +1410,68 @@ nsPresContext::SetFullZoom(float aZoom)
   mSupressResizeReflow = false;
 
   mCurAppUnitsPerDevPixel = AppUnitsPerDevPixel();
+}
+
+void
+nsPresContext::SetImageLoaders(nsIFrame* aTargetFrame,
+                               ImageLoadType aType,
+                               nsImageLoader* aImageLoaders)
+{
+  NS_ASSERTION(mShell || !aImageLoaders,
+               "Shouldn't add new image loader after the shell is gone");
+
+  nsRefPtr<nsImageLoader> oldLoaders;
+  mImageLoaders[aType].Get(aTargetFrame, getter_AddRefs(oldLoaders));
+
+  if (aImageLoaders) {
+    mImageLoaders[aType].Put(aTargetFrame, aImageLoaders);
+  } else if (oldLoaders) {
+    mImageLoaders[aType].Remove(aTargetFrame);
+  }
+
+  if (oldLoaders)
+    oldLoaders->Destroy();
+}
+
+void
+nsPresContext::SetupBackgroundImageLoaders(nsIFrame* aFrame,
+                                     const nsStyleBackground* aStyleBackground)
+{
+  nsRefPtr<nsImageLoader> loaders;
+  NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, aStyleBackground) {
+    if (aStyleBackground->mLayers[i].mImage.GetType() == eStyleImageType_Image) {
+      PRUint32 actions = nsImageLoader::ACTION_REDRAW_ON_DECODE;
+      imgIRequest *image = aStyleBackground->mLayers[i].mImage.GetImageData();
+      loaders = nsImageLoader::Create(aFrame, image, actions, loaders);
+    }
+  }
+  SetImageLoaders(aFrame, BACKGROUND_IMAGE, loaders);
+}
+
+void
+nsPresContext::SetupBorderImageLoaders(nsIFrame* aFrame,
+                                       const nsStyleBorder* aStyleBorder)
+{
+  
+  
+  
+  imgIRequest *borderImage = aStyleBorder->GetBorderImage();
+  if (!borderImage) {
+    SetImageLoaders(aFrame, BORDER_IMAGE, nsnull);
+    return;
+  }
+
+  PRUint32 actions = nsImageLoader::ACTION_REDRAW_ON_LOAD;
+  nsRefPtr<nsImageLoader> loader =
+    nsImageLoader::Create(aFrame, borderImage, actions, nsnull);
+  SetImageLoaders(aFrame, BORDER_IMAGE, loader);
+}
+
+void
+nsPresContext::StopImagesFor(nsIFrame* aTargetFrame)
+{
+  for (PRUint32 i = 0; i < IMAGE_LOAD_TYPE_COUNT; ++i)
+    SetImageLoaders(aTargetFrame, ImageLoadType(i), nsnull);
 }
 
 void
@@ -2064,8 +2180,6 @@ NotifyDidPaintSubdocumentCallback(nsIDocument* aDocument, void* aData)
 void
 nsPresContext::NotifyDidPaintForSubtree()
 {
-  Document()->StyleImageLoader()->NotifyPaint();
-
   if (!mFireAfterPaintEvents)
     return;
   mFireAfterPaintEvents = false;
