@@ -36,8 +36,8 @@
 
 
 
-#ifndef MODULE_H
-#define MODULE_H
+#ifndef COMPONENTS_CTYPES_H
+#define COMPONENTS_CTYPES_H
 
 #include "nsIXPCScriptable.h"
 
