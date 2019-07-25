@@ -2494,6 +2494,16 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
           
           
           
+          if (specifiedCharset.Length() >= 2 &&
+              specifiedCharset.First() == '\'' &&
+              specifiedCharset.Last() == '\'') {
+            specifiedCharset = Substring(specifiedCharset, 1,
+                                         specifiedCharset.Length() - 2);
+          }
+
+          
+          
+          
           
           
           
