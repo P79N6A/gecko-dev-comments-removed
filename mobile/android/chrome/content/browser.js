@@ -2007,6 +2007,12 @@ Tab.prototype = {
     
     
 
+    if (window.outerWidth == 0 || window.outerHeight == 0) {
+        
+        
+        return;
+    }
+
     gScreenWidth = window.outerWidth;
     gScreenHeight = window.outerHeight;
 
