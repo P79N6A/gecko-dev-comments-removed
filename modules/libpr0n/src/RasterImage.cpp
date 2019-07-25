@@ -918,21 +918,21 @@ RasterImage::EnsureCleanFrame(PRUint32 aFrameNum, PRInt32 aX, PRInt32 aY,
 
   
   nsIntRect rect = frame->GetRect();
-  if (rect.x != aX || rect.y != aY || rect.width != aWidth || rect.height != aHeight ||
-      frame->GetFormat() != aFormat) {
-    DeleteImgFrame(aFrameNum);
-    return InternalAddFrame(aFrameNum, aX, aY, aWidth, aHeight, aFormat, 
-                             0, imageData, imageLength,
-                             nsnull, 
-                             nsnull);
+  if (rect.x == aX && rect.y == aY && rect.width == aWidth &&
+      rect.height == aHeight && frame->GetFormat() == aFormat) {
+    
+    frame->GetImageData(imageData, imageLength);
+    if (*imageData) {
+      return NS_OK;
+    }
   }
 
-  
-  frame->GetImageData(imageData, imageLength);
-
-  return NS_OK;
+  DeleteImgFrame(aFrameNum);
+  return InternalAddFrame(aFrameNum, aX, aY, aWidth, aHeight, aFormat, 
+                           0, imageData, imageLength,
+                           nsnull, 
+                           nsnull);
 }
-
 
 void
 RasterImage::FrameUpdated(PRUint32 aFrameNum, nsIntRect &aUpdatedRect)
