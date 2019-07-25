@@ -217,8 +217,7 @@ private:
     enum PluginQuirks {
         
         
-        
-        QUIRK_SILVERLIGHT_WINLESS_INPUT_TRANSLATION     = 1 << 0,
+        QUIRK_SILVERLIGHT_DEFAULT_TRANSPARENT           = 1 << 0,
         
         
         
