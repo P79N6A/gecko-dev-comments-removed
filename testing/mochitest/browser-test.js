@@ -140,11 +140,16 @@ Tester.prototype = {
   },
 
   observe: function Tester_observe(aConsoleMessage) {
-    var msg = "Console message: " + aConsoleMessage.message;
-    if (this.currentTest)
-      this.currentTest.addResult(new testMessage(msg));
-    else
-      this.dumper.dump("TEST-INFO | (browser-test.js) | " + msg);
+    try {
+      var msg = "Console message: " + aConsoleMessage.message;
+      if (this.currentTest)
+        this.currentTest.addResult(new testMessage(msg));
+      else
+        this.dumper.dump("TEST-INFO | (browser-test.js) | " + msg);
+    } catch (ex) {
+      
+      
+    }
   },
 
   nextTest: function Tester_nextTest() {
