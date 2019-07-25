@@ -36,6 +36,7 @@ struct nsMediaFeature {
         eIntRatio,   
         eResolution, 
                      
+                     
         eEnumerated, 
         eIdent       
         
