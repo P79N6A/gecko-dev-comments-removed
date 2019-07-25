@@ -614,6 +614,7 @@ VerifyContextParent(nsPresContext* aPresContext, nsIFrame* aFrame,
         fputs("\n", stdout);
       }
     }
+
   }
   else {
     if (actualParentContext) {
@@ -623,6 +624,23 @@ VerifyContextParent(nsPresContext* aPresContext, nsIFrame* aFrame,
       DumpContext(nsnull, actualParentContext);
       fputs("Should be null\n\n", stdout);
     }
+  }
+
+  nsStyleContext* childStyleIfVisited = aContext->GetStyleIfVisited();
+  
+  
+  
+  
+  
+  if (childStyleIfVisited &&
+      !((childStyleIfVisited->GetRuleNode() != aContext->GetRuleNode() &&
+         childStyleIfVisited->GetParent() == aContext->GetParent()) ||
+        (childStyleIfVisited->GetRuleNode() == aContext->GetRuleNode() &&
+         childStyleIfVisited->GetParent() ==
+         aContext->GetParent()->GetStyleIfVisited()))) {
+    NS_ERROR("Visited style has wrong parent");
+    DumpContext(aFrame, aContext);
+    fputs("\n", stdout);
   }
 }
 
