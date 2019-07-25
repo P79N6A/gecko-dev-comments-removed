@@ -74,6 +74,9 @@ public:
 protected:
   typedef mozilla::gl::GLContext GLContext;
 
+  
+  bool mIsInteropTexture;
+
   nsRefPtr<gfxASurface> mSurface;
   nsRefPtr<GLContext> mGLContext;
 
