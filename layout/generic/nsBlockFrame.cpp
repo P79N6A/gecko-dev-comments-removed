@@ -4201,9 +4201,6 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
     return PR_TRUE;
   }
 
-  
-  PRBool wasAdjacentWIthTop = aState.IsAdjacentWithTop();
-
   aState.mY = newY;
   
   
@@ -4213,8 +4210,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   if (aState.mBelowCurrentLineFloats.NotEmpty()) {
     
     
-    if (aState.PlaceBelowCurrentLineFloats(aState.mBelowCurrentLineFloats,
-                                           wasAdjacentWIthTop)) {
+    if (aState.PlaceBelowCurrentLineFloats(aState.mBelowCurrentLineFloats)) {
       aLine->AppendFloats(aState.mBelowCurrentLineFloats);
     }
     else { 
@@ -6599,7 +6595,7 @@ nsBlockFrame::ReflowBullet(nsBlockReflowState& aState,
   
   
   nsRect floatAvailSpace =
-    aState.GetFloatAvailableSpaceWithState(aLineTop, PR_FALSE,
+    aState.GetFloatAvailableSpaceWithState(aLineTop,
                                            &aState.mFloatManagerStateBefore)
           .mRect;
   
