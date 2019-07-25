@@ -4454,7 +4454,7 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, JSValueType knownType,
 
 
 
-    pic.canCallHook = usePropCache && analysis->getCode(PC).accessGetter;
+    pic.canCallHook = usePropCache && JSOp(*PC) == JSOP_GETPROP && analysis->getCode(PC).accessGetter;
     if (pic.canCallHook)
         frame.syncAndKillEverything();
 
