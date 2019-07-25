@@ -152,7 +152,7 @@ nsDOMCSSAttributeDeclaration::GetCSSDeclaration(PRBool aAllocate)
   
   css::Declaration *decl = new css::Declaration();
   decl->InitializeEmpty();
-  nsRefPtr<css::StyleRule> newRule = NS_NewCSSStyleRule(nsnull, decl);
+  nsRefPtr<css::StyleRule> newRule = new css::StyleRule(nsnull, decl);
 
   
   nsresult rv;

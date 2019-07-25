@@ -1214,7 +1214,7 @@ MappedAttrParser::CreateStyleRule()
     return nsnull; 
   }
 
-  nsRefPtr<css::StyleRule> rule = NS_NewCSSStyleRule(nsnull, mDecl);
+  nsRefPtr<css::StyleRule> rule = new css::StyleRule(nsnull, mDecl);
   mDecl = nsnull; 
   return rule.forget();
 }
