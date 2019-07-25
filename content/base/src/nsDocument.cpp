@@ -8578,12 +8578,10 @@ nsDocument::GetMozFullScreenEnabled(bool *aFullScreen)
   NS_ENSURE_ARG_POINTER(aFullScreen);
   *aFullScreen = false;
 
-  if (!nsContentUtils::IsFullScreenApiEnabled()) {
+  if (!nsContentUtils::IsFullScreenApiEnabled() ||
+      nsContentUtils::HasPluginWithUncontrolledEventDispatch(this)) {
     return NS_OK;
   }
-
-  
-  
 
   
   

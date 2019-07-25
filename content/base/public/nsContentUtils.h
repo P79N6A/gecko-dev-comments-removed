@@ -1721,6 +1721,22 @@ public:
 
 
 
+
+  static bool HasPluginWithUncontrolledEventDispatch(nsIDocument* aDoc);
+
+  
+
+
+
+
+
+  static bool HasPluginWithUncontrolledEventDispatch(nsIContent* aContent);
+
+  
+
+
+
+
   static TimeDuration HandlingUserInputTimeout();
 
   static void GetShiftText(nsAString& text);
