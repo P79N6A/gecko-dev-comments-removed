@@ -344,7 +344,7 @@ public:
 
 
   virtual nsresult CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
-                                     nsIScriptGlobalObject *aCurrentInner) = 0;
+                                     nsIPrincipal *aPrincipal) = 0;
 
   
 

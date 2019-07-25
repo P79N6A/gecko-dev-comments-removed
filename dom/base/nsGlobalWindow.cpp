@@ -1609,6 +1609,9 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   if (IsFrozen()) {
     
     
+    mContext->CreateOuterObject(this, aDocument->NodePrincipal());
+    mContext->DidInitializeContext();
+    mJSObject = (JSObject *)mContext->GetNativeGlobal();
 
     Thaw();
   }
@@ -1815,6 +1818,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
                                                 getter_AddRefs(holder));
       NS_ASSERTION(NS_SUCCEEDED(rv) && newGlobal && holder,
                    "Failed to get script global and holder");
+      newInnerWindow->mJSObject = (JSObject *)newGlobal;
 
       mCreatingInnerWindow = PR_FALSE;
       Thaw();
@@ -1868,20 +1872,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     }
 
     mInnerWindow = newInnerWindow;
-
-    if (!mJSObject) {
-      mContext->CreateOuterObject(this, newInnerWindow);
-      mContext->DidInitializeContext();
-      mJSObject = (JSObject *)mContext->GetNativeGlobal();
-    } else {
-      
-      nsIXPConnect *xpc = nsContentUtils::XPConnect();
-      nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-      xpc->ReparentWrappedNativeIfFound(cx, currentInner->mJSObject,
-                                        newInnerWindow->mJSObject,
-                                        ToSupports(this),
-                                        getter_AddRefs(holder));
-    }
   }
 
   if (!aState && !reUseInnerWindow) {
@@ -1938,6 +1928,37 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   
   
   nsIXPConnect *xpc = nsContentUtils::XPConnect();
+
+  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
+  if (aState) {
+    
+
+    nsCOMPtr<WindowStateHolder> wsh = do_QueryInterface(aState);
+    NS_ASSERTION(wsh, "What kind of weird state are you giving me here?");
+
+    
+    
+    nsCOMPtr<nsIClassInfo> ci =
+      do_QueryInterface((nsIScriptGlobalObject *)this);
+
+    rv = xpc->RestoreWrappedNativePrototype(cx, mJSObject, ci,
+                                            wsh->GetOuterProto());
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    
+    
+    
+
+    rv = xpc->GetWrappedNativeOfJSObject(cx, mJSObject,
+                                         getter_AddRefs(wrapper));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = wrapper->RefreshPrototype();
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   if (aDocument) {
     aDocument->SetScriptGlobalObject(newInnerWindow);
@@ -2004,10 +2025,11 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   mContext->GC();
   mContext->DidInitializeContext();
 
-  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-  rv = xpc->GetWrappedNativeOfJSObject(cx, mJSObject,
-                                       getter_AddRefs(wrapper));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (!wrapper) {
+    rv = xpc->GetWrappedNativeOfJSObject(cx, mJSObject,
+                                         getter_AddRefs(wrapper));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   rv = xpc->UpdateXOWs((JSContext *)GetContextInternal()->GetNativeContext(),
                        wrapper, nsIXPConnect::XPC_XOW_NAVIGATED);
