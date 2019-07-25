@@ -1456,7 +1456,7 @@ EmitTraceOp(JSContext *cx, JSCodeGenerator *cg, JSParseNode *nextpn)
 
 
 
-        if (nextpn->pn_type == TOK_LC && nextpn->pn_arity == PN_LIST)
+        if (nextpn->pn_type == TOK_LC && nextpn->pn_arity == PN_LIST && nextpn->pn_head)
             nextpn = nextpn->pn_head;
         if (!UpdateLineNumberNotes(cx, cg, nextpn->pn_pos.begin.lineno))
             return -1;
