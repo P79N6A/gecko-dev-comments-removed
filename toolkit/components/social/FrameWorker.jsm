@@ -136,6 +136,7 @@ FrameWorker.prototype = {
     let worker = this;
 
     workerWindow.addEventListener("load", function loadListener() {
+      workerWindow.removeEventListener("load", loadListener);
       
       
       function getProtoSource(ob) {
