@@ -27,12 +27,7 @@ function tabLoad1(aEvent) {
   browser.addEventListener("load", tabLoad2, true);
 
   
-  
-  
-  
-  executeSoon(function() {
-    browser.contentWindow.location.reload();
-  });
+  browser.contentWindow.location.reload();
   log(document);
 }
 

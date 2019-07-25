@@ -41,7 +41,6 @@
 #include "nsHtml5StreamParser.h"
 #include "nsICharsetConverterManager.h"
 #include "nsICharsetAlias.h"
-#include "nsICacheInfoChannel.h"
 #include "nsServiceManagerUtils.h"
 #include "nsEncoderDecoderUtils.h"
 #include "nsContentUtils.h"
@@ -221,7 +220,6 @@ nsHtml5StreamParser::~nsHtml5StreamParser()
   mTokenizer->end();
   NS_ASSERTION(!mFlushTimer, "Flush timer was not dropped before dtor!");
 #ifdef DEBUG
-  mCacheEntryClosePreventer = nsnull;
   mRequest = nsnull;
   mObserver = nsnull;
   mUnicodeDecoder = nsnull;
@@ -559,17 +557,6 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
     mObserver->OnStartRequest(aRequest, aContext);
   }
   mRequest = aRequest;
-
-  
-  
-  
-  
-  nsCOMPtr<nsICacheInfoChannel_GECKO_2_0> cacheInfoChannel =
-      do_QueryInterface(aRequest);
-  if (cacheInfoChannel) {
-    cacheInfoChannel->
-      GetCacheEntryClosePreventer(getter_AddRefs(mCacheEntryClosePreventer));
-  }
 
   mStreamState = STREAM_BEING_READ;
 
