@@ -2532,6 +2532,10 @@ nsHTMLEditRules::InsertBRIfNeeded(nsISelection *aSelection)
   NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
 
   
+  if (!IsBlockNode(node))
+    return res;
+
+  
   nsWSRunObject wsObj(mHTMLEditor, node, offset);
   if (((wsObj.mStartReason & nsWSRunObject::eBlock) || (wsObj.mStartReason & nsWSRunObject::eBreak))
       && (wsObj.mEndReason & nsWSRunObject::eBlock))
@@ -5115,7 +5119,8 @@ nsHTMLEditRules::ExpandSelectionForDeletion(nsISelection *aSelection)
   nsCOMPtr<nsIDOMNode> visNode, firstBRParent;
   PRInt32 visOffset=0, firstBROffset=0;
   PRInt16 wsType;
-  nsIDOMElement *rootElement = mHTMLEditor->GetRoot();
+  nsCOMPtr<nsIContent> rootContent = mHTMLEditor->GetActiveEditingHost();
+  nsCOMPtr<nsIDOMNode> rootElement = do_QueryInterface(rootContent);
   NS_ENSURE_TRUE(rootElement, NS_ERROR_FAILURE);
 
   
