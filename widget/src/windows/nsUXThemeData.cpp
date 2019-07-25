@@ -297,6 +297,8 @@ nsUXThemeData::UpdateTitlebarInfo(HWND aWnd)
 
   
   
+  nsAutoString className;
+  className.AssignLiteral(kClassNameTemp);
   WNDCLASSW wc;
   wc.style         = 0;
   wc.lpfnWndProc   = ::DefWindowProcW;
@@ -307,7 +309,7 @@ nsUXThemeData::UpdateTitlebarInfo(HWND aWnd)
   wc.hCursor       = NULL;
   wc.hbrBackground = NULL;
   wc.lpszMenuName  = NULL;
-  wc.lpszClassName = kClassNameTemp;
+  wc.lpszClassName = className.get();
   ::RegisterClassW(&wc);
 
   
@@ -315,7 +317,7 @@ nsUXThemeData::UpdateTitlebarInfo(HWND aWnd)
   
   
   HWND hWnd = CreateWindowExW(WS_EX_NOACTIVATE|WS_EX_LAYERED,
-                              kClassNameTemp, L"",
+                              className.get(), L"",
                               WS_OVERLAPPEDWINDOW,
                               0, 0, 0, 0, aWnd, NULL,
                               nsToolkit::mDllInstance, NULL);

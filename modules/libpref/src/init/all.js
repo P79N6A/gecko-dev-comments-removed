@@ -1796,8 +1796,13 @@ pref("mousewheel.emulate_at_wm_scroll", false);
 
 
 
-
 pref("ui.trackpoint_hack.enabled", -1);
+
+
+
+
+pref("ui.window_class_override", "");
+
 # WINNT
 #endif
 
