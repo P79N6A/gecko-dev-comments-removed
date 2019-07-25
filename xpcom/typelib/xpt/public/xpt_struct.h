@@ -336,8 +336,11 @@ struct XPTTypeDescriptorPrefix {
 };
 
 
+
+
 #define XPT_TDP_POINTER          0x80
 #define XPT_TDP_REFERENCE        0x20
+
 #define XPT_TDP_FLAGMASK         0xe0
 #define XPT_TDP_TAGMASK          (~XPT_TDP_FLAGMASK)
 #define XPT_TDP_TAG(tdp)         ((tdp).flags & XPT_TDP_TAGMASK)
