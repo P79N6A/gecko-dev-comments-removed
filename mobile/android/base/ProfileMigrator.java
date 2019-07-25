@@ -327,6 +327,14 @@ public class ProfileMigrator {
     }
 
     
+    public void resetMigration() {
+        SharedPreferences.Editor editor = getPreferences().edit();
+        editor.putBoolean(PREFS_MIGRATE_BOOKMARKS_DONE, false);
+        editor.putBoolean(PREFS_MIGRATE_HISTORY_DONE, false);
+        editor.commit();
+    }
+
+    
     protected boolean hasMigrationRun() {
         return areBookmarksMigrated()
             && ((getMigratedHistoryEntries() > 0) || isHistoryMigrated());
