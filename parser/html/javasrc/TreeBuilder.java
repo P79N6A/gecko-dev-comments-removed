@@ -62,6 +62,11 @@ public abstract class TreeBuilder<T> implements TokenHandler,
     
     
 
+
+    private static final @NoLength char[] REPLACEMENT_CHARACTER = { '\uFFFD' };
+    
+    
+
     final static int OTHER = 0;
 
     final static int A = 1;
@@ -839,7 +844,10 @@ public abstract class TreeBuilder<T> implements TokenHandler,
             needToDropLF = false;
         }
 
-        
+        if (inForeign) {
+            accumulateCharacters(buf, start, length);
+            return;
+        }
         
         switch (mode) {
             case IN_BODY:
@@ -1203,6 +1211,16 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                 if (start < end) {
                     accumulateCharacters(buf, start, end - start);
                 }
+        }
+    }
+
+    
+
+
+    @Override public void zeroOriginatingReplacementCharacter()
+            throws SAXException {
+        if (inForeign || mode == TEXT) {
+            characters(REPLACEMENT_CHARACTER, 0, 1);
         }
     }
 
