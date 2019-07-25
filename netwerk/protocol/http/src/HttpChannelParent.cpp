@@ -43,6 +43,8 @@
 #include "nsHttpHandler.h"
 #include "nsNetUtil.h"
 #include "nsISupportsPriority.h"
+#include "nsIAuthPromptProvider.h"
+#include "nsIDocShellTreeItem.h"
 
 namespace mozilla {
 namespace net {
@@ -124,9 +126,7 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
                                requestHeaders[i].mValue,
                                requestHeaders[i].mMerge);
 
-  
-  
-  
+  httpChan->SetNotificationCallbacks(this);
 
   httpChan->SetRequestMethod(nsDependentCString(requestMethod.get()));
   if (priority != nsISupportsPriority::PRIORITY_NORMAL)
@@ -226,8 +226,43 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
 
 
 NS_IMETHODIMP 
-HttpChannelParent::GetInterface(const nsIID& uuid, void **result)
+HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
 {
+  if (
+
+      
+      
+      
+      
+      
+      
+      aIID.Equals(NS_GET_IID(nsIAuthPromptProvider)) || 
+      aIID.Equals(NS_GET_IID(nsIAuthPrompt2)) ||
+      aIID.Equals(NS_GET_IID(nsIAuthPrompt))  ||
+      
+      
+      
+      
+      
+      aIID.Equals(NS_GET_IID(nsIChannelEventSink)) || 
+      aIID.Equals(NS_GET_IID(nsIHttpEventSink))  ||
+      
+      aIID.Equals(NS_GET_IID(nsIApplicationCacheContainer)) ||
+      
+      aIID.Equals(NS_GET_IID(nsIProgressEventSink)) ||
+      
+      aIID.Equals(NS_GET_IID(nsIDocShellTreeItem))) 
+  {
+    return QueryInterface(aIID, result);
+  } 
+
+  
+  
+  
+  
+  printf("*&*&*& HttpChannelParent::GetInterface: uuid=%s not impl'd yet! "
+         "File a bug!\n", 
+         aIID.ToString());
   DROP_DEAD();
 }
 
