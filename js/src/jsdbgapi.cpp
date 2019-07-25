@@ -156,44 +156,24 @@ ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool okArg)
 
 } 
 
-#ifdef DEBUG
-static bool
-CompartmentHasLiveScripts(JSCompartment *comp)
-{
-#if defined(JS_METHODJIT) && defined(JS_THREADSAFE)
-    jsword currentThreadId = reinterpret_cast<jsword>(js_CurrentThreadId());
-#endif
-
-    
-    
-    JSContext *iter = NULL;
-    JSContext *icx;
-    while ((icx = JS_ContextIterator(comp->rt, &iter))) {
-#if defined(JS_METHODJIT) && defined(JS_THREADSAFE)
-        if (JS_GetContextThread(icx) != currentThreadId)
-            continue;
-#endif
-        for (AllFramesIter i(icx); !i.done(); ++i) {
-            JSScript *script = i.fp()->maybeScript();
-            if (script && script->compartment == comp)
-                return JS_TRUE;
-        }
-    }
-
-    return JS_FALSE;
-}
-#endif
-
 JS_FRIEND_API(JSBool)
 JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug)
 {
     if (comp->debugMode == !!debug)
         return JS_TRUE;
 
-    
-    
-    
-    JS_ASSERT(!CompartmentHasLiveScripts(comp));
+    if (debug) {
+        
+        
+        
+        for (AllFramesIter i(cx); !i.done(); ++i) {
+            JSScript *script = i.fp()->maybeScript();
+            if (script && script->compartment == comp) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE);
+                return false;
+            }
+        }
+    }
 
     
     comp->debugMode = !!debug;
