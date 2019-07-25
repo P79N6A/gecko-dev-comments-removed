@@ -579,7 +579,6 @@ public:
   virtual bool IsTextInDirtyFrameVisible(nsIContent *aNode);
 
   
-  bool IsMozEditorBogusNode(nsIDOMNode *aNode);
   bool IsMozEditorBogusNode(nsIContent *aNode);
 
   
