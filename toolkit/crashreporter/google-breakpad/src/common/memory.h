@@ -27,15 +27,22 @@
 
 
 
-#ifndef CLIENT_LINUX_HANDLER_MEMORY_H_
-#define CLIENT_LINUX_HANDLER_MEMORY_H_
+#ifndef GOOGLE_BREAKPAD_COMMON_MEMORY_H_
+#define GOOGLE_BREAKPAD_COMMON_MEMORY_H_
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/mman.h>
 
+#ifdef __APPLE__
+#define sys_mmap mmap
+#define sys_mmap2 mmap
+#define sys_munmap munmap
+#define MAP_ANONYMOUS MAP_ANON
+#else
 #include "common/linux/linux_syscall_support.h"
+#endif
 
 namespace google_breakpad {
 

@@ -37,8 +37,9 @@
 #include <string>
 
 #include "client/minidump_file_writer.h"
-#include "google_breakpad/common/minidump_format.h"
+#include "common/memory.h"
 #include "common/mac/macho_utilities.h"
+#include "google_breakpad/common/minidump_format.h"
 
 #include "dynamic_images.h"
 
@@ -119,6 +120,7 @@ class MinidumpGenerator {
 
   
   bool WriteThreadListStream(MDRawDirectory *thread_list_stream);
+  bool WriteMemoryListStream(MDRawDirectory *memory_list_stream);
   bool WriteExceptionStream(MDRawDirectory *exception_stream);
   bool WriteSystemInfoStream(MDRawDirectory *system_info_stream);
   bool WriteModuleListStream(MDRawDirectory *module_list_stream);
@@ -165,6 +167,15 @@ class MinidumpGenerator {
   
   
   DynamicImages *dynamic_images_;
+
+  
+  
+  mutable PageAllocator allocator_;
+
+  
+  
+  
+  wasteful_vector<MDMemoryDescriptor> memory_blocks_;
 };
 
 }  

@@ -27,6 +27,7 @@
 
 
 
+#include <algorithm>
 #include <cstdio>
 
 #include <mach/host_info.h>
@@ -64,7 +65,8 @@ MinidumpGenerator::MinidumpGenerator()
       exception_thread_(0),
       crashing_task_(mach_task_self()),
       handler_thread_(mach_thread_self()),
-      dynamic_images_(NULL) {
+      dynamic_images_(NULL),
+      memory_blocks_(&allocator_) {
   GatherSystemInformation();
 }
 
@@ -79,7 +81,8 @@ MinidumpGenerator::MinidumpGenerator(mach_port_t crashing_task,
       exception_thread_(0),
       crashing_task_(crashing_task),
       handler_thread_(handler_thread),
-      dynamic_images_(NULL) {
+      dynamic_images_(NULL),
+      memory_blocks_(&allocator_) {
   if (crashing_task != mach_task_self()) {
     dynamic_images_ = new DynamicImages(crashing_task_);
   } else {
@@ -173,6 +176,7 @@ string MinidumpGenerator::UniqueNameInDirectory(const string &dir,
 bool MinidumpGenerator::Write(const char *path) {
   WriteStreamFN writers[] = {
     &MinidumpGenerator::WriteThreadListStream,
+    &MinidumpGenerator::WriteMemoryListStream,
     &MinidumpGenerator::WriteSystemInfoStream,
     &MinidumpGenerator::WriteModuleListStream,
     &MinidumpGenerator::WriteMiscInfoStream,
@@ -514,6 +518,8 @@ bool MinidumpGenerator::WriteThreadStream(mach_port_t thread_id,
     if (!WriteStack(state, &thread->stack))
       return false;
 
+    memory_blocks_.push_back(thread->stack);
+
     if (!WriteContext(state, &thread->thread_context))
       return false;
 
@@ -561,6 +567,118 @@ bool MinidumpGenerator::WriteThreadListStream(
 
       list.CopyIndexAfterObject(thread_idx++, &thread, sizeof(MDRawThread));
     }
+  }
+
+  return true;
+}
+
+bool MinidumpGenerator::WriteMemoryListStream(
+    MDRawDirectory *memory_list_stream) {
+  TypedMDRVA<MDRawMemoryList> list(&writer_);
+
+  
+  
+  const size_t kIPMemorySize = 256;  
+  bool have_ip_memory = false;
+  MDMemoryDescriptor ip_memory_d;
+  if (exception_thread_ && exception_type_) {
+    breakpad_thread_state_data_t state;
+    mach_msg_type_number_t stateCount
+      = static_cast<mach_msg_type_number_t>(sizeof(state));
+
+    if (thread_get_state(exception_thread_,
+                         BREAKPAD_MACHINE_THREAD_STATE,
+                         state,
+                         &stateCount) == KERN_SUCCESS) {
+      u_int64_t ip = CurrentPCForStack(state);
+      
+      
+      
+      mach_vm_address_t addr = ip;
+      mach_vm_size_t size;
+      natural_t nesting_level = 0;
+      vm_region_submap_info_64 info;
+      mach_msg_type_number_t info_count = VM_REGION_SUBMAP_INFO_COUNT_64;
+
+      kern_return_t ret =
+        mach_vm_region_recurse(crashing_task_,
+                               &addr,
+                               &size,
+                               &nesting_level,
+                               (vm_region_recurse_info_t)&info,
+                               &info_count);
+      if (ret == KERN_SUCCESS && ip >= addr && ip < (addr + size)) {
+        
+        
+        ip_memory_d.start_of_memory_range =
+          std::max(uintptr_t(addr),
+                   uintptr_t(ip - (kIPMemorySize / 2)));
+        uintptr_t end_of_range = 
+          std::min(uintptr_t(ip + (kIPMemorySize / 2)),
+                   uintptr_t(addr + size));
+        ip_memory_d.memory.data_size =
+          end_of_range - ip_memory_d.start_of_memory_range;
+        have_ip_memory = true;
+        
+        
+        
+        
+        memory_blocks_.push_back(ip_memory_d);
+      }
+    }
+  }
+
+  
+  unsigned memory_count = memory_blocks_.size();
+  if (!list.AllocateObjectAndArray(memory_count,
+                                   sizeof(MDMemoryDescriptor)))
+    return false;
+
+  memory_list_stream->stream_type = MD_MEMORY_LIST_STREAM;
+  memory_list_stream->location = list.location();
+
+  list.get()->number_of_memory_ranges = memory_count;
+
+  unsigned int i;
+  for (i = 0; i < memory_count; ++i) {
+    list.CopyIndexAfterObject(i++, &memory_blocks_[i],
+                              sizeof(MDMemoryDescriptor));
+  }
+
+  if (have_ip_memory) {
+    
+    UntypedMDRVA ip_memory(&writer_);
+    if (!ip_memory.Allocate(ip_memory_d.memory.data_size))
+      return false;
+
+    if (dynamic_images_) {
+      
+      kern_return_t kr;
+
+      void *memory =
+        ReadTaskMemory(
+          crashing_task_,
+          reinterpret_cast<const void *>(ip_memory_d.start_of_memory_range),
+          ip_memory_d.memory.data_size,
+          &kr);
+
+      if (memory == NULL) {
+        return false;
+      }
+
+      ip_memory.Copy(memory, ip_memory_d.memory.data_size);
+      free(memory);
+    } else {
+      
+      ip_memory.Copy(
+        reinterpret_cast<const void *>(ip_memory_d.start_of_memory_range),
+        ip_memory_d.memory.data_size);
+    }
+
+    ip_memory_d.memory = ip_memory.location();
+    
+    list.CopyIndexAfterObject(i - 1, &ip_memory_d,
+                              sizeof(MDMemoryDescriptor));
   }
 
   return true;
