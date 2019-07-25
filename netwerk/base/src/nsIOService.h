@@ -60,6 +60,11 @@
 
 #define NS_N(x) (sizeof(x)/sizeof(*x))
 
+
+
+
+#define NS_E10S_IOSERVICE_SET_OFFLINE_TOPIC "e10s:network:set-offline"
+
 static const char gScheme[][sizeof("resource")] =
     {"chrome", "file", "http", "jar", "resource"};
 

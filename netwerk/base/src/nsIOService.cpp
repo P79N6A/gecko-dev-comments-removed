@@ -74,8 +74,7 @@
 #include "nsTArray.h"
 #include "nsIConsoleService.h"
 #include "nsIUploadChannel2.h"
-
-#include "mozilla/FunctionTimer.h"
+#include "nsXULAppAPI.h"
 
 #if defined(XP_WIN) || defined(MOZ_ENABLE_LIBCONIC)
 #include "nsNativeConnectionHelper.h"
@@ -187,8 +186,6 @@ nsIOService::nsIOService()
 nsresult
 nsIOService::Init()
 {
-    NS_TIME_FUNCTION;
-
     nsresult rv;
     
     
@@ -203,15 +200,11 @@ nsIOService::Init()
         return rv;
     }
 
-    NS_TIME_FUNCTION_MARK("got SocketTransportService");
-
     mDNSService = do_GetService(NS_DNSSERVICE_CONTRACTID, &rv);
     if (NS_FAILED(rv)) {
         NS_WARNING("failed to get DNS service");
         return rv;
     }
-
-    NS_TIME_FUNCTION_MARK("got DNS Service");
 
     
     nsCOMPtr<nsIErrorService> errorService = do_GetService(NS_ERRORSERVICE_CONTRACTID);
@@ -221,8 +214,6 @@ nsIOService::Init()
     else
         NS_WARNING("failed to get error service");
     
-    NS_TIME_FUNCTION_MARK("got Error Service");
-
     
     for(int i=0; gBadPortList[i]; i++)
         mRestrictedPortList.AppendElement(gBadPortList[i]);
@@ -239,7 +230,7 @@ nsIOService::Init()
     
     
     nsCOMPtr<nsIObserverService> observerService =
-        mozilla::services::GetObserverService();
+        do_GetService("@mozilla.org/observer-service;1");
     if (observerService) {
         observerService->AddObserver(this, kProfileChangeNetTeardownTopic, PR_TRUE);
         observerService->AddObserver(this, kProfileChangeNetRestoreTopic, PR_TRUE);
@@ -249,8 +240,6 @@ nsIOService::Init()
     else
         NS_WARNING("failed to get observer service");
         
-    NS_TIME_FUNCTION_MARK("Registered observers");
-
     
     if (!gBufferCache) {
         nsresult rv = NS_OK;
@@ -267,8 +256,6 @@ nsIOService::Init()
         CallQueryInterface(recyclingAllocator, &gBufferCache);
     }
 
-    NS_TIME_FUNCTION_MARK("Set up the recycling allocator");
-
     gIOService = this;
     
     
@@ -278,8 +265,6 @@ nsIOService::Init()
 
     if (mManageOfflineStatus)
         TrackNetworkLinkStatusForOffline();
-    
-    NS_TIME_FUNCTION_MARK("Set up network link service");
 
     return NS_OK;
 }
@@ -678,10 +663,24 @@ nsIOService::SetOffline(PRBool offline)
     if (mSettingOffline) {
         return NS_OK;
     }
+
     mSettingOffline = PR_TRUE;
 
     nsCOMPtr<nsIObserverService> observerService =
-        mozilla::services::GetObserverService();
+        do_GetService("@mozilla.org/observer-service;1");
+
+    NS_ASSERTION(observerService, "The observer service should not be null");
+
+#ifdef MOZ_IPC
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+        if (observerService) {
+            (void)observerService->NotifyObservers(nsnull,
+                NS_E10S_IOSERVICE_SET_OFFLINE_TOPIC, offline ? 
+                NS_LITERAL_STRING("true").get() :
+                NS_LITERAL_STRING("false").get());
+        }
+    }
+#endif
 
     while (mSetOfflineValue != mOffline) {
         offline = mSetOfflineValue;

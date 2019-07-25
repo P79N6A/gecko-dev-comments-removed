@@ -41,20 +41,19 @@
 
 #include "mozilla/ipc/TestShellChild.h"
 #include "mozilla/net/NeckoChild.h"
-#include "History.h"
+#include "mozilla/ipc/XPCShellEnvironment.h"
+#include "mozilla/jsipc/PContextWrapperChild.h"
 
 #include "nsXULAppAPI.h"
 
-#include "nsDocShellCID.h"
-#include "nsNetUtil.h"
 #include "base/message_loop.h"
 #include "base/task.h"
 
-#include "nsChromeRegistry.h"
+#include "nsChromeRegistryContent.h"
+#include "mozilla/chrome/RegistryMessageUtils.h"
 
 using namespace mozilla::ipc;
 using namespace mozilla::net;
-using namespace mozilla::places;
 
 namespace mozilla {
 namespace dom {
@@ -121,6 +120,13 @@ ContentProcessChild::DeallocPTestShell(PTestShellChild* shell)
     return true;
 }
 
+bool
+ContentProcessChild::RecvPTestShellConstructor(PTestShellChild* actor)
+{
+    actor->SendPContextWrapperConstructor()->SendPObjectWrapperConstructor(true);
+    return true;
+}
+
 PNeckoChild* 
 ContentProcessChild::AllocPNecko()
 {
@@ -135,12 +141,26 @@ ContentProcessChild::DeallocPNecko(PNeckoChild* necko)
 }
 
 bool
-ContentProcessChild::RecvregisterChrome(const nsTArray<ChromePackage>& packages,
-                                        const nsTArray<ChromeResource>& resources)
+ContentProcessChild::RecvRegisterChrome(const nsTArray<ChromePackage>& packages,
+                                        const nsTArray<ResourceMapping>& resources,
+                                        const nsTArray<OverrideMapping>& overrides)
 {
-    nsChromeRegistry* chromeRegistry = nsChromeRegistry::GetService();
-    chromeRegistry->RegisterRemoteChrome(packages, resources);
+    nsCOMPtr<nsIChromeRegistry> registrySvc = nsChromeRegistry::GetService();
+    nsChromeRegistryContent* chromeRegistry =
+        static_cast<nsChromeRegistryContent*>(registrySvc.get());
+    chromeRegistry->RegisterRemoteChrome(packages, resources, overrides);
     return true;
+}
+
+bool
+ContentProcessChild::RecvSetOffline(const PRBool& offline)
+{
+  nsCOMPtr<nsIIOService> io (do_GetIOService());
+  NS_ASSERTION(io, "IO Service can not be null");
+
+  io->SetOffline(offline);
+    
+  return true;
 }
 
 void
@@ -161,25 +181,6 @@ ContentProcessChild::ActorDestroy(ActorDestroyReason why)
     Quit();
 
     XRE_ShutdownChildProcess();
-}
-
-bool
-ContentProcessChild::RecvNotifyVisited(const nsCString& aURISpec, 
-                                       const bool& mIsVisited)
-{
-    nsresult rv;
-
-    
-    nsCOMPtr<nsIURI> newURI;
-    rv = NS_NewURI(getter_AddRefs(newURI), aURISpec);
-    
-    if (NS_SUCCEEDED(rv)) {
-        History *hs = History::GetSingleton();
-        if (hs) {
-            hs->NotifyVisited(newURI, mIsVisited);
-        }
-    }
-    return true;
 }
 
 } 
