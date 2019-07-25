@@ -5,7 +5,7 @@
 
 
 
-const TEST_URL = "http://www.mozilla.org/";
+const TEST_URL = "http://www.batch.delete.me/";
 
 var gTests = [];
 var gLibrary;
