@@ -57,7 +57,7 @@ using namespace js;
 
 #ifdef DEBUG
 
-JS_PUBLIC_DATA(JSUint32) OOM_maxAllocations = UINT32_MAX;
+JS_PUBLIC_DATA(JSUint32) OOM_maxAllocations = (JSUint32)-1;
 JS_PUBLIC_DATA(JSUint32) OOM_counter = 0;
 #endif
 

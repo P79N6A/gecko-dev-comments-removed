@@ -50,7 +50,15 @@ namespace js {
 
 typedef uint32 HashNumber;
 
+
+
 namespace detail {
+
+
+
+
+
+
 
 
 template <class T, class HashPolicy, class AllocPolicy>
@@ -684,7 +692,9 @@ class HashTable : private AllocPolicy
 #undef METER
 };
 
-}
+}  
+
+
 
 
 
@@ -937,6 +947,7 @@ class HashMap
         return impl.lookup(l) != NULL;
     }
 
+    
     Entry *put(const Key &k, const Value &v) {
         AddPtr p = lookupForAdd(k);
         if (p) {
@@ -946,6 +957,23 @@ class HashMap
         return add(p, k, v) ? &*p : NULL;
     }
 
+    
+    bool putNew(const Key &k, const Value &v) {
+        AddPtr p = lookupForAdd(k);
+        JS_ASSERT(!p);
+        return add(p, k, v);
+    }
+
+    
+    Ptr lookupWithDefault(const Key &k, const Value &defaultValue) {
+        AddPtr p = lookupForAdd(k);
+        if (p)
+            return p;
+        (void)add(p, k, defaultValue);  
+        return p;
+    }
+
+    
     void remove(const Lookup &l) {
         if (Ptr p = lookup(l))
             remove(p);
@@ -1108,9 +1136,17 @@ class HashSet
         return impl.lookup(l) != NULL;
     }
 
+    
     const T *put(const T &t) {
         AddPtr p = lookupForAdd(t);
         return p ? &*p : (add(p, t) ? &*p : NULL);
+    }
+
+    
+    bool putNew(const T &t) {
+        AddPtr p = lookupForAdd(t);
+        JS_ASSERT(!p);
+        return add(p, t);
     }
 
     void remove(const Lookup &l) {
