@@ -262,13 +262,8 @@ var BrowserApp = {
     Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
 
     let url = "about:home";
-    let restoreSession = false;
-    if ("arguments" in window) {
-      if (window.arguments[0])
-        uri = window.arguments[0];
-      if (window.arguments[1])
-        restoreSession = window.arguments[1];
-    }
+    if ("arguments" in window && window.arguments[0])
+      url = window.arguments[0];
 
     
     Services.io.offline = false;
@@ -280,7 +275,7 @@ var BrowserApp = {
 
     
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-    if (restoreSession || ss.shouldRestore()) {
+    if (ss.shouldRestore()) {
       
       let restoreToFront = false;
 
@@ -306,9 +301,6 @@ var BrowserApp = {
       ss.restoreLastSession(restoreToFront);
     } else {
       this.addTab(url);
-
-      
-      this._showTelemetryPrompt();
     }
 
     
@@ -317,35 +309,35 @@ var BrowserApp = {
         type: "Gecko:Ready"
       }
     });
-  },
 
-  _showTelemetryPrompt: function _showTelemetryPrompt() {
     let telemetryPrompted = false;
     try {
       telemetryPrompted = Services.prefs.getBoolPref("toolkit.telemetry.prompted");
-    } catch (e) {  }
-    if (telemetryPrompted)
-      return;
+    } catch (e) {
+      
+    }
 
-    let buttons = [
-      {
-        label: Strings.browser.GetStringFromName("telemetry.optin.yes"),
-        callback: function () {
-          Services.prefs.setBoolPref("toolkit.telemetry.prompted", true);
-          Services.prefs.setBoolPref("toolkit.telemetry.enabled", true);
+    if (!telemetryPrompted) {
+      let buttons = [
+        {
+          label: Strings.browser.GetStringFromName("telemetry.optin.yes"),
+          callback: function () {
+            Services.prefs.setBoolPref("toolkit.telemetry.prompted", true);
+            Services.prefs.setBoolPref("toolkit.telemetry.enabled", true);
+          }
+        },
+        {
+          label: Strings.browser.GetStringFromName("telemetry.optin.no"),
+          callback: function () {
+            Services.prefs.setBoolPref("toolkit.telemetry.prompted", true);
+            Services.prefs.setBoolPref("toolkit.telemetry.enabled", false);
+          }
         }
-      },
-      {
-        label: Strings.browser.GetStringFromName("telemetry.optin.no"),
-        callback: function () {
-          Services.prefs.setBoolPref("toolkit.telemetry.prompted", true);
-          Services.prefs.setBoolPref("toolkit.telemetry.enabled", false);
-        }
-      }
-    ];
-    let brandShortName = Strings.brand.GetStringFromName("brandShortName");
-    let message = Strings.browser.formatStringFromName("telemetry.optin.message", [brandShortName], 1);
-    NativeWindow.doorhanger.show(message, "telemetry-optin", buttons);
+      ];
+      let brandShortName = Strings.brand.GetStringFromName("brandShortName");
+      let message = Strings.browser.formatStringFromName("telemetry.optin.message", [brandShortName], 1);
+      NativeWindow.doorhanger.show(message, "telemetry-optin", buttons);
+    }
   },
 
   shutdown: function shutdown() {
@@ -494,27 +486,8 @@ var BrowserApp = {
   },
 
   quit: function quit() {
-    
-    let lastBrowser = true;
-    let e = Services.wm.getEnumerator("navigator:browser");
-    while (e.hasMoreElements() && lastBrowser) {
-      let win = e.getNext();
-      if (win != window)
-        lastBrowser = false;
-    }
-
-    if (lastBrowser) {
-      
-      let closingCanceled = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
-      Services.obs.notifyObservers(closingCanceled, "browser-lastwindow-close-requested", null);
-      if (closingCanceled.data)
-        return;
-
-      Services.obs.notifyObservers(null, "browser-lastwindow-close-granted", null);
-    }
-
-    window.QueryInterface(Ci.nsIDOMChromeWindow).minimize();
-    window.close();
+      window.QueryInterface(Ci.nsIDOMChromeWindow).minimize();
+      window.close();
   },
 
   saveAsPDF: function saveAsPDF(aBrowser) {
