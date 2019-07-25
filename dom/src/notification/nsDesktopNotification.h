@@ -87,9 +87,9 @@ public:
 
 
 
-  void PostDesktopNotification();
+  nsresult PostDesktopNotification();
 
-  void SetAllow(bool aAllow);
+  nsresult SetAllow(bool aAllow);
 
   
 

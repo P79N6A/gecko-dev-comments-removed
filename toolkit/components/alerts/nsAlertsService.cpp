@@ -8,7 +8,7 @@
 
 #include "nsAlertsService.h"
 
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
 #else
 
@@ -87,7 +87,7 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl
     return NS_OK;
   }
 
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
   mozilla::AndroidBridge::Bridge()->ShowAlertNotification(aImageUrl, aAlertTitle, aAlertText, aAlertCookie,
                                                           aAlertListener, aAlertName);
   return NS_OK;
@@ -108,6 +108,10 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl
       aAlertListener->Observe(NULL, "alertfinished", PromiseFlatString(aAlertCookie).get());
     return NS_OK;
   }
+
+#ifdef XP_MACOSX
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 
   nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID));
   nsCOMPtr<nsIDOMWindow> newWindow;
@@ -186,7 +190,7 @@ NS_IMETHODIMP nsAlertsService::OnProgress(const nsAString & aAlertName,
                                           PRInt64 aProgressMax,
                                           const nsAString & aAlertText)
 {
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
   mozilla::AndroidBridge::Bridge()->AlertsProgressListener_OnProgress(aAlertName, aProgress, aProgressMax, aAlertText);
   return NS_OK;
 #else
@@ -196,7 +200,7 @@ NS_IMETHODIMP nsAlertsService::OnProgress(const nsAString & aAlertName,
 
 NS_IMETHODIMP nsAlertsService::OnCancel(const nsAString & aAlertName)
 {
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
   mozilla::AndroidBridge::Bridge()->AlertsProgressListener_OnCancel(aAlertName);
   return NS_OK;
 #else
