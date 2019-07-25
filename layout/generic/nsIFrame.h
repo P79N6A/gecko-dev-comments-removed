@@ -1465,11 +1465,7 @@ public:
     
     
     void ForceBreak(nsIRenderingContext *aRenderingContext);
-
-    
-    
-    void OptionallyBreak(nsIRenderingContext *aRenderingContext,
-                         nscoord aHyphenWidth = 0);
+    void OptionallyBreak(nsIRenderingContext *aRenderingContext);
 
     
     
