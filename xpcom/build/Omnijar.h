@@ -44,8 +44,8 @@
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsIFile.h"
+#include "nsZipArchive.h"
 
-class nsZipArchive;
 class nsIURI;
 
 namespace mozilla {
@@ -109,8 +109,8 @@ static inline already_AddRefed<nsIFile>
 GetPath(Type aType)
 {
     NS_ABORT_IF_FALSE(IsInitialized(), "Omnijar not initialized");
-    NS_IF_ADDREF(sPath[aType]);
-    return sPath[aType];
+    nsCOMPtr<nsIFile> path = sPath[aType];
+    return path.forget();
 }
 
 
@@ -128,18 +128,19 @@ HasOmnijar(Type aType)
 
 
 
-static inline nsZipArchive *
+static inline already_AddRefed<nsZipArchive>
 GetReader(Type aType)
 {
     NS_ABORT_IF_FALSE(IsInitialized(), "Omnijar not initialized");
-    return sReader[aType];
+    nsRefPtr<nsZipArchive> reader = sReader[aType];
+    return reader.forget();
 }
 
 
 
 
 
-static nsZipArchive *GetReader(nsIFile *aPath);
+static already_AddRefed<nsZipArchive> GetReader(nsIFile *aPath);
 
 
 

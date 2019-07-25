@@ -249,6 +249,26 @@ StartupCache::LoadArchive()
   return mArchive->OpenArchive(mFile);
 }
 
+namespace {
+
+nsresult
+GetBufferFromZipArchive(nsZipArchive *zip, bool doCRC, const char* id,
+                        char** outbuf, PRUint32* length)
+{
+  if (!zip)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  nsZipItemPtr<char> zipItem(zip, id, doCRC);
+  if (!zipItem)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  *outbuf = zipItem.Forget();
+  *length = zipItem.Length();
+  return NS_OK;
+}
+
+} 
+
 
 
 nsresult
@@ -268,36 +288,19 @@ StartupCache::GetBuffer(const char* id, char** outbuf, PRUint32* length)
     }
   }
 
-  if (mArchive) {
-    nsZipItemPtr<char> zipItem(mArchive, id, true);
-    if (zipItem) {
-      *outbuf = zipItem.Forget();
-      *length = zipItem.Length();
-      return NS_OK;
-    } 
-  }
+  nsresult rv = GetBufferFromZipArchive(mArchive, true, id, outbuf, length);
+  if (NS_SUCCEEDED(rv))
+    return rv;
 
-  if (mozilla::Omnijar::GetReader(mozilla::Omnijar::APP)) {
-    
-    nsZipItemPtr<char> zipItem(mozilla::Omnijar::GetReader(mozilla::Omnijar::APP), id);
-    if (zipItem) {
-      *outbuf = zipItem.Forget();
-      *length = zipItem.Length();
-      return NS_OK;
-    } 
-  }
+  nsRefPtr<nsZipArchive> omnijar = mozilla::Omnijar::GetReader(mozilla::Omnijar::APP);
+  
+  rv = GetBufferFromZipArchive(omnijar, false, id, outbuf, length);
+  if (NS_SUCCEEDED(rv))
+    return rv;
 
-  if (mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE)) {
-    
-    nsZipItemPtr<char> zipItem(mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE), id);
-    if (zipItem) {
-      *outbuf = zipItem.Forget();
-      *length = zipItem.Length();
-      return NS_OK;
-    } 
-  }
-
-  return NS_ERROR_NOT_AVAILABLE;
+  omnijar = mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE);
+  
+  return GetBufferFromZipArchive(omnijar, false, id, outbuf, length);
 }
 
 

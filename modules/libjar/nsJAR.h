@@ -133,7 +133,7 @@ class nsJAR : public nsIZipReader
     
     nsCOMPtr<nsIFile>        mZipFile;        
     nsCString                mOuterZipEntry;  
-    nsAutoPtr<nsZipArchive>  mZip;            
+    nsRefPtr<nsZipArchive>   mZip;            
     nsObjectHashtable        mManifestData;   
     bool                     mParsedManifest; 
     nsCOMPtr<nsIPrincipal>   mPrincipal;      
