@@ -147,6 +147,7 @@ Group.prototype = {
   
   
   pushAway: function() {
+  	return; 
     var buffer = 10;
     
     var items = Items.getTopLevelItems();
