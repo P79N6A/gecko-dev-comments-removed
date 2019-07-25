@@ -1,7 +1,4 @@
-var data = [ -1, 0, 1, 1.5, undefined, true, false ];
-
-
-
+var data = [ -1, 0, 1, 1.5, null, undefined, true, false ];
 
 var str = "";
 for (var i = 0; i < 30; i++) {
