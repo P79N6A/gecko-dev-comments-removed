@@ -93,6 +93,15 @@ JS_SplicePrototype(JSContext *cx, JSObject *obj, JSObject *proto)
 
 
     CHECK_REQUEST(cx);
+
+    if (!obj->hasSingletonType()) {
+        
+
+
+
+        return JS_SetPrototype(cx, obj, proto);
+    }
+
     return obj->splicePrototype(cx, proto);
 }
 

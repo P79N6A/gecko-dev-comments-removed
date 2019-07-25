@@ -1332,21 +1332,33 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
         break;
 
       case REJOIN_NATIVE:
-      case REJOIN_NATIVE_LOWERED: {
+      case REJOIN_NATIVE_LOWERED:
+      case REJOIN_NATIVE_GETTER: {
         
 
 
 
 
-        if (rejoin == REJOIN_NATIVE_LOWERED)
+
+        if (rejoin == REJOIN_NATIVE_LOWERED) {
             nextsp[-1] = nextsp[0];
+        } else if (rejoin == REJOIN_NATIVE_GETTER) {
+            if (js_CodeSpec[op].format & JOF_CALLOP) {
+                
+
+
+
+
+                if (nextsp[-2].isObject())
+                    nextsp[-1] = nextsp[-2];
+                nextsp[-2] = nextsp[0];
+            } else {
+                nextsp[-1] = nextsp[0];
+            }
+        }
 
         
         RemoveOrphanedNative(cx, fp);
-
-        
-
-
 
         f.regs.pc = nextpc;
         break;
@@ -1565,6 +1577,16 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
     if (nextDepth == uint32(-1))
         nextDepth = analysis->getCode(f.regs.pc).stackDepth;
     f.regs.sp = fp->base() + nextDepth;
+
+    
+
+
+
+
+    if (f.regs.pc == nextpc && (js_CodeSpec[op].format & JOF_TYPESET)) {
+        int which = (js_CodeSpec[op].format & JOF_CALLOP) ? -2 : -1;  
+        types::TypeScript::Monitor(cx, script, pc, f.regs.sp[which]);
+    }
 
     
     JaegerStatus status = skipTrap ? Jaeger_UnfinishedAtTrap : Jaeger_Unfinished;

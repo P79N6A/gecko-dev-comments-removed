@@ -6879,8 +6879,7 @@ LeaveTree(TraceMonitor *tm, TracerState& state, VMSideExit* lr)
 
 
 
-            if ((op == JSOP_SETELEM || op == JSOP_SETHOLE) &&
-                JSOp(regs->pc[JSOP_SETELEM_LENGTH]) == JSOP_POP) {
+            if (op == JSOP_SETELEM && JSOp(regs->pc[JSOP_SETELEM_LENGTH]) == JSOP_POP) {
                 regs->sp -= js_CodeSpec[JSOP_SETELEM].nuses;
                 regs->sp += js_CodeSpec[JSOP_SETELEM].ndefs;
                 regs->pc += JSOP_SETELEM_LENGTH;
@@ -11053,6 +11052,10 @@ RecordingStatus
 TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
 {
     
+
+
+
+
 #ifdef DEBUG
     Class *clasp = ctor->getFunctionPrivate()->getConstructorClass();
     JS_ASSERT(clasp);
@@ -11065,7 +11068,9 @@ TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
         RETURN_ERROR("error getting prototype from constructor");
 
     
-    
+
+
+
     JS_ASSERT(localtm.recorder);
 
 #ifdef DEBUG
@@ -11078,7 +11083,9 @@ TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
 #endif
 
     
-    
+
+
+
     JS_ASSERT(!pval.isPrimitive());
     JSObject *proto = &pval.toObject();
     JS_ASSERT(!proto->isDenseArray());
@@ -13424,7 +13431,7 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
     }
 
     jsbytecode* pc = cx->regs().pc;
-    if ((*pc == JSOP_SETELEM || *pc == JSOP_SETHOLE) && pc[JSOP_SETELEM_LENGTH] != JSOP_POP)
+    if (*pc == JSOP_SETELEM && pc[JSOP_SETELEM_LENGTH] != JSOP_POP)
         set(&lval, v_ins);
 
     return ARECORD_CONTINUE;
@@ -13432,12 +13439,6 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
 
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_SETELEM()
-{
-    return setElem(-3, -2, -1);
-}
-
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_SETHOLE()
 {
     return setElem(-3, -2, -1);
 }
@@ -17074,7 +17075,7 @@ LoopProfile::profileOperation(JSContext* cx, JSOp op)
     if (op == JSOP_NEW)
         increment(OP_NEW);
 
-    if (op == JSOP_GETELEM || op == JSOP_SETELEM || op == JSOP_SETHOLE) {
+    if (op == JSOP_GETELEM || op == JSOP_SETELEM) {
         Value& lval = cx->regs().sp[op == JSOP_GETELEM ? -2 : -3];
         if (lval.isObject() && js_IsTypedArray(&lval.toObject()))
             increment(OP_TYPED_ARRAY);
