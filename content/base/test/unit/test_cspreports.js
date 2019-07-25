@@ -1,0 +1,153 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Components.utils.import('resource://gre/modules/CSPUtils.jsm');
+Components.utils.import('resource://gre/modules/NetUtil.jsm');
+
+
+do_load_httpd_js();
+
+const REPORT_SERVER_PORT = 9000;
+const REPORT_SERVER_URI = "http://localhost";
+const REPORT_SERVER_PATH = "/report";
+
+var httpServer = null;
+var testsToFinish = 0;
+
+
+
+
+
+function makeReportHandler(testpath, message, expectedJSON) {
+  return function(request, response) {
+    
+    if (request.method !== "POST") {
+      do_throw("violation report should be a POST request");
+      return;
+    }
+
+    
+    var reportObj = JSON.parse(
+          NetUtil.readInputStreamToString(
+            request.bodyInputStream,
+            request.bodyInputStream.available()));
+
+    dump("GOT REPORT:\n" + JSON.stringify(reportObj) + "\n");
+    dump("TESTPATH:    " + testpath + "\n");
+    dump("EXPECTED:  \n" + JSON.stringify(expectedJSON) + "\n\n");
+
+    for (var i in expectedJSON)
+      do_check_eq(expectedJSON[i], reportObj['csp-report'][i]);
+
+    
+    testsToFinish--;
+    httpServer.registerPathHandler(testpath, null);
+    if (testsToFinish < 1)
+      httpServer.stop(do_test_finished);
+    else
+      do_test_finished();
+  };
+}
+
+function makeTest(id, expectedJSON, callback) {
+  testsToFinish++;
+  do_test_pending();
+
+  
+  var csp = Cc["@mozilla.org/contentsecuritypolicy;1"]
+              .createInstance(Ci.nsIContentSecurityPolicy);
+  var policy = "allow 'none'; " +
+               "report-uri " + REPORT_SERVER_URI +
+                               ":" + REPORT_SERVER_PORT +
+                               "/test" + id;
+  var selfuri = NetUtil.newURI(REPORT_SERVER_URI +
+                               ":" + REPORT_SERVER_PORT +
+                               "/foo/self");
+  var selfchan = NetUtil.newChannel(selfuri);
+
+  dump("Created test " + id + " : " + policy + "\n\n");
+
+  
+  csp.scanRequestData(selfchan);
+
+  
+  csp.refinePolicy(policy, selfuri);
+
+  
+  var handler = makeReportHandler("/test" + id, "Test " + id, expectedJSON);
+  httpServer.registerPathHandler("/test" + id, handler);
+
+  
+  callback(csp);
+}
+
+function run_test() {
+  var selfuri = NetUtil.newURI(REPORT_SERVER_URI +
+                               ":" + REPORT_SERVER_PORT +
+                               "/foo/self");
+
+  httpServer = new nsHttpServer();
+  httpServer.start(REPORT_SERVER_PORT);
+
+  
+  makeTest(0, {"blocked-uri": "self"},
+      function(csp) {
+        if(!csp.allowsInlineScript) {
+          
+          csp.logViolationDetails(Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT,
+                                  selfuri.asciiSpec,
+                                  "script sample",
+                                  0);
+        }
+      });
+
+  makeTest(1, {"blocked-uri": "self"},
+      function(csp) {
+        if(!csp.allowsEval) {
+          
+          csp.logViolationDetails(Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT,
+                                  selfuri.asciiSpec,
+                                  "script sample",
+                                  1);
+        }
+      });
+
+  makeTest(2, {"blocked-uri": "http://blocked.test/foo.js"},
+      function(csp) {
+        csp.shouldLoad(Ci.nsIContentPolicy.TYPE_SCRIPT,
+                      NetUtil.newURI("http://blocked.test/foo.js"),
+                      null, null, null, null);
+      });
+}
