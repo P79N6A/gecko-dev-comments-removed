@@ -235,6 +235,11 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
 };
 
 
+
+
+
+
+
 template <>
 class DefaultMarkPolicy<JSObject *, Value> {
   private:
@@ -247,12 +252,32 @@ class DefaultMarkPolicy<JSObject *, Value> {
             return !IsAboutToBeFinalized(tracer->context, v.toGCThing());
         return true;
     }
+  private:
+    bool markUnmarkedValue(const Value &v) {
+        if (valueMarked(v))
+            return false;
+        js::gc::MarkValue(tracer, v, "WeakMap entry value");
+        return true;
+    }
+
+    
+    
+    bool overrideKeyMarking(JSObject *k) {
+        
+        
+        if (!IS_GC_MARKING_TRACER(tracer))
+            return false;
+        return k->getClass()->ext.isWrappedNative;
+    }
+  public:
     bool markEntryIfLive(JSObject *k, const Value &v) {
-        if (keyMarked(k) && !valueMarked(v)) {
-            js::gc::MarkValue(tracer, v, "WeakMap entry value");
-            return true;
-        }
-        return false;
+        if (keyMarked(k))
+            return markUnmarkedValue(v);
+        if (!overrideKeyMarking(k))
+            return false;
+        js::gc::MarkObject(tracer, *k, "WeakMap entry wrapper key");
+        markUnmarkedValue(v);
+        return true;
     }
     void markEntry(JSObject *k, const Value &v) {
         js::gc::MarkObject(tracer, *k, "WeakMap entry key");

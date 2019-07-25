@@ -1016,9 +1016,15 @@ struct ClassExtension {
     JSObjectOp          innerObject;
     JSIteratorOp        iteratorObject;
     void               *unused;
+
+    
+
+
+
+    bool                isWrappedNative;
 };
 
-#define JS_NULL_CLASS_EXT   {NULL,NULL,NULL,NULL,NULL}
+#define JS_NULL_CLASS_EXT   {NULL,NULL,NULL,NULL,NULL,false}
 
 struct ObjectOps {
     js::LookupPropOp        lookupProperty;
