@@ -585,42 +585,35 @@ nsSVGPatternFrame::ConstructCTM(const gfxRect &callerBBox,
     tCTM.Scale(scale, scale);
   }
 
-  nsSVGPatternElement *patternElement =
-    static_cast<nsSVGPatternElement*>(mContent);
-  gfxMatrix tm;
   const nsSVGViewBoxRect viewBox = GetViewBox().GetAnimValue();
 
-  if (viewBox.height > 0.0f && viewBox.width > 0.0f) {
-    float viewportWidth, viewportHeight, refX, refY;
-    if (targetContent->IsSVG()) {
-      
-      
-      
-      viewportWidth =
-        GetLengthValue(nsSVGPatternElement::WIDTH)->GetAnimValue(ctx);
-      viewportHeight =
-        GetLengthValue(nsSVGPatternElement::HEIGHT)->GetAnimValue(ctx);
-      refX = GetLengthValue(nsSVGPatternElement::X)->GetAnimValue(ctx);
-      refY = GetLengthValue(nsSVGPatternElement::Y)->GetAnimValue(ctx);
-    } else {
-      
-      viewportWidth =
-        GetLengthValue(nsSVGPatternElement::WIDTH)->GetAnimValue(aTarget);
-      viewportHeight =
-        GetLengthValue(nsSVGPatternElement::HEIGHT)->GetAnimValue(aTarget);
-      refX = GetLengthValue(nsSVGPatternElement::X)->GetAnimValue(aTarget);
-      refY = GetLengthValue(nsSVGPatternElement::Y)->GetAnimValue(aTarget);
-    }
-    gfxMatrix viewBoxTM = nsSVGUtils::GetViewBoxTransform(patternElement,
-                                                          viewportWidth, viewportHeight,
-                                                          viewBox.x, viewBox.y,
-                                                          viewBox.width, viewBox.height,
-                                                          GetPreserveAspectRatio());
-
-    gfxPoint ref = viewBoxTM.Transform(gfxPoint(refX, refY));
-
-    tm = viewBoxTM * gfxMatrix().Translate(gfxPoint(-ref.x, -ref.y));
+  if (viewBox.height <= 0.0f && viewBox.width <= 0.0f) {
+    return tCTM;
   }
+
+  float viewportWidth, viewportHeight;
+  if (targetContent->IsSVG()) {
+    
+    
+    
+    viewportWidth =
+      GetLengthValue(nsSVGPatternElement::WIDTH)->GetAnimValue(ctx);
+    viewportHeight =
+      GetLengthValue(nsSVGPatternElement::HEIGHT)->GetAnimValue(ctx);
+  } else {
+    
+    viewportWidth =
+      GetLengthValue(nsSVGPatternElement::WIDTH)->GetAnimValue(aTarget);
+    viewportHeight =
+      GetLengthValue(nsSVGPatternElement::HEIGHT)->GetAnimValue(aTarget);
+  }
+  gfxMatrix tm = nsSVGUtils::GetViewBoxTransform(
+    static_cast<nsSVGPatternElement*>(mContent),
+    viewportWidth, viewportHeight,
+    viewBox.x, viewBox.y,
+    viewBox.width, viewBox.height,
+    GetPreserveAspectRatio());
+
   return tm * tCTM;
 }
 
