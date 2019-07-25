@@ -102,6 +102,8 @@ using namespace mozilla::ipc::windows;
 
 extern const PRUnichar* kAppShellEventId;
 
+extern const PRUnichar* kPropNameTabContent;
+
 namespace {
 
 const wchar_t kOldWndProcProp[] = L"MozillaIPCOldWndProc";
@@ -376,6 +378,12 @@ WindowIsDeferredWindow(HWND hWnd)
   int length = GetClassNameW(hWnd, (wchar_t*)buffer, sizeof(buffer) - 1);
   if (length <= 0) {
     NS_WARNING("Failed to get class name!");
+    return false;
+  }
+
+  
+  
+  if (::GetPropW(hWnd, kPropNameTabContent)) {
     return false;
   }
 

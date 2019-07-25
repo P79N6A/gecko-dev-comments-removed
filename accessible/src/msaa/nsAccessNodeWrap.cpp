@@ -743,6 +743,10 @@ nsRefPtrHashtable<nsVoidPtrHashKey, nsDocAccessible> nsAccessNodeWrap::sHWNDCach
 LRESULT CALLBACK
 nsAccessNodeWrap::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+  
+  
+  
+
   switch (msg) {
     case WM_GETOBJECT:
     {
