@@ -254,6 +254,64 @@ public:
 
 
 
+  inline PRInt32 GetNameSpaceID() const
+  {
+    return mNodeInfo->NamespaceID();
+  }
+
+  
+
+
+
+  inline nsINodeInfo* NodeInfo() const
+  {
+    return mNodeInfo;
+  }
+
+  inline bool IsInNamespace(PRInt32 aNamespace) const
+  {
+    return mNodeInfo->NamespaceID() == aNamespace;
+  }
+
+  inline bool IsHTML() const
+  {
+    return IsInNamespace(kNameSpaceID_XHTML);
+  }
+
+  inline bool IsHTML(nsIAtom* aTag) const
+  {
+    return mNodeInfo->Equals(aTag, kNameSpaceID_XHTML);
+  }
+
+  inline bool IsSVG() const
+  {
+    return IsInNamespace(kNameSpaceID_SVG);
+  }
+
+  inline bool IsSVG(nsIAtom* aTag) const
+  {
+    return mNodeInfo->Equals(aTag, kNameSpaceID_SVG);
+  }
+
+  inline bool IsXUL() const
+  {
+    return IsInNamespace(kNameSpaceID_XUL);
+  }
+
+  inline bool IsMathML() const
+  {
+    return IsInNamespace(kNameSpaceID_MathML);
+  }
+
+  inline bool IsMathML(nsIAtom* aTag) const
+  {
+    return mNodeInfo->Equals(aTag, kNameSpaceID_MathML);
+  }
+
+  
+
+
+
 
   virtual nsIAtom *GetIDAttributeName() const = 0;
 
