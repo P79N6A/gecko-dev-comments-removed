@@ -450,6 +450,11 @@ WebGLContext::InitAndValidateGL()
         
         
         gl->fEnable(LOCAL_GL_VERTEX_PROGRAM_POINT_SIZE);
+
+        
+        
+        
+        gl->fEnable(LOCAL_GL_POINT_SPRITE);
     }
 
     
