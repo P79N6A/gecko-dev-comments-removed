@@ -20,7 +20,7 @@ function run_test() {
   var transport = new HTTPPollingTransport(serverUrl, false, 4000);
   var auth = new PlainAuthenticator();
   var alice = new XmppClient("alice", jabberDomain, "iamalice",
-    	            		       transport, auth);
+                             transport, auth);
 
   
   LOG("connecting");
@@ -44,11 +44,14 @@ function run_test() {
   alice.disconnect();
 
   
+  
 
+  
+  alice.connect( "bad domain" );
+  alice.waitForConnection();
+  do_check_eq( alice._connectionStatus, alice.FAILED );
 
-
-
-
+  
 
 
 

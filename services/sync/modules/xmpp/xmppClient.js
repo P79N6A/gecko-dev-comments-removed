@@ -91,13 +91,15 @@ XmppClient.prototype = {
     LOG("onIncomingData(): rcvd: " + messageText);
     var responseDOM = this._parser.parseFromString( messageText, "text/xml" );
     
-    if (responseDOM.documentElement.nodeName == "parsererror" ) {
-      
-      if (messageText.match("^</stream:stream>$")) {
-        this._handleServerDisconnection();
-        return;
-      }
+    
+    if (messageText.match("^</stream:stream>$")) {
+      this._handleServerDisconnection();
+      return;
+    }
 
+    
+
+    if (responseDOM.documentElement.nodeName == "parsererror" ) {
       
 
 
@@ -123,8 +125,19 @@ XmppClient.prototype = {
       return;
     }
 
+    
+
     var rootElem = responseDOM.documentElement;
 
+    var errors = rootElem.getElementsByTagName( "stream:error" );
+    if ( errors.length > 0 ) {
+      this.setError( errors[0].firstChild.nodeName );
+      return;
+    }
+
+    
+
+    
     if ( this._connectionStatus == this.CALLED_SERVER ) {
       
       
@@ -142,14 +155,8 @@ XmppClient.prototype = {
       return;
     }
 
+    
     if ( this._connectionStatus == this.CONNECTED ) {
-      
-
-      var errors = rootElem.getElementsByTagName( "stream:error" );
-      if ( errors.length > 0 ) {
-        this.setError( errors[0].firstChild.nodeName );
-        return;
-      }
       var presences = rootElem.getElementsByTagName( "presence" );
       if (presences.length > 0 ) {
         var from = presences[0].getAttribute( "from" );
@@ -157,6 +164,7 @@ XmppClient.prototype = {
           LOG( "I see that " + from + " is online." );
         }
       }
+
       if ( rootElem.nodeName == "message" ) {
         this.processIncomingMessage( rootElem );
       } else {
@@ -167,6 +175,7 @@ XmppClient.prototype = {
           }
         }
       }
+
       if ( rootElem.nodeName == "iq" ) {
         this.processIncomingIq( rootElem );
       } else {
@@ -289,7 +298,7 @@ XmppClient.prototype = {
 
   connect: function( host ) {
     
-    this._transportLayer.connect();
+    this._transportLayer.connect(host);
     this._transportLayer.setCallbackObject( this );
     this._transportLayer.send( this._makeHeaderXml( host ) );    
 
