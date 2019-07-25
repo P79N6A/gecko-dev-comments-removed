@@ -501,6 +501,7 @@ namespace AvailableMemoryTracker {
 
 void Activate()
 {
+#if defined(_M_IX86)
   MOZ_ASSERT(sInitialized);
   MOZ_ASSERT(!sHooksActive);
 
@@ -527,6 +528,7 @@ void Activate()
     NS_RegisterMemoryReporter(new NumLowVirtualMemoryEventsMemoryReporter());
   }
   sHooksActive = true;
+#endif
 }
 
 void Init()
@@ -535,13 +537,17 @@ void Init()
   
   
   
+  
+  
+  
+  
 
+#if defined(_M_IX86)
+  
+  
+  
+  
   if (!PR_GetEnv("MOZ_PGO_INSTRUMENTED")) {
-    
-    
-    
-    
-
     sKernel32Intercept.Init("Kernel32.dll");
     sKernel32Intercept.AddHook("VirtualAlloc",
       reinterpret_cast<intptr_t>(VirtualAllocHook),
@@ -557,6 +563,7 @@ void Init()
   }
 
   sInitialized = true;
+#endif
 }
 
 } 
