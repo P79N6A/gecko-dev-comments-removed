@@ -1324,13 +1324,13 @@ def getArgumentConversionTemplate(type, descriptor):
     elif tag is IDLType.Tags.int64:
         
         
-        replacements["jstype"] = "PRInt64"
-        replacements["converter"] = "xpc_qsValueToInt64"
+        replacements["jstype"] = "int64_t"
+        replacements["converter"] = "xpc::ValueToInt64"
     elif tag is IDLType.Tags.uint64:
         
         
-        replacements["jstype"] = "PRUint64"
-        replacements["converter"] = "xpc_qsValueToUint64"
+        replacements["jstype"] = "uint64_t"
+        replacements["converter"] = "xpc::ValueToUint64"
     elif tag in [IDLType.Tags.float, IDLType.Tags.double]:
         replacements["jstype"] = "double"
         replacements["converter"] = "JS::ToNumber"
