@@ -1,41 +1,41 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
- * May 28, 2008.
- *
- * The Initial Developer of the Original Code is
- *   Brendan Eich <brendan@mozilla.org>
- *
- * Contributor(s):
- *   David Anderson <danderson@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #if !defined jsjaeger_regstate_h__ && defined JS_METHODJIT
 #define jsjaeger_regstate_h__
@@ -55,7 +55,7 @@ struct Registers {
 
     typedef JSC::MacroAssembler::RegisterID RegisterID;
 
-    // Homed and scratch registers for working with Values on x64.
+    
 #if defined(JS_CPU_X64)
     static const RegisterID TypeMaskReg = JSC::X86Registers::r13;
     static const RegisterID PayloadMaskReg = JSC::X86Registers::r14;
@@ -63,7 +63,7 @@ struct Registers {
     static const RegisterID ScratchReg = JSC::X86Registers::r11;
 #endif
 
-    // Register that homes the current StackFrame.
+    
 #if defined(JS_CPU_X86) || defined(JS_CPU_X64)
     static const RegisterID JSFrameReg = JSC::X86Registers::ebx;
 #elif defined(JS_CPU_ARM)
@@ -131,10 +131,10 @@ struct Registers {
 
 # if defined(JS_CPU_X64)
     static const uint32 SavedRegs =
-        /* r11 is scratchRegister, used by JSC. */
+        
           (1 << JSC::X86Registers::r12)
-    // r13 is TypeMaskReg.
-    // r14 is PayloadMaskReg.
+    
+    
         | (1 << JSC::X86Registers::r15)
 #  if defined(_WIN64)
         | (1 << JSC::X86Registers::esi)
@@ -162,21 +162,21 @@ struct Registers {
           (1 << JSC::ARMRegisters::r0)
         | (1 << JSC::ARMRegisters::r1)
         | (1 << JSC::ARMRegisters::r2);
-    // r3 is reserved as a scratch register for the assembler.
+    
 
     static const uint32 SavedRegs =
           (1 << JSC::ARMRegisters::r4)
         | (1 << JSC::ARMRegisters::r5)
         | (1 << JSC::ARMRegisters::r6)
         | (1 << JSC::ARMRegisters::r7)
-    // r8 is reserved as a scratch register for the assembler.
+    
         | (1 << JSC::ARMRegisters::r9)
         | (1 << JSC::ARMRegisters::r10);
-    // r11 is reserved for JSFrameReg.
-    // r12 is IP, and is used for stub calls.
-    // r13 is SP and must always point to VMFrame whilst in generated code.
-    // r14 is LR and is used for return sequences.
-    // r15 is PC (program counter).
+    
+    
+    
+    
+    
 
     static const uint32 SingleByteRegs = TempRegs | SavedRegs;
 #elif defined(JS_CPU_SPARC)
@@ -381,7 +381,12 @@ struct FPRegisters {
     typedef JSC::MacroAssembler::FPRegisterID FPRegisterID;
 
 #if defined(JS_CPU_X86) || defined(JS_CPU_X64)
+#ifdef _WIN64
+    
+    static const uint32 TotalFPRegisters = 6;
+#else
     static const uint32 TotalFPRegisters = 8;
+#endif
     static const uint32 TempFPRegs =
           (1 << JSC::X86Registers::xmm0)
         | (1 << JSC::X86Registers::xmm1)
@@ -389,9 +394,12 @@ struct FPRegisters {
         | (1 << JSC::X86Registers::xmm3)
         | (1 << JSC::X86Registers::xmm4)
         | (1 << JSC::X86Registers::xmm5)
+#ifndef _WIN64
         | (1 << JSC::X86Registers::xmm6)
-        | (1 << JSC::X86Registers::xmm7);
-    /* FIXME: Temporary hack until FPRegister allocation exists. */
+        | (1 << JSC::X86Registers::xmm7)
+#endif
+        ;
+    
     static const FPRegisterID First  = JSC::X86Registers::xmm0;
     static const FPRegisterID Second = JSC::X86Registers::xmm1;
     static const FPRegisterID Temp0 = JSC::X86Registers::xmm2;
@@ -403,7 +411,7 @@ struct FPRegisters {
         | (1 << JSC::ARMRegisters::d1)
         | (1 << JSC::ARMRegisters::d2)
         | (1 << JSC::ARMRegisters::d3);
-    /* FIXME: Temporary hack until FPRegister allocation exists. */
+    
     static const FPRegisterID First  = JSC::ARMRegisters::d0;
     static const FPRegisterID Second = JSC::ARMRegisters::d1;
     static const FPRegisterID Temp0 = JSC::ARMRegisters::d2;
@@ -426,7 +434,7 @@ struct FPRegisters {
         | (1 << JSC::SparcRegisters::f24)
         | (1 << JSC::SparcRegisters::f26)
         | (1 << JSC::SparcRegisters::f28);
-    /* FIXME: Temporary hack until FPRegister allocation exists. */
+    
     static const FPRegisterID First  = JSC::SparcRegisters::f0;
     static const FPRegisterID Second = JSC::SparcRegisters::f2;
 #else
@@ -513,9 +521,9 @@ struct FPRegisters {
 
 static const JSC::MacroAssembler::RegisterID JSFrameReg = Registers::JSFrameReg;
 
-} /* namespace mjit */
+} 
 
-} /* namespace js */
+} 
 
-#endif /* jsjaeger_regstate_h__ */
+#endif 
 

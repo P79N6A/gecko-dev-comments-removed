@@ -115,7 +115,7 @@ struct DefaultHasher<jsid>
     typedef jsid Lookup;
     static HashNumber hash(const Lookup &l) {
         JS_ASSERT(l == js_CheckForStringIndex(l));
-        return JSID_BITS(l);
+        return HashNumber(JSID_BITS(l));
     }
     static bool match(const jsid &id, const Lookup &l) {
         JS_ASSERT(l == js_CheckForStringIndex(l));
@@ -148,47 +148,14 @@ struct JSAtomMap {
 
 namespace js {
 
+
 enum InternBehavior
 {
-    DoNotInternAtom = 0,
-    InternAtom = 1
+    DoNotInternAtom = false,
+    InternAtom = true
 };
 
-
-
-
-
-
-struct AtomStateEntry {
-    uintptr_t bits;
-
-    static const uintptr_t INTERNED_FLAG = 0x1;
-
-    AtomStateEntry() : bits(0) {}
-    AtomStateEntry(const AtomStateEntry &other) : bits(other.bits) {}
-
-    AtomStateEntry(JSFixedString *futureAtom, bool intern)
-      : bits(uintptr_t(futureAtom) | uintptr_t(intern))
-    {}
-
-    bool isInterned() const {
-        return bits & INTERNED_FLAG;
-    }
-
-    
-    static void makeInterned(AtomStateEntry *self, InternBehavior ib) {
-        JS_STATIC_ASSERT(DoNotInternAtom == 0 && InternAtom == 1);
-        JS_ASSERT(ib <= InternAtom);
-        self->bits |= uintptr_t(ib);
-    }
-
-    JS_ALWAYS_INLINE
-    JSAtom *toAtom() const {
-        JS_ASSERT(bits != 0); 
-        JS_ASSERT(((JSString *) (bits & ~INTERNED_FLAG))->isAtom());
-        return (JSAtom *) (bits & ~INTERNED_FLAG);
-    }
-};
+typedef TaggedPointerEntry<JSAtom> AtomStateEntry;
 
 struct AtomHasher
 {
@@ -206,8 +173,8 @@ struct AtomHasher
         return HashChars(l.chars, l.length);
     }
 
-    static bool match(AtomStateEntry entry, const Lookup &lookup) {
-        JSAtom *key = entry.toAtom();
+    static bool match(const AtomStateEntry &entry, const Lookup &lookup) {
+        JSAtom *key = entry.asPtr();
 
         if (lookup.atom)
             return lookup.atom == key;

@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Web Workers.
+ *
+ * The Initial Developer of the Original Code is
+ *   The Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2011
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Ben Turner <bent.mozilla@gmail.com> (Original Author)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "RuntimeService.h"
 
@@ -44,13 +44,11 @@
 #include "nsIObserverService.h"
 #include "nsIPrincipal.h"
 #include "nsIJSContextStack.h"
-#include "nsIMemoryReporter.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsISupportsPriority.h"
 #include "nsITimer.h"
 #include "nsPIDOMWindow.h"
 
-#include "jsprf.h"
 #include "mozilla/Preferences.h"
 #include "nsContentUtils.h"
 #include "nsDOMJSUtils.h"
@@ -60,7 +58,6 @@
 #include "nsThreadUtils.h"
 #include "nsXPCOM.h"
 #include "nsXPCOMPrivate.h"
-#include "xpcpublic.h"
 
 #include "Events.h"
 #include "EventTarget.h"
@@ -72,24 +69,23 @@ USING_WORKERS_NAMESPACE
 using mozilla::MutexAutoLock;
 using mozilla::MutexAutoUnlock;
 using mozilla::Preferences;
-using namespace mozilla::xpconnect::memory;
 
-
+// The size of the worker runtime heaps in bytes.
 #define WORKER_RUNTIME_HEAPSIZE 32 * 1024 * 1024
 
-
+// The size of the C stack in bytes.
 #define WORKER_CONTEXT_NATIVE_STACK_LIMIT sizeof(size_t) * 32 * 1024
 
-
+// The maximum number of threads to use for workers, overridable via pref.
 #define MAX_WORKERS_PER_DOMAIN 10
 
-
+// The default number of seconds that close handlers will be allowed to run.
 #define MAX_SCRIPT_RUN_TIME_SEC 10
 
-
+// The number of seconds that idle threads can hang around before being killed.
 #define IDLE_THREAD_TIMEOUT_SEC 30
 
-
+// The maximum number of threads that can be idle at one time.
 #define MAX_IDLE_THREADS 20
 
 #define PREF_WORKERS_ENABLED "dom.workers.enabled"
@@ -108,7 +104,7 @@ const PRUint32 kRequiredJSContextOptions =
 
 PRUint32 gMaxWorkersPerDomain = MAX_WORKERS_PER_DOMAIN;
 
-
+// Does not hold an owning reference.
 RuntimeService* gRuntimeService = nsnull;
 
 enum {
@@ -121,7 +117,7 @@ enum {
   ID_COUNT
 };
 
-
+// These are jsids for the main runtime. Only touched on the main thread.
 jsid gStringIDs[ID_COUNT] = { JSID_VOID };
 
 const char* gStringChars[] = {
@@ -131,8 +127,8 @@ const char* gStringChars[] = {
   "WorkerMessageEvent",
   "WorkerErrorEvent"
 
-  
-  
+  // XXX Don't care about ProgressEvent since it should never leak to the main
+  // thread.
 };
 
 PR_STATIC_ASSERT(NS_ARRAY_LENGTH(gStringChars) == ID_COUNT);
@@ -243,8 +239,8 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate)
     return nsnull;
   }
 
-  
-  
+  // ChromeWorker has extra clone callbacks for passing threadsafe XPCOM
+  // components.
   JSStructuredCloneCallbacks* callbacks =
     aWorkerPrivate->IsChromeWorker() ?
     ChromeWorkerStructuredCloneCallbacks() :
@@ -289,61 +285,6 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate)
   return workerCx;
 }
 
-class WorkerMemoryReporter : public nsIMemoryMultiReporter
-{
-  WorkerPrivate* mWorkerPrivate;
-  nsCString mPathPrefix;
-
-public:
-  NS_DECL_ISUPPORTS
-
-  WorkerMemoryReporter(WorkerPrivate* aWorkerPrivate)
-  : mWorkerPrivate(aWorkerPrivate)
-  {
-    aWorkerPrivate->AssertIsOnWorkerThread();
-
-    nsCString escapedDomain(aWorkerPrivate->Domain());
-    escapedDomain.ReplaceChar('/', '\\');
-
-    NS_ConvertUTF16toUTF8 escapedURL(aWorkerPrivate->ScriptURL());
-    escapedURL.ReplaceChar('/', '\\');
-
-    
-    char address[21];
-    JSUint32 addressSize =
-      JS_snprintf(address, sizeof(address), "0x%llx", aWorkerPrivate);
-    if (addressSize == JSUint32(-1)) {
-      NS_WARNING("JS_snprintf failed!");
-      address[0] = '\0';
-      addressSize = 0;
-    }
-
-    mPathPrefix = NS_LITERAL_CSTRING("explicit/dom/workers(") +
-                  escapedDomain + NS_LITERAL_CSTRING(")/worker(") +
-                  escapedURL + NS_LITERAL_CSTRING(", ") +
-                  nsDependentCString(address, addressSize) +
-                  NS_LITERAL_CSTRING(")/");
-  }
-
-  NS_IMETHOD
-  CollectReports(nsIMemoryMultiReporterCallback* aCallback,
-                 nsISupports* aClosure)
-  {
-    AssertIsOnMainThread();
-
-    IterateData data;
-    if (!mWorkerPrivate->BlockAndCollectRuntimeStats(&data)) {
-      return NS_ERROR_FAILURE;
-    }
-
-    ReportJSRuntimeStats(data, mPathPrefix, aCallback, aClosure);
-
-    return NS_OK;
-  }
-};
-
-NS_IMPL_THREADSAFE_ISUPPORTS1(WorkerMemoryReporter, nsIMemoryMultiReporter)
-
 class WorkerThreadRunnable : public nsRunnable
 {
   WorkerPrivate* mWorkerPrivate;
@@ -365,16 +306,9 @@ public:
 
     JSContext* cx = CreateJSContextForWorker(workerPrivate);
     if (!cx) {
-      
+      // XXX need to fire an error at parent.
       NS_ERROR("Failed to create runtime and context!");
       return NS_ERROR_FAILURE;
-    }
-
-    nsRefPtr<WorkerMemoryReporter> reporter =
-      new WorkerMemoryReporter(workerPrivate);
-    if (NS_FAILED(NS_RegisterMemoryMultiReporter(reporter))) {
-      NS_WARNING("Failed to register memory reporter!");
-      reporter = nsnull;
     }
 
     {
@@ -382,23 +316,16 @@ public:
       workerPrivate->DoRunLoop(cx);
     }
 
-    if (reporter) {
-      if (NS_FAILED(NS_UnregisterMemoryMultiReporter(reporter))) {
-        NS_WARNING("Failed to unregister memory reporter!");
-      }
-      reporter = nsnull;
-    }
-
     JSRuntime* rt = JS_GetRuntime(cx);
 
-    
-    
-    
-    
-    
-    
-    
-    
+    // XXX Bug 666963 - CTypes can create another JSContext for use with
+    // closures, and then it holds that context in a reserved slot on the CType
+    // prototype object. We have to destroy that context before we can destroy
+    // the runtime, and we also have to make sure that it isn't the last context
+    // to be destroyed (otherwise it will assert). To accomplish this we create
+    // an unused dummy context, destroy our real context, and then destroy the
+    // dummy. Once this bug is resolved we can remove this nastiness and simply
+    // call JS_DestroyContextNoGC on our context.
     JSContext* dummyCx = JS_NewContext(rt, 0);
     if (dummyCx) {
       JS_DestroyContext(cx);
@@ -416,24 +343,24 @@ public:
   }
 };
 
-} 
+} /* anonymous namespace */
 
 BEGIN_WORKERS_NAMESPACE
 
-
+// Entry point for the DOM.
 JSBool
 ResolveWorkerClasses(JSContext* aCx, JSObject* aObj, jsid aId, uintN aFlags,
                      JSObject** aObjp)
 {
   AssertIsOnMainThread();
 
-  
+  // Don't care about assignments or declarations, bail now.
   if (aFlags & (JSRESOLVE_ASSIGNING | JSRESOLVE_DECLARING)) {
     *aObjp = nsnull;
     return true;
   }
 
-  
+  // Make sure our strings are interned.
   if (JSID_IS_VOID(gStringIDs[0])) {
     for (PRUint32 i = 0; i < ID_COUNT; i++) {
       JSString* str = JS_InternString(aCx, gStringChars[i]);
@@ -463,15 +390,15 @@ ResolveWorkerClasses(JSContext* aCx, JSObject* aObj, jsid aId, uintN aFlags,
 
       isChrome = !!enabled;
 
-      
-      
+      // Don't resolve if this is ChromeWorker and we're not chrome. Otherwise
+      // always resolve.
       shouldResolve = aId == gStringIDs[ID_ChromeWorker] ? isChrome : true;
       break;
     }
   }
 
   if (shouldResolve) {
-    
+    // Don't do anything if workers are disabled.
     if (!isChrome && !Preferences::GetBool(PREF_WORKERS_ENABLED)) {
       *aObjp = nsnull;
       return true;
@@ -499,7 +426,7 @@ ResolveWorkerClasses(JSContext* aCx, JSObject* aObj, jsid aId, uintN aFlags,
     return true;
   }
 
-  
+  // Not resolved.
   *aObjp = nsnull;
   return true;
 }
@@ -556,14 +483,14 @@ RuntimeService::~RuntimeService()
 {
   AssertIsOnMainThread();
 
-  
+  // gRuntimeService can be null if Init() fails.
   NS_ASSERTION(!gRuntimeService || gRuntimeService == this,
                "More than one service!");
 
   gRuntimeService = nsnull;
 }
 
-
+// static
 RuntimeService*
 RuntimeService::GetOrCreateService()
 {
@@ -577,14 +504,14 @@ RuntimeService::GetOrCreateService()
       return nsnull;
     }
 
-    
+    // The observer service now owns us until shutdown.
     gRuntimeService = service;
   }
 
   return gRuntimeService;
 }
 
-
+// static
 RuntimeService*
 RuntimeService::GetService()
 {
@@ -647,7 +574,7 @@ RuntimeService::RegisterWorker(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
     return false;
   }
 
-  
+  // From here on out we must call UnregisterWorker if something fails!
   if (parent) {
     if (!parent->AddChildWorker(aCx, aWorkerPrivate)) {
       UnregisterWorker(aCx, aWorkerPrivate);
@@ -717,10 +644,10 @@ RuntimeService::UnregisterWorker(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
       NS_ERROR("Don't have an entry for this domain!");
     }
 
-    
+    // Remove old worker from everywhere.
     PRUint32 index = domainInfo->mQueuedWorkers.IndexOf(aWorkerPrivate);
     if (index != kNoIndex) {
-      
+      // Was queued, remove from the list.
       domainInfo->mQueuedWorkers.RemoveElementAt(index);
     }
     else if (parent) {
@@ -733,7 +660,7 @@ RuntimeService::UnregisterWorker(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
       domainInfo->mActiveWorkers.RemoveElement(aWorkerPrivate);
     }
 
-    
+    // See if there's a queued worker we can schedule.
     if (domainInfo->ActiveWorkerCount() < gMaxWorkersPerDomain &&
         !domainInfo->mQueuedWorkers.IsEmpty()) {
       queuedWorker = domainInfo->mQueuedWorkers[0];
@@ -783,7 +710,7 @@ bool
 RuntimeService::ScheduleWorker(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
 {
   if (!aWorkerPrivate->Start()) {
-    
+    // This is ok, means that we didn't need to make a thread for this worker.
     return true;
   }
 
@@ -825,9 +752,9 @@ RuntimeService::ScheduleWorker(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   return true;
 }
 
-
+// static
 void
-RuntimeService::ShutdownIdleThreads(nsITimer* aTimer, void* )
+RuntimeService::ShutdownIdleThreads(nsITimer* aTimer, void* /* aClosure */)
 {
   AssertIsOnMainThread();
 
@@ -836,7 +763,7 @@ RuntimeService::ShutdownIdleThreads(nsITimer* aTimer, void* )
 
   NS_ASSERTION(aTimer == runtime->mIdleThreadTimer, "Wrong timer!");
 
-  
+  // Cheat a little and grab all threads that expire within one second of now.
   TimeStamp now = TimeStamp::Now() + TimeDuration::FromSeconds(1);
 
   TimeStamp nextExpiration;
@@ -876,7 +803,7 @@ RuntimeService::ShutdownIdleThreads(nsITimer* aTimer, void* )
     TimeDuration delta = nextExpiration - TimeStamp::Now();
     PRUint32 delay(delta > TimeDuration(0) ? delta.ToMilliseconds() : 0);
 
-    
+    // Reschedule the timer.
     if (NS_FAILED(aTimer->InitWithFuncCallback(ShutdownIdleThreads, nsnull,
                                                delay,
                                                nsITimer::TYPE_ONE_SHOT))) {
@@ -917,9 +844,9 @@ RuntimeService::Init()
     PrefCallback(gPrefsToWatch[index], this);
   }
 
-  
-  
-  
+  // We assume atomic 32bit reads/writes. If this assumption doesn't hold on
+  // some wacky platform then the worst that could happen is that the close
+  // handler will run for a slightly different amount of time.
   if (NS_FAILED(Preferences::AddIntVarCache(&sCloseHandlerTimeoutSeconds,
                                             PREF_MAX_SCRIPT_RUN_TIME,
                                             MAX_SCRIPT_RUN_TIME_SEC))) {
@@ -933,8 +860,8 @@ RuntimeService::Init()
   return NS_OK;
 }
 
-
-
+// This spins the event loop until all workers are finished and their threads
+// have been joined.
 void
 RuntimeService::Cleanup()
 {
@@ -958,7 +885,7 @@ RuntimeService::Cleanup()
     if (!workers.IsEmpty()) {
       nsIThread* currentThread;
 
-      
+      // Cancel all top-level workers.
       {
         MutexAutoUnlock unlock(mMutex);
 
@@ -974,7 +901,7 @@ RuntimeService::Cleanup()
         }
       }
 
-      
+      // Shut down any idle threads.
       if (!mIdleThreadArray.IsEmpty()) {
         nsAutoTArray<nsCOMPtr<nsIThread>, 20> idleThreads;
 
@@ -997,8 +924,8 @@ RuntimeService::Cleanup()
         }
       }
 
-      
-      
+      // And make sure all their final messages have run and all their threads
+      // have joined.
       while (mDomainMap.Count()) {
         MutexAutoUnlock unlock(mMutex);
 
@@ -1031,7 +958,7 @@ RuntimeService::Cleanup()
   }
 }
 
-
+// static
 PLDHashOperator
 RuntimeService::AddAllTopLevelWorkersToArray(const nsACString& aKey,
                                              WorkerDomainInfo* aData,
@@ -1049,7 +976,7 @@ RuntimeService::AddAllTopLevelWorkersToArray(const nsACString& aKey,
 
   array->AppendElements(aData->mActiveWorkers);
 
-  
+  // These might not be top-level workers...
   for (PRUint32 index = 0; index < aData->mQueuedWorkers.Length(); index++) {
     WorkerPrivate* worker = aData->mQueuedWorkers[index];
     if (!worker->GetParent()) {
@@ -1162,7 +1089,7 @@ RuntimeService::NoteIdleThread(nsIThread* aThread)
     }
   }
 
-  
+  // Too many idle threads, just shut this one down.
   if (shutdown) {
     if (NS_FAILED(aThread->Shutdown())) {
       NS_WARNING("Failed to shutdown thread!");
@@ -1170,7 +1097,7 @@ RuntimeService::NoteIdleThread(nsIThread* aThread)
     return;
   }
 
-  
+  // Schedule timer.
   if (NS_FAILED(mIdleThreadTimer->
                   InitWithFuncCallback(ShutdownIdleThreads, nsnull,
                                        IDLE_THREAD_TIMEOUT_SEC * 1000,
@@ -1221,10 +1148,10 @@ RuntimeService::UpdateAllWorkerGCZeal()
 }
 #endif
 
-
+// nsISupports
 NS_IMPL_ISUPPORTS1(RuntimeService, nsIObserver)
 
-
+// nsIObserver
 NS_IMETHODIMP
 RuntimeService::Observe(nsISupports* aSubject, const char* aTopic,
                         const PRUnichar* aData)
@@ -1281,7 +1208,7 @@ RuntimeService::AutoSafeJSContext::~AutoSafeJSContext()
   }
 }
 
-
+// static
 JSContext*
 RuntimeService::AutoSafeJSContext::GetSafeContext()
 {
