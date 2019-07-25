@@ -1234,7 +1234,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
                 
                 
                 
-                Utils.timeout(function() {
+                setTimeout(function() {
                   self._sendToSubscribers("tabAdded", { groupItemId: self.id });
                 }, 1);
               }
