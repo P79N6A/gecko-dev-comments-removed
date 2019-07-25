@@ -441,6 +441,11 @@ class FrameState
     
 
 
+    inline void dupAt(int32 n);
+
+    
+
+
     uint32 stackDepth() const { return sp - spBase; }
     uint32 frameDepth() const { return stackDepth() + script->nfixed; }
     inline FrameEntry *tosFe() const;
