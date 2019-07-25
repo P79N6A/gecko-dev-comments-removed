@@ -924,8 +924,19 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
   static PRBool ComputeBorderRadii(const nsStyleCorners& aBorderRadius,
                                    const nsSize& aFrameSize,
+                                   const nsSize& aBorderArea,
                                    PRIntn aSkipSides,
                                    nscoord aRadii[8]);
 
