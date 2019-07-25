@@ -277,15 +277,20 @@ var AddonManagerInternal = {
     Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm", scope);
     scope.LightweightThemeManager.updateCurrentTheme();
 
-    this.getAddonsByTypes(null, function getAddonsCallback(aAddons) {
+    this.getAllAddons(function getAddonsCallback(aAddons) {
       aAddons.forEach(function BUC_forEachCallback(aAddon) {
-        if (aAddon.permissions & AddonManager.PERM_CAN_UPGRADE) {
-          aAddon.findUpdates({
-            onUpdateAvailable: function BUC_onUpdateAvailable(aAddon, aInstall) {
+        
+        
+        aAddon.findUpdates({
+          onUpdateAvailable: function BUC_onUpdateAvailable(aAddon, aInstall) {
+            
+            
+            if (aAddon.permissions & AddonManager.PERM_CAN_UPGRADE &&
+                aAddon.applyBackgroundUpdates) {
               aInstall.install();
             }
-          }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
-        }
+          }
+        }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
       });
     });
   },
