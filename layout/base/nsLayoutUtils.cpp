@@ -1048,14 +1048,14 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent,
 
   nsIView* view = aFrame->GetView();
   if (view) {
-    nsIWidget* fwidget = view->GetWidget();
-    if (fwidget && fwidget == GUIEvent->widget) {
+    nsIWidget* frameWidget = view->GetWidget();
+    if (frameWidget && frameWidget == GUIEvent->widget) {
       
       
       
       nsPresContext* presContext = aFrame->PresContext();
-      nsPoint pt(presContext->DevPixelsToAppUnits(GUIEvent->refPoint.x),
-                 presContext->DevPixelsToAppUnits(GUIEvent->refPoint.y));
+      nsPoint pt(presContext->DevPixelsToAppUnits(aPoint.x),
+                 presContext->DevPixelsToAppUnits(aPoint.y));
       return pt - view->ViewToWidgetOffset();
     }
   }
