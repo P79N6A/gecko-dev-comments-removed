@@ -4758,8 +4758,7 @@ nsDocShell::GetVisibility(PRBool * aVisibility)
     NS_ENSURE_TRUE(vm, NS_ERROR_FAILURE);
 
     
-    nsIView *view = nsnull; 
-    NS_ENSURE_SUCCESS(vm->GetRootView(view), NS_ERROR_FAILURE);
+    nsIView *view = vm->GetRootView(); 
     NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
 
     
@@ -7047,8 +7046,7 @@ nsDocShell::RestoreFromHistory()
     if (oldPresShell) {
         nsIViewManager *vm = oldPresShell->GetViewManager();
         if (vm) {
-            nsIView *oldRootView = nsnull;
-            vm->GetRootView(oldRootView);
+            nsIView *oldRootView = vm->GetRootView();
 
             if (oldRootView) {
                 rootViewSibling = oldRootView->GetNextSibling();
@@ -7255,9 +7253,7 @@ nsDocShell::RestoreFromHistory()
     nsDocShell::GetPresShell(getter_AddRefs(shell));
 
     nsIViewManager *newVM = shell ? shell->GetViewManager() : nsnull;
-    nsIView *newRootView = nsnull;
-    if (newVM)
-        newVM->GetRootView(newRootView);
+    nsIView *newRootView = newVM ? newVM->GetRootView() : nsnull;
 
     
     if (rootViewParent) {
@@ -7350,7 +7346,7 @@ nsDocShell::RestoreFromHistory()
             
             
             
-            newVM->GetRootView(newRootView);
+            newRootView = newVM->GetRootView();
             if (newRootView) {
                 newVM->UpdateView(newRootView, NS_VMREFRESH_NO_SYNC);
             }

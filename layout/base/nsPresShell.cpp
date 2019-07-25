@@ -4844,8 +4844,8 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       }
 #ifdef DEBUG
       if (!mIsDestroying) {
-        nsIView* rootView;
-        if (NS_SUCCEEDED(mViewManager->GetRootView(rootView)) && rootView) {
+        nsIView* rootView = mViewManager->GetRootView();
+        if (rootView) {
           nsRect bounds = rootView->GetBounds();
           NS_ASSERTION(bounds.Size() == mPresContext->GetVisibleArea().Size(),
                        "root view / pres context visible size mismatch");
@@ -5906,8 +5906,8 @@ LayerManager* PresShell::GetLayerManager()
 {
   NS_ASSERTION(mViewManager, "Should have view manager");
 
-  nsIView* rootView;
-  if (NS_SUCCEEDED(mViewManager->GetRootView(rootView)) && rootView) {
+  nsIView* rootView = mViewManager->GetRootView();
+  if (rootView) {
     if (nsIWidget* widget = rootView->GetWidget()) {
       return widget->GetLayerManager();
     }
@@ -6270,8 +6270,7 @@ PresShell::RetargetEventToParent(nsGUIEvent*     aEvent,
   }
 
   
-  nsIView *parentRootView;
-  parentPresShell->GetViewManager()->GetRootView(parentRootView);
+  nsIView *parentRootView = parentPresShell->GetViewManager()->GetRootView();
   
   return parentViewObserver->HandleEvent(parentRootView, aEvent, PR_TRUE, aEventStatus);
 }
@@ -6362,10 +6361,8 @@ PresShell::HandleEvent(nsIView         *aView,
         if (!viewObserver)
           return NS_ERROR_FAILURE;
 
-        nsIView *view;
-        presShell->GetViewManager()->GetRootView(view);
-        nsresult rv = viewObserver->HandleEvent(view, aEvent, PR_TRUE, aEventStatus);
-        return rv;
+        nsIView* view = presShell->GetViewManager()->GetRootView();
+        return viewObserver->HandleEvent(view, aEvent, PR_TRUE, aEventStatus);
       }
     }
   }
@@ -6394,8 +6391,7 @@ PresShell::HandleEvent(nsIView         *aView,
       
       
       
-      nsIView *view;
-      vm->GetRootView(view);
+      nsIView* view = vm->GetRootView();
       if (view == aView) {
         *aEventStatus = nsEventStatus_eConsumeDoDefault;
         mPresContext->SysColorChanged();
@@ -6586,8 +6582,7 @@ PresShell::HandleEvent(nsIView         *aView,
           nsContentUtils::ContentIsCrossDocDescendantOf(activeShell->GetDocument(),
                                                         shell->GetDocument())) {
         shell = static_cast<PresShell*>(activeShell);
-        nsIView* activeShellRootView;
-        shell->GetViewManager()->GetRootView(activeShellRootView);
+        nsIView* activeShellRootView = shell->GetViewManager()->GetRootView();
         frame = static_cast<nsIFrame*>(activeShellRootView->GetClientData());
       }
     }
@@ -6596,8 +6591,7 @@ PresShell::HandleEvent(nsIView         *aView,
       
       
       nsCOMPtr<nsIPresShell> kungFuDeathGrip(shell);
-      nsIView* subshellRootView;
-      shell->GetViewManager()->GetRootView(subshellRootView);
+      nsIView* subshellRootView = shell->GetViewManager()->GetRootView();
       
       
       
@@ -6663,8 +6657,7 @@ PresShell::HandleEvent(nsIView         *aView,
         nsIPresShell* shell = targetDoc->GetShell();
         nsCOMPtr<nsIViewObserver> vo = do_QueryInterface(shell);
         if (vo) {
-          nsIView* root = nsnull;
-          shell->GetViewManager()->GetRootView(root);
+          nsIView* root = shell->GetViewManager()->GetRootView();
           rv = static_cast<PresShell*>(shell)->HandleRetargetedEvent(aEvent,
                                                                      root,
                                                                      aEventStatus,
@@ -7850,8 +7843,7 @@ PresShell::DoVerifyReflow()
   if (GetVerifyReflowEnable()) {
     
     
-    nsIView* rootView;
-    mViewManager->GetRootView(rootView);
+    nsIView* rootView = mViewManager->GetRootView();
     mViewManager->UpdateView(rootView, NS_VMREFRESH_IMMEDIATE);
 
     FlushPendingNotifications(Flush_Layout);
@@ -8495,8 +8487,7 @@ PresShell::VerifyIncrementalReflow()
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   
-  nsIView* rootView;
-  mViewManager->GetRootView(rootView);
+  nsIView* rootView = mViewManager->GetRootView();
   NS_ENSURE_TRUE(rootView->HasWidget(), PR_FALSE);
   nsIWidget* parentWidget = rootView->GetWidget();
 

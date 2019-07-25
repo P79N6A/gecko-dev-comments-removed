@@ -45,7 +45,6 @@
 
 
 
-
 #ifdef MOZ_IPC
 #include "base/basictypes.h"
 #endif
@@ -68,8 +67,6 @@
 #include "nsReadableUtils.h"
 #include "nsDOMClassInfo.h"
 #include "nsJSEnvironment.h"
-#include "nsCharSeparatedTokenizer.h" 
-#include "nsUnicharUtils.h"
 
 
 #include "nsIEventListenerManager.h"
@@ -10147,8 +10144,7 @@ nsGlobalChromeWindow::SetCursor(const nsAString& aCursor)
     nsIViewManager* vm = presShell->GetViewManager();
     NS_ENSURE_TRUE(vm, NS_ERROR_FAILURE);
 
-    nsIView *rootView;
-    vm->GetRootView(rootView);
+    nsIView* rootView = vm->GetRootView();
     NS_ENSURE_TRUE(rootView, NS_ERROR_FAILURE);
 
     nsIWidget* widget = rootView->GetNearestWidget(nsnull);
@@ -10568,56 +10564,19 @@ nsNavigator::GetAppName(nsAString& aAppName)
   return NS_GetNavigatorAppName(aAppName);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 NS_IMETHODIMP
 nsNavigator::GetLanguage(nsAString& aLanguage)
 {
-  
-  const nsAdoptingString& acceptLang =
-      nsContentUtils::GetLocalizedStringPref("intl.accept_languages");
-  
-  nsCharSeparatedTokenizer langTokenizer(acceptLang, ',');
-  const nsSubstring &firstLangPart = langTokenizer.nextToken();
-  nsCharSeparatedTokenizer qTokenizer(firstLangPart, ';');
-  aLanguage.Assign(qTokenizer.nextToken());
-
-  
-  
-  if (aLanguage.Length() > 2 && aLanguage[2] == PRUnichar('_'))
-    aLanguage.Replace(2, 1, PRUnichar('-')); 
-  
-  
-  if (aLanguage.Length() > 2)
-  {
-    nsCharSeparatedTokenizer localeTokenizer(aLanguage, '-');
-    PRInt32 pos = 0;
-    bool first = true;
-    while (localeTokenizer.hasMoreTokens())
-    {
-      const nsSubstring &code = localeTokenizer.nextToken();
-      if (code.Length() == 2 && !first)
-      {
-        nsAutoString upper(code);
-        ::ToUpperCase(upper);
-        aLanguage.Replace(pos, code.Length(), upper);
-      }
-      pos += code.Length() + 1; 
-      if (first)
-        first = false;
-    }
+  nsresult rv;
+  nsCOMPtr<nsIHttpProtocolHandler>
+    service(do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "http", &rv));
+  if (NS_SUCCEEDED(rv)) {
+    nsCAutoString lang;
+    rv = service->GetLanguage(lang);
+    CopyASCIItoUTF16(lang, aLanguage);
   }
-  return NS_OK;
+
+  return rv;
 }
 
 NS_IMETHODIMP

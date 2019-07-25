@@ -2436,9 +2436,8 @@ nsPresContext::IsRootContentDocument()
     return PR_FALSE;
   }
   
-  nsIViewManager* vm = PresShell()->GetViewManager();
-  nsIView* view = nsnull;
-  if (NS_FAILED(vm->GetRootView(view)) || !view) {
+  nsIView* view = PresShell()->GetViewManager()->GetRootView();
+  if (!view) {
     return PR_FALSE;
   }
   view = view->GetParent(); 

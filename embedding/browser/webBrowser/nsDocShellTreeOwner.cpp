@@ -40,7 +40,6 @@
 
 
 
-
 #include "nsDocShellTreeOwner.h"
 #include "nsWebBrowser.h"
 
@@ -1570,8 +1569,7 @@ ChromeTooltipListener::sTooltipCallback(nsITimer *aTimer,
     if (shell) {
       nsIViewManager* vm = shell->GetViewManager();
       if (vm) {
-        nsIView* view;
-        vm->GetRootView(view);
+        nsIView* view = vm->GetRootView();
         if (view) {
           nsPoint offset;
           widget = view->GetNearestWidget(&offset);
