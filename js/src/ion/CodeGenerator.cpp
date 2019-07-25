@@ -367,6 +367,146 @@ CodeGenerator::visitTypeBarrier(LTypeBarrier *lir)
     return true;
 }
 
+bool
+CodeGenerator::visitCallGeneric(LCallGeneric *call)
+{
+    
+    const LAllocation *callee = call->getFunction();
+    Register calleereg  = ToRegister(callee);
+
+    
+    const LAllocation *obj = call->getTempObject();
+    Register objreg  = ToRegister(obj);
+
+    
+    const LAllocation *nargs = call->getNargsReg();
+    Register nargsreg = ToRegister(nargs);
+
+    uint32 callargslot  = call->argslot();
+    uint32 unusedStack = StackOffsetOfPassedArg(callargslot);
+
+
+#ifdef JS_CPU_ARM
+    masm.checkStackAlignment();
+#endif
+
+    
+    masm.loadObjClass(calleereg, nargsreg);
+    masm.cmpPtr(nargsreg, ImmWord(&js::FunctionClass));
+    if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
+        return false;
+
+    Label end, invoke;
+
+    
+    
+    
+    masm.branchTest32(Assembler::Zero, Address(calleereg, offsetof(JSFunction, flags)),
+                      Imm32(JSFUN_INTERPRETED), &invoke);
+
+    
+    masm.movePtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
+    masm.movePtr(Address(objreg, offsetof(JSScript, ion)), objreg);
+
+    
+    Label compiled;
+    
+    masm.branchPtr(Assembler::BelowOrEqual, objreg, ImmWord(ION_DISABLED_SCRIPT), &invoke);
+    
+    masm.jump(&compiled);
+    {
+        masm.bind(&invoke);
+
+        typedef bool (*pf)(JSContext *, JSFunction *, uint32, Value *, Value *);
+        static const VMFunction InvokeFunctionInfo = FunctionInfo<pf>(InvokeFunction);
+
+        
+        masm.freeStack(unusedStack);
+
+        pushArg(StackPointer);          
+        pushArg(Imm32(call->nargs()));  
+        pushArg(calleereg);             
+
+        if (!callVM(InvokeFunctionInfo, call))
+            return false;
+
+        
+        masm.reserveStack(unusedStack);
+
+        
+        masm.jump(&end);
+    }
+    masm.bind(&compiled);
+
+    
+    uint32 stackSize = masm.framePushed() - unusedStack;
+    uint32 sizeDescriptor = (stackSize << FRAMETYPE_BITS) | IonFrame_JS;
+
+    
+    if (unusedStack)
+        masm.freeStack(unusedStack);
+
+    
+    masm.Push(calleereg);
+    masm.Push(Imm32(sizeDescriptor));
+
+#ifdef JS_CPU_ARM
+    masm.checkStackAlignment();
+#endif
+
+    
+    {
+        Label thunk, rejoin;
+
+        
+        IonCompartment *ion = gen->ionCompartment();
+        IonCode *argumentsRectifier = ion->getArgumentsRectifier(gen->cx);
+        if (!argumentsRectifier)
+            return false;
+
+        
+        
+#ifdef JS_CPU_ARM
+        masm.ma_ldrh(EDtrAddr(calleereg, EDtrOffImm(offsetof(JSFunction, nargs))),
+                     nargsreg);
+#else
+        masm.load16(Address(calleereg, offsetof(JSFunction, nargs)), nargsreg);
+#endif
+        masm.cmp32(nargsreg, Imm32(call->nargs()));
+        masm.j(Assembler::Above, &thunk);
+
+        
+        masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
+        masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+        masm.jump(&rejoin);
+
+        
+        masm.bind(&thunk);
+        masm.move32(Imm32(call->nargs()), ArgumentsRectifierReg);
+        masm.movePtr(ImmWord(argumentsRectifier->raw()), objreg);
+
+        
+        masm.bind(&rejoin);
+        masm.callIon(objreg);
+        if (!createSafepoint(call))
+            return false;
+    }
+
+    
+    
+    int prefixGarbage = sizeof(IonJSFrameLayout) - sizeof(void *);
+    int restoreDiff = prefixGarbage - unusedStack;
+    
+    if (restoreDiff > 0)
+        masm.freeStack(restoreDiff);
+    else if (restoreDiff < 0)
+        masm.reserveStack(-restoreDiff);
+
+    masm.bind(&end);
+
+    return true;
+}
+
 
 static const uint32 EntryTempMask = Registers::TempMask & ~(1 << OsrFrameReg.code());
 
