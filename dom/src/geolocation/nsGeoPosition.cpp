@@ -38,7 +38,7 @@
 
 
 #include "nsGeoPosition.h"
-#include "nsDOMClassInfo.h"
+#include "nsDOMClassInfoID.h"
 
 
 

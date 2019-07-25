@@ -37,7 +37,7 @@
 
 
 #include "nsXPathNSResolver.h"
-#include "nsIDOMClassInfo.h"
+#include "nsDOMClassInfoID.h"
 #include "nsDOMString.h"
 #include "nsContentUtils.h"
 

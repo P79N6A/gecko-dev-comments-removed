@@ -87,6 +87,7 @@
 #include "prmem.h"
 #include "WrapperFactory.h"
 #include "nsGlobalWindow.h"
+#include "nsScriptNameSpaceManager.h"
 
 #ifdef XP_MACOSX
 

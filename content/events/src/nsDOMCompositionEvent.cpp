@@ -38,7 +38,7 @@
 
 
 #include "nsDOMCompositionEvent.h"
-#include "nsDOMClassInfo.h"
+#include "nsDOMClassInfoID.h"
 
 nsDOMCompositionEvent::nsDOMCompositionEvent(nsPresContext* aPresContext,
                                              nsCompositionEvent* aEvent)

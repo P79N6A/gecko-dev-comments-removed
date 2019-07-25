@@ -37,7 +37,8 @@
 
 
 #include "nsDOMOfflineResourceList.h"
-#include "nsDOMClassInfo.h"
+#include "nsDOMClassInfoID.h"
+#include "nsIScriptSecurityManager.h"
 #include "nsDOMError.h"
 #include "nsDOMLists.h"
 #include "nsIPrefetchService.h"
