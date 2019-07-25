@@ -561,9 +561,10 @@ public class GeckoInputConnection
 
             GeckoAppShell.sendEventToGecko(
                 new GeckoEvent(GeckoEvent.IME_SET_SELECTION, start + count, 0));
-
-            
         }
+
+        
+        GeckoAppShell.geckoEventSync();
     }
 
     public void afterTextChanged(Editable s)
