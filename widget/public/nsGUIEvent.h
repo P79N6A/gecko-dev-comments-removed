@@ -126,6 +126,7 @@ class nsHashKey;
 #define NS_GESTURENOTIFY_EVENT            40
 #define NS_UISTATECHANGE_EVENT            41
 #define NS_MOZTOUCH_EVENT                 42
+#define NS_PLUGIN_EVENT                   43
 
 
 
@@ -459,9 +460,9 @@ class nsHashKey;
 #define NS_SIMPLE_GESTURE_PRESSTAP       (NS_SIMPLE_GESTURE_EVENT_START+8)
 
 
-#define NS_PLUGIN_EVENT_START   3600
-#define NS_PLUGIN_EVENT                 (NS_PLUGIN_EVENT_START)
-#define NS_NON_RETARGETED_PLUGIN_EVENT  (NS_PLUGIN_EVENT_START+1)
+#define NS_PLUGIN_EVENT_START            3600
+#define NS_PLUGIN_INPUT_EVENT            (NS_PLUGIN_EVENT_START)
+#define NS_PLUGIN_FOCUS_EVENT            (NS_PLUGIN_EVENT_START+1)
 
 
 #define NS_SELECTION_EVENT_START        3700
@@ -1530,6 +1531,25 @@ public:
 
 
 
+
+class nsPluginEvent : public nsGUIEvent
+{
+public:
+  nsPluginEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)
+    : nsGUIEvent(isTrusted, msg, w, NS_PLUGIN_EVENT),
+      retargetToFocusedDocument(PR_FALSE)
+  {
+  }
+
+  
+  
+  
+  PRBool retargetToFocusedDocument;
+};
+
+
+
+
 enum nsDragDropEventStatus {  
   
   nsDragDropEventStatus_eDragEntered,            
@@ -1613,10 +1633,16 @@ enum nsDragDropEventStatus {
        ((evnt)->eventStructType == NS_CONTENT_COMMAND_EVENT)
 
 #define NS_IS_PLUGIN_EVENT(evnt) \
-       (((evnt)->message == NS_PLUGIN_EVENT))
+       (((evnt)->message == NS_PLUGIN_INPUT_EVENT) || \
+        ((evnt)->message == NS_PLUGIN_FOCUS_EVENT))
+
+#define NS_IS_RETARGETED_PLUGIN_EVENT(evnt) \
+       (NS_IS_PLUGIN_EVENT(evnt) && \
+        (static_cast<nsPluginEvent*>(evnt)->retargetToFocusedDocument))
 
 #define NS_IS_NON_RETARGETED_PLUGIN_EVENT(evnt) \
-       (((evnt)->message == NS_NON_RETARGETED_PLUGIN_EVENT))
+       (NS_IS_PLUGIN_EVENT(evnt) && \
+        !(static_cast<nsPluginEvent*>(evnt)->retargetToFocusedDocument))
 
 #define NS_IS_TRUSTED_EVENT(event) \
   (((event)->flags & NS_EVENT_FLAG_TRUSTED) != 0)
@@ -1806,7 +1832,7 @@ inline PRBool NS_IsEventUsingCoordinates(nsEvent* aEvent)
 {
   return !NS_IS_KEY_EVENT(aEvent) && !NS_IS_IME_RELATED_EVENT(aEvent) &&
          !NS_IS_CONTEXT_MENU_KEY(aEvent) && !NS_IS_ACTIVATION_EVENT(aEvent) &&
-         !NS_IS_PLUGIN_EVENT(aEvent) && !NS_IS_NON_RETARGETED_PLUGIN_EVENT(aEvent) &&
+         !NS_IS_PLUGIN_EVENT(aEvent) &&
          !NS_IS_CONTENT_COMMAND_EVENT(aEvent) &&
          aEvent->eventStructType != NS_ACCESSIBLE_EVENT;
 }
@@ -1827,7 +1853,8 @@ inline PRBool NS_IsEventTargetedAtFocusedWindow(nsEvent* aEvent)
 {
   return NS_IS_KEY_EVENT(aEvent) || NS_IS_IME_RELATED_EVENT(aEvent) ||
          NS_IS_CONTEXT_MENU_KEY(aEvent) ||
-         NS_IS_CONTENT_COMMAND_EVENT(aEvent) || NS_IS_PLUGIN_EVENT(aEvent);
+         NS_IS_CONTENT_COMMAND_EVENT(aEvent) ||
+         NS_IS_RETARGETED_PLUGIN_EVENT(aEvent);
 }
 
 
@@ -1844,7 +1871,8 @@ inline PRBool NS_IsEventTargetedAtFocusedWindow(nsEvent* aEvent)
 inline PRBool NS_IsEventTargetedAtFocusedContent(nsEvent* aEvent)
 {
   return NS_IS_KEY_EVENT(aEvent) || NS_IS_IME_RELATED_EVENT(aEvent) ||
-         NS_IS_CONTEXT_MENU_KEY(aEvent) || NS_IS_PLUGIN_EVENT(aEvent);
+         NS_IS_CONTEXT_MENU_KEY(aEvent) ||
+         NS_IS_RETARGETED_PLUGIN_EVENT(aEvent);
 }
 
 #endif
