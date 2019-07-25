@@ -83,9 +83,10 @@ static const char *OpcodeNames[] = {
 };
 #endif
 
-mjit::Compiler::Compiler(JSContext *cx, JSStackFrame *fp)
+mjit::Compiler::Compiler(JSContext *cx, JSStackFrame *fp, const Vector<PatchableFrame> *frames)
   : BaseCompiler(cx),
     fp(fp),
+    frames(frames),
     script(fp->script()),
     scopeChain(&fp->scopeChain()),
     globalObj(scopeChain->getGlobal()),
@@ -135,7 +136,7 @@ mjit::Compiler::Compiler(JSContext *cx, JSStackFrame *fp)
 }
 
 CompileStatus
-mjit::Compiler::compile(const Vector<JSStackFrame*> *frames)
+mjit::Compiler::compile()
 {
     JS_ASSERT_IF(isConstructing, !script->jitCtor);
     JS_ASSERT_IF(!isConstructing, !script->jitNormal);
@@ -145,7 +146,7 @@ mjit::Compiler::compile(const Vector<JSStackFrame*> *frames)
                        ? &script->jitArityCheckCtor
                        : &script->jitArityCheckNormal;
 
-    CompileStatus status = performCompilation(jit, frames);
+    CompileStatus status = performCompilation(jit);
     if (status == Compile_Okay) {
         
         
@@ -174,7 +175,7 @@ mjit::Compiler::compile(const Vector<JSStackFrame*> *frames)
     JS_END_MACRO
 
 CompileStatus
-mjit::Compiler::performCompilation(JITScript **jitp, const Vector<JSStackFrame*> *frames)
+mjit::Compiler::performCompilation(JITScript **jitp)
 {
     JaegerSpew(JSpew_Scripts, "compiling script (file \"%s\") (line \"%d\") (length \"%d\")\n",
                script->filename, script->lineno, script->length);
@@ -249,7 +250,7 @@ mjit::Compiler::performCompilation(JITScript **jitp, const Vector<JSStackFrame*>
     types::AutoEnterTypeInference enter(cx, true);
 
     if (cx->typeInferenceEnabled()) {
-        CompileStatus status = prepareInferenceTypes(frames);
+        CompileStatus status = prepareInferenceTypes();
         if (status != Compile_Okay) {
             if (!cx->compartment->types.checkPendingRecompiles(cx))
                 return Compile_Error;
@@ -288,7 +289,7 @@ mjit::Compiler::~Compiler()
 }
 
 CompileStatus
-mjit::Compiler::prepareInferenceTypes(const Vector<JSStackFrame*> *frames)
+mjit::Compiler::prepareInferenceTypes()
 {
     
     if (!script->types) {
@@ -302,15 +303,6 @@ mjit::Compiler::prepareInferenceTypes(const Vector<JSStackFrame*> *frames)
 
     
 
-
-
-
-
-
-
-
-
-
     uint32 nargs = fun ? fun->nargs : 0;
     if (!argumentTypes.reserve(nargs))
         return Compile_Error;
@@ -319,13 +311,6 @@ mjit::Compiler::prepareInferenceTypes(const Vector<JSStackFrame*> *frames)
         if (!analysis->argEscapes(i))
             type = script->argTypes(i)->getKnownTypeTag(cx, script);
         argumentTypes.append(type);
-        if (type == JSVAL_TYPE_DOUBLE && frames) {
-            for (unsigned j = 0; j < frames->length(); j++) {
-                Value *vp = (*frames)[j]->formalArgs() + i;
-                if (vp->isInt32())
-                    vp->setDouble((double)vp->toInt32());
-            }
-        }
     }
 
     if (!localTypes.reserve(script->nfixed))
@@ -335,52 +320,6 @@ mjit::Compiler::prepareInferenceTypes(const Vector<JSStackFrame*> *frames)
         if (!analysis->localHasUseBeforeDef(i))
             type = script->localTypes(i)->getKnownTypeTag(cx, script);
         localTypes.append(type);
-        if (type == JSVAL_TYPE_DOUBLE && frames) {
-            for (unsigned j = 0; j < frames->length(); j++) {
-                Value *vp = (*frames)[j]->slots() + i;
-                if (vp->isInt32())
-                    vp->setDouble((double)vp->toInt32());
-            }
-        }
-    }
-
-    
-
-
-
-
-
-
-
-
-    for (unsigned i = 0; frames && i < frames->length(); i++) {
-        uint32 offset = (*frames)[i]->pc(cx) - script->code;
-        uint32 stackDepth = analysis->getCode(offset).stackDepth;
-        if (!stackDepth)
-            continue;
-        JS_ASSERT(offset);
-        while (offset--) {
-            analyze::Bytecode *code = analysis->maybeCode(offset);
-            if (!code)
-                continue;
-
-            uint32 startDepth = code->stackDepth - analyze::GetUseCount(script, offset);
-            if (startDepth < stackDepth) {
-                for (unsigned j = startDepth; j < stackDepth; j++) {
-                    types::TypeSet *types = script->types->pushed(offset, j - startDepth);
-                    JSValueType type = types->getKnownTypeTag(cx, NULL);
-                    if (type == JSVAL_TYPE_DOUBLE) {
-                        Value *vp = (*frames)[i]->slots() + script->nfixed + j;
-                        if (vp->isInt32())
-                            vp->setDouble((double)vp->toInt32());
-                    }
-                }
-                stackDepth = startDepth;
-            }
-
-            if (code->jumpTarget)
-                break;
-        }
     }
 
     return Compile_Okay;
@@ -404,8 +343,8 @@ mjit::TryCompile(JSContext *cx, JSStackFrame *fp)
     
     CompileStatus status = Compile_Overflow;
     for (unsigned i = 0; status == Compile_Overflow && i < 5; i++) {
-        Compiler cc(cx, fp);
-        status = cc.compile(NULL);
+        Compiler cc(cx, fp, NULL);
+        status = cc.compile();
     }
 
     return status;
@@ -1098,6 +1037,13 @@ public:
     JS_END_MACRO;                           \
     break;
 
+static inline void
+FixDouble(Value &val)
+{
+    if (val.isInt32())
+        val.setDouble((double)val.toInt32());
+}
+
 CompileStatus
 mjit::Compiler::generateMethod()
 {
@@ -1207,6 +1153,41 @@ mjit::Compiler::generateMethod()
 
             InternalCallSite site(offset, PC, CallSite::MAGIC_TRAP_ID, false, true);
             addCallSite(site);
+        }
+
+        
+
+
+
+
+
+
+
+
+
+        for (unsigned i = 0; frames && i < frames->length(); i++) {
+            if ((*frames)[i].pc != PC)
+                continue;
+            JSStackFrame *patchfp = (*frames)[i].fp;
+
+            for (unsigned j = 0; fun && j < fun->nargs; j++) {
+                FrameEntry *fe = frame.getArg(j);
+                if (fe->isType(JSVAL_TYPE_DOUBLE))
+                    FixDouble(patchfp->formalArg(j));
+            }
+
+            for (unsigned j = 0; j < script->nfixed; j++) {
+                FrameEntry *fe = frame.getLocal(j);
+                if (fe->isType(JSVAL_TYPE_DOUBLE))
+                    FixDouble(patchfp->varSlot(j));
+            }
+
+            unsigned depth = opinfo->stackDepth - analyze::GetUseCount(script, PC - script->code);
+            for (unsigned j = 0; j < depth; j++) {
+                FrameEntry *fe = frame.getStack(j);
+                if (fe->isType(JSVAL_TYPE_DOUBLE))
+                    FixDouble(patchfp->base()[j]);
+            }
         }
 
     

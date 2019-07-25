@@ -253,8 +253,8 @@ Recompiler::recompile()
     Vector<PatchableNative> ctorNatives(cx);
 
     
-    Vector<JSStackFrame*> normalFrames(cx);
-    Vector<JSStackFrame*> ctorFrames(cx);
+    Vector<PatchableFrame> normalFrames(cx);
+    Vector<PatchableFrame> ctorFrames(cx);
 
     
     
@@ -268,10 +268,12 @@ Recompiler::recompile()
         for (JSStackFrame *fp = f->fp(); fp != end; fp = fp->prev()) {
             if (fp->script() == script) {
                 
-                fp->pc(cx, next);
-                if (fp->isConstructing() && !ctorFrames.append(fp))
+                PatchableFrame frame;
+                frame.fp = fp;
+                frame.pc = fp->pc(cx, next);
+                if (fp->isConstructing() && !ctorFrames.append(frame))
                     return false;
-                if (!fp->isConstructing() && !normalFrames.append(fp))
+                if (!fp->isConstructing() && !normalFrames.append(frame))
                     return false;
             }
 
@@ -364,19 +366,19 @@ Recompiler::cleanup(JITScript *jit, Vector<CallSite> *sites, uint32 *recompilati
 }
 
 bool
-Recompiler::recompile(Vector<JSStackFrame*> &frames, Vector<PatchableAddress> &patches, Vector<CallSite> &sites,
+Recompiler::recompile(Vector<PatchableFrame> &frames, Vector<PatchableAddress> &patches, Vector<CallSite> &sites,
                       Vector<PatchableNative> &natives,
                       uint32 recompilations)
 {
-    JSStackFrame *fp = frames[0];
+    JSStackFrame *fp = frames[0].fp;
 
     JaegerSpew(JSpew_Recompile, "On stack recompilation, %u patches, %u natives\n",
                patches.length(), natives.length());
 
-    Compiler c(cx, fp);
+    Compiler c(cx, fp, &frames);
     if (!c.loadOldTraps(sites))
         return false;
-    if (c.compile(&frames) != Compile_Okay)
+    if (c.compile() != Compile_Okay)
         return false;
 
     script->getJIT(fp->isConstructing())->recompilations = recompilations + 1;
