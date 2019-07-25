@@ -17,42 +17,50 @@ XPCOMUtils.defineLazyServiceGetter(Services, "cookiemgr",
                                    "@mozilla.org/cookiemanager;1",
                                    "nsICookieManager2");
 
+function _observer(generator, service, topic) {
+  Services.obs.addObserver(this, topic, false);
 
-function do_reload_profile(generator, profile, cleanse) {
-  function _observer(generator, service, topic) {
-    Services.obs.addObserver(this, topic, false);
+  this.service = service;
+  this.generator = generator;
+  this.topic = topic;
+}
 
-    this.service = service;
-    this.generator = generator;
-    this.topic = topic;
-  }
+_observer.prototype = {
+  observe: function (subject, topic, data) {
+    do_check_eq(this.topic, topic);
 
-  _observer.prototype = {
-    observe: function (subject, topic, data) {
-      do_check_eq(this.topic, topic);
+    Services.obs.removeObserver(this, this.topic);
 
-      Services.obs.removeObserver(this, this.topic);
-
-      
-      
-      this.service.observe(null, "profile-do-change", "");
+    
+    if (this.generator)
       this.generator.next();
 
-      this.generator = null;
-      this.service = null;
-      this.topic = null;
-    }
+    this.generator = null;
+    this.service = null;
+    this.topic = null;
   }
+}
 
-  let dbfile = profile.QueryInterface(Ci.nsILocalFile).clone();
-  dbfile.append("cookies.sqlite");
 
+
+function do_close_profile(generator, cleanse) {
   
   let service = Services.cookies.QueryInterface(Ci.nsIObserver);
   let obs = new _observer(generator, service, "cookie-db-closed");
 
   
   service.observe(null, "profile-before-change", cleanse ? cleanse : "");
+}
+
+
+
+function do_load_profile(generator) {
+  
+  let service = Services.cookies.QueryInterface(Ci.nsIObserver);
+  let obs = new _observer(generator, service, "cookie-db-read");
+
+  
+  service.observe(null, "profile-do-change", "");
 }
 
 
@@ -73,3 +81,17 @@ function do_set_cookies(uri, channel, session, expected) {
   Services.cookies.setCookieStringFromHttp(uri, null, null, "hot=dog" + suffix, null, channel);
   do_check_eq(Services.cookiemgr.countCookiesFromHost(uri.host), expected[3]);
 }
+
+function do_count_enumerator(enumerator) {
+  let i = 0;
+  while (enumerator.hasMoreElements()) {
+    enumerator.getNext();
+    ++i;
+  }
+  return i;
+}
+
+function do_count_cookies() {
+  return do_count_enumerator(Services.cookiemgr.enumerator);
+}
+
