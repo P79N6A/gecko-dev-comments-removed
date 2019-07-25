@@ -1360,14 +1360,6 @@ struct JSContext
     inline bool typeInferenceEnabled();
 
     
-    js::types::TypeFunction *newTypeFunction(const char *name, JSObject *proto);
-    js::types::TypeObject   *newTypeObject(const char *name, JSObject *proto);
-
-    
-    js::types::TypeObject *newTypeObject(const char *base, const char *postfix,
-                                         JSObject *proto, bool isFunction = false);
-
-    
 
 
 
