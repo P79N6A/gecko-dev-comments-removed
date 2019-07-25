@@ -90,6 +90,7 @@ public:
 
   void SetMatrixUniform(GLint aLocation, const GLfloat *aValue);
   void SetInt(GLint aLocation, GLint aValue);
+  void SetColor(GLint aLocation, const gfxRGBA& aColor);
 
   void SetMatrixProj(GLfloat *aValue)
   {
@@ -137,6 +138,20 @@ public:
   }
 protected:
   GLint mLayerTextureLocation;
+};
+
+class ColorLayerProgram : public LayerProgram
+{
+public:
+  void UpdateLocations();
+
+  void SetLayerColor(const gfxRGBA& aColor)
+  {
+    SetColor(mRenderColorLocation, aColor);
+  }
+
+protected:
+  GLint mRenderColorLocation;
 };
 
 class YCbCrLayerProgram : public LayerProgram
@@ -211,6 +226,8 @@ public:
 
   virtual already_AddRefed<ImageLayer> CreateImageLayer();
 
+  virtual already_AddRefed<ColorLayer> CreateColorLayer();
+
   virtual already_AddRefed<ImageContainer> CreateImageContainer();
 
   virtual LayersBackend GetBackendType() { return LAYERS_OPENGL; }
@@ -223,6 +240,7 @@ public:
   void MakeCurrent();
 
   RGBLayerProgram *GetRGBLayerProgram() { return mRGBLayerProgram; }
+  ColorLayerProgram *GetColorLayerProgram() { return mColorLayerProgram; }
   YCbCrLayerProgram *GetYCbCrLayerProgram() { return mYCbCrLayerProgram; }
 
   typedef mozilla::gl::GLContext GLContext;
@@ -248,11 +266,15 @@ private:
   
   RGBLayerProgram *mRGBLayerProgram;
   
+  ColorLayerProgram *mColorLayerProgram;
+  
   YCbCrLayerProgram *mYCbCrLayerProgram;
   
   GLuint mVertexShader;
   
   GLuint mRGBShader;
+  
+  GLuint mColorShader;
   
   GLuint mYUVShader;
   
@@ -294,7 +316,7 @@ class LayerOGL
 public:
   LayerOGL(LayerManagerOGL *aManager);
 
-  enum LayerType { TYPE_THEBES, TYPE_CONTAINER, TYPE_IMAGE };
+  enum LayerType { TYPE_THEBES, TYPE_CONTAINER, TYPE_IMAGE, TYPE_COLOR };
   
   virtual LayerType GetType() = 0;
 

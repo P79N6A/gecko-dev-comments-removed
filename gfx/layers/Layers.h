@@ -45,6 +45,7 @@
 #include "nsISupportsImpl.h"
 #include "nsAutoPtr.h"
 #include "gfx3DMatrix.h"
+#include "gfxColor.h"
 
 class gfxContext;
 class nsPaintEvent;
@@ -56,6 +57,7 @@ class Layer;
 class ThebesLayer;
 class ContainerLayer;
 class ImageLayer;
+class ColorLayer;
 class ImageContainer;
 
 
@@ -164,6 +166,11 @@ public:
 
 
   virtual already_AddRefed<ImageLayer> CreateImageLayer() = 0;
+  
+
+
+
+  virtual already_AddRefed<ColorLayer> CreateColorLayer() = 0;
 
   
 
@@ -400,6 +407,32 @@ protected:
   {}
 
   Layer* mFirstChild;
+};
+
+
+
+
+class THEBES_API ColorLayer : public Layer {
+public:
+  
+
+
+
+  virtual void SetColor(const gfxRGBA& aColor)
+  {
+    mColor = aColor;
+  }
+
+  
+  virtual const gfxRGBA& GetColor() { return mColor; }
+
+protected:
+  ColorLayer(LayerManager* aManager, void* aImplData)
+    : Layer(aManager, aImplData),
+      mColor(0.0, 0.0, 0.0, 0.0)
+  {}
+
+  gfxRGBA mColor;
 };
 
 }
