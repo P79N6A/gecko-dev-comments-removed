@@ -1041,7 +1041,12 @@ var Browser = {
     view.setScale(scale);
     view._contentView.scrollTo(scrollX, scrollY);
 
-    browser.scale = scale;
+    
+    
+    if (scale == browser.scale)
+      view._updateCacheViewport();
+    else
+      browser.scale = scale;
   },
 
   zoomToPoint: function zoomToPoint(cX, cY, aRect) {
