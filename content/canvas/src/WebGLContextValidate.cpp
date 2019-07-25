@@ -454,7 +454,18 @@ WebGLContext::InitAndValidateGL()
         
         
         
-        gl->fEnable(LOCAL_GL_POINT_SPRITE);
+        
+#ifdef XP_WIN
+        if (gl->Vendor() != GLContext::VendorATI))
+#else
+        if (true)
+#endif
+        {
+            
+            
+            
+            gl->fEnable(LOCAL_GL_POINT_SPRITE);
+        }
     }
 
     
