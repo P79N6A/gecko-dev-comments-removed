@@ -647,6 +647,14 @@ class SetPropCompiler : public PICStubCompiler
             if (!shape)
                 return false;
 
+            
+
+
+
+
+            if (obj->inDictionaryMode())
+                return disable("dictionary");
+
             if (!shape->hasDefaultSetter())
                 return disable("adding non-default setter");
             if (!shape->hasSlot())
