@@ -376,6 +376,7 @@ PlacesController.prototype = {
     
     var xferable = Cc["@mozilla.org/widget/transferable;1"].
                    createInstance(Ci.nsITransferable);
+    xferable.init(null);
 
     xferable.addDataFlavor(PlacesUtils.TYPE_X_MOZ_URL);
     xferable.addDataFlavor(PlacesUtils.TYPE_UNICODE);
@@ -1061,6 +1062,7 @@ PlacesController.prototype = {
     try {
       let xferable = Cc["@mozilla.org/widget/transferable;1"].
                      createInstance(Ci.nsITransferable);
+      xferable.init(null);
       xferable.addDataFlavor(PlacesUtils.TYPE_X_MOZ_PLACE_ACTION)
       this.clipboard.getData(xferable, Ci.nsIClipboard.kGlobalClipboard);
       xferable.getTransferData(PlacesUtils.TYPE_X_MOZ_PLACE_ACTION, action, {});
@@ -1090,6 +1092,7 @@ PlacesController.prototype = {
   _clearClipboard: function PC__clearClipboard() {
     let xferable = Cc["@mozilla.org/widget/transferable;1"].
                    createInstance(Ci.nsITransferable);
+    xferable.init(null);
     
     const TYPE = "text/x-moz-place-empty";
     xferable.addDataFlavor(TYPE);
@@ -1135,6 +1138,7 @@ PlacesController.prototype = {
 
     let xferable = Cc["@mozilla.org/widget/transferable;1"].
                    createInstance(Ci.nsITransferable);
+    xferable.init(null);
     let hasData = false;
     
     
@@ -1224,6 +1228,7 @@ PlacesController.prototype = {
 
     let xferable = Cc["@mozilla.org/widget/transferable;1"].
                    createInstance(Ci.nsITransferable);
+    xferable.init(null);
     
     
     [ PlacesUtils.TYPE_X_MOZ_PLACE,

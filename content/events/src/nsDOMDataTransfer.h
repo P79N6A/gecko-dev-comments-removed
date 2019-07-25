@@ -97,7 +97,8 @@ public:
 
   
   
-  void GetTransferables(nsISupportsArray** transferables);
+  void GetTransferables(nsISupportsArray** transferables,
+                        nsIDOMNode* aDragTarget);
 
   
   

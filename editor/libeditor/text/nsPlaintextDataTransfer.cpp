@@ -30,7 +30,6 @@
 #include "nsIDragService.h"
 #include "nsIDOMUIEvent.h"
 #include "nsCopySupport.h"
-#include "nsITransferable.h"
 
 
 #include "nsEditorUtils.h"
@@ -50,6 +49,10 @@ NS_IMETHODIMP nsPlaintextEditor::PrepareTransferable(nsITransferable **transfera
 
   
   if (transferable) {
+    nsCOMPtr<nsIDocument> destdoc = GetDocument();
+    nsILoadContext* loadContext = destdoc ? destdoc->GetLoadContext() : nsnull;
+    (*transferable)->Init(loadContext);
+
     (*transferable)->AddDataFlavor(kUnicodeMime);
     (*transferable)->AddDataFlavor(kMozTextInternal);
   };

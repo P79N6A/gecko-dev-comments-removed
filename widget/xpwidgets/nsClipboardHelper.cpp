@@ -16,6 +16,7 @@
 #include "nsIClipboard.h"
 #include "nsITransferable.h"
 #include "nsReadableUtils.h"
+#include "nsIDocument.h"
 
 NS_IMPL_ISUPPORTS1(nsClipboardHelper, nsIClipboardHelper)
 
@@ -38,6 +39,7 @@ nsClipboardHelper::~nsClipboardHelper()
 
 NS_IMETHODIMP
 nsClipboardHelper::CopyStringToClipboard(const nsAString& aString,
+                                         nsIDOMDocument* aDocument,
                                          PRInt32 aClipboardID)
 {
   nsresult rv;
@@ -63,6 +65,10 @@ nsClipboardHelper::CopyStringToClipboard(const nsAString& aString,
     trans(do_CreateInstance("@mozilla.org/widget/transferable;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(trans, NS_ERROR_FAILURE);
+
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDocument);
+  nsILoadContext* loadContext = doc ? doc->GetLoadContext() : nsnull;
+  trans->Init(loadContext);
 
   
   rv = trans->AddDataFlavor(kUnicodeMime);
@@ -97,12 +103,12 @@ nsClipboardHelper::CopyStringToClipboard(const nsAString& aString,
 }
 
 NS_IMETHODIMP
-nsClipboardHelper::CopyString(const nsAString& aString)
+nsClipboardHelper::CopyString(const nsAString& aString, nsIDOMDocument* aDocument)
 {
   nsresult rv;
 
   
-  rv = CopyStringToClipboard(aString, nsIClipboard::kGlobalClipboard);
+  rv = CopyStringToClipboard(aString, aDocument, nsIClipboard::kGlobalClipboard);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -114,7 +120,7 @@ nsClipboardHelper::CopyString(const nsAString& aString)
   
   
   
-  CopyStringToClipboard(aString, nsIClipboard::kSelectionClipboard);
+  CopyStringToClipboard(aString, aDocument, nsIClipboard::kSelectionClipboard);
 
   return NS_OK;
 }

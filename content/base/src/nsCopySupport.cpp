@@ -182,6 +182,7 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
     
     nsCOMPtr<nsITransferable> trans = do_CreateInstance(kCTransferableCID);
     if (trans) {
+      trans->Init(aDoc->GetLoadContext());
       if (bIsHTMLCopy) {
         
         
@@ -459,6 +460,7 @@ nsCopySupport::GetContents(const nsACString& aMimeType, PRUint32 aFlags, nsISele
 
 nsresult
 nsCopySupport::ImageCopy(nsIImageLoadingContent* aImageElement,
+                         nsILoadContext* aLoadContext,
                          PRInt32 aCopyFlags)
 {
   nsresult rv;
@@ -466,6 +468,7 @@ nsCopySupport::ImageCopy(nsIImageLoadingContent* aImageElement,
   
   nsCOMPtr<nsITransferable> trans(do_CreateInstance(kCTransferableCID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
+  trans->Init(aLoadContext);
 
   if (aCopyFlags & nsIContentViewerEdit::COPY_IMAGE_TEXT) {
     

@@ -32,7 +32,7 @@ function test() {
   
   
   
-  waitForClipboard(kTestString, function() { cbHelper.copyString(kTestString); },
+  waitForClipboard(kTestString, function() { cbHelper.copyString(kTestString, document); },
                    next_test, finish);
 }
 
