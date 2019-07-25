@@ -1236,6 +1236,12 @@ const size_t INITIAL_CHUNK_CAPACITY = 16 * 1024 * 1024 / ChunkSize;
 
 const size_t MAX_EMPTY_CHUNK_AGE = 4;
 
+inline Cell *
+AsCell(JSObject *obj)
+{
+    return reinterpret_cast<Cell *>(obj);
+}
+
 } 
 
 struct GCPtrHasher

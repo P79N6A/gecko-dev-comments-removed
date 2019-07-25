@@ -845,6 +845,11 @@ struct ParseNode {
     
     bool isDirectivePrologueMember() const { return pn_prologue; }
 
+#ifdef JS_HAS_DESTRUCTURING
+    
+    bool isArrayHole() const { return isKind(PNK_COMMA) && isArity(PN_NULLARY); }
+#endif
+
 #ifdef JS_HAS_GENERATOR_EXPRS
     
 
@@ -1293,8 +1298,6 @@ struct ObjectBox {
     ObjectBox           *traceLink;
     ObjectBox           *emitLink;
     JSObject            *object;
-    ObjectBox           *parent;
-    uintN               index;
     bool                isFunctionBox;
 };
 

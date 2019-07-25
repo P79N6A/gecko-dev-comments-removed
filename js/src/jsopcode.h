@@ -332,8 +332,7 @@ js_puts(JSPrinter *jp, const char *s);
 
 
 uintN
-js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        ptrdiff_t pcoff);
+js_GetIndexFromBytecode(JSScript *script, jsbytecode *pc, ptrdiff_t pcoff);
 
 
 
@@ -342,72 +341,46 @@ js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
 #define GET_ATOM_FROM_BYTECODE(script, pc, pcoff, atom)                       \
     JS_BEGIN_MACRO                                                            \
         JS_ASSERT(*(pc) != JSOP_DOUBLE);                                      \
-        uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
+        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
         (atom) = (script)->getAtom(index_);                                   \
     JS_END_MACRO
 
 #define GET_DOUBLE_FROM_BYTECODE(script, pc, pcoff, dbl)                      \
     JS_BEGIN_MACRO                                                            \
-        uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
+        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
         JS_ASSERT(index_ < (script)->consts()->length);                       \
         (dbl) = (script)->getConst(index_).toDouble();                        \
     JS_END_MACRO
 
 #define GET_OBJECT_FROM_BYTECODE(script, pc, pcoff, obj)                      \
     JS_BEGIN_MACRO                                                            \
-        uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
+        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
         obj = (script)->getObject(index_);                                    \
     JS_END_MACRO
 
 #define GET_FUNCTION_FROM_BYTECODE(script, pc, pcoff, fun)                    \
     JS_BEGIN_MACRO                                                            \
-        uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
+        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
         fun = (script)->getFunction(index_);                                  \
     JS_END_MACRO
 
 #define GET_REGEXP_FROM_BYTECODE(script, pc, pcoff, obj)                      \
     JS_BEGIN_MACRO                                                            \
-        uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
+        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
         obj = (script)->getRegExp(index_);                                    \
     JS_END_MACRO
 
-
-
-
-
-extern uintN
-js_GetVariableStackUses(JSOp op, jsbytecode *pc);
-
-
-
-
+#ifdef __cplusplus
+namespace js {
 
 extern uintN
-js_GetEnterBlockStackDefs(JSContext *cx, JSScript *script, jsbytecode *pc);
+StackUses(JSScript *script, jsbytecode *pc);
 
-#ifdef __cplusplus 
-static JS_INLINE uintN
-js_GetStackUses(const JSCodeSpec *cs, JSOp op, jsbytecode *pc)
-{
-    JS_ASSERT(cs == &js_CodeSpec[op]);
-    if (cs->nuses >= 0)
-        return cs->nuses;
-    return js_GetVariableStackUses(op, pc);
-}
+extern uintN
+StackDefs(JSScript *script, jsbytecode *pc);
 
-static JS_INLINE uintN
-js_GetStackDefs(JSContext *cx, const JSCodeSpec *cs, JSOp op, JSScript *script,
-                jsbytecode *pc)
-{
-    JS_ASSERT(cs == &js_CodeSpec[op]);
-    if (cs->ndefs >= 0)
-        return cs->ndefs;
-
-    
-    JS_ASSERT(op == JSOP_ENTERBLOCK);
-    return js_GetEnterBlockStackDefs(cx, script, pc);
-}
-#endif
+}  
+#endif  
 
 
 

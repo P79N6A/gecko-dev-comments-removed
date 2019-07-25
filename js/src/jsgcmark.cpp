@@ -732,29 +732,26 @@ ScanShape(GCMarker *gcmarker, const Shape *shape)
 static inline void
 ScanBaseShape(GCMarker *gcmarker, BaseShape *base)
 {
-    for (;;) {
-        if (base->hasGetterObject())
-            PushMarkStack(gcmarker, base->getterObject());
+    base->assertConsistency();
 
-        if (base->hasSetterObject())
-            PushMarkStack(gcmarker, base->setterObject());
+    if (base->hasGetterObject())
+        PushMarkStack(gcmarker, base->getterObject());
 
-        if (JSObject *parent = base->getObjectParent())
-            PushMarkStack(gcmarker, parent);
+    if (base->hasSetterObject())
+        PushMarkStack(gcmarker, base->setterObject());
 
-        if (base->isOwned()) {
-            
+    if (JSObject *parent = base->getObjectParent())
+        PushMarkStack(gcmarker, parent);
+
+    
 
 
 
-            UnownedBaseShape *unowned = base->baseUnowned();
-            JS_SAME_COMPARTMENT_ASSERT(base, unowned);
-            if (unowned->markIfUnmarked(gcmarker->getMarkColor())) {
-                base = unowned;
-                continue;
-            }
-        }
-        break;
+
+    if (base->isOwned()) {
+        UnownedBaseShape *unowned = base->baseUnowned();
+        JS_SAME_COMPARTMENT_ASSERT(base, unowned);
+        unowned->markIfUnmarked(gcmarker->getMarkColor());
     }
 }
 
@@ -1000,6 +997,13 @@ MarkCycleCollectorChildren(JSTracer *trc, BaseShape *base, JSObject **prevParent
 {
     JS_ASSERT(base);
 
+    
+
+
+
+
+    base->assertConsistency();
+
     MarkBaseShapeGetterSetter(trc, base);
 
     JSObject *parent = base->getObjectParent();
@@ -1007,17 +1011,6 @@ MarkCycleCollectorChildren(JSTracer *trc, BaseShape *base, JSObject **prevParent
         MarkObjectUnbarriered(trc, parent, "parent");
         *prevParent = parent;
     }
-
-    
-    
-#ifdef DEBUG
-    if (base->isOwned()) {
-        UnownedBaseShape *unowned = base->baseUnowned();
-        JS_ASSERT_IF(base->hasGetterObject(), base->getterObject() == unowned->getterObject());
-        JS_ASSERT_IF(base->hasSetterObject(), base->setterObject() == unowned->setterObject());
-        JS_ASSERT(base->getObjectParent() == unowned->getObjectParent());
-    }
-#endif
 }
 
 

@@ -673,7 +673,7 @@ struct JSScript : public js::gc::Cell {
     }
 
     
-    JS_FRIEND_API(size_t) jitDataSize(JSMallocSizeOfFun mallocSizeOf);
+    size_t jitDataSize(JSMallocSizeOfFun mallocSizeOf);
 
 #endif
 

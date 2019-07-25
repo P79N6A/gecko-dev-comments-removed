@@ -260,7 +260,13 @@ private:
   nsIDOMCSSValue* DoGetBorderTopLeftRadius();
   nsIDOMCSSValue* DoGetBorderTopRightRadius();
   nsIDOMCSSValue* DoGetFloatEdge();
-  nsIDOMCSSValue* DoGetBorderImage();
+
+  
+  nsIDOMCSSValue* DoGetBorderImageSource();
+  nsIDOMCSSValue* DoGetBorderImageSlice();
+  nsIDOMCSSValue* DoGetBorderImageWidth();
+  nsIDOMCSSValue* DoGetBorderImageOutset();
+  nsIDOMCSSValue* DoGetBorderImageRepeat();
 
   
   nsIDOMCSSValue* DoGetBoxShadow();
@@ -365,6 +371,7 @@ private:
 
   
   nsIDOMCSSValue* DoGetColumnCount();
+  nsIDOMCSSValue* DoGetColumnFill();
   nsIDOMCSSValue* DoGetColumnWidth();
   nsIDOMCSSValue* DoGetColumnGap();
   nsIDOMCSSValue* DoGetColumnRuleWidth();

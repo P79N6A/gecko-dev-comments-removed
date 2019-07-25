@@ -57,6 +57,7 @@
 
 #include "ion/Ion.h"
 #include "frontend/TokenStream.h"
+#include "js/MemoryMetrics.h"
 #include "methodjit/MethodJIT.h"
 #include "methodjit/Retcon.h"
 
@@ -2032,21 +2033,21 @@ TypeCompartment::newAllocationSiteTypeObject(JSContext *cx, const AllocationSite
 static inline jsid
 GetAtomId(JSContext *cx, JSScript *script, const jsbytecode *pc, unsigned offset)
 {
-    unsigned index = js_GetIndexFromBytecode(cx, script, (jsbytecode*) pc, offset);
+    unsigned index = js_GetIndexFromBytecode(script, (jsbytecode*) pc, offset);
     return MakeTypeId(cx, ATOM_TO_JSID(script->getAtom(index)));
 }
 
 static inline JSObject *
 GetScriptObject(JSContext *cx, JSScript *script, const jsbytecode *pc, unsigned offset)
 {
-    unsigned index = js_GetIndexFromBytecode(cx, script, (jsbytecode*) pc, offset);
+    unsigned index = js_GetIndexFromBytecode(script, (jsbytecode*) pc, offset);
     return script->getObject(index);
 }
 
 static inline const Value &
 GetScriptConst(JSContext *cx, JSScript *script, const jsbytecode *pc)
 {
-    unsigned index = js_GetIndexFromBytecode(cx, script, (jsbytecode*) pc, 0);
+    unsigned index = js_GetIndexFromBytecode(script, (jsbytecode*) pc, 0);
     return script->getConst(index);
 }
 
@@ -3417,8 +3418,6 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
       case JSOP_INDEXBASE3:
       case JSOP_RESETBASE:
       case JSOP_RESETBASE0:
-      case JSOP_BLOCKCHAIN:
-      case JSOP_NULLBLOCKCHAIN:
       case JSOP_POPV:
       case JSOP_DEBUGGER:
       case JSOP_SETCALL:
@@ -3970,11 +3969,22 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
 
       case JSOP_ENTERWITH:
       case JSOP_ENTERBLOCK:
+      case JSOP_ENTERLET0:
         
 
 
 
 
+        break;
+
+      case JSOP_ENTERLET1:
+        
+
+
+
+
+
+        poppedTypes(pc, 0)->addSubset(cx, &pushed[defCount - 1]);
         break;
 
       case JSOP_ITER: {
@@ -4033,6 +4043,9 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
 
       case JSOP_LEAVEBLOCKEXPR:
         poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
+        break;
+
+      case JSOP_LEAVEFORLETIN:
         break;
 
       case JSOP_CASE:
@@ -4568,7 +4581,7 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSO
 
 
 
-            unsigned index = js_GetIndexFromBytecode(cx, script, pc, 0);
+            unsigned index = js_GetIndexFromBytecode(script, pc, 0);
             jsid id = ATOM_TO_JSID(script->getAtom(index));
             if (MakeTypeId(cx, id) != id)
                 return false;
@@ -5435,6 +5448,8 @@ IgnorePushed(const jsbytecode *pc, unsigned index)
       
       case JSOP_ENTERWITH:
       case JSOP_ENTERBLOCK:
+      case JSOP_ENTERLET0:
+      case JSOP_ENTERLET1:
         return true;
 
       
@@ -6302,10 +6317,10 @@ GetScriptMemoryStats(JSScript *script, TypeInferenceMemoryStats *stats, JSMalloc
     }
 }
 
-JS_FRIEND_API(void)
-JS_GetTypeInferenceMemoryStats(JSContext *cx, JSCompartment *compartment,
-                               TypeInferenceMemoryStats *stats,
-                               JSMallocSizeOfFun mallocSizeOf)
+JS_PUBLIC_API(void)
+JS::SizeOfCompartmentTypeInferenceData(JSContext *cx, JSCompartment *compartment,
+                                       TypeInferenceMemoryStats *stats,
+                                       JSMallocSizeOfFun mallocSizeOf)
 {
     
 
@@ -6348,8 +6363,8 @@ JS_GetTypeInferenceMemoryStats(JSContext *cx, JSCompartment *compartment,
     }
 }
 
-JS_FRIEND_API(void)
-JS_GetTypeInferenceObjectStats(void *object_, TypeInferenceMemoryStats *stats, JSMallocSizeOfFun mallocSizeOf)
+JS_PUBLIC_API(void)
+JS::SizeOfObjectTypeInferenceData(void *object_, TypeInferenceMemoryStats *stats, JSMallocSizeOfFun mallocSizeOf)
 {
     TypeObject *object = (TypeObject *) object_;
 

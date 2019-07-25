@@ -615,11 +615,8 @@ struct JSObject : js::gc::Cell
     
     inline bool canHaveMethodBarrier() const;
 
-    inline bool isIndexed() const;
-    inline bool setIndexed(JSContext *cx);
-
     
-    inline bool maybeSetIndexed(JSContext *cx, jsid id);
+    inline bool isIndexed() const;
 
     
 
@@ -790,9 +787,6 @@ struct JSObject : js::gc::Cell
     inline void initFixedSlot(uintN slot, const js::Value &value);
 
     
-    inline bool extend(JSContext *cx, const js::Shape *shape, bool isDefinitelyAtom = false);
-
-    
 
 
 
@@ -908,7 +902,7 @@ struct JSObject : js::gc::Cell
 
 
 
-    inline JSObject *getStaticBlockScopeChain() const;
+    inline JSObject *staticBlockScopeChain() const;
     inline void setStaticBlockScopeChain(JSObject *obj);
 
     
@@ -1341,7 +1335,7 @@ struct JSObject : js::gc::Cell
 
     bool swap(JSContext *cx, JSObject *other);
 
-    const js::Shape *defineBlockVariable(JSContext *cx, jsid id, intN index);
+    const js::Shape *defineBlockVariable(JSContext *cx, jsid id, intN index, bool *redeclared);
 
     inline bool isArguments() const;
     inline bool isArrayBuffer() const;
@@ -1900,14 +1894,6 @@ CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
 
 extern bool
 js_IsDelegate(JSContext *cx, JSObject *obj, const js::Value &v);
-
-
-
-
-
-extern JS_FRIEND_API(JSBool)
-js_GetClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey,
-                     JSObject **protop, js::Class *clasp = NULL);
 
 
 

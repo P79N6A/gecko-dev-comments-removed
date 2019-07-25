@@ -1485,11 +1485,13 @@ XPC_WN_JSOp_ThisObject(JSContext *cx, JSObject *obj);
 
 
 
-#define IS_PROTO_CLASS(clazz)                                                 \
-    ((clazz) == &XPC_WN_NoMods_WithCall_Proto_JSClass ||                      \
-     (clazz) == &XPC_WN_NoMods_NoCall_Proto_JSClass ||                        \
-     (clazz) == &XPC_WN_ModsAllowed_WithCall_Proto_JSClass ||                 \
-     (clazz) == &XPC_WN_ModsAllowed_NoCall_Proto_JSClass)
+static inline bool IS_PROTO_CLASS(js::Class *clazz)
+{
+    return clazz == &XPC_WN_NoMods_WithCall_Proto_JSClass ||
+           clazz == &XPC_WN_NoMods_NoCall_Proto_JSClass ||
+           clazz == &XPC_WN_ModsAllowed_WithCall_Proto_JSClass ||
+           clazz == &XPC_WN_ModsAllowed_NoCall_Proto_JSClass;
+}
 
 
 
@@ -3657,8 +3659,6 @@ private:
 
 
 
-#define BAD_TLS_INDEX ((PRUint32) -1)
-
 class XPCPerThreadData
 {
     typedef mozilla::Mutex Mutex;
@@ -3834,31 +3834,6 @@ public:
 private:
   nsCOMPtr<nsIPrincipal> mPrincipal;
 };
-
-class nsJSRuntimeServiceImpl : public nsIJSRuntimeService,
-                               public nsSupportsWeakReference
-{
- public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIJSRUNTIMESERVICE
-
-    
-    
-    
-    static nsJSRuntimeServiceImpl* GetSingleton();
-
-    static void FreeSingleton();
-
-    nsJSRuntimeServiceImpl();
-    virtual ~nsJSRuntimeServiceImpl();
-
-    static void InitStatics() { gJSRuntimeService = nsnull; }
- protected:
-    static nsJSRuntimeServiceImpl* gJSRuntimeService;
-    nsCOMPtr<nsIXPCScriptable> mBackstagePass;
-};
-
-
 
 
 class nsXPCComponents : public nsIXPCComponents,

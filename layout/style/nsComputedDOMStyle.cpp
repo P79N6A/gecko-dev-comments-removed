@@ -45,6 +45,7 @@
 
 
 
+
 #include "mozilla/Util.h"
 
 #include "nsComputedDOMStyle.h"
@@ -737,6 +738,16 @@ nsComputedDOMStyle::DoGetColumnGap()
     SetValueToCoord(val, GetStyleColumn()->mColumnGap, true);
   }
 
+  return val;
+}
+
+nsIDOMCSSValue*
+nsComputedDOMStyle::DoGetColumnFill()
+{
+  nsROCSSPrimitiveValue *val = GetROCSSPrimitiveValue();
+  val->SetIdent(
+    nsCSSProps::ValueToKeywordEnum(GetStyleColumn()->mColumnFill,
+                                   nsCSSProps::kColumnFillKTable));
   return val;
 }
 
@@ -2820,61 +2831,101 @@ nsComputedDOMStyle::DoGetBoxSizing()
   return val;
 }
 
+
+
 nsIDOMCSSValue*
-nsComputedDOMStyle::DoGetBorderImage()
+nsComputedDOMStyle::DoGetBorderImageSource()
 {
   const nsStyleBorder* border = GetStyleBorder();
 
-  
-  if (!border->GetBorderImage()) {
-    nsROCSSPrimitiveValue *valNone = GetROCSSPrimitiveValue();
-    valNone->SetIdent(eCSSKeyword_none);
-    return valNone;
+  imgIRequest* imgSrc = border->GetBorderImage();
+  nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
+  if (imgSrc) {
+    nsCOMPtr<nsIURI> uri;
+    imgSrc->GetURI(getter_AddRefs(uri));
+    val->SetURI(uri);
+  } else {
+    val->SetIdent(eCSSKeyword_none);
   }
 
+  return val;
+}
+
+nsIDOMCSSValue*
+nsComputedDOMStyle::DoGetBorderImageSlice()
+{
+  nsDOMCSSValueList* valueList = GetROCSSValueList(false);
+
+  const nsStyleBorder* border = GetStyleBorder();
+  
+  NS_FOR_CSS_SIDES (side) {
+    nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
+    valueList->AppendCSSValue(val);
+    SetValueToCoord(val, border->mBorderImageSlice.Get(side), nsnull, nsnull);
+  }
+
+  
+  if (NS_STYLE_BORDER_IMAGE_SLICE_FILL == border->mBorderImageFill) {
+    nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
+    valueList->AppendCSSValue(val);
+    val->SetIdent(eCSSKeyword_fill);
+  }
+
+  return valueList;
+}
+
+nsIDOMCSSValue*
+nsComputedDOMStyle::DoGetBorderImageWidth()
+{
+  const nsStyleBorder* border = GetStyleBorder();
+  nsDOMCSSValueList* valueList = GetROCSSValueList(false);
+  NS_FOR_CSS_SIDES (side) {
+    nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
+    valueList->AppendCSSValue(val);
+    SetValueToCoord(val, border->mBorderImageWidth.Get(side),
+                    nsnull, nsnull);
+  }
+
+  return valueList;
+}
+
+nsIDOMCSSValue*
+nsComputedDOMStyle::DoGetBorderImageOutset()
+{
   nsDOMCSSValueList *valueList = GetROCSSValueList(false);
 
+  const nsStyleBorder* border = GetStyleBorder();
   
-  nsROCSSPrimitiveValue *valURI = GetROCSSPrimitiveValue();
-  valueList->AppendCSSValue(valURI);
-  nsCOMPtr<nsIURI> uri;
-  border->GetBorderImage()->GetURI(getter_AddRefs(uri));
-  valURI->SetURI(uri);
-
-  
-  NS_FOR_CSS_SIDES(side) {
-    nsROCSSPrimitiveValue *valSplit = GetROCSSPrimitiveValue();
-    valueList->AppendCSSValue(valSplit);
-    SetValueToCoord(valSplit, border->mBorderImageSplit.Get(side), true);
+  NS_FOR_CSS_SIDES (side) {
+    nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
+    valueList->AppendCSSValue(val);
+    SetValueToCoord(val, border->mBorderImageOutset.Get(side),
+                    nsnull, nsnull);
   }
 
-  
-  if (border->mHaveBorderImageWidth) {
-    nsROCSSPrimitiveValue *slash = GetROCSSPrimitiveValue();
-    valueList->AppendCSSValue(slash);
-    slash->SetString(NS_LITERAL_STRING("/"));
-    NS_FOR_CSS_SIDES(side) {
-      nsROCSSPrimitiveValue *borderWidth = GetROCSSPrimitiveValue();
-      valueList->AppendCSSValue(borderWidth);
-      nscoord width = GetStyleBorder()->mBorderImageWidth.Side(side);
-      borderWidth->SetAppUnits(width);
-    }
-  }
+  return valueList;
+}
+
+nsIDOMCSSValue*
+nsComputedDOMStyle::DoGetBorderImageRepeat()
+{
+  nsDOMCSSValueList* valueList = GetROCSSValueList(false);
+
+  const nsStyleBorder* border = GetStyleBorder();
 
   
-  nsROCSSPrimitiveValue *keyword = GetROCSSPrimitiveValue();
-  valueList->AppendCSSValue(keyword);
-  keyword->SetIdent(
-    nsCSSProps::ValueToKeywordEnum(GetStyleBorder()->mBorderImageHFill,
-                                   nsCSSProps::kBorderImageKTable));
+  nsROCSSPrimitiveValue* valX = GetROCSSPrimitiveValue();
+  valueList->AppendCSSValue(valX);
+  valX->SetIdent(
+    nsCSSProps::ValueToKeywordEnum(border->mBorderImageRepeatH,
+                                   nsCSSProps::kBorderImageRepeatKTable));
 
   
-  nsROCSSPrimitiveValue *keyword2 = GetROCSSPrimitiveValue();
-  valueList->AppendCSSValue(keyword2);
-  keyword2->SetIdent(
-    nsCSSProps::ValueToKeywordEnum(GetStyleBorder()->mBorderImageVFill,
-                                   nsCSSProps::kBorderImageKTable));
-
+  nsROCSSPrimitiveValue* valY = GetROCSSPrimitiveValue();
+  valueList->AppendCSSValue(valY);
+  valY->SetIdent(
+    nsCSSProps::ValueToKeywordEnum(border->mBorderImageRepeatV,
+                                   nsCSSProps::kBorderImageRepeatKTable));
   return valueList;
 }
 
@@ -4558,7 +4609,12 @@ nsComputedDOMStyle::GetQueryablePropertyMap(PRUint32* aLength)
     COMPUTED_STYLE_MAP_ENTRY(_moz_background_inline_policy, BackgroundInlinePolicy),
     COMPUTED_STYLE_MAP_ENTRY(binding,                       Binding),
     COMPUTED_STYLE_MAP_ENTRY(border_bottom_colors,          BorderBottomColors),
-    COMPUTED_STYLE_MAP_ENTRY(border_image,                  BorderImage),
+    
+    COMPUTED_STYLE_MAP_ENTRY(border_image_outset,           BorderImageOutset),
+    COMPUTED_STYLE_MAP_ENTRY(border_image_repeat,           BorderImageRepeat),
+    COMPUTED_STYLE_MAP_ENTRY(border_image_slice,            BorderImageSlice),
+    COMPUTED_STYLE_MAP_ENTRY(border_image_source,           BorderImageSource),
+    COMPUTED_STYLE_MAP_ENTRY(border_image_width,            BorderImageWidth),
     COMPUTED_STYLE_MAP_ENTRY(border_left_colors,            BorderLeftColors),
     COMPUTED_STYLE_MAP_ENTRY(border_right_colors,           BorderRightColors),
     COMPUTED_STYLE_MAP_ENTRY(border_top_colors,             BorderTopColors),
@@ -4570,6 +4626,7 @@ nsComputedDOMStyle::GetQueryablePropertyMap(PRUint32* aLength)
     COMPUTED_STYLE_MAP_ENTRY(box_pack,                      BoxPack),
     COMPUTED_STYLE_MAP_ENTRY(box_sizing,                    BoxSizing),
     COMPUTED_STYLE_MAP_ENTRY(_moz_column_count,             ColumnCount),
+    COMPUTED_STYLE_MAP_ENTRY(_moz_column_fill,              ColumnFill),
     COMPUTED_STYLE_MAP_ENTRY(_moz_column_gap,               ColumnGap),
     
     COMPUTED_STYLE_MAP_ENTRY(_moz_column_rule_color,        ColumnRuleColor),

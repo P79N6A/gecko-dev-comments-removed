@@ -539,8 +539,8 @@ nsresult nsHTMLEditor::SplitStyleAboveRange(nsIDOMRange *inRange,
   NS_ENSURE_TRUE(inRange, NS_ERROR_NULL_POINTER);
   nsresult res;
   nsCOMPtr<nsIDOMNode> startNode, endNode, origStartNode;
-  PRInt32 startOffset, endOffset, origStartOffset;
-  
+  PRInt32 startOffset, endOffset;
+
   res = inRange->GetStartContainer(getter_AddRefs(startNode));
   NS_ENSURE_SUCCESS(res, res);
   res = inRange->GetStartOffset(&startOffset);
@@ -549,10 +549,9 @@ nsresult nsHTMLEditor::SplitStyleAboveRange(nsIDOMRange *inRange,
   NS_ENSURE_SUCCESS(res, res);
   res = inRange->GetEndOffset(&endOffset);
   NS_ENSURE_SUCCESS(res, res);
-  
+
   origStartNode = startNode;
-  origStartOffset = startOffset;
-  
+
   
   {
     nsAutoTrackDOMPoint tracker(mRangeUpdater, address_of(endNode), &endOffset);
@@ -563,7 +562,7 @@ nsresult nsHTMLEditor::SplitStyleAboveRange(nsIDOMRange *inRange,
   
   res = SplitStyleAbovePoint(address_of(endNode), &endOffset, aProperty, aAttribute);
   NS_ENSURE_SUCCESS(res, res);
-  
+
   
   res = inRange->SetStart(startNode, startOffset);
   NS_ENSURE_SUCCESS(res, res);
@@ -666,10 +665,10 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
   }
 
   
-  if ( !aChildrenOnly && 
-        (aProperty && NodeIsType(aNode, aProperty) || 
+  if ((!aChildrenOnly &&
+        ((aProperty && NodeIsType(aNode, aProperty)) || 
         (aProperty == nsEditProperty::href && nsHTMLEditUtils::IsLink(aNode)) || 
-        (aProperty == nsEditProperty::name && nsHTMLEditUtils::IsNamedAnchor(aNode))) || 
+        (aProperty == nsEditProperty::name && nsHTMLEditUtils::IsNamedAnchor(aNode)))) || 
         (!aProperty && NodeIsProperty(aNode)))  
   {
     
@@ -1048,16 +1047,13 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
       {
         nsString tString(*aAttribute); 
         nsString tOutString;
-        nsString *tPassString=nsnull;
-        if (outValue)
-            tPassString = &tOutString;
         mTypeInState->GetTypingState(isSet, theSetting, aProperty, tString, &tOutString);
         if (outValue)
           outValue->Assign(tOutString);
       }
       else
         mTypeInState->GetTypingState(isSet, theSetting, aProperty);
-      if (isSet) 
+      if (isSet)
       {
         *aFirst = *aAny = *aAll = theSetting;
         return NS_OK;
@@ -1067,7 +1063,7 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
         IsTextPropertySetByContent(collapsedNode, aProperty, aAttribute, aValue,
                                    isSet, getter_AddRefs(resultNode), outValue);
         *aFirst = *aAny = *aAll = isSet;
-        
+
         if (!isSet && aCheckDefaults) 
         {
           

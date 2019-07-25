@@ -347,13 +347,14 @@ class StackFrame
         HAS_RVAL           =    0x20000,  
         HAS_SCOPECHAIN     =    0x40000,  
         HAS_PREVPC         =    0x80000,  
+        HAS_BLOCKCHAIN     =   0x100000,  
 
         
-        DOWN_FRAMES_EXPANDED = 0x100000,  
-        LOWERED_CALL_APPLY   = 0x200000,  
+        DOWN_FRAMES_EXPANDED = 0x400000,  
+        LOWERED_CALL_APPLY   = 0x800000,   
 
         
-        RUNNING_IN_ION       = 0x400000   
+        RUNNING_IN_ION       = 0x1000000   
     };
 
   private:
@@ -373,6 +374,7 @@ class StackFrame
 
     
     Value               rval_;          
+    JSObject            *blockChain_;   
     jsbytecode          *prevpc_;       
     JSInlinedSite       *prevInline_;   
     void                *hookData_;     
@@ -844,6 +846,26 @@ class StackFrame
     inline CallObject &callObj() const;
     inline void setScopeChainNoCallObj(JSObject &obj);
     inline void setScopeChainWithOwnCallObj(CallObject &obj);
+
+    
+
+    bool hasBlockChain() const {
+        return (flags_ & HAS_BLOCKCHAIN) && blockChain_;
+    }
+
+    JSObject *maybeBlockChain() {
+        return (flags_ & HAS_BLOCKCHAIN) ? blockChain_ : NULL;
+    }
+
+    JSObject &blockChain() const {
+        JS_ASSERT(hasBlockChain());
+        return *blockChain_;
+    }
+
+    void setBlockChain(JSObject *obj) {
+        flags_ |= HAS_BLOCKCHAIN;
+        blockChain_ = obj;
+    }
 
     
 

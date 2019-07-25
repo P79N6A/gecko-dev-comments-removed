@@ -114,25 +114,6 @@ typedef void
 extern JS_FRIEND_API(void)
 JS_SetGCFinishedCallback(JSRuntime *rt, JSGCFinishedCallback callback);
 
-
-typedef struct TypeInferenceMemoryStats
-{
-    int64_t scripts;
-    int64_t objects;
-    int64_t tables;
-    int64_t temporary;
-} TypeInferenceMemoryStats;
-
-extern JS_FRIEND_API(void)
-JS_GetTypeInferenceMemoryStats(JSContext *cx, JSCompartment *compartment,
-                               TypeInferenceMemoryStats *stats,
-                               JSMallocSizeOfFun mallocSizeOf);
-
-extern JS_FRIEND_API(void)
-JS_GetTypeInferenceObjectStats( void *object,
-                               TypeInferenceMemoryStats *stats,
-                               JSMallocSizeOfFun mallocSizeOf);
-
 extern JS_FRIEND_API(JSPrincipals *)
 JS_GetCompartmentPrincipals(JSCompartment *compartment);
 
@@ -209,11 +190,8 @@ JS_FRIEND_API(JSBool) obj_defineGetter(JSContext *cx, uintN argc, js::Value *vp)
 JS_FRIEND_API(JSBool) obj_defineSetter(JSContext *cx, uintN argc, js::Value *vp);
 #endif
 
-extern JS_FRIEND_API(size_t)
-GetObjectDynamicSlotSize(JSObject *obj, JSMallocSizeOfFun mallocSizeOf);
-
-extern JS_FRIEND_API(size_t)
-GetCompartmentShapeTableSize(JSCompartment *c, JSMallocSizeOfFun mallocSizeOf);
+extern JS_FRIEND_API(bool)
+IsSystemCompartment(const JSCompartment *compartment);
 
 
 
@@ -433,6 +411,9 @@ StringIsArrayIndex(JSLinearString *str, jsuint *indexp);
 JS_FRIEND_API(void)
 SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback);
 
+JS_FRIEND_API(bool)
+IsObjectInContextCompartment(const JSObject *obj, const JSContext *cx);
+
 
 
 
@@ -463,6 +444,15 @@ JS_FRIEND_API(JSString *)
 GetPCCountScriptContents(JSContext *cx, size_t script);
 
 } 
+
+
+
+
+
+extern JS_FRIEND_API(JSBool)
+js_GetClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey,
+                     JSObject **protop, js::Class *clasp = NULL);
+
 #endif
 
 #endif 

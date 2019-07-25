@@ -1112,6 +1112,24 @@ nsSVGElement::UpdateContentStyleRule()
     if (!attrName->IsAtom() || !IsAttributeMapped(attrName->Atom()))
       continue;
 
+    if (Tag() == nsGkAtoms::svg) {
+      
+      
+      
+      
+      
+      
+      
+      if (attrName->Atom() == nsGkAtoms::width &&
+          !GetAnimatedLength(nsGkAtoms::width)->HasBaseVal()) {
+        continue;
+      }
+      if (attrName->Atom() == nsGkAtoms::height &&
+          !GetAnimatedLength(nsGkAtoms::height)->HasBaseVal()) {
+        continue;
+      }
+    }
+
     nsAutoString value;
     mAttrsAndChildren.AttrAt(i)->ToString(value);
     mappedAttrParser.ParseMappedAttrValue(attrName->Atom(), value);
@@ -1312,6 +1330,20 @@ nsSVGElement::DidAnimateLength(PRUint8 aAttrEnum)
                             *info.mLengthInfo[aAttrEnum].mName,
                             nsIDOMMutationEvent::MODIFICATION);
   }
+}
+
+nsSVGLength2*
+nsSVGElement::GetAnimatedLength(const nsIAtom *aAttrName)
+{
+  LengthAttributesInfo lengthInfo = GetLengthInfo();
+
+  for (PRUint32 i = 0; i < lengthInfo.mLengthCount; i++) {
+    if (aAttrName == *lengthInfo.mLengthInfo[i].mName) {
+      return &lengthInfo.mLengths[i];
+    }
+  }
+  NS_ABORT_IF_FALSE(false, "no matching length found");
+  return nsnull;
 }
 
 void

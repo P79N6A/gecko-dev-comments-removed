@@ -100,6 +100,9 @@ public:
   float GetAnimValue(nsSVGSVGElement* aCtx) const
     { return mAnimVal / GetUnitScaleFactor(aCtx, mSpecifiedUnitType); }
 
+  bool HasBaseVal() const {
+    return mIsBaseSet;
+  }
   
   
   

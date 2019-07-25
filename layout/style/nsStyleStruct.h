@@ -740,17 +740,6 @@ struct nsStyleBorder {
   static nsChangeHint MaxDifference();
 #endif
   static bool ForceCompare() { return false; }
-  bool ImageBorderDiffers() const;
-
-  nsStyleCorners mBorderRadius;    
-  nsStyleSides  mBorderImageSplit; 
-  PRUint8       mFloatEdge;       
-  PRUint8       mBorderImageHFill; 
-  PRUint8       mBorderImageVFill; 
-  nsBorderColors** mBorderColors; 
-  nsRefPtr<nsCSSShadowArray> mBoxShadow; 
-  bool          mHaveBorderImageWidth; 
-  nsMargin      mBorderImageWidth; 
 
   void EnsureBorderColors() {
     if (!mBorderColors) {
@@ -788,18 +777,11 @@ struct nsStyleBorder {
       mComputedBorder.Side(aSide) = roundedWidth;
   }
 
-  void SetBorderImageWidthOverride(mozilla::css::Side aSide, nscoord aBorderWidth)
+  
+  inline const nsMargin& GetActualBorder() const
   {
-    mBorderImageWidth.Side(aSide) =
-      NS_ROUND_BORDER_TO_PIXELS(aBorderWidth, mTwipsPerPixel);
+    return mComputedBorder;
   }
-
-  
-  
-  
-  
-  
-  const nsMargin& GetActualBorder() const;
 
   
   
@@ -861,10 +843,12 @@ struct nsStyleBorder {
   inline void SetBorderImage(imgIRequest* aImage);
   inline imgIRequest* GetBorderImage() const;
 
-  bool HasBorderImage() {return !!mBorderImage;}
+  bool HasBorderImage() {return !!mBorderImageSource;}
 
   void TrackImage(nsPresContext* aContext);
   void UntrackImage(nsPresContext* aContext);
+
+  nsMargin GetImageOutset() const;
 
   
   
@@ -901,12 +885,30 @@ struct nsStyleBorder {
     mBorderStyle[aSide] |= BORDER_COLOR_FOREGROUND;
   }
 
+public:
+  nsBorderColors** mBorderColors;        
+  nsRefPtr<nsCSSShadowArray> mBoxShadow; 
+
 #ifdef DEBUG
   bool mImageTracked;
 #endif
 
 protected:
+  nsCOMPtr<imgIRequest> mBorderImageSource; 
+
+public:
+  nsStyleCorners mBorderRadius;       
+  nsStyleSides   mBorderImageSlice;   
+  PRUint8        mBorderImageFill;    
+  nsStyleSides   mBorderImageWidth;   
+  nsStyleSides   mBorderImageOutset;  
+
+  PRUint8        mBorderImageRepeatH; 
+  PRUint8        mBorderImageRepeatV; 
+  PRUint8        mFloatEdge;          
   
+
+protected:
   
   
   
@@ -932,8 +934,6 @@ protected:
   nscolor       mBorderColor[4];  
                                   
 private:
-  nsCOMPtr<imgIRequest> mBorderImage; 
-
   
   nsCOMArray<imgIContainer> mSubImages;
 
@@ -2086,6 +2086,8 @@ struct nsStyleColumn {
 
   nscolor      mColumnRuleColor;  
   PRUint8      mColumnRuleStyle;  
+  PRUint8      mColumnFill;  
+
   
   
   bool mColumnRuleColorIsForeground;

@@ -56,7 +56,7 @@ class GeneratorFrameGuard;
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
     INITIAL_CONSTRUCT      =       0x80, 
-    INITIAL_LOWERED        =   0x200000  
+    INITIAL_LOWERED        =   0x800000  
 };
 
 enum ExecuteType {

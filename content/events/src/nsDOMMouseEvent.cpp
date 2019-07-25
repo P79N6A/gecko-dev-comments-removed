@@ -1,46 +1,47 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Steve Clark (buster@netscape.com)
- *   Ilya Konstantinov (mozilla-code@future.shiny.co.il)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsDOMMouseEvent.h"
 #include "nsGUIEvent.h"
 #include "nsIContent.h"
 #include "nsContentUtils.h"
+#include "DictionaryHelpers.h"
 
 nsDOMMouseEvent::nsDOMMouseEvent(nsPresContext* aPresContext,
                                  nsInputEvent* aEvent)
@@ -48,9 +49,9 @@ nsDOMMouseEvent::nsDOMMouseEvent(nsPresContext* aPresContext,
                  new nsMouseEvent(false, 0, nsnull,
                                   nsMouseEvent::eReal))
 {
-  // There's no way to make this class' ctor allocate an nsMouseScrollEvent.
-  // It's not that important, though, since a scroll event is not a real
-  // DOM event.
+  
+  
+  
   
   if (aEvent) {
     mEventIsInternal = false;
@@ -145,58 +146,17 @@ nsDOMMouseEvent::InitMouseEvent(const nsAString & aType, bool aCanBubble, bool a
 }   
 
 nsresult
-nsDOMMouseEvent::InitFromCtor(const nsAString& aType, nsISupports* aDict,
-                              JSContext* aCx, JSObject* aObj)
+nsDOMMouseEvent::InitFromCtor(const nsAString& aType,
+                              JSContext* aCx, jsval* aVal)
 {
-  nsCOMPtr<nsIMouseEventInit> eventInit = do_QueryInterface(aDict);
-  bool bubbles = false;
-  bool cancelable = false;
-  nsCOMPtr<nsIDOMWindow> view;
-  PRInt32 detail = 0;
-  PRInt32 screenX = 0;
-  PRInt32 screenY = 0;
-  PRInt32 clientX = 0;
-  PRInt32 clientY = 0;
-  bool ctrl = false;
-  bool alt = false;
-  bool shift = false;
-  bool meta = false;
-  PRUint16 button = 0;
-  nsCOMPtr<nsIDOMEventTarget> relatedTarget;
-  if (eventInit) {
-    nsresult rv = eventInit->GetBubbles(&bubbles);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetCancelable(&cancelable);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetView(getter_AddRefs(view));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetDetail(&detail);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetScreenX(&screenX);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetScreenY(&screenY);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetClientX(&clientX);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetClientY(&clientY);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetCtrlKey(&ctrl);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetShiftKey(&shift);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetAltKey(&alt);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetMetaKey(&meta);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetButton(&button);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = eventInit->GetRelatedTarget(getter_AddRefs(relatedTarget));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  return InitMouseEvent(aType, bubbles, cancelable,
-                        view, detail, screenX, screenY, clientX, clientY, 
-                        ctrl, alt, shift, meta,
-                        button, relatedTarget);
+  mozilla::dom::MouseEventInit d;
+  nsresult rv = d.Init(aCx, aVal);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return InitMouseEvent(aType, d.bubbles, d.cancelable,
+                        d.view, d.detail, d.screenX, d.screenY,
+                        d.clientX, d.clientY, 
+                        d.ctrlKey, d.altKey, d.shiftKey, d.metaKey,
+                        d.button, d.relatedTarget);
 }
 
 NS_IMETHODIMP
@@ -336,7 +296,7 @@ nsDOMMouseEvent::GetMetaKey(bool* aIsDown)
   return NS_OK;
 }
 
-/* virtual */
+
 nsresult
 nsDOMMouseEvent::Which(PRUint32* aWhich)
 {
