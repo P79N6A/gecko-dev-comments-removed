@@ -976,7 +976,7 @@ nsXULListitemAccessible::NativeRole()
     return roles::ROW;
 
   if (mIsCheckbox)
-    return roles::CHECKBUTTON;
+    return roles::CHECK_RICH_OPTION;
 
   if (mParent && mParent->Role() == roles::COMBOBOX_LIST)
     return roles::COMBOBOX_OPTION;
@@ -1029,14 +1029,6 @@ nsXULListitemAccessible::CanHaveAnonChildren()
 {
   
   return true;
-}
-
-void
-nsXULListitemAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
-                                                    PRInt32 *aSetSize)
-{
-  nsAccUtils::GetPositionAndSizeForXULSelectControlItem(mContent, aPosInSet,
-                                                        aSetSize);
 }
 
 

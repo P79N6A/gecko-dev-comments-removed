@@ -792,8 +792,13 @@ namespace roles {
   
 
 
+  CHECK_RICH_OPTION = 125,
 
-  LAST_ENTRY = 125
+  
+
+
+
+  LAST_ENTRY = 126
   };
 } 
 typedef enum mozilla::a11y::roles::Role role;

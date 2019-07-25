@@ -162,8 +162,6 @@ public:
   nsXULRadioButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
-  virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
-                                          PRInt32 *aSetSize);
   virtual PRUint64 NativeState();
 
   
