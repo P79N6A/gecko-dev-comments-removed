@@ -250,6 +250,15 @@ TypeAnalyzer::propagateSpecialization(MPhi *phi)
         MPhi *use = iter.def()->toPhi();
         if (!use->triedToSpecialize())
             continue;
+        if (use->type() == MIRType_None) {
+            
+            
+            
+            use->specialize(phi->type());
+            if (!addPhiToWorklist(use))
+                return false;
+            continue;
+        }
         if (use->type() != phi->type()) {
             
             use->specialize(MIRType_Value);
