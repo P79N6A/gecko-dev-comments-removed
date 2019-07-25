@@ -74,13 +74,6 @@
 
 
 
-
-
-
-
-
-
-
 class nsViewManager : public nsIViewManager {
 public:
   nsViewManager();
