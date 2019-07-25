@@ -45,12 +45,6 @@
 
 
 
-#define CHECKEDINT_ENABLE_PR_INTEGER_TYPES
-
-
-#define CHECKEDINT_ENABLE_LONG_LONG
-
-
 
 #define CHECKEDINT_ENABLE_MOZ_ASSERTS
 
@@ -59,30 +53,20 @@
 
 
 #ifdef CHECKEDINT_ENABLE_MOZ_ASSERTS
-    #include <mozilla/Assertions.h>
+    #include "mozilla/Assertions.h"
 #else
     #ifndef MOZ_STATIC_ASSERT
-        #define MOZ_STATIC_ASSERT(x)
+        #include <cassert>
+        #define MOZ_STATIC_ASSERT(cond, reason) assert((cond) && reason)
     #endif
 #endif
 
-#ifdef CHECKEDINT_ENABLE_PR_INTEGER_TYPES
-    #include "prtypes.h"
-#endif
-
+#include "mozilla/StandardInteger.h"
 #include <climits>
 
 namespace mozilla {
 
-namespace CheckedInt_internal {
-
-
-
-
-
-
-
-
+namespace detail {
 
 
 
@@ -94,11 +78,8 @@ namespace CheckedInt_internal {
 
 struct unsupported_type {};
 
-template<typename integer_type> struct is_supported_pass_3 {
-    enum { value = 0 };
-};
 template<typename integer_type> struct is_supported_pass_2 {
-    enum { value = is_supported_pass_3<integer_type>::value };
+    enum { value = 0 };
 };
 template<typename integer_type> struct is_supported {
     enum { value = is_supported_pass_2<integer_type>::value };
@@ -121,21 +102,6 @@ template<> struct is_supported_pass_2<int>  { enum { value = 1 }; };
 template<> struct is_supported_pass_2<unsigned int> { enum { value = 1 }; };
 template<> struct is_supported_pass_2<long>  { enum { value = 1 }; };
 template<> struct is_supported_pass_2<unsigned long> { enum { value = 1 }; };
-#ifdef CHECKEDINT_ENABLE_LONG_LONG
-    template<> struct is_supported_pass_2<long long>  { enum { value = 1 }; };
-    template<> struct is_supported_pass_2<unsigned long long> { enum { value = 1 }; };
-#endif
-
-#ifdef CHECKEDINT_ENABLE_PR_INTEGER_TYPES
-    template<> struct is_supported_pass_3<PRInt8>   { enum { value = 1 }; };
-    template<> struct is_supported_pass_3<PRUint8>  { enum { value = 1 }; };
-    template<> struct is_supported_pass_3<PRInt16>  { enum { value = 1 }; };
-    template<> struct is_supported_pass_3<PRUint16> { enum { value = 1 }; };
-    template<> struct is_supported_pass_3<PRInt32>  { enum { value = 1 }; };
-    template<> struct is_supported_pass_3<PRUint32> { enum { value = 1 }; };
-    template<> struct is_supported_pass_3<PRInt64>  { enum { value = 1 }; };
-    template<> struct is_supported_pass_3<PRUint64> { enum { value = 1 }; };
-#endif
 
 
 
@@ -435,7 +401,6 @@ inline T opposite_if_signed(T x) { return opposite_if_signed_impl<T>::run(x); }
 
 
 
-
 template<typename T>
 class CheckedInt
 {
@@ -446,7 +411,7 @@ protected:
     template<typename U>
     CheckedInt(U value, bool isValid) : mValue(value), mIsValid(isValid)
     {
-        MOZ_STATIC_ASSERT(CheckedInt_internal::is_supported<T>::value, "This type is not supported by CheckedInt");
+        MOZ_STATIC_ASSERT(detail::is_supported<T>::value, "This type is not supported by CheckedInt");
     }
 
 public:
@@ -461,15 +426,15 @@ public:
     template<typename U>
     CheckedInt(U value)
         : mValue(T(value)),
-          mIsValid(CheckedInt_internal::is_in_range<T>(value))
+          mIsValid(detail::is_in_range<T>(value))
     {
-        MOZ_STATIC_ASSERT(CheckedInt_internal::is_supported<T>::value, "This type is not supported by CheckedInt");
+        MOZ_STATIC_ASSERT(detail::is_supported<T>::value, "This type is not supported by CheckedInt");
     }
 
     
     CheckedInt() : mValue(0), mIsValid(true)
     {
-        MOZ_STATIC_ASSERT(CheckedInt_internal::is_supported<T>::value, "This type is not supported by CheckedInt");
+        MOZ_STATIC_ASSERT(detail::is_supported<T>::value, "This type is not supported by CheckedInt");
     }
 
     
@@ -505,10 +470,10 @@ public:
     {
         
         
-        T result = CheckedInt_internal::opposite_if_signed(value());
+        T result = detail::opposite_if_signed(value());
         
         return CheckedInt(result,
-                          valid() && CheckedInt_internal::is_sub_valid(T(0), value(), result));
+                          valid() && detail::is_sub_valid(T(0), value(), result));
     }
 
     
@@ -571,7 +536,7 @@ inline CheckedInt<T> operator OP(const CheckedInt<T> &lhs, const CheckedInt<T> &
     T y = rhs.mValue;                                                \
     T result = x OP y;                                                \
     T is_op_valid                                                     \
-        = CheckedInt_internal::is_##NAME##_valid(x, y, result);       \
+        = detail::is_##NAME##_valid(x, y, result);       \
     /* give the compiler a good chance to perform RVO */              \
     return CheckedInt<T>(result,                                      \
                          lhs.mIsValid & rhs.mIsValid & is_op_valid);  \
@@ -588,7 +553,7 @@ inline CheckedInt<T> operator /(const CheckedInt<T> &lhs, const CheckedInt<T> &r
 {
     T x = lhs.mValue;
     T y = rhs.mValue;
-    bool is_op_valid = CheckedInt_internal::is_div_valid(x, y);
+    bool is_op_valid = detail::is_div_valid(x, y);
     T result = is_op_valid ? (x / y) : 0;
     
     return CheckedInt<T>(result,
