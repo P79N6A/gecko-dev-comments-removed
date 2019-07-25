@@ -385,58 +385,10 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
   
   
   PRBool forceExternalHandling = PR_FALSE;
-  nsCAutoString disposition;
-  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(request));
-  nsCOMPtr<nsIURI> uri;
-  if (httpChannel)
-  {
-    rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-disposition"),
-                                        disposition);
-    httpChannel->GetURI(getter_AddRefs(uri));
-  }
-  else
-  {
-    nsCOMPtr<nsIMultiPartChannel> multipartChannel(do_QueryInterface(request));
-    if (multipartChannel)
-    {
-      rv = multipartChannel->GetContentDisposition(disposition);
-    } else {
-      
-      rv = NS_GetContentDisposition(request, disposition);
-    }
-  }
-
-  LOG(("  Disposition header: '%s'", disposition.get()));
-
-  if (NS_SUCCEEDED(rv) && !disposition.IsEmpty())
-  {
-    nsCOMPtr<nsIMIMEHeaderParam> mimehdrpar = do_GetService(NS_MIMEHEADERPARAM_CONTRACTID, &rv);
-    if (NS_SUCCEEDED(rv))
-    {
-      nsCAutoString fallbackCharset;
-      if (uri)
-        uri->GetOriginCharset(fallbackCharset);
-      nsAutoString dispToken;
-      
-      rv = mimehdrpar->GetParameter(disposition, "", fallbackCharset,
-                                    PR_TRUE, nsnull, dispToken);
-      
-      
-      
-      
-      if (NS_FAILED(rv) || 
-          (!dispToken.IsEmpty() &&
-           !dispToken.LowerCaseEqualsLiteral("inline") &&
-           
-           
-           
-           !dispToken.EqualsIgnoreCase("filename", 8) &&
-           
-           !dispToken.EqualsIgnoreCase("name", 4)))
-        
-        forceExternalHandling = PR_TRUE;
-    }
-  }
+  PRUint32 disposition;
+  rv = aChannel->GetContentDisposition(&disposition);
+  if (NS_SUCCEEDED(rv) && disposition == nsIChannel::DISPOSITION_ATTACHMENT)
+    forceExternalHandling = PR_TRUE;
 
   LOG(("  forceExternalHandling: %s", forceExternalHandling ? "yes" : "no"));
     
@@ -576,6 +528,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
   
   
   
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(request));
   if (httpChannel) {
     PRBool requestSucceeded;
     httpChannel->GetRequestSucceeded(&requestSucceeded);

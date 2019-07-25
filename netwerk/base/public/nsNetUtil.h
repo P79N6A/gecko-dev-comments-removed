@@ -106,6 +106,7 @@
 #include "nsIChannelPolicy.h"
 #include "nsISocketProviderService.h"
 #include "nsISocketProvider.h"
+#include "nsIMIMEHeaderParam.h"
 #include "mozilla/Services.h"
 
 #include "nsIRedirectChannelRegistrar.h"
@@ -242,19 +243,6 @@ NS_NewChannel(nsIChannel           **result,
         }
     }
     return rv;
-}
-
-
-
-inline nsresult
-NS_GetContentDisposition(nsIRequest     *channel,
-                         nsACString     &result)
-{
-    nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(channel));
-    if (props)
-        return props->GetPropertyAsACString(NS_CHANNEL_PROP_CONTENT_DISPOSITION,
-                                            result);
-    return NS_ERROR_NOT_AVAILABLE;
 }
 
 
@@ -1903,6 +1891,105 @@ NS_CheckIsJavaCompatibleURLString(nsCString& urlString, PRBool *result)
   }
 
   *result = compatible;
+
+  return NS_OK;
+}
+
+
+
+
+
+inline PRUint32
+NS_GetContentDispositionFromToken(const nsAString& aDispToken)
+{
+  
+  
+  
+  
+  if (aDispToken.IsEmpty() ||
+      aDispToken.LowerCaseEqualsLiteral("inline") ||
+      
+      
+      
+      StringHead(aDispToken, 8).LowerCaseEqualsLiteral("filename") ||
+      
+      StringHead(aDispToken, 4).LowerCaseEqualsLiteral("name"))
+    return nsIChannel::DISPOSITION_INLINE;
+
+  return nsIChannel::DISPOSITION_ATTACHMENT;
+}
+
+
+
+
+
+
+inline PRUint32
+NS_GetContentDispositionFromHeader(const nsACString& aHeader, nsIChannel *aChan = nsnull)
+{
+  nsresult rv;
+  nsCOMPtr<nsIMIMEHeaderParam> mimehdrpar = do_GetService(NS_MIMEHEADERPARAM_CONTRACTID, &rv);
+  if (NS_FAILED(rv))
+    return nsIChannel::DISPOSITION_ATTACHMENT;
+
+  nsCAutoString fallbackCharset;
+  if (aChan) {
+    nsCOMPtr<nsIURI> uri;
+    aChan->GetURI(getter_AddRefs(uri));
+    if (uri)
+      uri->GetOriginCharset(fallbackCharset);
+  }
+
+  nsAutoString dispToken;
+  rv = mimehdrpar->GetParameter(aHeader, "", fallbackCharset, PR_TRUE, nsnull,
+                                dispToken);
+  if (NS_FAILED(rv))
+    return nsIChannel::DISPOSITION_ATTACHMENT;
+
+  return NS_GetContentDispositionFromToken(dispToken);
+}
+
+
+
+
+
+
+
+inline nsresult
+NS_GetFilenameFromDisposition(nsAString& aFilename,
+                              const nsACString& aDisposition,
+                              nsIURI* aURI = nsnull)
+{
+  aFilename.Truncate();
+
+  nsresult rv;
+  nsCOMPtr<nsIMIMEHeaderParam> mimehdrpar =
+      do_GetService(NS_MIMEHEADERPARAM_CONTRACTID, &rv);
+  if (NS_FAILED(rv))
+    return rv;
+
+  nsCOMPtr<nsIURL> url = do_QueryInterface(aURI);
+
+  nsCAutoString fallbackCharset;
+  if (url)
+    url->GetOriginCharset(fallbackCharset);
+  
+  rv = mimehdrpar->GetParameter(aDisposition, "filename",
+                                fallbackCharset, PR_TRUE, nsnull,
+                                aFilename);
+  if (NS_FAILED(rv) || aFilename.IsEmpty()) {
+    
+    rv = mimehdrpar->GetParameter(aDisposition, "name", fallbackCharset,
+                                  PR_TRUE, nsnull, aFilename);
+  }
+
+  if (NS_FAILED(rv)) {
+    aFilename.Truncate();
+    return rv;
+  }
+
+  if (aFilename.IsEmpty())
+    return NS_ERROR_NOT_AVAILABLE;
 
   return NS_OK;
 }

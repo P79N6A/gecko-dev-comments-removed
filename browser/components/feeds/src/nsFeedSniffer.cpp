@@ -129,51 +129,18 @@ StringBeginsWithLowercaseLiteral(nsAString& aString,
   return StringHead(aString, N).LowerCaseEqualsLiteral(aSubstring);
 }
 
-
-
 PRBool
 HasAttachmentDisposition(nsIHttpChannel* httpChannel)
 {
   if (!httpChannel)
     return PR_FALSE;
-  
-  nsCAutoString contentDisposition;
-  nsresult rv = 
-    httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-disposition"),
-                                   contentDisposition);
-  
-  if (NS_SUCCEEDED(rv) && !contentDisposition.IsEmpty()) {
-    nsCOMPtr<nsIURI> uri;
-    httpChannel->GetURI(getter_AddRefs(uri));
-    nsCOMPtr<nsIMIMEHeaderParam> mimehdrpar =
-      do_GetService(NS_MIMEHEADERPARAM_CONTRACTID, &rv);
-    if (NS_SUCCEEDED(rv))
-    {
-      nsCAutoString fallbackCharset;
-      if (uri)
-        uri->GetOriginCharset(fallbackCharset);
-      nsAutoString dispToken;
-      
-      rv = mimehdrpar->GetParameter(contentDisposition, "", fallbackCharset,
-                                    PR_TRUE, nsnull, dispToken);
-      
-      
-      
-      
-      if (NS_FAILED(rv) || 
-          (!dispToken.IsEmpty() &&
-           !StringBeginsWithLowercaseLiteral(dispToken, "inline") &&
-           
-           
-           
-           !StringBeginsWithLowercaseLiteral(dispToken, "filename") &&
-           
-           !StringBeginsWithLowercaseLiteral(dispToken, "name")))
-        
-        return PR_TRUE;
-    }
-  } 
-  
+
+  PRUint32 disp;
+  nsresult rv = httpChannel->GetContentDisposition(&disp);
+
+  if (NS_SUCCEEDED(rv) && disp == nsIChannel::DISPOSITION_ATTACHMENT)
+    return PR_TRUE;
+
   return PR_FALSE;
 }
 

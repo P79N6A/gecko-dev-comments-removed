@@ -232,66 +232,6 @@ static nsresult UnescapeFragment(const nsACString& aFragment, nsIURI* aURI,
 
 
 
-static void ExtractDisposition(nsIChannel* aChannel, nsACString& aDisposition)
-{
-  aDisposition.Truncate();
-  
-  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
-  if (httpChannel) 
-  {
-    httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-disposition"), aDisposition);
-  }
-  if (aDisposition.IsEmpty())
-  {
-    nsCOMPtr<nsIMultiPartChannel> multipartChannel(do_QueryInterface(aChannel));
-    if (multipartChannel)
-    {
-      multipartChannel->GetContentDisposition(aDisposition);
-    }
-  }
-
-}
-
-
-
-
-
-
-
-
-
-static void GetFilenameFromDisposition(nsAString& aFilename,
-                                       const nsACString& aDisposition,
-                                       nsIURI* aURI = nsnull,
-                                       nsIMIMEHeaderParam* aMIMEHeaderParam = nsnull)
-{
-  aFilename.Truncate();
-  nsCOMPtr<nsIMIMEHeaderParam> mimehdrpar(aMIMEHeaderParam);
-  if (!mimehdrpar) {
-    mimehdrpar = do_GetService(NS_MIMEHEADERPARAM_CONTRACTID);
-    if (!mimehdrpar)
-      return;
-  }
-
-  nsCOMPtr<nsIURL> url = do_QueryInterface(aURI);
-
-  nsCAutoString fallbackCharset;
-  if (url)
-    url->GetOriginCharset(fallbackCharset);
-  
-  nsresult rv = mimehdrpar->GetParameter(aDisposition, "filename", fallbackCharset, 
-                                         PR_TRUE, nsnull, aFilename);
-  if (NS_FAILED(rv) || aFilename.IsEmpty())
-    
-    rv = mimehdrpar->GetParameter(aDisposition, "name", fallbackCharset, PR_TRUE, 
-                                  nsnull, aFilename);
-}
-
-
-
-
-
-
 
 
 
@@ -318,51 +258,19 @@ static PRBool GetFilenameAndExtensionFromChannel(nsIChannel* aChannel,
 
 
 
-  nsCAutoString disp;
-  ExtractDisposition(aChannel, disp);
   PRBool handleExternally = PR_FALSE;
-  nsCOMPtr<nsIURI> uri;
-  nsresult rv;
-  aChannel->GetURI(getter_AddRefs(uri));
-  
-  
-  if (!disp.IsEmpty()) 
+  PRUint32 disp;
+  nsresult rv = aChannel->GetContentDisposition(&disp);
+  if (NS_SUCCEEDED(rv))
   {
-    nsCOMPtr<nsIMIMEHeaderParam> mimehdrpar = do_GetService(NS_MIMEHEADERPARAM_CONTRACTID, &rv);
-    if (NS_FAILED(rv))
-      return PR_FALSE;
-
-    nsCAutoString fallbackCharset;
-    uri->GetOriginCharset(fallbackCharset);
-    
-    nsAutoString dispToken;
-    rv = mimehdrpar->GetParameter(disp, "", fallbackCharset, PR_TRUE, 
-                                  nsnull, dispToken);
-    
-    
-    
-    
-    if (NS_FAILED(rv) || 
-        (!dispToken.IsEmpty() &&
-         !dispToken.LowerCaseEqualsLiteral("inline") &&
-         
-         
-         
-         !dispToken.EqualsIgnoreCase("filename", 8) &&
-         
-         !dispToken.EqualsIgnoreCase("name", 4)))
-    {
-      
+    aChannel->GetContentDispositionFilename(aFileName);
+    if (disp == nsIChannel::DISPOSITION_ATTACHMENT)
       handleExternally = PR_TRUE;
-    }
-
-    
-    
-    GetFilenameFromDisposition(aFileName, disp, uri, mimehdrpar);
-
-  } 
+  }
 
   
+  nsCOMPtr<nsIURI> uri;
+  aChannel->GetURI(getter_AddRefs(uri));
   nsCOMPtr<nsIURL> url(do_QueryInterface(uri));
   if (url && aFileName.IsEmpty())
   {
@@ -715,7 +623,7 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
 
     nsCString disp;
     if (channel)
-      ExtractDisposition(channel, disp);
+      channel->GetContentDispositionHeader(disp);
 
     nsCOMPtr<nsIURI> referrer;
     rv = NS_GetReferrerFromChannel(channel, getter_AddRefs(referrer));
