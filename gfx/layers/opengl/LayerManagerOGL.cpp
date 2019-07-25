@@ -416,17 +416,19 @@ LayerManagerOGL::EndTransaction(DrawThebesLayerCallback aCallback,
     return;
   }
 
-  
-  
-  mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
+  if (mRoot) {
+    
+    
+    mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
 
-  mThebesLayerCallback = aCallback;
-  mThebesLayerCallbackData = aCallbackData;
+    mThebesLayerCallback = aCallback;
+    mThebesLayerCallbackData = aCallbackData;
 
-  Render();
+    Render();
 
-  mThebesLayerCallback = nsnull;
-  mThebesLayerCallbackData = nsnull;
+    mThebesLayerCallback = nsnull;
+    mThebesLayerCallbackData = nsnull;
+  }
 
   mTarget = NULL;
 
