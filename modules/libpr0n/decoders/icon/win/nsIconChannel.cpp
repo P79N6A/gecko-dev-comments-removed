@@ -458,9 +458,10 @@ static int GetColorTableSize(BITMAPINFOHEADER* aHeader)
     
     
     
-    if (aHeader->biCompression == BI_BITFIELDS)
+    if (aHeader->biCompression == BI_BITFIELDS) {
       aHeader->biCompression = BI_RGB;
-      colorTableSize = 0;
+    }
+    colorTableSize = 0;
     break;
   case 24:
     colorTableSize = 0;
