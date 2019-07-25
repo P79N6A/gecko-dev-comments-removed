@@ -8,7 +8,7 @@ const EXPORTED_SYMBOLS = [
   "TokenServerClient",
   "TokenServerClientError",
   "TokenServerClientNetworkError",
-  "TokenServerClientServerError"
+  "TokenServerClientServerError",
 ];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
@@ -58,9 +58,31 @@ TokenServerClientNetworkError.prototype.constructor =
 
 
 
-function TokenServerClientServerError(message) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function TokenServerClientServerError(message, cause="general") {
   this.name = "TokenServerClientServerError";
   this.message = message || "Server error.";
+  this.cause = cause;
 }
 TokenServerClientServerError.prototype = new TokenServerClientError();
 TokenServerClientServerError.prototype.constructor =
@@ -142,8 +164,48 @@ TokenServerClient.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   getTokenFromBrowserIDAssertion:
-    function getTokenFromBrowserIDAssertion(url, assertion, cb) {
+    function getTokenFromBrowserIDAssertion(url, assertion, cb,
+                                            conditionsAccepted=false) {
     if (!url) {
       throw new TokenServerClientError("url argument is not valid.");
     }
@@ -159,8 +221,14 @@ TokenServerClient.prototype = {
     this._log.debug("Beginning BID assertion exchange: " + url);
 
     let req = new RESTRequest(url);
-    req.setHeader("accept", "application/json");
-    req.setHeader("authorization", "Browser-ID " + assertion);
+    req.setHeader("Accept", "application/json");
+    req.setHeader("Authorization", "Browser-ID " + assertion);
+
+    if (conditionsAccepted) {
+      
+      req.setHeader("X-Conditions-Accepted", "1");
+    }
+
     let client = this;
     req.get(function onResponse(error) {
       if (error) {
@@ -207,22 +275,18 @@ TokenServerClient.prototype = {
 
 
   _processTokenResponse: function processTokenResponse(response, cb) {
-    this._log.debug("Got token response.");
+    this._log.debug("Got token response: " + response.status);
 
-    if (!response.success) {
-      this._log.info("Non-200 response code to token request: " +
-                     response.status);
-      this._log.debug("Response body: " + response.body);
-      let error = new TokenServerClientServerError("Non 200 response code: " +
-                                                   response.status);
-      error.response = response;
-      cb(error, null);
-      return;
-    }
+    
+    
+    let ct = response.headers["content-type"] || "";
+    if (ct != "application/json" && !ct.startsWith("application/json;")) {
+      this._log.warn("Did not receive JSON response. Misconfigured server?");
+      this._log.debug("Content-Type: " + ct);
+      this._log.debug("Body: " + response.body);
 
-    let ct = response.headers["content-type"];
-    if (ct != "application/json" && ct.indexOf("application/json;") != 0) {
-      let error =  new TokenServerClientError("Unsupported media type: " + ct);
+      let error = new TokenServerClientServerError("Non-JSON response.",
+                                                   "malformed-response");
       error.response = response;
       cb(error, null);
       return;
@@ -232,18 +296,73 @@ TokenServerClient.prototype = {
     try {
       result = JSON.parse(response.body);
     } catch (ex) {
-      let error = new TokenServerClientServerError("Invalid JSON returned " +
-                                                   "from server.");
+      this._log.warn("Invalid JSON returned by server: " + response.body);
+      let error = new TokenServerClientServerError("Malformed JSON.",
+                                                   "malformed-response");
       error.response = response;
       cb(error, null);
       return;
     }
 
-    for each (let k in ["id", "key", "api_endpoint", "uid"]) {
+    
+    if (response.status != 200) {
+      
+      
+      if ("errors" in result) {
+        
+        
+        
+        for (let error of result.errors) {
+          this._log.info("Server-reported error: " + JSON.stringify(error));
+        }
+      }
+
+      let error = new TokenServerClientServerError();
+      error.response = response;
+
+      if (response.status == 400) {
+        error.message = "Malformed request.";
+        error.cause = "malformed-request";
+      } else if (response.status == 401) {
+        error.message("Authentication failed.");
+        error.cause = "invalid-credentials";
+      }
+
+      
+      
+      
+      
+      
+      else if (response.status == 403) {
+        if (!("urls" in result)) {
+          this._log.warn("403 response without proper fields!");
+          this._log.warn("Response body: " + response.body);
+
+          error.message = "Missing JSON fields.";
+          error.cause = "malformed-response";
+        } else if (typeof(result.urls) != "object") {
+          error.message = "urls field is not a map.";
+          error.cause = "malformed-response";
+        } else {
+          error.message = "Conditions must be accepted.";
+          error.cause = "conditions-required";
+          error.urls = result.urls;
+        }
+      } else if (response.status == 404) {
+        error.message = "Unknown service.";
+        error.cause = "unknown-service";
+      }
+
+      cb(error, null);
+      return;
+    }
+
+    for (let k of ["id", "key", "api_endpoint", "uid"]) {
       if (!(k in result)) {
         let error = new TokenServerClientServerError("Expected key not " +
                                                      " present in result: " +
                                                      k);
+        error.cause = "malformed-response";
         error.response = response;
         cb(error, null);
         return;
