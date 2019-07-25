@@ -809,12 +809,14 @@ enum AbortableRecordingStatusCodes {
     ARECORD_ABORTED_code   = 2,
     ARECORD_CONTINUE_code  = 3,
     ARECORD_IMACRO_code    = 4,
-    ARECORD_COMPLETED_code = 5
+    ARECORD_IMACRO_ABORTED_code = 5,
+    ARECORD_COMPLETED_code = 6
 };
 AbortableRecordingStatus ARECORD_ERROR    = { ARECORD_ERROR_code };
 AbortableRecordingStatus ARECORD_STOP     = { ARECORD_STOP_code };
 AbortableRecordingStatus ARECORD_CONTINUE = { ARECORD_CONTINUE_code };
 AbortableRecordingStatus ARECORD_IMACRO   = { ARECORD_IMACRO_code };
+AbortableRecordingStatus ARECORD_IMACRO_ABORTED   = { ARECORD_IMACRO_ABORTED_code };
 AbortableRecordingStatus ARECORD_ABORTED =  { ARECORD_ABORTED_code };
 AbortableRecordingStatus ARECORD_COMPLETED =  { ARECORD_COMPLETED_code };
 
@@ -874,9 +876,10 @@ enum AbortableRecordingStatus {
                             
     ARECORD_CONTINUE  = 2,  
     ARECORD_IMACRO    = 3,  
-    ARECORD_ABORTED   = 4,  
+    ARECORD_IMACRO_ABORTED = 4, 
+    ARECORD_ABORTED   = 5,  
                             
-    ARECORD_COMPLETED = 5   
+    ARECORD_COMPLETED = 6   
                             
 };
 

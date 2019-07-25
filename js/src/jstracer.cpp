@@ -7174,7 +7174,13 @@ TraceRecorder::monitorRecording(JSOp op)
 
         if (outOfMemory() || OverfullJITCache(&localtm)) {
             ResetJIT(cx, FR_OOM);
-            return ARECORD_ABORTED;
+
+            
+
+
+
+
+            return status == ARECORD_IMACRO ? ARECORD_IMACRO_ABORTED : ARECORD_ABORTED;
         }
     } else {
         JS_ASSERT(status == ARECORD_COMPLETED ||
