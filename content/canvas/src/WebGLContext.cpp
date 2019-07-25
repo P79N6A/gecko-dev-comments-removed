@@ -339,17 +339,6 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 
     printf_stderr ("--- WebGL context created: %p\n", gl.get());
 
-    if (gl->IsGLES2()) {
-        
-        mShaderValidation = PR_FALSE;
-    } else {
-        
-        nsCOMPtr<nsIPrefBranch> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID);
-        NS_ENSURE_TRUE(prefService != nsnull, NS_ERROR_FAILURE);
-
-        prefService->GetBoolPref("webgl.shader_validator", &mShaderValidation);
-    }
-
     mWidth = width;
     mHeight = height;
     mResetLayer = PR_TRUE;
