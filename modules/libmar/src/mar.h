@@ -46,6 +46,11 @@
 extern "C" {
 #endif
 
+struct ProductInformationBlock {
+  const char *MARChannelID;
+  const char *productVersion;
+};
+
 
 
 
@@ -134,7 +139,11 @@ int mar_read(MarFile *mar, const MarItem *item, int offset, char *buf,
 
 
 
-int mar_create(const char *dest, int numfiles, char **files);
+
+int mar_create(const char *dest, 
+               int numfiles, 
+               char **files, 
+               struct ProductInformationBlock *infoBlock);
 
 
 
@@ -162,6 +171,18 @@ int mar_verify_signatureW(MarFile *mar,
                           const char *certData,
                           PRUint32 sizeOfCertData);
 #endif
+
+
+
+
+
+
+
+
+
+int
+mar_read_product_info_block(MarFile *mar, 
+                            struct ProductInformationBlock *infoBlock);
 
 #ifdef __cplusplus
 }

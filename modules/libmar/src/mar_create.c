@@ -36,12 +36,14 @@
 
 
 
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include "mar_private.h"
+#include "mar_cmdline.h"
 #include "mar.h"
 
 #ifdef XP_WIN
@@ -124,10 +126,206 @@ static int mar_concat_file(FILE *fp, const char *path) {
   return rv;
 }
 
-int mar_create(const char *dest, int num_files, char **files) {
+
+
+
+
+
+
+
+
+
+static int
+mar_concat_product_info_block(FILE *fp, 
+                              struct MarItemStack *stack,
+                              struct ProductInformationBlock *infoBlock)
+{
+  char buf[PIB_MAX_MAR_CHANNEL_ID_SIZE + PIB_MAX_PRODUCT_VERSION_SIZE];
+  PRUint32 additionalBlockID = 1, infoBlockSize, unused;
+  if (!fp || !infoBlock || 
+      !infoBlock->MARChannelID ||
+      !infoBlock->productVersion) {
+    return -1;
+  }
+ 
+  
+  if (strlen(infoBlock->MARChannelID) > PIB_MAX_MAR_CHANNEL_ID_SIZE) {
+    return -1;
+  }
+
+  
+  if (strlen(infoBlock->productVersion) > PIB_MAX_PRODUCT_VERSION_SIZE) {
+    return -1;
+  }
+
+  
+
+
+
+  infoBlockSize = sizeof(infoBlockSize) +
+                  sizeof(additionalBlockID) +
+                  PIB_MAX_MAR_CHANNEL_ID_SIZE +
+                  PIB_MAX_PRODUCT_VERSION_SIZE + 2;
+  if (stack) {
+    stack->last_offset += infoBlockSize;
+  }
+
+  
+  infoBlockSize = htonl(infoBlockSize);
+  if (fwrite(&infoBlockSize, 
+      sizeof(infoBlockSize), 1, fp) != 1) {
+    return -1;
+  }
+  infoBlockSize = ntohl(infoBlockSize);
+
+  
+  additionalBlockID = htonl(additionalBlockID);
+  if (fwrite(&additionalBlockID, 
+      sizeof(additionalBlockID), 1, fp) != 1) {
+    return -1;
+  }
+  additionalBlockID = ntohl(additionalBlockID);
+
+  
+  if (fwrite(infoBlock->MARChannelID, 
+      strlen(infoBlock->MARChannelID) + 1, 1, fp) != 1) {
+    return -1;
+  }
+
+  
+  if (fwrite(infoBlock->productVersion, 
+      strlen(infoBlock->productVersion) + 1, 1, fp) != 1) {
+    return -1;
+  }
+
+  
+  unused = infoBlockSize - (sizeof(infoBlockSize) +
+                            sizeof(additionalBlockID) +
+                            strlen(infoBlock->MARChannelID) + 
+                            strlen(infoBlock->productVersion) + 2);
+  memset(buf, 0, sizeof(buf));
+  if (fwrite(buf, unused, 1, fp) != 1) {
+    return -1;
+  }
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
+int
+refresh_product_info_block(const char *path,
+                           struct ProductInformationBlock *infoBlock)
+{
+  FILE *fp ;
+  int rv;
+  PRUint32 hasSignatureBlock, numSignatures, additionalBlocks, 
+    additionalBlockSize, additionalBlockID, offsetAdditionalBlocks, 
+    numAdditionalBlocks, i;
+  PRInt64 oldPos;
+
+  rv = get_mar_file_info(path, 
+                         &hasSignatureBlock,
+                         &numSignatures,
+                         &additionalBlocks,
+                         &offsetAdditionalBlocks,
+                         &numAdditionalBlocks);
+  if (rv) {
+    fprintf(stderr, "ERROR: Could not obtain MAR information.\n");
+    return -1;
+  }
+
+  if (hasSignatureBlock && numSignatures) {
+    fprintf(stderr, "ERROR: Cannot refresh a signed MAR\n");
+    return -1;
+  }
+
+  fp = fopen(path, "r+b");
+  if (!fp) {
+    fprintf(stderr, "ERROR: could not open target file: %s\n", path);
+    return -1;
+  }
+
+  if (fseeko(fp, offsetAdditionalBlocks, SEEK_SET)) {
+    fprintf(stderr, "ERROR: could not seek to additional blocks\n");
+    fclose(fp);
+    return -1;
+  }
+
+  for (i = 0; i < numAdditionalBlocks; ++i) {
+    
+    oldPos = ftello(fp);
+
+    
+    if (fread(&additionalBlockSize, 
+              sizeof(additionalBlockSize), 
+              1, fp) != 1) {
+      return -1;
+    }
+    additionalBlockSize = ntohl(additionalBlockSize);
+
+    
+    if (fread(&additionalBlockID, 
+              sizeof(additionalBlockID), 
+              1, fp) != 1) {
+      return -1;
+    }
+    additionalBlockID = ntohl(additionalBlockID);
+
+    if (PRODUCT_INFO_BLOCK_ID == additionalBlockID) {
+      if (fseeko(fp, oldPos, SEEK_SET)) {
+        fprintf(stderr, "Could not seek back to Product Information Block\n");
+        fclose(fp);
+        return -1;
+      }
+
+      if (mar_concat_product_info_block(fp, NULL, infoBlock)) {
+        fprintf(stderr, "Could not concat Product Information Block\n");
+        fclose(fp);
+        return -1;
+      }
+
+      fclose(fp);
+      return 0;
+    } else {
+      
+      if (fseek(fp, additionalBlockSize, SEEK_CUR)) {
+        fprintf(stderr, "ERROR: Could not seek past current block.\n");
+        fclose(fp);
+        return -1;
+      }
+    }
+  }
+
+  
+  fclose(fp);
+  fprintf(stderr, "ERROR: Could not refresh because block does not exist\n");
+  return -1;
+}
+
+
+
+
+
+
+
+
+
+
+
+int mar_create(const char *dest, int 
+               num_files, char **files, 
+               struct ProductInformationBlock *infoBlock) {
   struct MarItemStack stack;
-  PRUint32 offset_to_index = 0, size_of_index, num_signatures;
-  PRUint64 size_of_entire_MAR = 0;
+  PRUint32 offset_to_index = 0, size_of_index, 
+    numSignatures, numAdditionalSections;
+  PRUint64 sizeOfEntireMAR = 0;
   struct stat st;
   FILE *fp;
   int i, rv = -1;
@@ -146,18 +344,32 @@ int mar_create(const char *dest, int num_files, char **files) {
     goto failure;
 
   stack.last_offset = MAR_ID_SIZE + 
-                      sizeof(num_signatures) + 
                       sizeof(offset_to_index) +
-                      sizeof(size_of_entire_MAR);
+                      sizeof(numSignatures) + 
+                      sizeof(numAdditionalSections) +
+                      sizeof(sizeOfEntireMAR);
 
   
-  if (fwrite(&size_of_entire_MAR, sizeof(size_of_entire_MAR), 1, fp) != 1) {
+  if (fwrite(&sizeOfEntireMAR, sizeof(sizeOfEntireMAR), 1, fp) != 1) {
     goto failure;
   }
 
   
-  num_signatures = 0;
-  if (fwrite(&num_signatures, sizeof(num_signatures), 1, fp) != 1) {
+  numSignatures = 0;
+  if (fwrite(&numSignatures, sizeof(numSignatures), 1, fp) != 1) {
+    goto failure;
+  }
+
+  
+
+  numAdditionalSections = htonl(1);
+  if (fwrite(&numAdditionalSections, 
+             sizeof(numAdditionalSections), 1, fp) != 1) {
+    goto failure;
+  }
+  numAdditionalSections = ntohl(numAdditionalSections);
+
+  if (mar_concat_product_info_block(fp, &stack, infoBlock)) {
     goto failure;
   }
 
@@ -196,13 +408,13 @@ int mar_create(const char *dest, int num_files, char **files) {
     goto failure;
   offset_to_index = ntohl(stack.last_offset);
   
-  size_of_entire_MAR = ((PRUint64)stack.last_offset) +
-                       stack.size_used +
-                       sizeof(size_of_index);
-  size_of_entire_MAR = HOST_TO_NETWORK64(size_of_entire_MAR);
-  if (fwrite(&size_of_entire_MAR, sizeof(size_of_entire_MAR), 1, fp) != 1)
+  sizeOfEntireMAR = ((PRUint64)stack.last_offset) +
+                    stack.size_used +
+                    sizeof(size_of_index);
+  sizeOfEntireMAR = HOST_TO_NETWORK64(sizeOfEntireMAR);
+  if (fwrite(&sizeOfEntireMAR, sizeof(sizeOfEntireMAR), 1, fp) != 1)
     goto failure;
-  size_of_entire_MAR = NETWORK_TO_HOST64(size_of_entire_MAR);
+  sizeOfEntireMAR = NETWORK_TO_HOST64(sizeOfEntireMAR);
 
   rv = 0;
 failure: 

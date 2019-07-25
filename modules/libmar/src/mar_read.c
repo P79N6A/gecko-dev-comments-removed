@@ -235,6 +235,125 @@ void mar_close(MarFile *mar) {
   free(mar);
 }
 
+
+
+
+
+
+
+
+
+int
+read_product_info_block(char *path, 
+                        struct ProductInformationBlock *infoBlock)
+{
+  int rv;
+  MarFile mar;
+  mar.fp = fopen(path, "rb");
+  if (!mar.fp) {
+    return -1;
+  }
+  rv = mar_read_product_info_block(&mar, infoBlock);
+  fclose(mar.fp);
+  return rv;
+}
+
+
+
+
+
+
+
+
+
+int
+mar_read_product_info_block(MarFile *mar, 
+                            struct ProductInformationBlock *infoBlock)
+{
+  int i, hasAdditionalBlocks, offset, 
+    offsetAdditionalBlocks, numAdditionalBlocks,
+    additionalBlockSize, additionalBlockID;
+  
+
+  char buf[97] = { '\0' };
+  int ret = get_mar_file_info_fp(mar->fp, NULL, NULL,
+                                 &hasAdditionalBlocks, 
+                                 &offsetAdditionalBlocks, 
+                                 &numAdditionalBlocks);
+  for (i = 0; i < numAdditionalBlocks; ++i) {
+    
+    if (fread(&additionalBlockSize, 
+              sizeof(additionalBlockSize), 
+              1, mar->fp) != 1) {
+      return -1;
+    }
+    additionalBlockSize = ntohl(additionalBlockSize) - 
+                          sizeof(additionalBlockSize) - 
+                          sizeof(additionalBlockID);
+
+    
+    if (fread(&additionalBlockID, 
+              sizeof(additionalBlockID), 
+              1, mar->fp) != 1) {
+      return -1;
+    }
+    additionalBlockID = ntohl(additionalBlockID);
+
+    if (PRODUCT_INFO_BLOCK_ID == additionalBlockID) {
+      const char *location;
+      int len;
+
+      
+
+
+
+
+      if (additionalBlockSize > 96) {
+        return -1;
+      }
+
+    if (fread(buf, additionalBlockSize, 1, mar->fp) != 1) {
+        return -1;
+      }
+
+      
+
+
+      location = buf;
+      len = strlen(location);
+      infoBlock->MARChannelID = location;
+      location += len + 1;
+      if (len >= 64) {
+        infoBlock->MARChannelID = NULL;
+        return -1;
+      }
+
+      
+      len = strlen(location);
+      infoBlock->productVersion = location;
+      location += len + 1;
+      if (len >= 32) {
+        infoBlock->MARChannelID = NULL;
+        infoBlock->productVersion = NULL;
+        return -1;
+      }
+      infoBlock->MARChannelID = 
+        strdup(infoBlock->MARChannelID);
+      infoBlock->productVersion = 
+        strdup(infoBlock->productVersion);
+      return 0;
+    } else {
+      
+      if (fseek(mar->fp, additionalBlockSize, SEEK_CUR)) {
+        return -1;
+      }
+    }
+  }
+
+  
+  return -1;
+}
+
 const MarItem *mar_find_item(MarFile *mar, const char *name) {
   PRUint32 hash;
   const MarItem *item;
@@ -292,21 +411,73 @@ int mar_read(MarFile *mar, const MarItem *item, int offset, char *buf,
 
 
 
-int is_old_mar(const char *path, int *oldMar)
-{
-  PRUint32 offsetToIndex, offsetToContent, oldPos;
-  FILE *fp;
-  
-  if (!oldMar) {
-    return -1;
-  }
 
-  fp = fopen(path, "rb");
+
+
+
+
+
+
+
+
+
+
+
+int get_mar_file_info(const char *path, 
+                      int *hasSignatureBlock,
+                      int *numSignatures,
+                      int *hasAdditionalBlocks,
+                      int *offsetAdditionalBlocks,
+                      int *numAdditionalBlocks)
+{
+  int rv;
+  FILE *fp = fopen(path, "rb");
   if (!fp) {
     return -1;
   }
 
-  oldPos = ftell(fp);
+  rv = get_mar_file_info_fp(fp, hasSignatureBlock, 
+                            numSignatures, hasAdditionalBlocks,
+                            offsetAdditionalBlocks, numAdditionalBlocks);
+
+  fclose(fp);
+  return rv;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int get_mar_file_info_fp(FILE *fp, 
+                         int *hasSignatureBlock,
+                         int *numSignatures,
+                         int *hasAdditionalBlocks,
+                         int *offsetAdditionalBlocks,
+                         int *numAdditionalBlocks)
+{
+  PRUint32 offsetToIndex, offsetToContent, signatureCount, signatureLen;
+  int i;
+  
+  
+  if (!hasSignatureBlock && !hasAdditionalBlocks) {
+    return -1;
+  }
+
 
   
   if (fseek(fp, MAR_ID_SIZE, SEEK_SET)) {
@@ -314,9 +485,23 @@ int is_old_mar(const char *path, int *oldMar)
   }
 
   
-  if (fread(&offsetToIndex, sizeof(offsetToIndex), 1, fp) != 1)
+  if (fread(&offsetToIndex, sizeof(offsetToIndex), 1, fp) != 1) {
     return -1;
+  }
   offsetToIndex = ntohl(offsetToIndex);
+
+  if (numSignatures) {
+     
+    if (fseek(fp, sizeof(PRUint64), SEEK_CUR)) {
+      return -1;
+    }
+
+    
+    if (fread(numSignatures, sizeof(*numSignatures), 1, fp) != 1) {
+      return -1;
+    }
+    *numSignatures = ntohl(*numSignatures);
+  }
 
   
 
@@ -330,20 +515,79 @@ int is_old_mar(const char *path, int *oldMar)
   }
 
   
-  if (fread(&offsetToContent, sizeof(offsetToContent), 1, fp) != 1)
+  if (fread(&offsetToContent, sizeof(offsetToContent), 1, fp) != 1) {
     return -1;
+  }
   offsetToContent = ntohl(offsetToContent);
 
   
-  if (offsetToContent == MAR_ID_SIZE + sizeof(PRUint32)) {
-    *oldMar = 1;
-  } else {
-    *oldMar = 0;
+  if (hasSignatureBlock) {
+    if (offsetToContent == MAR_ID_SIZE + sizeof(PRUint32)) {
+      *hasSignatureBlock = 0;
+    } else {
+      *hasSignatureBlock = 1;
+    }
   }
 
   
-  if (fseek(fp, oldPos, SEEK_SET)) {
+
+  if (!hasAdditionalBlocks) {
+    return 0;
+  }
+
+   
+  if (fseeko(fp, SIGNATURE_BLOCK_OFFSET, SEEK_SET)) {
     return -1;
+  }
+
+  
+  if (fread(&signatureCount, sizeof(signatureCount), 1, fp) != 1) {
+    return -1;
+  }
+  signatureCount = ntohl(signatureCount);
+
+  
+
+  if (signatureCount > MAX_SIGNATURES) {
+    return -1;
+  }
+
+  
+  for (i = 0; i < signatureCount; i++) {
+    
+    if (fseek(fp, sizeof(PRUint32), SEEK_CUR)) {
+      return -1;
+    }
+
+    
+    if (fread(&signatureLen, sizeof(PRUint32), 1, fp) != 1) {
+      return -1;
+    }
+    signatureLen = ntohl(signatureLen);
+    if (fseek(fp, signatureLen, SEEK_CUR)) {
+      return -1;
+    }
+  }
+
+  if (ftell(fp) == offsetToContent) {
+    *hasAdditionalBlocks = 0;
+  } else {
+    if (numAdditionalBlocks) {
+      
+
+      *hasAdditionalBlocks = 1;
+      if (fread(numAdditionalBlocks, sizeof(PRUint32), 1, fp) != 1) {
+        return -1;
+      }
+      *numAdditionalBlocks = ntohl(*numAdditionalBlocks);
+      if (offsetAdditionalBlocks) {
+        *offsetAdditionalBlocks = ftell(fp);
+      }
+    } else if (offsetAdditionalBlocks) {
+      
+
+      *offsetAdditionalBlocks = ftell(fp) + sizeof(PRUint32);
+    }
   }
 
   return 0;
