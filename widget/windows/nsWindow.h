@@ -604,15 +604,6 @@ protected:
   static bool sNeedsToInitMouseWheelSettings;
   static void InitMouseWheelScrollData();
 
-  static HWND sLastMouseWheelWnd;
-  static PRInt32 sRemainingDeltaForScroll;
-  static PRInt32 sRemainingDeltaForPixel;
-  static bool sLastMouseWheelDeltaIsPositive;
-  static bool sLastMouseWheelOrientationIsVertical;
-  static bool sLastMouseWheelUnitIsPage;
-  static PRUint32 sLastMouseWheelTime; 
-  static void ResetRemainingWheelDelta();
-
   
   
   

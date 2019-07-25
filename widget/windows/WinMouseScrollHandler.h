@@ -10,6 +10,7 @@
 #include "nscore.h"
 #include "nsDebug.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/TimeStamp.h"
 #include <windows.h>
 
 class nsWindow;
@@ -51,11 +52,14 @@ public:
     
 
 
-    EventInfo(UINT aMessage, WPARAM aWParam, LPARAM aLParam);
+
+    EventInfo(nsWindow* aWindow, UINT aMessage, WPARAM aWParam, LPARAM aLParam);
 
     bool CanDispatchMouseScrollEvent() const;
 
     PRInt32 GetNativeDelta() const { return mDelta; }
+    HWND GetWindowHandle() const { return mWnd; }
+    const TimeStamp& GetTimeStamp() const { return mTimeStamp; }
     bool IsVertical() const { return mIsVertical; }
     bool IsPositive() const { return (mDelta > 0); }
     bool IsPage() const { return mIsPage; }
@@ -76,8 +80,11 @@ public:
 
     PRInt32 GetScrollFlags() const;
 
-  private:
-    EventInfo() {}
+  protected:
+    EventInfo() :
+      mIsVertical(false), mIsPage(false), mDelta(0), mWnd(nsnull)
+    {
+    }
 
     
     bool mIsVertical;
@@ -85,7 +92,47 @@ public:
     bool mIsPage;
     
     PRInt32 mDelta;
+    
+    HWND mWnd;
+    
+    TimeStamp mTimeStamp;
   };
+
+  class LastEventInfo : public EventInfo {
+  public:
+    LastEventInfo() :
+      EventInfo(), mRemainingDeltaForScroll(0), mRemainingDeltaForPixel(0)
+    {
+    }
+
+    
+
+
+
+
+    bool CanContinueTransaction(const EventInfo& aNewEvent);
+
+    
+
+
+
+    void ResetTransaction();
+
+    
+
+
+    void RecordEvent(const EventInfo& aEvent);
+
+    
+    
+    PRInt32 mRemainingDeltaForScroll;
+    PRInt32 mRemainingDeltaForPixel;
+  };
+
+  LastEventInfo& GetLastEventInfo() { return mLastEventInfo; }
+
+private:
+  LastEventInfo mLastEventInfo;
 
 public:
   class SystemSettings {
