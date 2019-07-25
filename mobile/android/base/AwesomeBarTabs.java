@@ -35,13 +35,13 @@
 
 
 
+
 package org.mozilla.gecko;
 
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
-import android.database.MatrixCursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -64,7 +64,6 @@ import android.widget.FilterQueryProvider;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
-import android.widget.SimpleCursorTreeAdapter;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TabHost;
 import android.widget.TextView;
@@ -81,9 +80,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import org.mozilla.gecko.db.BrowserContract.Bookmarks;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
-import org.mozilla.gecko.sync.repositories.android.BrowserContract.Bookmarks;
 
 public class AwesomeBarTabs extends TabHost {
     private static final String LOGTAG = "GeckoAwesomeBarTabs";
@@ -149,8 +148,7 @@ public class AwesomeBarTabs extends TabHost {
         }
     }
 
-    private class AwesomeCursorViewBinder implements SimpleCursorAdapter.ViewBinder,
-                                                     SimpleCursorTreeAdapter.ViewBinder {
+    private class AwesomeCursorViewBinder implements SimpleCursorAdapter.ViewBinder {
         private boolean updateFavicon(View view, Cursor cursor, int faviconIndex) {
             byte[] b = cursor.getBlob(faviconIndex);
             ImageView favicon = (ImageView) view;
@@ -180,12 +178,6 @@ public class AwesomeBarTabs extends TabHost {
         }
 
         public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
-            
-            
-            int isFolderIndex = cursor.getColumnIndex(Bookmarks.IS_FOLDER);
-            if (isFolderIndex >= 0 && cursor.getInt(isFolderIndex) == 1)
-                return false;
-
             int faviconIndex = cursor.getColumnIndexOrThrow(URLColumns.FAVICON);
             if (columnIndex == faviconIndex) {
                 return updateFavicon(view, cursor, faviconIndex);
@@ -201,78 +193,134 @@ public class AwesomeBarTabs extends TabHost {
         }
     }
 
-    private class RefreshChildrenCursorTask extends AsyncTask<String, Void, Cursor> {
-        private int mGroupPosition;
+    private class BookmarksListAdapter extends SimpleCursorAdapter {
+        private static final int VIEW_TYPE_ITEM = 0;
+        private static final int VIEW_TYPE_FOLDER = 1;
+        private static final int VIEW_TYPE_COUNT = 2;
 
-        public RefreshChildrenCursorTask(int groupPosition) {
-            mGroupPosition = groupPosition;
+        private LayoutInflater mInflater;
+        private LinkedList<Pair<Integer, String>> mParentStack;
+        private RefreshBookmarkCursorTask mRefreshTask = null;
+        private TextView mBookmarksTitleView;
+
+        public BookmarksListAdapter(Context context, int layout, Cursor c, String[] from, int[] to) {
+            super(context, layout, c, from, to);
+
+            mInflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+            
+            
+            mParentStack = new LinkedList<Pair<Integer, String>>();
+
+            
+            Pair<Integer, String> rootFolder = new Pair<Integer, String>(Bookmarks.FIXED_ROOT_ID, "");
+            mParentStack.push(rootFolder);
+        }
+
+        public void refreshCurrentFolder() {
+            
+            if (mRefreshTask != null)
+                mRefreshTask.cancel(false);
+
+            Pair<Integer, String> folderPair = mParentStack.getFirst();
+            mRefreshTask = new RefreshBookmarkCursorTask(folderPair.first, folderPair.second);
+            mRefreshTask.execute();
+        }
+
+        public void moveToParentFolder() {
+            mParentStack.pop();
+            refreshCurrentFolder();
+        }
+
+        public void moveToChildFolder(int folderId, String folderTitle) {
+            Pair<Integer, String> folderPair = new Pair<Integer, String>(folderId, folderTitle);
+            mParentStack.push(folderPair);
+            refreshCurrentFolder();
+        }
+
+        public int getItemViewType(int position) {
+            Cursor c = getCursor();
+ 
+            if (c.moveToPosition(position) &&
+                c.getInt(c.getColumnIndexOrThrow(Bookmarks.IS_FOLDER)) == 1)
+                return VIEW_TYPE_FOLDER;
+
+            
+            return VIEW_TYPE_ITEM;
+        }
+ 
+        @Override
+        public int getViewTypeCount() {
+            return VIEW_TYPE_COUNT;
+        }
+
+        public String getFolderTitle(int position) {
+            Cursor c = getCursor();
+            if (!c.moveToPosition(position))
+                return "";
+
+            return c.getString(c.getColumnIndexOrThrow(Bookmarks.TITLE));
         }
 
         @Override
-        protected Cursor doInBackground(String... params) {
-            String guid = params[0];
-            if (guid != null && guid.equals(Bookmarks.MOBILE_FOLDER_GUID))
-                return BrowserDB.getMobileBookmarks(mContentResolver);
+        public View getView(int position, View convertView, ViewGroup parent) {
+            int viewType = getItemViewType(position);
 
-            
-            
-            return BrowserDB.getDesktopBookmarks(mContentResolver);
+            if (viewType == VIEW_TYPE_ITEM)
+                return super.getView(position, convertView, parent);
+
+            if (convertView == null)
+                convertView = mInflater.inflate(R.layout.awesomebar_folder_row, null);
+
+            TextView titleView = (TextView) convertView.findViewById(R.id.title);
+            titleView.setText(getFolderTitle(position));
+
+            return convertView;
         }
 
-        @Override
-        protected void onPostExecute(Cursor childrenCursor) {
-            mBookmarksAdapter.setChildrenCursor(mGroupPosition, childrenCursor);
-        }
-    }
-
-    public class BookmarksListAdapter extends SimpleCursorTreeAdapter {
-        public BookmarksListAdapter(Context context, Cursor cursor,
-                int groupLayout, String[] groupFrom, int[] groupTo,
-                int childLayout, String[] childFrom, int[] childTo) {
-            super(context, cursor, groupLayout, groupFrom, groupTo, childLayout, childFrom, childTo);
+        public void setBookmarksTitleView(TextView titleView) {
+            mBookmarksTitleView = titleView;
         }
 
-        @Override
-        protected Cursor getChildrenCursor(Cursor groupCursor) {
-            String guid = groupCursor.getString(groupCursor.getColumnIndexOrThrow(Bookmarks.GUID));
+        private class RefreshBookmarkCursorTask extends AsyncTask<Void, Void, Cursor> {
+            private int mFolderId;
+            private String mFolderTitle;
 
-            
-            new RefreshChildrenCursorTask(groupCursor.getPosition()).execute(guid);
+            public RefreshBookmarkCursorTask(int folderId, String folderTitle) {
+                mFolderId = folderId;
+                mFolderTitle = folderTitle;
+            }
 
-            
-            return new MatrixCursor(new String [] { Bookmarks._ID,
-                                                    Bookmarks.URL,
-                                                    Bookmarks.TITLE,
-                                                    Bookmarks.FAVICON });
+            protected Cursor doInBackground(Void... params) {
+                return BrowserDB.getBookmarksInFolder(mContentResolver, mFolderId);
+            }
+
+            protected void onPostExecute(Cursor cursor) {
+                mRefreshTask = null;
+                mBookmarksAdapter.changeCursor(cursor);
+
+                
+                if (mFolderId == Bookmarks.FIXED_ROOT_ID) {
+                    mBookmarksTitleView.setVisibility(View.GONE);
+                } else {
+                    mBookmarksTitleView.setText(mFolderTitle);
+                    mBookmarksTitleView.setVisibility(View.VISIBLE);
+                }
+            }
         }
     }
 
     private class BookmarksQueryTask extends AsyncTask<Void, Void, Cursor> {
         protected Cursor doInBackground(Void... arg0) {
-            
-            
-            MatrixCursor c = new MatrixCursor(new String[] { Bookmarks._ID,
-                                                             Bookmarks.IS_FOLDER,
-                                                             Bookmarks.GUID,
-                                                             URLColumns.TITLE }, 2);
-
-            Resources resources = mContext.getResources();
-            c.addRow(new Object[] { 0, 1, Bookmarks.MOBILE_FOLDER_GUID,
-                                    resources.getString(R.string.bookmarks_folder_mobile)} );
-            c.addRow(new Object[] { 1, 1, null,
-                                    resources.getString(R.string.bookmarks_folder_desktop)} );
-            return c;
+            return BrowserDB.getBookmarksInFolder(mContentResolver, Bookmarks.FIXED_ROOT_ID);
         }
 
         protected void onPostExecute(Cursor cursor) {
             
             mBookmarksAdapter = new BookmarksListAdapter(
                 mContext,
-                cursor,
-                R.layout.awesomebar_header_row,
-                new String[] { URLColumns.TITLE },
-                new int[] { R.id.title },
                 R.layout.awesomebar_row,
+                cursor,
                 new String[] { URLColumns.TITLE,
                                URLColumns.URL,
                                URLColumns.FAVICON },
@@ -281,25 +329,26 @@ public class AwesomeBarTabs extends TabHost {
 
             mBookmarksAdapter.setViewBinder(new AwesomeCursorViewBinder());
 
-            final ExpandableListView bookmarksList = (ExpandableListView) findViewById(R.id.bookmarks_list);
-
-            
-            bookmarksList.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
-                public boolean onChildClick(ExpandableListView parent, View view,
-                        int groupPosition, int childPosition, long id) {
-                    handleBookmarkItemClick(groupPosition, childPosition);
-                    return true;
+            ListView bookmarksList = (ListView) findViewById(R.id.bookmarks_list);
+            bookmarksList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    handleBookmarkItemClick(position);
                 }
             });
 
-            bookmarksList.setAdapter(mBookmarksAdapter);
+            
+            LayoutInflater inflater =
+                    (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            View headerView = inflater.inflate(R.layout.awesomebar_folder_header_row, null);
 
             
-            bookmarksList.expandGroup(0);
-            
-            
-            
-            bookmarksList.expandGroup(1);
+            TextView titleView = (TextView) headerView.findViewById(R.id.title);
+            titleView.setVisibility(View.GONE);
+            mBookmarksAdapter.setBookmarksTitleView(titleView);
+
+            bookmarksList.addHeaderView(headerView, null, true);
+
+            bookmarksList.setAdapter(mBookmarksAdapter);
         }
     }
 
@@ -766,10 +815,29 @@ public class AwesomeBarTabs extends TabHost {
         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
 
-    private void handleBookmarkItemClick(int groupPosition, int childPosition) {
-        Cursor cursor = mBookmarksAdapter.getChild(groupPosition, childPosition);
-        String url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
+    private void handleBookmarkItemClick(int position) {
+        
+        if (position == 0) {
+            mBookmarksAdapter.moveToParentFolder();
+            return;
+        }
 
+        Cursor cursor = mBookmarksAdapter.getCursor();
+        
+        cursor.moveToPosition(position - 1);
+
+        int isFolder = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks.IS_FOLDER));
+        if (isFolder == 1) {
+            
+            int folderId = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks._ID));
+            String folderTitle = mBookmarksAdapter.getFolderTitle(position - 1);
+
+            mBookmarksAdapter.moveToChildFolder(folderId, folderTitle);
+            return;
+        }
+
+        
+        String url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
         if (mUrlOpenListener != null)
             mUrlOpenListener.onUrlOpen(url);
     }
