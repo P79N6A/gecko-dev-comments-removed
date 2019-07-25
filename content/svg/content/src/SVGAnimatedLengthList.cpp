@@ -85,7 +85,7 @@ SVGAnimatedLengthList::ClearBaseValue(PRUint32 aAttrEnum)
     DOMSVGAnimatedLengthList::GetDOMWrapperIfExists(this);
   if (domWrapper) {
     
-    domWrapper->InternalAnimValListWillChangeTo(SVGLengthList());
+    domWrapper->InternalBaseValListWillChangeTo(SVGLengthList());
   }
   mBaseVal.Clear();
   

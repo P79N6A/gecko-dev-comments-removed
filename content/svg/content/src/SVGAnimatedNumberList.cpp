@@ -85,7 +85,7 @@ SVGAnimatedNumberList::ClearBaseValue(PRUint32 aAttrEnum)
     DOMSVGAnimatedNumberList::GetDOMWrapperIfExists(this);
   if (domWrapper) {
     
-    domWrapper->InternalAnimValListWillChangeTo(SVGNumberList());
+    domWrapper->InternalBaseValListWillChangeTo(SVGNumberList());
   }
   mBaseVal.Clear();
   
