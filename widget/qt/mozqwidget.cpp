@@ -11,6 +11,7 @@
 #endif
 #include <QtCore/QTimer>
 
+#define GLdouble_defined 1
 #include "mozqwidget.h"
 #include "nsWindow.h"
 
