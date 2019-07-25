@@ -698,6 +698,10 @@ TryStartingTransition(nsPresContext *aPresContext, nsIContent *aContent,
                       nsStyleContext *aOldStyleContext,
                       nsRefPtr<nsStyleContext> *aNewStyleContext )
 {
+  if (!aContent || !aContent->IsElement()) {
+    return;
+  }
+
   
   
   
@@ -706,7 +710,7 @@ TryStartingTransition(nsPresContext *aPresContext, nsIContent *aContent,
   
   nsCOMPtr<nsIStyleRule> coverRule = 
     aPresContext->TransitionManager()->StyleContextChanged(
-      aContent, aOldStyleContext, *aNewStyleContext);
+      aContent->AsElement(), aOldStyleContext, *aNewStyleContext);
   if (coverRule) {
     nsCOMArray<nsIStyleRule> rules;
     rules.AppendObject(coverRule);
