@@ -464,6 +464,18 @@ GetContextCompartment(const JSContext *cx);
 JS_FRIEND_API(bool)
 HasUnrootedGlobal(const JSContext *cx);
 
+typedef void
+(* ActivityCallback)(void *arg, JSBool active);
+
+
+
+
+
+
+
+JS_FRIEND_API(void)
+SetActivityCallback(JSRuntime *rt, ActivityCallback cb, void *arg);
+
 class JS_FRIEND_API(AutoLockGC)
 {
   public:

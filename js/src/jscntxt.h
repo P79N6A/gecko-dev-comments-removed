@@ -337,9 +337,6 @@ typedef struct JSPropertyTreeEntry {
     js::Shape           *child;
 } JSPropertyTreeEntry;
 
-typedef void
-(* JSActivityCallback)(void *arg, JSBool active);
-
 namespace js {
 
 typedef Vector<JSCompartment *, 0, SystemAllocPolicy> CompartmentVector;
@@ -378,18 +375,7 @@ struct JSRuntime
     
     JSCompartmentCallback compartmentCallback;
 
-    
-
-
-
-
-
-    void setActivityCallback(JSActivityCallback cb, void *arg) {
-        activityCallback = cb;
-        activityCallbackArg = arg;
-    }
-
-    JSActivityCallback    activityCallback;
+    js::ActivityCallback  activityCallback;
     void                 *activityCallbackArg;
 
     
