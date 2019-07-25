@@ -63,7 +63,8 @@ public:
 
   
   
-  void QueueWrittenAudioData(float* aAudioData, PRUint32 aAudioDataLength,
+  void QueueWrittenAudioData(SoundDataValue* aAudioData,
+                             PRUint32 aAudioDataLength,
                              PRUint64 aEndTimeSampleOffset);
 
   
