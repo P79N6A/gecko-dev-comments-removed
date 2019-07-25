@@ -1871,7 +1871,7 @@ class TypedArrayTemplate
 
         
         
-        void *srcbuf = cx->malloc_(getLength(tarray));
+        void *srcbuf = cx->malloc_(getByteLength(tarray));
         if (!srcbuf)
             return false;
         js_memcpy(srcbuf, getDataOffset(tarray), getByteLength(tarray));
