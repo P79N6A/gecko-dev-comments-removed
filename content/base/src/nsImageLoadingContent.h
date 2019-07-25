@@ -69,6 +69,25 @@ public:
   NS_DECL_IMGIDECODEROBSERVER
   NS_DECL_NSIIMAGELOADINGCONTENT
 
+  enum CORSMode {
+    
+
+
+    CORS_NONE,
+
+    
+
+
+
+    CORS_ANONYMOUS,
+
+    
+
+
+
+    CORS_USE_CREDENTIALS
+  };
+
 protected:
   
 
@@ -158,6 +177,12 @@ protected:
   
   
   void SetBlockingOnload(PRBool aBlocking);
+
+  
+
+
+
+  virtual CORSMode GetCORSMode();
 
 private:
   
