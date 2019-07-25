@@ -103,7 +103,8 @@ nsDocAccessible::
   nsDocAccessible(nsIDocument *aDocument, nsIContent *aRootContent,
                   nsIWeakReference *aShell) :
   nsHyperTextAccessibleWrap(aRootContent, aShell),
-  mDocument(aDocument), mScrollPositionChangedTicks(0), mIsLoaded(PR_FALSE)
+  mDocument(aDocument), mScrollPositionChangedTicks(0), mIsLoaded(PR_FALSE),
+  mCacheRoot(nsnull), mIsPostCacheProcessing(PR_FALSE)
 {
   mDependentIDsHash.Init();
   
@@ -1588,6 +1589,39 @@ nsDocAccessible::RecreateAccessible(nsINode* aNode)
   }
 }
 
+void
+nsDocAccessible::NotifyOfCachingStart(nsAccessible* aAccessible)
+{
+  if (!mCacheRoot)
+    mCacheRoot = aAccessible;
+}
+
+void
+nsDocAccessible::NotifyOfCachingEnd(nsAccessible* aAccessible)
+{
+  if (mCacheRoot == aAccessible && !mIsPostCacheProcessing) {
+    
+    mIsPostCacheProcessing = PR_TRUE;
+
+    
+    
+    for (PRUint32 idx = 0; idx < mInvalidationList.Length(); idx++) {
+      nsIContent* content = mInvalidationList[idx];
+      nsAccessible* container =
+        GetAccService()->GetCachedContainerAccessible(content);
+      container->InvalidateChildren();
+
+      
+      
+      container->EnsureChildren();
+    }
+    mInvalidationList.Clear();
+
+    mCacheRoot = nsnull;
+    mIsPostCacheProcessing = PR_FALSE;
+  }
+}
+
 
 
 
@@ -1620,8 +1654,18 @@ nsDocAccessible::AddDependentIDsFor(nsAccessible* aRelProvider,
       if (providers) {
         AttrRelProvider* provider =
           new AttrRelProvider(relAttr, aRelProvider->GetContent());
-        if (provider)
+        if (provider) {
           providers->AppendElement(provider);
+
+          
+          
+          
+          
+          nsIContent* dependentContent = iter.GetElem(id);
+          if (dependentContent && !GetCachedAccessible(dependentContent)) {
+            mInvalidationList.AppendElement(dependentContent);
+          }
+        }
       }
     }
 

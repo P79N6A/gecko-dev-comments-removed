@@ -219,6 +219,16 @@ public:
 
 
 
+  PRBool IsDependentID(const nsAString& aID) const
+    { return mDependentIDsHash.Get(aID, nsnull); }
+
+  
+
+
+
+
+
+
   bool BindToDocument(nsAccessible* aAccessible, nsRoleMapEntry* aRoleMapEntry);
 
   
@@ -242,6 +252,17 @@ public:
 
 
   void RecreateAccessible(nsINode* aNode);
+
+  
+
+
+
+
+
+
+
+  void NotifyOfCachingStart(nsAccessible* aAccessible);
+  void NotifyOfCachingEnd(nsAccessible* aAccessible);
 
 protected:
 
@@ -409,6 +430,17 @@ protected:
   nsClassHashtable<nsStringHashKey, AttrRelProviderArray> mDependentIDsHash;
 
   friend class RelatedAccIterator;
+
+  
+
+
+
+
+
+
+  nsAccessible* mCacheRoot;
+  nsTArray<nsIContent*> mInvalidationList;
+  PRBool mIsPostCacheProcessing;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsDocAccessible,
