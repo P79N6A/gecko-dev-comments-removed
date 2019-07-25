@@ -260,8 +260,12 @@ class IonBuilder : public MIRGenerator
     bool jsop_compare(JSOp op);
     bool jsop_getgname(JSAtom *atom);
 
+  public:
+    
+    JSScript * const script;
+
   private:
-    JSAtom **atoms;
+    jsbytecode *pc;
     MBasicBlock *current;
     Vector<CFGState, 8, IonAllocPolicy> cfgStack_;
     Vector<ControlFlowInfo, 4, IonAllocPolicy> loops_;
