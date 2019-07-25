@@ -336,10 +336,19 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
     public void setFirstPaintViewport(float offsetX, float offsetY, float zoom, float pageWidth, float pageHeight, float cssPageWidth, float cssPageHeight) {
         synchronized (mLayerController) {
-            ViewportMetrics currentMetrics = new ViewportMetrics(mLayerController.getViewportMetrics());
+            final ViewportMetrics currentMetrics = new ViewportMetrics(mLayerController.getViewportMetrics());
             currentMetrics.setOrigin(new PointF(offsetX, offsetY));
             currentMetrics.setZoomFactor(zoom);
             currentMetrics.setPageSize(new FloatSize(pageWidth, pageHeight), new FloatSize(cssPageWidth, cssPageHeight));
+            
+            
+            
+            
+            mLayerController.post(new Runnable() {
+                public void run() {
+                    mGeckoViewport = currentMetrics;
+                }
+            });
             mLayerController.setViewportMetrics(currentMetrics);
             mLayerController.setCheckerboardColor(Tabs.getInstance().getSelectedTab().getCheckerboardColor());
             
