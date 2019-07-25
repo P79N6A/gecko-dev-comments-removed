@@ -269,6 +269,9 @@ public:
   
   virtual PRBool OnDecodeThread() const = 0;
 
+  
+  virtual PRBool OnStateMachineThread() const = 0;
+
   virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus() = 0;
 
   
@@ -425,19 +428,13 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   virtual void MoveLoadsToBackground();
 
-  
-  
-  void Stop();
-
   void AudioAvailable(float* aFrameBuffer, PRUint32 aFrameBufferLength, float aTime);
 
   
   
   void DurationChanged();
 
-  PRBool OnStateMachineThread() const {
-    return IsCurrentThread(mStateMachineThread);
-  }
+  PRBool OnStateMachineThread() const;
 
   PRBool OnDecodeThread() const {
     return mDecoderStateMachine->OnDecodeThread();
@@ -569,12 +566,7 @@ public:
 
   
   
-  nsresult StartStateMachineThread();
-
-  
-  
-  
-  nsresult CreateStateMachineThread();
+  nsresult ScheduleStateMachineThread();
 
   
 
@@ -594,9 +586,6 @@ public:
   
   
   nsChannelStatistics mPlaybackStatistics;
-
-  
-  nsCOMPtr<nsIThread> mStateMachineThread;
 
   
   

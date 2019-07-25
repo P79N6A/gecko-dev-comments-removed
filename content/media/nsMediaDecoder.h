@@ -66,20 +66,6 @@ class nsTimeRanges;
 #define FRAMEBUFFER_LENGTH_MAX 16384
 
 
-class ShutdownThreadEvent : public nsRunnable 
-{
-public:
-  ShutdownThreadEvent(nsIThread* aThread) : mThread(aThread) {}
-  ~ShutdownThreadEvent() {}
-  NS_IMETHOD Run() {
-    mThread->Shutdown();
-    return NS_OK;
-  }
-private:
-  nsCOMPtr<nsIThread> mThread;
-};
-
-
 
 
 class nsMediaDecoder : public nsIObserver
