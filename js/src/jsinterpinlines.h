@@ -252,19 +252,6 @@ GetPrimitiveThis(JSContext *cx, Value *vp, T *v)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 inline bool
 ComputeImplicitThis(JSContext *cx, JSObject *obj, const Value &funval, Value *vp)
 {
@@ -273,25 +260,11 @@ ComputeImplicitThis(JSContext *cx, JSObject *obj, const Value &funval, Value *vp
     if (!funval.isObject())
         return true;
 
-    if (!obj->isGlobal()) {
-        if (IsCacheableNonGlobalScope(obj))
-            return true;
-    } else {
-        JSObject *callee = &funval.toObject();
+    if (obj->isGlobal())
+        return true;
 
-        if (callee->isProxy()) {
-            callee = callee->unwrap();
-            if (!callee->isFunction())
-                return true; 
-        }
-        if (callee->isFunction()) {
-            JSFunction *fun = callee->getFunctionPrivate();
-            if (fun->isInterpreted() && fun->inStrictMode())
-                return true;
-        }
-        if (callee->getGlobal() == cx->fp()->scopeChain().getGlobal())
-            return true;;
-    }
+    if (IsCacheableNonGlobalScope(obj))
+        return true;
 
     obj = obj->thisObject(cx);
     if (!obj)
