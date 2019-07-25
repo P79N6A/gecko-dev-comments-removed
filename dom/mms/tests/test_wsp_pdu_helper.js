@@ -546,6 +546,24 @@ add_test(function test_UriValue_decode() {
 
 
 
+add_test(function test_TypeValue_decode() {
+  
+  wsp_decode_test(WSP.TypeValue, [65, 0], "a");
+  
+  wsp_decode_test(WSP.TypeValue, [0x33 | 0x80],
+                  "application/vnd.wap.multipart.related");
+  
+  wsp_decode_test(WSP.TypeValue, [0x80], null, "NotWellKnownEncodingError");
+
+  run_next_test();
+});
+
+
+
+
+
+
+
 add_test(function test_Parameter_decodeTypedParameter() {
   function func(data) {
     return WSP.Parameter.decodeTypedParameter(data);

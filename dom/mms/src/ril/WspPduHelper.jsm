@@ -1045,6 +1045,37 @@ let UriValue = {
 
 
 
+let TypeValue = {
+  
+
+
+
+
+
+  decode: function decode(data) {
+    let numOrStr = ConstrainedEncoding.decode(data);
+    if (typeof numOrStr == "string") {
+      return numOrStr.toLowerCase();
+    }
+
+    let number = numOrStr;
+    let entry = WSP_WELL_KNOWN_CONTENT_TYPES[number];
+    if (!entry) {
+      throw new NotWellKnownEncodingError(
+        "Constrained-media: not well known media " + number);
+    }
+
+    return entry.type;
+  },
+};
+
+
+
+
+
+
+
+
 
 
 
@@ -1539,23 +1570,8 @@ let ContentTypeValue = {
 
 
   decodeConstrainedMedia: function decodeConstrainedMedia(data) {
-    let numOrStr = ConstrainedEncoding.decode(data);
-    if (typeof numOrStr == "string") {
-      return {
-        media: numOrStr.toLowerCase(),
-        params: null,
-      };
-    }
-
-    let number = numOrStr;
-    let entry = WSP_WELL_KNOWN_CONTENT_TYPES[number];
-    if (!entry) {
-      throw new NotWellKnownEncodingError(
-        "Constrained-media: not well known media " + number);
-    }
-
     return {
-      media: entry.type,
+      media: TypeValue.decode(data),
       params: null,
     };
   },
@@ -1991,7 +2007,7 @@ const WSP_WELL_KNOWN_PARAMS = (function () {
   
   add("differences",       0x07, FieldName);
   add("padding",           0x08, ShortInteger);
-  add("type",              0x09, ConstrainedEncoding);
+  add("type",              0x09, TypeValue);
   add("start",             0x0A, TextValue); 
   
   
@@ -2109,6 +2125,7 @@ const EXPORTED_SYMBOLS = ALL_CONST_SYMBOLS.concat([
   "QValue",
   "VersionValue",
   "UriValue",
+  "TypeValue",
   "Parameter",
   "Header",
   "WellKnownHeader",
