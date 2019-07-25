@@ -1229,7 +1229,6 @@ class Typelib(object):
                     checkType(m.result.type, replaced_from, replaced_to)
                     for p in m.params:
                         checkType(p.type, replaced_from, replaced_to)
-        self._sanityCheck()
         
 
     def dump(self, out):
