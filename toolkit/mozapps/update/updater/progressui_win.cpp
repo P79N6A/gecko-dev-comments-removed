@@ -37,6 +37,7 @@
 
 
 
+
 #include <stdio.h>
 #include <windows.h>
 #include <commctrl.h>
@@ -153,10 +154,10 @@ InitDialog(HWND hDlg)
   WCHAR szwTitle[MAX_TEXT_LEN];
   WCHAR szwInfo[MAX_TEXT_LEN];
 
-  MultiByteToWideChar(CP_UTF8, 0, uiStrings.title, strlen(uiStrings.title) + 1,
-                      szwTitle, sizeof(szwTitle)/sizeof(szwTitle[0]));
-  MultiByteToWideChar(CP_UTF8, 0, uiStrings.info, strlen(uiStrings.info) + 1,
-                      szwInfo, sizeof(szwInfo)/sizeof(szwInfo[0]));
+  MultiByteToWideChar(CP_UTF8, 0, uiStrings.title, -1, szwTitle,
+                      sizeof(szwTitle)/sizeof(szwTitle[0]));
+  MultiByteToWideChar(CP_UTF8, 0, uiStrings.info, -1, szwInfo,
+                      sizeof(szwInfo)/sizeof(szwInfo[0]));
 
   SetWindowTextW(hDlg, szwTitle);
   SetWindowTextW(GetDlgItem(hDlg, IDC_INFO), szwInfo);
@@ -348,6 +349,11 @@ ShowProgressUI()
   if (!GetStringsFile(filename))
     return -1;
   if (_waccess(filename, 04))
+    return -1;
+  
+  
+  StringTable uiStrings;
+  if (ReadStrings(filename, &uiStrings) != OK)
     return -1;
 
   INITCOMMONCONTROLSEX icc = {
