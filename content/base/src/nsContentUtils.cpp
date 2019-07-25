@@ -266,12 +266,6 @@ PRBool nsContentUtils::sInitialized = PR_FALSE;
 nsRefPtrHashtable<nsPrefObserverHashKey, nsPrefOldCallback>
   *nsContentUtils::sPrefCallbackTable = nsnull;
 
-#ifdef MOZ_IPC
-#ifdef ANDROID
-nsFrameLoader *nsContentUtils::sActiveFrameLoader = nsnull;
-#endif
-#endif
-
 static PLDHashTable sEventListenerManagersHash;
 
 class EventListenerManagerMapEntry : public PLDHashEntryHdr
@@ -561,7 +555,6 @@ nsContentUtils::InitializeEventTable() {
     { nsGkAtoms::onreset,                       NS_FORM_RESET, EventNameType_HTMLXUL, NS_EVENT },
     { nsGkAtoms::onchange,                      NS_FORM_CHANGE, EventNameType_HTMLXUL, NS_EVENT },
     { nsGkAtoms::onselect,                      NS_FORM_SELECTED, EventNameType_HTMLXUL, NS_EVENT },
-    { nsGkAtoms::oninvalid,                     NS_FORM_INVALID, EventNameType_HTMLXUL, NS_EVENT },
     { nsGkAtoms::onload,                        NS_LOAD, EventNameType_All, NS_EVENT },
     { nsGkAtoms::onpopstate,                    NS_POPSTATE, EventNameType_HTMLXUL, NS_EVENT_NULL },
     { nsGkAtoms::onunload,                      NS_PAGE_UNLOAD,
@@ -672,7 +665,6 @@ nsContentUtils::InitializeEventTable() {
     { nsGkAtoms::onvolumechange,                NS_VOLUMECHANGE, EventNameType_HTML, NS_EVENT_NULL },
 #endif 
     { nsGkAtoms::onMozAfterPaint,               NS_AFTERPAINT, EventNameType_None, NS_EVENT },
-    { nsGkAtoms::onMozBeforePaint,              NS_BEFOREPAINT, EventNameType_None, NS_EVENT_NULL },
 
     { nsGkAtoms::onMozScrolledAreaChanged,      NS_SCROLLEDAREACHANGED, EventNameType_None, NS_SCROLLAREA_EVENT },
 
@@ -1913,7 +1905,6 @@ nsContentUtils::TrimCharsInSet(const char* aSet,
 
 
 
-template<PRBool IsWhitespace(PRUnichar)>
 const nsDependentSubstring
 nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
 {
@@ -1923,7 +1914,7 @@ nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
   aStr.EndReading(end);
 
   
-  while (start != end && IsWhitespace(*start)) {
+  while (start != end && nsCRT::IsAsciiSpace(*start)) {
     ++start;
   }
 
@@ -1932,7 +1923,7 @@ nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
     while (end != start) {
       --end;
 
-      if (!IsWhitespace(*end)) {
+      if (!nsCRT::IsAsciiSpace(*end)) {
         
         ++end;
 
@@ -1946,16 +1937,6 @@ nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
 
   return Substring(start, end);
 }
-
-
-
-
-template
-const nsDependentSubstring
-nsContentUtils::TrimWhitespace<nsCRT::IsAsciiSpace>(const nsAString&, PRBool);
-template
-const nsDependentSubstring
-nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespace>(const nsAString&, PRBool);
 
 static inline void KeyAppendSep(nsACString& aKey)
 {
@@ -5405,7 +5386,7 @@ nsContentUtils::CanAccessNativeAnon()
     
     
     fp = nsnull;
-  } else if (!fp->script) {
+  } else if (!fp->hasScript()) {
     fp = nsnull;
   }
 
@@ -5420,8 +5401,8 @@ nsContentUtils::CanAccessNativeAnon()
   
   static const char prefix[] = "chrome://global/";
   const char *filename;
-  if (fp && fp->script &&
-      (filename = fp->script->filename) &&
+  if (fp && fp->hasScript() &&
+      (filename = fp->getScript()->filename) &&
       !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
     return PR_TRUE;
   }
@@ -5807,10 +5788,6 @@ CloneSimpleValues(JSContext* cx,
   
   if (js_IsArrayBuffer(obj)) {
     js::ArrayBuffer* src = js::ArrayBuffer::fromJSObject(obj);
-    if (!src) {
-      return NS_ERROR_FAILURE;
-    }
-
     JSObject* newBuffer = js_CreateArrayBuffer(cx, src->byteLength);
     if (!newBuffer) {
       return NS_ERROR_FAILURE;
@@ -6226,17 +6203,6 @@ nsContentUtils::IsFocusedContent(nsIContent* aContent)
 
   return fm && fm->GetFocusedContent() == aContent;
 }
-
-#ifdef MOZ_IPC
-#ifdef ANDROID
-
-already_AddRefed<nsFrameLoader>
-nsContentUtils::GetActiveFrameLoader()
-{
-  return nsCOMPtr<nsFrameLoader>(sActiveFrameLoader).forget();
-}
-#endif
-#endif
 
 void nsContentUtils::RemoveNewlines(nsString &aString)
 {

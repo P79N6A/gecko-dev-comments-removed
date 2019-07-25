@@ -771,8 +771,8 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *calle
 
     
     if (callerFrame &&
-        callerFrame->script &&
-        callerFrame->script->strictModeCode) {
+        callerFrame->hasScript() &&
+        callerFrame->getScript()->strictModeCode) {
         cg.flags |= TCF_STRICT_MODE_CODE;
         tokenStream.setStrictMode();
     }
@@ -795,13 +795,13 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *calle
                 goto out;
         }
 
-        if (callerFrame && callerFrame->fun) {
+        if (callerFrame && callerFrame->hasFunction()) {
             
 
 
 
 
-            funbox = parser.newObjectBox(FUN_OBJECT(callerFrame->fun));
+            funbox = parser.newObjectBox(FUN_OBJECT(callerFrame->getFunction()));
             if (!funbox)
                 goto out;
             funbox->emitLink = cg.objectList.lastbox;
