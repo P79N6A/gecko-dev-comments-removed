@@ -3325,7 +3325,8 @@ nsHTMLInputElement::IntrinsicState() const
       
       
       ValueModeType valueMode = GetValueMode();
-      if (valueMode == VALUE_MODE_DEFAULT ||
+      if ((mForm && mForm->HasEverTriedInvalidSubmit()) ||
+          valueMode == VALUE_MODE_DEFAULT ||
           (valueMode == VALUE_MODE_DEFAULT_ON && GetCheckedChanged()) ||
           ((valueMode == VALUE_MODE_VALUE ||
             valueMode == VALUE_MODE_FILENAME) && GetValueChanged())) {

@@ -502,7 +502,8 @@ CollectOrphans(nsINode* aRemovalRoot, nsTArray<nsGenericHTMLFormElement*> aArray
 
         
         
-        nsEventStates states = NS_EVENT_STATE_MOZ_UI_INVALID;
+        nsEventStates states = NS_EVENT_STATE_MOZ_UI_VALID |
+                               NS_EVENT_STATE_MOZ_UI_INVALID;
 
         
         
@@ -1725,6 +1726,7 @@ nsHTMLFormElement::CheckValidFormSubmission()
           for (PRUint32 i = 0, length = mControls->mElements.Length();
                i < length; ++i) {
             doc->ContentStatesChanged(mControls->mElements[i], nsnull,
+                                      NS_EVENT_STATE_MOZ_UI_VALID |
                                       NS_EVENT_STATE_MOZ_UI_INVALID);
           }
 
@@ -1734,6 +1736,7 @@ nsHTMLFormElement::CheckValidFormSubmission()
           for (PRUint32 i = 0, length = mControls->mNotInElements.Length();
                i < length; ++i) {
             doc->ContentStatesChanged(mControls->mNotInElements[i], nsnull,
+                                      NS_EVENT_STATE_MOZ_UI_VALID |
                                       NS_EVENT_STATE_MOZ_UI_INVALID);
           }
         }
