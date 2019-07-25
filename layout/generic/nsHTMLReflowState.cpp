@@ -403,6 +403,44 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
       } else {
         frame->AddStateBits(NS_FRAME_IS_DIRTY);
       }
+
+      
+      
+      
+      
+      
+
+      
+      
+      
+      
+      
+      
+      
+
+      
+      
+      
+      
+      
+
+      nsAutoTArray<nsIFrame*, 32> stack;
+      stack.AppendElement(frame);
+
+      do {
+        nsIFrame *f = stack.ElementAt(stack.Length() - 1);
+        stack.RemoveElementAt(stack.Length() - 1);
+
+        nsIFrame::ChildListIterator lists(f);
+        for (; !lists.IsDone(); lists.Next()) {
+          nsFrameList::Enumerator childFrames(lists.CurrentList());
+          for (; !childFrames.AtEnd(); childFrames.Next()) {
+            nsIFrame* kid = childFrames.get();
+            kid->MarkIntrinsicWidthsDirty();
+            stack.AppendElement(kid);
+          }
+        }
+      } while (stack.Length() != 0);
     }
   }
 
