@@ -39,4 +39,8 @@ function run_test() {
   evalAndCatch("objC.prop1", sbMaster);
   evalAndCatch("objMaster.prop1", sbA);
   evalAndCatch("objMaster.prop1", sbSubset);
+  
+  
+  Components.utils.evalInSandbox("Components.interfaces", sbMaster);
+  do_check_true(true);
 }
