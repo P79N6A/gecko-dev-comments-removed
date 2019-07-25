@@ -267,7 +267,6 @@ BrowserView.prototype = {
       bvs.visibleY = vr.top;
 
       
-      
     } else
       this._viewportChanged(false, false);
   },
@@ -582,6 +581,11 @@ BrowserView.prototype = {
     ctx.scale(f, f);
   },
 
+  forceContainerResize: function forceContainerResize() {
+    let bvs = this._browserViewportState;
+    if (bvs)
+      BrowserView.Util.resizeContainerToViewport(this._container, bvs.viewportRect);
+  },
 
   
   
