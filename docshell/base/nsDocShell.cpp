@@ -676,6 +676,8 @@ static nsISHEntry* GetRootSHEntry(nsISHEntry *entry);
 
 
 
+static PRUint64 gDocshellIDCounter = 0;
+
 
 nsDocShell::nsDocShell():
     nsDocLoader(),
@@ -715,6 +717,7 @@ nsDocShell::nsDocShell():
     , mInEnsureScriptEnv(PR_FALSE)
 #endif
 {
+    mHistoryID = ++gDocshellIDCounter;
     if (gDocShellCount++ == 0) {
         NS_ASSERTION(sURIFixup == nsnull,
                      "Huh, sURIFixup not null in first nsDocShell ctor!");
@@ -1225,7 +1228,19 @@ nsDocShell::LoadURI(nsIURI * aURI,
             nsCOMPtr<nsIDocShellHistory> parent(do_QueryInterface(parentAsItem));
             if (parent) {
                 
-                parent->GetChildSHEntry(mChildOffset, getter_AddRefs(shEntry));
+                nsCOMPtr<nsISHEntry> currentSH;
+                PRBool oshe = PR_FALSE;
+                parent->GetCurrentSHEntry(getter_AddRefs(currentSH), &oshe);
+                PRBool dynamicallyAddedChild = mDynamicallyCreated;
+                if (!dynamicallyAddedChild && !oshe && currentSH) {
+                    currentSH->HasDynamicallyAddedChild(&dynamicallyAddedChild);
+                }
+                if (!dynamicallyAddedChild) {
+                    
+                    
+                    parent->GetChildSHEntry(mChildOffset, getter_AddRefs(shEntry));
+                }
+
                 
                 
                 if (mCurrentURI == nsnull) {
@@ -2957,6 +2972,13 @@ nsDocShell::SetChildOffset(PRUint32 aChildOffset)
 }
 
 NS_IMETHODIMP
+nsDocShell::GetHistoryID(PRUint64* aID)
+{
+  *aID = mHistoryID;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDocShell::GetIsInUnload(PRBool* aIsInUnload)
 {
     *aIsInUnload = mFiredUnloadEvent;
@@ -3009,30 +3031,19 @@ nsDocShell::AddChild(nsIDocShellTreeItem * aChild)
     NS_ASSERTION(mChildList.Count() > 0,
                  "child list must not be empty after a successful add");
 
-    
-    
-    
-    {
-        nsCOMPtr<nsIDocShell> childDocShell = do_QueryInterface(aChild);
-        if (childDocShell) {
-            
-            
-            
-            nsCOMPtr<nsIDocument> doc = do_GetInterface(GetAsSupports(this));
-            PRUint32 offset = mChildList.Count() - 1;
-            if (doc) {
-               PRUint32 oldChildCount = offset; 
-               for (PRUint32 i = 0; i < oldChildCount; ++i) {
-                 nsCOMPtr<nsIDocShell> child = do_QueryInterface(ChildAt(i));
-                 if (doc->FrameLoaderScheduledToBeFinalized(child)) {
-                   --offset;
-                 }
-               }
-            }
-
-            childDocShell->SetChildOffset(offset);
+    nsCOMPtr<nsIDocShellHistory> docshellhistory = do_QueryInterface(aChild);
+    PRBool dynamic = PR_FALSE;
+    docshellhistory->GetCreatedDynamically(&dynamic);
+    if (!dynamic) {
+        nsCOMPtr<nsISHEntry> currentSH;
+        PRBool oshe = PR_FALSE;
+        GetCurrentSHEntry(getter_AddRefs(currentSH), &oshe);
+        if (currentSH) {
+            currentSH->HasDynamicallyAddedChild(&dynamic);
         }
     }
+    nsCOMPtr<nsIDocShell> childDocShell = do_QueryInterface(aChild);
+    childDocShell->SetChildOffset(dynamic ? -1 : mChildList.Count() - 1);
 
     
     if (mGlobalHistory) {
@@ -3395,6 +3406,89 @@ nsDocShell::GetUseGlobalHistory(PRBool *aUseGlobalHistory)
 {
     *aUseGlobalHistory = (mGlobalHistory != nsnull);
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::RemoveFromSessionHistory()
+{
+    nsCOMPtr<nsISHistoryInternal> internalHistory;
+    nsCOMPtr<nsISHistory> sessionHistory;
+    nsCOMPtr<nsIDocShellTreeItem> root;
+    GetSameTypeRootTreeItem(getter_AddRefs(root));
+    if (root) {
+        nsCOMPtr<nsIWebNavigation> rootAsWebnav =
+            do_QueryInterface(root);
+        if (rootAsWebnav) {
+            rootAsWebnav->GetSessionHistory(getter_AddRefs(sessionHistory));
+            internalHistory = do_QueryInterface(sessionHistory);
+        }
+    }
+    if (!internalHistory) {
+        return NS_OK;
+    }
+
+    PRInt32 index = 0;
+    sessionHistory->GetIndex(&index);
+    nsAutoTArray<PRUint64, 16> ids;
+    ids.AppendElement(mHistoryID);
+    internalHistory->RemoveEntries(ids, index);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::SetCreatedDynamically(PRBool aDynamic)
+{
+    mDynamicallyCreated = aDynamic;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::GetCreatedDynamically(PRBool* aDynamic)
+{
+    *aDynamic = mDynamicallyCreated;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::GetCurrentSHEntry(nsISHEntry** aEntry, PRBool* aOSHE)
+{
+    *aOSHE = PR_FALSE;
+    *aEntry = nsnull;
+    if (mLSHE) {
+        NS_ADDREF(*aEntry = mLSHE);
+    } else if (mOSHE) {
+        NS_ADDREF(*aEntry = mOSHE);
+        *aOSHE = PR_TRUE;
+    }
+    return NS_OK;
+}
+
+void
+nsDocShell::ClearFrameHistory(nsISHEntry* aEntry)
+{
+  nsCOMPtr<nsISHContainer> shcontainer = do_QueryInterface(aEntry);
+  nsCOMPtr<nsISHistory> rootSH;
+  GetRootSessionHistory(getter_AddRefs(rootSH));
+  nsCOMPtr<nsISHistoryInternal> history = do_QueryInterface(rootSH);
+  if (!history || !shcontainer) {
+    return;
+  }
+
+  PRInt32 count = 0;
+  shcontainer->GetChildCount(&count);
+  nsAutoTArray<PRUint64, 16> ids;
+  for (PRInt32 i = 0; i < count; ++i) {
+    nsCOMPtr<nsISHEntry> child;
+    shcontainer->GetChildAt(i, getter_AddRefs(child));
+    if (child) {
+      PRUint64 id = 0;
+      child->GetDocshellID(&id);
+      ids.AppendElement(id);
+    }
+  }
+  PRInt32 index = 0;
+  rootSH->GetIndex(&index);
+  history->RemoveEntries(ids, index);
 }
 
 
@@ -5633,6 +5727,31 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
             if (mCurrentURI &&
                 NS_SUCCEEDED(uri->Equals(mCurrentURI, &equalUri)) &&
                 !equalUri) {
+
+                nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
+                GetSameTypeParent(getter_AddRefs(parentAsItem));
+                nsCOMPtr<nsIDocShell> parentDS(do_QueryInterface(parentAsItem));
+                PRBool inOnLoadHandler = PR_FALSE;
+                if (parentDS) {
+                  parentDS->GetIsExecutingOnLoadHandler(&inOnLoadHandler);
+                }
+                if (inOnLoadHandler) {
+                    
+                    
+                    
+                    
+                    
+                    nsCOMPtr<nsIDocShellHistory> parent =
+                        do_QueryInterface(parentAsItem);
+                    if (parent) {
+                        PRBool oshe = PR_FALSE;
+                        nsCOMPtr<nsISHEntry> entry;
+                        parent->GetCurrentSHEntry(getter_AddRefs(entry), &oshe);
+                        static_cast<nsDocShell*>(parent.get())->
+                            ClearFrameHistory(entry);
+                    }
+                }
+
                 
                 
                 rv = AddToSessionHistory(uri, wcwgChannel, nsnull,
@@ -8204,6 +8323,10 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     if (aSHEntry && (mLoadType & LOAD_CMD_HISTORY)) {
         
         
+        aSHEntry->GetDocshellID(&mHistoryID);
+
+        
+        
         
         
         if (mContentViewer) {
@@ -9110,6 +9233,28 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
             mLSHE->SetCacheKey(cacheKey);
         else if (mOSHE)
             mOSHE->SetCacheKey(cacheKey);
+
+        
+        ClearFrameHistory(mLSHE);
+        ClearFrameHistory(mOSHE);
+    }
+
+    if (aLoadType == LOAD_RELOAD_NORMAL) {
+        nsCOMPtr<nsISHEntry> currentSH;
+        PRBool oshe = PR_FALSE;
+        GetCurrentSHEntry(getter_AddRefs(currentSH), &oshe);
+        PRBool dynamicallyAddedChild = PR_FALSE;
+        if (currentSH) {
+          currentSH->HasDynamicallyAddedChild(&dynamicallyAddedChild);
+        }
+        if (dynamicallyAddedChild) {
+          ClearFrameHistory(currentSH);
+        }
+    }
+
+    if (aLoadType == LOAD_REFRESH) {
+        ClearFrameHistory(mLSHE);
+        ClearFrameHistory(mOSHE);
     }
 
     if (updateHistory && shAvailable) { 
@@ -9599,7 +9744,9 @@ nsDocShell::AddToSessionHistory(nsIURI * aURI, nsIChannel * aChannel,
                   nsnull,            
                   cacheKey,          
                   mContentTypeHint,  
-                  owner);            
+                  owner,             
+                  mHistoryID,
+                  mDynamicallyCreated);
     entry->SetReferrerURI(referrerURI);
     
 
@@ -9799,6 +9946,8 @@ nsDocShell::WalkHistoryEntries(nsISHEntry *aRootEntry,
         if (!childEntry) {
             
             
+            
+            aCallback(nsnull, nsnull, i, aData);
             continue;
         }
 
@@ -9851,6 +10000,15 @@ nsDocShell::CloneAndReplaceChild(nsISHEntry *aEntry, nsDocShell *aShell,
     PRUint32 cloneID = data->cloneID;
     nsISHEntry *replaceEntry = data->replaceEntry;
 
+    nsCOMPtr<nsISHContainer> container =
+      do_QueryInterface(data->destTreeParent);
+    if (!aEntry) {
+      if (container) {
+        container->AddChild(nsnull, aEntryIndex);
+      }
+      return NS_OK;
+    }
+    
     PRUint32 srcID;
     aEntry->GetID(&srcID);
 
@@ -9878,8 +10036,6 @@ nsDocShell::CloneAndReplaceChild(nsISHEntry *aEntry, nsDocShell *aShell,
             aShell->SwapHistoryEntries(aEntry, dest);
     }
 
-    nsCOMPtr<nsISHContainer> container =
-        do_QueryInterface(data->destTreeParent);
     if (container)
         container->AddChild(dest, aEntryIndex);
 

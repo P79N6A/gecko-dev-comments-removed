@@ -663,6 +663,8 @@ protected:
     
     virtual nsresult SetDocLoaderParent(nsDocLoader * aLoader);
 
+    void ClearFrameHistory(nsISHEntry* aEntry);
+
     
     class RestorePresentationEvent : public nsRunnable {
     public:
@@ -750,14 +752,6 @@ protected:
 
     
     
-    
-    
-    
-    
-    
-    
-    
-    
     PRUint32                   mChildOffset;
     PRUint32                   mBusyFlags;
     PRUint32                   mAppType;
@@ -812,9 +806,13 @@ protected:
     
     
     PRPackedBool               mSavingOldViewer;
+
+    
+    PRPackedBool               mDynamicallyCreated;
 #ifdef DEBUG
     PRPackedBool               mInEnsureScriptEnv;
 #endif
+    PRUint64                   mHistoryID;
 
     static nsIURIFixup *sURIFixup;
 

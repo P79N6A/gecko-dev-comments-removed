@@ -60,6 +60,8 @@
 #include "nsIObserverService.h"
 #include "prclist.h"
 #include "mozilla/Services.h"
+#include "nsTArray.h"
+#include "nsCOMArray.h"
 
 
 #include "nspr.h"
@@ -345,6 +347,7 @@ nsSHistory::AddEntry(nsISHEntry * aSHEntry, PRBool aPersist)
   if ((gHistoryMaxSize >= 0) && (mLength > gHistoryMaxSize))
     PurgeHistory(mLength-gHistoryMaxSize);
   
+  RemoveDynEntries(mIndex - 1, mIndex);
   return NS_OK;
 }
 
@@ -1063,11 +1066,124 @@ nsSHistory::EvictAllContentViewersGlobally()
   sHistoryMaxTotalViewers = maxViewers;
 }
 
+void GetDynamicChildren(nsISHContainer* aContainer,
+                        nsTArray<PRUint64>& aDocshellIDs,
+                        PRBool aOnlyTopLevelDynamic)
+{
+  PRInt32 count = 0;
+  aContainer->GetChildCount(&count);
+  for (PRInt32 i = 0; i < count; ++i) {
+    nsCOMPtr<nsISHEntry> child;
+    aContainer->GetChildAt(i, getter_AddRefs(child));
+    if (child) {
+      PRBool dynAdded = PR_FALSE;
+      child->IsDynamicallyAdded(&dynAdded);
+      if (dynAdded) {
+        PRUint64 docshellID = 0;
+        child->GetDocshellID(&docshellID);
+        aDocshellIDs.AppendElement(docshellID);
+      }
+      if (!dynAdded || !aOnlyTopLevelDynamic) {
+        nsCOMPtr<nsISHContainer> childAsContainer = do_QueryInterface(child);
+        if (childAsContainer) {
+          GetDynamicChildren(childAsContainer, aDocshellIDs,
+                             aOnlyTopLevelDynamic);
+        }
+      }
+    }
+  }
+}
+
+PRBool
+RemoveFromSessionHistoryContainer(nsISHContainer* aContainer,
+                                  nsTArray<PRUint64>& aDocshellIDs)
+{
+  nsCOMPtr<nsISHEntry> root = do_QueryInterface(aContainer);
+  NS_ENSURE_TRUE(root, PR_FALSE);
+
+  PRBool didRemove = PR_FALSE;
+  PRInt32 childCount = 0;
+  aContainer->GetChildCount(&childCount);
+  for (PRInt32 i = childCount - 1; i >= 0; --i) {
+    nsCOMPtr<nsISHEntry> child;
+    aContainer->GetChildAt(i, getter_AddRefs(child));
+    if (child) {
+      PRUint64 docshelldID = 0;
+      child->GetDocshellID(&docshelldID);
+      if (aDocshellIDs.Contains(docshelldID)) {
+        didRemove = PR_TRUE;
+        aContainer->RemoveChild(child);
+      } else {
+        nsCOMPtr<nsISHContainer> container = do_QueryInterface(child);
+        if (container) {
+          PRBool childRemoved =
+            RemoveFromSessionHistoryContainer(container, aDocshellIDs);
+          if (childRemoved) {
+            didRemove = PR_TRUE;
+          }
+        }
+      }
+    }
+  }
+  return didRemove;
+}
+
+PRBool RemoveChildEntries(nsISHistory* aHistory, PRInt32 aIndex,
+                          nsTArray<PRUint64>& aEntryIDs)
+{
+  nsCOMPtr<nsIHistoryEntry> rootHE;
+  aHistory->GetEntryAtIndex(aIndex, PR_FALSE, getter_AddRefs(rootHE));
+  nsCOMPtr<nsISHContainer> root = do_QueryInterface(rootHE);
+  return root ? RemoveFromSessionHistoryContainer(root, aEntryIDs) : PR_FALSE;
+}
+
+NS_IMETHODIMP_(void)
+nsSHistory::RemoveEntries(nsTArray<PRUint64>& aIDs, PRInt32 aStartIndex)
+{
+  PRInt32 index = aStartIndex;
+  while(index >= 0 && RemoveChildEntries(this, --index, aIDs));
+  index = aStartIndex;
+  while(index >= 0 && RemoveChildEntries(this, index++, aIDs));
+}
+
+void
+nsSHistory::RemoveDynEntries(PRInt32 aOldIndex, PRInt32 aNewIndex)
+{
+  
+  
+  nsCOMPtr<nsISHEntry> originalSH;
+  GetEntryAtIndex(aOldIndex, PR_FALSE, getter_AddRefs(originalSH));
+  nsCOMPtr<nsISHContainer> originalContainer = do_QueryInterface(originalSH);
+  nsAutoTArray<PRUint64, 16> toBeRemovedEntries;
+  if (originalContainer) {
+    nsTArray<PRUint64> originalDynDocShellIDs;
+    GetDynamicChildren(originalContainer, originalDynDocShellIDs, PR_TRUE);
+    if (originalDynDocShellIDs.Length()) {
+      nsCOMPtr<nsISHEntry> currentSH;
+      GetEntryAtIndex(aNewIndex, PR_FALSE, getter_AddRefs(currentSH));
+      nsCOMPtr<nsISHContainer> newContainer = do_QueryInterface(currentSH);
+      if (newContainer) {
+        nsTArray<PRUint64> newDynDocShellIDs;
+        GetDynamicChildren(newContainer, newDynDocShellIDs, PR_FALSE);
+        for (PRUint32 i = 0; i < originalDynDocShellIDs.Length(); ++i) {
+          if (!newDynDocShellIDs.Contains(originalDynDocShellIDs[i])) {
+            toBeRemovedEntries.AppendElement(originalDynDocShellIDs[i]);
+          }
+        }
+      }
+    }
+  }
+  if (toBeRemovedEntries.Length()) {
+    RemoveEntries(toBeRemovedEntries, aOldIndex);
+  }
+}
+
 NS_IMETHODIMP
 nsSHistory::UpdateIndex()
 {
   
   if (mIndex != mRequestedIndex && mRequestedIndex != -1) {
+    RemoveDynEntries(mIndex, mRequestedIndex);
     mIndex = mRequestedIndex;
   }
 
@@ -1146,6 +1262,19 @@ nsSHistory::GotoIndex(PRInt32 aIndex)
   return LoadEntry(aIndex, nsIDocShellLoadInfo::loadHistory, HIST_CMD_GOTOINDEX);
 }
 
+nsresult
+nsSHistory::LoadNextPossibleEntry(PRInt32 aNewIndex, long aLoadType, PRUint32 aHistCmd)
+{
+  mRequestedIndex = -1;
+  if (aNewIndex < mIndex) {
+    return LoadEntry(aNewIndex - 1, aLoadType, aHistCmd);
+  }
+  if (aNewIndex > mIndex) {
+    return LoadEntry(aNewIndex + 1, aLoadType, aHistCmd);
+  }
+  return NS_ERROR_FAILURE;
+}
+
 NS_IMETHODIMP
 nsSHistory::LoadEntry(PRInt32 aIndex, long aLoadType, PRUint32 aHistCmd)
 {
@@ -1220,14 +1349,24 @@ nsSHistory::LoadEntry(PRInt32 aIndex, long aLoadType, PRUint32 aHistCmd)
       if (!frameFound) {
         
         
-        mRequestedIndex = -1;
-        return NS_ERROR_FAILURE; 
+        return LoadNextPossibleEntry(aIndex, aLoadType, aHistCmd);
       }
       return rv;
     }   
-    else
+    else {
+      
+      PRUint32 prevID = 0;
+      PRUint32 nextID = 0;
+      prevEntry->GetID(&prevID);
+      nextEntry->GetID(&nextID);
+      if (prevID == nextID) {
+        
+        
+        return LoadNextPossibleEntry(aIndex, aLoadType, aHistCmd);
+      }
       docShell = mRootDocShell;
     }
+  }
 
   if (!docShell) {
     
@@ -1244,7 +1383,15 @@ nsresult
 nsSHistory::CompareFrames(nsISHEntry * aPrevEntry, nsISHEntry * aNextEntry, nsIDocShell * aParent, long aLoadType, PRBool * aIsFrameFound)
 {
   if (!aPrevEntry || !aNextEntry || !aParent)
-    return PR_FALSE;
+    return NS_ERROR_FAILURE;
+
+  
+  
+  
+  PRUint64 prevdID, nextdID;
+  aPrevEntry->GetDocshellID(&prevdID);
+  aNextEntry->GetDocshellID(&nextdID);
+  NS_ENSURE_STATE(prevdID == nextdID);
 
   nsresult result = NS_OK;
   PRUint32 prevID, nextID;
@@ -1279,21 +1426,62 @@ nsSHistory::CompareFrames(nsISHEntry * aPrevEntry, nsISHEntry * aNextEntry, nsID
   dsTreeNode->GetChildCount(&dsCount);
 
   
+  nsCOMArray<nsIDocShell> docshells;
+  for (PRInt32 i = 0; i < dsCount; ++i) {
+    nsCOMPtr<nsIDocShellTreeItem> treeItem;
+    dsTreeNode->GetChildAt(i, getter_AddRefs(treeItem));
+    nsCOMPtr<nsIDocShell> shell = do_QueryInterface(treeItem);
+    if (shell) {
+      docshells.AppendObject(shell);
+    }
+  }
+
+  
+  for (PRInt32 i = 0; i < ncnt; ++i) {
     
-  for (PRInt32 i=0; i<ncnt; i++){
-    nsCOMPtr<nsISHEntry> pChild, nChild;
-    nsCOMPtr<nsIDocShellTreeItem> dsTreeItemChild;
-	  
-    prevContainer->GetChildAt(i, getter_AddRefs(pChild));
+    nsCOMPtr<nsISHEntry> nChild;
     nextContainer->GetChildAt(i, getter_AddRefs(nChild));
-    if (dsCount > 0)
-      dsTreeNode->GetChildAt(i, getter_AddRefs(dsTreeItemChild));
+    if (!nChild) {
+      continue;
+    }
+    PRUint64 docshellID = 0;
+    nChild->GetDocshellID(&docshellID);
 
-    if (!dsTreeItemChild)
-      return NS_ERROR_FAILURE;
+    
+    nsIDocShell* dsChild = nsnull;
+    PRInt32 count = docshells.Count();
+    for (PRInt32 j = 0; j < count; ++j) {
+      PRUint64 shellID = 0;
+      nsIDocShell* shell = docshells[j];
+      shell->GetHistoryID(&shellID);
+      if (shellID == docshellID) {
+        dsChild = shell;
+        break;
+      }
+    }
+    if (!dsChild) {
+      continue;
+    }
 
-    nsCOMPtr<nsIDocShell> dsChild(do_QueryInterface(dsTreeItemChild));
+    
+    
+    nsCOMPtr<nsISHEntry> pChild;
+    for (PRInt32 k = 0; k < pcnt; ++k) {
+      nsCOMPtr<nsISHEntry> child;
+      prevContainer->GetChildAt(k, getter_AddRefs(child));
+      if (child) {
+        PRUint64 dID = 0;
+        child->GetDocshellID(&dID);
+        if (dID == docshellID) {
+          pChild = child;
+          break;
+        }
+      }
+    }
 
+    
+    
+    
     CompareFrames(pChild, nChild, dsChild, aLoadType, aIsFrameFound);
   }     
   return result;

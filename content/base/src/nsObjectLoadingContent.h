@@ -134,6 +134,10 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     PRInt32 ObjectState() const;
 
+    void SetIsNetworkCreated(PRBool aNetworkCreated)
+    {
+      mNetworkCreated = aNetworkCreated;
+    }
   protected:
     
 
@@ -399,6 +403,12 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
     PRPackedBool                mUserDisabled  : 1;
     PRPackedBool                mSuppressed    : 1;
+
+    
+    
+    
+    PRPackedBool                mNetworkCreated : 1;
+
     
     PluginSupportState          mFallbackReason;
 
