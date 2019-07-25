@@ -65,6 +65,9 @@ public:
     static void UnpremultiplyImageSurface(gfxImageSurface *aSurface,
                                           gfxImageSurface *aDestSurface = nsnull);
 
+    static void ConvertBGRAtoRGBA(gfxImageSurface *aSourceSurface,
+                                  gfxImageSurface *aDestSurface = nsnull);
+
     
 
 

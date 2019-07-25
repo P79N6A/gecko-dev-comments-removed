@@ -92,6 +92,7 @@ public:
   bool ImageComplete() const;
 
   void SetHasNoAlpha();
+  void SetAsNonPremult(bool aIsNonPremult);
 
   bool GetCompositingFailed() const;
   void SetCompositingFailed(bool val);
@@ -180,6 +181,7 @@ private:
   
   PRUint8*     mPalettedImageData;
 
+  
   gfxRGBA      mSinglePixelColor;
 
   PRInt32      mTimeout; 
@@ -192,6 +194,7 @@ private:
   bool mNeverUseDeviceSurface;
   bool mFormatChanged;
   bool mCompositingFailed;
+  bool mNonPremult;
   
   bool mLocked;
 

@@ -34,17 +34,17 @@
 
 
 
+
 #include "nsSVGClipPathFrame.h"
 
-#include "nsIDOMDocument.h"
-#include "nsIDocument.h"
+
+#include "gfxContext.h"
+#include "nsGkAtoms.h"
 #include "nsIDOMSVGClipPathElement.h"
 #include "nsRenderingContext.h"
-#include "nsGkAtoms.h"
-#include "nsSVGUtils.h"
-#include "nsSVGEffects.h"
 #include "nsSVGClipPathElement.h"
-#include "gfxContext.h"
+#include "nsSVGEffects.h"
+#include "nsSVGUtils.h"
 
 
 

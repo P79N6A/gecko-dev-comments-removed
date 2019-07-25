@@ -10851,10 +10851,8 @@ nsDocShell::EnsureScriptEnvironment()
     win->SetDocShell(static_cast<nsIDocShell *>(this));
 
     
-    
-    
     nsresult rv;
-    rv = mScriptGlobal->EnsureScriptEnvironment(nsIProgrammingLanguage::JAVASCRIPT);
+    rv = mScriptGlobal->EnsureScriptEnvironment();
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;

@@ -38,8 +38,6 @@
 #include "nsCRLInfo.h"
 
 #include "nsCOMPtr.h"
-#include "nsIDateTimeFormat.h"
-#include "nsDateTimeFormatCID.h"
 #include "nsComponentManagerUtils.h"
 #include "nsReadableUtils.h"
 #include "nsNSSComponent.h"
@@ -259,18 +257,16 @@ done:
       bool toBeRescheduled = false;
       if(NS_SUCCEEDED(ComputeNextAutoUpdateTime(crlData, timingTypePref, dayCnt, &updateTime))){
         updateTimeStr.AssignWithConversion(updateTime);
-        nsMemory::Free(updateTime);
         pref->SetCharPref(updateTimePrefStr.get(),updateTimeStr.get());
         
         
         
         
         
-        PRTime nextTime;
-        PR_ParseTimeString(updateTimeStr.get(),true, &nextTime);
-        if(LL_CMP(nextTime, > , PR_Now())){
+        if(LL_CMP(updateTime, > , PR_Now())){
           toBeRescheduled = true;
         }
+        nsMemory::Free(updateTime);
       }
       
       
@@ -419,6 +415,7 @@ nsCRLManager::ComputeNextAutoUpdateTime(nsICRLInfo *info,
 {
   if (!info)
     return NS_ERROR_FAILURE;
+  NS_ENSURE_ARG_POINTER(nextAutoUpdate);
 
   PRTime microsecInDayCnt;
   PRTime now = PR_Now();
@@ -474,15 +471,10 @@ nsCRLManager::ComputeNextAutoUpdateTime(nsICRLInfo *info,
     }
   }
 
-  nsAutoString nextAutoUpdateDate;
-  PRExplodedTime explodedTime;
-  nsCOMPtr<nsIDateTimeFormat> dateFormatter = do_CreateInstance(NS_DATETIMEFORMAT_CONTRACTID, &rv);
-  if (NS_FAILED(rv))
-    return rv;
-  PR_ExplodeTime(tempTime, PR_GMTParameters, &explodedTime);
-  dateFormatter->FormatPRExplodedTime(nsnull, kDateFormatShort, kTimeFormatSeconds,
-                                      &explodedTime, nextAutoUpdateDate);
-  *nextAutoUpdate = ToNewUnicode(nextAutoUpdateDate);
+  
+  char *tempTimeStr = PR_smprintf("%lli", tempTime);
+  *nextAutoUpdate = ToNewUnicode(nsDependentCString(tempTimeStr));
+  PR_smprintf_free(tempTimeStr);
 
   return NS_OK;
 }

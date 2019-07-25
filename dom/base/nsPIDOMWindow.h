@@ -577,12 +577,12 @@ public:
   
 
 
-  virtual void SetHasOrientationEventListener() = 0;
+  virtual void EnableDeviceSensor(PRUint32 aType) = 0;
 
   
 
 
-  virtual void RemoveOrientationEventListener() = 0;
+  virtual void DisableDeviceSensor(PRUint32 aType) = 0;
 
   
 

@@ -98,32 +98,9 @@ private:
 
   
   bool GetEvent(bool mayWait, nsIRunnable **event) {
-    return mEvents->GetEvent(mayWait, event);
+    return mEvents.GetEvent(mayWait, event);
   }
   nsresult PutEvent(nsIRunnable *event);
-
-  
-  class nsChainedEventQueue {
-  public:
-    nsChainedEventQueue(nsIThreadEventFilter *filter = nsnull)
-      : mNext(nsnull), mFilter(filter) {
-    }
-
-    bool GetEvent(bool mayWait, nsIRunnable **event) {
-      return mQueue.GetEvent(mayWait, event);
-    }
-
-    bool PutEvent(nsIRunnable *event);
-    
-    bool HasPendingEvent() {
-      return mQueue.HasPendingEvent();
-    }
-
-    class nsChainedEventQueue *mNext;
-  private:
-    nsCOMPtr<nsIThreadEventFilter> mFilter;
-    nsEventQueue mQueue;
-  };
 
   
   
@@ -137,8 +114,7 @@ private:
   
   nsAutoTObserverArray<nsCOMPtr<nsIThreadObserver>, 2> mEventObservers;
 
-  nsChainedEventQueue *mEvents;   
-  nsChainedEventQueue  mEventsRoot;
+  nsEventQueue  mEvents;
 
   PRInt32   mPriority;
   PRThread *mThread;

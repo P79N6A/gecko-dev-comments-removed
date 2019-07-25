@@ -34,18 +34,17 @@
 
 
 
+
 #include "nsSVGContainerFrame.h"
+
+
+#include "nsDOMError.h"
+#include "nsSVGGlyphFrame.h"
 #include "nsSVGTextFrame.h"
 #include "nsSVGUtils.h"
-#include "nsSVGOuterSVGFrame.h"
-#include "nsIDOMSVGTextElement.h"
-#include "nsIDOMSVGAnimatedLengthList.h"
 #include "SVGAnimatedNumberList.h"
-#include "SVGNumberList.h"
-#include "nsSVGGlyphFrame.h"
-#include "nsDOMError.h"
 #include "SVGLengthList.h"
-#include "nsSVGTextPositioningElement.h"
+#include "SVGNumberList.h"
 
 using namespace mozilla;
 

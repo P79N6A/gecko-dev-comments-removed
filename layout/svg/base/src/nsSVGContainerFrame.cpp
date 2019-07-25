@@ -34,10 +34,12 @@
 
 
 
+
 #include "nsSVGContainerFrame.h"
+
+
 #include "nsSVGElement.h"
 #include "nsSVGUtils.h"
-#include "nsSVGOuterSVGFrame.h"
 
 NS_QUERYFRAME_HEAD(nsSVGContainerFrame)
   NS_QUERYFRAME_ENTRY(nsSVGContainerFrame)

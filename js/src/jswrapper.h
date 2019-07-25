@@ -101,7 +101,34 @@ class JS_FRIEND_API(Wrapper) : public ProxyHandler
     virtual void trace(JSTracer *trc, JSObject *wrapper) MOZ_OVERRIDE;
 
     
-    enum Action { GET, SET, CALL };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    enum Action { GET, SET, CALL, PUNCTURE };
     virtual bool enter(JSContext *cx, JSObject *wrapper, jsid id, Action act, bool *bp);
     virtual void leave(JSContext *cx, JSObject *wrapper);
 
@@ -225,6 +252,12 @@ IsWrapper(const JSObject *obj)
 
 JS_FRIEND_API(JSObject *) UnwrapObject(JSObject *obj, bool stopAtOuter = true,
                                        unsigned *flagsp = NULL);
+
+
+
+
+
+JS_FRIEND_API(JSObject *) UnwrapObjectChecked(JSContext *cx, JSObject *obj);
 
 bool IsCrossCompartmentWrapper(const JSObject *obj);
 

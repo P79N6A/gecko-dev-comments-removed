@@ -603,7 +603,6 @@ GLContext::CanUploadNonPowerOfTwo()
 bool
 GLContext::WantsSmallTiles()
 {
-#ifdef MOZ_WIDGET_ANDROID
     
     
     if (!CanUploadSubTextures())
@@ -616,9 +615,6 @@ GLContext::WantsSmallTiles()
     
     
     return false;
-#else
-    return false;
-#endif
 }
 
 
@@ -866,6 +862,8 @@ TiledTextureImage::TiledTextureImage(GLContext* aGL,
     : TextureImage(aSize, LOCAL_GL_CLAMP_TO_EDGE, aContentType, aUseNearestFilter)
     , mCurrentImage(0)
     , mInUpdate(false)
+    , mRows(0)
+    , mColumns(0)
     , mGL(aGL)
     , mUseNearestFilter(aUseNearestFilter)
     , mTextureState(Created)
@@ -1117,27 +1115,95 @@ TiledTextureImage::ApplyFilter()
 
 
 
+
+
+
 void TiledTextureImage::Resize(const nsIntSize& aSize)
 {
     if (mSize == aSize && mTextureState != Created) {
         return;
     }
-    mSize = aSize;
-    mImages.Clear();
-    
-    mColumns = (aSize.width  + mTileSize - 1) / mTileSize;
-    mRows    = (aSize.height + mTileSize - 1) / mTileSize;
 
-    for (unsigned int row = 0; row < mRows; row++) {
-      for (unsigned int col = 0; col < mColumns; col++) {
-          nsIntSize size( 
-                  (col+1) * mTileSize > (unsigned int)aSize.width  ? aSize.width  % mTileSize : mTileSize,
-                  (row+1) * mTileSize > (unsigned int)aSize.height ? aSize.height % mTileSize : mTileSize);
-          nsRefPtr<TextureImage> teximg =
-                  mGL->TileGenFunc(size, mContentType, mUseNearestFilter);
-          mImages.AppendElement(teximg.forget());
-      }
+    
+    unsigned int columns = (aSize.width  + mTileSize - 1) / mTileSize;
+    unsigned int rows = (aSize.height + mTileSize - 1) / mTileSize;
+
+    
+    int row;
+    unsigned int i = 0;
+    for (row = 0; row < (int)rows; row++) {
+        
+        
+        if (row >= (int)mRows)
+            mColumns = 0;
+
+        
+        
+        
+        
+        
+        if ((row == (int)mRows - 1) && (aSize.height != mSize.height))
+            mColumns = 0;
+
+        int col;
+        for (col = 0; col < (int)columns; col++) {
+            nsIntSize size( 
+                    (col+1) * mTileSize > (unsigned int)aSize.width  ? aSize.width  % mTileSize : mTileSize,
+                    (row+1) * mTileSize > (unsigned int)aSize.height ? aSize.height % mTileSize : mTileSize);
+
+            bool replace = false;
+
+            
+            if (col < (int)mColumns) {
+                
+                
+                if (mSize.width != aSize.width) {
+                    if (col == (int)mColumns - 1) {
+                        
+                        
+                        replace = true;
+                    } else if (col == (int)columns - 1) {
+                        
+                    } else {
+                        
+                        
+                        i++;
+                        continue;
+                    }
+                } else {
+                    
+                    i++;
+                    continue;
+                }
+            }
+
+            
+            nsRefPtr<TextureImage> teximg =
+                    mGL->TileGenFunc(size, mContentType, mUseNearestFilter);
+            if (replace)
+                mImages.ReplaceElementAt(i, teximg.forget());
+            else
+                mImages.InsertElementAt(i, teximg.forget());
+            i++;
+        }
+
+        
+        if (row < (int)mRows) {
+            for (col = (int)mColumns - col; col > 0; col--) {
+                mImages.RemoveElementAt(i);
+            }
+        }
     }
+
+    
+    unsigned int length = mImages.Length();
+    for (; i < length; i++)
+      mImages.RemoveElementAt(mImages.Length()-1);
+
+    
+    mRows = rows;
+    mColumns = columns;
+    mSize = aSize;
     mTextureState = Allocated;
 }
 

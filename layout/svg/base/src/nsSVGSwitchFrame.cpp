@@ -36,12 +36,12 @@
 
 
 
-#include "nsSVGEffects.h"
+
+#include "gfxMatrix.h"
+#include "gfxRect.h"
 #include "nsSVGGFrame.h"
 #include "nsSVGSwitchElement.h"
 #include "nsSVGUtils.h"
-#include "gfxRect.h"
-#include "gfxMatrix.h"
 
 class nsRenderingContext;
 

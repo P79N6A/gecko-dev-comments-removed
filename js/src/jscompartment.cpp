@@ -102,6 +102,12 @@ JSCompartment::JSCompartment(JSRuntime *rt)
 
 JSCompartment::~JSCompartment()
 {
+    
+
+
+
+    FreeScriptFilenames(this);
+
 #ifdef JS_ION
     Foreground::delete_(ionCompartment_);
 #endif

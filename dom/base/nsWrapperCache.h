@@ -141,22 +141,22 @@ public:
     return (mWrapperPtrBits & WRAPPER_BIT_PRESERVED) != 0;
   }
 
-  void SetIsProxy()
+  void SetIsDOMBinding()
   {
     NS_ASSERTION(!mWrapperPtrBits,
                  "This flag should be set before creating any wrappers.");
-    mWrapperPtrBits = WRAPPER_IS_PROXY;
+    mWrapperPtrBits = WRAPPER_IS_DOM_BINDING;
   }
-  void ClearIsProxy()
+  void ClearIsDOMBinding()
   {
-    NS_ASSERTION(!mWrapperPtrBits || mWrapperPtrBits == WRAPPER_IS_PROXY,
+    NS_ASSERTION(!mWrapperPtrBits || mWrapperPtrBits == WRAPPER_IS_DOM_BINDING,
                  "This flag should be cleared before creating any wrappers.");
     mWrapperPtrBits = 0;
   }
 
-  bool IsProxy() const
+  bool IsDOMBinding() const
   {
-    return (mWrapperPtrBits & WRAPPER_IS_PROXY) != 0;
+    return (mWrapperPtrBits & WRAPPER_IS_DOM_BINDING) != 0;
   }
 
 
@@ -199,7 +199,7 @@ private:
   void SetWrapperBits(void *aWrapper)
   {
     mWrapperPtrBits = reinterpret_cast<PtrBits>(aWrapper) |
-                      (mWrapperPtrBits & WRAPPER_IS_PROXY);
+                      (mWrapperPtrBits & WRAPPER_IS_DOM_BINDING);
   }
 
   
@@ -219,11 +219,9 @@ private:
 
 
 
+  enum { WRAPPER_IS_DOM_BINDING = 1 << 1 };
 
-
-  enum { WRAPPER_IS_PROXY = 1 << 1 };
-
-  enum { kWrapperBitMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_PROXY) };
+  enum { kWrapperBitMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_DOM_BINDING) };
 
   PtrBits mWrapperPtrBits;
 };

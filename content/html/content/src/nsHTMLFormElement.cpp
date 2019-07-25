@@ -2164,8 +2164,7 @@ nsFormControlList::nsFormControlList(nsHTMLFormElement* aForm) :
   
   mElements(8)
 {
-  
-  SetIsProxy();
+  SetIsDOMBinding();
 }
 
 nsFormControlList::~nsFormControlList()

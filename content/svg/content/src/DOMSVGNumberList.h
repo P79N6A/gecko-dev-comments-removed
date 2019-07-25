@@ -82,7 +82,7 @@ public:
                    const SVGNumberList &aInternalList)
     : mAList(aAList)
   {
-    SetIsProxy();
+    SetIsDOMBinding();
 
     
     

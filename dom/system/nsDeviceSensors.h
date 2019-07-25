@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDeviceSensors_h
 #define nsDeviceSensors_h
 
@@ -11,10 +43,7 @@
 #include "nsTArray.h"
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
-#include "nsIDOMDeviceLightEvent.h"
 #include "nsIDOMDeviceOrientationEvent.h"
-#include "nsIDOMDeviceProximityEvent.h"
-#include "nsIDOMUserProximityEvent.h"
 #include "nsIDOMDeviceMotionEvent.h"
 #include "nsDOMDeviceMotionEvent.h"
 #include "mozilla/TimeStamp.h"
@@ -44,18 +73,7 @@ public:
 private:
   
   nsTArray<nsTArray<nsIDOMWindow*>* > mWindowListeners;
-
-  void FireDOMLightEvent(nsIDOMEventTarget *target,
-                         double value);
-
-  void FireDOMProximityEvent(nsIDOMEventTarget *aTarget,
-                             double aValue,
-                             double aMin,
-                             double aMax);
-
-  void FireDOMUserProximityEvent(nsIDOMEventTarget *aTarget,
-                                 bool aNear);
-
+  
   void FireDOMOrientationEvent(class nsIDOMDocument *domDoc, 
                                class nsIDOMEventTarget *target,
                                double alpha,
@@ -64,19 +82,18 @@ private:
 
   void FireDOMMotionEvent(class nsIDOMDocument *domDoc, 
                           class nsIDOMEventTarget *target,
-                          uint32_t type,
+                          PRUint32 type,
                           double x,
                           double y,
                           double z);
 
   bool mEnabled;
 
-  inline bool IsSensorEnabled(uint32_t aType) {
+  inline bool IsSensorEnabled(PRUint32 aType) {
     return mWindowListeners[aType]->Length() > 0;
   }
 
   mozilla::TimeStamp mLastDOMMotionEventTime;
-  bool mIsUserProximityNear;
   nsRefPtr<nsDOMDeviceAcceleration> mLastAcceleration;
   nsRefPtr<nsDOMDeviceAcceleration> mLastAccelerationIncluduingGravity;
   nsRefPtr<nsDOMDeviceRotationRate> mLastRotationRate;

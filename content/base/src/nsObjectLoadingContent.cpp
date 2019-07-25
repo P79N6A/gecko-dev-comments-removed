@@ -1248,13 +1248,14 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
   
   
   if (mType == eType_Document || mType == eType_Image || mInstanceOwner) {
-    if (mURI && aURI && !aForceLoad) {
+    if (mURI && aURI) {
       bool equal;
       nsresult rv = mURI->Equals(aURI, &equal);
-      if (NS_SUCCEEDED(rv) && equal) {
+      if (NS_SUCCEEDED(rv) && equal && !aForceLoad) {
         
         return NS_OK;
       }
+      StopPluginInstance();
     }
   }
 

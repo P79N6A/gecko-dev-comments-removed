@@ -36,12 +36,13 @@
 
 
 
+
+#include "nsSVGTSpanFrame.h"
+
+
 #include "nsIDOMSVGTSpanElement.h"
 #include "nsIDOMSVGAltGlyphElement.h"
-#include "nsSVGTSpanFrame.h"
 #include "nsSVGUtils.h"
-#include "nsSVGTextFrame.h"
-#include "nsSVGOuterSVGFrame.h"
 
 
 

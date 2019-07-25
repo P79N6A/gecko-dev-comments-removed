@@ -96,6 +96,11 @@ public:
         return &entry->mData;
     }
 
+    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
+                                     FontCacheSizes*   aSizes) const;
+    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
+                                     FontCacheSizes*   aSizes) const;
+
 protected:
     virtual bool ShapeWord(gfxContext *aContext,
                            gfxShapedWord *aShapedWord,

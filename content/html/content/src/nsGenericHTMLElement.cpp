@@ -3220,32 +3220,6 @@ nsGenericHTMLElement::Focus()
   return fm ? fm->SetFocus(elem, 0) : NS_OK;
 }
 
-nsresult nsGenericHTMLElement::MozRequestFullScreen()
-{
-  
-  
-  
-  
-  
-  if (!nsContentUtils::IsRequestFullScreenAllowed()) {
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                    "DOM", OwnerDoc(),
-                                    nsContentUtils::eDOM_PROPERTIES,
-                                    "FullScreenDeniedNotInputDriven");
-    nsRefPtr<nsAsyncDOMEvent> e =
-      new nsAsyncDOMEvent(OwnerDoc(),
-                          NS_LITERAL_STRING("mozfullscreenerror"),
-                          true,
-                          false);
-    e->PostDOMEvent();
-    return NS_OK;
-  }
-
-  OwnerDoc()->AsyncRequestFullScreen(this);
-
-  return NS_OK;
-}
-
 nsresult nsGenericHTMLElement::Click()
 {
   if (HasFlag(NODE_HANDLING_CLICK))

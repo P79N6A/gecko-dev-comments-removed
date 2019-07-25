@@ -1354,15 +1354,11 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
 {
   
   
-  nsCOMPtr<nsIDOMElement> element(do_QueryInterface(mContent));
+  if (!IsPrimaryForNode())
+    return NS_OK;
 
-  nsAutoString tagName;
-  element->GetTagName(tagName);
-  if (!tagName.IsEmpty()) {
-    nsAutoString oldValueUnused;
-    aAttributes->SetStringProperty(NS_LITERAL_CSTRING("tag"), tagName,
-                                   oldValueUnused);
-  }
+  
+  
 
   nsEventShell::GetEventAttributes(GetNode(), aAttributes);
  
@@ -1378,12 +1374,13 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
   
   
   
-  nsIContent *startContent = mContent;
-  while (true) {
-    NS_ENSURE_STATE(startContent);
-    nsIDocument *doc = startContent->GetDocument();
+  nsIContent* startContent = mContent;
+  while (startContent) {
+    nsIDocument* doc = startContent->GetDocument();
     nsIContent* rootContent = nsCoreUtils::GetRoleContent(doc);
-    NS_ENSURE_STATE(rootContent);
+    if (!rootContent)
+      return NS_OK;
+
     nsAccUtils::SetLiveContainerAttributes(aAttributes, startContent,
                                            rootContent);
 
@@ -1410,6 +1407,11 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
     return NS_OK;
 
   
+  nsAutoString tagName;
+  mContent->NodeInfo()->GetName(tagName);
+  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::tag, tagName);
+
+  
   nsCOMPtr<nsIDOMHTMLElement> htmlElement = do_QueryInterface(mContent);
   if (htmlElement) {
     bool draggable = false;
@@ -1422,8 +1424,7 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
 
   
   
-  
-  if (!mContent->GetPrimaryFrame() || !IsPrimaryForNode())
+  if (!mContent->GetPrimaryFrame())
     return NS_OK;
 
   

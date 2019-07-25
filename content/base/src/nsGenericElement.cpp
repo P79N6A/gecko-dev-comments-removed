@@ -6417,3 +6417,29 @@ nsINode::Contains(nsIDOMNode* aOther, bool* aReturn)
   *aReturn = Contains(node);
   return NS_OK;
 }
+
+nsresult nsGenericElement::MozRequestFullScreen()
+{
+  
+  
+  
+  
+  
+  if (!nsContentUtils::IsRequestFullScreenAllowed()) {
+    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                    "DOM", OwnerDoc(),
+                                    nsContentUtils::eDOM_PROPERTIES,
+                                    "FullScreenDeniedNotInputDriven");
+    nsRefPtr<nsAsyncDOMEvent> e =
+      new nsAsyncDOMEvent(OwnerDoc(),
+                          NS_LITERAL_STRING("mozfullscreenerror"),
+                          true,
+                          false);
+    e->PostDOMEvent();
+    return NS_OK;
+  }
+
+  OwnerDoc()->AsyncRequestFullScreen(this);
+
+  return NS_OK;
+}

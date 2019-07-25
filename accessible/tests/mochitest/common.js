@@ -118,6 +118,21 @@ function addA11yLoadEvent(aFunc, aWindow)
 
 
 
+function isObject(aObj, aExpectedObj, aMsg)
+{
+  if (aObj == aExpectedObj) {
+    ok(true, aMsg);
+    return;
+  }
+
+  ok(false,
+     aMsg + " - got '" + prettyName(aObj) +
+            "', expected '" + prettyName(aExpectedObj) + "'");
+}
+
+
+
+
 
 
 
@@ -494,7 +509,9 @@ function ensureImageMapTree(aID)
   
   
   
-  synthesizeMouse(getNode(aID), 10, 10, { type: "mousemove" });
+  var image = getNode(aID);
+  synthesizeMouse(image, 10, 10, { type: "mousemove" },
+                  image.ownerDocument.defaultView);
 
   
   

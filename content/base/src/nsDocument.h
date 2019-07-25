@@ -124,6 +124,7 @@ class nsHTMLStyleSheet;
 class nsHTMLCSSStyleSheet;
 class nsDOMNavigationTiming;
 class nsWindowSizes;
+class nsHtml5TreeOpExecutor;
 
 
 
@@ -1018,9 +1019,10 @@ protected:
 
   void RetrieveRelevantHeaders(nsIChannel *aChannel);
 
-  static bool TryChannelCharset(nsIChannel *aChannel,
-                                  PRInt32& aCharsetSource,
-                                  nsACString& aCharset);
+  bool TryChannelCharset(nsIChannel *aChannel,
+                         PRInt32& aCharsetSource,
+                         nsACString& aCharset,
+                         nsHtml5TreeOpExecutor* aExecutor);
 
   
   

@@ -49,7 +49,6 @@
 #include "XPCWrapper.h"
 #include "XrayWrapper.h"
 #include "FilteringWrapper.h"
-#include "WrapperFactory.h"
 
 #include "jsfriendapi.h"
 
@@ -89,6 +88,9 @@ AccessCheck::isSameOrigin(JSCompartment *a, JSCompartment *b)
 bool
 AccessCheck::isLocationObjectSameOrigin(JSContext *cx, JSObject *wrapper)
 {
+    
+    MOZ_ASSERT(WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
+
     
     
     
@@ -304,6 +306,15 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapper, jsid
 
     JSObject *obj = Wrapper::wrappedObject(wrapper);
 
+    
+    
+    
+    
+    if (act == Wrapper::PUNCTURE) {
+        MOZ_ASSERT(!WrapperFactory::IsLocationObject(obj));
+        return documentDomainMakesSameOrigin(cx, obj);
+    }
+
     const char *name;
     js::Class *clasp = js::GetObjectClass(obj);
     NS_ASSERTION(Jsvalify(clasp) != &XrayUtils::HolderClass, "shouldn't have a holder here");
@@ -320,6 +331,11 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapper, jsid
     if (IsWindow(name) && IsFrameId(cx, obj, id))
         return true;
 
+    
+    
+    
+    
+    
     
     
     if (!IsLocation(name) && documentDomainMakesSameOrigin(cx, obj))
@@ -490,6 +506,10 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
     if (act == Wrapper::CALL) {
         perm = PermitObjectAccess;
         return true;
+    }
+    if (act == Wrapper::PUNCTURE) {
+        perm = DenyAccess;
+        return false;
     }
 
     perm = DenyAccess;

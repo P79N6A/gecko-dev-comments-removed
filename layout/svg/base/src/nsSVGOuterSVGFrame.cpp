@@ -36,25 +36,22 @@
 
 
 
+
 #include "nsSVGOuterSVGFrame.h"
 
+
+#include "DOMSVGTests.h"
+#include "gfxMatrix.h"
+#include "nsDisplayList.h"
+#include "nsIDocument.h"
 #include "nsIDOMSVGSVGElement.h"
+#include "nsIDOMWindow.h"
+#include "nsIInterfaceRequestorUtils.h"
+#include "nsIObjectLoadingContent.h"
 #include "nsRenderingContext.h"
+#include "nsStubMutationObserver.h"
 #include "nsSVGSVGElement.h"
 #include "nsSVGTextFrame.h"
-#include "DOMSVGTests.h"
-#include "nsDisplayList.h"
-#include "nsStubMutationObserver.h"
-#include "gfxContext.h"
-#include "gfxMatrix.h"
-#include "gfxRect.h"
-#include "nsIContentViewer.h"
-#include "nsIDocShell.h"
-#include "nsIDOMDocument.h"
-#include "nsIDOMWindow.h"
-#include "nsPIDOMWindow.h"
-#include "nsIObjectLoadingContent.h"
-#include "nsIInterfaceRequestorUtils.h"
 
 namespace dom = mozilla::dom;
 

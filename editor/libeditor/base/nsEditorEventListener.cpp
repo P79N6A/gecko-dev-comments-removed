@@ -676,11 +676,7 @@ nsEditorEventListener::DragOver(nsIDOMDragEvent* aDragEvent)
   nsCOMPtr<nsIContent> dropParent = do_QueryInterface(parent);
   NS_ENSURE_TRUE(dropParent, NS_ERROR_FAILURE);
 
-  if (!dropParent->IsEditable()) {
-    return NS_OK;
-  }
-
-  if (CanDrop(aDragEvent)) {
+  if (dropParent->IsEditable() && CanDrop(aDragEvent)) {
     aDragEvent->PreventDefault(); 
 
     if (mCaret) {
@@ -754,11 +750,7 @@ nsEditorEventListener::Drop(nsIDOMDragEvent* aMouseEvent)
   nsCOMPtr<nsIContent> dropParent = do_QueryInterface(parent);
   NS_ENSURE_TRUE(dropParent, NS_ERROR_FAILURE);
 
-  if (!dropParent->IsEditable()) {
-    return NS_OK;
-  }
-
-  if (!CanDrop(aMouseEvent)) {
+  if (!dropParent->IsEditable() || !CanDrop(aMouseEvent)) {
     
     if (mEditor->IsReadonly() || mEditor->IsDisabled())
     {
@@ -819,12 +811,11 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
   
   
 
-  nsCOMPtr<nsIDOMDocument> domdoc;
-  nsresult rv = mEditor->GetDocument(getter_AddRefs(domdoc));
-  NS_ENSURE_SUCCESS(rv, false);
+  nsCOMPtr<nsIDOMDocument> domdoc = mEditor->GetDOMDocument();
+  NS_ENSURE_TRUE(domdoc, false);
 
   nsCOMPtr<nsIDOMDocument> sourceDoc;
-  rv = sourceNode->GetOwnerDocument(getter_AddRefs(sourceDoc));
+  nsresult rv = sourceNode->GetOwnerDocument(getter_AddRefs(sourceDoc));
   NS_ENSURE_SUCCESS(rv, false);
   if (domdoc == sourceDoc)      
   {

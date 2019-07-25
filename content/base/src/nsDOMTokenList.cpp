@@ -53,7 +53,7 @@ nsDOMTokenList::nsDOMTokenList(nsGenericElement *aElement, nsIAtom* aAttrAtom)
 {
   
   
-  SetIsProxy();
+  SetIsDOMBinding();
 }
 
 nsDOMTokenList::~nsDOMTokenList() { }

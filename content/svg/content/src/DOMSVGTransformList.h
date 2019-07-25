@@ -78,7 +78,7 @@ public:
                       const SVGTransformList &aInternalList)
     : mAList(aAList)
   {
-    SetIsProxy();
+    SetIsDOMBinding();
 
     
     

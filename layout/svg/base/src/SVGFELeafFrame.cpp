@@ -34,9 +34,11 @@
 
 
 
+
 #include "nsFrame.h"
-#include "nsSVGFilters.h"
+#include "nsGkAtoms.h"
 #include "nsSVGEffects.h"
+#include "nsSVGFilters.h"
 
 typedef nsFrame SVGFELeafFrameBase;
 

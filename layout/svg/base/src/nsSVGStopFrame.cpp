@@ -36,10 +36,11 @@
 
 
 
-#include "nsIDOMSVGStopElement.h"
-#include "nsStyleContext.h"
+
 #include "nsFrame.h"
 #include "nsGkAtoms.h"
+#include "nsIDOMSVGStopElement.h"
+#include "nsStyleContext.h"
 #include "nsSVGEffects.h"
 
 

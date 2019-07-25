@@ -45,6 +45,8 @@
 #error This header/class should only be used within Mozilla code. It should not be used by extensions.
 #endif
 
+#define MAX_REFLOW_DEPTH 200
+
 
 
 
@@ -290,6 +292,7 @@ typedef PRUint64 nsFrameState;
 
 
 #define NS_FRAME_PAINTED_THEBES                     NS_FRAME_STATE_BIT(38)
+
 
 
 

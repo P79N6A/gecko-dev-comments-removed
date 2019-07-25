@@ -136,7 +136,7 @@ nsAnonymousContentList::nsAnonymousContentList(nsIContent *aContent,
 
   
   
-  SetIsProxy();
+  SetIsDOMBinding();
 }
 
 nsAnonymousContentList::~nsAnonymousContentList()

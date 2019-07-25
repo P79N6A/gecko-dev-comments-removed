@@ -1210,23 +1210,18 @@ nsXMLHttpRequest::GetStatus(PRUint32 *aStatus)
     }
   }
 
-  nsCOMPtr<nsIHttpChannel> httpChannel = GetCurrentHttpChannel();
+  PRUint16 readyState;
+  GetReadyState(&readyState);
+  if (readyState == UNSENT || readyState == OPENED || mErrorLoad) {
+    return NS_OK;
+  }
 
+  nsCOMPtr<nsIHttpChannel> httpChannel = GetCurrentHttpChannel();
   if (httpChannel) {
     nsresult rv = httpChannel->GetResponseStatus(aStatus);
-    if (rv == NS_ERROR_NOT_AVAILABLE) {
-      
-      
-      
-      PRUint16 readyState;
-      GetReadyState(&readyState);
-      if (readyState >= LOADING) {
-        *aStatus = 0;
-        return NS_OK;
-      }
+    if (NS_FAILED(rv)) {
+      *aStatus = 0;
     }
-
-    return rv;
   }
 
   return NS_OK;

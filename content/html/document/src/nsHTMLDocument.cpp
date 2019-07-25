@@ -133,6 +133,7 @@
 #include "mozilla/Preferences.h"
 #include "nsMimeTypes.h"
 #include "nsIRequest.h"
+#include "nsHtml5TreeOpExecutor.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -731,11 +732,17 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 
   nsCOMPtr<nsIWyciwygChannel> wyciwygChannel;
   
+  
+  nsHtml5TreeOpExecutor* executor = nsnull;
+  if (loadAsHtml5) {
+    executor = static_cast<nsHtml5TreeOpExecutor*> (mParser->GetContentSink());
+  }
+
   if (!IsHTML() || !docShell) { 
     charsetSource = IsHTML() ? kCharsetFromWeakDocTypeDefault
                              : kCharsetFromDocTypeDefault;
     charset.AssignLiteral("UTF-8");
-    TryChannelCharset(aChannel, charsetSource, charset);
+    TryChannelCharset(aChannel, charsetSource, charset, executor);
     parserCharsetSource = charsetSource;
     parserCharset = charset;
   } else {
@@ -757,7 +764,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
       
       
       if (!wyciwygChannel &&
-          TryChannelCharset(aChannel, charsetSource, charset)) {
+          TryChannelCharset(aChannel, charsetSource, charset, executor)) {
         
         
       }
@@ -2681,8 +2688,8 @@ nsHTMLDocument::EditingStateChanged()
     rv = LoadChromeSheetSync(uri, true, getter_AddRefs(sheet));
     NS_ENSURE_TRUE(sheet, rv);
 
-    rv = agentSheets.AppendObject(sheet);
-    NS_ENSURE_SUCCESS(rv, rv);
+    bool result = agentSheets.AppendObject(sheet);
+    NS_ENSURE_TRUE(result, NS_ERROR_OUT_OF_MEMORY);
 
     
     
@@ -2695,8 +2702,8 @@ nsHTMLDocument::EditingStateChanged()
       rv = LoadChromeSheetSync(uri, true, getter_AddRefs(sheet));
       NS_ENSURE_TRUE(sheet, rv);
 
-      rv = agentSheets.AppendObject(sheet);
-      NS_ENSURE_SUCCESS(rv, rv);
+      result = agentSheets.AppendObject(sheet);
+      NS_ENSURE_TRUE(result, NS_ERROR_OUT_OF_MEMORY);
 
       
       rv = editSession->DisableJSAndPlugins(window);
