@@ -316,6 +316,16 @@ SourceEditor.EVENTS = {
 
 
 
+SourceEditor.VERTICAL_ALIGN = {
+  TOP: 0,
+  CENTER: 1,
+  BOTTOM: 2,
+};
+
+
+
+
+
 
 
 function extend(aDestination, aSource)
@@ -336,6 +346,7 @@ extend(SourceEditor.prototype, {
   MODES: SourceEditor.MODES,
   THEMES: SourceEditor.THEMES,
   DEFAULTS: SourceEditor.DEFAULTS,
+  VERTICAL_ALIGN: SourceEditor.VERTICAL_ALIGN,
 
   _lastFind: null,
 

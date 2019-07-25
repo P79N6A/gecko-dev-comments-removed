@@ -39,6 +39,7 @@
 
 
 
+
 "use strict";
 
 const Cu = Components.utils;
@@ -62,6 +63,14 @@ const ORION_IFRAME = "data:text/html;charset=utf8,<!DOCTYPE html>" +
   "</body></html>";
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+
+
+
+
+
+
+
+const VERTICAL_OFFSET = 3;
 
 
 
@@ -1326,9 +1335,55 @@ SourceEditor.prototype = {
 
 
 
-  setCaretPosition: function SE_setCaretPosition(aLine, aColumn)
+
+
+
+
+
+
+  setCaretPosition: function SE_setCaretPosition(aLine, aColumn, aAlign)
   {
-    this.setCaretOffset(this._model.getLineStart(aLine) + (aColumn || 0));
+    let editorHeight = this._view.getClientArea().height;
+    let lineHeight = this._view.getLineHeight();
+    let linesVisible = Math.floor(editorHeight/lineHeight);
+    let halfVisible = Math.round(linesVisible/2);
+    let firstVisible = this.getTopIndex();
+    let lastVisible = this._view.getBottomIndex();
+    let caretOffset = this._model.getLineStart(aLine) + (aColumn || 0);
+
+    this._view.setSelection(caretOffset, caretOffset, false);
+
+    
+    if (aLine <= lastVisible && aLine >= firstVisible) {
+      this._view.showSelection();
+      return;
+    }
+
+    
+    
+    
+    let offset = Math.min(halfVisible, VERTICAL_OFFSET);
+
+    let topIndex;
+    switch (aAlign) {
+      case this.VERTICAL_ALIGN.CENTER:
+        topIndex = Math.max(aLine - halfVisible, 0);
+        break;
+
+      case this.VERTICAL_ALIGN.BOTTOM:
+        topIndex = Math.max(aLine - linesVisible + offset, 0);
+        break;
+
+      default: 
+        topIndex = Math.max(aLine - offset, 0);
+        break;
+    }
+    
+    topIndex = Math.min(topIndex, this.getLineCount());
+    this.setTopIndex(topIndex);
+
+    let location = this._view.getLocationAtOffset(caretOffset);
+    this._view.setHorizontalPixel(location.x);
   },
 
   
