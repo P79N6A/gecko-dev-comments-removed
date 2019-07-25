@@ -1058,27 +1058,15 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
         return true;
     }
 
+    
+    
     JSObject *original = flat;
     if (!JS_WrapObject(ccx, &flat))
         return false;
 
     
-    
-    
-    if (original == flat) {
-
-        
-        MOZ_ASSERT(js::IsObjectInContextCompartment(flat, cx));
-
-        
-        flat = wrapper->GetSameCompartmentSecurityWrapper(cx);
-        if (!flat)
-            return false;
-
-        
-        flat = JS_ObjectToOuterObject(cx, flat);
-        MOZ_ASSERT(flat, "bad outer object hook!");
-    }
+    flat = JS_ObjectToOuterObject(cx, flat);
+    MOZ_ASSERT(flat, "bad outer object hook!");
 
     *d = OBJECT_TO_JSVAL(flat);
 
