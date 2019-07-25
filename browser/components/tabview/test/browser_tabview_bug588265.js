@@ -72,5 +72,5 @@ function testGroups(groupItemOne, groupItemTwo, contentWindow) {
     EventUtils.synthesizeKey("t", { accelKey: true });
   });
   
-  tabItem.close();
+   EventUtils.synthesizeMouseAtCenter(tabItem.$close[0], {}, contentWindow);
 }
