@@ -113,6 +113,16 @@ add_test(function test_Octet_decodeEqualTo() {
 
 
 
+add_test(function test_Octet_encode() {
+  for (let i = 0; i < 256; i++) {
+    wsp_encode_test(WSP.Octet, i, [i]);
+  }
+
+  run_next_test();
+});
+
+
+
 
 
 
@@ -131,6 +141,20 @@ add_test(function test_Text_decode() {
   wsp_decode_test(WSP.Text, strToCharCodeArray("\r\n \t \t \t", true), " ");
   wsp_decode_test(WSP.Text, strToCharCodeArray("\r\n \t \t \t"), " ");
   wsp_decode_test(WSP.Text, strToCharCodeArray("\r\n \t \t \tA"), " ");
+
+  run_next_test();
+});
+
+
+
+add_test(function test_Text_encode() {
+  for (let i = 0; i < 256; i++) {
+    if ((i < WSP.CTLS) || (i == WSP.DEL)) {
+      wsp_encode_test(WSP.Text, String.fromCharCode(i), null, "CodeError");
+    } else {
+      wsp_encode_test(WSP.Text, String.fromCharCode(i), [i]);
+    }
+  }
 
   run_next_test();
 });
@@ -157,20 +181,46 @@ add_test(function test_NullTerminatedTexts_decode() {
 
 
 
+add_test(function test_NullTerminatedTexts_encode() {
+  wsp_encode_test(WSP.NullTerminatedTexts, "", [0]);
+  wsp_encode_test(WSP.NullTerminatedTexts, "Hello, World!",
+                  strToCharCodeArray("Hello, World!"));
 
+  run_next_test();
+});
+
+
+
+
+
+let TOKEN_SEPS = "()<>@,;:\\\"/[]?={} \t";
 
 
 
 add_test(function test_Token_decode() {
-  let seps = "()<>@,;:\\\"/[]?={} \t";
   for (let i = 0; i < 256; i++) {
     if (i == 0) {
       wsp_decode_test(WSP.Token, [i], null, "NullCharError");
     } else if ((i < WSP.CTLS) || (i >= WSP.ASCIIS)
-        || (seps.indexOf(String.fromCharCode(i)) >= 0)) {
+        || (TOKEN_SEPS.indexOf(String.fromCharCode(i)) >= 0)) {
       wsp_decode_test(WSP.Token, [i], null, "CodeError");
     } else {
       wsp_decode_test(WSP.Token, [i], String.fromCharCode(i));
+    }
+  }
+
+  run_next_test();
+});
+
+
+
+add_test(function test_Token_encode() {
+  for (let i = 0; i < 256; i++) {
+    if ((i < WSP.CTLS) || (i >= WSP.ASCIIS)
+        || (TOKEN_SEPS.indexOf(String.fromCharCode(i)) >= 0)) {
+      wsp_encode_test(WSP.Token, String.fromCharCode(i), null, "CodeError");
+    } else {
+      wsp_encode_test(WSP.Token, String.fromCharCode(i), [i]);
     }
   }
 
@@ -220,6 +270,17 @@ add_test(function test_TextString_decode() {
 
 
 
+add_test(function test_TextString_encode() {
+  
+  wsp_encode_test(WSP.TextString, String.fromCharCode(128), [127, 128, 0]);
+  
+  wsp_encode_test(WSP.TextString, "Mozilla", strToCharCodeArray("Mozilla"));
+
+  run_next_test();
+});
+
+
+
 
 
 
@@ -228,6 +289,14 @@ add_test(function test_TokenText_decode() {
   wsp_decode_test(WSP.TokenText, [65], null, "RangeError");
   wsp_decode_test(WSP.TokenText, [0], "");
   wsp_decode_test(WSP.TokenText, [65, 0], "A");
+
+  run_next_test();
+});
+
+
+
+add_test(function test_TokenText_encode() {
+  wsp_encode_test(WSP.TokenText, "B2G", strToCharCodeArray("B2G"));
 
   run_next_test();
 });
@@ -260,6 +329,20 @@ add_test(function test_ShortInteger_decode() {
       wsp_decode_test(WSP.ShortInteger, [i], i & 0x7F);
     } else {
       wsp_decode_test(WSP.ShortInteger, [i], null, "CodeError");
+    }
+  }
+
+  run_next_test();
+});
+
+
+
+add_test(function test_ShortInteger_encode() {
+  for (let i = 0; i < 256; i++) {
+    if (i & 0x80) {
+      wsp_encode_test(WSP.ShortInteger, i, null, "CodeError");
+    } else {
+      wsp_encode_test(WSP.ShortInteger, i, [0x80 | i]);
     }
   }
 
@@ -620,6 +703,27 @@ add_test(function test_ApplicationHeader_decode() {
   wsp_decode_test(WSP.ApplicationHeader, [65, 0, 66, 0], {name: "a", value: "B"});
   
   wsp_decode_test(WSP.ApplicationHeader, [65, 0, 2, 0, 0], null);
+
+  run_next_test();
+});
+
+
+
+add_test(function test_ApplicationHeader_encode() {
+  
+  wsp_encode_test(WSP.ApplicationHeader, {name: undefined, value: "asdf"}, null, "CodeError");
+  wsp_encode_test(WSP.ApplicationHeader, {name: null, value: "asdf"}, null, "CodeError");
+  wsp_encode_test(WSP.ApplicationHeader, {name: "", value: "asdf"}, null, "CodeError");
+  wsp_encode_test(WSP.ApplicationHeader, {name: "a b", value: "asdf"}, null, "CodeError");
+  
+  wsp_encode_test(WSP.ApplicationHeader, {name: "asdf", value: undefined},
+                  strToCharCodeArray("asdf").concat([0]));
+  wsp_encode_test(WSP.ApplicationHeader, {name: "asdf", value: null},
+                  strToCharCodeArray("asdf").concat([0]));
+  wsp_encode_test(WSP.ApplicationHeader, {name: "asdf", value: ""},
+                  strToCharCodeArray("asdf").concat([0]));
+  wsp_encode_test(WSP.ApplicationHeader, {name: "asdf", value: "fdsa"},
+                  strToCharCodeArray("asdf").concat(strToCharCodeArray("fdsa")));
 
   run_next_test();
 });

@@ -31,6 +31,15 @@ add_test(function test_BooleanValue_decode() {
 
 
 
+add_test(function test_BooleanValue_encode() {
+  wsp_encode_test(MMS.BooleanValue, true, [128]);
+  wsp_encode_test(MMS.BooleanValue, false, [129]);
+
+  run_next_test();
+});
+
+
+
 
 
 
@@ -85,6 +94,19 @@ add_test(function test_HeaderField_decode() {
 
 
 
+add_test(function test_HeaderField_encode() {
+  
+  wsp_encode_test(MMS.HeaderField, {name: "X-Mms-Message-Type",
+                                    value: MMS.MMS_PDU_TYPE_SEND_REQ},
+                  [0x80 | 0x0C, MMS.MMS_PDU_TYPE_SEND_REQ]);
+  
+  wsp_encode_test(MMS.HeaderField, {name: "a", value: "B"}, [97, 0, 66, 0]);
+
+  run_next_test();
+});
+
+
+
 
 
 
@@ -94,6 +116,24 @@ add_test(function test_MmsHeader_decode() {
   wsp_decode_test(MMS.MmsHeader, [0x80 | 0x27, 128],
                       {name: "x-mms-stored", value: true});
   wsp_decode_test(MMS.MmsHeader, [0x80 | 0x27, 255], null);
+
+  run_next_test();
+});
+
+
+
+add_test(function test_MmsHeader_encode() {
+  
+  wsp_encode_test(MMS.MmsHeader, {name: undefined, value: null}, null, "CodeError");
+  wsp_encode_test(MMS.MmsHeader, {name: null, value: null}, null, "CodeError");
+  wsp_encode_test(MMS.MmsHeader, {name: "", value: null}, null, "CodeError");
+  
+  wsp_encode_test(MMS.MmsHeader, {name: "X-No-Such-Field", value: null},
+                  null, "NotWellKnownEncodingError");
+  
+  wsp_encode_test(MMS.MmsHeader, {name: "X-Mms-Message-Type",
+                                  value: MMS.MMS_PDU_TYPE_SEND_REQ},
+                  [0x80 | 0x0C, MMS.MMS_PDU_TYPE_SEND_REQ]);
 
   run_next_test();
 });
@@ -225,7 +265,7 @@ add_test(function test_EncodedStringValue_decode() {
 
     let raw;
     try {
-      let raw = conv.convertToByteArray(str);
+      let raw = conv.convertToByteArray(str).concat([0]);
       if (raw[0] >= 128) {
         wsp_decode_test(MMS.EncodedStringValue,
                             [raw.length + 2, 0x80 | entry.number, 127].concat(raw), str);
@@ -346,6 +386,20 @@ add_test(function test_MessageTypeValue_decode() {
       wsp_decode_test(MMS.MessageTypeValue, [i], i);
     } else {
       wsp_decode_test(MMS.MessageTypeValue, [i], null, "CodeError");
+    }
+  }
+
+  run_next_test();
+});
+
+
+
+add_test(function test_MessageTypeValue_encode() {
+  for (let i = 0; i < 256; i++) {
+    if ((i >= 128) && (i <= 151)) {
+      wsp_encode_test(MMS.MessageTypeValue, i, [i]);
+    } else {
+      wsp_encode_test(MMS.MessageTypeValue, i, null, "CodeError");
     }
   }
 
@@ -476,6 +530,20 @@ add_test(function test_StatusValue_decode() {
       wsp_decode_test(MMS.StatusValue, [i], i);
     } else {
       wsp_decode_test(MMS.StatusValue, [i], null, "CodeError");
+    }
+  }
+
+  run_next_test();
+});
+
+
+
+add_test(function test_StatusValue_encode() {
+  for (let i = 0; i < 256; i++) {
+    if ((i >= 128) && (i <= 135)) {
+      wsp_encode_test(MMS.StatusValue, i, [i]);
+    } else {
+      wsp_encode_test(MMS.StatusValue, i, null, "CodeError");
     }
   }
 
