@@ -3144,8 +3144,10 @@ class AutoValueVector : private AutoGCRooter
 
     bool resize(size_t newLength) {
         size_t oldLength = vector.length();
-        if (newLength <= oldLength)
+        if (newLength <= oldLength) {
             vector.shrinkBy(oldLength - newLength);
+            return true;
+        }
         
         if (!vector.growByUninitialized(newLength - oldLength))
             return false;
@@ -3202,8 +3204,10 @@ class AutoIdVector : private AutoGCRooter
 
     bool resize(size_t newLength) {
         size_t oldLength = vector.length();
-        if (newLength <= oldLength)
+        if (newLength <= oldLength) {
             vector.shrinkBy(oldLength - newLength);
+            return true;
+        }
         
         if (!vector.growByUninitialized(newLength - oldLength))
             return false;
