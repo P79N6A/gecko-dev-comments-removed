@@ -1920,7 +1920,9 @@ SessionStoreService.prototype = {
       catch (ex) { debug(ex); }
     }
 
-    entry.docIdentifier = aEntry.BFCacheEntry.ID;
+    if (aEntry.docIdentifier) {
+      entry.docIdentifier = aEntry.docIdentifier;
+    }
 
     if (aEntry.stateData != null) {
       entry.structuredCloneState = aEntry.stateData.getDataAsBase64();
@@ -3027,6 +3029,7 @@ SessionStoreService.prototype = {
       browser.__SS_restore_data = tabData.entries[activeIndex] || {};
       browser.__SS_restore_pageStyle = tabData.pageStyle || "";
       browser.__SS_restore_tab = aTab;
+      browser.__SS_restore_docIdentifier = curSHEntry.docIdentifier;
       didStartLoad = true;
       try {
         
@@ -3185,12 +3188,20 @@ SessionStoreService.prototype = {
       
       
       
-      let matchingEntry = aDocIdentMap[aEntry.docIdentifier];
-      if (!matchingEntry) {
-        aDocIdentMap[aEntry.docIdentifier] = shEntry;
+      
+      
+      
+      
+      
+      
+      
+      let ident = aDocIdentMap[aEntry.docIdentifier];
+      if (!ident) {
+        shEntry.setUniqueDocIdentifier();
+        aDocIdentMap[aEntry.docIdentifier] = shEntry.docIdentifier;
       }
       else {
-        shEntry.adoptBFCacheEntry(matchingEntry);
+        shEntry.docIdentifier = ident;
       }
     }
 
@@ -3326,12 +3337,19 @@ SessionStoreService.prototype = {
       aBrowser.markupDocumentViewer.authorStyleDisabled = selectedPageStyle == "_nostyle";
     }
 
+    if (aBrowser.__SS_restore_docIdentifier) {
+      let sh = aBrowser.webNavigation.sessionHistory;
+      sh.getEntryAtIndex(sh.index, false).QueryInterface(Ci.nsISHEntry).
+         docIdentifier = aBrowser.__SS_restore_docIdentifier;
+    }
+
     
     this._sendTabRestoredNotification(aBrowser.__SS_restore_tab);
 
     delete aBrowser.__SS_restore_data;
     delete aBrowser.__SS_restore_pageStyle;
     delete aBrowser.__SS_restore_tab;
+    delete aBrowser.__SS_restore_docIdentifier;
   },
 
   
