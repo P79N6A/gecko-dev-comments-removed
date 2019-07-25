@@ -250,6 +250,12 @@ JSWrapper::hasInstance(JSContext *cx, JSObject *wrapper, const Value *vp, bool *
     GET(JS_HasInstance(cx, wrappedObject(wrapper), Jsvalify(*vp), &b) && Cond(b, bp));
 }
 
+JSType
+JSWrapper::typeOf(JSContext *cx, JSObject *wrapper)
+{
+    return TypeOfValue(cx, ObjectValue(*wrappedObject(wrapper)));
+}
+
 JSString *
 JSWrapper::obj_toString(JSContext *cx, JSObject *wrapper)
 {
@@ -295,6 +301,11 @@ JSObject *
 JSWrapper::New(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
                JSWrapper *handler)
 {
+    JS_ASSERT(parent);
+    if (obj->isXML()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_WRAP_XML_OBJECT);
+        return NULL;
+    }
     return NewProxyObject(cx, handler, ObjectValue(*obj), proto, parent,
                           obj->isCallable() ? obj : NULL, NULL);
 }
@@ -309,7 +320,7 @@ TransparentObjectWrapper(JSContext *cx, JSObject *obj, JSObject *wrappedProto, J
 {
     
     JS_ASSERT(!obj->isWrapper() || obj->getClass()->ext.innerObject);
-    return JSWrapper::New(cx, obj, wrappedProto, NULL, &JSCrossCompartmentWrapper::singleton);
+    return JSWrapper::New(cx, obj, wrappedProto, parent, &JSCrossCompartmentWrapper::singleton);
 }
 
 }
@@ -345,6 +356,7 @@ AutoCompartment::enter()
 
         context->compartment = destination;
         JSObject *scopeChain = target->getGlobal();
+        JS_ASSERT(scopeChain->isNative());
         frame.construct();
         if (!context->stack().pushDummyFrame(context, *scopeChain, &frame.ref())) {
             frame.destroy();
