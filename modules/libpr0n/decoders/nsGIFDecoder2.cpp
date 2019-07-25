@@ -132,7 +132,7 @@ nsresult
 nsGIFDecoder2::InitInternal()
 {
   
-  if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && mObserver)
+  if (!IsSizeDecode() && mObserver)
     mObserver->OnStartDecode(nsnull);
 
   
@@ -146,7 +146,7 @@ nsresult
 nsGIFDecoder2::ShutdownInternal(PRUint32 aFlags)
 {
   
-  if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+  if (!IsSizeDecode() &&
       !mError && !(aFlags & CLOSE_FLAG_DONTNOTIFY)) {
     if (mCurrentFrame == mGIFStruct.images_decoded)
       EndImageFrame();
@@ -261,7 +261,7 @@ void nsGIFDecoder2::BeginGIF()
     mObserver->OnStartContainer(nsnull, mImage);
 
   
-  if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
+  if (IsSizeDecode())
     return;
 }
 
@@ -1021,7 +1021,7 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
         BeginGIF();
 
         
-        if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
+        if (IsSizeDecode())
           return NS_OK;
       }
 

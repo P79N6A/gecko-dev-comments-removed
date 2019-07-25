@@ -70,7 +70,7 @@ nsresult
 nsIconDecoder::InitInternal()
 {
   
-  if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && mObserver)
+  if (!IsSizeDecode() && mObserver)
     mObserver->OnStartDecode(nsnull);
 
   return NS_OK;
@@ -82,7 +82,7 @@ nsIconDecoder::ShutdownInternal(PRUint32 aFlags)
   
   
   if (!(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
-      !(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+      !IsSizeDecode() &&
       !mNotifiedDone)
     NotifyDone( PR_FALSE);
 
@@ -127,7 +127,7 @@ nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
           mObserver->OnStartContainer(nsnull, mImage);
 
         
-        if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) {
+        if (IsSizeDecode()) {
           mState = iconStateFinished;
           break;
         }

@@ -242,11 +242,11 @@ nsPNGDecoder::InitInternal()
 #endif
 
   
-  if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && mObserver)
+  if (!IsSizeDecode() && mObserver)
     mObserver->OnStartDecode(nsnull);
 
   
-  if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) {
+  if (IsSizeDecode()) {
     mHeaderBuf = (PRUint8 *)nsMemory::Alloc(BYTES_NEEDED_FOR_DIMENSIONS);
     if (!mHeaderBuf)
       return NS_ERROR_OUT_OF_MEMORY;
@@ -303,7 +303,7 @@ nsPNGDecoder::ShutdownInternal(PRUint32 aFlags)
   
   
   if (!(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
-      !(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+      !IsSizeDecode() &&
       !mNotifiedDone)
     NotifyDone( PR_FALSE);
 
@@ -323,7 +323,7 @@ nsPNGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
     goto error;
 
   
-  if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) {
+  if (IsSizeDecode()) {
 
     
     if (mHeaderBytesRead == BYTES_NEEDED_FOR_DIMENSIONS)
