@@ -3025,7 +3025,9 @@ WebGLContext::GetProgramInfoLog(WebGLProgram *prog, nsACString& retval,
     gl->fGetProgramiv(progname, LOCAL_GL_INFO_LOG_LENGTH, &k);
     if (k == -1) {
         
-        rv = NS_ERROR_FAILURE;
+        
+        
+        retval.SetIsVoid(true);
         return;
     }
 
