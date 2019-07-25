@@ -167,34 +167,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-#if defined(__GNUC__)
-#define NS_DEFINE_ALIGNED(type, name, alignment) \
-type name __attribute__((aligned (alignment)))
-
-#elif defined(_MSC_VER) && (_MSC_VER >= 1300)
-#define NS_DEFINE_ALIGNED(type, name, alignment) \
-__declspec(align(alignment)) type name
-
-#else
-#define NS_DEFINE_ALIGNED(type, name, alignment) \
-type name
-
-#endif
-
-
-
-
-
 #if defined(__i386__) && defined(__GNUC__) && \
     (__GNUC__ >= 3) && !defined(XP_OS2)
 #define NS_DEFCALL __attribute__ ((regparm (0), cdecl))

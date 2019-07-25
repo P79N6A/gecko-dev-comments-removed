@@ -55,9 +55,8 @@ struct nsID {
 
 
 
-
   
-  NS_DEFINE_ALIGNED(PRUint32, m0, 8);
+  PRUint32 m0;
   PRUint16 m1;
   PRUint16 m2;
   PRUint8 m3[8];
@@ -105,9 +104,6 @@ struct nsID {
 
   
 };
-
-
-PR_STATIC_ASSERT(sizeof(nsID) == 16);
 
 
 
