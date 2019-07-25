@@ -2712,6 +2712,9 @@ imgDecodeWorker::Run()
   Telemetry::Accumulate(Telemetry::IMAGE_DECODE_LATENCY, PRInt32(decodeLatency.ToMicroseconds()));
 
   
+  mDecodeTime += decodeLatency;
+
+  
   
   
   
@@ -2723,6 +2726,7 @@ imgDecodeWorker::Run()
 
   
   if (image->mDecoder && image->IsDecodeFinished()) {
+    Telemetry::Accumulate(Telemetry::IMAGE_DECODE_TIME, PRInt32(mDecodeTime.ToMicroseconds()));
     rv = image->ShutdownDecoder(RasterImage::eShutdownIntent_Done);
     if (NS_FAILED(rv)) {
       image->DoError();
