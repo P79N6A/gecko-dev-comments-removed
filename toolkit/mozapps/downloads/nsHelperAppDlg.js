@@ -705,12 +705,7 @@ nsUnknownContentTypeDialog.prototype = {
       otherHandler.setAttribute("path",
                                 this.getPath(this.chosenApp.executable));
 
-#if XP_MACOSX
-      this.chosenApp.executable.QueryInterface(Components.interfaces.nsILocalFileMac);
-      otherHandler.label = this.chosenApp.executable.bundleDisplayName;
-#else
-      otherHandler.label = this.chosenApp.executable.leafName;
-#endif
+      otherHandler.label = this.getFileDisplayName(this.chosenApp.executable);
       otherHandler.hidden = false;
     }
 
@@ -1025,30 +1020,7 @@ nsUnknownContentTypeDialog.prototype = {
         params.handlerApp.executable &&
         params.handlerApp.executable.isFile()) {
       
-      
-      this.dialogElement("modeDeck").setAttribute("selectedIndex", "0");
-
-      
       this.chosenApp = params.handlerApp;
-
-      
-      var otherHandler = this.dialogElement("otherHandler");
-      otherHandler.removeAttribute("hidden");
-      otherHandler.setAttribute("path",
-                                this.getPath(this.chosenApp.executable));
-      otherHandler.label =
-        this.getFileDisplayName(this.chosenApp.executable);
-      this.dialogElement("openHandler").selectedIndex = 1;
-      this.dialogElement("openHandler").setAttribute("lastSelectedItemID",
-                                                     "otherHandler");
-      this.dialogElement("mode").selectedItem = this.dialogElement("open");
-    } else {
-      var openHandler = this.dialogElement("openHandler");
-      var lastSelectedID = openHandler.getAttribute("lastSelectedItemID");
-      if (!lastSelectedID)
-        lastSelectedID = "defaultHandler";
-      openHandler.selectedItem = this.dialogElement(lastSelectedID);
-    }
 
 #else
     var nsIFilePicker = Components.interfaces.nsIFilePicker;
@@ -1062,27 +1034,22 @@ nsUnknownContentTypeDialog.prototype = {
 
     if (fp.show() == nsIFilePicker.returnOK && fp.file) {
       
-      
-      this.dialogElement("modeDeck").setAttribute("selectedIndex", "0");
-
-      
       var localHandlerApp =
         Components.classes["@mozilla.org/uriloader/local-handler-app;1"].
                    createInstance(Components.interfaces.nsILocalHandlerApp);
       localHandlerApp.executable = fp.file;
       this.chosenApp = localHandlerApp;
+#endif
+
+      
+      
+      this.dialogElement("modeDeck").setAttribute("selectedIndex", "0");
 
       
       var otherHandler = this.dialogElement("otherHandler");
       otherHandler.removeAttribute("hidden");
       otherHandler.setAttribute("path", this.getPath(this.chosenApp.executable));
-#ifdef XP_MACOSX
-      this.chosenApp.executable
-                    .QueryInterface(Components.interfaces.nsILocalFileMac);
-      otherHandler.label = this.chosenApp.executable.bundleDisplayName;
-#else
-      otherHandler.label = this.chosenApp.executable.leafName;
-#endif
+      otherHandler.label = this.getFileDisplayName(this.chosenApp.executable);
       this.dialogElement("openHandler").selectedIndex = 1;
       this.dialogElement("openHandler").setAttribute("lastSelectedItemID", "otherHandler");
 
@@ -1095,7 +1062,6 @@ nsUnknownContentTypeDialog.prototype = {
         lastSelectedID = "defaultHandler";
       openHandler.selectedItem = this.dialogElement(lastSelectedID);
     }
-#endif
   },
 
   
