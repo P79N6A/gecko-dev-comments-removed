@@ -21,7 +21,7 @@ class UserData
 {
   typedef void (*destroyFunc)(void *data);
 public:
-  UserData() : count(0), entries(nullptr) {}
+  UserData() : count(0), entries(NULL) {}
 
   
   void Add(UserDataKey *key, void *userData, destroyFunc destroy)
@@ -68,7 +68,7 @@ public:
         return userData;
       }
     }
-    return nullptr;
+    return NULL;
   }
 
   
@@ -79,7 +79,7 @@ public:
         return entries[i].userData;
       }
     }
-    return nullptr;
+    return NULL;
   }
 
   bool Has(UserDataKey *key)
@@ -100,7 +100,7 @@ public:
       }
     }
     free(entries);
-    entries = nullptr;
+    entries = NULL;
     count = 0;
   }
 

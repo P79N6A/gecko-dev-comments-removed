@@ -275,7 +275,7 @@ NeedIntermediateSurface(const Pattern& aPattern, const DrawOptions& aOptions)
 }
 
 DrawTargetCairo::DrawTargetCairo()
-  : mContext(nullptr)
+  : mContext(NULL)
 {
 }
 
@@ -391,7 +391,7 @@ DrawTargetCairo::DrawSurfaceWithShadow(SourceSurface *aSurface,
 
   AlphaBoxBlur blur(extents, IntSize(0, 0),
                     AlphaBoxBlur::CalculateBlurRadius(Point(aSigma, aSigma)),
-                    nullptr, nullptr);
+                    NULL, NULL);
   if (!blur.GetData()) {
     return;
   }
@@ -786,7 +786,7 @@ DrawTargetCairo::CreateSourceSurfaceFromNativeSurface(const NativeSurface &aSurf
     }
   }
 
-  return nullptr;
+  return NULL;
 }
 
 TemporaryRef<DrawTarget>
@@ -802,7 +802,7 @@ DrawTargetCairo::CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aFo
     return target;
   }
 
-  return nullptr;
+  return NULL;
 }
 
 bool
@@ -824,7 +824,7 @@ DrawTargetCairo::GetNativeSurface(NativeSurfaceType aType)
     return cairo_get_target(mContext);
   }
 
-  return nullptr;
+  return NULL;
 }
 
 void
@@ -871,7 +871,7 @@ DrawTargetCairo::WillChange(const Path* aPath )
   if (mPathObserver &&
       (!aPath || !mPathObserver->ContainsPath(aPath))) {
     mPathObserver->PathWillChange();
-    mPathObserver = nullptr;
+    mPathObserver = NULL;
   }
 }
 

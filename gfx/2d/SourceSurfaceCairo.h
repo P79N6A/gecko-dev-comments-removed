@@ -23,7 +23,7 @@ public:
   
   SourceSurfaceCairo(cairo_surface_t* aSurface, const IntSize& aSize,
                      const SurfaceFormat& aFormat,
-                     DrawTargetCairo* aDrawTarget = nullptr);
+                     DrawTargetCairo* aDrawTarget = NULL);
   virtual ~SourceSurfaceCairo();
 
   virtual SurfaceType GetType() const { return SURFACE_CAIRO; }

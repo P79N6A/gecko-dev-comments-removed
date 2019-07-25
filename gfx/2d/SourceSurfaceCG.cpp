@@ -53,9 +53,9 @@ SourceSurfaceCG::InitFromData(unsigned char *aData,
                                SurfaceFormat aFormat)
 {
   
-  CGColorSpaceRef colorSpace = nullptr;
+  CGColorSpaceRef colorSpace = NULL;
   CGBitmapInfo bitinfo = 0;
-  CGDataProviderRef dataProvider = nullptr;
+  CGDataProviderRef dataProvider = NULL;
   int bitsPerComponent = 0;
   int bitsPerPixel = 0;
 
@@ -110,7 +110,7 @@ SourceSurfaceCG::InitFromData(unsigned char *aData,
 			    colorSpace,
 			    bitinfo,
 			    dataProvider,
-			    nullptr,
+			    NULL,
 			    true,
 			    kCGRenderingIntentDefault);
   }
@@ -118,7 +118,7 @@ SourceSurfaceCG::InitFromData(unsigned char *aData,
   CGDataProviderRelease(dataProvider);
   CGColorSpaceRelease (colorSpace);
 
-  return mImage != nullptr;
+  return mImage != NULL;
 }
 
 DataSourceSurfaceCG::~DataSourceSurfaceCG()
@@ -144,9 +144,9 @@ DataSourceSurfaceCG::InitFromData(unsigned char *aData,
                                SurfaceFormat aFormat)
 {
   
-  CGColorSpaceRef colorSpace = nullptr;
+  CGColorSpaceRef colorSpace = NULL;
   CGBitmapInfo bitinfo = 0;
-  CGDataProviderRef dataProvider = nullptr;
+  CGDataProviderRef dataProvider = NULL;
   int bitsPerComponent = 0;
   int bitsPerPixel = 0;
 
@@ -199,7 +199,7 @@ DataSourceSurfaceCG::InitFromData(unsigned char *aData,
 			    colorSpace,
 			    bitinfo,
 			    dataProvider,
-			    nullptr,
+			    NULL,
 			    true,
 			    kCGRenderingIntentDefault);
   }
@@ -248,7 +248,7 @@ DataSourceSurfaceCG::DataSourceSurfaceCG(CGImageRef aImage)
 {
   mImage = aImage;
   mCg = CreateBitmapContextForImage(aImage);
-  if (mCg == nullptr) {
+  if (mCg == NULL) {
     
     return;
   }
@@ -295,7 +295,7 @@ SourceSurfaceCGBitmapContext::SourceSurfaceCGBitmapContext(DrawTargetCG *aDrawTa
   mStride = CGBitmapContextGetBytesPerRow(mCg);
   mData = CGBitmapContextGetData(mCg);
 
-  mImage = nullptr;
+  mImage = NULL;
 }
 
 void SourceSurfaceCGBitmapContext::EnsureImage() const
@@ -309,9 +309,9 @@ void SourceSurfaceCGBitmapContext::EnsureImage() const
   
   if (!mImage) {
       
-      CGColorSpaceRef colorSpace = nullptr;
+      CGColorSpaceRef colorSpace = NULL;
       CGBitmapInfo bitinfo = 0;
-      CGDataProviderRef dataProvider = nullptr;
+      CGDataProviderRef dataProvider = NULL;
       int bitsPerComponent = 8;
       int bitsPerPixel = 32;
 
@@ -323,7 +323,7 @@ void SourceSurfaceCGBitmapContext::EnsureImage() const
           
           
           
-          info = nullptr;
+          info = NULL;
       } else {
           
           
@@ -344,7 +344,7 @@ void SourceSurfaceCGBitmapContext::EnsureImage() const
                               colorSpace,
                               bitinfo,
                               dataProvider,
-                              nullptr,
+                              NULL,
                               true,
                               kCGRenderingIntentDefault);
 
@@ -378,10 +378,10 @@ SourceSurfaceCGBitmapContext::DrawTargetWillChange()
     
     if (mImage)
       CGImageRelease(mImage);
-    mImage = nullptr;
+    mImage = NULL;
 
-    mCg = nullptr;
-    mDrawTarget = nullptr;
+    mCg = NULL;
+    mDrawTarget = NULL;
   }
 }
 
@@ -406,7 +406,7 @@ SourceSurfaceCGIOSurfaceContext::SourceSurfaceCGIOSurfaceContext(DrawTargetCG *a
 
   
   
-  mImage = nullptr;
+  mImage = NULL;
 
   aDrawTarget->Flush();
   surf->Lock();
@@ -434,9 +434,9 @@ void SourceSurfaceCGIOSurfaceContext::EnsureImage() const
   
   if (!mImage) {
       
-      CGColorSpaceRef colorSpace = nullptr;
+      CGColorSpaceRef colorSpace = NULL;
       CGBitmapInfo bitinfo = 0;
-      CGDataProviderRef dataProvider = nullptr;
+      CGDataProviderRef dataProvider = NULL;
       int bitsPerComponent = 8;
       int bitsPerPixel = 32;
 
@@ -457,7 +457,7 @@ void SourceSurfaceCGIOSurfaceContext::EnsureImage() const
                               colorSpace,
                               bitinfo,
                               dataProvider,
-                              nullptr,
+                              NULL,
                               true,
                               kCGRenderingIntentDefault);
 
