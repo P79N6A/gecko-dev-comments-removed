@@ -170,13 +170,7 @@ nsHTMLEditor::~nsHTMLEditor()
   
   
   
-
-  if (mAbsolutelyPositionedObject)
-    HideGrabber();
-  if (mInlineEditedCell)
-    HideInlineTableEditingUI();
-  if (mResizedObject)
-    HideResizers();
+  HideAnonymousEditingUIs();
 
   
   
@@ -223,6 +217,17 @@ nsHTMLEditor::~nsHTMLEditor()
   RemoveEventListeners();
 }
 
+void
+nsHTMLEditor::HideAnonymousEditingUIs()
+{
+  if (mAbsolutelyPositionedObject)
+    HideGrabber();
+  if (mInlineEditedCell)
+    HideInlineTableEditingUI();
+  if (mResizedObject)
+    HideResizers();
+}
+
 
 void
 nsHTMLEditor::Shutdown()
@@ -236,11 +241,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsHTMLEditor, nsPlaintextEditor)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mTypeInState)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mTextServices)
 
-  tmp->HideResizers();
-
-  tmp->HideGrabber();
-
-  tmp->HideInlineTableEditingUI();
+  tmp->HideAnonymousEditingUIs();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsHTMLEditor, nsPlaintextEditor)
