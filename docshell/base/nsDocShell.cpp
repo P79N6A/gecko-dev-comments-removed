@@ -9263,9 +9263,7 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
     }
 #endif
 
-    bool updateHistory = true;
     bool equalUri = false;
-    bool shAvailable = true;  
 
     
     nsCOMPtr<nsIInputStream> inputStream;
@@ -9292,6 +9290,15 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
             }
         }
     }
+
+    
+    bool updateGHistory = !(aLoadType == LOAD_BYPASS_HISTORY ||
+                            aLoadType == LOAD_ERROR_PAGE ||
+                            aLoadType & LOAD_CMD_HISTORY);
+
+    
+    bool updateSHistory = updateGHistory && (!(aLoadType & LOAD_CMD_RELOAD));
+
     
 
 
@@ -9299,26 +9306,26 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
     if (!rootSH) {
         
         GetRootSessionHistory(getter_AddRefs(rootSH));
-        if (!rootSH)
-            shAvailable = false;
+        if (!rootSH) {
+            updateSHistory = false;
+            updateGHistory = false; 
+        }
     }  
-
-
-    
-    if (aLoadType == LOAD_BYPASS_HISTORY ||
-        aLoadType == LOAD_ERROR_PAGE ||
-        aLoadType & LOAD_CMD_HISTORY ||
-        aLoadType & LOAD_CMD_RELOAD)
-        updateHistory = false;
 
     
     if (mCurrentURI)
         aURI->Equals(mCurrentURI, &equalUri);
 
 #ifdef DEBUG
+    bool shAvailable = (rootSH != nsnull);
+
+    
+    
+
     PR_LOG(gDocShellLog, PR_LOG_DEBUG,
-           ("  shAvailable=%i updateHistory=%i equalURI=%i\n",
-            shAvailable, updateHistory, equalUri));
+           ("  shAvailable=%i updateSHistory=%i updateGHistory=%i"
+            " equalURI=%i\n",
+            shAvailable, updateSHistory, updateGHistory, equalUri));
 
     if (shAvailable && mCurrentURI && !mOSHE && aLoadType != LOAD_ERROR_PAGE) {
         NS_ASSERTION(NS_IsAboutBlank(mCurrentURI), "no SHEntry for a non-transient viewer?");
@@ -9366,8 +9373,9 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
         (aLoadType == LOAD_RELOAD_BYPASS_CACHE ||
          aLoadType == LOAD_RELOAD_BYPASS_PROXY ||
          aLoadType == LOAD_RELOAD_BYPASS_PROXY_AND_CACHE)) {
-        NS_ASSERTION(!updateHistory,
-                     "We shouldn't be updating history for forced reloads!");
+        NS_ASSERTION(!updateSHistory,
+                     "We shouldn't be updating session history for forced"
+                     " reloads!");
         
         nsCOMPtr<nsICachingChannel> cacheChannel(do_QueryInterface(aChannel));
         nsCOMPtr<nsISupports>  cacheKey;
@@ -9405,7 +9413,7 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
         ClearFrameHistory(mOSHE);
     }
 
-    if (updateHistory && shAvailable) { 
+    if (updateSHistory) { 
         
         if (!mLSHE && (mItemType == typeContent) && mURIResultedInDocument) {
             
@@ -9415,24 +9423,31 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
             (void) AddToSessionHistory(aURI, aChannel, aOwner, aCloneSHChildren,
                                        getter_AddRefs(mLSHE));
         }
+    }
 
-        if (aAddToGlobalHistory) {
+    
+    
+    if (updateGHistory &&
+        aAddToGlobalHistory && 
+        !ChannelIsPost(aChannel)) {
+        nsCOMPtr<nsIURI> previousURI;
+        PRUint32 previousFlags = 0;
+
+        if (aLoadType & LOAD_CMD_RELOAD) {
             
-            
-            if (!ChannelIsPost(aChannel)) {
-                nsCOMPtr<nsIURI> previousURI;
-                PRUint32 previousFlags = 0;
-                ExtractLastVisit(aChannel, getter_AddRefs(previousURI),
-                                 &previousFlags);
-
-                nsCOMPtr<nsIURI> referrer;
-                
-                (void)NS_GetReferrerFromChannel(aChannel,
-                                                getter_AddRefs(referrer));
-
-                AddURIVisit(aURI, referrer, previousURI, previousFlags);
-            }
+            previousURI = aURI;
+        } else {
+            ExtractLastVisit(aChannel, getter_AddRefs(previousURI),
+                             &previousFlags);
         }
+
+        
+        
+        nsCOMPtr<nsIURI> referrer;
+        
+        (void)NS_GetReferrerFromChannel(aChannel, getter_AddRefs(referrer));
+
+        AddURIVisit(aURI, referrer, previousURI, previousFlags);
     }
 
     
