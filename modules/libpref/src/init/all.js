@@ -953,6 +953,8 @@ pref("network.IDN.whitelist.xn--xkc2al3hye2a", true);
 
 pref("network.IDN.whitelist.xn--wgbl6a", true);
 
+pref("network.IDN.whitelist.xn--90a3ac", true);
+
 pref("network.IDN.whitelist.xn--p1ai", true);
 
 pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true); 
