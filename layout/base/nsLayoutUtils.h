@@ -1334,7 +1334,7 @@ public:
 
 
   static nsDeviceContext*
-  GetDeviceContextForScreenInfo(nsPIDOMWindow* aWindow);
+  GetDeviceContextForScreenInfo(nsIDocShell* aDocShell);
 
   
 
