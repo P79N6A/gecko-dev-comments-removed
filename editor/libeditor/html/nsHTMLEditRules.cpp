@@ -7335,6 +7335,13 @@ nsHTMLEditRules::SplitAsNeeded(const nsAString *aTag,
     
     
     if (!parent) break;
+    
+    if (!mHTMLEditor->IsNodeInActiveEditor(parent)) {
+      nsCOMPtr<nsIContent> parentContent = do_QueryInterface(parent);
+      if (parentContent != mHTMLEditor->GetActiveEditingHost()) {
+        break;
+      }
+    }
     if (mHTMLEditor->CanContainTag(parent, *aTag))
     {
       tagParent = parent;
