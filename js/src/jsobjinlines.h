@@ -242,7 +242,7 @@ JSObject::finalize(js::FreeOp *fop)
 {
     js::Probes::finalizeObject(this);
 
-    if (!fop->onBackgroundThread()) {
+    if (!IsBackgroundFinalized(getAllocKind())) {
         
 
 
@@ -1423,7 +1423,7 @@ CanBeFinalizedInBackground(gc::AllocKind kind, Class *clasp)
 
 
 
-    return (!gc::IsBackgroundAllocKind(kind) && !clasp->finalize);
+    return (!gc::IsBackgroundFinalized(kind) && !clasp->finalize);
 }
 
 

@@ -1646,6 +1646,7 @@ ArenaLists::queueForBackgroundSweep(FreeOp *fop, AllocKind thingKind)
 
 #ifdef JS_THREADSAFE
     JS_ASSERT(!fop->runtime()->gcHelperThread.sweeping());
+#endif
 
     ArenaList *al = &arenaLists[thingKind];
     if (!al->head) {
@@ -1661,28 +1662,14 @@ ArenaLists::queueForBackgroundSweep(FreeOp *fop, AllocKind thingKind)
     JS_ASSERT(backgroundFinalizeState[thingKind] == BFS_DONE ||
               backgroundFinalizeState[thingKind] == BFS_JUST_FINISHED);
 
-    if (fop->shouldFreeLater()) {
-        arenaListsToSweep[thingKind] = al->head;
-        al->clear();
-        backgroundFinalizeState[thingKind] = BFS_RUN;
-    } else {
-        finalizeNow(fop, thingKind);
-        backgroundFinalizeState[thingKind] = BFS_DONE;
-    }
-
-#else 
-
-    finalizeNow(fop, thingKind);
-
-#endif
+    arenaListsToSweep[thingKind] = al->head;
+    al->clear();
+    backgroundFinalizeState[thingKind] = BFS_RUN;
 }
 
  void
-ArenaLists::backgroundFinalize(FreeOp *fop, ArenaHeader *listHead)
+ArenaLists::backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, bool onBackgroundThread)
 {
-#ifdef JS_THREADSAFE
-    JS_ASSERT(fop->onBackgroundThread());
-#endif 
     JS_ASSERT(listHead);
     AllocKind thingKind = listHead->getAllocKind();
     JSCompartment *comp = listHead->compartment;
@@ -1704,6 +1691,12 @@ ArenaLists::backgroundFinalize(FreeOp *fop, ArenaHeader *listHead)
     JS_ASSERT(lists->backgroundFinalizeState[thingKind] == BFS_RUN);
     JS_ASSERT(!*al->cursor);
 
+    if (finalized.head) {
+        *al->cursor = finalized.head;
+        if (finalized.cursor != &finalized.head)
+            al->cursor = finalized.cursor;
+    }
+
     
 
 
@@ -1713,14 +1706,11 @@ ArenaLists::backgroundFinalize(FreeOp *fop, ArenaHeader *listHead)
 
 
 
-    if (finalized.head) {
-        *al->cursor = finalized.head;
-        if (finalized.cursor != &finalized.head)
-            al->cursor = finalized.cursor;
+    if (onBackgroundThread && finalized.head)
         lists->backgroundFinalizeState[thingKind] = BFS_JUST_FINISHED;
-    } else {
+    else
         lists->backgroundFinalizeState[thingKind] = BFS_DONE;
-    }
+
     lists->arenaListsToSweep[thingKind] = NULL;
 }
 
@@ -2830,12 +2820,40 @@ ExpireChunksAndArenas(JSRuntime *rt, bool shouldShrink)
 }
 
 static void
+SweepBackgroundThings(JSRuntime* rt, bool onBackgroundThread)
+{
+    
+
+
+
+    FreeOp fop(rt, false, false);
+    for (int phase = 0 ; phase < BackgroundPhaseCount ; ++phase) {
+        for (JSCompartment *c = rt->gcSweepingCompartments; c; c = c->gcNextCompartment) {
+            for (int index = 0 ; index < BackgroundPhaseLength[phase] ; ++index) {
+                AllocKind kind = BackgroundPhases[phase][index];
+                ArenaHeader *arenas = c->arenas.arenaListsToSweep[kind];
+                if (arenas) {
+                    ArenaLists::backgroundFinalize(&fop, arenas, onBackgroundThread);
+                }
+            }
+        }
+    }
+
+    while (JSCompartment *c = rt->gcSweepingCompartments) {
+        rt->gcSweepingCompartments = c->gcNextCompartment;
+        c->gcNextCompartment = NULL;
+    }
+}
+
+static void
 AssertBackgroundSweepingFinshed(JSRuntime *rt)
 {
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
         JS_ASSERT(!c->gcNextCompartment);
-        for (unsigned i = 0 ; i < FINALIZE_LIMIT ; ++i)
+        for (unsigned i = 0 ; i < FINALIZE_LIMIT ; ++i) {
             JS_ASSERT(!c->arenas.arenaListsToSweep[i]);
+            JS_ASSERT(c->arenas.doneBackgroundFinalize(AllocKind(i)));
+        }
     }
 }
 
@@ -3089,27 +3107,7 @@ GCHelperThread::doSweep()
         sweepFlag = false;
         AutoUnlockGC unlock(rt);
 
-        
-
-
-
-        FreeOp fop(rt, false, true);
-        for (int phase = 0; phase < BackgroundPhaseCount; ++phase) {
-            for (JSCompartment *c = rt->gcSweepingCompartments; c; c = c->gcNextCompartment) {
-                for (int index = 0; index < BackgroundPhaseLength[phase]; ++index) {
-                    AllocKind kind = BackgroundPhases[phase][index];
-                    ArenaHeader *arenas = c->arenas.arenaListsToSweep[kind];
-                    if (arenas) {
-                        ArenaLists::backgroundFinalize(&fop, arenas);
-                    }
-                }
-            }
-        }
-
-        while (JSCompartment *c = rt->gcSweepingCompartments) {
-            rt->gcSweepingCompartments = c->gcNextCompartment;
-            c->gcNextCompartment = NULL;
-        }
+        SweepBackgroundThings(rt, true);
 
         if (freeCursor) {
             void **array = freeCursorEnd - FREE_ARRAY_LENGTH;
@@ -3178,7 +3176,7 @@ SweepCompartments(FreeOp *fop, gcreason::Reason gcReason)
     while (read < end) {
         JSCompartment *compartment = *read++;
 
-        if (!compartment->hold && compartment->isCollecting() &&
+        if (!compartment->hold && compartment->wasGCStarted() &&
             (compartment->arenas.arenaListsAreEmpty() || gcReason == gcreason::LAST_CONTEXT))
         {
             compartment->arenas.checkEmptyFreeLists();
@@ -3828,11 +3826,22 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason gcReaso
     PropertyTree::dumpShapes(rt);
 #endif
 
+    
+
+
+    JS_ASSERT(!rt->gcSweepingCompartments);
+    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+        c->gcNextCompartment = rt->gcSweepingCompartments;
+        rt->gcSweepingCompartments = c;
+    }
+
     {
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_DESTROY);
 
-        if (!rt->gcSweepOnBackgroundThread)
+        if (!rt->gcSweepOnBackgroundThread) {
             rt->freeLifoAlloc.freeAll();
+            SweepBackgroundThings(rt, false);
+        }
 
         
 
@@ -3865,19 +3874,6 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason gcReaso
     while (ArenaHeader *arena = rt->gcArenasAllocatedDuringSweep) {
         rt->gcArenasAllocatedDuringSweep = arena->getNextAllocDuringSweep();
         arena->unsetAllocDuringSweep();
-    }
-
-    
-
-
-    JS_ASSERT(!rt->gcSweepingCompartments);
-    if (rt->gcSweepOnBackgroundThread) {
-        JSCompartment **cursor = &rt->gcSweepingCompartments;
-        for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
-            JS_ASSERT(!c->gcNextCompartment);
-            *cursor = c.get();
-            cursor = &c->gcNextCompartment;
-        }
     }
 
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
