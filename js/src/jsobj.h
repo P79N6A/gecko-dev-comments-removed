@@ -541,17 +541,6 @@ struct JSObject : public js::ObjectImpl
 
     static const uint32_t MAX_FIXED_SLOTS = 16;
 
-  private:
-    
-
-
-
-    inline void getSlotRangeUnchecked(size_t start, size_t length,
-                                      js::HeapSlot **fixedStart, js::HeapSlot **fixedEnd,
-                                      js::HeapSlot **slotsStart, js::HeapSlot **slotsEnd);
-    inline void getSlotRange(size_t start, size_t length,
-                             js::HeapSlot **fixedStart, js::HeapSlot **fixedEnd,
-                             js::HeapSlot **slotsStart, js::HeapSlot **slotsEnd);
   public:
 
     
@@ -575,14 +564,8 @@ struct JSObject : public js::ObjectImpl
 
     bool hasDynamicSlots() const { return slots != NULL; }
 
-    
-    inline size_t numDynamicSlots() const;
-
   protected:
     inline bool hasContiguousSlots(size_t start, size_t count) const;
-
-    inline void initializeSlotRange(size_t start, size_t count);
-    inline void invalidateSlotRange(size_t start, size_t count);
 
     inline bool updateSlotsForSpan(JSContext *cx, size_t oldSpan, size_t newSpan);
 
@@ -594,34 +577,7 @@ struct JSObject : public js::ObjectImpl
     inline void prepareSlotRangeForOverwrite(size_t start, size_t end);
     inline void prepareElementRangeForOverwrite(size_t start, size_t end);
 
-    
-
-
-
-    void initSlotRange(size_t start, const js::Value *vector, size_t length);
-
-    
-
-
-
-    void copySlotRange(size_t start, const js::Value *vector, size_t length);
-
-    inline uint32_t slotSpan() const;
-
     void rollbackProperties(JSContext *cx, uint32_t slotSpan);
-
-#ifdef DEBUG
-    enum SentinelAllowed {
-        SENTINEL_NOT_ALLOWED,
-        SENTINEL_ALLOWED
-    };
-
-    
-
-
-
-    bool slotInRange(unsigned slot, SentinelAllowed sentinel = SENTINEL_NOT_ALLOWED) const;
-#endif
 
   private:
     js::HeapSlot *getSlotAddressUnchecked(unsigned slot) {
@@ -837,12 +793,9 @@ struct JSObject : public js::ObjectImpl
     inline void setArrayLength(JSContext *cx, uint32_t length);
 
     inline uint32_t getDenseArrayCapacity();
-    inline uint32_t getDenseArrayInitializedLength();
     inline void setDenseArrayLength(uint32_t length);
     inline void setDenseArrayInitializedLength(uint32_t length);
     inline void ensureDenseArrayInitializedLength(JSContext *cx, unsigned index, unsigned extra);
-    inline js::HeapSlotArray getDenseArrayElements();
-    inline const js::Value &getDenseArrayElement(unsigned idx);
     inline void setDenseArrayElement(unsigned idx, const js::Value &val);
     inline void initDenseArrayElement(unsigned idx, const js::Value &val);
     inline void setDenseArrayElementWithType(JSContext *cx, unsigned idx, const js::Value &val);
@@ -1176,9 +1129,7 @@ struct JSObject : public js::ObjectImpl
     
     inline bool isArguments() const;
     inline bool isArrayBuffer() const;
-    inline bool isArray() const;
     inline bool isDate() const;
-    inline bool isDenseArray() const;
     inline bool isElementIterator() const;
     inline bool isError() const;
     inline bool isFunction() const;
@@ -1194,7 +1145,6 @@ struct JSObject : public js::ObjectImpl
     inline bool isRegExpStatics() const;
     inline bool isScope() const;
     inline bool isScript() const;
-    inline bool isSlowArray() const;
     inline bool isStopIteration() const;
     inline bool isWeakMap() const;
     inline bool isXML() const;

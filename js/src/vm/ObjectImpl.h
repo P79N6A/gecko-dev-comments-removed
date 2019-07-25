@@ -19,6 +19,8 @@
 
 namespace js {
 
+class ObjectImpl;
+
 
 
 
@@ -28,6 +30,7 @@ namespace js {
 class ObjectElements
 {
     friend struct ::JSObject;
+    friend class ObjectImpl;
 
     
     uint32_t capacity;
@@ -171,10 +174,71 @@ class ObjectImpl : public gc::Cell
 
     JSObject * asObjectPtr() { return reinterpret_cast<JSObject *>(this); }
 
+    
+
+  public:
+    JSObject * getProto() const {
+        return type_->proto;
+    }
+
+    inline bool isExtensible() const;
+
+    
+
+
+
+    inline bool isDenseArray() const;
+    inline bool isSlowArray() const;
+    inline bool isArray() const;
+
+    inline HeapSlotArray getDenseArrayElements();
+    inline const Value & getDenseArrayElement(unsigned idx);
+    inline uint32_t getDenseArrayInitializedLength();
+
+  private:
+    
+
+
+
+    inline void getSlotRangeUnchecked(size_t start, size_t length,
+                                      HeapSlot **fixedStart, HeapSlot **fixedEnd,
+                                      HeapSlot **slotsStart, HeapSlot **slotsEnd);
+    inline void getSlotRange(size_t start, size_t length,
+                             HeapSlot **fixedStart, HeapSlot **fixedEnd,
+                             HeapSlot **slotsStart, HeapSlot **slotsEnd);
+
   protected:
     friend struct GCMarker;
     friend struct Shape;
     friend class NewObjectCache;
+
+    inline void invalidateSlotRange(size_t start, size_t count);
+    inline void initializeSlotRange(size_t start, size_t count);
+
+    
+
+
+
+    void initSlotRange(size_t start, const Value *vector, size_t length);
+
+    
+
+
+
+    void copySlotRange(size_t start, const Value *vector, size_t length);
+
+#ifdef DEBUG
+    enum SentinelAllowed {
+        SENTINEL_NOT_ALLOWED,
+        SENTINEL_ALLOWED
+    };
+
+    
+
+
+
+    bool slotInRange(unsigned slot, SentinelAllowed sentinel = SENTINEL_NOT_ALLOWED) const;
+#endif
 
     
     static const uint32_t SLOT_CAPACITY_MIN = 8;
@@ -214,6 +278,11 @@ class ObjectImpl : public gc::Cell
 
 
     bool hasLazyType() const { return type_->lazy(); }
+
+    inline uint32_t slotSpan() const;
+
+    
+    inline size_t numDynamicSlots() const;
 
     inline bool isNative() const;
 
@@ -304,15 +373,6 @@ class ObjectImpl : public gc::Cell
     }
     static size_t getPrivateDataOffset(size_t nfixed) { return getFixedSlotOffset(nfixed); }
     static size_t offsetOfSlots() { return offsetof(ObjectImpl, slots); }
-
-    
-
-  public:
-    JSObject * getProto() const {
-        return type_->proto;
-    }
-
-    inline bool isExtensible() const;
 };
 
 } 
