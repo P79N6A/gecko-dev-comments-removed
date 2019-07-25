@@ -157,7 +157,16 @@ public:
 
   void VerticallyAlignChild(nscoord aMaxAscent);
 
-  PRBool HasVerticalAlignBaseline();
+  
+
+
+
+
+  PRUint8 GetVerticalAlign() const;
+
+  PRBool HasVerticalAlignBaseline() const {
+    return GetVerticalAlign() == NS_STYLE_VERTICAL_ALIGN_BASELINE;
+  }
 
   PRBool CellHasVisibleContent(nscoord       height,
                                nsTableFrame* tableFrame,
