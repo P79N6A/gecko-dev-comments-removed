@@ -5245,8 +5245,6 @@ ShellPrincipalsSubsume(JSPrincipals *, JSPrincipals *)
 
 JSPrincipals shellTrustedPrincipals = {
     (char *)"[shell trusted principals]",
-    NULL,
-    NULL,
     1,
     NULL, 
     ShellPrincipalsSubsume

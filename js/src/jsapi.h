@@ -3730,10 +3730,6 @@ struct JSPrincipals {
     char *codebase;
 
     
-    void * (* getPrincipalArray)(JSContext *cx, JSPrincipals *);
-    JSBool (* globalPrivilegesEnabled)(JSContext *cx, JSPrincipals *);
-
-    
     jsrefcount refcount;
 
     void   (* destroy)(JSContext *cx, JSPrincipals *);
