@@ -880,21 +880,23 @@ RasterImage::GetFrame(PRUint32 aWhichFrame,
 
   nsresult rv = NS_OK;
 
+  if (mDecoded) {
+    
+    
+    PRUint32 desiredDecodeFlags = aFlags & DECODE_FLAGS_MASK;
+    if (desiredDecodeFlags != mFrameDecodeFlags) {
+      
+      
+      
+      if (!(aFlags & FLAG_SYNC_DECODE))
+        return NS_ERROR_NOT_AVAILABLE;
+      if (!CanForciblyDiscard() || mDecoder || mAnim)
+        return NS_ERROR_NOT_AVAILABLE;
   
+      ForceDiscard();
   
-  PRUint32 desiredDecodeFlags = aFlags & DECODE_FLAGS_MASK;
-  if (desiredDecodeFlags != mFrameDecodeFlags) {
-    
-    
-    
-    if (!(aFlags & FLAG_SYNC_DECODE))
-      return NS_ERROR_NOT_AVAILABLE;
-    if (!CanForciblyDiscard() || mDecoder || mAnim)
-      return NS_ERROR_NOT_AVAILABLE;
-
-    ForceDiscard();
-
-    mFrameDecodeFlags = desiredDecodeFlags;
+      mFrameDecodeFlags = desiredDecodeFlags;
+    }
   }
 
   
