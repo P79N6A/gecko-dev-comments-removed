@@ -180,8 +180,13 @@ let DOMApplicationRegistry = {
         
         let data = null;
         try {
-          data = JSON.parse(NetUtil.readInputStreamToString(aStream,
-                                                            aStream.available()) || "");
+          
+          let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                          .createInstance(Ci.nsIScriptableUnicodeConverter);
+          converter.charset = "UTF-8";
+
+          data = JSON.parse(converter.ConvertToUnicode(NetUtil.readInputStreamToString(aStream,
+                                                            aStream.available()) || ""));
           aStream.close();
           if (aCallback)
             aCallback(data);
