@@ -36,13 +36,14 @@
 
 
 
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
+
+var EXPORTED_SYMBOLS = [ "AddonRepository" ];
 
 const PREF_GETADDONS_BROWSEADDONS        = "extensions.getAddons.browseAddons";
 const PREF_GETADDONS_BROWSERECOMMENDED   = "extensions.getAddons.recommended.browseURL";
@@ -54,33 +55,137 @@ const XMLURI_PARSE_ERROR  = "http://www.mozilla.org/newlayout/xml/parsererror.xm
 
 const API_VERSION = "1.2";
 
-function AddonSearchResult() {
+function AddonSearchResult(aId) {
+  this.id = aId;
+  this.screenshots = [];
 }
 
 AddonSearchResult.prototype = {
-  id: null,
-  name: null,
-  version: null,
-  summary: null,
-  description: null,
-  rating: null,
-  iconURL: null,
-  thumbnailURL: null,
-  homepageURL: null,
-  eula: null,
-  type: null,
-  xpiURL: null,
-  xpiHash: null,
-
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAddonSearchResult])
-}
-
-function AddonRepository() {
-}
-
-AddonRepository.prototype = {
   
-  _addons: null,
+
+
+  id: null,
+
+  
+
+
+  name: null,
+
+  
+
+
+  version: null,
+
+  
+
+
+  description: null,
+
+  
+
+
+  fullDescription: null,
+
+  
+
+
+  rating: -1,
+
+  
+
+
+  iconURL: null,
+
+  
+
+
+  screenshots: null,
+
+  
+
+
+  homepageURL: null,
+
+  
+
+
+  type: null,
+
+  
+
+
+  install: null,
+
+  
+
+
+
+  isCompatible: true,
+
+  
+
+
+  providesUpdatesSecurely: true,
+
+  
+
+
+  blocklistState: Ci.nsIBlocklistService.STATE_NOT_BLOCKED,
+
+  
+
+
+
+  appDisabled: false,
+
+  
+
+
+  userDisabled: false,
+
+  
+
+
+
+  scope: AddonManager.SCOPE_PROFILE,
+
+  
+
+
+  isActive: true,
+
+  
+
+
+  creator: null,
+
+  
+
+
+
+  pendingOperations: AddonManager.PENDING_NONE,
+
+  
+
+
+
+  permissions: 0
+}
+
+
+
+
+
+
+
+
+
+
+
+
+var AddonRepository = {
+  
+  _results: null,
 
   
   _searching: false,
@@ -92,38 +197,73 @@ AddonRepository.prototype = {
   _request: null,
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   _callback: null,
 
   
   _maxResults: null,
 
+  
+
+
+
   get homepageURL() {
-    return Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
-                     .getService(Components.interfaces.nsIURLFormatter)
-                     .formatURLPref(PREF_GETADDONS_BROWSEADDONS);
+    return Cc["@mozilla.org/toolkit/URLFormatterService;1"].
+           getService(Ci.nsIURLFormatter).
+           formatURLPref(PREF_GETADDONS_BROWSEADDONS);
   },
+
+  
+
+
 
   get isSearching() {
     return this._searching;
   },
 
+  
+
+
   getRecommendedURL: function() {
-    var urlf = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
-                         .getService(Components.interfaces.nsIURLFormatter);
+    var urlf = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
+               getService(Ci.nsIURLFormatter);
 
     return urlf.formatURLPref(PREF_GETADDONS_BROWSERECOMMENDED);
   },
 
+  
+
+
+
+
+
   getSearchURL: function(aSearchTerms) {
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                          .getService(Components.interfaces.nsIPrefBranch);
-    var urlf = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
-                         .getService(Components.interfaces.nsIURLFormatter);
+    var prefs = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch);
+    var urlf = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
+               getService(Ci.nsIURLFormatter);
 
     var url = prefs.getCharPref(PREF_GETADDONS_BROWSESEARCHRESULTS);
     url = url.replace(/%TERMS%/g, encodeURIComponent(aSearchTerms));
     return urlf.formatURL(url);
   },
+
+  
+
+
 
   cancelSearch: function() {
     this._searching = false;
@@ -132,23 +272,30 @@ AddonRepository.prototype = {
       this._request = null;
     }
     this._callback = null;
-    this._addons = null;
+    this._results = null;
   },
+
+  
+
+
+
+
+
 
   retrieveRecommendedAddons: function(aMaxResults, aCallback) {
     if (this._searching)
       return;
 
     this._searching = true;
-    this._addons = [];
+    this._results = [];
     this._callback = aCallback;
     this._recommended = true;
     this._maxResults = aMaxResults;
 
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                          .getService(Components.interfaces.nsIPrefBranch);
-    var urlf = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
-                         .getService(Components.interfaces.nsIURLFormatter);
+    var prefs = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch);
+    var urlf = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
+               getService(Ci.nsIURLFormatter);
 
     var uri = prefs.getCharPref(PREF_GETADDONS_GETRECOMMENDED);
     uri = uri.replace(/%API_VERSION%/g, API_VERSION);
@@ -156,20 +303,28 @@ AddonRepository.prototype = {
     this._loadList(uri);
   },
 
+  
+
+
+
+
+
+
+
   searchAddons: function(aSearchTerms, aMaxResults, aCallback) {
     if (this._searching)
       return;
 
     this._searching = true;
-    this._addons = [];
+    this._results = [];
     this._callback = aCallback;
     this._recommended = false;
     this._maxResults = aMaxResults;
 
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                          .getService(Components.interfaces.nsIPrefBranch);
-    var urlf = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
-                         .getService(Components.interfaces.nsIURLFormatter);
+    var prefs = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch);
+    var urlf = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
+               getService(Ci.nsIURLFormatter);
 
     var uri = prefs.getCharPref(PREF_GETADDONS_GETSEARCHRESULTS);
     uri = uri.replace(/%API_VERSION%/g, API_VERSION);
@@ -180,57 +335,57 @@ AddonRepository.prototype = {
   },
 
   
-  _reportSuccess: function(aCount) {
+  _reportSuccess: function(aTotalResults) {
     this._searching = false;
     this._request = null;
     
-    var addons = this._addons;
+    var addons = [result.addon for each(result in this._results)];
     var callback = this._callback;
     this._callback = null;
-    this._addons = null;
-    callback.searchSucceeded(addons, addons.length, this._recommended ? -1 : aCount);
+    this._results = null;
+    callback.searchSucceeded(addons, addons.length, this._recommended ? -1 : aTotalResults);
   },
 
   
-  _reportFailure: function(aEvent) {
+  _reportFailure: function() {
     this._searching = false;
     this._request = null;
     
     var callback = this._callback;
     this._callback = null;
-    this._addons = null;
+    this._results = null;
     callback.searchFailed();
   },
 
   
-  _parseAddon: function(element, known_ids) {
+  _parseAddon: function(aElement, aSkip) {
     var app = Cc["@mozilla.org/xre/app-info;1"].
               getService(Ci.nsIXULAppInfo).
               QueryInterface(Ci.nsIXULRuntime);
 
-    var guidList = element.getElementsByTagName("guid");
+    var guidList = aElement.getElementsByTagName("guid");
     if (guidList.length != 1)
       return;
 
     var guid = guidList[0].textContent.trim();
 
     
-    for (var i = 0; i < this._addons.length; i++)
-      if (this._addons[i].id == guid)
+    for (var i = 0; i < this._results.length; i++)
+      if (this._results[i].addon.id == guid)
         return;
 
     
-    if (known_ids.indexOf(guid) != -1)
+    if (aSkip.ids.indexOf(guid) != -1)
       return;
 
     
-    var status = element.getElementsByTagName("status");
+    var status = aElement.getElementsByTagName("status");
     
     if (status.length != 1 || status[0].getAttribute("id") != 4)
       return;
 
     
-    var osList = element.getElementsByTagName("compatible_os");
+    var osList = aElement.getElementsByTagName("compatible_os");
     
     
     if (osList.length > 0) {
@@ -250,7 +405,7 @@ AddonRepository.prototype = {
 
     
     compatible = false;
-    var tags = element.getElementsByTagName("compatible_applications");
+    var tags = aElement.getElementsByTagName("compatible_applications");
     if (tags.length != 1)
       return;
     var vc = Cc["@mozilla.org/xpcom/version-comparator;1"].
@@ -273,19 +428,25 @@ AddonRepository.prototype = {
     if (!compatible)
       return;
 
-    var addon = new AddonSearchResult();
-    addon.id = guid;
-    addon.rating = -1;
-    var node = element.firstChild;
+    var addon = new AddonSearchResult(guid);
+    var result = {
+      addon: addon,
+      xpiURL: null,
+      xpiHash: null
+    };
+    var node = aElement.firstChild;
     while (node) {
       if (node instanceof Ci.nsIDOMElement) {
         switch (node.localName) {
           case "name":
           case "version":
-          case "summary":
-          case "description":
-          case "eula":
             addon[node.localName] = node.textContent.trim();
+            break;
+          case "summary":
+            addon.description = node.textContent.trim();
+            break;
+          case "description":
+            addon.fullDescription = node.textContent.trim();
             break;
           case "rating":
             if (node.textContent.length > 0) {
@@ -295,7 +456,7 @@ AddonRepository.prototype = {
             }
             break;
           case "thumbnail":
-            addon.thumbnailURL = node.textContent.trim();
+            addon.screenshots.push(node.textContent.trim());
             break;
           case "icon":
             addon.iconURL = node.textContent.trim();
@@ -306,10 +467,7 @@ AddonRepository.prototype = {
           case "type":
             
             
-            if (node.getAttribute("id") == 2)
-              addon.type = Ci.nsIAddonSearchResult.TYPE_THEME;
-            else
-              addon.type = Ci.nsIAddonSearchResult.TYPE_EXTENSION;
+            addon.type = (node.getAttribute("id") == 2) ? "theme" : "extension";
             break;
           case "install":
             
@@ -319,9 +477,13 @@ AddonRepository.prototype = {
               if (os != "all" && os != app.OS.toLowerCase())
                 break;
             }
-            addon.xpiURL = node.textContent.trim();
-            if (node.hasAttribute("hash"))
-              addon.xpiHash = node.getAttribute("hash");
+            result.xpiURL = node.textContent.trim();
+
+            
+            if (aSkip.sourceURLs.indexOf(result.xpiURL) != -1)
+              return;
+
+            result.xpiHash = node.hasAttribute("hash") ? node.getAttribute("hash") : null;
             break;
         }
       }
@@ -329,8 +491,34 @@ AddonRepository.prototype = {
     }
 
     
-    if (addon.xpiURL)
-      this._addons.push(addon);
+    if (result.xpiURL)
+      this._results.push(result);
+  },
+
+  _parseAddons: function(aElements, aTotalResults, aSkip) {
+    for (var i = 0; i < aElements.length && this._results.length < this._maxResults; i++)
+      this._parseAddon(aElements[i], aSkip);
+
+    var pendingResults = this._results.length;
+    if (pendingResults == 0) {
+      this._reportSuccess(aTotalResults);
+      return;
+    }
+
+    var self = this;
+    this._results.forEach(function(aResult) {
+      var addon = aResult.addon;
+      var callback = function(aInstall) {
+        addon.install = aInstall;
+        pendingResults--;
+        if (pendingResults == 0)
+          self._reportSuccess(aTotalResults);
+      }
+
+      AddonManager.getInstallForURL(aResult.xpiURL, callback,
+                                    "application/x-xpinstall", aResult.xpiHash,
+                                    addon.name, addon.iconURL, addon.version);
+    });
   },
 
   
@@ -345,26 +533,30 @@ AddonRepository.prototype = {
       return;
     }
 
+    var elements = responseXML.documentElement.getElementsByTagName("addon");
+    if (responseXML.documentElement.hasAttribute("total_results"))
+      var totalResults = responseXML.documentElement.getAttribute("total_results");
+    else
+      var totalResults = elements.length;
+
     var self = this;
-    AddonManager.getAllAddons(function(addons) {
-      var known_ids = [a.id for each(a in addons)];
+    var skip = {ids: null, sourceURLs: null};
 
-      var elements = responseXML.documentElement.getElementsByTagName("addon");
-      for (var i = 0; i < elements.length; i++) {
-        self._parseAddon(elements[i], known_ids);
-  
-        var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                              .getService(Components.interfaces.nsIPrefBranch);
-        if (self._addons.length == self._maxResults) {
-          self._reportSuccess(elements.length);
-          return;
-        }
-      }
+    AddonManager.getAllAddons(function(aAddons) {
+      skip.ids  = [a.id for each (a in aAddons)];
+      if (skip.sourceURLs)
+        self._parseAddons(elements, totalResults, skip);
+    });
 
-      if (responseXML.documentElement.hasAttribute("total_results"))
-        self._reportSuccess(responseXML.documentElement.getAttribute("total_results"));
-      else
-        self._reportSuccess(elements.length);
+    AddonManager.getAllInstalls(function(aInstalls) {
+      skip.sourceURLs = [];
+      aInstalls.forEach(function(aInstall) {
+        if (aInstall.state != AddonManager.STATE_AVAILABLE)
+          skip.sourceURLs.push(aInstall.sourceURL);
+      });
+
+      if (skip.ids)
+        self._parseAddons(elements, totalResults, skip);
     });
   },
 
@@ -376,17 +568,9 @@ AddonRepository.prototype = {
     this._request.overrideMimeType("text/xml");
 
     var self = this;
-    this._request.onerror = function(event) { self._reportFailure(event); };
-    this._request.onload = function(event) { self._listLoaded(event); };
+    this._request.onerror = function(aEvent) { self._reportFailure(); };
+    this._request.onload = function(aEvent) { self._listLoaded(aEvent); };
     this._request.send(null);
-  },
-
-  classDescription: "Addon Repository",
-  contractID: "@mozilla.org/extensions/addon-repository;1",
-  classID: Components.ID("{8eaaf524-7d6d-4f7d-ae8b-9277b324008d}"),
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAddonRepository])
+  }
 }
 
-function NSGetModule(aCompMgr, aFileSpec) {
-  return XPCOMUtils.generateModule([AddonRepository]);
-}
