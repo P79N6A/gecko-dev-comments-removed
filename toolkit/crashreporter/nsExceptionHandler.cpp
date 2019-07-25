@@ -615,7 +615,7 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   
   
   
-  nsCString package("org.mozilla." MOZ_APP_NAME "/.CrashReporter");
+  nsCString package(ANDROID_PACKAGE_NAME "/.CrashReporter");
   crashReporterPath = ToNewCString(package);
 #endif
 
