@@ -113,10 +113,6 @@ template<typename T> class Seq;
 
 }  
 
-namespace JSC {
-    class ExecutableAllocator;
-}
-
 namespace js {
 
 
@@ -212,23 +208,6 @@ struct TracerState
                 uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
     ~TracerState();
 };
-
-namespace mjit {
-    struct ThreadData
-    {
-        JSC::ExecutableAllocator *execPool;
-
-        
-        typedef js::HashSet<JSScript*, DefaultHasher<JSScript*>, js::SystemAllocPolicy> ScriptSet;
-        ScriptSet picScripts;
-
-        bool Initialize();
-        void Finish();
-
-        bool addScript(JSScript *script);
-        void removeScript(JSScript *script);
-    };
-}
 
 
 
@@ -359,7 +338,7 @@ class CallStack
     bool inContext() const {
         JS_ASSERT(!!cx == !!initialFrame);
         JS_ASSERT_IF(!initialFrame, !suspendedFrame && !suspendedRegsAndSaved.flag());
-        return cx;
+        return !!cx;
     }
 
     bool isActive() const {
@@ -370,7 +349,7 @@ class CallStack
     bool isSuspended() const {
         JS_ASSERT_IF(!suspendedFrame, !suspendedRegsAndSaved.flag());
         JS_ASSERT_IF(suspendedFrame, inContext());
-        return suspendedFrame;
+        return !!suspendedFrame;
     }
 
     
@@ -1027,10 +1006,6 @@ struct JSThreadData {
     js::TraceMonitor    traceMonitor;
 #endif
 
-#ifdef JS_METHODJIT
-    js::mjit::ThreadData jmData;
-#endif
-
     
     JSScript            *scriptsToGC[JS_EVAL_CACHE_SIZE];
 
@@ -1587,7 +1562,6 @@ struct JSRuntime {
 #define JS_GSN_CACHE(cx)        (JS_THREAD_DATA(cx)->gsnCache)
 #define JS_PROPERTY_CACHE(cx)   (JS_THREAD_DATA(cx)->propertyCache)
 #define JS_TRACE_MONITOR(cx)    (JS_THREAD_DATA(cx)->traceMonitor)
-#define JS_METHODJIT_DATA(cx)   (JS_THREAD_DATA(cx)->jmData)
 #define JS_SCRIPTS_TO_GC(cx)    (JS_THREAD_DATA(cx)->scriptsToGC)
 
 #ifdef JS_EVAL_CACHE_METERING
@@ -1748,7 +1722,7 @@ struct JSContext
     JS_REQUIRES_STACK
     JSFrameRegs         *regs;
 
-  public:
+  private:
     friend class js::StackSpace;
     friend bool js::Interpret(JSContext *);
 
@@ -1761,6 +1735,7 @@ struct JSContext
         this->regs = regs;
     }
 
+  public:
     
     JSArenaPool         tempPool;
 
@@ -1820,7 +1795,7 @@ struct JSContext
     
     bool hasActiveCallStack() const {
         assertCallStacksInSync();
-        return fp;
+        return !!fp;
     }
 
     

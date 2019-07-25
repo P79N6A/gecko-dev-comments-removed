@@ -50,8 +50,8 @@
 #include "jsscript.h"
 
 typedef struct JSFrameRegs {
-    js::Value       *sp;            
     jsbytecode      *pc;            
+    js::Value       *sp;            
 } JSFrameRegs;
 
 
@@ -101,12 +101,6 @@ struct JSStackFrame
     jsbytecode          *savedPC;       
 #ifdef DEBUG
     static jsbytecode *const sInvalidPC;
-#endif
-
-#if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
-    void                *ncode;         
-    
-    void                *align_[3];
 #endif
 
     
@@ -205,10 +199,10 @@ struct JSStackFrame
 
     inline JSObject *getThisObject(JSContext *cx);
 
-    bool isGenerator() const { return flags & JSFRAME_GENERATOR; }
+    bool isGenerator() const { return !!(flags & JSFRAME_GENERATOR); }
     bool isFloatingGenerator() const {
         JS_ASSERT_IF(flags & JSFRAME_FLOATING_GENERATOR, isGenerator());
-        return flags & JSFRAME_FLOATING_GENERATOR;
+        return !!(flags & JSFRAME_FLOATING_GENERATOR);
     }
 };
 
@@ -290,7 +284,7 @@ class PrimitiveValue
 
   public:
     static bool test(JSFunction *fun, const Value &v) {
-        return bool(Masks[(fun->flags >> THISP_SHIFT) & THISP_MASK] & v.mask);
+        return !!(Masks[(fun->flags >> THISP_SHIFT) & THISP_MASK] & v.mask);
     }
 };
 
@@ -360,9 +354,6 @@ InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampReturn
 
 extern JS_REQUIRES_STACK bool
 Interpret(JSContext *cx);
-
-extern JS_REQUIRES_STACK bool
-RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain);
 
 #define JSPROP_INITIALIZER 0x100   /* NB: Not a valid property attribute. */
 
