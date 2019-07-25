@@ -1210,13 +1210,14 @@ class THEBES_API CanvasLayer : public Layer {
 public:
   struct Data {
     Data()
-      : mSurface(nsnull), mGLContext(nsnull),
-        mGLBufferIsPremultiplied(PR_FALSE)
+      : mSurface(nsnull), mGLContext(nsnull)
+      , mDrawTarget(nsnull), mGLBufferIsPremultiplied(PR_FALSE)
     { }
 
     
     gfxASurface* mSurface;  
     mozilla::gl::GLContext* mGLContext; 
+    mozilla::gfx::DrawTarget *mDrawTarget; 
 
     
     nsIntSize mSize;
