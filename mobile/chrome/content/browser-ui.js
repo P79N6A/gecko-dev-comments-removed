@@ -411,14 +411,19 @@ var BrowserUI = {
 
     
     
-    setTimeout(function() {
+    browsers.addEventListener("load", function() {
+      
+      browsers.removeEventListener("load", arguments.callee, false);
+      
       
       Elements.panelUI.hidden = false;
+
+      
       ExtensionsView.init();
       DownloadsView.init();
       PreferencesView.init();
       ConsoleView.init();
-    }, 1000);
+    }, false);
   },
 
   uninit : function() {
