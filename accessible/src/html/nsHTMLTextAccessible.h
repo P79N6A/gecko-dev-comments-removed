@@ -108,6 +108,25 @@ public:
 
 
 
+class nsHTMLOutputAccessible : public nsHyperTextAccessibleWrap
+{
+public:
+  nsHTMLOutputAccessible(nsIContent* aContent, nsIWeakReference* aShell);
+
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
+  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
+                               nsIAccessibleRelation** aRelation);
+
+  
+  virtual PRUint32 NativeRole();
+  virtual nsresult GetAttributesInternal(nsIPersistentProperties* aAttributes);
+};
+
+
+
+
 class nsHTMLListBulletAccessible : public nsLeafAccessible
 {
 public:
