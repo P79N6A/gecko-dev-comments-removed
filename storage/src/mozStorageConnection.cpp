@@ -536,6 +536,17 @@ Connection::Connection(Service *aService,
 Connection::~Connection()
 {
   (void)Close();
+
+  
+  
+  
+  
+  
+  for (PRUint32 i = 0; i < mMemoryReporters.Length(); i++) {
+    if (mMemoryReporters[i]) {
+      mMemoryReporters[i]->markAsLeaked();
+    }
+  }
 }
 
 NS_IMPL_THREADSAFE_ADDREF(Connection)
@@ -697,6 +708,28 @@ Connection::initialize(nsIFile *aDatabaseFile,
       break;
   }
 
+  nsRefPtr<StorageMemoryReporter> reporter;
+  nsCString filename = this->getFilename();
+
+  reporter =
+    new StorageMemoryReporter(this->mDBConn, filename,
+                              StorageMemoryReporter::Cache_Used);
+  mMemoryReporters.AppendElement(reporter);
+
+  reporter =
+    new StorageMemoryReporter(this->mDBConn, filename,
+                              StorageMemoryReporter::Schema_Used);
+  mMemoryReporters.AppendElement(reporter);
+
+  reporter =
+    new StorageMemoryReporter(this->mDBConn, filename,
+                              StorageMemoryReporter::Stmt_Used);
+  mMemoryReporters.AppendElement(reporter);
+
+  for (PRUint32 i = 0; i < mMemoryReporters.Length(); i++) {
+    (void)::NS_RegisterMemoryReporter(mMemoryReporters[i]);
+  }
+
   return NS_OK;
 }
 
@@ -833,6 +866,11 @@ Connection::internalClose()
   }
 #endif
 
+  for (PRUint32 i = 0; i < mMemoryReporters.Length(); i++) {
+    (void)::NS_UnregisterMemoryReporter(mMemoryReporters[i]);
+    mMemoryReporters[i] = nsnull;
+  }
+
   int srv = ::sqlite3_close(mDBConn);
   NS_ASSERTION(srv == SQLITE_OK,
                "sqlite3_close failed. There are probably outstanding statements that are listed above!");
@@ -961,7 +999,6 @@ Connection::Close()
     return NS_ERROR_NOT_INITIALIZED;
 
   { 
-    
     
     
     MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
