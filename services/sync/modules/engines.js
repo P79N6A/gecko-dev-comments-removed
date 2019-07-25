@@ -370,6 +370,16 @@ SyncEngine.prototype = {
     }
   },
 
+  _deleteId: function _deleteId(id) {
+    this._tracker.removeChangedID(id);
+
+    
+    if (this._delete.ids == null)
+      this._delete.ids = [id];
+    else
+      this._delete.ids.push(id);
+  },
+
   
   
   
@@ -408,11 +418,15 @@ SyncEngine.prototype = {
     let dupeId = this._findDupe(item);
     if (dupeId) {
       
-      this._store.changeItemID(dupeId, item.id);
-
+      if (item.id < dupeId) {
+        this._store.changeItemID(dupeId, item.id);
+        this._deleteId(dupeId);
+      }
       
-      this._tracker.removeChangedID(dupeId);
-      this._tracker.removeChangedID(item.id);
+      else {
+        this._deleteId(item.id);
+        item.id = dupeId;
+      }
 
       this._store.cache.clear(); 
     }
