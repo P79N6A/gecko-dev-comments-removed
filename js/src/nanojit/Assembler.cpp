@@ -2033,6 +2033,9 @@ namespace nanojit
                 }
                #endif 
 
+                case LIR_comment: 
+                    
+                    break;
             }
 
 #ifdef NJ_VERBOSE
@@ -2045,7 +2048,10 @@ namespace nanojit
             if (_logc->lcbits & LC_AfterDCE) {
                 InsBuf b;
                 LInsPrinter* printer = _thisfrag->lirbuf->printer;
-                outputf("    %s", printer->formatIns(&b, ins));
+                if (ins->isop(LIR_comment)) 
+                    outputf("%s", printer->formatIns(&b, ins));
+                else
+                    outputf("    %s", printer->formatIns(&b, ins));
             }
 #endif
 
