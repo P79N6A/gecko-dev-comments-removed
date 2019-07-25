@@ -191,6 +191,7 @@ class MochiRemote(Mochitest):
 
     _automation = None
     _dm = None
+    localProfile = None
 
     def __init__(self, automation, devmgr, options):
         self._automation = automation
@@ -278,6 +279,8 @@ class MochiRemote(Mochitest):
         self.server.stop()
         
     def buildProfile(self, options):
+        if self.localProfile:
+            options.profilePath = self.localProfile
         manifest = Mochitest.buildProfile(self, options)
         self.localProfile = options.profilePath
         self._dm.removeDir(self.remoteProfile)
@@ -319,7 +322,7 @@ def main():
     auto = RemoteAutomation(dm_none, "fennec")
     parser = RemoteOptions(auto, scriptdir)
     options, args = parser.parse_args()
-    if (options.dm_trans == "adb" or options.robocop):
+    if (options.dm_trans == "adb"):
         if (options.deviceIP):
             dm = devicemanagerADB.DeviceManagerADB(options.deviceIP, options.devicePort)
         else:
@@ -351,39 +354,42 @@ def main():
 
     procName = options.app.split('/')[-1]
     if (dm.processExist(procName)):
-      dm.killProcess(procName)
+        dm.killProcess(procName)
     
     if (options.robocop):
-      mp = manifestparser.TestManifest(strict=False)
-      
-      mp.read('robocop.ini')
-      robocop_tests = mp.active_tests(exists=False)
-
-      fHandle = open("robotium.config", "w")
-      fHandle.write("profile=%s\n" % (mochitest.remoteProfile))
-      fHandle.write("logfile=%s\n" % (options.remoteLogFile))
-      fHandle.close()
-      deviceRoot = dm.getDeviceRoot()
-      
-      
-      dm.pushFile("robotium.config", "/sdcard/robotium.config")
-      dm.pushFile(os.path.abspath(options.robocop + "/fennec_ids.txt"), "/sdcard/fennec_ids.txt")
-      options.extraPrefs.append('robocop.logfile="%s/robocop.log"' % deviceRoot)
-
-      manifest = mochitest.buildProfile(options)
-      mochitest.startWebServer(options)
-
-      if (options.dm_trans == 'adb'):
-        dm.checkCmd(["install", "-r", os.path.join(options.robocop, "robocop.apk")])
-        for test in robocop_tests:
-          cmd = ["shell", "am", "instrument", "-w", "-e", "class"]
-          cmd.append("%s.tests.%s" % (options.app, test['name']))
-          cmd.append("org.mozilla.roboexample.test/android.test.InstrumentationTestRunner")
-          retVal = dm.checkCmd(cmd)
-      else:
+        mp = manifestparser.TestManifest(strict=False)
         
-        retVal = dm.launchProcess(["am", "instrument", "-w", "org.mozilla.roboexample.test/android.test.InstrumentationTestRunner"])
-      mochitest.stopWebServer(options)
+        mp.read('robocop.ini')
+        robocop_tests = mp.active_tests(exists=False)
+
+        fHandle = open("robotium.config", "w")
+        fHandle.write("profile=%s\n" % (mochitest.remoteProfile))
+        fHandle.write("logfile=%s\n" % (options.remoteLogFile))
+        fHandle.close()
+        deviceRoot = dm.getDeviceRoot()
+      
+        
+        dm.pushFile("robotium.config", "/sdcard/robotium.config")
+        dm.pushFile(os.path.abspath(options.robocop + "/fennec_ids.txt"), "/sdcard/fennec_ids.txt")
+        options.extraPrefs.append('robocop.logfile="%s/robocop.log"' % deviceRoot)
+
+        if (options.dm_trans == 'adb'):
+          dm.checkCmd(["install", "-r", os.path.join(options.robocop, "robocop.apk")])
+
+        appname = options.app
+        for test in robocop_tests:
+            options.app = "am"
+            options.browserArgs = ["instrument", "-w", "-e", "class"]
+            options.browserArgs.append("%s.tests.%s" % (appname, test['name']))
+            options.browserArgs.append("org.mozilla.roboexample.test/android.test.InstrumentationTestRunner")
+
+            try:
+                retVal = mochitest.runTests(options)
+            except:
+                print "TEST-UNEXPECTED-ERROR | %s | Exception caught while running robocop tests." % sys.exc_info()[1]
+                mochitest.stopWebServer(options)
+                mochitest.stopWebSocketServer(options)
+                sys.exit(1)
     else:
       try:
         retVal = mochitest.runTests(options)
@@ -392,7 +398,7 @@ def main():
         mochitest.stopWebServer(options)
         mochitest.stopWebSocketServer(options)
         sys.exit(1)
-      
+
     sys.exit(retVal)
         
 if __name__ == "__main__":
