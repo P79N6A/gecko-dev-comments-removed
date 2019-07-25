@@ -1428,6 +1428,8 @@ MakePlaceholder(JSParseNode *pn, JSTreeContext *tc)
         return NULL;
 
     ALE_SET_DEFN(ale, dn);
+    dn->pn_type = TOK_NAME;
+    dn->pn_op = JSOP_NOP;
     dn->pn_defn = true;
     dn->pn_dflags |= PND_PLACEHOLDER;
     return ale;
@@ -2051,6 +2053,7 @@ Parser::markFunArgs(JSFunctionBox *funbox, uintN tcflags)
                             afunbox = afunbox->parent;
                             --staticLevel;
                         }
+                        JS_ASSERT(afunbox->level + 1U == calleeLevel);
                         afunbox->node->setFunArg();
                     } else {
                        afunbox = lexdep->pn_funbox;
@@ -2609,11 +2612,9 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
                 DeoptimizeUsesWithin(dn, fn->pn_pos);
             }
 
-            JSDefinition *outer_dn;
-
             if (!outer_ale)
                 outer_ale = tc->lexdeps.lookup(atom);
-            if (outer_ale) {
+            if (!outer_ale) {
                 
 
 
@@ -2627,40 +2628,54 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
 
 
 
-                outer_dn = ALE_DEFN(outer_ale);
-
-                if (dn != outer_dn) {
-                    JSParseNode **pnup = &dn->dn_uses;
-                    JSParseNode *pnu;
-
-                    while ((pnu = *pnup) != NULL) {
-                        pnu->pn_lexdef = outer_dn;
-                        pnup = &pnu->pn_link;
-                    }
-
-                    
 
 
 
 
 
-                    *pnup = outer_dn->dn_uses;
-                    outer_dn->dn_uses = dn;
-                    outer_dn->pn_dflags |= dn->pn_dflags & ~PND_PLACEHOLDER;
-                    dn->pn_defn = false;
-                    dn->pn_used = true;
-                    dn->pn_lexdef = outer_dn;
 
-                    
-                }
-            } else {
-                
-                outer_ale = tc->lexdeps.add(tc->parser, atom);
-                if (!outer_ale)
-                    return false;
-                outer_dn = ALE_DEFN(ale);
-                ALE_SET_DEFN(outer_ale, outer_dn);
+                outer_ale = MakePlaceholder(dn, tc);
             }
+
+            JSDefinition *outer_dn = ALE_DEFN(outer_ale);
+
+            
+
+
+
+
+
+
+
+
+
+
+
+
+            if (dn != outer_dn) {
+                JSParseNode **pnup = &dn->dn_uses;
+                JSParseNode *pnu;
+
+                while ((pnu = *pnup) != NULL) {
+                    pnu->pn_lexdef = outer_dn;
+                    pnup = &pnu->pn_link;
+                }
+
+                
+
+
+
+
+
+                *pnup = outer_dn->dn_uses;
+                outer_dn->dn_uses = dn;
+                outer_dn->pn_dflags |= dn->pn_dflags & ~PND_PLACEHOLDER;
+                dn->pn_defn = false;
+                dn->pn_used = true;
+                dn->pn_lexdef = outer_dn;
+            }
+
+            
             outer_dn->pn_dflags |= PND_CLOSED;
         }
 
@@ -4777,10 +4792,6 @@ RebindLets(JSParseNode *pn, JSTreeContext *tc)
                     ale = MakePlaceholder(pn, tc);
                     if (!ale)
                         return NULL;
-
-                    JSDefinition *dn = ALE_DEFN(ale);
-                    dn->pn_type = TOK_NAME;
-                    dn->pn_op = JSOP_NOP;
                 }
                 LinkUseToDef(pn, ALE_DEFN(ale), tc);
             }
@@ -8632,8 +8643,6 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
 
 
-                    JS_ASSERT(PN_TYPE(dn) == TOK_NAME);
-                    JS_ASSERT(dn->pn_op == JSOP_NOP);
                     if (tokenStream.peekToken() != TOK_LP)
                         dn->pn_dflags |= PND_FUNARG;
                 }
