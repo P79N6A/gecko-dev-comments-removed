@@ -198,9 +198,7 @@ typedef enum {
 
 
 
-#ifdef JS_ION
     JSTRACE_IONCODE,
-#endif
 #if JS_HAS_XML_SUPPORT
     JSTRACE_XML,
 #endif
