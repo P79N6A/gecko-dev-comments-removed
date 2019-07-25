@@ -235,7 +235,6 @@ private:
     PRInt32 mGeolocationWatchID;
     int mRunToCompletionDepth;
     bool mShouldCallUnblockChild;
-    nsCOMPtr<nsIThreadObserver> mOldObserver;
 
     
     
