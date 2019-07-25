@@ -6,8 +6,10 @@
 #define mozilla_osfileconstants_h__
 
 #include "jspubtd.h"
+#include "nsIOSFileConstantsService.h"
 
 namespace mozilla {
+
 
 
 
@@ -27,7 +29,8 @@ nsresult InitOSFileConstants();
 
 
 
-nsresult CleanupOSFileConstants();
+
+void CleanupOSFileConstants();
 
 
 
@@ -36,6 +39,19 @@ nsresult CleanupOSFileConstants();
 
 
 bool DefineOSFileConstants(JSContext *cx, JSObject *global);
+
+
+
+
+class OSFileConstantsService: public nsIOSFileConstantsService
+{
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOSFILECONSTANTSSERVICE
+  OSFileConstantsService();
+private:
+  ~OSFileConstantsService();
+};
 
 }
 
