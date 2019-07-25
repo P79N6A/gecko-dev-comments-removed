@@ -1065,14 +1065,6 @@ SessionStoreService.prototype = {
       if (length > maxTabsUndo)
         this._windows[aWindow.__SSi]._closedTabs.splice(maxTabsUndo, length - maxTabsUndo);
     }
-
-    
-    
-    if (aTab._tPos < this._windows[aWindow.__SSi].tabs.length) {
-      var oldTab = this._windows[aWindow.__SSi].tabs[aTab._tPos];
-      if (oldTab.entries[oldTab.index - 1].url == aTab.linkedBrowser.currentURI.spec)
-        this._windows[aWindow.__SSi].tabs.splice(aTab._tPos, 1);
-    }
   },
 
   
