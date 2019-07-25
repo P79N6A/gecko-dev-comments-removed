@@ -367,6 +367,7 @@ function AddonType(aID, aLocaleURI, aLocaleKey, aViewType, aUIPriority, aFlags) 
 }
 
 var gStarted = false;
+var gStartupComplete = false;
 var gCheckCompatibility = true;
 var gStrictCompatibility = true;
 var gCheckUpdateSecurityDefault = true;
@@ -535,6 +536,9 @@ var AddonManagerInternal = {
       }
     }
 
+    
+    gStarted = true;
+
     this.callProviders("startup", appChanged, oldAppVersion,
                        oldPlatformVersion);
 
@@ -544,7 +548,8 @@ var AddonManagerInternal = {
         delete this.startupChanges[type];
     }
 
-    gStarted = true;
+    Services.obs.addObserver(this, "xpcom-shutdown", false);
+    gStartupComplete = true;
   },
 
   
@@ -667,6 +672,7 @@ var AddonManagerInternal = {
 
 
   shutdown: function AMI_shutdown() {
+    Services.obs.removeObserver(this, "xpcom-shutdown");
     Services.prefs.removeObserver(PREF_EM_CHECK_COMPATIBILITY, this);
     Services.prefs.removeObserver(PREF_EM_STRICT_COMPATIBILITY, this);
     Services.prefs.removeObserver(PREF_EM_CHECK_UPDATE_SECURITY, this);
@@ -674,7 +680,10 @@ var AddonManagerInternal = {
     Services.prefs.removeObserver(PREF_EM_AUTOUPDATE_DEFAULT, this);
     Services.prefs.removeObserver(PREF_EM_HOTFIX_ID, this);
 
-    this.callProviders("shutdown");
+    
+    
+    if (gStarted)
+      this.callProviders("shutdown");
 
     this.managerListeners.splice(0, this.managerListeners.length);
     this.installListeners.splice(0, this.installListeners.length);
@@ -683,6 +692,7 @@ var AddonManagerInternal = {
     for (let type in this.startupChanges)
       delete this.startupChanges[type];
     gStarted = false;
+    gStartupComplete = false;
   },
 
   
@@ -691,6 +701,11 @@ var AddonManagerInternal = {
 
 
   observe: function AMI_observe(aSubject, aTopic, aData) {
+    if (aSubject == "xpcom-shutdown") {
+      this.shutdown();
+      return;
+    }
+
     switch (aData) {
       case PREF_EM_CHECK_COMPATIBILITY: {
         let oldValue = gCheckCompatibility;
@@ -852,6 +867,10 @@ var AddonManagerInternal = {
 
 
   backgroundUpdateCheck: function AMI_backgroundUpdateCheck() {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     let hotfixID = this.hotfixID;
 
     let checkHotfix = hotfixID &&
@@ -1033,7 +1052,7 @@ var AddonManagerInternal = {
       throw Components.Exception("aID must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
 
-    if (gStarted)
+    if (gStartupComplete)
       return;
 
     
@@ -1062,7 +1081,7 @@ var AddonManagerInternal = {
       throw Components.Exception("aID must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
 
-    if (gStarted)
+    if (gStartupComplete)
       return;
 
     if (!(aType in this.startupChanges))
@@ -1079,6 +1098,10 @@ var AddonManagerInternal = {
 
 
   callManagerListeners: function AMI_callManagerListeners(aMethod, ...aArgs) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!aMethod || typeof aMethod != "string")
       throw Components.Exception("aMethod must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1106,6 +1129,10 @@ var AddonManagerInternal = {
 
 
   callInstallListeners: function AMI_callInstallListeners(aMethod, aExtraListeners, ...aArgs) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!aMethod || typeof aMethod != "string")
       throw Components.Exception("aMethod must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1143,6 +1170,10 @@ var AddonManagerInternal = {
 
 
   callAddonListeners: function AMI_callAddonListeners(aMethod, ...aArgs) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!aMethod || typeof aMethod != "string")
       throw Components.Exception("aMethod must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1173,6 +1204,10 @@ var AddonManagerInternal = {
 
 
   notifyAddonChanged: function AMI_notifyAddonChanged(aID, aType, aPendingRestart) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (aID && typeof aID != "string")
       throw Components.Exception("aID must be a string or null",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1190,9 +1225,13 @@ var AddonManagerInternal = {
 
 
   updateAddonAppDisabledStates: function AMI_updateAddonAppDisabledStates() {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     this.callProviders("updateAddonAppDisabledStates");
   },
-  
+
   
 
 
@@ -1201,6 +1240,10 @@ var AddonManagerInternal = {
 
 
   updateAddonRepositoryData: function AMI_updateAddonRepositoryData(aCallback) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (typeof aCallback != "function")
       throw Components.Exception("aCallback must be a function",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1242,6 +1285,10 @@ var AddonManagerInternal = {
   getInstallForURL: function AMI_getInstallForURL(aUrl, aCallback, aMimetype,
                                                   aHash, aName, aIconURL,
                                                   aVersion, aLoadGroup) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!aUrl || typeof aUrl != "string")
       throw Components.Exception("aURL must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1300,6 +1347,10 @@ var AddonManagerInternal = {
 
 
   getInstallForFile: function AMI_getInstallForFile(aFile, aCallback, aMimetype) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!(aFile instanceof Ci.nsIFile))
       throw Components.Exception("aFile must be a nsIFile",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1340,6 +1391,10 @@ var AddonManagerInternal = {
 
 
   getInstallsByTypes: function AMI_getInstallsByTypes(aTypes, aCallback) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (aTypes && !Array.isArray(aTypes))
       throw Components.Exception("aTypes must be an array or null",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1372,6 +1427,10 @@ var AddonManagerInternal = {
 
 
   getAllInstalls: function AMI_getAllInstalls(aCallback) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     this.getInstallsByTypes(null, aCallback);
   },
 
@@ -1383,6 +1442,10 @@ var AddonManagerInternal = {
 
 
   isInstallEnabled: function AMI_isInstallEnabled(aMimetype) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!aMimetype || typeof aMimetype != "string")
       throw Components.Exception("aMimetype must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1407,6 +1470,10 @@ var AddonManagerInternal = {
 
 
   isInstallAllowed: function AMI_isInstallAllowed(aMimetype, aURI) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!aMimetype || typeof aMimetype != "string")
       throw Components.Exception("aMimetype must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1441,6 +1508,10 @@ var AddonManagerInternal = {
                                                                   aSource,
                                                                   aURI,
                                                                   aInstalls) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!aMimetype || typeof aMimetype != "string")
       throw Components.Exception("aMimetype must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1544,6 +1615,10 @@ var AddonManagerInternal = {
 
 
   getAddonByID: function AMI_getAddonByID(aID, aCallback) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!aID || typeof aID != "string")
       throw Components.Exception("aID must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1578,6 +1653,10 @@ var AddonManagerInternal = {
 
 
   getAddonBySyncGUID: function AMI_getAddonBySyncGUID(aGUID, aCallback) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!aGUID || typeof aGUID != "string")
       throw Components.Exception("aGUID must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1613,6 +1692,10 @@ var AddonManagerInternal = {
 
 
   getAddonsByIDs: function AMI_getAddonsByIDs(aIDs, aCallback) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (!Array.isArray(aIDs))
       throw Components.Exception("aIDs must be an array",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1647,6 +1730,10 @@ var AddonManagerInternal = {
 
 
   getAddonsByTypes: function AMI_getAddonsByTypes(aTypes, aCallback) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (aTypes && !Array.isArray(aTypes))
       throw Components.Exception("aTypes must be an array or null",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1679,6 +1766,14 @@ var AddonManagerInternal = {
 
 
   getAllAddons: function AMI_getAllAddons(aCallback) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
+    if (typeof aCallback != "function")
+      throw Components.Exception("aCallback must be a function",
+                                 Cr.NS_ERROR_INVALID_ARG);
+
     this.getAddonsByTypes(null, aCallback);
   },
 
@@ -1694,6 +1789,10 @@ var AddonManagerInternal = {
 
   getAddonsWithOperationsByTypes:
   function AMI_getAddonsWithOperationsByTypes(aTypes, aCallback) {
+    if (!gStarted)
+      throw Components.Exception("AddonManager is not initialized",
+                                 Cr.NS_ERROR_NOT_INITIALIZED);
+
     if (aTypes && !Array.isArray(aTypes))
       throw Components.Exception("aTypes must be an array or null",
                                  Cr.NS_ERROR_INVALID_ARG);
@@ -1779,7 +1878,6 @@ var AddonManagerInternal = {
     if (!aListener || typeof aListener != "object")
       throw Components.Exception("aListener must be an AddonListener object",
                                  Cr.NS_ERROR_INVALID_ARG);
-
 
     let pos = 0;
     while (pos < this.addonListeners.length) {
@@ -1918,10 +2016,6 @@ var AddonManagerPrivate = {
 
   unregisterProvider: function AMP_unregisterProvider(aProvider) {
     AddonManagerInternal.unregisterProvider(aProvider);
-  },
-
-  shutdown: function AMP_shutdown() {
-    AddonManagerInternal.shutdown();
   },
 
   backgroundUpdateCheck: function AMP_backgroundUpdateCheck() {
