@@ -39,7 +39,6 @@
 #include "jscntxt.h"
 
 #include "nsDOMWorker.h"
-#include "nsAtomicRefcnt.h"
 
 #include "nsIDOMEvent.h"
 #include "nsIEventTarget.h"
@@ -951,7 +950,7 @@ NS_IMETHODIMP_(nsrefcnt)
 nsDOMWorkerFeature::AddRef()
 {
   NS_ASSERTION(mRefCnt >= 0, "Illegal refcnt!");
-  return NS_AtomicIncrementRefcnt(mRefCnt);
+  return PR_AtomicIncrement((PRInt32*)&mRefCnt);
 }
 
 
@@ -962,7 +961,7 @@ NS_IMETHODIMP_(nsrefcnt)
 nsDOMWorkerFeature::Release()
 {
   NS_ASSERTION(mRefCnt, "Double release!");
-  nsrefcnt count = NS_AtomicDecrementRefcnt(mRefCnt);
+  nsrefcnt count = PR_AtomicDecrement((PRInt32*)&mRefCnt);
   if (count == 0) {
     if (mFreeToDie) {
       mRefCnt = 1;
@@ -1612,14 +1611,10 @@ nsDOMWorker::CompileGlobalObject(JSContext* aCx)
   const PRUint32 flags = nsIXPConnect::INIT_JS_STANDARD_CLASSES |
                          nsIXPConnect::OMIT_COMPONENTS_OBJECT;
 
-  nsCAutoString origin("DOM worker: ");
-  origin.AppendInt((PRUint64)this);
-
   nsCOMPtr<nsIXPConnectJSObjectHolder> globalWrapper;
   nsresult rv =
     xpc->InitClassesWithNewWrappedGlobal(aCx, scopeSupports,
-                                         NS_GET_IID(nsISupports), nsnull,
-                                         origin, flags,
+                                         NS_GET_IID(nsISupports), flags,
                                          getter_AddRefs(globalWrapper));
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
 

@@ -66,7 +66,7 @@ class nsIParser;
 class nsIURI;
 class nsIMarkupDocumentViewer;
 class nsIDocumentCharsetInfo;
-class nsICachingChannel;
+class nsICacheEntryDescriptor;
 
 class nsHTMLDocument : public nsDocument,
                        public nsIHTMLDocument,
@@ -104,6 +104,10 @@ public:
   virtual void BeginLoad();
 
   virtual void EndLoad();
+
+  virtual nsresult AddImageMap(nsIDOMHTMLMapElement* aMap);
+
+  virtual void RemoveImageMap(nsIDOMHTMLMapElement* aMap);
 
   virtual nsIDOMHTMLMapElement *GetImageMap(const nsAString& aMapName);
 
@@ -154,21 +158,18 @@ public:
   NS_IMETHOD Writeln(const nsAString & text);
   NS_IMETHOD GetElementsByName(const nsAString & elementName,
                                nsIDOMNodeList **_retval);
-
-  
-
-
-
-
-  nsISupports *GetDocumentAllResult(const nsAString& aID,
-                                    nsWrapperCache **aCache,
-                                    nsresult *aResult);
-
+  virtual nsresult GetDocumentAllResult(const nsAString& aID,
+                                        nsISupports** aResult);
   nsIContent *GetBody(nsresult *aResult);
   already_AddRefed<nsContentList> GetElementsByName(const nsAString & aName)
   {
-    return NS_GetFuncStringContentList(this, MatchNameAttribute, nsnull,
-                                       UseExistingNameString, aName);
+    nsString* elementNameData = new nsString(aName);
+
+    return NS_GetFuncStringContentList(this,
+                                       MatchNameAttribute,
+                                       nsContentUtils::DestroyMatchString,
+                                       elementNameData,
+                                       *elementNameData);
   }
 
   
@@ -176,8 +177,7 @@ public:
 
   virtual nsresult ResolveName(const nsAString& aName,
                                nsIDOMHTMLFormElement *aForm,
-                               nsISupports **aResult,
-                               nsWrapperCache **aCache);
+                               nsISupports **aResult);
 
   virtual void ScriptLoading(nsIScriptElement *aScript);
   virtual void ScriptExecuted(nsIScriptElement *aScript);
@@ -245,7 +245,6 @@ public:
     return nsDocument::GetElementById(aElementId);
   }
 
-  virtual nsXPCClassInfo* GetClassInfo();
 protected:
   nsresult GetBodySize(PRInt32* aWidth,
                        PRInt32* aHeight);
@@ -260,7 +259,6 @@ protected:
                              nsIAtom* aAtom, void* aData);
   static PRBool MatchNameAttribute(nsIContent* aContent, PRInt32 aNamespaceID,
                                    nsIAtom* aAtom, void* aData);
-  static void* UseExistingNameString(nsINode* aRootNode, const nsString* aName);
 
   static void DocumentWriteTerminationFunc(nsISupports *aRef);
 
@@ -285,6 +283,8 @@ protected:
     return kNameSpaceID_XHTML;
   }
 
+  nsCOMArray<nsIDOMHTMLMapElement> mImageMaps;
+
   nsCOMPtr<nsIDOMHTMLCollection> mImages;
   nsCOMPtr<nsIDOMHTMLCollection> mApplets;
   nsCOMPtr<nsIDOMHTMLCollection> mEmbeds;
@@ -292,7 +292,6 @@ protected:
   nsCOMPtr<nsIDOMHTMLCollection> mAnchors;
   nsRefPtr<nsContentList> mForms;
   nsRefPtr<nsContentList> mFormControls;
-  nsRefPtr<nsContentList> mImageMaps;
 
   
   PRInt32 mNumForms;
@@ -306,7 +305,7 @@ protected:
                                      nsIDocumentCharsetInfo*  aDocInfo,
                                      PRInt32& aCharsetSource,
                                      nsACString& aCharset);
-  static PRBool TryCacheCharset(nsICachingChannel* aCachingChannel,
+  static PRBool TryCacheCharset(nsICacheEntryDescriptor* aCacheDescriptor,
                                 PRInt32& aCharsetSource,
                                 nsACString& aCharset);
   static PRBool TryBookmarkCharset(nsIDocShell* aDocShell,
@@ -360,8 +359,6 @@ protected:
   PRPackedBool mTooDeepWriteRecursion;
 
   PRPackedBool mDisableDocWrite;
-
-  PRPackedBool mWarnedWidthHeight;
 
   nsCOMPtr<nsIWyciwygChannel> mWyciwygChannel;
 

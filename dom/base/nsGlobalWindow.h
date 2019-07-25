@@ -66,7 +66,6 @@
 #include "nsIDOMNSEventTarget.h"
 #include "nsIDOMNavigator.h"
 #include "nsIDOMNavigatorGeolocation.h"
-#include "nsIDOMNavigatorDesktopNotification.h"
 #include "nsIDOMLocation.h"
 #include "nsIDOMWindowInternal.h"
 #include "nsIInterfaceRequestor.h"
@@ -102,9 +101,7 @@
 #include "nsPIDOMEventTarget.h"
 #include "nsIArray.h"
 #include "nsIContent.h"
-#include "nsIIDBFactory.h"
 #include "nsFrameMessageManager.h"
-#include "mozilla/TimeStamp.h"
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
@@ -183,11 +180,7 @@ struct nsTimeout : PRCList
 
   
   
-  
-  
-  mozilla::TimeStamp mWhen;
-  
-  mozilla::TimeDuration mTimeRemaining;
+  PRTime mWhen;
 
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
@@ -256,10 +249,6 @@ public:
   
   virtual nsIScriptContext *GetContext();
   virtual JSObject *GetGlobalJSObject();
-  JSObject *FastGetGlobalJSObject()
-  {
-    return mJSObject;
-  }
 
   virtual nsresult EnsureScriptEnvironment(PRUint32 aLangID);
 
@@ -349,7 +338,6 @@ public:
   virtual NS_HIDDEN_(void) SetDocShell(nsIDocShell* aDocShell);
   virtual NS_HIDDEN_(nsresult) SetNewDocument(nsIDocument *aDocument,
                                               nsISupports *aState);
-  void DispatchDOMWindowCreated();
   virtual NS_HIDDEN_(void) SetOpenerWindow(nsIDOMWindowInternal *aOpener,
                                            PRBool aOriginalOpener);
   virtual NS_HIDDEN_(void) EnsureSizeUpToDate();
@@ -361,8 +349,6 @@ public:
   virtual NS_HIDDEN_(nsresult) ForceClose();
 
   virtual NS_HIDDEN_(void) SetHasOrientationEventListener();
-  virtual NS_HIDDEN_(void) MaybeUpdateTouchState();
-  virtual NS_HIDDEN_(void) UpdateTouchState();
 
   
   NS_DECL_NSIDOMVIEWCSS
@@ -384,11 +370,6 @@ public:
     
     return (nsGlobalWindow *)(nsIScriptGlobalObject *)supports;
   }
-  static nsISupports *ToSupports(nsGlobalWindow *win)
-  {
-    
-    return (nsISupports *)(nsIScriptGlobalObject *)win;
-  }
   static nsGlobalWindow *FromWrapper(nsIXPConnectWrappedNative *wrapper)
   {
     return FromSupports(wrapper->Native());
@@ -405,13 +386,12 @@ public:
 
   nsIScriptContext *GetScriptContextInternal(PRUint32 aLangID)
   {
-    NS_ASSERTION(aLangID == nsIProgrammingLanguage::JAVASCRIPT,
-                 "We don't support this language ID");
+    NS_ASSERTION(NS_STID_VALID(aLangID), "Invalid language");
     if (mOuterWindow) {
-      return GetOuterWindowInternal()->mContext;
+      return GetOuterWindowInternal()->mScriptContexts[NS_STID_INDEX(aLangID)];
     }
 
-    return mContext;
+    return mScriptContexts[NS_STID_INDEX(aLangID)];
   }
 
   nsGlobalWindow *GetOuterWindowInternal()
@@ -480,15 +460,6 @@ public:
             mInClose ||
             mHavePendingClose ||
             mCleanedUp);
-  }
-
-  static void FirePopupBlockedEvent(nsIDOMDocument* aDoc,
-                                    nsIDOMWindow *aRequestingWindow, nsIURI *aPopupURI,
-                                    const nsAString &aPopupWindowName,
-                                    const nsAString &aPopupWindowFeatures);
-
-  virtual PRUint32 GetSerial() {
-    return mSerial;
   }
 
 protected:
@@ -578,7 +549,6 @@ protected:
   static void CloseWindow(nsISupports* aWindow);
   static void ClearWindowScope(nsISupports* aWindow);
 
-  
   
   
   nsresult SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
@@ -713,8 +683,6 @@ protected:
   
   void ClearStatus();
 
-  virtual void UpdateParentTarget();
-
   
   
   
@@ -801,9 +769,12 @@ protected:
   nsRefPtr<nsBarProp>           mStatusbar;
   nsRefPtr<nsBarProp>           mScrollbars;
   nsCOMPtr<nsIWeakReference>    mWindowUtils;
+  nsRefPtr<nsLocation>          mLocation;
   nsString                      mStatus;
   nsString                      mDefaultStatus;
   
+  nsCOMPtr<nsIScriptContext>    mScriptContexts[NS_STID_ARRAY_UBOUND];
+  void *                        mScriptGlobals[NS_STID_ARRAY_UBOUND];
   nsGlobalWindowObserver*       mObserver;
 
   nsCOMPtr<nsIDOMCrypto>        mCrypto;
@@ -811,7 +782,7 @@ protected:
   nsCOMPtr<nsIDOMStorage>      mLocalStorage;
   nsCOMPtr<nsIDOMStorage>      mSessionStorage;
 
-  nsCOMPtr<nsIXPConnectJSObjectHolder> mInnerWindowHolder;
+  nsCOMPtr<nsISupports>         mInnerWindowHolders[NS_STID_ARRAY_UBOUND];
   nsCOMPtr<nsIPrincipal> mOpenerScriptPrincipal; 
                                                  
 
@@ -822,7 +793,6 @@ protected:
   nsTimeout*                    mTimeoutInsertionPoint;
   PRUint32                      mTimeoutPublicIdCounter;
   PRUint32                      mTimeoutFiringDepth;
-  nsRefPtr<nsLocation>          mLocation;
 
   
   
@@ -842,10 +812,9 @@ protected:
   
   PRUint32 mFocusMethod;
 
-  PRUint32 mSerial;
-
 #ifdef DEBUG
   PRBool mSetOpenerWindowCalled;
+  PRUint32 mSerial;
   nsCOMPtr<nsIURI> mLastOpenedURI;
 #endif
 
@@ -856,8 +825,6 @@ protected:
   nsDataHashtable<nsVoidPtrHashKey, void*> mCachedXBLPrototypeHandlers;
 
   nsCOMPtr<nsIDocument> mSuspendedDoc;
-
-  nsCOMPtr<nsIIDBFactory> mIndexedDB;
 
   
   
@@ -892,6 +859,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsGlobalChromeWindow,
                                                      nsGlobalWindow)
 
+protected:
   nsCOMPtr<nsIBrowserDOMWindow> mBrowserDOMWindow;
   nsCOMPtr<nsIChromeFrameMessageManager> mMessageManager;
 };
@@ -929,9 +897,9 @@ protected:
 
 
 class nsNavigator : public nsIDOMNavigator,
+                    public nsIDOMJSNavigator,
                     public nsIDOMClientInformation,
-                    public nsIDOMNavigatorGeolocation,
-                    public nsIDOMNavigatorDesktopNotification
+                    public nsIDOMNavigatorGeolocation
 {
 public:
   nsNavigator(nsIDocShell *aDocShell);
@@ -939,9 +907,9 @@ public:
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMNAVIGATOR
+  NS_DECL_NSIDOMJSNAVIGATOR
   NS_DECL_NSIDOMCLIENTINFORMATION
   NS_DECL_NSIDOMNAVIGATORGEOLOCATION
-  NS_DECL_NSIDOMNAVIGATORDESKTOPNOTIFICATION
   
   void SetDocShell(nsIDocShell *aDocShell);
   nsIDocShell *GetDocShell()
@@ -957,6 +925,8 @@ protected:
   nsRefPtr<nsPluginArray> mPlugins;
   nsRefPtr<nsGeolocation> mGeolocation;
   nsIDocShell* mDocShell; 
+
+  static jsid sPrefInternal_id;
 };
 
 class nsIURI;

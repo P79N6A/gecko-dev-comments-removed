@@ -118,18 +118,6 @@ IdToJsval(jsid id)
 
 }
 
-#ifdef DEBUG
-
-
-
-
-static JS_ALWAYS_INLINE bool
-operator==(jsid lhs, jsid rhs)
-{
-    return JSID_BITS(lhs) == JSID_BITS(rhs);
-}
-#endif
-
 #if JS_BYTES_PER_WORD == 4
 # define ATOM_HASH(atom)          ((JSHashNumber)(atom) >> 2)
 #elif JS_BYTES_PER_WORD == 8

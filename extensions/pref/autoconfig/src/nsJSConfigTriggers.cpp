@@ -45,6 +45,7 @@
 #include "nsIXPConnect.h"
 #include "nsIJSRuntimeService.h"
 #include "nsCOMPtr.h"
+#include "nsIGenericFactory.h"
 #include "nsIServiceManager.h"
 #include "nsIComponentManager.h"
 #include "nsString.h"
@@ -107,7 +108,7 @@ static  JSContext *autoconfig_cx = nsnull;
 static  JSObject *autoconfig_glob;
 
 static JSClass global_class = {
-    "autoconfig_global", JSCLASS_GLOBAL_FLAGS,
+    "autoconfig_global", 0,
     JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,
     JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,   nsnull
 };

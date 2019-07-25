@@ -146,6 +146,14 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
             return;
     }
 
+    
+    
+
+    NS_ASSERTION(!callBeginRequest || mCallerLanguage == NATIVE_CALLER,
+                 "Don't call JS_BeginRequest unless the caller is native.");
+    if(callBeginRequest)
+        JS_BeginRequest(mJSContext);
+
     if(topJSContext != mJSContext)
     {
         if(NS_FAILED(stack->Push(mJSContext)))
@@ -155,14 +163,6 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
         }
         mContextPopRequired = JS_TRUE;
     }
-
-    
-    
-
-    NS_ASSERTION(!callBeginRequest || mCallerLanguage == NATIVE_CALLER,
-                 "Don't call JS_BeginRequest unless the caller is native.");
-    if(callBeginRequest)
-        JS_BeginRequest(mJSContext);
 
     mXPCContext = XPCContext::GetXPCContext(mJSContext);
     mPrevCallerLanguage = mXPCContext->SetCallingLangType(mCallerLanguage);
@@ -386,10 +386,6 @@ XPCCallContext::~XPCCallContext()
         shouldReleaseXPC = mPrevCallContext == nsnull;
     }
 
-    
-    if(mJSContext && mCallerLanguage == NATIVE_CALLER)
-        JS_EndRequest(mJSContext);
-
     if(mContextPopRequired)
     {
         XPCJSContextStack* stack = mThreadData->GetJSContextStack();
@@ -408,6 +404,9 @@ XPCCallContext::~XPCCallContext()
 
     if(mJSContext)
     {
+        if(mCallerLanguage == NATIVE_CALLER)
+            JS_EndRequest(mJSContext);
+        
         if(mDestroyJSContextInDestructor)
         {
 #ifdef DEBUG_xpc_hacker

@@ -779,6 +779,10 @@ int main()
     {
         nsCOMPtr<nsIServiceManager> servMan;
         NS_InitXPCOM2(getter_AddRefs(servMan), nsnull, nsnull);
+        nsCOMPtr<nsIComponentRegistrar> registrar = do_QueryInterface(servMan);
+        NS_ASSERTION(registrar, "Null nsIComponentRegistrar");
+        if(registrar)
+            registrar->AutoRegister(nsnull);
     
         
         nsCOMPtr<nsIJSRuntimeService> rtsvc =
@@ -810,12 +814,9 @@ int main()
 
         {
             JSAutoRequest ar(jscontext);
-            glob = JS_NewCompartmentAndGlobalObject(jscontext, &global_class, NULL);
+            glob = JS_NewGlobalObject(jscontext, &global_class);
             if (!glob)
                 DIE("FAILED to create global object");
-
-            JSAutoEnterCompartment autoCompartment(jscontext, glob);
-
             if (!JS_InitStandardClasses(jscontext, glob))
                 DIE("FAILED to init standard classes");
             if (!JS_DefineFunctions(jscontext, glob, glob_functions))

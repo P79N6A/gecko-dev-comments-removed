@@ -99,7 +99,7 @@
 #include "nsIDOMHTMLHeadElement.h"
 #include "nsINameSpaceManager.h"
 #include "nsGenericHTMLElement.h"
-#include "mozilla/css/Loader.h"
+#include "nsCSSLoader.h"
 #include "nsIHttpChannel.h"
 #include "nsIFile.h"
 #include "nsIEventListenerManager.h"
@@ -117,6 +117,7 @@
 #include "nsIDocumentEncoder.h" 
 #include "nsICharsetResolver.h"
 #include "nsICachingChannel.h"
+#include "nsICacheEntryDescriptor.h"
 #include "nsIJSContextStack.h"
 #include "nsIDocumentViewer.h"
 #include "nsIWyciwygChannel.h"
@@ -206,19 +207,6 @@ MyPrefChangedCallback(const char*aPrefName, void* instance_data)
 
 
 
-static void
-ReportUseOfDeprecatedMethod(nsHTMLDocument* aDoc, const char* aWarning)
-{
-  nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
-                                  aWarning,
-                                  nsnull, 0,
-                                  static_cast<nsIDocument*>(aDoc)->
-                                    GetDocumentURI(),
-                                  EmptyString(), 0, 0,
-                                  nsIScriptError::warningFlag,
-                                  "DOM Events");
-}
-
 nsresult
 NS_NewHTMLDocument(nsIDocument** aInstancePtrResult)
 {
@@ -256,6 +244,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsHTMLDocument)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsHTMLDocument, nsDocument)
   NS_ASSERTION(!nsCCUncollectableMarker::InGeneration(cb, tmp->GetMarkedCCGeneration()),
                "Shouldn't traverse nsHTMLDocument!");
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mImageMaps)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mImages)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mApplets)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mEmbeds)
@@ -264,14 +253,13 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsHTMLDocument, nsDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mForms, nsIDOMNodeList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mFormControls,
                                                        nsIDOMNodeList)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mImageMaps,
-                                                       nsIDOMNodeList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mWyciwygChannel)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mMidasCommandManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFragmentParser)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsHTMLDocument, nsDocument)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mImageMaps)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mImages)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mApplets)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mEmbeds)
@@ -279,7 +267,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsHTMLDocument, nsDocument)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mAnchors)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mForms)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFormControls)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mImageMaps)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mWyciwygChannel)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mMidasCommandManager)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFragmentParser)
@@ -289,7 +276,7 @@ NS_IMPL_ADDREF_INHERITED(nsHTMLDocument, nsDocument)
 NS_IMPL_RELEASE_INHERITED(nsHTMLDocument, nsDocument)
 
 
-DOMCI_NODE_DATA(HTMLDocument, nsHTMLDocument)
+DOMCI_DATA(HTMLDocument, nsHTMLDocument)
 
 
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLDocument)
@@ -344,6 +331,7 @@ nsHTMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   mLinks = nsnull;
   mAnchors = nsnull;
 
+  mImageMaps.Clear();
   mForms = nsnull;
 
   NS_ASSERTION(!mWyciwygChannel,
@@ -354,7 +342,7 @@ nsHTMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   
   
   
-  SetContentTypeInternal(nsDependentCString("text/html"));
+  mContentType = "text/html";
 }
 
 nsStyleSet::sheetType
@@ -444,7 +432,7 @@ nsHTMLDocument::TryUserForcedCharset(nsIMarkupDocumentViewer* aMarkupDV,
 }
 
 PRBool
-nsHTMLDocument::TryCacheCharset(nsICachingChannel* aCachingChannel,
+nsHTMLDocument::TryCacheCharset(nsICacheEntryDescriptor* aCacheDescriptor,
                                 PRInt32& aCharsetSource,
                                 nsACString& aCharset)
 {
@@ -454,8 +442,9 @@ nsHTMLDocument::TryCacheCharset(nsICachingChannel* aCachingChannel,
     return PR_TRUE;
   }
 
-  nsCString cachedCharset;
-  rv = aCachingChannel->GetCacheTokenCachedCharset(cachedCharset);
+  nsXPIDLCString cachedCharset;
+  rv = aCacheDescriptor->GetMetaDataElement("charset",
+                                           getter_Copies(cachedCharset));
   if (NS_SUCCEEDED(rv) && !cachedCharset.IsEmpty())
   {
     aCharset = cachedCharset;
@@ -749,6 +738,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
     }
   }
 
+  nsCOMPtr<nsICacheEntryDescriptor> cacheDescriptor;
   nsresult rv = nsDocument::StartDocumentLoad(aCommand,
                                               aChannel, aLoadGroup,
                                               aContainer,
@@ -767,6 +757,12 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   }
 
   nsCOMPtr<nsICachingChannel> cachingChan = do_QueryInterface(aChannel);
+  if (cachingChan) {
+    nsCOMPtr<nsISupports> cacheToken;
+    cachingChan->GetCacheToken(getter_AddRefs(cacheToken));
+    if (cacheToken)
+      cacheDescriptor = do_QueryInterface(cacheToken);
+  }
 
   if (needsParser) {
     if (loadAsHtml5) {
@@ -884,8 +880,8 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
                TryBookmarkCharset(docShell, aChannel, charsetSource, charset)) {
         
       }
-      else if (cachingChan && !urlSpec.IsEmpty() &&
-               TryCacheCharset(cachingChan, charsetSource, charset)) {
+      else if (cacheDescriptor && !urlSpec.IsEmpty() &&
+               TryCacheCharset(cacheDescriptor, charsetSource, charset)) {
         
       }
       else if (TryDefaultCharset(muCV, charsetSource, charset)) {
@@ -962,11 +958,12 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   if (muCV && !muCVIsParent)
     muCV->SetPrevDocCharacterSet(charset);
 
-  if (cachingChan) {
+  if(cacheDescriptor) {
     NS_ASSERTION(charset == parserCharset,
                  "How did those end up different here?  wyciwyg channels are "
                  "not nsICachingChannel");
-    rv = cachingChan->SetCacheTokenCachedCharset(charset);
+    rv = cacheDescriptor->SetMetaDataElement("charset",
+                                             charset.get());
     NS_ASSERTION(NS_SUCCEEDED(rv),"cannot SetMetaDataElement");
   }
 
@@ -1170,20 +1167,39 @@ nsHTMLDocument::SetTitle(const nsAString& aTitle)
   return nsDocument::SetTitle(aTitle);
 }
 
+nsresult
+nsHTMLDocument::AddImageMap(nsIDOMHTMLMapElement* aMap)
+{
+  
+  
+  
+  NS_PRECONDITION(nsnull != aMap, "null ptr");
+  if (nsnull == aMap) {
+    return NS_ERROR_NULL_POINTER;
+  }
+  if (mImageMaps.AppendObject(aMap)) {
+    return NS_OK;
+  }
+  return NS_ERROR_OUT_OF_MEMORY;
+}
+
+void
+nsHTMLDocument::RemoveImageMap(nsIDOMHTMLMapElement* aMap)
+{
+  NS_PRECONDITION(nsnull != aMap, "null ptr");
+  mImageMaps.RemoveObject(aMap);
+}
+
 nsIDOMHTMLMapElement *
 nsHTMLDocument::GetImageMap(const nsAString& aMapName)
 {
-  if (!mImageMaps) {
-    mImageMaps = new nsContentList(this, nsGkAtoms::map, kNameSpaceID_XHTML);
-  }
-  NS_ASSERTION(mImageMaps, "Infallible malloc failed.");
-
-  nsIDOMHTMLMapElement* firstMatch = nsnull;
   nsAutoString name;
-  PRUint32 i, n = mImageMaps->Length(PR_TRUE);
+  PRUint32 i, n = mImageMaps.Count();
+  nsIDOMHTMLMapElement *firstMatch = nsnull;
+
   for (i = 0; i < n; ++i) {
-    nsCOMPtr<nsIDOMHTMLMapElement> map(
-      do_QueryInterface(mImageMaps->GetNodeAt(i)));
+    nsIDOMHTMLMapElement *map = mImageMaps[i];
+    NS_ASSERTION(map, "Null map in map list!");
 
     PRBool match;
     nsresult rv;
@@ -1231,7 +1247,7 @@ nsHTMLDocument::SetCompatibilityMode(nsCompatibility aMode)
 
   mCompatMode = aMode;
   CSSLoader()->SetCompatibilityMode(mCompatMode);
-  nsCOMPtr<nsIPresShell> shell = GetShell();
+  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
   if (shell) {
     nsPresContext *pc = shell->GetPresContext();
     if (pc) {
@@ -1247,7 +1263,34 @@ NS_IMETHODIMP
 nsHTMLDocument::CreateElement(const nsAString& aTagName,
                               nsIDOMElement** aReturn)
 {
-  return nsDocument::CreateElement(aTagName, aReturn);
+  *aReturn = nsnull;
+  nsresult rv;
+
+  nsAutoString tagName(aTagName);
+
+  
+  if (mCompatMode == eCompatibility_NavQuirks &&
+      tagName.Length() > 2 &&
+      tagName.First() == '<' &&
+      tagName.Last() == '>') {
+    tagName = Substring(tagName, 1, tagName.Length() - 2); 
+  }
+
+  rv = nsContentUtils::CheckQName(tagName, PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (IsHTML()) {
+    ToLowerCase(tagName);
+  }
+
+  nsCOMPtr<nsIAtom> name = do_GetAtom(tagName);
+
+  nsCOMPtr<nsIContent> content;
+  rv = CreateElem(name, nsnull, kNameSpaceID_XHTML, PR_TRUE,
+                  getter_AddRefs(content));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return CallQueryInterface(content, aReturn);
 }
 
 NS_IMETHODIMP
@@ -1549,8 +1592,16 @@ nsHTMLDocument::GetBody(nsresult *aResult)
 
   
   
-  nsRefPtr<nsContentList> nodeList =
-    NS_GetContentList(this, nsGkAtoms::frameset, kNameSpaceID_XHTML);
+  nsRefPtr<nsContentList> nodeList;
+
+  if (IsHTML()) {
+    nodeList = nsDocument::GetElementsByTagName(NS_LITERAL_STRING("frameset"));
+  } else {
+    nodeList =
+      nsDocument::GetElementsByTagNameNS(NS_LITERAL_STRING("http://www.w3.org/1999/xhtml"),
+                             NS_LITERAL_STRING("frameset"));
+  }
+
   if (!nodeList) {
     *aResult = NS_ERROR_OUT_OF_MEMORY;
 
@@ -1850,7 +1901,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
     
     
 
-    NS_WARNING("No caller doc for open call.");
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
@@ -1870,7 +1920,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   PRBool equals = PR_FALSE;
   if (NS_FAILED(callerPrincipal->Equals(NodePrincipal(), &equals)) ||
       !equals) {
-    NS_WARNING("Principals unequal for open call.");
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
@@ -1890,15 +1939,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
       }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    mMayStartLayout = PR_FALSE;
-
     nsCOMPtr<nsIWebNavigation> webnav(do_QueryInterface(shell));
     webnav->Stop(nsIWebNavigation::STOP_NETWORK);
 
@@ -1907,10 +1947,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
     
     
     EnsureOnloadBlocker();
-  } else {
-    
-    
-    mMayStartLayout = PR_FALSE;
   }
 
   
@@ -1986,7 +2022,7 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   }
 
   
-  SetContentTypeInternal(aContentType);
+  mContentType = aContentType;
 
   mWriteState = eDocumentOpened;
 
@@ -2085,7 +2121,7 @@ nsHTMLDocument::Close()
 
     ++mWriteLevel;
     rv = mParser->Parse(EmptyString(), mParser->GetRootContextKey(),
-                        GetContentTypeInternal(), PR_TRUE);
+                        mContentType, PR_TRUE);
     --mWriteLevel;
 
     
@@ -2109,7 +2145,7 @@ nsHTMLDocument::Close()
     
     
     
-    if (GetShell()) {
+    if (GetPrimaryShell()) {
       FlushPendingNotifications(Flush_Layout);
     }
 
@@ -2148,34 +2184,12 @@ nsHTMLDocument::WriteCommon(const nsAString& aText,
       (mWriteState == ePendingClose &&
        !mPendingScripts.Contains(key)) ||
       (mParser && !mParser->IsInsertionPointDefined())) {
-    if (mExternalScriptsBeingEvaluated) {
-      
-      nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
-                                      "DocumentWriteIgnored",
-                                      nsnull, 0,
-                                      mDocumentURI,
-                                      EmptyString(), 0, 0,
-                                      nsIScriptError::warningFlag,
-                                      "DOM Events");
-      return NS_OK;
-    }
     mWriteState = eDocumentClosed;
     mParser->Terminate();
     NS_ASSERTION(!mParser, "mParser should have been null'd out");
   }
 
   if (!mParser) {
-    if (mExternalScriptsBeingEvaluated) {
-      
-      nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
-                                      "DocumentWriteIgnored",
-                                      nsnull, 0,
-                                      mDocumentURI,
-                                      EmptyString(), 0, 0,
-                                      nsIScriptError::warningFlag,
-                                      "DOM Events");
-      return NS_OK;
-    }
     rv = Open();
 
     
@@ -2207,11 +2221,11 @@ nsHTMLDocument::WriteCommon(const nsAString& aText,
   
   if (aNewlineTerminate) {
     rv = mParser->Parse(aText + new_line,
-                        key, GetContentTypeInternal(),
+                        key, mContentType,
                         (mWriteState == eNotWriting || (mWriteLevel > 1)));
   } else {
     rv = mParser->Parse(aText,
-                        key, GetContentTypeInternal(),
+                        key, mContentType,
                         (mWriteState == eNotWriting || (mWriteLevel > 1)));
   }
 
@@ -2275,13 +2289,6 @@ nsHTMLDocument::MatchNameAttribute(nsIContent* aContent, PRInt32 aNamespaceID,
     aContent->GetNameSpaceID() == kNameSpaceID_XHTML &&
     aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
                           *elementName, eCaseMatters);
-}
-
-
-void*
-nsHTMLDocument::UseExistingNameString(nsINode* aRootNode, const nsString* aName)
-{
-  return const_cast<nsString*>(aName);
 }
 
 NS_IMETHODIMP
@@ -2371,10 +2378,7 @@ NS_IMETHODIMP
 nsHTMLDocument::GetWidth(PRInt32* aWidth)
 {
   NS_ENSURE_ARG_POINTER(aWidth);
-  if (!mWarnedWidthHeight) {
-    ReportUseOfDeprecatedMethod(this, "UseOfDocumentWidthWarning");
-    mWarnedWidthHeight = true;
-  }
+
   PRInt32 height;
   return GetBodySize(aWidth, &height);
 }
@@ -2383,10 +2387,7 @@ NS_IMETHODIMP
 nsHTMLDocument::GetHeight(PRInt32* aHeight)
 {
   NS_ENSURE_ARG_POINTER(aHeight);
-  if (!mWarnedWidthHeight) {
-    ReportUseOfDeprecatedMethod(this, "UseOfDocumentHeightWarning");
-    mWarnedWidthHeight = true;
-  }
+
   PRInt32 width;
   return GetBodySize(&width, aHeight);
 }
@@ -2561,6 +2562,19 @@ nsHTMLDocument::GetSelection(nsAString& aReturn)
   return rv;
 }
 
+static void
+ReportUseOfDeprecatedMethod(nsHTMLDocument* aDoc, const char* aWarning)
+{
+  nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
+                                  aWarning,
+                                  nsnull, 0,
+                                  static_cast<nsIDocument*>(aDoc)->
+                                    GetDocumentURI(),
+                                  EmptyString(), 0, 0,
+                                  nsIScriptError::warningFlag,
+                                  "DOM Events");
+}
+
 NS_IMETHODIMP
 nsHTMLDocument::CaptureEvents(PRInt32 aEventFlags)
 {
@@ -2639,15 +2653,15 @@ FindNamedItems(nsIAtom* aName, nsIContent *aContent,
 nsresult
 nsHTMLDocument::ResolveName(const nsAString& aName,
                             nsIDOMHTMLFormElement *aForm,
-                            nsISupports **aResult,
-                            nsWrapperCache **aCache)
+                            nsISupports **aResult)
 {
   *aResult = nsnull;
-  *aCache = nsnull;
+
+  nsCOMPtr<nsIAtom> name(do_GetAtom(aName));
 
   
   
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aName);
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(name);
   NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
   if (entry->IsInvalidName()) {
@@ -2671,14 +2685,7 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
 
     Element* root = GetRootElement();
     if (root && !aName.IsEmpty()) {
-      
-      
-      
-      nsCOMPtr<nsIAtom> name(do_GetAtom(aName));
-
-      if (name) {
-        FindNamedItems(name, root, entry);
-      }
+      FindNamedItems(name, root, entry);
     }
   }
 
@@ -2692,11 +2699,19 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
       
       
 
-      nsIContent *node = list->GetNodeAt(0);
-      if (!aForm || nsContentUtils::BelongsInForm(aForm, node)) {
-        NS_ADDREF(*aResult = node);
-        *aCache = node;
+      nsCOMPtr<nsIDOMNode> node;
+
+      list->Item(0, getter_AddRefs(node));
+
+      nsCOMPtr<nsIContent> ourContent(do_QueryInterface(node));
+      if (aForm && ourContent &&
+          !nsContentUtils::BelongsInForm(aForm, ourContent)) {
+        
+        node = nsnull;
       }
+
+      *aResult = node;
+      NS_IF_ADDREF(*aResult);
 
       return NS_OK;
     }
@@ -2720,10 +2735,11 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
         
         
 
-        nsIContent *node = fc_list->GetNodeAt(0);
+        nsCOMPtr<nsIDOMNode> node;
+
+        fc_list->Item(0, getter_AddRefs(node));
 
         NS_IF_ADDREF(*aResult = node);
-        *aCache = node;
 
         delete fc_list;
 
@@ -2752,7 +2768,6 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
          tag == nsGkAtoms::applet) &&
         (!aForm || nsContentUtils::BelongsInForm(aForm, e))) {
       NS_ADDREF(*aResult = e);
-      *aCache = e;
     }
   }
 
@@ -2775,8 +2790,7 @@ nsHTMLDocument::PrePopulateIdentifierMap()
     nsCOMPtr<nsIAtom> atom(do_GetAtom(names[i]));
     NS_ENSURE_TRUE(atom, NS_ERROR_OUT_OF_MEMORY);
   
-    nsIdentifierMapEntry* entry =
-      mIdentifierMap.PutEntry(nsDependentAtomString(atom));
+    nsIdentifierMapEntry* entry = mIdentifierMap.PutEntry(atom);
     NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
     entry->SetInvalidName();
@@ -2971,30 +2985,6 @@ nsHTMLDocument::EndUpdate(nsUpdateType aUpdateType)
   MaybeEditingStateChanged();
 }
 
-
-
-class DeferredContentEditableCountChangeEvent : public nsRunnable
-{
-public:
-  DeferredContentEditableCountChangeEvent(nsHTMLDocument *aDoc,
-                                          nsIContent *aElement)
-    : mDoc(aDoc)
-    , mElement(aElement)
-  {
-  }
-
-  NS_IMETHOD Run() {
-    if (mElement->GetOwnerDoc() == mDoc) {
-      mDoc->DeferredContentEditableCountChange(mElement);
-    }
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<nsHTMLDocument> mDoc;
-  nsCOMPtr<nsIContent> mElement;
-};
-
 nsresult
 nsHTMLDocument::ChangeContentEditableCount(nsIContent *aElement,
                                            PRInt32 aChange)
@@ -3003,6 +2993,27 @@ nsHTMLDocument::ChangeContentEditableCount(nsIContent *aElement,
                "Trying to decrement too much.");
 
   mContentEditableCount += aChange;
+
+  class DeferredContentEditableCountChangeEvent : public nsRunnable
+  {
+  public:
+    DeferredContentEditableCountChangeEvent(nsHTMLDocument *aDoc, nsIContent *aElement)
+      : mDoc(aDoc)
+      , mElement(aElement)
+    {
+    }
+
+    NS_IMETHOD Run() {
+      if (mElement->GetOwnerDoc() == mDoc) {
+        mDoc->DeferredContentEditableCountChange(mElement);
+      }
+      return NS_OK;
+    }
+
+  private:
+    nsRefPtr<nsHTMLDocument> mDoc;
+    nsCOMPtr<nsIContent> mElement;
+  };
 
   nsContentUtils::AddScriptRunner(
     new DeferredContentEditableCountChangeEvent(this, aElement));
@@ -3099,32 +3110,25 @@ DocAllResultMatch(nsIContent* aContent, PRInt32 aNamespaceID, nsIAtom* aAtom,
 }
 
 
-nsISupports*
-nsHTMLDocument::GetDocumentAllResult(const nsAString& aID,
-                                     nsWrapperCache** aCache,
-                                     nsresult *aResult)
+nsresult
+nsHTMLDocument::GetDocumentAllResult(const nsAString& aID, nsISupports** aResult)
 {
-  *aCache = nsnull;
-  *aResult = NS_OK;
+  *aResult = nsnull;
 
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aID);
-  if (!entry) {
-    *aResult = NS_ERROR_OUT_OF_MEMORY;
-
-    return nsnull;
-  }
+  nsCOMPtr<nsIAtom> id = do_GetAtom(aID);
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(id);
+  NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
   Element* root = GetRootElement();
   if (!root) {
-    return nsnull;
+    return NS_OK;
   }
 
   nsRefPtr<nsContentList> docAllList = entry->GetDocAllList();
   if (!docAllList) {
-    nsCOMPtr<nsIAtom> id = do_GetAtom(aID);
-
     docAllList = new nsContentList(root, DocAllResultMatch,
                                    nsnull, nsnull, PR_TRUE, id);
+    NS_ENSURE_TRUE(docAllList, NS_ERROR_OUT_OF_MEMORY);
     entry->SetDocAllList(docAllList);
   }
 
@@ -3134,14 +3138,14 @@ nsHTMLDocument::GetDocumentAllResult(const nsAString& aID,
 
   nsIContent* cont = docAllList->Item(1, PR_TRUE);
   if (cont) {
-    *aCache = docAllList;
-    return static_cast<nsINodeList*>(docAllList);
+    NS_ADDREF(*aResult = static_cast<nsIDOMNodeList*>(docAllList));
+    return NS_OK;
   }
 
   
-  *aCache = cont = docAllList->Item(0, PR_TRUE);
+  NS_IF_ADDREF(*aResult = docAllList->Item(0, PR_TRUE));
 
-  return cont;
+  return NS_OK;
 }
 
 static void
@@ -3245,12 +3249,6 @@ nsHTMLDocument::EditingStateChanged()
   }
 
   
-  
-  if (mParentDocument) {
-    mParentDocument->FlushPendingNotifications(Flush_Style);
-  }
-
-  
   nsPIDOMWindow *window = GetWindow();
   if (!window)
     return NS_ERROR_FAILURE;
@@ -3308,10 +3306,6 @@ nsHTMLDocument::EditingStateChanged()
     if (designMode) {
       
       editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
-
-      
-      
-      FlushPendingNotifications(Flush_Style);
 
       
       rv = editSession->DisableJSAndPlugins(window);

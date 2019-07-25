@@ -161,25 +161,20 @@ public:
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull)
   {
-    return nsContentUtils::WrapNative(cx, scope, native, vp, aHolder,
-                                      aAllowWrapping);
-  }
-  static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, nsWrapperCache *cache,
-                             PRBool aAllowWrapping, jsval *vp,
-                             
-                             
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull)
-  {
-    return nsContentUtils::WrapNative(cx, scope, native, cache, vp, aHolder,
-                                      aAllowWrapping);
+    return WrapNative(cx, scope, native, nsnull, aAllowWrapping, vp, aHolder);
   }
 
   static nsresult ThrowJSException(JSContext *cx, nsresult aResult);
 
+  
+
+
   static JSPropertyOp GetXPCNativeWrapperGetPropertyOp() {
     return sXPCNativeWrapperGetPropertyOp;
   }
+
+  
+
 
   static void SetXPCNativeWrapperGetPropertyOp(JSPropertyOp getPropertyOp) {
     NS_ASSERTION(!sXPCNativeWrapperGetPropertyOp,
@@ -187,15 +182,21 @@ public:
     sXPCNativeWrapperGetPropertyOp = getPropertyOp;
   }
 
-  static JSPropertyOp GetXrayWrapperPropertyHolderGetPropertyOp() {
-    return sXrayWrapperPropertyHolderGetPropertyOp;
-  }
+  static PRBool ObjectIsNativeWrapper(JSContext* cx, JSObject* obj)
+  {
+#ifdef DEBUG
+    {
+      nsIScriptContext *scx = GetScriptContextFromJSContext(cx);
 
-  static void SetXrayWrapperPropertyHolderGetPropertyOp(JSPropertyOp getPropertyOp) {
-    sXrayWrapperPropertyHolderGetPropertyOp = getPropertyOp;
-  }
+      NS_PRECONDITION(!scx || !scx->IsContextInitialized() ||
+                      sXPCNativeWrapperGetPropertyOp,
+                      "Must know what the XPCNativeWrapper class GetProperty op is!");
+    }
+#endif
 
-  static PRBool ObjectIsNativeWrapper(JSContext* cx, JSObject* obj);
+    return sXPCNativeWrapperGetPropertyOp &&
+      ::JS_GET_CLASS(cx, obj)->getProperty == sXPCNativeWrapperGetPropertyOp;
+  }
 
   static nsISupports *GetNative(nsIXPConnectWrappedNative *wrapper, JSObject *obj);
 
@@ -320,7 +321,6 @@ protected:
   static jsid sOnbeforeunload_id;
   static jsid sOnunload_id;
   static jsid sOnhashchange_id;
-  static jsid sOnreadystatechange_id;
   static jsid sOnpageshow_id;
   static jsid sOnpagehide_id;
   static jsid sOnabort_id;
@@ -360,29 +360,8 @@ protected:
   static jsid sOnpaste_id;
   static jsid sJava_id;
   static jsid sPackages_id;
-  static jsid sOnloadstart_id;
-  static jsid sOnprogress_id;
-  static jsid sOnsuspend_id;
-  static jsid sOnemptied_id;
-  static jsid sOnstalled_id;
-  static jsid sOnplay_id;
-  static jsid sOnpause_id;
-  static jsid sOnloadedmetadata_id;
-  static jsid sOnloadeddata_id;
-  static jsid sOnwaiting_id;
-  static jsid sOnplaying_id;
-  static jsid sOncanplay_id;
-  static jsid sOncanplaythrough_id;
-  static jsid sOnseeking_id;
-  static jsid sOnseeked_id;
-  static jsid sOntimeupdate_id;
-  static jsid sOnended_id;
-  static jsid sOnratechange_id;
-  static jsid sOndurationchange_id;
-  static jsid sOnvolumechange_id;
 
   static JSPropertyOp sXPCNativeWrapperGetPropertyOp;
-  static JSPropertyOp sXrayWrapperPropertyHolderGetPropertyOp;
 };
 
 
@@ -498,14 +477,14 @@ public:
 
 
 
-class nsCommonWindowSH : public nsEventReceiverSH
+class nsWindowSH : public nsEventReceiverSH
 {
 protected:
-  nsCommonWindowSH(nsDOMClassInfoData *aData) : nsEventReceiverSH(aData)
+  nsWindowSH(nsDOMClassInfoData* aData) : nsEventReceiverSH(aData)
   {
   }
 
-  virtual ~nsCommonWindowSH()
+  virtual ~nsWindowSH()
   {
   }
 
@@ -513,7 +492,11 @@ protected:
                                 JSObject *obj, JSString *str,
                                 PRBool *did_resolve);
 
+  static PRBool sResolving;
+
 public:
+  NS_IMETHOD PreCreate(nsISupports *nativeObj, JSContext *cx,
+                       JSObject *globalObj, JSObject **parentObj);
 #ifdef DEBUG
   NS_IMETHOD PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                         JSObject *obj)
@@ -540,15 +523,24 @@ public:
                          JSObject *obj, jsid id, jsval *vp, PRBool *_retval);
   NS_IMETHOD SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                          JSObject *obj, jsid id, jsval *vp, PRBool *_retval);
+  NS_IMETHOD AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                         JSObject *obj, jsid id, jsval *vp, PRBool *_retval);
   NS_IMETHOD DelProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                          JSObject *obj, jsid id, jsval *vp, PRBool *_retval);
   NS_IMETHOD NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                         JSObject *obj, jsid id, PRUint32 flags,
                         JSObject **objp, PRBool *_retval);
+  NS_IMETHOD NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                          JSObject *obj, PRUint32 enum_op, jsval *statep,
+                          jsid *idp, PRBool *_retval);
   NS_IMETHOD Finalize(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                       JSObject *obj);
   NS_IMETHOD Equality(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
-                      JSObject * obj, const jsval &val, PRBool *bp);
+                      JSObject * obj, jsval val, PRBool *bp);
+  NS_IMETHOD OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
+                         JSObject * obj, JSObject * *_retval);
+  NS_IMETHOD InnerObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
+                         JSObject * obj, JSObject * *_retval);
 
   static JSBool GlobalScopePolluterNewResolve(JSContext *cx, JSObject *obj,
                                               jsid id, uintN flags,
@@ -560,62 +552,10 @@ public:
   static void InvalidateGlobalScopePolluter(JSContext *cx, JSObject *obj);
   static nsresult InstallGlobalScopePolluter(JSContext *cx, JSObject *obj,
                                              nsIHTMLDocument *doc);
-};
-
-class nsOuterWindowSH : public nsCommonWindowSH
-{
-protected:
-  nsOuterWindowSH(nsDOMClassInfoData* aData) : nsCommonWindowSH(aData)
-  {
-  }
-
-  virtual ~nsOuterWindowSH()
-  {
-  }
-
-  static PRBool sResolving;
-
-public:
-  NS_IMETHOD PreCreate(nsISupports *nativeObj, JSContext *cx,
-                       JSObject *globalObj, JSObject **parentObj);
-  NS_IMETHOD AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                         JSObject *obj, jsid id, jsval *vp, PRBool *_retval);
-  NS_IMETHOD NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *obj, jsid id, PRUint32 flags,
-                        JSObject **objp, PRBool *_retval);
-  NS_IMETHOD NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                          JSObject *obj, PRUint32 enum_op, jsval *statep,
-                          jsid *idp, PRBool *_retval);
-  NS_IMETHOD InnerObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
-                         JSObject * obj, JSObject * *_retval);
 
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
   {
-    return new nsOuterWindowSH(aData);
-  }
-};
-
-class nsInnerWindowSH : public nsCommonWindowSH
-{
-protected:
-  nsInnerWindowSH(nsDOMClassInfoData* aData) : nsCommonWindowSH(aData)
-  {
-  }
-
-  virtual ~nsInnerWindowSH()
-  {
-  }
-
-public:
-  NS_IMETHOD PreCreate(nsISupports *nativeObj, JSContext *cx,
-                       JSObject *globalObj, JSObject **parentObj);
-  
-  NS_IMETHOD OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
-                         JSObject * obj, JSObject * *_retval);
-
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsInnerWindowSH(aData);
+    return new nsWindowSH(aData);
   }
 };
 
@@ -797,7 +737,7 @@ protected:
   
   
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult) = 0;
+                                 nsresult *aResult) = 0;
 
 public:
   NS_IMETHOD GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
@@ -825,7 +765,7 @@ public:
   virtual nsresult GetLength(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                              JSObject *obj, PRUint32 *length);
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
  
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
   {
@@ -849,7 +789,6 @@ protected:
 
   virtual nsISupports* GetNamedItem(nsISupports *aNative,
                                     const nsAString& aName,
-                                    nsWrapperCache **cache,
                                     nsresult *aResult) = 0;
 
 public:
@@ -876,12 +815,11 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
   
   virtual nsISupports* GetNamedItem(nsISupports *aNative,
                                     const nsAString& aName,
-                                    nsWrapperCache **cache,
                                     nsresult *aResult);
 
 public:
@@ -908,12 +846,11 @@ protected:
   virtual nsresult GetLength(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                              JSObject *obj, PRUint32 *length);
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
   
   virtual nsISupports* GetNamedItem(nsISupports *aNative,
                                     const nsAString& aName,
-                                    nsWrapperCache **cache,
                                     nsresult *aResult);
 
 public:
@@ -940,10 +877,9 @@ public:
   virtual nsresult GetLength(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                              JSObject *obj, PRUint32 *length);
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
   virtual nsISupports* GetNamedItem(nsISupports *aNative,
                                     const nsAString& aName,
-                                    nsWrapperCache **cache,
                                     nsresult *aResult);
 
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
@@ -999,11 +935,14 @@ protected:
   {
   }
 
+  static nsresult ResolveImpl(JSContext *cx,
+                              nsIXPConnectWrappedNative *wrapper, jsid id,
+                              nsISupports **result);
   static JSBool DocumentOpen(JSContext *cx, JSObject *obj, uintN argc,
                              jsval *argv, jsval *rval);
   static JSBool GetDocumentAllNodeList(JSContext *cx, JSObject *obj,
-                                       nsDocument *doc,
-                                       nsContentList **nodeList);
+                                       nsIDOMDocument *doc,
+                                       nsIDOMNodeList **nodeList);
 
 public:
   static JSBool DocumentAllGetProperty(JSContext *cx, JSObject *obj, jsid id,
@@ -1081,7 +1020,7 @@ protected:
   }
 
   static nsresult FindNamedItem(nsIForm *aForm, JSString *str,
-                                nsISupports **aResult, nsWrapperCache **aCache);
+                                nsISupports **aResult);
 
 public:
   NS_IMETHOD NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
@@ -1222,12 +1161,11 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
   
   virtual nsISupports* GetNamedItem(nsISupports *aNative,
                                     const nsAString& aName,
-                                    nsWrapperCache **cache,
                                     nsresult *aResult);
 
 public:
@@ -1252,12 +1190,11 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
   
   virtual nsISupports* GetNamedItem(nsISupports *aNative,
                                     const nsAString& aName,
-                                    nsWrapperCache **cache,
                                     nsresult *aResult);
 
 public:
@@ -1282,12 +1219,11 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
   
   virtual nsISupports* GetNamedItem(nsISupports *aNative,
                                     const nsAString& aName,
-                                    nsWrapperCache **cache,
                                     nsresult *aResult);
 
 public:
@@ -1435,7 +1371,7 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
 public:
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
@@ -1459,7 +1395,7 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
 public:
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
@@ -1510,7 +1446,7 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
 public:
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
@@ -1533,7 +1469,7 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
 public:
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
@@ -1557,7 +1493,7 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
 public:
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
@@ -1582,12 +1518,11 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
   
   virtual nsISupports* GetNamedItem(nsISupports *aNative,
                                     const nsAString& aName,
-                                    nsWrapperCache **cache,
                                     nsresult *aResult);
 
 public:
@@ -1623,14 +1558,13 @@ protected:
                           jsid *idp, PRBool *_retval);
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult)
+                                 nsresult *aResult)
   {
     return nsnull;
   }
   
   virtual nsISupports* GetNamedItem(nsISupports *aNative,
                                     const nsAString& aName,
-                                    nsWrapperCache **cache,
                                     nsresult *aResult);
 
 public:
@@ -1684,14 +1618,13 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult)
+                                 nsresult *aResult)
   {
     return nsnull;
   }
   
   virtual nsISupports* GetNamedItem(nsISupports *aNative,
                                     const nsAString& aName,
-                                    nsWrapperCache **cache,
                                     nsresult *aResult);
 
 public:
@@ -1748,7 +1681,7 @@ public:
                        jsval *vp, PRBool *_retval);
 
   NS_IMETHOD HasInstance(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                         JSObject *obj, const jsval &val, PRBool *bp,
+                         JSObject *obj, jsval val, PRBool *bp,
                          PRBool *_retval);
 
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
@@ -1831,7 +1764,7 @@ protected:
   }
 
   virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
+                                 nsresult *aResult);
 
 public:
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)

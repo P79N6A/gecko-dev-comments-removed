@@ -43,8 +43,6 @@
 #include "xpcprivate.h"
 #include "dom_quickstubs.h"
 
-#include "jsgcchunk.h"
-#include "nsIMemoryReporter.h"
 #include "mozilla/FunctionTimer.h"
 
 
@@ -243,32 +241,6 @@ ContextCallback(JSContext *cx, uintN operation)
     return JS_TRUE;
 }
 
-static JSBool
-CompartmentCallback(JSContext *cx, JSCompartment *compartment, uintN op)
-{
-    if(op == JSCOMPARTMENT_NEW)
-        return JS_TRUE;
-
-    XPCJSRuntime* self = nsXPConnect::GetRuntimeInstance();
-    if(!self)
-        return JS_TRUE;
-
-    XPCCompartmentMap& map = self->GetCompartmentMap();
-    nsAdoptingCString origin;
-    origin.Adopt(static_cast<char *>(JS_SetCompartmentPrivate(cx, compartment, nsnull)));
-
-#ifdef DEBUG
-    {
-        JSCompartment *current;
-        NS_ASSERTION(map.Get(origin, &current), "no compartment?");
-        NS_ASSERTION(current == compartment, "compartment mismatch");
-    }
-#endif
-
-    map.Remove(origin);
-    return JS_TRUE;
-}
-
 struct ObjectHolder : public JSDHashEntryHdr
 {
     void *holder;
@@ -335,17 +307,13 @@ void XPCJSRuntime::TraceJS(JSTracer* trc, void* data)
     
     for(XPCRootSetElem *e = self->mObjectHolderRoots; e ; e = e->GetNextRoot())
         static_cast<XPCJSObjectHolder*>(e)->TraceJS(trc);
-
-    
-    js::GCMarker *gcmarker = NULL;
-    if (IS_GC_MARKING_TRACER(trc)) {
-        gcmarker = static_cast<js::GCMarker *>(trc);
-        JS_ASSERT(gcmarker->getMarkColor() == XPC_GC_COLOR_BLACK);
-        gcmarker->setMarkColor(XPC_GC_COLOR_GRAY);
+        
+    if(self->GetXPConnect()->ShouldTraceRoots())
+    {
+        
+        
+        self->TraceXPConnectRoots(trc);
     }
-    self->TraceXPConnectRoots(trc);
-    if (gcmarker)
-        gcmarker->setMarkColor(XPC_GC_COLOR_BLACK);
 }
 
 static void
@@ -376,13 +344,30 @@ struct ClearedGlobalObject : public JSDHashEntryHdr
     JSObject* mGlobalObject;
 };
 
-void XPCJSRuntime::TraceXPConnectRoots(JSTracer *trc)
+void XPCJSRuntime::TraceXPConnectRoots(JSTracer *trc, JSBool rootGlobals)
 {
-    JSContext *iter = nsnull, *acx;
-    while ((acx = JS_ContextIterator(GetJSRuntime(), &iter))) {
-        JS_ASSERT(JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL));
-        if (acx->globalObject)
-            JS_CALL_OBJECT_TRACER(trc, acx->globalObject, "global object");
+    if(mUnrootedGlobalCount != 0)
+    {
+        JSContext *iter = nsnull, *acx;
+        while((acx = JS_ContextIterator(GetJSRuntime(), &iter)))
+        {
+            if(JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL))
+            {
+                NS_ASSERTION(nsXPConnect::GetXPConnect()->GetRequestDepth(acx)
+                             == 0, "active cx must be always rooted");
+                NS_ASSERTION(acx->globalObject, "bad state");
+                JS_CALL_OBJECT_TRACER(trc, acx->globalObject,
+                                      "global object");
+                if(rootGlobals)
+                {
+                    NS_ASSERTION(mUnrootedGlobalCount != 0, "bad state");
+                    NS_ASSERTION(trc == acx->runtime->gcMarkingTracer,
+                                 "bad tracer");
+                    JS_ToggleOptions(acx, JSOPTION_UNROOTED_GLOBAL);
+                    --mUnrootedGlobalCount;
+                }
+            }
+        }
     }
 
     XPCWrappedNativeScope::TraceJS(trc, this);
@@ -452,20 +437,42 @@ void XPCJSRuntime::AddXPConnectRoots(JSContext* cx,
         JS_DHashTableEnumerate(&mJSHolders, NoteJSHolder, &cb);
 }
 
-void
-XPCJSRuntime::ClearWeakRoots()
+void XPCJSRuntime::UnrootContextGlobals()
 {
+    mUnrootedGlobalCount = 0;
     JSContext *iter = nsnull, *acx;
-
     while((acx = JS_ContextIterator(GetJSRuntime(), &iter)))
     {
+        NS_ASSERTION(!JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL),
+                     "unrooted global should be set only during CC");
         if(XPCPerThreadData::IsMainThread(acx) &&
            nsXPConnect::GetXPConnect()->GetRequestDepth(acx) == 0)
         {
             JS_ClearNewbornRoots(acx);
+            if(acx->globalObject)
+            {
+                JS_ToggleOptions(acx, JSOPTION_UNROOTED_GLOBAL);
+                ++mUnrootedGlobalCount;
+            }
         }
     }
 }
+
+#ifdef DEBUG_CC
+void XPCJSRuntime::RootContextGlobals()
+{
+    JSContext *iter = nsnull, *acx;
+    while((acx = JS_ContextIterator(GetJSRuntime(), &iter)))
+    {
+        if(JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL))
+        {
+            JS_ToggleOptions(acx, JSOPTION_UNROOTED_GLOBAL);
+            --mUnrootedGlobalCount;
+        }
+    }
+    NS_ASSERTION(mUnrootedGlobalCount == 0, "bad state");
+}
+#endif
 
 template<class T> static void
 DoDeferredRelease(nsTArray<T> &array)
@@ -497,15 +504,6 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
                 if(!NS_IsMainThread())
                 {
                     return JS_FALSE;
-                }
-
-                
-                
-                JSContext *iter = nsnull, *acx;
-
-                while((acx = JS_ContextIterator(cx->runtime, &iter))) {
-                    if (!JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL))
-                        JS_ToggleOptions(acx, JSOPTION_UNROOTED_GLOBAL);
                 }
                 break;
             }
@@ -803,22 +801,14 @@ XPCJSRuntime::WatchdogMain(void *arg)
     
     AutoLockJSGC lock(self->mJSRuntime);
 
-    PRIntervalTime sleepInterval;
     while (self->mWatchdogThread)
     {
-        
-        if (self->mLastActiveTime == -1 || PR_Now() - self->mLastActiveTime <= 2*PR_USEC_PER_SEC)
-            sleepInterval = PR_TicksPerSecond();
-        else
-        {
-            sleepInterval = PR_INTERVAL_NO_TIMEOUT;
-            self->mWatchdogHibernating = PR_TRUE;
-        }
 #ifdef DEBUG
         PRStatus status =
 #endif
-            PR_WaitCondVar(self->mWatchdogWakeup, sleepInterval);
+            PR_WaitCondVar(self->mWatchdogWakeup, PR_TicksPerSecond());
         JS_ASSERT(status == PR_SUCCESS);
+
         JSContext* cx = nsnull;
         while((cx = js_NextActiveContext(self->mJSRuntime, cx)))
         {
@@ -828,23 +818,6 @@ XPCJSRuntime::WatchdogMain(void *arg)
 
     
     PR_NotifyCondVar(self->mWatchdogWakeup);
-}
-
-
-void
-XPCJSRuntime::ActivityCallback(void *arg, PRBool active)
-{
-    XPCJSRuntime* self = static_cast<XPCJSRuntime*>(arg);
-    if (active) {
-        self->mLastActiveTime = -1;
-        if (self->mWatchdogHibernating)
-        {
-            self->mWatchdogHibernating = PR_FALSE;
-            PR_NotifyCondVar(self->mWatchdogWakeup);
-        }
-    } else {
-        self->mLastActiveTime = PR_Now();
-    }
 }
 
 
@@ -1066,51 +1039,6 @@ XPCJSRuntime::~XPCJSRuntime()
     XPCPerThreadData::ShutDown();
 }
 
-class XPConnectGCChunkAllocator
-    : public js::GCChunkAllocator
-{
-public:
-    XPConnectGCChunkAllocator() {}
-
-    static PRInt64 GetGCChunkBytesInUse(void *data) {
-        XPConnectGCChunkAllocator *allocator =
-            static_cast<XPConnectGCChunkAllocator*>(data);
-        return allocator->mNumGCChunksInUse * js::GC_CHUNK_SIZE;
-    }
-private:
-    virtual void *doAlloc() {
-        void *chunk = 0;
-#ifdef MOZ_MEMORY
-        posix_memalign(&chunk, js::GC_CHUNK_SIZE, js::GC_CHUNK_SIZE);
-#else
-        chunk = js::AllocGCChunk();
-#endif
-        if (chunk)
-            mNumGCChunksInUse++;
-        return chunk;
-    }
-
-    virtual void doFree(void *chunk) {
-        mNumGCChunksInUse--;
-#ifdef MOZ_MEMORY
-        free(chunk);
-#else
-        js::FreeGCChunk(chunk);
-#endif
-    }
-
-protected:
-    PRUint32 mNumGCChunksInUse;
-};
-
-static XPConnectGCChunkAllocator gXPCJSChunkAllocator;
-
-NS_MEMORY_REPORTER_IMPLEMENT(XPConnectJSRuntimeGCChunks,
-                             "xpconnect/js/gcchunks",
-                             "Memory in use by main JS Runtime GC chunks",
-                             XPConnectGCChunkAllocator::GetGCChunkBytesInUse,
-                             &gXPCJSChunkAllocator)
-
 XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
  : mXPConnect(aXPConnect),
    mJSRuntime(nsnull),
@@ -1132,10 +1060,9 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
    mVariantRoots(nsnull),
    mWrappedJSRoots(nsnull),
    mObjectHolderRoots(nsnull),
+   mUnrootedGlobalCount(0),
    mWatchdogWakeup(nsnull),
-   mWatchdogThread(nsnull),
-   mWatchdogHibernating(PR_FALSE),
-   mLastActiveTime(-1)
+   mWatchdogThread(nsnull)
 {
 #ifdef XPC_CHECK_WRAPPERS_AT_SHUTDOWN
     DEBUG_WrappedNativeHashtable =
@@ -1160,23 +1087,14 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
         
         JS_SetGCParameter(mJSRuntime, JSGC_MAX_BYTES, 0xffffffff);
         JS_SetContextCallback(mJSRuntime, ContextCallback);
-        JS_SetCompartmentCallback(mJSRuntime, CompartmentCallback);
         JS_SetGCCallbackRT(mJSRuntime, GCCallback);
         JS_SetExtraGCRoots(mJSRuntime, TraceJS, this);
         mWatchdogWakeup = JS_NEW_CONDVAR(mJSRuntime->gcLock);
-
-        mJSRuntime->setActivityCallback(ActivityCallback, this);
-
-        mJSRuntime->setCustomGCChunkAllocator(&gXPCJSChunkAllocator);
-
-        NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(XPConnectJSRuntimeGCChunks));
     }
 
     if(!JS_DHashTableInit(&mJSHolders, JS_DHashGetStubOps(), nsnull,
                           sizeof(ObjectHolder), 512))
         mJSHolders.ops = nsnull;
-
-    mCompartmentMap.Init();
 
     
 #ifdef DEBUG
@@ -1255,12 +1173,8 @@ XPCJSRuntime::OnJSContextNew(JSContext *cx)
     if (!xpc)
         return JS_FALSE;
 
-    JS_SetNativeStackQuota(cx, 128 * sizeof(size_t) * 1024);
-    JS_SetScriptStackQuota(cx, 25 * sizeof(size_t) * 1024 * 1024);
-
-    
-    JS_ToggleOptions(cx, JSOPTION_UNROOTED_GLOBAL);
-
+    JS_SetNativeStackQuota(cx, 512 * 1024);
+    JS_SetScriptStackQuota(cx, 100 * 1024 * 1024);
     return JS_TRUE;
 }
 

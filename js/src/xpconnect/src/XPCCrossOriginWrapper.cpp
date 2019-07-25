@@ -49,22 +49,22 @@
 
 
 static JSBool
-XPC_XOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+XPC_XOW_AddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 static JSBool
-XPC_XOW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+XPC_XOW_DelProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 static JSBool
-XPC_XOW_GetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+XPC_XOW_GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 static JSBool
-XPC_XOW_SetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+XPC_XOW_SetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 static JSBool
 XPC_XOW_Enumerate(JSContext *cx, JSObject *obj);
 
 static JSBool
-XPC_XOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
+XPC_XOW_NewResolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                    JSObject **objp);
 
 static JSBool
@@ -74,7 +74,7 @@ static void
 XPC_XOW_Finalize(JSContext *cx, JSObject *obj);
 
 static JSBool
-XPC_XOW_CheckAccess(JSContext *cx, JSObject *obj, jsval id, JSAccessMode mode,
+XPC_XOW_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                     jsval *vp);
 
 static JSBool
@@ -85,10 +85,10 @@ XPC_XOW_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
                   jsval *rval);
 
 static JSBool
-XPC_XOW_HasInstance(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
+XPC_XOW_HasInstance(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
 
 static JSBool
-XPC_XOW_Equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
+XPC_XOW_Equality(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
 
 static JSObject *
 XPC_XOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly);
@@ -454,7 +454,7 @@ XPC_XOW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
                  jsval *rval);
 
 static JSBool
-IsValFrame(JSObject *obj, jsval v, XPCWrappedNative *wn)
+IsValFrame(JSObject *obj, jsid id, XPCWrappedNative *wn)
 {
   
   if (obj->getClass()->name[0] != 'W') {
@@ -472,11 +472,11 @@ IsValFrame(JSObject *obj, jsval v, XPCWrappedNative *wn)
     return JS_FALSE;
   }
 
-  if (JSVAL_IS_INT(v)) {
-    col->Item(JSVAL_TO_INT(v), getter_AddRefs(domwin));
+  if (JSID_IS_INT(id)) {
+    col->Item(JSID_TO_INT(id), getter_AddRefs(domwin));
   } else {
     nsAutoString str(reinterpret_cast<PRUnichar *>
-                                     (JS_GetStringChars(JSVAL_TO_STRING(v))));
+                                     (JS_GetStringChars(JSID_TO_STRING(id))));
     col->NamedItem(str, getter_AddRefs(domwin));
   }
 
@@ -570,7 +570,7 @@ WrapSameOriginProp(JSContext *cx, JSObject *outerObj, jsval *vp)
 }
 
 static JSBool
-XPC_XOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+XPC_XOW_AddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
   
   
@@ -617,7 +617,7 @@ XPC_XOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 }
 
 static JSBool
-XPC_XOW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+XPC_XOW_DelProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
   JSObject *wrappedObj = GetWrappedObject(cx, obj);
   if (!wrappedObj) {
@@ -638,10 +638,10 @@ XPC_XOW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 }
 
 static JSBool
-XPC_XOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
+XPC_XOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
                          JSBool isSet)
 {
-  if (id == GetRTStringByIndex(cx, XPCJSRuntime::IDX_TO_STRING)) {
+  if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_TO_STRING)) {
     return JS_TRUE;
   }
 
@@ -709,22 +709,14 @@ XPC_XOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
 
   JSObject *proto = nsnull; 
   JSBool checkProto =
-    (isSet && id == GetRTStringByIndex(cx, XPCJSRuntime::IDX_PROTO));
+    (isSet && id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_PROTO));
   if (checkProto) {
     proto = wrappedObj->getProto();
   }
 
-  
-  
-  jsid asId;
-
-  if (!JS_ValueToId(cx, id, &asId)) {
-    return JS_FALSE;
-  }
-
   JSBool ok = isSet
-              ? JS_SetPropertyById(cx, wrappedObj, asId, vp)
-              : JS_GetPropertyById(cx, wrappedObj, asId, vp);
+              ? JS_SetPropertyById(cx, wrappedObj, id, vp)
+              : JS_GetPropertyById(cx, wrappedObj, id, vp);
   if (!ok) {
     return JS_FALSE;
   }
@@ -761,13 +753,13 @@ XPC_XOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
 }
 
 static JSBool
-XPC_XOW_GetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+XPC_XOW_GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
   return XPC_XOW_GetOrSetProperty(cx, obj, id, vp, JS_FALSE);
 }
 
 static JSBool
-XPC_XOW_SetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+XPC_XOW_SetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
   return XPC_XOW_GetOrSetProperty(cx, obj, id, vp, JS_TRUE);
 }
@@ -861,7 +853,7 @@ GetUXPCObject(JSContext *cx, JSObject *obj)
 }
 
 static JSBool
-XPC_XOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
+XPC_XOW_NewResolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                    JSObject **objp)
 {
   obj = GetWrapper(obj);
@@ -921,7 +913,7 @@ XPC_XOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
     return JS_FALSE;
   }
 
-  if (id == GetRTStringByIndex(cx, XPCJSRuntime::IDX_TO_STRING)) {
+  if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_TO_STRING)) {
     jsval oldSlotVal;
     if (!JS_GetReservedSlot(cx, obj, sFlagsSlot, &oldSlotVal) ||
         !JS_SetReservedSlot(cx, obj, sFlagsSlot,
@@ -1020,16 +1012,14 @@ XPC_XOW_Finalize(JSContext *cx, JSObject *obj)
 }
 
 static JSBool
-XPC_XOW_CheckAccess(JSContext *cx, JSObject *obj, jsval prop, JSAccessMode mode,
+XPC_XOW_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                     jsval *vp)
 {
   
   
 
   uintN junk;
-  jsid id;
-  return JS_ValueToId(cx, prop, &id) &&
-         JS_CheckAccess(cx, GetWrappedObject(cx, obj), id, mode, vp, &junk);
+  return JS_CheckAccess(cx, GetWrappedObject(cx, obj), id, mode, vp, &junk);
 }
 
 static JSBool
@@ -1091,7 +1081,7 @@ XPC_XOW_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 }
 
 static JSBool
-XPC_XOW_HasInstance(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
+XPC_XOW_HasInstance(JSContext *cx, JSObject *obj, const jsval *valp, JSBool *bp)
 {
   JSObject *iface = GetWrappedObject(cx, obj);
 
@@ -1117,7 +1107,8 @@ XPC_XOW_HasInstance(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
   }
 
   
-  if (!JSVAL_IS_PRIMITIVE(v)) {
+  jsval v = *valp;
+  if (!JSVAL_IS_PRIMITIVE(*valp)) {
     JSObject *test = JSVAL_TO_OBJECT(v);
 
     
@@ -1127,12 +1118,14 @@ XPC_XOW_HasInstance(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
     }
   }
 
-  return clasp->hasInstance(cx, iface, v, bp);
+  return clasp->hasInstance(cx, iface, &v, bp);
 }
 
 static JSBool
-XPC_XOW_Equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
+XPC_XOW_Equality(JSContext *cx, JSObject *obj, const jsval *valp, JSBool *bp)
 {
+  jsval v = *valp;
+
   
   if (JSVAL_IS_PRIMITIVE(v)) {
     *bp = JS_FALSE;
@@ -1167,8 +1160,9 @@ XPC_XOW_Equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
   XPCWrappedNative *me = XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
   obj = me->GetFlatJSObject();
   test = other->GetFlatJSObject();
+  jsval testVal = OBJECT_TO_JSVAL(test);
   return ((JSExtendedClass *)obj->getJSClass())->
-    equality(cx, obj, OBJECT_TO_JSVAL(test), bp);
+    equality(cx, obj, &testVal, bp);
 }
 
 static JSObject *
@@ -1259,7 +1253,7 @@ XPC_XOW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     }
     rv = ssm->CheckPropertyAccess(cx, wrappedObj,
                                   wrappedObj->getClass()->name,
-                                  GetRTStringByIndex(cx, XPCJSRuntime::IDX_TO_STRING),
+                                  GetRTIdByIndex(cx, XPCJSRuntime::IDX_TO_STRING),
                                   nsIXPCSecurityManager::ACCESS_GET_PROPERTY);
   }
   if (NS_FAILED(rv)) {

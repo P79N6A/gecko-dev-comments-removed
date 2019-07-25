@@ -368,8 +368,8 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
     PRUint16 realTotalCount = 0;
     XPCNativeMember* cur;
     JSString*  str;
-    jsval name;
-    jsval interfaceName;
+    jsid name;
+    jsid interfaceName;
 
     
     
@@ -433,7 +433,7 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
             failed = JS_TRUE;
             break;
         }
-        name = STRING_TO_JSVAL(str);
+        name = INTERNED_STRING_TO_JSID(str);
 
         if(info->IsSetter())
         {
@@ -477,7 +477,7 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
                 failed = JS_TRUE;
                 break;
             }
-            name = STRING_TO_JSVAL(str);
+            name = INTERNED_STRING_TO_JSID(str);
 
             
             
@@ -496,7 +496,7 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
         {
             failed = JS_TRUE;
         }
-        interfaceName = STRING_TO_JSVAL(str);
+        interfaceName = INTERNED_STRING_TO_JSID(str);
     }
 
     if(!failed)
@@ -538,7 +538,7 @@ const char*
 XPCNativeInterface::GetMemberName(XPCCallContext& ccx,
                                   const XPCNativeMember* member) const
 {
-    return JS_GetStringBytes(JSVAL_TO_STRING(member->GetName()));
+    return JS_GetStringBytes(JSID_TO_STRING(member->GetName()));
 }
 
 void

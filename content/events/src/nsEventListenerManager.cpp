@@ -296,6 +296,7 @@ nsEventListenerManager::~nsEventListenerManager()
 
   --mInstanceCount;
   if(mInstanceCount == 0) {
+    NS_IF_RELEASE(gSystemEventGroup);
     NS_IF_RELEASE(gDOM2EventGroup);
   }
 }
@@ -310,18 +311,8 @@ nsEventListenerManager::RemoveAllListeners()
 void
 nsEventListenerManager::Shutdown()
 {
-  NS_IF_RELEASE(gSystemEventGroup);
   sAddListenerID = JSID_VOID;
   nsDOMEvent::Shutdown();
-}
-
-nsIDOMEventGroup*
-nsEventListenerManager::GetSystemEventGroup()
-{
-  if (!gSystemEventGroup) {
-    CallCreateInstance(kDOMEventGroupCID, &gSystemEventGroup);
-  }
-  return gSystemEventGroup;
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsEventListenerManager)
@@ -474,12 +465,6 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
     if (window) {
       window->SetHasPaintEventListeners();
     }
-  } else if (aType == NS_MOZAUDIOAVAILABLE) {
-    mMayHaveAudioAvailableEventListener = PR_TRUE;
-    nsPIDOMWindow* window = GetInnerWindowForTarget();
-    if (window) {
-      window->SetHasAudioAvailableEventListeners();
-    }
   } else if (aType >= NS_MUTATION_START && aType <= NS_MUTATION_END) {
     
     
@@ -497,10 +482,6 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
     nsPIDOMWindow* window = GetInnerWindowForTarget();
     if (window)
       window->SetHasOrientationEventListener();
-  } else if (aType >= NS_MOZTOUCH_DOWN && aType <= NS_MOZTOUCH_UP) {
-    nsPIDOMWindow* window = GetInnerWindowForTarget();
-    if (window)
-      window->SetHasTouchEventListeners();
   }
 
   return NS_OK;
@@ -993,14 +974,6 @@ nsEventListenerManager::CompileEventHandlerInternal(nsIScriptContext *aContext,
       else if (aName == nsGkAtoms::onSVGZoom)
         attrName = nsGkAtoms::onzoom;
 #endif 
-#ifdef MOZ_SMIL
-      else if (aName == nsGkAtoms::onbeginEvent)
-        attrName = nsGkAtoms::onbegin;
-      else if (aName == nsGkAtoms::onrepeatEvent)
-        attrName = nsGkAtoms::onrepeat;
-      else if (aName == nsGkAtoms::onendEvent)
-        attrName = nsGkAtoms::onend;
-#endif 
 
       content->GetAttr(kNameSpaceID_None, attrName, handlerBody);
 
@@ -1247,8 +1220,17 @@ nsEventListenerManager::SetListenerTarget(nsISupports* aTarget)
 NS_IMETHODIMP
 nsEventListenerManager::GetSystemEventGroupLM(nsIDOMEventGroup **aGroup)
 {
-  *aGroup = GetSystemEventGroup();
-  NS_ENSURE_TRUE(*aGroup, NS_ERROR_OUT_OF_MEMORY);
+  if (!gSystemEventGroup) {
+    nsresult result;
+    nsCOMPtr<nsIDOMEventGroup> group(do_CreateInstance(kDOMEventGroupCID,&result));
+    if (NS_FAILED(result))
+      return result;
+
+    gSystemEventGroup = group;
+    NS_ADDREF(gSystemEventGroup);
+  }
+
+  *aGroup = gSystemEventGroup;
   NS_ADDREF(*aGroup);
   return NS_OK;
 }
@@ -1314,7 +1296,7 @@ nsEventListenerManager::DispatchEvent(nsIDOMEvent* aEvent, PRBool *_retval)
   }
 
   
-  nsIPresShell *shell = document->GetShell();
+  nsIPresShell *shell = document->GetPrimaryShell();
   nsRefPtr<nsPresContext> context;
   if (shell) {
     context = shell->GetPresContext();

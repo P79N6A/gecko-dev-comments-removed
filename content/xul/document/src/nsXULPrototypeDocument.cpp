@@ -684,7 +684,7 @@ nsXULPDGlobalObject::SetScriptContext(PRUint32 lang_id, nsIScriptContext *aScrip
     aScriptContext->WillInitializeContext();
     
     
-    rv = aScriptContext->InitContext();
+    rv = aScriptContext->InitContext(nsnull);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
