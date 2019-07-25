@@ -106,12 +106,12 @@ bool DetachThread(pid_t pid) {
 }
 
 inline bool IsMappedFileOpenUnsafe(
-    const google_breakpad::MappingInfo* mapping) {
+    const google_breakpad::MappingInfo& mapping) {
   
   
   
   
-  return my_strncmp(mapping->name,
+  return my_strncmp(mapping.name,
                     kMappedFileUnsafePrefix,
                     sizeof(kMappedFileUnsafePrefix) - 1) == 0;
 }
@@ -237,16 +237,14 @@ LinuxDumper::BuildProcPath(char* path, pid_t pid, const char* node) const {
 }
 
 bool
-LinuxDumper::ElfFileIdentifierForMapping(unsigned int mapping_id,
+LinuxDumper::ElfFileIdentifierForMapping(const MappingInfo& mapping,
                                          uint8_t identifier[sizeof(MDGUID)])
 {
-  assert(mapping_id < mappings_.size());
   my_memset(identifier, 0, sizeof(MDGUID));
-  const MappingInfo* mapping = mappings_[mapping_id];
   if (IsMappedFileOpenUnsafe(mapping)) {
     return false;
   }
-  int fd = sys_open(mapping->name, O_RDONLY, 0);
+  int fd = sys_open(mapping.name, O_RDONLY, 0);
   if (fd < 0)
     return false;
   struct kernel_stat st;

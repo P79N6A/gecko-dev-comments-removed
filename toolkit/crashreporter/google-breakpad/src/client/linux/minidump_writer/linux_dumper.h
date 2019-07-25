@@ -163,7 +163,7 @@ class LinuxDumper {
   void BuildProcPath(char* path, pid_t pid, const char* node) const;
 
   
-  bool ElfFileIdentifierForMapping(unsigned int mapping_id,
+  bool ElfFileIdentifierForMapping(const MappingInfo& mapping,
                                    uint8_t identifier[sizeof(MDGUID)]);
 
   
