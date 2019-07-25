@@ -1017,6 +1017,18 @@ gfxHarfBuzzShaper::SetGlyphsFromRun(gfxContext *aContext,
     double hb2appUnits = FixedToFloat(aShapedWord->AppUnitsPerDevUnit());
 
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    hb_position_t x_residual = 0;
+
+    
     nscoord yPos = 0;
 
     const hb_glyph_position_t *posInfo = hb_buffer_get_glyph_positions(aBuffer);
@@ -1116,17 +1128,27 @@ gfxHarfBuzzShaper::SetGlyphsFromRun(gfxContext *aContext,
             continue;
         }
 
-        
+        hb_position_t x_offset = posInfo[glyphStart].x_offset;
         hb_position_t x_advance = posInfo[glyphStart].x_advance;
-        nscoord advance =
-            roundX ? appUnitsPerDevUnit * FixedToIntRound(x_advance)
-            : floor(hb2appUnits * x_advance + 0.5);
-
+        nscoord xOffset, advance;
+        if (roundX) {
+            xOffset =
+                appUnitsPerDevUnit * FixedToIntRound(x_offset + x_residual);
+            
+            hb_position_t width = x_advance - x_offset;
+            int intWidth = FixedToIntRound(width);
+            x_residual = width - FloatToFixed(intWidth);
+            advance = appUnitsPerDevUnit * intWidth + xOffset;
+        } else {
+            xOffset = floor(hb2appUnits * x_offset + 0.5);
+            advance = floor(hb2appUnits * x_advance + 0.5);
+        }
+        
         if (glyphsInClump == 1 &&
             gfxTextRun::CompressedGlyph::IsSimpleGlyphID(ginfo[glyphStart].codepoint) &&
             gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
             aShapedWord->IsClusterStart(baseCharIndex) &&
-            posInfo[glyphStart].x_offset == 0 &&
+            xOffset == 0 &&
             posInfo[glyphStart].y_offset == 0 && yPos == 0)
         {
             gfxTextRun::CompressedGlyph g;
@@ -1143,20 +1165,14 @@ gfxHarfBuzzShaper::SetGlyphsFromRun(gfxContext *aContext,
                     detailedGlyphs.AppendElement();
                 details->mGlyphID = ginfo[glyphStart].codepoint;
 
-                
-                
-                
-                
-                hb_position_t x_offset = posInfo[glyphStart].x_offset;
-                details->mXOffset =
-                    roundX ? appUnitsPerDevUnit * FixedToIntRound(x_offset)
-                    : floor(hb2appUnits * x_offset + 0.5);
+                details->mXOffset = xOffset;
+                details->mAdvance = advance;
+
                 hb_position_t y_offset = posInfo[glyphStart].y_offset;
                 details->mYOffset = yPos -
                     (roundY ? appUnitsPerDevUnit * FixedToIntRound(y_offset)
                      : floor(hb2appUnits * y_offset + 0.5));
 
-                details->mAdvance = advance;
                 hb_position_t y_advance = posInfo[glyphStart].y_advance;
                 if (y_advance != 0) {
                     yPos -=
@@ -1166,10 +1182,25 @@ gfxHarfBuzzShaper::SetGlyphsFromRun(gfxContext *aContext,
                 if (++glyphStart >= glyphEnd) {
                     break;
                 }
+
+                x_offset = posInfo[glyphStart].x_offset;
                 x_advance = posInfo[glyphStart].x_advance;
-                advance =
-                    roundX ? appUnitsPerDevUnit * FixedToIntRound(x_advance)
-                    : floor(hb2appUnits * x_advance + 0.5);
+                if (roundX) {
+                    xOffset = appUnitsPerDevUnit *
+                        FixedToIntRound(x_offset + x_residual);
+                    
+                    
+                    
+                    
+                    
+                    x_advance += x_residual;
+                    int intAdvance = FixedToIntRound(x_advance);
+                    x_residual = x_advance - FloatToFixed(intAdvance);
+                    advance = appUnitsPerDevUnit * intAdvance;
+                } else {
+                    xOffset = floor(hb2appUnits * x_offset + 0.5);
+                    advance = floor(hb2appUnits * x_advance + 0.5);
+                }
             }
 
             gfxTextRun::CompressedGlyph g;
