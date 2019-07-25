@@ -558,7 +558,24 @@ BookmarksStore.prototype = {
       }
 
       item.URI = node.uri;
-      item.tags = this._ts.getTagsForURI(Utils.makeURI(node.uri), {});
+
+      
+      
+      
+      
+      let uri;
+      try {
+        uri = Utils.makeURI(node.uri);
+      }
+      catch(e) {
+        this._log.error("error parsing URI string <" + node.uri + "> " +
+                        "for item " + node.itemId + " (" + node.title + "): " +
+                        e);
+      }
+
+      if (uri)
+        item.tags = this._ts.getTagsForURI(uri, {});
+
       item.keyword = this._bms.getKeywordForBookmark(node.itemId);
 
     } else if (node.type == node.RESULT_TYPE_SEPARATOR) {
