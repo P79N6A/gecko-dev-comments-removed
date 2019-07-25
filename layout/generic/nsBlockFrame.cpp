@@ -1029,7 +1029,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   if (!NS_FRAME_IS_FULLY_COMPLETE(state.mReflowStatus)) {
-    if (GetOverflowLines()) {
+    if (GetOverflowLines() || GetFloatContinuations()) {
       state.mReflowStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
     }
 
@@ -3536,10 +3536,9 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
       }
       --aLine;
 
-      if (LINE_REFLOW_TRUNCATED == lineReflowStatus) {
-        
-        PushTruncatedPlaceholderLine(aState, aLine, *aKeepReflowGoing);
-      }
+      NS_ASSERTION(lineReflowStatus != LINE_REFLOW_TRUNCATED,
+                   "ReflowInlineFrame should never determine that a line "
+                   "needs to go to the next page/column");
     }
   }
 
@@ -3820,12 +3819,6 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
       }
     }
   }
-  else if (NS_FRAME_IS_TRUNCATED(frameReflowStatus) &&
-           nsGkAtoms::placeholderFrame == aFrame->GetType()) {
-    
-    
-    *aLineReflowStatus = LINE_REFLOW_TRUNCATED;
-  }
 
   if (!NS_FRAME_IS_FULLY_COMPLETE(frameReflowStatus)) {
     
@@ -3833,13 +3826,7 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
     nsIAtom* frameType = aFrame->GetType();
 
     PRBool madeContinuation;
-    if (nsGkAtoms::placeholderFrame == frameType) {
-      nsPlaceholderFrame* placeholder = static_cast<nsPlaceholderFrame*>(aFrame);
-      rv = SplitFloat(aState, placeholder->GetOutOfFlowFrame(), frameReflowStatus);
-    }
-    else {
-      rv = CreateContinuationFor(aState, aLine, aFrame, madeContinuation);
-    }
+    rv = CreateContinuationFor(aState, aLine, aFrame, madeContinuation);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -3916,9 +3903,7 @@ nsBlockFrame::SplitFloat(nsBlockReflowState& aState,
     aFloat->GetNextInFlow()->AddStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
 
   
-  NS_FRAME_SET_OVERFLOW_INCOMPLETE(aFloatStatus);
-  
-  NS_MergeReflowStatusInto(&aState.mReflowStatus, aFloatStatus);
+  NS_FRAME_SET_OVERFLOW_INCOMPLETE(aState.mReflowStatus);
 
   if (aFloat->GetStyleDisplay()->mFloats == NS_STYLE_FLOAT_LEFT) {
     aState.mFloatManager->SetSplitLeftFloatAcrossBreak();
@@ -5755,12 +5740,6 @@ nsBlockFrame::ReflowFloatContinuations(nsBlockReflowState& aState,
       
       nsReflowStatus fStatus = NS_FRAME_COMPLETE;
       aState.FlowAndPlaceFloat(f, fStatus);
-      if (!NS_FRAME_IS_FULLY_COMPLETE(fStatus)) {
-        rv = SplitFloat(aState, f, fStatus);
-        NS_ENSURE_SUCCESS(rv, rv);
-        NS_FRAME_SET_OVERFLOW_INCOMPLETE(fStatus);
-      }
-      NS_MergeReflowStatusInto(&aStatus, fStatus);
 
       
       nsRect rect = f->GetRect();

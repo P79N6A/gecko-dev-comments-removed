@@ -571,6 +571,7 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
     mBlock->mFloats.AppendFrame(mBlock, aFloat);
   }
 
+  
   aReflowStatus = NS_FRAME_COMPLETE;
 
   
@@ -596,12 +597,9 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
       (aLineLayout->LineIsEmpty() ||
        mBlock->ComputeFloatWidth(*this, floatAvailableSpace, aFloat)
        <= aAvailableWidth)) {
-    nsFloatManager::SavedState floatManagerState;
-    mFloatManager->PushState(&floatManagerState);
-
     
     placed = FlowAndPlaceFloat(aFloat, aReflowStatus);
-    if (placed && !NS_FRAME_IS_TRUNCATED(aReflowStatus)) {
+    if (placed) {
       
       nsFlowAreaRect floatAvailSpace = GetFloatAvailableSpace(mY);
       nsRect availSpace(nsPoint(floatAvailSpace.mRect.x + BorderPadding().left,
@@ -610,24 +608,6 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
       aLineLayout->UpdateBand(availSpace, aFloat);
       
       mCurrentLineFloats.Append(mFloatCacheFreeList.Alloc(aFloat));
-    }
-    else {
-      if (placed) {
-        mFloatManager->PopState(&floatManagerState);
-      } else {
-        mFloatManager->AssertStateMatches(&floatManagerState);
-      }
-      if (IsAdjacentWithTop()) {
-        
-        
-        NS_ASSERTION(aLineLayout->LineIsBreakable(),
-                     "We can't get here unless forceFit is false");
-        aReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
-      } else {
-        
-        
-        aReflowStatus |= NS_FRAME_TRUNCATED;
-      }
     }
   }
   else {
@@ -683,6 +663,7 @@ FloatMarginWidth(const nsHTMLReflowState& aCBReflowState,
 
 PRBool
 nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
+                                      
                                       nsReflowStatus& aReflowStatus)
 {
   aReflowStatus = NS_FRAME_COMPLETE;
@@ -740,6 +721,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   for (;;) {
     if (floatAvailableSpace.mRect.height <= 0) {
       
+      PushFloatPastBreak(aFloat);
       return PR_FALSE;
     }
 
@@ -845,22 +827,30 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   
   nsMargin floatMargin; 
   PRBool pushedDown = mY != saveY;
+  nsReflowStatus reflowStatus;
   mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat,
-                      floatMargin, pushedDown, aReflowStatus);
+                      floatMargin, pushedDown, reflowStatus);
   if (aFloat->GetPrevInFlow())
     floatMargin.top = 0;
-  if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus))
+  if (NS_FRAME_IS_NOT_COMPLETE(reflowStatus))
     floatMargin.bottom = 0;
 
   
   
   
-  if (mContentArea.height != NS_UNCONSTRAINEDSIZE &&
-      adjustedAvailableSpace.height == NS_UNCONSTRAINEDSIZE &&
-      (!mReflowState.mFlags.mIsTopOfPage || !IsAdjacentWithTop() ||
-       pushedDown) &&
-      aFloat->GetSize().height + floatMargin.TopBottom() >
-        mContentArea.height - floatY) {
+  
+  
+  
+  
+  if ((mContentArea.height != NS_UNCONSTRAINEDSIZE &&
+       adjustedAvailableSpace.height == NS_UNCONSTRAINEDSIZE &&
+       (!mReflowState.mFlags.mIsTopOfPage || !IsAdjacentWithTop() ||
+        pushedDown) &&
+       aFloat->GetSize().height + floatMargin.TopBottom() >
+         mContentArea.height - floatY) ||
+      NS_FRAME_IS_TRUNCATED(reflowStatus)) {
+
+    PushFloatPastBreak(aFloat);
     return PR_FALSE;
   }
 
@@ -891,7 +881,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   
   nsRect region = nsFloatManager::CalculateRegionFor(aFloat, floatMargin);
   
-  if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus) &&
+  if (NS_FRAME_IS_NOT_COMPLETE(reflowStatus) &&
       (NS_UNCONSTRAINEDSIZE != mContentArea.height)) {
     region.height = NS_MAX(region.height, mContentArea.height - floatY);
   }
@@ -916,6 +906,10 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
     mFloatManager->IncludeInDamage(top, bottom);
   }
 
+  if (NS_FRAME_IS_NOT_COMPLETE(reflowStatus)) {
+    mBlock->SplitFloat(*this, aFloat, reflowStatus);
+  }
+
 #ifdef NOISY_FLOATMANAGER
   nscoord tx, ty;
   mFloatManager->GetTranslation(tx, ty);
@@ -936,6 +930,32 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
 #endif
 
   return PR_TRUE;
+}
+
+void
+nsBlockReflowState::PushFloatPastBreak(nsIFrame *aFloat)
+{
+  
+  
+  
+  
+  
+  if (aFloat->GetStyleDisplay()->mFloats == NS_STYLE_FLOAT_LEFT) {
+    mFloatManager->SetPushedLeftFloatPastBreak();
+  } else {
+    NS_ABORT_IF_FALSE(aFloat->GetStyleDisplay()->mFloats ==
+                        NS_STYLE_FLOAT_RIGHT,
+                      "unexpected float value");
+    mFloatManager->SetPushedRightFloatPastBreak();
+  }
+
+  
+  
+  nsresult rv = mBlock->StealFrame(mPresContext, aFloat);
+  NS_ASSERTION(NS_SUCCEEDED(rv), "StealFrame should succeed");
+  AppendFloatContinuation(aFloat);
+
+  NS_FRAME_SET_OVERFLOW_INCOMPLETE(mReflowStatus);
 }
 
 
@@ -959,21 +979,10 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList)
       nsReflowStatus reflowStatus;
       PRBool placed = FlowAndPlaceFloat(fc->mFloat, reflowStatus);
 
-      if (!placed || NS_FRAME_IS_TRUNCATED(reflowStatus)) {
+      if (!placed) {
+        
         
         return PR_FALSE;
-      }
-      else if (!NS_FRAME_IS_FULLY_COMPLETE(reflowStatus)) {
-        
-        nsresult rv = mBlock->SplitFloat(*this, fc->mFloat, reflowStatus);
-        if (NS_FAILED(rv))
-          return PR_FALSE;
-      } else {
-        
-        
-        NS_WARN_IF_FALSE(!NS_FRAME_IS_TRUNCATED(reflowStatus),
-                         "This situation currently leads to data not printing");
-        
       }
     }
     fc = fc->Next();
