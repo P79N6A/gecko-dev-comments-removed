@@ -1208,8 +1208,7 @@ private:
   
   void AddTextItemIfNeeded(nsFrameConstructorState& aState,
                            nsIFrame* aParentFrame,
-                           nsIContent* aParentContent,
-                           PRInt32 aContentIndex,
+                           nsIContent* aPossibleTextContent,
                            FrameConstructionItemList& aItems);
 
   

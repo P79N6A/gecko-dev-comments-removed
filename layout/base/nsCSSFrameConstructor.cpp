@@ -6146,24 +6146,21 @@ MaybeGetListBoxBodyFrame(nsIContent* aContainer, nsIContent* aChild)
 void
 nsCSSFrameConstructor::AddTextItemIfNeeded(nsFrameConstructorState& aState,
                                            nsIFrame* aParentFrame,
-                                           nsIContent* aParentContent,
-                                           PRInt32 aContentIndex,
+                                           nsIContent* aPossibleTextContent,
                                            FrameConstructionItemList& aItems)
 {
-  NS_ASSERTION(aContentIndex >= 0 &&
-               PRUint32(aContentIndex) < aParentContent->GetChildCount(),
-               "child index out of range");
-  nsIContent* content = aParentContent->GetChildAt(aContentIndex);
-  if (!content->IsNodeOfType(nsINode::eTEXT) ||
-      !content->HasFlag(NS_CREATE_FRAME_IF_NON_WHITESPACE)) {
+  NS_PRECONDITION(aPossibleTextContent, "Must have node");
+  if (!aPossibleTextContent->IsNodeOfType(nsINode::eTEXT) ||
+      !aPossibleTextContent->HasFlag(NS_CREATE_FRAME_IF_NON_WHITESPACE)) {
     
     
     
     return;
   }
-  NS_ASSERTION(!content->GetPrimaryFrame(),
+  NS_ASSERTION(!aPossibleTextContent->GetPrimaryFrame(),
                "Text node has a frame and NS_CREATE_FRAME_IF_NON_WHITESPACE");
-  AddFrameConstructionItems(aState, content, PR_FALSE, aParentFrame, aItems);
+  AddFrameConstructionItems(aState, aPossibleTextContent, PR_FALSE,
+                            aParentFrame, aItems);
 }
 
 void
@@ -6638,7 +6635,8 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   PRBool haveNoXBLChildren =
     mDocument->BindingManager()->GetXBLChildNodesFor(aContainer) == nsnull;
   FrameConstructionItemList items;
-  if (aNewIndexInContainer > 0 && GetParentType(frameType) == eTypeBlock &&
+  if (aFirstNewContent->GetPreviousSibling() &&
+      GetParentType(frameType) == eTypeBlock &&
       haveNoXBLChildren) {
     
     
@@ -6651,8 +6649,8 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
     
     
     
-    AddTextItemIfNeeded(state, parentFrame, aContainer,
-                        aNewIndexInContainer - 1, items);
+    AddTextItemIfNeeded(state, parentFrame,
+                        aFirstNewContent->GetPreviousSibling(), items);
   }
   for (PRUint32 i = aNewIndexInContainer, count = aContainer->GetChildCount();
        i < count;
@@ -7132,13 +7130,14 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
   ParentType parentType = GetParentType(frameType);
   PRBool haveNoXBLChildren =
     mDocument->BindingManager()->GetXBLChildNodesFor(aContainer) == nsnull;
-  if (aIndexInContainer > 0 && parentType == eTypeBlock && haveNoXBLChildren) {
+  if (aStartChild->GetPreviousSibling() &&
+      parentType == eTypeBlock && haveNoXBLChildren) {
     
     
     
     
     
-    AddTextItemIfNeeded(state, parentFrame, aContainer, aIndexInContainer - 1,
+    AddTextItemIfNeeded(state, parentFrame, aStartChild->GetPreviousSibling(),
                         items);
   }
 
@@ -7154,15 +7153,13 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
     }
   }
 
-  if (aEndIndexInContainer < PRInt32(aContainer->GetChildCount()) &&
-      parentType == eTypeBlock && haveNoXBLChildren) {
+  if (aEndChild && parentType == eTypeBlock && haveNoXBLChildren) {
     
     
     
     
     
-    AddTextItemIfNeeded(state, parentFrame, aContainer, aEndIndexInContainer,
-                        items);
+    AddTextItemIfNeeded(state, parentFrame, aEndChild, items);
   }
 
   
