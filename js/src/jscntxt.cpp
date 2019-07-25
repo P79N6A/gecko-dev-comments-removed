@@ -46,7 +46,6 @@
 #include <stdlib.h>
 #include <string.h>
 #ifdef ANDROID
-# include <android/log.h>
 # include <fstream>
 # include <string>
 #endif  
@@ -495,7 +494,10 @@ JSThreadData::init()
     if (!stackSpace.init())
         return false;
 #ifdef JS_TRACER
-    InitJIT(&traceMonitor);
+    if (!InitJIT(&traceMonitor)) {
+        finish();
+        return false;
+    }
 #endif
     dtoaState = js_NewDtoaState();
     if (!dtoaState) {
@@ -2217,23 +2219,8 @@ ComputeIsJITBroken()
         return false;
     }
 
-    std::string line;
-
-    
-    std::ifstream osrelease("/proc/sys/kernel/osrelease");
-    std::getline(osrelease, line);
-    __android_log_print(ANDROID_LOG_INFO, "Gecko", "Detected osrelease `%s'",
-                        line.c_str());
-
-    if (line.npos == line.find("2.6.29")) {
-        
-        __android_log_print(ANDROID_LOG_INFO, "Gecko", "JITs are not broken");
-        return false;
-    }
-
-    
-    line = "";
     bool broken = false;
+    std::string line;
     std::ifstream cpuinfo("/proc/cpuinfo");
     do {
         if (0 == line.find("Hardware")) {
@@ -2247,8 +2234,6 @@ ComputeIsJITBroken()
             };
             for (const char** hw = &blacklist[0]; *hw; ++hw) {
                 if (line.npos != line.find(*hw)) {
-                    __android_log_print(ANDROID_LOG_INFO, "Gecko",
-                                        "Blacklisted device `%s'", *hw);
                     broken = true;
                     break;
                 }
@@ -2257,10 +2242,6 @@ ComputeIsJITBroken()
         }
         std::getline(cpuinfo, line);
     } while(!cpuinfo.fail() && !cpuinfo.eof());
-
-    __android_log_print(ANDROID_LOG_INFO, "Gecko", "JITs are %sbroken",
-                        broken ? "" : "not ");
-
     return broken;
 #endif  
 }
@@ -2296,7 +2277,7 @@ JSContext::updateJITEnabled()
 # endif
                         ;
 #ifdef JS_TRACER
-    profilingEnabled = (options & JSOPTION_PROFILING) && traceJitEnabled && methodJitEnabled;
+    profilingEnabled = (options & JSOPTION_PROFILING) && traceJitEnabled;
 #endif
 #endif
 }

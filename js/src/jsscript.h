@@ -510,8 +510,19 @@ js_CallNewScriptHook(JSContext *cx, JSScript *script, JSFunction *fun);
 extern JS_FRIEND_API(void)
 js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
 
+
+
+
+
 extern void
 js_DestroyScript(JSContext *cx, JSScript *script);
+
+
+
+
+
+extern void
+js_DestroyScriptFromGC(JSContext *cx, JSScript *script, JSThreadData *data);
 
 extern void
 js_TraceScript(JSTracer *trc, JSScript *script);
