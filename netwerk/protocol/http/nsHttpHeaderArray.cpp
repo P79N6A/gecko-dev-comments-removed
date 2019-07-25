@@ -92,7 +92,10 @@ nsHttpHeaderArray::SetHeaderFromNet(nsHttpAtom header, const nsACString &value)
             if (HeaderMustHaveValue(header)) {
                 return NS_ERROR_CORRUPTED_CONTENT;
             }
-            return NS_OK; 
+            if (!TrackEmptyHeader(header)) {
+                LOG(("Ignoring Empty Header: %s\n", header.get()));
+                return NS_OK; 
+            }
         }
         entry = mHeaders.AppendElement(); 
         if (!entry)
@@ -109,6 +112,8 @@ nsHttpHeaderArray::SetHeaderFromNet(nsHttpAtom header, const nsACString &value)
                 
                 return NS_ERROR_CORRUPTED_CONTENT;
             } 
+            LOG(("Header %s silently dropped as non mergeable header\n",
+                 header.get()));
         }
     }
 
