@@ -498,7 +498,7 @@ StackSpace::tryBumpLimit(JSContext *cx, Value *from, uintN nvals, Value **limit)
 }
 
 size_t
-StackSpace::sizeOfCommitted()
+StackSpace::committedSize()
 {
 #ifdef XP_WIN
     return (commitEnd_ - base_) * sizeof(Value);
@@ -644,6 +644,7 @@ ContextStack::popSegment()
 bool
 ContextStack::pushInvokeArgs(JSContext *cx, uintN argc, InvokeArgsGuard *iag)
 {
+    LeaveTrace(cx);
     JS_ASSERT(argc <= StackSpace::ARGS_LENGTH_MAX);
 
     uintN nvars = 2 + argc;
@@ -679,7 +680,7 @@ ContextStack::pushInvokeFrame(JSContext *cx, const CallArgs &args,
     JS_ASSERT(space().firstUnused() == args.end());
 
     JSObject &callee = args.callee();
-    JSFunction *fun = callee.getFunctionPrivate();
+    JSFunction *fun = callee.toFunction();
     JSScript *script = fun->script();
 
      uint32 flags = ToFrameFlags(initial);
@@ -1041,12 +1042,11 @@ StackIter::settleOnNewState()
 
 
 
-
             JSOp op = js_GetOpcode(cx_, fp_->script(), pc_);
             if (op == JSOP_CALL || op == JSOP_FUNCALL) {
                 uintN argc = GET_ARGC(pc_);
                 DebugOnly<uintN> spoff = sp_ - fp_->base();
-                JS_ASSERT_IF(cx_->stackIterAssertionEnabled,
+                JS_ASSERT_IF(cx_->stackIterAssertionEnabled && !fp_->hasImacropc(),
                              spoff == js_ReconstructStackDepth(cx_, fp_->script(), pc_));
                 Value *vp = sp_ - (2 + argc);
 
@@ -1056,13 +1056,32 @@ StackIter::settleOnNewState()
                     args_ = CallArgsFromVp(argc, vp);
                     return;
                 }
+            } else if (op == JSOP_FUNAPPLY) {
+                JS_ASSERT(!fp_->hasImacropc());
+                uintN argc = GET_ARGC(pc_);
+                uintN spoff = js_ReconstructStackDepth(cx_, fp_->script(), pc_);
+                Value *sp = fp_->base() + spoff;
+                Value *vp = sp - (2 + argc);
+
+                CrashIfInvalidSlot(fp_, vp);
+                if (IsNativeFunction(*vp)) {
+                    if (sp_ != sp) {
+                        JS_ASSERT(argc == 2);
+                        JS_ASSERT(vp[0].toObject().toFunction()->native() == js_fun_apply);
+                        JS_ASSERT(sp_ >= vp + 3);
+                        argc = sp_ - (vp + 2);
+                    }
+                    state_ = IMPLICIT_NATIVE;
+                    args_ = CallArgsFromVp(argc, vp);
+                    return;
+                }
             }
 
             state_ = SCRIPTED;
+            JS_ASSERT(sp_ >= fp_->base() && sp_ <= fp_->slots() + fp_->script()->nslots);
             DebugOnly<JSScript *> script = fp_->script();
-            JS_ASSERT_IF(op != JSOP_FUNAPPLY,
-                         sp_ >= fp_->base() && sp_ <= fp_->slots() + script->nslots);
-            JS_ASSERT(pc_ >= script->code && pc_ < script->code + script->length);
+            JS_ASSERT_IF(!fp_->hasImacropc(),
+                         pc_ >= script->code && pc_ < script->code + script->length);
             return;
         }
 
@@ -1094,6 +1113,8 @@ StackIter::StackIter(JSContext *cx, SavedOption savedOption)
 #ifdef JS_METHODJIT
     mjit::ExpandInlineFrames(cx->compartment);
 #endif
+
+    LeaveTrace(cx);
 
     if (StackSegment *seg = cx->stack.seg_) {
         startOnSegment(seg);

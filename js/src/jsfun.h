@@ -100,7 +100,7 @@
 #define JSFUN_KINDMASK      0xc000  /* encode interp vs. native and closure
                                        optimization level -- see above */
 
-struct JSFunction : public JSObject_Slots4
+struct JSFunction : public JSObject_Slots2
 {
     
 
@@ -119,7 +119,7 @@ struct JSFunction : public JSObject_Slots4
             uint16       skipmin; 
 
 
-            js::Shape   *names;   
+            JSObject    *scope;   
         } i;
         void            *nativeOrScript;
     } u;
@@ -163,23 +163,26 @@ struct JSFunction : public JSObject_Slots4
         return flags & JSFUN_JOINABLE;
     }
 
-    JSObject &compiledFunObj() {
-        return *this;
+    JSObject *callScope() const {
+        JS_ASSERT(isInterpreted());
+        return u.i.scope;
     }
 
-  private:
     
 
 
 
 
 
-    enum {
-        METHOD_ATOM_SLOT  = JSSLOT_FUN_METHOD_ATOM
-    };
+    static const uint32 JSSLOT_FUN_METHOD_ATOM = 0;
+    static const uint32 JSSLOT_FUN_METHOD_OBJ  = 1;
 
-  public:
-    inline void setJoinable();
+    
+    inline bool isClonedMethod() const;
+
+    
+    inline bool hasMethodObj(const JSObject& obj) const;
+    inline void setMethodObj(JSObject& obj);
 
     
 
@@ -187,12 +190,13 @@ struct JSFunction : public JSObject_Slots4
 
 
     JSAtom *methodAtom() const {
-        return (joinable() && getSlot(METHOD_ATOM_SLOT).isString())
-               ? &getSlot(METHOD_ATOM_SLOT).toString()->asAtom()
+        return (joinable() && getSlot(JSSLOT_FUN_METHOD_ATOM).isString())
+               ? &getSlot(JSSLOT_FUN_METHOD_ATOM).toString()->asAtom()
                : NULL;
     }
-
     inline void setMethodAtom(JSAtom *atom);
+
+    inline void setJoinable();
 
     JSScript *script() const {
         JS_ASSERT(isInterpreted());
@@ -239,6 +243,20 @@ struct JSFunction : public JSObject_Slots4
     }
 };
 
+inline JSFunction *
+JSObject::toFunction()
+{
+    JS_ASSERT(JS_ObjectIsFunction(NULL, this));
+    return static_cast<JSFunction *>(this);
+}
+
+inline const JSFunction *
+JSObject::toFunction() const
+{
+    JS_ASSERT(JS_ObjectIsFunction(NULL, const_cast<JSObject *>(this)));
+    return static_cast<const JSFunction *>(this);
+}
+
 
 
 
@@ -264,11 +282,11 @@ js_NewFunction(JSContext *cx, JSObject *funobj, JSNative native, uintN nargs,
 extern void
 js_FinalizeFunction(JSContext *cx, JSFunction *fun);
 
-extern JSObject * JS_FASTCALL
+extern JSFunction * JS_FASTCALL
 js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
                        JSObject *proto);
 
-inline JSObject *
+inline JSFunction *
 CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
                     bool ignoreSingletonClone = false)
 {
@@ -293,7 +311,7 @@ CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
     return js_CloneFunctionObject(cx, fun, parent, proto);
 }
 
-inline JSObject *
+inline JSFunction *
 CloneFunctionObject(JSContext *cx, JSFunction *fun)
 {
     
@@ -329,9 +347,6 @@ js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, JSNative native,
 
 extern JSFunction *
 js_ValueToFunction(JSContext *cx, const js::Value *vp, uintN flags);
-
-extern JSObject *
-js_ValueToFunctionObject(JSContext *cx, js::Value *vp, uintN flags);
 
 extern JSObject *
 js_ValueToCallableObject(JSContext *cx, js::Value *vp, uintN flags);

@@ -2146,7 +2146,7 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
         rdata.dollar = rdata.dollarEnd = NULL;
 
         if (rdata.lambda->isFunction()) {
-            JSFunction *fun = rdata.lambda->getFunctionPrivate();
+            JSFunction *fun = rdata.lambda->toFunction();
             if (fun->isInterpreted()) {
                 
 

@@ -46,6 +46,7 @@
 #include "jsgcmark.h"
 #include "jsiter.h"
 #include "jsnum.h"
+#include "jsregexp.h"
 #include "jswrapper.h"
 #include "methodjit/PolyIC.h"
 #include "methodjit/MonoIC.h"
@@ -53,8 +54,6 @@
 # include "assembler/jit/ExecutableAllocator.h"
 #endif
 #include "jscompartment.h"
-
-#include "vm/RegExpObject.h"
 
 #include "jsobjinlines.h"
 
@@ -235,7 +234,7 @@ Wrapper::set(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id, bool
                Value *vp)
 {
     
-    SET(wrappedObject(wrapper)->setGeneric(cx, id, vp, false));
+    SET(wrappedObject(wrapper)->setProperty(cx, id, vp, false));
 }
 
 bool
@@ -268,13 +267,6 @@ Wrapper::construct(JSContext *cx, JSObject *wrapper, uintN argc, Value *argv, Va
     vp->setUndefined(); 
     const jsid id = JSID_VOID;
     GET(ProxyHandler::construct(cx, wrapper, argc, argv, vp));
-}
-
-bool
-Wrapper::nativeCall(JSContext *cx, JSObject *wrapper, Class *clasp, Native native, CallArgs args)
-{
-    const jsid id = JSID_VOID;
-    CHECKED(CallJSNative(cx, native, args), CALL);
 }
 
 bool
@@ -346,7 +338,7 @@ Wrapper::defaultValue(JSContext *cx, JSObject *wrapper, JSType hint, Value *vp)
 void
 Wrapper::trace(JSTracer *trc, JSObject *wrapper)
 {
-    MarkValue(trc, wrapper->getReservedSlotRef(JSSLOT_PROXY_PRIVATE), "wrappedObject");
+    MarkObject(trc, *wrappedObject(wrapper), "wrappedObject");
 }
 
 JSObject *
@@ -420,6 +412,7 @@ ForceFrame::enter()
     frame = context->new_<DummyFrameGuard>();
     if (!frame)
        return false;
+    LeaveTrace(context);
 
     JS_ASSERT(context->compartment == target->compartment());
     JSCompartment *destination = context->compartment;
@@ -450,6 +443,8 @@ AutoCompartment::enter()
 {
     JS_ASSERT(!entered);
     if (origin != destination) {
+        LeaveTrace(context);
+
         JSObject *scopeChain = target->getGlobal();
         JS_ASSERT(scopeChain->isNative());
 
@@ -738,17 +733,13 @@ CrossCompartmentWrapper::construct(JSContext *cx, JSObject *wrapper, uintN argc,
     return call.origin->wrap(cx, rval);
 }
 
-extern JSBool
-js_generic_native_method_dispatcher(JSContext *cx, uintN argc, Value *vp);
-
 bool
 CrossCompartmentWrapper::nativeCall(JSContext *cx, JSObject *wrapper, Class *clasp, Native native, CallArgs srcArgs)
 {
     JS_ASSERT_IF(!srcArgs.calleev().isUndefined(),
-                 srcArgs.callee().getFunctionPrivate()->native() == native ||
-                 srcArgs.callee().getFunctionPrivate()->native() == js_generic_native_method_dispatcher);
+                 srcArgs.callee().toFunction()->native() == native);
     JS_ASSERT(&srcArgs.thisv().toObject() == wrapper);
-    JS_ASSERT(!UnwrapObject(wrapper)->isCrossCompartmentWrapper());
+    JS_ASSERT(!UnwrapObject(wrapper)->isProxy());
 
     JSObject *wrapped = wrappedObject(wrapper);
     AutoCompartment call(cx, wrapped);
@@ -775,6 +766,13 @@ CrossCompartmentWrapper::nativeCall(JSContext *cx, JSObject *wrapper, Class *cla
     call.leave();
     srcArgs.rval() = dstArgs.rval();
     return call.origin->wrap(cx, &srcArgs.rval());
+}
+
+bool
+Wrapper::nativeCall(JSContext *cx, JSObject *wrapper, Class *clasp, Native native, CallArgs args)
+{
+    const jsid id = JSID_VOID;
+    CHECKED(CallJSNative(cx, native, args), CALL);
 }
 
 bool
@@ -841,39 +839,7 @@ CrossCompartmentWrapper::defaultValue(JSContext *cx, JSObject *wrapper, JSType h
 void
 CrossCompartmentWrapper::trace(JSTracer *trc, JSObject *wrapper)
 {
-    MarkCrossCompartmentValue(trc, wrapper->getReservedSlotRef(JSSLOT_PROXY_PRIVATE),
-                              "wrappedObject");
+    MarkCrossCompartmentObject(trc, *wrappedObject(wrapper), "wrappedObject");
 }
 
 CrossCompartmentWrapper CrossCompartmentWrapper::singleton(0u);
-
-
-
-template <class Base>
-SecurityWrapper<Base>::SecurityWrapper(uintN flags)
-  : Base(flags)
-{}
-
-template <class Base>
-bool
-SecurityWrapper<Base>::nativeCall(JSContext *cx, JSObject *wrapper, Class *clasp, Native native,
-                                  CallArgs args)
-{
-    
-    DebugOnly<bool> ret = ProxyHandler::nativeCall(cx, wrapper, clasp, native, args);
-    JS_ASSERT(!ret);
-    return false;
-}
-
-template <class Base>
-bool
-SecurityWrapper<Base>::objectClassIs(JSObject *obj, ESClassValue classValue, JSContext *cx)
-{
-    
-    bool ret = ProxyHandler::objectClassIs(obj, classValue, cx);
-    JS_ASSERT(!ret && !cx->isExceptionPending());
-    return ret;
-}
-
-template class js::SecurityWrapper<Wrapper>;
-template class js::SecurityWrapper<CrossCompartmentWrapper>;

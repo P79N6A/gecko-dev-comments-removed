@@ -90,13 +90,11 @@ void JS_FASTCALL ScriptProbeOnlyEpilogue(VMFrame &f);
 
 
 struct UncachedCallResult {
-    JSObject   *callee;       
     JSFunction *fun;          
     void       *codeAddr;     
     bool       unjittable;    
 
     void init() {
-        callee = NULL;
         fun = NULL;
         codeAddr = NULL;
         unjittable = false;

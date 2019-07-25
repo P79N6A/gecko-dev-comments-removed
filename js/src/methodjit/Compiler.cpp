@@ -306,7 +306,7 @@ mjit::Compiler::scanInlineCalls(uint32 index, uint32 depth)
                 break;
             }
 
-            JSFunction *fun = obj->getFunctionPrivate();
+            JSFunction *fun = obj->toFunction();
             if (!fun->isInterpreted()) {
                 okay = false;
                 break;
@@ -398,7 +398,7 @@ mjit::Compiler::scanInlineCalls(uint32 index, uint32 depth)
             if (!obj)
                 continue;
 
-            JSFunction *fun = obj->getFunctionPrivate();
+            JSFunction *fun = obj->toFunction();
             JSScript *script = fun->script();
 
             CompileStatus status = addInlineFrame(script, nextDepth, index, pc);
@@ -683,7 +683,8 @@ mjit::Compiler::generatePrologue()
         Label fastPath = masm.label();
 
         
-        masm.storePtr(ImmPtr(script->function()), Address(JSFrameReg, StackFrame::offsetOfExec()));
+        masm.storePtr(ImmPtr(script->function()),
+                      Address(JSFrameReg, StackFrame::offsetOfExec()));
 
         {
             
@@ -716,7 +717,8 @@ mjit::Compiler::generatePrologue()
                 this->argsCheckStub = stubcc.masm.label();
                 this->argsCheckJump.linkTo(this->argsCheckStub, &stubcc.masm);
 #endif
-                stubcc.masm.storePtr(ImmPtr(script->function()), Address(JSFrameReg, StackFrame::offsetOfExec()));
+                stubcc.masm.storePtr(ImmPtr(script->function()),
+                                     Address(JSFrameReg, StackFrame::offsetOfExec()));
                 OOL_STUBCALL(stubs::CheckArgumentTypes, REJOIN_CHECK_ARGUMENTS);
 #ifdef JS_MONOIC
                 this->argsCheckFallthrough = stubcc.masm.label();
@@ -1213,7 +1215,6 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
         jitCallICs[i].call = &jitCallSites[callICs[i].callIndex];
         jitCallICs[i].frameSize = callICs[i].frameSize;
         jitCallICs[i].funObjReg = callICs[i].funObjReg;
-        jitCallICs[i].funPtrReg = callICs[i].funPtrReg;
         stubCode.patch(callICs[i].addrLabel1, &jitCallICs[i]);
         stubCode.patch(callICs[i].addrLabel2, &jitCallICs[i]);
     }
@@ -3340,7 +3341,6 @@ mjit::Compiler::checkCallApplySpeculation(uint32 callImmArgc, uint32 speculatedA
     if (origCalleeType.isSet())
         isObj = masm.testObject(Assembler::NotEqual, origCalleeType.reg());
     Jump isFun = masm.testFunction(Assembler::NotEqual, origCalleeData, temp);
-    masm.loadObjPrivate(origCalleeData, origCalleeData, JSObject::FUN_CLASS_NFIXED_SLOTS);
     Native native = *PC == JSOP_FUNCALL ? js_fun_call : js_fun_apply;
     Jump isNative = masm.branchPtr(Assembler::NotEqual,
                                    Address(origCalleeData, JSFunction::offsetOfNativeOrScript()),
@@ -3590,7 +3590,6 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew, FrameSize 
     } else {
         tempRegs.takeReg(icCalleeData);
     }
-    RegisterID funPtrReg = tempRegs.takeAnyReg(Registers::SavedRegs).reg();
 
     
     RESERVE_IC_SPACE(masm);
@@ -3621,8 +3620,7 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew, FrameSize 
         Jump notFunction = stubcc.masm.testFunction(Assembler::NotEqual, icCalleeData, tmp);
 
         
-        stubcc.masm.loadObjPrivate(icCalleeData, funPtrReg, JSObject::FUN_CLASS_NFIXED_SLOTS);
-        stubcc.masm.load16(Address(funPtrReg, offsetof(JSFunction, flags)), tmp);
+        stubcc.masm.load16(Address(icCalleeData, offsetof(JSFunction, flags)), tmp);
         stubcc.masm.and32(Imm32(JSFUN_KINDMASK), tmp);
         Jump isNative = stubcc.masm.branch32(Assembler::Below, tmp, Imm32(JSFUN_INTERPRETED));
         tempRegs.putReg(tmp);
@@ -3660,7 +3658,6 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew, FrameSize 
         }
 
         callIC.funObjReg = icCalleeData;
-        callIC.funPtrReg = funPtrReg;
 
         
 

@@ -45,11 +45,12 @@
 #include "jscompartment.h"
 #include "jsfriendapi.h"
 #include "jsinterp.h"
+#include "jsstaticcheck.h"
 #include "jsxml.h"
+#include "jsregexp.h"
 #include "jsgc.h"
 
 #include "frontend/ParseMaps.h"
-#include "vm/RegExpObject.h"
 
 namespace js {
 
@@ -115,7 +116,7 @@ class AutoNamespaceArray : protected AutoGCRooter {
   public:
     friend void AutoGCRooter::trace(JSTracer *trc);
 
-    JSXMLArray<JSObject> array;
+    JSXMLArray array;
 };
 
 #ifdef DEBUG
@@ -208,8 +209,8 @@ class CompartmentChecker
     void check(JSScript *script) {
         if (script) {
             check(script->compartment());
-            if (!script->isCachedEval && script->globalObject)
-                check(script->globalObject);
+            if (script->u.object)
+                check(script->u.object);
         }
     }
 
@@ -334,7 +335,7 @@ CallJSNativeConstructor(JSContext *cx, Native native, const CallArgs &args)
     JS_ASSERT_IF(native != FunctionProxyClass.construct &&
                  native != CallableObjectClass.construct &&
                  native != js::CallOrConstructBoundFunction &&
-                 (!callee.isFunction() || callee.getFunctionPrivate()->u.n.clasp != &ObjectClass),
+                 (!callee.isFunction() || callee.toFunction()->u.n.clasp != &ObjectClass),
                  !args.rval().isPrimitive() && callee != args.rval().toObject());
 
     return true;
@@ -373,10 +374,38 @@ CallSetter(JSContext *cx, JSObject *obj, jsid id, StrictPropertyOp op, uintN att
     return CallJSPropertyOpSetter(cx, op, obj, id, strict, vp);
 }
 
+#ifdef JS_TRACER
+
+
+
+
+
+
+
+JS_FORCES_STACK JS_FRIEND_API(void)
+DeepBail(JSContext *cx);
+#endif
+
+static JS_INLINE void
+LeaveTraceIfGlobalObject(JSContext *cx, JSObject *obj)
+{
+    if (!obj->getParent())
+        LeaveTrace(cx);
+}
+
+static JS_INLINE void
+LeaveTraceIfArgumentsObject(JSContext *cx, JSObject *obj)
+{
+    if (obj->isArguments())
+        LeaveTrace(cx);
+}
+
 static inline JSAtom **
 FrameAtomBase(JSContext *cx, js::StackFrame *fp)
 {
-    return fp->script()->atoms;
+    return fp->hasImacropc()
+           ? cx->runtime->atomState.commonAtomsStart()
+           : fp->script()->atoms;
 }
 
 }  
@@ -475,7 +504,7 @@ JSContext::ensureGeneratorStackSpace()
 inline js::RegExpStatics *
 JSContext::regExpStatics()
 {
-    return js::GetGlobalForScopeChain(this)->getRegExpStatics();
+    return js::RegExpStatics::extractFrom(js::GetGlobalForScopeChain(this));
 }
 
 inline void
@@ -498,9 +527,13 @@ JSContext::ensureParseMapPool()
 
 
 
+
+
 static JS_FORCES_STACK JS_INLINE js::StackFrame *
 js_GetTopStackFrame(JSContext *cx, FrameExpandKind expand)
 {
+    js::LeaveTrace(cx);
+
 #ifdef JS_METHODJIT
     if (expand)
         js::mjit::ExpandInlineFrames(cx->compartment);
