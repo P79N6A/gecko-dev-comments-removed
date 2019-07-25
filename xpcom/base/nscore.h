@@ -328,11 +328,15 @@ typedef PRUint32 nsrefcnt;
 
 
 
+#ifndef HAVE_NULLPTR
 #if defined(_WIN64)
-# define nsnull 0LL
+# define nullptr 0LL
 #else
-# define nsnull 0L
+# define nullptr 0L
 #endif
+#endif 
+
+#define nsnull nullptr
 
 
 #include "nsError.h"

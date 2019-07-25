@@ -859,7 +859,7 @@ public:
     
 
 
-    virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType) { return nsnull; }
+    virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType) { return 0; }
     
 
 
