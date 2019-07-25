@@ -2300,18 +2300,15 @@ struct JSContext
 
 
 
-    bool                 jitEnabled;
+    bool                 traceJitEnabled;
+#endif
+
+#ifdef JS_METHODJIT
+    bool                 methodJitEnabled;
 #endif
 
     
-    void updateJITEnabled() {
-#ifdef JS_TRACER
-        jitEnabled = ((options & JSOPTION_JIT) &&
-                      (debugHooks == &js_NullDebugHooks ||
-                       (debugHooks == &runtime->globalDebugHooks &&
-                        !runtime->debuggerInhibitsJIT())));
-#endif
-    }
+    void updateJITEnabled();
 
 #ifdef MOZ_TRACE_JSCALLS
     

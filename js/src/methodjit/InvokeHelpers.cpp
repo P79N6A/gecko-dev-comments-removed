@@ -812,7 +812,7 @@ RunTracer(VMFrame &f)
     TracePointAction tpa;
 
     
-    if (!cx->jitEnabled)
+    if (!cx->traceJitEnabled)
         return NULL;
 
     bool blacklist;
