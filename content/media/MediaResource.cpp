@@ -28,6 +28,7 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "mozilla/Util.h" 
 #include "nsContentUtils.h"
+#include "nsBlobProtocolHandler.h"
 
 static const PRUint32 HTTP_OK_CODE = 200;
 static const PRUint32 HTTP_PARTIAL_RESPONSE_CODE = 206;
@@ -1038,14 +1039,15 @@ nsresult FileMediaResource::Open(nsIStreamListener** aStreamListener)
     
     
     nsCOMPtr<nsIFileChannel> fc(do_QueryInterface(mChannel));
-    if (!fc)
-      return NS_ERROR_UNEXPECTED;
+    if (fc) {
+      nsCOMPtr<nsIFile> file;
+      rv = fc->GetFile(getter_AddRefs(file));
+      NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIFile> file;
-    rv = fc->GetFile(getter_AddRefs(file));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = NS_NewLocalFileInputStream(getter_AddRefs(mInput), file);
+      rv = NS_NewLocalFileInputStream(getter_AddRefs(mInput), file);
+    } else if (IsBlobURI(mURI)) {
+      rv = NS_GetStreamForBlobURI(mURI, getter_AddRefs(mInput));
+    }
   } else {
     
     
@@ -1201,7 +1203,7 @@ MediaResource*
 MediaResource::Create(nsMediaDecoder* aDecoder, nsIChannel* aChannel)
 {
   NS_ASSERTION(NS_IsMainThread(),
-	             "MediaResource::Open called on non-main thread");
+               "MediaResource::Open called on non-main thread");
 
   
   
@@ -1211,7 +1213,7 @@ MediaResource::Create(nsMediaDecoder* aDecoder, nsIChannel* aChannel)
   NS_ENSURE_SUCCESS(rv, nullptr);
 
   nsCOMPtr<nsIFileChannel> fc = do_QueryInterface(aChannel);
-  if (fc) {
+  if (fc || IsBlobURI(uri)) {
     return new FileMediaResource(aDecoder, aChannel, uri);
   }
   return new ChannelMediaResource(aDecoder, aChannel, uri);
