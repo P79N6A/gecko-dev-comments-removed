@@ -674,7 +674,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
                 
 
-                if (!viewport.intersect(mPageRect)) {
+                if (!viewport.intersect(0, 0, mPageRect.width(), mPageRect.height())) {
                     
 
 
@@ -683,8 +683,9 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 validRegion.op(viewport, Region.Op.INTERSECT);
 
                 float checkerboard = 0.0f;
-                if (!(validRegion.isRect() && validRegion.getBounds().equals(viewport))) {
-                    int screenArea = viewport.width() * viewport.height();
+
+                int screenArea = viewport.width() * viewport.height();
+                if (screenArea > 0 && !(validRegion.isRect() && validRegion.getBounds().equals(viewport))) {
                     validRegion.op(viewport, Region.Op.REVERSE_DIFFERENCE);
 
                     
