@@ -56,12 +56,8 @@ static const KeyPair kKeyPairs[] = {
     { NS_VK_CONTROL,    GDK_Control_R },
     { NS_VK_ALT,        GDK_Alt_L },
     { NS_VK_ALT,        GDK_Alt_R },
-
-    
-    
-    
-    
-    
+    { NS_VK_META,       GDK_Meta_L },
+    { NS_VK_META,       GDK_Meta_R },
 
     
     { NS_VK_WIN,        GDK_Super_L },
@@ -379,7 +375,15 @@ KeymapWrapper::InitBySystemSettings()
     
     
     
+    
 
+    
+    Modifier mod[5];
+    PRInt32 foundLevel[5];
+    for (PRUint32 i = 0; i < ArrayLength(mod); i++) {
+        mod[i] = NOT_MODIFIER;
+        foundLevel[i] = PR_INT32_MAX;
+    }
     const PRUint32 map_size = 8 * xmodmap->max_keypermod;
     for (PRUint32 i = 0; i < map_size; i++) {
         KeyCode keycode = xmodmap->modifiermap[i];
@@ -400,44 +404,85 @@ KeymapWrapper::InitBySystemSettings()
             xkeymap + (keycode - min_keycode) * keysyms_per_keycode;
         const PRUint32 bit = i / xmodmap->max_keypermod;
         modifierKey->mMask |= 1 << bit;
+
+        
+        
+        if (bit < 3) {
+            continue;
+        }
+
+        const PRInt32 modIndex = bit - 3;
         for (PRInt32 j = 0; j < keysyms_per_keycode; j++) {
             Modifier modifier = GetModifierForGDKKeyval(syms[j]);
             PR_LOG(gKeymapWrapperLog, PR_LOG_ALWAYS,
                 ("KeymapWrapper(%p): InitBySystemSettings, "
-                 "    bit=%d, j=%d, syms[j]=%s(0x%X), modifier=%s",
-                 this, bit, j, gdk_keyval_name(syms[j]), syms[j],
+                 "    Mod%d, j=%d, syms[j]=%s(0x%X), modifier=%s",
+                 this, modIndex + 1, j, gdk_keyval_name(syms[j]), syms[j],
                  GetModifierName(modifier)));
 
-            ModifierIndex index;
             switch (modifier) {
-                case NUM_LOCK:
-                    index = INDEX_NUM_LOCK;
+                case NOT_MODIFIER:
+                    
+                    
                     break;
-                case SCROLL_LOCK:
-                    index = INDEX_SCROLL_LOCK;
-                    break;
-                case ALT:
-                    index = INDEX_ALT;
-                    break;
-                case SUPER:
-                    index = INDEX_SUPER;
-                    break;
-                case HYPER:
-                    index = INDEX_HYPER;
-                    break;
-                case META:
-                    index = INDEX_META;
-                    break;
-                case ALTGR:
-                    index = INDEX_ALTGR;
+                case CAPS_LOCK:
+                case SHIFT:
+                case CTRL:
+                    
+                    
+                    
                     break;
                 default:
                     
                     
+                    if (j > foundLevel[modIndex]) {
+                        break;
+                    }
                     
-                    continue;
+                    
+                    if (j == foundLevel[modIndex]) {
+                        mod[modIndex] = NS_MIN(modifier, mod[modIndex]);
+                        break;
+                    }
+                    foundLevel[modIndex] = j;
+                    mod[modIndex] = modifier;
+                    break;
             }
-            mModifierMasks[index] |= 1 << bit;
+        }
+    }
+
+    for (PRUint32 i = 0; i < COUNT_OF_MODIFIER_INDEX; i++) {
+        Modifier modifier;
+        switch (i) {
+            case INDEX_NUM_LOCK:
+                modifier = NUM_LOCK;
+                break;
+            case INDEX_SCROLL_LOCK:
+                modifier = SCROLL_LOCK;
+                break;
+            case INDEX_ALT:
+                modifier = ALT;
+                break;
+            case INDEX_SUPER:
+                modifier = SUPER;
+                break;
+            case INDEX_HYPER:
+                modifier = HYPER;
+                break;
+            case INDEX_META:
+                modifier = META;
+                break;
+            case INDEX_ALTGR:
+                modifier = ALTGR;
+                break;
+            default:
+                MOZ_NOT_REACHED("All indexes must be handled here");
+                break;
+        }
+        for (PRUint32 j = 0; j < ArrayLength(mod); j++) {
+            if (modifier == mod[j]) {
+                mModifierMasks[i] |= 1 << (j + 3);
+            }
         }
     }
 
@@ -534,6 +579,9 @@ KeymapWrapper::InitInputEvent(nsInputEvent& aInputEvent,
     if (keymapWrapper->AreModifiersActive(ALT, aModifierState)) {
         aInputEvent.modifiers |= MODIFIER_ALT;
     }
+    if (keymapWrapper->AreModifiersActive(META, aModifierState)) {
+        aInputEvent.modifiers |= MODIFIER_META;
+    }
     if (keymapWrapper->AreModifiersActive(SUPER, aModifierState) ||
         keymapWrapper->AreModifiersActive(HYPER, aModifierState)) {
         aInputEvent.modifiers |= MODIFIER_OS;
@@ -554,11 +602,13 @@ KeymapWrapper::InitInputEvent(nsInputEvent& aInputEvent,
     PR_LOG(gKeymapWrapperLog, PR_LOG_DEBUG,
         ("KeymapWrapper(%p): InitInputEvent, aModifierState=0x%08X, "
          "aInputEvent.modifiers=0x%04X (Shift: %s, Control: %s, Alt: %s, "
-         "OS: %s, AltGr: %s, CapsLock: %s, NumLock: %s, ScrollLock: %s)",
+         "Meta: %s, OS: %s, AltGr: %s, "
+         "CapsLock: %s, NumLock: %s, ScrollLock: %s)",
          keymapWrapper, aModifierState, aInputEvent.modifiers,
          GetBoolName(aInputEvent.modifiers & MODIFIER_SHIFT),
          GetBoolName(aInputEvent.modifiers & MODIFIER_CONTROL),
          GetBoolName(aInputEvent.modifiers & MODIFIER_ALT),
+         GetBoolName(aInputEvent.modifiers & MODIFIER_META),
          GetBoolName(aInputEvent.modifiers & MODIFIER_OS),
          GetBoolName(aInputEvent.modifiers & MODIFIER_ALTGRAPH),
          GetBoolName(aInputEvent.modifiers & MODIFIER_CAPSLOCK),
@@ -616,7 +666,17 @@ KeymapWrapper::ComputeDOMKeyCode(const GdkEventKey* aGdkKeyEvent)
         if (GetModifierForGDKKeyval(keyvalWithoutModifier)) {
             keyval = keyvalWithoutModifier;
         }
-        return GetDOMKeyCodeFromKeyPairs(keyval);
+        
+        
+        
+        
+        
+        
+        
+        
+        PRUint32 DOMKeyCode = GetDOMKeyCodeFromKeyPairs(keyval);
+        NS_ASSERTION(DOMKeyCode, "All modifier keys must have a DOM keycode");
+        return DOMKeyCode;
     }
 
     
