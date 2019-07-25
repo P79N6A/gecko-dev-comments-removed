@@ -1,0 +1,79 @@
+
+
+
+subscriptLoader.loadSubScript("resource://gre/modules/ril_consts.js", this);
+
+function run_test() {
+  run_next_test();
+}
+
+
+
+
+function newUint8Worker() {
+  let worker = newWorker();
+  let index = 0; 
+  let buf = [];
+
+  worker.Buf.writeUint8 = function (value) {
+    buf.push(value);
+  };
+
+  worker.Buf.readUint8 = function () {
+    return buf[index++];
+  };
+
+  worker.Buf.seekIncoming = function (offset) {
+    index += offset;
+  };
+
+  worker.debug = do_print;
+
+  return worker;
+}
+
+
+
+add_test(function test_read_icc_ucs2_string() {
+  let worker = newUint8Worker();
+  let helper = worker.GsmPDUHelper;
+
+  
+  let text = "TEST";
+  helper.writeUCS2String(text);
+  
+  let ffLen = 2;
+  for (let i = 0; i < ffLen; i++) {
+    helper.writeHexOctet(0xff);
+  }
+  do_check_eq(helper.readICCUCS2String(0x80, (2 * text.length) + ffLen), text);
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_read_8bit_unpacked_to_string() {
+  let worker = newUint8Worker();
+  let helper = worker.GsmPDUHelper;
+  let buf = worker.Buf;
+  const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+
+  
+  for (let i = 0; i < PDU_NL_EXTENDED_ESCAPE; i++) {
+    helper.writeHexOctet(i);
+  }
+
+  
+  let ffLen = 2;
+  for (let i = 0; i < ffLen; i++) {
+    helper.writeHexOctet(0xff);
+  }
+
+  do_check_eq(helper.read8BitUnpackedToString(PDU_NL_EXTENDED_ESCAPE + ffLen),
+              langTable.substring(0, PDU_NL_EXTENDED_ESCAPE));
+  run_next_test();
+});
+
+
