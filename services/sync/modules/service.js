@@ -559,9 +559,9 @@ WeaveSvc.prototype = {
     if (!(yield this._remoteSetup.async(this, self.cb))) {
       throw "aborting sync, remote setup failed";
     }
-    
-    
-    
+
+    this._log.debug("Refreshing client list");
+    yield ClientData.refresh(self.cb);
 
     let engines = Engines.getAll();
     for each (let engine in engines) {
