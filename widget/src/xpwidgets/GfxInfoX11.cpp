@@ -264,23 +264,28 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
                               OperatingSystem* aOS )
 
 {
-    GetData();
-    *aStatus = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
-    aSuggestedDriverVersion.SetIsVoid(true);
+  NS_ENSURE_ARG_POINTER(aStatus);
+  *aStatus = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
+  aSuggestedDriverVersion.SetIsVoid(true);
+  OperatingSystem os = DRIVER_OS_LINUX;
+  if (aOS)
+    *aOS = os;
 
 #ifdef MOZ_PLATFORM_MAEMO
-    *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
-    
-    return NS_OK;
+  *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
+  
+  return NS_OK;
 #endif
 
-    OperatingSystem os = DRIVER_OS_LINUX;
+  
+  if (!aDriverInfo.Length()) {
+    GetData();
 
     
     if (aFeature == nsIGfxInfo::FEATURE_OPENGL_LAYERS && !mHasTextureFromPixmap) {
-        *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
-        aSuggestedDriverVersion.AssignLiteral("<Anything with EXT_texture_from_pixmap support>");
-        return NS_OK;
+      *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
+      aSuggestedDriverVersion.AssignLiteral("<Anything with EXT_texture_from_pixmap support>");
+      return NS_OK;
     }
 
     
@@ -292,34 +297,32 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
         !strcmp(mRenderer.get(), "GeForce 9400/PCI/SSE2") &&
         !strcmp(mVersion.get(), "3.2.0 NVIDIA 190.42"))
     {
-        *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
-        return NS_OK;
+      *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
+      return NS_OK;
     }
 
     if (mIsMesa) {
-        if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(7,10,3)) {
-            *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
-            aSuggestedDriverVersion.AssignLiteral("Mesa 7.10.3");
-        }
+      if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(7,10,3)) {
+        *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
+        aSuggestedDriverVersion.AssignLiteral("Mesa 7.10.3");
+      }
     } else if (mIsNVIDIA) {
-        if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(257,21)) {
-            *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
-            aSuggestedDriverVersion.AssignLiteral("NVIDIA 257.21");
-        }
+      if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(257,21)) {
+        *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
+        aSuggestedDriverVersion.AssignLiteral("NVIDIA 257.21");
+      }
     } else if (mIsFGLRX) {
-        
-        
-        if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(3, 0)) {
-            *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
-        }
+      
+      
+      if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(3, 0)) {
+        *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
+      }
     } else {
-        
-        
-        *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
+      
+      
+      *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
     }
-
-  if (aOS)
-    *aOS = os;
+  }
 
   return GfxInfoBase::GetFeatureStatusImpl(aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, &os);
 }

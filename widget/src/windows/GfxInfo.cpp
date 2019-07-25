@@ -940,89 +940,89 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
                               const nsTArray<GfxDriverInfo>& aDriverInfo,
                               OperatingSystem* aOS )
 {
+  NS_ENSURE_ARG_POINTER(aStatus);
   aSuggestedDriverVersion.SetIsVoid(true);
-
-  PRInt32 status = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
-
-  nsAutoString adapterVendorID;
-  nsAutoString adapterDeviceID;
-  nsAutoString adapterDriverVersionString;
-  if (NS_FAILED(GetAdapterVendorID(adapterVendorID)) ||
-      NS_FAILED(GetAdapterDeviceID(adapterDeviceID)) ||
-      NS_FAILED(GetAdapterDriverVersion(adapterDriverVersionString)))
-  {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorIntel) &&
-      adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorNVIDIA) &&
-      adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorAMD) &&
-      adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorATI) &&
-      
-      
-      
-      !adapterVendorID.LowerCaseEqualsLiteral("0xabcd") &&
-      !adapterVendorID.LowerCaseEqualsLiteral("0xdcba") &&
-      !adapterVendorID.LowerCaseEqualsLiteral("0xabab") &&
-      !adapterVendorID.LowerCaseEqualsLiteral("0xdcdc"))
-  {
-    *aStatus = FEATURE_BLOCKED_DEVICE;
-    return NS_OK;
-  }
-
-  PRUint64 driverVersion;
-  if (!ParseDriverVersion(adapterDriverVersionString, &driverVersion)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  
-  
-  if (mWindowsVersion == gfxWindowsPlatform::kWindowsXP &&
-      adapterVendorID == GfxDriverInfo::GetDeviceVendor(VendorNVIDIA) &&
-      adapterDeviceID.LowerCaseEqualsLiteral("0x0861") && 
-      driverVersion == V(6,14,11,7756))
-  {
-    *aStatus = FEATURE_NO_INFO;
-    return NS_OK;
-  }
-
-  if (aFeature == FEATURE_DIRECT3D_9_LAYERS &&
-      mWindowsVersion < gfxWindowsPlatform::kWindowsXP)
-  {
-    *aStatus = FEATURE_BLOCKED_OS_VERSION;
-    return NS_OK;
-  }
-
-  
-  
-  if (aFeature == FEATURE_WEBGL_ANGLE &&
-      gfxWindowsPlatform::IsOptimus())
-  {
-    *aStatus = FEATURE_BLOCKED_DEVICE;
-    return NS_OK;
-  }
-
   OperatingSystem os = WindowsVersionToOperatingSystem(mWindowsVersion);
-
-  
-  
-  if (os == DRIVER_OS_WINDOWS_SERVER_2003)
-    os = DRIVER_OS_WINDOWS_XP;
-
-  if (mHasDriverVersionMismatch) {
-    if (aFeature == nsIGfxInfo::FEATURE_DIRECT3D_10_LAYERS ||
-        aFeature == nsIGfxInfo::FEATURE_DIRECT3D_10_1_LAYERS ||
-        aFeature == nsIGfxInfo::FEATURE_DIRECT2D)
-    {
-      *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
-      return NS_OK;
-    }
-  }
-
-  *aStatus = status;
+  *aStatus = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
   if (aOS)
     *aOS = os;
+
+  
+  if (!aDriverInfo.Length()) {
+    nsAutoString adapterVendorID;
+    nsAutoString adapterDeviceID;
+    nsAutoString adapterDriverVersionString;
+    if (NS_FAILED(GetAdapterVendorID(adapterVendorID)) ||
+        NS_FAILED(GetAdapterDeviceID(adapterDeviceID)) ||
+        NS_FAILED(GetAdapterDriverVersion(adapterDriverVersionString)))
+    {
+      return NS_ERROR_FAILURE;
+    }
+
+    if (adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorIntel) &&
+        adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorNVIDIA) &&
+        adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorAMD) &&
+        adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorATI) &&
+        
+        
+        
+        !adapterVendorID.LowerCaseEqualsLiteral("0xabcd") &&
+        !adapterVendorID.LowerCaseEqualsLiteral("0xdcba") &&
+        !adapterVendorID.LowerCaseEqualsLiteral("0xabab") &&
+        !adapterVendorID.LowerCaseEqualsLiteral("0xdcdc"))
+    {
+      *aStatus = FEATURE_BLOCKED_DEVICE;
+      return NS_OK;
+    }
+
+    PRUint64 driverVersion;
+    if (!ParseDriverVersion(adapterDriverVersionString, &driverVersion)) {
+      return NS_ERROR_FAILURE;
+    }
+
+    
+    
+    
+    if (mWindowsVersion == gfxWindowsPlatform::kWindowsXP &&
+        adapterVendorID == GfxDriverInfo::GetDeviceVendor(VendorNVIDIA) &&
+        adapterDeviceID.LowerCaseEqualsLiteral("0x0861") && 
+        driverVersion == V(6,14,11,7756))
+    {
+      *aStatus = FEATURE_NO_INFO;
+      return NS_OK;
+    }
+
+    if (aFeature == FEATURE_DIRECT3D_9_LAYERS &&
+        mWindowsVersion < gfxWindowsPlatform::kWindowsXP)
+    {
+      *aStatus = FEATURE_BLOCKED_OS_VERSION;
+      return NS_OK;
+    }
+
+    
+    
+    if (aFeature == FEATURE_WEBGL_ANGLE &&
+        gfxWindowsPlatform::IsOptimus())
+    {
+      *aStatus = FEATURE_BLOCKED_DEVICE;
+      return NS_OK;
+    }
+
+    
+    
+    if (os == DRIVER_OS_WINDOWS_SERVER_2003)
+      os = DRIVER_OS_WINDOWS_XP;
+
+    if (mHasDriverVersionMismatch) {
+      if (aFeature == nsIGfxInfo::FEATURE_DIRECT3D_10_LAYERS ||
+          aFeature == nsIGfxInfo::FEATURE_DIRECT3D_10_1_LAYERS ||
+          aFeature == nsIGfxInfo::FEATURE_DIRECT2D)
+      {
+        *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
+        return NS_OK;
+      }
+    }
+  }
 
   return GfxInfoBase::GetFeatureStatusImpl(aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, &os);
 }

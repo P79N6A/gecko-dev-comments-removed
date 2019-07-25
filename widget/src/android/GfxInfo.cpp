@@ -301,36 +301,36 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
                               const nsTArray<GfxDriverInfo>& aDriverInfo, 
                               OperatingSystem* aOS )
 {
-  PRInt32 status = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
-
+  NS_ENSURE_ARG_POINTER(aStatus);
   aSuggestedDriverVersion.SetIsVoid(true);
-
+  *aStatus = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
   OperatingSystem os = DRIVER_OS_ANDROID;
-
-  if (aFeature == FEATURE_OPENGL_LAYERS) {
-    if (!mSetCrashReportAnnotations) {
-      AddOpenGLCrashReportAnnotations();
-      mSetCrashReportAnnotations = true;
-    }
-
-    
-
-
-
-
-
-    
-    
-    
-    
-    
-    
-    
-  }
-
-  *aStatus = status;
   if (aOS)
     *aOS = os;
+
+  
+  if (!aDriverInfo.Length()) {
+    if (aFeature == FEATURE_OPENGL_LAYERS) {
+      if (!mSetCrashReportAnnotations) {
+        AddOpenGLCrashReportAnnotations();
+        mSetCrashReportAnnotations = true;
+      }
+
+      
+
+
+
+
+
+      
+      
+      
+      
+      
+      
+      
+    }
+  }
 
   return GfxInfoBase::GetFeatureStatusImpl(aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, &os);
 }
