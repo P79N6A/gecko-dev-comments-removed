@@ -166,7 +166,10 @@ let BrowserElementPromptService = {
   },
 
   getBrowserElementChildForWindow: function(win) {
-    return this._browserElementChildMap[this._getOuterWindowID(win)];
+    
+    
+    
+    return this._browserElementChildMap[this._getOuterWindowID(win.top)];
   },
 
   _observeOuterWindowDestroyed: function(outerWindowID) {
