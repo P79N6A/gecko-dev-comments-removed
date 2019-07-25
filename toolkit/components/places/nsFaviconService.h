@@ -98,12 +98,6 @@ public:
   }
 
   
-  nsresult DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
-                                      nsIURI* aFaviconURI,
-                                      bool aForceReload,
-                                      nsIFaviconDataCallback* aCallback);
-
-  
   nsresult GetFaviconLinkForIconString(const nsCString& aIcon, nsIURI** aOutput);
   void GetFaviconSpecForIconString(const nsCString& aIcon, nsACString& aOutput);
 
@@ -124,17 +118,6 @@ public:
 
   nsresult GetFaviconDataAsync(nsIURI* aFaviconURI,
                                mozIStorageStatementCallback* aCallback);
-
-  
-
-
-
-
-
-
-
-
-  void checkAndNotify(nsIURI* aPageURI, nsIURI* aFaviconURI);
 
   
 
@@ -180,9 +163,6 @@ private:
 
   PRUint32 mFailedFaviconSerial;
   nsDataHashtable<nsCStringHashKey, PRUint32> mFailedFavicons;
-
-  nsresult SetFaviconUrlForPageInternal(nsIURI* aURI, nsIURI* aFavicon,
-                                        bool* aHasData);
 
   
   
