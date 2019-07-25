@@ -56,7 +56,8 @@ const TELEMETRY_DELAY = 60000;
 const MEM_HISTOGRAMS = {
   "explicit/js/gc-heap": "MEMORY_JS_GC_HEAP",
   "resident": "MEMORY_RESIDENT",
-  "explicit/layout/all": "MEMORY_LAYOUT_ALL"
+  "explicit/layout/all": "MEMORY_LAYOUT_ALL",
+  "hard-page-faults": "HARD_PAGE_FAULTS"
 };
 
 XPCOMUtils.defineLazyGetter(this, "Telemetry", function () {
@@ -184,6 +185,7 @@ function TelemetryPing() {}
 
 TelemetryPing.prototype = {
   _histograms: {},
+  _prevValues: {},
 
   
 
@@ -195,7 +197,7 @@ TelemetryPing.prototype = {
             getService(Ci.nsIMemoryReporterManager);
     } catch (e) {
       
-      return
+      return;
     }
 
     let e = mgr.enumerateReporters();
@@ -208,14 +210,41 @@ TelemetryPing.prototype = {
         continue;
       }
 
-      let name = "Memory:" + mr.path + " (KB)";
+      let name, val;
+      if (mr.units == Ci.nsIMemoryReporter.UNITS_BYTES) {
+        name = "Memory:" + mr.path + " + (KB)";
+        val = Math.floor(mr.amount / 1024);
+      }
+      else if (mr.units == Ci.nsIMemoryReporter.UNITS_COUNT) {
+        
+        
+
+        name = "Memory:" + mr.path;
+
+        
+        let curVal = mr.amount;
+        let prevVal = this._prevValues[mr.path];
+        if (!prevVal) {
+          
+          
+          
+          this._prevValues[mr.path] = curVal;
+          continue;
+        }
+        val = curVal - prevVal;
+        this._prevValues[mr.path] = curVal;
+      }
+      else {
+        NS_ASSERT(false, "Can't handle memory reporter with units " + mr.units);
+        continue;
+      }
+
       let h = this._histograms[name];
       if (!h) {
         h = Telemetry.getHistogramById(id);
         this._histograms[name] = h;
       }
-      let v = Math.floor(mr.amount / 1024);
-      h.add(v);
+      h.add(val);
     }
     return memReporters;
   },
@@ -250,7 +279,7 @@ TelemetryPing.prototype = {
     request.overrideMimeType("text/plain");
     request.setRequestHeader("Content-Type", "application/json");
 
-    let startTime = new Date()
+    let startTime = new Date();
 
     function finishRequest(channel) {
       let success = false;
