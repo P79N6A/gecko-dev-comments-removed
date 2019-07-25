@@ -5,58 +5,16 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const PREF_SMART_BOOKMARKS_VERSION = "browser.places.smartBookmarksVersion";
 const PREF_BMPROCESSED = "distribution.516444.bookmarksProcessed";
 const PREF_DISTRIBUTION_ID = "distribution.id";
 
-const TOPIC_FINAL_UI_STARTUP = "final-ui-startup";
+const TOPICDATA_DISTRIBUTION_CUSTOMIZATION = "force-distribution-customization";
 const TOPIC_CUSTOMIZATION_COMPLETE = "distribution-customization-complete";
+const TOPIC_BROWSERGLUE_TEST = "browser-glue-test";
 
-function run_test() {
-  
-  
-  let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
-         getService(Ci.nsINavHistoryService);
-  
-  return;
-
+function run_test()
+{
   do_test_pending();
 
   
@@ -68,82 +26,78 @@ function run_test() {
     iniFile.remove(false);
     print("distribution.ini already exists, did some test forget to cleanup?");
   }
-
   let testDistributionFile = gTestDir.clone();
   testDistributionFile.append("distribution.ini");
   testDistributionFile.copyTo(distroDir, "distribution.ini");
   do_check_true(testDistributionFile.exists());
 
   
-  let ps = Cc["@mozilla.org/preferences-service;1"].
-           getService(Ci.nsIPrefBranch);
-  ps.setIntPref(PREF_SMART_BOOKMARKS_VERSION, -1);
-  
-  ps.setIntPref("browser.migration.version", 4);
+  Services.prefs.setIntPref(PREF_SMART_BOOKMARKS_VERSION, -1);
 
   
-  let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
-           getService(Ci.nsINavHistoryService);
   
-  
-  do_check_eq(hs.databaseStatus, hs.DATABASE_STATUS_CREATE);
+  do_check_eq(PlacesUtils.history.databaseStatus,
+              PlacesUtils.history.DATABASE_STATUS_CREATE);
 
   
   let bg = Cc["@mozilla.org/browser/browserglue;1"].
            getService(Ci.nsIBrowserGlue);
 
-  let os = Cc["@mozilla.org/observer-service;1"].
-           getService(Ci.nsIObserverService);
-  let observer = {
-    observe: function(aSubject, aTopic, aData) {
-      os.removeObserver(this, PlacesUtils.TOPIC_INIT_COMPLETE);
-
-      
-      bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                                TOPIC_FINAL_UI_STARTUP,
-                                                null);
-      
-      let cObserver = {
-        observe: function(aSubject, aTopic, aData) {
-          os.removeObserver(this, TOPIC_CUSTOMIZATION_COMPLETE);
-          do_execute_soon(continue_test);
-        }
-      }
-      os.addObserver(cObserver, TOPIC_CUSTOMIZATION_COMPLETE, false);
-    }
-  }
-  os.addObserver(observer, PlacesUtils.TOPIC_INIT_COMPLETE, false);
+  Services.obs.addObserver(function(aSubject, aTopic, aData) {
+    Services.obs.removeObserver(arguments.callee,
+                                PlacesUtils.TOPIC_INIT_COMPLETE);
+    do_execute_soon(onPlacesInitComplete);
+  }, PlacesUtils.TOPIC_INIT_COMPLETE, false);
 }
 
-function continue_test() {
-  let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-           getService(Ci.nsINavBookmarksService);
-
-  dump_table("moz_bookmarks");
+function onPlacesInitComplete()
+{
+  
+  bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                            TOPIC_BROWSERGLUE_TEST,
+                                            TOPICDATA_DISTRIBUTION_CUSTOMIZATION);
 
   
-  let menuItemId = bs.getIdForItemAt(bs.bookmarksMenuFolder, 0);
+  Services.obs.addObserver(function(aSubject, aTopic, aData) {
+    Services.obs.removeObserver(arguments.callee,
+                                TOPIC_CUSTOMIZATION_COMPLETE);
+    do_execute_soon(onCustomizationComplete);
+  }, TOPIC_CUSTOMIZATION_COMPLETE, false);
+}
+
+function onCustomizationComplete()
+{
+  
+  let menuItemId =
+    PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.bookmarksMenuFolderId, 0);
   do_check_neq(menuItemId, -1);
-  do_check_eq(bs.getItemTitle(menuItemId), "Menu Link Before");
-  menuItemId = bs.getIdForItemAt(bs.bookmarksMenuFolder, 1 + DEFAULT_BOOKMARKS_ON_MENU);
+  do_check_eq(PlacesUtils.bookmarks.getItemTitle(menuItemId),
+              "Menu Link Before");
+  menuItemId =
+    PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.bookmarksMenuFolderId,
+                                         1 + DEFAULT_BOOKMARKS_ON_MENU);
   do_check_neq(menuItemId, -1);
-  do_check_eq(bs.getItemTitle(menuItemId), "Menu Link After");
+  do_check_eq(PlacesUtils.bookmarks.getItemTitle(menuItemId),
+              "Menu Link After");
 
   
-  let toolbarItemId = bs.getIdForItemAt(bs.toolbarFolder, 0);
+  let toolbarItemId =
+    PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId, 0);
   do_check_neq(toolbarItemId, -1);
-  do_check_eq(bs.getItemTitle(toolbarItemId), "Toolbar Link Before");
-  toolbarItemId = bs.getIdForItemAt(bs.toolbarFolder, 1 + DEFAULT_BOOKMARKS_ON_TOOLBAR);
+  do_check_eq(PlacesUtils.bookmarks.getItemTitle(toolbarItemId),
+              "Toolbar Link Before");
+  toolbarItemId =
+    PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId,
+                                         1 + DEFAULT_BOOKMARKS_ON_TOOLBAR);
   do_check_neq(toolbarItemId, -1);
-  do_check_eq(bs.getItemTitle(toolbarItemId), "Toolbar Link After");
+  do_check_eq(PlacesUtils.bookmarks.getItemTitle(toolbarItemId),
+              "Toolbar Link After");
 
   
-  let ps = Cc["@mozilla.org/preferences-service;1"].
-           getService(Ci.nsIPrefBranch);
-  do_check_true(ps.getBoolPref(PREF_BMPROCESSED));
+  do_check_true(Services.prefs.getBoolPref(PREF_BMPROCESSED));
 
   
-  do_check_eq(ps.getCharPref(PREF_DISTRIBUTION_ID), "516444");
+  do_check_eq(Services.prefs.getCharPref(PREF_DISTRIBUTION_ID), "516444");
 
   do_test_finished();
 }
