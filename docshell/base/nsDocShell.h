@@ -660,6 +660,8 @@ protected:
         nsRefPtr<nsDocShell> mDocShell;
     };
 
+    bool JustStartedNetworkLoad();
+
     
     nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
 
