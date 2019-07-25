@@ -342,9 +342,10 @@ nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement)
     
     
     
-    JSStackFrame* frame = JS_SaveFrameChain(cx);
-    ::JS_ReportPendingException(cx);
-    JS_RestoreFrameChain(cx, frame);
+    JSBool saved = JS_SaveFrameChain(cx);
+    JS_ReportPendingException(cx);
+    if (saved)
+        JS_RestoreFrameChain(cx);
     return NS_ERROR_FAILURE;
   }
 

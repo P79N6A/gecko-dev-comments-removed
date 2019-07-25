@@ -60,9 +60,32 @@ class ExecuteFrameGuard;
 class DummyFrameGuard;
 class GeneratorFrameGuard;
 
+class CallIter;
+class FrameRegsIter;
+class AllFramesIter;
+
 class ArgumentsObject;
 
 namespace mjit { struct JITScript; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -195,6 +218,7 @@ CallReceiverFromVp(Value *vp)
 
 class CallArgs : public CallReceiver
 {
+  protected:
     uintN argc_;
   public:
     friend CallArgs CallArgsFromVp(uintN, Value *);
@@ -226,6 +250,42 @@ JS_ALWAYS_INLINE CallArgs
 CallArgsFromSp(uintN argc, Value *sp)
 {
     return CallArgsFromArgv(argc, sp - argc);
+}
+
+
+
+class CallArgsList : public CallArgs
+{
+    friend class StackSegment;
+    CallArgsList *prev_;
+    bool active_;
+  public:
+    friend CallArgsList CallArgsListFromVp(uintN, Value *, CallArgsList *);
+    friend CallArgsList CallArgsListFromArgv(uintN, Value *, CallArgsList *);
+    CallArgsList *prev() const { return prev_; }
+    bool active() const { return active_; }
+    void setActive() { active_ = true; }
+    void setInactive() { active_ = false; }
+};
+
+JS_ALWAYS_INLINE CallArgsList
+CallArgsListFromArgv(uintN argc, Value *argv, CallArgsList *prev)
+{
+    CallArgsList args;
+#ifdef DEBUG
+    args.usedRval_ = false;
+#endif
+    args.argv_ = argv;
+    args.argc_ = argc;
+    args.prev_ = prev;
+    args.active_ = false;
+    return args;
+}
+
+JS_ALWAYS_INLINE CallArgsList
+CallArgsListFromVp(uintN argc, Value *vp, CallArgsList *prev)
+{
+    return CallArgsListFromArgv(argc, vp + 2, prev);
 }
 
 
@@ -332,8 +392,8 @@ class StackFrame
     void initJitFrameLatePrologue();
 
     
-    void initExecuteFrame(JSScript *script, StackFrame *prev, const Value &thisv,
-                          JSObject &scopeChain, ExecuteType type);
+    void initExecuteFrame(JSScript *script, StackFrame *prev, FrameRegs *regs,
+                          const Value &thisv, JSObject &scopeChain, ExecuteType type);
 
     
     void stealFrameAndSlots(Value *vp, StackFrame *otherfp, Value *othervp, Value *othersp);
@@ -385,6 +445,10 @@ class StackFrame
     bool isEvalFrame() const {
         JS_ASSERT_IF(flags_ & EVAL, isScriptFrame());
         return flags_ & EVAL;
+    }
+
+    bool isEvalInFunction() const {
+        return (flags_ & (EVAL | FUNCTION)) == (EVAL | FUNCTION);
     }
 
     bool isNonEvalFunctionFrame() const {
@@ -462,7 +526,7 @@ class StackFrame
 
 
 
-    jsbytecode *pcQuadratic(JSContext *cx);
+    jsbytecode *pcQuadratic(JSContext *cx) const;
 
     jsbytecode *prevpc() {
         if (flags_ & HAS_PREVPC)
@@ -926,10 +990,6 @@ class StackFrame
         return !!(flags_ & DEBUGGER);
     }
 
-    bool isDirectEvalOrDebuggerFrame() const {
-        return (flags_ & (EVAL | DEBUGGER)) && !(flags_ & GLOBAL);
-    }
-
     bool hasOverriddenArgs() const {
         return !!(flags_ & OVERRIDE_ARGS);
     }
@@ -1076,10 +1136,11 @@ class FrameRegs
     }
 
     
-    void rebaseFromTo(const FrameRegs &from, StackFrame *to) {
-        fp_ = to;
-        sp = to->slots() + (from.sp - from.fp_->slots());
+    void rebaseFromTo(const FrameRegs &from, StackFrame &to) {
+        fp_ = &to;
+        sp = to.slots() + (from.sp - from.fp_->slots());
         pc = from.pc;
+        JS_ASSERT(fp_);
     }
 
     
@@ -1087,39 +1148,139 @@ class FrameRegs
         pc = fp_->prevpc();
         sp = newsp;
         fp_ = fp_->prev();
+        JS_ASSERT(fp_);
     }
 
     
     void popPartialFrame(Value *newsp) {
         sp = newsp;
         fp_ = fp_->prev();
+        JS_ASSERT(fp_);
     }
 
     
-    void prepareToRun(StackFrame *fp, JSScript *script) {
+    void prepareToRun(StackFrame &fp, JSScript *script) {
         pc = script->code;
-        sp = fp->slots() + script->nfixed;
-        fp_ = fp;
+        sp = fp.slots() + script->nfixed;
+        fp_ = &fp;
+        JS_ASSERT(fp_);
     }
 
     
-    void initDummyFrame(StackFrame *fp) {
+    void initDummyFrame(StackFrame &fp) {
         pc = NULL;
-        sp = fp->slots();
-        fp_ = fp;
+        sp = fp.slots();
+        fp_ = &fp;
+        JS_ASSERT(fp_);
     }
 };
 
 
 
-struct StackOverride
+class StackSegment
 {
-    Value         *top;
-#ifdef DEBUG
-    StackSegment  *seg;
-    StackFrame    *frame;
-#endif
+    
+    StackSegment *const prevInContext_;
+
+    
+    StackSegment *const prevInMemory_;
+
+    
+    FrameRegs *regs_;
+
+    
+    CallArgsList *calls_;
+
+  public:
+    StackSegment(StackSegment *prevInContext,
+                 StackSegment *prevInMemory,
+                 FrameRegs *regs,
+                 CallArgsList *calls)
+      : prevInContext_(prevInContext),
+        prevInMemory_(prevInMemory),
+        regs_(regs),
+        calls_(calls)
+    {}
+
+    
+
+    Value *slotsBegin() const {
+        return (Value *)(this + 1);
+    }
+
+    
+
+    FrameRegs &regs() const {
+        JS_ASSERT(regs_);
+        return *regs_;
+    }
+
+    FrameRegs *maybeRegs() const {
+        return regs_;
+    }
+
+    StackFrame *fp() const {
+        return regs_->fp();
+    }
+
+    StackFrame *maybefp() const {
+        return regs_ ? regs_->fp() : NULL;
+    }
+
+    CallArgsList &calls() const {
+        JS_ASSERT(calls_);
+        return *calls_;
+    }
+
+    CallArgsList *maybeCalls() const {
+        return calls_;
+    }
+
+    Value *callArgv() const {
+        return calls_->argv();
+    }
+
+    Value *maybeCallArgv() const {
+        return calls_ ? calls_->argv() : NULL;
+    }
+
+    StackSegment *prevInContext() const {
+        return prevInContext_;
+    }
+
+    StackSegment *prevInMemory() const {
+        return prevInMemory_;
+    }
+
+    void repointRegs(FrameRegs *regs) {
+        JS_ASSERT_IF(regs, regs->fp());
+        regs_ = regs;
+    }
+
+    bool isEmpty() const {
+        return !calls_ && !regs_;
+    }
+
+    bool contains(const StackFrame *fp) const;
+    bool contains(const FrameRegs *regs) const;
+    bool contains(const CallArgsList *call) const;
+
+    StackFrame *computeNextFrame(const StackFrame *fp) const;
+
+    Value *end() const;
+
+    FrameRegs *pushRegs(FrameRegs &regs);
+    void popRegs(FrameRegs *regs);
+    void pushCall(CallArgsList &callList);
+    void popCall();
+
+    
+
+    static const size_t offsetOfRegs() { return offsetof(StackSegment, regs_); }
 };
+
+static const size_t VALUES_PER_STACK_SEGMENT = sizeof(StackSegment) / sizeof(Value);
+JS_STATIC_ASSERT(sizeof(StackSegment) % sizeof(Value) == 0);
 
 
 
@@ -1129,7 +1290,6 @@ class StackSpace
     mutable Value *commitEnd_;
     Value         *end_;
     StackSegment  *seg_;
-    StackOverride override_;
 
     static const size_t CAPACITY_VALS  = 512 * 1024;
     static const size_t CAPACITY_BYTES = CAPACITY_VALS * sizeof(Value);
@@ -1144,13 +1304,12 @@ class StackSpace
     JS_FRIEND_API(bool) bumpCommit(JSContext *maybecx, Value *from, ptrdiff_t nvals) const;
 #endif
 
+    friend class AllFramesIter;
     friend class ContextStack;
+    friend class StackFrame;
     friend class OOMCheck;
     inline bool ensureSpace(JSContext *maybecx, Value *from, ptrdiff_t nvals) const;
-    void pushSegment(StackSegment &seg);
-    void popSegment();
-    inline void pushOverride(Value *top, StackOverride *prev);
-    inline void popOverride(const StackOverride &prev);
+    StackSegment &findContainingSegment(const StackFrame *target) const;
 
   public:
     StackSpace();
@@ -1158,14 +1317,8 @@ class StackSpace
     ~StackSpace();
 
     
-    StackSegment *currentSegment() const { return seg_; }
-    Value *firstUnused() const;
-
-    
-    inline Value *activeFirstUnused() const;
-
-    
-    StackSegment &containingSegment(const StackFrame *target) const;
+    Value *firstUnused() const { return seg_ ? seg_->end() : base_; }
+    Value *endOfSpace() const { return end_; }
 
 #ifdef JS_TRACER
     
@@ -1235,7 +1388,6 @@ class LimitCheck
 
 class ContextStack
 {
-    FrameRegs *regs_;
     StackSegment *seg_;
     StackSpace *space_;
     JSContext *cx_;
@@ -1246,49 +1398,37 @@ class ContextStack
 
 
 
-    void notifyIfNoCodeRunning();
-
-    
 
 
-
-
-    inline bool isCurrentAndActive() const;
+    bool onTop() const;
 
 #ifdef DEBUG
-    void assertSegmentsInSync() const;
     void assertSpaceInSync() const;
 #else
-    void assertSegmentsInSync() const {}
     void assertSpaceInSync() const {}
 #endif
 
-    friend class FrameGuard;
-    StackFrame *getSegmentAndFrame(JSContext *cx, uintN vplen, uintN nslots,
-                                   FrameGuard *frameGuard) const;
-    void pushSegmentAndFrame(FrameGuard *frameGuard);
-    void pushSegmentAndFrameImpl(FrameRegs &regs, StackSegment &seg);
-    void popSegmentAndFrame();
-    void popSegmentAndFrameImpl();
+    
+    StackSegment *pushSegment(JSContext *cx);
+    enum MaybeExtend { CAN_EXTEND = true, CANT_EXTEND = false };
+    Value *ensureOnTop(JSContext *cx, uintN nvars, MaybeExtend extend, bool *pushedSeg);
 
-    friend class GeneratorFrameGuard;
-    void popGeneratorFrame(GeneratorFrameGuard *gfg);
-
+    
     template <class Check>
-    inline StackFrame *getCallFrame(JSContext *cx, const CallArgs &args,
-                                    JSFunction *fun, JSScript *script,
-                                    StackFrame::Flags *pflags,
-                                    Check check) const;
+    inline StackFrame *
+    getCallFrame(JSContext *cx, const CallArgs &args, JSFunction *fun, JSScript *script,
+                 StackFrame::Flags *pflags, Check check) const;
 
+    
+    void popSegment();
     friend class InvokeArgsGuard;
-    bool pushInvokeArgsSlow(JSContext *cx, uintN argc, InvokeArgsGuard *argsGuard);
-    void popInvokeArgsSlow(const InvokeArgsGuard &argsGuard);
-    inline void popInvokeArgs(const InvokeArgsGuard &argsGuard);
+    void popInvokeArgs(const InvokeArgsGuard &iag);
+    friend class FrameGuard;
+    void popFrame(const FrameGuard &fg);
+    friend class GeneratorFrameGuard;
+    void popGeneratorFrame(const GeneratorFrameGuard &gfg);
 
-    friend class InvokeFrameGuard;
-    void pushInvokeFrameSlow(InvokeFrameGuard *frameGuard);
-    void popInvokeFrameSlow(const InvokeFrameGuard &frameGuard);
-    inline void popInvokeFrame(const InvokeFrameGuard &frameGuard);
+    friend class StackIter;
 
   public:
     ContextStack(JSContext *cx);
@@ -1296,9 +1436,11 @@ class ContextStack
 
     
 
+    
 
 
-    bool empty() const           { JS_ASSERT_IF(regs_, seg_); return !seg_; }
+
+    bool empty() const                { return !seg_; }
 
     
 
@@ -1306,54 +1448,26 @@ class ContextStack
 
 
 
-    bool hasfp() const           { JS_ASSERT_IF(regs_, regs_->fp()); return !!regs_; }
+    bool hasfp() const                { return seg_ && seg_->maybeRegs(); }
 
     
-    FrameRegs &regs() const      { JS_ASSERT(regs_); return *regs_; }
+
+
+
+    FrameRegs *maybeRegs() const      { return seg_ ? seg_->maybeRegs() : NULL; }
+    StackFrame *maybefp() const       { return seg_ ? seg_->maybefp() : NULL; }
 
     
-    FrameRegs *maybeRegs() const { return regs_; }
-    StackFrame *fp() const       { return regs_->fp(); }
-    StackFrame *maybefp() const  { return regs_ ? regs_->fp() : NULL; }
+    FrameRegs &regs() const           { JS_ASSERT(hasfp()); return seg_->regs(); }
+    StackFrame *fp() const            { JS_ASSERT(hasfp()); return seg_->fp(); }
 
     
     StackSpace &space() const    { assertSpaceInSync(); return *space_; }
 
     
-
-
-
-
-    void threadReset();
+    bool containsSlow(const StackFrame *target) const;
 
     
-
-
-
-    void repointRegs(FrameRegs *regs) {
-        JS_ASSERT_IF(regs, regs->fp());
-        regs_ = regs;
-    }
-
-    
-    StackSegment *currentSegment() const {
-        assertSegmentsInSync();
-        return seg_;
-    }
-
-    
-    inline StackFrame *findFrameAtLevel(uintN targetLevel) const;
-
-#ifdef DEBUG
-    
-    bool contains(const StackFrame *fp) const;
-#endif
-
-    
-    void saveActiveSegment();
-
-    
-    void restoreSegment();
 
     
 
@@ -1364,9 +1478,8 @@ class ContextStack
     bool pushInvokeArgs(JSContext *cx, uintN argc, InvokeArgsGuard *ag);
 
     
-    bool pushInvokeFrame(JSContext *cx, const CallArgs &args, MaybeConstruct,
-                         JSObject &callee, JSFunction *fun, JSScript *script,
-                         InvokeFrameGuard *ifg);
+    bool pushInvokeFrame(JSContext *cx, const CallArgs &args,
+                         MaybeConstruct construct, InvokeFrameGuard *ifg);
 
     
     bool pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thisv,
@@ -1374,6 +1487,11 @@ class ContextStack
                           StackFrame *evalInFrame, ExecuteFrameGuard *efg);
 
     
+
+
+
+
+
     bool pushGeneratorFrame(JSContext *cx, JSGenerator *gen, GeneratorFrameGuard *gfg);
 
     
@@ -1388,7 +1506,10 @@ class ContextStack
     bool pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
                          JSObject &callee, JSFunction *fun, JSScript *script,
                          MaybeConstruct construct, Check check);
-    void popInlineFrame();
+    void popInlineFrame(FrameRegs &regs);
+
+    
+    void popFrameAfterOverflow();
 
     
 
@@ -1402,53 +1523,64 @@ class ContextStack
                               JSFunction *fun, JSScript *script, void *ncode,
                               MaybeConstruct construct, LimitCheck check);
 
+    bool saveFrameChain();
+    void restoreFrameChain();
+
     
-    static size_t offsetOfRegs() { return offsetof(ContextStack, regs_); }
+
+
+
+    void repointRegs(FrameRegs *regs) { JS_ASSERT(hasfp()); seg_->repointRegs(regs); }
+
+    
+
+    
+
+
+
+
+    void threadReset();
+
+    
+
+    static size_t offsetOfSeg() { return offsetof(ContextStack, seg_); }
 };
 
 
 
-class InvokeArgsGuard : public CallArgs
+class InvokeArgsGuard : public CallArgsList
 {
     friend class ContextStack;
-    ContextStack     *stack_;  
-    StackSegment     *seg_;    
-    StackOverride    prevOverride_;
+    ContextStack *stack_;
+    bool pushedSeg_;
+    void setPushed(ContextStack &stack) { JS_ASSERT(!pushed()); stack_ = &stack; }
   public:
-    InvokeArgsGuard() : stack_(NULL), seg_(NULL) {}
-    ~InvokeArgsGuard();
-    bool pushed() const { return stack_ != NULL; }
+    InvokeArgsGuard() : CallArgsList(), stack_(NULL), pushedSeg_(false) {}
+    ~InvokeArgsGuard() { if (pushed()) stack_->popInvokeArgs(*this); }
+    bool pushed() const { return !!stack_; }
+    void pop() { stack_->popInvokeArgs(*this); stack_ = NULL; }
 };
-
-class InvokeFrameGuard
-
-{
-    friend class ContextStack;
-    ContextStack *stack_;  
-    FrameRegs regs_;
-    FrameRegs *prevRegs_;
-  public:
-    InvokeFrameGuard() : stack_(NULL) {}
-    ~InvokeFrameGuard();
-    bool pushed() const { return stack_ != NULL; }
-    void pop();
-    StackFrame *fp() const { return regs_.fp(); }
-};
-
 
 class FrameGuard
 {
   protected:
     friend class ContextStack;
-    ContextStack *stack_;  
-    StackSegment *seg_;
+    ContextStack *stack_;
+    bool pushedSeg_;
     FrameRegs regs_;
+    FrameRegs *prevRegs_;
+    void setPushed(ContextStack &stack) { stack_ = &stack; }
   public:
-    FrameGuard() : stack_(NULL) {}
-    ~FrameGuard();
-    bool pushed() const { return stack_ != NULL; }
+    FrameGuard() : stack_(NULL), pushedSeg_(false) {}
+    ~FrameGuard() { if (pushed()) stack_->popFrame(*this); }
+    bool pushed() const { return !!stack_; }
+    void pop() { stack_->popFrame(*this); stack_ = NULL; }
+
     StackFrame *fp() const { return regs_.fp(); }
 };
+
+class InvokeFrameGuard : public FrameGuard
+{};
 
 class ExecuteFrameGuard : public FrameGuard
 {};
@@ -1462,7 +1594,7 @@ class GeneratorFrameGuard : public FrameGuard
     JSGenerator *gen_;
     Value *stackvp_;
   public:
-    ~GeneratorFrameGuard();
+    ~GeneratorFrameGuard() { if (pushed()) stack_->popGeneratorFrame(*this); }
 };
 
 
@@ -1475,46 +1607,101 @@ class GeneratorFrameGuard : public FrameGuard
 
 
 
+
+
+
+
+
+
+
+
+
+class StackIter
+{
+    friend class ContextStack;
+    JSContext    *cx_;
+  public:
+    enum SavedOption { STOP_AT_SAVED, GO_THROUGH_SAVED };
+  private:
+    SavedOption  savedOption_;
+
+    enum State { DONE, SCRIPTED, NATIVE, IMPLICIT_NATIVE };
+    State        state_;
+
+    StackFrame   *fp_;
+    CallArgsList *calls_;
+
+    StackSegment *seg_;
+    Value        *sp_;
+    jsbytecode   *pc_;
+    CallArgs     args_;
+
+    void poisonRegs();
+    void popFrame();
+    void popCall();
+    void settleOnNewSegment();
+    void settleOnNewState();
+    void startOnSegment(StackSegment *seg);
+
+  public:
+    StackIter(JSContext *cx, SavedOption = STOP_AT_SAVED);
+
+    bool done() const { return state_ == DONE; }
+    StackIter &operator++();
+
+    bool operator==(const StackIter &rhs) const;
+    bool operator!=(const StackIter &rhs) const { return !(*this == rhs); }
+
+    bool isScript() const { JS_ASSERT(!done()); return state_ == SCRIPTED; }
+    StackFrame *fp() const { JS_ASSERT(!done() && isScript()); return fp_; }
+    Value      *sp() const { JS_ASSERT(!done() && isScript()); return sp_; }
+    jsbytecode *pc() const { JS_ASSERT(!done() && isScript()); return pc_; }
+
+    bool isNativeCall() const { JS_ASSERT(!done()); return state_ != SCRIPTED; }
+    CallArgs nativeArgs() const { JS_ASSERT(!done() && isNativeCall()); return args_; }
+};
 
 
 class FrameRegsIter
 {
-    JSContext    *cx_;
-    StackSegment *seg_;
-    StackFrame   *fp_;
-    Value        *sp_;
-    jsbytecode   *pc_;
+    StackIter iter_;
 
-    void initSlow();
-    void incSlow(StackFrame *oldfp);
+    void settle() {
+        while (!iter_.done() && !iter_.isScript())
+            ++iter_;
+    }
 
   public:
-    FrameRegsIter(JSContext *cx);
+    FrameRegsIter(JSContext *cx) : iter_(cx) { settle(); }
 
-    bool done() const { return fp_ == NULL; }
-    FrameRegsIter &operator++();
-    bool operator==(const FrameRegsIter &rhs) const;
-    bool operator!=(const FrameRegsIter &rhs) const { return !(*this == rhs); }
+    bool done() const { return iter_.done(); }
+    FrameRegsIter &operator++() { ++iter_; settle(); return *this; }
 
-    StackFrame *fp() const { return fp_; }
-    Value *sp() const { return sp_; }
-    jsbytecode *pc() const { return pc_; }
+    bool operator==(const FrameRegsIter &rhs) const { return iter_ == rhs.iter_; }
+    bool operator!=(const FrameRegsIter &rhs) const { return iter_ != rhs.iter_; }
+
+    StackFrame *fp() const { return iter_.fp(); }
+    Value      *sp() const { return iter_.sp(); }
+    jsbytecode *pc() const { return iter_.pc(); }
 };
+
+
+
 
 
 
 
 class AllFramesIter
 {
-public:
-    AllFramesIter(JSContext *cx);
+  public:
+    AllFramesIter(StackSpace &space);
 
     bool done() const { return fp_ == NULL; }
     AllFramesIter& operator++();
 
     StackFrame *fp() const { return fp_; }
 
-private:
+  private:
     StackSegment *seg_;
     StackFrame *fp_;
 };

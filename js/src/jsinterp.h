@@ -152,8 +152,24 @@ ComputeThis(JSContext *cx, StackFrame *fp);
 
 
 
-extern JS_REQUIRES_STACK bool
+extern bool
 Invoke(JSContext *cx, const CallArgs &args, MaybeConstruct construct = NO_CONSTRUCT);
+
+
+
+
+
+
+
+
+inline bool
+Invoke(JSContext *cx, InvokeArgsGuard &args, MaybeConstruct construct = NO_CONSTRUCT)
+{
+    args.setActive();
+    bool ok = Invoke(cx, ImplicitCast<CallArgs>(args), construct);
+    args.setInactive();
+    return ok;
+}
 
 
 
@@ -274,8 +290,12 @@ ValueToId(JSContext *cx, const Value &v, jsid *idp);
 
 
 
-extern const js::Value &
-GetUpvar(JSContext *cx, uintN level, js::UpvarCookie cookie);
+extern const Value &
+GetUpvar(JSContext *cx, uintN level, UpvarCookie cookie);
+
+
+extern StackFrame *
+FindUpvarFrame(JSContext *cx, uintN targetLevel);
 
 } 
 

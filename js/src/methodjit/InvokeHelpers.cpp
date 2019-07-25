@@ -178,7 +178,7 @@ InlineReturn(VMFrame &f)
 {
     JS_ASSERT(f.fp() != f.entryfp);
     JS_ASSERT(!js_IsActiveWithOrBlock(f.cx, &f.fp()->scopeChain(), 0));
-    f.cx->stack.popInlineFrame();
+    f.cx->stack.popInlineFrame(f.regs);
 }
 
 void JS_FASTCALL
@@ -199,16 +199,6 @@ stubs::SlowNew(VMFrame &f, uint32 argc)
 
 
 
-static inline void
-RemovePartialFrame(JSContext *cx, StackFrame *fp)
-{
-    cx->stack.popInlineFrame();
-}
-
-
-
-
-
 void JS_FASTCALL
 stubs::HitStackQuota(VMFrame &f)
 {
@@ -218,8 +208,7 @@ stubs::HitStackQuota(VMFrame &f)
     if (f.cx->stack.space().tryBumpLimit(NULL, f.regs.sp, nvals, &f.stackLimit))
         return;
 
-    
-    RemovePartialFrame(f.cx, f.fp());
+    f.cx->stack.popFrameAfterOverflow();
     js_ReportOverRecursed(f.cx);
     THROW();
 }
@@ -286,9 +275,6 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
     JSScript *script = fun->script();
 
     
-
-
-
     fp->initJitFrameEarlyPrologue(fun, nactual);
 
     if (nactual != fp->numFormalArgs()) {
@@ -301,7 +287,7 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
     fp->initJitFrameLatePrologue();
 
     
-    f.regs.prepareToRun(fp, script);
+    f.regs.prepareToRun(*fp, script);
 
     if (fun->isHeavyweight() && !js::CreateFunCallObject(cx, fp))
         THROWV(NULL);

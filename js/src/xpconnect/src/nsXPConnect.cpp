@@ -967,23 +967,6 @@ inline nsresult UnexpectedFailure(nsresult rv)
     return rv;
 }
 
-class SaveFrame
-{
-public:
-    SaveFrame(JSContext *cx)
-        : mJSContext(cx) {
-        mFrame = JS_SaveFrameChain(mJSContext);
-    }
-
-    ~SaveFrame() {
-        JS_RestoreFrameChain(mJSContext, mFrame);
-    }
-
-private:
-    JSContext *mJSContext;
-    JSStackFrame *mFrame;
-};
-
 
 NS_IMETHODIMP
 nsXPConnect::InitClasses(JSContext * aJSContext, JSObject * aGlobalJSObj)

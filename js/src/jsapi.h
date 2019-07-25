@@ -2945,13 +2945,11 @@ JS_IsRunning(JSContext *cx);
 
 
 
-
-
-extern JS_PUBLIC_API(JSStackFrame *)
+extern JS_PUBLIC_API(JSBool)
 JS_SaveFrameChain(JSContext *cx);
 
 extern JS_PUBLIC_API(void)
-JS_RestoreFrameChain(JSContext *cx, JSStackFrame *fp);
+JS_RestoreFrameChain(JSContext *cx);
 
 
 

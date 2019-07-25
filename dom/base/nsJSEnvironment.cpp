@@ -3520,9 +3520,10 @@ nsJSContext::ReportPendingException()
   
   
   if (mIsInitialized && ::JS_IsExceptionPending(mContext)) {
-    JSStackFrame* frame = JS_SaveFrameChain(mContext);
+    PRBool saved = ::JS_SaveFrameChain(mContext);
     ::JS_ReportPendingException(mContext);
-    JS_RestoreFrameChain(mContext, frame);
+    if (saved)
+        ::JS_RestoreFrameChain(mContext);
   }
 }
 

@@ -3559,14 +3559,13 @@ private:
 struct XPCJSContextInfo {
     XPCJSContextInfo(JSContext* aCx) :
         cx(aCx),
-        frame(nsnull),
+        savedFrameChain(false),
         suspendDepth(0)
     {}
     JSContext* cx;
 
     
-    
-    JSStackFrame* frame;
+    bool savedFrameChain;
 
     
     jsrefcount suspendDepth;

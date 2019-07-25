@@ -315,6 +315,7 @@ nanojit::LInsPrinter::accNames[] = {
     "typemap",      
     "fcslots",      
     "argsdata",     
+    "seg",          
 
     "?!"            
 };
@@ -381,6 +382,13 @@ ValueToTypeChar(const Value &v)
     if (v.isUndefined()) return 'U';
     if (v.isMagic()) return 'M';
     return '?';
+}
+
+static inline uintN
+FramePCOffset(JSContext *cx, js::StackFrame* fp)
+{
+    jsbytecode *pc = fp->pcQuadratic(cx);
+    return uintN(pc - fp->script()->code);
 }
 #endif
 
@@ -3309,7 +3317,7 @@ GetUpvarOnTrace(JSContext* cx, uint32 upvarLevel, int32 slot, uint32 callDepth, 
 
 
     JS_ASSERT(upvarLevel < UpvarCookie::UPVAR_LEVEL_LIMIT);
-    StackFrame* fp = cx->stack.findFrameAtLevel(upvarLevel);
+    StackFrame* fp = FindUpvarFrame(cx, upvarLevel);
     Value v = T::interp_get(fp, slot);
     JSValueType type = getCoercedType(v);
     ValueToNative(v, type, result);
@@ -13448,7 +13456,7 @@ TraceRecorder::upvar(JSScript* script, JSUpvarArray* uva, uintN index, Value& v)
 
     uint32 level = script->staticLevel - cookie.level();
     uint32 cookieSlot = cookie.slot();
-    StackFrame* fp = cx->stack.findFrameAtLevel(level);
+    StackFrame* fp = FindUpvarFrame(cx, level);
     const CallInfo* ci;
     int32 slot;
     if (!fp->isFunctionFrame() || fp->isEvalFrame()) {
@@ -15086,25 +15094,13 @@ TraceRecorder::record_JSOP_BINDNAME()
     if (!fp->isFunctionFrame()) {
         obj = &fp->scopeChain();
 
-#ifdef DEBUG
-        StackFrame *fp2 = fp;
-#endif
-
         
 
 
 
         while (obj->isBlock()) {
             
-#ifdef DEBUG
-            
-            while (obj->getPrivate() != fp2) {
-                JS_ASSERT(fp2->isDirectEvalOrDebuggerFrame());
-                fp2 = fp2->prev();
-                if (!fp2)
-                    JS_NOT_REACHED("bad stack frame");
-            }
-#endif
+            JS_ASSERT(obj->getPrivate() == fp);
             obj = obj->getParent();
             
             JS_ASSERT(obj);
