@@ -1023,7 +1023,8 @@ protected:
   
   
   RangePaintInfo* CreateRangePaintInfo(nsIDOMRange* aRange,
-                                       nsRect& aSurfaceRect);
+                                       nsRect& aSurfaceRect,
+                                       PRBool aForPrimarySelection);
 
   
 
@@ -5458,7 +5459,8 @@ static PRBool gDumpRangePaintList = PR_FALSE;
 
 RangePaintInfo*
 PresShell::CreateRangePaintInfo(nsIDOMRange* aRange,
-                                nsRect& aSurfaceRect)
+                                nsRect& aSurfaceRect,
+                                PRBool aForPrimarySelection)
 {
   NS_TIME_FUNCTION_WITH_DOCURL;
 
@@ -5507,7 +5509,9 @@ PresShell::CreateRangePaintInfo(nsIDOMRange* aRange,
   nsRect ancestorRect = ancestorFrame->GetOverflowRect();
 
   
-  info->mBuilder.SetPaintAllFrames();
+  if (aForPrimarySelection) {
+    info->mBuilder.SetSelectedFramesOnly();
+  }
   info->mBuilder.EnterPresShell(ancestorFrame, ancestorRect);
   ancestorFrame->BuildDisplayListForStackingContext(&info->mBuilder,
                                                     ancestorRect, &info->mList);
@@ -5685,7 +5689,7 @@ PresShell::RenderNode(nsIDOMNode* aNode,
   if (NS_FAILED(range->SelectNode(aNode)))
     return nsnull;
 
-  RangePaintInfo* info = CreateRangePaintInfo(range, area);
+  RangePaintInfo* info = CreateRangePaintInfo(range, area, PR_FALSE);
   if (info && !rangeItems.AppendElement(info)) {
     delete info;
     return nsnull;
@@ -5733,7 +5737,7 @@ PresShell::RenderSelection(nsISelection* aSelection,
     nsCOMPtr<nsIDOMRange> range;
     aSelection->GetRangeAt(r, getter_AddRefs(range));
 
-    RangePaintInfo* info = CreateRangePaintInfo(range, area);
+    RangePaintInfo* info = CreateRangePaintInfo(range, area, PR_TRUE);
     if (info && !rangeItems.AppendElement(info)) {
       delete info;
       return nsnull;

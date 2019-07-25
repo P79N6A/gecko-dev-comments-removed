@@ -238,8 +238,11 @@ public:
 
 
 
-  void SetPaintAllFrames() { mPaintAllFrames = PR_TRUE; }
-  PRBool GetPaintAllFrames() { return mPaintAllFrames; }
+
+
+
+  void SetSelectedFramesOnly() { mSelectedFramesOnly = PR_TRUE; }
+  PRBool GetSelectedFramesOnly() { return mSelectedFramesOnly; }
   
 
 
@@ -426,7 +429,7 @@ private:
   PRPackedBool                   mEventDelivery;
   PRPackedBool                   mIsBackgroundOnly;
   PRPackedBool                   mIsAtRootOfPseudoStackingContext;
-  PRPackedBool                   mPaintAllFrames;
+  PRPackedBool                   mSelectedFramesOnly;
   PRPackedBool                   mAccurateVisibleRegions;
   
   
