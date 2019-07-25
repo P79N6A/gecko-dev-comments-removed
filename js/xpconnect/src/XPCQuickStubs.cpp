@@ -39,8 +39,7 @@
 #include "mozilla/Util.h"
 
 #include "jsapi.h"
-#include "jsatom.h"
-#include "jsfriendapi.h"
+#include "jscntxt.h"  
 #include "nsCOMPtr.h"
 #include "xpcprivate.h"
 #include "XPCInlines.h"
@@ -784,17 +783,54 @@ getWrapper(JSContext *cx,
            JSObject **cur,
            XPCWrappedNativeTearOff **tearoff)
 {
-    if (XPCWrapper::IsSecurityWrapper(obj) &&
-        !(obj = XPCWrapper::Unwrap(cx, obj))) {
-        return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (js::IsWrapper(obj)) {
+        obj = XPCWrapper::Unwrap(cx, obj);
+        if (obj && js::IsWrapper(obj)) {
+            MOZ_ASSERT(js::Wrapper::wrapperHandler(obj)->isOuterWindow());
+            obj = XPCWrapper::Unwrap(cx, obj);
+        }
+
+        
+        
+        if (!obj)
+            return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
+        MOZ_ASSERT(!js::IsWrapper(obj));
     }
 
-    *cur = obj;
+    
+    *wrapper = nsnull;
+    *cur = nsnull;
     *tearoff = nsnull;
 
-    *wrapper =
-        XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, callee, cur,
-                                                     tearoff);
+    
+    
+    
+    
+    
+    
+    if (js::GetObjectClass(obj) == &XPC_WN_Tearoff_JSClass) {
+        *tearoff = (XPCWrappedNativeTearOff*) js::GetObjectPrivate(obj);
+        obj = js::GetObjectParent(obj);
+    }
+
+    
+    
+    if (IS_WRAPPER_CLASS(js::GetObjectClass(obj))) {
+        if (IS_WN_WRAPPER_OBJECT(obj))
+            *wrapper = (XPCWrappedNative*) js::GetObjectPrivate(obj);
+        else
+            *cur = obj;
+    }
 
     return NS_OK;
 }
