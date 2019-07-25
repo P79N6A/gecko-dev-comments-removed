@@ -784,6 +784,16 @@ mjit::Compiler::generatePrologue()
         }
     }
 
+    if (cx->typeInferenceEnabled()) {
+#ifdef DEBUG
+        if (script->hasFunction) {
+            prepareStubCall(Uses(0));
+            INLINE_STUBCALL(stubs::AssertArgumentTypes, REJOIN_NONE);
+        }
+#endif
+        ensureDoubleArguments();
+    }
+
     if (isConstructing) {
         if (!constructThis())
             return Compile_Error;
@@ -795,16 +805,6 @@ mjit::Compiler::generatePrologue()
     } else if (Probes::callTrackingActive(cx)) {
         prepareStubCall(Uses(0));
         INLINE_STUBCALL(stubs::ScriptProbeOnlyPrologue, REJOIN_RESUME);
-    }
-
-    if (cx->typeInferenceEnabled()) {
-#ifdef DEBUG
-        if (script->hasFunction) {
-            prepareStubCall(Uses(0));
-            INLINE_STUBCALL(stubs::AssertArgumentTypes, REJOIN_NONE);
-        }
-#endif
-        ensureDoubleArguments();
     }
 
     recompileCheckHelper();
@@ -2949,6 +2949,8 @@ mjit::Compiler::fixPrimitiveReturn(Assembler *masm, FrameEntry *fe)
 
     
     
+    
+    frame.syncThis();
     loadReturnValue(masm, fe);
     Jump j = masm->testObject(Assembler::Equal, JSReturnReg_Type);
     masm->loadValueAsComponents(thisv, JSReturnReg_Type, JSReturnReg_Data);
