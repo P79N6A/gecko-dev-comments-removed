@@ -44,8 +44,8 @@
 static const NSString* AXRoles [] = {
   NSAccessibilityUnknownRole,                   
   NSAccessibilityUnknownRole,                   
-  NSAccessibilityMenuBarRole,                   
   NSAccessibilityScrollBarRole,                 
+  NSAccessibilityMenuBarRole,                   
   NSAccessibilitySplitterRole,                  
   NSAccessibilityUnknownRole,                   
   NSAccessibilityUnknownRole,                   
@@ -142,7 +142,7 @@ static const NSString* AXRoles [] = {
   NSAccessibilityGroupRole,                     
   NSAccessibilityGroupRole,                     
   @"AXRuler",                                   
-  NSAccessibilityUnknownRole,                   
+  NSAccessibilityComboBoxRole,                  
   NSAccessibilityTextFieldRole,                 
   NSAccessibilityTextFieldRole,                 
   NSAccessibilityStaticTextRole,                
