@@ -723,21 +723,26 @@ toolbar#nav-bar {
       self.automation.log.warning("TEST-UNEXPECTED-FAIL | invalid setup: missing mochikit extension")
       return None
 
-    browser_chrome = ""
+    
+    chrome = ""
     if options.browserChrome:
-      browser_chrome = """overlay chrome://navigator/content/navigator.xul chrome://mochikit/content/browser-test-overlay.xul
+      chrome += """
 overlay chrome://browser/content/browser.xul chrome://mochikit/content/browser-test-overlay.xul
+overlay chrome://navigator/content/navigator.xul chrome://mochikit/content/browser-test-overlay.xul
 """
     elif (options.chrome == False) and (options.a11y == False):
       
       
-      browser_chrome += "overlay chrome://browser/content/browser.xul chrome://mochikit/content/ipc-overlay.xul\n"
+      chrome += """
+overlay chrome://browser/content/browser.xul chrome://mochikit/content/ipc-overlay.xul
+overlay chrome://navigator/content/navigator.xul chrome://mochikit/content/ipc-overlay.xul
+"""
 
-    self.installChromeJar(jarDir, browser_chrome, options)
+    self.installChromeJar(jarDir, chrome, options)
 
     return manifest
 
-  def installChromeJar(self, jarDirName, browser_chrome, options):
+  def installChromeJar(self, jarDirName, chrome, options):
     """
       copy mochijar directory to profile as an extension so we have chrome://mochikit for all harness code
     """
@@ -746,7 +751,7 @@ overlay chrome://browser/content/browser.xul chrome://mochikit/content/browser-t
 
     
     with open(os.path.join(options.profilePath, "extensions", "mochikit@mozilla.org", "chrome.manifest"), "a") as mfile:
-      mfile.write(browser_chrome)
+      mfile.write(chrome)
 
   def copyTestsJarToProfile(self, options):
     """ copy tests.jar to the profile directory so we can auto register it in the .xul harness """
