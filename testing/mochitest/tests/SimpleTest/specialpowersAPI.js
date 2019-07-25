@@ -924,7 +924,8 @@ SpecialPowersAPI.prototype = {
     var serv = Cc["@mozilla.org/dom/dom-request-service;1"].
       getService(Ci.nsIDOMRequestService);
     var res = { __exposedProps__: {} };
-    var props = ["createRequest", "fireError", "fireSuccess"];
+    var props = ["createRequest", "fireError", "fireSuccess", 
+								 "fireErrorAsync", "fireSuccessAsync"];
     for (i in props) {
       let prop = props[i];
       res[prop] = function() { return serv[prop].apply(serv, arguments) };
@@ -1131,58 +1132,40 @@ SpecialPowersAPI.prototype = {
     pm.removeFromPrincipal(document.nodePrincipal, "fullscreen");
   },
 
-  _getInfoFromPermissionArg: function(arg) {
-    let url = "";
-    let appId = Ci.nsIScriptSecurityManager.NO_APP_ID;
-    let isInBrowserElement = false;
-
-    if (typeof(arg) == "string") {
-      
-      url = Cc["@mozilla.org/network/io-service;1"]
-              .getService(Ci.nsIIOService)
-              .newURI(arg, null, null)
-              .spec;
-    } else if (arg.nodePrincipal) {
-      
-      url = arg.nodePrincipal.URI.spec;
-      appId = arg.nodePrincipal.appId;
-      isInBrowserElement = arg.nodePrincipal.isInBrowserElement;
-    } else {
-      url = arg.url;
-      appId = arg.appId;
-      isInBrowserElement = arg.isInBrowserElement;
+  _getURI: function(urlOrDocument) {
+    if (typeof(urlOrDocument) == "string") {
+      return Cc["@mozilla.org/network/io-service;1"].
+               getService(Ci.nsIIOService).
+               newURI(urlOrDocument, null, null);
     }
-
-    return [ url, appId, isInBrowserElement ];
+    
+    return this.getDocumentURIObject(urlOrDocument);
   },
 
-  addPermission: function(type, allow, arg) {
-    let [url, appId, isInBrowserElement] = this._getInfoFromPermissionArg(arg);
+  addPermission: function(type, allow, urlOrDocument) {
+    let uri = this._getURI(urlOrDocument);
 
-    let permission = allow ? Ci.nsIPermissionManager.ALLOW_ACTION
-                           : Ci.nsIPermissionManager.DENY_ACTION;
+    let permission = allow ?
+                     Ci.nsIPermissionManager.ALLOW_ACTION :
+                     Ci.nsIPermissionManager.DENY_ACTION;
 
     var msg = {
       'op': "add",
       'type': type,
-      'permission': permission,
-      'url': url,
-      'appId': appId,
-      'isInBrowserElement': isInBrowserElement
+      'url': uri.spec,
+      'permission': permission
     };
 
     this._sendSyncMessage('SPPermissionManager', msg);
   },
 
-  removePermission: function(type, arg) {
-    let [url, appId, isInBrowserElement] = this._getInfoFromPermissionArg(arg);
+  removePermission: function(type, urlOrDocument) {
+    let uri = this._getURI(urlOrDocument);
 
     var msg = {
       'op': "remove",
       'type': type,
-      'url': url,
-      'appId': appId,
-      'isInBrowserElement': isInBrowserElement
+      'url': uri.spec
     };
 
     this._sendSyncMessage('SPPermissionManager', msg);
