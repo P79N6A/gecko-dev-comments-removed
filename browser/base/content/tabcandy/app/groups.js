@@ -439,8 +439,10 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       this.$titlebar.css(titlebarCSS);
       this.$content.css(contentCSS);
     } else {
+
       TabMirror.pausePainting();
       iQ(this.container).animate(css, 'animate350', function() {
+
         TabMirror.resumePainting();
       }); 
 

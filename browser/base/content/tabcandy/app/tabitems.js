@@ -145,8 +145,10 @@ window.TabItem.prototype = iQ.extend(new Item(), {
 
       $container.css(css);
     } else {
+
       TabMirror.pausePainting();
       $container.animate(css, 'animate200', function() {
+
         TabMirror.resumePainting();
       }); 
 
@@ -280,6 +282,7 @@ window.TabItems = {
       var $div = iQ(mirror.el);
       var $$div = $(mirror.el);
       var tab = mirror.tab;
+
       
       if(window.Groups) {        
         $div.data('isDragging', false);
@@ -381,6 +384,7 @@ window.TabItems = {
         try {
           UI.tabBar.show(false);              
           TabMirror.resumePainting();
+
           tab.focus();
           $tabEl.css({
             top:   orig.pos.top,
@@ -410,6 +414,7 @@ window.TabItems = {
           Utils.log(e);
         }
       }
+
 
       TabMirror.pausePainting();
       iQ(tabEl)

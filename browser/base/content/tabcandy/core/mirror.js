@@ -98,6 +98,7 @@ TabCanvas.prototype = {
 
 
 function Mirror(tab, manager) {
+
   this.tab = tab;
   this.manager = manager;
   
@@ -124,8 +125,10 @@ function Mirror(tab, manager) {
     this.triggerPaint();
   }
   
+
   this.tab.mirror = this;
   this.manager._customize(this);
+
 }
 
 Mirror.prototype = iQ.extend(new Subscribable(), {  
@@ -216,6 +219,7 @@ TabMirror.prototype = {
   
   _heartbeat: function() {
     try {
+
       var now = Utils.getMilliseconds();
       var count = Tabs.length;
       if(count && this.paintingPaused <= 0) {
@@ -225,7 +229,9 @@ TabMirror.prototype = {
           
         var tab = Tabs[this.heartbeatIndex];
         var mirror = tab.mirror; 
+
         if(mirror) {
+
           var iconUrl = tab.raw.linkedBrowser.mIconURL;
           if( iconUrl == null ){
             iconUrl = "chrome://tabcandy/content/candies/revision-a/img/default.png";
@@ -263,6 +269,7 @@ TabMirror.prototype = {
           }
           
           if(mirror.needsPaint) {
+
             mirror.tabCanvas.paint();
             
             if(Utils.getMilliseconds() - mirror.needsPaint > 5000)
@@ -353,7 +360,7 @@ window.TabMirror = {
   
   
   pausePainting: function() {
-    this._private.paintingPaused++;
+
   },
   
   
@@ -361,7 +368,7 @@ window.TabMirror = {
   
   
   resumePainting: function() {
-    this._private.paintingPaused--;
+
   },
 
   
