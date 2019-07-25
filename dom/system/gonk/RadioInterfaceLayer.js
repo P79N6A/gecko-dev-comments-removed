@@ -535,9 +535,18 @@ RadioInterfaceLayer.prototype = {
   
 
 
+
+
   enabledGsmTableTuples: [
     [RIL.PDU_NL_IDENTIFIER_DEFAULT, RIL.PDU_NL_IDENTIFIER_DEFAULT],
   ],
+
+  
+
+
+
+
+  segmentRef16Bit: false,
 
   
 
@@ -607,7 +616,6 @@ RadioInterfaceLayer.prototype = {
 
 
   _calculateUserDataLength7Bit: function _calculateUserDataLength7Bit(message) {
-    
     let options = null;
     let minUserDataSeptets = Number.MAX_VALUE;
     for (let i = 0; i < this.enabledGsmTableTuples.length; i++) {
@@ -634,6 +642,20 @@ RadioInterfaceLayer.prototype = {
       
       let headerSeptets = Math.ceil((headerLen ? headerLen + 1 : 0) * 8 / 7);
       let userDataSeptets = bodySeptets + headerSeptets;
+      let segments = bodySeptets ? 1 : 0;
+      if (userDataSeptets > RIL.PDU_MAX_USER_DATA_7BIT) {
+        if (this.segmentRef16Bit) {
+          headerLen += 6;
+        } else {
+          headerLen += 5;
+        }
+
+        headerSeptets = Math.ceil((headerLen + 1) * 8 / 7);
+        let segmentSeptets = RIL.PDU_MAX_USER_DATA_7BIT - headerSeptets;
+        segments = Math.ceil(bodySeptets / segmentSeptets);
+        userDataSeptets = bodySeptets + headerSeptets * segments;
+      }
+
       if (userDataSeptets >= minUserDataSeptets) {
         continue;
       }
@@ -646,6 +668,7 @@ RadioInterfaceLayer.prototype = {
         userDataHeaderLength: headerLen,
         langIndex: langIndex,
         langShiftIndex: langShiftIndex,
+        segmentMaxSeq: segments,
       };
     }
 
@@ -664,14 +687,35 @@ RadioInterfaceLayer.prototype = {
 
 
   _calculateUserDataLengthUCS2: function _calculateUserDataLengthUCS2(message) {
+    let bodyChars = message.length;
+    let headerLen = 0;
+    let headerChars = Math.ceil((headerLen ? headerLen + 1 : 0) / 2);
+    let segments = bodyChars ? 1 : 0;
+    if ((bodyChars + headerChars) > RIL.PDU_MAX_USER_DATA_UCS2) {
+      if (this.segmentRef16Bit) {
+        headerLen += 6;
+      } else {
+        headerLen += 5;
+      }
+
+      headerChars = Math.ceil((headerLen + 1) / 2);
+      let segmentChars = RIL.PDU_MAX_USER_DATA_UCS2 - headerChars;
+      segments = Math.ceil(bodyChars / segmentChars);
+    }
+
     return {
       dcs: RIL.PDU_DCS_MSG_CODING_16BITS_ALPHABET,
-      encodedBodyLength: message.length * 2,
-      userDataHeaderLength: 0,
+      encodedBodyLength: bodyChars * 2,
+      userDataHeaderLength: headerLen,
+      segmentMaxSeq: segments,
     };
   },
 
   
+
+
+
+
 
 
 
@@ -709,11 +753,137 @@ RadioInterfaceLayer.prototype = {
     return options;
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _fragmentText7Bit: function _fragmentText7Bit(text, langTable, langShiftTable, headerLen) {
+    const headerSeptets = Math.ceil((headerLen ? headerLen + 1 : 0) * 8 / 7);
+    const segmentSeptets = RIL.PDU_MAX_USER_DATA_7BIT - headerSeptets;
+    let ret = [];
+    let begin = 0, len = 0;
+    for (let i = 0, inc = 0; i < text.length; i++) {
+      let septet = langTable.indexOf(text.charAt(i));
+      if (septet == RIL.PDU_NL_EXTENDED_ESCAPE) {
+        continue;
+      }
+
+      if (septet >= 0) {
+        inc = 1;
+      } else {
+        septet = langShiftTable.indexOf(text.charAt(i));
+        if (septet < 0) {
+          throw new Error("Given text cannot be encoded with GSM 7-bit Alphabet!");
+        }
+
+        if (septet == RIL.PDU_NL_RESERVED_CONTROL) {
+          continue;
+        }
+
+        inc = 2;
+      }
+
+      if ((len + inc) > segmentSeptets) {
+        ret.push({
+          body: text.substring(begin, i),
+          encodedBodyLength: len,
+        });
+        begin = i;
+        len = 0;
+      }
+
+      len += inc;
+    }
+
+    if (len) {
+      ret.push({
+        body: text.substring(begin),
+        encodedBodyLength: len,
+      });
+    }
+
+    return ret;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _fragmentTextUCS2: function _fragmentTextUCS2(text, headerLen) {
+    const headerChars = Math.ceil((headerLen ? headerLen + 1 : 0) / 2);
+    const segmentChars = RIL.PDU_MAX_USER_DATA_UCS2 - headerChars;
+    let ret = [];
+    for (let offset = 0; offset < text.length; offset += segmentChars) {
+      let str = text.substr(offset, segmentChars);
+      ret.push({
+        body: str,
+        encodedBodyLength: str.length * 2,
+      });
+    }
+
+    return ret;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _fragmentText: function _fragmentText(text, options) {
+    if (!options) {
+      options = this._calculateUserDataLength(text);
+    }
+
+    if (options.segmentMaxSeq <= 1) {
+      options.segments = null;
+      return options;
+    }
+
+    if (options.dcs == RIL.PDU_DCS_MSG_CODING_7BITS_ALPHABET) {
+      const langTable = RIL.PDU_NL_LOCKING_SHIFT_TABLES[options.langIndex];
+      const langShiftTable = RIL.PDU_NL_SINGLE_SHIFT_TABLES[options.langShiftIndex];
+      options.segments = this._fragmentText7Bit(options.body,
+                                                langTable, langShiftTable,
+                                                options.userDataHeaderLength);
+    } else {
+      options.segments = this._fragmentTextUCS2(options.body,
+                                                options.userDataHeaderLength);
+    }
+
+    
+    options.segmentMaxSeq = options.segments.length;
+
+    return options;
+  },
+
   getNumberOfMessagesForText: function getNumberOfMessagesForText(text) {
-    
-    
-    
-    return Math.ceil(text.length / 160);
+    return this._fragmentText(text).segmentMaxSeq;
   },
 
   sendSMS: function sendSMS(number, message, requestId, processId) {
