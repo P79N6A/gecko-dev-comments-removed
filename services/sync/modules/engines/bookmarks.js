@@ -157,8 +157,6 @@ BookmarksEngine.prototype = {
       case "separator":
         return this._separatorPos[item.pos];
     }
-    
-    
   },
 
   _handleDupe: function _handleDupe(item, dupeId) {

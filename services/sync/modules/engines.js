@@ -451,6 +451,7 @@ SyncEngine.prototype = {
         this.toFetch = extra.concat(Utils.arraySub(this.toFetch, extra));
     }
 
+    
     if (this.toFetch.length > 0) {
       
       newitems.limit = 0;
@@ -461,6 +462,7 @@ SyncEngine.prototype = {
       newitems.ids = this.toFetch.slice(0, 150);
       this.toFetch = this.toFetch.slice(150);
 
+      
       let resp = newitems.get();
       if (!resp.success)
         throw resp;
@@ -638,7 +640,6 @@ SyncEngine.prototype = {
       delete this._delete[key];
 
       
-      this._log.debug("Sending delete for " + key + ": " + val);
       let coll = new Collection(this.engineURL, this._recordObj);
       coll[key] = val;
       coll.delete();
