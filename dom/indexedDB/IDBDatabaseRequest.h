@@ -52,12 +52,14 @@
 
 BEGIN_INDEXEDDB_NAMESPACE
 
+class AsyncConnectionHelper;
 class IDBObjectStoreRequest;
 
 class IDBDatabaseRequest : public IDBRequest::Generator,
                            public nsIIDBDatabaseRequest,
                            public nsIObserver
 {
+  friend class AsyncConnectionHelper;
   friend class IDBObjectStoreRequest;
 
 public:
@@ -76,12 +78,6 @@ public:
          LazyIdleThread* aThread,
          const nsAString& aDatabaseFilePath,
          nsCOMPtr<mozIStorageConnection>& aConnection);
-
-  
-  nsCOMPtr<mozIStorageConnection>& Connection();
-
-  
-  nsresult EnsureConnection();
 
   
 
@@ -123,6 +119,12 @@ public:
 protected:
   IDBDatabaseRequest();
   ~IDBDatabaseRequest();
+
+  
+  nsCOMPtr<mozIStorageConnection>& Connection();
+
+  
+  nsresult EnsureConnection();
 
 private:
   nsString mName;
