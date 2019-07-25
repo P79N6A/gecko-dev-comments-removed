@@ -596,7 +596,8 @@ pref("javascript.options.jitprofiling.chrome",  false);
 
 
 
-pref("javascript.options.mem.high_water_mark", 32);
+pref("javascript.options.mem.high_water_mark", 128);
+pref("javascript.options.mem.max", -1);
 pref("javascript.options.mem.gc_frequency",   300);
 
 
