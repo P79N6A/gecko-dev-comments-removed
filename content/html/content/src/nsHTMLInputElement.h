@@ -307,6 +307,17 @@ public:
 
   PRInt32 GetFilterFromAccept();
 
+  
+
+
+
+
+
+
+
+
+  void UpdateValidityUIBits(bool aIsFocused);
+
 protected:
   
   

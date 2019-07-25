@@ -2096,20 +2096,12 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     nsEventStates states;
 
     if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
-      
-      
-      SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI,
-                  !IsValid() && ShouldShowInvalidUI());
-
-      
-      
-      SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, ShouldShowValidUI());
+      UpdateValidityUIBits(true);
 
       
       
     } else { 
-      SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, PR_TRUE);
-      SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, PR_TRUE);
+      UpdateValidityUIBits(false);
       states |= NS_EVENT_STATE_MOZ_UI_VALID | NS_EVENT_STATE_MOZ_UI_INVALID;
     }
 
@@ -4584,5 +4576,23 @@ nsHTMLInputElement::GetFilterFromAccept()
   }
 
   return filter;
+}
+
+void
+nsHTMLInputElement::UpdateValidityUIBits(bool aIsFocused)
+{
+  if (aIsFocused) {
+    
+    
+    SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI,
+                !IsValid() && ShouldShowInvalidUI());
+
+    
+    
+    SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, ShouldShowValidUI());
+  } else {
+    SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, PR_TRUE);
+    SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, PR_TRUE);
+  }
 }
 
