@@ -120,10 +120,10 @@ public:
 
   already_AddRefed<nsINode> GetCurrentFocus();
 
-    
+  
 
 
-    virtual PRBool IsDefunct();
+  virtual PRBool IsDefunct() { return !mContent; }
 
   
 

@@ -257,31 +257,13 @@ void nsAccessNode::ShutdownXPAccessibility()
   NotifyA11yInitOrShutdown(PR_FALSE);
 }
 
-PRBool
-nsAccessNode::IsDefunct()
+already_AddRefed<nsIPresShell>
+nsAccessNode::GetPresShell()
 {
-  if (!mContent)
-    return PR_TRUE;
-
-  
-  nsCOMPtr<nsIPresShell> presShell(GetPresShell());
-  return !presShell;
-}
-
-already_AddRefed<nsIPresShell> nsAccessNode::GetPresShell()
-{
-  nsIPresShell *presShell = nsnull;
+  nsIPresShell* presShell = nsnull;
   if (mWeakShell)
     CallQueryReferent(mWeakShell.get(), &presShell);
-  if (!presShell) {
-    if (mWeakShell) {
-      
-      
-      
-      Shutdown();
-    }
-    return nsnull;
-  }
+
   return presShell;
 }
 
