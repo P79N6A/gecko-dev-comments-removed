@@ -70,9 +70,6 @@ public:
   
   
   NS_IMETHOD Probe(PRUint32 aPrefix, PRUint32 aKey, bool* aReady, bool* aFound);
-  
-  
-  NS_IMETHOD SizeOfIncludingThis(PRUint32* aSize);
   NS_IMETHOD IsEmpty(bool * aEmpty);
   NS_IMETHOD LoadFromFile(nsIFile* aFile);
   NS_IMETHOD StoreToFile(nsIFile* aFile);
@@ -80,6 +77,10 @@ public:
   NS_IMETHOD GetKey(PRUint32* aKey);
 
   NS_DECL_ISUPPORTS
+
+  
+  
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
 
 protected:
   static const PRUint32 DELTAS_LIMIT = 100;
