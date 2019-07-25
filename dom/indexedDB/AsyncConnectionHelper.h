@@ -75,23 +75,15 @@ public:
   NS_DECL_NSIRUNNABLE
   NS_DECL_MOZISTORAGEPROGRESSHANDLER
 
-  
-
-
-
-
-
-  static const PRUint16 OK = PR_UINT16_MAX;
-
   nsresult Dispatch(nsIEventTarget* aDatabaseThread);
 
   
   nsresult DispatchToTransactionPool();
 
-  void SetError(PRUint16 aErrorCode)
+  void SetError(nsresult aErrorCode)
   {
-    mError = true;
-    mErrorCode = aErrorCode;
+    NS_ASSERTION(NS_FAILED(aErrorCode), "Not a failure code!");
+    mResultCode = aErrorCode;
   }
 
   static IDBTransaction* GetCurrentTransaction();
@@ -130,7 +122,7 @@ protected:
 
 
 
-  virtual PRUint16 DoDatabaseWork(mozIStorageConnection* aConnection) = 0;
+  virtual nsresult DoDatabaseWork(mozIStorageConnection* aConnection) = 0;
 
   
 
@@ -139,7 +131,7 @@ protected:
 
 
 
-  virtual PRUint16 OnSuccess(nsIDOMEventTarget* aTarget);
+  virtual nsresult OnSuccess(nsIDOMEventTarget* aTarget);
 
   
 
@@ -147,7 +139,7 @@ protected:
 
 
   virtual void OnError(nsIDOMEventTarget* aTarget,
-                       PRUint16 aErrorCode);
+                       nsresult aErrorCode);
 
   
 
@@ -156,7 +148,7 @@ protected:
 
 
 
-  virtual PRUint16 GetSuccessResult(nsIWritableVariant* aVariant);
+  virtual nsresult GetSuccessResult(nsIWritableVariant* aVariant);
 
   
 
@@ -176,8 +168,7 @@ private:
   mozilla::TimeStamp mStartTime;
   mozilla::TimeDuration mTimeoutDuration;
 
-  PRUint16 mErrorCode;
-  PRPackedBool mError;
+  nsresult mResultCode;
   PRPackedBool mDispatched;
 };
 
