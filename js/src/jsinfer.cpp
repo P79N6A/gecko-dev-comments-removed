@@ -1013,12 +1013,23 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
     TypeFunction *function = object->asFunction();
 
     if (!function->script) {
-        JS_ASSERT(function->handler);
+        JS_ASSERT(function->handler && function->singleton);
+
+        
+
+
+
+
+
+        if (!script->global || script->global != function->singleton->getGlobal()) {
+            callsite->returnTypes->addType(cx, TYPE_UNKNOWN);
+            return;
+        }
 
         if (function->isGeneric) {
             if (callsite->argumentCount == 0) {
                 
-                return;
+                return; 
             }
 
             
