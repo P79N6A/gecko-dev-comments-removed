@@ -53,7 +53,7 @@ Cu.import("resource://gre/modules/NetUtil.jsm");
 const CB_READY = {};
 const CB_COMPLETE = {};
 const CB_FAIL = {};
-
+const REASON_ERROR = Ci.mozIStorageStatementCallback.REASON_ERROR;
 
 
 
@@ -217,6 +217,7 @@ let Utils = {
   
   _storageCallbackPrototype: {
     results: null,
+
     
     names: null,
     syncCb: null,
@@ -241,6 +242,13 @@ let Utils = {
       this.syncCb.throw(error);
     },
     handleCompletion: function handleCompletion(reason) {
+
+      
+      
+      
+      if (reason == REASON_ERROR)
+        return;
+
       
       
       if (this.names && !this.results) {
