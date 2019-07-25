@@ -959,7 +959,7 @@ var PlacesStarButton = {
     this._itemIds = [];
 
     
-    this._starIcon.hidden = true;
+    this._ignoreClicks = true;
 
     
     if (this._uri.spec == "about:blank") {
@@ -981,7 +981,7 @@ var PlacesStarButton = {
       }
 
       
-      this._starIcon.hidden = false;
+      this._ignoreClicks = false;
     }, this);
   },
 
@@ -1004,7 +1004,7 @@ var PlacesStarButton = {
 
   onClick: function PSB_onClick(aEvent)
   {
-    if (aEvent.button == 0) {
+    if (aEvent.button == 0 && !this._ignoreClicks) {
       PlacesCommandHook.bookmarkCurrentPage(this._itemIds.length > 0);
     }
     
