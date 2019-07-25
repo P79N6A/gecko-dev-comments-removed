@@ -127,11 +127,14 @@ public:
   PRUint8 mSize;   
                    
   bool mRepeating;
-  bool mToCorner;
+  bool mLegacySyntax;
 
   nsStyleCoord mBgPosX; 
   nsStyleCoord mBgPosY; 
   nsStyleCoord mAngle;  
+
+  nsStyleCoord mRadiusX; 
+  nsStyleCoord mRadiusY; 
 
   
   nsTArray<nsStyleGradientStop> mStops;
