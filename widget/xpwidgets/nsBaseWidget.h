@@ -19,6 +19,10 @@ class nsIContent;
 class nsAutoRollup;
 class gfxContext;
 
+#ifdef ACCESSIBILITY
+class Accessible;
+#endif
+
 namespace mozilla {
 namespace layers {
 class BasicLayerManager;
@@ -166,6 +170,11 @@ public:
   
   void NotifySysColorChanged();
   void NotifyThemeChanged();
+
+#ifdef ACCESSIBILITY
+  
+  Accessible* GetAccessible();
+#endif
 
   nsPopupLevel PopupLevel() { return mPopupLevel; }
 

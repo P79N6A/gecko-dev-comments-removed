@@ -387,12 +387,6 @@ private:
 
 
 
-    Accessible       *DispatchAccessibleEvent();
-
-    
-
-
-
 
     void                DispatchEventToRootAccessible(PRUint32 aEventType);
 

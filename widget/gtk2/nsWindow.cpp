@@ -5828,23 +5828,8 @@ nsWindow::CreateRootAccessible()
 {
     if (mIsTopLevel && !mRootAccessible) {
         LOG(("nsWindow:: Create Toplevel Accessibility\n"));
-        Accessible* acc = DispatchAccessibleEvent();
-
-        if (acc) {
-            mRootAccessible = acc;
-        }
+        mRootAccessible = GetAccessible();
     }
-}
-
-Accessible*
-nsWindow::DispatchAccessibleEvent()
-{
-    nsAccessibleEvent event(true, NS_GETACCESSIBLE, this);
-
-    nsEventStatus status;
-    DispatchEvent(&event, status);
-
-    return event.mAccessible;
 }
 
 void
@@ -5861,11 +5846,13 @@ nsWindow::DispatchEventToRootAccessible(PRUint32 aEventType)
     }
 
     
-    Accessible* acc = DispatchAccessibleEvent();
+    Accessible *acc = GetAccessible();
     if (acc) {
         accService->FireAccessibleEvent(aEventType, acc);
     }
 }
+
+
 
 void
 nsWindow::DispatchActivateEventAccessible(void)
