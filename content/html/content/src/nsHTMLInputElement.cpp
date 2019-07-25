@@ -1060,9 +1060,24 @@ nsHTMLInputElement::SetValue(const nsAString& aValue)
     }
   }
   else {
-    SetValueInternal(aValue, false, true);
     if (IsSingleLineTextControl(false)) {
-      GetValueInternal(mFocusedValue);
+      
+      
+      
+      
+      
+      
+      
+      nsAutoString currentValue;
+      GetValueInternal(currentValue);
+
+      SetValueInternal(aValue, false, true);
+
+      if (mFocusedValue.Equals(currentValue)) {
+        GetValueInternal(mFocusedValue);
+      }
+    } else {
+      SetValueInternal(aValue, false, true);
     }
   }
 
