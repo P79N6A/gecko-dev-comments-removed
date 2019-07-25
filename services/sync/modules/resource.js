@@ -50,6 +50,10 @@ Cu.import("resource://weave/constants.js");
 Cu.import("resource://weave/util.js");
 Cu.import("resource://weave/auth.js");
 
+
+
+
+
 function RequestException(resource, action, request) {
   this._resource = resource;
   this._action = action;
@@ -67,12 +71,21 @@ RequestException.prototype = {
   }
 };
 
+
+
+
 function Resource(uri) {
   this._init(uri);
 }
 Resource.prototype = {
   _logName: "Net.Resource",
 
+  
+  
+  
+  
+  
+  
   get authenticator() {
     if (this._authenticator)
       return this._authenticator;
@@ -83,6 +96,11 @@ Resource.prototype = {
     this._authenticator = value;
   },
 
+  
+  
+  
+  
+  
   get headers() {
     return this.authenticator.onRequest(this._headers);
   },
@@ -97,6 +115,9 @@ Resource.prototype = {
     }
   },
 
+  
+  
+  
   get uri() {
     return this._uri;
   },
@@ -109,12 +130,18 @@ Resource.prototype = {
       this._uri = value;
   },
 
+  
+  
+  
   get spec() {
     if (this._uri)
       return this._uri.spec;
     return null;
   },
 
+  
+  
+  
   _data: null,
   get data() this._data,
   set data(value) {
@@ -129,6 +156,11 @@ Resource.prototype = {
   get downloaded() this._downloaded,
   get dirty() this._dirty,
 
+  
+  
+  
+  
+  
   _filters: null,
   pushFilter: function Res_pushFilter(filter) {
     this._filters.push(filter);
@@ -149,18 +181,27 @@ Resource.prototype = {
     this._filters = [];
   },
 
+  
+  
+  
+  
+  
+  
   _createRequest: function Res__createRequest() {
     this._lastChannel = Svc.IO.newChannel(this.spec, null, null).
       QueryInterface(Ci.nsIRequest);
+
     
     let loadFlags = this._lastChannel.loadFlags;
     loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
     loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
     this._lastChannel.loadFlags = loadFlags;
     this._lastChannel = this._lastChannel.QueryInterface(Ci.nsIHttpChannel);
-
+    
+    
     this._lastChannel.notificationCallbacks = new badCertListener();
-
+    
+    
     let headers = this.headers; 
     for (let key in headers) {
       if (key == 'Authorization')
@@ -176,18 +217,31 @@ Resource.prototype = {
     this._lastProgress = Date.now();
   },
 
+  
+  
+  
+  
   filterUpload: function Resource_filterUpload() {
     this._data = this._filters.reduce(function(data, filter) {
       return filter.beforePUT(data);
     }, this._data);
   },
 
+  
+  
+  
+  
   filterDownload: function Resource_filterDownload() {
     this._data = this._filters.reduceRight(function(data, filter) {
       return filter.afterGET(data);
     }, this._data);
   },
 
+  
+  
+  
+  
+  
   _request: function Res__request(action, data) {
     let iter = 0;
     let channel = this._createRequest();
@@ -195,6 +249,8 @@ Resource.prototype = {
     if ("undefined" != typeof(data))
       this._data = data;
 
+    
+    
     if ("PUT" == action || "POST" == action) {
       this.filterUpload();
       this._log.trace(action + " Body:\n" + this._data);
@@ -210,6 +266,8 @@ Resource.prototype = {
       channel.setUploadStream(stream, type, this._data.length);
     }
 
+    
+    
     let [chanOpen, chanCb] = Sync.withCb(channel.asyncOpen, channel);
     let listener = new ChannelListener(chanCb, this._onProgress, this._log);
     channel.requestMethod = action;
@@ -242,22 +300,39 @@ Resource.prototype = {
     return this._data;
   },
 
+  
+  
+  
+  
   get: function Res_get() {
     return this._request("GET");
   },
 
+  
+  
+  
   put: function Res_put(data) {
     return this._request("PUT", data);
   },
 
+  
+  
+  
   post: function Res_post(data) {
     return this._request("POST", data);
   },
 
+  
+  
+  
   delete: function Res_delete() {
     return this._request("DELETE");
   }
 };
+
+
+
+
 
 function ChannelListener(onComplete, onProgress, logger) {
   this._onComplete = onComplete;
@@ -292,10 +367,23 @@ ChannelListener.prototype = {
 };
 
 
+
+
+
+
+
+
+
+
+
 function RecordParser(data) {
   this._data = data;
 }
 RecordParser.prototype = {
+  
+  
+  
+  
   getNextRecord: function RecordParser_getNextRecord() {
     let start;
     let bCount = 0;
@@ -322,10 +410,22 @@ RecordParser.prototype = {
     return false;
   },
 
+  
+  
+  
+  
+  
+  
+  
   append: function RecordParser_append(data) {
     this._data += data;
   }
 };
+
+
+
+
+
 
 function JsonFilter() {
   let level = "Debug";
@@ -345,6 +445,13 @@ JsonFilter.prototype = {
     return JSON.parse(data);
   }
 };
+
+
+
+
+
+
+
 
 function badCertListener() {
 }
