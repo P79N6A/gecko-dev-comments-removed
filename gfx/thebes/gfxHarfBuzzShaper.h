@@ -117,7 +117,10 @@ protected:
 
     
     
-    PRBool mUseHintedWidths;
+    PRPackedBool mUseFontGetGlyph;
+    
+    
+    PRPackedBool mUseHintedWidths;
 };
 
 #endif 

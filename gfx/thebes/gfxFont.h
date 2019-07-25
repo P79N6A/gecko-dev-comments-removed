@@ -1003,6 +1003,18 @@ public:
     
     
     
+    virtual PRBool ProvidesGetGlyph() const {
+        return PR_FALSE;
+    }
+    
+    
+    virtual PRUint32 GetGlyph(PRUint32 unicode, PRUint32 variation_selector) {
+        return 0;
+    }
+
+    
+    
+    
     virtual PRBool ProvidesHintedWidths() const {
         return PR_FALSE;
     }
