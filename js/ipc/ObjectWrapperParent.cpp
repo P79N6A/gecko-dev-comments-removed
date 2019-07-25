@@ -174,8 +174,8 @@ const js::Class ObjectWrapperParent::sCPOW_JSClass = {
       ObjectWrapperParent::CPOW_Finalize,
       nsnull, 
       ObjectWrapperParent::CPOW_Call,
-      ObjectWrapperParent::CPOW_Construct,
       ObjectWrapperParent::CPOW_HasInstance,
+      ObjectWrapperParent::CPOW_Construct,
       nsnull, 
       {
           ObjectWrapperParent::CPOW_Equality,
