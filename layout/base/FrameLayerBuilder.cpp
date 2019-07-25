@@ -1075,7 +1075,7 @@ ContainerState::Finish()
       if (!layer->GetParent()) {
         
         
-        Layer* prevChild = i == 0 ? nsnull : mNewChildLayers[i - 1];
+        Layer* prevChild = i == 0 ? nsnull : mNewChildLayers[i - 1].get();
         mContainerLayer->InsertAfter(layer, prevChild);
         continue;
       }
