@@ -37,6 +37,7 @@
 # ***** END LICENSE BLOCK *****
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 #ifndef XP_WIN
 #define BROKEN_WM_Z_ORDER
@@ -176,9 +177,7 @@ PrivateBrowsingService.prototype = {
       this._closePageInfoWindows();
 
       
-      let viewSrcWindowsEnum = Cc["@mozilla.org/appshell/window-mediator;1"].
-                               getService(Ci.nsIWindowMediator).
-                               getEnumerator("navigator:view-source");
+      let viewSrcWindowsEnum = Services.wm.getEnumerator("navigator:view-source");
       while (viewSrcWindowsEnum.hasMoreElements()) {
         let win = viewSrcWindowsEnum.getNext();
         if (this._inPrivateBrowsing) {
@@ -190,13 +189,25 @@ PrivateBrowsingService.prototype = {
         }
         win.close();
       }
+        
+      var windowsEnum = Services.wm.getEnumerator("navigator:browser");
+      while (windowsEnum.hasMoreElements()) {
+        var window = windowsEnum.getNext();
+        window.getInterface(Ci.nsIWebNavigation)
+              .QueryInterface(Ci.nsIDocShellTreeItem)
+              .treeOwner
+              .QueryInterface(Ci.nsIInterfaceRequestor)
+              .getInterface(Ci.nsIXULWindow)
+              .docShell.QueryInterface(Ci.nsILoadContext)
+              .usePrivateBrowsing = this._inPrivateBrowsing;
+      }
 
       if (!this._quitting && this._saveSession) {
         let browserWindow = this._getBrowserWindow();
 
+	
         
-        
-        if (browserWindow) {
+	if (browserWindow) {
           
           ss.setBrowserState(blankState);
 
