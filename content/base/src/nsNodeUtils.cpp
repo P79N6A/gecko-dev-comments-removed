@@ -510,16 +510,9 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
         olc->NotifyOwnerDocumentActivityChanged();
       }
     }
-
-    
-    if (oldDoc != newDoc) {
-      nsCOMPtr<nsIImageLoadingContent> imageContent(do_QueryInterface(aNode));
-      if (imageContent) {
-        imageContent->NotifyOwnerDocumentChanged(oldDoc);
-      }
-      if (oldDoc->MayHaveDOMMutationObservers()) {
-        newDoc->SetMayHaveDOMMutationObservers();
-      }
+ 
+    if (oldDoc != newDoc && oldDoc->MayHaveDOMMutationObservers()) {
+      newDoc->SetMayHaveDOMMutationObservers();
     }
 
     if (elem) {

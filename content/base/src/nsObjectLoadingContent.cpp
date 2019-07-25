@@ -38,7 +38,7 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsIAppShell.h"
 
-#include "nsError.h"
+#include "nsPluginError.h"
 
 
 #include "prenv.h"
@@ -540,7 +540,7 @@ IsPluginEnabledForType(const nsCString& aMIMEType)
 
   if (!pluginHost) {
     NS_NOTREACHED("No pluginhost");
-    return NS_ERROR_FAILURE;
+    return false;
   }
 
   nsresult rv = pluginHost->IsPluginEnabledForType(aMIMEType.get());
@@ -605,10 +605,13 @@ nsObjectLoadingContent::IsSupportedDocument(const nsCString& aMimeType)
 
 nsresult
 nsObjectLoadingContent::BindToTree(nsIDocument* aDocument,
-                                   nsIContent* ,
-                                   nsIContent* ,
-                                   bool )
+                                   nsIContent* aParent,
+                                   nsIContent* aBindingParent,
+                                   bool aCompileEventHandlers)
 {
+  nsImageLoadingContent::BindToTree(aDocument, aParent, aBindingParent,
+                                    aCompileEventHandlers);
+
   if (aDocument) {
     return aDocument->AddPlugin(this);
   }
@@ -616,8 +619,10 @@ nsObjectLoadingContent::BindToTree(nsIDocument* aDocument,
 }
 
 void
-nsObjectLoadingContent::UnbindFromTree(bool , bool )
+nsObjectLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
 {
+  nsImageLoadingContent::UnbindFromTree(aDeep, aNullParent);
+
   nsCOMPtr<nsIContent> thisContent =
     do_QueryInterface(static_cast<nsIObjectLoadingContent*>(this));
   MOZ_ASSERT(thisContent);
@@ -720,7 +725,7 @@ nsObjectLoadingContent::InstantiatePluginInstance()
 
   if (!pluginHost) {
     NS_NOTREACHED("No pluginhost");
-    return NS_ERROR_FAILURE;
+    return false;
   }
 
   

@@ -93,7 +93,8 @@ protected:
 
 
 
-  nsIDocument* GetOurDocument();
+  nsIDocument* GetOurOwnerDoc();
+  nsIDocument* GetOurCurrentDoc();
 
   
 
@@ -151,6 +152,11 @@ protected:
 
 
   virtual mozilla::CORSMode GetCORSMode();
+
+  
+  void BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                  nsIContent* aBindingParent, bool aCompileEventHandlers);
+  void UnbindFromTree(bool aDeep, bool aNullParent);
 
 private:
   
@@ -308,6 +314,16 @@ protected:
   
   nsCOMPtr<imgIRequest> mCurrentRequest;
   nsCOMPtr<imgIRequest> mPendingRequest;
+  PRUint32 mCurrentRequestFlags;
+  PRUint32 mPendingRequestFlags;
+
+  enum {
+    
+    REQUEST_NEEDS_ANIMATION_RESET = 0x00000001U,
+    
+    
+    REQUEST_SHOULD_BE_TRACKED = 0x00000002U
+  };
 
   
   
@@ -366,9 +382,6 @@ protected:
   bool mNewRequestsWillNeedAnimationReset : 1;
 
 private:
-  bool mPendingRequestNeedsResetAnimation : 1;
-  bool mCurrentRequestNeedsResetAnimation : 1;
-
   
   PRUint8 mStateChangerDepth;
 

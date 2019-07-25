@@ -407,6 +407,9 @@ nsHTMLImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                  aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsImageLoadingContent::BindToTree(aDocument, aParent, aBindingParent,
+                                    aCompileEventHandlers);
+
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
     
     
@@ -422,6 +425,13 @@ nsHTMLImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   }
 
   return rv;
+}
+
+void
+nsHTMLImageElement::UnbindFromTree(bool aDeep, bool aNullParent)
+{
+  nsImageLoadingContent::UnbindFromTree(aDeep, aNullParent);
+  nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
 
 void

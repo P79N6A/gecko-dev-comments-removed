@@ -36,7 +36,7 @@
 #include "nsEventStates.h"
 #include "nsIServiceManager.h"
 #include "nsIScriptSecurityManager.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsIEditor.h"
 #include "nsGUIEvent.h"
 #include "nsIIOService.h"
@@ -44,6 +44,7 @@
 #include "nsAttrValueOrString.h"
 
 #include "nsPresState.h"
+#include "nsLayoutErrors.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMNodeList.h"
 #include "nsIDOMHTMLCollection.h"
@@ -2494,6 +2495,9 @@ nsHTMLInputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                      aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsImageLoadingContent::BindToTree(aDocument, aParent, aBindingParent,
+                                    aCompileEventHandlers);
+
   if (mType == NS_FORM_INPUT_IMAGE) {
     
     
@@ -2540,6 +2544,7 @@ nsHTMLInputElement::UnbindFromTree(bool aDeep, bool aNullParent)
     WillRemoveFromRadioGroup();
   }
 
+  nsImageLoadingContent::UnbindFromTree(aDeep, aNullParent);
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
 
   
