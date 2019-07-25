@@ -257,16 +257,20 @@ MouseModule.prototype = {
 
     
     if (this._target) {
+      let isClick = dragData.isClick();
+
       let event = document.createEvent("Events");
       event.initEvent("TapUp", true, true);
       event.clientX = aEvent.clientX
       event.clientY = aEvent.clientY;
+      event.isClick = isClick;
+
       let success = aEvent.target.dispatchEvent(event);
       if (!success) {
         this._cleanClickBuffer();
       } else {
         this._recordEvent(aEvent);
-        let commitToClicker = dragData.isClick() && (this._downUpEvents.length > 1);
+        let commitToClicker = isClick && (this._downUpEvents.length > 1);
         if (commitToClicker)
           
           this._commitAnotherClick();
