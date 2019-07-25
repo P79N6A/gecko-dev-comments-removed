@@ -1112,7 +1112,7 @@ struct JSThreadData {
 
 
 
-    volatile jsword     interruptFlags;
+    volatile int32      interruptFlags;
 
     JSGCFreeLists       gcFreeLists;
 
@@ -1607,7 +1607,7 @@ struct JSRuntime {
 
 #ifdef JS_THREADSAFE
     
-    volatile jsword     interruptCounter;
+    volatile int32      interruptCounter;
 #else
     JSThreadData        threadData;
 
@@ -3267,7 +3267,7 @@ namespace js {
 
 
 
-JS_FRIEND_API(void)
+void
 TriggerOperationCallback(JSContext *cx);
 
 void
