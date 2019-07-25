@@ -368,6 +368,12 @@ function shutdownManager() {
     if (thr.hasPendingEvents())
       thr.processNextEvent(false);
   }
+
+  
+  
+  let scope = Components.utils.import("resource://gre/modules/XPIProvider.jsm");
+  AddonManagerPrivate.unregisterProvider(scope.XPIProvider);
+  Components.utils.unload("resource://gre/modules/XPIProvider.jsm");
 }
 
 function loadAddonsList() {
