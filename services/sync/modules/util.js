@@ -53,6 +53,38 @@ Cu.import("resource://weave/log4moz.js");
 
 let Utils = {
   
+
+
+
+
+
+
+
+  notify: function Utils_notify(prefix) {
+    return function NotifyMaker(name, subject, func) {
+      let thisArg = this;
+      let notify = function(state) {
+        let mesg = prefix + name + ":" + state;
+        thisArg._log.debug("Event: " + mesg);
+        Observers.notify(mesg, subject);
+      };
+
+      return function WrappedNotify() {
+        try {
+          notify("start");
+          let ret = func.call(thisArg);
+          notify("finish");
+          return ret;
+        }
+        catch(ex) {
+          notify("error");
+          throw ex;
+        }
+      };
+    };
+  },
+
+  
   makeGUID: function makeGUID() {
     let uuidgen = Cc["@mozilla.org/uuid-generator;1"].
                   getService(Ci.nsIUUIDGenerator);
@@ -651,7 +683,6 @@ Utils.EventListener.prototype = {
 let Svc = {};
 Svc.Prefs = new Preferences(PREFS_BRANCH);
 [["AppInfo", "@mozilla.org/xre/app-info;1", "nsIXULAppInfo"],
- ["Bookmark", "@mozilla.org/browser/nav-bookmarks-service;1", "nsINavBookmarksService"],
  ["Crypto", "@labs.mozilla.com/Weave/Crypto;1", "IWeaveCrypto"],
  ["Directory", "@mozilla.org/file/directory_service;1", "nsIProperties"],
  ["IO", "@mozilla.org/network/io-service;1", "nsIIOService"],
