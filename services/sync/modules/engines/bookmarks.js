@@ -37,7 +37,6 @@
 
 
 
-
 const EXPORTED_SYMBOLS = ['BookmarksEngine', 'BookmarksSharingManager'];
 
 const Cc = Components.classes;
@@ -837,7 +836,6 @@ BookmarksStore.prototype = {
   },
 
   get _checkGUIDItemAnnotationStm() {
-    
     let stmt = this._getStmt(
       "SELECT b.id AS item_id, " +
         "(SELECT id FROM moz_anno_attributes WHERE name = :anno_name) AS name_id, " +
@@ -859,40 +857,10 @@ BookmarksStore.prototype = {
             ":expiration, :type, :date_added, :last_modified)");
   },
 
-  __setGUIDStm: null,
-  get _setGUIDStm() {
-    if (this.__setGUIDStm !== null) {
-      return this.__setGUIDStm;
-    }
-
-    
-    let stmt;
-    try {
-      stmt = this._getStmt(
-        "UPDATE moz_bookmarks " +
-        "SET guid = :guid " +
-        "WHERE id = :item_id");
-    }
-    catch (e) {
-      stmt = false;
-    }
-    return this.__setGUIDStm = stmt;
-  },
-
   
   _setGUID: function _setGUID(id, guid) {
     if (arguments.length == 1)
       guid = Utils.makeGUID();
-
-    
-    let (stmt = this._setGUIDStm) {
-      if (stmt) {
-        stmt.params.guid = guid;
-        stmt.params.item_id = id;
-        Utils.queryAsync(stmt);
-        return guid;
-      }
-    }
 
     
     Utils.queryAsync(this._addGUIDAnnotationNameStm);
@@ -926,33 +894,15 @@ BookmarksStore.prototype = {
     return guid;
   },
 
-  __guidForIdStm: null,
   get _guidForIdStm() {
-    if (this.__guidForIdStm) {
-      return this.__guidForIdStm;
-    }
-
-    
-    
-    
-    let stmt;
-    try {
-      stmt = this._getStmt(
-        "SELECT guid " +
-        "FROM moz_bookmarks " +
-        "WHERE id = :item_id");
-    }
-    catch (e) {
-      stmt = this._getStmt(
-        "SELECT a.content AS guid " +
-        "FROM moz_items_annos a " +
-        "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id " +
-        "JOIN moz_bookmarks b ON b.id = a.item_id " +
-        "WHERE n.name = '" + GUID_ANNO + "' " +
-        "AND b.id = :item_id");
-    }
-
-    return this.__guidForIdStm = stmt;
+    let stmt = this._getStmt(
+      "SELECT a.content AS guid " +
+      "FROM moz_items_annos a " +
+      "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id " +
+      "JOIN moz_bookmarks b ON b.id = a.item_id " +
+      "WHERE n.name = :anno_name AND b.id = :item_id");
+    stmt.params.anno_name = GUID_ANNO;
+    return stmt;
   },
 
   GUIDForId: function GUIDForId(id) {
@@ -965,40 +915,21 @@ BookmarksStore.prototype = {
 
     
     let result = Utils.queryAsync(stmt, ["guid"])[0];
-    if (result && result.guid)
+    if (result)
       return result.guid;
 
     
     return this._setGUID(id);
   },
 
-  __idForGUIDStm: null,
   get _idForGUIDStm() {
-    if (this.__idForGUIDStm) {
-      return this.__idForGUIDStm;
-    }
-
-
-    
-    
-    
-    let stmt;
-    try {
-      stmt = this._getStmt(
-        "SELECT id AS item_id " +
-        "FROM moz_bookmarks " +
-        "WHERE guid = :guid");
-    }
-    catch (e) {
-      stmt = this._getStmt(
-        "SELECT a.item_id AS item_id " +
-        "FROM moz_items_annos a " +
-        "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id " +
-        "WHERE n.name = '" + GUID_ANNO + "' " +
-        "AND a.content = :guid");
-    }
-
-    return this.__idForGUIDStm = stmt;
+    let stmt = this._getStmt(
+      "SELECT a.item_id AS item_id " +
+      "FROM moz_items_annos a " +
+      "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id " +
+      "WHERE n.name = :anno_name AND a.content = :guid");
+    stmt.params.anno_name = GUID_ANNO;
+    return stmt;
   },
 
   idForGUID: function idForGUID(guid) {
