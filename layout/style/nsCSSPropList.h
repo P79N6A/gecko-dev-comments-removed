@@ -3249,6 +3249,16 @@ CSS_PROP_SVG(
     kTextRenderingKTable,
     offsetof(nsStyleSVG, mTextRendering),
     eStyleAnimType_EnumU8)
+CSS_PROP_SVGRESET(
+    vector-effect,
+    vector_effect,
+    VectorEffect,
+    CSS_PROPERTY_PARSE_VALUE,
+    "",
+    VARIANT_HK,
+    kVectorEffectKTable,
+    offsetof(nsStyleSVGReset, mVectorEffect),
+    eStyleAnimType_EnumU8)
 
 #ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
 
