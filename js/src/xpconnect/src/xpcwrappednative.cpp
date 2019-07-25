@@ -932,6 +932,12 @@ XPCWrappedNative::~XPCWrappedNative()
 {
     DEBUG_TrackDeleteWrapper(this);
 
+    Destroy();
+}
+
+void
+XPCWrappedNative::Destroy()
+{
     XPCWrappedNativeProto* proto = GetProto();
 
     if(mScriptableInfo &&
@@ -939,6 +945,7 @@ XPCWrappedNative::~XPCWrappedNative()
         (proto && proto->GetScriptableInfo() != mScriptableInfo)))
     {
         delete mScriptableInfo;
+        mScriptableInfo = nsnull;
     }
 
     XPCWrappedNativeScope *scope = GetScope();
@@ -959,7 +966,11 @@ XPCWrappedNative::~XPCWrappedNative()
         XPCJSRuntime* rt = GetRuntime();
         if(rt && rt->GetDoingFinalization())
         {
-            if(!rt->DeferredRelease(mIdentity))
+            if(rt->DeferredRelease(mIdentity))
+            {
+                mIdentity = nsnull;
+            }
+            else
             {
                 NS_WARNING("Failed to append object for deferred release.");
                 
@@ -971,6 +982,8 @@ XPCWrappedNative::~XPCWrappedNative()
             NS_RELEASE(mIdentity);
         }
     }
+
+    mMaybeScope = nsnull;
 }
 
 
@@ -1317,6 +1330,7 @@ NS_IMPL_THREADSAFE_RELEASE(XPCWrappedNative)
 
 
 
+
 void
 XPCWrappedNative::FlatJSObjectFinalized(JSContext *cx)
 {
@@ -1372,23 +1386,6 @@ XPCWrappedNative::FlatJSObjectFinalized(JSContext *cx)
         }
     }
 
-    if(IsWrapperExpired())
-    {
-        GetScope()->GetWrappedNativeMap()->Remove(this);
-
-        XPCWrappedNativeProto* proto = GetProto();
-
-        if(mScriptableInfo &&
-           (!HasProto() ||
-            (proto && proto->GetScriptableInfo() != mScriptableInfo)))
-        {
-            delete mScriptableInfo;
-            mScriptableInfo = nsnull;
-        }
-
-        mMaybeScope = nsnull;
-    }
-
     nsWrapperCache *cache = nsnull;
     CallQueryInterface(mIdentity, &cache);
     if(cache)
@@ -1403,6 +1400,11 @@ XPCWrappedNative::FlatJSObjectFinalized(JSContext *cx)
     NS_ASSERTION(*(int*)mIdentity != 0xdddddddd, "bad pointer!");
     NS_ASSERTION(*(int*)mIdentity != 0,          "bad pointer!");
 #endif
+
+    if(IsWrapperExpired())
+    {
+        Destroy();
+    }
 
     
     
@@ -3170,6 +3172,7 @@ NS_IMETHODIMP XPCWrappedNative::GetJSObjectPrototype(JSObject * *aJSObjectProtot
     return NS_OK;
 }
 
+#ifndef XPCONNECT_STANDALONE
 nsIPrincipal*
 XPCWrappedNative::GetObjectPrincipal() const
 {
@@ -3181,6 +3184,7 @@ XPCWrappedNative::GetObjectPrincipal() const
 #endif
     return principal;
 }
+#endif
 
 
 NS_IMETHODIMP XPCWrappedNative::GetXPConnect(nsIXPConnect * *aXPConnect)
