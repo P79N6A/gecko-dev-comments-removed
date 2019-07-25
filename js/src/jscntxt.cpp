@@ -1,49 +1,49 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=80:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/*
- * JS execution context.
- */
 
-#include <limits.h> /* make sure that <features.h> is included and we can use
-                       __GLIBC__ to detect glibc presence */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <limits.h> 
+
 #include <new>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -52,7 +52,7 @@
 # include <android/log.h>
 # include <fstream>
 # include <string>
-#endif  // ANDROID
+#endif  
 
 #include "jsstdint.h"
 
@@ -112,6 +112,10 @@ ThreadData::ThreadData(JSRuntime *rt)
     dtoaState(NULL),
     nativeStackBase(GetNativeStackBase()),
     pendingProxyOperation(NULL),
+    ionTop(NULL),
+    ionJSContext(NULL),
+    ionStackLimit(0),
+    ionActivation(NULL),
     interpreterFrames(NULL)
 {
 #ifdef DEBUG
@@ -142,18 +146,18 @@ void
 ThreadData::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
                                 size_t *regexpCode, size_t *stackCommitted)
 {
-    /*
-     * There are other ThreadData members that could be measured; the ones
-     * below have been seen by DMD to be worth measuring.  More stuff may be
-     * added later.
-     */
+    
 
-    /*
-     * The computedSize is 0 because sizeof(DtoaState) isn't available here and
-     * it's not worth making it available.
-     */
+
+
+
+
+    
+
+
+
     if (normal)
-        *normal = mallocSizeOf(dtoaState, /* sizeof(DtoaState) */0);
+        *normal = mallocSizeOf(dtoaState, 0);
 
     if (temporary)
         *temporary = tempLifoAlloc.sizeOfExcludingThis(mallocSizeOf);
@@ -162,7 +166,7 @@ ThreadData::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, 
         size_t method = 0, regexp = 0, unused = 0;
         if (execAlloc)
             execAlloc->sizeOfCode(&method, &regexp, &unused);
-        JS_ASSERT(method == 0);     /* this execAlloc is only used for regexp code */
+        JS_ASSERT(method == 0);     
         *regexpCode = regexp + unused;
     }
 
@@ -176,18 +180,18 @@ ThreadData::triggerOperationCallback(JSRuntime *rt)
 {
     JS_ASSERT(rt == this->rt);
 
-    /*
-     * Use JS_ATOMIC_SET and JS_ATOMIC_INCREMENT in the hope that it ensures
-     * the write will become immediately visible to other processors polling
-     * the flag.  Note that we only care about visibility here, not read/write
-     * ordering: this field can only be written with the GC lock held.
-     */
+    
+
+
+
+
+
     if (interruptFlags)
         return;
     JS_ATOMIC_SET(&interruptFlags, 1);
 
 #ifdef JS_THREADSAFE
-    /* rt->interruptCounter does not reflect suspended threads. */
+    
     if (requestDepth != 0)
         JS_ATOMIC_INCREMENT(&rt->interruptCounter);
 #endif
@@ -251,7 +255,7 @@ ThreadData::mark(JSTracer *trc)
 #endif
 }
 
-} /* namespace js */
+} 
 
 JSScript *
 js_GetCurrentScript(JSContext *cx)
@@ -277,10 +281,10 @@ js_CurrentThreadAndLockGC(JSRuntime *rt)
     void *id = js_CurrentThreadId();
     JS_LOCK_GC(rt);
 
-    /*
-     * We must not race with a GC that accesses cx->thread for JSContext
-     * instances on all threads, see bug 476934.
-     */
+    
+
+
+
     js_WaitForGC(rt);
 
     JSThread *thread;
@@ -288,10 +292,10 @@ js_CurrentThreadAndLockGC(JSRuntime *rt)
     if (p) {
         thread = p->value;
 
-        /*
-         * If thread has no contexts, it might be left over from a previous
-         * thread with the same id but a different stack address.
-         */
+        
+
+
+
         if (JS_CLIST_IS_EMPTY(&thread->contextList))
             thread->data.nativeStackBase = GetNativeStackBase();
     } else {
@@ -310,15 +314,15 @@ js_CurrentThreadAndLockGC(JSRuntime *rt)
             return NULL;
         }
 
-        /* Another thread cannot add an entry for the current thread id. */
+        
         JS_ASSERT(p->value == thread);
     }
     JS_ASSERT(thread->id == id);
 
-    /*
-     * We skip the assert under glibc due to an apparent bug there, see
-     * bug 608526.
-     */
+    
+
+
+
 #ifndef __GLIBC__
     JS_ASSERT(GetNativeStackBase() == thread->data.nativeStackBase);
 #endif
@@ -353,7 +357,7 @@ js_ClearContextThread(JSContext *cx)
     cx->setThread(NULL);
 }
 
-#endif /* JS_THREADSAFE */
+#endif 
 
 ThreadData *
 js_CurrentThreadData(JSRuntime *rt)
@@ -438,11 +442,11 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
 {
     JS_AbortIfWrongThread(rt);
 
-    /*
-     * We need to initialize the new context fully before adding it to the
-     * runtime list. After that it can be accessed from another thread via
-     * js_ContextIterator.
-     */
+    
+
+
+
+
     JSContext *cx = OffTheBooks::new_<JSContext>(rt);
     if (!cx)
         return NULL;
@@ -461,10 +465,10 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
     }
 #endif
 
-    /*
-     * Here the GC lock is still held after js_InitContextThreadAndLockGC took it and
-     * the GC is not running on another thread.
-     */
+    
+
+
+
     bool first;
     for (;;) {
         if (rt->state == JSRTS_UP) {
@@ -480,13 +484,13 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
         }
         JS_WAIT_CONDVAR(rt->stateChange, JS_NO_TIMEOUT);
 
-        /*
-         * During the above wait after we are notified about the state change
-         * but before we wake up, another thread could enter the GC from
-         * js_DestroyContext, bug 478336. So we must wait here to ensure that
-         * when we exit the loop with the first flag set to true, that GC is
-         * finished.
-         */
+        
+
+
+
+
+
+
         js_WaitForGC(rt);
     }
     JS_APPEND_LINK(&cx->link, &rt->contextList);
@@ -494,14 +498,14 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
 
     js_InitRandom(cx);
 
-    /*
-     * If cx is the first context on this runtime, initialize well-known atoms,
-     * keywords, numbers, and strings.  If one of these steps should fail, the
-     * runtime will be left in a partially initialized state, with zeroes and
-     * nulls stored in the default-initialized remainder of the struct.  We'll
-     * clean the runtime up under js_DestroyContext, because cx will be "last"
-     * as well as "first".
-     */
+    
+
+
+
+
+
+
+
     if (first) {
 #ifdef JS_THREADSAFE
         JS_BeginRequest(cx);
@@ -544,31 +548,31 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     JS_ASSERT(!cx->enumerators);
 
 #ifdef JS_THREADSAFE
-    /*
-     * For API compatibility we allow to destroy contexts without a thread in
-     * optimized builds. We assume that the embedding knows that an OOM error
-     * cannot happen in JS_SetContextThread.
-     */
+    
+
+
+
+
     JS_ASSERT(cx->thread() && CURRENT_THREAD_IS_ME(cx->thread()));
     if (!cx->thread())
         JS_SetContextThread(cx);
 
-    /*
-     * For API compatibility we support destroying contexts with non-zero
-     * cx->outstandingRequests but we assume that all JS_BeginRequest calls
-     * on this cx contributes to cx->thread->data.requestDepth and there is no
-     * JS_SuspendRequest calls that set aside the counter.
-     */
+    
+
+
+
+
+
     JS_ASSERT(cx->outstandingRequests <= cx->thread()->data.requestDepth);
 #endif
 
     if (mode != JSDCM_NEW_FAILED) {
         cxCallback = rt->cxCallback;
         if (cxCallback) {
-            /*
-             * JSCONTEXT_DESTROY callback is not allowed to fail and must
-             * return true.
-             */
+            
+
+
+
             DebugOnly<JSBool> callbackStatus = cxCallback(cx, JSCONTEXT_DESTROY);
             JS_ASSERT(callbackStatus);
         }
@@ -577,10 +581,10 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     JS_LOCK_GC(rt);
     JS_ASSERT(rt->state == JSRTS_UP || rt->state == JSRTS_LAUNCHING);
 #ifdef JS_THREADSAFE
-    /*
-     * Typically we are called outside a request, so ensure that the GC is not
-     * running before removing the context from rt->contextList, see bug 477021.
-     */
+    
+
+
+
     if (cx->thread()->data.requestDepth == 0)
         js_WaitForGC(rt);
 #endif
@@ -602,47 +606,47 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
         if (last) {
 #ifdef JS_THREADSAFE
-            /*
-             * If this thread is not in a request already, begin one now so
-             * that we wait for any racing GC started on a not-last context to
-             * finish, before we plow ahead and unpin atoms. Note that even
-             * though we begin a request here if necessary, we end all
-             * thread's requests before forcing a final GC. This lets any
-             * not-last context destruction racing in another thread try to
-             * force or maybe run the GC, but by that point, rt->state will
-             * not be JSRTS_UP, and that GC attempt will return early.
-             */
+            
+
+
+
+
+
+
+
+
+
             if (cx->thread()->data.requestDepth == 0)
                 JS_BeginRequest(cx);
 #endif
 
-            /*
-             * Dump remaining type inference results first. This printing
-             * depends on atoms still existing.
-             */
+            
+
+
+
             {
                 AutoLockGC lock(rt);
                 for (CompartmentsIter c(rt); !c.done(); c.next())
                     c->types.print(cx, false);
             }
 
-            /* Unpin all common atoms before final GC. */
+            
             js_FinishCommonAtoms(cx);
 
-            /* Clear debugging state to remove GC roots. */
+            
             for (CompartmentsIter c(rt); !c.done(); c.next())
                 c->clearTraps(cx);
             JS_ClearAllWatchPoints(cx);
         }
 
 #ifdef JS_THREADSAFE
-        /*
-         * Destroying a context implicitly calls JS_EndRequest().  Also, we must
-         * end our request here in case we are "last" -- in that event, another
-         * js_DestroyContext that was not last might be waiting in the GC for our
-         * request to end.  We'll let it run below, just before we do the truly
-         * final GC and then free atom state.
-         */
+        
+
+
+
+
+
+
         while (cx->outstandingRequests != 0)
             JS_EndRequest(cx);
 #endif
@@ -650,7 +654,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
         if (last) {
             js_GC(cx, NULL, GC_LAST_CONTEXT, gcstats::LASTCONTEXT);
 
-            /* Take the runtime down, now that it has no contexts or atoms. */
+            
             JS_LOCK_GC(rt);
             rt->state = JSRTS_DOWN;
             JS_NOTIFY_ALL_CONDVAR(rt->stateChange);
@@ -723,53 +727,53 @@ AutoResolving::alreadyStartedSlow() const
     return false;
 }
 
-} /* namespace js */
+} 
 
 static void
 ReportError(JSContext *cx, const char *message, JSErrorReport *reportp,
             JSErrorCallback callback, void *userRef)
 {
-    /*
-     * Check the error report, and set a JavaScript-catchable exception
-     * if the error is defined to have an associated exception.  If an
-     * exception is thrown, then the JSREPORT_EXCEPTION flag will be set
-     * on the error report, and exception-aware hosts should ignore it.
-     */
+    
+
+
+
+
+
     JS_ASSERT(reportp);
     if ((!callback || callback == js_GetErrorMessage) &&
         reportp->errorNumber == JSMSG_UNCAUGHT_EXCEPTION)
         reportp->flags |= JSREPORT_EXCEPTION;
 
-    /*
-     * Call the error reporter only if an exception wasn't raised.
-     *
-     * If an exception was raised, then we call the debugErrorHook
-     * (if present) to give it a chance to see the error before it
-     * propagates out of scope.  This is needed for compatibility
-     * with the old scheme.
-     */
+    
+
+
+
+
+
+
+
     if (!JS_IsRunning(cx) ||
         !js_ErrorToException(cx, message, reportp, callback, userRef)) {
         js_ReportErrorAgain(cx, message, reportp);
     } else if (cx->debugHooks->debugErrorHook && cx->errorReporter) {
         JSDebugErrorHook hook = cx->debugHooks->debugErrorHook;
-        /* test local in case debugErrorHook changed on another thread */
+        
         if (hook)
             hook(cx, message, reportp, cx->debugHooks->debugErrorHookData);
     }
 }
 
-/*
- * The given JSErrorReport object have been zeroed and must not outlive
- * cx->fp() (otherwise report->originPrincipals may become invalid).
- */
+
+
+
+
 static void
 PopulateReportBlame(JSContext *cx, JSErrorReport *report)
 {
-    /*
-     * Walk stack until we find a frame that is associated with some script
-     * rather than a native frame.
-     */
+    
+
+
+
     for (FrameRegsIter iter(cx); !iter.done(); ++iter) {
         if (iter.fp()->isScriptFrame()) {
             report->filename = iter.fp()->script()->filename;
@@ -780,41 +784,41 @@ PopulateReportBlame(JSContext *cx, JSErrorReport *report)
     }
 }
 
-/*
- * We don't post an exception in this case, since doing so runs into
- * complications of pre-allocating an exception object which required
- * running the Exception class initializer early etc.
- * Instead we just invoke the errorReporter with an "Out Of Memory"
- * type message, and then hope the process ends swiftly.
- */
+
+
+
+
+
+
+
 void
 js_ReportOutOfMemory(JSContext *cx)
 {
     cx->runtime->hadOutOfMemory = true;
 
-    /* AtomizeInline can cal this indirectly when it creates the string. */
+    
     AutoUnlockAtomsCompartmentWhenLocked unlockAtomsCompartment(cx);
     
     JSErrorReport report;
     JSErrorReporter onError = cx->errorReporter;
 
-    /* Get the message for this error, but we won't expand any arguments. */
+    
     const JSErrorFormatString *efs =
         js_GetLocalizedErrorMessage(cx, NULL, NULL, JSMSG_OUT_OF_MEMORY);
     const char *msg = efs ? efs->format : "Out of memory";
 
-    /* Fill out the report, but don't do anything that requires allocation. */
+    
     PodZero(&report);
     report.flags = JSREPORT_ERROR;
     report.errorNumber = JSMSG_OUT_OF_MEMORY;
     PopulateReportBlame(cx, &report);
 
-    /*
-     * If debugErrorHook is present then we give it a chance to veto sending
-     * the error on to the regular ErrorReporter. We also clear a pending
-     * exception if any now so the hooks can replace the out-of-memory error
-     * by a script-catchable exception.
-     */
+    
+
+
+
+
+
     cx->clearPendingException();
     if (onError) {
         JSDebugErrorHook hook = cx->debugHooks->debugErrorHook;
@@ -834,14 +838,14 @@ JS_FRIEND_API(void)
 js_ReportOverRecursed(JSContext *maybecx)
 {
 #ifdef JS_MORE_DETERMINISTIC
-    /*
-     * We cannot make stack depth deterministic across different
-     * implementations (e.g. JIT vs. interpreter will differ in
-     * their maximum stack depth).
-     * However, we can detect externally when we hit the maximum
-     * stack depth which is useful for external testing programs
-     * like fuzzers.
-     */
+    
+
+
+
+
+
+
+
     fprintf(stderr, "js_ReportOverRecursed called\n");
 #endif
     if (maybecx)
@@ -855,21 +859,21 @@ js_ReportAllocationOverflow(JSContext *maybecx)
         JS_ReportErrorNumber(maybecx, js_GetErrorMessage, NULL, JSMSG_ALLOC_OVERFLOW);
 }
 
-/*
- * Given flags and the state of cx, decide whether we should report an
- * error, a warning, or just continue execution normally.  Return
- * true if we should continue normally, without reporting anything;
- * otherwise, adjust *flags as appropriate and return false.
- */
+
+
+
+
+
+
 static bool
 checkReportFlags(JSContext *cx, uintN *flags)
 {
     if (JSREPORT_IS_STRICT_MODE_ERROR(*flags)) {
-        /*
-         * Error in strict code; warning with strict option; okay otherwise.
-         * We assume that if the top frame is a native, then it is strict if
-         * the nearest scripted frame is strict, see bug 536306.
-         */
+        
+
+
+
+
         JSScript *script = cx->stack.currentScript();
         if (script && script->strictModeCode)
             *flags &= ~JSREPORT_WARNING;
@@ -878,12 +882,12 @@ checkReportFlags(JSContext *cx, uintN *flags)
         else
             return true;
     } else if (JSREPORT_IS_STRICT(*flags)) {
-        /* Warning/error only when JSOPTION_STRICT is set. */
+        
         if (!cx->hasStrictOption())
             return true;
     }
 
-    /* Warnings become errors when JSOPTION_WERROR is set. */
+    
     if (JSREPORT_IS_WARNING(*flags) && cx->hasWErrorOption())
         *flags &= ~JSREPORT_WARNING;
 
@@ -921,17 +925,17 @@ js_ReportErrorVA(JSContext *cx, uintN flags, const char *format, va_list ap)
     return warning;
 }
 
-/*
- * The arguments from ap need to be packaged up into an array and stored
- * into the report struct.
- *
- * The format string addressed by the error number may contain operands
- * identified by the format {N}, where N is a decimal digit. Each of these
- * is to be replaced by the Nth argument from the va_list. The complete
- * message is placed into reportp->ucmessage converted to a JSString.
- *
- * Returns true if the expansion succeeds (can fail if out of memory).
- */
+
+
+
+
+
+
+
+
+
+
+
 JSBool
 js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
                         void *userRef, const uintN errorNumber,
@@ -944,23 +948,23 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
 
     *messagep = NULL;
 
-    /* Most calls supply js_GetErrorMessage; if this is so, assume NULL. */
+    
     if (!callback || callback == js_GetErrorMessage)
         efs = js_GetLocalizedErrorMessage(cx, userRef, NULL, errorNumber);
     else
         efs = callback(userRef, NULL, errorNumber);
     if (efs) {
         size_t totalArgsLength = 0;
-        size_t argLengths[10]; /* only {0} thru {9} supported */
+        size_t argLengths[10]; 
         argCount = efs->argCount;
         JS_ASSERT(argCount <= 10);
         if (argCount > 0) {
-            /*
-             * Gather the arguments into an array, and accumulate
-             * their sizes. We allocate 1 more than necessary and
-             * null it out to act as the caboose when we free the
-             * pointers later.
-             */
+            
+
+
+
+
+
             reportp->messageArgs = (const jschar **)
                 cx->malloc_(sizeof(jschar *) * (argCount + 1));
             if (!reportp->messageArgs)
@@ -979,13 +983,13 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
                 argLengths[i] = js_strlen(reportp->messageArgs[i]);
                 totalArgsLength += argLengths[i];
             }
-            /* NULL-terminate for easy copying. */
+            
             reportp->messageArgs[i] = NULL;
         }
-        /*
-         * Parse the error format, substituting the argument X
-         * for {X} in the format.
-         */
+        
+
+
+
         if (argCount > 0) {
             if (efs->format) {
                 jschar *buffer, *fmt, *out;
@@ -997,13 +1001,13 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
                 if (!buffer)
                     goto error;
                 expandedLength = len
-                                 - (3 * argCount)       /* exclude the {n} */
+                                 - (3 * argCount)       
                                  + totalArgsLength;
 
-                /*
-                * Note - the above calculation assumes that each argument
-                * is used once and only once in the expansion !!!
-                */
+                
+
+
+
                 reportp->ucmessage = out = (jschar *)
                     cx->malloc_((expandedLength + 1) * sizeof(jschar));
                 if (!out) {
@@ -1034,10 +1038,10 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
                     goto error;
             }
         } else {
-            /*
-             * Zero arguments: the format string (if it exists) is the
-             * entire message.
-             */
+            
+
+
+
             if (efs->format) {
                 size_t len;
                 *messagep = JS_strdup(cx, efs->format);
@@ -1051,7 +1055,7 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
         }
     }
     if (*messagep == NULL) {
-        /* where's the right place for this ??? */
+        
         const char *defaultErrorMessage
             = "No error message available for error number %d";
         size_t nbytes = strlen(defaultErrorMessage) + 16;
@@ -1064,7 +1068,7 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
 
 error:
     if (reportp->messageArgs) {
-        /* free the arguments only if we allocated them */
+        
         if (charArgs) {
             i = 0;
             while (reportp->messageArgs[i])
@@ -1112,10 +1116,10 @@ js_ReportErrorNumberVA(JSContext *cx, uintN flags, JSErrorCallback callback,
     if (message)
         cx->free_(message);
     if (report.messageArgs) {
-        /*
-         * js_ExpandErrorArguments owns its messageArgs only if it had to
-         * inflate the arguments (from regular |char *|s).
-         */
+        
+
+
+
         if (charArgs) {
             int i = 0;
             while (report.messageArgs[i])
@@ -1144,10 +1148,10 @@ js_ReportErrorAgain(JSContext *cx, const char *message, JSErrorReport *reportp)
         return;
     onError = cx->errorReporter;
 
-    /*
-     * If debugErrorHook is present then we give it a chance to veto
-     * sending the error on to the regular ErrorReporter.
-     */
+    
+
+
+
     if (onError) {
         JSDebugErrorHook hook = cx->debugHooks->debugErrorHook;
         if (hook &&
@@ -1273,11 +1277,11 @@ js_InvokeOperationCallback(JSContext *cx)
     JS_ASSERT_REQUEST_DEPTH(cx);
     JS_ASSERT(td->interruptFlags != 0);
 
-    /*
-     * Reset the callback counter first, then run GC and yield. If another
-     * thread is racing us here we will accumulate another callback request
-     * which will be serviced at the next opportunity.
-     */
+    
+
+
+
+
     JS_LOCK_GC(rt);
     td->interruptFlags = 0;
 #ifdef JS_THREADSAFE
@@ -1288,16 +1292,16 @@ js_InvokeOperationCallback(JSContext *cx)
     if (rt->gcIsNeeded) {
         js_GC(cx, rt->gcTriggerCompartment, GC_NORMAL, rt->gcTriggerReason);
 
-        /*
-         * On trace we can exceed the GC quota, see comments in NewGCArena. So
-         * we check the quota and report OOM here when we are off trace.
-         */
+        
+
+
+
         if (checkOutOfMemory(rt)) {
 #ifdef JS_THREADSAFE
-            /*
-            * We have to wait until the background thread is done in order
-            * to get a correct answer.
-            */
+            
+
+
+
             {
                 AutoLockGC lock(rt);
                 rt->gcHelperThread.waitBackgroundSweepEnd();
@@ -1314,26 +1318,26 @@ js_InvokeOperationCallback(JSContext *cx)
     }
 
 #ifdef JS_THREADSAFE
-    /*
-     * We automatically yield the current context every time the operation
-     * callback is hit since we might be called as a result of an impending
-     * GC on another thread, which would deadlock if we do not yield.
-     * Operation callbacks are supposed to happen rarely (seconds, not
-     * milliseconds) so it is acceptable to yield at every callback.
-     *
-     * As the GC can be canceled before it does any request checks we yield
-     * even if rt->gcIsNeeded was true above. See bug 590533.
-     */
+    
+
+
+
+
+
+
+
+
+
     JS_YieldRequest(cx);
 #endif
 
     JSOperationCallback cb = cx->operationCallback;
 
-    /*
-     * Important: Additional callbacks can occur inside the callback handler
-     * if it re-enters the JS engine. The embedding must ensure that the
-     * callback is disconnected before attempting such re-entry.
-     */
+    
+
+
+
+
 
     return !cb || cb(cx);
 }
@@ -1352,12 +1356,12 @@ namespace js {
 void
 TriggerOperationCallback(JSContext *cx)
 {
-    /*
-     * We allow for cx to come from another thread. Thus we must deal with
-     * possible JS_ClearContextThread calls when accessing cx->thread. But we
-     * assume that the calling thread is in a request so JSThread cannot be
-     * GC-ed.
-     */
+    
+
+
+
+
+
     ThreadData *td;
 #ifdef JS_THREADSAFE
     JSThread *thread = cx->thread();
@@ -1377,7 +1381,7 @@ TriggerAllOperationCallbacks(JSRuntime *rt)
         i.threadData()->triggerOperationCallback(rt);
 }
 
-} /* namespace js */
+} 
 
 StackFrame *
 js_GetScriptedCaller(JSContext *cx, StackFrame *fp)
@@ -1399,11 +1403,11 @@ js_GetCurrentBytecodePC(JSContext* cx)
 void
 DSTOffsetCache::purge()
 {
-    /*
-     * NB: The initial range values are carefully chosen to result in a cache
-     *     miss on first use given the range of possible values.  Be careful
-     *     to keep these values and the caching algorithm in sync!
-     */
+    
+
+
+
+
     offsetMilliseconds = 0;
     rangeStartSeconds = rangeEndSeconds = INT64_MIN;
     oldOffsetMilliseconds = 0;
@@ -1412,12 +1416,12 @@ DSTOffsetCache::purge()
     sanityCheck();
 }
 
-/*
- * Since getDSTOffsetMilliseconds guarantees that all times seen will be
- * positive, we can initialize the range at construction time with large
- * negative numbers to ensure the first computation is always a cache miss and
- * doesn't return a bogus offset.
- */
+
+
+
+
+
+
 DSTOffsetCache::DSTOffsetCache()
 {
     purge();
@@ -1443,7 +1447,7 @@ JSContext::JSContext(JSRuntime *rt)
 #ifdef JS_THREADSAFE
     thread_(NULL),
 #endif
-    stack(thisDuringConstruction()),  /* depends on cx->thread_ */
+    stack(thisDuringConstruction()),  
     parseMapPool_(NULL),
     globalObject(NULL),
     argumentFormatMap(NULL),
@@ -1497,14 +1501,14 @@ JSContext::~JSContext()
     JS_ASSERT(!thread_);
 #endif
 
-    /* Free the stuff hanging off of cx. */
+    
     if (parseMapPool_)
         Foreground::delete_<ParseMapPool>(parseMapPool_);
 
     if (lastMessage)
         Foreground::free_(lastMessage);
 
-    /* Remove any argument formatters. */
+    
     JSArgumentFormatMap *map = argumentFormatMap;
     while (map) {
         JSArgumentFormatMap *temp = map;
@@ -1526,10 +1530,10 @@ JSContext::resetCompartment()
         if (!scopeobj)
             goto error;
 
-        /*
-         * Innerize. Assert, but check anyway, that this succeeds. (It
-         * can only fail due to bugs in the engine or embedding.)
-         */
+        
+
+
+
         OBJ_TO_INNER_OBJECT(this, scopeobj);
         if (!scopeobj)
             goto error;
@@ -1545,18 +1549,18 @@ JSContext::resetCompartment()
 
 error:
 
-    /*
-     * If we try to use the context without a selected compartment,
-     * we will crash.
-     */
+    
+
+
+
     compartment = NULL;
 }
 
-/*
- * Since this function is only called in the context of a pending exception,
- * the caller must subsequently take an error path. If wrapping fails, it will
- * set a new (uncatchable) exception to be used in place of the original.
- */
+
+
+
+
+
 void
 JSContext::wrapPendingException()
 {
@@ -1577,7 +1581,7 @@ JSContext::generatorFor(StackFrame *fp) const
     if (JS_LIKELY(fp == genStack.back()->liveFrame()))
         return genStack.back();
 
-    /* General case; should only be needed for debug APIs. */
+    
     for (size_t i = 0; i < genStack.length(); ++i) {
         if (genStack[i]->liveFrame() == fp)
             return genStack[i];
@@ -1598,10 +1602,10 @@ JSRuntime::onTooMuchMalloc()
 #ifdef JS_THREADSAFE
     AutoLockGC lock(this);
 
-    /*
-     * We can be called outside a request and can race against a GC that
-     * mutates the JSThread set during the sweeping phase.
-     */
+    
+
+
+
     js_WaitForGC(this);
 #endif
     TriggerGC(this, gcstats::TOOMUCHMALLOC);
@@ -1610,10 +1614,10 @@ JSRuntime::onTooMuchMalloc()
 JS_FRIEND_API(void *)
 JSRuntime::onOutOfMemory(void *p, size_t nbytes, JSContext *cx)
 {
-    /*
-     * Retry when we are done with the background sweeping and have stopped
-     * all the allocations and released the empty GC chunks.
-     */
+    
+
+
+
     ShrinkGCBuffers(this);
 #ifdef JS_THREADSAFE
     {
@@ -1649,38 +1653,38 @@ ComputeIsJITBroken()
 {
 #if !defined(ANDROID) || defined(GONK)
     return false;
-#else  // ANDROID
+#else  
     if (getenv("JS_IGNORE_JIT_BROKENNESS")) {
         return false;
     }
 
     std::string line;
 
-    // Check for the known-bad kernel version (2.6.29).
+    
     std::ifstream osrelease("/proc/sys/kernel/osrelease");
     std::getline(osrelease, line);
     __android_log_print(ANDROID_LOG_INFO, "Gecko", "Detected osrelease `%s'",
                         line.c_str());
 
     if (line.npos == line.find("2.6.29")) {
-        // We're using something other than 2.6.29, so the JITs should work.
+        
         __android_log_print(ANDROID_LOG_INFO, "Gecko", "JITs are not broken");
         return false;
     }
 
-    // We're using 2.6.29, and this causes trouble with the JITs on i9000.
+    
     line = "";
     bool broken = false;
     std::ifstream cpuinfo("/proc/cpuinfo");
     do {
         if (0 == line.find("Hardware")) {
             const char* blacklist[] = {
-                "SCH-I400",     // Samsung Continuum
-                "SGH-T959",     // Samsung i9000, Vibrant device
-                "SGH-I897",     // Samsung i9000, Captivate device
-                "SCH-I500",     // Samsung i9000, Fascinate device
-                "SPH-D700",     // Samsung i9000, Epic device
-                "GT-I9000",     // Samsung i9000, UK/Europe device
+                "SCH-I400",     
+                "SGH-T959",     
+                "SGH-I897",     
+                "SCH-I500",     
+                "SPH-D700",     
+                "GT-I9000",     
                 NULL
             };
             for (const char** hw = &blacklist[0]; *hw; ++hw) {
@@ -1700,7 +1704,7 @@ ComputeIsJITBroken()
                         broken ? "" : "not ");
 
     return broken;
-#endif  // ifndef ANDROID
+#endif  
 }
 
 static bool
@@ -1733,11 +1737,11 @@ JSContext::updateJITEnabled()
 size_t
 JSContext::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const
 {
-    /*
-     * There are other JSContext members that could be measured; the following
-     * ones have been found by DMD to be worth measuring.  More stuff may be
-     * added later.
-     */
+    
+
+
+
+
     return mallocSizeOf(this, sizeof(JSContext)) +
            busyArrays.sizeOfExcludingThis(mallocSizeOf);
 }
@@ -1753,4 +1757,4 @@ AutoEnumStateRooter::~AutoEnumStateRooter()
     }
 }
 
-} /* namespace js */
+} 
