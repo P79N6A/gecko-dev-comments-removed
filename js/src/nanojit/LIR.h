@@ -360,7 +360,7 @@ namespace nanojit
         return isCses[op] == 1;
     }
     inline bool isLiveOpcode(LOpcode op) {
-        return 
+        return
 #if defined NANOJIT_64BIT
                op == LIR_liveq ||
 #endif
@@ -592,7 +592,7 @@ namespace nanojit
             Register reg:7;
             uint32_t inAr:1;            
             uint32_t isResultLive:1;    
-                                    
+
             uint32_t arIndex:14;        
 
             LOpcode  opcode:8;          
@@ -652,7 +652,7 @@ namespace nanojit
         
         
         
-        bool isLive() const { 
+        bool isLive() const {
             return isV() ||
                    sharedFields.isResultLive ||
                    (isCall() && !callInfo()->_isPure) ||    
