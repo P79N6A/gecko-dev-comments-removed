@@ -6878,24 +6878,7 @@ zone_destroy(malloc_zone_t *zone)
 static size_t
 zone_good_size(malloc_zone_t *zone, size_t size)
 {
-	size_t ret;
-	void *p;
-
-	
-
-
-
-
-
-
-	p = malloc(size);
-	if (p != NULL) {
-		ret = isalloc(p);
-		free(p);
-	} else
-		ret = size;
-
-	return (ret);
+	return je_malloc_usable_size_in_advance(size);
 }
 
 static size_t
