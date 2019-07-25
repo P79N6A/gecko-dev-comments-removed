@@ -1191,6 +1191,27 @@ NS_NewHTML##_elementName##Element(already_AddRefed<nsINodeInfo> aNodeInfo,   \
 
 
 
+#define NS_IMPL_ACTION_ATTR(_class, _method, _atom)                 \
+  NS_IMETHODIMP                                                     \
+  _class::Get##_method(nsAString& aValue)                           \
+  {                                                                 \
+    GetAttr(kNameSpaceID_None, nsGkAtoms::_atom, aValue);           \
+    if (aValue.IsEmpty()) {                                         \
+      return NS_OK;                                                 \
+    }                                                               \
+    return GetURIAttr(nsGkAtoms::_atom, nsnull, aValue);            \
+  }                                                                 \
+  NS_IMETHODIMP                                                     \
+  _class::Set##_method(const nsAString& aValue)                     \
+  {                                                                 \
+    return SetAttrHelper(nsGkAtoms::_atom, aValue);                 \
+  }
+
+
+
+
+
+
 
 
 #define NS_IMPL_NON_NEGATIVE_INT_ATTR(_class, _method, _atom)             \
