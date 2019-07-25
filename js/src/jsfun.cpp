@@ -2899,6 +2899,8 @@ js_ReportIsNotFunction(JSContext *cx, const Value *vp, uintN flags)
 
 
 
+
+
     ptrdiff_t spindex = 0;
 
     FrameRegsIter i(cx);
@@ -2908,8 +2910,7 @@ js_ReportIsNotFunction(JSContext *cx, const Value *vp, uintN flags)
     if (!i.done()) {
         uintN depth = js_ReconstructStackDepth(cx, i.fp()->script(), i.pc());
         Value *simsp = i.fp()->base() + depth;
-        JS_ASSERT(simsp <= i.sp());
-        if (i.fp()->base() <= vp && vp < simsp)
+        if (i.fp()->base() <= vp && vp < Min(simsp, i.sp()))
             spindex = vp - simsp;
     }
 
