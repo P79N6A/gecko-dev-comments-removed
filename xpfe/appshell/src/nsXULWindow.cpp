@@ -8,6 +8,7 @@
 #include "nsXULWindow.h"
 
 
+#include "nsPrintfCString.h"
 #include "nsString.h"
 #include "nsWidgetsCID.h"
 #include "prprf.h"
@@ -735,6 +736,22 @@ NS_IMETHODIMP nsXULWindow::SetParentNativeWindow(nativeWindow aParentNativeWindo
 {
   
   NS_ASSERTION(false, "Not Yet Implemented");
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsXULWindow::GetNativeHandle(nsAString& aNativeHandle)
+{
+  nsCOMPtr<nsIWidget> mainWidget;
+  NS_ENSURE_SUCCESS(GetMainWidget(getter_AddRefs(mainWidget)), NS_ERROR_FAILURE);
+
+  if (mainWidget) {
+    nativeWindow nativeWindowPtr = mainWidget->GetNativeData(NS_NATIVE_WINDOW);
+    
+
+
+    aNativeHandle = NS_ConvertASCIItoUTF16(nsPrintfCString("0x%p", nativeWindowPtr));
+  }
+
   return NS_OK;
 }
 
