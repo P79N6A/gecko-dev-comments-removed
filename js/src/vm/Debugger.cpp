@@ -2070,7 +2070,30 @@ class Debugger::ScriptQuery {
         
         for (CompartmentSet::Range r = compartments.all(); !r.empty(); r.popFront()) {
             for (gc::CellIter i(r.front(), gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
-                if (!consider(i.get<JSScript>(), vector))
+                JSScript *script = i.get<JSScript>();
+                GlobalObject *global = script->getGlobalObjectOrNull();
+                if (global && !consider(script, global, vector))
+                    return false;
+            }
+        }
+
+        
+
+
+
+        for (ScriptFrameIter fri(cx); !fri.done(); ++fri) {
+            if (fri.isEvalFrame()) {
+                JSScript *script = fri.script();
+
+                
+
+
+
+
+                JS_ASSERT(!script->getGlobalObjectOrNull());
+
+                GlobalObject *global = &fri.fp()->global();
+                if (!consider(script, global, vector))
                     return false;
             }
         }
@@ -2190,14 +2213,9 @@ class Debugger::ScriptQuery {
 
 
 
-    bool consider(JSScript *script, AutoScriptVector *vector) {
-        
-        
-        
-        GlobalObject *global = script->getGlobalObjectOrNull();
-        if (global && !globals.has(global))
+    bool consider(JSScript *script, GlobalObject *global, AutoScriptVector *vector) {
+        if (!globals.has(global))
             return true;
-
         if (urlCString.ptr()) {
             if (!script->filename || strcmp(script->filename, urlCString.ptr()) != 0)
                 return true;
