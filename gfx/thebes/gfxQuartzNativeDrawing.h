@@ -74,8 +74,12 @@ private:
     gfxQuartzNativeDrawing(const gfxQuartzNativeDrawing&);
     const gfxQuartzNativeDrawing& operator=(const gfxQuartzNativeDrawing&);
 
+    
     nsRefPtr<gfxContext> mContext;
-    gfxRect mNativeRect; 
+    
+    
+    nsRefPtr<gfxContext> mSurfaceContext;
+    gfxRect mNativeRect;
 
     
     nsRefPtr<gfxQuartzSurface> mQuartzSurface;
