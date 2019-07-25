@@ -44,13 +44,14 @@
 #include "nsPrimitiveHelpers.h"
 #include "nsXPIDLString.h"
 #include "prmem.h"
-#include "nsIObserverService.h"
-#include "nsIServiceManager.h"
 #include "nsOS2Uni.h"
 #include "nsClipboard.h"
-#include "mozilla/Services.h"
 
-inline ULONG RegisterClipboardFormat(PCSZ pcszFormat)
+#define INCL_DOSERRORS
+#define INCL_WIN
+#include <os2.h>
+
+inline PRUint32 RegisterClipboardFormat(PCSZ pcszFormat)
 {
   ATOM atom = WinFindAtom(WinQuerySystemAtomTable(), pcszFormat);
   if (!atom) {
@@ -72,19 +73,10 @@ nsClipboard::nsClipboard() : nsBaseClipboard()
   RegisterClipboardFormat(kURLMime);
   RegisterClipboardFormat(kNativeImageMime);
   RegisterClipboardFormat(kNativeHTMLMime);
-
-  
-  
-  nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
-  if (observerService)
-    observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_FALSE);
 }
 
 nsClipboard::~nsClipboard()
 {}
-
-NS_IMPL_ISUPPORTS_INHERITED1(nsClipboard, nsBaseClipboard, nsIObserver)
 
 nsresult nsClipboard::SetNativeClipboardData(PRInt32 aWhichClipboard)
 {
@@ -110,7 +102,7 @@ nsresult nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable, PRI
 
 PRBool nsClipboard::GetClipboardData(const char *aFlavor)
 {
-  ULONG ulFormatID = GetFormatID( aFlavor );
+  PRUint32 ulFormatID = GetFormatID(aFlavor);
   
   PRBool found = GetClipboardDataByID( ulFormatID, aFlavor );
 
@@ -129,13 +121,13 @@ PRBool nsClipboard::GetClipboardData(const char *aFlavor)
   return found;
 }
 
-PRBool nsClipboard::GetClipboardDataByID(ULONG ulFormatID, const char *aFlavor)
+PRBool nsClipboard::GetClipboardDataByID(PRUint32 aFormatID, const char *aFlavor)
 {
   PVOID pDataMem;
   PRUint32 NumOfBytes;
   PRBool TempBufAllocated = PR_FALSE;
 
-  PVOID pClipboardData = reinterpret_cast<PVOID>(WinQueryClipbrdData( 0, ulFormatID ));
+  PVOID pClipboardData = reinterpret_cast<PVOID>(WinQueryClipbrdData(0, aFormatID));
 
   if (!pClipboardData) 
     return PR_FALSE;
@@ -144,7 +136,7 @@ PRBool nsClipboard::GetClipboardDataByID(ULONG ulFormatID, const char *aFlavor)
   {
     pDataMem = pClipboardData;
 
-    if (ulFormatID == CF_TEXT)     
+    if (aFormatID == CF_TEXT)     
     {
       PRUint32 NumOfChars = strlen( static_cast<char*>(pDataMem) );
       NumOfBytes = NumOfChars;
@@ -178,7 +170,7 @@ PRBool nsClipboard::GetClipboardDataByID(ULONG ulFormatID, const char *aFlavor)
   }
   else                             
   {
-    if (ulFormatID == CF_BITMAP)
+    if (aFormatID == CF_BITMAP)
     {
       if (!strcmp( aFlavor, kJPEGImageMime ))
       {
@@ -250,7 +242,7 @@ void nsClipboard::SetClipboardData(const char *aFlavor)
     return;
   }
 
-  ULONG ulFormatID = GetFormatID( aFlavor );
+  PRUint32 ulFormatID = GetFormatID(aFlavor);
 
   if (strstr( aFlavor, "text/" ))  
   {
@@ -406,52 +398,12 @@ nsresult nsClipboard::DoClipboardAction(ClipboardAction aAction)
 }
 
 
-ULONG nsClipboard::GetFormatID(const char *aMimeStr)
+PRUint32 nsClipboard::GetFormatID(const char *aMimeStr)
 {
   if (strcmp(aMimeStr, kTextMime) == 0)
     return CF_TEXT;
 
   return RegisterClipboardFormat(aMimeStr);
-}
-
-
-NS_IMETHODIMP
-nsClipboard::Observe(nsISupports *aSubject, const char *aTopic,
-                     const PRUnichar *aData)
-{
-  
-
-  
-  if (!mTransferable)
-    return NS_ERROR_FAILURE;
-
-  if (WinOpenClipbrd(0)) {
-    WinEmptyClipbrd(0);
-
-    
-    
-    nsCOMPtr<nsISupportsArray> flavorList;
-    nsresult errCode = mTransferable->FlavorsTransferableCanExport(getter_AddRefs(flavorList));
-    if (NS_FAILED(errCode))
-      return NS_ERROR_FAILURE;
-
-    
-    PRUint32 i;
-    PRUint32 cnt;
-    flavorList->Count(&cnt);
-    for (i = 0; i < cnt; i++) {
-      nsCOMPtr<nsISupports> genericFlavor;
-      flavorList->GetElementAt(i, getter_AddRefs(genericFlavor));
-      nsCOMPtr<nsISupportsCString> currentFlavor(do_QueryInterface(genericFlavor));
-      if (currentFlavor) {
-        nsXPIDLCString flavorStr;
-        currentFlavor->ToString(getter_Copies(flavorStr));
-        SetClipboardData(flavorStr);
-      }
-    }
-    WinCloseClipbrd(0);
-  }
-  return NS_OK;
 }
 
 NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(const char** aFlavorList,
@@ -465,7 +417,7 @@ NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(const char** aFlavorList,
 
   for (PRUint32 i = 0; i < aLength; ++i) {
     ULONG fmtInfo = 0;
-    ULONG format = GetFormatID(aFlavorList[i]);
+    PRUint32 format = GetFormatID(aFlavorList[i]);
 
     if (WinQueryClipbrdFmtInfo(0, format, &fmtInfo)) {
       *_retval = PR_TRUE;
