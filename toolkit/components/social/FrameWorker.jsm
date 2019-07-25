@@ -231,6 +231,8 @@ function makeHiddenFrame() {
   let hiddenDoc = Services.appShell.hiddenDOMWindow.document;
   let iframe = hiddenDoc.createElementNS("http://www.w3.org/1999/xhtml", "iframe");
   iframe.setAttribute("mozframetype", "content");
+  
+  iframe.setAttribute("sandbox", "allow-same-origin");
 
   hiddenDoc.documentElement.appendChild(iframe);
 
@@ -241,10 +243,6 @@ function makeHiddenFrame() {
   docShell.allowImages = false;
   docShell.allowWindowControl = false;
   
-  
-  
-  docShell.setIsBrowserElement();
-
   return iframe;
 }
 
