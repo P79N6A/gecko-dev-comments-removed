@@ -2703,6 +2703,43 @@ stubs::DelElem(VMFrame &f)
         THROW();
 }
 
+void JS_FASTCALL
+stubs::DefVar(VMFrame &f, JSAtom *atom)
+{
+    JSContext *cx = f.cx;
+    JSStackFrame *fp = f.fp();
+
+    JSObject *obj = &fp->varobj(cx);
+    JS_ASSERT(!obj->getOps()->defineProperty);
+    uintN attrs = JSPROP_ENUMERATE;
+    if (!fp->isEvalFrame())
+        attrs |= JSPROP_PERMANENT;
+
+    
+    jsid id = ATOM_TO_JSID(atom);
+    JSProperty *prop = NULL;
+    JSObject *obj2;
+
+    
+
+
+
+    if (!obj->lookupProperty(cx, id, &obj2, &prop))
+        THROW();
+
+    
+    if (!prop) {
+        if (!js_DefineNativeProperty(cx, obj, id, UndefinedValue(), PropertyStub, PropertyStub,
+                                     attrs, 0, 0, &prop)) {
+            THROW();
+        }
+        JS_ASSERT(prop);
+        obj2 = obj;
+    }
+
+    obj2->dropProperty(cx, prop);
+}
+
 template void JS_FASTCALL stubs::DelElem<true>(VMFrame &f);
 template void JS_FASTCALL stubs::DelElem<false>(VMFrame &f);
 
