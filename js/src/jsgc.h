@@ -117,40 +117,67 @@ struct ArenaHeader {
 #endif
 };
 
-template <typename T>
-union ThingOrCell {
-    T               t;
-    FreeCell        cell;
+template <typename T, size_t N, size_t R1, size_t R2>
+struct Things {
+    char filler1[R1];
+    T    things[N];
+    char filler[R2];
 };
 
-template <typename T, size_t N, size_t R>
-struct Things {
-    ThingOrCell<T>  things[N];
-    char            filler[R];
+template <typename T, size_t N, size_t R1>
+struct Things<T, N, R1, 0> {
+    char filler1[R1];
+    T    things[N];
+};
+
+template <typename T, size_t N, size_t R2>
+struct Things<T, N, 0, R2> {
+    T    things[N];
+    char filler2[R2];
 };
 
 template <typename T, size_t N>
-struct Things<T, N, 0> {
-    ThingOrCell<T>  things[N];
+struct Things<T, N, 0, 0> {
+    T things[N];
 };
 
 template <typename T>
 struct Arena {
     static const size_t ArenaSize = 4096;
 
-    struct AlignedArenaHeader {
-        T align[(sizeof(ArenaHeader) + sizeof(T) - 1) / sizeof(T)];
-    };
+    ArenaHeader aheader;
 
     
-    union {
-        ArenaHeader aheader;
-        AlignedArenaHeader align;
-    };
 
-    static const size_t ThingsPerArena = (ArenaSize - sizeof(AlignedArenaHeader)) / sizeof(T);
-    static const size_t FillerSize = ArenaSize - sizeof(AlignedArenaHeader) - sizeof(T) * ThingsPerArena;
-    Things<T, ThingsPerArena, FillerSize> t;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static const size_t Filler1Size =
+        tl::If< sizeof(ArenaHeader) % sizeof(T) == 0, size_t,
+                0,
+                sizeof(T) - sizeof(ArenaHeader) % sizeof(T) >::result;
+    static const size_t HeaderSize = sizeof(ArenaHeader) + Filler1Size;
+    static const size_t SpaceAfterHeader = ArenaSize - HeaderSize;
+    static const size_t Filler2Size = SpaceAfterHeader % sizeof(T);
+    static const size_t ThingsPerArena = SpaceAfterHeader / sizeof(T);
+
+    Things<T, ThingsPerArena, Filler1Size, Filler2Size> t;
+
+    static void staticAsserts() {
+        JS_STATIC_ASSERT(offsetof(Arena<T>, t.things) % sizeof(T) == 0);
+        JS_STATIC_ASSERT(sizeof(Arena<T>) == ArenaSize);
+    }
 
     inline Chunk *chunk() const;
     inline size_t arenaIndex() const;
@@ -170,7 +197,6 @@ struct Arena {
 
     void init(JSCompartment *compartment, unsigned thingKind);
 };
-JS_STATIC_ASSERT(sizeof(Arena<FreeCell>) == 4096);
 
 
 
@@ -392,7 +418,7 @@ STATIC_POSTCONDITION_ASSUME(return < ArenaBitmap::BitCount)
 size_t
 Cell::cellIndex() const
 {
-    return reinterpret_cast<const FreeCell *>(this) - reinterpret_cast<FreeCell *>(&arena()->t);
+    return this->asFreeCell() - arena()->t.things[0].asFreeCell();
 }
 
 template <typename T>
