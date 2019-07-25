@@ -115,21 +115,18 @@ CanvasBrowser.prototype = {
         self.zoomToPage();
       }
       
-      self.flushRegion(!this._isPanning && self._pageLoading);
+      if (!self._isPanning)
+        self.flushRegion(true);
     }
-
     
-
-
-    let flushNow = this._isPanning || !this._pageLoading;
-
-    if (this._pageLoading) {
-      if (!this._drawInterval) {
-        
-        flushNow = true;
-        this._maybeZoomToPage = true;
-        this._drawInterval = setInterval(resizeAndPaint, 2000, this);
-      }
+    let flushNow = !this._pageLoading && rect.intersects(this._visibleBounds);
+    
+    
+    if (this._pageLoading && !this._drawInterval) {
+      
+      flushNow = true;
+      this._maybeZoomToPage = true;
+      this._drawInterval = setInterval(resizeAndPaint, 2000, this);
     }
 
     if (flushNow) {
@@ -154,7 +151,6 @@ CanvasBrowser.prototype = {
       let rect = new wsRect(outX.value, outY.value,
                             outW.value, outH.value);
       if (viewingBoundsOnly) {
-        let oldrect = rect;
         
         rect = rect.intersect(this._visibleBounds)
         if (!rect)
@@ -244,8 +240,8 @@ CanvasBrowser.prototype = {
         
     visibleBounds.top = Math.max(0, this._screenToPage(visibleBounds.top));
     visibleBounds.left = Math.max(0, this._screenToPage(visibleBounds.left));
-    visibleBounds.bottom = this._screenToPage(visibleBounds.bottom);
-    visibleBounds.right = this._screenToPage(visibleBounds.right);
+    visibleBounds.bottom = Math.ceil(this._screenToPage(visibleBounds.bottom));
+    visibleBounds.right = Math.ceil(this._screenToPage(visibleBounds.right));
 
     
     
