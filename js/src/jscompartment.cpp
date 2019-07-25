@@ -196,6 +196,8 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
     
     if (WrapperMap::Ptr p = crossCompartmentWrappers.lookup(*vp)) {
         *vp = p->value;
+        if (vp->isObject())
+            vp->toObject().setParent(global);
         return true;
     }
 
