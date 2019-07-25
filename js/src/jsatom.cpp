@@ -190,14 +190,6 @@ const char *const js_common_atom_names[] = {
     js_xml_str,                 
 #endif
 
-#ifdef NARCISSUS
-    js___call___str,            
-    js___construct___str,       
-    js___hasInstance___str,     
-    js_ExecutionContext_str,    
-    js_current_str,             
-#endif
-
     "Proxy",                    
 
     "getOwnPropertyDescriptor", 
@@ -289,14 +281,6 @@ const char js_xml_str[]             = "xml";
 #if JS_HAS_GENERATORS
 const char js_close_str[]           = "close";
 const char js_send_str[]            = "send";
-#endif
-
-#ifdef NARCISSUS
-const char js___call___str[]         = "__call__";
-const char js___construct___str[]    = "__construct__";
-const char js___hasInstance___str[]  = "__hasInstance__";
-const char js_ExecutionContext_str[] = "ExecutionContext";
-const char js_current_str[]          = "current";
 #endif
 
 
