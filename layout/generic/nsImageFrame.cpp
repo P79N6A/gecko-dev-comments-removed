@@ -55,6 +55,7 @@
 #include "nsStyleContext.h"
 #include "nsStyleConsts.h"
 #include "nsStyleCoord.h"
+#include "nsTransform2D.h"
 #include "nsImageMap.h"
 #include "nsILinkHandler.h"
 #include "nsIURL.h"
@@ -325,22 +326,17 @@ nsImageFrame::UpdateIntrinsicRatio(imgIContainer* aImage)
   return mIntrinsicRatio != oldIntrinsicRatio;
 }
 
-void
-nsImageFrame::RecalculateTransform(PRBool aInnerAreaChanged)
+PRBool
+nsImageFrame::GetSourceToDestTransform(nsTransform2D& aTransform)
 {
   
   
   
+  
+  nsRect innerArea = GetInnerArea();
+  aTransform.SetToTranslate(float(innerArea.x),
+                            float(innerArea.y - GetContinuationOffset()));
 
-  
-  
-  
-  if (aInnerAreaChanged) {
-    nsRect innerArea = GetInnerArea();
-    mTransform.SetToTranslate(float(innerArea.x),
-                              float(innerArea.y - GetContinuationOffset()));
-  }
-  
   
   if (mIntrinsicSize.width.GetUnit() == eStyleUnit_Coord &&
       mIntrinsicSize.width.GetCoordValue() != 0 &&
@@ -348,13 +344,15 @@ nsImageFrame::RecalculateTransform(PRBool aInnerAreaChanged)
       mIntrinsicSize.height.GetCoordValue() != 0 &&
       mIntrinsicSize.width.GetCoordValue() != mComputedSize.width &&
       mIntrinsicSize.height.GetCoordValue() != mComputedSize.height) {
-    mTransform.SetScale(float(mComputedSize.width)  /
+
+    aTransform.SetScale(float(mComputedSize.width)  /
                         float(mIntrinsicSize.width.GetCoordValue()),
                         float(mComputedSize.height) /
                         float(mIntrinsicSize.height.GetCoordValue()));
-  } else {
-    mTransform.SetScale(1.0f, 1.0f);
+    return PR_TRUE;
   }
+
+  return PR_FALSE;
 }
 
 
@@ -418,10 +416,18 @@ nsImageFrame::SourceRectToDest(const nsIntRect& aRect)
            nsPresContext::CSSPixelsToAppUnits(aRect.width + 2),
            nsPresContext::CSSPixelsToAppUnits(aRect.height + 2));
 
-  mTransform.TransformCoord(&r.x, &r.y, &r.width, &r.height);
+  nsTransform2D sourceToDest;
+  if (!GetSourceToDestTransform(sourceToDest)) {
+    
+    
+    
+    return GetInnerArea();
+  }
+
+  sourceToDest.TransformCoord(&r.x, &r.y, &r.width, &r.height);
 
   
-  int scale = nsPresContext::CSSPixelsToAppUnits(1);
+  nscoord scale = nsPresContext::CSSPixelsToAppUnits(1);
   nscoord right = r.x + r.width;
   nscoord bottom = r.y + r.height;
 
@@ -528,14 +534,6 @@ nsImageFrame::OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage)
   UpdateIntrinsicRatio(aImage);
 
   if (mState & IMAGE_GOTINITIALREFLOW) {
-    
-    
-    
-    
-    
-    
-    RecalculateTransform(PR_FALSE);
-
     
     
     if (!(mState & IMAGE_SIZECONSTRAINED)) { 
@@ -810,7 +808,6 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
 
   mComputedSize = 
     nsSize(aReflowState.ComputedWidth(), aReflowState.ComputedHeight());
-  RecalculateTransform(PR_TRUE);
 
   aMetrics.width = mComputedSize.width;
   aMetrics.height = mComputedSize.height;

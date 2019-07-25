@@ -48,7 +48,6 @@
 #include "nsIIOService.h"
 #include "nsIObserver.h"
 
-#include "nsTransform2D.h"
 #include "imgIRequest.h"
 #include "nsStubImageDecoderObserver.h"
 #include "imgIDecoderObserver.h"
@@ -62,8 +61,8 @@ struct nsHTMLReflowMetrics;
 struct nsSize;
 class nsDisplayImage;
 class nsPresContext;
-
 class nsImageFrame;
+class nsTransform2D;
 
 class nsImageListener : public nsStubImageDecoderObserver
 {
@@ -259,7 +258,13 @@ private:
   
 
 
-  void RecalculateTransform(PRBool aInnerAreaChanged);
+
+
+
+
+
+
+  PRBool GetSourceToDestTransform(nsTransform2D& aTransform);
 
   
 
@@ -283,7 +288,6 @@ private:
   nsIFrame::IntrinsicSize mIntrinsicSize;
   nsSize mIntrinsicRatio;
 
-  nsTransform2D mTransform;
   PRBool mDisplayingIcon;
 
   static nsIIOService* sIOService;
