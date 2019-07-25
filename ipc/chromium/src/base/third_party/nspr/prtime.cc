@@ -143,7 +143,7 @@ PR_ImplodeTime(const PRExplodedTime *exploded)
     
     
     PRTime result =
-        static_cast<PRTime>((uli.QuadPart / 10) - 11644473600000000i64);
+        static_cast<PRTime>((uli.QuadPart / 10) - GG_LONGLONG(11644473600000000));
     
     result -= (exploded->tm_params.tp_gmt_offset +
                exploded->tm_params.tp_dst_offset) * kSecondsToMicroseconds;

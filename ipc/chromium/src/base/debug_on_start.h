@@ -12,7 +12,7 @@
 #include "base/basictypes.h"
 
 
-#if defined(OS_WIN)
+#if defined(COMPILER_MSVC)
 
 #ifndef DECLSPEC_SELECTANY
 #define DECLSPEC_SELECTANY  __declspec(selectany)

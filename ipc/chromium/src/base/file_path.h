@@ -212,6 +212,9 @@ class FilePath {
   FilePath StripTrailingSeparators() const;
 
   
+  void OpenInputStream(std::ifstream &stream) const;
+
+  
   
   
   

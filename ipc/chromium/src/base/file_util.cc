@@ -144,10 +144,10 @@ bool ContentsEqual(const FilePath& filename1, const FilePath& filename2) {
   
   
   
-  std::ifstream file1(filename1.value().c_str(),
-                      std::ios::in | std::ios::binary);
-  std::ifstream file2(filename2.value().c_str(),
-                      std::ios::in | std::ios::binary);
+  std::ifstream file1, file2;
+
+  filename1.OpenInputStream(file1);
+  filename2.OpenInputStream(file2);
 
   
   
