@@ -219,7 +219,6 @@ class RootedBase {};
 
 
 
-
 template <typename T>
 class Rooted : public RootedBase<T>
 {
