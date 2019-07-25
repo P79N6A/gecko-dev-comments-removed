@@ -456,6 +456,15 @@ public class GeckoInputConnection
             endComposition();
         }
 
+        if (count == 1 && s.charAt(start) == '\n') {
+            
+            
+            if (DEBUG) Log.d(LOGTAG, ". . . onTextChanged: Typed <Enter>");
+            processKeyDown(KeyEvent.KEYCODE_ENTER, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER), false);
+            processKeyUp(KeyEvent.KEYCODE_ENTER, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER), false);
+            return;
+        }
+
         if (!mComposing) {
             if (DEBUG) Log.d(LOGTAG, ". . . onTextChanged: IME_COMPOSITION_BEGIN");
             GeckoAppShell.sendEventToGecko(
