@@ -217,7 +217,7 @@ js::ion::SetPropertyCache(JSContext *cx, size_t cacheIndex, JSObject *obj, Value
 
     
     
-    if (cache.stubCount() < MAX_STUBS) {
+    if (cache.stubCount() < MAX_STUBS && obj->isNative()) {
         cache.incrementStubCount();
 
         const Shape *shape = obj->nativeLookup(cx, ATOM_TO_JSID(atom));
