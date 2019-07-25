@@ -309,6 +309,7 @@ nsICanvasRenderingContextWebGL_ReadPixels(JSContext *cx, uintN argc, jsval *vp)
 
 
 
+
 static JSBool
 nsICanvasRenderingContextWebGL_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
 {
@@ -360,6 +361,34 @@ nsICanvasRenderingContextWebGL_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
         if (NS_FAILED(rv)) return JS_FALSE;
 
         rv = self->TexImage2D_dom(argv0, argv1, argv2, argv3, argv4, elt);
+
+        if (NS_FAILED(rv)) {
+            
+            JSObject *argv5 = JSVAL_TO_OBJECT(argv[5]);
+            jsval js_width, js_height, js_data;
+            JS_GetProperty(cx, argv5, "width", &js_width);
+            JS_GetProperty(cx, argv5, "height", &js_height);
+            JS_GetProperty(cx, argv5, "data", &js_data);
+            if (js_width  == JSVAL_VOID ||
+                js_height == JSVAL_VOID ||
+                js_data   == JSVAL_VOID)
+            {
+                xpc_qsThrowBadArg(cx, NS_ERROR_FAILURE, vp, 5);
+                return JS_FALSE;
+            }
+            int32 int_width, int_height;
+            JSObject *obj_data = JSVAL_TO_OBJECT(js_data);
+            if (!JS_ValueToECMAInt32(cx, js_width, &int_width) ||
+                !JS_ValueToECMAInt32(cx, js_height, &int_height) ||
+                !js_IsTypedArray(obj_data))
+            {
+                xpc_qsThrowBadArg(cx, NS_ERROR_FAILURE, vp, 5);
+                return JS_FALSE;
+            }
+            rv = self->TexImage2D_array(argv0, argv1, argv2,
+                                        int_width, int_height, 0,
+                                        argv3, argv4, js::TypedArray::fromJSObject(obj_data));
+        }
     } else if (argc > 8 && JSVAL_IS_OBJECT(argv[8])) {
         
         GET_UINT32_ARG(argv2, 2);
@@ -404,6 +433,7 @@ nsICanvasRenderingContextWebGL_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
 
 
 
+
 static JSBool
 nsICanvasRenderingContextWebGL_TexSubImage2D(JSContext *cx, uintN argc, jsval *vp)
 {
@@ -442,6 +472,35 @@ nsICanvasRenderingContextWebGL_TexSubImage2D(JSContext *cx, uintN argc, jsval *v
         if (NS_FAILED(rv)) return JS_FALSE;
 
         rv = self->TexSubImage2D_dom(argv0, argv1, argv2, argv3, argv4, argv5, elt);
+
+        if (NS_FAILED(rv)) {
+            
+            JSObject *argv6 = JSVAL_TO_OBJECT(argv[6]);
+            jsval js_width, js_height, js_data;
+            JS_GetProperty(cx, argv6, "width", &js_width);
+            JS_GetProperty(cx, argv6, "height", &js_height);
+            JS_GetProperty(cx, argv6, "data", &js_data);
+            if (js_width  == JSVAL_VOID ||
+                js_height == JSVAL_VOID ||
+                js_data   == JSVAL_VOID)
+            {
+                xpc_qsThrowBadArg(cx, NS_ERROR_FAILURE, vp, 6);
+                return JS_FALSE;
+            }
+            int32 int_width, int_height;
+            JSObject *obj_data = JSVAL_TO_OBJECT(js_data);
+            if (!JS_ValueToECMAInt32(cx, js_width, &int_width) ||
+                !JS_ValueToECMAInt32(cx, js_height, &int_height) ||
+                !js_IsTypedArray(obj_data))
+            {
+                xpc_qsThrowBadArg(cx, NS_ERROR_FAILURE, vp, 6);
+                return JS_FALSE;
+            }
+            rv = self->TexSubImage2D_array(argv0, argv1, argv2, argv3,
+                                           int_width, int_height,
+                                           argv4, argv5,
+                                           js::TypedArray::fromJSObject(obj_data));
+        }
     } else if (argc > 8 && JSVAL_IS_OBJECT(argv[8])) {
         
         GET_INT32_ARG(argv4, 4);
