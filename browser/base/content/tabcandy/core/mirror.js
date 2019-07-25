@@ -153,7 +153,7 @@ function Mirror(tab, manager) {
     
   this.needsPaint = 0;
   this.canvasSizeForced = false;
-  this.shouldShowCachedData = false;
+  this.isShowingCachedData = false;
   this.el = $div.get(0);
   this.favEl = iQ('.favicon>img', $div).get(0);
   this.nameEl = iQ('.tab-title', $div).get(0);
@@ -207,8 +207,8 @@ Mirror.prototype = iQ.extend(new Subscribable(), {
   
   
   
-  showCachedData : function(tab, tabData) {
-    this.shouldShowCachedData = true;
+  showCachedData: function(tab, tabData) {
+    this.isShowingCachedData = true;
     var mirror = tab.mirror;
     var $nameElement = iQ(mirror.nameEl);
     var $canvasElement = iQ(mirror.canvasEl);
@@ -222,12 +222,10 @@ Mirror.prototype = iQ.extend(new Subscribable(), {
   
   
   hideCachedData: function(tab) {
-    if (this.shouldShowCachedData) {
-      this.shouldShowCachedData = false;
-      var mirror = tab.mirror;
-      iQ(mirror.cachedThumbEl).hide().attr("src", "");
-      iQ(mirror.canvasEl).show();
-    }
+    this.isShowingCachedData = false;
+    var mirror = tab.mirror;
+    iQ(mirror.cachedThumbEl).hide().attr("src", "");
+    iQ(mirror.canvasEl).show();
   }
 });
 
@@ -267,11 +265,14 @@ TabMirror.prototype = {
       iQ.timeout(function() { 
         self.update(tab);
       }, 1);
-      iQ.timeout(function() { 
-	if (tab.mirror) {
-	  tab.mirror.hideCachedData(tab);
-	}
-      }, 5000);
+      if (tab.mirror && tab.mirror.isShowingCachedData) {
+	
+	
+	
+	iQ.timeout(function() {
+          tab.mirror.hideCachedData(tab);
+	}, 3000);
+      }
     });
 
     
@@ -329,7 +330,7 @@ TabMirror.prototype = {
             mirror.triggerPaint();
           }
           
-          if (!mirror.shouldShowCachedData && $name.text() != label) {
+          if (!mirror.isShowingCachedData && $name.text() != label) {
             $name.text(label);
             mirror.triggerPaint();
           }

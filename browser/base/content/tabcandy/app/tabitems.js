@@ -758,7 +758,7 @@ window.TabItems = {
           
           iQ.timeout(function() {
             mirror.hideCachedData(item.tab);
-          }, 30000);
+          }, 15000);
         }
         
         Groups.updateTabBarForActiveGroup();
