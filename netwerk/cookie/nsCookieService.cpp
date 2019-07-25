@@ -3048,6 +3048,8 @@ class CompareCookiesByIndex {
 public:
   PRBool Equals(const nsListIter &a, const nsListIter &b) const
   {
+    NS_ASSERTION(a.entry != b.entry || a.index != b.index,
+      "cookie indexes should never be equal");
     return PR_FALSE;
   }
 
@@ -3138,7 +3140,8 @@ nsCookieService::PurgeCookies(PRInt64 aCurrentTimeInUsec)
   purgeList.Sort(CompareCookiesByAge());
 
   
-  PRUint32 excess = mDBState->cookieCount - mMaxNumberOfCookies;
+  PRUint32 excess = mDBState->cookieCount > mMaxNumberOfCookies ?
+    mDBState->cookieCount - mMaxNumberOfCookies : 0;
   if (purgeList.Length() > excess) {
     
     data.oldestTime = purgeList[excess].Cookie()->LastAccessed();
@@ -3225,7 +3228,7 @@ nsCookieService::FindStaleCookie(nsCookieEntry *aEntry,
     nsCookie *cookie = cookies[i];
 
     
-    if (cookie->Expiry() > aCurrentTime) {
+    if (cookie->Expiry() <= aCurrentTime) {
       aIter.entry = aEntry;
       aIter.index = i;
       return;
