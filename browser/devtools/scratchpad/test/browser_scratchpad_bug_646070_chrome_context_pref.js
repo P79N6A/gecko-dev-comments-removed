@@ -2,9 +2,6 @@
 
 
 
-
-let gScratchpadWindow;
-
 let gOldPref;
 let DEVTOOLS_CHROME_ENABLED = "devtools.chrome.enabled";
 
@@ -55,8 +52,5 @@ function runTests()
 
   Services.prefs.setBoolPref(DEVTOOLS_CHROME_ENABLED, gOldPref);
 
-  gScratchpadWindow.close();
-  gScratchpadWindow = null;
-  gBrowser.removeCurrentTab();
   finish();
 }

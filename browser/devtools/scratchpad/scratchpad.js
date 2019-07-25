@@ -492,9 +492,11 @@ var Scratchpad = {
   
 
 
+
+
   openScratchpad: function SP_openScratchpad()
   {
-    ScratchpadManager.openScratchpad();
+    return ScratchpadManager.openScratchpad();
   },
 
   
@@ -768,6 +770,8 @@ var Scratchpad = {
     else if (this.filename && this.saved) {
       this.onTextSaved();
     }
+
+    this._triggerObservers("Ready");
   },
 
   
@@ -877,6 +881,68 @@ var Scratchpad = {
     this.editor.destroy();
     this.editor = null;
   },
+
+  _observers: [],
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  addObserver: function SP_addObserver(aObserver)
+  {
+    this._observers.push(aObserver);
+  },
+
+  
+
+
+
+
+
+  removeObserver: function SP_removeObserver(aObserver)
+  {
+    let index = this._observers.indexOf(aObserver);
+    if (index != -1) {
+      this._observers.splice(index, 1);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _triggerObservers: function SP_triggerObservers(aName, aArgs)
+  {
+    
+    if (!aArgs) {
+      aArgs = [this];
+    } else {
+      aArgs.unshift(this);
+    }
+
+    
+    for (let i = 0; i < this._observers.length; ++i) {
+      let observer = this._observers[i];
+      let handler = observer["on" + aName];
+      if (handler) {
+        handler.apply(observer, aArgs);
+      }
+    }
+  }
 };
 
 XPCOMUtils.defineLazyGetter(Scratchpad, "strings", function () {

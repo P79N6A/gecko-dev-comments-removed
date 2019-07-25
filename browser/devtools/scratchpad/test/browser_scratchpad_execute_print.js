@@ -2,9 +2,6 @@
 
 
 
-
-let gScratchpadWindow;
-
 function test()
 {
   waitForExplicitFinish();
@@ -129,8 +126,5 @@ function runTests()
   sp.redo();
   is(sp.getText(), "foo2", "redo() works");
 
-  gScratchpadWindow.close();
-  gScratchpadWindow = null;
-  gBrowser.removeCurrentTab();
   finish();
 }
