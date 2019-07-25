@@ -1288,10 +1288,17 @@ BaseShape::lookup(JSContext *cx, const BaseShape &base)
 BaseShape::lookupInitialShape(JSContext *cx, Class *clasp, JSObject *parent,
                               AllocKind kind, uint32 objectFlags, Shape *initial)
 {
-    js::BaseShape base(clasp, parent, objectFlags);
+    BaseShape base(clasp, parent, objectFlags);
     JSCompartment::BaseShapeEntry *entry = LookupBaseShape(cx, base);
     if (!entry)
         return NULL;
+
+    
+
+
+
+    BaseShape *nbase = entry->base;
+
     if (!entry->shapes) {
         entry->shapes = cx->new_<ShapeKindArray>();
         if (!entry->shapes)
@@ -1311,7 +1318,7 @@ BaseShape::lookupInitialShape(JSContext *cx, Class *clasp, JSObject *parent,
     shape = JS_PROPERTY_TREE(cx).newShape(cx);
     if (!shape)
         return NULL;
-    return new (shape) EmptyShape(entry->base, gc::GetGCKindSlots(kind, clasp));
+    return new (shape) EmptyShape(nbase, gc::GetGCKindSlots(kind, clasp));
 }
 
  void
