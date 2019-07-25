@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -264,7 +298,7 @@ let PlacesDBUtils = {
     let tasks = new Tasks(aTasks);
     tasks.log("> Coherence check");
 
-    let stmts = PlacesDBUtils._getBoundCoherenceStatements();
+    let stmts = this._getBoundCoherenceStatements();
     DBConn.executeAsync(stmts, stmts.length, {
       handleError: PlacesDBUtils._handleError,
       handleResult: function () {},
@@ -307,7 +341,6 @@ let PlacesDBUtils = {
       "WHERE anno_attribute_id IN ( "               +
       "  SELECT id FROM moz_anno_attributes "       +
       "  WHERE name = 'sync/children' "             +
-      "     OR name = 'placesInternal/GUID' "       +
       "     OR name BETWEEN 'weave/' AND 'weave0' " +
       ")");
     cleanupStatements.push(deleteObsoleteItemsAnnos);
@@ -581,6 +614,18 @@ let PlacesDBUtils = {
     
     
     
+    let removeLivemarkStaticItems = DBConn.createAsyncStatement(
+      "DELETE FROM moz_bookmarks WHERE type = :bookmark_type AND fk IN ( " +
+        "SELECT id FROM moz_places WHERE url = :lmloading OR url = :lmfailed " +
+      ")");
+    removeLivemarkStaticItems.params["bookmark_type"] = PlacesUtils.bookmarks.TYPE_BOOKMARK;
+    removeLivemarkStaticItems.params["lmloading"] = "about:livemark-loading";
+    removeLivemarkStaticItems.params["lmfailed"] = "about:livemark-failed";
+    cleanupStatements.push(removeLivemarkStaticItems);
+
+    
+    
+    
     let fixEmptyNamedTags = DBConn.createAsyncStatement(
       "UPDATE moz_bookmarks SET title = :empty_title " +
       "WHERE length(title) = 0 AND type = :folder_type " +
@@ -677,19 +722,6 @@ let PlacesDBUtils = {
                                   "WHERE v.place_id = h.id) " +
       ")");
     cleanupStatements.push(fixVisitStats);
-
-    
-    let fixRedirectsHidden = DBConn.createAsyncStatement(
-      "UPDATE moz_places " +
-      "SET hidden = 1 " +
-      "WHERE id IN ( " +
-        "SELECT h.id FROM moz_places h " +
-        "JOIN moz_historyvisits src ON src.place_id = h.id " +
-        "JOIN moz_historyvisits dst ON dst.from_visit = src.id AND dst.visit_type IN (5,6) " +
-        "LEFT JOIN moz_bookmarks on fk = h.id AND fk ISNULL " +
-        "GROUP BY src.place_id HAVING count(*) = visit_count " +
-      ")");
-    cleanupStatements.push(fixRedirectsHidden);
 
     
 
@@ -928,22 +960,7 @@ let PlacesDBUtils = {
           let placesPageCount = probeValues.PLACES_PAGES_COUNT;
           return Math.round((dbPageSize * aDbPageCount) / placesPageCount);
         }
-      },
-
-      { histogram: "PLACES_ANNOS_BOOKMARKS_COUNT",
-        query:     "SELECT count(*) FROM moz_items_annos" },
-
-      
-      
-      
-      { histogram: "PLACES_ANNOS_BOOKMARKS_SIZE_KB",
-        query:     "SELECT SUM(LENGTH(content))/1024 FROM moz_items_annos" },
-
-      { histogram: "PLACES_ANNOS_PAGES_COUNT",
-        query:     "SELECT count(*) FROM moz_annos" },
-
-      { histogram: "PLACES_ANNOS_PAGES_SIZE_KB",
-        query:     "SELECT SUM(LENGTH(content))/1024 FROM moz_annos" },
+      }
     ];
 
     let params = {
@@ -999,22 +1016,6 @@ let PlacesDBUtils = {
     PlacesDBUtils._executeTasks(tasks);
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-  runTasks: function PDBU_runTasks(aTasks, aCallback) {
-    let tasks = new Tasks(aTasks);
-    tasks.callback = aCallback;
-    PlacesDBUtils._executeTasks(tasks);
-  }
 };
 
 
@@ -1029,10 +1030,7 @@ function Tasks(aTasks)
     if (Array.isArray(aTasks)) {
       this._list = aTasks.slice(0, aTasks.length);
     }
-    
-    
-    else if (typeof(aTasks) == "object" &&
-             (Tasks instanceof Tasks || "list" in aTasks)) {
+    else if (typeof(aTasks) == "object" && aTasks instanceof Tasks) {
       this._list = aTasks.list;
       this._log = aTasks.messages;
       this.callback = aTasks.callback;
