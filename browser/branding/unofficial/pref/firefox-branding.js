@@ -1,5 +1,6 @@
 pref("startup.homepage_override_url","http://www.mozilla.org/projects/%APP%/%VERSION%/whatsnew/");
 pref("startup.homepage_welcome_url","http://www.mozilla.org/projects/%APP%/%VERSION%/firstrun/");
+pref("browser.panorama.welcome_url", "http://www.mozilla.com/firefox/panorama/");
 
 
 pref("app.update.interval", 28800);
