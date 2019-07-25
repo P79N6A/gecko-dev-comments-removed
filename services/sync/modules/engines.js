@@ -585,13 +585,17 @@ SyncEngine.prototype = {
 
   _handleDupe: function _handleDupe(item, dupeId) {
     
-    if (dupeId < item.id) {
+    let preferLocal = dupeId.length < item.id.length ||
+      (dupeId.length == item.id.length && dupeId < item.id);
+
+    if (preferLocal) {
+      this._log.trace("Preferring local id: " + [dupeId, item.id]);
       this._deleteId(item.id);
       item.id = dupeId;
       this._tracker.changedIDs[dupeId] = true;
     }
-    
     else {
+      this._log.trace("Switching local id to incoming: " + [item.id, dupeId]);
       this._store.changeItemID(dupeId, item.id);
       this._deleteId(dupeId);
     }
