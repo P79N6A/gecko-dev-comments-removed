@@ -15176,13 +15176,25 @@ TraceRecorder::record_JSOP_BINDNAME()
     if (!fp->isFunctionFrame()) {
         obj = &fp->scopeChain();
 
+#ifdef DEBUG
+        StackFrame *fp2 = fp;
+#endif
+
         
 
 
 
         while (obj->isBlock()) {
             
-            JS_ASSERT(obj->getPrivate() == fp);
+#ifdef DEBUG
+            
+            while (obj->getPrivate() != fp2) {
+                JS_ASSERT(fp2->isEvalFrame());
+                fp2 = fp2->prev();
+                if (!fp2)
+                    JS_NOT_REACHED("bad stack frame");
+            }
+#endif
             obj = obj->getParent();
             
             JS_ASSERT(obj);
