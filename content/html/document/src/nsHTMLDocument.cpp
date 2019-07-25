@@ -3237,6 +3237,12 @@ nsHTMLDocument::EditingStateChanged()
   }
 
   
+  
+  if (mParentDocument) {
+    mParentDocument->FlushPendingNotifications(Flush_Style);
+  }
+
+  
   nsPIDOMWindow *window = GetWindow();
   if (!window)
     return NS_ERROR_FAILURE;

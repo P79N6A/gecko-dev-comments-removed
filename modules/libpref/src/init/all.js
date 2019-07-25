@@ -60,7 +60,7 @@ pref("browser.bookmarks.max_backups",       5);
 
 pref("browser.cache.disk.enable",           true);
 #ifndef WINCE
-pref("browser.cache.disk.capacity",         51200);
+pref("browser.cache.disk.capacity",         256000);
 #else
 pref("browser.cache.disk.capacity",         20000);
 #endif
@@ -1206,7 +1206,9 @@ pref("layout.css.dpi", -1);
 
 
 
-pref("layout.css.devPixelsPerPx", "-1");
+
+
+pref("layout.css.devPixelsPerPx", "1.0");
 
 
 

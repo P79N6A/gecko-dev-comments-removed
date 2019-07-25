@@ -1,47 +1,47 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef jsgc_h___
 #define jsgc_h___
-/*
- * JS Garbage Collector.
- */
+
+
+
 #include <setjmp.h>
 
 #include "jstypes.h"
@@ -70,36 +70,36 @@ const bool JS_WANT_GC_METER_PRINT = false;
 
 #define JSTRACE_XML         2
 
-/*
- * One past the maximum trace kind.
- */
+
+
+
 #define JSTRACE_LIMIT       3
 
 const uintN JS_EXTERNAL_STRING_LIMIT = 8;
 
-/*
- * Get the type of the external string or -1 if the string was not created
- * with JS_NewExternalString.
- */
+
+
+
+
 extern intN
 js_GetExternalStringGCType(JSString *str);
 
 extern JS_FRIEND_API(uint32)
 js_GetGCThingTraceKind(void *thing);
 
-/*
- * The sole purpose of the function is to preserve public API compatibility
- * in JS_GetStringBytes which takes only single JSString* argument.
- */
+
+
+
+
 JSRuntime *
 js_GetGCThingRuntime(void *thing);
 
 #if 1
-/*
- * Since we're forcing a GC from JS_GC anyway, don't bother wasting cycles
- * loading oldval.  XXX remove implied force, fix jsinterp.c's "second arg
- * ignored", etc.
- */
+
+
+
+
+
 #define GC_POKE(cx, oldval) ((cx)->runtime->gcPoke = JS_TRUE)
 #else
 #define GC_POKE(cx, oldval) ((cx)->runtime->gcPoke = JSVAL_IS_GCTHING(oldval))
@@ -131,7 +131,7 @@ js_DumpNamedRoots(JSRuntime *rt,
 extern uint32
 js_MapGCRoots(JSRuntime *rt, JSGCRootMapFun map, void *data);
 
-/* Table of pointers with count valid members. */
+
 typedef struct JSPtrTable {
     size_t      count;
     void        **array;
@@ -157,10 +157,10 @@ js_IsAboutToBeFinalized(void *thing);
 extern JS_FRIEND_API(bool)
 js_GCThingIsMarked(void *thing, uint32 color);
 
-/*
- * Macro to test if a traversal is the marking phase of GC to avoid exposing
- * ScriptFilenameEntry to traversal implementations.
- */
+
+
+
+
 #define IS_GC_MARKING_TRACER(trc) ((trc)->callback == NULL)
 
 #if JS_HAS_XML_SUPPORT
@@ -178,9 +178,9 @@ js_TraceRuntime(JSTracer *trc);
 extern JS_REQUIRES_STACK JS_FRIEND_API(void)
 js_TraceContext(JSTracer *trc, JSContext *acx);
 
-/*
- * Schedule the GC call at a later safe point.
- */
+
+
+
 #ifndef JS_THREADSAFE
 # define js_TriggerGC(cx, gcLocked)    js_TriggerGC (cx)
 #endif
@@ -188,22 +188,22 @@ js_TraceContext(JSTracer *trc, JSContext *acx);
 extern void
 js_TriggerGC(JSContext *cx, JSBool gcLocked);
 
-/*
- * Kinds of js_GC invocation.
- */
+
+
+
 typedef enum JSGCInvocationKind {
-    /* Normal invocation. */
+    
     GC_NORMAL           = 0,
 
-    /*
-     * Called from js_DestroyContext for last JSContext in a JSRuntime, when
-     * it is imperative that rt->gcPoke gets cleared early in js_GC.
-     */
+    
+
+
+
     GC_LAST_CONTEXT     = 1,
 
-    /*
-     * Flag bit telling js_GC that the caller has already acquired rt->gcLock.
-     */
+    
+
+
     GC_LOCK_HELD        = 0x10
 } JSGCInvocationKind;
 
@@ -211,25 +211,25 @@ extern void
 js_GC(JSContext *cx, JSGCInvocationKind gckind);
 
 #ifdef JS_THREADSAFE
-/*
- * This is a helper for code at can potentially run outside JS request to
- * ensure that the GC is not running when the function returns.
- *
- * This function must be called with the GC lock held.
- */
+
+
+
+
+
+
 extern void
 js_WaitForGC(JSRuntime *rt);
 
-#else /* !JS_THREADSAFE */
+#else 
 
 # define js_WaitForGC(rt)    ((void) 0)
 
 #endif
 
-/*
- * The kind of GC thing with a finalizer. The external strings follow the
- * ordinary string to simplify js_GetExternalStringGCType.
- */
+
+
+
+
 enum JSFinalizeGCThingKind {
     FINALIZE_OBJECT,
     FINALIZE_FUNCTION,
@@ -257,12 +257,12 @@ IsFinalizableStringKind(unsigned thingKind)
            thingKind <= unsigned(FINALIZE_EXTERNAL_STRING_LAST);
 }
 
-/*
- * Allocates a new GC thing. After a successful allocation the caller must
- * fully initialize the thing before calling any function that can potentially
- * trigger GC. This will ensure that GC tracing never sees junk values stored
- * in the partially initialized thing.
- */
+
+
+
+
+
+
 extern void *
 js_NewFinalizableGCThing(JSContext *cx, unsigned thingKind);
 
@@ -320,11 +320,11 @@ js_NewGCXML(JSContext *cx)
 struct JSGCArena;
 
 struct JSGCArenaList {
-    JSGCArena       *head;          /* list start */
-    JSGCArena       *cursor;        /* arena with free things */
-    uint32          thingKind;      /* one of JSFinalizeGCThingKind */
-    uint32          thingSize;      /* size of things to allocate on this list
-                                     */
+    JSGCArena       *head;          
+    JSGCArena       *cursor;        
+    uint32          thingKind;      
+    uint32          thingSize;      
+
 };
 
 struct JSGCFreeLists {
@@ -347,35 +347,20 @@ struct JSGCFreeLists {
 extern void
 js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data);
 
-struct JSWeakRoots {
-    /* Most recently created things by type, members of the GC's root set. */
-    void              *finalizableNewborns[FINALIZE_LIMIT];
-
-    /* Atom root for the last-looked-up atom on this context. */
-    JSAtom            *lastAtom;
-
-    /* Root for the result of the most recent js_InternalInvoke call. */
-    void              *lastInternalResult;
-
-    void mark(JSTracer *trc);
-};
-
-#define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))
-
 namespace js {
 
 #ifdef JS_THREADSAFE
 
-/*
- * During the finalization we do not free immediately. Rather we add the
- * corresponding pointers to a buffer which we later release on the
- * background thread.
- *
- * The buffer is implemented as a vector of 64K arrays of pointers, not as a
- * simple vector, to avoid realloc calls during the vector growth and to not
- * bloat the binary size of the inlined freeLater method. Any OOM during
- * buffer growth results in the pointer being freed immediately.
- */
+
+
+
+
+
+
+
+
+
+
 class BackgroundSweepTask : public JSBackgroundTask {
     static const size_t FREE_ARRAY_SIZE = size_t(1) << 16;
     static const size_t FREE_ARRAY_LENGTH = FREE_ARRAY_SIZE / sizeof(void *);
@@ -408,7 +393,7 @@ class BackgroundSweepTask : public JSBackgroundTask {
     virtual void run();
 };
 
-#endif /* JS_THREADSAFE */
+#endif 
 
 
 struct GCChunkInfo;
@@ -416,10 +401,10 @@ struct GCChunkInfo;
 struct GCChunkHasher {
     typedef jsuword Lookup;
 
-    /*
-     * Strip zeros for better distribution after multiplying by the golden
-     * ratio.
-     */
+    
+
+
+
     static HashNumber hash(jsuword chunk) {
         JS_ASSERT(!(chunk & GC_CHUNK_MASK));
         return HashNumber(chunk >> GC_CHUNK_SHIFT);
@@ -437,10 +422,10 @@ typedef Vector<GCChunkInfo *, 32, SystemAllocPolicy> GCChunkInfoVector;
 
 struct ConservativeGCThreadData {
 
-    /*
-     * The GC scans conservatively between JSThreadData::nativeStackBase and
-     * nativeStackTop unless the latter is NULL.
-     */
+    
+
+
+
     jsuword             *nativeStackTop;
 
     union {
@@ -455,24 +440,24 @@ struct ConservativeGCThreadData {
     bool isEnabled() const { return enableCount > 0; }
 };
 
-/*
- * The conservative GC test for a word shows that it is either a valid GC
- * thing or is not for one of the following reasons.
- */
+
+
+
+
 enum ConservativeGCTest {
     CGCT_VALID,
-    CGCT_LOWBITSET, /* excluded because one of the low bits was set */
-    CGCT_NOTARENA,  /* not within arena range in a chunk */
-    CGCT_NOTCHUNK,  /* not within a valid chunk */
-    CGCT_FREEARENA, /* within arena containing only free things */
-    CGCT_WRONGTAG,  /* tagged pointer but wrong type */
-    CGCT_NOTLIVE,   /* gcthing is not allocated */
+    CGCT_LOWBITSET, 
+    CGCT_NOTARENA,  
+    CGCT_NOTCHUNK,  
+    CGCT_FREEARENA, 
+    CGCT_WRONGTAG,  
+    CGCT_NOTLIVE,   
     CGCT_END
 };
 
 struct ConservativeGCStats {
-    uint32  counter[CGCT_END];  /* ConservativeGCTest classification
-                                   counters */
+    uint32  counter[CGCT_END];  
+
 
     void add(const ConservativeGCStats &another) {
         for (size_t i = 0; i != JS_ARRAY_LENGTH(counter); ++i)
@@ -484,10 +469,10 @@ struct ConservativeGCStats {
 
 struct GCMarker : public JSTracer {
   private:
-    /* The color is only applied to objects, functions and xml. */
+    
     uint32 color;
 
-    /* See comments before delayMarkingChildren is jsgc.cpp. */
+    
     JSGCArena           *unmarkedArenaStackTop;
 #ifdef DEBUG
     size_t              markLaterCount;
@@ -517,10 +502,10 @@ struct GCMarker : public JSTracer {
     }
 
     void setMarkColor(uint32 newColor) {
-        /*
-         * We must process any delayed marking here, otherwise we confuse
-         * colors.
-         */
+        
+
+
+
         markDelayedChildren();
         color = newColor;
     }
@@ -532,7 +517,7 @@ struct GCMarker : public JSTracer {
     void slowifyArrays();
 };
 
-} /* namespace js */
+} 
 
 extern void
 js_FinalizeStringRT(JSRuntime *rt, JSString *str);
@@ -540,36 +525,36 @@ js_FinalizeStringRT(JSRuntime *rt, JSString *str);
 #ifdef JS_GCMETER
 
 struct JSGCArenaStats {
-    uint32  alloc;          /* allocation attempts */
-    uint32  localalloc;     /* allocations from local lists */
-    uint32  retry;          /* allocation retries after running the GC */
-    uint32  fail;           /* allocation failures */
-    uint32  nthings;        /* live GC things */
-    uint32  maxthings;      /* maximum of live GC cells */
-    double  totalthings;    /* live GC things the GC scanned so far */
-    uint32  narenas;        /* number of arena in list before the GC */
-    uint32  newarenas;      /* new arenas allocated before the last GC */
-    uint32  livearenas;     /* number of live arenas after the last GC */
-    uint32  maxarenas;      /* maximum of allocated arenas */
-    uint32  totalarenas;    /* total number of arenas with live things that
-                               GC scanned so far */
+    uint32  alloc;          
+    uint32  localalloc;     
+    uint32  retry;          
+    uint32  fail;           
+    uint32  nthings;        
+    uint32  maxthings;      
+    double  totalthings;    
+    uint32  narenas;        
+    uint32  newarenas;      
+    uint32  livearenas;     
+    uint32  maxarenas;      
+    uint32  totalarenas;    
+
 };
 
 struct JSGCStats {
-    uint32  lock;       /* valid lock calls */
-    uint32  unlock;     /* valid unlock calls */
-    uint32  unmarked;   /* number of times marking of GC thing's children were
-                           delayed due to a low C stack */
+    uint32  lock;       
+    uint32  unlock;     
+    uint32  unmarked;   
+
 #ifdef DEBUG
-    uint32  maxunmarked;/* maximum number of things with children to mark
-                           later */
+    uint32  maxunmarked;
+
 #endif
-    uint32  poke;           /* number of potentially useful GC calls */
-    uint32  afree;          /* thing arenas freed so far */
-    uint32  nallarenas;     /* number of all allocated arenas */
-    uint32  maxnallarenas;  /* maximum number of all allocated arenas */
-    uint32  nchunks;        /* number of allocated chunks */
-    uint32  maxnchunks;     /* maximum number of allocated chunks */
+    uint32  poke;           
+    uint32  afree;          
+    uint32  nallarenas;     
+    uint32  maxnallarenas;  
+    uint32  nchunks;        
+    uint32  maxnchunks;     
 
     JSGCArenaStats  arenaStats[FINALIZE_LIMIT];
 
@@ -579,28 +564,28 @@ struct JSGCStats {
 extern JS_FRIEND_API(void)
 js_DumpGCStats(JSRuntime *rt, FILE *fp);
 
-#endif /* JS_GCMETER */
+#endif 
 
-/*
- * This function is defined in jsdbgapi.cpp but is declared here to avoid
- * polluting jsdbgapi.h, a public API header, with internal functions.
- */
+
+
+
+
 extern void
 js_MarkTraps(JSTracer *trc);
 
 namespace js {
 
-/*
- * Set object's prototype while checking that doing so would not create
- * a cycle in the proto chain. The cycle check and proto change are done
- * only when all other requests are finished or suspended to ensure exclusive
- * access to the chain. If there is a cycle, return false without reporting
- * an error. Otherwise, set the proto and return true.
- */
+
+
+
+
+
+
+
 extern bool
 SetProtoCheckingForCycles(JSContext *cx, JSObject *obj, JSObject *proto);
 
-/* N.B. Assumes JS_SET_TRACING_NAME/INDEX has already been called. */
+
 void
 Mark(JSTracer *trc, void *thing, uint32 kind);
 
@@ -657,7 +642,7 @@ MarkObjectRange(JSTracer *trc, size_t len, JSObject **vec, const char *name)
     }
 }
 
-/* N.B. Assumes JS_SET_TRACING_NAME/INDEX has already been called. */
+
 static inline void
 MarkValueRaw(JSTracer *trc, const js::Value &v)
 {
@@ -721,7 +706,7 @@ MarkIdRange(JSTracer *trc, size_t len, jsid *vec, const char *name)
     MarkIdRange(trc, vec, vec + len, name);
 }
 
-/* N.B. Assumes JS_SET_TRACING_NAME/INDEX has already been called. */
+
 void
 MarkGCThing(JSTracer *trc, void *thing);
 
@@ -742,6 +727,6 @@ MarkGCThing(JSTracer *trc, void *thing, const char *name, size_t index)
 JSCompartment *
 NewCompartment(JSContext *cx, JSPrincipals *principals);
 
-} /* namespace js */
+} 
 
-#endif /* jsgc_h___ */
+#endif
