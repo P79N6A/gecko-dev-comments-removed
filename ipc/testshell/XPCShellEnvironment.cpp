@@ -50,8 +50,6 @@
 #include "jsdbgapi.h"
 #include "jsprf.h"
 
-#include "xpcpublic.h"
-
 #include "XPCShellEnvironment.h"
 
 #include "mozilla/XPCOM.h"
@@ -546,12 +544,6 @@ JSFunctionSpec gGlobalFunctions[] =
     {"clear",           Clear,          1,0},
 #ifdef DEBUG
     {"dumpHeap",        DumpHeap,       5,0},
-#endif
-#ifdef MOZ_SHARK
-    {"startShark",      js_StartShark,      0,0},
-    {"stopShark",       js_StopShark,       0,0},
-    {"connectShark",    js_ConnectShark,    0,0},
-    {"disconnectShark", js_DisconnectShark, 0,0},
 #endif
 #ifdef MOZ_CALLGRIND
     {"startCallgrind",  js_StartCallgrind,  0,0},
@@ -1129,8 +1121,6 @@ XPCShellEnvironment::Init()
         return false;
     }
 
-    xpc_LocalizeContext(cx);
-
     nsRefPtr<FullTrustSecMan> secman(new FullTrustSecMan());
     xpc->SetSecurityManagerForJSContext(cx, secman, 0xFFFF);
 
@@ -1201,7 +1191,8 @@ XPCShellEnvironment::Init()
             return false;
         }
 
-        if (!JS_DefineFunctions(cx, globalObj, gGlobalFunctions)) {
+        if (!JS_DefineFunctions(cx, globalObj, gGlobalFunctions) ||
+	    !JS_DefineProfilingFunctions(cx, globalObj)) {
             NS_ERROR("JS_DefineFunctions failed!");
             return false;
         }
