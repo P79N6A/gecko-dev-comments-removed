@@ -36,6 +36,7 @@
 
 
 
+
 #ifdef MOZ_IPC
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/PAudioChild.h"
@@ -603,8 +604,8 @@ nsAudioStreamRemote::nsAudioStreamRemote()
    mFormat(FORMAT_S16_LE),
    mRate(0),
    mChannels(0),
-   mPaused(PR_FALSE),
-   mBytesPerSample(1)
+   mBytesPerSample(1),
+   mPaused(PR_FALSE)
 {}
 
 nsAudioStreamRemote::~nsAudioStreamRemote()
