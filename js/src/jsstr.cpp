@@ -3290,21 +3290,37 @@ static JSFunctionSpec string_methods[] = {
       offsetof(JSString::Data, inlineStorage)) },                             \
     { {(c), 0x00} } }
 
-#ifdef __SUNPRO_CC
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(__SUNPRO_CC) || defined(__xlC__)
 #pragma pack(8)
-#else
+#elif defined(__HP_aCC)
+#pragma pack 8
+#elif !defined(lint)
 #pragma pack(push, 8)
 #endif
 
 const JSString::Data JSAtom::unitStaticTable[]
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__xlC__)
 __attribute__ ((aligned (8)))
 #endif
 = { R8(0) };
 
-#ifdef __SUNPRO_CC
+#if defined(__SUNPRO_CC)
 #pragma pack(0)
-#else
+#elif defined(__HP_aCC)
+#pragma pack
+#elif !defined(lint)
 #pragma pack(pop)
 #endif
 
@@ -3350,21 +3366,25 @@ const jschar JSAtom::fromSmallChar[] = { R6(0) };
       offsetof(JSString::Data, inlineStorage)) },                             \
     { {FROM_SMALL_CHAR((c) >> 6), FROM_SMALL_CHAR((c) & 0x3F), 0x00} } }
 
-#ifdef __SUNPRO_CC
+#if defined(__SUNPRO_CC) || defined(__xlC__)
 #pragma pack(8)
-#else
+#elif defined(__HP_aCC)
+#pragma pack 8
+#elif !defined(lint)
 #pragma pack(push, 8)
 #endif
 
 const JSString::Data JSAtom::length2StaticTable[]
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__xlC__)
 __attribute__ ((aligned (8)))
 #endif
 = { R12(0) };
 
-#ifdef __SUNPRO_CC
+#if defined(__SUNPRO_CC)
 #pragma pack(0)
-#else
+#elif defined(__HP_aCC)
+#pragma pack
+#elif !defined(lint)
 #pragma pack(pop)
 #endif
 
@@ -3386,14 +3406,16 @@ __attribute__ ((aligned (8)))
 
 JS_STATIC_ASSERT(100 + (1 << 7) + (1 << 4) + (1 << 3) + (1 << 2) == 256);
 
-#ifdef __SUNPRO_CC
+#if defined(__SUNPRO_CC) || defined(__xlC__)
 #pragma pack(8)
-#else
+#elif defined(__HP_aCC)
+#pragma pack 8
+#elif !defined(lint)
 #pragma pack(push, 8)
 #endif
 
 const JSString::Data JSAtom::hundredStaticTable[]
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__xlC__)
 __attribute__ ((aligned (8)))
 #endif
 = { R7(100), 
@@ -3414,9 +3436,11 @@ const JSString::Data *const JSAtom::intStaticTable[] = { R8(0) };
 
 #undef R
 
-#ifdef __SUNPRO_CC
+#if defined(__SUNPRO_CC)
 #pragma pack(0)
-#else
+#elif defined(__HP_aCC)
+#pragma pack
+#elif !defined(lint)
 #pragma pack(pop)
 #endif
 
