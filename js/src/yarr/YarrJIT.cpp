@@ -2090,6 +2090,22 @@ class YarrGenerator : private MacroAssembler {
             }
         } else if (term->parentheses.isTerminal) {
             
+            
+            
+            
+            
+            
+            Vector<PatternAlternative*>& alternatives = term->parentheses.disjunction->m_alternatives;
+            if (alternatives.size() != 1) {
+                for (unsigned i = 0; i < alternatives.size(); ++i) {
+                    if (alternatives[i]->m_minimumSize == 0) {
+                        m_shouldFallBack = true;
+                        return;
+                    }
+                }
+            }
+                        
+            
             parenthesesBeginOpCode = OpParenthesesSubpatternTerminalBegin;
             parenthesesEndOpCode = OpParenthesesSubpatternTerminalEnd;
         } else {
