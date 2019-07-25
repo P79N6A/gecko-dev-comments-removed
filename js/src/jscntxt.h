@@ -117,6 +117,8 @@ namespace mjit {
 class JaegerCompartment;
 }
 
+class WeakMapBase;
+
 
 
 
@@ -423,7 +425,7 @@ struct JSRuntime {
     int64               gcJitReleaseTime;
     JSGCMode            gcMode;
     volatile bool       gcIsNeeded;
-    JSObject           *gcWeakMapList;
+    js::WeakMapBase     *gcWeakMapList;
 
     
     void                *gcMarkStackObjs[js::OBJECT_MARK_STACK_SIZE / sizeof(void *)];
