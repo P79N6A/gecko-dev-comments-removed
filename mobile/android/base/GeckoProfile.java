@@ -369,7 +369,6 @@ public final class GeckoProfile {
             parser.addSection(generalSection);
 
             
-            Log.i(LOGTAG, "WESJ - SET DEFAULT");
             profileSection.setProperty("Default", 1);
         }
 
