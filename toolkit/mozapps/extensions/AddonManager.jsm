@@ -704,9 +704,6 @@ var AddonManagerInternal = {
 
         this.callManagerListeners("onCompatibilityModeChanged");
 
-        
-        
-        
         if (gStrictCompatibility != oldValue)
           this.updateAddonAppDisabledStates();
 
