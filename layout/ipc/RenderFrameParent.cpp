@@ -64,23 +64,37 @@ AssertInTopLevelChromeDoc(ContainerLayer* aContainer,
     "Expected frame to be in top-level chrome document");
 }
 
+static void
+AssertValidContainerOfShadowTree(ContainerLayer* aContainer,
+                                 Layer* aShadowRoot)
+{
+  NS_ABORT_IF_FALSE(
+    !aContainer || (aShadowRoot &&
+                    aShadowRoot == aContainer->GetFirstChild() &&
+                    nsnull == aShadowRoot->GetNextSibling()),
+    "container of shadow tree may only be null or have 1 child that is the shadow root");
+}
+
+
+
 
 
 
 static void
-SetTransformFor(ContainerLayer* aContainer, nsIFrame* aContainedFrame,
-                const FrameMetrics& aMetrics, const ViewportConfig& aConfig,
-                nsDisplayListBuilder* aBuilder)
+ComputeShadowTreeTransform(nsIFrame* aContainerFrame,
+                           const FrameMetrics& aMetrics,
+                           const ViewportConfig& aConfig,
+                           nsDisplayListBuilder* aBuilder,
+                           nsIntPoint* aShadowTranslation,
+                           float* aShadowXScale,
+                           float* aShadowYScale)
 {
-  NS_ABORT_IF_FALSE(aContainer && aContainedFrame, "args must be nonnull");
-  AssertInTopLevelChromeDoc(aContainer, aContainedFrame);
-
-  nscoord auPerDevPixel = aContainedFrame->PresContext()->AppUnitsPerDevPixel();
+  nscoord auPerDevPixel = aContainerFrame->PresContext()->AppUnitsPerDevPixel();
   
   nsPoint frameOffset =
-    (aBuilder->ToReferenceFrame(aContainedFrame->GetParent()) +
-     aContainedFrame->GetContentRect().TopLeft());
-  nsIntPoint translation = frameOffset.ToNearestPixels(auPerDevPixel);
+    (aBuilder->ToReferenceFrame(aContainerFrame->GetParent()) +
+     aContainerFrame->GetContentRect().TopLeft());
+  *aShadowTranslation = frameOffset.ToNearestPixels(auPerDevPixel);
 
   
   
@@ -92,23 +106,10 @@ SetTransformFor(ContainerLayer* aContainer, nsIFrame* aContainedFrame,
     (aConfig.mScrollOffset.ToNearestPixels(auPerDevPixel));
   scrollCompensation.x -= aMetrics.mViewportScrollOffset.x * aConfig.mXScale;
   scrollCompensation.y -= aMetrics.mViewportScrollOffset.y * aConfig.mYScale;
-  translation -= scrollCompensation;
+  *aShadowTranslation -= scrollCompensation;
 
-  gfxMatrix transform;
-  transform.Translate(gfxPoint(translation.x, translation.y));
-  transform.Scale(aConfig.mXScale, aConfig.mYScale);
-  aContainer->SetTransform(gfx3DMatrix::From2D(transform));
-}
-
-static void
-AssertValidContainerOfShadowTree(ContainerLayer* aContainer,
-                                 Layer* aShadowRoot)
-{
-  NS_ABORT_IF_FALSE(
-    !aContainer || (aShadowRoot &&
-                    aShadowRoot == aContainer->GetFirstChild() &&
-                    nsnull == aShadowRoot->GetNextSibling()),
-    "container of shadow tree may only be null or have 1 child that is the shadow root");
+  *aShadowXScale = aConfig.mXScale;
+  *aShadowYScale = aConfig.mYScale;
 }
 
 static Layer*
@@ -218,10 +219,19 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
   }
 
   if (mContainer) {
-    SetTransformFor(mContainer, aFrame,
-                    shadowRoot->GetFrameMetrics(),
-                    mFrameLoader->GetViewportConfig(),
-                    aBuilder);
+    AssertInTopLevelChromeDoc(mContainer, aFrame);
+    nsIntPoint shadowTranslation;
+    float shadowXScale, shadowYScale;
+    ComputeShadowTreeTransform(aFrame,
+                               shadowRoot->GetFrameMetrics(),
+                               mFrameLoader->GetViewportConfig(),
+                               aBuilder,
+                               &shadowTranslation,
+                               &shadowXScale, &shadowYScale);
+    gfxMatrix transform;
+    transform.Translate(gfxPoint(shadowTranslation.x, shadowTranslation.y));
+    transform.Scale(shadowXScale, shadowYScale);
+    mContainer->SetTransform(gfx3DMatrix::From2D(transform));
     mContainer->SetClipRect(nsnull);
   }
 
