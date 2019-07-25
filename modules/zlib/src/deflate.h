@@ -48,6 +48,9 @@
 #define MAX_BITS 15
 
 
+#define Buf_size 16
+
+
 #define INIT_STATE    42
 #define EXTRA_STATE   69
 #define NAME_STATE    73
@@ -244,7 +247,7 @@ typedef struct internal_state {
     ulg opt_len;        
     ulg static_len;     
     uInt matches;       
-    int last_eob_len;   
+    uInt insert;        
 
 #ifdef DEBUG
     ulg compressed_len; 
@@ -294,6 +297,7 @@ void ZLIB_INTERNAL _tr_init OF((deflate_state *s));
 int ZLIB_INTERNAL _tr_tally OF((deflate_state *s, unsigned dist, unsigned lc));
 void ZLIB_INTERNAL _tr_flush_block OF((deflate_state *s, charf *buf,
                         ulg stored_len, int last));
+void ZLIB_INTERNAL _tr_flush_bits OF((deflate_state *s));
 void ZLIB_INTERNAL _tr_align OF((deflate_state *s));
 void ZLIB_INTERNAL _tr_stored_block OF((deflate_state *s, charf *buf,
                         ulg stored_len, int last));

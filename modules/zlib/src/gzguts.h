@@ -27,13 +27,61 @@
 #endif
 #include <fcntl.h>
 
+#if defined(__TURBOC__) || defined(_MSC_VER)
+#  include <io.h>
+#endif
+
 #ifdef NO_DEFLATE       
 #  define NO_GZCOMPRESS
 #endif
 
-#ifdef _MSC_VER
-#  include <io.h>
-#  define vsnprintf _vsnprintf
+#if defined(STDC99) || (defined(__TURBOC__) && __TURBOC__ >= 0x550)
+#  ifndef HAVE_VSNPRINTF
+#    define HAVE_VSNPRINTF
+#  endif
+#endif
+
+#if defined(__CYGWIN__)
+#  ifndef HAVE_VSNPRINTF
+#    define HAVE_VSNPRINTF
+#  endif
+#endif
+
+#if defined(MSDOS) && defined(__BORLANDC__) && (BORLANDC > 0x410)
+#  ifndef HAVE_VSNPRINTF
+#    define HAVE_VSNPRINTF
+#  endif
+#endif
+
+#ifndef HAVE_VSNPRINTF
+#  ifdef MSDOS
+
+
+#    define NO_vsnprintf
+#  endif
+#  ifdef __TURBOC__
+#    define NO_vsnprintf
+#  endif
+#  ifdef WIN32
+
+#    if !defined(vsnprintf) && !defined(NO_vsnprintf)
+#      if !defined(_MSC_VER) || ( defined(_MSC_VER) && _MSC_VER < 1500 )
+#         define vsnprintf _vsnprintf
+#      endif
+#    endif
+#  endif
+#  ifdef __SASC
+#    define NO_vsnprintf
+#  endif
+#  ifdef VMS
+#    define NO_vsnprintf
+#  endif
+#  ifdef __OS400__
+#    define NO_vsnprintf
+#  endif
+#  ifdef __MVS__
+#    define NO_vsnprintf
+#  endif
 #endif
 
 #ifndef local
@@ -69,6 +117,13 @@
 #endif
 
 
+#if MAX_MEM_LEVEL >= 8
+#  define DEF_MEM_LEVEL 8
+#else
+#  define DEF_MEM_LEVEL  MAX_MEM_LEVEL
+#endif
+
+
 #define GZBUFSIZE 8192
 
 
@@ -85,22 +140,24 @@
 
 typedef struct {
         
+    struct gzFile_s x;      
+                            
+                            
+                            
+        
     int mode;               
     int fd;                 
     char *path;             
-    z_off64_t pos;          
     unsigned size;          
     unsigned want;          
     unsigned char *in;      
     unsigned char *out;     
-    unsigned char *next;    
-        
-    unsigned have;          
-    int eof;                
-    z_off64_t start;        
-    z_off64_t raw;          
-    int how;                
     int direct;             
+        
+    int how;                
+    z_off64_t start;        
+    int eof;                
+    int past;               
         
     int level;              
     int strategy;           

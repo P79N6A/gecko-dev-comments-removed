@@ -74,11 +74,6 @@ local const uch bl_order[BL_CODES]
 
 
 
-#define Buf_size (8 * 2*sizeof(char))
-
-
-
-
 
 
 
@@ -399,7 +394,6 @@ void ZLIB_INTERNAL _tr_init(s)
 
     s->bi_buf = 0;
     s->bi_valid = 0;
-    s->last_eob_len = 8; 
 #ifdef DEBUG
     s->compressed_len = 0L;
     s->bits_sent = 0L;
@@ -885,9 +879,11 @@ void ZLIB_INTERNAL _tr_stored_block(s, buf, stored_len, last)
 
 
 
-
-
-
+void ZLIB_INTERNAL _tr_flush_bits(s)
+    deflate_state *s;
+{
+    bi_flush(s);
+}
 
 
 
@@ -902,20 +898,6 @@ void ZLIB_INTERNAL _tr_align(s)
     s->compressed_len += 10L; 
 #endif
     bi_flush(s);
-    
-
-
-
-
-    if (1 + s->last_eob_len + 10 - s->bi_valid < 9) {
-        send_bits(s, STATIC_TREES<<1, 3);
-        send_code(s, END_BLOCK, static_ltree);
-#ifdef DEBUG
-        s->compressed_len += 10L;
-#endif
-        bi_flush(s);
-    }
-    s->last_eob_len = 7;
 }
 
 
@@ -1118,7 +1100,6 @@ local void compress_block(s, ltree, dtree)
     } while (lx < s->last_lit);
 
     send_code(s, END_BLOCK, ltree);
-    s->last_eob_len = ltree[END_BLOCK].Len;
 }
 
 
@@ -1226,7 +1207,6 @@ local void copy_block(s, buf, len, header)
     int      header;  
 {
     bi_windup(s);        
-    s->last_eob_len = 8; 
 
     if (header) {
         put_short(s, (ush)len);

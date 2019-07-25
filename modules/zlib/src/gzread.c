@@ -8,10 +8,9 @@
 
 local int gz_load OF((gz_statep, unsigned char *, unsigned, unsigned *));
 local int gz_avail OF((gz_statep));
-local int gz_next4 OF((gz_statep, unsigned long *));
-local int gz_head OF((gz_statep));
+local int gz_look OF((gz_statep));
 local int gz_decomp OF((gz_statep));
-local int gz_make OF((gz_statep));
+local int gz_fetch OF((gz_statep));
 local int gz_skip OF((gz_statep, z_off64_t));
 
 
@@ -47,47 +46,29 @@ local int gz_load(state, buf, len, have)
 
 
 
+
+
 local int gz_avail(state)
     gz_statep state;
 {
+    unsigned got;
     z_streamp strm = &(state->strm);
 
-    if (state->err != Z_OK)
+    if (state->err != Z_OK && state->err != Z_BUF_ERROR)
         return -1;
     if (state->eof == 0) {
-        if (gz_load(state, state->in, state->size,
-                (unsigned *)&(strm->avail_in)) == -1)
+        if (strm->avail_in)
+            memmove(state->in, strm->next_in, strm->avail_in);
+        if (gz_load(state, state->in + strm->avail_in,
+                    state->size - strm->avail_in, &got) == -1)
             return -1;
+        strm->avail_in += got;
         strm->next_in = state->in;
     }
     return 0;
 }
 
 
-#define NEXT() ((strm->avail_in == 0 && gz_avail(state) == -1) ? -1 : \
-                (strm->avail_in == 0 ? -1 : \
-                 (strm->avail_in--, *(strm->next_in)++)))
-
-
-
-local int gz_next4(state, ret)
-    gz_statep state;
-    unsigned long *ret;
-{
-    int ch;
-    unsigned long val;
-    z_streamp strm = &(state->strm);
-
-    val = NEXT();
-    val += (unsigned)NEXT() << 8;
-    val += (unsigned long)NEXT() << 16;
-    ch = NEXT();
-    if (ch == -1)
-        return -1;
-    val += (unsigned long)ch << 24;
-    *ret = val;
-    return 0;
-}
 
 
 
@@ -96,17 +77,10 @@ local int gz_next4(state, ret)
 
 
 
-
-
-
-
-
-local int gz_head(state)
+local int gz_look(state)
     gz_statep state;
 {
     z_streamp strm = &(state->strm);
-    int flags;
-    unsigned len;
 
     
     if (state->size == 0) {
@@ -129,7 +103,7 @@ local int gz_head(state)
         state->strm.opaque = Z_NULL;
         state->strm.avail_in = 0;
         state->strm.next_in = Z_NULL;
-        if (inflateInit2(&(state->strm), -15) != Z_OK) {    
+        if (inflateInit2(&(state->strm), 15 + 16) != Z_OK) {    
             free(state->out);
             free(state->in);
             state->size = 0;
@@ -139,7 +113,7 @@ local int gz_head(state)
     }
 
     
-    if (strm->avail_in == 0) {
+    if (strm->avail_in < 2) {
         if (gz_avail(state) == -1)
             return -1;
         if (strm->avail_in == 0)
@@ -147,74 +121,36 @@ local int gz_head(state)
     }
 
     
-    if (strm->next_in[0] == 31) {
-        strm->avail_in--;
-        strm->next_in++;
-        if (strm->avail_in == 0 && gz_avail(state) == -1)
-            return -1;
-        if (strm->avail_in && strm->next_in[0] == 139) {
-            
-            strm->avail_in--;
-            strm->next_in++;
-
-            
-            if (NEXT() != 8) {      
-                gz_error(state, Z_DATA_ERROR, "unknown compression method");
-                return -1;
-            }
-            flags = NEXT();
-            if (flags & 0xe0) {     
-                gz_error(state, Z_DATA_ERROR, "unknown header flags set");
-                return -1;
-            }
-            NEXT();                 
-            NEXT();
-            NEXT();
-            NEXT();
-            NEXT();                 
-            NEXT();                 
-            if (flags & 4) {        
-                len = (unsigned)NEXT();
-                len += (unsigned)NEXT() << 8;
-                while (len--)
-                    if (NEXT() < 0)
-                        break;
-            }
-            if (flags & 8)          
-                while (NEXT() > 0)
-                    ;
-            if (flags & 16)         
-                while (NEXT() > 0)
-                    ;
-            if (flags & 2) {        
-                NEXT();
-                NEXT();
-            }
-            
 
 
-            
-            inflateReset(strm);
-            strm->adler = crc32(0L, Z_NULL, 0);
-            state->how = GZIP;
-            state->direct = 0;
-            return 0;
-        }
-        else {
-            
-            state->out[0] = 31;
-            state->have = 1;
-        }
+
+
+
+
+    if (strm->avail_in > 1 &&
+            strm->next_in[0] == 31 && strm->next_in[1] == 139) {
+        inflateReset(strm);
+        state->how = GZIP;
+        state->direct = 0;
+        return 0;
+    }
+
+    
+
+    if (state->direct == 0) {
+        strm->avail_in = 0;
+        state->eof = 1;
+        state->x.have = 0;
+        return 0;
     }
 
     
 
 
-    state->raw = state->pos;
-    state->next = state->out;
+    state->x.next = state->out;
     if (strm->avail_in) {
-        memcpy(state->next + state->have, strm->next_in, strm->avail_in);
-        state->have += strm->avail_in;
+        memcpy(state->x.next, strm->next_in, strm->avail_in);
+        state->x.have = strm->avail_in;
         strm->avail_in = 0;
     }
     state->how = COPY;
@@ -227,15 +163,11 @@ local int gz_head(state)
 
 
 
-
-
-
 local int gz_decomp(state)
     gz_statep state;
 {
-    int ret;
+    int ret = Z_OK;
     unsigned had;
-    unsigned long crc, len;
     z_streamp strm = &(state->strm);
 
     
@@ -245,15 +177,15 @@ local int gz_decomp(state)
         if (strm->avail_in == 0 && gz_avail(state) == -1)
             return -1;
         if (strm->avail_in == 0) {
-            gz_error(state, Z_DATA_ERROR, "unexpected end of file");
-            return -1;
+            gz_error(state, Z_BUF_ERROR, "unexpected end of file");
+            break;
         }
 
         
         ret = inflate(strm, Z_NO_FLUSH);
         if (ret == Z_STREAM_ERROR || ret == Z_NEED_DICT) {
             gz_error(state, Z_STREAM_ERROR,
-                      "internal error: inflate stream corrupt");
+                     "internal error: inflate stream corrupt");
             return -1;
         }
         if (ret == Z_MEM_ERROR) {
@@ -262,33 +194,18 @@ local int gz_decomp(state)
         }
         if (ret == Z_DATA_ERROR) {              
             gz_error(state, Z_DATA_ERROR,
-                      strm->msg == NULL ? "compressed data error" : strm->msg);
+                     strm->msg == NULL ? "compressed data error" : strm->msg);
             return -1;
         }
     } while (strm->avail_out && ret != Z_STREAM_END);
 
     
-    state->have = had - strm->avail_out;
-    state->next = strm->next_out - state->have;
-    strm->adler = crc32(strm->adler, state->next, state->have);
+    state->x.have = had - strm->avail_out;
+    state->x.next = strm->next_out - state->x.have;
 
     
-    if (ret == Z_STREAM_END) {
-        if (gz_next4(state, &crc) == -1 || gz_next4(state, &len) == -1) {
-            gz_error(state, Z_DATA_ERROR, "unexpected end of file");
-            return -1;
-        }
-        if (crc != strm->adler) {
-            gz_error(state, Z_DATA_ERROR, "incorrect data check");
-            return -1;
-        }
-        if (len != (strm->total_out & 0xffffffffL)) {
-            gz_error(state, Z_DATA_ERROR, "incorrect length check");
-            return -1;
-        }
-        state->how = LOOK;      
-
-    }
+    if (ret == Z_STREAM_END)
+        state->how = LOOK;
 
     
     return 0;
@@ -300,29 +217,32 @@ local int gz_decomp(state)
 
 
 
-
-local int gz_make(state)
+local int gz_fetch(state)
     gz_statep state;
 {
     z_streamp strm = &(state->strm);
 
-    if (state->how == LOOK) {           
-        if (gz_head(state) == -1)
-            return -1;
-        if (state->have)                
+    do {
+        switch(state->how) {
+        case LOOK:      
+            if (gz_look(state) == -1)
+                return -1;
+            if (state->how == LOOK)
+                return 0;
+            break;
+        case COPY:      
+            if (gz_load(state, state->out, state->size << 1, &(state->x.have))
+                    == -1)
+                return -1;
+            state->x.next = state->out;
             return 0;
-    }
-    if (state->how == COPY) {           
-        if (gz_load(state, state->out, state->size << 1, &(state->have)) == -1)
-            return -1;
-        state->next = state->out;
-    }
-    else if (state->how == GZIP) {      
-        strm->avail_out = state->size << 1;
-        strm->next_out = state->out;
-        if (gz_decomp(state) == -1)
-            return -1;
-    }
+        case GZIP:      
+            strm->avail_out = state->size << 1;
+            strm->next_out = state->out;
+            if (gz_decomp(state) == -1)
+                return -1;
+        }
+    } while (state->x.have == 0 && (!state->eof || strm->avail_in));
     return 0;
 }
 
@@ -336,12 +256,12 @@ local int gz_skip(state, len)
     
     while (len)
         
-        if (state->have) {
-            n = GT_OFF(state->have) || (z_off64_t)state->have > len ?
-                (unsigned)len : state->have;
-            state->have -= n;
-            state->next += n;
-            state->pos += n;
+        if (state->x.have) {
+            n = GT_OFF(state->x.have) || (z_off64_t)state->x.have > len ?
+                (unsigned)len : state->x.have;
+            state->x.have -= n;
+            state->x.next += n;
+            state->x.pos += n;
             len -= n;
         }
 
@@ -352,7 +272,7 @@ local int gz_skip(state, len)
         
         else {
             
-            if (gz_make(state) == -1)
+            if (gz_fetch(state) == -1)
                 return -1;
         }
     return 0;
@@ -375,13 +295,14 @@ int ZEXPORT gzread(file, buf, len)
     strm = &(state->strm);
 
     
-    if (state->mode != GZ_READ || state->err != Z_OK)
+    if (state->mode != GZ_READ ||
+            (state->err != Z_OK && state->err != Z_BUF_ERROR))
         return -1;
 
     
 
     if ((int)len < 0) {
-        gz_error(state, Z_BUF_ERROR, "requested length does not fit in int");
+        gz_error(state, Z_DATA_ERROR, "requested length does not fit in int");
         return -1;
     }
 
@@ -400,22 +321,24 @@ int ZEXPORT gzread(file, buf, len)
     got = 0;
     do {
         
-        if (state->have) {
-            n = state->have > len ? len : state->have;
-            memcpy(buf, state->next, n);
-            state->next += n;
-            state->have -= n;
+        if (state->x.have) {
+            n = state->x.have > len ? len : state->x.have;
+            memcpy(buf, state->x.next, n);
+            state->x.next += n;
+            state->x.have -= n;
         }
 
         
-        else if (state->eof && strm->avail_in == 0)
+        else if (state->eof && strm->avail_in == 0) {
+            state->past = 1;        
             break;
+        }
 
         
 
         else if (state->how == LOOK || len < (state->size << 1)) {
             
-            if (gz_make(state) == -1)
+            if (gz_fetch(state) == -1)
                 return -1;
             continue;       
             
@@ -434,15 +357,15 @@ int ZEXPORT gzread(file, buf, len)
             strm->next_out = buf;
             if (gz_decomp(state) == -1)
                 return -1;
-            n = state->have;
-            state->have = 0;
+            n = state->x.have;
+            state->x.have = 0;
         }
 
         
         len -= n;
         buf = (char *)buf + n;
         got += n;
-        state->pos += n;
+        state->x.pos += n;
     } while (len);
 
     
@@ -450,7 +373,7 @@ int ZEXPORT gzread(file, buf, len)
 }
 
 
-int ZEXPORT gzgetc(file)
+int ZEXPORT gzgetc_(file)
     gzFile file;
 {
     int ret;
@@ -463,20 +386,28 @@ int ZEXPORT gzgetc(file)
     state = (gz_statep)file;
 
     
-    if (state->mode != GZ_READ || state->err != Z_OK)
+    if (state->mode != GZ_READ ||
+        (state->err != Z_OK && state->err != Z_BUF_ERROR))
         return -1;
 
     
-    if (state->have) {
-        state->have--;
-        state->pos++;
-        return *(state->next)++;
+    if (state->x.have) {
+        state->x.have--;
+        state->x.pos++;
+        return *(state->x.next)++;
     }
 
     
     ret = gzread(file, buf, 1);
     return ret < 1 ? -1 : buf[0];
 }
+
+#undef gzgetc
+int ZEXPORT gzgetc(file)
+gzFile file;
+{
+    return gzgetc_(file);
+}    
 
 
 int ZEXPORT gzungetc(c, file)
@@ -491,7 +422,8 @@ int ZEXPORT gzungetc(c, file)
     state = (gz_statep)file;
 
     
-    if (state->mode != GZ_READ || state->err != Z_OK)
+    if (state->mode != GZ_READ ||
+        (state->err != Z_OK && state->err != Z_BUF_ERROR))
         return -1;
 
     
@@ -506,32 +438,34 @@ int ZEXPORT gzungetc(c, file)
         return -1;
 
     
-    if (state->have == 0) {
-        state->have = 1;
-        state->next = state->out + (state->size << 1) - 1;
-        state->next[0] = c;
-        state->pos--;
+    if (state->x.have == 0) {
+        state->x.have = 1;
+        state->x.next = state->out + (state->size << 1) - 1;
+        state->x.next[0] = c;
+        state->x.pos--;
+        state->past = 0;
         return c;
     }
 
     
-    if (state->have == (state->size << 1)) {
-        gz_error(state, Z_BUF_ERROR, "out of room to push characters");
+    if (state->x.have == (state->size << 1)) {
+        gz_error(state, Z_DATA_ERROR, "out of room to push characters");
         return -1;
     }
 
     
-    if (state->next == state->out) {
-        unsigned char *src = state->out + state->have;
+    if (state->x.next == state->out) {
+        unsigned char *src = state->out + state->x.have;
         unsigned char *dest = state->out + (state->size << 1);
         while (src > state->out)
             *--dest = *--src;
-        state->next = dest;
+        state->x.next = dest;
     }
-    state->have++;
-    state->next--;
-    state->next[0] = c;
-    state->pos--;
+    state->x.have++;
+    state->x.next--;
+    state->x.next[0] = c;
+    state->x.pos--;
+    state->past = 0;
     return c;
 }
 
@@ -552,7 +486,8 @@ char * ZEXPORT gzgets(file, buf, len)
     state = (gz_statep)file;
 
     
-    if (state->mode != GZ_READ || state->err != Z_OK)
+    if (state->mode != GZ_READ ||
+        (state->err != Z_OK && state->err != Z_BUF_ERROR))
         return NULL;
 
     
@@ -569,32 +504,31 @@ char * ZEXPORT gzgets(file, buf, len)
     left = (unsigned)len - 1;
     if (left) do {
         
-        if (state->have == 0) {
-            if (gz_make(state) == -1)
-                return NULL;            
-            if (state->have == 0) {     
-                if (buf == str)         
-                    return NULL;
-                break;                  
-            }
+        if (state->x.have == 0 && gz_fetch(state) == -1)
+            return NULL;                
+        if (state->x.have == 0) {       
+            state->past = 1;            
+            break;                      
         }
 
         
-        n = state->have > left ? left : state->have;
-        eol = memchr(state->next, '\n', n);
+        n = state->x.have > left ? left : state->x.have;
+        eol = memchr(state->x.next, '\n', n);
         if (eol != NULL)
-            n = (unsigned)(eol - state->next) + 1;
+            n = (unsigned)(eol - state->x.next) + 1;
 
         
-        memcpy(buf, state->next, n);
-        state->have -= n;
-        state->next += n;
-        state->pos += n;
+        memcpy(buf, state->x.next, n);
+        state->x.have -= n;
+        state->x.next += n;
+        state->x.pos += n;
         left -= n;
         buf += n;
     } while (left && eol == NULL);
 
     
+    if (buf == str)
+        return NULL;
     buf[0] = 0;
     return str;
 }
@@ -611,13 +545,9 @@ int ZEXPORT gzdirect(file)
     state = (gz_statep)file;
 
     
-    if (state->mode != GZ_READ)
-        return 0;
 
-    
-
-    if (state->how == LOOK && state->have == 0)
-        (void)gz_head(state);
+    if (state->mode == GZ_READ && state->how == LOOK && state->x.have == 0)
+        (void)gz_look(state);
 
     
     return state->direct;
@@ -627,7 +557,7 @@ int ZEXPORT gzdirect(file)
 int ZEXPORT gzclose_r(file)
     gzFile file;
 {
-    int ret;
+    int ret, err;
     gz_statep state;
 
     
@@ -645,9 +575,10 @@ int ZEXPORT gzclose_r(file)
         free(state->out);
         free(state->in);
     }
+    err = state->err == Z_BUF_ERROR ? Z_BUF_ERROR : Z_OK;
     gz_error(state, Z_OK, NULL);
     free(state->path);
     ret = close(state->fd);
     free(state);
-    return ret ? Z_ERRNO : Z_OK;
+    return ret ? Z_ERRNO : err;
 }

@@ -9,7 +9,7 @@
 #define MAXBITS 15
 
 const char inflate_copyright[] =
-   " inflate 1.2.5 Copyright 1995-2010 Mark Adler ";
+   " inflate 1.2.6 Copyright 1995-2012 Mark Adler ";
 
 
 
@@ -62,7 +62,7 @@ unsigned short FAR *work;
         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0};
     static const unsigned short lext[31] = { 
         16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18,
-        19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 16, 73, 195};
+        19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 16, 203, 69};
     static const unsigned short dbase[32] = { 
         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
@@ -292,35 +292,11 @@ unsigned short FAR *work;
     
 
 
-
-
-
-
-    here.op = (unsigned char)64;                
-    here.bits = (unsigned char)(len - drop);
-    here.val = (unsigned short)0;
-    while (huff != 0) {
-        
-        if (drop != 0 && (huff & mask) != low) {
-            drop = 0;
-            len = root;
-            next = *table;
-            here.bits = (unsigned char)len;
-        }
-
-        
-        next[huff >> drop] = here;
-
-        
-        incr = 1U << (len - 1);
-        while (huff & incr)
-            incr >>= 1;
-        if (incr != 0) {
-            huff &= incr - 1;
-            huff += incr;
-        }
-        else
-            huff = 0;
+    if (huff != 0) {
+        here.op = (unsigned char)64;            
+        here.bits = (unsigned char)(len - drop);
+        here.val = (unsigned short)0;
+        next[huff] = here;
     }
 
     

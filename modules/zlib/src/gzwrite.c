@@ -20,37 +20,48 @@ local int gz_init(state)
 
     
     state->in = malloc(state->want);
-    state->out = malloc(state->want);
-    if (state->in == NULL || state->out == NULL) {
-        if (state->out != NULL)
-            free(state->out);
-        if (state->in != NULL)
-            free(state->in);
+    if (state->in == NULL) {
         gz_error(state, Z_MEM_ERROR, "out of memory");
         return -1;
     }
 
     
-    strm->zalloc = Z_NULL;
-    strm->zfree = Z_NULL;
-    strm->opaque = Z_NULL;
-    ret = deflateInit2(strm, state->level, Z_DEFLATED,
-                       15 + 16, 8, state->strategy);
-    if (ret != Z_OK) {
-        free(state->in);
-        gz_error(state, Z_MEM_ERROR, "out of memory");
-        return -1;
+    if (!state->direct) {
+        
+        state->out = malloc(state->want);
+        if (state->out == NULL) {
+            free(state->in);
+            gz_error(state, Z_MEM_ERROR, "out of memory");
+            return -1;
+        }
+
+        
+        strm->zalloc = Z_NULL;
+        strm->zfree = Z_NULL;
+        strm->opaque = Z_NULL;
+        ret = deflateInit2(strm, state->level, Z_DEFLATED,
+                           MAX_WBITS + 16, DEF_MEM_LEVEL, state->strategy);
+        if (ret != Z_OK) {
+            free(state->out);
+            free(state->in);
+            gz_error(state, Z_MEM_ERROR, "out of memory");
+            return -1;
+        }
     }
 
     
     state->size = state->want;
 
     
-    strm->avail_out = state->size;
-    strm->next_out = state->out;
-    state->next = strm->next_out;
+    if (!state->direct) {
+        strm->avail_out = state->size;
+        strm->next_out = state->out;
+        state->x.next = strm->next_out;
+    }
     return 0;
 }
+
+
 
 
 
@@ -69,14 +80,25 @@ local int gz_comp(state, flush)
         return -1;
 
     
+    if (state->direct) {
+        got = write(state->fd, strm->next_in, strm->avail_in);
+        if (got < 0 || (unsigned)got != strm->avail_in) {
+            gz_error(state, Z_ERRNO, zstrerror());
+            return -1;
+        }
+        strm->avail_in = 0;
+        return 0;
+    }
+
+    
     ret = Z_OK;
     do {
         
 
         if (strm->avail_out == 0 || (flush != Z_NO_FLUSH &&
             (flush != Z_FINISH || ret == Z_STREAM_END))) {
-            have = (unsigned)(strm->next_out - state->next);
-            if (have && ((got = write(state->fd, state->next, have)) < 0 ||
+            have = (unsigned)(strm->next_out - state->x.next);
+            if (have && ((got = write(state->fd, state->x.next, have)) < 0 ||
                          (unsigned)got != have)) {
                 gz_error(state, Z_ERRNO, zstrerror());
                 return -1;
@@ -85,7 +107,7 @@ local int gz_comp(state, flush)
                 strm->avail_out = state->size;
                 strm->next_out = state->out;
             }
-            state->next = strm->next_out;
+            state->x.next = strm->next_out;
         }
 
         
@@ -131,7 +153,7 @@ local int gz_zero(state, len)
         }
         strm->avail_in = n;
         strm->next_in = state->in;
-        state->pos += n;
+        state->x.pos += n;
         if (gz_comp(state, Z_NO_FLUSH) == -1)
             return -1;
         len -= n;
@@ -163,7 +185,7 @@ int ZEXPORT gzwrite(file, buf, len)
     
 
     if ((int)len < 0) {
-        gz_error(state, Z_BUF_ERROR, "requested length does not fit in int");
+        gz_error(state, Z_DATA_ERROR, "requested length does not fit in int");
         return 0;
     }
 
@@ -193,7 +215,7 @@ int ZEXPORT gzwrite(file, buf, len)
                 n = len;
             memcpy(strm->next_in + strm->avail_in, buf, n);
             strm->avail_in += n;
-            state->pos += n;
+            state->x.pos += n;
             buf = (char *)buf + n;
             len -= n;
             if (len && gz_comp(state, Z_NO_FLUSH) == -1)
@@ -208,7 +230,7 @@ int ZEXPORT gzwrite(file, buf, len)
         
         strm->avail_in = len;
         strm->next_in = (voidp)buf;
-        state->pos += len;
+        state->x.pos += len;
         if (gz_comp(state, Z_NO_FLUSH) == -1)
             return 0;
     }
@@ -249,15 +271,15 @@ int ZEXPORT gzputc(file, c)
         if (strm->avail_in == 0)
             strm->next_in = state->in;
         strm->next_in[strm->avail_in++] = c;
-        state->pos++;
-        return c;
+        state->x.pos++;
+        return c & 0xff;
     }
 
     
     buf[0] = c;
     if (gzwrite(file, buf, 1) != 1)
         return -1;
-    return c;
+    return c & 0xff;
 }
 
 
@@ -274,7 +296,7 @@ int ZEXPORT gzputs(file, str)
     return ret == 0 && len != 0 ? -1 : ret;
 }
 
-#ifdef STDC
+#if defined(STDC) || defined(Z_HAVE_STDARG_H)
 #include <stdarg.h>
 
 
@@ -342,7 +364,7 @@ int ZEXPORTVA gzprintf (gzFile file, const char *format, ...)
     
     strm->avail_in = (unsigned)len;
     strm->next_in = state->in;
-    state->pos += len;
+    state->x.pos += len;
     return len;
 }
 
@@ -365,6 +387,10 @@ int ZEXPORTVA gzprintf (file, format, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
         return -1;
     state = (gz_statep)file;
     strm = &(state->strm);
+
+    
+    if (sizeof(int) != sizeof(void *))
+        return 0;
 
     
     if (state->mode != GZ_WRITE || state->err != Z_OK)
@@ -416,7 +442,7 @@ int ZEXPORTVA gzprintf (file, format, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
     
     strm->avail_in = (unsigned)len;
     strm->next_in = state->in;
-    state->pos += len;
+    state->x.pos += len;
     return len;
 }
 
@@ -500,7 +526,7 @@ int ZEXPORT gzsetparams(file, level, strategy)
 int ZEXPORT gzclose_w(file)
     gzFile file;
 {
-    int ret = 0;
+    int ret = Z_OK;
     gz_statep state;
 
     
@@ -515,17 +541,53 @@ int ZEXPORT gzclose_w(file)
     
     if (state->seek) {
         state->seek = 0;
-        ret += gz_zero(state, state->skip);
+        if (gz_zero(state, state->skip) == -1)
+            ret = state->err;
     }
 
     
-    ret += gz_comp(state, Z_FINISH);
-    (void)deflateEnd(&(state->strm));
-    free(state->out);
+    if (gz_comp(state, Z_FINISH) == -1)
+        ret = state->err;
+    if (!state->direct) {
+        (void)deflateEnd(&(state->strm));
+        free(state->out);
+    }
     free(state->in);
     gz_error(state, Z_OK, NULL);
     free(state->path);
-    ret += close(state->fd);
+    if (close(state->fd) == -1)
+        ret = Z_ERRNO;
     free(state);
-    return ret ? Z_ERRNO : Z_OK;
+    return ret;
+}
+
+
+unsigned long ZEXPORT gzflags()
+{
+    unsigned long flags = 0;
+#if defined(STDC) || defined(Z_HAVE_STDARG_H)
+#  ifdef NO_vsnprintf
+    flags += 1L << 25;
+#    ifdef HAS_vsprintf_void
+    flags += 1L << 26;
+#    endif
+#  else
+#    ifdef HAS_vsnprintf_void
+    flags += 1L << 26;
+#    endif
+#  endif
+#else
+    flags += 1L << 24;
+#  ifdef NO_snprintf
+    flags += 1L << 25;
+#    ifdef HAS_sprintf_void
+    flags += 1L << 26;
+#    endif
+#  else
+#    ifdef HAS_snprintf_void
+    flags += 1L << 26;
+#    endif
+#  endif
+#endif
+    return flags;
 }
