@@ -852,8 +852,7 @@ nsAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
 
   
   
-  nsAccessible* accessible =
-    GetAccService()->GetAccessibleOrContainer(content, accDocument);
+  nsAccessible* accessible = accDocument->GetAccessibleOrContainer(content);
   if (!accessible)
     return fallbackAnswer;
 
@@ -1147,7 +1146,7 @@ nsAccessible::TakeFocus()
   }
 
   nsCOMPtr<nsIDOMElement> element(do_QueryInterface(focusContent));
-  nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm)
     fm->SetFocus(element, 0);
 

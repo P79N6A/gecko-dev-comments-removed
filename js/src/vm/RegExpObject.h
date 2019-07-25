@@ -56,6 +56,26 @@
 #include "yarr/pcre/pcre.h"
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 namespace js {
 
 enum RegExpRunStatus
@@ -84,19 +104,16 @@ class RegExpObject : public JSObject
 
 
 
-    static inline RegExpObject *
-    create(JSContext *cx, RegExpStatics *res, const jschar *chars, size_t length, RegExpFlag flags,
-           TokenStream *tokenStream);
+    static RegExpObject *
+    create(JSContext *cx, RegExpStatics *res, const jschar *chars, size_t length,
+           RegExpFlag flags, TokenStream *ts);
 
-    static inline RegExpObject *
+    static RegExpObject *
     createNoStatics(JSContext *cx, const jschar *chars, size_t length, RegExpFlag flags,
-                    TokenStream *tokenStream);
+                    TokenStream *ts);
 
-    static inline RegExpObject *
-    createNoStatics(JSContext *cx, JSAtom *atom, RegExpFlag flags, TokenStream *tokenStream);
-
-    
-    JSFlatString *toString(JSContext *cx) const;
+    static RegExpObject *
+    createNoStatics(JSContext *cx, JSAtom *atom, RegExpFlag flags, TokenStream *ts);
 
     
 
@@ -109,8 +126,9 @@ class RegExpObject : public JSObject
 
 
 
-    RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length, size_t *lastIndex,
-                            LifoAllocScope &allocScope, MatchPairs **output);
+    RegExpRunStatus
+    execute(JSContext *cx, const jschar *chars, size_t length, size_t *lastIndex,
+            MatchPairs **output);
 
     
 
@@ -121,10 +139,12 @@ class RegExpObject : public JSObject
     inline void setLastIndex(double d);
     inline void zeroLastIndex();
 
-    JSLinearString *getSource() const {
-        return &getSlot(SOURCE_SLOT).toString()->asLinear();
+    JSFlatString *toString(JSContext *cx) const;
+
+    JSAtom *getSource() const {
+        return &getSlot(SOURCE_SLOT).toString()->asAtom();
     }
-    inline void setSource(JSLinearString *source);
+    inline void setSource(JSAtom *source);
 
     RegExpFlag getFlags() const {
         uintN flags = 0;
@@ -134,12 +154,6 @@ class RegExpObject : public JSObject
         flags |= sticky() ? StickyFlag : 0;
         return RegExpFlag(flags);
     }
-
-    inline bool startsWithAtomizedGreedyStar() const;
-
-    
-
-    inline size_t *addressOfPrivateRefCount() const;
 
     
 
@@ -152,40 +166,12 @@ class RegExpObject : public JSObject
     bool multiline() const  { return getSlot(MULTILINE_FLAG_SLOT).toBoolean(); }
     bool sticky() const     { return getSlot(STICKY_FLAG_SLOT).toBoolean(); }
 
-    inline void finalize(JSContext *cx);
-
-    
-    inline void purge(JSContext *x);
-
-    RegExpShared &shared() const {
-        JS_ASSERT(JSObject::getPrivate() != NULL);
-        return *static_cast<RegExpShared *>(JSObject::getPrivate());
-    }
-
-    RegExpShared *maybeShared() {
-        return static_cast<RegExpShared *>(JSObject::getPrivate());
-    }
-
-    RegExpShared *getShared(JSContext *cx) {
-        if (RegExpShared *shared = maybeShared())
-            return shared;
-        return createShared(cx);
-    }
+    inline RegExpShared &shared() const;
+    inline RegExpShared *maybeShared();
+    inline RegExpShared *getShared(JSContext *cx);
 
   private:
     friend class RegExpObjectBuilder;
-    friend class RegExpMatcher;
-
-    inline bool init(JSContext *cx, JSLinearString *source, RegExpFlag flags);
-
-    
-
-
-
-    RegExpShared *createShared(JSContext *cx);
-
-    friend bool ResetRegExpObject(JSContext *, RegExpObject *, JSLinearString *, RegExpFlag);
-    friend bool ResetRegExpObject(JSContext *, RegExpObject *, AlreadyIncRefed<RegExpShared>);
 
     
 
@@ -194,10 +180,17 @@ class RegExpObject : public JSObject
 
     Shape *assignInitialShape(JSContext *cx);
 
+    inline bool init(JSContext *cx, JSAtom *source, RegExpFlag flags);
+
+    
+
+
+
+    RegExpShared *createShared(JSContext *cx);
+
     RegExpObject() MOZ_DELETE;
     RegExpObject &operator=(const RegExpObject &reo) MOZ_DELETE;
-}; 
-
+};
 
 class RegExpObjectBuilder
 {
@@ -207,26 +200,22 @@ class RegExpObjectBuilder
     bool getOrCreate();
     bool getOrCreateClone(RegExpObject *proto);
 
-    friend class RegExpMatcher;
-
   public:
-    RegExpObjectBuilder(JSContext *cx, RegExpObject *reobj = NULL)
-      : cx(cx), reobj_(reobj)
-    { }
+    RegExpObjectBuilder(JSContext *cx, RegExpObject *reobj = NULL);
 
     RegExpObject *reobj() { return reobj_; }
 
-    RegExpObject *build(JSLinearString *str, RegExpFlag flags);
-    RegExpObject *build(AlreadyIncRefed<RegExpShared> shared);
+    RegExpObject *build(JSAtom *source, RegExpFlag flags);
+    RegExpObject *build(JSAtom *source, RegExpShared &shared);
 
     
     RegExpObject *clone(RegExpObject *other, RegExpObject *proto);
 };
 
+JSObject *
+CloneRegExpObject(JSContext *cx, JSObject *obj, JSObject *proto);
+
 namespace detail {
-
-static const jschar GreedyStarChars[] = {'.', '*'};
-
 
 class RegExpCode
 {
@@ -294,168 +283,138 @@ class RegExpCode
 #endif
     }
 
-    inline bool compile(JSContext *cx, JSLinearString &pattern, TokenStream *ts, uintN *parenCount,
-                        RegExpFlag flags);
+    bool compile(JSContext *cx, JSLinearString &pattern, uintN *parenCount, RegExpFlag flags);
 
 
-    inline RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length, size_t start,
-                                   int *output, size_t outputCount);
+    RegExpRunStatus
+    execute(JSContext *cx, const jschar *chars, size_t length, size_t start,
+            int *output, size_t outputCount);
 };
 
-enum RegExpCacheKind
-{
-    RegExpCache_TestOptimized,
-    RegExpCache_ExecCapable
-};
-
-class RegExpCacheValue
-{
-    union {
-        RegExpShared    *shared_;
-        uintptr_t       bits;
-    };
-
-  public:
-    RegExpCacheValue() : shared_(NULL) {}
-
-    RegExpCacheValue(RegExpShared &shared, RegExpCacheKind kind) {
-        reset(shared, kind);
-    }
-
-    RegExpCacheKind kind() const {
-        return (bits & 0x1)
-                ? RegExpCache_TestOptimized
-                : RegExpCache_ExecCapable;
-    }
-
-    RegExpShared &shared() {
-        return *reinterpret_cast<RegExpShared *>(bits & ~uintptr_t(1));
-    }
-
-    void reset(RegExpShared &shared, RegExpCacheKind kind) {
-        shared_ = &shared;
-        if (kind == RegExpCache_TestOptimized)
-            bits |= 0x1;
-        JS_ASSERT(this->kind() == kind);
-    }
-};
-
-} 
-
-
-
-
-
-
-
-
-
+}  
 
 
 class RegExpShared
 {
-    typedef detail::RegExpCode       RegExpCode;
-    typedef detail::RegExpCacheKind  RegExpCacheKind;
-    typedef detail::RegExpCacheValue RegExpCacheValue;
+    friend class RegExpCompartment;
 
-    RegExpCode     code;
-    JSLinearString *source;
-    size_t         refCount;
-    uintN          parenCount;
-    RegExpFlag     flags;
+    detail::RegExpCode code;
+    uintN              parenCount;
+    RegExpFlag         flags;
+    size_t             activeUseCount;
 
-  private:
-    RegExpShared(JSLinearString *source, RegExpFlag flags)
-      : source(source), refCount(1), parenCount(0), flags(flags)
-    { }
+    bool compile(JSContext *cx, JSAtom *source);
 
+    RegExpShared(RegExpFlag flags);
     JS_DECLARE_ALLOCATION_FRIENDS_FOR_PRIVATE_CONSTRUCTOR;
 
-    bool compile(JSContext *cx, TokenStream *ts);
-    static inline void checkMatchPairs(JSString *input, int *buf, size_t matchItemCount);
-
-    static RegExpShared *
-    createUncached(JSContext *cx, JSLinearString *source, RegExpFlag flags,
-                   TokenStream *tokenStream);
-
-    static bool cacheLookup(JSContext *cx, JSAtom *atom, RegExpFlag flags,
-                            RegExpCacheKind kind, AlreadyIncRefed<RegExpShared> *result);
-    static bool cacheInsert(JSContext *cx, JSAtom *atom,
-                            RegExpCacheKind kind, RegExpShared &shared);
-
   public:
-    static AlreadyIncRefed<RegExpShared>
-    create(JSContext *cx, JSLinearString *source, RegExpFlag flags, TokenStream *ts);
+    
 
-    static AlreadyIncRefed<RegExpShared>
-    create(JSContext *cx, JSLinearString *source, JSString *flags, TokenStream *ts);
 
-    static AlreadyIncRefed<RegExpShared>
-    createTestOptimized(JSContext *cx, JSAtom *originalSource, RegExpFlag flags);
 
-    RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length, size_t *lastIndex,
-                            LifoAllocScope &allocScope, MatchPairs **output);
+    class Guard {
+        RegExpShared *re_;
+        Guard(const Guard &) MOZ_DELETE;
+        void operator=(const Guard &) MOZ_DELETE;
+      public:
+        Guard() : re_(NULL) {}
+        Guard(RegExpShared &re) : re_(&re) {
+            re_->activeUseCount++;
+        }
+        void init(RegExpShared &re) {
+            JS_ASSERT(!re_);
+            re_ = &re;
+            re_->activeUseCount++;
+        }
+        ~Guard() {
+            if (re_) {
+                JS_ASSERT(re_->activeUseCount > 0);
+                re_->activeUseCount--;
+            }
+        }
+        bool initialized() const { return !!re_; }
+        RegExpShared *operator->() { JS_ASSERT(initialized()); return re_; }
+        RegExpShared &operator*() { JS_ASSERT(initialized()); return *re_; }
+    };
 
     
 
-    void incref(JSContext *cx);
-    void decref(JSContext *cx);
+    RegExpRunStatus
+    execute(JSContext *cx, const jschar *chars, size_t length, size_t *lastIndex,
+            MatchPairs **output);
 
     
-    size_t *addressOfRefCount() { return &refCount; }
 
-    
-
-    JSLinearString *getSource() const   { return source; }
     size_t getParenCount() const        { return parenCount; }
 
     
     size_t pairCount() const            { return parenCount + 1; }
 
     RegExpFlag getFlags() const         { return flags; }
-    bool ignoreCase() const { return flags & IgnoreCaseFlag; }
-    bool global() const     { return flags & GlobalFlag; }
-    bool multiline() const  { return flags & MultilineFlag; }
-    bool sticky() const     { return flags & StickyFlag; }
+    bool ignoreCase() const             { return flags & IgnoreCaseFlag; }
+    bool global() const                 { return flags & GlobalFlag; }
+    bool multiline() const              { return flags & MultilineFlag; }
+    bool sticky() const                 { return flags & StickyFlag; }
 };
 
-
-
-
-
-
-
-
-
-class RegExpMatcher
+class RegExpCompartment
 {
-    JSContext                  *cx_;
-    AutoRefCount<RegExpShared> shared_;
+    enum Type { Normal = 0x0, Hack = 0x1 };
+
+    struct Key {
+        JSAtom *atom;
+        uint16_t flag;
+        uint16_t type;
+        Key() {}
+        Key(JSAtom *atom, RegExpFlag flag, Type type)
+          : atom(atom), flag(flag), type(type) {}
+        typedef Key Lookup;
+        static HashNumber hash(const Lookup &l) {
+            return DefaultHasher<JSAtom *>::hash(l.atom) ^ (l.flag << 1) ^ l.type;
+        }
+        static bool match(Key l, Key r) {
+            return l.atom == r.atom && l.flag == r.flag && l.type == r.type;
+        }
+    };
+
+    typedef HashMap<Key, RegExpShared *, Key, RuntimeAllocPolicy> Map;
+    Map map_;
+
+    RegExpShared *get(JSContext *cx, JSAtom *key, JSAtom *source, RegExpFlag flags, Type type);
 
   public:
-    explicit RegExpMatcher(JSContext *cx) : cx_(cx), shared_(cx) {
-        JS_ASSERT(!initialized());
-    }
+    RegExpCompartment(JSRuntime *rt);
+    ~RegExpCompartment();
 
-    bool initialized() const {
-        return !shared_.null();
-    }
-    bool global() const {
-        return shared_->global();
-    }
-    bool sticky() const {
-        return shared_->sticky();
-    }
+    bool init(JSContext *cx);
+    void purge();
 
-    inline void init(NeedsIncRef<RegExpShared> shared);
-    inline bool init(JSLinearString *patstr, JSString *opt);
-    bool initWithTestOptimized(RegExpObject &reobj);
+    
+    RegExpShared *get(JSContext *cx, JSAtom *source, RegExpFlag flags);
 
-    RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length, size_t *lastIndex,
-                            LifoAllocScope &allocScope, MatchPairs **output) const {
-        JS_ASSERT(initialized());
-        return shared_->execute(cx, chars, length, lastIndex, allocScope, output);
-    }
+    
+    RegExpShared *get(JSContext *cx, JSAtom *source, JSString *maybeOpt);
+
+    
+
+
+
+
+
+
+
+
+
+
+    RegExpShared *getHack(JSContext *cx, JSAtom *source, JSAtom *hackedSource, RegExpFlag flags);
+
+    
+
+
+
+
+    RegExpShared *lookupHack(JSContext *cx, JSAtom *source, RegExpFlag flags);
 };
 
 
@@ -467,22 +426,18 @@ class RegExpMatcher
 bool
 ParseRegExpFlags(JSContext *cx, JSString *flagStr, RegExpFlag *flagsOut);
 
-inline bool
-IsRegExpMetaChar(jschar c);
 
-inline bool
-CheckRegExpSyntax(JSContext *cx, JSLinearString *str)
-{
-    return detail::RegExpCode::checkSyntax(cx, NULL, str);
-}
+
+
+
+
+
+
 
 inline RegExpShared *
 RegExpToShared(JSContext *cx, JSObject &obj);
 
 } 
-
-extern JS_FRIEND_API(JSObject *)
-js_CloneRegExpObject(JSContext *cx, JSObject *obj, JSObject *proto);
 
 JSBool
 js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp);

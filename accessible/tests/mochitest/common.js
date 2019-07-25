@@ -286,27 +286,6 @@ function getApplicationAccessible()
 
 
 
-function ensureAccessibleTree(aAccOrElmOrID)
-{
-  var acc = getAccessible(aAccOrElmOrID);
-  if (!acc)
-    return;
-
-  var child = acc.firstChild;
-  while (child) {
-    ensureAccessibleTree(child);
-    try {
-      child = child.nextSibling;
-    } catch (e) {
-      child = null;
-    }
-  }
-}
-
-
-
-
-
 
 
 

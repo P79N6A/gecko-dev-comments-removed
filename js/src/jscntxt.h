@@ -100,11 +100,6 @@ class InterpreterFrames;
 class ScriptOpcodeCounts;
 struct ScriptOpcodeCountsPair;
 
-typedef HashMap<JSAtom *,
-                detail::RegExpCacheValue,
-                DefaultHasher<JSAtom *>,
-                RuntimeAllocPolicy> RegExpCache;
-
 
 
 
@@ -224,11 +219,9 @@ struct JSRuntime : js::RuntimeFriendFields
 
     JSC::ExecutableAllocator *execAlloc_;
     WTF::BumpPointerAllocator *bumpAlloc_;
-    js::RegExpCache *reCache_;
 
     JSC::ExecutableAllocator *createExecutableAllocator(JSContext *cx);
     WTF::BumpPointerAllocator *createBumpPointerAllocator(JSContext *cx);
-    js::RegExpCache *createRegExpCache(JSContext *cx);
 
   public:
     JSC::ExecutableAllocator *getExecutableAllocator(JSContext *cx) {
@@ -236,12 +229,6 @@ struct JSRuntime : js::RuntimeFriendFields
     }
     WTF::BumpPointerAllocator *getBumpPointerAllocator(JSContext *cx) {
         return bumpAlloc_ ? bumpAlloc_ : createBumpPointerAllocator(cx);
-    }
-    js::RegExpCache *maybeRegExpCache() {
-        return reCache_;
-    }
-    js::RegExpCache *getRegExpCache(JSContext *cx) {
-        return reCache_ ? reCache_ : createRegExpCache(cx);
     }
 
     
@@ -301,8 +288,6 @@ struct JSRuntime : js::RuntimeFriendFields
     js::GCLocks         gcLocksHash;
     jsrefcount          gcKeepAtoms;
     size_t              gcBytes;
-    size_t              gcTriggerBytes;
-    size_t              gcLastBytes;
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
 
@@ -565,9 +550,6 @@ struct JSRuntime : js::RuntimeFriendFields
     bool init(uint32_t maxbytes);
 
     JSRuntime *thisFromCtor() { return this; }
-
-    void setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind);
-    void reduceGCTriggerBytes(size_t amount);
 
     
 

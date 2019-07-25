@@ -1199,6 +1199,9 @@ class StackFrame
 
     void methodjitStaticAsserts();
 
+  public:
+    void mark(JSTracer *trc);
+
     bool runningInIon() const {
         return !!(flags_ & RUNNING_IN_ION);
     }
@@ -1380,6 +1383,10 @@ class StackSegment
         return regs_ ? regs_->fp() : NULL;
     }
 
+    jsbytecode *maybepc() const {
+        return regs_ ? regs_->pc : NULL;
+    }
+
     CallArgsList &calls() const {
         JS_ASSERT(calls_);
         return *calls_;
@@ -1549,6 +1556,7 @@ class StackSpace
 
     
     void mark(JSTracer *trc);
+    void markFrameSlots(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbytecode *pc);
 
     
     JS_FRIEND_API(size_t) sizeOfCommitted();

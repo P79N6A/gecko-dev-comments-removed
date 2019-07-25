@@ -1628,7 +1628,15 @@ nsHyperTextAccessible::SetCaretOffset(PRInt32 aCaretOffset)
 NS_IMETHODIMP
 nsHyperTextAccessible::GetCaretOffset(PRInt32 *aCaretOffset)
 {
+  NS_ENSURE_ARG_POINTER(aCaretOffset);
   *aCaretOffset = -1;
+
+  
+  
+  if (!IsDoc() && !FocusMgr()->IsFocused(this) &&
+      (State() & states::FOCUSABLE)) {
+    return NS_OK;
+  }
 
   
   
