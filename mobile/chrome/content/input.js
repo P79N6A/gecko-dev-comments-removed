@@ -1083,7 +1083,7 @@ GestureModule.prototype = {
     
     let oldScale = this._pinchScale;
     this._pinchDelta += aEvent.delta;
-    if (this._pinchDelta > -oldScale && this._pinchDelta < this._oldScale)
+    if (this._pinchDelta > -oldScale && this._pinchDelta < oldScale)
       return;
 
     
