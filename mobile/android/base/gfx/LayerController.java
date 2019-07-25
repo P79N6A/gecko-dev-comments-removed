@@ -214,49 +214,13 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
 
     public void setViewportSize(FloatSize size) {
-        
-        
         ViewportMetrics viewportMetrics = new ViewportMetrics(mViewportMetrics);
-        float oldHeight = viewportMetrics.getSize().height;
-        float oldWidth = viewportMetrics.getSize().width;
-        float oldZoomFactor = viewportMetrics.getZoomFactor();
         viewportMetrics.setSize(size);
-
-        
-        
-        
-        
-        
-        if (size.width >= oldWidth && size.height >= oldHeight) {
-            FloatSize pageSize = viewportMetrics.getPageSize();
-            if (pageSize.width < size.width || pageSize.height < size.height) {
-                viewportMetrics.setPageSize(new FloatSize(Math.max(pageSize.width, size.width),
-                                                           Math.max(pageSize.height, size.height)));
-            }
-        }
-
-        
-        boolean rotation = (size.width > oldWidth && size.height < oldHeight) ||
-                           (size.width < oldWidth && size.height > oldHeight);
-        PointF newFocus;
-        if (rotation) {
-            newFocus = new PointF(0, 0);
-        } else {
-            newFocus = new PointF(size.width / 2.0f, size.height / 2.0f);
-        }
-        float newZoomFactor = size.width * oldZoomFactor / oldWidth;
-        viewportMetrics.scaleTo(newZoomFactor, newFocus);
         mViewportMetrics = new ImmutableViewportMetrics(viewportMetrics);
-
-        setForceRedraw();
 
         if (mLayerClient != null) {
             mLayerClient.viewportSizeChanged();
-            notifyLayerClientOfGeometryChange();
         }
-
-        mPanZoomController.abortAnimation();
-        mView.requestRender();
     }
 
     

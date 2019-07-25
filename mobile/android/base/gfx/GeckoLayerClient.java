@@ -76,8 +76,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
     
     private ViewportMetrics mGeckoViewport;
 
-    private boolean mViewportSizeChanged;
-
     private String mLastCheckerboardColor;
 
     
@@ -210,7 +208,14 @@ public class GeckoLayerClient implements GeckoEventResponder,
     }
 
     void viewportSizeChanged() {
-        mViewportSizeChanged = true;
+        
+        
+        
+        sendResizeEventIfNecessary(true);
+        
+        
+        
+        GeckoAppShell.viewSizeChanged();
     }
 
     private void updateDisplayPort() {
@@ -285,10 +290,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
         updateDisplayPort();
         GeckoAppShell.sendEventToGecko(GeckoEvent.createViewportEvent(viewportMetrics, mDisplayPort));
-        if (mViewportSizeChanged) {
-            mViewportSizeChanged = false;
-            GeckoAppShell.viewSizeChanged();
-        }
     }
 
     
