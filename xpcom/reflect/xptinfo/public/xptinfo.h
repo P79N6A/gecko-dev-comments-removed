@@ -74,9 +74,6 @@ public:
     PRBool IsPointer() const
         {return 0 != (XPT_TDP_IS_POINTER(flags));}
 
-    PRBool IsUniquePointer() const
-        {return 0 != (XPT_TDP_IS_UNIQUE_POINTER(flags));}
-
     PRBool IsReference() const
         {return 0 != (XPT_TDP_IS_REFERENCE(flags));}
 
@@ -183,6 +180,7 @@ public:
     PRBool IsConstructor() const {return 0 != (XPT_MD_IS_CTOR(flags)   );}
     PRBool IsHidden()      const {return 0 != (XPT_MD_IS_HIDDEN(flags) );}
     PRBool WantsOptArgc()  const {return 0 != (XPT_MD_WANTS_OPT_ARGC(flags));}
+    PRBool WantsContext()  const {return 0 != (XPT_MD_WANTS_CONTEXT(flags));}
     const char* GetName()  const {return name;}
     PRUint8 GetParamCount()  const {return num_args;}
     

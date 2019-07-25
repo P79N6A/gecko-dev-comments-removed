@@ -91,7 +91,6 @@ def build_interface(iface, ifaces):
                   isPtr = (tag == xpt.Type.Tags.char_ptr or tag == xpt.Type.Tags.wchar_t_ptr)
                   return xpt.SimpleType(tag,
                                         pointer=isPtr,
-                                        
                                         reference=False)
 
         if isinstance(type, xpidl.Array):
@@ -118,7 +117,6 @@ def build_interface(iface, ifaces):
                 isRef = type.isRef(calltype) and not type.specialtype == 'jsval'
                 return xpt.SimpleType(TypeMap[type.specialtype],
                                       pointer=isPtr,
-                                      
                                       reference=isRef)
             elif iid_is != None:
                 return xpt.InterfaceIsType(iid_is)
@@ -126,7 +124,6 @@ def build_interface(iface, ifaces):
                 
                 return xpt.SimpleType(TypeMap['void'],
                                       pointer=True,
-                                      
                                       reference=False)
 
         raise Exception("Unknown type!")
