@@ -5792,30 +5792,7 @@ nsDocument::GetTextContent(nsAString &aTextContent)
 NS_IMETHODIMP
 nsDocument::IsEqualNode(nsIDOMNode* aOther, PRBool* aResult)
 {
-  *aResult = PR_FALSE;
-  nsCOMPtr<nsIDocument> other = do_QueryInterface(aOther);
-  if (!other) {
-    return NS_OK;
-  }
-
-  
-  PRUint32 childCount = GetChildCount();
-  if (childCount != other->GetChildCount()) {
-    return NS_OK;
-  }
-
-  for (PRUint32 i = 0; i < childCount; i++) {
-    if (!GetChildAt(i)->IsEqual(other->GetChildAt(i))) {
-      return NS_OK;
-    }
-  }
-
-  
-  
-
-  *aResult = PR_TRUE;
-
-  return NS_OK;
+  return nsINode::IsEqualNode(aOther, aResult);
 }
 
 NS_IMETHODIMP
