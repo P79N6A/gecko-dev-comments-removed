@@ -78,7 +78,18 @@ public:
 
 
 
-  void SetDefaultTarget(gfxContext* aContext);
+
+
+
+
+
+
+
+  enum BufferMode {
+    BUFFER_NONE,
+    BUFFER_BUFFERED
+  };
+  void SetDefaultTarget(gfxContext* aContext, BufferMode aDoubleBuffering);
 
   virtual void BeginTransaction();
   virtual void BeginTransactionWithTarget(gfxContext* aTarget);
@@ -119,6 +130,8 @@ private:
   TransactionPhase mPhase;
 #endif
 
+  BufferMode   mDoubleBuffering;
+  PRPackedBool mUsingDefaultTarget;
   PRPackedBool mRetain;
 };
 

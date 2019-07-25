@@ -71,6 +71,7 @@ using mozilla::plugins::PluginInstanceParent;
 #include "prmem.h"
 
 #include "LayerManagerOGL.h"
+#include "BasicLayers.h"
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
 #endif
@@ -83,6 +84,8 @@ using mozilla::plugins::PluginInstanceParent;
 extern "C" {
 #include "pixman.h"
 }
+
+using namespace mozilla::layers;
 
 
 
@@ -532,11 +535,13 @@ DDRAW_FAILED:
 #endif
 
           
+          BasicLayerManager::BufferMode doubleBuffering =
+            BasicLayerManager::BUFFER_NONE;
           if (IsRenderMode(gfxWindowsPlatform::RENDER_GDI)) {
 # if defined(MOZ_XUL) && !defined(WINCE)
             if (eTransparencyGlass == mTransparencyMode && nsUXThemeData::sHaveCompositor) {
-              thebesContext->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
-            } else if (eTransparencyTransparent == mTransparencyMode) {
+              doubleBuffering = BasicLayerManager::BUFFER_BUFFERED;
+           } else if (eTransparencyTransparent == mTransparencyMode) {
               
               
               thebesContext->SetOperator(gfxContext::OPERATOR_CLEAR);
@@ -546,12 +551,13 @@ DDRAW_FAILED:
 #endif
             {
               
-              thebesContext->PushGroup(gfxASurface::CONTENT_COLOR);
+              doubleBuffering = BasicLayerManager::BUFFER_BUFFERED;
             }
           }
 
           {
-            AutoLayerManagerSetup setupLayerManager(this, thebesContext);
+            AutoLayerManagerSetup
+                setupLayerManager(this, thebesContext, doubleBuffering);
             result = DispatchWindowEvent(&event, eventStatus);
           }
 
@@ -573,13 +579,7 @@ DDRAW_FAILED:
           }
 #endif
           if (result) {
-            if (IsRenderMode(gfxWindowsPlatform::RENDER_GDI)) {
-              
-              
-              thebesContext->PopGroupToSource();
-              thebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
-              thebesContext->Paint();
-            } else if (IsRenderMode(gfxWindowsPlatform::RENDER_DDRAW) ||
+            if (IsRenderMode(gfxWindowsPlatform::RENDER_DDRAW) ||
                        IsRenderMode(gfxWindowsPlatform::RENDER_DDRAW_GL))
             {
 #ifdef CAIRO_HAS_DDRAW_SURFACE
