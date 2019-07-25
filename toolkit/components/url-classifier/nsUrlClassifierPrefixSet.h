@@ -72,7 +72,7 @@ public:
   NS_IMETHOD Probe(PRUint32 aPrefix, PRUint32 aKey, bool* aReady, bool* aFound);
   
   
-  NS_IMETHOD SizeOfIncludingThis(bool aCountMe, PRUint32* aSize);
+  NS_IMETHOD SizeOfIncludingThis(PRUint32* aSize);
   NS_IMETHOD IsEmpty(bool * aEmpty);
   NS_IMETHOD LoadFromFile(nsIFile* aFile);
   NS_IMETHOD StoreToFile(nsIFile* aFile);
