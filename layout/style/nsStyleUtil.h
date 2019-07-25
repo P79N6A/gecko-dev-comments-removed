@@ -112,7 +112,7 @@ public:
   
 
 
-  static bool IsSignificantChild(nsIContent* aChild,
+  static bool IsSignificantChild(const nsIContent* aChild,
                                    bool aTextIsSignificant,
                                    bool aWhitespaceIsSignificant);
 };

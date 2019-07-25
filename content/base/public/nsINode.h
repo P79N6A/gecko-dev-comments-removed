@@ -379,6 +379,7 @@ public:
 
 
   mozilla::dom::Element* AsElement();
+  const mozilla::dom::Element* AsElement() const;
 
   
 
