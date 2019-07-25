@@ -43,62 +43,6 @@ function VisitInfo(aTransitionType,
 
 
 
-function NavHistoryObserver()
-{
-}
-NavHistoryObserver.prototype =
-{
-  onBeginUpdateBatch: function() { },
-  onEndUpdateBatch: function() { },
-  onVisit: function() { },
-  onTitleChanged: function() { },
-  onBeforeDeleteURI: function() { },
-  onDeleteURI: function() { },
-  onClearHistory: function() { },
-  onPageChanged: function() { },
-  onDeleteVisits: function() { },
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsINavHistoryObserver,
-  ]),
-};
-
-
-
-
-
-
-
-
-
-
-
-
-function TitleChangedObserver(aURI,
-                              aExpectedTitle,
-                              aCallback)
-{
-  this.uri = aURI;
-  this.expectedTitle = aExpectedTitle;
-  this.callback = aCallback;
-}
-TitleChangedObserver.prototype = {
-  __proto__: NavHistoryObserver.prototype,
-  onTitleChanged: function(aURI,
-                           aTitle)
-  {
-    do_log_info("onTitleChanged(" + aURI.spec + ", " + aTitle + ")");
-    if (!this.uri.equals(aURI)) {
-      return;
-    }
-    do_check_eq(aTitle, this.expectedTitle);
-    this.callback();
-  },
-};
-
-
-
-
-
 
 
 
@@ -755,7 +699,6 @@ function test_title_change_saved()
   
   let place = {
     uri: NetUtil.newURI(TEST_DOMAIN + "test_title_change_saved"),
-    title: "original title",
     visits: [
       new VisitInfo(),
     ],
@@ -766,104 +709,15 @@ function test_title_change_saved()
     do_check_true(Components.isSuccessCode(aResultCode));
 
     
-    place.title = "";
+    place.title = "title change";
     place.visits = [new VisitInfo()];
     gHistory.updatePlaces(place, function(aResultCode, aPlaceInfo) {
       do_check_true(Components.isSuccessCode(aResultCode));
-      do_check_title_for_uri(place.uri, null);
-
-      
-      place.title = "title change";
-      place.visits = [new VisitInfo()];
-      gHistory.updatePlaces(place, function(aResultCode, aPlaceInfo) {
-        do_check_true(Components.isSuccessCode(aResultCode));
-        do_check_title_for_uri(place.uri, place.title);
-
-        
-        place.title = null;
-        place.visits = [new VisitInfo()];
-        gHistory.updatePlaces(place, function(aResultCode, aPlaceInfo) {
-          do_check_true(Components.isSuccessCode(aResultCode));
-          do_check_title_for_uri(place.uri, place.title);
-
-          run_next_test();
-        });
-      });
-    });
-  });
-}
-
-function test_no_title_does_not_clear_title()
-{
-  const TITLE = "test title";
-  
-  let place = {
-    uri: NetUtil.newURI(TEST_DOMAIN + "test_no_title_does_not_clear_title"),
-    title: TITLE,
-    visits: [
-      new VisitInfo(),
-    ],
-  };
-  do_check_false(gGlobalHistory.isVisited(place.uri));
-
-  gHistory.updatePlaces(place, function(aResultCode, aPlaceInfo) {
-    do_check_true(Components.isSuccessCode(aResultCode));
-
-    
-    delete place.title;
-    place.visits = [new VisitInfo()];
-    gHistory.updatePlaces(place, function(aResultCode, aPlaceInfo) {
-      do_check_true(Components.isSuccessCode(aResultCode));
-      do_check_title_for_uri(place.uri, TITLE);
+      do_check_title_for_uri(place.uri, place.title);
 
       run_next_test();
     });
   });
-}
-
-function test_title_change_notifies()
-{
-  
-  
-  let place = {
-    uri: NetUtil.newURI(TEST_DOMAIN + "test_title_change_notifies"),
-    visits: [
-      new VisitInfo(),
-    ],
-  };
-  do_check_false(gGlobalHistory.isVisited(place.uri));
-
-  let silentObserver =
-    new TitleChangedObserver(place.uri, "DO NOT WANT", function() {
-      do_throw("unexpected callback!");
-    });
-
-  PlacesUtils.history.addObserver(silentObserver, false);
-  gHistory.updatePlaces(place);
-
-  
-  
-  
-  place.uri = NetUtil.newURI(place.uri.spec + "/new-visit-with-title");
-  place.title = "title 1";
-  let callbackCount = 0;
-  let observer = new TitleChangedObserver(place.uri, place.title, function() {
-    switch (++callbackCount) {
-      case 1:
-        
-        
-        observer.expectedTitle = place.title = "title 2";
-        place.visits = [new VisitInfo()];
-        gHistory.updatePlaces(place);
-        break;
-      case 2:
-        PlacesUtils.history.removeObserver(silentObserver);
-        PlacesUtils.history.removeObserver(observer);
-        run_next_test();
-    };
-  });
-  PlacesUtils.history.addObserver(observer, false);
-  gHistory.updatePlaces(place);
 }
 
 
@@ -888,8 +742,6 @@ let gTests = [
   test_sessionId_saved,
   test_guid_change_saved,
   test_title_change_saved,
-  test_no_title_does_not_clear_title,
-  test_title_change_notifies,
 ];
 
 function run_test()
