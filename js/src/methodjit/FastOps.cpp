@@ -1231,7 +1231,7 @@ IsCacheableSetElem(FrameEntry *obj, FrameEntry *id, FrameEntry *value)
 }
 
 bool
-mjit::Compiler::jsop_setelem()
+mjit::Compiler::jsop_setelem(bool popGuaranteed)
 {
     FrameEntry *obj = frame.peek(-3);
     FrameEntry *id = frame.peek(-2);
@@ -1354,6 +1354,33 @@ mjit::Compiler::jsop_setelem()
 #endif
 
     ic.fastPathRejoin = masm.label();
+
+    
+    
+    
+    
+    ic.volatileMask = frame.regsInUse() & Registers::TempRegs;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (popGuaranteed &&
+        !ic.vr.isConstant() &&
+        !value->isCopy() &&
+        !frame.haveSameBacking(value, obj) &&
+        !frame.haveSameBacking(value, id))
+    {
+        ic.volatileMask &= ~Registers::maskReg(ic.vr.dataReg());
+        if (!ic.vr.isTypeKnown())
+            ic.volatileMask &= ~Registers::maskReg(ic.vr.typeReg());
+    } else if (!ic.vr.isConstant()) {
+        ic.volatileMask |= Registers::maskReg(ic.vr.dataReg());
+    }
 
     frame.freeReg(ic.objReg);
     frame.shimmy(2);

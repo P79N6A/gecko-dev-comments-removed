@@ -386,7 +386,11 @@ struct GetElementIC : public BasePolyIC {
         return hasInlineTypeGuard() && !inlineTypeGuardPatched;
     }
     bool shouldPatchUnconditionalClaspGuard() {
-        return !hasInlineTypeGuard() && !inlineClaspGuardPatched;
+        
+        
+        if (idRemat.isTypeKnown() && idRemat.knownType() != JSVAL_TYPE_INT32)
+            return !inlineClaspGuardPatched;
+        return false;
     }
 
     void reset() {
@@ -400,6 +404,8 @@ struct GetElementIC : public BasePolyIC {
     LookupStatus update(JSContext *cx, JSObject *obj, const Value &v, jsid id, Value *vp);
     LookupStatus attachGetProp(JSContext *cx, JSObject *obj, const Value &v, jsid id,
                                Value *vp);
+    LookupStatus attachTypedArray(JSContext *cx, JSObject *obj, const Value &v, jsid id,
+                                  Value *vp);
     LookupStatus disable(JSContext *cx, const char *reason);
     LookupStatus error(JSContext *cx);
     bool shouldUpdate(JSContext *cx);
@@ -438,6 +444,10 @@ struct SetElementIC : public BaseIC {
 
     
     
+    uint32 volatileMask : 16;
+
+    
+    
     bool hasConstantKey : 1;
     union {
         RegisterID keyReg;
@@ -459,6 +469,7 @@ struct SetElementIC : public BaseIC {
         inlineHoleGuardPatched = false;
     }
     void purge(Repatcher &repatcher);
+    LookupStatus attachTypedArray(JSContext *cx, JSObject *obj, int32 key);
     LookupStatus attachHoleStub(JSContext *cx, JSObject *obj, int32 key);
     LookupStatus update(JSContext *cx, const Value &objval, const Value &idval);
     LookupStatus disable(JSContext *cx, const char *reason);

@@ -57,6 +57,7 @@ public:
     using MacroAssemblerX86Common::branch32;
     using MacroAssemblerX86Common::call;
     using MacroAssemblerX86Common::loadDouble;
+    using MacroAssemblerX86Common::storeDouble;
     using MacroAssemblerX86Common::convertInt32ToDouble;
 
     void add32(Imm32 imm, RegisterID src, RegisterID dest)
@@ -104,6 +105,19 @@ public:
         m_assembler.movl_mr(address, dest);
     }
 
+    void storeDouble(ImmDouble imm, Address address)
+    {
+        store32(Imm32(imm.u.s.lsb), address);
+        store32(Imm32(imm.u.s.msb), Address(address.base, address.offset + 4));
+    }
+
+    void storeDouble(ImmDouble imm, BaseIndex address)
+    {
+        store32(Imm32(imm.u.s.lsb), address);
+        store32(Imm32(imm.u.s.msb),
+                BaseIndex(address.base, address.index, address.scale, address.offset + 4));
+    }
+
     DataLabelPtr loadDouble(const void* address, FPRegisterID dest)
     {
         ASSERT(isSSE2Present());
@@ -114,6 +128,24 @@ public:
     void convertInt32ToDouble(AbsoluteAddress src, FPRegisterID dest)
     {
         m_assembler.cvtsi2sd_mr(src.m_ptr, dest);
+    }
+
+    void convertUInt32ToDouble(RegisterID srcDest, FPRegisterID dest)
+    {
+        
+        static const double NegativeOne = 2147483648.0;
+
+        
+        sub32(Imm32(0x80000000), srcDest);
+
+        
+        zeroDouble(dest);
+        convertInt32ToDouble(srcDest, dest);
+
+        
+        
+        move(ImmPtr(&NegativeOne), srcDest);
+        addDouble(Address(srcDest), dest);
     }
 
     void store32(Imm32 imm, void* address)
