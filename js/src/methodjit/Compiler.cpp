@@ -4090,17 +4090,7 @@ mjit::Compiler::iter(uintN flags)
     frame.unpinReg(reg);
 
     
-
-
-
-    masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), T1);
-#ifdef JS_THREADSAFE
-    masm.loadPtr(Address(T1, offsetof(JSContext, thread)), T1);
-    masm.loadPtr(Address(T1, offsetof(JSThread, data.lastNativeIterator)), ioreg);
-#else
-    masm.loadPtr(Address(T1, offsetof(JSContext, runtime)), T1);
-    masm.loadPtr(Address(T1, offsetof(JSRuntime, threadData.lastNativeIterator)), ioreg);
-#endif
+    masm.loadPtr(&script->compartment->nativeIterCache.last, ioreg);
 
     
     Jump nullIterator = masm.branchTest32(Assembler::Zero, ioreg, ioreg);

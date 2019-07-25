@@ -222,6 +222,43 @@ struct JSEvalCacheMeter {
 # undef identity
 #endif
 
+namespace js {
+
+class NativeIterCache {
+    static const size_t SIZE = size_t(1) << 8;
+    
+    
+    JSObject            *data[SIZE];
+
+    static size_t getIndex(uint32 key) {
+        return size_t(key) % SIZE;
+    }
+
+  public:
+    
+    JSObject            *last;
+
+    NativeIterCache()
+      : last(NULL) {
+        PodArrayZero(data);
+    }
+
+    void purge() {
+        PodArrayZero(data);
+        last = NULL;
+    }
+
+    JSObject *get(uint32 key) const {
+        return data[getIndex(key)];
+    }
+
+    void set(uint32 key, JSObject *iterobj) {
+        data[getIndex(key)] = iterobj;
+    }
+};
+
+} 
+
 struct JS_FRIEND_API(JSCompartment) {
     JSRuntime                    *rt;
     JSPrincipals                 *principals;
@@ -236,14 +273,14 @@ struct JS_FRIEND_API(JSCompartment) {
 
 #ifdef JS_TRACER
     
-    js::TraceMonitor traceMonitor;
+    js::TraceMonitor             traceMonitor;
 #endif
 
     
     JSScript                     *scriptsToGC[JS_EVAL_CACHE_SIZE];
 
 #ifdef DEBUG
-    JSEvalCacheMeter    evalCacheMeter;
+    JSEvalCacheMeter             evalCacheMeter;
 #endif
 
     void                         *data;
@@ -267,6 +304,8 @@ struct JS_FRIEND_API(JSCompartment) {
 
     JSObject                     *anynameObject;
     JSObject                     *functionNamespaceObject;
+
+    js::NativeIterCache          nativeIterCache;
 
     JSCompartment(JSRuntime *cx);
     ~JSCompartment();

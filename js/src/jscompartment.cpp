@@ -448,6 +448,8 @@ JSCompartment::purge(JSContext *cx)
     
     js_DestroyScriptsToGC(cx, this);
 
+    nativeIterCache.purge();
+
 #ifdef JS_TRACER
     
 
