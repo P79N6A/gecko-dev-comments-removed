@@ -482,19 +482,9 @@ protected:
     
     bool mKeyPressHandled;
 
-    KeyEventState(NSEvent* aNativeKeyEvent) : mKeyEvent(nsnull)
+    KeyEventState() : mKeyEvent(nsnull)
     {
       Clear();
-      Set(aNativeKeyEvent);
-    }
-
-    KeyEventState(const KeyEventState &aOther) : mKeyEvent(nsnull)
-    {
-      Clear();
-      mKeyEvent = [aOther.mKeyEvent retain];
-      mKeyDownHandled = aOther.mKeyDownHandled;
-      mKeyPressDispatched = aOther.mKeyPressDispatched;
-      mKeyPressHandled = aOther.mKeyPressHandled;
     }
 
     ~KeyEventState()
@@ -524,11 +514,6 @@ protected:
     {
       return mKeyDownHandled || mKeyPressHandled;
     }
-
-  protected:
-    KeyEventState()
-    {
-    }    
   };
 
   
@@ -544,40 +529,15 @@ protected:
 
     ~AutoKeyEventStateCleaner()
     {
-      NS_ASSERTION(mHandler->mCurrentKeyEvents.Length() > 0,
-                   "The key event was removed by manually?");
-      mHandler->mCurrentKeyEvents.RemoveElementAt(0);
+      mHandler->mCurrentKeyEvent.Clear();
     }
   private:
-    nsRefPtr<TextInputHandlerBase> mHandler;
+    TextInputHandlerBase* mHandler;
   };
 
   
-
-
-
-
-  nsTArray<KeyEventState> mCurrentKeyEvents;
-
   
-
-
-  KeyEventState* PushKeyEvent(NSEvent* aNativeKeyEvent)
-  {
-    KeyEventState keyEventState(aNativeKeyEvent);
-    return mCurrentKeyEvents.InsertElementAt(0, keyEventState);
-  }
-
-  
-
-
-  KeyEventState* GetCurrentKeyEvent()
-  {
-    if (mCurrentKeyEvents.Length() == 0) {
-      return nsnull;
-    }
-    return &mCurrentKeyEvents[0];
-  }
+  KeyEventState mCurrentKeyEvent;
 
   
 
@@ -1159,8 +1119,7 @@ public:
 
   bool KeyPressWasHandled()
   {
-    KeyEventState* currentKeyEvent = GetCurrentKeyEvent();
-    return currentKeyEvent && currentKeyEvent->mKeyPressHandled;
+    return mCurrentKeyEvent.mKeyPressHandled;
   }
 
 protected:
