@@ -35,7 +35,7 @@
 
 
 const EXPORTED_SYMBOLS = ['Tracker', 'BookmarksTracker', 'HistoryTracker',
-                          'FormsTracker'];
+                          'FormsTracker', 'CookieTracker'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -196,6 +196,41 @@ HistoryTracker.prototype = {
   }
 }
 HistoryTracker.prototype.__proto__ = new Tracker();
+
+function CookieTracker() {
+  this._init();
+}
+CookieTracker.prototype = {
+  _logName: "CookieTracker",
+
+  _init: function CT__init() {
+    this._log = Log4Moz.Service.getLogger("Service." + this._logName);
+    this._score = 0;
+    
+
+
+    let observerService = Cc["@mozilla.org/observer-service;1"].
+            getService(Ci.nsIObserverService);
+    observerService.addObserver( this, 'cookie-changed', false );
+  },
+
+  
+  observe: function ( aSubject, aTopic, aData ) {
+    
+
+
+
+    var newCookie = aSubject.QueryInterface( Ci.nsICookie2 );
+    if ( newCookie ) {
+      if ( !newCookie.isSession ) {
+	
+
+	this._score += 10;
+      }
+    }
+  }
+}
+CookieTracker.prototype.__proto__ = new Tracker();
 
 function FormsTracker() {
   this._init();
