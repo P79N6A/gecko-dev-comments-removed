@@ -71,8 +71,7 @@ typedef enum JSOp {
 
     JSOP_GETPROP2 = JSOP_LIMIT,
     JSOP_GETELEM2 = JSOP_LIMIT + 1,
-    JSOP_FORLOCAL = JSOP_LIMIT + 2,
-    JSOP_FAKE_LIMIT = JSOP_FORLOCAL
+    JSOP_FAKE_LIMIT = JSOP_GETELEM2
 } JSOp;
 
 
@@ -385,12 +384,6 @@ js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
 
 
 
-extern uintN
-js_GetVariableBytecodeLength(jsbytecode *pc);
-
-
-
-
 
 extern uintN
 js_GetVariableStackUses(JSOp op, jsbytecode *pc);
@@ -468,10 +461,36 @@ extern char *
 js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
                            JSString *fallback);
 
+
+
+
+
+extern uintN
+js_ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc);
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+JS_END_EXTERN_C
+
 #define JSDVG_IGNORE_STACK      0
 #define JSDVG_SEARCH_STACK      1
 
 #ifdef __cplusplus
+
+
+
+extern size_t
+js_GetVariableBytecodeLength(JSOp op, jsbytecode *pc);
+
+inline size_t
+js_GetVariableBytecodeLength(jsbytecode *pc)
+{
+    JS_ASSERT(*pc != JSOP_TRAP);
+    return js_GetVariableBytecodeLength(JSOp(*pc), pc);
+}
+
 namespace js {
 
 static inline char *
@@ -520,6 +539,12 @@ Sprint(Sprinter *sp, const char *format, ...);
 extern bool
 CallResultEscapes(jsbytecode *pc);
 
+extern size_t
+GetBytecodeLength(JSContext *cx, JSScript *script, jsbytecode *pc);
+
+extern bool
+IsValidBytecodeOffset(JSContext *cx, JSScript *script, size_t offset);
+
 }
 #endif
 
@@ -534,18 +559,5 @@ extern JS_FRIEND_API(uintN)
 js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc, uintN loc,
                 JSBool lines, js::Sprinter *sp);
 #endif
-
-
-
-
-
-extern uintN
-js_ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc);
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-JS_END_EXTERN_C
 
 #endif 
