@@ -1601,6 +1601,16 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
   }
 
   
+  if (!mScriptGlobalObject) {
+    return NS_OK;
+  }
+
+  nsPIDOMWindow* outer = GetWindow();
+  if (!outer || (GetInnerWindow() != outer->GetCurrentInnerWindow())) {
+    return NS_OK;
+  }
+
+  
   nsCOMPtr<nsIDocShell> shell = do_QueryReferent(mDocumentContainer);
   if (!shell) {
     
