@@ -813,8 +813,9 @@ protected:
   nsresult NameFromNode(const nsIParserNode& aNode,
                         nsIAtom **aResult);
 
-  void SanitizeStyleRule(nsICSSStyleRule *aRule, nsAutoString &aRuleText);
   
+  PRBool SanitizeStyleRule(nsICSSStyleRule *aRule, nsAutoString &aRuleText);
+
   PRPackedBool mSkip; 
   PRPackedBool mProcessStyle; 
   PRPackedBool mInStyle; 
@@ -1048,8 +1049,12 @@ nsHTMLParanoidFragmentSink::AddAttributes(const nsIParserNode& aNode,
                                       getter_AddRefs(rule));
       if (NS_SUCCEEDED(rv)) {
         nsAutoString cleanValue;
-        SanitizeStyleRule(rule, cleanValue);
-        aContent->SetAttr(kNameSpaceID_None, keyAtom, cleanValue, PR_FALSE);
+        PRBool didSanitize = SanitizeStyleRule(rule, cleanValue);
+        if (didSanitize) {
+          aContent->SetAttr(kNameSpaceID_None, keyAtom, cleanValue, PR_FALSE);
+        } else {
+          aContent->SetAttr(kNameSpaceID_None, keyAtom, v, PR_FALSE);
+        }
       } else {
         
         continue;
@@ -1139,6 +1144,7 @@ nsHTMLParanoidFragmentSink::CloseContainer(const nsHTMLTag aTag)
     nsAutoString sanitizedStyleText;
     nsIContent* style = GetCurrentContent();
     if (style) {
+      PRBool didSanitize = PR_FALSE;
       
       nsAutoString styleText;
       nsContentUtils::GetNodeTextContent(style, PR_FALSE, styleText);
@@ -1179,6 +1185,7 @@ nsHTMLParanoidFragmentSink::CloseContainer(const nsHTMLTag aTag)
                 case nsICSSRule::IMPORT_RULE:
                 case nsICSSRule::MEDIA_RULE:
                 case nsICSSRule::PAGE_RULE:
+                  didSanitize = PR_TRUE;
                   
                   break;
                 case nsICSSRule::NAMESPACE_RULE:
@@ -1200,7 +1207,7 @@ nsHTMLParanoidFragmentSink::CloseContainer(const nsHTMLTag aTag)
                   nsCOMPtr<nsICSSStyleRule> styleRule = do_QueryInterface(rule);
                   NS_ASSERTION(styleRule, "Must be a style rule");
                   nsAutoString decl;
-                  SanitizeStyleRule(styleRule, decl);
+                  didSanitize = SanitizeStyleRule(styleRule, decl) || didSanitize;
                   rv = styleRule->GetCssText(decl);
                   
                   if (NS_SUCCEEDED(rv)) {
@@ -1212,23 +1219,28 @@ nsHTMLParanoidFragmentSink::CloseContainer(const nsHTMLTag aTag)
           }
         }
       }
-      
-      nsContentUtils::SetNodeTextContent(style, sanitizedStyleText, PR_TRUE);
+      if (didSanitize) {
+        
+        nsContentUtils::SetNodeTextContent(style, sanitizedStyleText, PR_TRUE);
+      }
     }
   }
 
   return nsHTMLFragmentContentSink::CloseContainer(aTag);
 }
 
-void
+PRBool
 nsHTMLParanoidFragmentSink::SanitizeStyleRule(nsICSSStyleRule *aRule, nsAutoString &aRuleText)
 {
+  PRBool didSanitize = PR_FALSE;
   aRuleText.Truncate();
   css::Declaration *style = aRule->GetDeclaration();
   if (style) {
+    didSanitize = style->HasProperty(eCSSProperty_binding);
     style->RemoveProperty(eCSSProperty_binding);
     style->ToString(aRuleText);
   }
+  return didSanitize;
 }
 
 NS_IMETHODIMP
