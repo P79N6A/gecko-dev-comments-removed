@@ -4265,6 +4265,11 @@ public:
 };
 
 static bool
+AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
+                  TypeObject *type, JSFunction *fun, JSObject **pbaseobj,
+                  Vector<TypeNewScript::Initializer> *initializerList);
+
+static bool
 AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSObject **pbaseobj,
                            Vector<TypeNewScript::Initializer> *initializerList)
 {
@@ -4308,8 +4313,17 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSO
 
 
 
+
+
+    Vector<SSAUseChain *> pendingPoppedThis(cx);
+
+    
+
+
+
     uint32_t lastThisPopped = 0;
 
+    bool entirelyAnalyzed = true;
     unsigned nextOffset = 0;
     while (nextOffset < script->length) {
         unsigned offset = nextOffset;
@@ -4330,16 +4344,20 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSO
         if (op == JSOP_RETURN || op == JSOP_STOP || op == JSOP_RETRVAL) {
             if (offset < lastThisPopped) {
                 *pbaseobj = NULL;
-                return false;
+                entirelyAnalyzed = false;
+                break;
             }
-            return code->unconditional;
+
+            entirelyAnalyzed = code->unconditional;
+            break;
         }
 
         
         if (op == JSOP_EVAL) {
             if (offset < lastThisPopped)
                 *pbaseobj = NULL;
-            return false;
+            entirelyAnalyzed = false;
+            break;
         }
 
         
@@ -4349,30 +4367,68 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSO
         if (op != JSOP_THIS)
             continue;
 
-        
-        if (offset < lastThisPopped) {
-            *pbaseobj = NULL;
-            return false;
-        }
-
         SSAValue thisv = SSAValue::PushedValue(offset, 0);
         SSAUseChain *uses = analysis->useChain(thisv);
 
         JS_ASSERT(uses);
         if (uses->next || !uses->popped) {
             
-            return false;
+            entirelyAnalyzed = false;
+            break;
         }
-
-        lastThisPopped = uses->offset;
 
         
         Bytecode *poppedCode = analysis->maybeCode(uses->offset);
-        if (!poppedCode || !poppedCode->unconditional)
-            return false;
+        if (!poppedCode || !poppedCode->unconditional) {
+            entirelyAnalyzed = false;
+            break;
+        }
 
-        pc = script->code + uses->offset;
-        op = JSOp(*pc);
+        
+
+
+
+
+        if (!pendingPoppedThis.empty() &&
+            offset >= pendingPoppedThis.back()->offset) {
+            lastThisPopped = pendingPoppedThis[0]->offset;
+            if (!AnalyzePoppedThis(cx, &pendingPoppedThis, type, fun, pbaseobj,
+                                   initializerList)) {
+                return false;
+            }
+        }
+
+        if (!pendingPoppedThis.append(uses)) {
+            entirelyAnalyzed = false;
+            break;
+        }
+    }
+
+    
+    if (!pendingPoppedThis.empty() &&
+        !AnalyzePoppedThis(cx, &pendingPoppedThis, type, fun, pbaseobj,
+                           initializerList)) {
+        return false;
+    }
+
+    
+    return entirelyAnalyzed;
+}
+
+static bool
+AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
+                  TypeObject *type, JSFunction *fun, JSObject **pbaseobj,
+                  Vector<TypeNewScript::Initializer> *initializerList)
+{
+    JSScript *script = fun->script();
+    ScriptAnalysis *analysis = script->analysis();
+
+    while (!pendingPoppedThis->empty()) {
+        SSAUseChain *uses = pendingPoppedThis->back();
+        pendingPoppedThis->popBack();
+
+        jsbytecode *pc = script->code + uses->offset;
+        JSOp op = JSOp(*pc);
 
         RootedObject obj(cx, *pbaseobj);
 
@@ -4514,7 +4570,6 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSO
         }
     }
 
-    
     return true;
 }
 
