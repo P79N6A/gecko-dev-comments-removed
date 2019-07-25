@@ -133,6 +133,12 @@ public:
 
     static void InitKeyEvent(nsKeyEvent& aKeyEvent, GdkEventKey* aGdkKeyEvent);
 
+    
+
+
+
+    static bool IsKeyPressEventNecessary(GdkEventKey* aGdkKeyEvent);
+
 protected:
 
     

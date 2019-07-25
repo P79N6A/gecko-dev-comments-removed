@@ -942,5 +942,23 @@ KeymapWrapper::InitKeypressEvent(nsKeyEvent& aKeyEvent,
          altLatinCharCodes.mShiftedCharCode));
 }
 
+ bool
+KeymapWrapper::IsKeyPressEventNecessary(GdkEventKey* aGdkKeyEvent)
+{
+    
+    switch (ComputeDOMKeyCode(aGdkKeyEvent->keyval)) {
+        case NS_VK_SHIFT:
+        case NS_VK_CONTROL:
+        case NS_VK_META:
+        case NS_VK_ALT:
+        case NS_VK_CAPS_LOCK:
+        case NS_VK_NUM_LOCK:
+        case NS_VK_SCROLL_LOCK:
+            return false;
+        default:
+            return true;
+    }
+}
+
 } 
 } 

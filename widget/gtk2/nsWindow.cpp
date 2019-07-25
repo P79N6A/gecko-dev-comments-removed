@@ -2996,14 +2996,7 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
     
     
     
-    if (aEvent->keyval == GDK_Shift_L
-        || aEvent->keyval == GDK_Shift_R
-        || aEvent->keyval == GDK_Control_L
-        || aEvent->keyval == GDK_Control_R
-        || aEvent->keyval == GDK_Alt_L
-        || aEvent->keyval == GDK_Alt_R
-        || aEvent->keyval == GDK_Meta_L
-        || aEvent->keyval == GDK_Meta_R) {
+    if (!KeymapWrapper::IsKeyPressEventNecessary(aEvent)) {
         return TRUE;
     }
 
