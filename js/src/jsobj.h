@@ -809,6 +809,13 @@ struct JSObject : js::gc::Cell {
 
     JSBool makeDenseArraySlow(JSContext *cx);
 
+    
+
+
+
+
+    bool arrayGetOwnDataElement(JSContext *cx, size_t i, js::Value *vp);
+
   public:
     inline js::ArgumentsObject *asArguments();
     inline js::NormalArgumentsObject *asNormalArguments();

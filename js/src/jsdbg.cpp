@@ -48,6 +48,7 @@
 #include "jswrapper.h"
 #include "jsinterpinlines.h"
 #include "jsobjinlines.h"
+#include "jsopcodeinlines.h"
 #include "vm/Stack-inl.h"
 
 using namespace js;
@@ -180,8 +181,8 @@ bool
 Debug::init(JSContext *cx)
 {
     bool ok = (frames.init() &&
-               objects.init() && 
-               debuggees.init() && 
+               objects.init() &&
+               debuggees.init() &&
                heldScripts.init() &&
                evalScripts.init());
     if (!ok)
@@ -390,7 +391,7 @@ Debug::parseResumptionValue(AutoCompartment &ac, bool ok, const Value &rv, Value
     }
     if (okResumption) {
         shape = obj->lastProperty();
-        okResumption = shape->previous() && 
+        okResumption = shape->previous() &&
              !shape->previous()->previous() &&
              (shape->propid == returnId || shape->propid == throwId) &&
              shape->isDataDescriptor();
@@ -1251,7 +1252,7 @@ DebugScript_checkThis(JSContext *cx, Value *vp, const char *fnname, bool checkLi
                              "Debug.Script", fnname, "script");
         return NULL;
     }
-    
+
     return thisobj;
 }
 
@@ -1307,6 +1308,252 @@ DebugScript_getOffsetLine(JSContext *cx, uintN argc, Value *vp)
     return true;
 }
 
+class BytecodeRangeWithLineNumbers : private BytecodeRange
+{
+  public:
+    using BytecodeRange::empty;
+    using BytecodeRange::frontPC;
+    using BytecodeRange::frontOpcode;
+    using BytecodeRange::frontOffset;
+
+    BytecodeRangeWithLineNumbers(JSContext *cx, JSScript *script)
+      : BytecodeRange(cx, script), lineno(script->lineno), sn(script->notes()), snpc(script->code) {
+        if (!SN_IS_TERMINATOR(sn))
+            snpc += SN_DELTA(sn);
+        updateLine();
+    }
+
+    void popFront() {
+        BytecodeRange::popFront();
+        if (!empty())
+            updateLine();
+    }
+
+    size_t frontLineNumber() const { return lineno; }
+
+  private:
+    void updateLine() {
+        
+        
+        while (!SN_IS_TERMINATOR(sn) && snpc <= frontPC()) {
+            JSSrcNoteType type = (JSSrcNoteType) SN_TYPE(sn);
+            if (type == SRC_SETLINE)
+                lineno = size_t(js_GetSrcNoteOffset(sn, 0));
+            else if (type == SRC_NEWLINE)
+                lineno++;
+
+            sn = SN_NEXT(sn);
+            snpc += SN_DELTA(sn);
+        }
+    }
+
+    size_t lineno;
+    jssrcnote *sn;
+    jsbytecode *snpc;
+};
+
+static const size_t NoEdges = -1;
+static const size_t MultipleEdges = -2;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class FlowGraphSummary : public Vector<size_t> {
+  public:
+    typedef Vector<size_t> Base;
+    FlowGraphSummary(JSContext *cx) : Base(cx) {}
+
+    void addEdge(size_t sourceLine, size_t targetOffset) {
+        FlowGraphSummary &self = *this;
+        if (self[targetOffset] == NoEdges)
+            self[targetOffset] = sourceLine;
+        else if (self[targetOffset] != sourceLine)
+            self[targetOffset] = MultipleEdges;
+    }
+
+    void addEdgeFromAnywhere(size_t targetOffset) {
+        (*this)[targetOffset] = MultipleEdges;
+    }
+
+    bool populate(JSContext *cx, JSScript *script) {
+        if (!growBy(script->length))
+            return false;
+        FlowGraphSummary &self = *this;
+        self[0] = MultipleEdges;
+        for (size_t i = 1; i < script->length; i++)
+            self[i] = NoEdges;
+
+        size_t prevLine = script->lineno;
+        JSOp prevOp = JSOP_NOP;
+        for (BytecodeRangeWithLineNumbers r(cx, script); !r.empty(); r.popFront()) {
+            size_t lineno = r.frontLineNumber();
+            JSOp op = r.frontOpcode();
+
+            if (FlowsIntoNext(prevOp))
+                addEdge(prevLine, r.frontOffset());
+
+            if (js_CodeSpec[op].type() == JOF_JUMP) {
+                addEdge(lineno, r.frontOffset() + GET_JUMP_OFFSET(r.frontPC()));
+            } else if (js_CodeSpec[op].type() == JOF_JUMPX) {
+                addEdge(lineno, r.frontOffset() + GET_JUMPX_OFFSET(r.frontPC()));
+            } else if (op == JSOP_TABLESWITCH || op == JSOP_TABLESWITCHX ||
+                       op == JSOP_LOOKUPSWITCH || op == JSOP_LOOKUPSWITCHX) {
+                bool table = op == JSOP_TABLESWITCH || op == JSOP_TABLESWITCHX;
+                bool big = op == JSOP_TABLESWITCHX || op == JSOP_LOOKUPSWITCHX;
+
+                jsbytecode *pc = r.frontPC();
+                size_t offset = r.frontOffset();
+                ptrdiff_t step = big ? JUMPX_OFFSET_LEN : JUMP_OFFSET_LEN;
+                size_t defaultOffset = offset + (big ? GET_JUMPX_OFFSET(pc) : GET_JUMP_OFFSET(pc));
+                pc += step;
+                addEdge(lineno, defaultOffset);
+
+                jsint ncases;
+                if (table) {
+                    jsint low = GET_JUMP_OFFSET(pc);
+                    pc += JUMP_OFFSET_LEN;
+                    ncases = GET_JUMP_OFFSET(pc) - low + 1;
+                    pc += JUMP_OFFSET_LEN;
+                } else {
+                    ncases = (jsint) GET_UINT16(pc);
+                    pc += UINT16_LEN;
+                    JS_ASSERT(ncases > 0);
+                }
+
+                for (jsint i = 0; i < ncases; i++) {
+                    if (!table)
+                        pc += INDEX_LEN;
+                    size_t target = offset + (big ? GET_JUMPX_OFFSET(pc) : GET_JUMP_OFFSET(pc));
+                    addEdge(lineno, target);
+                    pc += step;
+                }
+            }
+
+            prevOp = op;
+            prevLine = lineno;
+        }
+
+
+        return true;
+    }
+};
+
+static JSBool
+DebugScript_getAllOffsets(JSContext *cx, uintN argc, Value *vp)
+{
+    THIS_DEBUGSCRIPT_LIVE_SCRIPT(cx, vp, "getAllOffsets", obj, script);
+
+    
+    
+    FlowGraphSummary flowData(cx);
+    if (!flowData.populate(cx, script))
+        return false;
+
+    
+    JSObject *result = NewDenseEmptyArray(cx);
+    if (!result)
+        return false;
+    for (BytecodeRangeWithLineNumbers r(cx, script); !r.empty(); r.popFront()) {
+        size_t offset = r.frontOffset();
+        size_t lineno = r.frontLineNumber();
+
+        
+        if (flowData[offset] != NoEdges && flowData[offset] != lineno) {
+            
+            JSObject *offsets;
+            Value offsetsv;
+            if (!result->arrayGetOwnDataElement(cx, lineno, &offsetsv))
+                return false;
+
+            jsid id;
+            if (offsetsv.isObject()) {
+                offsets = &offsetsv.toObject();
+            } else {
+                JS_ASSERT(offsetsv.isMagic(JS_ARRAY_HOLE));
+
+                
+                
+                offsets = NewDenseEmptyArray(cx);
+                if (!offsets ||
+                    !ValueToId(cx, NumberValue(lineno), &id) ||
+                    !result->defineProperty(cx, id, ObjectValue(*offsets)))
+                {
+                    return false;
+                }
+            }
+
+            
+            if (!js_ArrayCompPush(cx, offsets, NumberValue(offset)))
+                return false;
+        }
+    }
+
+    vp->setObject(*result);
+    return true;
+}
+
+static JSBool
+DebugScript_getLineOffsets(JSContext *cx, uintN argc, Value *vp)
+{
+    THIS_DEBUGSCRIPT_LIVE_SCRIPT(cx, vp, "getAllOffsets", obj, script);
+    REQUIRE_ARGC("Debug.Script.getLineOffsets", 1);
+
+    
+    size_t lineno;
+    bool ok = false;
+    if (vp[2].isNumber()) {
+        jsdouble d = vp[2].toNumber();
+        lineno = size_t(d);
+        ok = (lineno == d);
+    }
+    if (!ok) {
+        JS_ReportErrorNumber(cx,  js_GetErrorMessage, NULL, JSMSG_DEBUG_BAD_LINE);
+        return false;
+    }
+
+    
+    
+    FlowGraphSummary flowData(cx);
+    if (!flowData.populate(cx, script))
+        return false;
+
+    
+    JSObject *result = NewDenseEmptyArray(cx);
+    if (!result)
+        return false;
+    for (BytecodeRangeWithLineNumbers r(cx, script); !r.empty(); r.popFront()) {
+        size_t offset = r.frontOffset();
+
+        
+        if (r.frontLineNumber() == lineno &&
+            flowData[offset] != NoEdges &&
+            flowData[offset] != lineno)
+        {
+            if (!js_ArrayCompPush(cx, result, NumberValue(offset)))
+                return false;
+        }
+    }
+
+    vp->setObject(*result);
+    return true;
+}
+
 static JSBool
 DebugScript_construct(JSContext *cx, uintN argc, Value *vp)
 {
@@ -1320,6 +1567,8 @@ static JSPropertySpec DebugScript_properties[] = {
 };
 
 static JSFunctionSpec DebugScript_methods[] = {
+    JS_FN("getAllOffsets", DebugScript_getAllOffsets, 0, 0),
+    JS_FN("getLineOffsets", DebugScript_getLineOffsets, 1, 0),
     JS_FN("getOffsetLine", DebugScript_getOffsetLine, 0, 0),
     JS_FS_END
 };
@@ -1870,7 +2119,7 @@ DebugObject_getName(JSContext *cx, uintN argc, Value *vp)
         vp->setUndefined();
         return true;
     }
-        
+
     vp->setString(name);
     return dbg->wrapDebuggeeValue(cx, vp);
 }
