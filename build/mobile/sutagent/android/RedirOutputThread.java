@@ -137,6 +137,11 @@ public class RedirOutputThread extends Thread
                 {
                 e.printStackTrace();
                 }
+            catch (java.lang.IllegalArgumentException e)
+                {
+                
+                e.printStackTrace();
+                }
             }
 
         pProc.destroy();
