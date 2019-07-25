@@ -39,7 +39,7 @@ using namespace mozilla;
 
 
 
-#if defined(ANDROID)
+#if defined(MOZ_WIDGET_ANDROID)
 #define REMOTE_AUDIO 1
 #endif
 
