@@ -225,6 +225,10 @@ public:
         
         
         QUIRK_FLASH_EXPOSE_COORD_TRANSLATION            = 1 << 4,
+        
+        
+        
+        QUIRK_FLASH_HOOK_GETWINDOINFO                   = 1 << 5,
     };
 
     int GetQuirks() { return mQuirks; }
