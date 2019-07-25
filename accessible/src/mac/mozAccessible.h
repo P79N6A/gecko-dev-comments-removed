@@ -47,15 +47,7 @@ GetNativeFromGeckoAccessible(nsIAccessible* aAccessible)
 
 
   mozAccessible* mParent;
-  
-  
 
-
-
-
-
-  BOOL mIsExpired;
-  
   
 
 
