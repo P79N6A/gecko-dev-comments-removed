@@ -1,83 +1,83 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the PKIX-C library.
- *
- * The Initial Developer of the Original Code is
- * Sun Microsystems, Inc.
- * Portions created by the Initial Developer are
- * Copyright 2004-2007 Sun Microsystems, Inc.  All Rights Reserved.
- *
- * Contributor(s):
- *   Sun Microsystems, Inc.
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-/*
- * pkix_pl_cert.c
- *
- * Certificate Object Functions
- *
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "pkix_pl_cert.h"
 
 extern PKIX_PL_HashTable *cachedCertSigTable;
 
-/* --Private-Cert-Functions------------------------------------- */
 
-/*
- * FUNCTION: pkix_pl_Cert_IsExtensionCritical
- * DESCRIPTION:
- *
- *  Checks the Cert specified by "cert" to determine whether the extension
- *  whose tag is the UInt32 value given by "tag" is marked as a critical
- *  extension, and stores the result in "pCritical".
- *
- *  Tags are the index into the table "oids" of SECOidData defined in the
- *  file secoid.c. Constants, such as SEC_OID_X509_CERTIFICATE_POLICIES, are
- *  are defined in secoidt.h for most of the table entries.
- *
- *  If the specified tag is invalid (not in the list of tags) or if the
- *  extension is not found in the certificate, PKIX_FALSE is stored.
- *
- * PARAMETERS
- *  "cert"
- *      Address of Cert whose extensions are to be examined. Must be non-NULL.
- *  "tag"
- *      The UInt32 value of the tag for the extension whose criticality is
- *      to be determined
- *  "pCritical"
- *      Address where the Boolean value will be stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static PKIX_Error *
 pkix_pl_Cert_IsExtensionCritical(
         PKIX_PL_Cert *cert,
@@ -106,33 +106,33 @@ pkix_pl_Cert_IsExtensionCritical(
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_DecodePolicyInfo
- * DESCRIPTION:
- *
- *  Decodes the contents of the CertificatePolicy extension in the
- *  CERTCertificate pointed to by "nssCert", to create a List of
- *  CertPolicyInfos, which is stored at the address "pCertPolicyInfos".
- *  A CERTCertificate contains the DER representation of the Cert.
- *  If this certificate does not have a CertificatePolicy extension,
- *  NULL will be stored. If a List is returned, it will be immutable.
- *
- * PARAMETERS
- *  "nssCert"
- *      Address of the Cert data whose extension is to be examined. Must be
- *      non-NULL.
- *  "pCertPolicyInfos"
- *      Address where the List of CertPolicyInfos will be stored. Must be
- *      non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Cert Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static PKIX_Error *
 pkix_pl_Cert_DecodePolicyInfo(
         CERTCertificate *nssCert,
@@ -143,11 +143,11 @@ pkix_pl_Cert_DecodePolicyInfo(
         SECStatus rv;
         SECItem encodedCertPolicyInfo;
 
-        /* Allocated in the arena; freed in CERT_Destroy... */
+        
         CERTCertificatePolicies *certPol = NULL;
         CERTPolicyInfo **policyInfos = NULL;
 
-        /* Holder for the return value */
+        
         PKIX_List *infos = NULL;
 
         PKIX_PL_OID *pkixOID = NULL;
@@ -159,7 +159,7 @@ pkix_pl_Cert_DecodePolicyInfo(
         PKIX_ENTER(CERT, "pkix_pl_Cert_DecodePolicyInfo");
         PKIX_NULLCHECK_TWO(nssCert, pCertPolicyInfos);
 
-        /* get PolicyInfo as a SECItem */
+        
         PKIX_CERT_DEBUG("\t\tCERT_FindCertExtension).\n");
         rv = CERT_FindCertExtension
                 (nssCert,
@@ -170,7 +170,7 @@ pkix_pl_Cert_DecodePolicyInfo(
                 goto cleanup;
         }
 
-        /* translate PolicyInfo to CERTCertificatePolicies */
+        
         PKIX_CERT_DEBUG("\t\tCERT_DecodeCertificatePoliciesExtension).\n");
         certPol = CERT_DecodeCertificatePoliciesExtension
                 (&encodedCertPolicyInfo);
@@ -181,30 +181,30 @@ pkix_pl_Cert_DecodePolicyInfo(
                 PKIX_ERROR(PKIX_CERTDECODECERTIFICATEPOLICIESEXTENSIONFAILED);
         }
 
-        /*
-         * Check whether there are any policyInfos, so we can
-         * avoid creating an unnecessary List
-         */
+        
+
+
+
         policyInfos = certPol->policyInfos;
         if (!policyInfos) {
                 *pCertPolicyInfos = NULL;
                 goto cleanup;
         }
 
-        /* create a List of CertPolicyInfo Objects */
+        
         PKIX_CHECK(PKIX_List_Create(&infos, plContext),
                 PKIX_LISTCREATEFAILED);
 
-        /*
-         * Traverse the CERTCertificatePolicies structure,
-         * building each PKIX_PL_CertPolicyInfo object in turn
-         */
+        
+
+
+
         while (*policyInfos != NULL) {
                 CERTPolicyInfo *policyInfo = *policyInfos;
                 CERTPolicyQualifier **policyQualifiers =
                                           policyInfo->policyQualifiers;
                 if (policyQualifiers) {
-                        /* create a PKIX_List of PKIX_PL_CertPolicyQualifiers */
+                        
                         PKIX_CHECK(PKIX_List_Create(&qualifiers, plContext),
                                 PKIX_LISTCREATEFAILED);
 
@@ -212,13 +212,13 @@ pkix_pl_Cert_DecodePolicyInfo(
                             CERTPolicyQualifier *policyQualifier =
                                                          *policyQualifiers;
 
-                            /* create the qualifier's OID object */
+                            
                             PKIX_CHECK(PKIX_PL_OID_CreateBySECItem
                                 (&policyQualifier->qualifierID,
                                  &pkixOID, plContext),
                                 PKIX_OIDCREATEFAILED);
 
-                            /* create qualifier's ByteArray object */
+                            
 
                             PKIX_CHECK(PKIX_PL_ByteArray_Create
                                 (policyQualifier->qualifierValue.data,
@@ -227,7 +227,7 @@ pkix_pl_Cert_DecodePolicyInfo(
                                 plContext),
                                 PKIX_BYTEARRAYCREATEFAILED);
 
-                            /* create a CertPolicyQualifier object */
+                            
 
                             PKIX_CHECK(pkix_pl_CertPolicyQualifier_Create
                                 (pkixOID,
@@ -255,21 +255,21 @@ pkix_pl_Cert_DecodePolicyInfo(
                 }
 
 
-                /*
-                 * Create an OID object pkixOID from policyInfo->policyID.
-                 * (The CERTPolicyInfo structure has an oid field, but it
-                 * is of type SECOidTag. This function wants a SECItem.)
-                 */
+                
+
+
+
+
                 PKIX_CHECK(PKIX_PL_OID_CreateBySECItem
                         (&policyInfo->policyID, &pkixOID, plContext),
                         PKIX_OIDCREATEFAILED);
 
-                /* Create a CertPolicyInfo object */
+                
                 PKIX_CHECK(pkix_pl_CertPolicyInfo_Create
                         (pkixOID, qualifiers, &certPolicyInfo, plContext),
                         PKIX_CERTPOLICYINFOCREATEFAILED);
 
-                /* Append the new CertPolicyInfo object to the list */
+                
                 PKIX_CHECK(PKIX_List_AppendItem
                         (infos, (PKIX_PL_Object *)certPolicyInfo, plContext),
                         PKIX_LISTAPPENDITEMFAILED);
@@ -281,10 +281,10 @@ pkix_pl_Cert_DecodePolicyInfo(
                 policyInfos++;
         }
 
-        /*
-         * If there were no policies, we went straight to
-         * cleanup, so we don't have to NULLCHECK infos.
-         */
+        
+
+
+
         PKIX_CHECK(PKIX_List_SetImmutable(infos, plContext),
                 PKIX_LISTSETIMMUTABLEFAILED);
 
@@ -308,32 +308,32 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_DecodePolicyMapping
- * DESCRIPTION:
- *
- *  Decodes the contents of the PolicyMapping extension of the CERTCertificate
- *  pointed to by "nssCert", storing the resulting List of CertPolicyMaps at
- *  the address pointed to by "pCertPolicyMaps". If this certificate does not
- *  have a PolicyMapping extension, NULL will be stored. If a List is returned,
- *  it will be immutable.
- *
- * PARAMETERS
- *  "nssCert"
- *      Address of the Cert data whose extension is to be examined. Must be
- *      non-NULL.
- *  "pCertPolicyMaps"
- *      Address where the List of CertPolicyMaps will be stored. Must be
- *      non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Cert Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static PKIX_Error *
 pkix_pl_Cert_DecodePolicyMapping(
         CERTCertificate *nssCert,
@@ -343,11 +343,11 @@ pkix_pl_Cert_DecodePolicyMapping(
         SECStatus rv;
         SECItem encodedCertPolicyMaps;
 
-        /* Allocated in the arena; freed in CERT_Destroy... */
+        
         CERTCertificatePolicyMappings *certPolMaps = NULL;
         CERTPolicyMap **policyMaps = NULL;
 
-        /* Holder for the return value */
+        
         PKIX_List *maps = NULL;
 
         PKIX_PL_OID *issuerDomainOID = NULL;
@@ -357,7 +357,7 @@ pkix_pl_Cert_DecodePolicyMapping(
         PKIX_ENTER(CERT, "pkix_pl_Cert_DecodePolicyMapping");
         PKIX_NULLCHECK_TWO(nssCert, pCertPolicyMaps);
 
-        /* get PolicyMappings as a SECItem */
+        
         PKIX_CERT_DEBUG("\t\tCERT_FindCertExtension).\n");
         rv = CERT_FindCertExtension
                 (nssCert, SEC_OID_X509_POLICY_MAPPINGS, &encodedCertPolicyMaps);
@@ -366,7 +366,7 @@ pkix_pl_Cert_DecodePolicyMapping(
                 goto cleanup;
         }
 
-        /* translate PolicyMaps to CERTCertificatePolicyMappings */
+        
         certPolMaps = CERT_DecodePolicyMappingsExtension
                 (&encodedCertPolicyMaps);
 
@@ -380,30 +380,30 @@ pkix_pl_Cert_DecodePolicyMapping(
 
         policyMaps = certPolMaps->policyMaps;
 
-        /* create a List of CertPolicyMap Objects */
+        
         PKIX_CHECK(PKIX_List_Create(&maps, plContext),
                 PKIX_LISTCREATEFAILED);
 
-        /*
-         * Traverse the CERTCertificatePolicyMappings structure,
-         * building each CertPolicyMap object in turn
-         */
+        
+
+
+
         do {
                 CERTPolicyMap *policyMap = *policyMaps;
 
-                /* create the OID for the issuer Domain Policy */
+                
                 PKIX_CHECK(PKIX_PL_OID_CreateBySECItem
                         (&policyMap->issuerDomainPolicy,
                          &issuerDomainOID, plContext),
                         PKIX_OIDCREATEFAILED);
 
-                /* create the OID for the subject Domain Policy */
+                
                 PKIX_CHECK(PKIX_PL_OID_CreateBySECItem
                         (&policyMap->subjectDomainPolicy,
                          &subjectDomainOID, plContext),
                         PKIX_OIDCREATEFAILED);
 
-                /* create the CertPolicyMap */
+                
 
                 PKIX_CHECK(pkix_pl_CertPolicyMap_Create
                         (issuerDomainOID,
@@ -444,37 +444,37 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_DecodePolicyConstraints
- * DESCRIPTION:
- *
- *  Decodes the contents of the PolicyConstraints extension in the
- *  CERTCertificate pointed to by "nssCert", to obtain SkipCerts values
- *  which are stored at the addresses "pExplicitPolicySkipCerts" and
- *  "pInhibitMappingSkipCerts", respectively. If this certificate does
- *  not have an PolicyConstraints extension, or if either of the optional
- *  components is not supplied, this function stores a value of -1 for any
- *  missing component.
- *
- * PARAMETERS
- *  "nssCert"
- *      Address of the Cert data whose extension is to be examined. Must be
- *      non-NULL.
- *  "pExplicitPolicySkipCerts"
- *      Address where the SkipCert value for the requireExplicitPolicy
- *      component will be stored. Must be non-NULL.
- *  "pInhibitMappingSkipCerts"
- *      Address where the SkipCert value for the inhibitPolicyMapping
- *      component will be stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Cert Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static PKIX_Error *
 pkix_pl_Cert_DecodePolicyConstraints(
         CERTCertificate *nssCert,
@@ -492,7 +492,7 @@ pkix_pl_Cert_DecodePolicyConstraints(
         PKIX_NULLCHECK_THREE
                 (nssCert, pExplicitPolicySkipCerts, pInhibitMappingSkipCerts);
 
-        /* get the two skipCert values as SECItems */
+        
         PKIX_CERT_DEBUG("\t\tCalling CERT_FindCertExtension).\n");
         rv = CERT_FindCertExtension
                 (nssCert,
@@ -506,7 +506,7 @@ pkix_pl_Cert_DecodePolicyConstraints(
                 policyConstraints.inhibitMappingSkipCerts.data =
                         (unsigned char *)&inhibitMappingSkipCerts;
 
-                /* translate DER to CERTCertificatePolicyConstraints */
+                
                 rv = CERT_DecodePolicyConstraintsExtension
                         (&policyConstraints, &encodedCertPolicyConstraints);
 
@@ -525,31 +525,31 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_DecodeInhibitAnyPolicy
- * DESCRIPTION:
- *
- *  Decodes the contents of the InhibitAnyPolicy extension in the
- *  CERTCertificate pointed to by "nssCert", to obtain a SkipCerts value,
- *  which is stored at the address "pSkipCerts". If this certificate does
- *  not have an InhibitAnyPolicy extension, -1 will be stored.
- *
- * PARAMETERS
- *  "nssCert"
- *      Address of the Cert data whose InhibitAnyPolicy extension is to be
- *      processed. Must be non-NULL.
- *  "pSkipCerts"
- *      Address where the SkipCert value from the InhibitAnyPolicy extension
- *      will be stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Cert Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PKIX_Error *
 pkix_pl_Cert_DecodeInhibitAnyPolicy(
         CERTCertificate *nssCert,
@@ -564,7 +564,7 @@ pkix_pl_Cert_DecodeInhibitAnyPolicy(
         PKIX_ENTER(CERT, "pkix_pl_Cert_DecodeInhibitAnyPolicy");
         PKIX_NULLCHECK_TWO(nssCert, pSkipCerts);
 
-        /* get InhibitAny as a SECItem */
+        
         PKIX_CERT_DEBUG("\t\tCalling CERT_FindCertExtension).\n");
         rv = CERT_FindCertExtension
                 (nssCert, SEC_OID_X509_INHIBIT_ANY_POLICY, &encodedCertInhibitAny);
@@ -573,7 +573,7 @@ pkix_pl_Cert_DecodeInhibitAnyPolicy(
                 inhibitAny.inhibitAnySkipCerts.data =
                         (unsigned char *)&skipCerts;
 
-                /* translate DER to CERTCertificateInhibitAny */
+                
                 rv = CERT_DecodeInhibitAnyExtension
                         (&inhibitAny, &encodedCertInhibitAny);
 
@@ -590,36 +590,36 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_GetNssSubjectAltNames
- * DESCRIPTION:
- *
- *  Retrieves the Subject Alternative Names of the certificate specified by
- *  "cert" and stores it at "pNssSubjAltNames". If the Subject Alternative
- *  Name extension is not present, NULL is returned at "pNssSubjAltNames".
- *  If the Subject Alternative Names has not been previously decoded, it is
- *  decoded here with lock on the "cert" unless the flag "hasLock" indicates
- *  the lock had been obtained at a higher call level.
- *
- * PARAMETERS
- *  "cert"
- *      Address of the certificate whose Subject Alternative Names extensions
- *      is retrieved. Must be non-NULL.
- *  "hasLock"
- *      Boolean indicates caller has acquired a lock.
- *      Must be non-NULL.
- *  "pNssSubjAltNames"
- *      Address where the returned Subject Alternative Names will be stored.
- *      Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Cert Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static PKIX_Error *
 pkix_pl_Cert_GetNssSubjectAltNames(
         PKIX_PL_Cert *cert,
@@ -695,33 +695,33 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_CheckExtendKeyUsage
- * DESCRIPTION:
- *
- *  For each of the ON bit in "requiredExtendedKeyUsages" that represents its
- *  SECCertUsageEnum type, this function checks "cert"'s certType (extended
- *  key usage) and key usage with what is required for SECCertUsageEnum type.
- *
- * PARAMETERS
- *  "cert"
- *      Address of the certificate whose Extended Key Usage extensions
- *      is retrieved. Must be non-NULL.
- *  "requiredExtendedKeyUsages"
- *      An unsigned integer, its bit location is ON based on the required key
- *      usage value representing in SECCertUsageEnum.
- *  "pPass"
- *      Address where the return value, indicating key usage check passed, is
- *       stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Cert Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PKIX_Error *
 pkix_pl_Cert_CheckExtendedKeyUsage(
         PKIX_PL_Cert *cert,
@@ -762,7 +762,7 @@ pkix_pl_Cert_CheckExtendedKeyUsage(
         i = 0;
         while (requiredExtendedKeyUsages != 0) {
 
-                /* Find the bit location of the right-most non-zero bit */
+                
                 while (requiredExtendedKeyUsages != 0) {
                         if (((1 << i) & requiredExtendedKeyUsages) != 0) {
                                 requiredExtendedKeyUsage = 1 << i;
@@ -800,32 +800,32 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_ToString_Helper
- * DESCRIPTION:
- *
- *  Helper function that creates a string representation of the Cert pointed
- *  to by "cert" and stores it at "pString", where the value of
- *  "partialString" determines whether a full or partial representation of
- *  the Cert is stored.
- *
- * PARAMETERS
- *  "cert"
- *      Address of Cert whose string representation is desired.
- *      Must be non-NULL.
- *  "partialString"
- *      Boolean indicating whether a partial Cert representation is desired.
- *  "pString"
- *      Address where object pointer will be stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Cert Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PKIX_Error *
 pkix_pl_Cert_ToString_Helper(
         PKIX_PL_Cert *cert,
@@ -876,9 +876,9 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_ENTER(CERT, "pkix_pl_Cert_ToString_Helper");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pString);
 
-        /*
-         * XXX Add to this format as certificate components are developed.
-         */
+        
+
+
 
         if (partialString){
                 asciiFormat =
@@ -918,7 +918,7 @@ pkix_pl_Cert_ToString_Helper(
                 (PKIX_ESCASCII, asciiFormat, 0, &formatString, plContext),
                 PKIX_STRINGCREATEFAILED);
 
-        /* Issuer */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetIssuer
                 (cert, &certIssuer, plContext),
                 PKIX_CERTGETISSUERFAILED);
@@ -927,7 +927,7 @@ pkix_pl_Cert_ToString_Helper(
                 ((PKIX_PL_Object *)certIssuer, &certIssuerString, plContext),
                 PKIX_X500NAMETOSTRINGFAILED);
 
-        /* Subject */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetSubject(cert, &certSubject, plContext),
                 PKIX_CERTGETSUBJECTFAILED);
 
@@ -947,11 +947,11 @@ pkix_pl_Cert_ToString_Helper(
                 goto cleanup;
         }
 
-        /* Version */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetVersion(cert, &certVersion, plContext),
                 PKIX_CERTGETVERSIONFAILED);
 
-        /* SerialNumber */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetSerialNumber(cert, &certSN, plContext),
                 PKIX_CERTGETSERIALNUMBERFAILED);
 
@@ -959,21 +959,21 @@ pkix_pl_Cert_ToString_Helper(
                 ((PKIX_PL_Object *)certSN, &certSNString, plContext),
                 PKIX_BIGINTTOSTRINGFAILED);
 
-        /* Validity: NotBefore */
+        
         PKIX_CHECK(pkix_pl_Date_ToString_Helper
                 (&(cert->nssCert->validity.notBefore),
                 &notBeforeString,
                 plContext),
                 PKIX_DATETOSTRINGHELPERFAILED);
 
-        /* Validity: NotAfter */
+        
         PKIX_CHECK(pkix_pl_Date_ToString_Helper
                 (&(cert->nssCert->validity.notAfter),
                 &notAfterString,
                 plContext),
                 PKIX_DATETOSTRINGHELPERFAILED);
 
-        /* SubjectAltNames */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetSubjectAltNames
                 (cert, &subjAltNames, plContext),
                 PKIX_CERTGETSUBJECTALTNAMESFAILED);
@@ -981,7 +981,7 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_TOSTRING(subjAltNames, &subjAltNamesString, plContext,
                 PKIX_LISTTOSTRINGFAILED);
 
-        /* AuthorityKeyIdentifier */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetAuthorityKeyIdentifier
                 (cert, &authKeyId, plContext),
                 PKIX_CERTGETAUTHORITYKEYIDENTIFIERFAILED);
@@ -989,7 +989,7 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_TOSTRING(authKeyId, &authKeyIdString, plContext,
                 PKIX_BYTEARRAYTOSTRINGFAILED);
 
-        /* SubjectKeyIdentifier */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetSubjectKeyIdentifier
                 (cert, &subjKeyId, plContext),
                 PKIX_CERTGETSUBJECTKEYIDENTIFIERFAILED);
@@ -997,7 +997,7 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_TOSTRING(subjKeyId, &subjKeyIdString, plContext,
                 PKIX_BYTEARRAYTOSTRINGFAILED);
 
-        /* SubjectPublicKey */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetSubjectPublicKey
                     (cert, &nssPubKey, plContext),
                     PKIX_CERTGETSUBJECTPUBLICKEYFAILED);
@@ -1006,7 +1006,7 @@ pkix_pl_Cert_ToString_Helper(
                 ((PKIX_PL_Object *)nssPubKey, &nssPubKeyString, plContext),
                 PKIX_PUBLICKEYTOSTRINGFAILED);
 
-        /* CriticalExtensionOIDs */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetCriticalExtensionOIDs
                 (cert, &critExtOIDs, plContext),
                 PKIX_CERTGETCRITICALEXTENSIONOIDSFAILED);
@@ -1014,7 +1014,7 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_TOSTRING(critExtOIDs, &critExtOIDsString, plContext,
                 PKIX_LISTTOSTRINGFAILED);
 
-        /* ExtendedKeyUsages */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetExtendedKeyUsage
                 (cert, &extKeyUsages, plContext),
                 PKIX_CERTGETEXTENDEDKEYUSAGEFAILED);
@@ -1022,7 +1022,7 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_TOSTRING(extKeyUsages, &extKeyUsagesString, plContext,
                 PKIX_LISTTOSTRINGFAILED);
 
-        /* CertBasicConstraints */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetBasicConstraints
                 (cert, &basicConstraint, plContext),
                 PKIX_CERTGETBASICCONSTRAINTSFAILED);
@@ -1030,7 +1030,7 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_TOSTRING(basicConstraint, &certBasicConstraintsString, plContext,
                 PKIX_CERTBASICCONSTRAINTSTOSTRINGFAILED);
 
-        /* CertPolicyInfo */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetPolicyInformation
                 (cert, &policyInfo, plContext),
                 PKIX_CERTGETPOLICYINFORMATIONFAILED);
@@ -1038,7 +1038,7 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_TOSTRING(policyInfo, &certPolicyInfoString, plContext,
                 PKIX_LISTTOSTRINGFAILED);
 
-        /* Advanced Policies */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetPolicyMappings
                 (cert, &certPolicyMappings, plContext),
                 PKIX_CERTGETPOLICYMAPPINGSFAILED);
@@ -1058,7 +1058,7 @@ pkix_pl_Cert_ToString_Helper(
                 (cert, &certInhibitAnyPolicy, plContext),
                 PKIX_CERTGETINHIBITANYPOLICYFAILED);
 
-        /* Name Constraints */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetNameConstraints
                 (cert, &nameConstraints, plContext),
                 PKIX_CERTGETNAMECONSTRAINTSFAILED);
@@ -1066,7 +1066,7 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_TOSTRING(nameConstraints, &nameConstraintsString, plContext,
                 PKIX_LISTTOSTRINGFAILED);
 
-        /* Authority Information Access */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetAuthorityInfoAccess
                 (cert, &authorityInfoAccess, plContext),
                 PKIX_CERTGETAUTHORITYINFOACCESSFAILED);
@@ -1074,7 +1074,7 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_TOSTRING(authorityInfoAccess, &authorityInfoAccessString, plContext,
                 PKIX_LISTTOSTRINGFAILED);
 
-        /* Subject Information Access */
+        
         PKIX_CHECK(PKIX_PL_Cert_GetSubjectInfoAccess
                 (cert, &subjectInfoAccess, plContext),
                 PKIX_CERTGETSUBJECTINFOACCESSFAILED);
@@ -1101,13 +1101,13 @@ pkix_pl_Cert_ToString_Helper(
                     certBasicConstraintsString,
                     certPolicyInfoString,
                     certPolicyMappingsString,
-                    certExplicitPolicy,         /* an Int32, not a String */
-                    certInhibitMapping,         /* an Int32, not a String */
-                    certInhibitAnyPolicy,       /* an Int32, not a String */
+                    certExplicitPolicy,         
+                    certInhibitMapping,         
+                    certInhibitAnyPolicy,       
                     nameConstraintsString,
                     authorityInfoAccessString,
                     subjectInfoAccessString,
-                    cert->cacheFlag),           /* a boolean */
+                    cert->cacheFlag),           
                     PKIX_SPRINTFFAILED);
 
         *pString = certString;
@@ -1150,10 +1150,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_Destroy
- * (see comments for PKIX_PL_DestructorCallback in pkix_pl_system.h)
- */
+
+
+
+
 static PKIX_Error *
 pkix_pl_Cert_Destroy(
         PKIX_PL_Object *object,
@@ -1189,7 +1189,7 @@ pkix_pl_Cert_Destroy(
         PKIX_DECREF(cert->crldpList);
 
         if (cert->arenaNameConstraints){
-                /* This arena was allocated for SubjectAltNames */
+                
                 PKIX_PL_NSSCALL(CERT, PORT_FreeArena,
                         (cert->arenaNameConstraints, PR_FALSE));
 
@@ -1204,10 +1204,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_ToString
- * (see comments for PKIX_PL_ToStringCallback in pkix_pl_system.h)
- */
+
+
+
+
 static PKIX_Error *
 pkix_pl_Cert_ToString(
         PKIX_PL_Object *object,
@@ -1235,10 +1235,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_Hashcode
- * (see comments for PKIX_PL_HashcodeCallback in pkix_pl_system.h)
- */
+
+
+
+
 static PKIX_Error *
 pkix_pl_Cert_Hashcode(
         PKIX_PL_Object *object,
@@ -1273,10 +1273,10 @@ cleanup:
 }
 
 
-/*
- * FUNCTION: pkix_pl_Cert_Equals
- * (see comments for PKIX_PL_Equals_Callback in pkix_pl_system.h)
- */
+
+
+
+
 static PKIX_Error *
 pkix_pl_Cert_Equals(
         PKIX_PL_Object *firstObject,
@@ -1292,23 +1292,23 @@ pkix_pl_Cert_Equals(
         PKIX_ENTER(CERT, "pkix_pl_Cert_Equals");
         PKIX_NULLCHECK_THREE(firstObject, secondObject, pResult);
 
-        /* test that firstObject is a Cert */
+        
         PKIX_CHECK(pkix_CheckType(firstObject, PKIX_CERT_TYPE, plContext),
                     PKIX_FIRSTOBJECTNOTCERT);
 
-        /*
-         * Since we know firstObject is a Cert, if both references are
-         * identical, they must be equal
-         */
+        
+
+
+
         if (firstObject == secondObject){
                 *pResult = PKIX_TRUE;
                 goto cleanup;
         }
 
-        /*
-         * If secondObject isn't a Cert, we don't throw an error.
-         * We simply return a Boolean result of FALSE
-         */
+        
+
+
+
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObject, &secondType, plContext),
@@ -1320,7 +1320,7 @@ pkix_pl_Cert_Equals(
 
         PKIX_NULLCHECK_TWO(firstCert, secondCert);
 
-        /* CERT_CompareCerts does byte comparison on DER encodings of certs */
+        
         PKIX_CERT_DEBUG("\t\tCalling CERT_CompareCerts).\n");
         cmpResult = CERT_CompareCerts(firstCert, secondCert);
 
@@ -1330,17 +1330,17 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_RegisterSelf
- * DESCRIPTION:
- *  Registers PKIX_CERT_TYPE and its related functions with systemClasses[]
- * THREAD SAFETY:
- *  Not Thread Safe - for performance and complexity reasons
- *
- *  Since this function is only called by PKIX_PL_Initialize, which should
- *  only be called once, it is acceptable that this function is not
- *  thread-safe.
- */
+
+
+
+
+
+
+
+
+
+
+
 PKIX_Error *
 pkix_pl_Cert_RegisterSelf(void *plContext)
 {
@@ -1365,31 +1365,31 @@ pkix_pl_Cert_RegisterSelf(void *plContext)
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_CreateWithNSSCert
- * DESCRIPTION:
- *
- *  Creates a new certificate using the CERTCertificate pointed to by "nssCert"
- *  and stores it at "pCert". Once created, a Cert is immutable.
- *
- *  This function is primarily used as a convenience function for the
- *  performance tests that have easy access to a CERTCertificate.
- *
- * PARAMETERS:
- *  "nssCert"
- *      Address of CERTCertificate representing the NSS certificate.
- *      Must be non-NULL.
- *  "pCert"
- *      Address where object pointer will be stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Cert Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PKIX_Error *
 pkix_pl_Cert_CreateWithNSSCert(
         CERTCertificate *nssCert,
@@ -1401,7 +1401,7 @@ pkix_pl_Cert_CreateWithNSSCert(
         PKIX_ENTER(CERT, "pkix_pl_Cert_CreateWithNSSCert");
         PKIX_NULLCHECK_TWO(pCert, nssCert);
 
-        /* create a PKIX_PL_Cert object */
+        
         PKIX_CHECK(PKIX_PL_Object_Alloc
                     (PKIX_CERT_TYPE,
                     sizeof (PKIX_PL_Cert),
@@ -1409,20 +1409,20 @@ pkix_pl_Cert_CreateWithNSSCert(
                     plContext),
                     PKIX_COULDNOTCREATEOBJECT);
 
-        /* populate the nssCert field */
+        
         cert->nssCert = nssCert;
 
-        /* initialize remaining fields */
-        /*
-         * Fields ending with Absent are initialized to PKIX_FALSE so that the
-         * first time we need the value we will look for it. If we find it is
-         * actually absent, the flag will at that time be set to PKIX_TRUE to
-         * prevent searching for it later.
-         * Fields ending with Processed are those where a value is defined
-         * for the Absent case, and a value of zero is possible. When the
-         * flag is still true we have to look for the field, set the default
-         * value if necessary, and set the Processed flag to PKIX_TRUE.
-         */
+        
+        
+
+
+
+
+
+
+
+
+
         cert->subject = NULL;
         cert->issuer = NULL;
         cert->subjAltNames = NULL;
@@ -1465,31 +1465,31 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: pkix_pl_Cert_CreateToList
- * DESCRIPTION:
- *
- *  Creates a new certificate using the DER-encoding pointed to by "derCertItem"
- *  and appends it to the list pointed to by "certList". If Cert creation fails,
- *  the function returns with certList unchanged, but any decoding Error is
- *  discarded.
- *
- * PARAMETERS:
- *  "derCertItem"
- *      Address of SECItem containing the DER representation of a certificate.
- *      Must be non-NULL.
- *  "certList"
- *      Address of List to which the Cert will be appended, if successfully
- *      created. May be empty, but must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Cert Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PKIX_Error *
 pkix_pl_Cert_CreateToList(
         SECItem *derCertItem,
@@ -1505,9 +1505,9 @@ pkix_pl_Cert_CreateToList(
 
         handle  = CERT_GetDefaultCertDB();
         nssCert = CERT_NewTempCertificate(handle, derCertItem,
-					  /* nickname */ NULL, 
-					  /* isPerm   */ PR_FALSE, 
-					  /* copyDer  */ PR_TRUE);
+					   NULL, 
+					   PR_FALSE, 
+					   PR_TRUE);
         if (!nssCert) {
             goto cleanup;
         }
@@ -1531,13 +1531,13 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/* --Public-Functions------------------------------------------------------- */
 
-/*
- * FUNCTION: PKIX_PL_Cert_Create (see comments in pkix_pl_pki.h)
- * XXX We may want to cache the cert after parsing it, so it can be reused
- * XXX Are the NSS/NSPR functions thread safe
- */
+
+
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_Create(
         PKIX_PL_ByteArray *byteArray,
@@ -1570,17 +1570,17 @@ PKIX_PL_Cert_Create(
 
         (void) PORT_Memcpy(derCertItem->data, derBytes, derLength);
 
-        /*
-         * setting copyDER to true forces NSS to make its own copy of the DER,
-         * allowing us to free our copy without worrying about whether NSS
-         * is still using it
-         */
+        
+
+
+
+
         copyDER = PKIX_TRUE;
         handle  = CERT_GetDefaultCertDB();
         nssCert = CERT_NewTempCertificate(handle, derCertItem,
-					  /* nickname */ NULL, 
-					  /* isPerm   */ PR_FALSE, 
-					  /* copyDer  */ PR_TRUE);
+					   NULL, 
+					   PR_FALSE, 
+					   PR_TRUE);
         if (!nssCert){
                 PKIX_ERROR(PKIX_CERTDECODEDERCERTIFICATEFAILED);
         }
@@ -1607,10 +1607,10 @@ cleanup:
 }
 
 
-/*
- * FUNCTION: PKIX_PL_Cert_CreateFromCERTCertificate
- *  (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_CreateFromCERTCertificate(
         const CERTCertificate *nssCert,
@@ -1636,13 +1636,13 @@ PKIX_PL_Cert_CreateFromCERTCertificate(
             PKIX_CERTCREATEWITHNSSCERTFAILED);
 
 #ifdef PKIX_UNDEF
-        /* will be tested and used as a patch for bug 391612 */
+        
         nssCert = CERT_DupCertificate(nssInCert);
 
         PKIX_CHECK(pkix_pl_Cert_CreateWithNSSCert
                 (nssCert, &cert, plContext),
                 PKIX_CERTCREATEWITHNSSCERTFAILED);
-#endif /* PKIX_UNDEF */
+#endif 
 
 cleanup:
 
@@ -1652,16 +1652,16 @@ cleanup:
                 CERT_DestroyCertificate(nssCert);
                 nssCert = NULL;
         }
-#endif /* PKIX_UNDEF */
+#endif 
 
         PKIX_DECREF(byteArray);
         PKIX_RETURN(CERT);
 }
 
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetVersion (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetVersion(
         PKIX_PL_Cert *cert,
@@ -1669,7 +1669,7 @@ PKIX_PL_Cert_GetVersion(
         void *plContext)
 {
         CERTCertificate *nssCert = NULL;
-        PKIX_UInt32 myVersion = 0;  /* v1 */
+        PKIX_UInt32 myVersion = 0;  
 
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetVersion");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pVersion);
@@ -1689,9 +1689,9 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetSerialNumber (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetSerialNumber(
         PKIX_PL_Cert *cert,
@@ -1723,7 +1723,7 @@ PKIX_PL_Cert_GetSerialNumber(
                                     (bytes, length, &serialNumber, plContext),
                                     PKIX_BIGINTCREATEWITHBYTESFAILED);
 
-                        /* save a cached copy in case it is asked for again */
+                        
                         cert->serialNumber = serialNumber;
                 }
 
@@ -1738,9 +1738,9 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetSubject (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetSubject(
         PKIX_PL_Cert *cert,
@@ -1754,7 +1754,7 @@ PKIX_PL_Cert_GetSubject(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetSubject");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pCertSubject);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if (cert->subject == NULL){
 
                 PKIX_OBJECT_LOCK(cert);
@@ -1764,7 +1764,7 @@ PKIX_PL_Cert_GetSubject(
                         subjName = &cert->nssCert->subject;
                         derSubjName = &cert->nssCert->derSubject;
 
-                        /* if there is no subject name */
+                        
                         if (derSubjName->data == NULL) {
 
                                 pkixSubject = NULL;
@@ -1776,7 +1776,7 @@ PKIX_PL_Cert_GetSubject(
                                     PKIX_X500NAMECREATEFROMCERTNAMEFAILED);
 
                         }
-                        /* save a cached copy in case it is asked for again */
+                        
                         cert->subject = pkixSubject;
                 }
 
@@ -1791,9 +1791,9 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetIssuer (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetIssuer(
         PKIX_PL_Cert *cert,
@@ -1807,7 +1807,7 @@ PKIX_PL_Cert_GetIssuer(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetIssuer");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pCertIssuer);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if (cert->issuer == NULL){
 
                 PKIX_OBJECT_LOCK(cert);
@@ -1817,13 +1817,13 @@ PKIX_PL_Cert_GetIssuer(
                         issuerName = &cert->nssCert->issuer;
                         derIssuerName = &cert->nssCert->derIssuer;
 
-                        /* if there is no subject name */
+                        
                         PKIX_CHECK(PKIX_PL_X500Name_CreateFromCERTName
                                     (derIssuerName, issuerName,
                                      &pkixIssuer, plContext),
                                     PKIX_X500NAMECREATEFROMCERTNAMEFAILED);
 
-                        /* save a cached copy in case it is asked for again */
+                        
                         cert->issuer = pkixIssuer;
                 }
 
@@ -1837,13 +1837,13 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetSubjectAltNames (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetSubjectAltNames(
         PKIX_PL_Cert *cert,
-        PKIX_List **pSubjectAltNames,  /* list of PKIX_PL_GeneralName */
+        PKIX_List **pSubjectAltNames,  
         void *plContext)
 {
         PKIX_PL_GeneralName *pkixAltName = NULL;
@@ -1855,7 +1855,7 @@ PKIX_PL_Cert_GetSubjectAltNames(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetSubjectAltNames");
         PKIX_NULLCHECK_TWO(cert, pSubjectAltNames);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if ((cert->subjAltNames == NULL) && (!cert->subjAltNamesAbsent)){
 
                 PKIX_OBJECT_LOCK(cert);
@@ -1901,7 +1901,7 @@ PKIX_PL_Cert_GetSubjectAltNames(
 
                         } while (nssTempAltName != nssOriginalAltName);
 
-                        /* save a cached copy in case it is asked for again */
+                        
                         cert->subjAltNames = altNamesList;
                         PKIX_CHECK(PKIX_List_SetImmutable
                                 (cert->subjAltNames, plContext),
@@ -1924,13 +1924,13 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetAllSubjectNames (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetAllSubjectNames(
         PKIX_PL_Cert *cert,
-        PKIX_List **pAllSubjectNames,  /* list of PKIX_PL_GeneralName */
+        PKIX_List **pAllSubjectNames,  
         void *plContext)
 {
         CERTGeneralName *nssOriginalSubjectName = NULL;
@@ -1944,23 +1944,23 @@ PKIX_PL_Cert_GetAllSubjectNames(
 
 
         if (cert->nssCert->subjectName == NULL){
-                /* if there is no subject DN, just get altnames */
+                
 
                 PKIX_CHECK(pkix_pl_Cert_GetNssSubjectAltNames
                             (cert,
-                            PKIX_FALSE, /* hasLock */
+                            PKIX_FALSE, 
                             &nssOriginalSubjectName,
                             plContext),
                             PKIX_CERTGETNSSSUBJECTALTNAMESFAILED);
 
-        } else { /* get subject DN and altnames */
+        } else { 
 
                 arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
                 if (arena == NULL) {
                         PKIX_ERROR(PKIX_OUTOFMEMORY);
                 }
 
-                /* This NSS call returns both Subject and  Subject Alt Names */
+                
                 PKIX_CERT_DEBUG("\t\tCalling CERT_GetCertificateNames\n");
                 nssOriginalSubjectName =
                         CERT_GetCertificateNames(cert->nssCert, arena);
@@ -2009,10 +2009,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetSubjectPublicKeyAlgId
- *      (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetSubjectPublicKeyAlgId(
         PKIX_PL_Cert *cert,
@@ -2024,7 +2024,7 @@ PKIX_PL_Cert_GetSubjectPublicKeyAlgId(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetSubjectPublicKeyAlgId");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pSubjKeyAlgId);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if (cert->publicKeyAlgId == NULL){
                 PKIX_OBJECT_LOCK(cert);
                 if (cert->publicKeyAlgId == NULL){
@@ -2041,7 +2041,7 @@ PKIX_PL_Cert_GetSubjectPublicKeyAlgId(
                                     (algBytes, &pubKeyAlgId, plContext),
                                     PKIX_OIDCREATEFAILED);
 
-                        /* save a cached copy in case it is asked for again */
+                        
                         cert->publicKeyAlgId = pubKeyAlgId;
                         pubKeyAlgId = NULL;
                 }
@@ -2056,9 +2056,9 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetSubjectPublicKey (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetSubjectPublicKey(
         PKIX_PL_Cert *cert,
@@ -2076,14 +2076,14 @@ PKIX_PL_Cert_GetSubjectPublicKey(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetSubjectPublicKey");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pPublicKey);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if (cert->publicKey == NULL){
 
                 PKIX_OBJECT_LOCK(cert);
 
                 if (cert->publicKey == NULL){
 
-                        /* create a PKIX_PL_PublicKey object */
+                        
                         PKIX_CHECK(PKIX_PL_Object_Alloc
                                     (PKIX_PUBLICKEY_TYPE,
                                     sizeof (PKIX_PL_PublicKey),
@@ -2091,10 +2091,10 @@ PKIX_PL_Cert_GetSubjectPublicKey(
                                     plContext),
                                     PKIX_COULDNOTCREATEOBJECT);
 
-                        /* initialize fields */
+                        
                         pkixPubKey->nssSPKI = NULL;
 
-                        /* populate the SPKI field */
+                        
                         PKIX_CHECK(PKIX_PL_Malloc
                                     (sizeof (CERTSubjectPublicKeyInfo),
                                     (void **)&pkixPubKey->nssSPKI,
@@ -2114,13 +2114,13 @@ PKIX_PL_Cert_GetSubjectPublicKey(
                                 PKIX_ERROR(PKIX_SECOIDCOPYALGORITHMIDFAILED);
                         }
 
-                        /*
-                         * NSS stores the length of subjectPublicKey in bits.
-                         * Therefore, we use that length converted to bytes
-                         * using ((length+7)>>3) before calling PORT_Memcpy
-                         * in order to avoid "read from uninitialized memory"
-                         * errors.
-                         */
+                        
+
+
+
+
+
+
 
                         toItem = &to->subjectPublicKey;
                         fromItem = &from->subjectPublicKey;
@@ -2140,7 +2140,7 @@ PKIX_PL_Cert_GetSubjectPublicKey(
                                     (fromItem->len + 7)>>3);
                         toItem->len = fromItem->len;
 
-                        /* save a cached copy in case it is asked for again */
+                        
                         cert->publicKey = pkixPubKey;
                 }
 
@@ -2159,14 +2159,14 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetCriticalExtensionOIDs
- *      (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetCriticalExtensionOIDs(
         PKIX_PL_Cert *cert,
-        PKIX_List **pList,  /* list of PKIX_PL_OID */
+        PKIX_List **pList,  
         void *plContext)
 {
         PKIX_List *oidsList = NULL;
@@ -2176,7 +2176,7 @@ PKIX_PL_Cert_GetCriticalExtensionOIDs(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetCriticalExtensionOIDs");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pList);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if (cert->critExtOids == NULL) {
 
             PKIX_OBJECT_LOCK(cert);
@@ -2185,15 +2185,15 @@ PKIX_PL_Cert_GetCriticalExtensionOIDs(
 
                 nssCert = cert->nssCert;
 
-                /*
-                 * ASN.1 for Extension
-                 *
-                 * Extension  ::=  SEQUENCE  {
-                 *      extnID          OBJECT IDENTIFIER,
-                 *      critical        BOOLEAN DEFAULT FALSE,
-                 *      extnValue       OCTET STRING  }
-                 *
-                 */
+                
+
+
+
+
+
+
+
+
 
                 extensions = nssCert->extensions;
 
@@ -2201,14 +2201,14 @@ PKIX_PL_Cert_GetCriticalExtensionOIDs(
                             (extensions, &oidsList, plContext),
                             PKIX_GETCRITICALEXTENSIONOIDSFAILED);
 
-                /* save a cached copy in case it is asked for again */
+                
                 cert->critExtOids = oidsList;
             }
 
             PKIX_OBJECT_UNLOCK(cert);
         }
 
-        /* We should return a copy of the List since this list changes */
+        
         PKIX_DUPLICATE(cert->critExtOids, pList, plContext,
                 PKIX_OBJECTDUPLICATELISTFAILED);
 
@@ -2217,10 +2217,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetAuthorityKeyIdentifier
- *      (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetAuthorityKeyIdentifier(
         PKIX_PL_Cert *cert,
@@ -2236,7 +2236,7 @@ PKIX_PL_Cert_GetAuthorityKeyIdentifier(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetAuthorityKeyIdentifier");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pAuthKeyId);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if ((cert->authKeyId == NULL) && (!cert->authKeyIdAbsent)){
 
                 PKIX_OBJECT_LOCK(cert);
@@ -2273,7 +2273,7 @@ PKIX_PL_Cert_GetAuthorityKeyIdentifier(
                                     plContext),
                                     PKIX_BYTEARRAYCREATEFAILED);
 
-                        /* save a cached copy in case it is asked for again */
+                        
                         cert->authKeyId = authKeyId;
                 }
 
@@ -2291,10 +2291,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetSubjectKeyIdentifier
- *      (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetSubjectKeyIdentifier(
         PKIX_PL_Cert *cert,
@@ -2309,7 +2309,7 @@ PKIX_PL_Cert_GetSubjectKeyIdentifier(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetSubjectKeyIdentifier");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pSubjKeyId);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if ((cert->subjKeyId == NULL) && (!cert->subjKeyIdAbsent)){
 
                 PKIX_OBJECT_LOCK(cert);
@@ -2338,7 +2338,7 @@ PKIX_PL_Cert_GetSubjectKeyIdentifier(
                                     plContext),
                                     PKIX_BYTEARRAYCREATEFAILED);
 
-                        /* save a cached copy in case it is asked for again */
+                        
                         cert->subjKeyId = subjKeyId;
                 }
 
@@ -2356,13 +2356,13 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetExtendedKeyUsage (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetExtendedKeyUsage(
         PKIX_PL_Cert *cert,
-        PKIX_List **pKeyUsage,  /* list of PKIX_PL_OID */
+        PKIX_List **pKeyUsage,  
         void *plContext)
 {
         CERTOidSequence *extKeyUsage = NULL;
@@ -2376,7 +2376,7 @@ PKIX_PL_Cert_GetExtendedKeyUsage(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetExtendedKeyUsage");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pKeyUsage);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if ((cert->extKeyUsages == NULL) && (!cert->extKeyUsagesAbsent)){
 
                 PKIX_OBJECT_LOCK(cert);
@@ -2406,7 +2406,7 @@ PKIX_PL_Cert_GetExtendedKeyUsage(
                         oids = extKeyUsage->oids;
 
                         if (!oids){
-                                /* no extended key usage extensions found */
+                                
                                 cert->extKeyUsagesAbsent = PKIX_TRUE;
                                 *pKeyUsage = NULL;
                                 goto cleanup;
@@ -2430,7 +2430,7 @@ PKIX_PL_Cert_GetExtendedKeyUsage(
                                 PKIX_DECREF(pkixOID);
                         }
 
-                        /* save a cached copy in case it is asked for again */
+                        
                         cert->extKeyUsages = oidsList;
                         oidsList = NULL;
                 }
@@ -2455,10 +2455,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetBasicConstraints
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetBasicConstraints(
         PKIX_PL_Cert *cert,
@@ -2478,7 +2478,7 @@ PKIX_PL_Cert_GetBasicConstraints(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetBasicConstraints");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pBasicConstraints);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if ((cert->certBasicConstraints == NULL) &&
                 (!cert->basicConstraintsAbsent)) {
 
@@ -2498,9 +2498,9 @@ PKIX_PL_Cert_GetBasicConstraints(
                         }
 
                         if (constraintSource == absentBC) {
-                            /* can we deduce it's a CA and create a 
-                               synthetic constraint?
-                            */
+                            
+
+
                             CERTCertTrust trust;
                             rv = CERT_GetCertTrust(nssCert, &trust);
                             if (rv == SECSuccess) {
@@ -2527,7 +2527,7 @@ PKIX_PL_Cert_GetBasicConstraints(
                 } else {
                     isCA = (nssBasicConstraint.isCA)?PKIX_TRUE:PKIX_FALSE;
     
-                    /* The pathLen has meaning only for CAs */
+                    
                     if (isCA) {
                         if (CERT_UNLIMITED_PATH_CONSTRAINT ==
                             nssBasicConstraint.pathLenConstraint) {
@@ -2542,7 +2542,7 @@ PKIX_PL_Cert_GetBasicConstraints(
                             (isCA, pathLen, &basic, plContext),
                             PKIX_CERTBASICCONSTRAINTSCREATEFAILED);
 
-                /* save a cached copy in case it is asked for again */
+                
                 cert->certBasicConstraints = basic;
         }
 
@@ -2554,10 +2554,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetPolicyInformation
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetPolicyInformation(
         PKIX_PL_Cert *cert,
@@ -2569,7 +2569,7 @@ PKIX_PL_Cert_GetPolicyInformation(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetPolicyInformation");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pPolicyInfo);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if ((cert->certPolicyInfos == NULL) &&
                 (!cert->policyInfoAbsent)) {
 
@@ -2591,7 +2591,7 @@ PKIX_PL_Cert_GetPolicyInformation(
 
                 PKIX_OBJECT_UNLOCK(cert);
 
-                /* save a cached copy in case it is asked for again */
+                
                 cert->certPolicyInfos = policyList;
                 policyList = NULL;
         }
@@ -2606,21 +2606,21 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetPolicyMappings (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetPolicyMappings(
         PKIX_PL_Cert *cert,
-        PKIX_List **pPolicyMappings, /* list of PKIX_PL_CertPolicyMap */
+        PKIX_List **pPolicyMappings, 
         void *plContext)
 {
-        PKIX_List *policyMappings = NULL; /* list of PKIX_PL_CertPolicyMap */
+        PKIX_List *policyMappings = NULL; 
 
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetPolicyMappings");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pPolicyMappings);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if (!(cert->certPolicyMappings) && !(cert->policyMappingsAbsent)) {
 
                 PKIX_OBJECT_LOCK(cert);
@@ -2641,7 +2641,7 @@ PKIX_PL_Cert_GetPolicyMappings(
 
                 PKIX_OBJECT_UNLOCK(cert);
 
-                /* save a cached copy in case it is asked for again */
+                
                 cert->certPolicyMappings = policyMappings; 
                 policyMappings = NULL;
         }
@@ -2656,10 +2656,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetRequireExplicitPolicy
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetRequireExplicitPolicy(
         PKIX_PL_Cert *cert,
@@ -2677,10 +2677,10 @@ PKIX_PL_Cert_GetRequireExplicitPolicy(
 
                 if (!(cert->policyConstraintsProcessed)) {
 
-                        /*
-                         * If we can't process it now, we probably will be
-                         * unable to process it later. Set the default value.
-                         */
+                        
+
+
+
                         cert->policyConstraintsProcessed = PKIX_TRUE;
                         cert->policyConstraintsExplicitPolicySkipCerts = -1;
                         cert->policyConstraintsInhibitMappingSkipCerts = -1;
@@ -2708,10 +2708,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetPolicyMappingInhibited
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetPolicyMappingInhibited(
         PKIX_PL_Cert *cert,
@@ -2729,10 +2729,10 @@ PKIX_PL_Cert_GetPolicyMappingInhibited(
 
                 if (!(cert->policyConstraintsProcessed)) {
 
-                        /*
-                         * If we can't process it now, we probably will be
-                         * unable to process it later. Set the default value.
-                         */
+                        
+
+
+
                         cert->policyConstraintsProcessed = PKIX_TRUE;
                         cert->policyConstraintsExplicitPolicySkipCerts = -1;
                         cert->policyConstraintsInhibitMappingSkipCerts = -1;
@@ -2760,9 +2760,9 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetInhibitAnyPolicy (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetInhibitAnyPolicy(
         PKIX_PL_Cert *cert,
@@ -2780,10 +2780,10 @@ PKIX_PL_Cert_GetInhibitAnyPolicy(
 
                 if (!(cert->inhibitAnyPolicyProcessed)) {
 
-                        /*
-                         * If we can't process it now, we probably will be
-                         * unable to process it later. Set the default value.
-                         */
+                        
+
+
+
                         cert->inhibitAnyPolicyProcessed = PKIX_TRUE;
                         cert->inhibitAnySkipCerts = -1;
 
@@ -2803,10 +2803,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_AreCertPoliciesCritical
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_AreCertPoliciesCritical(
         PKIX_PL_Cert *cert,
@@ -2831,9 +2831,9 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_VerifySignature (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_VerifySignature(
         PKIX_PL_Cert *cert,
@@ -2861,13 +2861,13 @@ PKIX_PL_Cert_VerifySignature(
                         plContext);
 
         if (cachedCert != NULL && verifySig == NULL) {
-                /* Cached Signature Table lookup succeed */
+                
                 PKIX_EQUALS(cert, cachedCert, &certEqual, plContext,
                             PKIX_OBJECTEQUALSFAILED);
                 if (certEqual == PKIX_TRUE) {
                         goto cleanup;
                 }
-                /* Different PubKey may hash to same value, skip add */
+                
                 certInHash = PKIX_TRUE;
         }
 
@@ -2889,6 +2889,9 @@ PKIX_PL_Cert_VerifySignature(
         status = CERT_VerifySignedDataWithPublicKey(tbsCert, nssPubKey, wincx);
 
         if (status != SECSuccess) {
+                if (PORT_GetError() != SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED) {
+                        PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+                }
                 PKIX_ERROR(PKIX_SIGNATUREDIDNOTVERIFYWITHTHEPUBLICKEY);
         }
 
@@ -2917,9 +2920,9 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_CheckValidity (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_CheckValidity(
         PKIX_PL_Cert *cert,
@@ -2934,7 +2937,7 @@ PKIX_PL_Cert_CheckValidity(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_CheckValidity");
         PKIX_NULLCHECK_ONE(cert);
 
-        /* if the caller supplies a date, we use it; else, use current time */
+        
         if (date != NULL){
                 PKIX_CHECK(pkix_pl_Date_GetPRTime
                         (date, &timeToCheck, plContext),
@@ -2956,9 +2959,9 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetValidityNotAfter (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetValidityNotAfter(
         PKIX_PL_Cert *cert,
@@ -2985,9 +2988,9 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_VerifyCertAndKeyType (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_VerifyCertAndKeyType(
         PKIX_PL_Cert *cert,
@@ -3007,13 +3010,13 @@ PKIX_PL_Cert_VerifyCertAndKeyType(
     
     certificateUsage = ((PKIX_PL_NssContext*)plContext)->certificateUsage;
     
-    /* ensure we obtained a single usage bit only */
+    
     PORT_Assert(!(certificateUsage & (certificateUsage - 1)));
     
-    /* convert SECertificateUsage (bit mask) to SECCertUsage (enum) */
+    
     while (0 != (certificateUsage = certificateUsage >> 1)) { certUsage++; }
 
-    /* check key usage and netscape cert type */
+    
     cert_GetCertType(cert->nssCert);
     certType = cert->nssCert->nsCertType;
     if (isChainCert ||
@@ -3025,8 +3028,8 @@ PKIX_PL_Cert_VerifyCertAndKeyType(
             PKIX_ERROR(PKIX_UNSUPPORTEDCERTUSAGE);
         }
     } else {
-        /* use this key usage and cert type for certUsageAnyCA and
-         * certUsageVerifyCA. */
+        
+
 	requiredKeyUsage = KU_KEY_CERT_SIGN;
 	requiredCertType = NS_CERT_TYPE_CA;
     }
@@ -3041,9 +3044,9 @@ cleanup:
     PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_VerifyKeyUsage (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_VerifyKeyUsage(
         PKIX_PL_Cert *cert,
@@ -3059,7 +3062,7 @@ PKIX_PL_Cert_VerifyKeyUsage(
 
         nssCert = cert->nssCert;
 
-        /* if cert doesn't have keyUsage extension, all keyUsages are valid */
+        
         if (!nssCert->keyUsagePresent){
                 goto cleanup;
         }
@@ -3097,7 +3100,7 @@ PKIX_PL_Cert_VerifyKeyUsage(
         }
 
         if (keyUsage & PKIX_DECIPHER_ONLY){
-                /* XXX we should support this once it is fixed in NSS */
+                
                 PKIX_ERROR(PKIX_DECIPHERONLYKEYUSAGENOTSUPPORTED);
         }
 
@@ -3110,10 +3113,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetNameConstraints
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetNameConstraints(
         PKIX_PL_Cert *cert,
@@ -3125,7 +3128,7 @@ PKIX_PL_Cert_GetNameConstraints(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetNameConstraints");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pNameConstraints);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if (cert->nameConstraints == NULL && !cert->nameConstraintsAbsent) {
 
                 PKIX_OBJECT_LOCK(cert);
@@ -3157,10 +3160,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_CheckNameConstraints
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_CheckNameConstraints(
         PKIX_PL_Cert *cert,
@@ -3181,7 +3184,7 @@ PKIX_PL_Cert_CheckNameConstraints(
                         PKIX_ERROR(PKIX_OUTOFMEMORY);
                 }
 
-                /* This NSS call returns both Subject and  Subject Alt Names */
+                
                 PKIX_CERT_DEBUG
                     ("\t\tCalling CERT_GetConstrainedCertificateNames\n");
                 nssSubjectNames = CERT_GetConstrainedCertificateNames
@@ -3207,10 +3210,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_MergeNameConstraints
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_MergeNameConstraints(
         PKIX_PL_CertNameConstraints *firstNC,
@@ -3241,13 +3244,13 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * Find out the state of the NSS trust bits for the requested usage.
- * Returns SECFailure if the cert is explicitly distrusted.
- * Returns SECSuccess if the cert can be used to form a chain (normal case),
- *   or it is explicitly trusted. The trusted bool is set to true if it is
- *   explicitly trusted.
- */
+
+
+
+
+
+
+
 static SECStatus
 pkix_pl_Cert_GetTrusted(void *plContext,
                         PKIX_PL_Cert *cert,
@@ -3265,17 +3268,17 @@ pkix_pl_Cert_GetTrusted(void *plContext,
 
         *trusted = PKIX_FALSE;
 
-        /* no key usage information  */
+        
         if (plContext == NULL) {
                 return SECSuccess;
         }
 
         certificateUsage = ((PKIX_PL_NssContext*)plContext)->certificateUsage;
 
-        /* ensure we obtained a single usage bit only */
+        
         PORT_Assert(!(certificateUsage & (certificateUsage - 1)));
 
-        /* convert SECertificateUsage (bit mask) to SECCertUsage (enum) */
+        
         while (0 != (certificateUsage = certificateUsage >> 1)) { certUsage++; }
 
         nssCert = cert->nssCert;
@@ -3299,9 +3302,9 @@ pkix_pl_Cert_GetTrusted(void *plContext,
                 return SECSuccess;
         }
         trustFlags = SEC_GET_TRUST_FLAGS(&trust, trustType);
-        /* normally trustTypeNone usages accept any of the given trust bits
-         * being on as acceptable. If any are distrusted (and none are trusted),
-         * then we will also distrust the cert */
+        
+
+
         if ((trustFlags == 0) && (trustType == trustTypeNone)) {
                 trustFlags = trust.sslFlags | trust.emailFlags |
                              trust.objectSigningFlags;
@@ -3317,10 +3320,10 @@ pkix_pl_Cert_GetTrusted(void *plContext,
         return SECSuccess;
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_IsCertTrusted
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_IsCertTrusted(
         PKIX_PL_Cert *cert,
@@ -3335,23 +3338,23 @@ PKIX_PL_Cert_IsCertTrusted(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_IsCertTrusted");
         PKIX_NULLCHECK_TWO(cert, pTrusted);
 
-        /* Call GetTrusted first to see if we are going to distrust the
-         * certificate */
+        
+
         rv = pkix_pl_Cert_GetTrusted(plContext, cert, &trusted, PKIX_TRUE);
         if (rv != SECSuccess) {
-                /* Failure means the cert is explicitly distrusted,
-                 * let the next level know not to use it. */
+                
+
                 *pTrusted = PKIX_FALSE;
                 PKIX_ERROR(PKIX_CERTISCERTTRUSTEDFAILED);
         }
 
         if (trustOnlyUserAnchors) {
-            /* discard our |trusted| value since we are using the anchors */
+            
             *pTrusted = cert->isUserTrustAnchor;
             goto cleanup;
         }
 
-        /* no key usage information or store is not trusted */
+        
         if (plContext == NULL || cert->store == NULL) {
                 *pTrusted = PKIX_FALSE;
                 goto cleanup;
@@ -3365,8 +3368,8 @@ PKIX_PL_Cert_IsCertTrusted(
                 (cert->store, cert, &trusted, plContext),
                 PKIX_CHECKTRUSTCALLBACKFAILED);
 
-        /* allow trust store to override if we can trust the trust
-         * bits */
+        
+
         if (PKIX_ERROR_RECEIVED || (trusted == PKIX_FALSE)) {
                 *pTrusted = PKIX_FALSE;
                 goto cleanup;
@@ -3378,10 +3381,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_IsLeafCertTrusted
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_IsLeafCertTrusted(
         PKIX_PL_Cert *cert,
@@ -3397,8 +3400,8 @@ PKIX_PL_Cert_IsLeafCertTrusted(
 
         rv = pkix_pl_Cert_GetTrusted(plContext, cert, pTrusted, PKIX_FALSE);
         if (rv != SECSuccess) {
-                /* Failure means the cert is explicitly distrusted,
-                 * let the next level know not to use it. */
+                
+
                 *pTrusted = PKIX_FALSE;
                 PKIX_ERROR(PKIX_CERTISCERTTRUSTEDFAILED);
         }
@@ -3407,7 +3410,7 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/* FUNCTION: PKIX_PL_Cert_SetAsTrustAnchor */
+
 PKIX_Error*
 PKIX_PL_Cert_SetAsTrustAnchor(PKIX_PL_Cert *cert, 
                               void *plContext)
@@ -3420,9 +3423,9 @@ PKIX_PL_Cert_SetAsTrustAnchor(PKIX_PL_Cert *cert,
     PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetCacheFlag (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetCacheFlag(
         PKIX_PL_Cert *cert,
@@ -3437,9 +3440,9 @@ PKIX_PL_Cert_GetCacheFlag(
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_SetCacheFlag (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_SetCacheFlag(
         PKIX_PL_Cert *cert,
@@ -3454,9 +3457,9 @@ PKIX_PL_Cert_SetCacheFlag(
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetTrustCertStore (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetTrustCertStore(
         PKIX_PL_Cert *cert,
@@ -3473,9 +3476,9 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_SetTrustCertStore (see comments in pkix_pl_pki.h)
- */
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_SetTrustCertStore(
         PKIX_PL_Cert *cert,
@@ -3492,17 +3495,17 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetAuthorityInfoAccess
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetAuthorityInfoAccess(
         PKIX_PL_Cert *cert,
-        PKIX_List **pAiaList, /* of PKIX_PL_InfoAccess */
+        PKIX_List **pAiaList, 
         void *plContext)
 {
-        PKIX_List *aiaList = NULL; /* of PKIX_PL_InfoAccess */
+        PKIX_List *aiaList = NULL; 
         SECItem *encodedAIA = NULL;
         CERTAuthInfoAccess **aia = NULL;
         PLArenaPool *arena = NULL;
@@ -3511,7 +3514,7 @@ PKIX_PL_Cert_GetAuthorityInfoAccess(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetAuthorityInfoAccess");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pAiaList);
 
-        /* if we don't have a cached copy from before, we create one */
+        
         if (cert->authorityInfoAccess == NULL) {
 
                 PKIX_OBJECT_LOCK(cert);
@@ -3572,22 +3575,22 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/* XXX Following defines belongs to NSS */
+
 static const unsigned char siaOIDString[] = {0x2b, 0x06, 0x01, 0x05, 0x05,
                                 0x07, 0x01, 0x0b};
 #define OI(x) { siDEROID, (unsigned char *)x, sizeof x }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetSubjectInfoAccess
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetSubjectInfoAccess(
         PKIX_PL_Cert *cert,
-        PKIX_List **pSiaList, /* of PKIX_PL_InfoAccess */
+        PKIX_List **pSiaList, 
         void *plContext)
 {
-        PKIX_List *siaList; /* of PKIX_PL_InfoAccess */
+        PKIX_List *siaList; 
         SECItem siaOID = OI(siaOIDString);
         SECItem *encodedSubjInfoAccess = NULL;
         CERTAuthInfoAccess **subjInfoAccess = NULL;
@@ -3597,13 +3600,13 @@ PKIX_PL_Cert_GetSubjectInfoAccess(
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetSubjectInfoAccess");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pSiaList);
 
-        /* XXX
-         * Codes to deal with SubjectInfoAccess OID should be moved to
-         * NSS soon. I implemented them here so we don't touch NSS
-         * source tree, from JP's suggestion.
-         */
+        
 
-        /* if we don't have a cached copy from before, we create one */
+
+
+
+
+        
         if (cert->subjectInfoAccess == NULL) {
 
                 PKIX_OBJECT_LOCK(cert);
@@ -3629,12 +3632,12 @@ PKIX_PL_Cert_GetSubjectInfoAccess(
                         PKIX_ERROR(PKIX_OUTOFMEMORY);
                     }
 
-                    /* XXX
-                     * Decode Subject Information Access -
-                     * since its type is the same as Authority Information
-                     * Access, reuse the call. NSS- change name to avoid
-                     * confusion.
-                     */
+                    
+
+
+
+
+
                     PKIX_CERT_DEBUG
                         ("\t\tCalling CERT_DecodeAuthInfoAccessExtension).\n");
                     subjInfoAccess = CERT_DecodeAuthInfoAccessExtension
@@ -3666,10 +3669,10 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetCrlDp
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetCrlDp(
     PKIX_PL_Cert *cert,
@@ -3683,7 +3686,7 @@ PKIX_PL_Cert_GetCrlDp(
     PKIX_ENTER(CERT, "PKIX_PL_Cert_GetCrlDp");
     PKIX_NULLCHECK_THREE(cert, cert->nssCert, pDpList);
                 
-    /* if we don't have a cached copy from before, we create one */
+    
     if (cert->crldpList == NULL) {
         PKIX_OBJECT_LOCK(cert);
         if (cert->crldpList != NULL) {
@@ -3701,8 +3704,8 @@ PKIX_PL_Cert_GetCrlDp(
                                      &cert->nssCert->issuer,
                                      &dp, plContext),
                 PKIX_CRLDPCREATEFAILED);
-            /* Create crldp list in reverse order in attempt to get
-             * to the whole crl first. */
+            
+
             PKIX_CHECK(
                 PKIX_List_InsertItem(cert->crldpList, 0,
                                      (PKIX_PL_Object*)dp,
@@ -3721,10 +3724,10 @@ cleanup:
     PKIX_RETURN(CERT);
 }
 
-/*
- * FUNCTION: PKIX_PL_Cert_GetCERTCertificate
- * (see comments in pkix_pl_pki.h)
- */
+
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_GetCERTCertificate(
         PKIX_PL_Cert *cert,
