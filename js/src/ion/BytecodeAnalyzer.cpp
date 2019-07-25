@@ -153,9 +153,9 @@ BytecodeAnalyzer::pushLoop(CFGState::State initial, jsbytecode *stopAt, MBasicBl
     state.loop.bodyEnd = bodyEnd;
     state.loop.exitpc = exitpc;
     state.loop.entry = entry;
-    state.loop.repeat = NULL;
-    state.loop.exit = NULL;
     state.loop.successor = NULL;
+    state.loop.breaks = NULL;
+    state.loop.continues = NULL;
     return cfgStack_.append(state);
 }
 
@@ -294,18 +294,12 @@ BytecodeAnalyzer::snoopControlFlow(JSOp op)
         jssrcnote *sn = js_GetSrcNote(script, pc);
         switch (sn ? SN_TYPE(sn) : SRC_NULL) {
           case SRC_BREAK:
-            return simpleBreak(op, sn);
-
           case SRC_BREAK2LABEL:
-            JS_NOT_REACHED("break NYI");
-            return ControlStatus_Error;
+            return processBreak(op, sn);
 
           case SRC_CONTINUE:
-            return simpleContinue(op, sn);
-
           case SRC_CONT2LABEL:
-            JS_NOT_REACHED("continue NYI");
-            return ControlStatus_Error;
+            return processContinue(op, sn);
 
           case SRC_WHILE:
             
@@ -573,30 +567,85 @@ BytecodeAnalyzer::processIfElseFalseEnd(CFGState &state)
     return ControlStatus_Joined;
 }
 
+bool
+BytecodeAnalyzer::finalizeLoop(CFGState &state, MInstruction *last)
+{
+    if (state.loop.continues) {
+        MBasicBlock *repeat = newBlock(pc);
+
+        DeferredEdge *edge = state.loop.continues;
+        while (edge) {
+            MGoto *ins = MGoto::New(this, repeat);
+            if (!edge->block->end(ins))
+                return false;
+            if (!repeat->addPredecessor(edge->block))
+                return false;
+            edge = edge->next;
+        }
+
+        if (current) {
+            MGoto *ins = MGoto::New(this, repeat);
+            if (!current->end(ins))
+                return false;
+            if (!repeat->addPredecessor(current))
+                return false;
+        }
+
+        current = repeat;
+    }
+
+    
+    
+    
+    if (current) {
+        MControlInstruction *ins;
+        if (last)
+            ins = MTest::New(this, last, state.loop.entry, state.loop.successor);
+        else
+            ins = MGoto::New(this, state.loop.entry);
+        if (!current->end(ins))
+            return false;
+
+        if (!state.loop.entry->setBackedge(current))
+            return false;
+
+        if (state.loop.successor)
+            state.loop.successor->inheritPhis(state.loop.entry);
+    }
+
+    if (state.loop.breaks) {
+        
+        
+        DeferredEdge *edge = state.loop.breaks;
+        while (edge) {
+            MGoto *ins = MGoto::New(this, state.loop.successor);
+            if (!edge->block->end(ins))
+                return false;
+            if (!state.loop.successor->addPredecessor(edge->block))
+                return false;
+            edge = edge->next;
+        }
+    }
+
+    return true;
+}
+
 BytecodeAnalyzer::ControlStatus
 BytecodeAnalyzer::processDoWhileEnd(CFGState &state)
 {
-    if (!current)
-        return ControlStatus_Ended;
+    if (current || state.loop.breaks) {
+        state.loop.successor = newBlock(current, state.loop.exitpc);
+        if (!state.loop.successor)
+            return ControlStatus_Error;
+    }
 
-    
-    MInstruction *ins = current->pop();
-
-    MBasicBlock *successor = newBlock(current, state.loop.exitpc);
-    MTest *test = MTest::New(this, ins, state.loop.entry, successor);
-    if (!current->end(test))
-        return ControlStatus_Error;
-
-    
-    
-    if (!state.loop.entry->setBackedge(current))
+    if (!finalizeLoop(state, current->pop()))
         return ControlStatus_Error;
 
     JS_ASSERT(JSOp(*pc) == JSOP_IFNE || JSOp(*pc) == JSOP_IFNEX);
     pc += js_CodeSpec[JSOp(*pc)].length;
-
-    current = successor;
-    return ControlStatus_Joined;
+    current = state.loop.successor;
+    return current ? ControlStatus_Joined : ControlStatus_Ended;
 }
 
 BytecodeAnalyzer::ControlStatus
@@ -624,87 +673,42 @@ BytecodeAnalyzer::processWhileCondEnd(CFGState &state)
 BytecodeAnalyzer::ControlStatus
 BytecodeAnalyzer::processWhileBodyEnd(CFGState &state)
 {
-    if (current) {
-        
-        
-        MBasicBlock *target = state.loop.repeat
-                              ? state.loop.repeat
-                              : state.loop.entry;
-        MGoto *ins = MGoto::New(this, target);
-        if (!current->end(ins))
-            return ControlStatus_Error;
-    }
-
-    if (state.loop.repeat) {
-        MGoto *ins = MGoto::New(this, state.loop.entry);
-        if (!state.loop.repeat->end(ins))
-            return ControlStatus_Error;
-
-        
-        
-        current = state.loop.repeat;
-    }
-
-    
-    
-    
-    if (current) {
-        if (!state.loop.entry->setBackedge(current))
-            return ControlStatus_Error;
-        state.loop.successor->inheritPhis(state.loop.entry);
-    }
-
-    
-    if (state.loop.exit) {
-        state.loop.exit->inheritPhis(state.loop.entry);
-
-        MGoto *ins = MGoto::New(this, state.loop.successor);
-        if (!state.loop.exit->end(ins))
-            return ControlStatus_Error;
-        if (!state.loop.successor->addPredecessor(state.loop.exit))
-            return ControlStatus_Error;
-    }
+    if (!finalizeLoop(state, NULL))
+        return ControlStatus_Error;
 
     current = state.loop.successor;
+    if (!current)
+        return ControlStatus_Ended;
+
     pc = current->pc();
     return ControlStatus_Joined;
 }
 
-BytecodeAnalyzer::CFGState &
-BytecodeAnalyzer::findInnermostLoop()
-{
-    for (size_t i = cfgStack_.length() - 1; i < cfgStack_.length(); i--) {
-        if (cfgStack_[i].isLoop())
-            return cfgStack_[i];
-    }
-    JS_NOT_REACHED("continue without a loop!");
-    return cfgStack_.back();
-}
-
 BytecodeAnalyzer::ControlStatus
-BytecodeAnalyzer::simpleBreak(JSOp op, jssrcnote *sn)
+BytecodeAnalyzer::processBreak(JSOp op, jssrcnote *sn)
 {
     JS_ASSERT(op == JSOP_GOTO || op == JSOP_GOTOX);
 
-    CFGState &state = findInnermostLoop();
+    
+    CFGState *found = NULL;
+    jsbytecode *target = pc + GetJumpOffset(pc);
+    for (size_t i = loops_.length() - 1; i < loops_.length(); i--) {
+        CFGState &cfg = cfgStack_[loops_[i].cfgEntry];
+        if (cfg.loop.exitpc == target) {
+            found = &cfg;
+            break;
+        }
+    }
 
     
-    JS_ASSERT(pc + GetJumpOffset(pc) == state.loop.exitpc);
+    
+    JS_ASSERT(found);
+    CFGState &state = *found;
 
-    
-    
-    
-    if (!state.loop.exit)
-        state.loop.exit = newBlock(pc);
-
-    
-    
-    MGoto *ins = MGoto::New(this, state.loop.exit);
-    if (!current->end(ins))
+    DeferredEdge *edge = new (temp()) DeferredEdge(current, state.loop.breaks);
+    if (!edge)
         return ControlStatus_Error;
-
-    if (!state.loop.exit->addPredecessor(current))
-        return ControlStatus_Error;
+    state.loop.breaks = edge;
 
     current = NULL;
     pc += js_CodeSpec[op].length;
@@ -712,27 +716,30 @@ BytecodeAnalyzer::simpleBreak(JSOp op, jssrcnote *sn)
 }
 
 BytecodeAnalyzer::ControlStatus
-BytecodeAnalyzer::simpleContinue(JSOp op, jssrcnote *sn)
+BytecodeAnalyzer::processContinue(JSOp op, jssrcnote *sn)
 {
     JS_ASSERT(op == JSOP_GOTO || op == JSOP_GOTOX);
 
-    CFGState &state = findInnermostLoop();
+    
+    CFGState *found = NULL;
+    jsbytecode *target = pc + GetJumpOffset(pc);
+    for (size_t i = loops_.length() - 1; i < loops_.length(); i--) {
+        CFGState &cfg = cfgStack_[loops_[i].cfgEntry];
+        if (cfg.loop.entry->pc() == target) {
+            found = &cfg;
+            break;
+        }
+    }
 
     
-    JS_ASSERT(pc + GetJumpOffset(pc) == state.loop.entry->pc());
+    
+    JS_ASSERT(found);
+    CFGState &state = *found;
 
-    if (!state.loop.repeat)
-        state.loop.repeat = newBlock(pc);
-
-    
-    
-    
-    MGoto *ins = MGoto::New(this, state.loop.repeat);
-    if (!current->end(ins))
+    DeferredEdge *edge = new (temp()) DeferredEdge(current, state.loop.continues);
+    if (!edge)
         return ControlStatus_Error;
-
-    if (!state.loop.repeat->addPredecessor(current))
-        return ControlStatus_Error;
+    state.loop.continues = edge;
 
     current = NULL;
     pc += js_CodeSpec[op].length;
