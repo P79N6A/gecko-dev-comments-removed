@@ -821,10 +821,15 @@ CompileRegExpAndSwap(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Valu
         return true;
     }
 
-    
-    JSString *sourceStr = js_ValueToString(cx, sourceValue);
-    if (!sourceStr)
-        return false;
+    JSString *sourceStr;
+    if (sourceValue.isUndefined()) {
+        sourceStr = cx->runtime->emptyString;
+    } else {
+        
+        sourceStr = js_ValueToString(cx, sourceValue);
+        if (!sourceStr)
+            return false;
+    }  
 
     uintN flags = 0;
     if (argc > 1 && !argv[1].isUndefined()) {
