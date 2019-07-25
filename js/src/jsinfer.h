@@ -556,7 +556,7 @@ struct TypeScript
     TypeSet **pushedArray;
 
     
-    void finish(JSContext *cx, JSScript *script);
+    void print(JSContext *cx, JSScript *script);
 
     inline bool monitored(uint32 offset);
     inline void setMonitored(uint32 offset);
@@ -572,6 +572,13 @@ void AnalyzeScriptTypes(JSContext *cx, JSScript *script);
 
 
 void AnalyzeScriptNew(JSContext *cx, JSScript *script);
+
+struct ArrayTableKey;
+typedef HashMap<ArrayTableKey,TypeObject*,ArrayTableKey> ArrayTypeTable;
+
+struct ObjectTableKey;
+struct ObjectTableEntry;
+typedef HashMap<ObjectTableKey,ObjectTableEntry,ObjectTableKey> ObjectTypeTable;
 
 
 struct TypeCompartment
@@ -613,6 +620,14 @@ struct TypeCompartment
 
     
 
+    ArrayTypeTable *arrayTypeTable;
+    ObjectTypeTable *objectTypeTable;
+
+    bool fixArrayType(JSContext *cx, JSObject *obj);
+    bool fixObjectType(JSContext *cx, JSObject *obj);
+
+    
+
     
     struct PendingWork
     {
@@ -649,6 +664,7 @@ struct TypeCompartment
     unsigned recompilations;
 
     void init(JSContext *cx);
+    ~TypeCompartment();
 
     uint64 currentTime()
     {
@@ -670,7 +686,7 @@ struct TypeCompartment
     inline void resolvePending(JSContext *cx);
 
     
-    void finish(JSContext *cx, JSCompartment *compartment);
+    void print(JSContext *cx, JSCompartment *compartment);
 
     
     TypeObject *newTypeObject(JSContext *cx, JSScript *script,

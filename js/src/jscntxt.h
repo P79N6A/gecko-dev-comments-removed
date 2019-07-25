@@ -2185,6 +2185,14 @@ public:
 
     
     inline bool markTypeObjectUnknownProperties(js::types::TypeObject *obj);
+
+    
+
+
+
+    inline bool fixArrayType(JSObject *obj);
+    inline bool fixObjectType(JSObject *obj);
+
 }; 
 
 #ifdef JS_THREADSAFE
