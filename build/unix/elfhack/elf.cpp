@@ -265,6 +265,15 @@ Elf::Elf(std::ifstream &file)
     file.seekg(ehdr->e_phoff);
     for (int i = 0; i < ehdr->e_phnum; i++) {
         Elf_Phdr phdr(file, e_ident[EI_CLASS], e_ident[EI_DATA]);
+        if (phdr.p_type == PT_LOAD) {
+            
+            
+            
+            
+            
+            if ((ehdr->e_machine == EM_X86_64) && (phdr.p_align == 0x200000))
+              phdr.p_align = 0x1000;
+        }
         ElfSegment *segment = new ElfSegment(&phdr);
         
         
@@ -503,12 +512,17 @@ unsigned int ElfSection::getOffset()
     if (previous->getType() != SHT_NOBITS)
         offset += previous->getSize();
 
+    Elf32_Word align = 0x1000;
+    for (std::vector<ElfSegment *>::iterator seg = segments.begin(); seg != segments.end(); seg++)
+        align = std::max(align, (*seg)->getAlign());
+
+    Elf32_Word mask = align - 1;
     
     if (((getType() != SHT_NOBITS) || (getFlags() & SHF_TLS)) && (getFlags() & SHF_ALLOC)) {
-        if ((getAddr() & 4095) < (offset & 4095))
-            offset = (offset | 4095) + (getAddr() & 4095) + 1;
+        if ((getAddr() & mask) < (offset & mask))
+            offset = (offset | mask) + (getAddr() & mask) + 1;
         else
-            offset = (offset & ~4095) + (getAddr() & 4095);
+            offset = (offset & ~mask) + (getAddr() & mask);
     }
     if ((getType() != SHT_NOBITS) && (offset & (getAddrAlign() - 1)))
         offset = (offset | (getAddrAlign() - 1)) + 1;
@@ -632,7 +646,7 @@ ElfSegment *ElfSegment::splitBefore(ElfSection *section)
     phdr.p_vaddr = 0;
     phdr.p_paddr = phdr.p_vaddr + v_p_diff;
     phdr.p_flags = flags;
-    phdr.p_align = 0x1000;
+    phdr.p_align = getAlign();
     phdr.p_filesz = (unsigned int)-1;
     phdr.p_memsz = (unsigned int)-1;
     ElfSegment *segment = new ElfSegment(&phdr);
