@@ -216,7 +216,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
     JSObject *global;
-    if (cx->running()) {
+    if (cx->hasfp()) {
         global = cx->fp()->scopeChain().getGlobal();
     } else {
         global = cx->globalObject;

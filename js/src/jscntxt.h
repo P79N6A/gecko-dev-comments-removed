@@ -1091,7 +1091,7 @@ struct JSContext
     js::ContextStack    stack;
 
     
-    bool running() const              { return stack.running(); }
+    bool hasfp() const                { return stack.hasfp(); }
     js::StackFrame* fp() const        { return stack.fp(); }
     js::StackFrame* maybefp() const   { return stack.maybefp(); }
     js::FrameRegs& regs() const       { return stack.regs(); }
@@ -1144,7 +1144,7 @@ struct JSContext
 
 
     bool canSetDefaultVersion() const {
-        return !stack.running() && !hasVersionOverride;
+        return !stack.hasfp() && !hasVersionOverride;
     }
 
     
@@ -1204,7 +1204,7 @@ struct JSContext
         if (hasVersionOverride)
             return versionOverride;
 
-        if (stack.running()) {
+        if (stack.hasfp()) {
             
             js::StackFrame *f = fp();
             while (f && !f->isScriptFrame())
