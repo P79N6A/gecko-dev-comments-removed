@@ -626,6 +626,7 @@ nsHTMLInputElement::nsHTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
   SET_BOOLBIT(mBitField, BF_INHIBIT_RESTORATION,
       aFromParser & mozilla::dom::FROM_PARSER_FRAGMENT);
   SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, PR_TRUE);
+  SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, PR_TRUE);
   mInputData.mState = new nsTextEditorState(this);
   NS_ADDREF(mInputData.mState);
   
@@ -2118,11 +2119,17 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       
       SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI,
                   !IsValid() && ShouldShowInvalidUI());
+
+      
+      
+      SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, ShouldShowValidUI());
+
       
       
     } else { 
       SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, PR_TRUE);
-      states |= NS_EVENT_STATE_MOZ_UI_INVALID;
+      SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, PR_TRUE);
+      states |= NS_EVENT_STATE_MOZ_UI_VALID | NS_EVENT_STATE_MOZ_UI_INVALID;
     }
 
     if (PlaceholderApplies() &&
@@ -3321,17 +3328,6 @@ nsHTMLInputElement::IntrinsicState() const
   if (IsCandidateForConstraintValidation()) {
     if (IsValid()) {
       state |= NS_EVENT_STATE_VALID;
-
-      
-      
-      ValueModeType valueMode = GetValueMode();
-      if ((mForm && mForm->HasEverTriedInvalidSubmit()) ||
-          valueMode == VALUE_MODE_DEFAULT ||
-          (valueMode == VALUE_MODE_DEFAULT_ON && GetCheckedChanged()) ||
-          ((valueMode == VALUE_MODE_VALUE ||
-            valueMode == VALUE_MODE_FILENAME) && GetValueChanged())) {
-        state |= NS_EVENT_STATE_MOZ_UI_VALID;
-      }
     } else {
       state |= NS_EVENT_STATE_INVALID;
 
@@ -3339,6 +3335,19 @@ nsHTMLInputElement::IntrinsicState() const
           ShouldShowInvalidUI()) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    if (GET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI) &&
+        (IsValid() || !GET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI)) &&
+        ShouldShowValidUI()) {
+      state |= NS_EVENT_STATE_MOZ_UI_VALID;
     }
   }
 

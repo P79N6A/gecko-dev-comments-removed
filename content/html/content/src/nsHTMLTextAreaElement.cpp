@@ -240,6 +240,8 @@ protected:
   PRPackedBool             mDisabledChanged;
   
   PRPackedBool             mCanShowInvalidUI;
+  
+  PRPackedBool             mCanShowValidUI;
 
   
   nsRefPtr<nsTextEditorState> mState;
@@ -299,6 +301,16 @@ protected:
   
 
 
+
+
+
+  bool ShouldShowValidUI() const {
+    return (mForm && mForm->HasEverTriedInvalidSubmit()) || mValueChanged;
+  }
+
+  
+
+
   PRBool IsMutable() const;
 };
 
@@ -315,6 +327,7 @@ nsHTMLTextAreaElement::nsHTMLTextAreaElement(already_AddRefed<nsINodeInfo> aNode
     mInhibitStateRestoration(!!(aFromParser & FROM_PARSER_FRAGMENT)),
     mDisabledChanged(PR_FALSE),
     mCanShowInvalidUI(PR_TRUE),
+    mCanShowValidUI(PR_TRUE),
     mState(new nsTextEditorState(this))
 {
   AddMutationObserver(this);
@@ -766,11 +779,17 @@ nsHTMLTextAreaElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       
       
       mCanShowInvalidUI = !IsValid() && ShouldShowInvalidUI();
+
+      
+      
+      mCanShowValidUI = ShouldShowValidUI();
+
       
       
     } else { 
       mCanShowInvalidUI = PR_TRUE;
-      states |= NS_EVENT_STATE_MOZ_UI_INVALID;
+      mCanShowValidUI = PR_TRUE;
+      states |= NS_EVENT_STATE_MOZ_UI_VALID | NS_EVENT_STATE_MOZ_UI_INVALID;
     }
 
     if (HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
@@ -1059,9 +1078,6 @@ nsHTMLTextAreaElement::IntrinsicState() const
   if (IsCandidateForConstraintValidation()) {
     if (IsValid()) {
       state |= NS_EVENT_STATE_VALID;
-      if ((mForm && mForm->HasEverTriedInvalidSubmit()) || mValueChanged) {
-        state |= NS_EVENT_STATE_MOZ_UI_VALID;
-      }
     } else {
       state |= NS_EVENT_STATE_INVALID;
       
@@ -1072,6 +1088,19 @@ nsHTMLTextAreaElement::IntrinsicState() const
       if (mCanShowInvalidUI && ShouldShowInvalidUI()) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    if (mCanShowValidUI &&
+        (IsValid() || !mCanShowInvalidUI) &&
+        ShouldShowValidUI()) {
+      state |= NS_EVENT_STATE_MOZ_UI_VALID;
     }
   }
 
