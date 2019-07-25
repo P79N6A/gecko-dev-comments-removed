@@ -203,29 +203,6 @@ Preferences::GetInstanceForService()
 
   NS_ENSURE_TRUE(!sShutdown, nsnull);
 
-  InitStaticMembers(true);
-  NS_IF_ADDREF(sPreferences);
-  return sPreferences;
-}
-
-
-bool
-Preferences::InitStaticMembers(bool aForService)
-{
-  if (sShutdown || sPreferences) {
-    return sPreferences != nsnull;
-  }
-
-  
-  
-  
-  
-  if (!aForService) {
-    nsCOMPtr<nsIPrefService> prefService =
-      do_GetService(NS_PREFSERVICE_CONTRACTID);
-    return sPreferences != nsnull;
-  }
-
   sRootBranch = new nsPrefBranch("", false);
   NS_ADDREF(sRootBranch);
   sDefaultRootBranch = new nsPrefBranch("", true);
@@ -237,7 +214,7 @@ Preferences::InitStaticMembers(bool aForService)
   if (NS_FAILED(sPreferences->Init())) {
     
     NS_RELEASE(sPreferences);
-    return false;
+    return nsnull;
   }
 
   gCacheData = new nsTArray<nsAutoPtr<CacheData> >();
@@ -245,14 +222,27 @@ Preferences::InitStaticMembers(bool aForService)
   gObserverTable = new nsRefPtrHashtable<ValueObserverHashKey, ValueObserver>();
   gObserverTable->Init();
 
-  return true;
+  NS_ADDREF(sPreferences);
+  return sPreferences;
+}
+
+
+bool
+Preferences::InitStaticMembers()
+{
+  if (!sShutdown && !sPreferences) {
+    nsCOMPtr<nsIPrefService> prefService =
+      do_GetService(NS_PREFSERVICE_CONTRACTID);
+  }
+
+  return sPreferences != nsnull;
 }
 
 
 void
 Preferences::Shutdown()
 {
-  if (!sShutdown ) {
+  if (!sShutdown) {
     sShutdown = true; 
 
     
@@ -348,7 +338,7 @@ Preferences::Init()
 
 
 
-  rv = sRootBranch->GetCharPref("general.config.filename", getter_Copies(lockFileName));
+  rv = PREF_CopyCharPref("general.config.filename", getter_Copies(lockFileName), false);
   if (NS_SUCCEEDED(rv))
     NS_CreateServicesFromCategory("pref-config-startup",
                                   static_cast<nsISupports *>(static_cast<void *>(this)),
@@ -1129,7 +1119,7 @@ Preferences::GetBool(const char* aPref, bool* aResult)
 {
   NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return sRootBranch->GetBoolPref(aPref, aResult);
+  return PREF_GetBoolPref(aPref, aResult, false);
 }
 
 
@@ -1138,7 +1128,7 @@ Preferences::GetInt(const char* aPref, PRInt32* aResult)
 {
   NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return sRootBranch->GetIntPref(aPref, aResult);
+  return PREF_GetIntPref(aPref, aResult, false);
 }
 
 
@@ -1146,7 +1136,7 @@ nsAdoptingCString
 Preferences::GetCString(const char* aPref)
 {
   nsAdoptingCString result;
-  GetCString(aPref, &result);
+  PREF_CopyCharPref(aPref, getter_Copies(result), false);
   return result;
 }
 
@@ -1166,7 +1156,7 @@ Preferences::GetCString(const char* aPref, nsACString* aResult)
   NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
   nsCAutoString result;
-  nsresult rv = sRootBranch->GetCharPref(aPref, getter_Copies(result));
+  nsresult rv = PREF_CopyCharPref(aPref, getter_Copies(result), false);
   if (NS_SUCCEEDED(rv)) {
     *aResult = result;
   }
@@ -1180,7 +1170,7 @@ Preferences::GetString(const char* aPref, nsAString* aResult)
   NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
   nsCAutoString result;
-  nsresult rv = sRootBranch->GetCharPref(aPref, getter_Copies(result));
+  nsresult rv = PREF_CopyCharPref(aPref, getter_Copies(result), false);
   if (NS_SUCCEEDED(rv)) {
     CopyUTF8toUTF16(result, *aResult);
   }
@@ -1247,47 +1237,54 @@ Preferences::GetComplex(const char* aPref, const nsIID &aType, void** aResult)
 nsresult
 Preferences::SetCString(const char* aPref, const char* aValue)
 {
+  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return sRootBranch->SetCharPref(aPref, aValue);
+  return PREF_SetCharPref(aPref, aValue, false);
 }
 
 
 nsresult
 Preferences::SetCString(const char* aPref, const nsACString &aValue)
 {
-  return SetCString(aPref, PromiseFlatCString(aValue).get());
+  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
+  return PREF_SetCharPref(aPref, PromiseFlatCString(aValue).get(), false);
 }
 
 
 nsresult
 Preferences::SetString(const char* aPref, const PRUnichar* aValue)
 {
-  NS_ConvertUTF16toUTF8 utf8(aValue);
-  return SetCString(aPref, utf8.get());
+  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
+  return PREF_SetCharPref(aPref, NS_ConvertUTF16toUTF8(aValue).get(), false);
 }
 
 
 nsresult
 Preferences::SetString(const char* aPref, const nsAString &aValue)
 {
-  NS_ConvertUTF16toUTF8 utf8(aValue);
-  return SetCString(aPref, utf8.get());
+  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
+  return PREF_SetCharPref(aPref, NS_ConvertUTF16toUTF8(aValue).get(), false);
 }
 
 
 nsresult
 Preferences::SetBool(const char* aPref, bool aValue)
 {
+  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return sRootBranch->SetBoolPref(aPref, aValue);
+  return PREF_SetBoolPref(aPref, aValue, false);
 }
 
 
 nsresult
 Preferences::SetInt(const char* aPref, PRInt32 aValue)
 {
+  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return sRootBranch->SetIntPref(aPref, aValue);
+  return PREF_SetIntPref(aPref, aValue, false);
 }
 
 
@@ -1303,8 +1300,9 @@ Preferences::SetComplex(const char* aPref, const nsIID &aType,
 nsresult
 Preferences::ClearUser(const char* aPref)
 {
+  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return sRootBranch->ClearUserPref(aPref);
+  return PREF_ClearUserPref(aPref);
 }
 
 
@@ -1312,12 +1310,7 @@ bool
 Preferences::HasUserValue(const char* aPref)
 {
   NS_ENSURE_TRUE(InitStaticMembers(), false);
-  bool hasUserValue;
-  nsresult rv = sRootBranch->PrefHasUserValue(aPref, &hasUserValue);
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-  return hasUserValue;
+  return PREF_HasUserPref(aPref);
 }
 
 
@@ -1514,25 +1507,28 @@ Preferences::AddUintVarCache(PRUint32* aCache,
 nsresult
 Preferences::GetDefaultBool(const char* aPref, bool* aResult)
 {
+  NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return sDefaultRootBranch->GetBoolPref(aPref, aResult);
+  return PREF_GetBoolPref(aPref, aResult, true);
 }
 
 
 nsresult
 Preferences::GetDefaultInt(const char* aPref, PRInt32* aResult)
 {
+  NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return sDefaultRootBranch->GetIntPref(aPref, aResult);
+  return PREF_GetIntPref(aPref, aResult, true);
 }
 
 
 nsresult
 Preferences::GetDefaultCString(const char* aPref, nsACString* aResult)
 {
+  NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
   nsCAutoString result;
-  nsresult rv = sDefaultRootBranch->GetCharPref(aPref, getter_Copies(result));
+  nsresult rv = PREF_CopyCharPref(aPref, getter_Copies(result), true);
   if (NS_SUCCEEDED(rv)) {
     *aResult = result;
   }
@@ -1543,9 +1539,10 @@ Preferences::GetDefaultCString(const char* aPref, nsACString* aResult)
 nsresult
 Preferences::GetDefaultString(const char* aPref, nsAString* aResult)
 {
+  NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
   nsCAutoString result;
-  nsresult rv = sDefaultRootBranch->GetCharPref(aPref, getter_Copies(result));
+  nsresult rv = PREF_CopyCharPref(aPref, getter_Copies(result), true);
   if (NS_SUCCEEDED(rv)) {
     CopyUTF8toUTF16(result, *aResult);
   }
@@ -1597,7 +1594,7 @@ nsAdoptingCString
 Preferences::GetDefaultCString(const char* aPref)
 {
   nsAdoptingCString result;
-  GetDefaultCString(aPref, &result);
+  PREF_CopyCharPref(aPref, getter_Copies(result), true);
   return result;
 }
 
