@@ -128,7 +128,8 @@ protected:
 
 
 
-  virtual void GetSuccessResult(nsIWritableVariant* aVariant);
+
+  virtual PRUint16 GetSuccessResult(nsIWritableVariant* aVariant);
 
 protected:
   nsRefPtr<IDBDatabaseRequest> mDatabase;
