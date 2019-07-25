@@ -156,6 +156,7 @@ var gRecycledCanvases = new Array();
 
 
 var gDumpLog = dump;
+var gVerbose = false;
 
 
 
@@ -169,14 +170,18 @@ function LogWarning(str)
 
 function LogInfo(str)
 {
-
+    if (gVerbose)
+        gDumpLog("REFTEST INFO | " + str + "\n");
     gTestLog.push(str);
 }
 
 function FlushTestLog()
 {
-    for (var i = 0; i < gTestLog.length; ++i) {
-        gDumpLog("REFTEST INFO | Saved log: " + gTestLog[i] + "\n");
+    if (!gVerbose) {
+        
+        for (var i = 0; i < gTestLog.length; ++i) {
+            gDumpLog("REFTEST INFO | Saved log: " + gTestLog[i] + "\n");
+        }
     }
     gTestLog = [];
 }
@@ -218,6 +223,10 @@ function OnRefTestLoad()
                     .getService(CI.nsIProperties)
                     .get("ProfD", CI.nsIFile);
     gCrashDumpDir.append("minidumps");
+    
+    var env = CC["@mozilla.org/process/environment;1"].
+              getService(CI.nsIEnvironment);
+    gVerbose = !!env.get("MOZ_REFTEST_VERBOSE");
 
     var prefs = Components.classes["@mozilla.org/preferences-service;1"].
                 getService(Components.interfaces.nsIPrefBranch2);
