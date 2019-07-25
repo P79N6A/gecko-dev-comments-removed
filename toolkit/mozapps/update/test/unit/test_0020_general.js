@@ -157,7 +157,7 @@ function check_test_pt02() {
   do_check_false(bestUpdate.isCompleteUpdate);
   do_check_false(bestUpdate.isSecurityUpdate);
   
-  do_check_neq(bestUpdate.installDate, 0);
+  do_check_true((Date.now() - bestUpdate.installDate) < 10000);
   do_check_eq(bestUpdate.statusText, null);
   
   
@@ -237,7 +237,7 @@ function check_test_pt03() {
   do_check_false(bestUpdate.isCompleteUpdate);
   do_check_false(bestUpdate.isSecurityUpdate);
   
-  do_check_neq(bestUpdate.installDate, 0);
+  do_check_true((Date.now() - bestUpdate.installDate) < 10000);
   do_check_eq(bestUpdate.statusText, null);
   
   
