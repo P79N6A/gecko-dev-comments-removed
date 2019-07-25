@@ -3,19 +3,18 @@
 
 
 import time
-import sys
 import os
-import socket
 import automationutils
 import tempfile
 import shutil
+import subprocess
 
 from automation import Automation
-from devicemanager import DeviceManager, NetworkTools
+from devicemanager import NetworkTools
 
 class RemoteAutomation(Automation):
     _devicemanager = None
-    
+
     def __init__(self, deviceManager, appName = '', remoteLog = None):
         self._devicemanager = deviceManager
         self._appName = appName
@@ -28,7 +27,7 @@ class RemoteAutomation(Automation):
 
     def setDeviceManager(self, deviceManager):
         self._devicemanager = deviceManager
-        
+
     def setAppName(self, appName):
         self._appName = appName
 
@@ -37,7 +36,7 @@ class RemoteAutomation(Automation):
 
     def setProduct(self, product):
         self._product = product
-        
+
     def setRemoteLog(self, logfile):
         self._remoteLog = logfile
 
@@ -92,7 +91,7 @@ class RemoteAutomation(Automation):
         
         if app == "am" and extraArgs[0] == "instrument":
             return app, extraArgs
- 
+
         cmd, args = Automation.buildCommandLine(self, app, debuggerInfo, profileDir, testURL, extraArgs)
         
         try:
@@ -162,7 +161,7 @@ class RemoteAutomation(Automation):
             if (hexpid == None):
                 hexpid = "0x0"
             return int(hexpid, 0)
-    
+
         @property
         def stdout(self):
             t = self.dm.getFile(self.proc)
@@ -171,7 +170,7 @@ class RemoteAutomation(Automation):
             retVal = t[self.stdoutlen:]
             self.stdoutlen = tlen
             return retVal.strip('\n').strip()
- 
+
         def wait(self, timeout = None):
             timer = 0
             interval = 5
@@ -190,6 +189,6 @@ class RemoteAutomation(Automation):
             if (timer >= timeout):
                 return 1
             return 0
- 
+
         def kill(self):
             self.dm.killProcess(self.procName)

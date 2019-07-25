@@ -6,8 +6,8 @@ import subprocess
 from devicemanager import DeviceManager, DMError, _pop_last_line
 import re
 import os
-import sys
 import tempfile
+import time
 
 class DeviceManagerADB(DeviceManager):
 
@@ -65,7 +65,7 @@ class DeviceManagerADB(DeviceManager):
     self.useRunAs = False
     try:
       self.verifyRoot()
-    except DMError, e:
+    except DMError:
       try:
         self.checkCmd(["root"])
         
@@ -394,7 +394,9 @@ class DeviceManagerADB(DeviceManager):
            args.append("-9")
          args.append(pid)
          p = self.runCmdAs(args)
-         didKillProcess = True
+         p.communicate()
+         if p.returncode == 0:
+             didKillProcess = True
 
     return didKillProcess
 
@@ -499,11 +501,11 @@ class DeviceManagerADB(DeviceManager):
   
   
   def getRemoteHash(self, filename):
-    data = p = self.runCmd(["shell", "ls", "-l", filename]).stdout.read()
+    data = self.runCmd(["shell", "ls", "-l", filename]).stdout.read()
     return data.split()[3]
 
   def getLocalHash(self, filename):
-    data = p = subprocess.Popen(["ls", "-l", filename], stdout=subprocess.PIPE).stdout.read()
+    data = subprocess.Popen(["ls", "-l", filename], stdout=subprocess.PIPE).stdout.read()
     return data.split()[4]
 
   
