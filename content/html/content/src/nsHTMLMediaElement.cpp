@@ -553,6 +553,12 @@ void nsHTMLMediaElement::ShutdownDecoder()
   NS_ASSERTION(mDecoder, "Must have decoder to shut down");
   mDecoder->Shutdown();
   mDecoder = nullptr;
+  
+  
+  
+  
+  
+  mOutputStreams.Clear();
 }
 
 void nsHTMLMediaElement::AbortExistingLoads()
@@ -1518,20 +1524,16 @@ already_AddRefed<nsDOMMediaStream>
 nsHTMLMediaElement::CaptureStreamInternal(bool aFinishWhenEnded)
 {
   OutputMediaStream* out = mOutputStreams.AppendElement();
-  out->mStream = nsDOMMediaStream::CreateTrackUnionStream();
+  out->mStream = nsDOMMediaStream::CreateInputStream();
   nsRefPtr<nsIPrincipal> principal = GetCurrentPrincipal();
   out->mStream->CombineWithPrincipal(principal);
   out->mFinishWhenEnded = aFinishWhenEnded;
 
   mAudioCaptured = true;
-  
-  
-  
-  out->mStream->GetStream()->ChangeExplicitBlockerCount(1);
   if (mDecoder) {
     mDecoder->SetAudioCaptured(true);
     mDecoder->AddOutputStream(
-        out->mStream->GetStream()->AsProcessedStream(), aFinishWhenEnded);
+        out->mStream->GetStream()->AsSourceStream(), aFinishWhenEnded);
   }
   nsRefPtr<nsDOMMediaStream> result = out->mStream;
   return result.forget();
@@ -2474,7 +2476,7 @@ nsresult nsHTMLMediaElement::FinishDecoderSetup(nsMediaDecoder* aDecoder,
   aDecoder->SetVolume(mMuted ? 0.0 : mVolume);
   for (PRUint32 i = 0; i < mOutputStreams.Length(); ++i) {
     OutputMediaStream* ms = &mOutputStreams[i];
-    aDecoder->AddOutputStream(ms->mStream->GetStream()->AsProcessedStream(),
+    aDecoder->AddOutputStream(ms->mStream->GetStream()->AsSourceStream(),
         ms->mFinishWhenEnded);
   }
 
@@ -2826,14 +2828,6 @@ void nsHTMLMediaElement::PlaybackEnded()
 
   NS_ASSERTION(!mDecoder || mDecoder->IsEnded(),
                "Decoder fired ended, but not in ended state");
-
-  
-  for (PRInt32 i = mOutputStreams.Length() - 1; i >= 0; --i) {
-    if (mOutputStreams[i].mFinishWhenEnded) {
-      mOutputStreams.RemoveElementAt(i);
-    }
-  }
-
   if (mSrcStream || (mDecoder && mDecoder->IsInfinite())) {
     LOG(PR_LOG_DEBUG, ("%p, got duration by reaching the end of the resource", this));
     DispatchAsyncEvent(NS_LITERAL_STRING("durationchange"));

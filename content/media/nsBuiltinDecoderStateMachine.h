@@ -106,7 +106,7 @@ public:
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
-  typedef nsBuiltinDecoder::DecodedStreamData DecodedStreamData;
+  typedef nsBuiltinDecoder::OutputMediaStream OutputMediaStream;
   typedef mozilla::SourceMediaStream SourceMediaStream;
   typedef mozilla::AudioSegment AudioSegment;
   typedef mozilla::VideoSegment VideoSegment;
@@ -260,46 +260,12 @@ public:
 
   
   
-  void SendStreamData();
-  void FinishStreamData();
+  void SendOutputStreamData();
+  void FinishOutputStreams();
   bool HaveEnoughDecodedAudio(PRInt64 aAmpleAudioUSecs);
   bool HaveEnoughDecodedVideo();
 
 protected:
-  class WakeDecoderRunnable : public nsRunnable {
-  public:
-    WakeDecoderRunnable(nsBuiltinDecoderStateMachine* aSM)
-      : mMutex("WakeDecoderRunnable"), mStateMachine(aSM) {}
-    NS_IMETHOD Run()
-    {
-      nsRefPtr<nsBuiltinDecoderStateMachine> stateMachine;
-      {
-        
-        
-        MutexAutoLock lock(mMutex);
-        if (!mStateMachine)
-          return NS_OK;
-        stateMachine = mStateMachine;
-      }
-      stateMachine->ScheduleStateMachineWithLockAndWakeDecoder();
-      return NS_OK;
-    }
-    void Revoke()
-    {
-      MutexAutoLock lock(mMutex);
-      mStateMachine = nullptr;
-    }
-
-    Mutex mMutex;
-    
-    
-    
-    
-    
-    
-    nsBuiltinDecoderStateMachine* mStateMachine;
-  };
-  WakeDecoderRunnable* GetWakeDecoderRunnable();
 
   
   
@@ -464,8 +430,8 @@ protected:
 
   
   
-  void SendStreamAudio(AudioData* aAudio, DecodedStreamData* aStream,
-                       AudioSegment* aOutput);
+  void SendOutputStreamAudio(AudioData* aAudio, OutputMediaStream* aStream,
+                             AudioSegment* aOutput);
 
   
   nsresult CallRunStateMachine();
@@ -563,13 +529,6 @@ protected:
   
   
   nsAutoPtr<nsBuiltinDecoderReader> mReader;
-
-  
-  
-  
-  
-  
-  nsRevocableEventPtr<WakeDecoderRunnable> mPendingWakeDecoder;
 
   
   

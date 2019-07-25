@@ -55,11 +55,6 @@ public:
 
   static already_AddRefed<nsDOMMediaStream> CreateInputStream();
 
-  
-
-
-  static already_AddRefed<nsDOMMediaStream> CreateTrackUnionStream();
-
 protected:
   
   
