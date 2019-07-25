@@ -1665,8 +1665,10 @@ public:
             FLAG_BREAK_TYPE_NORMAL = 1,
             FLAG_BREAK_TYPE_HYPHEN = 2,
 
+            FLAG_CHAR_IS_SPACE     = 0x10000000U,
+
             
-            ADVANCE_MASK  = 0x1FFF0000U,
+            ADVANCE_MASK  = 0x0FFF0000U,
             ADVANCE_SHIFT = 16,
 
             GLYPH_MASK = 0x0000FFFFU,
@@ -1683,6 +1685,10 @@ public:
             FLAG_NOT_MISSING              = 0x01,
             FLAG_NOT_CLUSTER_START        = 0x02,
             FLAG_NOT_LIGATURE_GROUP_START = 0x04,
+
+            FLAG_CHAR_IS_TAB              = 0x08,
+            FLAG_CHAR_IS_NEWLINE          = 0x10,
+            FLAG_CHAR_IS_LOW_SURROGATE    = 0x20,
             
             GLYPH_COUNT_MASK = 0x00FFFF00U,
             GLYPH_COUNT_SHIFT = 8
@@ -1718,6 +1724,23 @@ public:
             return (mValue & FLAG_IS_SIMPLE_GLYPH) == 0 &&
                 (mValue & (FLAG_NOT_LIGATURE_GROUP_START | FLAG_NOT_MISSING)) ==
                     (FLAG_NOT_LIGATURE_GROUP_START | FLAG_NOT_MISSING);
+        }
+
+        
+        
+        
+        bool CharIsSpace() const {
+            return (mValue & FLAG_CHAR_IS_SPACE) != 0;
+        }
+
+        bool CharIsTab() const {
+            return !IsSimpleGlyph() && (mValue & FLAG_CHAR_IS_TAB) != 0;
+        }
+        bool CharIsNewline() const {
+            return !IsSimpleGlyph() && (mValue & FLAG_CHAR_IS_NEWLINE) != 0;
+        }
+        bool CharIsLowSurrogate() const {
+            return !IsSimpleGlyph() && (mValue & FLAG_CHAR_IS_LOW_SURROGATE) != 0;
         }
 
         void SetClusterStart(bool aIsClusterStart) {
@@ -1772,6 +1795,22 @@ public:
         PRUint32 GetGlyphCount() const {
             NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
             return (mValue & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT;
+        }
+
+        void SetIsSpace() {
+            mValue |= FLAG_CHAR_IS_SPACE;
+        }
+        void SetIsTab() {
+            NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
+            mValue |= FLAG_CHAR_IS_TAB;
+        }
+        void SetIsNewline() {
+            NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
+            mValue |= FLAG_CHAR_IS_NEWLINE;
+        }
+        void SetIsLowSurrogate() {
+            NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
+            mValue |= FLAG_CHAR_IS_LOW_SURROGATE;
         }
 
     private:
@@ -1863,6 +1902,15 @@ public:
                    const DetailedGlyph *aGlyphs);
 
     void SetMissingGlyph(PRUint32 aIndex, PRUint32 aChar, gfxFont *aFont);
+
+    void SetIsSpace(PRUint32 aIndex) {
+        mCharacterGlyphs[aIndex].SetIsSpace();
+    }
+
+    void SetIsLowSurrogate(PRUint32 aIndex) {
+        SetGlyphs(aIndex, CompressedGlyph().SetComplex(false, false, 0), nsnull);
+        mCharacterGlyphs[aIndex].SetIsLowSurrogate();
+    }
 
     bool FilterIfIgnorable(PRUint32 aIndex);
 
@@ -2121,6 +2169,23 @@ public:
         NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
         return mCharacterGlyphs[aPos].CanBreakBefore() ==
             CompressedGlyph::FLAG_BREAK_TYPE_HYPHEN;
+    }
+
+    bool CharIsSpace(PRUint32 aPos) {
+        NS_ASSERTION(0 <= aPos && aPos < mCharacterCount, "aPos out of range");
+        return mCharacterGlyphs[aPos].CharIsSpace();
+    }
+    bool CharIsTab(PRUint32 aPos) {
+        NS_ASSERTION(0 <= aPos && aPos < mCharacterCount, "aPos out of range");
+        return mCharacterGlyphs[aPos].CharIsTab();
+    }
+    bool CharIsNewline(PRUint32 aPos) {
+        NS_ASSERTION(0 <= aPos && aPos < mCharacterCount, "aPos out of range");
+        return mCharacterGlyphs[aPos].CharIsNewline();
+    }
+    bool CharIsLowSurrogate(PRUint32 aPos) {
+        NS_ASSERTION(0 <= aPos && aPos < mCharacterCount, "aPos out of range");
+        return mCharacterGlyphs[aPos].CharIsLowSurrogate();
     }
 
     PRUint32 GetLength() { return mCharacterCount; }
@@ -2398,19 +2463,7 @@ public:
     const gfxSkipChars& GetSkipChars() const { return mSkipChars; }
     PRUint32 GetAppUnitsPerDevUnit() const { return mAppUnitsPerDevUnit; }
     gfxFontGroup *GetFontGroup() const { return mFontGroup; }
-    const PRUint8 *GetText8Bit() const
-    { return (mFlags & gfxTextRunFactory::TEXT_IS_8BIT) ? mText.mSingle : nsnull; }
-    const PRUnichar *GetTextUnicode() const
-    { return (mFlags & gfxTextRunFactory::TEXT_IS_8BIT) ? nsnull : mText.mDouble; }
-    const void *GetTextAt(PRUint32 aIndex) {
-        return (mFlags & gfxTextRunFactory::TEXT_IS_8BIT)
-            ? static_cast<const void *>(mText.mSingle + aIndex)
-            : static_cast<const void *>(mText.mDouble + aIndex);
-    }
-    const PRUnichar GetChar(PRUint32 i) const
-    { return (mFlags & gfxTextRunFactory::TEXT_IS_8BIT) ? mText.mSingle[i] : mText.mDouble[i]; }
-    PRUint32 GetHashCode() const { return mHashCode; }
-    void SetHashCode(PRUint32 aHash) { mHashCode = aHash; }
+
 
     
     
@@ -2509,12 +2562,46 @@ public:
     
     
     
+    
+    
+    
+    
+    
     bool SetSpaceGlyphIfSimple(gfxFont *aFont, gfxContext *aContext,
-                               PRUint32 aCharIndex);
+                               PRUint32 aCharIndex, PRUnichar aSpaceChar);
 
     
     
-    bool FilterIfIgnorable(PRUint32 aIndex);
+    
+    
+    
+    
+    void SetIsTab(PRUint32 aIndex) {
+        CompressedGlyph *g = &mCharacterGlyphs[aIndex];
+        if (g->IsSimpleGlyph()) {
+            DetailedGlyph *details = AllocateDetailedGlyphs(aIndex, 1);
+            details->mGlyphID = g->GetSimpleGlyph();
+            details->mAdvance = g->GetSimpleAdvance();
+            details->mXOffset = details->mYOffset = 0;
+            SetGlyphs(aIndex, CompressedGlyph().SetComplex(true, true, 1), details);
+        }
+        g->SetIsTab();
+    }
+    void SetIsNewline(PRUint32 aIndex) {
+        CompressedGlyph *g = &mCharacterGlyphs[aIndex];
+        if (g->IsSimpleGlyph()) {
+            DetailedGlyph *details = AllocateDetailedGlyphs(aIndex, 1);
+            details->mGlyphID = g->GetSimpleGlyph();
+            details->mAdvance = g->GetSimpleAdvance();
+            details->mXOffset = details->mYOffset = 0;
+            SetGlyphs(aIndex, CompressedGlyph().SetComplex(true, true, 1), details);
+        }
+        g->SetIsNewline();
+    }
+    void SetIsLowSurrogate(PRUint32 aIndex) {
+        SetGlyphs(aIndex, CompressedGlyph().SetComplex(false, false, 0), nsnull);
+        mCharacterGlyphs[aIndex].SetIsLowSurrogate();
+    }
 
     
 
@@ -2576,9 +2663,6 @@ public:
     };
     
     
-    PRUint64 GetUserFontSetGeneration() { return mUserFontSetGeneration; }
-
-    
     
     virtual NS_MUST_OVERRIDE size_t
         SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf);
@@ -2616,10 +2700,7 @@ protected:
 
 
 
-
-    static CompressedGlyph* AllocateStorage(const void*& aText,
-                                            PRUint32 aLength,
-                                            PRUint32 aFlags);
+    static CompressedGlyph* AllocateStorage(PRUint32 aLength);
 
 private:
     
@@ -2689,15 +2770,7 @@ private:
     
     
     nsAutoTArray<GlyphRun,1>        mGlyphRuns;
-    
-    
-    
-    
-    
-    union {
-        const PRUint8   *mSingle;
-        const PRUnichar *mDouble;
-    } mText;
+
     void             *mUserData;
     gfxFontGroup     *mFontGroup; 
     gfxSkipChars      mSkipChars;
@@ -2705,8 +2778,6 @@ private:
     PRUint32          mAppUnitsPerDevUnit;
     PRUint32          mFlags;
     PRUint32          mCharacterCount;
-    PRUint32          mHashCode;
-    PRUint64          mUserFontSetGeneration; 
 
     bool              mSkipDrawing; 
                                     

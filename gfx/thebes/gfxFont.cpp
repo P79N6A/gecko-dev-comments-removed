@@ -1728,12 +1728,20 @@ gfxFont::Measure(gfxTextRun *aTextRun,
                               
                               
 
-
+static bool
+IsClusterExtender(PRUint32 aUSV)
+{
+    PRUint8 category = gfxUnicodeProperties::GetGeneralCategory(aUSV);
+    return ((category >= HB_CATEGORY_COMBINING_MARK &&
+             category <= HB_CATEGORY_NON_SPACING_MARK) ||
+            (aUSV >= 0x200c && aUSV <= 0x200d) || 
+            (aUSV >= 0xff9e && aUSV <= 0xff9f));  
+}
 
 static bool
-IsBoundarySpace(PRUnichar aChar)
+IsBoundarySpace(PRUnichar aChar, PRUnichar aNextChar)
 {
-    return aChar == ' ' || aChar == 0x00A0;
+    return (aChar == ' ' || aChar == 0x00A0) && !IsClusterExtender(aNextChar);
 }
 
 static inline PRUint32
@@ -1781,6 +1789,16 @@ gfxFont::GetShapedWord(gfxContext *aContext,
         ok = ShapeWord(aContext, entry->mShapedWord, utf16.BeginReading());
     }
     NS_WARN_IF_FALSE(ok, "failed to shape word - expect garbled text");
+
+    for (PRUint32 i = 0; i < aLength; ++i) {
+        if (aText[i] == ' ') {
+            entry->mShapedWord->SetIsSpace(i);
+        } else if (i > 0 &&
+                   NS_IS_HIGH_SURROGATE(aText[i - 1]) &&
+                   NS_IS_LOW_SURROGATE(aText[i])) {
+            entry->mShapedWord->SetIsLowSurrogate(i);
+        }
+    }
 
     return entry->mShapedWord;
 }
@@ -1870,6 +1888,10 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
                              PRUint32 aRunLength,
                              PRInt32 aRunScript)
 {
+    if (aRunLength == 0) {
+        return true;
+    }
+
     InitWordCache();
 
     
@@ -1886,18 +1908,12 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
     bool wordIs8Bit = true;
     PRInt32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
 
+    T nextCh = text[0];
     for (PRUint32 i = 0; i <= aRunLength; ++i) {
-        T ch;
-        bool boundary, invalid;
-        if (i < aRunLength) {
-            ch = text[i];
-            boundary = IsBoundarySpace(ch);
-            invalid = !boundary && gfxFontGroup::IsInvalidChar(ch);
-        } else {
-            ch = '\n';
-            boundary = false;
-            invalid = true;
-        }
+        T ch = nextCh;
+        nextCh = (i < aRunLength - 1) ? text[i + 1] : '\n';
+        bool boundary = IsBoundarySpace(ch, nextCh);
+        bool invalid = !boundary && gfxFontGroup::IsInvalidChar(ch);
         PRUint32 length = i - wordStart;
 
         
@@ -1916,10 +1932,7 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
                 
                 if (length >= gfxShapedWord::kMaxLength - 15) {
                     if (!NS_IS_LOW_SURROGATE(ch)) {
-                        PRUint8 cat =
-                            gfxUnicodeProperties::GetGeneralCategory(ch);
-                        if (cat < HB_CATEGORY_COMBINING_MARK ||
-                            cat > HB_CATEGORY_NON_SPACING_MARK) {
+                        if (!IsClusterExtender(ch)) {
                             breakHere = true;
                         }
                     }
@@ -1972,7 +1985,7 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
         if (boundary) {
             
             if (!aTextRun->SetSpaceGlyphIfSimple(this, aContext,
-                                                 aRunStart + i))
+                                                 aRunStart + i, ch))
             {
                 static const PRUint8 space = ' ';
                 gfxShapedWord *sw =
@@ -1993,8 +2006,18 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
             continue;
         }
 
+        if (i == aRunLength) {
+            break;
+        }
+
         if (invalid) {
             
+            
+            if (ch == '\t') {
+                aTextRun->SetIsTab(aRunStart + i);
+            } else if (ch == '\n') {
+                aTextRun->SetIsNewline(aRunStart + i);
+            }
             hash = 0;
             wordStart = i + 1;
             wordIs8Bit = true;
@@ -3050,11 +3073,6 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
         if (matchedFont) {
             aTextRun->AddGlyphRun(matchedFont, range.matchType,
                                   runStart, (matchedLength > 0));
-        } else {
-            aTextRun->AddGlyphRun(mainFont, gfxTextRange::kFontGroup,
-                                  runStart, (matchedLength > 0));
-        }
-        if (matchedFont) {
             
             if (!matchedFont->SplitAndInitTextRun(aContext, aTextRun, aString,
                                                   runStart, matchedLength,
@@ -3062,7 +3080,11 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
                 
                 matchedFont = nsnull;
             }
+        } else {
+            aTextRun->AddGlyphRun(mainFont, gfxTextRange::kFontGroup,
+                                  runStart, (matchedLength > 0));
         }
+
         if (!matchedFont) {
             
             
@@ -3072,18 +3094,41 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
                                                       reinterpret_cast<const PRUnichar*>(aString) + runStart,
                                                       matchedLength);
             }
-            for (PRUint32 index = runStart; index < runStart + matchedLength; index++) {
-                
+
+            
+            
+            PRUint32 runLimit = runStart + matchedLength;
+            for (PRUint32 index = runStart; index < runLimit; index++) {
                 T ch = aString[index];
-                if (sizeof(T) == sizeof(PRUnichar) &&
-                    NS_IS_HIGH_SURROGATE(ch) &&
-                    index + 1 < aScriptRunEnd &&
-                    NS_IS_LOW_SURROGATE(aString[index+1])) {
-                    aTextRun->SetMissingGlyph(index,
-                                              SURROGATE_TO_UCS4(ch,
-                                                                aString[index+1]));
-                    index++;
-                } else if (!IsInvalidChar(ch)) {
+
+                
+                
+                if (ch == '\n') {
+                    aTextRun->SetIsNewline(index);
+                    continue;
+                }
+                if (ch == '\t') {
+                    aTextRun->SetIsTab(index);
+                    continue;
+                }
+
+                
+                
+                if (sizeof(T) == sizeof(PRUnichar)) {
+                    if (NS_IS_HIGH_SURROGATE(ch) &&
+                        index + 1 < aScriptRunEnd &&
+                        NS_IS_LOW_SURROGATE(aString[index + 1]))
+                    {
+                        aTextRun->SetMissingGlyph(index,
+                                                  SURROGATE_TO_UCS4(ch,
+                                                                    aString[index + 1]));
+                        index++;
+                        aTextRun->SetIsLowSurrogate(index);
+                        continue;
+                    }
+
+                    
+                    
                     gfxFloat wid = mainFont->SynthesizeSpaceWidth(ch);
                     if (wid >= 0.0) {
                         nscoord advance =
@@ -3102,10 +3147,17 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
                             aTextRun->SetGlyphs(index,
                                                 g, &detailedGlyph);
                         }
-                    } else {
-                        aTextRun->SetMissingGlyph(index, ch);
+                        continue;
                     }
                 }
+
+                if (IsInvalidChar(ch)) {
+                    
+                    continue;
+                }
+
+                
+                aTextRun->SetMissingGlyph(index, ch);
             }
         }
 
@@ -3572,11 +3624,7 @@ gfxShapedWord::SetupClusterBoundaries(CompressedGlyph *aGlyphs,
         gfxUnicodeProperties::HSType hangulType = gfxUnicodeProperties::HST_NONE;
 
         
-        if ((category >= HB_CATEGORY_COMBINING_MARK &&
-             category <= HB_CATEGORY_NON_SPACING_MARK) ||
-            (ch >= 0x200c && ch <= 0x200d) || 
-            (ch >= 0xff9e && ch <= 0xff9f))   
-        {
+        if (IsClusterExtender(ch)) {
             aGlyphs[i] = extendCluster;
         } else if (category == HB_CATEGORY_OTHER_LETTER) {
             
@@ -3814,64 +3862,18 @@ AccountStorageForTextRun(gfxTextRun *aTextRun, PRInt32 aSign)
 }
 #endif
 
-static PRUint64
-GlyphStorageAllocCount(PRUint32 aLength, PRUint32 aFlags)
-{
-    
-    PRUint64 allocCount = aLength;
-
-    
-    if (!(aFlags & gfxTextRunFactory::TEXT_IS_PERSISTENT)) {
-        
-        
-        typedef gfxTextRun::CompressedGlyph CompressedGlyph;
-        if (aFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
-            allocCount += (aLength + sizeof(CompressedGlyph) - 1) /
-                          sizeof(CompressedGlyph);
-        } else {
-            allocCount += (aLength * sizeof(PRUnichar) +
-                              sizeof(CompressedGlyph) - 1) /
-                          sizeof(CompressedGlyph);
-        }
-    }
-    return allocCount;
-}
-
-
-
-
 
 
 
 gfxTextRun::CompressedGlyph *
-gfxTextRun::AllocateStorage(const void*& aText, PRUint32 aLength, PRUint32 aFlags)
+gfxTextRun::AllocateStorage(PRUint32 aLength)
 {
     
     
-    
-    
-
-    PRUint64 allocCount = GlyphStorageAllocCount(aLength, aFlags);
-
-    
-    
-    CompressedGlyph *storage = new (std::nothrow) CompressedGlyph[allocCount];
+    CompressedGlyph *storage = new (std::nothrow) CompressedGlyph[aLength];
     if (!storage) {
-        NS_WARNING("failed to allocate glyph/text storage for text run!");
+        NS_WARNING("failed to allocate glyph storage for text run!");
         return nsnull;
-    }
-
-    
-    if (!(aFlags & gfxTextRunFactory::TEXT_IS_PERSISTENT)) {
-        if (aFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
-            PRUint8 *newText = reinterpret_cast<PRUint8*>(storage + aLength);
-            memcpy(newText, aText, aLength);
-            aText = newText;
-        } else {
-            PRUnichar *newText = reinterpret_cast<PRUnichar*>(storage + aLength);
-            memcpy(newText, aText, aLength*sizeof(PRUnichar));
-            aText = newText;
-        }
     }
 
     return storage;
@@ -3881,7 +3883,7 @@ gfxTextRun *
 gfxTextRun::Create(const gfxTextRunFactory::Parameters *aParams, const void *aText,
                    PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags)
 {
-    CompressedGlyph *glyphStorage = AllocateStorage(aText, aLength, aFlags);
+    CompressedGlyph *glyphStorage = AllocateStorage(aLength);
     if (!glyphStorage) {
         return nsnull;
     }
@@ -3896,7 +3898,7 @@ gfxTextRun::gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void 
     mUserData(aParams->mUserData),
     mFontGroup(aFontGroup),
     mAppUnitsPerDevUnit(aParams->mAppUnitsPerDevUnit),
-    mFlags(aFlags), mCharacterCount(aLength), mHashCode(0)
+    mFlags(aFlags), mCharacterCount(aLength)
 {
     NS_ASSERTION(mAppUnitsPerDevUnit != 0, "Invalid app unit scale");
     MOZ_COUNT_CTOR(gfxTextRun);
@@ -3905,16 +3907,10 @@ gfxTextRun::gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void 
         mSkipChars.TakeFrom(aParams->mSkipChars);
     }
 
-    if (mFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
-        mText.mSingle = static_cast<const PRUint8 *>(aText);
-    } else {
-        mText.mDouble = static_cast<const PRUnichar *>(aText);
-    }
 #ifdef DEBUG_TEXT_RUN_STORAGE_METRICS
     AccountStorageForTextRun(this, 1);
 #endif
 
-    mUserFontSetGeneration = mFontGroup->GetGeneration();
     mSkipDrawing = mFontGroup->ShouldSkipDrawing();
 }
 
@@ -4578,7 +4574,7 @@ gfxTextRun::BreakAndMeasureText(PRUint32 aStart, PRUint32 aMaxLength,
         
         advance += charAdvance;
         if (aTrimWhitespace) {
-            if (GetChar(i) == ' ') {
+            if (mCharacterGlyphs[i].CharIsSpace()) {
                 ++trimmableChars;
                 trimmableAdvance += charAdvance;
             } else {
@@ -4867,6 +4863,13 @@ gfxTextRun::SetGlyphs(PRUint32 aIndex, CompressedGlyph aGlyph,
 void
 gfxTextRun::SetMissingGlyph(PRUint32 aIndex, PRUint32 aChar)
 {
+    PRUint8 category = gfxUnicodeProperties::GetGeneralCategory(aChar);
+    if (category >= HB_CATEGORY_COMBINING_MARK &&
+        category <= HB_CATEGORY_NON_SPACING_MARK)
+    {
+        mCharacterGlyphs[aIndex].SetComplex(false, true, 0);
+    }
+
     DetailedGlyph *details = AllocateDetailedGlyphs(aIndex, 1);
     if (!details)
         return;
@@ -4884,24 +4887,6 @@ gfxTextRun::SetMissingGlyph(PRUint32 aIndex, PRUint32 aChar)
     details->mXOffset = 0;
     details->mYOffset = 0;
     mCharacterGlyphs[aIndex].SetMissing(1);
-}
-
-bool
-gfxTextRun::FilterIfIgnorable(PRUint32 aIndex)
-{
-    PRUint32 ch = GetChar(aIndex);
-    if (IsDefaultIgnorable(ch)) {
-        DetailedGlyph *details = AllocateDetailedGlyphs(aIndex, 1);
-        if (details) {
-            details->mGlyphID = ch;
-            details->mAdvance = 0;
-            details->mXOffset = 0;
-            details->mYOffset = 0;
-            mCharacterGlyphs[aIndex].SetMissing(1);
-            return true;
-        }
-    }
-    return false;
 }
 
 void
@@ -5002,36 +4987,32 @@ gfxTextRun::CopyGlyphDataFrom(gfxTextRun *aSource, PRUint32 aStart,
 }
 
 void
-gfxTextRun::SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext, PRUint32 aCharIndex)
+gfxTextRun::SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext,
+                          PRUint32 aCharIndex)
 {
-    PRUint32 spaceGlyph = aFont->GetSpaceGlyph();
-    float spaceWidth = aFont->GetMetrics().spaceWidth;
-    PRUint32 spaceWidthAppUnits = NS_lroundf(spaceWidth*mAppUnitsPerDevUnit);
-    if (!spaceGlyph ||
-        !CompressedGlyph::IsSimpleGlyphID(spaceGlyph) ||
-        !CompressedGlyph::IsSimpleAdvance(spaceWidthAppUnits)) {
-        gfxTextRunFactory::Parameters params = {
-            aContext, nsnull, nsnull, nsnull, 0, mAppUnitsPerDevUnit
-        };
-        static const PRUint8 space = ' ';
-        nsAutoPtr<gfxTextRun> textRun;
-        textRun = mFontGroup->MakeTextRun(&space, 1, &params,
-            gfxTextRunFactory::TEXT_IS_8BIT | gfxTextRunFactory::TEXT_IS_ASCII |
-            gfxTextRunFactory::TEXT_IS_PERSISTENT);
-        if (!textRun || !textRun->mCharacterGlyphs)
-            return;
-        CopyGlyphDataFrom(textRun, 0, 1, aCharIndex);
+    if (SetSpaceGlyphIfSimple(aFont, aContext, aCharIndex, ' ')) {
         return;
     }
-    AddGlyphRun(aFont, gfxTextRange::kFontGroup, aCharIndex, false);
-    CompressedGlyph g;
-    g.SetSimpleGlyph(spaceWidthAppUnits, spaceGlyph);
-    SetSimpleGlyph(aCharIndex, g);
+
+    aFont->InitWordCache();
+    static const PRUint8 space = ' ';
+    gfxShapedWord *sw = aFont->GetShapedWord(aContext,
+                                             &space, 1,
+                                             HashMix(0, ' '), 
+                                             HB_SCRIPT_LATIN,
+                                             mAppUnitsPerDevUnit,
+                                             gfxTextRunFactory::TEXT_IS_8BIT |
+                                             gfxTextRunFactory::TEXT_IS_ASCII |
+                                             gfxTextRunFactory::TEXT_IS_PERSISTENT);
+    if (sw) {
+        AddGlyphRun(aFont, gfxTextRange::kFontGroup, aCharIndex, false);
+        CopyGlyphDataFrom(sw, aCharIndex);
+    }
 }
 
 bool
 gfxTextRun::SetSpaceGlyphIfSimple(gfxFont *aFont, gfxContext *aContext,
-                                  PRUint32 aCharIndex)
+                                  PRUint32 aCharIndex, PRUnichar aSpaceChar)
 {
     PRUint32 spaceGlyph = aFont->GetSpaceGlyph();
     if (!spaceGlyph || !CompressedGlyph::IsSimpleGlyphID(spaceGlyph)) {
@@ -5047,6 +5028,9 @@ gfxTextRun::SetSpaceGlyphIfSimple(gfxFont *aFont, gfxContext *aContext,
     AddGlyphRun(aFont, gfxTextRange::kFontGroup, aCharIndex, false);
     CompressedGlyph g;
     g.SetSimpleGlyph(spaceWidthAppUnits, spaceGlyph);
+    if (aSpaceChar == ' ') {
+        g.SetIsSpace();
+    }
     SetSimpleGlyph(aCharIndex, g);
     return true;
 }
@@ -5173,8 +5157,7 @@ gfxTextRun::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf)
     
     size_t total =
         aMallocSizeOf(mCharacterGlyphs,
-                      sizeof(CompressedGlyph) *
-                      GlyphStorageAllocCount(mCharacterCount, mFlags));
+                      sizeof(CompressedGlyph) * mCharacterCount);
 
     if (mDetailedGlyphs) {
         total += mDetailedGlyphs->SizeOfIncludingThis(aMallocSizeOf);
@@ -5201,16 +5184,7 @@ gfxTextRun::Dump(FILE* aOutput) {
     }
 
     PRUint32 i;
-    fputc('"', aOutput);
-    for (i = 0; i < mCharacterCount; ++i) {
-        PRUnichar ch = GetChar(i);
-        if (ch >= 32 && ch < 128) {
-            fputc(ch, aOutput);
-        } else {
-            fprintf(aOutput, "\\u%4x", ch);
-        }
-    }
-    fputs("\" [", aOutput);
+    fputc('[', aOutput);
     for (i = 0; i < mGlyphRuns.Length(); ++i) {
         if (i > 0) {
             fputc(',', aOutput);

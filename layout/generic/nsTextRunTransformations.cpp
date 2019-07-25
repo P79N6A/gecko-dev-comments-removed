@@ -59,16 +59,13 @@ nsTransformedTextRun::Create(const gfxTextRunFactory::Parameters* aParams,
   NS_ASSERTION(!(aFlags & gfxTextRunFactory::TEXT_IS_8BIT),
                "didn't expect text to be marked as 8-bit here");
 
-  
-  
-  const void *textPtr = aString;
-  CompressedGlyph *glyphStorage = AllocateStorage(textPtr, aLength, aFlags);
+  CompressedGlyph *glyphStorage = AllocateStorage(aLength);
   if (!glyphStorage) {
     return nsnull;
   }
 
   return new nsTransformedTextRun(aParams, aFactory, aFontGroup,
-                                  static_cast<const PRUnichar*>(textPtr), aLength,
+                                  aString, aLength,
                                   aFlags, aStyles, aOwnsFactory, glyphStorage);
 }
 
@@ -271,7 +268,7 @@ nsFontVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
       GetParametersForInner(aTextRun, &flags, aRefContext);
 
   PRUint32 length = aTextRun->GetLength();
-  const PRUnichar* str = aTextRun->GetTextUnicode();
+  const PRUnichar* str = aTextRun->mString.BeginReading();
   nsRefPtr<nsStyleContext>* styles = aTextRun->mStyles.Elements();
   
   nsAutoPtr<gfxTextRun> inner(fontGroup->MakeTextRun(str, length, &innerParams, flags));
@@ -353,7 +350,7 @@ nsCaseTransformTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
     gfxContext* aRefContext)
 {
   PRUint32 length = aTextRun->GetLength();
-  const PRUnichar* str = aTextRun->GetTextUnicode();
+  const PRUnichar* str = aTextRun->mString.BeginReading();
   nsRefPtr<nsStyleContext>* styles = aTextRun->mStyles.Elements();
 
   nsAutoString convertedString;
