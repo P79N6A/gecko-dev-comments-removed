@@ -152,13 +152,13 @@ public:
   
   
   
-  nsSVGSVGElement* GetCtx();
+  nsSVGSVGElement* GetCtx() const;
 
   
 
 
 
-  virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix);
+  virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix) const;
 
   
   

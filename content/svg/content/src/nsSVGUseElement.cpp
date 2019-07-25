@@ -480,14 +480,14 @@ nsSVGUseElement::UnlinkSource()
 
 
  gfxMatrix
-nsSVGUseElement::PrependLocalTransformTo(const gfxMatrix &aMatrix)
+nsSVGUseElement::PrependLocalTransformTo(const gfxMatrix &aMatrix) const
 {
   
   gfxMatrix matrix = nsSVGUseElementBase::PrependLocalTransformTo(aMatrix);
 
   
   float x, y;
-  GetAnimatedLengthValues(&x, &y, nsnull);
+  const_cast<nsSVGUseElement*>(this)->GetAnimatedLengthValues(&x, &y, nsnull);
   return matrix.PreMultiply(gfxMatrix().Translate(gfxPoint(x, y)));
 }
 

@@ -192,7 +192,7 @@ public:
 #endif 
 
   
-  virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix);
+  virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix) const;
   virtual void DidChangeLength(PRUint8 aAttrEnum, PRBool aDoSetAttr);
   virtual void DidChangeEnum(PRUint8 aAttrEnum, PRBool aDoSetAttr);
   virtual void DidChangeViewBox(PRBool aDoSetAttr);
@@ -205,7 +205,7 @@ public:
   float GetLength(PRUint8 mCtxType);
 
   
-  gfxMatrix GetViewBoxTransform();
+  gfxMatrix GetViewBoxTransform() const;
   PRBool    HasValidViewbox() const { return mViewBox.IsValid(); }
 
   
@@ -232,13 +232,13 @@ private:
   
   void SetImageOverridePreserveAspectRatio(const SVGPreserveAspectRatio& aPAR);
   void ClearImageOverridePreserveAspectRatio();
-  const SVGPreserveAspectRatio* GetImageOverridePreserveAspectRatio();
+  const SVGPreserveAspectRatio* GetImageOverridePreserveAspectRatio() const;
 
   
   
   
   
-  PRBool ShouldSynthesizeViewBox();
+  PRBool ShouldSynthesizeViewBox() const;
 
 protected:
   
@@ -253,7 +253,7 @@ protected:
 
   
 
-  PRBool IsRoot() {
+  PRBool IsRoot() const {
     NS_ASSERTION((IsInDoc() && !GetParent()) ==
                  (GetOwnerDoc() && (GetOwnerDoc()->GetRootElement() == this)),
                  "Can't determine if we're root");
@@ -264,7 +264,7 @@ protected:
 
 
 
-  PRBool IsInner() {
+  PRBool IsInner() const {
     const nsIContent *parent = GetFlattenedTreeParent();
     return parent && parent->GetNameSpaceID() == kNameSpaceID_SVG &&
            parent->Tag() != nsGkAtoms::foreignObject;
