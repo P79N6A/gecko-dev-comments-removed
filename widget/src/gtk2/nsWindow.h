@@ -469,19 +469,11 @@ private:
  
     
     
-    static nsWindow    *mLastDragMotionWindow;
+    static nsWindow    *sLastDragMotionWindow;
     void   InitDragEvent         (nsDragEvent &aEvent);
     void   UpdateDragStatus      (GdkDragContext *aDragContext,
                                   nsIDragService *aDragService);
 
-    
-    
-    GtkWidget         *mDragMotionWidget;
-    GdkDragContext    *mDragMotionContext;
-    gint               mDragMotionX;
-    gint               mDragMotionY;
-    guint              mDragMotionTime;
-    guint              mDragMotionTimerID;
     nsCOMPtr<nsITimer> mDragLeaveTimer;
     float              mLastMotionPressure;
 
@@ -493,14 +485,7 @@ private:
     
     static PRBool DragInProgress(void);
 
-    void         ResetDragMotionTimer     (GtkWidget      *aWidget,
-                                           GdkDragContext *aDragContext,
-                                           gint           aX,
-                                           gint           aY,
-                                           guint          aTime);
-    void         FireDragMotionTimer      (void);
     void         FireDragLeaveTimer       (void);
-    static guint DragMotionTimerCallback (gpointer aClosure);
     static void  DragLeaveTimerCallback  (nsITimer *aTimer, void *aClosure);
 
     void DispatchMissedButtonReleases(GdkEventCrossing *aGdkEvent);

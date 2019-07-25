@@ -290,7 +290,7 @@ UpdateLastInputEventTime()
 }
 
 
-nsWindow *nsWindow::mLastDragMotionWindow = NULL;
+nsWindow *nsWindow::sLastDragMotionWindow = NULL;
 PRBool nsWindow::sIsDraggingOutOf = PR_FALSE;
 
 
@@ -419,14 +419,6 @@ nsWindow::nsWindow()
         initialize_prefs();
     }
 
-    if (mLastDragMotionWindow == this)
-        mLastDragMotionWindow = NULL;
-    mDragMotionWidget = 0;
-    mDragMotionContext = 0;
-    mDragMotionX = 0;
-    mDragMotionY = 0;
-    mDragMotionTime = 0;
-    mDragMotionTimerID = 0;
     mLastMotionPressure = 0;
 
 #ifdef ACCESSIBILITY
@@ -453,8 +445,8 @@ nsWindow::nsWindow()
 nsWindow::~nsWindow()
 {
     LOG(("nsWindow::~nsWindow() [%p]\n", (void *)this));
-    if (mLastDragMotionWindow == this) {
-        mLastDragMotionWindow = NULL;
+    if (sLastDragMotionWindow == this) {
+        sLastDragMotionWindow = NULL;
     }
 
     delete[] mTransparencyBitmap;
@@ -764,11 +756,6 @@ nsWindow::Destroy(void)
     
     
     mThebesSurface = nsnull;
-
-    if (mDragMotionTimerID) {
-        g_source_remove(mDragMotionTimerID);
-        mDragMotionTimerID = 0;
-    }
 
     if (mDragLeaveTimer) {
         mDragLeaveTimer->Cancel();
@@ -3450,16 +3437,16 @@ nsWindow::CheckNeedDragLeaveEnter(nsWindow* aInnerMostWidget,
                                   nscoord aX, nscoord aY)
 {
     
-    if (mLastDragMotionWindow) {
+    if (sLastDragMotionWindow) {
         
-        if (mLastDragMotionWindow == aInnerMostWidget) {
+        if (sLastDragMotionWindow == aInnerMostWidget) {
             UpdateDragStatus(aDragContext, aDragService);
             return;
         }
 
         
-        nsRefPtr<nsWindow> kungFuDeathGrip = mLastDragMotionWindow;
-        mLastDragMotionWindow->OnDragLeave();
+        nsRefPtr<nsWindow> kungFuDeathGrip = sLastDragMotionWindow;
+        sLastDragMotionWindow->OnDragLeave();
     }
 
     
@@ -3470,7 +3457,7 @@ nsWindow::CheckNeedDragLeaveEnter(nsWindow* aInnerMostWidget,
     aInnerMostWidget->OnDragEnter(aX, aY);
 
     
-    mLastDragMotionWindow = aInnerMostWidget;
+    sLastDragMotionWindow = aInnerMostWidget;
 }
 
 gboolean
@@ -3501,9 +3488,6 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
     }
 
     sIsDraggingOutOf = PR_FALSE;
-
-    
-    ResetDragMotionTimer(aWidget, aDragContext, aX, aY, aTime);
 
     
     nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
@@ -3569,9 +3553,6 @@ nsWindow::OnDragLeaveEvent(GtkWidget *aWidget,
     LOGDRAG(("nsWindow::OnDragLeaveSignal(%p)\n", (void*)this));
 
     sIsDraggingOutOf = PR_TRUE;
-
-    
-    ResetDragMotionTimer(0, 0, 0, 0, 0);
 
     if (mDragLeaveTimer) {
         return;
@@ -3663,7 +3644,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
     dragSessionGTK->TargetSetLastContext(0, 0, 0);
 
     
-    mLastDragMotionWindow = 0;
+    sLastDragMotionWindow = 0;
 
     
     
@@ -5320,7 +5301,7 @@ nsWindow::DragInProgress(void)
     
     
     
-    return (mLastDragMotionWindow || sIsDraggingOutOf);
+    return (sLastDragMotionWindow || sIsDraggingOutOf);
 }
 
 
@@ -6199,60 +6180,6 @@ initialize_prefs(void)
 }
 
 void
-nsWindow::ResetDragMotionTimer(GtkWidget *aWidget,
-                               GdkDragContext *aDragContext,
-                               gint aX, gint aY, guint aTime)
-{
-
-    
-    
-    
-    if (aWidget)
-        g_object_ref(aWidget);
-    if (mDragMotionWidget)
-        g_object_unref(mDragMotionWidget);
-    mDragMotionWidget = aWidget;
-
-    if (aDragContext)
-        g_object_ref(aDragContext);
-    if (mDragMotionContext)
-        g_object_unref(mDragMotionContext);
-    mDragMotionContext = aDragContext;
-
-    mDragMotionX = aX;
-    mDragMotionY = aY;
-    mDragMotionTime = aTime;
-
-    
-    if (mDragMotionTimerID) {
-        g_source_remove(mDragMotionTimerID);
-        mDragMotionTimerID = 0;
-        LOG(("*** canceled motion timer\n"));
-    }
-
-    
-    
-    if (!aWidget) {
-        return;
-    }
-
-    
-    mDragMotionTimerID = g_timeout_add(100,
-                                       (GtkFunction)DragMotionTimerCallback,
-                                       this);
-}
-
-void
-nsWindow::FireDragMotionTimer(void)
-{
-    LOGDRAG(("nsWindow::FireDragMotionTimer(%p)\n", (void*)this));
-
-    OnDragMotionEvent(mDragMotionWidget, mDragMotionContext,
-                      mDragMotionX, mDragMotionY, mDragMotionTime,
-                      this);
-}
-
-void
 nsWindow::FireDragLeaveTimer(void)
 {
     LOGDRAG(("nsWindow::FireDragLeaveTimer(%p)\n", (void*)this));
@@ -6260,21 +6187,12 @@ nsWindow::FireDragLeaveTimer(void)
     mDragLeaveTimer = nsnull;
 
     
-    if (mLastDragMotionWindow) {
-        nsRefPtr<nsWindow> kungFuDeathGrip = mLastDragMotionWindow;
+    if (sLastDragMotionWindow) {
+        nsRefPtr<nsWindow> kungFuDeathGrip = sLastDragMotionWindow;
         
-        mLastDragMotionWindow->OnDragLeave();
-        mLastDragMotionWindow = 0;
+        sLastDragMotionWindow->OnDragLeave();
+        sLastDragMotionWindow = 0;
     }
-}
-
-
-guint
-nsWindow::DragMotionTimerCallback(gpointer aClosure)
-{
-    nsRefPtr<nsWindow> window = static_cast<nsWindow *>(aClosure);
-    window->FireDragMotionTimer();
-    return FALSE;
 }
 
 
