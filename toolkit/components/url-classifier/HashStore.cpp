@@ -1004,19 +1004,20 @@ HashStore::ProcessSubs()
   EntrySort(mAddCompletes);
   EntrySort(mSubCompletes);
 
-  KnockoutSubs(&mSubPrefixes, &mAddPrefixes);
-
   RemoveMatchingPrefixes(mSubPrefixes, &mAddCompletes);
   RemoveMatchingPrefixes(mSubPrefixes, &mSubCompletes);
 
-  KnockoutSubs(&mSubCompletes, &mAddCompletes);
-
+  
   
   ChunkSet dummyChunks;
   dummyChunks.Set(0);
   ExpireEntries(&mSubPrefixes, dummyChunks);
-  ExpireEntries(&mSubCompletes, dummyChunks);
   mSubChunks.Remove(dummyChunks);
+
+  
+  
+  KnockoutSubs(&mSubPrefixes, &mAddPrefixes);
+  KnockoutSubs(&mSubCompletes, &mAddCompletes);
 
   return NS_OK;
 }
