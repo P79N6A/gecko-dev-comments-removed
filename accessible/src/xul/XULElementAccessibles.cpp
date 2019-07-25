@@ -3,8 +3,7 @@
 
 
 
-
-#include "nsXULTextAccessible.h"
+#include "XULElementAccessibles.h"
 
 #include "Accessible-inl.h"
 #include "BaseAccessibles.h"
@@ -27,14 +26,14 @@ using namespace mozilla::a11y;
 
 
 
-nsXULTextAccessible::
-  nsXULTextAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULLabelAccessible::
+  XULLabelAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   HyperTextAccessibleWrap(aContent, aDoc)
 {
 }
 
 nsresult
-nsXULTextAccessible::GetNameInternal(nsAString& aName)
+XULLabelAccessible::GetNameInternal(nsAString& aName)
 {
   
   
@@ -43,13 +42,13 @@ nsXULTextAccessible::GetNameInternal(nsAString& aName)
 }
 
 role
-nsXULTextAccessible::NativeRole()
+XULLabelAccessible::NativeRole()
 {
   return roles::LABEL;
 }
 
 PRUint64
-nsXULTextAccessible::NativeState()
+XULLabelAccessible::NativeState()
 {
   
   
@@ -57,7 +56,7 @@ nsXULTextAccessible::NativeState()
 }
 
 Relation
-nsXULTextAccessible::RelationByType(PRUint32 aType)
+XULLabelAccessible::RelationByType(PRUint32 aType)
 {
   Relation rel = HyperTextAccessibleWrap::RelationByType(aType);
   if (aType == nsIAccessibleRelation::RELATION_LABEL_FOR) {
@@ -78,20 +77,20 @@ nsXULTextAccessible::RelationByType(PRUint32 aType)
 
 
 
-nsXULTooltipAccessible::
-  nsXULTooltipAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULTooltipAccessible::
+  XULTooltipAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   LeafAccessible(aContent, aDoc)
 {
 }
 
 PRUint64
-nsXULTooltipAccessible::NativeState()
+XULTooltipAccessible::NativeState()
 {
   return LeafAccessible::NativeState() | states::READONLY;
 }
 
 role
-nsXULTooltipAccessible::NativeRole()
+XULTooltipAccessible::NativeRole()
 {
   return roles::TOOLTIP;
 }
@@ -101,21 +100,21 @@ nsXULTooltipAccessible::NativeRole()
 
 
 
-nsXULLinkAccessible::
-  nsXULLinkAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULLinkAccessible::
+  XULLinkAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   HyperTextAccessibleWrap(aContent, aDoc)
 {
 }
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsXULLinkAccessible, HyperTextAccessibleWrap,
+NS_IMPL_ISUPPORTS_INHERITED1(XULLinkAccessible, HyperTextAccessibleWrap,
                              nsIAccessibleHyperLink)
 
 
 
 
 void
-nsXULLinkAccessible::Value(nsString& aValue)
+XULLinkAccessible::Value(nsString& aValue)
 {
   aValue.Truncate();
 
@@ -123,7 +122,7 @@ nsXULLinkAccessible::Value(nsString& aValue)
 }
 
 nsresult
-nsXULLinkAccessible::GetNameInternal(nsAString& aName)
+XULLinkAccessible::GetNameInternal(nsAString& aName)
 {
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, aName);
   if (!aName.IsEmpty())
@@ -133,38 +132,38 @@ nsXULLinkAccessible::GetNameInternal(nsAString& aName)
 }
 
 role
-nsXULLinkAccessible::NativeRole()
+XULLinkAccessible::NativeRole()
 {
   return roles::LINK;
 }
 
 
 PRUint64
-nsXULLinkAccessible::NativeLinkState() const
+XULLinkAccessible::NativeLinkState() const
 {
   return states::LINKED;
 }
 
 PRUint8
-nsXULLinkAccessible::ActionCount()
+XULLinkAccessible::ActionCount()
 {
   return 1;
 }
 
 NS_IMETHODIMP
-nsXULLinkAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+XULLinkAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   aName.Truncate();
 
   if (aIndex != eAction_Jump)
     return NS_ERROR_INVALID_ARG;
-  
+
   aName.AssignLiteral("jump");
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsXULLinkAccessible::DoAction(PRUint8 aIndex)
+XULLinkAccessible::DoAction(PRUint8 aIndex)
 {
   if (aIndex != eAction_Jump)
     return NS_ERROR_INVALID_ARG;
@@ -180,14 +179,14 @@ nsXULLinkAccessible::DoAction(PRUint8 aIndex)
 
 
 bool
-nsXULLinkAccessible::IsLink()
+XULLinkAccessible::IsLink()
 {
   
   return true;
 }
 
 PRUint32
-nsXULLinkAccessible::StartOffset()
+XULLinkAccessible::StartOffset()
 {
   
   
@@ -200,7 +199,7 @@ nsXULLinkAccessible::StartOffset()
 }
 
 PRUint32
-nsXULLinkAccessible::EndOffset()
+XULLinkAccessible::EndOffset()
 {
   if (Accessible::IsLink())
     return Accessible::EndOffset();
@@ -208,7 +207,7 @@ nsXULLinkAccessible::EndOffset()
 }
 
 already_AddRefed<nsIURI>
-nsXULLinkAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
+XULLinkAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
 {
   if (aAnchorIndex != 0)
     return nsnull;

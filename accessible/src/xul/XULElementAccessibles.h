@@ -3,23 +3,26 @@
 
 
 
-#ifndef _nsXULTextAccessible_H_
-#define _nsXULTextAccessible_H_
+#ifndef mozilla_a11y_XULElementAccessibles_h__
+#define mozilla_a11y_XULElementAccessibles_h__
 
 #include "BaseAccessibles.h"
 #include "HyperTextAccessibleWrap.h"
 
+namespace mozilla {
+namespace a11y {
 
 
 
-class nsXULTextAccessible : public HyperTextAccessibleWrap
+
+class XULLabelAccessible : public HyperTextAccessibleWrap
 {
 public:
-  nsXULTextAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULLabelAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual Relation RelationByType(PRUint32 aRelationType);
 };
@@ -27,22 +30,22 @@ public:
 
 
 
-class nsXULTooltipAccessible : public mozilla::a11y::LeafAccessible
+class XULTooltipAccessible : public LeafAccessible
 {
 
 public:
-  nsXULTooltipAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULTooltipAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
 };
 
-class nsXULLinkAccessible : public HyperTextAccessibleWrap
+class XULLinkAccessible : public HyperTextAccessibleWrap
 {
 
 public:
-  nsXULLinkAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULLinkAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -53,7 +56,7 @@ public:
   
   virtual void Value(nsString& aValue);
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeLinkState() const;
 
   
@@ -70,4 +73,7 @@ protected:
 
 };
 
-#endif  
+} 
+} 
+
+#endif
