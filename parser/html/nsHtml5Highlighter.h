@@ -68,7 +68,7 @@ class nsHtml5Highlighter
     
 
 
-    void Start();
+    void Start(const nsAutoString& aTitle);
 
     
 
@@ -343,11 +343,6 @@ class nsHtml5Highlighter
 
 
     nsHtml5UTF16Buffer* mBuffer;
-
-    
-
-
-    nsString mURL;
 
     
 

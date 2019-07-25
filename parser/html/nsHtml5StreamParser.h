@@ -220,6 +220,13 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
     void SetEncodingFromExpat(const PRUnichar* aEncoding);
 
+    
+
+
+
+
+    void SetViewSourceTitle(nsIURI* aURL);
+
   private:
 
 #ifdef DEBUG
@@ -384,6 +391,11 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
     nsCOMPtr<nsIRequest>          mRequest;
     nsCOMPtr<nsIRequestObserver>  mObserver;
+
+    
+
+
+    nsCString                     mViewSourceTitle;
 
     
 
