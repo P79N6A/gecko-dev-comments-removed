@@ -171,8 +171,7 @@ class ArgumentsObject : public JSObject
 
   public:
     
-    static ArgumentsObject *create(JSContext *cx, uint32_t argc, JSObject &callee,
-                                   StackFrame *fp);
+    static ArgumentsObject *create(JSContext *cx, uint32_t argc, JSObject &callee);
 
     
 
@@ -221,7 +220,7 @@ class NormalArgumentsObject : public ArgumentsObject
     friend bool JSObject::isNormalArguments() const;
     friend struct EmptyShape; 
     friend ArgumentsObject *
-    ArgumentsObject::create(JSContext *cx, uint32_t argc, JSObject &callee, StackFrame *fp);
+    ArgumentsObject::create(JSContext *cx, uint32_t argc, JSObject &callee);
 
   public:
     
@@ -238,7 +237,7 @@ class StrictArgumentsObject : public ArgumentsObject
 {
     friend bool JSObject::isStrictArguments() const;
     friend ArgumentsObject *
-    ArgumentsObject::create(JSContext *cx, uint32_t argc, JSObject &callee, StackFrame *fp);
+    ArgumentsObject::create(JSContext *cx, uint32_t argc, JSObject &callee);
 };
 
 } 
