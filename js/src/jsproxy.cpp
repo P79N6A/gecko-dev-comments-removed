@@ -808,6 +808,12 @@ JSProxy::fun_toString(JSContext *cx, JSObject *proxy, uintN indent)
     return proxy->getProxyHandler()->fun_toString(cx, proxy, indent);
 }
 
+static JSObject *
+proxy_innerObject(JSContext *cx, JSObject *obj)
+{
+    return obj->getProxyPrivate().toObjectOrNull();
+}
+
 static JSBool
 proxy_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                      JSProperty **propp)
@@ -944,6 +950,46 @@ JS_FRIEND_API(Class) ObjectProxyClass = {
     }
 };
 
+JS_FRIEND_API(Class) OuterWindowProxyClass = {
+    "Proxy",
+    Class::NON_NATIVE | JSCLASS_HAS_RESERVED_SLOTS(2),
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    EnumerateStub,
+    ResolveStub,
+    ConvertStub,
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    {
+        NULL,       
+        NULL,       
+        proxy_innerObject,
+        NULL,       
+    },
+    {
+        proxy_LookupProperty,
+        proxy_DefineProperty,
+        proxy_GetProperty,
+        proxy_SetProperty,
+        proxy_GetAttributes,
+        proxy_SetAttributes,
+        proxy_DeleteProperty,
+        NULL,       
+        NULL,       
+        proxy_TraceObject,
+        NULL,       
+        proxy_Finalize, 
+    }
+};
+
 JSBool
 proxy_Call(JSContext *cx, uintN argc, Value *vp)
 {
@@ -1011,7 +1057,11 @@ NewProxyObject(JSContext *cx, JSProxyHandler *handler, const Value &priv, JSObje
                JSObject *parent, JSObject *call, JSObject *construct)
 {
     bool fun = call || construct;
-    Class *clasp = fun ? &FunctionProxyClass : &ObjectProxyClass;
+    Class *clasp;
+    if (fun)
+        clasp = &FunctionProxyClass;
+    else
+        clasp = handler->isOuterWindow() ? &OuterWindowProxyClass : &ObjectProxyClass;
     JSObject *obj = NewNonFunction<WithProto::Given>(cx, clasp, proto, parent);
     if (!obj || (construct && !obj->ensureInstanceReservedSlots(cx, 0)))
         return NULL;
