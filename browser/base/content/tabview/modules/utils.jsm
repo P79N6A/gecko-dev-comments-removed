@@ -490,8 +490,6 @@ Subscribable.prototype = {
 
 
 let Utils = {
-  defaultFaviconURL: "chrome://mozapps/skin/places/defaultFavicon.png",
-
   
   
   
