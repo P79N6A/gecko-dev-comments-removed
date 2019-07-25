@@ -251,6 +251,7 @@ static char **gQtOnlyArgv;
 #endif 
 #include "nsGTKToolkit.h"
 #endif
+#include "BinaryPath.h"
 
 
 static void
@@ -1435,141 +1436,10 @@ RemoteCommandLine(const char* aDesktopStartupID)
 }
 #endif 
 
-#ifdef XP_MACOSX
-static char const *gBinaryPath;
-#endif
-
 nsresult
 XRE_GetBinaryPath(const char* argv0, nsILocalFile* *aResult)
 {
-  nsresult rv;
-  nsCOMPtr<nsILocalFile> lf;
-
-  
-  
-  
-
-#ifdef XP_WIN
-  PRUnichar exePath[MAXPATHLEN];
-
-  if (!::GetModuleFileNameW(0, exePath, MAXPATHLEN))
-    return NS_ERROR_FAILURE;
-
-  rv = NS_NewLocalFile(nsDependentString(exePath), PR_TRUE,
-                       getter_AddRefs(lf));
-  if (NS_FAILED(rv))
-    return rv;
-
-#elif defined(XP_MACOSX)
-  if (gBinaryPath)
-    return NS_NewNativeLocalFile(nsDependentCString(gBinaryPath), PR_FALSE,
-                                 aResult);
-
-  NS_NewNativeLocalFile(EmptyCString(), PR_TRUE, getter_AddRefs(lf));
-  nsCOMPtr<nsILocalFileMac> lfm (do_QueryInterface(lf));
-  if (!lfm)
-    return NS_ERROR_FAILURE;
-
-  
-  CFBundleRef appBundle = CFBundleGetMainBundle();
-  if (!appBundle)
-    return NS_ERROR_FAILURE;
-
-  CFURLRef executableURL = CFBundleCopyExecutableURL(appBundle);
-  if (!executableURL)
-    return NS_ERROR_FAILURE;
-  rv = lfm->InitWithCFURL(executableURL);
-  CFRelease(executableURL);
-  if (NS_FAILED(rv))
-    return rv;
-
-  
-  lfm->Normalize();
-
-#elif defined(XP_UNIX)
-  struct stat fileStat;
-  char exePath[MAXPATHLEN];
-  char tmpPath[MAXPATHLEN];
-
-  rv = NS_ERROR_FAILURE;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-
-
-
-#if 0
-  int r = readlink("/proc/self/exe", exePath, MAXPATHLEN);
-
-  if (r > 0 && r < MAXPATHLEN) {
-    exePath[r] = '\0';
-    if (stat(exePath, &fileStat) == 0) {
-      rv = NS_OK;
-    }
-  }
-
-#endif
-  if (NS_FAILED(rv) &&
-      realpath(argv0, exePath) && stat(exePath, &fileStat) == 0) {
-    rv = NS_OK;
-  }
-
-  if (NS_FAILED(rv)) {
-    const char *path = getenv("PATH");
-    if (!path)
-      return NS_ERROR_FAILURE;
-
-    char *pathdup = strdup(path);
-    if (!pathdup)
-      return NS_ERROR_OUT_OF_MEMORY;
-
-    PRBool found = PR_FALSE;
-    char *newStr = pathdup;
-    char *token;
-    while ( (token = nsCRT::strtok(newStr, ":", &newStr)) ) {
-      sprintf(tmpPath, "%s/%s", token, argv0);
-      if (realpath(tmpPath, exePath) && stat(exePath, &fileStat) == 0) {
-        found = PR_TRUE;
-        break;
-      }
-    }
-    free(pathdup);
-    if (!found)
-      return NS_ERROR_FAILURE;
-  }
-
-  rv = NS_NewNativeLocalFile(nsDependentCString(exePath), PR_TRUE,
-                             getter_AddRefs(lf));
-  if (NS_FAILED(rv))
-    return rv;
-
-#elif defined(XP_OS2)
-  PPIB ppib;
-  PTIB ptib;
-  char exePath[MAXPATHLEN];
-
-  DosGetInfoBlocks( &ptib, &ppib);
-  DosQueryModuleName( ppib->pib_hmte, MAXPATHLEN, exePath);
-  rv = NS_NewNativeLocalFile(nsDependentCString(exePath), PR_TRUE,
-                             getter_AddRefs(lf));
-  if (NS_FAILED(rv))
-    return rv;
-
-#else
-#error Oops, you need platform-specific code here
-#endif
-
-  NS_ADDREF(*aResult = lf);
-  return NS_OK;
+  return mozilla::BinaryPath::GetFile(argv0, aResult);
 }
 
 #define NS_ERROR_LAUNCHED_CHILD_PROCESS NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_PROFILE, 200)
@@ -2821,16 +2691,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
   NS_ENSURE_TRUE(aAppData, 2);
 
-#ifdef XP_MACOSX
-  
-  
-  
-  gBinaryPath = getenv("XRE_BINARY_PATH");
-
-  if (gBinaryPath && !*gBinaryPath)
-    gBinaryPath = nsnull;
-#endif
-
   
   const char* override = nsnull;
   ar = CheckArg("override", PR_TRUE, &override);
@@ -3749,14 +3609,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       SaveFileToEnvIfUnset("XRE_PROFILE_PATH", profD);
       SaveFileToEnvIfUnset("XRE_PROFILE_LOCAL_PATH", profLD);
       SaveWordToEnvIfUnset("XRE_PROFILE_NAME", profileName);
-
-#ifdef XP_MACOSX
-      if (gBinaryPath) {
-        static char kEnvVar[MAXPATHLEN];
-        sprintf(kEnvVar, "XRE_BINARY_PATH=%s", gBinaryPath);
-        PR_SetEnv(kEnvVar);
-      }
-#endif
 
 #ifdef MOZ_WIDGET_GTK2
       MOZ_gdk_display_close(display);
