@@ -218,70 +218,72 @@ function test_skipped_optout_vacuum()
   synthesize_idle_daily();
 },
 
-function test_page_size_change_with_wal()
-{
-  print("\n*** Test that a VACUUM changes page_size with WAL mode");
-  Services.obs.notifyObservers(null, "test-options", "wal");
 
-  
-  let conn = getDatabase(new_db_file("testVacuum2"));
-  conn.executeSimpleSQL("PRAGMA page_size = 1024");
-  let stmt = conn.createStatement("PRAGMA page_size");
-  try {
-    while (stmt.executeStep()) {
-      do_check_eq(stmt.row.page_size, 1024);
-    }
-  }
-  finally {
-    stmt.finalize();
-  }
 
-  
-  conn.executeSimpleSQL("PRAGMA journal_mode = WAL");
-  stmt = conn.createStatement("PRAGMA journal_mode");
-  try {
-    while (stmt.executeStep()) {
-      do_check_eq(stmt.row.journal_mode, "wal");
-    }
-  }
-  finally {
-    stmt.finalize();
-  }
 
-  
-  let vacuumObserver = {
-    observe: function VO_observe(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(this, aTopic);
-      print("Check page size has been updated.");
-      let stmt = conn.createStatement("PRAGMA page_size");
-      try {
-        while (stmt.executeStep()) {
-          do_check_eq(stmt.row.page_size, Ci.mozIStorageConnection.DEFAULT_PAGE_SIZE);
-        }
-      }
-      finally {
-        stmt.finalize();
-      }
 
-      print("Check journal mode has been restored.");
-      stmt = conn.createStatement("PRAGMA journal_mode");
-      try {
-        while (stmt.executeStep()) {
-          do_check_eq(stmt.row.journal_mode, "wal");
-        }
-      }
-      finally {
-        stmt.finalize();
-      }
 
-      run_next_test();
-    },
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver])
-  }
-  Services.obs.addObserver(vacuumObserver, "test-end-vacuum", false);
 
-  synthesize_idle_daily();
-},
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function test_memory_database_crash()
 {
