@@ -72,8 +72,11 @@
 
 
   FT_LOCAL_DEF( void )
-  T1_Size_Done( T1_Size  size )
+  T1_Size_Done( FT_Size  t1size )          
   {
+    T1_Size  size = (T1_Size)t1size;
+
+
     if ( size->root.internal )
     {
       PSH_Globals_Funcs  funcs;
@@ -89,8 +92,9 @@
 
 
   FT_LOCAL_DEF( FT_Error )
-  T1_Size_Init( T1_Size  size )
+  T1_Size_Init( FT_Size  t1size )      
   {
+    T1_Size            size  = (T1_Size)t1size;
     FT_Error           error = T1_Err_Ok;
     PSH_Globals_Funcs  funcs = T1_Size_Get_Globals_Funcs( size );
 
@@ -112,9 +116,10 @@
 
 
   FT_LOCAL_DEF( FT_Error )
-  T1_Size_Request( T1_Size          size,
+  T1_Size_Request( FT_Size          t1size,     
                    FT_Size_Request  req )
   {
+    T1_Size            size  = (T1_Size)t1size;
     PSH_Globals_Funcs  funcs = T1_Size_Get_Globals_Funcs( size );
 
 
@@ -137,20 +142,20 @@
   
 
   FT_LOCAL_DEF( void )
-  T1_GlyphSlot_Done( T1_GlyphSlot  slot )
+  T1_GlyphSlot_Done( FT_GlyphSlot  slot )
   {
-    slot->root.internal->glyph_hints = 0;
+    slot->internal->glyph_hints = 0;
   }
 
 
   FT_LOCAL_DEF( FT_Error )
-  T1_GlyphSlot_Init( T1_GlyphSlot  slot )
+  T1_GlyphSlot_Init( FT_GlyphSlot  slot )
   {
     T1_Face           face;
     PSHinter_Service  pshinter;
 
 
-    face     = (T1_Face)slot->root.face;
+    face     = (T1_Face)slot->face;
     pshinter = (PSHinter_Service)face->pshinter;
 
     if ( pshinter )
@@ -158,15 +163,18 @@
       FT_Module  module;
 
 
-      module = FT_Get_Module( slot->root.face->driver->root.library, "pshinter" );
-      if (module)
+      module = FT_Get_Module( slot->face->driver->root.library,
+                              "pshinter" );
+      if ( module )
       {
         T1_Hints_Funcs  funcs;
 
+
         funcs = pshinter->get_t1_funcs( module );
-        slot->root.internal->glyph_hints = (void*)funcs;
+        slot->internal->glyph_hints = (void*)funcs;
       }
     }
+
     return 0;
   }
 
@@ -190,8 +198,9 @@
   
   
   FT_LOCAL_DEF( void )
-  T1_Face_Done( T1_Face  face )
+  T1_Face_Done( FT_Face  t1face )         
   {
+    T1_Face    face = (T1_Face)t1face;
     FT_Memory  memory;
     T1_Font    type1;
 
@@ -289,11 +298,12 @@
   
   FT_LOCAL_DEF( FT_Error )
   T1_Face_Init( FT_Stream      stream,
-                T1_Face        face,
+                FT_Face        t1face,          
                 FT_Int         face_index,
                 FT_Int         num_params,
                 FT_Parameter*  params )
   {
+    T1_Face             face = (T1_Face)t1face;
     FT_Error            error;
     FT_Service_PsCMaps  psnames;
     PSAux_Service       psaux;
@@ -313,9 +323,17 @@
     face->psaux = FT_Get_Module_Interface( FT_FACE_LIBRARY( face ),
                                            "psaux" );
     psaux = (PSAux_Service)face->psaux;
+    if ( !psaux )
+    {
+      FT_ERROR(( "T1_Face_Init: cannot access `psaux' module\n" ));
+      error = T1_Err_Missing_Module;
+      goto Exit;
+    }
 
     face->pshinter = FT_Get_Module_Interface( FT_FACE_LIBRARY( face ),
                                               "pshinter" );
+
+    FT_TRACE2(( "Type 1 driver\n" ));
 
     
     error = T1_Open_Face( face );
@@ -484,7 +502,7 @@
       FT_Face  root = &face->root;
 
 
-      if ( psnames && psaux )
+      if ( psnames )
       {
         FT_CharMapRec    charmap;
         T1_CMap_Classes  cmap_classes = psaux->t1_cmap_classes;
@@ -568,7 +586,7 @@
   
   
   FT_LOCAL_DEF( FT_Error )
-  T1_Driver_Init( T1_Driver  driver )
+  T1_Driver_Init( FT_Module  driver )
   {
     FT_UNUSED( driver );
 
@@ -588,7 +606,7 @@
   
   
   FT_LOCAL_DEF( void )
-  T1_Driver_Done( T1_Driver  driver )
+  T1_Driver_Done( FT_Module  driver )
   {
     FT_UNUSED( driver );
   }

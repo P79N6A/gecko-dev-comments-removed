@@ -31,8 +31,8 @@
 
 #ifndef FT_CONFIG_OPTION_PIC
 
-
-
+  
+  
 
   
   static AF_ScriptClass const  af_script_classes[] =
@@ -43,7 +43,7 @@
 #endif
     &af_latin_script_class,
     &af_cjk_script_class,
-    &af_indic_script_class, 
+    &af_indic_script_class,
     NULL  
   };
 
@@ -126,9 +126,7 @@
         if ( gindex != 0                             &&
              gindex < (FT_ULong)globals->glyph_count &&
              gscripts[gindex] == AF_SCRIPT_LIST_NONE )
-        {
           gscripts[gindex] = (FT_Byte)ss;
-        }
 
         for (;;)
         {
@@ -139,9 +137,7 @@
 
           if ( gindex < (FT_ULong)globals->glyph_count &&
                gscripts[gindex] == AF_SCRIPT_LIST_NONE )
-          {
             gscripts[gindex] = (FT_Byte)ss;
-          }
         }
       }
     }

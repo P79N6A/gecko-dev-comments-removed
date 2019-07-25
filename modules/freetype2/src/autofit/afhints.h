@@ -25,7 +25,7 @@
 
 FT_BEGIN_HEADER
 
- 
+  
 
 
 
@@ -53,6 +53,151 @@ FT_BEGIN_HEADER
     AF_DIR_DOWN  = -2
 
   } AF_Direction;
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   
@@ -139,7 +284,6 @@ FT_BEGIN_HEADER
 
     AF_Point    first;       
     AF_Point    last;        
-    AF_Point*   contour;     
 
   } AF_SegmentRec;
 
@@ -155,32 +299,31 @@ FT_BEGIN_HEADER
     FT_Fixed    scale;      
     AF_Width    blue_edge;  
 
-    AF_Edge     link;
-    AF_Edge     serif;
-    FT_Short    num_linked;
+    AF_Edge     link;       
+    AF_Edge     serif;      
+    FT_Short    num_linked; 
+    FT_Int      score;      
 
-    FT_Int      score;
-
-    AF_Segment  first;
-    AF_Segment  last;
+    AF_Segment  first;      
+    AF_Segment  last;       
 
   } AF_EdgeRec;
 
 
   typedef struct  AF_AxisHintsRec_
   {
-    FT_Int        num_segments;
-    FT_Int        max_segments;
-    AF_Segment    segments;
+    FT_Int        num_segments; 
+    FT_Int        max_segments; 
+    AF_Segment    segments;     
 #ifdef AF_SORT_SEGMENTS
     FT_Int        mid_segments;
 #endif
 
-    FT_Int        num_edges;
-    FT_Int        max_edges;
-    AF_Edge       edges;
+    FT_Int        num_edges;    
+    FT_Int        max_edges;    
+    AF_Edge       edges;        
 
-    AF_Direction  major_dir;
+    AF_Direction  major_dir;    
 
   } AF_AxisHintsRec, *AF_AxisHints;
 
@@ -195,15 +338,13 @@ FT_BEGIN_HEADER
     FT_Fixed          y_scale;
     FT_Pos            y_delta;
 
-    FT_Pos            edge_distance_threshold;
+    FT_Int            max_points;    
+    FT_Int            num_points;    
+    AF_Point          points;        
 
-    FT_Int            max_points;
-    FT_Int            num_points;
-    AF_Point          points;
-
-    FT_Int            max_contours;
-    FT_Int            num_contours;
-    AF_Point*         contours;
+    FT_Int            max_contours;  
+    FT_Int            num_contours;  
+    AF_Point*         contours;      
 
     AF_AxisHintsRec   axis[AF_DIMENSION_MAX];
 
@@ -214,7 +355,7 @@ FT_BEGIN_HEADER
 
     FT_Pos            xmin_delta;    
     FT_Pos            xmax_delta;
-    
+
   } AF_GlyphHintsRec;
 
 
@@ -222,7 +363,7 @@ FT_BEGIN_HEADER
 #define AF_HINTS_TEST_OTHER( h, f )   ( (h)->other_flags  & (f) )
 
 
-#ifdef AF_DEBUG
+#ifdef FT_DEBUG_AUTOFIT
 
 #define AF_HINTS_DO_HORIZONTAL( h )                                     \
           ( !_af_debug_disable_horz_hints                            && \
@@ -274,12 +415,6 @@ FT_BEGIN_HEADER
   af_glyph_hints_init( AF_GlyphHints  hints,
                        FT_Memory      memory );
 
-
-
-  
-
-
-
   FT_LOCAL( void )
   af_glyph_hints_rescale( AF_GlyphHints     hints,
                           AF_ScriptMetrics  metrics );
@@ -304,7 +439,7 @@ FT_BEGIN_HEADER
   af_glyph_hints_align_weak_points( AF_GlyphHints  hints,
                                     AF_Dimension   dim );
 
-#ifdef AF_USE_WARPER
+#ifdef AF_CONFIG_OPTION_USE_WARPER
   FT_LOCAL( void )
   af_glyph_hints_scale_dim( AF_GlyphHints  hints,
                             AF_Dimension   dim,

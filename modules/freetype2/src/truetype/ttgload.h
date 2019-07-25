@@ -37,14 +37,12 @@ FT_BEGIN_HEADER
   FT_LOCAL( void )
   TT_Get_HMetrics( TT_Face     face,
                    FT_UInt     idx,
-                   FT_Bool     check,
                    FT_Short*   lsb,
                    FT_UShort*  aw );
 
   FT_LOCAL( void )
   TT_Get_VMetrics( TT_Face     face,
                    FT_UInt     idx,
-                   FT_Bool     check,
                    FT_Short*   tsb,
                    FT_UShort*  ah );
 

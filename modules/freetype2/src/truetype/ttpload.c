@@ -110,15 +110,16 @@
       face->num_locations = table_len >> shift;
     }
 
-    if ( face->num_locations != (FT_ULong)face->root.num_glyphs )
+    if ( face->num_locations != (FT_ULong)face->root.num_glyphs + 1 )
     {
       FT_TRACE2(( "glyph count mismatch!  loca: %d, maxp: %d\n",
-                  face->num_locations, face->root.num_glyphs ));
+                  face->num_locations - 1, face->root.num_glyphs ));
 
       
-      if ( face->num_locations < (FT_ULong)face->root.num_glyphs )
+      if ( face->num_locations <= (FT_ULong)face->root.num_glyphs )
       {
-        FT_Long   new_loca_len = (FT_Long)face->root.num_glyphs << shift;
+        FT_Long   new_loca_len =
+                    ( (FT_Long)( face->root.num_glyphs ) + 1 ) << shift;
 
         TT_Table  entry = face->dir_tables;
         TT_Table  limit = entry + face->num_tables;
@@ -137,9 +138,15 @@
             dist = diff;
         }
 
+        if ( entry == limit )
+        {
+          
+          dist = stream->size - pos;
+        }
+
         if ( new_loca_len <= dist )
         {
-          face->num_locations = face->root.num_glyphs;
+          face->num_locations = face->root.num_glyphs + 1;
           table_len           = new_loca_len;
 
           FT_TRACE2(( "adjusting num_locations to %d\n",
@@ -204,22 +211,22 @@
     }
 
     
-    if ( pos1 >= face->glyf_len )
+    if ( pos1 > face->glyf_len )
     {
       FT_TRACE1(( "tt_face_get_location:"
-                 " too large offset=0x%08lx found for gid=0x%04lx,"
-                 " exceeding the end of glyf table (0x%08lx)\n",
-                 pos1, gindex, face->glyf_len ));
+                  " too large offset=0x%08lx found for gid=0x%04lx,"
+                  " exceeding the end of glyf table (0x%08lx)\n",
+                  pos1, gindex, face->glyf_len ));
       *asize = 0;
       return 0;
     }
 
-    if ( pos2 >= face->glyf_len )
+    if ( pos2 > face->glyf_len )
     {
       FT_TRACE1(( "tt_face_get_location:"
-                 " too large offset=0x%08lx found for gid=0x%04lx,"
-                 " truncate at the end of glyf table (0x%08lx)\n",
-                 pos2, gindex + 1, face->glyf_len ));
+                  " too large offset=0x%08lx found for gid=0x%04lx,"
+                  " truncate at the end of glyf table (0x%08lx)\n",
+                  pos2, gindex + 1, face->glyf_len ));
       pos2 = face->glyf_len;
     }
 
@@ -307,7 +314,7 @@
       FT_Short*  limit = cur + face->cvt_size;
 
 
-      for ( ; cur <  limit; cur++ )
+      for ( ; cur < limit; cur++ )
         *cur = FT_GET_SHORT();
     }
 

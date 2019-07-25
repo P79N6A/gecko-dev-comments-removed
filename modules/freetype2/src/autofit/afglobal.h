@@ -17,8 +17,8 @@
 
 
 
-#ifndef __AF_GLOBAL_H__
-#define __AF_GLOBAL_H__
+#ifndef __AFGLOBAL_H__
+#define __AFGLOBAL_H__
 
 
 #include "aftypes.h"

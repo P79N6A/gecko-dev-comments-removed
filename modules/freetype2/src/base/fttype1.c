@@ -91,4 +91,30 @@
   }
 
 
+  
+
+  FT_EXPORT_DEF( FT_Long )
+  FT_Get_PS_Font_Value( FT_Face       face,
+                        PS_Dict_Keys  key,
+                        FT_UInt       idx,
+                        void         *value,
+                        FT_Long       value_len )
+  {
+    FT_Int             result  = 0;
+    FT_Service_PsInfo  service = NULL;
+
+
+    if ( face )
+    {
+      FT_FACE_FIND_SERVICE( face, service, POSTSCRIPT_INFO );
+
+      if ( service && service->ps_get_font_value )
+        result = service->ps_get_font_value( face, key, idx,
+                                             value, value_len );
+    }
+
+    return result;
+  }
+
+
 

@@ -226,8 +226,10 @@ FT_BEGIN_HEADER
 
     void*            internal;       
 
-    unsigned long    nmod[2048];     
-    unsigned long    umod[2048];     
+    
+    
+    unsigned long    nmod[34816];    
+    unsigned long    umod[34816];    
                                      
     unsigned short   modified;       
     unsigned short   bpp;            

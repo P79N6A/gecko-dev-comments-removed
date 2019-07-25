@@ -175,6 +175,7 @@ FT_BEGIN_HEADER
   {
     FT_Int   range;      
     FT_Long  start;      
+    FT_Long  end;        
     FT_UInt  opc;        
     FT_Bool  active;     
 
@@ -390,13 +391,16 @@ FT_BEGIN_HEADER
 #ifdef TT_USE_BYTECODE_INTERPRETER
 
   FT_LOCAL( FT_Error )
-  tt_size_run_fpgm( TT_Size  size );
+  tt_size_run_fpgm( TT_Size  size,
+                    FT_Bool  pedantic );
 
   FT_LOCAL( FT_Error )
-  tt_size_run_prep( TT_Size  size );
+  tt_size_run_prep( TT_Size  size,
+                    FT_Bool  pedantic );
 
   FT_LOCAL( FT_Error )
-  tt_size_ready_bytecode( TT_Size  size );
+  tt_size_ready_bytecode( TT_Size  size,
+                          FT_Bool  pedantic );
 
 #endif 
 

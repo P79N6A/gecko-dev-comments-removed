@@ -129,7 +129,7 @@
     {
       error = func( face, start, count, flags, padvances );
       if ( !error )
-        goto Exit;
+        return _ft_face_scale_advances( face, padvances, count, flags );
 
       if ( error != FT_ERROR_BASE( FT_Err_Unimplemented_Feature ) )
         return error;
@@ -147,16 +147,13 @@
       if ( error )
         break;
 
+      
       padvances[nn] = ( flags & FT_LOAD_VERTICAL_LAYOUT )
-                      ? face->glyph->advance.y
-                      : face->glyph->advance.x;
+                      ? face->glyph->advance.y << 10
+                      : face->glyph->advance.x << 10;
     }
 
-    if ( error )
-      return error;
-
-  Exit:
-    return _ft_face_scale_advances( face, padvances, count, flags );
+    return error;
   }
 
 

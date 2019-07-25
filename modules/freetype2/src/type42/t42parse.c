@@ -175,7 +175,7 @@
 
     if ( ft_memcmp( stream->cursor, "%!PS-TrueTypeFont", 17 ) != 0 )
     {
-      FT_TRACE2(( "not a Type42 font\n" ));
+      FT_TRACE2(( "  not a Type42 font\n" ));
       error = T42_Err_Unknown_File_Format;
     }
 
@@ -608,7 +608,8 @@
       }
 
       
-      if ( string_buf[string_size - 1] == 0 && ( string_size % 2 == 1 ) )
+      
+      if ( ( string_size & 1 ) && string_buf[string_size - 1] == 0 )
         string_size--;
 
       if ( !string_size )

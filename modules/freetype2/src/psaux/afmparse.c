@@ -631,9 +631,6 @@
         tk->max_ptsize = shared_vals[3].u.f;
         tk->max_kern   = shared_vals[4].u.f;
 
-        
-        if ( tk->degree < 0 && tk->min_kern > 0 )
-          tk->min_kern = -tk->min_kern;
         break;
 
       case AFM_TOKEN_ENDTRACKKERN:
@@ -754,7 +751,7 @@
       case AFM_TOKEN_ENDFONTMETRICS:
         fi->NumKernPair = n + 1;
         ft_qsort( fi->KernPairs, fi->NumKernPair,
-                  sizeof( AFM_KernPairRec ),
+                  sizeof ( AFM_KernPairRec ),
                   afm_compare_kern_pairs );
         return PSaux_Err_Ok;
 

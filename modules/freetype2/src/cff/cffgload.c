@@ -16,7 +16,6 @@
 
 
 
-
 #include <ft2build.h>
 #include FT_INTERNAL_DEBUG_H
 #include FT_INTERNAL_STREAM_H
@@ -1159,8 +1158,8 @@
               op = cff_op_flex1;
               break;
             default:
-              
-              ip--;
+              FT_TRACE4(( " unknown op (12, %d)\n", v ));
+              break;
             }
           }
           break;
@@ -1213,11 +1212,12 @@
           op = cff_op_hvcurveto;
           break;
         default:
+          FT_TRACE4(( " unknown op (%d)\n", v ));
           break;
         }
 
         if ( op == cff_op_unknown )
-          goto Syntax_Error;
+          continue;
 
         
         req_args = cff_argument_counts[op];
@@ -1438,8 +1438,13 @@
             FT_TRACE4(( op == cff_op_hlineto ? " hlineto\n"
                                              : " vlineto\n" ));
 
-            if ( num_args < 1 )
+            if ( num_args < 0 )
               goto Stack_Underflow;
+
+            
+            
+            if ( num_args == 0 )
+              break;
 
             if ( cff_builder_start_point ( builder, x, y ) ||
                  check_points( builder, num_args )         )
@@ -1510,9 +1515,7 @@
             
             
 
-            nargs = num_args - num_args % 4;
-            if ( num_args - nargs > 0 )
-              nargs += 1;
+            nargs = num_args & ~2;
 
             if ( cff_builder_start_point( builder, x, y ) )
               goto Fail;
@@ -1557,9 +1560,7 @@
             
             
 
-            nargs = num_args - num_args % 4;
-            if ( num_args - nargs > 0 )
-              nargs += 1;
+            nargs = num_args & ~2;
 
             if ( cff_builder_start_point( builder, x, y ) )
               goto Fail;
@@ -1609,9 +1610,7 @@
             
             
 
-            nargs = num_args - num_args % 4;
-            if ( num_args - nargs > 0 )
-              nargs += 1;
+            nargs = num_args & ~2;
 
             args -= nargs;
             if ( check_points( builder, ( nargs / 4 ) * 3 ) )
@@ -1957,6 +1956,7 @@
           {
             
             FT_Pos  glyph_width = decoder->glyph_width;
+
 
             error = cff_operator_seac( decoder,
                                        0L, args[-4], args[-3],
@@ -2700,8 +2700,8 @@
       FT_Byte   fd_index = cff_fd_select_get( &cff->fd_select,
                                               glyph_index );
 
-      if ( fd_index >= cff->num_subfonts ) 
-        fd_index = cff->num_subfonts - 1;
+      if ( fd_index >= cff->num_subfonts )
+        fd_index = (FT_Byte)( cff->num_subfonts - 1 );
 
       top_upm = cff->top_font.font_dict.units_per_em;
       sub_upm = cff->subfonts[fd_index]->font_dict.units_per_em;
@@ -2956,7 +2956,7 @@
         if ( has_vertical_info )
           metrics->vertBearingX = metrics->horiBearingX -
                                     metrics->horiAdvance / 2;
-        else 
+        else
         {
           if ( load_flags & FT_LOAD_VERTICAL_LAYOUT )
             ft_synthesize_vertical_metrics( metrics,

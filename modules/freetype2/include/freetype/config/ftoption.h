@@ -16,7 +16,6 @@
 
 
 
-
 #ifndef __FTOPTION_H__
 #define __FTOPTION_H__
 
@@ -201,6 +200,33 @@ FT_BEGIN_HEADER
   
   
   
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -360,6 +386,39 @@ FT_BEGIN_HEADER
   
   
 
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
 
@@ -680,6 +739,19 @@ FT_BEGIN_HEADER
 
 
 
+
+
+
+
+
+
+
+
+
+  
+
+
+  
 
 
 

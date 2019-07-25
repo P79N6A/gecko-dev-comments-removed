@@ -264,8 +264,8 @@
   
 
   FT_CALLBACK_DEF( const char * )
-  t1_get_glyph_name( T1_Face  face,
-                     FT_UInt  idx )
+  psaux_get_glyph_name( T1_Face  face,
+                        FT_UInt  idx )
   {
     return face->type1.glyph_names[idx];
   }
@@ -282,7 +282,7 @@
     return psnames->unicodes_init( memory,
                                    unicodes,
                                    face->type1.num_glyphs,
-                                   (PS_GetGlyphNameFunc)&t1_get_glyph_name,
+                                   (PS_GetGlyphNameFunc)&psaux_get_glyph_name,
                                    (PS_FreeGlyphNameFunc)NULL,
                                    (FT_Pointer)face );
   }

@@ -227,6 +227,9 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
   FT_EXPORT( void )
   FT_Outline_Get_CBox( const FT_Outline*  outline,
                        FT_BBox           *acbox );

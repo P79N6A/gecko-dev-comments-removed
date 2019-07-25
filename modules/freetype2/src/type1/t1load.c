@@ -302,7 +302,7 @@
                  FT_MM_Var*  *master )
   {
     FT_Memory        memory = face->root.memory;
-    FT_MM_Var       *mmvar;
+    FT_MM_Var       *mmvar = NULL;
     FT_Multi_Master  mmaster;
     FT_Error         error;
     FT_UInt          i;
@@ -921,6 +921,9 @@
     PS_Blend  blend = face->blend;
 
 
+    if ( blend && blend->num_designs == 0 )
+      blend = NULL;
+
     
     if ( field->type == T1_FIELD_TYPE_CALLBACK )
     {
@@ -1045,7 +1048,8 @@
 
     if ( cur < limit && ft_isdigit( *cur ) )
     {
-      *size = T1_ToInt( parser );
+      FT_Long  s = T1_ToInt( parser );
+
 
       T1_Skip_PS_Token( parser );   
 
@@ -1053,8 +1057,12 @@
       
       *base = parser->root.cursor + 1;
 
-      parser->root.cursor += *size + 1;
-      return !parser->root.error;
+      if ( s >= 0 && s < limit - *base )
+      {
+        parser->root.cursor += s + 1;
+        *size = s;
+        return !parser->root.error;
+      }
     }
 
     FT_ERROR(( "read_binary_data: invalid size field\n" ));
@@ -1067,8 +1075,8 @@
   
 
   static void
-  parse_font_matrix( T1_Face    face,
-                     T1_Loader  loader )
+  t1_parse_font_matrix( T1_Face    face,
+                        T1_Loader  loader )
   {
     T1_Parser   parser = &loader->parser;
     FT_Matrix*  matrix = &face->type1.font_matrix;
@@ -1091,7 +1099,7 @@
 
     if ( temp_scale == 0 )
     {
-      FT_ERROR(( "parse_font_matrix: invalid font matrix\n" ));
+      FT_ERROR(( "t1_parse_font_matrix: invalid font matrix\n" ));
       parser->root.error = T1_Err_Invalid_File_Format;
       return;
     }
@@ -1111,7 +1119,7 @@
       temp[2] = FT_DivFix( temp[2], temp_scale );
       temp[4] = FT_DivFix( temp[4], temp_scale );
       temp[5] = FT_DivFix( temp[5], temp_scale );
-      temp[3] = 0x10000L;
+      temp[3] = temp[3] < 0 ? -0x10000L : 0x10000L;
     }
 
     matrix->xx = temp[0];
@@ -1380,7 +1388,8 @@
 
 
       
-      if ( ft_strncmp( (char*)parser->root.cursor, "dup", 3 ) != 0 )
+      if ( parser->root.cursor + 4 < parser->root.limit            &&
+           ft_strncmp( (char*)parser->root.cursor, "dup", 3 ) != 0 )
         break;
 
       T1_Skip_PS_Token( parser );       
@@ -1399,7 +1408,8 @@
         return;
       T1_Skip_Spaces  ( parser );
 
-      if ( ft_strncmp( (char*)parser->root.cursor, "put", 3 ) == 0 )
+      if ( parser->root.cursor + 4 < parser->root.limit            &&
+           ft_strncmp( (char*)parser->root.cursor, "put", 3 ) == 0 )
       {
         T1_Skip_PS_Token( parser ); 
         T1_Skip_Spaces  ( parser );
@@ -1764,7 +1774,7 @@
 #include "t1tokens.h"
 
     
-    T1_FIELD_CALLBACK( "FontMatrix",           parse_font_matrix,
+    T1_FIELD_CALLBACK( "FontMatrix",           t1_parse_font_matrix,
                        T1_FIELD_DICT_FONTDICT )
     T1_FIELD_CALLBACK( "Encoding",             parse_encoding,
                        T1_FIELD_DICT_FONTDICT )
@@ -2132,6 +2142,8 @@
         }
       }
     }
+    else
+      face->len_buildchar = 0;
 
 #endif 
 

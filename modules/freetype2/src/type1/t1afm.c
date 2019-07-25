@@ -16,7 +16,6 @@
 
 
 
-
 #include <ft2build.h>
 #include "t1afm.h"
 #include "t1errors.h"
@@ -252,7 +251,7 @@
     fi->Descender = t1_font->font_bbox.yMin;
 
     psaux = (PSAux_Service)( (T1_Face)t1_face )->psaux;
-    if ( psaux && psaux->afm_parser_funcs )
+    if ( psaux->afm_parser_funcs )
     {
       error = psaux->afm_parser_funcs->init( &parser,
                                              stream->memory,

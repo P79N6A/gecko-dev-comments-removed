@@ -16,7 +16,6 @@
 
 
 
-
 #ifndef FT_FREETYPE_H
 #error "`ft2build.h' hasn't been included yet!"
 #error "Please always use macros to include FreeType header files."
@@ -196,6 +195,8 @@ FT_BEGIN_HEADER
   
 
 
+  
+  
   
   
   
@@ -957,8 +958,8 @@ FT_BEGIN_HEADER
 
     FT_ListRec        sizes_list;
 
-    FT_Generic        autohint;
-    void*             extensions;
+    FT_Generic        autohint;   
+    void*             extensions; 
 
     FT_Face_Internal  internal;
 
@@ -1667,6 +1668,9 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
   FT_EXPORT( FT_Error )
   FT_Init_FreeType( FT_Library  *alibrary );
 
@@ -1907,6 +1911,10 @@ FT_BEGIN_HEADER
                       FT_Face        *aface );
 
 
+  
+  
+  
+  
   
   
   
@@ -2500,28 +2508,27 @@ FT_BEGIN_HEADER
 
 
 
-
 #define FT_LOAD_DEFAULT                      0x0
-#define FT_LOAD_NO_SCALE                     0x1
-#define FT_LOAD_NO_HINTING                   0x2
-#define FT_LOAD_RENDER                       0x4
-#define FT_LOAD_NO_BITMAP                    0x8
-#define FT_LOAD_VERTICAL_LAYOUT              0x10
-#define FT_LOAD_FORCE_AUTOHINT               0x20
-#define FT_LOAD_CROP_BITMAP                  0x40
-#define FT_LOAD_PEDANTIC                     0x80
-#define FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH  0x200
-#define FT_LOAD_NO_RECURSE                   0x400
-#define FT_LOAD_IGNORE_TRANSFORM             0x800
-#define FT_LOAD_MONOCHROME                   0x1000
-#define FT_LOAD_LINEAR_DESIGN                0x2000
-#define FT_LOAD_NO_AUTOHINT                  0x8000U
+#define FT_LOAD_NO_SCALE                     ( 1L << 0 )
+#define FT_LOAD_NO_HINTING                   ( 1L << 1 )
+#define FT_LOAD_RENDER                       ( 1L << 2 )
+#define FT_LOAD_NO_BITMAP                    ( 1L << 3 )
+#define FT_LOAD_VERTICAL_LAYOUT              ( 1L << 4 )
+#define FT_LOAD_FORCE_AUTOHINT               ( 1L << 5 )
+#define FT_LOAD_CROP_BITMAP                  ( 1L << 6 )
+#define FT_LOAD_PEDANTIC                     ( 1L << 7 )
+#define FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH  ( 1L << 9 )
+#define FT_LOAD_NO_RECURSE                   ( 1L << 10 )
+#define FT_LOAD_IGNORE_TRANSFORM             ( 1L << 11 )
+#define FT_LOAD_MONOCHROME                   ( 1L << 12 )
+#define FT_LOAD_LINEAR_DESIGN                ( 1L << 13 )
+#define FT_LOAD_NO_AUTOHINT                  ( 1L << 15 )
 
   
 
   
-#define FT_LOAD_ADVANCE_ONLY                 0x100
-#define FT_LOAD_SBITS_ONLY                   0x4000
+#define FT_LOAD_ADVANCE_ONLY                 ( 1L << 8 )
+#define FT_LOAD_SBITS_ONLY                   ( 1L << 14 )
 
 
   
@@ -2882,6 +2889,18 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   FT_EXPORT( FT_Error )
   FT_Get_Track_Kerning( FT_Face    face,
                         FT_Fixed   point_size,
@@ -2889,6 +2908,10 @@ FT_BEGIN_HEADER
                         FT_Fixed*  akerning );
 
 
+  
+  
+  
+  
   
   
   
@@ -3312,6 +3335,9 @@ FT_BEGIN_HEADER
 #define FT_FSTYPE_BITMAP_EMBEDDING_ONLY         0x0200
 
 
+  
+  
+  
   
   
   
@@ -3808,7 +3834,7 @@ FT_BEGIN_HEADER
 
 #define FREETYPE_MAJOR  2
 #define FREETYPE_MINOR  4
-#define FREETYPE_PATCH  3
+#define FREETYPE_PATCH  9
 
 
   

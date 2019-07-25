@@ -163,7 +163,7 @@
     {
       FT_TRACE0(( "tt_face_load_hmtx:"
                   " %cmtx has more metrics than glyphs.\n",
-                  vertical ? "v" : "h" ));
+                  vertical ? 'v' : 'h' ));
 
       
 #if 0

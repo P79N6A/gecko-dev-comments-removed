@@ -16,7 +16,6 @@
 
 
 
-
 #include <ft2build.h>
 #include FT_INTERNAL_DEBUG_H
 #include FT_INTERNAL_STREAM_H
@@ -135,8 +134,6 @@
   {
     FT_UInt  nn;
     TT_Face  face  = (TT_Face) ttface;
-    FT_Bool  check = FT_BOOL(
-                       !( flags & FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH ) );
 
 
     
@@ -149,7 +146,7 @@
         FT_UShort  ah;
 
 
-        TT_Get_VMetrics( face, start + nn, check, &tsb, &ah );
+        TT_Get_VMetrics( face, start + nn, &tsb, &ah );
         advances[nn] = ah;
       }
     }
@@ -161,7 +158,7 @@
         FT_UShort  aw;
 
 
-        TT_Get_HMetrics( face, start + nn, check, &lsb, &aw );
+        TT_Get_HMetrics( face, start + nn, &lsb, &aw );
         advances[nn] = aw;
       }
     }
@@ -249,7 +246,10 @@
     FT_Request_Metrics( size->face, req );
 
     if ( FT_IS_SCALABLE( size->face ) )
+    {
       error = tt_size_reset( ttsize );
+      ttsize->root.metrics = ttsize->metrics;
+    }
 
     return error;
   }
@@ -282,10 +282,10 @@
   
   
   static FT_Error
-  Load_Glyph( FT_GlyphSlot  ttslot,         
-              FT_Size       ttsize,         
-              FT_UInt       glyph_index,
-              FT_Int32      load_flags )
+  tt_glyph_load( FT_GlyphSlot  ttslot,      
+                 FT_Size       ttsize,      
+                 FT_UInt       glyph_index,
+                 FT_Int32      load_flags )
   {
     TT_GlyphSlot  slot = (TT_GlyphSlot)ttslot;
     TT_Size       size = (TT_Size)ttsize;
@@ -313,7 +313,7 @@
     if ( load_flags & FT_LOAD_NO_HINTING )
     {
       
-                
+      
 
       if ( FT_IS_TRICKY( face ) )
         load_flags &= ~FT_LOAD_NO_HINTING;
@@ -402,19 +402,35 @@
   tt_get_interface( FT_Module    driver,    
                     const char*  tt_interface )
   {
+    FT_Library           library;
     FT_Module_Interface  result;
     FT_Module            sfntd;
     SFNT_Service         sfnt;
+
+
+    
+#ifdef FT_CONFIG_OPTION_PIC
+    if ( !driver )
+      return NULL;
+    library = driver->library;
+    if ( !library )
+      return NULL;
+#endif
 
     result = ft_service_list_lookup( FT_TT_SERVICES_GET, tt_interface );
     if ( result != NULL )
       return result;
 
+#ifndef FT_CONFIG_OPTION_PIC
     if ( !driver )
       return NULL;
+    library = driver->library;
+    if ( !library )
+      return NULL;
+#endif
 
     
-    sfntd = FT_Get_Module( driver->library, "sfnt" );
+    sfntd = FT_Get_Module( library, "sfnt" );
     if ( sfntd )
     {
       sfnt = (SFNT_Service)( sfntd->clazz->module_interface );
@@ -440,11 +456,10 @@
 #define TT_SIZE_SELECT    0
 #endif
 
-  FT_DEFINE_DRIVER(tt_driver_class,
-  
-    
-      FT_MODULE_FONT_DRIVER        |
-      FT_MODULE_DRIVER_SCALABLE    |
+  FT_DEFINE_DRIVER( tt_driver_class,
+
+      FT_MODULE_FONT_DRIVER     |
+      FT_MODULE_DRIVER_SCALABLE |
       TT_HINTER_FLAG,
 
       sizeof ( TT_DriverRec ),
@@ -468,15 +483,15 @@
     tt_size_init,
     tt_size_done,
     tt_slot_init,
-    0,                      
+    0,                       
 
-    ft_stub_set_char_sizes, 
+    ft_stub_set_char_sizes,  
     ft_stub_set_pixel_sizes, 
 
-    Load_Glyph,
+    tt_glyph_load,
 
     tt_get_kerning,
-    0,                      
+    0,                       
     tt_get_advances,
 
     tt_size_request,

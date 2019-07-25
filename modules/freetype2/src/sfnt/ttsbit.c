@@ -1343,7 +1343,7 @@
     
     
     {
-      TT_SBit_Component  components;
+      TT_SBit_Component  components = NULL;
       TT_SBit_Component  comp;
       FT_UShort          num_components, count;
 

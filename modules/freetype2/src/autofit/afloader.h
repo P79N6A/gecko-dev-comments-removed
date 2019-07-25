@@ -16,8 +16,8 @@
 
 
 
-#ifndef __AF_LOADER_H__
-#define __AF_LOADER_H__
+#ifndef __AFLOADER_H__
+#define __AFLOADER_H__
 
 #include "afhints.h"
 #include "afglobal.h"
@@ -60,7 +60,7 @@ FT_BEGIN_HEADER
   af_loader_load_glyph( AF_Loader  loader,
                         FT_Face    face,
                         FT_UInt    gindex,
-                        FT_UInt32  load_flags );
+                        FT_Int32   load_flags );
 
 
 

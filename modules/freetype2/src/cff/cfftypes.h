@@ -117,6 +117,7 @@ FT_BEGIN_HEADER
     FT_Int     paint_type;
     FT_Int     charstring_type;
     FT_Matrix  font_matrix;
+    FT_Bool    has_font_matrix;
     FT_ULong   units_per_em;  
     FT_Vector  font_offset;
     FT_ULong   unique_id;
@@ -212,8 +213,7 @@ FT_BEGIN_HEADER
   } CFF_SubFontRec, *CFF_SubFont;
 
 
-  
-#define CFF_MAX_CID_FONTS  32
+#define CFF_MAX_CID_FONTS  256
 
 
   typedef struct  CFF_FontRec_
@@ -269,7 +269,7 @@ FT_BEGIN_HEADER
     
     FT_String*       registry;
     FT_String*       ordering;
-      
+
   } CFF_FontRec, *CFF_Font;
 
 

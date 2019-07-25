@@ -136,8 +136,8 @@ FT_BEGIN_HEADER
   {
     FT_FaceRec     root;
 
-    FT_StreamRec   gzip_stream;
-    FT_Stream      gzip_source;
+    FT_StreamRec   comp_stream;
+    FT_Stream      comp_source;
 
     char*          charset_encoding;
     char*          charset_registry;

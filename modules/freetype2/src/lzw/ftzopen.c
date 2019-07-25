@@ -124,6 +124,15 @@
         old_size     = 0;
       }
 
+      
+      
+      if ( new_size > ( 1 << LZW_MAX_BITS ) )
+      {
+        new_size = 1 << LZW_MAX_BITS;
+        if ( new_size == old_size )
+          return -1;
+      }
+
       if ( FT_RENEW_ARRAY( state->stack, old_size, new_size ) )
         return -1;
 
@@ -279,7 +288,7 @@
                            : state->max_free + 1;
 
         c = ft_lzwstate_get_code( state );
-        if ( c < 0 )
+        if ( c < 0 || c > 255 )
           goto Eof;
 
         old_code = old_char = (FT_UInt)c;
@@ -312,11 +321,12 @@
           
           state->free_ent  = ( LZW_FIRST - 1 ) - 256;
           state->buf_clear = 1;
-          c = ft_lzwstate_get_code( state );
-          if ( c < 0 )
-            goto Eof;
 
-          code = (FT_UInt)c;
+          
+          old_code = 0;
+          old_char = 0;
+
+          goto NextCode;
         }
 
         in_code = code; 
@@ -326,6 +336,10 @@
           
           if ( code - 256U >= state->free_ent )
           {
+            
+            if ( code - 256U > state->free_ent )
+              goto Eof;
+
             FTLZW_STACK_PUSH( old_char );
             code = old_code;
           }

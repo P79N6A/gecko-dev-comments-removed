@@ -17,6 +17,9 @@
 
 
 
+
+
+
 #include <ft2build.h>
 #include FT_INTERNAL_DEBUG_H
 #include FT_INTERNAL_CALC_H
@@ -478,8 +481,7 @@
     return TT_Err_Ok;
 
   Fail_Memory:
-    FT_ERROR(( "Init_Context: not enough memory for 0x%08lx\n",
-               (FT_Long)exec ));
+    FT_ERROR(( "Init_Context: not enough memory for %p\n", exec ));
     TT_Done_Context( exec );
 
     return error;
@@ -596,6 +598,12 @@
       exec->storage   = size->storage;
 
       exec->twilight  = size->twilight;
+
+      
+      
+      ft_memset( &exec->zp0, 0, sizeof ( exec->zp0 ) );
+      exec->zp1 = exec->zp0;
+      exec->zp2 = exec->zp0;
     }
 
     
@@ -707,7 +715,7 @@
     FT_Error  error;
 
 
-    if ( ( error = TT_Goto_CodeRange( exec, tt_coderange_glyph, 0  ) )
+    if ( ( error = TT_Goto_CodeRange( exec, tt_coderange_glyph, 0 ) )
            != TT_Err_Ok )
       return error;
 
@@ -2837,6 +2845,17 @@
     A = p1->x - p2->x;
     B = p1->y - p2->y;
 
+    
+    
+    
+    
+
+    if ( A == 0 && B == 0 )
+    {
+      A    = 0x4000;
+      aOpc = 0;
+    }
+
     if ( ( aOpc & 1 ) != 0 )
     {
       C =  B;   
@@ -3162,44 +3181,60 @@
     args[0] = CUR.top;
 
 
-#define DO_CINDEX                           \
-  {                                         \
-    FT_Long  L;                             \
-                                            \
-                                            \
-    L = args[0];                            \
-                                            \
-    if ( L <= 0 || L > CUR.args )           \
-      CUR.error = TT_Err_Invalid_Reference; \
-    else                                    \
-      args[0] = CUR.stack[CUR.args - L];    \
+#define DO_CINDEX                             \
+  {                                           \
+    FT_Long  L;                               \
+                                              \
+                                              \
+    L = args[0];                              \
+                                              \
+    if ( L <= 0 || L > CUR.args )             \
+    {                                         \
+      if ( CUR.pedantic_hinting )             \
+        CUR.error = TT_Err_Invalid_Reference; \
+      args[0] = 0;                            \
+    }                                         \
+    else                                      \
+      args[0] = CUR.stack[CUR.args - L];      \
   }
 
 
-#define DO_JROT                          \
-    if ( args[1] != 0 )                  \
-    {                                    \
-      CUR.IP      += args[0];            \
-      if ( CUR.IP < 0 )                  \
-        CUR.error = TT_Err_Bad_Argument; \
-      CUR.step_ins = FALSE;              \
+#define DO_JROT                                                   \
+    if ( args[1] != 0 )                                           \
+    {                                                             \
+      if ( args[0] == 0 && CUR.args == 0 )                        \
+        CUR.error = TT_Err_Bad_Argument;                          \
+      CUR.IP += args[0];                                          \
+      if ( CUR.IP < 0                                          || \
+           ( CUR.callTop > 0                                 &&   \
+             CUR.IP > CUR.callStack[CUR.callTop - 1].Cur_End ) )  \
+        CUR.error = TT_Err_Bad_Argument;                          \
+      CUR.step_ins = FALSE;                                       \
     }
 
 
-#define DO_JMPR                        \
-    CUR.IP      += args[0];            \
-    if ( CUR.IP < 0 )                  \
-      CUR.error = TT_Err_Bad_Argument; \
+#define DO_JMPR                                                 \
+    if ( args[0] == 0 && CUR.args == 0 )                        \
+      CUR.error = TT_Err_Bad_Argument;                          \
+    CUR.IP += args[0];                                          \
+    if ( CUR.IP < 0                                          || \
+         ( CUR.callTop > 0                                 &&   \
+           CUR.IP > CUR.callStack[CUR.callTop - 1].Cur_End ) )  \
+      CUR.error = TT_Err_Bad_Argument;                          \
     CUR.step_ins = FALSE;
 
 
-#define DO_JROF                          \
-    if ( args[1] == 0 )                  \
-    {                                    \
-      CUR.IP      += args[0];            \
-      if ( CUR.IP < 0 )                  \
-        CUR.error = TT_Err_Bad_Argument; \
-      CUR.step_ins = FALSE;              \
+#define DO_JROF                                                   \
+    if ( args[1] == 0 )                                           \
+    {                                                             \
+      if ( args[0] == 0 && CUR.args == 0 )                        \
+        CUR.error = TT_Err_Bad_Argument;                          \
+      CUR.IP += args[0];                                          \
+      if ( CUR.IP < 0                                          || \
+           ( CUR.callTop > 0                                 &&   \
+             CUR.IP > CUR.callStack[CUR.callTop - 1].Cur_End ) )  \
+        CUR.error = TT_Err_Bad_Argument;                          \
+      CUR.step_ins = FALSE;                                       \
     }
 
 
@@ -4381,17 +4416,19 @@
 
     if ( L <= 0 || L > CUR.args )
     {
-      CUR.error = TT_Err_Invalid_Reference;
-      return;
+      if ( CUR.pedantic_hinting )
+        CUR.error = TT_Err_Invalid_Reference;
     }
+    else
+    {
+      K = CUR.stack[CUR.args - L];
 
-    K = CUR.stack[CUR.args - L];
+      FT_ARRAY_MOVE( &CUR.stack[CUR.args - L    ],
+                     &CUR.stack[CUR.args - L + 1],
+                     ( L - 1 ) );
 
-    FT_ARRAY_MOVE( &CUR.stack[CUR.args - L    ],
-                   &CUR.stack[CUR.args - L + 1],
-                   ( L - 1 ) );
-
-    CUR.stack[CUR.args - 1] = K;
+      CUR.stack[CUR.args - 1] = K;
+    }
   }
 
 
@@ -4440,7 +4477,7 @@
       CUR.length = opcode_length[CUR.opcode];
       if ( CUR.length < 0 )
       {
-        if ( CUR.IP + 1 > CUR.codeSize )
+        if ( CUR.IP + 1 >= CUR.codeSize )
           goto Fail_Overflow;
         CUR.length = 2 - CUR.length * CUR.code[CUR.IP + 1];
       }
@@ -4609,6 +4646,7 @@
         return;
 
       case 0x2D:   
+        rec->end = CUR.IP;
         return;
       }
     }
@@ -4726,6 +4764,7 @@
     pCrec->Caller_IP    = CUR.IP + 1;
     pCrec->Cur_Count    = 1;
     pCrec->Cur_Restart  = def->start;
+    pCrec->Cur_End      = def->end;
 
     CUR.callTop++;
 
@@ -4804,6 +4843,7 @@
       pCrec->Caller_IP    = CUR.IP + 1;
       pCrec->Cur_Count    = (FT_Int)args[0];
       pCrec->Cur_Restart  = def->start;
+      pCrec->Cur_End      = def->end;
 
       CUR.callTop++;
 
@@ -5034,12 +5074,8 @@
     if ( BOUNDSL( L, CUR.zp2.n_points ) )
     {
       if ( CUR.pedantic_hinting )
-      {
         CUR.error = TT_Err_Invalid_Reference;
-        return;
-      }
-      else
-        R = 0;
+      R = 0;
     }
     else
     {
@@ -5084,7 +5120,7 @@
     CUR_Func_move( &CUR.zp2, L, args[1] - K );
 
     
-
+    
     if ( CUR.GS.gep2 == 0 )
       CUR.zp2.org[L] = CUR.zp2.cur[L];
   }
@@ -5119,10 +5155,7 @@
          BOUNDS( K, CUR.zp1.n_points ) )
     {
       if ( CUR.pedantic_hinting )
-      {
         CUR.error = TT_Err_Invalid_Reference;
-        return;
-      }
       D = 0;
     }
     else
@@ -5131,25 +5164,38 @@
         D = CUR_Func_project( CUR.zp0.cur + L, CUR.zp1.cur + K );
       else
       {
-        FT_Vector*  vec1 = CUR.zp0.orus + L;
-        FT_Vector*  vec2 = CUR.zp1.orus + K;
+        
 
-
-        if ( CUR.metrics.x_scale == CUR.metrics.y_scale )
+        if ( CUR.GS.gep0 == 0 || CUR.GS.gep1 == 0 )
         {
-          
+          FT_Vector*  vec1 = CUR.zp0.org + L;
+          FT_Vector*  vec2 = CUR.zp1.org + K;
+
+
           D = CUR_Func_dualproj( vec1, vec2 );
-          D = TT_MULFIX( D, CUR.metrics.x_scale );
         }
         else
         {
-          FT_Vector  vec;
+          FT_Vector*  vec1 = CUR.zp0.orus + L;
+          FT_Vector*  vec2 = CUR.zp1.orus + K;
 
 
-          vec.x = TT_MULFIX( vec1->x - vec2->x, CUR.metrics.x_scale );
-          vec.y = TT_MULFIX( vec1->y - vec2->y, CUR.metrics.y_scale );
+          if ( CUR.metrics.x_scale == CUR.metrics.y_scale )
+          {
+            
+            D = CUR_Func_dualproj( vec1, vec2 );
+            D = TT_MULFIX( D, CUR.metrics.x_scale );
+          }
+          else
+          {
+            FT_Vector  vec;
 
-          D = CUR_fast_dualproj( &vec );
+
+            vec.x = TT_MULFIX( vec1->x - vec2->x, CUR.metrics.x_scale );
+            vec.y = TT_MULFIX( vec1->y - vec2->y, CUR.metrics.y_scale );
+
+            D = CUR_fast_dualproj( &vec );
+          }
         }
       }
     }
@@ -5168,7 +5214,8 @@
   Ins_SDPVTL( INS_ARG )
   {
     FT_Long    A, B, C;
-    FT_UShort  p1, p2;   
+    FT_UShort  p1, p2;            
+    FT_Int     aOpc = CUR.opcode;
 
 
     p1 = (FT_UShort)args[1];
@@ -5189,9 +5236,20 @@
 
       A = v1->x - v2->x;
       B = v1->y - v2->y;
+
+      
+      
+      
+      
+
+      if ( A == 0 && B == 0 )
+      {
+        A    = 0x4000;
+        aOpc = 0;
+      }
     }
 
-    if ( ( CUR.opcode & 1 ) != 0 )
+    if ( ( aOpc & 1 ) != 0 )
     {
       C =  B;   
       B =  A;
@@ -5209,7 +5267,7 @@
       B = v1->y - v2->y;
     }
 
-    if ( ( CUR.opcode & 1 ) != 0 )
+    if ( ( aOpc & 1 ) != 0 )
     {
       C =  B;   
       B =  A;
@@ -5460,8 +5518,9 @@
 
     if ( CUR.top < CUR.GS.loop )
     {
-      CUR.error = TT_Err_Too_Few_Arguments;
-      return;
+      if ( CUR.pedantic_hinting )
+        CUR.error = TT_Err_Too_Few_Arguments;
+      goto Fail;
     }
 
     while ( CUR.GS.loop > 0 )
@@ -5484,6 +5543,7 @@
       CUR.GS.loop--;
     }
 
+  Fail:
     CUR.GS.loop = 1;
     CUR.new_top = CUR.args;
   }
@@ -5671,8 +5731,9 @@
 
     if ( CUR.top < CUR.GS.loop )
     {
-      CUR.error = TT_Err_Invalid_Reference;
-      return;
+      if ( CUR.pedantic_hinting )
+        CUR.error = TT_Err_Invalid_Reference;
+      goto Fail;
     }
 
     if ( COMPUTE_Point_Displacement( &dx, &dy, &zp, &refp ) )
@@ -5692,12 +5753,12 @@
         }
       }
       else
-        
         MOVE_Zp2_Point( point, dx, dy, TRUE );
 
       CUR.GS.loop--;
     }
 
+  Fail:
     CUR.GS.loop = 1;
     CUR.new_top = CUR.args;
   }
@@ -5709,21 +5770,25 @@
   
   
   
+  
+  
+  
+  
   static void
   Ins_SHC( INS_ARG )
   {
-    TT_GlyphZoneRec zp;
-    FT_UShort       refp;
-    FT_F26Dot6      dx,
-                    dy;
+    TT_GlyphZoneRec  zp;
+    FT_UShort        refp;
+    FT_F26Dot6       dx, dy;
 
-    FT_Short        contour;
-    FT_UShort       first_point, last_point, i;
+    FT_Short         contour, bounds;
+    FT_UShort        start, limit, i;
 
 
     contour = (FT_UShort)args[0];
+    bounds  = ( CUR.GS.gep2 == 0 ) ? 1 : CUR.zp2.n_contours;
 
-    if ( BOUNDS( contour, CUR.pts.n_contours ) )
+    if ( BOUNDS( contour, bounds ) )
     {
       if ( CUR.pedantic_hinting )
         CUR.error = TT_Err_Invalid_Reference;
@@ -5734,26 +5799,19 @@
       return;
 
     if ( contour == 0 )
-      first_point = 0;
+      start = 0;
     else
-      first_point = (FT_UShort)( CUR.pts.contours[contour - 1] + 1 -
-                                 CUR.pts.first_point );
-
-    last_point = (FT_UShort)( CUR.pts.contours[contour] -
-                              CUR.pts.first_point );
+      start = (FT_UShort)( CUR.zp2.contours[contour - 1] + 1 -
+                           CUR.zp2.first_point );
 
     
-    
-    if ( BOUNDS( last_point, CUR.zp2.n_points ) )
-    {
-      if ( CUR.zp2.n_points > 0 )
-        last_point = (FT_UShort)(CUR.zp2.n_points - 1);
-      else
-        last_point = 0;
-    }
+    if ( CUR.GS.gep2 == 0 )
+      limit = CUR.zp2.n_points;
+    else
+      limit = (FT_UShort)( CUR.zp2.contours[contour] -
+                           CUR.zp2.first_point + 1 );
 
-    
-    for ( i = first_point; i <= last_point; i++ )
+    for ( i = start; i < limit; i++ )
     {
       if ( zp.cur != CUR.zp2.cur || refp != i )
         MOVE_Zp2_Point( i, dx, dy, TRUE );
@@ -5775,7 +5833,7 @@
     FT_F26Dot6       dx,
                      dy;
 
-    FT_UShort        last_point, i;
+    FT_UShort        limit, i;
 
 
     if ( BOUNDS( args[0], 2 ) )
@@ -5792,24 +5850,15 @@
     
     
     
-    if ( CUR.GS.gep2 == 0 && CUR.zp2.n_points > 0 )
-      last_point = (FT_UShort)( CUR.zp2.n_points - 1 );
+    if ( CUR.GS.gep2 == 0 )
+      limit = (FT_UShort)CUR.zp2.n_points;
     else if ( CUR.GS.gep2 == 1 && CUR.zp2.n_contours > 0 )
-    {
-      last_point = (FT_UShort)( CUR.zp2.contours[CUR.zp2.n_contours - 1] );
-
-      if ( BOUNDS( last_point, CUR.zp2.n_points ) )
-      {
-        if ( CUR.pedantic_hinting )
-          CUR.error = TT_Err_Invalid_Reference;
-        return;
-      }
-    }
+      limit = (FT_UShort)( CUR.zp2.contours[CUR.zp2.n_contours - 1] + 1 );
     else
-      last_point = 0;
+      limit = 0;
 
     
-    for ( i = 0; i <= last_point; i++ )
+    for ( i = 0; i < limit; i++ )
     {
       if ( zp.cur != CUR.zp2.cur || refp != i )
         MOVE_Zp2_Point( i, dx, dy, FALSE );
@@ -5832,8 +5881,9 @@
 
     if ( CUR.top < CUR.GS.loop + 1 )
     {
-      CUR.error = TT_Err_Invalid_Reference;
-      return;
+      if ( CUR.pedantic_hinting )
+        CUR.error = TT_Err_Invalid_Reference;
+      goto Fail;
     }
 
 #ifdef TT_CONFIG_OPTION_UNPATENTED_HINTING
@@ -5877,6 +5927,7 @@
       CUR.GS.loop--;
     }
 
+  Fail:
     CUR.GS.loop = 1;
     CUR.new_top = CUR.args;
   }
@@ -5906,8 +5957,8 @@
     }
 
     
-    if ( CUR.GS.gep1 == 0 )   
-                              
+    
+    if ( CUR.GS.gep1 == 0 )
     {
       CUR.zp1.org[point] = CUR.zp0.org[CUR.GS.rp0];
       CUR_Func_move_orig( &CUR.zp1, point, args[1] );
@@ -5950,8 +6001,6 @@
       return;
     }
 
-    
-    
     if ( ( CUR.opcode & 1 ) != 0 )
     {
       cur_dist = CUR_fast_project( &CUR.zp0.cur[point] );
@@ -5991,11 +6040,9 @@
     {
       if ( CUR.pedantic_hinting )
         CUR.error = TT_Err_Invalid_Reference;
-      return;
+      goto Fail;
     }
 
-    
-    
     
     
     
@@ -6020,8 +6067,10 @@
 
     if ( CUR.GS.gep0 == 0 )   
     {
-      CUR.zp0.org[point].x = TT_MulFix14( (FT_UInt32)distance, CUR.GS.freeVector.x );
-      CUR.zp0.org[point].y = TT_MulFix14( (FT_UInt32)distance, CUR.GS.freeVector.y ),
+      CUR.zp0.org[point].x = TT_MulFix14( (FT_UInt32)distance,
+                                          CUR.GS.freeVector.x );
+      CUR.zp0.org[point].y = TT_MulFix14( (FT_UInt32)distance,
+                                          CUR.GS.freeVector.y ),
       CUR.zp0.cur[point]   = CUR.zp0.org[point];
     }
 
@@ -6037,6 +6086,7 @@
 
     CUR_Func_move( &CUR.zp0, point, distance - org_dist );
 
+  Fail:
     CUR.GS.rp0 = point;
     CUR.GS.rp1 = point;
   }
@@ -6062,7 +6112,7 @@
     {
       if ( CUR.pedantic_hinting )
         CUR.error = TT_Err_Invalid_Reference;
-      return;
+      goto Fail;
     }
 
     
@@ -6147,6 +6197,7 @@
 
     CUR_Func_move( &CUR.zp1, point, distance - org_dist );
 
+  Fail:
     CUR.GS.rp1 = CUR.GS.rp0;
     CUR.GS.rp2 = point;
 
@@ -6184,7 +6235,7 @@
     {
       if ( CUR.pedantic_hinting )
         CUR.error = TT_Err_Invalid_Reference;
-      return;
+      goto Fail;
     }
 
     if ( !cvtEntry )
@@ -6204,18 +6255,16 @@
     }
 
     
-
+    
     if ( CUR.GS.gep1 == 0 )
     {
       CUR.zp1.org[point].x = CUR.zp0.org[CUR.GS.rp0].x +
                              TT_MulFix14( (FT_UInt32)cvt_dist,
                                           CUR.GS.freeVector.x );
-
       CUR.zp1.org[point].y = CUR.zp0.org[CUR.GS.rp0].y +
                              TT_MulFix14( (FT_UInt32)cvt_dist,
                                           CUR.GS.freeVector.y );
-
-      CUR.zp1.cur[point] = CUR.zp0.cur[point];
+      CUR.zp1.cur[point]   = CUR.zp1.org[point];
     }
 
     org_dist = CUR_Func_dualproj( &CUR.zp1.org[point],
@@ -6239,8 +6288,22 @@
       
 
       if ( CUR.GS.gep0 == CUR.GS.gep1 )
-        if ( FT_ABS( cvt_dist - org_dist ) >= CUR.GS.control_value_cutin )
+      {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        if ( FT_ABS( cvt_dist - org_dist ) > CUR.GS.control_value_cutin )
           cvt_dist = org_dist;
+      }
 
       distance = CUR_Func_round(
                    cvt_dist,
@@ -6269,12 +6332,12 @@
 
     CUR_Func_move( &CUR.zp1, point, distance - cur_dist );
 
+  Fail:
     CUR.GS.rp1 = CUR.GS.rp0;
 
     if ( ( CUR.opcode & 16 ) != 0 )
       CUR.GS.rp0 = point;
 
-    
     CUR.GS.rp2 = point;
   }
 
@@ -6299,7 +6362,7 @@
     {
       if ( CUR.pedantic_hinting )
         CUR.error = TT_Err_Invalid_Reference;
-      return;
+      goto Fail;
     }
 
     while ( CUR.GS.loop > 0 )
@@ -6327,6 +6390,7 @@
       CUR.GS.loop--;
     }
 
+  Fail:
     CUR.GS.loop = 1;
     CUR.new_top = CUR.args;
   }
@@ -6468,8 +6532,9 @@
 
     if ( CUR.top < CUR.GS.loop )
     {
-      CUR.error = TT_Err_Invalid_Reference;
-      return;
+      if ( CUR.pedantic_hinting )
+        CUR.error = TT_Err_Invalid_Reference;
+      goto Fail;
     }
 
     
@@ -6483,7 +6548,7 @@
     {
       if ( CUR.pedantic_hinting )
         CUR.error = TT_Err_Invalid_Reference;
-      return;
+      goto Fail;
     }
 
     if ( twilight )
@@ -6508,9 +6573,21 @@
       if ( twilight )
         old_range = CUR_Func_dualproj( &CUR.zp1.org[CUR.GS.rp2],
                                        orus_base );
-      else
+      else if ( CUR.metrics.x_scale == CUR.metrics.y_scale )
         old_range = CUR_Func_dualproj( &CUR.zp1.orus[CUR.GS.rp2],
                                        orus_base );
+      else
+      {
+        FT_Vector  vec;
+
+
+        vec.x = TT_MULFIX( CUR.zp1.orus[CUR.GS.rp2].x - orus_base->x,
+                           CUR.metrics.x_scale );
+        vec.y = TT_MULFIX( CUR.zp1.orus[CUR.GS.rp2].y - orus_base->y,
+                           CUR.metrics.y_scale );
+
+        old_range = CUR_fast_dualproj( &vec );
+      }
 
       cur_range = CUR_Func_project ( &CUR.zp1.cur[CUR.GS.rp2], cur_base );
     }
@@ -6534,8 +6611,20 @@
 
       if ( twilight )
         org_dist = CUR_Func_dualproj( &CUR.zp2.org[point], orus_base );
-      else
+      else if ( CUR.metrics.x_scale == CUR.metrics.y_scale )
         org_dist = CUR_Func_dualproj( &CUR.zp2.orus[point], orus_base );
+      else
+      {
+        FT_Vector  vec;
+
+
+        vec.x = TT_MULFIX( CUR.zp2.orus[point].x - orus_base->x,
+                           CUR.metrics.x_scale );
+        vec.y = TT_MULFIX( CUR.zp2.orus[point].y - orus_base->y,
+                           CUR.metrics.y_scale );
+
+        org_dist = CUR_fast_dualproj( &vec );
+      }
 
       cur_dist = CUR_Func_project ( &CUR.zp2.cur[point], cur_base );
 
@@ -6548,6 +6637,8 @@
 
       CUR_Func_move( &CUR.zp2, (FT_UShort)point, new_dist - cur_dist );
     }
+
+  Fail:
     CUR.GS.loop = 1;
     CUR.new_top = CUR.args;
   }
@@ -6840,8 +6931,9 @@
 
       if ( CUR.args < n )
       {
-        CUR.error = TT_Err_Too_Few_Arguments;
-        return;
+        if ( CUR.pedantic_hinting )
+          CUR.error = TT_Err_Too_Few_Arguments;
+        n = CUR.args;
       }
 
       CUR.args -= n;
@@ -6857,8 +6949,10 @@
     {
       if ( CUR.args < 2 )
       {
-        CUR.error = TT_Err_Too_Few_Arguments;
-        return;
+        if ( CUR.pedantic_hinting )
+          CUR.error = TT_Err_Too_Few_Arguments;
+        CUR.args = 0;
+        goto Fail;
       }
 
       CUR.args -= 2;
@@ -6907,6 +7001,7 @@
           CUR.error = TT_Err_Invalid_Reference;
     }
 
+  Fail:
     CUR.new_top = CUR.args;
   }
 
@@ -6934,8 +7029,9 @@
 
       if ( CUR.args < n )
       {
-        CUR.error = TT_Err_Too_Few_Arguments;
-        return;
+        if ( CUR.pedantic_hinting )
+          CUR.error = TT_Err_Too_Few_Arguments;
+        n = CUR.args;
       }
 
       CUR.args -= n;
@@ -6950,8 +7046,10 @@
     {
       if ( CUR.args < 2 )
       {
-        CUR.error = TT_Err_Too_Few_Arguments;
-        return;
+        if ( CUR.pedantic_hinting )
+          CUR.error = TT_Err_Too_Few_Arguments;
+        CUR.args = 0;
+        goto Fail;
       }
 
       CUR.args -= 2;
@@ -6999,6 +7097,7 @@
       }
     }
 
+  Fail:
     CUR.new_top = CUR.args;
   }
 
@@ -7072,6 +7171,7 @@
         call->Caller_IP    = CUR.IP + 1;
         call->Cur_Count    = 1;
         call->Cur_Restart  = def->start;
+        call->Cur_End      = def->end;
 
         INS_Goto_CodeRange( def->range, def->start );
 
@@ -7444,7 +7544,7 @@
 
       if ( ( CUR.length = opcode_length[CUR.opcode] ) < 0 )
       {
-        if ( CUR.IP + 1 > CUR.codeSize )
+        if ( CUR.IP + 1 >= CUR.codeSize )
           goto LErrorCodeOverflow_;
 
         CUR.length = 2 - CUR.length * CUR.code[CUR.IP + 1];
@@ -7460,8 +7560,19 @@
       
       if ( CUR.args < 0 )
       {
-        CUR.error = TT_Err_Too_Few_Arguments;
-        goto LErrorLabel_;
+        FT_UShort  i;
+
+
+        if ( CUR.pedantic_hinting )
+        {
+          CUR.error = TT_Err_Too_Few_Arguments;
+          goto LErrorLabel_;
+        }
+
+        
+        for ( i = 0; i < Pop_Push_Count[CUR.opcode] >> 4; i++ )
+          CUR.stack[i] = 0;
+        CUR.args = 0;
       }
 
       CUR.new_top = CUR.args + ( Pop_Push_Count[CUR.opcode] & 15 );
@@ -7498,7 +7609,7 @@
         case 0x04:  
         case 0x05:  
           {
-            FT_Short AA, BB;
+            FT_Short  AA, BB;
 
 
             AA = (FT_Short)( ( opcode & 1 ) << 14 );
@@ -8069,6 +8180,7 @@
                 callrec->Caller_IP    = CUR.IP + 1;
                 callrec->Cur_Count    = 1;
                 callrec->Cur_Restart  = def->start;
+                callrec->Cur_End      = def->end;
 
                 if ( INS_Goto_CodeRange( def->range, def->start ) == FAILURE )
                   goto LErrorLabel_;
@@ -8142,7 +8254,7 @@
     if ( CUR.error && !CUR.instruction_trap )
     {
       FT_TRACE1(( "  The interpreter returned error 0x%x\n", CUR.error ));
-      exc->size->cvt_ready      = FALSE;  
+      exc->size->cvt_ready      = FALSE;
     }
 
     return CUR.error;

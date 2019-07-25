@@ -164,7 +164,7 @@
       error = check_type1_format( stream, "%!FontType", 10 );
       if ( error )
       {
-        FT_TRACE2(( "[not a Type1 font]\n" ));
+        FT_TRACE2(( "  not a Type 1 font\n" ));
         goto Exit;
       }
     }
@@ -404,7 +404,7 @@
       
       while ( cur < limit       &&
               ( *cur == ' '  ||
-                *cur == '\t' || 
+                *cur == '\t' ||
                 *cur == '\r' ||
                 *cur == '\n' ) )
         ++cur;
@@ -466,6 +466,14 @@
 
     
     psaux->t1_decrypt( parser->private_dict, parser->private_len, 55665U );
+
+    if ( parser->private_len < 4 )
+    {
+      FT_ERROR(( "T1_Get_Private_Dict:"
+                 " invalid private dictionary section\n" ));
+      error = T1_Err_Invalid_File_Format;
+      goto Fail;
+    }
 
     
     parser->private_dict[0] = ' ';

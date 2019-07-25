@@ -29,7 +29,7 @@ FT_BEGIN_HEADER
 
 
 
-  AF_DECLARE_SCRIPT_CLASS(af_dummy_script_class)
+  AF_DECLARE_SCRIPT_CLASS( af_dummy_script_class )
 
 
 

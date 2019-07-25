@@ -54,6 +54,8 @@
                 "broken offset within table" )
   FT_ERRORDEF_( Array_Too_Large,                             0x0A, \
                 "array allocation size too large" )
+  FT_ERRORDEF_( Missing_Module,                              0x0B, \
+                "missing module" )
 
   
 
@@ -213,7 +215,6 @@
                 "ignore" )
   FT_ERRORDEF_( No_Unicode_Glyph_Name,                       0xA3, \
                 "no Unicode glyph name found" )
-
 
   
 

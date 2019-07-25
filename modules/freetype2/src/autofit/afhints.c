@@ -21,6 +21,8 @@
 #include FT_INTERNAL_CALC_H
 
 
+  
+
   FT_LOCAL_DEF( FT_Error )
   af_axis_hints_new_segment( AF_AxisHints  axis,
                              FT_Memory     memory,
@@ -60,6 +62,8 @@
     return error;
   }
 
+
+  
 
   FT_LOCAL( FT_Error )
   af_axis_hints_new_edge( AF_AxisHints  axis,
@@ -125,7 +129,7 @@
   }
 
 
-#ifdef AF_DEBUG
+#ifdef FT_DEBUG_AUTOFIT
 
 #include FT_CONFIG_STANDARD_LIBRARY_H
 
@@ -160,6 +164,9 @@
 #define AF_INDEX_NUM( ptr, base )  ( (ptr) ? ( (ptr) - (base) ) : -1 )
 
 
+#ifdef __cplusplus
+  extern "C" {
+#endif
   void
   af_glyph_hints_dump_points( AF_GlyphHints  hints )
   {
@@ -169,20 +176,20 @@
 
 
     printf( "Table of points:\n" );
-    printf(   "  [ index |  xorg |  yorg |  xscale |  yscale "
-              "|  xfit  |  yfit  |  flags ]\n" );
+    printf(   "  [ index |  xorg |  yorg | xscale | yscale"
+              " |  xfit |  yfit |  flags ]\n" );
 
     for ( point = points; point < limit; point++ )
     {
-      printf( "  [ %5d | %5d | %5d | %-5.2f | %-5.2f "
-              "| %-5.2f | %-5.2f | %c%c%c%c%c%c ]\n",
+      printf( "  [ %5d | %5d | %5d | %6.2f | %6.2f"
+              " | %5.2f | %5.2f | %c%c%c%c%c%c ]\n",
               point - points,
               point->fx,
               point->fy,
-              point->ox/64.0,
-              point->oy/64.0,
-              point->x/64.0,
-              point->y/64.0,
+              point->ox / 64.0,
+              point->oy / 64.0,
+              point->x / 64.0,
+              point->y / 64.0,
               ( point->flags & AF_FLAG_WEAK_INTERPOLATION ) ? 'w' : ' ',
               ( point->flags & AF_FLAG_INFLECTION )         ? 'i' : ' ',
               ( point->flags & AF_FLAG_EXTREMA_X )          ? '<' : ' ',
@@ -192,6 +199,9 @@
     }
     printf( "\n" );
   }
+#ifdef __cplusplus
+  }
+#endif
 
 
   static const char*
@@ -223,6 +233,10 @@
 
 
   
+
+#ifdef __cplusplus
+  extern "C" {
+#endif
   void
   af_glyph_hints_dump_segments( AF_GlyphHints  hints )
   {
@@ -240,11 +254,11 @@
       printf ( "Table of %s segments:\n",
                dimension == AF_DIMENSION_HORZ ? "vertical" : "horizontal" );
       printf ( "  [ index |  pos  |  dir  | link | serif |"
-               " height  | extra | flags    ]\n" );
+               " height | extra |    flags    ]\n" );
 
       for ( seg = segments; seg < limit; seg++ )
       {
-        printf ( "  [ %5d | %5.2g | %5s | %4d | %5d | %5d | %5d | %s ]\n",
+        printf ( "  [ %5d | %5.2g | %5s | %4d | %5d | %6d | %5d | %11s ]\n",
                  seg - segments,
                  dimension == AF_DIMENSION_HORZ ? (int)seg->first->ox / 64.0
                                                 : (int)seg->first->oy / 64.0,
@@ -253,13 +267,84 @@
                  AF_INDEX_NUM( seg->serif, segments ),
                  seg->height,
                  seg->height - ( seg->max_coord - seg->min_coord ),
-                 af_edge_flags_to_string( seg->flags ) );
+                 af_edge_flags_to_string( (AF_Edge_Flags)seg->flags ) );
       }
       printf( "\n" );
     }
   }
+#ifdef __cplusplus
+  }
+#endif
 
 
+  
+
+#ifdef __cplusplus
+  extern "C" {
+#endif
+  FT_Error
+  af_glyph_hints_get_num_segments( AF_GlyphHints  hints,
+                                   FT_Int         dimension,
+                                   FT_Int*        num_segments )
+  {
+    AF_Dimension  dim;
+    AF_AxisHints  axis;
+
+
+    dim = ( dimension == 0 ) ? AF_DIMENSION_HORZ : AF_DIMENSION_VERT;
+
+    axis          = &hints->axis[dim];
+    *num_segments = axis->num_segments;
+
+    return AF_Err_Ok;
+  }
+#ifdef __cplusplus
+  }
+#endif
+
+
+  
+
+#ifdef __cplusplus
+  extern "C" {
+#endif
+  FT_Error
+  af_glyph_hints_get_segment_offset( AF_GlyphHints  hints,
+                                     FT_Int         dimension,
+                                     FT_Int         idx,
+                                     FT_Pos*        offset )
+  {
+    AF_Dimension  dim;
+    AF_AxisHints  axis;
+    AF_Segment    seg;
+
+
+    if ( !offset )
+      return AF_Err_Invalid_Argument;
+
+    dim = ( dimension == 0 ) ? AF_DIMENSION_HORZ : AF_DIMENSION_VERT;
+
+    axis = &hints->axis[dim];
+
+    if ( idx < 0 || idx >= axis->num_segments )
+      return AF_Err_Invalid_Argument;
+
+    seg     = &axis->segments[idx];
+    *offset = (dim == AF_DIMENSION_HORZ) ? seg->first->ox
+                                         : seg->first->oy;
+
+    return AF_Err_Ok;
+  }
+#ifdef __cplusplus
+  }
+#endif
+
+
+  
+
+#ifdef __cplusplus
+  extern "C" {
+#endif
   void
   af_glyph_hints_dump_edges( AF_GlyphHints  hints )
   {
@@ -281,12 +366,12 @@
       printf ( "Table of %s edges:\n",
                dimension == AF_DIMENSION_HORZ ? "vertical" : "horizontal" );
       printf ( "  [ index |  pos  |  dir  | link |"
-               " serif | blue | opos  |  pos  | flags   ]\n" );
+               " serif | blue | opos  |  pos  |    flags    ]\n" );
 
       for ( edge = edges; edge < limit; edge++ )
       {
         printf ( "  [ %5d | %5.2g | %5s | %4d |"
-                 " %5d |   %c  | %5.2f | %5.2f | %s ]\n",
+                 " %5d |   %c  | %5.2f | %5.2f | %11s ]\n",
                  edge - edges,
                  (int)edge->opos / 64.0,
                  af_dir_str( (AF_Direction)edge->dir ),
@@ -295,16 +380,23 @@
                  edge->blue_edge ? 'y' : 'n',
                  edge->opos / 64.0,
                  edge->pos / 64.0,
-                 af_edge_flags_to_string( edge->flags ) );
+                 af_edge_flags_to_string( (AF_Edge_Flags)edge->flags ) );
       }
       printf( "\n" );
     }
   }
+#ifdef __cplusplus
+  }
+#endif
 
-#else 
+#else
 
-  
-  
+
+
+
+#ifdef __cplusplus
+  extern "C" {
+#endif
 
   void
   af_glyph_hints_dump_points( AF_GlyphHints  hints )
@@ -320,16 +412,49 @@
   }
 
 
+  FT_Error
+  af_glyph_hints_get_num_segments( AF_GlyphHints  hints,
+                                   FT_Int         dimension,
+                                   FT_Int*        num_segments )
+  {
+    FT_UNUSED( hints );
+    FT_UNUSED( dimension );
+    FT_UNUSED( num_segments );
+
+    return 0;
+  }
+
+
+  FT_Error
+  af_glyph_hints_get_segment_offset( AF_GlyphHints  hints,
+                                     FT_Int         dimension,
+                                     FT_Int         idx,
+                                     FT_Pos*        offset )
+  {
+    FT_UNUSED( hints );
+    FT_UNUSED( dimension );
+    FT_UNUSED( idx );
+    FT_UNUSED( offset );
+
+    return 0;
+  }
+
+
   void
   af_glyph_hints_dump_edges( AF_GlyphHints  hints )
   {
     FT_UNUSED( hints );
   }
 
-#endif 
+#ifdef __cplusplus
+  }
+#endif
+
+#endif
 
 
-  
+
+
   FT_LOCAL_DEF( AF_Direction )
   af_direction_compute( FT_Pos  dx,
                         FT_Pos  dy )
@@ -369,6 +494,8 @@
       }
     }
 
+    
+    
     ss *= 14;
     if ( FT_ABS( ll ) <= FT_ABS( ss ) )
       dir = AF_DIR_NONE;
@@ -408,8 +535,8 @@
         axis->max_segments = 0;
         FT_FREE( axis->segments );
 
-        axis->num_edges    = 0;
-        axis->max_edges    = 0;
+        axis->num_edges = 0;
+        axis->max_edges = 0;
         FT_FREE( axis->edges );
       }
 
@@ -426,6 +553,8 @@
   }
 
 
+  
+
   FT_LOCAL_DEF( void )
   af_glyph_hints_rescale( AF_GlyphHints     hints,
                           AF_ScriptMetrics  metrics )
@@ -434,6 +563,9 @@
     hints->scaler_flags = metrics->scaler.flags;
   }
 
+
+  
+  
 
   FT_LOCAL_DEF( FT_Error )
   af_glyph_hints_reload( AF_GlyphHints  hints,
@@ -462,7 +594,7 @@
     old_max = hints->max_contours;
     if ( new_max > old_max )
     {
-      new_max = ( new_max + 3 ) & ~3;
+      new_max = ( new_max + 3 ) & ~3; 
 
       if ( FT_RENEW_ARRAY( hints->contours, old_max, new_max ) )
         goto Exit;
@@ -479,7 +611,7 @@
     old_max = hints->max_points;
     if ( new_max > old_max )
     {
-      new_max = ( new_max + 2 + 7 ) & ~7;
+      new_max = ( new_max + 2 + 7 ) & ~7; 
 
       if ( FT_RENEW_ARRAY( hints->points, old_max, new_max ) )
         goto Exit;
@@ -545,7 +677,7 @@
             point->flags = AF_FLAG_CUBIC;
             break;
           default:
-            point->flags = 0;
+            point->flags = AF_FLAG_NONE;
           }
 
           point->prev = prev;
@@ -611,6 +743,8 @@
           in_dir         = af_direction_compute( out_x, out_y );
           point->out_dir = (FT_Char)in_dir;
 
+          
+
           if ( point->flags & ( AF_FLAG_CONIC | AF_FLAG_CUBIC ) )
           {
           Is_Weak_Point:
@@ -638,6 +772,8 @@
     return error;
   }
 
+
+  
 
   FT_LOCAL_DEF( void )
   af_glyph_hints_save( AF_GlyphHints  hints,
@@ -670,6 +806,9 @@
 
 
 
+
+  
+  
 
   FT_LOCAL_DEF( void )
   af_glyph_hints_align_edge_points( AF_GlyphHints  hints,
@@ -704,7 +843,6 @@
             break;
 
           point = point->next;
-
         }
       }
     }
@@ -832,6 +970,7 @@
           {
             FT_PtrDist  nn;
 
+
             for ( nn = 0; nn < max; nn++ )
               if ( edges[nn].fpos >= u )
                 break;
@@ -863,6 +1002,7 @@
             }
           }
 
+          
           {
             AF_Edge  before = edges + min - 1;
             AF_Edge  after  = edges + min + 0;
@@ -898,6 +1038,10 @@
 
 
 
+  
+  
+  
+
   static void
   af_iup_shift( AF_Point  p1,
                 AF_Point  p2,
@@ -905,6 +1049,7 @@
   {
     AF_Point  p;
     FT_Pos    delta = ref->u - ref->v;
+
 
     if ( delta == 0 )
       return;
@@ -916,6 +1061,13 @@
       p->u = p->v + delta;
   }
 
+
+  
+  
+  
+  
+  
+  
 
   static void
   af_iup_interp( AF_Point  p1,
@@ -985,6 +1137,9 @@
   }
 
 
+  
+  
+
   FT_LOCAL_DEF( void )
   af_glyph_hints_align_weak_points( AF_GlyphHints  hints,
                                     AF_Dimension   dim )
@@ -1050,17 +1205,18 @@
 
       for (;;)
       {
-        FT_ASSERT( point <= end_point &&
+        FT_ASSERT( point <= end_point                 &&
                    ( point->flags & touch_flag ) != 0 );
 
         
-        while ( point < end_point && ( point[1].flags & touch_flag ) != 0 )
+        while ( point < end_point                    &&
+                ( point[1].flags & touch_flag ) != 0 )
           point++;
 
         last_touched = point;
 
         
-        point ++;
+        point++;
         for (;;)
         {
           if ( point > end_point )
@@ -1080,9 +1236,8 @@
     EndContour:
       
       if ( last_touched == first_touched )
-      {
         af_iup_shift( first_point, end_point, first_touched );
-      }
+
       else 
       {
         if ( last_touched < end_point )
@@ -1112,7 +1267,9 @@
   }
 
 
-#ifdef AF_USE_WARPER
+#ifdef AF_CONFIG_OPTION_USE_WARPER
+
+  
 
   FT_LOCAL_DEF( void )
   af_glyph_hints_scale_dim( AF_GlyphHints  hints,

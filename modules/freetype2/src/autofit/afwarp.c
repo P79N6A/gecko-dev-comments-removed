@@ -16,10 +16,30 @@
 
 
 
+  
+
+
+
+
+
+
 #include "afwarp.h"
 
-#ifdef AF_USE_WARPER
+#ifdef AF_CONFIG_OPTION_USE_WARPER
 
+  
+  
+  
+  
+  
+  
+#undef  FT_COMPONENT
+#define FT_COMPONENT  trace_afwarp
+
+
+  
+  
+  
 #if 1
   static const AF_WarpScore
   af_warper_weights[64] =
@@ -42,6 +62,11 @@
   };
 #endif
 
+
+  
+  
+  
+  
 
   static void
   af_warper_compute_line_best( AF_Warper     warper,
@@ -82,12 +107,12 @@
 
       if ( idx_min < 0 || idx_min > idx_max || idx_max > 64 )
       {
-        AF_LOG(( "invalid indices:\n"
-                 "  min=%d max=%d, xx1=%ld xx2=%ld,\n"
-                 "  x1min=%ld x1max=%ld, x2min=%ld x2max=%ld\n",
-                 idx_min, idx_max, xx1, xx2,
-                 warper->x1min, warper->x1max,
-                 warper->x2min, warper->x2max ));
+        FT_TRACE5(( "invalid indices:\n"
+                    "  min=%d max=%d, xx1=%ld xx2=%ld,\n"
+                    "  x1min=%ld x1max=%ld, x2min=%ld x2max=%ld\n",
+                    idx_min, idx_max, xx1, xx2,
+                    warper->x1min, warper->x1max,
+                    warper->x2min, warper->x2max ));
         return;
       }
     }
@@ -100,6 +125,7 @@
       FT_Int  idx;
 
 
+      
       for ( idx = idx_min; idx <= idx_max; idx++, y++ )
         scores[idx] += af_warper_weights[y & 63] * len;
     }
@@ -115,9 +141,9 @@
         AF_WarpScore  distort = base_distort + ( idx - idx0 );
 
 
-        if ( score > warper->best_score           ||
+        if ( score > warper->best_score         ||
              ( score == warper->best_score    &&
-               distort < warper->best_distort )   )
+               distort < warper->best_distort ) )
         {
           warper->best_score   = score;
           warper->best_distort = distort;
@@ -128,6 +154,9 @@
     }
   }
 
+
+  
+  
 
   FT_LOCAL_DEF( void )
   af_warper_compute( AF_Warper      warper,
@@ -215,6 +244,7 @@
     warper->t1 = AF_WARPER_FLOOR( warper->x1 );
     warper->t2 = AF_WARPER_CEIL( warper->x2 );
 
+    
     warper->x1min = warper->x1 & ~31;
     warper->x1max = warper->x1min + 32;
     warper->x2min = warper->x2 & ~31;
@@ -234,10 +264,12 @@
       warper->x2min = warper->x2;
     }
 
+    
     warper->wmin = warper->x2min - warper->x1max;
     warper->wmax = warper->x2max - warper->x1min;
 
 #if 1
+    
     {
       int  margin = 16;
 
@@ -273,6 +305,8 @@
       FT_Pos    xx1, xx2;
 
 
+      
+      
       xx1 = warper->x1;
       xx2 = warper->x2;
       if ( w >= warper->w0 )
@@ -304,6 +338,7 @@
       else
         base_distort += xx2 - warper->x2;
 
+      
       base_distort *= 10;
 
       new_scale = org_scale + FT_DivFix( w - warper->w0, X2 - X1 );
@@ -317,7 +352,7 @@
     {
       FT_Fixed  best_scale = warper->best_scale;
       FT_Pos    best_delta = warper->best_delta;
-     
+
 
       hints->xmin_delta = FT_MulFix( X1, best_scale - org_scale )
                           + best_delta;
@@ -331,7 +366,8 @@
 
 #else 
 
-char  af_warper_dummy = 0;  
+  
+  typedef int  _af_warp_dummy;
 
 #endif 
 

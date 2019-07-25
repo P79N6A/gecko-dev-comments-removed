@@ -22,17 +22,23 @@
 
 
 
+#include <ft2build.h>
+#include FT_ADVANCES_H
+#include FT_INTERNAL_DEBUG_H
+
 #include "aftypes.h"
 #include "aflatin.h"
 
 
 #ifdef AF_CONFIG_OPTION_CJK
 
+#undef AF_CONFIG_OPTION_CJK_BLUE_HANI_VERT
+
 #include "afcjk.h"
 #include "aferrors.h"
 
 
-#ifdef AF_USE_WARPER
+#ifdef AF_CONFIG_OPTION_USE_WARPER
 #include "afwarp.h"
 #endif
 
@@ -43,26 +49,516 @@
   
   
   
+#undef  FT_COMPONENT
+#define FT_COMPONENT  trace_afcjk
+
+
+  
+  
+  
+  
+  
+  
   
 
+
+  
+  
+
+  FT_LOCAL_DEF( void )
+  af_cjk_metrics_init_widths( AF_CJKMetrics  metrics,
+                              FT_Face        face,
+                              FT_ULong       charcode )
+  {
+    
+    AF_GlyphHintsRec  hints[1];
+
+
+    af_glyph_hints_init( hints, face->memory );
+
+    metrics->axis[AF_DIMENSION_HORZ].width_count = 0;
+    metrics->axis[AF_DIMENSION_VERT].width_count = 0;
+
+    {
+      FT_Error          error;
+      FT_UInt           glyph_index;
+      int               dim;
+      AF_CJKMetricsRec  dummy[1];
+      AF_Scaler         scaler = &dummy->root.scaler;
+
+
+      glyph_index = FT_Get_Char_Index( face, charcode );
+      if ( glyph_index == 0 )
+        goto Exit;
+
+      error = FT_Load_Glyph( face, glyph_index, FT_LOAD_NO_SCALE );
+      if ( error || face->glyph->outline.n_points <= 0 )
+        goto Exit;
+
+      FT_ZERO( dummy );
+
+      dummy->units_per_em = metrics->units_per_em;
+
+      scaler->x_scale = 0x10000L;
+      scaler->y_scale = 0x10000L;
+      scaler->x_delta = 0;
+      scaler->y_delta = 0;
+
+      scaler->face        = face;
+      scaler->render_mode = FT_RENDER_MODE_NORMAL;
+      scaler->flags       = 0;
+
+      af_glyph_hints_rescale( hints, (AF_ScriptMetrics)dummy );
+
+      error = af_glyph_hints_reload( hints, &face->glyph->outline );
+      if ( error )
+        goto Exit;
+
+      for ( dim = 0; dim < AF_DIMENSION_MAX; dim++ )
+      {
+        AF_CJKAxis    axis    = &metrics->axis[dim];
+        AF_AxisHints  axhints = &hints->axis[dim];
+        AF_Segment    seg, limit, link;
+        FT_UInt       num_widths = 0;
+
+
+        error = af_latin_hints_compute_segments( hints, (AF_Dimension)dim );
+        if ( error )
+          goto Exit;
+
+        af_latin_hints_link_segments( hints, (AF_Dimension)dim );
+
+        seg   = axhints->segments;
+        limit = seg + axhints->num_segments;
+
+        for ( ; seg < limit; seg++ )
+        {
+          link = seg->link;
+
+          
+          if ( link && link->link == seg && link > seg )
+          {
+            FT_Pos  dist;
+
+
+            dist = seg->pos - link->pos;
+            if ( dist < 0 )
+              dist = -dist;
+
+            if ( num_widths < AF_CJK_MAX_WIDTHS )
+              axis->widths[num_widths++].org = dist;
+          }
+        }
+
+        af_sort_widths( num_widths, axis->widths );
+        axis->width_count = num_widths;
+      }
+
+    Exit:
+      for ( dim = 0; dim < AF_DIMENSION_MAX; dim++ )
+      {
+        AF_CJKAxis  axis = &metrics->axis[dim];
+        FT_Pos      stdw;
+
+
+        stdw = ( axis->width_count > 0 ) ? axis->widths[0].org
+                                         : AF_LATIN_CONSTANT( metrics, 50 );
+
+        
+        axis->edge_distance_threshold = stdw / 5;
+        axis->standard_width          = stdw;
+        axis->extra_light             = 0;
+      }
+    }
+
+    af_glyph_hints_done( hints );
+  }
+
+
+#define AF_CJK_MAX_TEST_CHARACTERS  32
+
+
+  
+  
+
+  enum
+  {
+    AF_CJK_BLUE_TYPE_FILL,
+    AF_CJK_BLUE_TYPE_UNFILL,
+    AF_CJK_BLUE_TYPE_MAX
+  };
+
+
+  
+  static const FT_ULong af_cjk_hani_blue_chars[AF_CJK_BLUE_MAX]
+                                              [AF_CJK_BLUE_TYPE_MAX]
+                                              [AF_CJK_MAX_TEST_CHARACTERS] =
+  {
+    {
+      {
+        0x4ED6, 0x4EEC, 0x4F60, 0x4F86, 0x5011, 0x5230, 0x548C, 0x5730,
+        0x5BF9, 0x5C0D, 0x5C31, 0x5E2D, 0x6211, 0x65F6, 0x6642, 0x6703,
+        0x6765, 0x70BA, 0x80FD, 0x8230, 0x8AAA, 0x8BF4, 0x8FD9, 0x9019,
+        0x9F4A 
+      },
+      {
+        0x519B, 0x540C, 0x5DF2, 0x613F, 0x65E2, 0x661F, 0x662F, 0x666F,
+        0x6C11, 0x7167, 0x73B0, 0x73FE, 0x7406, 0x7528, 0x7F6E, 0x8981,
+        0x8ECD, 0x90A3, 0x914D, 0x91CC, 0x958B, 0x96F7, 0x9732, 0x9762,
+        0x987E 
+      }
+    },
+    {
+      {
+        0x4E2A, 0x4E3A, 0x4EBA, 0x4ED6, 0x4EE5, 0x4EEC, 0x4F60, 0x4F86,
+        0x500B, 0x5011, 0x5230, 0x548C, 0x5927, 0x5BF9, 0x5C0D, 0x5C31,
+        0x6211, 0x65F6, 0x6642, 0x6709, 0x6765, 0x70BA, 0x8981, 0x8AAA,
+        0x8BF4 
+      },
+      {
+        0x4E3B, 0x4E9B, 0x56E0, 0x5B83, 0x60F3, 0x610F, 0x7406, 0x751F,
+        0x7576, 0x770B, 0x7740, 0x7F6E, 0x8005, 0x81EA, 0x8457, 0x88E1,
+        0x8FC7, 0x8FD8, 0x8FDB, 0x9032, 0x904E, 0x9053, 0x9084, 0x91CC,
+        0x9762 
+      }
+    },
+#ifndef AF_CONFIG_OPTION_CJK_BLUE_HANI_VERT
+      { {0x0000}, {0x0000} },
+      { {0x0000}, {0x0000} }
+#else
+    {
+      {
+        0x4E9B, 0x4EEC, 0x4F60, 0x4F86, 0x5011, 0x5230, 0x548C, 0x5730,
+        0x5979, 0x5C06, 0x5C07, 0x5C31, 0x5E74, 0x5F97, 0x60C5, 0x6700,
+        0x6837, 0x6A23, 0x7406, 0x80FD, 0x8AAA, 0x8BF4, 0x8FD9, 0x9019,
+        0x901A 
+      },
+      {
+        0x5373, 0x5417, 0x5427, 0x542C, 0x5462, 0x54C1, 0x54CD, 0x55CE,
+        0x5E08, 0x5E2B, 0x6536, 0x65AD, 0x65B7, 0x660E, 0x773C, 0x9593,
+        0x95F4, 0x9645, 0x9648, 0x9650, 0x9664, 0x9673, 0x968F, 0x969B,
+        0x96A8 
+      }
+    },
+    {
+      {
+        0x4E8B, 0x524D, 0x5B78, 0x5C06, 0x5C07, 0x60C5, 0x60F3, 0x6216,
+        0x653F, 0x65AF, 0x65B0, 0x6837, 0x6A23, 0x6C11, 0x6C92, 0x6CA1,
+        0x7136, 0x7279, 0x73B0, 0x73FE, 0x7403, 0x7B2C, 0x7D93, 0x8C01,
+        0x8D77 
+      },
+      {
+        0x4F8B, 0x5225, 0x522B, 0x5236, 0x52A8, 0x52D5, 0x5417, 0x55CE,
+        0x589E, 0x6307, 0x660E, 0x671D, 0x671F, 0x6784, 0x7269, 0x786E,
+        0x79CD, 0x8ABF, 0x8C03, 0x8CBB, 0x8D39, 0x90A3, 0x90FD, 0x9593,
+        0x95F4 
+      }
+    }
+#endif 
+  };
+
+
+  
+
+  static void
+  af_cjk_metrics_init_blues( AF_CJKMetrics   metrics,
+                             FT_Face         face,
+                             const FT_ULong  blue_chars
+                                               [AF_CJK_BLUE_MAX]
+                                               [AF_CJK_BLUE_TYPE_MAX]
+                                               [AF_CJK_MAX_TEST_CHARACTERS] )
+  {
+    FT_Pos        fills[AF_CJK_MAX_TEST_CHARACTERS];
+    FT_Pos        flats[AF_CJK_MAX_TEST_CHARACTERS];
+
+    FT_Int        num_fills;
+    FT_Int        num_flats;
+
+    FT_Int        bb;
+    AF_CJKBlue    blue;
+    FT_Error      error;
+    AF_CJKAxis    axis;
+    FT_GlyphSlot  glyph = face->glyph;
+
+#ifdef FT_DEBUG_LEVEL_TRACE
+    FT_String*  cjk_blue_name[AF_CJK_BLUE_MAX] = {
+      (FT_String*)"top",
+      (FT_String*)"bottom",
+      (FT_String*)"left",
+      (FT_String*)"right"
+    };
+    FT_String*  cjk_blue_type_name[AF_CJK_BLUE_TYPE_MAX] = {
+      (FT_String*)"filled",
+      (FT_String*)"unfilled"
+    };
+#endif
+
+
+    
+    
+    
+
+    FT_TRACE5(( "cjk blue zones computation\n" ));
+    FT_TRACE5(( "------------------------------------------------\n" ));
+
+    for ( bb = 0; bb < AF_CJK_BLUE_MAX; bb++ )
+    {
+      FT_Int   fill_type;
+      FT_Pos*  blue_ref;
+      FT_Pos*  blue_shoot;
+
+
+      num_fills = 0;
+      num_flats = 0;
+
+      for ( fill_type = 0; fill_type < AF_CJK_BLUE_TYPE_MAX; fill_type++ )
+      {
+        const FT_ULong*  p     = blue_chars[bb][fill_type];
+        const FT_ULong*  limit = p + AF_CJK_MAX_TEST_CHARACTERS;
+        FT_Bool          fill  = FT_BOOL(
+                                   fill_type == AF_CJK_BLUE_TYPE_FILL );
+
+
+        FT_TRACE5(( "cjk blue %s/%s\n", cjk_blue_name[bb],
+                                        cjk_blue_type_name[fill_type] ));
+
+
+        for ( ; p < limit && *p; p++ )
+        {
+          FT_UInt     glyph_index;
+          FT_Pos      best_pos; 
+          FT_Int      best_point;
+          FT_Vector*  points;
+
+
+          FT_TRACE5(( "  U+%lX...", *p ));
+
+          
+          glyph_index = FT_Get_Char_Index( face, *p );
+          if ( glyph_index == 0 )
+          {
+            FT_TRACE5(( "unavailable\n" ));
+            continue;
+          }
+
+          error = FT_Load_Glyph( face, glyph_index, FT_LOAD_NO_SCALE );
+          if ( error || glyph->outline.n_points <= 0 )
+          {
+            FT_TRACE5(( "no outline\n" ));
+            continue;
+          }
+
+          
+          points     = glyph->outline.points;
+          best_point = -1;
+          best_pos   = 0;  
+
+          {
+            FT_Int  nn;
+            FT_Int  first = 0;
+            FT_Int  last  = -1;
+
+
+            for ( nn = 0;
+                  nn < glyph->outline.n_contours;
+                  first = last + 1, nn++ )
+            {
+              FT_Int  pp;
+
+
+              last = glyph->outline.contours[nn];
+
+              
+              
+              
+              
+              if ( last <= first )
+                continue;
+
+              switch ( bb )
+              {
+              case AF_CJK_BLUE_TOP:
+                for ( pp = first; pp <= last; pp++ )
+                  if ( best_point < 0 || points[pp].y > best_pos )
+                  {
+                    best_point = pp;
+                    best_pos   = points[pp].y;
+                  }
+                break;
+
+              case AF_CJK_BLUE_BOTTOM:
+                for ( pp = first; pp <= last; pp++ )
+                  if ( best_point < 0 || points[pp].y < best_pos )
+                  {
+                    best_point = pp;
+                    best_pos   = points[pp].y;
+                  }
+                break;
+
+              case AF_CJK_BLUE_LEFT:
+                for ( pp = first; pp <= last; pp++ )
+                  if ( best_point < 0 || points[pp].x < best_pos )
+                  {
+                    best_point = pp;
+                    best_pos   = points[pp].x;
+                  }
+                break;
+
+              case AF_CJK_BLUE_RIGHT:
+                for ( pp = first; pp <= last; pp++ )
+                  if ( best_point < 0 || points[pp].x > best_pos )
+                  {
+                    best_point = pp;
+                    best_pos   = points[pp].x;
+                  }
+                break;
+
+              default:
+                ;
+              }
+            }
+            FT_TRACE5(( "best_pos=%5ld\n", best_pos ));
+          }
+
+          if ( fill )
+            fills[num_fills++] = best_pos;
+          else
+            flats[num_flats++] = best_pos;
+        }
+      }
+
+      if ( num_flats == 0 && num_fills == 0 )
+      {
+        
+
+
+
+        FT_TRACE5(( "empty\n" ));
+        continue;
+      }
+
+      
+      
+      
+      af_sort_pos( num_flats, flats );
+      af_sort_pos( num_fills, fills );
+
+      if ( AF_CJK_BLUE_TOP == bb || AF_CJK_BLUE_BOTTOM == bb )
+        axis = &metrics->axis[AF_DIMENSION_VERT];
+      else
+        axis = &metrics->axis[AF_DIMENSION_HORZ];
+
+      blue       = & axis->blues[axis->blue_count];
+      blue_ref   = & blue->ref.org;
+      blue_shoot = & blue->shoot.org;
+
+      axis->blue_count++;
+      if ( num_flats == 0 )
+      {
+        *blue_ref   = fills[num_fills / 2];
+        *blue_shoot = fills[num_fills / 2];
+      }
+      else if ( num_fills == 0 )
+      {
+        *blue_ref   = flats[num_flats / 2];
+        *blue_shoot = flats[num_flats / 2];
+      }
+      else
+      {
+        *blue_ref   = fills[num_fills / 2];
+        *blue_shoot = flats[num_flats / 2];
+      }
+
+      
+      
+      if ( *blue_shoot != *blue_ref )
+      {
+        FT_Pos   ref       = *blue_ref;
+        FT_Pos   shoot     = *blue_shoot;
+        FT_Bool  under_ref = FT_BOOL( shoot < ref );
+
+
+        if ( (AF_CJK_BLUE_TOP == bb || AF_CJK_BLUE_RIGHT == bb) ^ under_ref )
+          *blue_shoot = *blue_ref = ( shoot + ref ) / 2;
+      }
+
+      blue->flags = 0;
+      if ( AF_CJK_BLUE_TOP == bb )
+        blue->flags |= AF_CJK_BLUE_IS_TOP;
+      else if ( AF_CJK_BLUE_RIGHT == bb )
+        blue->flags |= AF_CJK_BLUE_IS_RIGHT;
+
+      FT_TRACE5(( "-- cjk %s bluezone ref = %ld shoot = %ld\n",
+                  cjk_blue_name[bb], *blue_ref, *blue_shoot ));
+    }
+
+    return;
+  }
+
+
+  
+  FT_LOCAL_DEF( void )
+  af_cjk_metrics_check_digits( AF_CJKMetrics  metrics,
+                               FT_Face        face )
+  {
+    FT_UInt   i;
+    FT_Bool   started = 0, same_width = 1;
+    FT_Fixed  advance, old_advance = 0;
+
+
+    
+    
+    for ( i = 0x30; i <= 0x39; i++ )
+    {
+      FT_UInt  glyph_index;
+
+
+      glyph_index = FT_Get_Char_Index( face, i );
+      if ( glyph_index == 0 )
+        continue;
+
+      if ( FT_Get_Advance( face, glyph_index,
+                           FT_LOAD_NO_SCALE         |
+                           FT_LOAD_NO_HINTING       |
+                           FT_LOAD_IGNORE_TRANSFORM,
+                           &advance ) )
+        continue;
+
+      if ( started )
+      {
+        if ( advance != old_advance )
+        {
+          same_width = 0;
+          break;
+        }
+      }
+      else
+      {
+        old_advance = advance;
+        started     = 1;
+      }
+    }
+
+    metrics->root.digits_have_same_width = same_width;
+  }
+
+
   FT_LOCAL_DEF( FT_Error )
-  af_cjk_metrics_init( AF_LatinMetrics  metrics,
-                       FT_Face          face )
+  af_cjk_metrics_init( AF_CJKMetrics  metrics,
+                       FT_Face        face )
   {
     FT_CharMap  oldmap = face->charmap;
 
 
     metrics->units_per_em = face->units_per_EM;
 
-    
-
     if ( FT_Select_Charmap( face, FT_ENCODING_UNICODE ) )
       face->charmap = NULL;
     else
     {
-      
-      af_latin_metrics_init_widths( metrics, face, 0x7530 );
-      af_latin_metrics_check_digits( metrics, face );
+      af_cjk_metrics_init_widths( metrics, face, 0x7530 );
+      af_cjk_metrics_init_blues( metrics, face, af_cjk_hani_blue_chars );
+      af_cjk_metrics_check_digits( metrics, face );
     }
 
     FT_Set_Charmap( face, oldmap );
@@ -72,31 +568,100 @@
 
 
   static void
-  af_cjk_metrics_scale_dim( AF_LatinMetrics  metrics,
-                            AF_Scaler        scaler,
-                            AF_Dimension     dim )
+  af_cjk_metrics_scale_dim( AF_CJKMetrics  metrics,
+                            AF_Scaler      scaler,
+                            AF_Dimension   dim )
   {
-    AF_LatinAxis  axis;
+    FT_Fixed    scale;
+    FT_Pos      delta;
+    AF_CJKAxis  axis;
+    FT_UInt     nn;
 
 
     axis = &metrics->axis[dim];
 
     if ( dim == AF_DIMENSION_HORZ )
     {
-      axis->scale = scaler->x_scale;
-      axis->delta = scaler->x_delta;
+      scale = scaler->x_scale;
+      delta = scaler->x_delta;
     }
     else
     {
-      axis->scale = scaler->y_scale;
-      axis->delta = scaler->y_delta;
+      scale = scaler->y_scale;
+      delta = scaler->y_delta;
+    }
+
+    if ( axis->org_scale == scale && axis->org_delta == delta )
+      return;
+
+    axis->org_scale = scale;
+    axis->org_delta = delta;
+
+    axis->scale = scale;
+    axis->delta = delta;
+
+    
+    for ( nn = 0; nn < axis->blue_count; nn++ )
+    {
+      AF_CJKBlue  blue = &axis->blues[nn];
+      FT_Pos      dist;
+
+
+      blue->ref.cur   = FT_MulFix( blue->ref.org, scale ) + delta;
+      blue->ref.fit   = blue->ref.cur;
+      blue->shoot.cur = FT_MulFix( blue->shoot.org, scale ) + delta;
+      blue->shoot.fit = blue->shoot.cur;
+      blue->flags    &= ~AF_CJK_BLUE_ACTIVE;
+
+      
+      dist = FT_MulFix( blue->ref.org - blue->shoot.org, scale );
+      if ( dist <= 48 && dist >= -48 )
+      {
+        FT_Pos  delta1, delta2;
+
+
+        blue->ref.fit  = FT_PIX_ROUND( blue->ref.cur );
+
+        
+        delta1 = FT_DivFix( blue->ref.fit, scale ) - blue->shoot.org;
+        delta2 = delta1;
+        if ( delta1 < 0 )
+          delta2 = -delta2;
+
+        delta2 = FT_MulFix( delta2, scale );
+
+        FT_TRACE5(( "delta: %d", delta1 ));
+        if ( delta2 < 32 )
+          delta2 = 0;
+#if 0
+        else if ( delta2 < 64 )
+          delta2 = 32 + ( ( ( delta2 - 32 ) + 16 ) & ~31 );
+#endif
+        else
+          delta2 = FT_PIX_ROUND( delta2 );
+        FT_TRACE5(( "/%d\n", delta2 ));
+
+        if ( delta1 < 0 )
+          delta2 = -delta2;
+
+        blue->shoot.fit = blue->ref.fit - delta2;
+
+        FT_TRACE5(( ">> active cjk blue zone %c%d[%ld/%ld]: "
+                     "ref: cur=%.2f fit=%.2f shoot: cur=%.2f fit=%.2f\n",
+                       ( dim == AF_DIMENSION_HORZ ) ? 'H' : 'V',
+                       nn, blue->ref.org, blue->shoot.org,
+                       blue->ref.cur / 64.0, blue->ref.fit / 64.0,
+                       blue->shoot.cur / 64.0, blue->shoot.fit / 64.0 ));
+
+        blue->flags |= AF_CJK_BLUE_ACTIVE;
+      }
     }
   }
 
 
   FT_LOCAL_DEF( void )
-  af_cjk_metrics_scale( AF_LatinMetrics  metrics,
-                        AF_Scaler        scaler )
+  af_cjk_metrics_scale( AF_CJKMetrics  metrics,
+                        AF_Scaler      scaler )
   {
     metrics->root.scaler = *scaler;
 
@@ -329,7 +894,7 @@
     AF_AxisHints  axis   = &hints->axis[dim];
     FT_Error      error  = AF_Err_Ok;
     FT_Memory     memory = hints->memory;
-    AF_LatinAxis  laxis  = &((AF_LatinMetrics)hints->metrics)->axis[dim];
+    AF_CJKAxis    laxis  = &((AF_CJKMetrics)hints->metrics)->axis[dim];
 
     AF_Segment    segments      = axis->segments;
     AF_Segment    segment_limit = segments + axis->num_segments;
@@ -601,9 +1166,96 @@
   }
 
 
+  FT_LOCAL_DEF( void )
+  af_cjk_hints_compute_blue_edges( AF_GlyphHints  hints,
+                                   AF_CJKMetrics  metrics,
+                                   AF_Dimension   dim )
+  {
+    AF_AxisHints  axis       = &hints->axis[dim];
+    AF_Edge       edge       = axis->edges;
+    AF_Edge       edge_limit = edge + axis->num_edges;
+    AF_CJKAxis    cjk        = &metrics->axis[dim];
+    FT_Fixed      scale      = cjk->scale;
+    FT_Pos        best_dist0;  
+
+
+    
+    best_dist0 = FT_MulFix( metrics->units_per_em / 40, scale );
+
+    if ( best_dist0 > 64 / 2 ) 
+      best_dist0 = 64 / 2;
+
+    
+    
+
+    
+    
+    
+
+    for ( ; edge < edge_limit; edge++ )
+    {
+      FT_UInt   bb;
+      AF_Width  best_blue = NULL;
+      FT_Pos    best_dist = best_dist0;
+
+
+      for ( bb = 0; bb < cjk->blue_count; bb++ )
+      {
+        AF_CJKBlue  blue = cjk->blues + bb;
+        FT_Bool     is_top_right_blue, is_major_dir;
+
+
+        
+        if ( !( blue->flags & AF_CJK_BLUE_ACTIVE ) )
+          continue;
+
+        
+        
+        
+        
+        is_top_right_blue  =
+          FT_BOOL( ( ( blue->flags & AF_CJK_BLUE_IS_TOP )   != 0 ) ||
+                   ( ( blue->flags & AF_CJK_BLUE_IS_RIGHT ) != 0 ) );
+        is_major_dir = FT_BOOL( edge->dir == axis->major_dir );
+
+        
+        
+        
+        if ( is_top_right_blue ^ is_major_dir )
+        {
+          FT_Pos    dist;
+          AF_Width  compare;
+
+
+          
+          if ( FT_ABS( edge->fpos - blue->ref.org ) >
+               FT_ABS( edge->fpos - blue->shoot.org ) )
+            compare = &blue->shoot;
+          else
+            compare = &blue->ref;
+
+          dist = edge->fpos - compare->org;
+          if ( dist < 0 )
+            dist = -dist;
+
+          dist = FT_MulFix( dist, scale );
+          if ( dist < best_dist )
+          {
+            best_dist = dist;
+            best_blue = compare;
+          }
+        }
+      }
+
+      if ( best_blue )
+        edge->blue_edge = best_blue;
+    }
+  }
+
+
   FT_LOCAL_DEF( FT_Error )
-  af_cjk_hints_init( AF_GlyphHints    hints,
-                     AF_LatinMetrics  metrics )
+  af_cjk_hints_init( AF_GlyphHints  hints,
+                     AF_CJKMetrics  metrics )
   {
     FT_Render_Mode  mode;
     FT_UInt32       scaler_flags, other_flags;
@@ -623,7 +1275,7 @@
     
     mode = metrics->root.scaler.render_mode;
 
-#ifdef AF_USE_WARPER
+#ifdef AF_CONFIG_OPTION_USE_WARPER
     if ( mode == FT_RENDER_MODE_LCD || mode == FT_RENDER_MODE_LCD_V )
       metrics->root.scaler.render_mode = mode = FT_RENDER_MODE_NORMAL;
 #endif
@@ -728,11 +1380,11 @@
                              AF_Edge_Flags  base_flags,
                              AF_Edge_Flags  stem_flags )
   {
-    AF_LatinMetrics  metrics  = (AF_LatinMetrics) hints->metrics;
-    AF_LatinAxis     axis     = & metrics->axis[dim];
-    FT_Pos           dist     = width;
-    FT_Int           sign     = 0;
-    FT_Int           vertical = ( dim == AF_DIMENSION_VERT );
+    AF_CJKMetrics  metrics  = (AF_CJKMetrics) hints->metrics;
+    AF_CJKAxis     axis     = & metrics->axis[dim];
+    FT_Pos         dist     = width;
+    FT_Int         sign     = 0;
+    FT_Bool        vertical = FT_BOOL( dim == AF_DIMENSION_VERT );
 
     FT_UNUSED( base_flags );
     FT_UNUSED( stem_flags );
@@ -958,7 +1610,7 @@
         goto Exit;
     }
 
-    offset = cur_len % 64;
+    offset = cur_len & 63;
 
     if ( offset < 32 )
     {
@@ -1025,7 +1677,61 @@
     AF_Edge       anchor   = 0;
     FT_Pos        delta    = 0;
     FT_Int        skipped  = 0;
+    FT_Bool       has_last_stem = FALSE;
+    FT_Pos        last_stem_pos = 0;
 
+
+    
+    FT_TRACE5(( "==== cjk hinting %s edges =====\n",
+          dim == AF_DIMENSION_HORZ ? "vertical" : "horizontal" ));
+
+    if ( AF_HINTS_DO_BLUES( hints ) )
+    {
+      for ( edge = edges; edge < edge_limit; edge++ )
+      {
+        AF_Width  blue;
+        AF_Edge   edge1, edge2;
+
+
+        if ( edge->flags & AF_EDGE_DONE )
+          continue;
+
+        blue  = edge->blue_edge;
+        edge1 = NULL;
+        edge2 = edge->link;
+
+        if ( blue )
+        {
+          edge1 = edge;
+        }
+        else if ( edge2 && edge2->blue_edge )
+        {
+          blue  = edge2->blue_edge;
+          edge1 = edge2;
+          edge2 = edge;
+        }
+
+        if ( !edge1 )
+          continue;
+
+        FT_TRACE5(( "CJKBLUE: edge %d @%d (opos=%.2f) snapped to (%.2f), "
+                 "was (%.2f)\n",
+                 edge1-edges, edge1->fpos, edge1->opos / 64.0, blue->fit / 64.0,
+                 edge1->pos / 64.0 ));
+
+        edge1->pos    = blue->fit;
+        edge1->flags |= AF_EDGE_DONE;
+
+        if ( edge2 && !edge2->blue_edge )
+        {
+          af_cjk_align_linked_edge( hints, dim, edge1, edge2 );
+          edge2->flags |= AF_EDGE_DONE;
+        }
+
+        if ( !anchor )
+          anchor = edge;
+      }
+    }
 
     
     for ( edge = edges; edge < edge_limit; edge++ )
@@ -1046,10 +1752,41 @@
 
       
 
+
+
+
+
+
+
+      if ( has_last_stem                       &&
+           ( edge->pos  < last_stem_pos + 64 ||
+             edge2->pos < last_stem_pos + 64 ) )
+      {
+        skipped++;
+        continue;
+      }
+
+      
+      
+      if ( edge2->blue_edge )
+      {
+        FT_TRACE5(( "ASSERTION FAILED for edge %d\n", edge2-edges ));
+
+        af_cjk_align_linked_edge( hints, dim, edge2, edge );
+        edge->flags |= AF_EDGE_DONE;
+        continue;
+      }
+
       if ( edge2 < edge )
       {
         af_cjk_align_linked_edge( hints, dim, edge2, edge );
         edge->flags |= AF_EDGE_DONE;
+        
+
+
+
+        has_last_stem = TRUE;
+        last_stem_pos = edge->pos;
         continue;
       }
 
@@ -1142,6 +1879,8 @@
       anchor = edge;
       edge->flags  |= AF_EDGE_DONE;
       edge2->flags |= AF_EDGE_DONE;
+      has_last_stem = TRUE;
+      last_stem_pos = edge2->pos;
     }
 
     
@@ -1361,9 +2100,9 @@
 
 
   FT_LOCAL_DEF( FT_Error )
-  af_cjk_hints_apply( AF_GlyphHints    hints,
-                      FT_Outline*      outline,
-                      AF_LatinMetrics  metrics )
+  af_cjk_hints_apply( AF_GlyphHints  hints,
+                      FT_Outline*    outline,
+                      AF_CJKMetrics  metrics )
   {
     FT_Error  error;
     int       dim;
@@ -1381,6 +2120,8 @@
       error = af_cjk_hints_detect_features( hints, AF_DIMENSION_HORZ );
       if ( error )
         goto Exit;
+
+      af_cjk_hints_compute_blue_edges( hints, metrics, AF_DIMENSION_HORZ );
     }
 
     if ( AF_HINTS_DO_VERTICAL( hints ) )
@@ -1388,6 +2129,8 @@
       error = af_cjk_hints_detect_features( hints, AF_DIMENSION_VERT );
       if ( error )
         goto Exit;
+
+      af_cjk_hints_compute_blue_edges( hints, metrics, AF_DIMENSION_VERT );
     }
 
     
@@ -1397,7 +2140,7 @@
            ( dim == AF_DIMENSION_VERT && AF_HINTS_DO_VERTICAL( hints ) )   )
       {
 
-#ifdef AF_USE_WARPER
+#ifdef AF_CONFIG_OPTION_USE_WARPER
         if ( dim == AF_DIMENSION_HORZ                                  &&
              metrics->root.scaler.render_mode == FT_RENDER_MODE_NORMAL )
         {
@@ -1406,8 +2149,10 @@
           FT_Pos        delta;
 
 
-          af_warper_compute( &warper, hints, dim, &scale, &delta );
-          af_glyph_hints_scale_dim( hints, dim, scale, delta );
+          af_warper_compute( &warper, hints, (AF_Dimension)dim,
+                             &scale, &delta );
+          af_glyph_hints_scale_dim( hints, (AF_Dimension)dim,
+                                    scale, delta );
           continue;
         }
 #endif 
@@ -1441,18 +2186,19 @@
   
 
 
+  
+
   static const AF_Script_UniRangeRec  af_cjk_uniranges[] =
   {
-#if 0
-    AF_UNIRANGE_REC(  0x0100UL,  0xFFFFUL ),  
-#endif
     AF_UNIRANGE_REC(  0x2E80UL,  0x2EFFUL ),  
     AF_UNIRANGE_REC(  0x2F00UL,  0x2FDFUL ),  
+    AF_UNIRANGE_REC(  0x2FF0UL,  0x2FFFUL ),  
     AF_UNIRANGE_REC(  0x3000UL,  0x303FUL ),  
     AF_UNIRANGE_REC(  0x3040UL,  0x309FUL ),  
     AF_UNIRANGE_REC(  0x30A0UL,  0x30FFUL ),  
     AF_UNIRANGE_REC(  0x3100UL,  0x312FUL ),  
     AF_UNIRANGE_REC(  0x3130UL,  0x318FUL ),  
+    AF_UNIRANGE_REC(  0x3190UL,  0x319FUL ),  
     AF_UNIRANGE_REC(  0x31A0UL,  0x31BFUL ),  
     AF_UNIRANGE_REC(  0x31C0UL,  0x31EFUL ),  
     AF_UNIRANGE_REC(  0x31F0UL,  0x31FFUL ),  
@@ -1461,20 +2207,29 @@
     AF_UNIRANGE_REC(  0x3400UL,  0x4DBFUL ),  
     AF_UNIRANGE_REC(  0x4DC0UL,  0x4DFFUL ),  
     AF_UNIRANGE_REC(  0x4E00UL,  0x9FFFUL ),  
+    AF_UNIRANGE_REC(  0xA960UL,  0xA97FUL ),  
+    AF_UNIRANGE_REC(  0xAC00UL,  0xD7AFUL ),  
+    AF_UNIRANGE_REC(  0xD7B0UL,  0xD7FFUL ),  
     AF_UNIRANGE_REC(  0xF900UL,  0xFAFFUL ),  
+    AF_UNIRANGE_REC(  0xFE10UL,  0xFE1FUL ),  
     AF_UNIRANGE_REC(  0xFE30UL,  0xFE4FUL ),  
     AF_UNIRANGE_REC(  0xFF00UL,  0xFFEFUL ),  
+    AF_UNIRANGE_REC( 0x1B000UL, 0x1B0FFUL ),  
+    AF_UNIRANGE_REC( 0x1D300UL, 0x1D35FUL ),  
+    AF_UNIRANGE_REC( 0x1F200UL, 0x1F2FFUL ),  
     AF_UNIRANGE_REC( 0x20000UL, 0x2A6DFUL ),  
+    AF_UNIRANGE_REC( 0x2A700UL, 0x2B73FUL ),  
+    AF_UNIRANGE_REC( 0x2B740UL, 0x2B81FUL ),  
     AF_UNIRANGE_REC( 0x2F800UL, 0x2FA1FUL ),  
     AF_UNIRANGE_REC(       0UL,       0UL )
   };
 
 
-  AF_DEFINE_SCRIPT_CLASS(af_cjk_script_class,
+  AF_DEFINE_SCRIPT_CLASS( af_cjk_script_class,
     AF_SCRIPT_CJK,
     af_cjk_uniranges,
 
-    sizeof( AF_LatinMetricsRec ),
+    sizeof ( AF_CJKMetricsRec ),
 
     (AF_Script_InitMetricsFunc) af_cjk_metrics_init,
     (AF_Script_ScaleMetricsFunc)af_cjk_metrics_scale,
@@ -1492,11 +2247,11 @@
   };
 
 
-  AF_DEFINE_SCRIPT_CLASS(af_cjk_script_class,
+  AF_DEFINE_SCRIPT_CLASS( af_cjk_script_class,
     AF_SCRIPT_CJK,
     af_cjk_uniranges,
 
-    sizeof( AF_LatinMetricsRec ),
+    sizeof ( AF_CJKMetricsRec ),
 
     (AF_Script_InitMetricsFunc) NULL,
     (AF_Script_ScaleMetricsFunc)NULL,

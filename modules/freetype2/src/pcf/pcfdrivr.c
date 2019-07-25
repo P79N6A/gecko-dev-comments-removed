@@ -32,9 +32,10 @@
 #include FT_INTERNAL_OBJECTS_H
 #include FT_GZIP_H
 #include FT_LZW_H
+#include FT_BZIP2_H
 #include FT_ERRORS_H
 #include FT_BDF_H
-#include FT_TRUETYPE_IDS_H 
+#include FT_TRUETYPE_IDS_H
 
 #include "pcf.h"
 #include "pcfdrivr.h"
@@ -246,13 +247,11 @@
     FT_FREE( face->charset_encoding );
     FT_FREE( face->charset_registry );
 
-    FT_TRACE4(( "PCF_Face_Done: done face\n" ));
-
     
-    if ( pcfface->stream == &face->gzip_stream )
+    if ( pcfface->stream == &face->comp_stream )
     {
-      FT_Stream_Close( &face->gzip_stream );
-      pcfface->stream = face->gzip_source;
+      FT_Stream_Close( &face->comp_stream );
+      pcfface->stream = face->comp_source;
     }
   }
 
@@ -272,13 +271,16 @@
     FT_UNUSED( face_index );
 
 
+    FT_TRACE2(( "PCF driver\n" ));
+
     error = pcf_load_font( stream, face );
     if ( error )
     {
       PCF_Face_Done( pcfface );
 
-#if defined( FT_CONFIG_OPTION_USE_ZLIB ) || \
-    defined( FT_CONFIG_OPTION_USE_LZW )
+#if defined( FT_CONFIG_OPTION_USE_ZLIB )  || \
+    defined( FT_CONFIG_OPTION_USE_LZW )   || \
+    defined( FT_CONFIG_OPTION_USE_BZIP2 )
 
 #ifdef FT_CONFIG_OPTION_USE_ZLIB
       {
@@ -286,7 +288,7 @@
 
 
         
-        error2 = FT_Stream_OpenGzip( &face->gzip_stream, stream );
+        error2 = FT_Stream_OpenGzip( &face->comp_stream, stream );
         if ( FT_ERROR_BASE( error2 ) == FT_Err_Unimplemented_Feature )
           goto Fail;
 
@@ -301,7 +303,7 @@
 
 
         
-        error3 = FT_Stream_OpenLZW( &face->gzip_stream, stream );
+        error3 = FT_Stream_OpenLZW( &face->comp_stream, stream );
         if ( FT_ERROR_BASE( error3 ) == FT_Err_Unimplemented_Feature )
           goto Fail;
 
@@ -309,11 +311,26 @@
       }
 #endif 
 
+#ifdef FT_CONFIG_OPTION_USE_BZIP2
+      if ( error )
+      {
+        FT_Error  error4;
+
+
+        
+        error4 = FT_Stream_OpenBzip2( &face->comp_stream, stream );
+        if ( FT_ERROR_BASE( error4 ) == FT_Err_Unimplemented_Feature )
+          goto Fail;
+
+        error = error4;
+      }
+#endif 
+
       if ( error )
         goto Fail;
 
-      face->gzip_source = stream;
-      pcfface->stream   = &face->gzip_stream;
+      face->comp_source = stream;
+      pcfface->stream   = &face->comp_stream;
 
       stream = pcfface->stream;
 
@@ -322,6 +339,8 @@
         goto Fail;
 
 #else 
+
+
 
       goto Fail;
 
@@ -385,7 +404,7 @@
     return error;
 
   Fail:
-    FT_TRACE2(( "[not a valid PCF file]\n" ));
+    FT_TRACE2(( "  not a PCF file\n" ));
     PCF_Face_Done( pcfface );
     error = PCF_Err_Unknown_File_Format;  
     goto Exit;
@@ -664,8 +683,8 @@
 
       0,
 
-      0,
-      0,
+      0,                    
+      0,                    
       pcf_driver_requester
     },
 

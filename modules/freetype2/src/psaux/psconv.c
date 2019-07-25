@@ -79,7 +79,7 @@
     FT_Bool   sign = 0;
 
 
-    if ( p == limit || base < 2 || base > 36 )
+    if ( p >= limit || base < 2 || base > 36 )
       return 0;
 
     if ( *p == '-' || *p == '+' )
@@ -150,7 +150,7 @@
     FT_Bool   sign = 0;
 
 
-    if ( p == limit )
+    if ( p >= limit )
       return 0;
 
     if ( *p == '-' || *p == '+' )
@@ -346,7 +346,11 @@
 
 #if 1
 
-    p  = *cursor;
+    p = *cursor;
+
+    if ( p >= limit )
+      return 0;
+
     if ( n > (FT_UInt)( limit - p ) )
       n = (FT_UInt)( limit - p );
 
@@ -434,6 +438,10 @@
 #if 1
 
     p = *cursor;
+
+    if ( p >= limit )
+      return 0;
+
     if ( n > (FT_UInt)(limit - p) )
       n = (FT_UInt)(limit - p);
 

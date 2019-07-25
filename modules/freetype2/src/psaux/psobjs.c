@@ -16,7 +16,6 @@
 
 
 
-
 #include <ft2build.h>
 #include FT_INTERNAL_POSTSCRIPT_AUX_H
 #include FT_INTERNAL_DEBUG_H
@@ -186,13 +185,13 @@
     
     if ( table->cursor + length > table->capacity )
     {
-      FT_Error   error;
-      FT_Offset  new_size = table->capacity;
-      FT_Long    in_offset;
+      FT_Error    error;
+      FT_Offset   new_size = table->capacity;
+      FT_PtrDist  in_offset;
 
 
-      in_offset = (FT_Long)((FT_Byte*)object - table->block);
-      if ( (FT_ULong)in_offset >= table->capacity )
+      in_offset = (FT_Byte*)object - table->block;
+      if ( in_offset < 0 || (FT_Offset)in_offset >= table->capacity )
         in_offset = -1;
 
       while ( new_size < table->cursor + length )
@@ -590,7 +589,7 @@
     }
 
   Exit:
-    if ( cur == parser->cursor )
+    if ( cur < limit && cur == parser->cursor )
     {
       FT_ERROR(( "ps_parser_skip_PS_token:"
                  " current token is `%c' which is self-delimiting\n"

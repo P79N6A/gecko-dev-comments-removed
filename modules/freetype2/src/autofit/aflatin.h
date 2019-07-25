@@ -30,8 +30,8 @@ FT_BEGIN_HEADER
   AF_DECLARE_SCRIPT_CLASS(af_latin_script_class)
 
 
-
-#define AF_LATIN_CONSTANT( metrics, c ) \
+  
+#define AF_LATIN_CONSTANT( metrics, c )                                      \
   ( ( (c) * (FT_Long)( (AF_LatinMetrics)(metrics) )->units_per_em ) / 2048 )
 
 
@@ -76,8 +76,8 @@ FT_BEGIN_HEADER
 
   enum
   {
-    AF_LATIN_BLUE_ACTIVE     = 1 << 0,
-    AF_LATIN_BLUE_TOP        = 1 << 1,
+    AF_LATIN_BLUE_ACTIVE     = 1 << 0,  
+    AF_LATIN_BLUE_TOP        = 1 << 1,  
     AF_LATIN_BLUE_ADJUSTMENT = 1 << 2,  
                                         
     AF_LATIN_BLUE_FLAG_MAX
@@ -98,14 +98,13 @@ FT_BEGIN_HEADER
     FT_Fixed         scale;
     FT_Pos           delta;
 
-    FT_UInt          width_count;
-    AF_WidthRec      widths[AF_LATIN_MAX_WIDTHS];
-    FT_Pos           edge_distance_threshold;
-    FT_Pos           standard_width;
-    FT_Bool          extra_light;
+    FT_UInt          width_count;                 
+    AF_WidthRec      widths[AF_LATIN_MAX_WIDTHS]; 
+    FT_Pos           edge_distance_threshold;   
+    FT_Pos           standard_width;         
+    FT_Bool          extra_light;         
 
     
-    FT_Bool          control_overshoot;
     FT_UInt          blue_count;
     AF_LatinBlueRec  blues[AF_LATIN_BLUE_MAX];
 

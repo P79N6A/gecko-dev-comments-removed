@@ -25,7 +25,6 @@
 
 
 
-
 #include <ft2build.h>
 
 #include FT_INTERNAL_DEBUG_H
@@ -399,7 +398,7 @@
                       PCF_Face   face )
   {
     PCF_ParseProperty  props      = 0;
-    PCF_Property       properties;
+    PCF_Property       properties = NULL;
     FT_ULong           nprops, i;
     FT_ULong           format, size;
     FT_Error           error;
@@ -496,7 +495,8 @@
       goto Bail;
     }
 
-    if ( FT_NEW_ARRAY( strings, string_size ) )
+    
+    if ( FT_NEW_ARRAY( strings, string_size + 1 ) )
       goto Bail;
 
     error = FT_Stream_Read( stream, (FT_Byte*)strings, string_size );
@@ -663,9 +663,9 @@
   pcf_get_bitmaps( FT_Stream  stream,
                    PCF_Face   face )
   {
-    FT_Error   error  = PCF_Err_Ok;
-    FT_Memory  memory = FT_FACE(face)->memory;
-    FT_Long*   offsets;
+    FT_Error   error   = PCF_Err_Ok;
+    FT_Memory  memory  = FT_FACE(face)->memory;
+    FT_Long*   offsets = NULL;
     FT_Long    bitmapSizes[GLYPHPADOPTIONS];
     FT_ULong   format, size;
     FT_ULong   nbitmaps, i, sizebitmaps = 0;
@@ -772,7 +772,7 @@
     int           firstRow, lastRow;
     int           nencoding, encodingOffset;
     int           i, j;
-    PCF_Encoding  tmpEncoding, encoding = 0;
+    PCF_Encoding  tmpEncoding = NULL, encoding = 0;
 
 
     error = pcf_seek_to_table_type( stream,

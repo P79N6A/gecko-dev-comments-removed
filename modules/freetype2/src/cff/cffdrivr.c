@@ -16,7 +16,6 @@
 
 
 
-
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_INTERNAL_DEBUG_H
@@ -150,10 +149,10 @@
   
   
   FT_CALLBACK_DEF( FT_Error )
-  Load_Glyph( FT_GlyphSlot  cffslot,        
-              FT_Size       cffsize,        
-              FT_UInt       glyph_index,
-              FT_Int32      load_flags )
+  cff_glyph_load( FT_GlyphSlot  cffslot,      
+                  FT_Size       cffsize,      
+                  FT_UInt       glyph_index,
+                  FT_Int32      load_flags )
   {
     FT_Error       error;
     CFF_GlyphSlot  slot = (CFF_GlyphSlot)cffslot;
@@ -204,7 +203,7 @@
 
     for ( nn = 0; nn < count; nn++ )
     {
-      error = Load_Glyph( slot, face->size, start + nn, flags );
+      error = cff_glyph_load( slot, face->size, start + nn, flags );
       if ( error )
         break;
 
@@ -240,7 +239,7 @@
                  " cannot get glyph name from CFF & CEF fonts\n"
                  "                   "
                  " without the `PSNames' module\n" ));
-      error = CFF_Err_Unknown_File_Format;
+      error = CFF_Err_Missing_Module;
       goto Exit;
     }
 
@@ -328,7 +327,7 @@
     if ( cff && cff->font_info == NULL )
     {
       CFF_FontRecDict  dict   = &cff->top_font.font_dict;
-      PS_FontInfoRec  *font_info;
+      PS_FontInfoRec  *font_info = NULL;
       FT_Memory        memory = face->root.memory;
 
 
@@ -365,7 +364,8 @@
     (PS_GetFontInfoFunc)   cff_ps_get_font_info,
     (PS_GetFontExtraFunc)  NULL,
     (PS_HasGlyphNamesFunc) cff_ps_has_glyph_names,
-    (PS_GetFontPrivateFunc)NULL         
+    (PS_GetFontPrivateFunc)NULL,        
+    (PS_GetFontValueFunc)  NULL         
   )
 
 
@@ -466,7 +466,7 @@
                                                     dict->cid_registry );
         *registry = cff->registry;
       }
-      
+
       if ( ordering )
       {
         if ( cff->ordering == NULL )
@@ -489,7 +489,7 @@
         *supplement = (FT_Int)dict->cid_supplement;
       }
     }
-      
+
   Fail:
     return error;
   }
@@ -599,19 +599,35 @@
   cff_get_interface( FT_Module    driver,       
                      const char*  module_interface )
   {
+    FT_Library           library;
     FT_Module            sfnt;
     FT_Module_Interface  result;
 
 
-    result = ft_service_list_lookup( FT_CFF_SERVICES_GET, module_interface );
-    if ( result != NULL )
-      return  result;
-
+    
+#ifdef FT_CONFIG_OPTION_PIC
     if ( !driver )
       return NULL;
+    library = driver->library;
+    if ( !library )
+      return NULL;
+#endif
+
+    result = ft_service_list_lookup( FT_CFF_SERVICES_GET, module_interface );
+    if ( result != NULL )
+      return result;
 
     
-    sfnt = FT_Get_Module( driver->library, "sfnt" );
+#ifndef FT_CONFIG_OPTION_PIC
+    if ( !driver )
+      return NULL;
+    library = driver->library;
+    if ( !library )
+      return NULL;
+#endif
+
+    
+    sfnt = FT_Get_Module( library, "sfnt" );
 
     return sfnt ? sfnt->clazz->get_interface( sfnt, module_interface ) : 0;
   }
@@ -625,12 +641,13 @@
 #define CFF_SIZE_SELECT 0
 #endif
 
-  FT_DEFINE_DRIVER(cff_driver_class,
+  FT_DEFINE_DRIVER( cff_driver_class,
+
       FT_MODULE_FONT_DRIVER       |
       FT_MODULE_DRIVER_SCALABLE   |
       FT_MODULE_DRIVER_HAS_HINTER,
 
-      sizeof( CFF_DriverRec ),
+      sizeof ( CFF_DriverRec ),
       "cff",
       0x10000L,
       0x20000L,
@@ -642,9 +659,9 @@
       cff_get_interface,
 
     
-    sizeof( TT_FaceRec ),
-    sizeof( CFF_SizeRec ),
-    sizeof( CFF_GlyphSlotRec ),
+    sizeof ( TT_FaceRec ),
+    sizeof ( CFF_SizeRec ),
+    sizeof ( CFF_GlyphSlotRec ),
 
     cff_face_init,
     cff_face_done,
@@ -653,14 +670,14 @@
     cff_slot_init,
     cff_slot_done,
 
-    ft_stub_set_char_sizes, 
+    ft_stub_set_char_sizes,  
     ft_stub_set_pixel_sizes, 
 
-    Load_Glyph,
+    cff_glyph_load,
 
     cff_get_kerning,
-    0,                      
-    cff_get_advances,       
+    0,                       
+    cff_get_advances,
 
     cff_size_request,
 

@@ -299,6 +299,13 @@
       psaux = (PSAux_Service)FT_Get_Module_Interface(
                 FT_FACE_LIBRARY( face ), "psaux" );
 
+      if ( !psaux )
+      {
+        FT_ERROR(( "cid_face_init: cannot access `psaux' module\n" ));
+        error = CID_Err_Missing_Module;
+        goto Exit;
+      }
+
       face->psaux = psaux;
     }
 
@@ -310,6 +317,8 @@
 
       face->pshinter = pshinter;
     }
+
+    FT_TRACE2(( "CID driver\n" ));
 
     
     if ( FT_STREAM_SEEK( 0 ) )

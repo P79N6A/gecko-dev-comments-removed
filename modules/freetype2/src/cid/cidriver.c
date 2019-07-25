@@ -91,7 +91,8 @@
     (PS_GetFontInfoFunc)   cid_ps_get_font_info,
     (PS_GetFontExtraFunc)  cid_ps_get_font_extra,
     (PS_HasGlyphNamesFunc) NULL,        
-    (PS_GetFontPrivateFunc)NULL         
+    (PS_GetFontPrivateFunc)NULL,        
+    (PS_GetFontValueFunc)  NULL         
   };
 
 
@@ -110,13 +111,13 @@
 
     if ( registry )
       *registry = cid->registry;
-      
+
     if ( ordering )
       *ordering = cid->ordering;
 
     if ( supplement )
       *supplement = cid->supplement;
-      
+
     return CID_Err_Ok;
   }
 
@@ -195,7 +196,7 @@
       FT_MODULE_DRIVER_SCALABLE   |
       FT_MODULE_DRIVER_HAS_HINTER,
 
-      sizeof( FT_DriverRec ),
+      sizeof ( FT_DriverRec ),
       "t1cid",   
       0x10000L,  
       0x20000L,  
@@ -208,9 +209,9 @@
     },
 
     
-    sizeof( CID_FaceRec ),
-    sizeof( CID_SizeRec ),
-    sizeof( CID_GlyphSlotRec ),
+    sizeof ( CID_FaceRec ),
+    sizeof ( CID_SizeRec ),
+    sizeof ( CID_GlyphSlotRec ),
 
     cid_face_init,
     cid_face_done,

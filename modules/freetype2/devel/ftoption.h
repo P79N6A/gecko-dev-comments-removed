@@ -16,7 +16,6 @@
 
 
 
-
 #ifndef __FTOPTION_H__
 #define __FTOPTION_H__
 
@@ -175,6 +174,33 @@ FT_BEGIN_HEADER
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+#define FT_CONFIG_OPTION_USE_BZIP2
 
 
 
@@ -361,6 +387,39 @@ FT_BEGIN_HEADER
   
 #define FT_DEBUG_LEVEL_ERROR
 #define FT_DEBUG_LEVEL_TRACE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define FT_DEBUG_AUTOFIT
 
 
 
@@ -675,6 +734,19 @@ FT_BEGIN_HEADER
 
 
 #define AF_CONFIG_OPTION_INDIC
+
+
+
+
+
+
+
+
+
+
+
+
+#define AF_CONFIG_OPTION_USE_WARPER
 
 
 

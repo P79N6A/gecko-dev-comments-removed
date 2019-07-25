@@ -49,6 +49,18 @@ FT_BEGIN_HEADER
                          FT_Face     *aface );
 
 
+#if  defined( FT_CONFIG_OPTION_GUESSING_EMBEDDED_RFORK ) && \
+    !defined( FT_MACINTOSH )
+  
+  
+  
+  
+  
+  FT_LOCAL( FT_Bool )
+  ft_raccess_rule_by_darwin_vfs( FT_Library library, FT_UInt  rule_index );
+#endif
+
+
 FT_END_HEADER
 
 #endif 

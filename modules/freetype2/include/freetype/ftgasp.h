@@ -81,6 +81,14 @@
 
 
 
+
+
+
+
+
+
+
+
 #define FT_GASP_NO_TABLE               -1
 #define FT_GASP_DO_GRIDFIT           0x01
 #define FT_GASP_DO_GRAY              0x02

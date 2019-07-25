@@ -171,6 +171,7 @@ typedef short ResourceIndex;
 #define PREFER_LWFN  1
 #endif
 
+#ifdef FT_MACINTOSH
 
 #if !HAVE_QUICKDRAW_CARBON  
 
@@ -1526,6 +1527,8 @@ typedef short ResourceIndex;
 #endif 
 
   }
+
+#endif 
 
 
 

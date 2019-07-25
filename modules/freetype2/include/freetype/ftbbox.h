@@ -73,6 +73,14 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
   FT_EXPORT( FT_Error )
   FT_Outline_Get_BBox( FT_Outline*  outline,
                        FT_BBox     *abbox );

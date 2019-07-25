@@ -161,13 +161,28 @@
     
     FT_Outline_Get_CBox( outline, &cbox );
 
+    
+#if 1
+    cbox.xMin = FT_PIX_ROUND( cbox.xMin );
+    cbox.yMin = FT_PIX_ROUND( cbox.yMin );
+    cbox.xMax = FT_PIX_ROUND( cbox.xMax );
+    cbox.yMax = FT_PIX_ROUND( cbox.yMax );
+#else
     cbox.xMin = FT_PIX_FLOOR( cbox.xMin );
     cbox.yMin = FT_PIX_FLOOR( cbox.yMin );
     cbox.xMax = FT_PIX_CEIL( cbox.xMax );
     cbox.yMax = FT_PIX_CEIL( cbox.yMax );
+#endif
 
     width  = (FT_UInt)( ( cbox.xMax - cbox.xMin ) >> 6 );
     height = (FT_UInt)( ( cbox.yMax - cbox.yMin ) >> 6 );
+
+    if ( width > FT_USHORT_MAX || height > FT_USHORT_MAX )
+    {
+      error = Raster_Err_Invalid_Argument;
+      goto Exit;
+    }
+
     bitmap = &slot->bitmap;
     memory = render->root.memory;
 
@@ -229,10 +244,10 @@
   }
 
 
-  FT_DEFINE_RENDERER(ft_raster1_renderer_class,
-    
+  FT_DEFINE_RENDERER( ft_raster1_renderer_class,
+
       FT_MODULE_RENDERER,
-      sizeof( FT_RendererRec ),
+      sizeof ( FT_RendererRec ),
 
       "raster1",
       0x10000L,
@@ -260,11 +275,10 @@
   
   
   
-  FT_DEFINE_RENDERER(ft_raster5_renderer_class,
-  
-    
+  FT_DEFINE_RENDERER( ft_raster5_renderer_class,
+
       FT_MODULE_RENDERER,
-      sizeof( FT_RendererRec ),
+      sizeof ( FT_RendererRec ),
 
       "raster5",
       0x10000L,

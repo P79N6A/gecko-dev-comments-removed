@@ -53,24 +53,14 @@ FT_BEGIN_HEADER
   
   
 
-#define xxAF_USE_WARPER
-#define xxAF_DEBUG
-
-#ifdef AF_DEBUG
+#ifdef FT_DEBUG_AUTOFIT
 
 #include FT_CONFIG_STANDARD_LIBRARY_H
 
-#define AF_LOG( x )  do { if ( _af_debug ) printf x; } while ( 0 )
-
-extern int    _af_debug;
 extern int    _af_debug_disable_horz_hints;
 extern int    _af_debug_disable_vert_hints;
 extern int    _af_debug_disable_blue_hints;
 extern void*  _af_debug_hints;
-
-#else 
-
-#define AF_LOG( x )  do { } while ( 0 )        /* nothing */
 
 #endif 
 
@@ -160,34 +150,9 @@ extern void*  _af_debug_hints;
 
 
   
-  
-  
-  
-  
-  
-  
-
-  
 
 
   typedef struct AF_GlyphHintsRec_*  AF_GlyphHints;
-
-  
-
-
-
-  typedef struct  AF_OutlineRec_
-  {
-    FT_Face        face;
-    FT_Outline     outline;
-    FT_UInt        outline_resolution;
-
-    FT_Int         advance;
-    FT_UInt        metrics_resolution;
-
-    AF_GlyphHints  hints;
-
-  } AF_OutlineRec;
 
 
   
@@ -266,7 +231,7 @@ extern void*  _af_debug_hints;
     AF_SCRIPT_NONE  = 0,
     AF_SCRIPT_LATIN = 1,
     AF_SCRIPT_CJK   = 2,
-    AF_SCRIPT_INDIC = 3, 
+    AF_SCRIPT_INDIC = 3,
 #ifdef FT_OPTION_AUTOFIT2
     AF_SCRIPT_LATIN2,
 #endif
@@ -343,54 +308,56 @@ extern void*  _af_debug_hints;
   } AF_ScriptClassRec;
 
 
+  
 #ifndef FT_CONFIG_OPTION_PIC
 
-#define AF_DECLARE_SCRIPT_CLASS(script_class)                                \
-  FT_CALLBACK_TABLE const AF_ScriptClassRec                                  \
+#define AF_DECLARE_SCRIPT_CLASS( script_class ) \
+  FT_CALLBACK_TABLE const AF_ScriptClassRec     \
   script_class;
 
-#define AF_DEFINE_SCRIPT_CLASS(script_class, script_, ranges, m_size,        \
-                               m_init, m_scale, m_done, h_init, h_apply)     \
-  FT_CALLBACK_TABLE_DEF const AF_ScriptClassRec                              \
-  script_class =                                                             \
-  {                                                                          \
-    script_,                                                                 \
-    ranges,                                                                  \
-                                                                             \
-    m_size,                                                                  \
-                                                                             \
-    m_init,                                                                  \
-    m_scale,                                                                 \
-    m_done,                                                                  \
-                                                                             \
-    h_init,                                                                  \
-    h_apply                                                                  \
+#define AF_DEFINE_SCRIPT_CLASS( script_class, script_, ranges, m_size,     \
+                                m_init, m_scale, m_done, h_init, h_apply ) \
+  FT_CALLBACK_TABLE_DEF const AF_ScriptClassRec                            \
+  script_class =                                                           \
+  {                                                                        \
+    script_,                                                               \
+    ranges,                                                                \
+                                                                           \
+    m_size,                                                                \
+                                                                           \
+    m_init,                                                                \
+    m_scale,                                                               \
+    m_done,                                                                \
+                                                                           \
+    h_init,                                                                \
+    h_apply                                                                \
   };
 
 #else 
 
-#define AF_DECLARE_SCRIPT_CLASS(script_class)                                \
-  FT_LOCAL(void)                                                             \
-  FT_Init_Class_##script_class(AF_ScriptClassRec* ac);
+#define AF_DECLARE_SCRIPT_CLASS( script_class )          \
+  FT_LOCAL( void )                                       \
+  FT_Init_Class_##script_class( AF_ScriptClassRec* ac );
 
-#define AF_DEFINE_SCRIPT_CLASS(script_class, script_, ranges, m_size,        \
-                               m_init, m_scale, m_done, h_init, h_apply)     \
-  FT_LOCAL_DEF(void)                                                         \
-  FT_Init_Class_##script_class(AF_ScriptClassRec* ac)                        \
-  {                                                                          \
-    ac->script                = script_;                                     \
-    ac->script_uni_ranges     = ranges;                                      \
-                                                                             \
-    ac->script_metrics_size   = m_size;                                      \
-                                                                             \
-    ac->script_metrics_init   = m_init;                                      \
-    ac->script_metrics_scale  = m_scale;                                     \
-    ac->script_metrics_done   = m_done;                                      \
-                                                                             \
-    ac->script_hints_init     = h_init;                                      \
-    ac->script_hints_apply    = h_apply;                                     \
+#define AF_DEFINE_SCRIPT_CLASS( script_class, script_, ranges, m_size,     \
+                                m_init, m_scale, m_done, h_init, h_apply ) \
+  FT_LOCAL_DEF( void )                                                     \
+  FT_Init_Class_##script_class( AF_ScriptClassRec* ac )                    \
+  {                                                                        \
+    ac->script               = script_;                                    \
+    ac->script_uni_ranges    = ranges;                                     \
+                                                                           \
+    ac->script_metrics_size  = m_size;                                     \
+                                                                           \
+    ac->script_metrics_init  = m_init;                                     \
+    ac->script_metrics_scale = m_scale;                                    \
+    ac->script_metrics_done  = m_done;                                     \
+                                                                           \
+    ac->script_hints_init    = h_init;                                     \
+    ac->script_hints_apply   = h_apply;                                    \
   }
-#endif
+
+#endif 
 
 
 

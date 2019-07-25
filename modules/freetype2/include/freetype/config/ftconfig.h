@@ -96,10 +96,6 @@ FT_BEGIN_HEADER
 
 
   
-#define FT_ALIGNMENT  8
-
-
-  
   
 #ifndef FT_UNUSED
 #define FT_UNUSED( arg )  ( (arg) = (arg) )
@@ -124,15 +120,17 @@ FT_BEGIN_HEADER
   
   
   
-#if ( defined( __APPLE__ ) && !defined( DARWIN_NO_CARBON ) ) || \
-    ( defined( __MWERKS__ ) && defined( macintosh )        )
+#if defined( __APPLE__ ) || ( defined( __MWERKS__ ) && defined( macintosh ) )
   
+  
+  
+#include <errno.h>
+#ifdef ECANCELED 
 #include "AvailabilityMacros.h"
+#endif
 #if defined( __LP64__ ) && \
     ( MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4 )
-#define DARWIN_NO_CARBON 1
-#else
-#define FT_MACINTOSH 1
+#undef FT_MACINTOSH
 #endif
 
 #elif defined( __SC__ ) || defined( __MRC__ )
@@ -348,14 +346,14 @@ FT_BEGIN_HEADER
     register FT_Int32  t, t2;
 
 
-    asm __volatile__ (
-      "smull  %1, %2, %4, %3\n\t"   
-      "mov    %0, %2, asr #31\n\t"  
-      "add    %0, %0, #0x8000\n\t"  
-      "adds   %1, %1, %0\n\t"       
-      "adc    %2, %2, #0\n\t"       
-      "mov    %0, %1, lsr #16\n\t"  
-      "orr    %0, %2, lsl #16\n\t"  
+    __asm__ __volatile__ (
+      "smull  %1, %2, %4, %3\n\t"       
+      "mov    %0, %2, asr #31\n\t"      
+      "add    %0, %0, #0x8000\n\t"      
+      "adds   %1, %1, %0\n\t"           
+      "adc    %2, %2, #0\n\t"           
+      "mov    %0, %1, lsr #16\n\t"      
+      "orr    %0, %0, %2, lsl #16\n\t"  
       : "=r"(a), "=&r"(t2), "=&r"(t)
       : "r"(a), "r"(b) );
     return a;
@@ -388,6 +386,43 @@ FT_BEGIN_HEADER
       : "=a"(result), "=d"(b)
       : "a"(a), "d"(b)
       : "%ecx", "cc" );
+    return result;
+  }
+
+#endif 
+
+#endif 
+
+
+#ifdef _MSC_VER 
+
+#ifdef _M_IX86
+
+#define FT_MULFIX_ASSEMBLER  FT_MulFix_i386
+
+  
+
+  static __inline FT_Int32
+  FT_MulFix_i386( FT_Int32  a,
+                  FT_Int32  b )
+  {
+    register FT_Int32  result;
+
+    __asm
+    {
+      mov eax, a
+      mov edx, b
+      imul edx
+      mov ecx, edx
+      sar ecx, 31
+      add ecx, 8000h
+      add eax, ecx
+      adc edx, 0
+      shr eax, 16
+      shl edx, 16
+      add eax, edx
+      mov result, eax
+    }
     return result;
   }
 

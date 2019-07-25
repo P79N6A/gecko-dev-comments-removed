@@ -71,10 +71,6 @@ FT_BEGIN_HEADER
 
 
   
-#define FT_ALIGNMENT  8
-
-
-  
   
 #ifndef FT_UNUSED
 #define FT_UNUSED( arg )  ( (arg) = (arg) )
@@ -99,15 +95,17 @@ FT_BEGIN_HEADER
   
   
   
-#if ( defined( __APPLE__ ) && !defined( DARWIN_NO_CARBON ) ) || \
-    ( defined( __MWERKS__ ) && defined( macintosh )        )
+#if defined( __APPLE__ ) || ( defined( __MWERKS__ ) && defined( macintosh ) )
   
+  
+  
+#include <errno.h>
+#ifdef ECANCELED 
 #include "AvailabilityMacros.h"
+#endif
 #if defined( __LP64__ ) && \
     ( MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4 )
-#define DARWIN_NO_CARBON 1
-#else
-#define FT_MACINTOSH 1
+#undef FT_MACINTOSH
 #endif
 
 #elif defined( __SC__ ) || defined( __MRC__ )

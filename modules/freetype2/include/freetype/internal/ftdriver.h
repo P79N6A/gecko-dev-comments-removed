@@ -179,7 +179,6 @@ FT_BEGIN_HEADER
   
   
   
-  
   typedef struct  FT_Driver_ClassRec_
   {
     FT_Module_Class           root;
@@ -274,6 +273,8 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
 #ifndef FT_CONFIG_OPTION_PIC
 
 #ifdef FT_CONFIG_OPTION_OLD_INTERNALS
@@ -285,7 +286,7 @@ FT_BEGIN_HEADER
 
 #define FT_DECLARE_DRIVER(class_)    \
   FT_CALLBACK_TABLE                  \
-  const FT_Driver_ClassRec  class_;  
+  const FT_Driver_ClassRec  class_;
 
 #define FT_DEFINE_DRIVER(class_,                                             \
                          flags_, size_, name_, version_, requires_,          \
@@ -327,7 +328,7 @@ FT_BEGIN_HEADER
     select_size_                                                             \
   };
 
-#else  
+#else 
 
 #ifdef FT_CONFIG_OPTION_OLD_INTERNALS
 #define FT_DEFINE_DRIVERS_OLD_INTERNALS(a_,b_) \
@@ -348,8 +349,6 @@ FT_BEGIN_HEADER
                          old_set_char_sizes_, old_set_pixel_sizes_,          \
                          load_glyph_, get_kerning_, attach_file_,            \
                          get_advances_, request_size_, select_size_ )        \
-  void class_##_pic_free( FT_Library library );                              \
-  FT_Error class_##_pic_init( FT_Library library );                          \
                                                                              \
   void                                                                       \
   FT_Destroy_Class_##class_( FT_Library        library,                      \
@@ -409,7 +408,7 @@ FT_BEGIN_HEADER
                                                                              \
     *output_class = (FT_Module_Class*)clazz;                                 \
     return FT_Err_Ok;                                                        \
-  }                
+  }
 
 
 #endif 

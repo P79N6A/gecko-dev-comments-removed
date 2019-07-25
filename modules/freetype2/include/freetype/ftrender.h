@@ -212,6 +212,14 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
   FT_EXPORT( FT_Error )
   FT_Set_Renderer( FT_Library     library,
                    FT_Renderer    renderer,
