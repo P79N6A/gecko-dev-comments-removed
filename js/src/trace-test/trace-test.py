@@ -1,4 +1,4 @@
-
+# trace-test.py -- Python harness for JavaScript trace tests.
 
 import datetime, os, re, sys, traceback
 import subprocess
@@ -16,7 +16,7 @@ DEBUGGER_INFO = {
   }
 }
 
-
+# Backported from Python 3.1 posixpath.py
 def _relpath(path, start=None):
     """Return a relative version of a path"""
 
@@ -29,7 +29,7 @@ def _relpath(path, start=None):
     start_list = os.path.abspath(start).split(os.sep)
     path_list = os.path.abspath(path).split(os.sep)
 
-    
+    # Work out how much of the filepath is shared by start and path.
     i = len(os.path.commonprefix([start_list, path_list]))
 
     rel_list = [os.pardir] * (len(start_list)-i) + path_list[i:]
@@ -114,7 +114,7 @@ def get_test_cmd(path, lib_dir):
     if OPTIONS.methodjit_only:
         jit_flags = [ '-m' ]
     else:
-        jit_flags = [ '-m' ]
+        jit_flags = [ '-m', '-j' ]
     return [ JS ] + jit_flags + [ '-e', expr, '-f', os.path.join(lib_dir, 'prolog.js'),
              '-f', path ]
 
@@ -140,7 +140,7 @@ def run_test(test, lib_dir):
 
     if OPTIONS.show_cmd:
         print(cmd)
-    
+    # close_fds is not supported on Windows and will cause a ValueError.
     close_fds = sys.platform != 'win32'
     p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, close_fds=close_fds, env=env)
     out, err = p.communicate()
@@ -148,6 +148,7 @@ def run_test(test, lib_dir):
     if OPTIONS.show_output:
         sys.stdout.write(out)
         sys.stdout.write(err)
+	sys.stdout.write('Exit code: ' + str(p.returncode) + "\n")
     if test.valgrind:
         sys.stdout.write(err)
     return (check_output(out, err, p.returncode, test.allow_oom, test.error), 
@@ -166,8 +167,8 @@ def check_output(out, err, rc, allow_oom, expectedError):
             return False
 
     if rc != 0:
-        
-        
+        # Allow a non-zero exit code if we want to allow OOM, but only if we
+        # actually got OOM.
         return allow_oom and ': out of memory' in err
 
     return True
@@ -247,8 +248,8 @@ if __name__ == '__main__':
     test_dir = os.path.join(script_dir, 'tests')
     lib_dir = os.path.join(script_dir, 'lib')
 
-    
-    
+    # The [TESTS] optional arguments are paths of test files relative
+    # to the trace-test/tests directory.
 
     from optparse import OptionParser
     op = OptionParser(usage='%prog [options] JS_SHELL [TESTS]')
@@ -283,7 +284,7 @@ if __name__ == '__main__':
     (OPTIONS, args) = op.parse_args()
     if len(args) < 1:
         op.error('missing JS_SHELL argument')
-    
+    # We need to make sure we are using backslashes on Windows.
     JS, test_args = os.path.normpath(args[0]), args[1:]
 
     if OPTIONS.retest:

@@ -66,6 +66,8 @@ enum JSFrameFlags {
     JSFRAME_FLOATING_GENERATOR =  0x20, 
     JSFRAME_YIELDING           =  0x40, 
     JSFRAME_GENERATOR          =  0x80, 
+    JSFRAME_BAILING            = 0x100, 
+    JSFRAME_RECORDING          = 0x200, 
 
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };
@@ -368,7 +370,7 @@ extern JS_REQUIRES_STACK bool
 InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args);
 
 extern JS_REQUIRES_STACK bool
-Interpret(JSContext *cx);
+Interpret(JSContext *cx, JSStackFrame *stopFp, uintptr_t inlineCallCount = 0);
 
 extern JS_REQUIRES_STACK bool
 RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain);

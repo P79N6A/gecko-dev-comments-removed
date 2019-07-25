@@ -22,6 +22,6 @@ function h() {
 h();
 
 checkStats({
-  recorderAborted: 9,      
+  recorderAborted: 8,      // Inner tree is trying to grow
 });
 

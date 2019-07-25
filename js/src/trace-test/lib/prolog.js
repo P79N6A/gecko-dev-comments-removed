@@ -1,4 +1,4 @@
-
+/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 const HAVE_TM = 'tracemonkey' in this;
 
@@ -12,13 +12,13 @@ if (HAVE_TM) {
     {
         function jit(on)
         {
-          if (on && !options().match(/jit/))
+          if (on && !options().match(/tracejit/))
           {
-            options('jit');
+            options('tracejit');
           }
-          else if (!on && options().match(/jit/))
+          else if (!on && options().match(/tracejit/))
           {
-            options('jit');
+            options('tracejit');
           }
         }
 

@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
+ * May 28, 2008.
+ *
+ * The Initial Developer of the Original Code is
+ *   Brendan Eich <brendan@mozilla.org>
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "MethodJIT.h"
 #include "Logging.h"
@@ -89,7 +89,7 @@ JS_STATIC_ASSERT(offsetof(JSFrameRegs, sp) == 0);
 
 #if defined(__GNUC__)
 
-
+/* If this assert fails, you need to realign VMFrame to 16 bytes. */
 #ifdef JS_CPU_ARM
 JS_STATIC_ASSERT(sizeof(VMFrame) % 8 == 0);
 #else
@@ -98,11 +98,11 @@ JS_STATIC_ASSERT(sizeof(VMFrame) % 16 == 0);
 
 # if defined(JS_CPU_X64)
 
-
-
-
-
-
+/*
+ *    *** DANGER ***
+ * If these assertions break, update the constants below.
+ *    *** DANGER ***
+ */
 JS_STATIC_ASSERT(offsetof(VMFrame, savedRBX) == 0x48);
 JS_STATIC_ASSERT(offsetof(VMFrame, fp) == 0x30);
 
@@ -110,40 +110,40 @@ asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerTrampoline) "\n"
 SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
-    
+    /* Prologue. */
     "pushq %rbp"                         "\n"
     "movq %rsp, %rbp"                    "\n"
-    
+    /* Save non-volatile registers. */
     "pushq %r12"                         "\n"
     "pushq %r13"                         "\n"
     "pushq %r14"                         "\n"
     "pushq %r15"                         "\n"
     "pushq %rbx"                         "\n"
 
-    
-
-
-
-
-
+    /* Build the JIT frame.
+     * rdi = cx
+     * rsi = fp
+     * rcx = inlineCallCount
+     * fp must go into rbx
+     */
     "pushq %rcx"                         "\n"
     "pushq %rdi"                         "\n"
     "pushq %rsi"                         "\n"
     "movq  %rsi, %rbx"                   "\n"
 
-    
+    /* Space for the rest of the VMFrame. */
     "subq  $0x28, %rsp"                  "\n"
 
-    
+    /* Set cx->regs (requires saving rdx). */
     "pushq %rdx"                         "\n"
     "movq  %rsp, %rdi"                   "\n"
     "call " SYMBOL_STRING_RELOC(SetVMFrameRegs) "\n"
     "popq  %rdx"                         "\n"
 
-    
-
-
-
+    /*
+     * Jump into into the JIT'd code. The call implicitly fills in
+     * the precious f.scriptedReturn member of VMFrame.
+     */
     "call *%rdx"                         "\n"
     "leaq -8(%rsp), %rdi"                "\n"
     "call " SYMBOL_STRING_RELOC(UnsetVMFrameRegs) "\n"
@@ -183,20 +183,20 @@ asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerFromTracer)   "\n"
 SYMBOL_STRING(JaegerFromTracer) ":"         "\n"
-    
+    /* Restore fp reg. */
     "movq 0x30(%rsp), %rbx"                 "\n"
     "jmp *%rax"                             "\n"
 );
 
 # elif defined(JS_CPU_X86)
 
-
-
-
-
-
-
-
+/*
+ *    *** DANGER ***
+ * If these assertions break, update the constants below. The throwpoline
+ * should have the offset of savedEBX plus 4, because it needs to clean
+ * up the argument.
+ *    *** DANGER ***
+ */
 JS_STATIC_ASSERT(offsetof(VMFrame, savedEBX) == 0x2c);
 JS_STATIC_ASSERT(offsetof(VMFrame, fp) == 0x20);
 
@@ -204,23 +204,23 @@ asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerTrampoline) "\n"
 SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
-    
+    /* Prologue. */
     "pushl %ebp"                         "\n"
     "movl %esp, %ebp"                    "\n"
-    
+    /* Save non-volatile registers. */
     "pushl %esi"                         "\n"
     "pushl %edi"                         "\n"
     "pushl %ebx"                         "\n"
 
-    
-
+    /* Build the JIT frame. Push fields in order, 
+     * then align the stack to form esp == VMFrame. */
     "pushl 20(%ebp)"                     "\n"
     "pushl 8(%ebp)"                      "\n"
     "pushl 12(%ebp)"                     "\n"
     "movl  12(%ebp), %ebx"               "\n"
     "subl $0x1c, %esp"                   "\n"
 
-    
+    /* Jump into the JIT'd code. */
     "pushl 16(%ebp)"                     "\n"
     "movl  %esp, %ecx"                   "\n"
     "call " SYMBOL_STRING_RELOC(SetVMFrameRegs) "\n"
@@ -243,15 +243,15 @@ asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
 SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
-    
+    /* Align the stack to 16 bytes. */
     "pushl %esp"                         "\n"
     "pushl (%esp)"                       "\n"
     "pushl (%esp)"                       "\n"
     "pushl (%esp)"                       "\n"
     "call " SYMBOL_STRING_RELOC(js_InternalThrow) "\n"
-    
-
-
+    /* Bump the stack by 0x2c, as in the basic trampoline, but
+     * also one more word to clean up the stack for js_InternalThrow,
+     * and another to balance the alignment above. */
     "addl $0x10, %esp"                   "\n"
     "testl %eax, %eax"                   "\n"
     "je   throwpoline_exit"              "\n"
@@ -270,9 +270,11 @@ asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerFromTracer)   "\n"
 SYMBOL_STRING(JaegerFromTracer) ":"         "\n"
-    
+    "movl 0x28(%ebx), %edx"                 "\n"
+    "movl 0x2C(%ebx), %ecx"                 "\n"
+    "movl 0x3C(%ebx), %eax"                 "\n"
     "movl 0x20(%esp), %ebx"                 "\n"
-    "jmp *%eax"                             "\n"
+    "ret"                                   "\n"
 );
 
 # elif defined(JS_CPU_ARM)
@@ -284,7 +286,7 @@ asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerFromTracer)   "\n"
 SYMBOL_STRING(JaegerFromTracer) ":"         "\n"
-    
+    /* Restore frame regs. */
     "ldr r11, [sp, #32]"                    "\n"
     "bx  r0"                                "\n"
 );
@@ -293,41 +295,41 @@ asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerTrampoline)   "\n"
 SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
+    /* The trampoline for ARM looks like this:
+     *  [ lr        ]   \
+     *  [ r11       ]   |
+     *  [ r10       ]   |
+     *  [ r9        ]   | Callee-saved registers.                             
+     *  [ r8        ]   | VFP registers d8-d15 may be required here too, but  
+     *  [ r7        ]   | unconditionally preserving them might be expensive
+     *  [ r6        ]   | considering that we might not use them anyway.
+     *  [ r5        ]   |
+     *  [ r4        ]   /
+     *  [ regs      ]   \
+     *  [ ICallCnt  ]   | Parameters for the compiled code (and subsequently-called routines).
+     *  [ cx        ]   |
+     *  [ fp        ]   |
+     *  [ sp        ]   /
+     *  [ args      ]
+     *  [ ...       ]
+     *  [ padding   ]
+     *  [ exc. ret  ]  <- sp
+     */
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-
+    /* We push these in short groups (rather than using one big push operation) because it
+     * supposedly benefits Cortex-A9. TODO: Check that this is actually a benefit. */
 "   push    {r10,r11,lr}"                   "\n"
 "   push    {r7-r9}"                        "\n"
 "   push    {r4-r6}"                        "\n"
-"   mov     r11, #0"                        "\n"   
-"   push    {r11}"                          "\n"   
-"   push    {r0}"                           "\n"   
-"   push    {r1}"                           "\n"   
-"   mov     r11, r1"                        "\n"   
+"   mov     r11, #0"                        "\n"   /* r11 = inlineCallCount */
+"   push    {r11}"                          "\n"   /* inlineCallCount   */
+"   push    {r0}"                           "\n"   /* cx                */
+"   push    {r1}"                           "\n"   /* fp                */
+"   mov     r11, r1"                        "\n"   /* JSFrameReg        */
 
-    
-
-
+    /* Leave space for the VMFrame arguments. The largest slot appears to be 8 bytes for 32-bit
+     * architectures, though hard-coding this doesn't seem sensible. TODO: Use sizeof here and for
+     * the other targets. */
 
 "   sub     sp, sp, #(8*4)"                 "\n"
 
@@ -336,77 +338,77 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
 "   blx " SYMBOL_STRING_RELOC(SetVMFrameRegs) "\n"
 "   pop     {r2}"                           "\n"
 
-    
+    /* Call the compiled JavaScript function using r2 ('code'). */
 "   bl  " SYMBOL_STRING_RELOC(JaegerTrampVeneer) "\n"
 
-    
-
-
+    /* --------
+     * Tidy up: Unwind the stack pointer, restore the callee-saved registers and then return.
+     */
 
 "   mov     r0, sp"                         "\n"
 "   blx " SYMBOL_STRING_RELOC(UnsetVMFrameRegs) "\n"
 
-    
+    /* Skip past the parameters we pushed (such as cx and the like). */
 "   add     sp, sp, #(11*4)"           "\n"
 
-    
+    /* Set a 'true' return value to indicate successful completion. */
 "   mov     r0, #1"                         "\n"
 
-    
-
+    /* We pop these in short groups (rather than using one big push operation) because it
+     * supposedly benefits Cortex-A9. TODO: Check that this is actually a benefit. */
 "   pop     {r4-r6}"                        "\n"
 "   pop     {r7-r9}"                        "\n"
-"   pop     {r10,r11,pc}"                   "\n"    
+"   pop     {r10,r11,pc}"                   "\n"    /* Pop lr directly into the pc to return quickly. */
 );
 
 asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
 SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
-    
+    /* Restore 'f', as it will have been clobbered. */
 "   mov     r0, sp"                         "\n"
 
-    
+    /* Call the utility function that sets up the internal throw routine. */
 "   blx " SYMBOL_STRING_RELOC(js_InternalThrow) "\n"
     
-    
-
+    /* If 0 was returned, just bail out as normal. Otherwise, we have a 'catch' or 'finally' clause
+     * to execute. */
 "   cmp     r0, #0"                         "\n"
 "   bxne    r0"                             "\n"
 
-    
+    /* Skip past the parameters we pushed (such as cx and the like). */
 "   add     sp, sp, #(11*4)"           "\n"
 
-    
-
+    /* We pop these in short groups (rather than using one big push operation) because it
+     * supposedly benefits Cortex-A9. TODO: Check that this is actually a benefit. */
 "   pop     {r4-r6}"                        "\n"
 "   pop     {r7-r9}"                        "\n"
-"   pop     {r10,r11,pc}"                   "\n"    
+"   pop     {r10,r11,pc}"                   "\n"    /* Pop lr directly into the pc to return quickly. */
 );
 
 asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerStubVeneer)   "\n"
 SYMBOL_STRING(JaegerStubVeneer) ":"         "\n"
-    
-
-
-
-
-
-"   str     lr, [sp]"                       "\n"    
+    /* We enter this function as a veneer between a compiled method and one of the js_ stubs. We
+     * need to store the LR somewhere (so it can be modified in case on an exception) and then
+     * branch to the js_ stub as if nothing had happened.
+     * The arguments are identical to those for js_* except that the target function should be in
+     * 'ip'. TODO: This is not ABI-compliant, though it is convenient for now. I should work out
+     * which register to use to do this properly; r1 is likely because r0 gets VMFrame &f. */
+"   str     lr, [sp]"                       "\n"    /* VMFrame->veneerReturn */
 "   blx     ip"                             "\n"
-"   ldr     pc, [sp]"                       "\n"    
+"   ldr     pc, [sp]"                       "\n"    /* This should stack-predict, but only if 'sp' is used. */
 );
 
 asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerTrampVeneer)   "\n"
 SYMBOL_STRING(JaegerTrampVeneer) ":"         "\n"
-    
-
-
-"   str     lr, [sp, #4]"                   "\n"    
+    /* This is needed to store the initial scriptedReturn value, which won't
+     * get stored when invoking JaegerShot() into the middle of methods.
+     */
+"   str     lr, [sp, #4]"                   "\n"    /* VMFrame->scriptedReturn */
 "   bx      r2"                             "\n"
 );
 
@@ -417,13 +419,13 @@ SYMBOL_STRING(JaegerTrampVeneer) ":"         "\n"
 
 #if defined(JS_CPU_X86)
 
-
-
-
-
-
-
-
+/*
+ *    *** DANGER ***
+ * If these assertions break, update the constants below. The throwpoline
+ * should have the offset of savedEBX plus 4, because it needs to clean
+ * up the argument.
+ *    *** DANGER ***
+ */
 JS_STATIC_ASSERT(offsetof(VMFrame, savedEBX) == 0x2c);
 JS_STATIC_ASSERT(offsetof(VMFrame, fp) == 0x20);
 
@@ -432,8 +434,11 @@ extern "C" {
     __declspec(naked) void JaegerFromTracer()
     {
         __asm {
+            mov edx, [ebx + 0x28];
+            mov ecx, [ebx + 0x2C];
+            mov eax, [ebx + 0x3C];
             mov ebx, [esp + 0x20];
-            jmp eax;
+            ret;
         }
     }
 
@@ -441,23 +446,23 @@ extern "C" {
                                               uintptr_t inlineCallCount)
     {
         __asm {
-            
+            /* Prologue. */
             push ebp;
             mov ebp, esp;
-            
+            /* Save non-volatile registers. */
             push esi;
             push edi;
             push ebx;
 
-            
-
+            /* Build the JIT frame. Push fields in order, 
+             * then align the stack to form esp == VMFrame. */
             push [ebp+20];
             push [ebp+8];
             push [ebp+12];
             mov  ebx, [ebp+12];
             sub  esp, 0x1c;
 
-            
+            /* Jump into into the JIT'd code. */
             push [ebp+16];
             mov  ecx, esp;
             call SetVMFrameRegs;
@@ -482,15 +487,15 @@ extern "C" {
 
     __declspec(naked) void *JaegerThrowpoline(js::VMFrame *vmFrame) {
         __asm {
-            
+            /* Align the stack to 16 bytes. */
             push esp;
             push [esp];
             push [esp];
             push [esp];
             call js_InternalThrow;
-            
-
-
+            /* Bump the stack by 0x2c, as in the basic trampoline, but
+             * also one more word to clean up the stack for js_InternalThrow,
+             * and another to balance the alignment above. */
             add esp, 0x10;
             test eax, eax;
             je throwpoline_exit;
@@ -509,21 +514,21 @@ extern "C" {
 
 #elif defined(JS_CPU_X64)
 
-
-
-
-
-
+/*
+ *    *** DANGER ***
+ * If these assertions break, update the constants below.
+ *    *** DANGER ***
+ */
 JS_STATIC_ASSERT(offsetof(VMFrame, savedRBX) == 0x48);
 JS_STATIC_ASSERT(offsetof(VMFrame, fp) == 0x30);
 
-
-
+// Windows x64 uses assembler version since compiler doesn't support
+// inline assembler
 #else
 #  error "Unsupported CPU!"
 #endif
 
-#endif                   
+#endif                   /* _MSC_VER */
 
 bool
 ThreadData::Initialize()
@@ -583,7 +588,7 @@ ThreadData::purge(JSContext *cx)
         ic::PurgePICs(cx, script);
 #endif
 #if defined JS_MONOIC
-        
+        //PurgeMICs(cs, script);
 #endif
     }
 
@@ -663,7 +668,7 @@ mjit::ReleaseScriptCode(JSContext *cx, JSScript *script)
     if (script->execPool) {
         script->execPool->release();
         script->execPool = NULL;
-        
+        // Releasing the execPool takes care of releasing the code.
         script->ncode = NULL;
 #ifdef DEBUG
         script->jitLength = 0;
@@ -693,7 +698,7 @@ mjit::ReleaseScriptCode(JSContext *cx, JSScript *script)
     }
 #endif
 
-# if 0 
+# if 0 /* def JS_TRACER */
     if (script->trees) {
         cx->free(script->trees);
         script->trees = NULL;

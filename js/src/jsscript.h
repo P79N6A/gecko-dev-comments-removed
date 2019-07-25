@@ -241,11 +241,6 @@ struct JSScript {
     }
 # endif
 #endif
-#if 0 
-    js::TraceTreeCache  *trees; 
-    uint32          tmGen;      
-#endif
-    uint32          tracePoints; 
 
     
     jssrcnote *notes() { return (jssrcnote *)(code + length); }
