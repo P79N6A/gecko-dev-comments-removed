@@ -35,6 +35,7 @@
 
 
 
+#undef NDEBUG
 #include <assert.h>
 #include <cstring>
 #include <cstdlib>
@@ -255,8 +256,7 @@ private:
                     
                     addr = -1;
                 } else {
-                    fprintf(stderr, "Unsupported symbol in relocation: %s\n", name);
-                    break;
+                    throw std::runtime_error("Unsupported symbol in relocation");
                 }
             } else {
                 ElfSection *section = elf->getSection(symtab->syms[ELF32_R_SYM(r->r_info)].st_shndx);
@@ -283,7 +283,7 @@ private:
                 
                 break;
             default:
-                fprintf(stderr, "Unsupported relocation type\n");
+                throw std::runtime_error("Unsupported relocation type");
             }
         }
     }
