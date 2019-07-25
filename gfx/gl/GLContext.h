@@ -47,6 +47,7 @@ namespace mozilla {
 namespace gl {
 class GLContext;
 
+typedef uintptr_t SharedTextureHandle;
 
 enum ShaderProgramType {
     RGBALayerProgramType,
@@ -96,6 +97,11 @@ public:
         UseNearestFilter = 0x1,
         NeedsYFlip       = 0x2,
         ForceSingleTile  = 0x4
+    };
+
+    enum TextureShareType {
+        ThreadShared     = 0x0,
+        ProcessShared    = 0x1
     };
 
     typedef gfxASurface::gfxContentType ContentType;
@@ -847,7 +853,43 @@ public:
         return IsExtensionSupported(EXT_framebuffer_blit) || IsExtensionSupported(ANGLE_framebuffer_blit);
     }
 
+    
 
+
+    virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType) { return nsnull; }
+    
+
+
+
+
+    virtual void UpdateSharedHandle(TextureImage::TextureShareType aType,
+                                    SharedTextureHandle aSharedHandle) { }
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual void ReleaseSharedHandle(TextureImage::TextureShareType aType,
+                                     SharedTextureHandle aSharedHandle) { }
+    
+
+
+
+    virtual bool AttachSharedHandle(TextureImage::TextureShareType aType,
+                                    SharedTextureHandle aSharedHandle) { return false; }
+    
+
+
+    virtual void DetachSharedHandle(TextureImage::TextureShareType aType,
+                                    SharedTextureHandle aSharedHandle) { return; }
 
 private:
     GLuint mUserBoundDrawFBO;
