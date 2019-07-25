@@ -1963,7 +1963,7 @@ nsCanvasRenderingContext2D::DrawPath(Style style, gfxRect *dirtyRect)
     PRBool doUseIntermediateSurface = PR_FALSE;
     
     if (mSurface->GetType() == gfxASurface::SurfaceTypeD2D) {
-      if (style == STYLE_FILL) {
+      if (style != STYLE_FILL) {
         
         
         
