@@ -2236,6 +2236,16 @@ mjit::Compiler::generateMethod()
             jsbytecode *next = &PC[JSOP_SETLOCAL_LENGTH];
             bool pop = JSOp(*next) == JSOP_POP && !analysis->jumpTarget(next);
             frame.storeArg(GET_SLOTNO(PC), pop);
+
+            
+
+
+
+
+            uint32 slot = analyze::ArgSlot(GET_SLOTNO(PC));
+            if (a->varTypes[slot].type == JSVAL_TYPE_DOUBLE && fixDoubleSlot(slot))
+                frame.ensureDouble(frame.getArg(GET_SLOTNO(PC)));
+
             if (pop) {
                 frame.pop();
                 PC += JSOP_SETARG_LENGTH + JSOP_POP_LENGTH;
@@ -2257,6 +2267,11 @@ mjit::Compiler::generateMethod()
             jsbytecode *next = &PC[JSOP_SETLOCAL_LENGTH];
             bool pop = JSOp(*next) == JSOP_POP && !analysis->jumpTarget(next);
             frame.storeLocal(GET_SLOTNO(PC), pop, true);
+
+            uint32 slot = analyze::LocalSlot(script, GET_SLOTNO(PC));
+            if (a->varTypes[slot].type == JSVAL_TYPE_DOUBLE && fixDoubleSlot(slot))
+                frame.ensureDouble(frame.getLocal(GET_SLOTNO(PC)));
+
             if (pop) {
                 frame.pop();
                 PC += JSOP_SETLOCAL_LENGTH + JSOP_POP_LENGTH;
@@ -7089,7 +7104,7 @@ mjit::Compiler::fixDoubleTypes(jsbytecode *target)
 
 
 
-    Vector<SlotType, 8, CompilerAllocPolicy> restoreTypes(CompilerAllocPolicy(cx, *this));
+
     const analyze::SlotValue *newv = analysis->newValues(target);
     if (newv) {
         while (newv->slot) {
@@ -7100,33 +7115,18 @@ mjit::Compiler::fixDoubleTypes(jsbytecode *target)
             }
             if (newv->slot < analyze::TotalSlots(script)) {
                 VarType &vt = a->varTypes[newv->slot];
-                restoreTypes.append(SlotType(newv->slot, vt));
-                vt.types = analysis->getValueTypes(newv->value);
-                vt.type = vt.types->getKnownTypeTag(cx);
+                if (vt.type == JSVAL_TYPE_INT32) {
+                    types::TypeSet *targetTypes = analysis->getValueTypes(newv->value);
+                    if (targetTypes->getKnownTypeTag(cx) == JSVAL_TYPE_DOUBLE &&
+                        fixDoubleSlot(newv->slot)) {
+                        fixedDoubleEntries.append(newv->slot);
+                        FrameEntry *fe = frame.getOrTrack(newv->slot);
+                        frame.ensureDouble(fe);
+                    }
+                }
             }
             newv++;
         }
-    }
-
-    for (uint32 slot = analyze::ArgSlot(0); slot < analyze::TotalSlots(script); slot++) {
-        if (!fixDoubleSlot(slot))
-            continue;
-        if (a->varTypes[slot].type == JSVAL_TYPE_DOUBLE) {
-            FrameEntry *fe = frame.getOrTrack(slot);
-            if (!fe->isType(JSVAL_TYPE_DOUBLE)) {
-                
-
-
-
-                fixedDoubleEntries.append(frame.indexOfFe(fe));
-                frame.ensureDouble(fe);
-            }
-        }
-    }
-
-    for (unsigned i = 0; i < restoreTypes.length(); i++) {
-        const SlotType &rt = restoreTypes[i];
-        a->varTypes[rt.slot] = rt.vt;
     }
 }
 
