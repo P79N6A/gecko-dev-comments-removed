@@ -2272,6 +2272,7 @@ var SelectHelperUI = {
   get showFilter() {
     return this._showFilter;
   },
+
   set showFilter(val) {
     this._showFilter = val;
     if (!this._panel.hidden)
@@ -2461,6 +2462,15 @@ var SelectHelperUI = {
       clearAll: aClearAll
     };
     Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:ChoiceSelect", json);
+
+    
+    if (!this._list.multiple) {
+      this._updateControl();
+      
+      
+      this._selectedIndexes = [aIndex];
+    }
+
   }
 };
 

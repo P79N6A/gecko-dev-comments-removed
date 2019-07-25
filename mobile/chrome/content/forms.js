@@ -195,6 +195,21 @@ FormAssistant.prototype = {
         
         
         this._selectWrapper.fireOnChange();
+
+        
+        
+        
+        
+        let self = this;
+        let timer = new Util.Timeout(function() {
+          let currentElement = self.currentElement;
+          if (!currentElement)
+            return;
+
+          self._elements = [];
+          self._currentIndex = self._getAllElements(currentElement);
+        });
+        timer.once(0);
         break;
       }
 
