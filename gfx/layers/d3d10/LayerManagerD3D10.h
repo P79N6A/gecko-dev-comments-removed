@@ -49,6 +49,8 @@
 namespace mozilla {
 namespace layers {
 
+class Nv3DVUtils;
+
 
 
 
@@ -141,6 +143,11 @@ public:
   void SetViewport(const nsIntSize &aViewport);
   const nsIntSize &GetViewport() { return mViewport; }
 
+  
+
+
+  Nv3DVUtils *GetNv3DVUtils()  { return mNv3DVUtils; }
+
   static void LayerManagerD3D10::ReportFailure(const nsACString &aMsg, HRESULT aCode);
 
 private:
@@ -165,6 +172,9 @@ private:
   CallbackInfo mCurrentCallbackInfo;
 
   nsIntSize mViewport;
+
+   
+  nsAutoPtr<Nv3DVUtils> mNv3DVUtils; 
 
   
 
@@ -203,6 +213,12 @@ public:
 
   
   virtual void LayerManagerDestroyed() {}
+
+  
+
+
+  Nv3DVUtils *GetNv3DVUtils()  { return mD3DManager->GetNv3DVUtils(); }
+
 
   void SetEffectTransformAndOpacity()
   {

@@ -48,6 +48,8 @@
 #include "CanvasLayerD3D10.h"
 #include "ImageLayerD3D10.h"
 
+#include "../d3d9/Nv3DVUtils.h"
+
 namespace mozilla {
 namespace layers {
 
@@ -98,9 +100,33 @@ LayerManagerD3D10::Initialize()
 {
   HRESULT hr;
 
+  
+  if (!mNv3DVUtils) {
+    mNv3DVUtils = new Nv3DVUtils();
+    if (!mNv3DVUtils) {
+      NS_WARNING("Could not create a new instance of Nv3DVUtils.\n");
+    }
+  }
+
+  
+  if (mNv3DVUtils) {
+    mNv3DVUtils->Initialize();
+  }
+
   mDevice = gfxWindowsPlatform::GetPlatform()->GetD3D10Device();
   if (!mDevice) {
       return false;
+  }
+
+  
+
+
+  if (mNv3DVUtils) {
+    IUnknown* devUnknown = NULL;
+    if (mDevice) {
+      mDevice->QueryInterface(IID_IUnknown, (void **)&devUnknown);
+    }
+    mNv3DVUtils->SetDeviceInfo(devUnknown);
   }
 
   UINT size = sizeof(ID3D10Effect*);
