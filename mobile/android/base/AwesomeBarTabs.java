@@ -320,7 +320,9 @@ public class AwesomeBarTabs extends TabHost {
     
     public boolean onBackPressed() {
         
-        if (!getCurrentTabTag().equals(BOOKMARKS_TAB))
+        
+        if (!getCurrentTabTag().equals(BOOKMARKS_TAB) ||
+                mBookmarksAdapter == null)
             return false;
 
         return mBookmarksAdapter.moveToParentFolder();
