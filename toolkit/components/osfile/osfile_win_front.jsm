@@ -456,9 +456,227 @@
      
 
 
+
+     let gFindData = new OS.Shared.Type.FindData.implementation();
+     let gFindDataPtr = gFindData.address();
+
+     
+
+
+     let gSystemTime = new OS.Shared.Type.SystemTime.implementation();
+     let gSystemTimePtr = gSystemTime.address();
+
+     
+
+
+     let FILETIME_to_Date = function FILETIME_to_Date(fileTime) {
+       LOG("fileTimeToDate:", fileTime);
+       if (fileTime == null) {
+         throw new TypeError("Expecting a non-null filetime");
+       }
+       LOG("fileTimeToDate normalized:", fileTime);
+       throw_on_zero("FILETIME_to_Date", WinFile.FileTimeToSystemTime(fileTime.address(),
+                                                  gSystemTimePtr));
+       return new Date(gSystemTime.wYear, gSystemTime.wMonth,
+                       gSystemTime.wDay, gSystemTime.wHour,
+                       gSystemTime.wMinute, gSystemTime.wSecond,
+                       gSystemTime.wMilliSeconds);
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+     File.DirectoryIterator = function DirectoryIterator(path, options) {
+       if (options && options.winPattern) {
+         this._pattern = path + "\\" + options.winPattern;
+       } else {
+         this._pattern = path + "\\*";
+       }
+       this._handle = null;
+       this._path = path;
+       this._started = false;
+     };
+     File.DirectoryIterator.prototype = {
+       __iterator__: function __iterator__() {
+         return this;
+       },
+
+       
+
+
+
+
+       _next: function _next() {
+         
+         
+         if (!this._started) {
+            this._started = true;
+            this._handle = WinFile.FindFirstFile(this._pattern, gFindDataPtr);
+            if (this._handle == null) {
+              let error = ctypes.winLastError;
+              if (error == Const.ERROR_FILE_NOT_FOUND) {
+                this.close();
+                return null;
+              } else {
+                throw new File.Error("iter (FindFirstFile)", error);
+              }
+            }
+            return gFindData;
+         }
+
+         
+         if (!this._handle) {
+           return null;
+         }
+
+         if (WinFile.FindNextFile(this._handle, gFindDataPtr)) {
+           return gFindData;
+         } else {
+           let error = ctypes.winLastError;
+           this.close();
+           if (error == Const.ERROR_NO_MORE_FILES) {
+              return null;
+           } else {
+              throw new File.Error("iter (FindNextFile)", error);
+           }
+         }
+       },
+       
+
+
+
+
+
+
+
+
+
+       next: function next() {
+         
+         
+         
+         for (let entry = this._next(); entry != null; entry = this._next()) {
+           let name = entry.cFileName.readString();
+           if (name == "." || name == "..") {
+             continue;
+           }
+           return new File.DirectoryIterator.Entry(entry, this._path);
+         }
+         throw StopIteration;
+       },
+       close: function close() {
+         if (!this._handle) {
+           return;
+         }
+         WinFile.FindClose(this._handle);
+         this._handle = null;
+       }
+     };
+     File.DirectoryIterator.Entry = function Entry(win_entry, parent) {
+       
+       
+       if (!win_entry.dwFileAttributes) {
+         throw new TypeError();
+       }
+       this._dwFileAttributes = win_entry.dwFileAttributes;
+       this._name = win_entry.cFileName.readString();
+       if (!this._name) {
+         throw new TypeError("Empty name");
+       }
+       this._ftCreationTime = win_entry.ftCreationTime;
+       if (!win_entry.ftCreationTime) {
+         throw new TypeError();
+       }
+       this._ftLastAccessTime = win_entry.ftLastAccessTime;
+       if (!win_entry.ftLastAccessTime) {
+         throw new TypeError();
+       }
+       this._ftLastWriteTime = win_entry.ftLastWriteTime;
+       if (!win_entry.ftLastWriteTime) {
+         throw new TypeError();
+       }
+       if (!parent) {
+         throw new TypeError("Empty parent");
+       }
+       this._parent = parent;
+     };
+     File.DirectoryIterator.Entry.prototype = {
+       
+
+
+       get isDir() {
+         return this._dwFileAttributes & Const.FILE_ATTRIBUTE_DIRECTORY;
+       },
+       
+
+
+       get isLink() {
+         return this._dwFileAttributes & Const.FILE_ATTRIBUTE_REPARSE_POINT;
+       },
+       
+
+
+
+       get name() {
+         return this._name;
+       },
+       
+
+
+
+       get winCreationTime() {
+         let date = FILETIME_to_Date(this._ftCreationTime);
+         delete this.winCreationTime;
+         Object.defineProperty(this, "winCreationTime", {value: date});
+         return date;
+       },
+       
+
+
+
+       get winLastWriteTime() {
+         let date = FILETIME_to_Date(this._ftLastWriteTime);
+         delete this.winLastWriteTime;
+         Object.defineProperty(this, "winLastWriteTime", {value: date});
+         return date;
+       },
+       
+
+
+
+       get winLastAccessTime() {
+         let date = FILETIME_to_Date(this._ftLastAccessTime);
+         delete this.winLastAccessTime;
+         Object.defineProperty(this, "winLastAccessTime", {value: date});
+         return date;
+       },
+       
+
+
+
+       get path() {
+         delete this.path;
+         let path = OS.Win.Path.join(this._parent, this.name);
+         Object.defineProperty(this, "path", {value: path});
+         return path;
+       }
+     };
+
+     
+
+
      Object.defineProperty(File, "curDir", {
          set: function(path) {
-	   throw_on_zero("set curDir",
+           throw_on_zero("set curDir",
              WinFile.SetCurrentDirectory(path));
          },
          get: function() {
