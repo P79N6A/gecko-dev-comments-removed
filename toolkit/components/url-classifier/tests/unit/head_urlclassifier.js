@@ -304,4 +304,33 @@ notify: function(timer) {
   }
 }
 
+
+
+
+
+function LFSRgenerator(seed) {
+  
+  seed = +seed;
+  
+  if (seed == 0)
+    seed = 1;
+
+  this._value = seed;
+}
+LFSRgenerator.prototype = {
+  
+  nextNum: function(bits) {
+    if (!bits)
+      bits = 32;
+
+    let val = this._value;
+    
+    let bit = ((val >>> 0) ^ (val >>> 10) ^ (val >>> 30) ^ (val >>> 31)) & 1;
+    val = (val >>> 1) | (bit << 31);
+    this._value = val;
+
+    return (val >>> (32 - bits));
+  },
+};
+
 cleanUp();
