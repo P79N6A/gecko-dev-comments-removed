@@ -2626,9 +2626,9 @@ Parser::destructuringExpr(BindData *data, TokenKind tt)
 {
     JS_ASSERT(tokenStream.isCurrentTokenType(tt));
 
-    tc->sc->flags |= TCF_DECL_DESTRUCTURING;
+    tc->inDeclDestructuring = true;
     ParseNode *pn = primaryExpr(tt, JS_FALSE);
-    tc->sc->flags &= ~TCF_DECL_DESTRUCTURING;
+    tc->inDeclDestructuring = false;
     if (!pn)
         return NULL;
     if (!CheckDestructuring(context, data, pn, this))
@@ -4207,9 +4207,9 @@ Parser::variables(ParseNodeKind kind, StaticBlockObject *blockObj, VarContext va
         TokenKind tt = tokenStream.getToken();
 #if JS_HAS_DESTRUCTURING
         if (tt == TOK_LB || tt == TOK_LC) {
-            tc->sc->flags |= TCF_DECL_DESTRUCTURING;
+            tc->inDeclDestructuring = true;
             pn2 = primaryExpr(tt, JS_FALSE);
-            tc->sc->flags &= ~TCF_DECL_DESTRUCTURING;
+            tc->inDeclDestructuring = false;
             if (!pn2)
                 return NULL;
 
@@ -5273,9 +5273,9 @@ Parser::comprehensionTail(ParseNode *kid, unsigned blockid, bool isGenexp,
 #if JS_HAS_DESTRUCTURING
           case TOK_LB:
           case TOK_LC:
-            tc->sc->flags |= TCF_DECL_DESTRUCTURING;
+            tc->inDeclDestructuring = true;
             pn3 = primaryExpr(tt, JS_FALSE);
-            tc->sc->flags &= ~TCF_DECL_DESTRUCTURING;
+            tc->inDeclDestructuring = false;
             if (!pn3)
                 return NULL;
             break;
@@ -6516,7 +6516,7 @@ Parser::identifierName(bool afterDoubleDot)
 #if JS_HAS_XML_SUPPORT
                 || (!tc->sc->inStrictMode() && tokenStream.peekToken() == TOK_DBLCOLON)
 #endif
-               ) && !(tc->sc->flags & TCF_DECL_DESTRUCTURING))
+               ) && !tc->inDeclDestructuring)
     {
         if (!NoteNameUse(node, this))
             return NULL;

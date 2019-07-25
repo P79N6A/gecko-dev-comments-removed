@@ -84,19 +84,7 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
-    
-    
-    
-    
-    
-    TCF_DECL_DESTRUCTURING =                  0x80,
-
-    
-    
-    
-    
-    
-    TCF_STRICT_MODE_CODE =                   0x100,
+    TCF_STRICT_MODE_CODE =                    0x80,
 
     
     
@@ -118,32 +106,32 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
-    TCF_BINDINGS_ACCESSED_DYNAMICALLY =      0x200,
+    TCF_BINDINGS_ACCESSED_DYNAMICALLY =      0x100,
 
     
-    TCF_COMPILE_FOR_EVAL =                   0x400,
-
-    
-    
-    TCF_FUN_MIGHT_ALIAS_LOCALS =             0x800,
-
-    
-    TCF_HAS_SINGLETONS =                    0x1000,
-
-    
-    TCF_IN_WITH =                           0x2000,
+    TCF_COMPILE_FOR_EVAL =                   0x200,
 
     
     
-    
-    
-    
-    
-    
-    TCF_FUN_EXTENSIBLE_SCOPE =              0x4000,
+    TCF_FUN_MIGHT_ALIAS_LOCALS =             0x400,
 
     
-    TCF_NEED_SCRIPT_GLOBAL =                0x8000,
+    TCF_HAS_SINGLETONS =                     0x800,
+
+    
+    TCF_IN_WITH =                           0x1000,
+
+    
+    
+    
+    
+    
+    
+    
+    TCF_FUN_EXTENSIBLE_SCOPE =              0x2000,
+
+    
+    TCF_NEED_SCRIPT_GLOBAL =                0x4000,
 
     
     
@@ -166,7 +154,7 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
-    TCF_ARGUMENTS_HAS_LOCAL_BINDING =      0x10000,
+    TCF_ARGUMENTS_HAS_LOCAL_BINDING =       0x8000,
 
     
     
@@ -177,7 +165,7 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
-    TCF_DEFINITELY_NEEDS_ARGS_OBJ =        0x20000
+    TCF_DEFINITELY_NEEDS_ARGS_OBJ =        0x10000
 
 } JS_ENUM_FOOTER(TreeContextFlags);
 
@@ -320,6 +308,17 @@ struct TreeContext {
 
     bool            hasReturnExpr:1; 
     bool            hasReturnVoid:1; 
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool            inDeclDestructuring:1;
 
     void trace(JSTracer *trc);
 
