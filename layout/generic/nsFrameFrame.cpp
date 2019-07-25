@@ -498,13 +498,21 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (NS_SUCCEEDED(rv)) {
     if (subdocRootFrame && parentAPD != subdocAPD) {
       nsDisplayZoom* zoomItem =
-        new (aBuilder) nsDisplayZoom(subdocRootFrame, &childItems,
+        new (aBuilder) nsDisplayZoom(aBuilder, subdocRootFrame, &childItems,
                                      subdocAPD, parentAPD);
       childItems.AppendToTop(zoomItem);
+    } else if (!nsContentUtils::IsChildOfSameType(presShell->GetDocument())) {
+      
+      
+      
+      nsDisplayOwnLayer* layerItem = new (aBuilder) nsDisplayOwnLayer(
+        aBuilder, subdocRootFrame ? subdocRootFrame : this, &childItems);
+      childItems.AppendToTop(layerItem);
     }
+
     
     rv = aLists.Content()->AppendNewToTop(
-        new (aBuilder) nsDisplayClip(this, this, &childItems,
+        new (aBuilder) nsDisplayClip(aBuilder, this, this, &childItems,
                                      subdocBoundsInParentUnits));
   }
   
