@@ -5,6 +5,8 @@
 
 package org.mozilla.gecko;
 
+import org.mozilla.gecko.util.GeckoBackgroundThread;
+
 
 
 
@@ -37,9 +39,9 @@ public abstract class GeckoAsyncTask<Params, Progress, Result> {
 
     public void execute(final Params... params) {
         if (mPriority == PRIORITY_HIGH)
-            GeckoAppShell.getHandler().postAtFrontOfQueue(new BackgroundTaskRunnable(params));
+            GeckoBackgroundThread.getHandler().postAtFrontOfQueue(new BackgroundTaskRunnable(params));
         else
-            GeckoAppShell.getHandler().post(new BackgroundTaskRunnable(params));
+            GeckoBackgroundThread.getHandler().post(new BackgroundTaskRunnable(params));
     }
 
     public GeckoAsyncTask<Params, Progress, Result> setPriority(int priority) {
