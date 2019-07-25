@@ -3254,6 +3254,9 @@ typedef void* GLeglImage;
 #define LOCAL_EGL_CONTEXT_LOST                0x300E
 
 
+#define LOCAL_EGL_GL_TEXTURE_2D               0x30B1
+
+
 #define LOCAL_EGL_SYNC_FENCE                  0x30F9
 #define LOCAL_EGL_SYNC_TYPE                   0x30F7
 #define LOCAL_EGL_SYNC_STATUS                 0x30F1
