@@ -189,6 +189,10 @@
 
 
 
+
+#ifndef HAVE_STATIC_ANNOTATIONS
+#define HAVE_STATIC_ANNOTATIONS
+
 #ifdef XGILL_PLUGIN
 
 #define STATIC_PRECONDITION(COND)         __attribute__((precondition(#COND)))
@@ -204,33 +208,21 @@
 
 #define STATIC_ASSERT(COND)                          \
   PR_BEGIN_MACRO                                     \
-    __attribute__((assert(#COND), unused))           \
-    int STATIC_PASTE1(static_assert_, __COUNTER__);  \
+    __attribute__((assert_static(#COND), unused))    \
+    int STATIC_PASTE1(assert_static_, __COUNTER__);  \
   PR_END_MACRO
 
 #define STATIC_ASSUME(COND)                          \
   PR_BEGIN_MACRO                                     \
-    __attribute__((assume(#COND), unused))           \
-    int STATIC_PASTE1(static_assume_, __COUNTER__);  \
+    __attribute__((assume_static(#COND), unused))    \
+    int STATIC_PASTE1(assume_static_, __COUNTER__);  \
   PR_END_MACRO
 
 #define STATIC_ASSERT_RUNTIME(COND)                         \
   PR_BEGIN_MACRO                                            \
-    __attribute__((assert_runtime(#COND), unused))          \
-    int STATIC_PASTE1(static_assert_runtime_, __COUNTER__); \
+    __attribute__((assert_static_runtime(#COND), unused))   \
+    int STATIC_PASTE1(assert_static_runtime_, __COUNTER__); \
   PR_END_MACRO
-
-
-
-
-
-#undef NS_PRECONDITION
-#undef NS_ASSERTION
-#undef NS_POSTCONDITION
-
-#define NS_PRECONDITION(expr, str)   STATIC_ASSERT_RUNTIME(expr)
-#define NS_ASSERTION(expr, str)      STATIC_ASSERT_RUNTIME(expr)
-#define NS_POSTCONDITION(expr, str)  STATIC_ASSERT_RUNTIME(expr)
 
 #else 
 
@@ -244,6 +236,26 @@
 #define STATIC_ASSERT(COND)          PR_BEGIN_MACRO /* nothing */ PR_END_MACRO
 #define STATIC_ASSUME(COND)          PR_BEGIN_MACRO /* nothing */ PR_END_MACRO
 #define STATIC_ASSERT_RUNTIME(COND)  PR_BEGIN_MACRO /* nothing */ PR_END_MACRO
+
+#endif 
+
+#define STATIC_SKIP_INFERENCE STATIC_INVARIANT(skip_inference())
+
+#endif 
+
+#ifdef XGILL_PLUGIN
+
+
+
+
+
+#undef NS_PRECONDITION
+#undef NS_ASSERTION
+#undef NS_POSTCONDITION
+
+#define NS_PRECONDITION(expr, str)   STATIC_ASSERT_RUNTIME(expr)
+#define NS_ASSERTION(expr, str)      STATIC_ASSERT_RUNTIME(expr)
+#define NS_POSTCONDITION(expr, str)  STATIC_ASSERT_RUNTIME(expr)
 
 #endif 
 
