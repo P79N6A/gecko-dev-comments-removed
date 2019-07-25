@@ -65,7 +65,9 @@
 #include "mozilla/Omnijar.h"
 #include "prenv.h"
 #include "mozilla/FunctionTimer.h"
- 
+#include "nsThreadUtils.h"
+#include "nsXULAppAPI.h"
+
 #ifdef IS_BIG_ENDIAN
 #define SC_ENDIAN "big"
 #else
@@ -128,9 +130,7 @@ StartupCache::~StartupCache()
   
   
   
-  
-  
-  
+  WaitOnWriteThread();
   WriteToDisk();
   gStartupCache = nsnull;
 }
@@ -138,6 +138,11 @@ StartupCache::~StartupCache()
 nsresult
 StartupCache::Init() 
 {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    NS_WARNING("Startup cache is only available in the chrome process");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   nsresult rv;
   mTable.Init();
 #ifdef DEBUG
@@ -201,10 +206,12 @@ StartupCache::Init()
   return NS_OK;
 }
 
+
+
+
 nsresult
 StartupCache::LoadArchive() 
 {
-  WaitOnWriteThread();
   PRBool exists;
   mArchive = NULL;
   nsresult rv = mFile->Exists(&exists);
@@ -220,6 +227,7 @@ StartupCache::LoadArchive()
 nsresult
 StartupCache::GetBuffer(const char* id, char** outbuf, PRUint32* length) 
 {
+  NS_ASSERTION(NS_IsMainThread(), "Startup cache only available on main thread");
   WaitOnWriteThread();
   if (!mStartupWriteInitiated) {
     CacheEntry* entry; 
@@ -260,6 +268,7 @@ StartupCache::GetBuffer(const char* id, char** outbuf, PRUint32* length)
 nsresult
 StartupCache::PutBuffer(const char* id, const char* inbuf, PRUint32 len) 
 {
+  NS_ASSERTION(NS_IsMainThread(), "Startup cache only available on main thread");
   WaitOnWriteThread();
   if (StartupCache::gShutdownInitiated) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -320,10 +329,14 @@ CacheCloseHelper(const nsACString& key, nsAutoPtr<CacheEntry>& data,
   return PL_DHASH_REMOVE;
 }
 
+
+
+
+
+
 void
 StartupCache::WriteToDisk() 
 {
-  WaitOnWriteThread();
   nsresult rv;
   mStartupWriteInitiated = PR_TRUE;
 
@@ -382,13 +395,12 @@ StartupCache::InvalidateCache()
 void
 StartupCache::WaitOnWriteThread()
 {
-  PRThread* writeThread = mWriteThread;
-  if (!writeThread || writeThread == PR_GetCurrentThread())
+  NS_ASSERTION(NS_IsMainThread(), "Startup cache should only wait for io thread on main thread");
+  if (!mWriteThread || mWriteThread == PR_GetCurrentThread())
     return;
 
   NS_TIME_FUNCTION_MIN(30);
-  
-  PR_JoinThread(writeThread);
+  PR_JoinThread(mWriteThread);
   mWriteThread = NULL;
 }
 
