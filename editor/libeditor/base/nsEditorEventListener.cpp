@@ -318,6 +318,24 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
 {
   NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
 
+  nsCOMPtr<nsIDOMKeyEvent>keyEvent = do_QueryInterface(aKeyEvent);
+  if (!keyEvent)
+  {
+    
+    return NS_OK;
+  }
+
+  
+  
+  nsCOMPtr<nsIDOMEventTarget> target;
+  nsresult rv = keyEvent->GetTarget(getter_AddRefs(target));
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIDOMNode> targetNode = do_QueryInterface(target);
+  if (!mEditor->IsModifiableNode(targetNode))
+  {
+    return NS_OK;
+  }
+
   
   
   
@@ -331,13 +349,6 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
     nsUIEvent->GetPreventDefault(&defaultPrevented);
     if(defaultPrevented)
       return NS_OK;
-  }
-
-  nsCOMPtr<nsIDOMKeyEvent>keyEvent = do_QueryInterface(aKeyEvent);
-  if (!keyEvent) 
-  {
-    
-    return NS_OK;
   }
 
   PRUint32 keyCode;
