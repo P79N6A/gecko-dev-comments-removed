@@ -1142,6 +1142,10 @@ nsAttrValue::ParseColor(const nsAString& aString, nsIDocument* aDocument)
 {
   ResetIfSet();
 
+  
+  
+  
+  
   nsAutoString colorStr(aString);
   colorStr.CompressWhitespace(PR_TRUE, PR_TRUE);
   if (colorStr.IsEmpty()) {
