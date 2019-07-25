@@ -1128,8 +1128,8 @@ GestureModule.prototype = {
     rect.width *= scaleRatio;
     rect.height *= scaleRatio;
 
-    rect.translateInside(new Rect(0, 0, getBrowser().contentDocumentWidth * startScale,
-                                        getBrowser().contentDocumentHeight * startScale));
+    this.translateInside(rect, new Rect(0, 0, getBrowser().contentDocumentWidth * startScale,
+                                              getBrowser().contentDocumentHeight * startScale));
 
     
     this._pinchZoom.updateTo(rect);
@@ -1143,6 +1143,19 @@ GestureModule.prototype = {
       this._pinchZoom.finish();
       this._pinchZoom = null;
     }
+  },
+
+  
+
+
+
+
+  translateInside: function translateInside(r0, r1) {
+    let offsetX = (r0.left < r1.left ? r1.left - r0.left :
+        (r0.right > r1.right ? Math.max(r1.left - r0.left, r1.right - r0.right) : 0));
+    let offsetY = (r0.top < r1.top ? r1.top - r0.top :
+        (r0.bottom > r1.bottom ? Math.max(r1.top - r0.top, r1.bottom - r0.bottom) : 0));
+    return r0.translate(offsetX, offsetY);
   }
 };
 
