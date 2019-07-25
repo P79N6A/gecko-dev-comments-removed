@@ -48,7 +48,6 @@
 #include "WrapperFactory.h"
 #include "dom_quickstubs.h"
 
-#include "jscompartment.h"
 #include "nsIMemoryReporter.h"
 #include "nsPrintfCString.h"
 #include "mozilla/FunctionTimer.h"
@@ -511,7 +510,7 @@ XPCJSRuntime::SuspectWrappedNative(JSContext *cx, XPCWrappedNative *wrapper,
     
     
     JSObject* obj = wrapper->GetFlatJSObjectPreserveColor();
-    if (!xpc::ParticipatesInCycleCollection(cx, obj))
+    if (!xpc::ParticipatesInCycleCollection(cx, js::gc::AsCell(obj)))
         return;
 
     
@@ -588,7 +587,7 @@ XPCJSRuntime::AddXPConnectRoots(JSContext* cx,
 
         
         
-        if (!xpc::ParticipatesInCycleCollection(cx, obj))
+        if (!xpc::ParticipatesInCycleCollection(cx, js::gc::AsCell(obj)))
             continue;
 
         cb.NoteXPCOMRoot(static_cast<nsIXPConnectWrappedJS *>(wrappedJS));
@@ -1507,18 +1506,20 @@ CompartmentStats::CompartmentStats(JSContext *cx, JSCompartment *c)
 
     if (c == cx->runtime->atomsCompartment) {
         name.AssignLiteral("atoms");
-    } else if (c->principals) {
-        if (c->principals->codebase) {
-            name.Assign(c->principals->codebase);
+    } else if (JSPrincipals *principals = JS_GetCompartmentPrincipals(c)) {
+        if (principals->codebase) {
+            name.Assign(principals->codebase);
 
             
             
             
-            if (c->isSystemCompartment) {
-                if (c->data &&
-                    !((xpc::CompartmentPrivate*)c->data)->location.IsEmpty()) {
+            if (js::IsSystemCompartment(c)) {
+                xpc::CompartmentPrivate *compartmentPrivate =
+                        static_cast<xpc::CompartmentPrivate*>(JS_GetCompartmentPrivate(cx, c));
+                if (compartmentPrivate &&
+                    !compartmentPrivate->location.IsEmpty()) {
                     name.AppendLiteral(", ");
-                    name.Append(((xpc::CompartmentPrivate*)c->data)->location);
+                    name.Append(compartmentPrivate->location);
                 }
 
                 
@@ -2147,12 +2148,12 @@ bool XPCJSRuntime::gNewDOMBindingsEnabled;
 
 bool PreserveWrapper(JSContext *cx, JSObject *obj)
 {
-    JS_ASSERT(obj->getClass()->ext.isWrappedNative);
+    JS_ASSERT(IS_WRAPPER_CLASS(js::GetObjectClass(obj)));
     nsISupports *native = nsXPConnect::GetXPConnect()->GetNativeOfWrapper(cx, obj);
     if (!native)
         return false;
     nsresult rv;
-    nsCOMPtr<nsINode> node = nsQueryInterfaceWithError(native, &rv);
+    nsCOMPtr<nsINode> node = do_QueryInterface(native, &rv);
     if (NS_FAILED(rv))
         return false;
     nsContentUtils::PreserveWrapper(native, node);
