@@ -284,6 +284,10 @@ function add_visits_to_database() {
 
 function run_test() {
   
+  if ("@mozilla.org/windows-registry-key;1" in Components.classes)
+    return;
+
+  
   add_visits_to_database();
 
   
