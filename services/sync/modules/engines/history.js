@@ -50,31 +50,6 @@ Cu.import("resource://services-sync/type_records/history.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/log4moz.js");
 
-
-function setGUID(uri, guid) {
-  if (arguments.length == 1)
-    guid = Utils.makeGUID();
-
-  try {
-    Utils.anno(uri, GUID_ANNO, guid, "WITH_HISTORY");
-  } catch (ex) {
-    let log = Log4Moz.repository.getLogger("Engine.History");
-    log.warn("Couldn't annotate URI " + uri + ": " + ex);
-  }
-  return guid;
-}
-function GUIDForUri(uri, create) {
-  try {
-    
-    return Utils.anno(uri, GUID_ANNO);
-  }
-  catch (ex) {
-    
-    if (create)
-      return setGUID(uri);
-  }
-}
-
 function HistoryEngine() {
   SyncEngine.call(this, "History");
 }
@@ -87,7 +62,7 @@ HistoryEngine.prototype = {
   _sync: Utils.batchSync("History", SyncEngine),
 
   _findDupe: function _findDupe(item) {
-    return GUIDForUri(item.histUri);
+    return this._store.GUIDForUri(item.histUri);
   }
 };
 
@@ -140,6 +115,31 @@ HistoryStore.prototype = {
       this.__haveTempTables = !!Utils.queryAsync(this._haveTempTablesStm,
                                                  ["name"]).length;
     return this.__haveTempTables;
+  },
+
+  
+  setGUID: function setGUID(uri, guid) {
+    if (arguments.length == 1)
+      guid = Utils.makeGUID();
+
+    try {
+      Utils.anno(uri, GUID_ANNO, guid, "WITH_HISTORY");
+    } catch (ex) {
+      let log = Log4Moz.repository.getLogger("Engine.History");
+      log.warn("Couldn't annotate URI " + uri + ": " + ex);
+    }
+    return guid;
+  },
+
+  GUIDForUri: function GUIDForUri(uri, create) {
+    try {
+      
+      return Utils.anno(uri, GUID_ANNO);
+    } catch (ex) {
+      
+      if (create)
+        return this.setGUID(uri);
+    }
   },
 
   get _visitStm() {
@@ -219,7 +219,7 @@ HistoryStore.prototype = {
   },
 
   changeItemID: function HStore_changeItemID(oldID, newID) {
-    setGUID(this._findURLByGUID(oldID).url, newID);
+    this.setGUID(this._findURLByGUID(oldID).url, newID);
   },
 
 
@@ -229,8 +229,9 @@ HistoryStore.prototype = {
     this._allUrlStm.params.max_results = 5000;
 
     let urls = Utils.queryAsync(this._allUrlStm, "url");
+    let self = this;
     return urls.reduce(function(ids, item) {
-      ids[GUIDForUri(item.url, true)] = item.url;
+      ids[self.GUIDForUri(item.url, true)] = item.url;
       return ids;
     }, {});
   },
@@ -238,7 +239,7 @@ HistoryStore.prototype = {
   create: function HistStore_create(record) {
     
     this.update(record);
-    setGUID(record.histUri, record.id);
+    this.setGUID(record.histUri, record.id);
   },
 
   remove: function HistStore_remove(record) {
@@ -332,6 +333,11 @@ HistoryTracker.prototype = {
     }
   },
 
+  _GUIDForUri: function _GUIDForUri(uri, create) {
+    
+    return Engines.get("history")._store.GUIDForUri(uri, create);
+  },
+
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsINavHistoryObserver,
     Ci.nsINavHistoryObserver_MOZILLA_1_9_1_ADDITIONS,
@@ -354,7 +360,7 @@ HistoryTracker.prototype = {
     if (this.ignoreAll)
       return;
     this._log.trace("onVisit: " + uri.spec);
-    if (this.addChangedID(GUIDForUri(uri, true)))
+    if (this.addChangedID(this._GUIDForUri(uri, true)))
       this._upScore();
   },
   onDeleteVisits: function onDeleteVisits() {
@@ -365,7 +371,7 @@ HistoryTracker.prototype = {
     if (this.ignoreAll)
       return;
     this._log.trace("onBeforeDeleteURI: " + uri.spec);
-    if (this.addChangedID(GUIDForUri(uri, true)))
+    if (this.addChangedID(this._GUIDForUri(uri, true)))
       this._upScore();
   },
   onDeleteURI: function HT_onDeleteURI(uri) {
