@@ -176,6 +176,7 @@ TabStore.prototype = {
 
       for (let j = 0; j < window.tabs.length; j++) {
         let tab = window.tabs[j];
+	this._log.debug( "tab state: " + uneval(tab));
 	
 	if (tab.entries.length == 0)
 	  continue;
