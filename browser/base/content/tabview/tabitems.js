@@ -523,16 +523,17 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       function onZoomDone() {
         TabItems.resumePainting();
+
+        $tabEl
+          .css(orig.css())
+          .removeClass("front");
+
         
         if (gBrowser.selectedTab == tab)
           UI.onTabSelect(tab);
         else
           gBrowser.selectedTab = tab;
 
-        $tabEl
-          .css(orig.css())
-          .removeClass("front");
-        
         if (isNewBlankTab)
           gWindow.gURLBar.focus();
 
@@ -589,14 +590,11 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       duration: 300,
       easing: 'cubic-bezier', 
       complete: function() { 
-        $tab.removeClass('front');
+        self.setZoomPrep(false);
 
         GroupItems.setActiveOrphanTab(null);
 
         TabItems.resumePainting();
-
-        self._zoomPrep = false;
-        self.setBounds(self.getBounds(), true, {force: true});
 
         if (typeof complete == "function")
           complete();
