@@ -3397,4 +3397,8 @@ pref("layout.3d-transforms.enabled", true);
 pref("dom.battery.enabled", true);
 
 
+pref("dom.sms.enabled", false);
+pref("dom.sms.whitelist", "");
+
+
 pref("browser.dom.window.dump.enabled", false);

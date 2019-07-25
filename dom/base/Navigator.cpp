@@ -786,10 +786,64 @@ Navigator::GetMozBattery(nsIDOMMozBatteryManager** aBattery)
 
 
 
+bool
+Navigator::IsSmsAllowed() const
+{
+  static const bool defaultSmsPermission = false;
+
+  
+  if (!Preferences::GetBool("dom.sms.enabled", defaultSmsPermission)) {
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIDocument> doc = do_GetInterface(mDocShell);
+  if (!doc) {
+    return defaultSmsPermission;
+  }
+
+  nsCOMPtr<nsIURI> uri;
+  doc->NodePrincipal()->GetURI(getter_AddRefs(uri));
+
+  if (!uri) {
+    return defaultSmsPermission;
+  }
+
+  nsCAutoString uriPrePath;
+  uri->GetPrePath(uriPrePath);
+
+  const nsAdoptingString& whitelist =
+    Preferences::GetString("dom.sms.whitelist");
+
+  nsCharSeparatedTokenizer tokenizer(whitelist, ',',
+                                     nsCharSeparatedTokenizerTemplate<>::SEPARATOR_OPTIONAL);
+
+  while (tokenizer.hasMoreTokens()) {
+    const nsSubstring& whitelistItem = tokenizer.nextToken();
+
+    if (NS_ConvertUTF16toUTF8(whitelistItem).Equals(uriPrePath)) {
+      return true;
+    }
+  }
+
+  
+  return false;
+}
+
 NS_IMETHODIMP
 Navigator::GetMozSms(nsIDOMMozSmsManager** aSmsManager)
 {
   if (!mSmsManager) {
+    if (!IsSmsAllowed()) {
+      *aSmsManager = nsnull;
+      return NS_OK;
+    }
+
     mSmsManager = new sms::SmsManager();
   }
 
