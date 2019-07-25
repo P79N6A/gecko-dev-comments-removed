@@ -961,9 +961,6 @@ nsresult nsHTMLMediaElement::LoadResource(nsIURI* aURI)
   nsRefPtr<MediaLoadListener> loadListener = new MediaLoadListener(this);
   if (!loadListener) return NS_ERROR_OUT_OF_MEMORY;
 
-  
-  
-  nsContentUtils::RegisterShutdownObserver(loadListener);
   mChannel->SetNotificationCallbacks(loadListener);
 
   nsCOMPtr<nsIStreamListener> listener;
@@ -1013,6 +1010,10 @@ nsresult nsHTMLMediaElement::LoadResource(nsIURI* aURI)
   
   
   
+
+  
+  
+  nsContentUtils::RegisterShutdownObserver(loadListener);
   return NS_OK;
 }
 
