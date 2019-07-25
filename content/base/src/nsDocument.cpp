@@ -1596,6 +1596,10 @@ nsDocument::~nsDocument()
     mStyleSheetSetList->Disconnect();
   }
 
+  if (mAnimationController) {
+    mAnimationController->Disconnect();
+  }
+
   mParentDocument = nsnull;
 
   

@@ -75,6 +75,9 @@ public:
   ~nsSMILAnimationController();
 
   
+  void Disconnect();
+
+  
   virtual void Pause(PRUint32 aType);
   virtual void Resume(PRUint32 aType);
   virtual nsSMILTime GetParentTime() const;
