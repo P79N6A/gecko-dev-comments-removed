@@ -1977,6 +1977,14 @@ public:
   void Invalidate(const nsRect& aDamageRect)
   { return InvalidateWithFlags(aDamageRect, 0); }
 
+#ifndef MOZ_ENABLE_LIBXUL
+  
+
+
+  virtual void InvalidateOverflowRectExternal()
+  { return InvalidateOverflowRect(); }
+#endif
+
   
 
 
