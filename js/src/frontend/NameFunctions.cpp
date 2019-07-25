@@ -101,41 +101,51 @@ class NameResolver
             switch (cur->getKind()) {
                 case PNK_NAME:     return cur;  
                 case PNK_FUNCTION: return NULL; 
-                default:           break;       
+
+                case PNK_RETURN:
+                    
+
+
+
+
+
+
+
+
+
+
+
+                    for (int tmp = pos - 1; tmp > 0; tmp--) {
+                        if (isDirectCall(tmp, cur)) {
+                            pos = tmp;
+                            break;
+                        } else if (call(cur)) {
+                            
+                            break;
+                        }
+                        cur = parents[tmp];
+                    }
+                    break;
+
+                case PNK_COLON:
+                    
+
+
+
+
+
+                    if (pos == 0 || !parents[pos - 1]->isKind(PNK_RC))
+                        return NULL;
+                    pos--;
+                    
 
                 
-                case PNK_COLON:
-                case PNK_LP:
-                case PNK_NEW:
+                default:
                     JS_ASSERT(*size < MaxParents);
                     nameable[(*size)++] = cur;
                     break;
             }
 
-            
-
-
-
-
-
-
-
-
-
-
-
-            if (cur->isKind(PNK_RETURN)) {
-                for (int tmp = pos - 1; tmp > 0; tmp--) {
-                    if (isDirectCall(tmp, cur)) {
-                        pos = tmp;
-                        break;
-                    } else if (call(cur)) {
-                        
-                        break;
-                    }
-                    cur = parents[tmp];
-                }
-            }
         }
 
         return NULL;
