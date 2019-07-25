@@ -484,12 +484,12 @@ StackFramesView.prototype = {
 
      
      if (aState == "paused") {
-       resume.setAttribute("tooltiptext", L10N.getStr("resumeTooltip"));
+       resume.label = L10N.getStr("resumeLabel");
        resume.setAttribute("checked", true);
      }
      
      else if (aState == "attached") {
-       resume.setAttribute("tooltiptext", L10N.getStr("pauseTooltip"));
+       resume.label = L10N.getStr("pauseLabel");
        resume.removeAttribute("checked");
      }
 
