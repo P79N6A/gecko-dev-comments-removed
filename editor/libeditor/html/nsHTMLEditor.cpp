@@ -526,8 +526,7 @@ nsHTMLEditor::BeginningOfDocument()
     else if ((visType==nsWSRunObject::eBreak)    ||
              (visType==nsWSRunObject::eSpecial))
     {
-      res = GetNodeLocation(visNode, address_of(selNode), &selOffset);
-      NS_ENSURE_SUCCESS(res, res); 
+      GetNodeLocation(visNode, address_of(selNode), &selOffset);
       done = true;
     }
     else if (visType==nsWSRunObject::eOtherBlock)
@@ -547,8 +546,7 @@ nsHTMLEditor::BeginningOfDocument()
         
         
 
-        res = GetNodeLocation(visNode, address_of(selNode), &selOffset);
-        NS_ENSURE_SUCCESS(res, res); 
+        GetNodeLocation(visNode, address_of(selNode), &selOffset);
         done = true;
       }
       else
@@ -558,8 +556,7 @@ nsHTMLEditor::BeginningOfDocument()
             isEmptyBlock)
         {
           
-          res = GetNodeLocation(visNode, address_of(curNode), &curOffset);
-          NS_ENSURE_SUCCESS(res, res); 
+          GetNodeLocation(visNode, address_of(curNode), &curOffset);
           ++curOffset;
         }
         else

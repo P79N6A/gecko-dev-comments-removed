@@ -446,9 +446,9 @@ public:
 
 
 
-  static nsresult GetNodeLocation(nsIDOMNode *aChild, 
-                                 nsCOMPtr<nsIDOMNode> *aParent, 
-                                 PRInt32    *aOffset);
+  static void GetNodeLocation(nsIDOMNode* aChild,
+                              nsCOMPtr<nsIDOMNode>* outParent,
+                              PRInt32* outOffset);
 
   
 

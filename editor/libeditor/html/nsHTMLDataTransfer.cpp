@@ -618,8 +618,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
       }
       if (lastInsertNode)
       {
-        rv = GetNodeLocation(lastInsertNode, address_of(parentNode), &offsetOfNewNode);
-        NS_ENSURE_SUCCESS(rv, rv);
+        GetNodeLocation(lastInsertNode, address_of(parentNode), &offsetOfNewNode);
         offsetOfNewNode++;
       }
     }
@@ -658,9 +657,8 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
       else 
       {
         tmp = selNode;
-        rv = GetNodeLocation(tmp, address_of(selNode), &selOffset);
+        GetNodeLocation(tmp, address_of(selNode), &selOffset);
         ++selOffset;  
-        NS_ENSURE_SUCCESS(rv, rv);
       }
 
       
@@ -679,7 +677,8 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
         {
           
           
-          rv = GetNodeLocation(wsRunObj.mStartReasonNode, address_of(selNode), &selOffset);
+          GetNodeLocation(wsRunObj.mStartReasonNode, address_of(selNode),
+                          &selOffset);
           
           nsWSRunObject wsRunObj(this, selNode, selOffset);
           wsRunObj.PriorVisibleNode(selNode, selOffset, address_of(visNode),
@@ -694,7 +693,8 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
           {
             
             
-            rv = GetNodeLocation(wsRunObj.mStartReasonNode, address_of(selNode), &selOffset);
+            GetNodeLocation(wsRunObj.mStartReasonNode, address_of(selNode),
+                            &selOffset);
             ++selOffset;
           }
         }
@@ -713,8 +713,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
         PRInt32 linkOffset;
         rv = SplitNodeDeep(link, selNode, selOffset, &linkOffset, true, address_of(leftLink));
         NS_ENSURE_SUCCESS(rv, rv);
-        rv = GetNodeLocation(leftLink, address_of(selNode), &selOffset);
-        NS_ENSURE_SUCCESS(rv, rv);
+        GetNodeLocation(leftLink, address_of(selNode), &selOffset);
         selection->Collapse(selNode, selOffset+1);
       }
     }
@@ -2012,8 +2011,10 @@ nsHTMLEditor::InsertAsPlaintextQuotation(const nsAString & aQuotedText,
   {
     nsCOMPtr<nsIDOMNode> parent;
     PRInt32 offset;
-    if (NS_SUCCEEDED(GetNodeLocation(newNode, address_of(parent), &offset)) && parent)
-      selection->Collapse(parent, offset+1);
+    GetNodeLocation(newNode, address_of(parent), &offset);
+    if (parent) {
+      selection->Collapse(parent, offset + 1);
+    }
   }
   return rv;
 }
@@ -2095,8 +2096,10 @@ nsHTMLEditor::InsertAsCitedQuotation(const nsAString & aQuotedText,
   {
     nsCOMPtr<nsIDOMNode> parent;
     PRInt32 offset;
-    if (NS_SUCCEEDED(GetNodeLocation(newNode, address_of(parent), &offset)) && parent)
-      selection->Collapse(parent, offset+1);
+    GetNodeLocation(newNode, address_of(parent), &offset);
+    if (parent) {
+      selection->Collapse(parent, offset + 1);
+    }
   }
   return rv;
 }
