@@ -3419,7 +3419,7 @@ JSObject::ReserveForTradeGuts(JSContext *cx, JSObject *a, JSObject *b,
 
 
 
-    if (a->structSize() == b->structSize())
+    if (a->sizeOfThis() == b->sizeOfThis())
         return true;
 
     
@@ -3512,7 +3512,7 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
     JS_ASSERT(a->isFunction() == b->isFunction());
 
     
-    JS_ASSERT_IF(a->isFunction(), a->structSize() == b->structSize());
+    JS_ASSERT_IF(a->isFunction(), a->sizeOfThis() == b->sizeOfThis());
 
     
 
@@ -3542,8 +3542,8 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
 #endif
 
     
-    const size_t size = a->structSize();
-    if (size == b->structSize()) {
+    const size_t size = a->sizeOfThis();
+    if (size == b->sizeOfThis()) {
         
 
 
@@ -4098,7 +4098,7 @@ JSObject::growSlots(JSContext *cx, uint32_t oldCount, uint32_t newCount)
 
     JS_ASSERT(newCount < NELEMENTS_LIMIT);
 
-    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
+    size_t oldSize = Probes::objectResizeActive() ? computedSizeOfIncludingThis() : 0;
     size_t newSize = oldSize + (newCount - oldCount) * sizeof(Value);
 
     
@@ -4167,7 +4167,7 @@ JSObject::shrinkSlots(JSContext *cx, uint32_t oldCount, uint32_t newCount)
     if (isCall())
         return;
 
-    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
+    size_t oldSize = Probes::objectResizeActive() ? computedSizeOfIncludingThis() : 0;
     size_t newSize = oldSize - (oldCount - newCount) * sizeof(Value);
 
     if (newCount == 0) {
@@ -4213,7 +4213,7 @@ JSObject::growElements(JSContext *cx, uintN newcap)
     uint32_t oldcap = getDenseArrayCapacity();
     JS_ASSERT(oldcap <= newcap);
 
-    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
+    size_t oldSize = Probes::objectResizeActive() ? computedSizeOfIncludingThis() : 0;
 
     uint32_t nextsize = (oldcap <= CAPACITY_DOUBLING_MAX)
                       ? oldcap * 2
@@ -4256,7 +4256,7 @@ JSObject::growElements(JSContext *cx, uintN newcap)
     Debug_SetValueRangeToCrashOnTouch(elements + initlen, actualCapacity - initlen);
 
     if (Probes::objectResizeActive())
-        Probes::resizeObject(cx, this, oldSize, slotsAndStructSize());
+        Probes::resizeObject(cx, this, oldSize, computedSizeOfIncludingThis());
 
     return true;
 }
@@ -4269,7 +4269,7 @@ JSObject::shrinkElements(JSContext *cx, uintN newcap)
     uint32_t oldcap = getDenseArrayCapacity();
     JS_ASSERT(newcap <= oldcap);
 
-    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
+    size_t oldSize = Probes::objectResizeActive() ? computedSizeOfIncludingThis() : 0;
 
     
     if (oldcap <= SLOT_CAPACITY_MIN || !hasDynamicElements())
@@ -4288,7 +4288,7 @@ JSObject::shrinkElements(JSContext *cx, uintN newcap)
     elements = newheader->elements();
 
     if (Probes::objectResizeActive())
-        Probes::resizeObject(cx, this, oldSize, slotsAndStructSize());
+        Probes::resizeObject(cx, this, oldSize, computedSizeOfIncludingThis());
 }
 
 #ifdef DEBUG
