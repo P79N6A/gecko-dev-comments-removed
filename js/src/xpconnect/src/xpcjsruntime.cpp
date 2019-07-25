@@ -995,7 +995,7 @@ XPCJSRuntime::WatchdogMain(void *arg)
 
 
 void
-XPCJSRuntime::ActivityCallback(void *arg, PRBool active)
+XPCJSRuntime::ActivityCallback(void *arg, JSBool active)
 {
     XPCJSRuntime* self = static_cast<XPCJSRuntime*>(arg);
     if (active) {
