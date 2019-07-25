@@ -50,6 +50,7 @@
 #include "nsFrameSelection.h"
 #include "nsHTMLReflowState.h"
 #include "nsHTMLReflowMetrics.h"
+#include "nsHTMLParts.h"
 
 
 
@@ -571,6 +572,17 @@ public:
   static PRInt32 GetLineNumber(nsIFrame *aFrame,
                                PRBool aLockScroll,
                                nsIFrame** aContainingBlock = nsnull);
+
+  
+  static PRBool ApplyPaginatedOverflowClipping(nsIFrame* aFrame)
+  {
+    
+    
+    return
+      aFrame->PresContext()->IsPaginated() &&
+      aFrame->GetType() == nsGkAtoms::blockFrame &&
+      (aFrame->GetStateBits() & NS_BLOCK_CLIP_PAGINATED_OVERFLOW) != 0;
+  }
 
 protected:
 

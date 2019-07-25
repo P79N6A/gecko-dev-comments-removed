@@ -947,6 +947,13 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
   return cbSize;
 }
 
+static inline PRBool IsClippingChildren(nsIFrame* aFrame,
+                                        const nsHTMLReflowState& aReflowState)
+{
+  return aReflowState.mStyleDisplay->mOverflowX == NS_STYLE_OVERFLOW_CLIP ||
+    nsFrame::ApplyPaginatedOverflowClipping(aFrame);
+}
+
 NS_IMETHODIMP
 nsBlockFrame::Reflow(nsPresContext*           aPresContext,
                      nsHTMLReflowMetrics&     aMetrics,
@@ -972,12 +979,36 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   }
 #endif
 
+  const nsHTMLReflowState *reflowState = &aReflowState;
+  nsAutoPtr<nsHTMLReflowState> mutableReflowState;
+  
+  
+  if (aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE &&
+      aReflowState.ComputedHeight() != NS_AUTOHEIGHT &&
+      IsClippingChildren(this, aReflowState)) {
+    nsMargin heightExtras = aReflowState.mComputedBorderPadding;
+    if (GetSkipSides() & NS_SIDE_TOP) {
+      heightExtras.top = 0;
+    } else {
+      
+      
+      heightExtras.top += aReflowState.mComputedMargin.top;
+    }
+
+    if (GetEffectiveComputedHeight(aReflowState) + heightExtras.TopBottom() <=
+        aReflowState.availableHeight) {
+      mutableReflowState = new nsHTMLReflowState(aReflowState);
+      mutableReflowState->availableHeight = NS_UNCONSTRAINEDSIZE;
+      reflowState = mutableReflowState;
+    }
+  }
+
   
   
   nsSize oldSize = GetSize();
 
   
-  nsAutoFloatManager autoFloatManager(const_cast<nsHTMLReflowState &>(aReflowState));
+  nsAutoFloatManager autoFloatManager(const_cast<nsHTMLReflowState&>(*reflowState));
 
   
   
@@ -993,12 +1024,12 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   ClearLineCursor();
 
-  if (IsFrameTreeTooDeep(aReflowState, aMetrics, aStatus)) {
+  if (IsFrameTreeTooDeep(*reflowState, aMetrics, aStatus)) {
     return NS_OK;
   }
 
   PRBool marginRoot = BlockIsMarginRoot(this);
-  nsBlockReflowState state(aReflowState, aPresContext, this, aMetrics,
+  nsBlockReflowState state(*reflowState, aPresContext, this, aMetrics,
                            marginRoot, marginRoot, needFloatManager);
 
 #ifdef IBMBIDI
@@ -1021,7 +1052,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   nsOverflowAreas ocBounds;
   nsReflowStatus ocStatus = NS_FRAME_COMPLETE;
   if (GetPrevInFlow()) {
-    ReflowOverflowContainerChildren(aPresContext, aReflowState, ocBounds, 0,
+    ReflowOverflowContainerChildren(aPresContext, *reflowState, ocBounds, 0,
                                     ocStatus);
   }
 
@@ -1040,7 +1071,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  if (aReflowState.mFlags.mHResize)
+  if (reflowState->mFlags.mHResize)
     PrepareResizeReflow(state);
 
   mState &= ~NS_FRAME_FIRST_REFLOW;
@@ -1055,7 +1086,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  if (NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight &&
+  if (NS_UNCONSTRAINEDSIZE != reflowState->availableHeight &&
       NS_FRAME_IS_COMPLETE(state.mReflowStatus) &&
       state.mFloatManager->ClearContinues(FindTrailingClear())) {
     NS_FRAME_SET_INCOMPLETE(state.mReflowStatus);
@@ -1096,7 +1127,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     nsLayoutUtils::LinePosition position;
     PRBool havePosition = nsLayoutUtils::GetFirstLinePosition(this, &position);
     nscoord lineTop = havePosition ? position.mTop
-                                   : aReflowState.mComputedBorderPadding.top;
+                                   : reflowState->mComputedBorderPadding.top;
     ReflowBullet(state, metrics, lineTop);
     NS_ASSERTION(!BulletIsEmpty() || metrics.height == 0,
                  "empty bullet took up space");
@@ -1117,8 +1148,8 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
 
   
   nscoord bottomEdgeOfChildren;
-  ComputeFinalSize(aReflowState, state, aMetrics, &bottomEdgeOfChildren);
-  ComputeOverflowAreas(aReflowState, aMetrics, bottomEdgeOfChildren);
+  ComputeFinalSize(*reflowState, state, aMetrics, &bottomEdgeOfChildren);
+  ComputeOverflowAreas(*reflowState, aMetrics, bottomEdgeOfChildren);
   
   aMetrics.mOverflowAreas.UnionWith(ocBounds);
   
@@ -1143,7 +1174,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   if (mAbsoluteContainer.HasAbsoluteFrames()) {
     PRBool haveInterrupt = aPresContext->HasPendingInterrupt();
-    if (aReflowState.WillReflowAgainForClearance() ||
+    if (reflowState->WillReflowAgainForClearance() ||
         haveInterrupt) {
       
       
@@ -1158,7 +1189,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
       }
     } else {
       nsSize containingBlockSize =
-        CalculateContainingBlockSizeForAbsolutes(aReflowState,
+        CalculateContainingBlockSizeForAbsolutes(*reflowState,
                                                  nsSize(aMetrics.width,
                                                         aMetrics.height));
 
@@ -1175,10 +1206,10 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
       
       
       PRBool cbHeightChanged =
-        !(isRoot && NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight()) &&
+        !(isRoot && NS_UNCONSTRAINEDSIZE == reflowState->ComputedHeight()) &&
         aMetrics.height != oldSize.height;
 
-      rv = mAbsoluteContainer.Reflow(this, aPresContext, aReflowState,
+      rv = mAbsoluteContainer.Reflow(this, aPresContext, *reflowState,
                                      state.mReflowStatus,
                                      containingBlockSize.width,
                                      containingBlockSize.height, PR_TRUE,
@@ -1252,7 +1283,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   }
 #endif
 
-  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
+  NS_FRAME_SET_TRUNCATION(aStatus, (*reflowState), aMetrics);
   return rv;
 }
 
@@ -1352,18 +1383,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
   if (NS_UNCONSTRAINEDSIZE != aReflowState.ComputedHeight()) {
     
     
-    nscoord computedHeightLeftOver = aReflowState.ComputedHeight();
-    if (GetPrevInFlow()) {
-      
-      for (nsIFrame* prev = GetPrevInFlow(); prev; prev = prev->GetPrevInFlow()) {
-        computedHeightLeftOver -= prev->GetRect().height;
-      }
-      
-      
-      computedHeightLeftOver += aReflowState.mComputedBorderPadding.top;
-      
-      computedHeightLeftOver = NS_MAX(0, computedHeightLeftOver);
-    }
+    nscoord computedHeightLeftOver = GetEffectiveComputedHeight(aReflowState);
     NS_ASSERTION(!( IS_TRUE_OVERFLOW_CONTAINER(this)
                     && computedHeightLeftOver ),
                  "overflow container must not have computedHeightLeftOver");
@@ -1468,7 +1488,7 @@ nsBlockFrame::ComputeOverflowAreas(const nsHTMLReflowState& aReflowState,
   nsRect bounds(0, 0, aMetrics.width, aMetrics.height);
   nsOverflowAreas areas(bounds, bounds);
 
-  if (NS_STYLE_OVERFLOW_CLIP != aReflowState.mStyleDisplay->mOverflowX) {
+  if (!IsClippingChildren(this, aReflowState)) {
     PRBool inQuirks = (PresContext()->CompatibilityMode() == eCompatibility_NavQuirks);
     for (line_iterator line = begin_lines(), line_end = end_lines();
          line != line_end;
@@ -7113,6 +7133,26 @@ nsBlockFrame::GetNearestAncestorBlock(nsIFrame* aCandidate)
   }
   NS_NOTREACHED("Fell off frame tree looking for ancestor block!");
   return nsnull;
+}
+
+nscoord
+nsBlockFrame::GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowState) const
+{
+  nscoord height = aReflowState.ComputedHeight();
+  NS_ABORT_IF_FALSE(height != NS_UNCONSTRAINEDSIZE, "Don't call me!");
+
+  if (GetPrevInFlow()) {
+    
+    for (nsIFrame* prev = GetPrevInFlow(); prev; prev = prev->GetPrevInFlow()) {
+      height -= prev->GetRect().height;
+    }
+    
+    
+    height += aReflowState.mComputedBorderPadding.top;
+    
+    height = NS_MAX(0, height);
+  }
+  return height;
 }
 
 #ifdef IBMBIDI

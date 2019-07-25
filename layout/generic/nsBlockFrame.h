@@ -708,6 +708,13 @@ protected:
   nsresult SetOverflowLines(nsLineList* aOverflowLines);
 
   
+  
+  
+  
+  
+  nscoord GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowState) const;
+
+  
 
 
 

@@ -1228,18 +1228,6 @@ static inline PRBool ApplyOverflowHiddenClipping(nsIFrame* aFrame,
        type == nsGkAtoms::bcTableCellFrame;
 }
 
-static inline PRBool ApplyPaginatedOverflowClipping(nsIFrame* aFrame,
-                                                    const nsStyleDisplay* aDisp)
-{
-  
-  
-  
-  return
-    aFrame->PresContext()->IsPaginated() &&
-    aFrame->GetType() == nsGkAtoms::blockFrame &&
-    (aFrame->GetStateBits() & NS_BLOCK_CLIP_PAGINATED_OVERFLOW) != 0;
-}
-
 static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
                                     nsIFrame* aFrame,
                                     const nsStyleDisplay* aDisp, nsRect* aRect) {
@@ -1252,7 +1240,7 @@ static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
   
   
   if (!ApplyOverflowHiddenClipping(aFrame, aDisp) &&
-      !ApplyPaginatedOverflowClipping(aFrame, aDisp)) {
+      !nsFrame::ApplyPaginatedOverflowClipping(aFrame)) {
     PRBool clip = aDisp->mOverflowX == NS_STYLE_OVERFLOW_CLIP;
     if (!clip)
       return PR_FALSE;
@@ -6129,7 +6117,8 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
   NS_ASSERTION((disp->mOverflowY == NS_STYLE_OVERFLOW_CLIP) ==
                (disp->mOverflowX == NS_STYLE_OVERFLOW_CLIP),
                "If one overflow is clip, the other should be too");
-  if (disp->mOverflowX == NS_STYLE_OVERFLOW_CLIP) {
+  if (disp->mOverflowX == NS_STYLE_OVERFLOW_CLIP ||
+      nsFrame::ApplyPaginatedOverflowClipping(this)) {
     
     aOverflowAreas.SetAllTo(bounds);
   }
