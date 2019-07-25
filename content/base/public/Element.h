@@ -41,6 +41,9 @@
 #define mozilla_dom_Element_h__
 
 #include "nsIContent.h"
+#include "nsEventStates.h"
+
+class nsEventStateManager;
 
 
 enum {
@@ -94,6 +97,38 @@ public:
 
 
   virtual nsEventStates IntrinsicState() const;
+
+  
+
+
+
+  nsEventStates State() const {
+    return IntrinsicState() | mState;
+  }
+
+private:
+  
+  friend class ::nsEventStateManager;
+
+  void NotifyStateChange(nsEventStates aStates);
+
+  
+  
+  
+  void AddStates(nsEventStates aStates) {
+    NS_PRECONDITION(!aStates.HasAtLeastOneOfStates(INTRINSIC_STATES),
+                    "Should only be adding ESM-managed states here");
+    mState |= aStates;
+    NotifyStateChange(aStates);
+  }
+  void RemoveStates(nsEventStates aStates) {
+    NS_PRECONDITION(!aStates.HasAtLeastOneOfStates(INTRINSIC_STATES),
+                    "Should only be removing ESM-managed states here");
+    mState &= ~aStates;
+    NotifyStateChange(aStates);
+  }
+
+  nsEventStates mState;
 };
 
 } 
