@@ -58,7 +58,7 @@ add_test(function test_nl_single_shift_tables_validity() {
 
 
 
-add_test(function test_GsmPDUHelper__calculateLangEncodedLength() {
+add_test(function test_GsmPDUHelper__calculateLangEncodedSeptets() {
   let worker = newWorker({
     postRILMessage: function fakePostRILMessage(data) {
       
@@ -78,9 +78,9 @@ add_test(function test_GsmPDUHelper__calculateLangEncodedLength() {
 
   function do_check_calc(str, expectedCalcLen, lst, sst) {
     do_check_eq(expectedCalcLen,
-                helper._calculateLangEncodedLength(str,
-                                                   PDU_NL_LOCKING_SHIFT_TABLES[lst],
-                                                   PDU_NL_SINGLE_SHIFT_TABLES[sst]));
+                helper._calculateLangEncodedSeptets(str,
+                                                    PDU_NL_LOCKING_SHIFT_TABLES[lst],
+                                                    PDU_NL_SINGLE_SHIFT_TABLES[sst]));
 
     helper.resetOctetWritten();
     helper.writeStringAsSeptets(str, 0, lst, sst);
@@ -192,6 +192,16 @@ add_test(function test_GsmPDUHelper_calculateUserDataLength() {
   
   test_calc("A", [PDU_DCS_MSG_CODING_7BITS_ALPHABET, 1, 3, 1, 0], [[1, 0], [2, 4]]);
   test_calc("A", [PDU_DCS_MSG_CODING_7BITS_ALPHABET, 1, 3, 1, 0], [[2, 4], [1, 0]]);
+
+  
+  
+  
+  
+  
+  
+  
+  test_calc("\\\\\\\\\\\\\\",
+            [PDU_DCS_MSG_CODING_7BITS_ALPHABET, 14, 0, 0, 0], [[3, 1], [0, 0]]);
 
   run_next_test();
 });
@@ -390,8 +400,8 @@ function test_receiving_7bit_alphabets(lst, sst) {
   for (let i = 0; i < text.length;) {
     let len = Math.min(70, text.length - i);
     let expected = text.substring(i, i + len);
-    let septets = helper._calculateLangEncodedLength(expected, langTable,
-                                                     langShiftTable);
+    let septets = helper._calculateLangEncodedSeptets(expected, langTable,
+                                                      langShiftTable);
     let rawBytes = get7bitRawBytes(expected);
     let pdu = compose7bitPdu(lst, sst, rawBytes, septets);
     add_test_receiving_sms(expected, pdu);
