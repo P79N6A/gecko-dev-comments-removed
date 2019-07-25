@@ -90,8 +90,10 @@ class Debugger {
     JSCList breakpoints;                
 
     
-    
-    
+
+
+
+
     typedef HashMap<StackFrame *, JSObject *, DefaultHasher<StackFrame *>, RuntimeAllocPolicy>
         FrameMap;
     FrameMap frames;
@@ -103,25 +105,33 @@ class Debugger {
 
     
     
+
+
     typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CrossCompartmentMarkPolicy>
         ScriptWeakMap;
 
     
-    
-    
-    
+
+
+
+
+
     ScriptWeakMap heldScripts;
 
     
-    
+
+
+
     typedef HashMap<JSScript *, JSObject *, DefaultHasher<JSScript *>, RuntimeAllocPolicy>
         ScriptMap;
 
     
-    
-    
-    
-    
+
+
+
+
+
+
     ScriptMap nonHeldScripts;
 
     bool addDebuggeeGlobal(JSContext *cx, GlobalObject *obj);
@@ -130,18 +140,19 @@ class Debugger {
                               GlobalObjectSet::Enum *debugEnum);
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
     JSTrapStatus handleUncaughtException(AutoCompartment &ac, Value *vp, bool callHook);
     JSTrapStatus parseResumptionValue(AutoCompartment &ac, bool ok, const Value &rv, Value *vp,
                                       bool callHook = true);
@@ -194,18 +205,22 @@ class Debugger {
     void fireEnterFrame(JSContext *cx);
 
     
-    
-    
+
+
+
+
     JSObject *newDebuggerScript(JSContext *cx, JSScript *script, JSObject *obj);
 
     
     JSObject *wrapHeldScript(JSContext *cx, JSScript *script, JSObject *obj);
 
     
-    
-    
-    
-    
+
+
+
+
+
+
     void fireNewScript(JSContext *cx, JSScript *script, JSObject *obj, NewScriptKind kind);
 
     
@@ -226,19 +241,20 @@ class Debugger {
     
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     static void markCrossCompartmentDebuggerObjectReferents(JSTracer *tracer);
     static bool mark(GCMarker *trc, JSGCInvocationKind gckind);
     static void sweepAll(JSContext *cx);
@@ -262,58 +278,67 @@ class Debugger {
     inline bool observesFrame(StackFrame *fp) const;
 
     
-    
-    
-    
-    
-    
+
+
+
+
+
+
     bool wrapDebuggeeValue(JSContext *cx, Value *vp);
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
     bool unwrapDebuggeeValue(JSContext *cx, Value *vp);
 
     
     bool getScriptFrame(JSContext *cx, StackFrame *fp, Value *vp);
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
     bool newCompletionValue(AutoCompartment &ac, bool ok, Value val, Value *vp);
 
     
-    
-    
-    
+
+
+
+
+
     JSObject *wrapFunctionScript(JSContext *cx, JSFunction *fun);
 
     
-    
-    
-    
+
+
+
+
+
     JSObject *wrapJSAPIScript(JSContext *cx, JSObject *scriptObj);
 
     
-    
-    
+
+
+
+
     JSObject *wrapNonHeldScript(JSContext *cx, JSScript *script);
 
   private:
@@ -334,8 +359,10 @@ class BreakpointSite {
 
   private:
     
-    
-    
+
+
+
+
     JSObject *scriptObject;
 
     JSCList breakpoints;  
