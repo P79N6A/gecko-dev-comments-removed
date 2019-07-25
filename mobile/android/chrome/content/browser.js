@@ -2716,7 +2716,10 @@ const ElementTouchHelper = {
                                                false); 
 
     
-    if (this.isElementClickable(target))
+    
+    
+    let unclickableCache = new Array();
+    if (this.isElementClickable(target, unclickableCache))
       return target;
 
     let target = null;
@@ -2728,7 +2731,7 @@ const ElementTouchHelper = {
     let threshold = Number.POSITIVE_INFINITY;
     for (let i = 0; i < nodes.length; i++) {
       let current = nodes[i];
-      if (!current.mozMatchesSelector || !this.isElementClickable(current))
+      if (!current.mozMatchesSelector || !this.isElementClickable(current, unclickableCache))
         continue;
 
       let rect = current.getBoundingClientRect();
@@ -2747,13 +2750,17 @@ const ElementTouchHelper = {
     return target;
   },
 
-  isElementClickable: function isElementClickable(aElement) {
+  isElementClickable: function isElementClickable(aElement, aUnclickableCache) {
     const selector = "a,:link,:visited,[role=button],button,input,select,textarea,label";
     for (let elem = aElement; elem; elem = elem.parentNode) {
+      if (aUnclickableCache && aUnclickableCache.indexOf(elem) != -1)
+        continue;
       if (this._hasMouseListener(elem))
         return true;
       if (elem.mozMatchesSelector && elem.mozMatchesSelector(selector))
         return true;
+      if (aUnclickableCache)
+        aUnclickableCache.push(elem);
     }
     return false;
   },
