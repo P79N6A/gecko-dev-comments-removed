@@ -302,13 +302,24 @@ let Utils = {
       return true;
 
     
-    let [A, B] = [[i for (i in a)], [i for (i in b)]];
-    
-    if (typeof a != "object" || typeof b != "object" || A.length != B.length)
+    if (typeof a != "object" || typeof b != "object")
       return false;
 
     
-    return A.every(function(A) B.some(function(B) A == B && eq(a[A], b[B])));
+    if (a === null || b === null)
+      return false;
+
+    
+    for (let k in a)
+      if (!eq(a[k], b[k]))
+        return false;
+
+    
+    for (let k in b)
+      if (!(k in a) && !eq(a[k], b[k]))
+        return false;
+
+    return true;
   },
 
   deepCopy: function Weave_deepCopy(thing, noSort) {
