@@ -312,7 +312,7 @@ var UIManager = {
 
 #ifdef XP_WIN
     
-    gTabViewFrame.style.marginTop = 0;
+    gTabViewFrame.style.marginTop = "22px";
 #endif
     gTabViewDeck.selectedIndex = 1;
     gTabViewFrame.contentWindow.focus();
