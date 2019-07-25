@@ -458,6 +458,7 @@ let MigrationUtils = Object.freeze({
 
 
 
+
   getMigrator: function MU_getMigrator(aKey) {
     let migrator = null;
     if (this._migrators.has(aKey)) {
@@ -468,11 +469,37 @@ let MigrationUtils = Object.freeze({
         migrator = Cc["@mozilla.org/profile/migrator;1?app=browser&type=" +
                       aKey].createInstance(Ci.nsIBrowserProfileMigrator);
       }
-      catch(ex) { Cu.reportError(ex); }
+      catch(ex) { }
       this._migrators.set(aKey, migrator);
     }
 
     return migrator && migrator.sourceExists ? migrator : null;
+  },
+
+  
+  
+  get migrators() {
+    let migratorKeysOrdered = [
+#ifdef XP_WIN
+      "ie", "chrome", "safari"
+#elifdef XP_MACOSX
+      "safari", "chrome"
+#elifdef XP_UNIX
+      "chrome"
+#endif
+    ];
+
+    
+    
+    let defaultBrowserKey = getMigratorKeyForDefaultBrowser();
+    if (defaultBrowserKey)
+      migratorKeysOrdered.sort(function (a, b) b == defaultBrowserKey ? 1 : 0);
+
+    for (let migratorKey of migratorKeysOrdered) {
+      let migrator = this.getMigrator(migratorKey);
+      if (migrator)
+        yield migrator;
+    }
   },
 
   
@@ -565,6 +592,20 @@ let MigrationUtils = Object.freeze({
         migrator = this.getMigrator(defaultBrowserKey);
         if (migrator)
           migratorKey = defaultBrowserKey;
+      }
+    }
+
+    if (!migrator) {
+      
+      
+      try {
+        this.migrators.next();
+      }
+      catch(ex) {
+        this.finishMigration();
+        if (!(ex instanceof StopIteration))
+          throw ex;
+        return;
       }
     }
 
