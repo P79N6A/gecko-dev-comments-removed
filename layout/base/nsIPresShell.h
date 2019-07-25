@@ -219,17 +219,22 @@ public:
   bool IsDestroying() { return mIsDestroying; }
 
   
-  
-  
-  
-  
-  virtual void* AllocateFrame(nsQueryFrame::FrameIID aCode, size_t aSize) = 0;
-  virtual void  FreeFrame(nsQueryFrame::FrameIID aCode, void* aChunk) = 0;
+
+
+
+
+
+
+  virtual void* AllocateFrame(nsQueryFrame::FrameIID aID, size_t aSize) = 0;
+  virtual void  FreeFrame(nsQueryFrame::FrameIID aID, void* aChunk) = 0;
 
   
-  
-  
-  
+
+
+
+
+
+
   virtual void* AllocateMisc(size_t aSize) = 0;
   virtual void  FreeMisc(size_t aSize, void* aChunk) = 0;
 
