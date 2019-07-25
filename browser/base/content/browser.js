@@ -995,7 +995,98 @@ var gBrowserInit = {
     var isLoadingBlank = isBlankPageURL(uriToLoad);
     var mustLoadSidebar = false;
 
-    prepareForStartup();
+    gBrowser.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver, false);
+
+    gBrowser.addEventListener("PluginNotFound",     gPluginHandler, true);
+    gBrowser.addEventListener("PluginCrashed",      gPluginHandler, true);
+    gBrowser.addEventListener("PluginBlocklisted",  gPluginHandler, true);
+    gBrowser.addEventListener("PluginOutdated",     gPluginHandler, true);
+    gBrowser.addEventListener("PluginDisabled",     gPluginHandler, true);
+    gBrowser.addEventListener("PluginClickToPlay",  gPluginHandler, true);
+    gBrowser.addEventListener("NewPluginInstalled", gPluginHandler.newPluginInstalled, true);
+#ifdef XP_MACOSX
+    gBrowser.addEventListener("npapi-carbon-event-model-failure", gPluginHandler, true);
+#endif
+
+    Services.obs.addObserver(gPluginHandler.pluginCrashed, "plugin-crashed", false);
+
+    window.addEventListener("AppCommand", HandleAppCommandEvent, true);
+
+    var webNavigation;
+    try {
+      webNavigation = getWebNavigation();
+      if (!webNavigation)
+        throw "no XBL binding for browser";
+    } catch (e) {
+      alert("Error launching browser window:" + e);
+      window.close(); 
+      return;
+    }
+
+    messageManager.loadFrameScript("chrome://browser/content/content.js", true);
+
+    
+    
+    gBrowser.init();
+    XULBrowserWindow.init();
+    window.QueryInterface(Ci.nsIInterfaceRequestor)
+          .getInterface(nsIWebNavigation)
+          .QueryInterface(Ci.nsIDocShellTreeItem).treeOwner
+          .QueryInterface(Ci.nsIInterfaceRequestor)
+          .getInterface(Ci.nsIXULWindow)
+          .XULBrowserWindow = window.XULBrowserWindow;
+    window.QueryInterface(Ci.nsIDOMChromeWindow).browserDOMWindow =
+      new nsBrowserAccess();
+
+    
+    if ("arguments" in window && window.arguments.length > 1 && window.arguments[1]) {
+      if (window.arguments[1].indexOf("charset=") != -1) {
+        var arrayArgComponents = window.arguments[1].split("=");
+        if (arrayArgComponents) {
+          
+          getMarkupDocumentViewer().defaultCharacterSet = arrayArgComponents[1];
+        }
+      }
+    }
+
+    
+    
+    
+    
+    
+    webNavigation.sessionHistory = Components.classes["@mozilla.org/browser/shistory;1"]
+                                             .createInstance(Components.interfaces.nsISHistory);
+    Services.obs.addObserver(gBrowser.browsers[0], "browser:purge-session-history", false);
+
+    
+    
+    gBrowser.browsers[0].removeAttribute("disablehistory");
+
+    
+    try {
+      gBrowser.docShell.QueryInterface(Components.interfaces.nsIDocShellHistory).useGlobalHistory = true;
+    } catch(ex) {
+      Components.utils.reportError("Places database may be locked: " + ex);
+    }
+
+#ifdef MOZ_E10S_COMPAT
+    
+#else
+    
+    gBrowser.addProgressListener(window.XULBrowserWindow);
+    gBrowser.addTabsProgressListener(window.TabsProgressListener);
+#endif
+
+    
+    gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
+
+    
+    gBrowser.addEventListener("MozApplicationManifest",
+                              OfflineApps, false);
+
+    
+    gGestureSupport.init(true);
+
 
     if (uriToLoad && uriToLoad != "about:blank") {
       if (uriToLoad instanceof Ci.nsISupportsArray) {
@@ -1151,100 +1242,6 @@ var gBrowserInit = {
 
     gDelayedStartupTimeoutId = setTimeout(this._delayedStartup.bind(this), 0, isLoadingBlank, mustLoadSidebar);
     gStartupRan = true;
-  },
-
-  prepareForStartup : function() {
-    gBrowser.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver, false);
-
-    gBrowser.addEventListener("PluginNotFound",     gPluginHandler, true);
-    gBrowser.addEventListener("PluginCrashed",      gPluginHandler, true);
-    gBrowser.addEventListener("PluginBlocklisted",  gPluginHandler, true);
-    gBrowser.addEventListener("PluginOutdated",     gPluginHandler, true);
-    gBrowser.addEventListener("PluginDisabled",     gPluginHandler, true);
-    gBrowser.addEventListener("PluginClickToPlay",  gPluginHandler, true);
-    gBrowser.addEventListener("NewPluginInstalled", gPluginHandler.newPluginInstalled, true);
-#ifdef XP_MACOSX
-    gBrowser.addEventListener("npapi-carbon-event-model-failure", gPluginHandler, true);
-#endif
-
-    Services.obs.addObserver(gPluginHandler.pluginCrashed, "plugin-crashed", false);
-
-    window.addEventListener("AppCommand", HandleAppCommandEvent, true);
-
-    var webNavigation;
-    try {
-      webNavigation = getWebNavigation();
-      if (!webNavigation)
-        throw "no XBL binding for browser";
-    } catch (e) {
-      alert("Error launching browser window:" + e);
-      window.close(); 
-      return;
-    }
-
-    messageManager.loadFrameScript("chrome://browser/content/content.js", true);
-
-    
-    
-    gBrowser.init();
-    XULBrowserWindow.init();
-    window.QueryInterface(Ci.nsIInterfaceRequestor)
-          .getInterface(nsIWebNavigation)
-          .QueryInterface(Ci.nsIDocShellTreeItem).treeOwner
-          .QueryInterface(Ci.nsIInterfaceRequestor)
-          .getInterface(Ci.nsIXULWindow)
-          .XULBrowserWindow = window.XULBrowserWindow;
-    window.QueryInterface(Ci.nsIDOMChromeWindow).browserDOMWindow =
-      new nsBrowserAccess();
-
-    
-    if ("arguments" in window && window.arguments.length > 1 && window.arguments[1]) {
-      if (window.arguments[1].indexOf("charset=") != -1) {
-        var arrayArgComponents = window.arguments[1].split("=");
-        if (arrayArgComponents) {
-          
-          getMarkupDocumentViewer().defaultCharacterSet = arrayArgComponents[1];
-        }
-      }
-    }
-
-    
-    
-    
-    
-    
-    webNavigation.sessionHistory = Components.classes["@mozilla.org/browser/shistory;1"]
-                                             .createInstance(Components.interfaces.nsISHistory);
-    Services.obs.addObserver(gBrowser.browsers[0], "browser:purge-session-history", false);
-
-    
-    
-    gBrowser.browsers[0].removeAttribute("disablehistory");
-
-    
-    try {
-      gBrowser.docShell.QueryInterface(Components.interfaces.nsIDocShellHistory).useGlobalHistory = true;
-    } catch(ex) {
-      Components.utils.reportError("Places database may be locked: " + ex);
-    }
-
-#ifdef MOZ_E10S_COMPAT
-    
-#else
-    
-    gBrowser.addProgressListener(window.XULBrowserWindow);
-    gBrowser.addTabsProgressListener(window.TabsProgressListener);
-#endif
-
-    
-    gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
-
-    
-    gBrowser.addEventListener("MozApplicationManifest",
-                              OfflineApps, false);
-
-    
-    gGestureSupport.init(true);
   },
 
   _delayedStartup: function(isLoadingBlank, mustLoadSidebar) {
@@ -1793,7 +1790,6 @@ var gBrowserInit = {
 
 
 var BrowserStartup        = gBrowserInit.onLoad.bind(gBrowserInit);
-var prepareForStartup     = gBrowserInit.prepareForStartup.bind(gBrowserInit);
 var BrowserShutdown       = gBrowserInit.onUnload.bind(gBrowserInit);
 #ifdef XP_MACOSX
 var nonBrowserWindowStartup        = gBrowserInit.nonBrowserWindowStartup.bind(gBrowserInit);
