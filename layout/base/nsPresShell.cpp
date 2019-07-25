@@ -7374,8 +7374,6 @@ PresShell::Thaw()
   if (mDocument)
     mDocument->EnumerateSubDocuments(ThawSubDocument, nsnull);
 
-  UnsuppressPainting();
-
   
   
   QueryIsActive();
@@ -7383,6 +7381,8 @@ PresShell::Thaw()
   
   mFrozen = PR_FALSE;
   UpdateImageLockingState();
+
+  UnsuppressPainting();
 }
 
 
