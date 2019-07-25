@@ -294,6 +294,10 @@ public:
   const gfx3DMatrix& GetTransform() { return mTransform; }
 
   
+  void SetUserData(void* aData) { mUserData = aData; }
+  void* GetUserData() { return mUserData; }
+
+  
 
 
 
@@ -314,6 +318,7 @@ protected:
     mNextSibling(nsnull),
     mPrevSibling(nsnull),
     mImplData(aImplData),
+    mUserData(nsnull),
     mOpacity(1.0),
     mUseClipRect(PR_FALSE),
     mIsOpaqueContent(PR_FALSE)
@@ -324,6 +329,7 @@ protected:
   Layer* mNextSibling;
   Layer* mPrevSibling;
   void* mImplData;
+  void* mUserData;
   gfx3DMatrix mTransform;
   float mOpacity;
   nsIntRect mClipRect;
