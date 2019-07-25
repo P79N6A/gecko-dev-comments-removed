@@ -319,7 +319,7 @@ nsHTMLEditRules::BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection)
   nsAutoLockRulesSniffing lockIt((nsTextEditRules*)this);
   mDidExplicitlySetInterline = PR_FALSE;
 
-  if (!mActionNesting)
+  if (!mActionNesting++)
   {
     
     mDidRangedDelete = PR_FALSE;
@@ -383,7 +383,6 @@ nsHTMLEditRules::BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection)
     
     mTheAction = action;
   }
-  mActionNesting++;
   return NS_OK;
 }
 

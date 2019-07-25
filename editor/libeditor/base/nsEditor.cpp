@@ -262,18 +262,6 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot
   
   aSelCon->SetSelectionFlags(nsISelectionDisplay::DISPLAY_ALL);
 
-#if 1
-  
-  
-
-  
-
-
-  nsCOMPtr<nsIPresShell> shell = do_QueryReferent(mSelConWeak);
-  if (shell)
-    BeginningOfDocument();
-#endif
-
   NS_POSTCONDITION(mDocWeak && mPresShellWeak, "bad state");
 
   
