@@ -187,13 +187,15 @@ public:
   static DwmSetWindowAttributeProc dwmSetWindowAttributePtr;
   static DwmInvalidateIconicBitmapsProc dwmInvalidateIconicBitmapsPtr;
   static DwmDefWindowProcProc dwmDwmDefWindowProcPtr;
+#endif 
 
   static PRBool CheckForCompositor() {
     BOOL compositionIsEnabled = FALSE;
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
     if(dwmIsCompositionEnabledPtr)
       dwmIsCompositionEnabledPtr(&compositionIsEnabled);
+#endif 
     return sHaveCompositor = (compositionIsEnabled != 0);
   }
-#endif 
 };
 #endif 
