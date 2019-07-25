@@ -84,6 +84,9 @@ public:
 
   static void StartUp();
 
+  static PImageBridgeChild*
+  StartUpInChildProcess(Transport* aTransport, ProcessId aOtherProcess);
+
   
 
 
