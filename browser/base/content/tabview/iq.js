@@ -227,7 +227,7 @@ iQ.fn = iQ.prototype = {
   
   
   each: function( callback ) {
-    if ( !iQ.isFunction(value) ) {
+    if ( !iQ.isFunction(callback) ) {
       Utils.assert("each's argument must be a function", false);
       return null;
     }
