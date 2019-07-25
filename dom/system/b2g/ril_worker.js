@@ -438,12 +438,14 @@ let Buf = {
     let response_type = this.readUint32();
     let length = this.readIncoming - UINT32_SIZE;
 
-    let request_type;
+    let request_type, options;
     if (response_type == RESPONSE_TYPE_SOLICITED) {
       let token = this.readUint32();
       let error = this.readUint32();
       length -= 2 * UINT32_SIZE;
-      request_type = this.tokenRequestMap[token];
+
+      options = this.tokenRequestMap[token];
+      request_type = options.rilRequestType;
       if (error) {
         
         if (DEBUG) {
@@ -467,7 +469,7 @@ let Buf = {
       return;
     }
 
-    RIL.handleParcel(request_type, length);
+    RIL.handleParcel(request_type, length, options);
   },
 
   
@@ -476,14 +478,22 @@ let Buf = {
 
 
 
-  newParcel: function newParcel(type) {
+
+
+
+  newParcel: function newParcel(type, options) {
     if (DEBUG) debug("New outgoing parcel of type " + type);
     
     this.outgoingIndex = PARCEL_SIZE_SIZE;
     this.writeUint32(type);
     let token = this.token;
     this.writeUint32(token);
-    this.tokenRequestMap[token] = type;
+
+    if (!options) {
+      options = {};
+    }
+    options.rilRequestType = type;
+    this.tokenRequestMap[token] = options;
     this.token++;
     return token;
   },
@@ -765,15 +775,20 @@ let RIL = {
 
 
 
-  sendSMS: function sendSMS(smscPDU, address, body, dcs, bodyLengthInOctets) {
-    let token = Buf.newParcel(REQUEST_SEND_SMS);
+
+
+  sendSMS: function sendSMS(options) {
+    let token = Buf.newParcel(REQUEST_SEND_SMS, options);
     
     
     
     
     Buf.writeUint32(2);
-    Buf.writeString(smscPDU);
-    GsmPDUHelper.writeMessage(address, body, dcs, bodyLengthInOctets);
+    Buf.writeString(options.SMSC);
+    GsmPDUHelper.writeMessage(options.number,
+                              options.body,
+                              options.dcs,
+                              options.bodyLengthInOctets);
     Buf.sendParcel();
   },
 
@@ -907,11 +922,11 @@ let RIL = {
 
 
 
-  handleParcel: function handleParcel(request_type, length) {
+  handleParcel: function handleParcel(request_type, length, options) {
     let method = this[request_type];
     if (typeof method == "function") {
       if (DEBUG) debug("Handling parcel as " + method.name);
-      method.call(this, length);
+      method.call(this, length, options);
     }
   }
 };
@@ -1064,11 +1079,11 @@ RIL[REQUEST_RADIO_POWER] = null;
 RIL[REQUEST_DTMF] = function REQUEST_DTMF() {
   Phone.onSendTone();
 };
-RIL[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS() {
-  let messageRef = Buf.readUint32();
-  let ackPDU = Buf.readString();
-  let errorCode = Buf.readUint32();
-  Phone.onSendSMS(messageRef, ackPDU, errorCode);
+RIL[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS(length, options) {
+  options.messageRef = Buf.readUint32();
+  options.ackPDU = Buf.readString();
+  options.errorCode = Buf.readUint32();
+  Phone.onSendSMS(options);
 };
 RIL[REQUEST_SEND_SMS_EXPECT_MORE] = null;
 RIL[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL() {
@@ -1753,8 +1768,9 @@ let Phone = {
   onSetSMSCAddress: function onSetSMSCAddress() {
   },
 
-  onSendSMS: function onSendSMS(messageRef, ackPDU, errorCode) {
-    
+  onSendSMS: function onSendSMS(options) {
+    options.type = "sms-sent";
+    this.sendDOMMessage(options);
   },
 
   onNewSMS: function onNewSMS(payloadLength) {
@@ -2014,6 +2030,10 @@ let Phone = {
 
 
 
+
+
+
+
   sendSMS: function sendSMS(options) {
     
     if (!this.SMSC) {
@@ -2028,9 +2048,14 @@ let Phone = {
     
     
     
-    RIL.sendSMS(this.SMSC, options.number, options.body,
-                PDU_DCS_MSG_CODING_7BITS_ALPHABET, 
-                Math.ceil(options.body.length * 7 / 8)); 
+    options.SMSC = this.SMSC;
+
+    
+    
+    
+    options.dcs = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
+    options.bodyLengthInOctets = Math.ceil(options.body.length * 7 / 8);
+    RIL.sendSMS(options);
   },
 
   
