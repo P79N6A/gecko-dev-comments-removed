@@ -275,6 +275,8 @@ SessionStore.prototype = {
           
           this.saveStateNow();
         }
+
+        Services.obs.notifyObservers(null, "sessionstore-state-purge-complete", "");
         break;
       case "timer-callback":
         
