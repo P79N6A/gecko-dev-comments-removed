@@ -4166,6 +4166,11 @@ let GsmPDUHelper = {
   readICCUCS2String: function readICCUCS2String(scheme, numOctets) {
     let str = "";
     switch (scheme) {
+      
+
+
+
+
       case 0x80:
         let isOdd = numOctets % 2;
         let i;
@@ -4181,10 +4186,66 @@ let GsmPDUHelper = {
         
         Buf.seekIncoming((numOctets - i) * PDU_HEX_OCTET_SIZE);
         break;
-      case 0x81:
+      case 0x81: 
       case 0x82:
         
-        Buf.seekIncoming(numOctets * PDU_HEX_OCTET_SIZE);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        let len = this.readHexOctet();
+        let offset, headerLen;
+        if (scheme == 0x81) {
+          offset = this.readHexOctet() << 7;
+          headerLen = 2;
+        } else {
+          offset = (this.readHexOctet() << 8) | this.readHexOctet();
+          headerLen = 3;
+        }
+
+        for (let i = 0; i < len; i++) {
+          let ch = this.readHexOctet();
+          if (ch & 0x80) {
+            
+            str += String.fromCharCode((ch & 0x7f) + offset);
+          } else {
+            
+            let count = 0, gotUCS2 = 0;
+            while ((i + count + 1 < len)) {
+              count++;
+              if (this.readHexOctet() & 0x80) {
+                gotUCS2 = 1;
+                break;
+              };
+            }
+            
+            
+            Buf.seekIncoming(-1 * (count + 1) * PDU_HEX_OCTET_SIZE);
+            str += this.read8BitUnpackedToString(count + 1 - gotUCS2);
+            i += count - gotUCS2;
+          }
+        }
+
+        
+        Buf.seekIncoming((numOctets - len - headerLen) * PDU_HEX_OCTET_SIZE);
         break;
     }
     return str;
