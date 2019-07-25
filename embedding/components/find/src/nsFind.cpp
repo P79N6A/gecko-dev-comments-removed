@@ -975,9 +975,6 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
   PRBool inWhitespace = PR_FALSE;
 
   
-  PRBool continuing = PR_FALSE;
-
-  
   nsCOMPtr<nsIDOMNode> matchAnchorNode;
   PRInt32 matchAnchorOffset = 0;
 
@@ -1004,7 +1001,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
       {
         
         
-        if (matchAnchorNode && !continuing)
+        if (matchAnchorNode)
           NextNode(aSearchRange, aStartPoint, aEndPoint, PR_TRUE);
 
         
@@ -1125,7 +1122,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
 
     
     
-    if (mIterNode == endNode && !continuing &&
+    if (mIterNode == endNode &&
         ((mFindBackward && (findex < endOffset)) ||
          (!mFindBackward && (findex > endOffset))))
     {
@@ -1278,11 +1275,6 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
 #ifdef DEBUG_FIND
     printf("NOT: %c == %c\n", c, patc);
 #endif
-    
-    if (continuing) {
-      ResetAll();
-      return NS_OK;
-    }
 
     
     
