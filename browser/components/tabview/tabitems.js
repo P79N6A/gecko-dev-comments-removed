@@ -794,6 +794,7 @@ let TabItems = {
   tempCanvas: null,
   _reconnectingPaused: false,
   tabItemPadding: {},
+  _mozAfterPaintHandler: null,
 
   
   
@@ -824,6 +825,10 @@ let TabItems = {
     
     this.tempCanvas.width = 150;
     this.tempCanvas.height = 112;
+
+    let mm = gWindow.messageManager;
+    this._mozAfterPaintHandler = this.onMozAfterPaint.bind(this);
+    mm.addMessageListener("Panorama:MozAfterPaint", this._mozAfterPaintHandler);
 
     
     this._eventListeners.open = function (event) {
@@ -874,6 +879,9 @@ let TabItems = {
   
   
   uninit: function TabItems_uninit() {
+    let mm = gWindow.messageManager;
+    mm.removeMessageListener("Panorama:MozAfterPaint", this._mozAfterPaintHandler);
+
     for (let name in this._eventListeners) {
       AllTabs.unregister(name, this._eventListeners[name]);
     }
@@ -915,17 +923,30 @@ let TabItems = {
   
   
   
-  isComplete: function TabItems_isComplete(tab) {
-    
-    
-    
-    
+  _isComplete: function TabItems__isComplete(tab, callback) {
     Utils.assertThrow(tab, "tab");
-    return (
-      tab.linkedBrowser.contentDocument.readyState == 'complete' &&
-      !(tab.linkedBrowser.contentDocument.URL == 'about:blank' &&
-        tab._tabViewTabItem.url != 'about:blank')
-    );
+
+    let mm = tab.linkedBrowser.messageManager;
+    let message = "Panorama:isDocumentLoaded";
+
+    mm.addMessageListener(message, function onMessage(cx) {
+      mm.removeMessageListener(cx.name, onMessage);
+      callback(cx.json.isLoaded);
+    });
+    mm.sendAsyncMessage(message);
+  },
+
+  
+  
+  
+  onMozAfterPaint: function TabItems_onMozAfterPaint(cx) {
+    let index = gBrowser.browsers.indexOf(cx.target);
+    if (index == -1)
+      return;
+
+    let tab = gBrowser.tabs[index];
+    if (!tab.pinned)
+      this.update(tab);
   },
 
   
@@ -1009,35 +1030,41 @@ let TabItems = {
       }
 
       
-      if (!this.isComplete(tab) && (!options || !options.force)) {
+      let self = this;
+      let updateCanvas = function TabItems__update_updateCanvas(tabItem) {
         
-        this._tabsWaitingForUpdate.push(tab);
-        return;
-      }
-
-      
-      let $canvas = tabItem.$canvas;
-      if (!tabItem.canvasSizeForced) {
-        let w = $canvas.width();
-        let h = $canvas.height();
-        if (w != tabItem.$canvas[0].width || h != tabItem.$canvas[0].height) {
-          tabItem.$canvas[0].width = w;
-          tabItem.$canvas[0].height = h;
+        let $canvas = tabItem.$canvas;
+        if (!tabItem.canvasSizeForced) {
+          let w = $canvas.width();
+          let h = $canvas.height();
+          if (w != tabItem.$canvas[0].width || h != tabItem.$canvas[0].height) {
+            tabItem.$canvas[0].width = w;
+            tabItem.$canvas[0].height = h;
+          }
         }
-      }
 
-      this._lastUpdateTime = Date.now();
-      tabItem._lastTabUpdateTime = this._lastUpdateTime;
+        self._lastUpdateTime = Date.now();
+        tabItem._lastTabUpdateTime = self._lastUpdateTime;
 
-      tabItem.tabCanvas.paint();
-      tabItem.saveThumbnail();
+        tabItem.tabCanvas.paint();
+        tabItem.saveThumbnail();
 
-      
-      if (tabItem.isShowingCachedData())
-        tabItem.hideCachedData();
+        
+        if (tabItem.isShowingCachedData())
+          tabItem.hideCachedData();
 
-      
-      tabItem._sendToSubscribers("updated");
+        
+        tabItem._sendToSubscribers("updated");
+      };
+      if (options && options.force)
+        updateCanvas(tabItem);
+      else
+        this._isComplete(tab, function TabItems__update_isComplete(isComplete) {
+          if (isComplete)
+            updateCanvas(tabItem);
+          else
+            self._tabsWaitingForUpdate.push(tab);
+        });
     } catch(e) {
       Utils.log(e);
     }

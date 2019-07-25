@@ -74,12 +74,21 @@ let WindowEventHandler = {
     
     
     sendSyncMessage("Panorama:DOMWillOpenModalDialog");
+  },
+
+  
+  
+  
+  
+  onMozAfterPaint: function WEH_onMozAfterPaint(event) {
+    sendAsyncMessage("Panorama:MozAfterPaint");
   }
 };
 
 
 addEventListener("DOMContentLoaded", WindowEventHandler.onDOMContentLoaded, false);
 addEventListener("DOMWillOpenModalDialog", WindowEventHandler.onDOMWillOpenModalDialog, false);
+addEventListener("MozAfterPaint", WindowEventHandler.onMozAfterPaint, false);
 
 
 
@@ -90,8 +99,8 @@ let WindowMessageHandler = {
   
   
   isDocumentLoaded: function WMH_isDocumentLoaded(cx) {
-    let isLoaded = (content.document.readyState == "complete" &&
-                    !webProgress.isLoadingDocument);
+    let readyState = content.document.readyState;
+    let isLoaded = (readyState != "uninitalized" && !webProgress.isLoadingDocument);
 
     sendAsyncMessage(cx.name, {isLoaded: isLoaded});
   }
@@ -187,3 +196,4 @@ let WebProgressListener = {
 
 
 webProgress.addProgressListener(WebProgressListener, Ci.nsIWebProgress.NOTIFY_STATE_WINDOW);
+
