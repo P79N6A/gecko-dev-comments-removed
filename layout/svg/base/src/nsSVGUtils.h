@@ -709,19 +709,23 @@ public:
   
 
 
-  static bool HasStroke(nsIFrame* aFrame);
+  static bool HasStroke(nsIFrame* aFrame,
+                        gfxTextObjectPaint *aObjectPaint = nullptr);
 
-  static float GetStrokeWidth(nsIFrame* aFrame);
-
-  
-
-
-  static void SetupCairoStrokeGeometry(nsIFrame* aFrame, gfxContext *aContext);
+  static float GetStrokeWidth(nsIFrame* aFrame,
+                              gfxTextObjectPaint *aObjectPaint = nullptr);
 
   
 
 
-  static void SetupCairoStrokeHitGeometry(nsIFrame* aFrame, gfxContext *aContext);
+  static void SetupCairoStrokeGeometry(nsIFrame* aFrame, gfxContext *aContext,
+                                       gfxTextObjectPaint *aObjectPaint = nullptr);
+
+  
+
+
+  static void SetupCairoStrokeHitGeometry(nsIFrame* aFrame, gfxContext *aContext,
+                                          gfxTextObjectPaint *aObjectPaint = nullptr);
 
   
 
