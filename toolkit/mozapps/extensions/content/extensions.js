@@ -548,6 +548,19 @@ var gViewController = {
     this.loadViewInternal(aViewId, this.currentViewId);
   },
 
+  
+  
+  replaceView: function(aViewId) {
+    if (aViewId == this.currentViewId)
+      return;
+
+    gHistory.replaceState({
+      view: aViewId,
+      previousView: null
+    }, document.title);
+    this.loadViewInternal(aViewId, null);
+  },
+
   loadInitialView: function(aViewId) {
     gHistory.replaceState({
       view: aViewId,
@@ -1364,9 +1377,13 @@ var gCategories = {
     });
   },
 
+  get selected() {
+    return this.node.selectedItem ? this.node.selectedItem.value : null;
+  },
+
   select: function(aId, aPreviousView) {
     var view = gViewController.parseViewId(aId);
-    if (view.type == "detail") {
+    if (view.type == "detail" && aPreviousView) {
       aId = aPreviousView;
       view = gViewController.parseViewId(aPreviousView);
     }
@@ -2183,6 +2200,11 @@ var gDetailView = {
 
     this.node.setAttribute("type", aAddon.type);
 
+    
+    
+    if (gCategories.selected != "addons://search/")
+      gCategories.select("addons://list/" + aAddon.type);
+
     document.getElementById("detail-name").textContent = aAddon.name;
     var icon = aAddon.icon64URL ? aAddon.icon64URL : aAddon.iconURL;
     document.getElementById("detail-icon").src = icon ? icon : null;
@@ -2353,6 +2375,9 @@ var gDetailView = {
         }
 
         
+        
+        
+        gViewController.replaceView(VIEW_DEFAULT);
       });
     });
   },
@@ -2360,9 +2385,11 @@ var gDetailView = {
   hide: function() {
     this._updatePrefs.removeObserver("", this);
     this.clearLoading();
-    gEventManager.unregisterAddonListener(this, this._addon.id);
-    gEventManager.unregisterInstallListener(this);
-    this._addon = null;
+    if (this._addon) {
+      gEventManager.unregisterAddonListener(this, this._addon.id);
+      gEventManager.unregisterInstallListener(this);
+      this._addon = null;
+    }
   },
 
   updateState: function() {
