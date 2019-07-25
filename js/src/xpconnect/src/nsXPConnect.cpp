@@ -167,22 +167,19 @@ nsXPConnect::GetXPConnect()
         if(!gSelf)
             return nsnull;
 
-        if(!gSelf->mRuntime ||
-           !gSelf->mInterfaceInfoManager)
-        {
-            
-            delete gSelf;
-            gSelf = nsnull;
+        if (!gSelf->mRuntime) {
+            NS_RUNTIMEABORT("Couldn't create XPCJSRuntime.");
         }
-        else
-        {
+        if (!gSelf->mInterfaceInfoManager) {
+            NS_RUNTIMEABORT("Couldn't get global interface info manager.");
+        }
+
+        
+        
+        NS_ADDREF(gSelf);
+        if (NS_FAILED(NS_SetGlobalThreadObserver(gSelf))) {
+            NS_RELEASE(gSelf);
             
-            
-            NS_ADDREF(gSelf);
-            if (NS_FAILED(NS_SetGlobalThreadObserver(gSelf))) {
-                NS_RELEASE(gSelf);
-                
-            }
         }
     }
     return gSelf;
