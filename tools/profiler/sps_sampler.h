@@ -11,6 +11,7 @@
 #include "jsapi.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Util.h"
+#include "nsAlgorithm.h"
 
 
 
@@ -58,8 +59,8 @@ extern bool stack_key_initialized;
 #define SAMPLER_APPEND_LINE_NUMBER_EXPAND(id, line) SAMPLER_APPEND_LINE_NUMBER_PASTE(id, line)
 #define SAMPLER_APPEND_LINE_NUMBER(id) SAMPLER_APPEND_LINE_NUMBER_EXPAND(id, __LINE__)
 
-#define SAMPLE_LABEL(name_space, info) mozilla::SamplerStackFrameRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(name_space "::" info)
-#define SAMPLE_LABEL_PRINTF(name_space, info, format, ...) mozilla::SamplerStackFramePrintfRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(name_space "::" info, format, __VA_ARGS__)
+#define SAMPLE_LABEL(name_space, info) mozilla::SamplerStackFrameRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(name_space "::" info, __LINE__)
+#define SAMPLE_LABEL_PRINTF(name_space, info, ...) mozilla::SamplerStackFramePrintfRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(name_space "::" info, __LINE__, __VA_ARGS__)
 #define SAMPLE_MARKER(info) mozilla_sampler_add_marker(info)
 
 
@@ -134,7 +135,7 @@ LinuxKernelMemoryBarrierFunc pLinuxKernelMemoryBarrier __attribute__((weak)) =
 
 
 
-inline void* mozilla_sampler_call_enter(const char *aInfo, void *aFrameAddress = NULL, bool aCopy = false);
+inline void* mozilla_sampler_call_enter(const char *aInfo, void *aFrameAddress = NULL, bool aCopy = false, uint32_t line = 0);
 inline void  mozilla_sampler_call_exit(void* handle);
 inline void  mozilla_sampler_add_marker(const char *aInfo);
 
@@ -154,8 +155,8 @@ namespace mozilla {
 class NS_STACK_CLASS SamplerStackFrameRAII {
 public:
   
-  SamplerStackFrameRAII(const char *aInfo) {
-    mHandle = mozilla_sampler_call_enter(aInfo, this, false);
+  SamplerStackFrameRAII(const char *aInfo, uint32_t line) {
+    mHandle = mozilla_sampler_call_enter(aInfo, this, false, line);
   }
   ~SamplerStackFrameRAII() {
     mozilla_sampler_call_exit(mHandle);
@@ -168,7 +169,7 @@ static const int SAMPLER_MAX_STRING = 128;
 class NS_STACK_CLASS SamplerStackFramePrintfRAII {
 public:
   
-  SamplerStackFramePrintfRAII(const char *aDefault, const char *aFormat, ...) {
+  SamplerStackFramePrintfRAII(const char *aDefault, uint32_t line, const char *aFormat, ...) {
     if (mozilla_sampler_is_active()) {
       va_list args;
       va_start(args, aFormat);
@@ -183,10 +184,10 @@ public:
       vsnprintf(buff, SAMPLER_MAX_STRING, aFormat, args);
       snprintf(mDest, SAMPLER_MAX_STRING, "%s %s", aDefault, buff);
 #endif
-      mHandle = mozilla_sampler_call_enter(mDest, this, true);
+      mHandle = mozilla_sampler_call_enter(mDest, this, true, line);
       va_end(args);
     } else {
-      mHandle = mozilla_sampler_call_enter(aDefault);
+      mHandle = mozilla_sampler_call_enter(aDefault, NULL, false, line);
     }
   }
   ~SamplerStackFramePrintfRAII() {
@@ -199,30 +200,36 @@ private:
 
 } 
 
-class StackEntry
+
+
+
+
+
+
+
+
+class StackEntry : public js::ProfileEntry
 {
 public:
-  
-  
-  static const void* EncodeStackAddress(const void* aStackAddress, bool aCopy) {
-    aStackAddress = reinterpret_cast<const void*>(
-                      reinterpret_cast<uintptr_t>(aStackAddress) & ~0x1);
-    if (!aCopy)
-      aStackAddress = reinterpret_cast<const void*>(
-                        reinterpret_cast<uintptr_t>(aStackAddress) | 0x1);
-    return aStackAddress;
+
+  bool isCopyLabel() volatile {
+    return !((uintptr_t)stackAddress() & 0x1);
   }
 
-  bool isCopyLabel() const volatile {
-    return !((uintptr_t)mStackAddress & 0x1);
+  void setStackAddressCopy(void *sp, bool copy) volatile {
+    
+    
+    
+    
+    
+    if (copy) {
+      setStackAddress(reinterpret_cast<void*>(
+                        reinterpret_cast<uintptr_t>(sp) & ~0x1));
+    } else {
+      setStackAddress(reinterpret_cast<void*>(
+                        reinterpret_cast<uintptr_t>(sp) | 0x1));
+    }
   }
-
-  const char* mLabel;
-  
-  
-  
-  
-  const void* mStackAddress;
 };
 
 
@@ -273,12 +280,12 @@ public:
     mQueueClearMarker = false;
   }
 
-  void push(const char *aName)
+  void push(const char *aName, uint32_t line)
   {
-    push(aName, NULL, false);
+    push(aName, NULL, false, line);
   }
 
-  void push(const char *aName, void *aStackAddress, bool aCopy)
+  void push(const char *aName, void *aStackAddress, bool aCopy, uint32_t line)
   {
     if (size_t(mStackPointer) >= mozilla::ArrayLength(mStack)) {
       mStackPointer++;
@@ -287,8 +294,9 @@ public:
 
     
     
-    mStack[mStackPointer].mLabel = aName;
-    mStack[mStackPointer].mStackAddress = StackEntry::EncodeStackAddress(aStackAddress, aCopy);
+    mStack[mStackPointer].setLabel(aName);
+    mStack[mStackPointer].setStackAddressCopy(aStackAddress, aCopy);
+    mStack[mStackPointer].setLine(line);
 
     
     STORE_SEQUENCER();
@@ -301,6 +309,10 @@ public:
   bool isEmpty()
   {
     return mStackPointer == 0;
+  }
+  uint32_t stackSize() const
+  {
+    return NS_MIN<uint32_t>(mStackPointer, mozilla::ArrayLength(mStack));
   }
 
   void sampleRuntime(JSRuntime *runtime) {
@@ -331,7 +343,11 @@ public:
   StackEntry volatile mStack[1024];
   
   char const * volatile mMarkers[1024];
+ private:
+  
+  
   volatile mozilla::sig_safe_t mStackPointer;
+ public:
   volatile mozilla::sig_safe_t mMarkerPointer;
   
   
@@ -349,7 +365,8 @@ inline ProfileStack* mozilla_profile_stack(void)
   return tlsStack.get();
 }
 
-inline void* mozilla_sampler_call_enter(const char *aInfo, void *aFrameAddress, bool aCopy)
+inline void* mozilla_sampler_call_enter(const char *aInfo, void *aFrameAddress,
+                                        bool aCopy, uint32_t line)
 {
   
   
@@ -364,7 +381,7 @@ inline void* mozilla_sampler_call_enter(const char *aInfo, void *aFrameAddress, 
   if (!stack) {
     return stack;
   }
-  stack->push(aInfo, aFrameAddress, aCopy);
+  stack->push(aInfo, aFrameAddress, aCopy, line);
 
   
   
