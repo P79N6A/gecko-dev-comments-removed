@@ -114,6 +114,10 @@ class IonCode : public gc::Cell
     void setInvalidated() {
         invalidated_ = true;
     }
+
+    
+    
+    
     bool invalidated() const {
         return !!invalidated_;
     }

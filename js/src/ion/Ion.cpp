@@ -1058,6 +1058,8 @@ InvalidateActivation(JSContext *cx, uint8 *ionTop, bool invalidateAll)
         const SafepointIndex *si = ionScript->getSafepointIndex(it.returnAddressToFp());
         IonCode *ionCode = ionScript->method();
 
+        ionCode->setInvalidated();
+
         
         
         
@@ -1127,8 +1129,6 @@ ion::FinishInvalidation(JSContext *cx, JSScript *script)
 {
     if (!script->hasIonScript())
         return;
-
-    script->ion->method()->setInvalidated();
 
     
 
