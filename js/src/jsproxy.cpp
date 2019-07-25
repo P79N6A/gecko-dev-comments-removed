@@ -1428,8 +1428,8 @@ js::NewProxyObject(JSContext *cx, ProxyHandler *handler, const Value &priv, JSOb
 
 
 
-    if (proto)
-        proto->getNewType(cx, NULL,  true);
+    if (proto && !proto->setNewTypeUnknown(cx))
+        return NULL;
 
     JSObject *obj = NewObjectWithGivenProto(cx, clasp, proto, parent);
     if (!obj)

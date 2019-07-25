@@ -817,14 +817,26 @@ struct JSObject : js::gc::Cell
 
     inline void setType(js::types::TypeObject *newType);
 
-    js::types::TypeObject *getNewType(JSContext *cx, JSFunction *fun = NULL,
-                                      bool markUnknown = false);
+    js::types::TypeObject *getNewType(JSContext *cx, JSFunction *fun = NULL);
 
 #ifdef DEBUG
     bool hasNewType(js::types::TypeObject *newType);
 #endif
 
+    
+
+
+
+
     inline bool setIteratedSingleton(JSContext *cx);
+
+    
+
+
+
+
+
+    bool setNewTypeUnknown(JSContext *cx);
 
     
     bool splicePrototype(JSContext *cx, JSObject *proto);
