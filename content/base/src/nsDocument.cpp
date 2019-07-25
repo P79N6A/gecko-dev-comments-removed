@@ -441,10 +441,9 @@ nsIdentifierMapEntry::AddNameElement(nsIDocument* aDocument, Element* aElement)
 void
 nsIdentifierMapEntry::RemoveNameElement(Element* aElement)
 {
-  NS_ASSERTION(mNameContentList &&
-               mNameContentList->IndexOf(aElement, PR_FALSE) >= 0,
-               "Attmpting to remove named element that doesn't exist");
-  mNameContentList->RemoveElement(aElement);
+  if (mNameContentList) {
+    mNameContentList->RemoveElement(aElement);
+  }
 }
 
 
