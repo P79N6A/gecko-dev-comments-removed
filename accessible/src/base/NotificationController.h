@@ -165,14 +165,6 @@ public:
   
 
 
-  inline void CancelTextUpdate(nsIContent* aTextNode)
-  {
-    mTextHash.RemoveEntry(aTextNode);
-  }
-
-  
-
-
   void ScheduleContentInsertion(nsAccessible* aContainer,
                                 nsIContent* aStartChildNode,
                                 nsIContent* aEndChildNode);
