@@ -607,6 +607,13 @@ let RIL = {
   
 
 
+
+
+  _receivedSmsSegmentsMap: {},
+
+  
+
+
   _muted: true,
   get muted() {
     return this._muted;
@@ -1378,6 +1385,59 @@ let RIL = {
     this.muted = Object.getOwnPropertyNames(this.currentCalls).length == 0;
   },
 
+  
+
+
+
+
+
+  _processReceivedSmsSegment: function _processReceivedSmsSegment(original) {
+    let hash = original.sender + ":" + original.header.segmentRef;
+    let seq = original.header.segmentSeq;
+
+    let options = this._receivedSmsSegmentsMap[hash];
+    if (!options) {
+      options = original;
+      this._receivedSmsSegmentsMap[hash] = options;
+
+      options.segmentMaxSeq = original.header.segmentMaxSeq;
+      options.receivedSegments = 0;
+      options.segments = [];
+    } else if (options.segments[seq]) {
+      
+      if (DEBUG) {
+        debug("Got duplicated segment no." + seq + " of a multipart SMS: "
+              + JSON.stringify(original));
+      }
+      return null;
+    }
+
+    options.segments[seq] = original.body;
+    options.receivedSegments++;
+    if (options.receivedSegments < options.segmentMaxSeq) {
+      if (DEBUG) {
+        debug("Got segment no." + seq + " of a multipart SMS: "
+              + JSON.stringify(options));
+      }
+      return null;
+    }
+
+    
+    delete this._receivedSmsSegmentsMap[hash];
+
+    
+    options.fullBody = "";
+    for (let i = 1; i <= options.segmentMaxSeq; i++) {
+      options.fullBody += options.segments[i];
+    }
+
+    if (DEBUG) {
+      debug("Got full multipart SMS: " + JSON.stringify(options));
+    }
+
+    return options;
+  },
+
   _handleChangedCallState: function _handleChangedCallState(changedCall) {
     let message = {type: "callStateChange",
                    call: {callIndex: changedCall.callIndex,
@@ -1955,8 +2015,16 @@ RIL[UNSOLICITED_RESPONSE_NEW_SMS] = function UNSOLICITED_RESPONSE_NEW_SMS(length
     }
   }
 
-  message.type = "sms-received";
-  this.sendDOMMessage(message);
+  if (message.header && (message.header.segmentMaxSeq > 1)) {
+    message = this._processReceivedSmsSegment(message);
+  } else {
+    message.fullBody = message.body;
+  }
+
+  if (message) {
+    message.type = "sms-received";
+    this.sendDOMMessage(message);
+  }
 
   
   
@@ -2413,6 +2481,30 @@ let GsmPDUHelper = {
       dataAvailable -= 2;
 
       switch (id) {
+        case PDU_IEI_CONCATENATED_SHORT_MESSAGES_8BIT: {
+          let ref = this.readHexOctet();
+          let max = this.readHexOctet();
+          let seq = this.readHexOctet();
+          dataAvailable -= 3;
+          if (max && seq && (seq <= max)) {
+            header.segmentRef = ref;
+            header.segmentMaxSeq = max;
+            header.segmentSeq = seq;
+          }
+          break;
+        }
+        case PDU_IEI_CONCATENATED_SHORT_MESSAGES_16BIT: {
+          let ref = (this.readHexOctet() << 8) | this.readHexOctet();
+          let max = this.readHexOctet();
+          let seq = this.readHexOctet();
+          dataAvailable -= 4;
+          if (max && seq && (seq <= max)) {
+            header.segmentRef = ref;
+            header.segmentMaxSeq = max;
+            header.segmentSeq = seq;
+          }
+          break;
+        }
         case PDU_IEI_NATIONAL_LANGUAGE_SINGLE_SHIFT:
           let langShiftIndex = this.readHexOctet();
           --dataAvailable;
