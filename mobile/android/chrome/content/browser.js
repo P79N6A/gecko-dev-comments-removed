@@ -5672,7 +5672,7 @@ var RemoteDebugger = {
       }
 
       let port = this._getPort();
-      DebuggerServer.openListener(port);
+      DebuggerServer.openListener(port, false);
       dump("Remote debugger listening on port " + port);
     } catch(e) {
       dump("Remote debugger didn't start: " + e);
@@ -5884,7 +5884,7 @@ let Reader = {
         let uri = Services.io.newURI(url, null, null);
 
         let readability = new Readability(uri, doc);
-        let article = readability.parse();
+        article = readability.parse();
 
         if (!article) {
           this.log("Failed to parse page");
