@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef GLCONTEXT_H_
 #define GLCONTEXT_H_
 
@@ -45,7 +46,7 @@
 #endif
 
 #include "GLDefs.h"
-#include "gfxTypes.h"
+#include "gfxRect.h"
 #include "nsISupportsImpl.h"
 #include "prlink.h"
 
@@ -84,19 +85,19 @@ public:
     } SymLoadStruct;
 
     PRBool LoadSymbols(SymLoadStruct *firstStruct,
-		       PRBool tryplatform = PR_FALSE,
-		       const char *prefix = nsnull);
+                       PRBool tryplatform = PR_FALSE,
+                       const char *prefix = nsnull);
 
     
 
 
     static PRFuncPtr LookupSymbol(PRLibrary *lib,
-				  const char *symname,
-				  PlatformLookupFunction lookupFunction = nsnull);
+                                  const char *symname,
+                                  PlatformLookupFunction lookupFunction = nsnull);
     static PRBool LoadSymbols(PRLibrary *lib,
-			      SymLoadStruct *firstStruct,
-			      PlatformLookupFunction lookupFunction = nsnull,
-			      const char *prefix = nsnull);
+                              SymLoadStruct *firstStruct,
+                              PlatformLookupFunction lookupFunction = nsnull,
+                              const char *prefix = nsnull);
 protected:
     LibrarySymbolLoader() {
         mLibrary = nsnull;
@@ -125,13 +126,13 @@ public:
     virtual PRBool SetupLookupFunction() = 0;
 
     void *GetUserData(void *aKey) {
-	void *result = nsnull;
-	mUserData.Get(aKey, &result);
-	return result;
+        void *result = nsnull;
+        mUserData.Get(aKey, &result);
+        return result;
     }
 
     void SetUserData(void *aKey, void *aValue) {
-	mUserData.Put(aKey, aValue);
+        mUserData.Put(aKey, aValue);
     }
 
     enum NativeDataType {
@@ -143,6 +144,16 @@ public:
     };
 
     virtual void *GetNativeData(NativeDataType aType) { return NULL; }
+
+    
+
+
+
+
+
+
+    virtual PRBool Resize(const gfxIntSize& aNewSize) { return PR_FALSE; }
+
 protected:
 
     PRBool mInitialized;
