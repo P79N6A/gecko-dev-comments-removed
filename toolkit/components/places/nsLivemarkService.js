@@ -420,7 +420,7 @@ LivemarkService.prototype = {
       
       
       this._livemarks[livemark.id] = livemark;
-      this._guids[livemark.guid] = livemark.id;    
+      this._guids[aLivemarkInfo.guid] = livemark.id;    
     }
     catch (ex) {
       result = ex.result;
