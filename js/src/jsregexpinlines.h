@@ -741,7 +741,7 @@ inline bool
 JSObject::initRegExp(JSContext *cx, js::RegExp *re)
 {
     JS_ASSERT(isRegExp());
-    JS_ASSERT(getAllocKind() == js::gc::FINALIZE_OBJECT8);
+    JS_ASSERT(js::gc::GetGCKindSlots(getAllocKind()) == 8);
 
     
 
