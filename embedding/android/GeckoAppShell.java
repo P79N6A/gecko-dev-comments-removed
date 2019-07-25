@@ -829,6 +829,7 @@ public class GeckoAppShell
                 Field f = drawableClass.getField(resource);
                 icon = f.getInt(null);
             } catch (Exception e) {} 
+            imageUri = null;
         }
 
         int notificationID = aAlertName.hashCode();
@@ -836,8 +837,10 @@ public class GeckoAppShell
         
         removeNotification(notificationID);
 
-        AlertNotification notification = new AlertNotification(GeckoApp.mAppContext,
-            notificationID, icon, aAlertTitle, aAlertText, System.currentTimeMillis());
+        AlertNotification notification = 
+            new AlertNotification(GeckoApp.mAppContext,notificationID, icon, 
+                                  aAlertTitle, aAlertText, 
+                                  System.currentTimeMillis());
 
         
         Intent notificationIntent = new Intent(GeckoApp.ACTION_ALERT_CLICK);
@@ -850,7 +853,7 @@ public class GeckoAppShell
 
         PendingIntent contentIntent = PendingIntent.getBroadcast(GeckoApp.mAppContext, 0, notificationIntent, 0);
         notification.setLatestEventInfo(GeckoApp.mAppContext, aAlertTitle, aAlertText, contentIntent);
-
+        notification.setCustomIcon(imageUri);
         
         Intent clearNotificationIntent = new Intent(GeckoApp.ACTION_ALERT_CLEAR);
         clearNotificationIntent.setClassName(GeckoApp.mAppContext,
