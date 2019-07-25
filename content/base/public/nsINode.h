@@ -291,8 +291,8 @@ private:
 
 
 #define NS_INODE_IID \
-{ 0xce310d6d, 0x46b5, 0x46a2, \
-  { 0x86, 0x3d, 0x59, 0x16, 0x6b, 0x81, 0x00, 0x67 } }
+{ 0x458300ed, 0xe418, 0x4577, \
+  { 0x89, 0xd7, 0xfe, 0xf1, 0x34, 0xf3, 0x52, 0x19 } }
 
 
 
@@ -590,9 +590,7 @@ public:
 
 
 
-
-  virtual nsresult RemoveChildAt(PRUint32 aIndex, 
-                                 bool aNotify) = 0;
+  virtual void RemoveChildAt(PRUint32 aIndex, bool aNotify) = 0;
 
   
 

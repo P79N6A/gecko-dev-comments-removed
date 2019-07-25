@@ -956,8 +956,7 @@ nsXULContentBuilder::RemoveMember(nsIContent* aContent)
         
         
         
-        nsresult rv = parent->RemoveChildAt(pos, true);
-        if (NS_FAILED(rv)) return rv;
+        parent->RemoveChildAt(pos, true);
     }
 
     
