@@ -15,6 +15,8 @@ let XULDocument = Ci.nsIDOMXULDocument;
 let HTMLHtmlElement = Ci.nsIDOMHTMLHtmlElement;
 let HTMLIFrameElement = Ci.nsIDOMHTMLIFrameElement;
 let HTMLFrameElement = Ci.nsIDOMHTMLFrameElement;
+let HTMLSelectElement = Ci.nsIDOMHTMLSelectElement;
+let HTMLOptionElement = Ci.nsIDOMHTMLOptionElement;
 
 
 const kViewportMinScale  = 0;
@@ -189,8 +191,7 @@ function getOverflowContentBoundingRect(aElement) {
   
   let computedStyle = aElement.ownerDocument.defaultView.getComputedStyle(aElement);
   let blockDisplays = ["block", "inline-block", "list-item"];
-  if (blockDisplays.indexOf(computedStyle.getPropertyValue("display")) != -1 &&
-      computedStyle.getPropertyValue("overflow") == "hidden")
+  if ((blockDisplays.indexOf(computedStyle.getPropertyValue("display")) != -1 && computedStyle.getPropertyValue("overflow") == "hidden") || aElement instanceof HTMLSelectElement)
     return r;
 
   for (let i = 0; i < aElement.childElementCount; i++)
@@ -443,6 +444,11 @@ Content.prototype = {
 
         
         this._sendMouseEvent("mousemove", element, x, y);
+
+        
+        let isDisabled = element instanceof HTMLOptionElement ? (element.disabled || element.parentNode.disabled) : element.disabled;
+        if (isDisabled)
+          return;
 
         
         let targetElement = null;
