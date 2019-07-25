@@ -81,6 +81,23 @@ private:
                                     bool aIsOfType);
 
   
+  
+  
+  
+  typedef PRInt32 CacheEntry;
+
+  class SystemAllocPolicy {
+  public:
+    void *malloc_(size_t bytes) { return ::malloc(bytes); }
+    void *realloc_(void *p, size_t bytes) { return ::realloc(p, bytes); }
+    void free_(void *p) { ::free(p); }
+    void reportAllocOverflow() const {}
+  };
+
+  typedef js::HashMap<nsIContent*, CacheEntry, js::DefaultHasher<nsIContent*>,
+                      SystemAllocPolicy> Cache;
+
+  
 
 
 
@@ -95,37 +112,15 @@ private:
                                                  Element* aChild,
                                                  bool aIsOfType,
                                                  bool aIsFromEnd,
+                                                 const Cache& aCache,
                                                  PRInt32& aResult);
 
-  struct CacheEntry {
-    CacheEntry() {
-      mNthIndices[0][0] = -2;
-      mNthIndices[0][1] = -2;
-      mNthIndices[1][0] = -2;
-      mNthIndices[1][1] = -2;
-    }
-
-    
-    
-    
-    
-    
-    
-    PRInt32 mNthIndices[2][2];
-  };
-
-  class SystemAllocPolicy {
-  public:
-    void *malloc_(size_t bytes) { return ::malloc(bytes); }
-    void *realloc_(void *p, size_t bytes) { return ::realloc(p, bytes); }
-    void free_(void *p) { ::free(p); }
-    void reportAllocOverflow() const {}
-  };
-
-  typedef js::HashMap<nsIContent*, CacheEntry, js::DefaultHasher<nsIContent*>,
-                      SystemAllocPolicy> Cache;
-
-  Cache mCache;
+  
+  
+  
+  
+  
+  Cache mCaches[2][2];
 };
 
 #endif 
