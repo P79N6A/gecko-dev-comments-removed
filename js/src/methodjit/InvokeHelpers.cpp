@@ -617,46 +617,50 @@ js_InternalThrow(VMFrame &f)
     StackFrame *fp = cx->fp();
     JSScript *script = fp->script();
 
-    
+    if (cx->typeInferenceEnabled() || !fp->jit()) {
+        
 
 
 
 
 
 
-    cx->compartment->jaegerCompartment()->setLastUnfinished(Jaeger_Unfinished);
+        cx->compartment->jaegerCompartment()->setLastUnfinished(Jaeger_Unfinished);
 
-    if (!script->ensureRanAnalysis(cx)) {
-        js_ReportOutOfMemory(cx);
+        if (!script->ensureRanAnalysis(cx)) {
+            js_ReportOutOfMemory(cx);
+            return NULL;
+        }
+
+        analyze::AutoEnterAnalysis enter(cx);
+
+        cx->regs().pc = pc;
+        cx->regs().sp = fp->base() + script->analysis()->getCode(pc).stackDepth;
+
+        
+
+
+
+
+        if (cx->isExceptionPending()) {
+            JS_ASSERT(js_GetOpcode(cx, script, pc) == JSOP_ENTERBLOCK);
+            JSObject *obj = script->getObject(GET_SLOTNO(pc));
+            Value *vp = cx->regs().sp + OBJ_BLOCK_COUNT(cx, obj);
+            SetValueRangeToUndefined(cx->regs().sp, vp);
+            cx->regs().sp = vp;
+            JS_ASSERT(js_GetOpcode(cx, script, pc + JSOP_ENTERBLOCK_LENGTH) == JSOP_EXCEPTION);
+            cx->regs().sp[0] = cx->getPendingException();
+            cx->clearPendingException();
+            cx->regs().sp++;
+            cx->regs().pc = pc + JSOP_ENTERBLOCK_LENGTH + JSOP_EXCEPTION_LENGTH;
+        }
+
+        *f.oldregs = f.regs;
+
         return NULL;
     }
 
-    analyze::AutoEnterAnalysis enter(cx);
-
-    cx->regs().pc = pc;
-    cx->regs().sp = fp->base() + script->analysis()->getCode(pc).stackDepth;
-
-    
-
-
-
-
-    if (cx->isExceptionPending()) {
-        JS_ASSERT(js_GetOpcode(cx, script, pc) == JSOP_ENTERBLOCK);
-        JSObject *obj = script->getObject(GET_SLOTNO(pc));
-        Value *vp = cx->regs().sp + OBJ_BLOCK_COUNT(cx, obj);
-        SetValueRangeToUndefined(cx->regs().sp, vp);
-        cx->regs().sp = vp;
-        JS_ASSERT(js_GetOpcode(cx, script, pc + JSOP_ENTERBLOCK_LENGTH) == JSOP_EXCEPTION);
-        cx->regs().sp[0] = cx->getPendingException();
-        cx->clearPendingException();
-        cx->regs().sp++;
-        cx->regs().pc = pc + JSOP_ENTERBLOCK_LENGTH + JSOP_EXCEPTION_LENGTH;
-    }
-
-    *f.oldregs = f.regs;
-
-    return NULL;
+    return script->nativeCodeForPC(fp->isConstructing(), pc);
 }
 
 void JS_FASTCALL
@@ -1157,7 +1161,7 @@ RunTracer(VMFrame &f)
 
 #if defined JS_TRACER
 # if defined JS_MONOIC
-void * JS_FASTCALL
+void *JS_FASTCALL
 stubs::InvokeTracer(VMFrame &f, ic::TraceICInfo *ic)
 {
     return RunTracer(f, *ic);
@@ -1165,7 +1169,7 @@ stubs::InvokeTracer(VMFrame &f, ic::TraceICInfo *ic)
 
 # else
 
-void * JS_FASTCALL
+void *JS_FASTCALL
 stubs::InvokeTracer(VMFrame &f)
 {
     return RunTracer(f);
@@ -1328,33 +1332,21 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
         break;
 
       case REJOIN_NATIVE:
-      case REJOIN_NATIVE_LOWERED:
-      case REJOIN_NATIVE_GETTER: {
+      case REJOIN_NATIVE_LOWERED: {
         
 
 
 
 
-
-        if (rejoin == REJOIN_NATIVE_LOWERED) {
+        if (rejoin == REJOIN_NATIVE_LOWERED)
             nextsp[-1] = nextsp[0];
-        } else if (rejoin == REJOIN_NATIVE_GETTER) {
-            if (js_CodeSpec[op].format & JOF_CALLOP) {
-                
-
-
-
-
-                if (nextsp[-2].isObject())
-                    nextsp[-1] = nextsp[-2];
-                nextsp[-2] = nextsp[0];
-            } else {
-                nextsp[-1] = nextsp[0];
-            }
-        }
 
         
         RemoveOrphanedNative(cx, fp);
+
+        
+
+
 
         f.regs.pc = nextpc;
         break;
@@ -1573,16 +1565,6 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
     if (nextDepth == uint32(-1))
         nextDepth = analysis->getCode(f.regs.pc).stackDepth;
     f.regs.sp = fp->base() + nextDepth;
-
-    
-
-
-
-
-    if (f.regs.pc == nextpc && (js_CodeSpec[op].format & JOF_TYPESET)) {
-        int which = (js_CodeSpec[op].format & JOF_CALLOP) ? -2 : -1;  
-        types::TypeScript::Monitor(cx, script, pc, f.regs.sp[which]);
-    }
 
     
     JaegerStatus status = skipTrap ? Jaeger_UnfinishedAtTrap : Jaeger_Unfinished;

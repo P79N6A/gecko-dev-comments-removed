@@ -94,12 +94,6 @@ struct BaseIC : public MacroAssemblerTypedefs {
     bool slowCallPatched : 1;
 
     
-    bool canCallHook : 1;
-
-    
-    bool forcedTypeBarrier : 1;
-
-    
     uint32 stubsGenerated : 5;
 
     
@@ -108,7 +102,6 @@ struct BaseIC : public MacroAssemblerTypedefs {
     void reset() {
         hit = false;
         slowCallPatched = false;
-        forcedTypeBarrier = false;
         stubsGenerated = 0;
         secondShapeGuard = 0;
     }
@@ -558,6 +551,7 @@ struct PICInfo : public BasePolyIC {
 };
 
 #ifdef JS_POLYIC
+void PurgePICs(JSContext *cx, JSScript *script);
 void JS_FASTCALL GetProp(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL GetPropNoCache(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL SetProp(VMFrame &f, ic::PICInfo *);

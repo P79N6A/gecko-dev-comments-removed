@@ -691,17 +691,16 @@ public:
     JSScript *script;
     jsbytecode *callpc;
     Type type;
-    TypeSet *types;
 
-    TypeConstraintPropagateThis(JSScript *script, jsbytecode *callpc, Type type, TypeSet *types)
-        : TypeConstraint("propagatethis"), script(script), callpc(callpc), type(type), types(types)
+    TypeConstraintPropagateThis(JSScript *script, jsbytecode *callpc, Type type)
+        : TypeConstraint("propagatethis"), script(script), callpc(callpc), type(type)
     {}
 
     void newType(JSContext *cx, TypeSet *source, Type type);
 };
 
 void
-TypeSet::addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc, Type type, TypeSet *types)
+TypeSet::addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc, Type type)
 {
     
     jsbytecode *callpc = script->analysis()->getCallPC(pc);
@@ -709,7 +708,7 @@ TypeSet::addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc, Type 
     if (JSOp(*callpc) == JSOP_NEW)
         return;
 
-    add(cx, ArenaNew<TypeConstraintPropagateThis>(cx->compartment->pool, script, callpc, type, types));
+    add(cx, ArenaNew<TypeConstraintPropagateThis>(cx->compartment->pool, script, callpc, type));
 }
 
 
@@ -1087,8 +1086,7 @@ TypeConstraintCallProp::newType(JSContext *cx, TypeSet *source, Type type)
                 object->getFromPrototypes(cx, id, types);
             
             types->add(cx, ArenaNew<TypeConstraintPropagateThis>(cx->compartment->pool,
-                                                                 script, callpc, type,
-                                                                 (TypeSet *) NULL));
+                                                                 script, callpc, type));
         }
     }
 }
@@ -1260,11 +1258,7 @@ TypeConstraintPropagateThis::newType(JSContext *cx, TypeSet *source, Type type)
     if (!callee->script()->ensureHasTypes(cx, callee))
         return;
 
-    TypeSet *thisTypes = TypeScript::ThisTypes(callee->script());
-    if (this->types)
-        this->types->addSubset(cx, thisTypes);
-    else
-        thisTypes->addType(cx, this->type);
+    TypeScript::ThisTypes(callee->script())->addType(cx, this->type);
 }
 
 void
@@ -1897,8 +1891,10 @@ TypeCompartment::init(JSContext *cx)
 {
     PodZero(this);
 
+#ifndef JS_CPU_ARM
     if (cx && cx->getRunOptions() & JSOPTION_TYPE_INFERENCE)
         inferenceEnabled = true;
+#endif
 }
 
 TypeObject *
@@ -3225,14 +3221,6 @@ ScriptAnalysis::resolveNameAccess(JSContext *cx, jsid id, bool addDependency)
             return access;
         }
 
-        
-
-
-
-
-        if (atom == CallObjectLambdaName(script->function()))
-            return access;
-
         if (!script->nesting()->parent)
             return access;
         script = script->nesting()->parent;
@@ -3688,18 +3676,19 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         TypeSet *seen = script->analysis()->bytecodeTypes(pc);
 
         poppedTypes(pc, 1)->addGetProperty(cx, script, pc, seen, JSID_VOID);
+        if (op == JSOP_CALLELEM)
+            poppedTypes(pc, 1)->addCallProperty(cx, script, pc, JSID_VOID);
 
         seen->addSubset(cx, &pushed[0]);
-        if (op == JSOP_CALLELEM) {
+        if (op == JSOP_CALLELEM)
             poppedTypes(pc, 1)->addFilterPrimitives(cx, &pushed[1], TypeSet::FILTER_NULL_VOID);
-            pushed[0].addPropagateThis(cx, script, pc, Type::UndefinedType(), &pushed[1]);
-        }
         if (CheckNextTest(pc))
             pushed[0].addType(cx, Type::UndefinedType());
         break;
       }
 
       case JSOP_SETELEM:
+      case JSOP_SETHOLE:
         poppedTypes(pc, 1)->addSetElement(cx, script, pc, poppedTypes(pc, 2), poppedTypes(pc, 0));
         poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
         break;
@@ -6032,13 +6021,6 @@ TypeScript::Sweep(JSContext *cx, JSScript *script)
 #ifdef JS_METHODJIT
     mjit::ReleaseScriptCode(cx, script);
 #endif
-
-    
-
-
-
-
-    script->resetUseCount();
 }
 
 void

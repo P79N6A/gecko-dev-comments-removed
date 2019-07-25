@@ -118,7 +118,7 @@ struct Registers {
 #elif defined(JS_CPU_X64)
     static const RegisterID JSFrameReg = JSC::X86Registers::ebx;
 #elif defined(JS_CPU_ARM)
-    static const RegisterID JSFrameReg = JSC::ARMRegisters::r10;
+    static const RegisterID JSFrameReg = JSC::ARMRegisters::r11;
 #elif defined(JS_CPU_SPARC)
     static const RegisterID JSFrameReg = JSC::SparcRegisters::l0;
 #endif
@@ -130,13 +130,11 @@ struct Registers {
     static const RegisterID ArgReg1 = JSC::X86Registers::edx;
 #  if defined(JS_CPU_X64)
     static const RegisterID ArgReg2 = JSC::X86Registers::r8;
-    static const RegisterID ArgReg3 = JSC::X86Registers::r9;
 #  endif
 # else
     static const RegisterID ArgReg0 = JSC::X86Registers::edi;
     static const RegisterID ArgReg1 = JSC::X86Registers::esi;
     static const RegisterID ArgReg2 = JSC::X86Registers::edx;
-    static const RegisterID ArgReg3 = JSC::X86Registers::ecx;
 # endif
 #elif JS_CPU_ARM
     static const RegisterID ReturnReg = JSC::ARMRegisters::r0;
@@ -227,7 +225,8 @@ struct Registers {
         | (1 << JSC::ARMRegisters::r6)
         | (1 << JSC::ARMRegisters::r7)
     
-        | (1 << JSC::ARMRegisters::r9);
+        | (1 << JSC::ARMRegisters::r9)
+        | (1 << JSC::ARMRegisters::r10);
     
     
     
@@ -389,15 +388,6 @@ struct Registers {
 # error "Unsupported platform"
 #endif
 
-    
-#if defined(JS_CPU_X86) || defined(JS_CPU_X64)
-    static const RegisterID ClobberInCall = JSC::X86Registers::ecx;
-#elif defined(JS_CPU_ARM)
-    static const RegisterID ClobberInCall = JSC::ARMRegisters::r2;
-#elif defined(JS_CPU_SPARC)
-    static const RegisterID ClobberInCall = JSC::SparcRegisters::l1;
-#endif
-
     static const uint32 AvailFPRegs = TempFPRegs;
 
     static inline uint32 maskReg(FPRegisterID reg) {
@@ -420,20 +410,6 @@ struct Registers {
         regs.takeReg(Registers::ArgReg0);
         regs.takeReg(Registers::ArgReg1);
         return regs.takeAnyReg().reg();
-    }
-
-    
-    static inline Registers tempCallRegMask() {
-        Registers regs(AvailRegs);
-#ifndef JS_CPU_X86
-        regs.takeReg(ArgReg0);
-        regs.takeReg(ArgReg1);
-        regs.takeReg(ArgReg2);
-#if defined(JS_CPU_SPARC) || defined(JS_CPU_X64)
-        regs.takeReg(ArgReg3);
-#endif
-#endif
-        return regs;
     }
 
     Registers(uint32 freeMask)

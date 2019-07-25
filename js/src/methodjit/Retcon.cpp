@@ -100,20 +100,6 @@ SetRejoinState(StackFrame *fp, const CallSite &site, void **location)
     }
 }
 
-static inline bool
-CallsiteMatches(uint8 *codeStart, const CallSite &site, void *location)
-{
-    if (codeStart + site.codeOffset == location)
-        return true;
-
-#ifdef JS_CPU_ARM
-    if (codeStart + site.codeOffset + 4 == location)
-        return true;
-#endif
-
-    return false;
-}
-
 void
 Recompiler::patchCall(JITScript *jit, StackFrame *fp, void **location)
 {
@@ -121,7 +107,7 @@ Recompiler::patchCall(JITScript *jit, StackFrame *fp, void **location)
 
     CallSite *callSites_ = jit->callSites();
     for (uint32 i = 0; i < jit->nCallSites; i++) {
-        if (CallsiteMatches(codeStart, callSites_[i], *location)) {
+        if (callSites_[i].codeOffset + codeStart == *location) {
             JS_ASSERT(callSites_[i].inlineIndex == analyze::CrossScriptSSA::OUTER_FRAME);
             SetRejoinState(fp, callSites_[i], location);
             return;
@@ -142,67 +128,62 @@ Recompiler::patchNative(JSCompartment *compartment, JITScript *jit, StackFrame *
 
 
 
-
     fp->setRejoin(StubRejoin(rejoin));
 
     
     compartment->jaegerCompartment()->orphanedNativeFrames.append(fp);
 
-    DebugOnly<bool> found = false;
+    unsigned i;
+    ic::CallICInfo *callICs = jit->callICs();
+    for (i = 0; i < jit->nCallICs; i++) {
+        CallSite *call = callICs[i].call;
+        if (inlined) {
+            
+
+
+
+
+
+            if (call->inlineIndex == inlined->inlineIndex && call->pcOffset == inlined->pcOffset)
+                break;
+        } else if (call->inlineIndex == uint32(-1) &&
+                   call->pcOffset == uint32(pc - jit->script->code)) {
+            break;
+        }
+    }
+    JS_ASSERT(i < jit->nCallICs);
+    ic::CallICInfo &ic = callICs[i];
+    JS_ASSERT(ic.fastGuardedNative);
+
+    JSC::ExecutablePool *&pool = ic.pools[ic::CallICInfo::Pool_NativeStub];
+
+    if (!pool) {
+        
+        return;
+    }
 
     
-
-
-
-    for (unsigned i = 0; i < jit->nativeCallStubs.length(); i++) {
-        NativeCallStub &stub = jit->nativeCallStubs[i];
-        if (stub.pc != pc || stub.inlined != inlined)
-            continue;
-
-        found = true;
-
-        
-        if (!stub.pool)
-            continue;
-
-        
-        {
+    {
 #if (defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)) || defined(_WIN64)
-            
-            void *interpoline = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolinePatched);
+        
+        void *interpoline = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolinePatched);
 #else
-            void *interpoline = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
+        void *interpoline = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
 #endif
-            uint8 *start = (uint8 *)stub.jump.executableAddress();
-            JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
+        uint8 *start = (uint8 *)ic.nativeJump.executableAddress();
+        JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
 #ifdef JS_CPU_X64
-            repatch.repatch(stub.jump, interpoline);
+        repatch.repatch(ic.nativeJump, interpoline);
 #else
-            repatch.relink(stub.jump, JSC::CodeLocationLabel(interpoline));
+        repatch.relink(ic.nativeJump, JSC::CodeLocationLabel(interpoline));
 #endif
-        }
-
-        
-        compartment->jaegerCompartment()->orphanedNativePools.append(stub.pool);
-
-        
-        stub.pool = NULL;
     }
 
-    JS_ASSERT(found);
+    
+    compartment->jaegerCompartment()->orphanedNativePools.append(pool);
 
-    if (inlined) {
-        
-
-
-
-
-
-        jit->purgeGetterPICs();
-        ic::CallICInfo *callICs_ = jit->callICs();
-        for (uint32 i = 0; i < jit->nCallICs; i++)
-            callICs_[i].purge();
-    }
+    
+    pool = NULL;
 }
 
 void
@@ -214,16 +195,15 @@ Recompiler::patchFrame(JSCompartment *compartment, VMFrame *f, JSScript *script)
 
 
 
-    JS_ASSERT(!f->regs.inlined());
     StackFrame *fp = f->fp();
     void **addr = f->returnAddressLocation();
     RejoinState rejoin = (RejoinState) f->stubRejoin;
     if (rejoin == REJOIN_NATIVE ||
-        rejoin == REJOIN_NATIVE_LOWERED ||
-        rejoin == REJOIN_NATIVE_GETTER) {
+        rejoin == REJOIN_NATIVE_LOWERED) {
         
         if (fp->script() == script) {
-            patchNative(compartment, fp->jit(), fp, f->regs.pc, NULL, rejoin);
+            patchNative(compartment, fp->jit(), fp,
+                        f->regs.pc, NULL, rejoin);
             f->stubRejoin = REJOIN_NATIVE_PATCHED;
         }
     } else if (rejoin == REJOIN_NATIVE_PATCHED) {
@@ -312,22 +292,15 @@ Recompiler::expandInlineFrames(JSCompartment *compartment,
 
     
     if (f->stubRejoin && f->fp() == fp) {
-        RejoinState rejoin = (RejoinState) f->stubRejoin;
-        JS_ASSERT(rejoin != REJOIN_NATIVE_PATCHED);
-        if (rejoin == REJOIN_NATIVE ||
-            rejoin == REJOIN_NATIVE_LOWERED ||
-            rejoin == REJOIN_NATIVE_GETTER) {
-            
-            patchNative(compartment, fp->jit(), innerfp, innerpc, inlined, rejoin);
-            f->stubRejoin = REJOIN_NATIVE_PATCHED;
-        } else {
-            
-            innerfp->setRejoin(StubRejoin(rejoin));
-            *frameAddr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
-            f->stubRejoin = 0;
-        }
+        
+        JS_ASSERT(f->stubRejoin != REJOIN_NATIVE &&
+                  f->stubRejoin != REJOIN_NATIVE_LOWERED &&
+                  f->stubRejoin != REJOIN_NATIVE_PATCHED);
+        innerfp->setRejoin(StubRejoin((RejoinState) f->stubRejoin));
+        *frameAddr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
+        f->stubRejoin = 0;
     }
-    if (CallsiteMatches(codeStart, *inlined, *frameAddr)) {
+    if (*frameAddr == codeStart + inlined->codeOffset) {
         
         SetRejoinState(innerfp, *inlined, frameAddr);
     }
@@ -524,7 +497,12 @@ Recompiler::cleanup(JITScript *jit)
         JS_STATIC_ASSERT(offsetof(ic::CallICInfo, links) == 0);
         ic::CallICInfo *ic = (ic::CallICInfo *) jit->callers.next;
 
-        ic->purge();
+        uint8 *start = (uint8 *)ic->funGuard.executableAddress();
+        JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
+
+        repatch.repatch(ic->funGuard, NULL);
+        repatch.relink(ic->funJump, ic->slowPathStart);
+        ic->purgeGuardedObject();
     }
 }
 

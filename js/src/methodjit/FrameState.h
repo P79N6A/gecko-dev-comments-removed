@@ -618,17 +618,7 @@ class FrameState
 
     inline FrameEntry *peek(int32 depth);
 
-#ifdef DEBUG
     
-
-
-
-    Jump typeCheckEntry(const FrameEntry *fe, types::TypeSet *types) const;
-#endif
-
-    
-
-
 
 
 
@@ -958,10 +948,7 @@ class FrameState
     inline FrameEntry *getTemporary(uint32 which);
 
     
-
-
-
-    Vector<TemporaryCopy> *getTemporaryCopies(Uses uses);
+    Vector<TemporaryCopy> *getTemporaryCopies();
 
     inline void syncAndForgetFe(FrameEntry *fe, bool markSynced = false);
     inline void forgetLoopReg(FrameEntry *fe);

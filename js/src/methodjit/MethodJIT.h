@@ -260,10 +260,8 @@ enum RejoinState {
 
 
 
-
     REJOIN_NATIVE,
     REJOIN_NATIVE_LOWERED,
-    REJOIN_NATIVE_GETTER,
 
     
 
@@ -555,31 +553,6 @@ struct PCLengthEntry {
     double          picsLength; 
 };
 
-
-
-
-
-
-struct NativeCallStub {
-    
-    jsbytecode *pc;
-    CallSite *inlined;
-
-    
-    JSC::ExecutablePool *pool;
-
-    
-
-
-
-
-#ifdef JS_CPU_X64
-    JSC::CodeLocationDataLabelPtr jump;
-#else
-    JSC::CodeLocationJump jump;
-#endif
-};
-
 struct JITScript {
     typedef JSC::MacroAssemblerCodeRef CodeRef;
     CodeRef         code;       
@@ -638,9 +611,6 @@ struct JITScript {
     ExecPoolVector execPools;
 #endif
 
-    
-    Vector<NativeCallStub, 0, SystemAllocPolicy> nativeCallStubs;
-
     NativeMapEntry *nmap() const;
     js::mjit::InlineFrame *inlineFrames() const;
     js::mjit::CallSite *callSites() const;
@@ -666,9 +636,8 @@ struct JITScript {
         return jcheck >= jitcode && jcheck < jitcode + code.m_size;
     }
 
-    void purgeGetterPICs();
-
-    void sweepCallICs(JSContext *cx);
+    void nukeScriptDependentICs();
+    void sweepCallICs(JSContext *cx, bool purgeAll);
     void purgeMICs();
     void purgePICs();
 
@@ -685,8 +654,6 @@ struct JITScript {
     char *monoICSectionsLimit() const;
     char *polyICSectionsLimit() const;
 };
-
-void PurgeICs(JSContext *cx, JSScript *script);
 
 
 

@@ -216,6 +216,7 @@ struct CallICInfo {
     enum PoolIndex {
         Pool_ScriptStub,
         Pool_ClosureStub,
+        Pool_NativeStub,
         Total_Pools
     };
 
@@ -238,6 +239,17 @@ struct CallICInfo {
 
     
     JSC::CodeLocationJump funJump;
+
+    
+
+
+
+
+#ifdef JS_CPU_X64
+    JSC::CodeLocationDataLabelPtr nativeJump;
+#else
+    JSC::CodeLocationJump nativeJump;
+#endif
 
     
     uint32 hotJumpOffset   : 16;
@@ -269,12 +281,13 @@ struct CallICInfo {
         fastGuardedNative = NULL;
         hit = false;
         hasJsFunCheck = false;
-        PodArrayZero(pools);
+        pools[0] = pools[1] = pools[2] = NULL;
     }
 
     inline void releasePools() {
         releasePool(Pool_ScriptStub);
         releasePool(Pool_ClosureStub);
+        releasePool(Pool_NativeStub);
     }
 
     inline void releasePool(PoolIndex index) {
@@ -291,8 +304,6 @@ struct CallICInfo {
         fastGuardedObject = NULL;
         JS_REMOVE_LINK(&links);
     }
-
-    void purge();
 };
 
 void * JS_FASTCALL New(VMFrame &f, ic::CallICInfo *ic);
@@ -302,6 +313,9 @@ void * JS_FASTCALL NativeCall(VMFrame &f, ic::CallICInfo *ic);
 JSBool JS_FASTCALL SplatApplyArgs(VMFrame &f);
 
 void GenerateArgumentCheckStub(VMFrame &f);
+
+void PurgeMICs(JSContext *cx, JSScript *script);
+void SweepCallICs(JSContext *cx, JSScript *script, bool purgeAll);
 
 } 
 } 

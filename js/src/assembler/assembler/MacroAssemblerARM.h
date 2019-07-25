@@ -1292,14 +1292,14 @@ public:
 
     void convertInt32ToDouble(RegisterID src, FPRegisterID dest)
     {
-        m_assembler.fmsr_r(floatShadow(dest), src);
-        m_assembler.fsitod_r(dest, floatShadow(dest));
+        m_assembler.fmsr_r(dest, src);
+        m_assembler.fsitod_r(dest, dest);
     }
 
     void convertUInt32ToDouble(RegisterID src, FPRegisterID dest)
     {
-        m_assembler.fmsr_r(floatShadow(dest), src);
-        m_assembler.fuitod_r(dest, floatShadow(dest));
+        m_assembler.fmsr_r(dest, src);
+        m_assembler.fuitod_r(dest, dest);
     }
 
     void convertInt32ToDouble(Address src, FPRegisterID dest)
@@ -1337,11 +1337,11 @@ public:
     
     Jump branchTruncateDoubleToInt32(FPRegisterID src, RegisterID dest)
     {
-        m_assembler.ftosizd_r(floatShadow(ARMRegisters::SD0), src);
+        m_assembler.ftosizd_r(ARMRegisters::SD0, src);
         
         
         
-        m_assembler.fmrs_r(dest, floatShadow(ARMRegisters::SD0));
+        m_assembler.fmrs_r(dest, ARMRegisters::SD0);
         m_assembler.cmn_r(dest, ARMAssembler::getOp2(-0x7fffffff));
         m_assembler.cmp_r(dest, ARMAssembler::getOp2(0x80000000), ARMCondition(NonZero));
         return Jump(m_assembler.jmp(ARMCondition(Zero)));
@@ -1353,11 +1353,11 @@ public:
     
     void branchConvertDoubleToInt32(FPRegisterID src, RegisterID dest, JumpList& failureCases, FPRegisterID fpTemp)
     {
-        m_assembler.ftosid_r(floatShadow(ARMRegisters::SD0), src);
-        m_assembler.fmrs_r(dest, floatShadow(ARMRegisters::SD0));
+        m_assembler.ftosid_r(ARMRegisters::SD0, src);
+        m_assembler.fmrs_r(dest, ARMRegisters::SD0);
 
         
-        m_assembler.fsitod_r(ARMRegisters::SD0, floatShadow(ARMRegisters::SD0));
+        m_assembler.fsitod_r(ARMRegisters::SD0, ARMRegisters::SD0);
         failureCases.append(branchDouble(DoubleNotEqualOrUnordered, src, ARMRegisters::SD0));
 
         
@@ -1380,10 +1380,12 @@ public:
         m_assembler.forceFlushConstantPool();
     }
 
-    int flushCount()
+#ifdef DEBUG
+    void allowPoolFlush(bool allowFlush)
     {
-        return m_assembler.flushCount();
+        m_assembler.allowPoolFlush(allowFlush);
     }
+#endif
 
 protected:
     ARMAssembler::Condition ARMCondition(Condition cond)

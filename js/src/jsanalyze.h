@@ -141,14 +141,6 @@ class Bytecode
     bool monitoredTypesReturn : 1;
 
     
-
-
-
-    bool arrayWriteHole: 1;  
-    bool getStringElement:1; 
-    bool accessGetter: 1;    
-
-    
     uint32 stackDepth;
 
   private:
@@ -972,6 +964,7 @@ class ScriptAnalysis
     
 
     Bytecode& getCode(uint32 offset) {
+        JS_ASSERT(script->compartment()->activeAnalysis);
         JS_ASSERT(offset < script->length);
         JS_ASSERT(codeArray[offset]);
         return *codeArray[offset];
@@ -979,6 +972,7 @@ class ScriptAnalysis
     Bytecode& getCode(const jsbytecode *pc) { return getCode(pc - script->code); }
 
     Bytecode* maybeCode(uint32 offset) {
+        JS_ASSERT(script->compartment()->activeAnalysis);
         JS_ASSERT(offset < script->length);
         return codeArray[offset];
     }

@@ -151,11 +151,9 @@ class PICStubCompiler : public BaseCompiler
     uint32 gcNumber;
 
   public:
-    bool canCallHook;
-
     PICStubCompiler(const char *type, VMFrame &f, JSScript *script, ic::PICInfo &pic, void *stub)
       : BaseCompiler(f.cx), type(type), f(f), script(script), pic(pic), stub(stub),
-        gcNumber(f.cx->runtime->gcNumber), canCallHook(pic.canCallHook)
+        gcNumber(f.cx->runtime->gcNumber)
     { }
 
     bool isCallOp() const {
@@ -804,17 +802,10 @@ struct GetPropertyHelper {
 
     LookupStatus testForGet() {
         if (!shape->hasDefaultGetter()) {
-            if (shape->isMethod()) {
-                if (!ic.isCallOp())
-                    return ic.disable(cx, "method valued shape");
-            } else {
-                if (shape->hasGetterValue())
-                    return ic.disable(cx, "getter value shape");
-                if (shape->hasSlot() && holder != obj)
-                    return ic.disable(cx, "slotful getter hook through prototype");
-                if (!ic.canCallHook)
-                    return ic.disable(cx, "can't call getter hook");
-            }
+            if (!shape->isMethod())
+                return ic.disable(cx, "getter");
+            if (!ic.isCallOp())
+                return ic.disable(cx, "method valued shape");
         } else if (!shape->hasSlot()) {
             return ic.disable(cx, "no slot");
         }
@@ -1012,8 +1003,6 @@ class GetPropCompiler : public PICStubCompiler
             return status;
         if (getprop.obj != getprop.holder)
             return disable("proto walk on String.prototype");
-        if (!getprop.shape->hasDefaultGetterOrIsMethod())
-            return disable("getter hook on String.prototype");
         if (hadGC())
             return Lookup_Uncacheable;
 
@@ -1155,91 +1144,6 @@ class GetPropCompiler : public PICStubCompiler
         return Lookup_Cacheable;
     }
 
-    void generateGetterStub(Assembler &masm, const Shape *shape,
-                            Label start, const Vector<Jump, 8> &shapeMismatches)
-    {
-        
-
-
-
-        JS_ASSERT(pic.canCallHook);
-        PropertyOp getter = shape->getterOp();
-
-        masm.storePtr(ImmPtr((void *) REJOIN_NATIVE_GETTER),
-                      FrameAddress(offsetof(VMFrame, stubRejoin)));
-
-        Registers tempRegs = Registers::tempCallRegMask();
-        if (tempRegs.hasReg(Registers::ClobberInCall))
-            tempRegs.takeReg(Registers::ClobberInCall);
-
-        
-        RegisterID holdObjReg = pic.objReg;
-        if (tempRegs.hasReg(pic.objReg)) {
-            tempRegs.takeReg(pic.objReg);
-        } else {
-            holdObjReg = tempRegs.takeAnyReg().reg();
-            masm.move(pic.objReg, holdObjReg);
-        }
-
-        RegisterID t0 = tempRegs.takeAnyReg().reg();
-        masm.bumpStubCounter(f.script(), f.pc(), t0);
-
-        
-
-
-
-
-
-        int32 vpOffset = (char *) f.regs.sp - (char *) f.fp();
-        if (shape->hasSlot()) {
-            masm.loadObjProp(obj, holdObjReg, shape,
-                             Registers::ClobberInCall, t0);
-            masm.storeValueFromComponents(Registers::ClobberInCall, t0, Address(JSFrameReg, vpOffset));
-        } else {
-            masm.storeValue(UndefinedValue(), Address(JSFrameReg, vpOffset));
-        }
-
-        int32 initialFrameDepth = f.regs.sp - f.fp()->slots();
-        masm.setupFallibleABICall(cx->typeInferenceEnabled(), f.pc(), f.regs.inlined(), initialFrameDepth);
-
-        
-#ifdef JS_CPU_X86
-        RegisterID cxReg = tempRegs.takeAnyReg().reg();
-#else
-        RegisterID cxReg = Registers::ArgReg0;
-#endif
-        masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), cxReg);
-
-        
-        RegisterID vpReg = t0;
-        masm.addPtr(Imm32(vpOffset), JSFrameReg, vpReg);
-
-        masm.restoreStackBase();
-        masm.setupABICall(Registers::NormalCall, 4);
-        masm.storeArg(3, vpReg);
-        masm.storeArg(2, ImmPtr((void *) JSID_BITS(SHAPE_USERID(shape))));
-        masm.storeArg(1, holdObjReg);
-        masm.storeArg(0, cxReg);
-
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, getter), false);
-
-        NativeStubLinker::FinalJump done;
-        if (!NativeStubEpilogue(f, masm, &done, 0, vpOffset, pic.shapeReg, pic.objReg))
-            return;
-        NativeStubLinker linker(masm, f.jit(), f.pc(), f.regs.inlined(), done);
-        if (!linker.init(f.cx))
-            THROW();
-
-        if (!linker.verifyRange(f.jit())) {
-            disable("code memory is out of range");
-            return;
-        }
-
-        linker.patchJump(pic.fastPathRejoin);
-
-        linkerEpilogue(linker, start, shapeMismatches);
-    }
-
     LookupStatus generateStub(JSObject *holder, const Shape *shape)
     {
         Vector<Jump, 8> shapeMismatches(cx);
@@ -1294,13 +1198,6 @@ class GetPropCompiler : public PICStubCompiler
             pic.secondShapeGuard = 0;
         }
 
-        if (!shape->hasDefaultGetterOrIsMethod()) {
-            generateGetterStub(masm, shape, start, shapeMismatches);
-            if (setStubShapeOffset)
-                pic.getPropLabels().setStubShapeJump(masm, start, stubShapeJumpLabel);
-            return Lookup_Cacheable;
-        }
-
         
         masm.loadObjProp(holder, holderReg, shape, pic.shapeReg, pic.objReg);
         Jump done = masm.jump();
@@ -1317,21 +1214,11 @@ class GetPropCompiler : public PICStubCompiler
         }
 
         
-        buffer.link(done, pic.fastPathRejoin);
-
-        linkerEpilogue(buffer, start, shapeMismatches);
-
-        if (setStubShapeOffset)
-            pic.getPropLabels().setStubShapeJump(masm, start, stubShapeJumpLabel);
-        return Lookup_Cacheable;
-    }
-
-    void linkerEpilogue(LinkerHelper &buffer, Label start, const Vector<Jump, 8> &shapeMismatches)
-    {
-        
         for (Jump *pj = shapeMismatches.begin(); pj != shapeMismatches.end(); ++pj)
             buffer.link(*pj, pic.slowPathStart);
 
+        
+        buffer.link(done, pic.fastPathRejoin);
         CodeLocationLabel cs = buffer.finalize();
         JaegerSpew(JSpew_PICs, "generated %s stub at %p\n", type, cs.executableAddress());
 
@@ -1340,10 +1227,15 @@ class GetPropCompiler : public PICStubCompiler
         pic.stubsGenerated++;
         pic.updateLastPath(buffer, start);
 
+        if (setStubShapeOffset)
+            pic.getPropLabels().setStubShapeJump(masm, start, stubShapeJumpLabel);
+
         if (pic.stubsGenerated == MAX_PIC_STUBS)
             disable("max stubs reached");
         if (obj->isDenseArray())
             disable("dense array");
+
+        return Lookup_Cacheable;
     }
 
     void patchPreviousToHere(CodeLocationLabel cs)
@@ -1359,14 +1251,8 @@ class GetPropCompiler : public PICStubCompiler
             shapeGuardJumpOffset = pic.getPropLabels().getStubShapeJumpOffset();
         else
             shapeGuardJumpOffset = pic.shapeGuard + pic.getPropLabels().getInlineShapeJumpOffset();
-        int secondGuardOffset = getLastStubSecondShapeGuard();
-
-        JaegerSpew(JSpew_PICs, "Patching previous (%d stubs) (start %p) (offset %d) (second %d)\n",
-                   (int) pic.stubsGenerated, label.executableAddress(),
-                   shapeGuardJumpOffset, secondGuardOffset);
-
         repatcher.relink(label.jumpAtOffset(shapeGuardJumpOffset), cs);
-        if (secondGuardOffset)
+        if (int secondGuardOffset = getLastStubSecondShapeGuard())
             repatcher.relink(label.jumpAtOffset(secondGuardOffset), cs);
     }
 
@@ -1381,11 +1267,8 @@ class GetPropCompiler : public PICStubCompiler
         if (hadGC())
             return Lookup_Uncacheable;
 
-        if (obj == getprop.holder &&
-            getprop.shape->hasDefaultGetterOrIsMethod() &&
-            !pic.inlinePathPatched) {
+        if (obj == getprop.holder && !pic.inlinePathPatched)
             return patchInline(getprop.holder, getprop.shape);
-        }
 
         return generateStub(getprop.holder, getprop.shape);
     }
@@ -1936,9 +1819,11 @@ ic::GetProp(VMFrame &f, ic::PICInfo *pic)
                 THROW();
             JSString *str = f.regs.sp[-1].toString();
             f.regs.sp[-1].setInt32(str->length());
+            types::TypeScript::Monitor(f.cx, f.script(), f.pc(), f.regs.sp[-1]);
             return;
         } else if (f.regs.sp[-1].isMagic(JS_LAZY_ARGUMENTS)) {
             f.regs.sp[-1].setInt32(f.regs.fp()->numActualArgs());
+            types::TypeScript::Monitor(f.cx, f.script(), f.pc(), f.regs.sp[-1]);
             return;
         } else if (!f.regs.sp[-1].isPrimitive()) {
             JSObject *obj = &f.regs.sp[-1].toObject();
@@ -1963,11 +1848,14 @@ ic::GetProp(VMFrame &f, ic::PICInfo *pic)
                     JSString *str = obj->getPrimitiveThis().toString();
                     f.regs.sp[-1].setInt32(str->length());
                 }
+                types::TypeScript::Monitor(f.cx, f.script(), f.pc(), f.regs.sp[-1]);
                 return;
             }
         }
         atom = f.cx->runtime->atomState.lengthAtom;
     }
+
+    bool usePropCache = pic->usePropCache;
 
     
 
@@ -1994,6 +1882,16 @@ ic::GetProp(VMFrame &f, ic::PICInfo *pic)
     Value v;
     if (!obj->getProperty(f.cx, ATOM_TO_JSID(atom), &v))
         THROW();
+
+    
+
+
+
+
+
+
+    if (usePropCache)
+        types::TypeScript::Monitor(f.cx, f.script(), f.pc(), v);
 
     f.regs.sp[-1] = v;
 }
@@ -2119,11 +2017,6 @@ ic::CallProp(VMFrame &f, ic::PICInfo *pic)
             NATIVE_GET(cx, &objv.toObject(), obj2, shape, JSGET_NO_METHOD_BARRIER, &rval,
                        THROW());
         }
-        
-
-
-
-
         regs.sp++;
         regs.sp[-2] = rval;
         regs.sp[-1] = lval;
@@ -2163,6 +2056,8 @@ ic::CallProp(VMFrame &f, ic::PICInfo *pic)
             THROW();
     }
 #endif
+
+    types::TypeScript::Monitor(f.cx, f.script(), f.pc(), regs.sp[-2]);
 
     if (monitor.recompiled())
         return;
@@ -2213,6 +2108,8 @@ ic::XName(VMFrame &f, ic::PICInfo *pic)
     if (!cc.retrieve(&rval, NULL, PICInfo::XNAME))
         THROW();
     f.regs.sp[-1] = rval;
+
+    types::TypeScript::Monitor(f.cx, f.script(), f.pc(), rval);
 }
 
 void JS_FASTCALL
@@ -2230,6 +2127,8 @@ ic::Name(VMFrame &f, ic::PICInfo *pic)
     if (!cc.retrieve(&rval, NULL, PICInfo::NAME))
         THROW();
     f.regs.sp[0] = rval;
+
+    types::TypeScript::Monitor(f.cx, f.script(), f.pc(), rval);
 }
 
 static void JS_FASTCALL
@@ -2255,6 +2154,8 @@ ic::CallName(VMFrame &f, ic::PICInfo *pic)
 
     f.regs.sp[0] = rval;
     f.regs.sp[1] = thisval;
+
+    types::TypeScript::Monitor(f.cx, f.script(), f.pc(), rval);
 }
 
 static void JS_FASTCALL
@@ -2430,12 +2331,6 @@ GetElementIC::attachGetProp(VMFrame &f, JSContext *cx, JSObject *obj, const Valu
     LookupStatus status = getprop.lookupAndTest();
     if (status != Lookup_Cacheable)
         return status;
-
-    
-    
-    
-    if (cx->typeInferenceEnabled() && !forcedTypeBarrier)
-        return disable(cx, "string element access may not have type barrier");
 
     Assembler masm;
 
@@ -2900,6 +2795,9 @@ ic::CallElement(VMFrame &f, ic::GetElementIC *ic)
             
             JS_ASSERT(!f.regs.sp[-2].isMagic());
             f.regs.sp[-1].setObject(*thisObj);
+            if (!JSID_IS_INT(id))
+                types::TypeScript::MonitorUnknown(f.cx, f.script(), f.pc());
+            types::TypeScript::Monitor(f.cx, f.script(), f.pc(), f.regs.sp[-2]);
             return;
         }
     }
@@ -2919,6 +2817,9 @@ ic::CallElement(VMFrame &f, ic::GetElementIC *ic)
     {
         f.regs.sp[-1] = thisv;
     }
+    if (!JSID_IS_INT(id))
+        types::TypeScript::MonitorUnknown(f.cx, f.script(), f.pc());
+    types::TypeScript::Monitor(f.cx, f.script(), f.pc(), f.regs.sp[-2]);
 }
 
 void JS_FASTCALL
@@ -2960,12 +2861,18 @@ ic::GetElement(VMFrame &f, ic::GetElementIC *ic)
 
             
             JS_ASSERT(!f.regs.sp[-2].isMagic());
+            if (!JSID_IS_INT(id))
+                types::TypeScript::MonitorUnknown(f.cx, f.script(), f.pc());
+            types::TypeScript::Monitor(f.cx, f.script(), f.pc(), f.regs.sp[-2]);
             return;
         }
     }
 
     if (!obj->getProperty(cx, id, &f.regs.sp[-2]))
         THROW();
+    if (!JSID_IS_INT(id))
+        types::TypeScript::MonitorUnknown(f.cx, f.script(), f.pc());
+    types::TypeScript::Monitor(f.cx, f.script(), f.pc(), f.regs.sp[-2]);
 }
 
 #define APPLY_STRICTNESS(f, s)                          \
@@ -3233,25 +3140,6 @@ template void JS_FASTCALL ic::SetElement<true>(VMFrame &f, SetElementIC *ic);
 template void JS_FASTCALL ic::SetElement<false>(VMFrame &f, SetElementIC *ic);
 
 void
-JITScript::purgeGetterPICs()
-{
-    Repatcher repatcher(this);
-    PICInfo *pics_ = pics();
-    for (uint32 i = 0; i < nPICs; i++) {
-        PICInfo &pic = pics_[i];
-        switch (pic.kind) {
-          case PICInfo::CALL: 
-          case PICInfo::GET:
-            GetPropCompiler::reset(repatcher, pic);
-            pic.reset();
-            break;
-          default:
-            break;
-        }
-    }
-}
-
-void
 JITScript::purgePICs()
 {
     if (!nPICs && !nGetElems && !nSetElems)
@@ -3292,6 +3180,15 @@ JITScript::purgePICs()
         getElems_[i].purge(repatcher);
     for (uint32 i = 0; i < nSetElems; i++)
         setElems_[i].purge(repatcher);
+}
+
+void
+ic::PurgePICs(JSContext *cx, JSScript *script)
+{
+    if (script->jitNormal)
+        script->jitNormal->purgePICs();
+    if (script->jitCtor)
+        script->jitCtor->purgePICs();
 }
 
 #endif 
