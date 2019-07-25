@@ -5,6 +5,7 @@
 
 gTestfile = 'regress-533876';
 
+var savedEval = eval;
 var x = [0];
 eval();
 
@@ -16,6 +17,7 @@ try {
 
 delete eval;  
 gc();
+eval = savedEval;
 var f = eval("(function () { return /x/; })");
 x.watch('x', f);  
 
