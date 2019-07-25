@@ -707,25 +707,9 @@ public:
 
     
     
-    
-    
-    
     static PRBool
     ValidateSFNTHeaders(const PRUint8 *aFontData, PRUint32 aFontDataLength);
     
-    
-    
-    
-    
-    static nsresult
-    GetFullNameFromSFNT(const PRUint8* aFontData, PRUint32 aLength,
-                        nsAString& aFullName);
-
-    
-    static nsresult
-    GetFullNameFromTable(FallibleTArray<PRUint8>& aNameTable,
-                         nsAString& aFullName);
-
     
     
     static nsresult

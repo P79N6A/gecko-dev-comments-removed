@@ -190,15 +190,6 @@ public:
             (cairo_font_face_get_user_data(aFace, &sFontEntryKey));
     }
 
-    
-    
-    virtual nsString FamilyName() const;
-
-    
-    
-    
-    virtual nsString RealFaceName();
-
 protected:
     gfxFcFontEntry(const nsAString& aName)
         : gfxFontEntry(aName),
@@ -216,46 +207,6 @@ protected:
 };
 
 cairo_user_data_key_t gfxFcFontEntry::sFontEntryKey;
-
-nsString
-gfxFcFontEntry::FamilyName() const
-{
-    if (mIsUserFont) {
-        
-        
-        return gfxFontEntry::FamilyName();
-    }
-    FcChar8 *familyname;
-    if (!mPatterns.IsEmpty() &&
-        FcPatternGetString(mPatterns[0],
-                           FC_FAMILY, 0, &familyname) == FcResultMatch) {
-        return NS_ConvertUTF8toUTF16((const char*)familyname);
-    }
-    return gfxFontEntry::FamilyName();
-}
-
-nsString
-gfxFcFontEntry::RealFaceName()
-{
-    FcChar8 *name;
-    if (!mPatterns.IsEmpty()) {
-        if (FcPatternGetString(mPatterns[0],
-                               FC_FULLNAME, 0, &name) == FcResultMatch) {
-            return NS_ConvertUTF8toUTF16((const char*)name);
-        }
-        if (FcPatternGetString(mPatterns[0],
-                               FC_FAMILY, 0, &name) == FcResultMatch) {
-            NS_ConvertUTF8toUTF16 result((const char*)name);
-            if (FcPatternGetString(mPatterns[0],
-                                   FC_STYLE, 0, &name) == FcResultMatch) {
-                result.AppendLiteral(" ");
-                AppendUTF8toUTF16((const char*)name, result);
-            }
-            return result;
-        }
-    }
-    return gfxFontEntry::RealFaceName();
-}
 
 PRBool
 gfxFcFontEntry::ShouldUseHarfBuzz(PRInt32 aRunScript) {
@@ -2000,8 +1951,7 @@ gfxPangoFontGroup::GetFontSet(PangoLanguage *aLang)
 already_AddRefed<gfxFont>
 gfxPangoFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
                                    PRInt32 aRunScript,
-                                   gfxFont *aPrevMatchedFont,
-                                   PRUint8 *aMatchType)
+                                   gfxFont *aPrevMatchedFont)
 {
     if (aPrevMatchedFont) {
         PRUint8 category = gfxUnicodeProperties::GetGeneralCategory(aCh);
@@ -2065,7 +2015,6 @@ gfxPangoFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
     if (!mStyle.systemFont && mPangoLanguage) {
         basePattern = fontSet->GetFontPatternAt(0);
         if (HasChar(basePattern, aCh)) {
-            *aMatchType = gfxTextRange::kFontGroup;
             return nsRefPtr<gfxFont>(GetBaseFont()).forget();
         }
 
@@ -2092,7 +2041,6 @@ gfxPangoFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
         }
 
         if (HasChar(pattern, aCh)) {
-            *aMatchType = gfxTextRange::kFontGroup;
             return nsRefPtr<gfxFont>(fontSet->GetFontAt(i)).forget();
         }
     }

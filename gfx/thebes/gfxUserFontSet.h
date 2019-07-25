@@ -73,24 +73,10 @@ struct gfxFontFaceSrc {
 
 
 
-
-
-
-
 class gfxUserFontData {
 public:
-    gfxUserFontData()
-        : mSrcIndex(0), mFormat(0), mMetaOrigLen(0)
-    { }
+    gfxUserFontData() { }
     virtual ~gfxUserFontData() { }
-
-    nsTArray<PRUint8> mMetadata;  
-    nsCOMPtr<nsIURI>  mURI;       
-    nsString          mLocalName; 
-    nsString          mRealName;  
-    PRUint32          mSrcIndex;  
-    PRUint32          mFormat;    
-    PRUint32          mMetaOrigLen; 
 };
 
 
