@@ -841,11 +841,12 @@ NS_CYCLE_COLLECTION_PARTICIPANT_INSTANCE
 
 
 
+
 struct SkippableDummy
 {
-  static NS_METHOD_(bool) CanSkipImpl(void *p, bool aRemovingAllowed);
-  static NS_METHOD_(bool) CanSkipInCCImpl(void *p);
-  static NS_METHOD_(bool) CanSkipThisImpl(void *p);
+  static NS_METHOD_(bool) CanSkipImpl(void *p, bool aRemovingAllowed) { return false; }
+  static NS_METHOD_(bool) CanSkipInCCImpl(void *p) { return false; }
+  static NS_METHOD_(bool) CanSkipThisImpl(void *p) { return false; }
 };
 
 
