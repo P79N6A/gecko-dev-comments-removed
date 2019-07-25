@@ -297,9 +297,9 @@ private:
 
   nsIDocument* mDocument;                   
   nsCOMArray<nsIScriptLoaderObserver> mObservers;
-  nsCOMArray<nsScriptLoadRequest> mAsyncRequests;
-  nsCOMArray<nsScriptLoadRequest> mDeferRequests;
-  nsCOMPtr<nsScriptLoadRequest> mParserBlockingRequest;
+  nsTArray<nsRefPtr<nsScriptLoadRequest> > mAsyncRequests;
+  nsTArray<nsRefPtr<nsScriptLoadRequest> > mDeferRequests;
+  nsRefPtr<nsScriptLoadRequest> mParserBlockingRequest;
 
   
   struct PreloadInfo {
