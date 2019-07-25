@@ -363,7 +363,120 @@ IonCacheSetProperty::attachNativeExisting(JSContext *cx, JSObject *obj, const Sh
     PatchJump(exitJump, cacheLabel());
     updateLastJump(exitJump);
 
-    IonSpew(IonSpew_InlineCaches, "Generated native SETPROP stub at %p", code->raw());
+    IonSpew(IonSpew_InlineCaches, "Generated native SETPROP setting case stub at %p", code->raw());
+
+    return true;
+}
+
+bool
+IonCacheSetProperty::attachNativeAdding(JSContext *cx, JSObject *obj, const Shape *oldShape, const Shape *newShape,
+                                        const Shape *propShape)
+{
+    MacroAssembler masm;
+
+    Label failures;
+
+    
+    masm.branchTestObjShape(Assembler::NotEqual, object(), oldShape, &failures);
+
+    Label protoFailures;
+    masm.push(object());    
+
+    JSObject *proto = obj->getProto();
+    Register protoReg = object();
+    while (proto) {
+        Shape *protoShape = proto->lastProperty();
+
+        
+        masm.loadPtr(Address(protoReg, JSObject::offsetOfType()), protoReg);
+        masm.loadPtr(Address(protoReg, offsetof(types::TypeObject, proto)), protoReg);
+
+        
+        masm.branchTestPtr(Assembler::Zero, protoReg, protoReg, &protoFailures);
+        masm.branchTestObjShape(Assembler::NotEqual, protoReg, protoShape, &protoFailures);
+
+        proto = proto->getProto();
+    }
+
+    masm.pop(object());     
+
+    
+    masm.storePtr(ImmGCPtr(newShape), Address(object(), JSObject::offsetOfShape()));
+
+    
+    if (obj->isFixedSlot(propShape->slot())) {
+        Address addr(object(), JSObject::getFixedSlotOffset(propShape->slot()));
+        masm.storeConstantOrRegister(value(), addr);
+    } else {
+        Register slotsReg = object();
+
+        masm.loadPtr(Address(object(), JSObject::offsetOfSlots()), slotsReg);
+
+        Address addr(slotsReg, obj->dynamicSlotIndex(propShape->slot()) * sizeof(Value));
+        masm.storeConstantOrRegister(value(), addr);
+    }
+
+    
+    Label rejoin_;
+    CodeOffsetJump rejoinOffset = masm.jumpWithPatch(&rejoin_);
+    masm.bind(&rejoin_);
+
+    
+    masm.bind(&protoFailures);
+    masm.pop(object());
+    masm.bind(&failures);
+
+    Label exit_;
+    CodeOffsetJump exitOffset = masm.jumpWithPatch(&exit_);
+    masm.bind(&exit_);
+
+    Linker linker(masm);
+    IonCode *code = linker.newCode(cx);
+    if (!code)
+        return false;
+
+    CodeLocationJump rejoinJump(code, rejoinOffset);
+    CodeLocationJump exitJump(code, exitOffset);
+
+    PatchJump(lastJump(), CodeLocationLabel(code));
+    PatchJump(rejoinJump, rejoinLabel());
+    PatchJump(exitJump, cacheLabel());
+    updateLastJump(exitJump);
+
+    IonSpew(IonSpew_InlineCaches, "Generated native SETPROP adding case stub at %p", code->raw());
+
+    return true;
+}
+
+static bool
+IsEligibleForInlinePropertyAdd(JSContext *cx, JSObject *obj, jsid propId, uint32_t oldSlots,
+                               const Shape **propShapeOut)
+{
+    const Shape *propShape = obj->nativeLookup(cx, propId);
+    if (!propShape || propShape->inDictionary() || !propShape->hasSlot() || !propShape->hasDefaultSetter())
+        return false;
+
+    
+    
+    
+    for (JSObject *proto = obj->getProto(); proto; proto = proto->getProto()) {
+        
+        if (!proto->isNative()) 
+            return false;
+
+        
+        const Shape *protoShape = proto->nativeLookup(cx, propId);
+        if (protoShape && !protoShape->hasDefaultSetter())
+            return false;
+    }
+
+    
+    
+    
+    if (obj->numDynamicSlots() != oldSlots)
+        return false;
+
+    *propShapeOut = propShape;
 
     return true;
 }
@@ -390,6 +503,26 @@ js::ion::SetPropertyCache(JSContext *cx, size_t cacheIndex, JSObject *obj, const
         if (shape && shape->hasSlot() && shape->hasDefaultSetter()) {
             if (!cache.attachNativeExisting(cx, obj, shape))
                 return false;
+        } else if (!shape) {
+            uint32_t oldSlots = obj->numDynamicSlots();
+            const Shape *oldShape = obj->lastProperty();
+
+            
+            
+            if (!obj->setGeneric(cx, ATOM_TO_JSID(atom), &v, cache.strict()))
+                return false;
+
+            const Shape *propShape = NULL;
+            if (IsEligibleForInlinePropertyAdd(cx, obj, id, oldSlots, &propShape)) {
+                const Shape *newShape = obj->lastProperty();
+                if (!cache.attachNativeAdding(cx, obj, oldShape, newShape, propShape))
+                    return false;
+            }
+
+            
+            
+            
+            return true;
         }
     }
 
