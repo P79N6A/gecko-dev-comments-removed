@@ -3201,8 +3201,9 @@ nsHTMLDocument::QueryCommandIndeterm(const nsAString & commandID,
 
   
   
-  rv = cmdParams->GetBooleanValue("state_mixed", _retval);
-  return rv;
+  
+  cmdParams->GetBooleanValue("state_mixed", _retval);
+  return NS_OK;
 }
 
 
@@ -3263,14 +3264,14 @@ nsHTMLDocument::QueryCommandState(const nsAString & commandID, bool *_retval)
     }
     if (actualAlignmentType)
       nsMemory::Free(actualAlignmentType);
-  }
-  else {
-    rv = cmdParams->GetBooleanValue("state_all", _retval);
-    if (NS_FAILED(rv))
-      *_retval = false;
+    return rv;
   }
 
-  return rv;
+  
+  
+  
+  cmdParams->GetBooleanValue("state_all", _retval);
+  return NS_OK;
 }
 
 
@@ -3352,12 +3353,16 @@ nsHTMLDocument::QueryCommandValue(const nsAString & commandID,
   if (NS_FAILED(rv))
     return rv;
 
+  
+  
+  
+  
   nsXPIDLCString cStringResult;
-  rv = cmdParams->GetCStringValue("state_attribute",
-                                  getter_Copies(cStringResult));
+  cmdParams->GetCStringValue("state_attribute",
+                             getter_Copies(cStringResult));
   CopyUTF8toUTF16(cStringResult, _retval);
 
-  return rv;
+  return NS_OK;
 }
 
 nsresult
