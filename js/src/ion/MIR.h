@@ -1315,7 +1315,8 @@ class MUnbox : public MUnaryInstruction
     enum Mode {
         Fallible,       
         Infallible,     
-        TypeBarrier     
+        TypeBarrier,    
+        TypeGuard       
     };
 
   private:
@@ -1328,8 +1329,10 @@ class MUnbox : public MUnaryInstruction
         JS_ASSERT(ins->type() == MIRType_Value);
         setResultType(type);
         setMovable();
-        if (mode_ == TypeBarrier && ins->isEffectful())
+        if (mode_ == TypeBarrier || mode_ == TypeGuard)
             setGuard();
+        if (mode_ == TypeGuard)
+            mode_ = Fallible;
     }
 
   public:
