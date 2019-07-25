@@ -1844,12 +1844,13 @@ const ElementTouchHelper = {
     }
     return false;
   },
+
   getContentClientRects: function(aElement) {
-    let offset = {x: 0, y: 0};
+    let offset = { x: 0, y: 0 };
 
     let nativeRects = aElement.getClientRects();
     
-    for (let frame = aElement.ownerDocument.defaultView; frame != content; frame = frame.parent) {
+    for (let frame = aElement.ownerDocument.defaultView; frame.frameElement; frame = frame.parent) {
       
       let rect = frame.frameElement.getBoundingClientRect();
       let left = frame.getComputedStyle(frame.frameElement, "").borderLeftWidth;
