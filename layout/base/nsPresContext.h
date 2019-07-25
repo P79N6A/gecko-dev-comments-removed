@@ -1274,14 +1274,6 @@ public:
 
 
 
-
-  void SynchronousPluginGeometryUpdate();
-
-  
-
-
-
-
   void RequestUpdatePluginGeometry(nsIFrame* aFrame);
 
   

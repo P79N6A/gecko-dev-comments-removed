@@ -2616,50 +2616,17 @@ nsRootPresContext::UpdatePluginGeometry()
 }
 
 void
-nsRootPresContext::SynchronousPluginGeometryUpdate()
-{
-  if (!mNeedsToUpdatePluginGeometry) {
-    
-    return;
-  }
-
-  
-  nsIPresShell* shell = GetPresShell();
-  if (!shell)
-    return;
-  nsIFrame* rootFrame = shell->GetRootFrame();
-  if (!rootFrame)
-    return;
-  nsCOMPtr<nsIWidget> widget = rootFrame->GetNearestWidget();
-  if (!widget)
-    return;
-  
-  
-  
-  widget->Invalidate(nsIntRect(0,0,1,1), true);
-
-  
-  
-  
-  UpdatePluginGeometry();
-}
-
-void
 nsRootPresContext::RequestUpdatePluginGeometry(nsIFrame* aFrame)
 {
   if (mRegisteredPlugins.Count() == 0)
     return;
 
   if (!mNeedsToUpdatePluginGeometry) {
+    
+    
+    
+    
     mNeedsToUpdatePluginGeometry = true;
-
-    
-    
-    
-    nsCOMPtr<nsIRunnable> event =
-      NS_NewRunnableMethod(this, &nsRootPresContext::SynchronousPluginGeometryUpdate);
-    NS_DispatchToMainThread(event);
-
     mUpdatePluginGeometryForFrame = aFrame;
     mUpdatePluginGeometryForFrame->PresContext()->
       SetContainsUpdatePluginGeometryFrame(true);
