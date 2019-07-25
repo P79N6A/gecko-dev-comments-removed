@@ -1780,10 +1780,26 @@ nsDisplayOpacity::BuildLayer(nsDisplayListBuilder* aBuilder,
   return layer.forget();
 }
 
+
+
+
+
+
+static bool
+IsItemTooSmallForActiveLayer(nsDisplayItem* aItem)
+{
+  nsIntRect visibleDevPixels = aItem->GetVisibleRect().ToOutsidePixels(
+          aItem->GetUnderlyingFrame()->PresContext()->AppUnitsPerDevPixel());
+  static const int MIN_ACTIVE_LAYER_SIZE_DEV_PIXELS = 16;
+  return visibleDevPixels.Size() <
+    nsIntSize(MIN_ACTIVE_LAYER_SIZE_DEV_PIXELS, MIN_ACTIVE_LAYER_SIZE_DEV_PIXELS);
+}
+
 nsDisplayItem::LayerState
 nsDisplayOpacity::GetLayerState(nsDisplayListBuilder* aBuilder,
                                 LayerManager* aManager) {
-  if (mFrame->AreLayersMarkedActive(nsChangeHint_UpdateOpacityLayer))
+  if (mFrame->AreLayersMarkedActive(nsChangeHint_UpdateOpacityLayer) &&
+      !IsItemTooSmallForActiveLayer(this))
     return LAYER_ACTIVE;
   nsIFrame* activeScrolledRoot =
     nsLayoutUtils::GetActiveScrolledRootFor(mFrame, nsnull);
@@ -2605,7 +2621,10 @@ already_AddRefed<Layer> nsDisplayTransform::BuildLayer(nsDisplayListBuilder *aBu
 nsDisplayItem::LayerState
 nsDisplayTransform::GetLayerState(nsDisplayListBuilder* aBuilder,
                                   LayerManager* aManager) {
-  if (mFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer))
+  
+  
+  if (mFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer) &&
+      !IsItemTooSmallForActiveLayer(this))
     return LAYER_ACTIVE;
   if (!GetTransform(mFrame->PresContext()->AppUnitsPerDevPixel()).Is2D() || mFrame->Preserves3D())
     return LAYER_ACTIVE;
