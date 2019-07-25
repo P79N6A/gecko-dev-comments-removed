@@ -149,7 +149,10 @@ public:
 
 
 
-  void Finish();
+
+
+
+  void Finish(PRUint32 *aTextContentFlags);
 
 protected:
   
@@ -1267,11 +1270,13 @@ ContainerState::CollectOldLayers()
 }
 
 void
-ContainerState::Finish()
+ContainerState::Finish(PRUint32* aTextContentFlags)
 {
   while (!mThebesLayerDataStack.IsEmpty()) {
     PopThebesLayerData();
   }
+
+  PRUint32 textContentFlags = Layer::CONTENT_NO_TEXT_OVER_TRANSPARENT;
 
   for (PRUint32 i = 0; i <= mNewChildLayers.Length(); ++i) {
     
@@ -1279,6 +1284,9 @@ ContainerState::Finish()
     Layer* layer;
     if (i < mNewChildLayers.Length()) {
       layer = mNewChildLayers[i];
+      if (!layer->GetVisibleRegion().IsEmpty()) {
+        textContentFlags &= layer->GetContentFlags();
+      }
       if (!layer->GetParent()) {
         
         
@@ -1307,6 +1315,8 @@ ContainerState::Finish()
     
     
   }
+
+  *aTextContentFlags = textContentFlags;
 }
 
 static void
@@ -1395,11 +1405,18 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
 
   Clip clip;
   state.ProcessDisplayItems(aChildren, clip);
-  state.Finish();
 
-  PRUint32 flags = aChildren.IsOpaque() && 
-                   !aChildren.NeedsTransparentSurface() ? Layer::CONTENT_OPAQUE : 0;
+  
+  
+  
+  PRUint32 flags;
+  state.Finish(&flags);
+
+  if (aChildren.IsOpaque() && !aChildren.NeedsTransparentSurface()) {
+    flags |= Layer::CONTENT_OPAQUE;
+  }
   containerLayer->SetContentFlags(flags);
+
   return containerLayer.forget();
 }
 

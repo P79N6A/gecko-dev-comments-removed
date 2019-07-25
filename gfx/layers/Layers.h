@@ -486,7 +486,6 @@ public:
 
 
 
-
     CONTENT_NO_TEXT_OVER_TRANSPARENT = 0x02
   };
   
@@ -738,7 +737,7 @@ protected:
     mPrevSibling(nsnull),
     mImplData(aImplData),
     mOpacity(1.0),
-    mContentFlags(0),
+    mContentFlags(CONTENT_NO_TEXT_OVER_TRANSPARENT),
     mUseClipRect(PR_FALSE)
     {}
 
@@ -832,7 +831,9 @@ protected:
     , mValidRegion()
     , mXResolution(1.0)
     , mYResolution(1.0)
-  {}
+  {
+    mContentFlags = 0; 
+  }
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
@@ -920,7 +921,9 @@ protected:
       mFirstChild(nsnull),
       mLastChild(nsnull),
       mUseIntermediateSurface(PR_FALSE)
-  {}
+  {
+    mContentFlags = 0; 
+  }
 
   
 
