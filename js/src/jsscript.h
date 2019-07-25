@@ -420,11 +420,6 @@ class JSPCCounters {
     }
 };
 
-static const uint32 JS_SCRIPT_COOKIE = 0xc00cee;
-
-static JSObject * const JS_NEW_SCRIPT = (JSObject *)0x12345678;
-static JSObject * const JS_CACHED_SCRIPT = (JSObject *)0x12341234;
-
 struct JSScript {
     
 
@@ -448,10 +443,6 @@ struct JSScript {
     JSCList         links;      
     jsbytecode      *code;      
     uint32          length;     
-
-#ifdef JS_CRASH_DIAGNOSTICS
-    uint32          cookie1;
-#endif
 
   private:
     uint16          version;    
@@ -507,14 +498,6 @@ struct JSScript {
     js::Bindings    bindings;   
 
     JSPrincipals    *principals;
-    jschar          *sourceMap; 
-
-#ifdef JS_CRASH_DIAGNOSTICS
-    JSObject        *ownerObject;
-#endif
-
-    void setOwnerObject(JSObject *owner);
-
     union {
         
 
@@ -544,10 +527,6 @@ struct JSScript {
 
     
     JSPCCounters    pcCounters;
-
-#ifdef JS_CRASH_DIAGNOSTICS
-    uint32          cookie2;
-#endif
 
   public:
 #ifdef JS_METHODJIT
@@ -585,9 +564,6 @@ struct JSScript {
             return JITScript_Invalid;
         return JITScript_Valid;
     }
-
-    
-    JS_FRIEND_API(size_t) jitDataSize();
 #endif
 
     JS_FRIEND_API(size_t) totalSize();  
@@ -657,6 +633,7 @@ struct JSScript {
     }
 
     inline JSFunction *getFunction(size_t index);
+    inline JSFunction *getCallerFunction();
 
     inline JSObject *getRegExp(size_t index);
 
@@ -716,11 +693,30 @@ extern JS_FRIEND_DATA(js::Class) js_ScriptClass;
 extern JSObject *
 js_InitScriptClass(JSContext *cx, JSObject *obj);
 
+namespace js {
+
+extern bool
+InitRuntimeScriptState(JSRuntime *rt);
+
+
+
+
+
+
+
+extern void
+FreeRuntimeScriptState(JSRuntime *rt);
+
+} 
+
 extern void
 js_MarkScriptFilename(const char *filename);
 
 extern void
-js_SweepScriptFilenames(JSCompartment *comp);
+js_MarkScriptFilenames(JSRuntime *rt);
+
+extern void
+js_SweepScriptFilenames(JSRuntime *rt);
 
 
 
@@ -739,10 +735,10 @@ js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
 
 
 extern void
-js_DestroyScript(JSContext *cx, JSScript *script, uint32 caller);
+js_DestroyScript(JSContext *cx, JSScript *script);
 
 extern void
-js_DestroyScriptFromGC(JSContext *cx, JSScript *script, JSObject *owner);
+js_DestroyScriptFromGC(JSContext *cx, JSScript *script);
 
 
 
@@ -754,7 +750,7 @@ extern void
 js_DestroyCachedScript(JSContext *cx, JSScript *script);
 
 extern void
-js_TraceScript(JSTracer *trc, JSScript *script, JSObject *owner);
+js_TraceScript(JSTracer *trc, JSScript *script);
 
 extern JSObject *
 js_NewScriptObject(JSContext *cx, JSScript *script);

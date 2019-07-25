@@ -999,7 +999,7 @@ EvalCacheLookup(JSContext *cx, JSLinearString *str, StackFrame *caller, uintN st
 
 
 
-            JSFunction *fun = script->getFunction(0);
+            JSFunction *fun = script->getCallerFunction();
 
             if (fun == caller->fun()) {
                 

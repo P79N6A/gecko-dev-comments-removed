@@ -1711,8 +1711,11 @@ DebuggerScript_getChildScripts(JSContext *cx, uintN argc, Value *vp)
     if (!result)
         return false;
     if (JSScript::isValidOffset(script->objectsOffset)) {
+        
+        
+        
         JSObjectArray *objects = script->objects();
-        for (uint32 i = 0; i < objects->length; i++) {
+        for (uint32 i = script->savedCallerFun ? 1 : 0; i < objects->length; i++) {
             JSObject *obj = objects->vector[i];
             if (obj->isFunction()) {
                 JSObject *s = dbg->wrapFunctionScript(cx, (JSFunction *) obj);
