@@ -436,13 +436,6 @@ public:
   
 
 
-
-  static gfxASurface *
-  GetThebesComputationalSurface();
-
-  
-
-
   static gfxMatrix
   ConvertSVGMatrixToThebes(nsIDOMSVGMatrix *aMatrix);
 
@@ -569,8 +562,6 @@ public:
 
   static PRBool NumberFromString(const nsAString& aString, float* aValue,
                                  PRBool aAllowPercentages = PR_FALSE);
-
-  static void Shutdown();
 
 private:
   
