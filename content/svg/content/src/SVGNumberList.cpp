@@ -63,7 +63,7 @@ SVGNumberList::SetValueFromString(const nsAString& aValue)
   while (tokenizer.hasMoreTokens()) {
     CopyUTF16toUTF8(tokenizer.nextToken(), str); 
     const char *token = str.get();
-    if (token == '\0') {
+    if (*token == '\0') {
       return NS_ERROR_DOM_SYNTAX_ERR; 
     }
     char *end;
