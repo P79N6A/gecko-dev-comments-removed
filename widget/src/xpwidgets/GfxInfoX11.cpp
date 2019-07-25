@@ -253,6 +253,12 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aS
     *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
     aSuggestedDriverVersion.SetIsVoid(PR_TRUE);
 
+    if (aDriverInfo) {
+      
+      
+      return NS_OK;
+    }
+
 #ifdef MOZ_PLATFORM_MAEMO
     
     return NS_OK;
