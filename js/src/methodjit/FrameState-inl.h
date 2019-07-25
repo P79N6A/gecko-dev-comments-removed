@@ -820,6 +820,9 @@ FrameState::learnType(FrameEntry *fe, JSValueType type, bool unsync)
 inline void
 FrameState::learnType(FrameEntry *fe, JSValueType type, RegisterID data)
 {
+    
+    JS_ASSERT_IF(fe->isCopied(), !isEntryCopied(fe));
+
     forgetAllRegs(fe);
     fe->copy = NULL;
 
