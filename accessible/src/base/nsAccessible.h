@@ -192,14 +192,21 @@ public:
   
 
 
+  enum EWhichChildAtPoint {
+    eDirectChild,
+    eDeepestChild
+  };
+
+  
 
 
 
 
 
-  virtual nsresult GetChildAtPoint(PRInt32 aX, PRInt32 aY,
-                                   PRBool aDeepestChild,
-                                   nsIAccessible **aChild);
+
+
+  virtual nsAccessible* GetChildAtPoint(PRInt32 aX, PRInt32 aY,
+                                        EWhichChildAtPoint aWhichChild);
 
   
 

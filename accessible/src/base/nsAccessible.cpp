@@ -765,24 +765,22 @@ nsAccessible::GetFocusedChild(nsIAccessible **aFocusedChild)
 }
 
 
-nsresult
-nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY, PRBool aDeepestChild,
-                              nsIAccessible **aChild)
+nsAccessible*
+nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
+                              EWhichChildAtPoint aWhichChild)
 {
   
   
   PRInt32 x = 0, y = 0, width = 0, height = 0;
   nsresult rv = GetBounds(&x, &y, &width, &height);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS(rv, nsnull);
 
-  nsCOMPtr<nsIAccessible> fallbackAnswer;
+  nsAccessible* fallbackAnswer = nsnull;
   if (aX >= x && aX < x + width && aY >= y && aY < y + height)
     fallbackAnswer = this;
 
-  if (nsAccUtils::MustPrune(this)) {  
-    NS_IF_ADDREF(*aChild = fallbackAnswer);
-    return NS_OK;
-  }
+  if (nsAccUtils::MustPrune(this))  
+    return fallbackAnswer;
 
   
   
@@ -791,10 +789,10 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY, PRBool aDeepestChild,
   
   
   nsDocAccessible *accDocument = GetDocAccessible();
-  NS_ENSURE_TRUE(accDocument, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(accDocument, nsnull);
 
   nsIFrame *frame = accDocument->GetFrame();
-  NS_ENSURE_STATE(frame);
+  NS_ENSURE_TRUE(frame, nsnull);
 
   nsPresContext *presContext = frame->PresContext();
 
@@ -806,19 +804,15 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY, PRBool aDeepestChild,
   nsIFrame *foundFrame = presShell->GetFrameForPoint(frame, offset);
 
   nsIContent* content = nsnull;
-  if (!foundFrame || !(content = foundFrame->GetContent())) {
-    NS_IF_ADDREF(*aChild = fallbackAnswer);
-    return NS_OK;
-  }
+  if (!foundFrame || !(content = foundFrame->GetContent()))
+    return fallbackAnswer;
 
   
   
   nsAccessible* accessible =
    GetAccService()->GetAccessibleOrContainer(content, mWeakShell);
-  if (!accessible) {
-    NS_IF_ADDREF(*aChild = fallbackAnswer);
-    return NS_OK;
-  }
+  if (!accessible)
+    return fallbackAnswer;
 
   if (accessible == this) {
     
@@ -836,40 +830,36 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY, PRBool aDeepestChild,
           aY >= childY && aY < childY + childHeight &&
           (nsAccUtils::State(child) & nsIAccessibleStates::STATE_INVISIBLE) == 0) {
 
-        if (aDeepestChild)
-          return child->GetDeepestChildAtPoint(aX, aY, aChild);
+        if (aWhichChild == eDeepestChild)
+          return child->GetChildAtPoint(aX, aY, eDeepestChild);
 
-        NS_IF_ADDREF(*aChild = child);
-        return NS_OK;
+        return child;
       }
     }
 
     
     
-    NS_IF_ADDREF(*aChild = accessible);
-    return NS_OK;
+    return accessible;
   }
 
   
   
-  nsCOMPtr<nsIAccessible> parent, child(accessible);
-  while (PR_TRUE) {
-    child->GetParent(getter_AddRefs(parent));
+  nsAccessible* child = accessible;
+  while (true) {
+    nsAccessible* parent = child->GetParent();
     if (!parent) {
       
       
-      NS_IF_ADDREF(*aChild = fallbackAnswer);      
-      return NS_OK;
+      return fallbackAnswer;
     }
 
-    if (parent == this) {
-      NS_ADDREF(*aChild = (aDeepestChild ? accessible : child));
-      return NS_OK;
-    }
-    child.swap(parent);
+    if (parent == this)
+      return aWhichChild == eDeepestChild ? accessible : child;
+
+    child = parent;
   }
 
-  return NS_OK;
+  return nsnull;
 }
 
 
@@ -883,7 +873,8 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  return GetChildAtPoint(aX, aY, PR_FALSE, aAccessible);
+  NS_IF_ADDREF(*aAccessible = GetChildAtPoint(aX, aY, eDirectChild));
+  return NS_OK;
 }
 
 
@@ -897,7 +888,8 @@ nsAccessible::GetDeepestChildAtPoint(PRInt32 aX, PRInt32 aY,
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  return GetChildAtPoint(aX, aY, PR_TRUE, aAccessible);
+  NS_IF_ADDREF(*aAccessible = GetChildAtPoint(aX, aY, eDeepestChild));
+  return NS_OK;
 }
 
 void nsAccessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame)
