@@ -55,6 +55,40 @@ XPCOMUtils.defineLazyGetter(this, "PlacesUtils", function() {
 
 
 
+
+XPCOMUtils.defineLazyGetter(this, "CommonUI", function() {
+  let CommonUI = {};
+  Services.scriptloader.loadSubScript("chrome://browser/content/common-ui.js", CommonUI);
+  return CommonUI;
+});
+
+[
+  ["AppMenu"],
+  ["FullScreenVideo"],
+  ["BadgeHandlers"],
+  ["SharingUI"],
+  ["ContextHelper"],
+  ["ContextCommands"],
+  ["SelectHelperUI"],
+  ["MenuListHelperUI"],
+  ["FormHelperUI"],
+  ["FindHelperUI"],
+  ["BookmarkHelper"],
+  ["BookmarkPopup"],
+  ["AwesomePanel"],
+  ["NewTabPopup"],
+  ["PageActions"],
+  ["BrowserSearch"],
+  ["AlertsHelper"]
+].forEach(function (aObject) {
+  XPCOMUtils.defineLazyGetter(window, aObject, function() {
+    return CommonUI[aObject];
+  });
+});
+
+
+
+
 [
   ["Sanitizer", "chrome://browser/content/sanitize.js"],
   ["ExtensionsView", "chrome://browser/content/extensions.js"],
