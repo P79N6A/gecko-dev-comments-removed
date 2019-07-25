@@ -107,9 +107,10 @@ Drag.prototype = {
   
   
   
+  
   snapBounds: function Drag_snapBounds(bounds, stationaryCorner, assumeConstantSize, keepProportional, checkItemStatus) {
     if (!stationaryCorner)
-      stationaryCorner = 'topleft';
+      stationaryCorner = UI.rtl ? 'topright' : 'topleft';
     var update = false; 
     var updateX = false;
     var updateY = false;
@@ -169,6 +170,7 @@ Drag.prototype = {
   
   
   
+  
   snap: function Drag_snap(stationaryCorner, assumeConstantSize, keepProportional) {
     var bounds = this.item.getBounds();
     bounds = this.snapBounds(bounds, stationaryCorner, assumeConstantSize, keepProportional, true);
@@ -179,6 +181,7 @@ Drag.prototype = {
     return false;
   },
 
+  
   
   
   
@@ -258,7 +261,7 @@ Drag.prototype = {
   
   
   drag: function Drag_drag(event) {
-    this.snap('topleft', true);
+    this.snap(UI.rtl ? 'topright' : 'topleft', true);
 
     if (this.parent && this.parent.expanded) {
       var distance = this.startPosition.distance(new Point(event.clientX, event.clientY));

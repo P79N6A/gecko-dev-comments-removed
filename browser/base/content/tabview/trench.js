@@ -477,7 +477,7 @@ var Trenches = {
   
   
   preferTop: true,
-  preferLeft: true,
+  get preferLeft() { return !UI.rtl; },
 
   trenches: [],
 
