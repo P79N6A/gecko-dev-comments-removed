@@ -162,6 +162,44 @@ GetScriptContext(JSContext *cx)
     return GetScriptContextFromJSContext(cx);
 }
 
+
+static JSBool
+PushPrincipalCallback(JSContext *cx, JSPrincipals *principals)
+{
+    
+    MOZ_ASSERT(principals ==
+               JS_GetCompartmentPrincipals((js::GetContextCompartment(cx))));
+
+    
+    nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+    if (!ssm) {
+        return true;
+    }
+
+    
+    JSStackFrame *fp = NULL;
+    nsresult rv = ssm->PushContextPrincipal(cx, JS_FrameIterator(cx, &fp),
+                                            nsJSPrincipals::get(principals));
+    if (NS_FAILED(rv)) {
+        JS_ReportOutOfMemory(cx);
+        return false;
+    }
+
+    return true;
+}
+
+static JSBool
+PopPrincipalCallback(JSContext *cx)
+{
+    nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+    if (ssm) {
+        ssm->PopContextPrincipal(cx);
+    }
+
+    return true;
+}
+
+
 inline void SetPendingException(JSContext *cx, const char *aMsg)
 {
     JSAutoRequest ar(cx);
@@ -364,6 +402,34 @@ nsScriptSecurityManager::GetCxSubjectPrincipalAndFrame(JSContext *cx, JSStackFra
         return nsnull;
 
     return principal;
+}
+
+NS_IMETHODIMP
+nsScriptSecurityManager::PushContextPrincipal(JSContext *cx,
+                                              JSStackFrame *fp,
+                                              nsIPrincipal *principal)
+{
+    NS_ASSERTION(principal, "Must pass a non-null principal");
+
+    ContextPrincipal *cp = new ContextPrincipal(mContextPrincipals, cx, fp,
+                                                principal);
+    if (!cp)
+        return NS_ERROR_OUT_OF_MEMORY;
+
+    mContextPrincipals = cp;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsScriptSecurityManager::PopContextPrincipal(JSContext *cx)
+{
+    NS_ASSERTION(mContextPrincipals->mCx == cx, "Mismatched push/pop");
+
+    ContextPrincipal *next = mContextPrincipals->mNext;
+    delete mContextPrincipals;
+    mContextPrincipals = next;
+
+    return NS_OK;
 }
 
 
@@ -2237,10 +2303,24 @@ nsScriptSecurityManager::GetPrincipalAndFrame(JSContext *cx,
 
     if (cx)
     {
+        JSStackFrame *target = nsnull;
+        nsIPrincipal *targetPrincipal = nsnull;
+        for (ContextPrincipal *cp = mContextPrincipals; cp; cp = cp->mNext)
+        {
+            if (cp->mCx == cx)
+            {
+                target = cp->mFp;
+                targetPrincipal = cp->mPrincipal;
+                break;
+            }
+        }
+
         
         JSStackFrame *fp = nsnull; 
         for (fp = JS_FrameIterator(cx, &fp); fp; fp = JS_FrameIterator(cx, &fp))
         {
+            if (fp == target)
+                break;
             nsIPrincipal* result = GetFramePrincipal(cx, fp, rv);
             if (result)
             {
@@ -2248,6 +2328,25 @@ nsScriptSecurityManager::GetPrincipalAndFrame(JSContext *cx,
                 *frameResult = fp;
                 return result;
             }
+        }
+
+        
+        
+        
+        
+        if (targetPrincipal)
+        {
+            if (fp && fp == target)
+            {
+                *frameResult = fp;
+            }
+            else
+            {
+                JSStackFrame *inner = nsnull;
+                *frameResult = JS_FrameIterator(cx, &inner);
+            }
+
+            return targetPrincipal;
         }
 
         nsIScriptContextPrincipal* scp =
@@ -2280,15 +2379,9 @@ nsIPrincipal*
 nsScriptSecurityManager::GetSubjectPrincipal(JSContext *cx,
                                              nsresult* rv)
 {
-    *rv = NS_OK;
-    JSCompartment *compartment = js::GetContextCompartment(cx);
-
-    
-    
-    MOZ_ASSERT(!!compartment);
-
-    JSPrincipals *principals = JS_GetCompartmentPrincipals(compartment);
-    return nsJSPrincipals::get(principals);
+    NS_PRECONDITION(rv, "Null out param");
+    JSStackFrame *fp;
+    return GetPrincipalAndFrame(cx, &fp, rv);
 }
 
 NS_IMETHODIMP
@@ -2304,33 +2397,19 @@ nsScriptSecurityManager::GetObjectPrincipal(JSContext *aCx, JSObject *aObj,
 
 
 nsIPrincipal*
-nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj)
-{
-    JSCompartment *compartment = js::GetObjectCompartment(aObj);
-    JSPrincipals *principals = JS_GetCompartmentPrincipals(compartment);
-    nsIPrincipal *principal = nsJSPrincipals::get(principals);
-
-    
-    
-    
+nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
 #ifdef DEBUG
-    nsIPrincipal *old = old_doGetObjectPrincipal(aObj);
-    MOZ_ASSERT(NS_SUCCEEDED(CheckSameOriginPrincipal(principal, old)));
+                                              , bool aAllowShortCircuit
 #endif
-
-    return principal;
-}
-
-#ifdef DEBUG
-
-nsIPrincipal*
-nsScriptSecurityManager::old_doGetObjectPrincipal(JSObject *aObj,
-                                                  bool aAllowShortCircuit)
+                                              )
 {
     NS_ASSERTION(aObj, "Bad call to doGetObjectPrincipal()!");
     nsIPrincipal* result = nsnull;
 
+#ifdef DEBUG
     JSObject* origObj = aObj;
+#endif
+    
     js::Class *jsClass = js::GetObjectClass(aObj);
 
     
@@ -2364,7 +2443,12 @@ nsScriptSecurityManager::old_doGetObjectPrincipal(JSObject *aObj,
         
         if (IS_WRAPPER_CLASS(jsClass)) {
             result = sXPConnect->GetPrincipal(aObj,
-                                              aAllowShortCircuit);
+#ifdef DEBUG
+                                              aAllowShortCircuit
+#else
+                                              true
+#endif
+                                              );
             if (result) {
                 break;
             }
@@ -2380,6 +2464,7 @@ nsScriptSecurityManager::old_doGetObjectPrincipal(JSObject *aObj,
                 priv = nsnull;
             }
 
+#ifdef DEBUG
             if (aAllowShortCircuit) {
                 nsCOMPtr<nsIXPConnectWrappedNative> xpcWrapper =
                     do_QueryInterface(priv);
@@ -2389,6 +2474,7 @@ nsScriptSecurityManager::old_doGetObjectPrincipal(JSObject *aObj,
                              "Uh, an nsIXPConnectWrappedNative with the "
                              "wrong JSClass or getObjectOps hooks!");
             }
+#endif
 
             nsCOMPtr<nsIScriptObjectPrincipal> objPrin =
                 do_QueryInterface(priv);
@@ -2410,8 +2496,9 @@ nsScriptSecurityManager::old_doGetObjectPrincipal(JSObject *aObj,
         jsClass = js::GetObjectClass(aObj);
     } while (1);
 
+#ifdef DEBUG
     if (aAllowShortCircuit) {
-        nsIPrincipal *principal = old_doGetObjectPrincipal(origObj, false);
+        nsIPrincipal *principal = doGetObjectPrincipal(origObj, false);
 
         
         
@@ -2419,10 +2506,10 @@ nsScriptSecurityManager::old_doGetObjectPrincipal(JSObject *aObj,
         NS_ASSERTION(NS_SUCCEEDED(CheckSameOriginPrincipal(result, principal)),
                      "Principal mismatch.  Not good");
     }
+#endif
 
     return result;
 }
-#endif 
 
 
 NS_IMETHODIMP
@@ -2434,11 +2521,27 @@ nsScriptSecurityManager::IsCapabilityEnabled(const char *capability,
     JSContext *cx = GetCurrentJSContext();
     fp = cx ? JS_FrameIterator(cx, &fp) : nsnull;
 
+    JSStackFrame *target = nsnull;
+    nsIPrincipal *targetPrincipal = nsnull;
+    for (ContextPrincipal *cp = mContextPrincipals; cp; cp = cp->mNext)
+    {
+        if (cp->mCx == cx)
+        {
+            target = cp->mFp;
+            targetPrincipal = cp->mPrincipal;
+            break;
+        }
+    }
+
     if (!fp)
     {
         
         
-        *result = true;
+        
+
+        *result = (targetPrincipal && !target)
+                  ? (targetPrincipal == mSystemPrincipal)
+                  : true;
 
         return NS_OK;
     }
@@ -2482,7 +2585,7 @@ nsScriptSecurityManager::IsCapabilityEnabled(const char *capability,
         
         if (JS_IsGlobalFrame(cx, fp))
             break;
-    } while ((fp = JS_FrameIterator(cx, &fp)) != nsnull);
+    } while (fp != target && (fp = JS_FrameIterator(cx, &fp)) != nsnull);
 
     if (!previousPrincipal)
     {
@@ -2966,6 +3069,7 @@ nsScriptSecurityManager::nsScriptSecurityManager(void)
     : mOriginToPolicyMap(nsnull),
       mDefaultPolicy(nsnull),
       mCapabilities(nsnull),
+      mContextPrincipals(nsnull),
       mPrefInitialized(false),
       mIsJavaScriptEnabled(false),
       mIsWritingPrefs(false),
@@ -3026,7 +3130,9 @@ nsresult nsScriptSecurityManager::Init()
         CheckObjectAccess,
         nsJSPrincipals::Subsume,
         ObjectPrincipalFinder,
-        ContentSecurityPolicyPermitsJSAction
+        ContentSecurityPolicyPermitsJSAction,
+        PushPrincipalCallback,
+        PopPrincipalCallback
     };
 
     MOZ_ASSERT(!JS_GetSecurityCallbacks(sRuntime));
@@ -3045,6 +3151,7 @@ jsid nsScriptSecurityManager::sEnabledID   = JSID_VOID;
 nsScriptSecurityManager::~nsScriptSecurityManager(void)
 {
     Preferences::RemoveObservers(this, kObservedPrefs);
+    NS_ASSERTION(!mContextPrincipals, "Leaking mContextPrincipals");
     delete mOriginToPolicyMap;
     if(mDefaultPolicy)
         mDefaultPolicy->Drop();
