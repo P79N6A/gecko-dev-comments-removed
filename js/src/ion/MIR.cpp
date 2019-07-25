@@ -716,6 +716,18 @@ MMod::foldsTo(bool useValueNumbers)
     return this;
 }
 
+MDefinition *
+MMul::foldsTo(bool useValueNumbers)
+{
+    if (specialization() != MIRType_Int32)
+        return this;
+
+    if (lhs()->congruentTo(rhs()))
+        canBeNegativeZero_ = false;
+
+    return this;
+}
+
 void
 MMul::analyzeRange()
 {
@@ -723,11 +735,6 @@ MMul::analyzeRange()
     
     if (specialization() != MIRType_Int32)
         return;
-
-    if (lhs()->congruentTo(rhs())) {
-        canBeNegativeZero_ = false;
-        return;
-    }
 
     
     if (lhs()->isConstant()) {
