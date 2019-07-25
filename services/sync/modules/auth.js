@@ -1,0 +1,98 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const EXPORTED_SYMBOLS = ['Auth', 'BasicAuthenticator', 'NoOpAuthenticator'];
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cr = Components.results;
+const Cu = Components.utils;
+
+Cu.import("resource://weave/Observers.js");
+Cu.import("resource://weave/Preferences.js");
+Cu.import("resource://weave/log4moz.js");
+Cu.import("resource://weave/constants.js");
+Cu.import("resource://weave/util.js");
+Cu.import("resource://weave/async.js");
+
+Function.prototype.async = Async.sugar;
+
+Utils.lazy(this, 'Auth', AuthMgr);
+
+
+
+
+function NoOpAuthenticator() {}
+NoOpAuthenticator.prototype = {
+  onRequest: function NoOpAuth_onRequest(headers) {
+    return headers;
+  }
+};
+
+function BasicAuthenticator(identity) {
+  this._id = identity;
+}
+BasicAuthenticator.prototype = {
+  onRequest: function BasicAuth_onRequest(headers) {
+    headers['Authorization'] = 'Basic ' +
+      btoa(this._id.username + ':' + this._id.password);
+    return headers;
+  }
+};
+
+function AuthMgr() {
+  this._init();
+}
+AuthMgr.prototype = {
+  defaultAuthenticator: null,
+
+  _init: function AuthMgr__init() {
+    this._authenticators = {};
+    this.defaultAuthenticator = new NoOpAuthenticator();
+  },
+
+  registerAuthenticator: function AuthMgr_register(match, authenticator) {
+    this._authenticators[match] = authenticator;
+  },
+
+  lookupAuthenticator: function AuthMgr_lookup(uri) {
+    for (let match in this._authenticators) {
+      if (uri.match(match))
+        return this._authenticators[match];
+    }
+    return this.defaultAuthenticator;
+  }
+};
