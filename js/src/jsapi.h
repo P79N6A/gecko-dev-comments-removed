@@ -2214,41 +2214,27 @@ JS_END_EXTERN_C
 
 class JS_PUBLIC_API(JSAutoEnterCompartment)
 {
-    
-
-
-
-
-#ifndef _MSC_VER
-    void* bytes[13];
-#else
-    void* bytes[sizeof(void*) == 4 ? 16 : 13];
-#endif
-
-    
-
-
-
-
-
-
-
-    enum State {
-        STATE_UNENTERED,
-        STATE_SAME_COMPARTMENT,
-        STATE_OTHER_COMPARTMENT
-    } state;
+    JSCrossCompartmentCall *call;
 
   public:
-    JSAutoEnterCompartment() : state(STATE_UNENTERED) {}
+    JSAutoEnterCompartment() : call(NULL) {}
 
     bool enter(JSContext *cx, JSObject *target);
 
     void enterAndIgnoreErrors(JSContext *cx, JSObject *target);
 
-    bool entered() const { return state != STATE_UNENTERED; }
+    bool entered() const { return call != NULL; }
 
-    ~JSAutoEnterCompartment();
+    ~JSAutoEnterCompartment() {
+        if (call && call != reinterpret_cast<JSCrossCompartmentCall*>(1))
+            JS_LeaveCrossCompartmentCall(call);
+    }
+
+    void swap(JSAutoEnterCompartment &other) {
+        JSCrossCompartmentCall *tmp = call;
+        call = other.call;
+        other.call = tmp;
+    }
 };
 
 JS_BEGIN_EXTERN_C
