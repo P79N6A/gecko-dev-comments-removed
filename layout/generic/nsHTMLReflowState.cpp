@@ -783,7 +783,7 @@ static PRBool
 GetIntrinsicSizeFor(nsIFrame* aFrame, nsSize& aIntrinsicSize)
 {
   
-  PRBool    result = PR_FALSE;
+  PRBool success = PR_FALSE;
 
   
   
@@ -792,10 +792,11 @@ GetIntrinsicSizeFor(nsIFrame* aFrame, nsSize& aIntrinsicSize)
   if (aFrame->GetType() == nsGkAtoms::imageFrame) {
     nsImageFrame* imageFrame = (nsImageFrame*)aFrame;
 
-    imageFrame->GetIntrinsicImageSize(aIntrinsicSize);
-    result = (aIntrinsicSize != nsSize(0, 0));
+    if (NS_SUCCEEDED(imageFrame->GetIntrinsicImageSize(aIntrinsicSize))) {
+      success = (aIntrinsicSize != nsSize(0, 0));
+    }
   }
-  return result;
+  return success;
 }
 
 
