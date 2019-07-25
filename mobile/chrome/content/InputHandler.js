@@ -514,7 +514,7 @@ ContentPanningModule.prototype = {
 
   _onMouseDown: function _onMouseDown(aEvent) {
     
-    if (this.kineticHandle != -1)
+    if (this._kineticData.kineticHandle != -1)
       this._endKinetic(aEvent.screenX, aEvent.screenY);
 
     let dragData = this._dragData;
