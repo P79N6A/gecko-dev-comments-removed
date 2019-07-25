@@ -764,9 +764,11 @@ WeaveSvc.prototype = {
               Status.login = LOGIN_FAILED_INVALID_PASSPHRASE;
               Status.sync = CREDENTIALS_CHANGED;
             }
-            else
+            else {
               
-              Status.login = LOGIN_FAILED_NETWORK_ERROR;
+              
+              Status.login = LOGIN_FAILED;
+            }
             return false;
           }
         }
