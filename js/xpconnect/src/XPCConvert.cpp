@@ -1036,6 +1036,9 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
             return true;
         }
 
+        if (JS_IsExceptionPending(cx))
+            return false;
+
         
         
         
