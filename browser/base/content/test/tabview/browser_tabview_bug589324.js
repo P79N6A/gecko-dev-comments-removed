@@ -104,7 +104,7 @@ function test() {
       
       
       let onTabHide = function() {
-        newWin.gBrowser.tabContainer.addEventListener("TabHide", onTabHide, true);
+        newWin.gBrowser.tabContainer.removeEventListener("TabHide", onTabHide, true);
 
         ok(newWin.TabView.getContentWindow(), "");
 

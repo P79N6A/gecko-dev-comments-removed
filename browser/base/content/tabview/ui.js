@@ -193,6 +193,7 @@ let UI = {
 
             self._lastClick = 0;
             self._lastClickPositions = null;
+            gTabView.firstUseExperienced = true;
           } else {
             self._lastClick = Date.now();
             self._lastClickPositions = new Point(e.clientX, e.clientY);
@@ -224,13 +225,8 @@ let UI = {
       TabItems.init();
       TabItems.pausePainting();
 
-      
-      let firstTime = true;
-      if (gPrefBranch.prefHasUserValue("experienced_first_run"))
-        firstTime = !gPrefBranch.getBoolPref("experienced_first_run");
-
-      if (firstTime || !hasGroupItemsData)
-        this.reset(firstTime);
+      if (!hasGroupItemsData)
+        this.reset();
 
       
       if (this._pageBounds)
@@ -299,8 +295,7 @@ let UI = {
 
   
   
-  
-  reset: function UI_reset(firstTime) {
+  reset: function UI_reset() {
     let padding = Trenches.defaultRadius;
     let welcomeWidth = 300;
     let pageBounds = Items.getPageBounds();
@@ -338,31 +333,6 @@ let UI = {
       groupItem.add(item, {immediately: true});
     });
     GroupItems.setActiveGroupItem(groupItem);
-
-    if (firstTime) {
-      gPrefBranch.setBoolPref("experienced_first_run", true);
-      
-      
-      Services.prefs.savePrefFile(null);
-
-      
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    }
   },
 
   
@@ -612,7 +582,7 @@ let UI = {
     if (!this._storageBusyCount) {
       let hasGroupItemsData = GroupItems.load();
       if (!hasGroupItemsData)
-        this.reset(false);
+        this.reset();
   
       TabItems.resumeReconnecting();
       GroupItems._updateTabBar();
@@ -1193,6 +1163,7 @@ let UI = {
         GroupItems.setActiveGroupItem(groupItem);
         phantom.remove();
         dragOutInfo = null;
+        gTabView.firstUseExperienced = true;
       } else {
         collapse();
       }
@@ -1452,7 +1423,7 @@ let UI = {
     this._save();
     GroupItems.saveAll();
     TabItems.saveAll();
-  },
+  }
 };
 
 

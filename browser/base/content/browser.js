@@ -8494,7 +8494,7 @@ var TabContextMenu = {
 
     
     document.getElementById("context_tabViewMenu").hidden =
-      (this.contextTab.pinned || !TabView.firstRunExperienced);
+      (this.contextTab.pinned || !TabView.firstUseExperienced);
   }
 };
 
