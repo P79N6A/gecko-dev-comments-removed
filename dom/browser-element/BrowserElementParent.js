@@ -28,6 +28,33 @@ function getBoolPref(prefName, def) {
   }
 }
 
+function exposeAll(obj) {
+  
+  if (typeof obj !== "object" || !obj)
+    return;
+
+  
+  Object.keys(obj).forEach(function(key) {
+    exposeAll(obj[key]);
+  });
+
+  
+  if (obj instanceof Array)
+    return;
+  var exposed = {};
+  Object.keys(obj).forEach(function(key) {
+    exposed[key] = 'rw';
+  });
+  obj.__exposedProps__ = exposed;
+}
+
+function defineAndExpose(obj, name, value) {
+  obj[name] = value;
+  if (!('__exposedProps__' in obj))
+    obj.__exposedProps__ = {};
+  obj.__exposedProps__[name] = 'r';
+}
+
 
 
 
@@ -275,9 +302,9 @@ BrowserElementParent.prototype = {
 
     if (detail.contextmenu) {
       var self = this;
-      XPCNativeWrapper.unwrap(evt.detail).contextMenuItemSelected = function(id) {
+      defineAndExpose(evt.detail, 'contextMenuItemSelected', function(id) {
         self._sendAsyncMsg('fire-ctx-callback', {menuitem: id});
-      };
+      });
     }
     
     
@@ -338,9 +365,9 @@ BrowserElementParent.prototype = {
       self._sendAsyncMsg('unblock-modal-prompt', data);
     }
 
-    XPCNativeWrapper.unwrap(evt.detail).unblock = function() {
+    defineAndExpose(evt.detail, 'unblock', function() {
       sendUnblockMsg();
-    };
+    });
 
     this._frameElement.dispatchEvent(evt);
 
@@ -355,6 +382,7 @@ BrowserElementParent.prototype = {
     
     
     if (detail !== undefined && detail !== null) {
+      exposeAll(detail);
       return new this._window.CustomEvent('mozbrowser' + evtName,
                                           { bubbles: true,
                                             cancelable: cancelable,
