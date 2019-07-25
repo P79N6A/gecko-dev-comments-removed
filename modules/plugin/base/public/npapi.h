@@ -426,7 +426,7 @@ typedef enum {
 #endif
   , NPNVsupportsCocoaBool = 3001 
 #endif
-#if defined(MOZ_PLATFORM_MAEMO) && (MOZ_PLATFORM_MAEMO == 5)
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
   , NPNVSupportsWindowlessLocal = 2002
 #endif
 } NPNVariable;
