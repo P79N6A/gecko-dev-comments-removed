@@ -1023,12 +1023,15 @@ nsDisplayBackground::HitTest(nsDisplayListBuilder* aBuilder,
                              HitTestState* aState,
                              nsTArray<nsIFrame*> *aOutFrames)
 {
-  
-  
-  if (!mIsThemed &&
-      !RoundedBorderIntersectsRect(mFrame, ToReferenceFrame(), aRect)) {
+  if (mIsThemed) {
     
-    return;
+    if (!nsRect(ToReferenceFrame(), mFrame->GetSize()).Intersects(aRect))
+      return;
+  } else {
+    if (!RoundedBorderIntersectsRect(mFrame, ToReferenceFrame(), aRect)) {
+      
+      return;
+    }
   }
 
   aOutFrames->AppendElement(mFrame);
