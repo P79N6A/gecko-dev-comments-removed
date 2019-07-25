@@ -94,11 +94,37 @@ var TestPilotUIBuilder = {
       } catch (e) {
       }
     }
+
+    
+
+
+    if (this.isBetaChannel() && this.appVersionIsFinal()) {
+      window.document.getElementById("feedback-menu-happy-button").setAttribute("hidden", "true");
+      window.document.getElementById("feedback-menu-sad-button").setAttribute("hidden", "true");
+    } else {
+      window.document.getElementById("feedback-menu-broken-button").setAttribute("hidden", "true");
+      window.document.getElementById("feedback-menu-idea-button").setAttribute("hidden", "true");
+    }
   },
 
   isBetaChannel: function() {
     
     return (this._prefs.getCharPref(UPDATE_CHANNEL_PREF) == "beta");
+  },
+
+  appVersionIsFinal: function() {
+    
+    let appInfo = Cc["@mozilla.org/xre/app-info;1"]
+      .getService(Ci.nsIXULAppInfo);
+    let version = appInfo.version;
+    let versionChecker = Components.classes["@mozilla.org/xpcom/version-comparator;1"]
+      .getService(Components.interfaces.nsIVersionComparator);
+    if (versionChecker.compare(version, "4.0") >= 0) {
+      if (version.indexOf("b") == -1 && version.indexOf("rc") == -1) {
+        return true;
+      }
+    }
+    return false;
   },
 
   buildCorrectInterface: function(window) {
