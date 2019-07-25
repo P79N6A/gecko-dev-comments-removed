@@ -3,7 +3,8 @@ def test(mod, path, entity = None):
   
   if mod not in ("netwerk", "dom", "toolkit", "security/manager",
                  "browser", "extensions/reporter", "extensions/spellcheck",
-                 "other-licenses/branding/firefox"):
+                 "other-licenses/branding/firefox",
+                 "services/sync"):
     return False
   if mod != "browser" and mod != "extensions/spellcheck":
     
