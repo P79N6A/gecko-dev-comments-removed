@@ -162,7 +162,13 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
     
     mMetrics->emHeight = NS_floor(GetStyle()->size + 0.5);
 
-    FT_Face face = cairo_ft_scaled_font_lock_face(CairoScaledFont());
+    cairo_scaled_font_t* scaledFont = CairoScaledFont();
+    if (!scaledFont) {
+        FillMetricsDefaults(mMetrics);
+        return *mMetrics;
+    }
+
+    FT_Face face = cairo_ft_scaled_font_lock_face(scaledFont);
     if (!face) {
         
         
@@ -173,7 +179,7 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         
         
         
-        cairo_ft_scaled_font_unlock_face(CairoScaledFont());
+        cairo_ft_scaled_font_unlock_face(scaledFont);
         FillMetricsDefaults(mMetrics);
         return *mMetrics;
     }
@@ -305,7 +311,7 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
            mMetrics->maxAscent, mMetrics->maxDescent, mMetrics->maxAdvance
           );
 #endif
-    cairo_ft_scaled_font_unlock_face(CairoScaledFont());
+    cairo_ft_scaled_font_unlock_face(scaledFont);
     return *mMetrics;
 }
 
@@ -391,6 +397,25 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
         
         FcResult fcRes;
         FcPattern *fcMatch = FcFontMatch(NULL, fcPattern, &fcRes);
+
+        
+        
+        
+        if (!fcMatch) {
+
+            printf("Could not match font for:\n"
+                   "  family=%s, weight=%d, slant=%d, size=%f\n",
+                   NS_LossyConvertUTF16toASCII(GetName()).get(),
+                   GetStyle()->weight, GetStyle()->style, GetStyle()->size);
+
+            
+            FcPatternAddString(fcPattern, FC_FAMILY, (FcChar8*)"SERIF");
+            fcMatch = FcFontMatch(NULL, fcPattern, &fcRes);
+
+            printf("Attempt to substitute default SERIF font %s\n",
+                   fcMatch ? "succeeded" : "failed");
+
+        }
         FcPatternDestroy(fcPattern);
 
         if (fcMatch) {
@@ -408,13 +433,6 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
             mFontFace = cairo_ft_font_face_create_for_pattern(fcMatch);
 
             FcPatternDestroy(fcMatch);
-        } else {
-#ifdef DEBUG
-            printf("Could not match font for:\n"
-                   "  family=%s, weight=%d, slant=%d, size=%f\n",
-                   NS_LossyConvertUTF16toASCII(GetName()).get(),
-                   GetStyle()->weight, GetStyle()->style, GetStyle()->size);
-#endif
         }
     }
 
@@ -448,8 +466,13 @@ cairo_scaled_font_t *gfxOS2Font::CairoScaledFont()
     } else {
         cairo_matrix_init_scale(&fontMatrix, size, size);
     }
+
+    cairo_font_face_t * face = CairoFontFace();
+    if (!face)
+        return nsnull;
+
     cairo_font_options_t *fontOptions = cairo_font_options_create();
-    mScaledFont = cairo_scaled_font_create(CairoFontFace(), &fontMatrix,
+    mScaledFont = cairo_scaled_font_create(face, &fontMatrix,
                                            &identityMatrix, fontOptions);
     cairo_font_options_destroy(fontOptions);
 
@@ -479,7 +502,7 @@ PRBool gfxOS2Font::SetupCairoFont(gfxContext *aContext)
 
     
     cairo_scaled_font_t *scaledFont = CairoScaledFont();
-    if (cairo_scaled_font_status(scaledFont) != CAIRO_STATUS_SUCCESS) {
+    if (!scaledFont || cairo_scaled_font_status(scaledFont) != CAIRO_STATUS_SUCCESS) {
         
         
         return PR_FALSE;
