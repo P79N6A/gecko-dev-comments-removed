@@ -2214,7 +2214,11 @@ SessionStoreService.prototype = {
         tabbrowser.pinTab(tabs[t]);
       else
         tabbrowser.unpinTab(tabs[t]);
-      tabs[t].hidden = winData.tabs[t].hidden;
+
+      if (winData.tabs[t].hidden)
+        tabbrowser.hideTab(tabs[t]);
+      else
+        tabbrowser.showTab(tabs[t]);
     }
 
     
@@ -2376,7 +2380,11 @@ SessionStoreService.prototype = {
         tabbrowser.pinTab(tab);
       else
         tabbrowser.unpinTab(tab);
-      tab.hidden = tabData.hidden;
+
+      if (tabData.hidden)
+        tabbrowser.hideTab(tab);
+      else
+        tabbrowser.showTab(tab);
 
       tabData._tabStillLoading = true;
 
@@ -3502,7 +3510,7 @@ SessionStoreService.prototype = {
 
 
   _replaceLoadingTitle : function sss_replaceLoadingTitle(aString, aTabbrowser, aTab) {
-    if (aString == aTabbrowser.mStringBundle.getString("tabs.loading")) {
+    if (aString == aTabbrowser.mStringBundle.getString("tabs.connecting")) {
       aTabbrowser.setTabTitle(aTab);
       [aString, aTab.label] = [aTab.label, aString];
     }
