@@ -371,7 +371,7 @@ GlobalObject::clear(JSContext *cx)
 
 
 
-    for (gc::CellIter i(cx, cx->compartment, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
+    for (gc::CellIter i(cx->compartment, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
         if (script->compileAndGo && script->hasJITCode() && script->hasClearedGlobal()) {
             mjit::Recompiler::clearStackReferences(cx, script);
