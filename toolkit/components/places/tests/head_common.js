@@ -468,6 +468,57 @@ function check_JSON_backup() {
 
 
 
+
+
+
+
+
+
+
+
+
+function waitForFrecency(aUrl, aValidator, aCallback, aCbScope, aCbArguments) {
+  Services.obs.addObserver(function (aSubject, aTopic, aData) {
+    let frecency = frecencyForUrl(aUrl);
+    if (!aValidator(frecency)) {
+      return;
+    }
+    Services.obs.removeObserver(arguments.callee, aTopic);
+    aCallback.apply(aCbScope, aCbArguments);
+  }, "places-frecency-updated", false);
+}
+
+
+
+
+
+
+
+
+function frecencyForUrl(aUrl)
+{
+  let stmt = DBConn().createStatement(
+    "SELECT frecency FROM moz_places WHERE url = ?1"
+  );
+  stmt.bindUTF8StringParameter(0, aUrl);
+  if (!stmt.executeStep())
+    throw "No result for frecency.";
+  let frecency = stmt.getInt32(0);
+  stmt.finalize();
+
+  return frecency;
+}
+
+
+
+
+
+
+
+
+
+
+
 function is_time_ordered(before, after) {
   
   

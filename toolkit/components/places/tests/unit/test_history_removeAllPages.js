@@ -37,74 +37,63 @@
 
 
 
-
-let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
-         getService(Ci.nsINavHistoryService);
-let bh = hs.QueryInterface(Ci.nsIBrowserHistory);
-let mDBConn = hs.QueryInterface(Ci.nsPIPlacesDatabase).DBConnection;
-let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-         getService(Ci.nsINavBookmarksService);
-let as = Cc["@mozilla.org/browser/annotation-service;1"].
-         getService(Ci.nsIAnnotationService);
-let os = Cc["@mozilla.org/observer-service;1"].
-         getService(Ci.nsIObserverService);
-let lms = Cc["@mozilla.org/browser/livemark-service;2"].
-          getService(Ci.nsILivemarkService);
-
-const kExpirationFinished = "places-expiration-finished";
+let mDBConn = DBConn();
 
 function add_fake_livemark() {
-  let lmId = lms.createLivemarkFolderOnly(bs.toolbarFolder,
-                                          "Livemark",
-                                          uri("http://www.mozilla.org/"),
-                                          uri("http://www.mozilla.org/test.xml"),
-                                          bs.DEFAULT_INDEX);
+  let lmId = PlacesUtils.livemarks.createLivemarkFolderOnly(
+    PlacesUtils.toolbarFolderId, "Livemark",
+    uri("http://www.mozilla.org/"), uri("http://www.mozilla.org/test.xml"),
+    PlacesUtils.bookmarks.DEFAULT_INDEX
+  );
   
-  bs.insertBookmark(lmId, uri("http://visited.livemark.com/"),
-                    bs.DEFAULT_INDEX, "visited");
-  hs.addVisit(uri("http://visited.livemark.com/"), Date.now(), null,
-              hs.TRANSITION_BOOKMARK, false, 0);
+  PlacesUtils.bookmarks.insertBookmark(lmId,
+                                       uri("http://visited.livemark.com/"),
+                                       PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                       "visited");
+  PlacesUtils.history.addVisit(uri("http://visited.livemark.com/"),
+                               Date.now(), null,
+                               Ci.nsINavHistoryService.TRANSITION_BOOKMARK,
+                               false, 0);
   
-  bs.insertBookmark(lmId, uri("http://unvisited.livemark.com/"),
-                    bs.DEFAULT_INDEX, "unvisited");
+  PlacesUtils.bookmarks.insertBookmark(lmId,
+                                       uri("http://unvisited.livemark.com/"),
+                                       PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                       "unvisited");
 }
 
-let observer = {
-  onBeginUpdateBatch: function() {
-  },
-  onEndUpdateBatch: function() {
-  },
-  onVisit: function(aURI, aVisitID, aTime, aSessionID, aReferringID, aTransitionType) {
-  },
-  onTitleChanged: function(aURI, aPageTitle) {
-  },
-  onBeforeDeleteURI: function(aURI) {
-  },
-  onDeleteURI: function(aURI) {
-  },
+let historyObserver = {
+  onBeginUpdateBatch: function() {},
+  onEndUpdateBatch: function() {},
+  onVisit: function() {},
+  onTitleChanged: function() {},
+  onBeforeDeleteURI: function() {},
+  onDeleteURI: function(aURI) {},
+  onPageChanged: function() {},
+  onDeleteVisits: function() {},
 
   onClearHistory: function() {
-    
-    do_check_eq(0, bh.count);
+    PlacesUtils.history.removeObserver(this, false);
 
     
-    
-    
-    stmt = mDBConn.createStatement(
-      "SELECT h.id FROM moz_places h WHERE h.frecency > 0 " +
-        "AND EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-
-    stmt = mDBConn.createStatement(
-      "SELECT h.id FROM moz_places h WHERE h.frecency = -2 " +
-        "AND EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
-    do_check_true(stmt.executeStep());
-    stmt.finalize();
+    do_check_eq(0, PlacesUtils.bhistory.count);
 
     let expirationObserver = {
       observe: function (aSubject, aTopic, aData) {
-        os.removeObserver(this, kExpirationFinished, false);
+        Services.obs.removeObserver(this, aTopic, false);
+
+        
+        
+        
+        stmt = mDBConn.createStatement(
+          "SELECT h.id FROM moz_places h WHERE h.frecency > 0 ");
+        do_check_false(stmt.executeStep());
+        stmt.finalize();
+
+        stmt = mDBConn.createStatement(
+          "SELECT h.id FROM moz_places h WHERE h.frecency = -2 " +
+            "AND EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
+        do_check_true(stmt.executeStep());
+        stmt.finalize();
 
         
         stmt = mDBConn.createStatement(
@@ -167,70 +156,86 @@ let observer = {
         do_test_finished();
       }
     }
-    os.addObserver(expirationObserver, kExpirationFinished, false);
-  },
-
-  onPageChanged: function(aURI, aWhat, aValue) {
-  },
-  onDeleteVisits: function() {
+    Services.obs.addObserver(expirationObserver,
+                             PlacesUtils.TOPIC_EXPIRATION_FINISHED,
+                             false);
   },
 
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsINavHistoryObserver,
   ]),
 }
-hs.addObserver(observer, false);
+PlacesUtils.history.addObserver(historyObserver, false);
 
 function run_test() {
   
-  add_fake_livemark();
-
   
-  hs.addVisit(uri("http://typed.mozilla.org"), Date.now(), null,
-              hs.TRANSITION_TYPED, false, 0);
-
-  hs.addVisit(uri("http://link.mozilla.org"), Date.now(), null,
-              hs.TRANSITION_LINK, false, 0);
-  hs.addVisit(uri("http://download.mozilla.org"), Date.now(), null,
-              hs.TRANSITION_DOWNLOAD, false, 0);
-  hs.addVisit(uri("http://invalid.mozilla.org"), Date.now(), null,
-              0, false, 0); 
-  hs.addVisit(uri("http://redir_temp.mozilla.org"), Date.now(),
-              uri("http://link.mozilla.org"), hs.TRANSITION_REDIRECT_TEMPORARY,
-              true, 0);
-  hs.addVisit(uri("http://redir_perm.mozilla.org"), Date.now(),
-              uri("http://link.mozilla.org"), hs.TRANSITION_REDIRECT_PERMANENT,
-              true, 0);
-
-  
-  bs.insertBookmark(bs.unfiledBookmarksFolder, uri("place:folder=4"),
-                    bs.DEFAULT_INDEX, "shortcut");
-  
-  
-  
-  
-  as.setPageAnnotation(uri("http://download.mozilla.org"), "never", "never", 0,
-                       as.EXPIRE_NEVER);
-
-  
-  
-  bs.insertBookmark(bs.unfiledBookmarksFolder, uri("http://typed.mozilla.org"),
-                    bs.DEFAULT_INDEX, "bookmark");
-
-  hs.addVisit(uri("http://typed.mozilla.org"), Date.now(), null,
-              hs.TRANSITION_BOOKMARK, false, 0);
-
-  
-  
-  Services.obs.removeObserver(hs, "idle-daily");
+  Services.obs.removeObserver(PlacesUtils.history, "idle-daily");
 
   
   
   
-  
-  do_execute_soon(function () {
-    bh.removeAllPages();
-  });
+  Services.obs.addObserver(function(aSubject, aTopic, aData) {
+    Services.obs.removeObserver(arguments.callee, aTopic, false);
+    do_execute_soon(continue_test);
+  }, PlacesUtils.TOPIC_INIT_COMPLETE, false);
 
   do_test_pending();
+}
+
+function continue_test() {
+  
+  add_fake_livemark();
+  PlacesUtils.history.addVisit(uri("http://typed.mozilla.org/"), Date.now(),
+                               null, Ci.nsINavHistoryService.TRANSITION_TYPED,
+                               false, 0);
+  PlacesUtils.history.addVisit(uri("http://link.mozilla.org/"), Date.now(),
+                               null, Ci.nsINavHistoryService.TRANSITION_LINK,
+                               false, 0);
+  PlacesUtils.history.addVisit(uri("http://download.mozilla.org/"), Date.now(),
+                               null, Ci.nsINavHistoryService.TRANSITION_DOWNLOAD,
+                               false, 0);
+  PlacesUtils.history.addVisit(uri("http://invalid.mozilla.org/"), Date.now(),
+                               null, 0, false, 0); 
+  PlacesUtils.history.addVisit(uri("http://redir_temp.mozilla.org/"), Date.now(),
+                               uri("http://link.mozilla.org/"),
+                               Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY,
+                               true, 0);
+  PlacesUtils.history.addVisit(uri("http://redir_perm.mozilla.org/"), Date.now(),
+                               uri("http://link.mozilla.org/"),
+                               Ci.nsINavHistoryService.TRANSITION_REDIRECT_PERMANENT,
+                               true, 0);
+
+  
+  PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                       uri("place:folder=4"),
+                                       PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                       "shortcut");
+  
+  
+  
+  
+  PlacesUtils.annotations.setPageAnnotation(uri("http://download.mozilla.org/"),
+                                            "never", "never", 0,
+                                            PlacesUtils.annotations.EXPIRE_NEVER);
+
+  
+  
+  PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                       uri("http://typed.mozilla.org/"),
+                                       PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                       "bookmark");
+
+  PlacesUtils.history.addVisit(uri("http://typed.mozilla.org/"), Date.now(),
+                               null, PlacesUtils.history.TRANSITION_BOOKMARK,
+                               false, 0);
+
+  
+  PlacesUtils.history.addVisit(uri("http://frecency.mozilla.org/"), Date.now(),
+                               null, Ci.nsINavHistoryService.TRANSITION_LINK,
+                               false, 0);
+  waitForFrecency("http://frecency.mozilla.org/", function (aFrecency) aFrecency > 0,
+                  function () {
+                    PlacesUtils.bhistory.removeAllPages();
+                  }, this, []);
 }
