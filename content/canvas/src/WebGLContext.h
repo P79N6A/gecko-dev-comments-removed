@@ -688,6 +688,10 @@ protected:
         return ((x + y - 1) / y) * y;
     }
 
+    nsresult BufferData_size(WebGLenum target, WebGLsizei size, WebGLenum usage);
+    nsresult BufferData_buf(WebGLenum target, JSObject* data, WebGLenum usage);
+    nsresult BufferData_array(WebGLenum target, JSObject* data, WebGLenum usage);
+
     nsCOMPtr<nsIDOMHTMLCanvasElement> mCanvasElement;
     nsHTMLCanvasElement *HTMLCanvasElement() {
         return static_cast<nsHTMLCanvasElement*>(mCanvasElement.get());
