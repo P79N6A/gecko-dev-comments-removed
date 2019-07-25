@@ -912,6 +912,18 @@ public class GeckoInputConnection
         Selection.setSelection(mEditable, contents.length());
     }
 
+    public void resetSelection() {
+        
+        
+        
+        Editable content = getEditable();
+        if (content != null) {
+            Log.d(LOGTAG, "IME: resetSelection");
+            int length = content.length();
+            setSelection(length, length);
+        }
+    }
+
     
     private boolean mComposing;
     private int mCompositionStart = -1;
