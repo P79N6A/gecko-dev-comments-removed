@@ -1929,6 +1929,11 @@ nsFrame::GetDataForTableSelection(const nsFrameSelection *aFrameSelection,
 
   
   
+  if (limiter && nsContentUtils::ContentIsDescendantOf(limiter, GetContent()))
+    return NS_OK;
+
+  
+  
   
   
   
