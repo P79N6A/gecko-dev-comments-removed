@@ -55,9 +55,34 @@
 class nsMediaDecoder;
 
 
+
+
+
+class NesteggPacketHolder {
+public:
+  NesteggPacketHolder(nestegg_packet* aPacket, PRInt64 aOffset)
+    : mPacket(aPacket), mOffset(aOffset)
+  {
+    MOZ_COUNT_CTOR(NesteggPacketHolder);
+  }
+  ~NesteggPacketHolder() {
+    MOZ_COUNT_DTOR(NesteggPacketHolder);
+    nestegg_free_packet(mPacket);
+  }
+  nestegg_packet* mPacket;
+  
+  
+  PRInt64 mOffset;
+private:
+  
+  NesteggPacketHolder(const NesteggPacketHolder &aOther);
+  NesteggPacketHolder& operator= (NesteggPacketHolder const& aOther);
+};
+
+
 class PacketQueueDeallocator : public nsDequeFunctor {
   virtual void* operator() (void* anObject) {
-    nestegg_free_packet(static_cast<nestegg_packet*>(anObject));
+    delete static_cast<NesteggPacketHolder*>(anObject);
     return nsnull;
   }
 };
@@ -79,23 +104,23 @@ class PacketQueue : private nsDeque {
     return nsDeque::GetSize();
   }
   
-  inline void Push(nestegg_packet* aItem) {
+  inline void Push(NesteggPacketHolder* aItem) {
     NS_ASSERTION(aItem, "NULL pushed to PacketQueue");
     nsDeque::Push(aItem);
   }
   
-  inline void PushFront(nestegg_packet* aItem) {
+  inline void PushFront(NesteggPacketHolder* aItem) {
     NS_ASSERTION(aItem, "NULL pushed to PacketQueue");
     nsDeque::PushFront(aItem);
   }
 
-  inline nestegg_packet* PopFront() {
-    return static_cast<nestegg_packet*>(nsDeque::PopFront());
+  inline NesteggPacketHolder* PopFront() {
+    return static_cast<NesteggPacketHolder*>(nsDeque::PopFront());
   }
   
   void Reset() {
     while (GetSize() > 0) {
-      nestegg_free_packet(PopFront());
+      delete PopFront();
     }
   }
 };
@@ -144,7 +169,7 @@ private:
   
   
   
-  nsReturnRef<nestegg_packet> NextPacket(TrackType aTrackType);
+  nsReturnRef<NesteggPacketHolder> NextPacket(TrackType aTrackType);
 
   
   ogg_packet InitOggPacket(unsigned char* aData,
@@ -159,7 +184,7 @@ private:
   
   
   
-  PRBool DecodeAudioPacket(nestegg_packet* aPacket);
+  PRBool DecodeAudioPacket(nestegg_packet* aPacket, PRInt64 aOffset);
 
   
   
