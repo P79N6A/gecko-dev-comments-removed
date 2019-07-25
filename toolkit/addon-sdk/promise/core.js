@@ -8,19 +8,20 @@
   } else if (typeof(require) === 'function') { 
     factory.call(this, require, exports, module);
   } else if (String(this).indexOf('BackstagePass') >= 0) { 
+    this[factory.name] = {};
     factory(function require(uri) {
       var imports = {};
       this['Components'].utils.import(uri, imports);
       return imports;
-    }, this, { uri: __URI__, id: id });
-    this.EXPORTED_SYMBOLS = Object.keys(this);
+    }, this[factory.name], { uri: __URI__, id: id });
+    this.EXPORTED_SYMBOLS = [factory.name];
   } else {  
     var globals = this;
     factory(function require(id) {
       return globals[id];
     }, (globals[id] = {}), { uri: document.location.href + '#' + id, id: id });
   }
-}).call(this, 'promise/core', function(require, exports, module) {
+}).call(this, 'promise/core', function Promise(require, exports, module) {
 
 'use strict';
 
