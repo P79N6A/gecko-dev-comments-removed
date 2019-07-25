@@ -813,7 +813,7 @@ TooltipPanel.prototype._resize = function TP_resize()
   }
 
   let offset = 10 + Math.floor(this._dimensions.start * AVE_CHAR_WIDTH);
-  this._frame.style.marginLeft = offset + "px";
+  this._panel.style.marginLeft = offset + "px";
 
   
 
