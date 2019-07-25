@@ -1714,17 +1714,8 @@ nsXMLHttpRequest::CheckChannelForCrossSiteRequest(nsIChannel* aChannel)
   }
 
   
-  if (nsContentUtils::CheckMayLoad(mPrincipal, aChannel)) {
-    return NS_OK;
-  }
-
   
-  nsCOMPtr<nsIURI> channelURI;
-  bool dataScheme = false;
-  if (NS_SUCCEEDED(NS_GetFinalChannelURI(aChannel,
-                                         getter_AddRefs(channelURI))) &&
-      NS_SUCCEEDED(channelURI->SchemeIs("data", &dataScheme)) &&
-      dataScheme) {
+  if (nsContentUtils::CheckMayLoad(mPrincipal, aChannel, true)) {
     return NS_OK;
   }
 

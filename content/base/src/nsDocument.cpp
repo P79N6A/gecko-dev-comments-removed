@@ -1068,15 +1068,9 @@ nsExternalResourceMap::PendingLoad::StartLoad(nsIURI* aURI,
   
   
   
-  bool doesInheritSecurityContext;
-  rv =
-    NS_URIChainHasFlags(aURI,
-                        nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
-                        &doesInheritSecurityContext);
-  if (NS_FAILED(rv) || !doesInheritSecurityContext) {
-    rv = requestingPrincipal->CheckMayLoad(aURI, true);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  
+  rv = requestingPrincipal->CheckMayLoad(aURI, true, true);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
   rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_OTHER,

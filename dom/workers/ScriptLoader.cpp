@@ -301,10 +301,11 @@ public:
         NS_ENSURE_SUCCESS(rv, rv);
 
         
-        if (!scheme.EqualsLiteral("data")) {
-          rv = principal->CheckMayLoad(uri, false);
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
+        
+        
+        
+        rv = principal->CheckMayLoad(uri, false, true);
+        NS_ENSURE_SUCCESS(rv, rv);
       }
       else {
         rv = secMan->CheckLoadURIWithPrincipal(principal, uri, 0);
@@ -488,8 +489,8 @@ public:
         NS_ENSURE_SUCCESS(rv, rv);
 
         
-        if (!scheme.EqualsLiteral("data") &&
-            NS_FAILED(loadPrincipal->CheckMayLoad(finalURI, false))) {
+        
+        if (NS_FAILED(loadPrincipal->CheckMayLoad(finalURI, false, true))) {
           return NS_ERROR_DOM_BAD_URI;
         }
       }
