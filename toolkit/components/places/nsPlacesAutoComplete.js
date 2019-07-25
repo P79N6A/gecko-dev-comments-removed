@@ -114,9 +114,6 @@ const kBrowserUrlbarBranch = "browser.urlbar.";
 function initTempTable(aDatabase)
 {
   
-  aDatabase.executeSimpleSQL("PRAGMA temp_store = MEMORY");
-
-  
   
   let stmt = aDatabase.createAsyncStatement(
     "CREATE TEMP TABLE moz_openpages_temp ( "
