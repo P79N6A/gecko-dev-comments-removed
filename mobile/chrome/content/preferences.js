@@ -159,10 +159,12 @@ var PreferencesView = {
     catch (e) {}
     
     
-    if (autoDetect)
+    if (autoDetect) {
       this._languages.selectedItem = document.getElementById("prefs-languages-auto");
-    else
+      this._currentLocale = "auto";
+    } else {
       this._languages.selectedItem = selectedItem;
+    }
     
     
     if (localeCount == 1)
@@ -173,7 +175,7 @@ var PreferencesView = {
     
     let newLocale = this._languages.selectedItem.value;
     let prefs = Services.prefs;
-    
+
     if (newLocale == "auto") {
       if (prefs.prefHasUserValue("general.useragent.locale"))
         prefs.clearUserPref("general.useragent.locale");
