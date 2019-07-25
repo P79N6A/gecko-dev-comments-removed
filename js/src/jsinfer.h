@@ -321,6 +321,9 @@ struct TypeSet
     bool knownNonEmpty(JSContext *cx, JSScript *script);
 
     
+    JSObject *getSingleton(JSContext *cx, JSScript *script);
+
+    
     void pushAllTypes(JSContext *cx, JSScript *script, const jsbytecode *pc);
 
     
@@ -437,6 +440,9 @@ struct TypeObject
 
     
     bool hasSpecialEquality;
+
+    
+    JSObject *singleton;
 
     TypeObject() {}
 
