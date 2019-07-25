@@ -316,6 +316,14 @@ ContainerLayerD3D9::RenderLayer()
     }
 
     layerToRender->RenderLayer();
+
+    if (clipRect && !useIntermediate) {
+      
+      
+      
+      
+      device()->SetScissorRect(&containerClipRect);
+    }
   }
 
   if (useIntermediate) {
@@ -337,8 +345,6 @@ ContainerLayerD3D9::RenderLayer()
     device()->SetScissorRect(&containerClipRect);
     device()->SetTexture(0, renderTexture);
     device()->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
-  } else {
-    device()->SetScissorRect(&containerClipRect);
   }
 }
 
