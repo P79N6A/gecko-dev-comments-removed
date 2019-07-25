@@ -436,9 +436,6 @@ nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, PRUint32 aLength,
     const QMimeData *mimeData = cb->mimeData();
     const char *flavor=NULL;
     QStringList formats = mimeData->formats();
-    
-    QString utf8text("text/plain;charset=utf-8");
-    
     for (PRUint32 i = 0; i < aLength; ++i)
     {
         flavor = aFlavorList[i];
@@ -454,7 +451,7 @@ nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, PRUint32 aLength,
             
             
             if (formats.contains(qflavor) ||
-                ((strcmp(flavor, kUnicodeMime) == 0) && formats.contains(utf8text)))
+                strcmp(flavor, kUnicodeMime) == 0)
             {
                 
                 *_retval = PR_TRUE;
