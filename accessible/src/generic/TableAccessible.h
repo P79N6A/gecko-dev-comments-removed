@@ -175,6 +175,11 @@ public:
 
 
   virtual bool IsProbablyLayoutTable() { return false; }
+
+  
+
+
+  virtual Accessible* AsAccessible() = 0;
 };
 
 } 

@@ -15,7 +15,7 @@ class Accessible;
 namespace mozilla {
 namespace a11y {
 
-  class TableAccessible;
+class TableAccessible;
 
 
 
@@ -27,45 +27,45 @@ public:
   
 
 
-  virtual TableAccessible* Table() { return nullptr; }
+  virtual TableAccessible* Table() const = 0;
 
   
 
 
-  virtual uint32_t ColIdx() { return 0; }
+  virtual uint32_t ColIdx() const = 0;
 
   
 
 
-  virtual uint32_t RowIdx() { return 0; }
+  virtual uint32_t RowIdx() const = 0;
 
   
 
 
-  virtual uint32_t ColExtent() { return 0; }
+  virtual uint32_t ColExtent() const { return 1; }
 
   
 
 
-  virtual uint32_t RowExtent() { return 0; }
+  virtual uint32_t RowExtent() const { return 1; }
 
   
 
 
-  virtual void ColHeaderCells(nsTArray<Accessible*>* aCells) { }
+  virtual void ColHeaderCells(nsTArray<Accessible*>* aCells);
 
   
 
 
-  virtual void RowHeaderCells(nsTArray<Accessible*>* aCells) { }
+  virtual void RowHeaderCells(nsTArray<Accessible*>* aCells);
 
   
 
 
-  virtual bool Selected() { return false; }
+  virtual bool Selected() = 0;
 };
 
-}
-}
+} 
+} 
 
 #endif 

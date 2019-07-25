@@ -34,14 +34,25 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_DECL_OR_FORWARD_NSIACCESSIBLETABLECELL_WITH_XPCACCESSIBLETABLECELL
+  NS_FORWARD_NSIACCESSIBLETABLECELL(xpcAccessibleTableCell::)
 
   
+  virtual TableCellAccessible* AsTableCell() { return this; }
   virtual void Shutdown();
   virtual a11y::role NativeRole();
   virtual uint64_t NativeState();
   virtual uint64_t NativeInteractiveState() const;
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
+
+  
+  virtual TableAccessible* Table() const MOZ_OVERRIDE;
+  virtual uint32_t ColIdx() const MOZ_OVERRIDE;
+  virtual uint32_t RowIdx() const MOZ_OVERRIDE;
+  virtual uint32_t ColExtent() const MOZ_OVERRIDE;
+  virtual uint32_t RowExtent() const MOZ_OVERRIDE;
+  virtual void ColHeaderCells(nsTArray<Accessible*>* aCells) MOZ_OVERRIDE;
+  virtual void RowHeaderCells(nsTArray<Accessible*>* aCells) MOZ_OVERRIDE;
+  virtual bool Selected() MOZ_OVERRIDE;
 
 protected:
   
@@ -52,18 +63,12 @@ protected:
   
 
 
-  nsITableCellLayout* GetCellLayout();
+  nsITableCellLayout* GetCellLayout() const;
 
   
 
 
-  nsresult GetCellIndexes(int32_t& aRowIdx, int32_t& aColIdx);
-
-  
-
-
-  nsresult GetHeaderCells(int32_t aRowOrColumnHeaderCell,
-                          nsIArray **aHeaderCells);
+  nsresult GetCellIndexes(int32_t& aRowIdx, int32_t& aColIdx) const;
 };
 
 
@@ -130,6 +135,7 @@ public:
   virtual void UnselectCol(uint32_t aColIdx);
   virtual void UnselectRow(uint32_t aRowIdx);
   virtual bool IsProbablyLayoutTable();
+  virtual Accessible* AsAccessible() { return this; }
 
   
   virtual void Shutdown();
