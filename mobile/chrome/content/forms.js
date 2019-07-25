@@ -113,8 +113,17 @@ FormAssistant.prototype = {
 
     
     
-    if (this._open && aElement == this.currentElement)
+    if (this._open && aElement == this.currentElement) {
+      
+      
+      let utils = Util.getWindowUtils(content);
+      if (utils.IMEStatus == utils.IME_STATUS_DISABLED && aElement instanceof HTMLInputElement && aElement.mozIsTextField(false)) {
+        aElement.blur();
+        aElement.focus();
+      }
+
       return false;
+    }
 
     
     
