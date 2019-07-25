@@ -563,25 +563,25 @@ struct BytecodeEmitter : public TreeContext
         jsbytecode  *limit;         
         jsbytecode  *next;          
         jssrcnote   *notes;         
-        unsigned       noteCount;      
-        unsigned       noteLimit;      
+        unsigned    noteCount;      
+        unsigned    noteLimit;      
         ptrdiff_t   lastNoteOffset; 
-        unsigned       currentLine;    
+        unsigned    currentLine;    
     } prolog, main, *current;
 
     OwnedAtomIndexMapPtr atomIndices; 
     AtomDefnMapPtr  roLexdeps;
-    unsigned           firstLine;      
+    unsigned        firstLine;      
 
-    int            stackDepth;     
-    unsigned           maxStackDepth;  
+    int             stackDepth;     
+    unsigned        maxStackDepth;  
 
-    unsigned           ntrynotes;      
+    unsigned        ntrynotes;      
     TryNode         *lastTryNode;   
 
-    unsigned           arrayCompDepth; 
+    unsigned        arrayCompDepth; 
 
-    unsigned           emitLevel;      
+    unsigned        emitLevel;      
 
     typedef HashMap<JSAtom *, Value> ConstMap;
     ConstMap        constMap;       
@@ -641,6 +641,8 @@ struct BytecodeEmitter : public TreeContext
     JSVersion version() const { return parser->versionWithFlags(); }
 
     bool shouldNoteClosedName(ParseNode *pn);
+    bool noteClosedVar(ParseNode *pn);
+    bool noteClosedArg(ParseNode *pn);
 
     JS_ALWAYS_INLINE
     bool makeAtomIndex(JSAtom *atom, jsatomid *indexp) {
