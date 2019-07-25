@@ -322,6 +322,8 @@ struct FunctionInfo
 struct ClosureInfo
 {
   JSContext* cx;         
+  JSRuntime* rt;         
+                         
   JSObject* closureObj;  
   JSObject* typeObj;     
   JSObject* thisObj;     
@@ -330,6 +332,18 @@ struct ClosureInfo
 #ifdef DEBUG
   jsword cxThread;       
 #endif
+
+  
+  
+  ClosureInfo(JSRuntime* runtime)
+    : rt(runtime)
+    , closure(NULL)
+  {}
+
+  ~ClosureInfo() {
+    if (closure)
+      ffi_closure_free(closure);
+  };
 };
 
 bool IsCTypesGlobal(JSContext* cx, JSObject* obj);
