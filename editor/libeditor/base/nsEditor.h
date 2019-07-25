@@ -373,8 +373,7 @@ protected:
   
   nsIContent* FindNextLeafNode(nsINode  *aCurrentNode,
                                bool      aGoForward,
-                               bool      bNoBlockCrossing,
-                               nsIContent *aActiveEditorRoot);
+                               bool      bNoBlockCrossing);
 
   
   nsresult GetWidget(nsIWidget **aWidget);
@@ -478,28 +477,23 @@ public:
 
 
 
-
   nsresult GetPriorNode(nsIDOMNode  *aCurrentNode, 
                         bool         aEditableNode,
                         nsCOMPtr<nsIDOMNode> *aResultNode,
-                        bool         bNoBlockCrossing = false,
-                        nsIContent  *aActiveEditorRoot = nsnull);
+                        bool         bNoBlockCrossing = false);
   nsIContent* GetPriorNode(nsINode* aCurrentNode, bool aEditableNode,
-                           bool aNoBlockCrossing = false,
-                           nsIContent* aActiveEditorRoot = nsnull);
+                           bool aNoBlockCrossing = false);
 
   
   nsresult GetPriorNode(nsIDOMNode  *aParentNode, 
                         PRInt32      aOffset, 
                         bool         aEditableNode, 
                         nsCOMPtr<nsIDOMNode> *aResultNode,
-                        bool         bNoBlockCrossing = false,
-                        nsIContent  *aActiveEditorRoot = nsnull);
+                        bool         bNoBlockCrossing = false);
   nsIContent* GetPriorNode(nsINode* aParentNode,
                            PRInt32 aOffset,
                            bool aEditableNode,
-                           bool aNoBlockCrossing = false,
-                           nsIContent* aActiveEditorRoot = nsnull);
+                           bool aNoBlockCrossing = false);
 
 
   
@@ -512,32 +506,27 @@ public:
   nsresult GetNextNode(nsIDOMNode  *aCurrentNode, 
                        bool         aEditableNode,
                        nsCOMPtr<nsIDOMNode> *aResultNode,
-                       bool         bNoBlockCrossing = false,
-                       nsIContent  *aActiveEditorRoot = nsnull);
+                       bool         bNoBlockCrossing = false);
   nsIContent* GetNextNode(nsINode* aCurrentNode,
                           bool aEditableNode,
-                          bool bNoBlockCrossing = false,
-                          nsIContent* aActiveEditorRoot = nsnull);
+                          bool bNoBlockCrossing = false);
 
   
   nsresult GetNextNode(nsIDOMNode  *aParentNode, 
                        PRInt32      aOffset, 
                        bool         aEditableNode, 
                        nsCOMPtr<nsIDOMNode> *aResultNode,
-                       bool         bNoBlockCrossing = false,
-                       nsIContent  *aActiveEditorRoot = nsnull);
+                       bool         bNoBlockCrossing = false);
   nsIContent* GetNextNode(nsINode* aParentNode,
                           PRInt32 aOffset,
                           bool aEditableNode,
-                          bool aNoBlockCrossing = false,
-                          nsIContent* aActiveEditorRoot = nsnull);
+                          bool aNoBlockCrossing = false);
 
   
   nsIContent* FindNode(nsINode *aCurrentNode,
                        bool     aGoForward,
                        bool     aEditableNode,
-                       bool     bNoBlockCrossing,
-                       nsIContent *aActiveEditorRoot);
+                       bool     bNoBlockCrossing);
   
 
 
@@ -579,10 +568,12 @@ public:
   
   bool IsRoot(nsIDOMNode* inNode);
   bool IsRoot(nsINode* inNode);
+  bool IsEditorRoot(nsINode* aNode);
 
   
   bool IsDescendantOfRoot(nsIDOMNode* inNode);
   bool IsDescendantOfRoot(nsINode* inNode);
+  bool IsDescendantOfEditorRoot(nsINode* aNode);
 
   
   virtual bool IsContainer(nsIDOMNode *aNode);
@@ -671,6 +662,10 @@ public:
 
   
   mozilla::dom::Element *GetRoot();
+
+  
+  
+  virtual mozilla::dom::Element* GetEditorRoot();
 
   
   bool IsPlaintextEditor() const
