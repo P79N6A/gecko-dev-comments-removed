@@ -775,7 +775,14 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
         if (fun->isNative())
             break;
         script_ = fun->script();
-        if (fun->isHeavyweight() || script_->isEmpty() || cx->compartment->debugMode)
+        if (fun->isHeavyweight() || script_->isEmpty())
+            break;
+
+        
+
+
+
+        if (callee.getGlobal() != GetGlobalForScopeChain(cx))
             break;
 
         
