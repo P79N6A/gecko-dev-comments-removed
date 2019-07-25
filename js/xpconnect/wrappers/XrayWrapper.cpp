@@ -1155,10 +1155,7 @@ IsTransparent(JSContext *cx, JSObject *wrapper)
     
     
     
-    if (ContentScriptHasUniversalXPConnect())
-        return true;
-
-    return AccessCheck::documentDomainMakesSameOrigin(cx, UnwrapObject(wrapper));
+    return ContentScriptHasUniversalXPConnect();
 }
 
 JSObject *
