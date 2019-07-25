@@ -130,6 +130,43 @@ gfxWindowsSurface::InitWithDC(PRUint32 flags)
     }
 }
 
+already_AddRefed<gfxASurface>
+gfxWindowsSurface::CreateSimilarSurface(gfxContentType aContent,
+                                        const gfxIntSize& aSize)
+{
+    if (!mSurface || !mSurfaceValid) {
+        return nsnull;
+    }
+
+    cairo_surface_t *surface;
+    if (GetContentType() == CONTENT_COLOR_ALPHA) {
+        
+        
+        
+        
+        
+        
+        
+        
+        surface =
+          cairo_win32_surface_create_with_dib(cairo_format_t(gfxASurface::FormatFromContent(aContent)),
+                                              aSize.width, aSize.height);
+    } else {
+        surface =
+          cairo_surface_create_similar(mSurface, cairo_content_t(aContent),
+                                       aSize.width, aSize.height);
+    }
+
+    if (cairo_surface_status(surface)) {
+        cairo_surface_destroy(surface);
+        return nsnull;
+    }
+
+    nsRefPtr<gfxASurface> result = Wrap(surface);
+    cairo_surface_destroy(surface);
+    return result.forget();
+}
+
 gfxWindowsSurface::~gfxWindowsSurface()
 {
     if (mOwnsDC) {
