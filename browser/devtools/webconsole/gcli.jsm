@@ -1260,6 +1260,34 @@ dom.clearElement = function(elem) {
   }
 };
 
+var isAllWhitespace = /^\s*$/;
+
+
+
+
+
+
+
+
+
+
+dom.removeWhitespace = function(elem, deep) {
+  var i = 0;
+  while (i < elem.childNodes.length) {
+    var child = elem.childNodes.item(i);
+    if (child.nodeType === Node.TEXT_NODE &&
+        isAllWhitespace.test(child.textContent)) {
+      elem.removeChild(child);
+    }
+    else {
+      if (deep && child.nodeType === Node.ELEMENT_NODE) {
+        dom.removeWhitespace(child, deep);
+      }
+      i++;
+    }
+  }
+};
+
 
 
 
@@ -4822,6 +4850,9 @@ Requisition.prototype.toString = function() {
 
 
 
+
+
+
 Requisition.prototype.getInputStatusMarkup = function(cursor) {
   var argTraces = this.createInputArgTrace();
   
@@ -4829,7 +4860,7 @@ Requisition.prototype.getInputStatusMarkup = function(cursor) {
   cursor = cursor === 0 ? 0 : cursor - 1;
   var cTrace = argTraces[cursor];
 
-  var statuses = [];
+  var markup = [];
   for (var i = 0; i < argTraces.length; i++) {
     var argTrace = argTraces[i];
     var arg = argTrace.arg;
@@ -4848,10 +4879,22 @@ Requisition.prototype.getInputStatusMarkup = function(cursor) {
       }
     }
 
-    statuses.push(status);
+    markup.push({ status: status, string: argTrace.char });
   }
 
-  return statuses;
+  
+  var i = 0;
+  while (i < markup.length - 1) {
+    if (markup[i].status === markup[i + 1].status) {
+      markup[i].string += markup[i + 1].string;
+      markup.splice(i + 1, 1);
+    }
+    else {
+      i++;
+    }
+  }
+
+  return markup;
 };
 
 
@@ -5967,7 +6010,7 @@ exports.Console = Console;
 
 
 
-define('gcli/ui/inputter', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/types', 'gcli/history', 'text!gcli/ui/inputter.css'], function(require, exports, module) {
+define('gcli/ui/inputter', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/types', 'gcli/history', 'gcli/ui/completer', 'text!gcli/ui/inputter.css'], function(require, exports, module) {
 var cliView = exports;
 
 
@@ -5977,6 +6020,7 @@ var l10n = require('gcli/l10n');
 
 var Status = require('gcli/types').Status;
 var History = require('gcli/history').History;
+var Completer = require('gcli/ui/completer').Completer;
 
 var inputterCss = require('text!gcli/ui/inputter.css');
 
@@ -6385,277 +6429,6 @@ Inputter.prototype.getInputState = function() {
 cliView.Inputter = Inputter;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-function Completer(options) {
-  this.document = options.document || document;
-  this.requisition = options.requisition;
-  this.elementCreated = false;
-  this.scratchpad = options.scratchpad;
-
-  this.element = options.completeElement || 'gcli-row-complete';
-  if (typeof this.element === 'string') {
-    var name = this.element;
-    this.element = this.document.getElementById(name);
-
-    if (!this.element) {
-      this.elementCreated = true;
-      this.element = dom.createElement(this.document, 'div');
-      this.element.className = 'gcli-in-complete gcli-in-valid';
-      this.element.setAttribute('tabindex', '-1');
-      this.element.setAttribute('aria-live', 'polite');
-    }
-  }
-
-  this.completionPrompt = typeof options.completionPrompt === 'string'
-      ? options.completionPrompt
-      : '\u00bb';
-
-  if (options.inputBackgroundElement) {
-    this.backgroundElement = options.inputBackgroundElement;
-  }
-  else {
-    this.backgroundElement = this.element;
-  }
-}
-
-
-
-
-Completer.prototype.destroy = function() {
-  delete this.document;
-  delete this.element;
-  delete this.backgroundElement;
-
-  if (this.elementCreated) {
-    this.document.defaultView.removeEventListener('resize', this.resizer, false);
-  }
-
-  delete this.inputter;
-};
-
-
-
-
-
-
-Completer.copyStyles = [ 'fontSize', 'fontFamily', 'fontWeight', 'fontStyle' ];
-
-
-
-
-
-Completer.prototype.decorate = function(inputter) {
-  this.inputter = inputter;
-  var input = inputter.element;
-
-  
-  
-  if (this.elementCreated) {
-    this.inputter.appendAfter(this.element);
-
-    var styles = this.document.defaultView.getComputedStyle(input, null);
-    Completer.copyStyles.forEach(function(style) {
-      this.element.style[style] = styles[style];
-    }, this);
-
-    
-    
-    this.element.style.color = input.style.backgroundColor;
-
-    
-    
-    
-    
-    this.element.style.backgroundColor = (this.backgroundElement != this.element) ?
-        'transparent' :
-        input.style.backgroundColor;
-    input.style.backgroundColor = 'transparent';
-
-    
-    input.style.paddingLeft = '20px';
-
-    this.resizer = this.resizer.bind(this);
-    this.document.defaultView.addEventListener('resize', this.resizer, false);
-    this.resizer();
-  }
-};
-
-
-
-
-Completer.prototype.resizer = function() {
-  
-  if (!this.inputter.element.getBoundingClientRect) {
-    return;
-  }
-
-  var rect = this.inputter.element.getBoundingClientRect();
-  
-  var height = rect.bottom - rect.top - 4;
-
-  this.element.style.top = rect.top + 'px';
-  this.element.style.height = height + 'px';
-  this.element.style.lineHeight = height + 'px';
-  this.element.style.left = rect.left + 'px';
-  this.element.style.width = (rect.right - rect.left) + 'px';
-};
-
-
-
-
-
-
-function isStrictCompletion(inputValue, completion) {
-  
-  
-  inputValue = inputValue.replace(/^\s*/, '');
-  
-  
-  return completion.indexOf(inputValue) === 0;
-}
-
-
-
-
-Completer.prototype.update = function(input) {
-  var current = this.requisition.getAssignmentAt(input.cursor.start);
-  var predictions = current.getPredictions();
-
-  dom.clearElement(this.element);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  var document = this.element.ownerDocument;
-  var prompt = dom.createElement(document, 'span');
-  prompt.classList.add('gcli-prompt');
-  prompt.appendChild(document.createTextNode(this.completionPrompt + ' '));
-  this.element.appendChild(prompt);
-
-  if (input.typed.length > 0) {
-    var scores = this.requisition.getInputStatusMarkup(input.cursor.start);
-    this.appendMarkupStatus(this.element, scores, input);
-  }
-
-  if (input.typed.length > 0 && predictions.length > 0) {
-    var tab = predictions[0].name;
-    var existing = current.getArg().text;
-
-    var contents;
-    var prefix = null;
-
-    if (isStrictCompletion(existing, tab) &&
-            input.cursor.start === input.typed.length) {
-      
-      var numLeadingSpaces = existing.match(/^(\s*)/)[0].length;
-      contents = tab.slice(existing.length - numLeadingSpaces);
-    } else {
-      
-      prefix = ' \u00a0';         
-      contents = '\u21E5 ' + tab; 
-    }
-
-    if (prefix != null) {
-      this.element.appendChild(document.createTextNode(prefix));
-    }
-
-    var suffix = dom.createElement(document, 'span');
-    suffix.classList.add('gcli-in-ontab');
-    suffix.appendChild(document.createTextNode(contents));
-    this.element.appendChild(suffix);
-  }
-
-  
-  
-  var command = this.requisition.commandAssignment.getValue();
-  var isJsCommand = (command && command.name === '{');
-  var isUnclosedJs = isJsCommand &&
-          this.requisition.getAssignment(0).getArg().suffix.indexOf('}') === -1;
-  if (isUnclosedJs) {
-    var close = dom.createElement(document, 'span');
-    close.classList.add('gcli-in-closebrace');
-    close.appendChild(document.createTextNode(' }'));
-    this.element.appendChild(close);
-  }
-
-  
-  
-  if (isJsCommand && this.scratchpad) {
-    var hint = dom.createElement(document, 'div');
-    hint.classList.add('gcli-in-scratchlink');
-    hint.appendChild(document.createTextNode(this.scratchpad.linkText));
-    this.element.appendChild(hint);
-  }
-};
-
-
-
-
-Completer.prototype.appendMarkupStatus = function(element, scores, input) {
-  if (scores.length === 0) {
-    return;
-  }
-
-  var document = element.ownerDocument;
-  var i = 0;
-  var lastStatus = -1;
-  var span;
-  var contents = '';
-
-  while (true) {
-    if (lastStatus !== scores[i]) {
-      var state = scores[i];
-      if (!state) {
-        console.error('No state at i=' + i + '. scores.len=' + scores.length);
-        state = Status.VALID;
-      }
-      span = dom.createElement(document, 'span');
-      span.classList.add('gcli-in-' + state.toString().toLowerCase());
-      lastStatus = scores[i];
-    }
-    var char = input.typed[i];
-    if (char === ' ') {
-      char = '\u00a0';
-    }
-    contents += char;
-    i++;
-    if (i === input.typed.length) {
-      span.appendChild(document.createTextNode(contents));
-      this.element.appendChild(span);
-      break;
-    }
-    if (lastStatus !== scores[i]) {
-      span.appendChild(document.createTextNode(contents));
-      this.element.appendChild(span);
-      contents = '';
-    }
-  }
-};
-
-cliView.Completer = Completer;
-
-
 });
 
 
@@ -6719,7 +6492,274 @@ History.prototype.backward = function() {
 
 exports.History = History;
 
-});define("text!gcli/ui/inputter.css", [], "");
+});
+
+
+
+
+
+define('gcli/ui/completer', ['require', 'exports', 'module' , 'gcli/util', 'gcli/ui/domtemplate', 'text!gcli/ui/completer.html'], function(require, exports, module) {
+
+
+var dom = require('gcli/util').dom;
+var domtemplate = require('gcli/ui/domtemplate');
+
+var completerHtml = require('text!gcli/ui/completer.html');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Completer(options) {
+  this.document = options.document || document;
+  this.requisition = options.requisition;
+  this.elementCreated = false;
+  this.scratchpad = options.scratchpad;
+  this.input = { typed: '', cursor: { start: 0, end: 0 } };
+
+  this.element = options.completeElement || 'gcli-row-complete';
+  if (typeof this.element === 'string') {
+    var name = this.element;
+    this.element = this.document.getElementById(name);
+
+    if (!this.element) {
+      this.elementCreated = true;
+      this.element = dom.createElement(this.document, 'div');
+      this.element.className = 'gcli-in-complete gcli-in-valid';
+      this.element.setAttribute('tabindex', '-1');
+      this.element.setAttribute('aria-live', 'polite');
+    }
+  }
+
+  this.completionPrompt = typeof options.completionPrompt === 'string'
+      ? options.completionPrompt
+      : '\u00bb';
+
+  if (options.inputBackgroundElement) {
+    this.backgroundElement = options.inputBackgroundElement;
+  }
+  else {
+    this.backgroundElement = this.element;
+  }
+
+  this.template = dom.createElement(this.document, 'div');
+  dom.setInnerHtml(this.template, completerHtml);
+  
+  this.template = this.template.children[0];
+  
+  dom.removeWhitespace(this.template, true);
+}
+
+
+
+
+Completer.prototype.destroy = function() {
+  delete this.document;
+  delete this.element;
+  delete this.backgroundElement;
+  delete this.template;
+
+  if (this.elementCreated) {
+    this.document.defaultView.removeEventListener('resize', this.resizer, false);
+  }
+
+  delete this.inputter;
+};
+
+
+
+
+
+
+Completer.copyStyles = [ 'fontSize', 'fontFamily', 'fontWeight', 'fontStyle' ];
+
+
+
+
+
+Completer.prototype.decorate = function(inputter) {
+  this.inputter = inputter;
+  var inputEle = inputter.element;
+
+  
+  
+  if (this.elementCreated) {
+    this.inputter.appendAfter(this.element);
+
+    var styles = this.document.defaultView.getComputedStyle(inputEle, null);
+    Completer.copyStyles.forEach(function(style) {
+      this.element.style[style] = styles[style];
+    }, this);
+
+    
+    
+    this.element.style.color = inputEle.style.backgroundColor;
+
+    
+    
+    
+    
+    this.element.style.backgroundColor = (this.backgroundElement != this.element) ?
+        'transparent' :
+        inputEle.style.backgroundColor;
+    inputEle.style.backgroundColor = 'transparent';
+
+    
+    inputEle.style.paddingLeft = '20px';
+
+    this.resizer = this.resizer.bind(this);
+    this.document.defaultView.addEventListener('resize', this.resizer, false);
+    this.resizer();
+  }
+};
+
+
+
+
+Completer.prototype.resizer = function() {
+  
+  if (!this.inputter.element.getBoundingClientRect) {
+    return;
+  }
+
+  var rect = this.inputter.element.getBoundingClientRect();
+  
+  var height = rect.bottom - rect.top - 4;
+
+  this.element.style.top = rect.top + 'px';
+  this.element.style.height = height + 'px';
+  this.element.style.lineHeight = height + 'px';
+  this.element.style.left = rect.left + 'px';
+  this.element.style.width = (rect.right - rect.left) + 'px';
+};
+
+
+
+
+
+
+function isStrictCompletion(inputValue, completion) {
+  
+  
+  inputValue = inputValue.replace(/^\s*/, '');
+  
+  
+  return completion.indexOf(inputValue) === 0;
+}
+
+
+
+
+Completer.prototype.update = function(input) {
+  this.input = input;
+
+  var template = this.template.cloneNode(true);
+  domtemplate.template(template, this, { stack: 'completer.html' });
+
+  dom.clearElement(this.element);
+  while (template.hasChildNodes()) {
+    this.element.appendChild(template.firstChild);
+  }
+};
+
+
+
+
+
+
+Object.defineProperty(Completer.prototype, 'statusMarkup', {
+  get: function() {
+    var markup = this.requisition.getInputStatusMarkup(this.input.cursor.start);
+    markup.forEach(function(member) {
+      member.string = member.string.replace(/ /g, '\u00a0'); 
+      member.className = 'gcli-in-' + member.status.toString().toLowerCase();
+    }, this);
+    return markup;
+  }
+});
+
+
+
+
+
+
+Object.defineProperty(Completer.prototype, 'tabText', {
+  get: function() {
+    var current = this.requisition.getAssignmentAt(this.input.cursor.start);
+    var predictions = current.getPredictions();
+
+    if (this.input.typed.length === 0 || predictions.length === 0) {
+      return '';
+    }
+
+    var tab = predictions[0].name;
+    var existing = current.getArg().text;
+
+    if (isStrictCompletion(existing, tab) &&
+            this.input.cursor.start === this.input.typed.length) {
+      
+      var numLeadingSpaces = existing.match(/^(\s*)/)[0].length;
+      return tab.slice(existing.length - numLeadingSpaces);
+    }
+
+    
+    return ' \u00a0\u21E5 ' + tab; 
+  }
+});
+
+
+
+
+Object.defineProperty(Completer.prototype, 'scratchLink', {
+  get: function() {
+    if (!this.scratchpad) {
+      return null;
+    }
+    var command = this.requisition.commandAssignment.getValue();
+    return command && command.name === '{' ? this.scratchpad.linkText : null;
+  }
+});
+
+
+
+
+
+Object.defineProperty(Completer.prototype, 'unclosedJs', {
+  get: function() {
+    var command = this.requisition.commandAssignment.getValue();
+    var jsCommand = command && command.name === '{';
+    var unclosedJs = jsCommand &&
+        this.requisition.getAssignment(0).getArg().suffix.indexOf('}') === -1;
+    return unclosedJs;
+  }
+});
+
+exports.Completer = Completer;
+
+
+});
+define("text!gcli/ui/completer.html", [], "\n" +
+  "<div>\n" +
+  "  <span class=\"gcli-prompt\">${completionPrompt} </span>\n" +
+  "  <loop foreach=\"member in ${statusMarkup}\">\n" +
+  "    <span class=\"${member.className}\">${member.string}</span>\n" +
+  "  </loop>\n" +
+  "  <span class=\"gcli-in-ontab\">${tabText}</span>\n" +
+  "  <span class=\"gcli-in-closebrace\" if=\"${unclosedJs}\">}</span>\n" +
+  "  <div class=\"gcli-in-scratchlink\" if=\"${scratchLink}\">${scratchLink}</div>\n" +
+  "</div>\n" +
+  "");
+
+define("text!gcli/ui/inputter.css", [], "");
 
 
 
