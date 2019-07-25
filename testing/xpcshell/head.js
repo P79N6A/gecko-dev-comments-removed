@@ -778,6 +778,13 @@ function do_get_profile() {
   };
   dirSvc.QueryInterface(Components.interfaces.nsIDirectoryService)
         .registerProvider(provider);
+
+  
+  
+  env = null;
+  profd = null;
+  dirSvc = null;
+  provider = null;
   return file.clone();
 }
 
