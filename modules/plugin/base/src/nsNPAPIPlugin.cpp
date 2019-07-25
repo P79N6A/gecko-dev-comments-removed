@@ -1572,6 +1572,8 @@ _evaluate(NPP npp, NPObject* npobj, NPString *script, NPVariant *result)
     return false;
   }
 
+  OBJ_TO_INNER_OBJECT(cx, obj);
+
   
   jsval vec[] = { OBJECT_TO_JSVAL(obj), JSVAL_NULL };
   js::AutoArrayRooter tvr(cx, NS_ARRAY_LENGTH(vec), vec);
