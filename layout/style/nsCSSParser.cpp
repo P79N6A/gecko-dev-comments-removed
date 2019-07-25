@@ -5368,7 +5368,7 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
   case eCSSProperty_background_origin:
   case eCSSProperty_background_repeat:
     return ParseBackgroundList(aPropID);
-  case eCSSProperty__moz_background_size:
+  case eCSSProperty_background_size:
     return ParseBackgroundSize();
   case eCSSProperty_border:
     return ParseBorderSide(kBorderTopIDs, PR_TRUE);
@@ -5659,7 +5659,7 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
   case eCSSProperty_border_start:
   case eCSSProperty_border_top:
   case eCSSProperty_border_width:
-  case eCSSProperty__moz_background_size:
+  case eCSSProperty_background_size:
   case eCSSProperty__moz_border_radius:
   case eCSSProperty__moz_border_radius_topLeft:
   case eCSSProperty__moz_border_radius_topRight:
@@ -6396,7 +6396,7 @@ CSSParserImpl::ParseBackground()
     mTempData.SetPropertyBit(eCSSProperty_background_position);
     mTempData.SetPropertyBit(eCSSProperty_background_clip);
     mTempData.SetPropertyBit(eCSSProperty_background_origin);
-    mTempData.SetPropertyBit(eCSSProperty__moz_background_size);
+    mTempData.SetPropertyBit(eCSSProperty_background_size);
     return PR_TRUE;
   }
   delete positionHead;
@@ -6759,7 +6759,7 @@ CSSParserImpl::ParseBackgroundSize()
     head->mXValue = valuePair.mXValue;
     head->mYValue.Reset();
     mTempData.mColor.mBackSize = head;
-    mTempData.SetPropertyBit(eCSSProperty__moz_background_size);
+    mTempData.SetPropertyBit(eCSSProperty_background_size);
     return ExpectEndProperty();
   }
 
@@ -6783,7 +6783,7 @@ CSSParserImpl::ParseBackgroundSize()
       break;
     }
     mTempData.mColor.mBackSize = head;
-    mTempData.SetPropertyBit(eCSSProperty__moz_background_size);
+    mTempData.SetPropertyBit(eCSSProperty_background_size);
     return PR_TRUE;
   }
   delete head;
