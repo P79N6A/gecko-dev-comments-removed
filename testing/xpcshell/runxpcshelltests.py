@@ -738,6 +738,9 @@ class XPCShellTests(object):
         proc = self.launchProcess(completeCmd,
                     stdout=pStdout, stderr=pStderr, env=self.env, cwd=testdir)
 
+        if interactive:
+          self.log.info("TEST-INFO | %s | Process ID: %d" % (name, proc.pid))
+
         
         
         signal.signal(signal.SIGINT, markGotSIGINT)
