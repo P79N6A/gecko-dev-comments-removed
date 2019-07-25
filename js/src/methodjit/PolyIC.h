@@ -97,6 +97,9 @@ struct BaseIC : public MacroAssemblerTypedefs {
     bool canCallHook : 1;
 
     
+    bool forcedTypeBarrier : 1;
+
+    
     uint32 stubsGenerated : 5;
 
     
@@ -105,6 +108,7 @@ struct BaseIC : public MacroAssemblerTypedefs {
     void reset() {
         hit = false;
         slowCallPatched = false;
+        forcedTypeBarrier = false;
         stubsGenerated = 0;
         secondShapeGuard = 0;
     }
