@@ -148,6 +148,7 @@ public class GeckoAppShell
     public static native void loadSQLiteLibsNative(String apkName, boolean shouldExtract);
     public static native void loadNSSLibsNative(String apkName, boolean shouldExtract);
     public static native void onChangeNetworkLinkStatus(String status);
+    public static native Message getNextMessageFromQueue(MessageQueue queue);
 
     public static void registerGlobalExceptionHandler() {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
@@ -2105,25 +2106,15 @@ public class GeckoAppShell
     }
 
     public static void pumpMessageLoop() {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        sGeckoHandler.post(new Runnable() {
-            public void run() {
-                throw new AssertionError();
-            }
-        });
-        
-        try {
-            Looper.loop();
-        } catch(Throwable ex) {}
+        MessageQueue mq = Looper.myQueue();
+        Message msg = getNextMessageFromQueue(mq); 
+        if (msg == null)
+            return;
+        if (msg.getTarget() == null)
+            Looper.myLooper().quit();
+        else
+            msg.getTarget().dispatchMessage(msg);
+        msg.recycle();
     }
 
     static class AsyncResultHandler extends GeckoApp.FilePickerResultHandler {
