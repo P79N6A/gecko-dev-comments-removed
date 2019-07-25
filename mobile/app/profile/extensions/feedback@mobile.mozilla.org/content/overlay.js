@@ -37,13 +37,15 @@
 
 var Feedback = {
   _prefs: [],
+  _device: "",
+  _manufacturer: "",
 
   init: function(aEvent) {
     let appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
     document.getElementById("feedback-about").setAttribute("desc", appInfo.version);
 
     
-    messageManager.loadFrameScript("data:,addMessageListener('Feedback:InitPage', function(m) { content.document.getElementById('id_url').value = m.json.referrer; });", true);
+    messageManager.loadFrameScript("chrome://feedback/content/content.js", true);
 
     
     window.addEventListener("UIReadyDelayed", function(aEvent) {
@@ -59,6 +61,14 @@ var Feedback = {
         let value = Services.prefs.getPrefType(pref) == Ci.nsIPrefBranch.PREF_INVALID ? false : Services.prefs.getBoolPref(pref);
         Feedback._prefs.push({ "name": pref, "value": value });
       }
+
+      let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
+      Feedback._device = sysInfo.get("device");
+      Feedback._manufacturer = sysInfo.get("manufacturer");
+
+      
+      Services.console.logStringMessage("Device: " + Feedback._device);
+      Services.console.logStringMessage("Manufacturer: " + Feedback._manufacturer);
     }, false);
   },
 
@@ -69,7 +79,7 @@ var Feedback = {
     
     newTab.browser.messageManager.addMessageListener("DOMContentLoaded", function() {
       newTab.browser.messageManager.removeMessageListener("DOMContentLoaded", arguments.callee, true);
-      newTab.browser.messageManager.sendAsyncMessage("Feedback:InitPage", { referrer: currentURL });
+      newTab.browser.messageManager.sendAsyncMessage("Feedback:InitPage", { referrer: currentURL, device: Feedback._device, manufacturer: Feedback._manufacturer });
     });
   },
 
