@@ -212,7 +212,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     {
         MutexAutoLock lock(mCondLock);
 
-        curEvent = GetNextEvent();
+        curEvent = PopNextEvent();
         if (!curEvent && mayWait) {
             
 #if defined(DEBUG_ANDROID_EVENTS)
@@ -227,7 +227,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             mQueueCond.Wait();
 #endif
 
-            curEvent = GetNextEvent();
+            curEvent = PopNextEvent();
         }
     }
 
@@ -242,10 +242,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
         int curType = curEvent->Type();
         int nextType = nextEvent->Type();
 
-        
-        
-#ifndef MOZ_JAVA_COMPOSITOR
-        while (nextType == AndroidGeckoEvent::DRAW &&
+        while (nextType == AndroidGeckoEvent::DRAW && mLastDrawEvent &&
                mNumDraws > 1)
         {
             
@@ -254,7 +251,27 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             
             
             
-            RemoveNextEvent();
+
+            
+            const nsIntRect& nextRect = nextEvent->Rect();
+            const nsIntRect& lastRect = mLastDrawEvent->Rect();
+            int combinedArea = (lastRect.width * lastRect.height) +
+                               (nextRect.width * nextRect.height);
+
+            nsIntRect combinedRect = lastRect.Union(nextRect);
+            mLastDrawEvent->Init(AndroidGeckoEvent::DRAW, combinedRect);
+
+            
+            
+            
+            int boundsArea = combinedRect.width * combinedRect.height;
+            if (boundsArea > combinedArea * 8)
+                ALOG("nsAppShell::ProcessNextNativeEvent: "
+                     "Area of bounds greatly exceeds combined area: %d > %d",
+                     boundsArea, combinedArea);
+
+            
+            PopNextEvent();
             delete nextEvent;
 
 #if defined(DEBUG_ANDROID_EVENTS)
@@ -264,7 +281,6 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             nextEvent = PeekNextEvent();
             nextType = nextEvent->Type();
         }
-#endif
 
         
         
@@ -283,8 +299,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
         ALOG("# Removing % 2d event", curType);
 #endif
 
-        RemoveNextEvent();
-        curEvent = nextEvent;
+        curEvent = PopNextEvent();
         nextEvent = PeekNextEvent();
     }
 
@@ -436,7 +451,7 @@ nsAppShell::ResendLastResizeEvent(nsWindow* aDest) {
 }
 
 AndroidGeckoEvent*
-nsAppShell::GetNextEvent()
+nsAppShell::PopNextEvent()
 {
     AndroidGeckoEvent *ae = nsnull;
     MutexAutoLock lock(mQueueLock);
@@ -444,7 +459,8 @@ nsAppShell::GetNextEvent()
         ae = mEventQueue[0];
         mEventQueue.RemoveElementAt(0);
         if (ae->Type() == AndroidGeckoEvent::DRAW) {
-            mNumDraws--;
+            if (--mNumDraws == 0)
+                mLastDrawEvent = nsnull;
         }
     }
 
@@ -486,23 +502,10 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
 
         if (ae->Type() == AndroidGeckoEvent::DRAW) {
             mNumDraws++;
+            mLastDrawEvent = ae;
         }
     }
     NotifyNativeEvent();
-}
-
-void
-nsAppShell::RemoveNextEvent()
-{
-    AndroidGeckoEvent *ae = nsnull;
-    MutexAutoLock lock(mQueueLock);
-    if (mEventQueue.Length()) {
-        ae = mEventQueue[0];
-        mEventQueue.RemoveElementAt(0);
-        if (ae->Type() == AndroidGeckoEvent::DRAW) {
-            mNumDraws--;
-        }
-    }
 }
 
 void
