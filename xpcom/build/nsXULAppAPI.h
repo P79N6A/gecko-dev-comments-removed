@@ -151,11 +151,6 @@ struct nsXREAppData
 
 
   const char *profile;
-
-  
-
-
-  PRTime startupTimestamp;
 };
 
 

@@ -4234,7 +4234,7 @@ var XULBrowserWindow = {
       
 
       
-      gFindBar.getElement("highlight").checked = false;
+      gFindBar.getElement("highlight").checked = false;      
     }
 
     
