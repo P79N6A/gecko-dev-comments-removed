@@ -117,12 +117,14 @@ LayerManagerOGL::Initialize(GLContext *aExistingContext)
   
   
   
-#define SHADER_PROGRAM(penum, ptype, vsstr, fsstr) do {                 \
+#define SHADER_PROGRAM(penum, ptype, vsstr, fsstr) do {                           \
     NS_ASSERTION(programIndex++ == penum, "out of order shader initialization!"); \
-    ptype *p = new ptype(mGLContext);                                   \
-    if (!p->Initialize(vsstr, fsstr))                                   \
-      return PR_FALSE;                                                  \
-    mPrograms.AppendElement(p);                                         \
+    ptype *p = new ptype(mGLContext);                                             \
+    if (!p->Initialize(vsstr, fsstr)) {                                           \
+      delete p;                                                                   \
+      return PR_FALSE;                                                            \
+    }                                                                             \
+    mPrograms.AppendElement(p);                                                   \
   } while (0)
 
 
