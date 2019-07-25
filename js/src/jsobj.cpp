@@ -3904,12 +3904,10 @@ static void object_TypeNew(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite 
         TypeObject *object = site->getInitObject(cx, false);
         if (!object)
             return;
-        if (site->returnTypes)
-            site->returnTypes->addType(cx, (jstype) object);
+        site->returnTypes->addType(cx, (jstype) object);
     } else {
         
-        if (site->returnTypes)
-            site->returnTypes->addType(cx, TYPE_UNKNOWN);
+        site->returnTypes->addType(cx, TYPE_UNKNOWN);
     }
 }
 

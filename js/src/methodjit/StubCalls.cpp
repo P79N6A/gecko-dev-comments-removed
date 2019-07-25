@@ -2759,7 +2759,7 @@ stubs::TypeBarrierHelper(VMFrame &f, uint32 which)
 
     if (f.script()->hasAnalysis() && f.script()->analysis(f.cx)->ranInference()) {
         AutoEnterTypeInference enter(f.cx);
-        f.script()->analysis(f.cx)->pruneTypeBarriers(f.cx, f.pc() - f.script()->code);
+        f.script()->analysis(f.cx)->breakTypeBarriers(f.cx, f.pc() - f.script()->code, false);
     }
 
     f.script()->typeMonitor(f.cx, f.pc(), result);

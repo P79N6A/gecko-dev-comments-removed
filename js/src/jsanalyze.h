@@ -971,7 +971,7 @@ class ScriptAnalysis
 
     types::TypeBarrier *typeBarriers(uint32 offset) {
         if (getCode(offset).typeBarriers)
-            pruneTypeBarriers(NULL, offset);
+            pruneTypeBarriers(offset);
         return getCode(offset).typeBarriers;
     }
     types::TypeBarrier *typeBarriers(const jsbytecode *pc) {
@@ -980,7 +980,18 @@ class ScriptAnalysis
     void addTypeBarrier(JSContext *cx, const jsbytecode *pc,
                         types::TypeSet *target, types::jstype type);
 
-    void pruneTypeBarriers(JSContext *removecx, uint32 offset);
+    
+    void pruneTypeBarriers(uint32 offset);
+
+    
+
+
+
+
+    void breakTypeBarriers(JSContext *cx, uint32 offset, bool all);
+
+    
+    void breakTypeBarriersSSA(JSContext *cx, const SSAValue &v);
 
     inline void addPushedType(JSContext *cx, uint32 offset, uint32 which, types::jstype type);
 

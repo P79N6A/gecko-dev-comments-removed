@@ -712,7 +712,7 @@ FrameState::syncForAllocation(RegisterAllocation *alloc, bool inlineReturn, Uses
 
         if (deadEntry(fe, uses.nuses))
             continue;
-        if (topEntry && fe >= topEntry && !isTemporary(fe)) {
+        if (inlineReturn && fe >= topEntry && !isTemporary(fe)) {
             
 
 
@@ -727,7 +727,17 @@ FrameState::syncForAllocation(RegisterAllocation *alloc, bool inlineReturn, Uses
 
         
         if (isLocal(fe) && !a->analysis->slotEscapes(entrySlot(fe))) {
-            Lifetime *lifetime = variableLive(fe, a->PC);
+            Lifetime *lifetime = a->analysis->liveness(entrySlot(fe)).live(a->PC - a->script->code);
+            if (!lifetime)
+                fakeSync(fe);
+        }
+
+        
+        if (inlineReturn && fe >= a->parent->locals &&
+            fe - a->parent->locals < a->parent->script->nfixed &&
+            !a->parent->analysis->slotEscapes(frameSlot(a->parent, fe))) {
+            const LifetimeVariable &var = a->parent->analysis->liveness(frameSlot(a->parent, fe));
+            Lifetime *lifetime = var.live(a->parent->PC - a->parent->script->code);
             if (!lifetime)
                 fakeSync(fe);
         }

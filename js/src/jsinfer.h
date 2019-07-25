@@ -357,18 +357,19 @@ class TypeSet
     
     inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
     void addSubset(JSContext *cx, JSScript *script, TypeSet *target);
-    void addGetProperty(JSContext *cx, JSScript *script, const jsbytecode *pc,
+    void addGetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
                         TypeSet *target, jsid id);
-    void addSetProperty(JSContext *cx, JSScript *script, const jsbytecode *pc,
+    void addSetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
                         TypeSet *target, jsid id);
     void addNewObject(JSContext *cx, JSScript *script, TypeFunction *fun, TypeSet *target);
     void addCall(JSContext *cx, TypeCallsite *site);
     void addArith(JSContext *cx, JSScript *script,
                   TypeSet *target, TypeSet *other = NULL);
     void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);
+    void addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc, jstype type);
     void addFilterPrimitives(JSContext *cx, JSScript *script,
                              TypeSet *target, bool onlyNullVoid);
-    void addSubsetBarrier(JSContext *cx, JSScript *script, const jsbytecode *pc, TypeSet *target);
+    void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
 
     void addBaseSubset(JSContext *cx, TypeObject *object, TypeSet *target);
     bool addCondensed(JSContext *cx, JSScript *script);
@@ -576,6 +577,9 @@ struct TypeObject
     bool marked;
 
     
+    bool newScriptCleared;
+
+    
 
 
 
@@ -733,7 +737,7 @@ struct TypeFunction : public TypeObject
 struct TypeCallsite
 {
     JSScript *script;
-    const jsbytecode *pc;
+    jsbytecode *pc;
 
     
     bool isNew;
@@ -746,16 +750,10 @@ struct TypeCallsite
     TypeSet *thisTypes;
 
     
-    jstype thisType;
-
-    
     TypeSet *returnTypes;
 
-    inline TypeCallsite(JSContext *cx, JSScript *script, const jsbytecode *pc,
+    inline TypeCallsite(JSContext *cx, JSScript *script, jsbytecode *pc,
                         bool isNew, unsigned argumentCount);
-
-    
-    inline bool forceThisTypes(JSContext *cx);
 
     
     inline TypeObject* getInitObject(JSContext *cx, bool isArray);
