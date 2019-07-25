@@ -48,6 +48,38 @@ namespace js {
 namespace ion {
 
 
+class LMove : public LInstructionHelper<0, 0, 0>
+{
+  public:
+    struct Entry {
+        LAllocation from;
+        LAllocation to;
+    };
+
+  private:
+    Vector<Entry, 1, IonAllocPolicy> entries_;
+
+  public:
+    LIR_HEADER(Move);
+
+    size_t numEntries() {
+        return entries_.length();
+    }
+
+    bool addEntry(Entry ent) {
+        return entries_.append(ent);
+    }
+
+    Entry *getEntry(size_t i) {
+        return &entries_[i];
+    }
+
+    void setEntry(size_t i, Entry ent) {
+        entries_[i] = ent;
+    }
+};
+
+
 class LInteger : public LInstructionHelper<1, 0, 0>
 {
     int32 i32_;
