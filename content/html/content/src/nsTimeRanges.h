@@ -45,7 +45,7 @@
 
 
 
-class nsTimeRanges : public nsIDOMTimeRanges {
+class nsTimeRanges MOZ_FINAL : public nsIDOMTimeRanges {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMTIMERANGES

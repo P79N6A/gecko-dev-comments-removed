@@ -243,10 +243,10 @@ public:
 
 
 
-class nsHTMLMediaElement::MediaLoadListener : public nsIStreamListener,
-                                              public nsIChannelEventSink,
-                                              public nsIInterfaceRequestor,
-                                              public nsIObserver
+class nsHTMLMediaElement::MediaLoadListener MOZ_FINAL : public nsIStreamListener,
+                                                        public nsIChannelEventSink,
+                                                        public nsIInterfaceRequestor,
+                                                        public nsIObserver
 {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUESTOBSERVER
