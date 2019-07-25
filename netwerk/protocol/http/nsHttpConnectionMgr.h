@@ -58,6 +58,8 @@
 
 class nsHttpPipeline;
 
+class nsIHttpUpgradeListener;
+
 
 
 class nsHttpConnectionMgr : public nsIObserver
@@ -146,6 +148,13 @@ public:
     
     
     nsresult ReclaimConnection(nsHttpConnection *conn);
+
+    
+    
+    
+    
+    nsresult CompleteUpgrade(nsAHttpConnection *aConn,
+                             nsIHttpUpgradeListener *aUpgradeListener);
 
     
     
@@ -578,6 +587,7 @@ private:
     void OnMsgPruneDeadConnections (PRInt32, void *);
     void OnMsgSpeculativeConnect   (PRInt32, void *);
     void OnMsgReclaimConnection    (PRInt32, void *);
+    void OnMsgCompleteUpgrade      (PRInt32, void *);
     void OnMsgUpdateParam          (PRInt32, void *);
     void OnMsgClosePersistentConnections (PRInt32, void *);
     void OnMsgProcessFeedback      (PRInt32, void *);
