@@ -215,13 +215,9 @@ public:
 
 
 
-
-
-
   PRBool ParseEnumValue(const nsAString& aValue,
                         const EnumTable* aTable,
-                        PRBool aCaseSensitive,
-                        const EnumTable* aDefaultValue = nsnull);
+                        PRBool aCaseSensitive);
 
   
 
@@ -353,7 +349,9 @@ private:
 
 
 
-  PRInt16  GetEnumTableIndex(const EnumTable* aTable);
+
+
+  PRBool GetEnumTableIndex(const EnumTable* aTable, PRInt16& aResult);
 
   inline void SetPtrValueAndType(void* aValue, ValueBaseType aType);
   void SetIntValueAndType(PRInt32 aValue, ValueType aType,
@@ -377,10 +375,6 @@ private:
                           PRInt32* aErrorCode,
                           PRBool aCanBePercent = PR_FALSE,
                           PRBool* aIsPercent = nsnull) const;
-  
-  
-  PRInt32 EnumTableEntryToValue(const EnumTable* aEnumTable,
-                                const EnumTable* aTableEntry);  
 
   static nsTArray<const EnumTable*, nsTArrayDefaultAllocator>* sEnumTableArray;
 
