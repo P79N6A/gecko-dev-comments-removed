@@ -1708,6 +1708,11 @@ SpdySession::WriteSegments(nsAHttpSegmentWriter *writer,
   if (mDownstreamState == PROCESSING_DATA_FRAME ||
       mDownstreamState == PROCESSING_CONTROL_SYN_REPLY) {
 
+    
+    
+    NS_ABORT_IF_FALSE(!mNeedsCleanup, "cleanup stream set unexpectedly");
+    mNeedsCleanup = nsnull;                     
+
     mSegmentWriter = writer;
     rv = mInputFrameDataStream->WriteSegments(this, count, countWritten);
     mSegmentWriter = nsnull;
@@ -1727,6 +1732,7 @@ SpdySession::WriteSegments(nsAHttpSegmentWriter *writer,
             mNeedsCleanup));
       CleanupStream(stream, NS_OK, RST_CANCEL);
       NS_ABORT_IF_FALSE(!mNeedsCleanup, "double cleanup out of data frame");
+      mNeedsCleanup = nsnull;                     
       return NS_OK;
     }
     
