@@ -5,6 +5,7 @@
 
 #include "Accessible-inl.h"
 #include "AccIterator.h"
+#include "DocAccessible-inl.h"
 #include "nsAccCache.h"
 #include "nsAccessibilityService.h"
 #include "nsAccessiblePivot.h"
@@ -2027,13 +2028,9 @@ DocAccessible::IsLoadEventTarget() const
   docShellTreeItem->GetParent(getter_AddRefs(parentTreeItem));
 
   
-  if (parentTreeItem) {
-    nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
-    docShellTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
-
-    
-    return (sameTypeRoot == docShellTreeItem);
-  }
+  
+  if (parentTreeItem)
+    return ParentDocument()->HasLoadState(eCompletelyLoaded);
 
   
   PRInt32 contentType;

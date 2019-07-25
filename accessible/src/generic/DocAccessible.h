@@ -149,8 +149,7 @@ public:
   
 
 
-  DocAccessible* ParentDocument() const
-    { return mParent ? mParent->Document() : nsnull; }
+  DocAccessible* ParentDocument() const;
 
   
 
@@ -513,13 +512,6 @@ protected:
   void ShutdownChildrenInSubtree(Accessible* aAccessible);
 
   
-
-
-
-
-
-
-
 
 
 
