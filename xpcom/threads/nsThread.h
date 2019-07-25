@@ -78,7 +78,7 @@ public:
   bool ShutdownRequired() { return mShutdownRequired; }
 
   
-  static nsIThreadObserver* sGlobalObserver;
+  void ClearObservers() { mEventObservers.Clear(); }
 
 private:
   friend class nsThreadShutdownEvent;

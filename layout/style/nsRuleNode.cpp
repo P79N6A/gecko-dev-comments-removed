@@ -3366,6 +3366,11 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
                 0, 0, 0, 0);
 
   
+  SetDiscrete(*aRuleData->ValueForTextAlignLast(), text->mTextAlignLast,
+              canStoreInRuleTree, SETDSC_ENUMERATED, parentText->mTextAlignLast,
+              NS_STYLE_TEXT_ALIGN_AUTO, 0, 0, 0, 0);
+
+  
   SetCoord(*aRuleData->ValueForTextIndent(), text->mTextIndent, parentText->mTextIndent,
            SETCOORD_LPH | SETCOORD_INITIAL_ZERO | SETCOORD_STORE_CALC,
            aContext, mPresContext, canStoreInRuleTree);

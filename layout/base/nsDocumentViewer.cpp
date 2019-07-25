@@ -1568,9 +1568,8 @@ DocumentViewerImpl::Destroy()
           
           
           
-          vm->UpdateViewNoSuppression(rootView,
-            rootView->GetBounds() - rootView->GetPosition(),
-            NS_VMREFRESH_NO_SYNC);
+          vm->InvalidateViewNoSuppression(rootView,
+            rootView->GetBounds() - rootView->GetPosition());
 
           nsIView *rootViewParent = rootView->GetParent();
           if (rootViewParent) {
@@ -2827,8 +2826,6 @@ DocumentViewerImpl::SetTextZoom(float aTextZoom)
 
   mTextZoom = aTextZoom;
 
-  nsIViewManager::UpdateViewBatch batch(GetViewManager());
-      
   
   
   
@@ -2845,8 +2842,6 @@ DocumentViewerImpl::SetTextZoom(float aTextZoom)
   
   mDocument->EnumerateExternalResources(SetExtResourceTextZoom, &ZoomInfo);
 
-  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
-  
   return NS_OK;
 }
 
@@ -2868,8 +2863,6 @@ DocumentViewerImpl::SetMinFontSize(PRInt32 aMinFontSize)
 
   mMinFontSize = aMinFontSize;
 
-  nsIViewManager::UpdateViewBatch batch(GetViewManager());
-      
   
   
   
@@ -2886,8 +2879,6 @@ DocumentViewerImpl::SetMinFontSize(PRInt32 aMinFontSize)
   mDocument->EnumerateExternalResources(SetExtResourceMinFontSize,
                                         NS_INT32_TO_PTR(aMinFontSize));
 
-  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
-  
   return NS_OK;
 }
 
@@ -2910,7 +2901,6 @@ DocumentViewerImpl::SetFullZoom(float aFullZoom)
     nsCOMPtr<nsIPresShell> shell = pc->GetPresShell();
     NS_ENSURE_TRUE(shell, NS_OK);
 
-    nsIViewManager::UpdateViewBatch batch(shell->GetViewManager());
     if (!mPrintPreviewZoomed) {
       mOriginalPrintPreviewScale = pc->GetPrintPreviewScale();
       mPrintPreviewZoomed = true;
@@ -2929,14 +2919,11 @@ DocumentViewerImpl::SetFullZoom(float aFullZoom)
       nsRect rect(nsPoint(0, 0), rootFrame->GetSize());
       rootFrame->Invalidate(rect);
     }
-    batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
     return NS_OK;
   }
 #endif
 
   mPageZoom = aFullZoom;
-
-  nsIViewManager::UpdateViewBatch batch(GetViewManager());
 
   struct ZoomInfo ZoomInfo = { aFullZoom };
   CallChildren(SetChildFullZoom, &ZoomInfo);
@@ -2948,8 +2935,6 @@ DocumentViewerImpl::SetFullZoom(float aFullZoom)
 
   
   mDocument->EnumerateExternalResources(SetExtResourceFullZoom, &ZoomInfo);
-
-  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 
   return NS_OK;
 }

@@ -95,7 +95,15 @@ struct Arena;
 
 const size_t MAX_BACKGROUND_FINALIZE_KINDS = FINALIZE_LIMIT - FINALIZE_OBJECT_LIMIT / 2;
 
+
+
+
+ 
+#if defined(SOLARIS) && (defined(__sparc) || defined(__sparcv9))
+const size_t ArenaShift = 13;
+#else
 const size_t ArenaShift = 12;
+#endif
 const size_t ArenaSize = size_t(1) << ArenaShift;
 const size_t ArenaMask = ArenaSize - 1;
 
@@ -1315,9 +1323,6 @@ struct WrapperHasher
 };
 
 typedef HashMap<Value, Value, WrapperHasher, SystemAllocPolicy> WrapperMap;
-
-class AutoValueVector;
-class AutoIdVector;
 
 } 
 

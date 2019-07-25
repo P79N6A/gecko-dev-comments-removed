@@ -48,8 +48,8 @@ class nsRegion;
 class nsDeviceContext;
 
 #define NS_IVIEWMANAGER_IID \
-{ 0x1262a33f, 0xc19f, 0x4e5b, \
-  { 0x85, 0x00, 0xab, 0xf3, 0x7d, 0xcf, 0x30, 0x1d } }
+{ 0x540610a6, 0x4fdd, 0x4ae3, \
+  { 0x9b, 0xdb, 0xa6, 0x4d, 0x8b, 0xca, 0x02, 0x0f } }
 
 class nsIViewManager : public nsISupports
 {
@@ -119,20 +119,9 @@ public:
   
 
 
-  
-  
-  
-  
-  
-  NS_IMETHOD  Composite(void) = 0;
-
-  
 
 
-
-
-
-  NS_IMETHOD  UpdateView(nsIView *aView, PRUint32 aUpdateFlags) = 0;
+  NS_IMETHOD  InvalidateView(nsIView *aView) = 0;
 
   
 
@@ -141,16 +130,12 @@ public:
 
 
 
-
-  NS_IMETHOD  UpdateViewNoSuppression(nsIView *aView, const nsRect &aRect,
-                                      PRUint32 aUpdateFlags) = 0;
+  NS_IMETHOD  InvalidateViewNoSuppression(nsIView *aView, const nsRect &aRect) = 0;
 
   
 
 
-
-
-  NS_IMETHOD  UpdateAllViews(PRUint32 aUpdateFlags) = 0;
+  NS_IMETHOD  InvalidateAllViews() = 0;
 
   
 
@@ -273,76 +258,42 @@ public:
 
   NS_IMETHOD  GetDeviceContext(nsDeviceContext *&aContext) = 0;
 
-  class UpdateViewBatch {
+  
+
+
+
+
+
+
+
+
+
+
+
+  class NS_STACK_CLASS AutoDisableRefresh {
   public:
-    UpdateViewBatch() {}
-  
-
-
-
-
-
-
-    UpdateViewBatch(nsIViewManager* aVM) {
+    AutoDisableRefresh(nsIViewManager* aVM) {
       if (aVM) {
-        mRootVM = aVM->BeginUpdateViewBatch();
+        mRootVM = aVM->IncrementDisableRefreshCount();
       }
     }
-    ~UpdateViewBatch() {
-      NS_ASSERTION(!mRootVM, "Someone forgot to call EndUpdateViewBatch!");
-    }
-    
-    
-
-
-    void BeginUpdateViewBatch(nsIViewManager* aVM) {
-      NS_ASSERTION(!mRootVM, "already started a batch!");
-      if (aVM) {
-        mRootVM = aVM->BeginUpdateViewBatch();
+    ~AutoDisableRefresh() {
+      if (mRootVM) {
+        mRootVM->DecrementDisableRefreshCount();
       }
     }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    void EndUpdateViewBatch(PRUint32 aUpdateFlags) {
-      if (!mRootVM)
-        return;
-      mRootVM->EndUpdateViewBatch(aUpdateFlags);
-      mRootVM = nsnull;
-    }
-
   private:
-    UpdateViewBatch(const UpdateViewBatch& aOther);
-    const UpdateViewBatch& operator=(const UpdateViewBatch& aOther);
+    AutoDisableRefresh(const AutoDisableRefresh& aOther);
+    const AutoDisableRefresh& operator=(const AutoDisableRefresh& aOther);
 
     nsCOMPtr<nsIViewManager> mRootVM;
   };
-  
-private:
-  friend class UpdateViewBatch;
 
-  virtual nsIViewManager* BeginUpdateViewBatch(void) = 0;
-  NS_IMETHOD EndUpdateViewBatch(PRUint32 aUpdateFlags) = 0;
+private:
+  friend class AutoDisableRefresh;
+
+  virtual nsIViewManager* IncrementDisableRefreshCount() = 0;
+  virtual void DecrementDisableRefreshCount() = 0;
 
 public:
   
@@ -350,16 +301,6 @@ public:
 
 
   NS_IMETHOD GetRootWidget(nsIWidget **aWidget) = 0;
-
-  
-
-
-
-
-  
-  
-  
-  NS_IMETHOD ForceUpdate() = 0;
 
   
 
@@ -383,25 +324,19 @@ public:
 
 
   static nsIView* GetDisplayRootFor(nsIView* aView);
+
+  
+
+
+
+  virtual void ProcessPendingUpdates()=0;
+
+  
+
+
+  virtual void UpdateWidgetGeometry() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIViewManager, NS_IVIEWMANAGER_IID)
-
-
-
-
-
-
-#define NS_VMREFRESH_NO_SYNC            0
-
-
-
-
-
-#define NS_VMREFRESH_DEFERRED           0x0001
-
-
-
-#define NS_VMREFRESH_IMMEDIATE          0x0002
 
 #endif  

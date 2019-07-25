@@ -2580,7 +2580,7 @@ PluginInstanceChild::MaybeCreatePlatformHelperSurface(void)
         
         visual = gfxXlibSurface::FindVisual(screen,
             static_cast<gfxImageSurface*>(mCurrentSurface.get())->Format());
-        if (visual && defaultVisual != visual && !supportNonDefaultVisual) {
+        if (!visual || (defaultVisual != visual && !supportNonDefaultVisual)) {
             visual = defaultVisual;
             mDoAlphaExtraction = mIsTransparent;
         }

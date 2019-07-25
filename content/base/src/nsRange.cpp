@@ -293,6 +293,40 @@ nsRange::~nsRange()
 } 
 
 
+nsresult
+nsRange::CreateRange(nsIDOMNode* aStartParent, PRInt32 aStartOffset,
+                     nsIDOMNode* aEndParent, PRInt32 aEndOffset,
+                     nsRange** aRange)
+{
+  MOZ_ASSERT(aRange);
+  *aRange = NULL;
+
+  nsRefPtr<nsRange> range = new nsRange();
+
+  nsresult rv = range->SetStart(aStartParent, aStartOffset);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = range->SetEnd(aEndParent, aEndOffset);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  range.forget(aRange);
+  return NS_OK;
+}
+
+
+nsresult
+nsRange::CreateRange(nsIDOMNode* aStartParent, PRInt32 aStartOffset,
+                     nsIDOMNode* aEndParent, PRInt32 aEndOffset,
+                     nsIDOMRange** aRange)
+{
+  nsRefPtr<nsRange> range;
+  nsresult rv = nsRange::CreateRange(aStartParent, aStartOffset, aEndParent,
+                                     aEndOffset, getter_AddRefs(range));
+  range.forget(aRange);
+  return rv;
+}
+
+
 
 
 

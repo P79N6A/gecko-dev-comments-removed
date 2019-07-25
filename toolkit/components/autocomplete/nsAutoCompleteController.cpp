@@ -190,6 +190,11 @@ nsAutoCompleteController::StartSearch(const nsAString &aSearchString)
 NS_IMETHODIMP
 nsAutoCompleteController::HandleText()
 {
+  
+  if (mIsIMEComposing) {
+    return NS_OK;
+  }
+
   if (!mInput) {
     
     StopSearch();

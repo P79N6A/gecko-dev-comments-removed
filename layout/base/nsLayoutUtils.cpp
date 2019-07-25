@@ -3801,22 +3801,28 @@ nsLayoutUtils::GetFrameTransparency(nsIFrame* aBackgroundFrame,
   return eTransparencyOpaque;
 }
 
- bool
-nsLayoutUtils::IsPopup(nsIFrame* aFrame)
+static bool IsPopupFrame(nsIFrame* aFrame)
 {
-  nsIAtom* frameType = aFrame->GetType();
-
   
+  nsIAtom* frameType = aFrame->GetType();
   if (frameType == nsGkAtoms::listControlFrame) {
-    nsListControlFrame* listControlFrame = static_cast<nsListControlFrame*>(aFrame);
-
-    if (listControlFrame) {
-      return listControlFrame->IsInDropDownMode();
-    }
+    nsListControlFrame* lcf = static_cast<nsListControlFrame*>(aFrame);
+    return lcf->IsInDropDownMode();
   }
 
   
-  return (frameType == nsGkAtoms::menuPopupFrame);
+  return frameType == nsGkAtoms::menuPopupFrame;
+}
+
+ bool
+nsLayoutUtils::IsPopup(nsIFrame* aFrame)
+{
+  
+  if (!aFrame->HasView()) {
+    NS_ASSERTION(!IsPopupFrame(aFrame), "popup frame must have a view");
+    return false;
+  }
+  return IsPopupFrame(aFrame);
 }
 
  nsIFrame*

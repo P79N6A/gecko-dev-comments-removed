@@ -57,6 +57,7 @@
 #include "nsIApplicationCacheService.h"
 #include "nsIOfflineCacheUpdate.h"
 #include "nsIRedirectChannelRegistrar.h"
+#include "prinit.h"
 
 namespace mozilla {
 namespace net {
@@ -67,6 +68,9 @@ HttpChannelParent::HttpChannelParent(PBrowserParent* iframeEmbedding)
   , mStoredProgress(0)
   , mStoredProgressMax(0)
   , mHeadersToSyncToChild(nsnull)
+  , mSentRedirect1Begin(false)
+  , mSentRedirect1BeginFailed(false)
+  , mReceivedRedirect2Verify(false)
 {
   
   nsIHttpProtocolHandler* handler;
@@ -329,6 +333,11 @@ HttpChannelParent::RecvUpdateAssociatedContentSecurity(const PRInt32& high,
   return true;
 }
 
+
+
+#pragma warning(disable : 4068)
+#pragma GCC optimize ("O0")
+
 bool
 HttpChannelParent::RecvRedirect2Verify(const nsresult& result, 
                                        const RequestHeaderTuples& changedHeaders)
@@ -346,10 +355,29 @@ HttpChannelParent::RecvRedirect2Verify(const nsresult& result,
     }
   }
 
+  if (!mRedirectCallback) {
+    
+    if (mReceivedRedirect2Verify)
+      ::PR_Abort();
+    if (mSentRedirect1BeginFailed)
+      ::PR_Abort();
+    if (mSentRedirect1Begin && NS_FAILED(result))
+      ::PR_Abort();
+    if (mSentRedirect1Begin && NS_SUCCEEDED(result))
+      ::PR_Abort();
+    if (!mRedirectChannel)
+      ::PR_Abort();
+  }
+
+  mReceivedRedirect2Verify = true;
+
   mRedirectCallback->OnRedirectVerifyCallback(result);
   mRedirectCallback = nsnull;
   return true;
 }
+
+
+#pragma GCC reset_options
 
 bool
 HttpChannelParent::RecvDocumentChannelCleanup()
@@ -568,8 +596,14 @@ HttpChannelParent::StartRedirect(PRUint32 newChannelId,
                                    redirectFlags,
                                    responseHead ? *responseHead
                                                 : nsHttpResponseHead());
-  if (!result)
+  if (!result) {
+    
+    mSentRedirect1BeginFailed = true;
     return NS_BINDING_ABORTED;
+  }
+
+  
+  mSentRedirect1Begin = true;
 
   
 

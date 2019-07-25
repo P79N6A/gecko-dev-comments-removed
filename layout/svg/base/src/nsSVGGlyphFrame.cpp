@@ -137,8 +137,16 @@ public:
 
 
 
-  void SetLineWidthForDrawing(gfxContext *aContext) {
+  void SetLineWidthAndDashesForDrawing(gfxContext *aContext) {
     aContext->SetLineWidth(aContext->CurrentLineWidth() / mDrawScale);
+    AutoFallibleTArray<gfxFloat, 10> dashes;
+    gfxFloat dashOffset;
+    if (aContext->CurrentDash(dashes, &dashOffset)) {
+      for (PRUint32 i = 0; i <  dashes.Length(); i++) {
+        dashes[i] /= mDrawScale;
+      }
+      aContext->SetDash(dashes.Elements(), dashes.Length(), dashOffset / mDrawScale);
+    }
   }
 
   
@@ -546,7 +554,7 @@ void
 nsSVGGlyphFrame::AddCharactersToPath(CharacterIterator *aIter,
                                      gfxContext *aContext)
 {
-  aIter->SetLineWidthForDrawing(aContext);
+  aIter->SetLineWidthAndDashesForDrawing(aContext);
   if (aIter->SetupForDirectTextRunDrawing(aContext)) {
     mTextRun->DrawToPath(aContext, gfxPoint(0, 0), 0,
                          mTextRun->GetLength(), nsnull, nsnull);

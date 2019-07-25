@@ -126,7 +126,8 @@ RESTRequest.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIBadCertListener2,
-    Ci.nsIInterfaceRequestor
+    Ci.nsIInterfaceRequestor,
+    Ci.nsIChannelEventSink
   ]),
 
   
@@ -364,22 +365,33 @@ RESTRequest.prototype = {
     this.abort();
     let error = Components.Exception("Aborting due to channel inactivity.",
                                      Cr.NS_ERROR_NET_TIMEOUT);
+    if (!this.onComplete) {
+      this._log.error("Unexpected error: onComplete not defined in " +
+                      "abortTimeout.")
+      return;
+    }
     this.onComplete(error);
   },
 
   
 
   onStartRequest: function onStartRequest(channel) {
-    
-    this.channel = channel;
-
     if (this.status == this.ABORTED) {
       this._log.trace("Not proceeding with onStartRequest, request was aborted.");
       return;
     }
+
+    try {
+      channel.QueryInterface(Ci.nsIHttpChannel);
+    } catch (ex) {
+      this._log.error("Unexpected error: channel is not a nsIHttpChannel!");
+      this.status = this.ABORTED;
+      channel.cancel(Cr.NS_BINDING_ABORTED);
+      return;
+    }
+
     this.status = this.IN_PROGRESS;
 
-    channel.QueryInterface(Ci.nsIHttpChannel);
     this._log.trace("onStartRequest: " + channel.requestMethod + " " +
                     channel.URI.spec);
 
@@ -397,9 +409,6 @@ RESTRequest.prototype = {
   },
 
   onStopRequest: function onStopRequest(channel, context, statusCode) {
-    
-    this.channel = channel;
-
     if (this.timeoutTimer) {
       
       this.timeoutTimer.clear();
@@ -410,12 +419,27 @@ RESTRequest.prototype = {
       this._log.trace("Not proceeding with onStopRequest, request was aborted.");
       return;
     }
+
+    try {
+      channel.QueryInterface(Ci.nsIHttpChannel);
+    } catch (ex) {
+      this._log.error("Unexpected error: channel not nsIHttpChannel!");
+      this.status = this.ABORTED;
+      return;
+    }
     this.status = this.COMPLETED;
 
     let statusSuccess = Components.isSuccessCode(statusCode);
     let uri = channel && channel.URI && channel.URI.spec || "<unknown>";
     this._log.trace("Channel for " + channel.requestMethod + " " + uri +
                     " returned status code " + statusCode);
+
+    if (!this.onComplete) {
+      this._log.error("Unexpected error: onComplete not defined in " +
+                      "abortRequest.");
+      this.onProgress = null;
+      return;
+    }
 
     
     
@@ -459,6 +483,14 @@ RESTRequest.prototype = {
                      this.method + " " + req.URI.spec);
       this._log.debug("Exception: " + Utils.exceptionStr(ex));
       this.abort();
+
+      if (!this.onComplete) {
+        this._log.error("Unexpected error: onComplete not defined in " +
+                        "onDataAvailable.");
+        this.onProgress = null;
+        return;
+      }
+
       this.onComplete(ex);
       this.onComplete = this.onProgress = null;
       return;
@@ -480,6 +512,24 @@ RESTRequest.prototype = {
     
     
     return true;
+  },
+
+  
+  asyncOnChannelRedirect:
+    function asyncOnChannelRedirect(oldChannel, newChannel, flags, callback) {
+
+    try {
+      newChannel.QueryInterface(Ci.nsIHttpChannel);
+    } catch (ex) {
+      this._log.error("Unexpected error: channel not nsIHttpChannel!");
+      callback.onRedirectVerifyCallback(Cr.NS_ERROR_NO_INTERFACE);
+      return;
+    }
+
+    this.channel = newChannel;
+
+    
+    callback.onRedirectVerifyCallback(Cr.NS_OK);
   }
 };
 

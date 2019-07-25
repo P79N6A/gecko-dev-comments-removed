@@ -116,8 +116,7 @@ protected:
   virtual PRUint16 GetHitTestFlags();
 
 private:
-  nsresult GetStrokeDashArray(double **arr, PRUint32 *count);
-  float GetStrokeDashoffset();
+  bool GetStrokeDashData(FallibleTArray<gfxFloat>& dashes, gfxFloat *dashOffset);
 
   
 

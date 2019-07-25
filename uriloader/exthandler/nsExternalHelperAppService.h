@@ -73,6 +73,7 @@
 #include "nsCOMArray.h"
 #include "nsWeakReference.h"
 #include "nsIPrompt.h"
+#include "nsAutoPtr.h"
 
 class nsExternalAppHandler;
 class nsIMIMEInfo;
@@ -264,8 +265,10 @@ public:
 
 
 
+
   nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo, const nsCSubstring& aFileExtension,
                        nsIInterfaceRequestor * aWindowContext,
+                       nsExternalHelperAppService * aExtProtSvc,
                        const nsAString& aFilename,
                        PRUint32 aReason, bool aForceSave);
 
@@ -447,8 +450,8 @@ protected:
 
 
   nsCOMPtr<nsIRequest> mRequest;
-};
 
-extern NS_HIDDEN_(nsExternalHelperAppService*) gExtProtSvc;
+  nsRefPtr<nsExternalHelperAppService> mExtProtSvc;
+};
 
 #endif 

@@ -185,6 +185,13 @@ class nsPropertyTable
 
 
 
+
+  NS_HIDDEN_(void) EnumerateAll(NSPropertyFunc aCallback, void *aData);
+
+  
+
+
+
   NS_HIDDEN_(void) DeleteAllProperties();
 
   nsPropertyTable() : mPropertyList(nsnull) {}  

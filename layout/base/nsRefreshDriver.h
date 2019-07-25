@@ -179,6 +179,17 @@ public:
   
 
 
+  void ScheduleViewManagerFlush() {
+    mViewManagerFlushIsPending = true;
+    EnsureTimerStarted(false);
+  }
+  void RevokeViewManagerFlush() {
+    mViewManagerFlushIsPending = false;
+  }
+
+  
+
+
   void ScheduleFrameRequestCallbacks(nsIDocument* aDocument);
 
   
@@ -227,6 +238,11 @@ public:
 			   mozFlushType aFlushType);
 #endif
 
+  
+
+
+  static PRInt32 DefaultInterval();
+
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
   typedef nsTHashtable<nsISupportsHashKey> RequestTable;
@@ -265,6 +281,7 @@ private:
 
 
   bool mTimerIsPrecise;
+  bool mViewManagerFlushIsPending;
 
   
   ObserverArray mObservers[3];

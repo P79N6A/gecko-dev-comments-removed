@@ -49,7 +49,7 @@
 #include "AccessCheck.h"
 #include "nsJSUtils.h"
 
-#include "jscntxt.h" 
+#include "jsapi.h"
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsXPCWrappedJSClass, nsIXPCWrappedJSClass)
 
@@ -64,7 +64,7 @@ bool AutoScriptEvaluate::StartEvaluating(JSObject *scope, JSErrorReporter errorR
         return true;
 
     mEvaluated = true;
-    if (!mJSContext->errorReporter) {
+    if (!JS_GetErrorReporter(mJSContext)) {
         JS_SetErrorReporter(mJSContext, errorReporter);
         mErrorReporterSet = true;
     }
@@ -1057,7 +1057,7 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
             
             
             if (reportable && is_js_exception &&
-                cx->errorReporter != xpcWrappedJSErrorReporter) {
+                JS_GetErrorReporter(cx) != xpcWrappedJSErrorReporter) {
                 reportable = !JS_ReportPendingException(cx);
             }
 
@@ -1173,20 +1173,14 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     jsval* sp = nsnull;
     jsval* argv = nsnull;
     uint8_t i;
-    uint8_t argc=0;
-    uint8_t paramCount=0;
     nsresult retval = NS_ERROR_FAILURE;
     nsresult pending_result = NS_OK;
     JSBool success;
     JSBool readyToDoTheCall = false;
     nsID  param_iid;
-    JSObject* obj;
     const char* name = info->name;
     jsval fval;
     JSBool foundDependentParam;
-    XPCContext* xpcc;
-    JSContext* cx;
-    JSObject* thisObj;
 
     
     
@@ -1197,13 +1191,14 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     if (!ccx.IsValid())
         return retval;
 
-    xpcc = ccx.GetXPCContext();
-    cx = ccx.GetJSContext();
+    XPCContext *xpcc = ccx.GetXPCContext();
+    JSContext *cx = ccx.GetJSContext();
 
     if (!cx || !xpcc || !IsReflectable(methodIndex))
         return NS_ERROR_FAILURE;
 
-    obj = thisObj = wrapper->GetJSObject();
+    JSObject *obj = wrapper->GetJSObject();
+    JSObject *thisObj = obj;
 
     JSAutoEnterCompartment ac;
     if (!ac.enter(cx, obj))
@@ -1211,13 +1206,13 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
 
     ccx.SetScopeForNewJSObjects(obj);
 
-    js::AutoValueVector args(cx);
+    JS::AutoValueVector args(cx);
     AutoScriptEvaluate scriptEval(cx);
     ContextPrincipalGuard principalGuard(ccx);
 
     
-    paramCount = info->num_args;
-    argc = paramCount -
+    uint8_t paramCount = info->num_args;
+    uint8_t argc = paramCount -
         (paramCount && XPT_PD_IS_RETVAL(info->params[paramCount-1].flags) ? 1 : 0);
 
     if (!scriptEval.StartEvaluating(obj, xpcWrappedJSErrorReporter))
@@ -1353,7 +1348,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
         goto pre_call_clean_up;
     }
 
-    argv = args.jsval_begin();
+    argv = args.begin();
     sp = argv;
 
     

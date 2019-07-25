@@ -45,6 +45,7 @@
 #include "nsCOMPtr.h"
 #include "nsXULMenuAccessible.h"
 #include "nsBaseWidgetAccessible.h"
+#include "XULSelectControlAccessible.h"
 
 class nsIWeakReference;
 
@@ -88,7 +89,7 @@ public:
 
 
 
-class nsXULListboxAccessible : public nsXULSelectableAccessible,
+class nsXULListboxAccessible : public XULSelectControlAccessible,
                                public nsIAccessibleTable
 {
 public:

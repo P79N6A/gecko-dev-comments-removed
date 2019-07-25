@@ -1253,6 +1253,8 @@ PresShell::Destroy()
   
   
   rd->RemoveLayoutFlushObserver(this);
+  rd->RevokeViewManagerFlush();
+
   mResizeEvent.Revoke();
   if (mAsyncResizeTimerIsActive) {
     mAsyncResizeEventTimer->Cancel();
@@ -2113,8 +2115,6 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
 
   if (!GetPresContext()->SupressingResizeReflow())
   {
-    nsIViewManager::UpdateViewBatch batch(mViewManager);
-
     
     
     mDocument->FlushPendingNotifications(Flush_ContentAndNotify);
@@ -2137,6 +2137,7 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
 
         
         AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
+        nsIViewManager::AutoDisableRefresh refreshBlocker(mViewManager);
 
         mDirtyRoots.RemoveElement(rootFrame);
         DoReflow(rootFrame, true);
@@ -2144,8 +2145,6 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
 
       DidDoReflow(true);
     }
-
-    batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
   }
 
   rootFrame = FrameManager()->GetRootFrame();
@@ -2468,17 +2467,6 @@ PresShell::ScrollLine(bool aForward)
     scrollFrame->ScrollBy(nsIntPoint(0, aForward ? lineCount : -lineCount),
                           nsIScrollableFrame::LINES,
                           nsIScrollableFrame::SMOOTH);
-      
-
-    
-    
-
-  
-    
-    nsIViewManager* viewManager = GetViewManager();
-    if (viewManager) {
-      viewManager->ForceUpdate();
-    }
   }
   return NS_OK;
 }
@@ -2492,16 +2480,6 @@ PresShell::ScrollCharacter(bool aRight)
     scrollFrame->ScrollBy(nsIntPoint(aRight ? 1 : -1, 0),
                           nsIScrollableFrame::LINES,
                           nsIScrollableFrame::SMOOTH);
-
-    
-    
-
-  
-    
-    nsIViewManager* viewManager = GetViewManager();
-    if (viewManager) {
-      viewManager->ForceUpdate();
-    }
   }
   return NS_OK;
 }
@@ -2979,7 +2957,6 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   
 
   NS_ASSERTION(mViewManager, "Should have view manager");
-  nsIViewManager::UpdateViewBatch batch(mViewManager);
 
   
   
@@ -2995,7 +2972,6 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   nsresult rv = mFrameConstructor->ProcessRestyledFrames(changeList);
   --mChangeNestCount;
   
-  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
   return rv;
 }
 
@@ -3154,8 +3130,8 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll)
     
     
     nsRefPtr<nsIDOMRange> jumpToRange = new nsRange();
-    while (content && content->GetChildCount() > 0) {
-      content = content->GetChildAt(0);
+    while (content && content->GetFirstChild()) {
+      content = content->GetFirstChild();
     }
     nsCOMPtr<nsIDOMNode> node(do_QueryInterface(content));
     NS_ASSERTION(node, "No nsIDOMNode for descendant of anchor");
@@ -3634,6 +3610,18 @@ nsresult PresShell::GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocationStrin
 }
 
 void
+PresShell::ScheduleViewManagerFlush()
+{
+  nsPresContext* presContext = GetPresContext();
+  if (presContext) {
+    presContext->RefreshDriver()->ScheduleViewManagerFlush();
+  }
+  if (mDocument) {
+    mDocument->SetNeedLayoutFlush();
+  }
+}
+
+void
 PresShell::DispatchSynthMouseMove(nsGUIEvent *aEvent,
                                   bool aFlushOnHoverChange)
 {
@@ -4020,11 +4008,6 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     
     
     
-    nsIViewManager::UpdateViewBatch batch(mViewManager);
-
-    
-    
-    
     
     
     
@@ -4114,15 +4097,11 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       if (rootPresContext) {
         rootPresContext->UpdatePluginGeometry();
       }
-    }
 
-    PRUint32 updateFlags = NS_VMREFRESH_NO_SYNC;
-    if (aType >= Flush_Display) {
-      
-      
-      updateFlags = NS_VMREFRESH_IMMEDIATE;
+      if (!mIsDestroying) {
+        mViewManager->UpdateWidgetGeometry();
+      }
     }
-    batch.EndUpdateViewBatch(updateFlags);
   }
 }
 
@@ -5246,7 +5225,8 @@ void PresShell::SynthesizeMouseMove(bool aFromScroll)
     nsRefPtr<nsSynthMouseMoveEvent> ev =
         new nsSynthMouseMoveEvent(this, aFromScroll);
 
-    if (NS_FAILED(NS_DispatchToCurrentThread(ev))) {
+    if (!GetPresContext()->RefreshDriver()->AddRefreshObserver(ev,
+                                                               Flush_Display)) {
       NS_WARNING("failed to dispatch nsSynthMouseMoveEvent");
       return;
     }
@@ -7397,7 +7377,7 @@ PresShell::DoVerifyReflow()
     
     
     nsIView* rootView = mViewManager->GetRootView();
-    mViewManager->UpdateView(rootView, NS_VMREFRESH_IMMEDIATE);
+    mViewManager->InvalidateView(rootView);
 
     FlushPendingNotifications(Flush_Layout);
     mInVerifyReflow = true;
@@ -7444,6 +7424,7 @@ PresShell::ProcessReflowCommands(bool aInterruptible)
       nsAutoScriptBlocker scriptBlocker;
       WillDoReflow();
       AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
+      nsIViewManager::AutoDisableRefresh refreshBlocker(mViewManager);
 
       do {
         
@@ -7592,7 +7573,6 @@ PresShell::Observe(nsISupports* aSubject,
     
     if (rootFrame) {
       NS_ASSERTION(mViewManager, "View manager must exist");
-      nsIViewManager::UpdateViewBatch batch(mViewManager);
 
       nsWeakFrame weakRoot(rootFrame);
       
@@ -7617,7 +7597,6 @@ PresShell::Observe(nsISupports* aSubject,
           --mChangeNestCount;
         }
       }
-      batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
     }
     return NS_OK;
   }

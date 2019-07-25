@@ -328,9 +328,6 @@ nsHttpChannel::Connect(bool firstTime)
         return NS_ERROR_DOCUMENT_NOT_CACHED;
     }
 
-    
-    mAuthProvider->AddAuthorizationHeaders();
-
     if (mLoadFlags & LOAD_NO_NETWORK_IO) {
         return NS_ERROR_DOCUMENT_NOT_CACHED;
     }
@@ -3742,6 +3739,9 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     }
 
     AddCookiesToRequest();
+ 
+    
+    mAuthProvider->AddAuthorizationHeaders();
 
     
     gHttpHandler->OnModifyRequest(this);

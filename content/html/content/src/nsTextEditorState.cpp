@@ -1162,10 +1162,6 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
 
   
   
-  editorFlags |= nsIPlaintextEditor::eEditorUseAsyncUpdatesMask;
-  
-  
-  
   editorFlags |= nsIPlaintextEditor::eEditorSkipSpellCheck;
 
   bool shouldInitializeEditor = false;
@@ -1314,12 +1310,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
   
 
   if (!defaultValue.IsEmpty()) {
-    
-    
-    
-
-    rv = newEditor->SetFlags(editorFlags |
-                             nsIPlaintextEditor::eEditorUseAsyncUpdatesMask);
+    rv = newEditor->SetFlags(editorFlags);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -1837,7 +1828,6 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput)
         flags = savedFlags;
         flags &= ~(nsIPlaintextEditor::eEditorDisabledMask);
         flags &= ~(nsIPlaintextEditor::eEditorReadonlyMask);
-        flags |= nsIPlaintextEditor::eEditorUseAsyncUpdatesMask;
         flags |= nsIPlaintextEditor::eEditorDontEchoPassword;
         mEditor->SetFlags(flags);
 

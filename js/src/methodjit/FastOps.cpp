@@ -1175,13 +1175,22 @@ mjit::Compiler::jsop_setelem_dense()
 
 
 
+
+
+
+
         stubcc.masm.storePtr(slotsReg, FrameAddress(offsetof(VMFrame, scratch)));
+        if (hoisted)
+            frame.pinReg(slotsReg);
         if (!key.isConstant())
-            stubcc.masm.push(key.reg());
+            frame.pinReg(key.reg());
         frame.sync(stubcc.masm, Uses(3));
         if (!key.isConstant())
-            stubcc.masm.pop(key.reg());
-        stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, scratch)), slotsReg);
+            frame.unpinReg(key.reg());
+        if (hoisted)
+            frame.unpinReg(slotsReg);
+        else
+            stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, scratch)), slotsReg);
 
         if (key.isConstant())
             stubcc.masm.lea(Address(slotsReg, key.index() * sizeof(Value)), Registers::ArgReg1);
@@ -2324,6 +2333,12 @@ mjit::Compiler::jsop_stricteq(JSOp op)
             masm.or32(result1, result);
         }
         frame.freeReg(result1);
+#elif defined(JS_CPU_MIPS)
+        
+
+        static const int ShiftedCanonicalNaNType = 0x7FF80000 << 1;
+        masm.setShiftedCanonicalNaN(treg, treg);
+        masm.setPtr(oppositeCond, treg, Imm32(ShiftedCanonicalNaNType), result);
 #elif !defined(JS_CPU_X64)
         static const int ShiftedCanonicalNaNType = 0x7FF80000 << 1;
         masm.setPtr(oppositeCond, treg, Imm32(ShiftedCanonicalNaNType), result);

@@ -473,6 +473,12 @@ private:
 
 
   nsTHashtable<BookmarkKeyClass> mRecentBookmarksCache;
+
+  
+
+
+
+  nsTHashtable<nsTrimInt64HashKey> mUncachableBookmarks;
 };
 
 #endif 

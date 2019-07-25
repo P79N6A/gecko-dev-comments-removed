@@ -597,6 +597,13 @@ private:
     PRUint16                 mDefaultSecurityManagerFlags;
     JSBool                   mShuttingDown;
     JSBool                   mNeedGCBeforeCC;
+
+    
+    
+    
+    
+    
+    PRUint16                   mEventDepth;
 #ifdef DEBUG_CC
     PLDHashTable             mJSRoots;
 #endif
@@ -3644,6 +3651,12 @@ public:
     
     static inline XPCPerThreadData* GetData(JSContext *cx)
     {
+        
+        
+        
+        if (!NS_LIKELY(NS_IsMainThread() || NS_IsCycleCollectorThread()))
+            JS_Assert("NS_IsMainThread()", __FILE__, __LINE__);
+
         if (cx) {
             NS_ASSERTION(js::GetContextThread(cx), "Uh, JS context w/o a thread?");
 

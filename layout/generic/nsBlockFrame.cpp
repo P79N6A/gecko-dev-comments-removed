@@ -1484,18 +1484,9 @@ nsBlockFrame::ComputeOverflowAreas(const nsHTMLReflowState& aReflowState,
     
     
     
-    nscoord bottomEdgeOfContents = aBottomEdgeOfChildren;
-    if (GetStyleContext()->GetPseudo() == nsCSSAnonBoxes::scrolledContent) {
-      
-      
-      bottomEdgeOfContents += aReflowState.mComputedPadding.bottom;
-    }
-    
-    
-    
     NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
       nsRect& o = areas.Overflow(otype);
-      o.height = NS_MAX(o.YMost(), bottomEdgeOfContents) - o.y;
+      o.height = NS_MAX(o.YMost(), aBottomEdgeOfChildren) - o.y;
     }
   }
 #ifdef NOISY_COMBINED_AREA
@@ -4107,16 +4098,15 @@ nsBlockFrame::SplitLine(nsBlockReflowState& aState,
 }
 
 bool
-nsBlockFrame::ShouldJustifyLine(nsBlockReflowState& aState,
-                                line_iterator aLine)
+nsBlockFrame::IsLastLine(nsBlockReflowState& aState,
+                         line_iterator aLine)
 {
   while (++aLine != end_lines()) {
     
     if (0 != aLine->GetChildCount()) {
       
       
-      
-      return !aLine->IsBlock();
+      return aLine->IsBlock();
     }
     
   }
@@ -4131,13 +4121,13 @@ nsBlockFrame::ShouldJustifyLine(nsBlockReflowState& aState,
          ++line)
     {
       if (0 != line->GetChildCount())
-        return !line->IsBlock();
+        return line->IsBlock();
     }
     nextInFlow = (nsBlockFrame*) nextInFlow->GetNextInFlow();
   }
 
   
-  return false;
+  return true;
 }
 
 bool
@@ -4222,10 +4212,19 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   
   
   const nsStyleText* styleText = GetStyleText();
-  bool allowJustify = NS_STYLE_TEXT_ALIGN_JUSTIFY == styleText->mTextAlign &&
-                        !aLineLayout.GetLineEndsInBR() &&
-                        ShouldJustifyLine(aState, aLine);
-  aLineLayout.HorizontalAlignFrames(aLine->mBounds, allowJustify);
+
+  
+
+
+
+
+
+
+  bool isLastLine = ((NS_STYLE_TEXT_ALIGN_AUTO != styleText->mTextAlignLast ||
+                            NS_STYLE_TEXT_ALIGN_JUSTIFY == styleText->mTextAlign) &&
+                       (aLineLayout.GetLineEndsInBR() ||
+                        IsLastLine(aState, aLine)));
+  aLineLayout.HorizontalAlignFrames(aLine->mBounds, isLastLine);
   
   
   

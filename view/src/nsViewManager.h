@@ -74,15 +74,6 @@
 
 
 
-
-
-
-
-
-
-
-class nsInvalidateEvent;
-
 class nsViewManager : public nsIViewManager {
 public:
   nsViewManager();
@@ -104,12 +95,9 @@ public:
   NS_IMETHOD  SetWindowDimensions(nscoord width, nscoord height);
   NS_IMETHOD  FlushDelayedResize(bool aDoReflow);
 
-  NS_IMETHOD  Composite(void);
-
-  NS_IMETHOD  UpdateView(nsIView *aView, PRUint32 aUpdateFlags);
-  NS_IMETHOD  UpdateViewNoSuppression(nsIView *aView, const nsRect &aRect,
-                                      PRUint32 aUpdateFlags);
-  NS_IMETHOD  UpdateAllViews(PRUint32 aUpdateFlags);
+  NS_IMETHOD  InvalidateView(nsIView *aView);
+  NS_IMETHOD  InvalidateViewNoSuppression(nsIView *aView, const nsRect &aRect);
+  NS_IMETHOD  InvalidateAllViews();
 
   NS_IMETHOD  DispatchEvent(nsGUIEvent *aEvent,
       nsIView* aTargetView, nsEventStatus* aStatus);
@@ -137,19 +125,20 @@ public:
 
   NS_IMETHOD  GetDeviceContext(nsDeviceContext *&aContext);
 
-  virtual nsIViewManager* BeginUpdateViewBatch(void);
-  NS_IMETHOD  EndUpdateViewBatch(PRUint32 aUpdateFlags);
+  virtual nsIViewManager* IncrementDisableRefreshCount();
+  virtual void DecrementDisableRefreshCount();
 
   NS_IMETHOD GetRootWidget(nsIWidget **aWidget);
-  NS_IMETHOD ForceUpdate();
  
   NS_IMETHOD IsPainting(bool& aIsPainting);
   NS_IMETHOD GetLastUserEventTime(PRUint32& aTime);
-  void ProcessInvalidateEvent();
   static PRUint32 gLastUserEventTime;
 
   
   void InvalidateHierarchy();
+
+  virtual void ProcessPendingUpdates();
+  virtual void UpdateWidgetGeometry();
 
 protected:
   virtual ~nsViewManager();
@@ -157,7 +146,9 @@ protected:
 private:
 
   void FlushPendingInvalidates();
-  void ProcessPendingUpdates(nsView *aView, bool aDoInvalidate);
+  void ProcessPendingUpdatesForView(nsView *aView,
+                                    bool aFlushDirtyRegion = true);
+  void FlushDirtyRegionToWidget(nsView* aView);
   
 
 
@@ -165,13 +156,9 @@ private:
   void CallDidPaintOnObservers();
   void ReparentChildWidgets(nsIView* aView, nsIWidget *aNewWidget);
   void ReparentWidgets(nsIView* aView, nsIView *aParent);
-  void UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
-                        const nsRegion &aDamagedRegion,
-                        nsView* aIgnoreWidgetView);
+  void InvalidateWidgetArea(nsView *aWidgetView, const nsRegion &aDamagedRegion);
 
-  void UpdateViews(nsView *aView, PRUint32 aUpdateFlags);
-
-  void TriggerRefresh(PRUint32 aUpdateFlags);
+  void InvalidateViews(nsView *aView);
 
   
   void Refresh(nsView *aView, nsIWidget *aWidget, const nsIntRegion& aRegion);
@@ -181,19 +168,13 @@ private:
                    const nsRegion& aRegion, const nsIntRegion& aIntRegion,
                    bool aPaintDefaultBackground, bool aWillSendDidPaint);
 
-  void InvalidateRectDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut, PRUint32 aUpdateFlags);
+  void InvalidateRectDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut);
   void InvalidateHorizontalBandDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut,
-                                          PRUint32 aUpdateFlags, nscoord aY1, nscoord aY2, bool aInCutOut);
+                                          nscoord aY1, nscoord aY2, bool aInCutOut);
 
   
 
   bool IsViewInserted(nsView *aView);
-
-  
-
-
-
-  void UpdateWidgetsForView(nsView* aView);
 
   
 
@@ -204,31 +185,6 @@ private:
 
   void DoSetWindowDimensions(nscoord aWidth, nscoord aHeight);
 
-  
-  void IncrementUpdateCount() {
-    NS_ASSERTION(IsRootVM(),
-                 "IncrementUpdateCount called on non-root viewmanager");
-    ++mUpdateCnt;
-  }
-
-  void DecrementUpdateCount() {
-    NS_ASSERTION(IsRootVM(),
-                 "DecrementUpdateCount called on non-root viewmanager");
-    --mUpdateCnt;
-  }
-
-  PRInt32 UpdateCount() const {
-    NS_ASSERTION(IsRootVM(),
-                 "DecrementUpdateCount called on non-root viewmanager");
-    return mUpdateCnt;
-  }
-
-  void ClearUpdateCount() {
-    NS_ASSERTION(IsRootVM(),
-                 "DecrementUpdateCount called on non-root viewmanager");
-    mUpdateCnt = 0;
-  }
-
   bool IsPainting() const {
     return RootViewManager()->mPainting;
   }
@@ -237,18 +193,21 @@ private:
     RootViewManager()->mPainting = aPainting;
   }
 
-  nsresult UpdateView(nsIView *aView, const nsRect &aRect, PRUint32 aUpdateFlags);
+  nsresult InvalidateView(nsIView *aView, const nsRect &aRect);
 
 public: 
   nsView* GetRootViewImpl() const { return mRootView; }
   nsViewManager* RootViewManager() const { return mRootViewManager; }
   bool IsRootVM() const { return this == RootViewManager(); }
 
-  bool IsRefreshEnabled() { return RootViewManager()->mUpdateBatchCnt == 0; }
+  
+  
+  
+  bool IsPaintingAllowed() { return RootViewManager()->mRefreshDisableCount == 0; }
 
   
   
-  void PostPendingUpdate() { RootViewManager()->mHasPendingUpdates = true; }
+  void PostPendingUpdate();
 
   PRUint32 AppUnitsPerDevPixel() const
   {
@@ -268,21 +227,16 @@ private:
   
   nsViewManager     *mRootViewManager;
 
-  nsRevocableEventPtr<nsInvalidateEvent> mInvalidateEvent;
-
   
   
   
   
-  
-  
-  PRInt32           mUpdateCnt;
-  PRInt32           mUpdateBatchCnt;
-  PRUint32          mUpdateBatchFlags;
+  PRInt32           mRefreshDisableCount;
   
   bool              mPainting;
   bool              mRecursiveRefreshPending;
   bool              mHasPendingUpdates;
+  bool              mHasPendingWidgetGeometryChanges;
   bool              mInScroll;
 
   
@@ -290,24 +244,6 @@ private:
 
   
   static nsVoidArray       *gViewManagers;
-
-  void PostInvalidateEvent();
-};
-
-class nsInvalidateEvent : public nsRunnable {
-public:
-  nsInvalidateEvent(class nsViewManager *vm) : mViewManager(vm) {
-    NS_ASSERTION(mViewManager, "null parameter");
-  }
-  void Revoke() { mViewManager = nsnull; }
-
-  NS_IMETHOD Run() {
-    if (mViewManager)
-      mViewManager->ProcessInvalidateEvent();
-    return NS_OK;
-  }
-protected:
-  class nsViewManager *mViewManager;
 };
 
 #endif 

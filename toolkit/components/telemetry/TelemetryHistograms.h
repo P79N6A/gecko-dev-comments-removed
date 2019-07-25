@@ -322,6 +322,11 @@ HISTOGRAM_BOOLEAN(XMLHTTPREQUEST_ASYNC_OR_SYNC, "Type of XMLHttpRequest, async o
 
 
 
+HISTOGRAM(DOM_TIMERS_FIRED_PER_NATIVE_TIMEOUT, 1, 3000, 10, EXPONENTIAL, "DOM: Timer handlers called per native timer expiration")
+
+
+
+
 #define DOMSTORAGE_HISTOGRAM(PREFIX, TYPE, TYPESTRING, DESCRIPTION) \
   HISTOGRAM(PREFIX ## DOMSTORAGE_ ## TYPE ## _SIZE_BYTES, \
             1024, 32768, 10, EXPONENTIAL, "DOM storage: size of " TYPESTRING "s stored in " DESCRIPTION "Storage")
@@ -336,5 +341,12 @@ DOMSTORAGE_KEY_VAL_SIZE(SESSION, "session")
 #undef DOMSTORAGE_KEY_VAL_SIZE
 #undef DOMSTORAGE_HISTOGRAM
 
+
+
+
+HISTOGRAM(RANGE_CHECKSUM_ERRORS, 1, 3000, 10, EXPONENTIAL, "Number of histograms with range checksum errors")
+HISTOGRAM(BUCKET_ORDER_ERRORS, 1, 3000, 10, EXPONENTIAL, "Number of histograms with bucket order errors")
+HISTOGRAM(TOTAL_COUNT_HIGH_ERRORS, 1, 3000, 10, EXPONENTIAL, "Number of histograms with total count high errors")
+HISTOGRAM(TOTAL_COUNT_LOW_ERRORS, 1, 3000, 10, EXPONENTIAL, "Number of histograms with total count low errors")
 
 #undef HISTOGRAM_BOOLEAN

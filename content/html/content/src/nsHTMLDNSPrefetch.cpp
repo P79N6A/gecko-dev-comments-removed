@@ -1,40 +1,40 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla.
- *
- * The Initial Developer of the Original Code is
- * Mozilla Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2008
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Patrick McManus <mcmanus@ducksong.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "base/basictypes.h"
 #include "mozilla/net/NeckoCommon.h"
@@ -99,7 +99,7 @@ nsHTMLDNSPrefetch::Initialize()
   Preferences::AddBoolVarCache(&sDisablePrefetchHTTPSPref,
                                "network.dns.disablePrefetchFromHTTPS");
   
-  // Default is false, so we need an explicit call to prime the cache.
+  
   sDisablePrefetchHTTPSPref = 
     Preferences::GetBool("network.dns.disablePrefetchFromHTTPS", true);
   
@@ -133,24 +133,13 @@ nsHTMLDNSPrefetch::Shutdown()
 bool
 nsHTMLDNSPrefetch::IsAllowed (nsIDocument *aDocument)
 {
-  // There is no need to do prefetch on non UI scenarios such as XMLHttpRequest.
+  
   return aDocument->IsDNSPrefetchAllowed() && aDocument->GetWindow();
 }
 
 nsresult
 nsHTMLDNSPrefetch::Prefetch(Link *aElement, PRUint16 flags)
 {
-  if (IsNeckoChild()) {
-    // Instead of transporting the Link object to the other process
-    // we are using the hostname based function here, too. Compared to the 
-    // IPC the performance hit should be negligible.
-    nsAutoString hostname;
-    nsresult rv = aElement->GetHostname(hostname);
-    NS_ENSURE_SUCCESS(rv,rv);
-
-    return Prefetch(hostname, flags);
-  }
-
   if (!(sInitialized && sPrefetches && sDNSService && sDNSListener))
     return NS_ERROR_NOT_AVAILABLE;
 
@@ -179,8 +168,8 @@ nsresult
 nsHTMLDNSPrefetch::Prefetch(nsAString &hostname, PRUint16 flags)
 {
   if (IsNeckoChild()) {
-    // We need to check IsEmpty() because net_IsValidHostName()
-    // considers empty strings to be valid hostnames
+    
+    
     if (!hostname.IsEmpty() &&
         net_IsValidHostName(NS_ConvertUTF16toUTF8(hostname))) {
       gNeckoChild->SendHTMLDNSPrefetch(nsAutoString(hostname), flags);
@@ -214,7 +203,7 @@ nsHTMLDNSPrefetch::PrefetchHigh(nsAString &hostname)
   return Prefetch(hostname, 0);
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsHTMLDNSPrefetch::nsListener,
                               nsIDNSListener)
@@ -227,7 +216,7 @@ nsHTMLDNSPrefetch::nsListener::OnLookupComplete(nsICancelable *request,
   return NS_OK;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 nsHTMLDNSPrefetch::nsDeferrals::nsDeferrals()
   : mHead(0),
@@ -265,7 +254,7 @@ nsHTMLDNSPrefetch::nsDeferrals::Flush()
 nsresult
 nsHTMLDNSPrefetch::nsDeferrals::Add(PRUint16 flags, Link *aElement)
 {
-  // The FIFO has no lock, so it can only be accessed on main thread
+  
   NS_ASSERTION(NS_IsMainThread(), "nsDeferrals::Add must be on main thread");
 
   if (((mHead + 1) & sMaxDeferredMask) == mTail)
@@ -299,11 +288,16 @@ nsHTMLDNSPrefetch::nsDeferrals::SubmitQueue()
         hrefURI->GetAsciiHost(hostName);
 
       if (!hostName.IsEmpty()) {
-        nsCOMPtr<nsICancelable> tmpOutstanding;
+        if (IsNeckoChild()) {
+          gNeckoChild->SendHTMLDNSPrefetch(NS_ConvertUTF8toUTF16(hostName),
+                                           mEntries[mTail].mFlags);
+        } else {
+          nsCOMPtr<nsICancelable> tmpOutstanding;
 
-        sDNSService->AsyncResolve(hostName, 
+          sDNSService->AsyncResolve(hostName, 
                                   mEntries[mTail].mFlags | nsIDNSService::RESOLVE_SPECULATE,
                                   sDNSListener, nsnull, getter_AddRefs(tmpOutstanding));
+        }
       }
     }
     
@@ -320,20 +314,20 @@ nsHTMLDNSPrefetch::nsDeferrals::SubmitQueue()
 void
 nsHTMLDNSPrefetch::nsDeferrals::Activate()
 {
-  // Register as an observer for the document loader  
+  
   nsCOMPtr<nsIWebProgress> progress = 
     do_GetService(NS_DOCUMENTLOADER_SERVICE_CONTRACTID);
   if (progress)
     progress->AddProgressListener(this, nsIWebProgress::NOTIFY_STATE_DOCUMENT);
 
-  // Register as an observer for xpcom shutdown events so we can drop any element refs
+  
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
   if (observerService)
     observerService->AddObserver(this, "xpcom-shutdown", true);
 }
 
-// nsITimer related method
+
 
 void 
 nsHTMLDNSPrefetch::nsDeferrals::Tick(nsITimer *aTimer, void *aClosure)
@@ -345,14 +339,14 @@ nsHTMLDNSPrefetch::nsDeferrals::Tick(nsITimer *aTimer, void *aClosure)
   
   self->mTimerArmed = false;
 
-  // If the queue is not submitted here because there are outstanding pages being loaded,
-  // there is no need to rearm the timer as the queue will be submtited when those 
-  // loads complete.
+  
+  
+  
   if (!self->mActiveLoaderCount) 
     self->SubmitQueue();
 }
 
-//////////// nsIWebProgressListener methods
+
 
 NS_IMETHODIMP 
 nsHTMLDNSPrefetch::nsDeferrals::OnStateChange(nsIWebProgress* aWebProgress, 
@@ -360,14 +354,14 @@ nsHTMLDNSPrefetch::nsDeferrals::OnStateChange(nsIWebProgress* aWebProgress,
                                               PRUint32 progressStateFlags, 
                                               nsresult aStatus)
 {
-  // The FIFO has no lock, so it can only be accessed on main thread
+  
   NS_ASSERTION(NS_IsMainThread(), "nsDeferrals::OnStateChange must be on main thread");
   
   if (progressStateFlags & STATE_IS_DOCUMENT) {
     if (progressStateFlags & STATE_STOP) {
 
-      // Initialization may have missed a STATE_START notification, so do
-      // not go negative
+      
+      
       if (mActiveLoaderCount)
         mActiveLoaderCount--;
 
@@ -418,7 +412,7 @@ nsHTMLDNSPrefetch::nsDeferrals::OnSecurityChange(nsIWebProgress *aWebProgress,
   return NS_OK;
 }
 
-//////////// nsIObserver method
+
 
 NS_IMETHODIMP
 nsHTMLDNSPrefetch::nsDeferrals::Observe(nsISupports *subject,

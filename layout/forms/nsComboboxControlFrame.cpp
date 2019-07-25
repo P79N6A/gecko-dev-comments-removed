@@ -387,15 +387,6 @@ nsComboboxControlFrame::SetFocus(bool aOn, bool aRepaint)
   
   
   Invalidate(nsRect(0,0,mRect.width,mRect.height));
-
-  
-  
-  
-  
-  nsIViewManager* vm = PresContext()->GetPresShell()->GetViewManager();
-  if (vm) {
-    vm->UpdateAllViews(NS_VMREFRESH_NO_SYNC);
-  }
 }
 
 void
