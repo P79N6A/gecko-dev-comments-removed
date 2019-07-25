@@ -1939,6 +1939,198 @@ let RIL = {
 
 
 
+  stkHandleCallSetup: function stkHandleCallSetup(options) {
+     Buf.newParcel(REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM, options);
+     Buf.writeUint32(1);
+     Buf.writeUint32(options.hasConfirmed ? 1 : 0);
+     Buf.sendParcel();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  sendStkTerminalResponse: function sendStkTerminalResponse(response) {
+    if (response.hasConfirmed !== undefined) {
+      this.stkHandleCallSetup(response);
+      return;
+    }
+
+    let token = Buf.newParcel(REQUEST_STK_SEND_TERMINAL_RESPONSE);
+    let textLen = 0;
+    if (response.resultCode != STK_RESULT_HELP_INFO_REQUIRED) {
+      if (response.isYesNo) {
+        textLen = 1;
+      } else if (response.input) {
+        if (response.isUCS2) {
+          textLen = response.input.length * 2;
+        } else if (response.isPacked) {
+          let bits = response.input.length * 7;
+          textLen = bits * 7 / 8 + (bits % 8 ? 1 : 0);
+        } else {
+          textLen = response.input.length;
+        }
+      }
+    }
+
+    
+    let size = (5 + 
+                4 + 
+                3 + 
+                (response.itemIdentifier ? 3 : 0) +
+                (textLen ? textLen + 3 : 0)) * 2;
+    Buf.writeUint32(size);
+
+    
+    GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_COMMAND_DETAILS |
+                               COMPREHENSIONTLV_FLAG_CR);
+    GsmPDUHelper.writeHexOctet(3);
+    GsmPDUHelper.writeHexOctet(response.commandNumber);
+    GsmPDUHelper.writeHexOctet(response.typeOfCommand);
+    GsmPDUHelper.writeHexOctet(response.commandQualifier);
+
+    
+    
+    
+    
+    
+    
+    
+    GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_DEVICE_ID);
+    GsmPDUHelper.writeHexOctet(2);
+    GsmPDUHelper.writeHexOctet(STK_DEVICE_ID_ME);
+    GsmPDUHelper.writeHexOctet(STK_DEVICE_ID_SIM);
+
+    
+    GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_RESULT |
+                               COMPREHENSIONTLV_FLAG_CR);
+    GsmPDUHelper.writeHexOctet(1);
+    GsmPDUHelper.writeHexOctet(response.resultCode);
+
+    
+    if (response.itemIdentifier) {
+      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_ITEM_ID |
+                                 COMPREHENSIONTLV_FLAG_CR);
+      GsmPDUHelper.writeHexOctet(1);
+      GsmPDUHelper.writeHexOctet(response.itemIdentifier);
+    }
+
+    
+    if (response.resultCode != STK_RESULT_HELP_INFO_REQUIRED) {
+      let text;
+      if (response.isYesNo !== undefined) {
+        
+        
+        
+        
+        
+        text = response.isYesNo ? 0x01 : 0x00;
+      } else {
+        text = response.input;
+      }
+
+      if (text) {
+        GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_TEXT_STRING |
+                                   COMPREHENSIONTLV_FLAG_CR);
+        GsmPDUHelper.writeHexOctet(textLen + 1); 
+        let coding = response.isUCS2 ? STK_TEXT_CODING_UCS2 :
+                       (response.isPacked ? STK_TEXT_CODING_GSM_7BIT_PACKED :
+                          STK_TEXT_CODING_GSM_8BIT);
+        GsmPDUHelper.writeHexOctet(coding);
+
+        
+        switch (coding) {
+          case STK_TEXT_CODING_UCS2:
+            GsmPDUHelper.writeUCS2String(text);
+            break;
+          case STK_TEXT_CODING_GSM_7BIT_PACKED:
+            GsmPDUHelper.writeStringAsSeptets(text, 0, 0, 0);
+            break;
+          case STK_TEXT_CODING_GSM_8BIT:
+            for (let i = 0; i < textLen; i++) {
+              GsmPDUHelper.writeHexOctet(text.charCodeAt(i));
+            }
+            break;
+        }
+      }
+    }
+
+    Buf.writeUint32(0);
+    Buf.sendParcel();
+  },
+
+  
+
+
+
+
+
+  sendStkMenuSelection: function sendStkMenuSelection(command) {
+    this.sendICCEnvelopeCommand(command);
+  },
+
+  
+
+
+
+
+
+  sendICCEnvelopeCommand: function sendICCEnvelopeCommand(options) {
+    let token = Buf.newParcel(REQUEST_STK_SEND_ENVELOPE_COMMAND);
+    let berLen = 4 + 
+                 (options.itemIdentifier ? 3 : 0) +
+                 (options.helpRequested ? 2 : 0);
+    let size = (2 + berLen) * 2;
+
+    Buf.writeUint32(size);
+
+    
+    GsmPDUHelper.writeHexOctet(BER_MENU_SELECTION_TAG);
+    GsmPDUHelper.writeHexOctet(berLen);
+
+    
+    GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_DEVICE_ID |
+                               COMPREHENSIONTLV_FLAG_CR);
+    GsmPDUHelper.writeHexOctet(2);
+    GsmPDUHelper.writeHexOctet(STK_DEVICE_ID_KEYPAD);
+    GsmPDUHelper.writeHexOctet(STK_DEVICE_ID_SIM);
+
+    
+    if (options.itemIdentifier) {
+      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_ITEM_ID |
+                                 COMPREHENSIONTLV_FLAG_CR);
+      GsmPDUHelper.writeHexOctet(1);
+      GsmPDUHelper.writeHexOctet(options.itemIdentifier);
+    }
+
+    
+    if (options.helpRequested) {
+      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_HELP_REQUEST |
+                                 COMPREHENSIONTLV_FLAG_CR);
+      GsmPDUHelper.writeHexOctet(0);
+      
+    }
+
+    Buf.writeUint32(0);
+    Buf.sendParcel();
+  },
+
+  
+
+
+
+
+
    _isEmergencyNumber: function _isEmergencyNumber(number) {
      
      let numbers = libcutils.property_get("ril.ecclist");
@@ -2879,6 +3071,63 @@ let RIL = {
   
 
 
+  processStkProactiveCommand: function processStkProactiveCommand() {
+    let length = Buf.readUint32();
+    let berTlv = BerTlvHelper.decode(length / 2);
+    Buf.readStringDelimiter(length);
+
+    let ctlvs = berTlv.value;
+    let ctlv = StkProactiveCmdHelper.searchForTag(
+        COMPREHENSIONTLV_TAG_COMMAND_DETAILS, ctlvs);
+    if (!ctlv) {
+      RIL.sendStkTerminalResponse({
+        commandNumber: 0,
+        typeOfCommand: 0,
+        commandQualifier: 0,
+        resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+      throw new Error("Can't find COMMAND_DETAILS ComprehensionTlv");
+    }
+
+    let cmdDetails = ctlv.value;
+    if (DEBUG) {
+      debug("commandNumber = " + cmdDetails.commandNumber +
+           " typeOfCommand = " + cmdDetails.typeOfCommand.toString(16) +
+           " commandQualifier = " + cmdDetails.commandQualifier);
+    }
+
+    let param = StkCommandParamsFactory.createParam(cmdDetails, ctlvs);
+    if (param) {
+      switch (cmdDetails.typeOfCommand) {
+        case STK_CMD_SET_UP_MENU:
+        case STK_CMD_SET_UP_IDLE_MODE_TEXT:
+          this.sendStkTerminalResponse({commandNumber: cmdDetails.commandNumber,
+                                        typeOfCommand: cmdDetails.typeOfCommand,
+                                        commandQualifier: cmdDetails.commandQualifier,
+                                        resultCode: STK_RESULT_OK});
+          break;
+        case STK_CMD_DISPLAY_TEXT:
+          if (!param.responseNeeded) {
+            this.sendStkTerminalResponse({commandNumber: cmdDetails.commandNumber,
+                                          typeOfCommand: cmdDetails.typeOfCommand,
+                                          commandQualifier: cmdDetails.commandQualifier,
+                                          resultCode: STK_RESULT_OK});
+          }
+          break;
+        default:
+          break;
+      }
+
+      RIL.sendDOMMessage({rilMessageType: "stkcommand",
+                          commandNumber: cmdDetails.commandNumber,
+                          typeOfCommand: cmdDetails.typeOfCommand,
+                          commandQualifier: cmdDetails.commandQualifier,
+                          options: param});
+    }
+  },
+
+  
+
+
   sendDOMMessage: function sendDOMMessage(message) {
     postMessage(message, "*");
   },
@@ -3721,8 +3970,13 @@ RIL[UNSOLICITED_DATA_CALL_LIST_CHANGED] = function UNSOLICITED_DATA_CALL_LIST_CH
   this[REQUEST_DATA_CALL_LIST](length, {rilRequestError: ERROR_SUCCESS});
 };
 RIL[UNSOLICITED_SUPP_SVC_NOTIFICATION] = null;
-RIL[UNSOLICITED_STK_SESSION_END] = null;
-RIL[UNSOLICITED_STK_PROACTIVE_COMMAND] = null;
+
+RIL[UNSOLICITED_STK_SESSION_END] = function UNSOLICITED_STK_SESSION_END() {
+  this.sendDOMMessage({rilMessageType: "stksessionend"});
+};
+RIL[UNSOLICITED_STK_PROACTIVE_COMMAND] = function UNSOLICITED_STK_PROACTIVE_COMMAND() {
+  this.processStkProactiveCommand();
+};
 RIL[UNSOLICITED_STK_EVENT_NOTIFY] = null;
 RIL[UNSOLICITED_STK_CALL_SETUP] = null;
 RIL[UNSOLICITED_SIM_SMS_STORAGE_FULL] = null;
@@ -5133,6 +5387,736 @@ let GsmPDUHelper = {
     
     Buf.writeUint16(0);
     Buf.writeUint16(0);
+  },
+};
+
+let StkCommandParamsFactory = {
+  createParam: function createParam(cmdDetails, ctlvs) {
+    let param;
+    switch (cmdDetails.typeOfCommand) {
+      case STK_CMD_SET_UP_MENU:
+      case STK_CMD_SELECT_ITEM:
+        param = this.processSelectItem(cmdDetails, ctlvs);
+        break;
+      case STK_CMD_DISPLAY_TEXT:
+        param = this.processDisplayText(cmdDetails, ctlvs);
+        break;
+      case STK_CMD_SET_UP_IDLE_MODE_TEXT:
+        param = this.processSetUpIdleModeText(cmdDetails, ctlvs);
+        break;
+      case STK_CMD_GET_INKEY:
+        param = this.processGetInkey(cmdDetails, ctlvs);
+        break;
+      case STK_CMD_GET_INPUT:
+        param = this.processGetInput(cmdDetails, ctlvs);
+        break;
+      case STK_CMD_SEND_SS:
+      case STK_CMD_SEND_USSD:
+      case STK_CMD_SEND_SMS:
+      case STK_CMD_SEND_DTMF:
+        param = this.processEventNotify(cmdDetails, ctlvs);
+        break;
+      case STK_CMD_SET_UP_CALL:
+        param = this.processSetupCall(cmdDetails, ctlvs);
+        break;
+      case STK_LAUNCH_BROWSER:
+        param = this.processLaunchBrowser(cmdDetails, ctlvs);
+        break;
+      default:
+        debug("unknown proactive command");
+        break;
+    }
+    return param;
+  },
+
+  
+
+
+
+
+
+
+
+  processSelectItem: function processSelectItem(cmdDetails, ctlvs) {
+    let menu = {};
+
+    let ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_ALPHA_ID, ctlvs);
+    if (ctlv) {
+      menu.title = ctlv.value.identifier;
+    }
+
+    menu.items = [];
+    for (let i = 0; i < ctlvs.length; i++) {
+      let ctlv = ctlvs[i];
+      if (ctlv.tag == COMPREHENSIONTLV_TAG_ITEM) {
+        menu.items.push(ctlv.value);
+      }
+    }
+
+    if (menu.items.length == 0) {
+      RIL.sendStkTerminalResponse({
+          commandNumber: cmdDetails.commandNumber,
+          typeOfCommand: cmdDetails.typeOfCommand,
+          commandQualifier: cmdDetails.commandQualifier,
+          resultCode: STK_RESULT_REQUIRED_VALUES_MISSING});
+      throw new Error("Stk Menu: Required value missing : items");
+    }
+
+    ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_ITEM_ID, ctlvs);
+    if (ctlv) {
+      menu.defaultItem = ctlv.value.identifier - 1;
+    }
+
+    
+    menu.presentationType = cmdDetails.commandQualifier & 0x03;
+
+    
+    if (cmdDetails.commandQualifier & 0x80) {
+      menu.isHelpAvailable = true;
+    }
+
+    return menu;
+  },
+
+  processDisplayText: function processDisplayText(cmdDetails, ctlvs) {
+    let textMsg = {};
+
+    let ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_TEXT_STRING, ctlvs);
+    if (!ctlv) {
+      RIL.sendStkTerminalResponse({
+        commandNumber: cmdDetails.commandNumber,
+        typeOfCommand: cmdDetails.typeOfCommand,
+        commandQualifier: cmdDetails.commandQualifier,
+        resultCode: STK_RESULT_REQUIRED_VALUES_MISSING});
+      throw new Error("Stk Display Text: Required value missing : Text String");
+    }
+    textMsg.text = ctlv.value.text;
+
+    ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_IMMEDIATE_RESPONSE, ctlvs);
+    if (ctlv) {
+      textMsg.responseNeeded = true;
+    }
+
+    
+    if (cmdDetails.commandQualifier & 0x01) {
+      textMsg.isHighPriority = true;
+    }
+
+    
+    if (cmdDetails.commandQualifier & 0x80) {
+      textMsg.userClear = true;
+    }
+
+    return textMsg;
+  },
+
+  processSetUpIdleModeText: function processSetUpIdleModeText(cmdDetails, ctlvs) {
+    let textMsg = {};
+
+    let ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_TEXT_STRING, ctlvs);
+    if (!ctlv) {
+      RIL.sendStkTerminalResponse({
+        commandNumber: cmdDetails.commandNumber,
+        typeOfCommand: cmdDetails.typeOfCommand,
+        commandQualifier: cmdDetails.commandQualifier,
+        resultCode: STK_RESULT_REQUIRED_VALUES_MISSING});
+      throw new Error("Stk Set Up Idle Text: Required value missing : Text String");
+    }
+    textMsg.text = ctlv.value.text;
+
+    return textMsg;
+  },
+
+  processGetInkey: function processGetInkey(cmdDetails, ctlvs) {
+    let input = {};
+
+    let ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_TEXT_STRING, ctlvs);
+    if (!ctlv) {
+      RIL.sendStkTerminalResponse({
+        commandNumber: cmdDetails.commandNumber,
+        typeOfCommand: cmdDetails.typeOfCommand,
+        commandQualifier: cmdDetails.commandQualifier,
+        resultCode: STK_RESULT_REQUIRED_VALUES_MISSING});
+      throw new Error("Stk Get InKey: Required value missing : Text String");
+    }
+    input.text = ctlv.value.text;
+
+    input.minLength = 1;
+    input.maxLength = 1;
+
+    
+    if (cmdDetails.commandQualifier & 0x01) {
+      input.isAlphabet = true;
+    }
+
+    
+    if (cmdDetails.commandQualifier & 0x02) {
+      input.isUCS2 = true;
+    }
+
+    
+    
+    if (cmdDetails.commandQualifier & 0x04) {
+      input.isYesNoRequested = true;
+    }
+
+    
+    if (cmdDetails.commandQualifier & 0x80) {
+      input.isHelpAvailable = true;
+    }
+
+    return input;
+  },
+
+  processGetInput: function processGetInput(cmdDetails, ctlvs) {
+    let input = {};
+
+    let ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_TEXT_STRING, ctlvs);
+    if (!ctlv) {
+      RIL.sendStkTerminalResponse({
+        commandNumber: cmdDetails.commandNumber,
+        typeOfCommand: cmdDetails.typeOfCommand,
+        commandQualifier: cmdDetails.commandQualifier,
+        resultCode: STK_RESULT_REQUIRED_VALUES_MISSING});
+      throw new Error("Stk Get Input: Required value missing : Text String");
+    }
+    input.text = ctlv.value.text;
+
+    ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_RESPONSE_LENGTH, ctlvs);
+    if (ctlv) {
+      input.minLength = ctlv.value.minLength;
+      input.maxLength = ctlv.value.maxLength;
+    }
+
+    ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_DEFAULT_TEXT, ctlvs);
+    if (ctlv) {
+      input.defaultText = ctlv.value.text;
+    }
+
+    
+    if (cmdDetails.commandQualifier & 0x01) {
+      input.isAlphabet = true;
+    }
+
+    
+    if (cmdDetails.commandQualifier & 0x02) {
+      input.isUCS2 = true;
+    }
+
+    
+    if (cmdDetails.commandQualifier & 0x04) {
+      input.hideInput = true;
+    }
+
+    
+    if (cmdDetails.commandQualifier & 0x08) {
+      input.isPacked = true;
+    }
+
+    
+    if (cmdDetails.commandQualifier & 0x80) {
+      input.isHelpAvailable = true;
+    }
+
+    return input;
+  },
+
+  processEventNotify: function processEventNotify(cmdDetails, ctlvs) {
+    let textMsg = {};
+
+    let ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_ALPHA_ID, ctlvs);
+    if (!ctlv) {
+      RIL.sendStkTerminalResponse({
+        commandNumber: cmdDetails.commandNumber,
+        typeOfCommand: cmdDetails.typeOfCommand,
+        commandQualifier: cmdDetails.commandQualifier,
+        resultCode: STK_RESULT_REQUIRED_VALUES_MISSING});
+      throw new Error("Stk Event Notfiy: Required value missing : Alpha ID");
+    }
+    textMsg.text = ctlv.value.identifier;
+
+    return textMsg;
+  },
+
+  processSetupCall: function processSetupCall(cmdDetails, ctlvs) {
+    let call = {};
+
+    for (let i = 0; i < ctlvs.length; i++) {
+      let ctlv = ctlvs[i];
+      if (ctlv.tag == COMPREHENSIONTLV_TAG_ALPHA_ID) {
+        if (!call.confirmMessage) {
+          call.confirmMessage = ctlv.value.identifier;
+        } else {
+          call.callMessge = ctlv.value.identifier;
+          break;
+        }
+      }
+    }
+
+    let ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_ADDRESS, ctlvs);
+    if (!ctlv) {
+      RIL.sendStkTerminalResponse({
+        commandNumber: cmdDetails.commandNumber,
+        typeOfCommand: cmdDetails.typeOfCommand,
+        commandQualifier: cmdDetails.commandQualifier,
+        resultCode: STK_RESULT_REQUIRED_VALUES_MISSING});
+      throw new Error("Stk Set Up Call: Required value missing : Adress");
+    }
+    call.address = ctlv.value.number;
+
+    return call;
+  },
+
+  processLaunchBrowser: function processLaunchBrowser(cmdDetails, ctlvs) {
+    let browser = {};
+
+    let ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_URL, ctlvs);
+    if (!ctlv) {
+      RIL.sendStkTerminalResponse({
+        commandNumber: cmdDetails.commandNumber,
+        typeOfCommand: cmdDetails.typeOfCommand,
+        commandQualifier: cmdDetails.commandQualifier,
+        resultCode: STK_RESULT_REQUIRED_VALUES_MISSING});
+      throw new Error("Stk Launch Browser: Required value missing : URL");
+    }
+    browser.url = ctlv.value.url;
+
+    ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_ALPHA_ID, ctlvs)
+    if (ctlv) {
+      browser.confirmMessage = ctlv.value.identifier;
+    }
+
+    browser.mode = cmdDetails.commandQualifier & 0x03;
+
+    return browser;
+  }
+};
+
+let StkProactiveCmdHelper = {
+  retrieve: function retrieve(tag, length) {
+    switch (tag) {
+      case COMPREHENSIONTLV_TAG_COMMAND_DETAILS:
+        return this.retrieveCommandDetails(length);
+      case COMPREHENSIONTLV_TAG_DEVICE_ID:
+        return this.retrieveDeviceId(length);
+      case COMPREHENSIONTLV_TAG_ALPHA_ID:
+        return this.retrieveAlphaId(length);
+      case COMPREHENSIONTLV_TAG_ADDRESS:
+        return this.retrieveAddress(length);
+      case COMPREHENSIONTLV_TAG_TEXT_STRING:
+        return this.retrieveTextString(length);
+      case COMPREHENSIONTLV_TAG_ITEM:
+        return this.retrieveItem(length);
+      case COMPREHENSIONTLV_TAG_ITEM_ID:
+        return this.retrieveItemId(length);
+      case COMPREHENSIONTLV_TAG_RESPONSE_LENGTH:
+        return this.retrieveResponseLength(length);
+      case COMPREHENSIONTLV_TAG_DEFAULT_TEXT:
+        return this.retrieveDefaultText(length);
+      case COMPREHENSIONTLV_TAG_IMMEDIATE_RESPONSE:
+        return this.retrieveImmediaResponse(length);
+      case COMPREHENSIONTLV_TAG_URL:
+        return this.retrieveUrl(length);
+      default:
+        debug("StkProactiveCmdHelper: unknown tag " + tag.toString(16));
+        Buf.seekIncoming(length * PDU_HEX_OCTET_SIZE);
+        return null;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  retrieveCommandDetails: function retrieveCommandDetails(length) {
+    let cmdDetails = {
+      commandNumber: GsmPDUHelper.readHexOctet(),
+      typeOfCommand: GsmPDUHelper.readHexOctet(),
+      commandQualifier: GsmPDUHelper.readHexOctet()
+    };
+    return cmdDetails;
+  },
+
+  
+
+
+
+
+
+
+
+
+  retrieveDeviceId: function retrieveDeviceId(length) {
+    let deviceId = {
+      sourceId: GsmPDUHelper.readHexOctet(),
+      destinationId: GsmPDUHelper.readHexOctet()
+    };
+    return deviceId;
+  },
+
+  
+
+
+
+
+
+
+
+
+  retrieveAlphaId: function retrieveAlphaId(length) {
+    let alphaId = {
+      identifier: GsmPDUHelper.readAlphaIdentifier(length)
+    };
+    return alphaId;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  retrieveAddress: function retrieveAddress(length) {
+    let address = {
+      number : GsmPDUHelper.readDiallingNumber(length)
+    };
+    return address;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  retrieveTextString: function retrieveTextString(length) {
+    if (!length) {
+      
+      return null;
+    }
+
+    let text = {
+      codingScheme: GsmPDUHelper.readHexOctet()
+    };
+
+    length--; 
+    switch (text.codingScheme & 0x0f) {
+      case STK_TEXT_CODING_GSM_7BIT_PACKED:
+        text.textString = GsmPDUHelper.readSeptetsToString(length / 7, 0, 0, 0);
+        break;
+      case STK_TEXT_CODING_GSM_8BIT:
+        text.textString = GsmPDUHelper.read8BitUnpackedToString(length);
+        break;
+      case STK_TEXT_CODING_UCS2:
+        text.textString = GsmPDUHelper.readUCS2String(length);
+        break;
+    }
+    return text;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  retrieveItem: function retrieveItem(length) {
+    let item = {
+      identifier: GsmPDUHelper.readHexOctet(),
+      text: GsmPDUHelper.readAlphaIdentifier(length - 1)
+    };
+    return item;
+  },
+
+  
+
+
+
+
+
+
+
+  retrieveItemId: function retrieveItemId(length) {
+    let itemId = {
+      identifier: GsmPDUHelper.readHexOctet()
+    };
+    return itemId;
+  },
+
+  
+
+
+
+
+
+
+
+
+  retrieveResponseLength: function retrieveResponseLength(length) {
+    let rspLength = {
+      minLength : GsmPDUHelper.readHexOctet(),
+      maxLength : GsmPDUHelper.readHexOctet()
+    };
+    return rspLength;
+  },
+
+  
+
+
+
+
+  retrieveDefaultText: function retrieveDefaultText(length) {
+    return retrieveTextString(length);
+  },
+
+  
+
+
+
+
+
+
+  retrieveImmediaResponse: function retrieveImmediaResponse(length) {
+    return {};
+  },
+
+  
+
+
+
+
+
+
+
+
+  retrieveUrl: function retrieveUrl(length) {
+    let s = "";
+    for (let i = 0; i < length; i++) {
+      s += String.fromCharCode(GsmPDUHelper.readHexOctet());
+    }
+    return {url: s};
+  },
+
+  searchForTag: function searchForTag(tag, ctlvs) {
+    for (let i = 0; i < ctlvs.length; i++) {
+      let ctlv = ctlvs[i];
+      if ((ctlv.tag & ~COMPREHENSIONTLV_FLAG_CR) == tag) {
+        return ctlv;
+      }
+    }
+    return null;
+  },
+};
+
+let ComprehensionTlvHelper = {
+  
+
+
+  decode: function decode() {
+    let hlen = 0; 
+    let temp = GsmPDUHelper.readHexOctet();
+    hlen++;
+
+    
+    let tag, tagValue, cr;
+    switch (temp) {
+      
+      case 0x0: 
+      case 0xff: 
+      case 0x80: 
+        RIL.sendStkTerminalResponse({
+          commandNumber: 0,
+          typeOfCommand: 0,
+          commandQualifier: 0,
+          resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+        throw new Error("Invalid octet when parsing Comprehension TLV :" + temp);
+        break;
+      case 0x7f: 
+        
+        
+        
+        
+        tag = (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
+        hlen += 2;
+        cr = (tag & 0x8000) != 0;
+        tag &= ~0x8000;
+        break;
+      default: 
+        tag = temp;
+        
+        
+        
+        cr = (tag & 0x80) != 0;
+        tag &= ~0x80;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    let length; 
+    temp = GsmPDUHelper.readHexOctet();
+    hlen++;
+    if (temp < 0x80) {
+      length = temp;
+    } else if (temp == 0x81) {
+      length = GsmPDUHelper.readHexOctet();
+      hlen++;
+      if (length < 0x80) {
+        RIL.sendStkTerminalResponse({
+          commandNumber: 0,
+          typeOfCommand: 0,
+          commandQualifier: 0,
+          resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+        throw new Error("Invalid length in Comprehension TLV :" + length);
+      }
+    } else if (temp == 0x82) {
+      length = (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
+      hlen += 2;
+      if (lenth < 0x0100) {
+         RIL.sendStkTerminalResponse({
+          commandNumber: 0,
+          typeOfCommand: 0,
+          commandQualifier: 0,
+          resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+        throw new Error("Invalid length in 3-byte Comprehension TLV :" + length);
+      }
+    } else if (temp == 0x83) {
+      length = (GsmPDUHelper.readHexOctet() << 16) |
+               (GsmPDUHelper.readHexOctet() << 8)  |
+                GsmPDUHelper.readHexOctet();
+      hlen += 3;
+      if (length < 0x010000) {
+        RIL.sendStkTerminalResponse({
+          commandNumber: 0,
+          typeOfCommand: 0,
+          commandQualifier: 0,
+          resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+        throw new Error("Invalid length in 4-byte Comprehension TLV :" + length);
+      }
+    } else {
+      RIL.sendStkTerminalResponse({
+        commandNumber: 0,
+        typeOfCommand: 0,
+        commandQualifier: 0,
+        resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+      throw new Error("Invalid octet in Comprehension TLV :" + length);
+    }
+
+    let ctlv = {
+      tag: tag,
+      length: length,
+      value: StkProactiveCmdHelper.retrieve(tag, length),
+      cr: cr,
+      hlen: hlen
+    };
+    return ctlv;
+  },
+
+  decodeChunks: function decodeChunks(length) {
+    let chunks = [];
+    let index = 0;
+    while (index < length) {
+      let tlv = this.decode();
+      chunks.push(tlv);
+      index += tlv.length;
+      index += tlv.hlen;
+    }
+    return chunks;
+  }
+};
+
+let BerTlvHelper = {
+  
+
+
+
+
+
+  decode: function decode(dataLen) {
+    
+    let hlen = 0;
+    let tag = GsmPDUHelper.readHexOctet();
+    hlen++;
+
+    
+    
+    
+    let length;
+    if (tag == BER_PROACTIVE_COMMAND_TAG) {
+      let temp = GsmPDUHelper.readHexOctet();
+      hlen++;
+      if (temp < 0x80) {
+        length = temp;
+      } else if(temp == 0x81) {
+        length = GsmPDUHelper.readHexOctet();
+        if (length < 0x80) {
+          RIL.sendStkTerminalResponse({
+            commandNumber: 0,
+            typeOfCommand: 0,
+            commandQualifier: 0,
+            resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+          throw new Error("Invalid length " + length);
+        }
+      } else {
+        RIL.sendStkTerminalResponse({
+          commandNumber: 0,
+          typeOfCommand: 0,
+          commandQualifier: 0,
+          resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+        throw new Error("Invalid length octet " + temp);
+      }
+    } else {
+      RIL.sendStkTerminalResponse({
+        commandNumber: 0,
+        typeOfCommand: 0,
+        commandQualifier: 0,
+        resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+      throw new Error("Unknown BER tag");
+    }
+
+    
+    if (dataLen - hlen < length) {
+      RIL.sendStkTerminalResponse({
+        commandNumber: 0,
+        typeOfCommand: 0,
+        commandQualifier: 0,
+        resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+      throw new Error("BerTlvHelper value length too long!!");
+      return;
+    }
+
+    let ctlvs = ComprehensionTlvHelper.decodeChunks(length);
+    let berTlv = {
+      tag: tag,
+      length: length,
+      value: ctlvs
+    };
+    return berTlv;
   }
 };
 
