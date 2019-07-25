@@ -429,3 +429,6 @@ pref("app.update.url.details", "http://www.mozilla.com/%LOCALE%/mobile/releases/
 pref("app.update.interval", 28800);
 #endif
 #endif
+
+
+pref("editor.singleLine.pasteNewlines", 2);
