@@ -161,12 +161,6 @@ public:
     const nsXPTType GetType() const {return type.prefix;}
 
     
-    
-    
-    PRBool IsIndirect() const {return IsOut() ||
-                               GetType().TagPart() == nsXPTType::T_JSVAL;}
-
-    
 
 private:
     nsXPTParamInfo();   
