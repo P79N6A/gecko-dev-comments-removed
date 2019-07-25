@@ -297,8 +297,6 @@ window.Page = {
           
           
           
-          UI.resize(true);
-          
           
           var mirror = currentTab.mirror;
           var $tab = $(mirror.el);
@@ -331,9 +329,9 @@ window.Page = {
             var activeGroup = Groups.getActiveGroup();
             if( activeGroup ) activeGroup.reorderBasedOnTabOrder(item);        
     
-            
             window.Groups.setActiveGroup(null);
-            TabMirror.resumePainting();            
+            TabMirror.resumePainting();        
+            UI.resize(true);
           });
         }
       } else { 
@@ -527,6 +525,9 @@ UIClass.prototype = {
       }
       
       
+      this.addDevMenu();
+
+      
       if(this.focused) {
         Page.hideChrome();
       }
@@ -584,10 +585,7 @@ UIClass.prototype = {
       $(window).resize(function() {
         self.resize();
       });
-      
-      
-      this.addDevMenu();
-      
+            
       
       this.initialized = true;
       this.save(); 
@@ -601,7 +599,6 @@ UIClass.prototype = {
   
   
   resize: function(force) {
-
     if( typeof(force) == "undefined" ) force = false;
 
     
@@ -628,6 +625,7 @@ UIClass.prototype = {
     if(newPageBounds.equals(oldPageBounds))
       return;
       
+    Groups.repositionNewTabGroup(); 
 
     if(newPageBounds.width < this.pageBounds.width && newPageBounds.width > itemBounds.width)
       newPageBounds.width = this.pageBounds.width;
