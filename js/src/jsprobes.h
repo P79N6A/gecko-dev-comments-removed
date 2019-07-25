@@ -33,10 +33,6 @@
 
 
 
-
-
-
-
 #ifndef _JSPROBES_H
 #define _JSPROBES_H
 
@@ -48,15 +44,58 @@
 
 namespace js {
 
-namespace Probes {
+class Probes {
+    static bool ProfilingActive;
+    static bool controlProfilers(JSContext *cx, bool toState);
 
+    static const char nullName[];
+    static const char anonymousName[];
 
+    static const char *FunctionName(JSContext *cx, const JSFunction *fun, JSAutoByteString* bytes)
+    {
+        if (!fun)
+            return nullName;
+        JSAtom *atom = const_cast<JSAtom*>(fun->atom);
+        if (!atom)
+            return anonymousName;
+        return bytes->encode(cx, atom) ? bytes->ptr() : nullName;
+    }
 
+    static const char *ScriptFilename(const JSScript *script) {
+        if (! script)
+            return "(null)";
+        if (! script->filename)
+            return "(anonymous)";
+        return script->filename;
+    }
 
+    static const char *ObjectClassname(JSObject *obj) {
+        if (! obj)
+            return "(null object)";
+        Class *clasp = obj->getClass();
+        if (! clasp)
+            return "(null)";
+        const char *class_name = clasp->name;
+        if (! class_name)
+            return "(null class name)";
+        return class_name;
+    }
 
+    static void current_location(JSContext *cx, int* lineno, char const **filename);
 
+    static const char *FunctionClassname(const JSFunction *fun);
+    static const char *ScriptFilename(JSScript *script);
+    static int FunctionLineNumber(JSContext *cx, const JSFunction *fun);
 
+    static void enterJSFunImpl(JSContext *cx, JSFunction *fun, JSScript *script);
+    static void handleFunctionReturn(JSContext *cx, JSFunction *fun, JSScript *script);
+    static void finalizeObjectImpl(JSObject *obj);
+  public:
+    static bool createRuntime(JSRuntime *rt);
+    static bool destroyRuntime(JSRuntime *rt);
+    static bool shutdown();
 
+    
 
 
 
@@ -66,186 +105,107 @@ namespace Probes {
 
 
 
+    static bool pauseProfilers(JSContext *cx) {
+        bool prevState = ProfilingActive;
+        controlProfilers(cx, false);
+        return prevState;
+    }
+    static bool resumeProfilers(JSContext *cx) {
+        bool prevState = ProfilingActive;
+        controlProfilers(cx, true);
+        return prevState;
+    }
 
+    static bool callTrackingActive(JSContext *);
 
+    static bool enterJSFun(JSContext *, JSFunction *, JSScript *, int counter = 1);
+    static bool exitJSFun(JSContext *, JSFunction *, JSScript *, int counter = 0);
 
+    static bool startExecution(JSContext *cx, JSScript *script);
+    static bool stopExecution(JSContext *cx, JSScript *script);
 
+    static bool resizeHeap(JSCompartment *compartment, size_t oldSize, size_t newSize);
 
+    
+    static bool createObject(JSContext *cx, JSObject *obj);
 
+    static bool resizeObject(JSContext *cx, JSObject *obj, size_t oldSize, size_t newSize);
 
+    
+    static bool finalizeObject(JSObject *obj);
 
+    
 
 
 
 
 
 
-extern bool ProfilingActive;
 
-extern const char nullName[];
-extern const char anonymousName[];
+    static bool createString(JSContext *cx, JSString *string, size_t length);
 
+    
 
-bool createRuntime(JSRuntime *rt);
 
+    static bool finalizeString(JSString *string);
 
-bool destroyRuntime(JSRuntime *rt);
+    static bool compileScriptBegin(JSContext *cx, const char *filename, int lineno);
+    static bool compileScriptEnd(JSContext *cx, JSScript *script, const char *filename, int lineno);
 
+    static bool calloutBegin(JSContext *cx, JSFunction *fun);
+    static bool calloutEnd(JSContext *cx, JSFunction *fun);
 
-bool shutdown();
+    static bool acquireMemory(JSContext *cx, void *address, size_t nbytes);
+    static bool releaseMemory(JSContext *cx, void *address, size_t nbytes);
 
+    static bool GCStart(JSCompartment *compartment);
+    static bool GCEnd(JSCompartment *compartment);
+    static bool GCStartMarkPhase(JSCompartment *compartment);
 
+    static bool GCEndMarkPhase(JSCompartment *compartment);
+    static bool GCStartSweepPhase(JSCompartment *compartment);
+    static bool GCEndSweepPhase(JSCompartment *compartment);
 
+    static bool CustomMark(JSString *string);
+    static bool CustomMark(const char *string);
+    static bool CustomMark(int marker);
 
-
-
-bool callTrackingActive(JSContext *);
-
-
-bool enterJSFun(JSContext *, JSFunction *, JSScript *, int counter = 1);
-
-
-bool exitJSFun(JSContext *, JSFunction *, JSScript *, int counter = 0);
-
-
-bool startExecution(JSContext *cx, JSScript *script);
-
-
-bool stopExecution(JSContext *cx, JSScript *script);
-
-
-bool resizeHeap(JSCompartment *compartment, size_t oldSize, size_t newSize);
-
-
-
-
-bool createObject(JSContext *cx, JSObject *obj);
-
-
-bool resizeObject(JSContext *cx, JSObject *obj, size_t oldSize, size_t newSize);
-
-
-
-
-
-bool finalizeObject(JSObject *obj);
-
-
-
-
-
-
-
-
-
-bool createString(JSContext *cx, JSString *string, size_t length);
-
-
-
-
-
-
-bool finalizeString(JSString *string);
-
-
-bool compileScriptBegin(JSContext *cx, const char *filename, int lineno);
-
-
-bool compileScriptEnd(JSContext *cx, JSScript *script, const char *filename, int lineno);
-
-
-bool calloutBegin(JSContext *cx, JSFunction *fun);
-
-
-bool calloutEnd(JSContext *cx, JSFunction *fun);
-
-
-bool acquireMemory(JSContext *cx, void *address, size_t nbytes);
-bool releaseMemory(JSContext *cx, void *address, size_t nbytes);
-
-
-
-
-
-
-
-
-
-
-
-
-bool GCStart(JSCompartment *compartment);
-bool GCEnd(JSCompartment *compartment);
-
-bool GCStartMarkPhase(JSCompartment *compartment);
-bool GCEndMarkPhase(JSCompartment *compartment);
-
-bool GCStartSweepPhase(JSCompartment *compartment);
-bool GCEndSweepPhase(JSCompartment *compartment);
-
-
-
-
-
-
-
-
-
-bool CustomMark(JSString *string);
-bool CustomMark(const char *string);
-bool CustomMark(int marker);
-
-
-
-
-
-
-
-void DTraceEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script);
-void DTraceExitJSFun(JSContext *cx, JSFunction *fun, JSScript *script);
-
-
-
+    static bool startProfiling();
+    static void stopProfiling();
 
 #ifdef MOZ_ETW
-
-bool ETWCreateRuntime(JSRuntime *rt);
-bool ETWDestroyRuntime(JSRuntime *rt);
-bool ETWShutdown();
-bool ETWCallTrackingActive(JSContext *cx);
-bool ETWEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script, int counter);
-bool ETWExitJSFun(JSContext *cx, JSFunction *fun, JSScript *script, int counter);
-bool ETWCreateObject(JSContext *cx, JSObject *obj);
-bool ETWFinalizeObject(JSObject *obj);
-bool ETWResizeObject(JSContext *cx, JSObject *obj, size_t oldSize, size_t newSize);
-bool ETWCreateString(JSContext *cx, JSString *string, size_t length);
-bool ETWFinalizeString(JSString *string);
-bool ETWCompileScriptBegin(const char *filename, int lineno);
-bool ETWCompileScriptEnd(const char *filename, int lineno);
-bool ETWCalloutBegin(JSContext *cx, JSFunction *fun);
-bool ETWCalloutEnd(JSContext *cx, JSFunction *fun);
-bool ETWAcquireMemory(JSContext *cx, void *address, size_t nbytes);
-bool ETWReleaseMemory(JSContext *cx, void *address, size_t nbytes);
-bool ETWGCStart(JSCompartment *compartment);
-bool ETWGCEnd(JSCompartment *compartment);
-bool ETWGCStartMarkPhase(JSCompartment *compartment);
-bool ETWGCEndMarkPhase(JSCompartment *compartment);
-bool ETWGCStartSweepPhase(JSCompartment *compartment);
-bool ETWGCEndSweepPhase(JSCompartment *compartment);
-bool ETWCustomMark(JSString *string);
-bool ETWCustomMark(const char *string);
-bool ETWCustomMark(int marker);
-bool ETWStartExecution(JSContext *cx, JSScript *script);
-bool ETWStopExecution(JSContext *cx, JSScript *script);
-bool ETWResizeHeap(JSCompartment *compartment, size_t oldSize, size_t newSize);
+    
+    static bool ETWCreateRuntime(JSRuntime *rt);
+    static bool ETWDestroyRuntime(JSRuntime *rt);
+    static bool ETWShutdown();
+    static bool ETWCallTrackingActive(JSContext *cx);
+    static bool ETWEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script, int counter);
+    static bool ETWExitJSFun(JSContext *cx, JSFunction *fun, JSScript *script, int counter);
+    static bool ETWCreateObject(JSContext *cx, JSObject *obj);
+    static bool ETWFinalizeObject(JSObject *obj);
+    static bool ETWResizeObject(JSContext *cx, JSObject *obj, size_t oldSize, size_t newSize);
+    static bool ETWCreateString(JSContext *cx, JSString *string, size_t length);
+    static bool ETWFinalizeString(JSString *string);
+    static bool ETWCompileScriptBegin(const char *filename, int lineno);
+    static bool ETWCompileScriptEnd(const char *filename, int lineno);
+    static bool ETWCalloutBegin(JSContext *cx, JSFunction *fun);
+    static bool ETWCalloutEnd(JSContext *cx, JSFunction *fun);
+    static bool ETWAcquireMemory(JSContext *cx, void *address, size_t nbytes);
+    static bool ETWReleaseMemory(JSContext *cx, void *address, size_t nbytes);
+    static bool ETWGCStart(JSCompartment *compartment);
+    static bool ETWGCEnd(JSCompartment *compartment);
+    static bool ETWGCStartMarkPhase(JSCompartment *compartment);
+    static bool ETWGCEndMarkPhase(JSCompartment *compartment);
+    static bool ETWGCStartSweepPhase(JSCompartment *compartment);
+    static bool ETWGCEndSweepPhase(JSCompartment *compartment);
+    static bool ETWCustomMark(JSString *string);
+    static bool ETWCustomMark(const char *string);
+    static bool ETWCustomMark(int marker);
+    static bool ETWStartExecution(JSContext *cx, JSScript *script);
+    static bool ETWStopExecution(JSContext *cx, JSScript *script);
+    static bool ETWResizeHeap(JSCompartment *compartment, size_t oldSize, size_t newSize);
 #endif
-
-} 
-
-
-
-
-
+};
 
 inline bool
 Probes::createRuntime(JSRuntime *rt)
@@ -298,13 +258,30 @@ Probes::callTrackingActive(JSContext *cx)
     return false;
 }
 
+extern inline JS_FRIEND_API(JSBool)
+js_PauseProfilers(JSContext *cx, uintN argc, jsval *vp)
+{
+    Probes::pauseProfilers(cx);
+    return JS_TRUE;
+}
+
+extern inline JS_FRIEND_API(JSBool)
+js_ResumeProfilers(JSContext *cx, uintN argc, jsval *vp)
+{
+    Probes::resumeProfilers(cx);
+    return JS_TRUE;
+}
+
+extern JS_FRIEND_API(JSBool)
+js_ResumeProfilers(JSContext *cx, uintN argc, jsval *vp);
+
 inline bool
 Probes::enterJSFun(JSContext *cx, JSFunction *fun, JSScript *script, int counter)
 {
     bool ok = true;
 #ifdef INCLUDE_MOZILLA_DTRACE
     if (JAVASCRIPT_FUNCTION_ENTRY_ENABLED())
-        DTraceEnterJSFun(cx, fun, script);
+        enterJSFunImpl(cx, fun, script);
 #endif
 #ifdef MOZ_TRACE_JSCALLS
     cx->doFunctionCallback(fun, script, counter);
@@ -324,7 +301,7 @@ Probes::exitJSFun(JSContext *cx, JSFunction *fun, JSScript *script, int counter)
 
 #ifdef INCLUDE_MOZILLA_DTRACE
     if (JAVASCRIPT_FUNCTION_RETURN_ENABLED())
-        DTraceExitJSFun(cx, fun, script);
+        handleFunctionReturn(cx, fun, script);
 #endif
 #ifdef MOZ_TRACE_JSCALLS
     if (counter > 0)
@@ -351,20 +328,6 @@ Probes::resizeHeap(JSCompartment *compartment, size_t oldSize, size_t newSize)
 
     return ok;
 }
-
-#ifdef INCLUDE_MOZILLA_DTRACE
-static const char *ObjectClassname(JSObject *obj) {
-    if (! obj)
-        return "(null object)";
-    Class *clasp = obj->getClass();
-    if (! clasp)
-        return "(null)";
-    const char *class_name = clasp->name;
-    if (! class_name)
-        return "(null class name)";
-    return class_name;
-}
-#endif
 
 inline bool
 Probes::createObject(JSContext *cx, JSObject *obj)
@@ -694,10 +657,5 @@ struct AutoFunctionCallProbe {
 };
 
 } 
-
-
-
-
-
-
+    
 #endif 
