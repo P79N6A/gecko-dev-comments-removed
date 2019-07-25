@@ -1033,6 +1033,9 @@ struct JSThreadData {
     
     jsuword             *nativeStackBase;
 
+    
+    JSObject            *enumerators;
+
     bool init();
     void finish();
     void mark(JSTracer *trc);
