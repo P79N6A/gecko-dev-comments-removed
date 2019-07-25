@@ -1,25 +1,25 @@
-/*
- * Copyright © 2009 Red Hat, Inc.
- *
- * Permission to use, copy, modify, distribute, and sell this software and its
- * documentation for any purpose is hereby granted without fee, provided that
- * the above copyright notice appear in all copies and that both that
- * copyright notice and this permission notice appear in supporting
- * documentation, and that the name of Red Hat not be used in advertising or
- * publicity pertaining to distribution of the software without specific,
- * written prior permission.  Red Hat makes no representations about the
- * suitability of this software for any purpose.  It is provided "as is"
- * without express or implied warranty.
- *
- * THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
- * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
- * FITNESS, IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
- * AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
- * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
- * SOFTWARE.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -90,13 +90,13 @@ _pixman_implementation_create (pixman_implementation_t *delegate,
 
     assert (fast_paths);
 
-    /* Make sure the whole delegate chain has the right toplevel */
+    
     imp->delegate = delegate;
     for (d = imp; d != NULL; d = d->delegate)
 	d->toplevel = imp;
 
-    /* Fill out function pointers with ones that just delegate
-     */
+    
+
     imp->blt = delegate_blt;
     imp->fill = delegate_fill;
     imp->src_iter_init = delegate_src_iter_init;
@@ -106,6 +106,7 @@ _pixman_implementation_create (pixman_implementation_t *delegate,
 
     for (i = 0; i < PIXMAN_N_OPERATORS; ++i)
     {
+	imp->combine_16[i] = NULL;
 	imp->combine_32[i] = NULL;
 	imp->combine_64[i] = NULL;
 	imp->combine_32_ca[i] = NULL;
@@ -119,7 +120,8 @@ pixman_combine_32_func_t
 _pixman_implementation_lookup_combiner (pixman_implementation_t *imp,
 					pixman_op_t		 op,
 					pixman_bool_t		 component_alpha,
-					pixman_bool_t		 narrow)
+					pixman_bool_t		 narrow,
+					pixman_bool_t		 rgb16)
 {
     pixman_combine_32_func_t f;
 
@@ -131,10 +133,14 @@ _pixman_implementation_lookup_combiner (pixman_implementation_t *imp,
 	    (pixman_combine_32_func_t *)imp->combine_64_ca,
 	    imp->combine_32,
 	    imp->combine_32_ca,
+	    (pixman_combine_32_func_t *)imp->combine_16,
+	    NULL,
 	};
-
-	f = combiners[component_alpha | (narrow << 1)][op];
-
+        if (rgb16) {
+            f = combiners[4][op];
+        } else {
+            f = combiners[component_alpha + (narrow << 1)][op];
+        }
 	imp = imp->delegate;
     }
     while (!f);
