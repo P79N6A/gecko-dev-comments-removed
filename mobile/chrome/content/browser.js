@@ -2273,7 +2273,7 @@ ProgressController.prototype = {
     
     Browser.translatePhoneNumbers();
 
-    if (this._tab == Browser.selectedTab && !BrowserUI.isToolbarOpen()) {
+    if (this._tab == Browser.selectedTab) {
       
       if (this.browser.currentURI.spec != "about:blank")
         this.browser.contentWindow.focus();
