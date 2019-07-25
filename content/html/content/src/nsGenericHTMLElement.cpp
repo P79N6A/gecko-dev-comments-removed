@@ -2131,14 +2131,12 @@ nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& 
 {
   nsCOMPtr<nsIURI> uri;
   PRBool hadAttr = GetURIAttr(aAttr, aBaseAttr, PR_FALSE, getter_AddRefs(uri));
-  if (!hadAttr) {
-    aResult.Truncate();
-    return NS_OK;
-  }
 
-  if (!uri) {
-    
-    GetAttr(kNameSpaceID_None, aAttr, aResult);
+  
+  
+  
+  if (!hadAttr || !uri) {
+    aResult.Truncate();
     return NS_OK;
   }
 
