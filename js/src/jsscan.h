@@ -292,11 +292,6 @@ enum TokenStreamFlags
 #define t_atom2         u.p.atom2
 #define t_dval          u.dval
 
-static const size_t LINE_LIMIT = 1024; 
-
-static const size_t UNGET_LIMIT = 6;   
-
-
 class TokenStream
 {
     static const size_t ntokens = 4;                
@@ -320,7 +315,7 @@ class TokenStream
 
 
 
-    bool init(JSVersion version, const jschar *base, size_t length, FILE *fp,
+    bool init(JSVersion version, const jschar *base, size_t length,
               const char *filename, uintN lineno);
     void close();
     ~TokenStream() {}
@@ -383,8 +378,7 @@ class TokenStream
 
 
 
-    TokenKind getToken(uintN withFlags = 0) {
-        Flagger flagger(this, withFlags);
+    TokenKind getToken() {
         
         while (lookahead != 0) {
             JS_ASSERT(!(flags & TSF_XMLTEXTMODE));
@@ -401,6 +395,12 @@ class TokenStream
             return TOK_ERROR;
 
         return getTokenInternal();
+    }
+
+    
+    TokenKind getToken(uintN withFlags) {
+        Flagger flagger(this, withFlags);
+        return getToken();
     }
 
     
@@ -452,28 +452,16 @@ class TokenStream
     } TokenBuf;
 
     TokenKind getTokenInternal();     
-    int fillUserbuf();
-    int32 getCharFillLinebuf();
 
-    
-    JS_ALWAYS_INLINE int32 getChar() {
-        int32 c;
-        if (currbuf->ptr < currbuf->limit - 1) {
-            
-            c = *currbuf->ptr++;
-            JS_ASSERT(c != '\n');
-        } else {
-            c = getCharSlowCase();
-        }
-        return c;
-    }
-
-    int32 getCharSlowCase();
+    int32 getChar();
+    int32 getCharIgnoreEOL();
     void ungetChar(int32 c);
+    void ungetCharIgnoreEOL(int32 c);
     Token *newToken(ptrdiff_t adjust);
     int32 getUnicodeEscape();
     JSBool peekChars(intN n, jschar *cp);
     JSBool getXMLEntity();
+    jschar *findEOL();
 
     JSBool matchChar(int32 expect) {
         int32 c = getChar();
@@ -500,14 +488,10 @@ class TokenStream
     uintN               lookahead;      
     uintN               lineno;         
     uintN               flags;          
-    uint32              linepos;        
-    uint32              lineposNext;    
-    TokenBuf            linebuf;        
+    jschar              *linebase;      
+    jschar              *prevLinebase;  
     TokenBuf            userbuf;        
-    TokenBuf            ungetbuf;       
-    TokenBuf            *currbuf;       
     const char          *filename;      
-    FILE                *file;          
     JSSourceHandler     listener;       
     void                *listenerData;  
     void                *listenerTSData;

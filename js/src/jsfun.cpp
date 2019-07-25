@@ -2618,7 +2618,7 @@ Function(JSContext *cx, uintN argc, Value *vp)
 
         
         TokenStream ts(cx);
-        if (!ts.init(cx->findVersion(), collected_args, args_length, NULL, filename, lineno)) {
+        if (!ts.init(cx->findVersion(), collected_args, args_length, filename, lineno)) {
             JS_ARENA_RELEASE(&cx->tempPool, mark);
             return JS_FALSE;
         }
