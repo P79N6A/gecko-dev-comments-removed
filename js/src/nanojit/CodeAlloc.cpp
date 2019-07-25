@@ -512,6 +512,15 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
     
     
     
+    void CodeAlloc::markExec(CodeList* &blocks) {
+        for (CodeList *b = blocks; b != 0; b = b->next) {
+            markChunkExec(b->terminator);
+        }
+    }
+
+    
+    
+    
     void CodeAlloc::markAllExec() {
         for (CodeList* hb = heapblocks; hb != NULL; hb = hb->next) {
             markChunkExec(hb);

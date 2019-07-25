@@ -313,8 +313,6 @@ namespace nanojit
             debug_only( void        resourceConsistencyCheck(); )
             debug_only( void        registerConsistencyCheck(); )
 
-            CodeList*   codeList;                   
-
         private:
             void        gen(LirFilter* toCompile);
             NIns*       genPrologue();
@@ -401,6 +399,7 @@ namespace nanojit
             
             
             
+            CodeList*   codeList;               
             bool        _inExit, vpad2[3];
             NIns        *codeStart, *codeEnd;   
             NIns        *exitStart, *exitEnd;   

@@ -207,6 +207,9 @@ namespace nanojit
         void markAllExec();
 
         
+        void markExec(CodeList* &blocks);
+
+        
         void markChunkExec(CodeList* term);
 
         

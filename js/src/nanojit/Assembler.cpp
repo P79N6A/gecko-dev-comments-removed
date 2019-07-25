@@ -70,8 +70,7 @@ namespace nanojit
 
 
     Assembler::Assembler(CodeAlloc& codeAlloc, Allocator& dataAlloc, Allocator& alloc, AvmCore* core, LogControl* logc, const Config& config)
-        : codeList(NULL)
-        , alloc(alloc)
+        : alloc(alloc)
         , _codeAlloc(codeAlloc)
         , _dataAlloc(dataAlloc)
         , _thisfrag(NULL)
@@ -82,6 +81,7 @@ namespace nanojit
     #if NJ_USES_IMMD_POOL
         , _immDPool(alloc)
     #endif
+        , codeList(NULL)
         , _epilogue(NULL)
         , _err(None)
     #if PEDANTIC
@@ -1125,6 +1125,7 @@ namespace nanojit
             _codeAlloc.free(exitStart, exitEnd);
         _codeAlloc.free(codeStart, codeEnd);
         codeList = NULL;
+        _codeAlloc.markAllExec(); 
     }
 
     void Assembler::endAssembly(Fragment* frag)
@@ -1161,6 +1162,9 @@ namespace nanojit
         _codeAlloc.addRemainder(codeList, codeStart, codeEnd, codeStart, _nIns);
         verbose_only( codeBytes -= (_nIns - codeStart) * sizeof(NIns); )
 #endif
+
+        
+        _codeAlloc.markExec(codeList);
 
         
         
