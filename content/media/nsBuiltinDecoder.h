@@ -572,6 +572,11 @@ public:
   nsresult StartStateMachineThread();
 
   
+  
+  
+  nsresult CreateStateMachineThread();
+
+  
 
 
 

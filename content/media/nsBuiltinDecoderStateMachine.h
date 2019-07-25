@@ -119,6 +119,7 @@
 #include "nsAudioAvailableEventManager.h"
 #include "nsHTMLMediaElement.h"
 #include "mozilla/ReentrantMonitor.h"
+#include "nsITimer.h"
 
 
 
@@ -248,6 +249,14 @@ public:
   
   
   virtual void SetFrameBufferLength(PRUint32 aLength);
+
+  
+  nsresult ScheduleStateMachine();
+
+  
+  
+  
+  nsresult ScheduleStateMachine(PRInt64 aUsecs);
 
 protected:
 
@@ -409,6 +418,10 @@ protected:
   
   void DecodeThreadRun();
 
+  PRBool IsStateMachineScheduled() const {
+    return !mTimeout.IsNull();
+  }
+
   
   
   PRUint32 mCbCrSize;
@@ -422,6 +435,15 @@ protected:
 
   
   nsCOMPtr<nsIThread> mDecodeThread;
+
+  
+  
+  nsCOMPtr<nsITimer> mTimer;
+
+  
+  
+  
+  TimeStamp mTimeout;
 
   
   
