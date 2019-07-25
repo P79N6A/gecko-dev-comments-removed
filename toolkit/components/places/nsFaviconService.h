@@ -62,8 +62,6 @@
 
 class mozIStorageStatementCallback;
 
-class FaviconLoadListener;
-
 class nsFaviconService : public nsIFaviconService
                        , public mozIAsyncFavicons
 {
@@ -185,8 +183,6 @@ private:
 
   nsresult SetFaviconUrlForPageInternal(nsIURI* aURI, nsIURI* aFavicon,
                                         bool* aHasData);
-
-  friend class FaviconLoadListener;
 
   
   
