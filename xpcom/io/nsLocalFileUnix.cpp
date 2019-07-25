@@ -119,6 +119,7 @@ static nsresult MacErrorMapper(OSErr inErr);
 #ifdef ANDROID
 #include "AndroidBridge.h"
 #include "nsIMIMEService.h"
+#include <linux/magic.h>
 #endif
 
 #include "nsNativeCharsetUtils.h"
@@ -1103,9 +1104,20 @@ nsLocalFile::SetPermissions(PRUint32 aPermissions)
 
 
 
-    if (chmod(mPath.get(), aPermissions) < 0)
-        return NSRESULT_FOR_ERRNO();
-    return NS_OK;
+    if (chmod(mPath.get(), aPermissions) >= 0)
+        return NS_OK;
+#if defined(ANDROID) && defined(STATFS)
+    
+    
+    struct STATFS sfs;
+    if (STATFS(mPath.get(), &sfs) < 0)
+         return NSRESULT_FOR_ERRNO();
+
+    
+    if (sfs.f_type == MSDOS_SUPER_MAGIC )
+        return NS_OK;
+#endif
+    return NSRESULT_FOR_ERRNO();
 }
 
 NS_IMETHODIMP
