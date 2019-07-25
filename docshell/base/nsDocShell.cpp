@@ -7846,6 +7846,56 @@ nsDocShell::CheckLoadingPermissions()
 
 
 
+namespace
+{
+
+
+
+
+class nsCopyFaviconCallback : public nsIFaviconDataCallback
+{
+public:
+    NS_DECL_ISUPPORTS
+
+    nsCopyFaviconCallback(nsIURI *aNewURI)
+      : mNewURI(aNewURI)
+    {
+    }
+
+    NS_IMETHODIMP
+    OnFaviconDataAvailable(nsIURI *aFaviconURI, PRUint32 aDataLen,
+                           const PRUint8 *aData, const nsACString &aMimeType)
+    {
+        NS_ASSERTION(aDataLen == 0,
+                     "We weren't expecting the callback to deliver data.");
+        nsCOMPtr<mozIAsyncFavicons> favSvc =
+            do_GetService("@mozilla.org/browser/favicon-service;1");
+        NS_ENSURE_STATE(favSvc);
+
+        return favSvc->SetAndFetchFaviconForPage(mNewURI, aFaviconURI,
+                                                 PR_FALSE, nsnull);
+    }
+
+private:
+    nsCOMPtr<nsIURI> mNewURI;
+};
+
+NS_IMPL_ISUPPORTS1(nsCopyFaviconCallback, nsIFaviconDataCallback)
+
+
+void CopyFavicon(nsIURI *aOldURI, nsIURI *aNewURI)
+{
+    nsCOMPtr<mozIAsyncFavicons> favSvc =
+        do_GetService("@mozilla.org/browser/favicon-service;1");
+    if (favSvc) {
+        nsCOMPtr<nsIFaviconDataCallback> callback =
+            new nsCopyFaviconCallback(aNewURI);
+        favSvc->GetFaviconURLForPage(aOldURI, callback);
+    }
+}
+
+} 
+
 class InternalLoadEvent : public nsRunnable
 {
 public:
@@ -8449,6 +8499,10 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                   window->DispatchAsyncHashchange(oldURI, aURI);
                 }
             }
+
+            
+            
+            CopyFavicon(oldURI, aURI);
 
             return NS_OK;
         }
@@ -9439,43 +9493,6 @@ nsDocShell::SetReferrerURI(nsIURI * aURI)
 
 
 
-namespace
-{
-    
-    
-    
-    class nsAddStateFaviconCallback : public nsIFaviconDataCallback
-    {
-    public:
-        NS_DECL_ISUPPORTS
-
-        nsAddStateFaviconCallback(nsIURI *aNewURI)
-          : mNewURI(aNewURI)
-        {
-        }
-
-        NS_IMETHODIMP
-        OnFaviconDataAvailable(nsIURI *aFaviconURI, PRUint32 aDataLen,
-                               const PRUint8 *aData, const nsACString &aMimeType)
-        {
-            NS_ASSERTION(aDataLen == 0,
-                         "We weren't expecting the callback to deliver data.");
-            nsCOMPtr<mozIAsyncFavicons> favSvc =
-                do_GetService("@mozilla.org/browser/favicon-service;1");
-            NS_ENSURE_STATE(favSvc);
-
-            return favSvc->SetAndFetchFaviconForPage(mNewURI, aFaviconURI,
-                                                     PR_FALSE, nsnull);
-        }
-
-    private:
-        nsCOMPtr<nsIURI> mNewURI;
-    };
-
-    NS_IMPL_ISUPPORTS1(nsAddStateFaviconCallback, nsIFaviconDataCallback)
-
-} 
-
 NS_IMETHODIMP
 nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
                      const nsAString& aURL, PRBool aReplace, JSContext* aCx)
@@ -9766,13 +9783,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
 
         
         
-        nsCOMPtr<mozIAsyncFavicons> favSvc =
-            do_GetService("@mozilla.org/browser/favicon-service;1");
-        if (favSvc) {
-            nsCOMPtr<nsIFaviconDataCallback> callback =
-                new nsAddStateFaviconCallback(newURI);
-            favSvc->GetFaviconURLForPage(oldURI, callback);
-        }
+        CopyFavicon(oldURI, newURI);
     }
     else {
         FireDummyOnLocationChange();
