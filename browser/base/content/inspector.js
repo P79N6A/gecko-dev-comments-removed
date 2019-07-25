@@ -558,10 +558,7 @@ var InspectorUI = {
   showTextNodesWithWhitespace: false,
   inspecting: false,
   treeLoaded: false,
-  get enabled()
-  {
-    return gPrefService.getBoolPref("devtools.inspector.enabled");
-  },
+  prefEnabledName: "devtools.inspector.enabled",
   isDirty: false,
 
   
@@ -653,12 +650,12 @@ var InspectorUI = {
       InspectorUI.treePanel.removeEventListener("popupshown",
         treePanelShown, false);
 
-      InspectorUI.treeIFrame.addEventListener("load",
-        function loadedInitializeTreePanel() {
-          InspectorUI.treeIFrame.removeEventListener("load",
-            loadedInitializeTreePanel, true);
-          InspectorUI.initializeTreePanel();
-        }, true);
+        InspectorUI.treeIFrame.addEventListener("load",
+          function loadedInitializeTreePanel() {
+            InspectorUI.treeIFrame.removeEventListener("load",
+              loadedInitializeTreePanel, true);
+            InspectorUI.initializeTreePanel();
+          }, true);
 
       let src = InspectorUI.treeIFrame.getAttribute("src");
       if (src != "chrome://browser/content/inspector.html") {
@@ -785,29 +782,8 @@ var InspectorUI = {
 
 
 
-
-
-
-
-  openInspectorUI: function IUI_openInspectorUI(aNode)
+  openInspectorUI: function IUI_openInspectorUI()
   {
-    
-    
-    function inspectObserver(aElement) {
-      Services.obs.removeObserver(boundInspectObserver,
-                                  INSPECTOR_NOTIFICATIONS.OPENED,
-                                  false);
-      this.inspectNode(aElement);
-      this.stopInspecting();
-    };
-    var boundInspectObserver = inspectObserver.bind(this, aNode);
-
-    if (aNode) {
-      
-      Services.obs.addObserver(boundInspectObserver,
-                               INSPECTOR_NOTIFICATIONS.OPENED,
-                               false);
-    }
     
     this.browser = gBrowser.selectedBrowser;
     this.win = this.browser.contentWindow;
