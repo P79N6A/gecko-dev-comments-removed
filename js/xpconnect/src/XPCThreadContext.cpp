@@ -207,6 +207,11 @@ static JSClass global_class = {
 };
 
 
+
+extern void
+mozJSLoaderErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep);
+
+
 NS_IMETHODIMP
 XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
 {
@@ -237,6 +242,8 @@ XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
             if (mSafeJSContext) {
                 
                 JSAutoRequest req(mSafeJSContext);
+
+                JS_SetErrorReporter(mSafeJSContext, mozJSLoaderErrorReporter);
 
                 
                 
