@@ -422,6 +422,17 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
         GeckoAppShell.unregisterGeckoEventListener("SearchEngines:Data", this);
     }
 
+    @Override
+    public void onBackPressed() {
+        
+        
+        if (mAwesomeTabs.onBackPressed())
+            return;
+
+        
+        cancelAndFinish();
+    }
+
     private class ContextMenuSubject {
         public int id;
         public String url;
