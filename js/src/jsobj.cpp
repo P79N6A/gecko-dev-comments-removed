@@ -5141,13 +5141,13 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
 
 
 
-        if ((defineHow & JSDNP_SET_METHOD) &&
-            obj->getClass() == &js_ObjectClass) {
+        if ((defineHow & JSDNP_SET_METHOD) && obj->canHaveMethodBarrier()) {
             JS_ASSERT(IsFunctionObject(*vp));
             JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
 
             JSObject *funobj = &vp->toObject();
-            if (FUN_OBJECT(GET_FUNCTION_PRIVATE(cx, funobj)) == funobj) {
+            JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
+            if (fun == funobj) {
                 flags |= JSScopeProperty::METHOD;
                 getter = CastAsPropertyOp(funobj);
             }
@@ -5298,8 +5298,39 @@ js_DeleteProperty(JSContext *cx, JSObject *obj, jsid id, Value *rval)
     }
 
     scope = obj->scope();
-    if (SPROP_HAS_VALID_SLOT(sprop, scope))
-        GC_POKE(cx, obj->lockedGetSlot(sprop->slot));
+    if (SPROP_HAS_VALID_SLOT(sprop, scope)) {
+        const Value &v = obj->lockedGetSlot(sprop->slot);
+        GC_POKE(cx, v);
+
+        
+
+
+
+
+
+
+
+
+
+
+        if (scope->hasMethodBarrier()) {
+            JSObject *funobj;
+
+            if (IsFunctionObject(v, &funobj)) {
+                JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
+
+                if (fun != funobj) {
+                    for (JSStackFrame *fp = cx->fp; fp; fp = fp->down) {
+                        if (fp->callee() == fun &&
+                            fp->thisv.isObject() &&
+                            &fp->thisv.toObject() == obj) {
+                            fp->setCalleeObject(*funobj);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     ok = scope->removeProperty(cx, id);
     JS_UNLOCK_OBJ(cx, obj);
@@ -6223,7 +6254,7 @@ dumpValue(const Value &v)
         Class *clasp = obj->getClass();
         fprintf(stderr, "<%s%s at %p>",
                 clasp->name,
-                clasp == &js_ObjectClass ? "" : " object",
+                (clasp == &js_ObjectClass) ? "" : " object",
                 (void *) obj);
     } else if (v.isBoolean()) {
         if (v.toBoolean())
