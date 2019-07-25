@@ -309,6 +309,12 @@ png_write_end(png_structp png_ptr, png_infop info_ptr)
    if (!(png_ptr->mode & PNG_HAVE_IDAT))
       png_error(png_ptr, "No IDATs written into file");
 
+#ifdef PNG_WRITE_CHECK_FOR_INVALID_INDEX_SUPPORTED
+   if (png_ptr->num_palette_max > png_ptr->num_palette)
+      png_benign_error(png_ptr, "Wrote palette index exceeding num_palette");
+#endif
+
+    
 #ifdef PNG_WRITE_APNG_SUPPORTED
    if (png_ptr->num_frames_written != png_ptr->num_frames_to_write)
       png_error(png_ptr, "Not enough frames written");
@@ -805,6 +811,13 @@ png_write_row(png_structp png_ptr, png_const_bytep row)
       
       png_do_write_intrapixel(&row_info, png_ptr->row_buf + 1);
    }
+#endif
+
+
+#ifdef PNG_WRITE_CHECK_FOR_INVALID_INDEX_SUPPORTED
+   
+   if(row_info.color_type == PNG_COLOR_TYPE_PALETTE)
+      png_do_check_palette_indexes(png_ptr, &row_info);
 #endif
 
    

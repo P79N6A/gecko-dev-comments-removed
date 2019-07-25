@@ -1830,11 +1830,14 @@ png_init_read_transformations(png_structp png_ptr)
 
 #ifdef PNG_READ_SHIFT_SUPPORTED
    if ((png_ptr->transformations & PNG_SHIFT) &&
+      !(png_ptr->transformations & PNG_EXPAND) &&
        (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE))
    {
       int i;
       int istop = png_ptr->num_palette;
       int shift = 8 - png_ptr->sig_bit.red;
+
+      png_ptr->transformations &= ~PNG_SHIFT;
 
       
 
@@ -2294,6 +2297,12 @@ png_do_read_transformations(png_structp png_ptr, png_row_infop row_info)
 #ifdef PNG_READ_PACK_SUPPORTED
    if (png_ptr->transformations & PNG_PACK)
       png_do_unpack(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED
+   
+   if (row_info->color_type == PNG_COLOR_TYPE_PALETTE)
+      png_do_check_palette_indexes(png_ptr, row_info);
 #endif
 
 #ifdef PNG_READ_BGR_SUPPORTED

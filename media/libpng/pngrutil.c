@@ -434,14 +434,12 @@ png_decompress_chunk(png_structp png_ptr, int comp_type,
 
       if (prefix_size >= (~(png_size_t)0) - 1 ||
          expanded_size >= (~(png_size_t)0) - 1 - prefix_size
-#ifdef PNG_SET_CHUNK_MALLOC_LIMIT_SUPPORTED
+#ifdef PNG_USER_LIMITS_SUPPORTED
          || (png_ptr->user_chunk_malloc_max &&
           (prefix_size + expanded_size >= png_ptr->user_chunk_malloc_max - 1))
 #else
-#  ifdef PNG_USER_CHUNK_MALLOC_MAX
          || ((PNG_USER_CHUNK_MALLOC_MAX > 0) &&
           prefix_size + expanded_size >= PNG_USER_CHUNK_MALLOC_MAX - 1)
-#  endif
 #endif
          )
          png_warning(png_ptr, "Exceeded size limit while expanding chunk");
@@ -1264,12 +1262,15 @@ png_handle_iCCP(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
       
       png_warning(png_ptr, "Out of place iCCP chunk");
 
-   if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_iCCP))
+   if ((png_ptr->mode & PNG_HAVE_iCCP) || (info_ptr != NULL &&
+      (info_ptr->valid & (PNG_INFO_iCCP|PNG_INFO_sRGB))))
    {
       png_warning(png_ptr, "Duplicate iCCP chunk");
       png_crc_finish(png_ptr, length);
       return;
    }
+
+   png_ptr->mode |= PNG_HAVE_iCCP;
 
 #ifdef PNG_MAX_MALLOC_64K
    if (length > (png_uint_32)65535L)
@@ -1800,15 +1801,15 @@ png_handle_hIST(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
       return;
    }
 
-   num = length / 2 ;
-
-   if (num != (unsigned int)png_ptr->num_palette || num >
-       (unsigned int)PNG_MAX_PALETTE_LENGTH)
+   if (length > 2*PNG_MAX_PALETTE_LENGTH ||
+       length != (unsigned int) (2*png_ptr->num_palette))
    {
       png_warning(png_ptr, "Incorrect hIST chunk length");
       png_crc_finish(png_ptr, length);
       return;
    }
+
+   num = length / 2 ;
 
    for (i = 0; i < num; i++)
    {

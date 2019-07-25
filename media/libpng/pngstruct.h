@@ -121,6 +121,12 @@ struct png_struct_def
    png_uint_32 crc;           
    png_colorp palette;        
    png_uint_16 num_palette;   
+
+
+#ifdef PNG_CHECK_FOR_INVALID_INDEX_SUPPORTED
+   int num_palette_max;       
+#endif
+
    png_uint_16 num_trans;     
    png_byte compression;      
    png_byte filter;           
@@ -210,13 +216,6 @@ struct png_struct_def
    png_size_t current_buffer_size;   
    int process_mode;                 
    int cur_palette;                  
-
-#  ifdef PNG_TEXT_SUPPORTED
-     png_size_t current_text_size;   
-     png_size_t current_text_left;   
-     png_charp current_text;         
-     png_charp current_text_ptr;     
-#  endif 
 
 #endif 
 

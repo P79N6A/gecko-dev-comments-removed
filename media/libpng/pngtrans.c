@@ -619,6 +619,109 @@ png_do_bgr(png_row_infop row_info, png_bytep row)
 }
 #endif 
 
+#if defined(PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED) || \
+    defined(PNG_WRITE_CHECK_FOR_INVALID_INDEX_SUPPORTED)
+
+void 
+png_do_check_palette_indexes(png_structp png_ptr, png_row_infop row_info)
+{
+   if (png_ptr->num_palette < (1 << row_info->bit_depth) &&
+      png_ptr->num_palette_max >= 0)
+   {
+      
+
+
+
+
+
+      int padding = (-row_info->pixel_depth * row_info->width) & 7;
+      png_bytep rp = png_ptr->row_buf + row_info->rowbytes;
+
+      switch (row_info->bit_depth)
+      {
+         case 1:
+         {
+            
+
+
+            for (; rp > png_ptr->row_buf; rp--)
+            {
+              if (*rp >> padding != 0)
+                 png_ptr->num_palette_max = 1;
+              padding = 0;
+            }
+
+            break;
+         }
+
+         case 2:
+         {
+            for (; rp > png_ptr->row_buf; rp--)
+            {
+              int i = ((*rp >> padding) & 0x03);
+
+              if (i > png_ptr->num_palette_max)
+                 png_ptr->num_palette_max = i;
+
+              i = (((*rp >> padding) >> 2) & 0x03);
+
+              if (i > png_ptr->num_palette_max)
+                 png_ptr->num_palette_max = i;
+
+              i = (((*rp >> padding) >> 4) & 0x03);
+
+              if (i > png_ptr->num_palette_max)
+                 png_ptr->num_palette_max = i;
+
+              i = (((*rp >> padding) >> 6) & 0x03);
+
+              if (i > png_ptr->num_palette_max)
+                 png_ptr->num_palette_max = i;
+
+              padding = 0;
+            }
+
+            break;
+         }
+
+         case 4:
+         {
+            for (; rp > png_ptr->row_buf; rp--)
+            {
+              int i = ((*rp >> padding) & 0x0f);
+
+              if (i > png_ptr->num_palette_max)
+                 png_ptr->num_palette_max = i;
+
+              i = (((*rp >> padding) >> 4) & 0x0f);
+
+              if (i > png_ptr->num_palette_max)
+                 png_ptr->num_palette_max = i;
+
+              padding = 0;
+            }
+
+            break;
+         }
+
+         case 8:
+         {
+            for (; rp > png_ptr->row_buf; rp--)
+            {
+               if (*rp >= png_ptr->num_palette_max)
+                  png_ptr->num_palette_max = (int) *rp;
+            }
+
+            break;
+         }
+
+         default:
+            break;
+      }
+   }
+}
+#endif 
+
 #if defined(PNG_READ_USER_TRANSFORM_SUPPORTED) || \
     defined(PNG_WRITE_USER_TRANSFORM_SUPPORTED)
 #ifdef PNG_USER_TRANSFORM_PTR_SUPPORTED

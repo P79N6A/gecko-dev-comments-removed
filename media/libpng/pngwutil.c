@@ -569,14 +569,15 @@ png_text_compress(png_structp png_ptr,
 
 
 static void 
-png_write_compressed_data_out(png_structp png_ptr, compression_state *comp)
+png_write_compressed_data_out(png_structp png_ptr, compression_state *comp,
+   png_size_t data_len)
 {
    int i;
 
    
    if (comp->input)
    {
-      png_write_chunk_data(png_ptr, comp->input, comp->input_len);
+      png_write_chunk_data(png_ptr, comp->input, data_len);
 
       return;
    }
@@ -585,7 +586,7 @@ png_write_compressed_data_out(png_structp png_ptr, compression_state *comp)
    
 
 
-   if (comp->input_len >= 2 && comp->input_len < 16384 && png_ptr->zbuf_size > 1)
+   if (data_len >= 2 && comp->input_len < 16384 && png_ptr->zbuf_size > 1)
    {
       unsigned int z_cmf;  
 
@@ -1190,8 +1191,7 @@ png_write_iCCP(png_structp png_ptr, png_const_charp name, int compression_type,
 
    if (profile_len)
    {
-      comp.input_len = profile_len;
-      png_write_compressed_data_out(png_ptr, &comp);
+      png_write_compressed_data_out(png_ptr, &comp, profile_len);
    }
 
    png_write_chunk_end(png_ptr);
@@ -1761,8 +1761,7 @@ png_write_zTXt(png_structp png_ptr, png_const_charp key, png_const_charp text,
    png_write_chunk_data(png_ptr, &buf, (png_size_t)1);
 
    
-   comp.input_len = text_len;
-   png_write_compressed_data_out(png_ptr, &comp);
+   png_write_compressed_data_out(png_ptr, &comp, text_len);
 
    
    png_write_chunk_end(png_ptr);
@@ -1853,7 +1852,7 @@ png_write_iTXt(png_structp png_ptr, int compression, png_const_charp key,
    png_write_chunk_data(png_ptr, (lang_key ? (png_const_bytep)lang_key : cbuf),
        (png_size_t)(lang_key_len + 1));
 
-   png_write_compressed_data_out(png_ptr, &comp);
+   png_write_compressed_data_out(png_ptr, &comp, text_len);
 
    png_write_chunk_end(png_ptr);
 

@@ -67,15 +67,11 @@ png_create_read_struct_2,(png_const_charp user_png_ver, png_voidp error_ptr,
    png_ptr->user_width_max = PNG_USER_WIDTH_MAX;
    png_ptr->user_height_max = PNG_USER_HEIGHT_MAX;
 
-#  ifdef PNG_USER_CHUNK_CACHE_MAX
    
    png_ptr->user_chunk_cache_max = PNG_USER_CHUNK_CACHE_MAX;
-#  endif
 
-#  ifdef PNG_SET_USER_CHUNK_MALLOC_MAX
    
    png_ptr->user_chunk_malloc_max = PNG_USER_CHUNK_MALLOC_MAX;
-#  endif
 #endif
 
 #ifdef PNG_SETJMP_SUPPORTED
@@ -922,6 +918,13 @@ png_read_end(png_structp png_ptr, png_infop info_ptr)
 
    png_crc_finish(png_ptr, 0); 
 
+#ifdef PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED
+   
+   if (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE &&
+      png_ptr->num_palette_max > png_ptr->num_palette)
+     png_benign_error(png_ptr, "Read palette index exceeding num_palette");
+#endif
+
    do
    {
       png_uint_32 length = png_read_chunk_header(png_ptr);
@@ -1195,12 +1198,6 @@ png_read_destroy(png_structp png_ptr, png_infop info_ptr,
 #ifdef PNG_PROGRESSIVE_READ_SUPPORTED
    png_free(png_ptr, png_ptr->save_buffer);
 #endif
-
-#ifdef PNG_PROGRESSIVE_READ_SUPPORTED
-#ifdef PNG_TEXT_SUPPORTED
-   png_free(png_ptr, png_ptr->current_text);
-#endif 
-#endif 
 
    
 

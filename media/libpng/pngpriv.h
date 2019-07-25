@@ -136,6 +136,46 @@
 
 
 
+
+
+
+
+
+
+
+#ifdef PNG_SAFE_LIMITS_SUPPORTED
+   
+#  ifndef PNG_USER_WIDTH_MAX
+#     define PNG_USER_WIDTH_MAX 1000000
+#  endif
+#  ifndef PNG_USER_HEIGHT_MAX
+#     define PNG_USER_HEIGHT_MAX 1000000
+#  endif
+#  ifndef PNG_USER_CHUNK_CACHE_MAX
+#     define PNG_USER_CHUNK_CACHE_MAX 128
+#  endif
+#  ifndef PNG_USER_CHUNK_MALLOC_MAX
+#     define PNG_USER_CHUNK_MALLOC_MAX 8000000
+#  endif
+#else
+   
+#  ifndef PNG_USER_WIDTH_MAX
+#     define PNG_USER_WIDTH_MAX 0x7fffffff
+#  endif
+#  ifndef PNG_USER_HEIGHT_MAX
+#     define PNG_USER_HEIGHT_MAX 0x7fffffff
+#  endif
+#  ifndef PNG_USER_CHUNK_CACHE_MAX
+#     define PNG_USER_CHUNK_CACHE_MAX 0
+#  endif
+#  ifndef PNG_USER_CHUNK_MALLOC_MAX
+#     define PNG_USER_CHUNK_MALLOC_MAX 0
+#  endif
+#endif
+
+
+
+
 typedef PNG_CONST png_uint_16p FAR * png_const_uint_16pp;
 
 
@@ -426,9 +466,10 @@ typedef PNG_CONST png_uint_16p FAR * png_const_uint_16pp;
 #define PNG_BACKGROUND_IS_GRAY     0x800
 #define PNG_HAVE_PNG_SIGNATURE    0x1000
 #define PNG_HAVE_CHUNK_AFTER_IDAT 0x2000 /* Have another chunk after IDAT */
+#define PNG_HAVE_iCCP             0x4000
 #ifdef PNG_APNG_SUPPORTED
-#define PNG_HAVE_acTL             0x4000
-#define PNG_HAVE_fcTL             0x8000
+#define PNG_HAVE_acTL             0x8000
+#define PNG_HAVE_fcTL            0x10000
 #endif
 
 
@@ -1231,10 +1272,8 @@ PNG_EXTERN void png_handle_zTXt PNGARG((png_structp png_ptr, png_infop info_ptr,
     png_uint_32 length));
 #endif
 
-#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
 PNG_EXTERN void png_handle_unknown PNGARG((png_structp png_ptr,
     png_infop info_ptr, png_uint_32 length));
-#endif
 
 PNG_EXTERN void png_check_chunk_name PNGARG((png_structp png_ptr,
     png_uint_32 chunk_name));
@@ -1406,6 +1445,13 @@ PNG_EXTERN void png_check_IHDR PNGARG((png_structp png_ptr,
     png_uint_32 width, png_uint_32 height, int bit_depth,
     int color_type, int interlace_type, int compression_type,
     int filter_type));
+
+
+#if defined(PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED) || \
+    defined(PNG_WRITE_CHECK_FOR_INVALID_INDEX_SUPPORTED)
+PNG_EXTERN void png_do_check_palette_indexes PNGARG((png_structp png_ptr,
+    png_row_infop row_info));
+#endif
 
 
 PNG_EXTERN void png_read_destroy PNGARG((png_structp png_ptr,
