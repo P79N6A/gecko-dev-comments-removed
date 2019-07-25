@@ -255,14 +255,17 @@ GfxInfo::GetGfxDriverInfo()
     
 
 
- 
- 
- 
- 
+#ifdef MOZ_JAVA_COMPOSITOR
+    APPEND_TO_DRIVER_BLOCKLIST2( DRIVER_OS_ALL,
+      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAll), GfxDriverInfo::allDevices,
+      nsIGfxInfo::FEATURE_OPENGL_LAYERS, nsIGfxInfo::FEATURE_NO_INFO,
+      DRIVER_COMPARISON_IGNORED, GfxDriverInfo::allDriverVersions );
+#else
     APPEND_TO_DRIVER_BLOCKLIST2( DRIVER_OS_ALL,
       (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAll), GfxDriverInfo::allDevices,
       nsIGfxInfo::FEATURE_OPENGL_LAYERS, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
       DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions );
+#endif
   }
   return *mDriverInfo;
 }
