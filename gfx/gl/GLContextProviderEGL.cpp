@@ -823,12 +823,13 @@ public:
             return true;
         }
 
-        EGLint result = sEGLLibrary.fClientWaitSync(EGL_DISPLAY(), mSyncObject, 0, LOCAL_EGL_FOREVER);
+        
+        const uint64_t ns_per_ms = 1000 * 1000;
+        EGLTime timeout = 1000 * ns_per_ms;
+
+        EGLint result = sEGLLibrary.fClientWaitSync(EGL_DISPLAY(), mSyncObject, 0, timeout);
         sEGLLibrary.fDestroySync(EGL_DISPLAY(), mSyncObject);
         mSyncObject = nsnull;
-
-        
-        MOZ_ASSERT(result != LOCAL_EGL_TIMEOUT_EXPIRED);
 
         return result == LOCAL_EGL_CONDITION_SATISFIED;
     }
@@ -881,7 +882,8 @@ GLContextEGL::UpdateSharedHandle(TextureImage::TextureShareType aType,
 
     
     
-    GuaranteeResolve();
+    
+    wrap->MakeSync();
 }
 
 SharedTextureHandle
