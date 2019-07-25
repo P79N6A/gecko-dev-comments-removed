@@ -1,3 +1,7 @@
+
+
+
+
 const URIS_PINNED = ["about:license", "about:about"];
 const URIS_NORMAL_A = ["about:mozilla"];
 const URIS_NORMAL_B = ["about:buildconfig"];

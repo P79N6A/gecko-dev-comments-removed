@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ["controller", "utils", "elementslib", "os",
                         "getBrowserController", "newBrowserController",
                         "getAddonsController", "getPreferencesController",

@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHtml5StreamParser.h"
 #include "nsICharsetConverterManager.h"
 #include "nsCharsetAlias.h"

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define NS_HTML5_TREE_BUILDER_HANDLE_ARRAY_LENGTH 512
 
   private:

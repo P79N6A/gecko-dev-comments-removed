@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHtml5ViewSourceUtils.h"
 #include "nsHtml5AttributeName.h"
 #include "mozilla/Preferences.h"

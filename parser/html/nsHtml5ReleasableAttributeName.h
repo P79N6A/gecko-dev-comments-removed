@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsHtml5ReleasableAttributeName_h__
 #define nsHtml5ReleasableAttributeName_h__
 

@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHtml5SVGLoadDispatcher.h"
 #include "nsPresContext.h"
 #include "nsEventDispatcher.h"

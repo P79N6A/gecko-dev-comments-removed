@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHtml5DependentUTF16Buffer.h"
 
 nsHtml5DependentUTF16Buffer::nsHtml5DependentUTF16Buffer(const nsAString& aToWrap)

@@ -47,36 +47,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxScriptItemizer.h"
 #include "gfxFontUtils.h" 
 #include "nsUnicodeProperties.h"

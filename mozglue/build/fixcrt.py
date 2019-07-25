@@ -2,7 +2,6 @@
 
 
 
-
 from __future__ import with_statement
 
 with open('crtdll.obj', 'rb') as infile:

@@ -2,26 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <dlfcn.h>
 #include <android/log.h>
 #include "AndroidBridge.h"

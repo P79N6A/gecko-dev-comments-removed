@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 dtdTests = ["attrgetownerelement01", "documentimportnode03", 
             "documentimportnode04", "documentimportnode19",
             "documentimportnode20", "documentimportnode21",

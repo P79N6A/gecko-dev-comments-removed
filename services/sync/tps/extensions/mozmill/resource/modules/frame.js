@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ['loadFile','Collector','Runner','events',
                         'jsbridge', 'runTestFile', 'log', 'getThread',
                         'timers', 'persisted'];

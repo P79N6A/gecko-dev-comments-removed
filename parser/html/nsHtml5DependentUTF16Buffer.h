@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsHtml5DependentUTF16Buffer_h_
 #define nsHtml5DependentUTF16Buffer_h_
 

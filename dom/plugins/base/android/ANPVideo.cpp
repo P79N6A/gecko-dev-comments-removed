@@ -2,26 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <android/log.h>
 #include "ANPBase.h"
 #include "AndroidMediaLayer.h"

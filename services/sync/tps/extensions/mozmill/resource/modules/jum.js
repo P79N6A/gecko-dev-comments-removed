@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ["assert", "assertTrue", "assertFalse", "assertEquals", "assertNotEquals",
                         "assertNull", "assertNotNull", "assertUndefined", "assertNotUndefined",
                         "assertNaN", "assertNotNaN", "assertArrayContains", "fail", "pass"];

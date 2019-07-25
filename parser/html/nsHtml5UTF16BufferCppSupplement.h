@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 nsHtml5UTF16Buffer::nsHtml5UTF16Buffer(PRUnichar* aBuffer, PRInt32 aEnd)
   : buffer(aBuffer)
   , start(0)

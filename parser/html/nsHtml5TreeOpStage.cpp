@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHtml5TreeOpStage.h"
 
 nsHtml5TreeOpStage::nsHtml5TreeOpStage()

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ["inspectElement"]
 
 var elementslib = {}; Components.utils.import('resource://mozmill/modules/elementslib.js', elementslib);

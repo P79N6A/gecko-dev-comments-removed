@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 EXPORTED_SYMBOLS = [ "FileUtils" ];
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");

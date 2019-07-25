@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHtml5StringParser.h"
 #include "nsHtml5TreeOpExecutor.h"
 #include "nsHtml5TreeBuilder.h"

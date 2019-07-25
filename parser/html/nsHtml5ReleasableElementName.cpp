@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHtml5ReleasableElementName.h"
 
 nsHtml5ReleasableElementName::nsHtml5ReleasableElementName(nsIAtom* name)

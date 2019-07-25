@@ -1,7 +1,3 @@
-
-
-
-
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>

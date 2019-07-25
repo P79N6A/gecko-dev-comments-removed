@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_net_PrivateBrowsingConsumer_h
 #define mozilla_net_PrivateBrowsingConsumer_h
 

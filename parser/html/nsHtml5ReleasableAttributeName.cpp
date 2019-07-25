@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHtml5ReleasableAttributeName.h"
 #include "nsHtml5Portability.h"
 #include "nsHtml5AtomTable.h"
