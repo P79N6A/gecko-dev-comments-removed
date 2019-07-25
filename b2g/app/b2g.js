@@ -106,6 +106,7 @@ pref("mozilla.widget.force-24bpp", true);
 pref("mozilla.widget.use-buffer-pixmap", true);
 pref("mozilla.widget.disable-native-theme", true);
 pref("layout.reflow.synthMouseMove", false);
+pref("dom.send_after_paint_to_content", true);
 
 
 pref("browser.download.useDownloadDir", true);
