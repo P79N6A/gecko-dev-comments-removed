@@ -58,7 +58,12 @@
 
 
 
-enum nsOverflowType { eVisualOverflow, eScrollableOverflow };
+
+
+
+
+enum nsOverflowType { eVisualOverflow, eScrollableOverflow,
+                      eOverflowType_LENGTH };
 
 #define NS_FOR_FRAME_OVERFLOW_TYPES(var_)                                     \
   for (nsOverflowType var_ = nsOverflowType(0); var_ < 2;                     \
