@@ -100,6 +100,17 @@ public:
     return IntrinsicState() | mState;
   }
 
+  
+
+
+
+
+
+
+
+
+  virtual void RequestLinkStateUpdate();
+
 protected:
   
 
@@ -108,6 +119,11 @@ protected:
 
 
   virtual nsEventStates IntrinsicState() const;
+
+  
+
+
+  void UpdateLinkState(nsEventStates aState);
 
 private:
   
