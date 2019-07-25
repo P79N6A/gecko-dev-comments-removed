@@ -55,7 +55,7 @@ class ScopedGfxFeatureReporter::AppNoteWritingRunnable : public nsRunnable {
 public:
   AppNoteWritingRunnable(char aStatusChar, const char *aFeature) :
     mStatusChar(aStatusChar), mFeature(aFeature) {}
-  virtual nsresult Run() { 
+  NS_IMETHOD Run() { 
     
     
     
