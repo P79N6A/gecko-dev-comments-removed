@@ -1835,7 +1835,8 @@ nsCookieService::EnsureReadComplete()
       "isSecure, "
       "isHttpOnly, "
       "baseDomain "
-    "FROM moz_cookies"), getter_AddRefs(stmt));
+    "FROM moz_cookies "
+    "WHERE baseDomain NOTNULL"), getter_AddRefs(stmt));
 
   
   if (NS_FAILED(rv)) return;

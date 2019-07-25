@@ -130,19 +130,78 @@ function do_run_test() {
 
   
   
-  do_load_profile();
+  let file = profile.clone();
+  file.append("cookies.sqlite");
+  let copy = profile.clone();
+  copy.append("cookies.sqlite.copy");
+  file.copyTo(null, copy.leafName);
+
+  
+  
+  do_load_profile(test_generator);
+  yield;
 
   
   do_check_eq(Services.cookiemgr.countCookiesFromHost("foo.com"), 20);
-  do_check_eq(Services.cookiemgr.countCookiesFromHost("cat.com"), 0);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("bar.com"), 20);
   do_check_eq(Services.cookiemgr.countCookiesFromHost("baz.com"), 0);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("cat.com"), 0);
 
   do_close_profile(test_generator);
   yield;
 
   
   schema2db = new CookieDatabaseConnection(profile, 2);
-  do_check_eq(do_count_cookies_in_db(schema2db.db, "cat.com"), 0);
+  do_check_eq(do_count_cookies_in_db(schema2db.db), 40);
+  do_check_eq(do_count_cookies_in_db(schema2db.db, "foo.com"), 20);
+  do_check_eq(do_count_cookies_in_db(schema2db.db, "bar.com"), 20);
+  schema2db.close();
+
+  
+  file.remove(false);
+  copy.copyTo(null, file.leafName);
+
+  
+  do_load_profile();
+
+  
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("foo.com"), 20);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("bar.com"), 20);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("baz.com"), 0);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("cat.com"), 0);
+
+  do_close_profile(test_generator);
+  yield;
+
+  
+  schema2db = new CookieDatabaseConnection(profile, 2);
+  do_check_eq(do_count_cookies_in_db(schema2db.db), 40);
+  do_check_eq(do_count_cookies_in_db(schema2db.db, "foo.com"), 20);
+  do_check_eq(do_count_cookies_in_db(schema2db.db, "bar.com"), 20);
+  schema2db.close();
+
+  
+  file.remove(false);
+  copy.copyTo(null, file.leafName);
+
+  
+  do_load_profile();
+  do_check_eq(do_count_cookies(), 40);
+
+  
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("foo.com"), 20);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("bar.com"), 20);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("baz.com"), 0);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("cat.com"), 0);
+
+  do_close_profile(test_generator);
+  yield;
+
+  
+  schema2db = new CookieDatabaseConnection(profile, 2);
+  do_check_eq(do_count_cookies_in_db(schema2db.db), 40);
+  do_check_eq(do_count_cookies_in_db(schema2db.db, "foo.com"), 20);
+  do_check_eq(do_count_cookies_in_db(schema2db.db, "bar.com"), 20);
   schema2db.close();
 
   finish_test();
