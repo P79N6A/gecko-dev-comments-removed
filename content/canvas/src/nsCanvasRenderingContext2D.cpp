@@ -4316,8 +4316,11 @@ nsCanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                            CanvasLayer *aOldLayer,
                                            LayerManager *aManager)
 {
-    if (!EnsureSurface()) 
+    
+    if (!mValid || !mSurface || mSurface->CairoStatus() || !mThebes ||
+        !mSurfaceCreated) {
         return nullptr;
+    }
 
     if (!mResetLayer && aOldLayer) {
         CanvasRenderingContext2DUserData* userData =
