@@ -141,10 +141,6 @@ let UI = {
 
   
   
-  creatingNewOrphanTab: false,
-
-  
-  
   _lastOpenedTab: null,
 
   
@@ -203,23 +199,16 @@ let UI = {
                 (self._lastClickPositions.x + self.DBLCLICK_OFFSET) >= e.clientX &&
                 (self._lastClickPositions.y - self.DBLCLICK_OFFSET) <= e.clientY &&
                 (self._lastClickPositions.y + self.DBLCLICK_OFFSET) >= e.clientY) {
-              self.setActive(null);
-              self.creatingNewOrphanTab = true;
 
               let box =
                 new Rect(e.clientX - Math.floor(TabItems.tabWidth/2),
                          e.clientY - Math.floor(TabItems.tabHeight/2),
                          TabItems.tabWidth, TabItems.tabHeight);
-              let newTab =
-                gBrowser.loadOneTab("about:blank", { inBackground: false });
+              box.inset(-30, -30);
 
-              newTab._tabViewTabItem.setBounds(box, true);
-              newTab._tabViewTabItem.pushAway(true);
-              self.setActive(newTab._tabViewTabItem);
-
-              self.creatingNewOrphanTab = false;
-              
-              newTab._tabViewTabItem.zoomIn(true);
+              let opts = {immediately: true, bounds: box};
+              let groupItem = new GroupItem([], opts);
+              groupItem.newTab();
 
               self._lastClick = 0;
               self._lastClickPositions = null;
@@ -425,44 +414,22 @@ let UI = {
   
   
   
-  getActiveOrphanTab: function UI_getActiveOrphanTab() {
-    return (this._activeTab && !this._activeTab.parent) ? this._activeTab : null;
-  },
-
-  
-  
-  
-  
-  
   
   
   
   
   setActive: function UI_setActive(item, options) {
-    if (item) {
-      if (item.isATabItem) {
-        if (item.parent)
-          GroupItems.setActiveGroupItem(item.parent);
-        else
-          GroupItems.setActiveGroupItem(null);
-        this._setActiveTab(item);
-      } else {
-        GroupItems.setActiveGroupItem(item);
-        if (!options || !options.dontSetActiveTabInGroup) {
-          let activeTab = item.getActiveTab()
-          if (activeTab)
-            this._setActiveTab(activeTab);
-        }
-      }
+    Utils.assert(item, "item must be given");
+
+    if (item.isATabItem) {
+      GroupItems.setActiveGroupItem(item.parent);
+      this._setActiveTab(item);
     } else {
-      if (options) {
-        if (options.onlyRemoveActiveGroup)
-          GroupItems.setActiveGroupItem(null);
-        else if (options.onlyRemoveActiveTab)
-          this._setActiveTab(null);
-      } else {
-        GroupItems.setActiveGroupItem(null);
-        this._setActiveTab(null);
+      GroupItems.setActiveGroupItem(item);
+      if (!options || !options.dontSetActiveTabInGroup) {
+        let activeTab = item.getActiveTab()
+        if (activeTab)
+          this._setActiveTab(activeTab);
       }
     }
   },
@@ -545,7 +512,6 @@ let UI = {
         TabItems.resumePainting();
       });
     } else {
-      self.setActive(null, { onlyRemoveActiveTab: true });
       dispatchEvent(event);
 
       
@@ -725,7 +691,7 @@ let UI = {
       
       if (tab.pinned)
         GroupItems.addAppTab(tab);
-      else if (self.isTabViewVisible())
+      else if (self.isTabViewVisible() && !self._storageBusyCount)
         self._lastOpenedTab = tab;
     };
     
@@ -867,8 +833,7 @@ let UI = {
     if (this.isTabViewVisible()) {
       if (!this.restoredClosedTab && this._lastOpenedTab == tab && 
         tab._tabViewTabItem) {
-        if (!this.creatingNewOrphanTab)
-          tab._tabViewTabItem.zoomIn(true);
+        tab._tabViewTabItem.zoomIn(true);
         this._lastOpenedTab = null;
         return;
       }
@@ -918,7 +883,7 @@ let UI = {
       
       
       
-      if (!GroupItems.getActiveGroupItem() && !UI.getActiveOrphanTab()) {
+      if (!GroupItems.getActiveGroupItem()) {
         for (let a = 0; a < gBrowser.tabs.length; a++) {
           let theTab = gBrowser.tabs[a];
           if (!theTab.pinned) {
@@ -929,7 +894,7 @@ let UI = {
         }
       }
 
-      if (GroupItems.getActiveGroupItem() || UI.getActiveOrphanTab())
+      if (GroupItems.getActiveGroupItem())
         GroupItems._updateTabBar();
     }
   },
@@ -978,7 +943,7 @@ let UI = {
     let cl = null;
     let clDist;
     TabItems.getItems().forEach(function (item) {
-      if (item.parent && item.parent.hidden)
+      if (!item.parent || item.parent.hidden)
         return;
       let testDist = tabCenter.distance(item.bounds.center());
       if (cl==null || testDist < clDist) {
@@ -1223,7 +1188,6 @@ let UI = {
     const minMinSize = 15;
 
     let lastActiveGroupItem = GroupItems.getActiveGroupItem();
-    this.setActive(null, { onlyRemoveActiveGroup: true });
 
     var startPos = { x: e.clientX, y: e.clientY };
     var phantom = iQ("<div>")
@@ -1316,19 +1280,8 @@ let UI = {
       let box = item.getBounds();
       if (box.width > minMinSize && box.height > minMinSize &&
          (box.width > minSize || box.height > minSize)) {
-        var bounds = item.getBounds();
-
-        
-        
-        var tabs = GroupItems.getOrphanedTabs();
-        var insideTabs = [];
-        for each(let tab in tabs) {
-          if (bounds.contains(tab.bounds))
-            insideTabs.push(tab);
-        }
-
-        let opts = {bounds: bounds, focusTitle: true};
-        let groupItem = new GroupItem(insideTabs, opts);
+        let opts = {bounds: item.getBounds(), focusTitle: true};
+        let groupItem = new GroupItem([], opts);
         self.setActive(groupItem);
         phantom.remove();
         dragOutInfo = null;
@@ -1506,7 +1459,7 @@ let UI = {
       });
       
       
-      if (!unhiddenGroups.length && !GroupItems.getOrphanedTabs().length) {
+      if (!unhiddenGroups.length) {
         let emptyGroups = GroupItems.groupItems.filter(function (groupItem) {
           return (!groupItem.hidden && !groupItem.getChildren().length);
         });

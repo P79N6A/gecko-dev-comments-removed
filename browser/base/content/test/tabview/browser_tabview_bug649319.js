@@ -56,17 +56,7 @@ function testScenarios(win) {
   
   tabItem = groupItem2.getChild(0);
   dragOutOfGroup(tabItem.container);
-
-  
-  cw.UI.setActive(groupItem2);
-  simulateDragDrop(tabItem.container);
-  assertActiveOrphan(tabItem);
-
-  
-  cw.UI.setActive(groupItem2);
-  let $resizer = cw.iQ('.iq-resizable-handle', tabItem.container);
-  simulateDragDrop($resizer[0]);
-  assertActiveOrphan(tabItem);
+  is(cw.UI.getActiveTab(), tabItem, "the dragged tab is active");
 
   
   dragIntoGroup(tabItem.container);

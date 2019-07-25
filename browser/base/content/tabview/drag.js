@@ -67,8 +67,7 @@ var resize = {
 
 
 
-
-function Drag(item, event, isFauxDrag) {
+function Drag(item, event) {
   Utils.assert(item && (item.isAnItem || item.isAFauxItem), 
       'must be an item, or at least a faux item');
 
@@ -291,7 +290,7 @@ Drag.prototype = {
     if (this.item.parent)
       this.item.parent.arrange();
 
-    if (!this.item.parent) {
+    if (this.item.isAGroupItem) {
       this.item.setZ(drag.zIndex);
       drag.zIndex++;
 

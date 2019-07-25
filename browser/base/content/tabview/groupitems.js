@@ -103,7 +103,7 @@ function GroupItem(listOfEls, options) {
 
   if (!rectToBe) {
     rectToBe = GroupItems.getBoundingBox(listOfEls);
-    rectToBe.inset(-30, -30);
+    rectToBe.inset(-42, -42);
   }
 
   var $container = options.container;
@@ -274,6 +274,9 @@ function GroupItem(listOfEls, options) {
     this.snap(immediately);
   if ($container)
     this.setBounds(rectToBe, immediately);
+
+  if (!options.immediately && listOfEls.length > 0)
+    $container.hide().fadeIn();
 
   this._inited = true;
   this.save();
@@ -720,7 +723,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     let closeCenter = this.getBounds().center();
     
     let closestTabItem = UI.getClosestTab(closeCenter);
-    UI.setActive(closestTabItem);
+    if (closestTabItem)
+      UI.setActive(closestTabItem);
   },
 
   
@@ -781,8 +785,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     let remainingGroups = GroupItems.groupItems.filter(function (groupItem) {
       return (groupItem != self && groupItem.getChildren().length);
     });
-    if (!gBrowser._numPinnedTabs && !GroupItems.getOrphanedTabs().length &&
-        !remainingGroups.length) {
+    if (!gBrowser._numPinnedTabs && !remainingGroups.length) {
       let emptyGroups = GroupItems.groupItems.filter(function (groupItem) {
         return (groupItem != self && !groupItem.getChildren().length);
       });
@@ -849,14 +852,15 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     if (this.$undoContainer) {
       
       
-      let shouldFadeAway = GroupItems.getOrphanedTabs().length > 0;
-      
-      if (!shouldFadeAway && GroupItems.groupItems.length > 1) {
+      let shouldFadeAway = false;
+
+      if (GroupItems.groupItems.length > 1) {
         shouldFadeAway = 
           GroupItems.groupItems.some(function(groupItem) {
             return (groupItem != self && groupItem.getChildren().length > 0);
           });
       }
+
       if (shouldFadeAway) {
         self.$undoContainer.animate({
           color: "transparent",
@@ -1001,7 +1005,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       this._children.splice(index, 0, item);
 
       item.setZ(this.getZ() + 1);
-      $el.addClass("tabInGroupItem");
 
       if (!wasAlreadyInThisGroupItem) {
         item.droppable(false);
@@ -1088,7 +1091,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       }
 
       item.setParent(null);
-      item.removeClass("tabInGroupItem");
       item.removeClass("stacked");
       item.isStacked = false;
       item.setHidden(false);
@@ -1858,7 +1860,6 @@ let GroupItems = {
   nextID: 1,
   _inited: false,
   _activeGroupItem: null,
-  _activeOrphanTab: null,
   _cleanupFunctions: [],
   _arrangePaused: false,
   _arrangesPending: [],
@@ -2271,80 +2272,52 @@ let GroupItems = {
     
     
     
-    
-    
-    
-    
 
-    if (activeGroupItem) {
+    if (activeGroupItem && !activeGroupItem.hidden) {
       activeGroupItem.add(tabItem, options);
       return;
     }
 
-    let orphanTabItem = UI.getActiveOrphanTab();
-    if (!orphanTabItem) {
-      let targetGroupItem;
-      
-      gBrowser.visibleTabs.some(function(tab) {
-        if (!tab.pinned && tab != tabItem.tab) {
-          if (tab._tabViewTabItem) {
-            if (!tab._tabViewTabItem.parent) {
-              
-              
-              orphanTabItem = tab._tabViewTabItem;
-            } else if (!tab._tabViewTabItem.parent.hidden) {
-              
-              
-              targetGroupItem = tab._tabViewTabItem.parent;
-            }
+    let targetGroupItem;
+    
+    gBrowser.visibleTabs.some(function(tab) {
+      if (!tab.pinned && tab != tabItem.tab) {
+        if (tab._tabViewTabItem) {
+          if (!tab._tabViewTabItem.parent && !tab._tabViewTabItem.parent.hidden) {
+            
+            
+            targetGroupItem = tab._tabViewTabItem.parent;
           }
-          return true;
         }
-        return false;
-      });
+        return true;
+      }
+      return false;
+    });
 
-      let visibleGroupItems;
-      if (!orphanTabItem) {
-        if (targetGroupItem) {
-          
-          targetGroupItem.add(tabItem);
-          UI.setActive(targetGroupItem);
-          return;
-        } else {
-          
-          visibleGroupItems = this.groupItems.filter(function(groupItem) {
-            return (!groupItem.hidden);
-          });
-          if (visibleGroupItems.length > 0) {
-            visibleGroupItems[0].add(tabItem);
-            UI.setActive(visibleGroupItems[0]);
-            return;
-          }
-        }
-        let orphanedTabs = this.getOrphanedTabs();
-        
-        
-        if (orphanedTabs.length > 0)
-          orphanTabItem = orphanedTabs[0];
+    let visibleGroupItems;
+    if (targetGroupItem) {
+      
+      targetGroupItem.add(tabItem);
+      UI.setActive(targetGroupItem);
+      return;
+    } else {
+      
+      visibleGroupItems = this.groupItems.filter(function(groupItem) {
+        return (!groupItem.hidden);
+      });
+      if (visibleGroupItems.length > 0) {
+        visibleGroupItems[0].add(tabItem);
+        UI.setActive(visibleGroupItems[0]);
+        return;
       }
     }
 
     
-    let tabItems;
-    let newGroupItemBounds;
-    
-    
-    if (orphanTabItem && orphanTabItem.tab != tabItem.tab) {
-      newGroupItemBounds = orphanTabItem.getBounds();
-      tabItems = [orphanTabItem, tabItem];
-    } else {
-      tabItem.setPosition(60, 60, true);
-      newGroupItemBounds = tabItem.getBounds();
-      tabItems = [tabItem];
-    }
+    tabItem.setPosition(60, 60, true);
+    let newGroupItemBounds = tabItem.getBounds();
 
     newGroupItemBounds.inset(-40,-40);
-    let newGroupItem = new GroupItem(tabItems, { bounds: newGroupItemBounds });
+    let newGroupItem = new GroupItem([tabItem], { bounds: newGroupItemBounds });
     newGroupItem.snap();
     UI.setActive(newGroupItem);
   },
@@ -2364,15 +2337,13 @@ let GroupItems = {
   
   
   
-  
   setActiveGroupItem: function GroupItems_setActiveGroupItem(groupItem) {
+    Utils.assert(groupItem, "groupItem must be given");
+
     if (this._activeGroupItem)
       iQ(this._activeGroupItem.container).removeClass('activeGroupItem');
 
-    if (groupItem !== null) {
-      if (groupItem)
-        iQ(groupItem.container).addClass('activeGroupItem');
-    }
+    iQ(groupItem.container).addClass('activeGroupItem');
 
     this._activeGroupItem = groupItem;
     this._save();
@@ -2381,22 +2352,13 @@ let GroupItems = {
   
   
   
-  
   _updateTabBar: function GroupItems__updateTabBar() {
     if (!window.UI)
       return; 
 
-    let activeOrphanTab;
-    if (!this._activeGroupItem) {
-      activeOrphanTab = UI.getActiveOrphanTab();
-      if (!activeOrphanTab) {
-        Utils.assert(false, "There must be something to show in the tab bar!");
-        return;
-      }
-    }
+    Utils.assert(this._activeGroupItem, "There must be something to show in the tab bar!");
 
-    let tabItems = this._activeGroupItem == null ?
-      [activeOrphanTab] : this._activeGroupItem._children;
+    let tabItems = this._activeGroupItem._children;
     gBrowser.showOnlyTheseTabs(tabItems.map(function(item) item.tab));
   },
 
@@ -2413,23 +2375,11 @@ let GroupItems = {
   
   
   
-  getOrphanedTabs: function GroupItems_getOrphanedTabs() {
-    var tabs = TabItems.getItems();
-    tabs = tabs.filter(function(tab) {
-      return tab.parent == null;
-    });
-    return tabs;
-  },
-
-  
-  
-  
   
   
   getNextGroupItemTab: function GroupItems_getNextGroupItemTab(reverse) {
     var groupItems = Utils.copy(GroupItems.groupItems);
     var activeGroupItem = GroupItems.getActiveGroupItem();
-    var activeOrphanTab = UI.getActiveOrphanTab();
     var tabItem = null;
 
     if (reverse)
@@ -2482,11 +2432,6 @@ let GroupItems = {
         }
         return false;
       });
-      if (!tabItem) {
-        var orphanedTabs = GroupItems.getOrphanedTabs();
-        if (orphanedTabs.length > 0)
-          tabItem = orphanedTabs[0];
-      }
       if (!tabItem) {
         var secondGroupItems = groupItems.slice(0, currentIndex);
         secondGroupItems.some(function(groupItem) {
@@ -2561,7 +2506,7 @@ let GroupItems = {
       box.width = 250;
       box.height = 200;
 
-      new GroupItem([ tab._tabViewTabItem ], { bounds: box });
+      new GroupItem([ tab._tabViewTabItem ], { bounds: box, immediately: true });
     }
 
     if (shouldUpdateTabBar)

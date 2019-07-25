@@ -164,9 +164,13 @@ Item.prototype = {
       },
       stop: function() {
         drag.info.stop();
-        drag.info = null;
-        if (!this.isAGroupItem && !this.parent)
+
+        if (!this.isAGroupItem && !this.parent) {
+          new GroupItem([drag.info.$el], {focusTitle: true});
           gTabView.firstUseExperienced = true;
+        }
+
+        drag.info = null;
       },
       
       
@@ -541,9 +545,7 @@ Item.prototype = {
     var defaultRadius = Trenches.defaultRadius;
     Trenches.defaultRadius = 2 * defaultRadius; 
 
-    var event = {startPosition:{}}; 
-    var FauxDragInfo = new Drag(this, event, true);
-    
+    var FauxDragInfo = new Drag(this, {});
     FauxDragInfo.snap('none', false);
     FauxDragInfo.stop(immediately);
 
