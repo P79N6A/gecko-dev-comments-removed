@@ -63,7 +63,7 @@ function onTabViewWindowLoaded() {
     
     
     window.addEventListener("tabviewshown", onTabViewShown, false);
-    EventUtils.synthesizeKey("e", { accelKey: true }, contentWindow);
+    EventUtils.synthesizeKey("e", { accelKey: true, shiftKey: true }, contentWindow);
   }
   
   let onTabViewShown = function() {

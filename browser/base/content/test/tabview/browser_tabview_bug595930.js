@@ -75,7 +75,7 @@ function onTabViewWindowLoaded() {
     
     
     executeSoon(function() { 
-      EventUtils.synthesizeKey("e", {accelKey : true}, contentWindow);
+      EventUtils.synthesizeKey("e", {accelKey : true, shiftKey: true}, contentWindow);
     });
   });
 

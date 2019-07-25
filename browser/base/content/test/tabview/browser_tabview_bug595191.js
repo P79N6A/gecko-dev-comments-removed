@@ -91,5 +91,5 @@ function toggleTabViewTest(contentWindow) {
   }
   contentWindow.addEventListener("tabviewhidden", onTabViewHidden, false);
   
-  EventUtils.synthesizeKey("e", { accelKey: true });
+  EventUtils.synthesizeKey("e", { accelKey: true, shiftKey: true });
 }
