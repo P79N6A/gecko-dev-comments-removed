@@ -93,11 +93,9 @@ BatteryManager::BatteryManager()
 }
 
 void
-BatteryManager::Init(nsPIDOMWindow *aWindow, nsIScriptContext* aScriptContext)
+BatteryManager::Init(nsPIDOMWindow *aWindow)
 {
-  
-  mOwner = aWindow;
-  mScriptContext = aScriptContext;
+  BindToOwner(aWindow);
 
   hal::RegisterBatteryObserver(this);
 

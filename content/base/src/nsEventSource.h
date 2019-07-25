@@ -102,6 +102,7 @@ public:
   
   static bool PrefEnabled();
 
+  virtual void DisconnectFromOwner();
 protected:
   nsresult GetBaseURI(nsIURI **aBaseURI);
 
