@@ -221,9 +221,11 @@ GenerateBailoutTail(MacroAssembler &masm)
 {
     masm.linkExitFrame();
 
+    Label reflow;
     Label interpret;
     Label exception;
 
+    
     
     
     
@@ -234,7 +236,20 @@ GenerateBailoutTail(MacroAssembler &masm)
     masm.j(Assembler::LessThan, &interpret);
     masm.j(Assembler::Equal, &exception);
 
+    masm.cmpl(rax, Imm32(BAILOUT_RETURN_RECOMPILE_CHECK));
+    masm.j(Assembler::LessThan, &reflow);
+
     
+    masm.setupUnalignedABICall(0, rdx);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, RecompileForInlining));
+
+    masm.testl(rax, rax);
+    masm.j(Assembler::Zero, &exception);
+
+    masm.jmp(&interpret);
+
+    
+    masm.bind(&reflow);
     masm.setupUnalignedABICall(1, rdx);
     masm.setABIArg(0, rax);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));

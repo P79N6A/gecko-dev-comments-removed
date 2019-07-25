@@ -1785,6 +1785,26 @@ class MCheckOverRecursed : public MAryInstruction<0>
 };
 
 
+
+class MRecompileCheck : public MAryInstruction<0>
+{
+    MRecompileCheck() {
+        setGuard();
+    }
+
+  public:
+    INSTRUCTION_HEADER(RecompileCheck);
+
+    static MRecompileCheck *New() {
+        return new MRecompileCheck();
+    }
+
+    virtual AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+
 class MImplicitThis
   : public MUnaryInstruction,
     public ObjectPolicy

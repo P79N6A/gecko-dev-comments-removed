@@ -241,6 +241,9 @@ IonBuilder::build()
     current->add(check);
     check->setResumePoint(current->entryResumePoint());
 
+    
+    insertRecompileCheck();
+
     current->makeStart(MStart::New(MStart::StartType_Default));
 
     
@@ -712,7 +715,8 @@ IonBuilder::inspectOpcode(JSOp op)
         return pushConstant(Int32Value(GET_INT32(pc)));
 
       case JSOP_LOOPHEAD:
-        assertValidTraceOp(op);
+        
+        JS_NOT_REACHED("JSOP_LOOPHEAD outside loop");
         return true;
 
       case JSOP_GETELEM:
@@ -1410,30 +1414,37 @@ IonBuilder::maybeLoop(JSOp op, jssrcnote *sn)
 }
 
 void
-IonBuilder::assertValidTraceOp(JSOp op)
+IonBuilder::assertValidLoopHeadOp(jsbytecode *pc)
 {
 #ifdef DEBUG
-    jssrcnote *sn = info().getNote(cx, pc);
-    jsbytecode *ifne = pc + js_GetSrcNoteOffset(sn, 0);
-    CFGState &state = cfgStack_.back();
+    JS_ASSERT(JSOp(*pc) == JSOP_LOOPHEAD);
 
     
+    CFGState &state = cfgStack_.back();
     JS_ASSERT(GetNextPc(state.loop.entry->pc()) == pc);
 
-    jsbytecode *expected_ifne;
-    switch (state.state) {
-      case CFGState::DO_WHILE_LOOP_BODY:
-        expected_ifne = state.stopAt;
-        break;
+    
+    jssrcnote *sn = info().getNote(cx, pc);
+    if (sn) {
+        jsbytecode *ifne = pc + js_GetSrcNoteOffset(sn, 0);
 
-      default:
-        JS_NOT_REACHED("JSOP_LOOPHEAD appeared in unknown control flow construct");
-        return;
+        jsbytecode *expected_ifne;
+        switch (state.state) {
+          case CFGState::DO_WHILE_LOOP_BODY:
+            expected_ifne = state.loop.updateEnd;
+            break;
+
+          default:
+            JS_NOT_REACHED("JSOP_LOOPHEAD unexpected source note");
+            return;
+        }
+
+        
+        
+        JS_ASSERT(ifne == expected_ifne);
+    } else {
+        JS_ASSERT(state.state != CFGState::DO_WHILE_LOOP_BODY);
     }
-
-    
-    
-    JS_ASSERT(ifne == expected_ifne);
 #endif
 }
 
@@ -1473,7 +1484,6 @@ IonBuilder::doWhileLoop(JSOp op, jssrcnote *sn)
         return ControlStatus_Error;
     current->end(MGoto::New(header));
 
-    current = header;
     jsbytecode *bodyStart = GetNextPc(GetNextPc(pc));
     jsbytecode *bodyEnd = conditionpc;
     jsbytecode *exitpc = GetNextPc(ifne);
@@ -1483,6 +1493,10 @@ IonBuilder::doWhileLoop(JSOp op, jssrcnote *sn)
     CFGState &state = cfgStack_.back();
     state.loop.updatepc = conditionpc;
     state.loop.updateEnd = ifne;
+
+    current = header;
+    if (!jsop_loophead(GetNextPc(pc)))
+        return ControlStatus_Error;
 
     pc = bodyStart;
     return ControlStatus_Jumped;
@@ -1527,8 +1541,11 @@ IonBuilder::whileLoop(JSOp op, jssrcnote *sn)
         return ControlStatus_Error;
 
     
-    pc = bodyEnd;
     current = header;
+    if (!jsop_loophead(GetNextPc(pc)))
+        return ControlStatus_Error;
+
+    pc = bodyEnd;
     return ControlStatus_Jumped;
 }
 
@@ -1565,6 +1582,7 @@ IonBuilder::forLoop(JSOp op, jssrcnote *sn)
         JS_ASSERT(bodyStart + GetJumpOffset(bodyStart) == condpc);
         bodyStart = GetNextPc(bodyStart);
     }
+    jsbytecode *loopHead = bodyStart;
     JS_ASSERT(JSOp(*bodyStart) == JSOP_LOOPHEAD);
     JS_ASSERT(ifne + GetJumpOffset(ifne) == bodyStart);
     bodyStart = GetNextPc(bodyStart);
@@ -1606,6 +1624,9 @@ IonBuilder::forLoop(JSOp op, jssrcnote *sn)
         state.loop.updateEnd = condpc;
 
     current = header;
+    if (!jsop_loophead(loopHead))
+        return ControlStatus_Error;
+
     return ControlStatus_Jumped;
 }
 
@@ -1758,6 +1779,14 @@ IonBuilder::jsop_dup2()
     uint32 rhsSlot = current->stackDepth() - 1;
     current->pushSlot(lhsSlot);
     current->pushSlot(rhsSlot);
+    return true;
+}
+
+bool
+IonBuilder::jsop_loophead(jsbytecode *pc)
+{
+    assertValidLoopHeadOp(pc);
+    insertRecompileCheck();
     return true;
 }
 
@@ -2152,6 +2181,11 @@ IonBuilder::makeInliningDecision(uint32 argc, InliningData *data)
 {
     JS_ASSERT(data->shouldInline == false);
 
+    if (script->getUseCount() < js_IonOptions.usesBeforeInlining) {
+        IonSpew(IonSpew_Inlining, "Not inlining, caller is not hot");
+        return true;
+    }
+
     JSFunction *inlineFunc = NULL;
     if (!getInliningTarget(argc, pc, &inlineFunc))
         return false;
@@ -2485,6 +2519,25 @@ IonBuilder::resumeAt(MInstruction *ins, jsbytecode *pc)
     lastResumePoint_ = resumePoint;
     ins->setResumePoint(resumePoint);
     return true;
+}
+
+void
+IonBuilder::insertRecompileCheck()
+{
+    if (!inliningEnabled())
+        return;
+
+    
+    if (script->getUseCount() >= js_IonOptions.usesBeforeInlining)
+        return;
+
+    
+    
+    if (!oracle->canInlineCalls())
+        return;
+
+    MRecompileCheck *check = MRecompileCheck::New();
+    current->add(check);
 }
 
 static inline bool

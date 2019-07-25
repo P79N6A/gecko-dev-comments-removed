@@ -397,3 +397,18 @@ CodeGeneratorX86::visitImplicitThis(LImplicitThis *lir)
     masm.moveValue(UndefinedValue(), type, payload);
     return true;
 }
+
+bool
+CodeGeneratorX86::visitRecompileCheck(LRecompileCheck *lir)
+{
+    
+    
+    
+    
+    Operand addr(gen->info().script()->addressOfUseCount());
+    masm.addl(Imm32(1), addr);
+    masm.cmpl(addr, Imm32(js_IonOptions.usesBeforeInlining));
+    if (!bailoutIf(Assembler::AboveOrEqual, lir->snapshot()))
+        return false;
+    return true;
+}

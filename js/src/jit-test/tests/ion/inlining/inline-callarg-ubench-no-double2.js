@@ -19,7 +19,7 @@ for (var i = 0; i < 100; ++i)
 
 
 
-for (var i = 0; i < 100; ++i)
+for (var i = 0; i < 11000; ++i)
     runSomeTimes(lameFunc, 1);
 
 

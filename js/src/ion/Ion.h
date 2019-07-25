@@ -93,10 +93,19 @@ struct IonOptions
     
     
     
-    uint32 invokesBeforeCompile;
+    uint32 usesBeforeCompile;
+
+    
+    
+    
+    
+    uint32 usesBeforeInlining;
 
     void setEagerCompilation() {
-        invokesBeforeCompile = 0;
+        usesBeforeCompile = 0;
+
+        
+        usesBeforeInlining = usesBeforeCompile;
     }
 
     IonOptions()
@@ -107,7 +116,8 @@ struct IonOptions
         osr(true),
         lsra(true),
         inlining(true),
-        invokesBeforeCompile(40)
+        usesBeforeCompile(40),
+        usesBeforeInlining(10000)
     { }
 };
 
