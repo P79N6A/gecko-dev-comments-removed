@@ -107,6 +107,9 @@ let UI = {
       let self = this;
 
       
+      this._initPageDirection();
+
+      
       Storage.init();
       let data = Storage.readUIData(gWindow);
       this._storageSanity(data);
@@ -244,7 +247,13 @@ let UI = {
     this._reorderTabsOnHide = null;
     this._frameInitialized = false;
   },
+
   
+  
+  get rtl() {
+    return document.documentElement.getAttribute("dir") == "rtl";
+  },
+
   
   
   
@@ -263,6 +272,9 @@ let UI = {
     box.width = Math.min(box.width * 0.667,
                          pageBounds.width - (welcomeWidth + padding));
     box.height = box.height * 0.667;
+    if (UI.rtl) {
+      box.right = pageBounds.width + pageBounds.left;
+    }
 
     GroupItems.groupItems.forEach(function(group) {
       group.close();
@@ -354,6 +366,15 @@ let UI = {
   
   
   
+  _initPageDirection: function UI__initPageDirection() {
+    let chromeReg = Cc["@mozilla.org/chrome/chrome-registry;1"].
+                    getService(Ci.nsIXULChromeRegistry);
+    document.documentElement.setAttribute("dir", chromeReg.isLocaleRTL("global") ? "rtl" : "ltr");
+  },
+
+  
+  
+  
   
   
   showTabView: function UI_showTabView(zoomOut) {
@@ -361,9 +382,7 @@ let UI = {
       return;
 
     
-    let chromeReg = Cc["@mozilla.org/chrome/chrome-registry;1"].
-                    getService(Ci.nsIXULChromeRegistry);
-    document.documentElement.setAttribute("dir", chromeReg.isLocaleRTL("global") ? "rtl" : "ltr");
+    this._initPageDirection();
 
     var self = this;
     var currentTab = this._currentTab;
@@ -1081,7 +1100,7 @@ let UI = {
         return;
 
       var bounds = item.getBounds();
-      bounds.left += newPageBounds.left - self._pageBounds.left;
+      bounds.left += (UI.rtl ? -1 : 1) * (newPageBounds.left - self._pageBounds.left);
       bounds.left *= scale;
       bounds.width *= scale;
 
