@@ -1,21 +1,28 @@
 
 
 
-var prefsBranch = Cc["@mozilla.org/preferences-service;1"].
+let prefsBranch = Cc["@mozilla.org/preferences-service;1"].
                   getService(Ci.nsIPrefService).
                   getBranch("browser.panorama.");
+let originalPrefState;
 
 function test() {
   waitForExplicitFinish();
 
   ok(!TabView.isVisible(), "Main window TabView is hidden");
 
-  ok(experienced(), "should start as experienced");
+  originalPrefState = experienced();
 
   prefsBranch.setBoolPref("experienced_first_run", false);
   ok(!experienced(), "set to not experienced");
 
-  newWindowWithTabView(checkFirstRun, part2);
+  newWindowWithTabView(checkFirstRun, function() {
+    
+    prefsBranch.setBoolPref("experienced_first_run", true);
+    ok(experienced(), "we're now experienced");
+
+    newWindowWithTabView(checkNotFirstRun, endGame);
+  });
 }
 
 function experienced() {
@@ -27,7 +34,7 @@ function checkFirstRun(win) {
   let contentWindow = win.document.getElementById("tab-view").contentWindow;
   
   
-  todo_is(win.gBrowser.tabs.length, 2, "There should be two tabs");
+  is(win.gBrowser.tabs.length, 1, "There should be one tab");
   
   let groupItems = contentWindow.GroupItems.groupItems;
   is(groupItems.length, 1, "There should be one group");
@@ -35,13 +42,9 @@ function checkFirstRun(win) {
 
   let orphanTabCount = contentWindow.GroupItems.getOrphanedTabs().length;
   
-  todo_is(orphanTabCount, 1, "There should also be an orphaned tab");
-  
-  ok(experienced(), "we're now experienced");
-}
+  is(orphanTabCount, 0, "There should also be no orphaned tabs");
 
-function part2() {
-  newWindowWithTabView(checkNotFirstRun, endGame);
+  ok(!experienced(), "we're not experienced");
 }
 
 function checkNotFirstRun(win) {
@@ -60,6 +63,9 @@ function checkNotFirstRun(win) {
 function endGame() {
   ok(!TabView.isVisible(), "Main window TabView is still hidden");
   ok(experienced(), "should finish as experienced");
+
+  prefsBranch.setBoolPref("experienced_first_run", originalPrefState);
+
   finish();
 }
 
