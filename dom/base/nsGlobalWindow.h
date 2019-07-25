@@ -579,7 +579,9 @@ protected:
   JSObject *CallerGlobal();
   nsGlobalWindow *CallerInnerWindow();
 
-  nsresult InnerSetNewDocument(nsIDocument* aDocument);
+  
+  
+  void InnerSetNewDocument(nsIDocument* aDocument);
 
   nsresult DefineArgumentsProperty(nsIArray *aArguments);
 
