@@ -39,8 +39,8 @@
 
 
 
-#ifndef jsion_codegen_h__
-#define jsion_codegen_h__
+#ifndef jsion_codegen_shared_h__
+#define jsion_codegen_shared_h__
 
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
@@ -51,8 +51,13 @@
 namespace js {
 namespace ion {
 
+class OutOfLineCode;
+class CodeGenerator;
+
 class CodeGeneratorShared : public LInstructionVisitor
 {
+    js::Vector<OutOfLineCode *, 0, SystemAllocPolicy> outOfLineCode_;
+
   protected:
     MacroAssembler masm;
     MIRGenerator *gen;
@@ -91,19 +96,41 @@ class CodeGeneratorShared : public LInstructionVisitor
         return (current->mir()->id() + 1 == block->mir()->id());
     }
 
-  private:
-    virtual bool generatePrologue() = 0;
-    virtual bool generateEpilogue() = 0;
-    bool generateBody();
+  protected:
+    bool addOutOfLineCode(OutOfLineCode *code);
+    bool generateOutOfLineCode();
 
   public:
     CodeGeneratorShared(MIRGenerator *gen, LIRGraph &graph);
 
-    bool generate();
-
-  public:
     
     virtual bool visitParameter(LParameter *param);
+};
+
+
+class OutOfLineCode : public TempObject
+{
+    Label entry_;
+
+  public:
+    virtual bool generate(CodeGeneratorShared *codegen) = 0;
+
+    Label *entry() {
+        return &entry_;
+    }
+};
+
+
+template <typename T>
+class OutOfLineCodeBase : public OutOfLineCode
+{
+  public:
+    virtual bool generate(CodeGeneratorShared *codegen) {
+        return accept(static_cast<T *>(codegen));
+    }
+
+  public:
+    virtual bool accept(T *codegen) = 0;
 };
 
 } 

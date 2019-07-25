@@ -1,0 +1,69 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef jsion_codegen_h__
+#define jsion_codegen_h__
+
+#if defined(JS_CPU_X86)
+# include "x86/CodeGenerator-x86.h"
+#elif defined(JS_CPU_X64)
+# include "x64/CodeGenerator-x64.h"
+#endif
+
+namespace js {
+namespace ion {
+
+class CodeGenerator : public CodeGeneratorSpecific
+{
+    bool generateBody();
+
+  public:
+    CodeGenerator(MIRGenerator *gen, LIRGraph &graph);
+
+  public:
+    bool generate();
+};
+
+} 
+} 
+
+#endif 
+
