@@ -79,7 +79,7 @@ CryptoWrapper.prototype = {
 
     
     if (Utils.sha256HMAC(this.ciphertext, symkey.hmacKey) != this.hmac)
-      throw "Server attack?! SHA256 HMAC mismatch: " + this.hmac;
+      throw "Record SHA256 HMAC mismatch: " + this.hmac;
 
     this.cleartext = JSON.parse(Svc.Crypto.decrypt(this.ciphertext, symkey,
                                                    this.IV));
@@ -87,7 +87,7 @@ CryptoWrapper.prototype = {
 
     
     if (this.cleartext.id != this.id)
-      throw "Server attack?! Id mismatch: " + [this.cleartext.id, this.id];
+      throw "Record id mismatch: " + [this.cleartext.id, this.id];
 
     return this.cleartext;
   },
@@ -137,7 +137,7 @@ CryptoMeta.prototype = {
     
     let localHMAC = Utils.sha256HMAC(wrapped_key.wrapped, this.hmacKey);
     if (localHMAC != wrapped_key.hmac)
-      throw "Server attack?! SHA256 HMAC key fail: " + wrapped_key.hmac;
+      throw "Key SHA256 HMAC mismatch: " + wrapped_key.hmac;
 
     
     let unwrappedKey = new String(
