@@ -306,11 +306,22 @@ nsDOMStorageDBWrapper::CreateDomainScopeDBKey(nsIURI* aUri, nsACString& aKey)
 {
   nsresult rv;
 
-  nsCAutoString host;
-  rv = aUri->GetAsciiHost(host);
+  nsCAutoString domainScope;
+  rv = aUri->GetAsciiHost(domainScope);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = CreateDomainScopeDBKey(host, aKey);
+  if (domainScope.IsEmpty()) {
+    
+    
+    PRBool isAboutUrl = PR_FALSE;
+    if ((NS_SUCCEEDED(aUri->SchemeIs("about", &isAboutUrl)) && isAboutUrl) ||
+        (NS_SUCCEEDED(aUri->SchemeIs("moz-safe-about", &isAboutUrl)) && isAboutUrl)) {
+      rv = aUri->GetPath(domainScope);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
+  rv = CreateDomainScopeDBKey(domainScope, aKey);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
