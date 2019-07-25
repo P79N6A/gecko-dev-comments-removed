@@ -454,6 +454,13 @@ js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp)
             return false;
         obj->clearParent();
         obj->clearProto();
+
+        
+
+
+
+
+        JS::Anchor<JSString *> anchor(source);
         AlreadyIncRefed<RegExp> re = RegExp::create(xdr->cx, source, flagsword);
         if (!re)
             return false;
