@@ -76,6 +76,21 @@ public:
   NS_HIDDEN_(void*) AllocateByFrameID(nsQueryFrame::FrameIID aID, size_t aSize);
   NS_HIDDEN_(void)  FreeByFrameID(nsQueryFrame::FrameIID aID, void* aPtr);
 
+  enum ObjectID {
+    
+    
+    
+    
+    
+    
+    NON_OBJECT_MARKER = 0x40000000
+  };
+
+  
+  
+  NS_HIDDEN_(void*) AllocateByObjectID(ObjectID aID, size_t aSize);
+  NS_HIDDEN_(void)  FreeByObjectID(ObjectID aID, void* aPtr);
+
   size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
   

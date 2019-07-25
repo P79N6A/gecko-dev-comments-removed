@@ -249,7 +249,8 @@ public:
     
     
     
-    NON_FRAME_MARKER = 0x40000000
+    
+    NON_FRAME_MARKER = 0x20000000
   };
 
   virtual void* QueryFrame(FrameIID id) = 0;
