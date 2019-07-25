@@ -63,6 +63,7 @@ struct JSFunction : public JSObject
     } u;
     js::HeapPtrAtom  atom;        
 
+    bool hasDefaults()       const { return flags & JSFUN_HAS_DEFAULTS; }
     bool hasRest()           const { return flags & JSFUN_HAS_REST; }
     bool isInterpreted()     const { return kind() >= JSFUN_INTERPRETED; }
     bool isNative()          const { return !isInterpreted(); }
@@ -89,6 +90,11 @@ struct JSFunction : public JSObject
     void setHasRest() {
         JS_ASSERT(!hasRest());
         this->flags |= JSFUN_HAS_REST;
+    }
+
+    void setHasDefaults() {
+        JS_ASSERT(!hasDefaults());
+        this->flags |= JSFUN_HAS_DEFAULTS;
     }
 
     
