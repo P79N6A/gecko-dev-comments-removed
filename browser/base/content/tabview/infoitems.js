@@ -59,7 +59,7 @@
 
 window.InfoItem = function(bounds, options) {
   try {
-    Utils.assertThrow('bounds', Utils.isRect(bounds));
+    Utils.assertThrow(Utils.isRect(bounds), 'bounds');
 
     if (typeof(options) == 'undefined')
       options = {};
@@ -163,7 +163,7 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   setBounds: function(rect, immediately) {
     try {
-      Utils.assertThrow('InfoItem.setBounds: rect must be a real rectangle!', Utils.isRect(rect));
+      Utils.assertThrow(Utils.isRect(rect), 'InfoItem.setBounds: rect must be a real rectangle!');
 
       
       var css = {};
@@ -184,8 +184,8 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         return;
 
       this.bounds = new Rect(rect);
-      Utils.assertThrow('InfoItem.setBounds: this.bounds must be a real rectangle!',
-                        Utils.isRect(this.bounds));
+      Utils.assertThrow(Utils.isRect(this.bounds), 
+          'InfoItem.setBounds: this.bounds must be a real rectangle!');
 
       
       if (immediately) {
@@ -214,7 +214,7 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   setZ: function(value) {
     try {
-      Utils.assertThrow('value must be a number', typeof(value) == 'number');
+      Utils.assertThrow(typeof(value) == 'number', 'value must be a number');
 
       this.zIndex = value;
 
@@ -250,7 +250,7 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   html: function(value) {
     try {
-      Utils.assertThrow('value must be a string', typeof(value) == 'string');
+      Utils.assertThrow(typeof(value) == 'string', 'value must be a string');
       this.$contents.html(value);
     } catch(e) {
       Utils.log(e);

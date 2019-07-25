@@ -49,7 +49,7 @@
 
 window.TabItem = function(tab) {
 
-  Utils.assert('tab', tab);
+  Utils.assert(tab, "tab");
 
   this.tab = tab;
   
@@ -690,7 +690,7 @@ window.TabItems = {
   
   
   init: function() {
-    Utils.assert("TabManager must be initialized first", window.AllTabs);
+    Utils.assert(window.AllTabs, "AllTabs must be initialized first");
     var self = this;
 
     
@@ -739,7 +739,7 @@ window.TabItems = {
   
   update: function(tab) {
     try {
-      Utils.assertThrow("tab", tab);
+      Utils.assertThrow(tab, "tab");
 
       let shouldDefer = (
         this.isPaintingPaused() ||
@@ -767,7 +767,7 @@ window.TabItems = {
   
   _update: function(tab) {
     try {
-      Utils.assertThrow("tab", tab);
+      Utils.assertThrow(tab, "tab");
 
       
       let index = this._tabsWaitingForUpdate.indexOf(tab);
@@ -775,7 +775,7 @@ window.TabItems = {
         this._tabsWaitingForUpdate.splice(index, 1);
 
       
-      Utils.assertThrow("must already be linked", tab.tabItem);
+      Utils.assertThrow(tab.tabItem, "must already be linked");
       let tabItem = tab.tabItem;
 
       
@@ -830,8 +830,8 @@ window.TabItems = {
   
   link: function(tab){
     try {
-      Utils.assertThrow("tab", tab);
-      Utils.assertThrow("shouldn't already be linked", !tab.tabItem);
+      Utils.assertThrow(tab, "tab");
+      Utils.assertThrow(!tab.tabItem, "shouldn't already be linked");
       new TabItem(tab); 
     } catch(e) {
       Utils.log(e);
@@ -843,8 +843,8 @@ window.TabItems = {
   
   unlink: function(tab) {
     try {
-      Utils.assertThrow("tab", tab);
-      Utils.assertThrow("should already be linked", tab.tabItem);
+      Utils.assertThrow(tab, "tab");
+      Utils.assertThrow(tab.tabItem, "should already be linked");
 
       tab.tabItem._sendToSubscribers("close");
       iQ(tab.tabItem.container).remove();
@@ -921,8 +921,8 @@ window.TabItems = {
   
   
   register: function(item) {
-    Utils.assert('item must be a TabItem', item && item.isAnItem);
-    Utils.assert('only register once per item', this.items.indexOf(item) == -1);
+    Utils.assert(item && item.isAnItem, 'item must be a TabItem');
+    Utils.assert(this.items.indexOf(item) == -1, 'only register once per item');
     this.items.push(item);
   },
 
@@ -977,8 +977,8 @@ window.TabItems = {
     var found = false;
 
     try{
-      Utils.assert('item', item);
-      Utils.assert('item.tab', item.tab);
+      Utils.assert(item, 'item');
+      Utils.assert(item.tab, 'item.tab');
 
       if (item.reconnected)
         return true;
