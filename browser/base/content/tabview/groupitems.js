@@ -673,6 +673,22 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       group.newTab();
     }
 
+    this.destroy();
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  destroy: function GroupItem_destroy(options) {
+    let self = this;
+
     
     
     
@@ -703,7 +719,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       this.$undoContainer.fadeOut(function() { self._unhide() });
     } else {
-      this.close();
+      this.close(options);
     }
   },
 
@@ -1892,7 +1908,6 @@ let GroupItems = {
   
   
   
-  
   reconstitute: function GroupItems_reconstitute(groupItemsData, groupItemData) {
     try {
       let activeGroupId;
@@ -1910,7 +1925,7 @@ let GroupItems = {
           let data = groupItemData[id];
           if (this.groupItemStorageSanity(data)) {
             let groupItem = this.groupItem(data.id); 
-            if (groupItem) {
+            if (groupItem && !groupItem.hidden) {
               groupItem.userSize = data.userSize;
               groupItem.setTitle(data.title);
               groupItem.setBounds(data.bounds, true);
@@ -1930,7 +1945,7 @@ let GroupItems = {
         }
 
         toClose.forEach(function(groupItem) {
-          groupItem.close({immediately: true});
+          groupItem.destroy({immediately: true});
         });
       }
 
