@@ -1217,11 +1217,11 @@ class YarrGenerator : private MacroAssembler {
                     
                     
                     op.m_reentry = label();
-                    if (int delta = alternative->m_minimumSize - priorAlternative->m_minimumSize) {
-                        add32(Imm32(delta), index);
-                        if (delta > 0)
-                            op.m_jumps.append(jumpIfNoAvailableInput());
-                    }
+                    if (alternative->m_minimumSize > priorAlternative->m_minimumSize) {
+                        add32(Imm32(alternative->m_minimumSize - priorAlternative->m_minimumSize), index);
+                        op.m_jumps.append(jumpIfNoAvailableInput());
+                    } else if (priorAlternative->m_minimumSize > alternative->m_minimumSize)
+                        sub32(Imm32(priorAlternative->m_minimumSize - alternative->m_minimumSize), index);
                 } else if (op.m_nextOp == notFound) {
                     
                     
@@ -1584,15 +1584,9 @@ class YarrGenerator : private MacroAssembler {
                     
                     
                     
-                    
-                    
-                    int deltaLastAlternativeToFirstAlternativePlusOne = (beginOp->m_alternative->m_minimumSize - alternative->m_minimumSize) + 1;
-
-                    
-                    
-                    
-                    
-                    if (!deltaLastAlternativeToFirstAlternativePlusOne && m_pattern.m_body->m_hasFixedSize)
+                    if (m_pattern.m_body->m_hasFixedSize
+                        && (alternative->m_minimumSize > beginOp->m_alternative->m_minimumSize)
+                        && (alternative->m_minimumSize - beginOp->m_alternative->m_minimumSize == 1))
                         m_backtrackingState.linkTo(beginOp->m_reentry, this);
                     else {
                         
@@ -1613,19 +1607,26 @@ class YarrGenerator : private MacroAssembler {
                             }
                         }
 
-                        if (deltaLastAlternativeToFirstAlternativePlusOne)
-                            add32(Imm32(deltaLastAlternativeToFirstAlternativePlusOne), index);
-
                         
                         
-                        
-                        
-                        
-                        
-                        if (deltaLastAlternativeToFirstAlternativePlusOne > 0)
-                            checkInput().linkTo(beginOp->m_reentry, this);
-                        else
+                        if (alternative->m_minimumSize > beginOp->m_alternative->m_minimumSize) {
+                            
+                            
+                            unsigned delta = alternative->m_minimumSize - beginOp->m_alternative->m_minimumSize;
+                            ASSERT(delta);
+                            if (delta != 1)
+                                sub32(Imm32(delta - 1), index);
                             jump(beginOp->m_reentry);
+                        } else {
+                            
+                            
+                            unsigned delta = beginOp->m_alternative->m_minimumSize - alternative->m_minimumSize;
+                            if (delta != 0xFFFFFFFFu) {
+                                
+                                add32(Imm32(delta + 1), index);
+                                checkInput().linkTo(beginOp->m_reentry, this);
+                            }
+                        }
                     }
                 }
 
@@ -1649,21 +1650,20 @@ class YarrGenerator : private MacroAssembler {
                 while (nextOp->m_op != OpBodyAlternativeEnd) {
                     prevOp->m_jumps.link(this);
 
-                    int delta = nextOp->m_alternative->m_minimumSize - prevOp->m_alternative->m_minimumSize;
-                    if (delta)
-                        add32(Imm32(delta), index);
-
                     
                     
-                    if (delta < 0) {
+                    if (prevOp->m_alternative->m_minimumSize > nextOp->m_alternative->m_minimumSize) {
                         
                         
                         
-                        Jump fail = jumpIfNoAvailableInput();
+                        unsigned delta = prevOp->m_alternative->m_minimumSize - nextOp->m_alternative->m_minimumSize;
                         sub32(Imm32(delta), index);
+                        Jump fail = jumpIfNoAvailableInput();
+                        add32(Imm32(delta), index);
                         jump(nextOp->m_reentry);
                         fail.link(this);
-                    }
+                    } else if (prevOp->m_alternative->m_minimumSize < nextOp->m_alternative->m_minimumSize)
+                        add32(Imm32(nextOp->m_alternative->m_minimumSize - prevOp->m_alternative->m_minimumSize), index);
                     prevOp = nextOp;
                     nextOp = &m_ops[nextOp->m_nextOp];
                 }
@@ -1697,9 +1697,18 @@ class YarrGenerator : private MacroAssembler {
                 
                 
                 
-                int deltaLastAlternativeToBodyMinimumPlusOne = (m_pattern.m_body->m_minimumSize + 1) - alternative->m_minimumSize;
-                if (deltaLastAlternativeToBodyMinimumPlusOne)
-                    add32(Imm32(deltaLastAlternativeToBodyMinimumPlusOne), index);
+                ASSERT(alternative->m_minimumSize >= m_pattern.m_body->m_minimumSize);
+                if (alternative->m_minimumSize == m_pattern.m_body->m_minimumSize) {
+                    
+                    
+                    add32(Imm32(1), index);
+                } else {
+                    
+                    
+                    unsigned delta = (alternative->m_minimumSize - m_pattern.m_body->m_minimumSize) - 1;
+                    if (delta)
+                        sub32(Imm32(delta), index);
+                }
                 Jump matchFailed = jumpIfNoAvailableInput();
 
                 if (needsToUpdateMatchStart) {
@@ -1715,11 +1724,13 @@ class YarrGenerator : private MacroAssembler {
                 
                 
                 
-                int deltaBodyMinimumToFirstAlternative = beginOp->m_alternative->m_minimumSize - m_pattern.m_body->m_minimumSize;
-                if (!deltaBodyMinimumToFirstAlternative)
+                if (beginOp->m_alternative->m_minimumSize == m_pattern.m_body->m_minimumSize)
                     jump(beginOp->m_reentry);
                 else {
-                    add32(Imm32(deltaBodyMinimumToFirstAlternative), index);
+                    if (beginOp->m_alternative->m_minimumSize > m_pattern.m_body->m_minimumSize)
+                        add32(Imm32(beginOp->m_alternative->m_minimumSize - m_pattern.m_body->m_minimumSize), index);
+                    else
+                        sub32(Imm32(m_pattern.m_body->m_minimumSize - beginOp->m_alternative->m_minimumSize), index);
                     checkInput().linkTo(beginOp->m_reentry, this);
                     jump(firstInputCheckFailed);
                 }
