@@ -962,6 +962,8 @@ pref("network.IDN.whitelist.xn--mgbqly7cvafr", true);
 
 pref("network.IDN.whitelist.xn--ogbpf8fl", true);
 
+pref("network.IDN.whitelist.xn--o3cw4h", true);
+
 pref("network.IDN.whitelist.xn--kpry57d", true);  
 pref("network.IDN.whitelist.xn--kprw13d", true);  
 
