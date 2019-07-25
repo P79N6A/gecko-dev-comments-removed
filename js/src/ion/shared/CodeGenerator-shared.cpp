@@ -40,6 +40,7 @@
 
 #include "CodeGenerator-shared.h"
 #include "ion/MIRGenerator.h"
+#include "ion/IonFrames.h"
 
 using namespace js;
 using namespace js::ion;
@@ -50,6 +51,8 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph &graph)
     frameDepth_(graph.localSlotCount() * sizeof(STACK_SLOT_SIZE)),
     framePushed_(0)
 {
+    frameClass_ = FrameSizeClass::FromDepth(frameDepth_);
+    frameStaticSize_ = frameClass_.frameSize();
 }
 
 bool

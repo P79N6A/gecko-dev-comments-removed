@@ -45,6 +45,7 @@
 #include "ion/IonLIR.h"
 #include "ion/MoveGroupResolver.h"
 #include "ion/IonLinker.h"
+#include "ion/IonFrames.h"
 
 namespace js {
 namespace ion {
@@ -73,14 +74,20 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     int32 framePushed_;
 
+    
+    int32 frameStaticSize_;
+
+    
+    FrameSizeClass frameClass_;
+
     inline int32 ArgToStackOffset(int32 slot) {
         JS_ASSERT(slot >= 0);
-        return framePushed_ + frameDepth_ + ION_FRAME_PREFIX_SIZE + slot;
+        return framePushed_ + frameStaticSize_ + ION_FRAME_PREFIX_SIZE + slot;
     }
 
     inline int32 SlotToStackOffset(int32 slot) {
         JS_ASSERT(slot >= 0 && slot <= int32(graph.localSlotCount()));
-        int32 offset = framePushed_ + frameDepth_ - slot * STACK_SLOT_SIZE;
+        int32 offset = framePushed_ + frameStaticSize_ - slot * STACK_SLOT_SIZE;
         JS_ASSERT(offset >= 0);
         return offset;
     }
