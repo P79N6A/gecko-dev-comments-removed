@@ -1355,7 +1355,6 @@ NewObjectCache::copyCachedToObject(JSObject *dst, JSObject *src)
 static inline bool
 CanBeFinalizedInBackground(gc::AllocKind kind, Class *clasp)
 {
-#ifdef JS_THREADSAFE
     JS_ASSERT(kind <= gc::FINALIZE_OBJECT_LAST);
     
 
@@ -1364,10 +1363,7 @@ CanBeFinalizedInBackground(gc::AllocKind kind, Class *clasp)
 
 
 
-    if (!gc::IsBackgroundAllocKind(kind) && !clasp->finalize)
-        return true;
-#endif
-    return false;
+    return (!gc::IsBackgroundAllocKind(kind) && !clasp->finalize);
 }
 
 
@@ -1478,9 +1474,7 @@ CopyInitializerObject(JSContext *cx, HandleObject baseobj)
     JS_ASSERT(!baseobj->inDictionaryMode());
 
     gc::AllocKind kind = gc::GetGCObjectFixedSlotsKind(baseobj->numFixedSlots());
-#ifdef JS_THREADSAFE
     kind = gc::GetBackgroundAllocKind(kind);
-#endif
     JS_ASSERT(kind == baseobj->getAllocKind());
     JSObject *obj = NewBuiltinClassInstance(cx, &ObjectClass, kind);
 
