@@ -254,7 +254,7 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_REFLOW_ROOT                        NS_FRAME_STATE_BIT(19)
 
 
-#define NS_FRAME_IMPL_RESERVED                      nsFrameState(0xF0000000FFF00000)
+#define NS_FRAME_IMPL_RESERVED                      nsFrameState(0xFFF00000)
 
 
 
