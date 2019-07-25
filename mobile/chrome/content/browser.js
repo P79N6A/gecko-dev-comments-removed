@@ -59,9 +59,6 @@ function getBrowser() {
 
 const kBrowserViewZoomLevelPrecision = 10000;
 
-const kDefaultBrowserWidth = 800;
-const kFallbackBrowserWidth = 980;
-
 
 const kTouchTimeout = 300;
 
@@ -157,6 +154,13 @@ var Browser = {
   pageScrollbox: null,
   pageScrollboxScroller: null,
   styles: {},
+
+  get defaultBrowserWidth() {
+    delete this.defaultBrowserWidth;
+    var width = Services.prefs.getIntPref("browser.viewport.desktopWidth");
+    this.defaultBrowserWidth = width;
+    return width;
+  },
 
   startup: function startup() {
     var self = this;
@@ -378,6 +382,7 @@ var Browser = {
       this.addTab(commandURL || this.getHomePage(), true);
     }
 
+    messageManager.addMessageListener("MozScrolledAreaChanged", this);
     messageManager.addMessageListener("Browser:ViewportMetadata", this);
     messageManager.addMessageListener("Browser:CanCaptureMouse:Return", this);
     messageManager.addMessageListener("Browser:FormSubmit", this);
@@ -477,6 +482,7 @@ var Browser = {
   shutdown: function shutdown() {
     BrowserUI.uninit();
 
+    messageManager.removeMessageListener("MozScrolledAreaChanged", this);
     messageManager.removeMessageListener("Browser:ViewportMetadata", this);
     messageManager.removeMessageListener("Browser:FormSubmit", this);
     messageManager.removeMessageListener("Browser:KeyPress", this);
@@ -1179,6 +1185,12 @@ var Browser = {
     let browser = aMessage.target;
 
     switch (aMessage.name) {
+      case "MozScrolledAreaChanged": {
+        let tab = this.getTabForBrowser(browser);
+        if (tab)
+          tab.scrolledAreaChanged();
+        break;
+      }
       case "Browser:ViewportMetadata": {
         let tab = this.getTabForBrowser(browser);
         
@@ -1529,7 +1541,6 @@ Browser.WebProgress.prototype = {
             CrashReporter.annotateCrashReport("URL", spec);
 #endif
           this._waitForLoad(tab);
-          tab.useFallbackWidth = false;
         }
 
         let event = document.createEvent("UIEvents");
@@ -1581,10 +1592,12 @@ Browser.WebProgress.prototype = {
 
   _waitForLoad: function _waitForLoad(aTab) {
     let browser = aTab.browser;
-    browser.messageManager.removeMessageListener("MozScrolledAreaChanged", aTab.scrolledAreaChanged);
+
+    aTab._firstPaint = false;
 
     browser.messageManager.addMessageListener("Browser:FirstPaint", function firstPaintListener(aMessage) {
       browser.messageManager.removeMessageListener(aMessage.name, arguments.callee);
+      aTab._firstPaint = true;
 
       
       
@@ -1595,12 +1608,13 @@ Browser.WebProgress.prototype = {
                                        Math.floor(json.y * browser.scale));
         if (json.x == 0 && json.y == 0)
           Browser.pageScrollboxScroller.scrollTo(0, 0);
+        else
+          Browser.pageScrollboxScroller.scrollTo(0, Number.MAX_VALUE);
       }
 
-      aTab.scrolledAreaChanged();
+      aTab.scrolledAreaChanged(true);
       aTab.updateThumbnail();
 
-      browser.messageManager.addMessageListener("MozScrolledAreaChanged", aTab.scrolledAreaChanged);
       aTab.updateContentCapture();
     });
   }
@@ -2686,7 +2700,6 @@ function Tab(aURI, aParams) {
   this._metadata = null;
 
   this.contentMightCaptureMouse = false;
-  this.useFallbackWidth = false;
   this.owner = null;
 
   this.hostChanged = false;
@@ -2702,8 +2715,6 @@ function Tab(aURI, aParams) {
 
   
   this.active = false;
-
-  this.scrolledAreaChanged = this.scrolledAreaChanged.bind(this);
 }
 
 Tab.prototype = {
@@ -2783,8 +2794,8 @@ Tab.prototype = {
       } else if (!validW && validH) {
         viewportW = viewportH * (screenW / screenH);
       } else if (!validW && !validH) {
-        viewportW = this.useFallbackWidth ? kFallbackBrowserWidth : kDefaultBrowserWidth;
-        viewportH = kDefaultBrowserWidth * (screenH / screenW);
+        viewportW = Browser.defaultBrowserWidth;
+        viewportH = Browser.defaultBrowserWidth * (screenH / screenW);
       }
     }
 
@@ -2944,16 +2955,16 @@ Tab.prototype = {
     this._defaultZoomLevel = this._browser.scale;
   },
 
-  scrolledAreaChanged: function scrolledAreaChanged() {
+  scrolledAreaChanged: function scrolledAreaChanged(firstPaint) {
     if (!this._browser)
       return;
 
+    if (firstPaint) {
+      
+      this.updateViewportSize();
+    }
+
     this.updateDefaultZoomLevel();
-
-    if (!this.useFallbackWidth && this._browser.contentDocumentWidth > kDefaultBrowserWidth)
-      this.useFallbackWidth = true;
-
-    this.updateViewportSize();
   },
 
   
@@ -2962,7 +2973,7 @@ Tab.prototype = {
 
   updateDefaultZoomLevel: function updateDefaultZoomLevel() {
     let browser = this._browser;
-    if (!browser)
+    if (!browser || !this._firstPaint)
       return;
 
     let isDefault = this.isDefaultZoomLevel();
@@ -3194,7 +3205,6 @@ var ViewableAreaObserver = {
       return;
 
     
-    let isDueToKeyboard = (newHeight != oldHeight && newWidth == oldWidth);
     this.isKeyboardOpened = (newHeight < oldHeight && newWidth == oldWidth);
 
     Browser.styles["viewable-height"].height = newHeight + "px";
@@ -3203,20 +3213,23 @@ var ViewableAreaObserver = {
     Browser.styles["viewable-width"].width = newWidth + "px";
     Browser.styles["viewable-width"].maxWidth = newWidth + "px";
 
-    let startup = !oldHeight && !oldWidth;
-    if (!isDueToKeyboard) {
+    
+    
+    
+    if (newHeight > oldHeight || newWidth != oldWidth) {
+      let startup = !oldHeight && !oldWidth;
       for (let i = Browser.tabs.length - 1; i >= 0; i--) {
         let tab = Browser.tabs[i];
         let oldContentWindowWidth = tab.browser.contentWindowWidth;
         tab.updateViewportSize(); 
-  
+
         
         if (!startup) {
           
           
           if (tab.browser.contentWindowWidth == oldContentWindowWidth)
             tab.restoreViewportPosition(oldWidth, newWidth);
-  
+
           tab.updateDefaultZoomLevel();
         }
       }
