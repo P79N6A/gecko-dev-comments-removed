@@ -148,7 +148,7 @@ window.Item.prototype = {
   
   
   pushAway: function() {
-    var buffer = 2;
+    var buffer = 10;
     
     var items = Items.getTopLevelItems();
     $.each(items, function(index, item) {
@@ -423,7 +423,7 @@ window.Items = {
     $('.tab, .group').each(function() {
       $this = $(this);
       var item = $this.data('item');  
-      if(!item.parent && !$this.hasClass('phantom'))
+      if(item && !item.parent && !$this.hasClass('phantom'))
         items.push(item);
     });
     

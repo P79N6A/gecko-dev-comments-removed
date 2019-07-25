@@ -12,16 +12,6 @@ Navbar = {
 
     return null;
   },
-  
-  get urlBar(){
-    var win = Utils.activeWindow;
-    if(win) {
-      var navbar = win.gBrowser.ownerDocument.getElementById("urlbar");
-      return navbar;      
-    }
-
-    return null;    
-  },
 
   
   show: function() {
@@ -323,6 +313,7 @@ function UIClass(){
   
   
   var data = Storage.read();
+  this.storageSanity(data);
   if(data.hideTabBar)
     this.hideTabBar();
     
@@ -360,7 +351,7 @@ function UIClass(){
   });
   
   
-
+  this.addDevMenu();
   
   
   this.initialized = true;
@@ -440,42 +431,45 @@ UIClass.prototype = {
   
   
   addDevMenu: function() {
-    var html = '<select style="position:absolute">'
-      + '<option>*</option>';
-      
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    html += '</select>';
-    $('body')
-      .append(html)
+    var html = '<select style="position:absolute; top:5px;">'; 
+    var $select = $(html)
+      .appendTo('body')
       .change(function () {
-
-
-
-
-
-
-
+        var index = $(this).val();
+        commands[index].code();
       });
+      
+    var commands = [{
+      name: '*', 
+      code: function() {
+      }
+    }, {
+      name: 'home', 
+      code: function() {
+        location.href = '../../index.html';
+      }
+    }];
+      
+    var count = commands.length;
+    var a;
+    for(a = 0; a < count; a++) {
+      html = '<option value="'
+        + a
+        + '">'
+        + commands[a].name
+        + '</option>';
+        
+      $select.append(html);
+    }
   },
 
+  
+  storageSanity: function(data) {
+    if(data) {
+      
+    }
+  },
+  
   
   _addArrangements: function() {
     this.grid = new ArrangeClass("Grid", function(value) {
