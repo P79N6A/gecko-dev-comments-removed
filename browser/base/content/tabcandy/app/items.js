@@ -17,6 +17,7 @@
 
 
 
+
 window.Item = function() {
   
   
@@ -73,6 +74,7 @@ window.Item.prototype = {
     Utils.assert('Subclass must provide close', typeof(this.close) == 'function');
     Utils.assert('Subclass must provide addOnClose', typeof(this.addOnClose) == 'function');
     Utils.assert('Subclass must provide removeOnClose', typeof(this.removeOnClose) == 'function');
+    Utils.assert('Subclass must provide save', typeof(this.save) == 'function');
     Utils.assert('Subclass must provide defaultSize', isPoint(this.defaultSize));
     Utils.assert('Subclass must provide locked', this.locked);
     
@@ -136,6 +138,7 @@ window.Item.prototype = {
   setUserSize: function() {
     Utils.assert('this.bounds', isRect(this.bounds));
     this.userSize = new Point(this.bounds.width, this.bounds.height);
+    this.save();
   },
   
   
@@ -153,6 +156,14 @@ window.Item.prototype = {
     $(this.container).css({"-moz-transform": value});
   },
     
+  
+  
+  
+  setParent: function(parent) {
+    this.parent = parent;
+    this.save();
+  },
+
   
   
   

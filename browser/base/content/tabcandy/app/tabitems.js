@@ -13,6 +13,7 @@ window.TabItem = function(container, tab) {
 
   this._init(container);
 
+  this.reconnected = false;
   this._hasBeenDrawn = false;
   this.tab = tab;
   this.setResizable(true);
@@ -21,7 +22,14 @@ window.TabItem = function(container, tab) {
   var self = this;
   this.tab.mirror.addOnClose(this, function(who, info) {
     TabItems.unregister(self);
-  });      
+  });   
+     
+  this.tab.mirror.addSubscriber(this, 'urlChanged', function(who, info) {
+    if(!self.reconnected && (info.oldURL == 'about:blank' || !info.oldURL)) 
+      TabItems.reconnect(self);
+
+    self.save();
+  });
 };
 
 window.TabItem.prototype = $.extend(new Item(), {
@@ -37,13 +45,13 @@ window.TabItem.prototype = $.extend(new Item(), {
 
   
   save: function() {
-
     try{
       if (!("tab" in this) || !("raw" in this.tab) || !this.reconnected) 
         return;
-      var data = this.getStorageData();
 
-      Storage.saveTab(this.tab.raw, data);
+      var data = this.getStorageData();
+      if(TabItems.storageSanity(data))
+        Storage.saveTab(this.tab.raw, data);
     }catch(e){
       Utils.log("Error in saving tab value: "+e);
     }
@@ -320,20 +328,19 @@ window.TabItems = {
 
           if(TabItems.reconnect(item))
             reconnected = true;
-          else if(!tab.url || tab.url == 'about:blank') {
-            tab.mirror.addSubscriber(item, 'urlChanged', function(who, info) {
-              Utils.assert('changing away from blank', info.oldURL == 'about:blank' || !info.oldURL);
-              TabItems.reconnect(item);
-              who.removeSubscriber(item);
-            });
-          }
+          else  
+            Groups.newTab(item);          
         }
       });
 
        
-      if(!reconnected && $div.length == 1 && Groups){
-          Groups.newTab($div.data('tabItem'));          
-      }
+
+
+
+
+
+
+
         
             
       
@@ -449,6 +456,14 @@ window.TabItems = {
   },
   
   
+  saveAll: function() {
+    var items = this.getItems();
+    $.each(items, function(index, item) {
+      item.save();
+    });
+  },
+  
+  
   reconstitute: function() {
     var items = this.getItems();
     var self = this;
@@ -461,34 +476,26 @@ window.TabItems = {
   
   storageSanity: function(data) {
     
-    if(!data.tabs)
-      return false;
-      
     var sane = true;
-    $.each(data.tabs, function(index, tab) {
-      if(!isRect(tab.bounds)) {
-        Utils.log('TabItems.storageSanity: bad bounds', tab.bounds);
-        sane = false;
-      }
-    });
+    if(!isRect(data.bounds)) {
+      Utils.log('TabItems.storageSanity: bad bounds', data.bounds);
+      sane = false;
+    }
     
     return sane;
   },
 
   
   reconnect: function(item) {
+    var found = false;
+
     try{
-
       if(item.reconnected) {
-
         return true;
       }
         
-      var found = false;
-  
       var tab = Storage.getTabData(item.tab.raw);
-
-      if (tab) {
+      if (tab && this.storageSanity(tab)) {
         if(item.parent)
           item.parent.remove(item);
           
@@ -499,11 +506,12 @@ window.TabItems = {
           
         if(tab.groupID) {
           var group = Groups.group(tab.groupID);
-
-          group.add(item);
+          if(group) {
+            group.add(item);          
           
-          if(item.tab == Utils.activeTab) 
-            Groups.setActiveGroup(item.parent);
+            if(item.tab == Utils.activeTab) 
+              Groups.setActiveGroup(item.parent);
+          }
         }  
         
         Groups.updateTabBarForActiveGroup();

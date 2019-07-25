@@ -8,7 +8,7 @@ window.Keys = {meta: false};
 Navbar = {
   
   get el(){
-    var win = Utils.activeWindow;
+    var win = Utils.getCurrentWindow();
     if(win) {
       var navbar = win.gBrowser.ownerDocument.getElementById("navigator-toolbox");
       return navbar;      
@@ -18,7 +18,7 @@ Navbar = {
   },
   
   get urlBar(){
-    var win = Utils.activeWindow;
+    var win = Utils.getCurrentWindow();
     if(win) {
       var navbar = win.gBrowser.ownerDocument.getElementById("urlbar");
       return navbar;      
@@ -535,7 +535,7 @@ UIClass.prototype = {
         var me = this;
         setTimeout(function() { 
           try{
-            if(me.contentWindow.location.host == "tabcandy") {
+            if(me.contentWindow == window) {
               self.focused = true;
               Page.hideChrome();
             } else {
@@ -554,47 +554,30 @@ UIClass.prototype = {
         }, 1);
       });
     
-      
-      Page.init();
-      
-      
-      var data = Storage.read();
-      var sane = this.storageSanity(data);
-      if(!sane || data.dataVersion < 2) {
-        data.groups = null;
-        data.tabs = null;
-        data.pageBounds = null;
-        
-        if(!sane)
-          alert('storage data is bad; starting fresh');
-      }
-       
-      var groupsData = Storage.readGroupsData(Utils.activeWindow);
-      var groupData = Storage.readGroupData(Utils.activeWindow);
-        
-
-
-
-
-
-
-      Groups.reconstitute(groupsData, groupData);
-      TabItems.init();
-      TabItems.reconstitute();
-      
       $(window).bind('beforeunload', function() {
-        if(self.initialized) 
-          self.save();
-          
         self.showChrome();  
         self.tabBar.showAllTabs();
       });
       
       
-      data.pageBounds = null;
+      Page.init();
+      
+      
+      var currentWindow = Utils.getCurrentWindow();
+      var data = Storage.readUIData(currentWindow);
+      this.storageSanity(data);
+       
+      var groupsData = Storage.readGroupsData(currentWindow);
+      var groupData = Storage.readGroupData(currentWindow);
+      Groups.reconstitute(groupsData, groupData);
+      
+      TabItems.init();
+      TabItems.reconstitute();
+      
+      
       if(data.pageBounds) {
         this.pageBounds = data.pageBounds;
-        this.resize();
+        this.resize(true);
       } else 
         this.pageBounds = Items.getPageBounds();    
       
@@ -607,6 +590,7 @@ UIClass.prototype = {
       
       
       this.initialized = true;
+      this.save(); 
     }catch(e) {
       Utils.log("Error in UIClass(): " + e);
       Utils.log(e.fileName);
@@ -692,6 +676,7 @@ UIClass.prototype = {
     });
 
     this.pageBounds = Items.getPageBounds();
+    this.save();
   },
   
   
@@ -717,9 +702,20 @@ UIClass.prototype = {
         location.href = '../../index.html';
       }
     }, {
+      name: 'code docs', 
+      code: function() {
+        location.href = '../../doc/index.html';
+      }
+    }, {
       name: 'save', 
       code: function() {
-        self.save();
+        self.saveAll();
+      }
+    }, {
+      name: 'reset', 
+      code: function() {
+        Storage.wipe();
+        location.href = '';
       }
     }];
       
@@ -737,20 +733,23 @@ UIClass.prototype = {
   },
 
   
+  saveAll: function() {  
+    this.save();
+    Groups.saveAll();
+    TabItems.saveAll();
+  },
+
+  
   save: function() {  
-    return;
+    if(!this.initialized) 
+      return;
+      
     var data = {
-      dataVersion: 2,
-      groups: Groups.getStorageData(),
-      tabs: TabItems.getStorageData(), 
-      pageBounds: Items.getPageBounds()
+      pageBounds: this.pageBounds
     };
     
-
     if(this.storageSanity(data))
-      Storage.write(data);
-    else
-      alert('storage data is bad; reverting to previous version');
+      Storage.saveUIData(Utils.getCurrentWindow(), data);
   },
 
   
@@ -758,17 +757,13 @@ UIClass.prototype = {
     if($.isEmptyObject(data))
       return true;
       
-    var sane = true;
-    sane = sane && typeof(data.dataVersion) == 'number';
-    sane = sane && isRect(data.pageBounds);
-    
-    if(data.tabs)
-      sane = sane && TabItems.storageSanity(data.tabs);
+    if(!isRect(data.pageBounds)) {
+      Utils.log('UI.storageSanity: bad pageBounds', data.pageBounds);
+      data.pageBounds = null;
+      return false;
+    }
       
-    if(data.groups)
-      sane = sane && Groups.storageSanity(data.groups);
-    
-    return sane;
+    return true;
   },
   
   
