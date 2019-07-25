@@ -899,6 +899,8 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
     return NS_OK; 
 
   nsOverflowContinuationTracker tracker(aPresContext, this, PR_FALSE, PR_FALSE);
+  PRBool shouldReflowAllKids = aReflowState.ShouldReflowAllKids();
+
   for (nsIFrame* frame = overflowContainers->FirstChild(); frame;
        frame = frame->GetNextSibling()) {
     if (frame->GetPrevInFlow()->GetParent() != GetPrevInFlow()) {
@@ -906,7 +908,9 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
       
       continue;
     }
-    if (NS_SUBTREE_DIRTY(frame)) {
+    
+    
+    if (shouldReflowAllKids || NS_SUBTREE_DIRTY(frame)) {
       
       nsIFrame* prevInFlow = frame->GetPrevInFlow();
       NS_ASSERTION(prevInFlow,
