@@ -10,6 +10,9 @@ const Cu = Components.utils;
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 
+const TOPIC_WILL_IMPORT_BOOKMARKS = "initial-migration-will-import-default-bookmarks";
+const TOPIC_DID_IMPORT_BOOKMARKS = "initial-migration-did-import-default-bookmarks";
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -17,6 +20,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "Dict",
                                   "resource://gre/modules/Dict.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+                                  "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "BookmarkHTMLUtils",
+                                  "resource://gre/modules/BookmarkHTMLUtils.jsm");
 
 let gMigrators = null;
 let gProfileStartup = null;
@@ -28,6 +35,39 @@ function getMigrationBundle() {
      "chrome://browser/locale/migration/migration.properties"); 
   }
   return gMigrationBundle;
+}
+
+
+
+
+
+
+
+
+function getMigratorKeyForDefaultBrowser() {
+  
+  
+  
+  
+  const APP_DESC_TO_KEY = {
+    "Internet Explorer": "ie",
+    "Safari":            "safari",
+    "Google Chrome":     "chrome",  
+    "Chrome":            "chrome",  
+  };
+
+  let browserDesc = "";
+  try {
+    let browserDesc =
+      Cc["@mozilla.org/uriloader/external-protocol-service;1"].
+      getService(Ci.nsIExternalProtocolService).
+      getApplicationDescription("http");
+    return APP_DESC_TO_KEY[browserDesc] || "";
+  }
+  catch(ex) {
+    Cu.reportError("Could not detect default browser: " + ex);
+  }
+  return "";
 }
 
 
@@ -147,16 +187,6 @@ let MigratorPrototype = {
 
 
   migrate: function MP_migrate(aItems, aStartup, aProfile) {
-    
-    if (MigrationUtils.isStartupMigration && !this.startupOnlyMigrator) {
-      MigrationUtils.profileStartup.doStartup();
-
-      
-      
-      Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIObserver)
-        .observe(null, "initial-migration", null);
-    }
-
     let resources = this._getMaybeCachedResources(aProfile);
     if (resources.length == 0)
       throw new Error("migrate called for a non-existent source");
@@ -165,59 +195,91 @@ let MigratorPrototype = {
       resources = [r for each (r in resources) if (aItems & r.type)];
 
     
-    
-    let resourcesGroupedByItems = new Dict();
-    resources.forEach(function(resource) {
-      if (resourcesGroupedByItems.has(resource.type))
-        resourcesGroupedByItems.get(resource.type).push(resource);
-      else
-        resourcesGroupedByItems.set(resource.type, [resource]);
-    });
+    function doMigrate() {
+      
+      
+      let resourcesGroupedByItems = new Dict();
+      resources.forEach(function(resource) {
+        if (resourcesGroupedByItems.has(resource.type))
+          resourcesGroupedByItems.get(resource.type).push(resource);
+        else
+          resourcesGroupedByItems.set(resource.type, [resource]);
+      });
 
-    if (resourcesGroupedByItems.count == 0)
-      throw new Error("No items to import");
+      if (resourcesGroupedByItems.count == 0)
+        throw new Error("No items to import");
 
-    let notify = function(aMsg, aItemType) {
-      Services.obs.notifyObservers(null, aMsg, aItemType);
+      let notify = function(aMsg, aItemType) {
+        Services.obs.notifyObservers(null, aMsg, aItemType);
+      }
+
+      notify("Migration:Started");
+      resourcesGroupedByItems.listkeys().forEach(function(migrationType) {
+        let migrationTypeA = migrationType;
+        let itemResources = resourcesGroupedByItems.get(migrationType);
+        notify("Migration:ItemBeforeMigrate", migrationType);
+
+        let itemSuccess = false;
+        itemResources.forEach(function(resource) {
+          let resourceDone = function(aSuccess) {
+            let resourceIndex = itemResources.indexOf(resource);
+            if (resourceIndex != -1) {
+              itemResources.splice(resourceIndex, 1);
+              itemSuccess |= aSuccess;
+              if (itemResources.length == 0) {
+                resourcesGroupedByItems.del(migrationType);
+                notify(itemSuccess ?
+                       "Migration:ItemAfterMigrate" : "Migration:ItemError",
+                       migrationType);
+                if (resourcesGroupedByItems.count == 0)
+                  notify("Migration:Ended");
+              }
+            }
+          };
+
+          Services.tm.mainThread.dispatch(function() {
+            
+            
+            try {
+              resource.migrate(resourceDone);
+            }
+            catch(ex) {
+              Cu.reportError(ex);
+              resourceDone(false);
+            }
+          }, Ci.nsIThread.DISPATCH_NORMAL);
+        });
+      });
     }
 
-    notify("Migration:Started");
-    resourcesGroupedByItems.listkeys().forEach(function(migrationType) {
-      let migrationTypeA = migrationType;
-      let itemResources = resourcesGroupedByItems.get(migrationType);
-      notify("Migration:ItemBeforeMigrate", migrationType);
+    if (MigrationUtils.isStartupMigration && !this.startupOnlyMigrator) {
+      MigrationUtils.profileStartup.doStartup();
 
-      let itemSuccess = false;
-      itemResources.forEach(function(resource) {
-        let resourceDone = function(aSuccess) {
-          let resourceIndex = itemResources.indexOf(resource);
-          if (resourceIndex != -1) {
-            itemResources.splice(resourceIndex, 1);
-            itemSuccess |= aSuccess;
-            if (itemResources.length == 0) {
-              resourcesGroupedByItems.del(migrationType);
-              notify(itemSuccess ?
-                     "Migration:ItemAfterMigrate" : "Migration:ItemError",
-                     migrationType);
-              if (resourcesGroupedByItems.count == 0)
-                notify("Migration:Ended");
-            }
-          }
-        };
+      
+      
+      
+      
+      const BOOKMARKS = MigrationUtils.resourceTypes.BOOKMARKS;
+      let migratingBookmarks = resources.some(function(r) r.type == BOOKMARKS);
+      if (migratingBookmarks) {
+        let browserGlue = Cc["@mozilla.org/browser/browserglue;1"].
+                          getService(Ci.nsIObserver);
+        browserGlue.observe(null, TOPIC_WILL_IMPORT_BOOKMARKS, "");
 
-        Services.tm.mainThread.dispatch(function() {
+        let bookmarksHTMLFile = Services.dirsvc.get("BMarks", Ci.nsIFile);
+        if (bookmarksHTMLFile.exists()) {
           
           
-          try {
-            resource.migrate(resourceDone);
-          }
-          catch(ex) {
-            Cu.reportError(ex);
-            resourceDone(false);
-          }
-        }, Ci.nsIThread.DISPATCH_NORMAL);
-      });
-    });
+          BookmarkHTMLUtils.importFromURL(
+            NetUtil.newURI(bookmarksHTMLFile).spec, true, function(a) {
+              browserGlue.observe(null, TOPIC_DID_IMPORT_BOOKMARKS, "");
+              doMigrate();
+            });
+          return;
+        }
+      }
+    }
+    doMigrate();
   },
 
   
@@ -406,7 +468,7 @@ let MigrationUtils = Object.freeze({
         migrator = Cc["@mozilla.org/profile/migrator;1?app=browser&type=" +
                       aKey].createInstance(Ci.nsIBrowserProfileMigrator);
       }
-      catch(ex) { }
+      catch(ex) { Cu.reportError(ex); }
       this._migrators.set(aKey, migrator);
     }
 
@@ -435,73 +497,90 @@ let MigrationUtils = Object.freeze({
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   showMigrationWizard:
-  function MU_showMigrationWizard(aOpener, aProfileStartup, aMigratorKey,
-                                  aSkipImportSourcePage) {
-    let features = "chrome,dialog,modal,centerscreen,titlebar";
-    let params = null;
-    if (!aProfileStartup) {
+  function MU_showMigrationWizard(aOpener, aParams) {
+    let features = "chrome,dialog,modal,centerscreen,titlebar,resizable=no";
 #ifdef XP_MACOSX
+    if (!this.isStartupMigration) {
       let win = Services.wm.getMostRecentWindow("Browser:MigrationWizard");
       if (win) {
         win.focus();
         return;
       }
+      
+      
       features = "centerscreen,chrome,resizable=no";
+    }
 #endif
-    }
-    else {
-      if (!aMigratorKey)
-        throw new Error("aMigratorKey must be set for startup migration");
 
-      let migrator = this.getMigrator(aMigratorKey);
-      if (!migrator) {
-        throw new Error("startMigration was asked to open auto-migrate from a non-existent source: " +
-                        aMigratorKey);
-      }
-      else {
-        gProfileStartup = aProfileStartup;
-      }
-      
-      
-      
-      params = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-      let keyCSTR = Cc["@mozilla.org/supports-cstring;1"].
-                    createInstance(Ci.nsISupportsCString);
-      keyCSTR.data = aMigratorKey;
-      let skipImportSourcePageBool = Cc["@mozilla.org/supports-PRBool;1"].
-                                     createInstance(Ci.nsISupportsPRBool);
-      params.appendElement(keyCSTR, false);
-      params.appendElement(migrator, false);
-      params.appendElement(aProfileStartup, false);
-
-      if (aSkipImportSourcePage === true) {
-        let wrappedBool = Cc["@mozilla.org/supports-PRBool;1"].
-                          createInstance(Ci.nsISupportsPRBool);
-        wrappedBool.data = true;
-        params.appendElement(wrappedBool);
-      }
-    }
-
-    Services.ww.openWindow(null,
+    Services.ww.openWindow(aOpener,
                            "chrome://browser/content/migration/migration.xul",
                            "_blank",
                            features,
-                           params);
+                           aParams);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  startupMigration:
+  function MU_startupMigrator(aProfileStartup, aMigratorKey) {
+    if (!aProfileStartup) {
+      throw new Error("an profile-startup instance is required for startup-migration");
+    }
+    gProfileStartup = aProfileStartup;
+
+    let skipSourcePage = false, migrator = null, migratorKey = "";
+    if (aMigratorKey) {
+      migrator = this.getMigrator(aMigratorKey);
+      if (!migrator) {
+        
+        
+        this.finishMigration();
+        throw new Error("startMigration was asked to open auto-migrate from " +
+                        "a non-existent source: " + aMigratorKey);
+      }
+      migratorKey = aMigratorKey;
+      skipSourcePage = true;
+    }
+    else {
+      let defaultBrowserKey = getMigratorKeyForDefaultBrowser();
+      if (defaultBrowserKey) {
+        migrator = this.getMigrator(defaultBrowserKey);
+        if (migrator)
+          migratorKey = defaultBrowserKey;
+      }
+    }
+
+    let params = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
+    let keyCSTR = Cc["@mozilla.org/supports-cstring;1"].
+                  createInstance(Ci.nsISupportsCString);
+    keyCSTR.data = migratorKey;
+    let skipImportSourcePageBool = Cc["@mozilla.org/supports-PRBool;1"].
+                                   createInstance(Ci.nsISupportsPRBool);
+    skipImportSourcePageBool.data = skipSourcePage;
+    params.appendElement(keyCSTR, false);
+    params.appendElement(migrator, false);
+    params.appendElement(aProfileStartup, false);
+    params.appendElement(skipImportSourcePageBool, false);
+
+    this.showMigrationWizard(null, params);
   },
 
   

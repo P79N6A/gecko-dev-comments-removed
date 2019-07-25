@@ -31,13 +31,13 @@ function run_test() {
 
   
   
-  PlacesUtils.bookmarks.insertBookmark(PlacesUtils.bookmarks.bookmarksMenuFolder, uri("http://mozilla.org/"),
-                    PlacesUtils.bookmarks.DEFAULT_INDEX, "migrated");
-
-  
   let bg = Cc["@mozilla.org/browser/browserglue;1"].
            getService(Ci.nsIObserver);
-  bg.observe(null, "initial-migration", null)
+
+  bg.observe(null, "initial-migration-will-import-default-bookmarks", null);
+
+  PlacesUtils.bookmarks.insertBookmark(PlacesUtils.bookmarks.bookmarksMenuFolder, uri("http://mozilla.org/"),
+                    PlacesUtils.bookmarks.DEFAULT_INDEX, "migrated");
 
   let bookmarksObserver = {
     onBeginUpdateBatch: function() {},
@@ -62,6 +62,8 @@ function run_test() {
   
   
   PlacesUtils.bookmarks.addObserver(bookmarksObserver, false);
+
+  bg.observe(null, "initial-migration-did-import-default-bookmarks", null);
 }
 
 function onSmartBookmarksCreation() {
