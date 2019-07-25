@@ -77,10 +77,14 @@ typedef void* ReturnLocation;
 
 
 
- 
+
+
 struct BracketChainNode {
     BracketChainNode* previousBracket;
     const UChar* bracketStart;
+    
+
+    bool minSatisfied;
 };
 
 struct MatchFrame {
@@ -101,7 +105,6 @@ struct MatchFrame {
         const unsigned char* instructionPtr;
         int offsetTop;
         BracketChainNode* bracketChain;
-        bool groupMatched;
     } args;
     
     
@@ -128,6 +131,7 @@ struct MatchFrame {
         int minBracket;
         int limitBracket;
         int bracketsBefore;
+        bool minSatisfied;
         
         BracketChainNode bracketChainNode;
     } locals;
@@ -202,9 +206,10 @@ struct MatchFrame {
 
 
 
-    void startNewGroup() {
+    void startNewGroup(bool minSatisfied) {
         locals.bracketChainNode.previousBracket = args.bracketChain;
         locals.bracketChainNode.bracketStart = args.subjectPtr;
+        locals.bracketChainNode.minSatisfied = minSatisfied;
         args.bracketChain = &locals.bracketChainNode;
     }
 };
@@ -315,16 +320,16 @@ static bool matchRef(int offset, const UChar* subjectPtr, int length, const Matc
     RRETURN_##num: \
     stack.popCurrentFrame();
 
-#define RECURSIVE_MATCH(num, ra, rb, gm) \
+#define RECURSIVE_MATCH(num, ra, rb) \
     do { \
-        stack.pushNewFrame((ra), (rb), RMATCH_WHERE(num), (gm)); \
+        stack.pushNewFrame((ra), (rb), RMATCH_WHERE(num)); \
         RECURSIVE_MATCH_COMMON(num) \
     } while (0)
 
 #define RECURSIVE_MATCH_NEW_GROUP(num, ra, rb, gm) \
     do { \
-        stack.pushNewFrame((ra), (rb), RMATCH_WHERE(num), (gm)); \
-        stack.currentFrame->startNewGroup(); \
+        stack.pushNewFrame((ra), (rb), RMATCH_WHERE(num)); \
+        stack.currentFrame->startNewGroup(gm); \
         RECURSIVE_MATCH_COMMON(num) \
     } while (0)
 
@@ -394,7 +399,7 @@ struct MatchStack {
         return frame;
     }
     
-    void pushNewFrame(const unsigned char* instructionPtr, BracketChainNode* bracketChain, ReturnLocation returnLocation, bool groupMatched) {
+    void pushNewFrame(const unsigned char* instructionPtr, BracketChainNode* bracketChain, ReturnLocation returnLocation) {
         MatchFrame* newframe = allocateNextFrame();
         newframe->previousFrame = currentFrame;
 
@@ -402,7 +407,6 @@ struct MatchStack {
         newframe->args.offsetTop = currentFrame->args.offsetTop;
         newframe->args.instructionPtr = instructionPtr;
         newframe->args.bracketChain = bracketChain;
-        newframe->args.groupMatched = groupMatched;
         newframe->returnLocation = returnLocation;
         size++;
 
@@ -420,6 +424,13 @@ struct MatchStack {
     void popAllFrames() {
         while (size)
             popCurrentFrame();
+    }
+
+    
+
+    bool atOptionalBracket() const {
+        unsigned char prevOp = currentFrame->args.instructionPtr[-1];
+        return prevOp == OP_BRAZERO;
     }
 };
 
@@ -496,8 +507,7 @@ match(JSArenaPool *regExpPool, const UChar* subjectPtr, const unsigned char* ins
     stack.currentFrame->args.instructionPtr = instructionPtr;
     stack.currentFrame->args.offsetTop = offsetTop;
     stack.currentFrame->args.bracketChain = 0;
-    stack.currentFrame->args.groupMatched = false;
-    stack.currentFrame->startNewGroup();
+    stack.currentFrame->startNewGroup(false);
     
     
     
@@ -536,8 +546,13 @@ RECURSE:
                 
 
                 stack.currentFrame->locals.skipBytes = 3;
+                
+                stack.currentFrame->locals.minSatisfied = stack.atOptionalBracket();
                 do {
-                    RECURSIVE_MATCH_NEW_GROUP(2, stack.currentFrame->args.instructionPtr + stack.currentFrame->locals.skipBytes + LINK_SIZE, stack.currentFrame->args.bracketChain, stack.currentFrame->args.groupMatched);
+                    
+
+                    bool minSatisfied = stack.currentFrame->locals.minSatisfied;
+                    RECURSIVE_MATCH_NEW_GROUP(2, stack.currentFrame->args.instructionPtr + stack.currentFrame->locals.skipBytes + LINK_SIZE, stack.currentFrame->args.bracketChain, minSatisfied);
                     if (isMatch) {
                         DPRINTF(("non-capturing bracket succeeded\n"));
                         RRETURN;
@@ -666,6 +681,7 @@ RECURSE:
             BEGIN_OPCODE(KETRMAX):
                 stack.currentFrame->locals.instructionPtrAtStartOfOnce = stack.currentFrame->args.instructionPtr - getLinkValue(stack.currentFrame->args.instructionPtr + 1);
                 stack.currentFrame->locals.subjectPtrAtStartOfInstruction = stack.currentFrame->args.bracketChain->bracketStart;
+                stack.currentFrame->locals.minSatisfied = stack.currentFrame->args.bracketChain->minSatisfied;
 
                 
 
@@ -703,7 +719,7 @@ RECURSE:
                     else {
                         int start = md.offsetVector[md.offsetEnd - stack.currentFrame->locals.number];
                         int end = stack.currentFrame->args.subjectPtr - md.startSubject;
-                        if (start == end && stack.currentFrame->args.groupMatched) {
+                        if (start == end && stack.currentFrame->locals.minSatisfied) {
                             DPRINTF(("empty string while group already matched; bailing"));
                             RRETURN_NO_MATCH;
                         }
@@ -723,7 +739,7 @@ RECURSE:
                 
                 if (*stack.currentFrame->args.instructionPtr == OP_KET || stack.currentFrame->args.subjectPtr == stack.currentFrame->locals.subjectPtrAtStartOfInstruction) {
                     DPRINTF(("non-repeating ket or empty match\n"));
-                    if (stack.currentFrame->args.subjectPtr == stack.currentFrame->locals.subjectPtrAtStartOfInstruction && stack.currentFrame->args.groupMatched) {
+                    if (stack.currentFrame->args.subjectPtr == stack.currentFrame->locals.subjectPtrAtStartOfInstruction && stack.currentFrame->locals.minSatisfied) {
                         DPRINTF(("empty string while group already matched; bailing"));
                         RRETURN_NO_MATCH;
                     }
@@ -738,7 +754,7 @@ RECURSE:
                 JS_ASSERT_IF(LOCALS(number), LOCALS(minBracket) <= LOCALS(number) && LOCALS(number) < LOCALS(limitBracket));
                 if (*stack.currentFrame->args.instructionPtr == OP_KETRMIN) {
                     stack.currentFrame->saveOffsets(LOCALS(minBracket), LOCALS(limitBracket), md.offsetVector, md.offsetEnd);
-                    RECURSIVE_MATCH(16, stack.currentFrame->args.instructionPtr + 1 + LINK_SIZE, stack.currentFrame->args.bracketChain, true);
+                    RECURSIVE_MATCH(16, stack.currentFrame->args.instructionPtr + 1 + LINK_SIZE, stack.currentFrame->args.bracketChain);
                     if (isMatch)
                         RRETURN;
                     else
@@ -754,7 +770,7 @@ RECURSE:
                         RRETURN;
                     else
                         stack.currentFrame->restoreOffsets(LOCALS(minBracket), LOCALS(limitBracket), md.offsetVector, md.offsetEnd);
-                    RECURSIVE_MATCH(19, stack.currentFrame->args.instructionPtr + 1 + LINK_SIZE, stack.currentFrame->args.bracketChain, false);
+                    RECURSIVE_MATCH(19, stack.currentFrame->args.instructionPtr + 1 + LINK_SIZE, stack.currentFrame->args.bracketChain);
                 }
                 RRETURN;
                 
@@ -942,7 +958,7 @@ RECURSE:
                 
                 if (minimize) {
                     for (stack.currentFrame->locals.fi = min;; stack.currentFrame->locals.fi++) {
-                        RECURSIVE_MATCH(20, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, false);
+                        RECURSIVE_MATCH(20, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                         if (isMatch)
                             RRETURN;
                         if (stack.currentFrame->locals.fi >= stack.currentFrame->locals.max || !matchRef(stack.currentFrame->locals.offset, stack.currentFrame->args.subjectPtr, stack.currentFrame->locals.length, md))
@@ -962,7 +978,7 @@ RECURSE:
                         stack.currentFrame->args.subjectPtr += stack.currentFrame->locals.length;
                     }
                     while (stack.currentFrame->args.subjectPtr >= stack.currentFrame->locals.subjectPtrAtStartOfInstruction) {
-                        RECURSIVE_MATCH(21, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, false);
+                        RECURSIVE_MATCH(21, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                         if (isMatch)
                             RRETURN;
                         stack.currentFrame->args.subjectPtr -= stack.currentFrame->locals.length;
@@ -1037,7 +1053,7 @@ RECURSE:
 
                 if (minimize) {
                     for (stack.currentFrame->locals.fi = min;; stack.currentFrame->locals.fi++) {
-                        RECURSIVE_MATCH(22, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, false);
+                        RECURSIVE_MATCH(22, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                         if (isMatch)
                             RRETURN;
                         if (stack.currentFrame->locals.fi >= stack.currentFrame->locals.max || stack.currentFrame->args.subjectPtr >= md.endSubject)
@@ -1071,7 +1087,7 @@ RECURSE:
                         ++stack.currentFrame->args.subjectPtr;
                     }
                     for (;;) {
-                        RECURSIVE_MATCH(24, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, false);
+                        RECURSIVE_MATCH(24, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                         if (isMatch)
                             RRETURN;
                         if (stack.currentFrame->args.subjectPtr-- == stack.currentFrame->locals.subjectPtrAtStartOfInstruction)
@@ -1133,7 +1149,7 @@ RECURSE:
                 
                 if (minimize) {
                     for (stack.currentFrame->locals.fi = min;; stack.currentFrame->locals.fi++) {
-                        RECURSIVE_MATCH(26, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, false);
+                        RECURSIVE_MATCH(26, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                         if (isMatch)
                             RRETURN;
                         if (stack.currentFrame->locals.fi >= stack.currentFrame->locals.max || stack.currentFrame->args.subjectPtr >= md.endSubject)
@@ -1158,7 +1174,7 @@ RECURSE:
                         ++stack.currentFrame->args.subjectPtr;
                     }
                     for(;;) {
-                        RECURSIVE_MATCH(27, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, false);
+                        RECURSIVE_MATCH(27, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                         if (isMatch)
                             RRETURN;
                         if (stack.currentFrame->args.subjectPtr-- == stack.currentFrame->locals.subjectPtrAtStartOfInstruction)
@@ -1270,7 +1286,7 @@ RECURSE:
                     if (minimize) {
                         stack.currentFrame->locals.repeatOthercase = othercase;
                         for (stack.currentFrame->locals.fi = min;; stack.currentFrame->locals.fi++) {
-                            RECURSIVE_MATCH(28, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, stack.currentFrame->args.groupMatched);
+                            RECURSIVE_MATCH(28, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                             if (isMatch)
                                 RRETURN;
                             if (stack.currentFrame->locals.fi >= stack.currentFrame->locals.max || stack.currentFrame->args.subjectPtr >= md.endSubject)
@@ -1290,7 +1306,7 @@ RECURSE:
                             ++stack.currentFrame->args.subjectPtr;
                         }
                         while (stack.currentFrame->args.subjectPtr >= stack.currentFrame->locals.subjectPtrAtStartOfInstruction) {
-                            RECURSIVE_MATCH(29, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, stack.currentFrame->args.groupMatched);
+                            RECURSIVE_MATCH(29, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                             if (isMatch)
                                 RRETURN;
                             --stack.currentFrame->args.subjectPtr;
@@ -1312,7 +1328,7 @@ RECURSE:
                     
                     if (minimize) {
                         for (stack.currentFrame->locals.fi = min;; stack.currentFrame->locals.fi++) {
-                            RECURSIVE_MATCH(30, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, stack.currentFrame->args.groupMatched);
+                            RECURSIVE_MATCH(30, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                             if (isMatch)
                                 RRETURN;
                             if (stack.currentFrame->locals.fi >= stack.currentFrame->locals.max || stack.currentFrame->args.subjectPtr >= md.endSubject)
@@ -1332,7 +1348,7 @@ RECURSE:
                             stack.currentFrame->args.subjectPtr += 2;
                         }
                         while (stack.currentFrame->args.subjectPtr >= stack.currentFrame->locals.subjectPtrAtStartOfInstruction) {
-                            RECURSIVE_MATCH(31, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, stack.currentFrame->args.groupMatched);
+                            RECURSIVE_MATCH(31, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                             if (isMatch)
                                 RRETURN;
                             stack.currentFrame->args.subjectPtr -= 2;
@@ -1428,7 +1444,7 @@ RECURSE:
                     
                     if (minimize) {
                         for (stack.currentFrame->locals.fi = min;; stack.currentFrame->locals.fi++) {
-                            RECURSIVE_MATCH(38, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, stack.currentFrame->args.groupMatched);
+                            RECURSIVE_MATCH(38, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                             if (isMatch)
                                 RRETURN;
                             int d = *stack.currentFrame->args.subjectPtr++;
@@ -1456,7 +1472,7 @@ RECURSE:
                             ++stack.currentFrame->args.subjectPtr;
                         }
                         for (;;) {
-                            RECURSIVE_MATCH(40, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, stack.currentFrame->args.groupMatched);
+                            RECURSIVE_MATCH(40, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                             if (isMatch)
                                 RRETURN;
                             if (stack.currentFrame->args.subjectPtr-- == stack.currentFrame->locals.subjectPtrAtStartOfInstruction)
@@ -1482,7 +1498,7 @@ RECURSE:
                     
                     if (minimize) {
                         for (stack.currentFrame->locals.fi = min;; stack.currentFrame->locals.fi++) {
-                            RECURSIVE_MATCH(42, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, stack.currentFrame->args.groupMatched);
+                            RECURSIVE_MATCH(42, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                             if (isMatch)
                                 RRETURN;
                             int d = *stack.currentFrame->args.subjectPtr++;
@@ -1506,7 +1522,7 @@ RECURSE:
                             ++stack.currentFrame->args.subjectPtr;
                         }
                         for (;;) {
-                            RECURSIVE_MATCH(44, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, stack.currentFrame->args.groupMatched);
+                            RECURSIVE_MATCH(44, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                             if (isMatch)
                                 RRETURN;
                             if (stack.currentFrame->args.subjectPtr-- == stack.currentFrame->locals.subjectPtrAtStartOfInstruction)
@@ -1632,7 +1648,7 @@ RECURSE:
                 
                 if (minimize) {
                     for (stack.currentFrame->locals.fi = min;; stack.currentFrame->locals.fi++) {
-                        RECURSIVE_MATCH(48, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, false);
+                        RECURSIVE_MATCH(48, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                         if (isMatch)
                             RRETURN;
                         if (stack.currentFrame->locals.fi >= stack.currentFrame->locals.max || stack.currentFrame->args.subjectPtr >= md.endSubject)
@@ -1772,7 +1788,7 @@ RECURSE:
                     
                     
                     for (;;) {
-                        RECURSIVE_MATCH(52, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain, false);
+                        RECURSIVE_MATCH(52, stack.currentFrame->args.instructionPtr, stack.currentFrame->args.bracketChain);
                         if (isMatch)
                             RRETURN;
                         if (stack.currentFrame->args.subjectPtr-- == stack.currentFrame->locals.subjectPtrAtStartOfInstruction)
@@ -1836,8 +1852,13 @@ RECURSE:
                     md.offsetVector[md.offsetEnd - stack.currentFrame->locals.number] = stack.currentFrame->args.subjectPtr - md.startSubject;
                     stack.currentFrame->locals.skipBytes = 3; 
                     
+                    
+                    stack.currentFrame->locals.minSatisfied = stack.atOptionalBracket();
                     do {
-                        RECURSIVE_MATCH_NEW_GROUP(1, stack.currentFrame->args.instructionPtr + stack.currentFrame->locals.skipBytes + LINK_SIZE, stack.currentFrame->args.bracketChain, stack.currentFrame->args.groupMatched);
+                        
+
+                        bool minSatisfied = stack.currentFrame->locals.minSatisfied;
+                        RECURSIVE_MATCH_NEW_GROUP(1, stack.currentFrame->args.instructionPtr + stack.currentFrame->locals.skipBytes + LINK_SIZE, stack.currentFrame->args.bracketChain, minSatisfied);
                         if (isMatch)
                             RRETURN;
                         stack.currentFrame->locals.skipBytes = 1; 
