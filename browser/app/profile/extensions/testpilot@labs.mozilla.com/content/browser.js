@@ -152,7 +152,7 @@ var TestPilotMenuUtils;
 
       TestPilotWindowHandlers.setUpToolbarFeedbackButton();
 
-      if (TestPilotSetup.startupComplete) {
+      if (TestPilotSetup && TestPilotSetup.startupComplete) {
         TestPilotSetup.onWindowLoad(window);
       } else {
         let observerSvc = Cc["@mozilla.org/observer-service;1"]
