@@ -349,12 +349,18 @@ struct nsStyleBackground {
   struct Position;
   friend struct Position;
   struct Position {
-    typedef union {
-      nscoord mCoord; 
-      float   mFloat; 
-    } PositionCoord;
+    struct PositionCoord {
+      
+      
+      nscoord mLength;
+      float   mPercent;
+
+      bool operator==(const PositionCoord& aOther) const
+        { return mLength == aOther.mLength && mPercent == aOther.mPercent; }
+      bool operator!=(const PositionCoord& aOther) const
+        { return !(*this == aOther); }
+    };
     PositionCoord mXPosition, mYPosition;
-    PRPackedBool mXIsPercent, mYIsPercent;
 
     
     Position() {}
@@ -365,19 +371,14 @@ struct nsStyleBackground {
     
     
     PRBool DependsOnFrameSize() const {
-      return (mXIsPercent && mXPosition.mFloat != 0.0f) ||
-             (mYIsPercent && mYPosition.mFloat != 0.0f);
+      return mXPosition.mPercent != 0.0f || mYPosition.mPercent != 0.0f;
     }
 
-    PRBool operator==(const Position& aOther) const {
-      return mXIsPercent == aOther.mXIsPercent &&
-             (mXIsPercent ? (mXPosition.mFloat == aOther.mXPosition.mFloat)
-                          : (mXPosition.mCoord == aOther.mXPosition.mCoord)) &&
-             mYIsPercent == aOther.mYIsPercent &&
-             (mYIsPercent ? (mYPosition.mFloat == aOther.mYPosition.mFloat)
-                          : (mYPosition.mCoord == aOther.mYPosition.mCoord));
+    bool operator==(const Position& aOther) const {
+      return mXPosition == aOther.mXPosition &&
+             mYPosition == aOther.mYPosition;
     }
-    PRBool operator!=(const Position& aOther) const {
+    bool operator!=(const Position& aOther) const {
       return !(*this == aOther);
     }
   };
@@ -385,12 +386,20 @@ struct nsStyleBackground {
   struct Size;
   friend struct Size;
   struct Size {
-    typedef union {
-      nscoord mCoord; 
-      float mFloat; 
-    } Dimension;
+    struct Dimension {
+      
+      
+      nscoord mLength;
+      float   mPercent;
+
+      bool operator==(const Dimension& aOther) const
+        { return mLength == aOther.mLength && mPercent == aOther.mPercent; }
+      bool operator!=(const Dimension& aOther) const
+        { return !(*this == aOther); }
+    };
     Dimension mWidth, mHeight;
 
+    
     
     
     
@@ -400,10 +409,8 @@ struct nsStyleBackground {
       
       eContain, eCover,
 
-      ePercentage,
-
       eAuto,
-      eLength,
+      eLengthPercentage,
       eDimensionType_COUNT
     };
     PRUint8 mWidthType, mHeightType;
@@ -416,9 +423,13 @@ struct nsStyleBackground {
     
     
     
-    PRBool DependsOnFrameSize(nsStyleImageType aType) const {
+    bool DependsOnFrameSize(nsStyleImageType aType) const {
+      if ((mWidthType == eLengthPercentage && mWidth.mPercent != 0.0f) ||
+          (mHeightType == eLengthPercentage && mHeight.mPercent != 0.0f)) {
+        return true;
+      }
       if (aType == eStyleImageType_Image) {
-        return mWidthType <= ePercentage || mHeightType <= ePercentage;
+        return mWidthType <= eCover || mHeightType <= eCover;
       } else {
         NS_ABORT_IF_FALSE(aType == eStyleImageType_Gradient ||
                           aType == eStyleImageType_Element,
@@ -433,8 +444,8 @@ struct nsStyleBackground {
     
     void SetInitialValues();
 
-    PRBool operator==(const Size& aOther) const;
-    PRBool operator!=(const Size& aOther) const {
+    bool operator==(const Size& aOther) const;
+    bool operator!=(const Size& aOther) const {
       return !(*this == aOther);
     }
   };
