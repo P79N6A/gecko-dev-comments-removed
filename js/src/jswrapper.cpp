@@ -295,7 +295,6 @@ JSObject *
 JSWrapper::New(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
                JSWrapper *handler)
 {
-    JS_ASSERT(parent);
     return NewProxyObject(cx, handler, ObjectValue(*obj), proto, parent,
                           obj->isCallable() ? obj : NULL, NULL);
 }
@@ -310,7 +309,7 @@ TransparentObjectWrapper(JSContext *cx, JSObject *obj, JSObject *wrappedProto, J
 {
     
     JS_ASSERT(!obj->isWrapper() || obj->getClass()->ext.innerObject);
-    return JSWrapper::New(cx, obj, wrappedProto, parent, &JSCrossCompartmentWrapper::singleton);
+    return JSWrapper::New(cx, obj, wrappedProto, NULL, &JSCrossCompartmentWrapper::singleton);
 }
 
 }
@@ -346,7 +345,6 @@ AutoCompartment::enter()
 
         context->compartment = destination;
         JSObject *scopeChain = target->getGlobal();
-        JS_ASSERT(scopeChain->isNative());
         frame.construct();
         if (!context->stack().pushDummyFrame(context, *scopeChain, &frame.ref())) {
             frame.destroy();

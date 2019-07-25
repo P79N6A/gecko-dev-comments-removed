@@ -566,10 +566,10 @@ class Value
         return data.asBits != rhs.data.asBits;
     }
 
-    
-
-
-    friend bool SameType(const Value &lhs, const Value &rhs);
+    JS_ALWAYS_INLINE
+    friend bool SameType(const Value &lhs, const Value &rhs) {
+        return JSVAL_SAME_TYPE_IMPL(lhs.data, rhs.data);
+    }
 
     
 
@@ -739,12 +739,6 @@ class Value
 
     jsval_layout data;
 } JSVAL_ALIGNMENT;
-
-JS_ALWAYS_INLINE bool
-SameType(const Value &lhs, const Value &rhs)
-{
-    return JSVAL_SAME_TYPE_IMPL(lhs.data, rhs.data);
-}
 
 static JS_ALWAYS_INLINE Value
 NullValue()
