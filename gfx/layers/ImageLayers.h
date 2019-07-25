@@ -136,11 +136,10 @@ class THEBES_API ImageContainer {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 
 public:
-  ImageContainer(void *aImplData = nsnull) :
+  ImageContainer() :
     mReentrantMonitor("ImageContainer.mReentrantMonitor"),
     mPaintCount(0),
-    mPreviousImagePainted(false),
-    mImplData(aImplData)
+    mPreviousImagePainted(false)
   {}
 
   virtual ~ImageContainer() {}
@@ -188,20 +187,6 @@ public:
 
 
 
-  virtual void Flush() {}
-
-  
-
-
-
-
-
-  virtual void Disconnect() {}
-
-  
-
-
-
 
 
 
@@ -214,8 +199,6 @@ public:
 
 
   virtual already_AddRefed<gfxASurface> GetCurrentAsSurface(gfxIntSize* aSizeResult) = 0;
-
-  virtual void* ImplData() { return mImplData; }
 
   
 
@@ -308,12 +291,11 @@ protected:
   
   ReentrantMonitor mReentrantMonitor;
 
-  ImageContainer(LayerManager* aManager, void* aImplData = nsnull) :
+  ImageContainer(LayerManager* aManager) :
     mManager(aManager),
     mReentrantMonitor("ImageContainer.mReentrantMonitor"),
     mPaintCount(0),
-    mPreviousImagePainted(false),
-    mImplData(aImplData)
+    mPreviousImagePainted(false)
   {}
 
   
@@ -336,8 +318,6 @@ protected:
 
   
   bool mPreviousImagePainted;
-
-  void* mImplData;
 };
 
 
