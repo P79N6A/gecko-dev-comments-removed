@@ -152,6 +152,21 @@ class Assembler : public BaseAssembler
     }
 
     
+    Label loadValueAsComponents(Address address, RegisterID type, RegisterID payload) {
+        loadTypeTag(address, type);
+        Label l = label();
+        loadPayload(address, payload);
+        return l;
+    }
+
+    Label loadValueAsComponents(BaseIndex address, RegisterID type, RegisterID payload) {
+        loadTypeTag(address, type);
+        Label l = label();
+        loadPayload(address, payload);
+        return l;
+    }
+
+    
 
 
     void storeValue(const Value &v, Address address) {
