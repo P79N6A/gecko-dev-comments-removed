@@ -761,3 +761,6 @@ pref("ui.zooming.animation_frames", "");
 
 
 pref("accessibility.accessfu", 2);
+
+
+pref("network.manage-offline-status", true);

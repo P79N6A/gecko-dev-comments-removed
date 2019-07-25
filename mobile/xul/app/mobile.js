@@ -691,3 +691,6 @@ pref("browser.dom.window.dump.enabled", false);
 
 pref("device.camera.enabled", true);
 pref("media.realtime_decoder.enabled", true);
+
+
+pref("network.manage-offline-status", true);
