@@ -1212,6 +1212,12 @@ var AddonManager = {
   
   AUTOUPDATE_ENABLE: 2,
 
+  
+  
+  OPTIONS_TYPE_DIALOG: 1,
+  
+  OPTIONS_TYPE_INLINE: 2,
+
   getInstallForURL: function AM_getInstallForURL(aUrl, aCallback, aMimetype,
                                                  aHash, aName, aIconURL,
                                                  aVersion, aLoadGroup) {
