@@ -1,0 +1,604 @@
+
+
+
+
+
+
+Components.utils.import("resource://gre/modules/AddonRepository.jsm");
+
+do_load_httpd_js();
+var gServer;
+
+const PREF_GETADDONS_BROWSEADDONS        = "extensions.getAddons.browseAddons";
+const PREF_GETADDONS_BYIDS               = "extensions.getAddons.get.url";
+const PREF_GETADDONS_BROWSERECOMMENDED   = "extensions.getAddons.recommended.browseURL";
+const PREF_GETADDONS_GETRECOMMENDED      = "extensions.getAddons.recommended.url";
+const PREF_GETADDONS_BROWSESEARCHRESULTS = "extensions.getAddons.search.browseURL";
+const PREF_GETADDONS_GETSEARCHRESULTS    = "extensions.getAddons.search.url";
+
+const PORT          = 4444;
+const BASE_URL      = "http://localhost:" + PORT;
+const DEFAULT_URL   = "about:blank";
+
+
+const INSTALL_URL1  = "/addons/test_AddonRepository_1.xpi";
+
+const INSTALL_URL2  = "/addons/test_AddonRepository_2.xpi";
+
+const INSTALL_URL3  = "/addons/test_AddonRepository_3.xpi";
+
+
+
+var ADDON_PROPERTIES = ["id", "type", "version", "creator", "developers",
+                        "description", "fullDescription", "developerComments",
+                        "eula", "iconURL", "screenshots", "homepageURL",
+                        "supportURL", "contributionURL", "contributionAmount",
+                        "averageRating", "reviewCount", "reviewURL",
+                        "totalDownloads", "weeklyDownloads", "dailyUsers",
+                        "sourceURI", "repositoryStatus", "size", "updateDate"];
+
+
+var SCREENSHOT_PROPERTIES = ["url", "thumbnailURL", "caption"]
+
+
+var AUTHOR_PROPERTIES = ["name", "url"];
+
+
+var GET_RESULTS = [{
+  id:                     "test1@tests.mozilla.org",
+  type:                   "extension",
+  version:                "1.1",
+  creator:                {
+                            name: "Test Creator 1",
+                            url:  BASE_URL + "/creator1.html"
+                          },
+  developers:             [{
+                            name: "Test Developer 1",
+                            url:  BASE_URL + "/developer1.html"
+                          }],
+  description:            "Test Summary 1",
+  fullDescription:        "Test Description 1",
+  developerComments:      "Test Developer Comments 1",
+  eula:                   "Test EULA 1",
+  iconURL:                BASE_URL + "/icon1.png",
+  screenshots:            [{
+                            url:          BASE_URL + "/full1-1.png",
+                            thumbnailURL: BASE_URL + "/thumbnail1-1.png",
+                            caption:      "Caption 1 - 1"
+                          }, {
+                            url:          BASE_URL + "/full2-1.png",
+                            thumbnailURL: BASE_URL + "/thumbnail2-1.png",
+                            caption:      "Caption 2 - 1"
+                          }],
+  homepageURL:            BASE_URL + "/learnmore1.html",
+  supportURL:             BASE_URL + "/support1.html",
+  contributionURL:        BASE_URL + "/meetDevelopers1.html",
+  contributionAmount:     "$11.11",
+  averageRating:          4,
+  reviewCount:            1111,
+  reviewURL:              BASE_URL + "/review1.html",
+  totalDownloads:         2222,
+  weeklyDownloads:        3333,
+  dailyUsers:             4444,
+  sourceURI:              BASE_URL + INSTALL_URL2,
+  repositoryStatus:       4,
+  size:                   5555,
+  updateDate:             new Date(1265033045000)
+}, {
+  id:                     "test_AddonRepository_1@tests.mozilla.org",
+  version:                "1.4",
+  developers:             [],
+  screenshots:            [],
+  repositoryStatus:       9999
+}];
+
+
+var SEARCH_RESULTS = [{
+  id:                     "test1@tests.mozilla.org",
+  type:                   "extension",
+  version:                "1.1",
+  creator:                {
+                            name: "Test Creator 1",
+                            url:  BASE_URL + "/creator1.html"
+                          },
+  developers:             [],
+  screenshots:            [],
+  repositoryStatus:       4,
+  sourceURI:              BASE_URL + "/test1.xpi"
+}, {
+  id:                     "test2@tests.mozilla.org",
+  type:                   "extension",
+  version:                "1.2",
+  creator:                {
+                            name: "Test Creator 2",
+                            url:  BASE_URL + "/creator2.html"
+                          },
+  developers:             [{
+                            name: "Test Developer 2",
+                            url:  BASE_URL + "/developer2.html"
+                          }],
+  description:            "Test Summary 2",
+  fullDescription:        "Test Description 2",
+  developerComments:      "Test Developer Comments 2",
+  eula:                   "Test EULA 2",
+  iconURL:                BASE_URL + "/icon2.png",
+  screenshots:            [{
+                            url:          BASE_URL + "/full1-2.png",
+                            thumbnailURL: BASE_URL + "/thumbnail1-2.png"
+                          }, {
+                            url:          BASE_URL + "/full2-2.png",
+                            thumbnailURL: BASE_URL + "/thumbnail2-2.png",
+                            caption:      "Caption 2"
+                          }],
+  homepageURL:            BASE_URL + "/learnmore2.html",
+  supportURL:             BASE_URL + "/support2.html",
+  contributionURL:        BASE_URL + "/meetDevelopers2.html",
+  contributionAmount:     "$11.11",
+  repositoryStatus:       4,
+  sourceURI:              BASE_URL + "/test2.xpi"
+}, {
+  id:                     "test3@tests.mozilla.org",
+  type:                   "theme",
+  version:                "1.3",
+  creator:                {
+                            name: "Test Creator 3",
+                            url:  BASE_URL + "/creator3.html"
+                          },
+  developers:             [{
+                            name: "First Test Developer 3",
+                            url:  BASE_URL + "/developer1-3.html"
+                          }, {
+                            name: "Second Test Developer 3",
+                            url:  BASE_URL + "/developer2-3.html"
+                          }],
+  description:            "Test Summary 3",
+  fullDescription:        "Test Description 3",
+  developerComments:      "Test Developer Comments 3",
+  eula:                   "Test EULA 3",
+  iconURL:                BASE_URL + "/icon3.png",
+  screenshots:            [{
+                            url:          BASE_URL + "/full1-3.png",
+                            thumbnailURL: BASE_URL + "/thumbnail1-3.png",
+                            caption:      "Caption 1 - 3"
+                          }, {
+                            url:          BASE_URL + "/full2-3.png",
+                            caption:      "Caption 2 - 3"
+                          }, {
+                            url:          BASE_URL + "/full3-3.png",
+                            thumbnailURL: BASE_URL + "/thumbnail3-3.png",
+                            caption:      "Caption 3 - 3"
+                          }],
+  homepageURL:            BASE_URL + "/homepage3.html",
+  supportURL:             BASE_URL + "/support3.html",
+  contributionURL:        BASE_URL + "/meetDevelopers3.html",
+  contributionAmount:     "$11.11",
+  averageRating:          2,
+  reviewCount:            1111,
+  reviewURL:              BASE_URL + "/review3.html",
+  totalDownloads:         2222,
+  weeklyDownloads:        3333,
+  dailyUsers:             4444,
+  sourceURI:              BASE_URL + "/test3.xpi",
+  repositoryStatus:       4,
+  size:                   5555,
+  updateDate:             new Date(1265033045000)
+}, {
+  id:                     "test-lastPassing@tests.mozilla.org",
+  type:                   "extension",
+  version:                "2.0",
+  creator:                {
+                            name: "Test Creator - Last Passing",
+                            url:  BASE_URL + "/creatorLastPassing.html"
+                          },
+  developers:             [],
+  screenshots:            [],
+  averageRating:          5,
+  repositoryStatus:       4,
+  sourceURI:              BASE_URL + "/addons/test_AddonRepository_3.xpi"
+}];
+
+const TOTAL_RESULTS = 1111;
+const MAX_RESULTS = SEARCH_RESULTS.length;
+
+
+
+const FAILED_MAX_RESULTS  = 9999;
+
+
+var GET_TEST = {
+  preference:       PREF_GETADDONS_BYIDS,
+  preferenceValue:  BASE_URL + "/%OS%/%VERSION%/%API_VERSION%/" +
+                    "%API_VERSION%/%IDS%",
+  failedIDs:      ["test1@tests.mozilla.org"],
+  failedURL:        "/XPCShell/1/1.5/1.5/test1%40tests.mozilla.org",
+  successfulIDs:  ["test1@tests.mozilla.org",
+                     "{00000000-1111-2222-3333-444444444444}",
+                     "test_AddonRepository_1@tests.mozilla.org"],
+  successfulURL:    "/XPCShell/1/1.5/1.5/test1%40tests.mozilla.org," +
+                    "%7B00000000-1111-2222-3333-444444444444%7D," +
+                    "test_AddonRepository_1%40tests.mozilla.org"
+};
+
+
+var RECOMMENDED_TEST = {
+  preference:       PREF_GETADDONS_GETRECOMMENDED,
+  preferenceValue:  BASE_URL + "/%OS%/%VERSION%/%API_VERSION%/" +
+                    "%API_VERSION%/%MAX_RESULTS%",
+  failedURL:        "/XPCShell/1/1.5/1.5/" + (2 * FAILED_MAX_RESULTS),
+  successfulURL:    "/XPCShell/1/1.5/1.5/" + (2 * MAX_RESULTS)
+};
+
+
+var SEARCH_TEST = {
+  searchTerms:      "odd=search:with&weird\"characters",
+  preference:       PREF_GETADDONS_GETSEARCHRESULTS,
+  preferenceValue:  BASE_URL + "/%OS%/%VERSION%/%API_VERSION%/" +
+                    "%API_VERSION%/%MAX_RESULTS%/%TERMS%",
+  failedURL:        "/XPCShell/1/1.5/1.5/" + (2 * FAILED_MAX_RESULTS) +
+                    "/odd%3Dsearch%3Awith%26weird%22characters",
+  successfulURL:    "/XPCShell/1/1.5/1.5/" + (2 * MAX_RESULTS) +
+                    "/odd%3Dsearch%3Awith%26weird%22characters"
+};
+
+
+function check_object(aActual, aExpected, aProperties) {
+  aProperties.forEach(function(aProperty) {
+    
+    if (!aExpected.hasOwnProperty(aProperty)) {
+      do_check_eq(aActual[aProperty], null);
+      return;
+    }
+
+    var actualValue = aActual[aProperty];
+    var expectedValue = aExpected[aProperty];
+
+    switch (aProperty) {
+      case "creator":
+        do_check_eq(actualValue.toString(), expectedValue.name);
+        check_object(actualValue, expectedValue, AUTHOR_PROPERTIES);
+        break;
+
+      case "developers":
+        do_check_eq(actualValue.length, expectedValue.length);
+        for (var i = 0; i < actualValue.length; i++) {
+          do_check_eq(actualValue[i].toString(), expectedValue[i].name);
+          check_object(actualValue[i], expectedValue[i], AUTHOR_PROPERTIES);
+        }
+        break;
+
+      case "screenshots":
+        do_check_eq(actualValue.length, expectedValue.length);
+        for (var i = 0; i < actualValue.length; i++) {
+          do_check_eq(actualValue[i].toString(), expectedValue[i].url);
+          check_object(actualValue[i], expectedValue[i], SCREENSHOT_PROPERTIES);
+        }
+        break;
+
+      case "sourceURI":
+        do_check_eq(actualValue.spec, expectedValue);
+        break;
+
+      case "updateDate":
+        do_check_eq(actualValue.getTime(), expectedValue.getTime());
+        break;
+
+      default:
+        if (actualValue !== expectedValue)
+          do_throw("Failed for " + aProperty +
+                   " (" + actualValue + " === " + expectedValue + ")");
+    }
+  });
+}
+
+
+function check_results(aActualAddons, aExpectedAddons, aAddonCount, aInstallNull) {
+  do_check_false(AddonRepository.isSearching);
+
+  do_check_eq(aActualAddons.length, aAddonCount);
+  do_check_eq(aActualAddons.length, aExpectedAddons.length);
+
+  for (var i = 0; i < aAddonCount; i++) {
+    var actualAddon = aActualAddons[i];
+    var expectedAddon = aExpectedAddons[i];
+
+    
+    if (actualAddon.name == "FAIL")
+      do_throw(actualAddon.id + " - " + actualAddon.description);
+    if (actualAddon.name != "PASS")
+      do_throw(actualAddon.id + " - " + "invalid add-on name " + actualAddon.name);
+
+    do_check_eq(actualAddon.install == null, !!aInstallNull);
+
+    
+    if (!aInstallNull)
+      do_check_eq(actualAddon.install.sourceURI.spec, actualAddon.sourceURI.spec);
+
+    check_object(actualAddon, expectedAddon, ADDON_PROPERTIES);
+  }
+}
+
+
+function complete_search(aSearch, aSearchCallback) {
+  var failCallback = {
+    searchSucceeded: function(addons, length, total) {
+      do_throw("failCallback.searchSucceeded should not be called");
+      end_test();
+    },
+
+    searchFailed: function() {
+      do_throw("failCallback.searchFailed should not be called");
+      end_test();
+    }
+  };
+
+  var callbackCalled = false;
+  var testCallback = {
+    searchSucceeded: function(addons, length, total) {
+      do_throw("testCallback.searchSucceeded should not be called");
+      end_test();
+    },
+
+    searchFailed: function() {
+      callbackCalled = true;
+    }
+  };
+
+  
+  aSearch(failCallback);
+  do_check_true(AddonRepository.isSearching);
+  AddonRepository.cancelSearch();
+  do_check_false(AddonRepository.isSearching);
+
+  aSearch(aSearchCallback);
+  do_check_true(AddonRepository.isSearching);
+
+  
+  aSearch(testCallback);
+  do_check_true(callbackCalled);
+  do_check_true(AddonRepository.isSearching);
+}
+
+
+function run_test() {
+  
+  do_test_pending();
+  createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9");
+
+  startupManager();
+
+  
+  installAllFiles([do_get_addon("test_AddonRepository_1")], function() {
+    restartManager();
+
+    gServer = new nsHttpServer();
+
+    
+    gServer.registerFile(INSTALL_URL2,
+                        do_get_addon("test_AddonRepository_2"));
+    gServer.registerFile(INSTALL_URL3,
+                        do_get_addon("test_AddonRepository_3"));
+
+    
+    gServer.registerFile(GET_TEST.failedURL,
+                        do_get_file("data/test_AddonRepository_failed.xml"));
+    gServer.registerFile(RECOMMENDED_TEST.failedURL,
+                        do_get_file("data/test_AddonRepository_failed.xml"));
+    gServer.registerFile(SEARCH_TEST.failedURL,
+                        do_get_file("data/test_AddonRepository_failed.xml"));
+
+    
+    gServer.registerFile(GET_TEST.successfulURL,
+                        do_get_file("data/test_AddonRepository_getAddonsByIDs.xml"));
+    gServer.registerFile(RECOMMENDED_TEST.successfulURL,
+                        do_get_file("data/test_AddonRepository.xml"));
+    gServer.registerFile(SEARCH_TEST.successfulURL,
+                        do_get_file("data/test_AddonRepository.xml"));
+
+    gServer.start(PORT);
+
+    
+    AddonManager.getInstallForURL(BASE_URL + INSTALL_URL2, function(aInstall) {
+      aInstall.install();
+
+      
+      AddonManager.getInstallForURL(BASE_URL + INSTALL_URL3,
+                                    run_test_1, "application/x-xpinstall");
+    }, "application/x-xpinstall");
+  });
+}
+
+function end_test() {
+  gServer.stop(do_test_finished);
+}
+
+
+function run_test_1() {
+  function check_urls(aPreference, aGetURL, aTests) {
+    aTests.forEach(function(aTest) {
+      Services.prefs.setCharPref(aPreference, aTest.preferenceValue);
+      do_check_eq(aGetURL(aTest), aTest.expectedURL);
+    });
+  }
+
+  var urlTests = [{
+    preferenceValue:  BASE_URL,
+    expectedURL:      BASE_URL
+  }, {
+    preferenceValue:  BASE_URL + "/%OS%/%VERSION%",
+    expectedURL:      BASE_URL + "/XPCShell/1"
+  }];
+
+  
+  var searchURLTests = [{
+    searchTerms:      "test",
+    preferenceValue:  BASE_URL + "/search?q=%TERMS%",
+    expectedURL:      BASE_URL + "/search?q=test"
+  }, {
+    searchTerms:      "test search",
+    preferenceValue:  BASE_URL + "/%TERMS%",
+    expectedURL:      BASE_URL + "/test%20search"
+  }, {
+    searchTerms:      "odd=search:with&weird\"characters",
+    preferenceValue:  BASE_URL + "/%TERMS%",
+    expectedURL:      BASE_URL + "/odd%3Dsearch%3Awith%26weird%22characters"
+  }];
+
+  
+  var tests = [{
+    initiallyUndefined: true,
+    preference:         PREF_GETADDONS_BROWSEADDONS,
+    urlTests:           urlTests,
+    getURL:             function() AddonRepository.homepageURL
+  }, {
+    initiallyUndefined: true,
+    preference:         PREF_GETADDONS_BROWSERECOMMENDED,
+    urlTests:           urlTests,
+    getURL:             function() AddonRepository.getRecommendedURL()
+  }, {
+    initiallyUndefined: true,
+    preference:         PREF_GETADDONS_BROWSESEARCHRESULTS,
+    urlTests:           urlTests.concat(searchURLTests),
+    getURL:             function getSearchURL(aTest) {
+                          var searchTerms = aTest && aTest.searchTerms ? aTest.searchTerms
+                                                                       : "unused terms";
+                          return AddonRepository.getSearchURL(searchTerms);
+                        }
+  }];
+
+  tests.forEach(function(aTest) {
+    if (aTest.initiallyUndefined) {
+      
+      do_check_eq(Services.prefs.getPrefType(aTest.preference),
+                  Services.prefs.PREF_INVALID);
+      do_check_eq(aTest.getURL(), DEFAULT_URL);
+    }
+
+    check_urls(aTest.preference, aTest.getURL, aTest.urlTests);
+  });
+
+  run_test_2();
+}
+
+
+function run_test_2() {
+  Services.prefs.setCharPref(GET_TEST.preference, GET_TEST.preferenceValue);
+  var callback = {
+    searchSucceeded: function(aAddonsList, aAddonCount, aTotalResults) {
+      do_throw("searchAddons should not have succeeded");
+      end_test();
+    },
+
+    searchFailed: function() {
+      do_check_false(AddonRepository.isSearching);
+      run_test_3();
+    }
+  };
+
+  complete_search(function(aCallback) {
+    AddonRepository.getAddonsByIDs(GET_TEST.failedIDs, aCallback);
+  }, callback);
+}
+
+
+function run_test_3() {
+  var callback = {
+    searchSucceeded: function(aAddonsList, aAddonCount, aTotalResults) {
+      do_check_eq(aTotalResults, -1);
+      check_results(aAddonsList, GET_RESULTS, aAddonCount, true);
+      run_test_4();
+    },
+
+    searchFailed: function() {
+      do_throw("searchAddons should not have failed");
+      end_test();
+    }
+  };
+
+  complete_search(function(aCallback) {
+    AddonRepository.getAddonsByIDs(GET_TEST.successfulIDs, aCallback);
+  }, callback);
+}
+
+
+function run_test_4() {
+  Services.prefs.setCharPref(RECOMMENDED_TEST.preference,
+                             RECOMMENDED_TEST.preferenceValue);
+  var callback = {
+    searchSucceeded: function(aAddonsList, aAddonCount, aTotalResults) {
+      do_throw("retrieveRecommendedAddons should not have succeeded");
+      end_test();
+    },
+
+    searchFailed: function() {
+      do_check_false(AddonRepository.isSearching);
+      run_test_5();
+    }
+  };
+
+  complete_search(function(aCallback) {
+    AddonRepository.retrieveRecommendedAddons(FAILED_MAX_RESULTS, aCallback);
+  }, callback);
+}
+
+
+function run_test_5() {
+  var callback = {
+    searchSucceeded: function(aAddonsList, aAddonCount, aTotalResults) {
+      do_check_eq(aTotalResults, -1);
+      check_results(aAddonsList, SEARCH_RESULTS, aAddonCount);
+      run_test_6();
+    },
+
+    searchFailed: function() {
+      do_throw("retrieveRecommendedAddons should not have failed");
+      end_test();
+    }
+  };
+
+  complete_search(function(aCallback) {
+    AddonRepository.retrieveRecommendedAddons(MAX_RESULTS, aCallback);
+  }, callback);
+}
+
+
+function run_test_6() {
+  Services.prefs.setCharPref(SEARCH_TEST.preference, SEARCH_TEST.preferenceValue);
+  var callback = {
+    searchSucceeded: function(aAddonsList, aAddonCount, aTotalResults) {
+      do_throw("searchAddons should not have succeeded");
+      end_test();
+    },
+
+    searchFailed: function() {
+      do_check_false(AddonRepository.isSearching);
+      run_test_7();
+    }
+  };
+
+  complete_search(function(aCallback) {
+    var searchTerms = SEARCH_TEST.searchTerms;
+    AddonRepository.searchAddons(searchTerms, FAILED_MAX_RESULTS, aCallback);
+  }, callback);
+}
+
+
+function run_test_7() {
+  var callback = {
+    searchSucceeded: function(aAddonsList, aAddonCount, aTotalResults) {
+      do_check_eq(aTotalResults, TOTAL_RESULTS);
+      check_results(aAddonsList, SEARCH_RESULTS, aAddonCount);
+      end_test();
+    },
+
+    searchFailed: function() {
+      do_throw("searchAddons should not have failed");
+      end_test();
+    }
+  };
+
+  complete_search(function(aCallback) {
+    var searchTerms = SEARCH_TEST.searchTerms;
+    AddonRepository.searchAddons(searchTerms, MAX_RESULTS, aCallback);
+  }, callback);
+}
+
