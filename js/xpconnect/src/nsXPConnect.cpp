@@ -71,7 +71,6 @@
 
 #include "jscntxt.h" 
 
-
 NS_IMPL_THREADSAFE_ISUPPORTS7(nsXPConnect,
                               nsIXPConnect,
                               nsISupportsWeakReference,
@@ -404,17 +403,11 @@ nsXPConnect::Collect(bool shrinkingGC)
     
     
     
-    js::ThreadData &threadData = cx->thread()->data;
-    JS_ASSERT(threadData.requestDepth >= 1);
-    JS_ASSERT(!threadData.conservativeGC.requestThreshold);
-    if (threadData.requestDepth == 1)
-        threadData.conservativeGC.requestThreshold = 1;
+    js::AutoSkipConservativeScan ascs(cx);
     if (shrinkingGC)
         JS_ShrinkingGC(cx);
     else
         JS_GC(cx);
-    if (threadData.requestDepth == 1)
-        threadData.conservativeGC.requestThreshold = 0;
 }
 
 NS_IMETHODIMP
