@@ -203,7 +203,7 @@ KineticPanningModule.prototype = {
 
     
     this._owner.grab(this);
-
+    Browser.canvasBrowser.prepareForPanning()
     ws.dragStart(sX, sY);
 
     
@@ -215,6 +215,7 @@ KineticPanningModule.prototype = {
     if (!this._startKinetic(sX, sY)) {
       this._endKinetic(sX, sY);
     }
+    Browser.canvasBrowser.prepareForPanning()
   },
 
   _dragMove: function(sX, sY) {

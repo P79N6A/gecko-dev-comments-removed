@@ -52,6 +52,11 @@ CanvasBrowser.prototype = {
   _screenX: 0,
   _screenY: 0,
   _visibleBounds:new wsRect(0,0,0,0),
+  _drawQ: [],
+  
+  _maybeZoomToPage: false,
+  
+  _clippedPageDrawing: true,
 
   get canvasDimensions() {
     if (!this._canvasRect) {
@@ -87,30 +92,141 @@ CanvasBrowser.prototype = {
     browser.addEventListener("MozAfterPaint", this._paintHandler, false);
 
     this._browser = browser;
-
+    
     
     if (!skipZoom) {
       self.zoomToPage();
     }
   },
+  
+  
+  addToDrawQ: function addToDrawQ(rect) {
+    let q = this._drawQ;
+    function resizeAndPaint(self) {
+      if (self._maybeZoomToPage) {
+        self.zoomToPage();
+      }
+      
+      self.flushDrawQ(self._clippedPageDrawing);
+    }
+    for(let i = q.length - 1;i>=0;i--) {
+      let old = q[i];
+      if (!old) 
+        continue;
+      
+      if (old.contains(rect)) {
+        
+        return;
+      } else if(rect.contains(old)) {
+        
+        q[i] = null;
+      }
+    }
+    
+    
 
+    let flushNow = !this._clippedPageDrawing;
+    
+    if (this._clippedPageDrawing) {
+      if (!this._drawInterval) {
+        
+        flushNow = true;
+        this._maybeZoomToPage = true;
+        this._drawInterval = setInterval(resizeAndPaint, 2000, this);
+      }
+    }
+        
+    q.push(rect);
+
+    if (flushNow) {
+      resizeAndPaint(this);
+    }
+  },
+
+  
+  
+  
+  flushDrawQ: function flushDrawQ(justOne) {
+    var ctx = this._canvas.getContext("2d");
+    ctx.save();
+    ctx.scale(this._zoomLevel, this._zoomLevel);
+    while (this._drawQ.length) {
+      let dest = this._drawQ.pop();
+      if (!dest)
+        continue;
+      ctx.translate(dest.x - this._pageBounds.x, dest.y - this._pageBounds.y);  
+      ctx.drawWindow(this._browser.contentWindow,
+                     dest.x, dest.y,
+                     dest.width, dest.height,
+                     "white",
+                     ctx.DRAWWINDOW_DO_NOT_FLUSH | ctx.DRAWWINDOW_DRAW_CARET);
+      if (justOne)
+        break;
+    }
+    ctx.restore();
+  },
+  
+  clearDrawQ: function clearDrawQ() {
+    this._drawQ = [];
+  },
+  
   startLoading: function() {
     
     
     
-
+    this.clearDrawQ();
     var ctx = this._canvas.getContext("2d");
     ctx.fillStyle = "rgb(255,255,255)";
     ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
-
-    this._resizeInterval = setInterval(function(self) { self.zoomToPage(); }, 2000, this);
+    this._clippedPageDrawing = true;
   },
 
   endLoading: function() {
-    clearInterval(this._resizeInterval);
+    this._clippedPageDrawing = false;
     this.zoomToPage();
+    this.ensureFullCanvasIsDrawn();
+    this.flushDrawQ();
+
+    if (this._drawInterval) {
+      clearInterval(this._drawInterval);
+      this._drawInterval = null;
+    }
+  },
+  
+  
+  ensureFullCanvasIsDrawn: function ensureFullCanvasIsDrawn() {
+    if (!this._partiallyDrawn) return;
+    let v = this._visibleBounds
+    let r_above = new wsRect(this._pageBounds.x, this._pageBounds.y,
+              this._pageBounds.width, v.y - this._pageBounds.y)
+    let r_left = new wsRect(this._pageBounds.x, v.y,
+                            v.x - this._pageBounds.x,
+                            v.height)
+    let r_right = new wsRect(v.x + v.width, v.y,
+                             this._pageBounds.width - v.x - v.width,
+                             v.height)
+    let r_below = new wsRect(this._pageBounds.x, v.y+v.height,
+                             this._pageBounds.width,
+                             this._pageBounds.height - v.y - v.height)
+    this._redrawRect(r_above);
+    this._redrawRect(r_left);
+    this._redrawRect(r_right);
+    this._redrawRect(r_below)
+    this._partiallyDrawn = false;
   },
 
+  
+  prepareForPanning: function prepareForPanning() {
+    
+    this._maybeZoomToPage = true;
+    if (!this._clippedPageDrawing) return;
+    
+    this._clippedPageDrawing = false;
+    this.ensureFullCanvasIsDrawn();
+    
+    this.flushDrawQ();
+  },
+  
   viewportHandler: function(bounds, oldBounds) {
     let pageBounds = bounds.clone();
     let visibleBounds = ws.viewingRect;
@@ -124,18 +240,32 @@ CanvasBrowser.prototype = {
     visibleBounds.left = Math.max(0, Math.floor(this._screenToPage(visibleBounds.left)));
     visibleBounds.bottom = Math.ceil(this._screenToPage(visibleBounds.bottom));
     visibleBounds.right = Math.ceil(this._screenToPage(visibleBounds.right));
-    this._visibleBounds = visibleBounds;
 
+    
+    
+    
+    if (oldBounds)
+      this.flushDrawQ();
+
+    this._visibleBounds = visibleBounds;
+    this._pageBounds = pageBounds;
+        
     let dx = this._screenX - bounds.x;
     let dy = this._screenY - bounds.y;
     this._screenX = bounds.x;
     this._screenY = bounds.y;
-    this._pageBounds = pageBounds;
 
     if (!oldBounds) {
       
-      this._redrawRect(pageBounds.x, pageBounds.y,
-                       pageBounds.width, pageBounds.height);
+      
+      
+      this.clearDrawQ();
+      
+      
+      if (!this._clippedPageDrawing)
+        this._partiallyDrawn = false;
+       
+      this._redrawRect(pageBounds);
       return;
     }
 
@@ -154,6 +284,7 @@ CanvasBrowser.prototype = {
 
     
     var ctx = this._canvas.getContext("2d");
+    
     ctx.drawImage(this._canvas,
                   srcRect.x, srcRect.y,
                   srcRect.width, srcRect.height,
@@ -208,76 +339,33 @@ CanvasBrowser.prototype = {
 
     for (let i = 0; i < aEvent.clientRects.length; i++) {
       let e = aEvent.clientRects.item(i);
-      
-      
-      
-      this._redrawRect(Math.floor(e.left + cwin.scrollX),
-                       Math.floor(e.top + cwin.scrollY),
-                       Math.ceil(e.width), Math.ceil(e.height));
+      let r = new wsRect(Math.floor(e.left + cwin.scrollX),
+                         Math.floor(e.top + cwin.scrollY),
+                         Math.ceil(e.width), Math.ceil(e.height));
+      this._redrawRect(r);
     }
   },
 
-  _redrawRect: function(x, y, width, height) {
-    function intersect(r1, r2) {
-      let xmost1 = r1.x + r1.width;
-      let ymost1 = r1.y + r1.height;
-      let xmost2 = r2.x + r2.width;
-      let ymost2 = r2.y + r2.height;
-
-      let x = Math.max(r1.x, r2.x);
-      let y = Math.max(r1.y, r2.y);
-
-      let temp = Math.min(xmost1, xmost2);
-      if (temp <= x)
-        return null;
-
-      let width = temp - x;
-
-      temp = Math.min(ymost1, ymost2);
-      if (temp <= y)
-        return null;
-
-      let height = temp - y;
-
-      return { x: x,
-               y: y,
-               width: width,
-               height: height };
+  _redrawRect: function(rect) {
+    
+    
+    if (this._clippedPageDrawing)  {
+      r2 = this._visibleBounds;
+      this._partiallyDrawn = true;
+      
+      if (rect.bottom > 0 && rect.right > r2.right)
+        this._maybeZoomToPage = true;
+    } else {
+      let [canvasW, canvasH] = this._effectiveCanvasDimensions;
+      r2 =  new wsRect(Math.max(this._pageBounds.x,0),
+                       Math.max(this._pageBounds.y,0),
+                       canvasW, canvasH);
     }
 
-    let r1 = { x : x,
-               y : y,
-               width : width,
-               height: height };
-
+    let dest = rect.intersect(r2);
     
-    let [canvasW, canvasH] = this._effectiveCanvasDimensions;
-    let r2 = { x : Math.max(this._pageBounds.x,0),
-               y : Math.max(this._pageBounds.y,0),
-               width : canvasW,
-               height: canvasH };
-
-    let dest = intersect(r1, r2);
-
-    if (!dest)
-      return;
-
-    
-
-    var ctx = this._canvas.getContext("2d");
-
-    ctx.save();
-    ctx.scale(this._zoomLevel, this._zoomLevel);
-
-    ctx.translate(dest.x - this._pageBounds.x, dest.y - this._pageBounds.y);
-
-    ctx.drawWindow(this._browser.contentWindow,
-                   dest.x, dest.y,
-                   dest.width, dest.height,
-                   "white",
-                   ctx.DRAWWINDOW_DO_NOT_FLUSH | ctx.DRAWWINDOW_DRAW_CARET);
-
-    ctx.restore();
+    if (dest)
+      this.addToDrawQ(dest);
   },
 
   _clampZoomLevel: function(aZoomLevel) {
@@ -316,6 +404,9 @@ CanvasBrowser.prototype = {
 
     if (contentW > canvasW)
       this.zoomLevel = canvasW / contentW;
+    
+    if (this._clippedPageDrawing)
+      this._maybeZoomToPage = false
   },
 
   zoomToElement: function(aElement) {
@@ -445,20 +536,20 @@ CanvasBrowser.prototype = {
     let curRect = this._visibleBounds
     let newx = curRect.x;
     let newy = curRect.y;
-
+   
     if (elRect.x < curRect.x || elRect.width > curRect.width) {
       newx = elRect.x;
     } else if (elRect.x + elRect.width > curRect.x + curRect.width) {
-      newx = elRect.x - curRect.width + elRect.width
-    }
+      newx = elRect.x - curRect.width + elRect.width;
+    } 
 
     if (elRect.y < curRect.y || elRect.height > curRect.height) {
       newy = elRect.y;
     } else if (elRect.y + elRect.height > curRect.y + curRect.height) {
-      newy = elRect.y - curRect.height + elRect.height
-    }
-
-    ws.panBy(this._pageToScreen(curRect.x-newx),this._pageToScreen(curRect.y  - newy), true)
+      newy = elRect.y - curRect.height + elRect.height;
+    } 
+    
+    ws.panBy(this._pageToScreen(curRect.x-newx),this._pageToScreen(curRect.y  - newy), true);
   },
 
   
