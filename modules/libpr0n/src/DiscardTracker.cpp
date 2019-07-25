@@ -120,6 +120,35 @@ DiscardTracker::Remove(DiscardTrackerNode *node)
 
 
 
+void
+DiscardTracker::DiscardAll()
+{
+  if (!sInitialized)
+    return;
+
+  
+  
+  Remove(&sSentinel);
+
+  
+  for (DiscardTrackerNode *node = sHead.next;
+       node != &sTail; node = sHead.next) {
+    NS_ABORT_IF_FALSE(node->curr, "empty node!");
+    Remove(node);
+    node->curr->Discard();
+  }
+
+  
+  Reset(&sSentinel);
+
+  
+  
+  TimerOff();
+}
+
+
+
+
 nsresult
 DiscardTracker::Initialize()
 {
