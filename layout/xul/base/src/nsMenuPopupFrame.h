@@ -240,6 +240,8 @@ public:
   PRBool IsMenu() { return mPopupType == ePopupTypeMenu; }
   PRBool IsOpen() { return mPopupState == ePopupOpen || mPopupState == ePopupOpenAndVisible; }
 
+  PRBool IsDragPopup() { return mIsDragPopup; }
+
   
   nsMenuFrame* GetParentMenu() {
     nsIFrame* parent = GetParent();
@@ -345,6 +347,9 @@ public:
   
   nsIntPoint ScreenPosition() const { return nsIntPoint(mScreenXPos, mScreenYPos); }
 
+  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists);
 protected:
 
   
@@ -449,6 +454,7 @@ protected:
   PRPackedBool mShouldAutoPosition; 
   PRPackedBool mInContentShell; 
   PRPackedBool mIsMenuLocked; 
+  PRPackedBool mIsDragPopup; 
 
   
   PRPackedBool mHFlip;

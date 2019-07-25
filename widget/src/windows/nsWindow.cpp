@@ -533,6 +533,11 @@ nsWindow::Create(nsIWidget *aParent,
   if (mWindowType == eWindowType_popup) {
     if (!aParent)
       parent = NULL;
+
+    if (aInitData->mIsDragPopup) {
+      
+      extendedStyle |= WS_EX_TRANSPARENT;
+    }
   } else if (mWindowType == eWindowType_invisible) {
     
     style &= ~0x40000000; 

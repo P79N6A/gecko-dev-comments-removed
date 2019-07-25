@@ -146,6 +146,7 @@ struct nsWidgetInitData {
   PRPackedBool  mUnicode;
   PRPackedBool  mRTL;
   PRPackedBool  mNoAutoHide; 
+  PRPackedBool  mIsDragPopup;  
 };
 
 #endif 

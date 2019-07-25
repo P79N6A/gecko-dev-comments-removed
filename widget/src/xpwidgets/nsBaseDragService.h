@@ -44,6 +44,7 @@
 #include "nsISupportsArray.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMDataTransfer.h"
+#include "nsIContent.h"
 #include "nsCOMPtr.h"
 #include "nsPoint.h"
 
@@ -129,6 +130,11 @@ protected:
   ConvertToUnscaledDevPixels(nsPresContext* aPresContext,
                              PRInt32* aScreenX, PRInt32* aScreenY);
 
+  
+
+
+  void OpenDragPopup();
+
   PRPackedBool mCanDrop;
   PRPackedBool mOnlyChromeDrop;
   PRPackedBool mDoingDrag;
@@ -152,6 +158,10 @@ protected:
 
   
   nsCOMPtr<nsISelection> mSelection;
+
+  
+  
+  nsCOMPtr<nsIContent> mDragPopup;
 
   
   

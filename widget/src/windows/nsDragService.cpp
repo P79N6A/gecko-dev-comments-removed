@@ -298,11 +298,11 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   
   
   mDragAction = aActionType;
-  mDoingDrag  = PR_TRUE;
   mSentLocalDropEvent = PR_FALSE;
 
   
   StartDragSession();
+  OpenDragPopup();
 
   nsRefPtr<IAsyncOperation> pAsyncOp;
   

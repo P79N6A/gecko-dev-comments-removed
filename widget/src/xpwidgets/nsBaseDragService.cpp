@@ -65,6 +65,8 @@
 #include "nsIViewObserver.h"
 #include "nsRegion.h"
 #include "nsGUIEvent.h"
+#include "nsXULPopupManager.h"
+#include "nsMenuPopupFrame.h"
 #include "mozilla/Preferences.h"
 
 #include "gfxContext.h"
@@ -272,6 +274,7 @@ nsBaseDragService::InvokeDragSessionWithImage(nsIDOMNode* aDOMNode,
   mDataTransfer = aDataTransfer;
   mSelection = nsnull;
   mHasImage = PR_TRUE;
+  mDragPopup = nsnull;
   mImage = aImage;
   mImageX = aImageX;
   mImageY = aImageY;
@@ -299,6 +302,7 @@ nsBaseDragService::InvokeDragSessionWithSelection(nsISelection* aSelection,
   mDataTransfer = aDataTransfer;
   mSelection = aSelection;
   mHasImage = PR_TRUE;
+  mDragPopup = nsnull;
   mImage = nsnull;
   mImageX = 0;
   mImageY = 0;
@@ -347,7 +351,19 @@ nsBaseDragService::StartDragSession()
   mDoingDrag = PR_TRUE;
   
   mOnlyChromeDrop = PR_FALSE;
+
   return NS_OK;
+}
+
+void
+nsBaseDragService::OpenDragPopup()
+{
+  if (mDragPopup) {
+    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+    if (pm) {
+      pm->ShowPopupAtScreen(mDragPopup, mScreenX - mImageX, mScreenY - mImageY, PR_FALSE, nsnull);
+    }
+  }
 }
 
 
@@ -361,6 +377,13 @@ nsBaseDragService::EndDragSession(PRBool aDoneDrag)
   if (aDoneDrag && !mSuppressLevel)
     FireDragEventAtSource(NS_DRAGDROP_END);
 
+  if (mDragPopup) {
+    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+    if (pm) {
+      pm->HidePopup(mDragPopup, PR_FALSE, PR_TRUE, PR_FALSE);
+    }
+  }
+
   mDoingDrag = PR_FALSE;
 
   
@@ -370,6 +393,7 @@ nsBaseDragService::EndDragSession(PRBool aDoneDrag)
   mDataTransfer = nsnull;
   mHasImage = PR_FALSE;
   mUserCancelled = PR_FALSE;
+  mDragPopup = nsnull;
   mImage = nsnull;
   mImageX = 0;
   mImageY = 0;
@@ -400,6 +424,23 @@ nsBaseDragService::FireDragEventAtSource(PRUint32 aMsg)
         nsCOMPtr<nsIContent> content = do_QueryInterface(mSourceNode);
         return presShell->HandleDOMEventWithTarget(content, &event, &status);
       }
+    }
+  }
+
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsBaseDragService::DragMoved(PRInt32 aX, PRInt32 aY)
+{
+  if (mDragPopup) {
+    nsIFrame* frame = mDragPopup->GetPrimaryFrame();
+    if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
+      (static_cast<nsMenuPopupFrame *>(frame))->MoveTo(aX - mImageX, aY - mImageY, PR_TRUE);
     }
   }
 
@@ -437,8 +478,8 @@ nsBaseDragService::DrawDrag(nsIDOMNode* aDOMNode,
   
   aScreenDragRect->x = aScreenX - mImageX;
   aScreenDragRect->y = aScreenY - mImageY;
-  aScreenDragRect->width = 20;
-  aScreenDragRect->height = 20;
+  aScreenDragRect->width = 1;
+  aScreenDragRect->height = 1;
 
   
   nsCOMPtr<nsIDOMNode> dragNode = mImage ? mImage.get() : aDOMNode;
@@ -514,18 +555,31 @@ nsBaseDragService::DrawDrag(nsIDOMNode* aDOMNode,
       return DrawDragForImage(*aPresContext, imageLoader, nsnull, aScreenX,
                               aScreenY, aScreenDragRect, aSurface);
     }
+
+    
+    
+    
+    
+
+    nsCOMPtr<nsIContent> content = do_QueryInterface(dragNode);
+    nsIFrame* frame = content->GetPrimaryFrame();
+    if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
+      mDragPopup = content;
+    }
   }
 
-  
-  nsIntRegion clipRegion;
-  if (aRegion) {
-    aRegion->GetRegion(&clipRegion);
-  }
+  nsRefPtr<gfxASurface> surface;
+  if (!mDragPopup) {
+    
+    nsIntRegion clipRegion;
+    if (aRegion) {
+      aRegion->GetRegion(&clipRegion);
+    }
 
-  nsIntPoint pnt(aScreenDragRect->x, aScreenDragRect->y);
-  nsRefPtr<gfxASurface> surface =
-    presShell->RenderNode(dragNode, aRegion ? &clipRegion : nsnull,
-                          pnt, aScreenDragRect);
+    nsIntPoint pnt(aScreenDragRect->x, aScreenDragRect->y);
+    surface = presShell->RenderNode(dragNode, aRegion ? &clipRegion : nsnull,
+                                    pnt, aScreenDragRect);
+  }
 
   
   
