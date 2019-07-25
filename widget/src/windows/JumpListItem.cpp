@@ -52,11 +52,9 @@
 #include "nsNetCID.h"
 #include "nsCExternalHandlerService.h"
 #include "nsCycleCollectionParticipant.h"
-#include "imgIContainer.h"
-#include "imgITools.h"
-#include "nsIFaviconService.h"
+#include "mozIAsyncFavicons.h"
 #include "mozilla/Preferences.h"
-#include "nsStringStream.h"
+#include "JumpListBuilder.h"
 
 namespace mozilla {
 namespace widget {
@@ -273,16 +271,16 @@ NS_IMETHODIMP JumpListShortcut::SetIconIndex(PRInt32 aIconIndex)
 }
 
 
-NS_IMETHODIMP JumpListShortcut::GetIconImageUri(nsIURI **aIconImageURI)
+NS_IMETHODIMP JumpListShortcut::GetFaviconPageUri(nsIURI **aFaviconPageURI)
 {
-  NS_IF_ADDREF(*aIconImageURI = mIconImageURI);
+  NS_IF_ADDREF(*aFaviconPageURI = mFaviconPageURI);
 
   return NS_OK;
 }
 
-NS_IMETHODIMP JumpListShortcut::SetIconImageUri(nsIURI *aIconImageURI)
+NS_IMETHODIMP JumpListShortcut::SetFaviconPageUri(nsIURI *aFaviconPageURI)
 {
-  mIconImageURI = aIconImageURI;
+  mFaviconPageURI = aFaviconPageURI;
   return NS_OK;
 }
 
@@ -389,12 +387,15 @@ static PRInt32 GetICOCacheSecondsTimeout() {
 
 
 
-nsresult JumpListShortcut::ObtainCachedIconFile(nsCOMPtr<nsIURI> aIconURI,
-                                                nsString &aICOFilePath)
+
+
+nsresult JumpListShortcut::ObtainCachedIconFile(nsCOMPtr<nsIURI> aFaviconPageURI,
+                                                nsString &aICOFilePath,
+                                                nsCOMPtr<nsIThread> &aIOThread)
 {
   
   nsCOMPtr<nsIFile> icoFile;
-  nsresult rv = GetOutputIconPath(aIconURI, icoFile);
+  nsresult rv = GetOutputIconPath(aFaviconPageURI, icoFile);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -413,15 +414,18 @@ nsresult JumpListShortcut::ObtainCachedIconFile(nsCOMPtr<nsIURI> aIconURI,
 
     
     
+    
     if (NS_FAILED(rv) ||
         (nowTime - fileModTime) > icoReCacheSecondsTimeout) {
-      rv = CacheIconFileFromIconURI(aIconURI, icoFile);
-      NS_ENSURE_SUCCESS(rv, rv);
+      CacheIconFileFromFaviconURIAsync(aFaviconPageURI, icoFile, aIOThread);
+      return NS_ERROR_NOT_AVAILABLE;
     }
   } else {
+
     
-    rv = CacheIconFileFromIconURI(aIconURI, icoFile);
-    NS_ENSURE_SUCCESS(rv, rv);
+    
+    CacheIconFileFromFaviconURIAsync(aFaviconPageURI, icoFile, aIOThread);
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
   
@@ -432,13 +436,14 @@ nsresult JumpListShortcut::ObtainCachedIconFile(nsCOMPtr<nsIURI> aIconURI,
 
 
 
-nsresult JumpListShortcut::GetOutputIconPath(nsCOMPtr<nsIURI> aIconURI,
+nsresult JumpListShortcut::GetOutputIconPath(nsCOMPtr<nsIURI> aFaviconPageURI,
                                              nsCOMPtr<nsIFile> &aICOFile) 
 {
   
   nsCAutoString inputURIHash;
   nsCOMPtr<nsICryptoHash> cryptoHash;
-  nsresult rv = JumpListItem::HashURI(cryptoHash, aIconURI, inputURIHash);
+  nsresult rv = JumpListItem::HashURI(cryptoHash, aFaviconPageURI,
+                                      inputURIHash);
   NS_ENSURE_SUCCESS(rv, rv);
   char* cur = inputURIHash.BeginWriting();
   char* end = inputURIHash.EndWriting();
@@ -469,122 +474,27 @@ nsresult JumpListShortcut::GetOutputIconPath(nsCOMPtr<nsIURI> aIconURI,
 
 
 
-nsresult JumpListShortcut::CacheIconFileFromIconURI(nsCOMPtr<nsIURI> aIconURI, 
-                                                    nsCOMPtr<nsIFile> aICOFile) 
+nsresult 
+JumpListShortcut::CacheIconFileFromFaviconURIAsync(nsCOMPtr<nsIURI> aFaviconPageURI,
+                                                   nsCOMPtr<nsIFile> aICOFile,
+                                                   nsCOMPtr<nsIThread> &aIOThread)
 {
   
-  nsCOMPtr<nsIFaviconService> favIconSvc(
+  nsCOMPtr<mozIAsyncFavicons> favIconSvc(
                       do_GetService("@mozilla.org/browser/favicon-service;1"));
   NS_ENSURE_TRUE(favIconSvc, NS_ERROR_FAILURE);
 
-  
-  nsCString mimeType;
-  PRUint32 dataLength;
-  PRUint8 *data;
-  
-  nsresult rv = favIconSvc->GetFaviconData(aIconURI, mimeType, 
-                                           &dataLength, &data);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsAutoArrayPtr<PRUint8> freeMeWhenScopeEnds(data);
-  if(dataLength == 0 || !data) {
-    return NS_ERROR_FAILURE;
-  }
+  nsCOMPtr<nsIFaviconDataCallback> callback = 
+    new AsyncFaviconDataReady(aFaviconPageURI, aIOThread);
 
-  
-  nsCOMPtr<nsIInputStream> stream;
-  rv = NS_NewByteInputStream(getter_AddRefs(stream),
-                             reinterpret_cast<const char*>(data), dataLength,
-                             NS_ASSIGNMENT_DEPEND);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<imgIContainer> container;
-  nsCOMPtr<imgITools> imgtool = do_CreateInstance("@mozilla.org/image/tools;1");
-  rv = imgtool->DecodeImageData(stream, mimeType, getter_AddRefs(container));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  
-  PRInt32 systemIconWidth = GetSystemMetrics(SM_CXSMICON);
-  PRInt32 systemIconHeight = GetSystemMetrics(SM_CYSMICON);
-  if (systemIconWidth == 0 || systemIconHeight == 0) {
-    systemIconWidth = 16;
-    systemIconHeight = 16;
-  }
-  
-  mimeType.AssignLiteral("image/vnd.microsoft.icon");
-  nsCOMPtr<nsIInputStream> iconStream;
-  rv = imgtool->EncodeScaledImage(container, mimeType,
-                                  systemIconWidth,
-                                  systemIconHeight,
-                                  getter_AddRefs(iconStream));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<nsIOutputStream> outputStream;
-  rv = NS_NewLocalFileOutputStream(getter_AddRefs(outputStream), aICOFile);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  PRUint32 bufSize;
-  rv = iconStream->Available(&bufSize);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  nsCOMPtr<nsIOutputStream> bufferedOutputStream;
-  rv = NS_NewBufferedOutputStream(getter_AddRefs(bufferedOutputStream),
-                                  outputStream, bufSize);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  PRUint32 wrote;
-  rv = bufferedOutputStream->WriteFrom(iconStream, bufSize, &wrote);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if(bufSize != wrote) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  bufferedOutputStream->Close();
-  outputStream->Close();
-
+  favIconSvc->GetFaviconDataForPage(aFaviconPageURI, callback);
   return NS_OK;
 }
 
 
-
-nsresult JumpListShortcut::RemoveCacheIcon(nsCOMPtr<nsIURI> aUri)
-{
-  
-  nsCAutoString spec;
-  nsresult rv = aUri->GetSpec(spec);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<nsILocalFile> icoFile = do_CreateInstance("@mozilla.org/file/local;1");
-  NS_ENSURE_TRUE(icoFile, NS_ERROR_FAILURE);
-  rv = icoFile->InitWithPath(NS_ConvertUTF8toUTF16(spec));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  PRBool exists;
-  rv = icoFile->Exists(&exists);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (exists) {
-    icoFile->Remove(PR_FALSE);
-  }
-
-  return NS_OK;
-}
-
-
-nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item, nsRefPtr<IShellLinkW>& aShellLink)
+nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item, 
+                                        nsRefPtr<IShellLinkW>& aShellLink,
+                                        nsCOMPtr<nsIThread> &aIOThread)
 {
   HRESULT hr;
   IShellLinkW* psl;
@@ -648,7 +558,7 @@ nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item, nsRefPt
   shortcut->GetIconIndex(&appIconIndex);
   
   nsCOMPtr<nsIURI> iconUri;
-  rv = shortcut->GetIconImageUri(getter_AddRefs(iconUri));
+  rv = shortcut->GetFaviconPageUri(getter_AddRefs(iconUri));
   if (NS_SUCCEEDED(rv) && iconUri) {
     useUriIcon = PR_TRUE;
   }
@@ -677,7 +587,7 @@ nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item, nsRefPt
 
   if (useUriIcon) {
     nsString icoFilePath;
-    rv = ObtainCachedIconFile(iconUri, icoFilePath);
+    rv = ObtainCachedIconFile(iconUri, icoFilePath, aIOThread);
     if (NS_SUCCEEDED(rv)) {
       
       
@@ -795,7 +705,7 @@ nsresult JumpListShortcut::GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJ
       nsAutoString path(buf);
       rv = NS_NewURI(getter_AddRefs(iconUri), path);
       if (NS_SUCCEEDED(rv)) {
-        aShortcut->SetIconImageUri(iconUri);
+        aShortcut->SetFaviconPageUri(iconUri);
       }
     }
   }
