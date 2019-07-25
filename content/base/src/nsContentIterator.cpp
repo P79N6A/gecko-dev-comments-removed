@@ -107,19 +107,23 @@ public:
 
 protected:
 
-  nsINode* GetDeepFirstChild(nsINode* aRoot, nsTArray<PRInt32>* aIndexes);
-  nsINode* GetDeepLastChild(nsINode* aRoot, nsTArray<PRInt32>* aIndexes);
+  nsINode* GetDeepFirstChild(nsINode* aRoot,
+                             nsTArray<PRInt32>* aIndexes = nsnull);
+  nsINode* GetDeepLastChild(nsINode* aRoot,
+                            nsTArray<PRInt32>* aIndexes = nsnull);
 
   
   
-  nsINode* GetNextSibling(nsINode* aNode, nsTArray<PRInt32>* aIndexes);
+  nsINode* GetNextSibling(nsINode* aNode,
+                          nsTArray<PRInt32>* aIndexes = nsnull);
 
   
   
-  nsINode* GetPrevSibling(nsINode* aNode, nsTArray<PRInt32>* aIndexes);
+  nsINode* GetPrevSibling(nsINode* aNode,
+                          nsTArray<PRInt32>* aIndexes = nsnull);
 
-  nsINode* NextNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes);
-  nsINode* PrevNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes);
+  nsINode* NextNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes = nsnull);
+  nsINode* PrevNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes = nsnull);
 
   
   nsresult RebuildIndexStack();
@@ -240,9 +244,9 @@ nsContentIterator::Init(nsINode* aRoot)
 
   if (mPre) {
     mFirst = aRoot;
-    mLast  = GetDeepLastChild(aRoot, nsnull);
+    mLast  = GetDeepLastChild(aRoot);
   } else {
-    mFirst = GetDeepFirstChild(aRoot, nsnull);
+    mFirst = GetDeepFirstChild(aRoot);
     mLast  = aRoot;
   }
 
@@ -321,7 +325,7 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
       
 
       if (!startIsData) {
-        mFirst = GetNextSibling(startNode, nsnull);
+        mFirst = GetNextSibling(startNode);
 
         
         
@@ -347,7 +351,7 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
       mFirst = cChild;
     } else {
       
-      mFirst = GetDeepFirstChild(cChild, nsnull);
+      mFirst = GetDeepFirstChild(cChild);
 
       
       
@@ -379,7 +383,7 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
       
 
       if (!endIsData) {
-        mLast = GetPrevSibling(endNode, nsnull);
+        mLast = GetPrevSibling(endNode);
 
         if (!NodeIsInTraversalRange(mLast, mPre, startNode, startIndx,
                                     endNode, endIndx)) {
@@ -401,7 +405,7 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
     }
 
     if (mPre) {
-      mLast  = GetDeepLastChild(cChild, nsnull);
+      mLast  = GetDeepLastChild(cChild);
 
       if (!NodeIsInTraversalRange(mLast, mPre, startNode, startIndx,
                                   endNode, endIndx)) {
@@ -1198,7 +1202,7 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
 
   if (!firstCandidate) {
     
-    firstCandidate = GetNextSibling(node, nsnull);
+    firstCandidate = GetNextSibling(node);
 
     if (!firstCandidate) {
       MakeEmpty();
@@ -1206,7 +1210,7 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
     }
   }
 
-  firstCandidate = GetDeepFirstChild(firstCandidate, nsnull);
+  firstCandidate = GetDeepFirstChild(firstCandidate);
 
   
   
@@ -1245,10 +1249,10 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
 
   if (!lastCandidate) {
     
-    lastCandidate = GetPrevSibling(node, nsnull);
+    lastCandidate = GetPrevSibling(node);
   }
 
-  lastCandidate = GetDeepLastChild(lastCandidate, nsnull);
+  lastCandidate = GetDeepLastChild(lastCandidate);
 
   
   
@@ -1306,7 +1310,7 @@ nsContentSubtreeIterator::Next()
     return;
   }
 
-  nsINode* nextNode = GetNextSibling(mCurNode, nsnull);
+  nsINode* nextNode = GetNextSibling(mCurNode);
   NS_ASSERTION(nextNode, "No next sibling!?! This could mean deadlock!");
 
   PRInt32 i = mEndNodes.IndexOf(nextNode);
@@ -1346,11 +1350,11 @@ nsContentSubtreeIterator::Prev()
     return;
   }
 
-  nsINode* prevNode = GetDeepFirstChild(mCurNode, nsnull);
+  nsINode* prevNode = GetDeepFirstChild(mCurNode);
 
-  prevNode = PrevNode(prevNode, nsnull);
+  prevNode = PrevNode(prevNode);
 
-  prevNode = GetDeepLastChild(prevNode, nsnull);
+  prevNode = GetDeepLastChild(prevNode);
 
   mCurNode = GetTopAncestorInRange(prevNode);
 
