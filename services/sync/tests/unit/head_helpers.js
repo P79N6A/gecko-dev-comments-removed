@@ -1,5 +1,4 @@
 Cu.import("resource://services-sync/util.js");
-Cu.import("resource://services-sync/record.js");
 var btoa;
 
 
@@ -189,6 +188,7 @@ function FakeCryptoService() {
   Svc.Crypto = this;
   Utils.sha256HMAC = this.sha256HMAC;
 
+  Cu.import("resource://services-sync/record.js");
   CryptoWrapper.prototype.ciphertextHMAC = this.ciphertextHMAC;
 }
 FakeCryptoService.prototype = {
@@ -367,6 +367,10 @@ function ensureThrows(func) {
   };
 }
 
+function asyncChainTests() {
+  return Utils.asyncChain.apply(this, Array.map(arguments, ensureThrows));
+}
+
 
 
 
@@ -398,17 +402,20 @@ function encryptPayload(cleartext) {
           hmac: Utils.sha256HMAC(cleartext, Utils.makeHMACKey(""))};
 }
 
-function generateNewKeys(collections) {
-  let wbo = CollectionKeys.generateNewKeysWBO(collections);
-  let modified = new_timestamp();
-  CollectionKeys.setContents(wbo.cleartext, modified);
-}
+function do_check_throws(aFunc, aResult, aStack)
+{
+  if (!aStack) {
+    try {
+      
+      aStack = Components.stack.caller;
+    } catch (e) {}
+  }
 
-function basic_auth_header(user, password) {
-  return "Basic " + btoa(user + ":" + Utils.encodeUTF8(password));
-}
-
-function basic_auth_matches(req, user, password) {
-  return req.hasHeader("Authorization") &&
-         (req.getHeader("Authorization") == basic_auth_header(user, password));
+  try {
+    aFunc();
+  } catch (e) {
+    do_check_eq(e.result, aResult, aStack);
+    return;
+  }
+  do_throw("Expected result " + aResult + ", none thrown.", aStack);
 }
