@@ -180,10 +180,8 @@ namespace nanojit
 
     
     
-    
-    
-    
-    static const int NumSavedRegs = 1;
+    static const int NumSavedRegs = 0;
+
     static const RegisterMask SavedRegs = 1<<L1 | 1<<L3 | 1<<L5 | 1<<L7 |
     1<<I0 | 1<<I1 | 1<<I2 | 1<<I3 |
     1<<I4 | 1<<I5;

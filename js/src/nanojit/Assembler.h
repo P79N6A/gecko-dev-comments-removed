@@ -478,7 +478,7 @@ namespace nanojit
 
             
         public:
-            const static Register savedRegs[NumSavedRegs];
+            const static Register savedRegs[NumSavedRegs+1]; 
             DECLARE_PLATFORM_ASSEMBLER()
 
         private:

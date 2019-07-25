@@ -1932,7 +1932,7 @@ namespace nanojit
 
             AbiKind abi;
             LIns *state, *param1, *sp, *rp;
-            LIns* savedRegs[NumSavedRegs];
+            LIns* savedRegs[NumSavedRegs+1]; 
 
         protected:
             friend class LirBufWriter;
