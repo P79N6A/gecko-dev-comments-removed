@@ -2963,6 +2963,8 @@ js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, Native native,
 
 
 
+
+
     bool wasDelegate = obj->isDelegate();
 
     fun = js_NewFunction(cx, NULL, native, nargs,
