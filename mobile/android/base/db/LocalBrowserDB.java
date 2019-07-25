@@ -787,14 +787,36 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         
         ContentProviderOperation.Builder builder =
             ContentProviderOperation.newUpdate(bookmarkUri);
-        
-        builder.withSelection(Bookmarks.URL + " = ? AND "
-                              + Bookmarks.PARENT + " = ? AND "
-                              + Bookmarks.PARENT + " != ?",
-                              new String[] { url,
-                                             Long.toString(parent),
-                                             String.valueOf(Bookmarks.FIXED_READING_LIST_ID)
-                              });
+        if (url != null) {
+            
+            builder.withSelection(Bookmarks.URL + " = ? AND "
+                                  + Bookmarks.PARENT + " = ? AND "
+                                  + Bookmarks.PARENT + " != ?",
+                                  new String[] { url,
+                                                 Long.toString(parent),
+                                                 String.valueOf(Bookmarks.FIXED_READING_LIST_ID)
+                                  });
+        } else if (title != null) {
+            
+            builder.withSelection(Bookmarks.TITLE + " = ? AND "
+                                  + Bookmarks.PARENT + " = ? AND "
+                                  + Bookmarks.PARENT + " != ?",
+                                  new String[] { title,
+                                                 Long.toString(parent),
+                                                 String.valueOf(Bookmarks.FIXED_READING_LIST_ID)
+                                  });
+        } else if (type == Bookmarks.TYPE_SEPARATOR) {
+            
+            builder.withSelection(Bookmarks.POSITION + " = ? AND "
+                                  + Bookmarks.PARENT + " = ? AND "
+                                  + Bookmarks.PARENT + " != ?",
+                                  new String[] { Long.toString(position),
+                                                 Long.toString(parent),
+                                                 String.valueOf(Bookmarks.FIXED_READING_LIST_ID)
+                                  });
+        } else {
+            Log.e(LOGTAG, "Bookmark entry without url or title and not a seperator, not added.");
+        }
         builder.withValues(values);
 
         
