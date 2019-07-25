@@ -3302,12 +3302,9 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
 
       
       
-      nsCOMPtr<nsIDOMNSDataTransfer> dataTransfer;
+      nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
       nsCOMPtr<nsIDOMDataTransfer> initialDataTransfer;
       dragSession->GetDataTransfer(getter_AddRefs(initialDataTransfer));
-
-      nsCOMPtr<nsIDOMNSDataTransfer> initialDataTransferNS = 
-        do_QueryInterface(initialDataTransfer);
 
       nsDragEvent *dragEvent = (nsDragEvent*)aEvent;
 
@@ -3340,7 +3337,7 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
           
           
           
-          dataTransfer = initialDataTransferNS;
+          dataTransfer = initialDataTransfer;
 
           PRUint32 action;
           dragSession->GetDragAction(&action);
@@ -3390,8 +3387,8 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
 
       
       
-      if (initialDataTransferNS)
-        initialDataTransferNS->SetDropEffectInt(dropEffect);
+      if (initialDataTransfer)
+        initialDataTransfer->SetDropEffectInt(dropEffect);
     }
     break;
 
@@ -4184,18 +4181,11 @@ nsEventStateManager::UpdateDragDataTransfer(nsDragEvent* dragEvent)
     
     nsCOMPtr<nsIDOMDataTransfer> initialDataTransfer;
     dragSession->GetDataTransfer(getter_AddRefs(initialDataTransfer));
-
-    
-    nsCOMPtr<nsIDOMNSDataTransfer> initialDataTransferNS = 
-      do_QueryInterface(initialDataTransfer);
-    nsCOMPtr<nsIDOMNSDataTransfer> eventTransferNS = 
-      do_QueryInterface(dragEvent->dataTransfer);
-
-    if (initialDataTransferNS && eventTransferNS) {
+    if (initialDataTransfer) {
       
       nsAutoString mozCursor;
-      eventTransferNS->GetMozCursor(mozCursor);
-      initialDataTransferNS->SetMozCursor(mozCursor);
+      dragEvent->dataTransfer->GetMozCursor(mozCursor);
+      initialDataTransfer->SetMozCursor(mozCursor);
     }
   }
 }
