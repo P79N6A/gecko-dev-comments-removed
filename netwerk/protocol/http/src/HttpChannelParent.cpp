@@ -51,6 +51,7 @@ namespace net {
 
 
 HttpChannelParent::HttpChannelParent()
+: mIPCClosed(false)
 {
   
   nsIHttpProtocolHandler* handler;
@@ -61,6 +62,14 @@ HttpChannelParent::HttpChannelParent()
 HttpChannelParent::~HttpChannelParent()
 {
   gHttpHandler->Release();
+}
+
+void
+HttpChannelParent::ActorDestroy(ActorDestroyReason why)
+{
+  
+  
+  mIPCClosed = true;
 }
 
 
@@ -163,12 +172,8 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   nsHttpResponseHead *responseHead = chan->GetResponseHead();
   NS_ABORT_IF_FALSE(responseHead, "Missing HTTP responseHead!");
 
-  if (!SendOnStartRequest(*responseHead)) {
-    
-    
-    
+  if (mIPCClosed || !SendOnStartRequest(*responseHead))
     return NS_ERROR_UNEXPECTED; 
-  }
   return NS_OK;
 }
 
@@ -180,11 +185,8 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
   LOG(("HttpChannelParent::OnStopRequest: [this=%x status=%ul]\n", 
        this, aStatusCode));
 
-  if (!SendOnStopRequest(aStatusCode)) {
-    
-    
+  if (mIPCClosed || !SendOnStopRequest(aStatusCode))
     return NS_ERROR_UNEXPECTED; 
-  }
   return NS_OK;
 }
 
@@ -213,11 +215,8 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
     return rv;              
   }
 
-  if (!SendOnDataAvailable(data, aOffset, bytesRead)) {
-    
-    
+  if (mIPCClosed || !SendOnDataAvailable(data, aOffset, bytesRead))
     return NS_ERROR_UNEXPECTED; 
-  }
   return NS_OK;
 }
 
