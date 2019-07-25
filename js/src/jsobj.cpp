@@ -5954,24 +5954,20 @@ js_TraceObject(JSTracer *trc, JSObject *obj)
 void
 js_ClearNative(JSContext *cx, JSObject *obj)
 {
-    JSScope *scope;
-    uint32 i, n;
-
     
 
 
 
 
     JS_LOCK_OBJ(cx, obj);
-    scope = obj->scope();
+    JSScope *scope = obj->scope();
     if (!scope->isSharedEmpty()) {
         
         scope->clear(cx);
 
         
-        i = obj->numSlots();
-        n = JSSLOT_FREE(obj->getClass());
-        while (--i >= n)
+        int n = obj->numSlots();
+        for (int i = JSSLOT_FREE(obj->getClass()); i < n; ++i)
             obj->setSlot(i, UndefinedValue());
         scope->freeslot = n;
     }
