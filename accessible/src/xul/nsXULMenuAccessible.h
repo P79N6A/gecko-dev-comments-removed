@@ -67,6 +67,7 @@ public:
 
   
   virtual nsAccessible* CurrentItem();
+  virtual void SetCurrentItem(nsAccessible* aItem);
 
 protected:
   
@@ -170,6 +171,7 @@ public:
   virtual bool IsActiveWidget() const;
   virtual bool AreItemsOperable() const;
   virtual nsAccessible* CurrentItem();
+  virtual void SetCurrentItem(nsAccessible* aItem);
 };
 
 #endif  
