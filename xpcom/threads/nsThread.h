@@ -78,6 +78,9 @@ public:
   bool ShutdownRequired() { return mShutdownRequired; }
 
   
+  void ClearObservers() { mEventObservers.Clear(); }
+
+  
   static nsIThreadObserver* sGlobalObserver;
 
 private:

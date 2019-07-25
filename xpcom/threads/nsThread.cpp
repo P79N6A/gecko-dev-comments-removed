@@ -506,6 +506,11 @@ nsThread::Shutdown()
   PR_JoinThread(mThread);
   mThread = nsnull;
 
+  
+  
+  
+  ClearObservers();
+
 #ifdef DEBUG
   {
     MutexAutoLock lock(mLock);
