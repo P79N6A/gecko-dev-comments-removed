@@ -69,22 +69,19 @@ class DOMSVGLength;
 
 
 
-class DOMSVGLengthList : public nsIDOMSVGLengthList,
-                         public nsWrapperCache
+class DOMSVGLengthList : public nsIDOMSVGLengthList
 {
   friend class DOMSVGLength;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGLengthList)
+  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGLengthList)
   NS_DECL_NSIDOMSVGLENGTHLIST
 
   DOMSVGLengthList(DOMSVGAnimatedLengthList *aAList,
                    const SVGLengthList &aInternalList)
     : mAList(aAList)
   {
-    SetIsProxy();
-
     
     
     
@@ -102,14 +99,6 @@ public:
     }
   };
 
-  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
-                               bool *triedToWrap);
-
-  nsISupports* GetParentObject()
-  {
-    return static_cast<nsIContent*>(Element());
-  }
-
   
 
 
@@ -120,6 +109,8 @@ public:
                       "DOM wrapper's list length is out of sync");
     return mItems.Length();
   }
+
+  nsIDOMSVGLength* GetItemWithoutAddRef(PRUint32 aIndex);
 
   
   void InternalListLengthWillChange(PRUint32 aNewLength);

@@ -78,23 +78,14 @@ class SVGAnimatedPointList;
 
 
 
-class DOMSVGPointList : public nsIDOMSVGPointList,
-                        public nsWrapperCache
+class DOMSVGPointList : public nsIDOMSVGPointList
 {
   friend class DOMSVGPoint;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGPointList)
+  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGPointList)
   NS_DECL_NSIDOMSVGPOINTLIST
-
-  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
-                               bool *triedToWrap);
-
-  nsISupports* GetParentObject()
-  {
-    return static_cast<nsIContent*>(mElement);
-  }
 
   
 
@@ -137,6 +128,8 @@ public:
     return mItems.Length();
   }
 
+  nsIDOMSVGPoint* GetItemWithoutAddRef(PRUint32 aIndex);
+
   
 
 
@@ -171,8 +164,6 @@ private:
     : mElement(aElement)
     , mIsAnimValList(aIsAnimValList)
   {
-    SetIsProxy();
-
     InternalListWillChangeTo(InternalList()); 
   }
 

@@ -78,23 +78,14 @@ class SVGAnimatedPathSegList;
 
 
 
-class DOMSVGPathSegList : public nsIDOMSVGPathSegList,
-                          public nsWrapperCache
+class DOMSVGPathSegList : public nsIDOMSVGPathSegList
 {
   friend class DOMSVGPathSeg;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGPathSegList)
+  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGPathSegList)
   NS_DECL_NSIDOMSVGPATHSEGLIST
-
-  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
-                               bool *triedToWrap);
-
-  nsISupports* GetParentObject()
-  {
-    return static_cast<nsIContent*>(mElement);
-  }
 
   
 
@@ -137,6 +128,8 @@ public:
     return mItems.Length();
   }
 
+  nsIDOMSVGPathSeg* GetItemWithoutAddRef(PRUint32 aIndex);
+
   
 
 
@@ -171,8 +164,6 @@ private:
     : mElement(aElement)
     , mIsAnimValList(aIsAnimValList)
   {
-    SetIsProxy();
-
     InternalListWillChangeTo(InternalList()); 
   }
 
