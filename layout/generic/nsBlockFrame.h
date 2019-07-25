@@ -250,6 +250,28 @@ public:
     return HasOutsideBullet() || HasInsideBullet();
   }
 
+  
+
+
+  bool HasInsideBullet() const {
+    return 0 != (mState & NS_BLOCK_FRAME_HAS_INSIDE_BULLET);
+  }
+
+  
+
+
+  bool HasOutsideBullet() const {
+    return 0 != (mState & NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET);
+  }
+
+  
+
+
+  nsBulletFrame* GetBullet() const {
+    nsBulletFrame* outside = GetOutsideBullet();
+    return outside ? outside : GetInsideBullet();
+  }
+
   virtual void MarkIntrinsicWidthsDirty();
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
@@ -751,21 +773,7 @@ protected:
   
 
 
-  bool HasInsideBullet() const {
-    return 0 != (mState & NS_BLOCK_FRAME_HAS_INSIDE_BULLET);
-  }
-
-  
-
-
   nsBulletFrame* GetInsideBullet() const;
-
-  
-
-
-  bool HasOutsideBullet() const {
-    return 0 != (mState & NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET);
-  }
 
   
 
@@ -777,14 +785,6 @@ protected:
 
   nsFrameList* GetOutsideBulletList() const;
 
-  
-
-
-  nsBulletFrame* GetBullet() const {
-    nsBulletFrame* outside = GetOutsideBullet();
-    return outside ? outside : GetInsideBullet();
-  }
-  
   
 
 

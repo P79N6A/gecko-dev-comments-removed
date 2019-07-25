@@ -80,6 +80,7 @@ public:
   virtual ~HTMLListBulletAccessible() { }
 
   
+  virtual nsIFrame* GetFrame() const;
   virtual bool IsPrimaryForNode() const;
 
   
@@ -88,6 +89,13 @@ public:
   virtual PRUint64 NativeState();
   virtual void AppendTextTo(nsAString& aText, PRUint32 aStartOffset = 0,
                             PRUint32 aLength = PR_UINT32_MAX);
+
+  
+
+  
+
+
+  bool IsInside() const;
 };
 
 } 
