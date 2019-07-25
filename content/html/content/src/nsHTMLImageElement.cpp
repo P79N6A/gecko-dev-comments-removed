@@ -126,7 +126,7 @@ public:
   NS_DECL_NSIDOMHTMLIMAGEELEMENT
 
   
-  nsGenericHTMLElement::CORSMode GetCORSMode();
+  CORSMode GetCORSMode();
 
   
   NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* aContext,
