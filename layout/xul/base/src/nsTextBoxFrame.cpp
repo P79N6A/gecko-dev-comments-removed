@@ -621,17 +621,14 @@ void nsTextBoxFrame::PaintOneShadow(gfxContext*      aCtx,
     shadowColor = aForegroundColor;
 
   
-  nsRefPtr<nsRenderingContext> renderingContext = nsnull;
-  nsDeviceContext* devCtx = PresContext()->DeviceContext();
-  devCtx->CreateRenderingContextInstance(*getter_AddRefs(renderingContext));
-  if (!renderingContext)
-    return;
-  renderingContext->Init(devCtx, shadowContext);
+  nsRefPtr<nsRenderingContext> renderingContext = new nsRenderingContext();
+  renderingContext->Init(PresContext()->DeviceContext(), shadowContext);
 
   aCtx->Save();
   aCtx->NewPath();
   aCtx->SetColor(gfxRGBA(shadowColor));
 
+  
   
   
   

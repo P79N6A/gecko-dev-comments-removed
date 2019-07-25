@@ -102,22 +102,7 @@ public:
 
 
 
-    nsresult CreateRenderingContext(nsIWidget *aWidget,
-                                    nsRenderingContext *&aContext);
-
-    
-
-
-
-
     nsresult CreateRenderingContext(nsRenderingContext *&aContext);
-
-    
-
-
-
-
-    nsresult CreateRenderingContextInstance(nsRenderingContext *&aContext);
 
     
 
