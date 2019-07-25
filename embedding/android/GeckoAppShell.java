@@ -1792,5 +1792,5 @@ public class GeckoAppShell
     }
 
     
-    public static void preventPanning() { }
+    public static void setPreventPanning(final boolean aPreventPanning) { }
 }
