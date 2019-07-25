@@ -1544,7 +1544,8 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
             AddDifferentTransformLists(&tempList1, aCoeff1, &tempList2, aCoeff2);
         }
 
-        while ((*resultTail)->mNext) {
+        
+        while (*resultTail) {
           resultTail = &(*resultTail)->mNext;
         }
 
