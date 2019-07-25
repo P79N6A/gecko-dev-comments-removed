@@ -2373,6 +2373,16 @@ DeleteDatabaseHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
       NS_WARNING("Failed to delete db file!");
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
+
+    
+    
+    rv = dbFile->Exists(&exists);
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+
+    if (exists) {
+      rv = dbFile->Remove(false);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
   }
 
   nsCOMPtr<nsIFile> fileManagerDirectory;

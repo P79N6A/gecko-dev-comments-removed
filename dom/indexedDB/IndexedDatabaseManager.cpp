@@ -1755,5 +1755,24 @@ IndexedDatabaseManager::AsyncDeleteFileRunnable::Run()
     return NS_ERROR_FAILURE;
   }
 
+  
+  
+  nsresult rv;
+  nsCOMPtr<nsIFile> file =
+    do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = file->InitWithPath(mFilePath);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool exists;
+  rv = file->Exists(&exists);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (exists) {
+    rv = file->Remove(false);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   return NS_OK;
 }
