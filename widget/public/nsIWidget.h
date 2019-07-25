@@ -118,9 +118,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xb4fa00ae, 0x913c, 0x42b1, \
-    { 0x93, 0xc8, 0x41, 0x57, 0x1e, 0x3d, 0x94, 0x99 } }
-
+  { 0x34460b01, 0x3dc2, 0x4b58, \
+    { 0x8e, 0xd3, 0x7e, 0x7c, 0x33, 0xb5, 0x78, 0x8b } }
 
 
 
@@ -235,7 +234,7 @@ struct nsIMEUpdatePreference {
 namespace mozilla {
 namespace widget {
 
-struct InputContext {
+struct IMEState {
   
 
 
@@ -245,45 +244,77 @@ struct InputContext {
 
 
 
-  enum {
+  enum Enabled {
     
 
 
 
-    IME_DISABLED = 0,
+    DISABLED,
     
 
 
-    IME_ENABLED = 1,
-    
-
-
-
-
-
-    IME_PASSWORD = 2,
+    ENABLED,
     
 
 
 
 
 
-    IME_PLUGIN = 3,
+    PASSWORD,
     
 
 
-    IME_ENABLED_STATE_MASK = 0xF
+
+
+
+    PLUGIN
   };
+  Enabled mEnabled;
 
-  PRUint32 mIMEEnabled;
+  
+
+
+
+
+  enum Open {
+    
+
+
+
+    OPEN_STATE_NOT_SUPPORTED,
+    
+
+
+
+    DONT_CHANGE_OPEN_STATE = OPEN_STATE_NOT_SUPPORTED,
+    
+
+
+
+
+
+    OPEN,
+    
+
+
+
+
+
+    CLOSED
+  };
+  Open mOpen;
+
+  IMEState() : mEnabled(ENABLED), mOpen(DONT_CHANGE_OPEN_STATE) { }
+};
+
+struct InputContext {
+  IMEState mIMEState;
 
   
   nsString mHTMLInputType;
 
   
   nsString mActionHint;
-
-  InputContext() : mIMEEnabled(IME_ENABLED) {}
 };
 
 struct InputContextAction {
@@ -355,6 +386,7 @@ class nsIWidget : public nsISupports {
     typedef mozilla::layers::LayerManager LayerManager;
     typedef LayerManager::LayersBackend LayersBackend;
     typedef mozilla::layers::PLayersChild PLayersChild;
+    typedef mozilla::widget::IMEState IMEState;
     typedef mozilla::widget::InputContext InputContext;
     typedef mozilla::widget::InputContextAction InputContextAction;
 
@@ -1325,20 +1357,6 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    
-
-
-
-
-    NS_IMETHOD SetIMEOpenState(bool aState) = 0;
-
-    
-
-
-
-
-    NS_IMETHOD GetIMEOpenState(bool* aState) = 0;
 
     
 
