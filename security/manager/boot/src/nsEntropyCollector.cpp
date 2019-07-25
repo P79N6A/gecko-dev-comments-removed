@@ -40,6 +40,7 @@
 #include "prlog.h"
 #include "nsEntropyCollector.h"
 #include "nsMemory.h"
+#include "nsAlgorithm.h"
 
 nsEntropyCollector::nsEntropyCollector()
 :mBytesCollected(0), mWritePointer(mEntropyCache)
@@ -72,10 +73,11 @@ nsEntropyCollector::RandomUpdate(void *new_entropy, PRInt32 bufLen)
       const unsigned char *PastEndPointer = mEntropyCache + entropy_buffer_size;
 
       
-      PRInt32 bytes_wanted = PR_MIN(bufLen, entropy_buffer_size);
+      PRInt32 bytes_wanted = NS_MIN(bufLen, PRInt32(entropy_buffer_size));
 
       
-      mBytesCollected = PR_MIN(entropy_buffer_size, mBytesCollected + bytes_wanted);
+      mBytesCollected = NS_MIN(PRInt32(entropy_buffer_size),
+                               mBytesCollected + bytes_wanted);
 
       
       
@@ -85,7 +87,7 @@ nsEntropyCollector::RandomUpdate(void *new_entropy, PRInt32 bufLen)
         const PRInt32 space_to_end = PastEndPointer - mWritePointer;
 
         
-        const PRInt32 this_time = PR_MIN(space_to_end, bytes_wanted);
+        const PRInt32 this_time = NS_MIN(space_to_end, bytes_wanted);
 
         
         for (PRInt32 i = 0; i < this_time; ++i) {
