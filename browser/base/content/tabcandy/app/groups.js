@@ -1162,15 +1162,40 @@ window.Groups = {
   },
   
   
+  
+  
+  
+  
   getActiveGroup: function() {
     return this._activeGroup;
   },
   
   
+  
+  
+  
+  
+  
+  
+  
+  
   setActiveGroup: function(group) {
     this._activeGroup = group;
     if(group)
-      UI.tabBar.showOnlyTheseTabs( group._children );    
+      UI.tabBar.showOnlyTheseTabs( group._children );
+    else if( group == null)
+      UI.tabBar.showOnlyTheseTabs( this.getOrphanedTabs() );
+  },
+  
+  
+  
+  
+  getOrphanedTabs: function(){
+    var tabs = TabItems.getItems();
+    tabs = tabs.filter(function(tab){
+      return tab.parent == null;
+    })
+    return tabs
   }
   
 };
