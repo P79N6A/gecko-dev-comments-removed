@@ -1695,4 +1695,17 @@ public class GeckoAppShell
     public static void sendMessage(String aNumber, String aMessage) {
         GeckoSmsManager.send(aNumber, aMessage);
     }
+
+    public static boolean isTablet() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+            Configuration config = GeckoApp.mAppContext.getResources().getConfiguration();
+            
+            
+            
+            if ((config.screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
