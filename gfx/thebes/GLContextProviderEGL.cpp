@@ -410,6 +410,11 @@ public:
 
     ~GLContextEGL()
     {
+        if (mOffscreenFBO) {
+            MakeCurrent();
+            DeleteOffscreenFBO();
+        }
+
         
         
         
@@ -1291,6 +1296,8 @@ GLContextProviderEGL::GetGlobalContext()
     if (!triedToCreateContext && !gGlobalContext) {
         triedToCreateContext = true;
         gGlobalContext = CreateOffscreen(gfxIntSize(16, 16));
+        if (gGlobalContext)
+            gGlobalContext->SetIsGlobalSharedContext(PR_TRUE);
     }
 
     return gGlobalContext;
