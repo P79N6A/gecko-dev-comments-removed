@@ -1203,7 +1203,7 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
         sDirectTexture->Reallocate(gAndroidBounds.width, gAndroidBounds.height);
       }
 
-      sDirectTexture->Lock(AndroidGraphicBuffer::UsageSoftwareWrite, &bits);
+      sDirectTexture->Lock(AndroidGraphicBuffer::UsageSoftwareWrite, ae->Rect(), &bits);
     } else {
       bits = client.LockBufferBits();
     }
@@ -1235,13 +1235,8 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
                     drawSuccess = false;
                     break;
                 } else {
-                    if (sHasDirectTexture) {
-                        
-                        DrawTo(targetSurface);
-                    } else {
-                        targetSurface->SetDeviceOffset(gfxPoint(-x, -y));
-                        DrawTo(targetSurface, ae->Rect());
-                    }
+                    targetSurface->SetDeviceOffset(gfxPoint(-x, -y));
+                    DrawTo(targetSurface, ae->Rect());
                 }
             }
         }
