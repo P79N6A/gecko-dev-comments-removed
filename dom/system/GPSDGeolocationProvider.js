@@ -177,16 +177,17 @@ GPSDProvider.prototype = {
   
   watch: function(c) {
     LOG("watch called\n");    
+    try {
+        
+        
+        var bufferOption = "J=1\n";
+        this.outputStream.write(bufferOption, bufferOption.length);
+        
+        
+        var mode = "w\n";
+        this.outputStream.write(mode, mode.length);
+    } catch (e) { return; }
 
-    
-    
-    var bufferOption = "J=1\n";
-    this.outputStream.write(bufferOption, bufferOption.length);
-
-    
-    var mode = "w\n";
-    this.outputStream.write(mode, mode.length);
-    
     var dataListener = {
       onStartRequest: function(request, context) {},
       onStopRequest: function(request, context, status) {},

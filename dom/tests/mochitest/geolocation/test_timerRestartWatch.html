@@ -4,7 +4,7 @@
 
 
 <head>
-  <title>Test for getCurrentPosition </title>
+  <title>Test for watchPosition </title>
   <script type="text/javascript" src="/MochiKit/packed.js"></script>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="text/javascript" src="geolocation_common.js"></script>
@@ -12,7 +12,7 @@
 <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=482260">Mozilla Bug 482260</a>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=526326">Mozilla Bug 526326</a>
 <p id="display"></p>
 <div id="content" style="display: none">
   
@@ -21,24 +21,32 @@
 <script class="testbody" type="text/javascript">
 
 SimpleTest.waitForExplicitFinish();
+
+// ensure we are using the right testing provider
 resume_geolocationProvider();
 force_prompt(true);
 
-var successCallbackCalled = false;
+var watchID;
 
-function successCallback(position) {
-  successCallbackCalled = true;
-}
-
-for (var x = 0; x < 100; x++)
-  navigator.geolocation.getCurrentPosition(successCallback);
-
-function testPassed() {
-  ok(successCallbackCalled, "if nothing crashed, all okay");
+function errorCallback(err) {
+  ok(err.code == err.TIMEOUT, "ensure error is a timeout.");
+  resume_geolocationProvider();
   reset_prompt();
   SimpleTest.finish();
 }
-setTimeout(testPassed, 1000);
+
+function successCallback(position) {
+  // Now that we got a success callback, lets try to ensure
+  // that we get a timeout error.
+  stop_geolocationProvider();
+}
+
+var options = {
+    maximumAge: 0,
+    timeout: 1000
+};
+
+watchID = navigator.geolocation.watchPosition(successCallback, errorCallback, options);
 
 </script>
 </pre>
