@@ -101,18 +101,13 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
         protoIndex = 1;
         for (;;) {
+            tmp = tmp->getProto();
+
             
 
 
 
 
-
-            if (tmp->getClass()->resolve) {
-                PCMETER(noprotos++);
-                return JS_NO_PROP_CACHE_FILL;
-            }
-
-            tmp = tmp->getProto();
             if (!tmp || !tmp->isNative()) {
                 PCMETER(noprotos++);
                 return JS_NO_PROP_CACHE_FILL;
