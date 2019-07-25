@@ -244,13 +244,6 @@ PRBool nsWindow::OnPaint(HDC aDC, PRUint32 aNestingLevel)
     }
   }
 
-  
-  
-  
-  
-  if (mozilla::ipc::RPCChannel::IsSpinLoopActive() && mPainting)
-    return PR_FALSE;
-
   nsPaintEvent willPaintEvent(PR_TRUE, NS_WILL_PAINT, this);
   willPaintEvent.willSendDidPaint = PR_TRUE;
   DispatchWindowEvent(&willPaintEvent);
