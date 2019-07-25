@@ -100,7 +100,6 @@ enum nsCSSUnit {
                                   
   eCSSUnit_DummyInherit = 9,      
                                   
-  eCSSUnit_RectIsAuto   = 10,     
 
   eCSSUnit_String       = 11,     
   eCSSUnit_Ident        = 12,     
@@ -144,6 +143,7 @@ enum nsCSSUnit {
   eCSSUnit_Gradient     = 42,     
 
   eCSSUnit_Pair         = 50,     
+  eCSSUnit_Rect         = 51,     
 
   eCSSUnit_Integer      = 70,     
   eCSSUnit_Enumerated   = 71,     
@@ -189,6 +189,8 @@ enum nsCSSUnit {
 struct nsCSSValueGradient;
 struct nsCSSValuePair;
 struct nsCSSValuePair_heap;
+struct nsCSSRect;
+struct nsCSSRect_heap;
 
 class nsCSSValue {
 public:
@@ -205,7 +207,7 @@ public:
   explicit nsCSSValue(nsCSSUnit aUnit = eCSSUnit_Null)
     : mUnit(aUnit)
   {
-    NS_ASSERTION(aUnit <= eCSSUnit_RectIsAuto, "not a valueless unit");
+    NS_ASSERTION(aUnit <= eCSSUnit_DummyInherit, "not a valueless unit");
   }
 
   nsCSSValue(PRInt32 aValue, nsCSSUnit aUnit);
@@ -348,6 +350,9 @@ public:
   inline nsCSSValuePair& GetPairValue(); 
   inline const nsCSSValuePair& GetPairValue() const; 
 
+  inline nsCSSRect& GetRectValue(); 
+  inline const nsCSSRect& GetRectValue() const; 
+
   URL* GetURLStructValue() const
   {
     
@@ -402,6 +407,11 @@ public:
   void SetSystemFontValue();
   void SetDummyValue();
   void SetDummyInheritValue();
+
+  
+  
+  nsCSSRect& SetRectValue();
+
   void StartImageLoad(nsIDocument* aDocument) const;  
 
   
@@ -485,6 +495,7 @@ protected:
     Image*     mImage;
     nsCSSValueGradient* mGradient;
     nsCSSValuePair_heap* mPair;
+    nsCSSRect_heap* mRect;
   }         mValue;
 };
 
@@ -660,6 +671,29 @@ struct nsCSSRect {
   typedef nsCSSValue nsCSSRect::*side_type;
   static const side_type sides[4];
 };
+
+
+
+
+struct nsCSSRect_heap : public nsCSSRect {
+  NS_INLINE_DECL_REFCOUNTING(nsCSSRect_heap)
+};
+
+
+
+inline nsCSSRect&
+nsCSSValue::GetRectValue()
+{
+  NS_ASSERTION(mUnit == eCSSUnit_Rect, "not a pair value");
+  return *mValue.mRect;
+}
+
+inline const nsCSSRect&
+nsCSSValue::GetRectValue() const
+{
+  NS_ASSERTION(mUnit == eCSSUnit_Rect, "not a pair value");
+  return *mValue.mRect;
+}
 
 struct nsCSSValuePair {
   nsCSSValuePair()
