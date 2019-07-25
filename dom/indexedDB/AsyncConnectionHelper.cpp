@@ -313,6 +313,17 @@ AsyncConnectionHelper::OnSuccess(nsIDOMEventTarget* aTarget)
     return result;
   }
 
+  
+  nsCOMPtr<nsPIDOMEventTarget> target(do_QueryInterface(aTarget));
+  if (target) {
+    nsIEventListenerManager* manager = target->GetListenerManager(PR_FALSE);
+    if (!manager ||
+        !manager->HasListenersFor(NS_LITERAL_STRING(SUCCESS_EVT_STR))) {
+      
+      return OK;
+    }
+  }
+
   if (NS_FAILED(variant->SetWritable(PR_FALSE))) {
     NS_ERROR("Failed to make variant readonly!");
     return nsIIDBDatabaseException::UNKNOWN_ERR;
