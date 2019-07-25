@@ -458,6 +458,14 @@ nsXMLDocument::Load(const nsAString& aUrl, bool *aReturn)
   }
 
   
+  
+  
+  
+  MOZ_ASSERT(GetReadyStateEnum() == nsIDocument::READYSTATE_COMPLETE,
+             "Bad readyState");
+  SetReadyStateInternal(nsIDocument::READYSTATE_UNINITIALIZED);
+
+  
   nsCOMPtr<nsIStreamListener> listener;
   if (NS_FAILED(rv = StartDocumentLoad(kLoadAsData, channel, 
                                        loadGroup, nsnull, 
