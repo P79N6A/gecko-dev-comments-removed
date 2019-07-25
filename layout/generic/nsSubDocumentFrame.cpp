@@ -718,6 +718,11 @@ nsSubDocumentFrame::AttributeChanged(PRInt32 aNameSpaceID,
       return NS_OK;
     }
 
+    if (mFrameLoader->GetRemoteBrowser()) {
+      
+      return NS_OK;
+    }
+
     
     
 
