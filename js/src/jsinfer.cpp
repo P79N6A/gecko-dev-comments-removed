@@ -3010,11 +3010,6 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
       case JSOP_DIV:
         code->popped(0)->addArith(cx, pool, code, code->pushed(0));
         code->popped(1)->addArith(cx, pool, code, code->pushed(0));
-        if (op == JSOP_DIV) {
-            
-            if (!state.popped(0).isConstant)
-                code->setFixed(cx, 0, TYPE_DOUBLE);
-        }
         break;
 
       case JSOP_NEG:
