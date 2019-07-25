@@ -77,6 +77,9 @@ struct Bytecode
     bool safePoint : 1;
 
     
+
+
+
     bool monitorNeeded : 1;
 
     

@@ -1423,6 +1423,47 @@ TypeCompartment::addDynamicPush(JSContext *cx, analyze::Bytecode &code,
 }
 
 void
+TypeCompartment::dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval)
+{
+    jstype rvtype = GetValueType(cx, rval);
+    TypeObject *object = obj->getTypeObject();
+
+    TypeSet *assignTypes;
+
+    
+
+
+
+
+    if (obj->isCall() || obj->isBlock()) {
+        
+        while (!obj->isCall())
+            obj = obj->getParent();
+        analyze::Script *script = obj->getCallObjCalleeFunction()->script()->analysis;
+        JS_ASSERT(!script->isEval());
+
+        assignTypes = script->localTypes.getVariable(cx, id);
+    } else {
+        id = MakeTypeId(id);
+        assignTypes = object->properties(cx).getVariable(cx, id);
+
+        
+        if (id == id_prototype(cx) && TypeIsObject(rvtype) && object->isFunction)
+            cx->addTypePrototype(object->asFunction()->getNewObject(cx), (TypeObject *) rvtype);
+
+        
+        if (id == id___proto__(cx) && TypeIsObject(rvtype))
+            cx->addTypePrototype(object, (TypeObject *) rvtype);
+    }
+
+    if (assignTypes->hasType(rvtype))
+        return;
+
+    addDynamicType(cx, assignTypes, rvtype, "MonitorAssign: %s %s:",
+                   cx->getTypeId(object->name), cx->getTypeId(id));
+}
+
+void
 TypeCompartment::monitorBytecode(JSContext *cx, analyze::Bytecode *code)
 {
     if (code->monitorNeeded)
@@ -1571,7 +1612,6 @@ TypeStack::merge(JSContext *cx, TypeStack *one, TypeStack *two)
     JS_ASSERT(one->isForEach == two->isForEach);
     JS_ASSERT(one->letVariable == two->letVariable);
     JS_ASSERT(one->scopeVars == two->scopeVars);
-    JS_ASSERT(one->scopeScript == two->scopeScript);
 
 #ifdef JS_TYPES_DEBUG_SPEW
     fprintf(cx->typeOut(), "merge: T%u T%u\n", one->types.id, two->types.id);
@@ -1972,13 +2012,9 @@ GetGlobalProperties(JSContext *cx)
 
 
 
-
 static VariableSet *
-SearchScope(JSContext *cx, Script *script, TypeStack *stack, jsid id,
-            Script **scopeScript = NULL)
+SearchScope(JSContext *cx, Script *script, TypeStack *stack, jsid id)
 {
-    bool foundWith = false;
-
     
     while (true) {
         
@@ -1986,7 +2022,7 @@ SearchScope(JSContext *cx, Script *script, TypeStack *stack, jsid id,
             stack = stack->group();
             if (stack->boundWith) {
                 
-                foundWith = true;
+                return NULL;
             }
             if (stack->letVariable == id) {
                 
@@ -2041,14 +2077,9 @@ SearchScope(JSContext *cx, Script *script, TypeStack *stack, jsid id,
     JS_ASSERT(script);
     script = script->evalParent();
 
-    if (script->function) {
-        if (scopeScript)
-            *scopeScript = script;
-        return foundWith ? NULL : &script->localTypes;
-    }
-    if (scopeScript)
-        *scopeScript = NULL;
-    return foundWith ? NULL : GetGlobalProperties(cx);
+    if (script->function)
+        return &script->localTypes;
+    return GetGlobalProperties(cx);
 }
 
 static inline jsid
@@ -2295,11 +2326,9 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, TypeState &state)
 
         
         TypeStack *stack = code->inStack->group();
-        if (stack->scopeVars || stack->scopeScript) {
+        if (stack->scopeVars) {
             code->pushedArray[0].group()->scopeVars = stack->scopeVars;
             code->pushedArray[1].group()->scopeVars = stack->scopeVars;
-            code->pushedArray[0].group()->scopeScript = stack->scopeScript;
-            code->pushedArray[1].group()->scopeScript = stack->scopeScript;
         }
         break;
       }
@@ -2373,7 +2402,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, TypeState &state)
       case JSOP_BINDNAME: {
         jsid id = GetAtomId(cx, this, pc, 0);
         TypeStack *stack = code->pushedArray[0].group();
-        stack->scopeVars = SearchScope(cx, this, code->inStack, id, &stack->scopeScript);
+        stack->scopeVars = SearchScope(cx, this, code->inStack, id);
         break;
       }
 
@@ -2386,16 +2415,6 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, TypeState &state)
             TypeSet *types = stack->scopeVars->getVariable(cx, id);
             code->popped(0)->addSubset(cx, pool, types);
         } else {
-            if (stack->scopeScript) {
-                
-
-
-
-
-
-                TypeSet *types = stack->scopeScript->localTypes.getVariable(cx, id);
-                code->popped(0)->addSubset(cx, pool, types);
-            }
             cx->compartment->types.monitorBytecode(cx, code);
         }
 
@@ -2526,7 +2545,6 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, TypeState &state)
       }
 
       case JSOP_ARGSUB:
-        
         code->setFixed(cx, 0, TYPE_UNKNOWN);
         break;
 
@@ -2772,9 +2790,9 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, TypeState &state)
                 } else {
                     
                     VariableSet *vars = SearchScope(cx, parent->analysis, parentCode()->inStack, id);
-                    if (vars) {
+                    if (vars && vars != GetGlobalProperties(cx)) {
                         res = vars->getVariable(cx, id);
-                        res->addType(cx, TYPE_UNDEFINED);
+                        res->addType(cx, TYPE_UNKNOWN);
                     }
                 }
             } else {
@@ -2924,21 +2942,12 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, TypeState &state)
 
       case JSOP_FORNAME: {
         jsid id = GetAtomId(cx, this, pc, 0);
-        Script *scopeScript;
-        VariableSet *vars = SearchScope(cx, this, code->inStack, id, &scopeScript);
+        VariableSet *vars = SearchScope(cx, this, code->inStack, id);
 
-        if (vars) {
+        if (vars)
             SetForTypes(cx, code, vars->getVariable(cx, id));
-        } else {
+        else
             cx->compartment->types.monitorBytecode(cx, code);
-
-            
-
-
-
-            if (scopeScript)
-                SetForTypes(cx, code, scopeScript->localTypes.getVariable(cx, id));
-        }
         break;
       }
 
@@ -2998,9 +3007,9 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, TypeState &state)
         if (parent && !function) {
             jsid id = GetAtomId(cx, this, pc, 0);
             VariableSet *vars = SearchScope(cx, parent->analysis, parentCode()->inStack, id);
-            if (vars) {
+            if (vars && vars != GetGlobalProperties(cx)) {
                 TypeSet *types = vars->getVariable(cx, id);
-                types->addType(cx, TYPE_UNDEFINED);
+                types->addType(cx, TYPE_UNKNOWN);
             }
         }
         break;

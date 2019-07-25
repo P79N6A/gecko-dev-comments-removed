@@ -217,6 +217,9 @@ void JS_FASTCALL FastInstanceOf(VMFrame &f);
 void JS_FASTCALL ArgCnt(VMFrame &f);
 void JS_FASTCALL Unbrand(VMFrame &f);
 
+
+void JS_FASTCALL UndefinedHelper(VMFrame &f);
+
 } 
 
 

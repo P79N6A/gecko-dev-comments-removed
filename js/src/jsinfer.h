@@ -315,7 +315,6 @@ struct TypeStack
 
     
     VariableSet *scopeVars;
-    analyze::Script *scopeScript;
 
     
     inline TypeStack* group();
@@ -799,6 +798,7 @@ struct TypeCompartment
     void addDynamicType(JSContext *cx, TypeSet *types, jstype type,
                         const char *format, ...);
     void addDynamicPush(JSContext *cx, analyze::Bytecode &code, unsigned index, jstype type);
+    void dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval);
 
     
     void monitorBytecode(JSContext *cx, analyze::Bytecode *code);
