@@ -436,8 +436,14 @@ nsUserFontSet::StartLoad(gfxProxyFontEntry *aProxy,
 PRBool
 nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
 {
+  PRBool modified = PR_FALSE;
+
   
   
+  if (mLoaders.Count() > 0) {
+    modified = PR_TRUE; 
+                        
+  }
   mLoaders.EnumerateEntries(DestroyIterator, nsnull);
 
   nsTArray<FontFaceRuleRecord> oldRules;
@@ -447,8 +453,6 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   
   
   mFontFamilies.Clear();
-
-  PRBool modified = PR_FALSE;
 
   for (PRUint32 i = 0, i_end = aRules.Length(); i < i_end; ++i) {
     
