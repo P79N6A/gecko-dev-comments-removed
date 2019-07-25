@@ -287,6 +287,11 @@ box[type="documenttab"] .documenttab-close {
 }
 
 
+#bookmark-image {
+  list-style-image: url("images/star-40.png");
+}
+
+
 #identity-popup-icon {
   padding: 0;
   list-style-image: url("chrome://browser/skin/images/identity-64.png");
