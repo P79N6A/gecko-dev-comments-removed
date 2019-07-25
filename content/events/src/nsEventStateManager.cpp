@@ -2808,8 +2808,8 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
 
   
   
-  if (!mCurrentTarget &&
-      aEvent->message != NS_MOUSE_BUTTON_UP) {
+  if (!mCurrentTarget && aEvent->message != NS_MOUSE_BUTTON_UP &&
+      aEvent->message != NS_MOUSE_BUTTON_DOWN) {
     return NS_OK;
   }
 
