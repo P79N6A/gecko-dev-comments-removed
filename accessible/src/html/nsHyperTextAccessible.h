@@ -102,6 +102,9 @@ public:
                                           PRInt32 *aContentOffset);
 
   
+  
+
+  
 
 
   inline PRUint32 GetLinkCount()
@@ -133,6 +136,9 @@ public:
     nsAccessible* child = GetChildAtOffset(aOffset);
     return child ? GetLinkIndex(child) : -1;
   }
+
+  
+  
 
   
 
@@ -191,6 +197,17 @@ public:
                                       PRInt32 *aStartOffset,
                                       nsIDOMNode **aEndNode,
                                       PRInt32 *aEndOffset);
+
+  
+  
+
+  
+
+
+  inline PRUint32 CharacterCount()
+  {
+    return GetChildOffset(GetChildCount());
+  }
 
   
 
