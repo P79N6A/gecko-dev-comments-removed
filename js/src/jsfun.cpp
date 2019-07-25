@@ -516,8 +516,6 @@ ArgGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
         uintN arg = uintN(JSID_TO_INT(id));
         if (arg < obj->getArgsInitialLength()) {
             JS_ASSERT(!obj->getArgsElement(arg).isMagic(JS_ARGS_HOLE));
-            if (obj->getArgsElement(arg).isMagic(JS_ARGS_HOLE))
-                *(int *) 0xe0 = 0;
             if (JSStackFrame *fp = (JSStackFrame *) obj->getPrivate())
                 *vp = fp->canonicalActualArg(arg);
             else
@@ -1808,17 +1806,15 @@ js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp)
     if (xdr->mode == JSXDR_ENCODE) {
         fun = GET_FUNCTION_PRIVATE(cx, *objp);
         if (!FUN_INTERPRETED(fun)) {
-            JSAutoByteString funNameBytes;
-            if (const char *name = GetFunctionNameBytes(cx, fun, &funNameBytes)) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_SCRIPTED_FUNCTION,
-                                     name);
-            }
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                 JSMSG_NOT_SCRIPTED_FUNCTION,
+                                 JS_GetFunctionName(fun));
             return false;
         }
         if (fun->u.i.wrapper) {
-            JSAutoByteString funNameBytes;
-            if (const char *name = GetFunctionNameBytes(cx, fun, &funNameBytes))
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_XDR_CLOSURE_WRAPPER, name);
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                 JSMSG_XDR_CLOSURE_WRAPPER,
+                                 JS_GetFunctionName(fun));
             return false;
         }
         JS_ASSERT((fun->u.i.wrapper & ~1U) == 0);
@@ -2192,12 +2188,13 @@ js_fun_call(JSContext *cx, uintN argc, Value *vp)
     if (!js_IsCallable(fval)) {
         JSString *str = js_ValueToString(cx, fval);
         if (str) {
-            JSAutoByteString bytes(cx, str);
-            if (!!bytes) {
+            const char *bytes = js_GetStringBytes(cx, str);
+
+            if (bytes) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                      JSMSG_INCOMPATIBLE_PROTO,
                                      js_Function_str, js_call_str,
-                                     bytes.ptr());
+                                     bytes);
             }
         }
         return JS_FALSE;
@@ -2229,6 +2226,20 @@ js_fun_call(JSContext *cx, uintN argc, Value *vp)
     return ok;
 }
 
+struct STATIC_SKIP_INFERENCE CopyNonHoleArgs
+{
+    CopyNonHoleArgs(JSObject *aobj, Value *dst) : aobj(aobj), dst(dst) {}
+    JSObject *aobj;
+    Value *dst;
+    void operator()(uintN argi, Value *src) {
+        if (aobj->getArgsElement(argi).isMagic(JS_ARGS_HOLE))
+            dst->setUndefined();
+        else
+            *dst = *src;
+        ++dst;
+    }
+};
+
 
 JSBool
 js_fun_apply(JSContext *cx, uintN argc, Value *vp)
@@ -2241,12 +2252,11 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     Value fval = vp[1];
     if (!js_IsCallable(fval)) {
         if (JSString *str = js_ValueToString(cx, fval)) {
-            JSAutoByteString bytes(cx, str);
-            if (!!bytes) {
+            if (const char *bytes = js_GetStringBytes(cx, str)) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                      JSMSG_INCOMPATIBLE_PROTO,
                                      js_Function_str, js_apply_str,
-                                     bytes.ptr());
+                                     bytes);
             }
         }
         return false;
@@ -2255,8 +2265,6 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     
     if (argc < 2 || vp[3].isNullOrUndefined())
         return js_fun_call(cx, (argc > 0) ? 1 : 0, vp);
-
-    
 
     
     if (!vp[3].isObject()) {
@@ -2270,8 +2278,23 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
 
     JSObject *aobj = &vp[3].toObject();
     jsuint length;
-    if (!js_GetLengthProperty(cx, aobj, &length))
-        return false;
+    if (aobj->isArray()) {
+        length = aobj->getArrayLength();
+    } else if (aobj->isArguments() && !aobj->isArgsLengthOverridden()) {
+        length = aobj->getArgsInitialLength();
+    } else {
+        Value &lenval = vp[0];
+        if (!aobj->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom), &lenval))
+            return false;
+
+        if (lenval.isInt32()) {
+            length = jsuint(lenval.toInt32()); 
+        } else {
+            JS_STATIC_ASSERT(sizeof(jsuint) == sizeof(uint32_t));
+            if (!ValueToECMAUint32(cx, lenval, (uint32_t *)&length))
+                return false;
+        }
+    }
 
     LeaveTrace(cx);
 
@@ -2287,8 +2310,32 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     args.thisv() = vp[2];
 
     
-    if (!GetElements(cx, aobj, n, args.argv()))
-        return false;
+    if (aobj && aobj->isArguments() && !aobj->isArgsLengthOverridden()) {
+        
+
+
+
+
+
+        JSStackFrame *fp = (JSStackFrame *) aobj->getPrivate();
+        Value *argv = args.argv();
+        if (fp) {
+            JS_ASSERT(fp->numActualArgs() <= JS_ARGS_LENGTH_MAX);
+            fp->forEachCanonicalActualArg(CopyNonHoleArgs(aobj, argv));
+        } else {
+            for (uintN i = 0; i < n; i++) {
+                argv[i] = aobj->getArgsElement(i);
+                if (argv[i].isMagic(JS_ARGS_HOLE))
+                    argv[i].setUndefined();
+            }
+        }
+    } else {
+        Value *argv = args.argv();
+        for (uintN i = 0; i < n; i++) {
+            if (!aobj->getProperty(cx, INT_TO_JSID(jsint(i)), &argv[i]))
+                return JS_FALSE;
+        }
+    }
 
     
     if (!Invoke(cx, args, 0))
@@ -2418,11 +2465,10 @@ fun_bind(JSContext *cx, uintN argc, Value *vp)
     
     if (!target->isCallable()) {
         if (JSString *str = js_ValueToString(cx, vp[1])) {
-            JSAutoByteString bytes(cx, str);
-            if (!!bytes) {
+            if (const char *bytes = js_GetStringBytes(cx, str)) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                      JSMSG_INCOMPATIBLE_PROTO,
-                                     js_Function_str, "bind", bytes.ptr());
+                                     js_Function_str, "bind", bytes);
             }
         }
         return false;
@@ -2641,14 +2687,12 @@ Function(JSContext *cx, uintN argc, Value *vp)
 
                 
                 if (fun->lookupLocal(cx, atom, NULL) != JSLOCAL_NONE) {
-                    JSAutoByteString name;
-                    if (!js_AtomToPrintableString(cx, atom, &name)) {
-                        state = BAD;
-                        goto after_args;
-                    }
-                    if (!ReportCompileErrorNumber(cx, &ts, NULL,
-                                                  JSREPORT_WARNING | JSREPORT_STRICT,
-                                                  JSMSG_DUPLICATE_FORMAL, name.ptr())) {
+                    const char *name;
+
+                    name = js_AtomToPrintableString(cx, atom);
+                    if (!name && ReportCompileErrorNumber(cx, &ts, NULL,
+                                                          JSREPORT_WARNING | JSREPORT_STRICT,
+                                                          JSMSG_DUPLICATE_FORMAL, name)) {
                         goto after_args;
                     }
                 }
@@ -2913,7 +2957,7 @@ js_NewDebuggableFlatClosure(JSContext *cx, JSFunction *fun)
 }
 
 JSFunction *
-js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, Native native,
+js_DefineFunction(JSContext *cx, JSObject *obj, JSAtom *atom, Native native,
                   uintN nargs, uintN attrs)
 {
     PropertyOp gsop;
@@ -2931,61 +2975,15 @@ js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, Native native,
     } else {
         gsop = NULL;
     }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool wasDelegate = obj->isDelegate();
-
     fun = js_NewFunction(cx, NULL, native, nargs,
                          attrs & (JSFUN_FLAGS_MASK | JSFUN_TRCINFO),
-                         obj,
-                         JSID_IS_ATOM(id) ? JSID_TO_ATOM(id) : NULL);
+                         obj, atom);
     if (!fun)
         return NULL;
-
-    if (!wasDelegate && obj->isDelegate())
-        obj->clearDelegate();
-
-    if (!obj->defineProperty(cx, id, ObjectValue(*fun), gsop, gsop, attrs & ~JSFUN_FLAGS_MASK))
+    if (!obj->defineProperty(cx, ATOM_TO_JSID(atom), ObjectValue(*fun),
+                             gsop, gsop, attrs & ~JSFUN_FLAGS_MASK)) {
         return NULL;
+    }
     return fun;
 }
 
