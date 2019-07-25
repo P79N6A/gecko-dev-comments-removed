@@ -6276,19 +6276,20 @@ BCPaintBorderIterator::SetDamageArea(const nsRect& aDirtyRect)
     nsTableColFrame* colFrame = mTableFirstInFlow->GetColFrame(colX);
     if (!colFrame) ABORT1(false);
     
-    nscoord leftBorderHalf =
-       nsPresContext::CSSPixelsToAppUnits(colFrame->GetLeftBorderWidth() + 1);
-    nscoord rightBorderHalf =
-      nsPresContext::CSSPixelsToAppUnits(colFrame->GetRightBorderWidth() + 1);
-    
     nsSize size = colFrame->GetSize();
     if (haveIntersect) {
+      
+      nscoord leftBorderHalf =
+        nsPresContext::CSSPixelsToAppUnits(colFrame->GetLeftBorderWidth() + 1);
       if (aDirtyRect.XMost() >= (x - leftBorderHalf)) {
         endColIndex = colX;
       }
       else break;
     }
     else {
+      
+      nscoord rightBorderHalf =
+        nsPresContext::CSSPixelsToAppUnits(colFrame->GetRightBorderWidth() + 1);
       if ((x + size.width + rightBorderHalf) >= aDirtyRect.x) {
         startColIndex = endColIndex = colX;
         haveIntersect = true;
@@ -6339,7 +6340,7 @@ BCPaintBorderIterator::Reset()
   mCellData      = nsnull;
   mBCData        = nsnull;
   ResetVerInfo();
- }
+}
 
 
 
