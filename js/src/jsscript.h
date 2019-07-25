@@ -173,6 +173,7 @@ class Bindings {
     uint16 nargs;
     uint16 nvars;
     uint16 nupvars;
+    bool hasExtensibleParents;
 
   public:
     inline Bindings(JSContext *cx, EmptyShape *emptyCallShape);
@@ -296,6 +297,54 @@ class Bindings {
 
 
     void makeImmutable();
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void setExtensibleParents() { hasExtensibleParents = true; }
+    bool extensibleParents() const { return hasExtensibleParents; }
 
     
 

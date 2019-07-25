@@ -327,6 +327,12 @@ JSFunctionBox::inAnyDynamicScope() const
 }
 
 bool
+JSFunctionBox::scopeIsExtensible() const
+{
+    return tcflags & TCF_FUN_EXTENSIBLE_SCOPE;
+}
+
+bool
 JSFunctionBox::shouldUnbrand(uintN methods, uintN slowMethods) const
 {
     if (slowMethods != 0) {
@@ -2047,6 +2053,7 @@ Parser::analyzeFunctions(JSTreeContext *tc)
         return true;
     if (!markFunArgs(tc->functionList))
         return false;
+    markExtensibleScopeDescendants(tc->functionList, false);
     setFunctionKinds(tc->functionList, &tc->flags);
     return true;
 }
@@ -2658,6 +2665,38 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
     }
 
 #undef FUN_METER
+}
+
+
+
+
+
+
+
+
+
+
+
+
+void
+Parser::markExtensibleScopeDescendants(JSFunctionBox *funbox, bool hasExtensibleParent) 
+{
+    for (; funbox; funbox = funbox->siblings) {
+        
+
+
+
+
+
+        JS_ASSERT(!funbox->bindings.extensibleParents());
+        if (hasExtensibleParent)
+            funbox->bindings.setExtensibleParents();
+
+        if (funbox->kids) {
+            markExtensibleScopeDescendants(funbox->kids,
+                                           hasExtensibleParent || funbox->scopeIsExtensible());
+        }
+    }
 }
 
 const char js_argument_str[] = "argument";
@@ -3542,8 +3581,11 @@ Parser::statements()
 
             if (tc->atBodyLevel())
                 pn->pn_xflags |= PNX_FUNCDEFS;
-            else
+            else {
                 tc->flags |= TCF_HAS_FUNCTION_STMT;
+                
+                tc->noteHasExtensibleScope();
+            }
         }
         pn->append(pn2);
     }
@@ -7689,6 +7731,12 @@ Parser::memberExpr(JSBool allowCallSyntax)
                     pn2->pn_op = JSOP_EVAL;
                     tc->noteCallsEval();
                     tc->flags |= TCF_FUN_HEAVYWEIGHT;
+                    
+
+
+
+                    if (!tc->inStrictMode())
+                        tc->noteHasExtensibleScope();
                 }
             } else if (pn->pn_op == JSOP_GETPROP) {
                 

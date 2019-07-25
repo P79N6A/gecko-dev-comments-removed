@@ -1956,6 +1956,15 @@ EmitEnterBlock(JSContext *cx, JSParseNode *pn, JSCodeGenerator *cg)
         blockObj->setSlot(slot, BooleanValue(isClosed));
     }
 
+    
+
+
+
+
+    if ((cg->flags & TCF_FUN_EXTENSIBLE_SCOPE) ||
+        cg->bindings.extensibleParents())
+        blockObj->setBlockOwnShape(cx);
+
     return true;
 }
 

@@ -269,6 +269,16 @@ struct JSStmtInfo {
 
 
 
+
+
+
+
+
+#define TCF_FUN_EXTENSIBLE_SCOPE 0x20000000
+
+
+
+
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 
@@ -284,7 +294,8 @@ struct JSStmtInfo {
                                  TCF_FUN_CALLS_EVAL      |                    \
                                  TCF_FUN_MIGHT_ALIAS_LOCALS |                 \
                                  TCF_FUN_MUTATES_PARAMETER |                  \
-                                 TCF_STRICT_MODE_CODE)
+                                 TCF_STRICT_MODE_CODE    |                    \
+                                 TCF_FUN_EXTENSIBLE_SCOPE)
 
 struct JSTreeContext {              
     uint32          flags;          
@@ -456,6 +467,14 @@ struct JSTreeContext {
 
     bool needsEagerArguments() const {
         return inStrictMode() && ((usesArguments() && mutatesParameter()) || callsEval());
+    }
+
+    void noteHasExtensibleScope() {
+        flags |= TCF_FUN_EXTENSIBLE_SCOPE;
+    }
+
+    bool hasExtensibleScope() const {
+        return flags & TCF_FUN_EXTENSIBLE_SCOPE;
     }
 };
 
