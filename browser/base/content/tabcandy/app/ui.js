@@ -81,6 +81,29 @@ var Tabbar = {
     $(this.el).animate({"marginTop":0}, speed);
   },
   
+  
+  
+  
+  
+  getVisibleTabs: function(){
+    var visibleTabs = [];
+    
+    
+    for( var i=0; i<UI.tabBar.el.children.length; i++ ){
+      var tab = UI.tabBar.el.children[i];
+      if( tab.collapsed = false )
+        visibleTabs.push();
+    }
+    
+    return visibleTabs;
+  },
+  
+  
+  
+  
+  
+  
+  
   showOnlyTheseTabs: function(tabs){
     var visibleTabs = [];
     
@@ -144,6 +167,14 @@ window.Page = {
       var group = Groups.getActiveGroup();
       if( group && group._children.length == 0 )
         Page.show();
+      
+      
+      
+      
+      if( group == null && Tabbar.getVisibleTabs().length == 0){
+        Page.show();
+      }
+      
       return false;
     });
         
