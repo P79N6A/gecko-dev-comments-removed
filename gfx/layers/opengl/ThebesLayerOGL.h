@@ -122,7 +122,7 @@ public:
     return mBufferRotation;
   }
 
-  nsRefPtr<gfxASurface> Buffer() {
+  gfxASurface* Buffer() {
     return mBuffer;
   }
 
@@ -182,6 +182,10 @@ private:
   
   nsIntRegion mRegionPendingUpload;
 
+  
+  
+  
+  
   
   CancelableTask* mUploadTask;
 
