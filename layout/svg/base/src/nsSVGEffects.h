@@ -86,9 +86,9 @@ public:
   
   void NotifyEvictedFromRenderingObserverList();
 
-  nsIFrame* GetReferencedFrame();
   PRBool IsInObserverList() const { return mInObserverList; }
 
+  nsIFrame* GetReferencedFrame();
   
 
 
