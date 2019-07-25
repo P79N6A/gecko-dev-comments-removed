@@ -1223,7 +1223,8 @@ GetCompartmentNameHelper(JSContext *cx, JSCompartment *c, bool getAddress)
             
             
             
-            if (getAddress && js::IsSystemCompartment(c)) {
+            
+            if (js::IsSystemCompartment(c)) {
                 xpc::CompartmentPrivate *compartmentPrivate =
                     static_cast<xpc::CompartmentPrivate*>(JS_GetCompartmentPrivate(cx, c));
                 if (compartmentPrivate &&
@@ -1232,10 +1233,12 @@ GetCompartmentNameHelper(JSContext *cx, JSCompartment *c, bool getAddress)
                     name->Append(compartmentPrivate->location);
                 }
 
-                
-                static const int maxLength = 31;
-                nsPrintfCString address(maxLength, ", 0x%llx", PRUint64(c));
-                name->Append(address);
+                if (getAddress) {
+                    
+                    static const int maxLength = 31;
+                    nsPrintfCString address(maxLength, ", 0x%llx", PRUint64(c));
+                    name->Append(address);
+                }
             }
 
             
