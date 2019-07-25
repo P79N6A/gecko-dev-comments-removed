@@ -1747,16 +1747,6 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
       PRInt32   attrCount;
       PRInt32   theTopIndex = anIndex + 1;
       PRInt32   theTagCount = mBodyContext->GetCount();
-      bool      formWasOnStack = mSink->IsFormOnStack();
-
-      if (formWasOnStack) {
-        
-        
-        
-        
-        
-        ++anIndex;
-      }
 
       
       result = mSink->BeginContext(anIndex);
@@ -1821,12 +1811,6 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
         CloseContainersTo(theTopIndex, mBodyContext->TagAt(theTopIndex),
                           true);
       }      
-
-      if (!formWasOnStack && mSink->IsFormOnStack()) {
-        
-        
-        mSink->CloseContainer(eHTMLTag_form);
-      }
 
       
       
