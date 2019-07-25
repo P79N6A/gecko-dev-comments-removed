@@ -1352,8 +1352,10 @@ protected:
   
   virtual already_AddRefed<nsDOMEvent> CreateSuccessEvent() MOZ_OVERRIDE;
 
-  virtual nsresult NotifyTransactionComplete(IDBTransaction* aTransaction)
-                                             MOZ_OVERRIDE;
+  virtual nsresult NotifyTransactionPreComplete(IDBTransaction* aTransaction)
+                                                MOZ_OVERRIDE;
+  virtual nsresult NotifyTransactionPostComplete(IDBTransaction* aTransaction)
+                                                 MOZ_OVERRIDE;
 
   virtual ChildProcessSendResult
   MaybeSendResponseToChildProcess(nsresult aResultCode) MOZ_OVERRIDE
@@ -1956,12 +1958,6 @@ OpenDatabaseHelper::Run()
 
     switch (mState) {
       case eSetVersionCompleted: {
-        
-        
-        
-        
-        mDatabase->ExitSetVersionTransaction();
-
         mState = eFiringEvents;
         break;
       }
@@ -2134,6 +2130,9 @@ OpenDatabaseHelper::NotifySetVersionFinished()
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread");
   NS_ASSERTION(mState = eSetVersionPending, "How did we get here?");
 
+  
+  mDatabase->ExitSetVersionTransaction();
+
   mState = eSetVersionCompleted;
 
   
@@ -2292,7 +2291,17 @@ SetVersionHelper::CreateSuccessEvent()
 }
 
 nsresult
-SetVersionHelper::NotifyTransactionComplete(IDBTransaction* aTransaction)
+SetVersionHelper::NotifyTransactionPreComplete(IDBTransaction* aTransaction)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  NS_ASSERTION(aTransaction, "This is unexpected.");
+  NS_ASSERTION(mOpenRequest, "Why don't we have a request?");
+
+  return mOpenHelper->NotifySetVersionFinished();
+}
+
+nsresult
+SetVersionHelper::NotifyTransactionPostComplete(IDBTransaction* aTransaction)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(aTransaction, "This is unexpected.");
@@ -2312,7 +2321,6 @@ SetVersionHelper::NotifyTransactionComplete(IDBTransaction* aTransaction)
   mOpenRequest->SetTransaction(nsnull);
   mOpenRequest = nsnull;
 
-  rv = mOpenHelper->NotifySetVersionFinished();
   mOpenHelper = nsnull;
 
   return rv;
