@@ -392,6 +392,10 @@ ListenerManager::DispatchEvent(JSContext* aCx, JSObject* aTarget,
   }
 
   for (size_t index = 0; index < listeners.length(); index++) {
+    if (events::EventImmediatePropagationStopped(aCx, aEvent)) {
+      break;
+    }
+
     
     
     
