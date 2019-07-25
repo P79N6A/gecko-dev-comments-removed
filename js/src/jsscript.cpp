@@ -1206,7 +1206,7 @@ ScriptSource::createFromSource(JSContext *cx, const jschar *src, uint32_t length
 
 
 
-    if (cx->runtime->gcIncrementalState == MARK && cx->runtime->gcIsFull)
+    if (cx->runtime->gcIncrementalState != NO_INCREMENTAL && cx->runtime->gcIsFull)
         ss->marked = true;
 #endif
 
@@ -1346,7 +1346,7 @@ ScriptSource::performXDR(XDRState<mode> *xdr, ScriptSource **ssp)
         cleanup.protect(ss);
 #ifdef JSGC_INCREMENTAL
         
-        if (xdr->cx()->runtime->gcIncrementalState == MARK &&
+        if (xdr->cx()->runtime->gcIncrementalState != NO_INCREMENTAL &&
             xdr->cx()->runtime->gcIsFull)
             ss->marked = true;
 #endif
@@ -1414,7 +1414,7 @@ js::SaveScriptFilename(JSContext *cx, const char *filename)
 
 
 
-    if (rt->gcIncrementalState == MARK && rt->gcIsFull)
+    if (rt->gcIncrementalState != NO_INCREMENTAL && rt->gcIsFull)
         sfe->marked = true;
 #endif
 
