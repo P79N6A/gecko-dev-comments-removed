@@ -241,25 +241,12 @@ stubs::SetName(VMFrame &f, JSAtom *origAtom)
                 }
             }
             PCMETER(cache->setpcmisses++);
-            atom = NULL;
-        } else if (!atom) {
-            
 
-
-
-            const Shape *shape = NULL;
-            if (obj == obj2) {
-                shape = entry->vword.toShape();
-                JS_ASSERT(shape->writable());
-                JS_ASSERT(obj2->isExtensible());
-                NATIVE_SET(cx, obj, shape, entry, &rval);
-            }
-            if (shape)
-                break;
+            atom = origAtom;
+        } else {
+            JS_ASSERT(atom);
         }
 
-        if (!atom)
-            atom = origAtom;
         jsid id = ATOM_TO_JSID(atom);
         if (entry && JS_LIKELY(!obj->getOps()->setProperty)) {
             uintN defineHow;
