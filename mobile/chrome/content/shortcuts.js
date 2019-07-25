@@ -40,6 +40,8 @@
 
 
 
+
+
 Components.utils.import("resource://gre/modules/JSON.jsm");
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -99,28 +101,34 @@ function ShortcutEditor()
         
         
 
-        if (findCommandForKey(keySpec))
-            return null;
-
-        var key;
-        if ((key = findKeyForCommand(command)))
+        var key = findKeyForCommand(command);
+        if (keySpec.exists)
         {
-            key.setAttribute("modifiers") = keySpec.modifiers;
-            key.setAttribute("key") = keySpec.key;
-            key.setAttribute("keycode") = keySpec.keycode;
-        }
-        else
-        {
-            key = document.createElementNS(XUL_NS, "key");
-            key.setAttribute("modifiers") = keySpec.modifiers;
-            key.setAttribute("key") = keySpec.key;
-            key.setAttribute("keycode") = keySpec.keycode;
-            key.setAttribute("command") = command;
-            document.getElementById("mainKeyset").appendChild(k);
-            keys[command] = key;
+            if (findCommandForKey(keySpec))
+                return null;
+
+            if (key)
+            {
+                key.setAttribute("modifiers") = keySpec.modifiers;
+                key.setAttribute("key") = keySpec.key;
+                key.setAttribute("keycode") = keySpec.keycode;
+            }
+            else
+            {
+                key = document.createElementNS(XUL_NS, "key");
+                key.setAttribute("modifiers") = keySpec.modifiers;
+                key.setAttribute("key") = keySpec.key;
+                key.setAttribute("keycode") = keySpec.keycode;
+                key.setAttribute("command") = command;
+                document.getElementById("mainKeyset").appendChild(k);
+            }
+
+            return k;
         }
 
-        return key;
+        if (key)
+            key.parentNode.removeChild(key);
+        return null;
     }
 
     function makeKeySpec(modifiers, key, keycode)
@@ -128,17 +136,13 @@ function ShortcutEditor()
         
         if (modifiers instanceof Components.interfaces.nsIDOMElement)
             return {
+                exists: true,
                 modifiers: getFlagsForModifiers(modifiers.getAttribute("modifiers")),
                 key: modifiers.getAttribute("key"),
                 keycode: modifiers.getAttribute("keycode")
             };
-        if (modifiers instanceof Components.interfaces.nsIDOMKeyEvent)
-            return {
-                modifiers: getEventModifiers(modifiers),
-                key: getEventKey(modifiers),
-                keycode: getEventKeyCode(modifiers)
-            };
         return {
+            exists: !!(modifiers || key || keycode),
             modifiers: getFlagsForModifiers(modifiers),
             key: key,
             keycode: keycode
@@ -331,8 +335,18 @@ function ShortcutEditor()
         document.getElementById("test").addEventListener("keypress", keyListener, true);
     };
 
+    function hack()
+    {
+        
+        
+        Array.map(document.getElementsByTagNameNS(XUL_NS, "keyset"),
+                  function(e) { document.removeChild(e); return document.cloneNode(e, true); })
+             .forEach(function(e) { document.appendChild(e); });
+    }
+
     this.dismiss = function()
     {
+	hack();
         document.getElementById("test").removeEventListener("keypress", keyListener, true);
         document.getElementById("shortcuts-container").hidden = true;
     };
@@ -390,9 +404,24 @@ function ShortcutEditor()
         keyPrefs.setCharPref(command, JSON.toString(keySpec));
     }
 
-    function restore(command)
+    function load(command)
     {
-        return JSON.fromString(keyPrefs.getCharPref(command));
+        try
+        {
+            return JSON.fromString(keyPrefs.getCharPref(command));
+        }
+        catch (ex)
+        {
+            return makeKeySpec();
+        }
+    }
+
+    
+    
+    function restore()
+    {
+        getCommandNames().forEach(function(c) { addKey(cmd, load(cmd)); });
+        hack();
     }
 }
 
