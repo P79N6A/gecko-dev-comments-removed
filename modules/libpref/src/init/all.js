@@ -92,6 +92,9 @@ pref("dom.indexedDB.enabled", true);
 pref("dom.indexedDB.warningQuota", 50);
 
 
+pref("dom.enable_performance", true);
+
+
 
 pref("browser.sessionhistory.max_total_viewers", -1);
 

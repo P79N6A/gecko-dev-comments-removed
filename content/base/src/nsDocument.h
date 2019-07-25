@@ -103,6 +103,8 @@
 #include "nsIDOMDOMImplementation.h"
 #include "nsIDOMTouchEvent.h"
 
+#include "TimeStamp.h"
+
 #define XML_DECLARATION_BITS_DECLARATION_EXISTS   (1 << 0)
 #define XML_DECLARATION_BITS_ENCODING_EXISTS      (1 << 1)
 #define XML_DECLARATION_BITS_STANDALONE_EXISTS    (1 << 2)
@@ -124,6 +126,7 @@ class nsChildContentList;
 class nsXMLEventsManager;
 class nsHTMLStyleSheet;
 class nsHTMLCSSStyleSheet;
+class nsDOMNavigationTiming;
 
 
 
@@ -947,6 +950,9 @@ public:
 
   virtual nsresult GetStateObject(nsIVariant** aResult);
 
+  virtual nsDOMNavigationTiming* GetNavigationTiming() const;
+  virtual nsresult SetNavigationTiming(nsDOMNavigationTiming* aTiming);
+
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName);
 
 protected:
@@ -1084,6 +1090,9 @@ protected:
   nsClassHashtable<nsStringHashKey, nsRadioGroupStruct> mRadioGroups;
 
   
+  mozilla::TimeStamp mLoadingTimeStamp;
+
+  
   PRPackedBool mIsGoingAway:1;
   
   PRPackedBool mInDestructor:1;
@@ -1141,6 +1150,7 @@ protected:
   nsEventStates mDocumentState;
   nsEventStates mGotDocumentState;
 
+  nsRefPtr<nsDOMNavigationTiming> mTiming;
 private:
   friend class nsUnblockOnloadEvent;
 

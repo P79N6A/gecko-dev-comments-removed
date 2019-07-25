@@ -119,6 +119,7 @@ class nsDocShell;
 class nsIController;
 class OnLinkClickEvent;
 class nsIScrollableFrame;
+class nsDOMNavigationTiming;
 
 
 
@@ -684,6 +685,8 @@ protected:
 
     void ClearFrameHistory(nsISHEntry* aEntry);
 
+    nsresult MaybeInitTiming();
+
     
     class RestorePresentationEvent : public nsRunnable {
     public:
@@ -836,6 +839,8 @@ protected:
     PRUint64                   mHistoryID;
 
     static nsIURIFixup *sURIFixup;
+
+    nsRefPtr<nsDOMNavigationTiming> mTiming;
 
 #ifdef DEBUG
 private:

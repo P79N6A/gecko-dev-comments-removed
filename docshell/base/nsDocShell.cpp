@@ -234,6 +234,8 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
 #include "nsXULAppAPI.h"
 
+#include "nsDOMNavigationTiming.h"
+
 using namespace mozilla;
 
 
@@ -673,6 +675,47 @@ DispatchPings(nsIContent *content, nsIURI *referrer)
   ForEachPing(content, SendPing, &info);
 }
 
+static nsDOMPerformanceNavigationType
+ConvertLoadTypeToNavigationType(PRUint32 aLoadType)
+{
+  nsDOMPerformanceNavigationType result = nsIDOMPerformanceNavigation::TYPE_RESERVED;
+  switch (aLoadType) {
+    case LOAD_NORMAL:
+    case LOAD_NORMAL_EXTERNAL:
+    case LOAD_NORMAL_BYPASS_CACHE:
+    case LOAD_NORMAL_BYPASS_PROXY:
+    case LOAD_NORMAL_BYPASS_PROXY_AND_CACHE:
+    case LOAD_LINK:
+        result = nsIDOMPerformanceNavigation::TYPE_NAVIGATE;
+        break;
+    case LOAD_HISTORY:
+        result = nsIDOMPerformanceNavigation::TYPE_BACK_FORWARD;
+        break;
+    case LOAD_RELOAD_NORMAL:
+    case LOAD_RELOAD_CHARSET_CHANGE:
+    case LOAD_RELOAD_BYPASS_CACHE:
+    case LOAD_RELOAD_BYPASS_PROXY:
+    case LOAD_RELOAD_BYPASS_PROXY_AND_CACHE:
+        result = nsIDOMPerformanceNavigation::TYPE_RELOAD;
+        break;
+    case LOAD_NORMAL_REPLACE:
+    case LOAD_STOP_CONTENT:
+    case LOAD_STOP_CONTENT_AND_REPLACE:
+    case LOAD_REFRESH:
+    case LOAD_BYPASS_HISTORY:
+    case LOAD_ERROR_PAGE:
+    case LOAD_PUSHSTATE:
+        result = nsIDOMPerformanceNavigation::TYPE_RESERVED;
+        break;
+    default:
+        
+        result = nsIDOMPerformanceNavigation::TYPE_RESERVED;
+        break;
+  }
+
+  return result;
+}
+
 static nsISHEntry* GetRootSHEntry(nsISHEntry *entry);
 
 
@@ -695,6 +738,7 @@ nsDocShell::nsDocShell():
     mMarginHeight(-1),
     mItemType(typeContent),
     mPreviousTransIndex(-1),
+    mLoadType(0),
     mLoadedTransIndex(-1),
     mAllowSubframes(PR_TRUE),
     mAllowPlugins(PR_TRUE),
@@ -1519,7 +1563,15 @@ nsDocShell::FirePageHideNotification(PRBool aIsUnload)
         nsCOMPtr<nsIContentViewer> kungFuDeathGrip(mContentViewer);
         mFiredUnloadEvent = PR_TRUE;
 
+        if (mTiming) {
+            mTiming->NotifyUnloadEventStart();
+        }
+
         mContentViewer->PageHide(aIsUnload);
+
+        if (mTiming) {
+            mTiming->NotifyUnloadEventEnd();
+        }
 
         nsAutoTArray<nsCOMPtr<nsIDocShell>, 8> kids;
         PRInt32 i, n = mChildList.Count();
@@ -1541,6 +1593,23 @@ nsDocShell::FirePageHideNotification(PRBool aIsUnload)
 
     return NS_OK;
 }
+
+nsresult
+nsDocShell::MaybeInitTiming()
+{
+    if (mTiming) {
+        return NS_OK;
+    }
+
+    PRBool enabled;
+    nsresult rv = mPrefs->GetBoolPref("dom.enable_performance", &enabled);
+    if (NS_SUCCEEDED(rv) && enabled) {
+        mTiming = new nsDOMNavigationTiming();
+        mTiming->NotifyNavigationStart();
+    }
+    return NS_OK;
+}
+
 
 
 
@@ -5829,15 +5898,30 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
     nsresult rv;
 
     if ((~aStateFlags & (STATE_START | STATE_IS_NETWORK)) == 0) {
+        
+        nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
+        nsCOMPtr<nsIURI> uri;
+        channel->GetURI(getter_AddRefs(uri));
+        nsCAutoString aURI;
+        uri->GetAsciiSpec(aURI);
+        
+        
+        if (mLoadType == 0) {
+          mTiming = nsnull;
+        }
+        else {
+          rv = MaybeInitTiming();
+        }
+        if (mTiming) {
+          mTiming->NotifyFetchStart(uri, ConvertLoadTypeToNavigationType(mLoadType));
+        }
+
         nsCOMPtr<nsIWyciwygChannel>  wcwgChannel(do_QueryInterface(aRequest));
         nsCOMPtr<nsIWebProgress> webProgress =
             do_QueryInterface(GetAsSupports(this));
 
         
         if (wcwgChannel && !mLSHE && (mItemType == typeContent) && aProgress == webProgress.get()) {
-            nsCOMPtr<nsIURI> uri;
-            wcwgChannel->GetURI(getter_AddRefs(uri));
-        
             PRBool equalUri = PR_TRUE;
             
             
@@ -5960,6 +6044,13 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
     if (!oldURI || !newURI) {
         return;
     }
+    
+    PRBool equals = PR_FALSE;
+    if (mTiming &&
+        !(mLoadType == LOAD_HISTORY &&
+          NS_SUCCEEDED(newURI->Equals(oldURI, &equals)) && equals)) {
+        mTiming->NotifyRedirect(oldURI, newURI);
+    }
 
     
     
@@ -6043,7 +6134,10 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
     nsCOMPtr<nsIURI> url;
     nsresult rv = aChannel->GetURI(getter_AddRefs(url));
     if (NS_FAILED(rv)) return rv;
-  
+
+    
+    mTiming = nsnull;
+
     
     if (eCharsetReloadRequested == mCharsetReloadState)
         mCharsetReloadState = eCharsetReloadStopOrigional;
@@ -6474,6 +6568,13 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
     
     
 
+    
+    
+    rv = MaybeInitTiming();
+    if (mTiming) {
+      mTiming->NotifyBeforeUnload();
+    }
+
     PRBool okToUnload;
     rv = mContentViewer->PermitUnload(PR_FALSE, &okToUnload);
 
@@ -6484,6 +6585,10 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
 
     mSavingOldViewer = aTryToSaveOldPresentation && 
                        CanSavePresentation(LOAD_NORMAL, nsnull, nsnull);
+
+    if (mTiming) {
+      mTiming->NotifyUnloadAccepted(mCurrentURI);
+    }
 
     
     
@@ -7704,6 +7809,12 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
 
     nsIntRect bounds(x, y, cx, cy);
 
+    nsCOMPtr<nsIDocumentViewer> docviewer =
+        do_QueryInterface(mContentViewer);
+    if (docviewer) {
+        docviewer->SetNavigationTiming(mTiming);
+    }
+
     if (NS_FAILED(mContentViewer->Init(widget, bounds))) {
         mContentViewer = nsnull;
         NS_ERROR("ContentViewer Initialization failed");
@@ -7736,9 +7847,6 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
 
     
     
-    nsCOMPtr<nsIDocumentViewer> docviewer =
-        do_QueryInterface(mContentViewer);
-
     if (docviewer) {
         nsCOMPtr<nsIPresShell> shell;
         docviewer->GetPresShell(getter_AddRefs(shell));
@@ -8519,6 +8627,10 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     
     nsCOMPtr<nsIDocShell> kungFuDeathGrip(this);
 
+    rv = MaybeInitTiming();
+    if (mTiming) {
+      mTiming->NotifyBeforeUnload();
+    }
     
     
     if (!bIsJavascript && mContentViewer) {
@@ -8530,6 +8642,10 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
             return NS_OK;
         }
+    }
+
+    if (mTiming) {
+      mTiming->NotifyUnloadAccepted(mCurrentURI);
     }
 
     
