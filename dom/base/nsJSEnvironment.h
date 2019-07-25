@@ -205,7 +205,7 @@ public:
   
   
   
-  static PRBool MaybeCC(PRBool aHigherProbability);
+  static PRBool MaybeCC(PRBool aHigherProbability, PRBool aForceGC = PR_FALSE);
 
   
   
