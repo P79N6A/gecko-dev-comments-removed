@@ -207,8 +207,21 @@ public class AwesomeBar extends Activity {
             keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
             return super.onKeyDown(keyCode, event);
         } else {
+            int selStart = -1;
+            int selEnd = -1;
+            if (mText.hasSelection()) {
+                selStart = mText.getSelectionStart();
+                selEnd = mText.getSelectionEnd();
+            }
+
             
             mText.requestFocusFromTouch();
+
+            if (selStart >= 0) {
+                
+                mText.setSelection(selStart, selEnd);
+            }
+
             mText.dispatchKeyEvent(event);
             return true;
         }
