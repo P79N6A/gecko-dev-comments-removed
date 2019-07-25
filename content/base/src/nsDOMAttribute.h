@@ -140,7 +140,7 @@ private:
   
 
 
-  void doRemoveChild();
+  void doRemoveChild(bool aNotify);
 
   nsString mValue;
   

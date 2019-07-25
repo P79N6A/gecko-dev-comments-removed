@@ -133,6 +133,13 @@ public:
 
 
 
+
+  static void AttributeChildRemoved(nsINode* aAttribute, nsIContent* aChild);
+  
+
+
+
+
   static void ParentChainChanged(nsIContent *aContent);
 
   
