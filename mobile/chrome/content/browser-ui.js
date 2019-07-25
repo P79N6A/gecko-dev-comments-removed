@@ -398,7 +398,7 @@ var BrowserUI = {
       WeaveGlue.init();
     });
 
-    FormMessageReceiver.start();
+    FormHelperUI.init();
   },
 
   uninit : function() {
@@ -1413,52 +1413,155 @@ var BookmarkList = {
 
 
 
-var FormHelper = {
-  _open: false,
-  _navigator: null,
 
-  get _container() {
-    delete this._container;
-    return this._container = document.getElementById("form-helper-container");
-  },
 
-  get _helperSpacer() {
-    delete this._helperSpacer;
-    return this._helperSpacer = document.getElementById("form-helper-spacer");
-  },
+var FormHelperUI = {
+  init: function formHelperInit() {
+    this._container = document.getElementById("form-helper-container");
+    this._cmdPrevious = document.getElementById("cmd_formPrevious");
+    this._cmdNext = document.getElementById("cmd_formNext");
+    this._helperSpacer = document.getElementById("form-helper-spacer");
+    this._autofillContainer = document.getElementById("form-helper-autofill");
 
-  get _autofillContainer() {
-    delete this._autofillContainer;
-    return this._autofillContainer = document.getElementById("form-helper-autofill");
-  },
-
-  doAutoFill: function formHelperDoAutoFill(aElement) {
     
-    if (aElement instanceof Ci.nsIDOMXULLabelElement)
-      this._navigator.getCurrent().autocomplete(aElement.value);
-  },
+    messageManager.addMessageListener("FormAssist:Show", this);
+    messageManager.addMessageListener("FormAssist:Hide", this);
+    messageManager.addMessageListener("FormAssist:Update", this);
+    messageManager.addMessageListener("FormAssist:AutoComplete", this);
 
-  goToPrevious: function formHelperGoToPrevious() {
-    this._navigator.goToPrevious();
-  },
-
-  goToNext: function formHelperGoToNext() {
-    this._navigator.goToNext();
-  },
-
-  updateAutocompleteFor: function updateAutocompleteFor(aElement) {
-    let suggestions = this.getAutocompleteSuggestions(aElement);
-    this._setSuggestions(suggestions);
     
-    if (suggestions.length == 0) {
-      let height = Math.floor(this._container.getBoundingClientRect().height);
-      this._container.top = window.innerHeight - height;
-      let containerHeight = this._container.getBoundingClientRect().height;
-      this._helperSpacer.setAttribute("height", containerHeight);
+    document.getElementById("tabs").addEventListener("TabSelect", this, true);
+    document.getElementById("browsers").addEventListener("URLChanged", this, true);
+  },
+
+  show: function formHelperShow(aElement, aHasPrevious, aHasNext) {
+    this._open = true;
+
+    
+    this._cmdPrevious.setAttribute("disabled", !aHasPrevious);
+    this._cmdNext.setAttribute("disabled", !aHasNext);
+
+    let lastElement = this._currentElement || null;
+    this._currentElement = {
+      name: aElement.name,
+      value: aElement.value,
+      maxLength: aElement.maxLength,
+      list: aElement.choices
+    }
+    this._updateContainer(lastElement, this._currentElement);
+
+    this._zoom(Rect.fromRect(aElement.rect), Rect.fromRect(aElement.caretRect));
+  },
+
+  hide: function formHelperHide() {
+    if (!this._open)
+      return;
+
+    this._updateContainerForSelect(this._currentElement, null);
+    this._open = false;
+  },
+
+  handleEvent: function(aEvent) {
+    if (aEvent.type == "TabSelect" || aEvent.type == "URLChanged")
+      this.hide();
+  },
+
+  receiveMessage: function formHelperReceiveMessage(aMessage) {
+    let json = aMessage.json;
+    switch (aMessage.name) {
+      case "FormAssist:Show":
+        
+        
+        
+        let enabled = Services.prefs.getBoolPref("formhelper.enabled");
+        if (enabled) {
+          this.show(json.current, json.hasPrevious, json.hasNext);
+        }
+        else {
+          SelectHelperUI.show(json.current.list);
+        }
+        break;
+
+      case "FormAssist:AutoComplete":
+        this._updateAutocompleteFor(json.current);
+        this._updateHelperSize();
+        break;
+
+      case "FormAssist:Update":
+        this._zoom(null, Rect.fromRect(json.caretRect));
+        break;
     }
   },
 
-  getAutocompleteSuggestions: function(aElement) {
+  goToPrevious: function formHelperGoToPrevious() {
+    Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:Previous", { });
+  },
+
+  goToNext: function formHelperGoToNext() {
+    Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:Next", { });
+  },
+
+  doAutoComplete: function formHelperDoAutoComplete(aElement) {
+    
+    if (aElement instanceof Ci.nsIDOMXULLabelElement)
+      Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:AutoComplete", { value: aElement.value });
+  },
+
+  get _open() {
+    return !this._container.hidden;
+  },
+
+  set _open(aVal) {
+    if (aVal == this._open)
+      return;
+
+    let bv = Browser._browserView;
+    bv.ignorePageScroll(aVal);
+    this._container.hidden = !aVal;
+    this._helperSpacer.hidden = !aVal;
+
+    if (aVal) {
+      this._zoomStart();
+    } else {
+      this._currentElement = null;
+      this._zoomFinish();
+
+      
+      
+      let bv = Browser._browserView;
+      Browser.forceChromeReflow();
+      Browser.contentScrollboxScroller.scrollBy(0, 0);
+      bv.onAfterVisibleMove();
+    }
+
+    let evt = document.createEvent("UIEvents");
+    evt.initUIEvent("FormUI", true, true, window, aVal);
+    this._container.dispatchEvent(evt);
+  },
+
+  _updateAutocompleteFor: function _formHelperUpdateAutocompleteFor(aElement) {
+    let suggestions = this._getAutocompleteSuggestions(aElement);
+    this._displaySuggestions(suggestions);
+  },
+
+  _displaySuggestions: function _formHelperDisplaySuggestions(aSuggestions) {
+    let autofill = this._autofillContainer;
+    while (autofill.hasChildNodes())
+      autofill.removeChild(autofill.lastChild);
+
+    let fragment = document.createDocumentFragment();
+    for (let i = 0; i < aSuggestions.length; i++) {
+      let value = aSuggestions[i];
+      let button = document.createElement("label");
+      button.setAttribute("value", value);
+      fragment.appendChild(button);
+    }
+    autofill.appendChild(fragment);
+    autofill.collapsed = !aSuggestions.length;
+  },
+
+  
+  _getAutocompleteSuggestions: function _formHelperGetAutocompleteSuggestions(aElement) {
     if (!aElement.canAutocomplete)
       return [];
 
@@ -1475,124 +1578,63 @@ var FormHelper = {
   },
 
   
-
-
-  open: function formHelperOpen(navigator) {
-    let bv = Browser._browserView;
-
-    if (!this._open) {
-      this._open = true;
-      bv.ignorePageScroll(true);
-      this._container.hidden = false;
-      this._helperSpacer.hidden = false;
-    }
-
-    let lastWrapper = this._navigator ? this._navigator.getCurrent() : null;
-    this._navigator = navigator;
-    this._currentElementChange(lastWrapper, navigator.getCurrent());
-
-    let evt = document.createEvent("UIEvents");
-    evt.initUIEvent("FormUI", true, true, window, this._open);
-    this._container.dispatchEvent(evt);
-  },
-
-  close: function formHelperHide() {
-    if (!this._open)
-      return;
-
-    this._updateContainerForSelect(this._navigator.getCurrent(), null);
-
-    this._helperSpacer.hidden = true;
-
-    this._zoomFinish();
+  _updateContainer: function _formHelperUpdateContainer(aLastElement, aCurrentElement) {
+    this._updateContainerForSelect(aLastElement, aCurrentElement);
 
     
-    let bv = Browser._browserView;
-    Browser.forceChromeReflow();
-    Browser.contentScrollboxScroller.scrollBy(0, 0);
-    bv.onAfterVisibleMove();
-
-    bv.ignorePageScroll(false);
-
-    this._container.hidden = true;
-    this._open = false;
-
-    if (this._navigator) {
-      this._navigator.endSession();
-      this._navigator = null;
-    }
-
-    let evt = document.createEvent("UIEvents");
-    evt.initUIEvent("FormUI", true, true, window, this._open);
-    this._container.dispatchEvent(evt);
+    this._updateAutocompleteFor(aCurrentElement);
+    this._updateHelperSize();
   },
 
-  
-  _currentElementChange: function(lastWrapper, currentWrapper) {
-    this._updateContainer(lastWrapper, currentWrapper);
-    this._zoom(currentWrapper.getRect());
-  },
-
-  
-  _updateContainer: function(aLastWrapper, aCurrentWrapper) {
-    this._updateContainerForSelect(aLastWrapper, aCurrentWrapper);
-
-    
-    this.updateAutocompleteFor(this._navigator.getCurrent().element);
-
+  _updateHelperSize: function _formHelperUpdateHelperSize() {
     let height = Math.floor(this._container.getBoundingClientRect().height);
     this._container.top = window.innerHeight - height;
-
-    let navigator = this._navigator;
-    document.getElementById("form-helper-previous").disabled = !navigator.hasPrevious();
-    document.getElementById("form-helper-next").disabled = !navigator.hasNext();
 
     let containerHeight = this._container.getBoundingClientRect().height;
     this._helperSpacer.setAttribute("height", containerHeight);
   },
 
   
-  _updateContainerForSelect: function(aLastWrapper, aCurrentWrapper) {
-    let lastHasChoices = aLastWrapper && aLastWrapper.hasChoices();
-    let currentHasChoices = aCurrentWrapper && aCurrentWrapper.hasChoices();
+  _updateContainerForSelect: function _formHelperUpdateContainerForSelect(aLastElement, aCurrentElement) {
+    let lastHasChoices = aLastElement && (aLastElement.list != null);
+    let currentHasChoices = aCurrentElement && (aCurrentElement.list != null);
 
     if (!lastHasChoices && currentHasChoices) {
-      SelectHelper.dock(this._container);
-      SelectHelper.show(aCurrentWrapper);
-    }
-    else if (lastHasChoices && currentHasChoices) {
-      SelectHelper.reset();
-      SelectHelper.show(aCurrentWrapper);
-    }
-    else if (lastHasChoices && !currentHasChoices) {
-      SelectHelper.hide();
+      SelectHelperUI.dock(this._container);
+      SelectHelperUI.show(aCurrentElement.list);
+    } else if (lastHasChoices && currentHasChoices) {
+      SelectHelperUI.reset();
+      SelectHelperUI.show(aCurrentElement.list);
+    } else if (lastHasChoices && !currentHasChoices) {
+      SelectHelperUI.hide();
     }
   },
 
   
-  _zoom: function formHelperZoom(elRect) {
+  _zoom: function formHelperZoom(aElementRect, aCaretRect) {
     let bv = Browser._browserView;
-    if (!bv.allowZoom)
-      return;
+    let zoomRect = bv.getVisibleRect();
 
-    let zoomLevel = Browser._getZoomLevelForRect(bv.browserToViewportRect(elRect.clone()));
-    if (Services.prefs.getBoolPref("formhelper.autozoom")) {
-      this._restore = {
-        zoom: bv.getZoomLevel(),
-        contentScrollOffset: Browser.getScrollboxPosition(Browser.contentScrollboxScroller),
-        pageScrollOffset: Browser.getScrollboxPosition(Browser.pageScrollboxScroller)
-      };
-
+    
+    if (aElementRect && bv.allowZoom && Services.prefs.getBoolPref("formhelper.autozoom")) {
+      
+      let zoomLevel = Browser._getZoomLevelForRect(bv.browserToViewportRect(aElementRect.clone()));
       zoomLevel = Math.min(Math.max(kBrowserFormZoomLevelMin, zoomLevel), kBrowserFormZoomLevelMax);
-      let zoomRect = Browser._getZoomRectForPoint(elRect.center().x, elRect.y, zoomLevel);
 
-      let caretRect = Rect.fromRect(this._navigator.getCurrent().element.caretRect);
-      if (caretRect) {
-        caretRect = Browser._browserView.browserToViewportRect(caretRect);
-        if (!zoomRect.contains(caretRect)) {
-          let [deltaX, deltaY] = this._getOffsetForCaret(caretRect, zoomRect);
-          zoomRect.translate(deltaX, deltaY);
-        }
+      zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, zoomLevel);
+      Browser.animatedZoomTo(zoomRect);
+    }
+
+    
+    if (aCaretRect) {
+      let caretRect = bv.browserToViewportRect(aCaretRect);
+      if (zoomRect.contains(caretRect))
+        return;
+
+      let [deltaX, deltaY] = this._getOffsetForCaret(caretRect, zoomRect);
+      if (deltaX != 0 || deltaY != 0) {
+        Browser.contentScrollboxScroller.scrollBy(deltaX, deltaY);
+        bv.onAfterVisibleMove();
       }
 
       Browser.animatedZoomTo(zoomRect);
@@ -1600,80 +1642,26 @@ var FormHelper = {
   },
 
   
-  _zoomFinish: function _zoomFinish() {
-    let restore = this._restore;
-    if (restore && Services.prefs.getBoolPref("formhelper.restore")) {
-      bv.setZoomLevel(restore.zoom);
-      Browser.contentScrollboxScroller.scrollTo(restore.contentScrollOffset.x,
-                                                restore.contentScrollOffset.y);
-      Browser.pageScrollboxScroller.scrollTo(restore.pageScrollOffset.x,
-                                             restore.pageScrollOffset.y);
-    }
+  _zoomStart: function _formHelperZoomStart() {
+    if (!Services.prefs.getBoolPref("formhelper.restore"))
+      return;
+
+    this._restore = {
+      zoom: Browser._browserView.getZoomLevel(),
+      contentScrollOffset: Browser.getScrollboxPosition(Browser.contentScrollboxScroller),
+      pageScrollOffset: Browser.getScrollboxPosition(Browser.pageScrollboxScroller)
+    };
   },
 
   
-  _setSuggestions: function(aSuggestions) {
-    let autofill = this._autofillContainer;
-    while (autofill.hasChildNodes())
-      autofill.removeChild(autofill.lastChild);
+  _zoomFinish: function _formHelperZoomFinish() {
+    if(!gPrefService.getBoolPref("formhelper.restore"))
+      return;
 
-    let fragment = document.createDocumentFragment();
-    for (let i = 0; i < aSuggestions.length; i++) {
-      let value = aSuggestions[i];
-      let button = document.createElement("label");
-      button.setAttribute("value", value);
-      fragment.appendChild(button);
-    }
-    autofill.appendChild(fragment);
-    autofill.collapsed = !aSuggestions.length;
-  }
-};
-
-
-var FormMessageReceiver = {
-  start: function() {
-    messageManager.addMessageListener("FormAssist:Show", this);
-    messageManager.addMessageListener("FormAssist:Hide", this);
-    messageManager.addMessageListener("FormAssist:Update", this);
-    messageManager.addMessageListener("FormAssist:AutoComplete", this);
-
-    document.getElementById("tabs").addEventListener("TabSelect", this, true);
-    document.getElementById("browsers").addEventListener("URLChanged", this, true);
-  },
-
-  receiveMessage: function(aMessage) {
-    let json = aMessage.json;
-    switch (aMessage.name) {
-      case "FormAssist:Update":
-        let bv = Browser._browserView;
-        let visible = bv.getVisibleRect();
-        let caretRect = bv.browserToViewportRect(Rect.fromRect(json.caretRect));
-        let [deltaX, deltaY] = this._getOffsetForCaret(caretRect, visible);
-
-        if (deltaX != 0 || deltaY != 0) {
-          Browser.contentScrollboxScroller.scrollBy(deltaX, deltaY);
-          bv.onAfterVisibleMove();
-        }
-        break;
-
-      case "FormAssist:Show":
-        json.showNavigation ? FormHelper.open(new FormNavigator(json))
-                            : SelectHelper.show(new FormWrapper(json.current));
-
-        break;
-
-      case "FormAssist:AutoComplete":
-        let current = json.current;
-        if (current.canAutocomplete) {
-          FormHelper.updateAutocompleteFor(current);
-        }
-        break;
-    }
-  },
-
-  handleEvent: function(aEvent) {
-    if (aEvent.type == "TabSelect" || aEvent.type == "URLChanged")
-      FormHelper.close();
+    let restore = this._restore;
+    Browser._browserView.setZoomLevel(restore.zoom);
+    Browser.contentScrollboxScroller.scrollTo(restore.contentScrollOffset.x, restore.contentScrollOffset.y);
+    Browser.pageScrollboxScroller.scrollTo(restore.pageScrollOffset.x, restore.pageScrollOffset.y);
   },
 
   _getOffsetForCaret: function formHelper_getOffsetForCaret(aCaretRect, aRect) {
@@ -1695,120 +1683,36 @@ var FormMessageReceiver = {
   }
 };
 
-function FormNavigator(navObject) {
-  this._navObject = navObject;
-  this._current = new FormWrapper(navObject.current);
-}
-
-FormNavigator.prototype = {
-  hasPrevious: function() {
-    return this._navObject.hasPrevious;
-  },
-
-  hasNext: function() {
-    return this._navObject.hasNext;
-  },
-
-  getCurrent: function() {
-    return this._current;
-  },
-
-  endSession: function endSession() {
-    Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:Close", { });
-  },
-
-  goToPrevious: function goToPrevious() {
-    try {
-      let fl = getBrowser().QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
-      fl.activateRemoteFrame();
-    }
-    catch(e) {}
-    Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:Previous", { });
-  },
-
-  goToNext: function goToNext() {
-    try {
-      let fl = getBrowser().QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
-      fl.activateRemoteFrame();
-    }
-    catch(e) {}
-    Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:Next", { });
-  }
-};
-
-function FormWrapper(aElementObject) {
-  this.element = aElementObject;
-  this._rect = Rect.fromRect(aElementObject.rect);
-}
-
-FormWrapper.prototype = {
-  hasChoices: function() {
-    return this.element.choiceData != null;
-  },
-
-  choiceSelect: function(aIndex, aSelected, aClearAll) {
-    let json = {
-      index: aIndex,
-      selected: aSelected,
-      clearAll: aClearAll
-    };
-    Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:ChoiceSelect", json);
-  },
-
-  choiceChange: function() {
-    Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:ChoiceChange", { });
-  },
-
-  getChoiceData: function() {
-    return this.element.choiceData;
-  },
-
-  canAutocomplete: function() {
-    return this.element.canAutocomplete;
-  },
-
-  autocomplete: function(aValue) {
-    Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:AutoComplete", { value: aValue });
-  },
-
-  getRect: function() {
-    return this._rect;
-  }
-};
 
 
 
 
 
-
-var SelectHelper = {
+var SelectHelperUI = {
   _list: null,
   _selectedIndexes: null,
-  _navigator: null,
 
   get _panel() {
     delete this._panel;
     return this._panel = document.getElementById("select-container");
   },
 
-  show: function(wrapper) {
-    let choiceData = wrapper.getChoiceData();
-    this._wrapper = wrapper;
-    this._choiceData = choiceData;
+  show: function(aList) {
+    this._list = aList;
 
-    this._selectedIndexes = this._getSelectedIndexes(choiceData);
-    this._list = document.getElementById("select-list");
-    this._list.setAttribute("multiple", choiceData.multiple ? "true" : "false");
+    this._container = document.getElementById("select-list");
+    this._container.setAttribute("multiple", aList.multiple ? "true" : "false");
 
+    this._selectedIndexes = this._getSelectedIndexes();
     let firstSelected = null;
 
-    let choices = choiceData.choices;
+    let choices = aList.choices;
     for (let i = 0; i < choices.length; i++) {
       let choice = choices[i];
       if (choice.group) {
         let group = document.createElement("option");
         group.setAttribute("label", choice.text);
-        this._list.appendChild(group);
+        this._container.appendChild(group);
         group.className = "optgroup";
       } else {
         let item = document.createElement("option");
@@ -1817,7 +1721,7 @@ var SelectHelper = {
         item.choiceIndex = i;
         if (choice.inGroup)
           item.className = "in-optgroup";
-        this._list.appendChild(item);
+        this._container.appendChild(item);
         if (choice.selected) {
           item.setAttribute("selected", "true");
           firstSelected = firstSelected || item;
@@ -1832,7 +1736,7 @@ var SelectHelper = {
 
     this._scrollElementIntoView(firstSelected);
 
-    this._list.addEventListener("click", this, false);
+    this._container.addEventListener("click", this, false);
   },
 
   dock: function dock(aContainer) {
@@ -1850,16 +1754,15 @@ var SelectHelper = {
 
   reset: function() {
     this._updateControl();
-    let empty = this._list.cloneNode(false);
-    this._list.parentNode.replaceChild(empty, this._list);
-    this._list = empty;
-    this._wrapper = null;
-    this._choiceData = null;
+    let empty = this._container.cloneNode(false);
+    this._container.parentNode.replaceChild(empty, this._container);
+    this._container = empty;
+    this._list = null;
     this._selectedIndexes = null;
   },
 
   hide: function() {
-    this._list.removeEventListener("click", this, false);
+    this._container.removeEventListener("click", this, false);
     this._panel.hidden = true;
 
     if (this._docked)
@@ -1871,7 +1774,7 @@ var SelectHelper = {
   },
 
   unselectAll: function() {
-    let choices = this._choiceData.choices;
+    let choices = this._list.choices;
     this._forEachOption(function(aItem, aIndex) {
       aItem.selected = false;
       choices[aIndex].selected = false;
@@ -1879,9 +1782,9 @@ var SelectHelper = {
   },
 
   selectByIndex: function(aIndex) {
-    let choices = this._choiceData.choices;
-    for (let i = 0; i < this._list.childNodes.length; i++) {
-      let option = this._list.childNodes[i];
+    let choices = this._list.choices;
+    for (let i = 0; i < this._container.childNodes.length; i++) {
+      let option = this._container.childNodes[i];
       if (option.optionIndex == aIndex) {
         option.selected = true;
         this._choices[i].selected = true;
@@ -1891,9 +1794,9 @@ var SelectHelper = {
     }
   },
 
-  _getSelectedIndexes: function(choiceData) {
+  _getSelectedIndexes: function() {
     let indexes = [];
-    let choices = choiceData.choices;
+    let choices = this._list.choices;
     let choiceLength = choices.length;
     for (let i = 0; i < choiceLength; i++) {
       let choice = choices[i];
@@ -1918,9 +1821,9 @@ var SelectHelper = {
     if (index == -1)
       return;
 
-    let scrollBoxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+    let scrollBoxObject = this._container.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
     let itemHeight = aElement.getBoundingClientRect().height;
-    let visibleItemsCount = this._list.boxObject.height / itemHeight;
+    let visibleItemsCount = this._container.boxObject.height / itemHeight;
     if ((index + 1) > visibleItemsCount) {
       let delta = Math.ceil(visibleItemsCount / 2);
       scrollBoxObject.scrollTo(0, ((index + 1) - delta) * itemHeight);
@@ -1931,7 +1834,7 @@ var SelectHelper = {
   },
 
   _forEachOption: function(aCallback) {
-    let children = this._list.children;
+    let children = this._container.children;
     for (let i = 0; i < children.length; i++) {
       let item = children[i];
       if (!item.hasOwnProperty("optionIndex"))
@@ -1941,7 +1844,7 @@ var SelectHelper = {
   },
 
   _updateControl: function() {
-    let currentSelectedIndexes = this._getSelectedIndexes(this._choiceData);
+    let currentSelectedIndexes = this._getSelectedIndexes();
 
     let isIdentical = currentSelectedIndexes.length == this._selectedIndexes.length;
     if (isIdentical) {
@@ -1953,8 +1856,11 @@ var SelectHelper = {
       }
     }
 
-    if (!isIdentical)
-      this._wrapper.choiceChange();
+    if (isIdentical)
+      return;
+
+    this._list.changeCallback ? this._list.changeCallback()
+                              : Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:ChoiceChange", { });
   },
 
   handleEvent: function(aEvent) {
@@ -1962,23 +1868,35 @@ var SelectHelper = {
       case "click":
         let item = aEvent.target;
         if (item && item.hasOwnProperty("optionIndex")) {
-          if (this._choiceData.multiple) {
+          if (this._list.multiple) {
             
             item.selected = !item.selected;
-            this._choiceData.choices[item.choiceIndex].selected = item.selected;
-            this._wrapper.choiceSelect(item.optionIndex, item.selected, false);
           }
           else {
             this.unselectAll();
 
             
             item.selected = true;
-            this._choiceData.choices[item.choiceIndex].selected = true;
-            this._wrapper.choiceSelect(item.optionIndex, item.selected, true);
           }
+
+          this.onSelect(item.optionIndex, item.selected, this._list.multiple);
         }
         break;
     }
+  },
+
+  onSelect: function(aIndex, aSelected, aClearAll) {
+    if (this._list.selectCallback) {
+      this._list.selectCallback(aIndex);
+      return;
+    }
+
+    let json = {
+      index: aIndex,
+      selected: aSelected,
+      clearAll: aClearAll
+    };
+    Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:ChoiceSelect", json);
   }
 };
 
