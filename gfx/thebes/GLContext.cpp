@@ -53,7 +53,6 @@ namespace gl {
 
 
 
-typedef GLContextProvider::ContextFormat ContextFormat;
 const ContextFormat ContextFormat::BasicRGBA32Format(ContextFormat::BasicRGBA32);
 
 #define MAX_SYMBOL_LENGTH 128
