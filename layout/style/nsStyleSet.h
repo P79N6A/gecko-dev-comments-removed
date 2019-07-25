@@ -405,6 +405,13 @@ class nsStyleSet
                          
                          
 
+  PRUint16 mBatching;
+
+  unsigned mInShutdown : 1;
+  unsigned mAuthorStyleDisabled: 1;
+  unsigned mInReconstruct : 1;
+  unsigned mDirty : 8;  
+
   PRUint32 mUnusedRuleNodeCount; 
   nsTArray<nsStyleContext*> mRoots; 
 
@@ -416,18 +423,10 @@ class nsStyleSet
   
   nsRefPtr<nsInitialStyleRule> mInitialStyleRule;
 
-  PRUint16 mBatching;
-
   
   
   
   nsTArray<nsRuleNode*> mOldRuleTrees;
-
-  unsigned mInShutdown : 1;
-  unsigned mAuthorStyleDisabled: 1;
-  unsigned mInReconstruct : 1;
-  unsigned mDirty : 8;  
-
 };
 
 #ifdef _IMPL_NS_LAYOUT
