@@ -51,7 +51,8 @@ class nsCycleCollectionTraversalCallback;
 
 struct nsCycleCollectionLanguageRuntime
 {
-    virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb) = 0;
+    virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb,
+                                          bool explainLiveExpectedGarbage) = 0;
     virtual nsresult FinishCycleCollection() = 0;
     virtual nsCycleCollectionParticipant *ToParticipant(void *p) = 0;
     virtual void CommenceShutdown() = 0;
@@ -76,14 +77,8 @@ struct nsCycleCollectionJSRuntime : public nsCycleCollectionLanguageRuntime
     
 
 
-
-    virtual PRBool Collect() = 0;
+    virtual void Collect() = 0;
 };
-
-NS_COM PRBool nsCycleCollector_beginCollection();
-
-
-NS_COM PRBool nsCycleCollector_finishCollection();
 
 #ifdef DEBUG
 NS_COM void nsCycleCollector_DEBUG_shouldBeFreed(nsISupports *n);
