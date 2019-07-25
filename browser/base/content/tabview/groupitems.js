@@ -81,6 +81,8 @@ function GroupItem(listOfEls, options) {
   this.locked = (options.locked ? Utils.copy(options.locked) : {});
   this.topChild = null;
   this.hidden = false;
+  this.fadeAwayUndoButtonDelay = 15000;
+  this.fadeAwayUndoButtonDuration = 300;
 
   this.keepProportional = false;
 
@@ -277,6 +279,7 @@ function GroupItem(listOfEls, options) {
 
   
   this.$undoContainer = null;
+  this._undoButtonTimeoutId = null;
 
   
   this._init($container[0]);
@@ -637,28 +640,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       });
     }, 50);
 
-    let remove = function() {
-      
-      let toClose = self._children.concat();
-      toClose.forEach(function(child) {
-        child.removeSubscriber(self, "close");
-        child.close();
-      });
- 
-      
-      self.removeAll();
-      GroupItems.unregister(self);
-      self._sendToSubscribers("close");
-      self.removeTrenches();
-
-      iQ(self.container).remove();
-      self.$undoContainer.remove();
-      self.$undoContainer = null;
-      Items.unsquish();
-
-      self.deleteData();
-    };
-
     this.$undoContainer.click(function(e) {
       
       if (e.target.nodeName != self.$undoContainer[0].nodeName)
@@ -667,6 +648,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       self.$undoContainer.fadeOut(function() {
         iQ(this).remove();
         self.hidden = false;
+        self._cancelFadeAwayUndoButtonTimer();
         self.$undoContainer = null;
 
         iQ(self.container).show().animate({
@@ -686,31 +668,92 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     });
 
     undoClose.click(function() {
-      self.$undoContainer.fadeOut(remove);
+      self._cancelFadeAwayUndoButtonTimer();
+      self.$undoContainer.fadeOut(function() { self._removeHiddenGroupItem(); });
     });
 
+    this.setupFadeAwayUndoButtonTimer();
     
-    const WAIT = 15000;
-    const FADE = 300;
+    
+    this.$undoContainer.mouseover(function() { 
+      self._cancelFadeAwayUndoButtonTimer();
+    });
+    this.$undoContainer.mouseout(function() {
+      self.setupFadeAwayUndoButtonTimer();
+    });
+  },
 
-    let fadeaway = function() {
-      if (self.$undoContainer)
+  
+  
+  setupFadeAwayUndoButtonTimer: function() {
+    let self = this;
+
+    if (!this._undoButtonTimeoutId) {
+      this._undoButtonTimeoutId = setTimeout(function() { 
+        self._fadeAwayUndoButton(); 
+      }, this.fadeAwayUndoButtonDelay);
+    }
+  },
+  
+  
+  
+  _cancelFadeAwayUndoButtonTimer: function() {
+    clearTimeout(this._undoButtonTimeoutId);
+    this._undoButtonTimeoutId = null;
+  }, 
+
+  
+  
+  _fadeAwayUndoButton: function() {
+    let self = this;
+
+    if (this.$undoContainer) {
+      
+      
+      let shouldFadeAway = GroupItems.getOrphanedTabs().length > 0;
+      
+      if (!shouldFadeAway && GroupItems.groupItems.length > 1) {
+        shouldFadeAway = 
+          GroupItems.groupItems.some(function(groupItem) {
+            return (groupItem != self && groupItem.getChildren().length > 0);
+          });
+      }
+      if (shouldFadeAway) {
         self.$undoContainer.animate({
           color: "transparent",
           opacity: 0
         }, {
-          duration: FADE,
-          complete: remove
+          duration: this.fadeAwayUndoButtonDuration,
+          complete: function() { self._removeHiddenGroupItem(); }
         });
-    };
+      }
+    }
+  },
 
-    let timeoutId = setTimeout(fadeaway, WAIT);
+  
+  
+  _removeHiddenGroupItem: function() {
+    let self = this;
+
     
-    
-    this.$undoContainer.mouseover(function() clearTimeout(timeoutId));
-    this.$undoContainer.mouseout(function() {
-      timeoutId = setTimeout(fadeaway, WAIT);
+    let toClose = this._children.concat();
+    toClose.forEach(function(child) {
+      child.removeSubscriber(self, "close");
+      child.close();
     });
+ 
+    
+    this.removeAll();
+    GroupItems.unregister(this);
+    this._sendToSubscribers("close");
+    this.removeTrenches();
+
+    iQ(this.container).remove();
+    this.$undoContainer.remove();
+    this.$undoContainer = null;
+    Items.unsquish();
+
+    this.deleteData();
   },
 
   
