@@ -7886,9 +7886,6 @@ FinishJIT(TraceMonitor *tm)
 
     js_delete(tm->cachedTempTypeMap);
     tm->cachedTempTypeMap = NULL;
-
-    
-    PodZero(tm);
 }
 
 JS_REQUIRES_STACK void
