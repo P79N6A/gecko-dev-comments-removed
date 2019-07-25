@@ -1150,42 +1150,43 @@ nsHTMLEditRules::GetParagraphState(bool *aMixed, nsAString &outFormat)
   return res;
 }
 
-nsresult 
+nsresult
 nsHTMLEditRules::AppendInnerFormatNodes(nsCOMArray<nsIDOMNode>& aArray,
                                         nsIDOMNode *aNode)
 {
-  NS_ENSURE_TRUE(aNode, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  NS_ENSURE_TRUE(node, NS_ERROR_NULL_POINTER);
 
-  nsCOMPtr<nsIDOMNodeList> childList;
-  nsCOMPtr<nsIDOMNode> child;
+  return AppendInnerFormatNodes(aArray, node);
+}
 
-  aNode->GetChildNodes(getter_AddRefs(childList));
-  NS_ENSURE_TRUE(childList, NS_OK);
-  PRUint32 len, j=0;
-  childList->GetLength(&len);
+nsresult
+nsHTMLEditRules::AppendInnerFormatNodes(nsCOMArray<nsIDOMNode>& aArray,
+                                        nsINode* aNode)
+{
+  MOZ_ASSERT(aNode);
 
   
   
   
   
   bool foundInline = false;
-  while (j < len)
-  {
-    childList->Item(j, getter_AddRefs(child));
-    bool isBlock = IsBlockNode(child);
-    bool isFormat = nsHTMLEditUtils::IsFormatNode(child);
-    if (isBlock && !isFormat)  
+  for (nsIContent* child = aNode->GetFirstChild();
+       child;
+       child = child->GetNextSibling()) {
+    bool isBlock = IsBlockNode(child->AsDOMNode());
+    bool isFormat = child->IsElement() &&
+                    nsHTMLEditUtils::IsFormatNode(child->AsElement());
+    if (isBlock && !isFormat) {
+      
       AppendInnerFormatNodes(aArray, child);
-    else if (isFormat)
-    {
-      aArray.AppendObject(child);
-    }
-    else if (!foundInline)  
-    {
+    } else if (isFormat) {
+      aArray.AppendObject(child->AsDOMNode());
+    } else if (!foundInline) {
+      
       foundInline = true;      
-      aArray.AppendObject(child);
+      aArray.AppendObject(child->AsDOMNode());
     }
-    j++;
   }
   return NS_OK;
 }
