@@ -21,6 +21,7 @@ var futureReservedWords =
    "export",
    "extends",
    "import",
+   "let",  
    "super",
   ];
 
@@ -28,7 +29,6 @@ var strictFutureReservedWords =
   [
    "implements",
    "interface",
-   "let", 
    "package",
    "private",
    "protected",
