@@ -2,10 +2,10 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.util;
 
 import android.content.Intent;
 
-interface ActivityResultHandler {
-    public void onActivityResult(int resultCode, Intent data);
+public interface ActivityResultHandler {
+    void onActivityResult(int resultCode, Intent data);
 }
