@@ -1523,30 +1523,6 @@ NS_METHOD nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeig
   return NS_OK;
 }
 
-
-NS_METHOD nsWindow::ResizeClient(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
-{
-  NS_ASSERTION((aWidth >=0) , "Negative width passed to ResizeClient");
-  NS_ASSERTION((aHeight >=0), "Negative height passed to ResizeClient");
-
-  
-  RECT client;
-  GetClientRect(mWnd, &client);
-  nsIntPoint dims(client.right - client.left, client.bottom - client.top);
-  aWidth = mBounds.width + (aWidth - dims.x);
-  aHeight = mBounds.height + (aHeight - dims.y);
-  
-  if (aX || aY) {
-    
-    nsIntRect bounds;
-    GetScreenBounds(bounds);
-    aX += bounds.x;
-    aY += bounds.y;
-    return Resize(aX, aY, aWidth, aHeight, aRepaint);
-  }
-  return Resize(aWidth, aHeight, aRepaint);
-}
-
 NS_IMETHODIMP
 nsWindow::BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical)
 {
