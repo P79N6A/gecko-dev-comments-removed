@@ -961,7 +961,15 @@ bool
 nsIFrame::IsTransformed() const
 {
   return (mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
-    GetStyleDisplay()->HasTransform();
+          (GetStyleDisplay()->HasTransform() ||
+           IsSVGTransformed());
+}
+
+bool
+nsIFrame::IsSVGTransformed(gfxMatrix *aOwnTransforms,
+                           gfxMatrix *aFromParentTransforms) const
+{
+  return false;
 }
 
 bool
@@ -4643,9 +4651,11 @@ nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
     }
   }
   if (IsTransformed() && !rectIsTransformed) {
-    nsRect newDamageRect;
-    newDamageRect.UnionRect(nsDisplayTransform::TransformRectOut
-                            (aDamageRect, this, nsPoint(-aX, -aY)), aDamageRect);
+    nsRect newDamageRect = nsDisplayTransform::TransformRectOut
+                             (aDamageRect, this, nsPoint(-aX, -aY));
+    if (!(GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
+      newDamageRect.UnionRect(newDamageRect, aDamageRect);
+    }
 
     
     
@@ -4703,6 +4713,7 @@ nsIFrame::GetTransformMatrix(nsIFrame* aStopAtAncestor,
     gfx3DMatrix result =
       nsDisplayTransform::GetResultingTransformMatrix(this, nsPoint(0, 0),
                                                       scaleFactor, nsnull, aOutAncestor);
+    
     nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
     
     result *= gfx3DMatrix::Translation
@@ -4834,6 +4845,21 @@ ComputeOutlineAndEffectsRect(nsIFrame* aFrame, bool* aAnyOutlineOrEffects,
                              bool aStoreRectProperties) {
   nsRect r = aOverflowRect;
   *aAnyOutlineOrEffects = false;
+
+  if (aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
+    
+    
+    
+    if (aFrame->GetStyleSVGReset()->mFilter) {
+      *aAnyOutlineOrEffects = true;
+      if (aStoreRectProperties) {
+        aFrame->Properties().
+          Set(nsIFrame::PreEffectsBBoxProperty(), new nsRect(r));
+      }
+      r = nsSVGUtils::GetPostFilterVisualOverflowRect(aFrame, aOverflowRect);
+    }
+    return r;
+  }
 
   
   nsCSSShadowArray* boxShadows = aFrame->GetStyleBorder()->mBoxShadow;
@@ -6741,10 +6767,13 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
   
   
   
+  
+  
   NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
     DebugOnly<nsRect*> r = &aOverflowAreas.Overflow(otype);
     NS_ASSERTION(aNewSize.width == 0 || aNewSize.height == 0 ||
                  r->width == nscoord_MAX || r->height == nscoord_MAX ||
+                 (mState & NS_FRAME_SVG_LAYOUT) ||
                  r->Contains(nsRect(nsPoint(0,0), aNewSize)),
                  "Computed overflow area must contain frame bounds");
   }
@@ -6766,7 +6795,10 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
   
   
   
-  if (aNewSize.width != 0 || !IsInlineFrame(this)) {
+  
+  
+  if ((aNewSize.width != 0 || !IsInlineFrame(this)) &&
+      !(GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
     NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
       nsRect& o = aOverflowAreas.Overflow(otype);
       o.UnionRectEdges(o, bounds);
@@ -6870,7 +6902,10 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
       Invalidate(aOverflowAreas.VisualOverflow());
     }
   }
-  if (anyOverflowChanged && hasTransform) {
+  
+  
+  if (anyOverflowChanged && hasTransform &&
+      !(GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
     
     
     

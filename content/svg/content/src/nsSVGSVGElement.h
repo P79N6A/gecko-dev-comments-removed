@@ -62,8 +62,15 @@ class nsSVGSVGElement;
 
 class nsSVGTranslatePoint {
 public:
-  nsSVGTranslatePoint(float aX, float aY) :
-    mX(aX), mY(aY) {}
+  nsSVGTranslatePoint()
+    : mX(0.0f)
+    , mY(0.0f)
+  {}
+
+  nsSVGTranslatePoint(float aX, float aY)
+    : mX(aX)
+    , mY(aY)
+  {}
 
   void SetX(float aX)
     { mX = aX; }
@@ -75,6 +82,10 @@ public:
     { return mY; }
 
   nsresult ToDOMVal(nsSVGSVGElement *aElement, nsIDOMSVGPoint **aResult);
+
+  bool operator!=(const nsSVGTranslatePoint &rhs) const {
+    return mX != rhs.mX || mY != rhs.mY;
+  }
 
 private:
 
@@ -128,7 +139,6 @@ class nsSVGSVGElement : public nsSVGSVGElementBase,
   friend class nsSVGInnerSVGFrame;
   friend class nsSVGImageFrame;
 
-protected:
   friend nsresult NS_NewSVGSVGElement(nsIContent **aResult,
                                       already_AddRefed<nsINodeInfo> aNodeInfo,
                                       mozilla::dom::FromParser aFromParser);
@@ -220,7 +230,27 @@ public:
 
   bool ShouldSynthesizeViewBox() const;
 
+  bool HasViewBoxOrSyntheticViewBox() const {
+    return HasViewBox() || ShouldSynthesizeViewBox();
+  }
+
   gfxMatrix GetViewBoxTransform() const;
+
+  bool HasChildrenOnlyTransform() const {
+    return mHasChildrenOnlyTransform;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+  void ChildrenOnlyTransformChanged();
 
   
   
@@ -250,7 +280,6 @@ private:
   void ClearImageOverridePreserveAspectRatio();
   const SVGPreserveAspectRatio* GetImageOverridePreserveAspectRatio() const;
 
-protected:
   
   bool IsEventName(nsIAtom* aName);
 
@@ -349,6 +378,7 @@ protected:
   bool                              mStartAnimationOnBindToTree;
   bool                              mImageNeedsTransformInvalidation;
   bool                              mIsPaintingSVGImageElement;
+  bool                              mHasChildrenOnlyTransform;
 };
 
 #endif

@@ -68,8 +68,11 @@ class nsSVGContainerFrame : public nsSVGContainerFrameBase
   friend nsIFrame* NS_NewSVGContainerFrame(nsIPresShell* aPresShell,
                                            nsStyleContext* aContext);
 protected:
-  nsSVGContainerFrame(nsStyleContext* aContext) :
-    nsSVGContainerFrameBase(aContext) {}
+  nsSVGContainerFrame(nsStyleContext* aContext)
+    : nsSVGContainerFrameBase(aContext)
+  {
+    AddStateBits(NS_FRAME_SVG_LAYOUT);
+  }
 
 public:
   NS_DECL_QUERYFRAME_TARGET(nsSVGContainerFrame)
@@ -78,6 +81,17 @@ public:
 
   
   virtual gfxMatrix GetCanvasTM() { return gfxMatrix(); }
+
+  
+
+
+
+
+
+
+  virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const {
+    return false;
+  }
 
   
   NS_IMETHOD AppendFrames(ChildListID     aListID,
@@ -93,6 +107,8 @@ public:
     return nsSVGContainerFrameBase::IsFrameOfType(
             aFlags & ~(nsIFrame::eSVG | nsIFrame::eSVGContainer));
   }
+
+  virtual bool UpdateOverflow();
 };
 
 
@@ -103,8 +119,11 @@ class nsSVGDisplayContainerFrame : public nsSVGContainerFrame,
                                    public nsISVGChildFrame
 {
 protected:
-  nsSVGDisplayContainerFrame(nsStyleContext* aContext) :
-    nsSVGContainerFrame(aContext) {}
+  nsSVGDisplayContainerFrame(nsStyleContext* aContext)
+    : nsSVGContainerFrame(aContext)
+  {
+     AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
+  }
 
 public:
   NS_DECL_QUERYFRAME_TARGET(nsSVGDisplayContainerFrame)
@@ -121,6 +140,9 @@ public:
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
 
+  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform = nsnull,
+                                gfxMatrix *aFromParentTransform = nsnull) const;
+
   
   NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
                       const nsIntRect *aDirtyRect);
@@ -131,7 +153,6 @@ public:
   virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
                                       PRUint32 aFlags);
   NS_IMETHOD_(bool) IsDisplayContainer() { return true; }
-  NS_IMETHOD_(bool) HasValidCoveredRect() { return false; }
 };
 
 #endif

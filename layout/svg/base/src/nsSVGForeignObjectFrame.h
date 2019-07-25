@@ -84,20 +84,6 @@ public:
   
 
 
-  virtual bool IsTransformed() const
-  {
-    return true;
-  }
-
-  
-
-
-  virtual gfx3DMatrix GetTransformMatrix(nsIFrame* aAncestor,
-                                         nsIFrame **aOutAncestor);
-
-  
-
-
 
 
   virtual nsIAtom* GetType() const;
@@ -129,9 +115,6 @@ public:
   virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
                                       PRUint32 aFlags);
   NS_IMETHOD_(bool) IsDisplayContainer() { return true; }
-  NS_IMETHOD_(bool) HasValidCoveredRect() {
-    return !(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD);
-  }
 
   gfxMatrix GetCanvasTM();
 

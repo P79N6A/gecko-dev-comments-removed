@@ -45,6 +45,7 @@
 #include "gfxPoint.h"
 #include "gfxRect.h"
 #include "nsAlgorithm.h"
+#include "nsChangeHint.h"
 #include "nsColor.h"
 #include "nsCOMPtr.h"
 #include "nsID.h"
@@ -320,7 +321,15 @@ public:
 
 
   static nsSVGDisplayContainerFrame* GetNearestSVGViewport(nsIFrame *aFrame);
+
   
+
+
+
+
+  static nsRect GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
+                                                const nsRect &aUnfilteredRect);
+
   
 
 

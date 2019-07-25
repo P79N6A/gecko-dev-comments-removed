@@ -68,3 +68,12 @@ foreignObject {
   -moz-transform: translate(0) !important;
   text-indent: 0;
 }
+
+
+
+
+*:not(svg),
+*:not(foreignObject) > svg {
+  -moz-transform-origin:0 0;
+}
+

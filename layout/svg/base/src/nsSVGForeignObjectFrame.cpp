@@ -73,7 +73,8 @@ nsSVGForeignObjectFrame::nsSVGForeignObjectFrame(nsStyleContext* aContext)
   : nsSVGForeignObjectFrameBase(aContext),
     mInReflow(false)
 {
-  AddStateBits(NS_FRAME_REFLOW_ROOT | NS_FRAME_MAY_BE_TRANSFORMED);
+  AddStateBits(NS_FRAME_REFLOW_ROOT | NS_FRAME_MAY_BE_TRANSFORMED |
+               NS_FRAME_SVG_LAYOUT);
 }
 
 
@@ -305,24 +306,6 @@ nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
   return rv;
 }
 
-gfx3DMatrix
-nsSVGForeignObjectFrame::GetTransformMatrix(nsIFrame* aAncestor,
-                                            nsIFrame **aOutAncestor)
-{
-  NS_PRECONDITION(aOutAncestor, "We need an ancestor to write to!");
-
-  
-  *aOutAncestor = nsSVGUtils::GetOuterSVGFrame(this);
-  NS_ASSERTION(*aOutAncestor, "How did we end up without an outer frame?");
-
-  if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) {
-    return gfx3DMatrix::From2D(gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
-  }
-
-  
-  return gfx3DMatrix::From2D(GetCanvasTMForChildren());
-}
- 
 NS_IMETHODIMP_(nsIFrame*)
 nsSVGForeignObjectFrame::GetFrameForPoint(const nsPoint &aPoint)
 {
@@ -415,11 +398,25 @@ nsSVGForeignObjectFrame::UpdateBounds()
 
   DoReflow();
 
+  if (mState & NS_FRAME_FIRST_REFLOW) {
+    
+    
+    
+    nsSVGEffects::UpdateEffects(this);
+  }
+
+  
+  
+  nsRect overflow = nsRect(nsPoint(0,0), mRect.Size());
+  nsOverflowAreas overflowAreas(overflow, overflow);
+  FinishAndStoreOverflow(overflowAreas, mRect.Size());
+
   
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
 
   if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    
     
     
     

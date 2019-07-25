@@ -512,10 +512,15 @@ nsSVGGlyphFrame::UpdateBounds()
   mCoveredRegion = nsSVGUtils::TransformFrameRectToOuterSVG(
     mRect, GetCanvasTM(), PresContext());
 
+  nsRect overflow = nsRect(nsPoint(0,0), mRect.Size());
+  nsOverflowAreas overflowAreas(overflow, overflow);
+  FinishAndStoreOverflow(overflowAreas, mRect.Size());
+
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
 
   if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    
     
     
     

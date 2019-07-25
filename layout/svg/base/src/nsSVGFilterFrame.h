@@ -101,7 +101,9 @@ public:
 
 
 
-  nsIntRect GetFilterBBox(nsIFrame *aTarget, const nsIntRect *aSourceBBox);
+  nsIntRect GetFilterBBox(nsIFrame *aTarget,
+                          const nsIntRect *aOverrideBBox = nsnull,
+                          const nsIntRect *aPreFilterBounds = nsnull);
 
 #ifdef DEBUG
   NS_IMETHOD Init(nsIContent*      aContent,

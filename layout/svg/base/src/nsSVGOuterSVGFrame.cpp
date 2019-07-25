@@ -146,6 +146,8 @@ nsSVGOuterSVGFrame::nsSVGOuterSVGFrame(nsStyleContext* aContext)
 #endif
     , mIsRootContent(false)
 {
+  
+  RemoveStateBits(NS_FRAME_SVG_LAYOUT);
 }
 
 NS_IMETHODIMP
@@ -416,7 +418,7 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
     svgElem->SetViewportSize(newViewportSize);
   }
   if (mFullZoom != PresContext()->GetFullZoom()) {
-    changeBits |= TRANSFORM_CHANGED;
+    changeBits |= FULL_ZOOM_CHANGED;
     mFullZoom = PresContext()->GetFullZoom();
   }
   mViewportInitialized = true;
@@ -617,8 +619,13 @@ nsSVGOuterSVGFrame::AttributeChanged(PRInt32  aNameSpaceID,
           this, aAttribute == nsGkAtoms::viewBox ?
                   TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED : TRANSFORM_CHANGED);
 
+      static_cast<nsSVGSVGElement*>(mContent)->ChildrenOnlyTransformChanged();
+
     } else if (aAttribute == nsGkAtoms::width ||
                aAttribute == nsGkAtoms::height) {
+
+      
+      
 
       nsIFrame* embeddingFrame;
       if (IsRootOfReplacedElementSubDoc(&embeddingFrame) && embeddingFrame) {
@@ -703,7 +710,8 @@ void
 nsSVGOuterSVGFrame::NotifyViewportOrTransformChanged(PRUint32 aFlags)
 {
   NS_ABORT_IF_FALSE(aFlags &&
-                    !(aFlags & ~(COORD_CONTEXT_CHANGED | TRANSFORM_CHANGED)),
+                    !(aFlags & ~(COORD_CONTEXT_CHANGED | TRANSFORM_CHANGED |
+                                 FULL_ZOOM_CHANGED)),
                     "Unexpected aFlags value");
 
   
@@ -729,9 +737,21 @@ nsSVGOuterSVGFrame::NotifyViewportOrTransformChanged(PRUint32 aFlags)
     }
   }
 
+  bool haveNonFulLZoomTransformChange = (aFlags & TRANSFORM_CHANGED);
+
+  if (aFlags & FULL_ZOOM_CHANGED) {
+    
+    aFlags = (aFlags & ~FULL_ZOOM_CHANGED) | TRANSFORM_CHANGED;
+  }
+
   if (aFlags & TRANSFORM_CHANGED) {
     
     mCanvasTM = nsnull;
+
+    if (haveNonFulLZoomTransformChange &&
+        !(mState & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+      content->ChildrenOnlyTransformChanged();
+    }
   }
 
   nsSVGUtils::NotifyChildrenOfSVGChange(this, aFlags);
@@ -763,6 +783,24 @@ nsSVGOuterSVGFrame::GetCanvasTM()
     mCanvasTM = new gfxMatrix(TM);
   }
   return *mCanvasTM;
+}
+
+bool
+nsSVGOuterSVGFrame::HasChildrenOnlyTransform(gfxMatrix *aTransform) const
+{
+  nsSVGSVGElement *content = static_cast<nsSVGSVGElement*>(mContent);
+
+  bool hasTransform = content->HasChildrenOnlyTransform();
+
+  if (hasTransform && aTransform) {
+    
+    gfxMatrix identity;
+    *aTransform =
+      content->PrependLocalTransformsTo(identity,
+                                        nsSVGElement::eChildToUserSpace);
+  }
+
+  return hasTransform;
 }
 
 

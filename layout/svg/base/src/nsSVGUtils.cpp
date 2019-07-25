@@ -47,6 +47,7 @@
 #include "gfxUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/Preferences.h"
+#include "nsCSSFrameConstructor.h"
 #include "nsComputedDOMStyle.h"
 #include "nsContentUtils.h"
 #include "nsFrameList.h"
@@ -585,6 +586,26 @@ nsSVGUtils::GetNearestSVGViewport(nsIFrame *aFrame)
   }
   NS_NOTREACHED("This is not reached. It's only needed to compile.");
   return nsnull;
+}
+
+nsRect
+nsSVGUtils::GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
+                                            const nsRect &aUnfilteredRect)
+{
+  NS_ABORT_IF_FALSE(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT,
+                    "Called on invalid frame type");
+
+  nsSVGFilterFrame *filter = nsSVGEffects::GetFilterFrame(aFrame);
+  if (!filter) {
+    return aUnfilteredRect;
+  }
+
+  PRInt32 appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
+  nsIntRect unfilteredRect =
+    aUnfilteredRect.ToOutsidePixels(appUnitsPerDevPixel);
+  nsIntRect rect = filter->GetFilterBBox(aFrame, nsnull, &unfilteredRect);
+  nsRect r = rect.ToAppUnits(appUnitsPerDevPixel) - aFrame->GetPosition();
+  return r;
 }
 
 nsRect
@@ -1144,20 +1165,33 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
   bool isOK = true;
   nsSVGFilterFrame *filterFrame = effectProperties.GetFilterFrame(&isOK);
 
-  
-
-
-
-  if (aDirtyRect && svgChildFrame->HasValidCoveredRect()) {
-    if (filterFrame) {
-      if (!aDirtyRect->Intersects(filterFrame->GetFilterBBox(aFrame, nsnull)))
-        return;
-    } else {
-      nsRect leafBounds = nsSVGUtils::TransformFrameRectToOuterSVG(
-        aFrame->GetRect(), GetCanvasTM(aFrame), aFrame->PresContext());
-      nsRect rect = aDirtyRect->ToAppUnits(aFrame->PresContext()->AppUnitsPerDevPixel());
-      if (!rect.Intersects(leafBounds))
-        return;
+  if (aDirtyRect &&
+      !(aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+    
+    
+    
+    
+    nsRect overflowRect = aFrame->GetVisualOverflowRectRelativeToSelf();
+    if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry)) {
+      
+      
+      overflowRect = overflowRect + aFrame->GetPosition();
+    }
+    PRUint32 appUnitsPerDevPx = aFrame->PresContext()->AppUnitsPerDevPixel();
+    gfxMatrix tm = GetCanvasTM(aFrame);
+    if (aFrame->IsFrameOfType(nsIFrame::eSVG | nsIFrame::eSVGContainer)) {
+      gfxMatrix childrenOnlyTM;
+      if (static_cast<nsSVGContainerFrame*>(aFrame)->
+            HasChildrenOnlyTransform(&childrenOnlyTM)) {
+        
+        tm = childrenOnlyTM.Invert() * tm;
+      }
+    }
+    nsIntRect bounds = nsSVGUtils::TransformFrameRectToOuterSVG(overflowRect,
+                         tm, aFrame->PresContext()).
+                           ToOutsidePixels(appUnitsPerDevPx);
+    if (!aDirtyRect->Intersects(bounds)) {
+      return;
     }
   }
 
