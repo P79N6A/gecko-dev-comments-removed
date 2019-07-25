@@ -461,6 +461,8 @@ IsFontSizeInflationContainer(nsIFrame* aFrame,
 
 
   bool isInline = (aStyleDisplay->mDisplay == NS_STYLE_DISPLAY_INLINE ||
+                   (aStyleDisplay->IsFloating() &&
+                    aFrame->GetType() == nsGkAtoms::letterFrame) ||
                    (aFrame->GetContent() &&
                     aFrame->GetContent()->IsInNativeAnonymousSubtree())) &&
                   !(aFrame->IsBoxFrame() && aFrame->GetParent() &&
