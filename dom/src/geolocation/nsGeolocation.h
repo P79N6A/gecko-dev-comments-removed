@@ -91,7 +91,7 @@ class nsGeolocationRequest
   void Shutdown();
 
   
-  void Update(nsIDOMGeoPosition* aPosition);
+  bool Update(nsIDOMGeoPosition* aPosition);
 
   void SendLocation(nsIDOMGeoPosition* location);
   void MarkCleared();
