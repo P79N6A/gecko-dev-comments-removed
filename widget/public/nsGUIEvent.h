@@ -1164,7 +1164,10 @@ public:
                             
                             
                             
-    kNoDefer =      1 << 5  
+    kNoDefer =      1 << 5, 
+                            
+    kIsMomentum =   1 << 6  
+                            
                             
   };
 
