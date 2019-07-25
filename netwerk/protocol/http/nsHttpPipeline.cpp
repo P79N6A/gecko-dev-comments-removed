@@ -239,7 +239,6 @@ nsHttpPipeline::CloseTransaction(nsAHttpTransaction *trans, nsresult reason)
 
     
     
-    
     DontReuse();
 
     trans->Close(reason);
@@ -249,6 +248,11 @@ nsHttpPipeline::CloseTransaction(nsAHttpTransaction *trans, nsresult reason)
         
         CancelPipeline(reason);
     }
+
+    
+    
+    if (!mRequestQ.Length() && !mResponseQ.Length() && mConnection)
+        mConnection->CloseTransaction(this, reason);
 }
 
 nsresult
