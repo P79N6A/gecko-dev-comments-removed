@@ -359,25 +359,6 @@ gfxFontEntry::ShareFontTableAndGetBlob(PRUint32 aTag,
     return entry->ShareTableAndGetBlob(*aBuffer, &mFontTableCache);
 }
 
-void
-gfxFontEntry::PreloadFontTable(PRUint32 aTag, FallibleTArray<PRUint8>& aTable)
-{
-    if (!mFontTableCache.IsInitialized()) {
-        
-        
-        
-        mFontTableCache.Init(3);
-    }
-
-    FontTableHashEntry *entry = mFontTableCache.PutEntry(aTag);
-    if (NS_UNLIKELY(!entry)) { 
-        return;
-    }
-
-    
-    entry->SaveTable(aTable);
-}
-
 
 
 
