@@ -1385,10 +1385,18 @@ public:
     
     
     PRInt32 mComputedScrollAmount;
+    PRInt32 mComputedScrollAction;
   } mReply;
 
   enum {
     NOT_FOUND = PR_UINT32_MAX
+  };
+
+  
+  enum {
+    SCROLL_ACTION_NONE,
+    SCROLL_ACTION_LINE,
+    SCROLL_ACTION_PAGE
   };
 };
 

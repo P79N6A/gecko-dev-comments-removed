@@ -335,6 +335,12 @@ protected:
 
 
 
+  PRInt32 ComputeWheelDeltaFor(nsMouseScrollEvent* aMouseEvent);
+  
+
+
+
+
 
 
 
