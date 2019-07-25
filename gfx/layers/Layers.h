@@ -77,7 +77,6 @@ class ImageLayer;
 class ColorLayer;
 class ImageContainer;
 class CanvasLayer;
-class SpecificLayerAttributes;
 
 #define MOZ_LAYER_DECL_NAME(n, e)                           \
   virtual const char* Name() const { return n; }            \
@@ -142,20 +141,11 @@ public:
     LAYERS_D3D9
   };
 
-  LayerManager() : mUserData(nsnull), mDestroyed(PR_FALSE)
+  LayerManager() : mUserData(nsnull)
   {
     InitLog();
   }
   virtual ~LayerManager() {}
-
-  
-
-
-
-
-
-  virtual void Destroy() { mDestroyed = PR_TRUE; }
-  PRBool IsDestroyed() { return mDestroyed; }
 
   
 
@@ -306,7 +296,6 @@ public:
 protected:
   nsRefPtr<Layer> mRoot;
   void* mUserData;
-  PRPackedBool mDestroyed;
 
   
   
@@ -331,15 +320,12 @@ public:
     TYPE_CONTAINER,
     TYPE_IMAGE,
     TYPE_COLOR,
-    TYPE_CANVAS,
-    TYPE_SHADOW
+    TYPE_CANVAS
   };
 
   virtual ~Layer() {}
 
   
-
-
 
 
   LayerManager* Manager() { return mManager; }
@@ -399,7 +385,6 @@ public:
     }
     Mutated();
   }
-
   
 
 
@@ -444,14 +429,6 @@ public:
   Layer* GetPrevSibling() { return mPrevSibling; }
   virtual Layer* GetFirstChild() { return nsnull; }
   const gfx3DMatrix& GetTransform() { return mTransform; }
-
-  
-
-
-
-
-
-  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs) { }
 
   
   
@@ -725,4 +702,4 @@ protected:
 }
 }
 
-#endif 
+#endif
