@@ -324,6 +324,11 @@ nsEditor::PostCreate()
 
       nsIMEStateManager::OnTextStateBlur(pc, nsnull);
       nsIMEStateManager::OnTextStateFocus(pc, focusedContent);
+
+      nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(focusedContent);
+      if (target) {
+        InitializeSelection(target);
+      }
     }
   }
   return NS_OK;
