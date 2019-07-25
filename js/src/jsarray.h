@@ -168,16 +168,6 @@ js_IndexToId(JSContext *cx, jsuint index, jsid *idp);
 
 
 
-
-
-
-
-extern JSBool
-js_IsArrayLike(JSContext *cx, JSObject *obj, JSBool *answerp, jsuint *lengthp);
-
-
-
-
 typedef JSBool (*JSComparator)(void *arg, const void *a, const void *b,
                                int *result);
 
