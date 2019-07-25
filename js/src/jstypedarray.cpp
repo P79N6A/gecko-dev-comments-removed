@@ -126,15 +126,12 @@ ArrayBuffer::create(JSContext *cx, JSObject *obj,
         rval->setObject(*obj);
     }
 
-    if (argc == 0) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                             JSMSG_TYPED_ARRAY_BAD_ARGS);
-        return false;
+    int32_t nbytes = 0;
+    if (argc > 0) {
+        if (!ValueToECMAInt32(cx, argv[0], &nbytes))
+            return false;
     }
 
-    int32_t nbytes;
-    if (!ValueToECMAInt32(cx, argv[0], &nbytes))
-        return false;
     if (nbytes < 0) {
         
 
@@ -746,19 +743,16 @@ class TypedArrayTemplate
         ThisTypeArray *tarray = 0;
 
         
-        if (argc == 0) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                 JSMSG_TYPED_ARRAY_BAD_ARGS);
-            return false;
-        }
-
         
-        if (argv[0].isInt32()) {
-            int32 len = argv[0].toInt32();
+        if (argc == 0 || argv[0].isInt32()) {
+            int32 len = 0;
+
+            if (argc != 0)
+                len = argv[0].toInt32();
+
             if (len < 0) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                      JSMSG_BAD_ARRAY_LENGTH);
-
                 return false;
             }
 
