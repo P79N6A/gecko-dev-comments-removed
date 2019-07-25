@@ -238,12 +238,20 @@ namespace mjit {
         JSC::ExecutableAllocator *execPool;
 
         
+        typedef js::HashSet<JSScript*, DefaultHasher<JSScript*>, js::SystemAllocPolicy> ScriptSet;
+        ScriptSet picScripts;
+
+        
         Trampolines trampolines;
 
         VMFrame *activeFrame;
 
         bool Initialize();
         void Finish();
+
+        bool addScript(JSScript *script);
+        void removeScript(JSScript *script);
+        void purge(JSContext *cx);
     };
 }
 #endif 
@@ -816,24 +824,6 @@ class FrameRegsIter
 };
 
 
-
-
-class AllFramesIter
-{
-public:
-    AllFramesIter(JSContext *cx);
-
-    bool done() const { return curfp == NULL; }
-    AllFramesIter& operator++();
-
-    JSStackFrame *fp() const { return curfp; }
-
-private:
-    CallStackSegment *curcs;
-    JSStackFrame *curfp;
-};
-
-
 typedef HashMap<jsbytecode*,
                 size_t,
                 DefaultHasher<jsbytecode*>,
@@ -1253,15 +1243,6 @@ struct JSCompartment {
     void *data;
     bool marked;
     js::WrapperMap crossCompartmentWrappers;
-    bool debugMode;
-
-#ifdef JS_METHODJIT
-    
-    JSC::ExecutableAllocator *execPool;
-#endif
-
-    
-    JSCList scripts;
 
     JSCompartment(JSRuntime *cx);
     ~JSCompartment();
@@ -1278,12 +1259,6 @@ struct JSCompartment {
     bool wrapException(JSContext *cx);
 
     void sweep(JSContext *cx);
-
-#ifdef JS_METHODJIT
-    bool addScript(JSContext *cx, JSScript *script);
-    void removeScript(JSScript *script);
-#endif
-    void purge(JSContext *cx);
 };
 
 struct JSRuntime {

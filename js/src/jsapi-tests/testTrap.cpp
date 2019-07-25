@@ -45,9 +45,6 @@ BEGIN_TEST(testTrap_gc)
     
     JS_SetOptions(cx, JS_GetOptions(cx) & ~JSOPTION_JIT);
 
-    
-    CHECK(JS_SetDebugMode(cx, JS_TRUE));
-
     jsbytecode *line2 = JS_LineNumberToPC(cx, script, 1);
     CHECK(line2);
 
