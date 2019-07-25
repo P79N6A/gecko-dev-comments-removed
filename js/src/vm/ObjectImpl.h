@@ -155,12 +155,6 @@ class ObjectImpl : public gc::Cell
     HeapSlot *slots;     
     HeapSlot *elements;  
 
-#ifdef DEBUG
-    void checkShapeConsistency();
-#else
-    void checkShapeConsistency() { }
-#endif
-
   private:
     static void staticAsserts() {
         MOZ_STATIC_ASSERT(sizeof(ObjectImpl) == sizeof(shadow::Object),
@@ -201,6 +195,13 @@ class ObjectImpl : public gc::Cell
     inline const Value & getDenseArrayElement(unsigned idx);
     inline uint32_t getDenseArrayInitializedLength();
 
+  protected:
+#ifdef DEBUG
+    void checkShapeConsistency();
+#else
+    void checkShapeConsistency() { }
+#endif
+
   private:
     
 
@@ -217,6 +218,8 @@ class ObjectImpl : public gc::Cell
     friend struct GCMarker;
     friend struct Shape;
     friend class NewObjectCache;
+
+    inline bool hasContiguousSlots(size_t start, size_t count) const;
 
     inline void invalidateSlotRange(size_t start, size_t count);
     inline void initializeSlotRange(size_t start, size_t count);
