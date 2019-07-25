@@ -1,3 +1,5 @@
+const EXPORTED_SYMBOLS = ['HTTPPollingTransport'];
+
 var Cc = Components.classes;
 var Ci = Components.interfaces;
 
@@ -17,6 +19,10 @@ InputStreamBuffer.prototype = {
 }
 
 function SocketClient( host, port ) {
+  
+
+
+
   this._init( host, port );
 }
 SocketClient.prototype = {
@@ -127,10 +133,6 @@ SocketClient.prototype = {
     this._transport.securityInfo.QueryInterface(Ci.nsISSLSocketControl);
     this._transport.securityInfo.StartTLS();
   },
-
-  
-  
-  
 
 };
 
@@ -330,7 +332,3 @@ HTTPPollingTransport.prototype = {
   },
 
 };
-
-
-
-
