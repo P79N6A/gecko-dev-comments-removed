@@ -4853,6 +4853,13 @@ main(int argc, char **argv, char **envp)
     if (op.getBoolOption('U'))
         JS_SetCStringsAreUTF8();
 
+#ifdef XP_WIN
+    
+    
+    extern int CALIBRATION_DELAY_COUNT;
+    CALIBRATION_DELAY_COUNT = 0;
+#endif
+
     
     rt = JS_NewRuntime(32L * 1024L * 1024L);
     if (!rt)
