@@ -441,7 +441,8 @@ nsDocAccessible*
 nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
 {
   
-  if (aDocument->IsInitialDocument() || !aDocument->IsVisible())
+  if (aDocument->IsInitialDocument() || !aDocument->IsVisible() ||
+      aDocument->GetDisplayDocument())
     return nsnull;
 
   
