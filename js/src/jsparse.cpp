@@ -328,138 +328,190 @@ Parser::trace(JSTracer *trc)
         tc->trace(trc);
 }
 
-static void
-UnlinkFunctionBoxes(JSParseNode *pn, JSTreeContext *tc);
 
-static void
-UnlinkFunctionBox(JSParseNode *pn, JSTreeContext *tc)
+static inline void
+AddNodeToFreeList(JSParseNode *pn, js::Parser *parser)
 {
-    JSFunctionBox *funbox = pn->pn_funbox;
-    if (funbox) {
-        JS_ASSERT(funbox->node == pn);
-        funbox->node = NULL;
+    
+    JS_ASSERT(pn != parser->nodeList);
 
-        if (funbox->parent && PN_OP(pn) == JSOP_LAMBDA) {
+    
+
+
+
+
+
+    JS_ASSERT(!pn->pn_used);
+    JS_ASSERT(!pn->pn_defn);
+
+#ifdef DEBUG
+    
+    memset(pn, 0xab, sizeof(*pn));
+#endif
+
+    pn->pn_next = parser->nodeList;
+    parser->nodeList = pn;
+
+#ifdef METER_PARSENODES
+    recyclednodes++;
+#endif
+}
+
+
+static inline void
+AddNodeToFreeList(JSParseNode *pn, JSTreeContext *tc)
+{
+    AddNodeToFreeList(pn, tc->parser);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+Parser::cleanFunctionList(JSFunctionBox **funboxHead)
+{
+    JSFunctionBox **link = funboxHead;
+    while (JSFunctionBox *box = *link) {
+        if (!box->node) {
             
 
 
 
+            *link = box->siblings;
+        } else if (!box->node->pn_funbox) {
+            
 
-            JS_ASSERT(!pn->pn_defn);
-            JS_ASSERT(!pn->pn_used);
-            JSParseNode **pnp = &funbox->parent->methods;
-            while (JSParseNode *method = *pnp) {
-                if (method == pn) {
-                    *pnp = method->pn_link;
-                    break;
+
+
+            *link = box->siblings;
+            AddNodeToFreeList(box->node, this);
+        } else {
+            
+
+            
+            {
+                JSParseNode **methodLink = &box->methods;
+                while (JSParseNode *method = *methodLink) {
+                    
+                    JS_ASSERT(method->pn_arity == PN_FUNC);
+                    if (!method->pn_funbox) {
+                        
+                        *methodLink = method->pn_link;
+                    } else {
+                        
+                        methodLink = &method->pn_link;
+                    }
                 }
-                pnp = &method->pn_link;
             }
-        }
 
-        JSFunctionBox **funboxp = &tc->functionList;
-        while (*funboxp) {
-            if (*funboxp == funbox) {
-                *funboxp = funbox->siblings;
-                break;
-            }
-            funboxp = &(*funboxp)->siblings;
-        }
+            
+            cleanFunctionList(&box->kids);
 
-        uint32 oldflags = tc->flags;
-        JSFunctionBox *oldlist = tc->functionList;
-
-        tc->flags = funbox->tcflags;
-        tc->functionList = funbox->kids;
-        UnlinkFunctionBoxes(pn->pn_body, tc);
-        funbox->kids = tc->functionList;
-        tc->flags = oldflags;
-        tc->functionList = oldlist;
-
-        
-        pn->pn_funbox = NULL;
-    }
-}
-
-static void
-UnlinkFunctionBoxes(JSParseNode *pn, JSTreeContext *tc)
-{
-    if (pn) {
-        switch (pn->pn_arity) {
-          case PN_NULLARY:
-            return;
-          case PN_UNARY:
-            UnlinkFunctionBoxes(pn->pn_kid, tc);
-            return;
-          case PN_BINARY:
-            UnlinkFunctionBoxes(pn->pn_left, tc);
-            UnlinkFunctionBoxes(pn->pn_right, tc);
-            return;
-          case PN_TERNARY:
-            UnlinkFunctionBoxes(pn->pn_kid1, tc);
-            UnlinkFunctionBoxes(pn->pn_kid2, tc);
-            UnlinkFunctionBoxes(pn->pn_kid3, tc);
-            return;
-          case PN_LIST:
-            for (JSParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next)
-                UnlinkFunctionBoxes(pn2, tc);
-            return;
-          case PN_FUNC:
-            UnlinkFunctionBox(pn, tc);
-            return;
-          case PN_NAME:
-            UnlinkFunctionBoxes(pn->maybeExpr(), tc);
-            return;
-          case PN_NAMESET:
-            UnlinkFunctionBoxes(pn->pn_tree, tc);
+            
+            link = &box->siblings;
         }
     }
 }
 
-static void
-RecycleFuncNameKids(JSParseNode *pn, JSTreeContext *tc);
+namespace js {
 
-static JSParseNode *
-RecycleTree(JSParseNode *pn, JSTreeContext *tc)
-{
-    JSParseNode *next, **head;
 
-    if (!pn)
-        return NULL;
 
+
+
+
+
+
+
+
+class NodeStack {
+  public:
+    NodeStack() : top(NULL) { }
+    bool empty() { return top == NULL; }
+    void push(JSParseNode *pn) {
+        pn->pn_next = top;
+        top = pn;
+    }
+    void pushUnlessNull(JSParseNode *pn) { if (pn) push(pn); }
     
-    JS_ASSERT(pn != tc->parser->nodeList);
-    next = pn->pn_next;
-    if (pn->pn_used || pn->pn_defn) {
+    void pushList(JSParseNode *pn) {
         
-
-
-
-
-
-
-
-        pn->pn_next = NULL;
-        RecycleFuncNameKids(pn, tc);
-    } else {
-        UnlinkFunctionBoxes(pn, tc);
-        head = &tc->parser->nodeList;
-        pn->pn_next = *head;
-        *head = pn;
-#ifdef METER_PARSENODES
-        recyclednodes++;
-#endif
+        *pn->pn_tail = top;
+        top = pn->pn_head;
     }
-    return next;
-}
+    JSParseNode *pop() {
+        JS_ASSERT(!empty());
+        JSParseNode *hold = top; 
+        top = top->pn_next;
+        return hold;
+    }
+  private:
+    JSParseNode *top;
+};
 
-static void
-RecycleFuncNameKids(JSParseNode *pn, JSTreeContext *tc)
+} 
+
+
+
+
+
+
+
+
+
+static bool
+PushNodeChildren(JSParseNode *pn, NodeStack *stack)
 {
     switch (pn->pn_arity) {
       case PN_FUNC:
-        UnlinkFunctionBox(pn, tc);
         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        pn->pn_funbox = NULL;
+        stack->pushUnlessNull(pn->pn_body);
+        pn->pn_body = NULL;
+        return false;
 
       case PN_NAME:
         
@@ -468,15 +520,115 @@ RecycleFuncNameKids(JSParseNode *pn, JSTreeContext *tc)
 
 
 
-        if (!pn->pn_used && pn->pn_expr) {
-            RecycleTree(pn->pn_expr, tc);
+
+
+
+
+
+
+        if (!pn->pn_used) {
+            stack->pushUnlessNull(pn->pn_expr);
             pn->pn_expr = NULL;
         }
-        break;
+        return !pn->pn_used && !pn->pn_defn;
 
-      default:
-        JS_ASSERT(PN_TYPE(pn) == TOK_FUNCTION);
+      case PN_LIST:
+        stack->pushList(pn);
+        break;
+      case PN_TERNARY:
+        stack->pushUnlessNull(pn->pn_kid1);
+        stack->pushUnlessNull(pn->pn_kid2);
+        stack->pushUnlessNull(pn->pn_kid3);
+        break;
+      case PN_BINARY:
+        if (pn->pn_left != pn->pn_right)
+            stack->pushUnlessNull(pn->pn_left);
+        stack->pushUnlessNull(pn->pn_right);
+        break;
+      case PN_UNARY:
+        stack->pushUnlessNull(pn->pn_kid);
+        break;
+      case PN_NULLARY:
+        
+
+
+
+        return !pn->pn_used && !pn->pn_defn;
     }
+
+    return true;
+}
+
+
+
+
+
+
+static void
+PrepareNodeForMutation(JSParseNode *pn, JSTreeContext *tc)
+{
+    if (pn->pn_arity != PN_NULLARY) {
+        if (pn->pn_arity == PN_FUNC) {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+            if (pn->pn_funbox)
+                pn->pn_funbox->node = NULL;
+        }
+
+        
+        NodeStack stack;
+        PushNodeChildren(pn, &stack);
+        
+
+
+
+        while (!stack.empty()) {
+            pn = stack.pop();
+            if (PushNodeChildren(pn, &stack))
+                AddNodeToFreeList(pn, tc);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+static JSParseNode *
+RecycleTree(JSParseNode *pn, JSTreeContext *tc)
+{
+    if (!pn)
+        return NULL;
+
+    JSParseNode *savedNext = pn->pn_next;
+
+    NodeStack stack;
+    for (;;) {
+        if (PushNodeChildren(pn, &stack))
+            AddNodeToFreeList(pn, tc);
+        if (stack.empty())
+            break;
+        pn = stack.pop();
+    }
+
+    return savedNext;
 }
 
 
@@ -486,7 +638,7 @@ RecycleFuncNameKids(JSParseNode *pn, JSTreeContext *tc)
 static JSParseNode *
 NewOrRecycledNode(JSTreeContext *tc)
 {
-    JSParseNode *pn, *pn2;
+    JSParseNode *pn;
 
     pn = tc->parser->nodeList;
     if (!pn) {
@@ -497,53 +649,8 @@ NewOrRecycledNode(JSTreeContext *tc)
             js_ReportOutOfScriptQuota(cx);
     } else {
         tc->parser->nodeList = pn->pn_next;
-
-        
-        switch (pn->pn_arity) {
-          case PN_FUNC:
-            RecycleTree(pn->pn_body, tc);
-            break;
-          case PN_LIST:
-            pn2 = pn->pn_head;
-            if (pn2) {
-                while (pn2 && !pn2->pn_used && !pn2->pn_defn)
-                    pn2 = pn2->pn_next;
-                if (pn2) {
-                    pn2 = pn->pn_head;
-                    do {
-                        pn2 = RecycleTree(pn2, tc);
-                    } while (pn2);
-                } else {
-                    *pn->pn_tail = tc->parser->nodeList;
-                    tc->parser->nodeList = pn->pn_head;
-#ifdef METER_PARSENODES
-                    recyclednodes += pn->pn_count;
-#endif
-                    break;
-                }
-            }
-            break;
-          case PN_TERNARY:
-            RecycleTree(pn->pn_kid1, tc);
-            RecycleTree(pn->pn_kid2, tc);
-            RecycleTree(pn->pn_kid3, tc);
-            break;
-          case PN_BINARY:
-            if (pn->pn_left != pn->pn_right)
-                RecycleTree(pn->pn_left, tc);
-            RecycleTree(pn->pn_right, tc);
-            break;
-          case PN_UNARY:
-            RecycleTree(pn->pn_kid, tc);
-            break;
-          case PN_NAME:
-            if (!pn->pn_used)
-                RecycleTree(pn->pn_expr, tc);
-            break;
-          case PN_NULLARY:
-            break;
-        }
     }
+
     if (pn) {
 #ifdef METER_PARSENODES
         parsenodes++;
@@ -1572,6 +1679,7 @@ MakeDefIntoUse(JSDefinition *dn, JSParseNode *pn, JSAtom *atom, JSTreeContext *t
         dn->pn_op = (js_CodeSpec[dn->pn_op].format & JOF_SET) ? JSOP_SETNAME : JSOP_NAME;
     } else if (dn->kind() == JSDefinition::FUNCTION) {
         JS_ASSERT(dn->pn_op == JSOP_NOP);
+        PrepareNodeForMutation(dn, tc);
         dn->pn_type = TOK_NAME;
         dn->pn_arity = PN_NAME;
         dn->pn_atom = atom;
@@ -1885,6 +1993,7 @@ MatchOrInsertSemicolon(JSContext *cx, TokenStream *ts)
 bool
 Parser::analyzeFunctions(JSTreeContext *tc)
 {
+    cleanFunctionList(&tc->functionList);
     if (!tc->functionList)
         return true;
     if (!markFunArgs(tc->functionList))
@@ -1930,6 +2039,7 @@ FindFunArgs(JSFunctionBox *funbox, int level, JSFunctionBoxQueue *queue)
 
     do {
         JSParseNode *fn = funbox->node;
+        JS_ASSERT(fn->pn_arity == PN_FUNC);
         JSFunction *fun = (JSFunction *) funbox->object;
         int fnlevel = level;
 
@@ -9675,22 +9785,13 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
     if (inCond) {
         int cond = Boolish(pn);
         if (cond >= 0) {
-            switch (pn->pn_arity) {
-              case PN_LIST:
-                pn2 = pn->pn_head;
-                do {
-                    pn3 = pn2->pn_next;
-                    RecycleTree(pn2, tc);
-                } while ((pn2 = pn3) != NULL);
-                break;
-              case PN_FUNC:
-                RecycleFuncNameKids(pn, tc);
-                break;
-              case PN_NULLARY:
-                break;
-              default:
-                JS_NOT_REACHED("unhandled arity");
-            }
+            
+
+
+
+
+
+            PrepareNodeForMutation(pn, tc);
             pn->pn_type = TOK_PRIMARY;
             pn->pn_op = cond ? JSOP_TRUE : JSOP_FALSE;
             pn->pn_arity = PN_NULLARY;
