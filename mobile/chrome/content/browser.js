@@ -636,6 +636,29 @@ var Browser = {
     this._browserView.onAfterVisibleMove();
   },
 
+  
+  scrollBrowserToContent: function scrollBrowserToContent() {
+    let browser = this.selectedBrowser;
+    if (browser) {
+      let scroll = Browser.getScrollboxPosition(Browser.contentScrollboxScroller);
+      let windowUtils = BrowserView.Util.getBrowserDOMWindowUtils(browser);
+      browser.contentWindow.scrollTo(scroll.x, scroll.y);
+    }
+  },
+
+  
+  scrollContentToBrowser: function scrollContentToBrowser() {
+    let bv = this._browserView;
+    let pos = BrowserView.Util.getContentScrollOffset(this.selectedBrowser);
+    pos.map(bv.browserToViewport);
+    if (pos.y != 0)
+      Browser.hideTitlebar();
+    else
+      Browser.pageScrollboxScroller.scrollTo(0, 0);
+    Browser.contentScrollboxScroller.scrollTo(pos.x, pos.y);
+    bv.onAfterVisibleMove();
+  },
+
   hideSidebars: function scrollSidebarsOffscreen() {
     let container = this.contentScrollbox;
     let rect = container.getBoundingClientRect();
@@ -2438,10 +2461,6 @@ ProgressController.prototype = {
 
       if (this._tab == Browser.selectedTab) {
         BrowserUI.updateURI();
-
-        
-        
-        Browser.scrollContentToTop();
       }
     }
   },
@@ -2610,6 +2629,7 @@ function Tab() {
   this._listener = null;
   this._loading = false;
   this._chromeTab = null;
+  this._resizeAndPaint = Util.bind(this._resizeAndPaint, this);
 
   
   
@@ -2638,11 +2658,29 @@ Tab.prototype = {
   _resizeAndPaint: function() {
     let bv = Browser._browserView;
     bv.commitBatchOperation();
+
+    if (this._loadingPaintCount == 0)
+      Browser.scrollContentToTop();
+
     if (this._loading) {
       
       bv.beginBatchOperation();
-      this._loadingTimeout = setTimeout(Util.bind(this._resizeAndPaint, this), 2000);
+      this._loadingTimeout = setTimeout(this._resizeAndPaint, 2000);
     } else {
+      delete this._loadingTimeout;
+    }
+    this._loadingPaintCount++;
+  },
+
+  _startResizeAndPaint: function() {
+    this._loadingTimeout = setTimeout(this._resizeAndPaint, 2000);
+    this._loadingPaintCount = 0;
+  },
+
+  _stopResizeAndPaint: function() {
+    if (this._loadingTimeout) {
+      Browser._browserView.commitBatchOperation();
+      clearTimeout(this._loadingTimeout);
       delete this._loadingTimeout;
     }
   },
@@ -2660,7 +2698,10 @@ Tab.prototype = {
     if (!this._loadingTimeout) {
       Browser._browserView.beginBatchOperation();
       Browser._browserView.invalidateEntireView();
-      this._loadingTimeout = setTimeout(Util.bind(this._resizeAndPaint, this), 2000);
+      
+      
+      Browser.scrollBrowserToContent();
+      this._startResizeAndPaint();
     }
   },
 
@@ -2668,6 +2709,7 @@ Tab.prototype = {
     
     let browser = this._browser;
     let metaData = Util.contentIsHandheld(browser);
+    let bv = Browser._browserView;
 
     if (metaData.reason == "handheld" || metaData.reason == "doctype") {
       browser.className = "browser-handheld";
@@ -2695,13 +2737,18 @@ Tab.prototype = {
     }
 
     this.setIcon(browser.mIconURL);
-
     this._loading = false;
-    clearTimeout(this._loadingTimeout);
 
     
+    bv.pauseRendering();
+    this._stopResizeAndPaint();
     
-    this._resizeAndPaint();
+    
+    
+    Util.executeSoon(function() {
+      Browser.scrollContentToBrowser();
+      bv.resumeRendering();
+    });
 
     
     this.restoreState();
@@ -2763,13 +2810,8 @@ Tab.prototype = {
     if (this._browser) {
       document.getElementById("browsers").removeChild(this._browser);
       this._browser = null;
-
-      if (this._loading) {
-        this._loading = false;
-        Browser._browserView.commitBatchOperation();
-        clearTimeout(this._loadingTimeout);
-        delete this._loadingTimeout;
-      }
+      this._loading = false;
+      this._stopResizeAndPaint();
     }
   },
 
