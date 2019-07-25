@@ -1486,7 +1486,9 @@ public:
 
 
 
-  virtual void PreloadStyle(nsIURI* aURI, const nsAString& aCharset) = 0;
+
+  virtual void PreloadStyle(nsIURI* aURI, const nsAString& aCharset,
+                            const nsAString& aCrossOriginAttr) = 0;
 
   
 
