@@ -1831,7 +1831,7 @@ nsHTMLInputElement::Click()
 
   
   nsAutoString disabled;
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
+  if (IsDisabled()) {
     return NS_OK;
   }
 
@@ -1925,13 +1925,10 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
   
   aVisitor.mCanHandle = PR_FALSE;
-  PRBool disabled;
-  nsresult rv = GetDisabled(&disabled);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (disabled) {
+  if (IsDisabled()) {
     return NS_OK;
   }
-  
+
   
   
   {
@@ -2515,6 +2512,11 @@ nsHTMLInputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   
   UpdateValueMissingValidityState();
 
+  
+  
+  
+  UpdateBarredFromConstraintValidation();
+
   return rv;
 }
 
@@ -2535,6 +2537,8 @@ nsHTMLInputElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   
   
   UpdateValueMissingValidityState();
+  
+  UpdateBarredFromConstraintValidation();
 }
 
 void
@@ -2999,9 +3003,7 @@ nsHTMLInputElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
   
   
   
-  PRBool disabled;
-  rv = GetDisabled(&disabled);
-  if (disabled || mType == NS_FORM_INPUT_RESET ||
+  if (IsDisabled() || mType == NS_FORM_INPUT_RESET ||
       mType == NS_FORM_INPUT_BUTTON ||
       ((mType == NS_FORM_INPUT_SUBMIT || mType == NS_FORM_INPUT_IMAGE) &&
        aFormSubmission->GetOriginatingElement() != this) ||
@@ -3191,9 +3193,9 @@ nsHTMLInputElement::SaveState()
   if (GET_BOOLBIT(mBitField, BF_DISABLED_CHANGED)) {
     rv |= GetPrimaryPresState(this, &state);
     if (state) {
-      PRBool disabled;
-      GetDisabled(&disabled);
-      state->SetDisabled(disabled);
+      
+      
+      state->SetDisabled(HasAttr(kNameSpaceID_None, nsGkAtoms::disabled));
     }
   }
 
@@ -3467,7 +3469,7 @@ nsHTMLInputElement::IsHTMLFocusable(PRBool aWithMouse, PRBool *aIsFocusable, PRI
     return PR_TRUE;
   }
 
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
+  if (IsDisabled()) {
     *aIsFocusable = PR_FALSE;
     return PR_TRUE;
   }
@@ -3591,8 +3593,7 @@ nsHTMLInputElement::GetValueMode() const
 PRBool
 nsHTMLInputElement::IsMutable() const
 {
-  return !HasAttr(kNameSpaceID_None, nsGkAtoms::disabled) &&
-         GetCurrentDoc() &&
+  return !IsDisabled() && GetCurrentDoc() &&
          !(DoesReadOnlyApply() &&
            HasAttr(kNameSpaceID_None, nsGkAtoms::readonly));
 }
@@ -3856,7 +3857,7 @@ nsHTMLInputElement::UpdateBarredFromConstraintValidation()
                                     mType == NS_FORM_INPUT_BUTTON ||
                                     mType == NS_FORM_INPUT_RESET ||
                                     HasAttr(kNameSpaceID_None, nsGkAtoms::readonly) ||
-                                    HasAttr(kNameSpaceID_None, nsGkAtoms::disabled));
+                                    IsDisabled());
 }
 
 nsresult
@@ -4374,5 +4375,15 @@ nsHTMLInputElement::OnValueChanged(PRBool aNotify)
       doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_MOZ_PLACEHOLDER);
     }
   }
+}
+
+void
+nsHTMLInputElement::OnFieldSetDisabledChanged(PRInt32 aStates)
+{
+  UpdateValueMissingValidityState();
+  UpdateBarredFromConstraintValidation();
+
+  aStates |= NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID;
+  nsGenericHTMLFormElement::OnFieldSetDisabledChanged(aStates);
 }
 

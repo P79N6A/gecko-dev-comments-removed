@@ -159,6 +159,8 @@ public:
   virtual PRBool RestoreState(nsPresState* aState);
   virtual PRBool AllowDrop();
 
+  virtual void OnFieldSetDisabledChanged(PRInt32 aStates);
+
   
   virtual PRBool IsHTMLFocusable(PRBool aWithMouse, PRBool *aIsFocusable, PRInt32 *aTabIndex);
 

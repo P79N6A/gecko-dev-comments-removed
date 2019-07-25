@@ -81,6 +81,8 @@ public:
 
   NS_IMETHOD Focus();
 
+  virtual bool IsDisabled() const { return PR_FALSE; }
+
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,

@@ -1234,6 +1234,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
       editorFlags |= nsIPlaintextEditor::eEditorReadonlyMask;
 
     
+    
     if (content->HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) 
       editorFlags |= nsIPlaintextEditor::eEditorDisabledMask;
 

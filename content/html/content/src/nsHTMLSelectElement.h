@@ -277,6 +277,8 @@ public:
   NS_IMETHOD SaveState();
   virtual PRBool RestoreState(nsPresState* aState);
 
+  virtual void OnFieldSetDisabledChanged(PRInt32 aStates);
+
   PRInt32 IntrinsicState() const;
 
   
@@ -285,6 +287,9 @@ public:
   
 
 
+  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                               nsIContent* aBindingParent,
+                               PRBool aCompileEventHandlers);
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  const nsAString* aValue, PRBool aNotify);
   virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
@@ -320,6 +325,10 @@ public:
   }
 
   virtual nsXPCClassInfo* GetClassInfo();
+
+  
+  void UpdateBarredFromConstraintValidation();
+
 protected:
   friend class nsSafeOptionListMutation;
 

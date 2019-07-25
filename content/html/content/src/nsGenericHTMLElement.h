@@ -521,6 +521,13 @@ public:
                                    const char* aDefault,
                                    nsAString& aResult);
 
+  
+
+
+  virtual bool IsDisabled() const {
+    return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
+  }
+
 protected:
   
 
@@ -843,6 +850,22 @@ public:
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
+  virtual bool IsDisabled() const {
+    return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled) ||
+           (mFieldSet && mFieldSet->IsDisabled());
+  }
+
+  
+
+
+
+
+
+
+
+
+  virtual void OnFieldSetDisabledChanged(PRInt32 aStates);
+
   
 
 
@@ -883,6 +906,11 @@ protected:
   
 
 
+  void UpdateFieldSet();
+
+  
+
+
 
 
 
@@ -916,6 +944,9 @@ protected:
 
   
   nsHTMLFormElement* mForm;
+
+  
+  nsGenericHTMLFormElement* mFieldSet;
 };
 
 
