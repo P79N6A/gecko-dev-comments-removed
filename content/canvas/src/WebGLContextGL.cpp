@@ -2555,6 +2555,10 @@ WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsiz
     if (width < 0 || height < 0)
         return ErrorInvalidValue("ReadPixels: negative size passed");
 
+    
+    if (width == 0 || height == 0)
+        return NS_OK;
+
     WebGLsizei boundWidth = mBoundFramebuffer ? mBoundFramebuffer->width() : mWidth;
     WebGLsizei boundHeight = mBoundFramebuffer ? mBoundFramebuffer->height() : mHeight;
 
@@ -2670,6 +2674,7 @@ WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsiz
         delete [] subrect_data;
     }
 
+    
     
     if (format == LOCAL_GL_ALPHA ||
         format == LOCAL_GL_RGBA)
