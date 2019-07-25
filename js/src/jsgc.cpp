@@ -522,6 +522,21 @@ ChunkPool::expireAndFree(JSRuntime *rt, bool releaseAll)
 Chunk::allocate(JSRuntime *rt)
 {
     Chunk *chunk = static_cast<Chunk *>(AllocChunk());
+
+#ifdef JSGC_ROOT_ANALYSIS
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    while (IsPoisonedPtr(chunk))
+        chunk = static_cast<Chunk *>(AllocChunk());
+#endif
+
     if (!chunk)
         return NULL;
     chunk->init();
