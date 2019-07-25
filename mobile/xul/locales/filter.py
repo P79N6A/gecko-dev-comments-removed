@@ -41,15 +41,10 @@ def test(mod, path, entity = None):
   
   if mod not in ("netwerk", "dom", "toolkit", "security/manager",
                  "services/sync", "embedding/android",
-                 "mobile"):
+                 "mobile/xul"):
     return False
 
-  
-  if mod == "toolkit" and path == "chrome/mozapps/plugins/plugins.dtd":
-    if entity.startswith('reloadPlugin.'): return False
-    if entity.startswith('report.'): return False
-
-  if mod != "mobile":
+  if mod != "mobile/xul":
     
     return True
   if not entity:
