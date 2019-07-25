@@ -5,8 +5,10 @@ function run_test() {
   Function.prototype.async = async.Async.sugar;
 
   async.makeTimer = function fake_makeTimer(cb) {
+    
+    
     callbackQueue.push(cb);
-    return "fake_nsITimer";
+    return "fake nsITimer";
   };
 
   var onCompleteCalled = false;
@@ -17,10 +19,18 @@ function run_test() {
 
   let timesYielded = 0;
 
-  function testAsyncFunc() {
+  function testAsyncFunc(x) {
     let self = yield;
     timesYielded++;
 
+    
+    do_check_eq(x, 5);
+
+    
+    do_check_eq(this.sampleProperty, true);
+
+    
+    
     callbackQueue.push(self.cb);
     yield;
 
@@ -28,7 +38,8 @@ function run_test() {
     self.done();
   }
 
-  testAsyncFunc.async({}, onComplete);
+  var thisArg = {sampleProperty: true};
+  testAsyncFunc.async(thisArg, onComplete, 5);
 
   do_check_eq(timesYielded, 1);
 
