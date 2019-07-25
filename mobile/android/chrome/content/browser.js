@@ -151,31 +151,7 @@ var MetadataProvider = {
   },
 
   paintingSuppressed: function paintingSuppressed() {
-    
-    let tab = BrowserApp.selectedTab;
-    if (!tab)
-      return false;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    let viewportDocumentId = tab.documentIdForCurrentViewport;
-    let contentDocumentId = ViewportHandler.getIdForDocument(tab.browser.contentDocument);
-    if (viewportDocumentId != null && viewportDocumentId != contentDocumentId)
-      return true;
-
-    
-    let cwu = tab.browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                                       .getInterface(Ci.nsIDOMWindowUtils);
-    return cwu.paintingSuppressed;
+    return false;
   }
 };
 
@@ -1456,7 +1432,6 @@ function Tab(aURL, aParams) {
   this.showProgress = true;
   this.create(aURL, aParams);
   this._zoom = 1.0;
-  this.documentIdForCurrentViewport = null;
   this.userScrollPos = { x: 0, y: 0 };
   this._pluginCount = 0;
   this._pluginOverlayShowing = false;
@@ -1582,7 +1557,6 @@ Tab.prototype = {
     BrowserApp.deck.selectedPanel = selectedPanel;
 
     this.browser = null;
-    this.documentIdForCurrentViewport = null;
   },
 
   
@@ -2260,15 +2234,6 @@ Tab.prototype = {
         let contentDocument = aSubject;
         if (contentDocument == this.browser.contentDocument) {
           ViewportHandler.updateMetadata(this);
-          this.documentIdForCurrentViewport = ViewportHandler.getIdForDocument(contentDocument);
-          
-          
-          
-          
-          
-          
-          
-          this.sendViewportMessage("Viewport:UpdateAndDraw");
         }
         break;
     }
@@ -3248,11 +3213,6 @@ var ViewportHandler = {
   
   _metadata: new WeakMap(),
 
-  
-  
-  _documentIds: new WeakMap(),
-  _nextDocumentId: 0,
-
   init: function init() {
     addEventListener("DOMMetaAdded", this, false);
     addEventListener("resize", this, false);
@@ -3408,19 +3368,6 @@ var ViewportHandler = {
       autoScale: true,
       scaleRatio: ViewportHandler.getScaleRatio()
     };
-  },
-
-  
-
-
-
-  getIdForDocument: function getIdForDocument(aDocument) {
-    let id = this._documentIds.get(aDocument, null);
-    if (id == null) {
-      id = this._nextDocumentId++;
-      this._documentIds.set(aDocument, id);
-    }
-    return id;
   }
 };
 
