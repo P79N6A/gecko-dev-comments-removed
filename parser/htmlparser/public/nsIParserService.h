@@ -129,27 +129,6 @@ class nsIParserService : public nsISupports {
   virtual nsresult CheckQName(const nsAString& aQName,
                               bool aNamespaceAware,
                               const PRUnichar** aColon) = 0;
-  virtual bool IsXMLLetter(PRUnichar aChar) = 0;
-  virtual bool IsXMLNCNameChar(PRUnichar aChar) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual PRUint32 DecodeEntity(const PRUnichar* aStart, const PRUnichar* aEnd,
-                                const PRUnichar** aNext,
-                                PRUnichar* aResult) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIParserService, NS_IPARSERSERVICE_IID)
