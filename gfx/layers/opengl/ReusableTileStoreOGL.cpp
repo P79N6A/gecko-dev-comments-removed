@@ -13,7 +13,7 @@ ReusableTileStoreOGL::~ReusableTileStoreOGL()
     return;
 
   mContext->MakeCurrent();
-  for (int i = 0; i < mTiles.Length(); i++)
+  for (PRUint32 i = 0; i < mTiles.Length(); i++)
     mContext->fDeleteTextures(1, &mTiles[i]->mTexture.mTextureHandle);
   mTiles.Clear();
 }
@@ -36,7 +36,7 @@ ReusableTileStoreOGL::HarvestTiles(TiledLayerBufferOGL* aVideoMemoryTiledBuffer,
   
   
   mContext->MakeCurrent();
-  for (int i = 0; i < mTiles.Length();) {
+  for (PRUint32 i = 0; i < mTiles.Length();) {
     ReusableTiledTextureOGL* tile = mTiles[i];
 
     nsIntRect tileRect;
@@ -163,7 +163,7 @@ ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
                                 const nsIntPoint& aRenderOffset)
 {
   
-  for (size_t i = 0; i < mTiles.Length(); i++) {
+  for (PRUint32 i = 0; i < mTiles.Length(); i++) {
     ReusableTiledTextureOGL* tile = mTiles[i];
 
     
