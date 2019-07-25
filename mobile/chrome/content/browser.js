@@ -2544,8 +2544,7 @@ Tab.prototype = {
       }
     }
 
-    if (browser.contentWindowWidth != viewportW || browser.contentWindowHeight != viewportH)
-      browser.setWindowSize(viewportW, viewportH);
+    browser.setWindowSize(viewportW, viewportH);
   },
 
   restoreViewportPosition: function restoreViewportPosition(aOldWidth, aNewWidth) {
@@ -2858,31 +2857,29 @@ var ViewableAreaObserver = {
 
     let newWidth = this.width;
     let newHeight = this.height;
-    if (newHeight == oldHeight && newWidth == oldWidth)
-      return;
+    if (newHeight != oldHeight || newWidth != oldWidth) {
+      Browser.styles["viewable-height"].height = newHeight + "px";
+      Browser.styles["viewable-height"].maxHeight = newHeight + "px";
 
-    Browser.styles["viewable-height"].height = newHeight + "px";
-    Browser.styles["viewable-height"].maxHeight = newHeight + "px";
+      Browser.styles["viewable-width"].width = newWidth + "px";
+      Browser.styles["viewable-width"].maxWidth = newWidth + "px";
 
-    Browser.styles["viewable-width"].width = newWidth + "px";
-    Browser.styles["viewable-width"].maxWidth = newWidth + "px";
+      for (let i = Browser.tabs.length - 1; i >= 0; i--) {
+        let tab = Browser.tabs[i];
+        tab.updateViewportSize();
 
-    for (let i = Browser.tabs.length - 1; i >= 0; i--) {
-      let tab = Browser.tabs[i];
-      tab.updateViewportSize();
-      tab.updateDefaultZoomLevel();
+        
+        
+        if (tab.browser.contentWindowWidth == oldWidth)
+          tab.restoreViewportPosition(oldWidth, newWidth);
+      }
 
       
-      
-      if (tab.browser.contentWindowWidth == oldWidth)
-        tab.restoreViewportPosition(oldWidth, newWidth);
+      setTimeout(function() {
+        let event = document.createEvent("Events");
+        event.initEvent("SizeChanged", true, false);
+        Elements.browsers.dispatchEvent(event);
+      }, 0);
     }
-
-    
-    setTimeout(function() {
-      let event = document.createEvent("Events");
-      event.initEvent("SizeChanged", true, false);
-      Elements.browsers.dispatchEvent(event);
-    }, 0);
   }
 };
