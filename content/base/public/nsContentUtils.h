@@ -1148,8 +1148,30 @@ public:
 
 
 
+
+
   static nsresult ParseDocumentHTML(const nsAString& aSourceBuffer,
-                                    nsIDocument* aTargetDocument);
+                                    nsIDocument* aTargetDocument,
+                                    bool aScriptingEnabledForNoscriptParsing);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult ConvertToPlainText(const nsAString& aSourceBuffer,
+                                     nsAString& aResultBuffer,
+                                     PRUint32 aFlags,
+                                     PRUint32 aWrapCol);
 
   
 
