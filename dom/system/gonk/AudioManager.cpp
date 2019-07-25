@@ -117,24 +117,47 @@ AudioManager::SetPhoneState(PRInt32 aState)
   return NS_OK;
 }
 
+
+
+
+
+
+
+
+
 NS_IMETHODIMP
 AudioManager::SetForceForUse(PRInt32 aUsage, PRInt32 aForce)
 {
-  
+  status_t status = 0;
+  if (static_cast<
+      status_t (*)(AudioSystem::force_use, AudioSystem::forced_config)
+      >(AudioSystem::setForceUse)) {
+    
+    status = AudioSystem::setForceUse((AudioSystem::force_use)aUsage,
+                                      (AudioSystem::forced_config)aForce);
+  } else if (static_cast<
+             status_t (*)(audio_policy_force_use_t, audio_policy_forced_cfg_t)
+             >(AudioSystem::setForceUse)) {
+    
+    status = AudioSystem::setForceUse((audio_policy_force_use_t)aUsage,
+                                      (audio_policy_forced_cfg_t)aForce);
+  }
 
-
-
-
-
-
-  return NS_OK;
+  return status ? NS_ERROR_FAILURE : NS_OK;
 }
 
 NS_IMETHODIMP
 AudioManager::GetForceForUse(PRInt32 aUsage, PRInt32* aForce) {
-  
-
-
-
+  if (static_cast<
+      AudioSystem::forced_config (*)(AudioSystem::force_use)
+      >(AudioSystem::getForceUse)) {
+    
+    *aForce = AudioSystem::getForceUse((AudioSystem::force_use)aUsage);
+  } else if (static_cast<
+             audio_policy_forced_cfg_t (*)(audio_policy_force_use_t)
+             >(AudioSystem::getForceUse)) {
+    
+    *aForce = AudioSystem::getForceUse((audio_policy_force_use_t)aUsage);
+  }
   return NS_OK;
 }
