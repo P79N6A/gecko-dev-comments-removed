@@ -234,7 +234,7 @@ bool
 JSWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id, Value *vp)
 {
     vp->setUndefined(); 
-    GET(wrappedObject(wrapper)->getProperty(cx, receiver, id, vp));
+    GET(wrappedObject(wrapper)->getGeneric(cx, receiver, id, vp));
 }
 
 bool
