@@ -595,12 +595,16 @@ public:
 #ifdef DEBUG
         PR_SetThreadPrivate(sCurrentGLContextTLS, this);
 
+	
+	
+#if 0
         
         
         
         
         NS_ASSERTION(IsOwningThreadCurrent(),
                      "MakeCurrent() called on different thread than this context was created on!");
+#endif
 #endif
         return MakeCurrentImpl(aForce);
     }
