@@ -2531,27 +2531,6 @@ PresShell::SelectAll()
   return mSelection->SelectAll();
 }
 
-static void
-DoCheckVisibility(nsPresContext* aPresContext,
-                  nsIContent* aNode,
-                  PRInt16 aStartOffset,
-                  PRInt16 aEndOffset,
-                  bool* aRetval)
-{
-  nsIFrame* frame = aNode->GetPrimaryFrame();
-  if (!frame) {
-    
-    return;
-  }
-
-  
-  
-  bool finished = false;
-  frame->CheckVisibility(aPresContext, aStartOffset, aEndOffset, true,
-                         &finished, aRetval);
-  
-}
-
 NS_IMETHODIMP
 PresShell::CheckVisibility(nsIDOMNode *node, PRInt16 startOffset, PRInt16 EndOffset, bool *_retval)
 {
@@ -2561,22 +2540,13 @@ PresShell::CheckVisibility(nsIDOMNode *node, PRInt16 startOffset, PRInt16 EndOff
   nsCOMPtr<nsIContent> content(do_QueryInterface(node));
   if (!content)
     return NS_ERROR_FAILURE;
-
-  DoCheckVisibility(mPresContext, content, startOffset, EndOffset, _retval);
-  return NS_OK;
-}
-
-nsresult
-PresShell::CheckVisibilityContent(nsIContent* aNode, PRInt16 aStartOffset,
-                                  PRInt16 aEndOffset, bool* aRetval)
-{
-  if (!aNode || aStartOffset > aEndOffset || !aRetval ||
-      aStartOffset < 0 || aEndOffset < 0) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  *aRetval = false;
-  DoCheckVisibility(mPresContext, aNode, aStartOffset, aEndOffset, aRetval);
+  nsIFrame *frame = content->GetPrimaryFrame();
+  if (!frame) 
+    return NS_OK;  
+  
+  
+  bool finished = false;
+  frame->CheckVisibility(mPresContext,startOffset,EndOffset,true,&finished, _retval);
   return NS_OK;
 }
 
@@ -8683,7 +8653,7 @@ void ReflowCountMgr::PaintCount(const char*     aName,
       aPresContext->DeviceContext()->GetMetricsFor(font,
         
         aPresContext->FrameManager()->GetRootFrame()->
-          GetStyleVisibility()->mLanguage,
+          GetStyleFont()->mLanguage,
         aPresContext->GetUserFontSet(), *getter_AddRefs(fm));
 
       aRenderingContext->SetFont(fm);
