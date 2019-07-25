@@ -59,11 +59,7 @@ const TESTS = [
     category: "DOM:HTML",
     matchString: "document.all",
   },
-  { 
-    file: "test-bug-595934-dom-events-external.html",
-    category: "DOM Events",
-    matchString: "clientWidth",
-  },
+  
   { 
     file: "test-bug-595934-dom-events-external2.html",
     category: "DOM Events",
