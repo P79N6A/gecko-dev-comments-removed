@@ -734,19 +734,11 @@ pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
 
 pref("urlclassifier.confirm-age", 2700);
 
-#ifdef MOZ_WIDGET_GTK2
-#define RESTRICT_CACHEMAX
-#endif
-#ifdef XP_OS2
-#define RESTRICT_CACHEMAX
-#endif
+
+pref("urlclassifier.updatecachemax", 41943040);
 
 
-#ifdef RESTRICT_CACHEMAX
-pref("urlclassifier.updatecachemax", 104857600);
-#else
-pref("urlclassifier.updatecachemax", -1);
-#endif
+pref("urlclassifier.lookupcachemax", 1048576);
 
 
 pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
