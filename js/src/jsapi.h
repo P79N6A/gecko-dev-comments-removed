@@ -1379,7 +1379,23 @@ class Anchor: AnchorPermitted<T> {
 
 
         volatile T sink;
+#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
+        
+
+
+
+
+
+
+
+
+
+
+
+        sink.asBits = hold.asBits;
+#else
         sink = hold;
+#endif
 #endif
     }
     T &get()      { return hold; }
