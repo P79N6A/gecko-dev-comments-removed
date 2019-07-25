@@ -46,6 +46,8 @@
 #include "nsComponentManagerUtils.h"
 #include "nsIBaseWindow.h"
 #include "nsIDOMWindow.h"
+#include "nsIWebProgress.h"
+#include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsThreadUtils.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -78,6 +80,9 @@
 #include "nsIDOMDocument.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsWeakReference.h"
+#include "nsISecureBrowserUI.h"
+#include "nsISSLStatusProvider.h"
+#include "nsSerializationHelper.h"
 
 #ifdef MOZ_WIDGET_QT
 #include <QX11EmbedWidget>
@@ -552,7 +557,56 @@ TabChild::OnSecurityChange(nsIWebProgress *aWebProgress,
                            nsIRequest *aRequest,
                            PRUint32 aState)
 {
-  SendNotifySecurityChange(aState);
+  nsCString secInfoAsString;
+  if (aState & nsIWebProgressListener::STATE_IS_SECURE) {
+    nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+    if (channel) {
+      nsCOMPtr<nsISupports> secInfoSupports;
+      channel->GetSecurityInfo(getter_AddRefs(secInfoSupports));
+
+      nsCOMPtr<nsISerializable> secInfoSerializable =
+          do_QueryInterface(secInfoSupports);
+      NS_SerializeToString(secInfoSerializable, secInfoAsString);
+    }
+  }
+
+  PRBool useSSLStatusObject = PR_FALSE;
+  nsAutoString securityTooltip;
+  nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(aWebProgress);
+  if (docShell) {
+    nsCOMPtr<nsISecureBrowserUI> secureUI;
+    docShell->GetSecurityUI(getter_AddRefs(secureUI));
+    if (secureUI) {
+      secureUI->GetTooltipText(securityTooltip);
+      nsCOMPtr<nsISupports> supports;
+      nsCOMPtr<nsISSLStatusProvider> provider = do_QueryInterface(secureUI);
+      nsresult rv = provider->GetSSLStatus(getter_AddRefs(supports));
+      if (NS_SUCCEEDED(rv) && supports) {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        useSSLStatusObject = PR_TRUE;
+      }
+    }
+  }
+
+  SendNotifySecurityChange(aState, useSSLStatusObject, securityTooltip,
+                           secInfoAsString);
   return NS_OK;
 }
 
