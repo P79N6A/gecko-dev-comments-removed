@@ -283,7 +283,7 @@ var Scratchpad = {
 
 
 
-  execute: function SP_execute()
+  run: function SP_run()
   {
     let selection = this.selectedText || this.textbox.value;
     let result = this.evalForContext(selection);
@@ -298,7 +298,7 @@ var Scratchpad = {
 
   inspect: function SP_inspect()
   {
-    let [selection, result] = this.execute();
+    let [selection, result] = this.run();
 
     if (result) {
       this.openPropertyPanel(selection, result);
@@ -311,7 +311,7 @@ var Scratchpad = {
 
 
 
-  print: function SP_print()
+  display: function SP_display()
   {
     let selectionStart = this.textbox.selectionStart;
     let selectionEnd = this.textbox.selectionEnd;
@@ -319,7 +319,7 @@ var Scratchpad = {
       selectionEnd = this.textbox.value.length;
     }
 
-    let [selection, result] = this.execute();
+    let [selection, result] = this.run();
     if (!result) {
       return;
     }
