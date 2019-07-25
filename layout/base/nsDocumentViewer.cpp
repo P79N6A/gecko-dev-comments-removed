@@ -1597,14 +1597,20 @@ DocumentViewerImpl::Destroy()
 
     
     
-    if (savePresentation) {
-      mSHEntry->SetContentViewer(this);
-    }
-    else {
-      mSHEntry->SyncPresentationState();
-    }
+
+    
+    
     nsCOMPtr<nsISHEntry> shEntry = mSHEntry; 
     mSHEntry = nsnull;
+
+    if (savePresentation) {
+      shEntry->SetContentViewer(this);
+    }
+
+    
+    
+    
+    shEntry->SyncPresentationState();
 
     
     
