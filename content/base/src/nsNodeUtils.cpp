@@ -35,6 +35,7 @@
 
 
 
+
 #include "nsNodeUtils.h"
 #include "nsContentUtils.h"
 #include "nsINode.h"
@@ -64,6 +65,7 @@
 #include "nsImageLoadingContent.h"
 #include "jsobj.h"
 #include "jsgc.h"
+#include "xpcpublic.h"
 
 using namespace mozilla::dom;
 
@@ -461,6 +463,11 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
   
 
   nsresult rv;
+  if (aCx) {
+      rv = xpc_MorphSlimWrapper(aCx, aNode);
+      NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   nsNodeInfoManager *nodeInfoManager = aNewNodeInfoManager;
 
   
@@ -516,11 +523,6 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
     }
   }
   else if (nodeInfoManager) {
-    
-    if (aCx && aOldScope->compartment() != aNewScope->compartment()) {
-      return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
-    }
-
     nsIDocument* oldDoc = aNode->GetOwnerDoc();
     PRBool wasRegistered = PR_FALSE;
     if (oldDoc && aNode->IsElement()) {
@@ -583,9 +585,28 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
     if (aCx) {
       nsIXPConnect *xpc = nsContentUtils::XPConnect();
       if (xpc) {
+        nsWrapperCache *cache;
+        CallQueryInterface(aNode, &cache);
+        JSObject *preservedWrapper = nsnull;
+
+        
+        
+        
+        
+        
+        if (cache && cache->PreservingWrapper()) {
+          preservedWrapper = cache->GetWrapper();
+          nsContentUtils::ReleaseWrapper(aNode, cache);
+        }
+
         nsCOMPtr<nsIXPConnectJSObjectHolder> oldWrapper;
         rv = xpc->ReparentWrappedNativeIfFound(aCx, aOldScope, aNewScope, aNode,
                                                getter_AddRefs(oldWrapper));
+
+        if (preservedWrapper) {
+          nsContentUtils::PreserveWrapper(aNode, cache);
+        }
+
         if (NS_FAILED(rv)) {
           aNode->mNodeInfo.swap(nodeInfo);
 

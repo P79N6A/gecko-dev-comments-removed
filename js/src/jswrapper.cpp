@@ -383,7 +383,8 @@ AutoCompartment::leave()
 
 
 
-JSCrossCompartmentWrapper::JSCrossCompartmentWrapper(uintN flags) : JSWrapper(flags)
+JSCrossCompartmentWrapper::JSCrossCompartmentWrapper(uintN flags)
+  : JSWrapper(CROSS_COMPARTMENT | flags)
 {
 }
 
