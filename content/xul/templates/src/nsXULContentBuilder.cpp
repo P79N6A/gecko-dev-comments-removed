@@ -634,17 +634,6 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             if (NS_FAILED(rv))
                 return rv;
 
-            if (! aNotify) {
-                
-                
-                
-                
-                nsCOMPtr<nsIXULDocument> xuldoc =
-                    do_QueryInterface(mRoot->GetDocument());
-                if (xuldoc)
-                    xuldoc->AddElementForID(realKid);
-            }
-
             
             SetContainerAttrs(realKid, aChild, PR_TRUE, PR_FALSE);
         }

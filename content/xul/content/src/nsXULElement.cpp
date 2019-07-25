@@ -272,7 +272,7 @@ nsXULElement::Create(nsXULPrototypeElement* aPrototype, nsINodeInfo *aNodeInfo,
 
         element->mPrototype = aPrototype;
         if (aPrototype->mHasIdAttribute) {
-            element->SetFlags(NODE_MAY_HAVE_ID);
+            element->SetFlags(NODE_HAS_ID);
         }
         if (aPrototype->mHasClassAttribute) {
             element->SetFlags(NODE_MAY_HAVE_CLASS);
@@ -874,12 +874,9 @@ nsXULElement::BindToTree(nsIDocument* aDocument,
                          nsIContent* aBindingParent,
                          PRBool aCompileEventHandlers)
 {
-  
-  
-  
-  nsresult rv = nsStyledElementBase::BindToTree(aDocument, aParent,
-                                                aBindingParent,
-                                                aCompileEventHandlers);
+  nsresult rv = nsStyledElement::BindToTree(aDocument, aParent,
+                                            aBindingParent,
+                                            aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aDocument) {
@@ -1306,6 +1303,13 @@ nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
+    PRBool isId = PR_FALSE;
+    if (aName == nsGkAtoms::id && aNameSpaceID == kNameSpaceID_None) {
+      
+      RemoveFromIdTable();
+      isId = PR_TRUE;
+    }
+
     PRInt32 index = mAttrsAndChildren.IndexOfAttr(aName, aNameSpaceID);
     if (index < 0) {
         NS_ASSERTION(!protoattr, "we used to have a protoattr, we should now "
@@ -1358,6 +1362,10 @@ nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
     
     
     
+
+    if (isId) {
+        UnsetFlags(NODE_HAS_ID);
+    }
 
     if (aNameSpaceID == kNameSpaceID_None) {
         if (aName == nsGkAtoms::hidechrome &&
@@ -1718,25 +1726,21 @@ nsXULElement::GetBuilder(nsIXULTemplateBuilder** aBuilder)
 
 
 
+
 nsIAtom*
-nsXULElement::GetID() const
+nsXULElement::DoGetID() const
 {
-    if (!HasFlag(NODE_MAY_HAVE_ID)) {
-        return nsnull;
-    }
+    NS_ASSERTION(HasFlag(NODE_HAS_ID), "Unexpected call");
+    const nsAttrValue* attr =
+        FindLocalOrProtoAttr(kNameSpaceID_None, nsGkAtoms::id);
 
-    const nsAttrValue* attrVal = FindLocalOrProtoAttr(kNameSpaceID_None, nsGkAtoms::id);
+    
+    
+    
+    
+    
 
-    NS_ASSERTION(!attrVal ||
-                 attrVal->Type() == nsAttrValue::eAtom ||
-                 (attrVal->Type() == nsAttrValue::eString &&
-                  attrVal->GetStringValue().IsEmpty()),
-                 "unexpected attribute type");
-
-    if (attrVal && attrVal->Type() == nsAttrValue::eAtom) {
-        return attrVal->GetAtomValue();
-    }
-    return nsnull;
+    return attr ? attr->GetAtomValue() : nsnull;
 }
 
 const nsAttrValue*

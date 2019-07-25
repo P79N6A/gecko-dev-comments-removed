@@ -2635,26 +2635,18 @@ FindNamedItems(nsIAtom* aName, nsIContent *aContent,
   NS_ASSERTION(!aEntry->IsInvalidName(),
                "Entry that should never have a list passed to FindNamedItems()!");
 
-  if (!aContent->IsElement()) {
-    
-    return;
+  if (aContent->HasFlag(NODE_HAS_NAME)) {
+    NS_ASSERTION(nsGenericHTMLElement::FromContent(aContent),
+                 "Only HTML Elements should have a name");
+  
+    nsGenericHTMLElement* elm = static_cast<nsGenericHTMLElement*>(aContent);
+    if (elm->GetParsedAttr(nsGkAtoms::name)->GetAtomValue() == aName) {
+      aEntry->AddNameElement(elm);
+    }
   }
 
-  Element* element = aContent->AsElement();
-
-  if (aName == nsContentUtils::IsNamedItem(element)) {
-    aEntry->AddNameElement(element);
-  }
-
-  if (!aEntry->GetIdElement() &&
-      
-      aName == element->GetID()) {
-    aEntry->AddIdElement(element);
-  }
-
-  PRUint32 i, count = element->GetChildCount();
-  for (i = 0; i < count; ++i) {
-    FindNamedItems(aName, element->GetChildAt(i), aEntry);
+  for (nsINode::ChildIterator iter(aContent); !iter.IsDone(); iter.Next()) {
+    FindNamedItems(aName, iter, aEntry);
   }
 }
 
@@ -2678,26 +2670,6 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
   }
 
   
-  
-  
-  
-
-  
-  
-  PRUint32 generation = mIdentifierMap.GetGeneration();
-  
-  
-  
-  FlushPendingNotifications(entry->HasNameContentList() ?
-                            Flush_ContentAndNotify : Flush_Content);
-
-  if (generation != mIdentifierMap.GetGeneration()) {
-    
-    
-    
-    entry = mIdentifierMap.PutEntry(name);
-    NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
-  }
 
   if (!entry->HasNameContentList()) {
 #ifdef DEBUG_jst

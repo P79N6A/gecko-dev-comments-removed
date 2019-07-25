@@ -1354,12 +1354,6 @@ public:
 
 
 
-  static nsIAtom* IsNamedItem(Element* aElement);
-
-  
-
-
-
 
 
 

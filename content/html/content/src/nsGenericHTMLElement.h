@@ -501,6 +501,26 @@ protected:
   
 
 
+  void AddToNameTable(nsIAtom* aName) {
+    NS_ASSERTION(HasFlag(NODE_HAS_NAME), "Node lacking NODE_HAS_NAME flag");
+    nsIDocument* doc = GetCurrentDoc();
+    if (doc && !IsInAnonymousSubtree()) {
+      doc->AddToNameTable(this, aName);
+    }
+  }
+  void RemoveFromNameTable() {
+    if (HasFlag(NODE_HAS_NAME)) {
+      nsIDocument* doc = GetCurrentDoc();
+      if (doc) {
+        doc->RemoveFromNameTable(this, GetParsedAttr(nsGkAtoms::name)->
+                                         GetAtomValue());
+      }
+    }
+  }
+
+  
+
+
 
   void RegAccessKey()
   {

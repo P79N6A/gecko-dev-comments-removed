@@ -1454,7 +1454,7 @@ nsDocument::~nsDocument()
 
   
   
-  DestroyLinkMap();
+  DestroyElementMaps();
 
   nsAutoScriptBlocker scriptBlocker;
 
@@ -1883,8 +1883,6 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   }
 #endif
 
-  mIdentifierMap.Clear();
-
   SetPrincipal(nsnull);
   mSecurityInfo = nsnull;
 
@@ -1900,7 +1898,7 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
 
   
   
-  DestroyLinkMap();
+  DestroyElementMaps();
 
   PRUint32 count = mChildren.ChildCount();
   { 
@@ -2334,51 +2332,38 @@ nsDocument::GetLastModified(nsAString& aLastModified)
 }
 
 void
-nsDocument::UpdateNameTableEntry(Element *aElement)
+nsDocument::AddToNameTable(Element *aElement, nsIAtom* aName)
 {
   if (!mIsRegularHTML)
     return;
 
-  nsIAtom* name = nsContentUtils::IsNamedItem(aElement);
-  if (!name)
-    return;
+  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aName);
 
-  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(name);
-  if (!entry) {
-    
-    return;
+  
+
+  if (entry) {
+    entry->AddNameElement(aElement);
   }
-
-  entry->AddNameElement(aElement);
 }
 
 void
-nsDocument::RemoveFromNameTable(Element *aElement)
+nsDocument::RemoveFromNameTable(Element *aElement, nsIAtom* aName)
 {
-  if (!mIsRegularHTML)
+  
+  if (!mIsRegularHTML || mIdentifierMap.Count() == 0)
     return;
 
-  nsIAtom* name = nsContentUtils::IsNamedItem(aElement);
-  if (!name)
+  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aName);
+  if (!entry) 
     return;
-
-  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(name);
-  if (!entry) {
-    
-    return;
-  }
 
   entry->RemoveNameElement(aElement);
 }
 
 void
-nsDocument::UpdateIdTableEntry(Element *aElement)
+nsDocument::AddToIdTable(Element *aElement, nsIAtom* aId)
 {
-  nsIAtom* id = aElement->GetID();
-  if (!id)
-    return;
-
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(id);
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aId);
 
   if (entry) { 
     entry->AddIdElement(aElement);
@@ -2386,127 +2371,21 @@ nsDocument::UpdateIdTableEntry(Element *aElement)
 }
 
 void
-nsDocument::RemoveFromIdTable(Element *aElement)
+nsDocument::RemoveFromIdTable(Element *aElement, nsIAtom* aId)
 {
-  nsIAtom* id = aElement->GetID();
-  if (!id)
-    return;
+  NS_ASSERTION(aId, "huhwhatnow?");
 
-  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(id);
+  
+  if (mIdentifierMap.Count() == 0) {
+    return;
+  }
+
+  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aId);
   if (!entry) 
     return;
 
   if (entry->RemoveIdElement(aElement)) {
-    mIdentifierMap.RemoveEntry(id);
-  }
-}
-
-void
-nsDocument::UnregisterNamedItems(nsIContent *aContent)
-{
-  if (!aContent->IsElement()) {
-    
-    return;
-  }
-
-  RemoveFromNameTable(aContent->AsElement());
-  RemoveFromIdTable(aContent->AsElement());
-
-  for (nsINode::ChildIterator iter(aContent); !iter.IsDone(); iter.Next()) {
-    UnregisterNamedItems(iter);
-  }
-}
-
-void
-nsDocument::RegisterNamedItems(nsIContent *aContent)
-{
-  if (!aContent->IsElement()) {
-    
-    return;
-  }
-
-  UpdateNameTableEntry(aContent->AsElement());
-  UpdateIdTableEntry(aContent->AsElement());
-
-  for (nsINode::ChildIterator iter(aContent); !iter.IsDone(); iter.Next()) {
-    RegisterNamedItems(iter);
-  }
-}
-
-void
-nsDocument::ContentAppended(nsIDocument* aDocument,
-                            nsIContent* aContainer,
-                            nsIContent* aFirstNewContent,
-                            PRInt32 aNewIndexInContainer)
-{
-  NS_ASSERTION(aDocument == this, "unexpected doc");
-
-  for (nsINode::ChildIterator iter(aContainer, aNewIndexInContainer);
-       !iter.IsDone();
-       iter.Next()) {
-    RegisterNamedItems(iter);
-  }
-}
-
-void
-nsDocument::ContentInserted(nsIDocument* aDocument,
-                            nsIContent* aContainer,
-                            nsIContent* aContent,
-                            PRInt32 aIndexInContainer)
-{
-  NS_ASSERTION(aDocument == this, "unexpected doc");
-
-  NS_ABORT_IF_FALSE(aContent, "Null content!");
-
-  RegisterNamedItems(aContent);
-}
-
-void
-nsDocument::ContentRemoved(nsIDocument* aDocument,
-                           nsIContent* aContainer,
-                           nsIContent* aChild,
-                           PRInt32 aIndexInContainer)
-{
-  NS_ASSERTION(aDocument == this, "unexpected doc");
-
-  NS_ABORT_IF_FALSE(aChild, "Null content!");
-
-  UnregisterNamedItems(aChild);
-}
-
-void
-nsDocument::AttributeWillChange(nsIDocument* aDocument,
-                                nsIContent* aContent, PRInt32 aNameSpaceID,
-                                nsIAtom* aAttribute, PRInt32 aModType)
-{
-  NS_ABORT_IF_FALSE(aContent && aContent->IsElement(), "Null content!");
-  NS_PRECONDITION(aAttribute, "Must have an attribute that's changing!");
-
-  if (aNameSpaceID != kNameSpaceID_None)
-    return;
-  if (aAttribute == nsGkAtoms::name) {
-    RemoveFromNameTable(aContent->AsElement());
-  } else if (aAttribute == aContent->GetIDAttributeName()) {
-    RemoveFromIdTable(aContent->AsElement());
-  }
-}
-
-void
-nsDocument::AttributeChanged(nsIDocument* aDocument,
-                             nsIContent* aContent, PRInt32 aNameSpaceID,
-                             nsIAtom* aAttribute, PRInt32 aModType)
-{
-  NS_ASSERTION(aDocument == this, "unexpected doc");
-
-  NS_ABORT_IF_FALSE(aContent && aContent->IsElement(), "Null content!");
-  NS_PRECONDITION(aAttribute, "Must have an attribute that's changing!");
-
-  if (aNameSpaceID != kNameSpaceID_None)
-    return;
-  if (aAttribute == nsGkAtoms::name) {
-    UpdateNameTableEntry(aContent->AsElement());
-  } else if (aAttribute == aContent->GetIDAttributeName()) {
-    UpdateIdTableEntry(aContent->AsElement());
+    mIdentifierMap.RemoveEntry(aId);
   }
 }
 
@@ -3325,7 +3204,7 @@ nsDocument::RemoveChildAt(PRUint32 aIndex, PRBool aNotify, PRBool aMutationEvent
 
   if (oldKid->IsElement()) {
     
-    DestroyLinkMap();
+    DestroyElementMaps();
   }
 
   nsresult rv =
@@ -3859,80 +3738,35 @@ nsDocument::CheckGetElementByIdArg(const nsIAtom* aId)
   return PR_TRUE;
 }
 
-nsIdentifierMapEntry*
-nsDocument::GetElementByIdInternal(nsIAtom* aID)
-{
-  
-  
-  
-  
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aID);
-  NS_ENSURE_TRUE(entry, nsnull);
-
-  if (entry->GetIdElement())
-    return entry;
-
-  
-  
-  
-
-  
-  
-  PRUint32 generation = mIdentifierMap.GetGeneration();
-  
-  FlushPendingNotifications(Flush_ContentAndNotify);
-
-  if (generation != mIdentifierMap.GetGeneration()) {
-    
-    
-    
-    entry = mIdentifierMap.PutEntry(aID);
-  }
-  
-  return entry;
-}
-
 Element*
-nsDocument::GetElementById(const nsAString& aElementId, nsresult *aResult)
+nsDocument::GetElementById(const nsAString& aElementId)
 {
   nsCOMPtr<nsIAtom> idAtom(do_GetAtom(aElementId));
   if (!idAtom) {
-    *aResult = NS_ERROR_OUT_OF_MEMORY;
-
+    
+    
     return nsnull;
   }
 
   if (!CheckGetElementByIdArg(idAtom)) {
-    *aResult = NS_OK;
-
     return nsnull;
   }
 
-  nsIdentifierMapEntry *entry = GetElementByIdInternal(idAtom);
-  if (!entry) {
-    *aResult = NS_ERROR_OUT_OF_MEMORY;
-
-    return nsnull;
-  }
-
-  *aResult = NS_OK;
-
-  return entry->GetIdElement();
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(idAtom);
+  return entry ? entry->GetIdElement() : nsnull;
 }
 
 NS_IMETHODIMP
 nsDocument::GetElementById(const nsAString& aId, nsIDOMElement** aReturn)
 {
-  nsresult rv;
-  Element *content = GetElementById(aId, &rv);
+  Element *content = GetElementById(aId);
   if (content) {
-    rv = CallQueryInterface(content, aReturn);
-  }
-  else {
-    *aReturn = nsnull;
+    return CallQueryInterface(content, aReturn);
   }
 
-  return rv;
+  *aReturn = nsnull;
+
+  return NS_OK;
 }
 
 Element*
@@ -3942,7 +3776,7 @@ nsDocument::AddIDTargetObserver(nsIAtom* aID, IDTargetObserver aObserver,
   if (!CheckGetElementByIdArg(aID))
     return nsnull;
 
-  nsIdentifierMapEntry *entry = GetElementByIdInternal(aID);
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aID);
   NS_ENSURE_TRUE(entry, nsnull);
 
   entry->AddContentChangeCallback(aObserver, aData);
@@ -3958,9 +3792,6 @@ nsDocument::RemoveIDTargetObserver(nsIAtom* aID,
 
   nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aID);
   if (!entry) {
-    
-    
-    
     return;
   }
 
@@ -7380,12 +7211,13 @@ nsDocument::ForgetLink(Link* aLink)
 }
 
 void
-nsDocument::DestroyLinkMap()
+nsDocument::DestroyElementMaps()
 {
 #ifdef DEBUG
   mStyledLinksCleared = true;
 #endif
   mStyledLinks.Clear();
+  mIdentifierMap.Clear();
 }
 
 static

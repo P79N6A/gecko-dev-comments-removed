@@ -379,7 +379,6 @@ public:
   virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
                               PRBool aNullParent = PR_TRUE);
   virtual already_AddRefed<nsINodeList> GetChildren(PRInt32 aChildType);
-  virtual nsIAtom *GetIDAttributeName() const;
   virtual nsIAtom *GetClassAttributeName() const;
   virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const;
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
@@ -451,7 +450,6 @@ public:
   void ListAttributes(FILE* out) const;
 #endif
 
-  virtual nsIAtom* GetID() const;
   virtual const nsAttrValue* DoGetClasses() const;
   NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
   virtual nsICSSStyleRule* GetInlineStyleRule();
@@ -996,13 +994,27 @@ protected:
   
 
 
-
-
-
-
-
-
-  void GetContentsAsText(nsAString& aText);
+  void AddToIdTable(nsIAtom* aId) {
+    NS_ASSERTION(HasFlag(NODE_HAS_ID), "Node lacking NODE_HAS_ID flag");
+    nsIDocument* doc = GetCurrentDoc();
+    if (doc && (!IsInAnonymousSubtree() || doc->IsXUL())) {
+      doc->AddToIdTable(this, aId);
+    }
+  }
+  void RemoveFromIdTable() {
+    if (HasFlag(NODE_HAS_ID)) {
+      nsIDocument* doc = GetCurrentDoc();
+      if (doc) {
+        nsIAtom* id = DoGetID();
+        
+        
+        
+        if (id) {
+          doc->RemoveFromIdTable(this, DoGetID());
+        }
+      }
+    }
+  }
 
   
 

@@ -116,8 +116,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID      \
-{ 0xdf6c0752, 0xe780, 0x4576, \
-  { 0x95, 0x3c, 0x7e, 0xf1, 0xde, 0x9f, 0xd7, 0xf0 } }
+{ 0x3ee6a14b, 0x83b5, 0x4629, \
+  { 0x96, 0x9b, 0xe9, 0x84, 0x7c, 0x57, 0x24, 0x3c } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -672,6 +672,17 @@ public:
 
   
 
+
+  virtual void AddToIdTable(mozilla::dom::Element* aElement, nsIAtom* aId) = 0;
+  virtual void RemoveFromIdTable(mozilla::dom::Element* aElement,
+                                 nsIAtom* aId) = 0;
+  virtual void AddToNameTable(mozilla::dom::Element* aElement,
+                              nsIAtom* aName) = 0;
+  virtual void RemoveFromNameTable(mozilla::dom::Element* aElement,
+                                   nsIAtom* aName) = 0;
+
+  
+
   
 
   
@@ -801,6 +812,10 @@ public:
   PRBool IsHTML() const
   {
     return mIsRegularHTML;
+  }
+  PRBool IsXUL() const
+  {
+    return mIsXUL;
   }
 
   virtual PRBool IsScriptEnabled() = 0;
@@ -1369,8 +1384,7 @@ public:
 
 
 
-  virtual mozilla::dom::Element* GetElementById(const nsAString& aElementId,
-                                                nsresult* aResult) = 0;
+  virtual mozilla::dom::Element* GetElementById(const nsAString& aElementId) = 0;
 
 protected:
   ~nsIDocument()
@@ -1462,6 +1476,7 @@ protected:
   PRPackedBool mShellIsHidden;
 
   PRPackedBool mIsRegularHTML;
+  PRPackedBool mIsXUL;
 
   
   

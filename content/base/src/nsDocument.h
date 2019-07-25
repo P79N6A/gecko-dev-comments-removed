@@ -653,6 +653,17 @@ public:
   
 
 
+  virtual void AddToIdTable(mozilla::dom::Element* aElement, nsIAtom* aId);
+  virtual void RemoveFromIdTable(mozilla::dom::Element* aElement,
+                                 nsIAtom* aId);
+  virtual void AddToNameTable(mozilla::dom::Element* aElement,
+                              nsIAtom* aName);
+  virtual void RemoveFromNameTable(mozilla::dom::Element* aElement,
+                                   nsIAtom* aName);
+
+  
+
+
 
 
   virtual void AddObserver(nsIDocumentObserver* aObserver);
@@ -808,13 +819,6 @@ public:
   NS_DECL_NSIDOMNSEVENTTARGET
 
   
-  NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
-  NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
-  NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
-  NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
-  NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTEWILLCHANGE
-
-  
   virtual nsIPrincipal* GetPrincipal();
 
   
@@ -937,17 +941,10 @@ public:
     GetElementsByTagNameNS(const nsAString& aNamespaceURI,
                            const nsAString& aLocalName);
 
-  virtual mozilla::dom::Element *GetElementById(const nsAString& aElementId,
-                                                nsresult *aResult);
+  virtual mozilla::dom::Element *GetElementById(const nsAString& aElementId);
 
 protected:
   friend class nsNodeUtils;
-  void RegisterNamedItems(nsIContent *aContent);
-  void UnregisterNamedItems(nsIContent *aContent);
-  void UpdateNameTableEntry(Element *aElement);
-  void UpdateIdTableEntry(Element *aElement);
-  void RemoveFromNameTable(Element *aElement);
-  void RemoveFromIdTable(Element *aElement);
 
   
 
@@ -967,7 +964,7 @@ protected:
 
   
   
-  void DestroyLinkMap();
+  void DestroyElementMaps();
 
   
   void RefreshLinkHrefs();

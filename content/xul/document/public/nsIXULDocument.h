@@ -49,8 +49,8 @@ class nsIScriptGlobalObjectOwner;
 
 
 #define NS_IXULDOCUMENT_IID \
-{ 0xe486ea2a, 0x5b37, 0x4107, \
-  { 0x90, 0x5f, 0xee, 0x06, 0x2f, 0xb4, 0xff, 0x97 }}
+{ 0x3e872e97, 0xb678, 0x418e, \
+  { 0xa7, 0xe3, 0x41, 0xb8, 0x30, 0x5d, 0x4e, 0x75 } }
 
 
 
@@ -62,14 +62,6 @@ class nsIXULDocument : public nsISupports
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IXULDOCUMENT_IID)
-
-  
-  
-
-  
-
-
-  NS_IMETHOD AddElementForID(nsIContent* aElement) = 0;
 
   
 

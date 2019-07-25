@@ -71,8 +71,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID       \
-{ 0x9e3b1a15, 0x72d5, 0x4e4f, \
-  { 0x8f, 0x4b, 0x75, 0xde, 0x07, 0x9c, 0x16, 0xdc } }
+{ 0x1450010b, 0xcdca, 0x451c, \
+  { 0xba, 0xdc, 0x07, 0x90, 0x89, 0x7b, 0xce, 0xb8 } }
 
 
 
@@ -778,7 +778,12 @@ public:
 
 
 
-  virtual nsIAtom* GetID() const = 0;
+  nsIAtom* GetID() const {
+    if (HasFlag(NODE_HAS_ID)) {
+      return DoGetID();
+    }
+    return nsnull;
+  }
 
   
 
@@ -914,6 +919,13 @@ public:
   PRBool IsEqual(nsIContent *aOther);
 
   virtual PRBool IsEqualNode(nsINode* aOther);
+
+protected:
+  
+
+
+
+  virtual nsIAtom* DoGetID() const = 0;
 
 private:
   

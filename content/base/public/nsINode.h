@@ -119,7 +119,8 @@ enum {
 
   
   
-  NODE_MAY_HAVE_ID =             0x00000200U,
+  
+  NODE_HAS_ID =                  0x00000200U,
   
   
   NODE_MAY_HAVE_CLASS =          0x00000400U,
@@ -175,7 +176,10 @@ enum {
   NODE_HAS_ACCESSKEY           = 0x00400000U,
 
   
-  NODE_SCRIPT_TYPE_OFFSET =               23,
+  NODE_HAS_NAME                = 0x00800000U,
+
+  
+  NODE_SCRIPT_TYPE_OFFSET =               24,
 
   NODE_SCRIPT_TYPE_SIZE =                  4,
 
