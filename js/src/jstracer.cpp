@@ -10070,74 +10070,55 @@ TraceRecorder::unbox_int_id(LIns *id_ins)
 JS_REQUIRES_STACK RecordingStatus
 TraceRecorder::getThis(LIns*& this_ins)
 {
-    
+    JSStackFrame *fp = cx->fp;
+    JS_ASSERT_IF(fp->argv, fp->argv[-1] == fp->getThisValue());
 
+    if (!fp->hasFunction()) {
+        
+        
+        
+        
 
-    Value original = NullValue();
-    if (cx->fp->argv) {
-        original = cx->fp->argv[-1];
-        if (!original.isPrimitive()) {
-            if (original.toObject().hasClass(&js_WithClass))
-                RETURN_STOP("can't trace getThis on With object");
-            guardNotClass(get(&cx->fp->argv[-1]), &js_WithClass, snapshot(MISMATCH_EXIT),
-                          LOAD_NORMAL);
-        }
+        JS_ASSERT(!fp->argv);
+        JS_ASSERT(!fp->getThisValue().isPrimitive());
+
+#ifdef DEBUG
+        JSObject *obj = globalObj->thisObject(cx);
+        if (!obj)
+            RETURN_ERROR("thisObject hook failed");
+        JS_ASSERT(fp->getThisValue().toObjectOrNull() == obj);
+#endif
+
+        this_ins = INS_CONSTOBJ(fp->getThisValue().toObjectOrNull());
+        return RECORD_CONTINUE;
     }
 
-    JSObject* thisObj = cx->fp->getThisObject(cx);
-    if (!thisObj)
-        RETURN_ERROR("fp->getThisObject failed");
+    Value& thisv = fp->argv[-1];
+    JS_ASSERT(thisv == fp->getThisValue() || fp->getThisValue().isNull());
 
-    
-    if (!cx->fp->callee()) {
-        JS_ASSERT(callDepth == 0);
-        this_ins = INS_CONSTOBJ(thisObj);
+    JS_ASSERT(fp->callee()->getGlobal() == globalObj);
 
+    if (!thisv.isNull()) {
         
 
 
 
+
+        this_ins = get(&fp->argv[-1]);
         return RECORD_CONTINUE;
     }
-
-    Value& thisv = cx->fp->argv[-1];
-    JS_ASSERT(thisv.isObject());
 
     
 
 
 
 
-
-
-
-    Class* clasp = NULL;
-    if (original.isNull() ||
-        (((clasp = original.toObject().getClass()) == &js_CallClass) ||
-         (clasp == &js_BlockClass))) {
-        if (clasp)
-            guardClass(get(&thisv), clasp, snapshot(BRANCH_EXIT), LOAD_NORMAL);
-        JS_ASSERT(!thisv.isPrimitive());
-        if (thisObj != globalObj)
-            RETURN_STOP("global object was wrapped while recording");
-        this_ins = INS_CONSTOBJ(thisObj);
-        set(&thisv, this_ins);
-        return RECORD_CONTINUE;
-    }
-
-    this_ins = get(&thisv);
-
-    JSObject* wrappedGlobal = globalObj->thisObject(cx);
-    if (!wrappedGlobal)
-        RETURN_ERROR("globalObj->thisObject hook threw in getThis");
-
-    
-
-
-
-    this_ins = lir->insChoose(lir->insEqP_0(stobj_get_parent(this_ins)),
-                               INS_CONSTOBJ(wrappedGlobal),
-                               this_ins, avmplus::AvmCore::use_cmov());
+    JSObject *obj = fp->getThisObject(cx);
+    if (!obj)
+        RETURN_ERROR("getThisObject failed");
+    JS_ASSERT(fp->argv[-1] == ObjectOrNullValue(obj));
+    this_ins = INS_CONSTOBJ(obj);
+    set(&fp->argv[-1], this_ins);
     return RECORD_CONTINUE;
 }
 
@@ -13138,7 +13119,7 @@ TraceRecorder::record_JSOP_CALLNAME()
         NameResult nr;
         CHECK_STATUS_A(scopeChainProp(obj, vp, ins, nr));
         stack(0, ins);
-        stack(1, INS_CONSTOBJ(globalObj));
+        stack(1, INS_NULL());
         return ARECORD_CONTINUE;
     }
 
@@ -13152,7 +13133,7 @@ TraceRecorder::record_JSOP_CALLNAME()
         RETURN_STOP_A("callee is not an object");
 
     stack(0, INS_CONSTOBJ(&pcval.toFunObj()));
-    stack(1, obj_ins);
+    stack(1, INS_NULL());
     return ARECORD_CONTINUE;
 }
 
