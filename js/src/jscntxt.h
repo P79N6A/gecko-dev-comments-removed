@@ -1467,9 +1467,9 @@ class AutoGCRooter {
 
     enum {
         JSVAL =        -1, 
-        SHAPE =        -2, 
+        BINDINGS =     -2, 
         PARSER =       -3, 
-        SCRIPT =       -4, 
+        SHAPEVECTOR =  -4, 
         ENUMERATOR =   -5, 
         IDARRAY =      -6, 
         DESCRIPTORS =  -7, 
@@ -1480,9 +1480,7 @@ class AutoGCRooter {
         VALVECTOR =   -12, 
         DESCRIPTOR =  -13, 
         STRING =      -14, 
-        IDVECTOR =    -15, 
-        BINDINGS =    -16, 
-        SHAPEVECTOR = -17  
+        IDVECTOR =    -15  
     };
 
     private:
@@ -1650,43 +1648,6 @@ class AutoArrayRooter : private AutoGCRooter {
     friend void AutoGCRooter::trace(JSTracer *trc);
 
   private:
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoShapeRooter : private AutoGCRooter {
-  public:
-    AutoShapeRooter(JSContext *cx, const js::Shape *shape
-                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, SHAPE), shape(shape)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-    friend void MarkRuntime(JSTracer *trc);
-
-  private:
-    const js::Shape * const shape;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoScriptRooter : private AutoGCRooter {
-  public:
-    AutoScriptRooter(JSContext *cx, JSScript *script
-                     JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, SCRIPT), script(script)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    void setScript(JSScript *script) {
-        this->script = script;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
-  private:
-    JSScript *script;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 

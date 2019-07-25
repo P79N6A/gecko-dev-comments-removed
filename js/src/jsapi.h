@@ -1618,6 +1618,7 @@ JS_SetExtraGCRoots(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
 #define JSTRACE_OBJECT  0
 #define JSTRACE_STRING  1
 #define JSTRACE_SHAPE   2
+#define JSTRACE_SCRIPT  3
 
 
 

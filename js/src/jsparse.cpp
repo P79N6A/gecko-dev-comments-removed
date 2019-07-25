@@ -1123,11 +1123,8 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
     JS_ASSERT(script->savedCallerFun == savedCallerFun);
 
-    {
-        AutoScriptRooter root(cx, script);
-        if (!defineGlobals(cx, globalScope, script))
-            goto late_error;
-    }
+    if (!defineGlobals(cx, globalScope, script))
+        script = NULL;
 
   out:
     JS_FinishArenaPool(&codePool);
@@ -1137,11 +1134,6 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
   too_many_slots:
     parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOO_MANY_LOCALS);
-    
-
-  late_error:
-    if (script && !script->u.object)
-        js_DestroyScript(cx, script, 7);
     script = NULL;
     goto out;
 }
@@ -2617,7 +2609,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 
 
 void
-Parser::markExtensibleScopeDescendants(JSFunctionBox *funbox, bool hasExtensibleParent) 
+Parser::markExtensibleScopeDescendants(JSFunctionBox *funbox, bool hasExtensibleParent)
 {
     for (; funbox; funbox = funbox->siblings) {
         
@@ -3732,7 +3724,7 @@ DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom)
                 !shape->hasDefaultSetter()) {
                 return true;
             }
-            
+
             def = GlobalScope::GlobalDef(shape->slot);
         } else {
             def = GlobalScope::GlobalDef(atom, funbox);
