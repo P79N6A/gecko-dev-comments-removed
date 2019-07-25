@@ -640,7 +640,7 @@ nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
   
   aRenderingContext.SetFont(GetStyleFont()->mFont,
                             PresContext()->GetUserFontSet());
-  nsCOMPtr<nsIFontMetrics> fm = aRenderingContext.GetFontMetrics();
+  nsIFontMetrics* fm = aRenderingContext.FontMetrics();
   nscoord axisHeight, height;
   GetAxisHeight(aRenderingContext, fm, axisHeight);
 

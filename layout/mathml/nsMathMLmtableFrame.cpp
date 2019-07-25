@@ -639,9 +639,10 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
       
       aReflowState.rendContext->SetFont(GetStyleFont()->mFont,
                                         aPresContext->GetUserFontSet());
-      nsCOMPtr<nsIFontMetrics> fm = aReflowState.rendContext->GetFontMetrics();
       nscoord axisHeight;
-      GetAxisHeight(*aReflowState.rendContext, fm, axisHeight);
+      GetAxisHeight(*aReflowState.rendContext,
+                    aReflowState.rendContext->FontMetrics(),
+                    axisHeight);
       if (rowFrame) {
         
         

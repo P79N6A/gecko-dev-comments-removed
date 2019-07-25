@@ -100,12 +100,9 @@ nsRenderingContext::Init(nsIDeviceContext* aContext,
     mP2A = mDeviceContext->AppUnitsPerDevPixel();
 }
 
-already_AddRefed<nsIDeviceContext>
-nsRenderingContext::GetDeviceContext()
-{
-    NS_IF_ADDREF(mDeviceContext);
-    return mDeviceContext.get();
-}
+
+
+
 
 void
 nsRenderingContext::PushState()
@@ -118,10 +115,6 @@ nsRenderingContext::PopState()
 {
     mThebes->Restore();
 }
-
-
-
-
 
 void
 nsRenderingContext::IntersectClip(const nsRect& aRect)
@@ -207,6 +200,10 @@ nsRenderingContext::Scale(float aSx, float aSy)
 {
     mThebes->Scale(aSx, aSy);
 }
+
+
+
+
 
 void
 nsRenderingContext::DrawLine(const nsPoint& aStartPt, const nsPoint& aEndPt)
@@ -447,6 +444,8 @@ nsRenderingContext::FillPolygon(const nsPoint twPoints[], PRInt32 aNumPoints)
 
 
 
+
+
 void
 nsRenderingContext::SetRightToLeftText(PRBool aIsRTL)
 {
@@ -483,13 +482,6 @@ void
 nsRenderingContext::SetFont(nsIFontMetrics *aFontMetrics)
 {
     mFontMetrics = static_cast<nsIThebesFontMetrics*>(aFontMetrics);
-}
-
-already_AddRefed<nsIFontMetrics>
-nsRenderingContext::GetFontMetrics()
-{
-    NS_IF_ADDREF(mFontMetrics);
-    return mFontMetrics.get();
 }
 
 PRInt32

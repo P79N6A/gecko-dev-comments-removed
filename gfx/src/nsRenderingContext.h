@@ -142,8 +142,10 @@ public:
     void Init(nsIDeviceContext* aContext, gfxASurface* aThebesSurface);
     void Init(nsIDeviceContext* aContext, gfxContext* aThebesContext);
 
-    already_AddRefed<nsIDeviceContext> GetDeviceContext();
+    
     gfxContext *ThebesContext() { return mThebes; }
+    nsIDeviceContext *DeviceContext() { return mDeviceContext; }
+    PRInt32 AppUnitsPerDevPixel() { return mP2A; }
 
     
 
@@ -194,7 +196,7 @@ public:
                  gfxUserFontSet *aUserFontSet);
     void SetFont(const nsFont& aFont, gfxUserFontSet *aUserFontSet);
     void SetFont(nsIFontMetrics *aFontMetrics);
-    already_AddRefed<nsIFontMetrics> GetFontMetrics();
+    nsIThebesFontMetrics *FontMetrics() { return mFontMetrics; } 
 
     void SetRightToLeftText(PRBool aIsRTL);
     void SetTextRunRTL(PRBool aIsRTL);
