@@ -582,8 +582,10 @@ protected:
                             nsIFrame*           aFloat);
   
   
+  
+  
   nsresult ReflowFloat(nsBlockReflowState& aState,
-                       const nsRect&       aFloatAvailableSpace,
+                       const nsRect&       aAdjustedAvailableSpace,
                        nsIFrame*           aFloat,
                        nsMargin&           aFloatMargin,
                        nsReflowStatus&     aReflowStatus);

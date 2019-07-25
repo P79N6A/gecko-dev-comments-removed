@@ -636,6 +636,30 @@ nsBlockReflowState::CanPlaceFloat(nscoord aFloatWidth,
          aFloatAvailableSpace.mRect.width >= aFloatWidth;
 }
 
+static nscoord
+FloatMarginWidth(const nsHTMLReflowState& aCBReflowState,
+                 nscoord aFloatAvailableWidth,
+                 nsIFrame *aFloat,
+                 const nsCSSOffsetState& aFloatOffsetState)
+{
+  return aFloat->ComputeSize(
+    aCBReflowState.rendContext,
+    nsSize(aCBReflowState.ComputedWidth(),
+           aCBReflowState.ComputedHeight()),
+    aFloatAvailableWidth,
+    nsSize(aFloatOffsetState.mComputedMargin.LeftRight(),
+           aFloatOffsetState.mComputedMargin.TopBottom()),
+    nsSize(aFloatOffsetState.mComputedBorderPadding.LeftRight() -
+             aFloatOffsetState.mComputedPadding.LeftRight(),
+           aFloatOffsetState.mComputedBorderPadding.TopBottom() -
+             aFloatOffsetState.mComputedPadding.TopBottom()),
+    nsSize(aFloatOffsetState.mComputedPadding.LeftRight(),
+           aFloatOffsetState.mComputedPadding.TopBottom()),
+    PR_TRUE).width +
+  aFloatOffsetState.mComputedMargin.LeftRight() +
+  aFloatOffsetState.mComputedBorderPadding.LeftRight();
+}
+
 PRBool
 nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
                                       nsReflowStatus& aReflowStatus)
@@ -667,32 +691,18 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   }
     
   nsFlowAreaRect floatAvailableSpace = GetFloatAvailableSpace(mY);
+  nsRect adjustedAvailableSpace = mBlock->AdjustFloatAvailableSpace(*this,
+                                    floatAvailableSpace.mRect, aFloat);
 
   NS_ASSERTION(aFloat->GetParent() == mBlock,
                "Float frame has wrong parent");
 
-  
-  nsMargin floatMargin; 
-  mBlock->ReflowFloat(*this, floatAvailableSpace.mRect, aFloat,
-                      floatMargin, aReflowStatus);
-  if (aFloat->GetPrevInFlow())
-    floatMargin.top = 0;
-  if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus))
-    floatMargin.bottom = 0;
+  nsCSSOffsetState offsets(aFloat, mReflowState.rendContext,
+                           mReflowState.ComputedWidth());
 
-#ifdef DEBUG
-  if (nsBlockFrame::gNoisyReflow) {
-    nsRect region = aFloat->GetRect();
-    nsFrame::IndentBy(stdout, nsBlockFrame::gNoiseIndent);
-    printf("flowed float: ");
-    nsFrame::ListTag(stdout, aFloat);
-    printf(" (%d,%d,%d,%d)\n",
-	   region.x, region.y, region.width, region.height);
-  }
-#endif
-
-  nsSize floatSize = aFloat->GetSize() +
-                     nsSize(floatMargin.LeftRight(), floatMargin.TopBottom());
+  nscoord floatMarginWidth = FloatMarginWidth(mReflowState,
+                                              adjustedAvailableSpace.width,
+                                              aFloat, offsets);
 
   
   
@@ -711,7 +721,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
       return PR_FALSE;
     }
 
-    if (CanPlaceFloat(floatSize.width, floatAvailableSpace)) {
+    if (CanPlaceFloat(floatMarginWidth, floatAvailableSpace)) {
       
       break;
     }
@@ -721,6 +731,9 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
           eCompatibility_NavQuirks != mPresContext->CompatibilityMode() ) {
 
       mY += floatAvailableSpace.mRect.height;
+      if (adjustedAvailableSpace.height != NS_UNCONSTRAINEDSIZE) {
+        adjustedAvailableSpace.height -= floatAvailableSpace.mRect.height;
+      }
       floatAvailableSpace = GetFloatAvailableSpace(mY);
     } else {
       
@@ -760,18 +773,17 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
 
       
       mY += floatAvailableSpace.mRect.height;
+      
+      
       floatAvailableSpace = GetFloatAvailableSpace(mY);
-      
-      
-      
-      
-      mBlock->ReflowFloat(*this, floatAvailableSpace.mRect, aFloat,
-                          floatMargin, aReflowStatus);
-      
-      floatSize = aFloat->GetSize() +
-                     nsSize(floatMargin.LeftRight(), floatMargin.TopBottom());
+      adjustedAvailableSpace = mBlock->AdjustFloatAvailableSpace(*this,
+                                 floatAvailableSpace.mRect, aFloat);
+      floatMarginWidth = FloatMarginWidth(mReflowState,
+                                          adjustedAvailableSpace.width,
+                                          aFloat, offsets);
     }
   }
+
   
 
   
@@ -787,7 +799,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   }
   else {
     if (!keepFloatOnSameLine) {
-      floatX = floatAvailableSpace.mRect.XMost() - floatSize.width;
+      floatX = floatAvailableSpace.mRect.XMost() - floatMarginWidth;
     } 
     else {
       
@@ -806,6 +818,16 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
     
     floatY = 0;
   }
+
+  
+  
+  nsMargin floatMargin; 
+  mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat,
+                      floatMargin, aReflowStatus);
+  if (aFloat->GetPrevInFlow())
+    floatMargin.top = 0;
+  if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus))
+    floatMargin.bottom = 0;
 
   
   
