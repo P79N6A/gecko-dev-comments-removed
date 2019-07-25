@@ -1165,7 +1165,7 @@ Class js_GeneratorClass = {
         NULL,       
         NULL,       
         iterator_iterator,
-        NULL,       
+        NULL        
     }
 };
 

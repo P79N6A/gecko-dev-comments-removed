@@ -2292,7 +2292,7 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
 
 
 
-    JSObject *aobj = vp[3].toObject().wrappedObject(cx);
+    JSObject *aobj = &vp[3].toObject();
     jsuint length;
     if (aobj->isArray()) {
         length = aobj->getArrayLength();
@@ -2484,7 +2484,7 @@ fun_bind(JSContext *cx, uintN argc, Value *vp)
         return false;
 
     
-    if (!target->wrappedObject(cx)->isCallable()) {
+    if (!target->isCallable()) {
         if (JSString *str = js_ValueToString(cx, vp[1])) {
             if (const char *bytes = js_GetStringBytes(cx, str)) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
