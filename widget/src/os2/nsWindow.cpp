@@ -407,6 +407,10 @@ NS_METHOD nsWindow::Create(nsIWidget* aParent,
         mWindowType == eWindowType_invisible) {
       mNoPaint = PR_TRUE;
     }
+    
+    else if (mWindowType == eWindowType_popup) {
+      pParent = 0;
+    }
   }
 
   
@@ -576,28 +580,6 @@ nsIWidget* nsWindow::GetParent()
   return mParent;
 }
 
-static PRInt32 sDPI = 0;
-
-float nsWindow::GetDPI()
-{
-    if (!sDPI) {
-        
-        HDC dc = DevOpenDC((HAB)1, OD_MEMORY,"*",0L, NULL, NULLHANDLE);
-        if (dc > 0) {
-            
-            LONG lDPI;
-            if (DevQueryCaps(dc, CAPS_VERTICAL_FONT_RES, 1, &lDPI))
-                sDPI = lDPI;
-            DevCloseDC(dc);
-        }
-        if (sDPI <= 0) {
-            
-            sDPI = 96;
-        }
-    }
-    return sDPI;  
-}
-
 
 
 NS_METHOD nsWindow::Enable(PRBool aState)
@@ -720,6 +702,29 @@ gfxASurface* nsWindow::ConfirmThebesSurface()
     mThebesSurface = new gfxOS2Surface(mWnd);
   }
   return mThebesSurface;
+}
+
+
+
+float nsWindow::GetDPI()
+{
+  static PRInt32 sDPI = 0;
+
+  
+  
+  if (!sDPI) {
+    HDC dc = DevOpenDC(0, OD_MEMORY,"*",0L, 0, 0);
+    if (dc > 0) {
+      LONG lDPI;
+      if (DevQueryCaps(dc, CAPS_VERTICAL_FONT_RES, 1, &lDPI))
+        sDPI = lDPI;
+      DevCloseDC(dc);
+    }
+    if (sDPI <= 0) {
+      sDPI = 96;
+    }
+  }
+  return sDPI;  
 }
 
 
@@ -2910,7 +2915,7 @@ PRBool nsWindow::DispatchMouseEvent(PRUint32 aEventType, MPARAM mp1, MPARAM mp2,
     
     
     if (aEventType == NS_MOUSE_EXIT) {
-      HWND  hTop;
+      HWND  hTop = 0;
       HWND  hCur = mWnd;
       HWND  hDesk = WinQueryDesktopWindow(0, 0);
       while (hCur && hCur != hDesk) {
