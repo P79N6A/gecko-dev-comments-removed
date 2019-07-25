@@ -88,9 +88,6 @@ space :=$(nullstr) # EOL
 
 core_winabspath = $(firstword $(subst /, ,$(call core_abspath,$(1)))):$(subst $(space),,$(patsubst %,\\%,$(wordlist 2,$(words $(subst /, ,$(call core_abspath,$(1)))), $(strip $(subst /, ,$(call core_abspath,$(1)))))))
 
-# LIBXUL_DIST is not defined under js/src, thus we make it mean DIST there.
-LIBXUL_DIST ?= $(DIST)
-
 # FINAL_TARGET specifies the location into which we copy end-user-shipped
 # build products (typelibs, components, chrome).
 #
@@ -746,10 +743,10 @@ endif
 MERGE_FILES = $(foreach f,$(1),$(call MERGE_FILE,$(f)))
 
 ifeq (OS2,$(OS_ARCH))
-RUN_TEST_PROGRAM = $(topsrcdir)/build/os2/test_os2.cmd "$(LIBXUL_DIST)"
+RUN_TEST_PROGRAM = $(topsrcdir)/build/os2/test_os2.cmd "$(DIST)"
 else
 ifneq (WINNT,$(OS_ARCH))
-RUN_TEST_PROGRAM = $(LIBXUL_DIST)/bin/run-mozilla.sh
+RUN_TEST_PROGRAM = $(DIST)/bin/run-mozilla.sh
 endif # ! WINNT
 endif # ! OS2
 
@@ -784,4 +781,16 @@ EXPAND_MKSHLIB = $(EXPAND_LIBS_EXEC) --uselist -- $(MKSHLIB)
 
 ifdef STDCXX_COMPAT
 CHECK_STDCXX = objdump -p $(1) | grep -e 'GLIBCXX_3\.4\.\(9\|[1-9][0-9]\)' > /dev/null && echo "TEST-UNEXPECTED-FAIL | | We don't want these libstdc++ symbols to be used:" && objdump -T $(1) | grep -e 'GLIBCXX_3\.4\.\(9\|[1-9][0-9]\)' && exit 1 || exit 0
+endif
+
+# PGO builds with GCC build objects with instrumentation in a first pass,
+# then objects optimized, without instrumentation, in a second pass. If
+# we overwrite the ojects from the first pass with those from the second,
+# we end up not getting instrumentation data for better optimization on
+# incremental builds. As a consequence, we use a different object suffix
+# for the first pass.
+ifdef MOZ_PROFILE_GENERATE
+ifdef GNU_CC
+OBJ_SUFFIX := i_o
+endif
 endif
