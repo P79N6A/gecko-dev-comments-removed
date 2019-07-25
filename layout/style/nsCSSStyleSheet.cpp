@@ -2114,7 +2114,7 @@ nsCSSStyleSheet::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
   return NS_OK;
 }
 
-nsIURI*
+ nsIURI*
 nsCSSStyleSheet::GetOriginalURI() const
 {
   return mInner->mOriginalSheetURI;
