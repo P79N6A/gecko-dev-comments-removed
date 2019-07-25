@@ -562,6 +562,14 @@ typedef JSObject *
 (* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
                          uintN flags);
 
+
+
+
+
+
+typedef JSObject *
+(* JSPreWrapCallback)(JSContext *cx, JSObject *scope, JSObject *obj, uintN flags);
+
 typedef enum {
     JSCOMPARTMENT_NEW, 
     JSCOMPARTMENT_DESTROY
