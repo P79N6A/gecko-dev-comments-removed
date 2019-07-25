@@ -1,6 +1,15 @@
+#include "base/thread.h"
+
 #include "TestOpens.h"
 
 #include "IPDLUnitTests.h"      
+
+template<>
+struct RunnableMethodTraits<mozilla::_ipdltest::TestOpensChild>
+{
+    static void RetainCallee(mozilla::_ipdltest::TestOpensChild* obj) { }
+    static void ReleaseCallee(mozilla::_ipdltest::TestOpensChild* obj) { }
+};
 
 template<>
 struct RunnableMethodTraits<mozilla::_ipdltest::TestOpensOpenedChild>
@@ -9,11 +18,28 @@ struct RunnableMethodTraits<mozilla::_ipdltest::TestOpensOpenedChild>
     static void ReleaseCallee(mozilla::_ipdltest::TestOpensOpenedChild* obj) { }
 };
 
+using namespace base;
+using namespace mozilla::ipc;
+
 namespace mozilla {
 namespace _ipdltest {
 
+static MessageLoop* gMainThread;
+
+static void
+AssertNotMainThread()
+{
+    if (!gMainThread)
+        fail("gMainThread is not initialized");
+    if (MessageLoop::current() == gMainThread)
+        fail("unexpectedly called on the main thread");
+}
 
 
+
+
+
+static Thread* gParentThread;
 
 void
 TestOpensParent::Main()
@@ -22,25 +48,49 @@ TestOpensParent::Main()
         fail("sending Start");
 }
 
+static void
+OpenParent(TestOpensOpenedParent* aParent,
+           Transport* aTransport, ProcessHandle aOtherProcess)
+{
+    AssertNotMainThread();
+
+    
+    
+    
+    if (!aParent->Open(aTransport, aOtherProcess,
+                       XRE_GetIOMessageLoop(), AsyncChannel::Parent))
+        fail("opening Parent");
+}
+
 PTestOpensOpenedParent*
 TestOpensParent::AllocPTestOpensOpened(Transport* transport,
                                        ProcessId otherProcess)
 {
+    gMainThread = MessageLoop::current();
+
     ProcessHandle h;
     if (!base::OpenProcessHandle(otherProcess, &h)) {
         return nsnull;
     }
 
-    nsAutoPtr<TestOpensOpenedParent> a(new TestOpensOpenedParent(transport));
-    if (!a->Open(transport, h, XRE_GetIOMessageLoop(), AsyncChannel::Parent)) {
-        return nsnull;
-    }
-    return a.forget();
+    gParentThread = new Thread("ParentThread");
+    if (!gParentThread->Start())
+        fail("starting parent thread");
+
+    TestOpensOpenedParent* a = new TestOpensOpenedParent(transport);
+    gParentThread->message_loop()->PostTask(
+        FROM_HERE,
+        NewRunnableFunction(OpenParent, a, transport, h));
+
+    return a;
 }
 
 void
 TestOpensParent::ActorDestroy(ActorDestroyReason why)
 {
+    
+    delete gParentThread;
+
     if (NormalShutdown != why)
         fail("unexpected destruction!");  
     passed("ok");
@@ -50,24 +100,29 @@ TestOpensParent::ActorDestroy(ActorDestroyReason why)
 bool
 TestOpensOpenedParent::RecvHello()
 {
+    AssertNotMainThread();
     return SendHi();
 }
 
 bool
 TestOpensOpenedParent::RecvHelloSync()
 {
+    AssertNotMainThread();
     return true;
 }
 
 bool
 TestOpensOpenedParent::AnswerHelloRpc()
 {
+    AssertNotMainThread();
     return CallHiRpc();
 }
 
 void
 TestOpensOpenedParent::ActorDestroy(ActorDestroyReason why)
 {
+    AssertNotMainThread();
+
     if (NormalShutdown != why)
         fail("unexpected destruction!");
 
@@ -87,6 +142,8 @@ TestOpensOpenedParent::ActorDestroy(ActorDestroyReason why)
 
 static TestOpensChild* gOpensChild;
 
+static Thread* gChildThread;
+
 TestOpensChild::TestOpensChild()
 {
     gOpensChild = this;
@@ -100,29 +157,53 @@ TestOpensChild::RecvStart()
     return true;
 }
 
+static void
+OpenChild(TestOpensOpenedChild* aChild,
+           Transport* aTransport, ProcessHandle aOtherProcess)
+{
+    AssertNotMainThread();
+
+    
+    
+    
+    if (!aChild->Open(aTransport, aOtherProcess,
+                      XRE_GetIOMessageLoop(), AsyncChannel::Child))
+        fail("opening Child");
+
+    
+    if (!aChild->SendHello())
+        fail("sending Hello");
+}
+
 PTestOpensOpenedChild*
 TestOpensChild::AllocPTestOpensOpened(Transport* transport,
                                       ProcessId otherProcess)
 {
+    gMainThread = MessageLoop::current();
+
     ProcessHandle h;
     if (!base::OpenProcessHandle(otherProcess, &h)) {
         return nsnull;
     }
 
-    nsAutoPtr<TestOpensOpenedChild> a(new TestOpensOpenedChild(transport));
-    if (!a->Open(transport, h, XRE_GetIOMessageLoop(), AsyncChannel::Child)) {
-        return nsnull;
-    }
+    gChildThread = new Thread("ChildThread");
+    if (!gChildThread->Start())
+        fail("starting child thread");
 
-    if (!a->SendHello())
-        fail("sending Hello");
+    TestOpensOpenedChild* a = new TestOpensOpenedChild(transport);
+    gChildThread->message_loop()->PostTask(
+        FROM_HERE,
+        NewRunnableFunction(OpenChild, a, transport, h));
 
-    return a.forget();
+    return a;
 }
 
 void
 TestOpensChild::ActorDestroy(ActorDestroyReason why)
 {
+    
+    delete gChildThread;
+
     if (NormalShutdown != why)
         fail("unexpected destruction!");
     QuitChild();
@@ -131,6 +212,8 @@ TestOpensChild::ActorDestroy(ActorDestroyReason why)
 bool
 TestOpensOpenedChild::RecvHi()
 {
+    AssertNotMainThread();
+
     if (!SendHelloSync())
         fail("sending HelloSync");
     if (!CallHelloRpc())
@@ -149,6 +232,8 @@ TestOpensOpenedChild::RecvHi()
 bool
 TestOpensOpenedChild::AnswerHiRpc()
 {
+    AssertNotMainThread();
+
     mGotHi = true;              
     return true;
 }
@@ -156,10 +241,10 @@ TestOpensOpenedChild::AnswerHiRpc()
 void
 TestOpensOpenedChild::ActorDestroy(ActorDestroyReason why)
 {
+    AssertNotMainThread();
+
     if (NormalShutdown != why)
         fail("unexpected destruction!");  
-
-    gOpensChild->Close();
 
     
     
@@ -170,6 +255,11 @@ TestOpensOpenedChild::ActorDestroy(ActorDestroyReason why)
     XRE_GetIOMessageLoop()->PostTask(
         FROM_HERE,
         new DeleteTask<Transport>(mTransport));
+
+    
+    gMainThread->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(gOpensChild, &TestOpensChild::Close));
 }
 
 } 
