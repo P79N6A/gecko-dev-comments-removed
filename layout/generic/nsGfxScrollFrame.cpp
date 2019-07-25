@@ -1627,32 +1627,13 @@ void nsGfxScrollFrameInner::MarkActive()
 
 void nsGfxScrollFrameInner::ScrollVisual(nsIntPoint aPixDelta)
 {
-  nsRootPresContext* rootPresContext =
-    mOuter->PresContext()->GetRootPresContext();
+  nsRootPresContext* rootPresContext = mOuter->PresContext()->GetRootPresContext();
   if (!rootPresContext) {
     return;
   }
 
-  nsPoint offsetToView;
-  nsPoint offsetToWidget;
-  nsIWidget* nearestWidget =
-    mOuter->GetClosestView(&offsetToView)->GetNearestWidget(&offsetToWidget);
-  nsPoint nearestWidgetOffset = offsetToView + offsetToWidget;
+  rootPresContext->RequestUpdatePluginGeometry(mOuter);
 
-  nsTArray<nsIWidget::Configuration> configurations;
-  
-  
-  
-  if (rootPresContext->FrameManager()->GetRootFrame()->GetNearestWidget() ==
-        nearestWidget) {
-    rootPresContext->GetPluginGeometryUpdates(mOuter, &configurations);
-  }
-
-  
-  
-  if (nearestWidget) {
-    nearestWidget->ConfigureChildren(configurations);
-  }
   AdjustViewsAndWidgets(mScrolledFrame, PR_FALSE);
   
   

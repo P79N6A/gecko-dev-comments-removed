@@ -960,6 +960,17 @@ public:
     return nsnull;
   }
 
+  void NotifyDestroyingFrame(nsIFrame* aFrame)
+  {
+    PropertyTable()->DeleteAllFor(aFrame);
+  }
+  inline void ForgetUpdatePluginGeometryFrame(nsIFrame* aFrame);
+
+  void SetContainsUpdatePluginGeometryFrame(PRBool aValue)
+  {
+    mContainsUpdatePluginGeometryFrame = aValue;
+  }
+
   PRBool MayHaveFixedBackgroundFrames() { return mMayHaveFixedBackgroundFrames; }
   void SetHasFixedBackgroundFrame() { mMayHaveFixedBackgroundFrames = PR_TRUE; }
 
@@ -1147,6 +1158,8 @@ protected:
   unsigned              mProcessingRestyles : 1;
   unsigned              mProcessingAnimationStyleChange : 1;
 
+  unsigned              mContainsUpdatePluginGeometryFrame : 1;
+
   
   
   
@@ -1210,8 +1223,7 @@ public:
 
 
 
-
-  void UpdatePluginGeometry(nsIFrame* aChangedRoot);
+  void UpdatePluginGeometry();
 
   
 
@@ -1232,9 +1244,43 @@ public:
 
   virtual PRBool IsRoot() { return PR_TRUE; }
 
+  
+
+
+
+
+
+  void ForcePluginGeometryUpdate();
+
+  
+
+
+
+
+  void RequestUpdatePluginGeometry(nsIFrame* aFrame);
+
+  
+
+
+
+  void RootForgetUpdatePluginGeometryFrame(nsIFrame* aFrame);
+
 private:
   nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;
+  nsIFrame* mUpdatePluginGeometryForFrame;
+  PRPackedBool mNeedsToUpdatePluginGeometry;
 };
+
+inline void
+nsPresContext::ForgetUpdatePluginGeometryFrame(nsIFrame* aFrame)
+{
+  if (mContainsUpdatePluginGeometryFrame) {
+    nsRootPresContext* rootPC = GetRootPresContext();
+    if (rootPC) {
+      rootPC->RootForgetUpdatePluginGeometryFrame(aFrame);
+    }
+  }
+}
 
 #ifdef DEBUG
 

@@ -439,7 +439,7 @@ void nsViewManager::RenderViews(nsView *aView, nsIWidget *aWidget,
   }
 
   if (mObserver) {
-    mObserver->Paint(displayRoot, aView, aWidget, aRegion, PR_FALSE);
+    mObserver->Paint(displayRoot, aView, aWidget, aRegion, PR_FALSE, PR_FALSE);
   }
 }
 
@@ -806,7 +806,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
                 
                 
                 UpdateViewBatch batch(this);
-                rootVM->CallWillPaintOnObservers();
+                rootVM->CallWillPaintOnObservers(event->willSendDidPaint);
                 batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 
                 
@@ -830,7 +830,8 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
           
           
           nsRegion rgn = ConvertDeviceRegionToAppRegion(event->region, mContext);
-          mObserver->Paint(aView, aView, event->widget, rgn, PR_TRUE);
+          mObserver->Paint(aView, aView, event->widget, rgn, PR_TRUE,
+                           event->willSendDidPaint);
 
           
           
@@ -861,6 +862,12 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 
         break;
       }
+
+    case NS_DID_PAINT: {
+      nsRefPtr<nsViewManager> rootVM = RootViewManager();
+      rootVM->CallDidPaintOnObservers();
+      break;
+    }
 
     case NS_CREATE:
     case NS_DESTROY:
@@ -1520,7 +1527,7 @@ nsViewManager::IsPainting(PRBool& aIsPainting)
 void
 nsViewManager::FlushPendingInvalidates()
 {
-  NS_ASSERTION(IsRootVM(), "Must be root VM for this to be called!\n");
+  NS_ASSERTION(IsRootVM(), "Must be root VM for this to be called!");
   NS_ASSERTION(mUpdateBatchCnt == 0, "Must not be in an update batch!");
   
   
@@ -1537,7 +1544,7 @@ nsViewManager::FlushPendingInvalidates()
   
   
   ++mUpdateBatchCnt;
-  CallWillPaintOnObservers();
+  CallWillPaintOnObservers(PR_FALSE);
   --mUpdateBatchCnt;
   
   if (mHasPendingUpdates) {
@@ -1547,9 +1554,9 @@ nsViewManager::FlushPendingInvalidates()
 }
 
 void
-nsViewManager::CallWillPaintOnObservers()
+nsViewManager::CallWillPaintOnObservers(PRBool aWillSendDidPaint)
 {
-  NS_PRECONDITION(IsRootVM(), "Must be root VM for this to be called!\n");
+  NS_PRECONDITION(IsRootVM(), "Must be root VM for this to be called!");
   NS_PRECONDITION(mUpdateBatchCnt > 0, "Must be in an update batch!");
 
 #ifdef DEBUG
@@ -1562,9 +1569,27 @@ nsViewManager::CallWillPaintOnObservers()
       
       nsCOMPtr<nsIViewObserver> obs = vm->GetViewObserver();
       if (obs) {
-        obs->WillPaint();
+        obs->WillPaint(aWillSendDidPaint);
         NS_ASSERTION(mUpdateBatchCnt == savedUpdateBatchCnt,
                      "Observer did not end view batch?");
+      }
+    }
+  }
+}
+
+void
+nsViewManager::CallDidPaintOnObservers()
+{
+  NS_PRECONDITION(IsRootVM(), "Must be root VM for this to be called!");
+
+  PRInt32 index;
+  for (index = 0; index < mVMCount; index++) {
+    nsViewManager* vm = (nsViewManager*)gViewManagers->ElementAt(index);
+    if (vm->RootViewManager() == this) {
+      
+      nsCOMPtr<nsIViewObserver> obs = vm->GetViewObserver();
+      if (obs) {
+        obs->DidPaint();
       }
     }
   }

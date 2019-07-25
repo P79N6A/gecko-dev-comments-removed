@@ -769,7 +769,7 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
 
   if (mWidget) {
     rpc->RegisterPluginForGeometryUpdates(this);
-    rpc->UpdatePluginGeometry(this);
+    rpc->RequestUpdatePluginGeometry(this);
 
     
     

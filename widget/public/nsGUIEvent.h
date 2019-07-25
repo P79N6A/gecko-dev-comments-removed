@@ -174,6 +174,9 @@ class nsHashKey;
 
 #define NS_SETZLEVEL                    (NS_WINDOW_START + 9)
 
+
+#define NS_DID_PAINT                   (NS_WINDOW_START + 28)
+
 #define NS_WILL_PAINT                   (NS_WINDOW_START + 29)
 
 #define NS_PAINT                        (NS_WINDOW_START + 30)
@@ -638,12 +641,14 @@ class nsPaintEvent : public nsGUIEvent
 {
 public:
   nsPaintEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)
-    : nsGUIEvent(isTrusted, msg, w, NS_PAINT_EVENT)
+    : nsGUIEvent(isTrusted, msg, w, NS_PAINT_EVENT),
+      willSendDidPaint(PR_FALSE)
   {
   }
 
   
   nsIntRegion region;
+  PRPackedBool willSendDidPaint;
 };
 
 
