@@ -157,6 +157,16 @@ const DEFAULT_KEYBINDINGS = [
     code: Ci.nsIDOMKeyEvent.DOM_VK_SLASH,
     accel: true,
   },
+  {
+    action: "Move to Bracket Opening",
+    code: Ci.nsIDOMKeyEvent.DOM_VK_OPEN_BRACKET,
+    accel: true,
+  },
+  {
+    action: "Move to Bracket Closing",
+    code: Ci.nsIDOMKeyEvent.DOM_VK_CLOSE_BRACKET,
+    accel: true,
+  },
 ];
 
 var EXPORTED_SYMBOLS = ["SourceEditor"];
@@ -398,6 +408,8 @@ SourceEditor.prototype = {
       "Goto Line...": [this.ui.gotoLine, this.ui],
       "Move Lines Down": [this._moveLines, this],
       "Comment/Uncomment": [this._doCommentUncomment, this],
+      "Move to Bracket Opening": [this._moveToBracketOpening, this],
+      "Move to Bracket Closing": [this._moveToBracketClosing, this],
     };
 
     for (let name in actions) {
@@ -1209,6 +1221,99 @@ SourceEditor.prototype = {
       lineCaret++;
     }
     this.endCompoundChange();
+
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
+  _getMatchingBracketIndex: function SE__getMatchingBracketIndex(aOffset)
+  {
+    return this._styler._findMatchingBracket(this._model, aOffset);
+  },
+
+  
+
+
+
+
+
+  _moveToBracketOpening: function SE__moveToBracketOpening()
+  {
+    let mode = this.getMode();
+    
+    if (mode != SourceEditor.MODES.JAVASCRIPT &&
+        mode != SourceEditor.MODES.CSS) {
+      return false;
+    }
+
+    let caretOffset = this.getCaretOffset() - 1;
+    let matchingIndex = this._getMatchingBracketIndex(caretOffset);
+
+    
+    
+    if (matchingIndex == -1 || matchingIndex > caretOffset) {
+      let text = this.getText();
+      let closingOffset = text.indexOf("}", caretOffset);
+      while (closingOffset > -1) {
+        let closingMatchingIndex = this._getMatchingBracketIndex(closingOffset);
+        if (closingMatchingIndex < caretOffset && closingMatchingIndex != -1) {
+          matchingIndex = closingMatchingIndex;
+          break;
+        }
+        closingOffset = text.indexOf("}", closingOffset + 1);
+      }
+    }
+
+    if (matchingIndex > -1) {
+      this.setCaretOffset(matchingIndex);
+    }
+
+    return true;
+  },
+
+  
+
+
+
+
+
+  _moveToBracketClosing: function SE__moveToBracketClosing()
+  {
+    let mode = this.getMode();
+    
+    if (mode != SourceEditor.MODES.JAVASCRIPT &&
+        mode != SourceEditor.MODES.CSS) {
+      return false;
+    }
+
+    let caretOffset = this.getCaretOffset();
+    let matchingIndex = this._getMatchingBracketIndex(caretOffset - 1);
+
+    
+    
+    if (matchingIndex == -1 || matchingIndex < caretOffset) {
+      let text = this.getText();
+      let openingOffset = text.lastIndexOf("{", caretOffset);
+      while (openingOffset > -1) {
+        let openingMatchingIndex = this._getMatchingBracketIndex(openingOffset);
+        if (openingMatchingIndex > caretOffset) {
+          matchingIndex = openingMatchingIndex;
+          break;
+        }
+        openingOffset = text.lastIndexOf("{", openingOffset - 1);
+      }
+    }
+
+    if (matchingIndex > -1) {
+      this.setCaretOffset(matchingIndex);
+    }
 
     return true;
   },
