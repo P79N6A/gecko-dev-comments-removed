@@ -364,6 +364,11 @@ private:
     }
     PRInt32 mQCursor;
 
+    PRPackedBool mNeedsResize;
+    PRPackedBool mNeedsMove;
+    PRPackedBool mListenForResizes;
+    PRPackedBool mNeedsShow;
+
     
     QRegion mDirtyScrollArea;
 
