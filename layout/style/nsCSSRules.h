@@ -211,7 +211,7 @@ public:
     
     : mozilla::css::Rule(aCopy), mDecl(aCopy.mDecl) {}
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_ISUPPORTS_INHERITED
 
   
 #ifdef DEBUG
