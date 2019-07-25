@@ -711,45 +711,110 @@ js_watch_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
          &wp->links != &rt->watchPointList;
          wp = (JSWatchPoint *)wp->links.next) {
         const Shape *shape = wp->shape;
-        if (wp->object == obj && SHAPE_USERID(shape) == id &&
-            !(wp->flags & JSWP_HELD)) {
+        if (wp->object == obj && SHAPE_USERID(shape) == id && !(wp->flags & JSWP_HELD)) {
             wp->flags |= JSWP_HELD;
             DBG_UNLOCK(rt);
 
             jsid propid = shape->id;
+            shape = obj->nativeLookup(propid);
+            JS_ASSERT(IsWatchedProperty(cx, shape));
             jsid userid = SHAPE_USERID(shape);
 
             
-            if (!wp->handler(cx, obj, propid,
-                             obj->containsSlot(shape->slot)
-                             ? Jsvalify(obj->nativeGetSlot(shape->slot))
-                             : JSVAL_VOID,
-                             Jsvalify(vp), wp->closure)) {
-                DBG_LOCK(rt);
-                DropWatchPointAndUnlock(cx, wp, JSWP_HELD);
-                return JS_FALSE;
+            bool ok;
+            uint32 slot = shape->slot;
+            Value old = obj->containsSlot(slot) ? obj->nativeGetSlot(slot) : UndefinedValue();
+            const Shape *needMethodSlotWrite = NULL;
+            if (shape->isMethod()) {
+                
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                JS_ASSERT(!wp->setter);
+                Value method = ObjectValue(shape->methodObject());
+                if (old.isUndefined())
+                    obj->nativeSetSlot(slot, method);
+                ok = obj->methodReadBarrier(cx, *shape, &method);
+                if (!ok)
+                    goto out;
+                wp->shape = shape = needMethodSlotWrite = obj->nativeLookup(propid);
+                JS_ASSERT(shape->isDataDescriptor());
+                JS_ASSERT(!shape->isMethod());
+                if (old.isUndefined())
+                    obj->nativeSetSlot(shape->slot, old);
+                else
+                    old = method;
             }
 
-            
-            shape = wp->shape;
+            {
+                Conditionally<AutoShapeRooter> tvr(needMethodSlotWrite, cx, needMethodSlotWrite);
 
-            
+                
 
 
 
-            JSBool ok = !wp->setter ||
-                        (shape->hasSetterValue()
+                ok = wp->handler(cx, obj, propid, Jsvalify(old), Jsvalify(vp), wp->closure);
+                if (!ok)
+                    goto out;
+                shape = obj->nativeLookup(propid);
+                JS_ASSERT_IF(!shape, !wp->setter);
+
+                if (!shape) {
+                    ok = true;
+                } else if (wp->setter) {
+                    
+
+
+
+                    ok = shape->hasSetterValue()
                          ? ExternalInvoke(cx, ObjectValue(*obj),
                                           ObjectValue(*CastAsObject(wp->setter)),
                                           1, vp, vp)
-                         : CallJSPropertyOpSetter(cx, wp->setter, obj, userid, strict, vp));
+                         : CallJSPropertyOpSetter(cx, wp->setter, obj, userid, strict, vp);
+                } else if (shape == needMethodSlotWrite) {
+                    
+                    obj->nativeSetSlot(shape->slot, *vp);
+                    ok = true;
+                } else {
+                    
 
+
+
+
+
+
+
+
+
+                    ok = obj->methodWriteBarrier(cx, *shape, *vp) != NULL;
+                }
+            }
+
+        out:
             DBG_LOCK(rt);
             return DropWatchPointAndUnlock(cx, wp, JSWP_HELD) && ok;
         }
     }
     DBG_UNLOCK(rt);
-    return JS_TRUE;
+    return true;
 }
 
 static JSBool
