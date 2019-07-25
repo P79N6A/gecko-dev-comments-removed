@@ -99,8 +99,6 @@ JS_ENUM_HEADER(JSValueType, uint8)
     JSVAL_TYPE_NONFUNOBJ           = 0x57,
     JSVAL_TYPE_FUNOBJ              = 0x67,
 
-    JSVAL_TYPE_STRORNULL           = 0x97,
-    JSVAL_TYPE_OBJORNULL           = 0x98,
     JSVAL_TYPE_BOXED               = 0x99,
     JSVAL_TYPE_UNINITIALIZED       = 0xcd
 } JS_ENUM_FOOTER(JSValueType);
@@ -230,7 +228,9 @@ typedef enum JSWhyMagic
 
     JS_NO_ITER_VALUE,            
     JS_GENERATOR_CLOSING,        
-    JS_NO_CONSTANT               
+    JS_NO_CONSTANT,              
+    JS_THIS_POISON,              
+    JS_GENERIC_MAGIC             
 } JSWhyMagic;
 
 typedef struct JSString JSString;
@@ -704,7 +704,6 @@ extern "C++"
 
 
 #define JSVAL_BITS(v)    (v.asBits)
-#define JSVAL_FROM_LAYOUT(l) (l)
 #define IMPL_TO_JSVAL(v) (v)
 #define JSID_BITS(id)    (id.asBits)
 
@@ -715,7 +714,6 @@ typedef size_t                 jsid;
 
 
 #define JSVAL_BITS(v)    (v)
-#define JSVAL_FROM_LAYOUT(l) ((l).asBits)
 #define IMPL_TO_JSVAL(v) ((v).asBits)
 #define JSID_BITS(id)    (id)
 

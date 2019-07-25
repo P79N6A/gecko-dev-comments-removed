@@ -71,7 +71,7 @@ public:
   > MapType;
 
   OpaqueSeenType() {
-    (void) map.init(1);
+    NS_ASSERTION(map.init(1), "Failed to initialize map");
   }
 
   bool ok() { return map.initialized(); }
@@ -298,7 +298,7 @@ JetpackActorCommon::jsval_from_PrimVariant(JSContext* cx,
 
   case PrimVariant::TPHandleParent: {
     JSObject* hobj =
-      static_cast<HandleParent*>(from.get_PHandleParent())->ToJSObject(cx);
+      static_cast<const HandleParent*>(from.get_PHandleParent())->ToJSObject(cx);
     if (!hobj)
       return false;
     *to = OBJECT_TO_JSVAL(hobj);
@@ -307,7 +307,7 @@ JetpackActorCommon::jsval_from_PrimVariant(JSContext* cx,
 
   case PrimVariant::TPHandleChild: {
     JSObject* hobj =
-      static_cast<HandleChild*>(from.get_PHandleChild())->ToJSObject(cx);
+      static_cast<const HandleChild*>(from.get_PHandleChild())->ToJSObject(cx);
     if (!hobj)
       return false;
     *to = OBJECT_TO_JSVAL(hobj);
@@ -452,17 +452,23 @@ JetpackActorCommon::RecvMessage(JSContext* cx,
   JSObject* implGlobal = JS_GetGlobalObject(cx);
   js::AutoValueRooter rval(cx);
 
+  const uint32 savedOptions =
+    JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_DONT_REPORT_UNCAUGHT);
+
   for (PRUint32 i = 0; i < snapshot.Length(); ++i) {
     Variant* vp = results ? results->AppendElement() : NULL;
-    rval.set(JSVAL_VOID);
+    rval.jsval_set(JSVAL_VOID);
     if (!JS_CallFunctionValue(cx, implGlobal, snapshot[i], argc, argv,
                               rval.jsval_addr())) {
-      (void) JS_ReportPendingException(cx);
+      
+      JS_ClearPendingException(cx);
       if (vp)
         *vp = void_t();
     } else if (vp && !jsval_to_Variant(cx, rval.jsval_value(), vp))
       *vp = void_t();
   }
+
+  JS_SetOptions(cx, savedOptions);
 
   return true;
 }

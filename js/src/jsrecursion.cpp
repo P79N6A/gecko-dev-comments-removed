@@ -594,9 +594,9 @@ TraceRecorder::slurpDownFrames(jsbytecode* return_pc)
     for (unsigned i = 0; i < JS_MAX(fp->argc, fp->fun->nargs); i++)
         slurpSlot(argv_ins, i * sizeof(Value), &fp->argv[i], &info);
     
-    slurpSlot(fp_ins, offsetof(JSStackFrame, argsval), &fp->argsval, &info);
+    slurpFrameObjPtrSlot(fp_ins, offsetof(JSStackFrame, argsobj), &fp->argsobj, &info);
     
-    slurpSlot(fp_ins, offsetof(JSStackFrame, scopeChain), &fp->scopeChain, &info);
+    slurpFrameObjPtrSlot(fp_ins, offsetof(JSStackFrame, scopeChain), &fp->scopeChain, &info);
     
     LIns* slots_ins = addName(lir->ins2(LIR_addp, fp_ins, INS_CONSTWORD(sizeof(JSStackFrame))),
                               "slots");
@@ -656,9 +656,16 @@ public:
 
     JS_REQUIRES_STACK JS_ALWAYS_INLINE bool
     visitStackSlots(Value *vp, size_t count, JSStackFrame* fp) {
+        
         for (size_t i = 0; i < count; ++i)
             mRecorder.get(vp++);
         return true;
+    }
+
+    JS_REQUIRES_STACK JS_ALWAYS_INLINE bool
+    visitFrameObjPtr(JSObject **p, JSStackFrame* fp) {
+        
+        return visitStackSlots((Value *)p, 1, fp);
     }
 };
 
@@ -793,18 +800,51 @@ TraceRecorder::slurpSlot(LIns* addr_ins, ptrdiff_t offset, Value* vp, SlurpInfo*
     exit->slurpFailSlot = info->curSlot;
     exit->slurpType = info->typeMap[info->curSlot];
 
-#if defined DEBUG
     
     JS_ASSERT_IF(anchor && anchor->exitType == RECURSIVE_SLURP_FAIL_EXIT &&
                  info->curSlot == info->slurpFailSlot,
                  anchor->slurpType != exit->slurpType);
-#endif
 
     LIns* val = slurpSlot(addr_ins, offset, vp, exit);
     lir->insStore(val,
-                   lirbuf->sp,
-                   -tree->nativeStackBase + ptrdiff_t(info->curSlot) * sizeof(double),
-                   ACC_STACK);
+                  lirbuf->sp,
+                  -tree->nativeStackBase + ptrdiff_t(info->curSlot) * sizeof(double),
+                  ACC_STACK);
     info->curSlot++;
 }
 
+JS_REQUIRES_STACK void
+TraceRecorder::slurpFrameObjPtrSlot(LIns* addr_ins, ptrdiff_t offset, JSObject** p, SlurpInfo* info)
+{
+    
+    if (info->curSlot < info->slurpFailSlot) {
+        info->curSlot++;
+        return;
+    }
+    VMSideExit* exit = copy(info->exit);
+    exit->slurpFailSlot = info->curSlot;
+    exit->slurpType = info->typeMap[info->curSlot];
+
+    
+    JS_ASSERT_IF(anchor && anchor->exitType == RECURSIVE_SLURP_FAIL_EXIT &&
+                 info->curSlot == info->slurpFailSlot,
+                 anchor->slurpType != exit->slurpType);
+
+    LIns *val;
+    LIns *ptr_val = lir->insLoad(LIR_ldp, addr_ins, offset, ACC_OTHER);
+    LIns *ptr_is_null_ins = lir->insEqP_0(ptr_val);
+    if (exit->slurpType == JSVAL_TYPE_NULL) {
+        guard(true, ptr_is_null_ins, exit);
+        val = INS_NULL();
+    } else {
+        JS_ASSERT(exit->slurpType == JSVAL_TYPE_NONFUNOBJ);
+        guard(false, ptr_is_null_ins, exit);
+        val = ptr_val;
+    }
+
+    lir->insStore(val,
+                  lirbuf->sp,
+                  -tree->nativeStackBase + ptrdiff_t(info->curSlot) * sizeof(double),
+                  ACC_STACK);
+    info->curSlot++;
+}
