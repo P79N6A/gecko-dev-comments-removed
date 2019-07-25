@@ -26,6 +26,7 @@
 
 
 
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -33,14 +34,47 @@
 #include <math.h>
 #include "pixman-private.h"
 
-static void
-radial_gradient_get_scanline_32 (pixman_image_t *image,
-                                 int             x,
-                                 int             y,
-                                 int             width,
-                                 uint32_t *      buffer,
-                                 const uint32_t *mask,
-                                 uint32_t        mask_bits)
+static inline pixman_fixed_32_32_t
+dot (pixman_fixed_48_16_t x1,
+     pixman_fixed_48_16_t y1,
+     pixman_fixed_48_16_t z1,
+     pixman_fixed_48_16_t x2,
+     pixman_fixed_48_16_t y2,
+     pixman_fixed_48_16_t z2)
+{
+    
+
+
+
+    return x1 * x2 + y1 * y2 + z1 * z2;
+}
+
+static inline double
+fdot (double x1,
+      double y1,
+      double z1,
+      double x2,
+      double y2,
+      double z2)
+{
+    
+
+
+
+
+
+    return x1 * x2 + y1 * y2 + z1 * z2;
+}
+
+static uint32_t
+radial_compute_color (double                    a,
+		      double                    b,
+		      double                    c,
+		      double                    inva,
+		      double                    dr,
+		      double                    mindr,
+		      pixman_gradient_walker_t *walker,
+		      pixman_repeat_t           repeat)
 {
     
 
@@ -58,24 +92,51 @@ radial_gradient_get_scanline_32 (pixman_image_t *image,
 
 
 
+    double det;
 
+    if (a == 0)
+    {
+	return _pixman_gradient_walker_pixel (walker,
+					      pixman_fixed_1 / 2 * c / b);
+    }
 
+    det = fdot (b, a, 0, b, -c, 0);
+    if (det >= 0)
+    {
+	double sqrtdet, t0, t1;
 
+	sqrtdet = sqrt (det);
+	t0 = (b + sqrtdet) * inva;
+	t1 = (b - sqrtdet) * inva;
 
+	if (repeat == PIXMAN_REPEAT_NONE)
+	{
+	    if (0 <= t0 && t0 <= pixman_fixed_1)
+		return _pixman_gradient_walker_pixel (walker, t0);
+	    else if (0 <= t1 && t1 <= pixman_fixed_1)
+		return _pixman_gradient_walker_pixel (walker, t1);
+	}
+	else
+	{
+	    if (t0 * dr > mindr)
+		return _pixman_gradient_walker_pixel (walker, t0);
+	    else if (t1 * dr > mindr)
+		return _pixman_gradient_walker_pixel (walker, t1);
+	}
+    }
 
+    return 0;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
+static void
+radial_gradient_get_scanline_32 (pixman_image_t *image,
+                                 int             x,
+                                 int             y,
+                                 int             width,
+                                 uint32_t *      buffer,
+                                 const uint32_t *mask)
+{
+    
 
 
 
@@ -162,41 +223,32 @@ radial_gradient_get_scanline_32 (pixman_image_t *image,
     radial_gradient_t *radial = (radial_gradient_t *)image;
     uint32_t *end = buffer + width;
     pixman_gradient_walker_t walker;
-    pixman_bool_t affine = TRUE;
-    double cx = 1.;
-    double cy = 0.;
-    double cz = 0.;
-    double rx = x + 0.5;
-    double ry = y + 0.5;
-    double rz = 1.;
+    pixman_vector_t v, unit;
+
+    
+    v.vector[0] = pixman_int_to_fixed (x) + pixman_fixed_1 / 2;
+    v.vector[1] = pixman_int_to_fixed (y) + pixman_fixed_1 / 2;
+    v.vector[2] = pixman_fixed_1;
 
     _pixman_gradient_walker_init (&walker, gradient, source->common.repeat);
 
     if (source->common.transform)
     {
-	pixman_vector_t v;
-	
-	v.vector[0] = pixman_int_to_fixed (x) + pixman_fixed_1 / 2;
-	v.vector[1] = pixman_int_to_fixed (y) + pixman_fixed_1 / 2;
-	v.vector[2] = pixman_fixed_1;
-	
 	if (!pixman_transform_point_3d (source->common.transform, &v))
 	    return;
-
-	cx = source->common.transform->matrix[0][0] / 65536.;
-	cy = source->common.transform->matrix[1][0] / 65536.;
-	cz = source->common.transform->matrix[2][0] / 65536.;
 	
-	rx = v.vector[0] / 65536.;
-	ry = v.vector[1] / 65536.;
-	rz = v.vector[2] / 65536.;
-
-	affine =
-	    source->common.transform->matrix[2][0] == 0 &&
-	    v.vector[2] == pixman_fixed_1;
+	unit.vector[0] = source->common.transform->matrix[0][0];
+	unit.vector[1] = source->common.transform->matrix[1][0];
+	unit.vector[2] = source->common.transform->matrix[2][0];
+    }
+    else
+    {
+	unit.vector[0] = pixman_fixed_1;
+	unit.vector[1] = 0;
+	unit.vector[2] = 0;
     }
 
-    if (affine)
+    if (unit.vector[2] == 0 && v.vector[2] == pixman_fixed_1)
     {
 	
 
@@ -218,6 +270,13 @@ radial_gradient_get_scanline_32 (pixman_image_t *image,
 
 
 
+	pixman_fixed_32_32_t b, db, c, dc, ddc;
+
+	
+	v.vector[0] -= radial->c1.x;
+	v.vector[1] -= radial->c1.y;
+
+	
 
 
 
@@ -225,90 +284,88 @@ radial_gradient_get_scanline_32 (pixman_image_t *image,
 
 
 
-	double r1   = radial->c1.radius / 65536.;
-	double r1sq = r1 * r1;
-	double pdx  = rx - radial->c1.x / 65536.;
-	double pdy  = ry - radial->c1.y / 65536.;
-	double A = radial->A;
-	double invA = -65536. / (2. * A);
-	double A4 = -4. * A;
-	double B  = -2. * (pdx*radial->cdx + pdy*radial->cdy + r1*radial->dr);
-	double cB = -2. *  (cx*radial->cdx +  cy*radial->cdy);
-	pixman_bool_t invert = A * radial->dr < 0;
+
+	b = dot (v.vector[0], v.vector[1], radial->c1.radius,
+		 radial->delta.x, radial->delta.y, radial->delta.radius);
+	db = dot (unit.vector[0], unit.vector[1], 0,
+		  radial->delta.x, radial->delta.y, 0);
+
+	c = dot (v.vector[0], v.vector[1], -radial->c1.radius,
+		 v.vector[0], v.vector[1], radial->c1.radius);
+	dc = dot (2 * v.vector[0] + unit.vector[0],
+		  2 * v.vector[1] + unit.vector[1],
+		  0,
+		  unit.vector[0], unit.vector[1], 0);
+	ddc = 2 * dot (unit.vector[0], unit.vector[1], 0,
+		       unit.vector[0], unit.vector[1], 0);
 
 	while (buffer < end)
 	{
-	    if (!mask || *mask++ & mask_bits)
+	    if (!mask || *mask++)
 	    {
-		pixman_fixed_48_16_t t;
-		double det = B * B + A4 * (pdx * pdx + pdy * pdy - r1sq);
-		if (det <= 0.)
-		    t = (pixman_fixed_48_16_t) (B * invA);
-		else if (invert)
-		    t = (pixman_fixed_48_16_t) ((B + sqrt (det)) * invA);
-		else
-		    t = (pixman_fixed_48_16_t) ((B - sqrt (det)) * invA);
-
-		*buffer = _pixman_gradient_walker_pixel (&walker, t);
+		*buffer = radial_compute_color (radial->a, b, c,
+						radial->inva,
+						radial->delta.radius,
+						radial->mindr,
+						&walker,
+						source->common.repeat);
 	    }
-	    ++buffer;
 
-	    pdx += cx;
-	    pdy += cy;
-	    B += cB;
+	    b += db;
+	    c += dc;
+	    dc += ddc;
+	    ++buffer;
 	}
     }
     else
     {
 	
+	
+
+
 	while (buffer < end)
 	{
-	    if (!mask || *mask++ & mask_bits)
+	    if (!mask || *mask++)
 	    {
-		double pdx, pdy;
-		double B, C;
-		double det;
-		double c1x = radial->c1.x / 65536.0;
-		double c1y = radial->c1.y / 65536.0;
-		double r1  = radial->c1.radius / 65536.0;
-		pixman_fixed_48_16_t t;
-		double x, y;
-
-		if (rz != 0)
+		if (v.vector[2] != 0)
 		{
-		    x = rx / rz;
-		    y = ry / rz;
+		    double pdx, pdy, invv2, b, c;
+
+		    invv2 = 1. * pixman_fixed_1 / v.vector[2];
+
+		    pdx = v.vector[0] * invv2 - radial->c1.x;
+		    
+
+		    pdy = v.vector[1] * invv2 - radial->c1.y;
+		    
+
+		    b = fdot (pdx, pdy, radial->c1.radius,
+			      radial->delta.x, radial->delta.y,
+			      radial->delta.radius);
+		    
+
+		    c = fdot (pdx, pdy, -radial->c1.radius,
+			      pdx, pdy, radial->c1.radius);
+		    
+
+		    *buffer = radial_compute_color (radial->a, b, c,
+						    radial->inva,
+						    radial->delta.radius,
+						    radial->mindr,
+						    &walker,
+						    source->common.repeat);
 		}
 		else
 		{
-		    x = y = 0.;
+		    *buffer = 0;
 		}
-
-		pdx = x - c1x;
-		pdy = y - c1y;
-
-		B = -2 * (pdx * radial->cdx +
-			  pdy * radial->cdy +
-			  r1 * radial->dr);
-		C = (pdx * pdx + pdy * pdy - r1 * r1);
-
-		det = (B * B) - (4 * radial->A * C);
-		if (det < 0.0)
-		    det = 0.0;
-
-		if (radial->A * radial->dr < 0)
-		    t = (pixman_fixed_48_16_t) ((-B - sqrt (det)) / (2.0 * radial->A) * 65536);
-		else
-		    t = (pixman_fixed_48_16_t) ((-B + sqrt (det)) / (2.0 * radial->A) * 65536);
-
-		*buffer = _pixman_gradient_walker_pixel (&walker, t);
 	    }
 	    
 	    ++buffer;
 
-	    rx += cx;
-	    ry += cy;
-	    rz += cz;
+	    v.vector[0] += unit.vector[0];
+	    v.vector[1] += unit.vector[1];
+	    v.vector[2] += unit.vector[2];
 	}
     }
 }
@@ -331,8 +388,6 @@ pixman_image_create_radial_gradient (pixman_point_fixed_t *        inner,
     pixman_image_t *image;
     radial_gradient_t *radial;
 
-    return_val_if_fail (n_stops >= 2, NULL);
-
     image = _pixman_image_allocate ();
 
     if (!image)
@@ -354,12 +409,20 @@ pixman_image_create_radial_gradient (pixman_point_fixed_t *        inner,
     radial->c2.x = outer->x;
     radial->c2.y = outer->y;
     radial->c2.radius = outer_radius;
-    radial->cdx = pixman_fixed_to_double (radial->c2.x - radial->c1.x);
-    radial->cdy = pixman_fixed_to_double (radial->c2.y - radial->c1.y);
-    radial->dr = pixman_fixed_to_double (radial->c2.radius - radial->c1.radius);
-    radial->A = (radial->cdx * radial->cdx +
-		 radial->cdy * radial->cdy -
-		 radial->dr  * radial->dr);
+
+    
+    radial->delta.x = radial->c2.x - radial->c1.x;
+    radial->delta.y = radial->c2.y - radial->c1.y;
+    radial->delta.radius = radial->c2.radius - radial->c1.radius;
+
+    
+
+    radial->a = dot (radial->delta.x, radial->delta.y, -radial->delta.radius,
+		     radial->delta.x, radial->delta.y, radial->delta.radius);
+    if (radial->a != 0)
+	radial->inva = 1. * pixman_fixed_1 / radial->a;
+
+    radial->mindr = -1. * pixman_fixed_1 * radial->c1.radius;
 
     image->common.property_changed = radial_gradient_property_changed;
 

@@ -899,8 +899,67 @@ fname:
     .endfunc
 .endm
 
+
+
 .macro default_init
 .endm
 
 .macro default_cleanup
+.endm
+
+
+
+
+
+
+
+.macro default_init_need_all_regs
+    vpush       {d8-d15}
+.endm
+
+.macro default_cleanup_need_all_regs
+    vpop        {d8-d15}
+.endm
+
+
+
+
+
+
+
+
+
+
+
+.macro convert_0565_to_8888 in, out_a, out_r, out_g, out_b
+    vshrn.u16   out_r, in,    #8
+    vshrn.u16   out_g, in,    #3
+    vsli.u16    in,    in,    #5
+    vmov.u8     out_a, #255
+    vsri.u8     out_r, out_r, #5
+    vsri.u8     out_g, out_g, #6
+    vshrn.u16   out_b, in,    #2
+.endm
+
+.macro convert_0565_to_x888 in, out_r, out_g, out_b
+    vshrn.u16   out_r, in,    #8
+    vshrn.u16   out_g, in,    #3
+    vsli.u16    in,    in,    #5
+    vsri.u8     out_r, out_r, #5
+    vsri.u8     out_g, out_g, #6
+    vshrn.u16   out_b, in,    #2
+.endm
+
+
+
+
+
+
+
+.macro convert_8888_to_0565 in_r, in_g, in_b, out, tmp1, tmp2
+    vshll.u8    tmp1, in_g, #8
+    vshll.u8    out, in_r, #8
+    vshll.u8    tmp2, in_b, #8
+    vsri.u16    out, tmp1, #5
+    vsri.u16    out, tmp2, #11
 .endm
