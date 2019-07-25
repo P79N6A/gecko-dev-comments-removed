@@ -1470,14 +1470,6 @@ pref("editor.positioning.offset",            0);
 pref("dom.max_chrome_script_run_time", 20);
 pref("dom.max_script_run_time", 10);
 
-
-
-#ifndef DEBUG
-pref("hangmonitor.timeout", 30);
-#else
-pref("hangmonitor.timeout", 0);
-#endif
-
 #ifndef DEBUG
 
 
