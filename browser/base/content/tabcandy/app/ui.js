@@ -48,63 +48,6 @@ window.Keys = { meta: false };
 
 
 
-var Tabbar = {
-  
-  
-  
-  
-  
-  
-  
-  showOnlyTheseTabs: function(tabs, options) {
-    try {
-      if (!options)
-        options = {};
-
-      let tabBarTabs = Array.slice(gBrowser.tabs);
-      let visibleTabs = tabs.map(function(tab) tab.tab);
-
-      
-      tabBarTabs.forEach(function(tab){
-        let hidden = true;
-        visibleTabs.some(function(visibleTab, i) {
-          if (visibleTab == tab) {
-            hidden = false;
-            
-            if (options.dontReorg)
-              visibleTabs.splice(i, 1);
-            return true;
-          }
-        });
-        tab.hidden = hidden;
-      });
-
-      
-      
-      
-      if (!options.dontReorg) {
-        visibleTabs.forEach(function(visibleTab) {
-          gBrowser.moveTabTo(visibleTab, tabBarTabs.length - 1);
-        });
-      }
-    } catch(e) {
-      Utils.log(e);
-    }
-  },
-
-  
-  
-  
-  showAllTabs: function() {
-    Array.forEach(gBrowser.tabs, function(tab) {
-      tab.hidden = false;
-    });
-  }
-}
-
-
-
-
 var UIManager = {
   
   
@@ -131,10 +74,6 @@ var UIManager = {
   
   
   _currentTab : gBrowser.selectedTab,
-
-  
-  
-  get tabBar() { return Tabbar; },
 
   
   
@@ -179,7 +118,9 @@ var UIManager = {
       });
 
       iQ(window).bind("beforeunload", function() {
-        self.tabBar.showAllTabs();
+        Array.forEach(gBrowser.tabs, function(tab) {
+          tab.hidden = false;
+        });
       });
 
       gWindow.addEventListener("tabcandyshow", function() {
@@ -924,6 +865,49 @@ var UIManager = {
 
     this._pageBounds = Items.getPageBounds();
     this._save();
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  showOnlyTheseTabs: function(tabs, options) {
+    try {
+      if (!options)
+        options = {};
+
+      let tabBarTabs = Array.slice(gBrowser.tabs);
+      let visibleTabs = tabs.map(function(tab) tab.tab);
+
+      
+      tabBarTabs.forEach(function(tab){
+        let hidden = true;
+        visibleTabs.some(function(visibleTab, i) {
+          if (visibleTab == tab) {
+            hidden = false;
+            
+            if (options.dontReorg)
+              visibleTabs.splice(i, 1);
+            return true;
+          }
+        });
+        tab.hidden = hidden;
+      });
+
+      
+      
+      
+      if (!options.dontReorg) {
+        visibleTabs.forEach(function(visibleTab) {
+          gBrowser.moveTabTo(visibleTab, tabBarTabs.length - 1);
+        });
+      }
+    } catch(e) {
+      Utils.log(e);
+    }
   },
 
   
