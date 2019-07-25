@@ -491,8 +491,9 @@ GetIterator(JSContext *cx, JSObject *obj, uintN flags, jsval *vp)
     
     *vp = OBJECT_TO_JSVAL(iterobj);
 
+    
     AutoValueVector props(cx);
-    if (!Snapshot(cx, obj, flags, props))
+    if (JS_LIKELY(obj) && !Snapshot(cx, obj, flags, props))
         return false;
 
     NativeIterator *ni =
