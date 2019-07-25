@@ -2882,6 +2882,7 @@ NewCompartment(JSContext *cx, JSPrincipals *principals)
     JSCompartment *compartment = cx->new_<JSCompartment>(rt);
     if (compartment && compartment->init()) {
         
+        
         compartment->isSystemCompartment = principals && rt->trustedPrincipals() == principals;
         if (principals) {
             compartment->principals = principals;
