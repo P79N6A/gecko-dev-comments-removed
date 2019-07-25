@@ -172,13 +172,13 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
     return;
   }
 
-  mNeedsRefreshes = false;
-
   
   if (mStyleRuleRefreshTime.IsNull() ||
       mStyleRuleRefreshTime != aRefreshTime) {
     mStyleRuleRefreshTime = aRefreshTime;
     mStyleRule = nsnull;
+    
+    mNeedsRefreshes = false;
 
     
     
