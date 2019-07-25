@@ -510,6 +510,7 @@ argumentUnboxingTemplates = {
 
 
 
+
 def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
                           nullBehavior, undefinedBehavior):
     
@@ -522,13 +523,19 @@ def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
     
     
 
+    typeName = getBuiltinOrNativeTypeName(type)
+
     isSetter = (i is None)
 
     if isSetter:
         argPtr = "vp"
         argVal = "*vp"
     elif optional:
-        argVal = "(%d < argc ? argv[%d] : JSVAL_NULL)" % (i, i)
+        if typeName == "[jsval]":
+            val = "JSVAL_VOID"
+        else:
+            val = "JSVAL_NULL"
+        argVal = "(%d < argc ? argv[%d] : %s)" % (i, i, val)
         argPtr = "(%d < argc ? &argv[%d] : NULL)" % (i, i)
     else:
         argVal = "argv[%d]" % i
@@ -542,7 +549,6 @@ def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
         'undefinedBehavior': undefinedBehavior or 'DefaultUndefinedBehavior'
         }
 
-    typeName = getBuiltinOrNativeTypeName(type)
     if typeName is not None:
         template = argumentUnboxingTemplates.get(typeName)
         if template is not None:
