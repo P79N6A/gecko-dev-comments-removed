@@ -48,6 +48,7 @@
 #include "nsToolkitCompsCID.h"
 
 #include "mozilla/storage.h"
+#include "mozilla/storage/StatementCache.h"
 
 
 
@@ -141,6 +142,13 @@ public:
   nsresult FinalizeStatements();
 
   void SendFaviconNotifications(nsIURI* aPage, nsIURI* aFaviconURI);
+
+  
+
+
+
+
+  mozilla::storage::StatementCache<mozIStorageStatement> mSyncStatements;
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIFAVICONSERVICE

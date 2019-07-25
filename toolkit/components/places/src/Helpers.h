@@ -45,6 +45,7 @@
 
 #include "mozilla/storage.h"
 #include "nsIURI.h"
+#include "nsThreadUtils.h"
 
 namespace mozilla {
 namespace places {
@@ -197,6 +198,37 @@ void GetReversedHostname(const nsString& aForward, nsString& aRevHost);
 
 
 void ReverseString(const nsString& aInput, nsString& aReversed);
+
+
+
+
+template<typename StatementType>
+class FinalizeStatementCacheProxy : public nsRunnable
+{
+public:
+  
+
+
+
+
+
+  FinalizeStatementCacheProxy(
+    mozilla::storage::StatementCache<StatementType>& aStatementCache
+  )
+  : mStatementCache(aStatementCache)
+  {
+  }
+
+  NS_IMETHOD
+  Run()
+  {
+    mStatementCache.FinalizeStatements();
+    return NS_OK;
+  }
+
+protected:
+  mozilla::storage::StatementCache<StatementType>& mStatementCache;
+};
 
 } 
 } 
