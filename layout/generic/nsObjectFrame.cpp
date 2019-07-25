@@ -408,6 +408,21 @@ public:
     return "";
   }
 
+#ifdef MOZ_X11
+  void GetPluginDescription(nsACString& aDescription)
+  {
+    aDescription.Truncate();
+    if (mInstance && mPluginHost) {
+      nsCOMPtr<nsIPluginTag> pluginTag;
+      mPluginHost->GetPluginTagForInstance(mInstance,
+                                           getter_AddRefs(pluginTag));
+      if (pluginTag) {
+        pluginTag->GetDescription(aDescription);
+      }
+    }
+  }
+#endif
+
   PRBool SendNativeEvents()
   {
 #ifdef XP_WIN
@@ -462,7 +477,13 @@ private:
   PRUint32                    mLastEventloopNestingLevel;
   PRPackedBool                mContentFocused;
   PRPackedBool                mWidgetVisible;    
+#ifdef XP_MACOSX
   PRPackedBool                mPluginPortChanged;
+#endif
+#ifdef MOZ_X11
+  
+  PRPackedBool                mFlash10Quirks;
+#endif
 
   
   
@@ -496,25 +517,25 @@ private:
 #if defined(MOZ_WIDGET_GTK2)
   class Renderer : public gfxGdkNativeRenderer {
   public:
-    Renderer(NPWindow* aWindow, nsIPluginInstance* aInstance,
+    Renderer(NPWindow* aWindow, nsPluginInstanceOwner* aInstanceOwner,
              const nsIntSize& aPluginSize, const nsIntRect& aDirtyRect)
-      : mWindow(aWindow), mInstance(aInstance),
+      : mWindow(aWindow), mInstanceOwner(aInstanceOwner),
         mPluginSize(aPluginSize), mDirtyRect(aDirtyRect)
     {}
     virtual nsresult NativeDraw(GdkDrawable * drawable, short offsetX, 
             short offsetY, GdkRectangle * clipRects, PRUint32 numClipRects);
   private:
     NPWindow* mWindow;
-    nsIPluginInstance* mInstance;
+    nsPluginInstanceOwner* mInstanceOwner;
     const nsIntSize& mPluginSize;
     const nsIntRect& mDirtyRect;
   };
 #elif defined(MOZ_WIDGET_QT)
   class Renderer : public gfxQtNativeRenderer {
   public:
-    Renderer(NPWindow* aWindow, nsIPluginInstance* aInstance,
+    Renderer(NPWindow* aWindow, nsPluginInstanceOwner* aInstanceOwner,
              const nsIntSize& aPluginSize, const nsIntRect& aDirtyRect)
-      : mWindow(aWindow), mInstance(aInstance),
+      : mWindow(aWindow), mInstanceOwner(aInstanceOwner),
         mPluginSize(aPluginSize), mDirtyRect(aDirtyRect)
     {}
     virtual nsresult NativeDraw(gfxXlibSurface* xsurface, Colormap colormap,
@@ -522,7 +543,7 @@ private:
                                 QRect * clipRects, PRUint32 numClipRects);
   private:
     NPWindow* mWindow;
-    nsIPluginInstance* mInstance;
+    nsPluginInstanceOwner* mInstanceOwner;
     const nsIntSize& mPluginSize;
     const nsIntRect& mDirtyRect;
   };
@@ -2492,10 +2513,10 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mInCGPaintLevel = 0;
   mSentInitialTopLevelWindowEvent = PR_FALSE;
   mIOSurface = nsnull;
+  mPluginPortChanged = PR_FALSE;
 #endif
   mContentFocused = PR_FALSE;
   mWidgetVisible = PR_TRUE;
-  mPluginPortChanged = PR_FALSE;
   mNumCachedAttrs = 0;
   mNumCachedParams = 0;
   mCachedAttrParamNames = nsnull;
@@ -5137,11 +5158,12 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
   NPWindow* window;
   GetWindow(window);
 
-  PRUint32 rendererFlags =
-    Renderer::DRAW_SUPPORTS_OFFSET |
-    Renderer::DRAW_SUPPORTS_CLIP_RECT |
-    Renderer::DRAW_SUPPORTS_NONDEFAULT_VISUAL |
-    Renderer::DRAW_SUPPORTS_ALTERNATE_SCREEN;
+  PRUint32 rendererFlags = Renderer::DRAW_SUPPORTS_OFFSET;
+  if (!mFlash10Quirks) {
+    rendererFlags |=
+      Renderer::DRAW_SUPPORTS_CLIP_RECT |
+      Renderer::DRAW_SUPPORTS_NONDEFAULT_VISUAL;
+  }
 
   PRBool transparent;
   mInstance->IsTransparent(&transparent);
@@ -5152,7 +5174,7 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
   gfxContextAutoSaveRestore autoSR(aContext);
   aContext->Translate(pluginRect.pos);
 
-  Renderer renderer(window, mInstance, pluginSize, pluginDirtyRect);
+  Renderer renderer(window, this, pluginSize, pluginDirtyRect);
   renderer.Draw(aContext, window->width, window->height,
                 rendererFlags, nsnull);
 }
@@ -5463,6 +5485,11 @@ nsPluginInstanceOwner::Renderer::NativeDraw(gfxXlibSurface * xsurface,
 #endif
 #endif
 
+  nsIPluginInstance *instance = mInstanceOwner->mInstance;
+  if (!instance)
+    return NS_ERROR_FAILURE;
+
+  
   PRBool doupdatewindow = PR_FALSE;
 
   if (mWindow->x != offsetX || mWindow->y != offsetY) {
@@ -5533,17 +5560,20 @@ nsPluginInstanceOwner::Renderer::NativeDraw(gfxXlibSurface * xsurface,
 #endif
   {
     if (doupdatewindow)
-      mInstance->SetWindow(mWindow);
+      instance->SetWindow(mWindow);
   }
 
 #ifdef MOZ_X11
   
-  
-  
-  
-  
-  nsIntRect dirtyRect(offsetX, offsetY,
+  nsIntRect dirtyRect = mDirtyRect + nsIntPoint(offsetX, offsetY);
+  if (mInstanceOwner->mFlash10Quirks) {
+    
+    
+    
+    
+    dirtyRect.SetRect(offsetX, offsetY,
                       mDirtyRect.XMost(), mDirtyRect.YMost());
+  }
   
   
   if (!dirtyRect.IntersectRect(dirtyRect, clipRect))
@@ -5574,7 +5604,7 @@ nsPluginInstanceOwner::Renderer::NativeDraw(gfxXlibSurface * xsurface,
     exposeEvent.major_code = 0;
     exposeEvent.minor_code = 0;
 
-    mInstance->HandleEvent(&pluginEvent, nsnull);
+    instance->HandleEvent(&pluginEvent, nsnull);
 #ifdef MOZ_COMPOSITED_PLUGINS
   }
   else {
@@ -5809,6 +5839,11 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
           else {
             ws_info->display = DefaultXDisplay();
           }
+
+          nsCAutoString description;
+          GetPluginDescription(description);
+          NS_NAMED_LITERAL_CSTRING(flash10Head, "Shockwave Flash 10.");
+          mFlash10Quirks = StringBeginsWith(description, flash10Head);
 #endif
         } else if (mWidget) {
           mWidget->Resize(mPluginWindow->width, mPluginWindow->height,
