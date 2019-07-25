@@ -114,38 +114,67 @@ var VirtualCursorController = {
 
   SimpleTraversalRule: {
     getMatchRoles: function(aRules) {
-      aRules.value = [];
-      return 0;
+      aRules.value = this._matchRoles;
+      return this._matchRoles.length;
     },
 
     preFilter: Ci.nsIAccessibleTraversalRule.PREFILTER_DEFUNCT |
       Ci.nsIAccessibleTraversalRule.PREFILTER_INVISIBLE,
 
     match: function(aAccessible) {
-      if (aAccessible.childCount)
+      switch (aAccessible.role) {
+      case Ci.nsIAccessibleRole.ROLE_COMBOBOX:
         
-        return Ci.nsIAccessibleTraversalRule.FILTER_IGNORE;
-
-      
-      
-      
-      let ignoreRoles = [Ci.nsIAccessibleRole.ROLE_WHITESPACE,
-                         Ci.nsIAccessibleRole.ROLE_STATICTEXT];
-
-      if (ignoreRoles.indexOf(aAccessible.role) < 0) {
-        let name = aAccessible.name;
-        if (name && name.trim())
-          return Ci.nsIAccessibleTraversalRule.FILTER_MATCH;
-      }
-
-      let state = {};
-      aAccessible.getState(state, {});
-      if (state.value & Ci.nsIAccessibleStates.STATE_FOCUSABLE)
+        
         return Ci.nsIAccessibleTraversalRule.FILTER_MATCH;
-
-      return Ci.nsIAccessibleTraversalRule.FILTER_IGNORE;
+      case Ci.nsIAccessibleRole.ROLE_TEXT_LEAF:
+        {
+          
+          let name = aAccessible.name;
+          if (name && name.trim())
+            return Ci.nsIAccessibleTraversalRule.FILTER_MATCH;
+          else
+            return Ci.nsIAccessibleTraversalRule.FILTER_IGNORE;
+        }
+      case Ci.nsIAccessibleRole.ROLE_LINK:
+        
+        
+        if (aAccessible.childCount == 0)
+          return Ci.nsIAccessibleTraversalRule.FILTER_MATCH;
+        else
+          return Ci.nsIAccessibleTraversalRule.FILTER_IGNORE;
+      default:
+        
+        
+        return Ci.nsIAccessibleTraversalRule.FILTER_MATCH |
+          Ci.nsIAccessibleTraversalRule.FILTER_IGNORE_SUBTREE;
+      }
     },
 
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsIAccessibleTraversalRule])
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsIAccessibleTraversalRule]),
+
+    _matchRoles: [
+      Ci.nsIAccessibleRole.ROLE_MENUITEM,
+      Ci.nsIAccessibleRole.ROLE_LINK,
+      Ci.nsIAccessibleRole.ROLE_PAGETAB,
+      Ci.nsIAccessibleRole.ROLE_GRAPHIC,
+      
+      
+      
+      
+      Ci.nsIAccessibleRole.ROLE_TEXT_LEAF,
+      Ci.nsIAccessibleRole.ROLE_PUSHBUTTON,
+      Ci.nsIAccessibleRole.ROLE_CHECKBUTTON,
+      Ci.nsIAccessibleRole.ROLE_RADIOBUTTON,
+      Ci.nsIAccessibleRole.ROLE_COMBOBOX,
+      Ci.nsIAccessibleRole.ROLE_PROGRESSBAR,
+      Ci.nsIAccessibleRole.ROLE_BUTTONDROPDOWN,
+      Ci.nsIAccessibleRole.ROLE_BUTTONMENU,
+      Ci.nsIAccessibleRole.ROLE_CHECK_MENU_ITEM,
+      Ci.nsIAccessibleRole.ROLE_PASSWORD_TEXT,
+      Ci.nsIAccessibleRole.ROLE_RADIO_MENU_ITEM,
+      Ci.nsIAccessibleRole.ROLE_TOGGLE_BUTTON,
+      Ci.nsIAccessibleRole.ROLE_ENTRY
+    ]
   }
 };
