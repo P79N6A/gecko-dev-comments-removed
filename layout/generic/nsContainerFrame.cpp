@@ -1479,26 +1479,25 @@ nsOverflowContinuationTracker::Finish(nsIFrame* aChild)
                 "supposed to call Finish *before* deleting next-in-flow!");
 
   for (nsIFrame* f = aChild; f; f = f->GetNextInFlow()) {
+    
+    
+    if (mOverflowContList &&
+        mOverflowContList->FirstChild() == f->GetNextInFlow() &&
+        !f->GetNextInFlow()->GetNextSibling()) {
+      mOverflowContList = nsnull;
+      mPrevOverflowCont = nsnull;
+      mSentry = nsnull;
+      mParent = static_cast<nsContainerFrame*>(f->GetParent());
+      break;
+    }
     if (f == mSentry) {
       
-      
-      if (mOverflowContList->FirstChild() == f->GetNextInFlow()
-          && !f->GetNextInFlow()->GetNextSibling()) {
-        mOverflowContList = nsnull;
-        mPrevOverflowCont = nsnull;
-        mSentry = nsnull;
-        mParent = static_cast<nsContainerFrame*>(f->GetParent());
-        break;
-      }
-      else {
+      nsIFrame* prevOverflowCont = mPrevOverflowCont;
+      StepForward();
+      if (mPrevOverflowCont == f->GetNextInFlow()) {
         
-        nsIFrame* prevOverflowCont = mPrevOverflowCont;
-        StepForward();
-        if (mPrevOverflowCont == f->GetNextInFlow()) {
-          
-          
-          mPrevOverflowCont = prevOverflowCont;
-        }
+        
+        mPrevOverflowCont = prevOverflowCont;
       }
     }
   }
