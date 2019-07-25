@@ -83,6 +83,7 @@ public:
     Drawable XDrawable() { return mDrawable; }
 
     static int DepthOfVisual(const Screen* screen, const Visual* visual);
+    static Visual* FindVisual(Screen* screen, gfxImageFormat format);
     static XRenderPictFormat *FindRenderFormat(Display *dpy, gfxImageFormat format);
 
     
