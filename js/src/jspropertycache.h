@@ -52,17 +52,7 @@ namespace js {
 
 
 
-
-
-enum {
-    PCINDEX_PROTOBITS = 4,
-    PCINDEX_PROTOSIZE = JS_BIT(PCINDEX_PROTOBITS),
-    PCINDEX_PROTOMASK = JS_BITMASK(PCINDEX_PROTOBITS),
-
-    PCINDEX_SCOPEBITS = 4,
-    PCINDEX_SCOPESIZE = JS_BIT(PCINDEX_SCOPEBITS),
-    PCINDEX_SCOPEMASK = JS_BITMASK(PCINDEX_SCOPEBITS)
-};
+class PropertyCache;
 
 struct PropertyCacheEntry
 {
@@ -70,21 +60,50 @@ struct PropertyCacheEntry
     const Shape         *kshape;        
     const Shape         *pshape;        
     const Shape         *prop;          
-    uint16_t            vindex;         
+
+    friend class PropertyCache;
+
+  private:
+    
+    uint8_t             scopeIndex;
+    
+    uint8_t             protoIndex;
+
+  public:
+    static const size_t MaxScopeIndex = 15;
+    static const size_t MaxProtoIndex = 15;
+
+    
 
 
-    bool directHit() const { return vindex == 0; }
+
+
+
+
+
+    bool isOwnPropertyHit() const { return scopeIndex == 0 && protoIndex == 0; }
+
+    
+
+
+
+
+
+
+
+    bool isPrototypePropertyHit() const { return scopeIndex == 0 && protoIndex == 1; }
 
     void assign(jsbytecode *kpc, const Shape *kshape, const Shape *pshape,
                 const Shape *prop, uintN scopeIndex, uintN protoIndex) {
-        JS_ASSERT(scopeIndex <= PCINDEX_SCOPEMASK);
-        JS_ASSERT(protoIndex <= PCINDEX_PROTOMASK);
+        JS_ASSERT(scopeIndex <= MaxScopeIndex);
+        JS_ASSERT(protoIndex <= MaxProtoIndex);
 
         this->kpc = kpc;
         this->kshape = kshape;
         this->pshape = pshape;
         this->prop = prop;
-        this->vindex = (scopeIndex << PCINDEX_PROTOBITS) | protoIndex;
+        this->scopeIndex = uint8_t(scopeIndex);
+        this->protoIndex = uint8_t(protoIndex);
     }
 };
 
