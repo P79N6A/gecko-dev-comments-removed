@@ -126,7 +126,7 @@ public:
     
     
     void Show(const nsIntSize& size);
-    void UpdateDimensions(const nsRect& rect, const nsIntSize& size);
+    void Move(const nsIntSize& size);
     void Activate();
     void Deactivate();
     void SendMouseEvent(const nsAString& aType, float aX, float aY,

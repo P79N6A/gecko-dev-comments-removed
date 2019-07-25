@@ -296,7 +296,6 @@ private:
 
   
   NS_HIDDEN_(nsIntSize) GetSubDocumentSize(const nsIFrame *aIFrame);
-  nsresult GetWindowDimensions(nsRect& aRect);
 
   
   
