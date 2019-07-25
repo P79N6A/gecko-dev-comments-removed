@@ -499,7 +499,7 @@ StackFramesView.prototype = {
 
     
     item.className = "empty list-item";
-    item.appendChild(document.createTextNode(L10N.getStr("emptyText")));
+    item.appendChild(document.createTextNode(L10N.getStr("emptyStackText")));
 
     this._frames.appendChild(item);
   },
