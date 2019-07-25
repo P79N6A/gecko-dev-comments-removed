@@ -941,6 +941,11 @@ nsNavBookmarks::InsertBookmark(PRInt64 aFolder,
 
     if (bookmarks.Length()) {
       for (PRUint32 i = 0; i < bookmarks.Length(); i++) {
+        
+        if (bookmarks[i] == *aNewBookmarkId) {
+          continue;
+        }
+
         NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                          nsINavBookmarkObserver,
                          OnItemChanged(bookmarks[i], NS_LITERAL_CSTRING("tags"),
@@ -1042,10 +1047,7 @@ nsNavBookmarks::RemoveItem(PRInt64 aItemId)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                   nsINavBookmarkObserver,
-                   OnItemRemoved(aItemId, folderId, childIndex, itemType));
-
+  bool isTagEntry = false;
   if (itemType == TYPE_BOOKMARK) {
     
     
@@ -1053,26 +1055,32 @@ nsNavBookmarks::RemoveItem(PRInt64 aItemId)
     PRInt64 grandParentId;
     rv = GetFolderIdForItem(folderId, &grandParentId);
     NS_ENSURE_SUCCESS(rv, rv);
-    if (grandParentId == mTagsRoot) {
-      nsCOMPtr<nsIURI> uri;
-      rv = NS_NewURI(getter_AddRefs(uri), spec);
-      NS_ENSURE_SUCCESS(rv, rv);
-      nsTArray<PRInt64> bookmarks;
+    isTagEntry = grandParentId == mTagsRoot;
+  }
 
-      rv = GetBookmarkIdsForURITArray(uri, bookmarks);
-      NS_ENSURE_SUCCESS(rv, rv);
+  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                   nsINavBookmarkObserver,
+                   OnItemRemoved(aItemId, folderId, childIndex, itemType));
 
-      if (bookmarks.Length()) {
-        for (PRUint32 i = 0; i < bookmarks.Length(); i++) {
-          NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                           nsINavBookmarkObserver,
-                           OnItemChanged(bookmarks[i],
-                                         NS_LITERAL_CSTRING("tags"), PR_FALSE,
-                                         EmptyCString(), 0, TYPE_BOOKMARK));
-        }
-      }
+  if (isTagEntry) {
+    
+    
+    nsCOMPtr<nsIURI> uri;
+    rv = NS_NewURI(getter_AddRefs(uri), spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+    nsTArray<PRInt64> bookmarks;
+    rv = GetBookmarkIdsForURITArray(uri, bookmarks);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    for (PRUint32 i = 0; i < bookmarks.Length(); i++) {
+      NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                       nsINavBookmarkObserver,
+                       OnItemChanged(bookmarks[i],
+                                     NS_LITERAL_CSTRING("tags"), PR_FALSE,
+                                     EmptyCString(), 0, TYPE_BOOKMARK));
     }
   }
+
   return NS_OK;
 }
 
