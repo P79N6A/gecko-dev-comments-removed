@@ -144,48 +144,6 @@ Inspector.prototype = {
 
 
 
-
-  _getStore: function Inspector__getStore(aStoreID)
-  {
-    let storeID = "tool-store-" + aStoreID;
-    let store = this._getStoreValue(storeID);
-    if (!store) {
-      store = {};
-      this._setStoreValue(storeID, store);
-    }
-    return store;
-  },
-
-  
-
-
-
-
-
-  _setStoreValue: function Inspector__setStoreValue(aID, aValue)
-  {
-    this._IUI.store.setValue(this._winID, aID, aValue);
-  },
-
-  
-
-
-
-
-
-  _getStoreValue: function Inspector__getStoreValue(aID)
-  {
-    return this._IUI.store.getValue(this._winID, aID);
-  },
-
-  
-
-
-
-
-
-
-
   change: function Inspector_change(aContext)
   {
     this._IUI.nodeChanged(aContext);
@@ -424,11 +382,11 @@ InspectorUI.prototype = {
     if (this.treePanel.isOpen()) {
       this.treePanel.close();
       Services.prefs.setBoolPref("devtools.inspector.htmlPanelOpen", false);
-      this.store.setValue(this.winID, "htmlPanelOpen", false);
+      this.currentInspector._htmlPanelOpen = false;
     } else {
       this.treePanel.open();
       Services.prefs.setBoolPref("devtools.inspector.htmlPanelOpen", true);
-      this.store.setValue(this.winID, "htmlPanelOpen", true);
+      this.currentInspector._htmlPanelOpen = true;
     }
   },
 
@@ -515,7 +473,7 @@ InspectorUI.prototype = {
     
     this.highlighter = new Highlighter(this.chromeWin);
 
-    this._currentInspector = new Inspector(this);
+    this.initializeStore();
 
     this._sidebar = new InspectorStyleSidebar({
       document: this.chromeDoc,
@@ -556,28 +514,32 @@ InspectorUI.prototype = {
 
     
     if (this.store.hasID(this.winID)) {
-      let selectedNode = this.store.getValue(this.winID, "selectedNode");
+      this._currentInspector = this.store.getInspector(this.winID);
+      let selectedNode = this.currentInspector._selectedNode;
       if (selectedNode) {
         this.inspectNode(selectedNode);
       }
-      this.isDirty = this.store.getValue(this.winID, "isDirty");
+      this.isDirty = this.currentInspector._isDirty;
     } else {
       
-      this.store.addStore(this.winID);
-      this.store.setValue(this.winID, "selectedNode", null);
-      this.store.setValue(this.winID, "inspecting", true);
-      this.store.setValue(this.winID, "isDirty", this.isDirty);
+      let inspector = new Inspector(this);
+      this.store.addInspector(this.winID, inspector);
+      inspector._selectedNode = null;
+      inspector._inspecting = true;
+      inspector._isDirty = this.isDirty;
 
-      this.store.setValue(this.winID, "htmlPanelOpen",
-        Services.prefs.getBoolPref("devtools.inspector.htmlPanelOpen"));
+      inspector._htmlPanelOpen =
+        Services.prefs.getBoolPref("devtools.inspector.htmlPanelOpen");
 
-      this.store.setValue(this.winID, "sidebarOpen",
-        Services.prefs.getBoolPref("devtools.inspector.sidebarOpen"));
+      inspector._sidebarOpen =
+        Services.prefs.getBoolPref("devtools.inspector.sidebarOpen");
 
-      this.store.setValue(this.winID, "activeSidebar",
-        Services.prefs.getCharPref("devtools.inspector.activeSidebar"));
+      inspector._activeSidebar =
+        Services.prefs.getCharPref("devtools.inspector.activeSidebar");
 
       this.win.addEventListener("pagehide", this, true);
+
+      this._currentInspector = inspector;
     }
   },
 
@@ -621,7 +583,7 @@ InspectorUI.prototype = {
 
 
 
-  closeInspectorUI: function IUI_closeInspectorUI(aKeepStore)
+  closeInspectorUI: function IUI_closeInspectorUI(aKeepInspector)
   {
     
     
@@ -644,18 +606,16 @@ InspectorUI.prototype = {
     this.progressListener.destroy();
     delete this.progressListener;
 
-    if (!aKeepStore) {
-      this.store.deleteStore(this.winID);
+    if (!aKeepInspector) {
       this.win.removeEventListener("pagehide", this, true);
       this.clearPseudoClassLocks();
     } else {
       
       if (this.selection) {
-        this.store.setValue(this.winID, "selectedNode",
-          this.selection);
+        this.currentInspector._selectedNode = this.selection;
       }
-      this.store.setValue(this.winID, "inspecting", this.inspecting);
-      this.store.setValue(this.winID, "isDirty", this.isDirty);
+      this.currentInspector._inspecting = this.inspecting;
+      this.currentInspector._isDirty = this.isDirty;
     }
 
     if (this.store.isEmpty()) {
@@ -682,6 +642,10 @@ InspectorUI.prototype = {
       this.breadcrumbs = null;
     }
 
+    delete this._currentInspector;
+    if (!aKeepInspector)
+      this.store.deleteInspector(this.winID);
+
     this.inspectMenuitem.setAttribute("checked", false);
     this.browser = this.win = null; 
     this.winID = null;
@@ -693,11 +657,9 @@ InspectorUI.prototype = {
     delete this.stylePanel;
     delete this.toolbar;
 
-    this._currentInspector._destroy();
-    delete this._currentInspector;
-
     Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.CLOSED, null);
-    if (!aKeepStore)
+
+    if (!aKeepInspector)
       Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.DESTROYED, winId);
   },
 
@@ -745,6 +707,7 @@ InspectorUI.prototype = {
     } else {
       this.select(null, true, true);
     }
+
     this.highlighter.lock();
     this._notifySelected();
     this._currentInspector._emit("locked");
@@ -843,9 +806,6 @@ InspectorUI.prototype = {
 
   highlighterReady: function IUI_highlighterReady()
   {
-    
-    this.initializeStore();
-
     let self = this;
 
     this.highlighter.addListener("locked", function() {
@@ -864,7 +824,7 @@ InspectorUI.prototype = {
       self.togglePseudoClassLock(aPseudo);
     });
 
-    if (this.store.getValue(this.winID, "inspecting")) {
+    if (this.currentInspector._inspecting) {
       this.startInspecting();
       this.highlighter.unlock();
     } else {
@@ -875,11 +835,11 @@ InspectorUI.prototype = {
 
     this.highlighter.highlight();
 
-    if (this.store.getValue(this.winID, "htmlPanelOpen")) {
+    if (this.currentInspector._htmlPanelOpen) {
       this.treePanel.open();
     }
 
-    if (this.store.getValue(this.winID, "sidebarOpen")) {
+    if (this.currentInspector._sidebarOpen) {
       this._sidebar.show();
     }
 
@@ -944,7 +904,7 @@ InspectorUI.prototype = {
 
         winID = this.getWindowID(win);
         if (winID && winID != this.winID) {
-          this.store.deleteStore(winID);
+          this.store.deleteInspector(winID);
         }
 
         if (this.store.isEmpty()) {
@@ -1179,12 +1139,13 @@ InspectorStore.prototype = {
 
 
 
-  addStore: function IS_addStore(aID)
+
+  addInspector: function IS_addInspector(aID, aInspector)
   {
     let result = false;
 
     if (!(aID in this.store)) {
-      this.store[aID] = {};
+      this.store[aID] = aInspector;
       this.length++;
       result = true;
     }
@@ -1197,13 +1158,24 @@ InspectorStore.prototype = {
 
 
 
+  getInspector: function IS_getInspector(aID)
+  {
+    return this.store[aID] || null;
+  },
+
+  
 
 
-  deleteStore: function IS_deleteStore(aID)
+
+
+
+
+  deleteInspector: function IS_deleteInspector(aID)
   {
     let result = false;
 
     if (aID in this.store) {
+      this.store[aID]._destroy();
       delete this.store[aID];
       this.length--;
       result = true;
@@ -1222,63 +1194,6 @@ InspectorStore.prototype = {
   {
     return (aID in this.store);
   },
-
-  
-
-
-
-
-
-
-  getValue: function IS_getValue(aID, aKey)
-  {
-    if (!this.hasID(aID))
-      return null;
-    if (aKey in this.store[aID])
-      return this.store[aID][aKey];
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
-
-  setValue: function IS_setValue(aID, aKey, aValue)
-  {
-    let result = false;
-
-    if (aID in this.store) {
-      this.store[aID][aKey] = aValue;
-      result = true;
-    }
-
-    return result;
-  },
-
-  
-
-
-
-
-
-
-
-  deleteValue: function IS_deleteValue(aID, aKey)
-  {
-    let result = false;
-
-    if (aID in this.store && aKey in this.store[aID]) {
-      delete this.store[aID][aKey];
-      result = true;
-    }
-
-    return result;
-  }
 };
 
 
@@ -1597,7 +1512,7 @@ InspectorStyleSidebar.prototype = {
 
     this._showDefault();
 
-    this._inspector._setStoreValue("sidebarOpen", true);
+    this._inspector._sidebarOpen = true;
     Services.prefs.setBoolPref("devtools.inspector.sidebarOpen", true);
   },
 
@@ -1607,7 +1522,7 @@ InspectorStyleSidebar.prototype = {
   hide: function ISS_hide()
   {
     this._teardown();
-    this._inspector._setStoreValue("sidebarOpen", false);
+    this._inspector._sidebarOpen = false;
     Services.prefs.setBoolPref("devtools.inspector.sidebarOpen", false);
   },
 
@@ -1630,7 +1545,7 @@ InspectorStyleSidebar.prototype = {
   activatePanel: function ISS_activatePanel(aID) {
     let tool = this._tools[aID];
     Services.prefs.setCharPref("devtools.inspector.activeSidebar", aID);
-    this._inspector._setStoreValue("activeSidebar", aID);
+    this._inspector._activeSidebar = aID;
     this._deck.selectedPanel = tool.frame;
     this._showContent(tool);
     tool.button.setAttribute("checked", "true");
@@ -1714,7 +1629,7 @@ InspectorStyleSidebar.prototype = {
       return;
     }
 
-    let activeID = this._inspector._getStoreValue("activeSidebar");
+    let activeID = this._inspector._activeSidebar;
     if (!activeID || !(activeID in this._tools)) {
       activeID = Object.getOwnPropertyNames(this._tools)[0];
     }
