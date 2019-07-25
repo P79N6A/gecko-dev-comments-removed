@@ -83,6 +83,9 @@ CanMethodJIT(JSContext *cx, JSScript *script, StackFrame *fp, CompileRequest req
 static inline bool
 RecursiveMethodJIT(JSContext *cx, StackFrame *fp)
 {
+    if (!cx->compartment->hasJaegerCompartment())
+        return false;
+
     
 
 

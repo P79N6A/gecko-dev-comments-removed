@@ -636,11 +636,14 @@ struct JSObject : js::gc::Cell {
 
     inline size_t numFixedSlots() const;
 
-  private:
-    inline js::Value* fixedSlots() const;
+    
     inline bool hasSlotsArray() const;
 
+    
     inline size_t numDynamicSlots(size_t capacity) const;
+
+  private:
+    inline js::Value* fixedSlots() const;
 
   public:
     
