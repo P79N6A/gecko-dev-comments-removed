@@ -58,6 +58,11 @@
 
 
 
+
+
+
+
+
 #include "nsUCvCnDll.h"
 #include "nsHZToUnicode.h"
 #include "gbku.h"
@@ -74,7 +79,6 @@
 #define HZLEAD1 '~'
 #define HZLEAD2 '{'
 #define HZLEAD3 '}'
-#define HZLEAD4 '\n'
 #define HZ_ODD_BYTE_STATE (mHZState & (HZ_STATE_ODD_BYTE_FLAG))
 #define HZ_ENCODING_STATE (mHZState & ~(HZ_STATE_ODD_BYTE_FLAG))
 
@@ -107,23 +111,28 @@ NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
 
     char srcByte = *aSrc++;
     (*aSrcLength)++;
+    
     if (!HZ_ODD_BYTE_STATE) {
-      if (srcByte & 0x80 || srcByte == HZLEAD1 || HZ_ENCODING_STATE == HZ_STATE_GB) { 
+      if (srcByte == HZLEAD1 || 
+          (HZ_ENCODING_STATE == HZ_STATE_GB && 
+           (UINT8_IN_RANGE(0x21, srcByte, 0x7E) ||
+            UINT8_IN_RANGE(0x81, srcByte, 0xFE)))) {
         oddByte = srcByte;
         mHZState |= HZ_STATE_ODD_BYTE_FLAG;
       } else {
-        *aDest++ = CAST_CHAR_TO_UNICHAR(srcByte);
+        *aDest++ = (srcByte & 0x80) ? UCS2_NO_MAPPING :
+                                      CAST_CHAR_TO_UNICHAR(srcByte);
         iDestlen++;
       }
     } else {
-      if (oddByte & 0x80) { 
-        if (UINT8_IN_RANGE(0x81, oddByte, 0xFE) &&
-            UINT8_IN_RANGE(0x40, srcByte, 0xFE)) {
-          
-          *aDest++ = mUtil.GBKCharToUnicode(oddByte, srcByte);
-        } else {
-          *aDest++ = UCS2_NO_MAPPING;
-        }
+      if (oddByte & 0x80) {
+        
+        NS_ASSERTION(HZ_ENCODING_STATE == HZ_STATE_GB,
+                     "Invalid lead byte in ASCII mode");                    
+        *aDest++ = (UINT8_IN_RANGE(0x81, oddByte, 0xFE) &&
+                    UINT8_IN_RANGE(0x40, srcByte, 0xFE)) ?
+                     mUtil.GBKCharToUnicode(oddByte, srcByte) : UCS2_NO_MAPPING;
+        mRunLength++;
         iDestlen++;
       
       
@@ -132,14 +141,14 @@ NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
           case HZLEAD2: 
             
             
-            mHZState = HZ_STATE_GB | HZ_ODD_BYTE_STATE;
+            mHZState = HZ_STATE_GB;
             mRunLength = 0;
             break;
 
           case HZLEAD3: 
             
             
-            mHZState = HZ_STATE_ASCII | HZ_ODD_BYTE_STATE;
+            mHZState = HZ_STATE_ASCII;
             if (mRunLength == 0) {
               *aDest++ = UCS2_NO_MAPPING;
               iDestlen++;
@@ -154,25 +163,28 @@ NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
             mRunLength++;
             break;
 
-          case HZLEAD4:   
-            
-            
-            
-            
-            
-            
-            
-            break;
-
           default:
             
             
-            *aDest++ = UCS2_NO_MAPPING;
+            
+            
+            
+            
+            
+            
+            if (srcByte > 0x20 || HZ_ENCODING_STATE == HZ_STATE_ASCII) {
+              *aDest++ = UCS2_NO_MAPPING;
+            }
+            aSrc--;
+            (*aSrcLength)--;
             iDestlen++;
             break;
         }
       } else if (HZ_ENCODING_STATE == HZ_STATE_GB) {
-        *aDest++ = mUtil.GBKCharToUnicode(oddByte|0x80, srcByte|0x80);
+        *aDest++ = (UINT8_IN_RANGE(0x21, oddByte, 0x7E) &&
+                    UINT8_IN_RANGE(0x21, srcByte, 0x7E)) ?
+                     mUtil.GBKCharToUnicode(oddByte|0x80, srcByte|0x80) :
+                     UCS2_NO_MAPPING;
         mRunLength++;
         iDestlen++;
       } else {
