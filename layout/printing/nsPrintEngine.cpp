@@ -1912,20 +1912,7 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
   } else {
     nscoord pageWidth, pageHeight;
     mPrt->mPrintDC->GetDeviceSurfaceDimensions(pageWidth, pageHeight);
-#if defined(XP_UNIX) && !defined(XP_MACOSX)
-    
-    
-    
-    PRInt32 orientation;
-    mPrt->mPrintSettings->GetOrientation(&orientation);
-    if (nsIPrintSettings::kLandscapeOrientation == orientation) {
-      adjSize = nsSize(pageHeight, pageWidth);
-    } else {
-      adjSize = nsSize(pageWidth, pageHeight);
-    }
-#else
     adjSize = nsSize(pageWidth, pageHeight);
-#endif 
     documentIsTopLevel = PR_TRUE;
 
     if (mIsCreatingPrintPreview) {

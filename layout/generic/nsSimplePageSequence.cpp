@@ -614,19 +614,6 @@ nsSimplePageSequenceFrame::PrintNextPage()
       dc->CreateRenderingContext(*getter_AddRefs(renderingContext));
       NS_ENSURE_TRUE(renderingContext, NS_ERROR_OUT_OF_MEMORY);
 
-#if defined(XP_UNIX) && !defined(XP_MACOSX)
-      
-      PRInt32 orientation;
-      mPageData->mPrintSettings->GetOrientation(&orientation);
-      if (nsIPrintSettings::kLandscapeOrientation == orientation) {
-        
-        float offset = POINTS_PER_INCH_FLOAT *
-           (mCurrentPageFrame->GetSize().height / float(dc->AppUnitsPerCSSInch()));
-        renderingContext->ThebesContext()->Translate(gfxPoint(offset, 0));
-        renderingContext->ThebesContext()->Rotate(M_PI/2);
-      }
-#endif 
-
       nsRect drawingRect(nsPoint(0, 0),
                          mCurrentPageFrame->GetSize());
       nsRegion drawingRegion(drawingRect);

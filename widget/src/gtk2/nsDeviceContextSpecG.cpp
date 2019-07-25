@@ -426,16 +426,6 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
   mPrintSettings->GetEffectivePageSize(&width, &height);
 
   
-  
-  PRInt32 orientation;
-  mPrintSettings->GetOrientation(&orientation);
-  if (nsIPrintSettings::kLandscapeOrientation == orientation) {
-    double tmp = width;
-    width = height;
-    height = tmp;
-  }
-
-  
   width  /= TWIPS_PER_POINT_FLOAT;
   height /= TWIPS_PER_POINT_FLOAT;
 
@@ -507,7 +497,13 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
   if (format == nsIPrintSettings::kOutputFormatPDF) {
     surface = new gfxPDFSurface(stream, surfaceSize);
   } else {
-    surface = new gfxPSSurface(stream, surfaceSize);
+    PRInt32 orientation;
+    mPrintSettings->GetOrientation(&orientation);
+    if (nsIPrintSettings::kPortraitOrientation == orientation) {
+      surface = new gfxPSSurface(stream, surfaceSize, gfxPSSurface::PORTRAIT);
+    } else {
+      surface = new gfxPSSurface(stream, surfaceSize, gfxPSSurface::LANDSCAPE);
+    }
   }
 
   if (!surface)
