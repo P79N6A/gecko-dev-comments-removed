@@ -1419,8 +1419,27 @@ stubs::RegExp(VMFrame &f, JSObject *regex)
 JSObject * JS_FASTCALL
 stubs::LambdaForInit(VMFrame &f, JSFunction *fun)
 {
+    JS_ASSERT(fun->joinable());
+    JS_ASSERT(FUN_NULL_CLOSURE(fun));
+    JS_ASSERT(f.fp()->script()->compileAndGo);
     JSObject *obj = FUN_OBJECT(fun);
-    if (FUN_NULL_CLOSURE(fun) && obj->getParent() == &f.fp()->scopeChain()) {
+    JS_ASSERT(obj->getParent() != NULL);
+
+    fun->setMethodAtom(f.fp()->script()->getAtom(GET_SLOTNO(f.regs.pc)));
+    return obj;
+}
+
+JSObject * JS_FASTCALL
+stubs::LambdaForSet(VMFrame &f, JSFunction *fun)
+{
+    JS_ASSERT(fun->joinable());
+    JS_ASSERT(FUN_NULL_CLOSURE(fun));
+    JS_ASSERT(f.fp()->script()->compileAndGo);
+    JSObject *obj = FUN_OBJECT(fun);
+    JS_ASSERT(obj->getParent() != NULL);
+
+    const Value &lref = f.regs.sp[-1];
+    if (lref.isObject() && lref.toObject().canHaveMethodBarrier()) {
         fun->setMethodAtom(f.fp()->script()->getAtom(GET_SLOTNO(f.regs.pc)));
         return obj;
     }
@@ -1428,51 +1447,40 @@ stubs::LambdaForInit(VMFrame &f, JSFunction *fun)
 }
 
 JSObject * JS_FASTCALL
-stubs::LambdaForSet(VMFrame &f, JSFunction *fun)
-{
-    JSObject *obj = FUN_OBJECT(fun);
-    if (FUN_NULL_CLOSURE(fun) && obj->getParent() == &f.fp()->scopeChain()) {
-        const Value &lref = f.regs.sp[-1];
-        if (lref.isObject() && lref.toObject().canHaveMethodBarrier()) {
-            fun->setMethodAtom(f.fp()->script()->getAtom(GET_SLOTNO(f.regs.pc)));
-            return obj;
-        }
-    }
-    return Lambda(f, fun);
-}
-
-JSObject * JS_FASTCALL
 stubs::LambdaJoinableForCall(VMFrame &f, JSFunction *fun)
 {
+    JS_ASSERT(fun->joinable());
+    JS_ASSERT(FUN_NULL_CLOSURE(fun));
+    JS_ASSERT(f.fp()->script()->compileAndGo);
     JSObject *obj = FUN_OBJECT(fun);
-    if (FUN_NULL_CLOSURE(fun) && obj->getParent() == &f.fp()->scopeChain()) {
-        
+    JS_ASSERT(obj->getParent() != NULL);
+
+    
 
 
 
 
 
 
-        int iargc = GET_ARGC(f.regs.pc);
+    int iargc = GET_ARGC(f.regs.pc);
 
-        
-
-
+    
 
 
-        const Value &cref = f.regs.sp[1 - (iargc + 2)];
-        JSObject *callee;
 
-        if (IsFunctionObject(cref, &callee)) {
-            JSFunction *calleeFun = callee->getFunctionPrivate();
-            Native native = calleeFun->maybeNative();
 
-            if (native) {
-                if (iargc == 1 && native == array_sort)
-                    return obj;
-                if (iargc == 2 && native == str_replace)
-                    return obj;
-            }
+    const Value &cref = f.regs.sp[1 - (iargc + 2)];
+    JSObject *callee;
+
+    if (IsFunctionObject(cref, &callee)) {
+        JSFunction *calleeFun = callee->getFunctionPrivate();
+        Native native = calleeFun->maybeNative();
+
+        if (native) {
+            if (iargc == 1 && native == array_sort)
+                return obj;
+            if (iargc == 2 && native == str_replace)
+                return obj;
         }
     }
     return Lambda(f, fun);
