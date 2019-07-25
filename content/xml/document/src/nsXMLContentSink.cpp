@@ -1231,8 +1231,7 @@ nsXMLContentSink::HandleDoctypeDecl(const nsAString & aSubset,
   
   nsCOMPtr<nsIDOMDocumentType> docType;
   rv = NS_NewDOMDocumentType(getter_AddRefs(docType), mNodeInfoManager, nsnull,
-                             name, nsnull, nsnull, aPublicId, aSystemId,
-                             aSubset);
+                             name, aPublicId, aSystemId, aSubset);
   if (NS_FAILED(rv) || !docType) {
     return rv;
   }

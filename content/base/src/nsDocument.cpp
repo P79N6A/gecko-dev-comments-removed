@@ -1441,8 +1441,8 @@ nsDOMImplementation::CreateDocumentType(const nsAString& aQualifiedName,
   
   nsAutoString voidString;
   voidString.SetIsVoid(PR_TRUE);
-  return NS_NewDOMDocumentType(aReturn, nsnull, mPrincipal, name, nsnull,
-                               nsnull, aPublicId, aSystemId, voidString);
+  return NS_NewDOMDocumentType(aReturn, nsnull, mPrincipal, name, aPublicId,
+                               aSystemId, voidString);
 }
 
 NS_IMETHODIMP
@@ -1507,8 +1507,6 @@ nsDOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
                                       NULL, 
                                       mPrincipal, 
                                       nsGkAtoms::html, 
-                                      NULL, 
-                                      NULL, 
                                       EmptyString(), 
                                       EmptyString(), 
                                       voidString); 
