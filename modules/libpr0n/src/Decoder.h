@@ -42,19 +42,13 @@
 #include "RasterImage.h"
 
 #include "imgIDecoderObserver.h"
-#include "imgIDecoder.h"
 
 namespace mozilla {
 namespace imagelib {
 
-
-class Decoder : public imgIDecoder
+class Decoder
 {
 public:
-
-  
-  NS_DECL_ISUPPORTS
-  NS_DECL_IMGIDECODER
 
   Decoder();
   ~Decoder();
@@ -83,9 +77,7 @@ public:
 
 
 
-  
-  
-  
+  nsresult Write(const char* aBuffer, PRUint32 aCount);
 
   
 
@@ -95,8 +87,7 @@ public:
   nsresult Finish();
 
   
-  
-  
+  NS_INLINE_DECL_REFCOUNTING(Decoder)
 
   
 
