@@ -81,6 +81,7 @@ private:
   PRInt32         mChildCount;
   PRInt32         mSelection;
   nsIFrame*       mSelectedFrame;
+  nsString        mRestyle;
   nsCOMPtr<MouseListener> mListener;
 
   

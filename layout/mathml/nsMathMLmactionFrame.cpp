@@ -32,20 +32,10 @@
 
 
 
-enum nsMactionActionTypes {
-  NS_MATHML_ACTION_TYPE_CLASS_ERROR            = 0x10,
-  NS_MATHML_ACTION_TYPE_CLASS_USE_SELECTION    = 0x20,
-  NS_MATHML_ACTION_TYPE_CLASS_IGNORE_SELECTION = 0x40,
-  NS_MATHML_ACTION_TYPE_CLASS_BITMASK          = 0xF0,
-
-  NS_MATHML_ACTION_TYPE_NONE       = NS_MATHML_ACTION_TYPE_CLASS_ERROR|0x01,
-
-  NS_MATHML_ACTION_TYPE_TOGGLE     = NS_MATHML_ACTION_TYPE_CLASS_USE_SELECTION|0x01,
-  NS_MATHML_ACTION_TYPE_UNKNOWN    = NS_MATHML_ACTION_TYPE_CLASS_USE_SELECTION|0x02,
-
-  NS_MATHML_ACTION_TYPE_STATUSLINE = NS_MATHML_ACTION_TYPE_CLASS_IGNORE_SELECTION|0x01,
-  NS_MATHML_ACTION_TYPE_TOOLTIP    = NS_MATHML_ACTION_TYPE_CLASS_IGNORE_SELECTION|0x02
-};
+#define NS_MATHML_ACTION_TYPE_NONE         0
+#define NS_MATHML_ACTION_TYPE_TOGGLE       1
+#define NS_MATHML_ACTION_TYPE_STATUSLINE   2
+#define NS_MATHML_ACTION_TYPE_TOOLTIP      3 // unsupported
 
 
 
@@ -54,10 +44,8 @@ GetActionType(nsIContent* aContent)
 {
   nsAutoString value;
 
-  if (aContent) {
-    if (!aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::actiontype_, value))
-      return NS_MATHML_ACTION_TYPE_NONE; 
-  }
+  if (aContent)
+    aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::actiontype_, value);
 
   if (value.EqualsLiteral("toggle"))
     return NS_MATHML_ACTION_TYPE_TOGGLE;
@@ -66,7 +54,7 @@ GetActionType(nsIContent* aContent)
   if (value.EqualsLiteral("tooltip"))
     return NS_MATHML_ACTION_TYPE_TOOLTIP;
 
-  return NS_MATHML_ACTION_TYPE_UNKNOWN;
+  return NS_MATHML_ACTION_TYPE_NONE;
 }
 
 nsIFrame*
@@ -147,18 +135,8 @@ nsMathMLmactionFrame::GetSelectedFrame()
   nsAutoString value;
   PRInt32 selection; 
 
-  if ((mActionType & NS_MATHML_ACTION_TYPE_CLASS_BITMASK) == 
-       NS_MATHML_ACTION_TYPE_CLASS_ERROR) {
-    
-    mSelection = -1;
-    mSelectedFrame = nsnull;
-    return mSelectedFrame;
-  }
-
   
-  
-  if ((mActionType & NS_MATHML_ACTION_TYPE_CLASS_BITMASK) == 
-       NS_MATHML_ACTION_TYPE_CLASS_IGNORE_SELECTION) {
+  if (NS_MATHML_ACTION_TYPE_TOGGLE != mActionType) {
     
     
     
@@ -179,8 +157,8 @@ nsMathMLmactionFrame::GetSelectedFrame()
 
   if (-1 != mChildCount) { 
     
-    if (selection > mChildCount || selection < 1)
-      selection = -1;
+    if (selection > mChildCount || selection < 1) 
+      selection = 1;
     
     if (selection == mSelection) 
       return mSelectedFrame;
@@ -198,8 +176,8 @@ nsMathMLmactionFrame::GetSelectedFrame()
     childFrame = childFrame->GetNextSibling();
   }
   
-  if (selection > count || selection < 1)
-    selection = -1;
+  if (selection > count || selection < 1) 
+    selection = 1;
 
   mChildCount = count;
   mSelection = selection;
@@ -246,13 +224,15 @@ nsMathMLmactionFrame::AttributeChanged(PRInt32  aNameSpaceID,
     mActionType = GetActionType(mContent);
 
     
-    if ((oldActionType & NS_MATHML_ACTION_TYPE_CLASS_BITMASK) !=
-          (mActionType & NS_MATHML_ACTION_TYPE_CLASS_BITMASK)) {
+    
+    if (oldActionType == NS_MATHML_ACTION_TYPE_TOGGLE || 
+          mActionType == NS_MATHML_ACTION_TYPE_TOGGLE) {
       needsReflow = true;
     }
   } else if (aAttribute == nsGkAtoms::selection_) {
-    if ((mActionType & NS_MATHML_ACTION_TYPE_CLASS_BITMASK) == 
-         NS_MATHML_ACTION_TYPE_CLASS_USE_SELECTION) {
+    
+    
+    if (NS_MATHML_ACTION_TYPE_TOGGLE == mActionType) {
       needsReflow = true;
     }
   } else {
@@ -276,13 +256,6 @@ nsMathMLmactionFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                        const nsRect&           aDirtyRect,
                                        const nsDisplayListSet& aLists)
 {
-  
-  
-  
-  if (NS_MATHML_HAS_ERROR(mPresentationData.flags)) {
-    return nsMathMLContainerFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
-  }
-
   nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -336,15 +309,10 @@ nsMathMLmactionFrame::Place(nsRenderingContext& aRenderingContext,
                             bool                 aPlaceOrigin,
                             nsHTMLReflowMetrics& aDesiredSize)
 {
-  nsIFrame* childFrame = GetSelectedFrame();
-
-  if (mSelection == -1) {
-    return ReflowError(aRenderingContext, aDesiredSize);
-  }
-
   aDesiredSize.width = aDesiredSize.height = 0;
   aDesiredSize.ascent = 0;
   mBoundingMetrics = nsBoundingMetrics();
+  nsIFrame* childFrame = GetSelectedFrame();
   if (childFrame) {
     GetReflowAndBoundingMetricsFor(childFrame, aDesiredSize, mBoundingMetrics);
     if (aPlaceOrigin) {
