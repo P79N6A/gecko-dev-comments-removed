@@ -325,7 +325,13 @@ nsSVGTextFrame::SetWhitespaceHandling(nsSVGGlyphFrame *aFrame)
     aFrame = aFrame->GetNextGlyphFrame();
   }
 
-  lastNonWhitespaceFrame->SetTrimTrailingWhitespace(true);
+  
+  
+  
+  while (aFrame) {
+    aFrame->SetTrimTrailingWhitespace(true);
+    aFrame = aFrame->GetNextGlyphFrame();
+  }
 }
 
 void
