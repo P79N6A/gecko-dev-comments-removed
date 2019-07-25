@@ -219,9 +219,8 @@ nsContainerFrame::RemoveFrame(nsIAtom*  aListName,
       generateReflowCommand = PR_FALSE;
     }
 #endif
+    nsContainerFrame* parent = static_cast<nsContainerFrame*>(aOldFrame->GetParent());
     while (aOldFrame) {
-      nsContainerFrame* parent =
-        static_cast<nsContainerFrame*>(aOldFrame->GetParent());
       
       
       
@@ -240,15 +239,13 @@ nsContainerFrame::RemoveFrame(nsIAtom*  aListName,
       } else {
         
         
-        
-        
-        if (oldFrameNextContinuation) {
-          oldFrameNextContinuation->SetPrevContinuation(nsnull);
-          aOldFrame->SetNextContinuation(nsnull);
-        }
-        parent->RemoveFrame(aListName, aOldFrame);
+        parent->RemoveFrame(nsnull, aOldFrame);
+        break;
       }
       aOldFrame = oldFrameNextContinuation;
+      if (aOldFrame) {
+        parent = static_cast<nsContainerFrame*>(aOldFrame->GetParent());
+      }
     }
 
     if (generateReflowCommand) {
