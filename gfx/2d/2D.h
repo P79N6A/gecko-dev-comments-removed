@@ -311,7 +311,7 @@ class DataSourceSurface : public SourceSurface
 public:
   virtual SurfaceType GetType() const { return SURFACE_DATA; }
   
-  virtual unsigned char *GetData() = 0;
+  virtual uint8_t *GetData() = 0;
   
 
 
@@ -810,7 +810,7 @@ public:
 
   static TemporaryRef<DataSourceSurface>
     CreateDataSourceSurface(const IntSize &aSize, SurfaceFormat aFormat);
-  
+
   
 
 
@@ -818,7 +818,7 @@ public:
 
 
   static TemporaryRef<DataSourceSurface>
-    CreateDataSourceSurfaceFromData(unsigned char *aData, int32_t aStride,
+    CreateWrappingDataSourceSurface(uint8_t *aData, int32_t aStride,
                                     const IntSize &aSize, SurfaceFormat aFormat);
 
 #ifdef WIN32
