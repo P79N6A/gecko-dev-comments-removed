@@ -441,9 +441,6 @@ protected:
   PRBool IsElementInBody(nsIDOMElement* aElement);
 
   
-  void ClearInlineStylesCache();
-  
-  
   NS_IMETHOD TabInTable(PRBool inIsShift, PRBool *outHandled);
   NS_IMETHOD CreateBR(nsIDOMNode *aNode, PRInt32 aOffset, 
                       nsCOMPtr<nsIDOMNode> *outBRNode, nsIEditor::EDirection aSelect = nsIEditor::eNone);
@@ -741,8 +738,6 @@ protected:
   nsCOMArray<nsIContentFilter> mContentFilters;
 
   TypeInState*         mTypeInState;
-
-  nsCOMPtr<nsIDOMNode> mCachedNode;
 
   PRPackedBool mCRInParagraphCreatesParagraph;
 
