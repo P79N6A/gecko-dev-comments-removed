@@ -35,7 +35,8 @@
 
 
 const EXPORTED_SYMBOLS = ['Store', 'SnapshotStore', 'BookmarksStore',
-			  'HistoryStore', 'PasswordStore', 'FormStore'];
+			  'HistoryStore', 'CookieStore', 'PasswordStore', 'FormStore',
+			  'TabStore'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -369,8 +370,6 @@ BookmarksStore.prototype = {
 
       if (command.data.type == "microsummary") {
         this._log.debug("   \-> is a microsummary");
-        this._ans.setItemAnnotation(newId, "bookmarks/staticTitle",
-                                    command.data.staticTitle || "", 0, this._ans.EXPIRE_NEVER);
         let genURI = Utils.makeURI(command.data.generatorURI);
         try {
           let micsum = this._ms.createMicrosummary(URI, genURI);
@@ -580,7 +579,6 @@ BookmarksStore.prototype = {
         item.type = "microsummary";
         let micsum = this._ms.getMicrosummary(node.itemId);
         item.generatorURI = micsum.generator.uri.spec; 
-        item.staticTitle = this._ans.getItemAnnotation(node.itemId, "bookmarks/staticTitle");
       } else if (node.type == node.RESULT_TYPE_QUERY) {
         item.type = "query";
         item.title = node.title;
@@ -764,6 +762,191 @@ HistoryStore.prototype = {
 };
 HistoryStore.prototype.__proto__ = new Store();
 
+
+function CookieStore( cookieManagerStub ) {
+  
+
+
+
+  this._init();
+  this._cookieManagerStub = cookieManagerStub;
+}
+CookieStore.prototype = {
+  _logName: "CookieStore",
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  __cookieManager: null,
+  get _cookieManager() {
+    if ( this._cookieManagerStub != undefined ) {
+      return this._cookieManagerStub;
+    }
+    
+    if (!this.__cookieManager)
+      this.__cookieManager = Cc["@mozilla.org/cookiemanager;1"].
+                             getService(Ci.nsICookieManager2);
+    
+    
+    return this.__cookieManager
+  },
+
+  _createCommand: function CookieStore__createCommand(command) {
+    
+
+
+    this._log.info("CookieStore got createCommand: " + command );
+    
+    if ( !command.data.isSession ) {
+      
+      this._cookieManager.add( command.data.host,
+			       command.data.path,
+			       command.data.name,
+			       command.data.value,
+			       command.data.isSecure,
+			       command.data.isHttpOnly,
+			       command.data.isSession,
+			       command.data.expiry );
+    }
+  },
+
+  _removeCommand: function CookieStore__removeCommand(command) {
+    
+
+
+
+
+    this._log.info("CookieStore got removeCommand: " + command );
+
+    
+
+
+
+    this._cookieManager.remove( command.data.host,
+				command.data.name,
+				command.data.path,
+				false );
+  },
+
+  _editCommand: function CookieStore__editCommand(command) {
+    
+
+    this._log.info("CookieStore got editCommand: " + command );
+
+    
+    var iter = this._cookieManager.enumerator;
+    var matchingCookie = null;
+    while (iter.hasMoreElements()){
+      let cookie = iter.getNext();
+      if (cookie.QueryInterface( Ci.nsICookie ) ){
+        
+	let key = cookie.host + ":" + cookie.path + ":" + cookie.name;
+	if (key == command.GUID) {
+	  matchingCookie = cookie;
+	  break;
+	}
+      }
+    }
+    
+    for (var key in command.data) {
+      
+      matchingCookie[ key ] = command.data[ key ]
+    }
+    
+    this._cookieManager.remove( matchingCookie.host,
+				matchingCookie.name,
+				matchingCookie.path,
+				false );
+
+    
+    if ( !command.data.isSession ) {
+      
+      this._cookieManager.add( matchingCookie.host,
+			       matchingCookie.path,
+			       matchingCookie.name,
+			       matchingCookie.value,
+			       matchingCookie.isSecure,
+			       matchingCookie.isHttpOnly,
+			       matchingCookie.isSession,
+			       matchingCookie.expiry );
+    }
+
+    
+    
+  },
+
+  wrap: function CookieStore_wrap() {
+    
+
+
+
+    let items = {};
+    var iter = this._cookieManager.enumerator;
+    while (iter.hasMoreElements()){
+      var cookie = iter.getNext();
+      if (cookie.QueryInterface( Ci.nsICookie )){
+	
+	
+	if ( cookie.isSession ) {
+	  
+	  continue;
+	}
+
+	let key = cookie.host + ":" + cookie.path + ":" + cookie.name;
+	items[ key ] = { parentGUID: '',
+			 name: cookie.name,
+			 value: cookie.value,
+			 isDomain: cookie.isDomain,
+			 host: cookie.host,
+			 path: cookie.path,
+			 isSecure: cookie.isSecure,
+			 
+			 rawHost: cookie.rawHost,
+			 isSession: cookie.isSession,
+			 expiry: cookie.expiry,
+			 isHttpOnly: cookie.isHttpOnly }
+
+	
+
+
+
+      }
+    }
+    return items;
+  },
+
+  wipe: function CookieStore_wipe() {
+    
+
+
+
+    this._cookieManager.removeAll()
+  },
+
+  resetGUIDs: function CookieStore_resetGUIDs() {
+    
+
+
+
+
+  }
+};
+CookieStore.prototype.__proto__ = new Store();
+
 function PasswordStore() {
   this._init();
 }
@@ -921,3 +1104,294 @@ FormStore.prototype = {
   }
 };
 FormStore.prototype.__proto__ = new Store();
+
+function TabStore() {
+  this._virtualTabs = {};
+  this._init();
+}
+TabStore.prototype = {
+  __proto__: new Store(),
+
+  _logName: "TabStore",
+
+  get _sessionStore() {
+    let sessionStore = Cc["@mozilla.org/browser/sessionstore;1"].
+		       getService(Ci.nsISessionStore);
+    this.__defineGetter__("_sessionStore", function() sessionStore);
+    return this._sessionStore;
+  },
+
+  get _windowMediator() {
+    let windowMediator = Cc["@mozilla.org/appshell/window-mediator;1"].
+			 getService(Ci.nsIWindowMediator);
+    this.__defineGetter__("_windowMediator", function() windowMediator);
+    return this._windowMediator;
+  },
+
+  get _os() {
+    let os = Cc["@mozilla.org/observer-service;1"].
+             getService(Ci.nsIObserverService);
+    this.__defineGetter__("_os", function() os);
+    return this._os;
+  },
+
+  get _dirSvc() {
+    let dirSvc = Cc["@mozilla.org/file/directory_service;1"].
+                 getService(Ci.nsIProperties);
+    this.__defineGetter__("_dirSvc", function() dirSvc);
+    return this._dirSvc;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _virtualTabs: null,
+
+  get virtualTabs() {
+    
+    
+    
+    let realTabs = this._wrapRealTabs();
+    let virtualTabsChanged = false;
+    for (let id in this._virtualTabs) {
+      if (id in realTabs) {
+        this._log.warn("get virtualTabs: both real and virtual tabs exist for "
+                       + id + "; removing virtual one");
+        delete this._virtualTabs[id];
+        virtualTabsChanged = true;
+      }
+    }
+    if (virtualTabsChanged)
+      this._saveVirtualTabs();
+
+    return this._virtualTabs;
+  },
+
+  set virtualTabs(newValue) {
+    this._virtualTabs = newValue;
+    this._saveVirtualTabs();
+  },
+
+  
+  get _file() {
+    let file = this._dirSvc.get("ProfD", Ci.nsILocalFile);
+    file.append("weave");
+    file.append("store");
+    file.append("tabs");
+    file.append("virtual.json");
+    this.__defineGetter__("_file", function() file);
+    return this._file;
+  },
+
+  _saveVirtualTabs: function TabStore__saveVirtualTabs() {
+    try {
+      if (!this._file.exists())
+        this._file.create(Ci.nsIFile.NORMAL_FILE_TYPE, PERMS_FILE);
+      let out = this._json.encode(this._virtualTabs);
+      let [fos] = Utils.open(this._file, ">");
+      fos.writeString(out);
+      fos.close();
+    }
+    catch(ex) {
+      this._log.warn("could not serialize virtual tabs to disk: " + ex);
+    }
+  },
+
+  _restoreVirtualTabs: function TabStore__restoreVirtualTabs() {
+    try {
+      if (this._file.exists()) {
+        let [is] = Utils.open(this._file, "<");
+        let json = Utils.readStream(is);
+        is.close();
+        this._virtualTabs = this._json.decode(json);
+      }
+    }
+    catch (ex) {
+      this._log.warn("could not parse virtual tabs from disk: " + ex);
+    }
+  },
+
+  _init: function TabStore__init() {
+    this._restoreVirtualTabs();
+
+    this.__proto__.__proto__._init();
+  },
+
+  
+
+
+
+
+  applyCommands: function TabStore_applyCommands(commandList) {
+    let self = yield;
+
+    this.__proto__.__proto__.applyCommands.async(this, self.cb, commandList);
+    yield;
+
+    this._saveVirtualTabs();
+
+    self.done();
+  },
+
+  _createCommand: function TabStore__createCommand(command) {
+    this._log.debug("_createCommand: " + command.GUID);
+
+    if (command.GUID in this._virtualTabs || command.GUID in this._wrapRealTabs())
+      throw "trying to create a tab that already exists; id: " + command.GUID;
+
+    
+    this._virtualTabs[command.GUID] = command.data;
+    this._os.notifyObservers(null, "weave:store:tabs:virtual:created", null);
+  },
+
+  _removeCommand: function TabStore__removeCommand(command) {
+    this._log.debug("_removeCommand: " + command.GUID);
+
+    
+    
+    
+    if (command.GUID in this._virtualTabs) {
+      delete this._virtualTabs[command.GUID];
+      this._os.notifyObservers(null, "weave:store:tabs:virtual:removed", null);
+    }
+  },
+
+  _editCommand: function TabStore__editCommand(command) {
+    this._log.debug("_editCommand: " + command.GUID);
+
+    
+    
+    
+
+    if (this._virtualTabs[command.GUID])
+      this._virtualTabs[command.GUID] = command.data;
+  },
+
+  
+
+
+
+
+
+
+
+
+  wrap: function TabStore_wrap() {
+    let items;
+
+    let virtualTabs = this._wrapVirtualTabs();
+    let realTabs = this._wrapRealTabs();
+
+    
+    
+    
+    
+    items = virtualTabs;
+    let virtualTabsChanged = false;
+    for (let id in realTabs) {
+      
+      
+      
+      
+      if (this._virtualTabs[id]) {
+        this._log.warn("wrap: both real and virtual tabs exist for " + id +
+                       "; removing virtual one");
+        delete this._virtualTabs[id];
+        virtualTabsChanged = true;
+      }
+
+      items[id] = realTabs[id];
+    }
+    if (virtualTabsChanged)
+      this._saveVirtualTabs();
+
+    return items;
+  },
+
+  _wrapVirtualTabs: function TabStore__wrapVirtualTabs() {
+    let items = {};
+
+    for (let id in this._virtualTabs) {
+      let virtualTab = this._virtualTabs[id];
+
+      
+      
+      
+      let item = {};
+      for (let property in virtualTab)
+        if (property[0] != "_")
+          item[property] = virtualTab[property];
+
+      items[id] = item;
+    }
+
+    return items;
+  },
+
+  _wrapRealTabs: function TabStore__wrapRealTabs() {
+    let items = {};
+
+    let session = this._json.decode(this._sessionStore.getBrowserState());
+
+    for (let i = 0; i < session.windows.length; i++) {
+      let window = session.windows[i];
+      
+      
+      
+      let windowID = i + 1;
+      this._log.debug("_wrapRealTabs: window " + windowID);
+      for (let j = 0; j < window.tabs.length; j++) {
+        let tab = window.tabs[j];
+
+	
+	
+	let currentEntry = tab.entries[tab.index - 1];
+
+	if (!currentEntry || !currentEntry.url) {
+	  this._log.warn("_wrapRealTabs: no current entry or no URL, can't " +
+                         "identify " + this._json.encode(tab));
+	  continue;
+	}
+
+	let tabID = currentEntry.url;
+        this._log.debug("_wrapRealTabs: tab " + tabID);
+
+	items[tabID] = {
+          
+          
+	  type: "tab",
+
+          
+          
+          position: j + 1,
+
+	  windowID: windowID,
+
+	  state: tab
+	};
+      }
+    }
+
+    return items;
+  },
+
+  wipe: function TabStore_wipe() {
+    
+    
+    this._virtualTabs = {};
+    this._saveVirtualTabs();
+  },
+
+  resetGUIDs: function TabStore_resetGUIDs() {
+    
+  }
+
+};

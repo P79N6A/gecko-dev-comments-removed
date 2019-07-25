@@ -35,7 +35,8 @@
 
 
 const EXPORTED_SYMBOLS = ['SyncCore', 'BookmarksSyncCore', 'HistorySyncCore',
-                          'PasswordSyncCore', 'FormSyncCore'];
+                          'CookieSyncCore', 'PasswordSyncCore', 'FormSyncCore',
+                          'TabSyncCore'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -431,6 +432,76 @@ HistorySyncCore.prototype = {
 };
 HistorySyncCore.prototype.__proto__ = new SyncCore();
 
+
+function CookieSyncCore() {
+  this._init();
+}
+CookieSyncCore.prototype = {
+  _logName: "CookieSync",
+
+  __cookieManager: null,
+  get _cookieManager() {
+    if (!this.__cookieManager)
+      this.__cookieManager = Cc["@mozilla.org/cookiemanager;1"].
+                             getService(Ci.nsICookieManager2);
+    
+
+    return this.__cookieManager;
+  },
+
+
+  _itemExists: function CSC__itemExists(GUID) {
+    
+
+
+
+
+
+    
+
+
+
+    let cookieArray = GUID.split( ":" );
+    let cookieHost = cookieArray[0];
+    let cookiePath = cookieArray[1];
+    let cookieName = cookieArray[2];
+
+    
+
+
+
+    let enumerator = this._cookieManager.enumerator;
+    while (enumerator.hasMoreElements())
+      {
+	let aCookie = enumerator.getNext();
+	if (aCookie.host == cookieHost &&
+	    aCookie.path == cookiePath &&
+	    aCookie.name == cookieName ) {
+	  return true;
+	}
+      }
+    return false;
+    
+
+
+
+
+
+  },
+
+  _commandLike: function CSC_commandLike(a, b) {
+    
+
+
+
+
+
+    return false;
+  }
+};
+CookieSyncCore.prototype.__proto__ = new SyncCore();
+
+
 function PasswordSyncCore() {
   this._init();
 }
@@ -512,3 +583,55 @@ FormSyncCore.prototype = {
   }
 };
 FormSyncCore.prototype.__proto__ = new SyncCore();
+
+function TabSyncCore(engine) {
+  this._engine = engine;
+  this._init();
+}
+TabSyncCore.prototype = {
+  __proto__: new SyncCore(),
+
+  _logName: "TabSync",
+
+  _engine: null,
+
+  get _sessionStore() {
+    let sessionStore = Cc["@mozilla.org/browser/sessionstore;1"].
+		       getService(Ci.nsISessionStore);
+    this.__defineGetter__("_sessionStore", function() sessionStore);
+    return this._sessionStore;
+  },
+
+  
+  get _json() {
+    let json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
+    this.__defineGetter__("_json", function() json);
+    return this._json;
+  },
+
+  _itemExists: function TSC__itemExists(GUID) {
+    
+    
+    
+    
+    
+
+    
+    let tabs = this._engine.store.wrap();
+
+    
+    
+    if (GUID in tabs) {
+      this._log.debug("_itemExists: " + GUID + " exists");
+      return true;
+    }
+
+    this._log.debug("_itemExists: " + GUID + " doesn't exist");
+    return false;
+  },
+
+  _commandLike: function TSC_commandLike(a, b) {
+    
+    return false;
+  }
+};
