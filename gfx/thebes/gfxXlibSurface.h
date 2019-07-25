@@ -90,22 +90,22 @@ public:
 
     
     
-    void TakePixmap() {
-        NS_ASSERTION(!mPixmapTaken, "I already own the Pixmap!");
-        mPixmapTaken = PR_TRUE;
-    }
+    void TakePixmap();
 
     
     
     
-    Drawable ReleasePixmap() {
-        NS_ASSERTION(mPixmapTaken, "I don't own the Pixmap!");
-        mPixmapTaken = PR_FALSE;
-        return mDrawable;
-    }
+    Drawable ReleasePixmap();
 
     
     PRBool GetColormapAndVisual(Colormap* colormap, Visual **visual);
+
+    
+    
+    virtual gfxASurface::MemoryLocation MemoryLocation()
+    {
+      return MEMORY_OUT_OF_PROCESS;
+    }
 
 protected:
     

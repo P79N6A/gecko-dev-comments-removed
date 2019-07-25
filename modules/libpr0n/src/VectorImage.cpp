@@ -249,14 +249,20 @@ VectorImage::GetCurrentFrameRect(nsIntRect& aRect)
 }
 
 PRUint32
-VectorImage::GetDecodedDataSize()
+VectorImage::GetDecodedHeapSize()
 {
   
   return sizeof(*this);
 }
 
 PRUint32
-VectorImage::GetSourceDataSize()
+VectorImage::GetDecodedNonheapSize()
+{
+  return 0;
+}
+
+PRUint32
+VectorImage::GetSourceHeapSize()
 {
   
   
