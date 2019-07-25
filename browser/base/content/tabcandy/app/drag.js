@@ -100,7 +100,9 @@ Drag.prototype = {
     var newRect;
 
     
-    if (!Keys.meta) { 
+    if ( !Keys.meta                           
+        && !this.item.overlapsWithOtherItems() 
+        ) { 
       newRect = Trenches.snap(bounds,assumeConstantSize,keepProportional);
       if (newRect) { 
         update = true;
