@@ -1480,8 +1480,15 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
                                   addTab: drag.info.item.parent != self,
                                   animate: true});
       }
+
+      
+      
+      var groupItem = drag.info.item.parent;
+      if (groupItem && self !== groupItem)
+        groupItem.remove(drag.info.$el, {dontClose: true});
+
       if (dropIndex !== false)
-        options = {index: dropIndex}
+        options = {index: dropIndex};
       this.add(drag.info.$el, options);
       GroupItems.setActiveGroupItem(this);
       dropIndex = false;
