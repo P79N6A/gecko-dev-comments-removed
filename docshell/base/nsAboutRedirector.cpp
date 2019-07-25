@@ -64,8 +64,6 @@ struct RedirEntry {
 
 
 static RedirEntry kRedirMap[] = {
-    { "", "chrome://global/content/about.xhtml",
-      nsIAboutModule::ALLOW_SCRIPT },
     { "about", "chrome://global/content/aboutAbout.xhtml", 0 },
     { "credits", "http://www.mozilla.org/credits/",
       nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT },
@@ -93,6 +91,8 @@ static RedirEntry kRedirMap[] = {
     { "addons", "chrome://mozapps/content/extensions/extensions.xul",
       nsIAboutModule::ALLOW_SCRIPT },
     { "support", "chrome://global/content/aboutSupport.xhtml",
+      nsIAboutModule::ALLOW_SCRIPT },
+    { "startup", "chrome://global/content/aboutStartup.xhtml",
       nsIAboutModule::ALLOW_SCRIPT }
 };
 static const int kRedirTotal = NS_ARRAY_LENGTH(kRedirMap);
