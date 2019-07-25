@@ -11,6 +11,7 @@
 #include "mozilla/Scoped.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/ProcessedStack.h"
 #include "nsStackWalk.h"
 #include "nsPrintfCString.h"
 #include "mach_override.h"
@@ -38,131 +39,11 @@ struct FuncData {
                            
 };
 
-
-
-
-class ProcessedStack
-{
-public:
-    ProcessedStack() : mProcessed(false)
-    {
-    }
-    void Reserve(unsigned int n)
-    {
-        mStack.reserve(n);
-    }
-    size_t GetStackSize()
-    {
-        return mStack.size();
-    }
-    struct ProcessedStackFrame
-    {
-        uintptr_t mOffset;
-        uint16_t mModIndex;
-    };
-    ProcessedStackFrame GetFrame(unsigned aIndex)
-    {
-        const StackFrame &Frame = mStack[aIndex];
-        ProcessedStackFrame Ret = { Frame.mPC, Frame.mModIndex };
-        return Ret;
-    }
-    size_t GetNumModules()
-    {
-        MOZ_ASSERT(mProcessed);
-        return mModules.GetSize();
-    }
-    const char *GetModuleName(unsigned aIndex)
-    {
-        MOZ_ASSERT(mProcessed);
-        return mModules.GetEntry(aIndex).GetName();
-    }
-    void AddStackFrame(uintptr_t aPC)
-    {
-        MOZ_ASSERT(!mProcessed);
-        StackFrame Frame = {aPC, static_cast<uint16_t>(mStack.size()),
-                            std::numeric_limits<uint16_t>::max()};
-        mStack.push_back(Frame);
-    }
-    void Process()
-    {
-        mProcessed = true;
-        mModules = SharedLibraryInfo::GetInfoForSelf();
-        mModules.SortByAddress();
-
-        
-        std::sort(mStack.begin(), mStack.end(), CompareByPC);
-
-        size_t moduleIndex = 0;
-        size_t stackIndex = 0;
-        size_t stackSize = mStack.size();
-
-        while (moduleIndex < mModules.GetSize()) {
-            SharedLibrary& module = mModules.GetEntry(moduleIndex);
-            uintptr_t moduleStart = module.GetStart();
-            uintptr_t moduleEnd = module.GetEnd() - 1;
-            
-
-            bool moduleReferenced = false;
-            for (;stackIndex < stackSize; ++stackIndex) {
-                uintptr_t pc = mStack[stackIndex].mPC;
-                if (pc >= moduleEnd)
-                    break;
-
-                if (pc >= moduleStart) {
-                    
-                    
-                    moduleReferenced = true;
-                    mStack[stackIndex].mPC -= moduleStart;
-                    mStack[stackIndex].mModIndex = moduleIndex;
-                } else {
-                    
-                    
-                    
-                    mStack[stackIndex].mPC =
-                        std::numeric_limits<uintptr_t>::max();
-                }
-            }
-
-            if (moduleReferenced) {
-                ++moduleIndex;
-            } else {
-                
-                mModules.RemoveEntries(moduleIndex, moduleIndex + 1);
-            }
-        }
-
-        for (;stackIndex < stackSize; ++stackIndex) {
-            
-            mStack[stackIndex].mPC = std::numeric_limits<uintptr_t>::max();
-        }
-
-        std::sort(mStack.begin(), mStack.end(), CompareByIndex);
-    }
-
-private:
-  struct StackFrame
-  {
-      uintptr_t mPC;      
-      uint16_t mIndex;    
-      uint16_t mModIndex; 
-  };
-  static bool CompareByPC(const StackFrame &a, const StackFrame &b)
-  {
-      return a.mPC < b.mPC;
-  }
-  static bool CompareByIndex(const StackFrame &a, const StackFrame &b)
-  {
-    return a.mIndex < b.mIndex;
-  }
-  SharedLibraryInfo mModules;
-  std::vector<StackFrame> mStack;
-  bool mProcessed;
-};
-
 void RecordStackWalker(void *aPC, void *aSP, void *aClosure)
 {
-    ProcessedStack *stack = static_cast<ProcessedStack*>(aClosure);
-    stack->AddStackFrame(reinterpret_cast<uintptr_t>(aPC));
+    std::vector<uintptr_t> *stack =
+        static_cast<std::vector<uintptr_t>*>(aClosure);
+    stack->push_back(reinterpret_cast<uintptr_t>(aPC));
 }
 
 char *sProfileDirectory = NULL;
@@ -177,9 +58,10 @@ bool ValidWriteAssert(bool ok)
 
     
     
-    ProcessedStack stack;
-    NS_StackWalk(RecordStackWalker, 0, reinterpret_cast<void*>(&stack), 0);
-    stack.Process();
+    std::vector<uintptr_t> rawStack;
+
+    NS_StackWalk(RecordStackWalker, 0, reinterpret_cast<void*>(&rawStack), 0);
+    Telemetry::ProcessedStack stack = Telemetry::GetStackAndModules(rawStack, true);
 
     nsPrintfCString nameAux("%s%s", sProfileDirectory,
                             "/Telemetry.LateWriteTmpXXXXXX");
@@ -192,14 +74,15 @@ bool ValidWriteAssert(bool ok)
     size_t numModules = stack.GetNumModules();
     fprintf(f, "%zu\n", numModules);
     for (int i = 0; i < numModules; ++i) {
-        const char *name = stack.GetModuleName(i);
-        fprintf(f, "%s\n", name ? name : "");
+        Telemetry::ProcessedStack::Module module = stack.GetModule(i);
+        fprintf(f, "%s\n", module.mName.c_str());
     }
 
     size_t numFrames = stack.GetStackSize();
     fprintf(f, "%zu\n", numFrames);
     for (size_t i = 0; i < numFrames; ++i) {
-        const ProcessedStack::ProcessedStackFrame &frame = stack.GetFrame(i);
+        const Telemetry::ProcessedStack::Frame &frame =
+            stack.GetFrame(i);
         
         
         

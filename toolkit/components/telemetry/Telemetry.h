@@ -127,10 +127,7 @@ void RecordSlowSQLStatement(const nsACString &statement,
 
 const PRUint32 kSlowStatementThreshold = 100;
 
-
-
-
-typedef nsTArray<uintptr_t> HangStack;
+class ProcessedStack;
 
 
 
@@ -141,8 +138,7 @@ typedef nsTArray<uintptr_t> HangStack;
 
 #if defined(MOZ_ENABLE_PROFILER_SPS)
 void RecordChromeHang(PRUint32 duration,
-                      const HangStack &callStack,
-                      SharedLibraryInfo &moduleMap);
+                      ProcessedStack &aStack);
 #endif
 
 } 
