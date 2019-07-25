@@ -46,6 +46,7 @@
 
 #include "Stack.h"
 
+#include "jsscriptinlines.h"
 #include "ArgumentsObject-inl.h"
 #include "methodjit/MethodJIT.h"
 
@@ -129,11 +130,6 @@ inline void
 StackFrame::resetCallFrame(JSScript *script)
 {
     JS_ASSERT(script == this->script());
-
-    
-
-    putActivationObjects();
-    markActivationObjectsAsPut();
 
     if (flags_ & UNDERFLOW_ARGS)
         SetValueRangeToUndefined(formalArgs() + numActualArgs(), formalArgsEnd());
@@ -358,16 +354,51 @@ StackFrame::callObj() const
     JS_ASSERT_IF(isNonEvalFunctionFrame() || isStrictEvalFrame(), hasCallObj());
 
     JSObject *pobj = &scopeChain();
-    while (JS_UNLIKELY(!pobj->isCall())) {
+    while (JS_UNLIKELY(pobj->getClass() != &js_CallClass)) {
         JS_ASSERT(IsCacheableNonGlobalScope(pobj) || pobj->isWith());
         pobj = pobj->getParent();
     }
     return *pobj;
 }
 
-inline void
-StackFrame::putActivationObjects()
+inline bool
+StackFrame::maintainNestingState() const
 {
+    
+
+
+
+    return isNonEvalFunctionFrame() && !isGeneratorFrame() && script()->nesting();
+}
+
+inline bool
+StackFrame::functionPrologue(JSContext *cx)
+{
+    JS_ASSERT(isNonEvalFunctionFrame());
+
+    JSFunction *fun = this->fun();
+
+    if (fun->isHeavyweight()) {
+        if (!CreateFunCallObject(cx, this))
+            return false;
+    } else {
+        
+        scopeChain();
+    }
+
+    if (script()->nesting()) {
+        JS_ASSERT(maintainNestingState());
+        types::NestingPrologue(cx, this);
+    }
+
+    return true;
+}
+
+inline void
+StackFrame::functionEpilogue(bool objectsOnly)
+{
+    JS_ASSERT(isNonEvalFunctionFrame());
+
     if (flags_ & (HAS_ARGS_OBJ | HAS_CALL_OBJ)) {
         
         if (hasCallObj())
@@ -375,10 +406,13 @@ StackFrame::putActivationObjects()
         else if (hasArgsObj())
             js_PutArgsObject(this);
     }
+
+    if (!objectsOnly && maintainNestingState())
+        types::NestingEpilogue(this);
 }
 
 inline void
-StackFrame::markActivationObjectsAsPut()
+StackFrame::markFunctionEpilogueDone(bool activationOnly)
 {
     if (flags_ & (HAS_ARGS_OBJ | HAS_CALL_OBJ)) {
         if (hasArgsObj() && !argsObj().getPrivate()) {
@@ -399,6 +433,14 @@ StackFrame::markActivationObjectsAsPut()
             flags_ &= ~HAS_CALL_OBJ;
         }
     }
+
+    
+
+
+
+
+    if (!activationOnly && maintainNestingState())
+        script()->nesting()->activeFrames++;
 }
 
 
@@ -547,7 +589,7 @@ ContextStack::popInlineFrame(FrameRegs &regs)
     JS_ASSERT(&regs == &seg_->regs());
 
     StackFrame *fp = regs.fp();
-    fp->putActivationObjects();
+    fp->functionEpilogue();
 
     Value *newsp = fp->actualArgs() - 1;
     JS_ASSERT(newsp >= fp->prev()->base());
@@ -584,7 +626,7 @@ ContextStack::currentScript(jsbytecode **ppc) const
         JS_ASSERT(inlined->inlineIndex < fp->jit()->nInlineFrames);
         mjit::InlineFrame *frame = &fp->jit()->inlineFrames()[inlined->inlineIndex];
         JSScript *script = frame->fun->script();
-        if (script->compartment() != cx_->compartment)
+        if (script->compartment != cx_->compartment)
             return NULL;
         if (ppc)
             *ppc = script->code + inlined->pcOffset;
@@ -593,7 +635,7 @@ ContextStack::currentScript(jsbytecode **ppc) const
 #endif
 
     JSScript *script = fp->script();
-    if (script->compartment() != cx_->compartment)
+    if (script->compartment != cx_->compartment)
         return NULL;
 
     if (ppc)

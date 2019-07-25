@@ -308,7 +308,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
     PodZero(escapedSlots, numSlots);
 
-    if (script->usesEval || script->usesArguments || script->compartment()->debugMode()) {
+    if (script->usesEval || script->usesArguments || script->compartment->debugMode()) {
         for (unsigned i = 0; i < nargs; i++)
             escapedSlots[ArgSlot(i)] = true;
     } else {
@@ -319,7 +319,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
         }
     }
 
-    if (script->usesEval || script->compartment()->debugMode()) {
+    if (script->usesEval || script->compartment->debugMode()) {
         for (unsigned i = 0; i < script->nfixed; i++) {
             escapedSlots[LocalSlot(script, i)] = true;
             setLocal(i, LOCAL_USE_BEFORE_DEF);
@@ -342,7 +342,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
 
     if (cx->compartment->debugMode())
-        usesRval = true;
+        usesReturnValue_ = true;
 
     isInlineable = true;
     if (script->nClosedArgs || script->nClosedVars || script->nfixed >= LOCAL_LIMIT ||
@@ -498,7 +498,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
           case JSOP_SETRVAL:
           case JSOP_POPV:
-            usesRval = true;
+            usesReturnValue_ = true;
             isInlineable = false;
             break;
 
@@ -510,7 +510,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_QNAMEPART:
           case JSOP_QNAMECONST:
             checkAliasedName(cx, pc);
-            usesScope = true;
+            usesScopeChain_ = true;
             isInlineable = false;
             break;
 
@@ -519,20 +519,34 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_DEFCONST:
           case JSOP_SETCONST:
             checkAliasedName(cx, pc);
-            
-
-          case JSOP_ENTERWITH:
+            extendsScope_ = true;
             isInlineable = canTrackVars = false;
             break;
 
+          case JSOP_EVAL:
+            extendsScope_ = true;
+            isInlineable = canTrackVars = false;
+            break;
+
+          case JSOP_ENTERWITH:
+            addsScopeObjects_ = true;
+            isInlineable = canTrackVars = false;
+            break;
+
+          case JSOP_ENTERBLOCK:
+          case JSOP_LEAVEBLOCK:
+            addsScopeObjects_ = true;
+            isInlineable = false;
+            break;
+
           case JSOP_THIS:
-            usesThis = true;
+            usesThisValue_ = true;
             break;
 
           case JSOP_CALL:
           case JSOP_NEW:
             
-            hasCalls = true;
+            hasFunctionCalls_ = true;
             break;
 
           case JSOP_TABLESWITCH:
@@ -612,7 +626,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             JSTryNote *tn = script->trynotes()->vector;
             JSTryNote *tnlimit = tn + script->trynotes()->length;
             for (; tn < tnlimit; tn++) {
-                unsigned startOffset = script->mainOffset + tn->start;
+                unsigned startOffset = script->main - script->code + tn->start;
                 if (startOffset == offset + 1) {
                     unsigned catchOffset = startOffset + tn->length;
 
@@ -717,7 +731,6 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
           
           case JSOP_ARGUMENTS:
-          case JSOP_EVAL:
           case JSOP_THROW:
           case JSOP_EXCEPTION:
           case JSOP_DEFLOCALFUN:
@@ -729,8 +742,6 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_ARGSUB:
           case JSOP_ARGCNT:
           case JSOP_DEBUGGER:
-          case JSOP_ENTERBLOCK:
-          case JSOP_LEAVEBLOCK:
           case JSOP_FUNCALL:
           case JSOP_FUNAPPLY:
             isInlineable = false;
@@ -894,7 +905,7 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
             JSTryNote *tn = script->trynotes()->vector;
             JSTryNote *tnlimit = tn + script->trynotes()->length;
             for (; tn < tnlimit; tn++) {
-                unsigned startOffset = script->mainOffset + tn->start;
+                unsigned startOffset = script->main - script->code + tn->start;
                 if (startOffset + tn->length == offset) {
                     
 
@@ -905,7 +916,9 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
                             ensureVariable(lifetimes[i], startOffset - 1);
                     }
 
+#ifdef DEBUG
                     found = true;
+#endif
                     break;
                 }
             }
@@ -1672,7 +1685,7 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
             JSTryNote *tn = script->trynotes()->vector;
             JSTryNote *tnlimit = tn + script->trynotes()->length;
             for (; tn < tnlimit; tn++) {
-                unsigned startOffset = script->mainOffset + tn->start;
+                unsigned startOffset = script->main - script->code + tn->start;
                 if (startOffset == offset + 1) {
                     unsigned catchOffset = startOffset + tn->length;
 

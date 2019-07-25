@@ -290,7 +290,10 @@ enum RejoinState {
     REJOIN_CHECK_ARGUMENTS,
 
     
-    REJOIN_CREATE_CALL_OBJECT,
+
+
+
+    REJOIN_FUNCTION_PROLOGUE,
 
     
 
@@ -640,7 +643,7 @@ struct JITScript {
 
     void trace(JSTracer *trc);
 
-    size_t scriptDataSize(size_t(*mus)(void *));
+    size_t scriptDataSize();
 
     jsbytecode *nativeToPC(void *returnAddress, CallSite **pinline) const;
 
@@ -687,9 +690,9 @@ inline void
 ReleaseScriptCode(JSContext *cx, JSScript *script)
 {
     if (script->jitCtor)
-        mjit::ReleaseScriptCode(cx, script, true);
+        mjit::ReleaseScriptCode(cx, script, CONSTRUCT);
     if (script->jitNormal)
-        mjit::ReleaseScriptCode(cx, script, false);
+        mjit::ReleaseScriptCode(cx, script, NO_CONSTRUCT);
 }
 
 

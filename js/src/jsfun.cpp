@@ -207,6 +207,7 @@ ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee)
     EmptyShape *emptyArgumentsShape = EmptyShape::getEmptyArgumentsShape(cx);
     if (!emptyArgumentsShape)
         return NULL;
+    AutoShapeRooter shapeRoot(cx, emptyArgumentsShape);
 
     ArgumentsData *data = (ArgumentsData *)
         cx->malloc_(offsetof(ArgumentsData, slots) + argc * sizeof(Value));
@@ -216,8 +217,8 @@ ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee)
 
     
     obj->init(cx, callee.getFunctionPrivate()->inStrictMode()
-              ? &StrictArgumentsObjectClass
-              : &NormalArgumentsObjectClass,
+              ? &StrictArgumentsObject::jsClass
+              : &NormalArgumentsObject::jsClass,
               type, proto->getParent(), NULL, false);
     obj->setMap(emptyArgumentsShape);
 
@@ -686,16 +687,18 @@ args_trace(JSTracer *trc, JSObject *obj)
     MaybeMarkGenerator(trc, argsobj);
 }
 
+namespace js {
 
 
 
 
 
 
-Class js::NormalArgumentsObjectClass = {
+
+Class NormalArgumentsObject::jsClass = {
     "Arguments",
     JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE |
-    JSCLASS_HAS_RESERVED_SLOTS(NormalArgumentsObject::RESERVED_SLOTS) |
+    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
     PropertyStub,         
     args_delProperty,
@@ -719,10 +722,10 @@ Class js::NormalArgumentsObjectClass = {
 
 
 
-Class js::StrictArgumentsObjectClass = {
+Class StrictArgumentsObject::jsClass = {
     "Arguments",
     JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE |
-    JSCLASS_HAS_RESERVED_SLOTS(StrictArgumentsObject::RESERVED_SLOTS) |
+    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
     PropertyStub,         
     args_delProperty,
@@ -741,11 +744,13 @@ Class js::StrictArgumentsObjectClass = {
     args_trace
 };
 
+}
 
 
 
 
-Class js::DeclEnvClass = {
+
+Class js_DeclEnvClass = {
     js_Object_str,
     JSCLASS_HAS_PRIVATE | JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
     PropertyStub,         
@@ -769,7 +774,18 @@ NewCallObject(JSContext *cx, JSScript *script, JSObject &scopeChain, JSObject *c
     Bindings &bindings = script->bindings;
     size_t argsVars = bindings.countArgsAndVars();
     size_t slots = JSObject::CALL_RESERVED_SLOTS + argsVars;
-    gc::AllocKind kind = gc::GetGCObjectKind(slots);
+    gc::FinalizeKind kind = gc::GetGCObjectKind(slots);
+
+    
+
+
+
+
+
+    if (cx->typeInferenceEnabled() && gc::GetGCKindSlots(kind) < slots) {
+        kind = gc::GetGCObjectKind(JSObject::CALL_RESERVED_SLOTS);
+        JS_ASSERT(gc::GetGCKindSlots(kind) == JSObject::CALL_RESERVED_SLOTS);
+    }
 
     JSObject *callobj = js_NewGCObject(cx, kind);
     if (!callobj)
@@ -807,7 +823,7 @@ NewDeclEnvObject(JSContext *cx, StackFrame *fp)
     EmptyShape *emptyDeclEnvShape = EmptyShape::getEmptyDeclEnvShape(cx);
     if (!emptyDeclEnvShape)
         return NULL;
-    envobj->init(cx, &DeclEnvClass, &emptyTypeObject, &fp->scopeChain(), fp, false);
+    envobj->init(cx, &js_DeclEnvClass, &emptyTypeObject, &fp->scopeChain(), fp, false);
     envobj->setMap(emptyDeclEnvShape);
 
     return envobj;
@@ -829,7 +845,7 @@ CreateFunCallObject(JSContext *cx, StackFrame *fp)
 
 
 
-    if (JSAtom *lambdaName = (fp->fun()->flags & JSFUN_LAMBDA) ? fp->fun()->atom : NULL) {
+    if (JSAtom *lambdaName = CallObjectLambdaName(fp->fun())) {
         scopeChain = NewDeclEnvObject(cx, fp);
         if (!scopeChain)
             return NULL;
@@ -952,7 +968,7 @@ js_PutCallObject(StackFrame *fp)
         if (js_IsNamedLambda(fun)) {
             JSObject *env = callobj.getParent();
 
-            JS_ASSERT(env->isDeclEnv());
+            JS_ASSERT(env->getClass() == &js_DeclEnvClass);
             JS_ASSERT(env->getPrivate() == fp);
             env->setPrivate(NULL);
         }
@@ -1028,7 +1044,11 @@ SetCallArg(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
     else
         obj->setCallObjArg(i, *vp);
 
-    JSScript *script = obj->getCallObjCalleeFunction()->script();
+    JSFunction *fun = obj->getCallObjCalleeFunction();
+    JSScript *script = fun->script();
+    if (!script->ensureHasTypes(cx, fun))
+        return false;
+
     TypeScript::SetArgument(cx, script, i, *vp);
 
     return true;
@@ -1095,7 +1115,11 @@ SetCallVar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
     else
         obj->setCallObjVar(i, *vp);
 
-    JSScript *script = obj->getCallObjCalleeFunction()->script();
+    JSFunction *fun = obj->getCallObjCalleeFunction();
+    JSScript *script = fun->script();
+    if (!script->ensureHasTypes(cx, fun))
+        return false;
+
     TypeScript::SetLocal(cx, script, i, *vp);
 
     return true;
@@ -1168,11 +1192,25 @@ static void
 call_trace(JSTracer *trc, JSObject *obj)
 {
     JS_ASSERT(obj->isCall());
+    if (StackFrame *fp = obj->maybeCallObjStackFrame()) {
+        
+
+
+
+
+
+
+        uintN first = JSObject::CALL_RESERVED_SLOTS;
+        uintN count = fp->script()->bindings.countArgsAndVars();
+
+        JS_ASSERT(obj->numSlots() >= first + count);
+        obj->clearSlotRange(first, count);
+    }
 
     MaybeMarkGenerator(trc, obj);
 }
 
-JS_PUBLIC_DATA(Class) js::CallClass = {
+JS_PUBLIC_DATA(Class) js_CallClass = {
     "Call",
     JSCLASS_HAS_PRIVATE |
     JSCLASS_HAS_RESERVED_SLOTS(JSObject::CALL_RESERVED_SLOTS) |
@@ -1462,7 +1500,7 @@ ResolveInterpretedFunctionPrototype(JSContext *cx, JSObject *obj)
     JSObject *objProto;
     if (!js_GetClassPrototype(cx, parent, JSProto_Object, &objProto))
         return NULL;
-    JSObject *proto = NewNativeClassInstance(cx, &ObjectClass, objProto, parent);
+    JSObject *proto = NewNativeClassInstance(cx, &js_ObjectClass, objProto, parent);
     if (!proto || !proto->setSingletonType(cx))
         return NULL;
 
@@ -1589,7 +1627,14 @@ js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp)
             }
             return false;
         }
-        firstword = (fun->u.i.skipmin << 2) | !!fun->atom;
+        if (fun->u.i.wrapper) {
+            JSAutoByteString funNameBytes;
+            if (const char *name = GetFunctionNameBytes(cx, fun, &funNameBytes))
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_XDR_CLOSURE_WRAPPER, name);
+            return false;
+        }
+        JS_ASSERT((fun->u.i.wrapper & ~1U) == 0);
+        firstword = (fun->u.i.skipmin << 2) | (fun->u.i.wrapper << 1) | !!fun->atom;
         flagsword = (fun->nargs << 16) | fun->flags;
     } else {
         fun = js_NewFunction(cx, NULL, NULL, 0, JSFUN_INTERPRETED, NULL, NULL);
@@ -1613,6 +1658,7 @@ js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp)
         JS_ASSERT((flagsword & JSFUN_KINDMASK) >= JSFUN_INTERPRETED);
         fun->flags = uint16(flagsword);
         fun->u.i.skipmin = uint16(firstword >> 2);
+        fun->u.i.wrapper = JSPackedBool((firstword >> 1) & 1);
     }
 
     
@@ -1627,6 +1673,9 @@ js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp)
     if (xdr->mode == JSXDR_DECODE) {
         *objp = fun;
         fun->u.i.script->setOwnerObject(fun);
+#ifdef CHECK_SCRIPT_OWNER
+        fun->script()->owner = NULL;
+#endif
         if (!fun->u.i.script->typeSetFunction(cx, fun))
             return false;
         JS_ASSERT(fun->nargs == fun->script()->bindings.countArgs());
@@ -1697,16 +1746,30 @@ fun_trace(JSTracer *trc, JSObject *obj)
     if (fun->atom)
         MarkString(trc, fun->atom, "atom");
 
-    if (fun->isInterpreted() && fun->script()) {
-        CheckScriptOwner(fun->script(), obj);
-        MarkScript(trc, fun->script(), "script");
-    }
+    if (fun->isInterpreted() && fun->script())
+        js_TraceScript(trc, fun->script(), obj);
 }
 
 static void
 fun_finalize(JSContext *cx, JSObject *obj)
 {
-    obj->finalizeUpvarsIfFlatClosure();
+    
+    JSFunction *fun = obj->getFunctionPrivate();
+    if (!fun)
+        return;
+
+    
+    if (fun != obj) {
+        if (fun->isFlatClosure() && fun->script()->bindings.hasUpvars())
+            cx->free_((void *) obj->getFlatClosureUpvars());
+        return;
+    }
+
+    
+
+
+    if (fun->isInterpreted() && fun->script())
+        js_DestroyScriptFromGC(cx, fun->script(), obj);
 }
 
 
@@ -1714,12 +1777,11 @@ fun_finalize(JSContext *cx, JSObject *obj)
 
 
 
-JS_PUBLIC_DATA(Class) js::FunctionClass = {
+JS_PUBLIC_DATA(Class) js_FunctionClass = {
     js_Function_str,
     JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE |
     JSCLASS_HAS_RESERVED_SLOTS(JSFunction::CLASS_RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Function) |
-    JSCLASS_CONCURRENT_FINALIZER,
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Function),
     PropertyStub,         
     PropertyStub,         
     PropertyStub,         
@@ -1827,7 +1889,7 @@ js_fun_call(JSContext *cx, uintN argc, Value *vp)
     Value fval = vp[1];
 
     if (!js_IsCallable(fval)) {
-        ReportIncompatibleMethod(cx, vp, &FunctionClass);
+        ReportIncompatibleMethod(cx, vp, &js_FunctionClass);
         return false;
     }
 
@@ -1864,7 +1926,7 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     
     Value fval = vp[1];
     if (!js_IsCallable(fval)) {
-        ReportIncompatibleMethod(cx, vp, &FunctionClass);
+        ReportIncompatibleMethod(cx, vp, &js_FunctionClass);
         return false;
     }
 
@@ -2073,7 +2135,7 @@ fun_bind(JSContext *cx, uintN argc, Value *vp)
 
     
     if (!js_IsCallable(thisv)) {
-        ReportIncompatibleMethod(cx, vp, &FunctionClass);
+        ReportIncompatibleMethod(cx, vp, &js_FunctionClass);
         return false;
     }
 
@@ -2159,6 +2221,8 @@ Function(JSContext *cx, uintN argc, Value *vp)
     }
 
     Bindings bindings(cx);
+    AutoBindingsRooter root(cx, bindings);
+
     uintN lineno;
     const char *filename = CurrentScriptFileAndLine(cx, &lineno);
 
@@ -2366,7 +2430,7 @@ ThrowTypeError(JSContext *cx, uintN argc, Value *vp)
 JSObject *
 js_InitFunctionClass(JSContext *cx, JSObject *obj)
 {
-    JSObject *proto = js_InitClass(cx, obj, NULL, &FunctionClass, Function, 1,
+    JSObject *proto = js_InitClass(cx, obj, NULL, &js_FunctionClass, Function, 1,
                                    NULL, function_methods, NULL, NULL);
     if (!proto)
         return NULL;
@@ -2388,10 +2452,12 @@ js_InitFunctionClass(JSContext *cx, JSObject *obj)
     script->noScriptRval = true;
     script->code[0] = JSOP_STOP;
     script->code[1] = SRC_NULL;
+#ifdef CHECK_SCRIPT_OWNER
+    script->owner = NULL;
+#endif
     fun->u.i.script = script;
-    fun->getType(cx)->functionScript = script;
+    fun->getType(cx)->interpretedFunction = fun;
     script->hasFunction = true;
-    script->where.fun = fun;
     script->setOwnerObject(fun);
     js_CallNewScriptHook(cx, script, fun);
 
@@ -2435,6 +2501,7 @@ js_NewFunction(JSContext *cx, JSObject *funobj, Native native, uintN nargs,
         JS_ASSERT(!native);
         JS_ASSERT(nargs == 0);
         fun->u.i.skipmin = 0;
+        fun->u.i.wrapper = false;
         fun->u.i.script = NULL;
     } else {
         fun->u.n.clasp = NULL;
@@ -2473,7 +2540,7 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
 
 
 
-        clone = NewNativeClassInstance(cx, &FunctionClass, proto, parent);
+        clone = NewNativeClassInstance(cx, &js_FunctionClass, proto, parent);
         if (!clone)
             return NULL;
 
@@ -2506,8 +2573,8 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
         if (cfun->isInterpreted()) {
             JSScript *script = cfun->script();
             JS_ASSERT(script);
-            JS_ASSERT(script->compartment() == fun->compartment());
-            JS_ASSERT(script->compartment() != cx->compartment);
+            JS_ASSERT(script->compartment == fun->compartment());
+            JS_ASSERT(script->compartment != cx->compartment);
             JS_OPT_ASSERT(script->ownerObject == fun);
 
             cfun->u.i.script = NULL;
@@ -2520,6 +2587,9 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
                 return NULL;
 
             cfun->script()->setOwnerObject(cfun);
+#ifdef CHECK_SCRIPT_OWNER
+            cfun->script()->owner = NULL;
+#endif
             js_CallNewScriptHook(cx, cfun->script(), cfun);
             Debugger::onNewScript(cx, cfun->script(), cfun, Debugger::NewHeldScript);
         }

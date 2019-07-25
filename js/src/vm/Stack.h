@@ -859,8 +859,25 @@ class StackFrame
 
 
 
-    inline void putActivationObjects();
-    inline void markActivationObjectsAsPut();
+    inline bool functionPrologue(JSContext *cx);
+
+    
+
+
+
+
+
+
+    inline void functionEpilogue(bool activationOnly = false);
+
+    
+
+
+
+
+    inline void markFunctionEpilogueDone(bool activationOnly = false);
+
+    inline bool maintainNestingState() const;
 
     
 
@@ -892,7 +909,7 @@ class StackFrame
 
 
     JSCompartment *compartment() const {
-        JS_ASSERT_IF(isScriptFrame(), scopeChain().compartment() == script()->compartment());
+        JS_ASSERT_IF(isScriptFrame(), scopeChain().compartment() == script()->compartment);
         return scopeChain().compartment();
     }
 

@@ -153,7 +153,7 @@ JSScript::getRegExp(size_t index)
     JSObjectArray *arr = regexps();
     JS_ASSERT((uint32) index < arr->length);
     JSObject *obj = arr->vector[index];
-    JS_ASSERT(obj->isRegExp());
+    JS_ASSERT(obj->getClass() == &js_RegExpClass);
     return obj;
 }
 
@@ -177,9 +177,8 @@ JSScript::hasGlobal() const
 
 
 
-    if (!compileAndGo)
-        return false;
-    js::GlobalObject *obj = hasFunction ? function()->getGlobal() : where.global;
+    JS_ASSERT(types && types->hasScope());
+    js::GlobalObject *obj = types->global;
     return obj && !obj->isCleared();
 }
 
@@ -187,16 +186,39 @@ inline js::GlobalObject *
 JSScript::global() const
 {
     JS_ASSERT(hasGlobal());
-    return hasFunction ? function()->getGlobal() : where.global;
+    return types->global;
 }
 
 inline bool
 JSScript::hasClearedGlobal() const
 {
-    if (!compileAndGo)
-        return false;
-    js::GlobalObject *obj = hasFunction ? function()->getGlobal() : where.global;
+    JS_ASSERT(types && types->hasScope());
+    js::GlobalObject *obj = types->global;
     return obj && obj->isCleared();
+}
+
+inline JSFunction *
+JSScript::function() const
+{
+    JS_ASSERT(hasFunction && types);
+    return types->function;
+}
+
+inline js::types::TypeScriptNesting *
+JSScript::nesting() const
+{
+    JS_ASSERT(hasFunction && types && types->hasScope());
+    return types->nesting;
+}
+
+inline void
+JSScript::clearNesting()
+{
+    js::types::TypeScriptNesting *nesting = this->nesting();
+    if (nesting) {
+        js::Foreground::delete_(nesting);
+        types->nesting = NULL;
+    }
 }
 
 #endif 

@@ -886,15 +886,18 @@ class ScriptAnalysis
 
     
 
-    bool usesRval;
-    bool usesScope;
-    bool usesThis;
-    bool hasCalls;
-    bool canTrackVars;
-    bool isInlineable;
+    bool usesReturnValue_:1;
+    bool usesScopeChain_:1;
+    bool usesThisValue_:1;
+    bool hasFunctionCalls_:1;
+    bool modifiesArguments_:1;
+    bool extendsScope_:1;
+    bool addsScopeObjects_:1;
+    bool localsAliasStack_:1;
+    bool isInlineable:1;
+    bool canTrackVars:1;
+
     uint32 numReturnSites_;
-    bool modifiesArguments_;
-    bool localsAliasStack_;
 
     
     uint32 *definedLocals;
@@ -928,13 +931,13 @@ class ScriptAnalysis
     bool inlineable(uint32 argc) { return isInlineable && argc == script->function()->nargs; }
 
     
-    bool usesReturnValue() const { return usesRval; }
+    bool usesReturnValue() const { return usesReturnValue_; }
 
     
-    bool usesScopeChain() const { return usesScope; }
+    bool usesScopeChain() const { return usesScopeChain_; }
 
-    bool usesThisValue() const { return usesThis; }
-    bool hasFunctionCalls() const { return hasCalls; }
+    bool usesThisValue() const { return usesThisValue_; }
+    bool hasFunctionCalls() const { return hasFunctionCalls_; }
     uint32 numReturnSites() const { return numReturnSites_; }
 
     
@@ -947,12 +950,21 @@ class ScriptAnalysis
 
 
 
+    bool extendsScope() { return extendsScope_; }
+
+    
+    bool addsScopeObjects() { return addsScopeObjects_; }
+
+    
+
+
+
     bool localsAliasStack() { return localsAliasStack_; }
 
     
 
     Bytecode& getCode(uint32 offset) {
-        JS_ASSERT(script->compartment()->activeAnalysis);
+        JS_ASSERT(script->compartment->activeAnalysis);
         JS_ASSERT(offset < script->length);
         JS_ASSERT(codeArray[offset]);
         return *codeArray[offset];
@@ -960,7 +972,7 @@ class ScriptAnalysis
     Bytecode& getCode(const jsbytecode *pc) { return getCode(pc - script->code); }
 
     Bytecode* maybeCode(uint32 offset) {
-        JS_ASSERT(script->compartment()->activeAnalysis);
+        JS_ASSERT(script->compartment->activeAnalysis);
         JS_ASSERT(offset < script->length);
         return codeArray[offset];
     }
@@ -1148,7 +1160,7 @@ class ScriptAnalysis
 
 
     bool slotEscapes(uint32 slot) {
-        JS_ASSERT(script->compartment()->activeAnalysis);
+        JS_ASSERT(script->compartment->activeAnalysis);
         if (slot >= numSlots)
             return true;
         return escapedSlots[slot];
@@ -1163,10 +1175,25 @@ class ScriptAnalysis
     bool trackSlot(uint32 slot) { return !slotEscapes(slot) && canTrackVars; }
 
     const LifetimeVariable & liveness(uint32 slot) {
-        JS_ASSERT(script->compartment()->activeAnalysis);
+        JS_ASSERT(script->compartment->activeAnalysis);
         JS_ASSERT(!slotEscapes(slot));
         return lifetimes[slot];
     }
+
+    
+
+
+
+    struct NameAccess {
+        JSScript *script;
+        types::TypeScriptNesting *nesting;
+        uint32 slot;
+
+        
+        bool arg;
+        uint32 index;
+    };
+    NameAccess resolveNameAccess(JSContext *cx, jsid id, bool addDependency = false);
 
     void printSSA(JSContext *cx);
     void printTypes(JSContext *cx);

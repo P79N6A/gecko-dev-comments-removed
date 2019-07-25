@@ -113,8 +113,6 @@ void UncachedNewHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr);
 
 void JS_FASTCALL CreateThis(VMFrame &f, JSObject *proto);
 void JS_FASTCALL Throw(VMFrame &f);
-void JS_FASTCALL PutActivationObjects(VMFrame &f);
-void JS_FASTCALL CreateFunCallObject(VMFrame &f);
 #if JS_MONOIC
 void * JS_FASTCALL InvokeTracer(VMFrame &f, ic::TraceICInfo *tic);
 #else
@@ -156,8 +154,8 @@ JSObject * JS_FASTCALL DefLocalFun(VMFrame &f, JSFunction *fun);
 JSObject * JS_FASTCALL DefLocalFun_FC(VMFrame &f, JSFunction *fun);
 JSObject * JS_FASTCALL RegExp(VMFrame &f, JSObject *regex);
 JSObject * JS_FASTCALL Lambda(VMFrame &f, JSFunction *fun);
-JSObject * JS_FASTCALL LambdaJoinableForInit(VMFrame &f, JSFunction *fun);
-JSObject * JS_FASTCALL LambdaJoinableForSet(VMFrame &f, JSFunction *fun);
+JSObject * JS_FASTCALL LambdaForInit(VMFrame &f, JSFunction *fun);
+JSObject * JS_FASTCALL LambdaForSet(VMFrame &f, JSFunction *fun);
 JSObject * JS_FASTCALL LambdaJoinableForCall(VMFrame &f, JSFunction *fun);
 JSObject * JS_FASTCALL LambdaJoinableForNull(VMFrame &f, JSFunction *fun);
 JSObject * JS_FASTCALL FlatLambda(VMFrame &f, JSFunction *fun);
@@ -226,6 +224,11 @@ template <bool strict> int32 JS_FASTCALL ConvertToTypedInt(JSContext *cx, Value 
 void JS_FASTCALL ConvertToTypedFloat(JSContext *cx, Value *vp);
 
 void JS_FASTCALL Exception(VMFrame &f);
+
+void JS_FASTCALL FunctionFramePrologue(VMFrame &f);
+void JS_FASTCALL FunctionFrameEpilogue(VMFrame &f);
+
+void JS_FASTCALL AnyFrameEpilogue(VMFrame &f);
 
 JSObject * JS_FASTCALL
 NewDenseUnallocatedArray(VMFrame &f, uint32 length);

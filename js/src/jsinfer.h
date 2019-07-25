@@ -55,6 +55,7 @@ namespace js {
     namespace analyze {
         class ScriptAnalysis;
     }
+    struct GlobalObject;
 }
 
 namespace js {
@@ -314,34 +315,37 @@ enum {
 
 
 
-    OBJECT_FLAG_NON_DENSE_ARRAY       = 0x010000,
+    OBJECT_FLAG_NON_DENSE_ARRAY       = 0x0010000,
 
     
-    OBJECT_FLAG_NON_PACKED_ARRAY      = 0x020000,
+    OBJECT_FLAG_NON_PACKED_ARRAY      = 0x0020000,
 
     
-    OBJECT_FLAG_NON_TYPED_ARRAY       = 0x040000,
+    OBJECT_FLAG_NON_TYPED_ARRAY       = 0x0040000,
 
     
-    OBJECT_FLAG_CREATED_ARGUMENTS     = 0x080000,
+    OBJECT_FLAG_CREATED_ARGUMENTS     = 0x0080000,
 
     
-    OBJECT_FLAG_UNINLINEABLE          = 0x100000,
+    OBJECT_FLAG_UNINLINEABLE          = 0x0100000,
 
     
-    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x200000,
+    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x0200000,
 
     
-    OBJECT_FLAG_ITERATED              = 0x400000,
+    OBJECT_FLAG_ITERATED              = 0x0400000,
 
     
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x7f0000,
+    OBJECT_FLAG_REENTRANT_FUNCTION    = 0x0800000,
+
+    
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x0ff0000,
 
     
 
 
 
-    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x800000,
+    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x1000000,
 
     
     OBJECT_FLAG_UNKNOWN_MASK =
@@ -429,6 +433,12 @@ class TypeSet
     bool hasPropagatedProperty() { return !!(flags & TYPE_FLAG_PROPAGATED_PROPERTY); }
     void setPropagatedProperty() { flags |= TYPE_FLAG_PROPAGATED_PROPERTY; }
 
+    enum FilterKind {
+        FILTER_ALL_PRIMITIVES,
+        FILTER_NULL_VOID,
+        FILTER_VOID
+    };
+
     
     inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
     void addSubset(JSContext *cx, TypeSet *target);
@@ -443,7 +453,7 @@ class TypeSet
     void addArith(JSContext *cx, TypeSet *target, TypeSet *other = NULL);
     void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);
     void addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc, Type type);
-    void addFilterPrimitives(JSContext *cx, TypeSet *target, bool onlyNullVoid);
+    void addFilterPrimitives(JSContext *cx, TypeSet *target, FilterKind filter);
     void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
     void addLazyArguments(JSContext *cx, TypeSet *target);
 
@@ -499,6 +509,9 @@ class TypeSet
 
     
     JSObject *getSingleton(JSContext *cx, bool freeze = true);
+
+    
+    bool hasGlobalObject(JSContext *cx, JSObject *global);
 
     inline void clearObjects();
 
@@ -644,10 +657,10 @@ struct Property
 
 struct TypeNewScript
 {
-    JSScript *script;
+    JSFunction *fun;
 
     
-    gc::AllocKind allocKind;
+     unsigned finalizeKind;
 
     
 
@@ -777,7 +790,7 @@ struct TypeObject : gc::Cell
     Property **propertySet;
 
     
-    JSScript *functionScript;
+    JSFunction *interpretedFunction;
 
     inline TypeObject(JSObject *proto, bool isFunction, bool unknown);
 
@@ -806,7 +819,8 @@ struct TypeObject : gc::Cell
 
 
     inline bool canProvideEmptyShape(js::Class *clasp);
-    inline js::EmptyShape *getEmptyShape(JSContext *cx, js::Class *aclasp, gc::AllocKind kind);
+    inline js::EmptyShape *getEmptyShape(JSContext *cx, js::Class *aclasp,
+                                          unsigned kind);
 
     
 
@@ -824,6 +838,12 @@ struct TypeObject : gc::Cell
 
     
     inline void setFlagsFromKey(JSContext *cx, JSProtoKey kind);
+
+    
+
+
+
+    inline JSObject *getGlobal();
 
     
 
@@ -903,18 +923,130 @@ struct TypeCallsite
 };
 
 
-struct TypeScript
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct TypeScriptNesting
 {
     
+
+
+
+
+
+
+
+    JSScript *parent;
+
+    
+    JSScript *children;
+
+    
+    JSScript *next;
+
+    
+    JSObject *activeCall;
+
+    
+
+
+
+
+
+
+
+    Value *argArray;
+    Value *varArray;
+
+    
+    uint32 activeFrames;
+
+    TypeScriptNesting() { PodZero(this); }
+    ~TypeScriptNesting();
+};
+
+
+bool CheckScriptNesting(JSContext *cx, JSScript *script);
+
+
+void NestingPrologue(JSContext *cx, StackFrame *fp);
+void NestingEpilogue(StackFrame *fp);
+
+
+class TypeScript
+{
+    friend struct ::JSScript;
+
+    
     analyze::ScriptAnalysis *analysis;
+
+    
+    JSFunction *function;
+
+    
+
+
+
+
+    static const size_t GLOBAL_MISSING_SCOPE = 0x1;
+
+    
+    js::GlobalObject *global;
+
+    
+    TypeScriptNesting *nesting;
+
+  public:
+
+    
+    TypeResult *dynamicList;
+
+    TypeScript(JSFunction *fun) {
+        this->function = fun;
+        this->global = (js::GlobalObject *) GLOBAL_MISSING_SCOPE;
+    }
+
+    bool hasScope() { return size_t(global) != GLOBAL_MISSING_SCOPE; }
 
     
     TypeSet *typeArray() { return (TypeSet *) (jsuword(this) + sizeof(TypeScript)); }
 
     static inline unsigned NumTypeSets(JSScript *script);
 
-    
-    TypeResult *dynamicList;
+    static bool SetScope(JSContext *cx, JSScript *script, JSObject *scope);
 
     static inline TypeSet *ReturnTypes(JSScript *script);
     static inline TypeSet *ThisTypes(JSScript *script);
@@ -966,6 +1098,7 @@ struct TypeScript
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, const js::Value &value);
 
     static void Sweep(JSContext *cx, JSScript *script);
+    inline void trace(JSTracer *trc);
     void destroy();
 };
 
