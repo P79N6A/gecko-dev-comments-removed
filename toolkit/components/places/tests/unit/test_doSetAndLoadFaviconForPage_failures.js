@@ -143,13 +143,15 @@ let historyObserver = {
   onClearHistory: function() {},
   onDeleteVisits: function() {},
 
-  onPageChanged: function historyObserver_onPageChanged(pageURI, what, value) {
+  onPageChanged: function historyObserver_onPageChanged(pageURI, what, value, guid) {
     if (what != Ci.nsINavHistoryObserver.ATTRIBUTE_FAVICON)
       return;
 
     
     
     
+
+    do_check_guid_for_uri(pageURI, guid);
 
     
     do_check_true(pageURI.equals(NetUtil.newURI("http://testfinal.bar/")));

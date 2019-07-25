@@ -144,7 +144,18 @@ public:
 
   nsresult FinalizeStatements();
 
-  void SendFaviconNotifications(nsIURI* aPage, nsIURI* aFaviconURI);
+  
+
+
+
+
+
+
+
+
+
+  void SendFaviconNotifications(nsIURI* aPageURI, nsIURI* aFaviconURI,
+                                const nsACString& aGUID);
 
   
 

@@ -239,8 +239,32 @@ public:
 
 
 
-  nsresult GetUrlIdFor(nsIURI* aURI, PRInt64* aEntryID,
-                       PRBool aAutoCreate);
+
+
+
+
+
+
+
+
+
+  nsresult GetIdForPage(nsIURI* aURI,
+                        PRInt64* _pageId, nsCString& _GUID);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsresult GetOrCreateIdForPage(nsIURI* aURI,
+                                PRInt64* _pageId, nsCString& _GUID);
 
   nsresult UpdateFrecency(PRInt64 aPlaceId);
 
@@ -336,8 +360,9 @@ public:
 
   
   
-  void SendPageChangedNotification(nsIURI* aURI, PRUint32 aWhat,
-                                   const nsAString& aValue);
+  void SendPageChangedNotification(nsIURI* aURI, PRUint32 aChangedAttribute,
+                                   const nsAString& aValue,
+                                   const nsACString& aGUID);
 
   
 

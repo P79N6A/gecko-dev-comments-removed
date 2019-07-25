@@ -256,16 +256,92 @@ nsFaviconService::SetFaviconUrlForPage(nsIURI* aPageURI, nsIURI* aFaviconURI)
   NS_ENSURE_ARG(aPageURI);
   NS_ENSURE_ARG(aFaviconURI);
 
-  if (mFaviconsExpirationRunning)
+  
+  if (mFaviconsExpirationRunning) {
     return NS_OK;
+  }
 
-  PRBool hasData;
-  nsresult rv = SetFaviconUrlForPageInternal(aPageURI, aFaviconURI, &hasData);
+  nsNavHistory* history = nsNavHistory::GetHistoryService();
+  NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+
+  if (history->InPrivateBrowsingMode()) {
+    return NS_OK;
+  }
+
+  nsresult rv;
+  PRInt64 iconId = -1;
+  PRBool hasData = PR_FALSE;
+  {
+    DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetIconInfo);
+    rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("icon_url"), aFaviconURI);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    PRBool hasResult = PR_FALSE;
+    if (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
+      
+      rv = stmt->GetInt64(0, &iconId);
+      NS_ENSURE_SUCCESS(rv, rv);
+      PRInt32 dataSize;
+      rv = stmt->GetInt32(1, &dataSize);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (dataSize > 0) {
+        hasData = PR_TRUE;
+      }
+    }
+  }
+
+  mozStorageTransaction transaction(mDBConn, PR_FALSE);
+
+  if (iconId == -1) {
+    
+    DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBInsertIcon);
+    rv = stmt->BindNullByName(NS_LITERAL_CSTRING("icon_id"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("icon_url"), aFaviconURI);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->BindNullByName(NS_LITERAL_CSTRING("data"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->BindNullByName(NS_LITERAL_CSTRING("mime_type"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->BindNullByName(NS_LITERAL_CSTRING("expiration"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->Execute();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    {
+      DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(getInfoStmt, mDBGetIconInfo);
+      rv = URIBinder::Bind(getInfoStmt, NS_LITERAL_CSTRING("icon_url"), aFaviconURI);
+      NS_ENSURE_SUCCESS(rv, rv);
+      PRBool hasResult;
+      rv = getInfoStmt->ExecuteStep(&hasResult);
+      NS_ENSURE_SUCCESS(rv, rv);
+      NS_ASSERTION(hasResult, "hasResult is false but the call succeeded?");
+      iconId = getInfoStmt->AsInt64(0);
+    }
+  }
+
+  
+  PRInt64 pageId;
+  nsCAutoString guid;
+  rv = history->GetOrCreateIdForPage(aPageURI, &pageId, guid);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBSetPageFavicon);
+  rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), pageId);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("icon_id"), iconId);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (hasData)
-    SendFaviconNotifications(aPageURI, aFaviconURI);
+  if (hasData) {
+    SendFaviconNotifications(aPageURI, aFaviconURI, guid);
+  }
+
   return NS_OK;
 }
 
@@ -284,115 +360,18 @@ nsFaviconService::GetDefaultFavicon(nsIURI** _retval)
   return mDefaultIcon->Clone(_retval);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsFaviconService::SetFaviconUrlForPageInternal(nsIURI* aPageURI,
-                                               nsIURI* aFaviconURI,
-                                               PRBool* aHasData)
-{
-  nsresult rv;
-  PRInt64 iconId = -1;
-  *aHasData = PR_FALSE;
-
-  nsNavHistory* historyService = nsNavHistory::GetHistoryService();
-  NS_ENSURE_TRUE(historyService, NS_ERROR_OUT_OF_MEMORY);
-
-  if (historyService->InPrivateBrowsingMode())
-    return NS_OK;
-
-  mozStorageTransaction transaction(mDBConn, PR_FALSE);
-  {
-    DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetIconInfo);
-    rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("icon_url"), aFaviconURI);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasResult = PR_FALSE;
-    if (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
-      
-      rv = stmt->GetInt64(0, &iconId);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      PRInt32 dataSize;
-      rv = stmt->GetInt32(1, &dataSize);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (dataSize > 0)
-        *aHasData = PR_TRUE;
-    }
-  }
-
-  if (iconId == -1) {
-    
-    
-    DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBInsertIcon);
-    rv = stmt->BindNullByName(NS_LITERAL_CSTRING("icon_id"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("icon_url"), aFaviconURI);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    {
-      DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(getInfoStmt, mDBGetIconInfo);
-      rv = URIBinder::Bind(getInfoStmt, NS_LITERAL_CSTRING("icon_url"), aFaviconURI);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      PRBool hasResult;
-      rv = getInfoStmt->ExecuteStep(&hasResult);
-      NS_ENSURE_SUCCESS(rv, rv);
-      NS_ASSERTION(hasResult, "hasResult is false but the call succeeded?");
-      iconId = getInfoStmt->AsInt64(0);
-    }
-  }
-
-  
-  PRInt64 pageId;
-  rv = historyService->GetUrlIdFor(aPageURI, &pageId, PR_TRUE);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBSetPageFavicon);
-  rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), pageId);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("icon_id"), iconId);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->Execute();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = transaction.Commit();
-  NS_ENSURE_SUCCESS(rv, rv);
-  return NS_OK;
-}
-
-
-
-
-
-
-
 void
 nsFaviconService::SendFaviconNotifications(nsIURI* aPageURI,
-                                           nsIURI* aFaviconURI)
+                                           nsIURI* aFaviconURI,
+                                           const nsACString& aGUID)
 {
   nsCAutoString faviconSpec;
-  nsNavHistory* historyService = nsNavHistory::GetHistoryService();
-  if (historyService && NS_SUCCEEDED(aFaviconURI->GetSpec(faviconSpec))) {
-    historyService->SendPageChangedNotification(aPageURI,
-                                       nsINavHistoryObserver::ATTRIBUTE_FAVICON,
-                                       NS_ConvertUTF8toUTF16(faviconSpec));
+  nsNavHistory* history = nsNavHistory::GetHistoryService();
+  if (history && NS_SUCCEEDED(aFaviconURI->GetSpec(faviconSpec))) {
+    history->SendPageChangedNotification(aPageURI,
+                                         nsINavHistoryObserver::ATTRIBUTE_FAVICON,
+                                         NS_ConvertUTF8toUTF16(faviconSpec),
+                                         aGUID);
   }
 }
 
