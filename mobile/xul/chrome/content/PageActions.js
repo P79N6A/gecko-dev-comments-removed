@@ -70,6 +70,7 @@ var PageActions = {
 
 
   register: function register(aId, aCallback, aThisObj) {
+    this.init();
     this._handlers.push({id: aId, callback: aCallback, obj: aThisObj});
   },
 
