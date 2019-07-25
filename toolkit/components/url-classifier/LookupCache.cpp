@@ -239,12 +239,11 @@ LookupCache::Has(const Completion& aCompletion,
   codedPrefix.FromUint32(codedkey);
   *aOrigPrefix = codedPrefix;
 
-  bool ready = true;
   bool found;
-  rv = mPrefixSet->Probe(codedkey, &ready, &found);
+  rv = mPrefixSet->Contains(codedkey, &found);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  LOG(("Probe in %s: %X, ready: %d found %d", mTableName.get(), prefix, ready, found));
+  LOG(("Probe in %s: %X, found %d", mTableName.get(), prefix, found));
 
   if (found) {
     *aHas = true;
@@ -721,10 +720,6 @@ LookupCache::ConstructPrefixSet(AddPrefixArray& aAddPrefixes)
   }
   aAddPrefixes.Clear();
 
-  if (array.IsEmpty()) {
-    
-    array.AppendElement(0);
-  }
 #ifdef DEBUG
   
   EnsureSorted(&array);
@@ -747,11 +742,6 @@ LookupCache::ConstructPrefixSet(AddPrefixArray& aAddPrefixes)
   return NS_OK;
 
  error_bailout:
-  
-  nsAutoTArray<PRUint32, 1> sentinel;
-  sentinel.Clear();
-  sentinel.AppendElement(0);
-  mPrefixSet->SetPrefixes(sentinel.Elements(), sentinel.Length());
   Telemetry::Accumulate(Telemetry::URLCLASSIFIER_PS_FAILURE, 1);
   return rv;
 }
