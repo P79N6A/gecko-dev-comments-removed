@@ -411,9 +411,6 @@ class RegExpObject;
 
 
 
-
-
-
 struct JSObject : js::gc::Cell {
     
 
