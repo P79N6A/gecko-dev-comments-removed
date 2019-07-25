@@ -643,6 +643,9 @@ var Scratchpad = {
     this._tabCharacter = expandtab ? (new Array(tabsize + 1)).join(" ") : "\t";
     this.textbox.style.MozTabSize = tabsize;
 
+    
+    this.textbox.style.direction = "ltr";
+
     this.insertIntro();
 
     
