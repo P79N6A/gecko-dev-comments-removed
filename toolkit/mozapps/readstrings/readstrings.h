@@ -62,6 +62,10 @@ int ReadStrings(const NS_tchar *path, StringTable *results);
 
 
 
-int ReadStrings(const NS_tchar *path, const char *keyList, int numStrings, char results[][MAX_TEXT_LEN]);
+int ReadStrings(const NS_tchar *path,
+                const char *keyList,
+                int numStrings,
+                char results[][MAX_TEXT_LEN],
+                const char *section = NULL);
 
 #endif  

@@ -150,8 +150,13 @@ find_key(const char *keyList, char* key)
 
 
 
+
 int
-ReadStrings(const NS_tchar *path, const char *keyList, int numStrings, char results[][MAX_TEXT_LEN])
+ReadStrings(const NS_tchar *path,
+            const char *keyList,
+            int numStrings,
+            char results[][MAX_TEXT_LEN],
+            const char *section)
 {
   AutoFILE fp = NS_tfopen(path, OPEN_MODE);
 
@@ -183,7 +188,7 @@ ReadStrings(const NS_tchar *path, const char *keyList, int numStrings, char resu
   char *buffer = fileContents;
   PRBool inStringsSection = PR_FALSE;
 
-  unsigned read = 0;
+  int read = 0;
 
   while (char *token = NS_strtok(kNL, &buffer)) {
     if (token[0] == '#' || token[0] == ';') 
@@ -205,8 +210,12 @@ ReadStrings(const NS_tchar *path, const char *keyList, int numStrings, char resu
         
         inStringsSection = PR_FALSE;
       }
-      else
-        inStringsSection = strcmp(currSection, "Strings") == 0;
+      else {
+        if (section)
+          inStringsSection = strcmp(currSection, section) == 0;
+        else
+          inStringsSection = strcmp(currSection, "Strings") == 0;
+      }
 
       continue;
     }
