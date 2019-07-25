@@ -93,18 +93,7 @@ var UIManager = {
       Storage.init();
       TabsManager.init();
       TabMirror.init();
-      this._secondaryInit();
-    } catch(e) {
-      Utils.log(e);
-    }
-  },
 
-  
-  
-  
-  
-  _secondaryInit: function() {
-    try {
       var self = this;
 
       this._currentTab = gBrowser.selectedTab;
