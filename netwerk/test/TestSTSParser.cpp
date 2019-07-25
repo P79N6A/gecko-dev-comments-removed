@@ -1,0 +1,196 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "TestHarness.h"
+#include <stdio.h>
+#include "plstr.h"
+#include "nsNetUtil.h"
+#include "nsStringGlue.h"
+#include "nsIStrictTransportSecurityService.h"
+#include "nsIPermissionManager.h"
+
+#define EXPECT_SUCCESS(rv,msg, ...) \
+  PR_BEGIN_MACRO \
+  if (NS_FAILED(rv)) { \
+    fail(msg,##__VA_ARGS__); \
+    return PR_FALSE; \
+  } \
+  PR_END_MACRO
+
+
+#define EXPECT_FAILURE(rv,msg, ...) \
+  PR_BEGIN_MACRO \
+  if (NS_SUCCEEDED(rv)) { \
+    fail(msg,##__VA_ARGS__); \
+    return PR_FALSE; \
+  } \
+  PR_END_MACRO
+
+#define REQUIRE_EQUAL(a,b,msg, ...) \
+  PR_BEGIN_MACRO \
+  if (a != b) { \
+    fail(msg, ##__VA_ARGS__); \
+    return PR_FALSE; \
+  } \
+  PR_END_MACRO
+
+PRBool
+TestSuccess(const char* hdr, PRBool extraTokens,
+            nsIStrictTransportSecurityService* stss,
+            nsIPermissionManager* pm)
+{
+  nsCOMPtr<nsIURI> dummyUri;
+  nsresult rv = NS_NewURI(getter_AddRefs(dummyUri), "https://foo.com/bar.html");
+  EXPECT_SUCCESS(rv, "Failed to create URI");
+
+  rv = stss->ProcessStsHeader(dummyUri, hdr);
+  EXPECT_SUCCESS(rv, "Failed to process valid header: %s", hdr);
+
+  if (extraTokens) {
+    REQUIRE_EQUAL(rv, NS_SUCCESS_LOSS_OF_INSIGNIFICANT_DATA,
+                  "Extra tokens were expected when parsing, but were not encountered.");
+  } else {
+    REQUIRE_EQUAL(rv, NS_OK, "Unexpected tokens found during parsing.");
+  }
+
+  passed(hdr);
+  return PR_TRUE;
+}
+
+PRBool TestFailure(const char* hdr,
+                   nsIStrictTransportSecurityService* stss,
+                   nsIPermissionManager* pm)
+{
+  nsCOMPtr<nsIURI> dummyUri;
+  nsresult rv = NS_NewURI(getter_AddRefs(dummyUri), "https://foo.com/bar.html");
+  EXPECT_SUCCESS(rv, "Failed to create URI");
+
+  rv = stss->ProcessStsHeader(dummyUri, hdr);
+  EXPECT_FAILURE(rv, "Parsed invalid header: %s", hdr);
+  passed(hdr);
+  return PR_TRUE;
+}
+
+
+int
+main(PRInt32 argc, char *argv[])
+{
+    nsresult rv;
+    ScopedXPCOM xpcom("STS Parser Tests");
+    if (xpcom.failed())
+      return -1;
+
+    
+    nsCOMPtr<nsIStrictTransportSecurityService> stss;
+    stss = do_GetService("@mozilla.org/stsservice;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIPermissionManager> pm;
+    pm = do_GetService("@mozilla.org/permissionmanager;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    int rv0, rv1;
+
+    nsTArray<PRBool> rvs(24);
+
+    
+    printf("*** Attempting to parse valid STS headers ...\n");
+
+    
+    rvs.AppendElement(TestSuccess("max-age=100", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-age  =100", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess(" max-age=100", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-age = 100 ", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-age  =       100             ", PR_FALSE, stss, pm));
+
+    rvs.AppendElement(TestSuccess("maX-aGe=100", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("MAX-age  =100", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-AGE=100", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("Max-Age = 100 ", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("MAX-AGE = 100 ", PR_FALSE, stss, pm));
+
+    rvs.AppendElement(TestSuccess("max-age=100;includeSubdomains", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-age=100; includeSubdomains", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess(" max-age=100; includeSubdomains", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-age = 100 ; includeSubdomains", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-age  =       100             ; includeSubdomains", PR_FALSE, stss, pm));
+
+    rvs.AppendElement(TestSuccess("maX-aGe=100; includeSUBDOMAINS", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("MAX-age  =100; includeSubDomains", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-AGE=100; iNcLuDeSuBdoMaInS", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("Max-Age = 100; includesubdomains ", PR_FALSE, stss, pm));
+    rvs.AppendElement(TestSuccess("INCLUDESUBDOMAINS;MaX-AgE = 100 ", PR_FALSE, stss, pm));
+
+    
+    
+    rvs.AppendElement(TestSuccess("max-age=100randomstuffhere", PR_TRUE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-age=100 includesubdomains", PR_TRUE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-age=100 bar foo", PR_TRUE, stss, pm));
+    rvs.AppendElement(TestSuccess("max-age=100 ; includesubdomainsSomeStuff", PR_TRUE, stss, pm));
+
+    rv0 = rvs.Contains(PR_FALSE) ? 1 : 0;
+    if (rv0 == 0)
+      passed("Successfully Parsed STS headers with mixed case and LWS");
+
+    rvs.Clear();
+
+    
+    printf("*** Attempting to parse invalid STS headers (should not parse)...\n");
+    
+    rvs.AppendElement(TestFailure("max-age ", stss, pm));
+    rvs.AppendElement(TestFailure("max-age=p", stss, pm));
+    rvs.AppendElement(TestFailure("max-age=*1p2", stss, pm));
+    rvs.AppendElement(TestFailure("max-age=.20032", stss, pm));
+    rvs.AppendElement(TestFailure("max-age=!20032", stss, pm));
+    rvs.AppendElement(TestFailure("max-age==20032", stss, pm));
+
+    
+    rvs.AppendElement(TestFailure("foobar", stss, pm));
+    rvs.AppendElement(TestFailure("maxage=100", stss, pm));
+    rvs.AppendElement(TestFailure("maxa-ge=100", stss, pm));
+    rvs.AppendElement(TestFailure("max-ag=100", stss, pm));
+    rvs.AppendElement(TestFailure("includesubdomains", stss, pm));
+    rvs.AppendElement(TestFailure(";", stss, pm));
+
+    rv1 = rvs.Contains(PR_FALSE) ? 1 : 0;
+    if (rv1 == 0)
+      passed("Avoided parsing invalid STS headers");
+
+    return (rv0 + rv1);
+}

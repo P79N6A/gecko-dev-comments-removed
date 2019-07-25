@@ -62,6 +62,7 @@
 #include "nsPrintfCString.h"
 #include "nsNetUtil.h"
 #include "prprf.h"
+#include "prnetdb.h"
 #include "nsEscape.h"
 #include "nsInt64.h"
 #include "nsStreamUtils.h"
@@ -83,7 +84,6 @@ class AutoRedirectVetoNotifier
 public:
     AutoRedirectVetoNotifier(nsHttpChannel* channel) : mChannel(channel) {}
     ~AutoRedirectVetoNotifier() {ReportRedirectResult(false);}
-    void DontReport() {mChannel = nsnull;}
     void RedirectSucceeded() {ReportRedirectResult(true);}
 
 private:
@@ -96,6 +96,8 @@ AutoRedirectVetoNotifier::ReportRedirectResult(bool succeeded)
 {
     if (!mChannel)
         return;
+
+    mChannel->mRedirectChannel = nsnull;
 
     nsCOMPtr<nsIRedirectResultListener> vetoHook;
     NS_QueryNotificationCallbacks(mChannel, 
@@ -193,6 +195,29 @@ nsHttpChannel::Connect(PRBool firstTime)
     nsresult rv;
 
     LOG(("nsHttpChannel::Connect [this=%p]\n", this));
+
+    
+    
+    
+    
+    PRBool usingSSL = PR_FALSE;
+    rv = mURI->SchemeIs("https", &usingSSL);
+    NS_ENSURE_SUCCESS(rv,rv);
+
+    if (!usingSSL) {
+        
+        nsIStrictTransportSecurityService* stss = gHttpHandler->GetSTSService();
+        NS_ENSURE_TRUE(stss, NS_ERROR_OUT_OF_MEMORY);
+
+        PRBool isStsHost = PR_FALSE;
+        rv = stss->IsStsURI(mURI, &isStsHost);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (isStsHost) {
+            LOG(("nsHttpChannel::Connect() STS permissions found\n"));
+            return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
+        }
+    }
 
     
     if (!net_IsValidHostName(nsDependentCString(mConnectionInfo->Host())))
@@ -884,6 +909,94 @@ nsHttpChannel::ShouldSSLProxyResponseContinue(PRUint32 httpStatus)
     return PR_FALSE;
 }
 
+
+
+
+
+
+
+
+nsresult
+nsHttpChannel::ProcessSTSHeader()
+{
+    nsresult rv;
+
+    
+    
+    
+    if (gHttpHandler->InPrivateBrowsingMode())
+        return NS_OK;
+
+    PRBool isHttps = PR_FALSE;
+    rv = mURI->SchemeIs("https", &isHttps);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    if (!isHttps)
+        return NS_OK;
+
+    nsCAutoString asciiHost;
+    rv = mURI->GetAsciiHost(asciiHost);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    PRNetAddr hostAddr;
+    if (PR_SUCCESS == PR_StringToNetAddr(asciiHost.get(), &hostAddr))
+        return NS_OK;
+
+    nsIStrictTransportSecurityService* stss = gHttpHandler->GetSTSService();
+    NS_ENSURE_TRUE(stss, NS_ERROR_OUT_OF_MEMORY);
+
+    
+    
+    
+    NS_ENSURE_TRUE(mSecurityInfo, NS_ERROR_FAILURE);
+    PRBool tlsIsBroken = PR_FALSE;
+    rv = stss->ShouldIgnoreStsHeader(mSecurityInfo, &tlsIsBroken);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    
+    
+    PRBool wasAlreadySTSHost;
+    rv = stss->IsStsURI(mURI, &wasAlreadySTSHost);
+    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ASSERTION(!(wasAlreadySTSHost && tlsIsBroken),
+                 "connection should have been aborted by nss-bad-cert-handler");
+
+    
+    
+    
+    if (tlsIsBroken) {
+        LOG(("STS: Transport layer is not trustworthy, ignoring "
+             "STS headers and continuing load\n"));
+        return NS_OK;
+    }
+
+    
+    
+    const nsHttpAtom atom = nsHttp::ResolveAtom("Strict-Transport-Security");
+    nsCAutoString stsHeader;
+    rv = mResponseHead->GetHeader(atom, stsHeader);
+    if (rv == NS_ERROR_NOT_AVAILABLE) {
+        LOG(("STS: No STS header, continuing load.\n"));
+        return NS_OK;
+    }
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = stss->ProcessStsHeader(mURI, stsHeader.get());
+    if (NS_FAILED(rv)) {
+        LOG(("STS: Failed to parse STS header, continuing load.\n"));
+        return NS_OK;
+    }
+
+    return NS_OK;
+}
+
 nsresult
 nsHttpChannel::ProcessResponse()
 {
@@ -896,6 +1009,10 @@ nsHttpChannel::ProcessResponse()
     if (mTransaction->SSLConnectFailed() &&
         !ShouldSSLProxyResponseContinue(httpStatus))
         return ProcessFailedSSLConnect(httpStatus);
+
+    
+    rv = ProcessSTSHeader();
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
     gHttpHandler->OnExamineResponse(this);
@@ -1233,6 +1350,143 @@ nsHttpChannel::ContinueHandleAsyncReplaceWithProxy(nsresult status)
     return NS_OK;
 }
 
+void
+nsHttpChannel::HandleAsyncRedirectChannelToHttps()
+{
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
+
+    if (mSuspendCount) {
+        LOG(("Waiting until resume to do async redirect to https [this=%p]\n", this));
+        mPendingAsyncCallOnResume = &nsHttpChannel::HandleAsyncRedirectChannelToHttps;
+        return;
+    }
+
+    nsresult rv = AsyncRedirectChannelToHttps();
+    if (NS_FAILED(rv))
+        ContinueAsyncRedirectChannelToHttps(rv);
+}
+
+nsresult
+nsHttpChannel::AsyncRedirectChannelToHttps()
+{
+    nsresult rv = NS_OK;
+    LOG(("nsHttpChannel::HandleAsyncRedirectChannelToHttps() [STS]\n"));
+
+    nsCOMPtr<nsIChannel> newChannel;
+    nsCOMPtr<nsIURI> upgradedURI;
+
+    rv = mURI->Clone(getter_AddRefs(upgradedURI));
+    NS_ENSURE_SUCCESS(rv,rv);
+
+    upgradedURI->SetScheme(NS_LITERAL_CSTRING("https"));
+
+    PRInt32 oldPort = -1;
+    rv = mURI->GetPort(&oldPort);
+    if (NS_FAILED(rv)) return rv;
+
+    
+    
+    
+    
+
+    if (oldPort == 80 || oldPort == -1)
+        upgradedURI->SetPort(-1);
+    else
+        upgradedURI->SetPort(oldPort);
+
+    nsCOMPtr<nsIIOService> ioService;
+    rv = gHttpHandler->GetIOService(getter_AddRefs(ioService));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = ioService->NewChannelFromURI(upgradedURI, getter_AddRefs(newChannel));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = SetupReplacementChannel(upgradedURI, newChannel, PR_TRUE);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    mRedirectChannel = newChannel;
+    PRUint32 flags = nsIChannelEventSink::REDIRECT_PERMANENT;
+
+    PushRedirectAsyncFunc(
+        &nsHttpChannel::ContinueAsyncRedirectChannelToHttps);
+    rv = gHttpHandler->AsyncOnChannelRedirect(this, newChannel, flags);
+
+    if (NS_SUCCEEDED(rv))
+        rv = WaitForRedirectCallback();
+
+    if (NS_FAILED(rv)) {
+        AutoRedirectVetoNotifier notifier(this);
+        PopRedirectAsyncFunc(
+            &nsHttpChannel::ContinueAsyncRedirectChannelToHttps);
+    }
+
+    return rv;
+}
+
+nsresult
+nsHttpChannel::ContinueAsyncRedirectChannelToHttps(nsresult rv)
+{
+    AutoRedirectVetoNotifier notifier(this);
+
+    if (NS_FAILED(rv)) {
+        
+        
+        
+        mStatus = rv;
+    }
+
+    if (mLoadGroup)
+        mLoadGroup->RemoveRequest(this, nsnull, mStatus);
+
+    if (NS_FAILED(rv)) {
+        
+        
+        
+        DoNotifyListener();
+        return rv;
+    }
+
+    
+    mRedirectChannel->SetOriginalURI(mOriginalURI);
+
+    
+    nsCOMPtr<nsIHttpEventSink> httpEventSink;
+    GetCallback(httpEventSink);
+    if (httpEventSink) {
+        
+        
+        rv = httpEventSink->OnRedirect(this, mRedirectChannel);
+        if (NS_FAILED(rv)) {
+            mStatus = rv;
+            DoNotifyListener();
+            return rv;
+        }
+    }
+
+    
+    rv = mRedirectChannel->AsyncOpen(mListener, mListenerContext);
+    if (NS_FAILED(rv)) {
+        mStatus = rv;
+        DoNotifyListener();
+        return rv;
+    }
+
+    mStatus = NS_BINDING_REDIRECTED;
+
+    notifier.RedirectSucceeded();
+
+    
+    mListener = nsnull;
+    mListenerContext = nsnull;
+
+    
+    mCallbacks = nsnull;
+    mProgressSink = nsnull;
+
+    return rv;
+}
+
 nsresult
 nsHttpChannel::AsyncDoReplaceWithProxy(nsIProxyInfo* pi)
 {
@@ -1261,7 +1515,6 @@ nsHttpChannel::AsyncDoReplaceWithProxy(nsIProxyInfo* pi)
     if (NS_FAILED(rv)) {
         AutoRedirectVetoNotifier notifier(this);
         PopRedirectAsyncFunc(&nsHttpChannel::ContinueDoReplaceWithProxy);
-        mRedirectChannel = nsnull;
     }
 
     return rv;
@@ -1282,7 +1535,6 @@ nsHttpChannel::ContinueDoReplaceWithProxy(nsresult rv)
 
     
     rv = mRedirectChannel->AsyncOpen(mListener, mListenerContext);
-    mRedirectChannel = nsnull;
     if (NS_FAILED(rv))
         return rv;
 
@@ -1629,7 +1881,6 @@ nsHttpChannel::ProcessFallback(PRBool *waitingForRedirectCallback)
     if (NS_FAILED(rv)) {
         AutoRedirectVetoNotifier notifier(this);
         PopRedirectAsyncFunc(&nsHttpChannel::ContinueProcessFallback);
-        mRedirectChannel = nsnull;
         return rv;
     }
 
@@ -1653,7 +1904,6 @@ nsHttpChannel::ContinueProcessFallback(nsresult rv)
     mRedirectChannel->SetOriginalURI(mOriginalURI);
 
     rv = mRedirectChannel->AsyncOpen(mListener, mListenerContext);
-    mRedirectChannel = nsnull;
     if (NS_FAILED(rv))
         return rv;
 
@@ -3067,7 +3317,6 @@ nsHttpChannel::ContinueProcessRedirectionAfterFallback(nsresult rv)
     if (NS_FAILED(rv)) {
         AutoRedirectVetoNotifier notifier(this);
         PopRedirectAsyncFunc(&nsHttpChannel::ContinueProcessRedirection);
-        mRedirectChannel = nsnull;
     }
 
     return rv;
@@ -3102,7 +3351,6 @@ nsHttpChannel::ContinueProcessRedirection(nsresult rv)
 
     
     rv = mRedirectChannel->AsyncOpen(mListener, mListenerContext);
-    mRedirectChannel = nsnull;
 
     if (NS_FAILED(rv))
         return rv;

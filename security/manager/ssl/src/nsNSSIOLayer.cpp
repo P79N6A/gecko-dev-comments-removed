@@ -66,6 +66,7 @@
 #include "nsIObjectOutputStream.h"
 #include "nsRecentBadCerts.h"
 #include "nsISSLCertErrorDialog.h"
+#include "nsIStrictTransportSecurityService.h"
 
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
@@ -3485,32 +3486,59 @@ nsNSSBadCertHandler(void *arg, PRFileDesc *sslSocket)
 
   remaining_display_errors = collected_errors;
 
-  nsCOMPtr<nsICertOverrideService> overrideService = 
-    do_GetService(NS_CERTOVERRIDE_CONTRACTID);
+  
+  
   
 
-  PRUint32 overrideBits = 0; 
+  nsCOMPtr<nsIStrictTransportSecurityService> stss
+    = do_GetService(NS_STSSERVICE_CONTRACTID);
+  nsCOMPtr<nsIStrictTransportSecurityService> proxied_stss;
 
-  if (overrideService)
-  {
-    PRBool haveOverride;
-    PRBool isTemporaryOverride; 
+  nsrv = NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                              NS_GET_IID(nsIStrictTransportSecurityService),
+                              stss, NS_PROXY_SYNC,
+                              getter_AddRefs(proxied_stss));
+  NS_ENSURE_SUCCESS(nsrv, SECFailure);
+
   
-    nsrv = overrideService->HasMatchingOverride(hostString, port,
-                                                ix509, 
-                                                &overrideBits,
-                                                &isTemporaryOverride, 
-                                                &haveOverride);
-    if (NS_SUCCEEDED(nsrv) && haveOverride) 
-    {
-      
-      remaining_display_errors -= overrideBits;
-    }
-  }
+  nsXPIDLCString hostName;
+  nsrv = infoObject->GetHostName(getter_Copies(hostName));
+  NS_ENSURE_SUCCESS(nsrv, SECFailure);
 
-  if (!remaining_display_errors) {
+  PRBool strictTransportSecurityEnabled;
+  nsrv = proxied_stss->IsStsHost(hostName, &strictTransportSecurityEnabled);
+  NS_ENSURE_SUCCESS(nsrv, SECFailure);
+
+  if (!strictTransportSecurityEnabled) {
+    nsCOMPtr<nsICertOverrideService> overrideService =
+      do_GetService(NS_CERTOVERRIDE_CONTRACTID);
     
-    return SECSuccess;
+
+    PRUint32 overrideBits = 0;
+
+    if (overrideService)
+    {
+      PRBool haveOverride;
+      PRBool isTemporaryOverride; 
+
+      nsrv = overrideService->HasMatchingOverride(hostString, port,
+                                                  ix509,
+                                                  &overrideBits,
+                                                  &isTemporaryOverride, 
+                                                  &haveOverride);
+      if (NS_SUCCEEDED(nsrv) && haveOverride) 
+      {
+        
+        remaining_display_errors -= overrideBits;
+      }
+    }
+
+    if (!remaining_display_errors) {
+      
+      return SECSuccess;
+    }
+  } else {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Strict-Transport-Security is violated: untrusted transport layer\n"));
   }
 
   

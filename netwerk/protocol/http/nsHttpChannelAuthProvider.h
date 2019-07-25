@@ -130,6 +130,16 @@ private:
 
     nsresult ContinueOnAuthAvailable(const nsCSubstring& creds);
 
+    nsresult DoRedirectChannelToHttps();
+
+    
+
+
+
+
+
+    nsresult ProcessSTSHeader();
+
 private:
     nsIHttpAuthenticableChannel      *mAuthChannel;  
 

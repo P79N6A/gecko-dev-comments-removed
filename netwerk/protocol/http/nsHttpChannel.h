@@ -67,6 +67,7 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 
 class nsAHttpConnection;
+class AutoRedirectVetoNotifier;
 
 using namespace mozilla::net;
 
@@ -257,6 +258,18 @@ private:
     nsresult DoAuthRetry(nsAHttpConnection *);
     PRBool   MustValidateBasedOnQueryUrl();
 
+    void     HandleAsyncRedirectChannelToHttps();
+    nsresult AsyncRedirectChannelToHttps();
+    nsresult ContinueAsyncRedirectChannelToHttps(nsresult rv);
+
+    
+
+
+
+
+
+    nsresult ProcessSTSHeader();
+
 private:
     nsCOMPtr<nsISupports>             mSecurityInfo;
     nsCOMPtr<nsICancelable>           mProxyRequest;
@@ -303,6 +316,7 @@ private:
     
     nsCString                         mFallbackKey;
 
+    friend class AutoRedirectVetoNotifier;
     nsCOMPtr<nsIURI>                  mRedirectURI;
     nsCOMPtr<nsIChannel>              mRedirectChannel;
     PRUint32                          mRedirectType;

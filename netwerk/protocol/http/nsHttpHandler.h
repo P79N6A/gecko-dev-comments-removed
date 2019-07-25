@@ -55,11 +55,13 @@
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsIProxyObjectManager.h"
+#include "nsIPrivateBrowsingService.h"
 #include "nsIStreamConverterService.h"
 #include "nsICacheSession.h"
 #include "nsICookieService.h"
 #include "nsIIDNService.h"
 #include "nsITimer.h"
+#include "nsIStrictTransportSecurityService.h"
 
 class nsHttpConnectionInfo;
 class nsHttpHeaderArray;
@@ -168,12 +170,19 @@ public:
     }
 
     
+    PRBool InPrivateBrowsingMode()
+    {
+      return mInPrivateBrowsingMode;
+    }
+
+    
     
     
     
     nsresult GetStreamConverterService(nsIStreamConverterService **);
     nsresult GetIOService(nsIIOService** service);
     nsICookieService * GetCookieService(); 
+    nsIStrictTransportSecurityService * GetSTSService();
 
     
     void OnModifyRequest(nsIHttpChannel *chan)
@@ -239,6 +248,7 @@ private:
     nsCOMPtr<nsICookieService>          mCookieService;
     nsCOMPtr<nsIIDNService>             mIDNConverter;
     nsCOMPtr<nsITimer>                  mTimer;
+    nsCOMPtr<nsIStrictTransportSecurityService> mSTSService;
 
     
     nsHttpAuthCache mAuthCache;
@@ -267,6 +277,9 @@ private:
     PRUint8  mMaxPipelinedRequests;
 
     PRUint8  mRedirectionLimit;
+
+    
+    PRBool   mInPrivateBrowsingMode;
 
     
     
