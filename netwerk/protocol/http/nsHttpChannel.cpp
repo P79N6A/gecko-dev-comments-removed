@@ -1016,12 +1016,7 @@ nsHttpChannel::ProcessResponse()
     
     gHttpHandler->OnExamineResponse(this);
 
-    if (!mRemoteChannel) {
-      
-      
-      
-      SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
-    }
+    SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
 
     
     if (httpStatus != 401 && httpStatus != 407) {
@@ -3558,17 +3553,13 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         }
     }
     
-    if (!mRemoteChannel) {
-      
-
-      
-      const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
-      if (cookieHeader) {
+    
+    const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
+    if (cookieHeader) {
         mUserSetCookieHeader = cookieHeader;
-      }
-
-      AddCookiesToRequest();
     }
+
+    AddCookiesToRequest();
 
     
     gHttpHandler->OnModifyRequest(this);
@@ -4465,11 +4456,8 @@ nsHttpChannel::DoAuthRetry(nsAHttpConnection *conn)
     
     
     
-    if (!mRemoteChannel) {
-      
-      AddCookiesToRequest();
-    }
-
+    AddCookiesToRequest();
+    
     
     gHttpHandler->OnModifyRequest(this);
 

@@ -1244,23 +1244,32 @@ HttpBaseChannel::AddCookiesToRequest()
     return;
   }
 
+  bool useCookieService = 
+#ifdef MOZ_IPC
+    (XRE_GetProcessType() == GeckoProcessType_Default);
+#else
+    PR_TRUE;
+#endif
   nsXPIDLCString cookie;
+  if (useCookieService) {
+    nsICookieService *cs = gHttpHandler->GetCookieService();
+    if (cs) {
+      cs->GetCookieStringFromHttp(mURI,
+                                  nsnull,
+                                  this, getter_Copies(cookie));
+    }
 
-  nsICookieService *cs = gHttpHandler->GetCookieService();
-  if (cs) {
-    cs->GetCookieStringFromHttp(mURI,
-                                mDocumentURI ? mDocumentURI : mOriginalURI,
-                                this, getter_Copies(cookie));
+    if (cookie.IsEmpty()) {
+      cookie = mUserSetCookieHeader;
+    }
+    else if (!mUserSetCookieHeader.IsEmpty()) {
+      cookie.Append(NS_LITERAL_CSTRING("; ") + mUserSetCookieHeader);
+    }
   }
-
-  if (cookie.IsEmpty()) {
+  else {
     cookie = mUserSetCookieHeader;
   }
-  else if (!mUserSetCookieHeader.IsEmpty()) {
-    cookie.Append(NS_LITERAL_CSTRING("; ") + mUserSetCookieHeader);
-  }
 
-  
   
   
   SetRequestHeader(nsDependentCString(nsHttp::Cookie), cookie, PR_FALSE);
