@@ -4005,9 +4005,9 @@ nsLayoutUtils::GetRectDifferenceStrips(const nsRect& aR1, const nsRect& aR2,
 }
 
 nsDeviceContext*
-nsLayoutUtils::GetDeviceContextForScreenInfo(nsPIDOMWindow* aWindow)
+nsLayoutUtils::GetDeviceContextForScreenInfo(nsIDocShell* aDocShell)
 {
-  nsCOMPtr<nsIDocShell> docShell = aWindow->GetDocShell();
+  nsCOMPtr<nsIDocShell> docShell = aDocShell;
   while (docShell) {
     
     
