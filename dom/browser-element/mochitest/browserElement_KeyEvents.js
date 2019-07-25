@@ -14,13 +14,13 @@ let whitelistedEvents = [
 
 SimpleTest.waitForExplicitFinish();
 
-browserFrameHelpers.setEnabledPref(true);
-browserFrameHelpers.addToWhitelist();
-browserFrameHelpers.setOOPDisabledPref(true); 
+browserElementTestHelpers.setEnabledPref(true);
+browserElementTestHelpers.addToWhitelist();
+browserElementTestHelpers.setOOPDisabledPref(true); 
 
 var iframe = document.createElement('iframe');
 iframe.mozbrowser = true;
-iframe.src = browserFrameHelpers.focusPage;
+iframe.src = browserElementTestHelpers.focusPage;
 document.body.appendChild(iframe);
 
 
@@ -35,7 +35,7 @@ function eventHandler(e) {
   nbEvents--;
 
   if (nbEvents == 0) {
-    browserFrameHelpers.restoreOriginalPrefs();
+    browserElementTestHelpers.restoreOriginalPrefs();
     SimpleTest.finish();
     return;
   }
