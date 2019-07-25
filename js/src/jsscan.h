@@ -618,7 +618,6 @@ class TokenStream
     JSPackedBool        maybeStrSpecial[256];
     JSVersion           version;        
     bool                xml;            
-    JS_STATIC_ASSERT(sizeof(maybeEOL) == 256);
 };
 
 } 
