@@ -148,6 +148,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
     
     masm.pop(rbp);
+    masm.movq(ImmWord(1), rax);
     masm.ret();
 
     Linker linker(masm);

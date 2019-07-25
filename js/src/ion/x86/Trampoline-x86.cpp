@@ -159,6 +159,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
     
     masm.pop(ebp);
+    masm.movl(Imm32(1), eax);
     masm.ret();
 
     Linker linker(masm);
