@@ -54,8 +54,8 @@
 #include "nsStringStream.h"
 #include "prmem.h"
 #include "prenv.h"
-#include "nsTime.h"
 #include "ImageLogging.h"
+#include "mozilla/TimeStamp.h"
 
 #include "nsPNGDecoder.h"
 #include "nsGIFDecoder2.h"
@@ -66,6 +66,7 @@
 
 #include "gfxContext.h"
 
+using namespace mozilla;
 using namespace mozilla::imagelib;
 
 
@@ -2692,14 +2693,14 @@ imgDecodeWorker::Run()
 
   
   PRBool haveMoreData = PR_TRUE;
-  nsTime deadline(PR_Now() + 1000 * gMaxMSBeforeYield);
+  TimeStamp deadline = TimeStamp::Now() + TimeDuration::FromMilliseconds(gMaxMSBeforeYield);
 
   
   
   
   
   while (haveMoreData && !image->IsDecodeFinished() &&
-         (nsTime(PR_Now()) < deadline)) {
+         (TimeStamp::Now() < deadline)) {
 
     
     rv = image->DecodeSomeData(maxBytes);
