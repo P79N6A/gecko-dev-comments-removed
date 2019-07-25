@@ -2041,20 +2041,25 @@ gfxFontGroup::FindPlatformFont(const nsAString& aName,
     gfxFontEntry *fe = nsnull;
 
     
+    
+    
+    
+    PRBool foundFamily = PR_FALSE;
     gfxUserFontSet *fs = fontGroup->GetUserFontSet();
     if (fs) {
         
         
         
         PRBool waitForUserFont = PR_FALSE;
-        fe = fs->FindFontEntry(aName, *fontStyle, needsBold, waitForUserFont);
+        fe = fs->FindFontEntry(aName, *fontStyle, foundFamily,
+                               needsBold, waitForUserFont);
         if (!fe && waitForUserFont) {
             fontGroup->mSkipDrawing = PR_TRUE;
         }
     }
 
     
-    if (!fe) {
+    if (!foundFamily) {
         fe = gfxPlatformFontList::PlatformFontList()->
             FindFontForFamily(aName, fontStyle, needsBold);
     }
@@ -2247,22 +2252,24 @@ gfxFontGroup::ForEachFontInternal(const nsAString& aFamilies,
             if (aResolveFontName) {
                 ResolveData data(fc, gf, closure);
                 PRBool aborted = PR_FALSE, needsBold;
-                nsresult rv;
+                nsresult rv = NS_OK;
+                PRBool foundFamily = PR_FALSE;
                 PRBool waitForUserFont = PR_FALSE;
                 if (mUserFontSet &&
-                    mUserFontSet->FindFontEntry(family, mStyle, needsBold,
-                                                waitForUserFont))
+                    mUserFontSet->FindFontEntry(family, mStyle, foundFamily,
+                                                needsBold, waitForUserFont))
                 {
                     gfxFontGroup::FontResolverProc(family, &data);
-                    rv = NS_OK;
                 } else {
                     if (waitForUserFont) {
                         mSkipDrawing = PR_TRUE;
                     }
-                    gfxPlatform *pf = gfxPlatform::GetPlatform();
-                    rv = pf->ResolveFontName(family,
-                                             gfxFontGroup::FontResolverProc,
-                                             &data, aborted);
+                    if (!foundFamily) {
+                        gfxPlatform *pf = gfxPlatform::GetPlatform();
+                        rv = pf->ResolveFontName(family,
+                                                 gfxFontGroup::FontResolverProc,
+                                                 &data, aborted);
+                    }
                 }
                 if (NS_FAILED(rv) || aborted)
                     return PR_FALSE;
