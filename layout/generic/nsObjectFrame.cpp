@@ -1644,26 +1644,14 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
 {
 #if defined(MOZ_WIDGET_ANDROID)
   if (mInstanceOwner) {
-    NPWindow *window;
-    mInstanceOwner->GetWindow(window);
-
     gfxRect frameGfxRect =
       PresContext()->AppUnitsToGfxUnits(aPluginRect);
     gfxRect dirtyGfxRect =
       PresContext()->AppUnitsToGfxUnits(aDirtyRect);
+
     gfxContext* ctx = aRenderingContext.ThebesContext();
 
-    gfx3DMatrix matrix3d = nsLayoutUtils::GetTransformToAncestor(this, nsnull);
-
-    gfxMatrix matrix2d;
-    if (!matrix3d.Is2D(&matrix2d))
-      return;
-
-    
-    
-    frameGfxRect.MoveTo(0, 0);
-
-    mInstanceOwner->Paint(ctx, matrix2d.Transform(frameGfxRect), dirtyGfxRect);
+    mInstanceOwner->Paint(ctx, frameGfxRect, dirtyGfxRect);
     return;
   }
 #endif
