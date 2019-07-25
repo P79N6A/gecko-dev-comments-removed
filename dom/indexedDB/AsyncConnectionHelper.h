@@ -83,14 +83,6 @@ public:
 
   static const PRUint16 OK = PR_UINT16_MAX;
 
-  
-
-
-
-
-
-  static const PRUint16 NOREPLY = OK - 1;
-
   nsresult Dispatch(nsIEventTarget* aDatabaseThread);
 
   
@@ -158,6 +150,13 @@ protected:
 
 
   virtual PRUint16 GetSuccessResult(nsIWritableVariant* aVariant);
+
+  
+
+
+
+
+  virtual void ReleaseMainThreadObjects();
 
 protected:
   nsRefPtr<IDBDatabase> mDatabase;
