@@ -471,10 +471,10 @@ var BrowserUI = {
         let mode = PANELMODE_NONE;
 
         
-        if (aEvent.detail == 2 && this.mode == PANELMODE_NONE)
+        if (aEvent.detail == 2 && (this.mode == PANELMODE_NONE || this.mode == PANELMODE_URLVIEW))
           mode = PANELMODE_SIDEBAR;
         
-        else if (aEvent.detail == 1 && this.mode == PANELMODE_NONE)
+        else if (aEvent.detail == 1 && (this.mode == PANELMODE_NONE || this.mode == PANELMODE_URLVIEW))
           mode = PANELMODE_TABLIST;
 
         this.show(mode);
