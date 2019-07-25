@@ -192,6 +192,10 @@ pref("accessibility.typeaheadfind.casesensitive", 0);
 pref("accessibility.browsewithcaret_shortcut.enabled", false);
 
 
+
+pref("app.update.showInstalledUI", false);
+
+
 pref("browser.search.defaultenginename",      "chrome://browser/locale/region.properties");
 
 pref("browser.ssl_override_behavior", 2);
