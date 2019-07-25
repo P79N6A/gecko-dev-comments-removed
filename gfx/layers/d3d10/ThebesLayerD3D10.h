@@ -86,6 +86,8 @@ private:
   
   nsRefPtr<gfxASurface> mD2DSurface;
 
+  mozilla::RefPtr<mozilla::gfx::DrawTarget> mDrawTarget;
+
   
   nsRefPtr<gfxASurface> mD2DSurfaceOnWhite;
 
