@@ -2694,15 +2694,8 @@ nsAccessible::Shutdown()
 nsresult
 nsAccessible::GetARIAName(nsAString& aName)
 {
-  
   nsAutoString label;
-  if (mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_label,
-                        label)) {
-    label.CompressWhitespace();
-    aName = label;
-    return NS_OK;
-  }
-  
+
   
   nsresult rv = nsTextEquivUtils::
     GetTextEquivFromIDRefs(this, nsAccessibilityAtoms::aria_labelledby, label);
@@ -2711,7 +2704,14 @@ nsAccessible::GetARIAName(nsAString& aName)
     aName = label;
   }
 
-  return rv;
+  if (label.IsEmpty() &&
+      mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_label,
+                        label)) {
+    label.CompressWhitespace();
+    aName = label;
+  }
+  
+  return NS_OK;
 }
 
 nsresult
