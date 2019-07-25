@@ -1118,7 +1118,6 @@ struct GCMarker : public JSTracer {
     uint32 color;
 
   public:
-    jsuword stackLimit;
     
     js::gc::Arena<js::gc::Cell> *unmarkedArenaStackTop;
 #ifdef DEBUG
