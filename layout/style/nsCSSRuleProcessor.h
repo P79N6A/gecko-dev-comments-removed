@@ -95,7 +95,7 @@ public:
 
   static bool SelectorListMatches(const mozilla::dom::Element* aElement,
                                     TreeMatchContext& aTreeMatchContext,
-                                    nsCSSSelectorList* aSelectorList);
+                                    const nsCSSSelectorList* aSelectorList);
 
   
 
