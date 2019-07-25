@@ -300,16 +300,46 @@ function loadManifestFromRDF(aUri, aStream) {
     return values;
   }
 
-  function readLocale(aDs, aSource, isDefault) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function readLocale(aDs, aSource, isDefault, aSeenLocales) {
     let locale = { };
     if (!isDefault) {
       locale.locales = [];
       let targets = ds.GetTargets(aSource, EM_R("locale"), true);
-      while (targets.hasMoreElements())
-        locale.locales.push(getRDFValue(targets.getNext()));
+      while (targets.hasMoreElements()) {
+        let localeName = getRDFValue(targets.getNext());
+        if (!localeName) {
+          WARN("Ignoring empty locale in localized properties");
+          continue;
+        }
+        if (aSeenLocales.indexOf(localeName) != -1) {
+          WARN("Ignoring duplicate locale in localized properties");
+          continue;
+        }
+        aSeenLocales.push(localeName);
+        locale.locales.push(localeName);
+      }
 
-      if (locale.locales.length == 0)
-        throw new Error("No locales given for localized properties");
+      if (locale.locales.length == 0) {
+        WARN("Ignoring localized properties with no listed locales");
+        return null;
+      }
     }
 
     PROP_LOCALE_SINGLE.forEach(function(aProp) {
@@ -392,13 +422,17 @@ function loadManifestFromRDF(aUri, aStream) {
 
   addon.defaultLocale = readLocale(ds, root, true);
 
+  let seenLocales = [];
   addon.locales = [];
   let targets = ds.GetTargets(root, EM_R("localized"), true);
   while (targets.hasMoreElements()) {
     let target = targets.getNext().QueryInterface(Ci.nsIRDFResource);
-    addon.locales.push(readLocale(ds, target, false));
+    let locale = readLocale(ds, target, false, seenLocales);
+    if (locale)
+      addon.locales.push(locale);
   }
 
+  let seenApplications = [];
   addon.targetApplications = [];
   targets = ds.GetTargets(root, EM_R("targetApplication"), true);
   while (targets.hasMoreElements()) {
@@ -408,8 +442,16 @@ function loadManifestFromRDF(aUri, aStream) {
       targetAppInfo[aProp] = getRDFProperty(ds, target, aProp);
     });
     if (!targetAppInfo.id || !targetAppInfo.minVersion ||
-        !targetAppInfo.maxVersion)
-      throw new Error("Invalid targetApplication entry in install manifest");
+        !targetAppInfo.maxVersion) {
+      WARN("Ignoring invalid targetApplication entry in install manifest");
+      continue;
+    }
+    if (seenApplications.indexOf(targetAppInfo.id) != -1) {
+      WARN("Ignoring duplicate targetApplication entry for " + targetAppInfo.id +
+           " in install manifest");
+      continue;
+    }
+    seenApplications.push(targetAppInfo.id);
     addon.targetApplications.push(targetAppInfo);
   }
 
