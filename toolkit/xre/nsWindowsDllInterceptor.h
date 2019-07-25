@@ -62,20 +62,195 @@
 
 
 
-class WindowsDllInterceptor
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <mozilla/StandardInteger.h>
+
+namespace mozilla {
+namespace internal {
+
+class WindowsDllNopSpacePatcher
+{
+  typedef unsigned char *byteptr_t;
+  HMODULE mModule;
+
+  
+  
+  static const size_t maxPatchedFns = 128;
+  byteptr_t mPatchedFns[maxPatchedFns];
+  int mPatchedFnsLen;
+
+public:
+  WindowsDllNopSpacePatcher()
+    : mModule(0)
+    , mPatchedFnsLen(0)
+  {}
+
+  ~WindowsDllNopSpacePatcher()
+  {
+    
+
+    for (int i = 0; i < mPatchedFnsLen; i++) {
+      byteptr_t fn = mPatchedFns[i];
+
+      
+      DWORD op;
+      if (!VirtualProtectEx(GetCurrentProcess(), fn, 2, PAGE_EXECUTE_READWRITE, &op)) {
+        
+        continue;
+      }
+
+      
+      *((uint16_t*)fn) = 0xff8b;
+
+      
+      VirtualProtectEx(GetCurrentProcess(), fn, 2, op, &op);
+
+      
+      FlushInstructionCache(GetCurrentProcess(),
+                             NULL,
+                             0);
+    }
+  }
+
+  void Init(const char *modulename)
+  {
+    mModule = LoadLibraryExA(modulename, NULL, 0);
+    if (!mModule) {
+      
+      return;
+    }
+  }
+
+#if defined(_M_IX86)
+  bool AddHook(const char *pname, intptr_t hookDest, void **origFunc)
+  {
+    if (!mModule)
+      return false;
+
+    if (mPatchedFnsLen == maxPatchedFns) {
+      
+      return false;
+    }
+
+    byteptr_t fn = reinterpret_cast<byteptr_t>(GetProcAddress(mModule, pname));
+    if (!fn) {
+      
+      return false;
+    }
+  
+    
+    
+    
+    DWORD op;
+    if (!VirtualProtectEx(GetCurrentProcess(), fn - 5, 7, PAGE_EXECUTE_READWRITE, &op)) {
+      
+      return false;
+    }
+
+    bool rv = WriteHook(fn, hookDest, origFunc);
+    
+    
+    VirtualProtectEx(GetCurrentProcess(), fn - 5, 7, op, &op);
+
+    if (rv) {
+      mPatchedFns[mPatchedFnsLen] = fn;
+      mPatchedFnsLen++;
+    }
+
+    return rv;
+  }
+
+  bool WriteHook(byteptr_t fn, intptr_t hookDest, void **origFunc)
+  {
+    
+    
+    
+    
+    
+
+    for (int i = -5; i <= -1; i++) {
+      if (fn[i] != 0x90) 
+        return false;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    if ((fn[0] != 0x8b && fn[0] != 0x89) || fn[1] != 0xff) {
+      return false;
+    }
+
+    
+    fn[-5] = 0xe9; 
+    *((intptr_t*)(fn - 4)) = hookDest - (uintptr_t)(fn); 
+
+    
+    
+    *origFunc = fn + 2;
+
+    
+    *((uint16_t*)(fn)) = 0xf9eb; 
+
+    
+    FlushInstructionCache(GetCurrentProcess(),
+                           NULL,
+                           0);
+
+    return true;
+  }
+#else
+  bool AddHook(const char *pname, intptr_t hookDest, void **origFunc)
+  {
+    
+    return false;
+  }
+#endif
+};
+
+class WindowsDllDetourPatcher
 {
   typedef unsigned char *byteptr_t;
 public:
-  WindowsDllInterceptor() 
-    : mModule(0)
+  WindowsDllDetourPatcher() 
+    : mModule(0), mHookPage(0), mMaxHooks(0), mCurHooks(0)
   {
   }
 
-  WindowsDllInterceptor(const char *modulename, int nhooks = 0) {
-    Init(modulename, nhooks);
-  }
-
-  ~WindowsDllInterceptor() {
+  ~WindowsDllDetourPatcher()
+  {
     int i;
     byteptr_t p;
     for (i = 0, p = mHookPage; i < mCurHooks; i++, p += kHookSize) {
@@ -108,7 +283,8 @@ public:
     }
   }
 
-  void Init(const char *modulename, int nhooks = 0) {
+  void Init(const char *modulename, int nhooks = 0)
+  {
     if (mModule)
       return;
 
@@ -123,7 +299,6 @@ public:
       nhooks = hooksPerPage;
 
     mMaxHooks = nhooks + (hooksPerPage % nhooks);
-    mCurHooks = 0;
 
     mHookPage = (byteptr_t) VirtualAllocEx(GetCurrentProcess(), NULL, mMaxHooks * kHookSize,
              MEM_COMMIT | MEM_RESERVE,
@@ -135,7 +310,13 @@ public:
     }
   }
 
-  void LockHooks() {
+  bool Initialized()
+  {
+    return !!mModule;
+  }
+
+  void LockHooks()
+  {
     if (!mModule)
       return;
 
@@ -145,9 +326,7 @@ public:
     mModule = 0;
   }
 
-  bool AddHook(const char *pname,
-         intptr_t hookDest,
-         void **origFunc)
+  bool AddHook(const char *pname, intptr_t hookDest, void **origFunc)
   {
     if (!mModule)
       return false;
@@ -423,7 +602,8 @@ protected:
     VirtualProtectEx(GetCurrentProcess(), origFunction, nBytes, op, &op);
   }
 
-  byteptr_t FindTrampolineSpace() {
+  byteptr_t FindTrampolineSpace()
+  {
     if (mCurHooks >= mMaxHooks)
       return 0;
 
@@ -435,5 +615,65 @@ protected:
   }
 };
 
+} 
+
+class WindowsDllInterceptor
+{
+  internal::WindowsDllNopSpacePatcher mNopSpacePatcher;
+  internal::WindowsDllDetourPatcher mDetourPatcher;
+
+  const char *mModuleName;
+  int mNHooks;
+
+public:
+  WindowsDllInterceptor()
+    : mModuleName(NULL)
+    , mNHooks(0)
+  {}
+
+  void Init(const char *moduleName, int nhooks = 0)
+  {
+    if (mModuleName) {
+      return;
+    }
+
+    mModuleName = moduleName;
+    mNHooks = nhooks;
+    mNopSpacePatcher.Init(moduleName);
+
+    
+    
+  }
+
+  void LockHooks()
+  {
+    if (mDetourPatcher.Initialized())
+      mDetourPatcher.LockHooks();
+  }
+
+  bool AddHook(const char *pname, intptr_t hookDest, void **origFunc)
+  {
+    if (!mModuleName) {
+      
+      return false;
+    }
+
+    if (mNopSpacePatcher.AddHook(pname, hookDest, origFunc)) {
+      
+      return true;
+    }
+
+    if (!mDetourPatcher.Initialized()) {
+      
+      mDetourPatcher.Init(mModuleName, mNHooks);
+    }
+
+    bool rv = mDetourPatcher.AddHook(pname, hookDest, origFunc);
+    
+    return rv;
+  }
+};
+
+} 
 
 #endif 
