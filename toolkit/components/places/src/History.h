@@ -78,26 +78,6 @@ public:
   
 
 
-
-
-
-
-
-
-  void AppendTask(class Step* aTask);
-
-  
-
-
-
-
-
-
-  void CurrentTaskFinished();
-
-  
-
-
   mozIStorageAsyncStatement* GetIsVisitedStatement();
 
   
@@ -146,26 +126,6 @@ private:
 
 
   nsCOMPtr<mozIStorageAsyncStatement> mIsVisitedStatement;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  nsDeque mPendingVisits;
-
-  
-
-
-
-  void StartNextTask();
 
   
 
