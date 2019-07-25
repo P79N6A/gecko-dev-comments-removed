@@ -280,6 +280,26 @@ void ForceWALCheckpoint(mozIStorageConnection* aDBConn);
 bool GetHiddenState(bool aIsRedirect,
                     PRUint32 aTransitionType);
 
+
+
+
+class PlacesEvent : public nsRunnable
+                  , public mozIStorageCompletionCallback
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIRUNNABLE
+  NS_DECL_MOZISTORAGECOMPLETIONCALLBACK
+
+  PlacesEvent(const char* aTopic);
+  PlacesEvent(const char* aTopic, bool aDoubleEnqueue);
+protected:
+  void Notify();
+
+  const char* const mTopic;
+  bool mDoubleEnqueue;
+};
+
 } 
 } 
 

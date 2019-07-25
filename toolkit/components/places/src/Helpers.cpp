@@ -42,6 +42,7 @@
 #include "prio.h"
 #include "nsString.h"
 #include "nsNavHistory.h"
+#include "mozilla/Services.h"
 
 
 #define GUID_LENGTH 12
@@ -356,6 +357,58 @@ GetHiddenState(bool aIsRedirect,
          aTransitionType == nsINavHistoryService::TRANSITION_EMBED ||
          aIsRedirect;
 }
+
+
+
+
+PlacesEvent::PlacesEvent(const char* aTopic)
+: mTopic(aTopic)
+, mDoubleEnqueue(false)
+{
+}
+
+PlacesEvent::PlacesEvent(const char* aTopic,
+                         bool aDoubleEnqueue)
+: mTopic(aTopic)
+, mDoubleEnqueue(aDoubleEnqueue)
+{
+}
+
+NS_IMETHODIMP
+PlacesEvent::Run()
+{
+  Notify();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+PlacesEvent::Complete()
+{
+  Notify();
+  return NS_OK;
+}
+
+void
+PlacesEvent::Notify()
+{
+  if (mDoubleEnqueue) {
+    mDoubleEnqueue = false;
+    (void)NS_DispatchToMainThread(this);
+  }
+  else {
+    NS_ASSERTION(NS_IsMainThread(), "Must only be used on the main thread!");
+    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+    if (obs) {
+      (void)obs->NotifyObservers(nsnull, mTopic, nsnull);
+    }
+  }
+}
+
+NS_IMPL_THREADSAFE_ISUPPORTS2(
+  PlacesEvent
+, mozIStorageCompletionCallback
+, nsIRunnable
+)
 
 } 
 } 

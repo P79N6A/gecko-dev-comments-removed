@@ -62,6 +62,9 @@
 
 #define VISIT_OBSERVERS_INITIAL_CACHE_SIZE 128
 
+
+#define TOPIC_UPDATEPLACES_COMPLETE "places-updatePlaces-complete"
+
 using namespace mozilla::dom;
 
 namespace mozilla {
@@ -1953,16 +1956,25 @@ History::UpdatePlaces(const jsval& aPlaceInfos,
     }
   }
 
+  mozIStorageConnection* dbConn = GetDBConn();
+  NS_ENSURE_STATE(dbConn);
+
   
   
   
   if (visitData.Length()) {
-    mozIStorageConnection* dbConn = GetDBConn();
-    NS_ENSURE_STATE(dbConn);
-
     nsresult rv = InsertVisitedURIs::Start(dbConn, visitData, aCallback);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  
+  
+  
+  nsCOMPtr<nsIEventTarget> backgroundThread = do_GetInterface(dbConn);
+  NS_ENSURE_TRUE(backgroundThread, NS_ERROR_UNEXPECTED);
+  nsRefPtr<PlacesEvent> completeEvent =
+    new PlacesEvent(TOPIC_UPDATEPLACES_COMPLETE, true);
+  (void)backgroundThread->Dispatch(completeEvent, 0);
 
   return NS_OK;
 }
