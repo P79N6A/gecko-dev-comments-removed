@@ -110,7 +110,7 @@ protected:
   
 
 
-  already_AddRefed<nsAccessible> GetActionAccessible();
+  nsAccessible *GetActionAccessible() const;
 
   
 

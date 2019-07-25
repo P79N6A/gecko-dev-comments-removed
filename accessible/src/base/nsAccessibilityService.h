@@ -175,11 +175,16 @@ public:
   
 
 
+  nsAccessible *GetAccessible(nsIDOMNode *aNode);
+
+  
 
 
 
-  already_AddRefed<nsAccessible>
-    GetAccessibleInWeakShell(nsIDOMNode *aNode, nsIWeakReference *aPresShell);
+
+
+  nsAccessible *GetAccessibleInWeakShell(nsIDOMNode *aNode,
+                                         nsIWeakReference *aPresShell);
 
   
 

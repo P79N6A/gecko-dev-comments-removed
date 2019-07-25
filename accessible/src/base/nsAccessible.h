@@ -338,9 +338,8 @@ protected:
 
 
 
-   
-  already_AddRefed<nsAccessible>
-    GetFirstAvailableAccessible(nsIDOMNode *aStartNode);
+
+  nsAccessible *GetFirstAvailableAccessible(nsIDOMNode *aStartNode) const;
 
   
   virtual nsresult GetLinkOffset(PRInt32* aStartOffset, PRInt32* aEndOffset);

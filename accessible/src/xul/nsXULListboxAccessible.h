@@ -137,7 +137,7 @@ protected:
   
 
 
-  already_AddRefed<nsAccessible> GetListAccessible();
+  nsAccessible *GetListAccessible();
 
 private:
   PRBool mIsCheckbox;
