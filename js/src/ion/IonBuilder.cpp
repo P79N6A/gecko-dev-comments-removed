@@ -1384,6 +1384,17 @@ IonBuilder::forLoop(JSOp op, jssrcnote *sn)
     return ControlStatus_Jumped;
 }
 
+int
+IonBuilder::CmpSuccessors(const void *a, const void *b)
+{
+    const MBasicBlock *a0 = * (MBasicBlock * const *)a;
+    const MBasicBlock *b0 = * (MBasicBlock * const *)b;
+    if (a0->pc() == b0->pc())
+        return 0;
+
+    return (a0->pc() > b0->pc()) ? 1 : -1;
+}
+
 IonBuilder::ControlStatus
 IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
 {
@@ -1424,6 +1435,7 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
     MBasicBlock *defaultcase = newBlock(current, defaultpc);
     if (!defaultcase)
         return ControlStatus_Error;
+    tableswitch->addDefault(defaultcase);
 
     
     jsbytecode *casepc = NULL, *prevcasepc; 
@@ -1432,11 +1444,6 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
         casepc = pc + GET_JUMP_OFFSET(pc2);
         
         JS_ASSERT(casepc >= pc && casepc <= exitpc);
-
-        
-        
-        if (defaultpc >= prevcasepc && defaultpc < casepc)
-            tableswitch->addDefault(defaultcase);
 
         
         
@@ -1453,13 +1460,12 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
         pc2 += JUMP_OFFSET_LEN;
     }
 
-    
-    
-    if (!casepc || defaultpc >= casepc)
-        tableswitch->addDefault(defaultcase);
-
     JS_ASSERT(tableswitch->numCases() == (uint32)(high - low + 1));
     JS_ASSERT(tableswitch->numSuccessors() > 0);
+
+    
+    qsort(tableswitch->successors(), tableswitch->numSuccessors(),
+          sizeof(MBasicBlock*), CmpSuccessors);
 
     
     ControlFlowInfo switchinfo(cfgStack_.length(), exitpc);
