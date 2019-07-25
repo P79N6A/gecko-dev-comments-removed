@@ -173,6 +173,9 @@ const struct {
   { "Feat", ots::ots_feat_parse, ots::ots_feat_serialise,
     ots::ots_feat_should_serialise, ots::ots_feat_free, false },
   
+  { "SVG ", ots::ots_svg_parse, ots::ots_svg_serialise,
+    ots::ots_svg_should_serialise, ots::ots_svg_free, false},
+  
   { 0, NULL, NULL, NULL, NULL, false },
 };
 
