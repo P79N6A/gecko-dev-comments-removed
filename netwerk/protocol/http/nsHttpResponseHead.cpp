@@ -380,7 +380,11 @@ nsHttpResponseHead::IsResumable() const
 {
     
     
-    return mVersion >= NS_HTTP_VERSION_1_1 &&
+    
+    
+    
+    return mStatus == 200 &&
+           mVersion >= NS_HTTP_VERSION_1_1 &&
            PeekHeader(nsHttp::Content_Length) && 
           (PeekHeader(nsHttp::ETag) || PeekHeader(nsHttp::Last_Modified)) &&
            HasHeaderValue(nsHttp::Accept_Ranges, "bytes");

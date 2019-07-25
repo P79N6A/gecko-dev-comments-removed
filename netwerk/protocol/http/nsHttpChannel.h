@@ -30,11 +30,11 @@
 #include "nsITimedChannel.h"
 #include "nsDNSPrefetch.h"
 #include "TimingStruct.h"
+#include "AutoClose.h"
 
 class nsAHttpConnection;
-class AutoRedirectVetoNotifier;
 
-using namespace mozilla::net;
+namespace mozilla { namespace net {
 
 
 
@@ -221,7 +221,8 @@ private:
     nsresult UpdateExpirationTime();
     nsresult CheckCache();
     bool ShouldUpdateOfflineCacheEntry();
-    nsresult ReadFromCache();
+    nsresult StartBufferingCachedEntity(bool usingSSL);
+    nsresult ReadFromCache(bool alreadyMarkedValid);
     void     CloseCacheEntry(bool doomOnFailure);
     void     CloseOfflineCacheEntry();
     nsresult InitCacheEntry();
@@ -291,8 +292,11 @@ private:
 
     
     nsCOMPtr<nsICacheEntryDescriptor> mCacheEntry;
+    
+    AutoClose<nsIAsyncInputStream>    mCacheAsyncInputStream;
     nsRefPtr<nsInputStreamPump>       mCachePump;
     nsAutoPtr<nsHttpResponseHead>     mCachedResponseHead;
+    nsCOMPtr<nsISupports>             mCachedSecurityInfo;
     nsCacheAccessMode                 mCacheAccess;
     PRUint32                          mPostID;
     PRUint32                          mRequestTime;
@@ -374,5 +378,7 @@ private:
     };
     bool mDidReval;
 };
+
+} } 
 
 #endif
