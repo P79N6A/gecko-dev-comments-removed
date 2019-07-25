@@ -546,7 +546,6 @@ ContextStack::pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &ar
                               MaybeConstruct construct, Check check)
 {
     JS_ASSERT(onTop());
-    JS_ASSERT(&regs == &seg_->regs());
     JS_ASSERT(regs.sp == args.end());
     
     JS_ASSERT(callee.getFunctionPrivate() == fun);
@@ -559,6 +558,11 @@ ContextStack::pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &ar
 
     
     fp->initCallFrame(cx, callee, fun, script, args.argc(), flags);
+
+    
+
+
+
     regs.prepareToRun(*fp, script);
     return true;
 }

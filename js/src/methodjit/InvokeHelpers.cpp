@@ -317,13 +317,18 @@ UncachedInlineCall(VMFrame &f, MaybeConstruct construct, void **pret, bool *unji
 
 
 
+
+
+
     FrameRegs regs = f.regs;
-    PreserveRegsGuard regsGuard(cx, regs);
 
     
     LimitCheck check(&f.stackLimit, NULL);
     if (!cx->stack.pushInlineFrame(cx, regs, args, callee, newfun, newscript, construct, check))
         return false;
+
+    
+    PreserveRegsGuard regsGuard(cx, regs);
 
     
     if (newfun->isHeavyweight() && !js::CreateFunCallObject(cx, regs.fp()))
