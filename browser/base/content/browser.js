@@ -1385,7 +1385,7 @@ function prepareForStartup() {
   gBrowser.addEventListener("NewPluginInstalled", gPluginHandler.newPluginInstalled, true);
 #ifdef XP_MACOSX
   gBrowser.addEventListener("npapi-carbon-event-model-failure", gPluginHandler, true);
-#endif 
+#endif
 
   Services.obs.addObserver(gPluginHandler.pluginCrashed, "plugin-crashed", false);
 
@@ -6698,11 +6698,14 @@ var gPluginHandler = {
   handleEvent : function(event) {
     let self = gPluginHandler;
     let plugin = event.target;
-    let hideBarPrefName;
+    let doc = plugin.ownerDocument;
 
     
     if (!(plugin instanceof Ci.nsIObjectLoadingContent))
       return;
+
+    
+    plugin.clientTop;
 
     switch (event.type) {
       case "PluginCrashed":
@@ -6713,31 +6716,37 @@ var gPluginHandler = {
         
         
         
-        if (!(plugin instanceof HTMLObjectElement))
-          self.addLinkClickCallback(plugin, "installSinglePlugin");
+        if (!(plugin instanceof HTMLObjectElement)) {
+          
+          let installStatus = doc.getAnonymousElementByAttribute(plugin, "class", "installStatus");
+          installStatus.setAttribute("status", "ready");
+          let iconStatus = doc.getAnonymousElementByAttribute(plugin, "class", "icon");
+          iconStatus.setAttribute("status", "ready");
+
+          let installLink = doc.getAnonymousElementByAttribute(plugin, "class", "installPluginLink");
+          self.addLinkClickCallback(installLink, "installSinglePlugin", plugin);
+        }
         
+
       case "PluginBlocklisted":
       case "PluginOutdated":
-        hideBarPrefName = event.type == "PluginOutdated" ?
-                                "plugins.hide_infobar_for_outdated_plugin" :
-                                "plugins.hide_infobar_for_missing_plugin";
-        if (gPrefService.getBoolPref(hideBarPrefName))
-          return;
-
-        self.pluginUnavailable(plugin, event.type);
-        break;
 #ifdef XP_MACOSX
       case "npapi-carbon-event-model-failure":
-        hideBarPrefName = "plugins.hide_infobar_for_carbon_failure_plugin";
-        if (gPrefService.getBoolPref(hideBarPrefName))
-          return;
-
+#endif
         self.pluginUnavailable(plugin, event.type);
         break;
-#endif
+
       case "PluginDisabled":
-        self.addLinkClickCallback(plugin, "managePlugins");
+        let manageLink = doc.getAnonymousElementByAttribute(plugin, "class", "managePluginsLink");
+        self.addLinkClickCallback(manageLink, "managePlugins");
         break;
+    }
+
+    
+    if (event.type != "PluginCrashed") {
+      let overlay = doc.getAnonymousElementByAttribute(plugin, "class", "mainBox");
+      if (self.isTooSmall(plugin, overlay))
+          overlay.style.visibility = "hidden";
     }
   },
 
@@ -6757,10 +6766,10 @@ var gPluginHandler = {
   },
 
   
-  installSinglePlugin: function (aEvent) {
+  installSinglePlugin: function (plugin) {
     var missingPluginsArray = {};
 
-    var pluginInfo = getPluginInfo(aEvent.target);
+    var pluginInfo = getPluginInfo(plugin);
     missingPluginsArray[pluginInfo.mimetype] = pluginInfo;
 
     openDialog("chrome://mozapps/content/plugins/pluginInstallerWizard.xul",
@@ -6810,9 +6819,6 @@ var gPluginHandler = {
     let blockedNotification  = notificationBox.getNotificationWithValue("blocked-plugins");
     let missingNotification  = notificationBox.getNotificationWithValue("missing-plugins");
 
-    
-    if (outdatedNotification)
-      return;
 
     function showBlocklistInfo() {
       var url = formatURL("extensions.blocklist.detailsURL", true);
@@ -6844,7 +6850,7 @@ var gPluginHandler = {
       let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].
                          createInstance(Ci.nsISupportsPRBool);
       Services.obs.notifyObservers(cancelQuit, "quit-application-requested", null);
- 
+
       
       if (cancelQuit.data)
         return;
@@ -6908,10 +6914,17 @@ var gPluginHandler = {
                             }
 #endif
     };
+
+    
+    if (outdatedNotification)
+      return;
+
 #ifdef XP_MACOSX
     if (eventType == "npapi-carbon-event-model-failure") {
+      if (gPrefService.getBoolPref("plugins.hide_infobar_for_carbon_failure_plugin"))
+        return;
 
-      let carbonFailureNotification = 
+      let carbonFailureNotification =
         notificationBox.getNotificationWithValue("carbon-failure-plugins");
 
       if (carbonFailureNotification)
@@ -6923,11 +6936,18 @@ var gPluginHandler = {
         eventType = "PluginNotFound";
     }
 #endif
+
     if (eventType == "PluginBlocklisted") {
+      if (gPrefService.getBoolPref("plugins.hide_infobar_for_missing_plugin")) 
+        return;
+
       if (blockedNotification || missingNotification)
         return;
     }
     else if (eventType == "PluginOutdated") {
+      if (gPrefService.getBoolPref("plugins.hide_infobar_for_outdated_plugin"))
+        return;
+
       
       if (blockedNotification)
         blockedNotification.close();
@@ -6935,6 +6955,9 @@ var gPluginHandler = {
         missingNotification.close();
     }
     else if (eventType == "PluginNotFound") {
+      if (gPrefService.getBoolPref("plugins.hide_infobar_for_missing_plugin"))
+        return;
+
       if (missingNotification)
         return;
 
@@ -6990,9 +7013,6 @@ var gPluginHandler = {
     
     pluginName = this.makeNicePluginName(pluginName, pluginFilename);
 
-    
-    plugin.clientTop;
-
     let messageString = gNavigatorBundle.getFormattedString("crashedpluginsMessage.title", [pluginName]);
 
     
@@ -7000,12 +7020,6 @@ var gPluginHandler = {
     
     let doc = plugin.ownerDocument;
     let overlay = doc.getAnonymousElementByAttribute(plugin, "class", "mainBox");
-
-    
-    
-    
-    overlay.removeAttribute("role");
-
     let statusDiv = doc.getAnonymousElementByAttribute(plugin, "class", "submitStatus");
 #ifdef MOZ_CRASHREPORTER
     let status;
