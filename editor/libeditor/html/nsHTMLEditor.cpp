@@ -3899,10 +3899,8 @@ nsHTMLEditor::StyleSheetLoaded(nsCSSStyleSheet* aSheet, PRBool aWasAlternate,
     if (NS_SUCCEEDED(rv))
     {
       
-      nsCOMPtr<nsIURI> uri = aSheet->GetSheetURI();
-
       nsCAutoString spec;
-      rv = uri->GetSpec(spec);
+      rv = aSheet->GetSheetURI()->GetSpec(spec);
 
       if (NS_SUCCEEDED(rv))
       {

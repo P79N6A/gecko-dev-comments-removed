@@ -169,7 +169,6 @@ public:
   nsresult ReplaceRuleInGroup(nsICSSGroupRule* aGroup, nsICSSRule* aOld, nsICSSRule* aNew);
 
   PRInt32 StyleSheetCount() const;
-  nsCSSStyleSheet* GetStyleSheetAt(PRInt32 aIndex) const;
 
   
 
