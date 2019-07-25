@@ -390,16 +390,6 @@ protected:
   
 
 
-
-
-  PRBool GetNameIfExists(nsAString& aName) {
-    GetAttr(kNameSpaceID_None, nsGkAtoms::name, aName);
-    return !aName.IsEmpty();
-  }
-
-  
-
-
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  const nsAString* aValue, PRBool aNotify);
   
