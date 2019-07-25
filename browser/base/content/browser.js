@@ -978,8 +978,6 @@ let gGestureSupport = {
 
 var gBrowserInit = {
   onLoad: function() {
-    var uriToLoad = null;
-
     
     
     
@@ -990,7 +988,7 @@ var gBrowserInit = {
     
     
     if ("arguments" in window && window.arguments[0])
-      uriToLoad = window.arguments[0];
+      var uriToLoad = window.arguments[0];
 
     var isLoadingBlank = isBlankPageURL(uriToLoad);
     var mustLoadSidebar = false;
@@ -1053,9 +1051,9 @@ var gBrowserInit = {
 
     
     try {
-      gBrowser.docShell.QueryInterface(Components.interfaces.nsIDocShellHistory).useGlobalHistory = true;
+      gBrowser.docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
     } catch(ex) {
-      Components.utils.reportError("Places database may be locked: " + ex);
+      Cu.reportError("Places database may be locked: " + ex);
     }
 
 #ifdef MOZ_E10S_COMPAT
@@ -1213,20 +1211,14 @@ var gBrowserInit = {
     updateAppButtonDisplay();
 #endif
 
+    
     CombinedStopReload.init();
-
     allTabs.readPref();
-
     TabsOnTop.init();
-
     BookmarksMenuButton.init();
-
     TabsInTitlebar.init();
-
     gPrivateBrowsingUI.init();
-
     DownloadsButton.initializePlaceholder();
-
     retrieveToolbarIconsizesFromTheme();
 
     gDelayedStartupTimeoutId = setTimeout(this._delayedStartup.bind(this), 0, isLoadingBlank, mustLoadSidebar);
@@ -1304,12 +1296,7 @@ var gBrowserInit = {
     
     
     
-    try {
-      FullZoom.init();
-    }
-    catch(ex) {
-      Components.utils.reportError("Failed to init content pref service:\n" + ex);
-    }
+    FullZoom.init();
 
 #ifdef MOZ_E10S_COMPAT
     
@@ -1376,8 +1363,7 @@ var gBrowserInit = {
       Win7Features.onOpenWindow();
 #endif
 
-    
-    
+   
     window.addEventListener("fullscreen", onFullScreen, true);
 
     
@@ -1601,13 +1587,7 @@ var gBrowserInit = {
       ctrlTab.uninit();
       TabView.uninit();
       gBrowserThumbnails.uninit();
-
-      try {
-        FullZoom.destroy();
-      }
-      catch(ex) {
-        Components.utils.reportError(ex);
-      }
+      FullZoom.destroy();
 
       Services.obs.removeObserver(gSessionHistoryObserver, "browser:purge-session-history");
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-disabled");
@@ -1620,7 +1600,7 @@ var gBrowserInit = {
       try {
         gPrefService.removeObserver(gHomeButton.prefDomain, gHomeButton);
       } catch (ex) {
-        Components.utils.reportError(ex);
+        Cu.reportError(ex);
       }
 
       BrowserOffline.uninit();
@@ -1632,11 +1612,11 @@ var gBrowserInit = {
     
     window.XULBrowserWindow.destroy();
     window.XULBrowserWindow = null;
-    window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-          .getInterface(Components.interfaces.nsIWebNavigation)
-          .QueryInterface(Components.interfaces.nsIDocShellTreeItem).treeOwner
-          .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-          .getInterface(Components.interfaces.nsIXULWindow)
+    window.QueryInterface(Ci.nsIInterfaceRequestor)
+          .getInterface(Ci.nsIWebNavigation)
+          .QueryInterface(Ci.nsIDocShellTreeItem).treeOwner
+          .QueryInterface(Ci.nsIInterfaceRequestor)
+          .getInterface(Ci.nsIXULWindow)
           .XULBrowserWindow = null;
     window.QueryInterface(Ci.nsIDOMChromeWindow).browserDOMWindow = null;
   },
