@@ -276,36 +276,6 @@ public:
 
 NS_IMPL_ISUPPORTS1(imgMemoryReporter, nsIMemoryReporter)
 
-
-
-
-
-
-
-
-class nsProgressNotificationProxy : public nsIProgressEventSink
-                                  , public nsIChannelEventSink
-                                  , public nsIInterfaceRequestor
-{
-  public:
-    nsProgressNotificationProxy(nsIChannel* channel,
-                                imgIRequest* proxy)
-        : mImageRequest(proxy)
-    {
-      channel->GetNotificationCallbacks(getter_AddRefs(mOriginalCallbacks));
-    }
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIPROGRESSEVENTSINK
-    NS_DECL_NSICHANNELEVENTSINK
-    NS_DECL_NSIINTERFACEREQUESTOR
-  private:
-    ~nsProgressNotificationProxy() {}
-
-    nsCOMPtr<nsIInterfaceRequestor> mOriginalCallbacks;
-    nsCOMPtr<nsIRequest> mImageRequest;
-};
-
 NS_IMPL_ISUPPORTS3(nsProgressNotificationProxy,
                      nsIProgressEventSink,
                      nsIChannelEventSink,
@@ -531,7 +501,9 @@ imgCacheEntry::imgCacheEntry(imgRequest *request)
    mTouchedTime(SecondsFromPRTime(PR_Now())),
    mExpiryTime(0),
    mMustValidate(PR_FALSE),
-   mEvicted(PR_FALSE),
+   
+   
+   mEvicted(PR_TRUE),
    mHasNoProxies(PR_TRUE)
 {}
 
@@ -1233,18 +1205,18 @@ PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
     }
 
     
-    nsCOMPtr<nsIInterfaceRequestor> requestor(
-        new nsProgressNotificationProxy(newChannel, req));
-    if (!requestor)
+    nsRefPtr<nsProgressNotificationProxy> progressproxy =
+        new nsProgressNotificationProxy(newChannel, req);
+    if (!progressproxy)
       return PR_FALSE;
-    newChannel->SetNotificationCallbacks(requestor);
 
-    imgCacheValidator *hvc = new imgCacheValidator(request, aCX);
+    nsRefPtr<imgCacheValidator> hvc = new imgCacheValidator(progressproxy, request, aCX);
     if (!hvc) {
       return PR_FALSE;
     }
 
-    NS_ADDREF(hvc);
+    newChannel->SetNotificationCallbacks(hvc);
+
     request->mValidator = hvc;
 
     imgRequestProxy* proxy = static_cast<imgRequestProxy*>
@@ -1262,8 +1234,6 @@ PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
     rv = newChannel->AsyncOpen(static_cast<nsIStreamListener *>(hvc), nsnull);
     if (NS_SUCCEEDED(rv))
       NS_ADDREF(*aProxyRequest = req.get());
-
-    NS_RELEASE(hvc);
 
     return NS_SUCCEEDED(rv);
   }
@@ -2035,14 +2005,20 @@ NS_IMETHODIMP ProxyListener::OnDataAvailable(nsIRequest *aRequest, nsISupports *
 
 
 
-NS_IMPL_ISUPPORTS2(imgCacheValidator, nsIStreamListener, nsIRequestObserver)
+NS_IMPL_ISUPPORTS5(imgCacheValidator, nsIStreamListener, nsIRequestObserver,
+                   nsIChannelEventSink, nsIInterfaceRequestor,
+                   nsIAsyncVerifyRedirectCallback)
 
 imgLoader imgCacheValidator::sImgLoader;
 
-imgCacheValidator::imgCacheValidator(imgRequest *request, void *aContext) :
-  mRequest(request),
-  mContext(aContext)
-{}
+imgCacheValidator::imgCacheValidator(nsProgressNotificationProxy* progress,
+                                     imgRequest *request, void *aContext)
+ : mProgressProxy(progress),
+   mRequest(request),
+   mContext(aContext)
+{
+  NewRequestAndEntry(getter_AddRefs(mNewRequest), getter_AddRefs(mNewEntry));
+}
 
 imgCacheValidator::~imgCacheValidator()
 {
@@ -2094,6 +2070,9 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
 
       mRequest = nsnull;
 
+      mNewRequest = nsnull;
+      mNewEntry = nsnull;
+
       return NS_OK;
     }
   }
@@ -2101,7 +2080,6 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   
   
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
-  nsRefPtr<imgCacheEntry> entry;
   nsCOMPtr<nsIURI> uri;
 
   mRequest->GetURI(getter_AddRefs(uri));
@@ -2118,34 +2096,24 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   mRequest->mValidator = nsnull;
   mRequest = nsnull;
 
-  imgRequest *request;
-
-  if (!NewRequestAndEntry(&request, getter_AddRefs(entry)))
-      return NS_ERROR_OUT_OF_MEMORY;
-
   
   nsCOMPtr<nsIURI> originalURI;
   channel->GetOriginalURI(getter_AddRefs(originalURI));
-  request->Init(originalURI, uri, channel, channel, entry, NS_GetCurrentThread(), mContext);
+  mNewRequest->Init(originalURI, uri, channel, channel, mNewEntry, NS_GetCurrentThread(), mContext);
 
-  ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(request));
-  if (!pl) {
-    request->CancelAndAbort(NS_ERROR_OUT_OF_MEMORY);
-    NS_RELEASE(request);
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(mNewRequest));
 
   mDestListener = static_cast<nsIStreamListener*>(pl);
 
   
   
   
-  sImgLoader.PutIntoCache(originalURI, entry);
+  sImgLoader.PutIntoCache(originalURI, mNewEntry);
 
   PRUint32 count = mProxies.Count();
   for (PRInt32 i = count-1; i>=0; i--) {
     imgRequestProxy *proxy = static_cast<imgRequestProxy *>(mProxies[i]);
-    proxy->ChangeOwner(request);
+    proxy->ChangeOwner(mNewRequest);
 
     
     
@@ -2159,10 +2127,8 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
     proxy->SyncNotifyListener();
   }
 
-  NS_RELEASE(request);
-
-  if (!mDestListener)
-    return NS_OK;
+  mNewRequest = nsnull;
+  mNewEntry = nsnull;
 
   return mDestListener->OnStartRequest(aRequest, ctxt);
 }
@@ -2199,4 +2165,63 @@ NS_IMETHODIMP imgCacheValidator::OnDataAvailable(nsIRequest *aRequest, nsISuppor
   }
 
   return mDestListener->OnDataAvailable(aRequest, ctxt, inStr, sourceOffset, count);
+}
+
+
+
+NS_IMETHODIMP imgCacheValidator::GetInterface(const nsIID & aIID, void **aResult)
+{
+  if (aIID.Equals(NS_GET_IID(nsIChannelEventSink)))
+    return QueryInterface(aIID, aResult);
+
+  return mProgressProxy->GetInterface(aIID, aResult);
+}
+
+
+
+
+
+
+NS_IMETHODIMP imgCacheValidator::AsyncOnChannelRedirect(nsIChannel *oldChannel,
+                                                        nsIChannel *newChannel, PRUint32 flags,
+                                                        nsIAsyncVerifyRedirectCallback *callback)
+{
+  
+  mNewRequest->SetCacheValidation(mNewEntry, oldChannel);
+
+  
+  mRedirectCallback = callback;
+  mRedirectChannel = newChannel;
+
+  return mProgressProxy->AsyncOnChannelRedirect(oldChannel, newChannel, flags, this);
+}
+
+NS_IMETHODIMP imgCacheValidator::OnRedirectVerifyCallback(nsresult aResult)
+{
+  
+  if (NS_FAILED(aResult)) {
+      mRedirectCallback->OnRedirectVerifyCallback(aResult);
+      mRedirectCallback = nsnull;
+      mRedirectChannel = nsnull;
+      return NS_OK;
+  }
+
+  
+  
+  nsCOMPtr<nsIURI> uri;
+  mRedirectChannel->GetURI(getter_AddRefs(uri));
+  PRBool doesNotReturnData = PR_FALSE;
+  NS_URIChainHasFlags(uri, nsIProtocolHandler::URI_DOES_NOT_RETURN_DATA,
+                      &doesNotReturnData);
+
+  nsresult result = NS_OK;
+
+  if (doesNotReturnData) {
+    result = NS_ERROR_ABORT;
+  }
+
+  mRedirectCallback->OnRedirectVerifyCallback(result);
+  mRedirectCallback = nsnull;
+  mRedirectChannel = nsnull;
+  return NS_OK;
 }
