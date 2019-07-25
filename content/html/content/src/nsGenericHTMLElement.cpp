@@ -827,9 +827,6 @@ nsGenericHTMLElement::InsertAdjacentHTML(const nsAString& aPosition,
   NS_ENSURE_STATE(doc);
 
   
-  mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, PR_TRUE);
-
-  
   mozAutoSubtreeModified subtree(doc, nsnull);
 
   
@@ -837,6 +834,9 @@ nsGenericHTMLElement::InsertAdjacentHTML(const nsAString& aPosition,
       (position == eBeforeEnd ||
        (position == eAfterEnd && !GetNextSibling()) ||
        (position == eAfterBegin && !GetFirstChild()))) {
+    
+    mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, PR_TRUE);
+
     PRInt32 oldChildCount = destination->GetChildCount();
     PRInt32 contextNs = destination->GetNameSpaceID();
     nsIAtom* contextLocal = destination->Tag();

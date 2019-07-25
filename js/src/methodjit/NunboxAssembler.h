@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined jsjaeger_assembler_h__ && defined JS_METHODJIT && defined JS_NUNBOX32
 #define jsjaeger_assembler_h__
 
@@ -19,7 +52,7 @@ namespace mjit {
 struct ImmTag : JSC::MacroAssembler::Imm32
 {
     ImmTag(JSValueTag mask)
-      : Imm32(int32_t(mask))
+      : Imm32(int32(mask))
     { }
 };
 
@@ -27,14 +60,12 @@ struct ImmType : ImmTag
 {
     ImmType(JSValueType type)
       : ImmTag(JSVAL_TYPE_TO_TAG(type))
-    {
-        JS_ASSERT(type > JSVAL_TYPE_DOUBLE);
-    }
+    { }
 };
 
 struct ImmPayload : JSC::MacroAssembler::Imm32
 {
-    ImmPayload(uint32_t payload)
+    ImmPayload(uint32 payload)
       : Imm32(payload)
     { }
 };
@@ -43,11 +74,11 @@ class NunboxAssembler : public JSC::MacroAssembler
 {
   public:
 #ifdef IS_BIG_ENDIAN
-    static const uint32_t PAYLOAD_OFFSET = 4;
-    static const uint32_t TAG_OFFSET     = 0;
+    static const uint32 PAYLOAD_OFFSET = 4;
+    static const uint32 TAG_OFFSET     = 0;
 #else
-    static const uint32_t PAYLOAD_OFFSET = 0;
-    static const uint32_t TAG_OFFSET     = 4;
+    static const uint32 PAYLOAD_OFFSET = 0;
+    static const uint32 TAG_OFFSET     = 4;
 #endif
 
   public:
@@ -56,7 +87,7 @@ class NunboxAssembler : public JSC::MacroAssembler
     Address payloadOf(Address address) {
         return Address(address.base, address.offset + PAYLOAD_OFFSET);
     }
-
+  
     BaseIndex payloadOf(BaseIndex address) {
         return BaseIndex(address.base, address.index, address.scale, address.offset + PAYLOAD_OFFSET);
     }
@@ -69,7 +100,7 @@ class NunboxAssembler : public JSC::MacroAssembler
         return BaseIndex(address.base, address.index, address.scale, address.offset + TAG_OFFSET);
     }
 
-    void loadInlineSlot(RegisterID objReg, uint32_t slot,
+    void loadInlineSlot(RegisterID objReg, uint32 slot,
                         RegisterID typeReg, RegisterID dataReg) {
         Address address(objReg, JSObject::getFixedSlotOffset(slot));
         if (objReg == typeReg) {
@@ -130,13 +161,10 @@ class NunboxAssembler : public JSC::MacroAssembler
     }
 
     void loadValueAsComponents(const Value &val, RegisterID type, RegisterID payload) {
-        jsval_layout jv = JSVAL_TO_IMPL(val);
-        move(ImmTag(jv.s.tag), type);
-        move(Imm32(jv.s.payload.u32), payload);
-    }
+        jsval_layout jv;
+        jv.asBits = JSVAL_BITS(Jsvalify(val));
 
-    void loadValuePayload(const Value &val, RegisterID payload) {
-        jsval_layout jv = JSVAL_TO_IMPL(val);
+        move(ImmTag(jv.s.tag), type);
         move(Imm32(jv.s.payload.u32), payload);
     }
 
@@ -174,12 +202,6 @@ class NunboxAssembler : public JSC::MacroAssembler
         JS_ASSERT(differenceBetween(start, load) == 0);
         (void) load;
         return start;
-#elif defined JS_CPU_MIPS
-        
-
-
-        load64WithPatch(address, treg, dreg, TAG_OFFSET, PAYLOAD_OFFSET);
-        return start;
 #endif
     }
 
@@ -205,12 +227,6 @@ class NunboxAssembler : public JSC::MacroAssembler
         return start;
 #elif defined JS_CPU_ARM || defined JS_CPU_SPARC
         return store64WithAddressOffsetPatch(treg, dreg, address);
-#elif defined JS_CPU_MIPS
-        
-
-
-        store64WithPatch(address, treg, dreg, TAG_OFFSET, PAYLOAD_OFFSET);
-        return start;
 #endif
     }
 
@@ -227,18 +243,13 @@ class NunboxAssembler : public JSC::MacroAssembler
         return start;
 #elif defined JS_CPU_ARM || defined JS_CPU_SPARC
         return store64WithAddressOffsetPatch(type, dreg, address);
-#elif defined JS_CPU_MIPS
-        
-
-
-        store64WithPatch(address, type, dreg, TAG_OFFSET, PAYLOAD_OFFSET);
-        return start;
 #endif
     }
 
     
     DataLabel32 storeValueWithAddressOffsetPatch(const Value &v, Address address) {
-        jsval_layout jv = JSVAL_TO_IMPL(v);
+        jsval_layout jv;
+        jv.asBits = JSVAL_BITS(Jsvalify(v));
         ImmTag type(jv.s.tag);
         Imm32 payload(jv.s.payload.u32);
         DataLabel32 start = dataLabel32();
@@ -252,18 +263,11 @@ class NunboxAssembler : public JSC::MacroAssembler
         return start;
 #elif defined JS_CPU_ARM || defined JS_CPU_SPARC
         return store64WithAddressOffsetPatch(type, payload, address);
-#elif defined JS_CPU_MIPS
-        
-
-
-        store64WithPatch(address, type, payload, TAG_OFFSET, PAYLOAD_OFFSET);
-        return start;
 #endif
     }
 
     
     DataLabel32 storeValueWithAddressOffsetPatch(const ValueRemat &vr, Address address) {
-        JS_ASSERT(!vr.isFPRegister());
         if (vr.isConstant()) {
             return storeValueWithAddressOffsetPatch(vr.value(), address);
         } else if (vr.isTypeKnown()) {
@@ -282,7 +286,9 @@ class NunboxAssembler : public JSC::MacroAssembler
 
     template <typename T>
     Label storeValue(const Value &v, T address) {
-        jsval_layout jv = JSVAL_TO_IMPL(v);
+        jsval_layout jv;
+        jv.asBits = JSVAL_BITS(Jsvalify(v));
+
         store32(ImmTag(jv.s.tag), tagOf(address));
         Label l = label();
         store32(Imm32(jv.s.payload.u32), payloadOf(address));
@@ -305,10 +311,6 @@ class NunboxAssembler : public JSC::MacroAssembler
     Label storeValue(const ValueRemat &vr, T address) {
         if (vr.isConstant()) {
             return storeValue(vr.value(), address);
-        } else if (vr.isFPRegister()) {
-            Label l = label();
-            storeDouble(vr.fpReg(), address);
-            return l;
         } else {
             if (vr.isTypeKnown())
                 storeTypeTag(ImmType(vr.knownType()), address);
@@ -329,8 +331,8 @@ class NunboxAssembler : public JSC::MacroAssembler
         loadPtr(payloadOf(privAddr), to);
     }
 
-    void loadObjPrivate(RegisterID base, RegisterID to, uint32_t nfixed) {
-        Address priv(base, JSObject::getPrivateDataOffset(nfixed));
+    void loadObjPrivate(RegisterID base, RegisterID to) {
+        Address priv(base, offsetof(JSObject, privateData));
         loadPtr(priv, to);
     }
 
@@ -386,14 +388,6 @@ class NunboxAssembler : public JSC::MacroAssembler
         return branch32(cond, tagOf(address), ImmTag(JSVAL_TAG_OBJECT));
     }
 
-    Jump testGCThing(RegisterID reg) {
-        return branch32(AboveOrEqual, reg, ImmTag(JSVAL_LOWER_INCL_TAG_OF_GCTHING_SET));
-    }
-
-    Jump testGCThing(Address address) {
-        return branch32(AboveOrEqual, tagOf(address), ImmTag(JSVAL_LOWER_INCL_TAG_OF_GCTHING_SET));
-    }
-
     Jump testDouble(Condition cond, RegisterID reg) {
         Condition opcond;
         if (cond == Equal)
@@ -428,17 +422,6 @@ class NunboxAssembler : public JSC::MacroAssembler
         return branch32(cond, tagOf(address), ImmTag(JSVAL_TAG_STRING));
     }
 
-    Jump testPrivate(Condition cond, Address address, void *ptr) {
-        return branchPtr(cond, address, ImmPtr(ptr));
-    }
-
-    void compareValue(Address one, Address two, RegisterID T0, RegisterID T1,
-                      Vector<Jump> *mismatches) {
-        loadValueAsComponents(one, T0, T1);
-        mismatches->append(branch32(NotEqual, T0, tagOf(two)));
-        mismatches->append(branch32(NotEqual, T1, payloadOf(two)));
-    }
-
 #ifdef JS_CPU_X86
     void fastLoadDouble(RegisterID lo, RegisterID hi, FPRegisterID fpReg) {
         if (MacroAssemblerX86Common::getSSEState() >= HasSSE4_1) {
@@ -446,8 +429,8 @@ class NunboxAssembler : public JSC::MacroAssembler
             m_assembler.pinsrd_rr(hi, fpReg);
         } else {
             m_assembler.movd_rr(lo, fpReg);
-            m_assembler.movd_rr(hi, Registers::FPConversionTemp);
-            m_assembler.unpcklps_rr(Registers::FPConversionTemp, fpReg);
+            m_assembler.movd_rr(hi, FPRegisters::Temp0);
+            m_assembler.unpcklps_rr(FPRegisters::Temp0, fpReg);
         }
     }
 #endif
@@ -465,12 +448,6 @@ class NunboxAssembler : public JSC::MacroAssembler
 #elif defined JS_CPU_ARM
         
         fastStoreDouble(srcDest, dataReg, typeReg);
-#elif defined JS_CPU_MIPS
-#if defined(IS_LITTLE_ENDIAN)
-        fastStoreDouble(srcDest, dataReg, typeReg);
-#else
-        fastStoreDouble(srcDest, typeReg, dataReg);
-#endif
 #else
         JS_NOT_REACHED("implement this - push double, pop pop is easiest");
 #endif
@@ -482,17 +459,9 @@ class NunboxAssembler : public JSC::MacroAssembler
     }
 
     template <typename T>
-    Jump fastArrayLoadSlot(T address, bool holeCheck,
-                           MaybeRegisterID typeReg, RegisterID dataReg)
-    {
-        Jump notHole;
-        if (typeReg.isSet()) {
-            loadTypeTag(address, typeReg.reg());
-            if (holeCheck)
-                notHole = branch32(Equal, typeReg.reg(), ImmType(JSVAL_TYPE_MAGIC));
-        } else if (holeCheck) {
-            notHole = branch32(Equal, tagOf(address), ImmType(JSVAL_TYPE_MAGIC));
-        }
+    Jump fastArrayLoadSlot(T address, RegisterID typeReg, RegisterID dataReg) {
+        loadTypeTag(address, typeReg);
+        Jump notHole = branch32(Equal, typeReg, ImmType(JSVAL_TYPE_MAGIC));
         loadPayload(address, dataReg);
         return notHole;
     }
