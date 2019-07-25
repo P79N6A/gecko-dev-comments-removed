@@ -1265,14 +1265,6 @@ PR_IMPLEMENT(PRThread*) _PR_CreateThread(PRThreadType type,
                 top = (char*)((PRUptrdiff)top & ~0x3f);
             }
 #endif
-#if defined(GC_LEAK_DETECTOR)
-            
-
-
-
-
-            thread = PR_NEW(PRThread);
-#endif
             stack->thr = thread;
             memset(thread, 0, sizeof(PRThread));
             thread->threadAllocatedOnStack = 1;

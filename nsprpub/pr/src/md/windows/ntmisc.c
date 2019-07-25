@@ -597,6 +597,7 @@ PRProcess * _PR_CreateWindowsProcess(
 #else
     STARTUPINFO startupInfo;
 #endif
+    DWORD creationFlags = 0;
     PROCESS_INFORMATION procInfo;
     BOOL retVal;
     char *cmdLine = NULL;
@@ -677,6 +678,12 @@ PRProcess * _PR_CreateWindowsProcess(
         if (attr->stdoutFd) {
             startupInfo.hStdOutput = (HANDLE) attr->stdoutFd->secret->md.osfd;
             redirected = PR_TRUE;
+            
+
+
+
+
+            creationFlags |= CREATE_NO_WINDOW;
         }
         if (attr->stderrFd) {
             startupInfo.hStdError = (HANDLE) attr->stderrFd->secret->md.osfd;
@@ -703,7 +710,7 @@ PRProcess * _PR_CreateWindowsProcess(
                             NULL,  
 
                             TRUE,  
-                            0,     
+                            creationFlags,
                             envBlock,  
 
 
@@ -724,7 +731,7 @@ PRProcess * _PR_CreateWindowsProcess(
                            NULL,  
 
                            TRUE,  
-                           0,     
+                           creationFlags,
                            envBlock,  
 
 
