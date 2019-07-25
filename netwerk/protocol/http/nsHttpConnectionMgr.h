@@ -199,7 +199,9 @@ private:
         
         
         
-        nsCString mDottedDecimalAddress;
+        
+        
+        nsCString mCoalescingKey;
 
         bool mUsingSpdy;
         bool mTestedSpdy;
