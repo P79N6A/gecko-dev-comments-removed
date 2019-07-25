@@ -34,6 +34,12 @@
 
 
 
+@media all and (orientation: portrait) {
+  #editor-container > hbox {
+    -moz-box-orient: vertical;
+  }
+}
+
 richlistitem {
   -moz-box-align: center;
 }
