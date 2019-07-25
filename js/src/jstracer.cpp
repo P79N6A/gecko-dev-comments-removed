@@ -6870,7 +6870,7 @@ MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount, RecordReason reason)
     }
 
     
-    if (cx->operationCallbackFlag) {
+    if (cx->interruptFlags) {
 #ifdef MOZ_TRACEVIS
         tvso.r = R_CALLBACK_PENDING;
 #endif
@@ -15472,7 +15472,7 @@ TraceRecorder::record_JSOP_CALLGLOBAL()
     if (!lazilyImportGlobalSlot(slot))
          RETURN_STOP_A("lazy import of global slot failed");
 
-    jsval& v = globalObj->getSlotRef(slot);
+    Value &v = globalObj->getSlotRef(slot);
     stack(0, get(&v));
     stack(1, INS_NULL());
     return ARECORD_CONTINUE;
