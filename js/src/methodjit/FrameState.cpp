@@ -258,6 +258,7 @@ namespace mjit {
 struct SyncRegInfo {
     FrameEntry *fe;
     RematInfo::RematType type;
+    bool synced;
 };
 
 
@@ -286,6 +287,22 @@ struct SyncRegs {
       : frame(frame), masm(masm), avail(avail)
     {
         memset(regs, 0, sizeof(regs));
+    }
+
+    bool shouldSyncData(FrameEntry *fe) {
+        if (fe->data.synced())
+            return false;
+        if (!fe->data.inRegister())
+            return true;
+        return !regs[fe->data.reg()].synced;
+    }
+
+    bool shouldSyncType(FrameEntry *fe) {
+        if (fe->type.synced())
+            return false;
+        if (!fe->type.inRegister())
+            return true;
+        return !regs[fe->type.reg()].synced;
     }
 
     void giveTypeReg(FrameEntry *fe) {
@@ -354,7 +371,8 @@ struct SyncRegs {
                 if (!fe)
                     continue;
 
-                nbest = i;
+                if (!fe->isCopied())
+                    nbest = i;
 
                 if (frame.regstate[reg].type == RematInfo::TYPE && fe->type.synced())
                     return reg;
@@ -364,10 +382,19 @@ struct SyncRegs {
         }
 
         
-
-
+        if (nbest != FrameState::InvalidIndex) {
+            FrameEntry *fe = frame.regstate[nbest].fe;
+            RematInfo::RematType type = frame.regstate[nbest].type;
+            if (type == RematInfo::TYPE)
+                frame.syncType(fe, frame.addressOf(fe), masm);
+            else
+                frame.syncData(fe, frame.addressOf(fe), masm);
+            regs[nbest].synced = true;
+            return RegisterID(nbest);
+        }
 
         JS_NOT_REACHED("wat");
+
         return RegisterID(worst);
     }
 
@@ -421,12 +448,12 @@ FrameState::syncFancy(Assembler &masm, Registers avail, uint32 resumeAt) const
         if (!fe->isCopy()) {
             sr.forget(fe);
 
-            if (!fe->data.synced()) {
+            if (sr.shouldSyncData(fe)) {
                 syncData(fe, address, masm);
                 if (fe->isConstant())
                     continue;
             }
-            if (!fe->type.synced())
+            if (sr.shouldSyncType(fe))
                 syncType(fe, addressOf(fe), masm);
         } else {
             FrameEntry *backing = fe->copyOf();
