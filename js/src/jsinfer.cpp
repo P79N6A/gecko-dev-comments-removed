@@ -5040,14 +5040,6 @@ TypeScript::SetScope(JSContext *cx, JSScript *script_, JSObject *scope_)
     JS_ASSERT_IF(fun && scope, fun->global() == scope->global());
     script->types->global = fun ? &fun->global() : &scope->global();
 
-    
-
-
-
-
-    if (!script->bindings.setParent(cx, script->types->global))
-        return false;
-
     if (!cx->typeInferenceEnabled())
         return true;
 
