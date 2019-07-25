@@ -206,6 +206,8 @@ nsHttpConnectionMgr::StopPruneDeadConnectionsTimer()
 {
     LOG(("nsHttpConnectionMgr::StopPruneDeadConnectionsTimer\n"));
 
+    
+    mTimeOfNextWakeUp = LL_MAXUINT;
     if (mTimer) {
         mTimer->Cancel();
         mTimer = NULL;
@@ -412,8 +414,8 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(nsHashKey *key, void *data, void *cl
 
     
     
+    PRUint32 now = NowInSeconds();
     if (0 < ent->mIdleConns.Length()) {
-        PRUint32 now = NowInSeconds();
         PRUint64 timeOfNextExpire = now + timeToNextExpire;
         
         
@@ -557,6 +559,7 @@ nsHttpConnectionMgr::AtActiveConnectionLimit(nsConnectionEntry *ent, PRUint8 cap
         ci->HashKey().get(), caps));
 
     
+    
     if (mNumActiveConns >= mMaxConns) {
         LOG(("  num active conns == max conns\n"));
         return PR_TRUE;
@@ -602,11 +605,6 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
 
     *result = nsnull;
 
-    if (AtActiveConnectionLimit(ent, caps)) {
-        LOG(("  at active connection limit!\n"));
-        return;
-    }
-
     nsHttpConnection *conn = nsnull;
 
     if (caps & NS_HTTP_ALLOW_KEEPALIVE) {
@@ -624,6 +622,11 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
                 LOG(("   reusing connection [conn=%x]\n", conn));
             ent->mIdleConns.RemoveElementAt(0);
             mNumIdleConns--;
+
+            
+            
+            if (0 == mNumIdleConns)
+                StopPruneDeadConnectionsTimer();
         }
     }
 
@@ -631,8 +634,19 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
         
         
         
-        if (0 == mNumIdleConns)
-            StopPruneDeadConnectionsTimer();
+        
+        
+        
+        if (mNumIdleConns && mNumIdleConns + mNumActiveConns + 1 >= mMaxConns)
+            mCT.Enumerate(PurgeOneIdleConnectionCB, this);
+
+        
+        
+        
+        if (AtActiveConnectionLimit(ent, caps)) {
+            LOG(("  at active connection limit!\n"));
+            return;
+        }
 
         conn = new nsHttpConnection();
         if (!conn)
@@ -644,15 +658,6 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
             NS_RELEASE(conn);
             return;
         }
-        
-        
-        
-        
-        if (0 < mNumIdleConns && mNumIdleConns + mNumActiveConns + 1 > mMaxConns)
-            mCT.Enumerate(PurgeOneIdleConnectionCB, this);
-
-        
-        
     }
 
     *result = conn;
@@ -932,6 +937,8 @@ nsHttpConnectionMgr::OnMsgPruneDeadConnections(PRInt32, void *)
 {
     LOG(("nsHttpConnectionMgr::OnMsgPruneDeadConnections\n"));
 
+    
+    mTimeOfNextWakeUp = LL_MAXUINT;
     if (mNumIdleConns > 0) 
         mCT.Enumerate(PruneDeadConnectionsCB, this);
 }
