@@ -267,6 +267,7 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
   if (HasVideo()) {
     bool eof = false;
     PRInt64 startTime = -1;
+    nsAutoPtr<VideoData> video;
     while (HasVideo() && !eof) {
       while (mVideoQueue.GetSize() == 0 && !eof) {
         bool skip = false;
@@ -279,9 +280,13 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
         }
       }
       if (mVideoQueue.GetSize() == 0) {
+        
+        if (video) {
+          mVideoQueue.PushFront(video.forget());
+        }
         break;
       }
-      nsAutoPtr<VideoData> video(mVideoQueue.PeekFront());
+      video = mVideoQueue.PeekFront();
       
       
       if (video && video->mEndTime <= aTarget) {
@@ -289,7 +294,6 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
           startTime = video->mTime;
         }
         mVideoQueue.PopFront();
-        video = nsnull;
       } else {
         video.forget();
         break;
