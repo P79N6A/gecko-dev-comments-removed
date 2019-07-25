@@ -33,7 +33,7 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 
 
-static const PRUint32 BUFFERING_WAIT = 30000;
+static const PRUint32 BUFFERING_WAIT_S = 30;
 
 
 
@@ -417,7 +417,7 @@ nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDe
   if (Preferences::GetBool("media.realtime_decoder.enabled", false) == false)
     mRealTime = false;
 
-  mBufferingWait = mRealTime ? 0 : BUFFERING_WAIT;
+  mBufferingWait = mRealTime ? 0 : BUFFERING_WAIT_S;
   mLowDataThresholdUsecs = mRealTime ? 0 : LOW_DATA_THRESHOLD_USECS;
 }
 

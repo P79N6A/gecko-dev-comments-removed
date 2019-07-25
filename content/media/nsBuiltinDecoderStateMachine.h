@@ -647,6 +647,8 @@ protected:
   
   bool mRequestedNewDecodeThread;
   
+  
+  
   PRUint32 mBufferingWait;
   PRInt64  mLowDataThresholdUsecs;
 
