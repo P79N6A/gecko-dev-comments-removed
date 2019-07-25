@@ -2007,6 +2007,7 @@ namespace nanojit
 
 
 
+        underrunProtect(2*4);   
         ADDIU(SP, SP, FRAMESIZE);
         JR(RA);
         LW(FP, FP_OFFSET, SP);
