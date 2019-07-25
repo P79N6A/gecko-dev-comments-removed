@@ -29,7 +29,7 @@
 #endif  
 
 
-#ifdef HAVE_GRAPHITE
+#ifdef HAVE_GRAPHITE2
 HB_SHAPER_IMPLEMENT (graphite2)
 #endif
 #ifdef HAVE_UNISCRIBE

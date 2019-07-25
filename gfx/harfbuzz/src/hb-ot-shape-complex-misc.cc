@@ -90,6 +90,7 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_default =
   NULL, 
   NULL, 
   NULL, 
+  NULL, 
   normalization_preference_default,
   NULL, 
   true, 
@@ -99,9 +100,9 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_default =
 
 
 static void
-setup_masks_thai (const hb_ot_shape_plan_t *plan HB_UNUSED,
-		  hb_buffer_t              *buffer,
-		  hb_font_t                *font HB_UNUSED)
+preprocess_text_thai (const hb_ot_shape_plan_t *plan HB_UNUSED,
+		      hb_buffer_t              *buffer,
+		      hb_font_t                *font HB_UNUSED)
 {
   
 
@@ -200,7 +201,8 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_thai =
   NULL, 
   NULL, 
   NULL, 
+  preprocess_text_thai,
   NULL, 
-  setup_masks_thai,
+  NULL, 
   true, 
 };

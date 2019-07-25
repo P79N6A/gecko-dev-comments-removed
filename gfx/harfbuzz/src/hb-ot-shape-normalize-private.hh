@@ -33,6 +33,8 @@
 #include "hb-buffer.h"
 
 
+#define glyph_index()	var1.u32
+
 enum hb_ot_shape_normalization_mode_t {
   HB_OT_SHAPE_NORMALIZATION_MODE_DECOMPOSED,
   HB_OT_SHAPE_NORMALIZATION_MODE_COMPOSED_DIACRITICS, 

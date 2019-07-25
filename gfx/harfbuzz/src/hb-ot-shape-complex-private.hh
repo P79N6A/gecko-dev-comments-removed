@@ -35,9 +35,8 @@
 
 
 
-#define complex_var_persistent_u8_0()	var2.u8[2]
-#define complex_var_persistent_u8_1()	var2.u8[3]
-#define complex_var_temporary_u8()	var2.u8[0]
+#define complex_var_u8_0()	var2.u8[2]
+#define complex_var_u8_1()	var2.u8[3]
 
 
 
@@ -58,11 +57,9 @@ struct hb_ot_complex_shaper_t
 
 
 
-
   void (*collect_features) (hb_ot_shape_planner_t *plan);
 
   
-
 
 
 
@@ -84,6 +81,16 @@ struct hb_ot_complex_shaper_t
 
   void (*data_destroy) (void *data);
 
+
+  
+
+
+
+  void (*preprocess_text) (const hb_ot_shape_plan_t *plan,
+			   hb_buffer_t              *buffer,
+			   hb_font_t                *font);
+
+
   
 
 
@@ -91,6 +98,7 @@ struct hb_ot_complex_shaper_t
   (*normalization_preference) (const hb_ot_shape_plan_t *plan);
 
   
+
 
 
 

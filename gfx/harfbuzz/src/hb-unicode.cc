@@ -109,11 +109,43 @@ hb_unicode_decompose_compatibility_nil (hb_unicode_funcs_t *ufuncs     HB_UNUSED
 }
 
 
+#define HB_UNICODE_FUNCS_IMPLEMENT_SET \
+  HB_UNICODE_FUNCS_IMPLEMENT (glib) \
+  HB_UNICODE_FUNCS_IMPLEMENT (icu) \
+  HB_UNICODE_FUNCS_IMPLEMENT (nil) \
+  /* ^--- Add new callbacks before nil */
+
+#define hb_nil_get_unicode_funcs hb_unicode_funcs_get_empty
+
+
+#define HB_UNICODE_FUNCS_IMPLEMENT(set) \
+extern "C" hb_unicode_funcs_t *hb_##set##_get_unicode_funcs (void);
+HB_UNICODE_FUNCS_IMPLEMENT_SET
+#undef HB_UNICODE_FUNCS_IMPLEMENT
+
+
 hb_unicode_funcs_t *
 hb_unicode_funcs_get_default (void)
 {
-  return const_cast<hb_unicode_funcs_t *> (&_hb_unicode_funcs_default);
+#define HB_UNICODE_FUNCS_IMPLEMENT(set) \
+  return hb_##set##_get_unicode_funcs ();
+
+#ifdef HAVE_GLIB
+  HB_UNICODE_FUNCS_IMPLEMENT(glib)
+#elif defined(HAVE_ICU)
+  HB_UNICODE_FUNCS_IMPLEMENT(icu)
+#else
+#define HB_UNICODE_FUNCS_NIL 1
+  HB_UNICODE_FUNCS_IMPLEMENT(nil)
+#endif
+
+#undef HB_UNICODE_FUNCS_IMPLEMENT
 }
+
+#if !defined(HB_NO_UNICODE_FUNCS) && defined(HB_UNICODE_FUNCS_NIL)
+#pragma message("Could not find any Unicode functions implementation, you have to provide your own.")
+#pragma message("To suppress this warnings, define HB_NO_UNICODE_FUNCS.")
+#endif
 
 hb_unicode_funcs_t *
 hb_unicode_funcs_create (hb_unicode_funcs_t *parent)
@@ -140,7 +172,6 @@ hb_unicode_funcs_create (hb_unicode_funcs_t *parent)
 }
 
 
-extern HB_INTERNAL const hb_unicode_funcs_t _hb_unicode_funcs_nil;
 const hb_unicode_funcs_t _hb_unicode_funcs_nil = {
   HB_OBJECT_HEADER_STATIC,
 
@@ -287,6 +318,7 @@ hb_unicode_decompose_compatibility (hb_unicode_funcs_t *ufuncs,
 }
 
 
+
 const uint8_t
 _hb_modified_combining_class[256] =
 {
@@ -298,58 +330,37 @@ _hb_modified_combining_class[256] =
   9, 
 
   
+  HB_MODIFIED_COMBINING_CLASS_CCC10,
+  HB_MODIFIED_COMBINING_CLASS_CCC11,
+  HB_MODIFIED_COMBINING_CLASS_CCC12,
+  HB_MODIFIED_COMBINING_CLASS_CCC13,
+  HB_MODIFIED_COMBINING_CLASS_CCC14,
+  HB_MODIFIED_COMBINING_CLASS_CCC15,
+  HB_MODIFIED_COMBINING_CLASS_CCC16,
+  HB_MODIFIED_COMBINING_CLASS_CCC17,
+  HB_MODIFIED_COMBINING_CLASS_CCC18,
+  HB_MODIFIED_COMBINING_CLASS_CCC19,
+  HB_MODIFIED_COMBINING_CLASS_CCC20,
+  HB_MODIFIED_COMBINING_CLASS_CCC21,
+  HB_MODIFIED_COMBINING_CLASS_CCC22,
+  HB_MODIFIED_COMBINING_CLASS_CCC23,
+  HB_MODIFIED_COMBINING_CLASS_CCC24,
+  HB_MODIFIED_COMBINING_CLASS_CCC25,
+  HB_MODIFIED_COMBINING_CLASS_CCC26,
 
   
-
-
-
-
-
-
-
-
-
-
-
-  22, 
-  15, 
-  16, 
-  17, 
-  23, 
-  18, 
-  19, 
-  20, 
-  21, 
-  14, 
-  24, 
-  12, 
-  25, 
-  13, 
-  10, 
-  11, 
-
-  26, 
+  HB_MODIFIED_COMBINING_CLASS_CCC27,
+  HB_MODIFIED_COMBINING_CLASS_CCC28,
+  HB_MODIFIED_COMBINING_CLASS_CCC29,
+  HB_MODIFIED_COMBINING_CLASS_CCC30,
+  HB_MODIFIED_COMBINING_CLASS_CCC31,
+  HB_MODIFIED_COMBINING_CLASS_CCC32,
+  HB_MODIFIED_COMBINING_CLASS_CCC33,
+  HB_MODIFIED_COMBINING_CLASS_CCC34,
+  HB_MODIFIED_COMBINING_CLASS_CCC35,
 
   
-
-  
-
-
-
-
-  28, 
-  29, 
-  30, 
-  31, 
-  32, 
-  33, 
-  27, 
-
-  34, 
-  35, 
-
-  
-  36, 
+  HB_MODIFIED_COMBINING_CLASS_CCC36,
 
   37, 38, 39,
   40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
@@ -357,41 +368,28 @@ _hb_modified_combining_class[256] =
   80, 81, 82, 83,
 
   
-
-  
-
-
-
-
-
-  0, 
+  HB_MODIFIED_COMBINING_CLASS_CCC84,
   85, 86, 87, 88, 89, 90,
-  0, 
+  HB_MODIFIED_COMBINING_CLASS_CCC91,
   92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102,
 
   
-
-  
-
-
-
-  3, 
-
+  HB_MODIFIED_COMBINING_CLASS_CCC103,
   104, 105, 106,
-  107, 
+  HB_MODIFIED_COMBINING_CLASS_CCC107,
   108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
 
   
-  118, 
+  HB_MODIFIED_COMBINING_CLASS_CCC118,
   119, 120, 121,
-  122, 
+  HB_MODIFIED_COMBINING_CLASS_CCC122,
   123, 124, 125, 126, 127, 128,
 
   
-  129, 
-  130, 
+  HB_MODIFIED_COMBINING_CLASS_CCC129,
+  HB_MODIFIED_COMBINING_CLASS_CCC130,
   131,
-  132, 
+  HB_MODIFIED_COMBINING_CLASS_CCC132,
   133, 134, 135, 136, 137, 138, 139,
 
 
