@@ -1377,6 +1377,28 @@ EmptyShape::lookupInitialShape(JSContext *cx, Class *clasp, JSObject *proto, JSO
     return shape;
 }
 
+void
+NewObjectCache::invalidateEntriesForShape(JSContext *cx, Shape *shape, JSObject *proto)
+{
+    NewObjectCache::Entry *entry = NULL;
+
+    Class *clasp = shape->getObjectClass();
+
+    gc::AllocKind kind = gc::GetGCObjectKind(shape->numFixedSlots());
+    if (CanBeFinalizedInBackground(kind, clasp))
+        kind = GetBackgroundAllocKind(kind);
+
+    JSObject *global = shape->getObjectParent()->getGlobal();
+    types::TypeObject *type = proto->getNewType(cx);
+
+    if (lookup(clasp, global, kind, &entry))
+        PodZero(entry);
+    if (lookup(clasp, proto, kind, &entry))
+        PodZero(entry);
+    if (lookup(clasp, type, kind, &entry))
+        PodZero(entry);
+}
+
  void
 EmptyShape::insertInitialShape(JSContext *cx, Shape *shape, JSObject *proto)
 {
@@ -1387,6 +1409,7 @@ EmptyShape::insertInitialShape(JSContext *cx, Shape *shape, JSObject *proto)
     JS_ASSERT(p);
 
     InitialShapeEntry &entry = const_cast<InitialShapeEntry &>(*p);
+    JS_ASSERT(entry.shape->isEmptyShape());
 
     
 #ifdef DEBUG
@@ -1405,13 +1428,8 @@ EmptyShape::insertInitialShape(JSContext *cx, Shape *shape, JSObject *proto)
 
 
 
-    NewObjectCache::Entry *cacheEntry = NULL;
-    if (cx->compartment->newObjectCache.lookup(shape->getObjectClass(),
-                                               shape->getObjectParent(),
-                                               gc::GetGCObjectKind(shape->numFixedSlots()),
-                                               &cacheEntry)) {
-        PodZero(cacheEntry);
-    }
+
+    cx->compartment->newObjectCache.invalidateEntriesForShape(cx, shape, proto);
 }
 
 void
