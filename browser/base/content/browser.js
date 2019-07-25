@@ -3231,32 +3231,8 @@ const BrowserSearch = {
 
     if (hidden)
       browser.hiddenEngines = engines;
-    else {
-      browser.engines = engines;
-      if (browser == gBrowser.selectedBrowser)
-        this.updateSearchButton();
-    }
-  },
-
-  
-
-
-
-
-  updateSearchButton: function() {
-    var searchBar = this.searchBar;
-
-    
-    
-    
-    if (!searchBar || !searchBar.searchButton)
-      return;
-
-    var engines = gBrowser.selectedBrowser.engines;
-    if (engines && engines.length > 0)
-      searchBar.searchButton.setAttribute("addengines", "true");
     else
-      searchBar.searchButton.removeAttribute("addengines");
+      browser.engines = engines;
   },
 
   
@@ -4363,7 +4339,6 @@ var XULBrowserWindow = {
 
   asyncUpdateUI: function () {
     FeedHandler.updateFeeds();
-    BrowserSearch.updateSearchButton();
   },
 
   onStatusChange: function (aWebProgress, aRequest, aStatus, aMessage) {
