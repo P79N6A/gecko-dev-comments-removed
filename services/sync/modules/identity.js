@@ -124,7 +124,7 @@ Identity.prototype = {
     }
 
     
-    let log = Log4Moz.repository.getLogger("Identity");
+    let log = Log4Moz.repository.getLogger("Sync.Identity");
     if (exists) {
       log.trace("Skipping persist: " + this.realm + " for " + this.username);
       return;

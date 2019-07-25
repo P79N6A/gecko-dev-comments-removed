@@ -143,7 +143,7 @@ function AsyncResource(uri) {
   this._onComplete = Utils.bind2(this, this._onComplete);
 }
 AsyncResource.prototype = {
-  _logName: "Net.Resource",
+  _logName: "Sync.AsyncResource",
 
   
   
@@ -447,6 +447,8 @@ Resource.prototype = {
 
   __proto__: AsyncResource.prototype,
 
+  _logName: "Sync.Resource",
+
   
   
   
@@ -636,7 +638,7 @@ BadCertListener.prototype = {
 
   notifyCertProblem: function certProblem(socketInfo, sslStatus, targetHost) {
     
-    let log = Log4Moz.repository.getLogger("Service.CertListener");
+    let log = Log4Moz.repository.getLogger("Sync.CertListener");
     log.level =
       Log4Moz.Level[Svc.Prefs.get("log.logger.network.resources")];
     log.debug("Invalid HTTPS certificate encountered, ignoring!");
