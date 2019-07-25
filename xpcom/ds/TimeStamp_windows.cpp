@@ -417,24 +417,22 @@ InitResolution()
 static ULONGLONG WINAPI
 GetTickCount64Fallback()
 {
-  DWORD now = GetTickCount();
-  ULONGLONG lastResultHiPart = sLastGTCResult & (~0ULL << 32);
-  ULONGLONG result = lastResultHiPart | ULONGLONG(now);
+  ULONGLONG old, newValue;
+  do {
+    old = InterlockedRead64(&sLastGTCResult);
+    ULONGLONG oldTop = old & 0xffffffff00000000;
+    ULONG oldBottom = old & 0xffffffff;
+    ULONG newBottom = GetTickCount();
+    if (newBottom < oldBottom) {
+        
+        newValue = (oldTop + (1ULL<<32)) | newBottom;
+    } else {
+        newValue = oldTop | newBottom;
+    }
+  } while (old != _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*> (&sLastGTCResult),
+                                                newValue, old));
 
-  
-  
-  
-  
-
-  if (sLastGTCResult > result) {
-    if ((sLastGTCResult - result) > (1ULL << 31))
-      result += 1ULL << 32;
-    else
-      result = sLastGTCResult;
-  }
-
-  sLastGTCResult = result;
-  return result;
+  return newValue;
 }
 
 
@@ -569,12 +567,12 @@ CalibratedPerformanceCounter()
 
   ULONGLONG qpc = PerformanceCounter();
 
+  
+  ULONGLONG gtc = sGetTickCount64();
+
   ULONGLONG result;
   {
   AutoCriticalSection lock(&sTimeStampLock);
-
-  
-  ULONGLONG gtc = sGetTickCount64();
 
   LONGLONG diff = qpc - ms2mt(gtc) - sSkew;
   LONGLONG overflow = 0;
