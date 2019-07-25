@@ -3182,7 +3182,11 @@ pref("gfx.color_management.mode", 0);
 pref("mozilla.widget.render-mode", -1);
 
 
+#ifdef XP_WIN
+pref("layers.accelerate-all", true);
+#else
 pref("layers.accelerate-all", false);
+#endif
 
 
 pref("layers.accelerate-none", false);
