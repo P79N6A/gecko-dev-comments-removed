@@ -669,6 +669,14 @@ public:
 
 
 
+    virtual bool IsANGLE() {
+        return false;
+    }
+
+    
+
+
+
     virtual bool SupportsRobustness() = 0;
 
     enum {
@@ -1270,6 +1278,7 @@ public:
         ANGLE_framebuffer_multisample,
         OES_rgb8_rgba8,
         ARB_robustness,
+        EXT_robustness,
         Extensions_Max
     };
 

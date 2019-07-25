@@ -1096,13 +1096,16 @@ WebGLContext::MaybeRestoreContext()
     if (mContextLost || mAllowRestore)
         return;
 
+    bool isEGL = gl->GetContextType() == GLContext::ContextTypeEGL,
+         isANGLE = gl->IsANGLE();
+
     GLContext::ContextResetARB resetStatus = GLContext::CONTEXT_NO_ERROR;
     if (mHasRobustness) {
         gl->MakeCurrent();
         resetStatus = (GLContext::ContextResetARB) gl->fGetGraphicsResetStatus();
     
     
-    } else if (gl->GetContextType() == GLContext::ContextTypeEGL) {
+    } else if (isEGL) {
         
         
         
@@ -1133,6 +1136,13 @@ WebGLContext::MaybeRestoreContext()
             break;
         case GLContext::CONTEXT_UNKNOWN_CONTEXT_RESET_ARB:
             NS_WARNING("WebGL content on the page might have caused the graphics card to reset");
+            if (isEGL && isANGLE) {
+                
+                
+                
+                
+                return;
+            }
             break;
     }
 
