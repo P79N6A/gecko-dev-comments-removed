@@ -1683,26 +1683,8 @@ JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fpArg,
     if (!ac.enter())
         return false;
 
-    
-
-
-
-
-
     StackFrame *fp = Valueify(fpArg);
-    JSScript *script = Compiler::compileScript(cx, scobj, fp, fp->scopeChain().principals(cx),
-                                               TCF_COMPILE_N_GO, chars, length,
-                                               filename, lineno, cx->findVersion(),
-                                               NULL, UpvarCookie::UPVAR_LEVEL_LIMIT);
-
-    if (!script)
-        return false;
-
-    uintN evalFlags = StackFrame::DEBUGGER | StackFrame::EVAL;
-    bool ok = Execute(cx, *scobj, script, fp, evalFlags, Valueify(rval));
-
-    js_DestroyScript(cx, script);
-    return ok;
+    return EvaluateInScope(cx, scobj, fp, chars, length, filename, lineno, Valueify(rval));
 }
 
 JS_PUBLIC_API(JSBool)
