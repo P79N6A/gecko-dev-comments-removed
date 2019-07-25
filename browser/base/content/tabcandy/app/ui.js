@@ -102,8 +102,13 @@ var Tabbar = {
       tab.collapsed = true;
     });
     
+    
+    
+    
+    
     visibleTabs.forEach(function(tab){
       tab.collapsed = false;
+      Utils.activeWindow.gBrowser.moveTabTo(tab, UI.tabBar.el.children.length-1);
     });
     
   },
