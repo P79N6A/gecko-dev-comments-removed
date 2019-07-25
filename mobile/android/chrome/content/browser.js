@@ -1268,7 +1268,6 @@ var NativeWindow = {
 
       
       if (this.menuitems) {
-        BrowserEventHandler.blockClick = true;
         let event = rootElement.ownerDocument.createEvent("MouseEvent");
         event.initMouseEvent("contextmenu", true, true, content,
                              0, aX, aY, aX, aY, false, false, false, false,
