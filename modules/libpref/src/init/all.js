@@ -3409,17 +3409,3 @@ pref("profiler.enabled", false);
 pref("profiler.interval", 10);
 pref("profiler.entries", 100000);
 
-#ifdef XP_WIN
-
-
-pref("memory.low_virtual_memory_threshold_mb", 128);
-
-
-
-pref("memory.low_physical_mem_threshold_mb", 0);
-
-
-
-
-pref("memory.low_physical_memory_notification_interval_ms", 10000);
-#endif
