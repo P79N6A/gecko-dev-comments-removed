@@ -668,7 +668,7 @@ struct TypeNewScript
 
 
 
-    HeapPtr<const Shape> shape;
+    HeapPtrShape  shape;
 
     
 
