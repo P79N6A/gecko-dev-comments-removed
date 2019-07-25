@@ -766,6 +766,14 @@ gfxFT2FontList::AppendFacesFromFontFile(nsCString& aFileName,
                 if (family->IsBadUnderlineFamily()) {
                     fe->mIsBadUnderlineFont = true;
                 }
+
+                
+                
+                
+                if (name.EqualsLiteral("roboto")) {
+                    fe->mIgnoreGSUB = true;
+                }
+
                 AppendToFaceList(faceList, name, fe);
 #ifdef PR_LOGGING
                 if (LOG_ENABLED()) {
@@ -974,6 +982,17 @@ gfxFT2FontList::AppendFaceFromFontListEntry(const FontListEntry& aFLE,
         family->AddFontEntry(fe);
         if (family->IsBadUnderlineFamily()) {
             fe->mIsBadUnderlineFont = true;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        if (name.EqualsLiteral("roboto")) {
+            fe->mIgnoreGSUB = true;
         }
     }
 }
