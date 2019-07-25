@@ -2382,10 +2382,10 @@ class RegExpNativeCompiler {
 
     LIns* compileFlatSingleChar(jschar ch, LIns* pos, LInsList& fails)
     {
-        LIns* to_fail = lir->insBranch(LIR_jf, lir->ins2(LIR_plt, pos, cpend), 0);
+        LIns* to_fail = lir->insBranch(LIR_jf, lir->ins2(LIR_ltp, pos, cpend), 0);
         if (!fails.append(to_fail))
             return NULL;
-        LIns* text_ch = lir->insLoad(LIR_ldzs, pos, 0, ACC_READONLY);
+        LIns* text_ch = lir->insLoad(LIR_ldus2ui, pos, 0, ACC_READONLY);
 
         
         struct extra {
@@ -2402,7 +2402,7 @@ class RegExpNativeCompiler {
             if (ch != lch) {
                 if (L'A' <= ch && ch <= L'Z') {
                     
-                    text_ch = lir->ins2(LIR_or, text_ch, lir->insImmI(32));
+                    text_ch = lir->ins2(LIR_ori, text_ch, lir->insImmI(32));
                     
                     
                     
@@ -2464,17 +2464,17 @@ class RegExpNativeCompiler {
 
     gen:
         for (int i = 0; i < nextras; ++i) {
-            LIns *test = lir->ins2(LIR_eq, text_ch, lir->insImmI(extras[i].ch));
+            LIns *test = lir->ins2(LIR_eqi, text_ch, lir->insImmI(extras[i].ch));
             LIns *branch = lir->insBranch(LIR_jt, test, 0);
             extras[i].match = branch;
         }
 
-        if (!fails.append(lir->insBranch(LIR_jf, lir->ins2(LIR_eq, text_ch, lir->insImmI(ch)), 0)))
+        if (!fails.append(lir->insBranch(LIR_jf, lir->ins2(LIR_eqi, text_ch, lir->insImmI(ch)), 0)))
             return NULL;
 
         for (int i = 0; i < nextras; ++i)
             targetCurrentPoint(extras[i].match);
-        return lir->ins2(LIR_piadd, pos, lir->insImmWord(2));
+        return lir->ins2(LIR_addp, pos, lir->insImmWord(2));
     }
 
     JS_INLINE bool hasCases(jschar ch)
@@ -2516,22 +2516,22 @@ class RegExpNativeCompiler {
         }
 
         LIns* to_fail = lir->insBranch(LIR_jf,
-                                       lir->ins2(LIR_plt,
+                                       lir->ins2(LIR_ltp,
                                                  pos,
-                                                 lir->ins2(LIR_piadd,
+                                                 lir->ins2(LIR_addp,
                                                            cpend,
                                                            lir->insImmWord(-2))),
                                        0);
         if (!fails.append(to_fail))
             return NULL;
-        LIns* text_word = lir->insLoad(LIR_ld, pos, 0, ACC_OTHER);
+        LIns* text_word = lir->insLoad(LIR_ldi, pos, 0, ACC_OTHER);
         LIns* comp_word = useFastCI ?
-            lir->ins2(LIR_or, text_word, lir->insImmI(mask.i)) :
+            lir->ins2(LIR_ori, text_word, lir->insImmI(mask.i)) :
             text_word;
-        if (!fails.append(lir->insBranch(LIR_jf, lir->ins2(LIR_eq, comp_word, lir->insImmI(word)), 0)))
+        if (!fails.append(lir->insBranch(LIR_jf, lir->ins2(LIR_eqi, comp_word, lir->insImmI(word)), 0)))
             return NULL;
 
-        return lir->ins2(LIR_piadd, pos, lir->insImmWord(4));
+        return lir->ins2(LIR_addp, pos, lir->insImmWord(4));
     }
 
     LIns* compileFlat(RENode *&node, LIns* pos, LInsList& fails)
@@ -2603,27 +2603,27 @@ class RegExpNativeCompiler {
             return NULL;
         memcpy(bitmapData, charSet->u.bits, bitmapLen);
 
-        LIns* to_fail = lir->insBranch(LIR_jf, lir->ins2(LIR_plt, pos, cpend), 0);
+        LIns* to_fail = lir->insBranch(LIR_jf, lir->ins2(LIR_ltp, pos, cpend), 0);
         if (!fails.append(to_fail))
             return NULL;
-        LIns* text_ch = lir->insLoad(LIR_ldzs, pos, 0, ACC_READONLY);
+        LIns* text_ch = lir->insLoad(LIR_ldus2ui, pos, 0, ACC_READONLY);
         if (!fails.append(lir->insBranch(LIR_jf,
-                                         lir->ins2(LIR_le, text_ch, lir->insImmI(charSet->length)),
+                                         lir->ins2(LIR_lei, text_ch, lir->insImmI(charSet->length)),
                                          0))) {
             return NULL;
         }
-        LIns* byteIndex = lir->insI2P(lir->ins2(LIR_rsh, text_ch, lir->insImmI(3)));
+        LIns* byteIndex = lir->insI2P(lir->ins2(LIR_rshi, text_ch, lir->insImmI(3)));
         LIns* bitmap = lir->insImmP(bitmapData);
-        LIns* byte = lir->insLoad(LIR_ldzb, lir->ins2(LIR_piadd, bitmap, byteIndex), (int) 0,
+        LIns* byte = lir->insLoad(LIR_lduc2ui, lir->ins2(LIR_addp, bitmap, byteIndex), (int) 0,
                                   ACC_READONLY);
-        LIns* bitMask = lir->ins2(LIR_lsh, lir->insImmI(1),
-                               lir->ins2(LIR_and, text_ch, lir->insImmI(0x7)));
-        LIns* test = lir->ins2(LIR_eq, lir->ins2(LIR_and, byte, bitMask), lir->insImmI(0));
+        LIns* bitMask = lir->ins2(LIR_lshi, lir->insImmI(1),
+                               lir->ins2(LIR_andi, text_ch, lir->insImmI(0x7)));
+        LIns* test = lir->ins2(LIR_eqi, lir->ins2(LIR_andi, byte, bitMask), lir->insImmI(0));
 
         LIns* to_next = lir->insBranch(LIR_jt, test, 0);
         if (!fails.append(to_next))
             return NULL;
-        return lir->ins2(LIR_piadd, pos, lir->insImmWord(2));
+        return lir->ins2(LIR_addp, pos, lir->insImmWord(2));
     }
 
     
@@ -2631,44 +2631,44 @@ class RegExpNativeCompiler {
     {
         if (sizeof(bool) != 1) {
             LIns *sizeLog2 = lir->insImmI(StaticLog2<sizeof(bool)>::result);
-            chr = lir->ins2(LIR_lsh, chr, sizeLog2);
+            chr = lir->ins2(LIR_lshi, chr, sizeLog2);
         }
-        LIns *addr = lir->ins2(LIR_piadd, lir->insImmP(tbl), lir->insUI2P(chr));
-        return lir->insLoad(LIR_ldzb, addr, 0, ACC_READONLY);
+        LIns *addr = lir->ins2(LIR_addp, lir->insImmP(tbl), lir->insUI2P(chr));
+        return lir->insLoad(LIR_lduc2ui, addr, 0, ACC_READONLY);
     }
 
     
     LIns *compileBuiltinClass(RENode *node, LIns *pos, LInsList &fails)
     {
         
-        if (!fails.append(lir->insBranch(LIR_jf, lir->ins2(LIR_plt, pos, cpend), 0)))
+        if (!fails.append(lir->insBranch(LIR_jf, lir->ins2(LIR_ltp, pos, cpend), 0)))
             return NULL;
-        LIns *chr = lir->insLoad(LIR_ldzs, pos, 0, ACC_READONLY);
+        LIns *chr = lir->insLoad(LIR_ldus2ui, pos, 0, ACC_READONLY);
 
         switch (node->op) {
           case REOP_DOT:
           {
             
-            LIns *eq1 = lir->ins2(LIR_eq, chr, lir->insImmI('\n'));
+            LIns *eq1 = lir->ins2(LIR_eqi, chr, lir->insImmI('\n'));
             if (!fails.append(lir->insBranch(LIR_jt, eq1, NULL)))
                 return NULL;
-            LIns *eq2 = lir->ins2(LIR_eq, chr, lir->insImmI('\r'));
+            LIns *eq2 = lir->ins2(LIR_eqi, chr, lir->insImmI('\r'));
             if (!fails.append(lir->insBranch(LIR_jt, eq2, NULL)))
                 return NULL;
-            LIns *eq3 = lir->ins2(LIR_eq, chr, lir->insImmI(LINE_SEPARATOR));
+            LIns *eq3 = lir->ins2(LIR_eqi, chr, lir->insImmI(LINE_SEPARATOR));
             if (!fails.append(lir->insBranch(LIR_jt, eq3, NULL)))
                 return NULL;
-            LIns *eq4 = lir->ins2(LIR_eq, chr, lir->insImmI(PARA_SEPARATOR));
+            LIns *eq4 = lir->ins2(LIR_eqi, chr, lir->insImmI(PARA_SEPARATOR));
             if (!fails.append(lir->insBranch(LIR_jt, eq4, NULL)))
                 return NULL;
             break;
           }
           case REOP_DIGIT:
           {
-            LIns *ge = lir->ins2(LIR_ge, chr, lir->insImmI('0'));
+            LIns *ge = lir->ins2(LIR_gei, chr, lir->insImmI('0'));
             if (!fails.append(lir->insBranch(LIR_jf, ge, NULL)))
                 return NULL;
-            LIns *le = lir->ins2(LIR_le, chr, lir->insImmI('9'));
+            LIns *le = lir->ins2(LIR_lei, chr, lir->insImmI('9'));
             if (!fails.append(lir->insBranch(LIR_jf, le, NULL)))
                 return NULL;
             break;
@@ -2676,9 +2676,9 @@ class RegExpNativeCompiler {
           case REOP_NONDIGIT:
           {
             
-            LIns *ge = lir->ins2(LIR_ge, chr, lir->insImmI('0'));
-            LIns *le = lir->ins2(LIR_le, chr, lir->insImmI('9'));
-            LIns *both = lir->ins2(LIR_and, ge, le);
+            LIns *ge = lir->ins2(LIR_gei, chr, lir->insImmI('0'));
+            LIns *le = lir->ins2(LIR_lei, chr, lir->insImmI('9'));
+            LIns *both = lir->ins2(LIR_andi, ge, le);
             if (!fails.append(lir->insBranch(LIR_jf, lir->insEqI_0(both), NULL)))
                 return NULL;
             break;
@@ -2689,7 +2689,7 @@ class RegExpNativeCompiler {
 
 
 
-            LIns *rangeCnd = lir->ins2(LIR_ult, chr, lir->insImmI(128));
+            LIns *rangeCnd = lir->ins2(LIR_ltui, chr, lir->insImmI(128));
             if (!fails.append(lir->insBranch(LIR_jf, rangeCnd, NULL)))
                 return NULL;
             LIns *tableVal = compileTableRead(chr, js_alnum);
@@ -2703,7 +2703,7 @@ class RegExpNativeCompiler {
 
 
 
-            LIns *rangeCnd = lir->ins2(LIR_uge, chr, lir->insImmI(128));
+            LIns *rangeCnd = lir->ins2(LIR_geui, chr, lir->insImmI(128));
             LIns *rangeBr = lir->insBranch(LIR_jt, rangeCnd, NULL);
             LIns *tableVal = compileTableRead(chr, js_alnum);
             if (!fails.append(lir->insBranch(LIR_jf, lir->insEqI_0(tableVal), NULL)))
@@ -2729,45 +2729,45 @@ class RegExpNativeCompiler {
 
 
             
-            LIns *tableRangeCnd = lir->ins2(LIR_ule, chr, lir->insImmI(0x20));
+            LIns *tableRangeCnd = lir->ins2(LIR_leui, chr, lir->insImmI(0x20));
             LIns *tableRangeBr = lir->insBranch(LIR_jt, tableRangeCnd, NULL);
             
 
             
-            LIns *asciiCnd = lir->ins2(LIR_ult, chr, lir->insImmI(0xA0));
+            LIns *asciiCnd = lir->ins2(LIR_ltui, chr, lir->insImmI(0xA0));
             LIns *asciiMissBr = lir->insBranch(LIR_jt, asciiCnd, NULL);
             
 
             
-            LIns *belowCnd = lir->ins2(LIR_ult, chr, lir->insImmI(0x2000));
+            LIns *belowCnd = lir->ins2(LIR_ltui, chr, lir->insImmI(0x2000));
             LIns *belowBr = lir->insBranch(LIR_jt, belowCnd, NULL);
-            LIns *aboveCnd = lir->ins2(LIR_ugt, chr, lir->insImmI(0x200A));
+            LIns *aboveCnd = lir->ins2(LIR_gtui, chr, lir->insImmI(0x200A));
             LIns *aboveBr = lir->insBranch(LIR_jt, aboveCnd, NULL);
             LIns *intervalMatchBr = lir->insBranch(LIR_j, NULL, NULL);
 
             
             LIns *belowLbl = lir->ins0(LIR_label);
             belowBr->setTarget(belowLbl);
-            LIns *eq1Cnd = lir->ins2(LIR_eq, chr, lir->insImmI(0xA0));
+            LIns *eq1Cnd = lir->ins2(LIR_eqi, chr, lir->insImmI(0xA0));
             LIns *eq1Br = lir->insBranch(LIR_jt, eq1Cnd, NULL);
-            LIns *eq2Cnd = lir->ins2(LIR_eq, chr, lir->insImmI(0x1680));
+            LIns *eq2Cnd = lir->ins2(LIR_eqi, chr, lir->insImmI(0x1680));
             LIns *eq2Br = lir->insBranch(LIR_jt, eq2Cnd, NULL);
-            LIns *eq3Cnd = lir->ins2(LIR_eq, chr, lir->insImmI(0x180E));
+            LIns *eq3Cnd = lir->ins2(LIR_eqi, chr, lir->insImmI(0x180E));
             LIns *eq3Br = lir->insBranch(LIR_jt, eq3Cnd, NULL);
             LIns *belowMissBr = lir->insBranch(LIR_j, NULL, NULL);
 
             
             LIns *aboveLbl = lir->ins0(LIR_label);
             aboveBr->setTarget(aboveLbl);
-            LIns *eq4Cnd = lir->ins2(LIR_eq, chr, lir->insImmI(0x2028));
+            LIns *eq4Cnd = lir->ins2(LIR_eqi, chr, lir->insImmI(0x2028));
             LIns *eq4Br = lir->insBranch(LIR_jt, eq4Cnd, NULL);
-            LIns *eq5Cnd = lir->ins2(LIR_eq, chr, lir->insImmI(0x2029));
+            LIns *eq5Cnd = lir->ins2(LIR_eqi, chr, lir->insImmI(0x2029));
             LIns *eq5Br = lir->insBranch(LIR_jt, eq5Cnd, NULL);
-            LIns *eq6Cnd = lir->ins2(LIR_eq, chr, lir->insImmI(0x202F));
+            LIns *eq6Cnd = lir->ins2(LIR_eqi, chr, lir->insImmI(0x202F));
             LIns *eq6Br = lir->insBranch(LIR_jt, eq6Cnd, NULL);
-            LIns *eq7Cnd = lir->ins2(LIR_eq, chr, lir->insImmI(0x205F));
+            LIns *eq7Cnd = lir->ins2(LIR_eqi, chr, lir->insImmI(0x205F));
             LIns *eq7Br = lir->insBranch(LIR_jt, eq7Cnd, NULL);
-            LIns *eq8Cnd = lir->ins2(LIR_eq, chr, lir->insImmI(0x3000));
+            LIns *eq8Cnd = lir->ins2(LIR_eqi, chr, lir->insImmI(0x3000));
             LIns *eq8Br = lir->insBranch(LIR_jt, eq8Cnd, NULL);
             LIns *aboveMissBr = lir->insBranch(LIR_j, NULL, NULL);
 
@@ -2814,7 +2814,7 @@ class RegExpNativeCompiler {
             return NULL;
         }
 
-        return lir->ins2(LIR_piadd, pos, lir->insImmWord(2));
+        return lir->ins2(LIR_addp, pos, lir->insImmWord(2));
     }
 
     LIns *compileAlt(RENode *node, LIns *pos, bool atEnd, LInsList &fails)
@@ -2977,7 +2977,7 @@ class RegExpNativeCompiler {
 
 
         if (mayMatchEmpty(bodyRe)) {
-            LIns *eqCnd = lir->ins2(LIR_peq, iterBegin, iterEnd);
+            LIns *eqCnd = lir->ins2(LIR_eqp, iterBegin, iterEnd);
             if (!kidFails.append(lir->insBranch(LIR_jt, eqCnd, NULL)))
                 return NULL;
         }
@@ -3012,9 +3012,9 @@ class RegExpNativeCompiler {
 
 
 
-        lir->ins1(LIR_plive, state);
-        lir->ins1(LIR_plive, cpend);
-        lir->ins1(LIR_plive, start);
+        lir->ins1(LIR_livep, state);
+        lir->ins1(LIR_livep, cpend);
+        lir->ins1(LIR_livep, start);
 
         
         targetCurrentPoint(kidFails);
@@ -3083,13 +3083,13 @@ class RegExpNativeCompiler {
         
         lir->insStore(pos, state, offsetof(REGlobalData, stateStack), ACC_OTHER);
         lir->ins0(LIR_regfence);
-        lir->ins1(LIR_ret, lir->insImmI(1));
+        lir->ins1(LIR_reti, lir->insImmI(1));
 
         
         if (anchorFail) {
             targetCurrentPoint(anchorFail);
             lir->ins0(LIR_regfence);
-            lir->ins1(LIR_ret, lir->insImmI(0));
+            lir->ins1(LIR_reti, lir->insImmI(0));
         }
 
         
@@ -3105,7 +3105,7 @@ class RegExpNativeCompiler {
 
         
         lir->ins0(LIR_regfence);
-        lir->ins1(LIR_ret, lir->insImmI(0));
+        lir->ins1(LIR_reti, lir->insImmI(0));
         return !outOfMemory();
     }
 
@@ -3113,13 +3113,13 @@ class RegExpNativeCompiler {
     bool compileAnchoring(RENode *root, LIns *start)
     {
         
-        LIns *anchorFail = lir->insBranch(LIR_jf, lir->ins2(LIR_ple, start, cpend), 0);
+        LIns *anchorFail = lir->insBranch(LIR_jf, lir->ins2(LIR_lep, start, cpend), 0);
 
         if (!compileRootNode(root, start, anchorFail))
             return false;
 
         
-        lir->insStore(lir->ins2(LIR_piadd, start, lir->insImmWord(2)), state,
+        lir->insStore(lir->ins2(LIR_addp, start, lir->insImmWord(2)), state,
                        offsetof(REGlobalData, skipped), ACC_OTHER);
 
         return !outOfMemory();
@@ -3144,8 +3144,8 @@ class RegExpNativeCompiler {
         if (loopLabel) {
             lir->insBranch(LIR_j, NULL, loopLabel);
             LirBuffer* lirbuf = fragment->lirbuf;
-            lir->ins1(LIR_plive, lirbuf->state);
-            lir->ins1(LIR_plive, lirbuf->param1);
+            lir->ins1(LIR_livep, lirbuf->state);
+            lir->ins1(LIR_livep, lirbuf->param1);
         }
 
         Allocator &alloc = *JS_TRACE_MONITOR(cx).dataAlloc;
