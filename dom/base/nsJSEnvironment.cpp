@@ -3440,10 +3440,31 @@ nsJSContext::ClearScope(void *aGlobalObj, PRBool aClearFromProtoChain)
     JSAutoEnterCompartment ac;
     ac.enterAndIgnoreErrors(mContext, obj);
 
+    
+    
+    
+    
+    jsval window;
+    if (!JS_GetProperty(mContext, obj, "window", &window)) {
+      window = JSVAL_VOID;
+
+      JS_ClearPendingException(mContext);
+    }
+
     JS_ClearScope(mContext, obj);
     if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
       JS_ClearScope(mContext, &obj->getProxyExtra().toObject());
     }
+
+    if (window != JSVAL_VOID) {
+      if (!JS_DefineProperty(mContext, obj, "window", window,
+                             JS_PropertyStub, JS_PropertyStub,
+                             JSPROP_ENUMERATE | JSPROP_READONLY |
+                             JSPROP_PERMANENT)) {
+        JS_ClearPendingException(mContext);
+      }
+    }
+
     if (!obj->getParent()) {
       JS_ClearRegExpStatics(mContext, obj);
     }
