@@ -61,17 +61,6 @@ namespace js {
 
 extern Class dummy_class;
 
-} 
-
-#ifndef JS_EVAL_CACHE_SHIFT
-# define JS_EVAL_CACHE_SHIFT        6
-#endif
-
-
-#define JS_EVAL_CACHE_SIZE          JS_BIT(JS_EVAL_CACHE_SHIFT)
-
-namespace js {
-
 
 
 
@@ -206,10 +195,6 @@ struct JSCompartment
 
     
     js::types::TypeCompartment   types;
-
-  public:
-    
-    JSScript                     *evalCache[JS_EVAL_CACHE_SIZE];
 
     void                         *data;
     bool                         active;  
