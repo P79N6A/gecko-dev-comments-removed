@@ -645,251 +645,124 @@ void nsViewManager::InvalidateViews(nsView *aView)
   }
 }
 
-static bool
-IsViewForPopup(nsIView* aView)
+void nsViewManager::WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint)
 {
-  nsIWidget* widget = aView->GetWidget();
-  if (widget) {
-    nsWindowType type;
-    widget->GetWindowType(type);
-    return (type == eWindowType_popup);
+  if (IsRefreshDriverPaintingEnabled())
+    return;
+
+  if (!aWidget || !mContext)
+    return;
+
+  
+  
+  for (nsViewManager *vm = this; vm;
+       vm = vm->mRootView->GetParent()
+              ? vm->mRootView->GetParent()->GetViewManager()
+              : nullptr) {
+    if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
+        vm->mRootView->IsEffectivelyVisible() &&
+        mPresShell && mPresShell->IsVisible()) {
+      vm->FlushDelayedResize(true);
+      vm->InvalidateView(vm->mRootView);
+    }
   }
 
-  return false;
+  
+  
+  nsRefPtr<nsViewManager> rootVM = RootViewManager();
+  if (mPresShell) {
+    rootVM->CallWillPaintOnObservers(aWillSendDidPaint);
+  }
+
+  
+  rootVM->ProcessPendingUpdates();
 }
 
-NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
-                                           nsIView* aView, nsEventStatus *aStatus)
-{
-  NS_ASSERTION(!aView || static_cast<nsView*>(aView)->GetViewManager() == this,
-               "wrong view manager");
+bool nsViewManager::PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion,
+                                bool aSentWillPaint, bool aWillSendDidPaint)
+ {
+  if (!aWidget || !mContext)
+    return false;
 
+  NS_ASSERTION(IsPaintingAllowed(),
+               "shouldn't be receiving paint events while painting is disallowed!");
+
+  if (!aSentWillPaint && !IsRefreshDriverPaintingEnabled()) {
+    WillPaintWindow(aWidget, aWillSendDidPaint);
+  }
+
+  
+  
+  nsView* view = nsView::GetViewFor(aWidget);
+  if (view && !aRegion.IsEmpty()) {
+    Refresh(view, aRegion, aWillSendDidPaint);
+  }
+
+  return true;
+}
+
+void nsViewManager::DidPaintWindow()
+{
+  if (!IsRefreshDriverPaintingEnabled()) {
+    mRootViewManager->CallDidPaintOnObserver();
+  }
+}
+
+nsresult nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsIView* aView, nsEventStatus* aStatus)
+{
   SAMPLE_LABEL("event", "nsViewManager::DispatchEvent");
 
-  *aStatus = nsEventStatus_eIgnore;
+  if ((NS_IS_MOUSE_EVENT(aEvent) &&
+       
+       static_cast<nsMouseEvent*>(aEvent)->reason == nsMouseEvent::eReal &&
+       
+       
+       
+       aEvent->message != NS_MOUSE_EXIT &&
+       aEvent->message != NS_MOUSE_ENTER) ||
+      NS_IS_KEY_EVENT(aEvent) ||
+      NS_IS_IME_EVENT(aEvent) ||
+      aEvent->message == NS_PLUGIN_INPUT_EVENT) {
+    gLastUserEventTime = PR_IntervalToMicroseconds(PR_IntervalNow());
+  }
 
-  switch(aEvent->message)
-    {
-    case NS_SIZE:
-      {
-        if (aView)
-          {
-            
-            nscoord width = ((nsSizeEvent*)aEvent)->windowSize->width;
-            nscoord height = ((nsSizeEvent*)aEvent)->windowSize->height;
-
-            
-            
-
-            if (aView == mRootView)
-              {
-                PRInt32 p2a = AppUnitsPerDevPixel();
-                SetWindowDimensions(NSIntPixelsToAppUnits(width, p2a),
-                                    NSIntPixelsToAppUnits(height, p2a));
-                *aStatus = nsEventStatus_eConsumeNoDefault;
-              }
-            else if (IsViewForPopup(aView))
-              {
-                nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-                if (pm)
-                  {
-                    pm->PopupResized(aView->GetFrame(), nsIntSize(width, height));
-                    *aStatus = nsEventStatus_eConsumeNoDefault;
-                  }
-              }
-          }
-        }
-
-        break;
-
-    case NS_MOVE:
-      {
-        
-        
-        
-        if (aView && IsViewForPopup(aView))
-          {
-            nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-            if (pm)
-              {
-                pm->PopupMoved(aView->GetFrame(), aEvent->refPoint);
-                *aStatus = nsEventStatus_eConsumeNoDefault;
-              }
-          }
-        break;
-      }
-
-    case NS_XUL_CLOSE:
-      {
-        
-        
-        nsIWidget* widget = aView->GetWidget();
-        if (widget) {
-          nsWindowType type;
-          widget->GetWindowType(type);
-          if (type == eWindowType_popup) {
-            nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-            if (pm) {
-              pm->HidePopup(aView->GetFrame());
-              *aStatus = nsEventStatus_eConsumeNoDefault;
-            }
-          }
-        }
-      }
-      break;
-
-    case NS_WILL_PAINT:
-      {
-        if (!aView || !mContext)
-          break;
-
-        *aStatus = nsEventStatus_eConsumeNoDefault;
-    
-        if (!IsRefreshDriverPaintingEnabled()) {
-
-          nsPaintEvent *event = static_cast<nsPaintEvent*>(aEvent);
-
-          NS_ASSERTION(static_cast<nsView*>(aView) ==
-                         nsView::GetViewFor(event->widget),
-                       "view/widget mismatch");
-
-          
-          
-          for (nsViewManager *vm = this; vm;
-               vm = vm->mRootView->GetParent()
-                      ? vm->mRootView->GetParent()->GetViewManager()
-                      : nullptr) {
-            if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
-                vm->mRootView->IsEffectivelyVisible() &&
-                mPresShell && mPresShell->IsVisible()) {
-              vm->FlushDelayedResize(true);
-              vm->InvalidateView(vm->mRootView);
-            }
-          }
-
-          
-          
-          nsRefPtr<nsViewManager> rootVM = RootViewManager();
-          if (mPresShell) {
-            rootVM->CallWillPaintOnObservers(event->willSendDidPaint);
-          }
-          
-          rootVM->ProcessPendingUpdates();
-        }
-      }
-      break;
-
-    case NS_PAINT:
-      {
-        if (!aView || !mContext)
-          break;
-
-        *aStatus = nsEventStatus_eConsumeNoDefault;
-        nsPaintEvent *event = static_cast<nsPaintEvent*>(aEvent);
-        nsView* view = static_cast<nsView*>(aView);
-        NS_ASSERTION(view == nsView::GetViewFor(event->widget),
-                     "view/widget mismatch");
-        NS_ASSERTION(IsPaintingAllowed(),
-                     "shouldn't be receiving paint events while painting is "
-                     "disallowed!");
-
-        if (!event->didSendWillPaint && !IsRefreshDriverPaintingEnabled()) {
-          
-          nsPaintEvent willPaintEvent(true, NS_WILL_PAINT, event->widget);
-          willPaintEvent.willSendDidPaint = event->willSendDidPaint;
-          DispatchEvent(&willPaintEvent, view, aStatus);
-
-          
-          
-          view = nsView::GetViewFor(event->widget);
-        }
-
-        if (!view || event->region.IsEmpty())
-          break;
-
-        
-        Refresh(view, event->region, event->willSendDidPaint);
-
-        break;
-      }
-
-    case NS_DID_PAINT: {
-      if (!IsRefreshDriverPaintingEnabled()) {
-        nsRefPtr<nsViewManager> rootVM = RootViewManager();
-        rootVM->CallDidPaintOnObserver();
-      }
-      break;
-    }
-
-    case NS_SETZLEVEL:
-      
-
-
-      *aStatus = nsEventStatus_eConsumeNoDefault;
-      break;
-
-    default:
-      {
-        if ((NS_IS_MOUSE_EVENT(aEvent) &&
-             
-             static_cast<nsMouseEvent*>(aEvent)->reason ==
-               nsMouseEvent::eReal &&
-             
-             
-             
-             aEvent->message != NS_MOUSE_EXIT &&
-             aEvent->message != NS_MOUSE_ENTER) ||
-            NS_IS_KEY_EVENT(aEvent) ||
-            NS_IS_IME_EVENT(aEvent) ||
-            aEvent->message == NS_PLUGIN_INPUT_EVENT) {
-          gLastUserEventTime = PR_IntervalToMicroseconds(PR_IntervalNow());
-        }
-
-        if (aEvent->message == NS_DEACTIVATE) {
-          
-          
-          nsIPresShell::ClearMouseCapture(nullptr);
-        }
-
-        
-        nsIView* view = aView;
-        bool dispatchUsingCoordinates = NS_IsEventUsingCoordinates(aEvent);
-        if (dispatchUsingCoordinates) {
-          
-          
-          view = GetDisplayRootFor(view);
-        }
   
-        
-        nsIFrame* frame = view->GetFrame();
-        if (!frame &&
-            (dispatchUsingCoordinates || NS_IS_KEY_EVENT(aEvent) ||
-             NS_IS_IME_RELATED_EVENT(aEvent) ||
-             NS_IS_NON_RETARGETED_PLUGIN_EVENT(aEvent) ||
-             aEvent->message == NS_PLUGIN_ACTIVATE ||
-             aEvent->message == NS_PLUGIN_FOCUS)) {
-          while (view && !view->GetFrame()) {
-            view = view->GetParent();
-          }
-
-          if (view) {
-            frame = view->GetFrame();
-          }
-        }
-
-        if (nullptr != frame) {
-          
-          
-          
-          nsCOMPtr<nsIPresShell> shell = view->GetViewManager()->GetPresShell();
-          if (shell) {
-            shell->HandleEvent(frame, aEvent, false, aStatus);
-          }
-        }
+  nsIView* view = aView;
+  bool dispatchUsingCoordinates = NS_IsEventUsingCoordinates(aEvent);
+  if (dispatchUsingCoordinates) {
     
-        break;
-      }
+    
+    view = GetDisplayRootFor(view);
+  }
+
+  
+  nsIFrame* frame = view->GetFrame();
+  if (!frame &&
+      (dispatchUsingCoordinates || NS_IS_KEY_EVENT(aEvent) ||
+       NS_IS_IME_RELATED_EVENT(aEvent) ||
+       NS_IS_NON_RETARGETED_PLUGIN_EVENT(aEvent) ||
+       aEvent->message == NS_PLUGIN_ACTIVATE ||
+       aEvent->message == NS_PLUGIN_FOCUS)) {
+    while (view && !view->GetFrame()) {
+      view = view->GetParent();
     }
+
+    if (view) {
+      frame = view->GetFrame();
+    }
+  }
+
+  if (nullptr != frame) {
+    
+    
+    
+    nsCOMPtr<nsIPresShell> shell = view->GetViewManager()->GetPresShell();
+    if (shell) {
+      return shell->HandleEvent(frame, aEvent, false, aStatus);
+    }
+  }
+
+  *aStatus = nsEventStatus_eIgnore;
 
   return NS_OK;
 }

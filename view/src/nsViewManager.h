@@ -168,6 +168,11 @@ public:
   
   bool IsPaintingAllowed() { return RootViewManager()->mRefreshDisableCount == 0; }
 
+  void WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint);
+  bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion,
+                   bool aSentWillPaint, bool aWillSendDidPaint);
+  void DidPaintWindow();
+
   
   
   void PostPendingUpdate();

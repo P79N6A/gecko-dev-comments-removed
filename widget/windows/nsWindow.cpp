@@ -115,6 +115,7 @@
 #include "WinTaskbar.h"
 #include "WinUtils.h"
 #include "WidgetUtils.h"
+#include "nsIWidgetListener.h"
 
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
@@ -1588,9 +1589,8 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
       ::ShowWindow(mWnd, mode);
     }
     
-    
     if (mode == SW_MAXIMIZE || mode == SW_SHOW)
-      DispatchFocusToTopLevelWindow(NS_ACTIVATE);
+      DispatchFocusToTopLevelWindow(true);
   }
   return rv;
 }
@@ -2700,11 +2700,8 @@ nsWindow::MakeFullScreen(bool aFullScreen)
     taskbarInfo->PrepareFullScreenHWND(mWnd, FALSE);
   }
 
-  
-  nsSizeModeEvent event(true, NS_SIZEMODE, this);
-  event.mSizeMode = mSizeMode;
-  InitEvent(event);
-  DispatchWindowEvent(&event);
+  if (mWidgetListener)
+    mWidgetListener->SizeModeChanged(mSizeMode);
 
   return rv;
 }
@@ -3490,27 +3487,10 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
   aStatus = nsEventStatus_eIgnore;
 
   
-  if (event->message == NS_DEACTIVATE && BlurEventsSuppressed())
-    return NS_OK;
-
-  
   
   
   
   if (mViewCallback) {
-    
-    switch(event->message) {
-      
-      case NS_SIZE:
-      case NS_DEACTIVATE:
-      case NS_ACTIVATE:
-      case NS_SIZEMODE:
-      case NS_SETZLEVEL:
-      case NS_XUL_CLOSE:
-      case NS_MOVE:
-        (*mEventCallback)(event); 
-        break;
-    };
     
     aStatus = (*mViewCallback)(event);
   }
@@ -3947,11 +3927,17 @@ bool nsWindow::DispatchMouseEvent(PRUint32 aEventType, WPARAM wParam,
   return result;
 }
 
-bool nsWindow::DispatchFocusToTopLevelWindow(PRUint32 aEventType)
+void nsWindow::DispatchFocusToTopLevelWindow(bool aIsActivate)
 {
-  if (aEventType == NS_ACTIVATE)
+  if (aIsActivate)
     sJustGotActivate = false;
   sJustGotDeactivate = false;
+
+  if (!aIsActivate && BlurEventsSuppressed())
+    return;
+
+  if (!mWidgetListener)
+    return;
 
   
   HWND curWnd = mWnd;
@@ -3972,47 +3958,13 @@ bool nsWindow::DispatchFocusToTopLevelWindow(PRUint32 aEventType)
 
   if (toplevelWnd) {
     nsWindow *win = WinUtils::GetNSWindowPtr(toplevelWnd);
-    if (win)
-      return win->DispatchFocus(aEventType);
-  }
-
-  return false;
-}
-
-
-bool nsWindow::DispatchFocus(PRUint32 aEventType)
-{
-  
-  if (mEventCallback) {
-    nsGUIEvent event(true, aEventType, this);
-    InitEvent(event);
-
-    
-    event.refPoint.x = 0;
-    event.refPoint.y = 0;
-
-    NPEvent pluginEvent;
-
-    switch (aEventType)
-    {
-      case NS_ACTIVATE:
-        pluginEvent.event = WM_SETFOCUS;
-        break;
-      case NS_DEACTIVATE:
-        pluginEvent.event = WM_KILLFOCUS;
-        break;
-      case NS_PLUGIN_ACTIVATE:
-        pluginEvent.event = WM_KILLFOCUS;
-        break;
-      default:
-        break;
+    if (win) {
+      if (aIsActivate)
+        mWidgetListener->WindowActivated();
+      else
+        mWidgetListener->WindowDeactivated();
     }
-
-    event.pluginEvent = (void *)&pluginEvent;
-
-    return DispatchWindowEvent(&event);
   }
-  return false;
 }
 
 bool nsWindow::IsTopLevelMouseExit(HWND aWnd)
@@ -4687,7 +4639,8 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     break;
 
     case WM_CLOSE: 
-      DispatchStandardEvent(NS_XUL_CLOSE);
+      if (mWidgetListener)
+        mWidgetListener->RequestWindowClose(this);
       result = true; 
       break;
 
@@ -4985,9 +4938,8 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         if (WA_INACTIVE == fActive) {
           
           
-          
           if (HIWORD(wParam))
-            result = DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
+            DispatchFocusToTopLevelWindow(false);
           else
             sJustGotDeactivate = true;
 
@@ -5054,13 +5006,13 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         ForgetRedirectedKeyDownMessage();
       }
       if (sJustGotActivate) {
-        result = DispatchFocusToTopLevelWindow(NS_ACTIVATE);
+        DispatchFocusToTopLevelWindow(true);
       }
       break;
 
     case WM_KILLFOCUS:
       if (sJustGotDeactivate) {
-        result = DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
+        DispatchFocusToTopLevelWindow(false);
       }
       break;
 
@@ -5314,7 +5266,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         } else {
           
           if (sJustGotDeactivate) {
-            DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
+            DispatchFocusToTopLevelWindow(false);
           }
         }
       }
@@ -5930,36 +5882,32 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
     if (mSizeMode == nsSizeMode_Minimized && (wp->flags & SWP_NOACTIVATE))
       return;
 
-    nsSizeModeEvent event(true, NS_SIZEMODE, this);
-
     WINDOWPLACEMENT pl;
     pl.length = sizeof(pl);
     ::GetWindowPlacement(mWnd, &pl);
 
+    
+    
+    
+    
+    
+    
+    
     if (pl.showCmd == SW_SHOWMAXIMIZED)
-      event.mSizeMode = (mFullscreenMode ? nsSizeMode_Fullscreen : nsSizeMode_Maximized);
+      mSizeMode = (mFullscreenMode ? nsSizeMode_Fullscreen : nsSizeMode_Maximized);
     else if (pl.showCmd == SW_SHOWMINIMIZED)
-      event.mSizeMode = nsSizeMode_Minimized;
+      mSizeMode = nsSizeMode_Minimized;
     else if (mFullscreenMode)
-      event.mSizeMode = nsSizeMode_Fullscreen;
+      mSizeMode = nsSizeMode_Fullscreen;
     else
-      event.mSizeMode = nsSizeMode_Normal;
+      mSizeMode = nsSizeMode_Normal;
 
     
     
     
     
     
-    
-    
-    mSizeMode = event.mSizeMode;
-
-    
-    
-    
-    
-    
-    if (!sTrimOnMinimize && nsSizeMode_Minimized == event.mSizeMode)
+    if (!sTrimOnMinimize && nsSizeMode_Minimized == mSizeMode)
       ActivateOtherWindowHelper(mWnd);
 
 #ifdef WINSTATE_DEBUG_OUTPUT
@@ -5982,15 +5930,14 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
     };
 #endif
 
-    InitEvent(event);
-
-    result = DispatchWindowEvent(&event);
+    if (mWidgetListener)
+      mWidgetListener->SizeModeChanged(mSizeMode);
 
     
     
     
     if (mLastSizeMode != nsSizeMode_Normal && mSizeMode == nsSizeMode_Normal)
-      DispatchFocusToTopLevelWindow(NS_ACTIVATE);
+      DispatchFocusToTopLevelWindow(true);
 
     
     if (mSizeMode == nsSizeMode_Minimized)
@@ -6117,7 +6064,7 @@ void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info)
     WINDOWPLACEMENT pl;
     pl.length = sizeof(pl);
     ::GetWindowPlacement(mWnd, &pl);
-    PRInt32 sizeMode;
+    nsSizeMode sizeMode;
     if (pl.showCmd == SW_SHOWMAXIMIZED)
       sizeMode = (mFullscreenMode ? nsSizeMode_Fullscreen : nsSizeMode_Maximized);
     else if (pl.showCmd == SW_SHOWMINIMIZED)
@@ -6127,11 +6074,8 @@ void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info)
     else
       sizeMode = nsSizeMode_Normal;
 
-    nsSizeModeEvent event(true, NS_SIZEMODE, this);
-
-    InitEvent(event);
-    event.mSizeMode = static_cast<nsSizeMode>(sizeMode);
-    DispatchWindowEvent(&event);
+    if (mWidgetListener)
+      mWidgetListener->SizeModeChanged(sizeMode);
 
     UpdateNonClientMargins(sizeMode, false);
   }
@@ -6139,37 +6083,32 @@ void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info)
   
   if (!(info->flags & SWP_NOZORDER)) {
     HWND hwndAfter = info->hwndInsertAfter;
-    
-    nsZLevelEvent event(true, NS_SETZLEVEL, this);
-    nsWindow *aboveWindow = 0;
 
-    InitEvent(event);
+    nsWindow *aboveWindow = 0;
+    nsWindowZ placement;
 
     if (hwndAfter == HWND_BOTTOM)
-      event.mPlacement = nsWindowZBottom;
+      placement = nsWindowZBottom;
     else if (hwndAfter == HWND_TOP || hwndAfter == HWND_TOPMOST || hwndAfter == HWND_NOTOPMOST)
-      event.mPlacement = nsWindowZTop;
+      placement = nsWindowZTop;
     else {
-      event.mPlacement = nsWindowZRelative;
+      placement = nsWindowZRelative;
       aboveWindow = WinUtils::GetNSWindowPtr(hwndAfter);
     }
-    event.mReqBelow = aboveWindow;
-    event.mActualBelow = nullptr;
 
-    event.mImmediate = false;
-    event.mAdjusted = false;
-    DispatchWindowEvent(&event);
-
-    if (event.mAdjusted) {
-      if (event.mPlacement == nsWindowZBottom)
-        info->hwndInsertAfter = HWND_BOTTOM;
-      else if (event.mPlacement == nsWindowZTop)
-        info->hwndInsertAfter = HWND_TOP;
-      else {
-        info->hwndInsertAfter = (HWND)event.mActualBelow->GetNativeData(NS_NATIVE_WINDOW);
+    if (mWidgetListener) {
+      nsCOMPtr<nsIWidget> actualBelow = nullptr;
+      if (mWidgetListener->ZLevelChanged(false, &placement,
+                                         aboveWindow, getter_AddRefs(actualBelow))) {
+        if (placement == nsWindowZBottom)
+          info->hwndInsertAfter = HWND_BOTTOM;
+        else if (placement == nsWindowZTop)
+          info->hwndInsertAfter = HWND_TOP;
+        else {
+          info->hwndInsertAfter = (HWND)actualBelow->GetNativeData(NS_NATIVE_WINDOW);
+        }
       }
     }
-    NS_IF_RELEASE(event.mActualBelow);
   }
   
   if (mWindowType == eWindowType_invisible)
@@ -7073,12 +7012,7 @@ bool nsWindow::OnMove(PRInt32 aX, PRInt32 aY)
   mBounds.x = aX;
   mBounds.y = aY;
 
-  nsGUIEvent event(true, NS_MOVE, this);
-  InitEvent(event);
-  event.refPoint.x = aX;
-  event.refPoint.y = aY;
-
-  return DispatchWindowEvent(&event);
+  return mWidgetListener ? mWidgetListener->WindowMoved(this, aX, aY) : false;
 }
 
 
@@ -7091,31 +7025,8 @@ bool nsWindow::OnResize(nsIntRect &aWindowRect)
   }
 #endif
 
-  
-  if (mEventCallback) {
-    nsSizeEvent event(true, NS_SIZE, this);
-    InitEvent(event);
-    event.windowSize = &aWindowRect;
-    RECT r;
-    if (::GetWindowRect(mWnd, &r)) {
-      event.mWinWidth  = PRInt32(r.right - r.left);
-      event.mWinHeight = PRInt32(r.bottom - r.top);
-    } else {
-      event.mWinWidth  = 0;
-      event.mWinHeight = 0;
-    }
-
-#if 0
-    PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
-           ("[%X] OnResize: client:(%d x %d x %d x %d) window:(%d x %d)\n", this,
-            aWindowRect.x, aWindowRect.y, aWindowRect.width, aWindowRect.height,
-            event.mWinWidth, event.mWinHeight));
-#endif
-
-    return DispatchWindowEvent(&event);
-  }
-
-  return false;
+  return mWidgetListener ?
+         mWidgetListener->WindowResized(this, aWindowRect.width, aWindowRect.height) : false;
 }
 
 bool nsWindow::OnHotKey(WPARAM wParam, LPARAM lParam)

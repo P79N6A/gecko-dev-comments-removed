@@ -479,7 +479,9 @@ public:
   
   
   virtual bool      DispatchWindowEvent(nsGUIEvent& event);
-  
+
+  bool PaintWindow(nsIntRegion aRegion);
+
 #ifdef ACCESSIBILITY
   already_AddRefed<Accessible> GetDocumentAccessible();
 #endif
@@ -519,8 +521,8 @@ public:
 
 protected:
 
-  bool              ReportMoveEvent();
-  bool              ReportSizeEvent();
+  void              ReportMoveEvent();
+  void              ReportSizeEvent();
 
   
   
