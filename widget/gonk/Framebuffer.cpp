@@ -1,19 +1,19 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et ft=cpp : */
+/* Copyright 2012 Mozilla Foundation and Mozilla contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include <fcntl.h>
 #include <linux/fb.h>
@@ -35,6 +35,7 @@
 #include "gfxUtils.h"
 #include "mozilla/FileUtils.h"
 #include "nsTArray.h"
+#include "nsRegion.h"
 
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Gonk" , ## args)
 
@@ -59,7 +60,7 @@ SetGraphicsMode()
 {
     ScopedClose fd(open("/dev/tty0", O_RDWR | O_SYNC));
     if (0 > fd.get()) {
-        
+        // This is non-fatal; post-Cupcake kernels don't have tty0.
         LOG("No /dev/tty0?");
     } else if (ioctl(fd.get(), KDSETMODE, (void*) KD_GRAPHICS)) {
         LOG("Error setting graphics mode on /dev/tty0");
@@ -105,9 +106,9 @@ Open()
     sFd = fd.get();
     fd.forget();
 
-    
-    
-    
+    // The android porting doc requires a /dev/graphics/fb0 device
+    // that's double buffered with r5g6b5 format.  Hence the
+    // hard-coded numbers here.
     gfxASurface::gfxImageFormat format = gfxASurface::ImageFormatRGB16_565;
     int bytesPerPixel = gfxASurface::BytePerPixelFromFormat(format);
     if (!sScreenSize) {
@@ -123,7 +124,7 @@ Open()
       Buffers()[i] = new gfxImageSurface(data, *sScreenSize, stride, format);
     }
 
-    
+    // Clear the framebuffer to a known state.
     Present(nsIntRect());
 
     return true;
@@ -131,7 +132,7 @@ Open()
 
 bool
 GetSize(nsIntSize *aScreenSize) {
-    
+    // If the framebuffer has been opened, we should always have the size.
     if (0 <= sFd || sScreenSize) {
         *aScreenSize = *sScreenSize;
         return true;
@@ -201,6 +202,6 @@ Present(const nsIntRegion& aUpdated)
     ctx->Paint(1.0);
 }
 
-} 
+} // namespace Framebuffer
 
-} 
+} // namespace mozilla

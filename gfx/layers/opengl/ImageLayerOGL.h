@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef GFX_IMAGELAYEROGL_H
 #define GFX_IMAGELAYEROGL_H
@@ -11,24 +11,28 @@
 
 #include "LayerManagerOGL.h"
 #include "ImageLayers.h"
+#include "ImageContainer.h"
 #include "yuv_convert.h"
 #include "mozilla/Mutex.h"
 
 namespace mozilla {
 namespace layers {
 
+class CairoImage;
+class PlanarYCbCrImage;
 
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * This class wraps a GL texture. It includes a GLContext reference
+ * so we can use to free the texture when destroyed. The implementation
+ * makes sure to always free the texture on the main thread, even if the
+ * destructor runs on another thread.
+ *
+ * We ensure that the GLContext reference is only addrefed and released
+ * on the main thread, although it uses threadsafe recounting so we don't
+ * really have to.
+ *
+ * Initially the texture is not allocated --- it's in a "null" state.
+ */
 class GLTexture {
   typedef mozilla::gl::GLContext GLContext;
 
@@ -36,14 +40,14 @@ public:
   GLTexture() : mTexture(0) {}
   ~GLTexture() { Release(); }
 
-  
-
-
+  /**
+   * Allocate the texture. This can only be called on the main thread.
+   */
   void Allocate(GLContext *aContext);
-  
-
-
-
+  /**
+   * Move the state of aOther to this GLTexture. If this GLTexture currently
+   * has a texture, it is released. This can be called on any thread.
+   */
   void TakeFrom(GLTexture *aOther);
 
   bool IsAllocated() { return mTexture != 0; }
@@ -57,13 +61,13 @@ private:
   GLuint mTexture;
 };
 
-
-
-
-
-
-
-
+/**
+ * A RecycleBin is owned by an ImageLayer. We store textures in it that we
+ * want to recycle from one image to the next. It's a separate object from 
+ * ImageContainer because images need to store a strong ref to their RecycleBin
+ * and we must avoid creating a reference loop between an ImageContainer and
+ * its active image.
+ */
 class TextureRecycleBin {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TextureRecycleBin)
 
@@ -85,8 +89,8 @@ public:
 private:
   typedef mozilla::Mutex Mutex;
 
-  
-  
+  // This protects mRecycledBuffers, mRecycledBufferSize, mRecycledTextures
+  // and mRecycledTextureSizes
   Mutex mLock;
 
   nsTArray<GLTexture> mRecycledTextures[2];
@@ -100,7 +104,7 @@ public:
   ImageLayerOGL(LayerManagerOGL *aManager);
   ~ImageLayerOGL() { Destroy(); }
 
-  
+  // LayerOGL Implementation
   virtual void Destroy() { mDestroyed = true; }
   virtual Layer* GetLayer();
   virtual bool LoadAsTexture(GLuint aTextureUnit, gfxIntSize* aSize);
@@ -157,13 +161,13 @@ public:
   ShadowImageLayerOGL(LayerManagerOGL* aManager);
   virtual ~ShadowImageLayerOGL();
 
-  
+  // ShadowImageLayer impl
   virtual void Swap(const SharedImage& aFront,
                     SharedImage* aNewBack);
 
   virtual void Disconnect();
 
-  
+  // LayerOGL impl
   virtual void Destroy();
   virtual bool LoadAsTexture(GLuint aTextureUnit, gfxIntSize* aSize);
 
@@ -181,15 +185,15 @@ private:
 
   nsRefPtr<TextureImage> mTexImage;
 
-  
+  // For SharedTextureHandle
   gl::SharedTextureHandle mSharedHandle;
   gl::TextureImage::TextureShareType mShareType;
   bool mInverted;
   GLuint mTexture;
 
-  
-  
-  
+  // For direct texturing with OES_EGL_image_external extension. This
+  // texture is allocated when the image supports binding with
+  // BindExternalBuffer.
   GLTexture mExternalBufferTexture;
 
   GLTexture mYUVTexture[3];
@@ -198,6 +202,6 @@ private:
   nsIntRect mPictureRect;
 };
 
-} 
-} 
-#endif 
+} /* layers */
+} /* mozilla */
+#endif /* GFX_IMAGELAYEROGL_H */

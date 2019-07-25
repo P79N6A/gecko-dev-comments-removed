@@ -1,11 +1,12 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "gfxSharedImageSurface.h"
 #include "mozilla/layers/ImageContainerParent.h"
 
+#include "ImageContainer.h" // for PlanarYCBCRImage
 #include "ipc/AutoOpenSurface.h"
 #include "ImageLayerOGL.h"
 #include "gfxImageSurface.h"
@@ -49,10 +50,10 @@ MakeTextureIfNeeded(GLContext* gl, GLuint& aTexture)
   gl->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
 }
 
-
-
-
-
+/**
+ * This is an event used to unref a GLContext on the main thread and
+ * optionally delete a texture associated with that context.
+ */
 class TextureDeleter : public nsRunnable {
 public:
   TextureDeleter(already_AddRefed<GLContext> aContext,
@@ -66,7 +67,7 @@ public:
     mContext->MakeCurrent();
     mContext->fDeleteTextures(1, &mTexture);
 
-    
+    // Ensure context is released on the main thread
     mContext = nullptr;
     return NS_OK;
   }
@@ -243,12 +244,12 @@ ImageLayerOGL::RenderLayer(int,
     return;
   }
 
-  NS_ASSERTION(image->GetFormat() != Image::REMOTE_IMAGE_BITMAP,
+  NS_ASSERTION(image->GetFormat() != ImageFormat::REMOTE_IMAGE_BITMAP,
     "Remote images aren't handled yet in OGL layers!");
   NS_ASSERTION(mScaleMode == SCALE_NONE,
     "Scale modes other than none not handled yet in OGL layers!");
 
-  if (image->GetFormat() == Image::PLANAR_YCBCR) {
+  if (image->GetFormat() == ImageFormat::PLANAR_YCBCR) {
     PlanarYCbCrImage *yuvImage =
       static_cast<PlanarYCbCrImage*>(image);
 
@@ -260,8 +261,8 @@ ImageLayerOGL::RenderLayer(int,
       static_cast<PlanarYCbCrOGLBackendData*>(yuvImage->GetBackendData(LAYERS_OPENGL));
 
     if (data && data->mTextures->GetGLContext() != gl()) {
-      
-      
+      // If these textures were allocated by another layer manager,
+      // clear them out and re-allocate below.
       data = nullptr;
       yuvImage->SetBackendData(LAYERS_OPENGL, nullptr);
     }
@@ -272,7 +273,7 @@ ImageLayerOGL::RenderLayer(int,
     }
 
     if (!data || data->mTextures->GetGLContext() != gl()) {
-      
+      // XXX - Can this ever happen? If so I need to fix this!
       return;
     }
 
@@ -305,10 +306,10 @@ ImageLayerOGL::RenderLayer(int,
                                                 nsIntSize(yuvImage->mData.mYSize.width,
                                                           yuvImage->mData.mYSize.height));
 
-    
-    
+    // We shouldn't need to do this, but do it anyway just in case
+    // someone else forgets.
     gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
-  } else if (image->GetFormat() == Image::CAIRO_SURFACE) {
+  } else if (image->GetFormat() == ImageFormat::CAIRO_SURFACE) {
     CairoImage *cairoImage =
       static_cast<CairoImage*>(image);
 
@@ -323,8 +324,8 @@ ImageLayerOGL::RenderLayer(int,
       static_cast<CairoOGLBackendData*>(cairoImage->GetBackendData(LAYERS_OPENGL));
 
     if (data && data->mTexture.GetGLContext() != gl()) {
-      
-      
+      // If this texture was allocated by another layer manager, clear
+      // it out and re-allocate below.
       data = nullptr;
       cairoImage->SetBackendData(LAYERS_OPENGL, nullptr);
     }
@@ -335,7 +336,7 @@ ImageLayerOGL::RenderLayer(int,
     }
 
     if (!data || data->mTexture.GetGLContext() != gl()) {
-      
+      // XXX - Can this ever happen? If so I need to fix this!
       return;
     }
 
@@ -384,14 +385,14 @@ ImageLayerOGL::RenderLayer(int,
     }
 #endif
 #ifdef XP_MACOSX
-  } else if (image->GetFormat() == Image::MAC_IO_SURFACE) {
+  } else if (image->GetFormat() == ImageFormat::MAC_IO_SURFACE) {
      MacIOSurfaceImage *ioImage =
        static_cast<MacIOSurfaceImage*>(image);
 
      if (!mOGLManager->GetThebesLayerCallback()) {
-       
-       
-       
+       // If its an empty transaction we still need to update
+       // the plugin IO Surface and make sure we grab the
+       // new image
        ioImage->Update(GetContainer());
        image = nullptr;
        autoLock.Refresh();
@@ -421,7 +422,7 @@ ImageLayerOGL::RenderLayer(int,
 
      program->Activate();
      if (program->GetTexCoordMultiplierUniformLocation() != -1) {
-       
+       // 2DRect case, get the multiplier right for a sampler2DRect
        program->SetTexCoordMultiplier(ioImage->GetSize().width, ioImage->GetSize().height);
      } else {
        NS_ASSERTION(0, "no rects?");
@@ -440,7 +441,7 @@ ImageLayerOGL::RenderLayer(int,
      gl()->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
 #endif
 #ifdef MOZ_WIDGET_GONK
-  } else if (image->GetFormat() == Image::GONK_IO_SURFACE) {
+  } else if (image->GetFormat() == ImageFormat::GONK_IO_SURFACE) {
 
     GonkIOSurfaceImage *ioImage = static_cast<GonkIOSurfaceImage*>(image);
     if (!ioImage) {
@@ -604,12 +605,12 @@ ImageLayerOGL::AllocateTexturesCairo(CairoImage *aImage)
   aImage->SetBackendData(LAYERS_OPENGL, backendData.forget());
 }
 
-
-
-
-
-
-
+/*
+ * Returns a size that is larger than and closest to aSize where both
+ * width and height are powers of two.
+ * If the OpenGL setup is capable of using non-POT textures, then it
+ * will just return aSize.
+ */
 gfxIntSize CalculatePOTSize(const gfxIntSize& aSize, GLContext* gl)
 {
   if (gl->CanUploadNonPowerOfTwo())
@@ -621,8 +622,8 @@ gfxIntSize CalculatePOTSize(const gfxIntSize& aSize, GLContext* gl)
 bool
 ImageLayerOGL::LoadAsTexture(GLuint aTextureUnit, gfxIntSize* aSize)
 {
-  
-  
+  // this method shares a lot of code with RenderLayer, but it doesn't seem
+  // to be possible to factor it out into a helper method
 
   if (!GetContainer()) {
     return false;
@@ -635,7 +636,7 @@ ImageLayerOGL::LoadAsTexture(GLuint aTextureUnit, gfxIntSize* aSize)
     return false;
   }
 
-  if (image->GetFormat() != Image::CAIRO_SURFACE) {
+  if (image->GetFormat() != ImageFormat::CAIRO_SURFACE) {
     return false;
   }
 
@@ -652,7 +653,7 @@ ImageLayerOGL::LoadAsTexture(GLuint aTextureUnit, gfxIntSize* aSize)
     NS_ASSERTION(cairoImage->mSurface->GetContentType() == gfxASurface::CONTENT_ALPHA,
                  "OpenGL mask layers must be backed by alpha surfaces");
 
-    
+    // allocate a new texture and save the details in the backend data
     data = new CairoOGLBackendData;
     data->mTextureSize = CalculatePOTSize(cairoImage->mSize, gl());
 
@@ -767,8 +768,8 @@ ShadowImageLayerOGL::Swap(const SharedImage& aNewFront,
 {
   if (!mDestroyed) {
     if (aNewFront.type() == SharedImage::TSharedImageID) {
-      
-      
+      // We are using ImageBridge protocol. The image data will be queried at render
+      // time in the parent side.
       PRUint64 newID = aNewFront.get_SharedImageID().id();
       if (newID != mImageContainerID) {
         mImageContainerID = newID;
@@ -796,7 +797,7 @@ ShadowImageLayerOGL::Swap(const SharedImage& aNewFront,
             mTexImage->GetContentType() != surf.ContentType()) {
           Init(aNewFront);
         }
-        
+        // XXX this is always just ridiculously slow
         nsIntRegion updateRegion(nsIntRect(0, 0, size.width, size.height));
         mTexImage->DirectUpdate(surf.Get(), updateRegion);
       }
@@ -942,8 +943,8 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
       do {
         TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
         colorProgram->SetLayerQuadRect(mTexImage->GetTileRect());
-        
-        
+        // We can't use BindAndDrawQuad because that always uploads the whole texture from 0.0f -> 1.0f
+        // in x and y. We use BindAndDrawQuadWithTextureRect to actually draw a subrect of the texture
         mOGLManager->BindAndDrawQuadWithTextureRect(colorProgram,
                                                     nsIntRect(0, 0, mTexImage->GetTileRect().width,
                                                                     mTexImage->GetTileRect().height),
@@ -1043,9 +1044,9 @@ ShadowImageLayerOGL::LoadAsTexture(GLuint aTextureUnit, gfxIntSize* aSize)
   NS_ASSERTION(mTexImage->GetContentType() == gfxASurface::CONTENT_ALPHA,
                "OpenGL mask layers must be backed by alpha surfaces");
 
-  
-  
-  
+  // We're assuming that the gl backend won't cheat and use NPOT
+  // textures when glContext says it can't (which seems to happen
+  // on a mac when you force POT textures)
   *aSize = CalculatePOTSize(mTexImage->GetSize(), gl());
   return true;
 }
@@ -1065,5 +1066,5 @@ ShadowImageLayerOGL::CleanupResources()
   mTexImage = nullptr;
 }
 
-} 
-} 
+} /* layers */
+} /* mozilla */

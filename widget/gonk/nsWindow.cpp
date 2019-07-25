@@ -1,17 +1,17 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* Copyright 2012 Mozilla Foundation and Mozilla contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -25,6 +25,7 @@
 #include "mozilla/FileUtils.h"
 #include "Framebuffer.h"
 #include "gfxContext.h"
+#include "gfxPlatform.h"
 #include "gfxUtils.h"
 #include "GLContextProvider.h"
 #include "LayerManagerOGL.h"
@@ -80,14 +81,14 @@ android::FramebufferNativeWindow*
 NativeWindow()
 {
     if (!gNativeWindow) {
-        
-        
+        // We (apparently) don't have a way to tell if allocating the
+        // fbs succeeded or failed.
         gNativeWindow = new android::FramebufferNativeWindow();
 
-        
-        
-        
-        
+        // Bug 776742: FrambufferNativeWindow doesn't set the cancelBuffer
+        // function pointer, causing EGL to segfault when the window surface
+        // is destroyed (i.e. on process exit). This workaround stops us
+        // from hard crashing in that situation.
         gNativeWindow->cancelBuffer = CancelBufferNoop;
     }
     return gNativeWindow;
@@ -133,8 +134,8 @@ static void *frameBufferWatcher(void *) {
     nsRefPtr<ScreenOnOffEvent> mScreenOffEvent = new ScreenOnOffEvent(false);
 
     while (true) {
-        
-        
+        // Cannot use epoll here because kSleepFile and kWakeFile are
+        // always ready to read and blocking.
         {
             ScopedClose fd(open(kSleepFile, O_RDONLY, 0));
             do {
@@ -157,16 +158,16 @@ static void *frameBufferWatcher(void *) {
     return NULL;
 }
 
-} 
+} // anonymous namespace
 
 nsWindow::nsWindow()
 {
     if (!sScreenInitialized) {
-        
+        // workaround Bug 725143
         hal::SetScreenEnabled(true);
 
-        
-        
+        // Watching screen on/off state by using a pthread
+        // which implicitly calls exit() when the main thread ends
         if (pthread_create(&sFramebufferWatchThread, NULL, frameBufferWatcher, NULL)) {
             NS_RUNTIMEABORT("Failed to create framebufferWatcherThread, aborting...");
         }
@@ -180,8 +181,8 @@ nsWindow::nsWindow()
         property_get("ro.sf.hwrotation", propValue, "0");
         sPhysicalScreenRotation = atoi(propValue) / 90;
 
-        
-        
+        // Unlike nsScreenGonk::SetRotation(), only support 0 and 180 as there
+        // are no known screens that are mounted at 90 or 270 at the moment.
         switch (sPhysicalScreenRotation) {
         case nsIScreen::ROTATION_0_DEG:
             break;
@@ -200,12 +201,12 @@ nsWindow::nsWindow()
 
         nsAppShell::NotifyScreenInitialized();
 
-        
-        
-        
-        
-        
-        
+        // This is a hack to force initialization of the compositor
+        // resources, if we're going to use omtc.
+        //
+        // NB: GetPlatform() will create the gfxPlatform, which wants
+        // to know the color depth, which asks our native window.
+        // This has to happen after other init has finished.
         gfxPlatform::GetPlatform();
         sUsingOMTC = UseOffMainThreadCompositing();
 
@@ -258,7 +259,7 @@ nsWindow::DoDraw(void)
             gfxUtils::PathFromRegion(ctx, region);
             ctx->Clip();
 
-            
+            // No double-buffering needed.
             AutoLayerManagerSetup setupLayerManager(
                 gWindowToRedraw, ctx, mozilla::layers::BUFFER_NONE,
                 ScreenRotation(EffectiveScreenRotation()));
@@ -508,20 +509,20 @@ NS_IMETHODIMP
 nsWindow::MakeFullScreen(bool aFullScreen)
 {
     if (mWindowType != eWindowType_toplevel) {
-        
+        // Ignore fullscreen request for non-toplevel windows.
         NS_WARNING("MakeFullScreen() on a dialog or child widget?");
         return nsBaseWidget::MakeFullScreen(aFullScreen);
     }
 
     if (aFullScreen) {
-        
-        
-        
-        
-        
+        // Fullscreen is "sticky" for toplevel widgets on gonk: we
+        // must paint the entire screen, and should only have one
+        // toplevel widget, so it doesn't make sense to ever "exit"
+        // fullscreen.  If we do, we can leave parts of the screen
+        // unpainted.
         Resize(sVirtualBounds.x, sVirtualBounds.y,
                sVirtualBounds.width, sVirtualBounds.height,
-               true);
+               /*repaint*/true);
     }
     return NS_OK;
 }
@@ -541,8 +542,8 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
     if (aAllowRetaining)
         *aAllowRetaining = true;
     if (mLayerManager) {
-        
-        
+        // This layer manager might be used for painting outside of DoDraw(), so we need
+        // to set the correct rotation on it.
         if (mLayerManager->GetBackendType() == LAYERS_BASIC) {
             BasicLayerManager* manager =
                 static_cast<BasicLayerManager*>(mLayerManager.get());
@@ -552,8 +553,8 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
         return mLayerManager;
     }
 
-    
-    
+    // Set mUseAcceleratedRendering here to make it consistent with
+    // nsBaseWidget::GetLayerManager
     mUseAcceleratedRendering = GetShouldAccelerate();
     nsWindow *topWindow = sTopWindows[0];
 
@@ -589,7 +590,7 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
         }
     }
 
-    
+    // Fall back to software rendering.
     sFramebufferOpen = Framebuffer::Open();
     if (sFramebufferOpen) {
         LOG("Falling back to framebuffer software rendering");
@@ -607,12 +608,12 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 gfxASurface *
 nsWindow::GetThebesSurface()
 {
-    
+    /* This is really a dummy surface; this is only used when doing reflow, because
+     * we need a RenderingContext to measure text against.
+     */
 
-
-
-    
-    
+    // XXX this really wants to return already_AddRefed, but this only really gets used
+    // on direct assignment to a gfxASurface
     return new gfxImageSurface(gfxIntSize(5,5), gfxImageSurface::ImageFormatRGB24);
 }
 
@@ -649,8 +650,8 @@ nsWindow::GetGLFrameBufferFormat()
 {
     if (mLayerManager &&
         mLayerManager->GetBackendType() == mozilla::layers::LAYERS_OPENGL) {
-        
-        
+        // We directly map the hardware fb on Gonk.  The hardware fb
+        // has RGB format.
         return LOCAL_GL_RGB;
     }
     return LOCAL_GL_NONE;
@@ -671,7 +672,7 @@ nsWindow::NeedsPaint()
   return nsIWidget::NeedsPaint();
 }
 
-
+// nsScreenGonk.cpp
 
 nsScreenGonk::nsScreenGonk(void *nativeScreen)
 {
@@ -710,14 +711,14 @@ ColorDepth()
     case GGL_PIXEL_FORMAT_RGBA_8888:
         return 32;
     }
-    return 24; 
+    return 24; // GGL_PIXEL_FORMAT_RGBX_8888
 }
 
 NS_IMETHODIMP
 nsScreenGonk::GetPixelDepth(PRInt32 *aPixelDepth)
 {
-    
-    
+    // XXX: this should actually return 32 when we're using 24-bit
+    // color, because we use RGBX.
     *aPixelDepth = ColorDepth();
     return NS_OK;
 }
@@ -767,8 +768,8 @@ nsScreenGonk::SetRotation(PRUint32 aRotation)
     return NS_OK;
 }
 
-
-
+// NB: This isn't gonk-specific, but gonk is the only widget backend
+// that does this calculation itself, currently.
 static ScreenOrientation
 ComputeOrientation(uint32_t aRotation, const nsIntSize& aScreenSize)
 {
@@ -778,8 +779,8 @@ ComputeOrientation(uint32_t aRotation, const nsIntSize& aScreenSize)
         return (naturallyPortrait ? eScreenOrientation_PortraitPrimary : 
                 eScreenOrientation_LandscapePrimary);
     case nsIScreen::ROTATION_90_DEG:
-        
-        
+        // Arbitrarily choosing 90deg to be primary "unnatural"
+        // rotation.
         return (naturallyPortrait ? eScreenOrientation_LandscapePrimary : 
                 eScreenOrientation_PortraitPrimary);
     case nsIScreen::ROTATION_180_DEG:
@@ -794,20 +795,20 @@ ComputeOrientation(uint32_t aRotation, const nsIntSize& aScreenSize)
     }
 }
 
- uint32_t
+/*static*/ uint32_t
 nsScreenGonk::GetRotation()
 {
     return sScreenRotation;
 }
 
- ScreenConfiguration
+/*static*/ ScreenConfiguration
 nsScreenGonk::GetConfiguration()
 {
     ScreenOrientation orientation = ComputeOrientation(sScreenRotation,
                                                        gScreenBounds.Size());
     uint32_t colorDepth = ColorDepth();
-    
-    
+    // NB: perpetuating colorDepth == pixelDepth illusion here, for
+    // consistency.
     return ScreenConfiguration(sVirtualBounds, orientation,
                                colorDepth, colorDepth);
 }

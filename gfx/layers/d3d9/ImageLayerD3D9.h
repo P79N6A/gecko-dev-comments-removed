@@ -1,13 +1,14 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef GFX_IMAGELAYERD3D9_H
 #define GFX_IMAGELAYERD3D9_H
 
 #include "LayerManagerD3D9.h"
 #include "ImageLayers.h"
+#include "ImageContainer.h"
 #include "yuv_convert.h"
 
 namespace mozilla {
@@ -26,7 +27,7 @@ public:
     mImplData = static_cast<LayerD3D9*>(this);
   }
 
-  
+  // LayerD3D9 Implementation
   virtual Layer* GetLayer();
 
   virtual void RenderLayer();
@@ -63,13 +64,13 @@ public:
   ShadowImageLayerD3D9(LayerManagerD3D9* aManager);
   virtual ~ShadowImageLayerD3D9();
 
-  
+  // ShadowImageLayer impl
   virtual void Swap(const SharedImage& aFront,
                     SharedImage* aNewBack);
 
   virtual void Disconnect();
 
-  
+  // LayerD3D9 impl
   virtual void Destroy();
 
   virtual Layer* GetLayer();
@@ -83,6 +84,6 @@ private:
   nsRefPtr<PlanarYCbCrImage> mYCbCrImage;
 };
 
-} 
-} 
-#endif 
+} /* layers */
+} /* mozilla */
+#endif /* GFX_IMAGELAYERD3D9_H */

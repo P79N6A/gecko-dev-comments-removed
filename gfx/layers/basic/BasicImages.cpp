@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/ReentrantMonitor.h"
 
@@ -37,8 +37,8 @@ public:
   ~BasicPlanarYCbCrImage()
   {
     if (mDecodedBuffer) {
-      
-      
+      // Right now this only happens if the Image was never drawn, otherwise
+      // this will have been tossed away at surface destruction.
       mRecycleBin->RecycleBuffer(mDecodedBuffer.forget(), mSize.height * mStride);
     }
   }
@@ -57,7 +57,7 @@ class BasicImageFactory : public ImageFactory
 public:
   BasicImageFactory() {}
 
-  virtual already_AddRefed<Image> CreateImage(const Image::Format* aFormats,
+  virtual already_AddRefed<Image> CreateImage(const ImageFormat* aFormats,
                                               PRUint32 aNumFormats,
                                               const gfxIntSize &aScaleHint,
                                               BufferRecycleBin *aRecycleBin)
@@ -67,7 +67,7 @@ public:
     }
 
     nsRefPtr<Image> image;
-    if (aFormats[0] == Image::PLANAR_YCBCR) {
+    if (aFormats[0] == ImageFormat::PLANAR_YCBCR) {
       image = new BasicPlanarYCbCrImage(aScaleHint, gfxPlatform::GetPlatform()->GetOffscreenFormat(), aRecycleBin);
       return image.forget();
     }
@@ -81,7 +81,7 @@ BasicPlanarYCbCrImage::SetData(const Data& aData)
 {
   PlanarYCbCrImage::SetData(aData);
 
-  
+  // Do some sanity checks to prevent integer overflow
   if (aData.mYSize.width > PlanarYCbCrImage::MAX_DIMENSION ||
       aData.mYSize.height > PlanarYCbCrImage::MAX_DIMENSION) {
     NS_ERROR("Illegal image source width or height");
@@ -101,7 +101,7 @@ BasicPlanarYCbCrImage::SetData(const Data& aData)
   mStride = gfxASurface::FormatStrideForWidth(format, size.width);
   mDecodedBuffer = AllocateBuffer(size.height * mStride);
   if (!mDecodedBuffer) {
-    
+    // out of memory
     return;
   }
 
@@ -140,7 +140,7 @@ BasicPlanarYCbCrImage::GetAsSurface()
     return nullptr;
   }
 
-  
+  // Pass ownership of the buffer to the surface
   imgSurface->SetData(&imageSurfaceDataKey, mDecodedBuffer.forget(), DestroyBuffer);
 
   nsRefPtr<gfxASurface> result = imgSurface.get();

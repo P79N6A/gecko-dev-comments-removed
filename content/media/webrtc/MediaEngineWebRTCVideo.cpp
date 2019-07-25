@@ -3,6 +3,7 @@
 
 
 #include "MediaEngineWebRTC.h"
+#include "Layers.h"
 
 namespace mozilla {
 
@@ -47,7 +48,7 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
   }
 
   
-  layers::Image::Format format = layers::Image::PLANAR_YCBCR;
+  ImageFormat format = ImageFormat::PLANAR_YCBCR;
   nsRefPtr<layers::Image> image = mImageContainer->CreateImage(&format, 1);
 
   layers::PlanarYCbCrImage* videoImage = static_cast<layers::PlanarYCbCrImage*>(image.get());
@@ -67,7 +68,7 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
   data.mPicX = 0;
   data.mPicY = 0;
   data.mPicSize = gfxIntSize(mWidth, mHeight);
-  data.mStereoMode = layers::STEREO_MODE_MONO;
+  data.mStereoMode = STEREO_MODE_MONO;
 
   videoImage->SetData(data);
 

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef GFX_BASICLAYERS_H
 #define GFX_BASICLAYERS_H
@@ -27,55 +27,56 @@ class ShadowImageLayer;
 class ShadowCanvasLayer;
 class ShadowColorLayer;
 class ReadbackProcessor;
+class ImageFactory;
 
-
-
-
-
-
-
-
-
+/**
+ * This is a cairo/Thebes-only, main-thread-only implementation of layers.
+ * 
+ * In each transaction, the client sets up the layer tree and then during
+ * the drawing phase, each ThebesLayer is painted directly into the target
+ * context (with appropriate clipping and Push/PopGroups performed
+ * between layers).
+ */
 class THEBES_API BasicLayerManager :
     public ShadowLayerManager
 {
 public:
-  
-
-
-
-
-
+  /**
+   * Construct a BasicLayerManager which will have no default
+   * target context. SetDefaultTarget or BeginTransactionWithTarget
+   * must be called for any rendering to happen. ThebesLayers will not
+   * be retained.
+   */
   BasicLayerManager();
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Construct a BasicLayerManager which will have no default
+   * target context. SetDefaultTarget or BeginTransactionWithTarget
+   * must be called for any rendering to happen. ThebesLayers will be
+   * retained; that is, we will try to retain the visible contents of
+   * ThebesLayers as cairo surfaces. We create ThebesLayer buffers by
+   * creating similar surfaces to the default target context, or to
+   * aWidget's GetThebesSurface if there is no default target context, or
+   * to the passed-in context if there is no widget and no default
+   * target context.
+   * 
+   * This does not keep a strong reference to the widget, so the caller
+   * must ensure that the widget outlives the layer manager or call
+   * ClearWidget before the widget dies.
+   */
   BasicLayerManager(nsIWidget* aWidget);
   virtual ~BasicLayerManager();
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Set the default target context that will be used when BeginTransaction
+   * is called. This can only be called outside a transaction.
+   * 
+   * aDoubleBuffering can request double-buffering for drawing to the
+   * default target. When BUFFERED, the layer manager avoids blitting
+   * temporary results to aContext and then overpainting them with final
+   * results, by using a temporary buffer when necessary. In BUFFERED
+   * mode we always completely overwrite the contents of aContext's
+   * destination surface (within the clip region) using OPERATOR_SOURCE.
+   */
   void SetDefaultTarget(gfxContext* aContext);
   virtual void SetDefaultTargetConfiguration(BufferMode aDoubleBuffering, ScreenRotation aRotation);
   gfxContext* GetDefaultTarget() { return mDefaultTarget; }
@@ -134,9 +135,9 @@ public:
 
 #ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() const { return "Basic"; }
-#endif 
+#endif // MOZ_LAYERS_HAVE_LOG
 
-  
+  // Clear the cached contents of this layer.
   void ClearCachedResources();
 
   void SetTransactionIncomplete() { mTransactionIncomplete = true; }
@@ -158,14 +159,14 @@ protected:
   };
   TransactionPhase mPhase;
 
-  
+  // Paints aLayer to mTarget.
   void PaintLayer(gfxContext* aTarget,
                   Layer* aLayer,
                   DrawThebesLayerCallback aCallback,
                   void* aCallbackData,
                   ReadbackProcessor* aReadback);
 
-  
+  // Clear the contents of a layer
   void ClearLayer(Layer* aLayer);
 
   bool EndTransactionInternal(DrawThebesLayerCallback aCallback,
@@ -174,19 +175,19 @@ protected:
 
   void FlashWidgetUpdateArea(gfxContext* aContext);
 
-  
-  
+  // Widget whose surface should be used as the basis for ThebesLayer
+  // buffers.
   nsIWidget* mWidget;
-  
+  // The default context for BeginTransaction.
   nsRefPtr<gfxContext> mDefaultTarget;
-  
+  // The context to draw into.
   nsRefPtr<gfxContext> mTarget;
-  
+  // A context we want our shadow to draw into.
   nsRefPtr<gfxContext> mShadowTarget;
-  
+  // Image factory we use.
   nsRefPtr<ImageFactory> mFactory;
 
-  
+  // Cached surface for double buffering
   gfxCachedTempSurface mCachedSurface;
 
   BufferMode   mDoubleBuffering;
@@ -252,24 +253,24 @@ public:
   void SetRepeatTransaction() { mRepeatTransaction = true; }
 
 private:
-  
-
-
+  /**
+   * Forward transaction results to the parent context.
+   */
   void ForwardTransaction();
 
-  
+  // The bounds of |mTarget| in device pixels.
   nsIntRect mTargetBounds;
 
   LayerRefArray mKeepAlive;
 
-  
-  
-  
-  
+  // Sometimes we draw to targets that don't natively support
+  // landscape/portrait orientation.  When we need to implement that
+  // ourselves, |mTargetRotation| describes the induced transform we
+  // need to apply when compositing content to our target.
   ScreenRotation mTargetRotation;
 
-  
-  
+  // Used to repeat the transaction right away (to avoid rebuilding
+  // a display list) to support progressive drawing.
   bool mRepeatTransaction;
 };
 
@@ -304,11 +305,11 @@ public:
 
   virtual void Disconnect()
   {
-    
-    
-    
-    
-    
+    // This is an "emergency Disconnect()", called when the compositing
+    // process has died.  |mShadow| and our Shmem buffers are
+    // automatically managed by IPDL, so we don't need to explicitly
+    // free them here (it's hard to get that right on emergency
+    // shutdown anyway).
     mShadow = nullptr;
   }
 
@@ -319,4 +320,4 @@ public:
 }
 }
 
-#endif
+#endif /* GFX_BASICLAYERS_H */

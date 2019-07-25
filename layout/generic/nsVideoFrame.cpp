@@ -1,10 +1,10 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
+/* rendering object for the HTML <video> element */
 
 #include "nsHTMLParts.h"
 #include "nsCOMPtr.h"
@@ -28,6 +28,8 @@
 #include "nsCSSRendering.h"
 #include "nsContentUtils.h"
 #include "mozilla/layers/ShadowLayers.h"
+#include "ImageContainer.h"
+#include "ImageLayers.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -64,9 +66,9 @@ nsVideoFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   nsNodeInfoManager *nodeInfoManager = GetContent()->GetCurrentDoc()->NodeInfoManager();
   nsCOMPtr<nsINodeInfo> nodeInfo;
   if (HasVideoElement()) {
-    
-    
-    
+    // Create an anonymous image element as a child to hold the poster
+    // image. We may not have a poster image now, but one could be added
+    // before we load, or on a subsequent load.
     nodeInfo = nodeInfoManager->GetNodeInfo(nsGkAtoms::img,
                                             nullptr,
                                             kNameSpaceID_XHTML,
@@ -76,21 +78,21 @@ nsVideoFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
     mPosterImage = element;
     NS_ENSURE_TRUE(mPosterImage, NS_ERROR_OUT_OF_MEMORY);
 
-    
-    
-    
+    // Push a null JSContext on the stack so that code that runs
+    // within the below code doesn't think it's being called by
+    // JS. See bug 604262.
     nsCxPusher pusher;
     pusher.PushNull();
 
-    
-    
-    
-    
+    // Set the nsImageLoadingContent::ImageState() to 0. This means that the
+    // image will always report its state as 0, so it will never be reframed
+    // to show frames for loading or the broken image icon. This is important,
+    // as the image is native anonymous, and so can't be reframed (currently).
     nsCOMPtr<nsIImageLoadingContent> imgContent = do_QueryInterface(mPosterImage);
     NS_ENSURE_TRUE(imgContent, NS_ERROR_FAILURE);
 
     imgContent->ForceImageState(true, 0);
-    
+    // And now have it update its internal state
     element->UpdateState(false);
 
     nsresult res = UpdatePosterSource(false);
@@ -100,8 +102,8 @@ nsVideoFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
       return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  
-  
+  // Set up "videocontrols" XUL element which will be XBL-bound to the
+  // actual controls.
   nodeInfo = nodeInfoManager->GetNodeInfo(nsGkAtoms::videocontrols,
                                           nullptr,
                                           kNameSpaceID_XUL,
@@ -137,14 +139,14 @@ nsVideoFrame::IsLeaf() const
   return true;
 }
 
-
-
+// Return the largest rectangle that fits in aRect and has the
+// same aspect ratio as aRatio, centered at the center of aRect
 static gfxRect
 CorrectForAspectRatio(const gfxRect& aRect, const nsIntSize& aRatio)
 {
   NS_ASSERTION(aRatio.width > 0 && aRatio.height > 0 && !aRect.IsEmpty(),
                "Nothing to draw");
-  
+  // Choose scale factor that scales aRatio to just fit into aRect
   gfxFloat scale =
     NS_MIN(aRect.Width()/aRatio.width, aRect.Height()/aRatio.height);
   gfxSize scaledRatio(scale*aRatio.width, scale*aRatio.height);
@@ -169,17 +171,17 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   if (!container)
     return nullptr;
   
-  
-  
+  // Retrieve the size of the decoded video frame, before being scaled
+  // by pixel aspect ratio.
   gfxIntSize frameSize = container->GetCurrentSize();
   if (frameSize.width == 0 || frameSize.height == 0) {
-    
+    // No image, or zero-sized image. No point creating a layer.
     return nullptr;
   }
 
-  
-  
-  
+  // Compute the rectangle in which to paint the video. We need to use
+  // the largest rectangle that fills our content-box and has the
+  // correct aspect ratio.
   nsPresContext* presContext = PresContext();
   gfxRect r = gfxRect(presContext->AppUnitsToGfxUnits(area.x),
                       presContext->AppUnitsToGfxUnits(area.y),
@@ -202,7 +204,7 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   layer->SetContainer(container);
   layer->SetFilter(nsLayoutUtils::GetGraphicsFilterForFrame(this));
   layer->SetContentFlags(Layer::CONTENT_OPAQUE);
-  
+  // Set a transform on the layer to draw the video in the right place
   gfxMatrix transform;
   transform.Translate(r.TopLeft());
   transform.Scale(r.Width()/frameSize.width, r.Height()/frameSize.height);
@@ -231,19 +233,19 @@ nsVideoFrame::Reflow(nsPresContext*           aPresContext,
   aMetrics.width = aReflowState.ComputedWidth();
   aMetrics.height = aReflowState.ComputedHeight();
 
-  
+  // stash this away so we can compute our inner area later
   mBorderPadding   = aReflowState.mComputedBorderPadding;
 
   aMetrics.width += mBorderPadding.left + mBorderPadding.right;
   aMetrics.height += mBorderPadding.top + mBorderPadding.bottom;
 
-  
-  
+  // Reflow the child frames. We may have up to two, an image frame
+  // which is the poster, and a box frame, which is the video controls.
   for (nsIFrame *child = mFrames.FirstChild();
        child;
        child = child->GetNextSibling()) {
     if (child->GetType() == nsGkAtoms::imageFrame) {
-      
+      // Reflow the poster frame.
       nsImageFrame* imageFrame = static_cast<nsImageFrame*>(child);
       nsHTMLReflowMetrics kidDesiredSize;
       nsSize availableSize = nsSize(aReflowState.availableWidth,
@@ -283,7 +285,7 @@ nsVideoFrame::Reflow(nsPresContext*           aPresContext,
       FinishReflowChild(imageFrame, aPresContext, &kidReflowState, kidDesiredSize,
                         posterTopLeft.x, posterTopLeft.y, 0);
     } else if (child->GetType() == nsGkAtoms::boxFrame) {
-      
+      // Reflow the video controls frame.
       nsBoxLayoutState boxState(PresContext(), aReflowState.rendContext);
       nsBoxFrame::LayoutChildAt(boxState,
                                 child,
@@ -324,13 +326,13 @@ public:
   
   NS_DISPLAY_DECL_NAME("Video", TYPE_VIDEO)
 
-  
-  
-  
-  
-  
-  
-  
+  // It would be great if we could override GetOpaqueRegion to return nonempty here,
+  // but it's probably not safe to do so in general. Video frames are
+  // updated asynchronously from decoder threads, and it's possible that
+  // we might have an opaque video frame when GetOpaqueRegion is called, but
+  // when we come to paint, the video frame is transparent or has gone
+  // away completely (e.g. because of a decoder error). The problem would
+  // be especially acute if we have off-main-thread rendering.
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
   {
@@ -351,12 +353,12 @@ public:
                                    const FrameLayerBuilder::ContainerParameters& aParameters)
   {
     if (aManager->IsCompositingCheap()) {
-      
-      
-      
-      
-      
-      
+      // Since ImageLayers don't require additional memory of the
+      // video frames we have to have anyway, we can't save much by
+      // making layers inactive. Also, for many accelerated layer
+      // managers calling imageContainer->GetCurrentAsSurface can be
+      // very expensive. So just always be active when compositing is
+      // cheap (i.e. hardware accelerated).
       return LAYER_ACTIVE;
     }
     nsHTMLMediaElement* elem =
@@ -386,8 +388,8 @@ nsVideoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  
-  
+  // Add child frames to display list. We expect up to two children, an image
+  // frame for the poster, and the box frame for the video controls.
   for (nsIFrame *child = mFrames.FirstChild();
        child;
        child = child->GetNextSibling()) {
@@ -448,7 +450,7 @@ nsSize nsVideoFrame::ComputeSize(nsRenderingContext *aRenderingContext,
   intrinsicSize.width.SetCoordValue(size.width);
   intrinsicSize.height.SetCoordValue(size.height);
 
-  nsSize& intrinsicRatio = size; 
+  nsSize& intrinsicRatio = size; // won't actually be used
 
   return nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(aRenderingContext,
                                                            this,
@@ -509,18 +511,18 @@ bool nsVideoFrame::ShouldDisplayPoster()
 nsSize
 nsVideoFrame::GetVideoIntrinsicSize(nsRenderingContext *aRenderingContext)
 {
-  
+  // Defaulting size to 300x150 if no size given.
   nsIntSize size(300, 150);
   
   if (!HasVideoElement()) {
     if (!aRenderingContext || !mFrames.FirstChild()) {
-      
-      
-      
+      // We just want our intrinsic ratio, but audio elements need no
+      // intrinsic ratio, so just return "no ratio". Also, if there's
+      // no controls frame, we prefer to be zero-sized.
       return nsSize(0, 0);
     }
 
-    
+    // Ask the controls frame what its preferred height is
     nsBoxLayoutState boxState(PresContext(), aRenderingContext, 0);
     nscoord prefHeight = mFrames.LastChild()->GetPrefSize(boxState).height;
     return nsSize(nsPresContext::CSSPixelsToAppUnits(size.width), prefHeight);
@@ -528,7 +530,7 @@ nsVideoFrame::GetVideoIntrinsicSize(nsRenderingContext *aRenderingContext)
 
   nsHTMLVideoElement* element = static_cast<nsHTMLVideoElement*>(GetContent());
   if (NS_FAILED(element->GetVideoSize(&size)) && ShouldDisplayPoster()) {
-    
+    // Use the poster image frame's size.
     nsIFrame *child = mPosterImage->GetPrimaryFrame();
     nsImageFrame* imageFrame = do_QueryFrame(child);
     nsSize imgsize;
