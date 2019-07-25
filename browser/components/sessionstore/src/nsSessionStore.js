@@ -364,6 +364,9 @@ SessionStoreService.prototype = {
           delete this._initialState.windows[0].hidden;
           
           delete this._initialState.windows[0].isPopup;
+          
+          if (this._initialState.windows[0].sizemode == "minimized")
+            this._initialState.windows[0].sizemode = "normal";
         }
       }
       catch (ex) { debug("The session file is invalid: " + ex); }
