@@ -49,19 +49,7 @@
 #include "jsatom.h"
 #include "jsscan.h"
 
-#include "frontend/ParseMaps.h"
-
 JS_BEGIN_EXTERN_C
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -314,37 +302,25 @@ namespace js {
 
 struct GlobalScope {
     GlobalScope(JSContext *cx, JSObject *globalObj, JSCodeGenerator *cg)
-      : globalObj(globalObj), cg(cg), defs(cx), names(cx)
+      : globalObj(globalObj), cg(cg), defs(ContextAllocPolicy(cx))
     { }
 
     struct GlobalDef {
-        JSAtom        *atom;        
-        JSFunctionBox *funbox;      
-                                    
-        uint32        knownSlot;    
+        JSAtom *atom;
+        JSFunctionBox *funbox;
 
         GlobalDef() { }
-        GlobalDef(uint32 knownSlot)
-          : atom(NULL), knownSlot(knownSlot)
+        GlobalDef(JSAtom *atom) : atom(atom), funbox(NULL)
         { }
         GlobalDef(JSAtom *atom, JSFunctionBox *box) :
           atom(atom), funbox(box)
         { }
     };
 
-    JSObject        *globalObj;
+    JSObject *globalObj;
     JSCodeGenerator *cg;
-
-    
-
-
-
-
-
-
-
-    Vector<GlobalDef, 16> defs;
-    AtomIndexMap      names;
+    Vector<GlobalDef, 16, ContextAllocPolicy> defs;
+    uint32 globalFreeSlot;
 };
 
 } 
@@ -389,8 +365,6 @@ struct JSParseNode {
             JSParseNode *kid;
             jsint       num;            
             JSBool      hidden;         
-
-
         } unary;
         struct {                        
             union {
@@ -411,8 +385,8 @@ struct JSParseNode {
 
         } name;
         struct {                        
-            js::AtomDefnMapPtr  defnMap;
-            JSParseNode         *tree;  
+            JSAtomSet   names;          
+            JSParseNode *tree;          
         } nameset;
         struct {                        
             JSAtom      *atom;          
@@ -441,38 +415,31 @@ struct JSParseNode {
 #define pn_kid          pn_u.unary.kid
 #define pn_num          pn_u.unary.num
 #define pn_hidden       pn_u.unary.hidden
-#define pn_prologue     pn_u.unary.hidden
 #define pn_atom         pn_u.name.atom
 #define pn_objbox       pn_u.name.objbox
 #define pn_expr         pn_u.name.expr
 #define pn_lexdef       pn_u.name.lexdef
-#define pn_names        pn_u.nameset.defnMap
+#define pn_names        pn_u.nameset.names
 #define pn_tree         pn_u.nameset.tree
 #define pn_dval         pn_u.dval
 #define pn_atom2        pn_u.apair.atom2
 
 protected:
-    void init(js::TokenKind type, JSOp op, JSParseNodeArity arity) {
+    void inline init(js::TokenKind type, JSOp op, JSParseNodeArity arity) {
         pn_type = type;
         pn_op = op;
         pn_arity = arity;
         pn_parens = false;
         JS_ASSERT(!pn_used);
         JS_ASSERT(!pn_defn);
-        pn_names.init();
         pn_next = pn_link = NULL;
     }
 
     static JSParseNode *create(JSParseNodeArity arity, JSTreeContext *tc);
-    static JSParseNode *create(JSParseNodeArity arity, js::TokenKind type, JSOp op,
-                               const js::TokenPos &pos, JSTreeContext *tc);
 
 public:
     static JSParseNode *newBinaryOrAppend(js::TokenKind tt, JSOp op, JSParseNode *left,
                                           JSParseNode *right, JSTreeContext *tc);
-
-    static JSParseNode *newTernary(js::TokenKind tt, JSOp op, JSParseNode *kid1, JSParseNode *kid2,
-                                   JSParseNode *kid3, JSTreeContext *tc);
 
     
 
@@ -500,7 +467,7 @@ public:
 #define PND_CONST       0x02            /* const binding (orthogonal to let) */
 #define PND_INITIALIZED 0x04            /* initialized declaration */
 #define PND_ASSIGNED    0x08            /* set if ever LHS of assignment */
-#define PND_TOPLEVEL    0x10            /* see isTopLevel() below */
+#define PND_TOPLEVEL    0x10            /* function at top of body or prog */
 #define PND_BLOCKCHILD  0x20            /* use or def is direct block child */
 #define PND_GVAR        0x40            /* gvar binding, can't close over
                                            because it could be deleted */
@@ -525,8 +492,8 @@ public:
 #define PNX_XMLROOT     0x20            /* top-most node in XML literal tree */
 #define PNX_GROUPINIT   0x40            /* var [a, b] = [c, d]; unit list */
 #define PNX_NEEDBRACES  0x80            /* braces necessary due to closure */
-#define PNX_FUNCDEFS   0x100            /* contains top-level function statements */
-#define PNX_SETCALL    0x100            /* call expression in lvalue context */
+#define PNX_FUNCDEFS   0x100            /* contains top-level function
+                                           statements */
 #define PNX_DESTRUCT   0x200            /* destructuring special cases:
                                            1. shorthand syntax used, at present
                                               object destructuring ({x,y}) only;
@@ -534,7 +501,6 @@ public:
                                               arguments occurs before function
                                               body */
 #define PNX_HOLEY      0x400            /* array initialiser has holes */
-#define PNX_NONCONST   0x800            /* initialiser has non-constants */
 
     uintN frameLevel() const {
         JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
@@ -551,26 +517,12 @@ public:
     bool isLet() const          { return test(PND_LET); }
     bool isConst() const        { return test(PND_CONST); }
     bool isInitialized() const  { return test(PND_INITIALIZED); }
+    bool isTopLevel() const     { return test(PND_TOPLEVEL); }
     bool isBlockChild() const   { return test(PND_BLOCKCHILD); }
     bool isPlaceholder() const  { return test(PND_PLACEHOLDER); }
     bool isDeoptimized() const  { return test(PND_DEOPTIMIZED); }
     bool isAssigned() const     { return test(PND_ASSIGNED); }
     bool isFunArg() const       { return test(PND_FUNARG); }
-    bool isClosed() const       { return test(PND_CLOSED); }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    bool isTopLevel() const     { return test(PND_TOPLEVEL); }
 
     
     void setFunArg();
@@ -592,15 +544,7 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-    bool isStringExprStatement() const {
+    bool isDirectivePrologueMember() const {
         if (PN_TYPE(this) == js::TOK_SEMI) {
             JS_ASSERT(pn_arity == PN_UNARY);
             JSParseNode *kid = pn_kid;
@@ -613,10 +557,10 @@ public:
 
 
 
-
-    bool isEscapeFreeStringLiteral() const {
-        JS_ASSERT(pn_type == js::TOK_STRING && !pn_parens);
-        JSString *str = pn_atom;
+    bool isDirective() const {
+        JS_ASSERT(isDirectivePrologueMember());
+        JSParseNode *kid = pn_kid;
+        JSString *str = ATOM_TO_STRING(kid->pn_atom);
 
         
 
@@ -626,9 +570,6 @@ public:
         return (pn_pos.begin.lineno == pn_pos.end.lineno &&
                 pn_pos.begin.index + str->length() + 2 == pn_pos.end.index);
     }
-
-    
-    bool isDirectivePrologueMember() const { return pn_prologue; }
 
 #ifdef JS_HAS_GENERATOR_EXPRS
     
@@ -666,7 +607,7 @@ public:
     JSParseNode *last() const {
         JS_ASSERT(pn_arity == PN_LIST);
         JS_ASSERT(pn_count != 0);
-        return (JSParseNode *)(uintptr_t(pn_tail) - offsetof(JSParseNode, pn_next));
+        return (JSParseNode *)((char *)pn_tail - offsetof(JSParseNode, pn_next));
     }
 
     void makeEmpty() {
@@ -693,9 +634,6 @@ public:
         pn_tail = &pn->pn_next;
         pn_count++;
     }
-
-    bool getConstantValue(JSContext *cx, bool strictChecks, js::Value *vp);
-    inline bool isConstant();
 };
 
 namespace js {
@@ -713,38 +651,12 @@ struct UnaryNode : public JSParseNode {
 };
 
 struct BinaryNode : public JSParseNode {
-    static inline BinaryNode *create(TokenKind type, JSOp op, const TokenPos &pos,
-                                     JSParseNode *left, JSParseNode *right,
-                                     JSTreeContext *tc) {
-        BinaryNode *pn = (BinaryNode *) JSParseNode::create(PN_BINARY, type, op, pos, tc);
-        if (pn) {
-            pn->pn_left = left;
-            pn->pn_right = right;
-        }
-        return pn;
-    }
-
     static inline BinaryNode *create(JSTreeContext *tc) {
         return (BinaryNode *)JSParseNode::create(PN_BINARY, tc);
     }
 };
 
 struct TernaryNode : public JSParseNode {
-    static inline TernaryNode *create(TokenKind type, JSOp op,
-                                      JSParseNode *kid1, JSParseNode *kid2, JSParseNode *kid3,
-                                      JSTreeContext *tc) {
-        TokenPos pos;
-        pos.begin = (kid1 ? kid1 : kid2)->pn_pos.begin;
-        pos.end = kid3->pn_pos.end;
-        TernaryNode *pn = (TernaryNode *) JSParseNode::create(PN_TERNARY, type, op, pos, tc);
-        if (pn) {
-            pn->pn_kid1 = kid1;
-            pn->pn_kid2 = kid2;
-            pn->pn_kid3 = kid3;
-        }
-        return pn;
-    }
-
     static inline TernaryNode *create(JSTreeContext *tc) {
         return (TernaryNode *)JSParseNode::create(PN_TERNARY, tc);
     }
@@ -909,7 +821,6 @@ struct JSDefinition : public JSParseNode
 
 
 
-
     JSDefinition *resolve() {
         JSParseNode *pn = this;
         while (!pn->pn_defn) {
@@ -927,18 +838,14 @@ struct JSDefinition : public JSParseNode
         return pn_cookie.isFree() || test(PND_GVAR);
     }
 
-    bool isGlobal() const {
-        JS_ASSERT(pn_defn);
-        return test(PND_GVAR);
-    }
-
     
 #ifdef CONST
 # undef CONST
 #endif
-    enum Kind { VAR, CONST, LET, FUNCTION, ARG, UNKNOWN };
+    enum Kind { VAR, CONST, LET, ARG, FUNCTION, UNKNOWN };
 
     bool isBindingForm() { return int(kind()) <= int(LET); }
+    bool isArgOrBindingForm() { return int(kind()) <= int(ARG); }
 
     static const char *kindString(Kind kind);
 
@@ -996,9 +903,6 @@ struct JSObjectBox {
     JSObjectBox         *traceLink;
     JSObjectBox         *emitLink;
     JSObject            *object;
-    JSObjectBox         *parent;
-    uintN               index;
-    bool                isFunctionBox;
 };
 
 #define JSFB_LEVEL_BITS 14
@@ -1014,27 +918,12 @@ struct JSFunctionBox : public JSObjectBox
 
 
 
-    js::Bindings        bindings;               
     uint32              queued:1,
                         inLoop:1,               
                         level:JSFB_LEVEL_BITS;
     uint32              tcflags;
 
-    JSFunction *function() const { return (JSFunction *) object; }
-
     bool joinable() const;
-
-    
-
-
-
-    bool inAnyDynamicScope() const;
-
-    
-
-
-
-    bool scopeIsExtensible() const;
 
     
 
@@ -1062,11 +951,11 @@ struct JSFunctionBoxQueue {
 
     bool init(uint32 count) {
         lengthMask = JS_BITMASK(JS_CeilingLog2(count));
-        vector = js::OffTheBooks::array_new<JSFunctionBox*>(length());
+        vector = new JSFunctionBox*[length()];
         return !!vector;
     }
 
-    ~JSFunctionBoxQueue() { js::UnwantedForeground::array_delete(vector); }
+    ~JSFunctionBoxQueue() { delete[] vector; }
 
     void push(JSFunctionBox *funbox) {
         if (!funbox->queued) {
@@ -1092,30 +981,26 @@ typedef struct BindData BindData;
 
 namespace js {
 
-enum FunctionSyntaxKind { Expression, Statement };
-
 struct Parser : private js::AutoGCRooter
 {
-    JSContext           *const context; 
+    JSContext           * const context; 
+    JSAtomListElement   *aleFreeList;
     void                *tempFreeList[NUM_TEMP_FREELISTS];
-    TokenStream         tokenStream;
+    js::TokenStream     tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    
-    StackFrame          *const callerFrame;  
-    JSObject            *const callerVarObj; 
+    JSStackFrame *const callerFrame;    
+    JSObject     *const callerVarObj;   
     JSParseNode         *nodeList;      
     uint32              functionCount;  
     JSObjectBox         *traceListHead; 
     JSTreeContext       *tc;            
-    js::EmptyShape      *emptyCallShape;
+    JSVersion           version;        
 
     
     js::AutoKeepAtoms   keepAtoms;
 
-    
-    bool                foldConstants;
-
-    Parser(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL, bool fold = true);
+    Parser(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL);
     ~Parser();
 
     friend void js::AutoGCRooter::trace(JSTracer *trc);
@@ -1128,15 +1013,15 @@ struct Parser : private js::AutoGCRooter
 
 
 
-    bool init(const jschar *base, size_t length, const char *filename, uintN lineno,
-              JSVersion version);
+    bool init(const jschar *base, size_t length,
+              FILE *fp, const char *filename, uintN lineno);
 
     void setPrincipals(JSPrincipals *prin);
 
-    const char *getFilename() const { return tokenStream.getFilename(); }
-    JSVersion versionWithFlags() const { return tokenStream.versionWithFlags(); }
-    JSVersion versionNumber() const { return tokenStream.versionNumber(); }
-    bool hasXML() const { return tokenStream.hasXML(); }
+    const char *getFilename()
+    {
+        return tokenStream.getFilename();
+    }
 
     
 
@@ -1158,18 +1043,16 @@ struct Parser : private js::AutoGCRooter
 
 
 
-    JSFunction *newFunction(JSTreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind);
+    JSFunction *newFunction(JSTreeContext *tc, JSAtom *atom, uintN lambda);
 
     
 
 
 
 
-    bool analyzeFunctions(JSTreeContext *tc);
-    void cleanFunctionList(JSFunctionBox **funbox);
-    bool markFunArgs(JSFunctionBox *funbox);
-    void markExtensibleScopeDescendants(JSFunctionBox *funbox, bool hasExtensibleParent);
-    void setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags);
+    bool analyzeFunctions(JSFunctionBox *funbox, uint32& tcflags);
+    bool markFunArgs(JSFunctionBox *funbox, uintN tcflags);
+    void setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags);
 
     void trace(JSTracer *trc);
 
@@ -1187,68 +1070,44 @@ private:
 
 
 
-
-
-
-
-
-
-
-
     JSParseNode *functionStmt();
     JSParseNode *functionExpr();
     JSParseNode *statements();
     JSParseNode *statement();
-    JSParseNode *switchStatement();
-    JSParseNode *forStatement();
-    JSParseNode *tryStatement();
-    JSParseNode *withStatement();
-#if JS_HAS_BLOCK_SCOPE
-    JSParseNode *letStatement();
-#endif
-    JSParseNode *expressionStatement();
     JSParseNode *variables(bool inLetHead);
     JSParseNode *expr();
     JSParseNode *assignExpr();
-    JSParseNode *condExpr1();
-    JSParseNode *orExpr1();
-    JSParseNode *andExpr1i();
-    JSParseNode *andExpr1n();
-    JSParseNode *bitOrExpr1i();
-    JSParseNode *bitOrExpr1n();
-    JSParseNode *bitXorExpr1i();
-    JSParseNode *bitXorExpr1n();
-    JSParseNode *bitAndExpr1i();
-    JSParseNode *bitAndExpr1n();
-    JSParseNode *eqExpr1i();
-    JSParseNode *eqExpr1n();
-    JSParseNode *relExpr1i();
-    JSParseNode *relExpr1n();
-    JSParseNode *shiftExpr1i();
-    JSParseNode *shiftExpr1n();
-    JSParseNode *addExpr1i();
-    JSParseNode *addExpr1n();
-    JSParseNode *mulExpr1i();
-    JSParseNode *mulExpr1n();
+    JSParseNode *condExpr();
+    JSParseNode *orExpr();
+    JSParseNode *andExpr();
+    JSParseNode *bitOrExpr();
+    JSParseNode *bitXorExpr();
+    JSParseNode *bitAndExpr();
+    JSParseNode *eqExpr();
+    JSParseNode *relExpr();
+    JSParseNode *shiftExpr();
+    JSParseNode *addExpr();
+    JSParseNode *mulExpr();
     JSParseNode *unaryExpr();
     JSParseNode *memberExpr(JSBool allowCallSyntax);
     JSParseNode *primaryExpr(js::TokenKind tt, JSBool afterDot);
-    JSParseNode *parenExpr(JSBool *genexp = NULL);
+    JSParseNode *parenExpr(JSParseNode *pn1, JSBool *genexp);
 
     
 
 
-    bool recognizeDirectivePrologue(JSParseNode *pn, bool *isDirectivePrologueMember);
+    bool recognizeDirectivePrologue(JSParseNode *pn);
 
-    enum FunctionType { Getter, Setter, Normal };
-    bool functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNode **list);
+    enum FunctionType { GETTER, SETTER, GENERAL };
+    bool functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunction *fun,
+                           JSParseNode **list);
     JSParseNode *functionBody();
-    JSParseNode *functionDef(JSAtom *name, FunctionType type, FunctionSyntaxKind kind);
+    JSParseNode *functionDef(JSAtom *name, FunctionType type, uintN lambda);
 
     JSParseNode *condition();
-    JSParseNode *comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,
+    JSParseNode *comprehensionTail(JSParseNode *kid, uintN blockid,
                                    js::TokenKind type = js::TOK_SEMI, JSOp op = JSOP_NOP);
-    JSParseNode *generatorExpr(JSParseNode *kid);
+    JSParseNode *generatorExpr(JSParseNode *pn, JSParseNode *kid);
     JSBool argumentList(JSParseNode *listNode);
     JSParseNode *bracketedExpr();
     JSParseNode *letBlock(JSBool statement);
@@ -1270,8 +1129,6 @@ private:
     JSParseNode *xmlElementOrList(JSBool allowList);
     JSParseNode *xmlElementOrListRoot(JSBool allowList);
 #endif 
-
-    bool setAssignmentLhsOps(JSParseNode *pn, JSOp op);
 };
 
 inline bool
@@ -1286,34 +1143,33 @@ Parser::reportErrorNumber(JSParseNode *pn, uintN flags, uintN errorNumber, ...)
 
 struct Compiler
 {
-    Parser      parser;
+    Parser parser;
     GlobalScope *globalScope;
 
-    Compiler(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL);
+    Compiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL);
 
-    JSContext *context() {
-        return parser.context;
-    }
+    
 
-    bool init(const jschar *base, size_t length, const char *filename, uintN lineno,
-              JSVersion version) {
-        return parser.init(base, length, filename, lineno, version);
+
+    inline bool
+    init(const jschar *base, size_t length,
+         FILE *fp, const char *filename, uintN lineno)
+    {
+        return parser.init(base, length, fp, filename, lineno);
     }
 
     static bool
     compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
-                        js::Bindings *bindings, const jschar *chars, size_t length,
-                        const char *filename, uintN lineno, JSVersion version);
+                        const jschar *chars, size_t length,
+                        const char *filename, uintN lineno);
 
     static JSScript *
-    compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerFrame,
+    compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
                   JSPrincipals *principals, uint32 tcflags,
                   const jschar *chars, size_t length,
-                  const char *filename, uintN lineno, JSVersion version,
-                  JSString *source = NULL, uintN staticLevel = 0);
-
-  private:
-    static bool defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script);
+                  FILE *file, const char *filename, uintN lineno,
+                  JSString *source = NULL,
+                  uintN staticLevel = 0);
 };
 
 } 
