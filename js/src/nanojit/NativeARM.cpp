@@ -708,7 +708,7 @@ Assembler::asm_arg_64(LIns* arg, ParameterRegisters& params)
         }
 
 #ifndef NJ_ARM_EABI
-    } else if (r == R3) {
+    } else if (params.r == R3) {
         
         
         
