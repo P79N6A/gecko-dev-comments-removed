@@ -175,9 +175,7 @@ PrepareAndDispatch(nsXPTCStubBase* self,
 
 
 
-#if __GXX_ABI_VERSION < 100
-#error Prehistoric GCC not supported here
-#else
+
 
 
 
@@ -233,7 +231,6 @@ __asm__ (                                                               \
         "li     11,"#n" \n\t"                                           \
         "b      SharedStub \n"                                          \
 );
-#endif
 
 #define SENTINEL_ENTRY(n)                                               \
 nsresult nsXPTCStubBase::Sentinel##n()                                  \

@@ -162,11 +162,7 @@ __asm__(
     "bis $16,$16,$1\n\t"    
     "ldq $2,16($15)\n\t"    
     "ldq $1,0($1)\n\t"      
-#if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION >= 100 
     "s8addq $2,$31,$2\n\t"  
-#else 
-    "s8addq $2,16,$2\n\t"   
-#endif 
     "addq $1,$2,$1\n\t"
     "ldq $27,0($1)\n\t"     
     "jsr $26,($27),0\n\t"   

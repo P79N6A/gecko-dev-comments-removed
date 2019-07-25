@@ -191,12 +191,7 @@ NS_InvokeByIndex(nsISupports* that, PRUint32 methodIndex,
     "ldr	r1, [r0, #0]	\n\t"	
     "ldr	r2, [%1, #4]	\n\t"
     "mov	r2, r2, lsl #2	\n\t"	
-#if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION >= 100 
     "ldr        ip, [r1, r2]    \n\t"	
-#else 
-    "add	r2, r2, #8	\n\t"	
-    "ldr	ip, [r1, r2]	\n\t"	
-#endif
     "cmp	r4, #12		\n\t"	
     "ldmgtia	sp!, {r1, r2, r3}\n\t"	
     "subgt	r4, r4, #12	\n\t"	

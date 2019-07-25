@@ -199,11 +199,7 @@ NS_InvokeByIndex(nsISupports* that, PRUint32 methodIndex,
                  PRUint32 paramCount, nsXPTCVariant* params)
 {
     PRUint64 *vtable = *(PRUint64 **)that;
-#if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION >= 100 
     PRUint64 method = vtable[methodIndex];
-#else 
-    PRUint64 method = vtable[methodIndex + 2];
-#endif 
     PRUint64 overflow = invoke_count_words (paramCount, params);
     PRUint64 result;
 

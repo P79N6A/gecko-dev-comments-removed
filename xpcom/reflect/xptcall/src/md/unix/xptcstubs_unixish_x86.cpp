@@ -98,8 +98,6 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32 methodIndex, PRUint32* args)
     return result;
 }
 
-#ifdef __GNUC__         
-
 #ifdef KEEP_STACK_16_BYTE_ALIGNED
 
 
@@ -161,10 +159,6 @@ nsresult nsXPTCStubBase::Stub##n() \
 	); \
     return result; \
 }
-
-#else
-#error "can't find a compiler to use"
-#endif 
 
 #define SENTINEL_ENTRY(n) \
 nsresult nsXPTCStubBase::Sentinel##n() \

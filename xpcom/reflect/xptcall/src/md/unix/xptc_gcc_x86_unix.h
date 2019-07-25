@@ -56,37 +56,4 @@
 #endif
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
 #define ATTRIBUTE_USED __attribute__ ((__used__))
-#else
-#define ATTRIBUTE_USED
-#endif
-

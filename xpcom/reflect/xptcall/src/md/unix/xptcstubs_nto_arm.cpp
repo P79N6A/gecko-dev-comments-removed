@@ -166,7 +166,6 @@ SharedStub:							\n\
 
 
 
-#if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION >= 100 
 
 
 
@@ -220,19 +219,6 @@ nsresult nsXPTCStubBase::Stub##n ()  \
 }
 #endif
 
-#else 
-
-#define STUB_ENTRY(n)						\
-  __asm__(							\
-	".section \".text\"\n"					\
-"	.align\n"						\
-"	.globl	Stub"#n"__14nsXPTCStubBase\n"			\
-"	.type	Stub"#n"__14nsXPTCStubBase,#function\n\n"	\
-"Stub"#n"__14nsXPTCStubBase:\n"					\
-"	mov	ip, #"#n"\n"					\
-"	b	SharedStub\n\t");
-
-#endif
 
 #define SENTINEL_ENTRY(n) \
 nsresult nsXPTCStubBase::Sentinel##n() \

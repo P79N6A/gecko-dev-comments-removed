@@ -204,20 +204,6 @@ PrepareAndDispatch(nsXPTCStubBase* self,
 
 
 
-#if __GXX_ABI_VERSION < 100
-
-# define STUB_ENTRY(n)                                       \
-__asm__ (                                                   \
-        ".section \".text\" \n\t"                           \
-        ".align 2 \n\t"                                     \
-	".globl  Stub"#n"__14nsXPTCStubBase \n\t"           \
-	".type   Stub"#n"__14nsXPTCStubBase,@function \n\n" \
-                                                            \
-"Stub"#n"__14nsXPTCStubBase: \n\t"                          \
-	"li     11,"#n" \n\t"                               \
-	"b      SharedStub@local \n"                        \
-);
-#else
 
 
 
@@ -256,7 +242,6 @@ __asm__ (								\
 	"li	11,"#n" \n\t"						\
 	"b	SharedStub@local \n"					\
 );
-#endif
 
 #define SENTINEL_ENTRY(n)                            \
 nsresult nsXPTCStubBase::Sentinel##n()               \

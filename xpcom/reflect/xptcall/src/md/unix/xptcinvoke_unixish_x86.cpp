@@ -77,7 +77,6 @@ EXPORT_XPCOM_API(nsresult)
 NS_InvokeByIndex_P(nsISupports* that, PRUint32 methodIndex,
                  PRUint32 paramCount, nsXPTCVariant* params)
 {
-#ifdef __GNUC__            
   PRUint32 result;
   
 
@@ -142,11 +141,7 @@ NS_InvokeByIndex_P(nsISupports* that, PRUint32 methodIndex,
     "pushl %%ecx\n\t"
     "movl  (%%ecx), %%edx\n\t"
     "movl  %5, %%eax\n\t"   
-#if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION >= 100 
     "leal  (%%edx,%%eax,4), %%edx\n\t"
-#else 
-    "leal  8(%%edx,%%eax,4), %%edx\n\t"
-#endif 
 #endif
     "call  *(%%edx)\n\t"    
 #ifdef KEEP_STACK_16_BYTE_ALIGNED
@@ -179,9 +174,4 @@ NS_InvokeByIndex_P(nsISupports* that, PRUint32 methodIndex,
     );
     
   return result;
-
-#else
-#error "can't find a compiler to use"
-#endif 
-
 }    
