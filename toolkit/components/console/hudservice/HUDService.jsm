@@ -203,7 +203,10 @@ const HISTORY_BACK = -1;
 const HISTORY_FORWARD = 1;
 
 
-const RESPONSE_BODY_LIMIT = 1048576; 
+const RESPONSE_BODY_LIMIT = 1024*1024; 
+
+
+const PR_UINT32_MAX = 4294967295;
 
 
 const MINIMUM_CONSOLE_HEIGHT = 150;
@@ -250,7 +253,8 @@ ResponseListener.prototype =
   
 
 
-  originalListener: null,
+
+  sink: null,
 
   
 
@@ -261,6 +265,11 @@ ResponseListener.prototype =
 
 
   receivedData: null,
+
+  
+
+
+  request: null,
 
   
 
@@ -304,20 +313,32 @@ ResponseListener.prototype =
 
 
 
+
+
+  setAsyncListener: function RL_setAsyncListener(aStream, aListener)
+  {
+    
+    aStream.asyncWait(aListener, 0, 0, Services.tm.mainThread);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
   onDataAvailable: function RL_onDataAvailable(aRequest, aContext, aInputStream,
-                                                aOffset, aCount)
+                                               aOffset, aCount)
   {
     this.setResponseHeader(aRequest);
-
-    let StorageStream = Components.Constructor("@mozilla.org/storagestream;1",
-                                                "nsIStorageStream",
-                                                "init");
-    let BinaryOutputStream = Components.Constructor("@mozilla.org/binaryoutputstream;1",
-                                                      "nsIBinaryOutputStream",
-                                                      "setOutputStream");
-
-    storageStream = new StorageStream(8192, aCount, null);
-    binaryOutputStream = new BinaryOutputStream(storageStream.getOutputStream(0));
 
     let data = NetUtil.readInputStreamToString(aInputStream, aCount);
 
@@ -325,17 +346,6 @@ ResponseListener.prototype =
         this.receivedData.length < RESPONSE_BODY_LIMIT) {
       this.receivedData += NetworkHelper.
                            convertToUnicode(data, aRequest.contentCharset);
-    }
-
-    binaryOutputStream.writeBytes(data, aCount);
-
-    let newInputStream = storageStream.newInputStream(0);
-    try {
-    this.originalListener.onDataAvailable(aRequest, aContext,
-        newInputStream, aOffset, aCount);
-    }
-    catch(ex) {
-      aRequest.cancel(ex);
     }
   },
 
@@ -348,16 +358,12 @@ ResponseListener.prototype =
 
   onStartRequest: function RL_onStartRequest(aRequest, aContext)
   {
-    try {
-    this.originalListener.onStartRequest(aRequest, aContext);
-    }
-    catch(ex) {
-      aRequest.cancel(ex);
-    }
+    this.request = aRequest;
+    
+    this.setAsyncListener(this.sink.inputStream, this);
   },
 
   
-
 
 
 
@@ -371,18 +377,6 @@ ResponseListener.prototype =
 
   onStopRequest: function RL_onStopRequest(aRequest, aContext, aStatusCode)
   {
-    try {
-    this.originalListener.onStopRequest(aRequest, aContext, aStatusCode);
-    }
-    catch (ex) { }
-
-    if (HUDService.saveRequestAndResponseBodies) {
-      this.httpActivity.response.body = this.receivedData;
-    }
-    else {
-      this.httpActivity.response.bodyDiscarded = true;
-    }
-
     
     let response = null;
     for each (let item in HUDService.openResponseHeaders) {
@@ -400,6 +394,32 @@ ResponseListener.prototype =
       this.setResponseHeader(aRequest);
     }
 
+    this.sink.outputStream.close();
+  },
+
+  
+
+
+
+
+
+
+  onStreamClose: function RL_onStreamClose()
+  {
+    if (!this.httpActivity) {
+      return;
+    }
+
+    
+    this.setAsyncListener(this.sink.inputStream, null);
+
+    if (HUDService.saveRequestAndResponseBodies) {
+      this.httpActivity.response.body = this.receivedData;
+    }
+    else {
+      this.httpActivity.response.bodyDiscarded = true;
+    }
+
     if (HUDService.lastFinishedRequestCallback) {
       HUDService.lastFinishedRequestCallback(this.httpActivity);
     }
@@ -415,11 +435,52 @@ ResponseListener.prototype =
     this.httpActivity.response.listener = null;
     this.httpActivity = null;
     this.receivedData = "";
+    this.request = null;
+    this.sink = null;
+    this.inputStream = null;
+  },
+
+  
+
+
+
+
+
+
+
+
+  onInputStreamReady: function RL_onInputStreamReady(aStream)
+  {
+    if (!(aStream instanceof Ci.nsIAsyncInputStream) || !this.httpActivity) {
+      return;
+    }
+
+    let available = -1;
+    try {
+      
+      available = aStream.available();
+    }
+    catch (ex) { }
+
+    if (available != -1) {
+      if (available != 0) {
+        
+        
+        
+        this.onDataAvailable(this.request, null, aStream, 0, available);
+      }
+      this.setAsyncListener(aStream, this);
+    }
+    else {
+      this.onStreamClose();
+    }
   },
 
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIStreamListener,
-    Ci.nsISupports
+    Ci.nsIInputStreamCallback,
+    Ci.nsIRequestObserver,
+    Ci.nsISupports,
   ])
 }
 
@@ -1158,6 +1219,11 @@ function HUD_SERVICE()
 
   
   this.lastConsoleHeight = Services.prefs.getIntPref("devtools.hud.height");
+
+  
+  
+  this.responsePipeSegmentSize =
+    Services.prefs.getIntPref("network.buffer.cache.size");
 };
 
 HUD_SERVICE.prototype =
@@ -2089,8 +2155,30 @@ HUD_SERVICE.prototype =
             
             let newListener = new ResponseListener(httpActivity);
             aChannel.QueryInterface(Ci.nsITraceableChannel);
-            newListener.originalListener = aChannel.setNewListener(newListener);
+
             httpActivity.response.listener = newListener;
+
+            let tee = Cc["@mozilla.org/network/stream-listener-tee;1"].
+                      createInstance(Ci.nsIStreamListenerTee);
+
+            
+            
+            
+            
+            let sink = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
+
+            
+            
+            sink.init(false, false, HUDService.responsePipeSegmentSize,
+                      PR_UINT32_MAX, null);
+
+            
+            newListener.inputStream = sink.inputStream;
+
+            let originalListener = aChannel.setNewListener(tee);
+            newListener.sink = sink;
+
+            tee.init(originalListener, sink.outputStream, newListener);
 
             
             aChannel.visitRequestHeaders({
