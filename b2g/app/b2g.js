@@ -6,35 +6,6 @@
 
 pref("toolkit.defaultChromeURI", "chrome://browser/content/shell.xul");
 pref("browser.chromeURL", "chrome://browser/content/");
-#ifdef MOZ_OFFICIAL_BRANDING
-pref("browser.homescreenURL", "http://homescreen.gaiamobile.org/");
-#else
-pref("browser.homescreenURL", "http://homescreen.gaiamobile.org/");
-#endif
-
-
-
-pref("b2g.privileged.domains", "http://browser.gaiamobile.org,
-	                            http://calculator.gaiamobile.org,
-	                            http://contacts.gaiamobile.org,
-	                            http://camera.gaiamobile.org,
-	                            http://clock.gaiamobile.org,
-	                            http://crystalskull.gaiamobile.org,
-	                            http://cubevid.gaiamobile.org,
-	                            http://dialer.gaiamobile.org,
-	                            http://gallery.gaiamobile.org,
-	                            http://homescreen.gaiamobile.org,
-	                            http://maps.gaiamobile.org,
-	                            http://market.gaiamobile.org,
-	                            http://music.gaiamobile.org,
-	                            http://penguinpop.gaiamobile.org,
-	                            http://settings.gaiamobile.org,
-	                            http://sms.gaiamobile.org,
-	                            http://towerjelly.gaiamobile.org,
-	                            http://video.gaiamobile.org");
-
-
-pref("dom.telephony.app.phone.url", "http://dialer.gaiamobile.org,http://homescreen.gaiamobile.org");
 
 
 pref("browser.viewport.scaleRatio", -1);
@@ -395,7 +366,6 @@ pref("browser.link.open_newwindow.restriction", 0);
 
 
 pref("dom.mozBrowserFramesEnabled", true);
-pref("dom.mozBrowserFramesWhitelist", "http://homescreen.gaiamobile.org,http://browser.gaiamobile.org");
 
 pref("dom.ipc.tabs.disabled", false);
 
@@ -403,14 +373,9 @@ pref("dom.ipc.browser_frames.oop_by_default", false);
 
 
 pref("dom.sms.enabled", true);
-pref("dom.sms.whitelist", "file://,http://homescreen.gaiamobile.org,http://sms.gaiamobile.org");
-
-
-pref("dom.mobileconnection.whitelist", "http://system.gaiamobile.org,http://homescreen.gaiamobile.org,http://dialer.gaiamobile.org");
 
 
 pref("dom.mozContacts.enabled", true);
-pref("dom.mozContacts.whitelist", "http://dialer.gaiamobile.org,http://sms.gaiamobile.org");
 
 
 pref("dom.mozSettings.enabled", true);
@@ -441,7 +406,6 @@ pref("b2g.keys.search.enabled", false);
 
 
 pref("power.screen.timeout", 60);
-pref("dom.power.whitelist", "http://homescreen.gaiamobile.org,http://settings.gaiamobile.org");
 
 pref("full-screen-api.enabled", true);
 
