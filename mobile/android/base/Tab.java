@@ -552,7 +552,9 @@ public final class Tab {
         @Override
         protected Void doInBackground(Void... unused) {
             ContentResolver resolver = Tabs.getInstance().getContentResolver();
-            BrowserDB.removeBookmark(resolver, getURL());
+
+            
+            BrowserDB.removeBookmarksWithURL(resolver, getURL());
             return null;
         }
 
