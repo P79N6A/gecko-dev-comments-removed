@@ -355,6 +355,26 @@ JS_FLOOR_LOG2W(size_t n)
     return js_FloorLog2wImpl(n);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+#if defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_AMD64) || \
+    defined(_M_X64))
+#include <stdlib.h>
+#pragma intrinsic(_rotl)
+#define JS_ROTATE_LEFT32(a, bits) _rotl(a, bits)
+#else
+#define JS_ROTATE_LEFT32(a, bits) (((a) << (bits)) | ((a) >> (32 - (bits))))
+#endif
+
 JS_END_EXTERN_C
 
 #ifdef __cplusplus
@@ -894,6 +914,61 @@ RoundUpPow2(size_t x)
 {
     return size_t(1) << JS_CEILING_LOG2W(x);
 }
+
+
+typedef uint32_t HashNumber;
+
+namespace detail {
+
+
+
+
+
+
+
+
+
+
+inline HashNumber
+ScrambleHashCode(HashNumber h)
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static const HashNumber shuffleBits = 0x9E3779B9U;
+    h *= shuffleBits;
+    static const int bitsToRotate = 20;
+    return JS_ROTATE_LEFT32(h, bitsToRotate);
+}
+
+} 
 
 } 
 

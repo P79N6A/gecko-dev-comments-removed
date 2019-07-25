@@ -16,9 +16,6 @@ namespace js {
 class TempAllocPolicy;
 
 
-typedef uint32_t HashNumber;
-
-
 
 namespace detail {
 
@@ -288,7 +285,6 @@ class HashTable : private AllocPolicy
     static const uint8_t  sMinAlphaFrac = 64;  
     static const uint8_t  sMaxAlphaFrac = 192; 
     static const uint8_t  sInvMaxAlpha  = 171; 
-    static const HashNumber sGoldenRatio  = 0x9E3779B9U;       
     static const HashNumber sFreeKey = Entry::sFreeKey;
     static const HashNumber sRemovedKey = Entry::sRemovedKey;
     static const HashNumber sCollisionBit = Entry::sCollisionBit;
@@ -308,10 +304,7 @@ class HashTable : private AllocPolicy
 
     static HashNumber prepareHash(const Lookup& l)
     {
-        HashNumber keyHash = HashPolicy::hash(l);
-
-        
-        keyHash *= sGoldenRatio;
+        HashNumber keyHash = ScrambleHashCode(HashPolicy::hash(l));
 
         
         if (!isLiveHash(keyHash))
