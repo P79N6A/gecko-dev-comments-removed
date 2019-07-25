@@ -34,7 +34,8 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Auth', 'BasicAuthenticator', 'NoOpAuthenticator'];
+const EXPORTED_SYMBOLS = ['Auth', 'BrokenBasicAuthenticator',
+                          'BasicAuthenticator', 'NoOpAuthenticator'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -55,13 +56,26 @@ NoOpAuthenticator.prototype = {
   }
 };
 
+
+
+function BrokenBasicAuthenticator(identity) {
+  this._id = identity;
+}
+BrokenBasicAuthenticator.prototype = {
+  onRequest: function BasicAuth_onRequest(headers) {
+    headers['Authorization'] = 'Basic ' +
+      btoa(this._id.username + ':' + this._id.password);
+    return headers;
+  }
+};
+
 function BasicAuthenticator(identity) {
   this._id = identity;
 }
 BasicAuthenticator.prototype = {
-  onRequest: function BasicAuth_onRequest(headers) {
+  onRequest: function onRequest(headers) {
     headers['Authorization'] = 'Basic ' +
-      btoa(this._id.username + ':' + this._id.password);
+      btoa(this._id.username + ':' + this._id.passwordUTF8);
     return headers;
   }
 };
