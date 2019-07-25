@@ -1292,11 +1292,23 @@ JS_GetDataViewByteLength(JSObject *obj, JSContext *cx);
 JS_FRIEND_API(void *)
 JS_GetDataViewData(JSObject *obj, JSContext *cx);
 
+#ifdef __cplusplus
 
 
 
 
 
-struct JSJitInfo;
+typedef bool
+(* JSJitPropertyOp)(JSContext *cx, JSObject *thisObj,
+                    void *specializedThis, JS::Value *vp);
+
+struct JSJitInfo {
+    JSJitPropertyOp op;
+    uint32_t protoID;
+    uint32_t depth;
+    bool isInfallible;    
+    bool isConstant;      
+};
+#endif
 
 #endif 
