@@ -327,8 +327,7 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
                 map->Add(root);
             }
             goto return_wrapper;
-        }
-        else {
+        } else {
             
             nsXPCWrappedJSClass* rootClazz = nsnull;
             nsXPCWrappedJSClass::GetNewOrUsed(ccx, NS_GET_IID(nsISupports),
@@ -458,8 +457,7 @@ nsXPCWrappedJS::Unlink()
 
     if (mRoot == this) {
         ClearWeakReferences();
-    }
-    else if (mRoot) {
+    } else if (mRoot) {
         
         nsXPCWrappedJS* cur = mRoot;
         while (1) {
@@ -480,8 +478,7 @@ nsXPCWrappedJS::Unlink()
         if (rt->GetThreadRunningGC()) {
             rt->DeferredRelease(mOuter);
             mOuter = nsnull;
-        }
-        else {
+        } else {
             NS_RELEASE(mOuter);
         }
     }

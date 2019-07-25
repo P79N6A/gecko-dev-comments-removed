@@ -110,8 +110,7 @@ XPCStringConvert::ReadableToJSVal(JSContext *cx,
         if (str) {
             *sharedBuffer = buf;
         }
-    }
-    else {
+    } else {
         
 
         jschar *chars = reinterpret_cast<jschar *>
