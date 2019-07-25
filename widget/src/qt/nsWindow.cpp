@@ -42,6 +42,7 @@
 
 
 
+
 #include <QtGui/QApplication>
 #include <QtGui/QDesktopWidget>
 #include <QtGui/QCursor>
@@ -527,21 +528,21 @@ nsWindow::Move(PRInt32 aX, PRInt32 aY)
 
     if (mIsTopLevel) {
         SetSizeMode(nsSizeMode_Normal);
-
-        
-        
-        aX = aY = 0;
     }
 
     if (aX == mBounds.x && aY == mBounds.y)
         return NS_OK;
 
-    if (!mWidget)
-        return NS_OK;
+    mNeedsMove = PR_FALSE;
 
     
     QPointF pos( aX, aY );
-    if (mWidget) {
+    if (mIsTopLevel) {
+        QWidget *widget = GetViewWidget();
+        NS_ENSURE_TRUE(widget, NS_OK);
+        widget->move(aX, aY);
+    }
+    else if (mWidget) {
         
         
         pos = mWidget->mapFromScene(pos);
@@ -669,7 +670,16 @@ nsWindow::SetFocus(PRBool aRaise)
 NS_IMETHODIMP
 nsWindow::GetScreenBounds(nsIntRect &aRect)
 {
-    aRect = nsIntRect(WidgetToScreenOffset(), mBounds.Size());
+    aRect = nsIntRect(nsIntPoint(0, 0), mBounds.Size());
+    if (mIsTopLevel) {
+        QWidget *widget = GetViewWidget();
+        NS_ENSURE_TRUE(widget, NS_OK);
+        QPoint pos = widget->pos();
+        aRect.MoveTo(pos.x(), pos.y());
+    }
+    else {
+        aRect.MoveTo(WidgetToScreenOffset());
+    }
     LOG(("GetScreenBounds %d %d | %d %d | %d %d\n",
          aRect.x, aRect.y,
          mBounds.width, mBounds.height,
@@ -2268,8 +2278,9 @@ nsWindow::NativeResize(PRInt32 aWidth, PRInt32 aHeight, PRBool  aRepaint)
         NS_ENSURE_TRUE(widget,);
         widget->resize(aWidth, aHeight);
     }
-
-    mWidget->resize(aWidth, aHeight);
+    else {
+        mWidget->resize(aWidth, aHeight);
+    }
 
     if (aRepaint)
         mWidget->update();
@@ -2291,8 +2302,9 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
         NS_ENSURE_TRUE(widget,);
         widget->setGeometry(aX, aY, aWidth, aHeight);
     }
-
-    mWidget->setGeometry(aX, aY, aWidth, aHeight);
+    else {
+        mWidget->setGeometry(aX, aY, aWidth, aHeight);
+    }
 
     if (aRepaint)
         mWidget->update();
@@ -2513,6 +2525,9 @@ MozQWidget*
 nsWindow::createQWidget(MozQWidget *parent, nsWidgetInitData *aInitData)
 {
     const char *windowName = NULL;
+    Qt::WindowFlags flags = Qt::Widget;
+    QWidget *parentWidget = (parent && parent->getReceiver()) ?
+            parent->getReceiver()->GetViewWidget() : nsnull;
 
 #ifdef DEBUG_WIDGETS
     qDebug("NEW WIDGET\n\tparent is %p (%s)", (void*)parent,
@@ -2523,8 +2538,8 @@ nsWindow::createQWidget(MozQWidget *parent, nsWidgetInitData *aInitData)
     switch (mWindowType) {
     case eWindowType_dialog:
         windowName = "topLevelDialog";
-        if (!parent)
-            mIsTopLevel = PR_TRUE;
+        mIsTopLevel = PR_TRUE;
+        flags |= Qt::Dialog;
         break;
     case eWindowType_popup:
         windowName = "topLevelPopup";
@@ -2556,12 +2571,18 @@ nsWindow::createQWidget(MozQWidget *parent, nsWidgetInitData *aInitData)
     
 
     if (mIsTopLevel) {
-        QGraphicsView* newView = new MozQGraphicsView(widget);
+        QGraphicsView* newView = new MozQGraphicsView(widget, parentWidget);
 
         if (!newView) {
             delete widget;
             return nsnull;
         }
+
+        newView->setWindowFlags(flags);
+        if (mWindowType == eWindowType_dialog) {
+            newView->setWindowModality(Qt::WindowModal);
+        }
+
         if (!IsAcceleratedQView(newView) && GetShouldAccelerate()) {
             newView->setViewport(new QGLWidget());
         }
@@ -2588,8 +2609,7 @@ nsWindow::createQWidget(MozQWidget *parent, nsWidgetInitData *aInitData)
         XSetWindowBackgroundPixmap(QX11Info::display(),
                                    newView->effectiveWinId(), None);
 #endif
-    } else if (eWindowType_dialog == mWindowType && parent)
-        parent->scene()->addItem(widget);
+    }
 
     if (mWindowType == eWindowType_popup) {
         widget->setZValue(100);
