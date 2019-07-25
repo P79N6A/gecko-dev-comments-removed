@@ -702,12 +702,6 @@ NS_InitXPCOM3(nsIServiceManager* *result,
 
     NS_TIME_FUNCTION_MARK("Next: try to load compreg.dat");
 
-#if 0 
-    
-    
-    (void) iim->AutoRegisterInterfaces();
-#endif,
-
     
     rv = nsComponentManagerImpl::gComponentManager->ReadPersistentRegistry();
     if (NS_FAILED(rv)) {
