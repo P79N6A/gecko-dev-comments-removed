@@ -686,7 +686,7 @@ var mozl10n = {};
 
 })(mozl10n);
 
-define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types/basic', 'gcli/types/javascript', 'gcli/types/node', 'gcli/cli', 'gcli/commands/help', 'gcli/ui/display'], function(require, exports, module) {
+define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types/basic', 'gcli/types/javascript', 'gcli/types/node', 'gcli/cli', 'gcli/commands/help', 'gcli/ui/console'], function(require, exports, module) {
 
   
   exports.addCommand = require('gcli/canon').addCommand;
@@ -702,7 +702,7 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types
   require('gcli/commands/help').startup();
 
   var Requisition = require('gcli/cli').Requisition;
-  var Display = require('gcli/ui/display').Display;
+  var Console = require('gcli/ui/console').Console;
 
   var cli = require('gcli/cli');
   var jstype = require('gcli/types/javascript');
@@ -740,15 +740,15 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types
         opts.requisition = new Requisition(opts.environment, opts.chromeDocument);
       }
 
-      opts.display = new Display(opts);
+      opts.console = new Console(opts);
     },
 
     
 
 
     removeView: function(opts) {
-      opts.display.destroy();
-      delete opts.display;
+      opts.console.destroy();
+      delete opts.console;
 
       opts.requisition.destroy();
       delete opts.requisition;
@@ -5314,7 +5314,7 @@ define("text!gcli/commands/help_man.html", [], "\n" +
 
 
 
-define('gcli/ui/display', ['require', 'exports', 'module' , 'gcli/ui/inputter', 'gcli/ui/arg_fetch', 'gcli/ui/menu', 'gcli/ui/focus'], function(require, exports, module) {
+define('gcli/ui/console', ['require', 'exports', 'module' , 'gcli/ui/inputter', 'gcli/ui/arg_fetch', 'gcli/ui/menu', 'gcli/ui/focus'], function(require, exports, module) {
 
 var Inputter = require('gcli/ui/inputter').Inputter;
 var ArgFetcher = require('gcli/ui/arg_fetch').ArgFetcher;
@@ -5325,7 +5325,7 @@ var FocusManager = require('gcli/ui/focus').FocusManager;
 
 
 
-function Display(options) {
+function Console(options) {
   this.hintElement = options.hintElement;
   this.gcliTerm = options.gcliTerm;
   this.consoleWrap = options.consoleWrap;
@@ -5370,7 +5370,7 @@ function Display(options) {
 
 
 
-Display.prototype.destroy = function() {
+Console.prototype.destroy = function() {
   this.chromeWindow.removeEventListener('resize', this.resizer, false);
   delete this.resizer;
   delete this.chromeWindow;
@@ -5395,7 +5395,7 @@ Display.prototype.destroy = function() {
 
 
 
-Display.prototype.resizer = function() {
+Console.prototype.resizer = function() {
   
   
   
@@ -5435,7 +5435,7 @@ Display.prototype.resizer = function() {
   }
 };
 
-exports.Display = Display;
+exports.Console = Console;
 
 });
 
