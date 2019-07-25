@@ -713,6 +713,10 @@ public:
         return mAvailableExtensions[aKnownExtension];
     }
 
+    
+    static PRBool ListHasExtension(const GLubyte *extensions,
+                                   const char *extension);
+
 protected:
     PRPackedBool mInitialized;
     PRPackedBool mIsOffscreen;

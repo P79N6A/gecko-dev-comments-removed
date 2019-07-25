@@ -432,7 +432,13 @@ GLContext::InitExtensions()
 PRBool
 GLContext::IsExtensionSupported(const char *extension)
 {
-    const GLubyte *extensions = NULL;
+    return ListHasExtension(fGetString(LOCAL_GL_EXTENSIONS), extension);
+}
+
+
+PRBool
+GLContext::ListHasExtension(const GLubyte *extensions, const char *extension)
+{
     const GLubyte *start;
     GLubyte *where, *terminator;
 
@@ -441,7 +447,6 @@ GLContext::IsExtensionSupported(const char *extension)
     if (where || *extension == '\0')
         return PR_FALSE;
 
-    extensions = fGetString(LOCAL_GL_EXTENSIONS);
     
 
 
