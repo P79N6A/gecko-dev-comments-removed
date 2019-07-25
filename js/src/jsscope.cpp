@@ -187,10 +187,10 @@ bool
 Shape::hashify(JSRuntime *rt)
 {
     JS_ASSERT(!hasTable());
-    void* mem = rt->malloc(sizeof(PropertyTable));
-    if (!mem)
+    PropertyTable *table = rt->new_<PropertyTable>(entryCount());
+    if (!table)
         return false;
-    setTable(new(mem) PropertyTable(entryCount()));
+    setTable(table);
     return getTable()->init(rt, this);
 }
 
@@ -325,15 +325,12 @@ PropertyTable::change(int log2Delta, JSContext *cx)
     
 
 
-
-
-
     oldlog2 = JS_DHASH_BITS - hashShift;
     newlog2 = oldlog2 + log2Delta;
     oldsize = JS_BIT(oldlog2);
     newsize = JS_BIT(newlog2);
     nbytes = PROPERTY_TABLE_NBYTES(newsize);
-    newTable = (Shape **) cx->runtime->calloc(nbytes);
+    newTable = (Shape **) cx->calloc(nbytes);
     if (!newTable) {
         METER(tableAllocFails);
         return false;
@@ -359,11 +356,7 @@ PropertyTable::change(int log2Delta, JSContext *cx)
     }
 
     
-
-
-
-
-    js_free(oldTable);
+    cx->free(oldTable);
     return true;
 }
 

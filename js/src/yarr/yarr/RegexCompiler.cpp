@@ -140,7 +140,7 @@ public:
     CharacterClass* charClass()
     {
         
-        CharacterClass* characterClass = js_new<CharacterClass>((CharacterClassTable*)NULL);
+        CharacterClass* characterClass = js::OffTheBooks::new_<CharacterClass>((CharacterClassTable*)NULL);
 
         characterClass->m_matches.append(m_matches);
         characterClass->m_ranges.append(m_ranges);
@@ -346,7 +346,7 @@ public:
             m_pattern.m_numSubpatterns++;
 
         
-        PatternDisjunction* parenthesesDisjunction = js_new<PatternDisjunction>(m_alternative);
+        PatternDisjunction* parenthesesDisjunction = js::OffTheBooks::new_<PatternDisjunction>(m_alternative);
         m_pattern.m_disjunctions.append(parenthesesDisjunction);
         m_alternative->m_terms.append(PatternTerm(PatternTerm::TypeParenthesesSubpattern, subpatternId, parenthesesDisjunction, capture));
         m_alternative = parenthesesDisjunction->addNewAlternative();
@@ -355,7 +355,7 @@ public:
     void atomParentheticalAssertionBegin(bool invert = false)
     {
         
-        PatternDisjunction* parenthesesDisjunction = js_new<PatternDisjunction>(m_alternative);
+        PatternDisjunction* parenthesesDisjunction = js::OffTheBooks::new_<PatternDisjunction>(m_alternative);
         m_pattern.m_disjunctions.append(parenthesesDisjunction);
         m_alternative->m_terms.append(PatternTerm(PatternTerm::TypeParentheticalAssertion, m_pattern.m_numSubpatterns + 1, parenthesesDisjunction, invert));
         m_alternative = parenthesesDisjunction->addNewAlternative();
@@ -401,7 +401,7 @@ public:
     PatternDisjunction* copyDisjunction(PatternDisjunction* disjunction)
     {
         
-        PatternDisjunction* newDisjunction = js_new<PatternDisjunction>();
+        PatternDisjunction* newDisjunction = js::OffTheBooks::new_<PatternDisjunction>();
 
         newDisjunction->m_parent = disjunction->m_parent;
         for (unsigned alt = 0; alt < disjunction->m_alternatives.length(); ++alt) {
@@ -472,7 +472,7 @@ public:
     void regexBegin()
     {
         
-        m_pattern.m_body = js_new<PatternDisjunction>();
+        m_pattern.m_body = js::OffTheBooks::new_<PatternDisjunction>();
         m_alternative = m_pattern.m_body->addNewAlternative();
         m_pattern.m_disjunctions.append(m_pattern.m_body);
     }

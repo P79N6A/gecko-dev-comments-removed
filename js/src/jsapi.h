@@ -47,7 +47,6 @@
 #include <stdio.h>
 #include "js-config.h"
 #include "jspubtd.h"
-#include "jsutil.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -3238,7 +3237,7 @@ class JSAutoByteString {
     }
 
     ~JSAutoByteString() {
-        js_free(mBytes);
+        js::UnwantedForeground::free(mBytes);
     }
 
     
@@ -3255,7 +3254,7 @@ class JSAutoByteString {
     }
 
     void clear() {
-        js_free(mBytes);
+        js::UnwantedForeground::free(mBytes);
         mBytes = NULL;
     }
 

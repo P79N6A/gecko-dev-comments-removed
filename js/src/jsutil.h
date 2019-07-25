@@ -229,6 +229,10 @@ extern JS_PUBLIC_DATA(JSUint32) OOM_counter;
 #endif
 
 
+
+
+
+
 static JS_INLINE void* js_malloc(size_t bytes) {
     JS_OOM_POSSIBLY_FAIL();
     return malloc(bytes);
@@ -251,6 +255,8 @@ static JS_INLINE void js_free(void* p) {
 
 JS_END_EXTERN_C
 
+
+
 #ifdef __cplusplus
 
 
@@ -269,76 +275,247 @@ JS_END_EXTERN_C
 
 
 
-#define JS_NEW_BODY(t, parms)                                                 \
-    void *memory = js_malloc(sizeof(t));                                      \
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define JS_NEW_BODY(allocator, t, parms)                                       \
+    void *memory = allocator(sizeof(t));                                       \
     return memory ? new(memory) t parms : NULL;
 
-template <class T>
-JS_ALWAYS_INLINE T *js_new() {
-    JS_NEW_BODY(T, ())
-}
-
-template <class T, class P1>
-JS_ALWAYS_INLINE T *js_new(const P1 &p1) {
-    JS_NEW_BODY(T, (p1))
-}
-
-template <class T, class P1, class P2>
-JS_ALWAYS_INLINE T *js_new(const P1 &p1, const P2 &p2) {
-    JS_NEW_BODY(T, (p1, p2))
-}
-
-template <class T, class P1, class P2, class P3>
-JS_ALWAYS_INLINE T *js_new(const P1 &p1, const P2 &p2, const P3 &p3) {
-    JS_NEW_BODY(T, (p1, p2, p3))
-}
-
-template <class T, class P1, class P2, class P3, class P4>
-JS_ALWAYS_INLINE T *js_new(const P1 &p1, const P2 &p2, const P3 &p3, const P4 &p4) {
-    JS_NEW_BODY(T, (p1, p2, p3, p4))
-}
 
 
 
-#undef JS_NEW_BODY
 
-template <class T>
-JS_ALWAYS_INLINE void js_delete(T *p) {
-    if (p) {
-        p->~T();
-        js_free(p);
+
+
+
+
+
+#define JS_DECLARE_NEW_METHODS(ALLOCATOR, QUALIFIERS)\
+    template <class T>\
+    QUALIFIERS T *new_() {\
+        JS_NEW_BODY(ALLOCATOR, T, ())\
+    }\
+\
+    template <class T, class P1>\
+    QUALIFIERS T *new_(const P1 &p1) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1))\
+    }\
+\
+    template <class T, class P1, class P2>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2))\
+    }\
+\
+    template <class T, class P1, class P2, class P3>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2, const P3 &p3) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3))\
+    }\
+\
+    template <class T, class P1, class P2, class P3, class P4>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2, const P3 &p3, const P4 &p4) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4))\
+    }\
+\
+    template <class T, class P1, class P2, class P3, class P4, class P5>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2, const P3 &p3, const P4 &p4, const P5 &p5) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5))\
+    }\
+\
+    template <class T, class P1, class P2, class P3, class P4, class P5, class P6>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2, const P3 &p3, const P4 &p4, const P5 &p5, const P6 &p6) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6))\
+    }\
+\
+    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2, const P3 &p3, const P4 &p4, const P5 &p5, const P6 &p6, const P7 &p7) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7))\
+    }\
+\
+    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2, const P3 &p3, const P4 &p4, const P5 &p5, const P6 &p6, const P7 &p7, const P8 &p8) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8))\
+    }\
+\
+    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2, const P3 &p3, const P4 &p4, const P5 &p5, const P6 &p6, const P7 &p7, const P8 &p8, const P9 &p9) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9))\
+    }\
+\
+    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2, const P3 &p3, const P4 &p4, const P5 &p5, const P6 &p6, const P7 &p7, const P8 &p8, const P9 &p9, const P10 &p10) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10))\
+    }\
+\
+    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10, class P11>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2, const P3 &p3, const P4 &p4, const P5 &p5, const P6 &p6, const P7 &p7, const P8 &p8, const P9 &p9, const P10 &p10, const P11 &p11) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11))\
+    }\
+\
+    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10, class P11, class P12>\
+    QUALIFIERS T *new_(const P1 &p1, const P2 &p2, const P3 &p3, const P4 &p4, const P5 &p5, const P6 &p6, const P7 &p7, const P8 &p8, const P9 &p9, const P10 &p10, const P11 &p11, const P12 &p12) {\
+        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12))\
+    }\
+    static const int JSMinAlignment = 8;\
+    template <class T>\
+    QUALIFIERS T *array_new(size_t n) {\
+        /* The length is stored just before the vector memory. */\
+        uint64 numBytes64 = uint64(JSMinAlignment) + uint64(sizeof(T)) * uint64(n);\
+        size_t numBytes = size_t(numBytes64);\
+        if (numBytes64 != numBytes) {\
+            JS_ASSERT(0);   /* we want to know if this happens in debug builds */\
+            return NULL;\
+        }\
+        void *memory = ALLOCATOR(numBytes);\
+        if (!memory)\
+            return NULL;\
+        *(size_t *)memory = n;\
+        memory = (void*)(uintptr_t(memory) + JSMinAlignment);\
+        return new(memory) T[n];\
+    }\
+
+
+#define JS_DECLARE_DELETE_METHODS(DEALLOCATOR, QUALIFIERS)\
+    template <class T>\
+    QUALIFIERS void delete_(T *p) {\
+        if (p) {\
+            p->~T();\
+            DEALLOCATOR(p);\
+        }\
+    }\
+\
+    template <class T>\
+    QUALIFIERS void array_delete(T *p) {\
+        if (p) {\
+            void* p0 = (void *)(uintptr_t(p) - js::OffTheBooks::JSMinAlignment);\
+            size_t n = *(size_t *)p0;\
+            for (size_t i = 0; i < n; i++)\
+                (p + i)->~T();\
+            DEALLOCATOR(p0);\
+        }\
     }
-}
 
-static const int JSMinAlignment = 8;
 
-template <class T>
-JS_ALWAYS_INLINE T *js_array_new(size_t n) {
-	
-    uint64 numBytes64 = uint64(JSMinAlignment) + uint64(sizeof(T)) * uint64(n);
-    size_t numBytes = size_t(numBytes64);
-    if (numBytes64 != numBytes) {
-        JS_ASSERT(0);   
-        return NULL;
+
+
+
+
+
+
+namespace js {
+class OffTheBooks {
+public:
+    JS_DECLARE_NEW_METHODS(::js_malloc, JS_ALWAYS_INLINE static)
+
+    
+
+
+
+
+
+    static JS_INLINE void* (malloc)(size_t bytes) {
+        return ::js_malloc(bytes);
     }
-    void *memory = js_malloc(numBytes);
-    if (!memory)
-        return NULL;
-	*(size_t *)memory = n;
-	memory = (void*)(uintptr_t(memory) + JSMinAlignment);
-    return new(memory) T[n];
-}
 
-template <class T>
-JS_ALWAYS_INLINE void js_array_delete(T *p) {
-    if (p) {
-		void* p0 = (void *)(uintptr_t(p) - JSMinAlignment);
-		size_t n = *(size_t *)p0;
-		for (size_t i = 0; i < n; i++)
-			(p + i)->~T();
-		js_free(p0);
+    static JS_INLINE void* (calloc)(size_t bytes) {
+        return ::js_calloc(bytes);
     }
-}
+
+    static JS_INLINE void* (realloc)(void* p, size_t bytes) {
+        return ::js_realloc(p, bytes);
+    }
+};
+
+
+
+
+
+class Foreground {
+public:
+    
+    static JS_ALWAYS_INLINE void (free)(void* p) {
+        ::js_free(p);
+    }
+
+    JS_DECLARE_DELETE_METHODS(::js_free, JS_ALWAYS_INLINE static)
+};
+
+class UnwantedForeground : public Foreground {
+};
+
+} 
+
+
+
+
+
+#define JS_DECLARE_ALLOCATION_FRIENDS_FOR_PRIVATE_CONSTRUCTOR \
+    friend class js::OffTheBooks;\
+    friend class js::Foreground;\
+    friend class js::UnwantedForeground;\
+    friend struct ::JSContext;\
+    friend struct ::JSRuntime
+
 
 
 
@@ -506,6 +683,6 @@ PodEqual(T *one, T *two, size_t len)
 
 } 
 
-#endif 
+#endif
 
-#endif 
+#endif

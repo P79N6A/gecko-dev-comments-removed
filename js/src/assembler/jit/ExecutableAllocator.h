@@ -70,6 +70,8 @@ namespace JSC {
 
   
   class ExecutablePool {
+
+    JS_DECLARE_ALLOCATION_FRIENDS_FOR_PRIVATE_CONSTRUCTOR;
     friend class ExecutableAllocator;
 private:
     struct Allocation {
@@ -100,9 +102,7 @@ public:
         JS_ASSERT(m_refCount != 0);
         JS_ASSERT_IF(willDestroy, m_refCount = 1);
         if (--m_refCount == 0) {
-            
-            this->~ExecutablePool();
-            js_free(this);
+            js::UnwantedForeground::delete_(this);
         }
     }
 
@@ -236,9 +236,7 @@ private:
         if (!a.pages)
             return NULL;
 
-        
-        void *memory = js_malloc(sizeof(ExecutablePool));
-        return memory ? new(memory) ExecutablePool(a) : NULL;
+        return js::OffTheBooks::new_<ExecutablePool>(a);
     }
 
     ExecutablePool* poolForSize(size_t n)
