@@ -69,8 +69,8 @@ using namespace mozilla;
 #endif
 
 
-mozilla::ThreadLocal<ProfileStack> tlsStack;
-mozilla::ThreadLocal<TableTicker> tlsTicker;
+mozilla::ThreadLocal<ProfileStack *> tlsStack;
+mozilla::ThreadLocal<TableTicker *> tlsTicker;
 
 
 
