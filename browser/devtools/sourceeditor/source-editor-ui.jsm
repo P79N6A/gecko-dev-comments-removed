@@ -50,6 +50,7 @@ var EXPORTED_SYMBOLS = ["SourceEditorUI"];
 function SourceEditorUI(aEditor)
 {
   this.editor = aEditor;
+  this._onDirtyChanged = this._onDirtyChanged.bind(this);
 }
 
 SourceEditorUI.prototype = {
@@ -72,6 +73,8 @@ SourceEditorUI.prototype = {
     if (this._ownerWindow.controllers) {
       this._controller = new SourceEditorController(this.editor);
       this._ownerWindow.controllers.insertControllerAt(0, this._controller);
+      this.editor.addEventListener(this.editor.EVENTS.DIRTY_CHANGED,
+                                   this._onDirtyChanged);
     }
   },
 
@@ -181,8 +184,36 @@ SourceEditorUI.prototype = {
 
 
 
+  _onUndoRedo: function SEU__onUndoRedo()
+  {
+    if (this._ownerWindow.goUpdateCommand) {
+      this._ownerWindow.goUpdateCommand("se-cmd-undo");
+      this._ownerWindow.goUpdateCommand("se-cmd-redo");
+    }
+  },
+
+  
+
+
+
+
+
+  _onDirtyChanged: function SEU__onDirtyChanged()
+  {
+    this._onUndoRedo();
+  },
+
+  
+
+
+
   destroy: function SEU_destroy()
   {
+    if (this._ownerWindow.controllers) {
+      this.editor.removeEventListener(this.editor.EVENTS.DIRTY_CHANGED,
+                                      this._onDirtyChanged);
+    }
+
     this._ownerWindow = null;
     this.editor = null;
     this._controller = null;
@@ -220,6 +251,8 @@ SourceEditorController.prototype = {
       case "cmd_findAgain":
       case "cmd_findPrevious":
       case "cmd_gotoLine":
+      case "se-cmd-undo":
+      case "se-cmd-redo":
         result = true;
         break;
       default:
@@ -251,6 +284,12 @@ SourceEditorController.prototype = {
       case "cmd_findPrevious":
         result = this._editor.lastFind && this._editor.lastFind.lastFound != -1;
         break;
+      case "se-cmd-undo":
+        result = this._editor.canUndo();
+        break;
+      case "se-cmd-redo":
+        result = this._editor.canRedo();
+        break;
       default:
         result = false;
         break;
@@ -280,6 +319,12 @@ SourceEditorController.prototype = {
         break;
       case "cmd_gotoLine":
         this._editor.ui.gotoLine();
+        break;
+      case "se-cmd-undo":
+        this._editor.undo();
+        break;
+      case "se-cmd-redo":
+        this._editor.redo();
         break;
     }
   },

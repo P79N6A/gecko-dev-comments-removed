@@ -199,6 +199,22 @@ SourceEditor.DEFAULTS = {
 
 
   keys: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  contextMenu: "sourceEditorContextMenu",
 };
 
 
@@ -206,6 +222,8 @@ SourceEditor.DEFAULTS = {
 
 SourceEditor.EVENTS = {
   
+
+
 
 
 
@@ -312,6 +330,12 @@ function extend(aDestination, aSource)
 
 
 extend(SourceEditor.prototype, {
+  
+  EVENTS: SourceEditor.EVENTS,
+  MODES: SourceEditor.MODES,
+  THEMES: SourceEditor.THEMES,
+  DEFAULTS: SourceEditor.DEFAULTS,
+
   _lastFind: null,
 
   

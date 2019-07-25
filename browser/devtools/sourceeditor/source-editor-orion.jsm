@@ -147,6 +147,7 @@ function SourceEditor() {
 
   this._onOrionSelection = this._onOrionSelection.bind(this);
   this._onTextChanged = this._onTextChanged.bind(this);
+  this._onOrionContextMenu = this._onOrionContextMenu.bind(this);
 
   this._eventTarget = {};
   this._eventListenersQueue = [];
@@ -173,6 +174,7 @@ SourceEditor.prototype = {
   _iframeWindow: null,
   _eventTarget: null,
   _eventListenersQueue: null,
+  _contextMenu: null,
   _dirty: false,
 
   
@@ -286,6 +288,17 @@ SourceEditor.prototype = {
     }
     this.addEventListener(SourceEditor.EVENTS.TEXT_CHANGED,
                            this._onTextChanged);
+
+    if (typeof config.contextMenu == "string") {
+      let chromeDocument = this.parentElement.ownerDocument;
+      this._contextMenu = chromeDocument.getElementById(config.contextMenu);
+    } else if (typeof config.contextMenu == "object" ) {
+      this._contextMenu = config._contextMenu;
+    }
+    if (this._contextMenu) {
+      this.addEventListener(SourceEditor.EVENTS.CONTEXT_MENU,
+                            this._onOrionContextMenu);
+    }
 
     let KeyBinding = window.require("orion/textview/keyBinding").KeyBinding;
     let TextDND = window.require("orion/textview/textDND").TextDND;
@@ -609,6 +622,22 @@ SourceEditor.prototype = {
 
 
 
+
+
+
+
+  _onOrionContextMenu: function SE__onOrionContextMenu(aEvent)
+  {
+    if (this._contextMenu.state == "closed") {
+      this._contextMenu.openPopupAtScreen(aEvent.screenX || 0,
+                                          aEvent.screenY || 0, true);
+    }
+  },
+
+  
+
+
+
   _updateDirty: function SE__updateDirty()
   {
     this.dirty = !this._undoStack.isClean();
@@ -894,17 +923,27 @@ SourceEditor.prototype = {
   
 
 
+
+
+
   undo: function SE_undo()
   {
-    return this._undoStack.undo();
+    let result = this._undoStack.undo();
+    this.ui._onUndoRedo();
+    return result;
   },
 
   
 
 
+
+
+
   redo: function SE_redo()
   {
-    return this._undoStack.redo();
+    let result = this._undoStack.redo();
+    this.ui._onUndoRedo();
+    return result;
   },
 
   
@@ -936,6 +975,7 @@ SourceEditor.prototype = {
   {
     this._undoStack.reset();
     this._updateDirty();
+    this.ui._onUndoRedo();
   },
 
   
@@ -1403,6 +1443,13 @@ SourceEditor.prototype = {
     this.removeEventListener(SourceEditor.EVENTS.TEXT_CHANGED,
                              this._onTextChanged);
     this._onTextChanged = null;
+
+    if (this._contextMenu) {
+      this.removeEventListener(SourceEditor.EVENTS.CONTEXT_MENU,
+                               this._onOrionContextMenu);
+      this._contextMenu = null;
+    }
+    this._onOrionContextMenu = null;
 
     if (this._primarySelectionTimeout) {
       let window = this.parentElement.ownerDocument.defaultView;
