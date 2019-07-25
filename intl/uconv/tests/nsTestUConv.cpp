@@ -42,7 +42,7 @@ static NS_DEFINE_CID(kPlatformCharsetCID, NS_PLATFORMCHARSET_CID);
 #define ARRAY_SIZE(_array)                                      \
      (sizeof(_array) / sizeof(_array[0]))
 
-nsICharsetConverterManager * ccMan = NULL;
+nsICharsetConverterManager * ccMan = nullptr;
 
 
 
@@ -436,7 +436,7 @@ nsresult standardDecoderTest(char * aTestName, char * aCharset, char * aSrc,
 nsresult loadBinaryFile(char * aFile, char * aBuff, int32_t * aBuffLen)
 {
   FILE * f = fopen(aFile, "rb");
-  if (f == NULL) {
+  if (!f) {
     printf("ERROR at opening file: \"%s\".\n", aFile);
     return NS_ERROR_UNEXPECTED;
   }
@@ -793,7 +793,7 @@ nsresult testLatin1Encoder()
 
   
   CREATE_ENCODER("iso-8859-1");
-  enc->SetOutputErrorBehavior(enc->kOnError_Replace, NULL, 0x00cc);
+  enc->SetOutputErrorBehavior(enc->kOnError_Replace, nullptr, 0x00cc);
 
   
   PRUnichar src[] = {0x0001,0x0002,0xffff,0x00e3};
@@ -830,7 +830,7 @@ nsresult testSJISEncoder()
 
   
   CREATE_ENCODER("Shift_JIS");
-  enc->SetOutputErrorBehavior(enc->kOnError_Replace, NULL, 0x00cc);
+  enc->SetOutputErrorBehavior(enc->kOnError_Replace, nullptr, 0x00cc);
 
   
   PRUnichar src[] = {
@@ -879,7 +879,7 @@ nsresult testEUCJPEncoder()
 
   
   CREATE_ENCODER("euc-jp");
-  enc->SetOutputErrorBehavior(enc->kOnError_Replace, NULL, 0x00cc);
+  enc->SetOutputErrorBehavior(enc->kOnError_Replace, nullptr, 0x00cc);
 
   
   PRUnichar src[] = {0x0045, 0x0054};
@@ -916,7 +916,7 @@ nsresult testISO2022JPEncoder()
 
   
   CREATE_ENCODER("iso-2022-jp");
-  enc->SetOutputErrorBehavior(enc->kOnError_Replace, NULL, 0x00cc);
+  enc->SetOutputErrorBehavior(enc->kOnError_Replace, nullptr, 0x00cc);
 
   
   PRUnichar src[] = {0x000d,0x007f, 0xff6a,0xFF9C, 0x3000, 0x5378};
@@ -953,7 +953,7 @@ nsresult testMUTF7Encoder()
 
   
   CREATE_ENCODER("x-imap4-modified-utf7");
-  enc->SetOutputErrorBehavior(enc->kOnError_Replace, NULL, 0x00cc);
+  enc->SetOutputErrorBehavior(enc->kOnError_Replace, nullptr, 0x00cc);
 
   
   PRUnichar src[] = {0x0050,0x0051,0x0052,0x0053,0x0000,0x0000,0x0000,'&',0x0000};
@@ -990,7 +990,7 @@ nsresult testUTF7Encoder()
 
   
   CREATE_ENCODER("utf-7");
-  enc->SetOutputErrorBehavior(enc->kOnError_Replace, NULL, 0x00cc);
+  enc->SetOutputErrorBehavior(enc->kOnError_Replace, nullptr, 0x00cc);
 
   
   PRUnichar src[] = {'e','t','i','r','a',0x0a};

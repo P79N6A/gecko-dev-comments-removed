@@ -27,7 +27,7 @@ nsresult nsDateTimeFormatWin::Initialize(nsILocale* locale)
   nsresult res = NS_OK;
 
   
-  if (NULL == locale) {
+  if (!locale) {
     if (!mLocale.IsEmpty() && 
         mLocale.Equals(mAppLocale, nsCaseInsensitiveStringComparator())) {
       return NS_OK;
@@ -47,7 +47,7 @@ nsresult nsDateTimeFormatWin::Initialize(nsILocale* locale)
   mLCID = 1033;
 
   
-  if (NULL == locale) {
+  if (!locale) {
     nsCOMPtr<nsILocaleService> localeService = 
              do_GetService(NS_LOCALESERVICE_CONTRACTID);
     if (localeService) {

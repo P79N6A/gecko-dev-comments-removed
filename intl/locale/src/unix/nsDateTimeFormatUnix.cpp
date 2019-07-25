@@ -25,7 +25,7 @@ nsresult nsDateTimeFormatUnix::Initialize(nsILocale* locale)
   nsresult res = NS_OK;
 
   
-  if (NULL == locale) {
+  if (!locale) {
     if (!mLocale.IsEmpty() &&
         mLocale.Equals(mAppLocale, nsCaseInsensitiveStringComparator())) {
       return NS_OK;
@@ -46,7 +46,7 @@ nsresult nsDateTimeFormatUnix::Initialize(nsILocale* locale)
   mPlatformLocale.Assign("en_US");
 
   
-  if (NULL == locale) {
+  if (!locale) {
     nsCOMPtr<nsILocaleService> localeService = 
              do_GetService(NS_LOCALESERVICE_CONTRACTID, &res);
     if (NS_SUCCEEDED(res)) {
@@ -100,7 +100,7 @@ void nsDateTimeFormatUnix::LocalePreferred24hour()
   struct tm *tmc;
   int i;
 
-  tt = time((time_t)NULL);
+  tt = time((time_t)0);
   tmc = localtime(&tt);
 
   tmc->tm_hour=22;    
@@ -206,7 +206,7 @@ nsresult nsDateTimeFormatUnix::FormatTMTime(nsILocale* locale,
   }
 
   
-  char *old_locale = setlocale(LC_TIME, NULL);
+  char *old_locale = setlocale(LC_TIME, nullptr);
   (void) setlocale(LC_TIME, mPlatformLocale.get());
   if (PL_strlen(fmtD) && PL_strlen(fmtT)) {
     PL_strncat(fmtD, " ", NSDATETIME_FORMAT_BUFFER_LEN);

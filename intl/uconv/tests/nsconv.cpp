@@ -115,7 +115,7 @@ int main(int argc, const char** argv)
       
       
       fin = infile = fopen(argv[5], "rb");
-      if(NULL == infile) 
+      if(!infile) 
       {  
         usage();
         fprintf(stderr,"cannot open input file %s\n", argv[5]);
@@ -127,7 +127,7 @@ int main(int argc, const char** argv)
         
         
         fout = outfile = fopen(argv[6], "ab");
-        if(NULL == outfile) 
+        if(!outfile) 
         {  
           usage();
           fprintf(stderr,"cannot open output file %s\n", argv[6]);
