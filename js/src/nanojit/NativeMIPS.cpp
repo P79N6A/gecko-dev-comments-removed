@@ -389,7 +389,7 @@ namespace nanojit
         }
     }
 
-    void Assembler::asm_regarg(ArgType ty, LInsp p, Register r)
+    void Assembler::asm_regarg(ArgType ty, LIns* p, Register r)
     {
         NanoAssert(deprecated_isKnownReg(r));
         if (ty == ARGTYPE_I || ty == ARGTYPE_UI) {
@@ -423,7 +423,7 @@ namespace nanojit
         }
     }
 
-    void Assembler::asm_stkarg(LInsp arg, int stkd)
+    void Assembler::asm_stkarg(LIns* arg, int stkd)
     {
         bool isF64 = arg->isD();
         Register rr;
@@ -466,7 +466,7 @@ namespace nanojit
     
     
     void
-    Assembler::asm_arg_64(LInsp arg, Register& r, Register& fr, int& stkd)
+    Assembler::asm_arg_64(LIns* arg, Register& r, Register& fr, int& stkd)
     {
         
         NanoAssert((stkd & 3) == 0);
@@ -568,7 +568,7 @@ namespace nanojit
         TAG("asm_ui2d(ins=%p{%s})", ins, lirNames[ins->opcode()]);
     }
 
-    void Assembler::asm_d2i(LInsp ins)
+    void Assembler::asm_d2i(LIns* ins)
     {
         NanoAssert(cpu_has_fpu);
 
@@ -585,8 +585,8 @@ namespace nanojit
     {
         NanoAssert(cpu_has_fpu);
         if (cpu_has_fpu) {
-            LInsp lhs = ins->oprnd1();
-            LInsp rhs = ins->oprnd2();
+            LIns* lhs = ins->oprnd1();
+            LIns* rhs = ins->oprnd2();
             LOpcode op = ins->opcode();
 
             
@@ -611,7 +611,7 @@ namespace nanojit
     {
         NanoAssert(cpu_has_fpu);
         if (cpu_has_fpu) {
-            LInsp lhs = ins->oprnd1();
+            LIns* lhs = ins->oprnd1();
             Register rr = deprecated_prepResultReg(ins, FpRegs);
             Register sr = ( !lhs->isInReg()
                             ? findRegFor(lhs, FpRegs)
@@ -929,8 +929,8 @@ namespace nanojit
     void Assembler::asm_arith(LIns *ins)
     {
         LOpcode op = ins->opcode();
-        LInsp lhs = ins->oprnd1();
-        LInsp rhs = ins->oprnd2();
+        LIns* lhs = ins->oprnd1();
+        LIns* rhs = ins->oprnd2();
 
         RegisterMask allow = GpRegs;
 
@@ -1566,7 +1566,7 @@ namespace nanojit
 
 
     void
-    Assembler::asm_arg(ArgType ty, LInsp arg, Register& r, Register& fr, int& stkd)
+    Assembler::asm_arg(ArgType ty, LIns* arg, Register& r, Register& fr, int& stkd)
     {
         
         NanoAssert((stkd & 3) == 0);
@@ -1591,7 +1591,7 @@ namespace nanojit
     }
 
     void
-    Assembler::asm_call(LInsp ins)
+    Assembler::asm_call(LIns* ins)
     {
         Register rr;
         LOpcode op = ins->opcode();
