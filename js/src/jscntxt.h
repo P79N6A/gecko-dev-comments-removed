@@ -1702,7 +1702,7 @@ namespace js {
 
 
 extern void
-ReportUsageError(JSContext *cx, JSObject *callee, const char *msg);
+ReportUsageError(JSContext *cx, HandleObject callee, const char *msg);
 
 } 
 

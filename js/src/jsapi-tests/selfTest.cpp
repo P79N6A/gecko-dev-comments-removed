@@ -10,11 +10,11 @@
 
 BEGIN_TEST(selfTest_NaNsAreSame)
 {
-    jsvalRoot v1(cx), v2(cx);
-    EVAL("0/0", v1.addr());  
+    JS::RootedValue v1(cx), v2(cx);
+    EVAL("0/0", v1.address());  
     CHECK_SAME(v1, v1);
 
-    EVAL("Math.sin('no')", v2.addr());  
+    EVAL("Math.sin('no')", v2.address());  
     CHECK_SAME(v1, v2);
     return true;
 }

@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include <string.h>
 #include "jsapi.h"
@@ -89,7 +89,7 @@ WeakMapBase::restoreWeakMapList(JSRuntime *rt, WeakMapVector &vector)
     }
 }
 
-} /* namespace js */
+} 
 
 typedef WeakMap<HeapPtrObject, HeapValue> ObjectValueMap;
 
@@ -110,11 +110,11 @@ GetKeyArg(JSContext *cx, CallArgs &args)
     }
     JSObject &key = vp->toObject();
 
-    // If the key is from another compartment, and we store the wrapper as the key
-    // the wrapper might be GC-ed since it is not strong referenced (Bug 673468).
-    // To avoid this we always use the unwrapped object as the key instead of its
-    // security wrapper. This also means that if the keys are ever exposed they must
-    // be re-wrapped (see: JS_NondeterministicGetWeakMapKeys).
+    
+    
+    
+    
+    
     return JS_UnwrapObject(&key);
 }
 
@@ -231,7 +231,7 @@ WeakMap_set_impl(JSContext *cx, CallArgs args)
                              "WeakMap.set", "0", "s");
         return false;
     }
-    JSObject *key = GetKeyArg(cx, args);
+    RootedObject key(cx, GetKeyArg(cx, args));
     if (!key)
         return false;
 
@@ -254,7 +254,7 @@ WeakMap_set_impl(JSContext *cx, CallArgs args)
         return false;
     }
 
-    // Preserve wrapped native keys to prevent wrapper optimization.
+    
     if (key->getClass()->ext.isWrappedNative) {
         if (!cx->runtime->preserveWrapperCallback ||
             !cx->runtime->preserveWrapperCallback(cx, key)) {
@@ -286,9 +286,9 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *obj, JSObject **ret)
     ObjectValueMap *map = GetObjectMap(obj);
     if (map) {
         for (ObjectValueMap::Range r = map->nondeterministicAll(); !r.empty(); r.popFront()) {
-            JSObject *key = r.front().key;
-            // Re-wrapping the key (see comment of GetKeyArg)
-            if (!JS_WrapObject(cx, &key))
+            RootedObject key(cx, r.front().key);
+            
+            if (!JS_WrapObject(cx, key.address()))
                 return false;
 
             if (!js_NewbornArrayPush(cx, arr, ObjectValue(*key)))
@@ -336,18 +336,18 @@ Class js::WeakMapClass = {
     "WeakMap",
     JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_CACHED_PROTO(JSProto_WeakMap),
-    JS_PropertyStub,         /* addProperty */
-    JS_PropertyStub,         /* delProperty */
-    JS_PropertyStub,         /* getProperty */
-    JS_StrictPropertyStub,   /* setProperty */
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
     WeakMap_finalize,
-    NULL,                    /* checkAccess */
-    NULL,                    /* call        */
-    NULL,                    /* construct   */
-    NULL,                    /* xdrObject   */
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
     WeakMap_mark
 };
 

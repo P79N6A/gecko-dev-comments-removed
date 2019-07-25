@@ -235,6 +235,12 @@ typedef MutableHandle<Value>        MutableHandleValue;
 
 
 
+typedef JSObject *                  RawObject;
+
+
+
+
+
 
 template <typename T>
 struct RootKind<T *> { static ThingRootKind rootKind() { return T::rootKind(); }; };

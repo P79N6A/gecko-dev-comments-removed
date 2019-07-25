@@ -205,7 +205,7 @@ struct SortComparatorIds
 #endif 
 
 static bool
-Snapshot(JSContext *cx, JSObject *obj_, unsigned flags, AutoIdVector *props)
+Snapshot(JSContext *cx, RawObject obj_, unsigned flags, AutoIdVector *props)
 {
     IdSet ht(cx);
     if (!ht.init(32))
@@ -970,7 +970,7 @@ js::ValueToIterator(JSContext *cx, unsigned flags, MutableHandleValue vp)
 
 
         if (flags & JSITER_ENUMERATE) {
-            if (!js_ValueToObjectOrNull(cx, vp, obj.address()))
+            if (!js_ValueToObjectOrNull(cx, vp, &obj))
                 return false;
             
         } else {
