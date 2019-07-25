@@ -6043,7 +6043,17 @@ PresShell::HandleEvent(nsIView         *aView,
       
       
       if (!eventTarget || !eventTarget->GetPrimaryFrame()) {
-        eventTarget = mDocument->GetRootElement();
+        nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
+        if (htmlDoc) {
+          nsCOMPtr<nsIDOMHTMLElement> body;
+          htmlDoc->GetBody(getter_AddRefs(body));
+          eventTarget = do_QueryInterface(body);
+          if (!eventTarget) {
+            eventTarget = mDocument->GetRootElement();
+          }
+        } else {
+          eventTarget = mDocument->GetRootElement();
+        }
       }
 
       if (aEvent->message == NS_KEY_DOWN) {
