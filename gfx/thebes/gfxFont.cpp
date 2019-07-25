@@ -582,8 +582,9 @@ gfxFontFamily::FindFontForChar(FontSearch *aMatchData)
             const gfxFontStyle *style = aMatchData->mFontToMatch->GetStyle();
             
             
-            if (fe->IsItalic() && 
-                    (style->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) != 0) {
+            PRBool wantItalic =
+                ((style->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) != 0);
+            if (fe->IsItalic() == wantItalic) {
                 rank += 5;
             }
             
@@ -600,8 +601,12 @@ gfxFontFamily::FindFontForChar(FontSearch *aMatchData)
             }
         } else {
             
-            if (!fe->IsItalic() && !fe->IsBold())
-                rank += 5;
+            if (!fe->IsItalic()) {
+                rank += 3;
+            }
+            if (!fe->IsBold()) {
+                rank += 2;
+            }
         }
         
         
