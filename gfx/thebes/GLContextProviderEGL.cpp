@@ -610,7 +610,7 @@ public:
         return PR_TRUE;
     }
 
-    PRBool MakeCurrent(PRBool aForce = PR_FALSE) {
+    PRBool MakeCurrentImpl(PRBool aForce = PR_FALSE) {
         PRBool succeeded = PR_TRUE;
 
         
