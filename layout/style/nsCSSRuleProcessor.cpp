@@ -141,10 +141,14 @@ struct RuleValue : RuleSelectorPair {
 
 
 struct RuleHashTableEntry : public PLDHashEntryHdr {
+  
+  
   nsTArray<RuleValue> mRules;
 };
 
 struct RuleHashTagTableEntry : public RuleHashTableEntry {
+  
+  
   nsCOMPtr<nsIAtom> mTag;
 };
 
