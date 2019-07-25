@@ -200,13 +200,19 @@ ThebesLayerD3D9::RenderLayer()
     mValidRegion.SetEmpty();
   }
 
-  if (!mValidRegion.IsEqual(mVisibleRegion)) {
+  if (!mValidRegion.IsEqual(mVisibleRegion.GetBounds())) {
+    
+
+
+
+
+
     nsIntRegion region;
-    region.Sub(mVisibleRegion, mValidRegion);
+    region.Sub(mVisibleRegion.GetBounds(), mValidRegion);
 
     DrawRegion(region);
 
-    mValidRegion = mVisibleRegion;
+    mValidRegion = mVisibleRegion.GetBounds();
   }
 
   float quadTransform[4][4];
