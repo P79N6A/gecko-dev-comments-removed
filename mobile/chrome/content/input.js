@@ -42,6 +42,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/Geometry.jsm");
+
 
 const kDoubleClickInterval = 400;
 
