@@ -249,7 +249,8 @@ Base64urlEncode(const PRUint8* aBytes,
   
   
   PRUint32 length = (aNumBytes + 2) / 3 * 4; 
-  NS_ENSURE_TRUE(_result.SetCapacity(length + 1), NS_ERROR_OUT_OF_MEMORY);
+  NS_ENSURE_TRUE(_result.SetCapacity(length + 1, fallible_t()),
+                 NS_ERROR_OUT_OF_MEMORY);
   _result.SetLength(length);
   (void)PL_Base64Encode(reinterpret_cast<const char*>(aBytes), aNumBytes,
                         _result.BeginWriting());
