@@ -665,7 +665,7 @@ js_Stringify(JSContext *cx, Value *vp, JSObject *replacer, Value space, StringBu
             for (; i < len; i++) {
                 
                 Value v;
-                if (!replacer->getProperty(cx, INT_TO_JSID(i), &v))
+                if (!replacer->getElement(cx, i, &v))
                     return false;
 
                 jsid id;
