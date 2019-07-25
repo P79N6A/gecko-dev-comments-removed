@@ -241,12 +241,14 @@ public:
   
 
 
-  virtual void GetBulletText(nsAString& aText) const;
+  void GetBulletText(nsAString& aText) const;
 
   
 
 
-  virtual bool HasBullet() const;
+  bool HasBullet() const {
+    return HasOutsideBullet() || HasInsideBullet();
+  }
 
   virtual void MarkIntrinsicWidthsDirty();
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
@@ -361,15 +363,6 @@ protected:
   void SetFlags(nsFrameState aFlags) {
     mState &= ~NS_BLOCK_FLAGS_MASK;
     mState |= aFlags;
-  }
-
-  bool HaveOutsideBullet() const {
-#if defined(DEBUG) && !defined(DEBUG_rods)
-    if(mState & NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET) {
-      NS_ASSERTION(mBullet,"NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET flag set and no mBullet");
-    }
-#endif
-    return 0 != (mState & NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET);
   }
 
   
@@ -682,7 +675,8 @@ protected:
 
   static bool FrameStartsCounterScope(nsIFrame* aFrame);
 
-  void ReflowBullet(nsBlockReflowState& aState,
+  void ReflowBullet(nsIFrame* aBulletFrame,
+                    nsBlockReflowState& aState,
                     nsHTMLReflowMetrics& aMetrics,
                     nscoord aLineTop);
 
@@ -738,6 +732,43 @@ protected:
   
 
 
+  bool HasInsideBullet() const {
+    return 0 != (mState & NS_BLOCK_FRAME_HAS_INSIDE_BULLET);
+  }
+
+  
+
+
+  nsBulletFrame* GetInsideBullet() const;
+
+  
+
+
+  bool HasOutsideBullet() const {
+    return 0 != (mState & NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET);
+  }
+
+  
+
+
+  nsBulletFrame* GetOutsideBullet() const;
+
+  
+
+
+  nsFrameList* GetOutsideBulletList() const;
+
+  
+
+
+  nsBulletFrame* GetBullet() const {
+    nsBulletFrame* outside = GetOutsideBullet();
+    return outside ? outside : GetInsideBullet();
+  }
+  
+  
+
+
   bool HasPushedFloats() const {
     return 0 != (GetStateBits() & NS_BLOCK_HAS_PUSHED_FLOATS);
   }
@@ -761,11 +792,8 @@ protected:
   nsLineList mLines;
 
   
+  
   nsFrameList mFloats;
-
-  
-  
-  nsBulletFrame* mBullet;
 
   friend class nsBlockReflowState;
   friend class nsBlockInFlowLineIterator;
