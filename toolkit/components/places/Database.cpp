@@ -560,7 +560,7 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
   
   
-  if (NS_SUCCEEDED(SetJournalMode(mMainConn, JOURNAL_WAL))) {
+  if (JOURNAL_WAL == SetJournalMode(mMainConn, JOURNAL_WAL)) {
     
     
     
