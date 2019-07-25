@@ -2344,7 +2344,6 @@ public:
 
     typedef PRBool (*FontCreationCallback) (const nsAString& aName,
                                             const nsACString& aGenericName,
-                                            PRBool aUseFontSet,
                                             void *closure);
     PRBool ForEachFont(const nsAString& aFamilies,
                        nsIAtom *aLanguage,
@@ -2459,13 +2458,10 @@ protected:
 
 
 
-
-
     PRBool ForEachFontInternal(const nsAString& aFamilies,
                                nsIAtom *aLanguage,
                                PRBool aResolveGeneric,
                                PRBool aResolveFontName,
-                               PRBool aUseFontSet,
                                FontCreationCallback fc,
                                void *closure);
 
@@ -2473,7 +2469,6 @@ protected:
 
     static PRBool FindPlatformFont(const nsAString& aName,
                                    const nsACString& aGenericName,
-                                   PRBool aUseFontSet,
                                    void *closure);
 
     static NS_HIDDEN_(nsILanguageAtomService*) gLangService;
