@@ -193,6 +193,10 @@ var gVersionInfoPage = {
   
   
   onUpdateFinished: function(aAddon, status) {
+    
+    if (aAddon.active)
+      AddonManagerPrivate.removeStartupChange("disabled", aAddon.id);
+
     if (status != AddonManager.UPDATE_STATUS_NO_ERROR)
       gUpdateWizard.errorItems.push(aAddon);
 
@@ -431,6 +435,10 @@ var gInstallingPage = {
   },
 
   onInstallEnded: function(aInstall) {
+    
+    AddonManagerPrivate.addStartupChange(AddonManager.STARTUP_CHANGE_CHANGED,
+                                         aInstall.id);
+
     this.startNextInstall();
   },
 
