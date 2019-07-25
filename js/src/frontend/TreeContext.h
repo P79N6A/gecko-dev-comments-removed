@@ -29,6 +29,9 @@ class ContextFlags {
     friend struct FunctionBox;
 
     
+    bool            hasExplicitUseStrict:1;
+
+    
     
     
     
@@ -106,7 +109,8 @@ class ContextFlags {
 
   public:
     ContextFlags(JSContext *cx)
-      : bindingsAccessedDynamically(false),
+     :  hasExplicitUseStrict(false),
+        bindingsAccessedDynamically(false),
         funIsHeavyweight(false),
         funIsGenerator(false),
         funMightAliasLocals(false),
@@ -173,6 +177,7 @@ struct SharedContext {
     
 #define INFUNC JS_ASSERT(inFunction())
 
+    bool hasExplicitUseStrict()        const {         return cxFlags.hasExplicitUseStrict; }
     bool bindingsAccessedDynamically() const {         return cxFlags.bindingsAccessedDynamically; }
     bool funIsHeavyweight()            const { INFUNC; return cxFlags.funIsHeavyweight; }
     bool funIsGenerator()              const { INFUNC; return cxFlags.funIsGenerator; }
@@ -181,6 +186,7 @@ struct SharedContext {
     bool funArgumentsHasLocalBinding() const { INFUNC; return cxFlags.funArgumentsHasLocalBinding; }
     bool funDefinitelyNeedsArgsObj()   const { INFUNC; return cxFlags.funDefinitelyNeedsArgsObj; }
 
+    void setExplicitUseStrict()             {         cxFlags.hasExplicitUseStrict        = true; }
     void setBindingsAccessedDynamically()   {         cxFlags.bindingsAccessedDynamically = true; }
     void setFunIsHeavyweight()              {         cxFlags.funIsHeavyweight            = true; }
     void setFunIsGenerator()                { INFUNC; cxFlags.funIsGenerator              = true; }

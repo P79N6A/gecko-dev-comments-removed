@@ -57,15 +57,15 @@ let inputValues = [
   [false, "true", "true"],
 
   
-  [false, "document.getElementById", "function getElementById() {[native code]}",
+  [false, "document.getElementById", "function getElementById() {\n    [native code]\n}",
     "function getElementById() {\n    [native code]\n}",
-    "function getElementById() {[native code]}",
+    "function getElementById() {\n    [native code]\n}",
     "document.wrappedJSObject.getElementById"],
 
   
-  [false, "(function() { return 42; })", "function () {return 42;}",
-    "function () {\n    return 42;\n}",
-    "(function () {return 42;})"],
+  [false, "(function() { return 42; })", "function () { return 42; }",
+    "function () { return 42; }",
+    "(function () { return 42; })"],
 
   
   [false, "new Date(" + dateNow + ")", (new Date(dateNow)).toString()],

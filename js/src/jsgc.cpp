@@ -3082,7 +3082,7 @@ PurgeRuntime(JSTracer *trc)
     rt->propertyCache.purge(rt);
     rt->newObjectCache.purge();
     rt->nativeIterCache.purge();
-    rt->toSourceCache.purge();
+    rt->sourceDataCache.purge();
     rt->evalCache.clear();
 
     for (ContextIter acx(rt); !acx.done(); acx.next())
@@ -3487,8 +3487,10 @@ SweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool *startBackgroundSweep)
 
 
 
-        if (rt->gcIsFull)
+        if (rt->gcIsFull) {
             SweepScriptFilenames(rt);
+            ScriptSource::sweep(rt);
+        }
 
         
 
