@@ -69,7 +69,7 @@ NS_EXTERN_C
 
 #include "typedefs.h"
 
-#if defined(_WIN32) && !defined(_WIN64)
+#if defined(_WIN32)
   EXPORT_STDCALL(void) test_void_t_stdcall();
 
   EXPORT_STDCALL(void*) get_voidptr_t_stdcall();
@@ -190,7 +190,7 @@ NS_EXTERN_C
 
   typedef PRInt32 (* test_func_ptr)(PRInt8);
   NS_EXPORT PRInt32 test_closure_cdecl(PRInt8, test_func_ptr);
-#if defined(_WIN32) && !defined(_WIN64)
+#if defined(_WIN32)
   typedef PRInt32 (NS_STDCALL * test_func_ptr_stdcall)(PRInt8);
   NS_EXPORT PRInt32 test_closure_stdcall(PRInt8, test_func_ptr_stdcall);
 #endif 

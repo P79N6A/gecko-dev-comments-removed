@@ -4548,6 +4548,11 @@ GetABI(JSContext* cx, jsval abiType, ffi_abi* result)
 #if (defined(_WIN32) && !defined(_WIN64)) || defined(_OS2)
     *result = FFI_STDCALL;
     return true;
+#elif (defined(_WIN64))
+    
+    
+    *result = FFI_WIN64;
+    return true;
 #endif
   case INVALID_ABI:
     break;
@@ -4692,6 +4697,7 @@ FunctionType::BuildSymbolName(JSContext* cx,
     break;
 
   case ABI_STDCALL: {
+#if (defined(_WIN32) && !defined(_WIN64)) || defined(_OS2)
     
     
     
@@ -4708,6 +4714,11 @@ FunctionType::BuildSymbolName(JSContext* cx,
     }
 
     IntegerToString(size, 10, result);
+#elif defined(_WIN64)
+    
+    
+    AppendString(result, name);
+#endif
     break;
   }
 
