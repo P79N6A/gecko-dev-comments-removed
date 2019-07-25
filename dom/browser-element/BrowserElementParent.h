@@ -60,6 +60,8 @@ public:
 
 
 
+
+
   static bool
   OpenWindowOOP(mozilla::dom::TabParent* aOpenerTabParent,
                 mozilla::dom::TabParent* aPopupTabParent,
@@ -68,6 +70,8 @@ public:
                 const nsAString& aFeatures);
 
   
+
+
 
 
 
