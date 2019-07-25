@@ -3896,6 +3896,10 @@ nsDocShell::LoadURI(const PRUnichar * aURI,
 
     rv = LoadURI(uri, loadInfo, extraFlags, true);
 
+    
+    
+    mOriginalUriString = uriString; 
+
     return rv;
 }
 
@@ -6355,27 +6359,33 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
 
                 if (keywordsEnabled && (kNotFound == dotLoc)) {
                     
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    bool isACE;
-                    nsCAutoString utf8Host;
-                    nsCOMPtr<nsIIDNService> idnSrv =
-                        do_GetService(NS_IDNSERVICE_CONTRACTID);
-                    if (idnSrv &&
-                        NS_SUCCEEDED(idnSrv->IsACE(host, &isACE)) && isACE &&
-                        NS_SUCCEEDED(idnSrv->ConvertACEtoUTF8(host, utf8Host)))
-                        sURIFixup->KeywordToURI(utf8Host,
+                    if (!mOriginalUriString.IsEmpty()) {
+                        sURIFixup->KeywordToURI(mOriginalUriString,
                                                 getter_AddRefs(newURI));
-                    else
-                        sURIFixup->KeywordToURI(host, getter_AddRefs(newURI));
+                    }
+                    else {
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        bool isACE;
+                        nsCAutoString utf8Host;
+                        nsCOMPtr<nsIIDNService> idnSrv =
+                            do_GetService(NS_IDNSERVICE_CONTRACTID);
+                        if (idnSrv &&
+                            NS_SUCCEEDED(idnSrv->IsACE(host, &isACE)) && isACE &&
+                            NS_SUCCEEDED(idnSrv->ConvertACEtoUTF8(host, utf8Host)))
+                            sURIFixup->KeywordToURI(utf8Host,
+                                                    getter_AddRefs(newURI));
+                        else
+                            sURIFixup->KeywordToURI(host, getter_AddRefs(newURI));
+                    }
                 } 
             }
 
@@ -8070,6 +8080,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                          nsIRequest** aRequest)
 {
     nsresult rv = NS_OK;
+    mOriginalUriString.Truncate();
 
 #ifdef PR_LOGGING
     if (gDocShellLeakLog && PR_LOG_TEST(gDocShellLeakLog, PR_LOG_DEBUG)) {

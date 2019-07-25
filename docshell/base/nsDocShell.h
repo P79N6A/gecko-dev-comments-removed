@@ -848,7 +848,8 @@ private:
     nsCOMPtr<nsIAtom> mForcedCharset;
     nsCOMPtr<nsIAtom> mParentCharset;
     nsTObserverArray<nsWeakPtr> mPrivacyObservers;
-    PRInt32          mParentCharsetSource;
+    PRInt32           mParentCharsetSource;
+    nsCString         mOriginalUriString;
 
 #ifdef DEBUG
     
