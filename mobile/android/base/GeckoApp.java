@@ -169,14 +169,6 @@ abstract public class GeckoApp
                 updatePopups(tab);
                 invalidateOptionsMenu();
                 break;
-
-            case LOAD_ERROR:
-            case START:
-            case STOP:
-                
-                if (Tabs.getInstance().isSelectedTab(tab))
-                    invalidateOptionsMenu();
-                break;
         }
     }
 
