@@ -982,6 +982,11 @@ public:
   }
   inline void ForgetUpdatePluginGeometryFrame(nsIFrame* aFrame);
 
+  PRBool GetContainsUpdatePluginGeometryFrame()
+  {
+    return mContainsUpdatePluginGeometryFrame;
+  }
+
   void SetContainsUpdatePluginGeometryFrame(PRBool aValue)
   {
     mContainsUpdatePluginGeometryFrame = aValue;
@@ -1297,6 +1302,14 @@ public:
 
 
   void RootForgetUpdatePluginGeometryFrame(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+  void RootForgetUpdatePluginGeometryFrameForPresContext(nsPresContext* aPresContext);
 
   
 
