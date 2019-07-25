@@ -48,6 +48,7 @@ Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/stores.js");
 Cu.import("resource://weave/trackers.js");
 Cu.import("resource://weave/async.js");
+Cu.import("resource://weave/base_records/collection.js");
 Cu.import("resource://weave/type_records/history.js");
 
 Function.prototype.async = Async.sugar;
@@ -95,6 +96,18 @@ HistoryEngine.prototype = {
 
     
     self.done(true);
+  },
+
+  _syncFinish: function HistEngine__syncFinish(error) {
+    let self = yield;
+    this._log.debug("Finishing up sync");
+    this._tracker.resetScore();
+
+    
+    let coll = new Collection(this.engineURL, this._recordObj);
+    coll.older = this.lastSync - 604800; 
+    coll.full = 0;
+    yield coll.delete(self.cb);
   }
 };
 
