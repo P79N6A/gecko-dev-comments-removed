@@ -297,6 +297,12 @@ Database::~Database()
 nsresult
 Database::Init()
 {
+#ifdef MOZ_ANDROID_HISTORY
+  
+  
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
+
   MOZ_ASSERT(NS_IsMainThread());
 
   nsCOMPtr<mozIStorageService> storage =
