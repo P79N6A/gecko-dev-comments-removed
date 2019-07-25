@@ -814,19 +814,19 @@ nsCacheService::EvictEntriesForClient(const char *          clientID,
     }
 
     nsCacheServiceAutoLock lock;
-    nsresult rv = NS_OK;
+    nsresult res = NS_OK;
 
 #ifdef NECKO_DISK_CACHE
     if (storagePolicy == nsICache::STORE_ANYWHERE ||
         storagePolicy == nsICache::STORE_ON_DISK) {
 
         if (mEnableDiskDevice) {
-            if (!mDiskDevice) {
+            nsresult rv;
+            if (!mDiskDevice)
                 rv = CreateDiskDevice();
-                if (NS_FAILED(rv)) return rv;
-            }
-            rv = mDiskDevice->EvictEntries(clientID);
-            if (NS_FAILED(rv)) return rv;
+            if (mDiskDevice)
+                rv = mDiskDevice->EvictEntries(clientID);
+            if (NS_FAILED(rv)) res = rv;
         }
     }
 #endif 
@@ -835,12 +835,12 @@ nsCacheService::EvictEntriesForClient(const char *          clientID,
     
     if (storagePolicy == nsICache::STORE_OFFLINE) {
         if (mEnableOfflineDevice) {
-            if (!mOfflineDevice) {
+            nsresult rv;
+            if (!mOfflineDevice)
                 rv = CreateOfflineDevice();
-                if (NS_FAILED(rv)) return rv;
-            }
-            rv = mOfflineDevice->EvictEntries(clientID);
-            if (NS_FAILED(rv)) return rv;
+            if (mOfflineDevice)
+                rv = mOfflineDevice->EvictEntries(clientID);
+            if (NS_FAILED(rv)) res = rv;
         }
     }
 #endif 
@@ -850,12 +850,13 @@ nsCacheService::EvictEntriesForClient(const char *          clientID,
 
         
         if (mMemoryDevice) {
+            nsresult rv;
             rv = mMemoryDevice->EvictEntries(clientID);
-            if (NS_FAILED(rv)) return rv;
+            if (NS_FAILED(rv)) res = rv;
         }
     }
 
-    return NS_OK;
+    return res;
 }
 
 
