@@ -5621,7 +5621,7 @@ nsGenericElement::GetText()
 }
 
 PRUint32
-nsGenericElement::TextLength()
+nsGenericElement::TextLength() const
 {
   
   
@@ -6414,6 +6414,25 @@ nsINode::Contains(nsIDOMNode* aOther, bool* aReturn)
   nsCOMPtr<nsINode> node = do_QueryInterface(aOther);
   *aReturn = Contains(node);
   return NS_OK;
+}
+
+PRUint32
+nsINode::Length() const
+{
+  switch (NodeType()) {
+  case nsIDOMNode::DOCUMENT_TYPE_NODE:
+    return 0;
+
+  case nsIDOMNode::TEXT_NODE:
+  case nsIDOMNode::CDATA_SECTION_NODE:
+  case nsIDOMNode::PROCESSING_INSTRUCTION_NODE:
+  case nsIDOMNode::COMMENT_NODE:
+    MOZ_ASSERT(IsNodeOfType(eCONTENT));
+    return static_cast<const nsIContent*>(this)->TextLength();
+
+  default:
+    return GetChildCount();
+  }
 }
 
 nsresult nsGenericElement::MozRequestFullScreen()
