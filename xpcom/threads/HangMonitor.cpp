@@ -57,7 +57,7 @@ volatile PRIntervalTime gTimestamp = PR_INTERVAL_NO_WAIT;
 static HANDLE winMainThreadHandle = NULL;
 
 
-static const PRInt32 DEFAULT_CHROME_HANG_INTERVAL = 10;
+static const PRInt32 DEFAULT_CHROME_HANG_INTERVAL = 5;
 #endif
 
 
