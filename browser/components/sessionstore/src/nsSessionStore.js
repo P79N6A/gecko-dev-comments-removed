@@ -769,41 +769,36 @@ SessionStoreService.prototype = {
 
       if (closedWindowState) {
         let newWindowState;
-#ifndef XP_MACOSX
-        if (!this._doResumeSession()) {
-#endif
-          
-          
-          
-          
-          
-          let [appTabsState, normalTabsState] =
-            this._prepDataForDeferredRestore(JSON.stringify({ windows: [closedWindowState] }));
+#ifdef XP_MACOSX
+        
+        
+        
+        
+        
+        let [appTabsState, normalTabsState] =
+          this._prepDataForDeferredRestore(JSON.stringify({ windows: [closedWindowState] }));
 
-          
-          if (appTabsState.windows.length) {
-            newWindowState = appTabsState.windows[0];
-            delete newWindowState.__lastSessionWindowID;
-          }
-
-          
-          if (!normalTabsState.windows.length) {
-            this._closedWindows.splice(closedWindowIndex, 1);
-          }
-          
-          else {
-            delete normalTabsState.windows[0].__lastSessionWindowID;
-            this._closedWindows[closedWindowIndex] = normalTabsState.windows[0];
-          }
-#ifndef XP_MACOSX
+        
+        if (appTabsState.windows.length) {
+          newWindowState = appTabsState.windows[0];
+          delete newWindowState.__lastSessionWindowID;
         }
-        else {
-          
-          
+
+        
+        if (!normalTabsState.windows.length) {
           this._closedWindows.splice(closedWindowIndex, 1);
-          newWindowState = closedWindowState;
-          delete newWindowState.hidden;
         }
+        
+        else {
+          delete normalTabsState.windows[0].__lastSessionWindowID;
+          this._closedWindows[closedWindowIndex] = normalTabsState.windows[0];
+        }
+#else
+        
+        
+        this._closedWindows.splice(closedWindowIndex, 1);
+        newWindowState = closedWindowState;
+        delete newWindowState.hidden;
 #endif
         if (newWindowState) {
           
