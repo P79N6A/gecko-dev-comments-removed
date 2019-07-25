@@ -346,9 +346,9 @@ public class TabsTray extends LinearLayout
                     int finalPos = 0;
                     
                     
-                    if ((start.x > mList.getWidth() / 2 && e.getX() < mList.getWidth() / 4)) {
+                    if ((start.x > mList.getWidth() / 2 && e.getX() < mList.getWidth() * 0.25 )) {
                         finalPos = -1 * mView.getWidth();
-                    } else if (start.x < mList.getWidth() / 2 && e.getX() > mList.getWidth() * (3 / 4)) {
+                    } else if (start.x < mList.getWidth() / 2 && e.getX() > mList.getWidth() * 0.75) {
                         finalPos = mView.getWidth();
                     }
     
