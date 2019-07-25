@@ -39,7 +39,7 @@
 
 
 #include "jscntxt.h"
-#include "jsgcmark.h"
+#include "gc/Marking.h"
 #include "methodjit/MethodJIT.h"
 #include "Stack.h"
 

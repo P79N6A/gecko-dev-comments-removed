@@ -37,9 +37,11 @@
 
 
 
-#include "jswatchpoint.h"
 #include "jsatom.h"
-#include "jsgcmark.h"
+#include "jswatchpoint.h"
+
+#include "gc/Marking.h"
+
 #include "jsobjinlines.h"
 
 using namespace js;

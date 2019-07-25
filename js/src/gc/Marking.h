@@ -4,18 +4,36 @@
 
 
 
-#ifndef jsgcmark_h___
-#define jsgcmark_h___
+#ifndef gc_marking_h___
+#define gc_marking_h___
 
 #include "jsgc.h"
 #include "jscntxt.h"
-#include "jscompartment.h"
 #include "jslock.h"
 
 #include "gc/Barrier.h"
 #include "js/TemplateLib.h"
 
+extern "C" {
+struct JSContext;
+struct JSFunction;
+struct JSObject;
+struct JSScript;
+}
+
+class JSAtom;
+class JSLinearString;
+
 namespace js {
+
+class ArgumentsObject;
+class BaseShape;
+class GlobalObject;
+class UnownedBaseShape;
+struct Shape;
+
+template<class, typename> class HeapPtr;
+
 namespace gc {
 
 
@@ -67,6 +85,8 @@ DeclMarker(TypeObject, types::TypeObject)
 #if JS_HAS_XML_SUPPORT
 DeclMarker(XML, JSXML)
 #endif
+
+#undef DeclMarker
 
 
 
@@ -261,4 +281,4 @@ CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
 } 
 
-#endif
+#endif 
