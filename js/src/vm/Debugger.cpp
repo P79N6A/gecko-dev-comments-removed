@@ -47,6 +47,7 @@
 #include "jsobj.h"
 #include "jstl.h"
 #include "jswrapper.h"
+#include "jsarrayinlines.h"
 #include "jsinterpinlines.h"
 #include "jsobjinlines.h"
 #include "jsopcodeinlines.h"
@@ -63,7 +64,6 @@ extern Class DebuggerFrame_class;
 enum {
     JSSLOT_DEBUGFRAME_OWNER,
     JSSLOT_DEBUGFRAME_ARGUMENTS,
-    JSSLOT_DEBUGFRAME_ONSTEP_HANDLER,
     JSSLOT_DEBUGFRAME_COUNT
 };
 
@@ -163,8 +163,7 @@ BreakpointSite::recompile(JSContext *cx, bool forTrap)
                 return false;
         }
         js::mjit::Recompiler recompiler(cx, script);
-        if (!recompiler.recompile())
-            return false;
+        recompiler.recompile();
     }
 #endif
     return true;
@@ -387,37 +386,13 @@ Debugger::getHook(Hook hook) const
 }
 
 bool
-Debugger::hasAnyLiveHooks(JSContext *cx) const
+Debugger::hasAnyLiveHooks() const
 {
-    if (!enabled)
-        return false;
-
-    if (getHook(OnDebuggerStatement) ||
-        getHook(OnExceptionUnwind) ||
-        getHook(OnNewScript) ||
-        getHook(OnEnterFrame))
-    {
-        return true;
-    }
-
-    
-    for (Breakpoint *bp = firstBreakpoint(); bp; bp = bp->nextInDebugger()) {
-        
-
-
-
-
-        JSObject *holder = bp->site->getScriptObject();
-        if (!holder || !IsAboutToBeFinalized(cx, holder))
-            return true;
-    }
-
-    for (FrameMap::Range r = frames.all(); !r.empty(); r.popFront()) {
-        if (!r.front().value->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined())
-            return true;
-    }
-
-    return false;
+    return enabled && (getHook(OnDebuggerStatement) ||
+                       getHook(OnExceptionUnwind) ||
+                       getHook(OnNewScript) ||
+                       getHook(OnEnterFrame) ||
+                       !JS_CLIST_IS_EMPTY(&breakpoints));
 }
 
 void
@@ -458,16 +433,8 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx)
         for (Debugger **p = debuggers->begin(); p != debuggers->end(); p++) {
             Debugger *dbg = *p;
             if (FrameMap::Ptr p = dbg->frames.lookup(fp)) {
-                StackFrame *frame = p->key;
                 JSObject *frameobj = p->value;
                 frameobj->setPrivate(NULL);
-
-                
-                if (!frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined() &&
-                    frame->isScriptFrame()) {
-                    frame->script()->changeStepModeCount(cx, -1);
-                }
-
                 dbg->frames.remove(p);
             }
         }
@@ -553,7 +520,7 @@ Debugger::handleUncaughtException(AutoCompartment &ac, Value *vp, bool callHook)
             Value exc = cx->getPendingException();
             Value rv;
             cx->clearPendingException();
-            if (Invoke(cx, ObjectValue(*object), fval, 1, &exc, &rv))
+            if (ExternalInvoke(cx, ObjectValue(*object), fval, 1, &exc, &rv))
                 return vp ? parseResumptionValue(ac, true, rv, vp, false) : JSTRAP_CONTINUE;
         }
 
@@ -659,7 +626,7 @@ CallMethodIfPresent(JSContext *cx, JSObject *obj, const char *name, int argc, Va
     return atom &&
            js_GetMethod(cx, obj, ATOM_TO_JSID(atom), JSGET_NO_METHOD_BARRIER, &fval) &&
            (!js_IsCallable(fval) ||
-            Invoke(cx, ObjectValue(*obj), fval, argc, argv, rval));
+            ExternalInvoke(cx, ObjectValue(*obj), fval, argc, argv, rval));
 }
 
 JSTrapStatus
@@ -680,7 +647,7 @@ Debugger::fireDebuggerStatement(JSContext *cx, Value *vp)
         return handleUncaughtException(ac, vp, false);
 
     Value rv;
-    bool ok = Invoke(cx, ObjectValue(*object), ObjectValue(*hook), 1, argv, &rv);
+    bool ok = ExternalInvoke(cx, ObjectValue(*object), ObjectValue(*hook), 1, argv, &rv);
     return parseResumptionValue(ac, ok, rv, vp);
 }
 
@@ -705,7 +672,7 @@ Debugger::fireExceptionUnwind(JSContext *cx, Value *vp)
         return handleUncaughtException(ac, vp, false);
 
     Value rv;
-    bool ok = Invoke(cx, ObjectValue(*object), ObjectValue(*hook), 2, argv, &rv);
+    bool ok = ExternalInvoke(cx, ObjectValue(*object), ObjectValue(*hook), 2, argv, &rv);
     JSTrapStatus st = parseResumptionValue(ac, ok, rv, vp);
     if (st == JSTRAP_CONTINUE)
         cx->setPendingException(exc);
@@ -730,7 +697,7 @@ Debugger::fireEnterFrame(JSContext *cx)
         return;
     }
     Value rv;
-    if (!Invoke(cx, ObjectValue(*object), ObjectValue(*hook), 1, argv, &rv))
+    if (!ExternalInvoke(cx, ObjectValue(*object), ObjectValue(*hook), 1, argv, &rv))
         handleUncaughtException(ac, NULL, true);
 }
 
@@ -755,7 +722,7 @@ Debugger::fireNewScript(JSContext *cx, JSScript *script, JSObject *obj, NewScrip
     Value argv[1];
     argv[0].setObject(*dsobj);
     Value rv;
-    if (!Invoke(cx, ObjectValue(*object), ObjectValue(*hook), 1, argv, &rv))
+    if (!ExternalInvoke(cx, ObjectValue(*object), ObjectValue(*hook), 1, argv, &rv))
         handleUncaughtException(ac, NULL, true);
 }
 
@@ -911,101 +878,6 @@ Debugger::onTrap(JSContext *cx, Value *vp)
     return JSTRAP_CONTINUE;
 }
 
-JSTrapStatus
-Debugger::onSingleStep(JSContext *cx, Value *vp)
-{
-    StackFrame *fp = cx->fp();
-
-    
-
-
-
-
-
-    Value exception = UndefinedValue();
-    bool exceptionPending = cx->isExceptionPending();
-    if (exceptionPending) {
-        exception = cx->getPendingException();
-        cx->clearPendingException();
-    }
-
-    
-    JS_ASSERT(fp->isScriptFrame());
-
-    
-
-
-
-    AutoObjectVector frames(cx);
-    GlobalObject *global = fp->scopeChain().getGlobal();
-    if (GlobalObject::DebuggerVector *debuggers = global->getDebuggers()) {
-        for (Debugger **d = debuggers->begin(); d != debuggers->end(); d++) {
-            Debugger *dbg = *d;
-            if (FrameMap::Ptr p = dbg->frames.lookup(fp)) {
-                JSObject *frame = p->value;
-                if (!frame->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined() &&
-                    !frames.append(frame))
-                    return JSTRAP_ERROR;
-            }
-        }
-    }
-
-#ifdef DEBUG
-    
-
-
-
-
-
-
-
-
-    {
-        uint32 stepperCount = 0;
-        JSScript *trappingScript = fp->script();
-        if (GlobalObject::DebuggerVector *debuggers = global->getDebuggers()) {
-            for (Debugger **p = debuggers->begin(); p != debuggers->end(); p++) {
-                Debugger *dbg = *p;
-                for (FrameMap::Range r = dbg->frames.all(); !r.empty(); r.popFront()) {
-                    StackFrame *frame = r.front().key;
-                    JSObject *frameobj = r.front().value;
-                    if (frame->isScriptFrame() &&
-                        frame->script() == trappingScript &&
-                        !frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined())
-                    {
-                        stepperCount++;
-                    }
-                }
-            }
-        }
-        if (trappingScript->compileAndGo)
-            JS_ASSERT(stepperCount == trappingScript->stepModeCount());
-        else
-            JS_ASSERT(stepperCount <= trappingScript->stepModeCount());
-    }
-#endif
-
-    
-    for (JSObject **p = frames.begin(); p != frames.end(); p++) {
-        JSObject *frame = *p;
-        Debugger *dbg = Debugger::fromChildJSObject(frame);
-        AutoCompartment ac(cx, dbg->object);
-        if (!ac.enter())
-            return JSTRAP_ERROR;
-        const Value &handler = frame->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER);
-        Value rval;
-        bool ok = Invoke(cx, ObjectValue(*frame), handler, 0, NULL, &rval);
-        JSTrapStatus st = dbg->parseResumptionValue(ac, ok, rval, vp);
-        if (st != JSTRAP_CONTINUE)
-            return st;
-    }
-
-    vp->setUndefined();
-    if (exceptionPending)
-        cx->setPendingException(exception);
-    return JSTRAP_CONTINUE;
-}
-
 
 
 
@@ -1090,15 +962,14 @@ Debugger::markAllIteratively(GCMarker *trc, JSGCInvocationKind gckind)
 
 
 
-    JSContext *cx = trc->context;
-    JSRuntime *rt = cx->runtime;
+    JSRuntime *rt = trc->context->runtime;
     JSCompartment *comp = rt->gcCurrentCompartment;
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++) {
         JSCompartment *dc = *c;
 
         
         if (!comp || dc == comp)
-            markedAny = markedAny | dc->markTrapClosuresIteratively(trc);
+            markedAny = markedAny | dc->markBreakpointsIteratively(trc);
 
         
 
@@ -1119,6 +990,7 @@ Debugger::markAllIteratively(GCMarker *trc, JSGCInvocationKind gckind)
             JS_ASSERT(debuggers);
             for (Debugger **p = debuggers->begin(); p != debuggers->end(); p++) {
                 Debugger *dbg = *p;
+                JSObject *obj = dbg->toJSObject();
 
                 
 
@@ -1126,37 +998,14 @@ Debugger::markAllIteratively(GCMarker *trc, JSGCInvocationKind gckind)
 
 
 
-                JSObject *dbgobj = dbg->toJSObject();
-                if (comp && comp != dbgobj->compartment())
-                    continue;
 
-                bool dbgMarked = !IsAboutToBeFinalized(cx, dbgobj);
-                if (!dbgMarked && dbg->hasAnyLiveHooks(cx)) {
+                if (IsAboutToBeFinalized(trc->context, obj) && dbg->hasAnyLiveHooks()) {
                     
 
 
 
-                    MarkObject(trc, *dbgobj, "enabled Debugger");
+                    MarkObject(trc, *obj, "enabled Debugger");
                     markedAny = true;
-                    dbgMarked = true;
-                }
-
-                if (dbgMarked) {
-                    
-                    for (Breakpoint *bp = dbg->firstBreakpoint(); bp; bp = bp->nextInDebugger()) {
-                        JSObject *scriptObject = bp->site->getScriptObject();
-                        if (!scriptObject || !IsAboutToBeFinalized(cx, scriptObject)) {
-                            
-
-
-
-                            JSObject *handler = bp->getHandler();
-                            if (IsAboutToBeFinalized(cx, handler)) {
-                                MarkObject(trc, *bp->getHandler(), "breakpoint handler");
-                                markedAny = true;
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -1178,10 +1027,6 @@ Debugger::trace(JSTracer *trc)
         MarkObject(trc, *uncaughtExceptionHook, "hooks");
 
     
-
-
-
-
 
 
 
@@ -1545,6 +1390,7 @@ Debugger::getDebuggees(JSContext *cx, uintN argc, Value *vp)
     JSObject *arrobj = NewDenseAllocatedArray(cx, dbg->debuggees.count(), NULL);
     if (!arrobj)
         return false;
+    arrobj->ensureDenseArrayInitializedLength(cx, 0, dbg->debuggees.count());
     uintN i = 0;
     for (GlobalObjectSet::Enum e(dbg->debuggees); !e.empty(); e.popFront()) {
         Value v = ObjectValue(*e.front());
@@ -2805,54 +2651,6 @@ DebuggerFrame_getLive(JSContext *cx, uintN argc, Value *vp)
     return true;
 }
 
-static bool
-IsValidHook(const Value &v)
-{
-    return v.isUndefined() || (v.isObject() && v.toObject().isCallable());
-}
-
-static JSBool
-DebuggerFrame_getOnStep(JSContext *cx, uintN argc, Value *vp)
-{
-    THIS_FRAME(cx, argc, vp, "get onStep", args, thisobj, fp);
-    (void) fp;  
-    Value handler = thisobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER);
-    JS_ASSERT(IsValidHook(handler));
-    args.rval() = handler;
-    return true;
-}
-
-static JSBool
-DebuggerFrame_setOnStep(JSContext *cx, uintN argc, Value *vp)
-{
-    REQUIRE_ARGC("Debugger.Frame.set onStep", 1);
-    THIS_FRAME(cx, argc, vp, "set onStep", args, thisobj, fp);
-    if (!fp->isScriptFrame()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_SCRIPT_FRAME);
-        return false;
-    }
-    if (!IsValidHook(args[0])) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_CALLABLE_OR_UNDEFINED);
-        return false;
-    }
-
-    Value prior = thisobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER);
-    int delta = !args[0].isUndefined() - !prior.isUndefined();
-    if (delta != 0) {
-        
-        AutoCompartment ac(cx, &fp->scopeChain());
-        if (!ac.enter())
-            return false;
-        if (!fp->script()->changeStepModeCount(cx, delta))
-            return false;
-    }
-
-    
-    thisobj->setReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER, args[0]);
-    args.rval().setUndefined();
-    return true;
-}
-
 namespace js {
 
 JSBool
@@ -2860,10 +2658,6 @@ EvaluateInScope(JSContext *cx, JSObject *scobj, StackFrame *fp, const jschar *ch
                 uintN length, const char *filename, uintN lineno, Value *rval)
 {
     assertSameCompartment(cx, scobj, fp);
-
-    
-    if (!ComputeThis(cx, fp))
-        return false;
 
     
 
@@ -2879,7 +2673,8 @@ EvaluateInScope(JSContext *cx, JSObject *scobj, StackFrame *fp, const jschar *ch
     if (!script)
         return false;
 
-    bool ok = ExecuteKernel(cx, script, *scobj, fp->thisValue(), EXECUTE_DEBUG, fp, rval);
+    script->isUncachedEval = true;
+    bool ok = Execute(cx, script, *scobj, fp->thisValue(), EXECUTE_DEBUG, fp, rval);
     js_DestroyScript(cx, script, 6);
     return ok;
 }
@@ -2998,7 +2793,6 @@ static JSPropertySpec DebuggerFrame_properties[] = {
     JS_PSG("script", DebuggerFrame_getScript, 0),
     JS_PSG("this", DebuggerFrame_getThis, 0),
     JS_PSG("type", DebuggerFrame_getType, 0),
-    JS_PSGS("onStep", DebuggerFrame_getOnStep, DebuggerFrame_setOnStep, 0),
     JS_PS_END
 };
 
@@ -3150,6 +2944,7 @@ DebuggerObject_getParameterNames(JSContext *cx, uintN argc, Value *vp)
     JSObject *result = NewDenseAllocatedArray(cx, fun->nargs, NULL);
     if (!result)
         return false;
+    result->ensureDenseArrayInitializedLength(cx, 0, fun->nargs);
 
     if (fun->isInterpreted()) {
         JS_ASSERT(fun->nargs == fun->script()->bindings.countArgs());
@@ -3211,7 +3006,6 @@ DebuggerObject_getOwnPropertyDescriptor(JSContext *cx, uintN argc, Value *vp)
         if (!ac.enter() || !cx->compartment->wrapId(cx, &id))
             return false;
 
-        ErrorCopier ec(ac, dbg->toJSObject());
         if (!GetOwnPropertyDescriptor(cx, obj, id, &desc))
             return false;
     }
@@ -3248,7 +3042,6 @@ DebuggerObject_getOwnPropertyNames(JSContext *cx, uintN argc, Value *vp)
         if (!ac.enter())
             return false;
 
-        ErrorCopier ec(ac, dbg->toJSObject());
         if (!GetPropertyNames(cx, obj, JSITER_OWNONLY | JSITER_HIDDEN, &keys))
             return false;
     }
@@ -3587,7 +3380,7 @@ ApplyOrCall(JSContext *cx, uintN argc, Value *vp, ApplyOrCallMode mode)
 
 
     Value rval;
-    bool ok = Invoke(cx, thisv, calleev, callArgc, callArgv, &rval);
+    bool ok = ExternalInvoke(cx, thisv, calleev, callArgc, callArgv, &rval);
     return dbg->newCompletionValue(ac, ok, rval, &args.rval());
 }
 

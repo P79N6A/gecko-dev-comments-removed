@@ -515,8 +515,9 @@ struct MarkingDelay {
 
 
 struct ChunkInfo {
-    Chunk           *link;
     JSRuntime       *runtime;
+    Chunk           *next;
+    Chunk           **prevp;
     ArenaHeader     *emptyArenaListHead;
     size_t          age;
     size_t          numFree;
@@ -614,10 +615,24 @@ struct Chunk {
         return (addr & GC_CHUNK_MASK) >> ArenaShift;
     }
 
+    uintptr_t address() const {
+        uintptr_t addr = reinterpret_cast<uintptr_t>(this);
+        JS_ASSERT(!(addr & GC_CHUNK_MASK));
+        return addr;
+    }
+
     void init(JSRuntime *rt);
-    bool unused();
-    bool hasAvailableArenas();
-    bool withinArenasRange(Cell *cell);
+
+    bool unused() const {
+        return info.numFree == ArenasPerChunk;
+    }
+
+    bool hasAvailableArenas() const {
+        return info.numFree > 0;
+    }
+
+    inline void addToAvailableList(JSCompartment *compartment);
+    inline void removeFromAvailableList();
 
     template <size_t thingSize>
     ArenaHeader *allocateArena(JSContext *cx, unsigned thingKind);
@@ -752,8 +767,7 @@ Cell::compartment() const
 
 
 
-const size_t GC_ARENA_ALLOCATION_TRIGGER = 30 * js::GC_CHUNK_SIZE;
-
+const size_t GC_ALLOCATION_THRESHOLD = 30 * 1024 * 1024;
 
 
 
@@ -1001,9 +1015,17 @@ struct FreeLists {
 extern void *
 RefillFinalizableFreeList(JSContext *cx, unsigned thingKind);
 
-} 
 
-typedef Vector<gc::Chunk *, 32, SystemAllocPolicy> GCChunks;
+
+
+
+
+const size_t INITIAL_CHUNK_CAPACITY = 16 * 1024 * 1024 / GC_CHUNK_SIZE;
+
+
+const size_t MAX_EMPTY_CHUNK_AGE = 4;
+
+} 
 
 struct GCPtrHasher
 {
@@ -1469,13 +1491,6 @@ IterateCells(JSContext *cx, JSCompartment *compartment, gc::FinalizeKind thingKi
 
 extern void
 js_FinalizeStringRT(JSRuntime *rt, JSString *str);
-
-
-
-
-
-extern void
-js_MarkTraps(JSTracer *trc);
 
 
 

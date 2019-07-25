@@ -457,7 +457,9 @@ struct JSScript {
     jsbytecode      *code;      
     uint32          length;     
 
+#ifdef JS_CRASH_DIAGNOSTICS
     uint32          cookie1;
+#endif
 
   private:
     size_t          useCount_;  
@@ -530,18 +532,14 @@ struct JSScript {
     JSPrincipals    *principals;
     jschar          *sourceMap; 
 
+#ifdef JS_CRASH_DIAGNOSTICS
     JSObject        *ownerObject;
+#endif
 
     void setOwnerObject(JSObject *owner);
 
     union {
         
-
-
-
-
-
-
 
 
 
@@ -564,7 +562,9 @@ struct JSScript {
     
     JSPCCounters    pcCounters;
 
+#ifdef JS_CRASH_DIAGNOSTICS
     uint32          cookie2;
+#endif
 
   public:
 
@@ -731,6 +731,7 @@ struct JSScript {
     }
 
     inline JSFunction *getFunction(size_t index);
+    inline JSFunction *getCallerFunction();
 
     inline JSObject *getRegExp(size_t index);
 
@@ -826,19 +827,6 @@ js_DestroyScriptFromGC(JSContext *cx, JSScript *script, JSObject *owner);
 
 extern void
 js_DestroyCachedScript(JSContext *cx, JSScript *script);
-
-namespace js {
-
-
-
-
-
-
-
-void
-CheckCompartmentScripts(JSCompartment *comp);
-
-} 
 
 extern void
 js_TraceScript(JSTracer *trc, JSScript *script, JSObject *owner);

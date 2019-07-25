@@ -3950,7 +3950,7 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
 
 
 
-    if (script->function()->isHeavyweight() || cx->compartment->debugMode || localsAliasStack()) {
+    if (script->function()->isHeavyweight() || cx->compartment->debugMode() || localsAliasStack()) {
         MarkArgumentsCreated(cx, script);
         return;
     }
@@ -5525,10 +5525,7 @@ TypeScript::Sweep(JSContext *cx, JSScript *script)
 
 
 #ifdef JS_METHODJIT
-    if (script->jitNormal)
-        mjit::ReleaseScriptCode(cx, script, true);
-    if (script->jitCtor)
-        mjit::ReleaseScriptCode(cx, script, false);
+    mjit::ReleaseScriptCode(cx, script);
 #endif
 }
 
