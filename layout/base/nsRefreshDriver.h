@@ -179,6 +179,17 @@ public:
   
 
 
+  void ScheduleViewManagerFlush() {
+    mViewManagerFlushIsPending = true;
+    EnsureTimerStarted(false);
+  }
+  void RevokeViewManagerFlush() {
+    mViewManagerFlushIsPending = false;
+  }
+
+  
+
+
   void ScheduleFrameRequestCallbacks(nsIDocument* aDocument);
 
   
@@ -265,6 +276,7 @@ private:
 
 
   bool mTimerIsPrecise;
+  bool mViewManagerFlushIsPending;
 
   
   ObserverArray mObservers[3];

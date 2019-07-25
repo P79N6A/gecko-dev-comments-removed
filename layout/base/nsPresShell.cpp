@@ -1253,6 +1253,8 @@ PresShell::Destroy()
   
   
   rd->RemoveLayoutFlushObserver(this);
+  rd->RevokeViewManagerFlush();
+
   mResizeEvent.Revoke();
   if (mAsyncResizeTimerIsActive) {
     mAsyncResizeEventTimer->Cancel();
@@ -3610,6 +3612,15 @@ nsresult PresShell::GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocationStrin
 
   
   return NS_ERROR_FAILURE;
+}
+
+void
+PresShell::ScheduleViewManagerFlush()
+{
+  nsPresContext* presContext = GetPresContext();
+  if (presContext) {
+    presContext->RefreshDriver()->ScheduleViewManagerFlush();
+  }
 }
 
 void

@@ -144,13 +144,15 @@ public:
   
   void InvalidateHierarchy();
 
+  virtual void ProcessPendingUpdates();
+
 protected:
   virtual ~nsViewManager();
 
 private:
 
   void FlushPendingInvalidates();
-  void ProcessPendingUpdates(nsView *aView, bool aDoInvalidate);
+  void ProcessPendingUpdatesForView(nsView *aView, bool aDoInvalidate);
   void FlushDirtyRegionToWidget(nsView* aView);
   
 
