@@ -1388,7 +1388,8 @@ AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
           }
         } else {
           
-          if (item->IsUniform(aBuilder)) {
+          nscolor color;
+          if (item->IsUniform(aBuilder, &color)) {
             
             
             exclude.IntersectRect(r, r + aDelta);
