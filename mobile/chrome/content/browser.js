@@ -161,20 +161,16 @@ var Browser = {
     browsers.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver.onUpdatePageReport, false);
 
     
+    var canvasBrowser = this.canvasBrowser;
+    function panCallback(aElement) {
+      if (!aElement)
+        return;
+
+      canvasBrowser.ensureElementIsVisible(aElement);
+    }
     
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    SpatialNavigation.init(browsers, panCallback);
 
     
     this.setupGeolocationPrompt();
