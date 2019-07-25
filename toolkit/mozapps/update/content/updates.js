@@ -1451,8 +1451,6 @@ var gDownloadingPage = {
 
 
   onStartRequest: function(request, context) {
-    if (request instanceof CoI.nsIIncrementalDownload)
-      LOG("gDownloadingPage", "onStartRequest - spec: " + request.URI.spec);
     
     
     if (this._paused)
@@ -1475,8 +1473,6 @@ var gDownloadingPage = {
 
 
   onProgress: function(request, context, progress, maxProgress) {
-    LOG("gDownloadingPage", "onProgress - progress: " + progress + "/" +
-        maxProgress);
     let status = this._updateDownloadStatus(progress, maxProgress);
     var currentProgress = Math.round(100 * (progress / maxProgress));
 
@@ -1522,8 +1518,6 @@ var gDownloadingPage = {
 
 
   onStatus: function(request, context, status, statusText) {
-    LOG("gDownloadingPage", "onStatus - status: " + status + ", text: " +
-        statusText);
     this._setStatus(statusText);
   },
 
@@ -1537,10 +1531,6 @@ var gDownloadingPage = {
 
 
   onStopRequest: function(request, context, status) {
-    if (request instanceof CoI.nsIIncrementalDownload)
-      LOG("gDownloadingPage", "onStopRequest - spec: " + request.URI.spec +
-          ", status: " + status);
-
     if (this._downloadProgress.mode != "normal")
       this._downloadProgress.mode = "normal";
 
