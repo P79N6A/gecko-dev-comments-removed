@@ -43,11 +43,7 @@
 
 
 
-#ifdef MOZ_WIDGET_PHOTON
-#include "PhRemoteClient.h"
-#else
 #include "XRemoteClient.h"
-#endif
 
 #include "nsXRemoteClientCID.h"
 #include "nsIGenericFactory.h"
