@@ -405,6 +405,15 @@ nsLocation::GetHash(nsAString& aHash)
       aHash.Assign(PRUnichar('#'));
       aHash.Append(unicodeRef);
     }
+
+    if (aHash == mCachedHash) {
+      
+      
+      
+      aHash = mCachedHash;
+    } else {
+      mCachedHash = aHash;
+    }
   }
 
   return rv;
