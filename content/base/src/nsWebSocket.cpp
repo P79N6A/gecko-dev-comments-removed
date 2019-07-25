@@ -1352,15 +1352,16 @@ nsWebSocket::Init(nsIPrincipal* aPrincipal,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsCOMPtr<nsIURI> originURI;
-  PRBool originHTTPS;
   if (!mSecure && 
       !Preferences::GetBool("network.websocket.allowInsecureFromHTTPS",
-                            PR_FALSE) &&
-      NS_SUCCEEDED(NS_NewURI(getter_AddRefs(originURI), mUTF16Origin)) &&
-      NS_SUCCEEDED(originURI->SchemeIs("https", &originHTTPS)) &&
-      originHTTPS) {
-    return NS_ERROR_DOM_SECURITY_ERR;
+                            PR_FALSE)) {
+    
+    
+    
+    nsCOMPtr<nsIDocument> originDoc =
+      nsContentUtils::GetDocumentFromScriptContext(mScriptContext);
+    if (originDoc && originDoc->GetSecurityInfo())
+      return NS_ERROR_DOM_SECURITY_ERR;
   }
 
   
