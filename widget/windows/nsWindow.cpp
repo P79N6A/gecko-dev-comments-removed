@@ -6386,9 +6386,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
     return result;
   }
   else if (!aModKeyState.IsControl() && !aModKeyState.IsAlt() &&
-             (KeyboardLayout::IsPrintableCharKey(virtualKeyCode) ||
-              KeyboardLayout::IsNumpadKey(virtualKeyCode)))
-  {
+           KeyboardLayout::IsPrintableCharKey(virtualKeyCode)) {
     
     
     
@@ -6404,101 +6402,67 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   PRUint32 shiftedLatinChar = 0;
   PRUint32 unshiftedLatinChar = 0;
 
-  switch (virtualKeyCode) {
+  if (!KeyboardLayout::IsPrintableCharKey(virtualKeyCode)) {
+    inputtingChars.Clear();
+  }
+
+  if (aModKeyState.IsControl() ^ aModKeyState.IsAlt()) {
+    widget::ModifierKeyState capsLockState(
+      aModKeyState.GetModifiers() & MODIFIER_CAPSLOCK);
+    unshiftedChars =
+      gKbdLayout.GetUniCharsAndModifiers(virtualKeyCode, capsLockState);
+    capsLockState.Set(MODIFIER_SHIFT);
+    shiftedChars =
+      gKbdLayout.GetUniCharsAndModifiers(virtualKeyCode, capsLockState);
+
     
-    case VK_ADD:
-      inputtingChars.Clear();
-      inputtingChars.Append('+', aModKeyState.GetModifiers());
-      break;
-    case VK_SUBTRACT:
-      inputtingChars.Clear();
-      inputtingChars.Append('-', aModKeyState.GetModifiers());
-      break;
-    case VK_DIVIDE:
-      inputtingChars.Clear();
-      inputtingChars.Append('/', aModKeyState.GetModifiers());
-      break;
-    case VK_MULTIPLY:
-      inputtingChars.Clear();
-      inputtingChars.Append('*', aModKeyState.GetModifiers());
-      break;
-    case VK_NUMPAD0:
-    case VK_NUMPAD1:
-    case VK_NUMPAD2:
-    case VK_NUMPAD3:
-    case VK_NUMPAD4:
-    case VK_NUMPAD5:
-    case VK_NUMPAD6:
-    case VK_NUMPAD7:
-    case VK_NUMPAD8:
-    case VK_NUMPAD9:
-      inputtingChars.Clear();
-      inputtingChars.Append(virtualKeyCode - VK_NUMPAD0 + '0',
-                            aModKeyState.GetModifiers());
-      break;
-    default:
-      if (!KeyboardLayout::IsPrintableCharKey(virtualKeyCode)) {
+    
+    
+    capsLockState.Unset(MODIFIER_SHIFT);
+    WidgetUtils::GetLatinCharCodeForKeyCode(DOMKeyCode,
+                                            capsLockState.GetModifiers(),
+                                            &unshiftedLatinChar,
+                                            &shiftedLatinChar);
+
+    
+    if (shiftedLatinChar) {
+      
+      
+      
+      if (unshiftedLatinChar == unshiftedChars.mChars[0] &&
+          shiftedLatinChar == shiftedChars.mChars[0]) {
+        shiftedLatinChar = unshiftedLatinChar = 0;
+      }
+    } else if (unshiftedLatinChar) {
+      
+      
+      
+      
+      
+      
+      
+      if (unshiftedLatinChar == unshiftedChars.mChars[0] ||
+          unshiftedLatinChar == shiftedChars.mChars[0]) {
+        unshiftedLatinChar = 0;
+      }
+    }
+
+    
+    
+    
+    
+    
+    if (aModKeyState.IsControl()) {
+      PRUint32 ch =
+        aModKeyState.IsShift() ? shiftedLatinChar : unshiftedLatinChar;
+      if (ch &&
+          (!inputtingChars.mLength ||
+           inputtingChars.UniCharsCaseInsensitiveEqual(
+             aModKeyState.IsShift() ? shiftedChars : unshiftedChars))) {
         inputtingChars.Clear();
+        inputtingChars.Append(ch, aModKeyState.GetModifiers());
       }
-
-      if (aModKeyState.IsControl() ^ aModKeyState.IsAlt()) {
-        widget::ModifierKeyState capsLockState(
-          aModKeyState.GetModifiers() & MODIFIER_CAPSLOCK);
-        unshiftedChars =
-          gKbdLayout.GetUniCharsAndModifiers(virtualKeyCode, capsLockState);
-        capsLockState.Set(MODIFIER_SHIFT);
-        shiftedChars =
-          gKbdLayout.GetUniCharsAndModifiers(virtualKeyCode, capsLockState);
-
-        
-        
-        
-        capsLockState.Unset(MODIFIER_SHIFT);
-        WidgetUtils::GetLatinCharCodeForKeyCode(DOMKeyCode,
-                                                capsLockState.GetModifiers(),
-                                                &unshiftedLatinChar,
-                                                &shiftedLatinChar);
-
-        
-        if (shiftedLatinChar) {
-          
-          
-          
-          if (unshiftedLatinChar == unshiftedChars.mChars[0] &&
-              shiftedLatinChar == shiftedChars.mChars[0]) {
-            shiftedLatinChar = unshiftedLatinChar = 0;
-          }
-        } else if (unshiftedLatinChar) {
-          
-          
-          
-          
-          
-          
-          
-          if (unshiftedLatinChar == unshiftedChars.mChars[0] ||
-              unshiftedLatinChar == shiftedChars.mChars[0]) {
-            unshiftedLatinChar = 0;
-          }
-        }
-
-        
-        
-        
-        
-        
-        if (aModKeyState.IsControl()) {
-          PRUint32 ch =
-            aModKeyState.IsShift() ? shiftedLatinChar : unshiftedLatinChar;
-          if (ch &&
-              (!inputtingChars.mLength ||
-               inputtingChars.UniCharsCaseInsensitiveEqual(
-                 aModKeyState.IsShift() ? shiftedChars : unshiftedChars))) {
-            inputtingChars.Clear();
-            inputtingChars.Append(ch, aModKeyState.GetModifiers());
-          }
-        }
-      }
+    }
   }
 
   if (inputtingChars.mLength ||
