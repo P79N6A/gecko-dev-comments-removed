@@ -4676,11 +4676,37 @@ nsTextFrame::UnionAdditionalOverflow(nsPresContext* aPresContext,
   if (IsFloatingFirstLetterChild()) {
     
     
-    nsFontMetrics* fm = aProvider.GetFontMetrics();
-    nscoord fontAscent = fm->MaxAscent();
-    nscoord fontHeight = fm->MaxHeight();
-    nsRect fontRect(0, mAscent - fontAscent, GetSize().width, fontHeight);
-    aVisualOverflowRect->UnionRect(*aVisualOverflowRect, fontRect);
+    nsIFrame* firstLetterFrame = aBlockReflowState.frame;
+    PRUint8 decorationStyle = firstLetterFrame->GetStyleContext()->
+                                GetStyleTextReset()->GetDecorationStyle();
+    if (decorationStyle != NS_STYLE_TEXT_DECORATION_STYLE_NONE) {
+      nsFontMetrics* fontMetrics = aProvider.GetFontMetrics();
+      nscoord underlineOffset, underlineSize;
+      fontMetrics->GetUnderline(underlineOffset, underlineSize);
+      nscoord maxAscent = fontMetrics->MaxAscent();
+
+      gfxFloat appUnitsPerDevUnit = aPresContext->AppUnitsPerDevPixel();
+      gfxFloat gfxWidth = aVisualOverflowRect->width / appUnitsPerDevUnit;
+      gfxFloat gfxAscent = gfxFloat(mAscent) / appUnitsPerDevUnit;
+      gfxFloat gfxMaxAscent = maxAscent / appUnitsPerDevUnit;
+      gfxFloat gfxUnderlineSize = underlineSize / appUnitsPerDevUnit;
+      gfxFloat gfxUnderlineOffset = underlineOffset / appUnitsPerDevUnit;
+      nsRect underlineRect =
+        nsCSSRendering::GetTextDecorationRect(aPresContext,
+          gfxSize(gfxWidth, gfxUnderlineSize), gfxAscent, gfxUnderlineOffset,
+          NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE, decorationStyle);
+      nsRect overlineRect =
+        nsCSSRendering::GetTextDecorationRect(aPresContext,
+          gfxSize(gfxWidth, gfxUnderlineSize), gfxAscent, gfxMaxAscent,
+          NS_STYLE_TEXT_DECORATION_LINE_OVERLINE, decorationStyle);
+
+      aVisualOverflowRect->UnionRect(*aVisualOverflowRect, underlineRect);
+      aVisualOverflowRect->UnionRect(*aVisualOverflowRect, overlineRect);
+
+      
+      
+      
+    }
   }
   if (aIncludeTextDecorations) {
     
