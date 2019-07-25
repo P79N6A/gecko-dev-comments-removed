@@ -380,7 +380,10 @@ RadioInterfaceLayer.prototype = {
         this.updateDataConnection(message);
         break;
       case "datacallerror":
-        this.handleDataCallError(message);
+        
+        debug("Received data registration error message. Failed APN " +
+              this.dataCallSettings["apn"]);
+        RILNetworkInterface.reset();
         break;
       case "signalstrengthchange":
         this.handleSignalStrengthChange(message);
@@ -608,20 +611,6 @@ RadioInterfaceLayer.prototype = {
       ppmm.broadcastAsyncMessage("RIL:DataInfoChanged", dataInfo);
     }
     this.updateRILNetworkInterface();
-  },
-
-  
-
-
-  handleDataCallError: function handleDataCallError(message) {
-    if (message.apn != this.dataCallSettings["apn"]) {
-      return;
-    }
-
-    
-    RILNetworkInterface.reset();
-    
-    ppmm.broadcastAsyncMessage("RIL:DataError", message);
   },
 
   handleSignalStrengthChange: function handleSignalStrengthChange(message) {
