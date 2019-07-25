@@ -39,7 +39,6 @@
 #define nsTime_h__
 
 #include "prtime.h"
-#include "nsInt64.h"
 #include "nscore.h"
 
 
@@ -51,13 +50,13 @@
 
 
 
-class nsTime : public nsInt64
+class nsTime
 {
 public:
     
 
 
-    nsTime(void) : nsInt64(PR_Now()) {
+    nsTime(void) : mValue(PR_Now()) {
     }
 
     
@@ -75,30 +74,10 @@ public:
     
 
 
-    nsTime(const PRTime aTime) : nsInt64(aTime) {
+    nsTime(const PRTime aTime) : mValue(aTime) {
     }
 
     
-
-
-    nsTime(const nsInt64& aTime) : nsInt64(aTime) {
-    }
-
-    
-
-
-    nsTime(const nsTime& aTime) : nsInt64(aTime.mValue) {
-    }
-
-    
-
-    
-
-
-    const nsTime& operator =(const nsTime& aTime) {
-        mValue = aTime.mValue;
-        return *this;
-    }
 
     
 
@@ -106,6 +85,8 @@ public:
     operator PRTime(void) const {
         return mValue;
     }
+
+    PRInt64 mValue;
 };
 
 
