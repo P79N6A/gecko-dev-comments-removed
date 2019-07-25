@@ -419,6 +419,8 @@ class StackSegment
 #ifdef DEBUG
     JS_REQUIRES_STACK bool contains(const JSStackFrame *fp) const;
 #endif
+
+    JSStackFrame *computeNextFrame(JSStackFrame *fp) const;
 };
 
 static const size_t VALUES_PER_STACK_SEGMENT = sizeof(StackSegment) / sizeof(Value);
@@ -1783,9 +1785,6 @@ struct JSContext
 
     
     void restoreSegment();
-
-    
-    inline JSStackFrame *computeNextFrame(JSStackFrame *fp);
 
     
 
