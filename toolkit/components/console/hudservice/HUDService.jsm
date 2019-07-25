@@ -4286,20 +4286,19 @@ JSTerm.prototype = {
             
             
             
+            var completionResult;
             if (aEvent.shiftKey) {
-              self.complete(self.COMPLETE_BACKWARD);
+              completionResult = self.complete(self.COMPLETE_BACKWARD);
             }
             else {
-              self.complete(self.COMPLETE_FORWARD);
+              completionResult = self.complete(self.COMPLETE_FORWARD);
             }
-            var bool = aEvent.cancelable;
-            if (bool) {
+            if (completionResult) {
+              if (aEvent.cancelable) {
               aEvent.preventDefault();
             }
-            else {
-              
-            }
             aEvent.target.focus();
+            }
             break;
           case 8:
             
@@ -4412,13 +4411,14 @@ JSTerm.prototype = {
 
 
 
+
   complete: function JSTF_complete(type)
   {
     let inputNode = this.inputNode;
     let inputValue = inputNode.value;
     
     if (!inputValue) {
-      return;
+      return false;
     }
     let selStart = inputNode.selectionStart, selEnd = inputNode.selectionEnd;
 
@@ -4432,7 +4432,7 @@ JSTerm.prototype = {
     
     if (selEnd != inputValue.length) {
       this.lastCompletion = null;
-      return;
+      return false;
     }
 
     
@@ -4460,7 +4460,7 @@ JSTerm.prototype = {
       
       let completion = this.propertyProvider(this.sandbox.window, inputValue);
       if (!completion) {
-        return;
+        return false;
       }
       matches = completion.matches;
       matchIndexToUse = 0;
@@ -4500,7 +4500,11 @@ JSTerm.prototype = {
       else {
         inputNode.setSelectionRange(selEnd, selEnd);
       }
+
+      return completionStr ? true : false;
     }
+
+    return false;
   }
 };
 
