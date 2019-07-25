@@ -200,6 +200,15 @@ public:
 
 
 
+    virtual void GetUpdateRegion(nsIntRegion& aForRegion) {
+    };
+    
+
+
+
+
+
+
     virtual void EndUpdate() = 0;
 
     
@@ -348,6 +357,7 @@ public:
     virtual void BindTexture(GLenum aTextureUnit);
 
     virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion);
+    virtual void GetUpdateRegion(nsIntRegion& aForRegion);
     virtual void EndUpdate();
     virtual bool DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0));
     virtual GLuint GetTextureID() { return mTexture; };
@@ -392,6 +402,7 @@ public:
     ~TiledTextureImage();
     void DumpDiv();
     virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion);
+    virtual void GetUpdateRegion(nsIntRegion& aForRegion);
     virtual void EndUpdate();
     virtual void Resize(const nsIntSize& aSize);
     virtual void BeginTileIteration();

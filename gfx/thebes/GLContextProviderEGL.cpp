@@ -1207,27 +1207,28 @@ public:
         }
     }
 
+    virtual void GetUpdateRegion(nsIntRegion& aForRegion)
+    {
+        if (mTextureState != Valid) {
+            
+            
+            aForRegion = nsIntRect(nsIntPoint(0, 0), mSize);
+        } else if (!mBackingSurface) {
+            
+            
+            
+            
+            aForRegion = nsIntRegion(mUpdateRect);
+        }
+    }
+
     virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion)
     {
         NS_ASSERTION(!mUpdateSurface, "BeginUpdate() without EndUpdate()?");
 
         
-        if (mTextureState != Valid) {
-            
-            
-            mUpdateRect = nsIntRect(nsIntPoint(0, 0), mSize);
-            
-            aRegion = nsIntRegion(mUpdateRect);
-        } else {
-            mUpdateRect = aRegion.GetBounds();
-            if (!mBackingSurface) {
-                
-                
-                
-                
-                aRegion = nsIntRegion(mUpdateRect);
-            }
-        }
+        GetUpdateRegion(aRegion);
+        mUpdateRect = aRegion.GetBounds();
 
         
         if (!nsIntRect(nsIntPoint(0, 0), mSize).Contains(mUpdateRect)) {
