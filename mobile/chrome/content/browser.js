@@ -1243,6 +1243,9 @@ ProgressController.prototype = {
       this.browser.docShell.isOffScreenBrowser = true;
       if (Browser._isStartup) {
         
+        ws.panTo(0, -BrowserUI.toolbarH);
+        
+        
         ws.endUpdateBatch();
         Browser._selectedTab.updateThumbnail();
         Browser._isStartup = false;
