@@ -498,12 +498,20 @@ MouseModule.prototype = {
     if (this._targetIsContent(evInfo.event)) {
       this._recordEvent(evInfo);
     }
-    else if (targetScrollInterface) {
-      
-      let cX = {}, cY = {};
-      targetScrollInterface.getScrolledSize(cX, cY);
-      let rect = targetScrollbox.getBoundingClientRect();
-      dragData.locked = ((cX.value > rect.width) != (cY.value > rect.height));
+    else {
+      if (this._clickTimeout) {
+        
+        window.clearTimeout(this._clickTimeout);
+        this._cleanClickBuffer();
+      }
+
+      if (targetScrollInterface) {
+        
+        let cX = {}, cY = {};
+        targetScrollInterface.getScrolledSize(cX, cY);
+        let rect = targetScrollbox.getBoundingClientRect();
+        dragData.locked = ((cX.value > rect.width) != (cY.value > rect.height));
+      }
     }
   },
 
@@ -536,7 +544,7 @@ MouseModule.prototype = {
         
         
         
-        this._cleanClickBuffer();    
+        this._cleanClickBuffer();
     }
     else if (dragData.isPan()) {
       
@@ -667,7 +675,6 @@ MouseModule.prototype = {
 
 
   _commitAnotherClick: function _commitAnotherClick() {
-
     if (this._clickTimeout) {   
       window.clearTimeout(this._clickTimeout);
       this._doDoubleClick();
@@ -681,12 +688,6 @@ MouseModule.prototype = {
 
 
   _doSingleClick: function _doSingleClick() {
-    
-    
-    
-    
-    
-
     let ev = this._downUpEvents[1].event;
     this._cleanClickBuffer(2);
 
@@ -703,12 +704,6 @@ MouseModule.prototype = {
 
 
   _doDoubleClick: function _doDoubleClick() {
-    
-    
-    
-    
-    
-
     let mouseUp1 = this._downUpEvents[1].event;
     let mouseUp2 = this._downUpEvents[3].event;
     this._cleanClickBuffer(4);
@@ -1169,7 +1164,7 @@ KineticController.prototype = {
       if (dx * this._velocity.x < 0 || dy * this._velocity.y < 0)
         this.end();
     }
- 
+
     this.momentumBuffer.push({'t': now, 'dx' : dx, 'dy' : dy});
   }
 };
