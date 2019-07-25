@@ -585,7 +585,7 @@ class FrameState
 
 
 
-    void loadTo(FrameEntry *fe, RegisterID typeReg, RegisterID dataReg, RegisterID tempReg);
+    void loadForReturn(FrameEntry *fe, RegisterID typeReg, RegisterID dataReg, RegisterID tempReg);
 
     
 
@@ -719,6 +719,11 @@ class FrameState
 
 
     inline void unpinKilledReg(RegisterID reg);
+
+    
+    MaybeRegisterID maybePinData(FrameEntry *fe);
+    MaybeRegisterID maybePinType(FrameEntry *fe);
+    void maybeUnpinReg(MaybeRegisterID reg);
 
     
 
