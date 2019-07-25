@@ -184,15 +184,6 @@ nsAppShellService::CreateHiddenWindow(nsIAppShell* aAppShell)
 
   mHiddenWindow.swap(newWindow);
 
-#ifdef XP_MACOSX
-  
-  
-  
-  
-  mHiddenWindow->SetPosition ( -32000, -32000 );
-  mHiddenWindow->SetVisibility ( PR_TRUE );
-#endif
-
   
   
   
