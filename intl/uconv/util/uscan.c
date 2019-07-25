@@ -593,7 +593,7 @@ PRIVATE PRBool uCnSAlways8BytesDecomposedHangul(
     return PR_FALSE;
   
   
-  if((in[3] < 0xa1) && (in[3] > 0xbe)) { 
+  if((in[3] < 0xa1) || (in[3] > 0xbe)) { 
     return PR_FALSE;
   } 
   else {
@@ -614,7 +614,7 @@ PRIVATE PRBool uCnSAlways8BytesDecomposedHangul(
   }
   
   
-  if((in[5] < 0xbf) && (in[5] > 0xd3)) { 
+  if((in[5] < 0xbf) || (in[5] > 0xd3)) { 
     return PR_FALSE;
   } 
   else {
@@ -626,7 +626,7 @@ PRIVATE PRBool uCnSAlways8BytesDecomposedHangul(
   {
     TIndex = 0;
   } 
-  else if((in[7] < 0xa1) && (in[7] > 0xbe)) {
+  else if((in[7] < 0xa1) || (in[7] > 0xbe)) {
     return PR_FALSE;
   } 
   else {
