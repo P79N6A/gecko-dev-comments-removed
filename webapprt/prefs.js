@@ -12,6 +12,8 @@ pref("extensions.autoDisableScopes", 1);
 
 pref("xpinstall.enabled", false);
 
+pref("extensions.installDistroAddons", false);
+
 
 pref("webapprt.firstrun", false);
 
