@@ -23,6 +23,22 @@ GetScriptContextFromJSContext(JSContext *cx)
   return scx;
 }
 
+inline nsIScriptContextPrincipal*
+GetScriptContextPrincipalFromJSContext(JSContext *cx)
+{
+  if (!(::JS_GetOptions(cx) & JSOPTION_PRIVATE_IS_NSISUPPORTS)) {
+    return nsnull;
+  }
+
+  nsCOMPtr<nsIScriptContextPrincipal> scx =
+    do_QueryInterface(static_cast<nsISupports *>
+                                 (::JS_GetContextPrivate(cx)));
+
+  
+  
+  return scx;
+}
+
 
 
 

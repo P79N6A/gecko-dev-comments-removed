@@ -53,8 +53,24 @@ class nsIVariant;
 class nsIObjectInputStream;
 class nsIObjectOutputStream;
 class nsScriptObjectHolder;
+class nsIScriptObjectPrincipal;
 
 typedef void (*nsScriptTerminationFunc)(nsISupports* aRef);
+
+#define NS_ISCRIPTCONTEXTPRINCIPAL_IID \
+  { 0xd012cdb3, 0x8f1e, 0x4440, \
+    { 0x8c, 0xbd, 0x32, 0x7f, 0x98, 0x1d, 0x37, 0xb4 } }
+
+class nsIScriptContextPrincipal : public nsISupports
+{
+public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTCONTEXTPRINCIPAL_IID)
+
+  virtual nsIScriptObjectPrincipal* GetObjectPrincipal() = 0;
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
+                              NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 
 #define NS_ISCRIPTCONTEXT_IID \
@@ -72,7 +88,7 @@ typedef void (*nsScriptTerminationFunc)(nsISupports* aRef);
 
 
 
-class nsIScriptContext : public nsISupports
+class nsIScriptContext : public nsIScriptContextPrincipal
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTCONTEXT_IID)
