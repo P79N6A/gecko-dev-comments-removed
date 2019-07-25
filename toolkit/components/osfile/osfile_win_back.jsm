@@ -177,7 +177,7 @@
 
        
        
-       let _CloseHandle =
+       let _CloseHandle = WinFile._CloseHandle =
          libc.declare("CloseHandle", ctypes.winapi_abi,
                         ctypes.bool,
                          ctypes.voidptr_t);

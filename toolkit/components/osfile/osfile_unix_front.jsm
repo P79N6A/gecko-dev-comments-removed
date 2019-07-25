@@ -18,6 +18,7 @@
   }
   importScripts("resource://gre/modules/osfile/osfile_unix_back.jsm");
   importScripts("resource://gre/modules/osfile/ospath_unix_back.jsm");
+  importScripts("resource://gre/modules/osfile/osfile_shared_front.jsm");
   (function(exports) {
      "use strict";
 
@@ -40,25 +41,12 @@
 
 
      let File = function File(fd) {
-       this._fd = fd;
+       exports.OS.Shared.AbstractFile.call(this, fd);
+       this._closeResult = null;
      };
-     File.prototype = {
-       
+     File.prototype = Object.create(exports.OS.Shared.AbstractFile.prototype);
 
-
-
-       get fd() {
-         return this._fd;
-       },
-
-       
-       
-       _nofd: function nofd(operation) {
-         operation = operation || "unknown operation";
-         throw new File.Error(operation, Const.EBADF);
-       },
-
-       
+     
 
 
 
@@ -68,105 +56,107 @@
 
 
 
-       close: function close() {
-         if (this._fd) {
-           let fd = this._fd;
-           this._fd = null;
-           delete this.fd;
-           Object.defineProperty(this, "fd", {get: File.prototype._nofd});
-           
-           if (UnixFile.close(fd) == -1) {
-             this._closeResult = new File.Error("close", ctypes.errno);
-           }
+     File.prototype.close = function close() {
+       if (this._fd) {
+         let fd = this._fd;
+         this._fd = null;
+        
+         
+         
+         let result = UnixFile._close(fd);
+         if (typeof fd == "object" && "forget" in fd) {
+           fd.forget();
          }
-         if (this._closeResult) {
-           throw this._closeResult;
+         if (result == -1) {
+           this._closeResult = new File.Error("close");
          }
-         return;
-       },
-       _closeResult: null,
-
-       
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-       read: function read(buffer, nbytes, options) {
-         return throw_on_negative("read",
-           UnixFile.read(this.fd, buffer, nbytes)
-         );
-       },
-
-       
-
-
-
-
-
-
-
-
-
-
-
-
-       write: function write(buffer, nbytes, options) {
-         return throw_on_negative("write",
-           UnixFile.write(this.fd, buffer, nbytes)
-         );
-       },
-
-       
-
-
-       getPosition: function getPosition(pos) {
-         return this.setPosition(0, File.POS_CURRENT);
-       },
-
-       
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-       setPosition: function setPosition(pos, whence) {
-         if (whence === undefined) {
-           whence = Const.SEEK_START;
-         }
-         return throw_on_negative("setPosition",
-           UnixFile.lseek(this.fd, pos, whence)
-         );
-       },
-
-       
-
-
-
-
-       stat: function stat() {
-         throw_on_negative("stat", UnixFile.fstat(this.fd, gStatDataPtr));
-         return new File.Info(gStatData);
        }
+       if (this._closeResult) {
+         throw this._closeResult;
+       }
+       return;
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     File.prototype.read = function read(buffer, nbytes, options) {
+       return throw_on_negative("read",
+         UnixFile.read(this.fd, buffer, nbytes)
+       );
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+     File.prototype.write = function write(buffer, nbytes, options) {
+       return throw_on_negative("write",
+         UnixFile.write(this.fd, buffer, nbytes)
+       );
+     };
+
+     
+
+
+     File.prototype.getPosition = function getPosition(pos) {
+         return this.setPosition(0, File.POS_CURRENT);
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     File.prototype.setPosition = function setPosition(pos, whence) {
+       if (whence === undefined) {
+         whence = Const.SEEK_START;
+       }
+       return throw_on_negative("setPosition",
+         UnixFile.lseek(this.fd, pos, whence)
+       );
+     };
+
+     
+
+
+
+
+     File.prototype.stat = function stat() {
+       throw_on_negative("stat", UnixFile.fstat(this.fd, gStatDataPtr));
+         return new File.Info(gStatData);
      };
 
 
@@ -226,7 +216,7 @@
        if (options.unixFlags) {
          flags = options.unixFlags;
        } else {
-         mode = OS.Shared._aux.normalizeOpenMode(mode);
+         mode = OS.Shared.AbstractFile.normalizeOpenMode(mode);
          
          if (!mode.write) {
            flags = Const.O_RDONLY;

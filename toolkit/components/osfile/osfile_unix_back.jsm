@@ -178,7 +178,7 @@
        
 
        
-       let _close =
+       let _close = UnixFile._close =
          libc.declare("close", ctypes.default_abi,
                         ctypes.int,
                              ctypes.int);

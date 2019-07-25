@@ -16,9 +16,9 @@
     throw new Error("osfile_win_front.jsm cannot be used from the main thread yet");
   }
 
-  importScripts("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
   importScripts("resource://gre/modules/osfile/osfile_win_back.jsm");
   importScripts("resource://gre/modules/osfile/ospath_win_back.jsm");
+  importScripts("resource://gre/modules/osfile/osfile_shared_front.jsm");
 
   (function(exports) {
      "use strict";
@@ -60,27 +60,12 @@
 
 
      let File = function File(fd) {
-       this._fd = fd;
+       exports.OS.Shared.AbstractFile.call(this, fd);
+       this._closeResult = null;
      };
-     File.prototype = {
-       
+     File.prototype = Object.create(exports.OS.Shared.AbstractFile.prototype);
 
-
-
-       get fd() {
-         return this._fd;
-       },
-
-       
-       
-       _nofd: function nofd(operation) {
-         operation = operation ||
-             this._nofd.caller.name ||
-             "unknown operation";
-         throw new File.Error(operation, Const.INVALID_HANDLE_VALUE);
-       },
-
-       
+     
 
 
 
@@ -90,109 +75,111 @@
 
 
 
-       close: function close() {
-         if (this._fd) {
-           let fd = this._fd;
-           this._fd = null;
-           delete this.fd;
-           Object.defineProperty(this, "fd", {get: File.prototype._nofd});
-           
-           if (fd.dispose() == 0) {
-             this._closeResult = new File.Error("close", ctypes.errno);
-           }
-         }
-         if (this._closeResult) {
-           throw this._closeResult;
-         }
-         return;
-       },
-       _closeResult: null,
-
-       
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-       read: function read(buffer, nbytes, options) {
+     File.prototype.close = function close() {
+       if (this._fd) {
+         let fd = this._fd;
+         this._fd = null;
          
-         throw_on_zero("read",
-           WinFile.ReadFile(this.fd, buffer, nbytes, gBytesReadPtr, null)
-         );
-         return gBytesRead.value;
-       },
-
-       
-
-
-
-
-
-
-
-
-
-
-
-
-       write: function write(buffer, nbytes, options) {
          
-         throw_on_zero("write",
-           WinFile.WriteFile(this.fd, buffer, nbytes, gBytesWrittenPtr, null)
-         );
-         return gBytesWritten.value;
-       },
-
-       
-
-
-       getPosition: function getPosition(pos) {
-         return this.setPosition(0, File.POS_CURRENT);
-       },
-
-       
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-       setPosition: function setPosition(pos, whence) {
-         if (whence === undefined) {
-           whence = Const.FILE_BEGIN;
+         
+         let result = WinFile._CloseHandle(fd);
+         if (typeof fd == "object" && "forget" in fd) {
+           fd.forget();
          }
-         return throw_on_negative("setPosition",
-           WinFile.SetFilePointer(this.fd, pos, null, whence));
-       },
-
-       
-
-
-
-
-       stat: function stat() {
-         throw_on_zero("stat",
-           WinFile.GetFileInformationByHandle(this.fd, gFileInfoPtr));
-         return new File.Info(gFileInfo);
+         if (result == -1) {
+           this._closeResult = new File.Error("close");
+         }
        }
+       if (this._closeResult) {
+         throw this._closeResult;
+       }
+       return;
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     File.prototype.read = function read(buffer, nbytes, options) {
+       
+       throw_on_zero("read",
+         WinFile.ReadFile(this.fd, buffer, nbytes, gBytesReadPtr, null)
+       );
+       return gBytesRead.value;
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+     File.prototype.write = function write(buffer, nbytes, options) {
+       
+       throw_on_zero("write",
+         WinFile.WriteFile(this.fd, buffer, nbytes, gBytesWrittenPtr, null)
+       );
+       return gBytesWritten.value;
+     };
+
+     
+
+
+     File.prototype.getPosition = function getPosition(pos) {
+       return this.setPosition(0, File.POS_CURRENT);
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     File.prototype.setPosition = function setPosition(pos, whence) {
+       if (whence === undefined) {
+         whence = Const.FILE_BEGIN;
+       }
+       return throw_on_negative("setPosition",
+         WinFile.SetFilePointer(this.fd, pos, null, whence));
+     };
+
+     
+
+
+
+
+     File.prototype.stat = function stat() {
+       throw_on_zero("stat",
+         WinFile.GetFileInformationByHandle(this.fd, gFileInfoPtr));
+       return new File.Info(gFileInfo);
      };
 
      
@@ -279,7 +266,7 @@
          throw new TypeError("OS.File.open requires either both options " +
            "winAccess and winDisposition or neither");
        } else {
-         mode = OS.Shared._aux.normalizeOpenMode(mode);
+         mode = OS.Shared.AbstractFile.normalizeOpenMode(mode);
          if (mode.read) {
            access |= Const.GENERIC_READ;
          }
