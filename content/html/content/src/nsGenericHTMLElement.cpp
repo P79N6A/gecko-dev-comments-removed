@@ -1957,16 +1957,15 @@ nsGenericHTMLElement::MapBackgroundInto(const nsMappedAttributes* aAttributes,
           
           
           
-          nsStringBuffer* buffer = nsCSSValue::BufferFromString(spec);
-          if (NS_LIKELY(buffer != 0)) {
+          nsRefPtr<nsStringBuffer> buffer = nsCSSValue::BufferFromString(spec);
+          if (NS_LIKELY(buffer)) {
             
             
             
             nsCSSValue::Image *img =
               new nsCSSValue::Image(uri, buffer, doc->GetDocumentURI(),
                                     doc->NodePrincipal(), doc);
-            buffer->Release();
-            if (NS_LIKELY(img != 0)) {
+            if (NS_LIKELY(img)) {
               nsCSSValueList* list =
                 aData->mColorData->mBackImage.SetListValue();
               list->mValue.SetImageValue(img);

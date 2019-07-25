@@ -440,7 +440,8 @@ public:
 
   
   
-  static nsStringBuffer* BufferFromString(const nsString& aValue);
+  static already_AddRefed<nsStringBuffer>
+    BufferFromString(const nsString& aValue);
 
   struct URL {
     
