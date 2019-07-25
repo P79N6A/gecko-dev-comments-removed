@@ -706,13 +706,13 @@ var Browser = {
         this.closeTab(oldTab);
         oldTab = null;
       }
-      let tab = Browser.addTab(aURI, true, oldTab);
-      tab.browser.stop();
+      Browser.addTab(aURI, true, oldTab, aParams);
     }
-
-    let params = aParams || {};
-    let flags = params.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
-    getBrowser().loadURIWithFlags(aURI, flags, params.referrerURI, params.charset, params.postData);
+    else {
+      let params = aParams || {};
+      let flags = params.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+      getBrowser().loadURIWithFlags(aURI, flags, params.referrerURI, params.charset, params.postData);
+    }
   },
 
   
@@ -749,12 +749,12 @@ var Browser = {
     return null;
   },
 
-  addTab: function(uri, bringFront, aOwner) {
-    let newTab = new Tab(uri);
+  addTab: function(aURI, aBringFront, aOwner, aParams) {
+    let newTab = new Tab(aURI, aParams);
     newTab.owner = aOwner || null;
     this._tabs.push(newTab);
 
-    if (bringFront)
+    if (aBringFront)
       this.selectedTab = newTab;
 
     let event = document.createEvent("Events");
@@ -2488,7 +2488,7 @@ var OfflineApps = {
   }
 };
 
-function Tab(aURI) {
+function Tab(aURI, aParams) {
   this._id = null;
   this._browser = null;
   this._browserViewportState = null;
@@ -2502,7 +2502,9 @@ function Tab(aURI) {
   
   this.lastSelected = 0;
 
-  this.create(aURI);
+  
+  
+  this.create(aURI, aParams || {});
 }
 
 Tab.prototype = {
@@ -2618,12 +2620,23 @@ Tab.prototype = {
     return this._loading;
   },
 
-  create: function create(aURI) {
+  create: function create(aURI, aParams) {
     
     this._browserViewportState = BrowserView.Util.createBrowserViewportState();
 
     this._chromeTab = document.getElementById("tabs").addTab();
-    this._createBrowser(aURI);
+    let browser = this._createBrowser(aURI);
+
+    
+    let flags = Ci.nsIWebProgress.NOTIFY_LOCATION |
+                Ci.nsIWebProgress.NOTIFY_SECURITY |
+                Ci.nsIWebProgress.NOTIFY_STATE_NETWORK |
+                Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT;
+    this._listener = new ProgressController(this);
+    browser.webProgress.addProgressListener(this._listener, flags);
+
+    let flags = aParams.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+    browser.loadURIWithFlags(aURI, flags, aParams.referrerURI, aParams.charset, aParams.postData);
   },
 
   destroy: function destroy() {
@@ -2646,22 +2659,14 @@ Tab.prototype = {
     let useRemote = Services.prefs.getBoolPref("browser.tabs.remote");
     let useLocal = Util.isLocalScheme(aURI);
     browser.setAttribute("remote", (!useLocal && useRemote) ? "true" : "false");
-    
+
     
     document.getElementById("browsers").appendChild(browser);
 
     
     browser.stop();
 
-    
-    let flags = Ci.nsIWebProgress.NOTIFY_LOCATION |
-                Ci.nsIWebProgress.NOTIFY_SECURITY |
-                Ci.nsIWebProgress.NOTIFY_STATE_NETWORK |
-                Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT;
-    this._listener = new ProgressController(this);
-    browser.webProgress.addProgressListener(this._listener, flags);
-
-    browser.setAttribute("src", aURI);
+    return browser;
   },
 
   _destroyBrowser: function _destroyBrowser() {
