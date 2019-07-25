@@ -78,6 +78,48 @@ TabEngine.prototype = {
     let self = yield;
     this.resetLastSync();
     this._store.wipe();
+  },
+
+  
+
+
+
+
+
+
+
+
+  locallyOpenTabMatchesURL: function TabEngine_localTabMatches(url) {
+    
+    
+
+    if (Cc["@mozilla.org/browser/sessionstore;1"])  {
+      let state = this._store._sessionStore.getBrowserState();
+      let session = this._store._json.decode(state);
+      for (let i = 0; i < session.windows.length; i++) {
+        let window = session.windows[i];
+        for (let j = 0; j < window.tabs.length; j++) {
+          let tab = window.tabs[j];
+          if (tab.entries.length > 0) {
+            let tabUrl = tab.entries[tab.entries.length-1].url;
+            if (tabUrl == url) {
+              return true;
+            }
+          }
+        }
+      }
+    } else {
+      let wm = Cc["@mozilla.org/appshell/window-mediator;1"]
+	.getService(Ci.nsIWindowMediator);
+      let browserWindow = wm.getMostRecentWindow("navigator:browser");
+      for each (let tab in browserWindow.Browser._tabs ) {
+        let tabUrl = tab.browser.contentWindow.location.toString();
+        if (tabUrl == url) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 };
 
@@ -175,6 +217,7 @@ TabStore.prototype = {
       
 
 
+
       let windowID = i + 1;
 
       for (let j = 0; j < window.tabs.length; j++) {
@@ -185,6 +228,7 @@ TabStore.prototype = {
 	  continue;
 	let currentPage = tab.entries[tab.entries.length - 1];
 	
+
 
 
         this._log.debug("Wrapping a tab with title " + currentPage.title);
@@ -210,8 +254,8 @@ TabStore.prototype = {
       let title = tab.browser.contentDocument.title;
       let url = tab.browser.contentWindow.location.toString();
       let urlHistory = [url];
+      this._log.debug("Wrapping a tab with title " + title);
       
-      dump("Making tab with title = " + title + ", url = " + url + "\n");
       record.addTab(title, urlHistory);
     }
   },
