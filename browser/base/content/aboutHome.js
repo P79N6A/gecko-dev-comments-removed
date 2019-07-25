@@ -54,16 +54,31 @@ const SEARCH_ENGINES = {
   }
 };
 
+
+
+
+
+
+const DEFAULT_SNIPPETS_URLS = [
+  "http://www.mozilla.com/firefox/4.0/features"
+, "https://addons.mozilla.org/firefox/?browse=featured"
+];
+
+const SNIPPETS_UPDATE_INTERVAL_MS = 86400000; 
+
 let gSearchEngine;
 
 function onLoad(event)
 {
   setupSearchEngine();
   document.getElementById("searchText").focus();
+
+  loadSnippets();
 }
 
 
-function onSearchSubmit(aEvent) {
+function onSearchSubmit(aEvent)
+{
   let searchTerms = document.getElementById("searchText").value;
   if (gSearchEngine && searchTerms.length > 0) {
     const SEARCH_TOKENS = {
@@ -80,7 +95,8 @@ function onSearchSubmit(aEvent) {
 }
 
 
-function setupSearchEngine() {
+function setupSearchEngine()
+{
   gSearchEngine = JSON.parse(localStorage["search-engine"]);
 
   
@@ -113,5 +129,58 @@ function setupSearchEngine() {
       prefsLink.setAttribute("href", gSearchEngine.links.preferences);
       prefsLink.hidden = false;
     }
+  }
+}
+
+function loadSnippets()
+{
+  
+  let lastUpdate = localStorage["snippets-last-update"];
+  let updateURL = localStorage["snippets-update-url"];
+  if (updateURL && (!lastUpdate ||
+                    Date.now() - lastUpdate > SNIPPETS_UPDATE_INTERVAL_MS)) {
+    
+    let xhr = new XMLHttpRequest();
+    xhr.mozBackgroundRequest = true;
+    xhr.open('GET', updateURL, true);
+    xhr.onerror = function (event) {
+      showSnippets();
+    };
+    xhr.onload = function (event)
+    {
+      if (xhr.status == 200) {
+        localStorage["snippets"] = xhr.responseText;
+        localStorage["snippets-last-update"] = Date.now();
+      }
+      showSnippets();
+    };
+    xhr.send(null);
+  } else {
+    showSnippets();
+  }
+}
+
+function showSnippets()
+{
+  let snippets = localStorage["snippets"];
+  if (snippets) {
+    let snippetsElt = document.getElementById("snippets");
+    snippetsElt.innerHTML = snippets;
+    snippetsElt.hidden = false;
+  } else {
+    
+    let defaultSnippetsElt = document.getElementById("defaultSnippets");
+    let entries = defaultSnippetsElt.querySelectorAll("span");
+    
+    let randIndex = Math.round(Math.random() * (entries.length - 1));
+    let entry = entries[randIndex];
+    
+    if (DEFAULT_SNIPPETS_URLS[randIndex]) {
+      let links = entry.getElementsByTagName("a");
+      if (links.length != 1)
+        return; 
+      links[0].href = DEFAULT_SNIPPETS_URLS[randIndex];
+    }
+    entry.hidden = false;
   }
 }
