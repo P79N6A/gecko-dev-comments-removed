@@ -187,19 +187,12 @@ let DebuggerController = {
   
 
 
-
   _onTabNavigated: function DC__onTabNavigated(aNotification, aPacket) {
-    let client = this.client;
-
-    client.activeThread.detach(function() {
-      client.activeTab.detach(function() {
-        client.listTabs(function(aResponse) {
-          let tab = aResponse.tabs[aResponse.selected];
-          this._startDebuggingTab(client, tab);
-          this.dispatchEvent("Debugger:Connecting");
-        }.bind(this));
-      }.bind(this));
-    }.bind(this));
+    DebuggerController.ThreadState._handleTabNavigation(function() {
+      DebuggerController.StackFrames._handleTabNavigation(function() {
+        DebuggerController.SourceScripts._handleTabNavigation();
+      });
+    });
   },
 
   
@@ -327,7 +320,7 @@ ThreadState.prototype = {
     this.activeThread.addListener("resumed", this._update);
     this.activeThread.addListener("detached", this._update);
 
-    this._update();
+    this._handleTabNavigation();
 
     aCallback && aCallback();
   },
@@ -342,6 +335,15 @@ ThreadState.prototype = {
     this.activeThread.removeListener("paused", this._update);
     this.activeThread.removeListener("resumed", this._update);
     this.activeThread.removeListener("detached", this._update);
+  },
+
+  
+
+
+  _handleTabNavigation: function TS__handleTabNavigation(aCallback) {
+    DebuggerView.StackFrames.updateState(this.activeThread.state);
+
+    aCallback && aCallback();
   },
 
   
@@ -397,12 +399,12 @@ StackFrames.prototype = {
 
   connect: function SF_connect(aCallback) {
     window.addEventListener("Debugger:FetchedVariables", this._onFetchedVars, false);
-
     this.activeThread.addListener("paused", this._onPaused);
     this.activeThread.addListener("resumed", this._onResume);
     this.activeThread.addListener("framesadded", this._onFrames);
     this.activeThread.addListener("framescleared", this._onFramesCleared);
 
+    this._handleTabNavigation();
     this.updatePauseOnExceptions(this.pauseOnExceptions);
 
     aCallback && aCallback();
@@ -412,15 +414,23 @@ StackFrames.prototype = {
 
 
   disconnect: function SF_disconnect() {
-    window.removeEventListener("Debugger:FetchedVariables", this._onFetchedVars, false);
-
     if (!this.activeThread) {
       return;
     }
+    window.removeEventListener("Debugger:FetchedVariables", this._onFetchedVars, false);
     this.activeThread.removeListener("paused", this._onPaused);
     this.activeThread.removeListener("resumed", this._onResume);
     this.activeThread.removeListener("framesadded", this._onFrames);
     this.activeThread.removeListener("framescleared", this._onFramesCleared);
+  },
+
+  
+
+
+  _handleTabNavigation: function SF__handleTabNavigation(aCallback) {
+    
+
+    aCallback && aCallback();
   },
 
   
@@ -436,6 +446,7 @@ StackFrames.prototype = {
     if (aPacket.why.type == "exception") {
       this.exception = aPacket.why.exception;
     }
+
     this.activeThread.fillFrames(this.pageSize);
     DebuggerView.editor.focus();
   },
@@ -834,7 +845,6 @@ StackFrames.prototype = {
 function SourceScripts() {
   this._onNewScript = this._onNewScript.bind(this);
   this._onScriptsAdded = this._onScriptsAdded.bind(this);
-  this._onScriptsCleared = this._onScriptsCleared.bind(this);
   this._onShowScript = this._onShowScript.bind(this);
   this._onLoadSource = this._onLoadSource.bind(this);
   this._onLoadSourceFinished = this._onLoadSourceFinished.bind(this);
@@ -869,17 +879,9 @@ SourceScripts.prototype = {
 
   connect: function SS_connect(aCallback) {
     window.addEventListener("Debugger:LoadSource", this._onLoadSource, false);
-
     this.debuggerClient.addListener("newScript", this._onNewScript);
-    this.activeThread.addListener("scriptsadded", this._onScriptsAdded);
-    this.activeThread.addListener("scriptscleared", this._onScriptsCleared);
 
-    this._clearLabelsCache();
-    this._onScriptsCleared();
-
-    
-    
-    this.activeThread.fillScripts();
+    this._handleTabNavigation();
 
     aCallback && aCallback();
   },
@@ -887,15 +889,26 @@ SourceScripts.prototype = {
   
 
 
-  disconnect: function TS_disconnect() {
-    window.removeEventListener("Debugger:LoadSource", this._onLoadSource, false);
-
+  disconnect: function SS_disconnect() {
     if (!this.activeThread) {
       return;
     }
+    window.removeEventListener("Debugger:LoadSource", this._onLoadSource, false);
     this.debuggerClient.removeListener("newScript", this._onNewScript);
-    this.activeThread.removeListener("scriptsadded", this._onScriptsAdded);
-    this.activeThread.removeListener("scriptscleared", this._onScriptsCleared);
+  },
+
+  
+
+
+  _handleTabNavigation: function SS__handleTabNavigation(aCallback) {
+    this._clearLabelsCache();
+    this._onScriptsCleared();
+
+    
+    
+    this.activeThread.getScripts(this._onScriptsAdded);
+
+    aCallback && aCallback();
   },
 
   
@@ -909,9 +922,15 @@ SourceScripts.prototype = {
 
     this._addScript({ url: aPacket.url, startLine: aPacket.startLine }, true);
 
+    let preferredScriptUrl = DebuggerView.Scripts.preferredScriptUrl;
+
     
     if (aPacket.url === DebuggerView.Scripts.preferredScriptUrl) {
       DebuggerView.Scripts.selectScript(aPacket.url);
+    }
+    
+    else if (!DebuggerView.Scripts.selected) {
+      DebuggerView.Scripts.selectIndex(0);
     }
 
     
@@ -921,25 +940,32 @@ SourceScripts.prototype = {
         DebuggerController.Breakpoints.displayBreakpoint(breakpoint);
       }
     }
+
+    DebuggerController.dispatchEvent("Debugger:AfterNewScript");
   },
 
   
 
 
-  _onScriptsAdded: function SS__onScriptsAdded() {
-    for each (let script in this.activeThread.cachedScripts) {
+  _onScriptsAdded: function SS__onScriptsAdded(aResponse) {
+    for each (let script in aResponse.scripts) {
       this._addScript(script, false);
     }
     DebuggerView.Scripts.commitScripts();
     DebuggerController.Breakpoints.updatePaneBreakpoints();
 
-    
     let preferredScriptUrl = DebuggerView.Scripts.preferredScriptUrl;
+
+    
     if (preferredScriptUrl && DebuggerView.Scripts.contains(preferredScriptUrl)) {
       DebuggerView.Scripts.selectScript(preferredScriptUrl);
-    } else {
+    }
+    
+    else if (!DebuggerView.Scripts.selected) {
       DebuggerView.Scripts.selectIndex(0);
     }
+
+    DebuggerController.dispatchEvent("Debugger:AfterScriptsAdded");
   },
 
   
