@@ -125,9 +125,20 @@ Notification.prototype.buttons = [];
 
 
 function NotificationButton(label, accessKey, callback) {
+  function callbackWrapper() {
+    try {
+      callback.apply(this, arguments);
+    } catch (e) {
+      let logger = Log4Moz.Service.getLogger("Notifications");
+      logger.error("An exception occurred: " + Utils.exceptionStr(e));
+      logger.info(Utils.stackTrace(e));
+      throw e;
+    }
+  }
+
   this.label = label;
   this.accessKey = accessKey;
-  this.callback = callback;
+  this.callback = callbackWrapper;
 }
 
 function TabsNotification() {
