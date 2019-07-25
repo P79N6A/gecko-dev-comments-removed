@@ -42,6 +42,7 @@
 #include "mozilla/ReentrantMonitor.h"
 
 #include "nsRect.h"
+#include "nsIThreadManager.h"
 
 
 
@@ -156,5 +157,13 @@ PRBool UsecsToSamples(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutSamples);
 
 
 void ScaleDisplayByAspectRatio(nsIntSize& aDisplay, float aAspectRatio);
+
+
+#if defined(XP_WIN) || defined(XP_MACOSX) || defined(LINUX)
+#define MEDIA_THREAD_STACK_SIZE (128 * 1024)
+#else
+
+#define MEDIA_THREAD_STACK_SIZE nsIThreadManager::DEFAULT_STACK_SIZE
+#endif
 
 #endif
