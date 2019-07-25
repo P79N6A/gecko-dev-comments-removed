@@ -1836,13 +1836,8 @@ const ContentTouchHandler = {
   },
 
   tapDown: function tapDown(aX, aY) {
-    
     let browser = getBrowser();
-    let fl = browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
     browser.focus();
-    try {
-      fl.activateRemoteFrame();
-    } catch (e) {}
 
     
     this.updateCanCancel(aX, aY);
@@ -2964,12 +2959,7 @@ Tab.prototype = {
       Elements.browsers.selectedPanel = notification;
       browser.active = true;
       document.getElementById("tabs").selectedTab = this._chromeTab;
-
-      
-      try {
-        let fl = browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
-        fl.activateRemoteFrame();
-      } catch (e) {}
+      browser.focus();
     } else {
       browser.messageManager.sendAsyncMessage("Browser:Blur", { });
       browser.setAttribute("type", "content");
