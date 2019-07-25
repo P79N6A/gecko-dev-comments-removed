@@ -51,6 +51,8 @@ namespace ipc {
 
 class RPCChannel : public SyncChannel
 {
+    friend class CxxStackFrame;
+
 public:
     class  RPCListener :
         public SyncChannel::SyncListener
@@ -81,6 +83,13 @@ public:
 
     
     bool Call(Message* msg, Message* reply);
+
+    
+    
+    NS_OVERRIDE
+    virtual bool Send(Message* msg);
+    NS_OVERRIDE
+    virtual bool Send(Message* msg, Message* reply);
 
     
     
@@ -150,6 +159,55 @@ protected:
 
     void BlockOnParent();
     void UnblockFromParent();
+
+    
+    
+    
+    
+    void EnteredCxxStack()
+    {
+        
+        printf("[%s] +++ CXX STACK\n", mChild ? "child" : "parent");
+    }
+
+    void ExitedCxxStack()
+    {
+        
+        printf("[%s] --- CXX STACK\n", mChild ? "child" : "parent");
+    }
+
+    class NS_STACK_CLASS CxxStackFrame
+    {
+    public:
+        CxxStackFrame(RPCChannel& that) : mThat(that) {
+            NS_ABORT_IF_FALSE(0 <= mThat.mCxxStackFrames,
+                              "mismatched CxxStackFrame ctor/dtor");
+            mThat.AssertWorkerThread();
+
+            if (0 == mThat.mCxxStackFrames++)
+                mThat.EnteredCxxStack();
+        }
+
+        ~CxxStackFrame() {
+            bool exitingStack = (0 == --mThat.mCxxStackFrames);
+
+            
+            
+            if (!mThat.mListener)
+                return;
+
+            mThat.AssertWorkerThread();
+            if (exitingStack)
+                mThat.ExitedCxxStack();
+        }
+    private:
+        RPCChannel& mThat;
+
+        
+        CxxStackFrame();
+        CxxStackFrame(const CxxStackFrame&);
+        CxxStackFrame& operator=(const CxxStackFrame&);
+    };
 
     
     size_t StackDepth() {
@@ -256,6 +314,16 @@ protected:
 
     
     bool mBlockedOnParent;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    int mCxxStackFrames;
 };
 
 

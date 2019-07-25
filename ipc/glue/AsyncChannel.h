@@ -112,7 +112,7 @@ public:
     void Close();
 
     
-    bool Send(Message* msg);
+    virtual bool Send(Message* msg);
 
     
     
