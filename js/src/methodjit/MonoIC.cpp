@@ -928,6 +928,7 @@ class CallCompiler : public BaseCompiler
                           FrameAddress(offsetof(VMFrame, scratch)));
         }
 
+        masm.restoreStackBase();
         masm.setupABICall(Registers::NormalCall, 3);
         masm.storeArg(2, vpReg);
         if (ic.frameSize.isStatic())
@@ -951,6 +952,9 @@ class CallCompiler : public BaseCompiler
 
         if (cx->typeInferenceEnabled())
             masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, scratch)));
+
+        
+        masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
 
         Jump hasException = masm.branchTest32(Assembler::Zero, Registers::ReturnReg,
                                               Registers::ReturnReg);

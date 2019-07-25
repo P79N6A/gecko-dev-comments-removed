@@ -634,6 +634,21 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
             if (pinlined)
                 *pinlined = ptr;
         }
+
+        restoreStackBase();
+    }
+
+    void restoreStackBase() {
+#if defined(JS_CPU_X86)
+        
+
+
+
+
+        JS_STATIC_ASSERT(JSFrameReg == JSC::X86Registers::ebp);
+        move(JSC::X86Registers::esp, JSFrameReg);
+        addPtr(Imm32(VMFrame::STACK_BASE_DIFFERENCE), JSFrameReg);
+#endif
     }
 
     
@@ -652,11 +667,8 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         setupFallibleVMFrame(inlining, pc, pinlined, frameDepth);
         Call call = wrapVMCall(ptr);
 
-        if (inlining) {
-            
-            
-            loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
-        }
+        
+        loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
 
         return call;
     }

@@ -103,6 +103,10 @@ struct VMFrame
         return reinterpret_cast<void**>(this) - 1;
     }
 # endif
+
+    
+    static const uint32 STACK_BASE_DIFFERENCE = 0x38;
+
 #elif defined(JS_CPU_X64)
     void *savedRBX;
 # ifdef _WIN64
