@@ -34,6 +34,7 @@
 
 
 
+
 var EXPORTED_SYMBOLS = ["LightweightThemeManager"];
 
 const Cc = Components.classes;
@@ -65,22 +66,8 @@ const PERSIST_FILES = {
 
 __defineGetter__("_prefs", function () {
   delete this._prefs;
-  return this._prefs =
-         Cc["@mozilla.org/preferences-service;1"]
-           .getService(Ci.nsIPrefService).getBranch("lightweightThemes.")
-           .QueryInterface(Ci.nsIPrefBranch2);
-});
-
-__defineGetter__("_observerService", function () {
-  delete this._observerService;
-  return this._observerService =
-         Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
-});
-
-__defineGetter__("_ioService", function () {
-  delete this._ioService;
-  return this._ioService =
-         Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
+  return this._prefs = Services.prefs.getBranch("lightweightThemes.")
+                                     .QueryInterface(Ci.nsIPrefBranch2);
 });
 
 __defineGetter__("_maxUsedThemes", function() {
@@ -175,8 +162,8 @@ var LightweightThemeManager = {
 
     let cancel = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
     cancel.data = false;
-    _observerService.notifyObservers(cancel, "lightweight-theme-preview-requested",
-                                     JSON.stringify(aData));
+    Services.obs.notifyObservers(cancel, "lightweight-theme-preview-requested",
+                                 JSON.stringify(aData));
     if (cancel.data)
       return;
 
@@ -267,7 +254,7 @@ var LightweightThemeManager = {
 
     _prefs.setBoolPref("isThemeSelected", aData != null);
     _notifyWindows(aData);
-    _observerService.notifyObservers(null, "lightweight-theme-changed", null);
+    Services.obs.notifyObservers(null, "lightweight-theme-changed", null);
   },
 
   
@@ -570,8 +557,8 @@ function _setCurrentTheme(aData, aLocal) {
 
   let cancel = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
   cancel.data = false;
-  _observerService.notifyObservers(cancel, "lightweight-theme-change-requested",
-                                   JSON.stringify(aData));
+  Services.obs.notifyObservers(cancel, "lightweight-theme-change-requested",
+                               JSON.stringify(aData));
 
   if (aData) {
     let theme = LightweightThemeManager.getUsedTheme(aData.id);
@@ -668,7 +655,7 @@ function _version(aThemeData)
   aThemeData.version || "";
 
 function _makeURI(aURL, aBaseURI)
-  _ioService.newURI(aURL, null, aBaseURI);
+  Services.io.newURI(aURL, null, aBaseURI);
 
 function _updateUsedThemes(aList) {
   
@@ -684,12 +671,12 @@ function _updateUsedThemes(aList) {
   str.data = JSON.stringify(aList);
   _prefs.setComplexValue("usedThemes", Ci.nsISupportsString, str);
 
-  _observerService.notifyObservers(null, "lightweight-theme-list-changed", null);
+  Services.obs.notifyObservers(null, "lightweight-theme-list-changed", null);
 }
 
 function _notifyWindows(aThemeData) {
-  _observerService.notifyObservers(null, "lightweight-theme-styling-update",
-                                   JSON.stringify(aThemeData));
+  Services.obs.notifyObservers(null, "lightweight-theme-styling-update",
+                               JSON.stringify(aThemeData));
 }
 
 var _previewTimer;
@@ -699,26 +686,23 @@ var _previewTimerCallback = {
   }
 };
 
-var _prefObserver = {
-  
 
 
 
-  observe: function (aSubject, aTopic, aData) {
-    switch (aData) {
-      case "maxUsedThemes":
-        try {
-          _maxUsedThemes = _prefs.getIntPref(aData);
-        }
-        catch (e) {
-          _maxUsedThemes = DEFAULT_MAX_USED_THEMES_COUNT;
-        }
-        
-        _updateUsedThemes(LightweightThemeManager.usedThemes);
-        break;
-    }
-  },
-};
+function _prefObserver(aSubject, aTopic, aData) {
+  switch (aData) {
+    case "maxUsedThemes":
+      try {
+        _maxUsedThemes = _prefs.getIntPref(aData);
+      }
+      catch (e) {
+        _maxUsedThemes = DEFAULT_MAX_USED_THEMES_COUNT;
+      }
+      
+      _updateUsedThemes(LightweightThemeManager.usedThemes);
+      break;
+  }
+}
 
 function _persistImages(aData) {
   function onSuccess(key) function () {
@@ -735,11 +719,9 @@ function _persistImages(aData) {
 }
 
 function _getLocalImageURI(localFileName) {
-  var localFile = Cc["@mozilla.org/file/directory_service;1"]
-                    .getService(Ci.nsIProperties)
-                    .get("ProfD", Ci.nsILocalFile);
+  var localFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
   localFile.append(localFileName);
-  return _ioService.newFileURI(localFile);
+  return Services.io.newFileURI(localFile);
 }
 
 function _persistImage(sourceURL, localFileName, successCallback) {
