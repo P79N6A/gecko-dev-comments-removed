@@ -426,6 +426,7 @@ typedef enum {
 
 
 
+
 static void
 MaybeMoveToMidPoint(gfxPoint& aP0, gfxPoint& aP1, const gfxPoint& aMidPoint)
 {
@@ -433,7 +434,7 @@ MaybeMoveToMidPoint(gfxPoint& aP0, gfxPoint& aP1, const gfxPoint& aMidPoint)
 
   if (ps.x == 0.0) {
     if (ps.y == 0.0) {
-      NS_NOTREACHED("points should be different");
+      aP1 = aMidPoint;
     } else {
       aP1.y = aMidPoint.y;
     }
