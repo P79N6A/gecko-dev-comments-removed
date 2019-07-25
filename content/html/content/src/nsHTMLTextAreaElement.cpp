@@ -281,11 +281,7 @@ protected:
 
 
 
-
-  bool ShouldShowInvalidUI() const {
-    NS_ASSERTION(!IsValid(), "You should not call ShouldShowInvalidUI if the "
-                             "element is valid!");
-
+  bool ShouldShowValidityUI() const {
     
 
 
@@ -294,31 +290,6 @@ protected:
 
 
 
-
-
-    if (mForm) {
-      if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
-        return false;
-      }
-      if (mForm->HasEverTriedInvalidSubmit()) {
-        return true;
-      }
-    }
-
-    if (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR)) {
-      return true;
-    }
-
-    return mValueChanged;
-  }
-
-  
-
-
-
-
-
-  bool ShouldShowValidUI() const {
     if (mForm) {
       if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
         return false;
@@ -801,11 +772,11 @@ nsHTMLTextAreaElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
       
       
-      mCanShowInvalidUI = !IsValid() && ShouldShowInvalidUI();
+      mCanShowInvalidUI = !IsValid() && ShouldShowValidityUI();
 
       
       
-      mCanShowValidUI = ShouldShowValidUI();
+      mCanShowValidUI = ShouldShowValidityUI();
 
       
       
@@ -1105,10 +1076,8 @@ nsHTMLTextAreaElement::IntrinsicState() const
       state |= NS_EVENT_STATE_INVALID;
       
       
-      
-      
-      
-      if (mCanShowInvalidUI && ShouldShowInvalidUI()) {
+      if (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR) ||
+          mCanShowInvalidUI && ShouldShowValidityUI()) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
     }
@@ -1120,9 +1089,9 @@ nsHTMLTextAreaElement::IntrinsicState() const
     
     
     
-    if (mCanShowValidUI &&
-        (IsValid() || !mCanShowInvalidUI) &&
-        ShouldShowValidUI()) {
+    if (mCanShowValidUI && ShouldShowValidityUI() &&
+        (IsValid() || (state.HasState(NS_EVENT_STATE_MOZ_UI_INVALID) &&
+                       !mCanShowInvalidUI))) {
       state |= NS_EVENT_STATE_MOZ_UI_VALID;
     }
   }

@@ -1572,11 +1572,11 @@ nsHTMLSelectElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
     
     
-    mCanShowInvalidUI = !IsValid() && ShouldShowInvalidUI();
+    mCanShowInvalidUI = !IsValid() && ShouldShowValidityUI();
 
     
     
-    mCanShowValidUI = ShouldShowValidUI();
+    mCanShowValidUI = ShouldShowValidityUI();
 
     
     
@@ -1606,7 +1606,8 @@ nsHTMLSelectElement::IntrinsicState() const
     } else {
       state |= NS_EVENT_STATE_INVALID;
 
-      if (mCanShowInvalidUI && ShouldShowInvalidUI()) {
+      if (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR) ||
+          (mCanShowInvalidUI && ShouldShowValidityUI())) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
     }
@@ -1618,9 +1619,9 @@ nsHTMLSelectElement::IntrinsicState() const
     
     
     
-    if (mCanShowValidUI &&
-        (IsValid() || !mCanShowInvalidUI) &&
-        ShouldShowValidUI()) {
+    if (mCanShowValidUI && ShouldShowValidityUI() &&
+        (IsValid() || (state.HasState(NS_EVENT_STATE_MOZ_UI_INVALID) &&
+                       !mCanShowInvalidUI))) {
       state |= NS_EVENT_STATE_MOZ_UI_VALID;
     }
   }

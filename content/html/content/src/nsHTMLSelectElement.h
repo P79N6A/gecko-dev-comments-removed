@@ -521,11 +521,7 @@ protected:
 
 
 
-
-  bool ShouldShowInvalidUI() const {
-    NS_ASSERTION(!IsValid(), "You should not call ShouldShowInvalidUI if the "
-                             "element is valid!");
-
+  bool ShouldShowValidityUI() const {
     
 
 
@@ -533,31 +529,6 @@ protected:
 
 
 
-
-
-    if (mForm) {
-      if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
-        return false;
-      }
-      if (mForm->HasEverTriedInvalidSubmit()) {
-        return true;
-      }
-    }
-
-    if (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR)) {
-      return true;
-    }
-
-    return mSelectionHasChanged;
-  }
-
-  
-
-
-
-
-
-  bool ShouldShowValidUI() const {
     if (mForm) {
       if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
         return false;

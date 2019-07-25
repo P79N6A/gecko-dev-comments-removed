@@ -3310,8 +3310,9 @@ nsHTMLInputElement::IntrinsicState() const
     } else {
       state |= NS_EVENT_STATE_INVALID;
 
-      if (GET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI) &&
-          ShouldShowInvalidUI()) {
+      if (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR) ||
+          (GET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI) &&
+           ShouldShowValidityUI())) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
     }
@@ -3323,9 +3324,9 @@ nsHTMLInputElement::IntrinsicState() const
     
     
     
-    if (GET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI) &&
-        (IsValid() || !GET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI)) &&
-        ShouldShowValidUI()) {
+    if (GET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI) && ShouldShowValidityUI() &&
+        (IsValid() || (!state.HasState(NS_EVENT_STATE_MOZ_UI_INVALID) &&
+                       !GET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI)))) {
       state |= NS_EVENT_STATE_MOZ_UI_VALID;
     }
   }
@@ -4585,11 +4586,11 @@ nsHTMLInputElement::UpdateValidityUIBits(bool aIsFocused)
     
     
     SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI,
-                !IsValid() && ShouldShowInvalidUI());
+                !IsValid() && ShouldShowValidityUI());
 
     
     
-    SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, ShouldShowValidUI());
+    SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, ShouldShowValidityUI());
   } else {
     SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, PR_TRUE);
     SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, PR_TRUE);
