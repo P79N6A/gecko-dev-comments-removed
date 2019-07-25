@@ -153,6 +153,8 @@ public:
   virtual PRUint32 GetRequiredRadioCount(const nsAString& aName) const;
   virtual void RadioRequiredChanged(const nsAString& aName,
                                     nsIFormControl* aRadio);
+  virtual bool GetValueMissingState(const nsAString& aName) const;
+  virtual void SetValueMissingState(const nsAString& aName, bool aValue);
 
   
   virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
@@ -418,6 +420,8 @@ protected:
   nsInterfaceHashtable<nsStringCaseInsensitiveHashKey,nsIDOMHTMLInputElement> mSelectedRadioButtons;
   
   nsDataHashtable<nsStringCaseInsensitiveHashKey,PRUint32> mRequiredRadioButtonCounts;
+  
+  nsDataHashtable<nsStringCaseInsensitiveHashKey,bool> mValueMissingRadioGroups;
   
   PRPackedBool mGeneratingSubmit;
   
