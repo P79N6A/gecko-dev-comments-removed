@@ -552,10 +552,6 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 
 
         js_DestroyScriptsToGC(cx, this);
-
-        
-        if (types.pendingNukeTypes)
-            types.nukeTypes(cx);
     }
 
 #if defined JS_METHODJIT && defined JS_MONOIC
