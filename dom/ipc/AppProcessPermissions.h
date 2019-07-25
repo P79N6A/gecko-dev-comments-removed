@@ -15,6 +15,10 @@ class PBrowserParent;
 class PContentParent;
 }
 
+namespace hal_sandbox {
+class PHalParent;
+}
+
 
 
 
@@ -28,6 +32,10 @@ AppProcessHasPermissions(mozilla::dom::PBrowserParent* aActor,
 
 bool
 AppProcessHasPermission(mozilla::dom::PContentParent* aActor,
+                        const char* aPermission);
+
+bool
+AppProcessHasPermission(mozilla::hal_sandbox::PHalParent* aActor,
                         const char* aPermission);
 
 
