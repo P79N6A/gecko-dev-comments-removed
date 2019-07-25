@@ -953,19 +953,20 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    var migration = 0;
+    const UI_VERSION = 2;
+    let currentUIVersion = 0;
     try {
-      migration = Services.prefs.getIntPref("browser.migration.version");
+      currentUIVersion = Services.prefs.getIntPref("browser.migration.version");
     } catch(ex) {}
+    if (currentUIVersion >= UI_VERSION)
+      return;
 
-    if (migration == 0) {
+    this._rdf = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
+    this._dataSource = this._rdf.GetDataSource("rdf:local-store");
+    this._dirty = false;
+
+    if (currentUIVersion < 1) {
       
-
-      
-      this._rdf = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
-      this._dataSource = this._rdf.GetDataSource("rdf:local-store");
-      this._dirty = false;
-
       let currentsetResource = this._rdf.GetResource("currentset");
       let toolbars = ["nav-bar", "toolbar-menubar", "PersonalToolbar"];
       for (let i = 0; i < toolbars.length; i++) {
@@ -989,18 +990,35 @@ BrowserGlue.prototype = {
           break;
         }
       }
-
-      
-      if (this._dirty)
-        this._dataSource.QueryInterface(Ci.nsIRDFRemoteDataSource).Flush();
-
-      
-      this._rdf = null;
-      this._dataSource = null;
-
-      
-      Services.prefs.setIntPref("browser.migration.version", 1);
     }
+
+    if (currentUIVersion < 2) {
+      
+      let currentsetResource = this._rdf.GetResource("currentset");
+      let toolbarResource = this._rdf.GetResource("chrome://browser/content/browser.xul#nav-bar");
+      let currentset = this._getPersist(toolbarResource, currentsetResource);
+      
+      if (currentset &&
+          currentset.indexOf("bookmarks-menu-button-container") == -1) {
+        if (currentset.indexOf("fullscreenflex") != -1) {
+          currentset = currentset.replace(/(^|,)fullscreenflex($|,)/,
+                                          "$1bookmarks-menu-button-container,fullscreenflex$2")
+        }
+        else {
+          currentset += ",bookmarks-menu-button-container";
+        }
+        this._setPersist(toolbarResource, currentsetResource, currentset);
+      }
+    }
+
+    if (this._dirty)
+      this._dataSource.QueryInterface(Ci.nsIRDFRemoteDataSource).Flush();
+
+    delete this._rdf;
+    delete this._dataSource;
+
+    
+    Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
   },
 
   _getPersist: function BG__getPersist(aSource, aProperty) {
