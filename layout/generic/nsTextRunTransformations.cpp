@@ -309,7 +309,7 @@ nsFontVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
       if (transformedChild) {
         transformedChild->FinishSettingProperties(aRefContext);
       }
-      aTextRun->CopyGlyphDataFrom(child, 0, child->GetLength(), runStart, PR_FALSE);
+      aTextRun->CopyGlyphDataFrom(child, 0, child->GetLength(), runStart);
 
       runStart = i;
       styleArray.Clear();
@@ -427,6 +427,6 @@ nsCaseTransformTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
     
     
     aTextRun->ResetGlyphRuns();
-    aTextRun->CopyGlyphDataFrom(child, 0, child->GetLength(), 0, PR_FALSE);
+    aTextRun->CopyGlyphDataFrom(child, 0, child->GetLength(), 0);
   }
 }

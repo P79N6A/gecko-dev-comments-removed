@@ -1905,9 +1905,6 @@ public:
         if (mCharacterGlyphs) {
             mCharacterGlyphs[aCharIndex] = aGlyph;
         }
-        if (mDetailedGlyphs) {
-            mDetailedGlyphs[aCharIndex] = nsnull;
-        }
     }
     void SetGlyphs(PRUint32 aCharIndex, CompressedGlyph aGlyph,
                    const DetailedGlyph *aGlyphs);
@@ -1929,10 +1926,13 @@ public:
     
     
     const CompressedGlyph *GetCharacterGlyphs() { return mCharacterGlyphs; }
-    const DetailedGlyph *GetDetailedGlyphs(PRUint32 aCharIndex) {
-        return mDetailedGlyphs ? mDetailedGlyphs[aCharIndex].get() : nsnull;
+    DetailedGlyph *GetDetailedGlyphs(PRUint32 aCharIndex) {
+        if (!mDetailedGlyphs) {
+            return nsnull;
+        }
+        return mDetailedGlyphs->Get(aCharIndex);
     }
-    PRBool HasDetailedGlyphs() { return mDetailedGlyphs.get() != nsnull; }
+    PRBool HasDetailedGlyphs() { return mDetailedGlyphs != nsnull; }
     PRUint32 CountMissingGlyphs();
     const GlyphRun *GetGlyphRuns(PRUint32 *aNumGlyphRuns) {
         *aNumGlyphRuns = mGlyphRuns.Length();
@@ -1943,11 +1943,8 @@ public:
     PRUint32 FindFirstGlyphRunContaining(PRUint32 aOffset);
     
     
-    
-    
     virtual void CopyGlyphDataFrom(gfxTextRun *aSource, PRUint32 aStart,
-                                   PRUint32 aLength, PRUint32 aDest,
-                                   PRBool aStealData);
+                                   PRUint32 aLength, PRUint32 aDest);
 
     nsExpirationState *GetExpirationState() { return &mExpirationState; }
 
@@ -2010,6 +2007,9 @@ private:
     DetailedGlyph *AllocateDetailedGlyphs(PRUint32 aCharIndex, PRUint32 aCount);
 
     
+    PRInt32 GetAdvanceForGlyphs(PRUint32 aStart, PRUint32 aEnd);
+
+    
     
     
     
@@ -2062,7 +2062,118 @@ private:
     
     
     CompressedGlyph*                               mCharacterGlyphs;
-    nsAutoArrayPtr<nsAutoArrayPtr<DetailedGlyph> > mDetailedGlyphs; 
+
+    
+    
+    
+    
+    
+    
+    class DetailedGlyphStore {
+    public:
+        DetailedGlyphStore()
+            : mLastUsed(0)
+        { }
+
+        
+        
+        
+        
+        
+        
+        
+        DetailedGlyph* Get(PRUint32 aOffset) {
+            NS_ASSERTION(mOffsetToIndex.Length() > 0,
+                         "no detailed glyph records!");
+            DetailedGlyph* details = mDetails.Elements();
+            
+            if (mLastUsed < mOffsetToIndex.Length() - 1 &&
+                aOffset == mOffsetToIndex[mLastUsed + 1].mOffset) {
+                ++mLastUsed;
+            } else if (aOffset == mOffsetToIndex[0].mOffset) {
+                mLastUsed = 0;
+            } else if (aOffset == mOffsetToIndex[mLastUsed].mOffset) {
+                
+            } else if (mLastUsed > 0 &&
+                       aOffset == mOffsetToIndex[mLastUsed - 1].mOffset) {
+                --mLastUsed;
+            } else {
+                mLastUsed =
+                    mOffsetToIndex.BinaryIndexOf(aOffset, CompareToOffset());
+            }
+            NS_ASSERTION(mLastUsed != nsTArray<DGRec>::NoIndex,
+                         "detailed glyph record missing!");
+            return details + mOffsetToIndex[mLastUsed].mIndex;
+        }
+
+        DetailedGlyph* Allocate(PRUint32 aOffset, PRUint32 aCount) {
+            PRUint32 detailIndex = mDetails.Length();
+            DetailedGlyph *details = mDetails.AppendElements(aCount);
+            if (!details) {
+                return nsnull;
+            }
+            
+            
+            
+            
+            if (mOffsetToIndex.Length() == 0 ||
+                aOffset > mOffsetToIndex[mLastUsed].mOffset) {
+                if (!mOffsetToIndex.AppendElement(DGRec(aOffset, detailIndex))) {
+                    return nsnull;
+                }
+            } else {
+                if (!mOffsetToIndex.InsertElementSorted(DGRec(aOffset, detailIndex),
+                                                        CompareRecordOffsets())) {
+                    return nsnull;
+                }
+            }
+            return details;
+        }
+
+    private:
+        struct DGRec {
+            DGRec(const PRUint32& aOffset, const PRUint32& aIndex)
+                : mOffset(aOffset), mIndex(aIndex) { }
+            PRUint32 mOffset; 
+            PRUint32 mIndex;  
+        };
+
+        struct CompareToOffset {
+            PRBool Equals(const DGRec& a, const PRUint32& b) const {
+                return a.mOffset == b;
+            }
+            PRBool LessThan(const DGRec& a, const PRUint32& b) const {
+                return a.mOffset < b;
+            }
+        };
+
+        struct CompareRecordOffsets {
+            PRBool Equals(const DGRec& a, const DGRec& b) const {
+                return a.mOffset == b.mOffset;
+            }
+            PRBool LessThan(const DGRec& a, const DGRec& b) const {
+                return a.mOffset < b.mOffset;
+            }
+        };
+
+        
+        
+        
+        nsTArray<DetailedGlyph>     mDetails;
+
+        
+        
+        
+        nsTArray<DGRec>             mOffsetToIndex;
+
+        
+        
+        
+        nsTArray<DGRec>::index_type mLastUsed;
+    };
+
+    nsAutoPtr<DetailedGlyphStore>   mDetailedGlyphs;
+
     
     
     nsAutoTArray<GlyphRun,1>                       mGlyphRuns;
