@@ -1941,7 +1941,7 @@ SessionStoreService.prototype = {
       
       
       if (!tabs[t].selected) {
-        tabs[t].setAttribute("collapsed", "true");
+        tabs[t].hidden = true;
       }
       
       if (!aOverwriteTabs && root._firstTabs) {
