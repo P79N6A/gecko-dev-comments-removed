@@ -151,8 +151,9 @@ var BrowserUI = {
       return;
 
     if (/\bicon\b/i(link.rel)) {
+      
       var ownerDoc = link.ownerDocument;
-      if (!ownerDoc) 
+      if (!ownerDoc || ownerDoc.defaultView.frameElement)
         return;
 
       let tab = Browser.getTabForDocument(ownerDoc);
