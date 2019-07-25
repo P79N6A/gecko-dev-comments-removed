@@ -7510,8 +7510,21 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
 
     
     
-    reflowState.parentReflowState = &parentReflowState;
-    reflowState.mCBReflowState = &parentReflowState;
+    const nsHTMLReflowState *outerReflowState = aState.OuterReflowState();
+    NS_ASSERTION(!outerReflowState || outerReflowState->frame != this,
+                 "in and out of XUL on a single frame?");
+    if (outerReflowState && outerReflowState->frame == parentFrame) {
+      
+      
+      
+      
+      
+      reflowState.parentReflowState = outerReflowState;
+      reflowState.mCBReflowState = outerReflowState;
+    } else {
+      reflowState.parentReflowState = &parentReflowState;
+      reflowState.mCBReflowState = &parentReflowState;
+    }
     reflowState.mReflowDepth = aState.GetReflowDepth();
 
     
