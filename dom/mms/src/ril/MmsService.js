@@ -98,7 +98,9 @@ MmsService.prototype = {
 
 
 
-  sendMmsRequest: function sendMmsRequest(method, url, callback) {
+
+
+  sendMmsRequest: function sendMmsRequest(method, url, istream, callback) {
     let that = this;
     function releaseProxyFilterAndCallback(status, data) {
       
@@ -117,7 +119,12 @@ MmsService.prototype = {
       
       xhr.open(method, url, true);
       xhr.responseType = "arraybuffer";
-      xhr.setRequestHeader("Content-Length", 0);
+      if (istream) {
+        xhr.setRequestHeader("Content-Type", "application/vnd.wap.mms-message");
+        xhr.setRequestHeader("Content-Length", istream.available());
+      } else {
+        xhr.setRequestHeader("Content-Length", 0);
+      }
 
       
       xhr.onerror = function () {
@@ -154,11 +161,38 @@ MmsService.prototype = {
       }
 
       
-      xhr.send();
+      xhr.send(istream);
     } catch (e) {
       debug("xhr error, can't send: " + e.message);
       releaseProxyFilterAndCallback(0, null);
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  sendNotificationResponse: function sendNotificationResponse(tid, status) {
+    debug("sendNotificationResponse: tid = " + tid + ", status = " + status);
+
+    let headers = {};
+
+    
+    headers["x-mms-message-type"] = MMS.MMS_PDU_TYPE_NOTIFYRESP_IND;
+    headers["x-mms-transaction-id"] = tid;
+    headers["x-mms-mms-version"] = MMS.MMS_VERSION;
+    headers["x-mms-status"] = status;
+    
+    headers["x-mms-report-allowed"] = true;
+
+    let istream = MMS.PduHelper.compose(null, {headers: headers});
+    this.sendMmsRequest("POST", this.MMSC, istream);
   },
 
   
@@ -273,19 +307,20 @@ MmsService.prototype = {
 
   handleNotificationIndication: function handleNotificationIndication(msg) {
     function callback(status, retr) {
-      
+      let tid = msg.headers["x-mms-transaction-id"];
+      this.sendNotificationResponse(tid, status);
     }
 
     function retrCallback(error, retr) {
-      callback(MMS.translatePduErrorToStatus(error), retr);
+      callback.call(this, MMS.translatePduErrorToStatus(error), retr);
     }
 
     let url = msg.headers["x-mms-content-location"].uri;
-    this.sendMmsRequest("GET", url, (function (status, data) {
+    this.sendMmsRequest("GET", url, null, (function (status, data) {
       if (!data) {
-        callback.call(null, MMS.MMS_PDU_STATUS_DEFERRED, null);
-      } else if (!this.parseStreamAndDispatch(data, retrCallback)) {
-        callback.call(null, MMS.MMS_PDU_STATUS_UNRECOGNISED, null);
+        callback.call(this, MMS.MMS_PDU_STATUS_DEFERRED, null);
+      } else if (!this.parseStreamAndDispatch(data, retrCallback.bind(this))) {
+        callback.call(this, MMS.MMS_PDU_STATUS_UNRECOGNISED, null);
       }
     }).bind(this));
   },
