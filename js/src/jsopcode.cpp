@@ -2175,8 +2175,6 @@ GetBlockNames(JSContext *cx, JSObject *blockObj, AtomVector *atoms)
     return true;
 }
 
-#undef LOCAL_ASSERT
-
 static bool
 PushBlockNames(JSContext *cx, SprintStack *ss, const AtomVector &atoms)
 {
@@ -2245,6 +2243,92 @@ GetTokenForAssignment(JSPrinter *jp, jssrcnote *sn, JSOp lastop,
     *lastrvalpc = NULL;
     return token;
 }
+
+static ptrdiff_t
+SprintNormalFor(JSContext *cx, JSPrinter *jp, SprintStack *ss,
+                const char *init, jsbytecode *initpc,
+                jsbytecode **ppc, ptrdiff_t *plen)
+{
+    jsbytecode *pc = *ppc;
+    jssrcnote *sn = js_GetSrcNote(jp->script, pc);
+    JS_ASSERT(SN_TYPE(sn) == SRC_FOR);
+
+    
+    js_printf(jp, "\tfor (");
+    SprintOpcodePermanent(jp, init, initpc);
+    js_printf(jp, ";");
+
+    
+    JS_ASSERT(*pc == JSOP_NOP || *pc == JSOP_POP);
+    pc += JSOP_NOP_LENGTH;
+
+    
+    ptrdiff_t cond = js_GetSrcNoteOffset(sn, 0);
+    ptrdiff_t next = js_GetSrcNoteOffset(sn, 1);
+    ptrdiff_t tail = js_GetSrcNoteOffset(sn, 2);
+
+    
+
+
+
+    jsbytecode *pc2 = pc;
+    if (cond != tail) {
+        LOCAL_ASSERT(*pc == JSOP_GOTO || *pc == JSOP_GOTOX);
+        pc2 += (*pc == JSOP_GOTO) ? JSOP_GOTO_LENGTH : JSOP_GOTOX_LENGTH;
+    }
+    LOCAL_ASSERT(tail + GetJumpOffset(pc+tail, pc+tail) == pc2 - pc);
+
+    if (cond != tail) {
+        
+        if (!Decompile(ss, pc + cond, tail - cond))
+            return -1;
+        js_printf(jp, " ");
+        jsbytecode *condpc;
+        const char *cond = PopStr(ss, JSOP_NOP, &condpc);
+        SprintOpcodePermanent(jp, cond, condpc);
+    }
+
+    
+    js_puts(jp, ";");
+
+    if (next != cond) {
+        
+
+
+
+
+
+
+
+        uintN saveTop = ss->top;
+
+        if (!Decompile(ss, pc + next, cond - next - JSOP_POP_LENGTH))
+            return -1;
+        LOCAL_ASSERT(ss->top - saveTop <= 1U);
+        jsbytecode *updatepc = NULL;
+        const char *update = (ss->top == saveTop)
+                             ? ss->sprinter.base + ss->sprinter.offset
+                             : PopStr(ss, JSOP_NOP, &updatepc);
+        js_printf(jp, " ");
+        SprintOpcodePermanent(jp, update, updatepc);
+    }
+
+    
+    js_printf(jp, ") {\n");
+    jp->indent += 4;
+    next -= pc2 - pc;
+    if (!Decompile(ss, pc2, next))
+        return -1;
+    jp->indent -= 4;
+    js_printf(jp, "\t}\n");
+
+    
+    *ppc = pc;
+    *plen = tail + js_CodeSpec[pc[tail]].length;
+    return -2;
+}
+
+#undef LOCAL_ASSERT
 
 static JSBool
 InitSprintStack(JSContext *cx, SprintStack *ss, JSPrinter *jp, uintN depth)
@@ -2627,78 +2711,8 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                     break;
 
                   case SRC_FOR:
-                    rval = "";
-                    rvalpc = NULL;
-
-                  do_forloop:
-                    JS_ASSERT(SN_TYPE(sn) == SRC_FOR);
-
                     
-                    js_printf(jp, "\tfor (");
-                    SprintOpcodePermanent(jp, rval, rvalpc);
-                    js_printf(jp, ";");
-
-                    
-                    pc += JSOP_NOP_LENGTH;
-
-                    
-                    cond = js_GetSrcNoteOffset(sn, 0);
-                    next = js_GetSrcNoteOffset(sn, 1);
-                    tail = js_GetSrcNoteOffset(sn, 2);
-
-                    
-
-
-
-                    pc2 = pc;
-                    if (cond != tail) {
-                        LOCAL_ASSERT(*pc == JSOP_GOTO || *pc == JSOP_GOTOX);
-                        pc2 += (*pc == JSOP_GOTO) ? JSOP_GOTO_LENGTH : JSOP_GOTOX_LENGTH;
-                    }
-                    LOCAL_ASSERT(tail + GetJumpOffset(pc+tail, pc+tail) == pc2 - pc);
-
-                    if (cond != tail) {
-                        
-                        DECOMPILE_CODE(pc + cond, tail - cond);
-                        js_printf(jp, " ");
-                        rval = PopStr(ss, op, &rvalpc);
-                        SprintOpcodePermanent(jp, rval, rvalpc);
-                    }
-
-                    
-                    js_puts(jp, ";");
-
-                    if (next != cond) {
-                        
-
-
-
-
-
-
-
-                        uintN saveTop = ss->top;
-
-                        DECOMPILE_CODE(pc + next, cond - next - JSOP_POP_LENGTH);
-                        LOCAL_ASSERT(ss->top - saveTop <= 1U);
-                        rvalpc = NULL;
-                        rval = (ss->top == saveTop)
-                               ? ss->sprinter.base + ss->sprinter.offset
-                               : PopStr(ss, op, &rvalpc);
-                        js_printf(jp, " ");
-                        SprintOpcodePermanent(jp, rval, rvalpc);
-                    }
-
-                    
-                    js_printf(jp, ") {\n");
-                    jp->indent += 4;
-                    next -= pc2 - pc;
-                    DECOMPILE_CODE(pc2, next);
-                    jp->indent -= 4;
-                    js_printf(jp, "\t}\n");
-
-                    
-                    len = tail + js_CodeSpec[pc[tail]].length;
+                    todo = SprintNormalFor(cx, jp, ss, "", NULL, &pc, &len);
                     break;
 
                   case SRC_ENDBRACE:
@@ -2864,7 +2878,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
 
 
 
-
                         LOCAL_ASSERT(newtop < oldtop);
                         ss->sprinter.offset = GetOff(ss, newtop);
                         ss->top = newtop;
@@ -2903,7 +2916,8 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                             if (SN_TYPE(sn) == SRC_FOR) {
                                 op = JSOP_NOP;
                                 pc = pc2;
-                                goto do_forloop;
+                                todo = SprintNormalFor(cx, jp, ss, rval, rvalpc, &pc, &len);
+                                break;
                             }
 
                             if (SN_TYPE(sn) == SRC_DECL) {
@@ -2982,8 +2996,8 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                     if (ss->opcodes[ss->top-1] == JSOP_IN)
                         op = JSOP_LSH;
                     rval = PopStr(ss, op, &rvalpc);
-                    todo = -2;
-                    goto do_forloop;
+                    todo = SprintNormalFor(cx, jp, ss, rval, rvalpc, &pc, &len);
+                    break;
 
                   case SRC_PCDELTA:
                     
