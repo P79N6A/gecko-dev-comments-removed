@@ -2178,6 +2178,30 @@ ScriptPrologue(JSContext *cx, JSStackFrame *fp)
     return true;
 }
 
+static inline bool
+SlowThis(JSContext *cx, JSObject *obj, const Value &funval, Value *vp)
+{
+    if (!funval.isObject() ||
+        ((obj->isGlobal() || IsCacheableNonGlobalScope(obj)) &&
+         IsSafeForLazyThisCoercion(cx, &funval.toObject()))) {
+        
+
+
+
+
+
+
+
+        *vp = UndefinedValue();
+        return true;
+    }
+
+    if (!(obj = obj->thisObject(cx)))
+        return false;
+    *vp = ObjectValue(*obj);
+    return true;
+}
+
 namespace js {
 
 JS_REQUIRES_STACK JS_NEVER_INLINE bool
@@ -2203,8 +2227,8 @@ Interpret(JSContext *cx, JSStackFrame *entryFrame, uintN inlineCallCount, JSInte
 
 
 
-#  define LOG_OPCODE(OP)    JS_BEGIN_MACRO                                      \
-                                if (JS_UNLIKELY(cx->logfp != NULL) &&       \
+#  define LOG_OPCODE(OP)    JS_BEGIN_MACRO                                    \
+                                if (JS_UNLIKELY(cx->logfp != NULL) &&         \
                                     (OP) == *regs.pc)                         \
                                     js_LogOpcode(cx);                         \
                             JS_END_MACRO
@@ -4792,26 +4816,13 @@ BEGIN_CASE(JSOP_SETCALL)
 }
 END_CASE(JSOP_SETCALL)
 
-#define SLOW_PUSH_THISV(cx, obj)                                            \
-    JS_BEGIN_MACRO                                                          \
-        Class *clasp;                                                       \
-        JSObject *thisp = obj;                                              \
-        if (!thisp->getParent() ||                                          \
-            (clasp = thisp->getClass()) == &js_CallClass ||                 \
-            clasp == &js_BlockClass ||                                      \
-            clasp == &js_DeclEnvClass) {                                    \
-            /* Push the ImplicitThisValue for the Environment Record */     \
-            /* associated with obj. See ES5 sections 10.2.1.1.6 and  */     \
-            /* 10.2.1.2.6 (ImplicitThisValue) and section 11.2.3     */     \
-            /* (Function Calls). */                                         \
-            PUSH_UNDEFINED();                                               \
-        } else {                                                            \
-            thisp = thisp->thisObject(cx);                                  \
-            if (!thisp)                                                     \
-                goto error;                                                 \
-            PUSH_OBJECT(*thisp);                                            \
-        }                                                                   \
-    JS_END_MACRO
+#define SLOW_PUSH_THISV(cx, obj, funval)                                      \
+    JS_BEGIN_MACRO                                                            \
+        Value v;                                                              \
+        if (!SlowThis(cx, obj, funval, &v))                                   \
+            goto error;                                                       \
+        PUSH_COPY(v);                                                         \
+    JS_END_MACRO                                                              \
 
 BEGIN_CASE(JSOP_GETGNAME)
 BEGIN_CASE(JSOP_CALLGNAME)
@@ -4841,20 +4852,17 @@ BEGIN_CASE(JSOP_CALLNAME)
             PUSH_COPY(rval);
         }
 
-        
-
-
-
-
-#if DEBUG
-        Class *clasp;
-        JS_ASSERT(!obj->getParent() ||
-                  (clasp = obj->getClass()) == &js_CallClass ||
-                  clasp == &js_BlockClass ||
-                  clasp == &js_DeclEnvClass);
-#endif
-        if (op == JSOP_CALLNAME || op == JSOP_CALLGNAME)
-            PUSH_UNDEFINED();
+        JS_ASSERT(obj->isGlobal() || IsCacheableNonGlobalScope(obj));
+        if (op == JSOP_CALLNAME || op == JSOP_CALLGNAME) {
+            if (regs.sp[-1].isObject() &&
+                !IsSafeForLazyThisCoercion(cx, &regs.sp[-1].toObject())) {
+                if (!(obj = obj->thisObject(cx)))
+                    return false;
+                PUSH_OBJECT(*obj);
+            } else {
+                PUSH_UNDEFINED();
+            }
+        }
         len = JSOP_NAME_LENGTH;
         DO_NEXT_OP(len);
     }
@@ -4892,7 +4900,7 @@ BEGIN_CASE(JSOP_CALLNAME)
 
     
     if (op == JSOP_CALLNAME || op == JSOP_CALLGNAME)
-        SLOW_PUSH_THISV(cx, obj);
+        SLOW_PUSH_THISV(cx, obj, rval);
 }
 END_CASE(JSOP_NAME)
 
@@ -6395,7 +6403,7 @@ BEGIN_CASE(JSOP_XMLNAME)
         goto error;
     regs.sp[-1] = rval;
     if (op == JSOP_CALLXMLNAME)
-        SLOW_PUSH_THISV(cx, obj);
+        SLOW_PUSH_THISV(cx, obj, rval);
 }
 END_CASE(JSOP_XMLNAME)
 
