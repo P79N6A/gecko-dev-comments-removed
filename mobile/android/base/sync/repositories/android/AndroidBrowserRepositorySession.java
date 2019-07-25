@@ -99,6 +99,22 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
 
 
 
+  protected void fixupRecord(Record record) {
+    return;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -429,6 +445,9 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
           
 
           
+          
+          fixupRecord(record);
+
           if (existingRecord == null) {
             trace("Looking up match for record " + record.guid);
             existingRecord = findExistingRecord(record);
@@ -649,6 +668,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
   }
 
   protected abstract Record prepareRecord(Record record);
+
   protected void updateBookkeeping(Record record) throws NoGuidForIdException,
                                                  NullCursorException,
                                                  ParentNotFoundException {

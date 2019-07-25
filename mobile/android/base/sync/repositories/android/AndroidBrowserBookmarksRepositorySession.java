@@ -197,11 +197,20 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
 
     if (SPECIAL_GUIDS_MAP == null) {
       HashMap<String, String> m = new HashMap<String, String>();
+
+      
+      
+      
+      
+      m.put("mobile",  "mobile");
+
+      
+      
       m.put("menu",    context.getString(R.string.bookmarks_folder_menu));
       m.put("places",  context.getString(R.string.bookmarks_folder_places));
       m.put("toolbar", context.getString(R.string.bookmarks_folder_toolbar));
       m.put("unfiled", context.getString(R.string.bookmarks_folder_unfiled));
-      m.put("mobile",  context.getString(R.string.bookmarks_folder_mobile));
+
       SPECIAL_GUIDS_MAP = Collections.unmodifiableMap(m);
     }
 
@@ -592,6 +601,27 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     
     reconciled.children = ((BookmarkRecord) remoteRecord).children;
     return reconciled;
+  }
+
+  
+
+
+
+
+
+
+
+  @Override
+  protected void fixupRecord(Record record) {
+    final BookmarkRecord r = (BookmarkRecord) record;
+    final String parentName = SPECIAL_GUIDS_MAP.get(r.parentID);
+    if (parentName == null) {
+      return;
+    }
+    if (Logger.logVerbose(LOG_TAG)) {
+      Logger.trace(LOG_TAG, "Replacing parent name \"" + r.parentName + "\" with \"" + parentName + "\".");
+    }
+    r.parentName = parentName;
   }
 
   @Override
