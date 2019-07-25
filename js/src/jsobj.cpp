@@ -5096,28 +5096,13 @@ js::LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 }
 
 bool
-js::FindPropertyHelper(JSContext *cx, PropertyName *name, bool cacheResult, bool global,
+js::FindPropertyHelper(JSContext *cx, PropertyName *name, bool cacheResult, JSObject *scopeChain,
                        JSObject **objp, JSObject **pobjp, JSProperty **propp)
 {
     jsid id = ATOM_TO_JSID(name);
-    JSObject *scopeChain, *obj, *parent, *pobj;
+    JSObject *obj, *parent, *pobj;
     int scopeIndex;
     JSProperty *prop;
-
-    scopeChain = cx->stack.currentScriptedScopeChain();
-
-    if (global) {
-        
-
-
-
-
-
-
-
-
-        scopeChain = &scopeChain->global();
-    }
 
     
     obj = scopeChain;
@@ -5203,10 +5188,10 @@ js::FindPropertyHelper(JSContext *cx, PropertyName *name, bool cacheResult, bool
 
 
 bool
-js::FindProperty(JSContext *cx, PropertyName *name, bool global,
+js::FindProperty(JSContext *cx, PropertyName *name, JSObject *scopeChain,
                  JSObject **objp, JSObject **pobjp, JSProperty **propp)
 {
-    return !!FindPropertyHelper(cx, name, false, global, objp, pobjp, propp);
+    return !!FindPropertyHelper(cx, name, false, scopeChain, objp, pobjp, propp);
 }
 
 JSObject *

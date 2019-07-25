@@ -383,8 +383,16 @@ NameOperation(JSContext *cx, jsbytecode *pc, Value *vp)
 {
     JSObject *obj = cx->stack.currentScriptedScopeChain();
 
-    bool global = js_CodeSpec[*pc].format & JOF_GNAME;
-    if (global)
+    
+
+
+
+
+
+
+
+
+    if (js_CodeSpec[*pc].format & JOF_GNAME)
         obj = &obj->global();
 
     PropertyCacheEntry *entry;
@@ -401,7 +409,7 @@ NameOperation(JSContext *cx, jsbytecode *pc, Value *vp)
     jsid id = ATOM_TO_JSID(name);
 
     JSProperty *prop;
-    if (!FindPropertyHelper(cx, name, true, global, &obj, &obj2, &prop))
+    if (!FindPropertyHelper(cx, name, true, obj, &obj, &obj2, &prop))
         return false;
     if (!prop) {
         
