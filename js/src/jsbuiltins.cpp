@@ -372,10 +372,7 @@ js_PopInterpFrame(JSContext* cx, TracerState* state)
         cx->display[fp->script->staticLevel] = fp->displaySave;
 
     
-    JSStackFrame *down = fp->down;
-    cx->stack().popInlineFrame(cx, fp, down);
-    JS_ASSERT(cx->fp == down && cx->fp->regs == &fp->callerRegs);
-    down->regs = fp->regs;
+    cx->stack().popInlineFrame(cx, fp, fp->down);
 
     
     *state->inlineCallCountp = *state->inlineCallCountp - 1;
