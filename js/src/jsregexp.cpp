@@ -824,6 +824,13 @@ regexp_construct(JSContext *cx, uintN argc, Value *vp)
         if (argc >= 1 && argv[0].isObject() && argv[0].toObject().isRegExp() &&
             (argc == 1 || argv[1].isUndefined())) {
             *vp = argv[0];
+            
+
+
+
+
+            if (!cx->markTypeCallerUnexpected(*vp))
+                return false;
             return true;
         }
     }
