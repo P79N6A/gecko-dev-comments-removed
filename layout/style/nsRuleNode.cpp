@@ -4602,6 +4602,12 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
               NS_STYLE_BACKFACE_VISIBILITY_VISIBLE, 0, 0, 0, 0);
 
   
+  SetDiscrete(*aRuleData->ValueForTransformStyle(),
+              display->mTransformStyle, canStoreInRuleTree,
+              SETDSC_ENUMERATED, parentDisplay->mTransformStyle,
+              NS_STYLE_TRANSFORM_STYLE_FLAT, 0, 0, 0, 0);
+
+  
   SetDiscrete(*aRuleData->ValueForOrient(),
               display->mOrient, canStoreInRuleTree,
               SETDSC_ENUMERATED, parentDisplay->mOrient,

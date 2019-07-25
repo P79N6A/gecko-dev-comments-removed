@@ -1531,6 +1531,7 @@ struct nsStyleDisplay {
   nsStyleCoord mChildPerspective; 
   nsStyleCoord mPerspectiveOrigin[2]; 
   PRUint8 mBackfaceVisibility;
+  PRUint8 mTransformStyle;
 
   nsAutoTArray<nsTransition, 1> mTransitions; 
   
