@@ -5,8 +5,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/AddonManager.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm");
 
 const xpi = "browser/toolkit/mozapps/extensions/test/browser/browser_installssl.xpi";
@@ -15,7 +13,6 @@ var gManagerWindow;
 
 function test() {
   waitForExplicitFinish();
-  Services.prefs.setBoolPref(PREF_LOGGING_ENABLED, true);
 
   
   LightweightThemeManager.currentTheme = {
@@ -31,7 +28,6 @@ function test() {
 }
 
 function end_test() {
-  Services.prefs.clearUserPref(PREF_LOGGING_ENABLED);
   gManagerWindow.close();
   LightweightThemeManager.forgetUsedTheme("test");
 

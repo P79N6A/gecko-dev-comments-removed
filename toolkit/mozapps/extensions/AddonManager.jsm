@@ -234,6 +234,22 @@ var AddonManagerInternal = {
 
 
 
+
+
+  unregisterProvider: function AMI_unregisterProvider(aProvider) {
+    this.providers = this.providers.filter(function(p) {
+      return p != aProvider;
+    });
+
+    
+    if (this.started)
+      callProvider(aProvider, "shutdown");
+  },
+
+  
+
+
+
   shutdown: function AM_shutdown() {
     this.providers.forEach(function(provider) {
       callProvider(provider, "shutdown");
@@ -748,6 +764,10 @@ var AddonManagerPrivate = {
 
   registerProvider: function AMP_registerProvider(aProvider) {
     AddonManagerInternal.registerProvider(aProvider);
+  },
+
+  unregisterProvider: function AMP_unregisterProvider(aProvider) {
+    AddonManagerInternal.unregisterProvider(aProvider);
   },
 
   shutdown: function AMP_shutdown() {

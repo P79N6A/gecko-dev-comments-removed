@@ -8,9 +8,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/AddonManager.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-
 var gManagerWindow;
 
 
@@ -74,7 +71,6 @@ WindowOpenListener.prototype = {
 
 function test() {
   waitForExplicitFinish();
-  Services.prefs.setBoolPref(PREF_LOGGING_ENABLED, true);
 
   open_manager(null, function(aWindow) {
     gManagerWindow = aWindow;
@@ -83,7 +79,6 @@ function test() {
 }
 
 function end_test() {
-  Services.prefs.clearUserPref(PREF_LOGGING_ENABLED);
   gManagerWindow.close();
 
   finish();
