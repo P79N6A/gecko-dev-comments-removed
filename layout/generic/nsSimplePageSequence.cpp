@@ -12,12 +12,16 @@
 #include "nsIPresShell.h"
 #include "nsIPrintSettings.h"
 #include "nsPageFrame.h"
+#include "nsSubDocumentFrame.h"
 #include "nsStyleConsts.h"
 #include "nsRegion.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsContentUtils.h"
 #include "nsDisplayList.h"
 #include "mozilla/Preferences.h"
+#include "nsHTMLCanvasFrame.h"
+#include "nsHTMLCanvasElement.h"
+#include "nsICanvasRenderingContextInternal.h"
 
 
 #include "nsDateTimeFormatCID.h"
@@ -82,8 +86,10 @@ NS_IMPL_FRAMEARENA_HELPERS(nsSimplePageSequenceFrame)
 nsSimplePageSequenceFrame::nsSimplePageSequenceFrame(nsStyleContext* aContext) :
   nsContainerFrame(aContext),
   mTotalPages(-1),
+  mCurrentCanvasListSetup(false),
   mSelectionHeight(-1),
-  mYSelOffset(0)
+  mYSelOffset(0),
+  mCalledBeginPage(false)
 {
   nscoord halfInch = PresContext()->CSSTwipsToAppUnits(NS_INCHES_TO_TWIPS(0.5));
   mMargin.SizeTo(halfInch, halfInch, halfInch, halfInch);
@@ -487,35 +493,56 @@ nsSimplePageSequenceFrame::StartPrint(nsPresContext*   aPresContext,
   return rv;
 }
 
-NS_IMETHODIMP
-nsSimplePageSequenceFrame::PrintNextPage()
+void
+GetPrintCanvasElementsInFrame(nsIFrame* aFrame, nsTArray<nsRefPtr<nsHTMLCanvasElement> >* aArr)
+{
+  for (nsIFrame::ChildListIterator childLists(aFrame);
+    !childLists.IsDone(); childLists.Next()) {
+
+    nsFrameList children = childLists.CurrentList();
+    for (nsFrameList::Enumerator e(children); !e.AtEnd(); e.Next()) {
+      nsIFrame* child = e.get();
+
+      
+      nsHTMLCanvasFrame* canvasFrame = do_QueryFrame(child);
+
+      
+      if (canvasFrame) {
+        nsHTMLCanvasElement* canvas =
+          nsHTMLCanvasElement::FromContent(canvasFrame->GetContent());
+        nsCOMPtr<nsIPrintCallback> printCallback;
+        if (canvas &&
+            NS_SUCCEEDED(canvas->GetMozPrintCallback(getter_AddRefs(printCallback))) &&
+            printCallback) {
+          aArr->AppendElement(canvas);
+          continue;
+        }
+      }
+
+      if (!child->GetFirstPrincipalChild()) {
+        nsSubDocumentFrame* subdocumentFrame = do_QueryFrame(child);
+        if (subdocumentFrame) {
+          
+          nsIFrame* root = subdocumentFrame->GetSubdocumentRootFrame();
+          child = root;
+        }
+      }
+      
+      
+      
+      GetPrintCanvasElementsInFrame(child, aArr);
+    }
+  }
+}
+
+void
+nsSimplePageSequenceFrame::DetermineWhetherToPrintPage()
 {
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  if (mCurrentPageFrame == nullptr) {
-    return NS_ERROR_FAILURE;
-  }
-
+  mPrintThisPage = true;
   bool printEvenPages, printOddPages;
   mPageData->mPrintSettings->GetPrintOptions(nsIPrintSettings::kPrintEvenPages, &printEvenPages);
   mPageData->mPrintSettings->GetPrintOptions(nsIPrintSettings::kPrintOddPages, &printOddPages);
-
-  
-  nsDeviceContext *dc = PresContext()->DeviceContext();
-
-  nsresult rv = NS_OK;
-
-  
-  mPrintThisPage = true;
 
   
   
@@ -525,7 +552,8 @@ nsSimplePageSequenceFrame::PrintNextPage()
     } else if (mPageNum > mToPageNum) {
       mPageNum++;
       mCurrentPageFrame = nullptr;
-      return NS_OK;
+      mPrintThisPage = false;
+      return;
     } else {
       int32_t length = mPageRanges.Length();
     
@@ -558,8 +586,143 @@ nsSimplePageSequenceFrame::PrintNextPage()
   if (nsIPrintSettings::kRangeSelection == mPrintRangeType) {
     mPrintThisPage = true;
   }
+}
+
+NS_IMETHODIMP
+nsSimplePageSequenceFrame::PrePrintNextPage(nsITimerCallback* aCallback, bool* aDone)
+{
+  if (!mCurrentPageFrame) {
+    *aDone = true;
+    return NS_ERROR_FAILURE;
+  }
+  
+  DetermineWhetherToPrintPage();
+  
+  
+  
+  if (!mPrintThisPage || !PresContext()->IsRootPaginatedDocument()) {
+    *aDone = true;
+    return NS_OK;
+  }
+
+  
+  
+  if (!mCurrentCanvasListSetup) {
+    mCurrentCanvasListSetup = true;
+    GetPrintCanvasElementsInFrame(mCurrentPageFrame, &mCurrentCanvasList);
+
+    if (mCurrentCanvasList.Length() != 0) {
+      nsresult rv = NS_OK;
+
+      
+      nsDeviceContext *dc = PresContext()->DeviceContext();
+      PR_PL(("\n"));
+      PR_PL(("***************** BeginPage *****************\n"));
+      rv = dc->BeginPage();
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      mCalledBeginPage = true;
+      
+      nsRefPtr<nsRenderingContext> renderingContext;
+      dc->CreateRenderingContext(*getter_AddRefs(renderingContext));
+      NS_ENSURE_TRUE(renderingContext, NS_ERROR_OUT_OF_MEMORY);
+
+      nsRefPtr<gfxASurface> renderingSurface =
+          renderingContext->ThebesContext()->CurrentSurface();
+      NS_ENSURE_TRUE(renderingSurface, NS_ERROR_OUT_OF_MEMORY);
+
+      for (PRInt32 i = mCurrentCanvasList.Length() - 1; i >= 0 ; i--) {
+        nsHTMLCanvasElement* canvas = mCurrentCanvasList[i];
+        nsIntSize size = canvas->GetSize();
+
+        nsRefPtr<gfxASurface> printSurface = renderingSurface->
+           CreateSimilarSurface(
+             gfxASurface::CONTENT_COLOR_ALPHA,
+             size
+           );
+
+        nsICanvasRenderingContextInternal* ctx = canvas->GetContextAtIndex(0);
+
+        if (!ctx) {
+          continue;
+        }
+
+          
+        ctx->InitializeWithSurface(NULL, printSurface, size.width, size.height);
+
+        
+        nsWeakFrame weakFrame = this;
+        canvas->DispatchPrintCallback(aCallback);
+        NS_ENSURE_STATE(weakFrame.IsAlive());
+      }
+    }
+  }
+  PRInt32 doneCounter = 0;
+  for (PRInt32 i = mCurrentCanvasList.Length() - 1; i >= 0 ; i--) {
+    nsHTMLCanvasElement* canvas = mCurrentCanvasList[i];
+
+    if (canvas->IsPrintCallbackDone()) {
+      doneCounter++;
+    }
+  }
+  
+  *aDone = doneCounter == mCurrentCanvasList.Length();
+
+  return NS_OK;
+}
+
+void
+nsSimplePageSequenceFrame::InvalidateInternal(const nsRect& aDamageRect,
+                                              nscoord aX, nscoord aY,
+                                              nsIFrame* aForChild,
+                                              PRUint32 aFlags)
+{
+  
+  
+  
+  nsContainerFrame::InvalidateInternal(
+      nsRect(nsPoint(0,0), GetSize()), 0, 0, aForChild, aFlags); 
+}
+
+NS_IMETHODIMP
+nsSimplePageSequenceFrame::ResetPrintCanvasList()
+{
+  for (PRInt32 i = mCurrentCanvasList.Length() - 1; i >= 0 ; i--) {
+    nsHTMLCanvasElement* canvas = mCurrentCanvasList[i];
+    canvas->ResetPrintCallback();
+  }
+
+  mCurrentCanvasList.Clear();
+  mCurrentCanvasListSetup = false; 
+  return NS_OK;
+} 
+
+NS_IMETHODIMP
+nsSimplePageSequenceFrame::PrintNextPage()
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (!mCurrentPageFrame) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsresult rv = NS_OK;
+
+  DetermineWhetherToPrintPage();
 
   if (mPrintThisPage) {
+    
+    nsDeviceContext* dc = PresContext()->DeviceContext();
+
     
     
     
@@ -587,10 +750,14 @@ nsSimplePageSequenceFrame::PrintNextPage()
     int32_t printedPageNum = 1;
     while (continuePrinting) {
       if (PresContext()->IsRootPaginatedDocument()) {
-        PR_PL(("\n"));
-        PR_PL(("***************** BeginPage *****************\n"));
-        rv = dc->BeginPage();
-        NS_ENSURE_SUCCESS(rv, rv);
+        if (!mCalledBeginPage) {
+          PR_PL(("\n"));
+          PR_PL(("***************** BeginPage *****************\n"));
+          rv = dc->BeginPage();
+          NS_ENSURE_SUCCESS(rv, rv);
+        } else {
+          mCalledBeginPage = false;
+        }
       }
 
       PR_PL(("SeqFr::PrintNextPage -> %p PageNo: %d", pf, mPageNum));
@@ -633,6 +800,8 @@ nsSimplePageSequenceFrame::DoPageEnd()
     rv = PresContext()->DeviceContext()->EndPage();
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  ResetPrintCanvasList();
 
   mPageNum++;
 

@@ -2393,6 +2393,92 @@ nsPrintEngine::ElipseLongString(PRUnichar *& aStr, const uint32_t aLen, bool aDo
   }
 }
 
+static bool
+DocHasPrintCallbackCanvas(nsIDocument* aDoc, void* aData)
+{
+  if (!aDoc) {
+    return true;
+  }
+  Element* root = aDoc->GetRootElement();
+  nsRefPtr<nsContentList> canvases = NS_GetContentList(root,
+                                                       kNameSpaceID_XHTML,
+                                                       NS_LITERAL_STRING("canvas"));
+  PRUint32 canvasCount = canvases->Length(true);
+  for (PRUint32 i = 0; i < canvasCount; ++i) {
+    nsCOMPtr<nsIDOMHTMLCanvasElement> canvas = do_QueryInterface(canvases->Item(i, false));
+    nsCOMPtr<nsIPrintCallback> printCallback;
+    if (canvas && NS_SUCCEEDED(canvas->GetMozPrintCallback(getter_AddRefs(printCallback))) &&
+        printCallback) {
+      
+      
+      *static_cast<bool*>(aData) = true;
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool
+DocHasPrintCallbackCanvas(nsIDocument* aDoc)
+{
+  bool result = false;
+  aDoc->EnumerateSubDocuments(&DocHasPrintCallbackCanvas, static_cast<void*>(&result));
+  return result;
+}
+
+
+
+
+
+bool
+nsPrintEngine::HasPrintCallbackCanvas()
+{
+  if (!mDocument) {
+    return false;
+  }
+  
+  bool result = false;
+  DocHasPrintCallbackCanvas(mDocument, static_cast<void*>(&result));
+  
+  return result || DocHasPrintCallbackCanvas(mDocument);
+}
+
+
+bool
+nsPrintEngine::PrePrintPage()
+{
+  NS_ASSERTION(mPageSeqFrame,  "mPageSeqFrame is null!");
+  NS_ASSERTION(mPrt,           "mPrt is null!");
+
+  
+  
+  if (!mPrt || !mPageSeqFrame) {
+    return true; 
+  }
+
+  
+  bool isCancelled = false;
+  mPrt->mPrintSettings->GetIsCancelled(&isCancelled);
+  if (isCancelled)
+    return true;
+
+  
+  
+  bool done = false;
+  nsresult rv = mPageSeqFrame->PrePrintNextPage(mPagePrintTimer, &done);
+  if (NS_FAILED(rv)) {
+    
+    
+    
+    
+    if (rv != NS_ERROR_ABORT) {
+      ShowPrintErrorDialog(rv);
+      mPrt->mIsAborted = true;
+    }
+    done = true;
+  }
+  return done;
+}
 
 bool
 nsPrintEngine::PrintPage(nsPrintObject*    aPO,
@@ -2415,7 +2501,7 @@ nsPrintEngine::PrintPage(nsPrintObject*    aPO,
   
   bool isCancelled = false;
   mPrt->mPrintSettings->GetIsCancelled(&isCancelled);
-  if (isCancelled)
+  if (isCancelled || mPrt->mIsAborted)
     return true;
 
   int32_t pageNum, numPages, endPage;
@@ -2674,14 +2760,8 @@ void nsPrintEngine::SetIsPrinting(bool aIsPrinting)
   mIsDoingPrinting = aIsPrinting;
   
   
-  if (!mIsDoingPrintPreview &&
-      mPrt && mPrt->mPrintObject && mPrt->mPrintObject->mDocShell) {
-    nsCOMPtr<nsIContentViewer> viewer;
-    mPrt->mPrintObject->mDocShell->GetContentViewer(getter_AddRefs(viewer));
-    nsCOMPtr<nsIDocumentViewerPrint> docViewerPrint = do_QueryInterface(viewer);
-    if (docViewerPrint) {
-      docViewerPrint->SetIsPrinting(aIsPrinting);
-    }
+  if (!mIsDoingPrintPreview && mDocViewerPrint) {
+    mDocViewerPrint->SetIsPrinting(aIsPrinting);
   }
   if (mPrt && aIsPrinting) {
     mPrt->mPreparingForPrint = true;
@@ -2800,7 +2880,14 @@ nsPrintEngine::DonePrintingPages(nsPrintObject* aPO, nsresult aResult)
   
   PR_PL(("****** In DV::DonePrintingPages PO: %p (%s)\n", aPO, aPO?gFrameTypesStr[aPO->mFrameType]:""));
 
-  if (aPO != nullptr) {
+  
+  
+  
+  if (mPageSeqFrame) {
+    mPageSeqFrame->ResetPrintCanvasList();
+  }
+
+  if (aPO && !mPrt->mIsAborted) {
     aPO->mHasBeenPrinted = true;
     nsresult rv;
     bool didPrint = PrintDocContent(mPrt->mPrintObject, rv);

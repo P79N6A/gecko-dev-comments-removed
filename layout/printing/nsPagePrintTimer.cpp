@@ -53,38 +53,51 @@ nsPagePrintTimer::StartTimer(bool aUseDelay)
 }
 
 
+NS_IMETHODIMP
+nsPagePrintTimer::Run() 
+{
+  bool initNewTimer = true;
+  
+  
+  bool inRange;
+  bool donePrinting;
+
+  
+  
+  donePrinting = mPrintEngine->PrintPage(mPrintObj, inRange);
+  if (donePrinting) {
+    
+    if (mPrintEngine->DonePrintingPages(mPrintObj, NS_OK)) {
+      initNewTimer = false;
+    }
+  }
+
+  
+  
+  
+  Stop(); 
+  if (initNewTimer) {
+    ++mFiringCount;
+    nsresult result = StartTimer(inRange);
+    if (NS_FAILED(result)) {
+      donePrinting = true;     
+      mPrintEngine->SetIsPrinting(false);
+    }
+  }
+  return NS_OK;
+};
 
 
 NS_IMETHODIMP
 nsPagePrintTimer::Notify(nsITimer *timer)
 {
   if (mDocViewerPrint) {
-    bool initNewTimer = true;
-    
-    
-    bool inRange;
-    
-    
-    bool donePrinting = mPrintEngine->PrintPage(mPrintObj, inRange);
-    if (donePrinting) {
-      
-      if (mPrintEngine->DonePrintingPages(mPrintObj, NS_OK)) {
-        initNewTimer = false;
-      }
+    bool donePrePrint = mPrintEngine->PrePrintPage();
+
+    if (donePrePrint) {
+      NS_DispatchToMainThread(this);
     }
 
-    
-    
-    
-    Stop(); 
-    if (initNewTimer) {
-      ++mFiringCount;
-      nsresult result = StartTimer(inRange);
-      if (NS_FAILED(result)) {
-        donePrinting = true;     
-        mPrintEngine->SetIsPrinting(false);
-      }
-    }
   }
   return NS_OK;
 }
