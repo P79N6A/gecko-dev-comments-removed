@@ -147,7 +147,7 @@ var Strings = {};
 
 var MetadataProvider = {
   getDrawMetadata: function getDrawMetadata() {
-    return BrowserApp.getDrawMetadata();
+    return JSON.stringify(BrowserApp.selectedTab.getViewport());
   },
 
   paintingSuppressed: function paintingSuppressed() {
@@ -837,12 +837,6 @@ var BrowserApp = {
     }
   },
 
-  getDrawMetadata: function getDrawMetadata() {
-    let viewport = this.selectedTab.viewport;
-
-    return JSON.stringify(viewport);
-  },
-
   observe: function(aSubject, aTopic, aData) {
     let browser = this.selectedBrowser;
     if (!browser)
@@ -908,7 +902,7 @@ var BrowserApp = {
     } else if (aTopic == "FullScreen:Exit") {
       browser.contentDocument.mozCancelFullScreen();
     } else if (aTopic == "Viewport:Change") {
-      this.selectedTab.viewport = JSON.parse(aData);
+      this.selectedTab.setViewport(JSON.parse(aData));
     } else if (aTopic == "SearchEngines:Get") {
       this.getSearchEngines();
     } else if (aTopic == "Passwords:Init") {
@@ -1580,7 +1574,7 @@ Tab.prototype = {
     if (!this.browser.contentDocument.documentElement)
       return;
 
-    let viewport = this.viewport;
+    let viewport = this.getViewport();
 
     
     
@@ -1648,7 +1642,7 @@ Tab.prototype = {
                                  this.browser.contentDocument.documentElement);
   },
 
-  set viewport(aViewport) {
+  setViewport: function(aViewport) {
     
     aViewport.x /= aViewport.zoom;
     aViewport.y /= aViewport.zoom;
@@ -1658,21 +1652,23 @@ Tab.prototype = {
     win.scrollTo(aViewport.x, aViewport.y);
     this.userScrollPos.x = win.scrollX;
     this.userScrollPos.y = win.scrollY;
-
-    
-    let zoom = aViewport.zoom;
-    if (Math.abs(zoom - this._zoom) >= 1e-6) {
-      this._zoom = zoom;
-      let cwu = window.top.QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIDOMWindowUtils);
-      cwu.setResolution(zoom, zoom);
-    }
+    this.setResolution(aViewport.zoom);
 
     
     this.refreshDisplayPort(aViewport.displayPortMargins);
   },
 
-  get viewport() {
+  setResolution: function(aZoom) {
+    
+    if (Math.abs(aZoom - this._zoom) >= 1e-6) {
+      this._zoom = aZoom;
+      let cwu = window.top.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+      cwu.setResolution(aZoom, aZoom);
+    }
+  },
+
+  getViewport: function() {
     let viewport = {
       width: gScreenWidth,
       height: gScreenHeight,
@@ -2371,7 +2367,7 @@ var BrowserEventHandler = {
       const maxDifference = 20;
       let rect = ElementTouchHelper.getBoundingContentRect(element);
 
-      let viewport = BrowserApp.selectedTab.viewport;
+      let viewport = BrowserApp.selectedTab.getViewport();
       let vRect = new Rect(viewport.x, viewport.y, viewport.width, viewport.height);
 
       let zoom = viewport.zoom;
@@ -2978,7 +2974,7 @@ var FormAssistant = {
   
   _getElementPositionData: function _getElementPositionData(aElement) {
     let rect = ElementTouchHelper.getBoundingContentRect(aElement);
-    let viewport = BrowserApp.selectedTab.viewport;
+    let viewport = BrowserApp.selectedTab.getViewport();
     
     return { rect: [rect.x - (viewport.x / viewport.zoom),
                     rect.y - (viewport.y / viewport.zoom),
@@ -4266,7 +4262,7 @@ OverscrollController.prototype = {
     if (aCommand != "cmd_linePrevious" && aCommand != "cmd_scrollPageUp")
       return false;
 
-    return (this.tab.viewport.y == 0);
+    return (this.tab.getViewport().y == 0);
   },
 
   isCommandEnabled : function isCommandEnabled(aCommand) {
