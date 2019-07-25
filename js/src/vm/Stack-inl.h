@@ -856,7 +856,7 @@ struct LimitCheck
 
 
 
-            cx->regs().pc = mjit::NativeToPC(cx->fp()->jit(), topncode);
+            cx->regs().updateForNcode(cx->fp()->jit(), topncode);
         }
 
         return space.bumpLimitWithinQuota(cx, base, from, nvals, limit);
