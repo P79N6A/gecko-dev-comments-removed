@@ -5765,9 +5765,11 @@ var MailIntegration = {
   }
 };
 
-function BrowserOpenAddonsMgr(aPane) {
-  
-  switchToTabHavingURI("about:addons", true);
+function BrowserOpenAddonsMgr(aView) {
+  switchToTabHavingURI("about:addons", true, function(browser) {
+    if (aView)
+      browser.contentWindow.wrappedJSObject.loadView(aView);
+  });
 }
 
 function AddKeywordForSearchField() {
@@ -6016,7 +6018,7 @@ var gPluginHandler = {
 
   
   managePlugins: function (aEvent) {
-    BrowserOpenAddonsMgr("plugins");
+    BrowserOpenAddonsMgr("addons://list/plugin");
   },
 
   
@@ -7491,7 +7493,7 @@ var LightWeightThemeWebInstaller = {
       label: text("manageButton"),
       accessKey: text("manageButton.accesskey"),
       callback: function () {
-        BrowserOpenAddonsMgr("themes");
+        BrowserOpenAddonsMgr("addons://list/theme");
       }
     }];
 
@@ -7572,7 +7574,9 @@ var LightWeightThemeWebInstaller = {
 
 
 
-function switchToTabHavingURI(aURI, aOpenNew) {
+
+
+function switchToTabHavingURI(aURI, aOpenNew, aCallback) {
   function switchIfURIInWindow(aWindow) {
     if (!("gBrowser" in aWindow))
       return false;
@@ -7583,6 +7587,8 @@ function switchToTabHavingURI(aURI, aOpenNew) {
         gURLBar.handleRevert();
         aWindow.focus();
         aWindow.gBrowser.tabContainer.selectedIndex = i;
+        if (aCallback)
+          aCallback(browser);
         return true;
       }
     }
@@ -7611,6 +7617,15 @@ function switchToTabHavingURI(aURI, aOpenNew) {
   
   if (aOpenNew) {
     gBrowser.selectedTab = gBrowser.addTab(aURI.spec);
+    if (aCallback) {
+      let browser = gBrowser.selectedBrowser;
+      browser.addEventListener("pageshow", function(event) {
+        if (event.target.location.href != aURI.spec)
+          return;
+        browser.removeEventListener("pageshow", arguments.callee, true);
+        aCallback(browser);
+      }, true);
+    }
     return true;
   }
 
