@@ -390,8 +390,29 @@ struct JSRuntime
     uint32              protoHazardShape;
 
     
-    js::GCChunkSet      gcUserChunkSet;
-    js::GCChunkSet      gcSystemChunkSet;
+
+    
+
+
+
+
+    js::GCChunkSet      gcChunkSet;
+
+    
+
+
+
+
+
+
+    js::gc::Chunk       *gcSystemAvailableChunkListHead;
+    js::gc::Chunk       *gcUserAvailableChunkListHead;
+
+    
+
+
+
+
     js::gc::Chunk       *gcEmptyChunkListHead;
     size_t              gcEmptyChunkCount;
 
