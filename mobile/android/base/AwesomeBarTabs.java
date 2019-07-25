@@ -39,6 +39,7 @@ import android.widget.TextView;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -67,9 +68,10 @@ public class AwesomeBarTabs extends TabHost {
     private boolean mInflated;
     private LayoutInflater mInflater;
     private OnUrlOpenListener mUrlOpenListener;
-    private JSONArray mSearchEngines;
     private ContentResolver mContentResolver;
     private ContentObserver mContentObserver;
+    private SearchEngine mSuggestEngine;
+    private ArrayList<SearchEngine> mSearchEngines;
 
     private BookmarksQueryTask mBookmarksQueryTask;
     private HistoryQueryTask mHistoryQueryTask;
@@ -86,14 +88,22 @@ public class AwesomeBarTabs extends TabHost {
 
     public interface OnUrlOpenListener {
         public void onUrlOpen(String url);
-        public void onSearch(String engine);
+        public void onSearch(String engine, String text);
+        public void onEditSuggestion(String suggestion);
     }
 
-    private class ViewHolder {
+    private class AwesomeEntryViewHolder {
         public TextView titleView;
         public TextView urlView;
         public ImageView faviconView;
         public ImageView starView;
+    }
+
+    private class SearchEntryViewHolder {
+        public FlowLayout suggestionView;
+        public ImageView iconView;
+        public LinearLayout userEnteredView;
+        public TextView userEnteredTextView;
     }
 
     private class HistoryListAdapter extends SimpleExpandableListAdapter {
@@ -108,12 +118,12 @@ public class AwesomeBarTabs extends TabHost {
         @Override
         public View getChildView(int groupPosition, int childPosition, boolean isLastChild,
                 View convertView, ViewGroup parent) {
-            ViewHolder viewHolder = null;
+            AwesomeEntryViewHolder viewHolder = null;
 
             if (convertView == null) {
                 convertView = mInflater.inflate(R.layout.awesomebar_row, null);
 
-                viewHolder = new ViewHolder();
+                viewHolder = new AwesomeEntryViewHolder();
                 viewHolder.titleView = (TextView) convertView.findViewById(R.id.title);
                 viewHolder.urlView = (TextView) convertView.findViewById(R.id.url);
                 viewHolder.faviconView = (ImageView) convertView.findViewById(R.id.favicon);
@@ -121,7 +131,7 @@ public class AwesomeBarTabs extends TabHost {
 
                 convertView.setTag(viewHolder);
             } else {
-                viewHolder = (ViewHolder) convertView.getTag();
+                viewHolder = (AwesomeEntryViewHolder) convertView.getTag();
             }
 
             @SuppressWarnings("unchecked")
@@ -256,7 +266,7 @@ public class AwesomeBarTabs extends TabHost {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             int viewType = getItemViewType(position);
-            ViewHolder viewHolder = null;
+            AwesomeEntryViewHolder viewHolder = null;
 
             if (convertView == null) {
                 if (viewType == VIEW_TYPE_ITEM)
@@ -264,7 +274,7 @@ public class AwesomeBarTabs extends TabHost {
                 else
                     convertView = mInflater.inflate(R.layout.awesomebar_folder_row, null);
 
-                viewHolder = new ViewHolder();
+                viewHolder = new AwesomeEntryViewHolder();
                 viewHolder.titleView = (TextView) convertView.findViewById(R.id.title);
                 viewHolder.faviconView = (ImageView) convertView.findViewById(R.id.favicon);
 
@@ -273,7 +283,7 @@ public class AwesomeBarTabs extends TabHost {
 
                 convertView.setTag(viewHolder);
             } else {
-                viewHolder = (ViewHolder) convertView.getTag();
+                viewHolder = (AwesomeEntryViewHolder) convertView.getTag();
             }
 
             Cursor cursor = getCursor();
@@ -612,41 +622,44 @@ public class AwesomeBarTabs extends TabHost {
         public void onClick();
     }
 
-    private class AwesomeBarCursorItem implements AwesomeBarItem {
-        private Cursor mCursor;
-
-        public AwesomeBarCursorItem(Cursor cursor) {
-            mCursor = cursor;
-        }
-
-        public void onClick() {
-            String url = mCursor.getString(mCursor.getColumnIndexOrThrow(URLColumns.URL));
-            if (mUrlOpenListener != null) {
-                int display = mCursor.getInt(cursor.getColumnIndexOrThrow(Combined.DISPLAY));
-                if (display == Combined.DISPLAY_READER) {
-                    url = getReaderForUrl(url);
-                }
-
-                mUrlOpenListener.onUrlOpen(url);
-            }
-        }
-    }
-
-    private class AwesomeBarSearchEngineItem implements AwesomeBarItem {
-        private String mSearchEngine;
-
-        public AwesomeBarSearchEngineItem(String searchEngine) {
-            mSearchEngine = searchEngine;
-        }
-
-        public void onClick() {
-            if (mUrlOpenListener != null)
-                mUrlOpenListener.onSearch(mSearchEngine);
-        }
-    }
-
     private class AwesomeBarCursorAdapter extends SimpleCursorAdapter {
         private String mSearchTerm;
+
+        private static final int ROW_SEARCH = 0;
+        private static final int ROW_STANDARD = 1;
+
+        private class AwesomeBarCursorItem implements AwesomeBarItem {
+            private Cursor mCursor;
+
+            public AwesomeBarCursorItem(Cursor cursor) {
+                mCursor = cursor;
+            }
+
+            public void onClick() {
+                String url = mCursor.getString(mCursor.getColumnIndexOrThrow(URLColumns.URL));
+                if (mUrlOpenListener != null) {
+                    int display = mCursor.getInt(mCursor.getColumnIndexOrThrow(Combined.DISPLAY));
+                    if (display == Combined.DISPLAY_READER) {
+                        url = getReaderForUrl(url);
+                    }
+
+                    mUrlOpenListener.onUrlOpen(url);
+                }
+            }
+        }
+
+        private class AwesomeBarSearchEngineItem implements AwesomeBarItem {
+            private String mSearchEngine;
+
+            public AwesomeBarSearchEngineItem(String searchEngine) {
+                mSearchEngine = searchEngine;
+            }
+
+            public void onClick() {
+                if (mUrlOpenListener != null)
+                    mUrlOpenListener.onSearch(mSearchEngine, mSearchTerm);
+            }
+        }
 
         public AwesomeBarCursorAdapter(Context context) {
             super(context, -1, null, new String[] {}, new int[] {});
@@ -658,6 +671,10 @@ public class AwesomeBarTabs extends TabHost {
             getFilter().filter(searchTerm);
         }
 
+        private int getSuggestEngineCount() {
+            return (mSearchTerm.length() == 0 || mSuggestEngine == null) ? 0 : 1;
+        }
+
         
         @Override
         public int getCount() {
@@ -667,49 +684,110 @@ public class AwesomeBarTabs extends TabHost {
             if (mSearchTerm.length() == 0)
                 return resultCount;
 
-            return resultCount + mSearchEngines.length();
+            return resultCount + mSearchEngines.size() + getSuggestEngineCount();
         }
 
         
         
         @Override
         public Object getItem(int position) {
-            final int resultCount = super.getCount();
-            if (position < resultCount)
-                return new AwesomeBarCursorItem((Cursor) super.getItem(position));
+            int engineIndex = getEngineIndex(position);
 
-            JSONObject engine;
-            String engineName = null;
-            try {
-                engine = mSearchEngines.getJSONObject(position - resultCount);
-                engineName = engine.getString("name");
-            } catch (JSONException e) {
-                Log.e(LOGTAG, "Error getting search engine JSON", e);
+            if (engineIndex == -1) {
+                
+                position -= getSuggestEngineCount();
+                return new AwesomeBarCursorItem((Cursor) super.getItem(position));
             }
 
-            return new AwesomeBarSearchEngineItem(engineName);
+            
+            return new AwesomeBarSearchEngineItem(getEngine(engineIndex).name);
+        }
+
+        private SearchEngine getEngine(int index) {
+            final int suggestEngineCount = getSuggestEngineCount();
+            if (index < suggestEngineCount)
+                return mSuggestEngine;
+            return mSearchEngines.get(index - suggestEngineCount);
+        }
+
+        private int getEngineIndex(int position) {
+            final int resultCount = super.getCount();
+            final int suggestEngineCount = getSuggestEngineCount();
+
+            
+            if (position < suggestEngineCount)
+                return 0;
+
+            
+            if (position - suggestEngineCount < resultCount)
+                return -1;
+
+            
+            return position - resultCount;
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            return getEngineIndex(position) == -1 ? ROW_STANDARD : ROW_SEARCH;
+        }
+
+        @Override
+        public int getViewTypeCount() {
+            
+            return 2;
+        }
+
+        @Override
+        public boolean isEnabled(int position) {
+            
+            
+            
+            
+            int index = getEngineIndex(position);
+            if (index != -1) {
+                return getEngine(index).suggestions.isEmpty();
+            }
+            return true;
         }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            ViewHolder viewHolder = null;
+            if (getItemViewType(position) == ROW_SEARCH) {
+                SearchEntryViewHolder viewHolder = null;
 
-            if (convertView == null) {
-                convertView = mInflater.inflate(R.layout.awesomebar_row, null);
+                if (convertView == null) {
+                    convertView = mInflater.inflate(R.layout.awesomebar_suggestion_row, null);
 
-                viewHolder = new ViewHolder();
-                viewHolder.titleView = (TextView) convertView.findViewById(R.id.title);
-                viewHolder.urlView = (TextView) convertView.findViewById(R.id.url);
-                viewHolder.faviconView = (ImageView) convertView.findViewById(R.id.favicon);
-                viewHolder.starView = (ImageView) convertView.findViewById(R.id.bookmark_star);
+                    viewHolder = new SearchEntryViewHolder();
+                    viewHolder.suggestionView = (FlowLayout) convertView.findViewById(R.id.suggestion_layout);
+                    viewHolder.iconView = (ImageView) convertView.findViewById(R.id.suggestion_icon);
+                    viewHolder.userEnteredView = (LinearLayout) convertView.findViewById(R.id.suggestion_user_entered);
+                    viewHolder.userEnteredTextView = (TextView) convertView.findViewById(R.id.suggestion_text);
 
-                convertView.setTag(viewHolder);
+                    convertView.setTag(viewHolder);
+                } else {
+                    viewHolder = (SearchEntryViewHolder) convertView.getTag();
+                }
+
+                bindSearchEngineView(getEngine(getEngineIndex(position)), viewHolder);
             } else {
-                viewHolder = (ViewHolder) convertView.getTag();
-            }
+                AwesomeEntryViewHolder viewHolder = null;
 
-            final int resultCount = super.getCount();
-            if (position < resultCount) {
+                if (convertView == null) {
+                    convertView = mInflater.inflate(R.layout.awesomebar_row, null);
+
+                    viewHolder = new AwesomeEntryViewHolder();
+                    viewHolder.titleView = (TextView) convertView.findViewById(R.id.title);
+                    viewHolder.urlView = (TextView) convertView.findViewById(R.id.url);
+                    viewHolder.faviconView = (ImageView) convertView.findViewById(R.id.favicon);
+                    viewHolder.starView = (ImageView) convertView.findViewById(R.id.bookmark_star);
+
+                    convertView.setTag(viewHolder);
+                } else {
+                    viewHolder = (AwesomeEntryViewHolder) convertView.getTag();
+                }
+
+                position -= getSuggestEngineCount();
                 Cursor cursor = getCursor();
                 if (!cursor.moveToPosition(position))
                     throw new IllegalStateException("Couldn't move cursor to position " + position);
@@ -718,45 +796,69 @@ public class AwesomeBarTabs extends TabHost {
                 updateUrl(viewHolder.urlView, cursor);
                 updateFavicon(viewHolder.faviconView, cursor);
                 updateBookmarkStar(viewHolder.starView, cursor);
-            } else {
-                bindSearchEngineView(position - resultCount, viewHolder);
             }
 
             return convertView;
         }
 
-        private Drawable getDrawableFromDataURI(String dataURI) {
-            String base64 = dataURI.substring(dataURI.indexOf(',') + 1);
-            Drawable drawable = null;
-            try {
-                byte[] bytes = GeckoAppShell.decodeBase64(base64, GeckoAppShell.BASE64_DEFAULT);
-                ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
-                drawable = Drawable.createFromStream(stream, "src");
-                stream.close();
-            } catch (IllegalArgumentException e) {
-                Log.i(LOGTAG, "exception while decoding drawable: " + base64, e);
-            } catch (IOException e) { }
-            return drawable;
-        }
+        private void bindSearchEngineView(final SearchEngine engine, SearchEntryViewHolder viewHolder) {
+            
+            OnClickListener clickListener = new OnClickListener() {
+                public void onClick(View v) {
+                    if (mUrlOpenListener != null) {
+                        String suggestion = ((TextView) v.findViewById(R.id.suggestion_text)).getText().toString();
+                        mUrlOpenListener.onSearch(engine.name, suggestion);
+                    }
+                }
+            };
 
-        private void bindSearchEngineView(int position, ViewHolder viewHolder) {
-            String name;
-            String iconURI;
-            String searchText = getResources().getString(R.string.awesomebar_search_engine, mSearchTerm);
-            try {
-                JSONObject searchEngine = mSearchEngines.getJSONObject(position);
-                name = searchEngine.getString("name");
-                iconURI = searchEngine.getString("iconURI");
-            } catch (JSONException e) {
-                Log.e(LOGTAG, "Error getting search engine JSON", e);
-                return;
+            
+            OnLongClickListener longClickListener = new OnLongClickListener() {
+                public boolean onLongClick(View v) {
+                    if (mUrlOpenListener != null) {
+                        String suggestion = ((TextView) v.findViewById(R.id.suggestion_text)).getText().toString();
+                        mUrlOpenListener.onEditSuggestion(suggestion);
+                        return true;
+                    }
+                    return false;
+                }
+            };
+
+            
+            FlowLayout suggestionView = viewHolder.suggestionView;
+            viewHolder.iconView.setImageDrawable(engine.icon);
+
+            
+            viewHolder.userEnteredTextView.setText(mSearchTerm);
+            viewHolder.userEnteredView.setOnClickListener(clickListener);
+            
+            
+            int recycledSuggestionCount = suggestionView.getChildCount();
+            int suggestionCount = engine.suggestions.size();
+            int i = 0;
+            for (i = 0; i < suggestionCount; i++) {
+                String suggestion = engine.suggestions.get(i);
+                View suggestionItem = null;
+
+                
+                if (i+1 < recycledSuggestionCount) {
+                    suggestionItem = suggestionView.getChildAt(i+1);
+                    suggestionItem.setVisibility(View.VISIBLE);
+                } else {
+                    suggestionItem = mInflater.inflate(R.layout.awesomebar_suggestion_item, null);
+                    ((ImageView) suggestionItem.findViewById(R.id.suggestion_magnifier)).setVisibility(View.GONE);
+                    suggestionView.addView(suggestionItem);
+                }
+                ((TextView) suggestionItem.findViewById(R.id.suggestion_text)).setText(suggestion);
+
+                suggestionItem.setOnClickListener(clickListener);
+                suggestionItem.setOnLongClickListener(longClickListener);
             }
-
-            viewHolder.titleView.setText(name);
-            viewHolder.urlView.setText(searchText);
-            Drawable drawable = getDrawableFromDataURI(iconURI);
-            viewHolder.faviconView.setImageDrawable(drawable);
-            viewHolder.starView.setVisibility(View.GONE);
+            
+            
+            for (++i; i < recycledSuggestionCount; i++) {
+                suggestionView.getChildAt(i).setVisibility(View.GONE);
+            }
         }
     };
 
@@ -767,7 +869,7 @@ public class AwesomeBarTabs extends TabHost {
 
         mContext = context;
         mInflated = false;
-        mSearchEngines = new JSONArray();
+        mSearchEngines = new ArrayList<SearchEngine>();
         mContentResolver = context.getContentResolver();
         mContentObserver = null;
         mInflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -1043,10 +1145,98 @@ public class AwesomeBarTabs extends TabHost {
         mAllPagesCursorAdapter.filter(searchTerm);
     }
 
-    public void setSearchEngines(final JSONArray engines) {
+    private Drawable getDrawableFromDataURI(String dataURI) {
+        String base64 = dataURI.substring(dataURI.indexOf(',') + 1);
+        Drawable drawable = null;
+        try {
+            byte[] bytes = GeckoAppShell.decodeBase64(base64, GeckoAppShell.BASE64_DEFAULT);
+            ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
+            drawable = Drawable.createFromStream(stream, "src");
+            stream.close();
+        } catch (IllegalArgumentException e) {
+            Log.i(LOGTAG, "exception while decoding drawable: " + base64, e);
+        } catch (IOException e) { }
+        return drawable;
+    }
+
+    private class SearchEngine {
+        public String name;
+        public Drawable icon;
+        public ArrayList<String> suggestions;
+
+        public SearchEngine(String name) {
+            this(name, null);
+        }
+
+        public SearchEngine(String name, Drawable icon) {
+            this.name = name;
+            this.icon = icon;
+            this.suggestions = new ArrayList<String>();
+        }
+    };
+
+    
+
+
+
+
+    public void setSuggestEngine(String name, Drawable icon) {
+        
+        
+        
+        
+        final SearchEngine suggestEngine = new SearchEngine(name, icon);
+        if (mSuggestEngine != null)
+            suggestEngine.suggestions = mSuggestEngine.suggestions;
+
         GeckoAppShell.getMainHandler().post(new Runnable() {
             public void run() {
-                mSearchEngines = engines;
+                mSuggestEngine = suggestEngine;
+                mAllPagesCursorAdapter.notifyDataSetChanged();
+            }
+        });
+    }
+
+    
+
+
+
+    public void setSuggestions(final ArrayList<String> suggestions) {
+        GeckoAppShell.getMainHandler().post(new Runnable() {
+            public void run() {
+                if (mSuggestEngine != null) {
+                    mSuggestEngine.suggestions = suggestions;
+                    mAllPagesCursorAdapter.notifyDataSetChanged();
+                }
+            }
+        });
+    }
+
+    
+
+
+    public void setSearchEngines(String suggestEngine, JSONArray engines) {
+        final ArrayList<SearchEngine> searchEngines = new ArrayList<SearchEngine>();
+        for (int i = 0; i < engines.length(); i++) {
+            try {
+                JSONObject engineJSON = engines.getJSONObject(i);
+                String name = engineJSON.getString("name");
+                String iconURI = engineJSON.getString("iconURI");
+                Drawable icon = getDrawableFromDataURI(iconURI);
+                if (name.equals(suggestEngine)) {
+                    setSuggestEngine(name, icon);
+                } else {
+                    searchEngines.add(new SearchEngine(name, icon));
+                }
+            } catch (JSONException e) {
+                Log.e(LOGTAG, "Error getting search engine JSON", e);
+                return;
+            }
+        }
+
+        GeckoAppShell.getMainHandler().post(new Runnable() {
+            public void run() {
+                mSearchEngines = searchEngines;
                 mAllPagesCursorAdapter.notifyDataSetChanged();
             }
         });
@@ -1058,7 +1248,10 @@ public class AwesomeBarTabs extends TabHost {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        hideSoftInput(this);
+        
+        
+        if (ev.getAction() == MotionEvent.ACTION_DOWN)
+            hideSoftInput(this);
 
         
         
