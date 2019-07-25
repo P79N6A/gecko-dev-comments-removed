@@ -49,6 +49,7 @@ import android.text.style.*;
 import android.view.*;
 import android.view.inputmethod.*;
 import android.content.*;
+import android.R;
 
 import android.util.*;
 
@@ -62,14 +63,14 @@ public class GeckoInputConnection
 
     @Override
     public boolean beginBatchEdit() {
-        Log.d("GeckoAppJava", "IME: beginBatchEdit");
+        
 
         return true;
     }
 
     @Override
     public boolean commitCompletion(CompletionInfo text) {
-        Log.d("GeckoAppJava", "IME: commitCompletion");
+        
 
         return commitText(text.getText(), 1);
     }
@@ -86,7 +87,7 @@ public class GeckoInputConnection
 
     @Override
     public boolean deleteSurroundingText(int leftLength, int rightLength) {
-        Log.d("GeckoAppJava", "IME: deleteSurroundingText");
+        
 
         
 
@@ -137,7 +138,7 @@ public class GeckoInputConnection
 
     @Override
     public boolean endBatchEdit() {
-        Log.d("GeckoAppJava", "IME: endBatchEdit");
+        
 
         return true;
     }
@@ -178,6 +179,58 @@ public class GeckoInputConnection
             Thread.currentThread().getStackTrace()[0].toString());
 
         return null;
+    }
+
+    @Override
+    public boolean performContextMenuAction(int id) {
+        
+
+        
+        
+        String text;
+        GeckoAppShell.sendEventToGecko(
+            new GeckoEvent(GeckoEvent.IME_GET_TEXT, 0, Integer.MAX_VALUE));
+        try {
+            text = mQueryResult.take();
+        } catch (InterruptedException e) {
+            Log.e("GeckoAppJava", "IME: performContextMenuAction interrupted");
+            return false;
+        }
+
+        switch (id) {
+            case R.id.selectAll:
+                setSelection(0, mUpdateExtract.text.length());
+                break;
+            case R.id.cut:
+                
+                GeckoAppShell.setClipboardText(text);
+                
+                if (mSelectionLength <= 0)
+                    GeckoAppShell.sendEventToGecko(
+                        new GeckoEvent(GeckoEvent.IME_SET_SELECTION, 0, text.length()));
+                GeckoAppShell.sendEventToGecko(
+                    new GeckoEvent(GeckoEvent.IME_DELETE_TEXT, 0, 0));
+                break;
+            case R.id.paste:
+                commitText(GeckoAppShell.getClipboardText(), 1);
+                break;
+            case R.id.copy:
+                
+                
+                if (mSelectionLength > 0) {
+                    GeckoAppShell.sendEventToGecko(
+                        new GeckoEvent(GeckoEvent.IME_GET_SELECTION, 0, 0));
+                    try {
+                        text = mQueryResult.take();
+                    } catch (InterruptedException e) {
+                        Log.e("GeckoAppJava", "IME: performContextMenuAction interrupted");
+                        return false;
+                    }
+                }
+                GeckoAppShell.setClipboardText(text);
+                break;
+        }
+        return true;
     }
 
     @Override
