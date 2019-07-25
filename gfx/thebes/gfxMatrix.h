@@ -194,8 +194,8 @@ public:
 
     PRBool HasNonIntegerTranslation() const {
         return HasNonTranslation() ||
-            !FuzzyEqual(x0, NS_floor(x0 + 0.5)) ||
-            !FuzzyEqual(y0, NS_floor(y0 + 0.5));
+            !FuzzyEqual(x0, floor(x0 + 0.5)) ||
+            !FuzzyEqual(y0, floor(y0 + 0.5));
     }
 
     
@@ -291,8 +291,8 @@ public:
 
 
     PRBool HasNonIntegerScale() const {
-        return !FuzzyEqual(xx, NS_floor(xx + 0.5)) ||
-               !FuzzyEqual(yy, NS_floor(yy + 0.5));
+        return !FuzzyEqual(xx, floor(xx + 0.5)) ||
+               !FuzzyEqual(yy, floor(yy + 0.5));
     }
 
 private:

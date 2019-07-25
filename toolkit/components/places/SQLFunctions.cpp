@@ -592,7 +592,7 @@ namespace places {
           
           
           
-          NS_ADDREF(*_result = new IntegerVariant((PRInt32) NS_ceilf(fullVisitCount * NS_ceilf(pointsForSampledVisits) / numSampledVisits)));
+          NS_ADDREF(*_result = new IntegerVariant((PRInt32) ceilf(fullVisitCount * ceilf(pointsForSampledVisits) / numSampledVisits)));
         }
 
         return NS_OK;
@@ -627,7 +627,7 @@ namespace places {
 
     
     
-    NS_ADDREF(*_result = new IntegerVariant((PRInt32) NS_ceilf(fullVisitCount * NS_ceilf(pointsForSampledVisits))));
+    NS_ADDREF(*_result = new IntegerVariant((PRInt32) ceilf(fullVisitCount * ceilf(pointsForSampledVisits))));
 
     return NS_OK;
   }

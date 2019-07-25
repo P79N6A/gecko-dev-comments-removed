@@ -138,8 +138,8 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
                 
                 
                 mTempSurfaceSize =
-                    gfxIntSize((PRInt32) NS_ceil(mNativeRect.Width() + 1),
-                               (PRInt32) NS_ceil(mNativeRect.Height() + 1));
+                    gfxIntSize((PRInt32) ceil(mNativeRect.Width() + 1),
+                               (PRInt32) ceil(mNativeRect.Height() + 1));
             } else {
                 
                 mScale = m.ScaleFactors(PR_TRUE);
@@ -153,8 +153,8 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
 
                 
                 mTempSurfaceSize =
-                    gfxIntSize((PRInt32) NS_ceil(mNativeRect.Width() * mScale.width + 1),
-                               (PRInt32) NS_ceil(mNativeRect.Height() * mScale.height + 1));
+                    gfxIntSize((PRInt32) ceil(mNativeRect.Width() * mScale.width + 1),
+                               (PRInt32) ceil(mNativeRect.Height() * mScale.height + 1));
             }
         }
     }

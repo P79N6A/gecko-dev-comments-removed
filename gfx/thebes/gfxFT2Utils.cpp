@@ -70,11 +70,11 @@ ScaleRoundDesignUnits(FT_Short aDesignMetric, FT_Fixed aScale)
 static void
 SnapLineToPixels(gfxFloat& aOffset, gfxFloat& aSize)
 {
-    gfxFloat snappedSize = NS_MAX(NS_floor(aSize + 0.5), 1.0);
+    gfxFloat snappedSize = NS_MAX(floor(aSize + 0.5), 1.0);
     
     gfxFloat offset = aOffset - 0.5 * (aSize - snappedSize);
     
-    aOffset = NS_floor(offset + 0.5);
+    aOffset = floor(offset + 0.5);
     aSize = snappedSize;
 }
 
@@ -281,16 +281,16 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
     
     
     
-    aMetrics->emHeight = NS_floor(emHeight + 0.5);
+    aMetrics->emHeight = floor(emHeight + 0.5);
 
     
     
     aMetrics->internalLeading =
-        NS_floor(aMetrics->maxHeight - aMetrics->emHeight + 0.5);
+        floor(aMetrics->maxHeight - aMetrics->emHeight + 0.5);
 
     
     
-    lineHeight = NS_floor(NS_MAX(lineHeight, aMetrics->maxHeight) + 0.5);
+    lineHeight = floor(NS_MAX(lineHeight, aMetrics->maxHeight) + 0.5);
     aMetrics->externalLeading =
         lineHeight - aMetrics->internalLeading - aMetrics->emHeight;
 

@@ -127,11 +127,11 @@ static void FillMetricsDefaults(gfxFont::Metrics *aMetrics)
 
 static void SnapLineToPixels(gfxFloat& aOffset, gfxFloat& aSize)
 {
-    gfxFloat snappedSize = NS_MAX(NS_floor(aSize + 0.5), 1.0);
+    gfxFloat snappedSize = NS_MAX(floor(aSize + 0.5), 1.0);
     
     gfxFloat offset = aOffset - 0.5 * (aSize - snappedSize);
     
-    aOffset = NS_floor(offset + 0.5);
+    aOffset = floor(offset + 0.5);
     aSize = snappedSize;
 }
 
@@ -155,7 +155,7 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
 
     
     
-    mMetrics->emHeight = NS_floor(GetStyle()->size + 0.5);
+    mMetrics->emHeight = floor(GetStyle()->size + 0.5);
 
     cairo_scaled_font_t* scaledFont = CairoScaledFont();
     if (!scaledFont) {
@@ -274,9 +274,9 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
     
     
     
-    mMetrics->internalLeading = NS_floor(mMetrics->maxHeight
+    mMetrics->internalLeading = floor(mMetrics->maxHeight
                                          - mMetrics->emHeight + 0.5);
-    gfxFloat lineHeight = NS_floor(mMetrics->maxHeight + 0.5);
+    gfxFloat lineHeight = floor(mMetrics->maxHeight + 0.5);
     mMetrics->externalLeading = lineHeight
                               - mMetrics->internalLeading - mMetrics->emHeight;
 

@@ -319,8 +319,8 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
       gfxFloat zeroWidth = (fm->GetThebesFontGroup()->GetFontAt(0)
                             ->GetMetrics().zeroOrAveCharWidth);
 
-      return ScaleCoord(aValue, NS_ceil(aPresContext->AppUnitsPerDevPixel() *
-                                        zeroWidth));
+      return ScaleCoord(aValue, ceil(aPresContext->AppUnitsPerDevPixel() *
+                                     zeroWidth));
     }
     
     

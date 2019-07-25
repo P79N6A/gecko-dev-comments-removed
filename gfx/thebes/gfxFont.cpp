@@ -651,12 +651,15 @@ void gfxFontFamily::LocalizedName(nsAString& aLocalizedName)
 void
 gfxFontFamily::FindFontForChar(FontSearch *aMatchData)
 {
-    if (!mHasStyles)
+    if (!mHasStyles) {
         FindStyleVariations();
+    }
 
-    
-    
-    
+    if (!TestCharacterMap(aMatchData->mCh)) {
+        
+        
+        return;
+    }
 
     
     PRUint32 numFonts = mAvailableFonts.Length();
@@ -1591,7 +1594,7 @@ gfxFont::SetupGlyphExtents(gfxContext *aContext, PRUint32 aGlyphID, PRBool aNeed
         extents.y_bearing >= -fontMetrics.maxAscent &&
         extents.height + extents.y_bearing <= fontMetrics.maxDescent) {
         PRUint32 appUnitsWidth =
-            PRUint32(NS_ceil((extents.x_bearing + extents.width)*appUnitsPerDevUnit));
+            PRUint32(ceil((extents.x_bearing + extents.width)*appUnitsPerDevUnit));
         if (appUnitsWidth < gfxGlyphExtents::INVALID_WIDTH) {
             aExtents->SetContainedGlyphWidthAppUnits(aGlyphID, PRUint16(appUnitsWidth));
             return;
@@ -1710,9 +1713,9 @@ RoundToNearestMultiple(double aValue, double aFraction)
 void gfxFont::CalculateDerivedMetrics(Metrics& aMetrics)
 {
     aMetrics.maxAscent =
-        NS_ceil(RoundToNearestMultiple(aMetrics.maxAscent, 1/1024.0));
+        ceil(RoundToNearestMultiple(aMetrics.maxAscent, 1/1024.0));
     aMetrics.maxDescent =
-        NS_ceil(RoundToNearestMultiple(aMetrics.maxDescent, 1/1024.0));
+        ceil(RoundToNearestMultiple(aMetrics.maxDescent, 1/1024.0));
 
     if (aMetrics.xHeight <= 0) {
         
@@ -1825,13 +1828,13 @@ gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont)
     
     
     
-    gfxFloat halfOfStrikeoutSize = NS_floor(aMetrics->strikeoutSize / 2.0 + 0.5);
+    gfxFloat halfOfStrikeoutSize = floor(aMetrics->strikeoutSize / 2.0 + 0.5);
     if (halfOfStrikeoutSize + aMetrics->strikeoutOffset > aMetrics->maxAscent) {
         if (aMetrics->strikeoutSize > aMetrics->maxAscent) {
             aMetrics->strikeoutSize = NS_MAX(aMetrics->maxAscent, 1.0);
-            halfOfStrikeoutSize = NS_floor(aMetrics->strikeoutSize / 2.0 + 0.5);
+            halfOfStrikeoutSize = floor(aMetrics->strikeoutSize / 2.0 + 0.5);
         }
-        gfxFloat ascent = NS_floor(aMetrics->maxAscent + 0.5);
+        gfxFloat ascent = floor(aMetrics->maxAscent + 0.5);
         aMetrics->strikeoutOffset = NS_MAX(halfOfStrikeoutSize, ascent / 2.0);
     }
 
@@ -2541,7 +2544,7 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
                     gfxFloat wid = mainFont->SynthesizeSpaceWidth(ch);
                     if (wid >= 0.0) {
                         nscoord advance =
-                            aTextRun->GetAppUnitsPerDevUnit() * NS_floor(wid + 0.5);
+                            aTextRun->GetAppUnitsPerDevUnit() * floor(wid + 0.5);
                         gfxTextRun::CompressedGlyph g;
                         if (gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance)) {
                             aTextRun->SetSimpleGlyph(index,
@@ -2611,11 +2614,8 @@ gfxFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
             return font.forget();
         }
         
-        
-        
-        
         gfxFontFamily *family = font->GetFontEntry()->Family();
-        if (family) {
+        if (family && family->TestCharacterMap(aCh)) {
             FontSearch matchData(aCh, font);
             family->FindFontForChar(&matchData);
             gfxFontEntry *fe = matchData.mBestMatch;
@@ -3527,7 +3527,7 @@ gfxTextRun::AdjustAdvancesForSyntheticBold(PRUint32 aStart, PRUint32 aLength)
                 
                 if (glyphData->IsSimpleGlyph()) {
                     
-                    PRInt32 advance = glyphData->GetSimpleAdvance() + synAppUnitOffset;
+                    PRUint32 advance = glyphData->GetSimpleAdvance() + synAppUnitOffset;
                     if (CompressedGlyph::IsSimpleAdvance(advance)) {
                         glyphData->SetSimpleGlyph(advance, glyphData->GetSimpleGlyph());
                     } else {

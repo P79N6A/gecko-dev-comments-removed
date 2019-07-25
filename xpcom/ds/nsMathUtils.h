@@ -108,30 +108,6 @@ inline NS_HIDDEN_(PRInt32) NS_lroundf(float x)
 
 
 
-inline NS_HIDDEN_(double) NS_ceil(double x)
-{
-    return ceil(x);
-}
-inline NS_HIDDEN_(float) NS_ceilf(float x)
-{
-    return ceilf(x);
-}
-
-
-
-
-inline NS_HIDDEN_(double) NS_floor(double x)
-{
-    return floor(x);
-}
-inline NS_HIDDEN_(float) NS_floorf(float x)
-{
-    return floorf(x);
-}
-
-
-
-
 
 
 inline NS_HIDDEN_(double) NS_hypot(double x, double y)
