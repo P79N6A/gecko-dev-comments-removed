@@ -196,19 +196,29 @@ var PreferencesView = {
       this.showRestart();
   },
 
+  _showHomePageHint: function _showHomePageHint(aHint) {
+    if (aHint)
+      document.getElementById("prefs-homepage").setAttribute("desc", aHint);
+    else
+      document.getElementById("prefs-homepage").removeAttribute("desc");
+  },
+
   _loadHomePage: function _loadHomePage() {
     let url = Browser.getHomePage();
     let value = "default";
     let display = url;
+    try {
+      display = gPrefService.getComplexValue("browser.startup.homepage.title", Ci.nsIPrefLocalizedString).data;
+    } catch (e) { }
 
     switch (url) {
       case "about:blank":
         value = "none";
-        display = "";
+        display = null;
         break;
       case "about:home":
         value = "default";
-        display = "";
+        display = null;
         break;
       default:
         value = "custom";
@@ -216,25 +226,25 @@ var PreferencesView = {
     }
 
     
-    document.getElementById("prefs-homepage").setAttribute("desc", display);
+    this._showHomePageHint(display);
   
     
     let options = document.getElementById("prefs-homepage-options");
     if (value == "custom") {
       
-      options.selectedIndex = -1;
-      options.setAttribute("label", Elements.browserBundle.getString("homepage.custom2"));
-    } else {
-      
-      options.value = value;
+      options.appendItem(Elements.browserBundle.getString("homepage.custom2"), "custom");
     }
+
+    
+    options.value = value;
   },
 
   updateHomePage: function updateHomePage() {
-    let url = "about:home";
     let options = document.getElementById("prefs-homepage-options");
     let value = options.selectedItem.value;
-    let display = "";
+
+    let url = "about:home";
+    let display = null;
 
     switch (value) {
       case "none":
@@ -243,25 +253,40 @@ var PreferencesView = {
       case "default":
         url = "about:home";
         break;
-      case "custom":
+      case "currentpage":
         url = Browser.selectedBrowser.currentURI.spec;
-        display = url;
+        display = Browser.selectedBrowser.contentDocument.title || url;
         break;
     }
 
     
-    document.getElementById("prefs-homepage").setAttribute("desc", display);
+    this._showHomePageHint(display);
 
-    let options = document.getElementById("prefs-homepage-options");
-    if (value == "custom") {
+    
+    let helper = null;
+    let items = options.menupopup.getElementsByAttribute("value", "custom");
+    if (items && items.length)
+      helper = items[0];
+
+    
+    if (value == "currentpage") {
       
-      options.selectedIndex = -1;
-      options.setAttribute("label", Elements.browserBundle.getString("homepage.custom2"));
+      
+      if (!helper)
+        helper = options.appendItem(Elements.browserBundle.getString("homepage.custom2"), "custom");
+
+      options.selectedItem = helper;
+    } else {
+      options.menupopup.removeChild(helper);
     }
 
     
     let pls = Cc["@mozilla.org/pref-localizedstring;1"].createInstance(Ci.nsIPrefLocalizedString);
     pls.data = url;
     gPrefService.setComplexValue("browser.startup.homepage", Ci.nsIPrefLocalizedString, pls);
+
+    
+    pls.data = display;
+    gPrefService.setComplexValue("browser.startup.homepage.title", Ci.nsIPrefLocalizedString, pls);
   }
 };
