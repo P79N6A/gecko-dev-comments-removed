@@ -319,6 +319,7 @@ pref("browser.fixup.alternate.enabled", true);
 pref("browser.fixup.alternate.prefix", "www.");
 pref("browser.fixup.alternate.suffix", ".com");
 pref("browser.fixup.hide_user_pass", true);
+pref("browser.fixup.use-utf8", false);
 
 
 pref("browser.urlbar.autocomplete.enabled", true);
@@ -988,10 +989,6 @@ pref("network.standard-url.escape-utf8", true);
 
 
 pref("network.standard-url.encode-utf8", true);
-
-
-
-pref("network.standard-url.encode-query-utf8", false);
 
 
 pref("network.ftp.idleConnectionTimeout", 300);
