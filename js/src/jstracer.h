@@ -667,6 +667,7 @@ enum MonitorResult {
 };
 
 const uintN PROFILE_MAX_INNER_LOOPS = 8;
+const uintN PROFILE_MAX_STACK = 6;
 
 
 
@@ -738,15 +739,6 @@ public:
     double branchMultiplier;
 
     
-
-
-
-    uintN prevConst;
-    
-    
-    JSOp prevOp;
-
-    
     bool shortLoop;
 
     
@@ -777,6 +769,42 @@ public:
     InnerLoop loopStack[PROFILE_MAX_INNER_LOOPS];
     uintN loopStackDepth;
 
+    
+
+
+
+
+    struct StackValue {
+        bool isConst;
+        bool hasValue;
+        int value;
+
+        StackValue() : isConst(false), hasValue(false) {}
+        StackValue(bool isConst) : isConst(isConst), hasValue(false) {}
+        StackValue(bool isConst, int value) : isConst(isConst), hasValue(true), value(value) {}
+    };
+    StackValue stack[PROFILE_MAX_STACK];
+    uintN sp;
+
+    inline void stackClear() { sp = 0; }
+    
+    inline void stackPush(const StackValue &v) {
+        if (sp < PROFILE_MAX_STACK)
+            stack[sp++] = v;
+        else
+            stackClear();
+    }
+
+    inline void stackPop() { if (sp > 0) sp--; }
+
+    inline StackValue stackAt(int pos) {
+        pos += sp;
+        if (pos >= 0 && uintN(pos) < PROFILE_MAX_STACK)
+            return stack[pos];
+        else
+            return StackValue(false);
+    }
+    
     LoopProfile(JSScript *script, jsbytecode *top, jsbytecode *bottom);
 
     enum ProfileAction {
