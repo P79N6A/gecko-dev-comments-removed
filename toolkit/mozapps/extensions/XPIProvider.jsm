@@ -2265,10 +2265,20 @@ var XPIProvider = {
       return false;
 
     
-    
-    if (aAddon.type == "theme")
-      return aAddon.internalName != this.currentSkin &&
-             !Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
+    if (aAddon.active)
+      return false;
+
+    if (aAddon.type == "theme") {
+      
+      
+      if (Prefs.getBoolPref(PREF_EM_DSS_ENABLED))
+        return false;
+
+      
+      
+      
+      return aAddon.internalName != this.currentSkin;
+    }
 
     return !aAddon.bootstrap;
   },
@@ -2287,12 +2297,29 @@ var XPIProvider = {
       return false;
 
     
-    
-    
-    
-    if (aAddon.type == "theme")
-      return this.selectedSkin != this.currentSkin &&
-             !Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
+    if (!aAddon.active)
+      return false;
+
+    if (aAddon.type == "theme") {
+      
+      
+      if (Prefs.getBoolPref(PREF_EM_DSS_ENABLED))
+        return false;
+
+      
+      
+      
+      if (aAddon.internalName != this.defaultSkin)
+        return true;
+
+      
+      
+      
+      
+      
+      
+      return this.selectedSkin != this.currentSkin;
+    }
 
     return !aAddon.bootstrap;
   },
@@ -2311,11 +2338,32 @@ var XPIProvider = {
       return false;
 
     
-    if (aAddon.type == "theme")
-      return aAddon.internalName == this.currentSkin ||
-             Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
+    
+    
+    
+    if (aAddon instanceof DBAddonInternal)
+      return false;
 
-    return !aAddon.bootstrap;
+    
+    
+    if ("_install" in aAddon && aAddon._install) {
+      
+      
+      
+      let existingAddon = aAddon._install.existingAddon;
+      if (existingAddon && this.uninstallRequiresRestart(existingAddon))
+        return true;
+    }
+
+    
+    
+    if (aAddon.userDisabled || aAddon.appDisabled)
+      return false;
+
+    
+    
+    
+    return aAddon.type == "theme" || !aAddon.bootstrap;
   },
 
   
@@ -2332,11 +2380,8 @@ var XPIProvider = {
       return false;
 
     
-    if (aAddon.type == "theme")
-      return aAddon.internalName == this.currentSkin ||
-             Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
-
-    return !aAddon.bootstrap;
+    
+    return this.disableRequiresRestart(aAddon);
   },
 
   
@@ -2559,7 +2604,7 @@ var XPIProvider = {
       throw new Error("Cannot uninstall addons from locked install locations");
 
     
-    let requiresRestart = aAddon.active && this.uninstallRequiresRestart(aAddon);
+    let requiresRestart = this.uninstallRequiresRestart(aAddon);
 
     if (requiresRestart) {
       
@@ -4736,12 +4781,6 @@ AddonInstall.prototype = {
     let isUpgrade = this.existingAddon &&
                     this.existingAddon._installLocation == this.installLocation;
     let requiresRestart = XPIProvider.installRequiresRestart(this.addon);
-    
-    
-    if (!requiresRestart && this.existingAddon) {
-      requiresRestart = this.existingAddon.active &&
-                        XPIProvider.disableRequiresRestart(this.existingAddon);
-    }
 
     LOG("Starting install of " + this.sourceURI.spec);
     AddonManagerPrivate.callAddonListeners("onInstalling",
