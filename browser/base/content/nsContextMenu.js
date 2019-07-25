@@ -87,7 +87,7 @@ function nsContextMenu(aXulMenu, aBrowser) {
   this.isContentSelected = false;
   this.shouldDisplay     = true;
   this.isDesignMode      = false;
-  this.possibleSpellChecking = false;
+  this.onEditableArea = false;
   this.ellipsis = "\u2026";
   try {
     this.ellipsis = gPrefService.getComplexValue("intl.ellipsis",
@@ -367,7 +367,7 @@ nsContextMenu.prototype = {
     var canSpell = InlineSpellCheckerUI.canSpellCheck;
     var onMisspelling = InlineSpellCheckerUI.overMisspelling;
     this.showItem("spell-check-enabled", canSpell);
-    this.showItem("spell-separator", canSpell || this.possibleSpellChecking);
+    this.showItem("spell-separator", canSpell || this.onEditableArea);
     if (canSpell) {
       document.getElementById("spell-check-enabled")
               .setAttribute("checked", InlineSpellCheckerUI.enabled);
@@ -395,7 +395,7 @@ nsContextMenu.prototype = {
       InlineSpellCheckerUI.addDictionaryListToMenu(dictMenu, dictSep);
       this.showItem("spell-add-dictionaries-main", false);
     }
-    else if (this.possibleSpellChecking) {
+    else if (this.onEditableArea) {
       
       
       
@@ -503,7 +503,7 @@ nsContextMenu.prototype = {
     this.inFrame           = false;
     this.hasBGImage        = false;
     this.bgImageURL        = "";
-    this.possibleSpellChecking = false;
+    this.onEditableArea = false;
 
     
     
@@ -552,7 +552,7 @@ nsContextMenu.prototype = {
         
         if (this.onTextInput && ! this.target.readOnly &&
             this.target.type != "password") {
-          this.possibleSpellChecking = true;
+          this.onEditableArea = true;
           InlineSpellCheckerUI.init(this.target.QueryInterface(Ci.nsIDOMNSEditableElement).editor);
           InlineSpellCheckerUI.initFromEvent(aRangeParent, aRangeOffset);
         }
@@ -561,7 +561,7 @@ nsContextMenu.prototype = {
       else if (this.target instanceof HTMLTextAreaElement) {
         this.onTextInput = true;
         if (!this.target.readOnly) {
-          this.possibleSpellChecking = true;
+          this.onEditableArea = true;
           InlineSpellCheckerUI.init(this.target.QueryInterface(Ci.nsIDOMNSEditableElement).editor);
           InlineSpellCheckerUI.initFromEvent(aRangeParent, aRangeOffset);
         }
@@ -662,39 +662,41 @@ nsContextMenu.prototype = {
       this.inFrame = true;
 
     
-    var win = this.target.ownerDocument.defaultView;
-    if (win) {
-      var isEditable = false;
-      try {
-        var editingSession = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIWebNavigation)
-                                .QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIEditingSession);
-        if (editingSession.windowIsEditable(win) &&
-            this.getComputedStyle(this.target, "-moz-user-modify") == "read-write") {
-          isEditable = true;
+    if (!this.onEditableArea) {
+      var win = this.target.ownerDocument.defaultView;
+      if (win) {
+        var isEditable = false;
+        try {
+          var editingSession = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                                  .getInterface(Ci.nsIWebNavigation)
+                                  .QueryInterface(Ci.nsIInterfaceRequestor)
+                                  .getInterface(Ci.nsIEditingSession);
+          if (editingSession.windowIsEditable(win) &&
+              this.getComputedStyle(this.target, "-moz-user-modify") == "read-write") {
+            isEditable = true;
+          }
         }
-      }
-      catch(ex) {
-        
-      }
+        catch(ex) {
+          
+        }
 
-      if (isEditable) {
-        this.onTextInput       = true;
-        this.onKeywordField    = false;
-        this.onImage           = false;
-        this.onLoadedImage     = false;
-        this.onCompletedImage  = false;
-        this.onMathML          = false;
-        this.inFrame           = false;
-        this.hasBGImage        = false;
-        this.isDesignMode      = true;
-        this.possibleSpellChecking = true;
-        InlineSpellCheckerUI.init(editingSession.getEditorForWindow(win));
-        var canSpell = InlineSpellCheckerUI.canSpellCheck;
-        InlineSpellCheckerUI.initFromEvent(aRangeParent, aRangeOffset);
-        this.showItem("spell-check-enabled", canSpell);
-        this.showItem("spell-separator", canSpell);
+        if (isEditable) {
+          this.onTextInput       = true;
+          this.onKeywordField    = false;
+          this.onImage           = false;
+          this.onLoadedImage     = false;
+          this.onCompletedImage  = false;
+          this.onMathML          = false;
+          this.inFrame           = false;
+          this.hasBGImage        = false;
+          this.isDesignMode      = true;
+          this.onEditableArea = true;
+          InlineSpellCheckerUI.init(editingSession.getEditorForWindow(win));
+          var canSpell = InlineSpellCheckerUI.canSpellCheck;
+          InlineSpellCheckerUI.initFromEvent(aRangeParent, aRangeOffset);
+          this.showItem("spell-check-enabled", canSpell);
+          this.showItem("spell-separator", canSpell);
+        }
       }
     }
   },
