@@ -414,20 +414,6 @@ struct JS_FRIEND_API(JSCompartment) {
     
     js::types::TypeCompartment   types;
 
-    
-    struct TypeInferenceMemoryStats
-    {
-        int64 scriptMain;
-        int64 scriptSets;
-        int64 objectMain;
-        int64 objectSets;
-        int64 poolMain;
-    };
-
-    void getTypeInferenceMemoryStats(JSContext *cx, TypeInferenceMemoryStats *stats);
-    void getTypeInferenceObjectStats(js::types::TypeObject *object,
-                                     JSCompartment::TypeInferenceMemoryStats *stats);
-
 #ifdef JS_TRACER
   private:
     
