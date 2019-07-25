@@ -439,8 +439,9 @@ window.TabItem.prototype = iQ.extend(new Item(), {
       function onZoomDone(){
         TabMirror.resumePainting();
         
-        Page.tabOnFocus(tab);
-        if (!tab.isFocused()) {
+        if (tab.isFocused()) {
+          Page.tabOnFocus(tab);
+        } else {
           tab.focus();
         }
 
