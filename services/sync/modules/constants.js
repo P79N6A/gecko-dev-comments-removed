@@ -59,7 +59,7 @@ const WEAVE_VERSION = "@weave_version@";
 
 
 
-const MIN_SERVER_STORAGE_VERSION = "@weave_version@";
+const MIN_SERVER_STORAGE_VERSION = "@storage_version@";
 
 const PREFS_BRANCH = "extensions.weave.";
 
