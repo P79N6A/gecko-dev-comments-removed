@@ -1001,6 +1001,7 @@ nsEditor::EndPlaceHolderTransaction()
         
       }
       
+      
       if (!mInIMEMode) NotifyEditorObservers();
     }
   }

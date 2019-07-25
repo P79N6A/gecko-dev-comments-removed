@@ -988,6 +988,13 @@ nsPlaintextEditor::UpdateIMEComposition(const nsAString& aCompositionString,
     if (aCompositionString.IsEmpty()) {
       mIMETextNode = nsnull;
     }
+
+    
+    
+    
+    if (mIsIMEComposing) {
+      NotifyEditorObservers();
+    }
   }
 
   return rv;
