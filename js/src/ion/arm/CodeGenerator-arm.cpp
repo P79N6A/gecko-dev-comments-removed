@@ -850,11 +850,9 @@ CodeGeneratorARM::visitRound(LRound *lir)
         return false;
 
     Label belowZero, end, fail;
-
     if (lir->mir()->mode() == MRound::RoundingMode_Round) {
         
-        static const double ZeroFive = 0.5;
-        masm.loadStaticDouble(&ZeroFive, ScratchFloatReg);
+        masm.ma_vimm(0.5, ScratchFloatReg);
         masm.ma_vadd(ScratchFloatReg, input, input);
     }
 
@@ -862,13 +860,12 @@ CodeGeneratorARM::visitRound(LRound *lir)
     
     
 
-    masm.ma_vsub(ScratchFloatReg, ScratchFloatReg, ScratchFloatReg);
-    masm.ma_vcmp(input, ScratchFloatReg);
+    masm.ma_vcmpz(input);
     masm.as_vmrs(pc);
-    masm.ma_b(&belowZero, Assembler::VFP_GreaterThanOrEqual);
+    masm.ma_b(&belowZero, Assembler::VFP_LessThanOrEqual);
 
     
-    emitDoubleToInt32(input, output, &fail);
+    emitRoundDouble(input, output, &fail);
     masm.jump(&end);
 
     masm.bind(&fail);
@@ -877,13 +874,9 @@ CodeGeneratorARM::visitRound(LRound *lir)
 
     
     masm.bind(&belowZero);
-    masm.ma_vsub(ScratchFloatReg, input, ScratchFloatReg);
-    emitDoubleToInt32(input, output, &fail);
-    masm.ma_rsb(Imm32(0), output); 
-    
-    
-    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
-        return false;
+    masm.ma_vneg(input, input);
+    emitRoundDouble(input, output, &fail);
+    masm.ma_rsb(Imm32(0), output, SetCond); 
     
     if (!bailoutIf(Assembler::Equal, lir->snapshot()))
         return false;
@@ -914,6 +907,16 @@ CodeGeneratorARM::emitDoubleToInt32(const FloatRegister &src, const Register &de
     return true;
 }
 
+void
+CodeGeneratorARM::emitRoundDouble(const FloatRegister &src, const Register &dest, Label *fail)
+{
+    masm.ma_vcvt_F64_I32(src, ScratchFloatReg);
+    masm.ma_vxfer(ScratchFloatReg, dest);
+    masm.ma_cmp(dest, Imm32(0x7fffffff));
+    masm.ma_cmp(dest, Imm32(0x80000000), Assembler::NotEqual);
+    masm.ma_b(fail, Assembler::Equal);
+}
+
 
 
 
@@ -928,7 +931,35 @@ CodeGeneratorARM::emitTruncateDouble(const FloatRegister &src, const Register &d
     masm.ma_vxfer(ScratchFloatReg, dest);
     masm.ma_cmp(dest, Imm32(0x7fffffff));
     masm.ma_cmp(dest, Imm32(0x80000000), Assembler::NotEqual);
-    masm.ma_b(fail, Assembler::Equal);
+    Label join;
+    masm.ma_b(&join, Assembler::NotEqual);
+
+    
+    masm.ma_b(fail, Assembler::NotEqual);
+    if (dest != r0)
+        masm.Push(r0);
+    if (dest != r1)
+        masm.Push(r1);
+    if (dest != r2)
+        masm.Push(r2);
+    if (dest != r3)
+        masm.Push(r3);
+    masm.ma_vxfer(src, r0, r1);
+    masm.setupAlignedABICall(2);
+    masm.setABIArg(0,r0);
+    masm.setABIArg(1,r1);
+    masm.callWithABI((void*)js_DoubleToECMAInt32);
+
+    masm.ma_mov(r0, dest);
+    if (dest != r3)
+        masm.Pop(r3);
+    if (dest != r2)
+        masm.Pop(r2);
+    if (dest != r1)
+        masm.Pop(r1);
+    if (dest != r0)
+        masm.Pop(r0);
+    masm.bind(&join);
 }
 
 
@@ -1335,7 +1366,6 @@ CodeGeneratorARM::generateInvalidateEpilogue()
 
     
     masm.Push(lr);
-
     
     invalidateEpilogueData_ = masm.pushWithPatch(ImmWord(uintptr_t(-1)));
     IonCode *thunk = gen->cx->compartment->ionCompartment()->getOrCreateInvalidationThunk(gen->cx);
