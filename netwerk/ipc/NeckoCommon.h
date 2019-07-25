@@ -64,15 +64,15 @@ namespace net {
 inline bool 
 IsNeckoChild() 
 {
-  
-  
-  
   static bool didCheck = false;
   static bool amChild = false;
 
   if (!didCheck) {
-    const char * e = PR_GetEnv("NECKO_E10S_HTTP");
-    if (e && *e)
+    
+    
+    
+    const char * e = PR_GetEnv("NECKO_SEPARATE_STACKS");
+    if (!e) 
       amChild = (XRE_GetProcessType() == GeckoProcessType_Content);
     didCheck = true;
   }
