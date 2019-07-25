@@ -410,11 +410,8 @@ ChromeInputModule.prototype = {
     this._dragMove(sX, sY);
   },
 
-
   
   _sendSingleClick: function _sendSingleClick() {
-    this._owner.allowNextClick();
-
     this._owner.grab(this);
     this._owner.stopListening();
 
