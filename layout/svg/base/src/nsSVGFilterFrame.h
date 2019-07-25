@@ -45,24 +45,10 @@ public:
                               nsIAtom*        aAttribute,
                               PRInt32         aModType);
 
-  nsresult FilterPaint(nsRenderingContext *aContext,
-                       nsIFrame *aTarget, nsSVGFilterPaintCallback *aPaintCallback,
-                       const nsIntRect* aDirtyRect);
-
-  
-
-
-
-
-  nsIntRect GetInvalidationBBox(nsIFrame *aTarget, const nsIntRect& aRect);
-
-  
-
-
-
-
-
-  nsIntRect GetSourceForInvalidArea(nsIFrame *aTarget, const nsIntRect& aRect);
+  nsresult PaintFilteredFrame(nsRenderingContext *aContext,
+                              nsIFrame *aFilteredFrame,
+                              nsSVGFilterPaintCallback *aPaintCallback,
+                              const nsIntRect* aDirtyArea);
 
   
 
@@ -70,9 +56,27 @@ public:
 
 
 
-  nsIntRect GetFilterBBox(nsIFrame *aTarget,
-                          const nsIntRect *aOverrideBBox = nsnull,
-                          const nsIntRect *aPreFilterBounds = nsnull);
+  nsIntRect GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
+                                   const nsIntRect& aPreFilterDirtyRect);
+
+  
+
+
+
+
+
+  nsIntRect GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
+                                   const nsIntRect& aPostFilterDirtyRect);
+
+  
+
+
+
+
+
+  nsIntRect GetPostFilterBounds(nsIFrame *aFilteredFrame,
+                                const nsIntRect *aOverrideBBox = nsnull,
+                                const nsIntRect *aPreFilterBounds = nsnull);
 
 #ifdef DEBUG
   NS_IMETHOD Init(nsIContent*      aContent,

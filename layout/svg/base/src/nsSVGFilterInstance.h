@@ -38,6 +38,10 @@ class nsSVGFilterPaintCallback;
 
 
 
+
+
+
+
 class NS_STACK_CLASS nsSVGFilterInstance
 {
 public:
@@ -71,24 +75,24 @@ public:
                       nsSVGFilterPaintCallback *aPaintCallback,
                       const nsSVGFilterElement *aFilterElement,
                       const gfxRect &aTargetBBox,
-                      const gfxRect& aFilterRect,
+                      const gfxRect& aFilterRegion,
                       const nsIntSize& aFilterSpaceSize,
                       const gfxMatrix &aFilterSpaceToDeviceSpaceTransform,
                       const nsIntRect& aTargetBounds,
-                      const nsIntRect& aDirtyOutputRect,
-                      const nsIntRect& aDirtyInputRect,
+                      const nsIntRect& aPostFilterDirtyRect,
+                      const nsIntRect& aPreFilterDirtyRect,
                       PRUint16 aPrimitiveUnits) :
     mTargetFrame(aTargetFrame),
     mPaintCallback(aPaintCallback),
     mFilterElement(aFilterElement),
     mTargetBBox(aTargetBBox),
     mFilterSpaceToDeviceSpaceTransform(aFilterSpaceToDeviceSpaceTransform),
-    mFilterRect(aFilterRect),
+    mFilterRegion(aFilterRegion),
     mFilterSpaceSize(aFilterSpaceSize),
     mSurfaceRect(nsIntPoint(0, 0), aFilterSpaceSize),
     mTargetBounds(aTargetBounds),
-    mDirtyOutputRect(aDirtyOutputRect),
-    mDirtyInputRect(aDirtyInputRect),
+    mPostFilterDirtyRect(aPostFilterDirtyRect),
+    mPreFilterDirtyRect(aPreFilterDirtyRect),
     mPrimitiveUnits(aPrimitiveUnits) {
   }
 
@@ -98,7 +102,7 @@ public:
 
 
 
-  gfxRect GetFilterRect() const { return mFilterRect; }
+  gfxRect GetFilterRegion() const { return mFilterRegion; }
 
   
 
@@ -138,7 +142,7 @@ public:
 
 
 
-  nsresult ComputeOutputDirtyRect(nsIntRect* aDirty);
+  nsresult ComputePostFilterDirtyRect(nsIntRect* aPostFilterDirtyRect);
 
   
 
@@ -360,7 +364,7 @@ private:
   gfxRect                 mTargetBBox;
 
   gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
-  gfxRect                 mFilterRect;
+  gfxRect                 mFilterRegion;
   nsIntSize               mFilterSpaceSize;
   nsIntRect               mSurfaceRect;
 
@@ -375,7 +379,7 @@ private:
 
 
 
-  nsIntRect               mDirtyOutputRect;
+  nsIntRect               mPostFilterDirtyRect;
 
   
 
@@ -383,7 +387,7 @@ private:
 
 
 
-  nsIntRect               mDirtyInputRect;
+  nsIntRect               mPreFilterDirtyRect;
 
   
 
