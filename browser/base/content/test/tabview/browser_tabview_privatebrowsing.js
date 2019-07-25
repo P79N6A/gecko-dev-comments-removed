@@ -49,14 +49,11 @@ let pb = Cc["@mozilla.org/privatebrowsing;1"].
 function test() {
   waitForExplicitFinish();
 
-  
-  window.addEventListener("tabviewshown", onTabViewLoadedAndShown, false);
-  TabView.toggle();
+  showTabView(onTabViewLoadedAndShown);
 }
 
 
 function onTabViewLoadedAndShown() {
-  window.removeEventListener("tabviewshown", onTabViewLoadedAndShown, false);
   ok(TabView.isVisible(), "Tab View is visible");
 
   
@@ -111,18 +108,15 @@ function onTabViewLoadedAndShown() {
       togglePBAndThen(function() {
         ok(TabView.isVisible(), "Tab View is visible again");
         verifyNormal();
-        
-        
-        window.addEventListener("tabviewhidden", onTabViewHidden, false);
-        TabView.toggle();
-      });  
+
+        hideTabView(onTabViewHidden);
+      });
     });
   });
 }
 
 
 function onTabViewHidden() {
-  window.removeEventListener("tabviewhidden", onTabViewHidden, false);
   ok(!TabView.isVisible(), "Tab View is not visible");
   
   
@@ -196,7 +190,6 @@ function togglePBAndThen(callback) {
       return;
 
     Services.obs.removeObserver(pbObserver, "private-browsing-transition-complete");
-    
     afterAllTabsLoaded(callback);
   }
 

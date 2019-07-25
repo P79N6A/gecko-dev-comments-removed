@@ -233,9 +233,15 @@ let TabView = {
         event.preventDefault();
 
         self._initFrame(function() {
-          let tabItem = self._window.GroupItems.getNextGroupItemTab(event.shiftKey);
-          if (tabItem)
-            window.gBrowser.selectedTab = tabItem.tab;
+          let groupItems = self._window.GroupItems;
+          let tabItem = groupItems.getNextGroupItemTab(event.shiftKey);
+          if (!tabItem)
+            return;
+
+          
+          let oldGroupItem = groupItems.getActiveGroupItem();
+          window.gBrowser.selectedTab = tabItem.tab;
+          oldGroupItem.closeIfEmpty();
         });
       }
     }, true);
@@ -246,5 +252,12 @@ let TabView = {
   prepareUndoCloseTab: function() {
     if (this._window)
       this._window.UI.restoredClosedTab = true;
+  },
+
+  
+  
+  afterUndoCloseTab: function () {
+    if (this._window)
+      this._window.UI.restoredClosedTab = false;
   }
 };

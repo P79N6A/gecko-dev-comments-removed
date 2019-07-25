@@ -538,36 +538,41 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  close: function GroupItem_close() {
+  
+  
+  
+  
+  
+  
+  close: function GroupItem_close(options) {
     this.removeAll({dontClose: true});
     GroupItems.unregister(this);
 
-    if (this.hidden) {
-      iQ(this.container).remove();
-      if (this.$undoContainer) {
-        this.$undoContainer.remove();
-        this.$undoContainer = null;
-       }
-      this.removeTrenches();
+    let self = this;
+    let destroyGroup = function () {
+      iQ(self.container).remove();
+      if (self.$undoContainer) {
+        self.$undoContainer.remove();
+        self.$undoContainer = null;
+      }
+      self.removeTrenches();
       Items.unsquish();
-      this._sendToSubscribers("close");
+      self._sendToSubscribers("close");
       GroupItems.updateGroupCloseButtons();
+    }
+
+    if (this.hidden || (options && options.immediately)) {
+      destroyGroup();
     } else {
-      let self = this;
       iQ(this.container).animate({
         opacity: 0,
         "-moz-transform": "scale(.3)",
       }, {
         duration: 170,
-        complete: function() {
-          iQ(this).remove();
-          self.removeTrenches();
-          Items.unsquish();
-          self._sendToSubscribers("close");
-          GroupItems.updateGroupCloseButtons();
-        }
+        complete: destroyGroup
       });
     }
+
     this.deleteData();
   },
 
@@ -621,6 +626,21 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       GroupItems.setActiveGroupItem(null);
       GroupItems.setActiveOrphanTab(null);
     }
+  },
+
+  
+  
+  
+  
+  
+  closeIfEmpty: function() {
+    if (!this._children.length && !this.locked.close && !this.getTitle() &&
+        !GroupItems.getUnclosableGroupItemId() &&
+        !GroupItems._autoclosePaused) {
+      this.close();
+      return true;
+    }
+    return false;
   },
 
   
@@ -870,7 +890,9 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         item.groupItemData = {};
 
         item.addSubscriber(this, "close", function() {
-          self.remove(item);
+          let dontClose = !item.closedManually && gBrowser._numPinnedTabs > 0;
+          self.remove(item, { dontClose: dontClose });
+
           if (self._children.length > 0 && self._activeTab) {
             GroupItems.setActiveGroupItem(self);
             UI.setActiveTab(self._activeTab);
@@ -958,17 +980,11 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       if (typeof item.setResizable == 'function')
         item.setResizable(true, options.immediately);
 
-      if (this._children.length == 0 && !this.locked.close && !this.getTitle() && 
-          !options.dontClose) {
-        if (!GroupItems.getUnclosableGroupItemId()) {
-          this.close();
-          this._makeClosestTabActive();
-        } else {
-          
-        }
-      } else if (!options.dontArrange) {
+      let closed = options.dontClose ? false : this.closeIfEmpty();
+      if (closed)
+        this._makeClosestTabActive();
+      else if (!options.dontArrage)
         this.arrange({animate: !options.immediately});
-      }
 
       this._sendToSubscribers("childRemoved",{ groupItemId: this.id, item: item });
     } catch(e) {
@@ -1681,6 +1697,7 @@ let GroupItems = {
   _arrangesPending: [],
   _removingHiddenGroups: false,
   _delayedModUpdates: [],
+  _autoclosePaused: false,
   minGroupHeight: 110,
   minGroupWidth: 125,
 
@@ -1938,7 +1955,7 @@ let GroupItems = {
         }
 
         toClose.forEach(function(groupItem) {
-          groupItem.close();
+          groupItem.close({immediately: true});
         });
       }
 
@@ -2436,5 +2453,21 @@ let GroupItems = {
     return new Point(
       Math.max(size.x, GroupItems.minGroupWidth),
       Math.max(size.y, GroupItems.minGroupHeight));
+  },
+
+  
+  
+  
+  
+  
+  pauseAutoclose: function GroupItems_pauseAutoclose() {
+    this._autoclosePaused = true;
+  },
+
+  
+  
+  
+  resumeAutoclose: function GroupItems_resumeAutoclose() {
+    this._autoclosePaused = false;
   }
 };
