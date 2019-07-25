@@ -222,7 +222,7 @@ StyleEditor.prototype = {
 
     let sourceEditor = new SourceEditor();
     let config = {
-      placeholderText: this._state.text, 
+      initialText: this._state.text,
       showLineNumbers: true,
       mode: SourceEditor.MODES.CSS,
       readOnly: this._state.readOnly,
