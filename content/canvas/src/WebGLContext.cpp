@@ -148,6 +148,22 @@ WebGLContext::WebGLContext()
     mScissorTestEnabled = 0;
     mDitherEnabled = 1;
     mBackbufferClearingStatus = BackbufferClearingStatus::NotClearedSinceLastPresented;
+    
+    
+    
+    mGLMaxVertexAttribs = 0;
+    mGLMaxTextureUnits = 0;
+    mGLMaxTextureSize = 0;
+    mGLMaxCubeMapTextureSize = 0;
+    mGLMaxTextureImageUnits = 0;
+    mGLMaxVertexTextureImageUnits = 0;
+    mGLMaxVaryingVectors = 0;
+    mGLMaxFragmentUniformVectors = 0;
+    mGLMaxVertexUniformVectors = 0;
+    
+    
+    mPixelStorePackAlignment = 4;
+    mPixelStoreUnpackAlignment = 4;
 }
 
 WebGLContext::~WebGLContext()
