@@ -59,6 +59,7 @@ JS_STATIC_ASSERT(sizeof(JSArena) % 8 == 0);
 JS_PUBLIC_API(void)
 JS_InitArenaPool(JSArenaPool *pool, const char *name, size_t size, size_t align)
 {
+    JS_ASSERT(JS_CeilingLog2(size) == JS_FloorLog2(size));
     
     if (align == 1 || align == 2 || align == 4 || align == 8) {
         pool->mask = align - 1;
@@ -72,7 +73,9 @@ JS_InitArenaPool(JSArenaPool *pool, const char *name, size_t size, size_t align)
     pool->first.base = pool->first.avail = pool->first.limit =
         JS_ARENA_ALIGN(pool, &pool->first + 1);
     pool->current = &pool->first;
-    pool->arenasize = size;
+    pool->netsize = size - sizeof(JSArena);
+    
+    JS_ASSERT(pool->netsize == JS_ARENA_ALIGN(pool, pool->netsize));
 }
 
 JS_PUBLIC_API(void *)
@@ -98,7 +101,7 @@ JS_ArenaAllocate(JSArenaPool *pool, size_t nb)
         JSArena **ap = &a->next;
         if (!*ap) {
             
-            size_t gross = sizeof(JSArena) + JS_MAX(nb, pool->arenasize);
+            size_t gross = sizeof(JSArena) + JS_MAX(nb, pool->netsize);
             a = (JSArena *) OffTheBooks::malloc_(gross);
             if (!a)
                 return NULL;
@@ -129,7 +132,7 @@ JS_PUBLIC_API(void *)
 JS_ArenaRealloc(JSArenaPool *pool, void *p, size_t size, size_t incr)
 {
     
-    JS_ASSERT(size + incr > pool->arenasize);
+    JS_ASSERT(size + incr > pool->netsize);
 
     
     JSArena *a;
@@ -177,7 +180,7 @@ JS_ArenaGrow(JSArenaPool *pool, void *p, size_t size, size_t incr)
 
 
 
-    if (size > pool->arenasize)
+    if (size > pool->netsize)
         return JS_ArenaRealloc(pool, p, size, incr);
 
     JS_ARENA_ALLOCATE(newp, pool, size + incr);

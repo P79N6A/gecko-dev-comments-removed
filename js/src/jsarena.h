@@ -66,7 +66,8 @@ struct JSArena {
 struct JSArenaPool {
     JSArena     first;          
     JSArena     *current;       
-    size_t      arenasize;      
+    size_t      netsize;        
+
     jsuword     mask;           
 };
 
@@ -225,6 +226,8 @@ JS_END_EXTERN_C
 
 #ifdef __cplusplus
 
+#include "jstl.h"
+
 namespace js {
 
 template <typename T>
@@ -307,7 +310,7 @@ inline void
 MoveArenaPool(JSArenaPool *oldPool, JSArenaPool *newPool)
 {
     *newPool = *oldPool;
-    JS_InitArenaPool(oldPool, NULL, newPool->arenasize, newPool->mask + 1);
+    JS_InitArenaPool(oldPool, NULL, RoundUpPow2(newPool->netsize), newPool->mask + 1);
 }
 
 } 
