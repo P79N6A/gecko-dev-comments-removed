@@ -223,6 +223,10 @@ nsImageFrame::DestroyFrom(nsIFrame* aDestructRoot)
       nsCxPusher pusher;
       pusher.PushNull();
 
+      
+      
+      imageLoader->FrameDestroyed(this);
+
       imageLoader->RemoveObserver(mListener);
     }
     
@@ -267,6 +271,10 @@ nsImageFrame::Init(nsIContent*      aContent,
   
   if (!gIconLoad)
     LoadIcons(aPresContext);
+
+  
+  
+  imageLoader->FrameCreated(this);
 
   
   nsCOMPtr<imgIRequest> currentRequest;

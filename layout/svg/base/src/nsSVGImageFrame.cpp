@@ -100,6 +100,7 @@ public:
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
+  virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
   
 
@@ -178,6 +179,10 @@ nsSVGImageFrame::Init(nsIContent* aContent,
 
   
   
+  imageLoader->FrameCreated(this);
+
+  
+  
   
   nsCxPusher pusher;
   pusher.PushNull();
@@ -185,6 +190,19 @@ nsSVGImageFrame::Init(nsIContent* aContent,
   imageLoader->AddObserver(mListener);
 
   return NS_OK; 
+}
+
+ void
+nsSVGImageFrame::DestroyFrom(nsIFrame* aDestructRoot)
+{
+  nsCOMPtr<nsIImageLoadingContent> imageLoader =
+    do_QueryInterface(nsFrame::mContent);
+
+  if (imageLoader) {
+    imageLoader->FrameDestroyed(this);
+  }
+
+  nsFrame::DestroyFrom(aDestructRoot);
 }
 
 
