@@ -46,6 +46,8 @@
 #include "nsContentUtils.h"
 #include "nsNodeUtils.h"
 
+#define NS_HTML5_TREE_DEPTH_LIMIT 200
+
 class nsPresContext;
 
 
@@ -243,7 +245,9 @@ nsHtml5TreeBuilder::appendElement(nsIContent** aChild, nsIContent** aParent)
 {
   NS_PRECONDITION(aChild, "Null child");
   NS_PRECONDITION(aParent, "Null parent");
-
+  if (mDeepTreeSurrogateParent) {
+    return;
+  }
   nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
   NS_ASSERTION(treeOp, "Tree op allocation failed.");
   treeOp->Init(eTreeOpAppend, aChild, aParent);
@@ -298,7 +302,8 @@ nsHtml5TreeBuilder::appendCharacters(nsIContent** aParent, PRUnichar* aBuffer, P
   
   nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
   NS_ASSERTION(treeOp, "Tree op allocation failed.");
-  treeOp->Init(eTreeOpAppendText, bufferCopy, aLength, aParent);
+  treeOp->Init(eTreeOpAppendText, bufferCopy, aLength,
+      mDeepTreeSurrogateParent ? mDeepTreeSurrogateParent : aParent);
 }
 
 void
@@ -306,6 +311,9 @@ nsHtml5TreeBuilder::appendComment(nsIContent** aParent, PRUnichar* aBuffer, PRIn
 {
   NS_PRECONDITION(aBuffer, "Null buffer");
   NS_PRECONDITION(aParent, "Null parent");
+  if (mDeepTreeSurrogateParent) {
+    return;
+  }
 
   PRUnichar* bufferCopy = new PRUnichar[aLength];
   memcpy(bufferCopy, aBuffer, aLength * sizeof(PRUnichar));
@@ -356,6 +364,7 @@ void
 nsHtml5TreeBuilder::start(PRBool fragment)
 {
   mCurrentHtmlScriptIsAsyncOrDefer = PR_FALSE;
+  mDeepTreeSurrogateParent = nsnull;
 #ifdef DEBUG
   mActive = PR_TRUE;
 #endif
@@ -388,6 +397,36 @@ nsHtml5TreeBuilder::elementPushed(PRInt32 aNamespace, nsIAtom* aName, nsIContent
   NS_ASSERTION(aNamespace == kNameSpaceID_XHTML || aNamespace == kNameSpaceID_SVG || aNamespace == kNameSpaceID_MathML, "Element isn't HTML, SVG or MathML!");
   NS_ASSERTION(aName, "Element doesn't have local name!");
   NS_ASSERTION(aElement, "No element!");
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if (!mDeepTreeSurrogateParent && currentPtr >= NS_HTML5_TREE_DEPTH_LIMIT &&
+      !(aName == nsHtml5Atoms::script ||
+        aName == nsHtml5Atoms::table ||
+        aName == nsHtml5Atoms::thead ||
+        aName == nsHtml5Atoms::tfoot ||
+        aName == nsHtml5Atoms::tbody ||
+        aName == nsHtml5Atoms::tr ||
+        aName == nsHtml5Atoms::colgroup ||
+        aName == nsHtml5Atoms::style)) {
+    mDeepTreeSurrogateParent = aElement;
+  }
   if (aNamespace != kNameSpaceID_XHTML) {
     return;
   }
@@ -405,6 +444,9 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
   NS_ASSERTION(aNamespace == kNameSpaceID_XHTML || aNamespace == kNameSpaceID_SVG || aNamespace == kNameSpaceID_MathML, "Element isn't HTML, SVG or MathML!");
   NS_ASSERTION(aName, "Element doesn't have local name!");
   NS_ASSERTION(aElement, "No element!");
+  if (mDeepTreeSurrogateParent && currentPtr <= NS_HTML5_TREE_DEPTH_LIMIT) {
+    mDeepTreeSurrogateParent = nsnull;
+  }
   if (aNamespace == kNameSpaceID_MathML) {
     return;
   }
