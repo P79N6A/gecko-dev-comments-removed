@@ -260,7 +260,19 @@ function InitAndStartRefTests()
     try {
       var prefs = Components.classes["@mozilla.org/preferences-service;1"].
                   getService(Components.interfaces.nsIPrefBranch2);
+    } catch(e) {
+      gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | | EXCEPTION: " + e + "\n");
+    }
+    
+    
+    try {
       gLoadTimeout = prefs.getIntPref("reftest.timeout");
+    } catch(e) { 
+      gLoadTimeout = 5 * 60 * 1000; 
+    }
+    
+    
+    try {
       logFile = prefs.getCharPref("reftest.logFile");
       if (logFile) {
         try {
@@ -273,13 +285,19 @@ function InitAndStartRefTests()
           gDumpLog = dump;
         }
       }
+    } catch(e) {}
+    
+    try {
       gRemote = prefs.getBoolPref("reftest.remote");
-      gIgnoreWindowSize = prefs.getBoolPref("reftest.ignoreWindowSize");
-    }
-    catch(e) {
-      gLoadTimeout = 5 * 60 * 1000; 
+    } catch(e) { 
+      gRemote = false;
     }
 
+    try {
+      gIgnoreWindowSize = prefs.getBoolPref("reftest.ignoreWindowSize");
+    } catch(e) {
+      gIgnoreWindowSize = false;
+    }
 
     
     try {
