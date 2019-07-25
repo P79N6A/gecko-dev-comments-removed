@@ -660,10 +660,21 @@ void PNGAPI
 png_set_rgb_to_gray(png_structp png_ptr, int error_action, double red,
    double green)
 {
-   int red_fixed = (int)((float)red*100000.0 + 0.5);
-   int green_fixed = (int)((float)green*100000.0 + 0.5);
+   int red_fixed, green_fixed;
    if (png_ptr == NULL)
       return;
+   if (red > 21474.83647 || red < -21474.83648 ||
+       green > 21474.83647 || green < -21474.83648)
+   {
+      png_warning(png_ptr, "ignoring out of range rgb_to_gray coefficients");
+      red_fixed = -1;
+      green_fixed = -1;
+   }
+   else
+   {
+      red_fixed = (int)((float)red*100000.0 + 0.5);
+      green_fixed = (int)((float)green*100000.0 + 0.5);
+   }
    png_set_rgb_to_gray_fixed(png_ptr, error_action, red_fixed, green_fixed);
 }
 #endif
@@ -703,27 +714,38 @@ png_set_rgb_to_gray_fixed(png_structp png_ptr, int error_action,
    }
 #endif
    {
-      png_uint_16 red_int, green_int;
-      if (red < 0 || green < 0)
+      if (red >= 0 && green >= 0 && red + green <= 100000L)
       {
-         red_int   =  6968; 
-         green_int = 23434; 
-      }
-      else if (red + green < 100000L)
-      {
+         png_uint_16 red_int, green_int;
+
          red_int = (png_uint_16)(((png_uint_32)red*32768L)/100000L);
          green_int = (png_uint_16)(((png_uint_32)green*32768L)/100000L);
+
+         png_ptr->rgb_to_gray_red_coeff   = red_int;
+         png_ptr->rgb_to_gray_green_coeff = green_int;
+         png_ptr->rgb_to_gray_blue_coeff  =
+          (png_uint_16)(32768 - red_int - green_int);
       }
+
       else
       {
-         png_warning(png_ptr, "ignoring out of range rgb_to_gray coefficients");
-         red_int   =  6968;
-         green_int = 23434;
+         if (red >= 0 && green >= 0)
+            png_warning(png_ptr,
+               "ignoring out of range rgb_to_gray coefficients");
+
+         
+
+
+
+         if (png_ptr->rgb_to_gray_red_coeff == 0 &&
+            png_ptr->rgb_to_gray_green_coeff == 0 &&
+            png_ptr->rgb_to_gray_blue_coeff == 0)
+         {
+            png_ptr->rgb_to_gray_red_coeff   = 6968;  
+            png_ptr->rgb_to_gray_green_coeff = 23434; 
+            png_ptr->rgb_to_gray_blue_coeff  = 2366;
+         }
       }
-      png_ptr->rgb_to_gray_red_coeff   = red_int;
-      png_ptr->rgb_to_gray_green_coeff = green_int;
-      png_ptr->rgb_to_gray_blue_coeff  =
-         (png_uint_16)(32768 - red_int - green_int);
    }
 }
 #endif
@@ -1181,8 +1203,7 @@ png_read_transform_info(png_structp png_ptr, png_infop info_ptr)
    {
       if (info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
       {
-         if (png_ptr->num_trans &&
-              (png_ptr->transformations & PNG_EXPAND_tRNS))
+         if (png_ptr->num_trans)
             info_ptr->color_type = PNG_COLOR_TYPE_RGB_ALPHA;
          else
             info_ptr->color_type = PNG_COLOR_TYPE_RGB;
@@ -1778,7 +1799,7 @@ png_do_chop(png_row_infop row_info, png_bytep row)
       for (i = 0; i<istop; i++, sp += 2, dp++)
       {
 #ifdef PNG_READ_16_TO_8_ACCURATE_SCALE_SUPPORTED
-      
+         
 
 
 
@@ -1787,23 +1808,9 @@ png_do_chop(png_row_infop row_info, png_bytep row)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-         *dp = *sp + ((((int)(*(sp + 1)) - *sp) > 128) ? 1 : 0);
+         png_int_32 tmp = *sp; 
+         tmp += (((int)sp[1] - tmp + 128) * 65535) >> 24;
+         *dp = (png_byte)tmp;
 #else
        
          *dp = *sp;

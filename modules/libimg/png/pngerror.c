@@ -87,12 +87,17 @@ png_error(png_structp png_ptr, png_const_charp error_message)
 void PNGAPI
 png_err(png_structp png_ptr)
 {
+   
+
+
+
+
    if (png_ptr != NULL && png_ptr->error_fn != NULL)
-      (*(png_ptr->error_fn))(png_ptr, '\0');
+      (*(png_ptr->error_fn))(png_ptr, "");
 
    
 
-   png_default_error(png_ptr, '\0');
+   png_default_error(png_ptr, "");
 }
 #endif 
 
@@ -181,8 +186,13 @@ png_format_buffer(png_structp png_ptr, png_charp buffer, png_const_charp
    {
       buffer[iout++] = ':';
       buffer[iout++] = ' ';
-      png_memcpy(buffer + iout, error_message, PNG_MAX_ERROR_TEXT);
-      buffer[iout + PNG_MAX_ERROR_TEXT - 1] = '\0';
+
+      iin = 0;
+      while (iin < PNG_MAX_ERROR_TEXT-1 && error_message[iin] != '\0')
+         buffer[iout++] = error_message[iin++];
+
+      
+      buffer[iout] = '\0';
    }
 }
 

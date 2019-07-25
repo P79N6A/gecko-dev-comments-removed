@@ -26,6 +26,15 @@
 
 #ifndef PNG_VERSION_INFO_ONLY
 
+#if defined(_AIX) && defined(_ALL_SOURCE)
+   
+
+
+
+
+#  undef _ALL_SOURCE
+#endif
+
 #include <stdlib.h>
 
 #ifndef PNG_EXTERN
