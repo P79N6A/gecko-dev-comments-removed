@@ -845,7 +845,10 @@ ShadowImageLayerOGL::LoadAsTexture(GLuint aTextureUnit, gfxIntSize* aSize)
 
   mTexImage->BindTextureAndApplyFilter(aTextureUnit);
 
-  *aSize = mTexImage->GetSize();
+  
+  
+  
+  *aSize = CalculatePOTSize(mTexImage->GetSize(), gl());
   return true;
 }
 

@@ -2747,7 +2747,6 @@ public:
 void
 BasicShadowableColorLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
 {
-  
   BasicColorLayer::Paint(aContext, aMaskLayer);
 
   if (!HasShadow()) {
