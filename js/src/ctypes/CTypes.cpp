@@ -65,6 +65,19 @@ namespace ctypes {
 
 
 
+class ScopedContextThread
+{
+public:
+  ScopedContextThread(JSContext* cx) : mCx(cx) { JS_SetContextThread(cx); }
+  ~ScopedContextThread() { JS_ClearContextThread(mCx); }
+private:
+  JSContext* mCx;
+};
+
+
+
+
+
 static JSBool ConstructAbstract(JSContext* cx, uintN argc, jsval* vp);
 
 namespace CType {
@@ -2778,6 +2791,7 @@ CType::FinalizeProtoClass(JSContext* cx, JSObject* obj)
     return;
 
   JSContext* closureCx = static_cast<JSContext*>(JSVAL_TO_PRIVATE(slot));
+  JS_SetContextThread(closureCx);
   JS_DestroyContextNoGC(closureCx);
 }
 
@@ -5369,7 +5383,14 @@ CClosure::Create(JSContext* cx,
       JS_DestroyContextNoGC(cinfo->cx);
       return NULL;
     }
+
+    JS_ClearContextThread(cinfo->cx);
   }
+
+#ifdef DEBUG
+  
+  cinfo->cxThread = JS_GetContextThread(cx);
+#endif
 
   
   
@@ -5483,6 +5504,11 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
   JSObject* typeObj = cinfo->typeObj;
   JSObject* thisObj = cinfo->thisObj;
   JSObject* jsfnObj = cinfo->jsfnObj;
+
+  ScopedContextThread scopedThread(cx);
+
+  
+  JS_ASSERT(cinfo->cxThread == JS_GetContextThread(cx));
 
   JS_AbortIfWrongThread(JS_GetRuntime(cx));
 

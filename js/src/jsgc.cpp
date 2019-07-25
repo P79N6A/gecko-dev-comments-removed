@@ -106,12 +106,6 @@
 # include <valgrind/memcheck.h>
 #endif
 
-#ifdef XP_WIN
-# include "jswin.h"
-#else
-# include <unistd.h>
-#endif
-
 using namespace mozilla;
 using namespace js;
 using namespace js::gc;
@@ -881,8 +875,14 @@ js_InitGC(JSRuntime *rt, uint32_t maxbytes)
         return false;
 
 #ifdef JS_THREADSAFE
-    rt->gcLock = PR_NewLock();
+    rt->gcLock = JS_NEW_LOCK();
     if (!rt->gcLock)
+        return false;
+    rt->gcDone = JS_NEW_CONDVAR(rt->gcLock);
+    if (!rt->gcDone)
+        return false;
+    rt->requestDone = JS_NEW_CONDVAR(rt->gcLock);
+    if (!rt->requestDone)
         return false;
     if (!rt->gcHelperThread.init())
         return false;
@@ -1079,31 +1079,23 @@ MarkRangeConservatively(JSTracer *trc, const uintptr_t *begin, const uintptr_t *
         MarkWordConservatively(trc, *i);
 }
 
-static JS_NEVER_INLINE void
-MarkConservativeStackRoots(JSTracer *trc, JSRuntime *rt)
+static void
+MarkThreadDataConservatively(JSTracer *trc, ThreadData *td)
 {
-    ConservativeGCData *cgcd = &rt->conservativeGC;
-    if (!cgcd->hasStackToScan()) {
-#ifdef JS_THREADSAFE
-        JS_ASSERT(!rt->suspendCount);
-        JS_ASSERT(rt->requestDepth <= cgcd->requestThreshold);
-#endif
-        return;
-    }
-
+    ConservativeGCThreadData *ctd = &td->conservativeGC;
+    JS_ASSERT(ctd->hasStackToScan());
     uintptr_t *stackMin, *stackEnd;
 #if JS_STACK_GROWTH_DIRECTION > 0
-    stackMin = rt->conservativeGC.nativeStackBase;
-    stackEnd = cgcd->nativeStackTop;
+    stackMin = td->nativeStackBase;
+    stackEnd = ctd->nativeStackTop;
 #else
-    stackMin = cgcd->nativeStackTop + 1;
-    stackEnd = rt->conservativeGC.nativeStackBase;
+    stackMin = ctd->nativeStackTop + 1;
+    stackEnd = td->nativeStackBase;
 #endif
-
     JS_ASSERT(stackMin <= stackEnd);
     MarkRangeConservatively(trc, stackMin, stackEnd);
-    MarkRangeConservatively(trc, cgcd->registerSnapshot.words,
-                            ArrayEnd(cgcd->registerSnapshot.words));
+    MarkRangeConservatively(trc, ctd->registerSnapshot.words,
+                            ArrayEnd(ctd->registerSnapshot.words));
 }
 
 void
@@ -1142,8 +1134,28 @@ MarkStackRangeConservatively(JSTracer *trc, Value *beginv, Value *endv)
 #endif
 }
 
+void
+MarkConservativeStackRoots(JSTracer *trc)
+{
+#ifdef JS_THREADSAFE
+    for (JSThread::Map::Range r = trc->runtime->threads.all(); !r.empty(); r.popFront()) {
+        JSThread *thread = r.front().value;
+        ConservativeGCThreadData *ctd = &thread->data.conservativeGC;
+        if (ctd->hasStackToScan()) {
+            JS_ASSERT_IF(!thread->data.requestDepth, thread->suspendCount);
+            MarkThreadDataConservatively(trc, &thread->data);
+        } else {
+            JS_ASSERT(!thread->suspendCount);
+            JS_ASSERT(thread->data.requestDepth <= ctd->requestThreshold);
+        }
+    }
+#else
+    MarkThreadDataConservatively(trc, &trc->runtime->threadData);
+#endif
+}
+
 JS_NEVER_INLINE void
-ConservativeGCData::recordStackTop()
+ConservativeGCThreadData::recordStackTop()
 {
     
     uintptr_t dummy;
@@ -1163,18 +1175,18 @@ ConservativeGCData::recordStackTop()
 #endif
 }
 
-void
+static inline void
 RecordNativeStackTopForGC(JSContext *cx)
 {
-    ConservativeGCData *cgcd = &cx->runtime->conservativeGC;
+    ConservativeGCThreadData *ctd = &JS_THREAD_DATA(cx)->conservativeGC;
 
 #ifdef JS_THREADSAFE
     
-    JS_ASSERT(cx->runtime->requestDepth >= cgcd->requestThreshold);
-    if (cx->runtime->requestDepth == cgcd->requestThreshold)
+    JS_ASSERT(cx->thread()->data.requestDepth >= ctd->requestThreshold);
+    if (cx->thread()->data.requestDepth == ctd->requestThreshold)
         return;
 #endif
-    cgcd->recordStackTop();
+    ctd->recordStackTop();
 }
 
 } 
@@ -1252,6 +1264,7 @@ js_AddRootRT(JSRuntime *rt, jsval *vp, const char *name)
 
 
     AutoLockGC lock(rt);
+    js_WaitForGC(rt);
 
     return !!rt->gcRootsHash.put((void *)vp,
                                  RootInfo(name, JS_GC_ROOT_VALUE_PTR));
@@ -1268,6 +1281,7 @@ js_AddGCThingRootRT(JSRuntime *rt, void **rp, const char *name)
 
 
     AutoLockGC lock(rt);
+    js_WaitForGC(rt);
 
     return !!rt->gcRootsHash.put((void *)rp,
                                  RootInfo(name, JS_GC_ROOT_GCTHING_PTR));
@@ -1281,6 +1295,7 @@ js_RemoveRoot(JSRuntime *rt, void *rp)
 
 
     AutoLockGC lock(rt);
+    js_WaitForGC(rt);
     rt->gcRootsHash.remove(rp);
     rt->gcPoke = JS_TRUE;
     return JS_TRUE;
@@ -1644,6 +1659,9 @@ static void
 RunLastDitchGC(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
+
+    
+    AutoUnlockAtomsCompartmentWhenLocked unlockAtomsCompartment(cx);
 
     
     AutoKeepAtoms keep(rt);
@@ -2082,7 +2100,7 @@ MarkRuntime(JSTracer *trc)
     JSRuntime *rt = trc->runtime;
 
     if (rt->hasContexts())
-        MarkConservativeStackRoots(trc, rt);
+        MarkConservativeStackRoots(trc);
 
     for (RootRange r = rt->gcRootsHash.all(); !r.empty(); r.popFront())
         gc_root_traversal(trc, r.front());
@@ -2117,7 +2135,8 @@ MarkRuntime(JSTracer *trc)
         }
     }
 
-    rt->stackSpace.mark(trc);
+    for (ThreadDataIter i(rt); !i.empty(); i.popFront())
+        i.threadData()->mark(trc);
 
     
     if (JSTraceDataOp op = rt->gcBlackRootsTraceOp)
@@ -2133,16 +2152,17 @@ MarkRuntime(JSTracer *trc)
 void
 TriggerGC(JSRuntime *rt, gcstats::Reason reason)
 {
-    JS_ASSERT(rt->onOwnerThread());
-
     if (rt->gcRunning || rt->gcIsNeeded)
         return;
 
     
+
+
+
     rt->gcIsNeeded = true;
     rt->gcTriggerCompartment = NULL;
     rt->gcTriggerReason = reason;
-    rt->triggerOperationCallback();
+    TriggerAllOperationCallbacks(rt);
 }
 
 void
@@ -2182,7 +2202,7 @@ TriggerCompartmentGC(JSCompartment *comp, gcstats::Reason reason)
     rt->gcIsNeeded = true;
     rt->gcTriggerCompartment = comp;
     rt->gcTriggerReason = reason;
-    comp->rt->triggerOperationCallback();
+    TriggerAllOperationCallbacks(comp->rt);
 }
 
 void
@@ -2355,23 +2375,6 @@ ExpireChunksAndArenas(JSRuntime *rt, bool shouldShrink)
 
 #ifdef JS_THREADSAFE
 
-static unsigned
-GetCPUCount()
-{
-    static unsigned ncpus = 0;
-    if (ncpus == 0) {
-# ifdef XP_WIN
-        SYSTEM_INFO sysinfo;
-        GetSystemInfo(&sysinfo);
-        ncpus = unsigned(sysinfo.dwNumberOfProcessors);
-# else
-        long n = sysconf(_SC_NPROCESSORS_ONLN);
-        ncpus = (n > 0) ? unsigned(n) : 1;
-# endif
-    }
-    return ncpus;
-}
-
 bool
 GCHelperThread::init()
 {
@@ -2385,7 +2388,7 @@ GCHelperThread::init()
     if (!thread)
         return false;
 
-    backgroundAllocation = (GetCPUCount() >= 2);
+    backgroundAllocation = (js_GetCPUCount() >= 2);
     return true;
 }
 
@@ -2671,7 +2674,7 @@ BeginMarkPhase(JSContext *cx, GCMarker *gcmarker, JSGCInvocationKind gckind)
     for (GCCompartmentsIter c(rt); !c.done(); c.next())
         c->purge(cx);
 
-    rt->purge(cx);
+    js_PurgeThreads(cx);
 
     {
         JSContext *iter = NULL;
@@ -2836,6 +2839,12 @@ SweepPhase(JSContext *cx, GCMarker *gcmarker, JSGCInvocationKind gckind)
 }
 
 
+
+
+
+
+
+
 static void
 MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind)
 {
@@ -2865,6 +2874,74 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind)
     SweepPhase(cx, &gcmarker, gckind);
 }
 
+#ifdef JS_THREADSAFE
+
+
+
+
+
+
+
+
+
+
+
+void
+js_WaitForGC(JSRuntime *rt)
+{
+    if (rt->gcRunning && rt->gcThread->id != js_CurrentThreadId()) {
+        do {
+            JS_AWAIT_GC_DONE(rt);
+        } while (rt->gcRunning);
+    }
+}
+
+
+
+
+
+static void
+LetOtherGCFinish(JSContext *cx)
+{
+    JSRuntime *rt = cx->runtime;
+    JS_ASSERT(rt->gcThread);
+    JS_ASSERT(cx->thread() != rt->gcThread);
+
+    size_t requestDebit = cx->thread()->data.requestDepth ? 1 : 0;
+    JS_ASSERT(requestDebit <= rt->requestCount);
+    if (requestDebit != 0) {
+        rt->requestCount -= requestDebit;
+        if (rt->requestCount == 0)
+            JS_NOTIFY_REQUEST_DONE(rt);
+
+        
+
+
+
+        RecordNativeStackTopForGC(cx);
+    }
+
+    
+
+
+
+    JS_ASSERT(rt->gcThread);
+
+    
+
+
+
+
+
+    do {
+        JS_AWAIT_GC_DONE(rt);
+    } while (rt->gcThread);
+
+    rt->requestCount += requestDebit;
+}
+
+#endif
+
 class AutoGCSession {
   public:
     explicit AutoGCSession(JSContext *cx);
@@ -2878,19 +2955,80 @@ class AutoGCSession {
 };
 
 
+
+
+
+
+
+
 AutoGCSession::AutoGCSession(JSContext *cx)
   : context(cx)
 {
-    JS_ASSERT(!cx->runtime->noGCOrAllocationCheck);
+    JS_ASSERT(!JS_THREAD_DATA(cx)->noGCOrAllocationCheck);
     JSRuntime *rt = cx->runtime;
+
+#ifdef JS_THREADSAFE
+    if (rt->gcThread && rt->gcThread != cx->thread())
+        LetOtherGCFinish(cx);
+#endif
+
     JS_ASSERT(!rt->gcRunning);
+
+#ifdef JS_THREADSAFE
+    
+    JS_ASSERT(!rt->gcThread);
+    rt->gcThread = cx->thread();
+
+    
+
+
+
+
+
+    for (JSThread::Map::Range r = rt->threads.all(); !r.empty(); r.popFront()) {
+        JSThread *thread = r.front().value;
+        if (thread != cx->thread())
+            thread->data.triggerOperationCallback(rt);
+    }
+
+    
+
+
+
+
+
+    size_t requestDebit = cx->thread()->data.requestDepth ? 1 : 0;
+    JS_ASSERT(requestDebit <= rt->requestCount);
+    if (requestDebit != rt->requestCount) {
+        rt->requestCount -= requestDebit;
+
+        do {
+            JS_AWAIT_REQUEST_DONE(rt);
+        } while (rt->requestCount > 0);
+        rt->requestCount += requestDebit;
+    }
+
+#endif 
+
+    
+
+
+
+
+
     rt->gcRunning = true;
 }
+
 
 AutoGCSession::~AutoGCSession()
 {
     JSRuntime *rt = context->runtime;
     rt->gcRunning = false;
+#ifdef JS_THREADSAFE
+    JS_ASSERT(rt->gcThread == context->thread());
+    rt->gcThread = NULL;
+    JS_NOTIFY_GC_DONE(rt);
+#endif
 }
 
 
@@ -2908,12 +3046,28 @@ GCCycle(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
     JS_ASSERT_IF(comp, rt->gcMode == JSGC_MODE_COMPARTMENT);
 
     
-    if (rt->gcMarkAndSweep)
+
+
+
+    if (rt->gcMarkAndSweep) {
+#ifdef JS_THREADSAFE
+        JS_ASSERT(rt->gcThread);
+        if (rt->gcThread != cx->thread()) {
+            
+            LetOtherGCFinish(cx);
+        }
+#endif
         return;
+    }
 
     AutoGCSession gcsession(cx);
 
     
+
+
+
+
+
     if (rt->inOOMReport)
         return;
 
@@ -2942,6 +3096,9 @@ GCCycle(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
 #endif
 
     MarkAndSweep(cx, gckind);
+
+    if (!comp)
+        js_PurgeThreads_PostGlobalSweep(cx);
 
 #ifdef JS_THREADSAFE
     if (cx->gcBackgroundFree) {
@@ -3053,7 +3210,7 @@ TraceRuntime(JSTracer *trc)
     {
         JSContext *cx = trc->context;
         JSRuntime *rt = cx->runtime;
-        if (!rt->gcRunning) {
+        if (rt->gcThread != cx->thread()) {
             AutoLockGC lock(rt);
             AutoGCSession gcsession(cx);
 

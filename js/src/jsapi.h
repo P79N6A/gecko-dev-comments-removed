@@ -2323,9 +2323,6 @@ JS_ShutDown(void);
 JS_PUBLIC_API(void *)
 JS_GetRuntimePrivate(JSRuntime *rt);
 
-extern JS_PUBLIC_API(JSRuntime *)
-JS_GetRuntime(JSContext *cx);
-
 JS_PUBLIC_API(void)
 JS_SetRuntimePrivate(JSRuntime *rt, void *data);
 
@@ -2346,10 +2343,7 @@ extern JS_PUBLIC_API(void)
 JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth);
 
 extern JS_PUBLIC_API(JSBool)
-JS_IsInRequest(JSRuntime *rt);
-
-extern JS_PUBLIC_API(JSBool)
-JS_IsInSuspendedRequest(JSRuntime *rt);
+JS_IsInRequest(JSContext *cx);
 
 #ifdef __cplusplus
 JS_END_EXTERN_C
@@ -2431,14 +2425,14 @@ class JSAutoCheckRequest {
     JSAutoCheckRequest(JSContext *cx JS_GUARD_OBJECT_NOTIFIER_PARAM) {
 #if defined JS_THREADSAFE && defined DEBUG
         mContext = cx;
-        JS_ASSERT(JS_IsInRequest(JS_GetRuntime(cx)));
+        JS_ASSERT(JS_IsInRequest(cx));
 #endif
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
     ~JSAutoCheckRequest() {
 #if defined JS_THREADSAFE && defined DEBUG
-        JS_ASSERT(JS_IsInRequest(JS_GetRuntime(mContext)));
+        JS_ASSERT(JS_IsInRequest(mContext));
 #endif
     }
 
@@ -4495,7 +4489,7 @@ extern JS_PUBLIC_API(void)
 JS_TriggerOperationCallback(JSContext *cx);
 
 extern JS_PUBLIC_API(void)
-JS_TriggerRuntimeOperationCallback(JSRuntime *rt);
+JS_TriggerAllOperationCallbacks(JSRuntime *rt);
 
 extern JS_PUBLIC_API(JSBool)
 JS_IsRunning(JSContext *cx);
@@ -5266,6 +5260,24 @@ JS_ThrowStopIteration(JSContext *cx);
 
 extern JS_PUBLIC_API(intptr_t)
 JS_GetCurrentThread();
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(intptr_t)
+JS_GetContextThread(JSContext *cx);
+
+extern JS_PUBLIC_API(intptr_t)
+JS_SetContextThread(JSContext *cx);
+
+extern JS_PUBLIC_API(intptr_t)
+JS_ClearContextThread(JSContext *cx);
 
 
 
