@@ -1633,6 +1633,23 @@ Tab.prototype = {
     }
   },
 
+  getPageSize: function(aDocument, aDefaultWidth, aDefaultHeight) {
+    if (aDocument instanceof SVGDocument) {
+      let rect = aDocument.rootElement.getBoundingClientRect();
+      
+      
+      
+      
+      return [Math.ceil(rect.left + rect.width + rect.left),
+              Math.ceil(rect.top + rect.height + rect.top)];
+    } else {
+      let body = aDocument.body || { scrollWidth: aDefaultWidth, scrollHeight: aDefaultHeight };
+      let html = aDocument.documentElement || { scrollWidth: aDefaultWidth, scrollHeight: aDefaultHeight };
+      return [Math.max(body.scrollWidth, html.scrollWidth),
+              Math.max(body.scrollHeight, html.scrollHeight)];
+    }
+  },
+
   getViewport: function() {
     let viewport = {
       width: gScreenWidth,
@@ -1652,21 +1669,7 @@ Tab.prototype = {
 
     let doc = this.browser.contentDocument;
     if (doc != null) {
-      let pageWidth = viewport.width, pageHeight = viewport.height;
-      if (doc instanceof SVGDocument) {
-        let rect = doc.rootElement.getBoundingClientRect();
-        
-        
-        
-        
-        pageWidth = Math.ceil(rect.left + rect.width + rect.left);
-        pageHeight = Math.ceil(rect.top + rect.height + rect.top);
-      } else {
-        let body = doc.body || { scrollWidth: pageWidth, scrollHeight: pageHeight };
-        let html = doc.documentElement || { scrollWidth: pageWidth, scrollHeight: pageHeight };
-        pageWidth = Math.max(body.scrollWidth, html.scrollWidth);
-        pageHeight = Math.max(body.scrollHeight, html.scrollHeight);
-      }
+      let [pageWidth, pageHeight] = this.getPageSize(doc, viewport.width, viewport.height);
 
       
       pageWidth *= viewport.zoom;
@@ -2109,10 +2112,20 @@ Tab.prototype = {
 
     
     
-    let minScale = this.getPageZoomLevel();
-    viewportH = Math.max(viewportH, screenH / minScale);
-
+    
+    
+    
+    
     let oldBrowserWidth = this.browserWidth;
+    this.setBrowserSize(viewportW, viewportH);
+    let minScale = 1.0;
+    if (this.browser.contentDocument) {
+      
+      
+      let [pageWidth, pageHeight] = this.getPageSize(this.browser.contentDocument, viewportW, viewportH);
+      minScale = gScreenWidth / pageWidth;
+    }
+    viewportH = Math.max(viewportH, screenH / minScale);
     this.setBrowserSize(viewportW, viewportH);
 
     
@@ -2135,15 +2148,6 @@ Tab.prototype = {
     let zoomScale = (screenW * oldBrowserWidth) / (aOldScreenWidth * viewportW);
     this.setResolution(this._zoom * zoomScale, false);
     this.sendViewportUpdate();
-  },
-
-  getPageZoomLevel: function getPageZoomLevel() {
-    
-    
-    if (!this.browser.contentDocument || !this.browser.contentDocument.body)
-      return 1.0;
-
-    return gScreenWidth / this.browser.contentDocument.body.clientWidth;
   },
 
   setBrowserSize: function(aWidth, aHeight) {
