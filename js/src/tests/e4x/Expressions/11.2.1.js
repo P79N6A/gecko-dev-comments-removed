@@ -147,27 +147,28 @@ correct=
 TEST(10, correct, order.item.*[1]);
 
 
-order = <order>
-        <customer>
-            <firstname>John</firstname>
-            <lastname>Doe</lastname>
-        </customer>
-        <item id="3456">
-            <description>Big Screen Television</description>
-            <price>1299.99</price>
-            <quantity>1</quantity>
-        </item>
-        <item id="56789">
-            <description>DVD Player</description>
-            <price>399.99</price>
-            <quantity>1</quantity>
-        </item>
-        </order>;
 
 
-TEST(11, order, order[0]);
 
 
-TEST(12, undefined, order[1]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 END();
