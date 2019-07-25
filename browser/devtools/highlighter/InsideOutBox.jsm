@@ -128,6 +128,9 @@
 
 var EXPORTED_SYMBOLS = ["InsideOutBox"];
 
+const Cu = Components.utils;
+Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
+
 function InsideOutBox(aView, aBox)
 {
   this.view = aView;
@@ -212,7 +215,9 @@ InsideOutBox.prototype =
     if (makeBoxVisible) {
       this.openObjectBox(objectBox);
       if (scrollIntoView) {
-        objectBox.scrollIntoView(true);
+        
+        
+        LayoutHelpers.scrollIntoViewIfNeeded(objectBox.firstElementChild);
       }
     }
     return objectBox;

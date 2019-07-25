@@ -186,8 +186,7 @@ LayoutHelpers = {
 
 
 
-  getElementFromPoint: function LH_elementFromPoint(aDocument, aX, aY)
-  {
+  getElementFromPoint: function LH_elementFromPoint(aDocument, aX, aY) {
     let node = aDocument.elementFromPoint(aX, aY);
     if (node && node.contentDocument) {
       if (node instanceof Ci.nsIDOMHTMLIFrameElement) {
@@ -213,5 +212,83 @@ LayoutHelpers = {
       }
     }
     return node;
+  },
+
+  
+
+
+
+
+
+
+
+  scrollIntoViewIfNeeded:
+  function LH_scrollIntoViewIfNeeded(elem, centered) {
+    
+    
+    centered = centered === undefined? true: !!centered;
+
+    let win = elem.ownerDocument.defaultView;
+    let clientRect = elem.getBoundingClientRect();
+
+    
+    
+    
+    
+
+    let topToBottom = clientRect.bottom;
+    let bottomToTop = clientRect.top - win.innerHeight;
+    let leftToRight = clientRect.right;
+    let rightToLeft = clientRect.left - win.innerWidth;
+    let xAllowed = true;  
+    let yAllowed = true;  
+
+    
+    
+
+    if ((topToBottom > 0 || !centered) && topToBottom <= elem.offsetHeight) {
+      win.scrollBy(0, topToBottom - elem.offsetHeight);
+      yAllowed = false;
+    } else
+    if ((bottomToTop < 0 || !centered) && bottomToTop >= -elem.offsetHeight) {
+      win.scrollBy(0, bottomToTop + elem.offsetHeight);
+      yAllowed = false;
+    }
+
+    if ((leftToRight > 0 || !centered) && leftToRight <= elem.offsetWidth) {
+      if (xAllowed) {
+        win.scrollBy(leftToRight - elem.offsetWidth, 0);
+        xAllowed = false;
+      }
+    } else
+    if ((rightToLeft < 0 || !centered) && rightToLeft >= -elem.offsetWidth) {
+      if (xAllowed) {
+        win.scrollBy(rightToLeft + elem.offsetWidth, 0);
+        xAllowed = false;
+      }
+    }
+
+    
+    
+
+    if (centered) {
+
+      if (yAllowed && (topToBottom <= 0 || bottomToTop >= 0)) {
+        win.scroll(win.scrollX,
+                   win.scrollY + clientRect.top
+                   - (win.innerHeight - elem.offsetHeight) / 2);
+      }
+
+      if (xAllowed && (leftToRight <= 0 || rightToLeft <= 0)) {
+        win.scroll(win.scrollX + clientRect.left
+                   - (win.innerWidth - elem.offsetWidth) / 2,
+                   win.scrollY);
+      }
+    }
+
+    if (win.parent !== win) {
+      
+      LH_scrollIntoViewIfNeeded(win.frameElement, centered);
+    }
   },
 };
