@@ -230,7 +230,7 @@ AsyncResource.prototype = {
     
     let headers = {};
     let status = 0;
-    let success = true;
+    let success = false;
     try {
       
       channel.visitResponseHeaders({
@@ -373,7 +373,13 @@ Resource.prototype = {
   
   
   get: function Res_get() {
-    return this._request("GET");
+    let response = this._request("GET");
+    if (response.status == 0) {
+      
+      this._log.debug("Status 0 in Resource.get: retrying once.");
+      response = this._request("GET");
+    }
+    return response;
   },
 
   
