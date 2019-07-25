@@ -1390,6 +1390,15 @@ urlInlineComplete.prototype = {
     }
 
     
+    
+    
+    
+    if (/\s/.test(this._currentSearchString)) {
+      this._finishSearch();
+      return;
+    }
+
+    
     let query = this._syncQuery;
     query.params.search_string = this._currentSearchString.toLowerCase();
 
