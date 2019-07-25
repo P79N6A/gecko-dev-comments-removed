@@ -375,7 +375,7 @@ def main():
     reftest.startWebServer(options)
 
     
-    os.system("ln -s ../jsreftest jsreftest")
+    os.system("ln -s ../jsreftest " + str(os.path.join(SCRIPT_DIRECTORY, "jsreftest")))
 
     
     manifest = args[0]
