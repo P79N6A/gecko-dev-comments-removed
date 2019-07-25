@@ -300,9 +300,6 @@ struct JSCompartment
     size_t                       gcMallocAndFreeBytes;
     size_t                       gcTriggerMallocAndFreeBytes;
 
-    
-    unsigned                     index;
-
   private:
     
 
