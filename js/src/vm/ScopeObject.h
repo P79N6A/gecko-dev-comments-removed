@@ -9,6 +9,7 @@
 #define ScopeObject_h___
 
 #include "jscntxt.h"
+#include "jsiter.h"
 #include "jsobj.h"
 #include "jsweakmap.h"
 
@@ -22,19 +23,16 @@ namespace js {
 
 
 
-
-
-
-
-
-
-
-
 struct ScopeCoordinate
 {
     uint16_t hops;
     uint16_t binding;
+
+    
+    uint16_t frameBinding;
+
     inline ScopeCoordinate(jsbytecode *pc);
+    inline ScopeCoordinate() {}
 };
 
 inline JSAtom *
@@ -96,6 +94,15 @@ class ScopeObject : public JSObject
 
     inline JSObject &enclosingScope() const;
     inline bool setEnclosingScope(JSContext *cx, HandleObject obj);
+
+    
+
+
+
+
+
+    inline const Value &aliasedVar(ScopeCoordinate sc);
+    inline void setAliasedVar(ScopeCoordinate sc, const Value &v);
 
     
 
