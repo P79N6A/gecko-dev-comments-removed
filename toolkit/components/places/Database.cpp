@@ -649,6 +649,11 @@ Database::InitSchema(bool* aDatabaseMigrated)
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
+      if (currentSchemaVersion < 15) {
+        rv = MigrateV15Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
       
 
       
@@ -707,8 +712,6 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
     
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_KEYWORDS);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mMainConn->ExecuteSimpleSQL(CREATE_KEYWORD_VALIDITY_TRIGGER);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -1122,10 +1125,6 @@ Database::MigrateV7Up()
           "WHERE b.id IS NULL"
         ")"));
     NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = mMainConn->ExecuteSimpleSQL(CREATE_KEYWORD_VALIDITY_TRIGGER);
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -1359,6 +1358,32 @@ Database::MigrateV14Up()
     rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_FAVICONS_GUID);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV15Up()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  nsresult rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "DROP TRIGGER IF EXISTS moz_bookmarks_beforedelete_v1_trigger"
+  ));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "DELETE FROM moz_keywords "
+    "WHERE NOT EXISTS ( "
+      "SELECT id "
+      "FROM moz_bookmarks "
+      "WHERE keyword_id = moz_keywords.id "
+    ")"
+  ));
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return NS_OK;
 }
 
