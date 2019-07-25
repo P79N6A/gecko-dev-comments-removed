@@ -268,7 +268,6 @@ void
 nsHTMLObjectElement::UnbindFromTree(bool aDeep,
                                     bool aNullParent)
 {
-  RemovedFromDocument();
   nsObjectLoadingContent::UnbindFromTree(aDeep, aNullParent);
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
 }
@@ -280,8 +279,10 @@ nsHTMLObjectElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
                              nsIAtom *aPrefix, const nsAString &aValue,
                              bool aNotify)
 {
-  
-  
+  nsresult rv = nsGenericHTMLFormElement::SetAttr(aNameSpaceID, aName, aPrefix,
+                                                  aValue, aNotify);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   
   
@@ -291,24 +292,27 @@ nsHTMLObjectElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
   
   if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
       aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::data) {
-    nsAutoString type;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::type, type);
-    LoadObject(aValue, aNotify, NS_ConvertUTF16toUTF8(type), true);
+    return LoadObject(aNotify, true);
   }
 
-  return nsGenericHTMLFormElement::SetAttr(aNameSpaceID, aName, aPrefix,
-                                           aValue, aNotify);
+  return NS_OK;
 }
 
 nsresult
 nsHTMLObjectElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                                bool aNotify)
 {
-  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::data) {
-    Fallback(aNotify);
+  nsresult rv = nsGenericHTMLFormElement::UnsetAttr(aNameSpaceID,
+                                                    aAttribute, aNotify);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
+      aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::data) {
+    return LoadObject(aNotify, true);
   }
 
-  return nsGenericHTMLFormElement::UnsetAttr(aNameSpaceID, aAttribute, aNotify);
+  return NS_OK;
 }
 
 bool
@@ -513,20 +517,7 @@ nsHTMLObjectElement::GetAttributeMappingFunction() const
 void
 nsHTMLObjectElement::StartObjectLoad(bool aNotify)
 {
-  nsAutoString type;
-  GetAttr(kNameSpaceID_None, nsGkAtoms::type, type);
-  NS_ConvertUTF16toUTF8 ctype(type);
-
-  nsAutoString uri;
-  if (GetAttr(kNameSpaceID_None, nsGkAtoms::data, uri)) {
-    LoadObject(uri, aNotify, ctype);
-  }
-  else {
-    
-    
-    
-    LoadObject(nullptr, aNotify, ctype);
-  }
+  LoadObject(aNotify);
   SetIsNetworkCreated(false);
 }
 
@@ -545,7 +536,7 @@ nsHTMLObjectElement::GetCapabilities() const
 void
 nsHTMLObjectElement::DestroyContent()
 {
-  RemovedFromDocument();
+  nsObjectLoadingContent::DestroyContent();
   nsGenericHTMLFormElement::DestroyContent();
 }
 
