@@ -232,15 +232,7 @@ InputHandler.prototype = {
 
 
 
-  
-  
-  
   ungrab: function ungrab(grabber, restoreEventInfos) {
-    if (this._grabber == null && grabber == null) {
-      this._grabber = null;
-      this._grabDepth = 1;  
-    }
-
     if (this._grabber == grabber) {  
       this._grabDepth--;
 
@@ -1202,15 +1194,15 @@ ScrollwheelModule.prototype = {
 
       if (this.pendingEvent)
         clearTimeout(this.pendingEvent);
-      this.pendingEvent = setTimeout(this.handleEventImpl, 0, evInfo.event.detail);
+
+      this.pendingEvent = setTimeout(function handleEventImpl(self) {
+        self.pendingEvent = 0;
+        Browser.zoom(evInfo.event.detail);
+      }, 0, this);
+
       evInfo.event.stopPropagation();
       evInfo.event.preventDefault();
     }
-  },
-
-  handleEventImpl: function handleEventImpl(zoomlevel) {
-    this.pendingEvent = 0;
-    Browser.zoom(zoomlevel);
   },
 
   
