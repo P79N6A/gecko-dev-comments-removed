@@ -60,26 +60,6 @@ namespace mjit {
 
 
 
-class AutoScriptRetrapper
-{
-  public:
-    AutoScriptRetrapper(JSContext *cx, JSScript *script1) :
-        script(script1), traps(cx) {};
-    ~AutoScriptRetrapper();
-
-    bool untrap(jsbytecode *pc);
-
-  private:
-    JSScript *script;
-    Vector<jsbytecode*> traps;
-};
-
-
-
-
-
-
-
 
 
 class Recompiler {

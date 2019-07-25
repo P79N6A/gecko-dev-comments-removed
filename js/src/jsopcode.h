@@ -219,8 +219,7 @@ typedef enum JSOp {
 #define GET_INDEX(pc)           GET_UINT16(pc)
 #define SET_INDEX(pc,i)         ((pc)[1] = INDEX_HI(i), (pc)[2] = INDEX_LO(i))
 
-#define GET_INDEXBASE(pc)       (JS_ASSERT(*(pc) == JSOP_INDEXBASE            \
-                                           || *(pc) == JSOP_TRAP),            \
+#define GET_INDEXBASE(pc)       (JS_ASSERT(*(pc) == JSOP_INDEXBASE),          \
                                  ((uintN)((pc)[1])) << 16)
 #define INDEXBASE_LEN           1
 
@@ -472,14 +471,7 @@ JS_END_EXTERN_C
 
 
 extern size_t
-js_GetVariableBytecodeLength(JSOp op, jsbytecode *pc);
-
-inline size_t
-js_GetVariableBytecodeLength(jsbytecode *pc)
-{
-    JS_ASSERT(*pc != JSOP_TRAP);
-    return js_GetVariableBytecodeLength(JSOp(*pc), pc);
-}
+js_GetVariableBytecodeLength(jsbytecode *pc);
 
 namespace js {
 
@@ -536,12 +528,20 @@ GetDecomposeLength(jsbytecode *pc, size_t len)
 
 
 
-    JS_ASSERT_IF(JSOp(*pc) != JSOP_TRAP, size_t(js_CodeSpec[*pc].length) == len);
+    JS_ASSERT(size_t(js_CodeSpec[*pc].length) == len);
     return (uintN) pc[len - 1];
 }
 
-extern size_t
-GetBytecodeLength(JSContext *cx, JSScript *script, jsbytecode *pc);
+static inline uintN
+GetBytecodeLength(jsbytecode *pc)
+{
+    JSOp op = (JSOp)*pc;
+    JS_ASSERT(op < JSOP_LIMIT);
+
+    if (js_CodeSpec[op].length != -1)
+        return js_CodeSpec[op].length;
+    return js_GetVariableBytecodeLength(pc);
+}
 
 extern bool
 IsValidBytecodeOffset(JSContext *cx, JSScript *script, size_t offset);
@@ -553,24 +553,6 @@ FlowsIntoNext(JSOp op)
     return op != JSOP_STOP && op != JSOP_RETURN && op != JSOP_RETRVAL && op != JSOP_THROW &&
            op != JSOP_GOTO && op != JSOP_GOTOX && op != JSOP_RETSUB;
 }
-
-
-
-
-
-
-class AutoScriptUntrapper
-{
-    JSContext *cx;
-    JSScript *origScript;
-    jsbytecode *origCode;
-    size_t nbytes;
-    bool saveOriginal(JSScript *script);
-  public:
-    AutoScriptUntrapper();
-    bool untrap(JSContext *cx, JSScript *script);
-    ~AutoScriptUntrapper();
-};
 
 
 
@@ -622,7 +604,6 @@ class OpcodeCounts
 
 
 
-        JS_ASSERT(op != JSOP_TRAP);
         if (op == JSOP_SETELEM || op == JSOP_SETPROP || op == JSOP_SETMETHOD)
             return true;
         int format = js_CodeSpec[op].format;
@@ -670,7 +651,6 @@ class OpcodeCounts
     };
 
     static bool arithOp(JSOp op) {
-        JS_ASSERT(op != JSOP_TRAP);
         return !!(js_CodeSpec[op].format & (JOF_INCDEC | JOF_ARITH));
     }
 
