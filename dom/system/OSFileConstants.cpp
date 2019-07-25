@@ -9,10 +9,6 @@
 #include "unistd.h"
 #endif 
 
-#if defined(XP_WIN)
-#include <windows.h>
-#endif 
-
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "BindingUtils.h"
@@ -176,71 +172,6 @@ static dom::ConstantSpec gLibcProperties[] =
 };
 
 
-#if defined(XP_WIN)
-
-
-
-
-
-
-
-
-static dom::ConstantSpec gWinProperties[] =
-{
-  
-  INT_CONSTANT(FORMAT_MESSAGE_FROM_SYSTEM),
-  INT_CONSTANT(FORMAT_MESSAGE_IGNORE_INSERTS),
-
-  
-  INT_CONSTANT(GENERIC_ALL),
-  INT_CONSTANT(GENERIC_EXECUTE),
-  INT_CONSTANT(GENERIC_READ),
-  INT_CONSTANT(GENERIC_WRITE),
-
-  
-  INT_CONSTANT(FILE_SHARE_DELETE),
-  INT_CONSTANT(FILE_SHARE_READ),
-  INT_CONSTANT(FILE_SHARE_WRITE),
-
-  
-  INT_CONSTANT(CREATE_ALWAYS),
-  INT_CONSTANT(CREATE_NEW),
-  INT_CONSTANT(OPEN_ALWAYS),
-  INT_CONSTANT(OPEN_EXISTING),
-  INT_CONSTANT(TRUNCATE_EXISTING),
-
-  
-  INT_CONSTANT(FILE_ATTRIBUTE_ARCHIVE),
-  INT_CONSTANT(FILE_ATTRIBUTE_DIRECTORY),
-  INT_CONSTANT(FILE_ATTRIBUTE_NORMAL),
-  INT_CONSTANT(FILE_ATTRIBUTE_READONLY),
-  INT_CONSTANT(FILE_ATTRIBUTE_TEMPORARY),
-
-  
-  { "INVALID_FILE_HANDLE", INT_TO_JSVAL((int)INVALID_FILE_HANDLE) },
-
-
-  
-  INT_CONSTANT(FILE_FLAG_DELETE_ON_CLOSE),
-
-  
-  INT_CONSTANT(FILE_BEGIN),
-  INT_CONSTANT(FILE_CURRENT),
-  INT_CONSTANT(FILE_END),
-
-  
-  INT_CONSTANT(INVALID_SET_FILE_POINTER),
-
-  
-  INT_CONSTANT(ERROR_FILE_NOT_FOUND),
-  INT_CONSTANT(ERROR_ACCESS_DENIED),
-
-  PROP_END
-};
-#endif 
-
-
-
 
 
 
@@ -284,19 +215,7 @@ bool DefineOSFileConstants(JSContext *cx, JSObject *global)
   if (!(objLibc = GetOrCreateObjectProperty(cx, objConstants, "libc"))) {
     return false;
   }
-  if (!dom::DefineConstants(cx, objLibc, gLibcProperties)) {
-    return false;
-  }
-#if defined(XP_WIN)
-  JSObject *objWin;
-  if (!(objWin = GetOrCreateObjectProperty(cx, objConstants, "Win"))) {
-    return false;
-  }
-  if (!dom::DefineConstants(cx, objWin, gWinProperties)) {
-    return false;
-  }
-#endif 
-  return true;
+  return dom::DefineConstants(cx, objLibc, gLibcProperties);
 }
 
 } 
