@@ -2981,14 +2981,47 @@ nsGlobalWindow::GetPerformance(nsIDOMPerformance** aPerformance)
   return NS_OK;
 }
 
+
+
+
+
+
+
+
 NS_IMETHODIMP
-nsGlobalWindow::GetParent(nsIDOMWindow** aParent)
+nsGlobalWindow::GetScriptableParent(nsIDOMWindow** aParent)
 {
-  FORWARD_TO_OUTER(GetParent, (aParent), NS_ERROR_NOT_INITIALIZED);
+  FORWARD_TO_OUTER(GetScriptableParent, (aParent), NS_ERROR_NOT_INITIALIZED);
+
+  *aParent = NULL;
+  if (!mDocShell) {
+    return NS_OK;
+  }
+
+  bool isMozBrowser = false;
+  mDocShell->GetIsBrowserFrame(&isMozBrowser);
+  if (isMozBrowser) {
+    nsCOMPtr<nsIDOMWindow> parent = static_cast<nsIDOMWindow*>(this);
+    parent.swap(*aParent);
+    return NS_OK;
+  }
+
+  return GetRealParent(aParent);
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsGlobalWindow::GetRealParent(nsIDOMWindow** aParent)
+{
+  FORWARD_TO_OUTER(GetRealParent, (aParent), NS_ERROR_NOT_INITIALIZED);
 
   *aParent = nsnull;
-  if (!mDocShell)
+  if (!mDocShell) {
     return NS_OK;
+  }
 
   nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(mDocShell));
   NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
@@ -3008,21 +3041,62 @@ nsGlobalWindow::GetParent(nsIDOMWindow** aParent)
   return NS_OK;
 }
 
+
+
+
+
+
+
+
 NS_IMETHODIMP
-nsGlobalWindow::GetTop(nsIDOMWindow** aTop)
+nsGlobalWindow::GetScriptableTop(nsIDOMWindow **aTop)
 {
-  FORWARD_TO_OUTER(GetTop, (aTop), NS_ERROR_NOT_INITIALIZED);
+  return GetTopImpl(aTop,  true);
+}
 
+
+
+
+
+NS_IMETHODIMP
+nsGlobalWindow::GetRealTop(nsIDOMWindow** aTop)
+{
+  return GetTopImpl(aTop,  false);
+}
+
+nsresult
+nsGlobalWindow::GetTopImpl(nsIDOMWindow** aTop, bool aScriptable)
+{
+  FORWARD_TO_OUTER(GetTopImpl, (aTop, aScriptable), NS_ERROR_NOT_INITIALIZED);
   *aTop = nsnull;
-  if (mDocShell) {
-    nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(mDocShell));
-    nsCOMPtr<nsIDocShellTreeItem> root;
-    docShellAsItem->GetSameTypeRootTreeItem(getter_AddRefs(root));
 
-    if (root) {
-      nsCOMPtr<nsIDOMWindow> top(do_GetInterface(root));
-      top.swap(*aTop);
+  
+
+  nsCOMPtr<nsIDOMWindow> prevParent = this;
+  nsCOMPtr<nsIDOMWindow> parent = this;
+  do {
+    if (!parent) {
+      break;
     }
+
+    prevParent = parent;
+
+    nsCOMPtr<nsIDOMWindow> newParent;
+    nsresult rv;
+    if (aScriptable) {
+      rv = parent->GetScriptableParent(getter_AddRefs(newParent));
+    }
+    else {
+      rv = parent->GetParent(getter_AddRefs(newParent));
+    }
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    parent = newParent;
+
+  } while (parent != prevParent);
+
+  if (parent) {
+    parent.swap(*aTop);
   }
 
   return NS_OK;
@@ -6907,12 +6981,43 @@ nsGlobalWindow::CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
   mCachedXBLPrototypeHandlers.Put(aKey, aHandler.get());
 }
 
-NS_IMETHODIMP
-nsGlobalWindow::GetFrameElement(nsIDOMElement** aFrameElement)
-{
-  FORWARD_TO_OUTER(GetFrameElement, (aFrameElement), NS_ERROR_NOT_INITIALIZED);
 
-  *aFrameElement = nsnull;
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsGlobalWindow::GetScriptableFrameElement(nsIDOMElement** aFrameElement)
+{
+  FORWARD_TO_OUTER(GetScriptableFrameElement, (aFrameElement), NS_ERROR_NOT_INITIALIZED);
+  *aFrameElement = NULL;
+
+  if (!mDocShell) {
+    return NS_OK;
+  }
+
+  bool isMozBrowser = false;
+  mDocShell->GetIsBrowserFrame(&isMozBrowser);
+  if (isMozBrowser) {
+    return NS_OK;
+  }
+
+  return GetFrameElement(aFrameElement);
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsGlobalWindow::GetRealFrameElement(nsIDOMElement** aFrameElement)
+{
+  FORWARD_TO_OUTER(GetRealFrameElement, (aFrameElement), NS_ERROR_NOT_INITIALIZED);
+
+  *aFrameElement = NULL;
 
   nsCOMPtr<nsIDocShellTreeItem> docShellTI(do_QueryInterface(mDocShell));
 

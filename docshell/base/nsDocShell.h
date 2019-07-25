@@ -804,6 +804,7 @@ protected:
     bool                       mIsAppTab;
     bool                       mUseGlobalHistory;
     bool                       mInPrivateBrowsing;
+    bool                       mIsBrowserFrame;
 
     
     
