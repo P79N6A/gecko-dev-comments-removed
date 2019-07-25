@@ -577,3 +577,22 @@ function do_check_valid_places_guid(aGuid)
 {
   do_check_true(/^[a-zA-Z0-9\-_]{12}$/.test(aGuid), Components.stack.caller);
 }
+
+
+
+
+
+
+
+function do_check_guid_for_uri(aURI)
+{
+  let stmt = DBConn().createStatement(
+    "SELECT guid "
+  + "FROM moz_places "
+  + "WHERE url = :url "
+  );
+  stmt.params.url = aURI.spec;
+  do_check_true(stmt.executeStep());
+  do_check_valid_places_guid(stmt.row.guid);
+  stmt.finalize();
+}

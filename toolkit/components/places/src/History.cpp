@@ -353,8 +353,8 @@ public:
 
       stmt = mHistory->syncStatements.GetCachedStatement(
           "INSERT INTO moz_places "
-            "(url, rev_host, hidden, typed) "
-          "VALUES (:page_url, :rev_host, :hidden, :typed) "
+            "(url, rev_host, hidden, typed, guid) "
+          "VALUES (:page_url, :rev_host, :hidden, :typed, GENERATE_GUID()) "
         );
       NS_ENSURE_STATE(stmt);
 
