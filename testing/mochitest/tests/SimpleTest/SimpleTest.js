@@ -652,25 +652,8 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
 
 
 SimpleTest.executeSoon = function(aFunc) {
-    
-    
-    if ("Components" in window && "classes" in window.Components) {
-        try {
-            netscape.security.PrivilegeManager
-              .enablePrivilege("UniversalXPConnect");
-            var tm = Components.classes["@mozilla.org/thread-manager;1"]
-                       .getService(Components.interfaces.nsIThreadManager);
-
-            tm.mainThread.dispatch({
-                run: function() {
-                    aFunc();
-                }
-            }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
-            return;
-        } catch (ex) {
-            
-            
-        }
+    if ("SpecialPowers" in window) {
+        return SpecialPowers.executeSoon(aFunc, window);
     }
     setTimeout(aFunc, 0);
 }

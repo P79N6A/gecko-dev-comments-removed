@@ -882,13 +882,16 @@ SpecialPowersAPI.prototype = {
     return this._xpcomabi;
   },
 
-  executeSoon: function(aFunc) {
-    var tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
-    tm.mainThread.dispatch({
-      run: function() {
-        aFunc();
-      }
-    }, Ci.nsIThread.DISPATCH_NORMAL);
+  
+  
+  
+  executeSoon: function(aFun, aWin) {
+    
+    var runnable = {};
+    if (aWin)
+        runnable = Cu.createObjectIn(aWin);
+    runnable.run = aFun;
+    Cu.dispatch(runnable, aWin);
   },
 
   _os: null,
