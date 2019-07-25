@@ -54,21 +54,6 @@ protected:
   nsRefPtr<nsRange> mRange;
 
   
-  nsCOMPtr<nsINode> mStartParent;
-
-  
-  PRInt32 mStartOffset;
-
-  
-  nsCOMPtr<nsINode> mEndParent;
-
-  
-  nsCOMPtr<nsINode> mCommonParent;
-
-  
-  PRInt32 mEndOffset;
-
-  
   nsEditor* mEditor;
 
   
