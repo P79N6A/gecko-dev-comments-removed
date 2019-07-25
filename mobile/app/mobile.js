@@ -172,7 +172,8 @@ pref("signon.expireMasterPassword", false);
 pref("signon.SignonFileName", "signons.txt");
 
 
-pref("formhelper.enabled", true);
+
+pref("formhelper.mode", 2);
 pref("formhelper.autozoom", true);
 pref("formhelper.autozoom.caret", true);
 pref("formhelper.restore", false);
