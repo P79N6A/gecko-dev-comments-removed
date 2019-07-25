@@ -47,6 +47,7 @@
 #include "nsIURI.h"
 #include "nsIFile.h"
 #include "nsISupportsImpl.h"
+#include "nsIScriptError.h"
 
 class nsIURI;
 class gfxMixedFontFamily;
@@ -253,9 +254,17 @@ protected:
     gfxMixedFontFamily *GetFamily(const nsAString& aName) const;
 
     
+    virtual nsresult LogMessage(gfxProxyFontEntry *aProxy,
+                                const char *aMessage,
+                                PRUint32 aFlags = nsIScriptError::errorFlag,
+                                nsresult aStatus = 0) = 0;
+
+    
     nsRefPtrHashtable<nsStringHashKey, gfxMixedFontFamily> mFontFamilies;
 
     PRUint64        mGeneration;
+
+    static PRLogModuleInfo *sUserFontsLog;
 };
 
 
