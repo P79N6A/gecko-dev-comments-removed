@@ -780,7 +780,6 @@ JS_BeginRequest(JSContext *cx)
 
         
         rt->requestCount++;
-        cx->thread->contextsInRequests++;
         cx->requestDepth = 1;
         cx->outstandingRequests++;
         return;
@@ -800,14 +799,12 @@ JS_EndRequest(JSContext *cx)
     JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
     JS_ASSERT(cx->requestDepth > 0);
     JS_ASSERT(cx->outstandingRequests > 0);
-    JS_ASSERT(cx->thread->contextsInRequests > 0);
     if (cx->requestDepth == 1) {
         LeaveTrace(cx);  
 
         
         rt = cx->runtime;
         AutoLockGC lock(rt);
-
         cx->requestDepth = 0;
         cx->outstandingRequests--;
 
@@ -816,11 +813,11 @@ JS_EndRequest(JSContext *cx)
         
         JS_ASSERT(rt->requestCount > 0);
         rt->requestCount--;
-        cx->thread->contextsInRequests--;
         if (rt->requestCount == 0)
             JS_NOTIFY_REQUEST_DONE(rt);
         return;
     }
+
     cx->requestDepth--;
     cx->outstandingRequests--;
 #endif

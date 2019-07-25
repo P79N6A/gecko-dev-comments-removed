@@ -227,22 +227,6 @@ extern bool
 js_SetProtoOrParentCheckingForCycles(JSContext *cx, JSObject *obj,
                                      uint32 slot, JSObject *pobj);
 
-#ifdef JS_THREADSAFE
-
-
-
-
-
-
-extern void
-js_WaitForGC(JSRuntime *rt);
-
-#else 
-
-# define js_WaitForGC(rt)    ((void) 0)
-
-#endif
-
 extern void
 js_CallGCMarker(JSTracer *trc, void *thing, uint32 kind);
 
