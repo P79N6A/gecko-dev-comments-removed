@@ -869,17 +869,6 @@ CheckAllocation(JSContext *cx);
 extern JS_FRIEND_API(uint32)
 js_GetGCThingTraceKind(void *thing);
 
-#if 1
-
-
-
-
-
-#define GC_POKE(cx, oldval) ((cx)->runtime->gcPoke = JS_TRUE)
-#else
-#define GC_POKE(cx, oldval) ((cx)->runtime->gcPoke = JSVAL_IS_GCTHING(oldval))
-#endif
-
 extern JSBool
 js_InitGC(JSRuntime *rt, uint32 maxbytes);
 
@@ -1316,6 +1305,10 @@ namespace gc {
 
 JSCompartment *
 NewCompartment(JSContext *cx, JSPrincipals *principals);
+
+
+void
+RunDebugGC(JSContext *cx);
 
 } 
 } 

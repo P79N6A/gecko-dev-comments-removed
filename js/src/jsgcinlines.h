@@ -161,6 +161,27 @@ GetGCKindSlots(FinalizeKind thingKind)
     }
 }
 
+static inline void
+GCPoke(JSContext *cx, Value oldval)
+{
+    
+
+
+
+
+#if 1
+    cx->runtime->gcPoke = JS_TRUE;
+#else
+    cx->runtime->gcPoke = oldval.isGCThing();
+#endif
+
+#ifdef JS_GC_ZEAL
+    
+    if (cx->runtime->gcZeal())
+        cx->runtime->gcNextScheduled = 1;
+#endif
+}
+
 } 
 } 
 
@@ -182,6 +203,11 @@ NewFinalizableGCThing(JSContext *cx, unsigned thingKind)
                  (thingKind == js::gc::FINALIZE_SHORT_STRING));
 #endif
     JS_ASSERT(!cx->runtime->gcRunning);
+
+#ifdef JS_GC_ZEAL
+    if (cx->runtime->needZealousGC())
+        js::gc::RunDebugGC(cx);
+#endif
 
     METER(cx->compartment->arenas[thingKind].stats.alloc++);
     js::gc::Cell *cell = cx->compartment->freeLists.getNext(thingKind);
