@@ -411,8 +411,10 @@ protected:
 
   
   
+  
   TimeStamp mBufferingStart;
 
+  
   
   
   PRInt64 mBufferingEndOffset;
