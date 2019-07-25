@@ -2,6 +2,7 @@
 
 
 let handleDialog;
+let timer; 
 
 function test() {
   waitForExplicitFinish();
@@ -124,7 +125,7 @@ function startCallbackTimer() {
    const dialogDelay = 10;
 
    
-   let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+   timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
    timer.init(observer, dialogDelay, Ci.nsITimer.TYPE_ONE_SHOT);
 }
 
