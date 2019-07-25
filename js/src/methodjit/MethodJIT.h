@@ -42,6 +42,7 @@
 #include "jscntxt.h"
 
 #include "assembler/assembler/MacroAssemblerCodeRef.h"
+#include "assembler/assembler/CodeLocation.h"
 
 #if !defined JS_CPU_X64 && \
     !defined JS_CPU_X86 && \
@@ -344,7 +345,17 @@ struct JITScript {
 
 
 
+
     uint32          recompilations;
+
+#ifdef JS_MONOIC
+    
+    JSC::CodeLocationLabel argsCheckStub;
+    JSC::CodeLocationLabel argsCheckFallthrough;
+    JSC::CodeLocationJump  argsCheckJump;
+    JSC::ExecutablePool *argsCheckPool;
+    void resetArgsCheck();
+#endif
 
     
     JSCList          callers;
