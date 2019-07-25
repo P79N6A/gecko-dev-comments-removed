@@ -3419,28 +3419,20 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
   
   
   
-  if (!nsContentUtils::IsFullScreenApiEnabled() ||
-      !nsContentUtils::IsRequestFullScreenAllowed()) {
+  if (!nsContentUtils::IsRequestFullScreenAllowed()) {
     return NS_OK;
   }
 
-  
-  
-  nsINode* node = static_cast<nsINode*>(this);
-  do {
-    nsIContent* content = static_cast<nsIContent*>(node);
-    if (content->IsHTML(nsGkAtoms::iframe) &&
-        !content->HasAttr(kNameSpaceID_None, nsGkAtoms::mozallowfullscreen)) {
-      
-      
-      
-      return NS_OK;
-    }
-    node = nsContentUtils::GetCrossDocParentNode(node);
-  } while (node);
-
   nsIDocument* doc = GetOwnerDoc();
   NS_ENSURE_STATE(doc);
+  nsCOMPtr<nsIDOMDocument> domDocument(do_QueryInterface(doc));
+  NS_ENSURE_STATE(domDocument);
+  bool fullScreenEnabled;
+  domDocument->GetMozFullScreenEnabled(&fullScreenEnabled);
+  if (!fullScreenEnabled) {
+    return NS_OK;
+  }
+
   doc->RequestFullScreen(this);
 #ifdef DEBUG
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(doc->GetWindow());
@@ -3448,7 +3440,6 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
   bool fullscreen;
   window->GetFullScreen(&fullscreen);
   NS_ASSERTION(fullscreen, "Windows should report fullscreen");
-  nsCOMPtr<nsIDOMDocument> domDocument(do_QueryInterface(doc));
   domDocument->GetMozFullScreen(&fullscreen);
   NS_ASSERTION(fullscreen, "Document should report fullscreen");
   NS_ASSERTION(doc->IsFullScreenDoc(), "Should be in full screen state!");
