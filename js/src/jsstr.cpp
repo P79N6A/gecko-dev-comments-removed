@@ -1007,8 +1007,6 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, js
     
     jsint pos = 0;
 
-    
-
     for (JSLinearString **outerp = strs.begin(); outerp != strs.end(); ++outerp) {
         
         JSLinearString *outer = *outerp;
@@ -1016,17 +1014,12 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, js
         size_t len = outer->length();
         jsint matchResult = StringMatch(chars, len, pat, patlen);
         if (matchResult != -1) {
+            
             *match = pos + matchResult;
             return true;
         }
 
         
-        JSLinearString **innerp = outerp;
-
-        
-
-
-
         const jschar *const text = chars + (patlen > len ? 0 : len - patlen + 1);
         const jschar *const textend = chars + len;
         const jschar p0 = *pat;
@@ -1035,6 +1028,7 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, js
         for (const jschar *t = text; t != textend; ) {
             if (*t++ != p0)
                 continue;
+            JSLinearString **innerp = outerp;
             const jschar *ttend = textend;
             for (const jschar *pp = p1, *tt = t; pp != patend; ++pp, ++tt) {
                 while (tt == ttend) {
