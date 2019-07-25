@@ -1584,22 +1584,30 @@ CompartmentStats::CompartmentStats(JSContext *cx, JSCompartment *c)
     {
         if(c->principals->codebase)
         {
-            
-            
-            
             name.Assign(c->principals->codebase);
-            name.ReplaceChar('/', '\\');
 
             
             
             
             if(c->isSystemCompartment)
             {
+                if (c->data && 
+                    !((xpc::CompartmentPrivate*)c->data)->location.IsEmpty())
+                {
+                    name.AppendLiteral(", ");
+                    name.Append(((xpc::CompartmentPrivate*)c->data)->location);
+                }
+
                 
                 static const int maxLength = 31;
                 nsPrintfCString address(maxLength, ", 0x%llx", PRUint64(c));
                 name.Append(address);
             }
+
+            
+            
+            
+            name.ReplaceChar('/', '\\');
         }
         else
         {
