@@ -259,6 +259,29 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
                                                NS_AUTHOR_SPECIFIED_BACKGROUND);
 }
 
+bool
+nsNativeTheme::IsDisabled(nsIFrame* aFrame, PRInt32 aEventStates)
+{
+  if (!aFrame) {
+    return false;
+  }
+
+  nsIContent* content = aFrame->GetContent();
+  if (!content) {
+    return PR_FALSE;
+  }
+
+  if (content->IsHTML()) {
+    return (aEventStates & NS_EVENT_STATE_DISABLED);
+  }
+
+  
+  
+  
+  return content->AttrValueIs(kNameSpaceID_None, nsWidgetAtoms::disabled,
+                              NS_LITERAL_STRING("true"), eCaseMatters);
+}
+
 PRBool
 nsNativeTheme::IsFrameRTL(nsIFrame* aFrame)
 {

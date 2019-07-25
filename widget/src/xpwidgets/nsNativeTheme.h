@@ -80,6 +80,8 @@ class nsNativeTheme
 
   
 
+  bool IsDisabled(nsIFrame* aFrame, PRInt32 aEventStates);
+
   
   PRBool IsFrameRTL(nsIFrame* aFrame);
 
