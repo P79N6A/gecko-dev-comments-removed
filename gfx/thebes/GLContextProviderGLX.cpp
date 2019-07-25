@@ -98,6 +98,7 @@ GLXLibrary::EnsureInitialized()
         { (PRFuncPtr*) &xDestroyPixmap, { "glXDestroyPixmap", NULL } },
         { (PRFuncPtr*) &xGetClientString, { "glXGetClientString", NULL } },
         { (PRFuncPtr*) &xCreateContext, { "glXCreateContext", NULL } },
+        { (PRFuncPtr*) &xGetCurrentContext, { "glXGetCurrentContext", NULL } },
         { NULL, { NULL } }
     };
 
@@ -254,8 +255,19 @@ TRY_AGAIN_NO_SHARING:
 
     PRBool MakeCurrent(PRBool aForce = PR_FALSE)
     {
-        Bool succeeded = sGLXLibrary.xMakeCurrent(mDisplay, mDrawable, mContext);
-        NS_ASSERTION(succeeded, "Failed to make GL context current!");
+        PRBool succeeded = PR_TRUE;
+
+        
+        
+        
+        
+        
+        
+        if (aForce || sGLXLibrary.xGetCurrentContext() != mContext) {
+            succeeded = sGLXLibrary.xMakeCurrent(mDisplay, mDrawable, mContext);
+            NS_ASSERTION(succeeded, "Failed to make GL context current!");
+        }
+
         return succeeded;
     }
 
