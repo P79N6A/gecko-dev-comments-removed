@@ -40,7 +40,7 @@
 #define _nsAccessible_H_
 
 #include "nsAccessNodeWrap.h"
-#include "mozilla/a11y/States.h"
+#include "States.h"
 
 #include "nsIAccessible.h"
 #include "nsIAccessibleHyperLink.h"
@@ -453,7 +453,7 @@ public:
     
     
     
-    return (0 == (State() & mozilla::a11y::states::INVALID));
+    return (0 == (State() & states::INVALID));
   }
 
   
