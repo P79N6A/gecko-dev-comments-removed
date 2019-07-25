@@ -256,7 +256,13 @@ class nsHtml5StreamParser : public nsIStreamListener,
     nsresult WriteStreamBytes(const PRUint8* aFromSegment,
                               PRUint32 aCount,
                               PRUint32* aWriteCount);
+
     
+
+
+    void SniffBOMlessUTF16BasicLatin(const PRUint8* aFromSegment,
+                                     PRUint32 aCountToSniffingLimit);
+
     
 
 
