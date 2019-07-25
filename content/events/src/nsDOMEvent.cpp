@@ -427,8 +427,7 @@ nsDOMEvent::GetEventPhase(PRUint16* aEventPhase)
 {
   
   
-  if ((mEvent->currentTarget &&
-       mEvent->currentTarget == mEvent->target) ||
+  if (mEvent->currentTarget == mEvent->target ||
       ((mEvent->flags & NS_EVENT_FLAG_CAPTURE) &&
        (mEvent->flags & NS_EVENT_FLAG_BUBBLE))) {
     *aEventPhase = nsIDOMEvent::AT_TARGET;
@@ -437,7 +436,7 @@ nsDOMEvent::GetEventPhase(PRUint16* aEventPhase)
   } else if (mEvent->flags & NS_EVENT_FLAG_BUBBLE) {
     *aEventPhase = nsIDOMEvent::BUBBLING_PHASE;
   } else {
-    *aEventPhase = nsIDOMEvent::NONE;
+    *aEventPhase = 0;
   }
   return NS_OK;
 }
@@ -680,6 +679,7 @@ NS_METHOD nsDOMEvent::DuplicatePrivateData()
       isInputEvent = true;
       keyEvent->keyCode = oldKeyEvent->keyCode;
       keyEvent->charCode = oldKeyEvent->charCode;
+      keyEvent->location = oldKeyEvent->location;
       keyEvent->isChar = oldKeyEvent->isChar;
       newEvent = keyEvent;
       break;
