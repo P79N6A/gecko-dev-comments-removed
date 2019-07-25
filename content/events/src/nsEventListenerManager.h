@@ -101,15 +101,15 @@ public:
 
   
   
-  nsresult AddScriptEventListener(nsIAtom *aName,
-                                  const nsAString& aFunc,
-                                  uint32_t aLanguage,
-                                  bool aDeferCompilation,
-                                  bool aPermitUntrustedEvents);
+  nsresult SetEventHandler(nsIAtom *aName,
+                           const nsAString& aFunc,
+                           uint32_t aLanguage,
+                           bool aDeferCompilation,
+                           bool aPermitUntrustedEvents);
   
 
 
-  void RemoveScriptEventListener(nsIAtom *aName);
+  void RemoveEventHandler(nsIAtom *aName);
 
   void HandleEvent(nsPresContext* aPresContext,
                    nsEvent* aEvent, 
@@ -242,7 +242,7 @@ protected:
   
 
 
-  nsListenerStruct* FindJSEventListener(uint32_t aEventType, nsIAtom* aTypeAtom);
+  nsListenerStruct* FindEventHandler(uint32_t aEventType, nsIAtom* aTypeAtom);
 
   
 
@@ -250,12 +250,12 @@ protected:
 
 
 
-  nsresult SetJSEventListener(nsIScriptContext *aContext,
-                              JSObject* aScopeGlobal,
-                              nsIAtom* aName,
-                              JSObject *aHandler,
-                              bool aPermitUntrustedEvents,
-                              nsListenerStruct **aListenerStruct);
+  nsresult SetEventHandlerInternal(nsIScriptContext *aContext,
+                                   JSObject* aScopeGlobal,
+                                   nsIAtom* aName,
+                                   JSObject *aHandler,
+                                   bool aPermitUntrustedEvents,
+                                   nsListenerStruct **aListenerStruct);
 
   bool IsDeviceType(uint32_t aType);
   void EnableDevice(uint32_t aType);
@@ -269,13 +269,13 @@ public:
 
 
 
-  nsresult SetJSEventListenerToJsval(nsIAtom *aEventName, JSContext *cx,
-                                     JSObject *aScope, const jsval &v);
+  nsresult SetEventHandlerToJsval(nsIAtom *aEventName, JSContext *cx,
+                                  JSObject *aScope, const jsval &v);
   
 
 
 
-  void GetJSEventListener(nsIAtom *aEventName, jsval *vp);
+  void GetEventHandler(nsIAtom *aEventName, jsval *vp);
 
 protected:
   void AddEventListener(nsIDOMEventListener *aListener, 

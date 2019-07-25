@@ -210,9 +210,9 @@ public:
 
 
 
-  nsresult AddScriptEventListener(nsIAtom* aEventName,
-                                  const nsAString& aValue,
-                                  bool aDefer = true);
+  nsresult SetEventHandler(nsIAtom* aEventName,
+                           const nsAString& aValue,
+                           bool aDefer = true);
 
   
 
