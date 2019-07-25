@@ -642,3 +642,6 @@ pref("urlclassifier.updatecachemax", 4194304);
 pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
 #endif
 
+
+
+pref("content.ime.strict_policy", true);
