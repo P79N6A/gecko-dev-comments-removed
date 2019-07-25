@@ -1934,6 +1934,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   
 
   tmp->mInUnlinkOrDeletion = PR_FALSE;
+
+  tmp->mIdentifierMap.Clear();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 
@@ -7082,10 +7084,6 @@ nsDocument::Destroy()
   
   
   nsContentUtils::ReleaseWrapper(static_cast<nsINode*>(this), this);
-
-  
-  
-  mIdentifierMap.Clear();
 }
 
 void

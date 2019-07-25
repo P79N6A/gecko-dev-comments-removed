@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    
+    <iframe src="data:text/html,
+      <script>
+        var elem = document.createElement('span');
+        document.mozSetImageElement('foo', elem);
+        elem.foo = document;
+      </script>"></iframe>
+  </body>
+</html>
