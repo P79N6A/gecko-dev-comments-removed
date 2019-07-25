@@ -621,15 +621,17 @@ class SSAValue
 
   public:
     enum Kind {
-        EMPTY = 0, 
-        PUSHED,    
-        VAR,       
-        PHI        
+        EMPTY  = 0, 
+        PUSHED = 1, 
+        VAR    = 2, 
+        PHI    = 3  
     };
 
     Kind kind() const {
         JS_ASSERT(u.pushed.kind == u.var.kind && u.pushed.kind == u.phi.kind);
-        return u.pushed.kind;
+
+        
+        return (Kind) (u.pushed.kind & 0x3);
     }
 
     bool equals(const SSAValue &o) const {

@@ -768,10 +768,10 @@ extern "C" {
             push esi;
             call js_InternalInterpret;
             add esp, 0x10;
-            mov [esp + 0x1C], ebp;  
-            mov [ebp + 0x18], esi;  
-            mov [ebp + 0x1C], edi;  
-            mov [esp + 0xC], ecx;   
+            mov ebp, [esp + 0x1C];  
+            mov esi, [ebp + 0x18];  
+            mov edi, [ebp + 0x1C];  
+            mov ecx, [esp + 0xC];   
             test eax, eax;
             je interpoline_exit;
             jmp eax;
@@ -790,8 +790,8 @@ extern "C" {
 
     __declspec(naked) void JaegerInterpolineScripted() {
         __asm {
-            mov [ebp + 0x10], ebp;  
-            mov ebp, [esp + 0x1C];  
+            mov ebp, [ebp + 0x10];  
+            mov [esp + 0x1C], ebp;  
             jmp JaegerInterpoline;
         }
     }

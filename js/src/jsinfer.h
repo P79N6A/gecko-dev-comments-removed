@@ -415,9 +415,14 @@ class TypeSet
 
     static void Clone(JSContext *cx, TypeSet *source, ClonedTypeSet *target);
 
+    
+    typedef HashSet<JSScript *,
+                    DefaultHasher<JSScript *>,
+                    ContextAllocPolicy> ScriptSet;
+
     static void
     CondenseSweepTypeSet(JSContext *cx, TypeCompartment *compartment,
-                         HashSet<JSScript*> *pcondensed, TypeSet *types);
+                         ScriptSet *pcondensed, TypeSet *types);
 
   private:
     inline void markUnknown(JSContext *cx);
