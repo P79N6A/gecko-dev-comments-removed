@@ -245,12 +245,12 @@ js_GetArgsObject(JSContext *cx, StackFrame *fp)
 
 
 
-    JS_ASSERT_IF(fp->fun()->isHeavyweight(), fp->hasCallObj());
-
+    JS_ASSERT(fp->isFunctionFrame());
     while (fp->isEvalInFunction())
         fp = fp->prev();
 
     
+    JS_ASSERT_IF(fp->fun()->isHeavyweight(), fp->hasCallObj());
     if (fp->hasArgsObj())
         return &fp->argsObj();
 
