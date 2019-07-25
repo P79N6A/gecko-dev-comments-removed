@@ -277,8 +277,12 @@ private:
 
 
 
-const PRUint32 INITIAL_THREADS = 1;
-const PRUint32 MAX_THREADS = 5;
+
+
+
+
+const PRUint32 INITIAL_THREADS = 2;
+const PRUint32 MAX_THREADS = 100;
 const PRUint32 DEFAULT_STACKSIZE = (512 * 1024);
 
 
@@ -1284,8 +1288,8 @@ int main(int argc, char** argv)
   }
 
   
-  threads = PR_CreateThreadPool(NS_MAX<PRInt32>(INITIAL_THREADS, servers.size()*2),
-                                NS_MAX<PRInt32>(MAX_THREADS, servers.size()*2),
+  threads = PR_CreateThreadPool(INITIAL_THREADS * servers.size(),
+                                MAX_THREADS * servers.size(),
                                 DEFAULT_STACKSIZE);
   if (!threads) {
     LOG_ERROR(("Failed to create thread pool\n"));
