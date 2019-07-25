@@ -397,7 +397,8 @@ NewEngine.prototype = {
 
     
     for each (let inc in this.incoming) {
-      this._recDepth(inc);
+      yield inc.decrypt(self.cb, ID.get('WeaveCryptoID').password);
+      this._recDepth(inc); 
     }
     this.incoming.sort(function(a, b) {
       if ((typeof(a.depth) == "number" && typeof(b.depth) == "undefined") ||
@@ -408,10 +409,10 @@ NewEngine.prototype = {
           (a.depth == null && typeof(b.depth) == "number") ||
           (a.depth < b.depth))
         return -1;
-      
-      
-      
-      
+      if (a.cleartext.index > b.cleartext.index)
+        return 1;
+      if (a.cleartext.index < b.cleartext.index)
+        return -1;
       return 0;
     });
 
