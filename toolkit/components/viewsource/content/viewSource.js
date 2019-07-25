@@ -713,9 +713,10 @@ function highlightSyntax()
 
 
 
-function BrowserSetForcedCharacterSet(aCharset)
+
+
+function BrowserCharsetReload()
 {
-  gBrowser.docShell.charset = aCharset;
   if (isHistoryEnabled()) {
     gPageLoader.loadPage(gPageLoader.currentDescriptor,
                          gPageLoader.DISPLAY_NORMAL);
@@ -724,22 +725,10 @@ function BrowserSetForcedCharacterSet(aCharset)
   }
 }
 
-
-
-
-
-
-function BrowserSetForcedDetector(doReload)
+function BrowserSetForcedCharacterSet(aCharset)
 {
-  if (doReload)
-  {
-    if (isHistoryEnabled()) {
-      gPageLoader.loadPage(gPageLoader.currentDescriptor,
-                           gPageLoader.DISPLAY_NORMAL);
-    } else {
-      gBrowser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
-    }
-  }
+  gBrowser.docShell.charset = aCharset;
+  BrowserCharsetReload();
 }
 
 function BrowserForward(aEvent) {

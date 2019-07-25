@@ -3,7 +3,7 @@ function MultiplexHandler(aEvent)
     MultiplexHandlerEx(
         aEvent,
         function Browser_SelectDetector(event) {
-            BrowserSetForcedDetector(true);
+            BrowserCharsetReload();
             
             SelectDetector(event, null);
         },
