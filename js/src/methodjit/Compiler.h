@@ -468,6 +468,7 @@ class Compiler : public BaseCompiler
     bool inlining_;
     bool hasGlobalReallocation;
     bool oomInVector;       
+    uint32 gcNumber;
     enum { NoApplyTricks, LazyArgsObj } applyTricks;
     PCLengthEntry *pcLengths;
 
