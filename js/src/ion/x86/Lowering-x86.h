@@ -50,8 +50,8 @@ namespace ion {
 class LIRGeneratorX86 : public LIRGenerator
 {
   public:
-    LIRGeneratorX86(MIRGenerator *gen, MIRGraph &graph)
-      : LIRGenerator(gen, graph)
+    LIRGeneratorX86(MIRGenerator *gen, MIRGraph &graph, LIRGraph &lirGraph)
+      : LIRGenerator(gen, graph, lirGraph)
     { }
 
   protected:
