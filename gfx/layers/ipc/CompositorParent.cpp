@@ -79,11 +79,31 @@ CompositorParent::RecvStop()
   return true;
 }
 
+
 void
 CompositorParent::ScheduleComposition()
 {
   CancelableTask *composeTask = NewRunnableMethod(this, &CompositorParent::Composite);
   MessageLoop::current()->PostTask(FROM_HERE, composeTask);
+
+
+#ifdef OMTC_TEST_ASYNC_SCROLLING
+  static bool scrollScheduled = false;
+  if (!scrollScheduled) {
+    CancelableTask *composeTask2 = NewRunnableMethod(this,
+                                                     &CompositorParent::TestScroll);
+    MessageLoop::current()->PostDelayedTask(FROM_HERE, composeTask2, 500);
+    scrollScheduled = true;
+  }
+#endif
+}
+
+void
+CompositorParent::SetTransformation(float aScale, nsIntPoint aScrollOffset)
+{
+  mXScale = aScale;
+  mYScale = aScale;
+  mScrollOffset = aScrollOffset;
 }
 
 void
@@ -113,6 +133,113 @@ SetShadowProperties(Layer* aLayer)
   }
 }
 
+static double GetXScale(const gfx3DMatrix& aTransform)
+{
+  return aTransform._11;
+}
+
+static double GetYScale(const gfx3DMatrix& aTransform)
+{
+  return aTransform._22;
+}
+
+static void ReverseTranslate(gfx3DMatrix& aTransform, ViewTransform& aViewTransform)
+{
+  aTransform._41 -= aViewTransform.mTranslation.x / aViewTransform.mXScale;
+  aTransform._42 -= aViewTransform.mTranslation.y / aViewTransform.mYScale;
+}
+
+void
+CompositorParent::TransformShadowTree(Layer* aLayer, const ViewTransform& aTransform,
+                    float aTempScaleDiffX, float aTempScaleDiffY)
+{
+  ShadowLayer* shadow = aLayer->AsShadowLayer();
+
+  gfx3DMatrix shadowTransform = aLayer->GetTransform();
+  ViewTransform layerTransform = aTransform;
+
+  ContainerLayer* container = aLayer->AsContainerLayer();
+
+  if (container && container->GetFrameMetrics().IsScrollable()) {
+    const FrameMetrics* metrics = &container->GetFrameMetrics();
+    const gfx3DMatrix& currentTransform = aLayer->GetTransform();
+
+    aTempScaleDiffX *= GetXScale(shadowTransform);
+    aTempScaleDiffY *= GetYScale(shadowTransform);
+
+    nsIntPoint metricsScrollOffset = metrics->mViewportScrollOffset;
+
+    nsIntPoint scrollCompensation(
+        (mScrollOffset.x / aTempScaleDiffX - metricsScrollOffset.x) * mXScale,
+        (mScrollOffset.y / aTempScaleDiffY - metricsScrollOffset.y) * mYScale);
+    ViewTransform treeTransform(-scrollCompensation, mXScale,
+                                mYScale);
+    shadowTransform = gfx3DMatrix(treeTransform) * currentTransform;
+    layerTransform = treeTransform;
+  }
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  shadow->SetShadowTransform(shadowTransform);
+
+  
+  
+  
+  
+
+
+
+
+
+
+}
+
+void
+CompositorParent::AsyncRender()
+{
+  if (mStopped || !mLayerManager) {
+    return;
+  }
+
+  Layer* root = mLayerManager->GetRoot();
+  ContainerLayer* container = root->AsContainerLayer();
+  if (!container)
+    return;
+
+  FrameMetrics metrics = container->GetFrameMetrics();
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+  metrics.mScrollId = FrameMetrics::ROOT_SCROLL_ID;
+  container->SetFrameMetrics(metrics);
+  ViewTransform transform;
+  TransformShadowTree(root, transform);
+  Composite();
+}
+
 void
 CompositorParent::ShadowLayersUpdated()
 {
@@ -126,6 +253,36 @@ CompositorParent::ShadowLayersUpdated()
   }
   ScheduleComposition();
 }
+
+
+#ifdef OMTC_TEST_ASYNC_SCROLLING
+void
+CompositorParent::TestScroll()
+{
+  static int scrollFactor = 0;
+  static bool fakeScrollDownwards = true;
+  if (fakeScrollDownwards) {
+    scrollFactor++;
+    if (scrollFactor > 10) {
+      scrollFactor = 10;
+      fakeScrollDownwards = false;
+    }
+  } else {
+    scrollFactor--;
+    if (scrollFactor < 0) {
+      scrollFactor = 0;
+      fakeScrollDownwards = true;
+    }
+  }
+  SetTransformation(1.0+2.0*scrollFactor/10, nsIntPoint(-25*scrollFactor,
+      -25*scrollFactor));
+  printf_stderr("AsyncRender scroll factor:%d\n", scrollFactor);
+  AsyncRender();
+
+  CancelableTask *composeTask = NewRunnableMethod(this, &CompositorParent::TestScroll);
+  MessageLoop::current()->PostDelayedTask(FROM_HERE, composeTask, 1000/65);
+}
+#endif
 
 PLayersParent*
 CompositorParent::AllocPLayers(const LayersBackend &backendType)
