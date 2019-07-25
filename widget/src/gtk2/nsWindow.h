@@ -194,6 +194,7 @@ public:
     NS_IMETHOD         HideWindowChrome(PRBool aShouldHide);
 
     
+    
     gint               ConvertBorderStyles(nsBorderStyle aStyle);
 
     

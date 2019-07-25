@@ -1411,7 +1411,16 @@ nsWindow::SetFocus(PRBool aRaise)
 NS_IMETHODIMP
 nsWindow::GetScreenBounds(nsIntRect &aRect)
 {
-    aRect = nsIntRect(WidgetToScreenOffset(), mBounds.Size());
+    if (mIsTopLevel && mContainer) {
+        
+        gint x, y;
+        gdk_window_get_root_origin(GTK_WIDGET(mContainer)->window, &x, &y);
+        aRect.MoveTo(x, y);
+    }
+    else {
+        aRect.MoveTo(WidgetToScreenOffset());
+    }
+    aRect.SizeTo(mBounds.Size());
     LOG(("GetScreenBounds %d %d | %d %d | %d %d\n",
          aRect.x, aRect.y,
          mBounds.width, mBounds.height,
@@ -2061,14 +2070,8 @@ nsWindow::WidgetToScreenOffset()
 {
     gint x = 0, y = 0;
 
-    if (mContainer) {
-        gdk_window_get_root_origin(GTK_WIDGET(mContainer)->window,
-                                   &x, &y);
-        LOG(("WidgetToScreenOffset (container) %d %d\n", x, y));
-    }
-    else if (mGdkWindow) {
+    if (mGdkWindow) {
         gdk_window_get_origin(mGdkWindow, &x, &y);
-        LOG(("WidgetToScreenOffset (drawing) %d %d\n", x, y));
     }
 
     return nsIntPoint(x, y);
@@ -2486,16 +2489,17 @@ nsWindow::OnConfigureEvent(GtkWidget *aWidget, GdkEventConfigure *aEvent)
     
     
     
+    nsIntPoint pnt(aEvent->x, aEvent->y);
     if (mIsTopLevel) {
         mPlaced = PR_TRUE;
         
         mBounds.MoveTo(WidgetToScreenOffset());
+        pnt = mBounds.TopLeft();
     }
 
     nsGUIEvent event(PR_TRUE, NS_MOVE, this);
 
-    event.refPoint.x = aEvent->x;
-    event.refPoint.y = aEvent->y;
+    event.refPoint = pnt;
 
     
     
