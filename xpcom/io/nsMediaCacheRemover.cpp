@@ -47,11 +47,15 @@
 #include "nsDirectoryServiceDefs.h"
 #include "nsString.h"
 #include "nsAutoPtr.h"
+#include "nsITimer.h"
 
 
 
 #define TEMP_FILE_IDLE_TIME 30
 
+
+
+#define SCHEDULE_TIMEOUT 3 * 60 * 1000
 
 
 
@@ -122,11 +126,25 @@ public:
 
 NS_IMPL_ISUPPORTS1(nsMediaCacheRemover, nsIObserver)
 
-nsresult nsMediaCacheRemover_Startup() {
+void CreateMediaCacheRemover(nsITimer* aTimer, void* aClosure) {
   
   
   
   
   nsRefPtr<nsMediaCacheRemover> t = new nsMediaCacheRemover();
-  return t->RegisterIdleObserver();
+  t->RegisterIdleObserver();
+}
+
+nsresult ScheduleMediaCacheRemover() {
+  
+  
+  
+  
+  
+  nsCOMPtr<nsITimer> t = do_CreateInstance(NS_TIMER_CONTRACTID);
+  nsresult res = t->InitWithFuncCallback(CreateMediaCacheRemover,
+                                         0,
+                                         SCHEDULE_TIMEOUT,
+                                         nsITimer::TYPE_ONE_SHOT);
+  return res;
 }
