@@ -1130,7 +1130,7 @@ struct JSThreadData {
 
 
 
-    volatile jsword     interruptFlags;
+    volatile int32      interruptFlags;
 
     
     js::StackSpace      stackSpace;
@@ -1511,7 +1511,7 @@ struct JSRuntime {
 
 #ifdef JS_THREADSAFE
     
-    volatile jsword     interruptCounter;
+    volatile int32      interruptCounter;
 #else
     JSThreadData        threadData;
 
