@@ -423,6 +423,7 @@ var Browser = {
 
     function notificationHandler() {
       
+      Browser.forceChromeReflow();
       bv.onAfterVisibleMove();
     }
     let notifications = document.getElementById("notifications");
