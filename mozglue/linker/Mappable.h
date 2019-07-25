@@ -26,10 +26,16 @@ public:
 
   virtual void *mmap(const void *addr, size_t length, int prot, int flags,
                      off_t offset) = 0;
+
+private:
   virtual void munmap(void *addr, size_t length) {
     ::munmap(addr, length);
   }
+  
 
+  friend class Mappable1stPagePtr;
+
+public:
   
 
 
