@@ -9,11 +9,12 @@
 #include "nsIHttpAuthenticator.h"
 #include "nsIURI.h"
 #include "nsSubstring.h"
+#include "mozilla/Attributes.h"
 
 
 
 
-class nsHttpNegotiateAuth : public nsIHttpAuthenticator
+class nsHttpNegotiateAuth MOZ_FINAL : public nsIHttpAuthenticator
 {
 public:
     NS_DECL_ISUPPORTS

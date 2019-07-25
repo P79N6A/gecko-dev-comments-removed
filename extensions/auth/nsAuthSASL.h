@@ -9,13 +9,14 @@
 #include "nsIAuthModule.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
+#include "mozilla/Attributes.h"
 
 
 
 
 
 
-class nsAuthSASL : public nsIAuthModule
+class nsAuthSASL MOZ_FINAL : public nsIAuthModule
 {
 public:
     NS_DECL_ISUPPORTS

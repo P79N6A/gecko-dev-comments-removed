@@ -11,6 +11,7 @@
 #include "nsCOMPtr.h"
 #include "prio.h"
 #include "prproces.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -22,7 +23,7 @@
 
 
 
-class nsAuthSambaNTLM : public nsIAuthModule
+class nsAuthSambaNTLM MOZ_FINAL : public nsIAuthModule
 {
 public:
     NS_DECL_ISUPPORTS
