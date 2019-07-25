@@ -3394,9 +3394,9 @@ nsHTMLDocument::QueryCommandEnabled(const nsAString & commandID,
   if (!window)
     return NS_ERROR_FAILURE;
 
-  nsCAutoString cmdToDispatch, paramStr;
+  nsCAutoString cmdToDispatch;
   if (!ConvertToMidasInternalCommand(commandID, cmdToDispatch))
-    return NS_ERROR_NOT_IMPLEMENTED;
+    return NS_OK; 
 
   return cmdMgr->IsCommandEnabled(cmdToDispatch.get(), window, _retval);
 }
@@ -3517,7 +3517,18 @@ nsHTMLDocument::QueryCommandSupported(const nsAString & commandID,
   if (!IsEditingOnAfterFlush())
     return NS_ERROR_FAILURE;
 
-  return NS_ERROR_NOT_IMPLEMENTED;
+  
+  nsCOMPtr<nsICommandManager> cmdMgr;
+  GetMidasCommandManager(getter_AddRefs(cmdMgr));
+  if (!cmdMgr)
+    return NS_ERROR_FAILURE;
+
+  
+  nsCAutoString cmdToDispatch;
+  if (ConvertToMidasInternalCommand(commandID, cmdToDispatch))
+    *_retval = PR_TRUE;
+
+  return NS_OK;
 }
 
 
