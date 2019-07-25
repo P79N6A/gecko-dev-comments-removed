@@ -228,7 +228,7 @@ struct PropertyTable {
 
     uint32          entryCount;         
     uint32          removedCount;       
-    uint32          freeslot;           
+    uint32          freelist;           
 
 
     js::Shape       **entries;          
@@ -237,7 +237,7 @@ struct PropertyTable {
       : hashShift(JS_DHASH_BITS - MIN_SIZE_LOG2),
         entryCount(nentries),
         removedCount(0),
-        freeslot(SHAPE_INVALID_SLOT)
+        freelist(SHAPE_INVALID_SLOT)
     {
         
     }
@@ -361,7 +361,7 @@ struct Shape : public JSObjectMap
     bool maybeHash(JSContext *cx);
 
     void setTable(js::PropertyTable *t) const {
-        JS_ASSERT_IF(t && t->freeslot != SHAPE_INVALID_SLOT, t->freeslot < freeslot);
+        JS_ASSERT_IF(t && t->freelist != SHAPE_INVALID_SLOT, t->freelist < slotSpan);
         table = t;
     }
 
@@ -408,8 +408,8 @@ struct Shape : public JSObjectMap
 
     void setParent(js::Shape *p) {
         if (p)
-            freeslot = JS_MAX(p->freeslot, slot + 1);
-        JS_ASSERT(freeslot < JSObject::NSLOTS_LIMIT);
+            slotSpan = JS_MAX(p->slotSpan, slot + 1);
+        JS_ASSERT(slotSpan < JSObject::NSLOTS_LIMIT);
         parent = p;
     }
 
@@ -490,7 +490,7 @@ struct Shape : public JSObjectMap
     };
 
     Shape(jsid id, js::PropertyOp getter, js::PropertyOp setter, uint32 slot, uintN attrs,
-          uintN flags, intN shortid, uint32 shape = INVALID_SHAPE, uint32 freeslot = 0);
+          uintN flags, intN shortid, uint32 shape = INVALID_SHAPE, uint32 slotSpan = 0);
 
     
     Shape(JSContext *cx, Class *aclasp);

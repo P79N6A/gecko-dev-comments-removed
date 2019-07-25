@@ -181,10 +181,10 @@ struct JSObjectMap {
     static JS_FRIEND_DATA(const JSObjectMap) sharedNonNative;
 
     uint32 shape;       
-    uint32 freeslot;    
+    uint32 slotSpan;    
 
-    explicit JSObjectMap(uint32 shape) : shape(shape), freeslot(0) {}
-    JSObjectMap(uint32 shape, uint32 freeslot) : shape(shape), freeslot(freeslot) {}
+    explicit JSObjectMap(uint32 shape) : shape(shape), slotSpan(0) {}
+    JSObjectMap(uint32 shape, uint32 slotSpan) : shape(shape), slotSpan(slotSpan) {}
 
     enum { INVALID_SHAPE = 0x8fffffff, SHAPELESS = 0xffffffff };
 
@@ -577,9 +577,9 @@ struct JSObject {
 
     inline bool ensureClassReservedSlots(JSContext *cx);
 
-    uint32 freeslot() const { return map->freeslot; }
+    uint32 slotSpan() const { return map->slotSpan; }
 
-    bool containsSlot(uint32 slot) const { return slot < freeslot(); }
+    bool containsSlot(uint32 slot) const { return slot < slotSpan(); }
 
     js::Value& getSlotRef(uintN slot) {
         return (slot < JS_INITIAL_NSLOTS)

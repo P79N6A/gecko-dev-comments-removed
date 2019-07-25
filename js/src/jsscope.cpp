@@ -528,7 +528,7 @@ Shape::newDictionaryShape(JSContext *cx, const Shape &child, Shape **listp)
 
     new (dprop) Shape(child.id, child.rawGetter, child.rawSetter, child.slot, child.attrs,
                       (child.flags & ~FROZEN) | IN_DICTIONARY, child.shortid,
-                      js_GenerateShape(cx, false), child.freeslot);
+                      js_GenerateShape(cx, false), child.slotSpan);
 
     dprop->listp = NULL;
     dprop->insertIntoDictionary(listp);
@@ -647,9 +647,9 @@ JSObject::checkShapeConsistency()
 
     if (inDictionaryMode()) {
         if (PropertyTable *table = shape->table) {
-            for (uint32 fslot = table->freeslot; fslot != SHAPE_INVALID_SLOT;
+            for (uint32 fslot = table->freelist; fslot != SHAPE_INVALID_SLOT;
                  fslot = getSlotRef(fslot).toPrivateUint32()) {
-                JS_ASSERT(fslot < shape->freeslot);
+                JS_ASSERT(fslot < shape->slotSpan);
             }
 
             for (int n = throttle; --n >= 0 && shape->parent; shape = shape->parent) {
@@ -666,13 +666,13 @@ JSObject::checkShapeConsistency()
 
         shape = lastProp;
         for (int n = throttle; --n >= 0 && shape; shape = shape->parent) {
-            JS_ASSERT_IF(shape->slot != SHAPE_INVALID_SLOT, shape->slot < shape->freeslot);
+            JS_ASSERT_IF(shape->slot != SHAPE_INVALID_SLOT, shape->slot < shape->slotSpan);
             if (!prev) {
                 JS_ASSERT(shape == lastProp);
                 JS_ASSERT(shape->listp == &lastProp);
             } else {
                 JS_ASSERT(shape->listp == &prev->parent);
-                JS_ASSERT(prev->freeslot >= shape->freeslot);
+                JS_ASSERT(prev->slotSpan >= shape->slotSpan);
             }
             prev = shape;
         }
@@ -686,7 +686,7 @@ JSObject::checkShapeConsistency()
                 }
             }
             if (prev) {
-                JS_ASSERT(prev->freeslot >= shape->freeslot);
+                JS_ASSERT(prev->slotSpan >= shape->slotSpan);
                 if (shape->kids.isShape()) {
                     JS_ASSERT(shape->kids.toShape() == prev);
                 } else if (shape->kids.isChunk()) {
@@ -904,11 +904,11 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
 #ifdef DEBUG
     if (shape == oldLastProp) {
-        JS_ASSERT(lastProp->freeslot <= shape->freeslot);
+        JS_ASSERT(lastProp->slotSpan <= shape->slotSpan);
         if (shape->hasSlot())
-            JS_ASSERT(shape->slot < shape->freeslot);
-        if (lastProp->freeslot < numSlots())
-            getSlotRef(lastProp->freeslot).setUndefined();
+            JS_ASSERT(shape->slot < shape->slotSpan);
+        if (lastProp->slotSpan < numSlots())
+            getSlotRef(lastProp->slotSpan).setUndefined();
     }
 #endif
 
@@ -1119,16 +1119,16 @@ JSObject::removeProperty(JSContext *cx, jsid id)
             if (shape == oldLastProp) {
                 JS_ASSERT(shape->table == table);
                 JS_ASSERT(shape->parent == lastProp);
-                JS_ASSERT(shape->freeslot >= lastProp->freeslot);
-                JS_ASSERT_IF(hadSlot, shape->slot + 1 <= shape->freeslot);
+                JS_ASSERT(shape->slotSpan >= lastProp->slotSpan);
+                JS_ASSERT_IF(hadSlot, shape->slot + 1 <= shape->slotSpan);
 
                 
 
 
 
 
-                if (table->freeslot != SHAPE_INVALID_SLOT)
-                    lastProp->freeslot = shape->freeslot;
+                if (table->freelist != SHAPE_INVALID_SLOT)
+                    lastProp->slotSpan = shape->slotSpan;
             }
 
             

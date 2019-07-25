@@ -197,7 +197,7 @@ stubs::SetName(VMFrame &f, JSAtom *origAtom)
                     entry->vshape() == cx->runtime->protoHazardShape &&
                     shape->hasDefaultSetter()) {
                     slot = shape->slot;
-                    JS_ASSERT(slot == obj->freeslot());
+                    JS_ASSERT(slot == obj->slotSpan());
 
                     
 
@@ -2179,7 +2179,7 @@ InitPropOrMethod(VMFrame &f, JSAtom *atom, JSOp op)
         
         uint32 slot = shape->slot;
 
-        JS_ASSERT(slot == obj->freeslot());
+        JS_ASSERT(slot == obj->slotSpan());
         JS_ASSERT(slot >= JSSLOT_FREE(obj->getClass()));
         if (slot < obj->numSlots()) {
             JS_ASSERT(obj->getSlot(slot).isUndefined());
