@@ -1769,7 +1769,6 @@ public:
   NS_DISPLAY_DECL_NAME("OwnLayer", TYPE_OWN_LAYER)
 };
 
-#ifdef MOZ_IPC
 
 
 
@@ -1817,7 +1816,6 @@ public:
 private:
   nsIFrame* mViewportFrame;
 };
-#endif
 
 
 

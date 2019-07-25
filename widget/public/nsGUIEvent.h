@@ -60,14 +60,12 @@
 #include "nsITransferable.h"
 #include "nsIVariant.h"
 
-#ifdef MOZ_IPC
 namespace mozilla {
 namespace dom {
   class PBrowserParent;
   class PBrowserChild;
 }
 }
-#endif 
 
 #ifdef ACCESSIBILITY
 class nsAccessible;
@@ -543,11 +541,9 @@ protected:
     MOZ_COUNT_CTOR(nsEvent);
   }
 
-#ifdef MOZ_IPC
   nsEvent()
   {
   }
-#endif 
 
 public:
   nsEvent(PRBool isTrusted, PRUint32 msg)
@@ -600,12 +596,10 @@ protected:
   {
   }
 
-#ifdef MOZ_IPC
   nsGUIEvent()
     : pluginEvent(nsnull)
   {
   }
-#endif 
 
 public:
   nsGUIEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)
@@ -771,11 +765,9 @@ protected:
   {
   }
 
-#ifdef MOZ_IPC
   nsInputEvent()
   {
   }
-#endif 
 
 public:
   nsInputEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)
@@ -1073,7 +1065,6 @@ typedef nsTextRange* nsTextRangeArray;
 
 class nsTextEvent : public nsInputEvent
 {
-#ifdef MOZ_IPC
 private:
   friend class mozilla::dom::PBrowserParent;
   friend class mozilla::dom::PBrowserChild;
@@ -1084,7 +1075,6 @@ private:
 
 public:
   PRUint32 seqno;
-#endif 
 
 public:
   nsTextEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)
@@ -1104,7 +1094,6 @@ public:
 
 class nsCompositionEvent : public nsInputEvent
 {
-#ifdef MOZ_IPC
 private:
   friend class mozilla::dom::PBrowserParent;
   friend class mozilla::dom::PBrowserChild;
@@ -1115,7 +1104,6 @@ private:
 
 public:
   PRUint32 seqno;
-#endif 
 
 public:
   nsCompositionEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)
@@ -1234,7 +1222,6 @@ public:
 
 class nsQueryContentEvent : public nsGUIEvent
 {
-#ifdef MOZ_IPC
 private:
   friend class mozilla::dom::PBrowserParent;
   friend class mozilla::dom::PBrowserChild;
@@ -1244,7 +1231,6 @@ private:
     mReply.mContentsRoot = nsnull;
     mReply.mFocusedWidget = nsnull;
   }
-#endif 
 
 public:
   nsQueryContentEvent(PRBool aIsTrusted, PRUint32 aMsg, nsIWidget *aWidget) :
@@ -1338,7 +1324,6 @@ public:
 
 class nsSelectionEvent : public nsGUIEvent
 {
-#ifdef MOZ_IPC
 private:
   friend class mozilla::dom::PBrowserParent;
   friend class mozilla::dom::PBrowserChild;
@@ -1349,7 +1334,6 @@ private:
 
 public:
   PRUint32 seqno;
-#endif 
 
 public:
   nsSelectionEvent(PRBool aIsTrusted, PRUint32 aMsg, nsIWidget *aWidget) :

@@ -593,7 +593,6 @@ test_new_visit_adds_place_guid()
 
 
 
-#ifdef MOZ_IPC
 void
 test_two_null_links_same_uri()
 {
@@ -616,7 +615,6 @@ test_two_null_links_same_uri()
 
   run_next_test();
 }
-#endif 
 
 
 
@@ -643,9 +641,7 @@ Test gTests[] = {
   TEST(test_new_visit_adds_place_guid),
 
   
-#ifdef MOZ_IPC
   TEST(test_two_null_links_same_uri),
-#endif 
 };
 
 const char* file = __FILE__;

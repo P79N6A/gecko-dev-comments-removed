@@ -45,9 +45,7 @@
 #include "nsAutoRef.h"
 #include "nsThreadUtils.h"
 
-#ifdef MOZ_IPC
 #include "mozilla/layers/ShadowLayers.h"
-#endif
 
 class nsIWidget;
 
@@ -60,6 +58,7 @@ class ShadowContainerLayer;
 class ShadowImageLayer;
 class ShadowCanvasLayer;
 class ShadowColorLayer;
+class ReadbackProcessor;
 
 
 
@@ -70,11 +69,7 @@ class ShadowColorLayer;
 
 
 class THEBES_API BasicLayerManager :
-#ifdef MOZ_IPC
     public ShadowLayerManager
-#else
-    public LayerManager
-#endif
 {
 public:
   
@@ -152,16 +147,17 @@ public:
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
   virtual already_AddRefed<ImageContainer> CreateImageContainer();
   virtual already_AddRefed<ColorLayer> CreateColorLayer();
+  virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer();
   virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer()
-  { return NULL; }
+  { return nsnull; }
   virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer()
-  { return NULL; }
+  { return nsnull; }
   virtual already_AddRefed<ShadowImageLayer> CreateShadowImageLayer()
-  { return NULL; }
+  { return nsnull; }
   virtual already_AddRefed<ShadowColorLayer> CreateShadowColorLayer()
-  { return NULL; }
+  { return nsnull; }
   virtual already_AddRefed<ShadowCanvasLayer> CreateShadowCanvasLayer()
-  { return NULL; }
+  { return nsnull; }
 
   virtual LayersBackend GetBackendType() { return LAYERS_BASIC; }
   virtual void GetBackendName(nsAString& name) { name.AssignLiteral("Basic"); }
@@ -197,7 +193,8 @@ protected:
   
   void PaintLayer(Layer* aLayer,
                   DrawThebesLayerCallback aCallback,
-                  void* aCallbackData);
+                  void* aCallbackData,
+                  ReadbackProcessor* aReadback);
 
   
   void ClearLayer(Layer* aLayer);
@@ -232,7 +229,6 @@ protected:
 };
  
 
-#ifdef MOZ_IPC
 class BasicShadowLayerManager : public BasicLayerManager,
                                 public ShadowLayerForwarder
 {
@@ -281,7 +277,6 @@ private:
 
   LayerRefArray mKeepAlive;
 };
-#endif  
 
 }
 }

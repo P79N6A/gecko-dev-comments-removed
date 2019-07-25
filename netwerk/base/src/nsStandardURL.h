@@ -228,11 +228,9 @@ private:
     nsresult ReadSegment(nsIBinaryInputStream *, URLSegment &);
     nsresult WriteSegment(nsIBinaryOutputStream *, const URLSegment &);
 
-#ifdef MOZ_IPC
     
     bool ReadSegment(const IPC::Message *, void **, URLSegment &);
     void WriteSegment(IPC::Message *, const URLSegment &);
-#endif
 
     static void PrefsChanged(nsIPrefBranch *prefs, const char *pref);
 

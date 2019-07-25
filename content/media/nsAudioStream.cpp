@@ -37,14 +37,12 @@
 
 
 
-#ifdef MOZ_IPC
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/PAudioChild.h"
 #include "mozilla/dom/AudioChild.h"
 #include "mozilla/Monitor.h"
 #include "nsXULAppAPI.h"
 using namespace mozilla::dom;
-#endif
 
 #include <stdio.h>
 #include <math.h>
@@ -65,7 +63,7 @@ extern "C" {
 
 
 
-#if defined(ANDROID) && defined(MOZ_IPC)
+#if defined(ANDROID)
 #define REMOTE_AUDIO 1
 #endif
 
@@ -122,7 +120,6 @@ class nsAudioStreamLocal : public nsAudioStream
 
 };
 
-#ifdef MOZ_IPC
 class nsAudioStreamRemote : public nsAudioStream
 {
  public:
@@ -294,7 +291,6 @@ class AudioShutdownEvent : public nsRunnable
   
   nsRefPtr<AudioChild> mAudioChild;
 };
-#endif 
 
 
 void nsAudioStream::InitLibrary()
@@ -597,8 +593,6 @@ PRInt32 nsAudioStreamLocal::GetMinWriteSamples()
   return static_cast<PRInt32>(samples);
 }
 
-#ifdef MOZ_IPC
-
 nsAudioStreamRemote::nsAudioStreamRemote()
  : mAudioChild(NULL),
    mFormat(FORMAT_S16_LE),
@@ -750,5 +744,3 @@ nsAudioStreamRemote::IsPaused()
 {
   return mPaused;
 }
-
-#endif 

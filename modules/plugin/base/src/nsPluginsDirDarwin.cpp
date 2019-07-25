@@ -45,10 +45,8 @@
 
 
 
-#ifdef MOZ_IPC
 #include "GeckoChildProcessHost.h"
 #include "base/process_util.h"
-#endif
 
 #include "prlink.h"
 #include "prnetdb.h"
@@ -460,7 +458,6 @@ static PRBool IsCompatibleArch(nsIFile *file)
     UInt32 packageType, packageCreator;
     ::CFBundleGetPackageInfo(pluginBundle, &packageType, &packageCreator);
     if (packageType == 'BRPL' || packageType == 'IEPL' || packageType == 'NSPL') {
-#ifdef MOZ_IPC
       
       char executablePath[PATH_MAX];
       executablePath[0] = '\0';
@@ -478,9 +475,6 @@ static PRBool IsCompatibleArch(nsIFile *file)
 
       
       isPluginFile = !!(containerArchitectures & pluginLibArchitectures);
-#else
-      isPluginFile = !!::CFBundlePreflightExecutable(pluginBundle, NULL);
-#endif
     }
     ::CFRelease(pluginBundle);
   }

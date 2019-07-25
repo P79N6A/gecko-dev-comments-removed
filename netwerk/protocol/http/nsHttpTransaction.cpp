@@ -38,9 +38,7 @@
 
 
 
-#ifdef MOZ_IPC
 #include "base/basictypes.h"
-#endif 
 
 #include "nsIOService.h"
 #include "nsHttpHandler.h"
