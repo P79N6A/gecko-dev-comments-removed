@@ -72,8 +72,6 @@ Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/main.js");
 
-Utils.lazy(this, 'Service', WeaveSvc);
-
 
 
 
@@ -2341,4 +2339,5 @@ WeaveSvc.prototype = {
 };
 
 
+let Service = new WeaveSvc();
 Service.onStartup();
