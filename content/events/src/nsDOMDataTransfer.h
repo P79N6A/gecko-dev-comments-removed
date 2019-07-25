@@ -152,7 +152,7 @@ protected:
   }
 
   
-  nsIPrincipal* GetCurrentPrincipal();
+  nsIPrincipal* GetCurrentPrincipal(nsresult* rv);
 
   
   
