@@ -33,6 +33,7 @@
 #include "nsIContentPermissionPrompt.h"
 #include "DictionaryHelpers.h"
 #include "PCOMContentPermissionRequestChild.h"
+#include "mozilla/Attributes.h"
 
 class nsGeolocationService;
 class nsGeolocation;
@@ -88,7 +89,7 @@ class nsGeolocationRequest
 
 
 
-class nsGeolocationService : public nsIGeolocationUpdate, public nsIObserver
+class nsGeolocationService MOZ_FINAL : public nsIGeolocationUpdate, public nsIObserver
 {
 public:
 
@@ -153,7 +154,7 @@ private:
 
 
  
-class nsGeolocation : public nsIDOMGeoGeolocation
+class nsGeolocation MOZ_FINAL : public nsIDOMGeoGeolocation
 {
 public:
 

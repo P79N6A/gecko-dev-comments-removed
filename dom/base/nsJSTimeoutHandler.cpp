@@ -19,12 +19,13 @@
 #include "nsGlobalWindow.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsAlgorithm.h"
+#include "mozilla/Attributes.h"
 
 static const char kSetIntervalStr[] = "setInterval";
 static const char kSetTimeoutStr[] = "setTimeout";
 
 
-class nsJSScriptTimeoutHandler: public nsIScriptTimeoutHandler
+class nsJSScriptTimeoutHandler MOZ_FINAL : public nsIScriptTimeoutHandler
 {
 public:
   

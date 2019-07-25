@@ -13,6 +13,7 @@
 #include "nsAutoPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "nsArenaMemoryStats.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -104,9 +105,9 @@ public:
 
 
 
-class nsWindowMemoryReporter: public nsIMemoryMultiReporter,
-                              public nsIObserver,
-                              public nsSupportsWeakReference
+class nsWindowMemoryReporter MOZ_FINAL : public nsIMemoryMultiReporter,
+                                         public nsIObserver,
+                                         public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
@@ -122,7 +123,7 @@ private:
 
 
 
-  class GhostURLsReporter: public nsIMemoryMultiReporter
+  class GhostURLsReporter MOZ_FINAL : public nsIMemoryMultiReporter
   {
   public:
     GhostURLsReporter(nsWindowMemoryReporter* aWindowReporter);
@@ -138,7 +139,7 @@ private:
 
 
 
-  class NumGhostsReporter: public nsIMemoryReporter
+  class NumGhostsReporter MOZ_FINAL : public nsIMemoryReporter
   {
   public:
     NumGhostsReporter(nsWindowMemoryReporter* aWindowReporter);
