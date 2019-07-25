@@ -48,7 +48,7 @@
 
 
 
-#include "cairo.h"
+#include "cairo-win32.h"
 
 #include "gfxFontUtils.h"
 #include "gfxWindowsSurface.h"
