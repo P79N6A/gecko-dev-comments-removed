@@ -432,9 +432,11 @@ pref("full-screen-api.ignore-widgets", true);
 
 pref("media.volume.steps", 10);
 
+#ifdef ENABLE_MARIONETTE
 
 pref("marionette.defaultPrefs.enabled", true);
 pref("marionette.defaultPrefs.port", 2828);
+#endif
 
 #ifdef MOZ_UPDATER
 pref("app.update.enabled", true);
