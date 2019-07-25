@@ -379,6 +379,9 @@ pref("dom.sms.enabled", true);
 pref("dom.mozContacts.enabled", true);
 
 
+pref("dom.mozAlarms.enabled", true);
+
+
 pref("dom.mozSettings.enabled", true);
 
 

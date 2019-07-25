@@ -1630,8 +1630,6 @@ pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 
 pref("dom.ipc.plugins.java.enabled", false);
 
-pref("dom.ipc.plugins.flash.subprocess.crashreporter.enabled", true);
-
 #ifndef ANDROID
 #ifndef XP_MACOSX
 #ifdef XP_UNIX
@@ -3578,6 +3576,9 @@ pref("dom.sms.whitelist", "");
 
 pref("dom.mozContacts.enabled", false);
 pref("dom.mozContacts.whitelist", "");
+
+
+pref("dom.mozAlarms.enabled", false);
 
 
 pref("dom.mozSettings.enabled", false);
