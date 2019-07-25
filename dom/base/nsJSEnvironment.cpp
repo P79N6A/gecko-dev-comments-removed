@@ -148,6 +148,8 @@ static PRLogModuleInfo* gJSDiagnostics;
 static nsITimer *sGCTimer;
 static nsITimer *sCCTimer;
 
+static bool sGCHasRun;
+
 
 
 
@@ -3392,7 +3394,7 @@ nsJSContext::MaybePokeCC()
 void
 nsJSContext::PokeCC()
 {
-  if (sCCTimer) {
+  if (sCCTimer || !sGCHasRun) {
     
     return;
   }
@@ -3477,6 +3479,7 @@ DOMGCCallback(JSContext *cx, JSGCStatus status)
     } else {
       
       if (!cx->runtime->gcTriggerCompartment) {
+        sGCHasRun = true;
         nsJSContext::PokeCC();
       }
     }
@@ -3589,6 +3592,7 @@ nsJSRuntime::Startup()
 {
   
   sGCTimer = sCCTimer = nsnull;
+  sGCHasRun = false;
   sPendingLoadCount = 0;
   sLoadingInProgress = PR_FALSE;
   sPostGCEventsToConsole = PR_FALSE;
