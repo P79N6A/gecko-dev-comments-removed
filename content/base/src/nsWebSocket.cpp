@@ -820,6 +820,31 @@ nsWebSocket::CreateAndDispatchMessageEvent(const nsACString& aData)
   }
 
   
+  nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(mOwner);
+  NS_ENSURE_TRUE(sgo, NS_ERROR_FAILURE);
+
+  nsIScriptContext* scriptContext = sgo->GetContext();
+  NS_ENSURE_TRUE(scriptContext, NS_ERROR_FAILURE);
+
+  JSContext* cx = (JSContext*)scriptContext->GetNativeContext();
+  NS_ENSURE_TRUE(cx, NS_ERROR_FAILURE);
+
+  
+
+  jsval jsData;
+  {
+    NS_ConvertUTF8toUTF16 utf16Data(aData);
+    JSString* jsString;
+    JSAutoRequest ar(cx);
+    jsString = JS_NewUCStringCopyN(cx,
+                                   utf16Data.get(),
+                                   utf16Data.Length());
+    NS_ENSURE_TRUE(jsString, NS_ERROR_FAILURE);
+
+    jsData = STRING_TO_JSVAL(jsString);
+  }
+
+  
   
 
   nsCOMPtr<nsIDOMEvent> event;
@@ -829,7 +854,7 @@ nsWebSocket::CreateAndDispatchMessageEvent(const nsACString& aData)
   nsCOMPtr<nsIDOMMessageEvent> messageEvent = do_QueryInterface(event);
   rv = messageEvent->InitMessageEvent(NS_LITERAL_STRING("message"),
                                       PR_FALSE, PR_FALSE,
-                                      NS_ConvertUTF8toUTF16(aData),
+                                      jsData,
                                       mUTF16Origin,
                                       EmptyString(), nsnull);
   NS_ENSURE_SUCCESS(rv, rv);

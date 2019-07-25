@@ -5843,13 +5843,13 @@ class PostMessageEvent : public nsRunnable
 
     PostMessageEvent(nsGlobalWindow* aSource,
                      const nsAString& aCallerOrigin,
-                     const nsAString& aMessage,
                      nsGlobalWindow* aTargetWindow,
                      nsIURI* aProvidedOrigin,
                      PRBool aTrustedCaller)
     : mSource(aSource),
       mCallerOrigin(aCallerOrigin),
-      mMessage(aMessage),
+      mMessage(nsnull),
+      mMessageLen(0),
       mTargetWindow(aTargetWindow),
       mProvidedOrigin(aProvidedOrigin),
       mTrustedCaller(aTrustedCaller)
@@ -5859,13 +5859,21 @@ class PostMessageEvent : public nsRunnable
     
     ~PostMessageEvent()
     {
+      NS_ASSERTION(!mMessage, "Message should have been deserialized!");
       MOZ_COUNT_DTOR(PostMessageEvent);
+    }
+
+    void SetJSData(JSAutoStructuredCloneBuffer& aBuffer)
+    {
+      NS_ASSERTION(!mMessage && mMessageLen == 0, "Don't call twice!");
+      aBuffer.steal(&mMessage, &mMessageLen);
     }
 
   private:
     nsRefPtr<nsGlobalWindow> mSource;
     nsString mCallerOrigin;
-    nsString mMessage;
+    uint64* mMessage;
+    size_t mMessageLen;
     nsRefPtr<nsGlobalWindow> mTargetWindow;
     nsCOMPtr<nsIURI> mProvidedOrigin;
     PRBool mTrustedCaller;
@@ -5878,6 +5886,22 @@ PostMessageEvent::Run()
                     "should have been passed an outer window!");
   NS_ABORT_IF_FALSE(!mSource || mSource->IsOuterWindow(),
                     "should have been passed an outer window!");
+
+  
+  nsIScriptContext* scriptContext = mTargetWindow->GetContext();
+  NS_ENSURE_TRUE(scriptContext, NS_ERROR_FAILURE);
+
+  JSContext* cx = (JSContext*)scriptContext->GetNativeContext();
+  NS_ENSURE_TRUE(cx, NS_ERROR_FAILURE);
+
+  
+  
+
+  
+  JSAutoStructuredCloneBuffer buffer;
+  buffer.adopt(cx, mMessage, mMessageLen);
+  mMessage = nsnull;
+  mMessageLen = 0;
 
   nsRefPtr<nsGlobalWindow> targetWindow;
   if (mTargetWindow->IsClosedOrClosing() ||
@@ -5924,6 +5948,14 @@ PostMessageEvent::Run()
       return NS_OK;
   }
 
+  
+  jsval messageData;
+  {
+    JSAutoRequest ar(cx);
+
+    if (!buffer.read(&messageData, cx, nsnull))
+      return NS_ERROR_DOM_DATA_CLONE_ERR;
+  }
 
   
   nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(targetWindow->mDocument);
@@ -5939,7 +5971,7 @@ PostMessageEvent::Run()
   nsresult rv = message->InitMessageEvent(NS_LITERAL_STRING("message"),
                                           PR_FALSE ,
                                           PR_TRUE ,
-                                          mMessage,
+                                          messageData,
                                           mCallerOrigin,
                                           EmptyString(),
                                           mSource);
@@ -5971,9 +6003,12 @@ PostMessageEvent::Run()
 }
 
 NS_IMETHODIMP
-nsGlobalWindow::PostMessageMoz(const nsAString& aMessage, const nsAString& aOrigin)
+nsGlobalWindow::PostMessageMoz(const jsval& aMessage,
+                               const nsAString& aOrigin,
+                               JSContext* aCx)
 {
-  FORWARD_TO_OUTER(PostMessageMoz, (aMessage, aOrigin), NS_ERROR_NOT_INITIALIZED);
+  FORWARD_TO_OUTER(PostMessageMoz, (aMessage, aOrigin, aCx),
+                   NS_ERROR_NOT_INITIALIZED);
 
   
   
@@ -6037,10 +6072,19 @@ nsGlobalWindow::PostMessageMoz(const nsAString& aMessage, const nsAString& aOrig
                          ? nsnull
                          : callerInnerWin->GetOuterWindowInternal(),
                          origin,
-                         aMessage,
                          this,
                          providedOrigin,
                          nsContentUtils::IsCallerTrustedForWrite());
+
+  
+  
+  JSAutoStructuredCloneBuffer buffer;
+
+  if (!buffer.write(aCx, aMessage, nsnull, nsnull))
+    return NS_ERROR_DOM_DATA_CLONE_ERR;
+
+  event->SetJSData(buffer);
+
   return NS_DispatchToCurrentThread(event);
 }
 

@@ -49,6 +49,9 @@ function onMessageReceived(event)
 
     
     default:
+      if (typeof event.data == "undefined")
+        break; 
+               
       if (event.data.match(todoRegExp))
         SimpleTest.todo(false, event.data);
       else
