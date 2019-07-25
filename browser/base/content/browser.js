@@ -1450,12 +1450,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   
   gBookmarkAllTabsHandler.init();
 
-  
-  
-  
-  
-  gBrowser.addEventListener("command", BrowserOnCommand, false);
-
   ctrlTab.readPref();
   gPrefService.addObserver(ctrlTab.prefName, ctrlTab, false);
   gPrefService.addObserver(allTabs.prefName, allTabs, false);
@@ -2491,9 +2485,9 @@ function BrowserImport()
 
 
 
-function BrowserOnCommand(event) {
+function BrowserOnClick(event) {
     
-    if (!event.isTrusted)
+    if (!event.isTrusted || event.target.localName != "button")
       return;
 
     var ot = event.originalTarget;
@@ -4080,6 +4074,7 @@ var XULBrowserWindow = {
   onStateChange: function (aWebProgress, aRequest, aStateFlags, aStatus) {
     const nsIWebProgressListener = Ci.nsIWebProgressListener;
     const nsIChannel = Ci.nsIChannel;
+
     if (aStateFlags & nsIWebProgressListener.STATE_START &&
         aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK) {
 
@@ -4526,16 +4521,32 @@ var CombinedStopReload = {
 };
 
 var TabsProgressListener = {
-#ifdef MOZ_CRASHREPORTER
   onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
+#ifdef MOZ_CRASHREPORTER
     if (aRequest instanceof Ci.nsIChannel &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_START &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT &&
         gCrashReporter.enabled) {
       gCrashReporter.annotateCrashReport("URL", aRequest.URI.spec);
     }
-  },
 #endif
+
+    
+    
+    
+    
+    
+    
+
+    if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+        /^about:/.test(aBrowser.contentWindow.document.documentURI)) {
+      aBrowser.addEventListener("click", BrowserOnClick, false);
+      aBrowser.addEventListener("pagehide", function () {
+        aBrowser.removeEventListener("click", BrowserOnClick, false);
+        aBrowser.removeEventListener("pagehide", arguments.callee, true);
+      }, true);
+    }
+  },
 
   onLocationChange: function (aBrowser, aWebProgress, aRequest, aLocationURI) {
     
