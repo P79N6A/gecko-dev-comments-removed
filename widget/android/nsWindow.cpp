@@ -82,7 +82,6 @@ using mozilla::unused;
 #include "imgIEncoder.h"
 
 #include "nsStringGlue.h"
-#include "nsAutoPtr.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
@@ -893,34 +892,6 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             if (win->mFocus)
                 win->mFocus->OnKeyEvent(ae);
             break;
-
-        case AndroidGeckoEvent::VIEWPORT:
-        case AndroidGeckoEvent::BROADCAST: {
-            if (ae->Characters().Length() == 0)
-                break;
-
-            nsCOMPtr<nsIObserverService> obsServ =
-                mozilla::services::GetObserverService();
-
-            const NS_ConvertUTF16toUTF8 topic(ae->Characters());
-            const nsPromiseFlatString& data = PromiseFlatString(ae->CharactersExtra());
-
-            obsServ->NotifyObservers(nsnull, topic.get(), data.get());
-
-            if (ae->Type() == AndroidGeckoEvent::VIEWPORT) {
-                
-                
-                
-                
-                
-                
-                
-                nsIntRect rect(0, 0, win->mBounds.width, win->mBounds.height);
-                nsAutoPtr<AndroidGeckoEvent> event(new AndroidGeckoEvent(AndroidGeckoEvent::DRAW, rect));
-                win->OnDraw(event);
-            }
-            break;
-        }
 
         case AndroidGeckoEvent::DRAW:
             layers::renderTraceEventStart("Global draw start", "414141");
