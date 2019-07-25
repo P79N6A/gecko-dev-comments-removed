@@ -29,9 +29,7 @@ add_test(function() {
 
 
 add_test(function() {
-  gProvider = new MockProvider();
-
-  gProvider.createAddons([{
+  new MockProvider().createAddons([{
     id: "addon1@tests.mozilla.org",
     name: "addon 1",
     version: "1.0"

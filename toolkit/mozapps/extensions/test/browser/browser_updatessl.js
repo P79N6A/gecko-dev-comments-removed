@@ -2,7 +2,9 @@
 
 
 
-Components.utils.import("resource://gre/modules/AddonUpdateChecker.jsm");
+let tempScope = {};
+Components.utils.import("resource://gre/modules/AddonUpdateChecker.jsm", tempScope);
+let AddonUpdateChecker = tempScope.AddonUpdateChecker;
 
 const updaterdf = RELATIVE_DIR + "browser_updatessl.rdf";
 const redirect = RELATIVE_DIR + "redirect.sjs?";

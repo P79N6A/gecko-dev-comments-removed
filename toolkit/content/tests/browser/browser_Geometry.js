@@ -34,7 +34,10 @@
 
 
 
-Components.utils.import("resource://gre/modules/Geometry.jsm");
+let tempScope = {};
+Components.utils.import("resource://gre/modules/Geometry.jsm", tempScope);
+let Point = tempScope.Point;
+let Rect = tempScope.Rect;
 
 function test() {
   ok(Rect, "Rect class exists");
