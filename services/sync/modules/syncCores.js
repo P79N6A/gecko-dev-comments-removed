@@ -34,8 +34,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ['SyncCore',
-                          'TabSyncCore'];
+const EXPORTED_SYMBOLS = ['SyncCore'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -309,50 +308,5 @@ SyncCore.prototype = {
 
   reconcile: function SC_reconcile(onComplete, listA, listB) {
     return this._reconcile.async(this, onComplete, listA, listB);
-  }
-};
-
-function TabSyncCore(engine) {
-  this._engine = engine;
-  this._init();
-}
-TabSyncCore.prototype = {
-  __proto__: new SyncCore(),
-
-  _logName: "TabSync",
-
-  _engine: null,
-
-  get _sessionStore() {
-    let sessionStore = Cc["@mozilla.org/browser/sessionstore;1"].
-		       getService(Ci.nsISessionStore);
-    this.__defineGetter__("_sessionStore", function() sessionStore);
-    return this._sessionStore;
-  },
-
-  _itemExists: function TSC__itemExists(GUID) {
-    
-    
-    
-    
-    
-
-    
-    let tabs = this._engine.store.wrap();
-
-    
-    
-    if (GUID in tabs) {
-      this._log.debug("_itemExists: " + GUID + " exists");
-      return true;
-    }
-
-    this._log.debug("_itemExists: " + GUID + " doesn't exist");
-    return false;
-  },
-
-  _commandLike: function TSC_commandLike(a, b) {
-    
-    return false;
   }
 };

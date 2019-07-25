@@ -34,8 +34,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Tracker',
-                          'TabTracker'];
+const EXPORTED_SYMBOLS = ['Tracker'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -93,96 +92,3 @@ Tracker.prototype = {
     this._score = 0;
   }
 };
-
-function TabTracker(engine) {
-  this._engine = engine;
-  this._init();
-}
-TabTracker.prototype = {
-  __proto__: new Tracker(),
-
-  _logName: "TabTracker",
-
-  _engine: null,
-
-  get _json() {
-    let json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
-    this.__defineGetter__("_json", function() json);
-    return this._json;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  get score() {
-    
-    
-    let snapshotData = this._engine.snapshot.data;
-    let a = {};
-
-    
-    let b = this._engine.store.wrap();
-
-    
-    
-    
-    let c = [];
-
-    
-    for (id in snapshotData) {
-      if (id in b) {
-        c.push(this._json.encode(snapshotData[id]) == this._json.encode(b[id]));
-        delete b[id];
-      }
-      else {
-        a[id] = snapshotData[id];
-      }
-    }
-
-    let numShared = c.length;
-    let numUnique = [true for (id in a)].length + [true for (id in b)].length;
-    let numTotal = numShared + numUnique;
-
-    
-    
-    
-    if (numTotal == 0)
-      return 0;
-
-    
-    let numChanged = c.filter(function(v) v).length;
-
-    let fractionSimilar = (numShared - (numChanged / 2)) / numTotal;
-    let fractionDissimilar = 1 - fractionSimilar;
-    let percentDissimilar = Math.round(fractionDissimilar * 100);
-
-    return percentDissimilar;
-  },
-
-  resetScore: function FormsTracker_resetScore() {
-    
-  }
-}
