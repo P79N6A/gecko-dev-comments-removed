@@ -4,36 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 (function touchEventHandler() {
   let debugging = false;
   function debug(str) {
