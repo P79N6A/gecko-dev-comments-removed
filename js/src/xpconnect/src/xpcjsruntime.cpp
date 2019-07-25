@@ -94,8 +94,10 @@ WrappedJSDyingJSObjectFinder(JSDHashTable *table, JSDHashEntryHdr *hdr,
     {
         if(wrapper->IsSubjectToFinalization())
         {
-            js::SwitchToCompartment sc(data->cx, wrapper->GetJSObject());
-            if(JS_IsAboutToBeFinalized(data->cx, wrapper->GetJSObject()))
+            js::SwitchToCompartment sc(data->cx,
+                                       wrapper->GetJSObjectPreserveColor());
+            if(JS_IsAboutToBeFinalized(data->cx,
+                                       wrapper->GetJSObjectPreserveColor()))
                 data->array->AppendElement(wrapper);
         }
         wrapper = wrapper->GetNextWrapper();
@@ -503,16 +505,13 @@ XPCJSRuntime::SuspectWrappedNative(JSContext *cx, XPCWrappedNative *wrapper,
 
     
     
-    JSObject* obj = wrapper->GetFlatJSObjectAndMark();
+    JSObject* obj = wrapper->GetFlatJSObjectPreserveColor();
     if(!xpc::ParticipatesInCycleCollection(cx, obj))
         return;
 
-    NS_ASSERTION(!JS_IsAboutToBeFinalized(cx, obj),
-                 "SuspectWrappedNative attempting to touch dead object");
-
     
     
-    if(nsXPConnect::IsGray(obj) || cb.WantAllTraces())
+    if(xpc_IsGrayGCThing(obj) || cb.WantAllTraces())
         cb.NoteRoot(nsIProgrammingLanguage::JAVASCRIPT, obj,
                     nsXPConnect::GetXPConnect());
 }
@@ -572,7 +571,7 @@ XPCJSRuntime::AddXPConnectRoots(JSContext* cx,
     for(XPCRootSetElem *e = mWrappedJSRoots; e ; e = e->GetNextRoot())
     {
         nsXPCWrappedJS *wrappedJS = static_cast<nsXPCWrappedJS*>(e);
-        JSObject *obj = wrappedJS->GetJSObject();
+        JSObject *obj = wrappedJS->GetJSObjectPreserveColor();
 
         
         
@@ -640,7 +639,7 @@ static PLDHashOperator
 SweepExpandos(XPCWrappedNative *wn, JSObject *&expando, void *arg)
 {
     JSContext *cx = (JSContext *)arg;
-    return IsAboutToBeFinalized(cx, wn->GetFlatJSObjectNoMark())
+    return IsAboutToBeFinalized(cx, wn->GetFlatJSObjectPreserveColor())
            ? PL_DHASH_REMOVE
            : PL_DHASH_NEXT;
 }

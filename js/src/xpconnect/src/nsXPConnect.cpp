@@ -49,6 +49,7 @@
 #include "jsatom.h"
 #include "jsobj.h"
 #include "jsfun.h"
+#include "jsgc.h"
 #include "jsscript.h"
 #include "nsThreadUtilsInternal.h"
 #include "dom_quickstubs.h"
@@ -555,6 +556,43 @@ nsXPConnect::Unroot(void *p)
     return NS_OK;
 }
 
+static void
+UnmarkGrayChildren(JSTracer *trc, void *thing, uint32 kind)
+{
+    
+    if(!ADD_TO_CC(kind) || !xpc_IsGrayGCThing(thing))
+        return;
+
+    
+    static_cast<js::gc::Cell *>(thing)->unmark(XPC_GC_COLOR_GRAY);
+
+    
+    JS_TraceChildren(trc, thing, kind);
+}
+
+void
+xpc_UnmarkGrayObjectRecursive(JSObject *obj)
+{
+    NS_ASSERTION(obj, "Don't pass me null!");
+
+    
+    obj->unmark(XPC_GC_COLOR_GRAY);
+
+    
+    JSContext *cx;
+    nsXPConnect* xpc = nsXPConnect::GetXPConnect();
+    if(!xpc || NS_FAILED(xpc->GetSafeJSContext(&cx)) || !cx)
+    {
+        NS_ERROR("Failed to get safe JSContext!");
+        return;
+    }
+
+    
+    JSTracer trc;
+    JS_TRACER_INIT(&trc, cx, UnmarkGrayChildren);
+    JS_TraceChildren(&trc, obj, JSTRACE_OBJECT);
+}
+
 struct TraversalTracer : public JSTracer
 {
     TraversalTracer(nsCycleCollectionTraversalCallback &aCb) : cb(aCb)
@@ -569,6 +607,12 @@ NoteJSChild(JSTracer *trc, void *thing, uint32 kind)
     if(ADD_TO_CC(kind))
     {
         TraversalTracer *tracer = static_cast<TraversalTracer*>(trc);
+
+        
+        
+        if(!xpc_IsGrayGCThing(thing) && !tracer->cb.WantAllTraces())
+            return;
+
 #if defined(DEBUG)
         if (NS_UNLIKELY(tracer->cb.WantDebugInfo())) {
             
@@ -608,12 +652,6 @@ WrapperIsNotMainThreadOnly(XPCWrappedNative *wrapper)
     
     nsXPCOMCycleCollectionParticipant* participant;
     return NS_FAILED(CallQueryInterface(wrapper->Native(), &participant));
-}
-
-JSBool
-nsXPConnect::IsGray(void *thing)
-{
-    return js_GCThingIsMarked(thing, XPC_GC_COLOR_GRAY);
 }
 
 NS_IMETHODIMP
@@ -677,7 +715,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 #endif
     {
         
-        type = !markJSObject && IsGray(p) ? GCUnmarked : GCMarked;
+        type = !markJSObject && xpc_IsGrayGCThing(p) ? GCUnmarked : GCMarked;
     }
 
     if (cb.WantDebugInfo()) {
@@ -772,7 +810,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 
     if(traceKind != JSTRACE_OBJECT || dontTraverse)
         return NS_OK;
-    
+
     if(clazz == &XPC_WN_Tearoff_JSClass)
     {
         
@@ -1591,7 +1629,7 @@ MoveWrapper(XPCCallContext& ccx, XPCWrappedNative *wrapper,
 
         NS_ENSURE_SUCCESS(rv, rv);
 
-        newParent = parentWrapper->GetFlatJSObjectNoMark();
+        newParent = parentWrapper->GetFlatJSObject();
     }
     else
         NS_ASSERTION(betterScope == newScope, "Weird scope returned");

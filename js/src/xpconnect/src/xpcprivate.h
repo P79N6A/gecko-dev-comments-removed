@@ -60,7 +60,6 @@
 #include "jsdbgapi.h"
 #include "jsgc.h"
 #include "jscompartment.h"
-#include "xpcpublic.h"
 #include "nscore.h"
 #include "nsXPCOM.h"
 #include "nsAutoPtr.h"
@@ -489,9 +488,6 @@ private:
 
 
 
-static const uint32 XPC_GC_COLOR_BLACK = 0;
-static const uint32 XPC_GC_COLOR_GRAY = 1;
-
 
 
 
@@ -556,11 +552,6 @@ public:
     virtual ~nsXPConnect();
 
     JSBool IsShuttingDown() const {return mShuttingDown;}
-
-    
-    
-    
-    static JSBool IsGray(void *thing);
 
     nsresult GetInfoForIID(const nsIID * aIID, nsIInterfaceInfo** info);
     nsresult GetInfoForName(const char * name, nsIInterfaceInfo** info);
@@ -2550,14 +2541,26 @@ public:
     nsISupports*
     GetIdentityObject() const {return mIdentity;}
 
-    JSObject*
-    GetFlatJSObjectAndMark() const
-        {if(mFlatJSObject && mFlatJSObject != INVALID_OBJECT)
-             mFlatJSObject->markIfUnmarked();
-         return mFlatJSObject;}
+    
+
+
 
     JSObject*
-    GetFlatJSObjectNoMark() const {return mFlatJSObject;}
+    GetFlatJSObject() const
+        {if(mFlatJSObject != INVALID_OBJECT)
+             xpc_UnmarkGrayObject(mFlatJSObject);
+         return mFlatJSObject;}
+
+    
+
+
+
+
+
+
+
+    JSObject*
+    GetFlatJSObjectPreserveColor() const {return mFlatJSObject;}
 
     XPCLock*
     GetLock() const {return IsValid() && HasProto() ?
@@ -2695,7 +2698,7 @@ public:
         if(mScriptableInfo && JS_IsGCMarkingTracer(trc))
             mScriptableInfo->Mark();
         if(HasProto()) GetProto()->TraceJS(trc);
-        JSObject* wrapper = GetWrapper();
+        JSObject* wrapper = GetWrapperPreserveColor();
         if(wrapper)
             JS_CALL_OBJECT_TRACER(trc, wrapper, "XPCWrappedNative::mWrapper");
     }
@@ -2741,9 +2744,19 @@ public:
     JSBool NeedsCOW() { return !!(mWrapperWord & NEEDS_COW); }
     void SetNeedsCOW() { mWrapperWord |= NEEDS_COW; }
 
+    JSObject* GetWrapperPreserveColor() const
+        {return (JSObject*)(mWrapperWord & (size_t)~(size_t)FLAG_MASK);}
+
     JSObject* GetWrapper()
     {
-        return (JSObject *) (mWrapperWord & (size_t)~(size_t)FLAG_MASK);
+        JSObject* wrapper = GetWrapperPreserveColor();
+        if(wrapper)
+        {
+            xpc_UnmarkGrayObject(wrapper);
+            
+            GetFlatJSObject();
+        }
+        return wrapper;
     }
     void SetWrapper(JSObject *obj)
     {
@@ -3005,7 +3018,24 @@ public:
                  nsXPCWrappedJS** wrapper);
 
     nsISomeInterface* GetXPTCStub() { return mXPTCStub; }
-    JSObject* GetJSObject() const {return mJSObj;}
+
+    
+
+
+
+    JSObject* GetJSObject() const {xpc_UnmarkGrayObject(mJSObj);
+                                   return mJSObj;}
+
+    
+
+
+
+
+
+
+
+    JSObject* GetJSObjectPreserveColor() const {return mJSObj;}
+
     nsXPCWrappedJSClass*  GetClass() const {return mClass;}
     REFNSIID GetIID() const {return GetClass()->GetIID();}
     nsXPCWrappedJS* GetRootWrapper() const {return mRoot;}
@@ -4324,7 +4354,22 @@ public:
 
 
 
-    jsval GetJSVal() const {return mJSVal;}
+
+    jsval GetJSVal() const
+        {if(!JSVAL_IS_PRIMITIVE(mJSVal))
+             xpc_UnmarkGrayObject(JSVAL_TO_OBJECT(mJSVal));
+         return mJSVal;}
+
+    
+
+
+
+
+
+
+
+
+    jsval GetJSValPreserveColor() const {return mJSVal;}
 
     XPCVariant(XPCCallContext& ccx, jsval aJSVal);
 
@@ -4515,7 +4560,9 @@ struct CompartmentPrivate
     JSObject *LookupExpandoObject(XPCWrappedNative *wn) {
         if (!expandoMap)
             return nsnull;
-        return expandoMap->Get(wn);
+        JSObject *obj = expandoMap->Get(wn);
+        xpc_UnmarkGrayObject(obj);
+        return obj;
     }
 };
 
