@@ -1526,7 +1526,7 @@ Tab.prototype = {
   },
 
   onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
-    if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
+    if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
       
       let browser = BrowserApp.getBrowserForWindow(aWebProgress.DOMWindow);
       let uri = "";
