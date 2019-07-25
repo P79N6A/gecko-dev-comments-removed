@@ -123,6 +123,9 @@ class FrameState
 
         
         FrameEntry *fe;
+
+        
+        FrameEntry *save;
         
         
         RematInfo::RematType type;
@@ -197,6 +200,11 @@ class FrameState
 
 
     inline RegisterID tempRegForData(FrameEntry *fe);
+
+    
+
+
+    inline RegisterID tempRegForData(FrameEntry *fe, RegisterID reg);
 
     
 
@@ -313,6 +321,18 @@ class FrameState
 
 
     void popAfterSet();
+
+    
+
+
+
+
+    inline void pinReg(RegisterID reg);
+
+    
+
+
+    inline void unpinReg(RegisterID reg);
 
     
 
