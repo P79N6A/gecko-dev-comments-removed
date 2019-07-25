@@ -434,6 +434,25 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
     newEnvVars["LD_LIBRARY_PATH"] = path.get();
 #elif OS_MACOSX
     newEnvVars["DYLD_LIBRARY_PATH"] = path.get();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    const char* prevInterpose = PR_GetEnv("DYLD_INSERT_LIBRARIES");
+    nsCString interpose;
+    if (prevInterpose) {
+      interpose.Assign(prevInterpose);
+      interpose.AppendLiteral(":");
+    }
+    interpose.Append(path.get());
+    interpose.AppendLiteral("/libplugin_child_interpose.dylib");
+    newEnvVars["DYLD_INSERT_LIBRARIES"] = interpose.get();
 #endif
   }
 #endif

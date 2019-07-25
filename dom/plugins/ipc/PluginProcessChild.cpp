@@ -73,6 +73,42 @@ namespace plugins {
 bool
 PluginProcessChild::Init()
 {
+#if defined(XP_MACOSX)
+    
+    
+    
+    
+    
+    
+    nsCString interpose(PR_GetEnv("DYLD_INSERT_LIBRARIES"));
+    if (!interpose.IsEmpty()) {
+        
+        
+        
+        PRInt32 lastSeparatorPos = interpose.RFind(":");
+        PRInt32 lastTriggerPos = interpose.RFind("libplugin_child_interpose.dylib");
+        PRBool needsReset = PR_FALSE;
+        if (lastTriggerPos != -1) {
+            if (lastSeparatorPos == -1) {
+                interpose.Truncate();
+                needsReset = PR_TRUE;
+            } else if (lastTriggerPos > lastSeparatorPos) {
+                interpose.SetLength(lastSeparatorPos);
+                needsReset = PR_TRUE;
+            }
+        }
+        if (needsReset) {
+            nsCString setInterpose("DYLD_INSERT_LIBRARIES=");
+            if (!interpose.IsEmpty()) {
+                setInterpose.Append(interpose);
+            }
+            
+            char* setInterposePtr = strdup(PromiseFlatCString(setInterpose).get());
+            PR_SetEnv(setInterposePtr);
+        }
+    }
+#endif
+
 #ifdef XP_WIN
     
     

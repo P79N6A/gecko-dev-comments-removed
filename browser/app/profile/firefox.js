@@ -901,6 +901,17 @@ pref("dom.ipc.plugins.enabled.x86_64", true);
 pref("dom.ipc.plugins.enabled", true);
 #endif
 
+
+
+
+
+
+
+
+#ifdef XP_MACOSX
+pref("dom.ipc.plugins.nativeCursorSupport", true);
+#endif
+
 #ifdef XP_WIN
 pref("browser.taskbar.previews.enable", false);
 pref("browser.taskbar.previews.max", 20);
