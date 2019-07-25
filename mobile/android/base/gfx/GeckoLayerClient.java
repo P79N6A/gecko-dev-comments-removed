@@ -127,9 +127,8 @@ public class GeckoLayerClient implements GeckoEventListener,
 
     
     public Rect beginDrawing(int width, int height, int tileWidth, int tileHeight,
-                             String metadata, boolean hasDirectTexture) {
-        Log.e(LOGTAG, "### beginDrawing " + width + " " + height + " " + tileWidth + " " +
-              tileHeight + " " + hasDirectTexture);
+                             String metadata) {
+        Log.e(LOGTAG, "### beginDrawing " + width + " " + height + " " + tileWidth + " " + tileHeight);
 
         
         
@@ -140,8 +139,8 @@ public class GeckoLayerClient implements GeckoEventListener,
         mFirstPaint = false;
 
         
-        if (handleDirectTextureChange(hasDirectTexture)) {
-            Log.e(LOGTAG, "### Cancelling draw due to direct texture change");
+        if (initializeVirtualLayer()) {
+            Log.e(LOGTAG, "### Cancelling draw due to virtual layer initialization");
             return null;
         }
 
@@ -318,7 +317,7 @@ public class GeckoLayerClient implements GeckoEventListener,
         return Color.rgb(r, g, b);
     }
 
-    private boolean handleDirectTextureChange(boolean hasDirectTexture) {
+    private boolean initializeVirtualLayer() {
         if (mTileLayer != null) {
             return false;
         }
