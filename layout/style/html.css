@@ -708,6 +708,10 @@ area {
   display: none ! important;
 }
 
+audio, video {
+  overflow: -moz-hidden-unscrollable;
+}
+
 
 video > xul|videocontrols, audio > xul|videocontrols {
   display: -moz-box;
