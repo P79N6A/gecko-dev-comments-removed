@@ -1011,7 +1011,6 @@ AppendTransformFunction(nsCSSKeyword aTransformFunction,
       nargs = 3;
       break;
     case eCSSKeyword_translate:
-    case eCSSKeyword_skew:
     case eCSSKeyword_scale:
       nargs = 2;
       break;
@@ -1047,59 +1046,6 @@ AppendTransformFunction(nsCSSKeyword aTransformFunction,
 
   return arr.forget();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1532,7 +1478,6 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
         
         
         
-        
         AddTransformScale(a1->Count() == 3 ? a1->Item(2) : a1->Item(1),
                           aCoeff1,
                           a2->Count() == 3 ? a2->Item(2) : a2->Item(1),
@@ -1575,27 +1520,6 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
       
       
       
-      case eCSSKeyword_skew: {
-        NS_ABORT_IF_FALSE(a1->Count() == 2 || a1->Count() == 3,
-                          "unexpected count");
-        NS_ABORT_IF_FALSE(a2->Count() == 2 || a2->Count() == 3,
-                          "unexpected count");
-
-        nsCSSValue zero(0.0f, eCSSUnit_Radian);
-        
-        AddCSSValueAngle(a1->Count() == 3 ? a1->Item(2) : zero,
-                         aCoeff1,
-                         a2->Count() == 3 ? a2->Item(2) : zero,
-                         aCoeff2,
-                         arr->Item(2));
-
-        
-        
-        AddCSSValueAngle(a1->Item(1), aCoeff1, a2->Item(1), aCoeff2,
-                         arr->Item(1));
-
-        break;
-      }
       case eCSSKeyword_skewx:
       case eCSSKeyword_skewy:
       case eCSSKeyword_rotate:
