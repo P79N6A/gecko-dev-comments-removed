@@ -204,7 +204,7 @@ public:
   enum {
     SCROLL_SYNCHRONOUS = 1<<1,
     SCROLL_FIRST_ANCESTOR_ONLY = 1<<2,
-    SCROLL_DO_FLUSH = 1<<3,
+    SCROLL_DO_FLUSH = 1<<3
   };
   
   
