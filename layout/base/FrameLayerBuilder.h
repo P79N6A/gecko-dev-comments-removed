@@ -299,6 +299,17 @@ public:
   
 
 
+  void SaveLastPaintTransform(ThebesLayer* aLayer, const gfx3DMatrix& aMatrix);
+  
+
+
+
+
+  const gfx3DMatrix& GetLastPaintTransform(ThebesLayer* aLayer);
+
+  
+
+
 
   struct Clip {
     struct RoundedRect {
@@ -438,7 +449,9 @@ protected:
 
   class ThebesLayerItemsEntry : public nsPtrHashKey<ThebesLayer> {
   public:
-    ThebesLayerItemsEntry(const ThebesLayer *key) : nsPtrHashKey<ThebesLayer>(key) {}
+    ThebesLayerItemsEntry(const ThebesLayer *key) :
+        nsPtrHashKey<ThebesLayer>(key), mContainerLayerFrame(nsnull),
+        mHasExplicitLastPaintTransform(PR_FALSE) {}
     ThebesLayerItemsEntry(const ThebesLayerItemsEntry &toCopy) :
       nsPtrHashKey<ThebesLayer>(toCopy.mKey), mItems(toCopy.mItems)
     {
@@ -447,6 +460,10 @@ protected:
 
     nsTArray<ClippedDisplayItem> mItems;
     nsIFrame* mContainerLayerFrame;
+    
+    
+    gfx3DMatrix mLastPaintTransform;
+    PRPackedBool mHasExplicitLastPaintTransform;
 
     enum { ALLOW_MEMMOVE = PR_TRUE };
   };

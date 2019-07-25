@@ -721,10 +721,11 @@ FrameLayerBuilder::GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey)
 
 
 static void
-InvalidatePostTransformRegion(ThebesLayer* aLayer, const nsIntRegion& aRegion)
+InvalidatePostTransformRegion(ThebesLayer* aLayer, const nsIntRegion& aRegion,
+                              const gfx3DMatrix& aTransform)
 {
   gfxMatrix transform;
-  if (aLayer->GetTransform().Is2D(&transform)) {
+  if (aTransform.Is2D(&transform)) {
     NS_ASSERTION(!transform.HasNonIntegerTranslation(),
                  "Matrix not just an integer translation?");
     
@@ -807,7 +808,8 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
       nsIntRect invalidate = layer->GetValidRegion().GetBounds();
       layer->InvalidateRegion(invalidate);
     } else {
-      InvalidatePostTransformRegion(layer, mInvalidThebesContent);
+      InvalidatePostTransformRegion(layer, mInvalidThebesContent,
+                                    layer->GetTransform());
     }
     
     
@@ -821,6 +823,8 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
     layer->SetUserData(&gThebesDisplayItemLayerUserData,
         new ThebesDisplayItemLayerUserData());
   }
+
+  mBuilder->LayerBuilder()->SaveLastPaintTransform(layer, layer->GetTransform());
 
   
   
@@ -1419,12 +1423,13 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer)
 
     ThebesLayer* t = oldLayer->AsThebesLayer();
     if (t) {
-      InvalidatePostTransformRegion(t, r);
+      InvalidatePostTransformRegion(t, r,
+              mBuilder->LayerBuilder()->GetLastPaintTransform(t));
     }
     if (aNewLayer) {
       ThebesLayer* newLayer = aNewLayer->AsThebesLayer();
       if (newLayer) {
-        InvalidatePostTransformRegion(newLayer, r);
+        InvalidatePostTransformRegion(newLayer, r, newLayer->GetTransform());
       }
     }
 
@@ -1476,6 +1481,26 @@ FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
   DisplayItemDataEntry* entry = mNewDisplayItemData.PutEntry(f);
   if (entry) {
     entry->mData.AppendElement(DisplayItemData(aLayer, aItem->GetPerFrameKey()));
+  }
+}
+
+const gfx3DMatrix&
+FrameLayerBuilder::GetLastPaintTransform(ThebesLayer* aLayer)
+{
+  ThebesLayerItemsEntry* entry = mThebesLayerItems.PutEntry(aLayer);
+  if (entry && entry->mHasExplicitLastPaintTransform)
+    return entry->mLastPaintTransform;
+  return aLayer->GetTransform();
+}
+
+void
+FrameLayerBuilder::SaveLastPaintTransform(ThebesLayer* aLayer,
+                                          const gfx3DMatrix& aMatrix)
+{
+  ThebesLayerItemsEntry* entry = mThebesLayerItems.PutEntry(aLayer);
+  if (entry) {
+    entry->mLastPaintTransform = aMatrix;
+    entry->mHasExplicitLastPaintTransform = PR_TRUE;
   }
 }
 
