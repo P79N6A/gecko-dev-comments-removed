@@ -6,6 +6,23 @@
 #ifndef _COMPILER_INTERFACE_INCLUDED_
 #define _COMPILER_INTERFACE_INCLUDED_
 
+#if defined(COMPONENT_BUILD)
+#if defined(_WIN32) || defined(_WIN64)
+
+#if defined(COMPILER_IMPLEMENTATION)
+#define COMPILER_EXPORT __declspec(dllexport)
+#else
+#define COMPILER_EXPORT __declspec(dllimport)
+#endif  
+
+#else  
+#define COMPILER_EXPORT __attribute__((visibility("default")))
+#endif
+
+#else  
+#define COMPILER_EXPORT
+#endif
+
 
 
 
@@ -93,12 +110,12 @@ typedef enum {
 
 
 
-int ShInitialize();
+COMPILER_EXPORT int ShInitialize();
 
 
 
 
-int ShFinalize();
+COMPILER_EXPORT int ShFinalize();
 
 
 
@@ -125,7 +142,7 @@ typedef struct
 
 
 
-void ShInitBuiltInResources(ShBuiltInResources* resources);
+COMPILER_EXPORT void ShInitBuiltInResources(ShBuiltInResources* resources);
 
 
 
@@ -148,10 +165,12 @@ typedef void* ShHandle;
 
 
 
-ShHandle ShConstructCompiler(ShShaderType type, ShShaderSpec spec,
-                             ShShaderOutput output,
-                             const ShBuiltInResources* resources);
-void ShDestruct(ShHandle handle);
+COMPILER_EXPORT ShHandle ShConstructCompiler(
+    ShShaderType type,
+    ShShaderSpec spec,
+    ShShaderOutput output,
+    const ShBuiltInResources* resources);
+COMPILER_EXPORT void ShDestruct(ShHandle handle);
 
 
 
@@ -178,7 +197,7 @@ void ShDestruct(ShHandle handle);
 
 
 
-int ShCompile(
+COMPILER_EXPORT int ShCompile(
     const ShHandle handle,
     const char* const shaderStrings[],
     const int numStrings,
@@ -206,7 +225,9 @@ int ShCompile(
 
 
 
-void ShGetInfo(const ShHandle handle, ShShaderInfo pname, int* params);
+COMPILER_EXPORT void ShGetInfo(const ShHandle handle,
+                               ShShaderInfo pname,
+                               int* params);
 
 
 
@@ -216,7 +237,7 @@ void ShGetInfo(const ShHandle handle, ShShaderInfo pname, int* params);
 
 
 
-void ShGetInfoLog(const ShHandle handle, char* infoLog);
+COMPILER_EXPORT void ShGetInfoLog(const ShHandle handle, char* infoLog);
 
 
 
@@ -226,34 +247,7 @@ void ShGetInfoLog(const ShHandle handle, char* infoLog);
 
 
 
-void ShGetObjectCode(const ShHandle handle, char* objCode);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void ShGetActiveAttrib(const ShHandle handle,
-                       int index,
-                       int* length,
-                       int* size,
-                       ShDataType* type,
-                       char* name,
-                       char* mappedName);
+COMPILER_EXPORT void ShGetObjectCode(const ShHandle handle, char* objCode);
 
 
 
@@ -274,13 +268,40 @@ void ShGetActiveAttrib(const ShHandle handle,
 
 
 
-void ShGetActiveUniform(const ShHandle handle,
-                        int index,
-                        int* length,
-                        int* size,
-                        ShDataType* type,
-                        char* name,
-                        char* mappedName);
+COMPILER_EXPORT void ShGetActiveAttrib(const ShHandle handle,
+                                       int index,
+                                       int* length,
+                                       int* size,
+                                       ShDataType* type,
+                                       char* name,
+                                       char* mappedName);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+COMPILER_EXPORT void ShGetActiveUniform(const ShHandle handle,
+                                        int index,
+                                        int* length,
+                                        int* size,
+                                        ShDataType* type,
+                                        char* name,
+                                        char* mappedName);
 
 #ifdef __cplusplus
 }
