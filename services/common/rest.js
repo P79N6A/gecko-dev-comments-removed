@@ -153,6 +153,14 @@ RESTRequest.prototype = {
 
 
 
+  charset: "utf-8",
+
+  
+
+
+
+
+
 
 
   onComplete: function onComplete(error) {
@@ -311,6 +319,10 @@ RESTRequest.prototype = {
     channel.requestMethod = method;
 
     
+    
+    channel.contentCharset = this.charset;
+
+    
     channel.asyncOpen(this, null);
     this.status = this.SENT;
     this.delayTimeout();
@@ -369,18 +381,6 @@ RESTRequest.prototype = {
     response.request = this;
     response.body = "";
 
-    
-    
-    
-    
-    if (channel.contentCharset) {
-      response.charset = channel.contentCharset;
-      this._converterStream = Cc["@mozilla.org/intl/converter-input-stream;1"]
-                                .createInstance(Ci.nsIConverterInputStream);
-    } else {
-      this._inputStream = Cc["@mozilla.org/scriptableinputstream;1"]
-                          .createInstance(Ci.nsIScriptableInputStream);
-    }
     this.delayTimeout();
   },
 
@@ -441,34 +441,63 @@ RESTRequest.prototype = {
     this.onComplete = this.onProgress = null;
   },
 
-  onDataAvailable: function onDataAvailable(req, cb, stream, off, count) {
+  onDataAvailable: function onDataAvailable(channel, cb, stream, off, count) {
+    
     try {
-      if (this._inputStream) {
-        this._inputStream.init(stream);
-        this.response.body += this._inputStream.read(count);
-      } else {
+      channel.QueryInterface(Ci.nsIHttpChannel);
+    } catch (ex) {
+      this._log.error("Unexpected error: channel not nsIHttpChannel!");
+      this.abort();
+
+      if (this.onComplete) {
+        this.onComplete(ex);
+      }
+
+      this.onComplete = this.onProgress = null;
+      return;
+    }
+
+    if (channel.contentCharset) {
+      this.response.charset = channel.contentCharset;
+
+      if (!this._converterStream) {
+        this._converterStream = Cc["@mozilla.org/intl/converter-input-stream;1"]
+                                   .createInstance(Ci.nsIConverterInputStream);
+      }
+
+      this._converterStream.init(stream, channel.contentCharset, 0,
+                                 this._converterStream.DEFAULT_REPLACEMENT_CHARACTER);
+
+      try {
         let str = {};
-        this._converterStream.init(
-          stream, this.response.charset, 0,
-          this._converterStream.DEFAULT_REPLACEMENT_CHARACTER
-        );
         let num = this._converterStream.readString(count, str);
         if (num != 0) {
           this.response.body += str.value;
         }
+      } catch (ex) {
+        this._log.warn("Exception thrown reading " + count + " bytes from " +
+                       "the channel.");
+        this._log.warn(CommonUtils.exceptionStr(ex));
+        throw ex;
       }
-    } catch (ex) {
-      this._log.warn("Exception thrown reading " + count +
-                     " bytes from the channel.");
-      this._log.debug(CommonUtils.exceptionStr(ex));
-      throw ex;
+    } else {
+      this.response.charset = null;
+
+      if (!this._inputStream) {
+        this._inputStream = Cc["@mozilla.org/scriptableinputstream;1"]
+                              .createInstance(Ci.nsIScriptableInputStream);
+      }
+
+      this._inputStream.init(stream);
+
+      this.response.body += this._inputStream.read(count);
     }
 
     try {
       this.onProgress();
     } catch (ex) {
       this._log.warn("Got exception calling onProgress handler, aborting " +
-                     this.method + " " + req.URI.spec);
+                     this.method + " " + channel.URI.spec);
       this._log.debug("Exception: " + CommonUtils.exceptionStr(ex));
       this.abort();
 
