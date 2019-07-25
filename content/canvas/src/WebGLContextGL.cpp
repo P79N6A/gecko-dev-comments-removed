@@ -2975,9 +2975,6 @@ WebGLContext::VertexAttribPointer(WebGLuint index, WebGLint size, WebGLenum type
     if (size < 1 || size > 4)
         return ErrorInvalidValue("VertexAttribPointer: invalid element size");
 
-    if (stride < 0)
-        return ErrorInvalidValue("VertexAttribPointer: stride cannot be negative");
-
     
 
 
