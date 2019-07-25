@@ -2275,9 +2275,69 @@ function updateCommandsOnActiveWindow()
 
 
 
-function BaseTransaction() {}
+function TransactionItemCache()
+{
+}
+
+TransactionItemCache.prototype = {
+  set id(v)
+    this._id = (parseInt(v) > 0 ? v : null),
+  get id()
+    this._id || -1,
+  set parentId(v)
+    this._parentId = (parseInt(v) > 0 ? v : null),
+  get parentId()
+    this._parentId || -1,
+  keyword: null,
+  title: null,
+  guid: null,
+  dateAdded: null,
+  lastModified: null,
+  postData: null,
+  itemType: null,
+  set uri(v)
+    this._uri = (v instanceof Ci.nsIURI ? NetUtil.newURI(v.spec) : null),
+  get uri()
+    this._uri || null,
+  set feedURI(v)
+    this._feedURI = (v instanceof Ci.nsIURI ? NetUtil.newURI(v.spec) : null),
+  get feedURI()
+    this._feedURI || null,
+  set siteURI(v)
+    this._siteURI = (v instanceof Ci.nsIURI ? NetUtil.newURI(v.spec) : null),
+  get siteURI()
+    this._siteURI || null,
+  set index(v)
+    this._index = (parseInt(v) >= 0 ? v : null),
+  
+  get index()
+    this._index != null ? this._index : PlacesUtils.bookmarks.DEFAULT_INDEX,
+  set annotations(v)
+    this._annotations = Array.isArray(v) ? JSON.parse(JSON.stringify(v)) : null,
+  get annotations()
+    this._annotations || null,
+  set tags(v)
+    this._tags = (v && Array.isArray(v) ? Array.slice(v) : null),
+  get tags()
+    this._tags || null,
+};
+
+
+
+
+
+
+
+function BaseTransaction()
+{
+}
 
 BaseTransaction.prototype = {
+  name: null,
+  set childTransactions(v)
+    this._childTransactions = (Array.isArray(v) ? Array.slice(v) : null),
+  get childTransactions()
+    this._childTransactions || null,
   doTransaction: function BTXN_doTransaction() {},
   redoTransaction: function BTXN_redoTransaction() this.doTransaction(),
   undoTransaction: function BTXN_undoTransaction() {},
@@ -2303,9 +2363,9 @@ function PlacesAggregatedTransaction(aName, aTransactions)
 {
   
   
-  this._transactions = Array.slice(aTransactions);
-  this._name = aName;
-  this.container = -1;
+  this.childTransactions = aTransactions;
+  this.name = aName;
+  this.item = new TransactionItemCache();
 
   
   
@@ -2315,13 +2375,13 @@ function PlacesAggregatedTransaction(aName, aTransactions)
          i < aTransactions.length && aTxnCount < MIN_TRANSACTIONS_FOR_BATCH;
          ++i, ++aTxnCount) {
       let txn = aTransactions[i];
-      if (txn && txn.childTransactions && txn.childTransactions.length)
+      if (txn.childTransactions && txn.childTransactions.length > 0)
         aTxnCount = countTransactions(txn.childTransactions, aTxnCount);
     }
     return aTxnCount;
   }
 
-  let txnCount = countTransactions(this._transactions, 0);
+  let txnCount = countTransactions(this.childTransactions, 0);
   this._useBatch = txnCount >= MIN_TRANSACTIONS_FOR_BATCH;
 }
 
@@ -2350,13 +2410,13 @@ PlacesAggregatedTransaction.prototype = {
   {
     
     
-    let transactions = this._transactions.slice(0);
+    let transactions = this.childTransactions.slice(0);
     if (this._isUndo)
       transactions.reverse();
     for (let i = 0; i < transactions.length; ++i) {
       let txn = transactions[i];
-      if (this.container > -1)
-        txn.container = this.container;
+      if (this.item.parentId != -1)
+        txn.item.parentId = this.item.parentId;
       if (this._isUndo)
         txn.undoTransaction();
       else
@@ -2382,40 +2442,32 @@ PlacesAggregatedTransaction.prototype = {
 
 
 
-
-
-function PlacesCreateFolderTransaction(aName, aContainer, aIndex, aAnnotations,
-                                       aChildItemsTransactions)
+function PlacesCreateFolderTransaction(aTitle, aParentId, aIndex, aAnnotations,
+                                       aChildTransactions)
 {
-  this._name = aName;
-  this._container = aContainer;
-  this._index = typeof(aIndex) == "number" ? aIndex : -1;
-  this._id = null;
-  
-  
-  this._annotations = aAnnotations ? Array.slice(aAnnotations) : [];
-  this.childTransactions = aChildItemsTransactions ?
-                             Array.slice(aChildItemsTransactions) : [];
+  this.item = new TransactionItemCache();
+  this.item.title = aTitle;
+  this.item.parentId = aParentId;
+  this.item.index = aIndex;
+  this.item.annotations = aAnnotations;
+  this.childTransactions = aChildTransactions;
 }
 
 PlacesCreateFolderTransaction.prototype = {
   __proto__: BaseTransaction.prototype,
 
-  
-  get container() this._container,
-  set container(val) this._container = val,
-
   doTransaction: function CFTXN_doTransaction()
-  {
-    this._id = PlacesUtils.bookmarks.createFolder(this._container, 
-                                                  this._name, this._index);
-    if (this._annotations && this._annotations.length > 0)
-      PlacesUtils.setAnnotationsForItem(this._id, this._annotations);
+  { 
+    this.item.id = PlacesUtils.bookmarks.createFolder(this.item.parentId,
+                                                      this.item.title,
+                                                      this.item.index);
+    if (this.item.annotations && this.item.annotations.length > 0)
+      PlacesUtils.setAnnotationsForItem(this.item.id, this.item.annotations);
 
-    if (this.childTransactions.length) {
+    if (this.childTransactions && this.childTransactions.length > 0) {
       
       for (let i = 0; i < this.childTransactions.length; ++i) {
-        this.childTransactions[i].container = this._id;
+        this.childTransactions[i].item.parentId = this.item.id;
       }
 
       let txn = new PlacesAggregatedTransaction("Create folder childTxn",
@@ -2423,24 +2475,25 @@ PlacesCreateFolderTransaction.prototype = {
       txn.doTransaction();
     }
 
-    if (this._GUID)
-      PlacesUtils.bookmarks.setItemGUID(this._id, this._GUID);
+    if (this.item.guid)
+      PlacesUtils.bookmarks.setItemGUID(this.item.id, this.item.guid);
   },
 
   undoTransaction: function CFTXN_undoTransaction()
   {
-    if (this.childTransactions.length) {
+    if (this.childTransactions && this.childTransactions.length > 0) {
       let txn = new PlacesAggregatedTransaction("Create folder childTxn",
                                                 this.childTransactions);
       txn.undoTransaction();
     }
 
     
-    if (PlacesUtils.annotations.itemHasAnnotation(this._id, PlacesUtils.GUID_ANNO))
-      this._GUID = PlacesUtils.bookmarks.getItemGUID(this._id);
+    if (PlacesUtils.annotations.itemHasAnnotation(this.item.id,
+                                                  PlacesUtils.GUID_ANNO))
+      this.item.guid = PlacesUtils.bookmarks.getItemGUID(this.item.id);
 
     
-    PlacesUtils.bookmarks.removeItem(this._id);
+    PlacesUtils.bookmarks.removeItem(this.item.id);
   }
 };
 
@@ -2470,54 +2523,52 @@ PlacesCreateFolderTransaction.prototype = {
 
 
 
-
-function PlacesCreateBookmarkTransaction(aURI, aContainer, aIndex, aTitle,
+function PlacesCreateBookmarkTransaction(aURI, aParentId, aIndex, aTitle,
                                          aKeyword, aAnnotations,
                                          aChildTransactions)
 {
-  this._uri = aURI;
-  this._container = aContainer;
-  this._index = typeof(aIndex) == "number" ? aIndex : -1;
-  this._title = aTitle;
-  this._keyword = aKeyword;
-  
-  
-  this._annotations = aAnnotations ? Array.slice(aAnnotations) : [];
-  this.childTransactions = aChildTransactions ? Array.slice(aChildTransactions) : [];
+  this.item = new TransactionItemCache();
+  this.item.uri = aURI;
+  this.item.parentId = aParentId;
+  this.item.index = aIndex;
+  this.item.title = aTitle;
+  this.item.keyword = aKeyword;
+  this.item.annotations = aAnnotations;
+  this.childTransactions = aChildTransactions;
 }
 
 PlacesCreateBookmarkTransaction.prototype = {
   __proto__: BaseTransaction.prototype,
 
-  
-  get container() this._container,
-  set container(val) this._container = val,
-
   doTransaction: function CITXN_doTransaction()
   {
-    this._id = PlacesUtils.bookmarks.insertBookmark(this.container, this._uri,
-                                                    this._index, this._title);
-    if (this._keyword)
-      PlacesUtils.bookmarks.setKeywordForBookmark(this._id, this._keyword);
-    if (this._annotations && this._annotations.length > 0)
-      PlacesUtils.setAnnotationsForItem(this._id, this._annotations);
+    this.item.id = PlacesUtils.bookmarks.insertBookmark(this.item.parentId,
+                                                        this.item.uri,
+                                                        this.item.index,
+                                                        this.item.title);
+    if (this.item.keyword) {
+      PlacesUtils.bookmarks.setKeywordForBookmark(this.item.id,
+                                                  this.item.keyword);
+    }
+    if (this.item.annotations && this.item.annotations.length > 0)
+      PlacesUtils.setAnnotationsForItem(this.item.id, this.item.annotations);
  
-    if (this.childTransactions.length) {
+    if (this.childTransactions && this.childTransactions.length > 0) {
       
       for (let i = 0; i < this.childTransactions.length; ++i) {
-        this.childTransactions[i].id = this._id;
+        this.childTransactions[i].item.id = this.item.id;
       }
       let txn = new PlacesAggregatedTransaction("Create item childTxn",
                                                 this.childTransactions);
       txn.doTransaction();
     }
-    if (this._GUID)
-      PlacesUtils.bookmarks.setItemGUID(this._id, this._GUID);
+    if (this.item.guid)
+      PlacesUtils.bookmarks.setItemGUID(this.item.id, this.item.guid);
   },
 
   undoTransaction: function CITXN_undoTransaction()
   {
-    if (this.childTransactions.length) {
+    if (this.childTransactions && this.childTransactions.length > 0) {
       
       let txn = new PlacesAggregatedTransaction("Create item childTxn",
                                                 this.childTransactions);
@@ -2525,11 +2576,12 @@ PlacesCreateBookmarkTransaction.prototype = {
     }
 
     
-    if (PlacesUtils.annotations.itemHasAnnotation(this._id, PlacesUtils.GUID_ANNO))
-      this._GUID = PlacesUtils.bookmarks.getItemGUID(this._id);
+    if (PlacesUtils.annotations
+                   .itemHasAnnotation(this.item.id, PlacesUtils.GUID_ANNO))
+      this.item.guid = PlacesUtils.bookmarks.getItemGUID(this.item.id);
 
     
-    PlacesUtils.bookmarks.removeItem(this._id);
+    PlacesUtils.bookmarks.removeItem(this.item.id);
   }
 };
 
@@ -2544,37 +2596,32 @@ PlacesCreateBookmarkTransaction.prototype = {
 
 
 
-
-
-function PlacesCreateSeparatorTransaction(aContainer, aIndex)
+function PlacesCreateSeparatorTransaction(aParentId, aIndex)
 {
-  this._container = aContainer;
-  this._index = typeof(aIndex) == "number" ? aIndex : -1;
-  this._id = null;
+  this.item = new TransactionItemCache();
+  this.item.parentId = aParentId;
+  this.item.index = aIndex;
 }
 
 PlacesCreateSeparatorTransaction.prototype = {
   __proto__: BaseTransaction.prototype,
 
-  
-  get container() this._container,
-  set container(val) this._container = val,
-
   doTransaction: function CSTXN_doTransaction()
   {
-    this._id = PlacesUtils.bookmarks
-                          .insertSeparator(this.container, this._index);
-    if (this._GUID)
-      PlacesUtils.bookmarks.setItemGUID(this._id, this._GUID);
+    this.item.id =
+      PlacesUtils.bookmarks.insertSeparator(this.item.parentId, this.item.index);
+    if (this.item.guid)
+      PlacesUtils.bookmarks.setItemGUID(this.item.id, this.item.guid);
   },
 
   undoTransaction: function CSTXN_undoTransaction()
   {
     
-    if (PlacesUtils.annotations.itemHasAnnotation(this._id, PlacesUtils.GUID_ANNO))
-      this._GUID = PlacesUtils.bookmarks.getItemGUID(this._id);
+    if (PlacesUtils.annotations
+                   .itemHasAnnotation(this.item.id, PlacesUtils.GUID_ANNO))
+      this.item.guid = PlacesUtils.bookmarks.getItemGUID(this.item.id);
 
-    PlacesUtils.bookmarks.removeItem(this._id);
+    PlacesUtils.bookmarks.removeItem(this.item.id);
   }
 };
 
@@ -2596,44 +2643,46 @@ PlacesCreateSeparatorTransaction.prototype = {
 
 
 
-function PlacesCreateLivemarkTransaction(aFeedURI, aSiteURI, aName, aContainer,
+
+
+
+
+function PlacesCreateLivemarkTransaction(aFeedURI, aSiteURI, aTitle, aParentId,
                                          aIndex, aAnnotations)
 {
-  this._feedURI = aFeedURI;
-  this._siteURI = aSiteURI;
-  this._name = aName;
-  this._container = aContainer;
-  this._index = typeof(aIndex) == "number" ? aIndex : -1;
-  
-  
-  this._annotations = aAnnotations ? Array.slice(aAnnotations) : [];
+  this.item = new TransactionItemCache();
+  this.item.feedURI = aFeedURI;
+  this.item.siteURI = aSiteURI;
+  this.item.title = aTitle;
+  this.item.parentId = aParentId;
+  this.item.index = aIndex;
+  this.item.annotations = aAnnotations;
 }
 
 PlacesCreateLivemarkTransaction.prototype = {
   __proto__: BaseTransaction.prototype,
 
-  
-  get container() this._container,
-  set container(val) this._container = val,
-
   doTransaction: function CLTXN_doTransaction()
   {
-    this._id = PlacesUtils.livemarks.createLivemark(this._container, this._name,
-                                                    this._siteURI, this._feedURI,
-                                                    this._index);
-    if (this._annotations && this._annotations.length > 0)
-      PlacesUtils.setAnnotationsForItem(this._id, this._annotations);
-    if (this._GUID)
-      PlacesUtils.bookmarks.setItemGUID(this._id, this._GUID);
+    this.item.id = PlacesUtils.livemarks.createLivemark(this.item.parentId,
+                                                        this.item.title,
+                                                        this.item.siteURI,
+                                                        this.item.feedURI,
+                                                        this.item.index);
+    if (this.item.annotations && this.item.annotations.length > 0)
+      PlacesUtils.setAnnotationsForItem(this.item.id, this.item.annotations);
+    if (this.item.guid)
+      PlacesUtils.bookmarks.setItemGUID(this.item.id, this.item.guid);
   },
 
   undoTransaction: function CLTXN_undoTransaction()
   {
     
-    if (PlacesUtils.annotations.itemHasAnnotation(this._id, PlacesUtils.GUID_ANNO))
-      this._GUID = PlacesUtils.bookmarks.getItemGUID(this._id);
+    if (PlacesUtils.annotations.itemHasAnnotation(this.item.id,
+                                                  PlacesUtils.GUID_ANNO))
+      this.item.guid = PlacesUtils.bookmarks.getItemGUID(this.item.id);
 
-    PlacesUtils.bookmarks.removeItem(this._id);
+    PlacesUtils.bookmarks.removeItem(this.item.id);
   }
 };
 
@@ -2647,25 +2696,28 @@ PlacesCreateLivemarkTransaction.prototype = {
 
 
 
-function PlacesRemoveLivemarkTransaction(aFolderId)
+function PlacesRemoveLivemarkTransaction(aLivemarkId)
 {
-  this._id = aFolderId;
-  this._title = PlacesUtils.bookmarks.getItemTitle(this._id);
-  this._container = PlacesUtils.bookmarks.getFolderIdForItem(this._id);
-  let annos = PlacesUtils.getAnnotationsForItem(this._id);
+  this.item = new TransactionItemCache();
+  this.item.id = aLivemarkId;
+  this.item.title = PlacesUtils.bookmarks.getItemTitle(this.item.id);
+  this.item.parentId = PlacesUtils.bookmarks.getFolderIdForItem(this.item.id);
+
+  let annos = PlacesUtils.getAnnotationsForItem(this.item.id);
   
   let annosToExclude = [PlacesUtils.LMANNO_FEEDURI,
                         PlacesUtils.LMANNO_SITEURI,
                         PlacesUtils.LMANNO_EXPIRATION,
                         PlacesUtils.LMANNO_LOADFAILED,
                         PlacesUtils.LMANNO_LOADING];
-  this._annotations = annos.filter(function(aValue, aIndex, aArray) {
+  this.item.annotations = annos.filter(function(aValue, aIndex, aArray) {
       return annosToExclude.indexOf(aValue.name) == -1;
     });
-  this._feedURI = PlacesUtils.livemarks.getFeedURI(this._id);
-  this._siteURI = PlacesUtils.livemarks.getSiteURI(this._id);
-  this._dateAdded = PlacesUtils.bookmarks.getItemDateAdded(this._id);
-  this._lastModified = PlacesUtils.bookmarks.getItemLastModified(this._id);
+  this.item.feedURI = PlacesUtils.livemarks.getFeedURI(this.item.id);
+  this.item.siteURI = PlacesUtils.livemarks.getSiteURI(this.item.id);
+  this.item.dateAdded = PlacesUtils.bookmarks.getItemDateAdded(this.item.id);
+  this.item.lastModified =
+    PlacesUtils.bookmarks.getItemLastModified(this.item.id);
 }
 
 PlacesRemoveLivemarkTransaction.prototype = {
@@ -2673,21 +2725,22 @@ PlacesRemoveLivemarkTransaction.prototype = {
 
   doTransaction: function RLTXN_doTransaction()
   {
-    this._index = PlacesUtils.bookmarks.getItemIndex(this._id);
-    PlacesUtils.bookmarks.removeItem(this._id);
+    this.item.index = PlacesUtils.bookmarks.getItemIndex(this.item.id);
+    PlacesUtils.bookmarks.removeItem(this.item.id);
   },
 
   undoTransaction: function RLTXN_undoTransaction()
   {
-    this._id = PlacesUtils.livemarks.createLivemark(this._container,
-                                                    this._title,
-                                                    this._siteURI,
-                                                    this._feedURI,
-                                                    this._index);
-    PlacesUtils.bookmarks.setItemDateAdded(this._id, this._dateAdded);
-    PlacesUtils.bookmarks.setItemLastModified(this._id, this._lastModified);
+    this.item.id = PlacesUtils.livemarks.createLivemark(this.item.parentId,
+                                                        this.item.title,
+                                                        this.item.siteURI,
+                                                        this.item.feedURI,
+                                                        this.item.index);
+    PlacesUtils.bookmarks.setItemDateAdded(this.item.id, this.item.dateAdded);
+    PlacesUtils.bookmarks.setItemLastModified(this.item.id,
+                                              this.item.lastModified);
     
-    PlacesUtils.setAnnotationsForItem(this._id, this._annotations);
+    PlacesUtils.setAnnotationsForItem(this.item.id, this.item.annotations);
   }
 };
 
@@ -2704,12 +2757,14 @@ PlacesRemoveLivemarkTransaction.prototype = {
 
 
 
-function PlacesMoveItemTransaction(aItemId, aNewContainer, aNewIndex)
+function PlacesMoveItemTransaction(aItemId, aNewParentId, aNewIndex)
 {
-  this._id = aItemId;
-  this._oldContainer = PlacesUtils.bookmarks.getFolderIdForItem(this._id);
-  this._newContainer = aNewContainer;
-  this._newIndex = aNewIndex;
+  this.item = new TransactionItemCache();
+  this.item.id = aItemId;
+  this.item.parentId = PlacesUtils.bookmarks.getFolderIdForItem(this.item.id);
+  this.new = new TransactionItemCache();
+  this.new.parentId = aNewParentId;
+  this.new.index = aNewIndex;
 }
 
 PlacesMoveItemTransaction.prototype = {
@@ -2717,20 +2772,25 @@ PlacesMoveItemTransaction.prototype = {
 
   doTransaction: function MITXN_doTransaction()
   {
-    this._oldIndex = PlacesUtils.bookmarks.getItemIndex(this._id);
-    PlacesUtils.bookmarks.moveItem(this._id, this._newContainer, this._newIndex);
-    this._undoIndex = PlacesUtils.bookmarks.getItemIndex(this._id);
+    this.item.index = PlacesUtils.bookmarks.getItemIndex(this.item.id);
+    PlacesUtils.bookmarks.moveItem(this.item.id,
+                                   this.new.parentId, this.new.index);
+    this._undoIndex = PlacesUtils.bookmarks.getItemIndex(this.item.id);
   },
 
   undoTransaction: function MITXN_undoTransaction()
   {
     
     
-    if (this._newContainer == this._oldContainer &&
-        this._oldIndex > this._undoIndex)
-      PlacesUtils.bookmarks.moveItem(this._id, this._oldContainer, this._oldIndex + 1);
-    else
-      PlacesUtils.bookmarks.moveItem(this._id, this._oldContainer, this._oldIndex);
+    if (this.new.parentId == this.item.parentId &&
+        this.item.index > this._undoIndex) {
+      PlacesUtils.bookmarks.moveItem(this.item.id, this.item.parentId,
+                                     this.item.index + 1);
+    }
+    else {
+      PlacesUtils.bookmarks.moveItem(this.item.id, this.item.parentId,
+                                     this.item.index);
+    }
   }
 };
 
@@ -2761,26 +2821,29 @@ function PlacesRemoveItemTransaction(aItemId)
   if (PlacesUtils.itemIsLivemark(aItemId))
     return new PlacesRemoveLivemarkTransaction(aItemId);
 
-  this._id = aItemId;
-  this._itemType = PlacesUtils.bookmarks.getItemType(this._id);
-  if (this._itemType == Ci.nsINavBookmarksService.TYPE_FOLDER) {
+  this.item = new TransactionItemCache();
+  this.item.id = aItemId;
+  this.item.itemType = PlacesUtils.bookmarks.getItemType(this.item.id);
+  if (this.item.itemType == Ci.nsINavBookmarksService.TYPE_FOLDER) {
     this.childTransactions = this._getFolderContentsTransactions();
     
-    let txn = PlacesUtils.bookmarks.getRemoveFolderTransaction(this._id);
+    let txn = PlacesUtils.bookmarks.getRemoveFolderTransaction(this.item.id);
     this.childTransactions.push(txn);
   }
-  else if (this._itemType == Ci.nsINavBookmarksService.TYPE_BOOKMARK) {
-    this._uri = PlacesUtils.bookmarks.getBookmarkURI(this._id);
-    this._keyword = PlacesUtils.bookmarks.getKeywordForBookmark(this._id);
+  else if (this.item.itemType == Ci.nsINavBookmarksService.TYPE_BOOKMARK) {
+    this.item.uri = PlacesUtils.bookmarks.getBookmarkURI(this.item.id);
+    this.item.keyword =
+      PlacesUtils.bookmarks.getKeywordForBookmark(this.item.id);
   }
 
-  if (this._itemType != Ci.nsINavBookmarksService.TYPE_SEPARATOR)
-    this._title = PlacesUtils.bookmarks.getItemTitle(this._id);
+  if (this.item.itemType != Ci.nsINavBookmarksService.TYPE_SEPARATOR)
+    this.item.title = PlacesUtils.bookmarks.getItemTitle(this.item.id);
 
-  this._oldContainer = PlacesUtils.bookmarks.getFolderIdForItem(this._id);
-  this._annotations = PlacesUtils.getAnnotationsForItem(this._id);
-  this._dateAdded = PlacesUtils.bookmarks.getItemDateAdded(this._id);
-  this._lastModified = PlacesUtils.bookmarks.getItemLastModified(this._id);
+  this.item.parentId = PlacesUtils.bookmarks.getFolderIdForItem(this.item.id);
+  this.item.annotations = PlacesUtils.getAnnotationsForItem(this.item.id);
+  this.item.dateAdded = PlacesUtils.bookmarks.getItemDateAdded(this.item.id);
+  this.item.lastModified =
+    PlacesUtils.bookmarks.getItemLastModified(this.item.id);
 }
 
 PlacesRemoveItemTransaction.prototype = {
@@ -2788,52 +2851,58 @@ PlacesRemoveItemTransaction.prototype = {
 
   doTransaction: function RITXN_doTransaction()
   {
-    this._oldIndex = PlacesUtils.bookmarks.getItemIndex(this._id);
+    this.item.index = PlacesUtils.bookmarks.getItemIndex(this.item.id);
 
-    if (this._itemType == Ci.nsINavBookmarksService.TYPE_FOLDER) {
+    if (this.item.itemType == Ci.nsINavBookmarksService.TYPE_FOLDER) {
       let txn = new PlacesAggregatedTransaction("Remove item childTxn",
                                                 this.childTransactions);
       txn.doTransaction();
     }
     else {
       
-      let tags = this._uri ? PlacesUtils.tagging.getTagsForURI(this._uri) : null;
+      let tags = this.item.uri ?
+        PlacesUtils.tagging.getTagsForURI(this.item.uri) : null;
 
-      PlacesUtils.bookmarks.removeItem(this._id);
+      PlacesUtils.bookmarks.removeItem(this.item.id);
 
       
       
-      if (tags && PlacesUtils.getMostRecentBookmarkForURI(this._uri) == -1) {
-        this._tags = tags;
+      if (tags && PlacesUtils.getMostRecentBookmarkForURI(this.item.uri) == -1) {
+        this.item.tags = tags;
       }
     }
   },
 
   undoTransaction: function RITXN_undoTransaction()
   {
-    if (this._itemType == Ci.nsINavBookmarksService.TYPE_BOOKMARK) {
-      this._id = PlacesUtils.bookmarks.insertBookmark(this._oldContainer,
-                                                      this._uri,
-                                                      this._oldIndex,
-                                                      this._title);
-      if (this._tags && this._tags.length > 0)
-        PlacesUtils.tagging.tagURI(this._uri, this._tags);
-      if (this._keyword)
-        PlacesUtils.bookmarks.setKeywordForBookmark(this._id, this._keyword);
+    if (this.item.itemType == Ci.nsINavBookmarksService.TYPE_BOOKMARK) {
+      this.item.id = PlacesUtils.bookmarks.insertBookmark(this.item.parentId,
+                                                          this.item.uri,
+                                                          this.item.index,
+                                                          this.item.title);
+      if (this.item.tags && this.item.tags.length > 0)
+        PlacesUtils.tagging.tagURI(this.item.uri, this.item.tags);
+      if (this.item.keyword) {
+        PlacesUtils.bookmarks.setKeywordForBookmark(this.item.id,
+                                                    this.item.keyword);
+      }
     }
-    else if (this._itemType == Ci.nsINavBookmarksService.TYPE_FOLDER) {
+    else if (this.item.itemType == Ci.nsINavBookmarksService.TYPE_FOLDER) {
       let txn = new PlacesAggregatedTransaction("Remove item childTxn",
                                                 this.childTransactions);
       txn.undoTransaction();
     }
-    else 
-      this._id = PlacesUtils.bookmarks.insertSeparator(this._oldContainer, this._oldIndex);
+    else { 
+      this.item.id = PlacesUtils.bookmarks.insertSeparator(this.item.parentId,
+                                                            this.item.index);
+    }
 
-    if (this._annotations.length > 0)
-      PlacesUtils.setAnnotationsForItem(this._id, this._annotations);
+    if (this.item.annotations && this.item.annotations.length > 0)
+      PlacesUtils.setAnnotationsForItem(this.item.id, this.item.annotations);
 
-    PlacesUtils.bookmarks.setItemDateAdded(this._id, this._dateAdded);
-    PlacesUtils.bookmarks.setItemLastModified(this._id, this._lastModified);
+    PlacesUtils.bookmarks.setItemDateAdded(this.item.id, this.item.dateAdded);
+    PlacesUtils.bookmarks.setItemLastModified(this.item.id,
+                                              this.item.lastModified);
   },
 
   
@@ -2845,7 +2914,7 @@ PlacesRemoveItemTransaction.prototype = {
   {
     let transactions = [];
     let contents =
-      PlacesUtils.getFolderContents(this._id, false, false).root;
+      PlacesUtils.getFolderContents(this.item.id, false, false).root;
     for (let i = 0; i < contents.childCount; ++i) {
       let txn = new PlacesRemoveItemTransaction(contents.getChild(i).itemId);
       transactions.push(txn);
@@ -2867,11 +2936,12 @@ PlacesRemoveItemTransaction.prototype = {
 
 
 
-function PlacesEditItemTitleTransaction(id, newTitle)
+function PlacesEditItemTitleTransaction(aItemId, aNewTitle)
 {
-  this._id = id;
-  this._newTitle = newTitle;
-  this._oldTitle = "";
+  this.item = new TransactionItemCache();
+  this.item.id = aItemId;
+  this.new = new TransactionItemCache();
+  this.new.title = aNewTitle;
 }
 
 PlacesEditItemTitleTransaction.prototype = {
@@ -2879,13 +2949,13 @@ PlacesEditItemTitleTransaction.prototype = {
 
   doTransaction: function EITTXN_doTransaction()
   {
-    this._oldTitle = PlacesUtils.bookmarks.getItemTitle(this._id);
-    PlacesUtils.bookmarks.setItemTitle(this._id, this._newTitle);
+    this.item.title = PlacesUtils.bookmarks.getItemTitle(this.item.id);
+    PlacesUtils.bookmarks.setItemTitle(this.item.id, this.new.title);
   },
 
   undoTransaction: function EITTXN_undoTransaction()
   {
-    PlacesUtils.bookmarks.setItemTitle(this._id, this._oldTitle);
+    PlacesUtils.bookmarks.setItemTitle(this.item.id, this.item.title);
   }
 };
 
@@ -2900,9 +2970,11 @@ PlacesEditItemTitleTransaction.prototype = {
 
 
 
-function PlacesEditBookmarkURITransaction(aBookmarkId, aNewURI) {
-  this._id = aBookmarkId;
-  this._newURI = aNewURI;
+function PlacesEditBookmarkURITransaction(aItemId, aNewURI) {
+  this.item = new TransactionItemCache();
+  this.item.id = aItemId;
+  this.new = new TransactionItemCache();
+  this.new.uri = aNewURI;
 }
 
 PlacesEditBookmarkURITransaction.prototype = {
@@ -2910,27 +2982,27 @@ PlacesEditBookmarkURITransaction.prototype = {
 
   doTransaction: function EBUTXN_doTransaction()
   {
-    this._oldURI = PlacesUtils.bookmarks.getBookmarkURI(this._id);
-    PlacesUtils.bookmarks.changeBookmarkURI(this._id, this._newURI);
+    this.item.uri = PlacesUtils.bookmarks.getBookmarkURI(this.item.id);
+    PlacesUtils.bookmarks.changeBookmarkURI(this.item.id, this.new.uri);
     
-    this._tags = PlacesUtils.tagging.getTagsForURI(this._oldURI);
-    if (this._tags.length != 0) {
+    this.item.tags = PlacesUtils.tagging.getTagsForURI(this.item.uri);
+    if (this.item.tags.length != 0) {
       
-      if (PlacesUtils.getBookmarksForURI(this._oldURI, {}).length == 0)
-        PlacesUtils.tagging.untagURI(this._oldURI, this._tags);
-      PlacesUtils.tagging.tagURI(this._newURI, this._tags);
+      if (PlacesUtils.getBookmarksForURI(this.item.uri, {}).length == 0)
+        PlacesUtils.tagging.untagURI(this.item.uri, this.item.tags);
+      PlacesUtils.tagging.tagURI(this.new.URI, this.item.tags);
     }
   },
 
   undoTransaction: function EBUTXN_undoTransaction()
   {
-    PlacesUtils.bookmarks.changeBookmarkURI(this._id, this._oldURI);
+    PlacesUtils.bookmarks.changeBookmarkURI(this.item.id, this.item.uri);
     
-    if (this._tags.length != 0) {
+    if (this.item.tags.length != 0) {
       
-      if (PlacesUtils.getBookmarksForURI(this._newURI, {}).length == 0)
-        PlacesUtils.tagging.untagURI(this._newURI, this._tags);
-      PlacesUtils.tagging.tagURI(this._oldURI, this._tags);
+      if (PlacesUtils.getBookmarksForURI(this.new.uri, {}).length == 0)
+        PlacesUtils.tagging.untagURI(this.new.uri, this.item.tags);
+      PlacesUtils.tagging.tagURI(this.item.uri, this.item.tags);
     }
   }
 };
@@ -2951,14 +3023,10 @@ PlacesEditBookmarkURITransaction.prototype = {
 
 function PlacesSetItemAnnotationTransaction(aItemId, aAnnotationObject)
 {
-  this.id = aItemId;
-  this._anno = aAnnotationObject;
-  
-  this._oldAnno = { name: this._anno.name,
-                    type: Ci.nsIAnnotationService.TYPE_STRING,
-                    flags: 0,
-                    value: null,
-                    expires: Ci.nsIAnnotationService.EXPIRE_NEVER };
+  this.item = new TransactionItemCache();
+  this.item.id = aItemId;
+  this.new = new TransactionItemCache();
+  this.new.annotations = [aAnnotationObject];
 }
 
 PlacesSetItemAnnotationTransaction.prototype = {
@@ -2966,29 +3034,35 @@ PlacesSetItemAnnotationTransaction.prototype = {
 
   doTransaction: function SIATXN_doTransaction()
   {
-    
-    
-    if (PlacesUtils.annotations.itemHasAnnotation(this.id, this._anno.name)) {
+    let annoName = this.new.annotations[0].name;
+    if (PlacesUtils.annotations.itemHasAnnotation(this.item.id, annoName)) {
       
       let flags = {}, expires = {}, mimeType = {}, type = {};
-      PlacesUtils.annotations.getItemAnnotationInfo(this.id, this._anno.name,
-                                                    flags, expires, mimeType,
-                                                    type);
-      this._oldAnno.flags = flags.value;
-      this._oldAnno.expires = expires.value;
-      this._oldAnno.mimeType = mimeType.value;
-      this._oldAnno.type = type.value;
-      this._oldAnno.value = PlacesUtils.annotations
-                                       .getItemAnnotation(this.id,
-                                                          this._anno.name);
+      PlacesUtils.annotations.getItemAnnotationInfo(this.item.id, annoName, flags,
+                                                    expires, mimeType, type);
+      let value = PlacesUtils.annotations.getItemAnnotation(this.item.id,
+                                                            annoName);
+      this.item.annotations = [{ name: annoName,
+                                type: type.value,
+                                flags: flags.value,
+                                value: value,
+                                expires: expires.value }];
+    }
+    else {
+      
+      this.item.annotations = [{ name: annoName,
+                                type: Ci.nsIAnnotationService.TYPE_STRING,
+                                flags: 0,
+                                value: null,
+                                expires: Ci.nsIAnnotationService.EXPIRE_NEVER }];
     }
 
-    PlacesUtils.setAnnotationsForItem(this.id, [this._anno]);
+    PlacesUtils.setAnnotationsForItem(this.item.id, this.new.annotations);
   },
 
   undoTransaction: function SIATXN_undoTransaction()
   {
-    PlacesUtils.setAnnotationsForItem(this.id, [this._oldAnno]);
+    PlacesUtils.setAnnotationsForItem(this.item.id, this.item.annotations);
   }
 };
 
@@ -3008,28 +3082,10 @@ PlacesSetItemAnnotationTransaction.prototype = {
 
 function PlacesSetPageAnnotationTransaction(aURI, aAnnotationObject)
 {
-  this._uri = aURI;
-  this._anno = aAnnotationObject;
-  
-  this._oldAnno = { name: this._anno.name,
-                    type: Ci.nsIAnnotationService.TYPE_STRING,
-                    flags: 0,
-                    value: null,
-                    expires: Ci.nsIAnnotationService.EXPIRE_NEVER };
-
-  if (PlacesUtils.annotations.pageHasAnnotation(this._uri, this._anno.name)) {
-    
-    let flags = {}, expires = {}, mimeType = {}, type = {};
-    PlacesUtils.annotations.getPageAnnotationInfo(this._uri, this._anno.name,
-                                                  flags, expires, mimeType, type);
-    this._oldAnno.flags = flags.value;
-    this._oldAnno.expires = expires.value;
-    this._oldAnno.mimeType = mimeType.value;
-    this._oldAnno.type = type.value;
-    this._oldAnno.value = PlacesUtils.annotations
-                                     .getPageAnnotation(this._uri, this._anno.name);
-  }
-
+  this.item = new TransactionItemCache();
+  this.item.uri = aURI;
+  this.new = new TransactionItemCache();
+  this.new.annotations = [aAnnotationObject];
 }
 
 PlacesSetPageAnnotationTransaction.prototype = {
@@ -3037,12 +3093,35 @@ PlacesSetPageAnnotationTransaction.prototype = {
 
   doTransaction: function SPATXN_doTransaction()
   {
-    PlacesUtils.setAnnotationsForURI(this._uri, [this._anno]);
+    let annoName = this.new.annotations[0].name;
+    if (PlacesUtils.annotations.pageHasAnnotation(this.item.uri, annoName)) {
+      
+      let flags = {}, expires = {}, mimeType = {}, type = {};
+      PlacesUtils.annotations.getPageAnnotationInfo(this.item.uri, annoName, flags,
+                                                    expires, mimeType, type);
+      let value = PlacesUtils.annotations.getPageAnnotation(this.item.uri,
+                                                            annoName);
+      this.item.annotations = [{ name: annoName,
+                                type: type.value,
+                                flags: flags.value,
+                                value: value,
+                                expires: expires.value }];
+    }
+    else {
+      
+      this.item.annotations = [{ name: annoName,
+                                type: Ci.nsIAnnotationService.TYPE_STRING,
+                                flags: 0,
+                                value: null,
+                                expires: Ci.nsIAnnotationService.EXPIRE_NEVER }];
+    }
+
+    PlacesUtils.setAnnotationsForURI(this.item.uri, this.new.annotations);
   },
 
   undoTransaction: function SPATXN_undoTransaction()
   {
-    PlacesUtils.setAnnotationsForURI(this._uri, [this._oldAnno]);
+    PlacesUtils.setAnnotationsForURI(this.item.uri, this.item.annotations);
   }
 };
 
@@ -3057,11 +3136,12 @@ PlacesSetPageAnnotationTransaction.prototype = {
 
 
 
-function PlacesEditBookmarkKeywordTransaction(id, newKeyword) {
-  this.id = id;
-  this._newKeyword = newKeyword;
-  this._oldKeyword = "";
-
+function PlacesEditBookmarkKeywordTransaction(aItemId, aNewKeyword)
+{
+  this.item = new TransactionItemCache();
+  this.item.id = aItemId;
+  this.new = new TransactionItemCache();
+  this.new.keyword = aNewKeyword;
 }
 
 PlacesEditBookmarkKeywordTransaction.prototype = {
@@ -3069,13 +3149,13 @@ PlacesEditBookmarkKeywordTransaction.prototype = {
 
   doTransaction: function EBKTXN_doTransaction()
   {
-    this._oldKeyword = PlacesUtils.bookmarks.getKeywordForBookmark(this.id);
-    PlacesUtils.bookmarks.setKeywordForBookmark(this.id, this._newKeyword);
+    this.item.keyword = PlacesUtils.bookmarks.getKeywordForBookmark(this.item.id);
+    PlacesUtils.bookmarks.setKeywordForBookmark(this.item.id, this.new.keyword);
   },
 
   undoTransaction: function EBKTXN_undoTransaction()
   {
-    PlacesUtils.bookmarks.setKeywordForBookmark(this.id, this._oldKeyword);
+    PlacesUtils.bookmarks.setKeywordForBookmark(this.item.id, this.item.keyword);
   }
 };
 
@@ -3092,9 +3172,10 @@ PlacesEditBookmarkKeywordTransaction.prototype = {
 
 function PlacesEditBookmarkPostDataTransaction(aItemId, aPostData)
 {
-  this.id = aItemId;
-  this._newPostData = aPostData;
-  this._oldPostData = null;
+  this.item = new TransactionItemCache();
+  this.item.id = aItemId;
+  this.new = new TransactionItemCache();
+  this.new.postData = aPostData;
 }
 
 PlacesEditBookmarkPostDataTransaction.prototype = {
@@ -3102,13 +3183,13 @@ PlacesEditBookmarkPostDataTransaction.prototype = {
 
   doTransaction: function EBPDTXN_doTransaction()
   {
-    this._oldPostData = PlacesUtils.getPostDataForBookmark(this.id);
-    PlacesUtils.setPostDataForBookmark(this.id, this._newPostData);
+    this.item.postData = PlacesUtils.getPostDataForBookmark(this.item.id);
+    PlacesUtils.setPostDataForBookmark(this.item.id, this.new.postData);
   },
 
   undoTransaction: function EBPDTXN_undoTransaction()
   {
-    PlacesUtils.setPostDataForBookmark(this.id, this._oldPostData);
+    PlacesUtils.setPostDataForBookmark(this.item.id, this.item.postData);
   }
 };
 
@@ -3123,11 +3204,12 @@ PlacesEditBookmarkPostDataTransaction.prototype = {
 
 
 
-function PlacesEditLivemarkSiteURITransaction(folderId, uri)
+function PlacesEditLivemarkSiteURITransaction(aLivemarkId, aSiteURI)
 {
-  this._folderId = folderId;
-  this._newURI = uri;
-  this._oldURI = null;
+  this.item = new TransactionItemCache();  
+  this.item.id = aLivemarkId;
+  this.new = new TransactionItemCache();
+  this.new.siteURI = aSiteURI;
 }
 
 PlacesEditLivemarkSiteURITransaction.prototype = {
@@ -3135,13 +3217,13 @@ PlacesEditLivemarkSiteURITransaction.prototype = {
 
   doTransaction: function ELSUTXN_doTransaction()
   {
-    this._oldURI = PlacesUtils.livemarks.getSiteURI(this._folderId);
-    PlacesUtils.livemarks.setSiteURI(this._folderId, this._newURI);
+    this.item.siteURI = PlacesUtils.livemarks.getSiteURI(this.item.id);
+    PlacesUtils.livemarks.setSiteURI(this.item.id, this.new.siteURI);
   },
 
   undoTransaction: function ELSUTXN_undoTransaction()
   {
-    PlacesUtils.livemarks.setSiteURI(this._folderId, this._oldURI);
+    PlacesUtils.livemarks.setSiteURI(this.item.id, this.item.siteURI);
   }
 };
 
@@ -3156,11 +3238,12 @@ PlacesEditLivemarkSiteURITransaction.prototype = {
 
 
 
-function PlacesEditLivemarkFeedURITransaction(folderId, uri)
+function PlacesEditLivemarkFeedURITransaction(aLivemarkId, aFeedURI)
 {
-  this._folderId = folderId;
-  this._newURI = uri;
-  this._oldURI = null;
+  this.item = new TransactionItemCache();  
+  this.item.id = aLivemarkId;
+  this.new = new TransactionItemCache();
+  this.new.feedURI = aFeedURI;
 }
 
 PlacesEditLivemarkFeedURITransaction.prototype = {
@@ -3168,15 +3251,15 @@ PlacesEditLivemarkFeedURITransaction.prototype = {
 
   doTransaction: function ELFUTXN_doTransaction()
   {
-    this._oldURI = PlacesUtils.livemarks.getFeedURI(this._folderId);
-    PlacesUtils.livemarks.setFeedURI(this._folderId, this._newURI);
-    PlacesUtils.livemarks.reloadLivemarkFolder(this._folderId);
+    this.item.feedURI = PlacesUtils.livemarks.getFeedURI(this.item.id);
+    PlacesUtils.livemarks.setFeedURI(this.item.id, this.new.feedURI);
+    PlacesUtils.livemarks.reloadLivemarkFolder(this.item.id);
   },
 
   undoTransaction: function ELFUTXN_undoTransaction()
   {
-    PlacesUtils.livemarks.setFeedURI(this._folderId, this._oldURI);
-    PlacesUtils.livemarks.reloadLivemarkFolder(this._folderId);
+    PlacesUtils.livemarks.setFeedURI(this.item.id, this.item.feedURI);
+    PlacesUtils.livemarks.reloadLivemarkFolder(this.item.id);
   }
 };
 
@@ -3191,29 +3274,30 @@ PlacesEditLivemarkFeedURITransaction.prototype = {
 
 
 
-function PlacesEditItemDateAddedTransaction(id, newDateAdded)
+function PlacesEditItemDateAddedTransaction(aItemId, aNewDateAdded)
 {
-  this.id = id;
-  this._newDateAdded = newDateAdded;
-  this._oldDateAdded = null;
+  this.item = new TransactionItemCache();
+  this.item.id = aItemId;
+  this.new = new TransactionItemCache();
+  this.new.dateAdded = aNewDateAdded;
 }
 
 PlacesEditItemDateAddedTransaction.prototype = {
   __proto__: BaseTransaction.prototype,
 
-  
-  get container() this.id,
-  set container(val) this.id = val,
-
   doTransaction: function EIDATXN_doTransaction()
   {
-    this._oldDateAdded = PlacesUtils.bookmarks.getItemDateAdded(this.id);
-    PlacesUtils.bookmarks.setItemDateAdded(this.id, this._newDateAdded);
+    
+    if (this.item.id == -1 && this.item.parentId != -1)
+      this.item.id = this.item.parentId;
+    this.item.dateAdded =
+      PlacesUtils.bookmarks.getItemDateAdded(this.item.id);
+    PlacesUtils.bookmarks.setItemDateAdded(this.item.id, this.new.dateAdded);
   },
 
   undoTransaction: function EIDATXN_undoTransaction()
   {
-    PlacesUtils.bookmarks.setItemDateAdded(this.id, this._oldDateAdded);
+    PlacesUtils.bookmarks.setItemDateAdded(this.item.id, this.item.dateAdded);
   }
 };
 
@@ -3228,31 +3312,34 @@ PlacesEditItemDateAddedTransaction.prototype = {
 
 
 
-function PlacesEditItemLastModifiedTransaction(id, newLastModified)
+function PlacesEditItemLastModifiedTransaction(aItemId, aNewLastModified)
 {
-  this.id = id;
-  this._newLastModified = newLastModified;
-  this._oldLastModified = null;
+  this.item = new TransactionItemCache();
+  this.item.id = aItemId;
+  this.new = new TransactionItemCache();
+  this.new.lastModified = aNewLastModified;
 }
 
 PlacesEditItemLastModifiedTransaction.prototype = {
   __proto__: BaseTransaction.prototype,
 
-  
-  get container() this.id,
-  set container(val) this.id = val,
-
   doTransaction:
   function EILMTXN_doTransaction()
   {
-    this._oldLastModified = PlacesUtils.bookmarks.getItemLastModified(this.id);
-    PlacesUtils.bookmarks.setItemLastModified(this.id, this._newLastModified);
+    
+    if (this.item.id == -1 && this.item.parentId != -1)
+      this.item.id = this.item.parentId;
+    this.item.lastModified =
+      PlacesUtils.bookmarks.getItemLastModified(this.item.id);
+    PlacesUtils.bookmarks.setItemLastModified(this.item.id,
+                                              this.new.lastModified);
   },
 
   undoTransaction:
   function EILMTXN_undoTransaction()
   {
-    PlacesUtils.bookmarks.setItemLastModified(this.id, this._oldLastModified);
+    PlacesUtils.bookmarks.setItemLastModified(this.item.id,
+                                              this.item.lastModified);
   }
 };
 
@@ -3267,8 +3354,8 @@ PlacesEditItemLastModifiedTransaction.prototype = {
 
 function PlacesSortFolderByNameTransaction(aFolderId)
 {
-  this._folderId = aFolderId;
-  this._oldOrder = null;
+  this.item = new TransactionItemCache();  
+  this.item.id = aFolderId;
 }
 
 PlacesSortFolderByNameTransaction.prototype = {
@@ -3279,7 +3366,7 @@ PlacesSortFolderByNameTransaction.prototype = {
     this._oldOrder = [];
 
     let contents =
-      PlacesUtils.getFolderContents(this._folderId, false, false).root;
+      PlacesUtils.getFolderContents(this.item.id, false, false).root;
     let count = contents.childCount;
 
     
@@ -3351,14 +3438,11 @@ PlacesSortFolderByNameTransaction.prototype = {
 
 
 
-
 function PlacesTagURITransaction(aURI, aTags)
 {
-  this._uri = aURI;
-  this._unfiledItemId = -1;
-  
-  
-  this._tags = Array.slice(aTags);
+  this.item = new TransactionItemCache();
+  this.item.uri = aURI;
+  this.item.tags = aTags;
 }
 
 PlacesTagURITransaction.prototype = {
@@ -3366,31 +3450,33 @@ PlacesTagURITransaction.prototype = {
 
   doTransaction: function TUTXN_doTransaction()
   {
-    if (PlacesUtils.getMostRecentBookmarkForURI(this._uri) == -1) {
+    if (PlacesUtils.getMostRecentBookmarkForURI(this.item.uri) == -1) {
       
-      this._unfiledItemId =
+      
+      this.item.id =
         PlacesUtils.bookmarks
                    .insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
-                                   this._uri,
+                                   this.item.uri,
                                    PlacesUtils.bookmarks.DEFAULT_INDEX,
-                                   PlacesUtils.history.getPageTitle(this._uri));
-      if (this._GUID)
-        PlacesUtils.bookmarks.setItemGUID(this._unfiledItemId, this._GUID);
+                                   PlacesUtils.history.getPageTitle(this.item.uri));
+      if (this.item.guid)
+        PlacesUtils.bookmarks.setItemGUID(this.item.id, this.item.guid);
     }
-    PlacesUtils.tagging.tagURI(this._uri, this._tags);
+    PlacesUtils.tagging.tagURI(this.item.uri, this.item.tags);
   },
 
   undoTransaction: function TUTXN_undoTransaction()
   {
-    if (this._unfiledItemId != -1) {
+    if (this.item.id != -1) {
       
-      if (PlacesUtils.annotations.itemHasAnnotation(this._unfiledItemId, PlacesUtils.GUID_ANNO)) {
-        this._GUID = PlacesUtils.bookmarks.getItemGUID(this._unfiledItemId);
+      if (PlacesUtils.annotations
+                     .itemHasAnnotation(this.item.id, PlacesUtils.GUID_ANNO)) {
+        this.item.guid = PlacesUtils.bookmarks.getItemGUID(this.item.id);
       }
-      PlacesUtils.bookmarks.removeItem(this._unfiledItemId);
-      this._unfiledItemId = -1;
+      PlacesUtils.bookmarks.removeItem(this.item.id);
+      this.item.id = -1;
     }
-    PlacesUtils.tagging.untagURI(this._uri, this._tags);
+    PlacesUtils.tagging.untagURI(this.item.uri, this.item.tags);
   }
 };
 
@@ -3406,25 +3492,22 @@ PlacesTagURITransaction.prototype = {
 
 
 
-
 function PlacesUntagURITransaction(aURI, aTags)
 {
-  this._uri = aURI;
-  if (aTags) {    
-    
-    
-    this._tags = Array.slice(aTags);
-
+  this.item = new TransactionItemCache();
+  this.item.uri = aURI;
+  if (aTags) {
     
     
     
-    for (let i = 0; i < this._tags.length; ++i) {
-      if (typeof(this._tags[i]) == "number")
-        this._tags[i] = PlacesUtils.bookmarks.getItemTitle(this._tags[i]);
+    let tags = [];
+    for (let i = 0; i < aTags.length; ++i) {
+      if (typeof(aTags[i]) == "number")
+        tags.push(PlacesUtils.bookmarks.getItemTitle(aTags[i]));
+      else
+        tags.push(aTags[i]);
     }
-  }
-  else {
-    this._tags = PlacesUtils.tagging.getTagsForURI(this._uri);
+    this.item.tags = tags;
   }
 }
 
@@ -3433,11 +3516,17 @@ PlacesUntagURITransaction.prototype = {
 
   doTransaction: function UTUTXN_doTransaction()
   {
-    PlacesUtils.tagging.untagURI(this._uri, this._tags);
+    
+    
+    let tags = PlacesUtils.tagging.getTagsForURI(this.item.uri);
+    this.item.tags = this.item.tags.filter(function (aTag) {
+      return tags.indexOf(aTag) != -1;
+    });
+    PlacesUtils.tagging.untagURI(this.item.uri, this.item.tags);
   },
 
   undoTransaction: function UTUTXN_undoTransaction()
   {
-    PlacesUtils.tagging.tagURI(this._uri, this._tags);
+    PlacesUtils.tagging.tagURI(this.item.uri, this.item.tags);
   }
 };
