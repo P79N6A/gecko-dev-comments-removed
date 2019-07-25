@@ -371,16 +371,9 @@ protected:
   virtual bool IsBlockNode(nsINode *aNode);
   
   
-  nsresult GetPriorNodeImpl(nsIDOMNode  *aCurrentNode, 
-                            bool         aEditableNode,
-                            nsCOMPtr<nsIDOMNode> *aResultNode,
-                            bool         bNoBlockCrossing = false);
-
-  
-  nsresult GetNextNodeImpl(nsIDOMNode  *aCurrentNode, 
-                           bool         aEditableNode,
-                           nsCOMPtr<nsIDOMNode> *aResultNode,
-                           bool         bNoBlockCrossing = false);
+  nsIContent* FindNextLeafNode(nsINode  *aCurrentNode,
+                               bool      aGoForward,
+                               bool      bNoBlockCrossing);
 
   
   nsresult GetWidget(nsIWidget **aWidget);
