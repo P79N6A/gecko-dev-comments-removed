@@ -2365,15 +2365,17 @@ BEGIN_CASE(JSOP_APPLY)
 
 
 
-            JSObject *scope = newfp->scopeChainObj();
-            mjit::CompileStatus status = mjit::CanMethodJIT(cx, newscript, fun, scope);
-            if (status == mjit::Compile_Error)
-                goto error;
-            if (status == mjit::Compile_Okay) {
-                if (!mjit::JaegerShot(cx))
+            if (!TRACE_RECORDER(cx)) {
+                JSObject *scope = newfp->scopeChainObj();
+                mjit::CompileStatus status = mjit::CanMethodJIT(cx, newscript, fun, scope);
+                if (status == mjit::Compile_Error)
                     goto error;
-                interpReturnOK = true;
-                goto inline_return;
+                if (status == mjit::Compile_Okay) {
+                    if (!mjit::JaegerShot(cx))
+                        goto error;
+                    interpReturnOK = true;
+                    goto inline_return;
+                }
             }
 
             
