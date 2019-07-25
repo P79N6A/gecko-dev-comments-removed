@@ -38,6 +38,7 @@
 
 
 
+
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cr = Components.results;
@@ -248,7 +249,8 @@ var gSyncSetup = {
 
   checkAccount: function() {
     delete this._checkAccountTimer;
-    let value = document.getElementById("weaveEmail").value;
+    let value = Weave.Utils.normalizeAccount(
+      document.getElementById("weaveEmail").value);
     if (!value) {
       this.status.email = false;
       this.checkFields();
@@ -415,7 +417,8 @@ var gSyncSetup = {
         feedback.hidden = false;
 
         let password = document.getElementById("weavePassword").value;
-        let email    = document.getElementById("weaveEmail").value;
+        let email = Weave.Utils.normalizeAccount(
+          document.getElementById("weaveEmail").value);
         let challenge = getField("challenge");
         let response = getField("response");
 
@@ -440,7 +443,8 @@ var gSyncSetup = {
         this.captchaBrowser.loadURI(Weave.Service.miscAPI + "captcha_html");
         break;
       case EXISTING_ACCOUNT_LOGIN_PAGE:
-        Weave.Service.account = document.getElementById("existingAccountName").value;
+        Weave.Service.account = Weave.Utils.normalizeAccount(
+          document.getElementById("existingAccountName").value);
         Weave.Service.password = document.getElementById("existingPassword").value;
         let pp = document.getElementById("existingPassphrase").value;
         Weave.Service.passphrase = Weave.Utils.normalizePassphrase(pp);
