@@ -508,7 +508,9 @@ iQClass.prototype = {
         if (pixels[key] && typeof(value) != 'string')
           value += 'px';
 
-        if (key.indexOf('-') != -1)
+        if (value == null) {
+          elem.style.removeProperty(key);
+        } else if (key.indexOf('-') != -1)
           elem.style.setProperty(key, value, '');
         else
           elem.style[key] = value;

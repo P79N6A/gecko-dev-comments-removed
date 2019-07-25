@@ -306,7 +306,7 @@ window.Item.prototype = {
   
   
   setRotation: function(degrees) {
-    var value = "rotate(%deg)".replace(/%/, degrees);
+    var value = degrees ? "rotate(%deg)".replace(/%/, degrees) : null;
     iQ(this.container).css({"-moz-transform": value});
   },
 
