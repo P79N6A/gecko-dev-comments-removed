@@ -115,8 +115,6 @@ nsHttpChannel::nsHttpChannel()
     , mCacheAccess(0)
     , mPostID(0)
     , mRequestTime(0)
-    , mOnCacheEntryAvailableCallback(nsnull)
-    , mAsyncCacheOpen(PR_FALSE)
     , mPendingAsyncCallOnResume(nsnull)
     , mSuspendCount(0)
     , mApplyConversion(PR_TRUE)
@@ -200,6 +198,8 @@ nsHttpChannel::Connect(PRBool firstTime)
 
     
     if (firstTime) {
+        PRBool delayed = PR_FALSE;
+
         
         PRBool offline = gIOService->IsOffline();
         if (offline)
@@ -214,7 +214,7 @@ nsHttpChannel::Connect(PRBool firstTime)
         }
 
         
-        rv = OpenCacheEntry();
+        rv = OpenCacheEntry(offline, &delayed);
 
         if (NS_FAILED(rv)) {
             LOG(("OpenCacheEntry failed [rv=%x]\n", rv));
@@ -238,7 +238,7 @@ nsHttpChannel::Connect(PRBool firstTime)
             if (NS_FAILED(rv)) return rv;
         }
 
-        if (NS_SUCCEEDED(rv) && mAsyncCacheOpen)
+        if (NS_SUCCEEDED(rv) && delayed)
             return NS_OK;
     }
 
@@ -270,14 +270,6 @@ nsHttpChannel::Connect(PRBool firstTime)
             
             return NS_ERROR_DOCUMENT_NOT_CACHED;
         }
-    }
-    else if (mLoadFlags & LOAD_ONLY_FROM_CACHE) {
-        
-        
-        if (!mFallbackChannel && !mFallbackKey.IsEmpty()) {
-            return AsyncCall(&nsHttpChannel::HandleAsyncFallback);
-        }
-        return NS_ERROR_DOCUMENT_NOT_CACHED;
     }
 
     
@@ -1688,11 +1680,11 @@ IsSubRangeRequest(nsHttpRequestHead &aRequestHead)
 }
 
 nsresult
-nsHttpChannel::OpenCacheEntry()
+nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
 {
     nsresult rv;
 
-    mAsyncCacheOpen = PR_FALSE;
+    *delayed = PR_FALSE;
     mLoadedFromApplicationCache = PR_FALSE;
 
     LOG(("nsHttpChannel::OpenCacheEntry [this=%p]", this));
@@ -1729,9 +1721,22 @@ nsHttpChannel::OpenCacheEntry()
     GenerateCacheKey(mPostID, cacheKey);
 
     
+    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
+
+    
     nsCacheAccessMode accessRequested;
-    rv = DetermineCacheAccess(&accessRequested);
-    if NS_FAILED(rv) return rv;
+    if (offline || (mLoadFlags & INHIBIT_CACHING)) {
+        
+        
+        
+        if (BYPASS_LOCAL_CACHE(mLoadFlags) && !offline)
+            return NS_ERROR_NOT_AVAILABLE;
+        accessRequested = nsICache::ACCESS_READ;
+    }
+    else if (BYPASS_LOCAL_CACHE(mLoadFlags))
+        accessRequested = nsICache::ACCESS_WRITE; 
+    else
+        accessRequested = nsICache::ACCESS_READ_WRITE; 
 
     if (!mApplicationCache && mInheritApplicationCache) {
         
@@ -1761,6 +1766,10 @@ nsHttpChannel::OpenCacheEntry()
     nsCOMPtr<nsICacheSession> session;
 
     
+    
+    PRBool waitingForValidation = PR_FALSE;
+
+    
     if (mApplicationCache) {
         nsCAutoString appCacheClientID;
         mApplicationCache->GetClientID(appCacheClientID);
@@ -1775,215 +1784,105 @@ nsHttpChannel::OpenCacheEntry()
                                  getter_AddRefs(session));
         NS_ENSURE_SUCCESS(rv, rv);
 
-        if (mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY) {
-            
-            rv = session->OpenCacheEntry(cacheKey,
-                                         nsICache::ACCESS_READ, PR_FALSE,
-                                         getter_AddRefs(mCacheEntry));
-            if (NS_SUCCEEDED(rv)) {
-                mCacheEntry->GetAccessGranted(&mCacheAccess);
-                LOG(("nsHttpChannel::OpenCacheEntry [this=%p grantedAccess=%d]",
-                    this, mCacheAccess));
-                mLoadedFromApplicationCache = PR_TRUE;
-                return NS_OK;
-            } else if (rv == NS_ERROR_CACHE_WAIT_FOR_VALIDATION) {
-                LOG(("bypassing local cache since it is busy\n"));
-                
-                return NS_ERROR_NOT_AVAILABLE;
-            }
-        } else {
-            mOnCacheEntryAvailableCallback =
-                &nsHttpChannel::OnOfflineCacheEntryAvailable;
-            
-            
-            
-            
-            rv = session->AsyncOpenCacheEntry(cacheKey,
-                                              nsICache::ACCESS_READ,
-                                              this);
-
-            if (NS_SUCCEEDED(rv)) {
-                mAsyncCacheOpen = PR_TRUE;
-                return NS_OK;
-            }
+        
+        
+        
+        
+        
+        
+        
+        
+        rv = session->OpenCacheEntry(cacheKey,
+                                     nsICache::ACCESS_READ, PR_FALSE,
+                                     getter_AddRefs(mCacheEntry));
+        if (rv == NS_ERROR_CACHE_WAIT_FOR_VALIDATION) {
+            accessRequested = nsICache::ACCESS_READ;
+            waitingForValidation = PR_TRUE;
+            rv = NS_OK;
         }
 
-        
-        return OnOfflineCacheEntryAvailable(nsnull, nsICache::ACCESS_NONE,
-                                            rv, PR_TRUE);
-    }
-
-    return OpenNormalCacheEntry(PR_TRUE);
-}
-
-nsresult
-nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
-                                            nsCacheAccessMode aAccess,
-                                            nsresult aEntryStatus,
-                                            PRBool aIsSync)
-{
-    nsresult rv;
-
-    if (NS_SUCCEEDED(aEntryStatus)) {
-        
-        
-        mLoadedFromApplicationCache = PR_TRUE;
-        mCacheEntry = aEntry;
-        mCacheAccess = aAccess;
-    }
-
-    if (mCanceled && NS_FAILED(mStatus)) {
-        LOG(("channel was canceled [this=%p status=%x]\n", this, mStatus));
-        return mStatus;
-    }
-
-    if (NS_SUCCEEDED(aEntryStatus))
-        
-        return Connect(PR_FALSE);
-
-    if (!mCacheForOfflineUse && !mFallbackChannel) {
-        nsCAutoString cacheKey;
-        GenerateCacheKey(mPostID, cacheKey);
-
-        
-        nsCOMPtr<nsIApplicationCacheNamespace> namespaceEntry;
-        rv = mApplicationCache->GetMatchingNamespace
-            (cacheKey, getter_AddRefs(namespaceEntry));
-        if (NS_FAILED(rv) && !aIsSync)
-            return Connect(PR_FALSE);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        PRUint32 namespaceType = 0;
-        if (!namespaceEntry ||
-            NS_FAILED(namespaceEntry->GetItemType(&namespaceType)) ||
-            (namespaceType &
-             (nsIApplicationCacheNamespace::NAMESPACE_FALLBACK |
-              nsIApplicationCacheNamespace::NAMESPACE_OPPORTUNISTIC |
-              nsIApplicationCacheNamespace::NAMESPACE_BYPASS)) == 0) {
+        if (NS_FAILED(rv) && !mCacheForOfflineUse && !mFallbackChannel) {
             
-            
-            
-            
-            mLoadFlags |= LOAD_ONLY_FROM_CACHE;
-
-            
-            
-            return aIsSync ? NS_ERROR_CACHE_KEY_NOT_FOUND : Connect(PR_FALSE);
-        }
-
-        if (namespaceType &
-            nsIApplicationCacheNamespace::NAMESPACE_FALLBACK) {
-            rv = namespaceEntry->GetData(mFallbackKey);
-            if (NS_FAILED(rv) && !aIsSync)
-                return Connect(PR_FALSE);
+            nsCOMPtr<nsIApplicationCacheNamespace> namespaceEntry;
+            rv = mApplicationCache->GetMatchingNamespace
+                (cacheKey, getter_AddRefs(namespaceEntry));
             NS_ENSURE_SUCCESS(rv, rv);
+
+            PRUint32 namespaceType = 0;
+            if (!namespaceEntry ||
+                NS_FAILED(namespaceEntry->GetItemType(&namespaceType)) ||
+                (namespaceType &
+                 (nsIApplicationCacheNamespace::NAMESPACE_FALLBACK |
+                  nsIApplicationCacheNamespace::NAMESPACE_OPPORTUNISTIC |
+                  nsIApplicationCacheNamespace::NAMESPACE_BYPASS)) == 0) {
+                
+                
+                
+                
+                mLoadFlags |= LOAD_ONLY_FROM_CACHE;
+
+                
+                
+                return NS_ERROR_CACHE_KEY_NOT_FOUND;
+            }
+
+            if (namespaceType &
+                nsIApplicationCacheNamespace::NAMESPACE_FALLBACK) {
+                rv = namespaceEntry->GetData(mFallbackKey);
+                NS_ENSURE_SUCCESS(rv, rv);
+            }
+
+            if ((namespaceType &
+                 nsIApplicationCacheNamespace::NAMESPACE_OPPORTUNISTIC) &&
+                mLoadFlags & LOAD_DOCUMENT_URI) {
+                
+                
+                nsCString clientID;
+                mApplicationCache->GetClientID(clientID);
+
+                mCacheForOfflineUse = !clientID.IsEmpty();
+                SetOfflineCacheClientID(clientID);
+                mCachingOpportunistically = PR_TRUE;
+            }
         }
-
-        if ((namespaceType &
-             nsIApplicationCacheNamespace::NAMESPACE_OPPORTUNISTIC) &&
-            mLoadFlags & LOAD_DOCUMENT_URI) {
+        else if (NS_SUCCEEDED(rv)) {
             
             
-            nsCString clientID;
-            mApplicationCache->GetClientID(clientID);
-
-            mCacheForOfflineUse = !clientID.IsEmpty();
-            SetOfflineCacheClientID(clientID);
-            mCachingOpportunistically = PR_TRUE;
+            mLoadedFromApplicationCache = PR_TRUE;
         }
     }
 
-    return OpenNormalCacheEntry(aIsSync);
-}
+    if (!mCacheEntry && !waitingForValidation) {
+        rv = gHttpHandler->GetCacheSession(storagePolicy,
+                                           getter_AddRefs(session));
+        if (NS_FAILED(rv)) return rv;
 
-
-nsresult
-nsHttpChannel::OpenNormalCacheEntry(PRBool aIsSync)
-{
-    NS_ASSERTION(!mCacheEntry, "We have already mCacheEntry");
-
-    nsresult rv;
-
-    nsCAutoString cacheKey;
-    GenerateCacheKey(mPostID, cacheKey);
-
-    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
-
-    nsCOMPtr<nsICacheSession> session;
-    rv = gHttpHandler->GetCacheSession(storagePolicy,
-                                       getter_AddRefs(session));
-    if (NS_FAILED(rv)) return rv;
-
-    nsCacheAccessMode accessRequested;
-    rv = DetermineCacheAccess(&accessRequested);
-    if NS_FAILED(rv) return rv;
-
-    if (mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY) {
-        if (!aIsSync) {
-            
-            
-            
-            
-            NS_WARNING(
-                "OpenNormalCacheEntry() called from OnCacheEntryAvailable() "
-                "when LOAD_BYPASS_LOCAL_CACHE_IF_BUSY was specified");
-        }
-
-        
         rv = session->OpenCacheEntry(cacheKey, accessRequested, PR_FALSE,
                                      getter_AddRefs(mCacheEntry));
-        if (NS_SUCCEEDED(rv)) {
-            mCacheEntry->GetAccessGranted(&mCacheAccess);
-            LOG(("nsHttpChannel::OpenCacheEntry [this=%p grantedAccess=%d]",
-                this, mCacheAccess));
+        if (rv == NS_ERROR_CACHE_WAIT_FOR_VALIDATION) {
+            waitingForValidation = PR_TRUE;
+            rv = NS_OK;
         }
-        else if (rv == NS_ERROR_CACHE_WAIT_FOR_VALIDATION) {
+        if (NS_FAILED(rv)) return rv;
+    }
+
+    if (waitingForValidation) {
+        
+        
+        if (mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY) {
             LOG(("bypassing local cache since it is busy\n"));
-            rv = NS_ERROR_NOT_AVAILABLE;
+            return NS_ERROR_NOT_AVAILABLE;
         }
-    }
-    else {
-        mOnCacheEntryAvailableCallback =
-            &nsHttpChannel::OnNormalCacheEntryAvailable;
         rv = session->AsyncOpenCacheEntry(cacheKey, accessRequested, this);
-        if (NS_SUCCEEDED(rv)) {
-            mAsyncCacheOpen = PR_TRUE;
-            return NS_OK;
-        }
-    }
-
-    if (!aIsSync)
+        if (NS_FAILED(rv)) return rv;
         
-        rv = Connect(PR_FALSE);
-
+        *delayed = PR_TRUE;
+    }
+    else if (NS_SUCCEEDED(rv)) {
+        mCacheEntry->GetAccessGranted(&mCacheAccess);
+        LOG(("nsHttpChannel::OpenCacheEntry [this=%p grantedAccess=%d]", this, mCacheAccess));
+    }
     return rv;
-}
-
-nsresult
-nsHttpChannel::OnNormalCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
-                                           nsCacheAccessMode aAccess,
-                                           nsresult aEntryStatus,
-                                           PRBool aIsSync)
-{
-    NS_ASSERTION(!aIsSync, "aIsSync should be false");
-
-    if (NS_SUCCEEDED(aEntryStatus)) {
-        mCacheEntry = aEntry;
-        mCacheAccess = aAccess;
-    }
-
-    if (mCanceled && NS_FAILED(mStatus)) {
-        LOG(("channel was canceled [this=%p status=%x]\n", this, mStatus));
-        return mStatus;
-    }
-
-    if ((mLoadFlags & LOAD_ONLY_FROM_CACHE) && NS_FAILED(aEntryStatus))
-        
-        
-        return NS_ERROR_DOCUMENT_NOT_CACHED;
-
-    
-    return Connect(PR_FALSE);
 }
 
 
@@ -2812,26 +2711,20 @@ nsHttpChannel::InstallCacheListener(PRUint32 offset)
         do_CreateInstance(kStreamListenerTeeCID, &rv);
     if (NS_FAILED(rv)) return rv;
 
-    nsCOMPtr<nsICacheService> serv =
-        do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsIEventTarget> cacheIOTarget;
-    serv->GetCacheIOTarget(getter_AddRefs(cacheIOTarget));
-
     nsCacheStoragePolicy policy;
     rv = mCacheEntry->GetStoragePolicy(&policy);
 
-    if (NS_FAILED(rv) || policy == nsICache::STORE_ON_DISK_AS_FILE ||
-        !cacheIOTarget) {
-        LOG(("nsHttpChannel::InstallCacheListener sync tee %p rv=%x policy=%d "
-             "cacheIOTarget=%p", tee.get(), rv, policy, cacheIOTarget.get()));
+    if (!gHttpHandler->mCacheWriteThread ||
+         NS_FAILED(rv) ||
+         policy == nsICache::STORE_ON_DISK_AS_FILE) {
+        LOG(("nsHttpChannel::InstallCacheListener sync tee %p\n", tee.get()));
         rv = tee->Init(mListener, out, nsnull);
     } else {
-        LOG(("nsHttpChannel::InstallCacheListener async tee %p", tee.get()));
-        rv = tee->InitAsync(mListener, cacheIOTarget, out, nsnull);
+        LOG(("nsHttpChannel::InstallCacheListener async tee %p\n",
+                tee.get()));
+        rv = tee->InitAsync(mListener, gHttpHandler->mCacheWriteThread, out, nsnull);
     }
-
+   
     if (NS_FAILED(rv)) return rv;
     mListener = tee;
     return NS_OK;
@@ -4184,8 +4077,6 @@ nsHttpChannel::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
                                      nsCacheAccessMode access,
                                      nsresult status)
 {
-    nsresult rv;
-
     LOG(("nsHttpChannel::OnCacheEntryAvailable [this=%p entry=%p "
          "access=%x status=%x]\n", this, entry, access, status));
 
@@ -4194,24 +4085,28 @@ nsHttpChannel::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
     if (!mIsPending)
         return NS_OK;
 
-    nsOnCacheEntryAvailableCallback callback = mOnCacheEntryAvailableCallback;
-    mOnCacheEntryAvailableCallback = nsnull;
+    
+    if (NS_SUCCEEDED(status)) {
+        mCacheEntry = entry;
+        mCacheAccess = access;
+    }
 
-    NS_ASSERTION(callback,
-        "nsHttpChannel::OnCacheEntryAvailable called without callback");
-    rv = ((*this).*callback)(entry, access, status, PR_FALSE);
+    nsresult rv;
 
+    if (mCanceled && NS_FAILED(mStatus)) {
+        LOG(("channel was canceled [this=%p status=%x]\n", this, mStatus));
+        rv = mStatus;
+    }
+    else if ((mLoadFlags & LOAD_ONLY_FROM_CACHE) && NS_FAILED(status))
+        
+        
+        rv = NS_ERROR_DOCUMENT_NOT_CACHED;
+    else
+        
+        rv = Connect(PR_FALSE);
+
+    
     if (NS_FAILED(rv)) {
-        LOG(("AsyncOpenCacheEntry failed [rv=%x]\n", rv));
-        if (mLoadFlags & LOAD_ONLY_FROM_CACHE) {
-            
-            
-            if (!mFallbackChannel && !mFallbackKey.IsEmpty()) {
-                rv = AsyncCall(&nsHttpChannel::HandleAsyncFallback);
-                if (NS_SUCCEEDED(rv))
-                    return rv;
-            }
-        }
         CloseCacheEntry(PR_TRUE);
         AsyncAbort(rv);
     }
@@ -4676,27 +4571,6 @@ nsHttpChannel::DetermineStoragePolicy()
         policy = nsICache::STORE_IN_MEMORY;
 
     return policy;
-}
-
-nsresult
-nsHttpChannel::DetermineCacheAccess(nsCacheAccessMode *_retval)
-{
-    PRBool offline = gIOService->IsOffline();
-
-    if (offline || (mLoadFlags & INHIBIT_CACHING)) {
-        
-        
-        
-        if (BYPASS_LOCAL_CACHE(mLoadFlags) && !offline)
-            return NS_ERROR_NOT_AVAILABLE;
-        *_retval = nsICache::ACCESS_READ;
-    }
-    else if (BYPASS_LOCAL_CACHE(mLoadFlags))
-        *_retval = nsICache::ACCESS_WRITE; 
-    else
-        *_retval = nsICache::ACCESS_READ_WRITE; 
-
-    return NS_OK;
 }
 
 void
