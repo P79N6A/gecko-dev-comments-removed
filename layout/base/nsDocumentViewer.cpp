@@ -2309,15 +2309,12 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
   if (!view)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  PRBool isExternalResource = !!mDocument->GetDisplayDocument();
-
   
   
   
   
   
-  
-  if (!mDocument->IsBeingUsedAsImage() && !isExternalResource &&
+  if (!mDocument->IsResourceDoc() &&
       (mParentWidget || !aContainerView)) {
     
     
