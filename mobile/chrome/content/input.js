@@ -65,6 +65,7 @@ const kStateActive = 0x00000001;
 const kStopKineticPanOnDragTimeout = 300;
 
 
+const kMinVelocity = 0.4;
 const kMaxVelocity = 6;
 
 
@@ -994,8 +995,13 @@ KineticController.prototype = {
       currentVelocityY = 0;
 
     let swipeTime = Math.min(swipeLength, lastTime - mb[0].t);
-    this._velocity.x = clampFromZero((distanceX / swipeTime) + currentVelocityX, Math.abs(currentVelocityX), 6);
-    this._velocity.y = clampFromZero((distanceY / swipeTime) + currentVelocityY, Math.abs(currentVelocityY), 6);
+    this._velocity.x = clampFromZero((distanceX / swipeTime) + currentVelocityX, Math.abs(currentVelocityX), kMaxVelocity);
+    this._velocity.y = clampFromZero((distanceY / swipeTime) + currentVelocityY, Math.abs(currentVelocityY), kMaxVelocity);
+
+    if (Math.abs(this._velocity.x) < kMinVelocity)
+      this._velocity.x = 0;
+    if (Math.abs(this._velocity.y) < kMinVelocity)
+      this._velocity.y = 0;
 
     
     this._acceleration.set(this._velocity.clone().map(sign).scale(-this._polynomialC));
