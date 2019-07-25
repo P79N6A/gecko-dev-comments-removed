@@ -201,6 +201,9 @@ class MoveResolver
 
     PendingMove *findBlockingMove(const PendingMove *last);
 
+    
+    void resetState();
+
   public:
     MoveResolver();
 
