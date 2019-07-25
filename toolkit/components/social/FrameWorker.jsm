@@ -243,7 +243,7 @@ function makeHiddenFrame() {
   
   
   
-  docShell.setIsBrowser();
+  docShell.isBrowserFrame = true;
 
   return iframe;
 }

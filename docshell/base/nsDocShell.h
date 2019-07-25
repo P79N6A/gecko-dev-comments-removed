@@ -664,15 +664,6 @@ protected:
 
     bool JustStartedNetworkLoad();
 
-    enum FrameType {
-        eFrameTypeRegular  = 0x0, 
-        eFrameTypeBrowser  = 0x1, 
-        eFrameTypeApp      = 0x2  
-    };
-
-    FrameType GetInheritedFrameType();
-    FrameType GetFrameType();
-
     
     nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
 

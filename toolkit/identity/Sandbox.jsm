@@ -93,7 +93,7 @@ Sandbox.prototype = {
                                       .getInterface(Ci.nsIDocShell);
 
     
-    docShell.setIsBrowser();
+    docShell.isBrowserFrame = true;
 
     
     docShell.stop(Ci.nsIWebNavigation.STOP_NETWORK);
