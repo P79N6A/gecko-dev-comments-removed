@@ -295,6 +295,20 @@ public:
   
 
 
+  void SetHasDisplayPort() { mHasDisplayPort = PR_TRUE; }
+  PRBool GetHasDisplayPort() { return mHasDisplayPort; }
+
+  
+
+
+
+
+  void SetHasFixedItems() { mHasFixedItems = PR_TRUE; }
+  PRBool GetHasFixedItems() { return mHasFixedItems; }
+
+  
+
+
 
   PRBool IsSnappingEnabled() { return mSnappingEnabled; }
   
@@ -456,6 +470,9 @@ public:
   }
 
 private:
+  void MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame, nsIFrame* aFrame,
+                                    const nsRect& aDirtyRect);
+
   struct PresShellState {
     nsIPresShell* mPresShell;
     nsIFrame*     mCaretFrame;
@@ -492,6 +509,8 @@ private:
   PRPackedBool                   mSyncDecodeImages;
   PRPackedBool                   mIsPaintingToWindow;
   PRPackedBool                   mSnappingEnabled;
+  PRPackedBool                   mHasDisplayPort;
+  PRPackedBool                   mHasFixedItems;
 };
 
 class nsDisplayItem;
