@@ -1787,7 +1787,8 @@ js_NewScriptObject(JSContext *cx, JSScript *script)
 
 
 
-    obj->clearType(cx);
+    if (!obj->clearType(cx))
+        return JS_FALSE;
 
 #ifdef CHECK_SCRIPT_OWNER
     script->owner = NULL;

@@ -2150,9 +2150,6 @@ public:
     inline js::types::TypeObject *getTypeNewObject(JSProtoKey key);
 
     
-    inline js::types::TypeObject *emptyTypeObject();
-
-    
     inline void setTypeFunctionScript(JSFunction *fun, JSScript *script);
 
     
@@ -2181,6 +2178,9 @@ public:
     inline bool addTypeProperty(js::types::TypeObject *obj, const char *name, const js::Value &value);
     inline bool addTypePropertyId(js::types::TypeObject *obj, jsid id, js::types::jstype type);
     inline bool addTypePropertyId(js::types::TypeObject *obj, jsid id, const js::Value &value);
+
+    
+    inline js::types::TypeObject *getTypeEmpty();
 
     
     inline js::types::TypeObject *getTypeGetSet();

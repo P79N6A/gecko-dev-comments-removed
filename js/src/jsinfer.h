@@ -573,7 +573,7 @@ struct TypeCompartment
     unsigned scriptCount;
 
     
-    TypeObject emptyObject;
+    TypeObject *typeEmpty;
 
     
     TypeObject *typeGetSet;

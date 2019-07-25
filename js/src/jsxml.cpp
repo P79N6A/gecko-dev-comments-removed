@@ -7217,7 +7217,8 @@ js_GetFunctionNamespace(JSContext *cx, Value *vp)
 
 
 
-        obj->clearType(cx);
+        if (!obj->clearType(cx))
+            return false;
 
         vp->setObject(*obj);
         if (!js_SetReservedSlot(cx, global, JSRESERVED_GLOBAL_FUNCTION_NS, *vp))

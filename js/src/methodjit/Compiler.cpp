@@ -304,6 +304,9 @@ mjit::Compiler::prepareInferenceTypes(const Vector<JSStackFrame*> *frames)
 
 
 
+
+
+
     uint32 nargs = fun ? fun->nargs : 0;
     if (!argumentTypes.reserve(nargs))
         return Compile_Error;
@@ -551,10 +554,12 @@ mjit::Compiler::generatePrologue()
     for (uint32 i = 0; fun && i < fun->nargs; i++) {
         JSValueType type = knownArgumentType(i);
         if (type != JSVAL_TYPE_UNKNOWN) {
-            if (type == JSVAL_TYPE_DOUBLE)
-                frame.ensureDouble(frame.getArg(i));
-            else
+            if (type == JSVAL_TYPE_DOUBLE) {
+                if (!analysis->argEscapes(i))
+                    frame.ensureDouble(frame.getArg(i));
+            } else {
                 frame.learnType(frame.getArg(i), type, false);
+            }
         }
     }
 
@@ -5471,7 +5476,7 @@ mjit::Compiler::fixDoubleTypes(Uses uses)
 
     for (uint32 i = 0; fun && i < fun->nargs; i++) {
         JSValueType type = knownArgumentType(i);
-        if (type == JSVAL_TYPE_DOUBLE) {
+        if (type == JSVAL_TYPE_DOUBLE && !analysis->argEscapes(i)) {
             FrameEntry *fe = frame.getArg(i);
             if (!fe->isType(JSVAL_TYPE_DOUBLE))
                 frame.ensureDouble(fe);
@@ -5480,7 +5485,7 @@ mjit::Compiler::fixDoubleTypes(Uses uses)
 
     for (uint32 i = 0; i < script->nfixed; i++) {
         JSValueType type = knownLocalType(i);
-        if (type == JSVAL_TYPE_DOUBLE) {
+        if (type == JSVAL_TYPE_DOUBLE && !analysis->localEscapes(i)) {
             FrameEntry *fe = frame.getLocal(i);
             if (!fe->isType(JSVAL_TYPE_DOUBLE))
                 frame.ensureDouble(fe);
@@ -5497,7 +5502,7 @@ mjit::Compiler::restoreAnalysisTypes(uint32 stackDepth)
     
     for (uint32 i = 0; i < script->nfixed; i++) {
         JSValueType type = knownLocalType(i);
-        if (type != JSVAL_TYPE_UNKNOWN) {
+        if (type != JSVAL_TYPE_UNKNOWN && (type != JSVAL_TYPE_DOUBLE || !analysis->localEscapes(i))) {
             FrameEntry *fe = frame.getLocal(i);
             JS_ASSERT(!fe->isTypeKnown());
             frame.learnType(fe, type, false);
@@ -5505,7 +5510,7 @@ mjit::Compiler::restoreAnalysisTypes(uint32 stackDepth)
     }
     for (uint32 i = 0; fun && i < fun->nargs; i++) {
         JSValueType type = knownArgumentType(i);
-        if (type != JSVAL_TYPE_UNKNOWN) {
+        if (type != JSVAL_TYPE_UNKNOWN && (type != JSVAL_TYPE_DOUBLE || !analysis->argEscapes(i))) {
             FrameEntry *fe = frame.getArg(i);
             JS_ASSERT(!fe->isTypeKnown());
             frame.learnType(fe, type, false);
