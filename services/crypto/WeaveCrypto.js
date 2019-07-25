@@ -512,7 +512,9 @@ WeaveCrypto.prototype = {
         outputBuffer = this._commonCrypt(input, outputBuffer, symmetricKey, iv, this.nss.CKA_DECRYPT);
 
         
-        return outputBuffer.readString();
+        
+        
+        return "" + outputBuffer.readString() + "";
     },
 
 
