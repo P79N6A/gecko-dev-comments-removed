@@ -230,7 +230,6 @@ struct JSCompartment
 
     void                         *data;
     bool                         active;  
-    bool                         hasDebugModeCodeToDrop;
     js::WrapperMap               crossCompartmentWrappers;
 
 #ifdef JS_METHODJIT
