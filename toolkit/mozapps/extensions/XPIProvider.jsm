@@ -3889,6 +3889,9 @@ AddonInstall.prototype = {
       }
       else {
         
+        XPIProvider.removeActiveInstall(this);
+
+        
         
         
 
