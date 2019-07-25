@@ -873,7 +873,10 @@ SourceScripts.prototype = {
 
 
   _trimUrlQuery: function SS__trimUrlQuery(aUrl) {
-    let q = aUrl.indexOf('?');
+    let q = aUrl.indexOf('#');
+    if (q === -1) q = aUrl.indexOf('?');
+    if (q === -1) q = aUrl.indexOf('&');
+
     if (q > -1) {
       return aUrl.slice(0, q);
     }
