@@ -495,4 +495,6 @@ pref("services.sync.autoconnectDelay", 5);
 
 pref("ui.dragThreshold", 24);
 
+#ifndef MOZ_PLATFORM_MAEMO
 pref("layers.accelerate-all", true);
+#endif
