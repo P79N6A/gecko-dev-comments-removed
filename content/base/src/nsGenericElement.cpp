@@ -5281,7 +5281,8 @@ nsGenericElement::PreHandleEventForLinks(nsEventChainPreVisitor& aVisitor)
     aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
     
   case NS_FOCUS_CONTENT:
-    {
+    if (aVisitor.mEvent->eventStructType != NS_FOCUS_EVENT ||
+        !static_cast<nsFocusEvent*>(aVisitor.mEvent)->isRefocus) {
       nsAutoString target;
       GetLinkTarget(target);
       nsContentUtils::TriggerLink(this, aVisitor.mPresContext, absURI, target,
