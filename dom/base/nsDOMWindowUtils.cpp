@@ -62,6 +62,7 @@
 #include "nsIViewManager.h"
 
 #include "nsIDOMHTMLCanvasElement.h"
+#include "nsICanvasElement.h"
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 #include "nsLayoutUtils.h"
@@ -1317,11 +1318,13 @@ nsDOMWindowUtils::GetParent()
   *rval = OBJECT_TO_JSVAL(parent);
 
   
-  JSClass *clasp = JS_GetClass(cx, parent);
-  if (clasp->flags & JSCLASS_IS_EXTENDED) {
-    JSExtendedClass *xclasp = reinterpret_cast<JSExtendedClass *>(clasp);
-    if (JSObjectOp outerize = xclasp->outerObject)
-      *rval = OBJECT_TO_JSVAL(outerize(cx, parent));
+  if (parent) {
+    JSClass* clasp = JS_GET_CLASS(cx, parent);
+    if (clasp->flags & JSCLASS_IS_EXTENDED) {
+      JSExtendedClass* xclasp = reinterpret_cast<JSExtendedClass*>(clasp);
+      if (JSObjectOp outerize = xclasp->outerObject)
+        *rval = OBJECT_TO_JSVAL(outerize(cx, parent));
+    }
   }
 
   cc->SetReturnValueWasSet(PR_TRUE);
