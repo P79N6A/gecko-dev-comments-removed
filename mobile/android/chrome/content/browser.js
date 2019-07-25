@@ -1455,9 +1455,10 @@ function Tab(aURL, aParams) {
   this.create(aURL, aParams);
   this._zoom = 1.0;
   this.userScrollPos = { x: 0, y: 0 };
-  this._pluginCount = 0;
-  this._pluginOverlayShowing = false;
   this.contentDocumentIsDisplayed = true;
+  this.clickToPlayPluginDoorhangerShown = false;
+  this.clickToPlayPluginsActivated = false;
+  this.loadEventProcessed = false;
 }
 
 Tab.prototype = {
@@ -1511,6 +1512,7 @@ Tab.prototype = {
     this.browser.sessionHistory.addSHistoryListener(this);
 
     this.browser.addEventListener("DOMContentLoaded", this, true);
+    this.browser.addEventListener("load", this, true);
     this.browser.addEventListener("DOMLinkAdded", this, true);
     this.browser.addEventListener("DOMTitleChanged", this, true);
     this.browser.addEventListener("DOMWindowClose", this, true);
@@ -1518,8 +1520,6 @@ Tab.prototype = {
     this.browser.addEventListener("scroll", this, true);
     this.browser.addEventListener("MozScrolledAreaChanged", this, true);
     this.browser.addEventListener("PluginClickToPlay", this, true);
-    this.browser.addEventListener("pagehide", this, true);
-    this.browser.addEventListener("pageshow", this, true);
 
     Services.obs.addObserver(this, "before-first-paint", false);
 
@@ -1558,6 +1558,7 @@ Tab.prototype = {
 
     this.browser.removeProgressListener(this);
     this.browser.removeEventListener("DOMContentLoaded", this, true);
+    this.browser.removeEventListener("load", this, true);
     this.browser.removeEventListener("DOMLinkAdded", this, true);
     this.browser.removeEventListener("DOMTitleChanged", this, true);
     this.browser.removeEventListener("DOMWindowClose", this, true);
@@ -1565,8 +1566,6 @@ Tab.prototype = {
     this.browser.removeEventListener("scroll", this, true);
     this.browser.removeEventListener("PluginClickToPlay", this, true);
     this.browser.removeEventListener("MozScrolledAreaChanged", this, true);
-    this.browser.removeEventListener("pagehide", this, true);
-    this.browser.removeEventListener("pageshow", this, true);
 
     Services.obs.removeObserver(this, "before-first-paint");
 
@@ -1763,13 +1762,25 @@ Tab.prototype = {
             this.browser.removeEventListener("pagehide", listener, true);
           }.bind(this), true);
         }
+        break;
+      }
 
+      case "load": {
+        this.loadEventProcessed = true;
         
+        let contentWindow = this.browser.contentWindow;
+        let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIDOMWindowUtils);
         
-        
-        if (this._pluginCount && !this._pluginOverlayShowing)
+        let plugins = cwu.plugins;
+        let isAnyPluginVisible = false;
+        for (let plugin of plugins) {
+          let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");
+          if (overlay && !PluginHelper.isTooSmall(plugin, overlay))
+            isAnyPluginVisible = true;
+        }
+        if (plugins && plugins.length && !isAnyPluginVisible)
           PluginHelper.showDoorHanger(this);
-
         break;
       }
 
@@ -1877,39 +1888,36 @@ Tab.prototype = {
       }
 
       case "PluginClickToPlay": {
-        
-        
-        this._pluginCount++;
-
         let plugin = aEvent.target;
+
+        if (this.clickToPlayPluginsActivated) {
+          PluginHelper.playPlugin(plugin);
+          return;
+        }
+
+        
+        
         let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");
-        if (!overlay)
-          return;
-
-        
-        
-        if (PluginHelper.isTooSmall(plugin, overlay)) {
-          overlay.style.visibility = "hidden";
+        if (!overlay || PluginHelper.isTooSmall(plugin, overlay)) {
+          if (overlay)
+            overlay.style.visibility = "hidden";
+          if (this.loadEventProcessed && !this.clickToPlayPluginDoorhangerShown)
+            PluginHelper.showDoorHanger(this);
           return;
         }
 
         
-        overlay.addEventListener("click", (function(event) {
-          
-          PluginHelper.playAllPlugins(this, event);
-        }).bind(this), true);
-
-        this._pluginOverlayShowing = true;
-        break;
-      }
-
-      case "pagehide": {
-        
-        if (aEvent.target.defaultView == this.browser.contentWindow) {
-          
-          this._pluginCount = 0;
-          this._pluginOverlayShowing = false;
-        }
+        overlay.addEventListener("click", function(e) {
+          if (e) {
+            if (!e.isTrusted)
+              return;
+            e.preventDefault();
+          }
+          let win = e.target.ownerDocument.defaultView.top;
+          let tab = BrowserApp.getTabForWindow(win);
+          tab.clickToPlayPluginsActivated = true;
+          PluginHelper.playAllPlugins(win);
+        }, true);
         break;
       }
     }
@@ -1968,6 +1976,11 @@ Tab.prototype = {
       documentURI = browser.contentDocument.documentURIObject.spec;
       contentType = browser.contentDocument.contentType;
     }
+
+    
+    this.clickToPlayPluginDoorhangerShown = false;
+    this.clickToPlayPluginsActivated = false;
+    this.loadEventProcessed = false;
 
     let message = {
       gecko: {
@@ -2206,9 +2219,12 @@ Tab.prototype = {
         let contentDocument = aSubject;
         if (contentDocument == this.browser.contentDocument) {
           
+          
+          
+          
+          
           this.setBrowserSize(kDefaultCSSViewportWidth, kDefaultCSSViewportHeight);
           this.setResolution(gScreenWidth / this.browserWidth, false);
-          
           ViewportHandler.updateMetadata(this);
 
           
@@ -2216,7 +2232,18 @@ Tab.prototype = {
           
           
           
-          this.sendViewportUpdate();
+
+          if (contentDocument instanceof ImageDocument) {
+            
+            
+            
+            
+            
+            let fitZoom = Math.min(gScreenWidth / contentDocument.body.scrollWidth,
+                                   gScreenHeight / contentDocument.body.scrollHeight);
+            this.setResolution(fitZoom, false);
+            this.sendViewportUpdate();
+          }
 
           BrowserApp.displayedDocumentChanged();
           this.contentDocumentIsDisplayed = true;
@@ -3854,12 +3881,13 @@ var ClipboardHelper = {
 
 var PluginHelper = {
   showDoorHanger: function(aTab) {
+    aTab.clickToPlayPluginDoorhangerShown = true;
     let message = Strings.browser.GetStringFromName("clickToPlayPlugins.message");
     let buttons = [
       {
         label: Strings.browser.GetStringFromName("clickToPlayPlugins.yes"),
         callback: function() {
-          PluginHelper.playAllPlugins(aTab);
+          PluginHelper.playAllPlugins(aTab.browser.contentWindow);
         }
       },
       {
@@ -3872,41 +3900,21 @@ var PluginHelper = {
     NativeWindow.doorhanger.show(message, "ask-to-play-plugins", buttons, aTab.id);
   },
 
-  playAllPlugins: function(aTab, aEvent) {
-    if (aEvent) {
-      if (!aEvent.isTrusted)
-        return;
-      aEvent.preventDefault();
-    }
-
-    this._findAndPlayAllPlugins(aTab.browser.contentWindow);
-  },
-
-  
-  _findAndPlayAllPlugins: function _findAndPlayAllPlugins(aWindow) {
-    let embeds = aWindow.document.getElementsByTagName("embed");
-    for (let i = 0; i < embeds.length; i++) {
-      if (!embeds[i].hasAttribute("played"))
-        this._playPlugin(embeds[i]);
-    }
-
-    let objects = aWindow.document.getElementsByTagName("object");
-    for (let i = 0; i < objects.length; i++) {
-      if (!objects[i].hasAttribute("played"))
-        this._playPlugin(objects[i]);
-    }
-
-    for (let i = 0; i < aWindow.frames.length; i++) {
-      this._findAndPlayAllPlugins(aWindow.frames[i]);
-    }
-  },
-
-  _playPlugin: function _playPlugin(aPlugin) {
-    let objLoadingContent = aPlugin.QueryInterface(Ci.nsIObjectLoadingContent);
-    objLoadingContent.playPlugin();
-
+  playAllPlugins: function(aContentWindow) {
+    let cwu = aContentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                            .getInterface(Ci.nsIDOMWindowUtils);
     
-    aPlugin.setAttribute("played", true);
+    let plugins = cwu.plugins;
+    if (!plugins || !plugins.length)
+      return;
+
+    plugins.forEach(this.playPlugin);
+  },
+
+  playPlugin: function(plugin) {
+    let objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
+    if (!objLoadingContent.activated)
+      objLoadingContent.playPlugin();
   },
 
   getPluginPreference: function getPluginPreference() {
