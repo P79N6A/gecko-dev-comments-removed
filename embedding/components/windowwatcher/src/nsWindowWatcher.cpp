@@ -878,6 +878,10 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     nsCOMPtr<nsPIDOMWindow> newDebugWindow = do_GetInterface(newDocShell);
     NS_ASSERTION(newWindow == newDebugWindow, "Different windows??");
 #endif
+    
+    
+    
+    
     if (newWindow) {
       newWindow->SetInitialPrincipalToSubject();
     }
