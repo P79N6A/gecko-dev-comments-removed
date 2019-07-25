@@ -36,12 +36,24 @@
 
 
 var Feedback = {
+  _prefs: [],
+
   init: function(aEvent) {
     let appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
     document.getElementById("feedback-about").setAttribute("desc", appInfo.version);
 
     
     messageManager.loadFrameScript("data:,addMessageListener('Feedback:InitPage', function(m) { content.document.getElementById('id_url').value = m.json.referrer; });", true);
+
+    let feedbackPrefs = document.getElementById("feedback-tools").childNodes;
+    for (let i = 0; i < feedbackPrefs.length; i++) {
+      let pref = feedbackPrefs[i].getAttribute("pref");
+      if (!pref)
+        continue;
+
+      let value = Services.prefs.getPrefType(pref) == Ci.nsIPrefBranch.PREF_INVALID ? false : Services.prefs.getBoolPref(pref);
+      Feedback._prefs.push({ "name": pref, "value": value });
+    }
 
     
     window.addEventListener("UIReadyDelayed", function(aEvent) {
@@ -74,12 +86,22 @@ var Feedback = {
 
       let value = "restart-app";
       let notification = msg.getNotificationWithValue(value);
-      if (notification)
+      if (notification) {
+        
+        
+        for each (let pref in this._prefs) {
+          let value = Services.prefs.getPrefType(pref.name) == Ci.nsIPrefBranch.PREF_INVALID ? false : Services.prefs.getBoolPref(pref.name);
+          if (value != pref.value)
+            return;
+        }
+
+        notification.close();
         return;
+      }
   
       let restartCallback = function(aNotification, aDescription) {
         
-        var cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
+        let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
         Services.obs.notifyObservers(cancelQuit, "quit-application-requested", "restart");
   
         
