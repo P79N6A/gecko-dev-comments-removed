@@ -93,12 +93,11 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
   if (!sActiveSampler)
     return;
 
-#ifndef ENABLE_SPS_LEAF_DATA
-  TickSample* sample = NULL;
-#else
   TickSample sample_obj;
   TickSample* sample = &sample_obj;
+  sample->pc = 0;
 
+#ifdef ENABLE_SPS_LEAF_DATA
   
   if (sActiveSampler->IsProfiling()) {
     
@@ -127,9 +126,10 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
     
     UNIMPLEMENTED();
 #endif
-    sample->timestamp = mozilla::TimeStamp::Now();
   }
 #endif
+  sample->timestamp = mozilla::TimeStamp::Now();
+
   sActiveSampler->Tick(sample);
 }
 
