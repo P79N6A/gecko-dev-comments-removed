@@ -2410,8 +2410,21 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                             ++nflattened;
                             continue;
                         }
-                        if (DeoptimizeUsesWithin(lexdep, funbox->node->pn_body->pn_pos))
-                            FlagHeavyweights(lexdep, funbox, tcflags);
+
+                        
+
+
+
+
+
+
+
+
+
+
+
+
+
                     }
                 }
 
@@ -2419,7 +2432,6 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                     FUN_METER(onlyfreevar);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
                 } else if (nflattened == nupvars) {
-                    
                     
 
 
