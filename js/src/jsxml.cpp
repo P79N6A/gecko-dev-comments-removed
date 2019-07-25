@@ -929,7 +929,7 @@ template<class T>
 void
 JSXMLArray<T>::finish(FreeOp *fop)
 {
-    if (!fop->runtime()->gcRunning) {
+    if (!fop->runtime()->isHeapBusy()) {
         
         for (uint32_t i = 0; i < length; i++)
             vector[i].~HeapPtr<T>();

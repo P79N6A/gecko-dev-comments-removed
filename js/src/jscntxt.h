@@ -578,7 +578,16 @@ struct JSRuntime : js::RuntimeFriendFields
 #endif
 
     bool                gcPoke;
-    bool                gcRunning;
+
+    enum HeapState {
+        Idle,       
+        Tracing,    
+        Collecting  
+    };
+
+    HeapState           heapState;
+
+    bool isHeapBusy() { return heapState != Idle; }
 
     
 

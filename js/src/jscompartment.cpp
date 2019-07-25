@@ -680,7 +680,7 @@ JSCompartment::updateForDebugMode(FreeOp *fop, AutoDebugModeGC &dmgc)
     
     
     
-    if (!rt->gcRunning)
+    if (!rt->isHeapBusy())
         dmgc.scheduleGC(this);
 #endif
 }

@@ -245,7 +245,7 @@ regexp_trace(JSTracer *trc, JSObject *obj)
 
 
 
-    if (trc->runtime->gcRunning && IS_GC_MARKING_TRACER(trc))
+    if (trc->runtime->isHeapBusy() && IS_GC_MARKING_TRACER(trc))
         obj->setPrivate(NULL);
 }
 
