@@ -1,6 +1,11 @@
 
 
 
+
+
+
+
+
 function ExprArray(n,v)
 {
     
@@ -14,6 +19,7 @@ function ExprArray(n,v)
 function perfect(n)
 {
     print("The perfect numbers up to " +  n + " are:");
+    var results = [];
 
     
     
@@ -27,9 +33,11 @@ function perfect(n)
 	
 	if (eval(sumOfDivisors[divisor]) == divisor) {
 	    print("" + divisor + " = " + sumOfDivisors[divisor]);
+	    results.push(divisor);
 	}
     }
     print("That's all.");
+    return results;
 }
 
 
@@ -37,3 +45,4 @@ print("\nA number is 'perfect' if it is equal to the sum of its")
 print("divisors (excluding itself).\n");
 perfect(500);
 
+reportCompare(perfect(500).join(), "6,28,496");
