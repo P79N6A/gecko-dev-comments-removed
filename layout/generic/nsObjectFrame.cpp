@@ -5311,7 +5311,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const nsGUIEvent& anEvent)
       {
         
         
-        nsCOMPtr<nsFrameSelection> frameselection = mObjectFrame->GetFrameSelection();
+        nsRefPtr<nsFrameSelection> frameselection = mObjectFrame->GetFrameSelection();
         if (!frameselection->GetMouseDownState() ||
             (nsIPresShell::GetCapturingContent() == mObjectFrame->GetContent())) {
 #ifndef NP_NO_CARBON
