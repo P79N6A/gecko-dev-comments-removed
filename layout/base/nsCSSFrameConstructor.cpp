@@ -7634,6 +7634,7 @@ static bool gInApplyRenderingChangeToTree = false;
 
 static void
 DoApplyRenderingChangeToTree(nsIFrame* aFrame,
+                             nsIViewManager* aViewManager,
                              nsFrameManager* aFrameManager,
                              nsChangeHint aChange);
 
@@ -7642,7 +7643,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
 
 
 static void
-UpdateViewsForTree(nsIFrame* aFrame,
+UpdateViewsForTree(nsIFrame* aFrame, nsIViewManager* aViewManager,
                    nsFrameManager* aFrameManager,
                    nsChangeHint aChange)
 {
@@ -7669,19 +7670,19 @@ UpdateViewsForTree(nsIFrame* aFrame,
           nsIFrame* outOfFlowFrame =
             nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
           do {
-            DoApplyRenderingChangeToTree(outOfFlowFrame, aFrameManager,
-                                         aChange);
+            DoApplyRenderingChangeToTree(outOfFlowFrame, aViewManager,
+                                         aFrameManager, aChange);
           } while ((outOfFlowFrame = outOfFlowFrame->GetNextContinuation()));
         } else if (lists.CurrentID() == nsIFrame::kPopupList) {
-          DoApplyRenderingChangeToTree(child, aFrameManager,
-                                       aChange);
+          DoApplyRenderingChangeToTree(child, aViewManager,
+                                       aFrameManager, aChange);
         } else {  
           if ((child->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER) &&
               (aChange & nsChangeHint_RepaintFrame)) {
             FrameLayerBuilder::InvalidateThebesLayerContents(child,
               child->GetVisualOverflowRectRelativeToSelf());
           }
-          UpdateViewsForTree(child, aFrameManager, aChange);
+          UpdateViewsForTree(child, aViewManager, aFrameManager, aChange);
         }
       }
     }
@@ -7690,6 +7691,7 @@ UpdateViewsForTree(nsIFrame* aFrame,
 
 static void
 DoApplyRenderingChangeToTree(nsIFrame* aFrame,
+                             nsIViewManager* aViewManager,
                              nsFrameManager* aFrameManager,
                              nsChangeHint aChange)
 {
@@ -7701,7 +7703,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
     
     
     
-    UpdateViewsForTree(aFrame, aFrameManager, aChange);
+    UpdateViewsForTree(aFrame, aViewManager, aFrameManager, aChange);
 
     
     if (aChange & nsChangeHint_RepaintFrame) {
@@ -7764,18 +7766,25 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
     NS_ASSERTION(aFrame, "root frame must paint");
   }
 
+  nsIViewManager* viewManager = shell->GetViewManager();
+
   
   
 
   
+
+  nsIViewManager::UpdateViewBatch batch(viewManager);
 
 #ifdef DEBUG
   gInApplyRenderingChangeToTree = true;
 #endif
-  DoApplyRenderingChangeToTree(aFrame, shell->FrameManager(), aChange);
+  DoApplyRenderingChangeToTree(aFrame, viewManager, shell->FrameManager(),
+                               aChange);
 #ifdef DEBUG
   gInApplyRenderingChangeToTree = false;
 #endif
+  
+  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 }
 
 
@@ -7816,8 +7825,13 @@ InvalidateCanvasIfNeeded(nsIPresShell* presShell, nsIContent* node)
   
   
 
+  
+  
+
+  nsIViewManager::UpdateViewBatch batch(presShell->GetViewManager());
   nsIFrame* rootFrame = presShell->GetRootFrame();
   rootFrame->InvalidateFrameSubtree();
+  batch.EndUpdateViewBatch(NS_VMREFRESH_DEFERRED);
 }
 
 nsresult
@@ -11584,7 +11598,7 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
     return;
 
   
-  nsCOMPtr<nsIViewManager> vm = mPresShell->GetViewManager();
+  nsIViewManager::UpdateViewBatch batch(mPresShell->GetViewManager());
 
   
   
@@ -11600,6 +11614,7 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
   
   nsresult rv = mPresShell->StyleSet()->BeginReconstruct();
   if (NS_FAILED(rv)) {
+    batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
     return;
   }
 
@@ -11634,6 +11649,7 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
   
   
   mPresShell->StyleSet()->EndReconstruct();
+  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 }
 
 void

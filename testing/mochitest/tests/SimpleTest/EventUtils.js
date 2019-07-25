@@ -146,30 +146,17 @@ function _parseModifiers(aEvent)
 
 function synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 {
-  var rect = aTarget.getBoundingClientRect();
-  synthesizeMouseAtPoint(rect.left + aOffsetX, rect.top + aOffsetY,
-			 aEvent, aWindow);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function synthesizeMouseAtPoint(left, top, aEvent, aWindow)
-{
   var utils = _getDOMWindowUtils(aWindow);
 
   if (utils) {
     var button = aEvent.button || 0;
     var clickCount = aEvent.clickCount || 1;
     var modifiers = _parseModifiers(aEvent);
+
+    var rect = aTarget.getBoundingClientRect();
+
+    var left = rect.left + aOffsetX;
+    var top = rect.top + aOffsetY;
 
     if (aEvent.type) {
       utils.sendMouseEvent(aEvent.type, left, top, button, clickCount, modifiers);
