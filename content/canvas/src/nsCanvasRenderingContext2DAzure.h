@@ -598,10 +598,13 @@ protected:
 
 
 
+
   void EnsureWritablePath();
 
   
-  void EnsureUserSpacePath();
+  
+  
+  void EnsureUserSpacePath(bool aCommitTransform = true);
 
   void TransformWillUpdate();
 
