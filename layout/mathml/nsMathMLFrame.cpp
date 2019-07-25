@@ -277,7 +277,7 @@ nsMathMLFrame::GetAttribute(nsIContent* aContent,
 
  void
 nsMathMLFrame::GetRuleThickness(nsRenderingContext& aRenderingContext,
-                                nsIFontMetrics*      aFontMetrics,
+                                nsFontMetrics*      aFontMetrics,
                                 nscoord&             aRuleThickness)
 {
   
@@ -299,7 +299,7 @@ nsMathMLFrame::GetRuleThickness(nsRenderingContext& aRenderingContext,
 
  void
 nsMathMLFrame::GetAxisHeight(nsRenderingContext& aRenderingContext,
-                             nsIFontMetrics*      aFontMetrics,
+                             nsFontMetrics*      aFontMetrics,
                              nscoord&             aAxisHeight)
 {
   
@@ -342,7 +342,7 @@ nsMathMLFrame::CalcLength(nsPresContext*   aPresContext,
   else if (eCSSUnit_XHeight == unit) {
     nscoord xHeight;
     const nsStyleFont* font = aStyleContext->GetStyleFont();
-    nsCOMPtr<nsIFontMetrics> fm = aPresContext->GetMetricsFor(font->mFont);
+    nsRefPtr<nsFontMetrics> fm = aPresContext->GetMetricsFor(font->mFont);
     fm->GetXHeight(xHeight);
     return NSToCoordRound(aCSSValue.GetFloatValue() * (float)xHeight);
   }

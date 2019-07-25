@@ -151,7 +151,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       
       
       nsLayoutUtils::SetFontFromStyle(aReflowState.rendContext, mStyleContext);
-      nsIFontMetrics *fm = aReflowState.rendContext->FontMetrics();
+      nsFontMetrics *fm = aReflowState.rendContext->FontMetrics();
       if (fm) {
         nscoord logicalHeight = aReflowState.CalcLineHeight();
         aMetrics.height = logicalHeight;
@@ -232,7 +232,7 @@ nscoord
 BRFrame::GetBaseline() const
 {
   nscoord ascent = 0;
-  nsCOMPtr<nsIFontMetrics> fm;
+  nsRefPtr<nsFontMetrics> fm;
   nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
   if (fm) {
     nscoord logicalHeight = GetRect().height;

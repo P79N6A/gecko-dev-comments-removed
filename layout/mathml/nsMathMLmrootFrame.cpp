@@ -155,7 +155,7 @@ nsMathMLmrootFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 static void
 GetRadicalXOffsets(nscoord aIndexWidth, nscoord aSqrWidth,
-                   nsIFontMetrics* aFontMetrics,
+                   nsFontMetrics* aFontMetrics,
                    nscoord* aIndexOffset, nscoord* aSqrOffset)
 {
   
@@ -260,7 +260,7 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
 
   renderingContext.SetFont(GetStyleFont()->mFont,
                            aPresContext->GetUserFontSet());
-  nsIFontMetrics* fm = renderingContext.FontMetrics();
+  nsFontMetrics* fm = renderingContext.FontMetrics();
 
   
   

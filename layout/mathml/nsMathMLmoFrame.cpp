@@ -393,7 +393,7 @@ nsMathMLmoFrame::ProcessOperatorData()
       
       
       nscoord em;
-      nsCOMPtr<nsIFontMetrics> fm =
+      nsRefPtr<nsFontMetrics> fm =
 	presContext->GetMetricsFor(GetStyleFont()->mFont);
       GetEmHeight(fm, em);
 
@@ -639,7 +639,7 @@ nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
   
   aRenderingContext.SetFont(GetStyleFont()->mFont,
                             PresContext()->GetUserFontSet());
-  nsIFontMetrics* fm = aRenderingContext.FontMetrics();
+  nsFontMetrics* fm = aRenderingContext.FontMetrics();
   nscoord axisHeight, height;
   GetAxisHeight(aRenderingContext, fm, axisHeight);
 

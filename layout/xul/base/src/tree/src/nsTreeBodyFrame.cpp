@@ -1261,7 +1261,7 @@ nsTreeBodyFrame::GetCoordsForCellItem(PRInt32 aRow, nsITreeColumn* aCol, const n
     
     nsStyleContext* textContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreecelltext);
 
-    nsCOMPtr<nsIFontMetrics> fm;
+    nsRefPtr<nsFontMetrics> fm;
     nsLayoutUtils::GetFontMetricsForStyleContext(textContext,
                                                  getter_AddRefs(fm));
     nscoord height;
@@ -3568,7 +3568,7 @@ nsTreeBodyFrame::PaintText(PRInt32              aRowIndex,
   textRect.Deflate(bp);
 
   
-  nsCOMPtr<nsIFontMetrics> fontMet;
+  nsRefPtr<nsFontMetrics> fontMet;
   nsLayoutUtils::GetFontMetricsForStyleContext(textContext,
                                                getter_AddRefs(fontMet));
 

@@ -1867,7 +1867,7 @@ nsLayoutUtils::GetTextShadowRectsUnion(const nsRect& aTextAndDecorationsRect,
 
 nsresult
 nsLayoutUtils::GetFontMetricsForFrame(const nsIFrame* aFrame,
-                                      nsIFontMetrics** aFontMetrics)
+                                      nsFontMetrics** aFontMetrics)
 {
   return nsLayoutUtils::GetFontMetricsForStyleContext(aFrame->GetStyleContext(),
                                                       aFontMetrics);
@@ -1875,7 +1875,7 @@ nsLayoutUtils::GetFontMetricsForFrame(const nsIFrame* aFrame,
 
 nsresult
 nsLayoutUtils::GetFontMetricsForStyleContext(nsStyleContext* aStyleContext,
-                                             nsIFontMetrics** aFontMetrics)
+                                             nsFontMetrics** aFontMetrics)
 {
   
   gfxUserFontSet* fs = aStyleContext->PresContext()->GetUserFontSet();
@@ -2842,7 +2842,7 @@ nsLayoutUtils::GetStringWidth(const nsIFrame*      aFrame,
 }
 
  nscoord
-nsLayoutUtils::GetCenteredFontBaseline(nsIFontMetrics* aFontMetrics,
+nsLayoutUtils::GetCenteredFontBaseline(nsFontMetrics* aFontMetrics,
                                        nscoord         aLineHeight)
 {
   nscoord fontAscent, fontHeight;

@@ -50,7 +50,7 @@ class nsIDOMEvent;
 class nsRegion;
 class nsDisplayListBuilder;
 class nsDisplayItem;
-class nsIFontMetrics;
+class nsFontMetrics;
 class nsClientRectList;
 
 #include "prtypes.h"
@@ -738,7 +738,7 @@ public:
 
 
   static nsresult GetFontMetricsForFrame(const nsIFrame* aFrame,
-                                         nsIFontMetrics** aFontMetrics);
+                                         nsFontMetrics** aFontMetrics);
 
   
 
@@ -747,7 +747,7 @@ public:
 
 
   static nsresult GetFontMetricsForStyleContext(nsStyleContext* aStyleContext,
-                                                nsIFontMetrics** aFontMetrics);
+                                                nsFontMetrics** aFontMetrics);
 
   
 
@@ -935,7 +935,7 @@ public:
 
 
 
-  static nscoord GetCenteredFontBaseline(nsIFontMetrics* aFontMetrics,
+  static nscoord GetCenteredFontBaseline(nsFontMetrics* aFontMetrics,
                                          nscoord         aLineHeight);
 
   
