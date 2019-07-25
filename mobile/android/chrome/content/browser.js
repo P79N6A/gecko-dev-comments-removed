@@ -969,12 +969,9 @@ var NativeWindow = {
   },
   contextmenus: {
     items: {}, 
-    textContext: null, 
-
     _contextId: 0, 
 
     init: function() {
-      this.textContext = this.SelectorContext("input[type='text'],input[type='password'],textarea");
       this.imageContext = this.SelectorContext("img");
 
       Services.obs.addObserver(this, "Gesture:LongPress", false);
@@ -1077,6 +1074,13 @@ var NativeWindow = {
           return (scheme && !dontOpen.test(scheme));
         }
         return false;
+      }
+    },
+
+    textContext: {
+      matches: function textContext(aElement) {
+        return ((aElement instanceof Ci.nsIDOMHTMLInputElement && aElement.mozIsTextField(false))
+                || aElement instanceof Ci.nsIDOMHTMLTextAreaElement);
       }
     },
 
