@@ -898,6 +898,9 @@ struct JSObject : js::gc::Cell {
     static const uint32 CALL_RESERVED_SLOTS = 2;
 
     
+    inline bool callIsForEval() const;
+
+    
     inline JSStackFrame *maybeCallObjStackFrame() const;
 
     
