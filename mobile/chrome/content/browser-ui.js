@@ -491,6 +491,7 @@ var BrowserUI = {
       FullScreenVideo.init();
       NewTabPopup.init();
       WebappsUI.init();
+      CapturePickerUI.init();
 
       
       let addonIDs = AddonManager.getStartupChanges("disabled");
