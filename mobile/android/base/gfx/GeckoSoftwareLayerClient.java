@@ -130,7 +130,14 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
     private void updateViewport(String viewportDescription, final boolean onlyUpdatePageSize) {
         try {
             JSONObject viewportObject = new JSONObject(viewportDescription);
+
+            
+            
+            
+            
+            FloatSize viewportSize = getLayerController().getViewportSize();
             mGeckoViewport = new ViewportMetrics(viewportObject);
+            mGeckoViewport.setSize(viewportSize);
 
             mTileLayer.setOrigin(PointUtils.round(mGeckoViewport.getDisplayportOrigin()));
             mTileLayer.setResolution(mGeckoViewport.getZoomFactor());
