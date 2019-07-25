@@ -96,13 +96,33 @@ var StarUI = {
         if (aEvent.originalTarget == this.panel) {
           if (!this._element("editBookmarkPanelContent").hidden)
             this.quitEditMode();
+
           this._restoreCommandsState();
           this._itemId = -1;
-          this._uri = null;
           if (this._batching) {
             PlacesUIUtils.ptm.endBatch();
             this._batching = false;
           }
+
+          switch (this._actionOnHide) {
+            case "cancel": {
+              PlacesUIUtils.ptm.undoTransaction();
+              break;
+            }
+            case "remove": {
+              
+              
+              PlacesUIUtils.ptm.beginBatch();
+              let itemIds = PlacesUtils.getBookmarksForURI(this._uriForRemoval);
+              for (let i = 0; i < itemIds.length; i++) {
+                let txn = PlacesUIUtils.ptm.removeItem(itemIds[i]);
+                PlacesUIUtils.ptm.doTransaction(txn);
+              }
+              PlacesUIUtils.ptm.endBatch();
+              break;
+            }
+          }
+          this._actionOnHide = "";
         }
         break;
       case "keypress":
@@ -185,12 +205,9 @@ var StarUI = {
         gNavigatorBundle.getString("editBookmarkPanel.editBookmarkTitle");
 
     
-    
     this._element("editBookmarkPanelDescription").textContent = "";
     this._element("editBookmarkPanelBottomButtons").hidden = false;
     this._element("editBookmarkPanelContent").hidden = false;
-    this._element("editBookmarkPanelEditButton").hidden = true;
-    this._element("editBookmarkPanelUndoRemoveButton").hidden = true;
 
     
     
@@ -237,42 +254,6 @@ var StarUI = {
     }
   },
 
-  showPageBookmarkedNotification:
-  function PCH_showPageBookmarkedNotification(aItemId, aAnchorElement, aPosition) {
-    this._blockCommands(); 
-
-    var brandBundle = this._element("bundle_brand");
-    var brandShortName = brandBundle.getString("brandShortName");
-
-    
-    this._element("editBookmarkPanelTitle").value =
-      gNavigatorBundle.getString("editBookmarkPanel.pageBookmarkedTitle");
-
-    
-    this._element("editBookmarkPanelDescription").textContent =
-      gNavigatorBundle.getFormattedString("editBookmarkPanel.pageBookmarkedDescription",
-                                          [brandShortName]);
-
-    
-    
-    this._element("editBookmarkPanelEditButton").hidden = false;
-    this._element("editBookmarkPanelRemoveButton").hidden = false;
-    this._element("editBookmarkPanelUndoRemoveButton").hidden = true;
-
-    
-    this._element("editBookmarkPanelStarIcon").removeAttribute("unstarred");
-
-    this._itemId = aItemId !== undefined ? aItemId : this._itemId;
-    if (this.panel.state == "closed") {
-      
-      this.panel.popupBoxObject
-          .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
-      this.panel.openPopup(aAnchorElement, aPosition, -1, -1);
-    }
-    else
-      this.panel.focus();
-  },
-
   quitEditMode: function SU_quitEditMode() {
     this._element("editBookmarkPanelContent").hidden = true;
     this._element("editBookmarkPanelBottomButtons").hidden = true;
@@ -284,80 +265,20 @@ var StarUI = {
   },
 
   cancelButtonOnCommand: function SU_cancelButtonOnCommand() {
-    
-    
-    
+    this._actionOnHide = "cancel";
     this.panel.hidePopup();
-    this.endBatch();
-    PlacesUIUtils.ptm.undoTransaction();
   },
 
   removeBookmarkButtonCommand: function SU_removeBookmarkButtonCommand() {
-#ifdef ADVANCED_STARRING_UI
-    
-    
-    
-    
-    if (this._batching) {
-      PlacesUIUtils.ptm.endBatch();
-      PlacesUIUtils.ptm.beginBatch(); 
-
-      
-      
-      this._element("editBookmarkPanelTitle").value =
-        gNavigatorBundle.getString("editBookmarkPanel.bookmarkedRemovedTitle");
-
-      
-      this.quitEditMode();
-
-      
-      
-      this._element("editBookmarkPanelUndoRemoveButton").hidden = false;
-      this._element("editBookmarkPanelRemoveButton").hidden = true;
-      this._element("editBookmarkPanelStarIcon").setAttribute("unstarred", "true");
-      this.panel.focus();
-    }
-#endif
-
-    
-    this._uri = PlacesUtils.bookmarks.getBookmarkURI(this._itemId);
-
-    
-    
-    var itemIds = PlacesUtils.getBookmarksForURI(this._uri);
-    for (var i=0; i < itemIds.length; i++) {
-      var txn = PlacesUIUtils.ptm.removeItem(itemIds[i]);
-      PlacesUIUtils.ptm.doTransaction(txn);
-    }
-
-#ifdef ADVANCED_STARRING_UI
-    
-    
-    if (!this._batching)
-#endif
-      this.panel.hidePopup();
-  },
-
-  undoRemoveBookmarkCommand: function SU_undoRemoveBookmarkCommand() {
-    
-    
-    this.endBatch();
-    PlacesUIUtils.ptm.undoTransaction();
-    this._itemId = PlacesUtils.getMostRecentBookmarkForURI(this._uri);
-    this.showEditBookmarkPopup();
+    this._uriForRemoval = PlacesUtils.bookmarks.getBookmarkURI(this._itemId);
+    this._actionOnHide = "remove";
+    this.panel.hidePopup();
   },
 
   beginBatch: function SU_beginBatch() {
     if (!this._batching) {
       PlacesUIUtils.ptm.beginBatch();
       this._batching = true;
-    }
-  },
-
-  endBatch: function SU_endBatch() {
-    if (this._batching) {
-      PlacesUIUtils.ptm.endBatch();
-      this._batching = false;
     }
   }
 }
@@ -429,10 +350,6 @@ var PlacesCommandHook = {
         var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'after_start' : 'after_end';
         if (aShowEditUI)
           StarUI.showEditBookmarkPopup(itemId, starIcon, position);
-#ifdef ADVANCED_STARRING_UI
-        else
-          StarUI.showPageBookmarkedNotification(itemId, starIcon, position);
-#endif
         return;
       }
     }
@@ -550,15 +467,6 @@ var PlacesCommandHook = {
       organizer.PlacesOrganizer.selectLeftPaneQuery(aLeftPaneRoot);
       organizer.focus();
     }
-  },
-
-  deleteButtonOnCommand: function PCH_deleteButtonCommand() {
-    PlacesUtils.bookmarks.removeItem(gEditItemOverlay.itemId);
-
-    
-    PlacesUtils.tagging.untagURI(gEditItemOverlay._uri, null);
-
-    this.panel.hidePopup();
   }
 };
 
