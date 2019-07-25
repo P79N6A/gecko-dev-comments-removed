@@ -54,6 +54,24 @@ Cu.import("resource://gre/modules/NetUtil.jsm");
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function DebuggerTransport(aInput, aOutput)
 {
   this._input = aInput;
@@ -65,14 +83,17 @@ function DebuggerTransport(aInput, aOutput)
 
   this._outgoing = "";
   this._incoming = "";
+
+  this.hooks = null;
 }
 
 DebuggerTransport.prototype = {
-  _hooks: null,
-  get hooks() { return this._hooks; },
-  set hooks(aHooks) { this._hooks = aHooks; },
-
   
+
+
+
+
+
 
 
   send: function DT_send(aPacket) {
@@ -109,6 +130,8 @@ DebuggerTransport.prototype = {
   },
 
   
+
+
 
 
   ready: function DT_ready() {
