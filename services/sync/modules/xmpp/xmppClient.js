@@ -53,6 +53,7 @@ XmppClient.prototype = {
     this._iqResponders = [];
     this._nextIqId = 0;
     this._pendingIqs = {};
+    this._callbackOnConnect = null;
   },
 
   __parser: null,
@@ -81,10 +82,17 @@ XmppClient.prototype = {
 
   },
 
+  _finishConnectionAttempt: function() {
+    if ( this._callbackOnConnect ) {
+      this._callbackOnConnect.call();
+    }
+  },
+
   setError: function( errorText ) {
     LOG( "Error: " + errorText );
     this._error = errorText;
     this._connectionStatus = this.FAILED;
+    this._finishConnectionAttempt();
   },
 
   onIncomingData: function( messageText ) {
@@ -148,7 +156,7 @@ XmppClient.prototype = {
         this.setError( this._authenticationLayer.getError() );
       } else if ( response == this._authenticationLayer.COMPLETION_CODE ){
         this._connectionStatus = this.CONNECTED;
-        LOG( "We be connected!!" );
+	this._finishConnectionAttempt();
       } else {
         this._transportLayer.send( response );
       }
@@ -296,12 +304,16 @@ XmppClient.prototype = {
     this.setError( errorText );
   },
 
-  connect: function( host ) {
+  connect: function( host, callback ) {
     
+
+
+    if ( callback ) {
+      this._callbackOnConnect = callback;
+    }
     this._transportLayer.connect();
     this._transportLayer.setCallbackObject( this );
     this._transportLayer.send( this._makeHeaderXml( host ) );    
-
     this._connectionStatus = this.CALLED_SERVER;
     
     

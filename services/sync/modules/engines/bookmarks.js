@@ -96,14 +96,14 @@ BookmarksEngine.prototype = {
     this.__proto__.__proto__._init.call( this, pbeId );
     if ( Utils.prefs.getBoolPref( "xmpp.enabled" ) ) {
       dump( "Starting XMPP client for bookmark engine..." );
-      
-      this._startXmppClient();
+      this._startXmppClient.async(this);
       
     }
   },
 
   _startXmppClient: function BmkEngine__startXmppClient() {
     
+    let self = yield;
 
     
     let serverUrl = Utils.prefs.getCharPref( "xmpp.server.url" );
@@ -127,7 +127,7 @@ BookmarksEngine.prototype = {
                                        clientPassword,
 				       transport,
                                        auth );
-    let self = this;
+    let bmkEngine = this;
     let messageHandler = {
       handle: function ( messageText, from ) {
         
@@ -145,15 +145,24 @@ BookmarksEngine.prototype = {
 	let commandWord = words[0];
 	let directoryName = words[1];
         if ( commandWord == "share" ) {
-	  self._incomingShareOffer( directoryName, from );
+	  bmkEngine._incomingShareOffer( directoryName, from );
 	} else if ( commandWord == "stop" ) {
-	  self._incomingShareWithdrawn( directoryName, from );
+	  bmkEngine._incomingShareWithdrawn( directoryName, from );
 	}
       }
     }
     this._xmppClient.registerMessageHandler( messageHandler );
-    this._xmppClient.connect( realm );
+    this._xmppClient.connect( realm, self.cb );
+    yield;
+    if ( this._xmppClient._connectionStatus == this._xmppClient.FAILED ) {
+      this._log.warn( "Weave can't log in to xmpp server: xmpp disabled." );
+    } else if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
+      this._log.info( "Weave logged into xmpp OK." );
+    }
+    yield;
+    self.done();
   },
+
 
   _incomingShareOffer: function BmkEngine__incomingShareOffer( dir, user ) {
     
@@ -167,6 +176,7 @@ BookmarksEngine.prototype = {
 
 
 
+    dump( "I was offered the directory " + dir + " from user " + dir );
 
   },
 
@@ -205,8 +215,8 @@ BookmarksEngine.prototype = {
 
     
     
-    this._createOutgoingShare.async( this, selectedFolder, username );
-    this._updateOutgoingShare.async( this, selectedFolder, username );
+    
+    
 
     
 
@@ -218,9 +228,13 @@ BookmarksEngine.prototype = {
 
     
     if ( this._xmppClient ) {
-      let msgText = "share " + folderName;
-      this._xmppClient.sendMessage( username, msgText );
-    }
+      if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
+	let msgText = "share " + folderName;
+	this._xmppClient.sendMessage( username, msgText );
+      } else {
+	this._log.info( "XMPP connection not available for share notification." );
+      }
+    } 
 
     
 
