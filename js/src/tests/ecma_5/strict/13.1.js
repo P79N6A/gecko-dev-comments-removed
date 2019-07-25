@@ -86,27 +86,6 @@ assertEq(testLenientAndStrict('Function("x","y","\'use strict\'")',
 
 
 
-assertEq(testLenientAndStrict('({get x(y,y) {}})',
-                               parsesSuccessfully,
-                               parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x(y,y) { "use strict"; }})',
-                              parseRaisesException(SyntaxError),
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({set x(y,y) {}})',
-                               parsesSuccessfully,
-                               parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({set x(y,y) { "use strict"; }})',
-                              parseRaisesException(SyntaxError),
-                              parseRaisesException(SyntaxError)),
-         true);
-
-
-
-
-
 assertEq(testLenientAndStrict('(function (x,x) 2)',
                                parsesSuccessfully,
                                parseRaisesException(SyntaxError)),
@@ -208,30 +187,6 @@ assertEq(testLenientAndStrict('(function f({x:eval}) 2)',
          true);
 assertEq(testLenientAndStrict('(function eval() 2)',
                               parsesSuccessfully,
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x(eval){}})',
-                              parsesSuccessfully,
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x([eval]){}})',
-                              parsesSuccessfully,
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x({x:eval}){}})',
-                              parsesSuccessfully,
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x(eval){"use strict";}})',
-                              parseRaisesException(SyntaxError),
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x([eval]){"use strict";}})',
-                              parseRaisesException(SyntaxError),
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x({x:eval}){"use strict";}})',
-                              parseRaisesException(SyntaxError),
                               parseRaisesException(SyntaxError)),
          true);
 assertEq(testLenientAndStrict('({set x(eval){}})',
@@ -336,30 +291,6 @@ assertEq(testLenientAndStrict('(function f({x:arguments}) 2)',
          true);
 assertEq(testLenientAndStrict('(function arguments() 2)',
                               parsesSuccessfully,
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x(arguments){}})',
-                              parsesSuccessfully,
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x([arguments]){}})',
-                              parsesSuccessfully,
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x({x:arguments}){}})',
-                              parsesSuccessfully,
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x(arguments){"use strict";}})',
-                              parseRaisesException(SyntaxError),
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x([arguments]){"use strict";}})',
-                              parseRaisesException(SyntaxError),
-                              parseRaisesException(SyntaxError)),
-         true);
-assertEq(testLenientAndStrict('({get x({x:arguments}){"use strict";}})',
-                              parseRaisesException(SyntaxError),
                               parseRaisesException(SyntaxError)),
          true);
 assertEq(testLenientAndStrict('({set x(arguments){}})',
