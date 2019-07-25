@@ -427,6 +427,11 @@ nsDiskCacheDevice::Shutdown_Private(PRBool  flush)
         EvictDiskCacheEntries(mCacheCapacity);
 
         
+        
+        
+        (void) nsCacheService::SyncWithCacheIOThread();
+
+        
         (void) mCacheMap.Close(flush);
 
         mBindery.Reset();
