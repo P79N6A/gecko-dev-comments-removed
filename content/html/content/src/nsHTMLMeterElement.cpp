@@ -72,6 +72,8 @@ public:
   NS_IMETHOD Reset();
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission);
 
+  virtual nsEventStates IntrinsicState() const;
+
   nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const;
 
   bool ParseAttribute(PRInt32 aNamespaceID, nsIAtom* aAttribute,
@@ -86,6 +88,16 @@ private:
   static const double kDefaultValue;
   static const double kDefaultMin;
   static const double kDefaultMax;
+
+  
+
+
+
+
+
+
+
+  nsEventStates GetOptimumState() const;
 
   
   double GetMin() const;
@@ -149,6 +161,16 @@ nsHTMLMeterElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
 {
   
   return NS_OK;
+}
+
+nsEventStates
+nsHTMLMeterElement::IntrinsicState() const
+{
+  nsEventStates state = nsGenericHTMLFormElement::IntrinsicState();
+
+  state |= GetOptimumState();
+
+  return state;
 }
 
 bool
@@ -411,5 +433,48 @@ NS_IMETHODIMP
 nsHTMLMeterElement::SetOptimum(double aValue)
 {
   return SetDoubleAttr(nsGkAtoms::optimum, aValue);
+}
+
+nsEventStates
+nsHTMLMeterElement::GetOptimumState() const
+{
+  
+
+
+
+
+
+
+
+
+
+  double value = GetValue();
+  double low = GetLow();
+  double high = GetHigh();
+  double optimum = GetOptimum();
+
+  if (optimum < low) {
+    if (value < low) {
+      return NS_EVENT_STATE_OPTIMUM;
+    }
+    if (value <= high) {
+      return NS_EVENT_STATE_SUB_OPTIMUM;
+    }
+    return NS_EVENT_STATE_SUB_SUB_OPTIMUM;
+  }
+  if (optimum > high) {
+    if (value > high) {
+      return NS_EVENT_STATE_OPTIMUM;
+    }
+    if (value >= low) {
+      return NS_EVENT_STATE_SUB_OPTIMUM;
+    }
+    return NS_EVENT_STATE_SUB_SUB_OPTIMUM;
+  }
+  
+  if (value >= low && value <= high) {
+    return NS_EVENT_STATE_OPTIMUM;
+  }
+  return NS_EVENT_STATE_SUB_OPTIMUM;
 }
 
