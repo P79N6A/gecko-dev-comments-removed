@@ -84,6 +84,7 @@ private:
   PRPackedBool mShuttingDown;   
   PRPackedBool mAttemptingQuit; 
   PRPackedBool mRestart;        
+  PRPackedBool mInterrupted;    
 };
 
 #endif 

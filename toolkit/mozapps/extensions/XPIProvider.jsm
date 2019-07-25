@@ -1707,6 +1707,9 @@ var XPIProvider = {
 
 
   showUpgradeUI: function XPI_showUpgradeUI() {
+    
+    Services.startup.interrupted = true;
+
     if (!Prefs.getBoolPref(PREF_SHOWN_SELECTION_UI, false)) {
       
       var features = "chrome,centerscreen,dialog,titlebar,modal";
