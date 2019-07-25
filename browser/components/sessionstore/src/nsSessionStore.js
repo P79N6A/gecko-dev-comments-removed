@@ -3192,6 +3192,7 @@ SessionStoreService.prototype = {
       shEntry.postData = stream;
     }
 
+    let childDocIdents = {};
     if (aEntry.docIdentifier) {
       
       
@@ -3199,10 +3200,12 @@ SessionStoreService.prototype = {
       
       let matchingEntry = aDocIdentMap[aEntry.docIdentifier];
       if (!matchingEntry) {
-        aDocIdentMap[aEntry.docIdentifier] = shEntry;
+        matchingEntry = {shEntry: shEntry, childDocIdents: childDocIdents};
+        aDocIdentMap[aEntry.docIdentifier] = matchingEntry;
       }
       else {
-        shEntry.adoptBFCacheEntry(matchingEntry);
+        shEntry.adoptBFCacheEntry(matchingEntry.shEntry);
+        childDocIdents = matchingEntry.childDocIdents;
       }
     }
 
@@ -3224,8 +3227,24 @@ SessionStoreService.prototype = {
         
         if (!aEntry.children[i].url)
           continue;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
         shEntry.AddChild(this._deserializeHistoryEntry(aEntry.children[i], aIdMap,
-                                                       aDocIdentMap), i);
+                                                       childDocIdents), i);
       }
     }
     

@@ -282,6 +282,7 @@ let WebNavigation =  {
       shEntry.setScrollPosition(scrollPos[0], scrollPos[1]);
     }
 
+    let childDocIdents = {};
     if (aEntry.docIdentifier) {
       
       
@@ -289,9 +290,11 @@ let WebNavigation =  {
       
       let matchingEntry = aDocIdentMap[aEntry.docIdentifier];
       if (!matchingEntry) {
-        aDocIdentMap[aEntry.docIdentifier] = shEntry;
+        matchingEntry = {shEntry: shEntry, childDocIdents: childDocIdents};
+        aDocIdentMap[aEntry.docIdentifier] = matchingEntry;
       } else {
         shEntry.adoptBFCacheEntry(matchingEntry);
+        childDocIdents = matchingEntry.childDocIdents;
       }
     }
 
@@ -310,7 +313,23 @@ let WebNavigation =  {
       for (let i = 0; i < aEntry.children.length; i++) {
         if (!aEntry.children[i].url)
           continue;
-        shEntry.AddChild(this._deserializeHistoryEntry(aEntry.children[i], aIdMap, aDocIdentMap), i);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        shEntry.AddChild(this._deserializeHistoryEntry(aEntry.children[i], aIdMap, childDocIdents), i);
       }
     }
     
