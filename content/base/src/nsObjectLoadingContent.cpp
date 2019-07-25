@@ -801,7 +801,8 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
   
   
   
-  if ((channelType.EqualsASCII(APPLICATION_OCTET_STREAM) && 
+  if (((channelType.EqualsASCII(APPLICATION_OCTET_STREAM) ||
+        channelType.EqualsASCII(BINARY_OCTET_STREAM)) && 
        !mContentType.IsEmpty() &&
        GetTypeOfContent(mContentType) != eType_Document) ||
       
@@ -827,7 +828,8 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
     return NS_ERROR_FAILURE;
   }
 
-  if (mContentType.EqualsASCII(APPLICATION_OCTET_STREAM)) {
+  if (mContentType.EqualsASCII(APPLICATION_OCTET_STREAM) ||
+      mContentType.EqualsASCII(BINARY_OCTET_STREAM)) {
     nsCAutoString extType;
     if (IsPluginEnabledByExtension(uri, extType)) {
       mContentType = extType;
