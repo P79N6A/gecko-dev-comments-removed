@@ -3630,29 +3630,15 @@ struct TransitionPropData {
   PRUint32 num;
 };
 
-const void*
-nsRuleNode::ComputeDisplayData(void* aStartStruct,
-                               const nsRuleData* aRuleData,
-                               nsStyleContext* aContext,
-                               nsRuleNode* aHighestNode,
-                               const RuleDetail aRuleDetail,
-                               const PRBool aCanStoreInRuleTree)
+static PRUint32
+CountTransitionProps(const TransitionPropInfo* aInfo,
+                     TransitionPropData* aData,
+                     size_t aLength,
+                     nsStyleDisplay* aDisplay,
+                     const nsStyleDisplay* aParentDisplay,
+                     const nsRuleData* aRuleData,
+                     PRBool& aCanStoreInRuleTree)
 {
-  COMPUTE_START_RESET(Display, (), display, parentDisplay)
-
-  
-  
-  TransitionPropData transitionPropData[4];
-  TransitionPropData& delay = transitionPropData[0];
-  TransitionPropData& duration = transitionPropData[1];
-  TransitionPropData& property = transitionPropData[2];
-  TransitionPropData& timingFunction = transitionPropData[3];
-
-#define FOR_ALL_TRANSITION_PROPS(var_) \
-                                      for (PRUint32 var_ = 0; var_ < 4; ++var_)
-
-  
-
   
   
   
@@ -3682,18 +3668,18 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
   
 
   PRUint32 numTransitions = 0;
-  FOR_ALL_TRANSITION_PROPS(p) {
-    const TransitionPropInfo& i = transitionPropInfo[p];
-    TransitionPropData& d = transitionPropData[p];
+  for (size_t i = 0; i < aLength; ++i) {
+    const TransitionPropInfo& info = aInfo[i];
+    TransitionPropData& data = aData[i];
 
     
     
 
-    const nsCSSValue& value = *aRuleData->ValueFor(i.property);
-    d.unit = value.GetUnit();
-    d.list = (value.GetUnit() == eCSSUnit_List ||
-              value.GetUnit() == eCSSUnit_ListDep)
-      ? value.GetListValue() : nsnull;
+    const nsCSSValue& value = *aRuleData->ValueFor(info.property);
+    data.unit = value.GetUnit();
+    data.list = (value.GetUnit() == eCSSUnit_List ||
+                 value.GetUnit() == eCSSUnit_ListDep)
+                  ? value.GetListValue() : nsnull;
 
     
     
@@ -3708,17 +3694,48 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
 
 
     
-    if (d.unit == eCSSUnit_Inherit) {
-      d.num = parentDisplay->*(i.sdCount);
-      canStoreInRuleTree = PR_FALSE;
-    } else if (d.list) {
-      d.num = ListLength(d.list);
+    if (data.unit == eCSSUnit_Inherit) {
+      data.num = aParentDisplay->*(info.sdCount);
+      aCanStoreInRuleTree = PR_FALSE;
+    } else if (data.list) {
+      data.num = ListLength(data.list);
     } else {
-      d.num = display->*(i.sdCount);
+      data.num = aDisplay->*(info.sdCount);
     }
-    if (d.num > numTransitions)
-      numTransitions = d.num;
+    if (data.num > numTransitions)
+      numTransitions = data.num;
   }
+
+  return numTransitions;
+}
+
+const void*
+nsRuleNode::ComputeDisplayData(void* aStartStruct,
+                               const nsRuleData* aRuleData,
+                               nsStyleContext* aContext,
+                               nsRuleNode* aHighestNode,
+                               const RuleDetail aRuleDetail,
+                               const PRBool aCanStoreInRuleTree)
+{
+  COMPUTE_START_RESET(Display, (), display, parentDisplay)
+
+  
+  
+  TransitionPropData transitionPropData[4];
+  TransitionPropData& delay = transitionPropData[0];
+  TransitionPropData& duration = transitionPropData[1];
+  TransitionPropData& property = transitionPropData[2];
+  TransitionPropData& timingFunction = transitionPropData[3];
+
+#define FOR_ALL_TRANSITION_PROPS(var_) \
+                                      for (PRUint32 var_ = 0; var_ < 4; ++var_)
+
+  
+  PRUint32 numTransitions =
+    CountTransitionProps(transitionPropInfo, transitionPropData,
+                         NS_ARRAY_LENGTH(transitionPropData),
+                         display, parentDisplay, aRuleData,
+                         canStoreInRuleTree);
 
   if (!display->mTransitions.SetLength(numTransitions)) {
     NS_WARNING("failed to allocate transitions array");
@@ -3915,44 +3932,11 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
 
   
 
-  PRUint32 numAnimations = 0;
-  FOR_ALL_ANIMATION_PROPS(p) {
-    const TransitionPropInfo& i = animationPropInfo[p];
-    TransitionPropData& d = animationPropData[p];
-
-    
-    
-
-    const nsCSSValue& value = *aRuleData->ValueFor(i.property);
-    d.unit = value.GetUnit();
-    d.list = (value.GetUnit() == eCSSUnit_List ||
-              value.GetUnit() == eCSSUnit_ListDep)
-      ? value.GetListValue() : nsnull;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-    
-    if (d.unit == eCSSUnit_Inherit) {
-      d.num = parentDisplay->*(i.sdCount);
-      canStoreInRuleTree = PR_FALSE;
-    } else if (d.list) {
-      d.num = ListLength(d.list);
-    } else {
-      d.num = display->*(i.sdCount);
-    }
-    if (d.num > numAnimations)
-      numAnimations = d.num;
-  }
+  PRUint32 numAnimations =
+    CountTransitionProps(animationPropInfo, animationPropData,
+                         NS_ARRAY_LENGTH(animationPropData),
+                         display, parentDisplay, aRuleData,
+                         canStoreInRuleTree);
 
   if (!display->mAnimations.SetLength(numAnimations)) {
     NS_WARNING("failed to allocate animations array");
