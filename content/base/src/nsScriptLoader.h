@@ -115,7 +115,7 @@ public:
 
 
 
-  nsresult ProcessScriptElement(nsIScriptElement* aElement);
+  bool ProcessScriptElement(nsIScriptElement* aElement);
 
   
 
@@ -132,7 +132,6 @@ public:
   }
 
   
-
 
 
 
