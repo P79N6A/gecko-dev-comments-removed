@@ -83,8 +83,7 @@ enum nsCSSProperty {
 
 enum nsCSSType {
   eCSSType_Value,
-  eCSSType_ValueList,
-  eCSSType_ValuePairList
+  eCSSType_ValueList
 };
 
 

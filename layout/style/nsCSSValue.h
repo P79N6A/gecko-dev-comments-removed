@@ -144,6 +144,9 @@ enum nsCSSUnit {
 
   eCSSUnit_Pair         = 50,     
   eCSSUnit_Rect         = 51,     
+  eCSSUnit_PairList     = 54,     
+  eCSSUnit_PairListDep  = 55,     
+                                  
 
   eCSSUnit_Integer      = 70,     
   eCSSUnit_Enumerated   = 71,     
@@ -191,6 +194,8 @@ struct nsCSSValuePair;
 struct nsCSSValuePair_heap;
 struct nsCSSRect;
 struct nsCSSRect_heap;
+struct nsCSSValuePairList;
+struct nsCSSValuePairList_heap;
 
 class nsCSSValue {
 public:
@@ -347,11 +352,15 @@ public:
     return mValue.mGradient;
   }
 
-  inline nsCSSValuePair& GetPairValue(); 
-  inline const nsCSSValuePair& GetPairValue() const; 
+  
+  inline nsCSSValuePair& GetPairValue();
+  inline const nsCSSValuePair& GetPairValue() const;
 
-  inline nsCSSRect& GetRectValue(); 
-  inline const nsCSSRect& GetRectValue() const; 
+  inline nsCSSRect& GetRectValue();
+  inline const nsCSSRect& GetRectValue() const;
+
+  inline nsCSSValuePairList* GetPairListValue();
+  inline const nsCSSValuePairList* GetPairListValue() const;
 
   URL* GetURLStructValue() const
   {
@@ -398,6 +407,7 @@ public:
   void SetGradientValue(nsCSSValueGradient* aGradient);
   void SetPairValue(const nsCSSValuePair* aPair);
   void SetPairValue(const nsCSSValue& xValue, const nsCSSValue& yValue);
+  void SetDependentPairListValue(nsCSSValuePairList* aList);
   void SetAutoValue();
   void SetInheritValue();
   void SetInitialValue();
@@ -411,6 +421,7 @@ public:
   
   
   nsCSSRect& SetRectValue();
+  nsCSSValuePairList* SetPairListValue();
 
   void StartImageLoad(nsIDocument* aDocument) const;  
 
@@ -496,6 +507,8 @@ protected:
     nsCSSValueGradient* mGradient;
     nsCSSValuePair_heap* mPair;
     nsCSSRect_heap* mRect;
+    nsCSSValuePairList_heap* mPairList;
+    nsCSSValuePairList* mPairListDependent;
   }         mValue;
 };
 
@@ -802,6 +815,37 @@ private:
     MOZ_COUNT_CTOR(nsCSSValuePairList);
   }
 };
+
+
+
+
+struct nsCSSValuePairList_heap : public nsCSSValuePairList {
+  NS_INLINE_DECL_REFCOUNTING(nsCSSValuePairList_heap)
+};
+
+
+
+inline nsCSSValuePairList*
+nsCSSValue::GetPairListValue()
+{
+  if (mUnit == eCSSUnit_PairList)
+    return mValue.mPairList;
+  else {
+    NS_ABORT_IF_FALSE (mUnit == eCSSUnit_PairListDep, "not a pairlist value");
+    return mValue.mPairListDependent;
+  }
+}
+
+inline const nsCSSValuePairList*
+nsCSSValue::GetPairListValue() const
+{
+  if (mUnit == eCSSUnit_PairList)
+    return mValue.mPairList;
+  else {
+    NS_ABORT_IF_FALSE (mUnit == eCSSUnit_PairListDep, "not a pairlist value");
+    return mValue.mPairListDependent;
+  }
+}
 
 struct nsCSSValueGradientStop {
 public:
