@@ -396,13 +396,12 @@ nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request,
     
     
     
+    
     NS_NAMED_LITERAL_CSTRING(close, "close");
     NS_NAMED_LITERAL_CSTRING(keepAlive, "keep-alive");
 
     const nsACString *connectionType = &close;
     if (caps & NS_HTTP_ALLOW_KEEPALIVE) {
-        rv = request->SetHeader(nsHttp::Keep_Alive, nsPrintfCString("%u", mIdleTimeout));
-        if (NS_FAILED(rv)) return rv;
         connectionType = &keepAlive;
     } else if (useProxy) {
         
