@@ -387,6 +387,7 @@ SmsDatabaseService.prototype = {
   },
 
   deleteMessage: function deleteMessage(messageId, requestId) {
+    let deleted = false;
     let self = this;
     this.newTxn(READ_WRITE, function (error, txn, store) {
       if (error) {
@@ -394,39 +395,20 @@ SmsDatabaseService.prototype = {
           requestId, Ci.nsISmsRequestManager.INTERNAL_ERROR);
         return;
       }
-      let request = store.delete(messageId);
+      let request = store.count(messageId);
 
-      request.onerror = function onerror(event) {
-        if (DEBUG) debug("Caught error on request ", event.target.errorCode);
-        
-        gSmsRequestManager.notifySmsDeleteFailed(
-          requestId, Ci.nsISmsRequestManager.INTERNAL_ERROR);
+      request.onsuccess = function onsuccess(event) {        
+        let count = event.target.result;
+        if (DEBUG) debug("Count for messageId " + messageId + ": " + count);
+        deleted = (count == 1);
+        if (deleted) {
+          store.delete(messageId);
+        }
       };
 
       txn.oncomplete = function oncomplete(event) {
         if (DEBUG) debug("Transaction " + txn + " completed.");
-        
-        
-        
-        
-        self.newTxn(READ_ONLY, function (error, txn, store) {
-          let request = store.getAll(messageId);
-          request.onsuccess = function onsuccess(event) {
-            let deleted = (event.target.result.length == 0);
-            gSmsRequestManager.notifySmsDeleted(requestId, deleted);
-          };
-          request.onerror = function onerror(event) {
-            if (DEBUG) {
-              debug("Error checking the message deletion " +
-                    event.target.errorCode);
-            }
-            
-            
-            
-            gSmsRequestManager.notifySmsDeleteFailed(
-              requestId, Ci.nsISmsRequestManager.INTERNAL_ERROR);
-          };
-        });
+        gSmsRequestManager.notifySmsDeleted(requestId, deleted);
       };
 
       txn.onerror = function onerror(event) {
