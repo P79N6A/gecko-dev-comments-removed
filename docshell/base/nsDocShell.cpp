@@ -11516,6 +11516,24 @@ nsDocShell::GetTopWindow(nsIDOMWindow** aWindow)
 }
 
 NS_IMETHODIMP
+nsDocShell::GetTopFrameElement(nsIDOMElement** aElement)
+{
+    *aElement = nullptr;
+    nsCOMPtr<nsIDOMWindow> win = do_GetInterface(GetAsSupports(this));
+    if (!win) {
+        return NS_OK;
+    }
+
+    nsCOMPtr<nsIDOMWindow> top;
+    win->GetScriptableTop(getter_AddRefs(top));
+    NS_ENSURE_TRUE(top, NS_ERROR_FAILURE);
+
+    
+    
+    return top->GetFrameElement(aElement);
+}
+
+NS_IMETHODIMP
 nsDocShell::IsAppOfType(uint32_t aAppType, bool *aIsOfType)
 {
     nsCOMPtr<nsIDocShell> shell = this;
