@@ -1247,12 +1247,11 @@ ProgressController.prototype = {
         
         
         ws.endUpdateBatch();
-        Browser._selectedTab.updateThumbnail();
         Browser._isStartup = false;
       }
     }
-    if (!this._isStartup)
-      this._tab.updateThumbnail();
+
+    this._tab.updateThumbnail();
   },
 
   _documentStop: function() {
