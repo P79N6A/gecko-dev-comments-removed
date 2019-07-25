@@ -48,6 +48,7 @@
 #else
 # error "Neither JS_NUNBOX32 nor JS_PUNBOX64 is defined."
 #endif
+#include "BaseAssembler.h"
 
 
 #ifdef DEBUG
