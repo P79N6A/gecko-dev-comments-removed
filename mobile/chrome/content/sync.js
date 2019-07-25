@@ -38,7 +38,6 @@
 
 let WeaveGlue = {
   setupData: null,
-  autoConnect: false,
   jpake: null,
 
   init: function init() {
@@ -55,8 +54,7 @@ let WeaveGlue = {
 
     
     if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
-      this.autoConnect = Services.prefs.getBoolPref("services.sync.autoconnect");
-      if (enableSync && this.autoConnect) {
+      if (enableSync) {
         
         this._elements.connect.firstChild.disabled = true;
         this._elements.connect.setAttribute("title", this._bundle.GetStringFromName("connecting.label"));
@@ -387,10 +385,6 @@ let WeaveGlue = {
     let loggedIn = Weave.Service.isLoggedIn;
 
     
-    
-    loggedIn = loggedIn || this.autoConnect;
-
-    
     Util.forceOnline();
 
     
@@ -463,12 +457,8 @@ let WeaveGlue = {
       connect.removeAttribute("desc");
 
     
-    if (!this.setupData && this.autoConnect && aTopic == "weave:service:login:finish")
+    if (!this.setupData && aTopic == "weave:service:login:finish")
       this.loadSetupData();
-
-    
-    if (aTopic == "weave:service:login:finish" || aTopic == "weave:service:login:error")
-      this.autoConnect = false;
 
     
     if (aTopic =="weave:service:sync:error") {

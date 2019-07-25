@@ -1036,16 +1036,21 @@ WeaveSvc.prototype = {
     });
   },
 
-  delayedAutoConnect: function delayedAutoConnect(delay) {
-    if (this._loggedIn)
-      return;
+ 
 
-    if (this._checkSetup() == STATUS_OK && Svc.Prefs.get("autoconnect")) {
+
+
+
+
+
+
+  delayedAutoConnect: function delayedAutoConnect(delay) {
+    if (this._checkSetup() == STATUS_OK) {
       Utils.namedTimer(this._autoConnect, delay * 1000, this, "_autoTimer");
     }
   },
 
-  _autoConnect: let (attempts = 0) function _autoConnect() {
+  _autoConnect: function _autoConnect() {
     let isLocked = Utils.mpLocked();
     if (isLocked) {
       
@@ -1057,7 +1062,6 @@ WeaveSvc.prototype = {
         this._autoTimer.clear();
 
       SyncScheduler.checkSyncStatus();
-      Svc.Prefs.set("autoconnect", true);
 
       return;
     }
@@ -1069,16 +1073,12 @@ WeaveSvc.prototype = {
       if (!this.username || !this.password || !this.passphrase)
         return;
 
-      
-      if (this.login())
-        return;
+      Utils.nextTick(this.sync, this);
     }
 
     
-    let interval = Utils.calculateBackoff(++attempts, 60 * 1000);
-    this._log.debug("Autoconnect failed: " + (reason || Status.login) +
-      "; retry in " + Math.ceil(interval / 1000) + " sec.");
-    Utils.namedTimer(this._autoConnect, interval, this, "_autoTimer");
+    if (this._autoTimer)
+      this._autoTimer.clear();
   },
 
   persistLogin: function persistLogin() {
@@ -1123,12 +1123,7 @@ WeaveSvc.prototype = {
         throw "Login failed: " + Status.login;
       }
 
-      
-      if (this._autoTimer)
-        this._autoTimer.clear();
-
       this._loggedIn = true;
-      Svc.Prefs.set("autoconnect", true);
 
       return true;
     })))(),
@@ -1140,8 +1135,6 @@ WeaveSvc.prototype = {
 
     this._log.info("Logging out");
     this._loggedIn = false;
-
-    Svc.Prefs.set("autoconnect", false);
 
     Svc.Obs.notify("weave:service:logout:finish");
   },
