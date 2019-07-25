@@ -392,14 +392,14 @@ abstract public class GeckoApp
         if (!checkAndSetLaunchState(LaunchState.Launching, LaunchState.Launched))
             return false;
 
-                String args = intent.getStringExtra("args");
-                if (args != null && args.contains("-profile")) {
-                    
-                    mUserDefinedProfile = true;
-                }
-
         if (intent == null)
             intent = getIntent();
+
+        String args = intent.getStringExtra("args");
+        if (args != null && args.contains("-profile")) {
+            
+            mUserDefinedProfile = true;
+        }
 
         prefetchDNS(intent.getData());
         new GeckoThread(intent, mLastUri, mLastTitle).start();
