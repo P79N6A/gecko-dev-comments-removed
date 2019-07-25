@@ -186,6 +186,21 @@ Tracker.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function Store(name) {
   name = name || "Unnamed";
   this.name = name.toLowerCase();
@@ -206,6 +221,21 @@ Store.prototype = {
     Async.waitForSyncCallback(cb);
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   applyIncomingBatch: function applyIncomingBatch(records) {
     let failed = [];
     for each (let record in records) {
@@ -225,6 +255,19 @@ Store.prototype = {
     return failed;
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
   applyIncoming: function Store_applyIncoming(record) {
     if (record.deleted)
       this.remove(record);
@@ -236,33 +279,108 @@ Store.prototype = {
 
   
 
+  
+
+
+
+
+
+
+
+
   create: function Store_create(record) {
     throw "override create in a subclass";
   },
+
+  
+
+
+
+
+
+
+
 
   remove: function Store_remove(record) {
     throw "override remove in a subclass";
   },
 
+  
+
+
+
+
+
+
+
+
   update: function Store_update(record) {
     throw "override update in a subclass";
   },
+
+  
+
+
+
+
+
+
+
+
 
   itemExists: function Store_itemExists(id) {
     throw "override itemExists in a subclass";
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
   createRecord: function Store_createRecord(id, collection) {
     throw "override createRecord in a subclass";
   },
+
+  
+
+
+
+
+
+
 
   changeItemID: function Store_changeItemID(oldID, newID) {
     throw "override changeItemID in a subclass";
   },
 
+  
+
+
+
+
+
   getAllIDs: function Store_getAllIDs() {
     throw "override getAllIDs in a subclass";
   },
+
+  
+
+
+
+
+
+
+
+
 
   wipe: function Store_wipe() {
     throw "override wipe in a subclass";
