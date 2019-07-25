@@ -201,6 +201,21 @@ nsSimpleURI::GetSpec(nsACString &result)
     return NS_OK;
 }
 
+
+NS_IMETHODIMP
+nsSimpleURI::GetSpecIgnoringRef(nsACString &result)
+{
+    result = mScheme + NS_LITERAL_CSTRING(":") + mPath;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSimpleURI::GetHasRef(PRBool *result)
+{
+    *result = mIsRefValid;
+    return NS_OK;
+}
+
 NS_IMETHODIMP
 nsSimpleURI::SetSpec(const nsACString &aSpec)
 {
