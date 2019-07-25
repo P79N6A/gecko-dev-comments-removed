@@ -149,7 +149,7 @@ NewDenseUnallocatedArray(JSContext *cx, uint length, JSObject *proto=NULL);
 
 
 extern JSObject *
-NewDenseCopiedArray(JSContext *cx, uint length, const Value *vp, JSObject *proto=NULL);
+NewDenseCopiedArray(JSContext *cx, uint32 length, const Value *vp, JSObject *proto = NULL);
 
 
 extern JSObject *
@@ -171,6 +171,8 @@ array_defineProperty(JSContext *cx, JSObject *obj, jsid id, const Value *value,
 
 extern JSBool
 array_deleteProperty(JSContext *cx, JSObject *obj, jsid id, Value *rval, JSBool strict);
+
+
 
 
 
@@ -217,6 +219,12 @@ array_push(JSContext *cx, uintN argc, js::Value *vp);
 
 extern JSBool
 array_pop(JSContext *cx, uintN argc, js::Value *vp);
+
+extern JSBool
+array_concat(JSContext *cx, uintN argc, js::Value *vp);
+
+extern JSBool
+array_shift(JSContext *cx, uintN argc, js::Value *vp);
 
 } 
 

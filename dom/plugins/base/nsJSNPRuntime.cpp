@@ -1685,15 +1685,39 @@ NPObjWrapper_NewResolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 }
 
 static JSBool
-NPObjWrapper_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
+NPObjWrapper_Convert(JSContext *cx, JSObject *obj, JSType hint, jsval *vp)
 {
+  JS_ASSERT(hint == JSTYPE_NUMBER || hint == JSTYPE_STRING || hint == JSTYPE_VOID);
+
+  
+  
+  
+  
+  
   
   
   
   
   
 
-  return JS_TRUE;
+  jsval v = JSVAL_VOID;
+  if (!JS_GetProperty(cx, obj, "toString", &v))
+    return false;
+  if (!JSVAL_IS_PRIMITIVE(v) && JS_ObjectIsCallable(cx, JSVAL_TO_OBJECT(v))) {
+    if (!JS_CallFunctionValue(cx, obj, v, 0, NULL, vp))
+      return false;
+    if (JSVAL_IS_PRIMITIVE(*vp))
+      return true;
+  }
+
+  JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_CONVERT_TO,
+                       JS_GET_CLASS(cx, obj)->name,
+                       hint == JSTYPE_VOID
+                       ? "primitive type"
+                       : hint == JSTYPE_NUMBER
+                       ? "number"
+                       : "string");
+  return false;
 }
 
 static void
@@ -2029,10 +2053,7 @@ nsJSNPRuntime::OnPluginDestroy(NPP npp)
     return;
   }
 
-  nsIDocument* doc = content->GetOwnerDoc();
-  if (!doc) {
-    return;
-  }
+  nsIDocument* doc = content->OwnerDoc();
 
   nsIScriptGlobalObject* sgo = doc->GetScriptGlobalObject();
   if (!sgo) {
@@ -2193,6 +2214,11 @@ NPObjectMember_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
   case JSTYPE_VOID:
   case JSTYPE_STRING:
   case JSTYPE_NUMBER:
+    *vp = memberPrivate->fieldValue;
+    if (!JSVAL_IS_PRIMITIVE(*vp)) {
+      return JS_DefaultValue(cx, JSVAL_TO_OBJECT(*vp), type, vp);
+    }
+    return JS_TRUE;
   case JSTYPE_BOOLEAN:
   case JSTYPE_OBJECT:
     *vp = memberPrivate->fieldValue;

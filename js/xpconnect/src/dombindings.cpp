@@ -93,7 +93,7 @@ JSBool
 Throw(JSContext *cx, nsresult rv)
 {
     XPCThrower::Throw(rv, cx);
-    return false;
+    return JS_FALSE;
 }
 
 
@@ -253,19 +253,19 @@ ListBase<LC>::getListObject(JSObject *obj)
 }
 
 template<class LC>
-uint32
+js::Shape *
 ListBase<LC>::getProtoShape(JSObject *obj)
 {
     JS_ASSERT(objIsList(obj));
-    return js::GetProxyExtra(obj, JSPROXYSLOT_PROTOSHAPE).toPrivateUint32();
+    return (js::Shape *) js::GetProxyExtra(obj, JSPROXYSLOT_PROTOSHAPE).toPrivate();
 }
 
 template<class LC>
 void
-ListBase<LC>::setProtoShape(JSObject *obj, uint32 shape)
+ListBase<LC>::setProtoShape(JSObject *obj, js::Shape *shape)
 {
     JS_ASSERT(objIsList(obj));
-    js::SetProxyExtra(obj, JSPROXYSLOT_PROTOSHAPE, PrivateUint32Value(shape));
+    js::SetProxyExtra(obj, JSPROXYSLOT_PROTOSHAPE, PrivateValue(shape));
 }
 
 template<class LC>
@@ -313,7 +313,7 @@ ListBase<LC>::getItemAt(ListType *list, uint32 i, IndexGetterType &item)
 
 template<class LC>
 bool
-ListBase<LC>::setItemAt(JSContext *cx, ListType *list, uint32 i, IndexSetterType item)
+ListBase<LC>::setItemAt(ListType *list, uint32 i, IndexSetterType item)
 {
     JS_STATIC_ASSERT(!hasIndexSetter);
     return false;
@@ -329,8 +329,7 @@ ListBase<LC>::getNamedItem(ListType *list, const nsAString& aName, NameGetterTyp
 
 template<class LC>
 bool
-ListBase<LC>::setNamedItem(JSContext *cx, ListType *list, const nsAString& aName,
-                           NameSetterType item)
+ListBase<LC>::setNamedItem(ListType *list, const nsAString& aName, NameSetterType item)
 {
     JS_STATIC_ASSERT(!hasNameSetter);
     return false;
@@ -359,32 +358,32 @@ interface_hasInstance(JSContext *cx, JSObject *obj, const js::Value *vp, JSBool 
             JSVAL_IS_PRIMITIVE(prototype)) {
             JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage, NULL,
                                          JSMSG_THROW_TYPE_ERROR);
-            return false;
+            return JS_FALSE;
         }
 
         JSObject *other = &vp->toObject();
         if (instanceIsProxy(other)) {
             ProxyHandler *handler = static_cast<ProxyHandler*>(js::GetProxyHandler(other));
             if (handler->isInstanceOf(JSVAL_TO_OBJECT(prototype))) {
-                *bp = true;
+                *bp = JS_TRUE;
             } else {
                 JSObject *protoObj = JSVAL_TO_OBJECT(prototype);
                 JSObject *proto = other;
                 while ((proto = JS_GetPrototype(cx, proto))) {
                     if (proto == protoObj) {
-                        *bp = true;
-                        return true;
+                        *bp = JS_TRUE;
+                        return JS_TRUE;
                     }
                 }
-                *bp = false;
+                *bp = JS_FALSE;
             }
 
-            return true;
+            return JS_TRUE;
         }
     }
 
-    *bp = false;
-    return true;
+    *bp = JS_FALSE;
+    return JS_TRUE;
 }
 
 template<class LC>
@@ -488,8 +487,6 @@ ListBase<LC>::create(JSContext *cx, XPCWrappedNativeScope *scope, ListType *aLis
     }
 
     JSObject *proto = getPrototype(cx, scope, triedToWrap);
-    if (!proto && !*triedToWrap)
-        aWrapperCache->ClearIsProxy();
     if (!proto)
         return NULL;
     JSObject *obj = NewProxyObject(cx, &ListBase<LC>::instance,
@@ -498,7 +495,7 @@ ListBase<LC>::create(JSContext *cx, XPCWrappedNativeScope *scope, ListType *aLis
         return NULL;
 
     NS_ADDREF(aList);
-    setProtoShape(obj, -1);
+    setProtoShape(obj, NULL);
 
     aWrapperCache->SetWrapper(obj);
 
@@ -542,9 +539,6 @@ GetArrayIndexFromId(JSContext *cx, jsid id)
         jschar s = *atom->chars();
         if (NS_LIKELY((unsigned)s >= 'a' && (unsigned)s <= 'z'))
             return -1;
-
-        jsuint i;
-        return js::StringIsArrayIndex(JSID_TO_ATOM(id), &i) ? i : -1;
     }
     return IdToInt32(cx, id);
 }
@@ -637,12 +631,8 @@ ListBase<LC>::getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id, boo
         return true;
     if (xpc::WrapperFactory::IsXrayWrapper(proxy))
         return resolveNativeName(cx, proxy, id, desc);
-    JSObject *proto = js::GetObjectProto(proxy);
-    if (!proto) {
-        desc->obj = NULL;
-        return true;
-    }
-    return JS_GetPropertyDescriptorById(cx, proto, id, JSRESOLVE_QUALIFIED, desc);
+    return JS_GetPropertyDescriptorById(cx, js::GetObjectProto(proxy), id, JSRESOLVE_QUALIFIED,
+                                        desc);
 }
 
 JSClass ExpandoClass = {
@@ -692,7 +682,7 @@ ListBase<LC>::defineProperty(JSContext *cx, JSObject *proxy, jsid id, PropertyDe
             IndexSetterType value;
             jsval v;
             return Unwrap(cx, desc->value, &value, getter_AddRefs(ref), &v) &&
-                   setItemAt(cx, getListObject(proxy), index, value);
+                   setItemAt(getListObject(proxy), index, value);
         }
     }
 
@@ -709,7 +699,8 @@ ListBase<LC>::defineProperty(JSContext *cx, JSObject *proxy, jsid id, PropertyDe
         jsval v;
         if (!Unwrap(cx, desc->value, &value, getter_AddRefs(ref), &v))
             return false;
-        return setNamedItem(cx, getListObject(proxy), nameString, value);
+        if (setNamedItem(getListObject(proxy), nameString, value))
+            return true;
     }
 
     if (xpc::WrapperFactory::IsXrayWrapper(proxy))
@@ -794,7 +785,7 @@ ListBase<LC>::hasOwn(JSContext *cx, JSObject *proxy, jsid id, bool *bp)
 
     JSObject *expando = getExpandoObject(proxy);
     if (expando) {
-        JSBool b = true;
+        JSBool b = JS_TRUE;
         JSBool ok = JS_HasPropertyById(cx, expando, id, &b);
         *bp = !!b;
         if (!ok || *bp)
@@ -815,23 +806,7 @@ template<class LC>
 bool
 ListBase<LC>::has(JSContext *cx, JSObject *proxy, jsid id, bool *bp)
 {
-    if (!hasOwn(cx, proxy, id, bp))
-        return false;
-    
-    
-    if (*bp)
-        return true;
-
-    
-    JSObject *proto = js::GetObjectProto(proxy);
-    if (!proto)
-        return true;
-
-    JSBool protoHasProp;
-    bool ok = JS_HasPropertyById(cx, proto, id, &protoHasProp);
-    if (ok)
-        *bp = protoHasProp;
-    return ok;
+    return ProxyHandler::has(cx, proxy, id, bp);
 }
 
 template<class LC>
@@ -855,20 +830,14 @@ ListBase<LC>::shouldCacheProtoShape(JSContext *cx, JSObject *proto, bool *should
         if (!JS_GetPropertyDescriptorById(cx, proto, id, JSRESOLVE_QUALIFIED, &desc))
             return false;
         if (desc.obj != proto || desc.getter || JSVAL_IS_PRIMITIVE(desc.value) ||
-            n >= js::GetNumSlots(proto) || js::GetSlot(proto, n) != desc.value ||
+            n >= js::GetObjectSlotSpan(proto) || js::GetObjectSlot(proto, n) != desc.value ||
             !JS_IsNativeFunction(JSVAL_TO_OBJECT(desc.value), sProtoMethods[n].native)) {
             *shouldCache = false;
             return true;
         }
     }
 
-    JSObject *protoProto = js::GetObjectProto(proto);
-    if (!protoProto) {
-        *shouldCache = false;
-        return true;
-    }
-
-    return Base::shouldCacheProtoShape(cx, protoProto, shouldCache);
+    return Base::shouldCacheProtoShape(cx, js::GetObjectProto(proto), shouldCache);
 }
 
 template<class LC>
@@ -932,19 +901,13 @@ ListBase<LC>::nativeGet(JSContext *cx, JSObject *proxy, JSObject *proto, jsid id
             if (!vp)
                 return true;
 
-            *vp = js::GetSlot(proto, n);
+            *vp = js::GetObjectSlot(proto, n);
             JS_ASSERT(JS_IsNativeFunction(&vp->toObject(), sProtoMethods[n].native));
             return true;
         }
     }
 
-    JSObject *protoProto = js::GetObjectProto(proto);
-    if (!protoProto) {
-        *found = false;
-        return true;
-    }
-
-    return Base::nativeGet(cx, proxy, protoProto, id, found, vp);
+    return Base::nativeGet(cx, proxy, js::GetObjectProto(proto), id, found, vp);
 }
 
 template<class LC>
@@ -991,7 +954,7 @@ ListBase<LC>::getPropertyOnPrototype(JSContext *cx, JSObject *proxy, jsid id, bo
     if (!hasProp || !vp)
         return true;
 
-    return JS_ForwardGetPropertyTo(cx, proto, id, proxy, vp);
+    return JS_GetPropertyById(cx, proto, id, vp);
 }
 
 template<class LC>
@@ -1015,34 +978,26 @@ template<class LC>
 bool
 ListBase<LC>::get(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, Value *vp)
 {
-    NS_ASSERTION(!xpc::WrapperFactory::IsXrayWrapper(proxy),
-                 "Should not have a XrayWrapper here");
-
-    bool getFromExpandoObject = true;
-
     if (hasIndexGetter) {
         int32 index = GetArrayIndexFromId(cx, id);
         if (index >= 0) {
             IndexGetterType result;
-            if (getItemAt(getListObject(proxy), PRUint32(index), result))
-                return Wrap(cx, proxy, result, vp);
-
-            
-            
-            getFromExpandoObject = false;
+            if (!getItemAt(getListObject(proxy), PRUint32(index), result)) {
+                vp->setUndefined();
+                return true;
+            }
+            return Wrap(cx, proxy, result, vp);
         }
     }
 
-    if (getFromExpandoObject) {
-        JSObject *expando = getExpandoObject(proxy);
-        if (expando) {
-            JSBool hasProp;
-            if (!JS_HasPropertyById(cx, expando, id, &hasProp))
-                return false;
+    JSObject *expando = getExpandoObject(proxy);
+    if (expando) {
+        JSBool hasProp;
+        if (!JS_HasPropertyById(cx, expando, id, &hasProp))
+            return false;
 
-            if (hasProp)
-                return JS_GetPropertyById(cx, expando, id, vp);
-        }
+        if (hasProp)
+            return JS_GetPropertyById(cx, expando, id, vp);
     }
 
     bool found;
@@ -1063,55 +1018,6 @@ ListBase<LC>::get(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, V
     }
 
     vp->setUndefined();
-    return true;
-}
-
-template<class LC>
-bool
-ListBase<LC>::getElementIfPresent(JSContext *cx, JSObject *proxy, JSObject *receiver,
-                                  uint32 index, Value *vp, bool *present)
-{
-    NS_ASSERTION(!xpc::WrapperFactory::IsXrayWrapper(proxy),
-                 "Should not have a XrayWrapper here");
-
-    if (hasIndexGetter) {
-        IndexGetterType result;
-        *present = getItemAt(getListObject(proxy), index, result);
-        if (*present)
-            return Wrap(cx, proxy, result, vp);
-    }
-
-    jsid id;
-    if (!JS_IndexToId(cx, index, &id))
-        return false;
-
-    
-    if (!hasIndexGetter) {
-        JSObject *expando = getExpandoObject(proxy);
-        if (expando) {
-            JSBool isPresent;
-            if (!JS_GetElementIfPresent(cx, expando, index, expando, vp, &isPresent))
-                return false;
-            if (isPresent) {
-                *present = true;
-                return true;
-            }
-        }
-    }
-
-    
-
-    JSObject *proto = js::GetObjectProto(proxy);
-    if (proto) {
-        JSBool isPresent;
-        if (!JS_GetElementIfPresent(cx, proto, index, proxy, vp, &isPresent))
-            return false;
-        *present = isPresent;
-        return true;
-    }
-
-    *present = false;
-    
     return true;
 }
 

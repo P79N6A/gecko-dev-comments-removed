@@ -45,21 +45,22 @@
 
 #include <string.h>
 
+#include "jsfriendapi.h"
 #include "jsprvtd.h"
 #include "jsatom.h"
 #include "jsclist.h"
 #include "jsdhash.h"
 #include "jsgc.h"
 #include "jsgcchunk.h"
-#include "jshashtable.h"
 #include "jspropertycache.h"
 #include "jspropertytree.h"
-#include "jsstaticcheck.h"
 #include "jsutil.h"
-#include "jsvector.h"
 #include "prmjtime.h"
 
 #include "ds/LifoAlloc.h"
+#include "gc/Statistics.h"
+#include "js/HashTable.h"
+#include "js/Vector.h"
 #include "vm/StackSpace.h"
 
 #ifdef _MSC_VER
@@ -397,14 +398,7 @@ struct JSRuntime {
 
     js::gc::Chunk       *gcSystemAvailableChunkListHead;
     js::gc::Chunk       *gcUserAvailableChunkListHead;
-
-    
-
-
-
-
-    js::gc::Chunk       *gcEmptyChunkListHead;
-    size_t              gcEmptyChunkCount;
+    js::gc::ChunkPool   gcChunkPool;
 
     js::RootedValueMap  gcRootsHash;
     js::GCLocks         gcLocksHash;
@@ -423,6 +417,10 @@ struct JSRuntime {
     JSGCMode            gcMode;
     volatile jsuword    gcIsNeeded;
     js::WeakMapBase     *gcWeakMapList;
+    js::gcstats::Statistics gcStats;
+
+    
+    js::gcstats::Reason gcTriggerReason;
 
     
     void                *gcMarkStackObjs[js::OBJECT_MARK_STACK_SIZE / sizeof(void *)];
@@ -509,8 +507,12 @@ struct JSRuntime {
 
 
 
-    JSTraceDataOp       gcExtraRootsTraceOp;
-    void                *gcExtraRootsData;
+
+
+    JSTraceDataOp       gcBlackRootsTraceOp;
+    void                *gcBlackRootsData;
+    JSTraceDataOp       gcGrayRootsTraceOp;
+    void                *gcGrayRootsData;
 
     
     js::Value           NaNValue;
@@ -588,6 +590,9 @@ struct JSRuntime {
     const JSStructuredCloneCallbacks *structuredCloneCallbacks;
 
     
+    JSAccumulateTelemetryDataCallback telemetryCallback;
+
+    
 
 
 
@@ -646,59 +651,12 @@ struct JSRuntime {
 
     int32               inOOMReport;
 
-#if defined(MOZ_GCTIMER) || defined(JSGC_TESTPILOT)
-    struct GCData {
-        GCData()
-          : firstEnter(0),
-            firstEnterValid(false)
-#ifdef JSGC_TESTPILOT
-            , infoEnabled(false),
-            info(),
-            start(0),
-            count(0)
-#endif
-        { }
-
-        
-
-
-
-        uint64      firstEnter;
-        bool        firstEnterValid;
-
-        void setFirstEnter(uint64 v) {
-            JS_ASSERT(!firstEnterValid);
-            firstEnter = v;
-            firstEnterValid = true;
-        }
-
-#ifdef JSGC_TESTPILOT
-        bool        infoEnabled;
-
-        bool isTimerEnabled() {
-            return infoEnabled;
-        }
-
-        
-
-
-
-        static const size_t INFO_LIMIT = 64;
-        JSGCInfo    info[INFO_LIMIT];
-        size_t      start;
-        size_t      count;
-#else 
-        bool isTimerEnabled() {
-            return true;
-        }
-#endif
-    } gcData;
-#endif
-
     JSRuntime();
     ~JSRuntime();
 
     bool init(uint32 maxbytes);
+
+    JSRuntime *thisFromCtor() { return this; }
 
     void setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind);
     void reduceGCTriggerBytes(uint32 amount);
@@ -944,6 +902,8 @@ struct JSContext
     uintN               runOptions;            
 
   public:
+    int32               reportGranularity;  
+
     
     JSLocaleCallbacks   *localeCallbacks;
 
@@ -1850,96 +1810,6 @@ class AutoReleaseNullablePtr {
         ptr = ptr2;
     }
     ~AutoReleaseNullablePtr() { if (ptr) cx->free_(ptr); }
-};
-
-template <class RefCountable>
-class AlreadyIncRefed
-{
-    typedef RefCountable *****ConvertibleToBool;
-
-    RefCountable *obj;
-
-  public:
-    explicit AlreadyIncRefed(RefCountable *obj) : obj(obj) {}
-
-    bool null() const { return obj == NULL; }
-    operator ConvertibleToBool() const { return (ConvertibleToBool)obj; }
-
-    RefCountable *operator->() const { JS_ASSERT(!null()); return obj; }
-    RefCountable &operator*() const { JS_ASSERT(!null()); return *obj; }
-    RefCountable *get() const { return obj; }
-};
-
-template <class RefCountable>
-class NeedsIncRef
-{
-    typedef RefCountable *****ConvertibleToBool;
-
-    RefCountable *obj;
-
-  public:
-    explicit NeedsIncRef(RefCountable *obj) : obj(obj) {}
-
-    bool null() const { return obj == NULL; }
-    operator ConvertibleToBool() const { return (ConvertibleToBool)obj; }
-
-    RefCountable *operator->() const { JS_ASSERT(!null()); return obj; }
-    RefCountable &operator*() const { JS_ASSERT(!null()); return *obj; }
-    RefCountable *get() const { return obj; }
-};
-
-template <class RefCountable>
-class AutoRefCount
-{
-    typedef RefCountable *****ConvertibleToBool;
-
-    JSContext *const cx;
-    RefCountable *obj;
-
-    AutoRefCount(const AutoRefCount &);
-    void operator=(const AutoRefCount &);
-
-  public:
-    explicit AutoRefCount(JSContext *cx)
-      : cx(cx), obj(NULL)
-    {}
-
-    AutoRefCount(JSContext *cx, NeedsIncRef<RefCountable> aobj)
-      : cx(cx), obj(aobj.get())
-    {
-        if (obj)
-            obj->incref(cx);
-    }
-
-    AutoRefCount(JSContext *cx, AlreadyIncRefed<RefCountable> aobj)
-      : cx(cx), obj(aobj.get())
-    {}
-
-    ~AutoRefCount() {
-        if (obj)
-            obj->decref(cx);
-    }
-
-    void reset(NeedsIncRef<RefCountable> aobj) {
-        if (obj)
-            obj->decref(cx);
-        obj = aobj.get();
-        if (obj)
-            obj->incref(cx);
-    }
-
-    void reset(AlreadyIncRefed<RefCountable> aobj) {
-        if (obj)
-            obj->decref(cx);
-        obj = aobj.get();
-    }
-
-    bool null() const { return obj == NULL; }
-    operator ConvertibleToBool() const { return (ConvertibleToBool)obj; }
-
-    RefCountable *operator->() const { JS_ASSERT(!null()); return obj; }
-    RefCountable &operator*() const { JS_ASSERT(!null()); return *obj; }
-    RefCountable *get() const { return obj; }
 };
 
 } 

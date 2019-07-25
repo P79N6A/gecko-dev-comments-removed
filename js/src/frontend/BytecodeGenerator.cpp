@@ -46,27 +46,29 @@
 #endif
 #include <new>
 #include <string.h>
+
 #include "jstypes.h"
 #include "jsstdint.h"
 #include "jsutil.h"
-#include "jsbit.h"
 #include "jsprf.h"
 #include "jsapi.h"
 #include "jsatom.h"
 #include "jsbool.h"
 #include "jscntxt.h"
 #include "jsversion.h"
-#include "jsemit.h"
 #include "jsfun.h"
 #include "jsnum.h"
 #include "jsopcode.h"
-#include "jsparse.h"
-#include "jsregexp.h"
-#include "jsscan.h"
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsautooplen.h"        
-#include "jsstaticcheck.h"
+
+#include "ds/LifoAlloc.h"
+#include "frontend/BytecodeCompiler.h"
+#include "frontend/BytecodeGenerator.h"
+#include "frontend/Parser.h"
+#include "frontend/TokenStream.h"
+#include "vm/RegExpObject.h"
 
 #include "jsatominlines.h"
 #include "jsobjinlines.h"
@@ -74,7 +76,6 @@
 #include "jsscriptinlines.h"
 
 #include "frontend/ParseMaps-inl.h"
-#include "ds/LifoAlloc.h"
 
 
 #define BYTECODE_CHUNK_LENGTH  1024    /* initial bytecode chunk length */
@@ -1346,6 +1347,38 @@ JSTreeContext::skipSpansGenerator(unsigned skip)
     }
     return false;
 }
+
+namespace js {
+
+bool
+SetStaticLevel(JSTreeContext *tc, uintN staticLevel)
+{
+    
+
+
+
+    if (UpvarCookie::isLevelReserved(staticLevel)) {
+        JS_ReportErrorNumber(tc->parser->context, js_GetErrorMessage, NULL,
+                             JSMSG_TOO_DEEP, js_function_str);
+        return false;
+    }
+    tc->staticLevel = staticLevel;
+    return true;
+}
+
+bool
+GenerateBlockId(JSTreeContext *tc, uint32& blockid)
+{
+    if (tc->blockidGen == JS_BIT(20)) {
+        JS_ReportErrorNumber(tc->parser->context, js_GetErrorMessage, NULL,
+                             JSMSG_NEED_DIET, "program");
+        return false;
+    }
+    blockid = tc->blockidGen++;
+    return true;
+}
+
+} 
 
 void
 js_PushStatement(JSTreeContext *tc, JSStmtInfo *stmt, JSStmtType type,
@@ -5471,7 +5504,7 @@ static bool
 EmitXMLProcessingInstruction(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 {
     jsatomid index;
-    if (!cg->makeAtomIndex(pn->pn_atom2, &index))
+    if (!cg->makeAtomIndex(pn->pn_pidata, &index))
         return false;
     if (!EmitIndexOp(cx, JSOP_QNAMEPART, index, cg))
         return false;
@@ -7768,13 +7801,6 @@ js_FinishTakingSrcNotes(JSContext *cx, JSCodeGenerator *cg, jssrcnote *notes)
     memcpy(notes + prologCount, cg->main.notes, SRCNOTE_SIZE(mainCount));
     SN_MAKE_TERMINATOR(&notes[totalCount]);
 
-#ifdef DEBUG_notme
-  { int bin = JS_CeilingLog2(totalCount);
-    if (bin >= NBINS)
-        bin = NBINS - 1;
-    ++hist[bin];
-  }
-#endif
     return JS_TRUE;
 }
 

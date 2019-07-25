@@ -38,19 +38,20 @@
 
 
 
-#ifndef jsemit_h___
-#define jsemit_h___
+#ifndef BytecodeGenerator_h__
+#define BytecodeGenerator_h__
+
 
 
 
 #include "jstypes.h"
 #include "jsatom.h"
 #include "jsopcode.h"
-#include "jsparse.h"
 #include "jsscript.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
 
+#include "frontend/Parser.h"
 #include "frontend/ParseMaps.h"
 
 #include "jsatominlines.h"
@@ -501,6 +502,16 @@ struct JSTreeContext {
 inline bool JSTreeContext::needStrictChecks() {
     return parser->context->hasStrictOption() || inStrictMode();
 }
+
+namespace js {
+
+bool
+SetStaticLevel(JSTreeContext *tc, uintN staticLevel);
+
+bool
+GenerateBlockId(JSTreeContext *tc, uint32& blockid);
+
+} 
 
 
 

@@ -43,16 +43,13 @@
 
 #include "RegExpStatics.h"
 
-#include "vm/String-inl.h"
-
 namespace js {
 
-inline
-RegExpStatics::RegExpStatics()
-  : bufferLink(NULL),
-    copied(false)
+inline js::RegExpStatics *
+js::GlobalObject::getRegExpStatics() const
 {
-    clear();
+    JSObject &resObj = getSlot(REGEXP_STATICS).toObject();
+    return static_cast<RegExpStatics *>(resObj.getPrivate());
 }
 
 inline bool
@@ -70,7 +67,7 @@ RegExpStatics::createDependent(JSContext *cx, size_t start, size_t end, Value *o
 inline bool
 RegExpStatics::createPendingInput(JSContext *cx, Value *out) const
 {
-    out->setString(pendingInput ? pendingInput.get() : cx->runtime->emptyString);
+    out->setString(pendingInput ? pendingInput : cx->runtime->emptyString);
     return true;
 }
 
@@ -192,78 +189,6 @@ RegExpStatics::getRightContext(JSSubString *out) const
 }
 
 inline void
-RegExpStatics::copyTo(RegExpStatics &dst)
-{
-    dst.matchPairs.clear();
-    
-    dst.matchPairs.infallibleAppend(matchPairs);
-    dst.matchPairsInput = matchPairsInput;
-    dst.pendingInput = pendingInput;
-    dst.flags = flags;
-}
-
-inline void
-RegExpStatics::aboutToWrite()
-{
-    if (bufferLink && !bufferLink->copied) {
-        copyTo(*bufferLink);
-        bufferLink->copied = true;
-    }
-}
-
-inline void
-RegExpStatics::restore()
-{
-    if (bufferLink->copied)
-        bufferLink->copyTo(*this);
-    bufferLink = bufferLink->bufferLink;
-}
-
-inline bool
-RegExpStatics::updateFromMatchPairs(JSContext *cx, JSLinearString *input, MatchPairs *newPairs)
-{
-    JS_ASSERT(input);
-    aboutToWrite();
-    BarrieredSetPair<JSString, JSLinearString>(cx->compartment,
-                                               pendingInput, input,
-                                               matchPairsInput, input);
-
-    if (!matchPairs.resizeUninitialized(2 * newPairs->pairCount())) {
-        js_ReportOutOfMemory(cx);
-        return false;
-    }
-
-    for (size_t i = 0; i < newPairs->pairCount(); ++i) {
-        matchPairs[2 * i] = newPairs->pair(i).start;
-        matchPairs[2 * i + 1] = newPairs->pair(i).limit;
-    }
-
-    return true;
-}
-
-inline void
-RegExpStatics::clear()
-{
-    aboutToWrite();
-    flags = RegExpFlag(0);
-    pendingInput = NULL;
-    matchPairsInput = NULL;
-    matchPairs.clear();
-}
-
-inline void
-RegExpStatics::setPendingInput(JSString *newInput)
-{
-    aboutToWrite();
-    pendingInput = newInput;
-}
-
-PreserveRegExpStatics::~PreserveRegExpStatics()
-{
-    original->restore();
-}
-
-inline void
 RegExpStatics::setMultiline(JSContext *cx, bool enabled)
 {
     aboutToWrite();
@@ -303,5 +228,11 @@ RegExpStatics::reset(JSContext *cx, JSString *newInput, bool newMultiline)
 }
 
 } 
+
+inline js::RegExpStatics *
+JSContext::regExpStatics()
+{
+    return js::GetGlobalForScopeChain(this)->getRegExpStatics();
+}
 
 #endif

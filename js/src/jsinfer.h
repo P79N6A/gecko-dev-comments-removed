@@ -45,11 +45,10 @@
 #include "jsalloc.h"
 #include "jscell.h"
 #include "jsfriendapi.h"
-#include "jstl.h"
 #include "jsprvtd.h"
-#include "jshashtable.h"
 
 #include "ds/LifoAlloc.h"
+#include "js/HashTable.h"
 
 namespace js {
 namespace types {
@@ -302,37 +301,40 @@ enum {
 
 
 
-    OBJECT_FLAG_NON_DENSE_ARRAY       = 0x0010000,
+    OBJECT_FLAG_NON_DENSE_ARRAY       = 0x00010000,
 
     
-    OBJECT_FLAG_NON_PACKED_ARRAY      = 0x0020000,
+    OBJECT_FLAG_NON_PACKED_ARRAY      = 0x00020000,
 
     
-    OBJECT_FLAG_NON_TYPED_ARRAY       = 0x0040000,
+    OBJECT_FLAG_NON_TYPED_ARRAY       = 0x00040000,
 
     
-    OBJECT_FLAG_CREATED_ARGUMENTS     = 0x0080000,
+    OBJECT_FLAG_CREATED_ARGUMENTS     = 0x00080000,
 
     
-    OBJECT_FLAG_UNINLINEABLE          = 0x0100000,
+    OBJECT_FLAG_UNINLINEABLE          = 0x00100000,
 
     
-    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x0200000,
+    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x00200000,
 
     
-    OBJECT_FLAG_ITERATED              = 0x0400000,
+    OBJECT_FLAG_ITERATED              = 0x00400000,
 
     
-    OBJECT_FLAG_REENTRANT_FUNCTION    = 0x0800000,
+    OBJECT_FLAG_REENTRANT_FUNCTION    = 0x00800000,
 
     
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x0ff0000,
+    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x01000000,
+
+    
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x01ff0000,
 
     
 
 
 
-    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x1000000,
+    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x80000000,
 
     
     OBJECT_FLAG_UNKNOWN_MASK =
@@ -488,6 +490,9 @@ class TypeSet
 
     
     bool knownNonEmpty(JSContext *cx);
+
+    
+    bool knownSubset(JSContext *cx, TypeSet *other);
 
     
 
@@ -1185,7 +1190,7 @@ struct TypeCompartment
 
     
     inline void addPending(JSContext *cx, TypeConstraint *constraint, TypeSet *source, Type type);
-    void growPendingArray(JSContext *cx);
+    bool growPendingArray(JSContext *cx);
 
     
     inline void resolvePending(JSContext *cx);

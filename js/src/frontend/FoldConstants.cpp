@@ -42,7 +42,7 @@
 
 #include "jslibmath.h"
 
-#include "frontend/BytecodeEmitter.h"
+#include "frontend/BytecodeGenerator.h"
 #include "frontend/ParseNode.h"
 
 #if JS_HAS_XML_SUPPORT
@@ -51,26 +51,31 @@
 
 using namespace js;
 
-static ParseNode *
-ContainsVarOrConst(ParseNode *pn)
+static JSParseNode *
+ContainsStmt(JSParseNode *pn, TokenKind tt)
 {
+    JSParseNode *pn2, *pnt;
+
     if (!pn)
         return NULL;
-    if (pn->isKind(PNK_VAR) || pn->isKind(PNK_CONST))
+    if (pn->isKind(tt))
         return pn;
     switch (pn->getArity()) {
       case PN_LIST:
-        for (ParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
-            if (ParseNode *pnt = ContainsVarOrConst(pn2))
+        for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
+            pnt = ContainsStmt(pn2, tt);
+            if (pnt)
                 return pnt;
         }
         break;
       case PN_TERNARY:
-        if (ParseNode *pnt = ContainsVarOrConst(pn->pn_kid1))
+        pnt = ContainsStmt(pn->pn_kid1, tt);
+        if (pnt)
             return pnt;
-        if (ParseNode *pnt = ContainsVarOrConst(pn->pn_kid2))
+        pnt = ContainsStmt(pn->pn_kid2, tt);
+        if (pnt)
             return pnt;
-        return ContainsVarOrConst(pn->pn_kid3);
+        return ContainsStmt(pn->pn_kid3, tt);
       case PN_BINARY:
         
 
@@ -78,17 +83,18 @@ ContainsVarOrConst(ParseNode *pn)
 
         if (!pn->isOp(JSOP_NOP))
             return NULL;
-        if (ParseNode *pnt = ContainsVarOrConst(pn->pn_left))
+        pnt = ContainsStmt(pn->pn_left, tt);
+        if (pnt)
             return pnt;
-        return ContainsVarOrConst(pn->pn_right);
+        return ContainsStmt(pn->pn_right, tt);
       case PN_UNARY:
         if (!pn->isOp(JSOP_NOP))
             return NULL;
-        return ContainsVarOrConst(pn->pn_kid);
+        return ContainsStmt(pn->pn_kid, tt);
       case PN_NAME:
-        return ContainsVarOrConst(pn->maybeExpr());
+        return ContainsStmt(pn->maybeExpr(), tt);
       case PN_NAMESET:
-        return ContainsVarOrConst(pn->pn_tree);
+        return ContainsStmt(pn->pn_tree, tt);
       default:;
     }
     return NULL;
@@ -99,30 +105,30 @@ ContainsVarOrConst(ParseNode *pn)
 
 
 static JSBool
-FoldType(JSContext *cx, ParseNode *pn, ParseNodeKind kind)
+FoldType(JSContext *cx, JSParseNode *pn, TokenKind type)
 {
-    if (!pn->isKind(kind)) {
-        switch (kind) {
-          case PNK_NUMBER:
-            if (pn->isKind(PNK_STRING)) {
+    if (!pn->isKind(type)) {
+        switch (type) {
+          case TOK_NUMBER:
+            if (pn->isKind(TOK_STRING)) {
                 jsdouble d;
                 if (!ToNumber(cx, StringValue(pn->pn_atom), &d))
                     return JS_FALSE;
                 pn->pn_dval = d;
-                pn->setKind(PNK_NUMBER);
+                pn->setKind(TOK_NUMBER);
                 pn->setOp(JSOP_DOUBLE);
             }
             break;
 
-          case PNK_STRING:
-            if (pn->isKind(PNK_NUMBER)) {
+          case TOK_STRING:
+            if (pn->isKind(TOK_NUMBER)) {
                 JSString *str = js_NumberToString(cx, pn->pn_dval);
                 if (!str)
                     return JS_FALSE;
                 pn->pn_atom = js_AtomizeString(cx, str);
                 if (!pn->pn_atom)
                     return JS_FALSE;
-                pn->setKind(PNK_STRING);
+                pn->setKind(TOK_STRING);
                 pn->setOp(JSOP_STRING);
             }
             break;
@@ -139,13 +145,13 @@ FoldType(JSContext *cx, ParseNode *pn, ParseNodeKind kind)
 
 
 static JSBool
-FoldBinaryNumeric(JSContext *cx, JSOp op, ParseNode *pn1, ParseNode *pn2,
-                  ParseNode *pn, TreeContext *tc)
+FoldBinaryNumeric(JSContext *cx, JSOp op, JSParseNode *pn1, JSParseNode *pn2,
+                  JSParseNode *pn, JSTreeContext *tc)
 {
     jsdouble d, d2;
     int32 i, j;
 
-    JS_ASSERT(pn1->isKind(PNK_NUMBER) && pn2->isKind(PNK_NUMBER));
+    JS_ASSERT(pn1->isKind(TOK_NUMBER) && pn2->isKind(TOK_NUMBER));
     d = pn1->pn_dval;
     d2 = pn2->pn_dval;
     switch (op) {
@@ -207,10 +213,10 @@ FoldBinaryNumeric(JSContext *cx, JSOp op, ParseNode *pn1, ParseNode *pn2,
 
     
     if (pn1 != pn)
-        tc->freeTree(pn1);
+        RecycleTree(pn1, tc);
     if (pn2 != pn)
-        tc->freeTree(pn2);
-    pn->setKind(PNK_NUMBER);
+        RecycleTree(pn2, tc);
+    pn->setKind(TOK_NUMBER);
     pn->setOp(JSOP_DOUBLE);
     pn->setArity(PN_NULLARY);
     pn->pn_dval = d;
@@ -220,18 +226,23 @@ FoldBinaryNumeric(JSContext *cx, JSOp op, ParseNode *pn1, ParseNode *pn2,
 #if JS_HAS_XML_SUPPORT
 
 static JSBool
-FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
+FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
 {
+    TokenKind tt;
+    JSParseNode **pnp, *pn1, *pn2;
+    JSString *accum, *str;
+    uint32 i, j;
+
     JS_ASSERT(pn->isArity(PN_LIST));
-    ParseNodeKind kind = pn->getKind();
-    ParseNode **pnp = &pn->pn_head;
-    ParseNode *pn1 = *pnp;
-    JSString *accum = NULL;
-    JSString *str = NULL;
+    tt = pn->getKind();
+    pnp = &pn->pn_head;
+    pn1 = *pnp;
+    accum = NULL;
+    str = NULL;
     if ((pn->pn_xflags & PNX_CANTFOLD) == 0) {
-        if (kind == PNK_XMLETAGO)
+        if (tt == TOK_XMLETAGO)
             accum = cx->runtime->atomState.etagoAtom;
-        else if (kind == PNK_XMLSTAGO || kind == PNK_XMLPTAGC)
+        else if (tt == TOK_XMLSTAGO || tt == TOK_XMLPTAGC)
             accum = cx->runtime->atomState.stagoAtom;
     }
 
@@ -242,38 +253,36 @@ FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
 
 
 
-    ParseNode *pn2;
-    uint32 i, j;
     for (pn2 = pn1, i = j = 0; pn2; pn2 = pn2->pn_next, i++) {
         
-        JS_ASSERT(kind != PNK_XMLETAGO || i == 0);
+        JS_ASSERT(tt != TOK_XMLETAGO || i == 0);
         switch (pn2->getKind()) {
-          case PNK_XMLATTR:
+          case TOK_XMLATTR:
             if (!accum)
                 goto cantfold;
             
-          case PNK_XMLNAME:
-          case PNK_XMLSPACE:
-          case PNK_XMLTEXT:
-          case PNK_STRING:
+          case TOK_XMLNAME:
+          case TOK_XMLSPACE:
+          case TOK_XMLTEXT:
+          case TOK_STRING:
             if (pn2->isArity(PN_LIST))
                 goto cantfold;
             str = pn2->pn_atom;
             break;
 
-          case PNK_XMLCDATA:
+          case TOK_XMLCDATA:
             str = js_MakeXMLCDATAString(cx, pn2->pn_atom);
             if (!str)
                 return JS_FALSE;
             break;
 
-          case PNK_XMLCOMMENT:
+          case TOK_XMLCOMMENT:
             str = js_MakeXMLCommentString(cx, pn2->pn_atom);
             if (!str)
                 return JS_FALSE;
             break;
 
-          case PNK_XMLPI:
+          case TOK_XMLPI:
             str = js_MakeXMLPIString(cx, pn2->pn_pitarget, pn2->pn_pidata);
             if (!str)
                 return JS_FALSE;
@@ -282,7 +291,7 @@ FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
           cantfold:
           default:
             JS_ASSERT(*pnp == pn1);
-            if ((kind == PNK_XMLSTAGO || kind == PNK_XMLPTAGC) &&
+            if ((tt == TOK_XMLSTAGO || tt == TOK_XMLPTAGC) &&
                 (i & 1) ^ (j & 1)) {
 #ifdef DEBUG_brendanXXX
                 printf("1: %d, %d => ", i, j);
@@ -294,10 +303,10 @@ FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
 #endif
             } else if (accum && pn1 != pn2) {
                 while (pn1->pn_next != pn2) {
-                    pn1 = tc->freeTree(pn1);
+                    pn1 = RecycleTree(pn1, tc);
                     --pn->pn_count;
                 }
-                pn1->setKind(PNK_XMLTEXT);
+                pn1->setKind(TOK_XMLTEXT);
                 pn1->setOp(JSOP_STRING);
                 pn1->setArity(PN_NULLARY);
                 pn1->pn_atom = js_AtomizeString(cx, accum);
@@ -315,7 +324,7 @@ FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
         if (accum) {
             {
                 AutoStringRooter tvr(cx, accum);
-                str = ((kind == PNK_XMLSTAGO || kind == PNK_XMLPTAGC) && i != 0)
+                str = ((tt == TOK_XMLSTAGO || tt == TOK_XMLPTAGC) && i != 0)
                       ? js_AddAttributePart(cx, i & 1, accum, str)
                       : js_ConcatStrings(cx, accum, str);
             }
@@ -334,9 +343,9 @@ FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
     if (accum) {
         str = NULL;
         if ((pn->pn_xflags & PNX_CANTFOLD) == 0) {
-            if (kind == PNK_XMLPTAGC)
+            if (tt == TOK_XMLPTAGC)
                 str = cx->runtime->atomState.ptagcAtom;
-            else if (kind == PNK_XMLSTAGO || kind == PNK_XMLETAGO)
+            else if (tt == TOK_XMLSTAGO || tt == TOK_XMLETAGO)
                 str = cx->runtime->atomState.tagcAtom;
         }
         if (str) {
@@ -347,10 +356,10 @@ FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
 
         JS_ASSERT(*pnp == pn1);
         while (pn1->pn_next) {
-            pn1 = tc->freeTree(pn1);
+            pn1 = RecycleTree(pn1, tc);
             --pn->pn_count;
         }
-        pn1->setKind(PNK_XMLTEXT);
+        pn1->setKind(TOK_XMLTEXT);
         pn1->setOp(JSOP_STRING);
         pn1->setArity(PN_NULLARY);
         pn1->pn_atom = js_AtomizeString(cx, accum);
@@ -370,8 +379,8 @@ FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
 
         if (!(pn->pn_xflags & PNX_XMLROOT)) {
             pn->become(pn1);
-        } else if (kind == PNK_XMLPTAGC) {
-            pn->setKind(PNK_XMLELEM);
+        } else if (tt == TOK_XMLPTAGC) {
+            pn->setKind(TOK_XMLELEM);
             pn->setOp(JSOP_TOXML);
         }
     }
@@ -383,7 +392,7 @@ FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
 enum Truthiness { Truthy, Falsy, Unknown };
 
 static Truthiness
-Boolish(ParseNode *pn)
+Boolish(JSParseNode *pn)
 {
     switch (pn->getOp()) {
       case JSOP_DOUBLE:
@@ -402,8 +411,8 @@ Boolish(ParseNode *pn)
 
         if (pn->pn_count != 1)
             return Unknown;
-        ParseNode *pn2 = pn->pn_head;
-        if (!pn2->isKind(PNK_FUNCTION))
+        JSParseNode *pn2 = pn->pn_head;
+        if (!pn2->isKind(TOK_FUNCTION))
             return Unknown;
         if (!(pn2->pn_funbox->tcflags & TCF_GENEXP_LAMBDA))
             return Unknown;
@@ -425,23 +434,23 @@ Boolish(ParseNode *pn)
     }
 }
 
-bool
-js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
+JSBool
+js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
 {
-    ParseNode *pn1 = NULL, *pn2 = NULL, *pn3 = NULL;
+    JSParseNode *pn1 = NULL, *pn2 = NULL, *pn3 = NULL;
 
-    JS_CHECK_RECURSION(cx, return false);
+    JS_CHECK_RECURSION(cx, return JS_FALSE);
 
     switch (pn->getArity()) {
       case PN_FUNC:
       {
         uint32 oldflags = tc->flags;
-        FunctionBox *oldlist = tc->functionList;
+        JSFunctionBox *oldlist = tc->functionList;
 
         tc->flags = pn->pn_funbox->tcflags;
         tc->functionList = pn->pn_funbox->kids;
-        if (!FoldConstants(cx, pn->pn_body, tc))
-            return false;
+        if (!js_FoldConstants(cx, pn->pn_body, tc))
+            return JS_FALSE;
         pn->pn_funbox->kids = tc->functionList;
         tc->flags = oldflags;
         tc->functionList = oldlist;
@@ -451,17 +460,17 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
       case PN_LIST:
       {
         
-        bool cond = inCond && (pn->isKind(PNK_OR) || pn->isKind(PNK_AND));
+        bool cond = inCond && (pn->isKind(TOK_OR) || pn->isKind(TOK_AND));
 
         
         pn1 = pn2 = pn->pn_head;
-        if ((pn->isKind(PNK_LP) || pn->isKind(PNK_NEW)) && pn2->isInParens())
+        if ((pn->isKind(TOK_LP) || pn->isKind(TOK_NEW)) && pn2->isInParens())
             pn2 = pn2->pn_next;
 
         
         for (; pn2; pn2 = pn2->pn_next) {
-            if (!FoldConstants(cx, pn2, tc, cond))
-                return false;
+            if (!js_FoldConstants(cx, pn2, tc, cond))
+                return JS_FALSE;
         }
         break;
       }
@@ -471,18 +480,18 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
         pn1 = pn->pn_kid1;
         pn2 = pn->pn_kid2;
         pn3 = pn->pn_kid3;
-        if (pn1 && !FoldConstants(cx, pn1, tc, pn->isKind(PNK_IF)))
-            return false;
+        if (pn1 && !js_FoldConstants(cx, pn1, tc, pn->isKind(TOK_IF)))
+            return JS_FALSE;
         if (pn2) {
-            if (!FoldConstants(cx, pn2, tc, pn->isKind(PNK_FORHEAD)))
-                return false;
-            if (pn->isKind(PNK_FORHEAD) && pn2->isOp(JSOP_TRUE)) {
-                tc->freeTree(pn2);
+            if (!js_FoldConstants(cx, pn2, tc, pn->isKind(TOK_FORHEAD)))
+                return JS_FALSE;
+            if (pn->isKind(TOK_FORHEAD) && pn2->isOp(JSOP_TRUE)) {
+                RecycleTree(pn2, tc);
                 pn->pn_kid2 = NULL;
             }
         }
-        if (pn3 && !FoldConstants(cx, pn3, tc))
-            return false;
+        if (pn3 && !js_FoldConstants(cx, pn3, tc))
+            return JS_FALSE;
         break;
 
       case PN_BINARY:
@@ -490,19 +499,19 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
         pn2 = pn->pn_right;
 
         
-        if (pn->isKind(PNK_OR) || pn->isKind(PNK_AND)) {
-            if (!FoldConstants(cx, pn1, tc, inCond))
-                return false;
-            if (!FoldConstants(cx, pn2, tc, inCond))
-                return false;
+        if (pn->isKind(TOK_OR) || pn->isKind(TOK_AND)) {
+            if (!js_FoldConstants(cx, pn1, tc, inCond))
+                return JS_FALSE;
+            if (!js_FoldConstants(cx, pn2, tc, inCond))
+                return JS_FALSE;
             break;
         }
 
         
-        if (pn1 && !FoldConstants(cx, pn1, tc, pn->isKind(PNK_WHILE)))
-            return false;
-        if (!FoldConstants(cx, pn2, tc, pn->isKind(PNK_DOWHILE)))
-            return false;
+        if (pn1 && !js_FoldConstants(cx, pn1, tc, pn->isKind(TOK_WHILE)))
+            return JS_FALSE;
+        if (!js_FoldConstants(cx, pn2, tc, pn->isKind(TOK_DO)))
+            return JS_FALSE;
         break;
 
       case PN_UNARY:
@@ -517,11 +526,11 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
 
 
 
-        if (pn->isOp(JSOP_TYPEOF) && !pn1->isKind(PNK_NAME))
+        if (pn->isOp(JSOP_TYPEOF) && !pn1->isKind(TOK_NAME))
             pn->setOp(JSOP_TYPEOFEXPR);
 
-        if (pn1 && !FoldConstants(cx, pn1, tc, pn->isOp(JSOP_NOT)))
-            return false;
+        if (pn1 && !js_FoldConstants(cx, pn1, tc, pn->isOp(JSOP_NOT)))
+            return JS_FALSE;
         break;
 
       case PN_NAME:
@@ -535,15 +544,15 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
             pn1 = pn->pn_expr;
             while (pn1 && pn1->isArity(PN_NAME) && !pn1->isUsed())
                 pn1 = pn1->pn_expr;
-            if (pn1 && !FoldConstants(cx, pn1, tc))
-                return false;
+            if (pn1 && !js_FoldConstants(cx, pn1, tc))
+                return JS_FALSE;
         }
         break;
 
       case PN_NAMESET:
         pn1 = pn->pn_tree;
-        if (!FoldConstants(cx, pn1, tc))
-            return false;
+        if (!js_FoldConstants(cx, pn1, tc))
+            return JS_FALSE;
         break;
 
       case PN_NULLARY:
@@ -551,31 +560,33 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
     }
 
     switch (pn->getKind()) {
-      case PNK_IF:
-        if (ContainsVarOrConst(pn2) || ContainsVarOrConst(pn3))
+      case TOK_IF:
+        if (ContainsStmt(pn2, TOK_VAR) || ContainsStmt(pn3, TOK_VAR))
             break;
         
 
-      case PNK_HOOK:
+      case TOK_HOOK:
         
         switch (pn1->getKind()) {
-          case PNK_NUMBER:
+          case TOK_NUMBER:
             if (pn1->pn_dval == 0 || JSDOUBLE_IS_NaN(pn1->pn_dval))
                 pn2 = pn3;
             break;
-          case PNK_STRING:
+          case TOK_STRING:
             if (pn1->pn_atom->length() == 0)
                 pn2 = pn3;
             break;
-          case PNK_TRUE:
-            break;
-          case PNK_FALSE:
-          case PNK_NULL:
-            pn2 = pn3;
-            break;
+          case TOK_PRIMARY:
+            if (pn1->isOp(JSOP_TRUE))
+                break;
+            if (pn1->isOp(JSOP_FALSE) || pn1->isOp(JSOP_NULL)) {
+                pn2 = pn3;
+                break;
+            }
+            
           default:
             
-            return true;
+            return JS_TRUE;
         }
 
 #if JS_HAS_GENERATOR_EXPRS
@@ -586,7 +597,7 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
 
         if (pn2 && !pn2->isDefn())
             pn->become(pn2);
-        if (!pn2 || (pn->isKind(PNK_SEMI) && !pn->pn_kid)) {
+        if (!pn2 || (pn->isKind(TOK_SEMI) && !pn->pn_kid)) {
             
 
 
@@ -594,20 +605,20 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
 
 
 
-            pn->setKind(PNK_STATEMENTLIST);
+            pn->setKind(TOK_LC);
             pn->setArity(PN_LIST);
             pn->makeEmpty();
         }
-        tc->freeTree(pn2);
+        RecycleTree(pn2, tc);
         if (pn3 && pn3 != pn2)
-            tc->freeTree(pn3);
+            RecycleTree(pn3, tc);
         break;
 
-      case PNK_OR:
-      case PNK_AND:
+      case TOK_OR:
+      case TOK_AND:
         if (inCond) {
             if (pn->isArity(PN_LIST)) {
-                ParseNode **pnp = &pn->pn_head;
+                JSParseNode **pnp = &pn->pn_head;
                 JS_ASSERT(*pnp == pn1);
                 do {
                     Truthiness t = Boolish(pn1);
@@ -615,20 +626,20 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
                         pnp = &pn1->pn_next;
                         continue;
                     }
-                    if ((t == Truthy) == pn->isKind(PNK_OR)) {
+                    if ((t == Truthy) == pn->isKind(TOK_OR)) {
                         for (pn2 = pn1->pn_next; pn2; pn2 = pn3) {
                             pn3 = pn2->pn_next;
-                            tc->freeTree(pn2);
+                            RecycleTree(pn2, tc);
                             --pn->pn_count;
                         }
                         pn1->pn_next = NULL;
                         break;
                     }
-                    JS_ASSERT((t == Truthy) == pn->isKind(PNK_AND));
+                    JS_ASSERT((t == Truthy) == pn->isKind(TOK_AND));
                     if (pn->pn_count == 1)
                         break;
                     *pnp = pn1->pn_next;
-                    tc->freeTree(pn1);
+                    RecycleTree(pn1, tc);
                     --pn->pn_count;
                 } while ((pn1 = *pnp) != NULL);
 
@@ -643,17 +654,17 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
                     pn->pn_right = pn2;
                 } else if (pn->pn_count == 1) {
                     pn->become(pn1);
-                    tc->freeTree(pn1);
+                    RecycleTree(pn1, tc);
                 }
             } else {
                 Truthiness t = Boolish(pn1);
                 if (t != Unknown) {
-                    if ((t == Truthy) == pn->isKind(PNK_OR)) {
-                        tc->freeTree(pn2);
+                    if ((t == Truthy) == pn->isKind(TOK_OR)) {
+                        RecycleTree(pn2, tc);
                         pn->become(pn1);
                     } else {
-                        JS_ASSERT((t == Truthy) == pn->isKind(PNK_AND));
-                        tc->freeTree(pn1);
+                        JS_ASSERT((t == Truthy) == pn->isKind(TOK_AND));
+                        RecycleTree(pn1, tc);
                         pn->become(pn2);
                     }
                 }
@@ -661,29 +672,20 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
         }
         break;
 
-      case PNK_SUBASSIGN:
-      case PNK_BITORASSIGN:
-      case PNK_BITXORASSIGN:
-      case PNK_BITANDASSIGN:
-      case PNK_LSHASSIGN:
-      case PNK_RSHASSIGN:
-      case PNK_URSHASSIGN:
-      case PNK_MULASSIGN:
-      case PNK_DIVASSIGN:
-      case PNK_MODASSIGN:
+      case TOK_ASSIGN:
         
 
 
 
 
 
-
-        goto do_binary_op;
-
-      case PNK_ADDASSIGN:
-        JS_ASSERT(pn->isOp(JSOP_ADD));
+        if (pn->isOp(JSOP_NOP))
+            break;
+        if (!pn->isOp(JSOP_ADD))
+            goto do_binary_op;
         
-      case PNK_ADD:
+
+      case TOK_PLUS:
         if (pn->isArity(PN_LIST)) {
             
 
@@ -692,34 +694,34 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
 
             JS_ASSERT(pn->pn_count > 2);
             if (pn->pn_xflags & PNX_CANTFOLD)
-                return true;
+                return JS_TRUE;
             if (pn->pn_xflags != PNX_STRCAT)
                 goto do_binary_op;
 
             
             size_t length = 0;
             for (pn2 = pn1; pn2; pn2 = pn2->pn_next) {
-                if (!FoldType(cx, pn2, PNK_STRING))
-                    return false;
+                if (!FoldType(cx, pn2, TOK_STRING))
+                    return JS_FALSE;
                 
-                if (!pn2->isKind(PNK_STRING))
-                    return true;
+                if (!pn2->isKind(TOK_STRING))
+                    return JS_TRUE;
                 length += pn2->pn_atom->length();
             }
 
             
             jschar *chars = (jschar *) cx->malloc_((length + 1) * sizeof(jschar));
             if (!chars)
-                return false;
+                return JS_FALSE;
             chars[length] = 0;
             JSString *str = js_NewString(cx, chars, length);
             if (!str) {
                 cx->free_(chars);
-                return false;
+                return JS_FALSE;
             }
 
             
-            for (pn2 = pn1; pn2; pn2 = tc->freeTree(pn2)) {
+            for (pn2 = pn1; pn2; pn2 = RecycleTree(pn2, tc)) {
                 JSAtom *atom = pn2->pn_atom;
                 size_t length2 = atom->length();
                 js_strncpy(chars, atom->chars(), length2);
@@ -730,8 +732,8 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
             
             pn->pn_atom = js_AtomizeString(cx, str);
             if (!pn->pn_atom)
-                return false;
-            pn->setKind(PNK_STRING);
+                return JS_FALSE;
+            pn->setKind(TOK_STRING);
             pn->setOp(JSOP_STRING);
             pn->setArity(PN_NULLARY);
             break;
@@ -739,49 +741,46 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
 
         
         JS_ASSERT(pn->isArity(PN_BINARY));
-        if (pn1->isKind(PNK_STRING) || pn2->isKind(PNK_STRING)) {
+        if (pn1->isKind(TOK_STRING) || pn2->isKind(TOK_STRING)) {
             JSString *left, *right, *str;
 
-            if (!FoldType(cx, !pn1->isKind(PNK_STRING) ? pn1 : pn2, PNK_STRING))
-                return false;
-            if (!pn1->isKind(PNK_STRING) || !pn2->isKind(PNK_STRING))
-                return true;
+            if (!FoldType(cx, !pn1->isKind(TOK_STRING) ? pn1 : pn2, TOK_STRING))
+                return JS_FALSE;
+            if (!pn1->isKind(TOK_STRING) || !pn2->isKind(TOK_STRING))
+                return JS_TRUE;
             left = pn1->pn_atom;
             right = pn2->pn_atom;
             str = js_ConcatStrings(cx, left, right);
             if (!str)
-                return false;
+                return JS_FALSE;
             pn->pn_atom = js_AtomizeString(cx, str);
             if (!pn->pn_atom)
-                return false;
-            pn->setKind(PNK_STRING);
+                return JS_FALSE;
+            pn->setKind(TOK_STRING);
             pn->setOp(JSOP_STRING);
             pn->setArity(PN_NULLARY);
-            tc->freeTree(pn1);
-            tc->freeTree(pn2);
+            RecycleTree(pn1, tc);
+            RecycleTree(pn2, tc);
             break;
         }
 
         
         goto do_binary_op;
 
-      case PNK_SUB:
-      case PNK_STAR:
-      case PNK_LSH:
-      case PNK_RSH:
-      case PNK_URSH:
-      case PNK_DIV:
-      case PNK_MOD:
+      case TOK_STAR:
+      case TOK_SHOP:
+      case TOK_MINUS:
+      case TOK_DIVOP:
       do_binary_op:
         if (pn->isArity(PN_LIST)) {
             JS_ASSERT(pn->pn_count > 2);
             for (pn2 = pn1; pn2; pn2 = pn2->pn_next) {
-                if (!FoldType(cx, pn2, PNK_NUMBER))
-                    return false;
+                if (!FoldType(cx, pn2, TOK_NUMBER))
+                    return JS_FALSE;
             }
             for (pn2 = pn1; pn2; pn2 = pn2->pn_next) {
                 
-                if (!pn2->isKind(PNK_NUMBER))
+                if (!pn2->isKind(TOK_NUMBER))
                     break;
             }
             if (!pn2) {
@@ -790,33 +789,28 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
                 pn2 = pn1->pn_next;
                 pn3 = pn2->pn_next;
                 if (!FoldBinaryNumeric(cx, op, pn1, pn2, pn, tc))
-                    return false;
+                    return JS_FALSE;
                 while ((pn2 = pn3) != NULL) {
                     pn3 = pn2->pn_next;
                     if (!FoldBinaryNumeric(cx, op, pn, pn2, pn, tc))
-                        return false;
+                        return JS_FALSE;
                 }
             }
         } else {
             JS_ASSERT(pn->isArity(PN_BINARY));
-            if (!FoldType(cx, pn1, PNK_NUMBER) ||
-                !FoldType(cx, pn2, PNK_NUMBER)) {
-                return false;
+            if (!FoldType(cx, pn1, TOK_NUMBER) ||
+                !FoldType(cx, pn2, TOK_NUMBER)) {
+                return JS_FALSE;
             }
-            if (pn1->isKind(PNK_NUMBER) && pn2->isKind(PNK_NUMBER)) {
+            if (pn1->isKind(TOK_NUMBER) && pn2->isKind(TOK_NUMBER)) {
                 if (!FoldBinaryNumeric(cx, pn->getOp(), pn1, pn2, pn, tc))
-                    return false;
+                    return JS_FALSE;
             }
         }
         break;
 
-      case PNK_TYPEOF:
-      case PNK_VOID:
-      case PNK_NOT:
-      case PNK_BITNOT:
-      case PNK_POS:
-      case PNK_NEG:
-        if (pn1->isKind(PNK_NUMBER)) {
+      case TOK_UNARYOP:
+        if (pn1->isKind(TOK_NUMBER)) {
             jsdouble d;
 
             
@@ -834,70 +828,61 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
                 break;
 
               case JSOP_NOT:
-                if (d == 0 || JSDOUBLE_IS_NaN(d)) {
-                    pn->setKind(PNK_TRUE);
-                    pn->setOp(JSOP_TRUE);
-                } else {
-                    pn->setKind(PNK_FALSE);
-                    pn->setOp(JSOP_FALSE);
-                }
+                pn->setKind(TOK_PRIMARY);
+                pn->setOp((d == 0 || JSDOUBLE_IS_NaN(d)) ? JSOP_TRUE : JSOP_FALSE);
                 pn->setArity(PN_NULLARY);
                 
 
               default:
                 
-                return true;
+                return JS_TRUE;
             }
-            pn->setKind(PNK_NUMBER);
+            pn->setKind(TOK_NUMBER);
             pn->setOp(JSOP_DOUBLE);
             pn->setArity(PN_NULLARY);
             pn->pn_dval = d;
-            tc->freeTree(pn1);
-        } else if (pn1->isKind(PNK_TRUE) || pn1->isKind(PNK_FALSE)) {
-            if (pn->isOp(JSOP_NOT)) {
+            RecycleTree(pn1, tc);
+        } else if (pn1->isKind(TOK_PRIMARY)) {
+            if (pn->isOp(JSOP_NOT) && (pn1->isOp(JSOP_TRUE) || pn1->isOp(JSOP_FALSE))) {
                 pn->become(pn1);
-                if (pn->isKind(PNK_TRUE)) {
-                    pn->setKind(PNK_FALSE);
-                    pn->setOp(JSOP_FALSE);
-                } else {
-                    pn->setKind(PNK_TRUE);
-                    pn->setOp(JSOP_TRUE);
-                }
-                tc->freeTree(pn1);
+                pn->setOp(pn->isOp(JSOP_TRUE) ? JSOP_FALSE : JSOP_TRUE);
+                RecycleTree(pn1, tc);
             }
         }
         break;
 
 #if JS_HAS_XML_SUPPORT
-      case PNK_XMLELEM:
-      case PNK_XMLLIST:
-      case PNK_XMLPTAGC:
-      case PNK_XMLSTAGO:
-      case PNK_XMLETAGO:
-      case PNK_XMLNAME:
+      case TOK_XMLELEM:
+      case TOK_XMLLIST:
+      case TOK_XMLPTAGC:
+      case TOK_XMLSTAGO:
+      case TOK_XMLETAGO:
+      case TOK_XMLNAME:
         if (pn->isArity(PN_LIST)) {
-            JS_ASSERT(pn->isKind(PNK_XMLLIST) || pn->pn_count != 0);
+            JS_ASSERT(pn->isKind(TOK_XMLLIST) || pn->pn_count != 0);
             if (!FoldXMLConstants(cx, pn, tc))
-                return false;
+                return JS_FALSE;
         }
         break;
 
-      case PNK_AT:
-        if (pn1->isKind(PNK_XMLNAME)) {
+      case TOK_AT:
+        if (pn1->isKind(TOK_XMLNAME)) {
+            JSObjectBox *xmlbox;
+
             Value v = StringValue(pn1->pn_atom);
             if (!js_ToAttributeName(cx, &v))
-                return false;
+                return JS_FALSE;
             JS_ASSERT(v.isObject());
 
-            ObjectBox *xmlbox = tc->parser->newObjectBox(&v.toObject());
+            xmlbox = tc->parser->newObjectBox(&v.toObject());
             if (!xmlbox)
-                return false;
+                return JS_FALSE;
 
-            pn->setKind(PNK_XMLNAME);
+            pn->setKind(TOK_XMLNAME);
             pn->setOp(JSOP_OBJECT);
             pn->setArity(PN_NULLARY);
             pn->pn_objbox = xmlbox;
-            tc->freeTree(pn1);
+            RecycleTree(pn1, tc);
         }
         break;
 #endif 
@@ -914,17 +899,12 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
 
 
 
-            tc->parser->allocator.prepareNodeForMutation(pn);
-            if (t == Truthy) {
-                pn->setKind(PNK_TRUE);
-                pn->setOp(JSOP_TRUE);
-            } else {
-                pn->setKind(PNK_FALSE);
-                pn->setOp(JSOP_FALSE);
-            }
+            PrepareNodeForMutation(pn, tc);
+            pn->setKind(TOK_PRIMARY);
+            pn->setOp(t == Truthy ? JSOP_TRUE : JSOP_FALSE);
             pn->setArity(PN_NULLARY);
         }
     }
 
-    return true;
+    return JS_TRUE;
 }

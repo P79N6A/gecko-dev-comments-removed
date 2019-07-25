@@ -115,7 +115,8 @@ struct JSFunction : public JSObject_Slots2
             JSNativeTraceInfo *trcinfo;
         } n;
         struct Scripted {
-            JSScript    *script;  
+            JSScript    *script_; 
+
             uint16       skipmin; 
 
 
@@ -205,7 +206,13 @@ struct JSFunction : public JSObject_Slots2
 
     JSScript *script() const {
         JS_ASSERT(isInterpreted());
-        return u.i.script;
+        return u.i.script_;
+    }
+
+    void setScript(JSScript *script) {
+        JS_ASSERT(isInterpreted());
+        u.i.script_ = script;
+        script->setOwnerObject(this);
     }
 
     JSScript * maybeScript() const {
@@ -222,7 +229,7 @@ struct JSFunction : public JSObject_Slots2
     }
 
     static uintN offsetOfNativeOrScript() {
-        JS_STATIC_ASSERT(offsetof(U, n.native) == offsetof(U, i.script));
+        JS_STATIC_ASSERT(offsetof(U, n.native) == offsetof(U, i.script_));
         JS_STATIC_ASSERT(offsetof(U, n.native) == offsetof(U, nativeOrScript));
         return offsetof(JSFunction, u.nativeOrScript);
     }

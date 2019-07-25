@@ -42,7 +42,6 @@
 #define jsjaeger_baseassembler_h__
 
 #include "jscntxt.h"
-#include "jstl.h"
 #include "assembler/assembler/MacroAssemblerCodeRef.h"
 #include "assembler/assembler/MacroAssembler.h"
 #include "assembler/assembler/LinkBuffer.h"
@@ -1247,7 +1246,6 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         JS_ASSERT(cx->typeInferenceEnabled());
         JS_ASSERT(!templateObject->hasDynamicSlots());
         JS_ASSERT(!templateObject->hasDynamicElements());
-        JS_ASSERT(!(templateObject->getClass()->flags & JSCLASS_HAS_PRIVATE));
 
 #ifdef JS_GC_ZEAL
         if (cx->runtime->needZealousGC())
@@ -1308,8 +1306,19 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
                     Address(result, elementsOffset + ObjectElements::offsetOfLength()));
         } else {
             
-            for (unsigned i = 0; i < templateObject->slotSpan(); i++)
-                storeValue(UndefinedValue(), Address(result, JSObject::getFixedSlotOffset(i)));
+
+
+
+            for (unsigned i = 0; i < templateObject->slotSpan(); i++) {
+                storeValue(templateObject->getFixedSlot(i),
+                           Address(result, JSObject::getFixedSlotOffset(i)));
+            }
+        }
+
+        if (templateObject->hasPrivate()) {
+            uint32 nfixed = templateObject->numFixedSlots();
+            storePtr(ImmPtr(templateObject->getPrivate()),
+                     Address(result, JSObject::getPrivateDataOffset(nfixed)));
         }
 
         return jump;

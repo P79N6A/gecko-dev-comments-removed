@@ -47,8 +47,9 @@
 #include <stdio.h>
 #include "js-config.h"
 #include "jspubtd.h"
-#include "jsutil.h"
 #include "jsval.h"
+
+#include "js/Utility.h"
 
 
 
@@ -662,6 +663,16 @@ class Value
 #endif
     }
 
+#ifndef _MSC_VER
+  
+
+
+
+  private:
+#endif
+
+    jsval_layout data;
+
   private:
     void staticAssertions() {
         JS_STATIC_ASSERT(sizeof(JSValueType) == 1);
@@ -670,8 +681,6 @@ class Value
         JS_STATIC_ASSERT(sizeof(JSWhyMagic) <= 4);
         JS_STATIC_ASSERT(sizeof(Value) == 8);
     }
-
-    jsval_layout data;
 
     friend jsval_layout (::JSVAL_TO_IMPL)(Value);
     friend Value (::IMPL_TO_JSVAL)(jsval_layout l);
@@ -1700,6 +1709,17 @@ extern JS_PUBLIC_DATA(jsid) JSID_EMPTY;
 
 
 
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_CallOnce(JSCallOnceType *once, JSInitCallback func);
+
+
+
+
+
 extern JS_PUBLIC_API(int64)
 JS_Now(void);
 
@@ -2209,32 +2229,48 @@ js_TransplantObjectWithWrapper(JSContext *cx,
                                JSObject *targetobj,
                                JSObject *targetwrapper);
 
+extern JS_FRIEND_API(void *)
+js_GetCompartmentPrivate(JSCompartment *compartment);
+
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
 class JS_PUBLIC_API(JSAutoEnterCompartment)
 {
-    JSCrossCompartmentCall *call;
+    
+
+
+
+
+
+
+
+    void* bytes[sizeof(void*) == 4 && MOZ_ALIGNOF(JSUint64) == 8 ? 16 : 13];
+
+    
+
+
+
+
+
+
+
+    enum State {
+        STATE_UNENTERED,
+        STATE_SAME_COMPARTMENT,
+        STATE_OTHER_COMPARTMENT
+    } state;
 
   public:
-    JSAutoEnterCompartment() : call(NULL) {}
+    JSAutoEnterCompartment() : state(STATE_UNENTERED) {}
 
     bool enter(JSContext *cx, JSObject *target);
 
     void enterAndIgnoreErrors(JSContext *cx, JSObject *target);
 
-    bool entered() const { return call != NULL; }
+    bool entered() const { return state != STATE_UNENTERED; }
 
-    ~JSAutoEnterCompartment() {
-        if (call && call != reinterpret_cast<JSCrossCompartmentCall*>(1))
-            JS_LeaveCrossCompartmentCall(call);
-    }
-
-    void swap(JSAutoEnterCompartment &other) {
-        JSCrossCompartmentCall *tmp = call;
-        call = other.call;
-        other.call = tmp;
-    }
+    ~JSAutoEnterCompartment();
 };
 
 JS_BEGIN_EXTERN_C
@@ -2288,9 +2324,6 @@ JS_EnumerateResolvedStandardClasses(JSContext *cx, JSObject *obj,
 extern JS_PUBLIC_API(JSBool)
 JS_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key,
                   JSObject **objp);
-
-extern JS_PUBLIC_API(JSObject *)
-JS_GetScopeChain(JSContext *cx);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
@@ -2600,7 +2633,7 @@ JS_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
 
 extern JS_PUBLIC_API(void)
-JS_SetExtraGCRoots(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
+JS_SetExtraGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
 
 
 
@@ -3028,6 +3061,8 @@ struct JSClass {
 #define JSCLASS_FREEZE_PROTO            (1<<(JSCLASS_HIGH_FLAGS_SHIFT+5))
 #define JSCLASS_FREEZE_CTOR             (1<<(JSCLASS_HIGH_FLAGS_SHIFT+6))
 
+#define JSCLASS_XPCONNECT_GLOBAL        (1<<(JSCLASS_HIGH_FLAGS_SHIFT+7))
+
 
 #define JSGLOBAL_FLAGS_CLEARED          0x1
 
@@ -3043,8 +3078,13 @@ struct JSClass {
 
 
 #define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 8)
+#define JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(n)                                    \
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT + (n)))
 #define JSCLASS_GLOBAL_FLAGS                                                  \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT))
+    JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(0)
+#define JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(clasp)                              \
+  (((clasp)->flags & JSCLASS_IS_GLOBAL)                                       \
+   && JSCLASS_RESERVED_SLOTS(clasp) >= JSCLASS_GLOBAL_SLOT_COUNT)
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -3083,6 +3123,15 @@ JS_IdToValue(JSContext *cx, jsid id, jsval *vp);
 #define JSRESOLVE_DECLARING     0x08    /* var, const, or function prolog op */
 #define JSRESOLVE_CLASSNAME     0x10    /* class name used when constructing */
 #define JSRESOLVE_WITH          0x20    /* resolve inside a with statement */
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_DefaultValue(JSContext *cx, JSObject *obj, JSType hint, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_PropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
@@ -3675,6 +3724,9 @@ JS_ObjectIsFunction(JSContext *cx, JSObject *obj);
 
 extern JS_PUBLIC_API(JSBool)
 JS_ObjectIsCallable(JSContext *cx, JSObject *obj);
+
+extern JS_PUBLIC_API(JSBool)
+JS_IsNativeFunction(JSObject *funobj, JSNative call);
 
 extern JS_PUBLIC_API(JSBool)
 JS_DefineFunctions(JSContext *cx, JSObject *obj, JSFunctionSpec *fs);
@@ -4621,8 +4673,6 @@ JS_ObjectIsDate(JSContext *cx, JSObject *obj);
 #define JSREG_GLOB      0x02    /* global exec, creates array of matches */
 #define JSREG_MULTILINE 0x04    /* treat ^ and $ as begin and end of line */
 #define JSREG_STICKY    0x08    /* only match starting at lastIndex */
-#define JSREG_FLAT      0x10    /* parse as a flat regexp */
-#define JSREG_NOCOMPILE 0x20    /* do not try to compile to native code */
 
 extern JS_PUBLIC_API(JSObject *)
 JS_NewRegExpObject(JSContext *cx, JSObject *obj, char *bytes, size_t length, uintN flags);
