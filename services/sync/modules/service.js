@@ -759,10 +759,9 @@ WeaveSvc.prototype = {
             
             
             if (this._remoteSetup()) {
-
               
-            Status.login = LOGIN_SUCCEEDED;
-            return true;
+              Status.login = LOGIN_SUCCEEDED;
+              return true;
             }
 
             this._log.warn("Remote setup failed.");
