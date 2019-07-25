@@ -725,6 +725,10 @@ pref("network.ftp.control.qos", 0);
 
 
 
+pref("network.websocket.enabled", false);
+
+
+
 
 
 pref("network.jar.open-unsafe-types", false);
