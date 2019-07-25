@@ -458,8 +458,7 @@ public:
                                      nsIDOMClientRect* clip);
 #endif
 
-  void NotifyPaintWaiter(nsDisplayListBuilder* aBuilder,
-                         LayerManager* aManager);
+  void NotifyPaintWaiter(nsDisplayListBuilder* aBuilder);
   
   PRBool SetCurrentImage(ImageContainer* aContainer);
 
@@ -1701,8 +1700,7 @@ nsObjectFrame::GetImageContainer()
 }
 
 void
-nsPluginInstanceOwner::NotifyPaintWaiter(nsDisplayListBuilder* aBuilder,
-                                         LayerManager* aManager)
+nsPluginInstanceOwner::NotifyPaintWaiter(nsDisplayListBuilder* aBuilder)
 {
   
   if (!mWaitingForPaint && !IsUpToDate() && aBuilder->ShouldSyncDecodeImages()) {
@@ -1777,7 +1775,7 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     (aBuilder->LayerBuilder()->GetLeafLayerFor(aBuilder, aManager, aItem));
 
   if (!layer) {
-    mInstanceOwner->NotifyPaintWaiter(aBuilder, aManager);
+    mInstanceOwner->NotifyPaintWaiter(aBuilder);
     
     layer = aManager->CreateImageLayer();
   }
@@ -1800,6 +1798,10 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   imglayer->SetFilter(nsLayoutUtils::GetGraphicsFilterForFrame(this));
 
   layer->SetContentFlags(IsOpaque() ? Layer::CONTENT_OPAQUE : 0);
+
+  if (container->GetCurrentSize() != gfxIntSize(window->width, window->height)) {
+    mInstanceOwner->NotifyPaintWaiter(aBuilder);
+  }
 
   
   gfxMatrix transform;
