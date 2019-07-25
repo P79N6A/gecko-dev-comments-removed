@@ -57,6 +57,13 @@ class SVGLengthList;
 class SVGUserUnitList;
 }
 
+
+
+
+
+
+
+
 class nsISVGChildFrame : public nsQueryFrame
 {
 public:

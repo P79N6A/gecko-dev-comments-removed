@@ -47,6 +47,13 @@ class nsRenderingContext;
 
 typedef nsContainerFrame nsSVGContainerFrameBase;
 
+
+
+
+
+
+
+
 class nsSVGContainerFrame : public nsSVGContainerFrameBase
 {
   friend nsIFrame* NS_NewSVGContainerFrame(nsIPresShell* aPresShell,
@@ -78,6 +85,10 @@ public:
             aFlags & ~(nsIFrame::eSVG | nsIFrame::eSVGContainer));
   }
 };
+
+
+
+
 
 class nsSVGDisplayContainerFrame : public nsSVGContainerFrame,
                                    public nsISVGChildFrame
