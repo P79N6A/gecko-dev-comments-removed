@@ -6678,7 +6678,12 @@ nsHTMLEditRules::SplitParagraph(nsIDOMNode *aPara,
     res = mHTMLEditor->DeleteNode(aBRNode);  
     NS_ENSURE_SUCCESS(res, res);
   }
+
   
+  nsCOMPtr<nsIDOMElement> rightElt = do_QueryInterface(rightPara);
+  res = mHTMLEditor->RemoveAttribute(rightElt, NS_LITERAL_STRING("id"));
+  NS_ENSURE_SUCCESS(res, res);
+
   
   res = InsertMozBRIfNeeded(leftPara);
   NS_ENSURE_SUCCESS(res, res);
