@@ -275,8 +275,9 @@ var DownloadsView = {
       this._list.removeChild(emptyItem);
       
     
+    let header = document.getElementById("downloads-list-header");
     let item = this._createItem(attrs);
-    this._list.insertBefore(item, this._list.firstChild);
+    this._list.insertBefore(item, header.nextSibling);
   },
 
   downloadCompleted: function dv_downloadCompleted(aDownload) {
