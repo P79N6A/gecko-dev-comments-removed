@@ -345,10 +345,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   setBounds: function TabItem_setBounds(inRect, immediately, options) {
-    if (!Utils.isRect(inRect)) {
-      Utils.trace('TabItem.setBounds: rect is not a real rectangle!', inRect);
-      return;
-    }
+    Utils.assert(Utils.isRect(inRect), 'TabItem.setBounds: rect is not a real rectangle!');
 
     if (!options)
       options = {};
@@ -453,8 +450,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     rect = this.getBounds(); 
 
-    if (!Utils.isRect(this.bounds))
-      Utils.trace('TabItem.setBounds: this.bounds is not a real rectangle!', this.bounds);
+    Utils.assert(Utils.isRect(this.bounds), 'TabItem.setBounds: this.bounds is not a real rectangle!');
 
     if (!this.parent && this.tab.parentNode != null)
       this.setTrenches(rect);

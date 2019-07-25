@@ -532,10 +532,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   setBounds: function GroupItem_setBounds(inRect, immediately, options) {
-    if (!Utils.isRect(inRect)) {
-      Utils.trace('GroupItem.setBounds: rect is not a real rectangle!', inRect);
-      return;
-    }
+      Utils.assert(Utils.isRect(inRect), 'GroupItem.setBounds: rect is not a real rectangle!');
 
     
     let validSize = GroupItems.calcValidSize(
