@@ -86,6 +86,8 @@ public:
   virtual void ReplaceFontEntry(gfxProxyFontEntry *aProxy,
                                 gfxFontEntry *aFontEntry);
 
+  nsCSSFontFaceRule *FindRuleForEntry(gfxFontEntry *aFontEntry);
+
 protected:
   
   
