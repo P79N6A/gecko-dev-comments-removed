@@ -613,13 +613,22 @@ nsHtml5Parser::ParseUntilBlocked()
         
         NS_ASSERTION(!mLastBuffer->getStart() && !mLastBuffer->getEnd(),
                      "Sentinel buffer had its indeces changed.");
-        if (mStreamParser && mReturnToStreamParserPermitted
-            && !mExecutor->IsScriptExecuting()) {
+        if (mStreamParser) {
+          if (mReturnToStreamParserPermitted &&
+              !mExecutor->IsScriptExecuting()) {
+            mTreeBuilder->Flush();
+            mReturnToStreamParserPermitted = PR_FALSE;
+            mStreamParser->ContinueAfterScripts(mTokenizer,
+                                                mTreeBuilder,
+                                                mLastWasCR);
+          }
+        } else {
+          
           mTreeBuilder->Flush();
-          mReturnToStreamParserPermitted = PR_FALSE;
-          mStreamParser->ContinueAfterScripts(mTokenizer,
-                                              mTreeBuilder,
-                                              mLastWasCR);
+          
+          
+          NS_ASSERTION(mExecutor->IsInFlushLoop(),
+              "How did we come here without being in the flush loop?");
         }
         return; 
       }

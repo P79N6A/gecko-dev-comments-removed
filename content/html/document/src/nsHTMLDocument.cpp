@@ -1002,6 +1002,29 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 void
 nsHTMLDocument::StopDocumentLoad()
 {
+  if (nsHtml5Module::sEnabled) {
+    BlockOnload();
+    if (mWriteState == eDocumentOpened) {
+      NS_ASSERTION(IsHTML(), "document.open()ed doc is not HTML?");
+
+      
+      
+      mWriteState = eDocumentClosed;
+
+      
+      
+      NS_ASSERTION(mWyciwygChannel, "nsHTMLDocument::StopDocumentLoad(): "
+                   "Trying to remove nonexistent wyciwyg channel!");
+      RemoveWyciwygChannel();
+      NS_ASSERTION(!mWyciwygChannel, "nsHTMLDocument::StopDocumentLoad(): "
+                   "nsIWyciwygChannel could not be removed!");
+    }
+    nsDocument::StopDocumentLoad();
+    UnblockOnload(PR_FALSE);
+    return;
+  }
+  
+
   
   
   
