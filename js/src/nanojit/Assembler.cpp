@@ -289,14 +289,18 @@ namespace nanojit
         eip = end;
     }
 
-    void Assembler::reset()
+    void Assembler::clearNInsPtrs()
     {
         _nIns = 0;
         _nExitIns = 0;
         codeStart = codeEnd = 0;
         exitStart = exitEnd = 0;
         codeList = 0;
+    }
 
+    void Assembler::reset()
+    {
+        clearNInsPtrs();
         nativePageReset();
         registerResetAll();
         arReset();
@@ -1114,17 +1118,22 @@ namespace nanojit
         }
     }
 
+    void Assembler::cleanupAfterError()
+    {
+        _codeAlloc.freeAll(codeList);
+        if (_nExitIns)
+            _codeAlloc.free(exitStart, exitEnd);
+        _codeAlloc.free(codeStart, codeEnd);
+        codeList = NULL;
+    }
+
     void Assembler::endAssembly(Fragment* frag)
     {
         
         
         if (error()) {
             
-            _codeAlloc.freeAll(codeList);
-            if (_nExitIns)
-                _codeAlloc.free(exitStart, exitEnd);
-            _codeAlloc.free(codeStart, codeEnd);
-            codeList = NULL;
+            cleanupAfterError();
             return;
         }
 

@@ -339,6 +339,7 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
 #endif 
 
     void CodeAlloc::addBlock(CodeList* &blocks, CodeList* b) {
+        NanoAssert(b->terminator != NULL);  
         b->next = blocks;
         blocks = b;
     }
@@ -362,7 +363,8 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
         debug_only(sanity_check();)
 
         
-        addBlock(heapblocks, terminator);
+        terminator->next = heapblocks;
+        heapblocks = terminator;
         return b;
     }
 
@@ -375,6 +377,7 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
     CodeList* CodeAlloc::removeBlock(CodeList* &blocks) {
         CodeList* b = blocks;
         NanoAssert(b != NULL);
+        NanoAssert(b->terminator != NULL);  
         blocks = b->next;
         b->next = 0;
         return b;
@@ -501,12 +504,21 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
     }
     #endif
 
+    
+    
+    
     void CodeAlloc::markAllExec() {
         for (CodeList* hb = heapblocks; hb != NULL; hb = hb->next) {
-            if (!hb->isExec) {
-                hb->isExec = true;
-                markCodeChunkExec(firstBlock(hb), bytesPerAlloc);
-            }
+            markChunkExec(hb);
+        }
+    }
+
+    
+    void CodeAlloc::markChunkExec(CodeList* term) {
+        NanoAssert(term->terminator == NULL);
+        if (!term->isExec) {
+            term->isExec = true;
+            markCodeChunkExec(firstBlock(term), bytesPerAlloc);
         }
     }
 }
