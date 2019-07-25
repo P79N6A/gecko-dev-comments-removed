@@ -43,7 +43,6 @@
 #include "nsISupports.h"
 
 class nsIURI;
-class nsString;
 
 namespace mozilla {
 
@@ -129,18 +128,6 @@ public:
         nsIURI *aLastVisitedURI,
         PRUint32 aFlags
     ) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-    NS_IMETHOD SetURITitle(nsIURI* aURI, const nsAString& aTitle) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(IHistory, IHISTORY_IID)
@@ -152,8 +139,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(IHistory, IHISTORY_IID)
                                          mozilla::dom::Link *aContent); \
     NS_IMETHOD VisitURI(nsIURI *aURI, \
                         nsIURI *aLastVisitedURI, \
-                        PRUint32 aFlags); \
-    NS_IMETHOD SetURITitle(nsIURI* aURI, const nsAString& aTitle);
+                        PRUint32 aFlags);
 
 } 
 
