@@ -152,38 +152,70 @@ public:
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
-  
+
   void AppendStyleSheet(nsCSSStyleSheet* aSheet);
   void InsertStyleSheetAt(nsCSSStyleSheet* aSheet, PRInt32 aIndex);
+
+  
   void PrependStyleRule(nsICSSRule* aRule);
   void AppendStyleRule(nsICSSRule* aRule);
   void ReplaceStyleRule(nsICSSRule* aOld, nsICSSRule* aNew);
+
   PRInt32 StyleRuleCount() const;
   nsresult GetStyleRuleAt(PRInt32 aIndex, nsICSSRule*& aRule) const;
+
   nsresult DeleteRuleFromGroup(nsICSSGroupRule* aGroup, PRUint32 aIndex);
   nsresult InsertRuleIntoGroup(const nsAString& aRule, nsICSSGroupRule* aGroup, PRUint32 aIndex, PRUint32* _retval);
   nsresult ReplaceRuleInGroup(nsICSSGroupRule* aGroup, nsICSSRule* aOld, nsICSSRule* aNew);
+
   PRInt32 StyleSheetCount() const;
   already_AddRefed<nsCSSStyleSheet> GetStyleSheetAt(PRInt32 aIndex) const;
+
+  
+
+
+
+
   void SetURIs(nsIURI* aSheetURI, nsIURI* aOriginalSheetURI, nsIURI* aBaseURI);
+
+  
+
+
+
+
   void SetPrincipal(nsIPrincipal* aPrincipal);
+
+  
   nsIPrincipal* Principal() const;
+
   void SetTitle(const nsAString& aTitle) { mTitle = aTitle; }
   void SetMedia(nsMediaList* aMedia);
   void SetOwningNode(nsIDOMNode* aOwningNode) { mOwningNode = aOwningNode;  }
+
   void SetOwnerRule(nsICSSImportRule* aOwnerRule) { mOwnerRule = aOwnerRule;  }
   already_AddRefed<nsICSSImportRule> GetOwnerRule();
+
   nsXMLNameSpaceMap* GetNameSpaceMap() const;
+
   already_AddRefed<nsCSSStyleSheet> Clone(nsCSSStyleSheet* aCloneParent,
                                           nsICSSImportRule* aCloneOwnerRule,
                                           nsIDocument* aCloneDocument,
                                           nsIDOMNode* aCloneOwningNode) const;
+
   PRBool IsModified() const { return mDirty; }
   void SetModified(PRBool aModified) { mDirty = aModified; }
+
   nsresult AddRuleProcessor(nsCSSRuleProcessor* aProcessor);
   nsresult DropRuleProcessor(nsCSSRuleProcessor* aProcessor);
+
+  
+
+
   nsresult InsertRuleInternal(const nsAString& aRule,
                               PRUint32 aIndex, PRUint32* aReturn);
+
+  
+
   virtual nsIURI* GetOriginalURI() const;
 
   
