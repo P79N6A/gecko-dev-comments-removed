@@ -822,7 +822,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     this.$expander
         .show()
         .css({
-          opacity: .5,
+          opacity: .2,
           top: dT + childBB.height + Math.min(7, (this.getBounds().bottom-childBB.bottom)/2),
           
           
@@ -1116,7 +1116,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       $shield.mouseover(function() {
         self.collapse();
       });
-    }, 100);
+    }, 200);
       
     this.expanded = {
       $tray: $tray,
@@ -1210,12 +1210,14 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         
         if( self.isNewTabsGroup() ) 
           return;
-          
-        var activeTab = self.getActiveTab();
-        if( activeTab ) 
-          activeTab.zoomIn();
-        else if(self.getChild(0))
-          self.getChild(0).zoomIn();
+        
+        
+        
+        
+
+
+
+
           
         self._mouseDown = null;
     });
