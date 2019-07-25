@@ -286,23 +286,29 @@ ThirdPartyUtil::IsThirdPartyChannel(nsIChannel* aChannel,
   ourWin->GetParent(getter_AddRefs(parentWin));
   NS_ENSURE_TRUE(parentWin, NS_ERROR_INVALID_ARG);
 
-  if (SameCOMIdentity(ourWin, parentWin)) {
-    
-    
-    
-    
-    
-    
-    nsLoadFlags flags;
-    rv = aChannel->GetLoadFlags(&flags);
-    NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsLoadFlags flags;
+  rv = aChannel->GetLoadFlags(&flags);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    if (flags & nsIChannel::LOAD_DOCUMENT_URI) {
+  if (flags & nsIChannel::LOAD_DOCUMENT_URI) {
+    if (SameCOMIdentity(ourWin, parentWin)) {
       
       
       *aResult = false;
       return NS_OK;
     }
+
+    
+    ourWin = parentWin;
   }
 
   
