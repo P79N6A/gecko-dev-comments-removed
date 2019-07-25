@@ -187,6 +187,9 @@ public:
 
 
 
+
+
+
     void Compress(nsCSSCompressedDataBlock **aNormalBlock,
                   nsCSSCompressedDataBlock **aImportantBlock);
 
