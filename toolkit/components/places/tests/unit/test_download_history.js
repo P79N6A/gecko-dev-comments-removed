@@ -124,36 +124,40 @@ add_test(function test_dh_addDownload_referrer()
   });
 });
 
-if ("@mozilla.org/privatebrowsing;1" in Cc) {
-  add_test(function test_dh_addDownload_privateBrowsing()
-  {
-    waitForOnVisit(function DHAD_onVisit(aURI) {
-      
-      
-      
-      
-      do_check_true(aURI.equals(DOWNLOAD_URI));
+add_test(function test_dh_addDownload_privateBrowsing()
+{
+  if (!("@mozilla.org/privatebrowsing;1" in Cc)) {
+    do_log_info("Private Browsing service is not available, bail out.");
+    run_next_test();
+    return;
+  }
 
-      uri_in_db(DOWNLOAD_URI, true);
-      uri_in_db(PRIVATE_URI, false);
-
-      waitForClearHistory(run_next_test);
-    });
-
-    let pb = Cc["@mozilla.org/privatebrowsing;1"]
-             .getService(Ci.nsIPrivateBrowsingService);
-    Services.prefs.setBoolPref("browser.privatebrowsing.keep_current_session",
-                               true);
-    pb.privateBrowsingEnabled = true;
-    gDownloadHistory.addDownload(PRIVATE_URI, REFERRER_URI, Date.now() * 1000);
-
+  waitForOnVisit(function DHAD_onVisit(aURI) {
     
     
-    pb.privateBrowsingEnabled = false;
-    Services.prefs.clearUserPref("browser.privatebrowsing.keep_current_session");
-    gDownloadHistory.addDownload(DOWNLOAD_URI, REFERRER_URI, Date.now() * 1000);
+    
+    
+    do_check_true(aURI.equals(DOWNLOAD_URI));
+
+    uri_in_db(DOWNLOAD_URI, true);
+    uri_in_db(PRIVATE_URI, false);
+
+    waitForClearHistory(run_next_test);
   });
-}
+
+  let pb = Cc["@mozilla.org/privatebrowsing;1"]
+           .getService(Ci.nsIPrivateBrowsingService);
+  Services.prefs.setBoolPref("browser.privatebrowsing.keep_current_session",
+                             true);
+  pb.privateBrowsingEnabled = true;
+  gDownloadHistory.addDownload(PRIVATE_URI, REFERRER_URI, Date.now() * 1000);
+
+  
+  
+  pb.privateBrowsingEnabled = false;
+  Services.prefs.clearUserPref("browser.privatebrowsing.keep_current_session");
+  gDownloadHistory.addDownload(DOWNLOAD_URI, REFERRER_URI, Date.now() * 1000);
+});
 
 add_test(function test_dh_addDownload_disabledHistory()
 {
