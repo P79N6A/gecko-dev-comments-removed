@@ -422,9 +422,6 @@ class FrameState
                         bool resultNeeded = true);
 
     
-    void ensureFullRegs(FrameEntry *fe);
-
-    
 
 
 
@@ -674,7 +671,7 @@ class FrameState
     RegisterID evictSomeReg(uint32 mask);
     void evictReg(RegisterID reg);
     inline FrameEntry *rawPush();
-    inline void addToTracker(FrameEntry *fe);
+    inline FrameEntry *addToTracker(uint32 index);
     inline void syncType(const FrameEntry *fe, Address to, Assembler &masm) const;
     inline void syncData(const FrameEntry *fe, Address to, Assembler &masm) const;
     inline FrameEntry *getLocal(uint32 slot);
@@ -697,7 +694,7 @@ class FrameState
     FrameEntry *uncopy(FrameEntry *original);
 
     FrameEntry *entryFor(uint32 index) const {
-        JS_ASSERT(entries[index].isTracked());
+        JS_ASSERT(base[index]);
         return &entries[index];
     }
 
@@ -710,7 +707,7 @@ class FrameState
     }
 
     uint32 indexOf(int32 depth) {
-        return uint32((sp + depth) - entries);
+        return uint32((sp + depth) - base);
     }
 
     uint32 indexOfFe(FrameEntry *fe) {
@@ -730,16 +727,19 @@ class FrameState
     FrameEntry *entries;
 
     
-    FrameEntry *args;
+    FrameEntry **base;
 
     
-    FrameEntry *locals;
+    FrameEntry **args;
 
     
-    FrameEntry *spBase;
+    FrameEntry **locals;
 
     
-    FrameEntry *sp;
+    FrameEntry **spBase;
+
+    
+    FrameEntry **sp;
 
     
     Tracker tracker;
