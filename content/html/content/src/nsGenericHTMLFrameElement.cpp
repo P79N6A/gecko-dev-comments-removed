@@ -9,6 +9,9 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsContentUtils.h"
 #include "mozilla/Preferences.h"
+#include "nsIAppsService.h"
+#include "nsServiceManagerUtils.h"
+#include "nsIDOMApplicationRegistry.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -268,6 +271,7 @@ nsGenericHTMLFrameElement::IsHTMLFocusable(bool aWithMouse,
 
 
 
+
 nsresult
 nsGenericHTMLFrameElement::GetReallyIsBrowser(bool *aOut)
 {
@@ -298,6 +302,50 @@ nsGenericHTMLFrameElement::GetReallyIsBrowser(bool *aOut)
 
   
   *aOut = true;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsGenericHTMLFrameElement::GetReallyIsApp(bool *aOut)
+{
+  nsAutoString manifestURL;
+  GetAppManifestURL(manifestURL);
+
+  *aOut = !manifestURL.IsEmpty();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsGenericHTMLFrameElement::GetAppManifestURL(nsAString& aOut)
+{
+  aOut.Truncate();
+
+  
+  bool isBrowser = false;
+  GetReallyIsBrowser(&isBrowser);
+  if (!isBrowser) {
+    return NS_OK;
+  }
+
+  
+  
+
+  nsAutoString manifestURL;
+  GetAttr(kNameSpaceID_None, nsGkAtoms::mozapp, manifestURL);
+  if (manifestURL.IsEmpty()) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
+  NS_ENSURE_STATE(appsService);
+
+  nsCOMPtr<mozIDOMApplication> app;
+  appsService->GetAppByManifestURL(manifestURL, getter_AddRefs(app));
+
+  if (app) {
+    aOut.Assign(manifestURL);
+  }
+
   return NS_OK;
 }
 
