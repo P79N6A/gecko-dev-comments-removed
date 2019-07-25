@@ -1,41 +1,41 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: sw=4 ts=4 et :
- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Plugin App.
- *
- * The Initial Developer of the Original Code is
- *   Chris Jones <jones.chris.g@gmail.com>
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "mozilla/ipc/AsyncChannel.h"
 #include "mozilla/ipc/BrowserProcessSubThread.h"
@@ -56,7 +56,7 @@ struct RunnableMethodTraits<mozilla::ipc::AsyncChannel>
 
 namespace {
 
-// This is an async message
+
 class GoodbyeMessage : public IPC::Message
 {
 public:
@@ -65,8 +65,8 @@ public:
         IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
     {
     }
-    // XXX not much point in implementing this; maybe could help with
-    // debugging?
+    
+    
     static bool Read(const Message* msg)
     {
         return true;
@@ -78,7 +78,7 @@ public:
     }
 };
 
-} // namespace <anon>
+} 
 
 namespace mozilla {
 namespace ipc {
@@ -109,21 +109,21 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
     NS_PRECONDITION(!mTransport, "Open() called > once");
     NS_PRECONDITION(aTransport, "need transport layer");
 
-    // FIXME need to check for valid channel
+    
 
     mTransport = aTransport;
     mTransport->set_listener(this);
 
-    // FIXME figure out whether we're in parent or child, grab IO loop
-    // appropriately
+    
+    
     bool needOpen = true;
     if(!aIOLoop) {
-        // parent
+        
         needOpen = false;
         aIOLoop = BrowserProcessSubThread
                   ::GetMessageLoop(BrowserProcessSubThread::IO);
-        // FIXME assuming that the parent waits for the OnConnected event.
-        // FIXME see GeckoChildProcessHost.cpp.  bad assumption!
+        
+        
         mChannelState = ChannelConnected;
     }
 
@@ -135,14 +135,14 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
     NS_ASSERTION(mIOLoop, "need an IO loop");
     NS_ASSERTION(mWorkerLoop, "need a worker loop");
 
-    if (needOpen) {             // child process
+    if (needOpen) {             
         MutexAutoLock lock(mMutex);
 
         mIOLoop->PostTask(FROM_HERE, 
                           NewRunnableMethod(this,
                                             &AsyncChannel::OnChannelOpened));
 
-        // FIXME/cjones: handle errors
+        
         while (mChannelState != ChannelConnected) {
             mCvar.Wait();
         }
@@ -161,11 +161,11 @@ AsyncChannel::Close()
 
         if (ChannelError == mChannelState ||
             ChannelTimeout == mChannelState) {
-            // See bug 538586: if the listener gets deleted while the
-            // IO thread's NotifyChannelError event is still enqueued
-            // and subsequently deletes us, then the error event will
-            // also be deleted and the listener will never be notified
-            // of the channel error.
+            
+            
+            
+            
+            
             if (mListener) {
                 MutexAutoUnlock unlock(mMutex);
                 NotifyMaybeChannelError();
@@ -174,32 +174,19 @@ AsyncChannel::Close()
         }
 
         if (ChannelConnected != mChannelState)
-            // XXX be strict about this until there's a compelling reason
-            // to relax
+            
+            
             NS_RUNTIMEABORT("Close() called on closed channel!");
 
         AssertWorkerThread();
 
-        // notify the other side that we're about to close our socket
+        
         SendSpecialMessage(new GoodbyeMessage());
 
         SynchronouslyClose();
     }
 
     NotifyChannelClosed();
-}
-
-void 
-AsyncChannel::SynchronouslyClose()
-{
-    AssertWorkerThread();
-    mMutex.AssertCurrentThreadOwns();
-
-    mIOLoop->PostTask(
-        FROM_HERE, NewRunnableMethod(this, &AsyncChannel::OnCloseChannel));
-
-    while (ChannelClosed != mChannelState)
-        mCvar.Wait();
 }
 
 void 
@@ -246,13 +233,13 @@ AsyncChannel::OnDispatchMessage(const Message& msg)
 
     if (MSG_ROUTING_NONE == msg.routing_id()) {
         if (!OnSpecialMessage(msg.type(), msg))
-            // XXX real error handling
+            
             NS_RUNTIMEABORT("unhandled special message!");
         return;
     }
 
-    // it's OK to dispatch messages if the channel is closed/error'd,
-    // since we don't have a reply to send back
+    
+    
 
     (void)MaybeHandleError(mListener->OnMessageReceived(msg), "AsyncChannel");
 }
@@ -283,8 +270,8 @@ bool
 AsyncChannel::ProcessGoodbyeMessage()
 {
     MutexAutoLock lock(mMutex);
-    // TODO sort out Close() on this side racing with Close() on the
-    // other side
+    
+    
     mChannelState = ChannelClosing;
 
     printf("NOTE: %s process received `Goodbye', closing down\n",
@@ -301,8 +288,8 @@ AsyncChannel::NotifyChannelClosed()
     if (ChannelClosed != mChannelState)
         NS_RUNTIMEABORT("channel should have been closed!");
 
-    // OK, the IO thread just closed the channel normally.  Let the
-    // listener know about it.
+    
+    
     mListener->OnChannelClose();
 
     Clear();
@@ -313,26 +300,26 @@ AsyncChannel::NotifyMaybeChannelError()
 {
     mMutex.AssertNotCurrentThreadOwns();
 
-    // OnChannelError holds mMutex when it posts this task and this task cannot
-    // be allowed to run until OnChannelError has exited. We enforce that order
-    // by grabbing the mutex here which should only continue once OnChannelError
-    // has completed.
+    
+    
+    
+    
     {
         MutexAutoLock lock(mMutex);
-        // Nothing to do here!
+        
     }
 
-    // TODO sort out Close() on this side racing with Close() on the
-    // other side
+    
+    
     if (ChannelClosing == mChannelState) {
-        // the channel closed, but we received a "Goodbye" message
-        // warning us about it. no worries
+        
+        
         mChannelState = ChannelClosed;
         NotifyChannelClosed();
         return;
     }
 
-    // Oops, error!  Let the listener know about it.
+    
     mChannelState = ChannelError;
     mListener->OnChannelError();
 
@@ -349,8 +336,8 @@ AsyncChannel::Clear()
     if (mTransport) {
         mTransport->set_listener(0);
 
-        // we only hold a weak ref to the transport, which is "owned"
-        // by GeckoChildProcess/GeckoThread
+        
+        
         mTransport = 0;
     }
     if (mChannelErrorTask) {
@@ -416,9 +403,9 @@ AsyncChannel::ReportConnectionError(const char* channelName)
     PrintErrorMessage(channelName, errorMsg);
 }
 
-//
-// The methods below run in the context of the IO thread
-//
+
+
+
 
 void
 AsyncChannel::OnMessageReceived(const Message& msg)
@@ -426,7 +413,7 @@ AsyncChannel::OnMessageReceived(const Message& msg)
     AssertIOThread();
     NS_ASSERTION(mChannelState != ChannelError, "Shouldn't get here!");
 
-    // wake up the worker, there's work to do
+    
     mWorkerLoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &AsyncChannel::OnDispatchMessage, msg));
@@ -437,7 +424,7 @@ AsyncChannel::OnChannelOpened()
 {
     AssertIOThread();
     mChannelState = ChannelOpening;
-    /*assert*/mTransport->Connect();
+    mTransport->Connect();
 }
 
 void
@@ -457,14 +444,14 @@ AsyncChannel::OnChannelError()
 
     MutexAutoLock lock(mMutex);
 
-    // NB: this can race with the `Goodbye' event being processed by
-    // the worker thread
+    
+    
     if (ChannelClosing != mChannelState)
         mChannelState = ChannelError;
 
     NS_ASSERTION(!mChannelErrorTask, "OnChannelError called twice?");
 
-    // This must be the last code that runs on this thread!
+    
     mChannelErrorTask =
         NewRunnableMethod(this, &AsyncChannel::NotifyMaybeChannelError);
     mWorkerLoop->PostTask(FROM_HERE, mChannelErrorTask);
@@ -475,7 +462,7 @@ AsyncChannel::OnSend(Message* aMsg)
 {
     AssertIOThread();
     mTransport->Send(aMsg);
-    // mTransport assumes ownership of aMsg
+    
 }
 
 void
@@ -491,5 +478,5 @@ AsyncChannel::OnCloseChannel()
 }
 
 
-} // namespace ipc
-} // namespace mozilla
+} 
+} 
