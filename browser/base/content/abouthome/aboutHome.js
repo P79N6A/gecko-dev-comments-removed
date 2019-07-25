@@ -165,6 +165,15 @@ function setupSearchEngine()
     logoElt.alt = gSearchEngine.name;
   }
 
+  
+  
+  
+  let searchText = document.getElementById("searchText");
+  searchText.addEventListener("blur", function searchText_onBlur(e) {
+    searchText.removeEventListener("blur", searchText_onBlur);
+    e.target.removeAttribute("autofocus");
+  });
+
 }
 
 function loadSnippets()
