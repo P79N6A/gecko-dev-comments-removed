@@ -64,19 +64,22 @@ class DOMSVGTransform;
 
 
 
-class DOMSVGTransformList : public nsIDOMSVGTransformList
+class DOMSVGTransformList : public nsIDOMSVGTransformList,
+                            public nsWrapperCache
 {
   friend class DOMSVGTransform;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGTransformList)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGTransformList)
   NS_DECL_NSIDOMSVGTRANSFORMLIST
 
   DOMSVGTransformList(DOMSVGAnimatedTransformList *aAList,
                       const SVGTransformList &aInternalList)
     : mAList(aAList)
   {
+    SetIsProxy();
+
     
     
     
@@ -94,6 +97,14 @@ public:
     }
   }
 
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+                               bool *triedToWrap);
+
+  nsISupports* GetParentObject()
+  {
+    return static_cast<nsIContent*>(Element());
+  }
+
   
 
 
@@ -104,8 +115,6 @@ public:
       "DOM wrapper's list length is out of sync");
     return mItems.Length();
   }
-
-  nsIDOMSVGTransform* GetItemWithoutAddRef(PRUint32 aIndex);
 
   
   void InternalListLengthWillChange(PRUint32 aNewLength);
