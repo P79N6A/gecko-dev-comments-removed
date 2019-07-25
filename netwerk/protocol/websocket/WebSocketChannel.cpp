@@ -573,7 +573,7 @@ WebSocketChannel::WebSocketChannel() :
   mStopOnClose(NS_OK),
   mServerCloseCode(CLOSE_ABNORMAL),
   mScriptCloseCode(0),
-  mFragmentOpcode(0),
+  mFragmentOpcode(kContinuation),
   mFragmentAccumulator(0),
   mBuffered(0),
   mBufferSize(16384),
@@ -863,7 +863,7 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
       
       
       if ((mFragmentAccumulator != 0) && (opcode != kContinuation)) {
-        LOG(("WebSocketHeandler:: nested fragments\n"));
+        LOG(("WebSocketChannel:: nested fragments\n"));
         AbortSession(NS_ERROR_ILLEGAL_VALUE);
         return NS_ERROR_ILLEGAL_VALUE;
       }
@@ -871,6 +871,14 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
       LOG(("WebSocketChannel:: Accumulating Fragment %lld\n", payloadLength));
 
       if (opcode == kContinuation) {
+
+        
+        if (mFragmentOpcode == kContinuation) {
+          LOG(("WebSocketHeandler:: continuation code in first fragment\n"));
+          AbortSession(NS_ERROR_ILLEGAL_VALUE);
+          return NS_ERROR_ILLEGAL_VALUE;
+        }
+
         
         
         NS_ABORT_IF_FALSE(mFramePtr + framingLength == payload,
@@ -890,6 +898,8 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
         avail += mFragmentAccumulator;
         mFragmentAccumulator = 0;
         opcode = mFragmentOpcode;
+        
+        mFragmentOpcode = kContinuation;
       } else {
         opcode = kContinuation;
         mFragmentAccumulator += payloadLength;
