@@ -34,6 +34,14 @@
 
 #include "nsRefPtrHashtable.h"
 
+#define A11Y_TRYBLOCK_BEGIN                                                    \
+  __try {
+
+#define A11Y_TRYBLOCK_END                                                      \
+  } __except(nsAccessNodeWrap::FilterA11yExceptions(::GetExceptionCode(),      \
+                                                    GetExceptionInformation()))\
+  { }                                                                          \
+  return E_FAIL;
 
 class AccTextChangeEvent;
 
@@ -46,18 +54,20 @@ class nsAccessNodeWrap :  public nsAccessNode,
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIWINACCESSNODE
 
-  public: 
-    STDMETHODIMP QueryService(REFGUID guidService, REFIID riid, void** ppv);
-
 public: 
   nsAccessNodeWrap(nsIContent* aContent, DocAccessible* aDoc);
   virtual ~nsAccessNodeWrap();
 
-    
-    STDMETHODIMP QueryInterface(REFIID, void**);
+  
+  virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID aIID,
+                                                   void** aInstancePtr);
 
-  public:
+  
+  virtual HRESULT STDMETHODCALLTYPE QueryService(REFGUID aGuidService,
+                                                 REFIID aIID,
+                                                 void** aInstancePtr);
 
+  
     virtual  HRESULT STDMETHODCALLTYPE get_nodeInfo( 
          BSTR __RPC_FAR *tagName,
          short __RPC_FAR *nameSpaceID,

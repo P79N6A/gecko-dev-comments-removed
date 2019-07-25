@@ -22,12 +22,7 @@ public:
     mCurAcc(mAnchorAcc->GetChildAt(0)), mCurIndex(0), mRefCnt(0) { }
 
   
-  virtual HRESULT STDMETHODCALLTYPE QueryInterface(
-     REFIID aRefIID,
-     void** aObject);
-
-  virtual ULONG STDMETHODCALLTYPE AddRef();
-  virtual ULONG STDMETHODCALLTYPE Release();
+  DECL_IUNKNOWN
 
   
   virtual  HRESULT STDMETHODCALLTYPE Next(
@@ -56,9 +51,6 @@ protected:
   nsRefPtr<AccessibleWrap> mAnchorAcc;
   Accessible* mCurAcc;
   PRUint32 mCurIndex;
-
-private:
-  ULONG mRefCnt;
 };
 
 } 
