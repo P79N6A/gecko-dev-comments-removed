@@ -247,6 +247,10 @@ nsSVGGlyphFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
 {
   ClearTextRun();
   NotifyGlyphMetricsChange();
+  if (IsTextEmpty()) {
+    
+    nsSVGUtils::UpdateGraphic(this);
+  }
 
   return NS_OK;
 }
