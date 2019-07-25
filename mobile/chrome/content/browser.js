@@ -172,7 +172,7 @@ function onDebugKeyPress(ev) {
     return;
 
   
-  
+
   const a = 65;   
   const b = 66;   
   const c = 67;   
@@ -2431,8 +2431,7 @@ Tab.prototype = {
     if (!this._browser)
       return;
 
-    
-    let srcCanvas = (Browser.selectedBrowser == this._browser) ? document.getElementById("browser-canvas") : null;
-    this._chromeTab.updateThumbnail(this._browser, srcCanvas);
+    let browserView = (Browser.selectedBrowser == this._browser) ? Browser._browserView : null;
+    this._chromeTab.updateThumbnail(this._browser, browserView);
   }
 };
