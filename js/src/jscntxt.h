@@ -2089,6 +2089,9 @@ struct JSContext
     
     void setCurrentRegs(JSFrameRegs *regs) {
         this->regs = regs;
+
+        JSObject *obj = JS_GetGlobalForScopeChain(this);
+        compartment = obj ? obj->getCompartment(this) : runtime->defaultCompartment;
     }
 
     
