@@ -103,6 +103,34 @@ window.Rect.prototype = {
   },
   
   
+  
+  
+  
+  
+  
+  
+  containsPoint: function(point){
+    return( point.x > this.left
+         && point.x < this.right
+         && point.y > this.top
+         && point.y < this.bottom )
+  },
+  
+  
+  
+  
+  
+  
+  
+  
+  contains: function(rect){
+    return( rect.left > this.left
+         && rect.right < this.right
+         && rect.top > this.top
+         && rect.bottom < this.bottom )
+  },
+  
+  
   center: function() {
     return new Point(this.left + (this.width / 2), this.top + (this.height / 2));
   },
