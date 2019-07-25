@@ -505,6 +505,7 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC aFormat, LPSTGMEDIUM pSTM)
 
       
       case CF_DIBV5:
+      case CF_DIB:
         return GetDib(df, *aFormat, *pSTM);
 
       default:
@@ -792,7 +793,9 @@ HRESULT nsDataObj::AddGetFormat(FORMATETC& aFE)
 
 
 HRESULT 
-nsDataObj :: GetDib ( const nsACString& inFlavor, FORMATETC &, STGMEDIUM & aSTG )
+nsDataObj::GetDib(const nsACString& inFlavor,
+                  FORMATETC &aFormat,
+                  STGMEDIUM & aSTG)
 {
   ULONG result = E_FAIL;
   uint32_t len = 0;
@@ -811,7 +814,7 @@ nsDataObj :: GetDib ( const nsACString& inFlavor, FORMATETC &, STGMEDIUM & aSTG 
   if ( image ) {
     
     
-    nsImageToClipboard converter ( image );
+    nsImageToClipboard converter(image, aFormat.cfFormat == CF_DIBV5);
     HANDLE bits = nullptr;
     nsresult rv = converter.GetPicture ( &bits );
     if ( NS_SUCCEEDED(rv) && bits ) {

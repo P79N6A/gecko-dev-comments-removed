@@ -27,7 +27,7 @@
 class nsImageToClipboard
 {
 public:
-  nsImageToClipboard ( imgIContainer* inImage );
+  nsImageToClipboard(imgIContainer* aInImage, bool aWantDIBV5 = true);
   ~nsImageToClipboard();
 
     
@@ -46,6 +46,7 @@ private:
   nsresult CreateFromImage ( imgIContainer* inImage, HANDLE* outBitmap );
 
   nsCOMPtr<imgIContainer> mImage;            
+  bool mWantDIBV5;
 
 }; 
 
