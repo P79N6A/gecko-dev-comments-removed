@@ -2114,7 +2114,14 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             return MakeUpvarForEval(pn, cg);
         }
 
-        if (cg->compileAndGo() && cg->compiler()->globalScope->globalObj) { 
+        
+
+
+
+
+        if (cg->compileAndGo() && 
+            cg->compiler()->globalScope->globalObj &&
+            !(cg->flags & TCF_STRICT_MODE_CODE)) { 
             switch (op) {
               case JSOP_NAME:     op = JSOP_GETGNAME; break;
               case JSOP_SETNAME:  op = JSOP_SETGNAME; break;
@@ -2405,7 +2412,7 @@ JSCodeGenerator::addGlobalUse(JSAtom *atom, uint32 slot, UpvarCookie &cookie)
 {
     JSAtomListElement *ale = globalMap.lookup(atom);
     if (ale) {
-        cookie.set(0, ALE_INDEX(ale));
+        cookie.set(0, uint16(ALE_INDEX(ale)));
         return true;
     }
 
