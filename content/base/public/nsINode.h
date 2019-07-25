@@ -755,9 +755,9 @@ public:
 
 
 
-  nsINode* GetElementParent() const
+  mozilla::dom::Element* GetElementParent() const
   {
-    return mParent && mParent->IsElement() ? mParent : nsnull;
+    return mParent && mParent->IsElement() ? mParent->AsElement() : nsnull;
   }
 
   
