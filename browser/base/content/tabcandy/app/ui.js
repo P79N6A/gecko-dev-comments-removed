@@ -23,6 +23,7 @@ window.Page = {
   startX: 30, 
   startY: 70,
     
+  
   init: function() {    
     Utils.homeTab.raw.maxWidth = 60;
     Utils.homeTab.raw.minWidth = 60;
@@ -76,6 +77,7 @@ window.Page = {
       function(){Tabbar.show()}      
     );
   },
+  
   
   findOpenSpaceFor: function($div) {
     var w = window.innerWidth;
@@ -163,7 +165,6 @@ window.Page = {
 }
 
 
-
 function ArrangeClass(name, func){ this.init(name, func); };
 ArrangeClass.prototype = {
   init: function(name, func){
@@ -178,89 +179,106 @@ ArrangeClass.prototype = {
 }
 
 
-
-var grid = new ArrangeClass("Grid", function(value) {
-  if(typeof(Groups) != 'undefined')
-    Groups.removeAll();
-
-  var immediately = false;
-  if(typeof(value) == 'boolean')
-    immediately = value;
-
-  var box = new Rect(Page.startX, Page.startY, TabItems.tabWidth, TabItems.tabHeight); 
-  $(".tab:visible").each(function(i){
-    var item = Items.item(this);
-    item.setBounds(box, immediately);
-    
-    box.left += box.width + 30;
-    if( box.left > window.innerWidth - (box.width + Page.startX)){ 
-      box.left = Page.startX;
-      box.top += box.height + 30;
-    }
-  });
-});
-    
-
-var site = new ArrangeClass("Site", function() {
-  Groups.removeAll();
+function UIClass(){ 
+  this.navBar = Navbar;
+  this.tabBar = Tabbar;
+  this.devMode = false;
   
-  var groups = [];
-  $(".tab:visible").each(function(i) {
-    $el = $(this);
-    var tab = Tabs.tab(this);
-    
-    var url = tab.url; 
-    var domain = url.split('/')[2]; 
-    var domainParts = domain.split('.');
-    var mainDomain = domainParts[domainParts.length - 2];
-    if(groups[mainDomain]) 
-      groups[mainDomain].push($(this));
-    else 
-      groups[mainDomain] = [$(this)];
+  var self = this;
+  
+  
+  var params = document.location.search.replace('?', '').split('&');
+  $.each(params, function(index, param) {
+    var parts = param.split('=');
+    if(parts[0] == 'dev' && parts[1] == '1') 
+      self.devMode = true;
   });
   
-  var createOptions = {dontPush: true, dontArrange: true};
   
-  var leftovers = [];
-  for(key in groups) {
-    var set = groups[key];
-    if(set.length > 1) {
-      group = new Group(set, createOptions);
-    } else
-      leftovers.push(set[0]);
+  if(this.devMode) {
+    Switch.insert('#nav', '');
+    this._addArrangements();
   }
   
+  
+  this.navBar.hide();
 
-    group = new Group(leftovers, createOptions);
+  Utils.homeTab.onFocus(function(){
+    self.navBar.hide();
+  });
+  
+  $(window).blur(function(){
+    self.navBar.show();
+  });
 
   
-  Groups.arrange();
-});
+  Page.init();
+};
 
 
-var Arrange = {
-  initialized: false,
-
-  init: function(){
-    this.initialized = true;
-    grid.arrange(true);
-  }
-}
-
-
-function UIClass(){ this.init(); };
 UIClass.prototype = {
-  navbar: Navbar,
-  tabbar: Tabbar,
-  init: function(){
-    Page.init();
-    Arrange.init();
+  _addArrangements: function() {
+    this.grid = new ArrangeClass("Grid", function(value) {
+      if(typeof(Groups) != 'undefined')
+        Groups.removeAll();
+    
+      var immediately = false;
+      if(typeof(value) == 'boolean')
+        immediately = value;
+    
+      var box = new Rect(Page.startX, Page.startY, TabItems.tabWidth, TabItems.tabHeight); 
+      $(".tab:visible").each(function(i){
+        var item = Items.item(this);
+        item.setBounds(box, immediately);
+        
+        box.left += box.width + 30;
+        if( box.left > window.innerWidth - (box.width + Page.startX)){ 
+          box.left = Page.startX;
+          box.top += box.height + 30;
+        }
+      });
+    });
+        
+    this.site = new ArrangeClass("Site", function() {
+      Groups.removeAll();
+      
+      var groups = [];
+      $(".tab:visible").each(function(i) {
+        $el = $(this);
+        var tab = Tabs.tab(this);
+        
+        var url = tab.url; 
+        var domain = url.split('/')[2]; 
+        var domainParts = domain.split('.');
+        var mainDomain = domainParts[domainParts.length - 2];
+        if(groups[mainDomain]) 
+          groups[mainDomain].push($(this));
+        else 
+          groups[mainDomain] = [$(this)];
+      });
+      
+      var createOptions = {dontPush: true, dontArrange: true};
+      
+      var leftovers = [];
+      for(key in groups) {
+        var set = groups[key];
+        if(set.length > 1) {
+          group = new Group(set, createOptions);
+        } else
+          leftovers.push(set[0]);
+      }
+      
+    
+        group = new Group(leftovers, createOptions);
+    
+      
+      Groups.arrange();
+    });
   }
-}
+};
 
 
-var UI = new UIClass();
-window.UI = UI;
+window.UI = new UIClass();
 
 })();
 

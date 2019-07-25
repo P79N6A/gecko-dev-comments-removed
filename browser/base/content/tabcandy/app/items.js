@@ -219,6 +219,87 @@ window.Items = {
     });
     
     return items;
+  }, 
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  arrange: function(items, bounds, options) {
+    var animate;
+    if(!options || typeof(options.animate) == 'undefined') 
+      animate = true;
+    else 
+      animate = options.animate;
+
+    if(typeof(options) == 'undefined')
+      options = {};
+    
+    var tabAspect = TabItems.tabHeight / TabItems.tabWidth;
+    var count = items.length;
+    if(!count)
+      return;
+      
+    var columns = 1;
+    var padding = options.padding || 0;
+    var yScale = 1.1; 
+    var rows;
+    var tabWidth;
+    var tabHeight;
+    var totalHeight;
+
+    function figure() {
+      rows = Math.ceil(count / columns);          
+      tabWidth = (bounds.width - (padding * (columns - 1))) / columns;
+      tabHeight = tabWidth * tabAspect; 
+      totalHeight = (tabHeight * yScale * rows) + (padding * (rows - 1)); 
+    } 
+    
+    figure();
+    
+    while(rows > 1 && totalHeight > bounds.height) {
+      columns++; 
+      figure();
+    }
+    
+    if(rows == 1) {
+      tabWidth = Math.min(bounds.width / count, bounds.height / tabAspect);
+      tabHeight = tabWidth * tabAspect;
+    }
+    
+    var box = new Rect(bounds.left, bounds.top, tabWidth, tabHeight);
+    var row = 0;
+    var column = 0;
+    var immediately;
+    
+    $.each(items, function(index, item) {
+
+
+
+
+
+        immediately = !animate;
+        
+      item.setBounds(box, immediately);
+
+
+
+
+      
+      box.left += box.width + padding;
+      column++;
+      if(column == columns) {
+        box.left = bounds.left;
+        box.top += (box.height * yScale) + padding;
+        column = 0;
+        row++;
+      }
+    });
   }
 };
 
