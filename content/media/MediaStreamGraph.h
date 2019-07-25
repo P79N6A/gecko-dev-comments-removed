@@ -108,6 +108,22 @@ public:
 
 
   virtual void NotifyFinished(MediaStreamGraph* aGraph) {}
+
+  enum {
+    TRACK_EVENT_CREATED = 0x01,
+    TRACK_EVENT_ENDED = 0x02
+  };
+  
+
+
+
+
+
+  virtual void NotifyQueuedTrackChanges(MediaStreamGraph* aGraph, TrackID aID,
+                                        TrackRate aTrackRate,
+                                        TrackTicks aTrackOffset,
+                                        PRUint32 aTrackEvents,
+                                        const MediaSegment& aQueuedMedia) {}
 };
 
 class MediaStreamGraphImpl;
@@ -419,8 +435,8 @@ public:
     nsCOMPtr<nsIRunnable> mRunnable;
   };
   enum TrackCommands {
-    TRACK_CREATE = 0x01,
-    TRACK_END = 0x02
+    TRACK_CREATE = MediaStreamListener::TRACK_EVENT_CREATED,
+    TRACK_END = MediaStreamListener::TRACK_EVENT_ENDED
   };
   
 
