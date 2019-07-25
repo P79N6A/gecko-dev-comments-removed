@@ -383,6 +383,9 @@ ClearAllFrames(JSCompartment *compartment)
          f != NULL;
          f = f->previous) {
 
+        Recompiler::patchFrame(compartment, f, f->fp()->script());
+
+        
         
         
         
@@ -390,7 +393,8 @@ ClearAllFrames(JSCompartment *compartment)
         
         
 
-        Recompiler::patchFrame(compartment, f, f->fp()->script());
+        for (StackFrame *fp = f->fp(); fp != f->entryfp; fp = fp->prev())
+            fp->setNativeReturnAddress(NULL);
     }
 }
 
