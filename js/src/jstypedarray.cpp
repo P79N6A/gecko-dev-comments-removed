@@ -549,6 +549,10 @@ ArrayBuffer::obj_setGeneric(JSContext *cx, JSObject *obj, jsid id, Value *vp, JS
         if (delegate->getProto() != oldDelegateProto) {
             
             
+            if (!obj->isExtensible()) {
+                obj->reportNotExtensible(cx);
+                return false;
+            }
             if (!SetProto(cx, obj, vp->toObjectOrNull(), true)) {
                 
                 
