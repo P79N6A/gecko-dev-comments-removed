@@ -273,7 +273,7 @@ public:
         mFamily = aFamily;
     }
 
-    const nsString& FamilyName() const;
+    virtual nsString FamilyName() const;
 
     already_AddRefed<gfxFont> FindOrMakeFont(const gfxFontStyle *aStyle,
                                              PRBool aNeedsBold);
@@ -605,10 +605,23 @@ protected:
 };
 
 struct gfxTextRange {
-    gfxTextRange(PRUint32 aStart,  PRUint32 aEnd) : start(aStart), end(aEnd) { }
+    enum {
+        
+        kFontGroup      = 0x0001,
+        kPrefsFallback  = 0x0002,
+        kSystemFallback = 0x0004
+    };
+    gfxTextRange(PRUint32 aStart, PRUint32 aEnd,
+                 gfxFont* aFont, PRUint8 aMatchType)
+        : start(aStart),
+          end(aEnd),
+          font(aFont),
+          matchType(aMatchType)
+    { }
     PRUint32 Length() const { return end - start; }
-    nsRefPtr<gfxFont> font;
     PRUint32 start, end;
+    nsRefPtr<gfxFont> font;
+    PRUint8 matchType;
 };
 
 
@@ -1871,6 +1884,7 @@ public:
     struct GlyphRun {
         nsRefPtr<gfxFont> mFont;   
         PRUint32          mCharacterOffset; 
+        PRUint8           mMatchType;
     };
 
     class THEBES_API GlyphRunIterator {
@@ -1926,7 +1940,8 @@ public:
 
 
 
-    nsresult AddGlyphRun(gfxFont *aFont, PRUint32 aStartCharIndex, PRBool aForceNewRun = PR_FALSE);
+    nsresult AddGlyphRun(gfxFont *aFont, PRUint8 aMatchType,
+                         PRUint32 aStartCharIndex, PRBool aForceNewRun);
     void ResetGlyphRuns() { mGlyphRuns.Clear(); }
     void SortGlyphRuns();
     void SanitizeGlyphRuns();
@@ -2225,7 +2240,7 @@ private:
 
     
     
-    nsAutoTArray<GlyphRun,1>                       mGlyphRuns;
+    nsAutoTArray<GlyphRun,1>        mGlyphRuns;
     
     
     
@@ -2352,7 +2367,8 @@ public:
 
     virtual already_AddRefed<gfxFont>
         FindFontForChar(PRUint32 ch, PRUint32 prevCh, PRInt32 aRunScript,
-                        gfxFont *aPrevMatchedFont);
+                        gfxFont *aPrevMatchedFont,
+                        PRUint8 *aMatchType);
 
     
     virtual already_AddRefed<gfxFont> WhichPrefFontSupportsChar(PRUint32 aCh);
