@@ -232,7 +232,7 @@ CssLogic.prototype = {
     
     this.forEachSheet(function(aSheet) {
       aSheet._sheetAllowed = -1;
-      if (aSheet.contentSheet && aSheet.sheetAllowed) {
+      if (!aSheet.systemSheet && aSheet.sheetAllowed) {
         ruleCount += aSheet.ruleCount;
       }
     }, this);
@@ -345,7 +345,7 @@ CssLogic.prototype = {
 
     let sheets = [];
     this.forEachSheet(function (aSheet) {
-      if (aSheet.contentSheet) {
+      if (!aSheet.systemSheet) {
         sheets.push(aSheet);
       }
     }, this);
@@ -395,7 +395,7 @@ CssLogic.prototype = {
       }
 
       sheet = new CssSheet(this, aDomSheet, aIndex);
-      if (sheet.sheetAllowed && sheet.contentSheet) {
+      if (sheet.sheetAllowed && !sheet.systemSheet) {
         this._ruleCount += sheet.ruleCount;
       }
 
@@ -569,7 +569,7 @@ CssLogic.prototype = {
 
     this.forEachSheet(function (aSheet) {
       
-      if (!aSheet.contentSheet || aSheet.disabled || !aSheet.mediaMatches) {
+      if (aSheet.systemSheet || aSheet.disabled || !aSheet.mediaMatches) {
         return;
       }
 
@@ -664,7 +664,7 @@ CssLogic.prototype = {
           sheet._passId = this._passId;
         }
 
-        if (filter === CssLogic.FILTER.ALL && !sheet.contentSheet) {
+        if (filter !== CssLogic.FILTER.UA && sheet.systemSheet) {
           continue;
         }
 
@@ -710,7 +710,7 @@ CssLogic.prototype = {
     let result = {};
 
     this.forSomeSheets(function (aSheet) {
-      if (!aSheet.contentSheet || aSheet.disabled || !aSheet.mediaMatches) {
+      if (aSheet.systemSheet || aSheet.disabled || !aSheet.mediaMatches) {
         return false;
       }
 
@@ -871,17 +871,23 @@ XPCOMUtils.defineLazyGetter(CssLogic, "_strings", function() Services.strings
 
 
 
-CssLogic.isContentStylesheet = function CssLogic_isContentStylesheet(aSheet)
+CssLogic.isSystemStyleSheet = function CssLogic_isSystemStyleSheet(aSheet)
 {
-  
-  if (aSheet.ownerNode) {
+  if (!aSheet) {
     return true;
   }
 
+  let url = aSheet.href;
+
+  if (!url) return false;
+  if (url.length === 0) return true;
+
   
-  if (aSheet.ownerRule instanceof Ci.nsIDOMCSSImportRule) {
-    return CssLogic.isContentStylesheet(aSheet.parentStyleSheet);
-  }
+  if (url[0] === 'h') return false;
+  if (url.substr(0, 9) === "resource:") return true;
+  if (url.substr(0, 7) === "chrome:") return true;
+  if (url === "XPCSafeJSObjectWrapper.cpp") return true;
+  if (url.substr(0, 6) === "about:") return true;
 
   return false;
 };
@@ -936,7 +942,7 @@ function CssSheet(aCssLogic, aDomSheet, aIndex)
 {
   this._cssLogic = aCssLogic;
   this.domSheet = aDomSheet;
-  this.index = this.contentSheet ? aIndex : -100 * aIndex;
+  this.index = this.systemSheet ? -100 * aIndex : aIndex;
 
   
   this._href = null;
@@ -954,7 +960,7 @@ function CssSheet(aCssLogic, aDomSheet, aIndex)
 
 CssSheet.prototype = {
   _passId: null,
-  _contentSheet: null,
+  _systemSheet: null,
   _mediaMatches: null,
 
   
@@ -963,12 +969,12 @@ CssSheet.prototype = {
 
 
 
-  get contentSheet()
+  get systemSheet()
   {
-    if (this._contentSheet === null) {
-      this._contentSheet = CssLogic.isContentStylesheet(this.domSheet);
+    if (this._systemSheet === null) {
+      this._systemSheet = CssLogic.isSystemStyleSheet(this.domSheet);
     }
-    return this._contentSheet;
+    return this._systemSheet;
   },
 
   
@@ -1042,7 +1048,7 @@ CssSheet.prototype = {
     this._sheetAllowed = true;
 
     let filter = this._cssLogic.sourceFilter;
-    if (filter === CssLogic.FILTER.ALL && !this.contentSheet) {
+    if (filter === CssLogic.FILTER.ALL && this.systemSheet) {
       this._sheetAllowed = false;
     }
     if (filter !== CssLogic.FILTER.ALL && filter !== CssLogic.FILTER.UA) {
@@ -1196,13 +1202,13 @@ function CssRule(aCssSheet, aDomRule, aElement)
     this.line = this._cssSheet._cssLogic.domUtils.getRuleLine(this._domRule);
     this.source = this._cssSheet.shortSource + ":" + this.line;
     this.href = this._cssSheet.href;
-    this.contentRule = this._cssSheet.contentSheet;
+    this.systemRule = this._cssSheet.systemSheet;
   } else if (aElement) {
     this._selectors = [ new CssSelector(this, "@element.style") ];
     this.line = -1;
     this.source = CssLogic.l10n("rule.sourceElement");
     this.href = "#";
-    this.contentRule = true;
+    this.systemRule = false;
     this.sourceElement = aElement;
   }
 }
@@ -1393,9 +1399,9 @@ CssSelector.prototype = {
 
 
 
-  get contentRule()
+  get systemRule()
   {
-    return this._cssRule.contentRule;
+    return this._cssRule.systemRule;
   },
 
   
@@ -1788,12 +1794,12 @@ function CssSelectorInfo(aSelector, aProperty, aValue, aStatus)
 
 
 
-  let scorePrefix = this.contentRule ? 2 : 0;
+  let scorePrefix = this.systemRule ? 0 : 2;
   if (this.elementStyle) {
     scorePrefix++;
   }
   if (this.important) {
-    scorePrefix += this.contentRule ? 2 : 1;
+    scorePrefix += this.systemRule ? 1 : 2;
   }
 
   this.specificityScore = "" + scorePrefix + this.specificity.ids +
@@ -1896,9 +1902,9 @@ CssSelectorInfo.prototype = {
 
 
 
-  get contentRule()
+  get systemRule()
   {
-    return this.selector.contentRule;
+    return this.selector.systemRule;
   },
 
   
@@ -1910,8 +1916,8 @@ CssSelectorInfo.prototype = {
 
   compareTo: function CssSelectorInfo_compareTo(aThat)
   {
-    if (!this.contentRule && aThat.contentRule) return 1;
-    if (this.contentRule && !aThat.contentRule) return -1;
+    if (this.systemRule && !aThat.systemRule) return 1;
+    if (!this.systemRule && aThat.systemRule) return -1;
 
     if (this.elementStyle && !aThat.elementStyle) {
       if (!this.important && aThat.important) return 1;
