@@ -1321,7 +1321,7 @@ abstract public class GeckoApp
                 
                 
                 
-                if (tab.getState() != tab.STATE_LOADING) {
+                if (tab.getState() != Tab.STATE_LOADING) {
                     mMainHandler.post(new Runnable() {
                         public void run() {
                             loadFavicon(tab);
