@@ -145,6 +145,10 @@ ResolveNativeProperty(JSContext *cx, JSObject *holder, jsid id, bool set,
 
     
     if (NATIVE_HAS_FLAG(wn, WantNewResolve)) {
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, holder))
+            return false;
+
         JSBool retval = true;
         JSObject *pobj = NULL;
         uintN flags = cx->resolveFlags | (set ? JSRESOLVE_ASSIGNING : 0);
