@@ -46,6 +46,7 @@
 #include "nsGkAtoms.h"
 #include "nsIFrame.h"
 #include "nsIPopupBoxObject.h"
+#include "nsMenuPopupFrame.h"
 #include "nsIServiceManager.h"
 #ifdef MOZ_XUL
 #include "nsIDOMNSDocument.h"
@@ -156,6 +157,7 @@ nsXULTooltipListener::MouseOut(nsIDOMEvent* aMouseEvent)
     return NS_OK;
 #endif
 
+#ifdef MOZ_XUL
   
   
   if (currentTooltip) {
@@ -164,26 +166,23 @@ nsXULTooltipListener::MouseOut(nsIDOMEvent* aMouseEvent)
     aMouseEvent->GetTarget(getter_AddRefs(eventTarget));
     nsCOMPtr<nsIDOMNode> targetNode(do_QueryInterface(eventTarget));
 
-    
-    nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(currentTooltip->GetDocument()));
-    if (!xulDoc)     
-      return NS_OK;  
-    nsCOMPtr<nsIDOMNode> tooltipNode;
-    xulDoc->TrustedGetTooltipNode (getter_AddRefs(tooltipNode));
-
-    
-    
-    if (tooltipNode == targetNode) {
-      HideTooltip();
-#ifdef MOZ_XUL
-      
-      if (mIsSourceTree) {
-        mLastTreeRow = -1;
-        mLastTreeCol = nsnull;
+    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+    if (pm) {
+      nsCOMPtr<nsIDOMNode> tooltipNode =
+        pm->GetLastTriggerTooltipNode(currentTooltip->GetCurrentDoc());
+      if (tooltipNode == targetNode) {
+        
+        
+        HideTooltip();
+        
+        if (mIsSourceTree) {
+          mLastTreeRow = -1;
+          mLastTreeCol = nsnull;
+        }
       }
-#endif
     }
   }
+#endif
 
   return NS_OK;
 }
@@ -449,8 +448,6 @@ nsXULTooltipListener::ShowTooltip()
       }
 #endif
 
-      nsCOMPtr<nsIDOMNode> targetNode = do_QueryReferent(mTargetNode);
-      xulDoc->SetTooltipNode(targetNode);
       mCurrentTooltip = do_GetWeakReference(tooltipNode);
       LaunchTooltip();
       mTargetNode = nsnull;
@@ -707,10 +704,6 @@ nsXULTooltipListener::DestroyTooltip()
     
     nsCOMPtr<nsIDocument> doc = currentTooltip->GetDocument();
     if (doc) {
-      nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(doc));
-      if (xulDoc)
-        xulDoc->SetTooltipNode(nsnull);
-
       
       nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(doc));
       evtTarget->RemoveEventListener(NS_LITERAL_STRING("DOMMouseScroll"), static_cast<nsIDOMMouseListener*>(this), PR_TRUE);

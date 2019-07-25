@@ -3340,7 +3340,7 @@ DocumentViewerImpl::GetPopupNode(nsIDOMNode** aNode)
     NS_ENSURE_TRUE(root, NS_ERROR_FAILURE);
 
     
-    root->GetPopupNode(aNode); 
+    NS_IF_ADDREF(*aNode = root->GetPopupNode());
   }
 
   return NS_OK;

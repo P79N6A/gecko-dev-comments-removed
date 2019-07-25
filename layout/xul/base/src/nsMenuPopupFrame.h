@@ -231,12 +231,25 @@ public:
   PRBool IsOpen() { return mPopupState == ePopupOpen || mPopupState == ePopupOpenAndVisible; }
 
   
+  nsMenuFrame* GetParentMenu() {
+    nsIFrame* parent = GetParent();
+    if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
+      return static_cast<nsMenuFrame *>(parent);
+    }
+    return nsnull;
+  }
+
+  nsIContent* GetTriggerContent() { return mTriggerContent; }
+  void SetTriggerContent(nsIContent* aTriggerContent) { mTriggerContent = aTriggerContent; }
+
+  
   
   PRBool IsInContentShell() { return mInContentShell; }
 
   
   
   void InitializePopup(nsIContent* aAnchorContent,
+                       nsIContent* aTriggerContent,
                        const nsAString& aPosition,
                        PRInt32 aXPos, PRInt32 aYPos,
                        PRBool aAttributesOverride);
@@ -246,7 +259,8 @@ public:
 
 
 
-  void InitializePopupAtScreen(PRInt32 aXPos, PRInt32 aYPos,
+  void InitializePopupAtScreen(nsIContent* aTriggerContent,
+                               PRInt32 aXPos, PRInt32 aYPos,
                                PRBool aIsContextMenu);
 
   void InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
@@ -365,6 +379,10 @@ protected:
   
   
   nsCOMPtr<nsIContent> mAnchorContent;
+
+  
+  
+  nsCOMPtr<nsIContent> mTriggerContent;
 
   nsMenuFrame* mCurrentMenu; 
 

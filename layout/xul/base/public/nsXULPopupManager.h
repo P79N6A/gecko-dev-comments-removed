@@ -409,7 +409,6 @@ public:
 
 
 
-
   void ShowPopup(nsIContent* aPopup,
                  nsIContent* aAnchorContent,
                  const nsAString& aPosition,
@@ -523,6 +522,21 @@ public:
 
 
 
+  already_AddRefed<nsIDOMNode> GetLastTriggerPopupNode(nsIDocument* aDocument)
+  {
+    return GetLastTriggerNode(aDocument, PR_FALSE);
+  }
+
+  already_AddRefed<nsIDOMNode> GetLastTriggerTooltipNode(nsIDocument* aDocument)
+  {
+    return GetLastTriggerNode(aDocument, PR_TRUE);
+  }
+
+  
+
+
+
+
   PRBool MayShowPopup(nsMenuPopupFrame* aFrame);
 
   
@@ -616,7 +630,7 @@ protected:
   nsMenuFrame* GetMenuFrameForContent(nsIContent* aContent);
 
   
-  nsMenuPopupFrame* GetPopupFrameForContent(nsIContent* aContent);
+  nsMenuPopupFrame* GetPopupFrameForContent(nsIContent* aContent, PRBool aShouldFlush);
 
   
   nsMenuChainItem* GetTopVisibleMenu();
@@ -630,7 +644,7 @@ protected:
 
   
   
-  void SetTriggerEvent(nsIDOMEvent* aEvent, nsIContent* aPopup);
+  void InitTriggerEvent(nsIDOMEvent* aEvent, nsIContent* aPopup, nsIContent** aTriggerContent);
 
   
   void ShowPopupCallback(nsIContent* aPopup,
@@ -712,6 +726,8 @@ private:
 
 protected:
 
+  already_AddRefed<nsIDOMNode> GetLastTriggerNode(nsIDocument* aDocument, PRBool aIsTooltip);
+
   
 
 
@@ -764,6 +780,10 @@ protected:
 
   
   nsMenuPopupFrame* mTimerMenu;
+
+  
+  
+  nsCOMPtr<nsIContent> mOpeningPopup;
 };
 
 nsresult

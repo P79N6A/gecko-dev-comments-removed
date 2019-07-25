@@ -221,18 +221,6 @@ nsXULPopupListener::PreLaunchPopup(nsIDOMEvent* aMouseEvent)
       return NS_OK;
   }
 
-  
-  nsCOMPtr<nsIContent> content = do_QueryInterface(mElement);
-
-  
-  nsCOMPtr<nsIDOMXULDocument> xulDocument = do_QueryInterface(content->GetDocument());
-  if (!xulDocument) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  xulDocument->SetPopupNode(targetNode);
-
   nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aMouseEvent));
 
   if (mIsContext) {
