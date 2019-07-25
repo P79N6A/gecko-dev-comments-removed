@@ -97,14 +97,14 @@ const jstype TYPE_UNKNOWN = 7;
 static inline bool
 TypeIsPrimitive(jstype type)
 {
-    JS_ASSERT(type && type != TYPE_UNKNOWN);
+    JS_ASSERT(type);
     return type < TYPE_UNKNOWN;
 }
 
 static inline bool
 TypeIsObject(jstype type)
 {
-    JS_ASSERT(type && type != TYPE_UNKNOWN);
+    JS_ASSERT(type);
     return type > TYPE_UNKNOWN;
 }
 
@@ -301,11 +301,15 @@ struct TypeSet
 
     
 
+
+
+
+
+
     
+    jstype getSingleType(JSContext *cx, JSScript *script);
 
-
-
-
+    
     JSValueType getKnownTypeTag(JSContext *cx, JSScript *script);
 
     

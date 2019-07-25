@@ -176,7 +176,7 @@ class Bindings {
     uint16 nupvars;
 
   public:
-    inline Bindings(JSContext *cx, EmptyShape *emptyCallShape);
+    inline Bindings(JSContext *cx);
 
     
 
@@ -202,6 +202,9 @@ class Bindings {
 
     bool hasUpvars() const { return nupvars > 0; }
     bool hasLocalNames() const { return countLocalNames() > 0; }
+
+    
+    inline bool ensureShape(JSContext *cx);
 
     
     inline const js::Shape *lastShape() const;
@@ -524,6 +527,7 @@ struct JSScript {
     
     inline bool typeSetThis(JSContext *cx, js::types::jstype type);
     inline bool typeSetNewCalled(JSContext *cx);
+    inline bool typeSetLocal(JSContext *cx, unsigned local, js::types::jstype type);
     inline bool typeSetLocal(JSContext *cx, unsigned local, const js::Value &value);
     inline bool typeSetArgument(JSContext *cx, unsigned arg, js::types::jstype type);
     inline bool typeSetArgument(JSContext *cx, unsigned arg, const js::Value &value);

@@ -41,7 +41,6 @@
 #ifndef jsscriptinlines_h___
 #define jsscriptinlines_h___
 
-#include "jsautooplen.h"
 #include "jscntxt.h"
 #include "jsfun.h"
 #include "jsopcode.h"
@@ -52,16 +51,15 @@
 namespace js {
 
 inline
-Bindings::Bindings(JSContext *cx, EmptyShape *emptyCallShape)
-  : lastBinding(emptyCallShape), nargs(0), nvars(0), nupvars(0),
-    hasExtensibleParents(false)
+Bindings::Bindings(JSContext *cx)
+  : lastBinding(NULL), nargs(0), nvars(0), nupvars(0)
 {
 }
 
 inline void
 Bindings::transfer(JSContext *cx, Bindings *bindings)
 {
-    JS_ASSERT(lastBinding == cx->compartment->emptyCallShape);
+    JS_ASSERT(!lastBinding);
 
     *this = *bindings;
 #ifdef DEBUG
@@ -69,25 +67,27 @@ Bindings::transfer(JSContext *cx, Bindings *bindings)
 #endif
 
     
-    if (lastBinding->inDictionary())
+    if (lastBinding && lastBinding->inDictionary())
         lastBinding->listp = &this->lastBinding;
 }
 
 inline void
 Bindings::clone(JSContext *cx, Bindings *bindings)
 {
-    JS_ASSERT(lastBinding == cx->compartment->emptyCallShape);
+    JS_ASSERT(!lastBinding);
 
     
 
 
 
-    JS_ASSERT(!bindings->lastBinding->inDictionary() || bindings->lastBinding->frozen());
+    JS_ASSERT(!bindings->lastBinding ||
+              !bindings->lastBinding->inDictionary() ||
+              bindings->lastBinding->frozen());
 
     *this = *bindings;
 }
 
-Shape *
+const Shape *
 Bindings::lastShape() const
 {
     JS_ASSERT(lastBinding);
@@ -95,20 +95,17 @@ Bindings::lastShape() const
     return lastBinding;
 }
 
-extern const char *
-CurrentScriptFileAndLineSlow(JSContext *cx, uintN *linenop);
-
-inline const char *
-CurrentScriptFileAndLine(JSContext *cx, uintN *linenop, LineOption opt)
+bool
+Bindings::ensureShape(JSContext *cx)
 {
-    if (opt == CALLED_FROM_JSOP_EVAL) {
-        JS_ASSERT(js_GetOpcode(cx, cx->fp()->script(), cx->regs().pc) == JSOP_EVAL);
-        JS_ASSERT(*(cx->regs().pc + JSOP_EVAL_LENGTH) == JSOP_LINENO);
-        *linenop = GET_UINT16(cx->regs().pc + JSOP_EVAL_LENGTH);
-        return cx->fp()->script()->filename;
+    if (!lastBinding) {
+        lastBinding = EmptyShape::create(cx, &js_CallClass);
+        if (!lastBinding) {
+            js_ReportOutOfMemory(cx);
+            return false;
+        }
     }
-
-    return CurrentScriptFileAndLineSlow(cx, linenop);
+    return true;
 }
 
 } 
@@ -122,13 +119,6 @@ JSScript::getFunction(size_t index)
     JSFunction *fun = (JSFunction *) funobj;
     JS_ASSERT(FUN_INTERPRETED(fun));
     return fun;
-}
-
-inline JSFunction *
-JSScript::getCallerFunction()
-{
-    JS_ASSERT(savedCallerFun);
-    return getFunction(0);
 }
 
 inline JSObject *

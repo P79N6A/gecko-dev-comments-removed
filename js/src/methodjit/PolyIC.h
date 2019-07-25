@@ -85,16 +85,16 @@ struct BaseIC : public MacroAssemblerTypedefs {
     CodeLocationCall slowPathCall;
 
     
-    
-    
-    int32 secondShapeGuard;
-
-    
     bool hit : 1;
     bool slowCallPatched : 1;
 
     
     uint32 stubsGenerated : 5;
+
+    
+    
+    
+    int secondShapeGuard : 11;
 
     
     JSOp op : 9;
@@ -157,7 +157,7 @@ class BasePolyIC : public BaseIC {
     ~BasePolyIC() {
         releasePools();
         if (areMultiplePools())
-            Foreground::delete_(multiplePools());
+            js_delete(multiplePools());
     }
 
     void reset() {
@@ -192,11 +192,11 @@ class BasePolyIC : public BaseIC {
         if (isOnePool()) {
             JSC::ExecutablePool *oldPool = u.execPool;
             JS_ASSERT(!isTagged(oldPool));
-            ExecPoolVector *execPools = cx->new_<ExecPoolVector>(SystemAllocPolicy()); 
+            ExecPoolVector *execPools = js_new<ExecPoolVector>(SystemAllocPolicy()); 
             if (!execPools)
                 return false;
             if (!execPools->append(oldPool) || !execPools->append(pool)) {
-                Foreground::delete_(execPools);
+                js_delete(execPools);
                 return false;
             }
             u.taggedExecPools = tag(execPools);
@@ -255,9 +255,9 @@ struct GetElementIC : public BasePolyIC {
     
     
     
-    int32 atomGuard : 8;          
-    int32 firstShapeGuard : 11;    
-    int32 secondShapeGuard : 11;   
+    int atomGuard : 8;          
+    int firstShapeGuard : 8;    
+    int secondShapeGuard : 8;   
 
     bool hasLastStringStub : 1;
     JITCode lastStringStub;
@@ -295,8 +295,6 @@ struct GetElementIC : public BasePolyIC {
     void purge(Repatcher &repatcher);
     LookupStatus update(JSContext *cx, JSObject *obj, const Value &v, jsid id, Value *vp);
     LookupStatus attachGetProp(JSContext *cx, JSObject *obj, const Value &v, jsid id,
-                               Value *vp);
-    LookupStatus attachArguments(JSContext *cx, JSObject *obj, const Value &v, jsid id,
                                Value *vp);
     LookupStatus attachTypedArray(JSContext *cx, JSObject *obj, const Value &v, jsid id,
                                   Value *vp);
@@ -338,7 +336,7 @@ struct SetElementIC : public BaseIC {
 
     
     
-    uint32 volatileMask;
+    uint32 volatileMask : 16;
 
     
     
@@ -385,8 +383,7 @@ struct PICInfo : public BasePolyIC {
         SETMETHOD,  
         NAME,       
         BIND,       
-        XNAME,      
-        CALLNAME    
+        XNAME       
     };
 
     union {
@@ -451,7 +448,13 @@ struct PICInfo : public BasePolyIC {
     RegisterID objReg   : 5;        
 
     
+    bool typeMonitored : 1;
+
+    
     uint32 shapeGuard;
+
+    
+    types::jstype knownType;
     
     inline bool isSet() const {
         return kind == SET || kind == SETMETHOD;
@@ -463,7 +466,7 @@ struct PICInfo : public BasePolyIC {
         return kind == BIND;
     }
     inline bool isScopeName() const {
-        return kind == NAME || kind == CALLNAME || kind == XNAME;
+        return kind == NAME || kind == XNAME;
     }
     inline RegisterID typeReg() {
         JS_ASSERT(isGet());
@@ -506,7 +509,7 @@ struct PICInfo : public BasePolyIC {
         bindNameLabels_ = labels;
     }
     void setLabels(const ic::ScopeNameLabels &labels) {
-        JS_ASSERT(kind == NAME || kind == CALLNAME || kind == XNAME);
+        JS_ASSERT(kind == NAME || kind == XNAME);
         scopeNameLabels_ = labels;
     }
 #endif
@@ -524,7 +527,7 @@ struct PICInfo : public BasePolyIC {
         return bindNameLabels_;
     }
     ScopeNameLabels &scopeNameLabels() {
-        JS_ASSERT(kind == NAME || kind == CALLNAME || kind == XNAME);
+        JS_ASSERT(kind == NAME || kind == XNAME);
         return scopeNameLabels_;
     }
 
@@ -549,7 +552,6 @@ void JS_FASTCALL GetProp(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL SetProp(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL CallProp(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL Name(VMFrame &f, ic::PICInfo *);
-void JS_FASTCALL CallName(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL XName(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL BindName(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL GetElement(VMFrame &f, ic::GetElementIC *);
