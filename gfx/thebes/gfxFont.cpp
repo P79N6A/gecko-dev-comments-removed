@@ -69,6 +69,7 @@
 #include "nsCompressedCharMap.h"
 #include "nsStyleConsts.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Services.h"
 
 #include "cairo.h"
 #include "gfxFontTest.h"
@@ -81,6 +82,7 @@
 
 using namespace mozilla;
 using namespace mozilla::gfx;
+using mozilla::services::GetObserverService;
 
 gfxFontCache *gfxFontCache::gGlobalCache = nsnull;
 
@@ -955,6 +957,15 @@ gfxFontFamily::FindFont(const nsAString& aPostscriptName)
 }
 
 
+
+
+
+
+
+
+
+NS_IMPL_ISUPPORTS1(gfxFontCache, nsIObserver)
+
 nsresult
 gfxFontCache::Init()
 {
@@ -986,6 +997,12 @@ gfxFontCache::gfxFontCache()
     : nsExpirationTracker<gfxFont,3>(FONT_TIMEOUT_SECONDS * 1000)
 {
     mFonts.Init();
+
+    nsCOMPtr<nsIObserverService> obs = GetObserverService();
+    if (obs) {
+        obs->AddObserver(this, "memory-pressure", false);
+    }
+
     mWordCacheExpirationTimer = do_CreateInstance("@mozilla.org/timer;1");
     if (mWordCacheExpirationTimer) {
         mWordCacheExpirationTimer->
@@ -1000,6 +1017,11 @@ gfxFontCache::~gfxFontCache()
     if (mWordCacheExpirationTimer) {
         mWordCacheExpirationTimer->Cancel();
         mWordCacheExpirationTimer = nsnull;
+    }
+
+    nsCOMPtr<nsIObserverService> obs = GetObserverService();
+    if (obs) {
+        obs->RemoveObserver(this, "memory-pressure");
     }
 
     
@@ -1100,6 +1122,23 @@ gfxFontCache::WordCacheExpirationTimerCallback(nsITimer* aTimer, void* aCache)
 {
     gfxFontCache* cache = static_cast<gfxFontCache*>(aCache);
     cache->mFonts.EnumerateEntries(AgeCachedWordsForFont, nsnull);
+}
+
+NS_IMETHODIMP
+gfxFontCache::Observe(nsISupports*, const char* aTopic, const PRUnichar*)
+{
+    if (!nsCRT::strcmp(aTopic, "memory-pressure")) {
+        mFonts.EnumerateEntries(ClearCachedWordsForFont, nsnull);
+    }
+    return NS_OK;
+}
+
+
+PLDHashOperator
+gfxFontCache::ClearCachedWordsForFont(HashEntry* aHashEntry, void* aUserData)
+{
+    aHashEntry->mFont->ClearCachedWords();
+    return PL_DHASH_NEXT;
 }
 
 void
