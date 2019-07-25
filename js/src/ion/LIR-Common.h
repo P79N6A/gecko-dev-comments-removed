@@ -745,6 +745,145 @@ class LSlots : public LInstructionHelper<1, 1, 0>
 };
 
 
+class LInitializedLength : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(InitializedLength);
+
+    LInitializedLength(const LAllocation &in) {
+        setOperand(0, in);
+    }
+
+    const LAllocation *input() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
+class LBoundsCheck : public LInstructionHelper<0, 2, 0>
+{
+  public:
+    LIR_HEADER(BoundsCheck);
+
+    LBoundsCheck(const LAllocation &index, const LAllocation &length) {
+        setOperand(0, index);
+        setOperand(1, length);
+    }
+    const MBoundsCheck *mir() const {
+        return mir_->toBoundsCheck();
+    }
+    const LAllocation *index() {
+        return getOperand(0);
+    }
+    const LAllocation *length() {
+        return getOperand(1);
+    }
+};
+
+
+class LLoadElementV : public LInstructionHelper<BOX_PIECES, 2, 0>
+{
+  public:
+    LIR_HEADER(LoadElementV);
+    BOX_OUTPUT_ACCESSORS();
+
+    LLoadElementV(const LAllocation &slots, const LAllocation &index) {
+        setOperand(0, slots);
+        setOperand(1, index);
+    }
+    const MLoadElement *mir() const {
+        return mir_->toLoadElement();
+    }
+    const LAllocation *slots() {
+        return getOperand(0);
+    }
+    const LAllocation *index() {
+        return getOperand(1);
+    }
+};
+
+
+
+
+class LLoadElementT : public LInstructionHelper<1, 2, 0>
+{
+  public:
+    LIR_HEADER(LoadElementT);
+
+    LLoadElementT(const LAllocation &slots, const LAllocation &index) {
+        setOperand(0, slots);
+        setOperand(1, index);
+    }
+    const MLoadElement *mir() const {
+        return mir_->toLoadElement();
+    }
+    const LAllocation *slots() {
+        return getOperand(0);
+    }
+    const LAllocation *index() {
+        return getOperand(1);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
+class LStoreElementV : public LInstructionHelper<0, 2 + BOX_PIECES, 0>
+{
+  public:
+    LIR_HEADER(StoreElementV);
+
+    LStoreElementV(const LAllocation &slots, const LAllocation &index) {
+        setOperand(0, slots);
+        setOperand(1, index);
+    }
+
+    static const size_t Value = 2;
+
+    const MStoreElement *mir() const {
+        return mir_->toStoreElement();
+    }
+    const LAllocation *slots() {
+        return getOperand(0);
+    }
+    const LAllocation *index() {
+        return getOperand(1);
+    }
+};
+
+
+
+
+class LStoreElementT : public LInstructionHelper<0, 3, 0>
+{
+  public:
+    LIR_HEADER(StoreElementT);
+
+    LStoreElementT(const LAllocation &slots, const LAllocation &index, const LAllocation &value) {
+        setOperand(0, slots);
+        setOperand(1, index);
+        setOperand(2, value);
+    }
+
+    const MStoreElement *mir() const {
+        return mir_->toStoreElement();
+    }
+    const LAllocation *slots() {
+        return getOperand(0);
+    }
+    const LAllocation *index() {
+        return getOperand(1);
+    }
+    const LAllocation *value() {
+        return getOperand(2);
+    }
+};
+
+
 class LLoadSlotV : public LInstructionHelper<BOX_PIECES, 1, 0>
 {
   public:
