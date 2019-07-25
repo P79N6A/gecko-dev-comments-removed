@@ -65,9 +65,11 @@ class ShadowColorLayer;
 class ShadowCanvasLayer;
 class SurfaceDescriptor;
 class ThebesBuffer;
+class TiledLayerComposer;
 class Transaction;
 class SharedImage;
 class CanvasSurface;
+class BasicTiledLayerBuffer;
 
 
 
@@ -187,6 +189,17 @@ public:
                            const nsIntRect& aBufferRect,
                            const nsIntPoint& aBufferRotation,
                            const SurfaceDescriptor& aNewFrontBuffer);
+
+  
+
+
+
+
+
+
+  void PaintedTiledLayerBuffer(ShadowableLayer* aThebes,
+                               BasicTiledLayerBuffer* aTiledLayerBuffer);
+
   
 
 
@@ -467,6 +480,8 @@ public:
   const nsIntRect* GetShadowClipRect() { return mUseShadowClipRect ? &mShadowClipRect : nsnull; }
   const nsIntRegion& GetShadowVisibleRegion() { return mShadowVisibleRegion; }
   const gfx3DMatrix& GetShadowTransform() { return mShadowTransform; }
+
+  virtual TiledLayerComposer* AsTiledLayerComposer() { return NULL; }
 
 protected:
   ShadowLayer()
