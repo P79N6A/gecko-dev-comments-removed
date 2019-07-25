@@ -3308,7 +3308,7 @@ nsHTMLDocument::EditingStateChanged()
 
     
     
-    if (designMode) {
+    if (designMode && oldState == eOff) {
       rv = editor->BeginningOfDocument();
       NS_ENSURE_SUCCESS(rv, rv);
     }
