@@ -39,12 +39,6 @@
 
 "use strict";
 
-const Cu = Components.utils;
-const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
-
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import('resource://gre/modules/Services.jsm');
-
 
 
 
@@ -54,11 +48,59 @@ let DebuggerView = {
   
 
 
+  editor: null,
+
+  
+
+
+  initializeEditor: function DV_initializeEditor() {
+    let placeholder = document.getElementById("editor");
+
+    let config = {
+      mode: SourceEditor.MODES.JAVASCRIPT,
+      showLineNumbers: true,
+      readOnly: true,
+      showAnnotationRuler: true,
+      showOverviewRuler: true,
+    };
+
+    this.editor = new SourceEditor();
+    this.editor.init(placeholder, config, this._onEditorLoad.bind(this));
+  },
+
+  
+
+
+  destroyEditor: function DV_destroyEditor() {
+    DebuggerController.Breakpoints.destroy();
+    this.editor = null;
+  },
+
+  
 
 
 
-  getStr: function DV_getStr(aName) {
-    return this.stringBundle.GetStringFromName(aName);
+  _onEditorLoad: function DV__onEditorLoad() {
+    DebuggerController.Breakpoints.initialize();
+  }
+};
+
+
+
+
+function ScriptsView() {
+  this._onScriptsChange = this._onScriptsChange.bind(this);
+}
+
+ScriptsView.prototype = {
+
+  
+
+
+  empty: function DVS_empty() {
+    while (this._scripts.firstChild) {
+      this._scripts.removeChild(this._scripts.firstChild);
+    }
   },
 
   
@@ -68,19 +110,148 @@ let DebuggerView = {
 
 
 
-  getFormatStr: function DV_getFormatStr(aName, aArray) {
-    return this.stringBundle.formatStringFromName(aName, aArray, aArray.length);
+
+  contains: function DVS_contains(aUrl) {
+    if (this._scripts.getElementsByAttribute("value", aUrl).length > 0) {
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+  containsLabel: function DVS_containsLabel(aLabel) {
+    if (this._scripts.getElementsByAttribute("label", aLabel).length > 0) {
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+  selectScript: function DVS_selectScript(aUrl) {
+    for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
+      if (this._scripts.getItemAtIndex(i).value == aUrl) {
+        this._scripts.selectedIndex = i;
+        return;
+      }
+    }
+  },
+
+  
+
+
+
+
+
+  isSelected: function DVS_isSelected(aUrl) {
+    if (this._scripts.selectedItem &&
+        this._scripts.selectedItem.value == aUrl) {
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+  get selected() {
+    return this._scripts.selectedItem ?
+           this._scripts.selectedItem.value : null;
+  },
+
+  
+
+
+
+  get scriptLocations() {
+    let locations = [];
+    for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
+      locations.push(this._scripts.getItemAtIndex(i).value);
+    }
+    return locations;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  addScript: function DVS_addScript(aLabel, aScript) {
+    
+    if (this.containsLabel(aLabel)) {
+      return null;
+    }
+
+    let script = this._scripts.appendItem(aLabel, aScript.url);
+    script.setAttribute("tooltiptext", aScript.url);
+    script.setUserData("sourceScript", aScript, null);
+
+    this._scripts.selectedItem = script;
+    return script;
+  },
+
+  
+
+
+  _onScriptsChange: function DVS__onScriptsChange() {
+    let script = this._scripts.selectedItem.getUserData("sourceScript");
+    DebuggerController.SourceScripts.showScript(script);
+  },
+
+  
+
+
+  _scripts: null,
+
+  
+
+
+  initialize: function DVS_initialize() {
+    this._scripts = document.getElementById("scripts");
+    this._scripts.addEventListener("select", this._onScriptsChange, false);
+  },
+
+  
+
+
+  destroy: function DVS_destroy() {
+    this._scripts.removeEventListener("select", this._onScriptsChange, false);
+    this._scripts = null;
   }
 };
 
-XPCOMUtils.defineLazyGetter(DebuggerView, "stringBundle", function() {
-  return Services.strings.createBundle(DBG_STRINGS_URI);
-});
 
 
 
+function StackFramesView() {
+  this._onFramesScroll = this._onFramesScroll.bind(this);
+  this._onCloseButtonClick = this._onCloseButtonClick.bind(this);
+  this._onResumeButtonClick = this._onResumeButtonClick.bind(this);
+  this._onStepOverClick = this._onStepOverClick.bind(this);
+  this._onStepInClick = this._onStepInClick.bind(this);
+  this._onStepOutClick = this._onStepOutClick.bind(this);
+}
 
-DebuggerView.Stackframes = {
+StackFramesView.prototype = {
 
   
 
@@ -93,29 +264,19 @@ DebuggerView.Stackframes = {
     let status = document.getElementById("status");
 
     
-    if (aState === "paused") {
-      status.textContent = DebuggerView.getStr("pausedState");
-      resume.label = DebuggerView.getStr("resumeLabel");
-    } else if (aState === "attached") {
-      
-      status.textContent = DebuggerView.getStr("runningState");
-      resume.label = DebuggerView.getStr("pauseLabel");
-    } else {
-      
+    if (aState == "paused") {
+      status.textContent = L10N.getStr("pausedState");
+      resume.label = L10N.getStr("resumeLabel");
+    }
+    
+    else if (aState == "attached") {
+      status.textContent = L10N.getStr("runningState");
+      resume.label = L10N.getStr("pauseLabel");
+    }
+    
+    else {
       status.textContent = "";
     }
-  },
-
-  
-
-
-
-
-
-  addClickListener: function DVF_addClickListener(aHandler) {
-    
-    this._onFramesClick = aHandler;
-    this._frames.addEventListener("click", aHandler, false);
   },
 
   
@@ -139,7 +300,7 @@ DebuggerView.Stackframes = {
 
     
     item.className = "empty list-item";
-    item.appendChild(document.createTextNode(DebuggerView.getStr("emptyText")));
+    item.appendChild(document.createTextNode(L10N.getStr("emptyText")));
 
     this._frames.appendChild(item);
   },
@@ -195,7 +356,7 @@ DebuggerView.Stackframes = {
 
 
 
-  highlightFrame: function DVF_highlightFrame(aDepth, aSelect) {
+  highlightFrame: function DVF_highlightFrame(aDepth, aFlag) {
     let frame = document.getElementById("stackframe-" + aDepth);
 
     
@@ -204,13 +365,23 @@ DebuggerView.Stackframes = {
     }
 
     
-    if (aSelect && !frame.classList.contains("selected")) {
+    if (!aFlag && !frame.classList.contains("selected")) {
       frame.classList.add("selected");
-
+    }
     
-    } else if (!aSelect && frame.classList.contains("selected")) {
+    else if (aFlag && frame.classList.contains("selected")) {
       frame.classList.remove("selected");
     }
+  },
+
+  
+
+
+
+
+
+  unhighlightFrame: function DVF_unhighlightFrame(aDepth) {
+    this.highlightFrame(aDepth, true)
   },
 
   
@@ -236,7 +407,17 @@ DebuggerView.Stackframes = {
   
 
 
-  _onFramesClick: null,
+  _onFramesClick: function DVF__onFramesClick(aEvent) {
+    let target = aEvent.target;
+
+    while (target) {
+      if (target.debuggerFrame) {
+        DebuggerController.StackFrames.selectFrame(target.debuggerFrame.depth);
+        return;
+      }
+      target = target.parentNode;
+    }
+  },
 
   
 
@@ -253,7 +434,7 @@ DebuggerView.Stackframes = {
       if (scrollTop >= (scrollHeight - clientHeight) * 0.95) {
         this._dirty = false;
 
-        StackFrames._addMoreFrames();
+        DebuggerController.StackFrames.addMoreFrames();
       }
     }
   },
@@ -262,21 +443,17 @@ DebuggerView.Stackframes = {
 
 
   _onCloseButtonClick: function DVF__onCloseButtonClick() {
-    let root = document.documentElement;
-    let debuggerClose = document.createEvent("Events");
-
-    debuggerClose.initEvent("DebuggerClose", true, false);
-    root.dispatchEvent(debuggerClose);
+    DebuggerController.dispatchEvent("Debugger:Close");
   },
 
   
 
 
   _onResumeButtonClick: function DVF__onResumeButtonClick() {
-    if (ThreadState.activeThread.paused) {
-      ThreadState.activeThread.resume();
+    if (DebuggerController.activeThread.paused) {
+      DebuggerController.activeThread.resume();
     } else {
-      ThreadState.activeThread.interrupt();
+      DebuggerController.activeThread.interrupt();
     }
   },
 
@@ -284,21 +461,21 @@ DebuggerView.Stackframes = {
 
 
   _onStepOverClick: function DVF__onStepOverClick() {
-    ThreadState.activeThread.stepOver();
+    DebuggerController.activeThread.stepOver();
   },
 
   
 
 
   _onStepInClick: function DVF__onStepInClick() {
-    ThreadState.activeThread.stepIn();
+    DebuggerController.activeThread.stepIn();
   },
 
   
 
 
   _onStepOutClick: function DVF__onStepOutClick() {
-    ThreadState.activeThread.stepOut();
+    DebuggerController.activeThread.stepOut();
   },
 
   
@@ -327,6 +504,7 @@ DebuggerView.Stackframes = {
     stepOver.addEventListener("click", this._onStepOverClick, false);
     stepIn.addEventListener("click", this._onStepInClick, false);
     stepOut.addEventListener("click", this._onStepOutClick, false);
+    frames.addEventListener("click", this._onFramesClick, false);
     frames.addEventListener("scroll", this._onFramesScroll, false);
     window.addEventListener("resize", this._onFramesScroll, false);
 
@@ -360,7 +538,13 @@ DebuggerView.Stackframes = {
 
 
 
-DebuggerView.Properties = {
+function PropertiesView() {
+  this._addScope = this._addScope.bind(this);
+  this._addVar = this._addVar.bind(this);
+  this._addProperties = this._addProperties.bind(this);
+}
+
+PropertiesView.prototype = {
 
   
 
@@ -491,6 +675,12 @@ DebuggerView.Properties = {
     
     if (!aVar) {
       return null;
+    }
+    if (aGrip === undefined) {
+      aGrip = { type: "undefined" };
+    }
+    if (aGrip === null) {
+      aGrip = { type: "null" };
     }
 
     let info = aVar.querySelector(".info") || aVar.target.info;
@@ -635,10 +825,10 @@ DebuggerView.Properties = {
       separator.className = "unselectable";
       separator.appendChild(document.createTextNode(": "));
 
-      if (pKey) {
+      if ("undefined" !== typeof pKey) {
         title.appendChild(key);
       }
-      if (pGrip) {
+      if ("undefined" !== typeof pGrip) {
         title.appendChild(separator);
         title.appendChild(value);
       }
@@ -670,13 +860,13 @@ DebuggerView.Properties = {
 
   _propertyString: function DVP__propertyString(aGrip) {
     if (aGrip && "object" === typeof aGrip) {
-      switch (aGrip["type"]) {
+      switch (aGrip.type) {
         case "undefined":
           return "undefined";
         case "null":
           return "null";
         default:
-          return "[" + aGrip["type"] + " " + aGrip["class"] + "]";
+          return "[" + aGrip.type + " " + aGrip.class + "]";
       }
     } else {
       switch (typeof aGrip) {
@@ -702,7 +892,7 @@ DebuggerView.Properties = {
 
   _propertyColor: function DVP__propertyColor(aGrip) {
     if (aGrip && "object" === typeof aGrip) {
-      switch (aGrip["type"]) {
+      switch (aGrip.type) {
         case "undefined":
           return "token-undefined";
         case "null":
@@ -855,6 +1045,45 @@ DebuggerView.Properties = {
 
 
 
+    element.showArrow = function DVP_element_showArrow() {
+      if (details.childNodes.length) {
+        arrow.style.visibility = "visible";
+      }
+      return element;
+    };
+
+    
+
+
+
+
+
+
+
+
+    element.forceShowArrow = function DVP_element_forceShowArrow(aPreventHideFlag) {
+      element._preventHide = aPreventHideFlag;
+      arrow.style.visibility = "visible";
+      return element;
+    };
+
+    
+
+
+
+
+    element.hideArrow = function DVP_element_hideArrow() {
+      if (!element._preventHide) {
+        arrow.style.visibility = "hidden";
+      }
+      return element;
+    };
+
+    
+
+
+
+
     Object.defineProperty(element, "visible", {
       get: function DVP_element_getVisible() {
         return element.style.display !== "none";
@@ -962,8 +1191,8 @@ DebuggerView.Properties = {
 
 
 
-  set globalScope(value) {
-    if (value) {
+  set globalScope(aFlag) {
+    if (aFlag) {
       this._globalScope.show();
     } else {
       this._globalScope.hide();
@@ -983,8 +1212,8 @@ DebuggerView.Properties = {
 
 
 
-  set localScope(value) {
-    if (value) {
+  set localScope(aFlag) {
+    if (aFlag) {
       this._localScope.show();
     } else {
       this._localScope.hide();
@@ -1004,8 +1233,8 @@ DebuggerView.Properties = {
 
 
 
-  set withScope(value) {
-    if (value) {
+  set withScope(aFlag) {
+    if (aFlag) {
       this._withScope.show();
     } else {
       this._withScope.hide();
@@ -1025,8 +1254,8 @@ DebuggerView.Properties = {
 
 
 
-  set closureScope(value) {
-    if (value) {
+  set closureScope(aFlag) {
+    if (aFlag) {
       this._closureScope.show();
     } else {
       this._closureScope.hide();
@@ -1051,10 +1280,10 @@ DebuggerView.Properties = {
 
   initialize: function DVP_initialize() {
     this._vars = document.getElementById("variables");
-    this._localScope = this._addScope(DebuggerView.getStr("localScope")).expand();
-    this._withScope = this._addScope(DebuggerView.getStr("withScope")).hide();
-    this._closureScope = this._addScope(DebuggerView.getStr("closureScope")).hide();
-    this._globalScope = this._addScope(DebuggerView.getStr("globalScope"));
+    this._localScope = this._addScope(L10N.getStr("localScope")).expand();
+    this._withScope = this._addScope(L10N.getStr("withScope")).hide();
+    this._closureScope = this._addScope(L10N.getStr("closureScope")).hide();
+    this._globalScope = this._addScope(L10N.getStr("globalScope"));
   },
 
   
@@ -1072,165 +1301,13 @@ DebuggerView.Properties = {
 
 
 
-DebuggerView.Scripts = {
+DebuggerView.Scripts = new ScriptsView();
+DebuggerView.StackFrames = new StackFramesView();
+DebuggerView.Properties = new PropertiesView();
 
-  
 
 
 
-
-
-  addChangeListener: function DVS_addChangeListener(aHandler) {
-    
-    this._onScriptsChange = aHandler;
-    this._scripts.addEventListener("select", aHandler, false);
-  },
-
-  
-
-
-  empty: function DVS_empty() {
-    while (this._scripts.firstChild) {
-      this._scripts.removeChild(this._scripts.firstChild);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  contains: function DVS_contains(aUrl) {
-    if (this._scripts.getElementsByAttribute("value", aUrl).length > 0) {
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-
-
-  containsLabel: function DVS_containsLabel(aLabel) {
-    if (this._scripts.getElementsByAttribute("label", aLabel).length > 0) {
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-  isSelected: function DVS_isSelected(aUrl) {
-    if (this._scripts.selectedItem &&
-        this._scripts.selectedItem.value == aUrl) {
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-   selectScript: function DVS_selectScript(aUrl) {
-    for (let i = 0; i < this._scripts.itemCount; i++) {
-      if (this._scripts.getItemAtIndex(i).value == aUrl) {
-        this._scripts.selectedIndex = i;
-        break;
-      }
-    }
-  },
-
-   
-
-
-
-   get selected() {
-    return this._scripts.selectedItem ?
-           this._scripts.selectedItem.value : null;
-   },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  addScript: function DVS_addScript(aLabel, aScript) {
-    
-    if (this.containsLabel(aLabel)) {
-      return null;
-    }
-
-    let script = this._scripts.appendItem(aLabel, aScript.url);
-    script.setAttribute("tooltiptext", aScript.url);
-    script.setUserData("sourceScript", aScript, null);
-
-    this._scripts.selectedItem = script;
-    return script;
-  },
-
-  
-
-
-  scriptLocations: function DVS_scriptLocations() {
-    let locations = [];
-    for (let i = 0; i < this._scripts.itemCount; i++) {
-      locations.push(this._scripts.getItemAtIndex(i).value);
-    }
-    return locations;
-  },
-
-  
-
-
-  _onScriptsChange: null,
-
-  
-
-
-  _scripts: null,
-
-  
-
-
-  initialize: function DVS_initialize() {
-    this._scripts = document.getElementById("scripts");
-  },
-
-  
-
-
-  destroy: function DVS_destroy() {
-    this._scripts.removeEventListener("select", this._onScriptsChange, false);
-    this._scripts = null;
-  }
-};
-
-
-let DVF = DebuggerView.Stackframes;
-DVF._onFramesScroll = DVF._onFramesScroll.bind(DVF);
-DVF._onCloseButtonClick = DVF._onCloseButtonClick.bind(DVF);
-DVF._onResumeButtonClick = DVF._onResumeButtonClick.bind(DVF);
-DVF._onStepOverClick = DVF._onStepOverClick.bind(DVF);
-DVF._onStepInClick = DVF._onStepInClick.bind(DVF);
-DVF._onStepOutClick = DVF._onStepOutClick.bind(DVF);
+Object.defineProperty(window, "editor", {
+  get: function() { return DebuggerView.editor; }
+});
