@@ -232,6 +232,12 @@ class FrameState
 
 
 
+    inline RegisterID tempRegForConstant(FrameEntry *fe);
+
+    
+
+
+
 
 
 

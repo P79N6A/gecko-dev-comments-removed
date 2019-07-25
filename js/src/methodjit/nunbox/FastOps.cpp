@@ -441,7 +441,14 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
 
     
 
-    if (op == JSOP_MUL || op == JSOP_DIV || op == JSOP_MOD) {
+
+
+    if ((op == JSOP_DIV || op == JSOP_MOD)
+#if defined(JS_CPU_ARM)
+    
+    || op == JSOP_MUL
+#endif 
+    ) {
         prepareStubCall();
         stubCall(stub, Uses(2), Defs(1));
         frame.popn(2);
@@ -463,6 +470,8 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
         }
 
         
+
+
 
         bool swapped = false;
         if (lhs->isConstant()) {
@@ -508,6 +517,23 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
                                         rhsReg, reg);
             }
             break;
+
+#if !defined(JS_CPU_ARM)
+          case JSOP_MUL:
+            if (rhs->isConstant()) {
+                RegisterID rhsReg = frame.tempRegForConstant(rhs);
+                fail = masm.branchMul32(Assembler::Overflow,
+                                        rhsReg, reg);
+            } else if (frame.shouldAvoidDataRemat(rhs)) {
+                fail = masm.branchMul32(Assembler::Overflow,
+                                        frame.addressOf(rhs), reg);
+            } else {
+                RegisterID rhsReg = frame.tempRegForData(rhs);
+                fail = masm.branchMul32(Assembler::Overflow,
+                                        rhsReg, reg);
+            }
+            break;
+#endif 
 
           default:
             JS_NOT_REACHED("kittens");
