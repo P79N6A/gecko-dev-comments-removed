@@ -350,7 +350,7 @@ var DownloadsView = {
     }
     else if (today - end < (24 * 60 * 60 * 1000)) {
       
-      dateTime = strings.GetStringFromName("donwloadsYesterday");
+      dateTime = strings.GetStringFromName("downloadsYesterday");
     }
     else if (today - end < (6 * 24 * 60 * 60 * 1000)) {
       
