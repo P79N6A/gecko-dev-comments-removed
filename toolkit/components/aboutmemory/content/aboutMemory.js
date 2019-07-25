@@ -681,27 +681,44 @@ function buildTree(aReports, aTreePrefix)
   t = t._kids[0];
 
   
-  function fillInNonLeafNodes(aT)
+  function fillInNonLeafNodes(aT, aCannotMerge)
   {
     if (aT._kids.length === 0) {
       
       assert(aT._kind !== undefined, "aT._kind is undefined for leaf node");
+
+    } else if (aT._kids.length === 1 && !aCannotMerge) {
+      
+      
+      assert(aT._kind === undefined, "aT._kind is defined for non-leaf node");
+      let kid = aT._kids[0];
+      let kidBytes = fillInNonLeafNodes(kid);
+      aT._unsafeName += '/' + kid._unsafeName;
+      aT._kids = kid._kids;
+      aT._amount = kid._amount;
+      aT._description = kid._description;
+      aT._kind = kid._kind;
+      if (kid._nMerged) {
+        aT._nMerged = kid._nMerged
+      }
+
     } else {
       
       
       assert(aT._kind === undefined, "aT._kind is defined for non-leaf node");
-      let childrenBytes = 0;
+      let kidsBytes = 0;
       for (let i = 0; i < aT._kids.length; i++) {
-        childrenBytes += fillInNonLeafNodes(aT._kids[i]);
+        kidsBytes += fillInNonLeafNodes(aT._kids[i]);
       }
-      aT._amount = childrenBytes;
+      aT._amount = kidsBytes;
       aT._description = "The sum of all entries below '" +
                         flipBackslashes(aT._unsafeName) + "'.";
     }
     return aT._amount;
   }
 
-  fillInNonLeafNodes(t);
+  
+  fillInNonLeafNodes(t, true);
 
   
   t._description = kTreeDescriptions[t._unsafeName];
