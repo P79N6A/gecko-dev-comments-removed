@@ -901,12 +901,14 @@ public:
 
 class NotifyRunnable : public WorkerControlRunnable
 {
+  bool mFromJSObjectFinalizer;
   Status mStatus;
 
 public:
-  NotifyRunnable(WorkerPrivate* aWorkerPrivate, Status aStatus)
+  NotifyRunnable(WorkerPrivate* aWorkerPrivate, bool aFromJSObjectFinalizer,
+                 Status aStatus)
   : WorkerControlRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount),
-    mStatus(aStatus)
+    mFromJSObjectFinalizer(aFromJSObjectFinalizer), mStatus(aStatus)
   {
     NS_ASSERTION(aStatus == Terminating || aStatus == Canceling ||
                  aStatus == Killing, "Bad status!");
@@ -917,7 +919,11 @@ public:
   {
     
     
-    return aWorkerPrivate->ModifyBusyCount(aCx, true);
+    
+    
+    return mFromJSObjectFinalizer ?
+           true :
+           aWorkerPrivate->ModifyBusyCount(aCx, true);
   }
 
   bool
@@ -1789,7 +1795,8 @@ WorkerPrivateParent<Derived>::Start()
 
 template <class Derived>
 bool
-WorkerPrivateParent<Derived>::Notify(JSContext* aCx, Status aStatus)
+WorkerPrivateParent<Derived>::NotifyPrivate(JSContext* aCx, Status aStatus,
+                                            bool aFromJSObjectFinalizer)
 {
   AssertIsOnParentThread();
 
@@ -1830,8 +1837,9 @@ WorkerPrivateParent<Derived>::Notify(JSContext* aCx, Status aStatus)
   mQueuedRunnables.Clear();
 
   nsRefPtr<NotifyRunnable> runnable =
-    new NotifyRunnable(ParentAsWorkerPrivate(), aStatus);
-  return runnable->Dispatch(aCx);
+    new NotifyRunnable(ParentAsWorkerPrivate(), aFromJSObjectFinalizer,
+                       aStatus);
+  return runnable->Dispatch(aFromJSObjectFinalizer ? nsnull : aCx);
 }
 
 template <class Derived>
@@ -1907,8 +1915,9 @@ WorkerPrivateParent<Derived>::FinalizeInstance(JSContext* aCx,
 
   if (mJSObject) {
     
+    
     JSAutoEnterCompartment ac;
-    if (!ac.enter(aCx, mJSObject)) {
+    if (!aFromJSFinalizer && !ac.enter(aCx, mJSObject)) {
       NS_ERROR("How can this fail?!");
       return;
     }
@@ -1922,7 +1931,7 @@ WorkerPrivateParent<Derived>::FinalizeInstance(JSContext* aCx,
     
     RootJSObject(aCx, false);
 
-    if (!Terminate(aCx)) {
+    if (!TerminatePrivate(aCx, aFromJSFinalizer)) {
       NS_WARNING("Failed to terminate!");
     }
 
