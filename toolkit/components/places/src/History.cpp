@@ -165,7 +165,15 @@ struct VisitData {
   bool typed;
   PRUint32 transitionType;
   PRTime visitTime;
+
+  
+
+
+
+
+
   nsString title;
+
   nsCString referrerSpec;
 
   
@@ -1444,10 +1452,15 @@ History::FetchPageInfo(VisitData& _place)
 
   
   
-  _place.titleChanged = !(_place.title.Equals(title) ||
-                          (_place.title.IsVoid() && title.IsVoid()));
+  
+  
   if (_place.title.IsVoid()) {
     _place.title = title;
+  }
+  
+  else {
+    _place.titleChanged = !(_place.title.Equals(title) ||
+                            (_place.title.IsEmpty() && title.IsVoid()));
   }
 
   if (_place.hidden) {
