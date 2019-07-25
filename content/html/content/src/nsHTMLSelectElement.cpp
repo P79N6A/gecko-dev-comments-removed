@@ -688,7 +688,8 @@ nsHTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (dataType == nsIDataType::VTYPE_EMPTY) {
+  if (dataType == nsIDataType::VTYPE_EMPTY ||
+      dataType == nsIDataType::VTYPE_VOID) {
     return Add(aElement);
   }
 
