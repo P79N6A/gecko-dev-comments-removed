@@ -763,7 +763,10 @@ struct nsStyleBorder {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
-  static bool ForceCompare() { return false; }
+  
+  
+  
+  static bool ForceCompare() { return true; }
 
   void EnsureBorderColors() {
     if (!mBorderColors) {
