@@ -873,7 +873,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *calle
 
 
 
-    if (pn && onlyXML && (tcflags & TCF_NO_SCRIPT_RVAL)) {
+    if (pn && onlyXML) {
         parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_XML_WHOLE_PROGRAM);
         goto out;
     }
