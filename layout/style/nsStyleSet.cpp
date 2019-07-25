@@ -1365,9 +1365,16 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
      }
   }
 
+  
+  
+  
+  PRBool relevantLinkVisited = aStyleContext->IsLinkContext() ?
+    aStyleContext->RelevantLinkVisited() :
+    aNewParentContext->RelevantLinkVisited();
+
   return GetContext(aNewParentContext, ruleNode, visitedRuleNode,
                     aStyleContext->IsLinkContext(),
-                    aStyleContext->RelevantLinkVisited(),
+                    relevantLinkVisited,
                     pseudoTag, pseudoType,
                     pseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
                     pseudoType == nsCSSPseudoElements::ePseudo_before ||
