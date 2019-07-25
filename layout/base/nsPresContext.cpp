@@ -95,8 +95,6 @@
 #include "nsIDOMEventTarget.h"
 #include "nsObjectFrame.h"
 #include "nsTransitionManager.h"
-#include "mozilla/dom/Element.h"
-#include "nsIFrameMessageManager.h"
 
 #ifdef MOZ_SMIL
 #include "nsSMILAnimationController.h"
@@ -107,6 +105,7 @@
 #endif 
 
 #include "nsContentUtils.h"
+#include "nsPIWindowRoot.h"
 
 
 #include "imgIContainer.h"
@@ -117,7 +116,6 @@
 
 using mozilla::TimeDuration;
 using mozilla::TimeStamp;
-using namespace mozilla::dom;
 
 static nscolor
 MakeColorPref(const char *colstr)
@@ -207,7 +205,9 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
                         NS_FONT_STRETCH_NORMAL, 0, 0),
     mDefaultFantasyFont("fantasy", NS_FONT_STYLE_NORMAL,
                         NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                        NS_FONT_STRETCH_NORMAL, 0, 0)
+                        NS_FONT_STRETCH_NORMAL, 0, 0),
+    mCanPaginatedScroll(PR_FALSE),
+    mIsRootPaginatedDocument(PR_FALSE), mSupressResizeReflow(PR_FALSE)
 {
   
   
@@ -308,9 +308,6 @@ nsPresContext::~nsPresContext()
 
   delete mBidiUtils;
 #endif 
-  nsContentUtils::UnregisterPrefCallback("gfx.font_rendering.",
-                                         nsPresContext::PrefChangedCallback,
-                                         this);
   nsContentUtils::UnregisterPrefCallback("layout.css.dpi",
                                          nsPresContext::PrefChangedCallback,
                                          this);
@@ -320,13 +317,13 @@ nsPresContext::~nsPresContext()
 
   NS_IF_RELEASE(mDeviceContext);
   NS_IF_RELEASE(mLookAndFeel);
-  NS_IF_RELEASE(mLanguage);
+  NS_IF_RELEASE(mLangGroup);
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsPresContext)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsPresContext)
-   NS_INTERFACE_MAP_ENTRY(nsISupports)
+   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIObserver)
    NS_INTERFACE_MAP_ENTRY(nsIObserver)
 NS_INTERFACE_MAP_END
 
@@ -436,20 +433,9 @@ nsPresContext::GetFontPreferences()
   mDefaultVariableFont.size = CSSPixelsToAppUnits(16);
   mDefaultFixedFont.size = CSSPixelsToAppUnits(13);
 
-  
-  nsCAutoString langGroup;
-  if (mLanguage && mLangService) {
-    nsresult rv;
-    nsIAtom *group = mLangService->GetLanguageGroup(mLanguage, &rv);
-    if (NS_SUCCEEDED(rv) && group) {
-      group->ToUTF8String(langGroup);
-    }
-    else {
-      langGroup.AssignLiteral("x-western"); 
-    }
-  }
-  else {
-    langGroup.AssignLiteral("x-western"); 
+  const char *langGroup = "x-western"; 
+  if (mLangGroup) {
+    mLangGroup->GetUTF8String(&langGroup);
   }
 
   nsCAutoString pref;
@@ -744,6 +730,11 @@ nsPresContext::GetUserPreferences()
   SET_BIDI_OPTION_TEXTTYPE(bidiOptions, prefInt);
 
   prefInt =
+    nsContentUtils::GetIntPref(IBMBIDI_CONTROLSTEXTMODE_STR,
+                               GET_BIDI_OPTION_CONTROLSTEXTMODE(bidiOptions));
+  SET_BIDI_OPTION_CONTROLSTEXTMODE(bidiOptions, prefInt);
+
+  prefInt =
     nsContentUtils::GetIntPref(IBMBIDI_NUMERAL_STR,
                                GET_BIDI_OPTION_NUMERAL(bidiOptions));
   SET_BIDI_OPTION_NUMERAL(bidiOptions, prefInt);
@@ -808,10 +799,6 @@ nsPresContext::PreferenceChanged(const char* aPrefName)
 
     
     
-  }
-  if (StringBeginsWith(prefName, NS_LITERAL_CSTRING("gfx.font_rendering."))) {
-    
-    mPrefChangePendingNeedsReflow = PR_TRUE;
   }
   
   if (!mPrefChangedTimer)
@@ -922,8 +909,6 @@ nsPresContext::Init(nsIDeviceContext* aDeviceContext)
   nsContentUtils::RegisterPrefCallback("bidi.", PrefChangedCallback,
                                        this);
 #endif
-  nsContentUtils::RegisterPrefCallback("gfx.font_rendering.", PrefChangedCallback,
-                                       this);
   nsContentUtils::RegisterPrefCallback("layout.css.dpi",
                                        nsPresContext::PrefChangedCallback,
                                        this);
@@ -1016,15 +1001,14 @@ void
 nsPresContext::UpdateCharSet(const nsAFlatCString& aCharSet)
 {
   if (mLangService) {
-    NS_IF_RELEASE(mLanguage);
-    mLanguage = mLangService->LookupCharSet(aCharSet.get()).get();  
-    
+    NS_IF_RELEASE(mLangGroup);
+    mLangGroup = mLangService->LookupCharSet(aCharSet.get()).get();  
 
     
 #if !defined(XP_BEOS) 
-    if (mLanguage == nsGkAtoms::Unicode) {
-      NS_RELEASE(mLanguage);
-      NS_IF_ADDREF(mLanguage = mLangService->GetLocaleLanguage()); 
+    if (mLangGroup == nsGkAtoms::Unicode) {
+      NS_RELEASE(mLangGroup);
+      NS_IF_ADDREF(mLangGroup = mLangService->GetLocaleLanguageGroup()); 
     }
 #endif
     GetFontPreferences();
@@ -1146,8 +1130,8 @@ void
 nsPresContext::SetSMILAnimations(nsIDocument *aDoc, PRUint16 aNewMode,
                                  PRUint16 aOldMode)
 {
-  if (aDoc->HasAnimationController()) {
-    nsSMILAnimationController* controller = aDoc->GetAnimationController();
+  nsSMILAnimationController *controller = aDoc->GetAnimationController();
+  if (controller) {
     switch (aNewMode)
     {
       case imgIContainer::kNormalAnimMode:
@@ -1162,6 +1146,13 @@ nsPresContext::SetSMILAnimations(nsIDocument *aDoc, PRUint16 aNewMode,
         break;
     }
   }
+}
+
+void
+nsPresContext::SMILOverrideStyleChanged(nsIContent* aContent)
+{
+  mShell->FrameConstructor()->PostRestyleEvent(aContent, eReStyle_Self,
+                                               NS_STYLE_HINT_NONE);
 }
 #endif 
 
@@ -1185,9 +1176,9 @@ nsPresContext::SetImageAnimationModeInternal(PRUint16 aMode)
   if (mShell != nsnull) {
     nsIDocument *doc = mShell->GetDocument();
     if (doc) {
-      Element *rootElement = doc->GetRootElement();
-      if (rootElement) {
-        SetImgAnimations(rootElement, aMode);
+      nsIContent *rootContent = doc->GetRootContent();
+      if (rootContent) {
+        SetImgAnimations(rootContent, aMode);
       }
 
 #ifdef MOZ_SMIL
@@ -1209,7 +1200,7 @@ already_AddRefed<nsIFontMetrics>
 nsPresContext::GetMetricsFor(const nsFont& aFont, PRBool aUseUserFontSet)
 {
   nsIFontMetrics* metrics = nsnull;
-  mDeviceContext->GetMetricsFor(aFont, mLanguage,
+  mDeviceContext->GetMetricsFor(aFont, mLangGroup,
                                 aUseUserFontSet ? GetUserFontSet() : nsnull,
                                 metrics);
   return metrics;
@@ -1344,7 +1335,6 @@ void
 nsPresContext::SetContainer(nsISupports* aHandler)
 {
   mContainer = do_GetWeakReference(aHandler);
-  InvalidateIsChromeCache();
   if (mContainer) {
     GetDocumentColorPreferences();
   }
@@ -1367,6 +1357,27 @@ nsPresContext::GetContainerExternal() const
 }
 
 #ifdef IBMBIDI
+PRBool
+nsPresContext::BidiEnabledInternal() const
+{
+  PRBool bidiEnabled = PR_FALSE;
+  NS_ASSERTION(mShell, "PresShell must be set on PresContext before calling nsPresContext::GetBidiEnabled");
+  if (mShell) {
+    nsIDocument *doc = mShell->GetDocument();
+    NS_ASSERTION(doc, "PresShell has no document in nsPresContext::GetBidiEnabled");
+    if (doc) {
+      bidiEnabled = doc->GetBidiEnabled();
+    }
+  }
+  return bidiEnabled;
+}
+
+PRBool
+nsPresContext::BidiEnabledExternal() const
+{
+  return BidiEnabledInternal();
+}
+
 void
 nsPresContext::SetBidiEnabled() const
 {
@@ -1425,31 +1436,7 @@ nsPresContext::GetBidi() const
 {
   return Document()->GetBidiOptions();
 }
-
-PRUint32
-nsPresContext::GetBidiMemoryUsed()
-{
-  if (!mBidiUtils)
-    return 0;
-
-  return mBidiUtils->EstimateMemoryUsed();
-}
-
 #endif 
-
-PRBool
-nsPresContext::IsTopLevelWindowInactive()
-{
-  nsCOMPtr<nsIDocShellTreeItem> treeItem(do_QueryReferent(mContainer));
-  if (!treeItem)
-    return PR_FALSE;
-
-  nsCOMPtr<nsIDocShellTreeItem> rootItem;
-  treeItem->GetRootTreeItem(getter_AddRefs(rootItem));
-  nsCOMPtr<nsPIDOMWindow> domWindow(do_GetInterface(rootItem));
-
-  return domWindow && !domWindow->IsActive();
-}
 
 nsITheme*
 nsPresContext::GetTheme()
@@ -1471,7 +1458,8 @@ nsPresContext::ThemeChanged()
     sThemeChanged = PR_TRUE;
 
     nsCOMPtr<nsIRunnable> ev =
-      NS_NewRunnableMethod(this, &nsPresContext::ThemeChangedInternal);
+      new nsRunnableMethod<nsPresContext>(this,
+                                          &nsPresContext::ThemeChangedInternal);
     if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
       mPendingThemeChanged = PR_TRUE;
     }
@@ -1515,7 +1503,8 @@ nsPresContext::SysColorChanged()
   if (!mPendingSysColorChanged) {
     sLookAndFeelChanged = PR_TRUE;
     nsCOMPtr<nsIRunnable> ev =
-      NS_NewRunnableMethod(this, &nsPresContext::SysColorChangedInternal);
+      new nsRunnableMethod<nsPresContext>(this,
+                                          &nsPresContext::SysColorChangedInternal);
     if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
       mPendingSysColorChanged = PR_TRUE;
     }
@@ -1581,7 +1570,8 @@ nsPresContext::PostMediaFeatureValuesChangedEvent()
 {
   if (!mPendingMediaFeatureValuesChanged) {
     nsCOMPtr<nsIRunnable> ev =
-      NS_NewRunnableMethod(this, &nsPresContext::HandleMediaFeatureValuesChangedEvent);
+      new nsRunnableMethod<nsPresContext>(this,
+                         &nsPresContext::HandleMediaFeatureValuesChangedEvent);
     if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
       mPendingMediaFeatureValuesChanged = PR_TRUE;
     }
@@ -1622,7 +1612,7 @@ nsPresContext::EnsureVisible()
     
     nsCOMPtr<nsIDocumentViewer> docV(do_QueryInterface(cv));
     if (docV) {
-      nsRefPtr<nsPresContext> currentPresContext;
+      nsCOMPtr<nsPresContext> currentPresContext;
       docV->GetPresContext(getter_AddRefs(currentPresContext));
       if (currentPresContext == this) {
         
@@ -1645,7 +1635,7 @@ nsPresContext::CountReflows(const char * aName, nsIFrame * aFrame)
 #endif
 
 PRBool
-nsPresContext::IsChromeSlow() const
+nsPresContext::IsChrome() const
 {
   PRBool isChrome = PR_FALSE;
   nsCOMPtr<nsISupports> container = GetContainer();
@@ -1660,15 +1650,7 @@ nsPresContext::IsChromeSlow() const
       }
     }
   }
-  mIsChrome = isChrome;
-  mIsChromeIsCached = PR_TRUE;
-  return mIsChrome;
-}
-
-void
-nsPresContext::InvalidateIsChromeCacheExternal()
-{
-  InvalidateIsChromeCacheInternal();
+  return isChrome;
 }
 
  PRBool
@@ -1755,9 +1737,9 @@ InsertFontFaceRule(nsCSSFontFaceRule *aRule, gfxUserFontSet* aFontSet,
   unit = val.GetUnit();
   if (unit == eCSSUnit_Array) {
     nsCSSValue::Array *srcArr = val.GetArrayValue();
-    size_t numSrc = srcArr->Count();
+    PRUint32 i, numSrc = srcArr->Count();
     
-    for (size_t i = 0; i < numSrc; i++) {
+    for (i = 0; i < numSrc; i++) {
       val = srcArr->Item(i);
       unit = val.GetUnit();
       gfxFontFaceSrc *face = srcArray.AppendElements(1);
@@ -1850,8 +1832,15 @@ nsPresContext::GetUserFontSetInternal()
     
     
     
-    NS_ASSERTION(!userFontSetGottenBefore || !mShell->IsReflowLocked(),
-                 "FlushUserFontSet should have been called first");
+#ifdef DEBUG
+    {
+      PRBool inReflow;
+      NS_ASSERTION(!userFontSetGottenBefore ||
+                   (NS_SUCCEEDED(mShell->IsReflowLocked(&inReflow)) &&
+                    !inReflow),
+                   "FlushUserFontSet should have been called first");
+    }
+#endif
     FlushUserFontSet();
   }
 
@@ -1960,7 +1949,8 @@ nsPresContext::RebuildUserFontSet()
   
   if (!mPostedFlushUserFontSet) {
     nsCOMPtr<nsIRunnable> ev =
-      NS_NewRunnableMethod(this, &nsPresContext::HandleRebuildUserFontSet);
+      new nsRunnableMethod<nsPresContext>(this,
+                                     &nsPresContext::HandleRebuildUserFontSet);
     if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
       mPostedFlushUserFontSet = PR_TRUE;
     }
@@ -2062,36 +2052,29 @@ MayHavePaintEventListener(nsPIDOMWindow* aInnerWindow)
   if (aInnerWindow->HasPaintEventListeners())
     return PR_TRUE;
 
-  nsPIDOMEventTarget* parentTarget = aInnerWindow->GetParentTarget();
-  if (!parentTarget)
+  nsPIDOMEventTarget* chromeEventHandler = aInnerWindow->GetChromeEventHandler();
+  if (!chromeEventHandler)
     return PR_FALSE;
 
-  nsIEventListenerManager* manager = nsnull;
-  if ((manager = parentTarget->GetListenerManager(PR_FALSE)) &&
-      manager->MayHavePaintEventListener()) {
-    return PR_TRUE;
-  }
-
-  nsCOMPtr<nsINode> node;
-  if (parentTarget != aInnerWindow->GetChromeEventHandler()) {
-    nsCOMPtr<nsIInProcessContentFrameMessageManager> mm =
-      do_QueryInterface(parentTarget);
-    if (mm) {
-      node = mm->GetOwnerContent();
-    }
-  }
-
-  if (!node) {
-    node = do_QueryInterface(parentTarget);
-  }
+  nsCOMPtr<nsINode> node = do_QueryInterface(chromeEventHandler);
   if (node)
     return MayHavePaintEventListener(node->GetOwnerDoc()->GetInnerWindow());
 
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(parentTarget);
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(chromeEventHandler);
   if (window)
     return MayHavePaintEventListener(window);
 
-  return PR_FALSE;
+  nsIEventListenerManager* manager =
+    chromeEventHandler->GetListenerManager(PR_FALSE);
+  if (manager && manager->MayHavePaintEventListener())
+    return PR_TRUE;
+
+  nsCOMPtr<nsPIWindowRoot> root = do_QueryInterface(chromeEventHandler);
+  nsPIDOMEventTarget* tabChildGlobal;
+  return root &&
+         (tabChildGlobal = root->GetParentTarget()) &&
+         (manager = tabChildGlobal->GetListenerManager(PR_FALSE)) &&
+         manager->MayHavePaintEventListener();
 }
 
 PRBool
@@ -2114,7 +2097,8 @@ nsPresContext::NotifyInvalidation(const nsRect& aRect, PRUint32 aFlags)
   if (!IsDOMPaintEventPending()) {
     
     nsCOMPtr<nsIRunnable> ev =
-      NS_NewRunnableMethod(this, &nsPresContext::FireDOMPaintEvent);
+      new nsRunnableMethod<nsPresContext>(this,
+                                          &nsPresContext::FireDOMPaintEvent);
     NS_DispatchToCurrentThread(ev);
   }
 
@@ -2453,6 +2437,11 @@ nsRootPresContext::GetPluginGeometryUpdates(nsIFrame* aChangedSubtree,
   nsRect bounds;
   if (bounds.IntersectRect(closure.mAffectedPluginBounds,
                            closure.mRootFrame->GetRect())) {
+    
+    
+    
+    nsAutoDisableGetUsedXAssertions disableAssertions;
+
     nsDisplayListBuilder builder(closure.mRootFrame, PR_FALSE, PR_FALSE);
     builder.SetAccurateVisibleRegions();
     nsDisplayList list;
