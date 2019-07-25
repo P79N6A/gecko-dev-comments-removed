@@ -1055,6 +1055,13 @@ NS_IMETHODIMP
 WebGLContext::Notify(nsITimer* timer)
 {
     TerminateContextLossTimer();
+
+    if (!HTMLCanvasElement()) {
+        
+        
+        return NS_OK;
+    }
+
     
     
     if (mContextStatus == ContextLostAwaitingEvent) {
