@@ -517,19 +517,9 @@ public:
 
   
 
-
-
-  static nsRect TransformAncestorRectToFrame(nsIFrame* aFrame,
-                                             const nsRect& aRect,
-                                             nsIFrame* aAncestor);
-
-  
-
-
-
-  static nsRect TransformFrameRectToAncestor(nsIFrame* aFrame,
-                                             const nsRect& aRect,
-                                             nsIFrame* aAncestor);
+  static nsRect TransformRectToBoundsInAncestor(nsIFrame* aFrame,
+                                                const nsRect& aRect,
+                                                nsIFrame* aStopAtAncestor);
 
   
 
@@ -540,8 +530,8 @@ public:
 
 
 
-  static nsPoint TransformRootPointToFrame(nsIFrame* aFrame,
-                                           const nsPoint &aPt);
+  static nsPoint InvertTransformsToRoot(nsIFrame* aFrame,
+                                        const nsPoint &aPt);
 
   
 
@@ -704,8 +694,8 @@ public:
   };
 
   struct RectAccumulator : public RectCallback {
-    nsRect mResultRect;
-    nsRect mFirstRect;
+    nsRect       mResultRect;
+    nsRect       mFirstRect;
     bool mSeenFirstRect;
 
     RectAccumulator();
@@ -723,13 +713,7 @@ public:
 
   static nsIFrame* GetContainingBlockForClientRect(nsIFrame* aFrame);
 
-  enum {
-    RECTS_ACCOUNT_FOR_TRANSFORMS = 0x01
-  };
   
-
-
-
 
 
 
@@ -739,17 +723,13 @@ public:
 
 
   static void GetAllInFlowRects(nsIFrame* aFrame, nsIFrame* aRelativeTo,
-                                RectCallback* aCallback, PRUint32 aFlags = 0);
+                                RectCallback* aCallback);
 
   
 
 
 
-
-
-
-  static nsRect GetAllInFlowRectsUnion(nsIFrame* aFrame, nsIFrame* aRelativeTo,
-                                       PRUint32 aFlags = 0);
+  static nsRect GetAllInFlowRectsUnion(nsIFrame* aFrame, nsIFrame* aRelativeTo);
 
   enum {
     EXCLUDE_BLUR_SHADOWS = 0x01

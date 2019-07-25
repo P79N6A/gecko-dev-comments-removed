@@ -93,8 +93,7 @@ public:
   
 
 
-  virtual gfx3DMatrix GetTransformMatrix(nsIFrame* aAncestor,
-                                         nsIFrame **aOutAncestor);
+  virtual gfx3DMatrix GetTransformMatrix(nsIFrame **aOutAncestor);
 
   
 
