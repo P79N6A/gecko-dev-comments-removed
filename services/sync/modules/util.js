@@ -51,6 +51,17 @@ Cu.import("resource://weave/log4moz.js");
 
 let Utils = {
 
+  
+  
+  lazy: function Weave_lazy(dest, prop, ctr) {
+    let getter = function() {
+      delete dest[prop];
+      dest[prop] = new ctr();
+      return dest[prop];
+    };
+    dest.__defineGetter__(prop, getter);
+  },
+  
   deepEquals: function Weave_deepEquals(a, b) {
     if (!a && !b)
       return true;
