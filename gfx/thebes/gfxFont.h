@@ -1920,9 +1920,8 @@ public:
 
     void SetSimpleGlyph(PRUint32 aCharIndex, CompressedGlyph aGlyph) {
         NS_ASSERTION(aGlyph.IsSimpleGlyph(), "Should be a simple glyph here");
-        if (mCharacterGlyphs) {
-            mCharacterGlyphs[aCharIndex] = aGlyph;
-        }
+        NS_ASSERTION(mCharacterGlyphs, "mCharacterGlyphs pointer is null!");
+        mCharacterGlyphs[aCharIndex] = aGlyph;
     }
 
     void SetGlyphs(PRUint32 aCharIndex, CompressedGlyph aGlyph,
@@ -2176,6 +2175,12 @@ public:
     typedef gfxShapedWord::CompressedGlyph    CompressedGlyph;
     typedef gfxShapedWord::DetailedGlyph      DetailedGlyph;
     typedef gfxShapedWord::DetailedGlyphStore DetailedGlyphStore;
+
+    
+    
+    void operator delete(void* p) {
+        moz_free(p);
+    }
 
     virtual ~gfxTextRun();
 
@@ -2569,17 +2574,15 @@ public:
 
     
     
+    void SetSimpleGlyph(PRUint32 aCharIndex, CompressedGlyph aGlyph) {
+        NS_ASSERTION(aGlyph.IsSimpleGlyph(), "Should be a simple glyph here");
+        mCharacterGlyphs[aCharIndex] = aGlyph;
+    }
     
 
 
 
 
-    void SetSimpleGlyph(PRUint32 aCharIndex, CompressedGlyph aGlyph) {
-        NS_ASSERTION(aGlyph.IsSimpleGlyph(), "Should be a simple glyph here");
-        if (mCharacterGlyphs) {
-            mCharacterGlyphs[aCharIndex] = aGlyph;
-        }
-    }
     void SetGlyphs(PRUint32 aCharIndex, CompressedGlyph aGlyph,
                    const DetailedGlyph *aGlyphs);
     void SetMissingGlyph(PRUint32 aCharIndex, PRUint32 aUnicodeChar);
@@ -2724,14 +2727,20 @@ protected:
 
 
     gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void *aText,
-               PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags,
-               CompressedGlyph *aGlyphStorage);
+               PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
 
     
 
 
 
-    static CompressedGlyph* AllocateStorage(PRUint32 aLength);
+
+    static void* AllocateStorageForTextRun(size_t aSize, PRUint32 aLength);
+
+    
+    
+    
+    
+    CompressedGlyph  *mCharacterGlyphs;
 
 private:
     
@@ -2788,13 +2797,6 @@ private:
                     gfxPoint *aPt, PRUint32 aStart, PRUint32 aEnd,
                     PropertyProvider *aProvider,
                     PRUint32 aSpacingStart, PRUint32 aSpacingEnd);
-
-    
-    
-    
-    
-    
-    CompressedGlyph*                mCharacterGlyphs;
 
     nsAutoPtr<DetailedGlyphStore>   mDetailedGlyphs;
 
