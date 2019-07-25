@@ -439,9 +439,8 @@ public:
 
 
 
-  static nsresult GetChildOffset(nsIDOMNode *aChild, 
-                                 nsIDOMNode *aParent, 
-                                 PRInt32    &aOffset);
+  static PRInt32 GetChildOffset(nsIDOMNode *aChild,
+                                nsIDOMNode *aParent);
 
   
 

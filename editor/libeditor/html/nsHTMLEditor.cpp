@@ -1659,17 +1659,13 @@ nsHTMLEditor::SelectElement(nsIDOMElement* aElement)
     res = aElement->GetParentNode(getter_AddRefs(parent));
     if (NS_SUCCEEDED(res) && parent)
     {
-      PRInt32 offsetInParent;
-      res = GetChildOffset(aElement, parent, offsetInParent);
+      PRInt32 offsetInParent = GetChildOffset(aElement, parent);
 
-      if (NS_SUCCEEDED(res))
-      {
+      
+      res = selection->Collapse(parent, offsetInParent);
+      if (NS_SUCCEEDED(res)) {
         
-        res = selection->Collapse(parent, offsetInParent);
-        if (NS_SUCCEEDED(res)) {
-          
-          res = selection->Extend(parent, offsetInParent+1);
-        }
+        res = selection->Extend(parent, offsetInParent + 1);
       }
     }
   }
@@ -1691,26 +1687,9 @@ nsHTMLEditor::SetCaretAfterElement(nsIDOMElement* aElement)
     res = aElement->GetParentNode(getter_AddRefs(parent));
     NS_ENSURE_SUCCESS(res, res);
     NS_ENSURE_TRUE(parent, NS_ERROR_NULL_POINTER);
-    PRInt32 offsetInParent;
-    res = GetChildOffset(aElement, parent, offsetInParent);
-    if (NS_SUCCEEDED(res))
-    {
-      
-      res = selection->Collapse(parent, offsetInParent+1);
-#if 0 
-      {
-      nsAutoString name;
-      parent->GetNodeName(name);
-      printf("SetCaretAfterElement: Parent node: ");
-      wprintf(name.get());
-      printf(" Offset: %d\n\nHTML:\n", offsetInParent+1);
-      nsAutoString Format("text/html");
-      nsAutoString ContentsAs;
-      OutputToString(Format, 2, ContentsAs);
-      wprintf(ContentsAs.get());
-      }
-#endif
-    }
+    PRInt32 offsetInParent = GetChildOffset(aElement, parent);
+    
+    res = selection->Collapse(parent, offsetInParent + 1);
   }
   return res;
 }
