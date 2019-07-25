@@ -102,14 +102,13 @@ public:
   
   NS_DECL_NSIDOMHTMLCOLLECTION
 
-  virtual nsISupports* GetNodeAt(PRUint32 aIndex, nsresult* aResult)
+  virtual nsIContent* GetNodeAt(PRUint32 aIndex, nsresult* aResult)
   {
     FlushPendingNotifications();
 
     *aResult = NS_OK;
 
-    
-    return static_cast<nsIFormControl*>(mElements.SafeElementAt(aIndex, nsnull));
+    return mElements.SafeElementAt(aIndex, nsnull);
   }
   virtual nsISupports* GetNamedItem(const nsAString& aName, nsresult* aResult)
   {

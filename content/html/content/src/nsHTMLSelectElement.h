@@ -87,7 +87,7 @@ public:
   
   
 
-  virtual nsISupports* GetNodeAt(PRUint32 aIndex, nsresult* aResult);
+  virtual nsIContent* GetNodeAt(PRUint32 aIndex, nsresult* aResult);
   virtual nsISupports* GetNamedItem(const nsAString& aName, nsresult* aResult);
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHTMLOptionCollection,
