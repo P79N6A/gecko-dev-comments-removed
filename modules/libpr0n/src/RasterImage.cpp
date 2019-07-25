@@ -56,6 +56,7 @@
 #include "prenv.h"
 #include "ImageLogging.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/Telemetry.h"
 
 #include "nsPNGDecoder.h"
 #include "nsGIFDecoder2.h"
@@ -2669,7 +2670,8 @@ imgDecodeWorker::Run()
 
   
   PRBool haveMoreData = PR_TRUE;
-  TimeStamp deadline = TimeStamp::Now() + TimeDuration::FromMilliseconds(gMaxMSBeforeYield);
+  TimeStamp start = TimeStamp::Now();
+  TimeStamp deadline = start + TimeDuration::FromMilliseconds(gMaxMSBeforeYield);
 
   
   
@@ -2689,6 +2691,9 @@ imgDecodeWorker::Run()
     haveMoreData =
       image->mSourceData.Length() > image->mBytesDecoded;
   }
+
+  TimeDuration decodeLatency = TimeStamp::Now() - start;
+  Telemetry::Accumulate(Telemetry::IMAGE_DECODE_LATENCY, PRInt32(decodeLatency.ToMicroseconds()));
 
   
   
