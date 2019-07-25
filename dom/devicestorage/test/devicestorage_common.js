@@ -13,6 +13,17 @@ Array.prototype.remove = function(from, to) {
 };
 
 function devicestorage_setup() {
+
+  
+  try {
+    const Cc = SpecialPowers.wrap(Components).classes;
+    const Ci = Components.interfaces;
+    var directoryService = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
+    var f = directoryService.get("TmpD", Ci.nsIFile);
+    f.appendRelativePath("device-storage-testing");
+    f.remove(true);
+  } catch(e) {}
+
   SimpleTest.waitForExplicitFinish();
   if (SpecialPowers.isMainProcess()) {
     try {
