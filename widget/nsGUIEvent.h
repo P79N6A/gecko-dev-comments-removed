@@ -1181,6 +1181,10 @@ public:
   {
   }
 
+  
+  
+  
+  
   double deltaX;
   double deltaY;
   double deltaZ;
@@ -1241,6 +1245,13 @@ public:
   };
   ScrollType scrollType;
 
+  
+  
+  
+  
+  
+  
+  
   
   
   double overflowDeltaX;

@@ -2840,6 +2840,16 @@ nsEventStateManager::DoScrollText(nsIScrollableFrame* aScrollableFrame,
     DeltaAccumulator::GetInstance()->
       ComputeScrollAmountForDefaultAction(aEvent, scrollAmountInDevPixels);
 
+  
+  nsPresContext::ScrollbarStyles overflowStyle =
+                                   aScrollableFrame->GetScrollbarStyles();
+  if (overflowStyle.mHorizontal == NS_STYLE_OVERFLOW_HIDDEN) {
+    actualDevPixelScrollAmount.x = 0;
+  }
+  if (overflowStyle.mVertical == NS_STYLE_OVERFLOW_HIDDEN) {
+    actualDevPixelScrollAmount.y = 0;
+  }
+
   nsIAtom* origin = nullptr;
   switch (aEvent->deltaMode) {
     case nsIDOMWheelEvent::DOM_DELTA_LINE:
@@ -2898,6 +2908,12 @@ nsEventStateManager::DoScrollText(nsIScrollableFrame* aScrollableFrame,
       return;
   }
 
+  
+  
+  
+  
+  
+
   nsIntPoint overflow;
   aScrollableFrame->ScrollBy(actualDevPixelScrollAmount,
                              nsIScrollableFrame::DEVICE_PIXELS,
@@ -2912,6 +2928,24 @@ nsEventStateManager::DoScrollText(nsIScrollableFrame* aScrollableFrame,
     aEvent->overflowDeltaY =
       static_cast<double>(overflow.y) / scrollAmountInDevPixels.height;
   }
+
+  
+  
+  
+  if (overflowStyle.mHorizontal == NS_STYLE_OVERFLOW_HIDDEN) {
+    aEvent->overflowDeltaX = aEvent->deltaX;
+  }
+  if (overflowStyle.mVertical == NS_STYLE_OVERFLOW_HIDDEN) {
+    aEvent->overflowDeltaY = aEvent->deltaY;
+  }
+
+  NS_ASSERTION(aEvent->overflowDeltaX == 0 ||
+    (aEvent->overflowDeltaX > 0) == (actualDevPixelScrollAmount.x > 0),
+    "The sign of overflowDeltaX is different from the scroll direction");
+  NS_ASSERTION(aEvent->overflowDeltaY == 0 ||
+    (aEvent->overflowDeltaY > 0) == (actualDevPixelScrollAmount.y > 0),
+    "The sign of overflowDeltaY is different from the scroll direction");
+
   WheelPrefs::GetInstance()->CancelApplyingUserPrefsFromOverflowDelta(aEvent);
 }
 
@@ -5386,6 +5420,12 @@ nsEventStateManager::WheelPrefs::CancelApplyingUserPrefsFromOverflowDelta(
 {
   Index index = GetIndexFor(aEvent);
   Init(index);
+
+  
+  
+  
+  
+  
 
   if (mMultiplierX[index]) {
     aEvent->overflowDeltaX /= mMultiplierX[index];
