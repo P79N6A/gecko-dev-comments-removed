@@ -44,6 +44,7 @@
 
 #include "prlink.h"
 
+#include "gfxImageSurface.h"
 #include "GLContext.h"
 #include "GLContextProvider.h"
 
@@ -365,6 +366,111 @@ GLContext::IsExtensionSupported(const char *extension)
         start = terminator;
     }
     return PR_FALSE;
+}
+
+already_AddRefed<TextureImage>
+GLContext::CreateTextureImage(const nsIntSize& aSize,
+                              TextureImage::ContentType aContentType,
+                              GLint aWrapMode,
+                              PRBool aUseNearestFilter)
+{
+  MakeCurrent();
+
+  GLuint texture;
+  fGenTextures(1, &texture);
+
+  fActiveTexture(LOCAL_GL_TEXTURE0);
+  fBindTexture(LOCAL_GL_TEXTURE_2D, texture);
+
+  GLint texfilter = aUseNearestFilter ? LOCAL_GL_NEAREST : LOCAL_GL_LINEAR;
+  fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, texfilter);
+  fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, texfilter);
+  fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S, aWrapMode);
+  fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, aWrapMode);
+  DEBUG_GL_ERROR_CHECK(this);
+
+  return CreateBasicTextureImage(texture, aSize, aContentType, this);
+}
+
+BasicTextureImage::~BasicTextureImage()
+{
+    mGLContext->MakeCurrent();
+    mGLContext->fDeleteTextures(1, &mTexture);
+}
+
+gfxContext*
+BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
+{
+    NS_ASSERTION(!mUpdateContext, "BeginUpdate() without EndUpdate()?");
+
+    
+    if (!mTextureInited)
+        
+        
+        mUpdateRect = nsIntRect(nsIntPoint(0, 0), mSize);
+    else
+        mUpdateRect = aRegion.GetBounds();
+    
+    
+    aRegion = nsIntRegion(mUpdateRect);
+        
+    nsIntSize rgnSize = mUpdateRect.Size();
+    if (!nsIntRect(nsIntPoint(0, 0), mSize).Contains(mUpdateRect))
+    {
+        NS_ERROR("update outside of image");
+        return NULL;
+    }
+
+    ImageFormat format =
+        (GetContentType() == gfxASurface::CONTENT_COLOR) ?
+        gfxASurface::ImageFormatRGB24 : gfxASurface::ImageFormatARGB32;
+    nsRefPtr<gfxASurface> updateSurface =
+        CreateUpdateSurface(gfxIntSize(rgnSize.width, rgnSize.height),
+                            format);
+    if (!updateSurface)
+        return NULL;
+
+    mUpdateContext = new gfxContext(updateSurface);
+    return mUpdateContext;
+}
+
+PRBool
+BasicTextureImage::EndUpdate()
+{
+    NS_ASSERTION(!!mUpdateContext, "EndUpdate() without BeginUpdate()?");
+
+    
+    nsRefPtr<gfxImageSurface> uploadImage =
+        GetImageForUpload(mUpdateContext->OriginalSurface());
+    if (!uploadImage)
+        return PR_FALSE;
+
+    mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
+    if (!mTextureInited)
+    {
+        mGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D,
+                                0,
+                                LOCAL_GL_RGBA,
+                                mUpdateRect.width,
+                                mUpdateRect.height,
+                                0,
+                                LOCAL_GL_RGBA,
+                                LOCAL_GL_UNSIGNED_BYTE,
+                                uploadImage->Data());
+        mTextureInited = PR_TRUE;
+    } else {
+        mGLContext->fTexSubImage2D(LOCAL_GL_TEXTURE_2D,
+                                   0,
+                                   mUpdateRect.x,
+                                   mUpdateRect.y,
+                                   mUpdateRect.width,
+                                   mUpdateRect.height,
+                                   LOCAL_GL_RGBA,
+                                   LOCAL_GL_UNSIGNED_BYTE,
+                                   uploadImage->Data());
+    }
+    mUpdateContext = NULL;
+    return PR_TRUE;         
 }
 
 } 
