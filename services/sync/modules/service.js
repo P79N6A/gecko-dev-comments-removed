@@ -68,6 +68,9 @@ const INITIAL_THRESHOLD = 75;
 
 const THRESHOLD_DECREMENT_STEP = 25;
 
+
+const CLUSTER_BACKOFF = SCHEDULED_SYNC_INTERVAL;
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave/ext/Sync.js");
 Cu.import("resource://weave/log4moz.js");
@@ -499,7 +502,19 @@ WeaveSvc.prototype = {
     this._log.debug("Error setting cluster for user " + username);
     return false;
   },
-
+  
+  
+  updateCluster: function WeaveSvc_updateCluster(username) {
+    let cTime = Date.now();
+    let lastUp = parseFloat(Svc.Prefs.get("lastClusterUpdate"));
+    if (!lastUp || ((cTime - lastUp) >= CLUSTER_BACKOFF)) {
+      this.setCluster(username);
+      Svc.Prefs.set("lastClusterUpdate", cTime.toString());
+      return true;
+    }
+    return false;
+  },
+  
   verifyLogin: function WeaveSvc_verifyLogin(username, password, passphrase, isLogin)
     this._catch(this._notify("verify-login", "", function() {
       this._log.debug("Verifying login for user " + username);
@@ -519,7 +534,17 @@ WeaveSvc.prototype = {
           return headers;
         }
       };
-      res.get();
+      
+      
+      try {
+        res.get();
+      } catch (e) {
+        if (res.lastChannel.responseStatus == 401) {
+          if (this.updateCluster(username))
+            return this.verifyLogin(username, password, passphrase, isLogin);
+        }
+        throw e;
+      }
 
       if (passphrase)
         return this.verifyPassphrase(username, password, passphrase);
@@ -1140,6 +1165,11 @@ WeaveSvc.prototype = {
         return true;
     }
     catch(e) {
+      
+      if (e.constructor.name == "RequestException" && e.status == 401) {
+        if (this.updateCluster(this.username))
+          return this._syncEngine(engine);
+      }
       this._syncError = true;
       this._weaveStatusCode = WEAVE_STATUS_PARTIAL;
       this._detailedStatus.setEngineStatus(engine.name, e);
