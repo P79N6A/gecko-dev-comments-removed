@@ -214,7 +214,8 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   mAnimationFinished(false)
 {
   
-  mDiscardTrackerNode.img = this;
+  mDiscardTrackerNode.curr = this;
+  mDiscardTrackerNode.prev = mDiscardTrackerNode.next = nsnull;
   Telemetry::GetHistogramById(Telemetry::IMAGE_DECODE_COUNT)->Add(0);
 
   
@@ -2181,7 +2182,8 @@ RasterImage::Discard(bool force)
   if (observer)
     observer->OnDiscard(nsnull);
 
-  DiscardTracker::Remove(&mDiscardTrackerNode);
+  if (force)
+    DiscardTracker::Remove(&mDiscardTrackerNode);
 
   
   PR_LOG(gCompressedImageAccountingLog, PR_LOG_DEBUG,
@@ -2219,7 +2221,7 @@ RasterImage::CanForciblyDiscard() {
 
 bool
 RasterImage::DiscardingActive() {
-  return mDiscardTrackerNode.isInList();
+  return !!(mDiscardTrackerNode.prev || mDiscardTrackerNode.next);
 }
 
 
@@ -2689,18 +2691,6 @@ RasterImage::UnlockImage()
   if (CanDiscard()) {
     nsresult rv = DiscardTracker::Reset(&mDiscardTrackerNode);
     CONTAINER_ENSURE_SUCCESS(rv);
-  }
-
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP
-RasterImage::RequestDiscard()
-{
-  if (CanDiscard()) {
-    Discard();
   }
 
   return NS_OK;

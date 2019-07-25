@@ -359,18 +359,6 @@ public:
 
 
 
-
-
-    void clear()
-    {
-        while (popFirst())
-            continue;
-    }
-
-    
-
-
-
     void debugAssertIsSane()
     {
 #ifdef DEBUG

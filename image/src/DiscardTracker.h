@@ -3,20 +3,62 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_imagelib_DiscardTracker_h_
 #define mozilla_imagelib_DiscardTracker_h_
 
-#include "mozilla/LinkedList.h"
-#include "mozilla/TimeStamp.h"
+#define DISCARD_TIMEOUT_PREF "image.mem.min_discard_timeout_ms"
 
 class nsITimer;
 
 namespace mozilla {
 namespace image {
-
 class RasterImage;
 
 
+
+
+
+
+struct DiscardTrackerNode
+{
+  
+  RasterImage *curr;
+
+  
+  DiscardTrackerNode *prev, *next;
+};
 
 
 
@@ -30,84 +72,16 @@ class RasterImage;
 class DiscardTracker
 {
   public:
-    
-
-
-
-
-
-
-
-
-
-    struct Node : public LinkedListElement<Node>
-    {
-      RasterImage *img;
-      TimeStamp timestamp;
-    };
-
-    
-
-
-
-    static nsresult Reset(struct Node* node);
-
-    
-
-
-
-    static void Remove(struct Node* node);
-
-    
-
-
-
+    static nsresult Reset(struct DiscardTrackerNode *node);
+    static void Remove(struct DiscardTrackerNode *node);
     static void Shutdown();
-
-    
-
-
-
-    static void DiscardAll();
-
-    
-
-
-
-
-    static void InformAllocation(PRUint64 bytes);
-
-  private:
-    
-
-
-    friend int DiscardTimeoutChangedCallback(const char* aPref, void *aClosure);
-
-    
-
-
-
-    class DiscardRunnable : public nsRunnable
-    {
-      NS_IMETHOD Run();
-    };
-
-    static nsresult Initialize();
     static void ReloadTimeout();
-    static nsresult EnableTimer();
-    static void DisableTimer();
-    static void MaybeDiscardSoon();
+    static void DiscardAll();
+  private:
+    static nsresult Initialize();
+    static nsresult TimerOn();
+    static void TimerOff();
     static void TimerCallback(nsITimer *aTimer, void *aClosure);
-    static void DiscardNow();
-
-    static LinkedList<Node> sDiscardableImages;
-    static nsCOMPtr<nsITimer> sTimer;
-    static bool sInitialized;
-    static bool sTimerOn;
-    static bool sDiscardRunnablePending;
-    static PRUint64 sCurrentDecodedImageBytes;
-    static PRUint32 sMinDiscardTimeoutMs;
-    static PRUint32 sMaxDecodedImageKB;
 };
 
 } 
