@@ -181,6 +181,8 @@ const char *const js_common_atom_names[] = {
     "use strict",               
     "loc",                      
     "line",                     
+    "Infinity",                 
+    "NaN",                      
 
 #if JS_HAS_XML_SUPPORT
     js_etago_str,               
