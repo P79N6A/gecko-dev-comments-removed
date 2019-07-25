@@ -1498,10 +1498,6 @@ JS_EnumerateStandardClasses(JSContext *cx, JSObject *obj)
     CHECK_REQUEST(cx);
     rt = cx->runtime;
 
-#ifdef DEBUG_dherman
-    fprintf(stderr, "JS_EnumerateStandardClasses!\n");
-#endif
-
     
     atom = rt->atomState.typeAtoms[JSTYPE_VOID];
     if (!AlreadyHasOwnProperty(cx, obj, atom) &&
