@@ -195,6 +195,25 @@ public:
 
 
 
+
+
+
+
+  void
+  MarkScopeCached(DOMStorageImpl* aStorage);
+
+  
+
+
+
+  bool
+  IsScopeDirty(DOMStorageImpl* aStorage);
+
+  
+
+
+
+
   static nsresult CreateOriginScopeDBKey(nsIURI* aUri, nsACString& aKey);
 
   

@@ -270,6 +270,9 @@ public:
 
   
   nsresult CacheKeysFromDB();
+
+  PRUint64 CachedVersion() { return mItemsCachedVersion; }
+  void SetCachedVersion(PRUint64 version) { mItemsCachedVersion = version; }
   
   
   
@@ -329,7 +332,8 @@ private:
   static nsresult InitDB();
 
   
-  PRPackedBool mItemsCached;
+  
+  PRUint64 mItemsCachedVersion;
 
   
   nsTHashtable<nsSessionStorageEntry> mItems;
