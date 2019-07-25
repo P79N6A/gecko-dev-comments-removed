@@ -416,6 +416,8 @@ BookmarksEngine.prototype = {
                                                      SERVER_PATH_ANNO);
     
     
+    
+    
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
     keyringFile.get(self.cb);
     let keyring = yield;
