@@ -69,6 +69,9 @@ public:
                          hb_codepoint_t glyph,
                          hb_glyph_metrics_t *metrics) const;
 
+    hb_position_t GetKerning(PRUint16 aFirstGlyph,
+                             PRUint16 aSecondGlyph) const;
+
 protected:
     
     nsresult SetGlyphsFromRun(gfxContext *aContext,
@@ -89,6 +92,14 @@ protected:
 
     
     hb_language_t      mHBLanguage;
+
+    
+    
+    
+    
+
+    
+    mutable hb_blob_t *mKernTable;
 
     
     

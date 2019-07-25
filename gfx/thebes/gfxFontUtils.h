@@ -471,6 +471,32 @@ struct MaxpTableHeader {
 
 };
 
+
+
+struct KernTableVersion0 {
+    AutoSwap_PRUint16    version; 
+    AutoSwap_PRUint16    nTables;
+};
+
+struct KernTableSubtableHeaderVersion0 {
+    AutoSwap_PRUint16    version;
+    AutoSwap_PRUint16    length;
+    AutoSwap_PRUint16    coverage;
+};
+
+
+
+struct KernTableVersion1 {
+    AutoSwap_PRUint32    version; 
+    AutoSwap_PRUint32    nTables;
+};
+
+struct KernTableSubtableHeaderVersion1 {
+    AutoSwap_PRUint32    length;
+    AutoSwap_PRUint16    coverage;
+    AutoSwap_PRUint16    tupleIndex;
+};
+
 #pragma pack()
 
 
