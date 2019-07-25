@@ -247,7 +247,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     JS_ASSERT(ArgumentsRectifierReg == r8);
 
     
-    masm.ma_ldr(DTRAddr(sp, DtrOffImm(IonFrameData::offsetOfCalleeToken())), r1);
+    masm.ma_ldr(DTRAddr(sp, DtrOffImm(IonJSFrameLayout::offsetOfCalleeToken())), r1);
     masm.ma_ldrh(EDtrAddr(r1, EDtrOffImm(offsetof(JSFunction, nargs))), r6);
 
     masm.ma_sub(r6, r8, r2);
@@ -269,7 +269,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     
 
     masm.ma_alu(r3, lsl(r8, 3), r3, op_add); 
-    masm.ma_add(r3, Imm32(sizeof(IonFrameData)), r3);
+    masm.ma_add(r3, Imm32(sizeof(IonJSFrameLayout)), r3);
 
     
     {

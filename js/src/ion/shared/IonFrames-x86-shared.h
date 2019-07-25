@@ -93,6 +93,16 @@ class IonJSFrameLayout : public IonCommonFrameLayout
     static size_t offsetOfCalleeToken() {
         return offsetof(IonJSFrameLayout, calleeToken_);
     }
+
+    Value *argv() {
+        return (Value *)(this + 1);
+    }
+
+    
+    
+    uintptr_t *slotRef(uint32 slot) {
+        return (uintptr_t *)((uint8 *)this - (slot * STACK_SLOT_SIZE));
+    }
 };
 
 class IonEntryFrameLayout : public IonJSFrameLayout

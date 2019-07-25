@@ -68,11 +68,13 @@ class IonFrameIterator
 {
     uint8 *current_;
     FrameType type_;
+    uint8 *returnAddressToFp_;
 
   public:
     IonFrameIterator(uint8 *top)
       : current_(top),
-        type_(IonFrame_Exit)
+        type_(IonFrame_Exit),
+        returnAddressToFp_(NULL)
     { }
 
     
@@ -93,6 +95,12 @@ class IonFrameIterator
     void *calleeToken() const;
     bool hasScript() const;
     JSScript *script() const;
+
+    
+    
+    uint8 *returnAddressToFp() const {
+        return returnAddressToFp_;
+    }
 
     
     inline size_t prevFrameLocalSize() const;

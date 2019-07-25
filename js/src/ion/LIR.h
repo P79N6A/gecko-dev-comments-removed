@@ -56,6 +56,7 @@
 #include "MIRGraph.h"
 #include "shared/Assembler-shared.h"
 #include "Snapshots.h"
+#include "Safepoints.h"
 #include "Bailouts.h"
 #include "VMFunctions.h"
 
@@ -554,11 +555,13 @@ class LDefinition
 #undef LIROP
 
 class LSnapshot;
+class LSafepoint;
 class LCaptureAllocations;
 class LInstructionVisitor;
 
-class LInstruction : public TempObject,
-                     public InlineListNode<LInstruction>
+class LInstruction
+  : public TempObject,
+    public InlineListNode<LInstruction>
 {
     uint32 id_;
 
@@ -569,7 +572,12 @@ class LInstruction : public TempObject,
     
     
     
+    
     LSnapshot *postSnapshot_;
+
+    
+    
+    LSafepoint *safepoint_;
 
   protected:
     MDefinition *mir_;
@@ -578,6 +586,7 @@ class LInstruction : public TempObject,
       : id_(0),
         snapshot_(NULL),
         postSnapshot_(NULL),
+        safepoint_(NULL),
         mir_(NULL)
     { }
 
@@ -633,16 +642,15 @@ class LInstruction : public TempObject,
     LSnapshot *postSnapshot() const {
         return postSnapshot_;
     }
-    LSnapshot *safepoint() const {
-        if (mir_->isEffectful())
-            return postSnapshot_;
-        return snapshot_;
+    LSafepoint *safepoint() const {
+        return safepoint_;
     }
     void setMir(MDefinition *mir) {
         mir_ = mir;
     }
     void assignSnapshot(LSnapshot *snapshot);
     void assignPostSnapshot(LSnapshot *snapshot);
+    void initSafepoint();
 
     
     RegisterSet liveRegisters();
@@ -650,8 +658,7 @@ class LInstruction : public TempObject,
     virtual void print(FILE *fp);
     virtual void printName(FILE *fp);
     virtual void printOperands(FILE *fp);
-    virtual void printInfo(FILE *fp) {
-    }
+    virtual void printInfo(FILE *fp) { }
 
   public:
     
@@ -905,9 +912,95 @@ class LSnapshot : public TempObject
     }
 };
 
+struct SafepointNunboxEntry {
+    LAllocation type;
+    LAllocation payload;
+
+    SafepointNunboxEntry() { }
+    SafepointNunboxEntry(LAllocation type, LAllocation payload)
+      : type(type), payload(payload)
+    { }
+};
+
+class LSafepoint : public TempObject
+{
+    typedef SafepointNunboxEntry NunboxEntry;
+
+  public:
+    typedef Vector<uint32, 0, IonAllocPolicy> SlotList;
+    typedef Vector<NunboxEntry, 0, IonAllocPolicy> NunboxList;
+
+  private:
+    
+    
+    RegisterSet liveRegs_;
+
+    
+    GeneralRegisterSet gcRegs_;
+
+    
+    
+    uint32 safepointOffset_;
+
+    
+    SlotList gcSlots_;
+
+#ifdef JS_NUNBOX32
+    SlotList valueSlots_;
+    NunboxList nunboxParts_;
+#endif
+
+  public:
+    LSafepoint()
+      : safepointOffset_(INVALID_SAFEPOINT_OFFSET)
+    { }
+    void addLiveRegister(AnyRegister reg) {
+        liveRegs_.add(reg);
+    }
+    const RegisterSet &liveRegs() const {
+        return liveRegs_;
+    }
+    void addGcRegister(Register reg) {
+        gcRegs_.add(reg);
+    }
+    GeneralRegisterSet gcRegs() const {
+        return gcRegs_;
+    }
+    bool addGcSlot(uint32 slot) {
+        return gcSlots_.append(slot);
+    }
+    SlotList &gcSlots() {
+        return gcSlots_;
+    }
+#ifdef JS_NUNBOX32
+    bool addValueSlot(uint32 slot) {
+        return valueSlots_.append(slot);
+    }
+    SlotList &valueSlots() {
+        return valueSlots_;
+    }
+    bool addNunboxParts(LAllocation type, LAllocation payload) {
+        return nunboxParts_.append(NunboxEntry(type, payload));
+    }
+    NunboxList &nunboxParts() {
+        return nunboxParts_;
+    }
+#endif
+    bool encoded() const {
+        return safepointOffset_ != INVALID_SAFEPOINT_OFFSET;
+    }
+    uint32 offset() const {
+        JS_ASSERT(encoded());
+        return safepointOffset_;
+    }
+    void setOffset(uint32 offset) {
+        safepointOffset_ = offset;
+    }
+};
+
 class LInstruction::InputIterator
 {
-private:
+  private:
     LInstruction &ins_;
     size_t idx_;
     bool snapshot_;
@@ -970,7 +1063,9 @@ public:
 class LIRGraph
 {
     Vector<LBlock *, 16, SystemAllocPolicy> blocks_;
-    js::Vector<Value, 0, SystemAllocPolicy> constantPool_;
+    Vector<Value, 0, SystemAllocPolicy> constantPool_;
+    Vector<LInstruction *, 0, SystemAllocPolicy> safepoints_;
+    Vector<LInstruction *, 0, SystemAllocPolicy> nonCallSafepoints_;
     uint32 numVirtualRegisters_;
 
     
@@ -1049,6 +1144,19 @@ class LIRGraph
     }
     LBlock *osrBlock() const {
         return osrBlock_;
+    }
+    bool noteNeedsSafepoint(LInstruction *ins);
+    size_t numNonCallSafepoints() const {
+        return nonCallSafepoints_.length();
+    }
+    LInstruction *getNonCallSafepoint(size_t i) const {
+        return nonCallSafepoints_[i];
+    }
+    size_t numSafepoints() const {
+        return safepoints_.length();
+    }
+    LInstruction *getSafepoint(size_t i) const {
+        return safepoints_[i];
     }
 };
 

@@ -141,8 +141,10 @@ class Registers {
         (1 << JSC::X86Registers::eax);
 
     typedef JSC::MacroAssembler::RegisterID RegisterID;
-
 };
+
+
+typedef uint16 PackedRegisterMask;
 
 class FloatRegisters {
   public:

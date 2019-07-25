@@ -167,6 +167,9 @@ class Registers
     static const uint32 AllocatableMask = AllMask & ~NonAllocatableMask;
 };
 
+
+typedef uint16 PackedRegisterMask;
+
 class FloatRegisters
 {
   public:

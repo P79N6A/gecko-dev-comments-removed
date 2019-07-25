@@ -325,6 +325,9 @@ class AssemblerX86Shared
         }
         label->bind(masm.label().offset());
     }
+    uint32 currentOffset() {
+        return masm.label().offset();
+    }
 
     
     void retarget(Label *label, Label *target) {

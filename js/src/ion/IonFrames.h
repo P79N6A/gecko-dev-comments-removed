@@ -127,12 +127,35 @@ MaybeScriptFromCalleeToken(CalleeToken token);
 
 
 
-struct IonFrameInfo
+class IonFrameInfo
 {
+  private:
     
     
-    ptrdiff_t displacement;
-    SnapshotOffset snapshotOffset;
+    uint32 displacement_;
+
+    
+    uint32 safepointOffset_;
+
+    
+    
+    SnapshotOffset snapshotOffset_;
+
+  public:
+    IonFrameInfo(uint32 displacement, uint32 safepointOffset, SnapshotOffset snapshotOffset)
+      : displacement_(displacement),
+        safepointOffset_(safepointOffset),
+        snapshotOffset_(snapshotOffset)
+    { }
+
+    uint32 displacement() const {
+        return displacement_;
+    }
+    uint32 safepointOffset() const {
+        return safepointOffset_;
+    }
+    inline SnapshotOffset snapshotOffset() const;
+    inline bool hasSnapshotOffset() const;
 };
 
 struct InvalidationRecord

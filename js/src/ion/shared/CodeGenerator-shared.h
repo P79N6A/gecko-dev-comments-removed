@@ -50,6 +50,7 @@
 #include "ion/IonFrames.h"
 #include "ion/IonMacroAssembler.h"
 #include "ion/Snapshots.h"
+#include "ion/Safepoints.h"
 
 namespace js {
 namespace ion {
@@ -69,6 +70,7 @@ class CodeGeneratorShared : public LInstructionVisitor
     SnapshotWriter snapshots_;
     IonCode *deoptTable_;
     uint32 pushedArgs_;
+    SafepointWriter safepoints_;
 
     
     js::Vector<SnapshotOffset, 0, SystemAllocPolicy> bailouts_;
@@ -174,15 +176,18 @@ class CodeGeneratorShared : public LInstructionVisitor
     bool assignBailoutId(LSnapshot *snapshot);
 
     
+    void encodeSafepoint(LSafepoint *safepoint);
+
     
     
-    bool assignFrameInfo(LSnapshot *snapshot);
+    
+    bool assignFrameInfo(LSafepoint *safepoint, LSnapshot *snapshot);
 
     
     
     bool createSafepoint(LInstruction *ins) {
         JS_ASSERT(ins->safepoint());
-        return assignFrameInfo(ins->safepoint());
+        return assignFrameInfo(ins->safepoint(), ins->postSnapshot());
     }
 
     inline bool isNextBlock(LBlock *block) {
