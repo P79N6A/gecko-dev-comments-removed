@@ -119,21 +119,19 @@ PathGetSiblingFilePath(LPWSTR destinationBuffer,
 
 
 BOOL
-LaunchWinPostProcess(const WCHAR *appExe,
+LaunchWinPostProcess(const WCHAR *installationDir,
                      const WCHAR *updateInfoDir,
                      bool forceSync,
                      HANDLE userToken)
 {
   WCHAR workingDirectory[MAX_PATH + 1];
-  wcscpy(workingDirectory, appExe);
-  if (!PathRemoveFileSpecW(workingDirectory)) {
-    return FALSE;
-  }
+  wcscpy(workingDirectory, installationDir);
 
   
   
   WCHAR inifile[MAX_PATH + 1];
-  if (!PathGetSiblingFilePath(inifile, appExe, L"updater.ini")) {
+  wcscpy(inifile, installationDir);
+  if (!PathAppendSafe(inifile, L"updater.ini")) {
     return FALSE;
   }
 
@@ -153,13 +151,15 @@ LaunchWinPostProcess(const WCHAR *appExe,
 
   if (!GetPrivateProfileStringW(L"PostUpdateWin", L"ExeAsync", L"TRUE", 
                                 exeasync,
-                                sizeof(exeasync)/sizeof(exeasync[0]), inifile)) {
+                                sizeof(exeasync)/sizeof(exeasync[0]), 
+                                inifile)) {
     return FALSE;
   }
 
   WCHAR exefullpath[MAX_PATH + 1];
-  if (!PathGetSiblingFilePath(exefullpath, appExe, exefile)) {
-    return FALSE;
+  wcscpy(exefullpath, installationDir);
+  if (!PathAppendSafe(exefullpath, exefile)) {
+    return false;
   }
 
   WCHAR dlogFile[MAX_PATH + 1];
@@ -420,7 +420,10 @@ WinLaunchServiceCommand(LPCWSTR exePath, int argc, LPWSTR* argv)
                           &commandIDWrote, NULL);
 
   
-  WCHAR *commandLineBuffer = MakeCommandLine(argc, argv);
+  
+  
+  
+  LPWSTR commandLineBuffer = MakeCommandLine(min(argc, 4), argv);
   if (!commandLineBuffer) {
     return FALSE;
   }

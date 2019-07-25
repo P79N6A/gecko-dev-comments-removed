@@ -97,8 +97,6 @@ StartUpdateProcess(LPCWSTR updaterPath,
 
   
   
-  
-  
   LPWSTR cmdLine = MakeCommandLine(argcTmp, argvTmp);
 
   
@@ -188,9 +186,8 @@ StartUpdateProcess(LPCWSTR updaterPath,
     MoveFileEx(updaterINITemp, updaterINI, MOVEFILE_REPLACE_EXISTING);
 
     
-    
-    if (updateWasSuccessful && argcTmp > 5) {
-      LPCWSTR callbackApplication = argvTmp[5];
+    if (updateWasSuccessful && argcTmp > 2) {
+      LPCWSTR installationDir = argvTmp[2];
       LPCWSTR updateInfoDir = argvTmp[1];
 
       
@@ -200,8 +197,10 @@ StartUpdateProcess(LPCWSTR updaterPath,
       
       
       
-      LOG(("Launching post update process as the service in session 0."));
-      LaunchWinPostProcess(callbackApplication, updateInfoDir, true, NULL);
+      LOG(("Launching post update process as the service in session 0.\n"));
+      if (!LaunchWinPostProcess(installationDir, updateInfoDir, true, NULL)) {
+        LOG(("The post update process could not be launched.\n"));
+      }
     }
   }
 
