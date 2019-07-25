@@ -372,7 +372,7 @@ ThebesLayerD3D10::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode)
     
     
     
-    destinationSurface->SetAllowUseAsSource(PR_FALSE);
+    destinationSurface->SetAllowUseAsSource(false);
   } else {
     destinationSurface = mD2DSurface;
   }

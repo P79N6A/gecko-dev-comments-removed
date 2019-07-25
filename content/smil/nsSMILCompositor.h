@@ -61,12 +61,12 @@ public:
 
   explicit nsSMILCompositor(KeyTypePointer aKey)
    : mKey(*aKey),
-     mForceCompositing(PR_FALSE)
+     mForceCompositing(false)
   { }
   nsSMILCompositor(const nsSMILCompositor& toCopy)
     : mKey(toCopy.mKey),
       mAnimationFunctions(toCopy.mAnimationFunctions),
-      mForceCompositing(PR_FALSE)
+      mForceCompositing(false)
   { }
   ~nsSMILCompositor() { }
 
@@ -75,7 +75,7 @@ public:
   bool KeyEquals(KeyTypePointer aKey) const;
   static KeyTypePointer KeyToPointer(KeyTypeRef aKey) { return &aKey; }
   static PLDHashNumber HashKey(KeyTypePointer aKey);
-  enum { ALLOW_MEMMOVE = PR_FALSE };
+  enum { ALLOW_MEMMOVE = false };
 
   
   void AddAnimationFunction(nsSMILAnimationFunction* aFunc);
@@ -93,7 +93,7 @@ public:
 
   
   
-  void ToggleForceCompositing() { mForceCompositing = PR_TRUE; }
+  void ToggleForceCompositing() { mForceCompositing = true; }
 
   
   void StealCachedBaseValue(nsSMILCompositor* aOther) {

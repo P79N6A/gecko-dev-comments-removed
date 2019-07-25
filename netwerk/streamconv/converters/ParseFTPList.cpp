@@ -1050,7 +1050,7 @@ int ParseFTPList(const char *line, struct list_state *state,
               
               lstyle = 'U'; 
               if (toklen[0] == 10)
-                is_old_Hellsoft = PR_TRUE;
+                is_old_Hellsoft = true;
             }
           }
         }

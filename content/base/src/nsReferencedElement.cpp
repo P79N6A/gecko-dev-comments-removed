@@ -165,7 +165,7 @@ nsReferencedElement::ResetWithID(nsIContent* aFromContent, const nsString& aID,
     atom.swap(mWatchID);
   }
 
-  mReferencingImage = PR_FALSE;
+  mReferencingImage = false;
 
   HaveNewDocument(doc, aWatch, aID);
 }
@@ -217,7 +217,7 @@ nsReferencedElement::Unlink()
   mWatchDocument = nsnull;
   mWatchID = nsnull;
   mElement = nsnull;
-  mReferencingImage = PR_FALSE;
+  mReferencingImage = false;
 }
 
 bool

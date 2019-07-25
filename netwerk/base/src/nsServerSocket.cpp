@@ -73,7 +73,7 @@ PostEvent(nsServerSocket *s, nsServerSocketFunc func)
 nsServerSocket::nsServerSocket()
   : mLock("nsServerSocket.mLock")
   , mFD(nsnull)
-  , mAttached(PR_FALSE)
+  , mAttached(false)
 {
   
   
@@ -170,7 +170,7 @@ nsServerSocket::TryAttach()
   if (NS_FAILED(rv))
     return rv;
 
-  mAttached = PR_TRUE;
+  mAttached = true;
 
   
   
@@ -301,11 +301,11 @@ nsServerSocket::InitWithAddress(const PRNetAddr *aAddr, PRInt32 aBackLog)
   PRSocketOptionData opt;
 
   opt.option = PR_SockOpt_Reuseaddr;
-  opt.value.reuse_addr = PR_TRUE;
+  opt.value.reuse_addr = true;
   PR_SetSocketOption(mFD, &opt);
 
   opt.option = PR_SockOpt_Nonblocking;
-  opt.value.non_blocking = PR_TRUE;
+  opt.value.non_blocking = true;
   PR_SetSocketOption(mFD, &opt);
 
   if (PR_Bind(mFD, aAddr) != PR_SUCCESS)

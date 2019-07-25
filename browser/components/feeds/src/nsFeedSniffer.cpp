@@ -133,15 +133,15 @@ bool
 HasAttachmentDisposition(nsIHttpChannel* httpChannel)
 {
   if (!httpChannel)
-    return PR_FALSE;
+    return false;
 
   PRUint32 disp;
   nsresult rv = httpChannel->GetContentDisposition(&disp);
 
   if (NS_SUCCEEDED(rv) && disp == nsIChannel::DISPOSITION_ATTACHMENT)
-    return PR_TRUE;
+    return true;
 
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -184,24 +184,24 @@ IsDocumentElement(const char *start, const char* end)
   while ( (start = FindChar('<', start, end)) ) {
     ++start;
     if (start >= end)
-      return PR_FALSE;
+      return false;
 
     
     
     
     if (*start != '?' && *start != '!')
-      return PR_FALSE;
+      return false;
     
     
     
     
     start = FindChar('>', start, end);
     if (!start)
-      return PR_FALSE;
+      return false;
 
     ++start;
   }
-  return PR_TRUE;
+  return true;
 }
 
 
@@ -219,7 +219,7 @@ ContainsTopLevelSubstring(nsACString& dataString, const char *substring)
 {
   PRInt32 offset = dataString.Find(substring);
   if (offset == -1)
-    return PR_FALSE;
+    return false;
 
   const char *begin = dataString.BeginReading();
 
@@ -292,7 +292,7 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
     
     
     channel->SetResponseHeader(NS_LITERAL_CSTRING("X-Moz-Is-Feed"),
-                               NS_LITERAL_CSTRING("1"), PR_FALSE);
+                               NS_LITERAL_CSTRING("1"), false);
     sniffedType.AssignLiteral(TYPE_MAYBE_FEED);
     return NS_OK;
   }

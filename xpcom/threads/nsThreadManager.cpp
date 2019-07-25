@@ -118,7 +118,7 @@ nsThreadManager::Init()
   gTLSThreadID = mozilla::threads::Main;
 #endif
 
-  mInitialized = PR_TRUE;
+  mInitialized = true;
   return NS_OK;
 }
 
@@ -132,7 +132,7 @@ nsThreadManager::Shutdown()
   
   
   
-  mInitialized = PR_FALSE;
+  mInitialized = false;
 
   
   NS_ProcessPendingEvents(mMainThread);

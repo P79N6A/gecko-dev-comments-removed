@@ -265,7 +265,7 @@ nsHTMLStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
  bool
 nsHTMLStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
 {
-  return PR_FALSE;
+  return false;
 }
 
  nsRestyleHint
@@ -308,7 +308,7 @@ nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
  bool
 nsHTMLStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
 {
-  return PR_FALSE;
+  return false;
 }
 
  PRInt64
@@ -362,13 +362,13 @@ nsHTMLStyleSheet::GetType(nsString& aType) const
  bool
 nsHTMLStyleSheet::HasRules() const
 {
-  return PR_TRUE; 
+  return true; 
 }
 
  bool
 nsHTMLStyleSheet::IsApplicable() const
 {
-  return PR_TRUE;
+  return true;
 }
 
  void
@@ -379,7 +379,7 @@ nsHTMLStyleSheet::SetEnabled(bool aEnabled)
  bool
 nsHTMLStyleSheet::IsComplete() const
 {
-  return PR_TRUE;
+  return true;
 }
 
  void

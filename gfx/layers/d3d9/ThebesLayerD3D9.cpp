@@ -483,7 +483,7 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
         
         
         
-        destinationSurface->SetAllowUseAsSource(PR_FALSE);
+        destinationSurface->SetAllowUseAsSource(false);
       }
       break;
     }

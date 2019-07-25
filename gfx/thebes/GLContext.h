@@ -219,7 +219,7 @@ public:
     };
 
     virtual bool NextTile() {
-        return PR_FALSE;
+        return false;
     };
 
     virtual nsIntRect GetTileRect() {
@@ -531,20 +531,20 @@ public:
     GLContext(const ContextFormat& aFormat,
               bool aIsOffscreen = false,
               GLContext *aSharedContext = nsnull)
-      : mInitialized(PR_FALSE),
+      : mInitialized(false),
         mIsOffscreen(aIsOffscreen),
 #ifdef USE_GLES2
-        mIsGLES2(PR_TRUE),
+        mIsGLES2(true),
 #else
-        mIsGLES2(PR_FALSE),
+        mIsGLES2(false),
 #endif
-        mIsGlobalSharedContext(PR_FALSE),
+        mIsGlobalSharedContext(false),
         mVendor(-1),
         mDebugMode(0),
         mCreationFormat(aFormat),
         mSharedContext(aSharedContext),
         mOffscreenTexture(0),
-        mFlipped(PR_FALSE),
+        mFlipped(false),
         mBlitProgram(0),
         mBlitFramebuffer(0),
         mOffscreenFBO(0),
@@ -716,22 +716,22 @@ public:
 
     virtual bool BindTex2DOffscreen(GLContext *aOffscreen) {
         if (aOffscreen->GetContextType() != GetContextType()) {
-          return PR_FALSE;
+          return false;
         }
 
         if (!aOffscreen->mOffscreenFBO) {
-            return PR_FALSE;
+            return false;
         }
 
         if (!aOffscreen->mSharedContext ||
             aOffscreen->mSharedContext != mSharedContext)
         {
-            return PR_FALSE;
+            return false;
         }
 
         fBindTexture(LOCAL_GL_TEXTURE_2D, aOffscreen->mOffscreenTexture);
 
-        return PR_TRUE;
+        return true;
     }
 
     virtual void UnbindTex2DOffscreen(GLContext *aOffscreen) { }
@@ -751,7 +751,7 @@ public:
     virtual bool ResizeOffscreen(const gfxIntSize& aNewSize) {
         if (mOffscreenFBO)
             return ResizeOffscreenFBO(aNewSize);
-        return PR_FALSE;
+        return false;
     }
 
     
@@ -797,7 +797,7 @@ public:
 #endif
 
     virtual bool TextureImageSupportsGetBackingSurface() {
-        return PR_FALSE;
+        return false;
     }
 
     virtual bool RenewSurface() { return false; }
@@ -919,7 +919,7 @@ public:
                                              GLuint& aTexture,
                                              bool aOverwrite = false,
                                              const nsIntPoint& aSrcPoint = nsIntPoint(0, 0),
-                                             bool aPixelBuffer = PR_FALSE);
+                                             bool aPixelBuffer = false);
 
     
     void TexImage2D(GLenum target, GLint level, GLint internalformat, 
@@ -2261,11 +2261,11 @@ public:
 
     struct NamedResource {
         NamedResource()
-            : origin(nsnull), name(0), originDeleted(PR_FALSE)
+            : origin(nsnull), name(0), originDeleted(false)
         { }
 
         NamedResource(GLContext *aOrigin, GLuint aName)
-            : origin(aOrigin), name(aName), originDeleted(PR_FALSE)
+            : origin(aOrigin), name(aName), originDeleted(false)
         { }
 
         GLContext *origin;
@@ -2301,24 +2301,24 @@ inline bool
 DoesVendorStringMatch(const char* aVendorString, const char *aWantedVendor)
 {
     if (!aVendorString || !aWantedVendor)
-        return PR_FALSE;
+        return false;
 
     const char *occurrence = strstr(aVendorString, aWantedVendor);
 
     
     if (!occurrence)
-        return PR_FALSE;
+        return false;
 
     
     if (occurrence != aVendorString && isalpha(*(occurrence-1)))
-        return PR_FALSE;
+        return false;
 
     
     const char *afterOccurrence = occurrence + strlen(aWantedVendor);
     if (isalpha(*afterOccurrence))
-        return PR_FALSE;
+        return false;
 
-    return PR_TRUE;
+    return true;
 }
 
 } 

@@ -61,7 +61,7 @@ nsKeyObject::CleanUp()
       break;
     
     case nsIKeyObject::PRIVATE_KEY:
-      PK11_DeleteTokenPrivateKey(mPrivateKey, PR_TRUE );
+      PK11_DeleteTokenPrivateKey(mPrivateKey, true );
       break;
 
     case nsIKeyObject::PUBLIC_KEY:

@@ -72,12 +72,12 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
   const PRUnichar *iter;
   
   while (start != end) {
-    SKIP_WHITESPACE(start, end, PR_FALSE)
+    SKIP_WHITESPACE(start, end, false)
     iter = start;
     SKIP_ATTR_NAME(iter, end)
 
     if (start == iter) {
-      return PR_FALSE;
+      return false;
     }
 
     
@@ -85,20 +85,20 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
 
     
     start = iter;
-    SKIP_WHITESPACE(start, end, PR_FALSE)
+    SKIP_WHITESPACE(start, end, false)
     if (*start != '=') {
       
       
-      return PR_FALSE;
+      return false;
     }
     
     
     ++start;
-    SKIP_WHITESPACE(start, end, PR_FALSE)
+    SKIP_WHITESPACE(start, end, false)
     PRUnichar q = *start;
     if (q != kQuote && q != kApostrophe) {
       
-      return PR_FALSE;
+      return false;
     }
     
     ++start;  
@@ -110,7 +110,7 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
 
     if (iter == end) {
       
-      return PR_FALSE;
+      return false;
     }
 
     
@@ -118,7 +118,7 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
     
     if (aName->Equals(attrName)) {
       nsIParserService* parserService = nsContentUtils::GetParserService();
-      NS_ENSURE_TRUE(parserService, PR_FALSE);
+      NS_ENSURE_TRUE(parserService, false);
 
       
       
@@ -128,7 +128,7 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
         if (*chunkEnd == kLessThan) {
           aValue.Truncate();
 
-          return PR_FALSE;
+          return false;
         }
 
         if (*chunkEnd == kAmpersand) {
@@ -144,7 +144,7 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
           if (count == 0) {
             aValue.Truncate();
 
-            return PR_FALSE;
+            return false;
           }
 
           aValue.Append(result, count);
@@ -160,7 +160,7 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
       
       aValue.Append(start, iter - start);
 
-      return PR_TRUE;
+      return true;
     }
 
     
@@ -168,7 +168,7 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
     start = iter + 1;
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -211,9 +211,9 @@ nsParserUtils::IsJavaScriptLanguage(const nsString& aName, PRUint32 *aFlags)
     version = JSVERSION_1_8;
   }
   if (version == JSVERSION_UNKNOWN)
-    return PR_FALSE;
+    return false;
   *aFlags = version;
-  return PR_TRUE;
+  return true;
 }
 
 void

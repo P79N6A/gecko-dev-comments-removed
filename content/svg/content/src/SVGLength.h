@@ -155,9 +155,9 @@ public:
     if (uuPerUnit > 0 && NS_finite(value)) {
       mValue = value;
       NS_ASSERTION(IsValid(), "Set invalid SVGLength");
-      return PR_TRUE;
+      return true;
     }
-    return PR_FALSE;
+    return false;
   }
 
   
@@ -183,9 +183,9 @@ public:
       mValue = val;
       mUnit = aUnit;
       NS_ASSERTION(IsValid(), "Set invalid SVGLength");
-      return PR_TRUE;
+      return true;
     }
-    return PR_FALSE;
+    return false;
   }
 
   bool IsPercentage() const {

@@ -62,7 +62,7 @@ TestNestedLoopsParent::RecvNonce()
 
     
     do {
-        if (!NS_ProcessNextEvent(nsnull, PR_FALSE))
+        if (!NS_ProcessNextEvent(nsnull, false))
             fail("expected at least one pending event");
     } while (!mBreakNestedLoop);
 

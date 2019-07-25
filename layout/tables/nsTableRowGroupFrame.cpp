@@ -58,7 +58,7 @@ using namespace mozilla;
 nsTableRowGroupFrame::nsTableRowGroupFrame(nsStyleContext* aContext):
   nsHTMLContainerFrame(aContext)
 {
-  SetRepeatable(PR_FALSE);
+  SetRepeatable(false);
 }
 
 nsTableRowGroupFrame::~nsTableRowGroupFrame()
@@ -333,7 +333,7 @@ CacheRowHeightsForPrinting(nsPresContext*   aPresContext,
 {
   for (nsTableRowFrame* row = aFirstRow; row; row = row->GetNextRow()) {
     if (!row->GetPrevInFlow()) {
-      row->SetHasUnpaginatedHeight(PR_TRUE);
+      row->SetHasUnpaginatedHeight(true);
       row->SetUnpaginatedHeight(aPresContext, row->GetSize().height);
     }
   }
@@ -347,7 +347,7 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
                                      bool*                aPageBreakBeforeEnd)
 {
   if (aPageBreakBeforeEnd) 
-    *aPageBreakBeforeEnd = PR_FALSE;
+    *aPageBreakBeforeEnd = false;
 
   nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
   if (!tableFrame)
@@ -379,7 +379,7 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
       continue;
     }
 
-    haveRow = PR_TRUE;
+    haveRow = true;
 
     
     if (reflowAllKids ||
@@ -401,19 +401,19 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
       nsSize kidAvailSize(aReflowState.availSize.width, NS_UNCONSTRAINEDSIZE);
       nsHTMLReflowState kidReflowState(aPresContext, aReflowState.reflowState,
                                        kidFrame, kidAvailSize,
-                                       -1, -1, PR_FALSE);
+                                       -1, -1, false);
       InitChildReflowState(*aPresContext, borderCollapse, kidReflowState);
 
       
       if (aReflowState.reflowState.mFlags.mHResize)
-        kidReflowState.mFlags.mHResize = PR_TRUE;
+        kidReflowState.mFlags.mHResize = true;
      
       NS_ASSERTION(kidFrame == mFrames.FirstChild() || prevKidFrame, 
                    "If we're not on the first frame, we should have a "
                    "previous sibling...");
       
       if (prevKidFrame && prevKidFrame->GetRect().YMost() > 0) {
-        kidReflowState.mFlags.mIsTopOfPage = PR_FALSE;
+        kidReflowState.mFlags.mIsTopOfPage = false;
       }
 
       rv = ReflowChild(kidFrame, aPresContext, desiredSize, kidReflowState,
@@ -449,9 +449,9 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
             }
           }
           else if (oldKidRect.height != desiredSize.height)
-            needToCalcRowHeights = PR_TRUE;
+            needToCalcRowHeights = true;
         } else {
-          needToCalcRowHeights = PR_TRUE;
+          needToCalcRowHeights = true;
         }
       }
 
@@ -608,7 +608,7 @@ nsTableRowGroupFrame::CalculateRowHeights(nsPresContext*           aPresContext,
     }
     if (!rowFrame->GetPrevInFlow()) {
       if (rowFrame->HasPctHeight()) {
-        rowInfo[rowIndex].hasPctHeight = PR_TRUE;
+        rowInfo[rowIndex].hasPctHeight = true;
         rowInfo[rowIndex].pctHeight = rowFrame->GetHeight(pctHeightBasis);
       }
       rowInfo[rowIndex].hasStyleHeight = rowFrame->HasStyleHeight();
@@ -618,13 +618,13 @@ nsTableRowGroupFrame::CalculateRowHeights(nsPresContext*           aPresContext,
 
     if (!rowInfo[rowIndex].hasStyleHeight) {
       if (isPaginated || tableFrame->HasMoreThanOneCell(rowIndex + startRowIndex)) {
-        rowInfo[rowIndex].isSpecial = PR_TRUE;
+        rowInfo[rowIndex].isSpecial = true;
         
         nsTableCellFrame* cellFrame = rowFrame->GetFirstCell();
         while (cellFrame) {
           PRInt32 rowSpan = tableFrame->GetEffectiveRowSpan(rowIndex + startRowIndex, *cellFrame);
           if (1 == rowSpan) { 
-            rowInfo[rowIndex].isSpecial = PR_FALSE;
+            rowInfo[rowIndex].isSpecial = false;
             break;
           }
           cellFrame = cellFrame->GetNextCell(); 
@@ -634,7 +634,7 @@ nsTableRowGroupFrame::CalculateRowHeights(nsPresContext*           aPresContext,
     
     if (!hasRowSpanningCell) {
       if (tableFrame->RowIsSpannedInto(rowIndex + startRowIndex, numEffCols)) {
-        hasRowSpanningCell = PR_TRUE;
+        hasRowSpanningCell = true;
       }
     }
   }
@@ -777,7 +777,7 @@ nsTableRowGroupFrame::CalculateRowHeights(nsPresContext*           aPresContext,
     nscoord divisor = (haveUnStyledRows) 
                       ? heightOfUnStyledRows : heightOfRows;
     if (divisor > 0) {
-      styleHeightAllocation = PR_TRUE;
+      styleHeightAllocation = true;
       for (rowIndex = 0; rowIndex < numRows; rowIndex++) {
         if (!haveUnStyledRows || !rowInfo[rowIndex].hasStyleHeight) {
           
@@ -820,7 +820,7 @@ nsTableRowGroupFrame::CalculateRowHeights(nsPresContext*           aPresContext,
                                rowHeight));
 
       nsTableFrame::InvalidateFrame(rowFrame, rowBounds, rowVisualOverflow,
-                                    PR_FALSE);
+                                    false);
     }
     if (movedFrame) {
       nsTableFrame::RePositionViews(rowFrame);
@@ -848,7 +848,7 @@ nsTableRowGroupFrame::CollapseRowGroupIfNecessary(nscoord aYTotalOffset,
   const nsStyleVisibility* groupVis = GetStyleVisibility();
   bool collapseGroup = (NS_STYLE_VISIBILITY_COLLAPSE == groupVis->mVisible);
   if (collapseGroup) {
-    tableFrame->SetNeedToCollapse(PR_TRUE);
+    tableFrame->SetNeedToCollapse(true);
   }
 
   nsOverflowAreas overflow;
@@ -886,7 +886,7 @@ nsTableRowGroupFrame::CollapseRowGroupIfNecessary(nscoord aYTotalOffset,
   FinishAndStoreOverflow(overflow, nsSize(groupRect.width, groupRect.height));
   nsTableFrame::RePositionViews(this);
   nsTableFrame::InvalidateFrame(this, oldGroupRect, oldGroupVisualOverflow,
-                                PR_FALSE);
+                                false);
 
   return yGroupOffset;
 }
@@ -916,7 +916,7 @@ nsTableRowGroupFrame::CreateContinuingRowFrame(nsPresContext& aPresContext,
                                                nsIFrame**     aContRowFrame)
 {
   
-  if (!aContRowFrame) {NS_ASSERTION(PR_FALSE, "bad call"); return;}
+  if (!aContRowFrame) {NS_ASSERTION(false, "bad call"); return;}
   
   nsresult rv = aPresContext.PresShell()->FrameConstructor()->
     CreateContinuingFrame(&aPresContext, &aRowFrame, this, aContRowFrame);
@@ -1096,7 +1096,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
 
         nsHTMLReflowState rowReflowState(aPresContext, aReflowState,
                                          rowFrame, availSize,
-                                         -1, -1, PR_FALSE);
+                                         -1, -1, false);
                                          
         InitChildReflowState(*aPresContext, borderCollapse, rowReflowState);
         rowReflowState.mFlags.mIsTopOfPage = isTopOfPage; 
@@ -1117,7 +1117,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
 
         nsTableFrame::InvalidateFrame(rowFrame, oldRowRect,
                                       oldRowVisualOverflow,
-                                      PR_FALSE);
+                                      false);
 
         if (NS_FRAME_IS_NOT_COMPLETE(aStatus)) {
           
@@ -1136,7 +1136,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
           }
           else {
             
-            rowIsOnPage = PR_FALSE;
+            rowIsOnPage = false;
           }
         } 
         else {
@@ -1161,14 +1161,14 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
             }
             else {
               
-              rowIsOnPage = PR_FALSE;
+              rowIsOnPage = false;
             }
           }
         }
       } 
       else { 
         
-        rowIsOnPage = PR_FALSE;
+        rowIsOnPage = false;
       }
 
       nsTableRowFrame* lastRowThisPage = rowFrame;
@@ -1308,7 +1308,7 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
   const nsStyleVisibility* groupVis = GetStyleVisibility();
   bool collapseGroup = (NS_STYLE_VISIBILITY_COLLAPSE == groupVis->mVisible);
   if (collapseGroup) {
-    tableFrame->SetNeedToCollapse(PR_TRUE);
+    tableFrame->SetNeedToCollapse(true);
   }
 
   
@@ -1327,7 +1327,7 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
        aDesiredSize.height > aReflowState.availableHeight)) {
     
     bool specialReflow = (bool)aReflowState.mFlags.mSpecialHeightReflow;
-    ((nsHTMLReflowState::ReflowStateFlags&)aReflowState.mFlags).mSpecialHeightReflow = PR_FALSE;
+    ((nsHTMLReflowState::ReflowStateFlags&)aReflowState.mFlags).mSpecialHeightReflow = false;
 
     SplitRowGroup(aPresContext, aDesiredSize, aReflowState, tableFrame, aStatus);
 
@@ -1444,9 +1444,9 @@ nsTableRowGroupFrame::InsertFrames(ChildListID     aListID,
                    "wrong display type on rowframe");      
       rows.AppendElement(rowFrame);
       if (!gotFirstRow) {
-        rowFrame->SetFirstInserted(PR_TRUE);
-        gotFirstRow = PR_TRUE;
-        tableFrame->SetRowInserted(PR_TRUE);
+        rowFrame->SetFirstInserted(true);
+        gotFirstRow = true;
+        tableFrame->SetRowInserted(true);
       }
     }
   }
@@ -1459,7 +1459,7 @@ nsTableRowGroupFrame::InsertFrames(ChildListID     aListID,
   if (numRows > 0) {
     nsTableRowFrame* prevRow = (nsTableRowFrame *)nsTableFrame::GetFrameAtOrBefore(this, aPrevFrame, nsGkAtoms::tableRowFrame);
     PRInt32 rowIndex = (prevRow) ? prevRow->GetRowIndex() + 1 : startRowIndex;
-    tableFrame->InsertRows(this, rows, rowIndex, PR_TRUE);
+    tableFrame->InsertRows(this, rows, rowIndex, true);
 
     PresContext()->PresShell()->
       FrameNeedsReflow(this, nsIPresShell::eTreeChange,
@@ -1482,7 +1482,7 @@ nsTableRowGroupFrame::RemoveFrame(ChildListID     aListID,
     nsTableRowFrame *rowFrame = do_QueryFrame(aOldFrame);
     if (rowFrame) {
       
-      tableFrame->RemoveRows(*rowFrame, 1, PR_TRUE);
+      tableFrame->RemoveRows(*rowFrame, 1, true);
 
       PresContext()->PresShell()->
         FrameNeedsReflow(this, nsIPresShell::eTreeChange,
@@ -1553,11 +1553,11 @@ nsTableRowGroupFrame::IsSimpleRowFrame(nsTableFrame* aTableFrame,
     PRInt32 numEffCols = aTableFrame->GetEffectiveColCount();
     if (!aTableFrame->RowIsSpannedInto(rowIndex, numEffCols) &&
         !aTableFrame->RowHasSpanningCells(rowIndex, numEffCols)) {
-      return PR_TRUE;
+      return true;
     }
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 nsIAtom*
@@ -1572,7 +1572,7 @@ nsTableRowGroupFrame::HasInternalBreakBefore() const
 {
  nsIFrame* firstChild = mFrames.FirstChild(); 
   if (!firstChild)
-    return PR_FALSE;
+    return false;
   return firstChild->GetStyleDisplay()->mBreakBefore;
 }
 
@@ -1582,7 +1582,7 @@ nsTableRowGroupFrame::HasInternalBreakAfter() const
 {
   nsIFrame* lastChild = mFrames.LastChild(); 
   if (!lastChild)
-    return PR_FALSE;
+    return false;
   return lastChild->GetStyleDisplay()->mBreakAfter;
 }
 
@@ -1719,7 +1719,7 @@ nsTableRowGroupFrame::CheckLineOrder(PRInt32                  aLine,
                                      nsIFrame                 **aFirstVisual,
                                      nsIFrame                 **aLastVisual)
 {
-  *aIsReordered = PR_FALSE;
+  *aIsReordered = false;
   *aFirstVisual = nsnull;
   *aLastVisual = nsnull;
   return NS_OK;
@@ -1737,8 +1737,8 @@ nsTableRowGroupFrame::FindFrameAt(PRInt32    aLineNumber,
    nsTableCellMap* cellMap = table->GetCellMap();
    
    *aFrameFound = nsnull;
-   *aXIsBeforeFirstFrame = PR_TRUE;
-   *aXIsAfterLastFrame = PR_FALSE;
+   *aXIsBeforeFirstFrame = true;
+   *aXIsAfterLastFrame = false;
 
    aLineNumber += GetStartRowIndex();
    PRInt32 numCells = cellMap->GetNumCellsOriginatingInRow(aLineNumber);
@@ -1908,7 +1908,7 @@ nsTableRowGroupFrame::FrameCursorData::AppendFrame(nsIFrame* aFrame)
 {
   nsRect overflowRect = aFrame->GetVisualOverflowRect();
   if (overflowRect.IsEmpty())
-    return PR_TRUE;
+    return true;
   nscoord overflowAbove = -overflowRect.y;
   nscoord overflowBelow = overflowRect.YMost() - aFrame->GetSize().height;
   mOverflowAbove = NS_MAX(mOverflowAbove, overflowAbove);

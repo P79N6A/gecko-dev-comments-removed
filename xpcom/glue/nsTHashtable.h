@@ -333,7 +333,7 @@ nsTHashtable<EntryType>::Init(PRUint32 initSize)
   if (mTable.entrySize)
   {
     NS_ERROR("nsTHashtable::Init() should not be called twice.");
-    return PR_TRUE;
+    return true;
   }
 
   static PLDHashTableOps sOps = 
@@ -357,10 +357,10 @@ nsTHashtable<EntryType>::Init(PRUint32 initSize)
   {
     
     mTable.entrySize = 0;
-    return PR_FALSE;
+    return false;
   }
 
-  return PR_TRUE;
+  return true;
 }
 
 
@@ -412,7 +412,7 @@ nsTHashtable<EntryType>::s_InitEntry(PLDHashTable    *table,
                                      const void      *key)
 {
   new(entry) EntryType(reinterpret_cast<KeyTypePointer>(key));
-  return PR_TRUE;
+  return true;
 }
 
 template<class EntryType>

@@ -200,7 +200,7 @@ class nsHTMLInputElementState : public nsISupports
 
     void SetChecked(bool aChecked) {
       mChecked = aChecked;
-      mCheckedSet = PR_TRUE;
+      mCheckedSet = true;
     }
 
     const nsString& GetValue() {
@@ -222,8 +222,8 @@ class nsHTMLInputElementState : public nsISupports
 
     nsHTMLInputElementState()
       : mValue()
-      , mChecked(PR_FALSE)
-      , mCheckedSet(PR_FALSE)
+      , mChecked(false)
+      , mCheckedSet(false)
     {};
  
   protected:
@@ -334,7 +334,7 @@ AsyncClickHandler::Run()
     oldFiles[0]->GetMozFullPathInternal(path);
 
     nsCOMPtr<nsILocalFile> localFile;
-    rv = NS_NewLocalFile(path, PR_FALSE, getter_AddRefs(localFile));
+    rv = NS_NewLocalFile(path, false, getter_AddRefs(localFile));
 
     if (NS_SUCCEEDED(rv)) {
       nsCOMPtr<nsIFile> parentFile;
@@ -404,7 +404,7 @@ AsyncClickHandler::Run()
           
           nsHTMLInputElement::gUploadLastDir->StoreLastUsedDirectory(doc->GetDocumentURI(),
                                                                      localFile);
-          prefSaved = PR_TRUE;
+          prefSaved = true;
         }
       }
     }
@@ -434,8 +434,8 @@ AsyncClickHandler::Run()
     mInput->SetFiles(newFiles, true);
     nsContentUtils::DispatchTrustedEvent(mInput->GetOwnerDoc(),
                                          static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
-                                         NS_LITERAL_STRING("change"), PR_TRUE,
-                                         PR_FALSE);
+                                         NS_LITERAL_STRING("change"), true,
+                                         false);
   }
 
   return NS_OK;
@@ -453,7 +453,7 @@ nsHTMLInputElement::InitUploadLastDir() {
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
   if (observerService && gUploadLastDir) {
-    observerService->AddObserver(gUploadLastDir, "browser:purge-session-history", PR_TRUE);
+    observerService->AddObserver(gUploadLastDir, "browser:purge-session-history", true);
   }
 }
 
@@ -564,8 +564,8 @@ nsHTMLInputElement::nsHTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
   SET_BOOLBIT(mBitField, BF_PARSER_CREATING, aFromParser);
   SET_BOOLBIT(mBitField, BF_INHIBIT_RESTORATION,
       aFromParser & mozilla::dom::FROM_PARSER_FRAGMENT);
-  SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, PR_TRUE);
-  SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, PR_TRUE);
+  SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, true);
+  SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, true);
   mInputData.mState = new nsTextEditorState(this);
   NS_ADDREF(mInputData.mState);
   
@@ -591,7 +591,7 @@ nsHTMLInputElement::~nsHTMLInputElement()
 void
 nsHTMLInputElement::FreeData()
 {
-  if (!IsSingleLineTextControl(PR_FALSE)) {
+  if (!IsSingleLineTextControl(false)) {
     nsMemory::Free(mInputData.mValue);
     mInputData.mValue = nsnull;
   } else {
@@ -603,7 +603,7 @@ nsHTMLInputElement::FreeData()
 nsTextEditorState*
 nsHTMLInputElement::GetEditorState() const
 {
-  if (!IsSingleLineTextControl(PR_FALSE)) {
+  if (!IsSingleLineTextControl(false)) {
     return nsnull;
   }
 
@@ -620,7 +620,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsHTMLInputElement)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsHTMLInputElement,
                                                   nsGenericHTMLFormElement)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mControllers)
-  if (tmp->IsSingleLineTextControl(PR_FALSE)) {
+  if (tmp->IsSingleLineTextControl(false)) {
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_MEMBER(mInputData.mState, nsTextEditorState)
   }
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mFiles)
@@ -686,7 +686,7 @@ nsHTMLInputElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
         nsAutoString value;
         GetValueInternal(value);
         
-        it->SetValueInternal(value, PR_FALSE, PR_TRUE);
+        it->SetValueInternal(value, false, true);
       }
       break;
     case NS_FORM_INPUT_FILE:
@@ -704,7 +704,7 @@ nsHTMLInputElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
       if (GET_BOOLBIT(mBitField, BF_CHECKED_CHANGED)) {
         
         
-        it->DoSetChecked(GetChecked(), PR_FALSE, PR_TRUE);
+        it->DoSetChecked(GetChecked(), false, true);
       }
       break;
     case NS_FORM_INPUT_IMAGE:
@@ -740,13 +740,13 @@ nsHTMLInputElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     } else if (aNotify && aName == nsGkAtoms::src &&
                mType == NS_FORM_INPUT_IMAGE) {
       if (aValue) {
-        LoadImage(*aValue, PR_TRUE, aNotify);
+        LoadImage(*aValue, true, aNotify);
       } else {
         
         CancelImageRequests(aNotify);
       }
     } else if (aNotify && aName == nsGkAtoms::disabled) {
-      SET_BOOLBIT(mBitField, BF_DISABLED_CHANGED, PR_TRUE);
+      SET_BOOLBIT(mBitField, BF_DISABLED_CHANGED, true);
     }
   }
 
@@ -790,12 +790,12 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       
       
       if (GET_BOOLBIT(mBitField, BF_PARSER_CREATING)) {
-        SET_BOOLBIT(mBitField, BF_SHOULD_INIT_CHECKED, PR_TRUE);
+        SET_BOOLBIT(mBitField, BF_SHOULD_INIT_CHECKED, true);
       } else {
         bool defaultChecked;
         GetDefaultChecked(&defaultChecked);
-        DoSetChecked(defaultChecked, PR_TRUE, PR_TRUE);
-        SetCheckedChanged(PR_FALSE);
+        DoSetChecked(defaultChecked, true, true);
+        SetCheckedChanged(false);
       }
     }
 
@@ -819,7 +819,7 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
         
         nsAutoString src;
         if (GetAttr(kNameSpaceID_None, nsGkAtoms::src, src)) {
-          LoadImage(src, PR_FALSE, aNotify);
+          LoadImage(src, false, aNotify);
         }
       }
     }
@@ -926,7 +926,7 @@ nsHTMLInputElement::SetIndeterminateInternal(bool aValue,
 NS_IMETHODIMP
 nsHTMLInputElement::SetIndeterminate(bool aValue)
 {
-  return SetIndeterminateInternal(aValue, PR_TRUE);
+  return SetIndeterminateInternal(aValue, true);
 }
 
 NS_IMETHODIMP
@@ -940,7 +940,7 @@ nsHTMLInputElement::GetValueInternal(nsAString& aValue) const
 {
   switch (GetValueMode()) {
     case VALUE_MODE_VALUE:
-      mInputData.mState->GetValue(aValue, PR_TRUE);
+      mInputData.mState->GetValue(aValue, true);
       return NS_OK;
 
     case VALUE_MODE_FILENAME:
@@ -1006,7 +1006,7 @@ nsHTMLInputElement::SetValue(const nsAString& aValue)
     }
   }
   else {
-    SetValueInternal(aValue, PR_FALSE, PR_TRUE);
+    SetValueInternal(aValue, false, true);
   }
 
   return NS_OK;
@@ -1083,7 +1083,7 @@ nsHTMLInputElement::MozSetFileNameArray(const PRUnichar **aFileNames, PRUint32 a
       
       nsCOMPtr<nsILocalFile> localFile;
       NS_NewLocalFile(nsDependentString(aFileNames[i]),
-                      PR_FALSE, getter_AddRefs(localFile));
+                      false, getter_AddRefs(localFile));
       file = do_QueryInterface(localFile);
     }
 
@@ -1121,13 +1121,13 @@ nsHTMLInputElement::SetUserInput(const nsAString& aValue)
     const PRUnichar* name = PromiseFlatString(aValue).get();
     return MozSetFileNameArray(&name, 1);
   } else {
-    SetValueInternal(aValue, PR_TRUE, PR_TRUE);
+    SetValueInternal(aValue, true, true);
   }
 
   return nsContentUtils::DispatchTrustedEvent(GetOwnerDoc(),
                                               static_cast<nsIDOMHTMLInputElement*>(this),
-                                              NS_LITERAL_STRING("input"), PR_TRUE,
-                                              PR_TRUE);
+                                              NS_LITERAL_STRING("input"), true,
+                                              true);
 }
 
 NS_IMETHODIMP_(nsIEditor*)
@@ -1294,7 +1294,7 @@ nsHTMLInputElement::AfterSetFiles(bool aSetValueChanged)
   
   
   
-  nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_FALSE);
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
   if (formControlFrame) {
     nsAutoString readableValue;
     GetDisplayFileName(readableValue);
@@ -1304,10 +1304,10 @@ nsHTMLInputElement::AfterSetFiles(bool aSetValueChanged)
   UpdateFileList();
 
   if (aSetValueChanged) {
-    SetValueChanged(PR_TRUE);
+    SetValueChanged(true);
   }
 
-  UpdateAllValidityStates(PR_TRUE);
+  UpdateAllValidityStates(true);
 }
 
 const nsCOMArray<nsIDOMFile>&
@@ -1354,7 +1354,7 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
       }
 
       if (aSetValueChanged) {
-        SetValueChanged(PR_TRUE);
+        SetValueChanged(true);
       }
 
       mInputData.mState->SetValue(value, aUserInput);
@@ -1379,13 +1379,13 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
       
       
       if (mType == NS_FORM_INPUT_HIDDEN) {
-        SetValueChanged(PR_TRUE);
+        SetValueChanged(true);
       }
 
       
       return nsGenericHTMLFormElement::SetAttr(kNameSpaceID_None,
                                                nsGkAtoms::value, aValue,
-                                               PR_TRUE);
+                                               true);
 
     case VALUE_MODE_FILENAME:
       return NS_ERROR_UNEXPECTED;
@@ -1419,7 +1419,7 @@ nsHTMLInputElement::GetChecked(bool* aChecked)
 void
 nsHTMLInputElement::SetCheckedChanged(bool aCheckedChanged)
 {
-  DoSetCheckedChanged(aCheckedChanged, PR_TRUE);
+  DoSetCheckedChanged(aCheckedChanged, true);
 }
 
 void
@@ -1454,7 +1454,7 @@ nsHTMLInputElement::SetCheckedChangedInternal(bool aCheckedChanged)
 NS_IMETHODIMP
 nsHTMLInputElement::SetChecked(bool aChecked)
 {
-  return DoSetChecked(aChecked, PR_TRUE, PR_TRUE);
+  return DoSetChecked(aChecked, true, true);
 }
 
 nsresult
@@ -1467,7 +1467,7 @@ nsHTMLInputElement::DoSetChecked(bool aChecked, bool aNotify,
   
   
   if (aSetValueChanged) {
-    DoSetCheckedChanged(PR_TRUE, aNotify);
+    DoSetCheckedChanged(true, aNotify);
   }
 
   
@@ -1498,7 +1498,7 @@ nsHTMLInputElement::DoSetChecked(bool aChecked, bool aNotify,
       
       
       
-      SetCheckedInternal(PR_FALSE, aNotify);
+      SetCheckedInternal(false, aNotify);
     }
   } else {
     SetCheckedInternal(aChecked, aNotify);
@@ -1524,7 +1524,7 @@ nsHTMLInputElement::RadioSetChecked(bool aNotify)
     
     
     static_cast<nsHTMLInputElement*>
-               (static_cast<nsIDOMHTMLInputElement*>(currentlySelected))->SetCheckedInternal(PR_FALSE, PR_TRUE);
+               (static_cast<nsIDOMHTMLInputElement*>(currentlySelected))->SetCheckedInternal(false, true);
   }
 
   
@@ -1541,7 +1541,7 @@ nsHTMLInputElement::RadioSetChecked(bool aNotify)
   
   
   if (NS_SUCCEEDED(rv)) {
-    SetCheckedInternal(PR_TRUE, aNotify);
+    SetCheckedInternal(true, aNotify);
   }
 
   return rv;
@@ -1604,7 +1604,7 @@ nsHTMLInputElement::MaybeSubmitForm(nsPresContext* aPresContext)
     NS_ASSERTION(submitContent, "Form control not implementing nsIContent?!");
     
     
-    nsMouseEvent event(PR_TRUE, NS_MOUSE_CLICK, nsnull, nsMouseEvent::eReal);
+    nsMouseEvent event(true, NS_MOUSE_CLICK, nsnull, nsMouseEvent::eReal);
     nsEventStatus status = nsEventStatus_eIgnore;
     shell->HandleDOMEventWithTarget(submitContent, &event, &status);
   } else if (mForm->HasSingleTextControl() &&
@@ -1615,7 +1615,7 @@ nsHTMLInputElement::MaybeSubmitForm(nsPresContext* aPresContext)
     
     
     nsRefPtr<nsHTMLFormElement> form(mForm);
-    nsFormEvent event(PR_TRUE, NS_FORM_SUBMIT);
+    nsFormEvent event(true, NS_FORM_SUBMIT);
     nsEventStatus status  = nsEventStatus_eIgnore;
     shell->HandleDOMEventWithTarget(mForm, &event, &status);
   }
@@ -1681,7 +1681,7 @@ nsHTMLInputElement::Focus()
 NS_IMETHODIMP
 nsHTMLInputElement::Select()
 {
-  if (!IsSingleLineTextControl(PR_FALSE)) {
+  if (!IsSingleLineTextControl(false)) {
     return NS_OK;
   }
 
@@ -1727,10 +1727,10 @@ nsHTMLInputElement::DispatchSelectEvent(nsPresContext* aPresContext)
   if (!GET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT)) {
     nsEvent event(nsContentUtils::IsCallerChrome(), NS_FORM_SELECTED);
 
-    SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, PR_TRUE);
+    SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, true);
     nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
                                 aPresContext, &event, nsnull, &status);
-    SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, PR_FALSE);
+    SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, false);
   }
 
   
@@ -1741,7 +1741,7 @@ nsHTMLInputElement::DispatchSelectEvent(nsPresContext* aPresContext)
 void
 nsHTMLInputElement::SelectAll(nsPresContext* aPresContext)
 {
-  nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(true);
 
   if (formControlFrame) {
     formControlFrame->SetFormProperty(nsGkAtoms::select, EmptyString());
@@ -1772,7 +1772,7 @@ nsHTMLInputElement::NeedToInitializeEditorForEvent(nsEventChainPreVisitor& aVisi
   
   
   
-  if (IsSingleLineTextControl(PR_FALSE) &&
+  if (IsSingleLineTextControl(false) &&
       aVisitor.mEvent->eventStructType != NS_MUTATION_EVENT) {
 
     switch (aVisitor.mEvent->message) {
@@ -1781,19 +1781,19 @@ nsHTMLInputElement::NeedToInitializeEditorForEvent(nsEventChainPreVisitor& aVisi
     case NS_MOUSE_EXIT:
     case NS_MOUSE_ENTER_SYNTH:
     case NS_MOUSE_EXIT_SYNTH:
-      return PR_FALSE;
+      return false;
       break;
     }
-    return PR_TRUE;
+    return true;
   }
-  return PR_FALSE;
+  return false;
 }
 
 nsresult
 nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
   
-  aVisitor.mCanHandle = PR_FALSE;
+  aVisitor.mCanHandle = false;
   if (IsElementDisabledForEvents(aVisitor.mEvent->message, GetPrimaryFrame())) {
     return NS_OK;
   }
@@ -1841,20 +1841,20 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   bool originalCheckedValue = false;
 
   if (outerActivateEvent) {
-    SET_BOOLBIT(mBitField, BF_CHECKED_IS_TOGGLED, PR_FALSE);
+    SET_BOOLBIT(mBitField, BF_CHECKED_IS_TOGGLED, false);
 
     switch(mType) {
       case NS_FORM_INPUT_CHECKBOX:
         {
           if (GET_BOOLBIT(mBitField, BF_INDETERMINATE)) {
             
-            SetIndeterminateInternal(PR_FALSE, PR_FALSE);
+            SetIndeterminateInternal(false, false);
             aVisitor.mItemFlags |= NS_ORIGINAL_INDETERMINATE_VALUE;
           }
 
           GetChecked(&originalCheckedValue);
-          DoSetChecked(!originalCheckedValue, PR_TRUE, PR_TRUE);
-          SET_BOOLBIT(mBitField, BF_CHECKED_IS_TOGGLED, PR_TRUE);
+          DoSetChecked(!originalCheckedValue, true, true);
+          SET_BOOLBIT(mBitField, BF_CHECKED_IS_TOGGLED, true);
         }
         break;
 
@@ -1865,8 +1865,8 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 
           originalCheckedValue = GetChecked();
           if (!originalCheckedValue) {
-            DoSetChecked(PR_TRUE, PR_TRUE, PR_TRUE);
-            SET_BOOLBIT(mBitField, BF_CHECKED_IS_TOGGLED, PR_TRUE);
+            DoSetChecked(true, true, true);
+            SET_BOOLBIT(mBitField, BF_CHECKED_IS_TOGGLED, true);
           }
         }
         break;
@@ -1896,7 +1896,7 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   if (aVisitor.mEvent->flags & NS_EVENT_FLAG_NO_CONTENT_DISPATCH) {
     aVisitor.mItemFlags |= NS_NO_CONTENT_DISPATCH;
   }
-  if (IsSingleLineTextControl(PR_FALSE) &&
+  if (IsSingleLineTextControl(false) &&
       aVisitor.mEvent->message == NS_MOUSE_CLICK &&
       aVisitor.mEvent->eventStructType == NS_MOUSE_EVENT &&
       static_cast<nsMouseEvent*>(aVisitor.mEvent)->button ==
@@ -1983,16 +1983,16 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   
   
   if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault &&
-      !IsSingleLineTextControl(PR_TRUE) &&
+      !IsSingleLineTextControl(true) &&
       NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent)) {
     nsUIEvent actEvent(NS_IS_TRUSTED_EVENT(aVisitor.mEvent), NS_UI_ACTIVATE, 1);
 
     nsCOMPtr<nsIPresShell> shell = aVisitor.mPresContext->GetPresShell();
     if (shell) {
       nsEventStatus status = nsEventStatus_eIgnore;
-      SET_BOOLBIT(mBitField, BF_IN_INTERNAL_ACTIVATE, PR_TRUE);
+      SET_BOOLBIT(mBitField, BF_IN_INTERNAL_ACTIVATE, true);
       rv = shell->HandleDOMEventWithTarget(this, &actEvent, &status);
-      SET_BOOLBIT(mBitField, BF_IN_INTERNAL_ACTIVATE, PR_FALSE);
+      SET_BOOLBIT(mBitField, BF_IN_INTERNAL_ACTIVATE, false);
 
       
       
@@ -2029,23 +2029,23 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       nsCOMPtr<nsIDOMHTMLInputElement> selectedRadioButton =
         do_QueryInterface(aVisitor.mItemData);
       if (selectedRadioButton) {
-        selectedRadioButton->SetChecked(PR_TRUE);
+        selectedRadioButton->SetChecked(true);
         
         
         if (mType != NS_FORM_INPUT_RADIO) {
-          DoSetChecked(PR_FALSE, PR_TRUE, PR_TRUE);
+          DoSetChecked(false, true, true);
         }
       } else if (oldType == NS_FORM_INPUT_CHECKBOX) {
         bool originalIndeterminateValue =
           !!(aVisitor.mItemFlags & NS_ORIGINAL_INDETERMINATE_VALUE);
-        SetIndeterminateInternal(originalIndeterminateValue, PR_FALSE);
-        DoSetChecked(originalCheckedValue, PR_TRUE, PR_TRUE);
+        SetIndeterminateInternal(originalIndeterminateValue, false);
+        DoSetChecked(originalCheckedValue, true, true);
       }
     } else {
       nsContentUtils::DispatchTrustedEvent(GetOwnerDoc(),
                                            static_cast<nsIDOMHTMLInputElement*>(this),
-                                           NS_LITERAL_STRING("change"), PR_TRUE,
-                                           PR_FALSE);
+                                           NS_LITERAL_STRING("change"), true,
+                                           false);
 #ifdef ACCESSIBILITY
       
       if (mType == NS_FORM_INPUT_CHECKBOX) {
@@ -2077,7 +2077,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           
           
           nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-          if (fm && IsSingleLineTextControl(PR_FALSE) &&
+          if (fm && IsSingleLineTextControl(false) &&
               !(static_cast<nsFocusEvent *>(aVisitor.mEvent))->fromRaise &&
               SelectTextFieldOnFocus()) {
             nsIDocument* document = GetCurrentDoc();
@@ -2143,7 +2143,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             switch (keyEvent->keyCode) {
               case NS_VK_UP: 
               case NS_VK_LEFT:
-                isMovingBack = PR_TRUE;
+                isMovingBack = true;
                 
               case NS_VK_DOWN:
               case NS_VK_RIGHT:
@@ -2192,7 +2192,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           if (aVisitor.mEvent->message == NS_KEY_PRESS &&
               (keyEvent->keyCode == NS_VK_RETURN ||
                keyEvent->keyCode == NS_VK_ENTER) &&
-               IsSingleLineTextControl(PR_FALSE, mType)) {
+               IsSingleLineTextControl(false, mType)) {
             nsIFrame* primaryFrame = GetPrimaryFrame();
             if (primaryFrame) {
               nsITextControlFrame* textFrame = do_QueryFrame(primaryFrame);
@@ -2252,7 +2252,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
         case NS_FORM_INPUT_SUBMIT:
         case NS_FORM_INPUT_IMAGE:
           if (mForm) {
-            nsFormEvent event(PR_TRUE, (mType == NS_FORM_INPUT_RESET) ?
+            nsFormEvent event(true, (mType == NS_FORM_INPUT_RESET) ?
                               NS_FORM_RESET : NS_FORM_SUBMIT);
             event.originator      = this;
             nsEventStatus status  = nsEventStatus_eIgnore;
@@ -2306,9 +2306,9 @@ nsHTMLInputElement::MaybeLoadImage()
   nsAutoString uri;
   if (mType == NS_FORM_INPUT_IMAGE &&
       GetAttr(kNameSpaceID_None, nsGkAtoms::src, uri) &&
-      (NS_FAILED(LoadImage(uri, PR_FALSE, PR_TRUE)) ||
+      (NS_FAILED(LoadImage(uri, false, true)) ||
        !LoadingEnabled())) {
-    CancelImageRequests(PR_TRUE);
+    CancelImageRequests(true);
   }
 }
 
@@ -2391,8 +2391,8 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
   }
 
   
-  bool isNewTypeSingleLine = IsSingleLineTextControl(PR_FALSE, aNewType);
-  bool isCurrentTypeSingleLine = IsSingleLineTextControl(PR_FALSE, mType);
+  bool isNewTypeSingleLine = IsSingleLineTextControl(false, aNewType);
+  bool isCurrentTypeSingleLine = IsSingleLineTextControl(false, mType);
 
   if (isNewTypeSingleLine && !isCurrentTypeSingleLine) {
     FreeData();
@@ -2416,7 +2416,7 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
         
         
         if (aOldValueMode == VALUE_MODE_VALUE && !aOldValue.IsEmpty()) {
-          SetAttr(kNameSpaceID_None, nsGkAtoms::value, aOldValue, PR_TRUE);
+          SetAttr(kNameSpaceID_None, nsGkAtoms::value, aOldValue, true);
         }
         break;
       case VALUE_MODE_VALUE:
@@ -2431,7 +2431,7 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
             
             GetValue(value);
           }
-          SetValueInternal(value, PR_FALSE, PR_FALSE);
+          SetValueInternal(value, false, false);
         }
         break;
       case VALUE_MODE_FILENAME:
@@ -2443,7 +2443,7 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
   }
 
   
-  UpdateAllValidityStates(PR_FALSE);
+  UpdateAllValidityStates(false);
 }
 
 void
@@ -2530,20 +2530,20 @@ nsHTMLInputElement::ParseAttribute(PRInt32 aNamespaceID,
       return ParseAlignValue(aValue, aResult);
     }
     if (aAttribute == nsGkAtoms::formmethod) {
-      return aResult.ParseEnumValue(aValue, kFormMethodTable, PR_FALSE);
+      return aResult.ParseEnumValue(aValue, kFormMethodTable, false);
     }
     if (aAttribute == nsGkAtoms::formenctype) {
-      return aResult.ParseEnumValue(aValue, kFormEnctypeTable, PR_FALSE);
+      return aResult.ParseEnumValue(aValue, kFormEnctypeTable, false);
     }
     if (aAttribute == nsGkAtoms::autocomplete) {
-      return aResult.ParseEnumValue(aValue, kInputAutocompleteTable, PR_FALSE);
+      return aResult.ParseEnumValue(aValue, kInputAutocompleteTable, false);
     }
     if (ParseImageAttribute(aAttribute, aValue, aResult)) {
       
       
       
       
-      return PR_TRUE;
+      return true;
     }
   }
 
@@ -2585,7 +2585,7 @@ nsHTMLInputElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
   } else if (aAttribute == nsGkAtoms::value) {
     NS_UpdateHint(retval, NS_STYLE_HINT_REFLOW);
   } else if (aAttribute == nsGkAtoms::size &&
-             IsSingleLineTextControl(PR_FALSE)) {
+             IsSingleLineTextControl(false)) {
     NS_UpdateHint(retval, NS_STYLE_HINT_REFLOW);
   } else if (PlaceholderApplies() && aAttribute == nsGkAtoms::placeholder) {
     NS_UpdateHint(retval, NS_STYLE_HINT_FRAMECHANGE);
@@ -2627,7 +2627,7 @@ nsHTMLInputElement::GetControllers(nsIControllers** aResult)
   NS_ENSURE_ARG_POINTER(aResult);
 
   
-  if (IsSingleLineTextControl(PR_FALSE))
+  if (IsSingleLineTextControl(false))
   {
     if (!mControllers)
     {
@@ -2668,7 +2668,7 @@ nsHTMLInputElement::SetSelectionRange(PRInt32 aSelectionStart,
                                       const nsAString& aDirection)
 {
   nsresult rv = NS_ERROR_FAILURE;
-  nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(true);
 
   if (formControlFrame) {
     nsITextControlFrame* textControlFrame = do_QueryFrame(formControlFrame);
@@ -2798,7 +2798,7 @@ nsHTMLInputElement::GetSelectionRange(PRInt32* aSelectionStart,
                                       PRInt32* aSelectionEnd)
 {
   nsresult rv = NS_ERROR_FAILURE;
-  nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(true);
 
   if (formControlFrame) {
     nsITextControlFrame* textControlFrame = do_QueryFrame(formControlFrame);
@@ -2827,7 +2827,7 @@ NS_IMETHODIMP
 nsHTMLInputElement::GetSelectionDirection(nsAString& aDirection)
 {
   nsresult rv = NS_ERROR_FAILURE;
-  nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(true);
 
   if (formControlFrame) {
     nsITextControlFrame* textControlFrame = do_QueryFrame(formControlFrame);
@@ -2878,7 +2878,7 @@ NS_IMETHODIMP
 nsHTMLInputElement::GetPhonetic(nsAString& aPhonetic)
 {
   aPhonetic.Truncate(0);
-  nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(true);
 
   if (formControlFrame) {
     nsITextControlFrame* textControlFrame = do_QueryFrame(formControlFrame);
@@ -2899,11 +2899,11 @@ FireEventForAccessibility(nsIDOMHTMLInputElement* aTarget,
   if (NS_SUCCEEDED(nsEventDispatcher::CreateEvent(aPresContext, nsnull,
                                                   NS_LITERAL_STRING("Events"),
                                                   getter_AddRefs(event)))) {
-    event->InitEvent(aEventType, PR_TRUE, PR_TRUE);
+    event->InitEvent(aEventType, true, true);
 
     nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(event));
     if (privateEvent) {
-      privateEvent->SetTrusted(PR_TRUE);
+      privateEvent->SetTrusted(true);
     }
 
     nsEventDispatcher::DispatchDOMEvent(aTarget, nsnull, event, aPresContext, nsnull);
@@ -2925,15 +2925,15 @@ nsHTMLInputElement::SetDefaultValueAsValue()
   GetDefaultValue(resetVal);
 
   
-  return SetValueInternal(resetVal, PR_FALSE, PR_FALSE);
+  return SetValueInternal(resetVal, false, false);
 }
 
 NS_IMETHODIMP
 nsHTMLInputElement::Reset()
 {
   
-  SetCheckedChanged(PR_FALSE);
-  SetValueChanged(PR_FALSE);
+  SetCheckedChanged(false);
+  SetValueChanged(false);
 
   switch (GetValueMode()) {
     case VALUE_MODE_VALUE:
@@ -2941,7 +2941,7 @@ nsHTMLInputElement::Reset()
     case VALUE_MODE_DEFAULT_ON:
       bool resetVal;
       GetDefaultChecked(&resetVal);
-      return DoSetChecked(resetVal, PR_TRUE, PR_FALSE);
+      return DoSetChecked(resetVal, true, false);
     case VALUE_MODE_FILENAME:
       ClearFiles(false);
       return NS_OK;
@@ -3058,7 +3058,7 @@ nsHTMLInputElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
     rv = aFormSubmission->AddNameValuePair(name,
                                            NS_ConvertASCIItoUTF16(charset));
   }
-  else if (IsSingleLineTextControl(PR_TRUE) &&
+  else if (IsSingleLineTextControl(true) &&
            name.EqualsLiteral("isindex") &&
            aFormSubmission->SupportsIsindexSubmission()) {
     rv = aFormSubmission->AddIsindex(value);
@@ -3157,7 +3157,7 @@ nsHTMLInputElement::SaveState()
 void
 nsHTMLInputElement::DoneCreatingElement()
 {
-  SET_BOOLBIT(mBitField, BF_PARSER_CREATING, PR_FALSE);
+  SET_BOOLBIT(mBitField, BF_PARSER_CREATING, false);
 
   
   
@@ -3165,7 +3165,7 @@ nsHTMLInputElement::DoneCreatingElement()
   
   bool restoredCheckedState =
       GET_BOOLBIT(mBitField, BF_INHIBIT_RESTORATION) ?
-      PR_FALSE :
+      false :
       RestoreFormControlState(this, this);
 
   
@@ -3176,18 +3176,18 @@ nsHTMLInputElement::DoneCreatingElement()
       GET_BOOLBIT(mBitField, BF_SHOULD_INIT_CHECKED)) {
     bool resetVal;
     GetDefaultChecked(&resetVal);
-    DoSetChecked(resetVal, PR_FALSE, PR_TRUE);
-    DoSetCheckedChanged(PR_FALSE, PR_FALSE);
+    DoSetChecked(resetVal, false, true);
+    DoSetCheckedChanged(false, false);
   }
 
   
   if (GetValueMode() == VALUE_MODE_VALUE) {
     nsAutoString aValue;
     GetValue(aValue);
-    SetValueInternal(aValue, PR_FALSE, PR_FALSE);
+    SetValueInternal(aValue, false, false);
   }
 
-  SET_BOOLBIT(mBitField, BF_SHOULD_INIT_CHECKED, PR_FALSE);
+  SET_BOOLBIT(mBitField, BF_SHOULD_INIT_CHECKED, false);
 }
 
 nsEventStates
@@ -3284,8 +3284,8 @@ nsHTMLInputElement::RestoreState(nsPresState* aState)
       case NS_FORM_INPUT_RADIO:
         {
           if (inputState->IsCheckedSet()) {
-            restoredCheckedState = PR_TRUE;
-            DoSetChecked(inputState->GetChecked(), PR_TRUE, PR_TRUE);
+            restoredCheckedState = true;
+            DoSetChecked(inputState->GetChecked(), true, true);
           }
           break;
         }
@@ -3297,7 +3297,7 @@ nsHTMLInputElement::RestoreState(nsPresState* aState)
       case NS_FORM_INPUT_URL:
       case NS_FORM_INPUT_HIDDEN:
         {
-          SetValueInternal(inputState->GetValue(), PR_FALSE, PR_TRUE);
+          SetValueInternal(inputState->GetValue(), false, true);
           break;
         }
       case NS_FORM_INPUT_FILE:
@@ -3413,17 +3413,17 @@ bool
 nsHTMLInputElement::IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32 *aTabIndex)
 {
   if (nsGenericHTMLFormElement::IsHTMLFocusable(aWithMouse, aIsFocusable, aTabIndex)) {
-    return PR_TRUE;
+    return true;
   }
 
   if (IsDisabled()) {
-    *aIsFocusable = PR_FALSE;
-    return PR_TRUE;
+    *aIsFocusable = false;
+    return true;
   }
 
-  if (IsSingleLineTextControl(PR_FALSE)) {
-    *aIsFocusable = PR_TRUE;
-    return PR_FALSE;
+  if (IsSingleLineTextControl(false)) {
+    *aIsFocusable = true;
+    return false;
   }
 
 #ifdef XP_MACOSX
@@ -3437,32 +3437,32 @@ nsHTMLInputElement::IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32
       *aTabIndex = -1;
     }
     *aIsFocusable = defaultFocusable;
-    return PR_TRUE;
+    return true;
   }
 
   if (mType == NS_FORM_INPUT_HIDDEN) {
     if (aTabIndex) {
       *aTabIndex = -1;
     }
-    *aIsFocusable = PR_FALSE;
-    return PR_FALSE;
+    *aIsFocusable = false;
+    return false;
   }
 
   if (!aTabIndex) {
     
     *aIsFocusable = defaultFocusable;
-    return PR_FALSE;
+    return false;
   }
 
   if (mType != NS_FORM_INPUT_RADIO) {
     *aIsFocusable = defaultFocusable;
-    return PR_FALSE;
+    return false;
   }
 
   if (GetChecked()) {
     
     *aIsFocusable = defaultFocusable;
-    return PR_FALSE;
+    return false;
   }
 
   
@@ -3470,7 +3470,7 @@ nsHTMLInputElement::IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32
   nsIRadioGroupContainer* container = GetRadioGroupContainer();
   if (!container) {
     *aIsFocusable = defaultFocusable;
-    return PR_FALSE;
+    return false;
   }
 
   nsAutoString name;
@@ -3482,7 +3482,7 @@ nsHTMLInputElement::IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32
     *aTabIndex = -1;
   }
   *aIsFocusable = defaultFocusable;
-  return PR_FALSE;
+  return false;
 }
 
 nsresult
@@ -3557,7 +3557,7 @@ nsHTMLInputElement::DoesReadOnlyApply() const
     
     
     
-      return PR_FALSE;
+      return false;
 #ifdef DEBUG
     case NS_FORM_INPUT_TEXT:
     case NS_FORM_INPUT_PASSWORD:
@@ -3565,13 +3565,13 @@ nsHTMLInputElement::DoesReadOnlyApply() const
     case NS_FORM_INPUT_TEL:
     case NS_FORM_INPUT_EMAIL:
     case NS_FORM_INPUT_URL:
-      return PR_TRUE;
+      return true;
     default:
       NS_NOTYETIMPLEMENTED("Unexpected input type in DoesReadOnlyApply()");
-      return PR_TRUE;
+      return true;
 #else 
     default:
-      return PR_TRUE;
+      return true;
 #endif 
   }
 }
@@ -3589,7 +3589,7 @@ nsHTMLInputElement::DoesRequiredApply() const
     
     
     
-      return PR_FALSE;
+      return false;
 #ifdef DEBUG
     case NS_FORM_INPUT_RADIO:
     case NS_FORM_INPUT_CHECKBOX:
@@ -3600,13 +3600,13 @@ nsHTMLInputElement::DoesRequiredApply() const
     case NS_FORM_INPUT_TEL:
     case NS_FORM_INPUT_EMAIL:
     case NS_FORM_INPUT_URL:
-      return PR_TRUE;
+      return true;
     default:
       NS_NOTYETIMPLEMENTED("Unexpected input type in DoesRequiredApply()");
-      return PR_TRUE;
+      return true;
 #else 
     default:
-      return PR_TRUE;
+      return true;
 #endif 
   }
 }
@@ -3614,7 +3614,7 @@ nsHTMLInputElement::DoesRequiredApply() const
 bool
 nsHTMLInputElement::DoesPatternApply() const
 {
-  return IsSingleLineTextControl(PR_FALSE);
+  return IsSingleLineTextControl(false);
 }
 
 
@@ -3635,7 +3635,7 @@ nsHTMLInputElement::IsTooLong()
   if (!MaxLengthApplies() ||
       !HasAttr(kNameSpaceID_None, nsGkAtoms::maxlength) ||
       !GetValueChanged()) {
-    return PR_FALSE;
+    return false;
   }
 
   PRInt32 maxLength = -1;
@@ -3643,7 +3643,7 @@ nsHTMLInputElement::IsTooLong()
 
   
   if (maxLength == -1) {
-    return PR_FALSE;
+    return false;
   }
 
   PRInt32 textLength = -1;
@@ -3657,12 +3657,12 @@ nsHTMLInputElement::IsValueMissing() const
 {
   if (!HasAttr(kNameSpaceID_None, nsGkAtoms::required) ||
       !DoesRequiredApply()) {
-    return PR_FALSE;
+    return false;
   }
 
   if (GetValueMode() == VALUE_MODE_VALUE) {
     if (!IsMutable()) {
-      return PR_FALSE;
+      return false;
     }
 
     return IsValueEmpty();
@@ -3678,7 +3678,7 @@ nsHTMLInputElement::IsValueMissing() const
         return !files.Count();
       }
     default:
-      return PR_FALSE;
+      return false;
   }
 }
 
@@ -3686,14 +3686,14 @@ bool
 nsHTMLInputElement::HasTypeMismatch() const
 {
   if (mType != NS_FORM_INPUT_EMAIL && mType != NS_FORM_INPUT_URL) {
-    return PR_FALSE;
+    return false;
   }
 
   nsAutoString value;
-  NS_ENSURE_SUCCESS(GetValueInternal(value), PR_FALSE);
+  NS_ENSURE_SUCCESS(GetValueInternal(value), false);
 
   if (value.IsEmpty()) {
-    return PR_FALSE;
+    return false;
   }
 
   if (mType == NS_FORM_INPUT_EMAIL) {
@@ -3718,7 +3718,7 @@ nsHTMLInputElement::HasTypeMismatch() const
                                            nsnull, getter_AddRefs(uri)));
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 bool
@@ -3727,19 +3727,19 @@ nsHTMLInputElement::HasPatternMismatch() const
   nsAutoString pattern;
   if (!DoesPatternApply() ||
       !GetAttr(kNameSpaceID_None, nsGkAtoms::pattern, pattern)) {
-    return PR_FALSE;
+    return false;
   }
 
   nsAutoString value;
-  NS_ENSURE_SUCCESS(GetValueInternal(value), PR_FALSE);
+  NS_ENSURE_SUCCESS(GetValueInternal(value), false);
 
   if (value.IsEmpty()) {
-    return PR_FALSE;
+    return false;
   }
 
   nsIDocument* doc = GetOwnerDoc();
   if (!doc) {
-    return PR_FALSE;
+    return false;
   }
 
   return !nsContentUtils::IsPatternMatching(value, pattern, doc);
@@ -3955,7 +3955,7 @@ nsHTMLInputElement::IsValidEmailAddressList(const nsAString& aValue)
 
   while (tokenizer.hasMoreTokens()) {
     if (!IsValidEmailAddress(tokenizer.nextToken())) {
-      return PR_FALSE;
+      return false;
     }
   }
 
@@ -3972,7 +3972,7 @@ nsHTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
   
   
   if (length == 0 || aValue[0] == '@' || aValue[length-1] == '.') {
-    return PR_FALSE;
+    return false;
   }
 
   
@@ -3985,19 +3985,19 @@ nsHTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
           c == '&' || c == '\''|| c == '*' || c == '+' || c == '-' ||
           c == '/' || c == '=' || c == '?' || c == '^' || c == '_' ||
           c == '`' || c == '{' || c == '|' || c == '}' || c == '~' )) {
-      return PR_FALSE;
+      return false;
     }
   }
 
   
   
   if (++i >= length) {
-    return PR_FALSE;
+    return false;
   }
 
   
   if (aValue[i] == '.') {
-    return PR_FALSE;
+    return false;
   }
 
   
@@ -4007,35 +4007,35 @@ nsHTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
     if (c == '.') {
       
       if (aValue[i-1] == '.') {
-        return PR_FALSE;
+        return false;
       }
     } else if (!(nsCRT::IsAsciiAlpha(c) || nsCRT::IsAsciiDigit(c) ||
                  c == '-')) {
       
-      return PR_FALSE;
+      return false;
     }
   }
 
-  return PR_TRUE;
+  return true;
 }
 
 NS_IMETHODIMP_(bool)
 nsHTMLInputElement::IsSingleLineTextControl() const
 {
-  return IsSingleLineTextControl(PR_FALSE);
+  return IsSingleLineTextControl(false);
 }
 
 NS_IMETHODIMP_(bool)
 nsHTMLInputElement::IsTextArea() const
 {
-  return PR_FALSE;
+  return false;
 }
 
 NS_IMETHODIMP_(bool)
 nsHTMLInputElement::IsPlainTextControl() const
 {
   
-  return PR_TRUE;
+  return true;
 }
 
 NS_IMETHODIMP_(bool)
@@ -4211,8 +4211,8 @@ nsHTMLInputElement::UpdateValidityUIBits(bool aIsFocused)
     
     SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, ShouldShowValidityUI());
   } else {
-    SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, PR_TRUE);
-    SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, PR_TRUE);
+    SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, true);
+    SET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI, true);
   }
 }
 

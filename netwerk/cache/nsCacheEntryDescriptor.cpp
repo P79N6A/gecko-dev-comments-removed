@@ -538,7 +538,7 @@ nsInputStreamWrapper::LazyInit()
                                                  getter_AddRefs(mInput));
     if (NS_FAILED(rv)) return rv;
 
-    mInitialized = PR_TRUE;
+    mInitialized = true;
     return NS_OK;
 }
 
@@ -581,7 +581,7 @@ nsresult nsCacheEntryDescriptor::
 nsInputStreamWrapper::IsNonBlocking(bool *result)
 {
     
-    *result = PR_FALSE;
+    *result = false;
     return NS_OK;
 }
 
@@ -637,7 +637,7 @@ nsOutputStreamWrapper::LazyInit()
 
     
     mDescriptor->mOutput = mOutput = stream;
-    mInitialized = PR_TRUE;
+    mInitialized = true;
     return NS_OK;
 }
 
@@ -701,6 +701,6 @@ NS_IMETHODIMP nsCacheEntryDescriptor::
 nsOutputStreamWrapper::IsNonBlocking(bool *result)
 {
     
-    *result = PR_FALSE;
+    *result = false;
     return NS_OK;
 }

@@ -213,8 +213,8 @@ nsSVGSVGElement::nsSVGSVGElement(already_AddRefed<nsINodeInfo> aNodeInfo,
 #ifdef MOZ_SMIL
   , mStartAnimationOnBindToTree(!aFromParser)
 #endif 
-  , mImageNeedsTransformInvalidation(PR_FALSE)
-  , mIsPaintingSVGImageElement(PR_FALSE)
+  , mImageNeedsTransformInvalidation(false)
+  , mIsPaintingSVGImageElement(false)
 {
 }
 
@@ -748,7 +748,7 @@ nsSVGSVGElement::GetBBox(nsIDOMSVGRect **_retval)
 NS_IMETHODIMP
 nsSVGSVGElement::GetCTM(nsIDOMSVGMatrix * *aCTM)
 {
-  gfxMatrix m = nsSVGUtils::GetCTM(this, PR_FALSE);
+  gfxMatrix m = nsSVGUtils::GetCTM(this, false);
   *aCTM = m.IsSingular() ? nsnull : new DOMSVGMatrix(m);
   NS_IF_ADDREF(*aCTM);
   return NS_OK;
@@ -758,7 +758,7 @@ nsSVGSVGElement::GetCTM(nsIDOMSVGMatrix * *aCTM)
 NS_IMETHODIMP
 nsSVGSVGElement::GetScreenCTM(nsIDOMSVGMatrix **aCTM)
 {
-  gfxMatrix m = nsSVGUtils::GetCTM(this, PR_TRUE);
+  gfxMatrix m = nsSVGUtils::GetCTM(this, true);
   *aCTM = m.IsSingular() ? nsnull : new DOMSVGMatrix(m);
   NS_IF_ADDREF(*aCTM);
   return NS_OK;
@@ -853,7 +853,7 @@ nsSVGSVGElement::SetCurrentScaleTranslate(float s, float x, float y)
     if (presShell && IsRoot()) {
       bool scaling = (mPreviousScale != mCurrentScale);
       nsEventStatus status = nsEventStatus_eIgnore;
-      nsGUIEvent event(PR_TRUE, scaling ? NS_SVG_ZOOM : NS_SVG_SCROLL, 0);
+      nsGUIEvent event(true, scaling ? NS_SVG_ZOOM : NS_SVG_SCROLL, 0);
       event.eventStructType = scaling ? NS_SVGZOOM_EVENT : NS_SVG_EVENT;
       presShell->HandleDOMEventWithTarget(this, &event, &status);
       InvalidateTransformNotifyFrame();
@@ -1012,7 +1012,7 @@ nsSVGSVGElement::GetViewBoxTransform() const
       tmpPAR.SetAlign(nsIDOMSVGPreserveAspectRatio::SVG_PRESERVEASPECTRATIO_NONE);
 
       
-      tmpPAR.SetDefer(PR_FALSE);
+      tmpPAR.SetDefer(false);
       tmpPAR.SetMeetOrSlice(nsIDOMSVGPreserveAspectRatio::SVG_MEETORSLICE_SLICE);
 
       overridePARPtr = &tmpPAR;
@@ -1060,7 +1060,7 @@ nsSVGSVGElement::BindToTree(nsIDocument* aDocument,
         
         
         mTimedDocumentRoot = nsnull;
-        mStartAnimationOnBindToTree = PR_TRUE;
+        mStartAnimationOnBindToTree = true;
       }
     }
   }
@@ -1074,7 +1074,7 @@ nsSVGSVGElement::BindToTree(nsIDocument* aDocument,
     rv = mTimedDocumentRoot->SetParent(smilController);
     if (mStartAnimationOnBindToTree) {
       mTimedDocumentRoot->Begin();
-      mStartAnimationOnBindToTree = PR_FALSE;
+      mStartAnimationOnBindToTree = false;
     }
   }
 
@@ -1106,15 +1106,15 @@ nsSVGSVGElement::WillBeOutermostSVG(nsIContent* aParent,
     nsIAtom* tag = parent->Tag();
     if (tag == nsGkAtoms::foreignObject) {
       
-      return PR_FALSE;
+      return false;
     }
     if (tag == nsGkAtoms::svg) {
-      return PR_FALSE;
+      return false;
     }
     parent = parent->GetParent();
   }
 
-  return PR_TRUE;
+  return true;
 }
 #endif 
 
@@ -1266,9 +1266,9 @@ nsSVGSVGElement::
     
     
     
-    mImageNeedsTransformInvalidation = PR_TRUE;
+    mImageNeedsTransformInvalidation = true;
   }
-  mIsPaintingSVGImageElement = PR_TRUE;
+  mIsPaintingSVGImageElement = true;
 
   if (!mViewBox.IsValid()) {
     return; 
@@ -1286,7 +1286,7 @@ nsSVGSVGElement::
                     "Setting override value when it's already set...?"); 
 
   if (NS_LIKELY(NS_SUCCEEDED(rv))) {
-    mImageNeedsTransformInvalidation = PR_TRUE;
+    mImageNeedsTransformInvalidation = true;
   } else {
     
     delete pAROverridePtr;
@@ -1301,17 +1301,17 @@ nsSVGSVGElement::ClearImageOverridePreserveAspectRatio()
                     "should only override preserveAspectRatio in images");
 #endif
 
-  mIsPaintingSVGImageElement = PR_FALSE;
+  mIsPaintingSVGImageElement = false;
   if (!HasValidViewbox() && ShouldSynthesizeViewBox()) {
     
     
     
-    mImageNeedsTransformInvalidation = PR_TRUE;
+    mImageNeedsTransformInvalidation = true;
   }
 
   void* valPtr = UnsetProperty(nsGkAtoms::overridePreserveAspectRatio);
   if (valPtr) {
-    mImageNeedsTransformInvalidation = PR_TRUE;
+    mImageNeedsTransformInvalidation = true;
     delete static_cast<SVGPreserveAspectRatio*>(valPtr);
   }
 }
@@ -1339,6 +1339,6 @@ nsSVGSVGElement::FlushImageTransformInvalidation()
 
   if (mImageNeedsTransformInvalidation) {
     InvalidateTransformNotifyFrame();
-    mImageNeedsTransformInvalidation = PR_FALSE;
+    mImageNeedsTransformInvalidation = false;
   }
 }

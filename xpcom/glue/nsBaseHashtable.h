@@ -126,12 +126,12 @@ public:
     EntryType* ent = this->GetEntry(aKey);
 
     if (!ent)
-      return PR_FALSE;
+      return false;
 
     if (pData)
       *pData = ent->mData;
 
-    return PR_TRUE;
+    return true;
   }
 
   
@@ -163,11 +163,11 @@ public:
     EntryType* ent = this->PutEntry(aKey);
 
     if (!ent)
-      return PR_FALSE;
+      return false;
 
     ent->mData = aData;
 
-    return PR_TRUE;
+    return true;
   }
 
   
@@ -381,7 +381,7 @@ bool
 nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Init(PRUint32 initSize)
 {
   if (!nsTHashtable<EntryType>::IsInitialized() && !nsTHashtable<EntryType>::Init(initSize))
-    return PR_FALSE;
+    return false;
 
   this->mLock = PR_NewLock();
   NS_ASSERTION(this->mLock, "Error creating lock during nsBaseHashtableL::Init()");

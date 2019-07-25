@@ -67,7 +67,7 @@ public:
   
   
   
-  void MpathChanged() { mIsPathStale = mHasChanged = PR_TRUE; }
+  void MpathChanged() { mIsPathStale = mHasChanged = true; }
 
 protected:
   enum PathSourceType {

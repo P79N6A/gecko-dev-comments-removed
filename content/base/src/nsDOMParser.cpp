@@ -63,7 +63,7 @@
 using namespace mozilla;
 
 nsDOMParser::nsDOMParser()
-  : mAttemptedInit(PR_FALSE)
+  : mAttemptedInit(false)
 {
 }
 
@@ -222,7 +222,7 @@ nsDOMParser::ParseFromStream(nsIInputStream *stream,
   rv = document->StartDocumentLoad(kLoadAsData, parserChannel, 
                                    nsnull, nsnull, 
                                    getter_AddRefs(listener),
-                                   PR_FALSE);
+                                   false);
 
   
   document->SetBaseURI(mBaseURI);
@@ -268,7 +268,7 @@ nsDOMParser::Init(nsIPrincipal* principal, nsIURI* documentURI,
                   nsIURI* baseURI, nsIScriptGlobalObject* aScriptObject)
 {
   NS_ENSURE_STATE(!mAttemptedInit);
-  mAttemptedInit = PR_TRUE;
+  mAttemptedInit = true;
   
   NS_ENSURE_ARG(principal || documentURI);
 
@@ -323,11 +323,11 @@ static nsQueryInterface
 JSvalToInterface(JSContext* cx, jsval val, nsIXPConnect* xpc, bool* wasNull)
 {
   if (val == JSVAL_NULL) {
-    *wasNull = PR_TRUE;
+    *wasNull = true;
     return nsQueryInterface(nsnull);
   }
   
-  *wasNull = PR_FALSE;
+  *wasNull = false;
   if (JSVAL_IS_OBJECT(val)) {
     JSObject* arg = JSVAL_TO_OBJECT(val);
 

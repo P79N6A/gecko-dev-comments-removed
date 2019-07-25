@@ -118,7 +118,7 @@ nsTSubstringTuple_CharT::IsDependentOn( const char_type *start, const char_type 
     
 
     if (TO_SUBSTRING(mFragB).IsDependentOn(start, end))
-      return PR_TRUE;
+      return true;
 
     if (mHead)
       return mHead->IsDependentOn(start, end);

@@ -116,10 +116,10 @@ class AsyncFrameInit;
 
 nsSubDocumentFrame::nsSubDocumentFrame(nsStyleContext* aContext)
   : nsLeafFrame(aContext)
-  , mIsInline(PR_FALSE)
-  , mPostedReflowCallback(PR_FALSE)
-  , mDidCreateDoc(PR_FALSE)
-  , mCallingShow(PR_FALSE)
+  , mIsInline(false)
+  , mPostedReflowCallback(false)
+  , mDidCreateDoc(false)
+  , mCallingShow(false)
 {
 }
 
@@ -161,7 +161,7 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
   
   if (aContent) {
     nsCOMPtr<nsIDOMHTMLFrameElement> frameElem = do_QueryInterface(aContent);
-    mIsInline = frameElem ? PR_FALSE : PR_TRUE;
+    mIsInline = frameElem ? false : true;
   }
 
   nsresult rv =  nsLeafFrame::Init(aContent, aParent, aPrevInFlow);
@@ -177,7 +177,7 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
   
   
   if (!HasView()) {
-    rv = nsContainerFrame::CreateViewForFrame(this, PR_TRUE);
+    rv = nsContainerFrame::CreateViewForFrame(this, true);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -223,7 +223,7 @@ nsSubDocumentFrame::ShowViewer()
       nsIntSize margin = GetMarginAttributes();
       const nsStyleDisplay* disp = GetStyleDisplay();
       nsWeakFrame weakThis(this);
-      mCallingShow = PR_TRUE;
+      mCallingShow = true;
       bool didCreateDoc =
         frameloader->Show(margin.width, margin.height,
                           ConvertOverflow(disp->mOverflowX),
@@ -232,7 +232,7 @@ nsSubDocumentFrame::ShowViewer()
       if (!weakThis.IsAlive()) {
         return;
       }
-      mCallingShow = PR_FALSE;
+      mCallingShow = false;
       mDidCreateDoc = didCreateDoc;
     }
   }
@@ -618,7 +618,7 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
   if (mInnerView) {
     nsIViewManager* vm = mInnerView->GetViewManager();
     vm->MoveViewTo(mInnerView, offset.x, offset.y);
-    vm->ResizeView(mInnerView, nsRect(nsPoint(0, 0), innerSize), PR_TRUE);
+    vm->ResizeView(mInnerView, nsRect(nsPoint(0, 0), innerSize), true);
   }
 
   
@@ -628,7 +628,7 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
 
   if (!aPresContext->IsPaginated() && !mPostedReflowCallback) {
     PresContext()->PresShell()->PostReflowCallback(this);
-    mPostedReflowCallback = PR_TRUE;
+    mPostedReflowCallback = true;
   }
 
   
@@ -652,18 +652,18 @@ nsSubDocumentFrame::ReflowFinished()
 
     if (weakFrame.IsAlive()) {
       
-      mPostedReflowCallback = PR_FALSE;
+      mPostedReflowCallback = false;
     }
   } else {
-    mPostedReflowCallback = PR_FALSE;
+    mPostedReflowCallback = false;
   }
-  return PR_FALSE;
+  return false;
 }
 
 void
 nsSubDocumentFrame::ReflowCallbackCanceled()
 {
-  mPostedReflowCallback = PR_FALSE;
+  mPostedReflowCallback = false;
 }
 
 NS_IMETHODIMP
@@ -797,7 +797,7 @@ nsSubDocumentFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   if (mPostedReflowCallback) {
     PresContext()->PresShell()->CancelReflowCallback(this);
-    mPostedReflowCallback = PR_FALSE;
+    mPostedReflowCallback = false;
   }
   
   HideViewer();
@@ -884,7 +884,7 @@ BeginSwapDocShellsForDocument(nsIDocument* aDocument, void*)
   aDocument->EnumerateFreezableElements(
     nsObjectFrame::BeginSwapDocShells, nsnull);
   aDocument->EnumerateSubDocuments(BeginSwapDocShellsForDocument, nsnull);
-  return PR_TRUE;
+  return true;
 }
 
 static nsIView*
@@ -918,7 +918,7 @@ InsertViewsInReverseOrder(nsIView* aSibling, nsIView* aParent)
     aSibling->SetNextSibling(nsnull);
     
     
-    vm->InsertChild(aParent, aSibling, nsnull, PR_TRUE);
+    vm->InsertChild(aParent, aSibling, nsnull, true);
     aSibling = next;
   }
 }
@@ -979,7 +979,7 @@ EndSwapDocShellsForDocument(nsIDocument* aDocument, void*)
   aDocument->EnumerateFreezableElements(
     nsObjectFrame::EndSwapDocShells, nsnull);
   aDocument->EnumerateSubDocuments(EndSwapDocShellsForDocument, nsnull);
-  return PR_TRUE;
+  return true;
 }
 
 static void
@@ -1042,7 +1042,7 @@ nsSubDocumentFrame::EnsureInnerView()
     return nsnull;
   }
   mInnerView = innerView;
-  viewMan->InsertChild(outerView, innerView, nsnull, PR_TRUE);
+  viewMan->InsertChild(outerView, innerView, nsnull, true);
 
   return mInnerView;
 }

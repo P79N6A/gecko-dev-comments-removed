@@ -109,7 +109,7 @@ gfxAndroidPlatform::ResolveFontName(const nsAString& aFontName,
     nsAutoString resolvedName;
     if (!gfxPlatformFontList::PlatformFontList()->
              ResolveFontName(aFontName, resolvedName)) {
-        aAborted = PR_FALSE;
+        aAborted = false;
         return NS_OK;
     }
     aAborted = !(*aCallback)(resolvedName, aClosure);
@@ -145,16 +145,16 @@ gfxAndroidPlatform::IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlag
     if (aFormatFlags & (gfxUserFontSet::FLAG_FORMAT_OPENTYPE |
                         gfxUserFontSet::FLAG_FORMAT_WOFF |
                         gfxUserFontSet::FLAG_FORMAT_TRUETYPE)) {
-        return PR_TRUE;
+        return true;
     }
 
     
     if (aFormatFlags != 0) {
-        return PR_FALSE;
+        return false;
     }
 
     
-    return PR_TRUE;
+    return true;
 }
 
 gfxFontGroup *

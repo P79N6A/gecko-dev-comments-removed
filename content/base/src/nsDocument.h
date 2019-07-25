@@ -235,7 +235,7 @@ public:
       return (NS_PTR_TO_INT32(aKey->mCallback) >> 2) ^
              (NS_PTR_TO_INT32(aKey->mData));
     }
-    enum { ALLOW_MEMMOVE = PR_TRUE };
+    enum { ALLOW_MEMMOVE = true };
     
     ChangeCallback mKey;
   };
@@ -358,7 +358,7 @@ public:
   {
     mPendingLoads.Clear();
     mMap.Clear();
-    mHaveShutDown = PR_TRUE;
+    mHaveShutDown = true;
   }
 
   bool HaveShutDown() const
@@ -966,9 +966,9 @@ protected:
   {
     if (aId.IsEmpty()) {
       ReportEmptyGetElementByIdArg();
-      return PR_FALSE;
+      return false;
     }
-    return PR_TRUE;
+    return true;
   }
 
   void ReportEmptyGetElementByIdArg();

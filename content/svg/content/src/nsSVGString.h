@@ -48,7 +48,7 @@ public:
   void Init(PRUint8 aAttrEnum) {
     mAnimVal = nsnull;
     mAttrEnum = aAttrEnum;
-    mIsBaseSet = PR_FALSE;
+    mIsBaseSet = false;
   }
 
   void SetBaseValue(const nsAString& aValue,
@@ -96,7 +96,7 @@ public:
     NS_IMETHOD GetBaseVal(nsAString & aResult)
       { mVal->GetBaseValue(aResult, mSVGElement); return NS_OK; }
     NS_IMETHOD SetBaseVal(const nsAString & aValue)
-      { mVal->SetBaseValue(aValue, mSVGElement, PR_TRUE); return NS_OK; }
+      { mVal->SetBaseValue(aValue, mSVGElement, true); return NS_OK; }
 
     NS_IMETHOD GetAnimVal(nsAString & aResult)
     { 

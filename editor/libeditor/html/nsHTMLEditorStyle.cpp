@@ -413,11 +413,11 @@ nsHTMLEditor::SetInlinePropertyOnNode( nsIDOMNode *aNode,
       element = do_QueryInterface(tmp);
       
       
-      res = RemoveStyleInside(tmp, aProperty, aAttribute, PR_TRUE);
+      res = RemoveStyleInside(tmp, aProperty, aAttribute, true);
       NS_ENSURE_SUCCESS(res, res);
       PRInt32 count;
       
-      res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, aProperty, aAttribute, aValue, &count, PR_FALSE);
+      res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, aProperty, aAttribute, aValue, &count, false);
       NS_ENSURE_SUCCESS(res, res);
 
       nsCOMPtr<nsIDOMNode> nextSibling, previousSibling;
@@ -457,7 +457,7 @@ nsHTMLEditor::SetInlinePropertyOnNode( nsIDOMNode *aNode,
   {
     
     
-    res = RemoveStyleInside(aNode, aProperty, aAttribute, PR_TRUE);
+    res = RemoveStyleInside(aNode, aProperty, aAttribute, true);
     NS_ENSURE_SUCCESS(res, res);
     nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
     return SetAttribute(elem, *aAttribute, *aValue);
@@ -591,7 +591,7 @@ nsresult nsHTMLEditor::SplitStyleAbovePoint(nsCOMPtr<nsIDOMNode> *aNode,
   bool isSet;
   while (tmp && !IsBlockNode(tmp))
   {
-    isSet = PR_FALSE;
+    isSet = false;
     if (useCSS && mHTMLCSSUtils->IsCSSEditableProperty(tmp, aProperty, aAttribute)) {
       
       
@@ -607,7 +607,7 @@ nsresult nsHTMLEditor::SplitStyleAbovePoint(nsCOMPtr<nsIDOMNode> *aNode,
          isSet)                                         
     {
       
-      nsresult rv = SplitNodeDeep(tmp, *aNode, *aOffset, &offset, PR_FALSE,
+      nsresult rv = SplitNodeDeep(tmp, *aNode, *aOffset, &offset, false,
                                   outLeftNode, outRightNode);
       NS_ENSURE_SUCCESS(rv, rv);
       
@@ -622,12 +622,12 @@ nsresult nsHTMLEditor::SplitStyleAbovePoint(nsCOMPtr<nsIDOMNode> *aNode,
 
 bool nsHTMLEditor::NodeIsProperty(nsIDOMNode *aNode)
 {
-  NS_ENSURE_TRUE(aNode, PR_FALSE);
-  if (!IsContainer(aNode))  return PR_FALSE;
-  if (!IsEditable(aNode))   return PR_FALSE;
-  if (IsBlockNode(aNode))   return PR_FALSE;
-  if (NodeIsType(aNode, nsEditProperty::a)) return PR_FALSE;
-  return PR_TRUE;
+  NS_ENSURE_TRUE(aNode, false);
+  if (!IsContainer(aNode))  return false;
+  if (!IsEditable(aNode))   return false;
+  if (IsBlockNode(aNode))   return false;
+  if (NodeIsType(aNode, nsEditProperty::a)) return false;
+  return true;
 }
 
 nsresult nsHTMLEditor::ApplyDefaultProperties()
@@ -703,7 +703,7 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
                                                         aProperty,
                                                         aAttribute,
                                                         &propertyValue,
-                                                        PR_FALSE);
+                                                        false);
           
           nsCOMPtr<nsIDOMElement> element = do_QueryInterface(spanNode);
           res = RemoveElementIfNoStyleOrIdOrClass(element, nsEditProperty::span);
@@ -751,7 +751,7 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
                                                       aProperty,
                                                       aAttribute,
                                                       &propertyValue,
-                                                      PR_FALSE);
+                                                      false);
         
         
         nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aNode);
@@ -771,45 +771,45 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
 bool nsHTMLEditor::IsOnlyAttribute(nsIDOMNode *aNode, 
                                      const nsAString *aAttribute)
 {
-  NS_ENSURE_TRUE(aNode && aAttribute, PR_FALSE);  
+  NS_ENSURE_TRUE(aNode && aAttribute, false);  
   nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
-  NS_ENSURE_TRUE(content, PR_FALSE);  
+  NS_ENSURE_TRUE(content, false);  
   
   PRUint32 i, attrCount = content->GetAttrCount();
   for (i = 0; i < attrCount; ++i) {
     nsAutoString attrString;
     const nsAttrName* name = content->GetAttrNameAt(i);
     if (!name->NamespaceEquals(kNameSpaceID_None)) {
-      return PR_FALSE;
+      return false;
     }
     name->LocalName()->ToString(attrString);
     
     
     if (!attrString.Equals(*aAttribute, nsCaseInsensitiveStringComparator()) &&
         !StringBeginsWith(attrString, NS_LITERAL_STRING("_moz"))) {
-      return PR_FALSE;
+      return false;
     }
   }
   
   
-  return PR_TRUE;
+  return true;
 }
 
 bool nsHTMLEditor::HasAttr(nsIDOMNode *aNode, 
                              const nsAString *aAttribute)
 {
-  NS_ENSURE_TRUE(aNode, PR_FALSE);
-  if (!aAttribute || aAttribute->IsEmpty()) return PR_TRUE;  
+  NS_ENSURE_TRUE(aNode, false);
+  if (!aAttribute || aAttribute->IsEmpty()) return true;  
   
   
   nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
-  NS_ENSURE_TRUE(elem, PR_FALSE);
+  NS_ENSURE_TRUE(elem, false);
   
   
   nsCOMPtr<nsIDOMAttr> attNode;
   nsresult res = elem->GetAttributeNode(*aAttribute, getter_AddRefs(attNode));
-  if ((NS_FAILED(res)) || !attNode) return PR_FALSE;
-  return PR_TRUE;
+  if ((NS_FAILED(res)) || !attNode) return false;
+  return true;
 }
 
 
@@ -817,31 +817,31 @@ bool nsHTMLEditor::HasAttrVal(nsIDOMNode *aNode,
                                 const nsAString *aAttribute, 
                                 const nsAString *aValue)
 {
-  NS_ENSURE_TRUE(aNode, PR_FALSE);
-  if (!aAttribute || aAttribute->IsEmpty()) return PR_TRUE;  
+  NS_ENSURE_TRUE(aNode, false);
+  if (!aAttribute || aAttribute->IsEmpty()) return true;  
   
   
   nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
-  NS_ENSURE_TRUE(elem, PR_FALSE);
+  NS_ENSURE_TRUE(elem, false);
   
   
   nsCOMPtr<nsIDOMAttr> attNode;
   nsresult res = elem->GetAttributeNode(*aAttribute, getter_AddRefs(attNode));
-  if ((NS_FAILED(res)) || !attNode) return PR_FALSE;
+  if ((NS_FAILED(res)) || !attNode) return false;
   
   
   bool isSet;
   attNode->GetSpecified(&isSet);
   
-  if (!isSet && (!aValue || aValue->IsEmpty())) return PR_TRUE; 
+  if (!isSet && (!aValue || aValue->IsEmpty())) return true; 
   
   
   nsAutoString attrVal;
   attNode->GetValue(attrVal);
   
   
-  if (attrVal.Equals(*aValue,nsCaseInsensitiveStringComparator())) return PR_TRUE;
-  return PR_FALSE;
+  if (attrVal.Equals(*aValue,nsCaseInsensitiveStringComparator())) return true;
+  return false;
 }
 
 nsresult nsHTMLEditor::PromoteRangeIfStartsOrEndsInNamedAnchor(nsIDOMRange *inRange)
@@ -949,47 +949,47 @@ nsresult nsHTMLEditor::PromoteInlineRange(nsIDOMRange *inRange)
 
 bool nsHTMLEditor::IsAtFrontOfNode(nsIDOMNode *aNode, PRInt32 aOffset)
 {
-  NS_ENSURE_TRUE(aNode, PR_FALSE);  
+  NS_ENSURE_TRUE(aNode, false);  
   if (!aOffset) {
-    return PR_TRUE;
+    return true;
   }
 
   if (IsTextNode(aNode))
   {
-    return PR_FALSE;
+    return false;
   }
   else
   {
     nsCOMPtr<nsIDOMNode> firstNode;
     GetFirstEditableChild(aNode, address_of(firstNode));
-    NS_ENSURE_TRUE(firstNode, PR_TRUE); 
+    NS_ENSURE_TRUE(firstNode, true); 
     PRInt32 offset;
     nsEditor::GetChildOffset(firstNode, aNode, offset);
-    if (offset < aOffset) return PR_FALSE;
-    return PR_TRUE;
+    if (offset < aOffset) return false;
+    return true;
   }
 }
 
 bool nsHTMLEditor::IsAtEndOfNode(nsIDOMNode *aNode, PRInt32 aOffset)
 {
-  NS_ENSURE_TRUE(aNode, PR_FALSE);  
+  NS_ENSURE_TRUE(aNode, false);  
   PRUint32 len;
   GetLengthOfDOMNode(aNode, len);
-  if (aOffset == (PRInt32)len) return PR_TRUE;
+  if (aOffset == (PRInt32)len) return true;
   
   if (IsTextNode(aNode))
   {
-    return PR_FALSE;
+    return false;
   }
   else
   {
     nsCOMPtr<nsIDOMNode> lastNode;
     GetLastEditableChild(aNode, address_of(lastNode));
-    NS_ENSURE_TRUE(lastNode, PR_TRUE); 
+    NS_ENSURE_TRUE(lastNode, true); 
     PRInt32 offset;
     nsEditor::GetChildOffset(lastNode, aNode, offset);
-    if (offset < aOffset) return PR_TRUE;
-    return PR_FALSE;
+    if (offset < aOffset) return true;
+    return false;
   }
 }
 
@@ -1007,9 +1007,9 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
   NS_ENSURE_TRUE(aProperty, NS_ERROR_NULL_POINTER);
 
   nsresult result;
-  *aAny=PR_FALSE;
-  *aAll=PR_TRUE;
-  *aFirst=PR_FALSE;
+  *aAny=false;
+  *aAll=true;
+  *aFirst=false;
   bool first=true;
 
   bool useCSS;
@@ -1076,7 +1076,7 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
           if (aAttribute &&
               TypeInState::FindPropInList(aProperty, *aAttribute, outValue, mDefaultStyles, index))
           {
-            *aFirst = *aAny = *aAll = PR_TRUE;
+            *aFirst = *aAny = *aAll = true;
             if (outValue)
               outValue->Assign(mDefaultStyles[index]->value);
           }
@@ -1116,30 +1116,30 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
       
       if (text && !IsEditable(text))
       {
-        skipNode = PR_TRUE;
+        skipNode = true;
       }
       else if (text)
       {
         if (!isCollapsed && first && firstNodeInRange)
         {
-          firstNodeInRange = PR_FALSE;
+          firstNodeInRange = false;
           PRInt32 startOffset;
           range->GetStartOffset(&startOffset);
           PRUint32 count;
           text->GetLength(&count);
           if (startOffset==(PRInt32)count) 
           {
-            skipNode = PR_TRUE;
+            skipNode = true;
           }
         }
         else if (node == endNode && !endOffset)
         {
-          skipNode = PR_TRUE;
+          skipNode = true;
         }
       }
       else if (content->IsElement())
       { 
-        skipNode = PR_TRUE;
+        skipNode = true;
       }
       if (!skipNode)
       {
@@ -1163,7 +1163,7 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
                                          getter_AddRefs(resultNode), &firstValue);
             }
             *aFirst = isSet;
-            first = PR_FALSE;
+            first = false;
             if (outValue) *outValue = firstValue;
           }
           else
@@ -1182,14 +1182,14 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
                                          getter_AddRefs(resultNode), &theValue);
             }
             if (firstValue != theValue)
-              *aAll = PR_FALSE;
+              *aAll = false;
           }
           
           if (isSet) {
-            *aAny = PR_TRUE;
+            *aAny = true;
           }
           else {
-            *aAll = PR_FALSE;
+            *aAll = false;
           }
         }
       }
@@ -1199,7 +1199,7 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
   }
   if (!*aAny) 
   { 
-    *aAll = PR_FALSE;
+    *aAll = false;
   }
   return result;
 }
@@ -1835,7 +1835,7 @@ NS_IMETHODIMP
 nsHTMLEditor::GetFontFaceState(bool *aMixed, nsAString &outFace)
 {
   NS_ENSURE_TRUE(aMixed, NS_ERROR_FAILURE);
-  *aMixed = PR_TRUE;
+  *aMixed = true;
   outFace.Truncate();
 
   nsresult res;
@@ -1847,7 +1847,7 @@ nsHTMLEditor::GetFontFaceState(bool *aMixed, nsAString &outFace)
   if (any && !all) return res; 
   if (all)
   {
-    *aMixed = PR_FALSE;
+    *aMixed = false;
     return res;
   }
   
@@ -1857,7 +1857,7 @@ nsHTMLEditor::GetFontFaceState(bool *aMixed, nsAString &outFace)
   if (any && !all) return res; 
   if (all)
   {
-    *aMixed = PR_FALSE;
+    *aMixed = false;
     nsEditProperty::tt->ToString(outFace);
   }
   
@@ -1865,7 +1865,7 @@ nsHTMLEditor::GetFontFaceState(bool *aMixed, nsAString &outFace)
   {
     
     outFace.Truncate();
-    *aMixed = PR_FALSE;
+    *aMixed = false;
   }
   return res;
 }
@@ -1874,7 +1874,7 @@ NS_IMETHODIMP
 nsHTMLEditor::GetFontColorState(bool *aMixed, nsAString &aOutColor)
 {
   NS_ENSURE_TRUE(aMixed, NS_ERROR_NULL_POINTER);
-  *aMixed = PR_TRUE;
+  *aMixed = true;
   aOutColor.Truncate();
   
   nsresult res;
@@ -1886,7 +1886,7 @@ nsHTMLEditor::GetFontColorState(bool *aMixed, nsAString &aOutColor)
   if (any && !all) return res; 
   if (all)
   {
-    *aMixed = PR_FALSE;
+    *aMixed = false;
     return res;
   }
   
@@ -1894,7 +1894,7 @@ nsHTMLEditor::GetFontColorState(bool *aMixed, nsAString &aOutColor)
   {
     
     aOutColor.Truncate();
-    *aMixed = PR_FALSE;
+    *aMixed = false;
   }
   return res;
 }
@@ -1905,7 +1905,7 @@ nsHTMLEditor::GetFontColorState(bool *aMixed, nsAString &aOutColor)
 nsresult
 nsHTMLEditor::GetIsCSSEnabled(bool *aIsCSSEnabled)
 {
-  *aIsCSSEnabled = PR_FALSE;
+  *aIsCSSEnabled = false;
   if (mCSSAware) {
     
     if (mHTMLCSSUtils) {
@@ -1926,7 +1926,7 @@ nsHTMLEditor::HasStyleOrIdOrClass(nsIDOMElement * aElement, bool *aHasStyleOrIdO
   
   nsAutoString styleVal;
   bool isStyleSet;
-  *aHasStyleOrIdOrClass = PR_TRUE;
+  *aHasStyleOrIdOrClass = true;
   nsresult res = GetAttributeValue(aElement,  NS_LITERAL_STRING("style"), styleVal, &isStyleSet);
   NS_ENSURE_SUCCESS(res, res);
   if (!isStyleSet || styleVal.IsEmpty()) {

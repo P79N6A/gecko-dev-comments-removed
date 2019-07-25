@@ -416,7 +416,7 @@ OpenFile(const nsAFlatString &name, PRIntn osflags, PRIntn mode,
     if (*fd) {
         
         
-        (*fd)->secret->appendMode = (PR_APPEND & osflags) ? PR_TRUE : PR_FALSE;
+        (*fd)->secret->appendMode = (PR_APPEND & osflags) ? true : false;
         return NS_OK;
     }
 
@@ -519,7 +519,7 @@ OpenDir(const nsAFlatString &name, nsDir * *dir)
         PR_Free(d);
         return ConvertWinError(GetLastError());
     }
-    d->firstEntry = PR_TRUE;
+    d->firstEntry = true;
 
     *dir = d;
     return NS_OK;
@@ -535,7 +535,7 @@ ReadDir(nsDir *dir, PRDirFlags flags, nsString& name)
         BOOL rv;
         if (dir->firstEntry)
         {
-            dir->firstEntry = PR_FALSE;
+            dir->firstEntry = false;
             rv = 1;
         } else
             rv = ::FindNextFileW(dir->handle, &(dir->data));
@@ -635,7 +635,7 @@ class nsDirEnumerator : public nsISimpleEnumerator,
 
                     mDir = nsnull;
 
-                    *result = PR_FALSE;
+                    *result = false;
                     return NS_OK;
                 }
 
@@ -717,8 +717,8 @@ NS_IMPL_ISUPPORTS2(nsDirEnumerator, nsISimpleEnumerator, nsIDirectoryEnumerator)
 
 
 nsLocalFile::nsLocalFile()
-  : mDirty(PR_TRUE)
-  , mFollowSymlinks(PR_FALSE)
+  : mDirty(true)
+  , mFollowSymlinks(false)
 {
 }
 
@@ -758,7 +758,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS4(nsLocalFile,
 
 
 nsLocalFile::nsLocalFile(const nsLocalFile& other)
-  : mDirty(PR_TRUE)
+  : mDirty(true)
   , mFollowSymlinks(other.mFollowSymlinks)
   , mWorkingPath(other.mWorkingPath)
 {
@@ -820,7 +820,7 @@ nsLocalFile::ResolveAndStat()
         || mFileInfo64.type != PR_FILE_FILE 
         || !IsShortcutPath(mWorkingPath))
     {
-        mDirty = PR_FALSE;
+        mDirty = false;
         return NS_OK;
     }
 
@@ -840,7 +840,7 @@ nsLocalFile::ResolveAndStat()
     if (NS_FAILED(rv))
         return rv;
 
-    mDirty = PR_FALSE;
+    mDirty = false;
     return NS_OK;
 }
 
@@ -1052,14 +1052,14 @@ NS_IMETHODIMP
 nsLocalFile::Append(const nsAString &node)
 {
     
-    return AppendInternal(PromiseFlatString(node), PR_FALSE);
+    return AppendInternal(PromiseFlatString(node), false);
 }
 
 NS_IMETHODIMP
 nsLocalFile::AppendRelativePath(const nsAString &node)
 {
     
-    return AppendInternal(PromiseFlatString(node), PR_TRUE);
+    return AppendInternal(PromiseFlatString(node), true);
 }
 
 
@@ -1706,7 +1706,7 @@ nsLocalFile::CopyMove(nsIFile *aParentDir, const nsAString &newName, bool follow
         
         if (move)
         {
-          rv = Remove(PR_FALSE );
+          rv = Remove(false );
           NS_ENSURE_SUCCESS(rv,rv);
         }
     }
@@ -1744,19 +1744,19 @@ nsLocalFile::CopyMove(nsIFile *aParentDir, const nsAString &newName, bool follow
 NS_IMETHODIMP
 nsLocalFile::CopyTo(nsIFile *newParentDir, const nsAString &newName)
 {
-    return CopyMove(newParentDir, newName, PR_FALSE, PR_FALSE);
+    return CopyMove(newParentDir, newName, false, false);
 }
 
 NS_IMETHODIMP
 nsLocalFile::CopyToFollowingLinks(nsIFile *newParentDir, const nsAString &newName)
 {
-    return CopyMove(newParentDir, newName, PR_TRUE, PR_FALSE);
+    return CopyMove(newParentDir, newName, true, false);
 }
 
 NS_IMETHODIMP
 nsLocalFile::MoveTo(nsIFile *newParentDir, const nsAString &newName)
 {
-    return CopyMove(newParentDir, newName, PR_FALSE, PR_TRUE);
+    return CopyMove(newParentDir, newName, false, true);
 }
 
 
@@ -1776,7 +1776,7 @@ nsLocalFile::Load(PRLibrary * *_retval)
         return NS_ERROR_FILE_IS_DIRECTORY;
 
 #ifdef NS_BUILD_REFCNT_LOGGING
-    nsTraceRefcntImpl::SetActivityIsLegal(PR_FALSE);
+    nsTraceRefcntImpl::SetActivityIsLegal(false);
 #endif
 
     PRLibSpec libSpec;
@@ -1785,7 +1785,7 @@ nsLocalFile::Load(PRLibrary * *_retval)
     *_retval =  PR_LoadLibraryWithFlags(libSpec, 0);
 
 #ifdef NS_BUILD_REFCNT_LOGGING
-    nsTraceRefcntImpl::SetActivityIsLegal(PR_TRUE);
+    nsTraceRefcntImpl::SetActivityIsLegal(true);
 #endif
 
     if (*_retval)
@@ -1820,7 +1820,7 @@ nsLocalFile::Remove(bool recursive)
     bool isDir, isLink;
     nsresult rv;
     
-    isDir = PR_FALSE;
+    isDir = false;
     rv = IsSymlink(&isLink);
     if (NS_FAILED(rv))
         return rv;
@@ -2244,7 +2244,7 @@ nsLocalFile::Exists(bool *_retval)
     CHECK_mWorkingPath();
 
     NS_ENSURE_ARG(_retval);
-    *_retval = PR_FALSE;
+    *_retval = false;
 
     MakeDirty();
     nsresult rv = ResolveAndStat();
@@ -2263,7 +2263,7 @@ nsLocalFile::IsWritable(bool *aIsWritable)
     
     nsresult rv = IsDirectory(aIsWritable);
     if (rv == NS_ERROR_FILE_ACCESS_DENIED) {
-      *aIsWritable = PR_TRUE;
+      *aIsWritable = true;
       return NS_OK;
     } else if (rv == NS_ERROR_FILE_IS_LOCKED) {
       
@@ -2277,7 +2277,7 @@ nsLocalFile::IsWritable(bool *aIsWritable)
     
     rv = HasFileAttribute(FILE_ATTRIBUTE_READONLY, aIsWritable);
     if (rv == NS_ERROR_FILE_ACCESS_DENIED) {
-        *aIsWritable = PR_FALSE;
+        *aIsWritable = false;
         return NS_OK;
     } else if (rv == NS_ERROR_FILE_IS_LOCKED) {
       
@@ -2314,13 +2314,13 @@ nsLocalFile::IsReadable(bool *_retval)
     CHECK_mWorkingPath();
 
     NS_ENSURE_ARG(_retval);
-    *_retval = PR_FALSE;
+    *_retval = false;
 
     nsresult rv = ResolveAndStat();
     if (NS_FAILED(rv))
         return rv;
 
-    *_retval = PR_TRUE;
+    *_retval = true;
     return NS_OK;
 }
 
@@ -2332,7 +2332,7 @@ nsLocalFile::IsExecutable(bool *_retval)
     CHECK_mWorkingPath();
 
     NS_ENSURE_ARG(_retval);
-    *_retval = PR_FALSE;
+    *_retval = false;
     
     nsresult rv;
 
@@ -2451,7 +2451,7 @@ nsLocalFile::IsExecutable(bool *_retval)
         for ( int i = 0; i < ArrayLength(executableExts); i++ ) {
             if ( ext.EqualsASCII(executableExts[i])) {
                 
-                *_retval = PR_TRUE;
+                *_retval = true;
                 break;
             }
         }
@@ -2522,7 +2522,7 @@ nsLocalFile::IsSymlink(bool *_retval)
     
     if (!IsShortcutPath(mWorkingPath))
     {
-        *_retval = PR_FALSE;
+        *_retval = false;
         return NS_OK;
     }
 
@@ -2552,7 +2552,7 @@ nsLocalFile::Equals(nsIFile *inFile, bool *_retval)
 
     nsCOMPtr<nsILocalFileWin> lf(do_QueryInterface(inFile));
     if (!lf) {
-        *_retval = PR_FALSE;
+        *_retval = false;
         return NS_OK;
     }
 
@@ -2572,7 +2572,7 @@ nsLocalFile::Contains(nsIFile *inFile, bool recur, bool *_retval)
     
     CHECK_mWorkingPath();
 
-    *_retval = PR_FALSE;
+    *_retval = false;
 
     nsAutoString myFilePath;
     if (NS_FAILED(GetTarget(myFilePath)))
@@ -2589,7 +2589,7 @@ nsLocalFile::Contains(nsIFile *inFile, bool recur, bool *_retval)
     {
         if (_wcsnicmp(myFilePath.get(), inFilePath.get(), myFilePathLen) == 0)
         {
-            *_retval = PR_TRUE;
+            *_retval = true;
         }
 
     }
@@ -3129,7 +3129,7 @@ nsLocalFile::Equals(nsIHashable* aOther, bool *aResult)
 {
     nsCOMPtr<nsIFile> otherfile(do_QueryInterface(aOther));
     if (!otherfile) {
-        *aResult = PR_FALSE;
+        *aResult = false;
         return NS_OK;
     }
 
@@ -3231,7 +3231,7 @@ NS_IMETHODIMP nsDriveEnumerator::GetNext(nsISupports **aNext)
     mStartOfCurrentDrive = ++driveEnd;
 
     nsILocalFile *file;
-    nsresult rv = NS_NewLocalFile(drive, PR_FALSE, &file);
+    nsresult rv = NS_NewLocalFile(drive, false, &file);
 
     *aNext = file;
     return rv;

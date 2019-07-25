@@ -96,7 +96,7 @@ nsHttpResponseHead::Flatten(nsACString &buf, bool pruneTransients)
                NS_LITERAL_CSTRING("\r\n"));
 
     if (!pruneTransients) {
-        mHeaders.Flatten(buf, PR_FALSE);
+        mHeaders.Flatten(buf, false);
         return;
     }
 
@@ -365,14 +365,14 @@ nsHttpResponseHead::MustValidate()
     case 416:
     default:  
         LOG(("Must validate since response is an uncacheable error page\n"));
-        return PR_TRUE;
+        return true;
     }
     
     
     
     if (NoCache()) {
         LOG(("Must validate since response contains 'no-cache' header\n"));
-        return PR_TRUE;
+        return true;
     }
 
     
@@ -381,7 +381,7 @@ nsHttpResponseHead::MustValidate()
     
     if (NoStore()) {
         LOG(("Must validate since response contains 'no-store' header\n"));
-        return PR_TRUE;
+        return true;
     }
 
     
@@ -389,11 +389,11 @@ nsHttpResponseHead::MustValidate()
     
     if (ExpiresInPast()) {
         LOG(("Must validate since Expires < Date\n"));
-        return PR_TRUE;
+        return true;
     }
 
     LOG(("no mandatory validation requirement\n"));
-    return PR_FALSE;
+    return false;
 }
 
 bool
@@ -426,7 +426,7 @@ nsHttpResponseHead::ExpiresInPast()
     
     
     if (NS_SUCCEEDED(GetMaxAgeValue(&maxAgeVal))) {
-        return PR_FALSE;
+        return false;
     }
     
     return NS_SUCCEEDED(GetExpiresValue(&expiresVal)) &&
@@ -493,9 +493,9 @@ nsHttpResponseHead::Reset()
     mVersion = NS_HTTP_VERSION_1_1;
     mStatus = 200;
     mContentLength = LL_MAXUINT;
-    mCacheControlNoStore = PR_FALSE;
-    mCacheControlNoCache = PR_FALSE;
-    mPragmaNoCache = PR_FALSE;
+    mCacheControlNoStore = false;
+    mCacheControlNoCache = false;
+    mPragmaNoCache = false;
     mStatusText.Truncate();
     mContentType.Truncate();
     mContentCharset.Truncate();
@@ -509,7 +509,7 @@ nsHttpResponseHead::ParseDateHeader(nsHttpAtom header, PRUint32 *result)
         return NS_ERROR_NOT_AVAILABLE;
 
     PRTime time;
-    PRStatus st = PR_ParseTimeString(val, PR_TRUE, &time);
+    PRStatus st = PR_ParseTimeString(val, true, &time);
     if (st != PR_SUCCESS)
         return NS_ERROR_NOT_AVAILABLE;
 
@@ -556,7 +556,7 @@ nsHttpResponseHead::GetExpiresValue(PRUint32 *result)
         return NS_ERROR_NOT_AVAILABLE;
 
     PRTime time;
-    PRStatus st = PR_ParseTimeString(val, PR_TRUE, &time);
+    PRStatus st = PR_ParseTimeString(val, true, &time);
     if (st != PR_SUCCESS) {
         
         
@@ -645,19 +645,19 @@ nsHttpResponseHead::ParseCacheControl(const char *val)
 {
     if (!(val && *val)) {
         
-        mCacheControlNoCache = PR_FALSE;
-        mCacheControlNoStore = PR_FALSE;
+        mCacheControlNoCache = false;
+        mCacheControlNoStore = false;
         return;
     }
 
     
     
     if (nsHttp::FindToken(val, "no-cache", HTTP_HEADER_VALUE_SEPS))
-        mCacheControlNoCache = PR_TRUE;
+        mCacheControlNoCache = true;
 
     
     if (nsHttp::FindToken(val, "no-store", HTTP_HEADER_VALUE_SEPS))
-        mCacheControlNoStore = PR_TRUE;
+        mCacheControlNoStore = true;
 }
 
 void
@@ -667,7 +667,7 @@ nsHttpResponseHead::ParsePragma(const char *val)
 
     if (!(val && *val)) {
         
-        mPragmaNoCache = PR_FALSE;
+        mPragmaNoCache = false;
         return;
     }
 
@@ -675,5 +675,5 @@ nsHttpResponseHead::ParsePragma(const char *val)
     
     
     if (nsHttp::FindToken(val, "no-cache", HTTP_HEADER_VALUE_SEPS))
-        mPragmaNoCache = PR_TRUE;
+        mPragmaNoCache = true;
 }

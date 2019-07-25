@@ -587,7 +587,7 @@ nsDocAccessible::Init()
   nsCOMPtr<nsIPresShell> shell(GetPresShell());
   mNotificationController = new NotificationController(this, shell);
   if (!mNotificationController)
-    return PR_FALSE;
+    return false;
 
   
   
@@ -596,7 +596,7 @@ nsDocAccessible::Init()
     mLoadState |= eDOMLoaded;
 
   AddEventListeners();
-  return PR_TRUE;
+  return true;
 }
 
 void
@@ -879,7 +879,7 @@ NS_IMETHODIMP nsDocAccessible::Observe(nsISupports *aSubject, const char *aTopic
     
     
     nsRefPtr<AccEvent> event =
-      new AccStateChangeEvent(this, states::EDITABLE, PR_TRUE);
+      new AccStateChangeEvent(this, states::EDITABLE, true);
     FireDelayedAccessibleEvent(event);
   }
 
@@ -1213,7 +1213,7 @@ void nsDocAccessible::ContentStateChanged(nsIDocument* aDocument,
 
   if (aStateMask.HasState(NS_EVENT_STATE_INVALID)) {
     nsRefPtr<AccEvent> event =
-      new AccStateChangeEvent(aContent, states::INVALID, PR_TRUE);
+      new AccStateChangeEvent(aContent, states::INVALID, true);
     FireDelayedAccessibleEvent(event);
    }
 }
@@ -1492,7 +1492,7 @@ nsDocAccessible::NotifyOfLoading(bool aIsReloading)
   
   
   nsRefPtr<AccEvent> stateEvent =
-    new AccStateChangeEvent(mDocument, states::BUSY, PR_TRUE);
+    new AccStateChangeEvent(mDocument, states::BUSY, true);
   FireDelayedAccessibleEvent(stateEvent);
 }
 
@@ -1547,7 +1547,7 @@ nsDocAccessible::ProcessLoad()
 
   
   nsRefPtr<AccEvent> stateEvent =
-    new AccStateChangeEvent(this, states::BUSY, PR_FALSE);
+    new AccStateChangeEvent(this, states::BUSY, false);
   nsEventShell::FireEvent(stateEvent);
 }
 

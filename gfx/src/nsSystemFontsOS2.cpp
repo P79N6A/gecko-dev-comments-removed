@@ -214,12 +214,12 @@ nsresult nsSystemFontsOS2::GetSystemFont(nsSystemFontID aID, nsString* aFontName
     int pos = 0;
 
     
-    aFontStyle->systemFont = PR_TRUE;
+    aFontStyle->systemFont = true;
 
     
     
     NS_NAMED_LITERAL_CSTRING(spcBold, " Bold");
-    if ((pos = fontFace.Find(spcBold.get(), PR_FALSE, 0, -1)) > -1) {
+    if ((pos = fontFace.Find(spcBold.get(), false, 0, -1)) > -1) {
         aFontStyle->weight = FONT_WEIGHT_BOLD;
         
         fontFace.Cut(pos, spcBold.Length());
@@ -234,15 +234,15 @@ nsresult nsSystemFontsOS2::GetSystemFont(nsSystemFontID aID, nsString* aFontName
     NS_NAMED_LITERAL_CSTRING(spcItalic, " Italic");
     NS_NAMED_LITERAL_CSTRING(spcOblique, " Oblique");
     NS_NAMED_LITERAL_CSTRING(spcObli, " Obli");
-    if ((pos = fontFace.Find(spcItalic.get(), PR_FALSE, 0, -1)) > -1) {
+    if ((pos = fontFace.Find(spcItalic.get(), false, 0, -1)) > -1) {
         aFontStyle->style = FONT_STYLE_ITALIC;
         fontFace.Cut(pos, spcItalic.Length());
-    } else if ((pos = fontFace.Find(spcOblique.get(), PR_FALSE, 0, -1)) > -1) {
+    } else if ((pos = fontFace.Find(spcOblique.get(), false, 0, -1)) > -1) {
         
         
         aFontStyle->style = FONT_STYLE_OBLIQUE;
         fontFace.Cut(pos, spcOblique.Length());
-    } else if ((pos = fontFace.Find(spcObli.get(), PR_FALSE, 0, -1)) > -1) {
+    } else if ((pos = fontFace.Find(spcObli.get(), false, 0, -1)) > -1) {
         
         
         aFontStyle->style = FONT_STYLE_OBLIQUE;
@@ -257,7 +257,7 @@ nsresult nsSystemFontsOS2::GetSystemFont(nsSystemFontID aID, nsString* aFontName
     
     
     
-    if ((pos = fontFace.Find(".", PR_FALSE, 0, -1)) > -1) {
+    if ((pos = fontFace.Find(".", false, 0, -1)) > -1) {
         fontFace.Cut(pos, fontFace.Length());
     }
 

@@ -389,10 +389,10 @@ txNodeSet::mark(PRInt32 aIndex)
         memset(mMarks, 0, length * sizeof(bool));
     }
     if (mDirection == kForward) {
-        mMarks[aIndex] = PR_TRUE;
+        mMarks[aIndex] = true;
     }
     else {
-        mMarks[size() - aIndex - 1] = PR_TRUE;
+        mMarks[size() - aIndex - 1] = true;
     }
 
     return NS_OK;
@@ -525,11 +525,11 @@ bool txNodeSet::ensureGrowSize(PRInt32 aSize)
 {
     
     if (mDirection == kForward && aSize <= mEndBuffer - mEnd) {
-        return PR_TRUE;
+        return true;
     }
 
     if (mDirection == kReversed && aSize <= mStart - mStartBuffer) {
-        return PR_TRUE;
+        return true;
     }
 
     
@@ -547,7 +547,7 @@ bool txNodeSet::ensureGrowSize(PRInt32 aSize)
         mStart = dest;
         mEnd = dest + oldSize;
             
-        return PR_TRUE;
+        return true;
     }
 
     
@@ -562,7 +562,7 @@ bool txNodeSet::ensureGrowSize(PRInt32 aSize)
                                      (nsMemory::Alloc(newLength *
                                                          sizeof(txXPathNode)));
     if (!newArr) {
-        return PR_FALSE;
+        return false;
     }
 
     txXPathNode* dest = newArr;
@@ -588,14 +588,14 @@ bool txNodeSet::ensureGrowSize(PRInt32 aSize)
     mStart = dest;
     mEnd = dest + oldSize;
 
-    return PR_TRUE;
+    return true;
 }
 
 txXPathNode*
 txNodeSet::findPosition(const txXPathNode& aNode, txXPathNode* aFirst,
                         txXPathNode* aLast, bool& aDupe) const
 {
-    aDupe = PR_FALSE;
+    aDupe = false;
     if (aLast - aFirst <= 2) {
         
         txXPathNode* pos = aFirst;
@@ -606,7 +606,7 @@ txNodeSet::findPosition(const txXPathNode& aNode, txXPathNode* aFirst,
             }
 
             if (cmp == 0) {
-                aDupe = PR_TRUE;
+                aDupe = true;
 
                 return pos;
             }
@@ -618,7 +618,7 @@ txNodeSet::findPosition(const txXPathNode& aNode, txXPathNode* aFirst,
     txXPathNode* midpos = aFirst + (aLast - aFirst) / 2;
     PRIntn cmp = txXPathNodeUtils::comparePosition(aNode, *midpos);
     if (cmp == 0) {
-        aDupe = PR_TRUE;
+        aDupe = true;
 
         return midpos;
     }

@@ -59,7 +59,7 @@ nsAndroidNetworkLinkService::GetIsLinkUp(bool *aIsUp)
   if (!mozilla::AndroidBridge::Bridge()) {
     
     NS_WARNING("GetIsLinkUp is not supported without a bridge connection");
-    *aIsUp = PR_TRUE;
+    *aIsUp = true;
     return NS_OK;
   }
 

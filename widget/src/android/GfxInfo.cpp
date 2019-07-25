@@ -262,7 +262,7 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aS
 {
   PRInt32 status = nsIGfxInfo::FEATURE_NO_INFO;
 
-  aSuggestedDriverVersion.SetIsVoid(PR_TRUE);
+  aSuggestedDriverVersion.SetIsVoid(true);
 
   
   if (aDriverInfo) {

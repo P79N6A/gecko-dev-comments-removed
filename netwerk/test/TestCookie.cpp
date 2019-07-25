@@ -179,7 +179,7 @@ CheckResult(const char *aLhs, PRUint32 aRule, const char *aRhs = nsnull)
             return PL_strstr(aLhs, aRhs) == nsnull;
 
         default:
-            return PR_FALSE; 
+            return false; 
     }
 }
 
@@ -193,7 +193,7 @@ PrintResult(const bool aResult[], PRUint32 aSize)
     sBuffer = PR_sprintf_append(sBuffer, "*** tests ");
     for (PRUint32 i = 0; i < aSize; ++i) {
         if (!aResult[i]) {
-            failed = PR_TRUE;
+            failed = true;
             sBuffer = PR_sprintf_append(sBuffer, "%d ", i);
         }
     }
@@ -212,10 +212,10 @@ InitPrefs(nsIPrefBranch *aPrefBranch)
     
     
     aPrefBranch->SetIntPref(kCookiesPermissions, 0); 
-    aPrefBranch->SetBoolPref(kCookiesLifetimeEnabled, PR_TRUE);
+    aPrefBranch->SetBoolPref(kCookiesLifetimeEnabled, true);
     aPrefBranch->SetIntPref(kCookiesLifetimeCurrentSession, 0);
     aPrefBranch->SetIntPref(kCookiesLifetimeDays, 1);
-    aPrefBranch->SetBoolPref(kCookiesAskPermission, PR_FALSE);
+    aPrefBranch->SetBoolPref(kCookiesAskPermission, false);
     
     aPrefBranch->SetIntPref(kCookiesMaxPerHost, 50);
 }
@@ -674,25 +674,25 @@ main(PRInt32 argc, char *argv[])
                                            NS_LITERAL_CSTRING("/foo"),           
                                            NS_LITERAL_CSTRING("test1"),          
                                            NS_LITERAL_CSTRING("yes"),            
-                                           PR_FALSE,                             
-                                           PR_FALSE,                             
-                                           PR_TRUE,                              
+                                           false,                             
+                                           false,                             
+                                           true,                              
                                            LL_MAXINT));                          
       rv[2] = NS_SUCCEEDED(cookieMgr2->Add(NS_LITERAL_CSTRING("cookiemgr.test"), 
                                            NS_LITERAL_CSTRING("/foo"),           
                                            NS_LITERAL_CSTRING("test2"),          
                                            NS_LITERAL_CSTRING("yes"),            
-                                           PR_FALSE,                             
-                                           PR_TRUE,                              
-                                           PR_TRUE,                              
+                                           false,                             
+                                           true,                              
+                                           true,                              
                                            PR_Now() / PR_USEC_PER_SEC + 2));     
       rv[3] = NS_SUCCEEDED(cookieMgr2->Add(NS_LITERAL_CSTRING("new.domain"),     
                                            NS_LITERAL_CSTRING("/rabbit"),        
                                            NS_LITERAL_CSTRING("test3"),          
                                            NS_LITERAL_CSTRING("yes"),            
-                                           PR_FALSE,                             
-                                           PR_FALSE,                             
-                                           PR_TRUE,                              
+                                           false,                             
+                                           false,                             
+                                           true,                              
                                            LL_MAXINT));                          
       
       nsCOMPtr<nsISimpleEnumerator> enumerator;
@@ -732,15 +732,15 @@ main(PRInt32 argc, char *argv[])
       rv[10] = NS_SUCCEEDED(cookieMgr->Remove(NS_LITERAL_CSTRING("new.domain"), 
                                               NS_LITERAL_CSTRING("test3"),      
                                               NS_LITERAL_CSTRING("/rabbit"),    
-                                              PR_TRUE));                        
+                                              true));                        
       rv[11] = NS_SUCCEEDED(cookieMgr2->CookieExists(newDomainCookie, &found)) && !found;
       rv[12] = NS_SUCCEEDED(cookieMgr2->Add(NS_LITERAL_CSTRING("new.domain"),     
                                             NS_LITERAL_CSTRING("/rabbit"),        
                                             NS_LITERAL_CSTRING("test3"),          
                                             NS_LITERAL_CSTRING("yes"),            
-                                            PR_FALSE,                             
-                                            PR_FALSE,                             
-                                            PR_TRUE,                              
+                                            false,                             
+                                            false,                             
+                                            true,                              
                                             LL_MININT));                          
       rv[13] = NS_SUCCEEDED(cookieMgr2->CookieExists(newDomainCookie, &found)) && !found;
       

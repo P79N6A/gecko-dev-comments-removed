@@ -63,7 +63,7 @@ NS_IMPL_ISUPPORTS2(nsXMLPrettyPrinter,
 
 nsXMLPrettyPrinter::nsXMLPrettyPrinter() : mDocument(nsnull),
                                            mUpdateDepth(0),
-                                           mUnhookPending(PR_FALSE)
+                                           mUnhookPending(false)
 {
 }
 
@@ -76,7 +76,7 @@ nsresult
 nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
                                 bool* aDidPrettyPrint)
 {
-    *aDidPrettyPrint = PR_FALSE;
+    *aDidPrettyPrint = false;
     
     
     if (!aDocument->GetShell()) {
@@ -121,7 +121,7 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
     }
 
     
-    *aDidPrettyPrint = PR_TRUE;
+    *aDidPrettyPrint = true;
     nsresult rv = NS_OK;
 
     
@@ -131,7 +131,7 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIDOMDocument> xslDocument;
-    rv = nsSyncLoadService::LoadDocument(xslUri, nsnull, nsnull, PR_TRUE,
+    rv = nsSyncLoadService::LoadDocument(xslUri, nsnull, nsnull, true,
                                          getter_AddRefs(xslDocument));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -202,7 +202,7 @@ nsXMLPrettyPrinter::MaybeUnhook(nsIContent* aContent)
         
         
         
-        mUnhookPending = PR_TRUE;
+        mUnhookPending = true;
         nsContentUtils::AddScriptRunner(
           NS_NewRunnableMethod(this, &nsXMLPrettyPrinter::Unhook));
     }

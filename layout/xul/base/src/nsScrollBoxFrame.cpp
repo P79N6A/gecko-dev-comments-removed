@@ -133,7 +133,7 @@ nsAutoRepeatBoxFrame::HandleEvent(nsPresContext* aPresContext,
       
       StopRepeat();
       
-      mTrustedEvent = PR_FALSE;
+      mTrustedEvent = false;
       break;
 
     case NS_MOUSE_CLICK:

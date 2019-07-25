@@ -164,9 +164,9 @@ NS_NewXMLFragmentContentSink(nsIFragmentContentSink** aResult)
 }
 
 nsXMLFragmentContentSink::nsXMLFragmentContentSink()
- : mParseError(PR_FALSE)
+ : mParseError(false)
 {
-  mFragmentMode = PR_TRUE;
+  mFragmentMode = true;
 }
 
 nsXMLFragmentContentSink::~nsXMLFragmentContentSink()
@@ -241,7 +241,7 @@ nsXMLFragmentContentSink::SetDocElement(PRInt32 aNameSpaceID,
                                         nsIContent *aContent)
 {
   
-  return PR_FALSE;
+  return false;
 }
 
 nsresult
@@ -261,7 +261,7 @@ nsXMLFragmentContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsC
   
   
   if (mContentStack.Length() == 0) {
-    *aAppendContent = PR_FALSE;
+    *aAppendContent = false;
   }
 
   return rv;
@@ -340,9 +340,9 @@ nsXMLFragmentContentSink::ReportError(const PRUnichar* aErrorText,
   NS_PRECONDITION(aError && aSourceText && aErrorText, "Check arguments!!!");
 
   
-  *_retval = PR_TRUE;
+  *_retval = true;
 
-  mParseError = PR_TRUE;
+  mParseError = true;
 
 #ifdef DEBUG
   
@@ -416,7 +416,7 @@ nsXMLFragmentContentSink::FinishFragmentParsing(nsIDOMDocumentFragment** aFragme
   if (mParseError) {
     
     mRoot = nsnull;
-    mParseError = PR_FALSE;
+    mParseError = false;
     return NS_ERROR_DOM_SYNTAX_ERR;
   } else if (mRoot) {
     nsresult rv = CallQueryInterface(mRoot, aFragment);

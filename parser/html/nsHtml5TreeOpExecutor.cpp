@@ -153,7 +153,7 @@ nsHtml5TreeOpExecutor::DidBuildModel(bool aTerminated)
     }
 
     if (!destroying) {
-      nsContentSink::StartLayout(PR_FALSE);
+      nsContentSink::StartLayout(false);
     }
   }
 
@@ -207,7 +207,7 @@ nsHtml5TreeOpExecutor::FlushPendingNotifications(mozFlushType aType)
 {
   if (aType >= Flush_InterruptibleLayout) {
     
-    nsContentSink::StartLayout(PR_TRUE);
+    nsContentSink::StartLayout(true);
   }
 }
 
@@ -328,7 +328,7 @@ nsHtml5TreeOpExecutor::UpdateStyleSheet(nsIContent* aElement)
   nsCOMPtr<nsIStyleSheetLinkingElement> ssle(do_QueryInterface(aElement));
   NS_ASSERTION(ssle, "Node didn't QI to style.");
 
-  ssle->SetEnableUpdates(PR_TRUE);
+  ssle->SetEnableUpdates(true);
 
   bool willNotify;
   bool isAlternate;
@@ -402,7 +402,7 @@ class nsHtml5FlushLoopGuard
       , mStartTime(PR_IntervalToMilliseconds(PR_IntervalNow()))
     #endif
     {
-      mExecutor->mRunFlushLoopOnStack = PR_TRUE;
+      mExecutor->mRunFlushLoopOnStack = true;
     }
     ~nsHtml5FlushLoopGuard()
     {
@@ -418,7 +418,7 @@ class nsHtml5FlushLoopGuard
           nsHtml5TreeOpExecutor::sLongestTimeOffTheEventLoop);
       #endif
 
-      mExecutor->mRunFlushLoopOnStack = PR_FALSE;
+      mExecutor->mRunFlushLoopOnStack = false;
     }
 };
 
@@ -654,20 +654,20 @@ bool
 nsHtml5TreeOpExecutor::IsScriptEnabled()
 {
   if (!mDocument || !mDocShell)
-    return PR_TRUE;
+    return true;
   nsCOMPtr<nsIScriptGlobalObject> globalObject = mDocument->GetScriptGlobalObject();
   
   
   if (!globalObject) {
     nsCOMPtr<nsIScriptGlobalObjectOwner> owner = do_GetInterface(mDocShell);
-    NS_ENSURE_TRUE(owner, PR_TRUE);
+    NS_ENSURE_TRUE(owner, true);
     globalObject = owner->GetScriptGlobalObject();
-    NS_ENSURE_TRUE(globalObject, PR_TRUE);
+    NS_ENSURE_TRUE(globalObject, true);
   }
   nsIScriptContext *scriptContext = globalObject->GetContext();
-  NS_ENSURE_TRUE(scriptContext, PR_TRUE);
+  NS_ENSURE_TRUE(scriptContext, true);
   JSContext* cx = scriptContext->GetNativeContext();
-  NS_ENSURE_TRUE(cx, PR_TRUE);
+  NS_ENSURE_TRUE(cx, true);
   bool enabled = true;
   nsContentUtils::GetSecurityManager()->
     CanExecuteScripts(cx, mDocument->NodePrincipal(), &enabled);
@@ -707,7 +707,7 @@ nsHtml5TreeOpExecutor::StartLayout() {
     return;
   }
 
-  nsContentSink::StartLayout(PR_FALSE);
+  nsContentSink::StartLayout(false);
 
   BeginDocUpdate();
 }
@@ -748,7 +748,7 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
     #ifdef DEBUG
     nsresult rv = 
     #endif
-    aScriptElement->DoneAddingChildren(PR_TRUE); 
+    aScriptElement->DoneAddingChildren(true); 
     NS_ASSERTION(rv != NS_ERROR_HTMLPARSER_BLOCK, 
                  "Defer or async script tried to block.");
     return;
@@ -756,7 +756,7 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
   
   NS_ASSERTION(mFlushState == eNotFlushing, "Tried to run script when flushing.");
 
-  mReadingFromStage = PR_FALSE;
+  mReadingFromStage = false;
   
   sele->SetCreatorParser(mParser);
 
@@ -769,7 +769,7 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
   
   
   
-  nsresult rv = aScriptElement->DoneAddingChildren(PR_TRUE);
+  nsresult rv = aScriptElement->DoneAddingChildren(true);
 
   
   
@@ -804,7 +804,7 @@ void
 nsHtml5TreeOpExecutor::Start()
 {
   NS_PRECONDITION(!mStarted, "Tried to start when already started.");
-  mStarted = PR_TRUE;
+  mStarted = true;
 }
 
 void
@@ -856,11 +856,11 @@ void
 nsHtml5TreeOpExecutor::Reset()
 {
   DropHeldElements();
-  mReadingFromStage = PR_FALSE;
+  mReadingFromStage = false;
   mOpQueue.Clear();
-  mStarted = PR_FALSE;
+  mStarted = false;
   mFlushState = eNotFlushing;
-  mRunFlushLoopOnStack = PR_FALSE;
+  mRunFlushLoopOnStack = false;
   NS_ASSERTION(!mBroken, "Fragment parser got broken.");
 }
 

@@ -194,7 +194,7 @@ public:
     }
 
     bool ShouldUseHarfBuzz(PRInt32 aRunScript);
-    void SkipHarfBuzz() { mSkipHarfBuzz = PR_TRUE; }
+    void SkipHarfBuzz() { mSkipHarfBuzz = true; }
 
     static gfxFcFontEntry *LookupFontEntry(cairo_font_face_t *aFace)
     {
@@ -216,16 +216,16 @@ public:
     {
         for (PRUint32 i = 0; i < mPatterns.Length(); ++i) {
             if (HasChar(mPatterns[i], aCh)) {
-                return PR_TRUE;
+                return true;
             }
         }
-        return PR_FALSE;
+        return false;
     }
 
 protected:
     gfxFcFontEntry(const nsAString& aName)
         : gfxFontEntry(aName),
-          mSkipHarfBuzz(PR_FALSE), mSkipGraphiteCheck(PR_FALSE)
+          mSkipHarfBuzz(false), mSkipGraphiteCheck(false)
     {
     }
 
@@ -285,11 +285,11 @@ gfxFcFontEntry::ShouldUseHarfBuzz(PRInt32 aRunScript) {
     if (mSkipHarfBuzz ||
         !gfxPlatform::GetPlatform()->UseHarfBuzzForScript(aRunScript))
     {
-        return PR_FALSE;
+        return false;
     }
 
     if (mSkipGraphiteCheck) {
-        return PR_TRUE;
+        return true;
     }
 
     
@@ -301,8 +301,8 @@ gfxFcFontEntry::ShouldUseHarfBuzz(PRInt32 aRunScript) {
                            FC_CAPABILITY, 0, &capability) == FcResultNoMatch ||
         !FcStrStr(capability, gfxFontconfigUtils::ToFcChar8("ttable:Silf")))
     {
-        mSkipGraphiteCheck = PR_TRUE;
-        return PR_TRUE;
+        mSkipGraphiteCheck = true;
+        return true;
     }
 
     
@@ -331,11 +331,11 @@ gfxFcFontEntry::ShouldUseHarfBuzz(PRInt32 aRunScript) {
         otCap[scriptOffset + 2] = scriptTag >> 8;
         otCap[scriptOffset + 3] = scriptTag;
         if (FcStrStr(capability, otCap)) {
-            return PR_TRUE;
+            return true;
         }
     }
 
-    return PR_FALSE; 
+    return false; 
 }
 
 
@@ -420,7 +420,7 @@ protected:
         mItalic = aProxyEntry.mItalic;
         mWeight = aProxyEntry.mWeight;
         mStretch = aProxyEntry.mStretch;
-        mIsUserFont = PR_TRUE;
+        mIsUserFont = true;
     }
 
     
@@ -515,7 +515,7 @@ public:
             mPatterns.AppendElement();
             mPatterns[i].own(pattern);
         }
-        mIsLocalUserFont = PR_TRUE;
+        mIsLocalUserFont = true;
     }
 };
 
@@ -715,11 +715,11 @@ bool gfxDownloadedFcFontEntry::SetCairoFace(cairo_font_face_t *aFace)
     if (CAIRO_STATUS_SUCCESS !=
         cairo_font_face_set_user_data(aFace, &sFontEntryKey, this,
                                       ReleaseDownloadedFontEntry))
-        return PR_FALSE;
+        return false;
 
     
     NS_ADDREF(this);
-    return PR_TRUE;
+    return true;
 }
 
 static PangoCoverage *NewPangoCoverage(FcPattern *aFont)
@@ -1175,7 +1175,7 @@ public:
                                gfxUserFontSet *aUserFontSet)
         : mSortPattern(aPattern), mUserFontSet(aUserFontSet),
           mFcFontsTrimmed(0),
-          mHaveFallbackFonts(PR_FALSE)
+          mHaveFallbackFonts(false)
     {
         bool waitForUserFont;
         mFcFontSet = SortPreferredFonts(waitForUserFont);
@@ -1321,14 +1321,14 @@ SlantIsAcceptable(FcPattern *aFont, int aRequestedSlant)
 {
     
     if (aRequestedSlant == FC_SLANT_ITALIC)
-        return PR_TRUE;
+        return true;
 
     int slant;
     FcResult result = FcPatternGetInteger(aFont, FC_SLANT, 0, &slant);
     
     
     if (result != FcResultMatch)
-        return PR_TRUE;
+        return true;
 
     switch (aRequestedSlant) {
         case FC_SLANT_ROMAN:
@@ -1340,7 +1340,7 @@ SlantIsAcceptable(FcPattern *aFont, int aRequestedSlant)
             return slant != FC_SLANT_ITALIC;
     }
 
-    return PR_TRUE;
+    return true;
 }
 
 
@@ -1354,7 +1354,7 @@ SizeIsAcceptable(FcPattern *aFont, double aRequestedSize)
                               FC_PIXEL_SIZE, v, &size) == FcResultMatch) {
         ++v;
         if (5.0 * fabs(size - aRequestedSize) < aRequestedSize)
-            return PR_TRUE;
+            return true;
     }
 
     
@@ -1366,7 +1366,7 @@ SizeIsAcceptable(FcPattern *aFont, double aRequestedSize)
 nsReturnRef<FcFontSet>
 gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
 {
-    aWaitForUserFont = PR_FALSE;
+    aWaitForUserFont = false;
 
     gfxFontconfigUtils *utils = gfxFontconfigUtils::GetFontconfigUtils();
     if (!utils)
@@ -1436,7 +1436,7 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
             NS_NAMED_LITERAL_CSTRING(userPrefix, FONT_FACE_FAMILY_PREFIX);
 
             if (StringBeginsWith(cFamily, userPrefix)) {
-                isUserFont = PR_TRUE;
+                isUserFont = true;
 
                 
                 nsDependentCSubstring cssFamily(cFamily, userPrefix.Length());
@@ -1454,7 +1454,7 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
                                                thebesWeight, thebesStretch,
                                                foundFamily, waitForUserFont);
                 if (waitForUserFont) {
-                    aWaitForUserFont = PR_TRUE;
+                    aWaitForUserFont = true;
                 }
                 NS_ASSERTION(foundFamily,
                              "expected to find a user font, but it's missing!");
@@ -1534,7 +1534,7 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
             if (requestedSize != -1.0 && !SizeIsAcceptable(font, requestedSize))
                 continue;
 
-            haveLangFont = PR_TRUE;
+            haveLangFont = true;
             if (FcFontSetAdd(fontSet, font)) {
                 FcPatternReference(font);
             }
@@ -1622,7 +1622,7 @@ gfxFcFontSet::GetFontPatternAt(PRUint32 i)
                 return nsnull;
 
             mFcFontSet = SortFallbackFonts();
-            mHaveFallbackFonts = PR_TRUE;
+            mHaveFallbackFonts = true;
             mFcFontsTrimmed = 0;
             
         }
@@ -1840,7 +1840,7 @@ FamilyCallback (const nsAString& fontName, const nsACString& genericName,
 
     
     if (genericName.Length() && FFRECountHyphens(fontName) >= 3)
-        return PR_TRUE;
+        return true;
 
     if (!list->Contains(fontName)) {
         
@@ -1881,7 +1881,7 @@ FamilyCallback (const nsAString& fontName, const nsACString& genericName,
         }
     }
 
-    return PR_TRUE;
+    return true;
 }
 
 gfxPangoFontGroup::gfxPangoFontGroup (const nsAString& families,
@@ -1917,7 +1917,7 @@ gfxPangoFontGroup::GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
     FamilyCallbackData data(aFcFamilyList, mUserFontSet);
     
     
-    ForEachFontInternal(mFamilies, aLanguage, PR_TRUE, PR_FALSE, PR_TRUE,
+    ForEachFontInternal(mFamilies, aLanguage, true, false, true,
                         FamilyCallback, &data);
 }
 
@@ -1960,7 +1960,7 @@ gfxPangoFontGroup::UpdateFontList()
     mFontSets.Clear();
     mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
     mCurrGeneration = newGeneration;
-    mSkipDrawing = PR_FALSE;
+    mSkipDrawing = false;
 }
 
 already_AddRefed<gfxFcFontSet>
@@ -2202,7 +2202,7 @@ gfxFcFont::InitTextRun(gfxContext *aContext,
         if (mHarfBuzzShaper->
             InitTextRun(aContext, aTextRun, aString,
                         aRunStart, aRunLength, aRunScript)) {
-            return PR_TRUE;
+            return true;
         }
 
         
@@ -2429,7 +2429,7 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
         
         gfxFontStyle fontStyle(style, weight, NS_FONT_STRETCH_NORMAL,
                                size, language, 0.0,
-                               PR_TRUE, PR_FALSE,
+                               true, false,
                                NS_LITERAL_STRING(""),
                                NS_LITERAL_STRING(""));
 
@@ -2741,7 +2741,7 @@ SetupClusterBoundaries(gfxTextRun* aTextRun, const gchar *aUTF8, PRUint32 aUTF8L
     gfxTextRun::CompressedGlyph g;
     while (p < end) {
         if (!attr->is_cursor_position) {
-            aTextRun->SetGlyphs(aUTF16Offset, g.SetComplex(PR_FALSE, PR_TRUE, 0), nsnull);
+            aTextRun->SetGlyphs(aUTF16Offset, g.SetComplex(false, true, 0), nsnull);
         }
         ++aUTF16Offset;
         
@@ -2750,7 +2750,7 @@ SetupClusterBoundaries(gfxTextRun* aTextRun, const gchar *aUTF8, PRUint32 aUTF8L
         NS_ASSERTION(!IS_SURROGATE(ch), "Shouldn't have surrogates in UTF8");
         if (ch >= 0x10000) {
             
-            aTextRun->SetGlyphs(aUTF16Offset, g.SetComplex(PR_FALSE, PR_FALSE, 0), nsnull);
+            aTextRun->SetGlyphs(aUTF16Offset, g.SetComplex(false, false, 0), nsnull);
             ++aUTF16Offset;
         }
         
@@ -2835,7 +2835,7 @@ SetGlyphsForCharacterGroup(const PangoGlyphInfo *aGlyphs, PRUint32 aGlyphCount,
             details->mYOffset =
                 float(glyph.geometry.y_offset)*appUnitsPerDevUnit/PANGO_SCALE;
         }
-        g.SetComplex(atClusterStart, PR_TRUE, detailedIndex);
+        g.SetComplex(atClusterStart, true, detailedIndex);
         aTextRun->SetGlyphs(utf16Offset, g, detailedGlyphs.Elements());
     }
 
@@ -2866,7 +2866,7 @@ SetGlyphsForCharacterGroup(const PangoGlyphInfo *aGlyphs, PRUint32 aGlyphCount,
             return NS_ERROR_FAILURE;
         }
 
-        g.SetComplex(aTextRun->IsClusterStart(utf16Offset), PR_FALSE, 0);
+        g.SetComplex(aTextRun->IsClusterStart(utf16Offset), false, 0);
         aTextRun->SetGlyphs(utf16Offset, g, nsnull);
     }
     *aUTF16Offset = utf16Offset;
@@ -2941,7 +2941,7 @@ SetGlyphs(gfxTextRun *aTextRun, const gchar *aUTF8, PRUint32 aUTF8Length,
                 
                 
                 
-                haveMissingGlyph = PR_TRUE;
+                haveMissingGlyph = true;
             }
             glyphIndex++;
         } while (glyphIndex < numGlyphs && 
@@ -3101,14 +3101,14 @@ gfxFcFont::InitGlyphRunWithPango(gfxTextRun *aTextRun,
         g_quark_from_static_string(PANGO_RENDER_TYPE_FC);
     PangoMap *shapeMap = pango_find_map(language, engineShapeId, renderFcId);
     if (!shapeMap) {
-        return PR_FALSE;
+        return false;
     }
 
     
     PangoEngineShape *shapeEngine =
         PANGO_ENGINE_SHAPE(pango_map_get_engine(shapeMap, aScript));
     if (!shapeEngine) {
-        return PR_FALSE;
+        return false;
     }
 
     PangoEngineShapeClass *shapeClass = static_cast<PangoEngineShapeClass*>
@@ -3183,7 +3183,7 @@ gfxFcFont::InitGlyphRunWithPango(gfxTextRun *aTextRun,
     PRUint32 utf16Offset = aRunStart;
     InitGlyphRunWithPangoAnalysis(aTextRun, utf8.get(), utf8.Length(),
                                   &utf16Offset, &analysis.pango, spaceWidth);
-    return PR_TRUE;
+    return true;
 }
 
 

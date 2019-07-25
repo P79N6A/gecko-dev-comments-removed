@@ -262,7 +262,7 @@ mozInlineSpellWordUtil::SetPosition(nsIDOMNode* aNode, PRInt32 aOffset)
   PRInt32 textOffset = MapDOMPositionToSoftTextOffset(mSoftBegin);
   if (textOffset < 0)
     return NS_OK;
-  mNextWordIndex = FindRealWordContaining(textOffset, HINT_END, PR_TRUE);
+  mNextWordIndex = FindRealWordContaining(textOffset, HINT_END, true);
   return NS_OK;
 }
 
@@ -273,7 +273,7 @@ mozInlineSpellWordUtil::EnsureWords()
     return;
   BuildSoftText();
   BuildRealWords();
-  mSoftTextValid = PR_TRUE;
+  mSoftTextValid = true;
 }
 
 nsresult
@@ -301,7 +301,7 @@ mozInlineSpellWordUtil::GetRangeForWord(nsIDOMNode* aWordNode,
   PRInt32 offset = MapDOMPositionToSoftTextOffset(pt);
   if (offset < 0)
     return MakeRange(pt, pt, aRange);
-  PRInt32 wordIndex = FindRealWordContaining(offset, HINT_BEGIN, PR_FALSE);
+  PRInt32 wordIndex = FindRealWordContaining(offset, HINT_BEGIN, false);
   if (wordIndex < 0)
     return MakeRange(pt, pt, aRange);
   return MakeRangeForWord(mRealWords[wordIndex], aRange);
@@ -346,7 +346,7 @@ mozInlineSpellWordUtil::GetNextWord(nsAString& aText, nsIDOMRange** aRange,
       mNextWordIndex >= PRInt32(mRealWords.Length())) {
     mNextWordIndex = -1;
     *aRange = nsnull;
-    *aSkipChecking = PR_TRUE;
+    *aSkipChecking = true;
     return NS_OK;
   }
   
@@ -403,7 +403,7 @@ IsDOMWordSeparator(PRUnichar ch)
 {
   
   if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r')
-    return PR_TRUE;
+    return true;
 
   
   if (ch >= 0xA0 &&
@@ -413,10 +413,10 @@ IsDOMWordSeparator(PRUnichar ch)
        ch == 0x2009 ||  
        ch == 0x200C ||  
        ch == 0x3000))   
-    return PR_TRUE;
+    return true;
 
   
-  return PR_FALSE;
+  return false;
 }
 
 static bool
@@ -467,11 +467,11 @@ ContainsDOMWordSeparator(nsIDOMNode* aNode, PRInt32 aBeforeOffset,
 {
   if (IsBRElement(aNode)) {
     *aSeparatorOffset = 0;
-    return PR_TRUE;
+    return true;
   }
   
   if (!IsTextNode(aNode))
-    return PR_FALSE;
+    return false;
 
   nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
   NS_ASSERTION(content, "Where is our content?");
@@ -488,10 +488,10 @@ ContainsDOMWordSeparator(nsIDOMNode* aNode, PRInt32 aBeforeOffset,
         }
       }
       *aSeparatorOffset = i;
-      return PR_TRUE;
+      return true;
     }
   }
-  return PR_FALSE;
+  return false;
 }
 
 static bool
@@ -499,15 +499,15 @@ IsBreakElement(nsIDOMWindow* aDocView, nsIDOMNode* aNode)
 {
   nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aNode);
   if (!element)
-    return PR_FALSE;
+    return false;
     
   if (IsBRElement(aNode))
-    return PR_TRUE;
+    return true;
   
   nsCOMPtr<nsIDOMCSSStyleDeclaration> style;
   aDocView->GetComputedStyle(element, EmptyString(), getter_AddRefs(style));
   if (!style)
-    return PR_FALSE;
+    return false;
 
 #ifdef DEBUG_SPELLCHECK
   printf("    searching element %p\n", (void*)aNode);
@@ -519,7 +519,7 @@ IsBreakElement(nsIDOMWindow* aDocView, nsIDOMNode* aNode)
   printf("      display=\"%s\"\n", NS_ConvertUTF16toUTF8(display).get());
 #endif
   if (!display.EqualsLiteral("inline"))
-    return PR_TRUE;
+    return true;
 
   nsAutoString position;
   style->GetPropertyValue(NS_LITERAL_STRING("position"), position);
@@ -527,10 +527,10 @@ IsBreakElement(nsIDOMWindow* aDocView, nsIDOMNode* aNode)
   printf("      position=%s\n", NS_ConvertUTF16toUTF8(position).get());
 #endif
   if (!position.EqualsLiteral("static"))
-    return PR_TRUE;
+    return true;
     
   
-  return PR_FALSE;
+  return false;
 }
 
 struct CheckLeavingBreakElementClosure {
@@ -544,7 +544,7 @@ CheckLeavingBreakElement(nsIDOMNode* aNode, void* aClosure)
   CheckLeavingBreakElementClosure* cl =
     static_cast<CheckLeavingBreakElementClosure*>(aClosure);
   if (!cl->mLeftBreakElement && IsBreakElement(cl->mDocView, aNode)) {
-    cl->mLeftBreakElement = PR_TRUE;
+    cl->mLeftBreakElement = true;
   }
 }
 
@@ -606,7 +606,7 @@ mozInlineSpellWordUtil::BuildSoftText()
   
   while (node) {
     if (node == mSoftEnd.mNode) {
-      seenSoftEnd = PR_TRUE;
+      seenSoftEnd = true;
     }
 
     bool exit = false;
@@ -622,7 +622,7 @@ mozInlineSpellWordUtil::BuildSoftText()
         for (PRInt32 i = node == mSoftEnd.mNode ? mSoftEnd.mOffset : 0;
              i < PRInt32(textFragment->GetLength()); ++i) {
           if (IsDOMWordSeparator(textFragment->CharAt(i))) {
-            exit = PR_TRUE;
+            exit = true;
             
             lastOffsetInNode = i;
             break;
@@ -643,7 +643,7 @@ mozInlineSpellWordUtil::BuildSoftText()
     if (exit)
       break;
 
-    CheckLeavingBreakElementClosure closure = { mCSSView, PR_FALSE };
+    CheckLeavingBreakElementClosure closure = { mCSSView, false };
     node = FindNextNode(node, mRootNode, CheckLeavingBreakElement, &closure);
     if (closure.mLeftBreakElement || (node && IsBreakElement(mCSSView, node))) {
       
@@ -953,7 +953,7 @@ WordSplitState::Advance()
   if (mDOMWordOffset >= (PRInt32)mDOMWordText.Length())
     mCurCharClass = CHAR_CLASS_END_OF_INPUT;
   else
-    mCurCharClass = ClassifyCharacter(mDOMWordOffset, PR_TRUE);
+    mCurCharClass = ClassifyCharacter(mDOMWordOffset, true);
 }
 
 
@@ -1003,15 +1003,15 @@ WordSplitState::FindSpecialWord()
       
       
       
-      if (i > 0 && ClassifyCharacter(i - 1, PR_FALSE) == CHAR_CLASS_WORD &&
+      if (i > 0 && ClassifyCharacter(i - 1, false) == CHAR_CLASS_WORD &&
           i < (PRInt32)mDOMWordText.Length() - 1 &&
-          ClassifyCharacter(i + 1, PR_FALSE) == CHAR_CLASS_WORD)
+          ClassifyCharacter(i + 1, false) == CHAR_CLASS_WORD)
 
       return mDOMWordText.Length() - mDOMWordOffset;
     } else if (mDOMWordText[i] == '.' && ! foundDot &&
         i > 0 && i < (PRInt32)mDOMWordText.Length() - 1) {
       
-      foundDot = PR_TRUE;
+      foundDot = true;
     } else if (mDOMWordText[i] == ':' && firstColon < 0) {
       firstColon = i;
     }
@@ -1058,11 +1058,11 @@ WordSplitState::ShouldSkipWord(PRInt32 aStart, PRInt32 aLength)
     PRUnichar ch = mDOMWordText[i];
     
     if (ch >= '0' && ch <= '9')
-      return PR_TRUE;
+      return true;
   }
 
   
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -1071,7 +1071,7 @@ void
 mozInlineSpellWordUtil::SplitDOMWord(PRInt32 aStart, PRInt32 aEnd)
 {
   WordSplitState state(this, mSoftText, aStart, aEnd - aStart);
-  state.mCurCharClass = state.ClassifyCharacter(0, PR_TRUE);
+  state.mCurCharClass = state.ClassifyCharacter(0, true);
 
   while (state.mCurCharClass != CHAR_CLASS_END_OF_INPUT) {
     state.AdvanceThroughSeparators();
@@ -1081,14 +1081,14 @@ mozInlineSpellWordUtil::SplitDOMWord(PRInt32 aStart, PRInt32 aEnd)
     PRInt32 specialWordLength = state.FindSpecialWord();
     if (specialWordLength > 0) {
       mRealWords.AppendElement(
-        RealWord(aStart + state.mDOMWordOffset, specialWordLength, PR_FALSE));
+        RealWord(aStart + state.mDOMWordOffset, specialWordLength, false));
 
       
       state.mDOMWordOffset += specialWordLength;
       if (state.mDOMWordOffset + aStart >= aEnd)
         state.mCurCharClass = CHAR_CLASS_END_OF_INPUT;
       else
-        state.mCurCharClass = state.ClassifyCharacter(state.mDOMWordOffset, PR_TRUE);
+        state.mCurCharClass = state.ClassifyCharacter(state.mDOMWordOffset, true);
       continue;
     }
 

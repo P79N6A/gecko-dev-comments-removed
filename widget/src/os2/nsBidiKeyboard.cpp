@@ -51,7 +51,7 @@ nsBidiKeyboard::~nsBidiKeyboard()
 
 NS_IMETHODIMP nsBidiKeyboard::IsLangRTL(bool *aIsRTL)
 {
-  *aIsRTL = PR_FALSE;
+  *aIsRTL = false;
   
   return NS_ERROR_NOT_IMPLEMENTED;
 }

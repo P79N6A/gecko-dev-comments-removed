@@ -75,14 +75,14 @@ nsPKCS11Slot::refreshSlotInfo()
       ccDesc, 
       ccDesc+PL_strnlen(ccDesc, sizeof(slot_info.slotDescription)));
     mSlotDesc = NS_ConvertUTF8toUTF16(cDesc);
-    mSlotDesc.Trim(" ", PR_FALSE, PR_TRUE);
+    mSlotDesc.Trim(" ", false, true);
     
     const char *ccManID = (const char*)slot_info.manufacturerID;
     const nsACString &cManID = Substring(
       ccManID, 
       ccManID+PL_strnlen(ccManID, sizeof(slot_info.manufacturerID)));
     mSlotManID = NS_ConvertUTF8toUTF16(cManID);
-    mSlotManID.Trim(" ", PR_FALSE, PR_TRUE);
+    mSlotManID.Trim(" ", false, true);
     
     mSlotHWVersion = EmptyString();
     mSlotHWVersion.AppendInt(slot_info.hardwareVersion.major);
@@ -340,11 +340,11 @@ nsPKCS11Module::FindSlotByName(const PRUnichar *aName,
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Getting \"%s\"\n", asciiname));
   PK11SlotInfo *slotinfo = NULL;
   PK11SlotList *slotList = PK11_FindSlotsByNames(mModule->dllName, 
-        asciiname , NULL , PR_FALSE);
+        asciiname , NULL , false);
   if (!slotList) {
     
     slotList = PK11_FindSlotsByNames(mModule->dllName, 
-        NULL , asciiname , PR_FALSE);
+        NULL , asciiname , false);
   }
   if (slotList) {
     

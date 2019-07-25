@@ -111,7 +111,7 @@ public:
   {
     T* elem = mElements.AppendElement(aElement);
     if (!elem)
-      return PR_FALSE; 
+      return false; 
 
     
     size_type i = mElements.Length() - 1;
@@ -124,7 +124,7 @@ public:
       i = parent;
     }
 
-    return PR_TRUE;
+    return true;
   }
 
   

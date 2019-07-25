@@ -63,7 +63,7 @@ public:
   nsresult Init(imgIRequest* aImageRequest)
   {
     
-    return UseAsPrimaryRequest(aImageRequest, PR_FALSE);
+    return UseAsPrimaryRequest(aImageRequest, false);
   }
 
   

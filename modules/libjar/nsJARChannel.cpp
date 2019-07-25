@@ -209,7 +209,7 @@ nsJARInputThunk::ReadSegments(nsWriteSegmentFun writer, void *closure,
 NS_IMETHODIMP
 nsJARInputThunk::IsNonBlocking(bool *nonBlocking)
 {
-    *nonBlocking = PR_FALSE;
+    *nonBlocking = false;
     return NS_OK;
 }
 
@@ -222,8 +222,8 @@ nsJARChannel::nsJARChannel()
     : mContentLength(-1)
     , mLoadFlags(LOAD_NORMAL)
     , mStatus(NS_OK)
-    , mIsPending(PR_FALSE)
-    , mIsUnsafe(PR_TRUE)
+    , mIsPending(false)
+    , mIsUnsafe(true)
     , mJarInput(nsnull)
 {
 #if defined(PR_LOGGING)
@@ -378,7 +378,7 @@ nsJARChannel::EnsureJarInput(bool blocking)
     }
 
     if (mJarFile) {
-        mIsUnsafe = PR_FALSE;
+        mIsUnsafe = false;
 
         
         
@@ -720,9 +720,9 @@ nsJARChannel::Open(nsIInputStream **stream)
     NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
 
     mJarFile = nsnull;
-    mIsUnsafe = PR_TRUE;
+    mIsUnsafe = true;
 
-    nsresult rv = EnsureJarInput(PR_TRUE);
+    nsresult rv = EnsureJarInput(true);
     if (NS_FAILED(rv)) return rv;
 
     if (!mJarInput)
@@ -746,19 +746,19 @@ nsJARChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
     NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
 
     mJarFile = nsnull;
-    mIsUnsafe = PR_TRUE;
+    mIsUnsafe = true;
 
     
     NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup, mProgressSink);
 
-    nsresult rv = EnsureJarInput(PR_FALSE);
+    nsresult rv = EnsureJarInput(false);
     if (NS_FAILED(rv)) return rv;
 
     
     
     mListener = listener;
     mListenerContext = ctx;
-    mIsPending = PR_TRUE;
+    mIsPending = true;
     if (mJarInput) {
         
         rv = NS_NewInputStreamPump(getter_AddRefs(mPump), mJarInput);
@@ -768,7 +768,7 @@ nsJARChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
         
         
         if (NS_FAILED(rv)) {
-            mIsPending = PR_FALSE;
+            mIsPending = false;
             mListenerContext = nsnull;
             mListener = nsnull;
             return rv;
@@ -931,7 +931,7 @@ nsJARChannel::OnStopRequest(nsIRequest *req, nsISupports *ctx, nsresult status)
 
     mPump = 0;
     NS_IF_RELEASE(mJarInput);
-    mIsPending = PR_FALSE;
+    mIsPending = false;
     mDownloader = 0; 
 
     

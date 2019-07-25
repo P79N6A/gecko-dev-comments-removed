@@ -105,7 +105,7 @@ class nsPropertyTable
                     nsIAtom    *aPropertyName,
                     nsresult   *aResult = nsnull)
   {
-    return GetPropertyInternal(aObject, aPropertyName, PR_FALSE, aResult);
+    return GetPropertyInternal(aObject, aPropertyName, false, aResult);
   }
 
   
@@ -153,7 +153,7 @@ class nsPropertyTable
                       nsIAtom    *aPropertyName,
                       nsresult   *aStatus = nsnull)
   {
-    return GetPropertyInternal(aObject, aPropertyName, PR_TRUE, aStatus);
+    return GetPropertyInternal(aObject, aPropertyName, true, aStatus);
   }
 
   

@@ -185,8 +185,8 @@ NS_IMPL_ISUPPORTS8(imgRequest,
 imgRequest::imgRequest() : 
   mValidator(nsnull), mImageSniffers("image-sniffing-services"),
   mInnerWindowId(0), mCORSMode(imgIRequest::CORS_NONE),
-  mDecodeRequested(PR_FALSE), mIsMultiPartChannel(PR_FALSE), mGotData(PR_FALSE),
-  mIsInCache(PR_FALSE)
+  mDecodeRequested(false), mIsMultiPartChannel(false), mGotData(false),
+  mIsInCache(false)
 {}
 
 imgRequest::~imgRequest()
@@ -245,7 +245,7 @@ nsresult imgRequest::Init(nsIURI *aURI,
     nsCOMPtr<nsIObserver> observer(new imgRequestPrefObserver());
     Preferences::AddStrongObservers(observer, kObservedPrefs);
     ReloadPrefs();
-    gRegisteredPrefObserver = PR_TRUE;
+    gRegisteredPrefObserver = true;
   }
 
   return NS_OK;
@@ -354,7 +354,7 @@ nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, bool 
   
   
   if (aStatus != NS_IMAGELIB_CHANGING_OWNER)
-    proxy->RemoveFromLoadGroup(PR_TRUE);
+    proxy->RemoveFromLoadGroup(true);
 
   return NS_OK;
 }
@@ -438,11 +438,11 @@ bool imgRequest::HaveProxyWithObserver(imgRequestProxy* aProxyToIgnore) const
     }
     
     if (proxy->HasObserver()) {
-      return PR_TRUE;
+      return true;
     }
   }
   
-  return PR_FALSE;
+  return false;
 }
 
 PRInt32 imgRequest::Priority() const
@@ -531,7 +531,7 @@ void imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry, nsIRequest* aReq
         httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Cache-Control"),
                                             cacheHeader);
         if (PL_strcasestr(cacheHeader.get(), "must-revalidate")) {
-          bMustRevalidate = PR_TRUE;
+          bMustRevalidate = true;
         }
       }
 
@@ -576,7 +576,7 @@ imgRequest::RequestDecode()
   }
 
   
-  mDecodeRequested = PR_TRUE;
+  mDecodeRequested = true;
 
   return NS_OK;
 }
@@ -803,7 +803,7 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
   
   nsCOMPtr<nsIMultiPartChannel> mpchan(do_QueryInterface(aRequest));
   if (mpchan)
-      mIsMultiPartChannel = PR_TRUE;
+      mIsMultiPartChannel = true;
 
   
   NS_ABORT_IF_FALSE(mIsMultiPartChannel || !mImage,
@@ -973,7 +973,7 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
   } else {
     LOG_SCOPE(gImgLog, "imgRequest::OnDataAvailable |First time through... finding mimetype|");
 
-    mGotData = PR_TRUE;
+    mGotData = true;
 
     
 
@@ -1057,19 +1057,19 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
     bool isChrome = false;
     rv = mURI->SchemeIs("chrome", &isChrome);
     if (NS_SUCCEEDED(rv) && isChrome)
-      isDiscardable = doDecodeOnDraw = PR_FALSE;
+      isDiscardable = doDecodeOnDraw = false;
 
     
     
     bool isResource = false;
     rv = mURI->SchemeIs("resource", &isResource);
     if (NS_SUCCEEDED(rv) && isResource)
-      isDiscardable = doDecodeOnDraw = PR_FALSE;
+      isDiscardable = doDecodeOnDraw = false;
 
     
     
     if (mIsMultiPartChannel)
-      isDiscardable = doDecodeOnDraw = PR_FALSE;
+      isDiscardable = doDecodeOnDraw = false;
 
     
     PRUint32 imageFlags = Image::INIT_FLAG_NONE;
@@ -1115,7 +1115,7 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
             rv = rasterImage->SetSourceSizeHint(sizeHint);
             if (NS_FAILED(rv)) {
               
-              rv = nsMemory::HeapMinimize(PR_TRUE);
+              rv = nsMemory::HeapMinimize(true);
               rv |= rasterImage->SetSourceSizeHint(sizeHint);
               
               if (NS_FAILED(rv)) {

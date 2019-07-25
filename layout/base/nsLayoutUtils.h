@@ -1358,7 +1358,7 @@ public:
   struct SurfaceFromElementResult {
     SurfaceFromElementResult() :
       
-      mIsWriteOnly(PR_TRUE), mIsStillLoading(PR_FALSE), mCORSUsed(PR_FALSE) {}
+      mIsWriteOnly(true), mIsStillLoading(false), mCORSUsed(false) {}
 
     
     nsRefPtr<gfxASurface> mSurface;

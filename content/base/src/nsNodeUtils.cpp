@@ -278,7 +278,7 @@ nsNodeUtils::LastRelease(nsINode* aNode)
         aNode->HasFlag(ADDED_TO_FORM)) {
       
       
-      static_cast<nsGenericHTMLFormElement*>(aNode)->ClearForm(PR_TRUE);
+      static_cast<nsGenericHTMLFormElement*>(aNode)->ClearForm(true);
     }
   }
   aNode->UnsetFlags(NODE_HAS_PROPERTIES);
@@ -287,7 +287,7 @@ nsNodeUtils::LastRelease(nsINode* aNode)
 #ifdef DEBUG
     if (nsContentUtils::IsInitialized()) {
       nsEventListenerManager* manager =
-        nsContentUtils::GetListenerManager(aNode, PR_FALSE);
+        nsContentUtils::GetListenerManager(aNode, false);
       if (!manager) {
         NS_ERROR("Huh, our bit says we have a listener manager list, "
                  "but there's nothing in the hash!?!!");
@@ -441,7 +441,7 @@ nsNodeUtils::CloneNodeImpl(nsINode *aNode, bool aDeep,
   nsIDocument *ownerDoc = aNode->GetOwnerDoc();
   if (ownerDoc && aCallUserDataHandlers) {
     rv = CallUserDataHandlers(nodesWithProperties, ownerDoc,
-                              nsIDOMUserDataHandler::NODE_CLONED, PR_TRUE);
+                              nsIDOMUserDataHandler::NODE_CLONED, true);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -522,7 +522,7 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
       
       
       rv = aParent->AppendChildTo(static_cast<nsIContent*>(clone.get()),
-                                  PR_FALSE);
+                                  false);
       NS_ENSURE_SUCCESS(rv, rv);
     }
     else if (aDeep && clone->IsNodeOfType(nsINode::eDOCUMENT)) {
@@ -556,7 +556,7 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
 
       nsPIDOMWindow* window = newDoc->GetInnerWindow();
       if (window) {
-        nsEventListenerManager* elm = aNode->GetListenerManager(PR_FALSE);
+        nsEventListenerManager* elm = aNode->GetListenerManager(false);
         if (elm) {
           window->SetMutationListeners(elm->MutationListenerBits());
           if (elm->MayHavePaintEventListener()) {
@@ -665,7 +665,7 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
          cloneChild;
        cloneChild = cloneChild->GetNextSibling()) {
       nsCOMPtr<nsINode> child;
-      rv = CloneAndAdopt(cloneChild, aClone, PR_TRUE, nodeInfoManager,
+      rv = CloneAndAdopt(cloneChild, aClone, true, nodeInfoManager,
                          aCx, aNewScope, aNodesWithProperties, clone,
                          getter_AddRefs(child));
       NS_ENSURE_SUCCESS(rv, rv);

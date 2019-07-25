@@ -190,7 +190,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
             newSurface = new gfxImageSurface(size, imageFormat);
             
             
-            needsClear = PR_FALSE;
+            needsClear = false;
         } else {
             Screen *screen = gdk_x11_screen_get_xscreen(gdkScreen);
             XRenderPictFormat* xrenderFormat =
@@ -302,16 +302,16 @@ gfxPlatformGtk::IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags)
     if (aFormatFlags & (gfxUserFontSet::FLAG_FORMAT_WOFF     |
                         gfxUserFontSet::FLAG_FORMAT_OPENTYPE | 
                         gfxUserFontSet::FLAG_FORMAT_TRUETYPE)) {
-        return PR_TRUE;
+        return true;
     }
 
     
     if (aFormatFlags != 0) {
-        return PR_FALSE;
+        return false;
     }
 
     
-    return PR_TRUE;
+    return true;
 }
 
 #else
@@ -375,12 +375,12 @@ gfxPlatformGtk::UpdateFontList()
         fe->mWeight = gfxFontconfigUtils::GetThebesWeight(fs->fonts[i]);
         
 
-        fe->mItalic = PR_FALSE;
+        fe->mItalic = false;
         if (FcPatternGetInteger(fs->fonts[i], FC_SLANT, 0, &x) == FcResultMatch) {
             switch (x) {
             case FC_SLANT_ITALIC:
             case FC_SLANT_OBLIQUE:
-                fe->mItalic = PR_TRUE;
+                fe->mItalic = true;
             }
             
         }

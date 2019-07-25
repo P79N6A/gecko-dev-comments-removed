@@ -134,7 +134,7 @@ FinalizeStyleAnimationValues(const nsStyleAnimation::Value*& aValue1,
     aValue2 = &sZeroFloat;
   }
 
-  return PR_TRUE;
+  return true;
 }
 
 static void
@@ -231,14 +231,14 @@ nsSMILCSSValueType::IsEqual(const nsSMILValue& aLeft,
               leftWrapper->mCSSValue == rightWrapper->mCSSValue);
     }
     
-    return PR_FALSE;
+    return false;
   }
   if (rightWrapper) {
     
-    return PR_FALSE;
+    return false;
   }
   
-  return PR_TRUE;
+  return true;
 }
 
 nsresult
@@ -382,14 +382,14 @@ ValueFromStringHelper(nsCSSProperty aPropID,
   PRUint32 subStringBegin = 0;
   PRInt32 absValuePos = nsSMILParserUtils::CheckForNegativeNumber(aString);
   if (absValuePos > 0) {
-    isNegative = PR_TRUE;
+    isNegative = true;
     subStringBegin = (PRUint32)absValuePos; 
   }
   nsDependentSubstring subString(aString, subStringBegin);
   if (!nsStyleAnimation::ComputeValue(aPropID, aTargetElement, subString,
-                                      PR_TRUE, aStyleAnimValue,
+                                      true, aStyleAnimValue,
                                       aIsContextSensitive)) {
-    return PR_FALSE;
+    return false;
   }
   if (isNegative) {
     InvertSign(aStyleAnimValue);
@@ -403,7 +403,7 @@ ValueFromStringHelper(nsCSSProperty aPropID,
     aStyleAnimValue.SetCoordValue(aStyleAnimValue.GetCoordValue() /
                                   aPresContext->TextZoom());
   }
-  return PR_TRUE;
+  return true;
 }
 
 

@@ -76,7 +76,7 @@ nsInstantiationNode::Propagate(InstantiationSet& aInstantiations,
     
     nsresult rv = NS_OK;
 
-    aTakenInstantiations = PR_FALSE;
+    aTakenInstantiations = false;
 
     if (aIsUpdate) {
         
@@ -114,7 +114,7 @@ nsInstantiationNode::Propagate(InstantiationSet& aInstantiations,
     else {
         nsresult rv = mQuery->SetCachedResults(mProcessor, aInstantiations);
         if (NS_SUCCEEDED(rv))
-            aTakenInstantiations = PR_TRUE;
+            aTakenInstantiations = true;
     }
 
     return rv;

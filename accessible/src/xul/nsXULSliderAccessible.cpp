@@ -192,7 +192,7 @@ bool
 nsXULSliderAccessible::GetAllowsAnonChildAccessibles()
 {
   
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -251,7 +251,7 @@ nsXULSliderAccessible::SetSliderAttr(nsIAtom *aName, const nsAString& aValue)
   nsCOMPtr<nsIContent> sliderNode(GetSliderNode());
   NS_ENSURE_STATE(sliderNode);
 
-  sliderNode->SetAttr(kNameSpaceID_None, aName, aValue, PR_TRUE);
+  sliderNode->SetAttr(kNameSpaceID_None, aName, aValue, true);
   return NS_OK;
 }
 

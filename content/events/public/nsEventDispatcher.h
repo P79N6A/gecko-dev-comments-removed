@@ -134,18 +134,18 @@ public:
                          nsEventStatus aEventStatus,
                          bool aIsInAnon)
   : nsEventChainVisitor(aPresContext, aEvent, aDOMEvent, aEventStatus),
-    mCanHandle(PR_TRUE), mForceContentDispatch(PR_FALSE),
-    mRelatedTargetIsInAnon(PR_FALSE), mOriginalTargetIsInAnon(aIsInAnon),
-    mWantsWillHandleEvent(PR_FALSE), mMayHaveListenerManager(PR_TRUE),
+    mCanHandle(true), mForceContentDispatch(false),
+    mRelatedTargetIsInAnon(false), mOriginalTargetIsInAnon(aIsInAnon),
+    mWantsWillHandleEvent(false), mMayHaveListenerManager(true),
     mParentTarget(nsnull), mEventTargetAtParent(nsnull) {}
 
   void Reset() {
     mItemFlags = 0;
     mItemData = nsnull;
-    mCanHandle = PR_TRUE;
-    mForceContentDispatch = PR_FALSE;
-    mWantsWillHandleEvent = PR_FALSE;
-    mMayHaveListenerManager = PR_TRUE;
+    mCanHandle = true;
+    mForceContentDispatch = false;
+    mWantsWillHandleEvent = false;
+    mMayHaveListenerManager = true;
     mParentTarget = nsnull;
     mEventTargetAtParent = nsnull;
   }

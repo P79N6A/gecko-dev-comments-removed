@@ -172,14 +172,14 @@ public:
     NS_ABORT_IF_FALSE(mData, "called while expanded");
 
     if (nsCSSProps::IsShorthand(aProperty)) {
-      *aChanged = PR_FALSE;
-      return PR_FALSE;
+      *aChanged = false;
+      return false;
     }
     nsCSSCompressedDataBlock *block = aIsImportant ? mImportantData : mData;
     
     if (!block) {
-      *aChanged = PR_FALSE;
-      return PR_FALSE;
+      *aChanged = false;
+      return false;
     }
 
 #ifdef DEBUG
@@ -221,7 +221,7 @@ public:
 
 
 
-  void SetImmutable() const { mImmutable = PR_TRUE; }
+  void SetImmutable() const { mImmutable = true; }
 
   
 

@@ -62,7 +62,7 @@ class nsCanvasFrame : public nsHTMLContainerFrame,
 public:
   nsCanvasFrame(nsStyleContext* aContext)
   : nsHTMLContainerFrame(aContext),
-    mDoPaintFocus(PR_FALSE),
+    mDoPaintFocus(false),
     mAddedScrollPositionListener(false) {}
 
   NS_DECL_QUERYFRAME_TARGET(nsCanvasFrame)
@@ -124,7 +124,7 @@ public:
 
     
     
-    nsresult rv = nsContainerFrame::StealFrame(aPresContext, aChild, PR_TRUE);
+    nsresult rv = nsContainerFrame::StealFrame(aPresContext, aChild, true);
     if (NS_FAILED(rv)) {
       rv = nsContainerFrame::StealFrame(aPresContext, aChild);
     }
@@ -173,7 +173,7 @@ public:
                                    bool* aForceTransparentSurface = nsnull)
   {
     if (aForceTransparentSurface) {
-      *aForceTransparentSurface = PR_FALSE;
+      *aForceTransparentSurface = false;
     }
     if (NS_GET_A(mExtraBackgroundColor) == 255)
       return nsRegion(GetBounds(aBuilder));
@@ -183,12 +183,12 @@ public:
   {
     nscolor background;
     if (!nsDisplayBackground::IsUniform(aBuilder, &background))
-      return PR_FALSE;
+      return false;
     NS_ASSERTION(background == NS_RGBA(0,0,0,0),
                  "The nsDisplayBackground for a canvas frame doesn't paint "
                  "its background color normally");
     *aColor = mExtraBackgroundColor;
-    return PR_TRUE;
+    return true;
   }
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder)
   {

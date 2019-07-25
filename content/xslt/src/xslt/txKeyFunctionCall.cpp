@@ -80,7 +80,7 @@ txKeyFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
     NS_ENSURE_SUCCESS(rv, rv);
 
     txExpandedName keyName;
-    rv = keyName.init(keyQName, mMappings, PR_FALSE);
+    rv = keyName.init(keyQName, mMappings, false);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsRefPtr<txAExprResult> exprResult;
@@ -116,7 +116,7 @@ txKeyFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
         nsAutoString val;
         exprResult->stringValue(val);
         rv = es->getKeyNodes(keyName, walker.getCurrentPosition(), val,
-                             PR_TRUE, getter_AddRefs(res));
+                             true, getter_AddRefs(res));
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -263,7 +263,7 @@ txKeyHash::getKeyNodes(const txExpandedName& aKeyName,
     nsresult rv = xslKey->indexSubtreeRoot(aRoot, mKeyValues, aEs);
     NS_ENSURE_SUCCESS(rv, rv);
     
-    indexEntry->mIndexed = PR_TRUE;
+    indexEntry->mIndexed = true;
 
     
     valueEntry = mKeyValues.GetEntry(valueKey);
@@ -304,16 +304,16 @@ txKeyHash::init()
 bool txXSLKey::addKey(nsAutoPtr<txPattern> aMatch, nsAutoPtr<Expr> aUse)
 {
     if (!aMatch || !aUse)
-        return PR_FALSE;
+        return false;
 
     Key* key = mKeys.AppendElement();
     if (!key)
-        return PR_FALSE;
+        return false;
 
     key->matchPattern = aMatch;
     key->useExpr = aUse;
 
-    return PR_TRUE;
+    return true;
 }
 
 

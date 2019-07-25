@@ -52,7 +52,7 @@ nsHtml5SVGLoadDispatcher::nsHtml5SVGLoadDispatcher(nsIContent* aElement)
 NS_IMETHODIMP
 nsHtml5SVGLoadDispatcher::Run()
 {
-  nsEvent event(PR_TRUE, NS_SVG_LOAD);
+  nsEvent event(true, NS_SVG_LOAD);
   event.eventStructType = NS_SVG_EVENT;
   event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
   
@@ -67,6 +67,6 @@ nsHtml5SVGLoadDispatcher::Run()
   nsEventDispatcher::Dispatch(mElement, ctx, &event);
   
   
-  mDocument->UnblockOnload(PR_FALSE);
+  mDocument->UnblockOnload(false);
   return NS_OK;
 }

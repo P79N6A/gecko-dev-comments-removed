@@ -368,11 +368,11 @@ NS_IMPL_CYCLE_COLLECTION_2(nsExpatDriver, mSink, mExtendedSink)
 
 nsExpatDriver::nsExpatDriver()
   : mExpatParser(nsnull),
-    mInCData(PR_FALSE),
-    mInInternalSubset(PR_FALSE),
-    mInExternalDTD(PR_FALSE),
-    mMadeFinalCallToExpat(PR_FALSE),
-    mIsFinalChunk(PR_FALSE),
+    mInCData(false),
+    mInInternalSubset(false),
+    mInExternalDTD(false),
+    mMadeFinalCallToExpat(false),
+    mIsFinalChunk(false),
     mInternalState(NS_OK),
     mExpatBuffered(0),
     mCatalogData(nsnull),
@@ -541,7 +541,7 @@ nsExpatDriver::HandleDefault(const PRUnichar *aValue,
 nsresult
 nsExpatDriver::HandleStartCdataSection()
 {
-  mInCData = PR_TRUE;
+  mInCData = true;
 
   return NS_OK;
 }
@@ -551,7 +551,7 @@ nsExpatDriver::HandleEndCdataSection()
 {
   NS_ASSERTION(mSink, "content sink not found!");
 
-  mInCData = PR_FALSE;
+  mInCData = false;
   if (mSink) {
     nsresult rv = mSink->HandleCDataSection(mCDataText.get(),
                                             mCDataText.Length());
@@ -633,11 +633,11 @@ nsExpatDriver::HandleStartDoctypeDecl(const PRUnichar* aDoctypeName,
     
     
     
-    mInInternalSubset = PR_TRUE;
+    mInInternalSubset = true;
     mInternalSubset.SetCapacity(1024);
   } else {
     
-    mInternalSubset.SetIsVoid(PR_TRUE);
+    mInternalSubset.SetIsVoid(true);
   }
 
   return NS_OK;
@@ -648,7 +648,7 @@ nsExpatDriver::HandleEndDoctypeDecl()
 {
   NS_ASSERTION(mSink, "content sink not found!");
 
-  mInInternalSubset = PR_FALSE;
+  mInInternalSubset = false;
 
   if (mSink) {
     
@@ -722,7 +722,7 @@ nsExpatDriver::HandleExternalEntityRef(const PRUnichar *openEntityNames,
     if (entParser) {
       XML_SetBase(entParser, absURL.get());
 
-      mInExternalDTD = PR_TRUE;
+      mInExternalDTD = true;
 
       PRUint32 totalRead;
       do {
@@ -732,7 +732,7 @@ nsExpatDriver::HandleExternalEntityRef(const PRUnichar *openEntityNames,
 
       result = XML_Parse(entParser, nsnull, 0, 1);
 
-      mInExternalDTD = PR_FALSE;
+      mInExternalDTD = false;
 
       XML_ParserFree(entParser);
     }
@@ -965,7 +965,7 @@ nsExpatDriver::HandleError()
                             serr, 
                             &shouldReportError);
     if (NS_FAILED(rv)) {
-      shouldReportError = PR_TRUE;
+      shouldReportError = true;
     }
   }
 
@@ -1138,14 +1138,14 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, bool& aFlushTokens)
              ("Blocked or interrupted parser (probably for loading linked "
               "stylesheets or scripts)."));
 
-      aScanner.SetPosition(currentExpatPosition, PR_TRUE);
+      aScanner.SetPosition(currentExpatPosition, true);
       aScanner.Mark();
 
       return mInternalState;
     }
 
     if (noMoreBuffers && mExpatBuffered == 0) {
-      mMadeFinalCallToExpat = PR_TRUE;
+      mMadeFinalCallToExpat = true;
     }
 
     if (NS_FAILED(mInternalState)) {
@@ -1192,7 +1192,7 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, bool& aFlushTokens)
     aScanner.EndReading(end);
   }
 
-  aScanner.SetPosition(currentExpatPosition, PR_TRUE);
+  aScanner.SetPosition(currentExpatPosition, true);
   aScanner.Mark();
 
   PR_LOG(gExpatDriverLog, PR_LOG_DEBUG,
@@ -1419,13 +1419,13 @@ nsExpatDriver::HandleToken(CToken* aToken)
 NS_IMETHODIMP_(bool)
 nsExpatDriver::IsContainer(PRInt32 aTag) const
 {
-  return PR_TRUE;
+  return true;
 }
 
 NS_IMETHODIMP_(bool)
 nsExpatDriver::CanContain(PRInt32 aParent,PRInt32 aChild) const
 {
-  return PR_TRUE;
+  return true;
 }
 
 void

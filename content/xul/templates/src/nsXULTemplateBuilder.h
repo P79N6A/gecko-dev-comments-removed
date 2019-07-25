@@ -153,7 +153,7 @@ public:
 
     void RunnableRebuild() { Rebuild(); }
     void RunnableLoadAndRebuild() {
-      Uninit(PR_FALSE);  
+      Uninit(false);  
 
       nsCOMPtr<nsIDocument> doc = mRoot ? mRoot->GetDocument() : nsnull;
       if (doc) {
@@ -167,8 +167,8 @@ public:
 
     
     
-    void UninitFalse() { Uninit(PR_FALSE); mRoot = nsnull; }
-    void UninitTrue() { Uninit(PR_TRUE); mRoot = nsnull; }
+    void UninitFalse() { Uninit(false); mRoot = nsnull; }
+    void UninitTrue() { Uninit(true); mRoot = nsnull; }
 
     
 

@@ -70,7 +70,7 @@ class SVGAnimatedTransformList
   friend class DOMSVGTransformList;
 
 public:
-  SVGAnimatedTransformList() : mIsAttrSet(PR_FALSE) { }
+  SVGAnimatedTransformList() : mIsAttrSet(false) { }
 
   
 

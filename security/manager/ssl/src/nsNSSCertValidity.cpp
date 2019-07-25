@@ -48,19 +48,19 @@
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsX509CertValidity, nsIX509CertValidity)
 
-nsX509CertValidity::nsX509CertValidity() : mTimesInitialized(PR_FALSE)
+nsX509CertValidity::nsX509CertValidity() : mTimesInitialized(false)
 {
   
 }
 
 nsX509CertValidity::nsX509CertValidity(CERTCertificate *cert) : 
-                                           mTimesInitialized(PR_FALSE)
+                                           mTimesInitialized(false)
 {
   nsNSSShutDownPreventionLock locker;
   if (cert) {
     SECStatus rv = CERT_GetCertTimes(cert, &mNotBefore, &mNotAfter);
     if (rv == SECSuccess)
-      mTimesInitialized = PR_TRUE;
+      mTimesInitialized = true;
   }
 }
 

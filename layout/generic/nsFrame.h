@@ -78,9 +78,9 @@
 
 
 #ifdef NS_DEBUG
-#define NS_FRAME_TRACE_IN(_method) Trace(_method, PR_TRUE)
+#define NS_FRAME_TRACE_IN(_method) Trace(_method, true)
 
-#define NS_FRAME_TRACE_OUT(_method) Trace(_method, PR_FALSE)
+#define NS_FRAME_TRACE_OUT(_method) Trace(_method, false)
 
 
 #define NS_FRAME_TRACE_MSG(_bit,_args)                          \
@@ -97,10 +97,10 @@
     }                                                           \
   PR_END_MACRO
 
-#define NS_FRAME_TRACE_REFLOW_IN(_method) Trace(_method, PR_TRUE)
+#define NS_FRAME_TRACE_REFLOW_IN(_method) Trace(_method, true)
 
 #define NS_FRAME_TRACE_REFLOW_OUT(_method, _status) \
-  Trace(_method, PR_FALSE, _status)
+  Trace(_method, false, _status)
 
 #else
 #define NS_FRAME_TRACE(_bits,_args)

@@ -89,7 +89,7 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, PRUint3
       
       
       NS_ASSERTION(capacity != size_type(-1), "Bogus capacity");
-      return PR_FALSE;
+      return false;
     }
 
     
@@ -100,7 +100,7 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, PRUint3
       {
         if (capacity <= curCapacity) {
           mFlags &= ~F_VOIDED;  
-          return PR_TRUE;
+          return true;
         }
 
         
@@ -134,12 +134,12 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, PRUint3
           {
             nsStringBuffer *newHdr = nsStringBuffer::Realloc(hdr, storageSize);
             if (!newHdr)
-              return PR_FALSE; 
+              return false; 
 
             hdr = newHdr;
             mData = (char_type*) hdr->Data();
             mFlags &= ~F_VOIDED;  
-            return PR_TRUE;
+            return true;
           }
       }
 
@@ -161,7 +161,7 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, PRUint3
 
         nsStringBuffer* newHdr = nsStringBuffer::Alloc(storageSize);
         if (!newHdr)
-          return PR_FALSE; 
+          return false; 
 
         newData = (char_type*) newHdr->Data();
         newDataFlags = F_TERMINATED | F_SHARED;
@@ -179,7 +179,7 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, PRUint3
     
     
 
-    return PR_TRUE;
+    return true;
   }
 
 void
@@ -196,7 +196,7 @@ nsTSubstring_CharT::ReplacePrepInternal(index_type cutStart, size_type cutLen,
     char_type* oldData;
     PRUint32 oldFlags;
     if (!MutatePrep(newLen, &oldData, &oldFlags))
-      return PR_FALSE; 
+      return false; 
 
     if (oldData)
       {
@@ -240,7 +240,7 @@ nsTSubstring_CharT::ReplacePrepInternal(index_type cutStart, size_type cutLen,
     mData[newLen] = char_type(0);
     mLength = newLen;
 
-    return PR_TRUE;
+    return true;
   }
 
 nsTSubstring_CharT::size_type
@@ -285,9 +285,9 @@ nsTSubstring_CharT::EnsureMutable( size_type newLen )
     if (newLen == size_type(-1) || newLen == mLength)
       {
         if (mFlags & (F_FIXED | F_OWNED))
-          return PR_TRUE;
+          return true;
         if ((mFlags & F_SHARED) && !nsStringBuffer::FromData(mData)->IsReadonly())
-          return PR_TRUE;
+          return true;
 
         
         char_type* prevData = mData;
@@ -445,7 +445,7 @@ nsTSubstring_CharT::Adopt( char_type* data, size_type length )
       }
     else
       {
-        SetIsVoid(PR_TRUE);
+        SetIsVoid(true);
       }
   }
 
@@ -547,7 +547,7 @@ nsTSubstring_CharT::SetCapacity( size_type capacity )
         char_type* oldData;
         PRUint32 oldFlags;
         if (!MutatePrep(capacity, &oldData, &oldFlags))
-          return PR_FALSE; 
+          return false; 
 
         
         size_type newLen = NS_MIN(mLength, capacity);
@@ -570,7 +570,7 @@ nsTSubstring_CharT::SetCapacity( size_type capacity )
         mData[capacity] = char_type(0);
       }
 
-    return PR_TRUE;
+    return true;
   }
 
 void

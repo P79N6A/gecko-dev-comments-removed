@@ -191,9 +191,9 @@ public:
 
 
   void SetPushedLeftFloatPastBreak()
-    { mPushedLeftFloatPastBreak = PR_TRUE; }
+    { mPushedLeftFloatPastBreak = true; }
   void SetPushedRightFloatPastBreak()
-    { mPushedRightFloatPastBreak = PR_TRUE; }
+    { mPushedRightFloatPastBreak = true; }
 
   
 
@@ -201,9 +201,9 @@ public:
 
 
   void SetSplitLeftFloatAcrossBreak()
-    { mSplitLeftFloatAcrossBreak = PR_TRUE; }
+    { mSplitLeftFloatAcrossBreak = true; }
   void SetSplitRightFloatAcrossBreak()
-    { mSplitRightFloatAcrossBreak = PR_TRUE; }
+    { mSplitRightFloatAcrossBreak = true; }
 
   
 

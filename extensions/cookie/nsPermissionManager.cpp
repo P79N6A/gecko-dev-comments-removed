@@ -199,8 +199,8 @@ nsPermissionManager::Init()
 
   mObserverService = do_GetService("@mozilla.org/observer-service;1", &rv);
   if (NS_SUCCEEDED(rv)) {
-    mObserverService->AddObserver(this, "profile-before-change", PR_TRUE);
-    mObserverService->AddObserver(this, "profile-do-change", PR_TRUE);
+    mObserverService->AddObserver(this, "profile-before-change", true);
+    mObserverService->AddObserver(this, "profile-do-change", true);
   }
 
   if (IsChildProcess()) {
@@ -221,7 +221,7 @@ nsPermissionManager::Init()
   
   
   
-  InitDB(PR_FALSE);
+  InitDB(false);
 
   return NS_OK;
 }
@@ -242,7 +242,7 @@ nsPermissionManager::InitDB(bool aRemoveFile)
     rv = permissionsFile->Exists(&exists);
     NS_ENSURE_SUCCESS(rv, rv);
     if (exists) {
-      rv = permissionsFile->Remove(PR_FALSE);
+      rv = permissionsFile->Remove(false);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -259,7 +259,7 @@ nsPermissionManager::InitDB(bool aRemoveFile)
   mDBConn->GetConnectionReady(&ready);
   if (!ready) {
     
-    rv = permissionsFile->Remove(PR_FALSE);
+    rv = permissionsFile->Remove(false);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = storage->OpenDatabase(permissionsFile, getter_AddRefs(mDBConn));
@@ -464,7 +464,7 @@ nsPermissionManager::AddInternal(const nsAFlatCString &aHost,
   }
 
   
-  PRInt32 typeIndex = GetTypeIndex(aType.get(), PR_TRUE);
+  PRInt32 typeIndex = GetTypeIndex(aType.get(), true);
   NS_ENSURE_TRUE(typeIndex != -1, NS_ERROR_OUT_OF_MEMORY);
 
   
@@ -633,7 +633,7 @@ nsPermissionManager::RemoveAllInternal()
       mStmtDelete = nsnull;
       mStmtUpdate = nsnull;
       mDBConn = nsnull;
-      rv = InitDB(PR_TRUE);
+      rv = InitDB(true);
       return rv;
     }
   }
@@ -646,7 +646,7 @@ nsPermissionManager::TestExactPermission(nsIURI     *aURI,
                                          const char *aType,
                                          PRUint32   *aPermission)
 {
-  return CommonTestPermission(aURI, aType, aPermission, PR_TRUE);
+  return CommonTestPermission(aURI, aType, aPermission, true);
 }
 
 NS_IMETHODIMP
@@ -654,7 +654,7 @@ nsPermissionManager::TestPermission(nsIURI     *aURI,
                                     const char *aType,
                                     PRUint32   *aPermission)
 {
-  return CommonTestPermission(aURI, aType, aPermission, PR_FALSE);
+  return CommonTestPermission(aURI, aType, aPermission, false);
 }
 
 nsresult
@@ -685,7 +685,7 @@ nsPermissionManager::CommonTestPermission(nsIURI     *aURI,
     }
   }
   
-  PRInt32 typeIndex = GetTypeIndex(aType, PR_FALSE);
+  PRInt32 typeIndex = GetTypeIndex(aType, false);
   
   
   if (typeIndex == -1) return NS_OK;
@@ -795,7 +795,7 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports *aSubject, const char *aT
   }
   else if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
     
-    InitDB(PR_FALSE);
+    InitDB(false);
   }
 
   return NS_OK;
@@ -967,7 +967,7 @@ nsPermissionManager::Import()
 
   
   
-  mozStorageTransaction transaction(mDBConn, PR_TRUE);
+  mozStorageTransaction transaction(mDBConn, true);
 
   
 
@@ -1010,7 +1010,7 @@ nsPermissionManager::Import()
   }
 
   
-  permissionsFile->Remove(PR_FALSE);
+  permissionsFile->Remove(false);
 
   return NS_OK;
 }

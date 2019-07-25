@@ -55,7 +55,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS2(nsLDAPSyncQuery, nsILDAPSyncQuery, nsILDAPMessageL
 
 
 nsLDAPSyncQuery::nsLDAPSyncQuery() :
-    mFinished(PR_FALSE), 
+    mFinished(false), 
     mAttrCount(0), mAttrs(0), mProtocolVersion(nsILDAPConnection::VERSION3)
 {
 }
@@ -410,7 +410,7 @@ nsLDAPSyncQuery::FinishLDAPQuery()
     
     
     
-    mFinished = PR_TRUE;
+    mFinished = true;
     
     
     

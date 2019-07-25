@@ -205,15 +205,15 @@ public:
 
     gfxFontEntry(const nsAString& aName, gfxFontFamily *aFamily = nsnull,
                  bool aIsStandardFace = false) : 
-        mName(aName), mItalic(PR_FALSE), mFixedPitch(PR_FALSE),
-        mIsProxy(PR_FALSE), mIsValid(PR_TRUE), 
-        mIsBadUnderlineFont(PR_FALSE), mIsUserFont(PR_FALSE),
-        mIsLocalUserFont(PR_FALSE), mStandardFace(aIsStandardFace),
-        mSymbolFont(PR_FALSE),
-        mIgnoreGDEF(PR_FALSE),
+        mName(aName), mItalic(false), mFixedPitch(false),
+        mIsProxy(false), mIsValid(true), 
+        mIsBadUnderlineFont(false), mIsUserFont(false),
+        mIsLocalUserFont(false), mStandardFace(aIsStandardFace),
+        mSymbolFont(false),
+        mIgnoreGDEF(false),
         mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
-        mHasCmapTable(PR_FALSE),
-        mCmapInitialized(PR_FALSE),
+        mHasCmapTable(false),
+        mCmapInitialized(false),
         mUVSOffset(0), mUVSData(nsnull),
         mUserFontData(nsnull),
         mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE),
@@ -253,7 +253,7 @@ public:
 
     inline bool HasCharacter(PRUint32 ch) {
         if (mCharacterMap.test(ch))
-            return PR_TRUE;
+            return true;
 
         return TestCharacterMap(ch);
     }
@@ -265,10 +265,10 @@ public:
     virtual nsresult ReadCMAP();
 
     virtual bool MatchesGenericFamily(const nsACString& aGeneric) const {
-        return PR_TRUE;
+        return true;
     }
     virtual bool SupportsLangGroup(nsIAtom *aLangGroup) const {
-        return PR_TRUE;
+        return true;
     }
 
     virtual nsresult GetFontTable(PRUint32 aTableTag, FallibleTArray<PRUint8>& aBuffer) {
@@ -336,17 +336,17 @@ protected:
     friend class gfxSingleFaceMacFontFamily;
 
     gfxFontEntry() :
-        mItalic(PR_FALSE), mFixedPitch(PR_FALSE),
-        mIsProxy(PR_FALSE), mIsValid(PR_TRUE), 
-        mIsBadUnderlineFont(PR_FALSE),
-        mIsUserFont(PR_FALSE),
-        mIsLocalUserFont(PR_FALSE),
-        mStandardFace(PR_FALSE),
-        mSymbolFont(PR_FALSE),
-        mIgnoreGDEF(PR_FALSE),
+        mItalic(false), mFixedPitch(false),
+        mIsProxy(false), mIsValid(true), 
+        mIsBadUnderlineFont(false),
+        mIsUserFont(false),
+        mIsLocalUserFont(false),
+        mStandardFace(false),
+        mSymbolFont(false),
+        mIgnoreGDEF(false),
         mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
-        mHasCmapTable(PR_FALSE),
-        mCmapInitialized(PR_FALSE),
+        mHasCmapTable(false),
+        mCmapInitialized(false),
         mUVSOffset(0), mUVSData(nsnull),
         mUserFontData(nsnull),
         mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE),
@@ -477,12 +477,12 @@ public:
 
     gfxFontFamily(const nsAString& aName) :
         mName(aName),
-        mOtherFamilyNamesInitialized(PR_FALSE),
-        mHasOtherFamilyNames(PR_FALSE),
-        mFaceNamesInitialized(PR_FALSE),
-        mHasStyles(PR_FALSE),
-        mIsSimpleFamily(PR_FALSE),
-        mIsBadUnderlineFamily(PR_FALSE)
+        mOtherFamilyNamesInitialized(false),
+        mHasOtherFamilyNames(false),
+        mFaceNamesInitialized(false),
+        mHasStyles(false),
+        mIsSimpleFamily(false),
+        mIsBadUnderlineFamily(false)
         { }
 
     virtual ~gfxFontFamily() { }
@@ -500,7 +500,7 @@ public:
         if (aFontEntry->IsItalic() && !aFontEntry->IsUserFont() &&
             Name().EqualsLiteral("Times New Roman"))
         {
-            aFontEntry->mIgnoreGDEF = PR_TRUE;
+            aFontEntry->mIgnoreGDEF = true;
         }
         mAvailableFonts.AppendElement(aFontEntry);
         aFontEntry->SetFamily(this);
@@ -526,7 +526,7 @@ public:
 
     
     void SetOtherFamilyNamesInitialized() {
-        mOtherFamilyNamesInitialized = PR_TRUE;
+        mOtherFamilyNamesInitialized = true;
     }
 
     
@@ -552,7 +552,7 @@ public:
 
     
     void SetBadUnderlineFamily() {
-        mIsBadUnderlineFamily = PR_TRUE;
+        mIsBadUnderlineFamily = true;
         if (mHasStyles) {
             SetBadUnderlineFonts();
         }
@@ -583,7 +583,7 @@ protected:
         PRUint32 i, numFonts = mAvailableFonts.Length();
         for (i = 0; i < numFonts; i++) {
             if (mAvailableFonts[i]) {
-                mAvailableFonts[i]->mIsBadUnderlineFont = PR_TRUE;
+                mAvailableFonts[i]->mIsBadUnderlineFont = true;
             }
         }
     }
@@ -728,7 +728,7 @@ protected:
         static PLDHashNumber HashKey(const KeyTypePointer aKey) {
             return NS_PTR_TO_INT32(aKey->mFontEntry) ^ aKey->mStyle->Hash();
         }
-        enum { ALLOW_MEMMOVE = PR_TRUE };
+        enum { ALLOW_MEMMOVE = true };
 
         gfxFont* mFont;
     };
@@ -1023,7 +1023,7 @@ public:
     
     
     virtual bool ProvidesGetGlyph() const {
-        return PR_FALSE;
+        return false;
     }
     
     
@@ -1035,7 +1035,7 @@ public:
     
     
     virtual bool ProvidesGlyphWidths() {
-        return PR_FALSE;
+        return false;
     }
 
     
@@ -1176,7 +1176,7 @@ public:
 
     bool NotifyLineBreaksChanged(gfxTextRun *aTextRun,
                                    PRUint32 aStart, PRUint32 aLength)
-    { return PR_FALSE; }
+    { return false; }
 
     
     nsExpirationState *GetExpirationState() { return &mExpirationState; }
@@ -1203,7 +1203,7 @@ public:
     gfxFontEntry *GetFontEntry() { return mFontEntry.get(); }
     bool HasCharacter(PRUint32 ch) {
         if (!mIsValid)
-            return PR_FALSE;
+            return false;
         return mFontEntry->HasCharacter(ch); 
     }
 

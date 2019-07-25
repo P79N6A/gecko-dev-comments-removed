@@ -81,7 +81,7 @@ SplitString(nsString&             aString,
     }
     end = start;
 
-    while ((kNullCh != *end) && (PR_FALSE == nsCRT::IsAsciiSpace(*end))) { 
+    while ((kNullCh != *end) && (false == nsCRT::IsAsciiSpace(*end))) { 
       end++;
     }
     *end = kNullCh; 
@@ -168,8 +168,8 @@ IsTable(PRUint8 aDisplay)
 {
   if ((aDisplay == NS_STYLE_DISPLAY_TABLE) ||
       (aDisplay == NS_STYLE_DISPLAY_INLINE_TABLE))
-    return PR_TRUE;
-  return PR_FALSE;
+    return true;
+  return false;
 }
 
 #define DEBUG_VERIFY_THAT_FRAME_IS(_frame, _expected) \
@@ -202,7 +202,7 @@ MapRowAttributesIntoCSS(nsIFrame* aTableFrame,
     if (attr) {
       
       rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_,
-                          nsDependentString(attr), PR_FALSE);
+                          nsDependentString(attr), false);
     }
   }
 
@@ -218,7 +218,7 @@ MapRowAttributesIntoCSS(nsIFrame* aTableFrame,
     if (attr) {
       
       rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowline_,
-                          nsDependentString(attr), PR_FALSE);
+                          nsDependentString(attr), false);
     }
   }
 }
@@ -253,7 +253,7 @@ MapColAttributesIntoCSS(nsIFrame* aTableFrame,
     if (attr) {
       
       cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
-                           nsDependentString(attr), PR_FALSE);
+                           nsDependentString(attr), false);
     }
   }
 
@@ -270,7 +270,7 @@ MapColAttributesIntoCSS(nsIFrame* aTableFrame,
     if (attr) {
       
       cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnline_,
-                           nsDependentString(attr), PR_FALSE);
+                           nsDependentString(attr), false);
     }
   }
 }
@@ -508,13 +508,13 @@ nsMathMLmtableOuterFrame::AttributeChanged(PRInt32  aNameSpaceID,
   for ( ; rowFrame; rowFrame = rowFrame->GetNextSibling()) {
     if (rowFrame->GetType() == nsGkAtoms::tableRowFrame) {
       if (MOZrowAtom) { 
-        rowFrame->GetContent()->UnsetAttr(kNameSpaceID_None, MOZrowAtom, PR_FALSE);
+        rowFrame->GetContent()->UnsetAttr(kNameSpaceID_None, MOZrowAtom, false);
         MapRowAttributesIntoCSS(tableFrame, rowFrame);    
       } else { 
         nsIFrame* cellFrame = rowFrame->GetFirstPrincipalChild();
         for ( ; cellFrame; cellFrame = cellFrame->GetNextSibling()) {
           if (IS_TABLE_CELL(cellFrame->GetType())) {
-            cellFrame->GetContent()->UnsetAttr(kNameSpaceID_None, MOZcolAtom, PR_FALSE);
+            cellFrame->GetContent()->UnsetAttr(kNameSpaceID_None, MOZcolAtom, false);
             MapColAttributesIntoCSS(tableFrame, rowFrame, cellFrame);
           }
         }
@@ -739,7 +739,7 @@ nsMathMLmtrFrame::AttributeChanged(PRInt32  aNameSpaceID,
   if (aAttribute == nsGkAtoms::rowalign_) {
     
     mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_,
-                        PR_FALSE);
+                        false);
     MapRowAttributesIntoCSS(nsTableFrame::GetTableFrame(this), this);
     
     return NS_OK;
@@ -760,7 +760,7 @@ nsMathMLmtrFrame::AttributeChanged(PRInt32  aNameSpaceID,
     if (IS_TABLE_CELL(cellFrame->GetType())) {
       cellFrame->GetContent()->
         UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
-                  PR_FALSE);
+                  false);
       MapColAttributesIntoCSS(tableFrame, this, cellFrame);
     }
   }
@@ -842,7 +842,7 @@ nsMathMLmtdFrame::AttributeChanged(PRInt32  aNameSpaceID,
   if (aAttribute == nsGkAtoms::columnalign_) {
     
     mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
-                        PR_FALSE);
+                        false);
     MapColAttributesIntoCSS(nsTableFrame::GetTableFrame(this), mParent, this);
     return NS_OK;
   }

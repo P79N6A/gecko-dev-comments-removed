@@ -145,19 +145,19 @@ void nsDateTimeFormatUnix::LocalePreferred24hour()
 
   (void) setlocale(LC_TIME, temp);
 
-  mLocalePreferred24hour = PR_FALSE;
+  mLocalePreferred24hour = false;
   for (i=0; str[i]; i++) {
     if (str[i] == '2') {    
-        mLocalePreferred24hour = PR_TRUE;
+        mLocalePreferred24hour = true;
         break;
     }
   }
 
-  mLocaleAMPMfirst = PR_TRUE;
-  if (mLocalePreferred24hour == PR_FALSE) {
+  mLocaleAMPMfirst = true;
+  if (mLocalePreferred24hour == false) {
     if (str[0] && str[0] == '1') { 
 			           
-      mLocaleAMPMfirst = PR_FALSE;
+      mLocaleAMPMfirst = false;
     }
   }
 }

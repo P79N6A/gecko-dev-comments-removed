@@ -255,12 +255,12 @@ nsCacheEntry::RemoveDescriptor(nsCacheEntryDescriptor * descriptor)
     PR_REMOVE_AND_INIT_LINK(descriptor);
 
     if (!PR_CLIST_IS_EMPTY(&mDescriptorQ))
-        return PR_TRUE;  
+        return true;  
 
     if (PR_CLIST_IS_EMPTY(&mRequestQ))
-        return PR_FALSE; 
+        return false; 
 
-    return PR_TRUE;     
+    return true;     
 }
 
 
@@ -403,7 +403,7 @@ nsCacheEntryHashTable::ops =
 
 
 nsCacheEntryHashTable::nsCacheEntryHashTable()
-    : initialized(PR_FALSE)
+    : initialized(false)
 {
     MOZ_COUNT_CTOR(nsCacheEntryHashTable);
 }
@@ -434,7 +434,7 @@ nsCacheEntryHashTable::Shutdown()
 {
     if (initialized) {
         PL_DHashTableFinish(&table);
-        initialized = PR_FALSE;
+        initialized = false;
     }
 }
 

@@ -480,8 +480,8 @@ void NS_MergeReflowStatusInto(nsReflowStatus* aPrimary,
 
 typedef bool nsDidReflowStatus;
 
-#define NS_FRAME_REFLOW_NOT_FINISHED PR_FALSE
-#define NS_FRAME_REFLOW_FINISHED     PR_TRUE
+#define NS_FRAME_REFLOW_NOT_FINISHED false
+#define NS_FRAME_REFLOW_FINISHED     true
 
 
 
@@ -1133,17 +1133,17 @@ public:
                   nsITheme::Transparency* aTransparencyState = nsnull) const {
     nsIFrame* mutable_this = const_cast<nsIFrame*>(this);
     if (!aDisp->mAppearance)
-      return PR_FALSE;
+      return false;
     nsPresContext* pc = PresContext();
     nsITheme *theme = pc->GetTheme();
     if(!theme ||
        !theme->ThemeSupportsWidget(pc, mutable_this, aDisp->mAppearance))
-      return PR_FALSE;
+      return false;
     if (aTransparencyState) {
       *aTransparencyState =
         theme->GetWidgetTransparency(mutable_this, aDisp->mAppearance);
     }
-    return PR_TRUE;
+    return true;
   }
   
   
@@ -1473,7 +1473,7 @@ public:
       , lineContainer(nsnull)
       , prevLines(0)
       , currentLine(0)
-      , skipWhitespace(PR_TRUE)
+      , skipWhitespace(true)
       , trailingWhitespace(0)
     {}
 
@@ -1508,7 +1508,7 @@ public:
   struct InlineMinWidthData : public InlineIntrinsicWidthData {
     InlineMinWidthData()
       : trailingTextFrame(nsnull)
-      , atStartOfLine(PR_TRUE)
+      , atStartOfLine(true)
     {}
 
     
@@ -1807,7 +1807,7 @@ public:
 
 
   virtual bool HasAnyNoncollapsedCharacters()
-  { return PR_FALSE; }
+  { return false; }
 
   
 
@@ -2880,19 +2880,19 @@ protected:
     
     nsAutoString mContext;
 
-    PeekWordState() : mAtStart(PR_TRUE), mSawBeforeType(PR_FALSE),
-        mLastCharWasPunctuation(PR_FALSE), mLastCharWasWhitespace(PR_FALSE),
-        mSeenNonPunctuationSinceWhitespace(PR_FALSE) {}
-    void SetSawBeforeType() { mSawBeforeType = PR_TRUE; }
+    PeekWordState() : mAtStart(true), mSawBeforeType(false),
+        mLastCharWasPunctuation(false), mLastCharWasWhitespace(false),
+        mSeenNonPunctuationSinceWhitespace(false) {}
+    void SetSawBeforeType() { mSawBeforeType = true; }
     void Update(bool aAfterPunctuation, bool aAfterWhitespace) {
       mLastCharWasPunctuation = aAfterPunctuation;
       mLastCharWasWhitespace = aAfterWhitespace;
       if (aAfterWhitespace) {
-        mSeenNonPunctuationSinceWhitespace = PR_FALSE;
+        mSeenNonPunctuationSinceWhitespace = false;
       } else if (!aAfterPunctuation) {
-        mSeenNonPunctuationSinceWhitespace = PR_TRUE;
+        mSeenNonPunctuationSinceWhitespace = true;
       }
-      mAtStart = PR_FALSE;
+      mAtStart = false;
     }
   };
   virtual bool PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,

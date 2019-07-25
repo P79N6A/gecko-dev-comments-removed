@@ -62,7 +62,7 @@ ObjectSetInitEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
 {
   ObjectHashEntry *entry = static_cast<ObjectHashEntry*>(hdr);
   entry->obj = const_cast<nsNSSShutDownObject*>(static_cast<const nsNSSShutDownObject*>(key));
-  return PR_TRUE;
+  return true;
 }
 
 static PLDHashTableOps gSetOps = {
@@ -169,7 +169,7 @@ bool nsNSSShutDownList::areSSLSocketsActive()
     
     
     
-    return PR_FALSE;
+    return false;
   }
   
   MutexAutoLock lock(singleton->mListLock);
@@ -274,7 +274,7 @@ nsNSSActivityState::nsNSSActivityState()
                      "nsNSSActivityState.mNSSActivityStateLock"),
  mNSSActivityCounter(0),
  mBlockingUICounter(0),
- mIsUIForbidden(PR_FALSE),
+ mIsUIForbidden(false),
  mNSSRestrictedThread(nsnull)
 {
 }
@@ -338,10 +338,10 @@ bool nsNSSActivityState::ifPossibleDisallowUI(RealOrTesting rot)
 
   if (!mBlockingUICounter) {
     
-    retval = PR_TRUE;
+    retval = true;
     if (rot == do_it_for_real) {
       
-      mIsUIForbidden = PR_TRUE;
+      mIsUIForbidden = true;
         
       
       
@@ -357,7 +357,7 @@ void nsNSSActivityState::allowUI()
 {
   MutexAutoLock lock(mNSSActivityStateLock);
 
-  mIsUIForbidden = PR_FALSE;
+  mIsUIForbidden = false;
 }
 
 PRStatus nsNSSActivityState::restrictActivityToCurrentThread()
@@ -389,7 +389,7 @@ void nsNSSActivityState::releaseCurrentThreadActivityRestriction()
   MutexAutoLock lock(mNSSActivityStateLock);
 
   mNSSRestrictedThread = nsnull;
-  mIsUIForbidden = PR_FALSE;
+  mIsUIForbidden = false;
 
   mNSSActivityChanged.NotifyAll();
 }
@@ -434,7 +434,7 @@ bool nsPSMUITracker::isUIForbidden()
 {
   nsNSSActivityState *state = nsNSSShutDownList::getActivityState();
   if (!state)
-    return PR_FALSE;
+    return false;
 
   return state->isUIForbidden();
 }

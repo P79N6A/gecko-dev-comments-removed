@@ -228,11 +228,11 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     bool RemoveElement(const Item& item) {
       index_type index = mArray.IndexOf(item, 0);
       if (index == array_type::NoIndex)
-        return PR_FALSE;
+        return false;
 
       mArray.RemoveElementAt(index);
       AdjustIterators(index, -1);
-      return PR_TRUE;
+      return true;
     }
 
     

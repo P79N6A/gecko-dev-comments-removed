@@ -119,14 +119,14 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
     
     for (nsBlockFrame* block = static_cast<nsBlockFrame*>(frame);
          block; block = static_cast<nsBlockFrame*>(block->GetNextInFlow())) {
-      for (PRIntn overflowLines = PR_FALSE; overflowLines <= PR_TRUE; ++overflowLines) {
+      for (PRIntn overflowLines = false; overflowLines <= true; ++overflowLines) {
         nsBlockFrame::line_iterator line;
         nsBlockFrame::line_iterator line_end;
         bool anyLines = true;
         if (overflowLines) {
           nsLineList* lines = block->GetOverflowLines();
           if (!lines) {
-            anyLines = PR_FALSE;
+            anyLines = false;
           } else {
             line = lines->begin();
             line_end = lines->end();
@@ -142,7 +142,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
             
             line->ClearHasClearance();
             line->MarkDirty();
-            dirtiedLine = PR_TRUE;
+            dirtiedLine = true;
           }
           
           bool isEmpty;
@@ -153,7 +153,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
             if (kid == aClearanceFrame) {
               line->SetHasClearance();
               line->MarkDirty();
-              dirtiedLine = PR_TRUE;
+              dirtiedLine = true;
               goto done;
             }
             
@@ -183,11 +183,11 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
               
               
               if (kid->GetStyleDisplay()->mBreakType != NS_STYLE_CLEAR_NONE) {
-                *aMayNeedRetry = PR_TRUE;
+                *aMayNeedRetry = true;
               }
               if (ComputeCollapsedTopMargin(innerReflowState, aMargin, aClearanceFrame, aMayNeedRetry, &isEmpty)) {
                 line->MarkDirty();
-                dirtiedLine = PR_TRUE;
+                dirtiedLine = true;
               }
               if (isEmpty)
                 aMargin->Include(innerReflowState.mComputedMargin.bottom);
@@ -198,8 +198,8 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
           }
           if (!isEmpty) {
             if (!setBlockIsEmpty && aBlockIsEmpty) {
-              setBlockIsEmpty = PR_TRUE;
-              *aBlockIsEmpty = PR_FALSE;
+              setBlockIsEmpty = true;
+              *aBlockIsEmpty = false;
             }
             goto done;
           }
@@ -207,7 +207,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
         if (!setBlockIsEmpty && aBlockIsEmpty) {
           
           
-          setBlockIsEmpty = PR_TRUE;
+          setBlockIsEmpty = true;
           
           *aBlockIsEmpty = aRS.frame->IsSelfEmpty();
         }
@@ -245,7 +245,7 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
   mSpace = aSpace;
 
   if (!aIsAdjacentWithTop) {
-    aFrameRS.mFlags.mIsTopOfPage = PR_FALSE;  
+    aFrameRS.mFlags.mIsTopOfPage = false;  
   }
 
   if (aApplyTopMargin) {
@@ -331,7 +331,7 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
 
         aState.mOverflowTracker->Finish(mFrame);
         static_cast<nsHTMLContainerFrame*>(kidNextInFlow->GetParent())
-          ->DeleteNextInFlowChild(mPresContext, kidNextInFlow, PR_TRUE);
+          ->DeleteNextInFlowChild(mPresContext, kidNextInFlow, true);
       }
     }
   }
@@ -418,7 +418,7 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState& aReflowState,
     if (yMost > mSpace.YMost()) {
       
       mFrame->DidReflow(mPresContext, &aReflowState, NS_FRAME_REFLOW_FINISHED);
-      return PR_FALSE;
+      return false;
     }
   }
 
@@ -437,5 +437,5 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState& aReflowState,
 
   aOverflowAreas = mMetrics.mOverflowAreas + nsPoint(x, y);
 
-  return PR_TRUE;
+  return true;
 }

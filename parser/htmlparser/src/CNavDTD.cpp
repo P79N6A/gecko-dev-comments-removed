@@ -116,7 +116,7 @@ CNavDTD::CNavDTD()
     mTokenAllocator(0),
     mBodyContext(new nsDTDContext()),
     mTempContext(0),
-    mCountLines(PR_TRUE),
+    mCountLines(true),
     mTokenizer(0),
     mDTDMode(eDTDMode_quirks),
     mDocType(eHTML_Quirks),
@@ -143,7 +143,7 @@ GetLoggingSink()
   if (checkForPath) {
     
     gLogPath = PR_GetEnv("PARSE_LOGFILE"); 
-    checkForPath = PR_FALSE;
+    checkForPath = false;
   }
   
 
@@ -154,7 +154,7 @@ GetLoggingSink()
 
     
     PRFileDesc *theLogFile = PR_Open(gLogPath, theFlags, 0);
-    gLoggingSink.SetOutputStream(theLogFile, PR_TRUE);
+    gLoggingSink.SetOutputStream(theLogFile, true);
     theSink = &gLoggingSink;
   }
 
@@ -343,7 +343,7 @@ CNavDTD::BuildNeglectedTarget(eHTMLTags aTarget,
   
   
   
-  return BuildModel(mTokenizer, PR_FALSE, mCountLines, 0);
+  return BuildModel(mTokenizer, false, mCountLines, 0);
 }
 
 NS_IMETHODIMP
@@ -394,7 +394,7 @@ CNavDTD::DidBuildModel(nsresult anErrorCode)
       
       mFlags &= ~NS_DTD_FLAG_ENABLE_RESIDUAL_STYLE;
       while (mBodyContext->GetCount() > 0) { 
-        result = CloseContainersTo(mBodyContext->Last(), PR_FALSE);
+        result = CloseContainersTo(mBodyContext->Last(), false);
         NS_ENSURE_SUCCESS(result, result);
       } 
     } else {
@@ -472,12 +472,12 @@ DoesRequireBody(CToken* aToken, nsITokenizer* aTokenizer)
               && 
               !(value.EqualsLiteral("hidden") || 
               value.EqualsLiteral("HIDDEN"))) {
-            result = PR_TRUE; 
+            result = true; 
             break;
           }
         }
       } else {
-        result = PR_TRUE;
+        result = true;
       }
     }
   }
@@ -530,7 +530,7 @@ IsHiddenInput(CToken* aToken, nsITokenizer* aTokenizer)
     return ValueIsHidden(attrToken->GetValue());
   }
 
-  return PR_FALSE;    
+  return false;    
 }
 
 
@@ -543,11 +543,11 @@ HasOpenTagOfType(PRInt32 aType, const nsDTDContext& aContext)
 
   while (--count >= 0) {
     if (gHTMLElements[aContext.TagAt(count)].IsMemberOf(aType)) {
-      return PR_TRUE;
+      return true;
     }
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 nsresult
@@ -630,7 +630,7 @@ CNavDTD::HandleToken(CToken* aToken)
       break;
 
     default:
-      if (!gHTMLElements[eHTMLTag_html].SectionContains(theTag, PR_FALSE)) {
+      if (!gHTMLElements[eHTMLTag_html].SectionContains(theTag, false)) {
         if (!(mFlags & (NS_DTD_FLAG_HAS_MAIN_CONTAINER |
                         NS_DTD_FLAG_ALTERNATE_CONTENT))) {
           
@@ -655,7 +655,7 @@ CNavDTD::HandleToken(CToken* aToken)
 
             
             
-            theChildBelongsInHead = PR_FALSE;
+            theChildBelongsInHead = false;
           }
 
           if (!theChildBelongsInHead) {
@@ -838,9 +838,9 @@ CanBeContained(eHTMLTags aChildTag, nsDTDContext& aContext)
       if (theTargetIndex == theCount-1 ||
           (theTargetIndex == theChildIndex &&
            gHTMLElements[aChildTag].CanContainSelf())) {
-        result = PR_TRUE;
+        result = true;
       } else {
-        result = PR_FALSE;
+        result = false;
 
         static eHTMLTags gTableElements[] = { eHTMLTag_td, eHTMLTag_th };
 
@@ -853,13 +853,13 @@ CanBeContained(eHTMLTags aChildTag, nsDTDContext& aContext)
               gHTMLElements[theParentTag].IsMemberOf(kFormControl)  ||  
               gHTMLElements[theParentTag].IsMemberOf(kList)) {
             if (!HasOptionalEndTag(theParentTag)) {
-              result = PR_TRUE;
+              result = true;
               break;
             }
           } else if (FindTagInSet(theParentTag, gTableElements,
                                   ArrayLength(gTableElements))) {
             
-            result = PR_TRUE;
+            result = true;
             break;
           }
         }
@@ -941,7 +941,7 @@ CNavDTD::HandleDefaultStartToken(CToken* aToken, eHTMLTags aChildTag,
 
       switch (theRule) {
         case eNormalOp:
-          theChildAgrees = PR_TRUE;
+          theChildAgrees = true;
           if (theParentContains) {
             eHTMLTags theAncestor = gHTMLElements[aChildTag].mRequiredAncestor;
             if (eHTMLTag_unknown != theAncestor) {
@@ -1011,9 +1011,9 @@ CNavDTD::HandleDefaultStartToken(CToken* aToken, eHTMLTags aChildTag,
                   
                   
                   
-                  theParentContains = PR_TRUE;
+                  theParentContains = true;
                 } else {
-                  CloseContainersTo(theIndex, aChildTag, PR_TRUE);
+                  CloseContainersTo(theIndex, aChildTag, true);
                 }
               } else {
                 break;
@@ -1027,7 +1027,7 @@ CNavDTD::HandleDefaultStartToken(CToken* aToken, eHTMLTags aChildTag,
 
         case eLetInlineContainBlock:
           
-          theParentContains = theChildAgrees = PR_TRUE;
+          theParentContains = theChildAgrees = true;
           break;
 
         default:
@@ -1080,7 +1080,7 @@ CNavDTD::WillHandleStartTag(CToken* aToken, eHTMLTags aTag,
       
       
       while (stackDepth != MAX_REFLOW_DEPTH && NS_SUCCEEDED(result)) {
-        result = CloseContainersTo(mBodyContext->Last(), PR_FALSE);
+        result = CloseContainersTo(mBodyContext->Last(), false);
         --stackDepth;
       }
     }
@@ -1143,7 +1143,7 @@ CNavDTD::HandleOmittedTag(CToken* aToken, eHTMLTags aChildTag,
     }
 
     if (mBodyContext->mContextTopIndex > -1) {
-      pushToken = PR_TRUE;
+      pushToken = true;
 
       
       mFlags |= NS_DTD_FLAG_MISPLACED_CONTENT;
@@ -1154,7 +1154,7 @@ CNavDTD::HandleOmittedTag(CToken* aToken, eHTMLTags aChildTag,
       gHTMLElements[aParent].HasSpecialProperty(kSaveMisplaced)) {
     NS_ASSERTION(!pushToken, "A strange element has both kBadContentWatch "
                              "and kSaveMisplaced");
-    pushToken = PR_TRUE;
+    pushToken = true;
   }
 
   if (pushToken) {
@@ -1255,7 +1255,7 @@ CNavDTD::IsAlternateTag(eHTMLTags aTag)
 {
   switch (aTag) {
     case eHTMLTag_noembed:
-      return PR_TRUE;
+      return true;
 
     case eHTMLTag_noscript:
       return (mFlags & NS_IPARSER_FLAG_SCRIPT_ENABLED) != 0;
@@ -1265,7 +1265,7 @@ CNavDTD::IsAlternateTag(eHTMLTags aTag)
       return (mFlags & NS_IPARSER_FLAG_FRAMES_ENABLED) != 0;
 
     default:
-      return PR_FALSE;
+      return false;
   }
 }
 
@@ -1297,14 +1297,14 @@ CNavDTD::HandleStartToken(CToken* aToken)
           case eHTMLTag_html:
             if (mBodyContext->GetCount() > 0) {
               result = OpenContainer(theNode, theChildTag);
-              isTokenHandled = PR_TRUE;
+              isTokenHandled = true;
             }
             break;
 
           case eHTMLTag_body:
             if (mFlags & NS_DTD_FLAG_HAS_OPEN_BODY) {
               result = OpenContainer(theNode, theChildTag);
-              isTokenHandled=PR_TRUE;
+              isTokenHandled=true;
             }
             break;
 
@@ -1313,7 +1313,7 @@ CNavDTD::HandleStartToken(CToken* aToken)
 
             if (mFlags & NS_DTD_FLAG_HAS_MAIN_CONTAINER) {
               HandleOmittedTag(aToken, theChildTag, theParent, theNode);
-              isTokenHandled = PR_TRUE;
+              isTokenHandled = true;
             }
             break;
 
@@ -1328,12 +1328,12 @@ CNavDTD::HandleStartToken(CToken* aToken)
       switch (theChildTag) {
         case eHTMLTag_area:
           if (!mOpenMapCount) {
-            isTokenHandled = PR_TRUE;
+            isTokenHandled = true;
           }
 
           if (mOpenMapCount > 0 && mSink) {
             result = mSink->AddLeaf(*theNode);
-            isTokenHandled = PR_TRUE;
+            isTokenHandled = true;
           }
 	  
           break;
@@ -1344,7 +1344,7 @@ CNavDTD::HandleStartToken(CToken* aToken)
 
         case eHTMLTag_keygen:
           result = HandleKeyGen(theNode);
-          isTokenHandled = PR_TRUE;
+          isTokenHandled = true;
           break;
 
         case eHTMLTag_script:
@@ -1498,7 +1498,7 @@ FindAutoCloseTargetForEndTag(eHTMLTags aCurrentTag, nsDTDContext& aContext,
           
           
           if (HasCloseablePeerAboveRoot(*theRootTags, aContext, aCurrentTag,
-                                        PR_TRUE)) {
+                                        true)) {
             return aCurrentTag;
           } else {
             return eHTMLTag_unknown;
@@ -1585,13 +1585,13 @@ CNavDTD::HandleEndToken(CToken* aToken)
       StripWSFollowingTag(theChildTag, mTokenizer, mTokenAllocator,
                           !mCountLines ? nsnull : &mLineNumber);
       if (mBodyContext->LastOf(eHTMLTag_head) != kNotFound) {
-        result = CloseContainersTo(eHTMLTag_head, PR_FALSE);
+        result = CloseContainersTo(eHTMLTag_head, false);
       }
       mFlags &= ~NS_DTD_FLAG_HAS_EXPLICIT_HEAD;
       break;
 
     case eHTMLTag_form:
-      result = CloseContainer(eHTMLTag_form, PR_FALSE);
+      result = CloseContainer(eHTMLTag_form, false);
       break;
 
     case eHTMLTag_br:
@@ -1713,7 +1713,7 @@ CNavDTD::HandleEndToken(CToken* aToken)
               FindAutoCloseTargetForEndTag(theChildTag, *mBodyContext,
                                            mDTDMode);
             if (eHTMLTag_unknown != theTarget) {
-              result = CloseContainersTo(theTarget, PR_FALSE);
+              result = CloseContainersTo(theTarget, false);
             }
           }
         }
@@ -1828,7 +1828,7 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
         
         
         CloseContainersTo(theTopIndex, mBodyContext->TagAt(theTopIndex),
-                          PR_TRUE);
+                          true);
       }      
 
       if (!formWasOnStack && mSink->IsFormOnStack()) {
@@ -2077,7 +2077,7 @@ CNavDTD::CanContain(PRInt32 aParent, PRInt32 aChild) const
   if (eHTMLTag_nobr == aChild &&
       IsInlineElement(aParent, aParent) &&
       HasOpenContainer(eHTMLTag_nobr)) {
-    return PR_FALSE;
+    return false;
   }
 
   return result;
@@ -2166,7 +2166,7 @@ CNavDTD::CanPropagate(eHTMLTags aParent, eHTMLTags aChild,
       }
     }
     if (mScratch.Length() - 1 > gHTMLElements[aParent].mPropagateRange) {
-      result = PR_FALSE;
+      result = false;
     }
   } else {
     result = !!aParentContains;
@@ -2191,7 +2191,7 @@ CNavDTD::CanOmit(eHTMLTags aParent, eHTMLTags aChild, PRInt32& aParentContains)
 {
   eHTMLTags theAncestor = gHTMLElements[aChild].mExcludingAncestor;
   if (eHTMLTag_unknown != theAncestor && HasOpenContainer(theAncestor)) {
-    return PR_TRUE;
+    return true;
   }
 
   theAncestor = gHTMLElements[aChild].mRequiredAncestor;
@@ -2203,7 +2203,7 @@ CNavDTD::CanOmit(eHTMLTags aParent, eHTMLTags aChild, PRInt32& aParentContains)
   }
 
   if (gHTMLElements[aParent].CanExclude(aChild)) {
-    return PR_TRUE;
+    return true;
   }
 
   
@@ -2212,13 +2212,13 @@ CNavDTD::CanOmit(eHTMLTags aParent, eHTMLTags aChild, PRInt32& aParentContains)
   }
 
   if (aParentContains || aChild == aParent) {
-    return PR_FALSE;
+    return false;
   }
 
   if (gHTMLElements[aParent].IsBlockEntity() &&
       nsHTMLElement::IsInlineEntity(aChild)) {
     
-    return PR_TRUE;
+    return true;
   }
 
   if (gHTMLElements[aParent].HasSpecialProperty(kBadContentWatch)) {
@@ -2228,16 +2228,16 @@ CNavDTD::CanOmit(eHTMLTags aParent, eHTMLTags aChild, PRInt32& aParentContains)
   }
 
   if (gHTMLElements[aParent].HasSpecialProperty(kSaveMisplaced)) {
-    return PR_TRUE;
+    return true;
   }
 
   if (aParent == eHTMLTag_body) {
     
     
-    return PR_TRUE;
+    return true;
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -2325,11 +2325,11 @@ CNavDTD::HasOpenContainer(const eHTMLTags aTagSet[], PRInt32 aCount) const
 
   for (theIndex = theTopIndex; theIndex > 0; --theIndex) {
     if (FindTagInSet((*mBodyContext)[theIndex], aTagSet, aCount)) {
-      return PR_TRUE;
+      return true;
     }
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 eHTMLTags
@@ -2463,7 +2463,7 @@ CNavDTD::OpenHTML(const nsCParserNode *aNode)
 
   
   if (mBodyContext->GetCount() == 0)  {
-    mBodyContext->Push(const_cast<nsCParserNode*>(aNode), 0, PR_FALSE); 
+    mBodyContext->Push(const_cast<nsCParserNode*>(aNode), 0, false); 
   }
 
   return result;
@@ -2488,13 +2488,13 @@ CNavDTD::OpenBody(const nsCParserNode *aNode)
     mFlags |= NS_DTD_FLAG_HAD_BODY;
 
     
-    CloseContainer(eHTMLTag_head, PR_FALSE);
+    CloseContainer(eHTMLTag_head, false);
 
     
     result = mSink ? mSink->OpenContainer(*aNode) : NS_OK; 
 
     if (!HasOpenContainer(eHTMLTag_body)) {
-      mBodyContext->Push(const_cast<nsCParserNode*>(aNode), 0, PR_FALSE);
+      mBodyContext->Push(const_cast<nsCParserNode*>(aNode), 0, false);
       mTokenizer->PrependTokens(mMisplacedContent);
     }
   }
@@ -2545,7 +2545,7 @@ CNavDTD::OpenContainer(const nsCParserNode *aNode,
     case eHTMLTag_head:
       if (!(mFlags & NS_DTD_FLAG_HAS_OPEN_HEAD)) {
         mFlags |= NS_DTD_FLAG_HAS_OPEN_HEAD;
-        done = PR_FALSE;
+        done = false;
       }
       break;
 
@@ -2556,14 +2556,14 @@ CNavDTD::OpenContainer(const nsCParserNode *aNode,
           mFlags |= NS_DTD_FLAG_HAS_OPEN_BODY;
           result = OpenBody(aNode);
         } else {
-          done = PR_FALSE;
+          done = false;
         }
       }
       break;
 
     case eHTMLTag_map:
       ++mOpenMapCount;
-      done = PR_FALSE;
+      done = false;
       break;
 
     case eHTMLTag_form:
@@ -2576,23 +2576,23 @@ CNavDTD::OpenContainer(const nsCParserNode *aNode,
 
     case eHTMLTag_frameset:
       
-      CloseContainer(eHTMLTag_head, PR_FALSE);
+      CloseContainer(eHTMLTag_head, false);
 
       
       mFlags |= NS_DTD_FLAG_HAD_FRAMESET;
-      done = PR_FALSE;
+      done = false;
       break;
 
     case eHTMLTag_noembed:
       
-      done = PR_FALSE;
+      done = false;
       mFlags |= NS_DTD_FLAG_ALTERNATE_CONTENT;
       break;
 
     case eHTMLTag_noscript:
       
       
-      done = PR_FALSE;
+      done = false;
 
       if (mFlags & NS_IPARSER_FLAG_SCRIPT_ENABLED) {
         
@@ -2603,14 +2603,14 @@ CNavDTD::OpenContainer(const nsCParserNode *aNode,
 
     case eHTMLTag_iframe: 
     case eHTMLTag_noframes:
-      done = PR_FALSE;
+      done = false;
       if (mFlags & NS_IPARSER_FLAG_FRAMES_ENABLED) {
         mFlags |= NS_DTD_FLAG_ALTERNATE_CONTENT;
       }
       break;
 
     default:
-      done = PR_FALSE;
+      done = false;
       break;
   }
 
@@ -2666,25 +2666,25 @@ CNavDTD::CloseContainer(const eHTMLTags aTag, bool aMalformed)
           NS_ASSERTION(mBodyContext->LastOf(eHTMLTag_head) == kNotFound,
                        "Closing the wrong tag");
         }
-        done = PR_FALSE;
+        done = false;
       }
       break;
 
     case eHTMLTag_map:
       if (mOpenMapCount) {
         mOpenMapCount--;
-        done = PR_FALSE;
+        done = false;
       }
       break;
 
     case eHTMLTag_form:
       if (mFlags & NS_DTD_FLAG_HAS_OPEN_FORM) {
         mFlags &= ~NS_DTD_FLAG_HAS_OPEN_FORM;
-        done = PR_FALSE;
+        done = false;
         
         
         
-        CloseResidualStyleTags(eHTMLTag_form, PR_FALSE);
+        CloseResidualStyleTags(eHTMLTag_form, false);
       }
       break;
 
@@ -2697,7 +2697,7 @@ CNavDTD::CloseContainer(const eHTMLTags aTag, bool aMalformed)
 
       
     default:
-      done = PR_FALSE;
+      done = false;
   }
 
   if (!done) {
@@ -2713,7 +2713,7 @@ CNavDTD::CloseContainer(const eHTMLTags aTag, bool aMalformed)
     
     if (mBodyContext->GetCount() == mHeadContainerPosition) {
       mHeadContainerPosition = -1;
-      nsresult headresult = CloseContainer(eHTMLTag_head, PR_FALSE);
+      nsresult headresult = CloseContainer(eHTMLTag_head, false);
 
       
       
@@ -2750,7 +2750,7 @@ CNavDTD::CloseContainersTo(PRInt32 anIndex, eHTMLTags aTarget,
       nsEntryStack* theChildStyleStack = 0;
       eHTMLTags theTag = mBodyContext->Last();
       nsCParserNode* theNode = mBodyContext->Pop(theChildStyleStack);
-      result = CloseContainer(theTag, PR_FALSE);
+      result = CloseContainer(theTag, false);
 
       bool theTagIsStyle = nsHTMLElement::IsResidualStyleTag(theTag);
       
@@ -2991,7 +2991,7 @@ CNavDTD::AddHeadContent(nsIParserNode *aNode)
 
       if (mFlags & NS_DTD_FLAG_HAS_MAIN_CONTAINER) {
         
-        CloseContainer(eHTMLTag_head, PR_FALSE);
+        CloseContainer(eHTMLTag_head, false);
       }
     } else {
       if ((mFlags & NS_DTD_FLAG_HAS_MAIN_CONTAINER) &&
@@ -3005,7 +3005,7 @@ CNavDTD::AddHeadContent(nsIParserNode *aNode)
       result = mSink->OpenContainer(*aNode);
 
       mBodyContext->Push(static_cast<nsCParserNode*>(aNode), nsnull,
-                         PR_FALSE);
+                         false);
     }
   }
 

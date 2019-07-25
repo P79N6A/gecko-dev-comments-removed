@@ -198,14 +198,14 @@ public:
 
 
   NS_IMETHOD ShouldRollupOnMouseWheelEvent(bool *aShouldRollup)
-    { *aShouldRollup = PR_TRUE; return NS_OK;}
+    { *aShouldRollup = true; return NS_OK;}
 
   
 
 
 
   NS_IMETHOD ShouldRollupOnMouseActivate(bool *aShouldRollup)
-    { *aShouldRollup = PR_FALSE; return NS_OK;}
+    { *aShouldRollup = false; return NS_OK;}
 
   
   NS_IMETHOD SaveState(SpecialStateID aStateID, nsPresState** aState);

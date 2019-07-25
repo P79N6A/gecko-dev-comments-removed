@@ -189,25 +189,25 @@ NS_IMETHODIMP nsTreeWalker::ParentNode(nsIDOMNode **_retval)
 
 NS_IMETHODIMP nsTreeWalker::FirstChild(nsIDOMNode **_retval)
 {
-    return FirstChildInternal(PR_FALSE, _retval);
+    return FirstChildInternal(false, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::LastChild(nsIDOMNode **_retval)
 {
-    return FirstChildInternal(PR_TRUE, _retval);
+    return FirstChildInternal(true, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::PreviousSibling(nsIDOMNode **_retval)
 {
-    return NextSiblingInternal(PR_TRUE, _retval);
+    return NextSiblingInternal(true, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::NextSibling(nsIDOMNode **_retval)
 {
-    return NextSiblingInternal(PR_FALSE, _retval);
+    return NextSiblingInternal(false, _retval);
 }
 
 

@@ -461,12 +461,12 @@ public:
   nsINode*
   InsertBefore(nsINode *aNewChild, nsINode *aRefChild, nsresult *aReturn)
   {
-    return ReplaceOrInsertBefore(PR_FALSE, aNewChild, aRefChild, aReturn);
+    return ReplaceOrInsertBefore(false, aNewChild, aRefChild, aReturn);
   }
   nsINode*
   ReplaceChild(nsINode *aNewChild, nsINode *aOldChild, nsresult *aReturn)
   {
-    return ReplaceOrInsertBefore(PR_TRUE, aNewChild, aOldChild, aReturn);
+    return ReplaceOrInsertBefore(true, aNewChild, aOldChild, aReturn);
   }
   nsINode*
   AppendChild(nsINode *aNewChild, nsresult *aReturn)
@@ -903,10 +903,10 @@ public:
   {
 #ifdef DEBUG
     if (HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE)) {
-      return PR_TRUE;
+      return true;
     }
     CheckNotNativeAnonymous();
-    return PR_FALSE;
+    return false;
 #else
     return HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE);
 #endif
@@ -1080,7 +1080,7 @@ public:
 
   nsIContent* GetNextNode(const nsINode* aRoot = nsnull) const
   {
-    return GetNextNodeImpl(aRoot, PR_FALSE);
+    return GetNextNodeImpl(aRoot, false);
   }
 
   
@@ -1092,7 +1092,7 @@ public:
 
   nsIContent* GetNextNonChildNode(const nsINode* aRoot = nsnull) const
   {
-    return GetNextNodeImpl(aRoot, PR_TRUE);
+    return GetNextNodeImpl(aRoot, true);
   }
 
   

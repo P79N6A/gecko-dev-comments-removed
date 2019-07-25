@@ -214,7 +214,7 @@ nsMathMLElement::IsAttributeMapped(const nsIAtom* aAttribute) const
                                    ArrayLength(commonPresMap));
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 nsMapRuleToAttributesFunc
@@ -262,7 +262,7 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
 
   PRInt32 stringLength = str.Length();
   if (!stringLength)
-    return PR_FALSE;
+    return false;
 
   nsAutoString number, unit;
 
@@ -283,9 +283,9 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
   for ( ; i < stringLength; i++) {
     c = str[i];
     if (gotDot && c == '.')
-      return PR_FALSE;  
+      return false;  
     else if (c == '.')
-      gotDot = PR_TRUE;
+      gotDot = true;
     else if (!nsCRT::IsAsciiDigit(c)) {
       str.Right(unit, stringLength - i);
       
@@ -299,9 +299,9 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
   PRInt32 errorCode;
   float floatValue = number.ToFloat(&errorCode);
   if (NS_FAILED(errorCode))
-    return PR_FALSE;
+    return false;
   if (floatValue < 0 && !(aFlags & PARSE_ALLOW_NEGATIVE))
-    return PR_FALSE;
+    return false;
 
   nsCSSUnit cssUnit;
   if (unit.IsEmpty()) {
@@ -313,13 +313,13 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
       
       
       if (floatValue != 0.0)
-        return PR_FALSE;
+        return false;
       cssUnit = eCSSUnit_Pixel;
     }
   }
   else if (unit.EqualsLiteral("%")) {
     aCSSValue.SetPercentValue(floatValue / 100.0f);
-    return PR_TRUE;
+    return true;
   }
   else if (unit.EqualsLiteral("em")) cssUnit = eCSSUnit_EM;
   else if (unit.EqualsLiteral("ex")) cssUnit = eCSSUnit_XHeight;
@@ -330,10 +330,10 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
   else if (unit.EqualsLiteral("pt")) cssUnit = eCSSUnit_Point;
   else if (unit.EqualsLiteral("pc")) cssUnit = eCSSUnit_Pica;
   else 
-    return PR_FALSE;
+    return false;
 
   aCSSValue.SetFloatValue(floatValue, cssUnit);
-  return PR_TRUE;
+  return true;
 }
 
 void
@@ -394,7 +394,7 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
     bool parseSizeKeywords = true;
     value = aAttributes->GetAttr(nsGkAtoms::mathsize_);
     if (!value) {
-      parseSizeKeywords = PR_FALSE;
+      parseSizeKeywords = false;
       value = aAttributes->GetAttr(nsGkAtoms::fontsize_);
     }
     nsCSSValue* fontSize = aData->ValueForFontSize();
@@ -506,14 +506,14 @@ nsMathMLElement::IsFocusable(PRInt32 *aTabIndex, bool aWithMouse)
     if (aTabIndex) {
       *aTabIndex = ((sTabFocusModel & eTabFocus_linksMask) == 0 ? -1 : 0);
     }
-    return PR_TRUE;
+    return true;
   }
 
   if (aTabIndex) {
     *aTabIndex = -1;
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 bool
@@ -527,7 +527,7 @@ nsMathMLElement::IsLink(nsIURI** aURI) const
       tag == nsGkAtoms::malignmark_  ||
       tag == nsGkAtoms::maligngroup_) {
     *aURI = nsnull;
-    return PR_FALSE;
+    return false;
   }
 
   bool hasHref = false;
@@ -537,7 +537,7 @@ nsMathMLElement::IsLink(nsIURI** aURI) const
     
     
     
-    hasHref = PR_TRUE;
+    hasHref = true;
   } else {
     
     
@@ -571,7 +571,7 @@ nsMathMLElement::IsLink(nsIURI** aURI) const
         FindAttrValueIn(kNameSpaceID_XLink, nsGkAtoms::actuate,
                         sActuateVals, eCaseMatters) !=
         nsIContent::ATTR_VALUE_NO_MATCH) {
-      hasHref = PR_TRUE;
+      hasHref = true;
     }
   }
 
@@ -587,7 +587,7 @@ nsMathMLElement::IsLink(nsIURI** aURI) const
   }
 
   *aURI = nsnull;
-  return PR_FALSE;
+  return false;
 }
 
 void

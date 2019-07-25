@@ -168,7 +168,7 @@ nsInstallTrigger::HandleContent(const char * aContentType,
                                                   NS_GET_IID(nsIURI),
                                                   getter_AddRefs(referringURI));
         if (NS_SUCCEEDED(rv))
-            useReferrer = PR_TRUE;
+            useReferrer = true;
     }
 
     
@@ -323,14 +323,14 @@ nsInstallTrigger::AllowInstall(nsIURI* aLaunchURI)
     nsCOMPtr<nsIPrefBranch> prefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID));
     if ( !prefBranch)
     {
-        return PR_TRUE; 
+        return true; 
     }
 
     prefBranch->GetBoolPref( XPINSTALL_ENABLE_PREF, &xpiEnabled);
     if ( !xpiEnabled )
     {
         
-        return PR_FALSE;
+        return false;
     }
 
 
@@ -367,12 +367,12 @@ nsInstallTrigger::AllowInstall(nsIURI* aLaunchURI)
 
             if ( permission == nsIPermissionManager::DENY_ACTION )
             {
-                xpiEnabled = PR_FALSE;
+                xpiEnabled = false;
             }
             else if ( requireWhitelist &&
                       permission != nsIPermissionManager::ALLOW_ACTION )
             {
-                xpiEnabled = PR_FALSE;
+                xpiEnabled = false;
             }
         }
     }
@@ -414,7 +414,7 @@ NS_IMETHODIMP
 nsInstallTrigger::UpdateEnabled(nsIURI* aURI, bool aUseWhitelist, bool* aReturn)
 {
     
-    *aReturn = PR_FALSE;
+    *aReturn = false;
 
     if (!aUseWhitelist)
     {
@@ -436,14 +436,14 @@ NS_IMETHODIMP
 nsInstallTrigger::StartInstall(nsIXPIInstallInfo* aInstallInfo, bool* aReturn)
 {
     if (aReturn)
-        *aReturn = PR_FALSE;
+        *aReturn = false;
 
     nsXPInstallManager *mgr = new nsXPInstallManager();
     if (mgr)
     {
         nsresult rv = mgr->InitManagerWithInstallInfo(aInstallInfo);
         if (NS_SUCCEEDED(rv) && aReturn)
-            *aReturn = PR_TRUE;
+            *aReturn = true;
         return rv;
     }
     else

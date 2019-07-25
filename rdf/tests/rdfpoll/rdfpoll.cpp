@@ -284,7 +284,7 @@ main(int argc, char** argv)
 
     while (1) {
         
-        rv = remote->Refresh(PR_TRUE);
+        rv = remote->Refresh(true);
         NS_ASSERTION(NS_SUCCEEDED(rv), "unable to open datasource");
         if (NS_FAILED(rv)) return rv;
 

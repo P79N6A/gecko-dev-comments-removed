@@ -54,8 +54,8 @@ using namespace mozilla::dom;
 nsXPathResult::nsXPathResult() : mDocument(nsnull),
                                  mCurrentPos(0),
                                  mResultType(ANY_TYPE),
-                                 mInvalidIteratorState(PR_TRUE),
-                                 mBooleanResult(PR_FALSE),
+                                 mInvalidIteratorState(true),
+                                 mBooleanResult(false),
                                  mNumberResult(0)
 {
 }
@@ -335,7 +335,7 @@ nsXPathResult::SetExprResult(txAExprResult* aExprResult, PRUint16 aResultType,
         return NS_OK;
     }
 
-    mInvalidIteratorState = PR_FALSE;
+    mInvalidIteratorState = false;
 
     if (mResultNodes.Count() > 0) {
         
@@ -384,7 +384,7 @@ nsXPathResult::Invalidate(const nsIContent* aChangeRoot)
         }
     }
 
-    mInvalidIteratorState = PR_TRUE;
+    mInvalidIteratorState = true;
     
     if (mDocument) {
         mDocument->RemoveMutationObserver(this);

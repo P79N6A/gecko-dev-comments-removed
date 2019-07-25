@@ -188,7 +188,7 @@ if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
   
   
   (void)
-  CERT_VerifyCertificateNow(defaultcertdb, mCert, PR_TRUE,
+  CERT_VerifyCertificateNow(defaultcertdb, mCert, true,
 			    certificateUsageSSLClient |
 			    certificateUsageSSLServer |
 			    certificateUsageSSLServerWithStepUp |

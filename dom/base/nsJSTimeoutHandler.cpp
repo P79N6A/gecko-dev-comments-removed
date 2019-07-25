@@ -250,7 +250,7 @@ nsJSScriptTimeoutHandler::Init(nsGlobalWindow *aWindow, bool *aIsInterval,
   if (argc == 1) {
     
     
-    *aIsInterval = PR_FALSE;
+    *aIsInterval = false;
   }
 
   switch (::JS_TypeOfValue(cx, argv[0])) {

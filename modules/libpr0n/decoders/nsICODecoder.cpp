@@ -103,7 +103,7 @@ nsICODecoder::nsICODecoder(RasterImage *aImage, imgIDecoderObserver* aObserver)
  : Decoder(aImage, aObserver)
 {
   mPos = mImageOffset = mCurrIcon = mNumIcons = mBPP = mRowBytes = 0;
-  mIsPNG = PR_FALSE;
+  mIsPNG = false;
   mRow = nsnull;
   mOldLine = mCurLine = 1; 
 }
@@ -147,7 +147,7 @@ bool nsICODecoder::FillBitmapFileHeaderBuffer(PRInt8 *bfh)
   if (mDirEntry.mBitCount <= 8) {
     PRUint16 numColors = GetNumColors();
     if (numColors == (PRUint16)-1) {
-      return PR_FALSE;
+      return false;
     }
     dataOffset += 4 * numColors;
     fileSize = dataOffset + GetRealWidth() * GetRealHeight();
@@ -160,7 +160,7 @@ bool nsICODecoder::FillBitmapFileHeaderBuffer(PRInt8 *bfh)
   memcpy(bfh + 2, &fileSize, sizeof(fileSize));
   dataOffset = NATIVE32_TO_LITTLE(dataOffset);
   memcpy(bfh + 10, &dataOffset, sizeof(dataOffset));
-  return PR_TRUE;
+  return true;
 }
 
 
@@ -389,7 +389,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
     
     nsBMPDecoder *bmpDecoder = new nsBMPDecoder(mImage, mObserver); 
     mContainedDecoder = bmpDecoder;
-    bmpDecoder->SetUseAlphaData(PR_TRUE);
+    bmpDecoder->SetUseAlphaData(true);
     mContainedDecoder->SetSizeDecode(IsSizeDecode());
     mContainedDecoder->InitSharedDecoder();
 

@@ -143,7 +143,7 @@ nsHTMLCSSStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
  bool
 nsHTMLCSSStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
 {
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -162,7 +162,7 @@ nsHTMLCSSStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aDat
  bool
 nsHTMLCSSStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
 {
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -200,13 +200,13 @@ nsHTMLCSSStyleSheet::GetType(nsString& aType) const
 nsHTMLCSSStyleSheet::HasRules() const
 {
   
-  return PR_TRUE;
+  return true;
 }
 
  bool
 nsHTMLCSSStyleSheet::IsApplicable() const
 {
-  return PR_TRUE;
+  return true;
 }
 
  void
@@ -217,7 +217,7 @@ nsHTMLCSSStyleSheet::SetEnabled(bool aEnabled)
  bool
 nsHTMLCSSStyleSheet::IsComplete() const
 {
-  return PR_TRUE;
+  return true;
 }
 
  void

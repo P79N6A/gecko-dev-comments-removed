@@ -251,7 +251,7 @@ public:
 
   
   
-  void PostPendingUpdate() { RootViewManager()->mHasPendingUpdates = PR_TRUE; }
+  void PostPendingUpdate() { RootViewManager()->mHasPendingUpdates = true; }
 
   PRUint32 AppUnitsPerDevPixel() const
   {

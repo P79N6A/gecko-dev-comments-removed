@@ -120,7 +120,7 @@ public:
   {
     
     if (aFlags & (nsIFrame::eReplacedContainsBlock | nsIFrame::eReplaced))
-      return PR_FALSE;
+      return false;
     return nsBoxFrame::IsFrameOfType(aFlags);
   }
   
@@ -145,7 +145,7 @@ NS_NewRootBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsRootBoxFrame)
 
 nsRootBoxFrame::nsRootBoxFrame(nsIPresShell* aShell, nsStyleContext* aContext):
-  nsBoxFrame(aShell, aContext, PR_TRUE)
+  nsBoxFrame(aShell, aContext, true)
 {
   mPopupSetFrame = nsnull;
 
@@ -240,7 +240,7 @@ nsRootBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists, PR_TRUE);
+  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return BuildDisplayListForChildren(aBuilder, aDirtyRect, aLists);

@@ -240,7 +240,7 @@ nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, PR
     if (NS_FAILED(rv))
       return NS_ERROR_FAILURE;
 
-    hasConverter = PR_TRUE;
+    hasConverter = true;
   }
   
   

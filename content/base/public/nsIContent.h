@@ -428,7 +428,7 @@ public:
                              const nsAString& aValue,
                              nsCaseTreatment aCaseSensitive) const
   {
-    return PR_FALSE;
+    return false;
   }
   
   
@@ -446,7 +446,7 @@ public:
                              nsIAtom* aValue,
                              nsCaseTreatment aCaseSensitive) const
   {
-    return PR_FALSE;
+    return false;
   }
   
   enum {
@@ -588,7 +588,7 @@ public:
   {
     if (aTabIndex) 
       *aTabIndex = -1; 
-    return PR_FALSE;
+    return false;
   }
 
   
@@ -786,7 +786,7 @@ public:
 
   virtual bool IsDoneAddingChildren()
   {
-    return PR_TRUE;
+    return true;
   }
 
   

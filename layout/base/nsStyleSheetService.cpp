@@ -173,7 +173,7 @@ nsStyleSheetService::LoadAndRegisterSheetInternal(nsIURI *aSheetURI,
   nsRefPtr<nsCSSStyleSheet> sheet;
   
   nsresult rv = loader->LoadSheetSync(aSheetURI, aSheetType == AGENT_SHEET,
-                                      PR_TRUE, getter_AddRefs(sheet));
+                                      true, getter_AddRefs(sheet));
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!mSheets[aSheetType].AppendObject(sheet)) {

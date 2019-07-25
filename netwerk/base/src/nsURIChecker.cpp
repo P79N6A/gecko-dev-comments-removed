@@ -71,8 +71,8 @@ NS_IMPL_ISUPPORTS6(nsURIChecker,
 
 nsURIChecker::nsURIChecker()
     : mStatus(NS_OK)
-    , mIsPending(PR_FALSE)
-    , mAllowHead(PR_TRUE)
+    , mIsPending(false)
+    , mAllowHead(true)
 {
 }
 
@@ -80,7 +80,7 @@ void
 nsURIChecker::SetStatusAndCallBack(nsresult aStatus)
 {
     mStatus = aStatus;
-    mIsPending = PR_FALSE;
+    mIsPending = false;
 
     if (mObserver) {
         mObserver->OnStartRequest(this, mObserverContext);
@@ -122,7 +122,7 @@ nsURIChecker::CheckStatus()
     
     if (responseStatus == 404) {
         if (mAllowHead && ServerIsNES3x(httpChannel)) {
-            mAllowHead = PR_FALSE;
+            mAllowHead = false;
 
             
             
@@ -175,7 +175,7 @@ nsURIChecker::Init(nsIURI *aURI)
     if (NS_FAILED(rv)) return rv;
 
     if (mAllowHead) {
-        mAllowHead = PR_FALSE;
+        mAllowHead = false;
         
         nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
         if (httpChannel) {
@@ -192,7 +192,7 @@ nsURIChecker::Init(nsIURI *aURI)
                 
                 
                 
-                mAllowHead = PR_TRUE;
+                mAllowHead = true;
             }
         }
     }
@@ -215,7 +215,7 @@ nsURIChecker::AsyncCheck(nsIRequestObserver *aObserver,
         mChannel = nsnull;
     else {
         
-        mIsPending = PR_TRUE;
+        mIsPending = true;
         mObserver = aObserver;
         mObserverContext = aObserverContext;
     }

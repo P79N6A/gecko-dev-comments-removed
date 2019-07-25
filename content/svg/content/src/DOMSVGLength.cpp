@@ -102,7 +102,7 @@ DOMSVGLength::DOMSVGLength()
   : mList(nsnull)
   , mListIndex(0)
   , mAttrEnum(0)
-  , mIsAnimValItem(PR_FALSE)
+  , mIsAnimValItem(false)
   , mUnit(nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER)
   , mValue(0.0f)
 {
@@ -161,7 +161,7 @@ DOMSVGLength::SetValue(float aUserUnitValue)
 
   if (HasOwner()) {
     if (InternalItem().SetFromUserUnitValue(aUserUnitValue, Element(), Axis())) {
-      Element()->DidChangeLengthList(mAttrEnum, PR_TRUE);
+      Element()->DidChangeLengthList(mAttrEnum, true);
 #ifdef MOZ_SMIL
       if (mList->mAList->IsAnimating()) {
         Element()->AnimationNeedsResample();
@@ -204,7 +204,7 @@ DOMSVGLength::SetValueInSpecifiedUnits(float aValue)
 
   if (HasOwner()) {
     InternalItem().SetValueInCurrentUnits(aValue);
-    Element()->DidChangeLengthList(mAttrEnum, PR_TRUE);
+    Element()->DidChangeLengthList(mAttrEnum, true);
 #ifdef MOZ_SMIL
     if (mList->mAList->IsAnimating()) {
       Element()->AnimationNeedsResample();
@@ -229,7 +229,7 @@ DOMSVGLength::SetValueAsString(const nsAString& aValue)
   }
   if (HasOwner()) {
     InternalItem() = value;
-    Element()->DidChangeLengthList(mAttrEnum, PR_TRUE);
+    Element()->DidChangeLengthList(mAttrEnum, true);
 #ifdef MOZ_SMIL
     if (mList->mAList->IsAnimating()) {
       Element()->AnimationNeedsResample();
@@ -274,7 +274,7 @@ DOMSVGLength::NewValueSpecifiedUnits(PRUint16 aUnit, float aValue)
   }
   if (HasOwner()) {
     InternalItem().SetValueAndUnit(aValue, PRUint8(aUnit));
-    Element()->DidChangeLengthList(mAttrEnum, PR_TRUE);
+    Element()->DidChangeLengthList(mAttrEnum, true);
 #ifdef MOZ_SMIL
     if (mList->mAList->IsAnimating()) {
       Element()->AnimationNeedsResample();
@@ -336,7 +336,7 @@ DOMSVGLength::RemovingFromList()
   mValue = InternalItem().GetValueInCurrentUnits();
   mUnit  = InternalItem().GetUnit();
   mList = nsnull;
-  mIsAnimValItem = PR_FALSE;
+  mIsAnimValItem = false;
 }
 
 SVGLength

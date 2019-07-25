@@ -59,7 +59,7 @@ nsSMILNullType::IsEqual(const nsSMILValue& aLeft,
   NS_PRECONDITION(aLeft.mType == aRight.mType, "Incompatible SMIL types");
   NS_PRECONDITION(aLeft.mType == this, "Unexpected type for SMIL value");
 
-  return PR_TRUE;  
+  return true;  
 }
 
 nsresult

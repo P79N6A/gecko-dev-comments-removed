@@ -95,11 +95,11 @@ public:
   
   
   
-  void Resample() { DoSample(PR_FALSE); }
+  void Resample() { DoSample(false); }
   void SetResampleNeeded()
   {
     if (!mRunningSample) {
-      mResampleNeeded = PR_TRUE;
+      mResampleNeeded = true;
     }
   }
   void FlushResampleRequests()

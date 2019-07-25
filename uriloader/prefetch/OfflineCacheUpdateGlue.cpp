@@ -116,7 +116,7 @@ OfflineCacheUpdateGlue::Schedule()
         return NS_ERROR_NULL_POINTER;
 
     
-    mUpdate->AddObserver(this, PR_FALSE);
+    mUpdate->AddObserver(this, false);
 
     return mUpdate->Schedule();
 }

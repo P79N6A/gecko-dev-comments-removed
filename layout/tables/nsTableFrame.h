@@ -69,7 +69,7 @@ class nsDisplayTableItem : public nsDisplayItem
 public:
   nsDisplayTableItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame) : 
       nsDisplayItem(aBuilder, aFrame),
-      mPartHasFixedBackground(PR_FALSE) {}
+      mPartHasFixedBackground(false) {}
 
   virtual bool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
                                                 nsIFrame* aFrame);
@@ -661,8 +661,8 @@ public:
 
 
 
-  void SetGeometryDirty() { mBits.mGeometryDirty = PR_TRUE; }
-  void ClearGeometryDirty() { mBits.mGeometryDirty = PR_FALSE; }
+  void SetGeometryDirty() { mBits.mGeometryDirty = true; }
+  void ClearGeometryDirty() { mBits.mGeometryDirty = false; }
   bool IsGeometryDirty() const { return mBits.mGeometryDirty; }
 
   
@@ -923,11 +923,11 @@ protected:
 };
 
 #define ABORT0() \
-{NS_ASSERTION(PR_FALSE, "CellIterator program error"); \
+{NS_ASSERTION(false, "CellIterator program error"); \
 return;}
 
 #define ABORT1(aReturn) \
-{NS_ASSERTION(PR_FALSE, "CellIterator program error"); \
+{NS_ASSERTION(false, "CellIterator program error"); \
 return aReturn;} 
 
 #endif

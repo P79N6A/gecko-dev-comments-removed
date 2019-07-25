@@ -440,7 +440,7 @@ nsRange::IsPointInRange(nsIDOMNode* aParent, PRInt32 aOffset, bool* aResult)
   nsresult rv = ComparePoint(aParent, aOffset, &compareResult);
   
   if (rv == NS_ERROR_DOM_WRONG_DOCUMENT_ERR) {
-    *aResult = PR_FALSE;
+    *aResult = false;
     return NS_OK;
   }
 
@@ -1207,9 +1207,9 @@ CollapseRangeAfterDelete(nsIDOMRange *aRange)
   
 
   if (startContainer == commonAncestor)
-    return aRange->Collapse(PR_TRUE);
+    return aRange->Collapse(true);
   if (endContainer == commonAncestor)
-    return aRange->Collapse(PR_FALSE);
+    return aRange->Collapse(false);
 
   
   
@@ -1234,7 +1234,7 @@ CollapseRangeAfterDelete(nsIDOMRange *aRange)
   res = aRange->SelectNode(nodeToSelect);
   if (NS_FAILED(res)) return res;
 
-  return aRange->Collapse(PR_FALSE);
+  return aRange->Collapse(false);
 }
 
 
@@ -1361,7 +1361,7 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
 
     iter.Prev();
 
-    handled = PR_FALSE;
+    handled = false;
 
     
     
@@ -1390,7 +1390,7 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
                                            cutValue);
               NS_ENSURE_SUCCESS(rv, rv);
               nsCOMPtr<nsIDOMNode> clone;
-              rv = charData->CloneNode(PR_FALSE, getter_AddRefs(clone));
+              rv = charData->CloneNode(false, getter_AddRefs(clone));
               NS_ENSURE_SUCCESS(rv, rv);
               clone->SetNodeValue(cutValue);
               nodeToResult = clone;
@@ -1400,7 +1400,7 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
             NS_ENSURE_SUCCESS(rv, rv);
           }
 
-          handled = PR_TRUE;
+          handled = true;
         }
         else
         {
@@ -1417,7 +1417,7 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
             nodeToResult = cutNode;
           }
 
-          handled = PR_TRUE;
+          handled = true;
         }
       }
       else if (node == endContainer)
@@ -1431,12 +1431,12 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
 
 
           rv = SplitDataNode(charData, endOffset, getter_AddRefs(cutNode),
-                             PR_FALSE);
+                             false);
           NS_ENSURE_SUCCESS(rv, rv);
           nodeToResult = cutNode;
         }
 
-        handled = PR_TRUE;
+        handled = true;
       }       
     }
 
@@ -1450,11 +1450,11 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
       {
         if (retval) {
           nsCOMPtr<nsIDOMNode> clone;
-          rv = node->CloneNode(PR_FALSE, getter_AddRefs(clone));
+          rv = node->CloneNode(false, getter_AddRefs(clone));
           NS_ENSURE_SUCCESS(rv, rv);
           nodeToResult = clone;
         }
-        handled = PR_TRUE;
+        handled = true;
       }
     }
 
@@ -1621,7 +1621,7 @@ nsRange::CloneParentsBetween(nsIDOMNode *aAncestor,
   {
     nsCOMPtr<nsIDOMNode> clone, tmpNode;
 
-    res = parent->CloneNode(PR_FALSE, getter_AddRefs(clone));
+    res = parent->CloneNode(false, getter_AddRefs(clone));
 
     if (NS_FAILED(res)) return res;
     if (!clone)         return NS_ERROR_FAILURE;
@@ -2115,7 +2115,7 @@ nsRange::Detach()
   if(mIsDetached)
     return NS_ERROR_DOM_INVALID_STATE_ERR;
 
-  mIsDetached = PR_TRUE;
+  mIsDetached = true;
 
   DoSetRange(nsnull, 0, nsnull, 0, nsnull);
   
@@ -2129,7 +2129,7 @@ nsRange::CreateContextualFragment(const nsAString& aFragment,
 {
   if (mIsPositioned) {
     return nsContentUtils::CreateContextualFragment(mStartParent, aFragment,
-                                                    PR_FALSE, aReturn);
+                                                    false, aReturn);
   }
   return NS_ERROR_FAILURE;
 }
@@ -2222,13 +2222,13 @@ static void CollectClientRects(nsLayoutUtils::RectCallback* aCollector,
         nsTextFrame* textFrame = static_cast<nsTextFrame*>(frame);
         PRInt32 outOffset;
         nsIFrame* outFrame;
-        textFrame->GetChildFrameContainingOffset(aStartOffset, PR_FALSE, 
+        textFrame->GetChildFrameContainingOffset(aStartOffset, false, 
           &outOffset, &outFrame);
         if (outFrame) {
            nsIFrame* relativeTo = 
              nsLayoutUtils::GetContainingBlockForClientRect(outFrame);
            nsRect r(outFrame->GetOffsetTo(relativeTo), outFrame->GetSize());
-           ExtractRectFromOffset(outFrame, relativeTo, aStartOffset, &r, PR_FALSE);
+           ExtractRectFromOffset(outFrame, relativeTo, aStartOffset, &r, false);
            r.width = 0;
            aCollector->AddRect(r);
         }
@@ -2355,12 +2355,12 @@ nsRange::GetUsedFontFaces(nsIDOMFontFaceList** aResult)
          PRInt32 offset = startContainer == endContainer ? 
            mEndOffset : content->GetText()->GetLength();
          nsLayoutUtils::GetFontFacesForText(frame, mStartOffset, offset,
-                                            PR_TRUE, fontFaceList);
+                                            true, fontFaceList);
          continue;
        }
        if (node == endContainer) {
          nsLayoutUtils::GetFontFacesForText(frame, 0, mEndOffset,
-                                            PR_TRUE, fontFaceList);
+                                            true, fontFaceList);
          continue;
        }
     }

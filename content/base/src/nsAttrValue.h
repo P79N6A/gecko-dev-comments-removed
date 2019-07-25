@@ -453,9 +453,9 @@ nsAttrValue::GetIntMarginValue(nsIntMargin& aMargin) const
   NS_PRECONDITION(Type() == eIntMarginValue, "wrong type");
   nsIntMargin* m = GetMiscContainer()->mIntMargin;
   if (!m)
-    return PR_FALSE;
+    return false;
   aMargin = *m;
-  return PR_TRUE;
+  return true;
 }
 
 inline nsAttrValue::ValueBaseType

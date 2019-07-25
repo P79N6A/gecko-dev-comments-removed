@@ -127,7 +127,7 @@ protected:
                                  PRUint32 aAttsCount, 
                                  PRInt32 aNameSpaceID, 
                                  nsIAtom* aTagName,
-                                 PRUint32 aLineNumber) { return PR_TRUE; }
+                                 PRUint32 aLineNumber) { return true; }
   
   
   

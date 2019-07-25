@@ -101,9 +101,9 @@ IsFromMailNews(nsIURI *aURI)
   bool result;
   for (const char **p = kMailNewsProtocols; *p; ++p) {
     if (NS_SUCCEEDED(aURI->SchemeIs(*p, &result)) && result)
-      return PR_TRUE;
+      return true;
   }
-  return PR_FALSE;
+  return false;
 }
 #endif
 
@@ -125,9 +125,9 @@ nsCookiePermission::Init()
   nsCOMPtr<nsIPrefBranch2> prefBranch =
       do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefBranch) {
-    prefBranch->AddObserver(kCookiesLifetimePolicy, this, PR_FALSE);
-    prefBranch->AddObserver(kCookiesLifetimeDays, this, PR_FALSE);
-    prefBranch->AddObserver(kCookiesAlwaysAcceptSession, this, PR_FALSE);
+    prefBranch->AddObserver(kCookiesLifetimePolicy, this, false);
+    prefBranch->AddObserver(kCookiesLifetimeDays, this, false);
+    prefBranch->AddObserver(kCookiesAlwaysAcceptSession, this, false);
     PrefChanged(prefBranch, nsnull);
 
     
@@ -154,7 +154,7 @@ nsCookiePermission::Init()
         else
           prefBranch->SetIntPref(kCookiesLifetimePolicy, ACCEPT_SESSION);
       }
-      prefBranch->SetBoolPref(kCookiesPrefsMigrated, PR_TRUE);
+      prefBranch->SetBoolPref(kCookiesPrefsMigrated, true);
     }
   }
 
@@ -264,14 +264,14 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
   mPermMgr->TestPermission(aURI, kPermissionType, &perm);
   switch (perm) {
   case nsICookiePermission::ACCESS_SESSION:
-    *aIsSession = PR_TRUE;
+    *aIsSession = true;
 
   case nsIPermissionManager::ALLOW_ACTION: 
-    *aResult = PR_TRUE;
+    *aResult = true;
     break;
 
   case nsIPermissionManager::DENY_ACTION:  
-    *aResult = PR_FALSE;
+    *aResult = false;
     break;
 
   default:
@@ -282,7 +282,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
     
     
     if (mCookiesLifetimePolicy == ACCEPT_NORMALLY) {
-      *aResult = PR_TRUE;
+      *aResult = true;
       return NS_OK;
     }
     
@@ -297,12 +297,12 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       
       if ((*aIsSession && mCookiesAlwaysAcceptSession) ||
           InPrivateBrowsing()) {
-        *aResult = PR_TRUE;
+        *aResult = true;
         return NS_OK;
       }
       
       
-      *aResult = PR_FALSE;
+      *aResult = false;
 
       nsCAutoString hostPort;
       aURI->GetHostPort(hostPort);
@@ -362,7 +362,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       if (!foundCookie && !*aIsSession && delta <= 0) {
         
         
-        *aResult = PR_TRUE;
+        *aResult = true;
         return rv;
       }
 
@@ -375,7 +375,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
 
       *aResult = !!dialogRes;
       if (dialogRes == nsICookiePromptService::ACCEPT_SESSION_COOKIE)
-        *aIsSession = PR_TRUE;
+        *aIsSession = true;
 
       if (rememberDecision) {
         switch (dialogRes) {
@@ -401,7 +401,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       if (!*aIsSession && delta > 0) {
         if (mCookiesLifetimePolicy == ACCEPT_SESSION) {
           
-          *aIsSession = PR_TRUE;
+          *aIsSession = true;
         } else if (delta > mCookiesLifetimeSec) {
           
           *aExpiry = currentTime + mCookiesLifetimeSec;

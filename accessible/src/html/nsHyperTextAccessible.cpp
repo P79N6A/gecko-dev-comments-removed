@@ -216,7 +216,7 @@ nsIntRect nsHyperTextAccessible::GetBoundsForString(nsIFrame *aFrame, PRUint32 a
   PRInt32 startContentOffsetInFrame;
   
   
-  rv = aFrame->GetChildFrameContainingOffset(startContentOffset, PR_FALSE,
+  rv = aFrame->GetChildFrameContainingOffset(startContentOffset, false,
                                              &startContentOffsetInFrame, &frame);
   NS_ENSURE_SUCCESS(rv, screenRect);
 
@@ -367,7 +367,7 @@ nsHyperTextAccessible::GetPosAndText(PRInt32& aStartOffset, PRInt32& aEndOffset,
           else {
             contentOffset = startOffset;
           }
-          frame->GetChildFrameContainingOffset(contentOffset, PR_TRUE,
+          frame->GetChildFrameContainingOffset(contentOffset, true,
                                                &outStartLineUnused, &frame);
           if (aEndFrame) {
             *aEndFrame = frame; 
@@ -930,7 +930,7 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
       break;
 
     case BOUNDARY_WORD_START:
-      needsStart = PR_TRUE;
+      needsStart = true;
       amount = eSelectWord;
       break;
 
@@ -942,7 +942,7 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
       
       
       
-      needsStart = PR_TRUE;
+      needsStart = true;
       amount = eSelectLine;
       break;
 
@@ -955,7 +955,7 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
 
     case BOUNDARY_ATTRIBUTE_RANGE:
     {
-      nsresult rv = GetTextAttributes(PR_FALSE, aOffset,
+      nsresult rv = GetTextAttributes(false, aOffset,
                                       aStartOffset, aEndOffset, nsnull);
       NS_ENSURE_SUCCESS(rv, rv);
       
@@ -1137,7 +1137,7 @@ nsHyperTextAccessible::GetTextAttributes(bool aIncludeDefAttrs,
     
     if (aOffset == 0) {
       if (aIncludeDefAttrs) {
-        nsTextAttrsMgr textAttrsMgr(this, PR_TRUE, nsnull, -1);
+        nsTextAttrsMgr textAttrsMgr(this, true, nsnull, -1);
         return textAttrsMgr.GetAttributes(*aAttributes);
       }
       return NS_OK;
@@ -1194,7 +1194,7 @@ nsHyperTextAccessible::GetDefaultTextAttributes(nsIPersistentProperties **aAttri
 
   NS_ADDREF(*aAttributes = attributes);
 
-  nsTextAttrsMgr textAttrsMgr(this, PR_TRUE);
+  nsTextAttrsMgr textAttrsMgr(this, true);
   return textAttrsMgr.GetAttributes(*aAttributes);
 }
 
@@ -1353,7 +1353,7 @@ nsHyperTextAccessible::GetOffsetAtPoint(PRInt32 aX, PRInt32 aY,
       if (pointInFrame.x < frameSize.width && pointInFrame.y < frameSize.height) {
         
         if (frame->GetType() == nsGkAtoms::textFrame) {
-          nsIFrame::ContentOffsets contentOffsets = frame->GetContentOffsetsFromPointExternal(pointInFrame, PR_TRUE);
+          nsIFrame::ContentOffsets contentOffsets = frame->GetContentOffsetsFromPointExternal(pointInFrame, true);
           if (contentOffsets.IsNull() || contentOffsets.content != content) {
             return NS_OK; 
           }
@@ -1858,7 +1858,7 @@ nsHyperTextAccessible::GetSelectionBounds(PRInt32 aSelectionNum,
     *aStartOffset = 0; 
   }
 
-  DOMPointToHypertextOffset(endNode, endOffset, aEndOffset, PR_TRUE);
+  DOMPointToHypertextOffset(endNode, endOffset, aEndOffset, true);
   return NS_OK;
 }
 
@@ -1906,7 +1906,7 @@ nsHyperTextAccessible::SetSelectionBounds(PRInt32 aSelectionNum,
   rv = range->SetStart(startNode, startOffset);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = isOnlyCaret ? range->Collapse(PR_TRUE) :
+  rv = isOnlyCaret ? range->Collapse(true) :
                      range->SetEnd(endNode, endOffset);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2041,7 +2041,7 @@ nsHyperTextAccessible::ScrollSubstringToPoint(PRInt32 aStartIndex,
                                             vPercent, hPercent);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        initialScrolled = PR_TRUE;
+        initialScrolled = true;
       } else {
         
         
@@ -2363,7 +2363,7 @@ nsHyperTextAccessible::GetSpellTextAttribute(nsIDOMNode *aNode,
 
     if (result == 1) { 
       PRInt32 startHTOffset = 0;
-      nsresult rv = DOMRangeBoundToHypertextOffset(range, PR_FALSE, PR_TRUE,
+      nsresult rv = DOMRangeBoundToHypertextOffset(range, false, true,
                                                    &startHTOffset);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2372,7 +2372,7 @@ nsHyperTextAccessible::GetSpellTextAttribute(nsIDOMNode *aNode,
 
     } else if (result == -1) { 
       PRInt32 endHTOffset = 0;
-      nsresult rv = DOMRangeBoundToHypertextOffset(range, PR_TRUE, PR_FALSE,
+      nsresult rv = DOMRangeBoundToHypertextOffset(range, true, false,
                                                    &endHTOffset);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2381,12 +2381,12 @@ nsHyperTextAccessible::GetSpellTextAttribute(nsIDOMNode *aNode,
 
     } else { 
       PRInt32 startHTOffset = 0;
-      nsresult rv = DOMRangeBoundToHypertextOffset(range, PR_TRUE, PR_TRUE,
+      nsresult rv = DOMRangeBoundToHypertextOffset(range, true, true,
                                                    &startHTOffset);
       NS_ENSURE_SUCCESS(rv, rv);
 
       PRInt32 endHTOffset = 0;
-      rv = DOMRangeBoundToHypertextOffset(range, PR_FALSE, PR_FALSE,
+      rv = DOMRangeBoundToHypertextOffset(range, false, false,
                                           &endHTOffset);
       NS_ENSURE_SUCCESS(rv, rv);
 

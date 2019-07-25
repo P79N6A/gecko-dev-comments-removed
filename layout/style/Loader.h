@@ -95,12 +95,12 @@ public:
 
   bool KeyEquals(const URIAndPrincipalHashKey* aKey) const {
     if (!nsURIHashKey::KeyEquals(aKey->mKey)) {
-      return PR_FALSE;
+      return false;
     }
 
     if (!mPrincipal != !aKey->mPrincipal) {
       
-      return PR_FALSE;
+      return false;
     }
 
     bool eq;
@@ -114,7 +114,7 @@ public:
     return nsURIHashKey::HashKey(aKey->mKey);
   }
 
-  enum { ALLOW_MEMMOVE = PR_TRUE };
+  enum { ALLOW_MEMMOVE = true };
 
 protected:
   nsCOMPtr<nsIPrincipal> mPrincipal;
@@ -269,7 +269,7 @@ public:
 
 
   nsresult LoadSheetSync(nsIURI* aURL, nsCSSStyleSheet** aSheet) {
-    return LoadSheetSync(aURL, PR_FALSE, PR_FALSE, aSheet);
+    return LoadSheetSync(aURL, false, false, aSheet);
   }
 
   

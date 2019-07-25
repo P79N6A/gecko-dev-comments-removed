@@ -344,7 +344,7 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
         nsSizeEvent* sizeEvent = (nsSizeEvent*)aEvent;
         nsCOMPtr<nsIBaseWindow> shellAsWin(do_QueryInterface(docShell));
         shellAsWin->SetPositionAndSize(0, 0, sizeEvent->windowSize->width, 
-          sizeEvent->windowSize->height, PR_FALSE);  
+          sizeEvent->windowSize->height, false);  
         
         
         if (!eventWindow->IsLocked())
@@ -380,7 +380,7 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
           
           
           if (modeEvent->mSizeMode == nsSizeMode_Fullscreen) {
-            ourWindow->SetFullScreen(PR_TRUE);
+            ourWindow->SetFullScreen(true);
           }
 
           
@@ -573,8 +573,8 @@ nsWebShellWindow::OnStateChange(nsIWebProgress *aProgress,
       return NS_OK;
   }
 
-  mChromeLoaded = PR_TRUE;
-  mLockedUntilChromeLoad = PR_FALSE;
+  mChromeLoaded = true;
+  mLockedUntilChromeLoad = false;
 
 #ifdef USE_NATIVE_MENUS
   
@@ -723,18 +723,18 @@ bool nsWebShellWindow::ExecuteCloseHandler()
       contentViewer->GetPresContext(getter_AddRefs(presContext));
 
       nsEventStatus status = nsEventStatus_eIgnore;
-      nsMouseEvent event(PR_TRUE, NS_XUL_CLOSE, nsnull,
+      nsMouseEvent event(true, NS_XUL_CLOSE, nsnull,
                          nsMouseEvent::eReal);
 
       nsresult rv =
         eventTarget->DispatchDOMEvent(&event, nsnull, presContext, &status);
       if (NS_SUCCEEDED(rv) && status == nsEventStatus_eConsumeNoDefault)
-        return PR_TRUE;
+        return true;
       
     }
   }
 
-  return PR_FALSE;
+  return false;
 } 
 
 void nsWebShellWindow::ConstrainToOpenerScreen(PRInt32* aX, PRInt32* aY)

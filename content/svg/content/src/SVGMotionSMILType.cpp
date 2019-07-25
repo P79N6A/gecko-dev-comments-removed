@@ -144,7 +144,7 @@ struct MotionSegment
         mRotateType  != aOther.mRotateType ||
         (mRotateType == eRotateType_Explicit &&  
          mRotateAngle != aOther.mRotateAngle)) { 
-      return PR_FALSE;
+      return false;
     }
 
     
@@ -246,18 +246,18 @@ SVGMotionSMILType::IsEqual(const nsSMILValue& aLeft,
 
   
   if (leftArr.Length() != rightArr.Length()) {
-    return PR_FALSE;
+    return false;
   }
 
   
   PRUint32 length = leftArr.Length(); 
   for (PRUint32 i = 0; i < length; ++i) {
     if (leftArr[i] != rightArr[i]) {
-      return PR_FALSE;
+      return false;
     }
   }
 
-  return PR_TRUE; 
+  return true; 
 }
 
 

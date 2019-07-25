@@ -217,7 +217,7 @@ enum nsTopLevelWidgetZPlacement {
 struct nsIMEUpdatePreference {
 
   nsIMEUpdatePreference()
-    : mWantUpdates(PR_FALSE), mWantHints(PR_FALSE)
+    : mWantUpdates(false), mWantHints(false)
   {
   }
   nsIMEUpdatePreference(bool aWantUpdates, bool aWantHints)

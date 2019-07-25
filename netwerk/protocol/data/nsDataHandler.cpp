@@ -162,7 +162,7 @@ nsDataHandler::NewChannel(nsIURI* uri, nsIChannel* *result) {
 NS_IMETHODIMP 
 nsDataHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval) {
     
-    *_retval = PR_FALSE;
+    *_retval = false;
     return NS_OK;
 }
 
@@ -173,7 +173,7 @@ nsDataHandler::ParseURI(nsCString& spec,
                         bool&    isBase64,
                         nsCString& dataBuffer,
                         nsCString& hashRef) {
-    isBase64 = PR_FALSE;
+    isBase64 = false;
 
     
     char *buffer = (char *) PL_strcasestr(spec.BeginWriting(), "data:");
@@ -193,7 +193,7 @@ nsDataHandler::ParseURI(nsCString& spec,
     
     char *base64 = PL_strcasestr(buffer, ";base64");
     if (base64) {
-        isBase64 = PR_TRUE;
+        isBase64 = true;
         *base64 = '\0';
     }
 

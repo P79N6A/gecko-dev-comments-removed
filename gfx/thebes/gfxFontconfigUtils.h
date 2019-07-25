@@ -201,7 +201,7 @@ protected:
             }
             return hash;
         }
-        enum { ALLOW_MEMMOVE = PR_TRUE };
+        enum { ALLOW_MEMMOVE = true };
     };
 
 public:
@@ -239,7 +239,7 @@ public:
         
         
         CopiedFcStrEntry(KeyTypePointer aName) {
-            mKey.SetIsVoid(PR_TRUE);
+            mKey.SetIsVoid(true);
         }
 
         CopiedFcStrEntry(const CopiedFcStrEntry& toCopy)
@@ -304,7 +304,7 @@ protected:
         }
 
         
-        enum { ALLOW_MEMMOVE = PR_FALSE };
+        enum { ALLOW_MEMMOVE = false };
     private:
         
         nsAutoTArray<nsCountedRef<FcPattern>,1> mFonts;

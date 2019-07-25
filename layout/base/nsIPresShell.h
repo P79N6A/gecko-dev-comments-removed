@@ -743,7 +743,7 @@ public:
   void DisableThemeSupport()
   {
     
-    mIsThemeSupportDisabled = PR_TRUE;
+    mIsThemeSupportDisabled = true;
   }
 
   

@@ -166,8 +166,8 @@ nsBidi::nsBidi()
 {
   Init();
 
-  mMayAllocateText=PR_TRUE;
-  mMayAllocateRuns=PR_TRUE;
+  mMayAllocateText=true;
+  mMayAllocateRuns=true;
 }
 
 nsBidi::~nsBidi()
@@ -197,8 +197,8 @@ void nsBidi::Init()
   mLevelsMemory=NULL;
   mRunsMemory=NULL;
 
-  mMayAllocateText=PR_FALSE;
-  mMayAllocateRuns=PR_FALSE;
+  mMayAllocateText=false;
+  mMayAllocateRuns=false;
   
 }
 
@@ -221,22 +221,22 @@ bool nsBidi::GetMemory(void **aMemory, PRSize *aSize, bool aMayAllocate, PRSize 
   if(*aMemory==NULL) {
     
     if(!aMayAllocate) {
-      return PR_FALSE;
+      return false;
     } else {
       *aMemory=PR_MALLOC(aSizeNeeded);
       if (*aMemory!=NULL) {
         *aSize=aSizeNeeded;
-        return PR_TRUE;
+        return true;
       } else {
         *aSize=0;
-        return PR_FALSE;
+        return false;
       }
     }
   } else {
     
     if(aSizeNeeded>*aSize && !aMayAllocate) {
       
-      return PR_FALSE;
+      return false;
     } else if(aSizeNeeded!=*aSize && aMayAllocate) {
       
       void *memory=PR_REALLOC(*aMemory, aSizeNeeded);
@@ -244,14 +244,14 @@ bool nsBidi::GetMemory(void **aMemory, PRSize *aSize, bool aMayAllocate, PRSize 
       if(memory!=NULL) {
         *aMemory=memory;
         *aSize=aSizeNeeded;
-        return PR_TRUE;
+        return true;
       } else {
         
-        return PR_FALSE;
+        return false;
       }
     } else {
       
-      return PR_TRUE;
+      return true;
     }
   }
 }
@@ -1536,7 +1536,7 @@ bool nsBidi::GetRuns()
         if(GETRUNSMEMORY(runCount)) {
           runs=mRunsMemory;
         } else {
-          return PR_FALSE;
+          return false;
         }
 
         
@@ -1609,7 +1609,7 @@ bool nsBidi::GetRuns()
       }
     }
   }
-  return PR_TRUE;
+  return true;
 }
 
 
@@ -1819,7 +1819,7 @@ bool nsBidi::PrepareReorder(const nsBidiLevel *aLevels, PRInt32 aLength,
   nsBidiLevel level, minLevel, maxLevel;
 
   if(aLevels==NULL || aLength<=0) {
-    return PR_FALSE;
+    return false;
   }
 
   
@@ -1828,7 +1828,7 @@ bool nsBidi::PrepareReorder(const nsBidiLevel *aLevels, PRInt32 aLength,
   for(start=aLength; start>0;) {
     level=aLevels[--start];
     if(level>NSBIDI_MAX_EXPLICIT_LEVEL+1) {
-      return PR_FALSE;
+      return false;
     }
     if(level<minLevel) {
       minLevel=level;
@@ -1846,7 +1846,7 @@ bool nsBidi::PrepareReorder(const nsBidiLevel *aLevels, PRInt32 aLength,
     aIndexMap[start]=start;
   }
 
-  return PR_TRUE;
+  return true;
 }
 
 #ifdef FULL_BIDI_ENGINE

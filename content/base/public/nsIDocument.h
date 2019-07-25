@@ -158,16 +158,16 @@ public:
       mCharacterSet(NS_LITERAL_CSTRING("ISO-8859-1")),
       mNodeInfoManager(nsnull),
       mCompatMode(eCompatibility_FullStandards),
-      mIsInitialDocumentInWindow(PR_FALSE),
-      mMayStartLayout(PR_TRUE),
-      mVisible(PR_TRUE),
-      mRemovedFromDocShell(PR_FALSE),
+      mIsInitialDocumentInWindow(false),
+      mMayStartLayout(true),
+      mVisible(true),
+      mRemovedFromDocShell(false),
       
       
       
       
-      mAllowDNSPrefetch(PR_TRUE),
-      mIsBeingUsedAsImage(PR_FALSE),
+      mAllowDNSPrefetch(true),
+      mIsBeingUsedAsImage(false),
       mPartID(0)
   {
     SetInDocument();
@@ -401,7 +401,7 @@ public:
 
   void SetBidiEnabled()
   {
-    mBidiEnabled = PR_TRUE;
+    mBidiEnabled = true;
   }
   
   
@@ -414,7 +414,7 @@ public:
   
   void SetMathMLEnabled()
   {
-    mMathMLEnabled = PR_TRUE;
+    mMathMLEnabled = true;
   }
 
   
@@ -1226,7 +1226,7 @@ public:
   }
 
   void SetIsBeingUsedAsImage() {
-    mIsBeingUsedAsImage = PR_TRUE;
+    mIsBeingUsedAsImage = true;
   }
 
   bool IsResourceDoc() const {
@@ -1392,8 +1392,8 @@ public:
 
 
   bool AllowXULXBL() {
-    return mAllowXULXBL == eTriTrue ? PR_TRUE :
-           mAllowXULXBL == eTriFalse ? PR_FALSE :
+    return mAllowXULXBL == eTriTrue ? true :
+           mAllowXULXBL == eTriFalse ? false :
            InternalAllowXULXBL();
   }
 
@@ -1523,7 +1523,7 @@ public:
   void ScheduleBeforePaintEvent(nsIAnimationFrameListener* aListener);
   void BeforePaintEventFiring()
   {
-    mHavePendingPaint = PR_FALSE;
+    mHavePendingPaint = false;
   }
 
   typedef nsTArray< nsCOMPtr<nsIAnimationFrameListener> > AnimationListenerList;

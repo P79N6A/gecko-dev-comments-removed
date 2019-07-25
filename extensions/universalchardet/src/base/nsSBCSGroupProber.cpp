@@ -62,8 +62,8 @@ nsSBCSGroupProber::nsSBCSGroupProber()
   
   
   mProbers[11] = hebprober;
-  mProbers[12] = new nsSingleByteCharSetProber(&Win1255Model, PR_FALSE, hebprober); 
-  mProbers[13] = new nsSingleByteCharSetProber(&Win1255Model, PR_TRUE, hebprober); 
+  mProbers[12] = new nsSingleByteCharSetProber(&Win1255Model, false, hebprober); 
+  mProbers[13] = new nsSingleByteCharSetProber(&Win1255Model, true, hebprober); 
   
   if (mProbers[11] && mProbers[12] && mProbers[13]) 
   {
@@ -117,11 +117,11 @@ void  nsSBCSGroupProber::Reset(void)
     if (mProbers[i]) 
     {
       mProbers[i]->Reset();
-      mIsActive[i] = PR_TRUE;
+      mIsActive[i] = true;
       ++mActiveNum;
     }
     else
-      mIsActive[i] = PR_FALSE;
+      mIsActive[i] = false;
   }
   mBestGuess = -1;
   mState = eDetecting;
@@ -160,7 +160,7 @@ nsProbingState nsSBCSGroupProber::HandleData(const char* aBuf, PRUint32 aLen)
      }
      else if (st == eNotMe)
      {
-       mIsActive[i] = PR_FALSE;
+       mIsActive[i] = false;
        mActiveNum--;
        if (mActiveNum <= 0)
        {

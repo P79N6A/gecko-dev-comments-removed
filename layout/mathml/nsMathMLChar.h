@@ -111,7 +111,7 @@ public:
     mParent = aParent;
     mUnscaledAscent = 0;
     mScaleX = mScaleY = 1.0;
-    mDrawNormal = PR_TRUE;
+    mDrawNormal = true;
   }
 
   ~nsMathMLChar() { 

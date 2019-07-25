@@ -212,7 +212,7 @@ CheckQuotaHelper::Run()
 
     
     
-    rv = obs->AddObserver(this, DOM_WINDOW_DESTROYED_TOPIC, PR_FALSE);
+    rv = obs->AddObserver(this, DOM_WINDOW_DESTROYED_TOPIC, false);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = obs->NotifyObservers(static_cast<nsIRunnable*>(this),

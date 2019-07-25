@@ -235,7 +235,7 @@ public:
   SelectionProperties& GetSelectionProperties() {
     return mSelectionProperties;
   }
-  void WillInitEagerly() { mSelectionRestoreEagerInit = PR_TRUE; }
+  void WillInitEagerly() { mSelectionRestoreEagerInit = true; }
   bool HasNeverInitializedBefore() const { return !mEverInited; }
 
 private:
@@ -261,16 +261,16 @@ private:
   public:
     explicit InitializationGuard(nsTextEditorState& aState) :
       mState(aState),
-      mGuardSet(PR_FALSE)
+      mGuardSet(false)
     {
       if (!mState.mInitializing) {
-        mGuardSet = PR_TRUE;
-        mState.mInitializing = PR_TRUE;
+        mGuardSet = true;
+        mState.mInitializing = true;
       }
     }
     ~InitializationGuard() {
       if (mGuardSet) {
-        mState.mInitializing = PR_FALSE;
+        mState.mInitializing = false;
       }
     }
     bool IsInitializingRecursively() const {

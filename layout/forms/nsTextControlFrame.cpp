@@ -151,17 +151,17 @@ class EditorInitializerEntryTracker {
 public:
   explicit EditorInitializerEntryTracker(nsTextControlFrame &frame)
     : mFrame(frame)
-    , mFirstEntry(PR_FALSE)
+    , mFirstEntry(false)
   {
     if (!mFrame.mInEditorInitialization) {
-      mFrame.mInEditorInitialization = PR_TRUE;
-      mFirstEntry = PR_TRUE;
+      mFrame.mInEditorInitialization = true;
+      mFirstEntry = true;
     }
   }
   ~EditorInitializerEntryTracker()
   {
     if (mFirstEntry) {
-      mFrame.mInEditorInitialization = PR_FALSE;
+      mFrame.mInEditorInitialization = false;
     }
   }
   bool EnteredMoreThanOnce() const { return !mFirstEntry; }
@@ -173,12 +173,12 @@ private:
 
 nsTextControlFrame::nsTextControlFrame(nsIPresShell* aShell, nsStyleContext* aContext)
   : nsStackFrame(aShell, aContext)
-  , mUseEditor(PR_FALSE)
-  , mIsProcessing(PR_FALSE)
-  , mNotifyOnInput(PR_TRUE)
-  , mFireChangeEventState(PR_FALSE)
+  , mUseEditor(false)
+  , mIsProcessing(false)
+  , mNotifyOnInput(true)
+  , mFireChangeEventState(false)
 #ifdef DEBUG
-  , mInEditorInitialization(PR_FALSE)
+  , mInEditorInitialization(false)
 #endif
 {
 }
@@ -204,7 +204,7 @@ nsTextControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
   NS_ASSERTION(txtCtrl, "Content not a text control element");
   txtCtrl->UnbindFromFrame(this);
 
-  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_FALSE);
+  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
 
   nsBoxFrame::DestroyFrom(aDestructRoot);
 }
@@ -359,7 +359,7 @@ nsTextControlFrame::EnsureEditorInitialized()
       : mFrame(aFrame) {}
     ~EnsureSetFocus() {
       if (nsContentUtils::IsFocusedContent(mFrame->GetContent()))
-        mFrame->SetFocus(PR_TRUE, PR_FALSE);
+        mFrame->SetFocus(true, false);
     }
   private:
     nsTextControlFrame *mFrame;
@@ -382,7 +382,7 @@ nsTextControlFrame::EnsureEditorInitialized()
 
   
   
-  mUseEditor = PR_TRUE;
+  mUseEditor = true;
 
   
   if (weakFrame.IsAlive()) {
@@ -428,7 +428,7 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
       return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  rv = UpdateValueDisplay(PR_FALSE);
+  rv = UpdateValueDisplay(false);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -534,7 +534,7 @@ nsTextControlFrame::Reflow(nsPresContext*   aPresContext,
 
   
   if (mState & NS_FRAME_FIRST_REFLOW) {
-    nsFormControlFrame::RegUnRegAccessKey(this, PR_TRUE);
+    nsFormControlFrame::RegUnRegAccessKey(this, true);
   }
 
   return nsStackFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
@@ -623,13 +623,13 @@ bool
 nsTextControlFrame::IsCollapsed(nsBoxLayoutState& aBoxLayoutState)
 {
   
-  return PR_FALSE;
+  return false;
 }
 
 bool
 nsTextControlFrame::IsLeaf() const
 {
-  return PR_TRUE;
+  return true;
 }
 
 NS_IMETHODIMP
@@ -666,7 +666,7 @@ void nsTextControlFrame::SetFocus(bool aOn, bool aRepaint)
       if (!textLength) {
         nsWeakFrame weakFrame(this);
 
-        txtCtrl->SetPlaceholderClass(PR_TRUE, PR_TRUE);
+        txtCtrl->SetPlaceholderClass(true, true);
 
         if (!weakFrame.IsAlive()) {
           return;
@@ -684,7 +684,7 @@ void nsTextControlFrame::SetFocus(bool aOn, bool aRepaint)
   if (mUsePlaceholder) {
     nsWeakFrame weakFrame(this);
 
-    txtCtrl->SetPlaceholderClass(PR_FALSE, PR_TRUE);
+    txtCtrl->SetPlaceholderClass(false, true);
 
     if (!weakFrame.IsAlive()) {
       return;
@@ -747,7 +747,7 @@ nsresult nsTextControlFrame::SetFormProperty(nsIAtom* aName, const nsAString& aV
 {
   if (!mIsProcessing)
   {
-    mIsProcessing = PR_TRUE;
+    mIsProcessing = true;
     if (nsGkAtoms::select == aName)
     {
       
@@ -759,12 +759,12 @@ nsresult nsTextControlFrame::SetFormProperty(nsIAtom* aName, const nsAString& aV
       
 
       nsWeakFrame weakThis = this;
-      SelectAllOrCollapseToEndOfText(PR_TRUE);  
+      SelectAllOrCollapseToEndOfText(true);  
       if (!weakThis.IsAlive()) {
         return NS_OK;
       }
     }
-    mIsProcessing = PR_FALSE;
+    mIsProcessing = false;
   }
   return NS_OK;
 }
@@ -802,7 +802,7 @@ nsTextControlFrame::GetTextLength(PRInt32* aTextLength)
   nsAutoString   textContents;
   nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent());
   NS_ASSERTION(txtCtrl, "Content not a text control element");
-  txtCtrl->GetTextEditorValue(textContents, PR_FALSE);   
+  txtCtrl->GetTextEditorValue(textContents, false);   
   *aTextLength = textContents.Length();
   return NS_OK;
 }
@@ -1273,14 +1273,14 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
     { 
       flags |= nsIPlaintextEditor::eEditorReadonlyMask;
       if (nsContentUtils::IsFocusedContent(mContent))
-        selCon->SetCaretEnabled(PR_FALSE);
+        selCon->SetCaretEnabled(false);
     }
     else 
     { 
       flags &= ~(nsIPlaintextEditor::eEditorReadonlyMask);
       if (!(flags & nsIPlaintextEditor::eEditorDisabledMask) &&
           nsContentUtils::IsFocusedContent(mContent))
-        selCon->SetCaretEnabled(PR_TRUE);
+        selCon->SetCaretEnabled(true);
     }
     editor->SetFlags(flags);
   }
@@ -1293,20 +1293,20 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
       flags |= nsIPlaintextEditor::eEditorDisabledMask;
       selCon->SetDisplaySelection(nsISelectionController::SELECTION_OFF);
       if (nsContentUtils::IsFocusedContent(mContent))
-        selCon->SetCaretEnabled(PR_FALSE);
+        selCon->SetCaretEnabled(false);
     }
     else 
     { 
       flags &= ~(nsIPlaintextEditor::eEditorDisabledMask);
       selCon->SetDisplaySelection(nsISelectionController::SELECTION_HIDDEN);
       if (nsContentUtils::IsFocusedContent(mContent)) {
-        selCon->SetCaretEnabled(PR_TRUE);
+        selCon->SetCaretEnabled(true);
       }
     }
     editor->SetFlags(flags);
   }
   else if (!mUseEditor && nsGkAtoms::value == aAttribute) {
-    UpdateValueDisplay(PR_TRUE);
+    UpdateValueDisplay(true);
   }
   
   
@@ -1326,7 +1326,7 @@ nsTextControlFrame::GetText(nsString& aText)
   NS_ASSERTION(txtCtrl, "Content not a text control element");
   if (IsSingleLineTextControl()) {
     
-    txtCtrl->GetTextEditorValue(aText, PR_TRUE);
+    txtCtrl->GetTextEditorValue(aText, true);
   } else {
     nsCOMPtr<nsIDOMHTMLTextAreaElement> textArea = do_QueryInterface(mContent);
     if (textArea) {
@@ -1369,10 +1369,10 @@ nsTextControlFrame::GetMaxLength(PRInt32* aSize)
     if (attr && attr->Type() == nsAttrValue::eInteger) {
       *aSize = attr->GetIntegerValue();
 
-      return PR_TRUE;
+      return true;
     }
   }
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -1408,8 +1408,8 @@ nsTextControlFrame::CheckFireOnChange()
     mFocusedValue = value;
     
     nsContentUtils::DispatchTrustedEvent(mContent->GetOwnerDoc(), mContent,
-                                         NS_LITERAL_STRING("change"), PR_TRUE,
-                                         PR_FALSE);
+                                         NS_LITERAL_STRING("change"), true,
+                                         false);
   }
   return NS_OK;
 }
@@ -1470,7 +1470,7 @@ nsTextControlFrame::SetValueChanged(bool aValueChanged)
     GetTextLength(&textLength);
 
     nsWeakFrame weakFrame(this);
-    txtCtrl->SetPlaceholderClass(!textLength, PR_TRUE);
+    txtCtrl->SetPlaceholderClass(!textLength, true);
     if (!weakFrame.IsAlive()) {
       return;
     }
@@ -1519,7 +1519,7 @@ nsTextControlFrame::UpdateValueDisplay(bool aNotify,
   if (aValue) {
     value = *aValue;
   } else {
-    txtCtrl->GetTextEditorValue(value, PR_TRUE);
+    txtCtrl->GetTextEditorValue(value, true);
   }
 
   
@@ -1533,7 +1533,7 @@ nsTextControlFrame::UpdateValueDisplay(bool aNotify,
   }
 
   if (aBeforeEditorInit && value.IsEmpty()) {
-    rootNode->RemoveChildAt(0, PR_TRUE);
+    rootNode->RemoveChildAt(0, true);
     return NS_OK;
   }
 

@@ -120,7 +120,7 @@ public:
       return;
 
     
-    tmpFile->Remove(PR_TRUE);
+    tmpFile->Remove(true);
   }
 };
 

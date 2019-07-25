@@ -123,14 +123,14 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
           }
 
           mMouseDownRect = rect.ToNearestPixels(aPresContext->AppUnitsPerDevPixel());
-          doDefault = PR_FALSE;
+          doDefault = false;
         }
         else {
           
           if (!window)
             break;
 
-          doDefault = PR_FALSE;
+          doDefault = false;
             
           
           Direction direction = GetDirection();
@@ -147,7 +147,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         }
 
         
-        mTrackingMouseMove = PR_TRUE;
+        mTrackingMouseMove = true;
 
         
         mMouseDownPoint = aEvent->refPoint + aEvent->widget->WidgetToScreenOffset();
@@ -163,11 +163,11 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton)
     {
       
-      mTrackingMouseMove = PR_FALSE;
+      mTrackingMouseMove = false;
 
       nsIPresShell::SetCapturingContent(nsnull, 0);
 
-      doDefault = PR_FALSE;
+      doDefault = false;
     }
   }
   break;
@@ -280,14 +280,14 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
             (oldRect.x != rect.x || oldRect.y != rect.y) &&
             (!menuPopupFrame->IsAnchored() ||
              menuPopupFrame->PopupLevel() != ePopupLevelParent)) {
-          menuPopupFrame->MoveTo(rect.x, rect.y, PR_TRUE);
+          menuPopupFrame->MoveTo(rect.x, rect.y, true);
         }
       }
       else {
-        window->SetPositionAndSize(rect.x, rect.y, rect.width, rect.height, PR_TRUE); 
+        window->SetPositionAndSize(rect.x, rect.y, rect.width, rect.height, true); 
       }
 
-      doDefault = PR_FALSE;
+      doDefault = false;
     }
   }
   break;
@@ -427,10 +427,10 @@ nsResizerFrame::ResizeContent(nsIContent* aContent, const Direction& aDirection,
     }
     
     if (aDirection.mHorizontal) {
-      aContent->SetAttr(kNameSpaceID_None, nsGkAtoms::width, aSizeInfo.width, PR_TRUE);
+      aContent->SetAttr(kNameSpaceID_None, nsGkAtoms::width, aSizeInfo.width, true);
     }
     if (aDirection.mVertical) {
-      aContent->SetAttr(kNameSpaceID_None, nsGkAtoms::height, aSizeInfo.height, PR_TRUE);
+      aContent->SetAttr(kNameSpaceID_None, nsGkAtoms::height, aSizeInfo.height, true);
     }
   }
   else {
@@ -551,5 +551,5 @@ nsResizerFrame::MouseClicked(nsPresContext* aPresContext, nsGUIEvent *aEvent)
   
   nsContentUtils::DispatchXULCommand(mContent,
                                      aEvent ?
-                                       NS_IS_TRUSTED_EVENT(aEvent) : PR_FALSE);
+                                       NS_IS_TRUSTED_EVENT(aEvent) : false);
 }

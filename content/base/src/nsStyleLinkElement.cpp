@@ -60,8 +60,8 @@
 #include "nsContentUtils.h"
 
 nsStyleLinkElement::nsStyleLinkElement()
-  : mDontLoadStyle(PR_FALSE)
-  , mUpdatesEnabled(PR_TRUE)
+  : mDontLoadStyle(false)
+  , mUpdatesEnabled(true)
   , mLineNumber(1)
 {
 }
@@ -171,13 +171,13 @@ void nsStyleLinkElement::ParseLinkTypes(const nsAString& aTypes,
       if (inString) {
         ToLowerCase(Substring(start, current), subString);
         aResult.AppendElement(subString);
-        inString = PR_FALSE;
+        inString = false;
       }
     }
     else {
       if (!inString) {
         start = current;
-        inString = PR_TRUE;
+        inString = true;
       }
     }
     ++current;
@@ -194,7 +194,7 @@ nsStyleLinkElement::UpdateStyleSheet(nsICSSLoaderObserver* aObserver,
                                      bool* aIsAlternate)
 {
   return DoUpdateStyleSheet(nsnull, aObserver, aWillNotify, aIsAlternate,
-                            PR_FALSE);
+                            false);
 }
 
 nsresult
@@ -213,7 +213,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
                                        bool* aIsAlternate,
                                        bool aForceUpdate)
 {
-  *aWillNotify = PR_FALSE;
+  *aWillNotify = false;
 
   if (mStyleSheet && aOldDocument) {
     
@@ -279,7 +279,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
   nsresult rv = NS_OK;
   if (isInline) {
     nsAutoString text;
-    nsContentUtils::GetNodeTextContent(thisContent, PR_FALSE, text);
+    nsContentUtils::GetNodeTextContent(thisContent, false, text);
 
     
     rv = doc->CSSLoader()->
@@ -298,8 +298,8 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
       
       
       
-      doneLoading = PR_TRUE;
-      isAlternate = PR_FALSE;
+      doneLoading = true;
+      isAlternate = false;
       rv = NS_OK;
     }
   }

@@ -45,7 +45,7 @@
 nsDOMMouseEvent::nsDOMMouseEvent(nsPresContext* aPresContext,
                                  nsInputEvent* aEvent)
   : nsDOMUIEvent(aPresContext, aEvent ? aEvent :
-                 new nsMouseEvent(PR_FALSE, 0, nsnull,
+                 new nsMouseEvent(false, 0, nsnull,
                                   nsMouseEvent::eReal))
 {
   
@@ -53,10 +53,10 @@ nsDOMMouseEvent::nsDOMMouseEvent(nsPresContext* aPresContext,
   
   
   if (aEvent) {
-    mEventIsInternal = PR_FALSE;
+    mEventIsInternal = false;
   }
   else {
-    mEventIsInternal = PR_TRUE;
+    mEventIsInternal = true;
     mEvent->time = PR_Now();
     mEvent->refPoint.x = mEvent->refPoint.y = 0;
     static_cast<nsMouseEvent*>(mEvent)->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;

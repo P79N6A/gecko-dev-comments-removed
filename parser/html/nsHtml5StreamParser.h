@@ -180,7 +180,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
     void Terminate() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
-      mTerminated = PR_TRUE;
+      mTerminated = true;
     }
     
     void DropTimer();
@@ -205,7 +205,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
     void Interrupt() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
-      mInterrupted = PR_TRUE;
+      mInterrupted = true;
     }
 
     void Uninterrupt() {
@@ -213,7 +213,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
       mTokenizerMutex.AssertCurrentThreadOwns();
       
       
-      mInterrupted = PR_FALSE;      
+      mInterrupted = false;      
     }
 
     

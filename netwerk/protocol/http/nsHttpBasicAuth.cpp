@@ -79,7 +79,7 @@ nsHttpBasicAuth::ChallengeReceived(nsIHttpAuthenticableChannel *authChannel,
 {
     
     
-    *identityInvalid = PR_TRUE;
+    *identityInvalid = true;
     return NS_OK;
 }
 

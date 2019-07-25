@@ -73,7 +73,7 @@ nsIdleServiceQt::nsIdleServiceQt()
 
 static void Initialize()
 {
-    sInitialized = PR_TRUE;
+    sInitialized = true;
 
 #if !defined(MOZ_PLATFORM_MAEMO) && defined(MOZ_X11)
     

@@ -59,7 +59,7 @@ CToken::CToken(PRInt32 aTag) {
   mAttrCount=0;
   mNewlineCount=0;
   mLineNumber = 0;
-  mInError = PR_FALSE;
+  mInError = false;
   mTypeID=aTag;
   
   

@@ -575,16 +575,16 @@ gfxFontUtils::FindPreferredSubtable(const PRUint8 *aBuf, PRUint32 aBufLength,
         if (isSymbol(platformID, encodingID)) {
             keepFormat = format;
             *aTableOffset = offset;
-            *aSymbolEncoding = PR_TRUE;
+            *aSymbolEncoding = true;
             break;
         } else if (format == 4 && acceptableFormat4(platformID, encodingID, keepFormat)) {
             keepFormat = format;
             *aTableOffset = offset;
-            *aSymbolEncoding = PR_FALSE;
+            *aSymbolEncoding = false;
         } else if (format == 12 && acceptableUCS4Encoding(platformID, encodingID, keepFormat)) {
             keepFormat = format;
             *aTableOffset = offset;
-            *aSymbolEncoding = PR_FALSE;
+            *aSymbolEncoding = false;
             if (platformID > PLATFORM_ID_UNICODE || !aUVSTableOffset || *aUVSTableOffset) {
                 break; 
             }
@@ -612,19 +612,19 @@ gfxFontUtils::ReadCMAP(const PRUint8 *aBuf, PRUint32 aBufLength,
 
     if (format == 4) {
         if (symbol) {
-            aUnicodeFont = PR_FALSE;
-            aSymbolFont = PR_TRUE;
+            aUnicodeFont = false;
+            aSymbolFont = true;
         } else {
-            aUnicodeFont = PR_TRUE;
-            aSymbolFont = PR_FALSE;
+            aUnicodeFont = true;
+            aSymbolFont = false;
         }
         return ReadCMAPTableFormat4(aBuf + offset, aBufLength - offset,
                                     aCharacterMap);
     }
 
     if (format == 12) {
-        aUnicodeFont = PR_TRUE;
-        aSymbolFont = PR_FALSE;
+        aUnicodeFont = true;
+        aSymbolFont = false;
         return ReadCMAPTableFormat12(aBuf + offset, aBufLength - offset,
                                      aCharacterMap);
     }
@@ -880,7 +880,7 @@ void gfxFontUtils::GetPrefsFontList(const char *aPrefName, nsTArray<nsString>& a
 
         
         fontname = Substring(nameStart, p);
-        fontname.CompressWhitespace(PR_TRUE, PR_TRUE);
+        fontname.CompressWhitespace(true, true);
         
         
         aFontList.AppendElement(fontname);
@@ -971,36 +971,36 @@ ValidateKernTable(const PRUint8 *aKernTable, PRUint32 aKernLength)
     
     const KernTableVersion0 *kernTable0 = reinterpret_cast<const KernTableVersion0*>(aKernTable);
     if (aKernLength < sizeof(KernTableVersion0)) {
-        return PR_FALSE;
+        return false;
     }
     if (PRUint16(kernTable0->version) == 0) {
         if (aKernLength < sizeof(KernTableVersion0) +
                             PRUint16(kernTable0->nTables) * sizeof(KernTableSubtableHeaderVersion0)) {
-            return PR_FALSE;
+            return false;
         }
         
         
         
-        return PR_TRUE;
+        return true;
     }
 
     const KernTableVersion1 *kernTable1 = reinterpret_cast<const KernTableVersion1*>(aKernTable);
     if (aKernLength < sizeof(KernTableVersion1)) {
-        return PR_FALSE;
+        return false;
     }
     if (kernTable1->version == 0x00010000) {
         if (aKernLength < sizeof(KernTableVersion1) +
                             kernTable1->nTables * sizeof(KernTableSubtableHeaderVersion1)) {
-            return PR_FALSE;
+            return false;
         }
         
         
         
-        return PR_TRUE;
+        return true;
     }
 
     
-    return PR_FALSE;
+    return false;
 }
 
 static bool
@@ -1009,7 +1009,7 @@ ValidateLocaTable(const PRUint8* aLocaTable, PRUint32 aLocaLen,
 {
     if (aLocaFormat == 0) {
         if (aLocaLen < PRUint32(aNumGlyphs + 1) * sizeof(PRUint16)) {
-            return PR_FALSE;
+            return false;
         }
         const AutoSwap_PRUint16 *p =
             reinterpret_cast<const AutoSwap_PRUint16*>(aLocaTable);
@@ -1017,15 +1017,15 @@ ValidateLocaTable(const PRUint8* aLocaTable, PRUint32 aLocaLen,
         for (PRUint32 i = 0; i <= aNumGlyphs; ++i) {
             PRUint32 current = PRUint16(*p++) * 2;
             if (current < prev || current > aGlyfLen) {
-                return PR_FALSE;
+                return false;
             }
             prev = current;
         }
-        return PR_TRUE;
+        return true;
     }
     if (aLocaFormat == 1) {
         if (aLocaLen < (aNumGlyphs + 1) * sizeof(PRUint32)) {
-            return PR_FALSE;
+            return false;
         }
         const AutoSwap_PRUint32 *p =
             reinterpret_cast<const AutoSwap_PRUint32*>(aLocaTable);
@@ -1033,13 +1033,13 @@ ValidateLocaTable(const PRUint8* aLocaTable, PRUint32 aLocaLen,
         for (PRUint32 i = 0; i <= aNumGlyphs; ++i) {
             PRUint32 current = *p++;
             if (current < prev || current > aGlyfLen) {
-                return PR_FALSE;
+                return false;
             }
             prev = current;
         }
-        return PR_TRUE;
+        return true;
     }
-    return PR_FALSE;
+    return false;
 }
 
 gfxUserFontType
@@ -1080,14 +1080,14 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
     
     if (sizeof(SFNTHeader) > aFontDataLength) {
         NS_WARNING("invalid font (insufficient data)");
-        return PR_FALSE;
+        return false;
     }
     
     const SFNTHeader *sfntHeader = reinterpret_cast<const SFNTHeader*>(aFontData);
     PRUint32 sfntVersion = sfntHeader->sfntVersion;
     if (!IsValidSFNTVersion(sfntVersion)) {
         NS_WARNING("invalid font (SFNT version)");
-        return PR_FALSE;
+        return false;
     }
     
     
@@ -1103,7 +1103,7 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
     PRUint32 headerLen = sizeof(SFNTHeader) + sizeof(TableDirEntry) * numTables;
     if (headerLen > aFontDataLength) {
         NS_WARNING("invalid font (table directory)");
-        return PR_FALSE;
+        return false;
     }
     
     
@@ -1125,7 +1125,7 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
         
         if (PRUint64(dirEntry->offset) + PRUint64(dirEntry->length) > dataLength) {
             NS_WARNING("invalid font (table directory entry)");
-            return PR_FALSE;
+            return false;
         }
 
         checksum += dirEntry->checkSum;
@@ -1133,54 +1133,54 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
         switch (dirEntry->tag) {
 
         case TRUETYPE_TAG('h','e','a','d'):
-            foundHead = PR_TRUE;
+            foundHead = true;
             headOffset = dirEntry->offset;
             headLen = dirEntry->length;
             if (headLen < sizeof(HeadTable)) {
                 NS_WARNING("invalid font (head table length)");
-                return PR_FALSE;
+                return false;
             }
             break;
 
         case TRUETYPE_TAG('k','e','r','n'):
-            foundKern = PR_TRUE;
+            foundKern = true;
             kernOffset = dirEntry->offset;
             kernLen = dirEntry->length;
             break;
 
         case TRUETYPE_TAG('n','a','m','e'):
-            foundName = PR_TRUE;
+            foundName = true;
             nameOffset = dirEntry->offset;
             nameLen = dirEntry->length;
             break;
 
         case TRUETYPE_TAG('O','S','/','2'):
-            foundOS2 = PR_TRUE;
+            foundOS2 = true;
             break;
 
         case TRUETYPE_TAG('g','l','y','f'):  
-            foundGlyphs = PR_TRUE;
+            foundGlyphs = true;
             glyfLen = dirEntry->length;
             break;
 
         case TRUETYPE_TAG('l','o','c','a'):  
-            foundLoca = PR_TRUE;
+            foundLoca = true;
             locaOffset = dirEntry->offset;
             locaLen = dirEntry->length;
             break;
 
         case TRUETYPE_TAG('m','a','x','p'):  
-            foundMaxp = PR_TRUE;
+            foundMaxp = true;
             maxpOffset = dirEntry->offset;
             maxpLen = dirEntry->length;
             if (maxpLen < sizeof(MaxpTableHeader)) {
                 NS_WARNING("invalid font (maxp table length)");
-                return PR_FALSE;
+                return false;
             }
             break;
 
         case TRUETYPE_TAG('C','F','F',' '):  
-            foundCFF = PR_TRUE;
+            foundCFF = true;
             break;
 
         default:
@@ -1194,14 +1194,14 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
     
     if (!foundHead || !foundName || !foundMaxp) {
         NS_WARNING("invalid font (missing head/name/maxp table)");
-        return PR_FALSE;
+        return false;
     }
     
     
 #ifdef XP_WIN
     if (!foundOS2) {
         NS_WARNING("invalid font (missing OS/2 table)");
-        return PR_FALSE;
+        return false;
     }
 #endif
 
@@ -1210,12 +1210,12 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
 
     if (headData->tableVersionNumber != HeadTable::HEAD_VERSION) {
         NS_WARNING("invalid font (head table version)");
-        return PR_FALSE;
+        return false;
     }
 
     if (headData->magicNumber != HeadTable::HEAD_MAGIC_NUMBER) {
         NS_WARNING("invalid font (head magic number)");
-        return PR_FALSE;
+        return false;
     }
 
     if (headData->checkSumAdjustment != (HeadTable::HEAD_CHECKSUM_CALC_CONST - checksum)) {
@@ -1230,12 +1230,12 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
     if (sfntVersion == TRUETYPE_TAG('O','T','T','O')) {
         if (!foundCFF) {
             NS_WARNING("invalid font (missing CFF table)");
-            return PR_FALSE;
+            return false;
         }
     } else {
         if (!foundGlyphs || !foundLoca) {
             NS_WARNING("invalid font (missing glyf or loca table)");
-            return PR_FALSE;
+            return false;
         }
 
         
@@ -1245,7 +1245,7 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
                                headData->indexToLocFormat,
                                maxpData->numGlyphs)) {
             NS_WARNING("invalid font (loca table offsets)");
-            return PR_FALSE;
+            return false;
         }
     }
     
@@ -1257,7 +1257,7 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
     
     if (PRUint64(nameCount) * sizeof(NameRecord) + PRUint64(nameOffset) > dataLength) {
         NS_WARNING("invalid font (name records)");
-        return PR_FALSE;
+        return false;
     }
     
     
@@ -1271,7 +1271,7 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
 
         if (nameStringsBase + PRUint64(nameoff) + PRUint64(namelen) > dataLength) {
             NS_WARNING("invalid font (name table strings)");
-            return PR_FALSE;
+            return false;
         }
     }
 
@@ -1279,12 +1279,12 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
     if (foundKern) {
         if (!ValidateKernTable(aFontData + kernOffset, kernLen)) {
             NS_WARNING("invalid font (kern table)");
-            return PR_FALSE;
+            return false;
         }
     }
 
     
-    return PR_TRUE;
+    return true;
 }
 
 nsresult
@@ -1381,7 +1381,7 @@ gfxFontUtils::RenameFont(const nsAString& aName, const PRUint8 *aFontData,
     
     for (i = 0; i < numTables; i++, dirEntry++) {
         if (dirEntry->tag == TRUETYPE_TAG('n','a','m','e')) {
-            foundName = PR_TRUE;
+            foundName = true;
             break;
         }
     }
@@ -1458,7 +1458,7 @@ gfxFontUtils::GetFullNameFromSFNT(const PRUint8* aFontData, PRUint32 aLength,
     bool foundName = false;
     for (PRUint32 i = 0; i < numTables; i++, dirEntry++) {
         if (dirEntry->tag == TRUETYPE_TAG('n','a','m','e')) {
-            foundName = PR_TRUE;
+            foundName = true;
             break;
         }
     }
@@ -1714,7 +1714,7 @@ gfxFontUtils::DecodeFontName(const PRUint8 *aNameData, PRInt32 aByteLen,
                 aPlatformCode, aScriptCode, aLangCode, aByteLen, aNameData);
         NS_WARNING(warnBuf);
 #endif
-        return PR_FALSE;
+        return false;
     }
 
     if (csName[0] == 0) {
@@ -1727,7 +1727,7 @@ gfxFontUtils::DecodeFontName(const PRUint8 *aNameData, PRInt32 aByteLen,
 #else
         aName.Assign(reinterpret_cast<const PRUnichar*>(aNameData), strLen);
 #endif    
-        return PR_TRUE;
+        return true;
     }
 
     nsresult rv;
@@ -1735,21 +1735,21 @@ gfxFontUtils::DecodeFontName(const PRUint8 *aNameData, PRInt32 aByteLen,
         do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
     NS_ASSERTION(NS_SUCCEEDED(rv), "failed to get charset converter manager");
     if (NS_FAILED(rv)) {
-        return PR_FALSE;
+        return false;
     }
 
     nsCOMPtr<nsIUnicodeDecoder> decoder;
     rv = ccm->GetUnicodeDecoderRawInternal(csName, getter_AddRefs(decoder));
     if (NS_FAILED(rv)) {
         NS_WARNING("failed to get the decoder for a font name string");
-        return PR_FALSE;
+        return false;
     }
 
     PRInt32 destLength;
     rv = decoder->GetMaxLength(reinterpret_cast<const char*>(aNameData), aByteLen, &destLength);
     if (NS_FAILED(rv)) {
         NS_WARNING("decoder->GetMaxLength failed, invalid font name?");
-        return PR_FALSE;
+        return false;
     }
 
     
@@ -1758,11 +1758,11 @@ gfxFontUtils::DecodeFontName(const PRUint8 *aNameData, PRInt32 aByteLen,
                           aName.BeginWriting(), &destLength);
     if (NS_FAILED(rv)) {
         NS_WARNING("decoder->Convert failed, invalid font name?");
-        return PR_FALSE;
+        return false;
     }
     aName.Truncate(destLength); 
 
-    return PR_TRUE;
+    return true;
 }
 
 nsresult
@@ -1842,7 +1842,7 @@ gfxFontUtils::ReadNames(FallibleTArray<PRUint8>& aNameTable, PRUint32 aNameID,
         numNames = aNames.Length();
         for (k = 0; k < numNames; k++) {
             if (name.Equals(aNames[k])) {
-                foundName = PR_TRUE;
+                foundName = true;
                 break;
             }    
         }
@@ -2010,7 +2010,7 @@ gfxFontUtils::MakeEOTHeader(const PRUint8 *aFontData, PRUint32 aFontDataLength,
         switch (dirEntry->tag) {
 
         case TRUETYPE_TAG('h','e','a','d'):
-            foundHead = PR_TRUE;
+            foundHead = true;
             headOffset = dirEntry->offset;
             headLen = dirEntry->length;
             if (headLen < sizeof(HeadTable))
@@ -2018,23 +2018,23 @@ gfxFontUtils::MakeEOTHeader(const PRUint8 *aFontData, PRUint32 aFontDataLength,
             break;
 
         case TRUETYPE_TAG('n','a','m','e'):
-            foundName = PR_TRUE;
+            foundName = true;
             nameOffset = dirEntry->offset;
             nameLen = dirEntry->length;
             break;
 
         case TRUETYPE_TAG('O','S','/','2'):
-            foundOS2 = PR_TRUE;
+            foundOS2 = true;
             os2Offset = dirEntry->offset;
             os2Len = dirEntry->length;
             break;
 
         case TRUETYPE_TAG('g','l','y','f'):  
-            foundGlyphs = PR_TRUE;
+            foundGlyphs = true;
             break;
 
         case TRUETYPE_TAG('C','F','F',' '):  
-            foundGlyphs = PR_TRUE;
+            foundGlyphs = true;
             break;
 
         default:
@@ -2238,10 +2238,10 @@ gfxFontUtils::IsCffFont(const PRUint8* aFontData, bool& hasVertical)
     PRUint32 numTables = sfntHeader->numTables;
     const TableDirEntry *dirEntry = 
         reinterpret_cast<const TableDirEntry*>(aFontData + sizeof(SFNTHeader));
-    hasVertical = PR_FALSE;
+    hasVertical = false;
     for (i = 0; i < numTables; i++, dirEntry++) {
         if (dirEntry->tag == TRUETYPE_TAG('v','h','e','a')) {
-            hasVertical = PR_TRUE;
+            hasVertical = true;
             break;
         }
     }

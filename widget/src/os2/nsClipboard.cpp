@@ -130,7 +130,7 @@ bool nsClipboard::GetClipboardDataByID(PRUint32 aFormatID, const char *aFlavor)
   PVOID pClipboardData = reinterpret_cast<PVOID>(WinQueryClipbrdData(0, aFormatID));
 
   if (!pClipboardData) 
-    return PR_FALSE;
+    return false;
 
   if (strstr( aFlavor, "text/" ))  
   {
@@ -148,7 +148,7 @@ bool nsClipboard::GetClipboardDataByID(PRUint32 aFormatID, const char *aFlavor)
         MultiByteToWideChar(0, static_cast<char*>(pDataMem), NumOfChars,
                             buffer, bufLength);
         pDataMem = ToNewUnicode(nsDependentString(buffer.Elements()));
-        TempBufAllocated = PR_TRUE;
+        TempBufAllocated = true;
         NumOfBytes = bufLength * sizeof(UniChar);
       }
 
@@ -160,7 +160,7 @@ bool nsClipboard::GetClipboardDataByID(PRUint32 aFormatID, const char *aFlavor)
       PVOID pTempBuf = nsMemory::Alloc(NumOfBytes);
       memcpy(pTempBuf, pDataMem, NumOfBytes);
       pDataMem = pTempBuf;
-      TempBufAllocated = PR_TRUE;
+      TempBufAllocated = true;
     }
 
     
@@ -215,7 +215,7 @@ bool nsClipboard::GetClipboardDataByID(PRUint32 aFormatID, const char *aFlavor)
   if (TempBufAllocated)
     nsMemory::Free(pDataMem);
 
-  return PR_TRUE;
+  return true;
 }
 
 
@@ -411,7 +411,7 @@ NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(const char** aFlavorList,
                                                   PRInt32 aWhichClipboard,
                                                   bool *_retval)
 {
-  *_retval = PR_FALSE;
+  *_retval = false;
   if (aWhichClipboard != kGlobalClipboard || !aFlavorList)
     return NS_OK;
 
@@ -420,14 +420,14 @@ NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(const char** aFlavorList,
     PRUint32 format = GetFormatID(aFlavorList[i]);
 
     if (WinQueryClipbrdFmtInfo(0, format, &fmtInfo)) {
-      *_retval = PR_TRUE;
+      *_retval = true;
       break;
     }
 
     
     if (!strcmp(aFlavorList[i], kUnicodeMime)) {
       if (WinQueryClipbrdFmtInfo(0, CF_TEXT, &fmtInfo)) {
-        *_retval = PR_TRUE;
+        *_retval = true;
         break;
       }
     }

@@ -76,7 +76,7 @@ static bool sDisableSignalHandling = false;
 #endif
 
 nsProfileLock::nsProfileLock() :
-    mHaveLock(PR_FALSE)
+    mHaveLock(false)
 #if defined (XP_WIN)
     ,mLockFileHandle(INVALID_HANDLE_VALUE)
 #elif defined (XP_OS2)
@@ -88,7 +88,7 @@ nsProfileLock::nsProfileLock() :
 {
 #if defined (XP_UNIX)
     next = prev = this;
-    sDisableSignalHandling = PR_GetEnv("MOZ_DISABLE_SIG_HANDLER") ? PR_TRUE : PR_FALSE;
+    sDisableSignalHandling = PR_GetEnv("MOZ_DISABLE_SIG_HANDLER") ? true : false;
 #endif
 }
 
@@ -104,7 +104,7 @@ nsProfileLock& nsProfileLock::operator=(nsProfileLock& rhs)
     Unlock();
 
     mHaveLock = rhs.mHaveLock;
-    rhs.mHaveLock = PR_FALSE;
+    rhs.mHaveLock = false;
 
 #if defined (XP_WIN)
     mLockFileHandle = rhs.mLockFileHandle;
@@ -166,7 +166,7 @@ void nsProfileLock::FatalSignalHandler(int signo
                                        )
 {
     
-    RemovePidLockFiles(PR_TRUE);
+    RemovePidLockFiles(true);
 
     
     struct sigaction *oldact = nsnull;
@@ -271,7 +271,7 @@ nsresult nsProfileLock::LockWithFcntl(const nsACString& lockFilePath)
                 rv = NS_ERROR_FAILURE;
         }
         else
-            mHaveLock = PR_TRUE;
+            mHaveLock = true;
     }
     else
     {
@@ -302,7 +302,7 @@ static bool IsSymlinkStaleLock(struct in_addr* aAddr, const char* aFileName,
                     
                     
                     
-                    return PR_TRUE;
+                    return true;
                 }
                     
                 char *after = nsnull;
@@ -312,7 +312,7 @@ static bool IsSymlinkStaleLock(struct in_addr* aAddr, const char* aFileName,
                     if (addr != aAddr->s_addr)
                     {
                         
-                        return PR_FALSE;
+                        return false;
                     }
     
                     
@@ -323,13 +323,13 @@ static bool IsSymlinkStaleLock(struct in_addr* aAddr, const char* aFileName,
                         
                         
                         
-                        return PR_FALSE;
+                        return false;
                     }
                 }
             }
         }
     }
-    return PR_TRUE;
+    return true;
 }
 
 nsresult nsProfileLock::LockWithSymlink(const nsACString& lockFilePath, bool aHaveFcntlLock)
@@ -382,7 +382,7 @@ nsresult nsProfileLock::LockWithSymlink(const nsACString& lockFilePath, bool aHa
         
         
         rv = NS_OK;
-        mHaveLock = PR_TRUE;
+        mHaveLock = true;
         mPidLockFileName = strdup(fileName);
         if (mPidLockFileName)
         {
@@ -491,7 +491,7 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
     {
         
         
-        rv = LockWithSymlink(filePath, PR_FALSE);
+        rv = LockWithSymlink(filePath, false);
     }
     
     if (NS_SUCCEEDED(rv))
@@ -569,7 +569,7 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
         
         
         
-        rv = LockWithSymlink(oldFilePath, PR_TRUE);
+        rv = LockWithSymlink(oldFilePath, true);
 
         
         
@@ -586,7 +586,7 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
         
         
         
-        rv = LockWithSymlink(oldFilePath, PR_FALSE);
+        rv = LockWithSymlink(oldFilePath, false);
     }
 
 #elif defined(XP_WIN)
@@ -648,7 +648,7 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
     }
 #endif
 
-    mHaveLock = PR_TRUE;
+    mHaveLock = true;
 
     return rv;
 }
@@ -695,7 +695,7 @@ nsresult nsProfileLock::Unlock(bool aFatalSignal)
         }
 #endif
 
-        mHaveLock = PR_FALSE;
+        mHaveLock = false;
     }
 
     return rv;

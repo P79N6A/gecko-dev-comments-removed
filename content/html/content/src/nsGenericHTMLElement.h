@@ -569,14 +569,14 @@ protected:
   void RegAccessKey()
   {
     if (HasFlag(NODE_HAS_ACCESSKEY)) {
-      RegUnRegAccessKey(PR_TRUE);
+      RegUnRegAccessKey(true);
     }
   }
 
   void UnregAccessKey()
   {
     if (HasFlag(NODE_HAS_ACCESSKEY)) {
-      RegUnRegAccessKey(PR_FALSE);
+      RegUnRegAccessKey(false);
     }
   }
 
@@ -869,11 +869,11 @@ public:
   
   virtual bool RestoreState(nsPresState* aState)
   {
-    return PR_FALSE;
+    return false;
   }
   virtual bool AllowDrop()
   {
-    return PR_TRUE;
+    return true;
   }
 
   

@@ -135,9 +135,9 @@ public:
         
         
         
-        return PR_TRUE;
+        return true;
 #else
-        return PR_FALSE;
+        return false;
 #endif
     }
 

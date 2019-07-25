@@ -775,7 +775,7 @@ public:
           --mid;
         } while (NoIndex != mid && comp.Equals(ElementAt(mid), item));
         *idx = ++mid;
-        return PR_TRUE;
+        return true;
       }
       if (comp.LessThan(ElementAt(mid), item))
         
@@ -788,7 +788,7 @@ public:
     
     
     *idx = high;
-    return PR_FALSE;
+    return false;
   }
 
   
@@ -918,10 +918,10 @@ public:
   bool RemoveElement(const Item& item, const Comparator& comp) {
     index_type i = IndexOf(item, 0, comp);
     if (i == NoIndex)
-      return PR_FALSE;
+      return false;
 
     RemoveElementAt(i);
-    return PR_TRUE;
+    return true;
   }
 
   
@@ -988,7 +988,7 @@ public:
     }
       
     TruncateLength(newLen);
-    return PR_TRUE;
+    return true;
   }
 
   
@@ -1015,7 +1015,7 @@ public:
     if (minLen > oldLen) {
       return InsertElementsAt(oldLen, minLen - oldLen) != nsnull;
     }
-    return PR_TRUE;
+    return true;
   }
 
   

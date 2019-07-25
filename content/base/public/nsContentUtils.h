@@ -1272,7 +1272,7 @@ public:
       nsXPCOMCycleCollectionParticipant* participant;
       CallQueryInterface(aScriptObjectHolder, &participant);
       HoldJSObjects(aScriptObjectHolder, participant);
-      aCache->SetPreservingWrapper(PR_TRUE);
+      aCache->SetPreservingWrapper(true);
 #ifdef DEBUG
       
       CheckCCWrapperTraversal(aScriptObjectHolder, aCache);

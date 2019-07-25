@@ -67,7 +67,7 @@ nsRecyclingAllocator::nsRecycleTimerCallback(nsITimer *aTimer, void *aClosure)
     {
         
         
-        obj->mTouched = PR_FALSE;
+        obj->mTouched = false;
     }
 }
 
@@ -75,7 +75,7 @@ nsRecyclingAllocator::nsRecycleTimerCallback(nsITimer *aTimer, void *aClosure)
 nsRecyclingAllocator::nsRecyclingAllocator(PRUint32 nbucket, PRUint32 recycleAfter, const char *id) :
     mMaxBlocks(nbucket), mFreeListCount(0), mFreeList(nsnull),
     mLock("nsRecyclingAllocator.mLock"),
-    mRecycleTimer(nsnull), mRecycleAfter(recycleAfter), mTouched(PR_FALSE)
+    mRecycleTimer(nsnull), mRecycleAfter(recycleAfter), mTouched(false)
 #ifdef DEBUG
     , mId(id), mNAllocated(0)
 #endif
@@ -128,7 +128,7 @@ nsRecyclingAllocator::Malloc(PRSize bytes, bool zeroit)
 
         
         
-        mTouched = PR_TRUE;
+        mTouched = true;
 
         Block* freeNode = mFreeList;
         Block** prevp = &mFreeList;
@@ -185,7 +185,7 @@ nsRecyclingAllocator::Free(void *ptr)
 
     
     
-    mTouched = PR_TRUE;
+    mTouched = true;
 
     
     if (mFreeListCount < mMaxBlocks) {
@@ -292,7 +292,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS2(nsRecyclingAllocatorImpl, nsIMemory, nsIRecyclingA
 NS_IMETHODIMP_(void *)
 nsRecyclingAllocatorImpl::Alloc(PRSize size)
 {
-    return nsRecyclingAllocatorImpl::Malloc(size, PR_FALSE);
+    return nsRecyclingAllocatorImpl::Malloc(size, false);
 }
 
 NS_IMETHODIMP_(void *)

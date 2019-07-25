@@ -97,7 +97,7 @@ nsresult TestWinAttribs()
     
     
 
-    rv = NS_NewLocalFile(nsEmbedString(filePath), PR_FALSE,
+    rv = NS_NewLocalFile(nsEmbedString(filePath), false,
                          getter_AddRefs(localFile));
     if (NS_FAILED(rv))
     {

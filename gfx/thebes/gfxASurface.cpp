@@ -366,13 +366,13 @@ gfxASurface::CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit)
 {
     if (sz.width < 0 || sz.height < 0) {
         NS_WARNING("Surface width or height < 0!");
-        return PR_FALSE;
+        return false;
     }
 
     
     if (limit && (sz.width > limit || sz.height > limit)) {
         NS_WARNING("Surface size too large (exceeds caller's limit)!");
-        return PR_FALSE;
+        return false;
     }
 
 #if defined(XP_MACOSX)
@@ -380,7 +380,7 @@ gfxASurface::CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit)
     
     if (sz.height > SHRT_MAX) {
         NS_WARNING("Surface size too large (exceeds CoreGraphics limit)!");
-        return PR_FALSE;
+        return false;
     }
 #endif
 
@@ -389,7 +389,7 @@ gfxASurface::CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit)
     tmp *= sz.height;
     if (!tmp.valid()) {
         NS_WARNING("Surface size too large (would overflow)!");
-        return PR_FALSE;
+        return false;
     }
 
     
@@ -397,10 +397,10 @@ gfxASurface::CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit)
     tmp *= 4;
     if (!tmp.valid()) {
         NS_WARNING("Allocation too large (would overflow)!");
-        return PR_FALSE;
+        return false;
     }
 
-    return PR_TRUE;
+    return true;
 }
 
 
@@ -488,11 +488,11 @@ bool
 gfxASurface::GetSubpixelAntialiasingEnabled()
 {
     if (!mSurfaceValid)
-      return PR_FALSE;
+      return false;
 #ifdef MOZ_TREE_CAIRO
     return cairo_surface_get_subpixel_antialiasing(mSurface) == CAIRO_SUBPIXEL_ANTIALIASING_ENABLED;
 #else
-    return PR_TRUE;
+    return true;
 #endif
 }
 

@@ -192,8 +192,8 @@ public:
 
   void ResetToAutoBuffer()
   {
-    SetArray(reinterpret_cast<Impl*>(mAutoBuf), kAutoBufSize, 0, PR_FALSE,
-             PR_TRUE);
+    SetArray(reinterpret_cast<Impl*>(mAutoBuf), kAutoBufSize, 0, false,
+             true);
   }
 
   nsAutoVoidArray& operator=(const nsVoidArray& other)

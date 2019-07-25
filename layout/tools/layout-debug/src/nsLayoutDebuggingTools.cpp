@@ -115,13 +115,13 @@ document(nsIDocShell *aDocShell)
 #endif
 
 nsLayoutDebuggingTools::nsLayoutDebuggingTools()
-  : mPaintFlashing(PR_FALSE),
-    mPaintDumping(PR_FALSE),
-    mInvalidateDumping(PR_FALSE),
-    mEventDumping(PR_FALSE),
-    mMotionEventDumping(PR_FALSE),
-    mCrossingEventDumping(PR_FALSE),
-    mReflowCounts(PR_FALSE)
+  : mPaintFlashing(false),
+    mPaintDumping(false),
+    mInvalidateDumping(false),
+    mEventDumping(false),
+    mMotionEventDumping(false),
+    mCrossingEventDumping(false),
+    mReflowCounts(false)
 {
     NewURILoaded();
 }
@@ -182,11 +182,11 @@ nsLayoutDebuggingTools::NewURILoaded()
     
 
     
-    mEditorMode = PR_FALSE;
-    mVisualDebugging = PR_FALSE;
-    mVisualEventDebugging = PR_FALSE;
+    mEditorMode = false;
+    mVisualDebugging = false;
+    mVisualEventDebugging = false;
 
-    mReflowCounts = PR_FALSE;
+    mReflowCounts = false;
 
     ForceRefresh();
     return NS_OK;

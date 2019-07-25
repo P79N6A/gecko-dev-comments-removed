@@ -203,7 +203,7 @@ public:
   SVGLengthListAndInfo()
     : mElement(nsnull)
     , mAxis(0)
-    , mCanZeroPadList(PR_FALSE)
+    , mCanZeroPadList(false)
   {}
 
   SVGLengthListAndInfo(nsSVGElement *aElement, PRUint8 aAxis, bool aCanZeroPadList)

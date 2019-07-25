@@ -121,7 +121,7 @@ private:
 
 nsPrefetchQueueEnumerator::nsPrefetchQueueEnumerator(nsPrefetchService *aService)
     : mService(aService)
-    , mStarted(PR_FALSE)
+    , mStarted(false)
 {
     Increment();
 }
@@ -163,7 +163,7 @@ nsPrefetchQueueEnumerator::Increment()
     
     
     
-    mStarted = PR_TRUE;
+    mStarted = true;
     mCurrent = mService->GetCurrentNode();
     if (!mCurrent)
       mCurrent = mService->GetQueueHead();
@@ -226,7 +226,7 @@ nsPrefetchNode::OpenChannel()
         httpChannel->SetRequestHeader(
             NS_LITERAL_CSTRING("X-Moz"),
             NS_LITERAL_CSTRING("prefetch"),
-            PR_FALSE);
+            false);
     }
 
     rv = mChannel->AsyncOpen(this, nsnull);
@@ -391,7 +391,7 @@ nsPrefetchNode::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
 
     httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("X-Moz"),
                                   NS_LITERAL_CSTRING("prefetch"),
-                                  PR_FALSE);
+                                  false);
 
     mChannel = aNewChannel;
 
@@ -408,8 +408,8 @@ nsPrefetchService::nsPrefetchService()
     : mQueueHead(nsnull)
     , mQueueTail(nsnull)
     , mStopCount(0)
-    , mHaveProcessed(PR_FALSE)
-    , mDisabled(PR_TRUE)
+    , mHaveProcessed(false)
+    , mDisabled(true)
 {
 }
 
@@ -441,7 +441,7 @@ nsPrefetchService::Init()
     if (!observerService)
       return NS_ERROR_FAILURE;
 
-    rv = observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_TRUE);
+    rv = observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, true);
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (!mDisabled)
@@ -603,7 +603,7 @@ nsPrefetchService::StartPrefetching()
     
     
     if (mStopCount == 0 && !mCurrentNode) {
-        mHaveProcessed = PR_TRUE;
+        mHaveProcessed = true;
         ProcessNextURI();
     }
 }
@@ -937,13 +937,13 @@ nsPrefetchService::Observe(nsISupports     *aSubject,
     if (!strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
         StopPrefetching();
         EmptyQueue();
-        mDisabled = PR_TRUE;
+        mDisabled = true;
     }
     else if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
         if (Preferences::GetBool(PREFETCH_PREF, false)) {
             if (mDisabled) {
                 LOG(("enabling prefetching\n"));
-                mDisabled = PR_FALSE;
+                mDisabled = false;
                 AddProgressListener();
             }
         } 
@@ -952,7 +952,7 @@ nsPrefetchService::Observe(nsISupports     *aSubject,
                 LOG(("disabling prefetching\n"));
                 StopPrefetching();
                 EmptyQueue();
-                mDisabled = PR_TRUE;
+                mDisabled = true;
                 RemoveProgressListener();
             }
         }

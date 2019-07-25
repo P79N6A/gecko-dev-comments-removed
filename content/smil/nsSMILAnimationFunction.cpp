@@ -57,14 +57,14 @@
 
 
 nsAttrValue::EnumTable nsSMILAnimationFunction::sAccumulateTable[] = {
-      {"none", PR_FALSE},
-      {"sum", PR_TRUE},
+      {"none", false},
+      {"sum", true},
       {nsnull, 0}
 };
 
 nsAttrValue::EnumTable nsSMILAnimationFunction::sAdditiveTable[] = {
-      {"replace", PR_FALSE},
-      {"sum", PR_TRUE},
+      {"replace", false},
+      {"sum", true},
       {nsnull, 0}
 };
 
@@ -89,12 +89,12 @@ nsSMILAnimationFunction::nsSMILAnimationFunction()
     mBeginTime(LL_MININT),
     mAnimationElement(nsnull),
     mErrorFlags(0),
-    mIsActive(PR_FALSE),
-    mIsFrozen(PR_FALSE),
-    mLastValue(PR_FALSE),
-    mHasChanged(PR_TRUE),
-    mValueNeedsReparsingEverySample(PR_FALSE),
-    mPrevSampleWasSingleValueAnimation(PR_FALSE)
+    mIsActive(false),
+    mIsFrozen(false),
+    mLastValue(false),
+    mHasChanged(true),
+    mValueNeedsReparsingEverySample(false),
+    mPrevSampleWasSingleValueAnimation(false)
 {
 }
 
@@ -122,7 +122,7 @@ nsSMILAnimationFunction::SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
     
     
     
-    mHasChanged = PR_TRUE;
+    mHasChanged = true;
     aResult.SetTo(aValue);
   } else if (aAttribute == nsGkAtoms::accumulate) {
     parseResult = SetAccumulate(aValue, aResult);
@@ -135,7 +135,7 @@ nsSMILAnimationFunction::SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
   } else if (aAttribute == nsGkAtoms::keySplines) {
     parseResult = SetKeySplines(aValue, aResult);
   } else {
-    foundMatch = PR_FALSE;
+    foundMatch = false;
   }
 
   if (foundMatch && aParseResult) {
@@ -154,7 +154,7 @@ nsSMILAnimationFunction::UnsetAttr(nsIAtom* aAttribute)
       aAttribute == nsGkAtoms::from ||
       aAttribute == nsGkAtoms::to ||
       aAttribute == nsGkAtoms::values) {
-    mHasChanged = PR_TRUE;
+    mHasChanged = true;
   } else if (aAttribute == nsGkAtoms::accumulate) {
     UnsetAccumulate();
   } else if (aAttribute == nsGkAtoms::additive) {
@@ -166,7 +166,7 @@ nsSMILAnimationFunction::UnsetAttr(nsIAtom* aAttribute)
   } else if (aAttribute == nsGkAtoms::keySplines) {
     UnsetKeySplines();
   } else {
-    foundMatch = PR_FALSE;
+    foundMatch = false;
   }
 
   return foundMatch;
@@ -194,45 +194,45 @@ nsSMILAnimationFunction::SampleAt(nsSMILTime aSampleTime,
   mSampleTime       = aSampleTime;
   mSimpleDuration   = aSimpleDuration;
   mRepeatIteration  = aRepeatIteration;
-  mLastValue        = PR_FALSE;
+  mLastValue        = false;
 }
 
 void
 nsSMILAnimationFunction::SampleLastValue(PRUint32 aRepeatIteration)
 {
   if (mHasChanged || !mLastValue || mRepeatIteration != aRepeatIteration) {
-    mHasChanged = PR_TRUE;
+    mHasChanged = true;
   }
 
   mRepeatIteration  = aRepeatIteration;
-  mLastValue        = PR_TRUE;
+  mLastValue        = true;
 }
 
 void
 nsSMILAnimationFunction::Activate(nsSMILTime aBeginTime)
 {
   mBeginTime = aBeginTime;
-  mIsActive = PR_TRUE;
-  mIsFrozen = PR_FALSE;
+  mIsActive = true;
+  mIsFrozen = false;
   mFrozenValue = nsSMILValue();
-  mHasChanged = PR_TRUE;
+  mHasChanged = true;
 }
 
 void
 nsSMILAnimationFunction::Inactivate(bool aIsFrozen)
 {
-  mIsActive = PR_FALSE;
+  mIsActive = false;
   mIsFrozen = aIsFrozen;
   mFrozenValue = nsSMILValue();
-  mHasChanged = PR_TRUE;
+  mHasChanged = true;
 }
 
 void
 nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
                                        nsSMILValue& aResult)
 {
-  mHasChanged = PR_FALSE;
-  mPrevSampleWasSingleValueAnimation = PR_FALSE;
+  mHasChanged = false;
+  mPrevSampleWasSingleValueAnimation = false;
 
   
   if (!IsActiveOrFrozen() || mErrorFlags != 0)
@@ -269,7 +269,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
 
     
     result = values[0];
-    mPrevSampleWasSingleValueAnimation = PR_TRUE;
+    mPrevSampleWasSingleValueAnimation = true;
 
   } else if (mLastValue) {
 
@@ -376,9 +376,9 @@ nsSMILAnimationFunction::UpdateCachedTarget(const nsSMILTargetIdentifier& aNewTa
 {
   if (!mLastTarget.Equals(aNewTarget)) {
     mLastTarget = aNewTarget;
-    return PR_TRUE;
+    return true;
   }
-  return PR_FALSE;
+  return false;
 }
 
 
@@ -752,13 +752,13 @@ nsSMILAnimationFunction::ParseAttr(nsIAtom* aAttName,
     nsresult rv = aSMILAttr.ValueFromString(attValue, mAnimationElement,
                                             aResult, preventCachingOfSandwich);
     if (NS_FAILED(rv))
-      return PR_FALSE;
+      return false;
 
     if (preventCachingOfSandwich) {
-      aPreventCachingOfSandwich = PR_TRUE;
+      aPreventCachingOfSandwich = true;
     }
   }
-  return PR_TRUE;
+  return true;
 }
 
 
@@ -782,7 +782,7 @@ nsSMILAnimationFunction::GetValues(const nsISMILAttr& aSMILAttr,
   if (!mAnimationElement)
     return NS_ERROR_FAILURE;
 
-  mValueNeedsReparsingEverySample = PR_FALSE;
+  mValueNeedsReparsingEverySample = false;
   nsSMILValueArray result;
 
   
@@ -797,7 +797,7 @@ nsSMILAnimationFunction::GetValues(const nsISMILAttr& aSMILAttr,
       return rv;
 
     if (preventCachingOfSandwich) {
-      mValueNeedsReparsingEverySample = PR_TRUE;
+      mValueNeedsReparsingEverySample = true;
     }
   
   } else {
@@ -812,7 +812,7 @@ nsSMILAnimationFunction::GetValues(const nsISMILAttr& aSMILAttr,
                          preventCachingOfSandwich);
     
     if (preventCachingOfSandwich) {
-      mValueNeedsReparsingEverySample = PR_TRUE;
+      mValueNeedsReparsingEverySample = true;
     }
 
     if (!parseOk)
@@ -872,14 +872,14 @@ nsSMILAnimationFunction::CheckKeyTimes(PRUint32 aNumValues)
 
   
   if (calcMode == CALC_PACED) {
-    SetKeyTimesErrorFlag(PR_FALSE);
+    SetKeyTimesErrorFlag(false);
     return;
   }
 
   PRUint32 numKeyTimes = mKeyTimes.Length();
   if (numKeyTimes < 1) {
     
-    SetKeyTimesErrorFlag(PR_TRUE);
+    SetKeyTimesErrorFlag(true);
     return;
   }
 
@@ -888,24 +888,24 @@ nsSMILAnimationFunction::CheckKeyTimes(PRUint32 aNumValues)
   bool matchingNumOfValues =
     numKeyTimes == (IsToAnimation() ? 2 : aNumValues);
   if (!matchingNumOfValues) {
-    SetKeyTimesErrorFlag(PR_TRUE);
+    SetKeyTimesErrorFlag(true);
     return;
   }
 
   
   if (mKeyTimes[0] != 0.0) {
-    SetKeyTimesErrorFlag(PR_TRUE);
+    SetKeyTimesErrorFlag(true);
     return;
   }
 
   
   if (calcMode != CALC_DISCRETE && numKeyTimes > 1 &&
       mKeyTimes[numKeyTimes - 1] != 1.0) {
-    SetKeyTimesErrorFlag(PR_TRUE);
+    SetKeyTimesErrorFlag(true);
     return;
   }
 
-  SetKeyTimesErrorFlag(PR_FALSE);
+  SetKeyTimesErrorFlag(false);
 }
 
 void
@@ -913,25 +913,25 @@ nsSMILAnimationFunction::CheckKeySplines(PRUint32 aNumValues)
 {
   
   if (GetCalcMode() != CALC_SPLINE) {
-    SetKeySplinesErrorFlag(PR_FALSE);
+    SetKeySplinesErrorFlag(false);
     return;
   }
 
   
   if (!HasAttr(nsGkAtoms::keySplines)) {
-    SetKeySplinesErrorFlag(PR_FALSE);
+    SetKeySplinesErrorFlag(false);
     return;
   }
 
   if (mKeySplines.Length() < 1) {
     
-    SetKeySplinesErrorFlag(PR_TRUE);
+    SetKeySplinesErrorFlag(true);
     return;
   }
 
   
   if (aNumValues == 1 && !IsToAnimation()) {
-    SetKeySplinesErrorFlag(PR_FALSE);
+    SetKeySplinesErrorFlag(false);
     return;
   }
 
@@ -939,11 +939,11 @@ nsSMILAnimationFunction::CheckKeySplines(PRUint32 aNumValues)
   PRUint32 splineSpecs = mKeySplines.Length();
   if ((splineSpecs != aNumValues - 1 && !IsToAnimation()) ||
       (IsToAnimation() && splineSpecs != 1)) {
-    SetKeySplinesErrorFlag(PR_TRUE);
+    SetKeySplinesErrorFlag(true);
     return;
   }
 
-  SetKeySplinesErrorFlag(PR_FALSE);
+  SetKeySplinesErrorFlag(false);
 }
 
 bool
@@ -961,7 +961,7 @@ nsSMILAnimationFunction::GetAccumulate() const
 {
   const nsAttrValue* value = GetAttr(nsGkAtoms::accumulate);
   if (!value)
-    return PR_FALSE;
+    return false;
 
   return value->GetEnumValue();
 }
@@ -971,7 +971,7 @@ nsSMILAnimationFunction::GetAdditive() const
 {
   const nsAttrValue* value = GetAttr(nsGkAtoms::additive);
   if (!value)
-    return PR_FALSE;
+    return false;
 
   return value->GetEnumValue();
 }
@@ -993,9 +993,9 @@ nsresult
 nsSMILAnimationFunction::SetAccumulate(const nsAString& aAccumulate,
                                        nsAttrValue& aResult)
 {
-  mHasChanged = PR_TRUE;
+  mHasChanged = true;
   bool parseResult =
-    aResult.ParseEnumValue(aAccumulate, sAccumulateTable, PR_TRUE);
+    aResult.ParseEnumValue(aAccumulate, sAccumulateTable, true);
   SetAccumulateErrorFlag(!parseResult);
   return parseResult ? NS_OK : NS_ERROR_FAILURE;
 }
@@ -1003,17 +1003,17 @@ nsSMILAnimationFunction::SetAccumulate(const nsAString& aAccumulate,
 void
 nsSMILAnimationFunction::UnsetAccumulate()
 {
-  SetAccumulateErrorFlag(PR_FALSE);
-  mHasChanged = PR_TRUE;
+  SetAccumulateErrorFlag(false);
+  mHasChanged = true;
 }
 
 nsresult
 nsSMILAnimationFunction::SetAdditive(const nsAString& aAdditive,
                                      nsAttrValue& aResult)
 {
-  mHasChanged = PR_TRUE;
+  mHasChanged = true;
   bool parseResult
-    = aResult.ParseEnumValue(aAdditive, sAdditiveTable, PR_TRUE);
+    = aResult.ParseEnumValue(aAdditive, sAdditiveTable, true);
   SetAdditiveErrorFlag(!parseResult);
   return parseResult ? NS_OK : NS_ERROR_FAILURE;
 }
@@ -1021,17 +1021,17 @@ nsSMILAnimationFunction::SetAdditive(const nsAString& aAdditive,
 void
 nsSMILAnimationFunction::UnsetAdditive()
 {
-  SetAdditiveErrorFlag(PR_FALSE);
-  mHasChanged = PR_TRUE;
+  SetAdditiveErrorFlag(false);
+  mHasChanged = true;
 }
 
 nsresult
 nsSMILAnimationFunction::SetCalcMode(const nsAString& aCalcMode,
                                      nsAttrValue& aResult)
 {
-  mHasChanged = PR_TRUE;
+  mHasChanged = true;
   bool parseResult
-    = aResult.ParseEnumValue(aCalcMode, sCalcModeTable, PR_TRUE);
+    = aResult.ParseEnumValue(aCalcMode, sCalcModeTable, true);
   SetCalcModeErrorFlag(!parseResult);
   return parseResult ? NS_OK : NS_ERROR_FAILURE;
 }
@@ -1039,8 +1039,8 @@ nsSMILAnimationFunction::SetCalcMode(const nsAString& aCalcMode,
 void
 nsSMILAnimationFunction::UnsetCalcMode()
 {
-  SetCalcModeErrorFlag(PR_FALSE);
-  mHasChanged = PR_TRUE;
+  SetCalcModeErrorFlag(false);
+  mHasChanged = true;
 }
 
 nsresult
@@ -1070,7 +1070,7 @@ nsSMILAnimationFunction::SetKeySplines(const nsAString& aKeySplines,
     }
   }
 
-  mHasChanged = PR_TRUE;
+  mHasChanged = true;
 
   return rv;
 }
@@ -1079,8 +1079,8 @@ void
 nsSMILAnimationFunction::UnsetKeySplines()
 {
   mKeySplines.Clear();
-  SetKeySplinesErrorFlag(PR_FALSE);
-  mHasChanged = PR_TRUE;
+  SetKeySplinesErrorFlag(false);
+  mHasChanged = true;
 }
 
 nsresult
@@ -1091,7 +1091,7 @@ nsSMILAnimationFunction::SetKeyTimes(const nsAString& aKeyTimes,
   aResult.SetTo(aKeyTimes);
 
   nsresult rv =
-    nsSMILParserUtils::ParseSemicolonDelimitedProgressList(aKeyTimes, PR_TRUE,
+    nsSMILParserUtils::ParseSemicolonDelimitedProgressList(aKeyTimes, true,
                                                            mKeyTimes);
 
   if (NS_SUCCEEDED(rv) && mKeyTimes.Length() < 1)
@@ -1100,7 +1100,7 @@ nsSMILAnimationFunction::SetKeyTimes(const nsAString& aKeyTimes,
   if (NS_FAILED(rv))
     mKeyTimes.Clear();
 
-  mHasChanged = PR_TRUE;
+  mHasChanged = true;
 
   return NS_OK;
 }
@@ -1109,6 +1109,6 @@ void
 nsSMILAnimationFunction::UnsetKeyTimes()
 {
   mKeyTimes.Clear();
-  SetKeyTimesErrorFlag(PR_FALSE);
-  mHasChanged = PR_TRUE;
+  SetKeyTimesErrorFlag(false);
+  mHasChanged = true;
 }

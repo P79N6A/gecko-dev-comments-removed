@@ -53,11 +53,11 @@ nsQuoteNode::InitTextFrame(nsGenConList* aList, nsIFrame* aPseudoFrame,
   if (quoteList->IsLast(this))
     quoteList->Calc(this);
   else
-    dirty = PR_TRUE;
+    dirty = true;
 
   
   if (IsRealQuote()) {
-    aTextFrame->GetContent()->SetText(*Text(), PR_FALSE);
+    aTextFrame->GetContent()->SetText(*Text(), false);
   }
   return dirty;
 }

@@ -675,7 +675,7 @@ bool nsAccessNodeWrap::IsOnlyMsaaCompatibleJawsPresent()
 {
   HMODULE jhookhandle = ::GetModuleHandleW(kJAWSModuleHandle);
   if (!jhookhandle)
-    return PR_FALSE;  
+    return false;  
 
   PRUnichar fileName[MAX_PATH];
   ::GetModuleFileNameW(jhookhandle, fileName, MAX_PATH);
@@ -726,14 +726,14 @@ void nsAccessNodeWrap::TurnOffNewTabSwitchingForJawsAndWE()
   }
   
   
-  Preferences::SetBool(CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF, PR_TRUE);
+  Preferences::SetBool(CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF, true);
 }
 
 void nsAccessNodeWrap::DoATSpecificProcessing()
 {
   if (IsOnlyMsaaCompatibleJawsPresent())
     
-    gIsIA2Disabled  = PR_TRUE;
+    gIsIA2Disabled  = true;
 
   TurnOffNewTabSwitchingForJawsAndWE();
 }

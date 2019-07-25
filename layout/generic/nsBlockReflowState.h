@@ -173,7 +173,7 @@ public:
 
   void AdvanceToNextLine() {
     if (GetFlag(BRS_LINE_LAYOUT_EMPTY)) {
-      SetFlag(BRS_LINE_LAYOUT_EMPTY, PR_FALSE);
+      SetFlag(BRS_LINE_LAYOUT_EMPTY, false);
     } else {
       mLineNumber++;
     }
@@ -306,7 +306,7 @@ public:
   void SetFlag(PRUint32 aFlag, bool aValue)
   {
     NS_ASSERTION(aFlag<=BRS_LASTFLAG, "bad flag");
-    NS_ASSERTION(aValue==PR_FALSE || aValue==PR_TRUE, "bad value");
+    NS_ASSERTION(aValue==false || aValue==true, "bad value");
     if (aValue) { 
       mFlags |= aFlag;
     }

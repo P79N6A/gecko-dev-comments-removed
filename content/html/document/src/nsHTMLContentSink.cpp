@@ -336,7 +336,7 @@ public:
                      bool aReleaseLast = false);
   nsresult FlushTextAndRelease(bool* aDidFlush = nsnull)
   {
-    return FlushText(aDidFlush, PR_TRUE);
+    return FlushText(aDidFlush, true);
   }
 
   nsresult FlushTags();
@@ -610,7 +610,7 @@ SinkContext::SinkContext(HTMLContentSink* aSink)
     mText(nsnull),
     mTextLength(0),
     mTextSize(0),
-    mLastTextCharWasCR(PR_FALSE)
+    mLastTextCharWasCR(false)
 {
   MOZ_COUNT_CTOR(SinkContext);
 }
@@ -657,10 +657,10 @@ bool
 SinkContext::IsCurrentContainer(nsHTMLTag aTag)
 {
   if (aTag == mStack[mStackPos - 1].mType) {
-    return PR_TRUE;
+    return true;
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 void
@@ -757,14 +757,14 @@ SinkContext::OpenContainer(const nsIParserNode& aNode)
     
     
     if (!mSink->mInsideNoXXXTag) {
-      ssle->InitStyleLinkElement(PR_FALSE);
+      ssle->InitStyleLinkElement(false);
     }
     else {
       
-      ssle->InitStyleLinkElement(PR_TRUE);
+      ssle->InitStyleLinkElement(true);
     }
 
-    ssle->SetEnableUpdates(PR_FALSE);
+    ssle->SetEnableUpdates(false);
   }
   
   rv = mSink->AddAttributes(aNode, content);
@@ -826,7 +826,7 @@ SinkContext::HaveNotifiedForCurrentContent() const
     return mStack[mStackPos-1].mNumFlushed == parent->GetChildCount();
   }
 
-  return PR_TRUE;
+  return true;
 }
 
 nsIContent *
@@ -836,9 +836,9 @@ SinkContext::Node::Add(nsIContent *child)
   if (mInsertionPoint != -1) {
     NS_ASSERTION(mNumFlushed == mContent->GetChildCount(),
                  "Inserting multiple children without flushing.");
-    mContent->InsertChildAt(child, mInsertionPoint++, PR_FALSE);
+    mContent->InsertChildAt(child, mInsertionPoint++, false);
   } else {
-    mContent->AppendChildTo(child, PR_FALSE);
+    mContent->AppendChildTo(child, false);
   }
   return child;
 }
@@ -918,14 +918,14 @@ SinkContext::CloseContainer(const nsHTMLTag aTag, bool aMalformed)
     break;
   case eHTMLTag_form:
     {
-      mSink->mFormOnStack = PR_FALSE;
+      mSink->mFormOnStack = false;
       
       
       
       
       
       if (aTag != nodeType) {
-        result = CloseContainer(aTag, PR_FALSE);
+        result = CloseContainer(aTag, false);
       }
     }
 
@@ -1098,7 +1098,7 @@ SinkContext::AddComment(const nsIParserNode& aNode)
                                   mSink->mNodeInfoManager);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  comment->SetText(aNode.GetText(), PR_FALSE);
+  comment->SetText(aNode.GetText(), false);
 
   NS_ASSERTION(mStackPos > 0, "stack out of bounds");
   if (mStackPos <= 0) {
@@ -1234,7 +1234,7 @@ SinkContext::AddText(const nsAString& aText)
 nsresult
 SinkContext::FlushTags()
 {
-  mSink->mDeferredFlushTags = PR_FALSE;
+  mSink->mDeferredFlushTags = false;
   bool oldBeganUpdate = mSink->mBeganUpdate;
   PRUint32 oldUpdates = mSink->mUpdatesInNotification;
 
@@ -1243,8 +1243,8 @@ SinkContext::FlushTags()
   {
     
     mozAutoDocUpdate updateBatch(mSink->mDocument, UPDATE_CONTENT_MODEL,
-                                 PR_TRUE);
-    mSink->mBeganUpdate = PR_TRUE;
+                                 true);
+    mSink->mBeganUpdate = true;
 
     
     FlushText();
@@ -1292,7 +1292,7 @@ SinkContext::FlushTags()
           mSink->NotifyAppend(content, mStack[stackPos].mNumFlushed);
         }
 
-        flushed = PR_TRUE;
+        flushed = true;
       }
 
       mStack[stackPos].mNumFlushed = childCount;
@@ -1365,7 +1365,7 @@ SinkContext::FlushText(bool* aDidFlush, bool aReleaseLast)
 
         mLastTextNodeSize += mTextLength;
         mTextLength = 0;
-        didFlush = PR_TRUE;
+        didFlush = true;
       }
     } else {
       nsCOMPtr<nsIContent> textContent;
@@ -1376,7 +1376,7 @@ SinkContext::FlushText(bool* aDidFlush, bool aReleaseLast)
       mLastTextNode = textContent;
 
       
-      mLastTextNode->SetText(mText, mTextLength, PR_FALSE);
+      mLastTextNode->SetText(mText, mTextLength, false);
 
       
       mLastTextNodeSize += mTextLength;
@@ -1385,7 +1385,7 @@ SinkContext::FlushText(bool* aDidFlush, bool aReleaseLast)
       rv = AddLeaf(mLastTextNode);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      didFlush = PR_TRUE;
+      didFlush = true;
     }
   }
 
@@ -1396,7 +1396,7 @@ SinkContext::FlushText(bool* aDidFlush, bool aReleaseLast)
   if (aReleaseLast) {
     mLastTextNodeSize = 0;
     mLastTextNode = nsnull;
-    mLastTextCharWasCR = PR_FALSE;
+    mLastTextCharWasCR = false;
   }
 
 #ifdef DEBUG
@@ -1529,7 +1529,7 @@ NS_IMPL_RELEASE_INHERITED(HTMLContentSink, nsContentSink)
 static bool
 IsScriptEnabled(nsIDocument *aDoc, nsIDocShell *aContainer)
 {
-  NS_ENSURE_TRUE(aDoc && aContainer, PR_TRUE);
+  NS_ENSURE_TRUE(aDoc && aContainer, true);
 
   nsCOMPtr<nsIScriptGlobalObject> globalObject = aDoc->GetScriptGlobalObject();
 
@@ -1537,17 +1537,17 @@ IsScriptEnabled(nsIDocument *aDoc, nsIDocShell *aContainer)
   
   if (!globalObject) {
     nsCOMPtr<nsIScriptGlobalObjectOwner> owner = do_GetInterface(aContainer);
-    NS_ENSURE_TRUE(owner, PR_TRUE);
+    NS_ENSURE_TRUE(owner, true);
 
     globalObject = owner->GetScriptGlobalObject();
-    NS_ENSURE_TRUE(globalObject, PR_TRUE);
+    NS_ENSURE_TRUE(globalObject, true);
   }
 
   nsIScriptContext *scriptContext = globalObject->GetContext();
-  NS_ENSURE_TRUE(scriptContext, PR_TRUE);
+  NS_ENSURE_TRUE(scriptContext, true);
 
   JSContext* cx = scriptContext->GetNativeContext();
-  NS_ENSURE_TRUE(cx, PR_TRUE);
+  NS_ENSURE_TRUE(cx, true);
 
   bool enabled = true;
   nsContentUtils::GetSecurityManager()->
@@ -1569,7 +1569,7 @@ HTMLContentSink::Init(nsIDocument* aDoc,
   }
 
   aDoc->AddObserver(this);
-  mIsDocumentObserver = PR_TRUE;
+  mIsDocumentObserver = true;
   mHTMLDocument = do_QueryInterface(aDoc);
 
   mObservers = nsnull;
@@ -1588,13 +1588,13 @@ HTMLContentSink::Init(nsIDocument* aDoc,
     bool subFramesEnabled = true;
     mDocShell->GetAllowSubframes(&subFramesEnabled);
     if (subFramesEnabled) {
-      mFramesEnabled = PR_TRUE;
+      mFramesEnabled = true;
     }
   }
 
   
   if (IsScriptEnabled(aDoc, mDocShell)) {
-    mScriptEnabled = PR_TRUE;
+    mScriptEnabled = true;
   }
 
 
@@ -1616,7 +1616,7 @@ HTMLContentSink::Init(nsIDocument* aDoc,
 
   NS_ASSERTION(mDocument->GetChildCount() == 0,
                "Document should have no kids here!");
-  rv = mDocument->AppendChildTo(mRoot, PR_FALSE);
+  rv = mDocument->AppendChildTo(mRoot, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1630,7 +1630,7 @@ HTMLContentSink::Init(nsIDocument* aDoc,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  mRoot->AppendChildTo(mHead, PR_FALSE);
+  mRoot->AppendChildTo(mHead, false);
 
   mCurrentContext = new SinkContext(this);
   NS_ENSURE_TRUE(mCurrentContext, NS_ERROR_OUT_OF_MEMORY);
@@ -1706,7 +1706,7 @@ HTMLContentSink::DidBuildModel(bool aTerminated)
     }
 
     if (!bDestroying) {
-      StartLayout(PR_FALSE);
+      StartLayout(false);
     }
   }
 
@@ -1721,7 +1721,7 @@ HTMLContentSink::DidBuildModel(bool aTerminated)
   
   
   mDocument->RemoveObserver(this);
-  mIsDocumentObserver = PR_FALSE;
+  mIsDocumentObserver = false;
   
   mDocument->EndLoad();
 
@@ -1887,7 +1887,7 @@ HTMLContentSink::OpenBody(const nsIParserNode& aNode)
 
   
   if (mBody) {
-    AddAttributes(aNode, mBody, PR_TRUE, PR_TRUE);
+    AddAttributes(aNode, mBody, true, true);
     return NS_OK;
   }
 
@@ -1927,7 +1927,7 @@ HTMLContentSink::OpenBody(const nsIParserNode& aNode)
     mUpdatesInNotification = oldUpdates;
   }
 
-  StartLayout(PR_FALSE);
+  StartLayout(false);
 
   return NS_OK;
 }
@@ -1952,7 +1952,7 @@ HTMLContentSink::CloseBody()
              ("HTMLContentSink::CloseBody: layout final body content"));
 
   mCurrentContext->FlushTags();
-  mCurrentContext->CloseContainer(eHTMLTag_body, PR_FALSE);
+  mCurrentContext->CloseContainer(eHTMLTag_body, false);
 
   return NS_OK;
 }
@@ -1985,7 +1985,7 @@ HTMLContentSink::OpenForm(const nsIParserNode& aNode)
       mCurrentContext->IsCurrentContainer(eHTMLTag_colgroup)) {
     result = mCurrentContext->AddLeaf(aNode);
   } else {
-    mFormOnStack = PR_TRUE;
+    mFormOnStack = true;
     
     result = mCurrentContext->OpenContainer(aNode);
   }
@@ -2007,8 +2007,8 @@ HTMLContentSink::CloseForm()
   if (mCurrentForm) {
     
     if (mCurrentContext->IsCurrentContainer(eHTMLTag_form)) {
-      result = mCurrentContext->CloseContainer(eHTMLTag_form, PR_FALSE);
-      mFormOnStack = PR_FALSE;
+      result = mCurrentContext->CloseContainer(eHTMLTag_form, false);
+      mFormOnStack = false;
     }
 
     mCurrentForm = nsnull;
@@ -2095,10 +2095,10 @@ HTMLContentSink::CloseFrameset()
     sc->FlushTags();
   }
 
-  rv = sc->CloseContainer(eHTMLTag_frameset, PR_FALSE);    
+  rv = sc->CloseContainer(eHTMLTag_frameset, false);    
 
   if (done && mFramesEnabled) {
-    StartLayout(PR_FALSE);
+    StartLayout(false);
   }
 
   return rv;
@@ -2114,7 +2114,7 @@ HTMLContentSink::IsEnabled(PRInt32 aTag, bool* aReturn)
   } else if (theHTMLTag == eHTMLTag_frameset) {
     *aReturn = mFramesEnabled;
   } else {
-    *aReturn = PR_FALSE;
+    *aReturn = false;
   }
 
   return NS_OK;
@@ -2132,8 +2132,8 @@ HTMLContentSink::OpenContainer(const nsIParserNode& aNode)
     case eHTMLTag_head:
       rv = OpenHeadContext();
       if (NS_SUCCEEDED(rv)) {
-        rv = AddAttributes(aNode, mHead, PR_TRUE, mHaveSeenHead);
-        mHaveSeenHead = PR_TRUE;
+        rv = AddAttributes(aNode, mHead, true, mHaveSeenHead);
+        mHaveSeenHead = true;
       }
       break;
     case eHTMLTag_body:
@@ -2143,7 +2143,7 @@ HTMLContentSink::OpenContainer(const nsIParserNode& aNode)
       if (mRoot) {
         
         
-        AddAttributes(aNode, mRoot, PR_TRUE, mNotifiedRootInsertion);
+        AddAttributes(aNode, mRoot, true, mNotifiedRootInsertion);
         if (!mNotifiedRootInsertion) {
           NotifyRootInsertion();
         }
@@ -2183,7 +2183,7 @@ HTMLContentSink::CloseContainer(const eHTMLTags aTag)
       rv = CloseForm();
       break;
     default:
-      rv = mCurrentContext->CloseContainer(aTag, PR_FALSE);
+      rv = mCurrentContext->CloseContainer(aTag, false);
       break;
   }
 
@@ -2193,7 +2193,7 @@ HTMLContentSink::CloseContainer(const eHTMLTags aTag)
 NS_IMETHODIMP
 HTMLContentSink::CloseMalformedContainer(const eHTMLTags aTag)
 {
-  return mCurrentContext->CloseContainer(aTag, PR_TRUE);
+  return mCurrentContext->CloseContainer(aTag, true);
 }
 
 NS_IMETHODIMP
@@ -2257,8 +2257,8 @@ HTMLContentSink::AddDocTypeDecl(const nsIParserNode& aNode)
   nsAutoString docTypeStr(aNode.GetText());
   nsresult rv = NS_OK;
 
-  PRInt32 publicStart = docTypeStr.Find("PUBLIC", PR_TRUE);
-  PRInt32 systemStart = docTypeStr.Find("SYSTEM", PR_TRUE);
+  PRInt32 publicStart = docTypeStr.Find("PUBLIC", true);
+  PRInt32 systemStart = docTypeStr.Find("SYSTEM", true);
   nsAutoString name, publicId, systemId;
 
   if (publicStart >= 0 || systemStart >= 0) {
@@ -2300,7 +2300,7 @@ HTMLContentSink::AddDocTypeDecl(const nsIParserNode& aNode)
 
           end = publicId.FindChar('>');
         } else {
-          hasQuote = PR_TRUE;
+          hasQuote = true;
         }
 
         
@@ -2322,7 +2322,7 @@ HTMLContentSink::AddDocTypeDecl(const nsIParserNode& aNode)
 
       if (systemStart > 0) {
         if (systemStart < pos + (PRInt32)publicId.Length()) {
-          systemStart = docTypeStr.Find("SYSTEM", PR_TRUE,
+          systemStart = docTypeStr.Find("SYSTEM", true,
                                         pos + publicId.Length());
         }
       }
@@ -2452,7 +2452,7 @@ HTMLContentSink::AddDocTypeDecl(const nsIParserNode& aNode)
 
     
     nsAutoString voidString;
-    voidString.SetIsVoid(PR_TRUE);
+    voidString.SetIsVoid(true);
     rv = NS_NewDOMDocumentType(getter_AddRefs(docType),
                                mDocument->NodeInfoManager(), nameAtom,
                                publicId, systemId, voidString);
@@ -2469,7 +2469,7 @@ HTMLContentSink::AddDocTypeDecl(const nsIParserNode& aNode)
       nsCOMPtr<nsIContent> content = do_QueryInterface(docType);
       NS_ASSERTION(content, "Doctype isn't content?");
       
-      mDocument->InsertChildAt(content, 0, PR_TRUE);
+      mDocument->InsertChildAt(content, 0, true);
     }
   }
 
@@ -2612,10 +2612,10 @@ HTMLContentSink::ProcessLINKTag(const nsIParserNode& aNode)
     if (ssle) {
       
       if (!mInsideNoXXXTag) {
-        ssle->InitStyleLinkElement(PR_FALSE);
-        ssle->SetEnableUpdates(PR_FALSE);
+        ssle->InitStyleLinkElement(false);
+        ssle->SetEnableUpdates(false);
       } else {
-        ssle->InitStyleLinkElement(PR_TRUE);
+        ssle->InitStyleLinkElement(true);
       }
     }
 
@@ -2629,7 +2629,7 @@ HTMLContentSink::ProcessLINKTag(const nsIParserNode& aNode)
     mCurrentContext->AddLeaf(element); 
 
     if (ssle) {
-      ssle->SetEnableUpdates(PR_TRUE);
+      ssle->SetEnableUpdates(true);
       bool willNotify;
       bool isAlternate;
       result = ssle->UpdateStyleSheet(mFragmentMode ? nsnull : this,
@@ -2714,7 +2714,7 @@ HTMLContentSink::NotifyRootInsertion()
   
   
   
-  mNotifiedRootInsertion = PR_TRUE;
+  mNotifiedRootInsertion = true;
   PRInt32 index = mDocument->IndexOf(mRoot);
   NS_ASSERTION(index != -1, "mRoot not child of document?");
   NotifyInsert(nsnull, mRoot, index);
@@ -2732,10 +2732,10 @@ HTMLContentSink::IsMonolithicContainer(nsHTMLTag aTag)
       aTag == eHTMLTag_select ||
       aTag == eHTMLTag_applet ||
       aTag == eHTMLTag_object) {
-    return PR_TRUE;
+    return true;
   }
 
-  return PR_FALSE;
+  return false;
 }
 
 void
@@ -2802,7 +2802,7 @@ HTMLContentSink::ProcessSCRIPTEndTag(nsGenericHTMLElement *content,
   
   
   
-  nsresult rv = content->DoneAddingChildren(PR_TRUE);
+  nsresult rv = content->DoneAddingChildren(true);
 
   
   
@@ -2844,7 +2844,7 @@ HTMLContentSink::ProcessSTYLEEndTag(nsGenericHTMLElement* content)
   if (ssle) {
     
     
-    ssle->SetEnableUpdates(PR_TRUE);
+    ssle->SetEnableUpdates(true);
     bool willNotify;
     bool isAlternate;
     rv = ssle->UpdateStyleSheet(mFragmentMode ? nsnull : this,
@@ -2878,7 +2878,7 @@ HTMLContentSink::FlushPendingNotifications(mozFlushType aType)
     if (aType >= Flush_InterruptibleLayout) {
       
       
-      StartLayout(PR_TRUE);
+      StartLayout(true);
     }
   }
 }
@@ -2978,7 +2978,7 @@ HTMLContentSink::DumpContentModel()
         }
 
         fputs(";", out);
-        root->DumpContent(out, 0, PR_FALSE);
+        root->DumpContent(out, 0, false);
         fputs(";\n", out);
       }
     }

@@ -461,7 +461,7 @@ nsAttrAndChildArray::RemoveAttrAt(PRUint32 aPos, nsAttrValue& aValue)
     }
 
     nsRefPtr<nsMappedAttributes> mapped;
-    nsresult rv = GetModifiableMapped(nsnull, nsnull, PR_FALSE,
+    nsresult rv = GetModifiableMapped(nsnull, nsnull, false,
                                       getter_AddRefs(mapped));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -600,7 +600,7 @@ nsAttrAndChildArray::SetMappedAttrStyleSheet(nsHTMLStyleSheet* aSheet)
   }
 
   nsRefPtr<nsMappedAttributes> mapped;
-  nsresult rv = GetModifiableMapped(nsnull, nsnull, PR_FALSE, 
+  nsresult rv = GetModifiableMapped(nsnull, nsnull, false, 
                                     getter_AddRefs(mapped));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -672,7 +672,7 @@ nsAttrAndChildArray::Clear()
     nsIContent* child = static_cast<nsIContent*>(mImpl->mBuffer[i]);
     
     
-    child->UnbindFromTree(PR_FALSE); 
+    child->UnbindFromTree(false); 
     
     
 
@@ -794,7 +794,7 @@ nsAttrAndChildArray::GrowBy(PRUint32 aGrowSize)
 
   bool needToInitialize = !mImpl;
   Impl* newImpl = static_cast<Impl*>(PR_Realloc(mImpl, size * sizeof(void*)));
-  NS_ENSURE_TRUE(newImpl, PR_FALSE);
+  NS_ENSURE_TRUE(newImpl, false);
 
   mImpl = newImpl;
 
@@ -806,7 +806,7 @@ nsAttrAndChildArray::GrowBy(PRUint32 aGrowSize)
 
   mImpl->mBufferSize = size - NS_IMPL_EXTRA_SIZE;
 
-  return PR_TRUE;
+  return true;
 }
 
 bool
@@ -818,7 +818,7 @@ nsAttrAndChildArray::AddAttrSlot()
   
   if (!(mImpl && mImpl->mBufferSize >= (slotCount + 1) * ATTRSIZE + childCount) &&
       !GrowBy(ATTRSIZE)) {
-    return PR_FALSE;
+    return false;
   }
   void** offset = mImpl->mBuffer + slotCount * ATTRSIZE;
 
@@ -831,7 +831,7 @@ nsAttrAndChildArray::AddAttrSlot()
   offset[0] = nsnull;
   offset[1] = nsnull;
 
-  return PR_TRUE;
+  return true;
 }
 
 inline void
