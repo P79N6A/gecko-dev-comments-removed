@@ -1,41 +1,26 @@
 
 
 
-let handleDialog;
-let timer; 
+const TEST_URL = 'data:text/html,<script>window.onbeforeunload=' +
+                 'function(e){e.returnValue="?"}</script>';
 
 function test() {
   waitForExplicitFinish();
-
-  window.addEventListener("tabviewshown", onTabViewWindowLoaded, false);
-  TabView.toggle();
+  showTabView(onTabViewShown);
 }
 
-function onTabViewWindowLoaded() {
-  window.removeEventListener("tabviewshown", onTabViewWindowLoaded, false);
-
-  let contentWindow = document.getElementById("tab-view").contentWindow;
+function onTabViewShown() {
+  let contentWindow = TabView.getContentWindow();
   let groupItemOne = contentWindow.GroupItems.getActiveGroupItem();
+  let groupItemTwo = createGroupItemWithTabs(window, 300, 300, 10, [TEST_URL]);
 
-  
-  let box = new contentWindow.Rect(10, 10, 300, 300);
-  let groupItemTwo = new contentWindow.GroupItem([], { bounds: box });
-  contentWindow.UI.setActive(groupItemTwo);
-
-  let testTab = 
-    gBrowser.addTab(
-      "http://mochi.test:8888/browser/browser/base/content/test/tabview/test_bug599626.html");
-  let browser = gBrowser.getBrowserForTab(testTab);
-  let onLoad = function() {
-    browser.removeEventListener("load", onLoad, true);
-
+  afterAllTabsLoaded(function () {
     testStayOnPage(contentWindow, groupItemOne, groupItemTwo);
-  }
-  browser.addEventListener("load", onLoad, true);
+  });
 }
 
 function testStayOnPage(contentWindow, groupItemOne, groupItemTwo) {
-  setupAndRun(contentWindow, groupItemOne, groupItemTwo, function(doc) {
+  whenDialogOpened(function (dialog) {
     groupItemTwo.addSubscriber("groupShown", function onShown() {
       groupItemTwo.removeSubscriber("groupShown", onShown);
 
@@ -44,22 +29,21 @@ function testStayOnPage(contentWindow, groupItemOne, groupItemTwo) {
       is(contentWindow.TabItems.getItems().length, 2, 
          "The total number of tab items is 2 when staying on the page");
 
-      let onTabViewShown = function() {
-        window.removeEventListener("tabviewshown", onTabViewShown, false);
-
+      showTabView(function () {
         
         testLeavePage(contentWindow, groupItemOne, groupItemTwo);
-      };
-      window.addEventListener("tabviewshown", onTabViewShown, false);
-      TabView.toggle();
+      });
     });
+
     
-    doc.documentElement.getButton("cancel").click();
+    dialog.cancelDialog();
   });
+
+  closeGroupItem(groupItemTwo);
 }
 
 function testLeavePage(contentWindow, groupItemOne, groupItemTwo) {
-  setupAndRun(contentWindow, groupItemOne, groupItemTwo, function(doc) {
+  whenDialogOpened(function (dialog) {
     
     groupItemTwo.addSubscriber("close", function onClose() {
       groupItemTwo.removeSubscriber("close", onClose);
@@ -69,93 +53,38 @@ function testLeavePage(contentWindow, groupItemOne, groupItemTwo) {
       is(contentWindow.TabItems.getItems().length, 1, 
          "The total number of tab items is 1 after leaving the page");
 
-      let endGame = function() {
-        window.removeEventListener("tabviewhidden", endGame, false);
-        finish();
-      };
-      window.addEventListener("tabviewhidden", endGame, false);
+      hideTabView(finish);
     });
 
     
-    doc.documentElement.getButton("accept").click();
+    dialog.acceptDialog();
   });
+
+  closeGroupItem(groupItemTwo);
 }
 
-function setupAndRun(contentWindow, groupItemOne, groupItemTwo, callback) {
-  let closeButton = groupItemTwo.container.getElementsByClassName("close");
-  ok(closeButton[0], "Group close button exists");
-  
-  EventUtils.sendMouseEvent({ type: "click" }, closeButton[0], contentWindow);
 
-  let onTabViewHidden = function() {
-    window.removeEventListener("tabviewhidden", onTabViewHidden, false);
+function whenDialogOpened(callback) {
+  let wm = Cc["@mozilla.org/appshell/window-mediator;1"]
+           .getService(Ci.nsIWindowMediator);
 
-    handleDialog = function(doc) {
-      callback(doc);
-    };
-    startCallbackTimer();
+  let listener = {
+    onCloseWindow: function () {},
+    onWindowTitleChange: function () {},
+
+    onOpenWindow: function (xulWin) {
+      let domWin = xulWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIDOMWindowInternal);
+
+      whenWindowLoaded(domWin, function () {
+        let dialog = domWin.document.querySelector("dialog");
+        if (dialog) {
+          wm.removeListener(listener);
+          callback(dialog);
+        }
+      });
+    }
   };
-  window.addEventListener("tabviewhidden", onTabViewHidden, false);
 
-  let tabItem = groupItemOne.getChild(0);
-  tabItem.zoomIn();
-}
-
-
-let observer = {
-  QueryInterface : function (iid) {
-    const interfaces = [Ci.nsIObserver, Ci.nsISupports, Ci.nsISupportsWeakReference];
-
-    if (!interfaces.some( function(v) { return iid.equals(v) } ))
-      throw Components.results.NS_ERROR_NO_INTERFACE;
-    return this;
-  },
-
-  observe : function (subject, topic, data) {
-    let doc = getDialogDoc();
-    if (doc)
-      handleDialog(doc);
-    else
-      startCallbackTimer(); 
-  }
-};
-
-function startCallbackTimer() {
-   
-   const dialogDelay = 10;
-
-   
-   timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-   timer.init(observer, dialogDelay, Ci.nsITimer.TYPE_ONE_SHOT);
-}
-
-function getDialogDoc() {
-  
-  
-  let wm = Cc["@mozilla.org/appshell/window-mediator;1"].
-            getService(Ci.nsIWindowMediator);
-  let enumerator = wm.getXULWindowEnumerator(null);
-
-   while (enumerator.hasMoreElements()) {
-     let win = enumerator.getNext();
-     let windowDocShell = win.QueryInterface(Ci.nsIXULWindow).docShell;
- 
-     let containedDocShells = windowDocShell.getDocShellEnumerator(
-                                Ci.nsIDocShellTreeItem.typeChrome,
-                                Ci.nsIDocShell.ENUMERATE_FORWARDS);
-     while (containedDocShells.hasMoreElements()) {
-       
-       let childDocShell = containedDocShells.getNext();
-       
-       if (childDocShell.busyFlags != Ci.nsIDocShell.BUSY_FLAGS_NONE)
-         continue;
-       let childDoc = childDocShell.QueryInterface(Ci.nsIDocShell).
-                      contentViewer.DOMDocument;
-
-       if (childDoc.location.href == "chrome://global/content/commonDialog.xul")
-         return childDoc;
-     }
-   }
- 
-  return null;
+  wm.addListener(listener);
 }
