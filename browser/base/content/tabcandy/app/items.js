@@ -58,47 +58,13 @@ window.Item = function() {
   
   this.userSize = null;
   
-  this.dragOptions = {
-    cancelClass: 'close',
-    start: function(e, ui) {
-      drag.info = new Drag(this, e);
-    },
-    drag: function(e, ui) {
-      drag.info.drag(e, ui);
-    },
-    stop: function() {
-      drag.info.stop();
-      drag.info = null;
-    }
-  };
   
-  this.dropOptions = {
-		over: function(){},
-		out: function(){
-			var group = drag.info.item.parent;
-			if(group) {
-				group.remove(drag.info.$el, {dontClose: true});
-			}
-				
-			iQ(this).removeClass("acceptsDrop");
-		},
-		drop: function(event){
-			iQ(this).removeClass("acceptsDrop");
-		},
-		
-		
-		
-		accept: function dropAcceptFunction(el) {
-			var $el = iQ(el);
-			if($el.hasClass('tab')) {
-				var item = Items.item($el);
-				if(item && (!item.parent || !item.parent.expanded)) {
-					return true;
-				}
-			}
-			return false;
-		}
-	};
+  
+  this.dragOptions = null;
+  
+  
+  
+  this.dropOptions = null;
 };
 
 window.Item.prototype = { 
@@ -136,6 +102,50 @@ window.Item.prototype = {
     Utils.assert('reloadBounds must set up this.bounds', this.bounds);
 
     iQ(this.container).data('item', this);
+
+    
+    this.dragOptions = {
+      cancelClass: 'close',
+      start: function(e, ui) {
+        drag.info = new Drag(this, e);
+      },
+      drag: function(e, ui) {
+        drag.info.drag(e, ui);
+      },
+      stop: function() {
+        drag.info.stop();
+        drag.info = null;
+      }
+    };
+    
+    
+    this.dropOptions = {
+  		over: function(){},
+  		out: function(){
+  			var group = drag.info.item.parent;
+  			if(group) {
+  				group.remove(drag.info.$el, {dontClose: true});
+  			}
+  				
+  			iQ(this).removeClass("acceptsDrop");
+  		},
+  		drop: function(event){
+  			iQ(this).removeClass("acceptsDrop");
+  		},
+  		
+  		
+  		
+  		accept: function dropAcceptFunction(el) {
+  			var $el = iQ(el);
+  			if($el.hasClass('tab')) {
+  				var item = Items.item($el);
+  				if(item && (!item.parent || !item.parent.expanded)) {
+  					return true;
+  				}
+  			}
+  			return false;
+  		}
+  	};
   },
   
   
@@ -560,7 +570,7 @@ window.Items = {
       figure();
     }
     
-    if(rows == 1 && columns == 1) {
+    if(rows == 1) {
       var maxWidth = Math.max(TabItems.tabWidth, bounds.width / 2);
       tabWidth = Math.min(Math.min(maxWidth, bounds.width / count), bounds.height / tabAspect);
       tabHeight = tabWidth * tabAspect;
