@@ -895,6 +895,9 @@ struct JSThreadData {
     
     JSPendingProxyOperation *pendingProxyOperation;
 
+    
+    js::Vector<JSIdArray *, 4, js::SystemAllocPolicy> idArraysHandedOutViaAPI;
+
     js::ConservativeGCThreadData conservativeGC;
 
     bool init();
@@ -3288,9 +3291,6 @@ class AutoShapeVector : public AutoVectorRooter<const Shape *>
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
-
-JSIdArray *
-NewIdArray(JSContext *cx, jsint length);
 
 } 
 
