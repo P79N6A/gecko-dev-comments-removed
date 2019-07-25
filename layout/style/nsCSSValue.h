@@ -153,7 +153,8 @@ enum nsCSSUnit {
 
   
   eCSSUnit_Millimeter   = 207,    
-  eCSSUnit_Centimeter   = 208,    
+  eCSSUnit_PhysicalMillimeter = 208,   
+  eCSSUnit_Centimeter   = 209,    
 
   
   eCSSUnit_Pica         = 301,    
