@@ -1108,7 +1108,10 @@ const kHorizontal       = "\u2500",
       kVertical         = "\u2502",
       kUpAndRight       = "\u2514",
       kVerticalAndRight = "\u251c",
-      kDoubleHorizontalSep = " \u2500\u2500 ";
+      kNoKidsSep        = " \u2500\u2500 ",
+      kHideKidsSep      = " ++ ",
+      kShowKidsSep      = " -- ";
+
 
 function appendMrValueSpan(aP, aValue, aIsInvalid)
 {
@@ -1127,26 +1130,10 @@ function kindToString(aKind)
   }
 }
 
-
-const kNoKids   = 0;
-const kHideKids = 1;
-const kShowKids = 2;
-
-function appendMrNameSpan(aP, aKind, aKidsState, aDescription, aUnsafeName,
+function appendMrNameSpan(aP, aKind, aSep, aDescription, aUnsafeName,
                           aIsInvalid, aNMerged)
 {
-  let text = "";
-  if (aKidsState === kNoKids) {
-    appendElementWithText(aP, "span", "mrSep", kDoubleHorizontalSep);
-  } else if (aKidsState === kHideKids) {
-    appendElementWithText(aP, "span", "mrSep",        " ++ ");
-    appendElementWithText(aP, "span", "mrSep hidden", " -- ");
-  } else if (aKidsState === kShowKids) {
-    appendElementWithText(aP, "span", "mrSep hidden", " ++ ");
-    appendElementWithText(aP, "span", "mrSep",        " -- ");
-  } else {
-    assert(false, "bad aKidsState");
-  }
+  appendElementWithText(aP, "span", "mrSep", aSep);
 
   let nameSpan = appendElementWithText(aP, "span", "mrName",
                                        flipBackslashes(aUnsafeName));
@@ -1194,13 +1181,18 @@ function toggle(aEvent)
   assertClassListContains(outerSpan, "hasKids");
 
   
-  let plusSpan  = outerSpan.childNodes[2];
-  let minusSpan = outerSpan.childNodes[3];
-  assertClassListContains(plusSpan,  "mrSep");
-  assertClassListContains(minusSpan, "mrSep");
-  let isExpansion = !plusSpan.classList.contains("hidden");
-  plusSpan .classList.toggle("hidden");
-  minusSpan.classList.toggle("hidden");
+  let isExpansion;
+  let sepSpan = outerSpan.childNodes[2];
+  assertClassListContains(sepSpan, "mrSep");
+  if (sepSpan.textContent === kHideKidsSep) {
+    isExpansion = true;
+    sepSpan.textContent = kShowKidsSep;
+  } else if (sepSpan.textContent === kShowKidsSep) {
+    isExpansion = false;
+    sepSpan.textContent = kHideKidsSep;
+  } else {
+    assert(false, "bad sepSpan textContent");
+  }
 
   
   let subTreeSpan = outerSpan.nextSibling;
@@ -1225,12 +1217,9 @@ function expandPathToThisElement(aElement)
 
   } else if (aElement.classList.contains("hasKids")) {
     
-    let  plusSpan = aElement.childNodes[2];
-    let minusSpan = aElement.childNodes[3];
-    assertClassListContains(plusSpan,  "mrSep");
-    assertClassListContains(minusSpan, "mrSep");
-    plusSpan.classList.add("hidden");
-    minusSpan.classList.remove("hidden");
+    let sepSpan = aElement.childNodes[2];
+    assertClassListContains(sepSpan, "mrSep");
+    sepSpan.textContent = kShowKidsSep;
     expandPathToThisElement(aElement.parentNode);       
 
   } else {
@@ -1322,7 +1311,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
     
     let d;
     let hasKids = aT._kids.length > 0;
-    let kidsState;
+    let sep;
     let showSubtrees;
     if (hasKids) {
       
@@ -1335,10 +1324,10 @@ function appendTreeElements(aPOuter, aT, aProcess)
       d = appendElement(aP, "span", "hasKids");
       d.id = safeTreeId;
       d.onclick = toggle;
-      kidsState = showSubtrees ? kShowKids : kHideKids;
+      sep = showSubtrees ? kShowKidsSep : kHideKidsSep;
     } else {
       assert(!aT._hideKids, "leaf node with _hideKids set")
-      kidsState = kNoKids;
+      sep = kNoKidsSep;
       d = aP;
     }
 
@@ -1348,7 +1337,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
     
     
     let kind = isExplicitTree ? aT._kind : undefined;
-    appendMrNameSpan(d, kind, kidsState, aT._description, aT._unsafeName,
+    appendMrNameSpan(d, kind, sep, aT._description, aT._unsafeName,
                      tIsInvalid, aT._nMerged);
     appendTextNode(d, "\n");
 
@@ -1484,7 +1473,7 @@ function appendOtherElements(aP, aReportsByProcess)
                              flipBackslashes(o._unsafePath));
     }
     appendMrValueSpan(pre, pad(o._asString, maxStringLength, ' '), oIsInvalid);
-    appendMrNameSpan(pre, KIND_OTHER, kNoKids, o._description, o._unsafePath,
+    appendMrNameSpan(pre, KIND_OTHER, kNoKidsSep, o._description, o._unsafePath,
                      oIsInvalid);
     appendTextNode(pre, "\n");
   }
