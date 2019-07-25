@@ -165,31 +165,29 @@ abstract public class GeckoApp
     void focusChrome() { }
 
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
+        
+        
         switch(msg) {
-            case LOCATION_CHANGE:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
-                    hidePlugins(tab);
-                    updatePopups(tab);
-                    invalidateOptionsMenu();
-                }
+            case UNSELECTED:
+                hidePlugins(tab);
                 break;
+
+            case LOCATION_CHANGE:
+                
+                if (!Tabs.getInstance().isSelectedTab(tab))
+                    break;
+                
+            case SELECTED:
+                updatePopups(tab);
+                invalidateOptionsMenu();
+                break;
+
             case LOAD_ERROR:
             case START:
             case STOP:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
+                
+                if (Tabs.getInstance().isSelectedTab(tab))
                     invalidateOptionsMenu();
-                }
-                break;
-            case UNSELECTED:
-            case CLOSED:
-                invalidateOptionsMenu();
-                updatePopups(tab);
-                hidePlugins(tab);
-                break;
-            case ADDED:
-            case SELECTED:
-                invalidateOptionsMenu();
-                updatePopups(tab);
                 break;
         }
     }
