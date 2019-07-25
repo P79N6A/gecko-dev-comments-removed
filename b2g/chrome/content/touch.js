@@ -139,12 +139,7 @@
           return;
 
         case 'click':
-          if (!isNewTouchAction) {
-            debug('click: cancel');
-
-            evt.preventDefault();
-            evt.stopPropagation();
-          } else {
+          if (isNewTouchAction) {
             
             
             if (preventMouseEvents) {
