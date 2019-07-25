@@ -1,0 +1,775 @@
+
+
+
+ 
+const EXPORTED_SYMBOLS = [ "BookmarkHTMLUtils" ];
+
+const Ci = Components.interfaces;
+const Cc = Components.classes;
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/PlacesUtils.jsm");
+
+const Container_Normal = 0;
+const Container_Toolbar = 1;
+const Container_Menu = 2;
+const Container_Unfiled = 3;
+const Container_Places = 4;
+
+const RESTORE_BEGIN_NSIOBSERVER_TOPIC = "bookmarks-restore-begin";
+const RESTORE_SUCCESS_NSIOBSERVER_TOPIC = "bookmarks-restore-success";
+const RESTORE_FAILED_NSIOBSERVER_TOPIC = "bookmarks-restore-failed";
+const RESTORE_NSIOBSERVER_DATA = "html";
+const RESTORE_INITIAL_NSIOBSERVER_DATA = "html-initial";
+
+const LOAD_IN_SIDEBAR_ANNO = "bookmarkProperties/loadInSidebar";
+const DESCRIPTION_ANNO = "bookmarkProperties/description";
+const POST_DATA_ANNO = "bookmarkProperties/POSTData";
+
+let serialNumber = 0; 
+
+let BookmarkHTMLUtils = Object.freeze({
+  importFromURL: function importFromFile(aUrlString,
+                                         aInitialImport,
+                                         aCallback) {
+    let importer = new BookmarkImporter(aInitialImport);
+    importer.importFromURL(aUrlString, aCallback);
+  },
+
+  importFromFile: function importFromFile(aLocalFile,
+                                          aInitialImport,
+                                          aCallback) {
+    let importer = new BookmarkImporter(aInitialImport);
+    importer.importFromFile(aLocalFile, aCallback);
+  },
+});
+
+function Frame(aFrameId) {
+  this.containerId = aFrameId;
+
+  
+
+
+
+
+
+
+
+
+  this.containerNesting = 0;
+
+  
+
+
+
+
+  this.lastContainerType = Container_Normal;
+
+  
+
+
+
+
+  this.previousText = "";
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.inDescription = false;
+
+  
+
+
+
+
+
+  this.previousLink = null; 
+
+  
+
+
+
+  this.previousFeed = null; 
+
+  
+
+
+  this.previousId = 0;
+
+  
+
+
+
+  this.previousDateAdded = 0;
+  this.previousLastModifiedDate = 0;
+}
+
+function BookmarkImporter(aInitialImport) {
+  this._isImportDefaults = aInitialImport;
+  this._frames = new Array();
+  this._frames.push(new Frame(PlacesUtils.bookmarksMenuFolderId));
+}
+
+BookmarkImporter.prototype = {
+
+  _safeTrim: function safeTrim(aStr) {
+    return aStr ? aStr.trim() : aStr;
+  },
+
+  get _curFrame() {
+    return this._frames[this._frames.length - 1];
+  },
+
+  get _previousFrame() {
+    return this._frames[this._frames.length - 2];
+  },
+
+  
+
+
+
+  _newFrame: function newFrame() {
+    let containerId = -1;
+    let frame = this._curFrame;
+    let containerTitle = frame.previousText;
+    frame.previousText = "";
+    let containerType = frame.lastContainerType;
+
+    switch (containerType) {
+      case Container_Normal:
+        
+        containerId = 
+          PlacesUtils.bookmarks.createFolder(frame.containerId,
+                                             containerTitle,
+                                             PlacesUtils.bookmarks.DEFAULT_INDEX);
+        break;
+      case Container_Places:
+        containerId = PlacesUtils.placesRootId;
+        break;
+      case Container_Menu:
+        containerId = PlacesUtils.bookmarksMenuFolderId;
+        break;
+      case Container_Unfiled:
+        containerId = PlacesUtils.unfiledBookmarksFolderId;
+        break;
+      case Container_Toolbar:
+        containerId = PlacesUtils.toolbarFolderId;
+        break;
+      default:
+        
+        throw new Error("Unreached");
+    }
+
+    if (frame.previousDateAdded > 0) {
+      try {
+        PlacesUtils.bookmarks.setItemDateAdded(containerId, frame.previousDateAdded);
+      } catch(e) {
+      }
+      frame.previousDateAdded = 0;
+    }
+    if (frame.previousLastModifiedDate > 0) {
+      try {
+        PlacesUtils.bookmarks.setItemLastModified(containerId, frame.previousLastModifiedDate);
+      } catch(e) {
+      }
+      
+    }
+
+    frame.previousId = containerId;
+
+    this._frames.push(new Frame(containerId));
+  },
+
+  
+
+
+
+
+  _handleHead1Begin: function handleHead1Begin(aElt) {
+    if (this._frames.length > 1) {
+      return;
+    }
+    if (aElt.hasAttribute("places_root")) {
+      this._curFrame.containerId = PlacesUtils.placesRootId;
+    }
+  },
+
+  
+
+
+
+
+
+
+  _handleHeadBegin: function handleHeadBegin(aElt) {
+    let frame = this._curFrame;
+
+    
+    
+    frame.previousLink = null;
+    frame.lastContainerType = Container_Normal;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (frame.containerNesting == 0) {
+      this._frames.pop();
+    }
+
+    
+    
+    
+    if (aElt.hasAttribute("personal_toolbar_folder")) {
+      if (this._isImportDefaults) {
+        frame.lastContainerType = Container_Toolbar;
+      }
+    } else if (aElt.hasAttribute("bookmarks_menu")) {
+      if (this._isImportDefaults) {
+        frame.lastContainerType = Container_Menu;
+      }
+    } else if (aElt.hasAttribute("unfiled_bookmarks_folder")) {
+      if (this._isImportDefaults) {
+        frame.lastContainerType = Container_Unfiled;
+      }
+    } else if (aElt.hasAttribute("places_root")) {
+      if (this._isImportDefaults) {
+        frame.lastContainerType = Container_Places;
+      }
+    } else {
+      let addDate = aElt.getAttribute("add_date");
+      if (addDate) {
+        frame.previousDateAdded =
+          this._convertImportedDateToInternalDate(addDate);
+      }
+      let modDate = aElt.getAttribute("last_modified");
+      if (modDate) {
+        frame.previousLastModifiedDate =
+          this._convertImportedDateToInternalDate(modDate);
+      }
+    }
+    this._curFrame.previousText = "";
+  },
+
+  
+
+
+
+
+  _handleLinkBegin: function handleLinkBegin(aElt) {
+    let frame = this._curFrame;
+
+    
+    frame.previousFeed = null;
+    
+    frame.previousId = 0;
+    
+    frame.previousText = "";
+
+    
+    let href = this._safeTrim(aElt.getAttribute("href"));
+    let feedUrl = this._safeTrim(aElt.getAttribute("feedurl"));
+    let icon = this._safeTrim(aElt.getAttribute("icon"));
+    let iconUri = this._safeTrim(aElt.getAttribute("icon_uri"));
+    let lastCharset = this._safeTrim(aElt.getAttribute("last_charset"));
+    let keyword = this._safeTrim(aElt.getAttribute("shortcuturl"));
+    let postData = this._safeTrim(aElt.getAttribute("post_data"));
+    let webPanel = this._safeTrim(aElt.getAttribute("web_panel"));
+    let micsumGenURI = this._safeTrim(aElt.getAttribute("micsum_gen_uri"));
+    let generatedTitle = this._safeTrim(aElt.getAttribute("generated_title"));
+    let dateAdded = this._safeTrim(aElt.getAttribute("add_date"));
+    let lastModified = this._safeTrim(aElt.getAttribute("last_modified"));
+
+    
+    
+    if (feedUrl) {
+      frame.previousFeed = NetUtil.newURI(feedUrl);
+    }
+
+    
+    if (href) {
+      
+      
+      try {
+        frame.previousLink = NetUtil.newURI(href);
+      } catch(e) {
+        if (!frame.previousFeed) {
+          frame.previousLink = null;
+          return;
+        }
+      }
+    } else {
+      frame.previousLink = null;
+      
+      
+      if (!frame.previousFeed) {
+        return;
+      }
+    }
+
+    
+    if (lastModified) {
+      frame.previousLastModifiedDate =
+        this._convertImportedDateToInternalDate(lastModified);
+    }
+
+    
+    
+    if (frame.previousFeed) {
+      return;
+    }
+
+    
+    try {
+      frame.previousId =
+        PlacesUtils.bookmarks.insertBookmark(frame.containerId,
+                                             frame.previousLink,
+                                             PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                             "");
+    } catch(e) {
+      return;
+    }
+
+    
+    if (dateAdded) {
+      try {
+        PlacesUtils.bookmarks.setItemDateAdded(frame.previousId,
+          this._convertImportedDateToInternalDate(dateAdded));
+      } catch(e) {
+      }
+    }
+
+    
+    if (icon || iconUri) {
+      let iconUriObject;
+      try {
+        iconUriObject = NetUtil.newURI(iconUri);
+      } catch(e) {
+      }
+      if (icon || iconUriObject) {
+        try {
+          this._setFaviconForURI(frame.previousLink, iconUriObject, icon);
+        } catch(e) {
+        }
+      }
+    }
+
+    
+    if (keyword) {
+      try {
+        PlacesUtils.bookmarks.setKeywordForBookmark(frame.previousId, keyword);
+        if (postData) {
+          PlacesUtils.annotations.setItemAnnotation(frame.previousId,
+                                                    POST_DATA_ANNO,
+                                                    postData,
+                                                    0,
+                                                    PlacesUtils.annotations.EXPIRE_NEVER);
+        }
+      } catch(e) {
+      }
+    }
+
+    
+    if (webPanel && webPanel.toLowerCase() == "true") {
+      try {
+        PlacesUtils.annotations.setItemAnnotation(frame.previousId,
+                                                  LOAD_IN_SIDEBAR_ANNO,
+                                                  1,
+                                                  0,
+                                                  PlacesUtils.annotations.EXPIRE_NEVER);
+      } catch(e) {
+      }
+    }
+
+    
+    if (lastCharset) {
+      try {
+        PlacesUtils.history.setCharsetForURI(frame.previousLink, lastCharset);
+      } catch(e) {
+      }
+    }
+
+  },
+
+  _handleContainerBegin: function handleContainerBegin() {
+    this._curFrame.containerNesting++;
+  },
+
+  
+
+
+
+
+  _handleContainerEnd: function handleContainerEnd() {
+    let frame = this._curFrame;
+    if (frame.containerNesting > 0)
+      frame.containerNesting --;
+    if (this._frames.length > 1 && frame.containerNesting == 0) {
+      
+      
+      let prevFrame = this._previousFrame;
+      if (prevFrame.previousLastModifiedDate > 0) {
+        PlacesUtils.bookmarks.setItemLastModified(frame.containerId,
+                                                  prevFrame.previousLastModifiedDate);
+      }
+      this._frames.pop();
+    }
+  },
+
+  
+
+
+
+
+  _handleHeadEnd: function handleHeadEnd() {
+    this._newFrame();
+  },
+
+  
+
+
+  _handleLinkEnd: function handleLinkEnd() {
+    let frame = this._curFrame;
+    frame.previousText = frame.previousText.trim();
+
+    try {
+      if (frame.previousFeed) {
+        
+        
+        PlacesUtils.livemarks.addLivemark({
+          "title": frame.previousText,
+          "parentId": frame.containerId,
+          "index": PlacesUtils.bookmarks.DEFAULT_INDEX,
+          "feedURI": frame.previousFeed,
+          "siteURI": frame.previousLink,
+        });
+      } else if (frame.previousLink) {
+        
+        PlacesUtils.bookmarks.setItemTitle(frame.previousId,
+                                           frame.previousText);
+      }
+    } catch(e) {
+    }
+
+
+    
+    if (frame.previousId > 0 && frame.previousLastModifiedDate > 0) {
+      try {
+        PlacesUtils.bookmarks.setItemLastModified(frame.previousId,
+                                                  frame.previousLastModifiedDate);
+      } catch(e) {
+      }
+      
+      
+    }
+
+    frame.previousText = "";
+
+  },
+
+  _openContainer: function openContainer(aElt) {
+    if (aElt.namespaceURI != "http://www.w3.org/1999/xhtml") {
+      return;
+    }
+    switch(aElt.localName) {
+      case "h1":
+        this._handleHead1Begin(aElt);
+        break;
+      case "h2":
+      case "h3":
+      case "h4":
+      case "h5":
+      case "h6":
+        this._handleHeadBegin(aElt);
+        break;
+      case "a":
+        this._handleLinkBegin(aElt);
+        break;
+      case "dl":
+      case "ul":
+      case "menu":
+        this._handleContainerBegin();
+        break;
+      case "dd":
+        this._curFrame.inDescription = true;
+        break;
+    }
+  },
+
+  _closeContainer: function closeContainer(aElt) {
+    let frame = this._curFrame;
+
+    
+    
+    
+    if (frame.inDescription) {
+      
+      frame.previousText = frame.previousText.trim(); 
+      if (frame.previousText) {
+
+        let itemId = !frame.previousLink ? frame.containerId
+                                         : frame.previousId;
+
+        try {
+          if (!PlacesUtils.annotations.itemHasAnnotation(itemId, DESCRIPTION_ANNO)) {
+            PlacesUtils.annotations.setItemAnnotation(itemId,
+                                                      DESCRIPTION_ANNO,
+                                                      frame.previousText,
+                                                      0,
+                                                      PlacesUtils.annotations.EXPIRE_NEVER);
+          }
+        } catch(e) {
+        }
+        frame.previousText = "";
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        let lastModified;
+        if (!frame.previousLink) {
+          lastModified = this._previousFrame.previousLastModifiedDate;
+        } else {
+          lastModified = frame.previousLastModifiedDate;
+        }
+
+        if (itemId > 0 && lastModified > 0) {
+          PlacesUtils.bookmarks.setItemLastModified(itemId, lastModified);
+        }
+      }
+      frame.inDescription = false;
+    }
+
+    if (aElt.namespaceURI != "http://www.w3.org/1999/xhtml") {
+      return;
+    }
+    switch(aElt.localName) {
+      case "dl":
+      case "ul":
+      case "menu":
+        this._handleContainerEnd();
+        break;
+      case "dt":
+        break;
+      case "h1":
+        
+        break;
+      case "h2":
+      case "h3":
+      case "h4":
+      case "h5":
+      case "h6":
+        this._handleHeadEnd();
+        break;
+      case "a":
+        this._handleLinkEnd();
+        break;
+      default:
+        break;
+    }
+  },
+
+  _appendText: function appendText(str) {
+    this._curFrame.previousText += str;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _setFaviconForURI: function setFaviconForURI(aPageURI, aIconURI, aData) {
+    
+    
+    if (aIconURI) {
+      if (aIconURI.scheme == "chrome") {
+        PlacesUtils.favicons.setFaviconUrlForPage(aPageURI, aIconURI);
+        return;
+      }
+    }
+
+    
+    
+    if (aData.length <= 5) {
+      return;
+    }
+
+    let faviconURI;
+    if (aIconURI) {
+      faviconURI = aIconURI;
+    } else {
+      
+      let faviconSpec = "http://www.mozilla.org/2005/made-up-favicon/"
+                      + serialNumber
+                      + "-"
+                      + new Date().getTime();
+      faviconURI = NetUtil.newURI(faviconSpec);
+      serialNumber++;
+    }
+
+    
+    
+    
+    PlacesUtils.favicons.setFaviconDataFromDataURL(faviconURI, aData, 0);
+
+    PlacesUtils.favicons.setFaviconUrlForPage(aPageURI, faviconURI);
+  },
+
+  
+
+
+  _convertImportedDateToInternalDate: function convertImportedDateToInternalDate(aDate) {
+    if (aDate && !isNaN(aDate)) {
+      return parseInt(aDate) * 1000000; 
+    } else {
+      return Date.now();
+    }
+  },
+
+  runBatched: function runBatched(aDoc) {
+    if (!aDoc) {
+      return;
+    }
+
+    if (this._isImportDefaults) {
+      PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.bookmarksMenuFolderId);
+      PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.toolbarFolderId);
+      PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.unfiledBookmarksFolderId);
+    }
+
+    let current = aDoc;
+    let next;
+    for (;;) {
+      switch (current.nodeType) {
+        case Ci.nsIDOMNode.ELEMENT_NODE:
+          this._openContainer(current);
+          break;
+        case Ci.nsIDOMNode.TEXT_NODE:
+          this._appendText(current.data);
+          break;
+      }
+      if ((next = current.firstChild)) {
+        current = next;
+        continue;
+      }
+      for (;;) {
+        if (current.nodeType == Ci.nsIDOMNode.ELEMENT_NODE) {
+          this._closeContainer(current);
+        }
+        if (current == aDoc) {
+          return;
+        }
+        if ((next = current.nextSibling)) {
+          current = next;
+          break;
+        }
+        current = current.parentNode;
+      }
+    }
+  },
+
+  _walkTreeForImport: function walkTreeForImport(aDoc) {
+    PlacesUtils.bookmarks.runInBatchMode(this, aDoc);
+  },
+
+  _notifyObservers: function notifyObservers(topic) {
+    Services.obs.notifyObservers(null,
+                                 topic,
+                                 this._isImportDefaults ?
+                                   RESTORE_INITIAL_NSIOBSERVER_DATA :
+                                   RESTORE_NSIOBSERVER_DATA);   
+  },
+
+  importFromURL: function importFromURL(aUrlString, aCallback) {
+    let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest);
+    xhr.onload = (function onload() {
+      try {
+        this._walkTreeForImport(xhr.responseXML);
+        this._notifyObservers(RESTORE_SUCCESS_NSIOBSERVER_TOPIC);
+        if (aCallback) {
+          try {
+            aCallback(true);
+          } catch(ex) {
+          }
+        }
+      } catch(e) {
+        this._notifyObservers(RESTORE_FAILED_NSIOBSERVER_TOPIC);
+        if (aCallback) {
+          try {
+            aCallback(false);
+          } catch(ex) {
+          }
+        }
+        throw e;
+      }
+    }).bind(this);
+    xhr.onabort = xhr.onerror = xhr.ontimeout = (function handleFail() {
+      this._notifyObservers(RESTORE_FAILED_NSIOBSERVER_TOPIC);
+      if (aCallback) {
+        try {
+          aCallback(false);
+        } catch(ex) {
+        }
+      }
+    }).bind(this);
+    this._notifyObservers(RESTORE_BEGIN_NSIOBSERVER_TOPIC);
+    try {
+      xhr.open("GET", aUrlString);
+      xhr.responseType = "document";
+      xhr.overrideMimeType("text/html");
+      xhr.send();
+    } catch (e) {
+      this._notifyObservers(RESTORE_FAILED_NSIOBSERVER_TOPIC);
+      if (aCallback) {
+        try {
+          aCallback(false);
+        } catch(ex) {
+        }
+      }
+    }
+  },
+
+  importFromFile: function importFromFile(aLocalFile, aCallback) {
+    let url = NetUtil.newURI(aLocalFile);
+    this.importFromURL(url.spec, aCallback);
+  },
+
+};

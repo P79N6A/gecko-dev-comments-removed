@@ -17,6 +17,16 @@ const TOPICDATA_FORCE_PLACES_INIT = "force-places-init";
 let bg = Cc["@mozilla.org/browser/browserglue;1"].
          getService(Ci.nsIBrowserGlue);
 
+function waitForImportAndSmartBookmarks(aCallback) {
+  Services.obs.addObserver(function waitImport() {
+    Services.obs.removeObserver(waitImport, "bookmarks-restore-success");
+    
+    do_execute_soon(function () {
+      waitForAsyncUpdates(aCallback);
+    });
+  }, "bookmarks-restore-success", false);
+}
+
 let gTests = [
 
   
@@ -66,19 +76,20 @@ let gTests = [
 
     
     print("Simulate Places init");
+    waitForImportAndSmartBookmarks(function () {
+      
+      
+      itemId = PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId,
+                                                    SMART_BOOKMARKS_ON_TOOLBAR);
+      do_check_eq(PlacesUtils.bookmarks.getItemTitle(itemId), "example");
+      
+      do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
+
+      run_next_test();
+    });
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
-
-    
-    
-    itemId = PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId,
-                                                  SMART_BOOKMARKS_ON_TOOLBAR);
-    do_check_eq(PlacesUtils.bookmarks.getItemTitle(itemId), "example");
-    
-    do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
-
-    run_next_test();
   },
 
   function test_import_noSmartBookmarks()
@@ -98,19 +109,20 @@ let gTests = [
 
     
     print("Simulate Places init");
+    waitForImportAndSmartBookmarks(function () {
+      
+      
+      itemId =
+        PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId, 0);
+      do_check_eq(PlacesUtils.bookmarks.getItemTitle(itemId), "example");
+      
+      do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
+
+      run_next_test();
+    });
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
-
-    
-    
-    itemId =
-      PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId, 0);
-    do_check_eq(PlacesUtils.bookmarks.getItemTitle(itemId), "example");
-    
-    do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
-
-    run_next_test();
   },
 
   function test_import_autoExport_updatedSmartBookmarks()
@@ -131,20 +143,21 @@ let gTests = [
 
     
     print("Simulate Places init");
+    waitForImportAndSmartBookmarks(function () {
+      
+      
+      itemId =
+        PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId, 0);
+      do_check_eq(PlacesUtils.bookmarks.getItemTitle(itemId), "example");
+      do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
+      
+      Services.prefs.setBoolPref(PREF_AUTO_EXPORT_HTML, false);
+
+      run_next_test();
+    });
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
-
-    
-    
-    itemId =
-      PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId, 0);
-    do_check_eq(PlacesUtils.bookmarks.getItemTitle(itemId), "example");
-    do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
-    
-    Services.prefs.setBoolPref(PREF_AUTO_EXPORT_HTML, false);
-
-    run_next_test();
   },
 
   function test_import_autoExport_oldSmartBookmarks()
@@ -165,21 +178,22 @@ let gTests = [
 
     
     print("Simulate Places init");
+    waitForImportAndSmartBookmarks(function () {
+      
+      
+      itemId =
+        PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId,
+                                             SMART_BOOKMARKS_ON_TOOLBAR);
+      do_check_eq(PlacesUtils.bookmarks.getItemTitle(itemId), "example");
+      do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
+      
+      Services.prefs.setBoolPref(PREF_AUTO_EXPORT_HTML, false);
+
+      run_next_test();
+    });
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
-
-    
-    
-    itemId =
-      PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId,
-                                           SMART_BOOKMARKS_ON_TOOLBAR);
-    do_check_eq(PlacesUtils.bookmarks.getItemTitle(itemId), "example");
-    do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
-    
-    Services.prefs.setBoolPref(PREF_AUTO_EXPORT_HTML, false);
-
-    run_next_test();
   },
 
   function test_restore()
@@ -198,19 +212,21 @@ let gTests = [
 
     
     print("Simulate Places init");
+    waitForImportAndSmartBookmarks(function () {
+      
+      itemId =
+        PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId,
+                                             SMART_BOOKMARKS_ON_TOOLBAR);
+      do_check_true(itemId > 0);
+      
+      do_check_false(Services.prefs.getBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS));
+
+      run_next_test();
+    });
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
 
-    
-    itemId =
-      PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId,
-                                           SMART_BOOKMARKS_ON_TOOLBAR);
-    do_check_true(itemId > 0);
-    
-    do_check_false(Services.prefs.getBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS));
-
-    run_next_test();
   },
 
   function test_restore_import()
@@ -230,20 +246,21 @@ let gTests = [
 
     
     print("Simulate Places init");
+    waitForImportAndSmartBookmarks(function () {
+      
+      itemId =
+        PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId,
+                                             SMART_BOOKMARKS_ON_TOOLBAR);
+      do_check_true(itemId > 0);
+      
+      do_check_false(Services.prefs.getBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS));
+      do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
+
+      run_next_test();
+    });
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
-
-    
-    itemId =
-      PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId,
-                                           SMART_BOOKMARKS_ON_TOOLBAR);
-    do_check_true(itemId > 0);
-    
-    do_check_false(Services.prefs.getBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS));
-    do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
-
-    run_next_test();
   }
 
 ];
