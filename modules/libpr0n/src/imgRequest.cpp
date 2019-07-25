@@ -1020,18 +1020,18 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
       isDiscardable = doDecodeOnDraw = PR_FALSE;
 
     
-    PRUint32 containerFlags = Image::INIT_FLAG_NONE;
+    PRUint32 imageFlags = Image::INIT_FLAG_NONE;
     if (isDiscardable)
-      containerFlags |= Image::INIT_FLAG_DISCARDABLE;
+      imageFlags |= Image::INIT_FLAG_DISCARDABLE;
     if (doDecodeOnDraw)
-      containerFlags |= Image::INIT_FLAG_DECODE_ON_DRAW;
+      imageFlags |= Image::INIT_FLAG_DECODE_ON_DRAW;
     if (mIsMultiPartChannel)
-      containerFlags |= Image::INIT_FLAG_MULTIPART;
+      imageFlags |= Image::INIT_FLAG_MULTIPART;
 
     
     
     
-    rv = mImage->Init(this, mContentType.get(), containerFlags);
+    rv = mImage->Init(this, mContentType.get(), imageFlags);
     if (NS_FAILED(rv)) { 
 
       this->Cancel(rv);
@@ -1067,17 +1067,17 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
 
   
   PRUint32 bytesRead;
-  rv = inStr->ReadSegments(RasterImage::WriteToContainer,
+  rv = inStr->ReadSegments(RasterImage::WriteToRasterImage,
                            static_cast<void*>(mImage),
                            count, &bytesRead);
   if (NS_FAILED(rv)) {
     PR_LOG(gImgLog, PR_LOG_WARNING,
            ("[this=%p] imgRequest::OnDataAvailable -- "
-            "copy to container failed\n", this));
+            "copy to RasterImage failed\n", this));
     this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
     return NS_BINDING_ABORTED;
   }
-  NS_ABORT_IF_FALSE(bytesRead == count, "WriteToContainer should consume everything!");
+  NS_ABORT_IF_FALSE(bytesRead == count, "WriteToRasterImage should consume everything!");
 
   return NS_OK;
 }

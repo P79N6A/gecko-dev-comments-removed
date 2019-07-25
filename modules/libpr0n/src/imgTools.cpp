@@ -114,10 +114,11 @@ NS_IMETHODIMP imgTools::DecodeImageData(nsIInputStream* aInStr,
   
   
   PRUint32 bytesRead;
-  rv = inStream->ReadSegments(RasterImage::WriteToContainer,
+  rv = inStream->ReadSegments(RasterImage::WriteToRasterImage,
                               static_cast<void*>(image),
                               length, &bytesRead);
   NS_ENSURE_SUCCESS(rv, rv);
+  NS_ABORT_IF_FALSE(bytesRead == length, "WriteToRasterImage should consume everything!");
 
 
   
@@ -130,8 +131,8 @@ NS_IMETHODIMP imgTools::DecodeImageData(nsIInputStream* aInStr,
 
 
 NS_IMETHODIMP imgTools::EncodeImage(imgIContainer *aContainer,
-                                          const nsACString& aMimeType,
-                                          nsIInputStream **aStream)
+                                    const nsACString& aMimeType,
+                                    nsIInputStream **aStream)
 {
     return EncodeScaledImage(aContainer, aMimeType, 0, 0, aStream);
 }

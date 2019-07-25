@@ -2585,31 +2585,31 @@ imgDecodeWorker::Run()
   nsCOMPtr<imgIContainer> iContainer(do_QueryReferent(mContainer));
   if (!iContainer)
     return NS_OK;
-  RasterImage* container = static_cast<RasterImage*>(iContainer.get());
+  RasterImage* image = static_cast<RasterImage*>(iContainer.get());
 
-  NS_ABORT_IF_FALSE(container->mInitialized,
+  NS_ABORT_IF_FALSE(image->mInitialized,
                     "Worker active for uninitialized container!");
 
   
-  container->mWorkerPending = PR_FALSE;
+  image->mWorkerPending = PR_FALSE;
 
   
   
   
-  if (container->mError)
+  if (image->mError)
     return NS_OK;
 
   
   
-  if (!container->mDecoder)
+  if (!image->mDecoder)
     return NS_OK;
 
   
   
   
   PRUint32 maxBytes =
-    (container->mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
-    ? container->mSourceData.Length() : DECODE_BYTES_AT_A_TIME;
+    (image->mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
+    ? image->mSourceData.Length() : DECODE_BYTES_AT_A_TIME;
 
   
   PRBool haveMoreData = PR_TRUE;
@@ -2619,26 +2619,26 @@ imgDecodeWorker::Run()
   
   
   
-  while (haveMoreData && !container->IsDecodeFinished() &&
+  while (haveMoreData && !image->IsDecodeFinished() &&
          (nsTime(PR_Now()) < deadline)) {
 
     
-    rv = container->DecodeSomeData(maxBytes);
+    rv = image->DecodeSomeData(maxBytes);
     if (NS_FAILED(rv)) {
-      container->DoError();
+      image->DoError();
       return rv;
     }
 
     
     haveMoreData =
-      container->mSourceData.Length() > container->mBytesDecoded;
+      image->mSourceData.Length() > image->mBytesDecoded;
   }
 
   
-  if (container->IsDecodeFinished()) {
-    rv = container->ShutdownDecoder(RasterImage::eShutdownIntent_Done);
+  if (image->IsDecodeFinished()) {
+    rv = image->ShutdownDecoder(RasterImage::eShutdownIntent_Done);
     if (NS_FAILED(rv)) {
-      container->DoError();
+      image->DoError();
       return rv;
     }
   }
@@ -2646,7 +2646,7 @@ imgDecodeWorker::Run()
   
   
   
-  if (!container->IsDecodeFinished() && haveMoreData)
+  if (!image->IsDecodeFinished() && haveMoreData)
     return this->Dispatch();
 
   
@@ -2660,14 +2660,14 @@ NS_METHOD imgDecodeWorker::Dispatch()
   nsCOMPtr<imgIContainer> iContainer(do_QueryReferent(mContainer));
   if (!iContainer)
     return NS_OK;
-  RasterImage* container = static_cast<RasterImage*>(iContainer.get());
+  RasterImage* image = static_cast<RasterImage*>(iContainer.get());
 
   
-  NS_ABORT_IF_FALSE(!container->mWorkerPending,
+  NS_ABORT_IF_FALSE(!image->mWorkerPending,
                     "Trying to queue up worker with one already pending!");
 
   
-  container->mWorkerPending = PR_TRUE;
+  image->mWorkerPending = PR_TRUE;
 
   
   return NS_DispatchToCurrentThread(this);
@@ -2677,20 +2677,23 @@ NS_METHOD imgDecodeWorker::Dispatch()
 
 
 NS_METHOD
-RasterImage::WriteToContainer(nsIInputStream* in, void* closure,
-                              const char* fromRawSegment, PRUint32 toOffset,
-                              PRUint32 count, PRUint32 *writeCount)
+RasterImage::WriteToRasterImage(nsIInputStream* ,
+                                void*          aClosure,
+                                const char*    aFromRawSegment,
+                                PRUint32       ,
+                                PRUint32       aCount,
+                                PRUint32*      aWriteCount)
 {
   
-  RasterImage* container = static_cast<RasterImage*>(closure);
+  RasterImage* image = static_cast<RasterImage*>(aClosure);
 
   
   
   
-  (void) container->AddSourceData(fromRawSegment, count);
+  (void) image->AddSourceData(aFromRawSegment, aCount);
 
   
-  *writeCount = count;
+  *aWriteCount = aCount;
 
   return NS_OK;
 }
