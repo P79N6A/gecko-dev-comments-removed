@@ -5562,27 +5562,6 @@ JS_NewGrowableString(JSContext *cx, jschar *chars, size_t length);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSString *)
 JS_NewDependentString(JSContext *cx, JSString *str, size_t start,
                       size_t length);
@@ -5600,13 +5579,6 @@ JS_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
 
 extern JS_PUBLIC_API(const jschar *)
 JS_UndependString(JSContext *cx, JSString *str);
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_MakeStringImmutable(JSContext *cx, JSString *str);
 
 
 
