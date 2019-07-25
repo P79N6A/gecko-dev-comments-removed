@@ -95,10 +95,8 @@ public:
   
   STDMETHODIMP Drop(LPDATAOBJECT pSource, DWORD grfKeyState,
                     POINTL point, DWORD* pEffect);
-  
 
-
-  void DragCancel();
+  PRBool           mDragCancelled;
 
 protected:
 

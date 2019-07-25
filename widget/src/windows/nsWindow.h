@@ -42,7 +42,6 @@
 
 
 
-
 #ifndef Window_h__
 #define Window_h__
 
@@ -425,7 +424,6 @@ protected:
 #endif 
 
 protected:
-  nsCOMPtr<nsIWidget>   mParent;
   nsIntSize             mLastSize;
   nsIntPoint            mLastPoint;
   HWND                  mWnd;
