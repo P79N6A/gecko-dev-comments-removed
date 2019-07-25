@@ -78,8 +78,15 @@ extern cairo_user_data_key_t gKeyD3D10Texture;
 
 
 
-class THEBES_API LayerManagerD3D10 : public LayerManager {
+
+
+
+
+class THEBES_API LayerManagerD3D10 : public ShadowLayerManager,
+                                     public ShadowLayerForwarder {
 public:
+  typedef LayerManager::LayersBackend LayersBackend;
+
   LayerManagerD3D10(nsIWidget *aWidget);
   virtual ~LayerManagerD3D10();
 
@@ -97,6 +104,12 @@ public:
 
 
   virtual void Destroy();
+
+  virtual ShadowLayerForwarder* AsShadowForwarder()
+  { return this; }
+
+  virtual ShadowLayerManager* AsShadowManager()
+  { return this; }
 
   virtual void SetRoot(Layer *aLayer);
 
@@ -117,14 +130,22 @@ public:
   const CallbackInfo &GetCallbackInfo() { return mCurrentCallbackInfo; }
 
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer();
+  virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer();
 
   virtual already_AddRefed<ContainerLayer> CreateContainerLayer();
+  virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer();
 
   virtual already_AddRefed<ImageLayer> CreateImageLayer();
+  virtual already_AddRefed<ShadowImageLayer> CreateShadowImageLayer()
+  { return nsnull; }
 
   virtual already_AddRefed<ColorLayer> CreateColorLayer();
+  virtual already_AddRefed<ShadowColorLayer> CreateShadowColorLayer()
+  { return nsnull; }
 
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
+  virtual already_AddRefed<ShadowCanvasLayer> CreateShadowCanvasLayer()
+  { return nsnull; }
 
   virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer();
 
