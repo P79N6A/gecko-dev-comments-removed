@@ -81,14 +81,6 @@ using namespace js::analyze;
             return retval;                                      \
     JS_END_MACRO
 
-#if defined(JS_METHODJIT_SPEW)
-static const char *OpcodeNames[] = {
-# define OPDEF(op,val,name,token,length,nuses,ndefs,prec,format) #name,
-# include "jsopcode.tbl"
-# undef OPDEF
-};
-#endif
-
 
 
 
