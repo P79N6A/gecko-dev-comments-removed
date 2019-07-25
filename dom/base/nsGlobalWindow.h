@@ -101,7 +101,7 @@
 #include "nsPIDOMEventTarget.h"
 #include "nsIArray.h"
 #include "nsIContent.h"
-#include "nsIIndexedDatabaseRequest.h"
+#include "nsIIDBFactory.h"
 #include "nsFrameMessageManager.h"
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
@@ -830,7 +830,7 @@ protected:
 
   nsCOMPtr<nsIDocument> mSuspendedDoc;
 
-  nsCOMPtr<nsIIndexedDatabaseRequest> mIndexedDB;
+  nsCOMPtr<nsIIDBFactory> mIndexedDB;
 
   
   
