@@ -239,6 +239,9 @@ assertDecl("function f(a,[x,y]) { function a() { } }",
                    blockStmt([funDecl(ident("a"), [], blockStmt([]))])));
 
 
+assertExpr("[,]=[,]", aExpr("=", arrPatt([null]), arrExpr([null])));
+
+
 
 
 
@@ -320,19 +323,21 @@ assertExpr("[]", arrExpr([]));
 assertExpr("[1]", arrExpr([lit(1)]));
 assertExpr("[1,2]", arrExpr([lit(1),lit(2)]));
 assertExpr("[1,2,3]", arrExpr([lit(1),lit(2),lit(3)]));
-assertExpr("[1,,2,3]", arrExpr([lit(1),,lit(2),lit(3)]));
-assertExpr("[1,,,2,3]", arrExpr([lit(1),,,lit(2),lit(3)]));
-assertExpr("[1,,,2,,3]", arrExpr([lit(1),,,lit(2),,lit(3)]));
-assertExpr("[1,,,2,,,3]", arrExpr([lit(1),,,lit(2),,,lit(3)]));
-assertExpr("[,1,2,3]", arrExpr([,lit(1),lit(2),lit(3)]));
-assertExpr("[,,1,2,3]", arrExpr([,,lit(1),lit(2),lit(3)]));
-assertExpr("[,,,1,2,3]", arrExpr([,,,lit(1),lit(2),lit(3)]));
-assertExpr("[,,,1,2,3,]", arrExpr([,,,lit(1),lit(2),lit(3),]));
-assertExpr("[,,,1,2,3,,]", arrExpr([,,,lit(1),lit(2),lit(3),,]));
-assertExpr("[,,,1,2,3,,,]", arrExpr([,,,lit(1),lit(2),lit(3),,,]));
-assertExpr("[,,,,,]", arrExpr([,,,,,]));
+assertExpr("[1,,2,3]", arrExpr([lit(1),null,lit(2),lit(3)]));
+assertExpr("[1,,,2,3]", arrExpr([lit(1),null,null,lit(2),lit(3)]));
+assertExpr("[1,,,2,,3]", arrExpr([lit(1),null,null,lit(2),null,lit(3)]));
+assertExpr("[1,,,2,,,3]", arrExpr([lit(1),null,null,lit(2),null,null,lit(3)]));
+assertExpr("[,1,2,3]", arrExpr([null,lit(1),lit(2),lit(3)]));
+assertExpr("[,,1,2,3]", arrExpr([null,null,lit(1),lit(2),lit(3)]));
+assertExpr("[,,,1,2,3]", arrExpr([null,null,null,lit(1),lit(2),lit(3)]));
+assertExpr("[,,,1,2,3,]", arrExpr([null,null,null,lit(1),lit(2),lit(3)]));
+assertExpr("[,,,1,2,3,,]", arrExpr([null,null,null,lit(1),lit(2),lit(3),null]));
+assertExpr("[,,,1,2,3,,,]", arrExpr([null,null,null,lit(1),lit(2),lit(3),null,null]));
+assertExpr("[,,,,,]", arrExpr([null,null,null,null,null]));
 assertExpr("[1, ...a, 2]", arrExpr([lit(1), spread(ident("a")), lit(2)]));
-assertExpr("[,, ...a,, ...b, 42]", arrExpr([,, spread(ident("a")),, spread(ident("b")), lit(42)]));
+assertExpr("[,, ...a,, ...b, 42]", arrExpr([null,null, spread(ident("a")),, spread(ident("b")), lit(42)]));
+assertExpr("[1,(2,3)]", arrExpr([lit(1),seqExpr([lit(2),lit(3)])]));
+assertExpr("[,(2,3)]", arrExpr([null,seqExpr([lit(2),lit(3)])]));
 assertExpr("({})", objExpr([]));
 assertExpr("({x:1})", objExpr([{ key: ident("x"), value: lit(1) }]));
 assertExpr("({x:1, y:2})", objExpr([{ key: ident("x"), value: lit(1) },
