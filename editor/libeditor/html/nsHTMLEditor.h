@@ -513,8 +513,6 @@ protected:
 
 
   
-  NS_IMETHOD IsRootTag(nsString &aTag, bool &aIsTag);
-
   virtual bool IsBlockNode(nsIDOMNode *aNode);
   virtual bool IsBlockNode(nsINode *aNode);
   
