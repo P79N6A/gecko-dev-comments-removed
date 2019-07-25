@@ -227,6 +227,10 @@ PopupNotifications.prototype = {
 
 
 
+
+
+
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -401,6 +405,8 @@ PopupNotifications.prototype = {
         popupnotification.setAttribute("menucommand", "PopupNotifications._onMenuCommand(event);");
         popupnotification.setAttribute("closeitemcommand", "PopupNotifications._dismiss();event.stopPropagation();");
       }
+      if (n.options.popupIconURL)
+        popupnotification.setAttribute("icon", n.options.popupIconURL);
       popupnotification.notification = n;
 
       if (n.secondaryActions) {
