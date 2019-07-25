@@ -213,9 +213,7 @@ Resource.prototype = {
     return this._lastChannel;
   },
 
-  _onProgress: function Res__onProgress(event) {
-    this._lastProgress = Date.now();
-  },
+  _onProgress: function Res__onProgress(channel) {},
 
   
   
@@ -357,69 +355,12 @@ ChannelListener.prototype = {
   },
 
   onDataAvailable: function Channel_onDataAvail(req, cb, stream, off, count) {
-    this._onProgress();
-
     let siStream = Cc["@mozilla.org/scriptableinputstream;1"].
       createInstance(Ci.nsIScriptableInputStream);
     siStream.init(stream);
 
     this._data += siStream.read(count);
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-function RecordParser(data) {
-  this._data = data;
-}
-RecordParser.prototype = {
-  
-  
-  
-  
-  getNextRecord: function RecordParser_getNextRecord() {
-    let start;
-    let bCount = 0;
-    let done = false;
-
-    for (let i = 1; i < this._data.length; i++) {
-      if (this._data[i] == '{') {
-        if (bCount == 0)
-          start = i;
-        bCount++;
-      } else if (this._data[i] == '}') {
-        bCount--;
-        if (bCount == 0)
-          done = true;
-      }
-
-      if (done) {
-        let ret = this._data.substring(start, i + 1);
-        this._data = this._data.substring(i + 1);
-        return ret;
-      }
-    }
-
-    return false;
-  },
-
-  
-  
-  
-  
-  
-  
-  
-  append: function RecordParser_append(data) {
-    this._data += data;
+    this._onProgress();
   }
 };
 
