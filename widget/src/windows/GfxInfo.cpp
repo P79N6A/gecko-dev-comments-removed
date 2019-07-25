@@ -171,17 +171,15 @@ GfxInfo::Init()
   displayDevice.cb = sizeof(displayDevice);
   int deviceIndex = 0;
 
+  mDeviceKeyDebug = NS_LITERAL_STRING("PrimarySearch");
+
   while (EnumDisplayDevicesW(NULL, deviceIndex, &displayDevice, 0)) {
-    if (displayDevice.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE)
+    if (displayDevice.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) {
+      mDeviceKeyDebug = NS_LITERAL_STRING("NullSearch");
       break;
+    }
     deviceIndex++;
   }
-
-  
-  
-  
-  if (_wcsnicmp(displayDevice.DeviceKey, DEVICE_KEY_PREFIX, NS_ARRAY_LENGTH(DEVICE_KEY_PREFIX)-1) != 0)
-    return;
 
   
   if (wcsnlen(displayDevice.DeviceKey, NS_ARRAY_LENGTH(displayDevice.DeviceKey))
@@ -189,6 +187,14 @@ GfxInfo::Init()
     
     return;
   }
+
+  mDeviceKeyDebug = displayDevice.DeviceKey;
+
+  
+  
+  
+  if (_wcsnicmp(displayDevice.DeviceKey, DEVICE_KEY_PREFIX, NS_ARRAY_LENGTH(DEVICE_KEY_PREFIX)-1) != 0)
+    return;
 
   
   mDeviceKey = displayDevice.DeviceKey + NS_ARRAY_LENGTH(DEVICE_KEY_PREFIX)-1;
@@ -364,7 +370,16 @@ GfxInfo::AddCrashReportAnnotations()
   nsCAutoString note;
   
   note.AppendPrintf("AdapterVendorID: %04x, ", vendorID);
-  note.AppendPrintf("AdapterDeviceID: %04x\n", deviceID);
+  note.AppendPrintf("AdapterDeviceID: %04x", deviceID);
+
+  if (vendorID == 0) {
+      
+      note.Append(", ");
+      note.AppendWithConversion(mDeviceKeyDebug);
+      note.Append(", ");
+      note.AppendWithConversion(mDeviceID);
+  }
+  note.Append("\n");
 
   CrashReporter::AppendAppNotesToCrashReport(note);
 
