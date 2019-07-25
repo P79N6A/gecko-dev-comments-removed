@@ -1412,6 +1412,24 @@ class LArrayLength : public LInstructionHelper<1, 1, 0>
 };
 
 
+class LTypedArrayLength : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(TypedArrayLength);
+
+    LTypedArrayLength(const LAllocation &obj) {
+        setOperand(0, obj);
+    }
+
+    const LAllocation *object() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
 class LBoundsCheck : public LInstructionHelper<0, 2, 0>
 {
   public:
