@@ -1,5 +1,40 @@
 
-#ifndef trampolines_h__
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined trampolines_h__ && defined JS_METHODJIT
 #define trampolines_h__
 
 #include "assembler/jit/ExecutableAllocator.h"
@@ -35,7 +70,7 @@ private:
     Trampolines *trampolines;
 };
 
-}
-}
+} 
+} 
 
 #endif

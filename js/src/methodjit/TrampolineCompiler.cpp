@@ -1,4 +1,39 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TrampolineCompiler.h"
 #include "StubCalls.h"
 #include "assembler/assembler/LinkBuffer.h"
@@ -124,5 +159,5 @@ TrampolineCompiler::generateForceReturn(Assembler &masm)
     return true;
 }
 
-}
-}
+} 
+} 
