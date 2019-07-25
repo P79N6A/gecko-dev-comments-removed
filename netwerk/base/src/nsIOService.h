@@ -166,8 +166,6 @@ private:
     bool                                 mAutoDialEnabled;
 public:
     
-    
-    static nsIMemory *gBufferCache;
     static PRUint32   gDefaultSegmentSize;
     static PRUint32   gDefaultSegmentCount;
 };

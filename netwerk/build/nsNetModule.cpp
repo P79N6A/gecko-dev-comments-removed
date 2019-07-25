@@ -656,9 +656,6 @@ static void nsNetShutdown()
     nsStandardURL::ShutdownGlobalObjects();
 
     
-    NS_IF_RELEASE(nsIOService::gBufferCache);
-
-    
     net_ShutdownURLHelper();
 #ifdef XP_MACOSX
     net_ShutdownURLHelperOSX();

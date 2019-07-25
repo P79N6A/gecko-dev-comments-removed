@@ -43,18 +43,6 @@
 
 
 
-
-
-static inline nsIMemory *
-net_GetSegmentAlloc(PRUint32 segsize)
-{
-    return (segsize == nsIOService::gDefaultSegmentSize)
-                     ? nsIOService::gBufferCache : nsnull;
-}
-
-
-
-
 static inline void
 net_ResolveSegmentParams(PRUint32 &segsize, PRUint32 &segcount)
 {
