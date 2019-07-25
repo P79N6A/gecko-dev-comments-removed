@@ -210,23 +210,43 @@ public class PanZoomController
         }
     }
 
-    public void geometryChanged(boolean aAbortFling) {
+    public void geometryChanged(boolean abortAnimation) {
         populatePositionAndLength();
 
-        if (aAbortFling) {
+        if (abortAnimation) {
+            
             
             
             
             switch (mState) {
+            case ANIMATED_ZOOM:
+                
+                
+                
+                animatedZoomTo(mController.getViewport());
+                break;
             case FLING:
                 mX.velocity = mY.velocity = 0.0f;
                 mState = PanZoomState.NOTHING;
                 
             case NOTHING:
-                fling();
+                tryZoomToFitPage();
                 break;
             }
         }
+    }
+
+    private boolean tryZoomToFitPage() {
+        RectF viewport = mController.getViewport();
+        FloatSize pageSize = mController.getPageSize();
+        RectF pageRect = new RectF(0, 0, pageSize.width, pageSize.height);
+
+        if (!pageRect.contains(viewport)) {
+            
+            animatedZoomTo(viewport);
+            return true;
+        }
+        return false;
     }
 
     
@@ -852,15 +872,8 @@ public class PanZoomController
         mX.firstTouchPos = mX.lastTouchPos = mX.touchPos = detector.getFocusX();
         mY.firstTouchPos = mY.lastTouchPos = mY.touchPos = detector.getFocusY();
 
-        RectF viewport = mController.getViewport();
-
-        FloatSize pageSize = mController.getPageSize();
-        RectF pageRect = new RectF(0,0, pageSize.width, pageSize.height);
-
-        if (!pageRect.contains(viewport)) {
+        if (!tryZoomToFitPage()) {
             
-            animatedZoomTo(viewport);
-        } else {
             
             mController.setForceRedraw();
             mController.notifyLayerClientOfGeometryChange();
@@ -1002,7 +1015,7 @@ public class PanZoomController
                     mZoomTimer.cancel();
                     mZoomTimer = null;
                     mState = PanZoomState.NOTHING;
-               }
+                }
             }
         }, 0, 1000L/60L);
         return true;
