@@ -8020,6 +8020,8 @@ function safeModeRestart()
 
 
 
+
+
 function duplicateTabIn(aTab, where, historyIndex) {
   let newTab = gBrowser.duplicateTab(aTab);
 
