@@ -157,8 +157,8 @@ nsHTMLImageMapAccessible::CacheChildren()
     
     areaAcc->SetRoleMapEntry(nsAccUtils::GetRoleMapEntry(areaContent));
 
-    mChildren.AppendElement(areaAcc);
-    areaAcc->SetParent(this);
+    if (!AppendChild(areaAcc))
+      return;
   }
 }
 

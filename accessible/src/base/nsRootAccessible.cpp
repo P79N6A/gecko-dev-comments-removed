@@ -768,28 +768,12 @@ nsRootAccessible::HandleEvent(nsIDOMEvent* aEvent)
 
 
 
-PRBool
-nsRootAccessible::Init()
-{
-  nsApplicationAccessible *applicationAcc = GetApplicationAccessible();
-  if (!applicationAcc || !applicationAcc->AppendChild(this))
-    return PR_FALSE;
-
-  return nsDocAccessibleWrap::Init();
-}
-
 void
 nsRootAccessible::Shutdown()
 {
   
   if (!mWeakShell)
     return;  
-
-  nsApplicationAccessible *applicationAcc = GetApplicationAccessible();
-  if (!applicationAcc)
-    return;
-
-  applicationAcc->RemoveChild(this);
 
   mCurrentARIAMenubar = nsnull;
 

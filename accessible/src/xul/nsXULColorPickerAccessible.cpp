@@ -172,9 +172,7 @@ nsXULColorPickerAccessible::CacheChildren()
 
     
     if (role == nsIAccessibleRole::ROLE_ALERT) {
-      mChildren.AppendElement(child);
-      child->SetParent(this);
-
+      AppendChild(child);
       return;
     }
   }

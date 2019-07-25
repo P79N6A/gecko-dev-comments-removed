@@ -387,10 +387,8 @@ nsHTMLSelectListAccessible::CacheOptSiblings(nsIContent *aParentContent)
       nsRefPtr<nsAccessible> accessible =
         GetAccService()->GetOrCreateAccessible(childContent, presShell,
                                                mWeakShell);
-      if (accessible) {
-        mChildren.AppendElement(accessible);
-        accessible->SetParent(this);
-      }
+      if (accessible)
+        AppendChild(accessible);
 
       
       if (tag == nsAccessibilityAtoms::optgroup)
@@ -408,26 +406,6 @@ nsHTMLSelectOptionAccessible::
   nsHTMLSelectOptionAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
   nsHyperTextAccessibleWrap(aContent, aShell)
 {
-  nsIContent *parentContent = aContent->GetParent();
-  if (!parentContent)
-    return;
-
-  
-  
-  
-  
-  
-  nsAccessible *parentAcc =
-    GetAccService()->GetAccessibleInWeakShell(parentContent, mWeakShell);
-  if (!parentAcc)
-    return;
-
-  if (nsAccUtils::RoleInternal(parentAcc) == nsIAccessibleRole::ROLE_COMBOBOX) {
-    PRInt32 childCount = parentAcc->GetChildCount();
-    parentAcc = parentAcc->GetChildAt(childCount - 1);
-  }
-
-  SetParent(parentAcc);
 }
 
 
@@ -473,6 +451,7 @@ nsHTMLSelectOptionAccessible::GetNameInternal(nsAString& aName)
 
   return NS_OK;
 }
+
 
 nsIFrame* nsHTMLSelectOptionAccessible::GetBoundsFrame()
 {
@@ -941,8 +920,7 @@ nsHTMLComboboxAccessible::CacheChildren()
     }
   }
 
-  mChildren.AppendElement(mListAccessible);
-  mListAccessible->SetParent(this);
+  AppendChild(mListAccessible);
 
   
   

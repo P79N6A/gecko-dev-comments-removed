@@ -40,6 +40,7 @@
 
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
+#include "nsApplicationAccessible.h"
 #include "nsOuterDocAccessible.h"
 #include "nsRootAccessibleWrap.h"
 
@@ -454,7 +455,10 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
   
   
   nsAccessible *outerDocAcc = nsnull;
-  if (!isRootDoc) {
+  if (isRootDoc) {
+    outerDocAcc = nsAccessNode::GetApplicationAccessible();
+
+  } else {
     nsIDocument* parentDoc = aDocument->GetParentDocument();
     if (!parentDoc)
       return nsnull;
@@ -469,14 +473,14 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
     
     
     outerDocAcc = GetAccService()->GetAccessible(ownerContent);
-    if (!outerDocAcc)
-      return nsnull;
   }
 
-  nsCOMPtr<nsIWeakReference> weakShell(do_GetWeakReference(presShell));
+  if (!outerDocAcc)
+    return nsnull;
 
   
   
+  nsCOMPtr<nsIWeakReference> weakShell(do_GetWeakReference(presShell));
   nsDocAccessible *docAcc = isRootDoc ?
     new nsRootAccessibleWrap(aDocument, rootElm, weakShell) :
     new nsDocAccessibleWrap(aDocument, rootElm, weakShell);
@@ -492,14 +496,9 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
 
   
   
-  if (outerDocAcc) {
-    
-    
-    outerDocAcc->AppendChild(docAcc);
-  }
-
-  if (!GetAccService()->InitAccessible(docAcc,
-                                       nsAccUtils::GetRoleMapEntry(aDocument))) {
+  
+  if (!outerDocAcc->AppendChild(docAcc) ||
+      !GetAccService()->InitAccessible(docAcc, nsAccUtils::GetRoleMapEntry(aDocument))) {
     mDocAccessibleCache.Remove(static_cast<void*>(aDocument));
     return nsnull;
   }

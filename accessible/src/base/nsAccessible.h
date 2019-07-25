@@ -205,14 +205,10 @@ public:
   
 
 
-  void SetParent(nsAccessible *aParent);
-
-  
-
-
   PRBool EnsureChildren();
 
   
+
 
 
 
@@ -222,12 +218,9 @@ public:
   
 
 
-
-
-
-
-  virtual PRBool AppendChild(nsAccessible *aAccessible) { return PR_FALSE; }
-  virtual PRBool RemoveChild(nsAccessible *aAccessible) { return PR_FALSE; }
+  virtual PRBool AppendChild(nsAccessible* aChild);
+  virtual PRBool InsertChildAt(PRUint32 aIndex, nsAccessible* aChild);
+  virtual PRBool RemoveChild(nsAccessible* aChild);
 
   
   
@@ -250,12 +243,12 @@ public:
   
 
 
-  virtual PRInt32 GetIndexOf(nsIAccessible *aChild);
+  virtual PRInt32 GetIndexOf(nsAccessible* aChild);
 
   
 
 
-  PRInt32 GetIndexInParent();
+  virtual PRInt32 GetIndexInParent();
 
   
 
@@ -266,8 +259,7 @@ public:
 
 
   nsAccessible* GetCachedParent() const { return mParent; }
-  nsAccessible* GetCachedFirstChild() const
-    { return mChildren.SafeElementAt(0, nsnull); }
+  PRUint32 GetCachedChildCount() const { return mChildren.Length(); }
 
   PRBool AreChildrenCached() const { return mAreChildrenInitialized; }
 
@@ -318,6 +310,12 @@ protected:
 
 
   virtual void CacheChildren();
+
+  
+
+
+  void BindToParent(nsAccessible* aParent, PRUint32 aIndexInParent);
+  void UnbindFromParent() { mParent = nsnull; mIndexInParent = -1; }
 
   
 
@@ -431,6 +429,7 @@ protected:
   nsRefPtr<nsAccessible> mParent;
   nsTArray<nsRefPtr<nsAccessible> > mChildren;
   PRBool mAreChildrenInitialized;
+  PRInt32 mIndexInParent;
 
   nsRoleMapEntry *mRoleMapEntry; 
 };

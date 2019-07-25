@@ -81,7 +81,6 @@ public:
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
   
-  virtual PRBool Init();
   virtual void Shutdown();
 
   

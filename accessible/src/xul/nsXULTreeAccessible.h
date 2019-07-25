@@ -91,7 +91,6 @@ public:
 
   virtual nsAccessible* GetChildAt(PRUint32 aIndex);
   virtual PRInt32 GetChildCount();
-  virtual PRInt32 GetIndexOf(nsIAccessible *aChild);
 
   
 
@@ -199,6 +198,8 @@ public:
 
   
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+  virtual PRInt32 GetIndexInParent()
+    { return mParent ? mParent->GetCachedChildCount() + mRow : -1; }
 
   
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_XULTREEITEMBASEACCESSIBLE_IMPL_CID)

@@ -474,27 +474,6 @@ nsApplicationAccessible::GetSiblingAtOffset(PRInt32 aOffset, nsresult* aError)
 
 
 
-PRBool
-nsApplicationAccessible::AppendChild(nsAccessible* aChild)
-{
-  if (!mChildren.AppendElement(aChild))
-    return PR_FALSE;
-
-  aChild->SetParent(this);
-  return PR_TRUE;
-}
-
-PRBool
-nsApplicationAccessible::RemoveChild(nsAccessible* aChild)
-{
-  
-  
-  return mChildren.RemoveElement(aChild);
-}
-
-
-
-
 NS_IMETHODIMP
 nsApplicationAccessible::GetDOMNode(nsIDOMNode **aDOMNode)
 {

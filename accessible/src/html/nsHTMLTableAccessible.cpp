@@ -40,6 +40,7 @@
 #include "nsHTMLTableAccessible.h"
 
 #include "nsAccessibilityService.h"
+#include "nsAccTreeWalker.h"
 #include "nsAccUtils.h"
 #include "nsDocAccessible.h"
 #include "nsRelUtils.h"
@@ -452,25 +453,20 @@ NS_IMPL_ISUPPORTS_INHERITED2(nsHTMLTableAccessible, nsAccessible,
 void
 nsHTMLTableAccessible::CacheChildren()
 {
-  nsAccessible::CacheChildren();
-
   
-  PRInt32 length = mChildren.Length();
-  for (PRInt32 idx = 0; idx < length; idx++) {
-    
-    
-    
+  
+  
+  
+  nsAccTreeWalker walker(mWeakShell, mContent, GetAllowsAnonChildAccessibles());
 
-    nsAccessible* child = mChildren.ElementAt(idx);
+  nsRefPtr<nsAccessible> child;
+  while ((child = walker.GetNextChild())) {
     if (nsAccUtils::Role(child) == nsIAccessibleRole::ROLE_CAPTION) {
-      if (idx == 0)
-        break;
-
-      nsRefPtr<nsAccessible> tmp = mChildren[0];
-      mChildren[0] = child;
-      mChildren[idx] = tmp;
+      InsertChildAt(0, child);
+      while ((child = walker.GetNextChild()) && AppendChild(child));
       break;
     }
+    AppendChild(child);
   }
 }
 
