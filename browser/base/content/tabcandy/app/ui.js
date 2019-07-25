@@ -198,7 +198,8 @@ window.Page = {
     
     $(window).keyup(function(e){
       
-      if(e.which == 27 || e.which == 13)
+      
+      if((e.which == 27 || e.which == 13) && $(":focus").length == 0 )
         if( self.getActiveTab() ) self.getActiveTab().zoom();
     });
   },
