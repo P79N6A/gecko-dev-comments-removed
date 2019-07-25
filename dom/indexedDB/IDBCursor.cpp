@@ -685,23 +685,17 @@ IDBCursor::Update(const jsval& aValue,
 
   Key& objectKey = (mType == OBJECTSTORE) ? mKey : mObjectKey;
 
-  if (!mObjectStore->KeyPath().IsEmpty()) {
+  if (mObjectStore->HasValidKeyPath()) {
     
     if (JSVAL_IS_PRIMITIVE(aValue)) {
       return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
     }
 
     
-    const nsString& keyPath = mObjectStore->KeyPath();
-
-    jsval prop;
-    JSBool ok = JS_GetUCProperty(aCx, JSVAL_TO_OBJECT(aValue),
-                                 reinterpret_cast<const jschar*>(keyPath.get()),
-                                 keyPath.Length(), &prop);
-    NS_ENSURE_TRUE(ok, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
-
+    const KeyPath& keyPath = mObjectStore->GetKeyPath();
     Key key;
-    rv = key.SetFromJSVal(aCx, prop);
+
+    rv = keyPath.ExtractKey(aCx, aValue, key);
     if (NS_FAILED(rv)) {
       return rv;
     }
