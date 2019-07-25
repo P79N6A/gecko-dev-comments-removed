@@ -295,6 +295,9 @@ enum ThingRootKind
 template <typename T> class Root;
 template <typename T> class RootedVar;
 
+template <typename T>
+struct RootMethods { };
+
 
 
 
@@ -325,8 +328,8 @@ class Handle
     template <typename S>
     void testAssign() {
 #ifdef DEBUG
-        T a;
-        S b;
+        T a = RootMethods<T>::initial();
+        S b = RootMethods<S>::initial();
         a = b;
 #endif
     }
