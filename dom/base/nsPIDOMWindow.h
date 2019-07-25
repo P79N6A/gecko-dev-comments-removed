@@ -167,6 +167,9 @@ public:
     win->mMutationBits |= aType;
   }
 
+  virtual void MaybeUpdateTouchState() {}
+  virtual void UpdateTouchState() {}
+
   
   nsIDOMDocument* GetExtantDocument() const
   {
@@ -420,6 +423,16 @@ public:
   
 
 
+
+  void SetHasTouchEventListeners()
+  {
+    mMayHaveTouchEventListener = PR_TRUE;
+    MaybeUpdateTouchState();
+  }
+
+  
+
+
   virtual void InitJavaProperties() = 0;
 
   virtual void* GetCachedXBLPrototypeHandler(nsXBLPrototypeHandler* aKey) = 0;
@@ -555,6 +568,7 @@ protected:
   PRPackedBool           mIsHandlingResizeEvent;
   PRPackedBool           mIsInnerWindow;
   PRPackedBool           mMayHavePaintEventListener;
+  PRPackedBool           mMayHaveTouchEventListener;
 
   
   
