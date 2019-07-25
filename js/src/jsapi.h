@@ -4472,6 +4472,66 @@ JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_CallNonGenericMethodOnProxy(JSContext *cx, unsigned argc, jsval *vp, JSNative native, JSClass *clasp);
+
+
+
+
+
+
+
+
 extern JS_PUBLIC_API(JSBool)
 JS_BufferIsCompilableUnit(JSContext *cx, JSBool bytes_are_utf8,
                           JSObject *obj, const char *bytes, size_t length);
