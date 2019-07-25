@@ -425,20 +425,10 @@ pref("dom.max_script_run_time", 20);
 
 pref("devtools.errorconsole.enabled", false);
 
-pref("browser.ui.layout.tablet", -1); 
-
-
-pref("browser.ui.kinetic.updateInterval", 16);
-pref("browser.ui.kinetic.exponentialC", 1400);
-pref("browser.ui.kinetic.polynomialC", 100);
-pref("browser.ui.kinetic.swipeLength", 160);
-
 pref("font.size.inflation.minTwips", 120);
 
 
-pref("browser.ui.pinch.maxGrowth", 150);     
-pref("browser.ui.pinch.maxShrink", 200);     
-pref("browser.ui.pinch.scalingFactor", 500); 
+pref("browser.ui.zoom.force-user-scalable", false);
 
 
 
