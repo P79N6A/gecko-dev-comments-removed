@@ -1153,39 +1153,49 @@ let BookmarksMenuButton = {
     
   },
 
-  _popupInitialized: false,
-  _popupNeedsUpdating: true,
+  _popupNeedsUpdate: {},
   onPopupShowing: function BMB_onPopupShowing(event) {
-    if (!this._popupNeedsUpdating)
+    
+    if (event.target != event.currentTarget)
       return;
-    this._popupNeedsUpdating = false;
 
-    let viewToolbar = document.getElementById("BMB_viewBookmarksToolbar");
-    if (!this._popupInitialized) {
-      
-      this._popupInitialized = true;
-      
-      viewToolbar.setAttribute("toolbarId", this.personalToolbar.id);
+    let popup = event.target;
+    let needsUpdate = this._popupNeedsUpdate[popup.id];
 
+    
+    
+    if (needsUpdate === false)
+      return;
+    this._popupNeedsUpdate[popup.id] = false;
+
+    function getPlacesAnonymousElement(aAnonId)
+      document.getAnonymousElementByAttribute(popup.parentNode,
+                                              "placesanonid",
+                                              aAnonId);
+
+    let viewToolbarMenuitem = getPlacesAnonymousElement("view-toolbar");
+    if (viewToolbarMenuitem) {
       
-      let unsortedBookmarksElt =
-        document.getElementById("BMB_unsortedBookmarksFolderMenu");
-      unsortedBookmarksElt.label =
-        PlacesUtils.getString("UnsortedBookmarksFolderTitle");
+      viewToolbarMenuitem.setAttribute("checked",
+                                       !this.personalToolbar.collapsed);
     }
 
-    
-    viewToolbar.setAttribute("checked", !this.personalToolbar.collapsed);
-
-    
-    
-    let button = this.button;
-    document.getElementById("BMB_bookmarksToolbarFolderMenu").collapsed =
-      button && button.parentNode == this.bookmarksToolbarItem;
+    let toolbarMenuitem = getPlacesAnonymousElement("toolbar-autohide");
+    if (toolbarMenuitem) {
+      
+      
+      toolbarMenuitem.collapsed = toolbarMenuitem.nextSibling.collapsed =
+        isElementVisible(this.bookmarksToolbarItem);
+    }
   },
 
   updatePosition: function BMB_updatePosition() {
-    this._popupNeedsUpdating = true;
+    
+    
+    
+    for (let popupId in this._popupNeedsUpdate) {
+      this._popupNeedsUpdate[popupId] = true;
+    }
 
     let button = this.button;
     if (!button)
