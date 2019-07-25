@@ -20,6 +20,14 @@
 
 #include "vpx_config_x86_64-linux-gcc.c"
 
+#elif defined(__sun) && defined(__i386)
+
+#include "vpx_config_x86-linux-gcc.h"
+
+#elif defined(__sun) && defined(__x86_64)
+
+#include "vpx_config_x86_64-linux-gcc.h"
+
 #elif defined(_MSC_VER) && defined(_M_X64)
 #include "vpx_config_x86_64-win64-vs8.c"
 
