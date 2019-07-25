@@ -61,23 +61,6 @@ namespace ic {
 static const uint32 MAX_PIC_STUBS = 16;
 static const uint32 MAX_GETELEM_IC_STUBS = 17;
 
-
-#if defined JS_CPU_X86
-static const int32 SETPROP_INLINE_SHAPE_JUMP       =  12; 
-static const int32 SETPROP_DSLOTS_BEFORE_CONSTANT  = -23; 
-static const int32 SETPROP_DSLOTS_BEFORE_KTYPE     = -19; 
-static const int32 SETPROP_DSLOTS_BEFORE_DYNAMIC   = -15; 
-static const int32 SETPROP_INLINE_STORE_DYN_TYPE   =  -6; 
-static const int32 SETPROP_INLINE_STORE_DYN_DATA   =   0; 
-static const int32 SETPROP_INLINE_STORE_KTYPE_TYPE = -10; 
-static const int32 SETPROP_INLINE_STORE_KTYPE_DATA =   0; 
-static const int32 SETPROP_INLINE_STORE_CONST_TYPE = -14; 
-static const int32 SETPROP_INLINE_STORE_CONST_DATA =  -4; 
-#elif defined JS_CPU_X64
-static const int32 SETPROP_INLINE_STORE_VALUE      =   0; 
-static const int32 SETPROP_INLINE_SHAPE_JUMP       =   6; 
-#endif
-
 void PurgePICs(JSContext *cx);
 
 enum LookupStatus {
