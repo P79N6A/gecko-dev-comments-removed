@@ -111,7 +111,7 @@
 
 
 
-     File.prototype.read = function read(buffer, nbytes, options) {
+     File.prototype._read = function _read(buffer, nbytes, options) {
        
        throw_on_zero("read",
          WinFile.ReadFile(this.fd, buffer, nbytes, gBytesReadPtr, null)
@@ -132,7 +132,7 @@
 
 
 
-     File.prototype.write = function write(buffer, nbytes, options) {
+     File.prototype._write = function _write(buffer, nbytes, options) {
        
        throw_on_zero("write",
          WinFile.WriteFile(this.fd, buffer, nbytes, gBytesWrittenPtr, null)
