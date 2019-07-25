@@ -78,6 +78,9 @@ public:
   double ToMilliseconds() const {
     return ToSeconds() * 1000.0;
   }
+  double ToMicroseconds() const {
+    return ToMilliseconds() * 1000.0;
+  }
 
   
   
