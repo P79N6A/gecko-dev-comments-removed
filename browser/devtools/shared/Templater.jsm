@@ -47,9 +47,50 @@ const Node = Components.interfaces.nsIDOMNode;
 
 
 
-function Templater() {
+
+
+
+
+
+
+function template(node, data, options) {
+  var template = new Templater(options || {});
+  template.processNode(node, data);
+  return template;
+}
+
+
+
+
+
+function Templater(options) {
+  if (options == null) {
+    options = { allowEval: true };
+  }
+  this.options = options;
   this.stack = [];
 }
+
+
+
+
+
+
+
+
+Templater.prototype._templateRegion = /\$\{([^}]*)\}/g;
+
+
+
+
+
+Templater.prototype._splitSpecial = /\uF001|\uF002/;
+
+
+
+
+
+Templater.prototype._isPropertyScript = /^[a-zA-Z0-9.]*$/;
 
 
 
@@ -111,7 +152,7 @@ Templater.prototype.processNode = function(node, data) {
             }
           } else {
             
-            var newValue = value.replace(/\$\{[^}]*\}/g, function(path) {
+            var newValue = value.replace(this._templateRegion, function(path) {
               return this._envEval(path.slice(2, -1), data, value);
             }.bind(this));
             
@@ -295,8 +336,8 @@ Templater.prototype._processTextNode = function(node, data) {
   
   
   
-  value = value.replace(/\$\{([^}]*)\}/g, '\uF001$$$1\uF002');
-  var parts = value.split(/\uF001|\uF002/);
+  value = value.replace(this._templateRegion, '\uF001$$$1\uF002');
+  var parts = value.split(this._splitSpecial);
   if (parts.length > 1) {
     parts.forEach(function(part) {
       if (part === null || part === undefined || part === '') {
@@ -363,7 +404,7 @@ Templater.prototype._handleAsync = function(thing, siblingNode, inserter) {
 
 
 Templater.prototype._stripBraces = function(str) {
-  if (!str.match(/\$\{.*\}/g)) {
+  if (!str.match(this._templateRegion)) {
     this._handleError('Expected ' + str + ' to match ${...}');
     return str;
   }
@@ -427,17 +468,26 @@ Templater.prototype._property = function(path, data, newValue) {
 
 
 Templater.prototype._envEval = function(script, data, frame) {
-  with (data) {
-    try {
-      this.stack.push(frame);
-      return eval(script);
-    } catch (ex) {
-      this._handleError('Template error evaluating \'' + script + '\'' +
-          ' environment=' + Object.keys(data).join(', '), ex);
-      return script;
-    } finally {
-      this.stack.pop();
+  try {
+    this.stack.push(frame);
+    if (this._isPropertyScript.test(script)) {
+      return this._property(script, data);
+    } else {
+      if (!this.options.allowEval) {
+        this._handleError('allowEval is not set, however \'' + script + '\'' +
+            ' can not be resolved using a simple property path.');
+        return '${' + script + '}';
+      }
+      with (data) {
+        return eval(script);
+      }
     }
+  } catch (ex) {
+    this._handleError('Template error evaluating \'' + script + '\'' +
+        ' environment=' + Object.keys(data).join(', '), ex);
+    return '${' + script + '}';
+  } finally {
+    this.stack.pop();
   }
 };
 
