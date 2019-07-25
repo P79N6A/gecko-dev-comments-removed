@@ -143,8 +143,14 @@ function test_part1() {
   do_check_false(gSTSService.isStsHost("another.subdomain.cert.se"));
 
   
-  if (getPBSvc())
+  
+  
+  
+  if (getPBSvc()) {
     getPBSvc().privateBrowsingEnabled = true;
+  } else {
+    run_next_test();
+  }
 }
 
 function test_private_browsing1() {
