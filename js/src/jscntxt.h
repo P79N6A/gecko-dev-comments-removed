@@ -1649,19 +1649,6 @@ struct JSContext
     
     JSCList             link;
 
-#if JS_HAS_XML_SUPPORT
-    
-
-
-
-
-
-    uint8               xmlSettingFlags;
-    uint8               padding;
-#else
-    uint16              padding;
-#endif
-
     
 
 
