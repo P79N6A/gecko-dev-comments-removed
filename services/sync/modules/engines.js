@@ -101,8 +101,6 @@ Engine.prototype = {
   
   get serverPrefix() { throw "serverPrefix property must be overridden in subclasses"; },
 
-  get snapshot() this._snapshot,
-
   get _remote() {
     if (!this.__remote)
       this.__remote = new RemoteStore(this.serverPrefix, 'Engine:' + this.name);
@@ -272,16 +270,28 @@ Engine.prototype = {
 
     this._log.info("Beginning sync");
 
-    this._remote.initSession(self.cb);
-    yield;
+    
+    DAV.MKCOL(this.serverPrefix, self.cb);
+    let ret = yield;
+    if (!ret)
+      throw "Could not create remote folder";
 
-    this._log.info("Local snapshot version: " + this._snapshot.version);
-    this._log.info("Server maxVersion: " + this._remote.status.data.maxVersion);
-    this._log.debug("Server snapVersion: " + this._remote.status.data.snapVersion);
+    this._remote.initSession();
 
     
     this._getServerData.async(this, self.cb);
     let server = yield;
+
+    this._log.info("Local snapshot version: " + this._snapshot.version);
+    this._log.info("Server status: " + server.status);
+    this._log.info("Server maxVersion: " + server.maxVersion);
+    this._log.info("Server snapVersion: " + server.snapVersion);
+
+    if (server.status != 0) {
+      this._log.fatal("Sync error: could not get server status, " +
+                      "or initial upload failed.  Aborting sync.");
+      return;
+    }
 
     
 
@@ -389,32 +399,39 @@ Engine.prototype = {
 
     if (serverDelta.length) {
       this._log.info("Uploading changes to server");
+
       this._snapshot.data = newSnapshot;
       this._snapshot.version = ++server.maxVersion;
 
-      
+      server.deltas.push(serverDelta);
 
+      if (server.formatVersion != ENGINE_STORAGE_FORMAT_VERSION ||
+          this._encryptionChanged) {
+        this._fullUpload.async(this, self.cb);
+        let status = yield;
+        if (!status)
+          this._log.error("Could not upload files to server"); 
 
+      } else {
+        this._remote.deltas.put(self.cb, server.deltas);
+        yield;
 
+        let c = 0;
+        for (GUID in this._snapshot.data)
+          c++;
 
+        this._remote.status.put(self.cb,
+                                {GUID: this._snapshot.GUID,
+                                 formatVersion: ENGINE_STORAGE_FORMAT_VERSION,
+                                 snapVersion: server.snapVersion,
+                                 maxVersion: this._snapshot.version,
+                                 snapEncryption: server.snapEncryption,
+                                 deltasEncryption: Crypto.defaultAlgorithm,
+                                 itemCount: c});
 
-
-
-      this._remote.appendDelta(self.cb, serverDelta);
-      yield;
-
-      let c = 0;
-      for (GUID in this._snapshot.data)
-        c++;
-
-      this._remote.status.data.maxVersion = this._snapshot.version;
-      this._remote.status.data.snapEncryption = Crypto.defaultAlgorithm;
-      this._remote.status.data.itemCount = c;
-      this._remote.status.put(self.cb, this._remote.status.data);
-      yield;
-
-      this._log.info("Successfully updated deltas and status on server");
-      this._snapshot.save();
+        this._log.info("Successfully updated deltas and status on server");
+        this._snapshot.save();
+      }
     }
 
     this._log.info("Sync complete");
@@ -641,6 +658,8 @@ Engine.prototype = {
 
   
 
+
+
   sync: function Engine_sync(onComplete) {
     return this._sync.async(this, onComplete);
   },
@@ -649,7 +668,7 @@ Engine.prototype = {
     return this._share.async(this, onComplete, guid, username);
   },
 
-  resetServer: function Engine_resetServer(onComplete) {
+  resetServer: function Engimne_resetServer(onComplete) {
     this._notify("reset-server", this._resetServer).async(this, onComplete);
   },
 
