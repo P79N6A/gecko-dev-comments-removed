@@ -276,10 +276,10 @@ public:
   nsresult AddSourceData(const char *aBuffer, PRUint32 aCount);
 
   
-  virtual nsresult SourceDataComplete();
+  nsresult SourceDataComplete();
 
   
-  virtual nsresult NewSourceData();
+  nsresult NewSourceData();
 
   
 
@@ -292,7 +292,7 @@ public:
 
 
 
-  virtual nsresult SetSourceSizeHint(PRUint32 sizeHint);
+  nsresult SetSourceSizeHint(PRUint32 sizeHint);
 
   
   
