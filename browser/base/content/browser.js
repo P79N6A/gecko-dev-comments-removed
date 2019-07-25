@@ -310,24 +310,18 @@ function SetClickAndHoldHandlers() {
   
   var unifiedButton = document.getElementById("unified-back-forward-button");
   if (unifiedButton && !unifiedButton._clickHandlersAttached) {
-    unifiedButton._clickHandlersAttached = true;
-
-    let popup = document.getElementById("backForwardMenu").cloneNode(true);
+    var popup = document.getElementById("backForwardMenu").cloneNode(true);
     popup.removeAttribute("id");
-    
-    
-    popup.setAttribute("context", "");
-
-    let backButton = document.getElementById("back-button");
+    var backButton = document.getElementById("back-button");
     backButton.setAttribute("type", "menu");
     backButton.appendChild(popup);
     _addClickAndHoldListenersOnElement(backButton);
-
-    let forwardButton = document.getElementById("forward-button");
+    var forwardButton = document.getElementById("forward-button");
     popup = popup.cloneNode(true);
     forwardButton.setAttribute("type", "menu");
     forwardButton.appendChild(popup);
     _addClickAndHoldListenersOnElement(forwardButton);
+    unifiedButton._clickHandlersAttached = true;
   }
 }
 
@@ -1385,7 +1379,7 @@ function prepareForStartup() {
   gBrowser.addEventListener("NewPluginInstalled", gPluginHandler.newPluginInstalled, true);
 #ifdef XP_MACOSX
   gBrowser.addEventListener("npapi-carbon-event-model-failure", gPluginHandler, true);
-#endif
+#endif 
 
   Services.obs.addObserver(gPluginHandler.pluginCrashed, "plugin-crashed", false);
 
@@ -4124,7 +4118,7 @@ var XULBrowserWindow = {
   startTime: 0,
   statusText: "",
   isBusy: false,
-  inContentWhitelist: ["about:addons", "about:permissions"],
+  inContentWhitelist: ["about:addons"],
 
   QueryInterface: function (aIID) {
     if (aIID.equals(Ci.nsIWebProgressListener) ||
@@ -6698,14 +6692,11 @@ var gPluginHandler = {
   handleEvent : function(event) {
     let self = gPluginHandler;
     let plugin = event.target;
-    let doc = plugin.ownerDocument;
+    let hideBarPrefName;
 
     
     if (!(plugin instanceof Ci.nsIObjectLoadingContent))
       return;
-
-    
-    plugin.clientTop;
 
     switch (event.type) {
       case "PluginCrashed":
@@ -6716,37 +6707,31 @@ var gPluginHandler = {
         
         
         
-        if (!(plugin instanceof HTMLObjectElement)) {
-          
-          let installStatus = doc.getAnonymousElementByAttribute(plugin, "class", "installStatus");
-          installStatus.setAttribute("status", "ready");
-          let iconStatus = doc.getAnonymousElementByAttribute(plugin, "class", "icon");
-          iconStatus.setAttribute("status", "ready");
-
-          let installLink = doc.getAnonymousElementByAttribute(plugin, "class", "installPluginLink");
-          self.addLinkClickCallback(installLink, "installSinglePlugin", plugin);
-        }
+        if (!(plugin instanceof HTMLObjectElement))
+          self.addLinkClickCallback(plugin, "installSinglePlugin");
         
-
       case "PluginBlocklisted":
       case "PluginOutdated":
-#ifdef XP_MACOSX
-      case "npapi-carbon-event-model-failure":
-#endif
+        hideBarPrefName = event.type == "PluginOutdated" ?
+                                "plugins.hide_infobar_for_outdated_plugin" :
+                                "plugins.hide_infobar_for_missing_plugin";
+        if (gPrefService.getBoolPref(hideBarPrefName))
+          return;
+
         self.pluginUnavailable(plugin, event.type);
         break;
+#ifdef XP_MACOSX
+      case "npapi-carbon-event-model-failure":
+        hideBarPrefName = "plugins.hide_infobar_for_carbon_failure_plugin";
+        if (gPrefService.getBoolPref(hideBarPrefName))
+          return;
 
-      case "PluginDisabled":
-        let manageLink = doc.getAnonymousElementByAttribute(plugin, "class", "managePluginsLink");
-        self.addLinkClickCallback(manageLink, "managePlugins");
+        self.pluginUnavailable(plugin, event.type);
         break;
-    }
-
-    
-    if (event.type != "PluginCrashed") {
-      let overlay = doc.getAnonymousElementByAttribute(plugin, "class", "mainBox");
-      if (self.isTooSmall(plugin, overlay))
-          overlay.style.visibility = "hidden";
+#endif
+      case "PluginDisabled":
+        self.addLinkClickCallback(plugin, "managePlugins");
+        break;
     }
   },
 
@@ -6766,10 +6751,10 @@ var gPluginHandler = {
   },
 
   
-  installSinglePlugin: function (plugin) {
+  installSinglePlugin: function (aEvent) {
     var missingPluginsArray = {};
 
-    var pluginInfo = getPluginInfo(plugin);
+    var pluginInfo = getPluginInfo(aEvent.target);
     missingPluginsArray[pluginInfo.mimetype] = pluginInfo;
 
     openDialog("chrome://mozapps/content/plugins/pluginInstallerWizard.xul",
@@ -6819,6 +6804,9 @@ var gPluginHandler = {
     let blockedNotification  = notificationBox.getNotificationWithValue("blocked-plugins");
     let missingNotification  = notificationBox.getNotificationWithValue("missing-plugins");
 
+    
+    if (outdatedNotification)
+      return;
 
     function showBlocklistInfo() {
       var url = formatURL("extensions.blocklist.detailsURL", true);
@@ -6850,7 +6838,7 @@ var gPluginHandler = {
       let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].
                          createInstance(Ci.nsISupportsPRBool);
       Services.obs.notifyObservers(cancelQuit, "quit-application-requested", null);
-
+ 
       
       if (cancelQuit.data)
         return;
@@ -6914,17 +6902,10 @@ var gPluginHandler = {
                             }
 #endif
     };
-
-    
-    if (outdatedNotification)
-      return;
-
 #ifdef XP_MACOSX
     if (eventType == "npapi-carbon-event-model-failure") {
-      if (gPrefService.getBoolPref("plugins.hide_infobar_for_carbon_failure_plugin"))
-        return;
 
-      let carbonFailureNotification =
+      let carbonFailureNotification = 
         notificationBox.getNotificationWithValue("carbon-failure-plugins");
 
       if (carbonFailureNotification)
@@ -6936,18 +6917,11 @@ var gPluginHandler = {
         eventType = "PluginNotFound";
     }
 #endif
-
     if (eventType == "PluginBlocklisted") {
-      if (gPrefService.getBoolPref("plugins.hide_infobar_for_missing_plugin")) 
-        return;
-
       if (blockedNotification || missingNotification)
         return;
     }
     else if (eventType == "PluginOutdated") {
-      if (gPrefService.getBoolPref("plugins.hide_infobar_for_outdated_plugin"))
-        return;
-
       
       if (blockedNotification)
         blockedNotification.close();
@@ -6955,9 +6929,6 @@ var gPluginHandler = {
         missingNotification.close();
     }
     else if (eventType == "PluginNotFound") {
-      if (gPrefService.getBoolPref("plugins.hide_infobar_for_missing_plugin"))
-        return;
-
       if (missingNotification)
         return;
 
@@ -7013,6 +6984,9 @@ var gPluginHandler = {
     
     pluginName = this.makeNicePluginName(pluginName, pluginFilename);
 
+    
+    plugin.clientTop;
+
     let messageString = gNavigatorBundle.getFormattedString("crashedpluginsMessage.title", [pluginName]);
 
     
@@ -7020,6 +6994,12 @@ var gPluginHandler = {
     
     let doc = plugin.ownerDocument;
     let overlay = doc.getAnonymousElementByAttribute(plugin, "class", "mainBox");
+
+    
+    
+    
+    overlay.removeAttribute("role");
+
     let statusDiv = doc.getAnonymousElementByAttribute(plugin, "class", "submitStatus");
 #ifdef MOZ_CRASHREPORTER
     let status;
@@ -7675,6 +7655,12 @@ var gIdentityHandler = {
 
       
       
+      var lookupHost = this._lastLocation.host;
+      if (lookupHost.indexOf(':') < 0)
+        lookupHost += ":443";
+
+      
+      
       var tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
                                                         [iData.caOrg]);
 
@@ -7682,12 +7668,7 @@ var gIdentityHandler = {
       
       
       
-      
-      
-      
-      
-      if (this._lastLocation.hostname &&
-          this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
+      if (this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
                                                     (this._lastLocation.port || 443),
                                                     iData.cert, {}, {}))
         tooltip = gNavigatorBundle.getString("identity.identified.verified_by_you");
@@ -8690,3 +8671,54 @@ XPCOMUtils.defineLazyGetter(window, "gShowPageResizers", function () {
 #endif
 });
 
+let gSyncPromoNotification = {
+  
+  
+  VIEWS_LEFT_PREF: "browser.syncPromoViewsLeft",
+  onPopupShowing: function SPN_onPopupShowing(event)
+  {
+    if (event.target != event.currentTarget)
+      return;
+    this._panel = event.target;
+
+    let viewsLeft = 5;
+    try {
+      viewsLeft = Services.prefs.getIntPref(this.VIEWS_LEFT_PREF);
+    } catch(ex) {}
+
+    if (viewsLeft) {
+      if (Services.prefs.prefHasUserValue("services.sync.username")) {
+        
+        Services.prefs.setIntPref(this.VIEWS_LEFT_PREF, 0);
+        
+        
+        viewsLeft = 0;
+      }
+      else {
+        Services.prefs.setIntPref(this.VIEWS_LEFT_PREF, viewsLeft - 1);
+      }
+    }
+
+    
+    
+    this._panel.querySelector(".sync-promo-notification").hidden = !viewsLeft;
+
+    if (viewsLeft) {
+      
+      
+      let descElt = this._panel.querySelector(".sync-promo-description");
+      let textContent = descElt.firstChild.textContent;
+      descElt.firstChild.textContent = "";
+      this._panel.addEventListener("popupshown", function () {
+        event.target.removeEventListener("popupshown", arguments.callee, true);
+        descElt.width = descElt.getBoundingClientRect().width;
+        descElt.firstChild.textContent = textContent;
+      }, true);
+    }
+  },
+
+  onCloseButtonCommand: function SPN_onCloseButtonCommand() {
+    Services.prefs.setIntPref(this.VIEWS_LEFT_PREF, 0);
+    this._panel.querySelector(".sync-promo-notification").hidden = true;
+  }
+}
