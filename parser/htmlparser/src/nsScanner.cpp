@@ -50,6 +50,7 @@
 #include "nsUTF8Utils.h" 
 #include "nsCRT.h"
 #include "nsParser.h"
+#include "nsCharsetSource.h"
 
 
 static PRUnichar sInvalid = UCS2_REPLACEMENT_CHAR;

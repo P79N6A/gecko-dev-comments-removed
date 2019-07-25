@@ -48,7 +48,7 @@
 #include "nsIContentViewer.h"
 #include "nsIMarkupDocumentViewer.h"
 #include "nsIDocShell.h"
-#include "nsIParser.h" 
+#include "nsCharsetSource.h" 
 #include "nsNodeInfoManager.h"
 #include "nsContentUtils.h"
 
