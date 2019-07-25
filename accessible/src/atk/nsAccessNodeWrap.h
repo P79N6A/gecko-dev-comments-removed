@@ -55,12 +55,6 @@ public:
     static void InitAccessibility();
     static void ShutdownAccessibility();
 
-    
-
-
-
-
-    static PRBool gHaveNewTextSignals;
 };
 
 #endif
