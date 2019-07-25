@@ -1608,8 +1608,6 @@ nsObjectFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists)
 {
-  AddStateBits(NS_OBJECT_NEEDS_SET_IMAGE);
-
   
   if (!IsVisibleOrCollapsedForPainting(aBuilder))
     return NS_OK;
@@ -1900,10 +1898,13 @@ nsObjectFrame::GetImageContainer(LayerManager* aManager)
 
   
   
-  if (mImageContainer && 
-      (!mImageContainer->Manager() || mImageContainer->Manager() == manager) &&
-      mImageContainer->GetBackendType() == manager->GetBackendType()) {
-    return mImageContainer;
+  if (mImageContainer) {
+    if ((!mImageContainer->Manager() || mImageContainer->Manager() == manager) &&
+        mImageContainer->GetBackendType() == manager->GetBackendType())
+      return mImageContainer;
+    
+    
+    mImageContainer->SetCurrentImage(nsnull);
   }
 
   mImageContainer = manager->CreateImageContainer();
@@ -2084,12 +2085,17 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   nsRefPtr<ImageContainer> container = GetImageContainer(aManager);
   if (!container)
     return nsnull;
-  if (GetStateBits() & NS_OBJECT_NEEDS_SET_IMAGE) {
-    RemoveStateBits(NS_OBJECT_NEEDS_SET_IMAGE);
-    if (!mInstanceOwner->SetCurrentImage(container)) {
-      return nsnull;
+
+  {
+    nsRefPtr<Image> current = container->GetCurrentImage();
+    if (!current) {
+      
+      
+      if (!mInstanceOwner->SetCurrentImage(container))
+        return nsnull;
     }
   }
+
   gfxIntSize size = container->GetCurrentSize();
 
   nsRect area = GetContentRect() + aBuilder->ToReferenceFrame(GetParent());
