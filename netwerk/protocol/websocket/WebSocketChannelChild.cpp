@@ -329,32 +329,11 @@ WebSocketChannelChild::AsyncOpen(nsIURI *aURI,
   }
 
   
-  bool haveLoadContext = false;
-  bool isContent = false;
-  bool usePrivateBrowsing = false;
-  bool isInBrowserElement = false;
-  PRUint32 appId = 0;
-  nsCAutoString extendedOrigin;
-  nsCOMPtr<nsILoadContext> loadContext;
-  NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup,
-                                NS_GET_IID(nsILoadContext),
-                                getter_AddRefs(loadContext));
-  if (loadContext) {
-    haveLoadContext = true;
-    loadContext->GetIsContent(&isContent);
-    loadContext->GetUsePrivateBrowsing(&usePrivateBrowsing);
-    loadContext->GetIsInBrowserElement(&isInBrowserElement);
-    loadContext->GetAppId(&appId);
-    loadContext->GetExtendedOrigin(mURI, extendedOrigin);
-  }
-
-  
   AddIPDLReference();
 
   gNeckoChild->SendPWebSocketConstructor(this, tabChild);
   if (!SendAsyncOpen(aURI, nsCString(aOrigin), mProtocol, mEncrypted,
-                     haveLoadContext, isContent, usePrivateBrowsing,
-                     isInBrowserElement, appId, extendedOrigin))
+                     IPC::SerializedLoadContext(this)))
     return NS_ERROR_UNEXPECTED;
 
   mOriginalURI = aURI;

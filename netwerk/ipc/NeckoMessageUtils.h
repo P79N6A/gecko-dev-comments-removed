@@ -16,6 +16,7 @@
 #include "nsStringStream.h"
 #include "prio.h"
 #include "mozilla/Util.h" 
+#include "SerializedLoadContext.h"
 
 namespace IPC {
 
