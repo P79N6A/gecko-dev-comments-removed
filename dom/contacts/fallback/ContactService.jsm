@@ -2,7 +2,7 @@
 
 
 
-"use strict";
+"use strict"
 
 let DEBUG = 0;
 if (DEBUG)

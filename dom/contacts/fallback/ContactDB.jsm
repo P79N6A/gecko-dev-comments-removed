@@ -22,7 +22,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
 
 const DB_NAME = "contacts";
-const DB_VERSION = 3;
+const DB_VERSION = 2;
 const STORE_NAME = "contacts";
 
 function ContactDB(aGlobal) {
@@ -101,31 +101,6 @@ ContactDB.prototype = {
         
         objectStore.createIndex("tel", "search.tel", { unique: false, multiEntry: true });
         objectStore.createIndex("category", "properties.category", { unique: false, multiEntry: true });
-      } else if (currVersion == 2) {
-        debug("upgrade 2");
-        
-        
-        if (!objectStore) {
-          objectStore = aTransaction.objectStore(STORE_NAME);
-        }
-        
-        objectStore.deleteIndex("email");
-
-        
-        objectStore.openCursor().onsuccess = function(event) {
-          let cursor = event.target.result;
-          if (cursor) {
-            debug("upgrade email1: " + JSON.stringify(cursor.value));
-            cursor.value.properties.email =
-              cursor.value.properties.email.map(function(address) { return { address: address }; });
-            cursor.update(cursor.value);
-            debug("upgrade email2: " + JSON.stringify(cursor.value));
-            cursor.continue();
-          }
-        };
-
-        
-        objectStore.createIndex("email", "search.email", { unique: false, multiEntry: true });
       }
     }
   },
@@ -197,16 +172,8 @@ ContactDB.prototype = {
                 }
               }
               debug("lookup: " + JSON.stringify(contact.search[field]));
-            } else if (field == "email") {
-              let address = aContact.properties[field][i].address;
-              if (address && typeof address == "string") {
-                contact.search[field].push(address.toLowerCase());
-              }
             } else {
-              let val = aContact.properties[field][i];
-              if (typeof val == "string") {
-                contact.search[field].push(val.toLowerCase());
-              }
+              contact.search[field].push(aContact.properties[field][i].toLowerCase());
             }
           }
         }
@@ -352,9 +319,7 @@ ContactDB.prototype = {
         request = index.mozGetAll(options.filterValue, limit);
       } else {
         
-        let tmp = typeof options.filterValue == "string"
-                  ? options.filterValue.toLowerCase()
-                  : options.filterValue.toString().toLowerCase();
+        let tmp = options.filterValue.toLowerCase();
         let range = this._global.IDBKeyRange.bound(tmp, tmp + "\uFFFF");
         let index = store.index(key + "LowerCase");
         request = index.mozGetAll(range, limit);
