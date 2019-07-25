@@ -76,7 +76,7 @@ public:
     
     virtual gfxFont* CopyWithAntialiasOption(AntialiasOption anAAOption);
 
-    virtual PRBool ProvidesGlyphWidths() const { return PR_TRUE; }
+    virtual PRBool ProvidesGlyphWidths() { return PR_TRUE; }
 
     
     virtual PRInt32 GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID);

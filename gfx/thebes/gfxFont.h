@@ -1013,7 +1013,7 @@ public:
     
     
     
-    virtual PRBool ProvidesGlyphWidths() const {
+    virtual PRBool ProvidesGlyphWidths() {
         return PR_FALSE;
     }
 
