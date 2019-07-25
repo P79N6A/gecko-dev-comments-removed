@@ -76,6 +76,10 @@
 
 #include "mozilla/FunctionTimer.h"
 
+#ifdef MOZ_IPC
+#include "mozilla/net/NeckoCommon.h"
+#endif
+
 
 
 
@@ -772,6 +776,14 @@ nsCacheService::DispatchToCacheIOThread(nsIRunnable* event)
 PRBool
 nsCacheProfilePrefObserver::DiskCacheEnabled()
 {
+#ifdef MOZ_IPC
+    
+    
+    
+    if (mozilla::net::IsNeckoChild())
+        return PR_FALSE;
+#endif
+
     if ((mDiskCacheCapacity == 0) || (!mDiskCacheParentDirectory))  return PR_FALSE;
     return mDiskCacheEnabled;
 }
@@ -829,6 +841,13 @@ nsCacheProfilePrefObserver::MemoryCacheEnabled()
 PRInt32
 nsCacheProfilePrefObserver::MemoryCacheCapacity()
 {
+#ifdef MOZ_IPC
+    
+    
+    if (mozilla::net::IsNeckoChild())
+        return 1024; 
+#endif
+
     PRInt32 capacity = mMemoryCacheCapacity;
     if (capacity >= 0) {
         CACHE_LOG_DEBUG(("Memory cache capacity forced to %d\n", capacity));
