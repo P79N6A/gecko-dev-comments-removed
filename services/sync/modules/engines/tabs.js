@@ -50,7 +50,10 @@ Cu.import("resource://weave/type_records/tabs.js");
 Cu.import("resource://weave/engines/clientData.js");
 
 function TabEngine() {
-  this._init();
+  SyncEngine.call(this);
+
+  
+  this._resetClient();
 }
 TabEngine.prototype = {
   __proto__: SyncEngine.prototype,
@@ -61,12 +64,6 @@ TabEngine.prototype = {
   _storeObj: TabStore,
   _trackerObj: TabTracker,
   _recordObj: TabSetRecord,
-
-  _init: function _init() {
-    
-    SyncEngine.prototype._init.call(this);
-    this._resetClient();
-  },
 
   
   getAllClients: function TabEngine_getAllClients() {
@@ -105,17 +102,13 @@ TabEngine.prototype = {
 
 
 function TabStore() {
-  this._TabStore_init();
+  Store.call(this);
 }
 TabStore.prototype = {
   __proto__: Store.prototype,
   name: "tabs",
   _logName: "Tabs.Store",
   _remoteClients: {},
-
-  _TabStore_init: function TabStore__init() {
-    this._init();
-  },
 
   get _sessionStore() {
     let sessionStore = Cc["@mozilla.org/browser/sessionstore;1"].
@@ -210,7 +203,20 @@ TabStore.prototype = {
 
 
 function TabTracker() {
-  this._TabTracker_init();
+  Tracker.call(this);
+
+  this.resetChanged();
+
+  
+  this.onTab = Utils.bind2(this, this.onTab);
+
+  
+  Svc.WinWatcher.registerNotification(this);
+
+  
+  let wins = Svc.WinMediator.getEnumerator("navigator:browser");
+  while (wins.hasMoreElements())
+    this._registerListenersForWindow(wins.getNext());
 }
 TabTracker.prototype = {
   __proto__: Tracker.prototype,
@@ -219,22 +225,6 @@ TabTracker.prototype = {
   file: "tab_tracker",
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
-
-  _TabTracker_init: function TabTracker__init() {
-    this._init();
-    this.resetChanged();
-
-    
-    this.onTab = Utils.bind2(this, this.onTab);
-
-    
-    Svc.WinWatcher.registerNotification(this);
-
-    
-    let wins = Svc.WinMediator.getEnumerator("navigator:browser");
-    while (wins.hasMoreElements())
-      this._registerListenersForWindow(wins.getNext());
-  },
 
   _registerListenersForWindow: function TabTracker__registerListen(window) {
     this._log.trace("Registering tab listeners in new window");

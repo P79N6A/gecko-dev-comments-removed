@@ -49,7 +49,11 @@ Cu.import("resource://weave/type_records/clientData.js");
 Utils.lazy(this, 'Clients', ClientEngine);
 
 function ClientEngine() {
-  this._init();
+  SyncEngine.call(this);
+
+  
+  this._resetClient();
+  Utils.prefs.addObserver("", this, false);
 }
 ClientEngine.prototype = {
   __proto__: SyncEngine.prototype,
@@ -60,13 +64,6 @@ ClientEngine.prototype = {
   _storeObj: ClientStore,
   _trackerObj: ClientTracker,
   _recordObj: ClientRecord,
-
-  _init: function _init() {
-    
-    SyncEngine.prototype._init.call(this);
-    this._resetClient();
-    Utils.prefs.addObserver("", this, false);
-  },
 
   
 
@@ -176,7 +173,7 @@ ClientEngine.prototype = {
 };
 
 function ClientStore() {
-  this.init();
+  Store.call(this);
 }
 ClientStore.prototype = {
   
@@ -193,13 +190,6 @@ ClientStore.prototype = {
 
 
   getInfo: function ClientStore_getInfo(id) this.clients[id],
-
-  
-
-
-  init: function ClientStore_init() {
-    this._init.call(this);
-  },
 
   
 
@@ -256,7 +246,7 @@ ClientStore.prototype = {
 };
 
 function ClientTracker() {
-  this._init();
+  Tracker.call(this);
 }
 ClientTracker.prototype = {
   __proto__: Tracker.prototype,
