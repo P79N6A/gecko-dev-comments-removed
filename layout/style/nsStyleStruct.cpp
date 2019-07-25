@@ -147,7 +147,8 @@ nsStyleFont::nsStyleFont(const nsStyleFont& aSrc)
 }
 
 nsStyleFont::nsStyleFont(nsPresContext* aPresContext)
-  : mFont(*(aPresContext->GetDefaultFont(kPresContext_DefaultVariableFont_ID))),
+  
+  : mFont(*(aPresContext->GetDefaultFont(kPresContext_DefaultVariableFont_ID, nsnull))),
     mGenericID(kGenericFont_NONE)
 {
   MOZ_COUNT_CTOR(nsStyleFont);

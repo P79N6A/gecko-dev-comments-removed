@@ -212,27 +212,7 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
   : mType(aType), mDocument(aDocument), mMinFontSize(0),
     mTextZoom(1.0), mFullZoom(1.0), mPageSize(-1, -1), mPPScale(1.0f),
     mViewportStyleOverflow(NS_STYLE_OVERFLOW_AUTO, NS_STYLE_OVERFLOW_AUTO),
-    mImageAnimationModePref(imgIContainer::kNormalAnimMode),
-    
-    mDefaultVariableFont("serif", NS_FONT_STYLE_NORMAL, NS_FONT_VARIANT_NORMAL,
-                         NS_FONT_WEIGHT_NORMAL, NS_FONT_STRETCH_NORMAL, 0, 0),
-    mDefaultFixedFont("monospace", NS_FONT_STYLE_NORMAL,
-                      NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                      NS_FONT_STRETCH_NORMAL, 0, 0),
-    mDefaultSerifFont("serif", NS_FONT_STYLE_NORMAL, NS_FONT_VARIANT_NORMAL,
-                      NS_FONT_WEIGHT_NORMAL, NS_FONT_STRETCH_NORMAL, 0, 0),
-    mDefaultSansSerifFont("sans-serif", NS_FONT_STYLE_NORMAL,
-                          NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                          NS_FONT_STRETCH_NORMAL, 0, 0),
-    mDefaultMonospaceFont("monospace", NS_FONT_STYLE_NORMAL,
-                          NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                          NS_FONT_STRETCH_NORMAL, 0, 0),
-    mDefaultCursiveFont("cursive", NS_FONT_STYLE_NORMAL,
-                        NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                        NS_FONT_STRETCH_NORMAL, 0, 0),
-    mDefaultFantasyFont("fantasy", NS_FONT_STYLE_NORMAL,
-                        NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                        NS_FONT_STRETCH_NORMAL, 0, 0)
+    mImageAnimationModePref(imgIContainer::kNormalAnimMode)
 {
   
   
@@ -443,43 +423,72 @@ static bool sLookAndFeelChanged;
 
 static bool sThemeChanged;
 
-void
-nsPresContext::GetFontPreferences()
+const nsPresContext::LangGroupFontPrefs*
+nsPresContext::GetFontPrefsForLang(nsIAtom *aLanguage) const
 {
   
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  mDefaultVariableFont.size = CSSPixelsToAppUnits(16);
-  mDefaultFixedFont.size = CSSPixelsToAppUnits(13);
+  nsresult rv;
+  nsIAtom *langGroupAtom = nsnull;
+  if (!aLanguage) {
+    aLanguage = mLanguage;
+  }
+  if (aLanguage && mLangService) {
+    langGroupAtom = mLangService->GetLanguageGroup(aLanguage, &rv);
+  }
+  if (NS_FAILED(rv) || !langGroupAtom) {
+    langGroupAtom = nsGkAtoms::x_western; 
+  }
 
   
+  
+  
+  
+  
+  
+
+  LangGroupFontPrefs *prefs =
+    const_cast<LangGroupFontPrefs*>(&mLangGroupFontPrefs);
+  if (prefs->mLangGroup) { 
+    DebugOnly<PRUint32> count = 0;
+    for (;;) {
+      NS_ASSERTION(++count < 35, "Lang group count exceeded!!!");
+      if (prefs->mLangGroup == langGroupAtom) {
+        return prefs;
+      }
+      if (!prefs->mNext) {
+        break;
+      }
+      prefs = prefs->mNext;
+    }
+
+    
+    prefs = prefs->mNext = new LangGroupFontPrefs;
+  }
+
+  prefs->mLangGroup = langGroupAtom;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsCAutoString langGroup;
-  if (mLanguage && mLangService) {
-    nsresult rv;
-    nsIAtom *group = mLangService->GetLanguageGroup(mLanguage, &rv);
-    if (NS_SUCCEEDED(rv) && group) {
-      group->ToUTF8String(langGroup);
-    }
-    else {
-      langGroup.AssignLiteral("x-western"); 
-    }
-  }
-  else {
-    langGroup.AssignLiteral("x-western"); 
-  }
+  langGroupAtom->ToUTF8String(langGroup);
+
+  prefs->mDefaultVariableFont.size = CSSPixelsToAppUnits(16);
+  prefs->mDefaultFixedFont.size = CSSPixelsToAppUnits(13);
 
   nsCAutoString pref;
 
@@ -498,6 +507,8 @@ nsPresContext::GetFontPreferences()
       unit = eUnit_pt;
     }
     else {
+      
+      
       NS_WARNING("unexpected font-size unit -- expected: 'px' or 'pt'");
       unit = eUnit_unknown;
     }
@@ -505,28 +516,31 @@ nsPresContext::GetFontPreferences()
 
   
 
-  pref.Assign("font.minimum-size.");
-  pref.Append(langGroup);
+  MAKE_FONT_PREF_KEY(pref, "font.minimum-size.", langGroup);
 
   PRInt32 size = Preferences::GetInt(pref.get());
   if (unit == eUnit_px) {
-    mMinimumFontSizePref = CSSPixelsToAppUnits(size);
+    prefs->mMinimumFontSize = CSSPixelsToAppUnits(size);
   }
   else if (unit == eUnit_pt) {
-    mMinimumFontSizePref = CSSPointsToAppUnits(size);
+    prefs->mMinimumFontSize = CSSPointsToAppUnits(size);
   }
 
   nsFont* fontTypes[] = {
-    &mDefaultVariableFont,
-    &mDefaultFixedFont,
-    &mDefaultSerifFont,
-    &mDefaultSansSerifFont,
-    &mDefaultMonospaceFont,
-    &mDefaultCursiveFont,
-    &mDefaultFantasyFont
+    &prefs->mDefaultVariableFont,
+    &prefs->mDefaultFixedFont,
+    &prefs->mDefaultSerifFont,
+    &prefs->mDefaultSansSerifFont,
+    &prefs->mDefaultMonospaceFont,
+    &prefs->mDefaultCursiveFont,
+    &prefs->mDefaultFantasyFont
   };
   PR_STATIC_ASSERT(NS_ARRAY_LENGTH(fontTypes) == eDefaultFont_COUNT);
 
+  
+  
+  
+  
   
   nsCAutoString generic_dot_langGroup;
   for (PRUint32 eType = 0; eType < ArrayLength(fontTypes); ++eType) {
@@ -538,17 +552,17 @@ nsPresContext::GetFontPreferences()
     
     
     if (eType == eDefaultFont_Variable) {
-      MAKE_FONT_PREF_KEY(pref, "font.name", generic_dot_langGroup);
+      MAKE_FONT_PREF_KEY(pref, "font.name.variable.", langGroup);
 
       nsAdoptingString value = Preferences::GetString(pref.get());
       if (!value.IsEmpty()) {
-        font->name.Assign(value);
+        prefs->mDefaultVariableFont.name.Assign(value);
       }
       else {
         MAKE_FONT_PREF_KEY(pref, "font.default.", langGroup);
         value = Preferences::GetString(pref.get());
         if (!value.IsEmpty()) {
-          mDefaultVariableFont.name.Assign(value);
+          prefs->mDefaultVariableFont.name.Assign(value);
         }
       } 
     }
@@ -558,12 +572,12 @@ nsPresContext::GetFontPreferences()
         
         
         
-        font->size = mDefaultFixedFont.size;
+        prefs->mDefaultMonospaceFont.size = prefs->mDefaultFixedFont.size;
       }
       else if (eType != eDefaultFont_Fixed) {
         
         
-        font->size = mDefaultVariableFont.size;
+        font->size = prefs->mDefaultVariableFont.size;
       }
     }
 
@@ -600,6 +614,8 @@ nsPresContext::GetFontPreferences()
            font->sizeAdjust);
 #endif
   }
+
+  return prefs;
 }
 
 void
@@ -740,7 +756,7 @@ nsPresContext::GetUserPreferences()
 
   mPrefScrollbarSide = Preferences::GetInt("layout.scrollbar.side");
 
-  GetFontPreferences();
+  ResetCachedFontPrefs();
 
   
   const nsAdoptingCString& animatePref =
@@ -1123,7 +1139,7 @@ nsPresContext::UpdateCharSet(const nsCString& aCharSet)
       NS_RELEASE(mLanguage);
       NS_IF_ADDREF(mLanguage = mLangService->GetLocaleLanguage()); 
     }
-    GetFontPreferences();
+    ResetCachedFontPrefs();
   }
 #ifdef IBMBIDI
   
@@ -1305,32 +1321,34 @@ nsPresContext::SetImageAnimationModeExternal(PRUint16 aMode)
 }
 
 const nsFont*
-nsPresContext::GetDefaultFont(PRUint8 aFontID) const
+nsPresContext::GetDefaultFont(PRUint8 aFontID, nsIAtom *aLanguage) const
 {
+  const LangGroupFontPrefs *prefs = GetFontPrefsForLang(aLanguage);
+
   const nsFont *font;
   switch (aFontID) {
     
     case kPresContext_DefaultVariableFont_ID:
-      font = &mDefaultVariableFont;
+      font = &prefs->mDefaultVariableFont;
       break;
     case kPresContext_DefaultFixedFont_ID:
-      font = &mDefaultFixedFont;
+      font = &prefs->mDefaultFixedFont;
       break;
     
     case kGenericFont_serif:
-      font = &mDefaultSerifFont;
+      font = &prefs->mDefaultSerifFont;
       break;
     case kGenericFont_sans_serif:
-      font = &mDefaultSansSerifFont;
+      font = &prefs->mDefaultSansSerifFont;
       break;
     case kGenericFont_monospace:
-      font = &mDefaultMonospaceFont;
+      font = &prefs->mDefaultMonospaceFont;
       break;
     case kGenericFont_cursive:
-      font = &mDefaultCursiveFont;
+      font = &prefs->mDefaultCursiveFont;
       break;
     case kGenericFont_fantasy: 
-      font = &mDefaultFantasyFont;
+      font = &prefs->mDefaultFantasyFont;
       break;
     default:
       font = nsnull;
