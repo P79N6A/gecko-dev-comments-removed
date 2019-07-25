@@ -1887,6 +1887,7 @@ namespace reprmeter {
 #endif 
 
 #define PUSH_COPY(v)             do { *regs.sp++ = v; assertSameCompartment(cx, regs.sp[-1]); } while (0)
+#define PUSH_COPY_SKIP_CHECK(v)  *regs.sp++ = v
 #define PUSH_NULL()              regs.sp++->setNull()
 #define PUSH_UNDEFINED()         regs.sp++->setUndefined()
 #define PUSH_BOOLEAN(b)          regs.sp++->setBoolean(b)
@@ -5194,9 +5195,20 @@ END_SET_CASE(JSOP_SETARG)
 
 BEGIN_CASE(JSOP_GETLOCAL)
 {
-    uint32 slot = GET_SLOTNO(regs.pc);
-    JS_ASSERT(slot < script->nslots);
-    PUSH_COPY(regs.fp()->slots()[slot]);
+    
+
+
+
+
+
+     uint32 slot = GET_SLOTNO(regs.pc);
+     JS_ASSERT(slot < script->nslots);
+    PUSH_COPY_SKIP_CHECK(regs.fp()->slots()[slot]);
+
+#ifdef DEBUG
+    if (regs.pc[JSOP_GETLOCAL_LENGTH] != JSOP_POP)
+        assertSameCompartment(cx, regs.sp[-1]);
+#endif
 }
 END_CASE(JSOP_GETLOCAL)
 
