@@ -358,3 +358,18 @@ function gc() {
             gcRec(10)
     }
 }
+
+function finishTest() {
+  successfullyParsed = true;
+  var epilogue = document.createElement("script");
+  epilogue.onload = function() {
+    if (window.nonKhronosFrameworkNotifyDone) {
+      window.nonKhronosFrameworkNotifyDone();
+    }
+  };
+  
+  
+  epilogue.src = "../resources/js-test-post.js";
+  document.body.appendChild(epilogue);
+}
+
