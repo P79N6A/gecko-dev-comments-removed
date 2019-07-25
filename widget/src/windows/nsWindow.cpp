@@ -628,9 +628,47 @@ nsWindow::Create(nsIWidget *aParent,
     
     
     
-    ::CreateWindowW(L"SCROLLBAR", L"FAKETRACKPOINTSCROLLBAR", 
-                    WS_CHILD | WS_VISIBLE, 0,0,0,0, mWnd, NULL,
-                    nsToolkit::mDllInstance, NULL);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    HWND scrollContainerWnd = ::CreateWindowW
+      (className.get(), L"FAKETRACKPOINTSCROLLCONTAINER",
+       WS_CHILD | WS_VISIBLE,
+       0, 0, 0, 0, mWnd, NULL, nsToolkit::mDllInstance, NULL);
+    HWND scrollableWnd = ::CreateWindowW
+      (className.get(), L"FAKETRACKPOINTSCROLLABLE",
+       WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | 0x30,
+       0, 0, 0, 0, scrollContainerWnd, NULL, nsToolkit::mDllInstance, NULL);
+
+    
+    
+    
+    ::SetWindowLongPtrW(scrollableWnd, GWLP_ID, eFakeTrackPointScrollableID);
+
+    
+    
+    WNDPROC oldWndProc;
+    if (mUnicodeWidget)
+      oldWndProc = (WNDPROC)::SetWindowLongPtrW(scrollableWnd, GWLP_WNDPROC,
+                                                (LONG_PTR)nsWindow::WindowProc);
+    else
+      oldWndProc = (WNDPROC)::SetWindowLongPtrA(scrollableWnd, GWLP_WNDPROC,
+                                                (LONG_PTR)nsWindow::WindowProc);
+    ::SetWindowLongPtrW(scrollableWnd, GWLP_USERDATA, (LONG_PTR)oldWndProc);
   }
 
   
@@ -4421,6 +4459,18 @@ LRESULT CALLBACK nsWindow::WindowProcInternal(HWND hWnd, UINT msg, WPARAM wParam
   NS_TIME_FUNCTION_MIN_FMT(5.0, "%s (line %d) (hWnd: %p, msg: %p, wParam: %p, lParam: %p",
                            MOZ_FUNCTION_NAME, __LINE__, hWnd, msg,
                            wParam, lParam);
+
+  if (::GetWindowLongPtrW(hWnd, GWLP_ID) == eFakeTrackPointScrollableID) {
+    
+    if (msg == WM_HSCROLL) {
+      
+      hWnd = ::GetParent(::GetParent(hWnd));
+    } else {
+      
+      WNDPROC prevWindowProc = (WNDPROC)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+      return ::CallWindowProcW(prevWindowProc, hWnd, msg, wParam, lParam);
+    }
+  }
 
   
   nsWindow *someWindow = GetNSWindowPtr(hWnd);
@@ -8620,13 +8670,13 @@ IsObsoleteSynapticsDriver()
 {
   HKEY key;
   LONG result = ::RegOpenKeyExW(HKEY_LOCAL_MACHINE,
-      L"Software\\Synaptics\\SynTP\\Install\\DriverVersion", 0, KEY_READ, &key);
+      L"Software\\Synaptics\\SynTP\\Install", 0, KEY_READ, &key);
   if (result != ERROR_SUCCESS)
     return PR_FALSE;
   DWORD type;
   PRUnichar buf[40];
   DWORD buflen = sizeof(buf);
-  result = ::RegQueryValueExW(key, NULL, NULL, &type, (BYTE*)buf, &buflen);
+  result = ::RegQueryValueExW(key, L"DriverVersion", NULL, &type, (BYTE*)buf, &buflen);
   ::RegCloseKey(key);
   if (result != ERROR_SUCCESS || type != REG_SZ)
     return PR_FALSE;

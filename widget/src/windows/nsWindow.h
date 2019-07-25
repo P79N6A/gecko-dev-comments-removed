@@ -288,6 +288,10 @@ public:
 protected:
 
   
+  
+  enum { eFakeTrackPointScrollableID = 0x46545053 };
+
+  
 
 
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -618,4 +622,4 @@ protected:
   virtual DWORD WindowStyle();
 };
 
-#endif 
+#endif
