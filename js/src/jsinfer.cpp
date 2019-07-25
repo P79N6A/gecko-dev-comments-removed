@@ -3939,19 +3939,13 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
         result = result->next;
     }
 
-    if (!script->usesArguments)
+    if (!script->usesArguments || script->createdArgs)
         return;
 
     
 
 
 
-
-    if (script->fun->hasLazyType())
-        return;
-
-    if (script->fun->type()->hasAnyFlags(OBJECT_FLAG_CREATED_ARGUMENTS))
-        return;
 
     
 
