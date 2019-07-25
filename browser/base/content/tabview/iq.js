@@ -498,6 +498,18 @@ iQ.fn = iQ.prototype = {
   
   
   
+  val: function(value) {
+    Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
+    if(value === undefined) {
+      return this[0].value;
+    }
+    
+    this[0].value = value;  
+		return this;
+  },  
+  
+  
+  
   appendTo: function(selector) {
     Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
     iQ(selector).append(this);
@@ -518,13 +530,15 @@ iQ.fn = iQ.prototype = {
   
   css: function(a, b) {
     var properties = null;
-    var subsitutions = {
-      '-moz-transform': 'MozTransform',
-      'z-index': 'zIndex'
-    };
+
+
+
+
+
+
     
     if(typeof a === 'string') {
-      var key = (subsitutions[a] || a);
+      var key = a; 
       if(b === undefined) {
         Utils.assert('retrieval does not support multi-objects (or null objects)', this.length == 1);      
         return window.getComputedStyle(this[0], null).getPropertyValue(key);  
@@ -535,14 +549,24 @@ iQ.fn = iQ.prototype = {
     } else
       properties = a;
 
+		var pixels = {
+		  'left': true,
+		  'top': true,
+		  'right': true,
+		  'bottom': true,
+		  'width': true,
+		  'height': true
+		};
+		
 		for ( var i = 0, elem; (elem = this[i]) != null; i++ ) {
       iQ.each(properties, function(key, value) {
-        if(key == 'left' || key == 'top' || key == 'width' || key == 'height') {
-          if(typeof(value) != 'string') 
-            value += 'px';
-        }
+        if(pixels[key] && typeof(value) != 'string') 
+          value += 'px';
         
-        elem.style[subsitutions[key] || key] = value;
+        if(key.indexOf('-') != -1)
+          elem.style.setProperty(key, value, '');
+        else
+          elem.style[key] = value;
       });
     }
     
@@ -554,11 +578,13 @@ iQ.fn = iQ.prototype = {
   animate: function(css, duration, callback) {
     try {
       this.addClass(duration);
+      iQ.animationCount++;
       
       var self = this;
       var cleanedUp = false;
       this.one('transitionend', function() {
         if(!cleanedUp) {
+          iQ.animationCount--;
           self.removeClass(duration);
           cleanedUp = true;
           if(iQ.isFunction(callback))
@@ -578,16 +604,18 @@ iQ.fn = iQ.prototype = {
   bind: function(type, func) {
     Utils.assert('does not support eventData argument', iQ.isFunction(func));
 
-    var handler = function(e) {
-      try {
-        return func(e);
-      } catch(e) {
-        Utils.log(e);
-      }
-    };
+
+
+
+
+
+
+
+
+
 
   	for ( var i = 0, elem; (elem = this[i]) != null; i++ ) {
-      elem.addEventListener(type, handler, false);
+      elem.addEventListener(type, func, false);
     }
     
     return this; 
@@ -685,6 +713,17 @@ iQ.extend = iQ.fn.extend = function() {
 
 
 iQ.extend({
+  
+  
+  
+  animationCount: 0,
+  
+  
+  
+  isAnimating: function() {
+    return (this.animationCount != 0);
+  },
+  
 	
 	
 	
@@ -848,7 +887,9 @@ iQ.extend({
     'mouseup',
     'mousedown',
     'mousemove',
-    'click'
+    'click',
+    'resize',
+    'change'
   ];
   
   iQ.each(events, function(index, event) {
