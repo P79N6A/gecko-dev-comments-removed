@@ -2866,9 +2866,6 @@ nsCanvasRenderingContext2DAzure::SetTextAlign(const nsAString& ta)
     CurrentState().textAlign = TEXT_ALIGN_RIGHT;
   else if (ta.EqualsLiteral("center"))
     CurrentState().textAlign = TEXT_ALIGN_CENTER;
-  
-  else
-    return NS_ERROR_INVALID_ARG;
 
   return NS_OK;
 }
@@ -2916,9 +2913,6 @@ nsCanvasRenderingContext2DAzure::SetTextBaseline(const nsAString& tb)
     CurrentState().textBaseline = TEXT_BASELINE_IDEOGRAPHIC;
   else if (tb.EqualsLiteral("bottom"))
     CurrentState().textBaseline = TEXT_BASELINE_BOTTOM;
-  
-  else
-    return NS_ERROR_INVALID_ARG;
 
   return NS_OK;
 }
