@@ -398,8 +398,8 @@ WeaveSvc.prototype = {
         break;
 
       case FIREFOX_ID:
-        engines = ["Bookmarks", "Cookie", "Extension", "Form", "History", 
-          "Input", "MicroFormat", "Password", "Plugin", "Prefs", "Tab", 
+        engines = ["Bookmarks", "Cookie", "Extension", "Form", "History",
+          "Input", "MicroFormat", "Password", "Plugin", "Prefs", "Tab",
           "Theme"];
         break;
 
@@ -504,7 +504,7 @@ WeaveSvc.prototype = {
     this._log.debug("Error setting cluster for user " + username);
     return false;
   },
-  
+
   
   updateCluster: function WeaveSvc_updateCluster(username) {
     let cTime = Date.now();
@@ -517,7 +517,7 @@ WeaveSvc.prototype = {
     }
     return false;
   },
-  
+
   verifyLogin: function WeaveSvc_verifyLogin(username, password, passphrase, isLogin)
     this._catch(this._notify("verify-login", "", function() {
       this._log.debug("Verifying login for user " + username);
@@ -537,12 +537,12 @@ WeaveSvc.prototype = {
           return headers;
         }
       };
-      
+
       
       try {
         res.get();
       } catch (e) {}
-  
+
       try {
         switch (res.lastChannel.responseStatus) {
           case 200:
@@ -574,7 +574,7 @@ WeaveSvc.prototype = {
       this._log.debug("Verifying passphrase");
       this.username = username;
       ID.get("WeaveID").setTempPassword(password);
-        
+
       try {
         let pubkey = PubKeys.getDefaultKey();
         let privkey = PrivKeys.get(pubkey.privateKeyUri);
@@ -593,7 +593,7 @@ WeaveSvc.prototype = {
     this._catch(this._notify("changepph", "", function() {
       let pubkey = PubKeys.getDefaultKey();
       let privkey = PrivKeys.get(pubkey.privateKeyUri);
-      
+
       
 
 
@@ -601,17 +601,17 @@ WeaveSvc.prototype = {
           this.passphrase, privkey.payload.salt,
           privkey.payload.iv, newphrase);
       privkey.payload.keyData = newkey;
-      
+
       new Resource(privkey.uri).put(privkey.serialize());
       this.passphrase = newphrase;
-      
+
       return true;
     }))(),
-  
+
   changePassword: function WeaveSvc_changePassword(newpass)
     this._catch(this._notify("changepwd", "", function() {
       function enc(x) encodeURIComponent(x);
-      let message = "uid=" + enc(this.username) + "&password=" + 
+      let message = "uid=" + enc(this.username) + "&password=" +
         enc(this.password) + "&new=" + enc(newpass);
       let url = Svc.Prefs.get('tmpServerURL') + '0.3/api/register/chpwd';
       let res = new Weave.Resource(url);
@@ -624,35 +624,35 @@ WeaveSvc.prototype = {
         this._log.info("Password change failed: " + resp);
         throw "Could not change password";
       }
-      
+
       this.password = newpass;
       return true;
     }))(),
-    
+
   resetPassphrase: function WeaveSvc_resetPassphrase(newphrase)
     this._catch(this._notify("resetpph", "", function() {
       
       this.prepCommand("logout", []);
       let clientsBackup = Clients._store.clients;
-      
+
       
       this.wipeServer();
-      
+
       
       Clients._store.clients = clientsBackup;
       let username = this.username;
       let password = this.password;
       this.logout();
-      
+
       
       this.passphrase = newphrase;
-      
+
       
       this.login(username, password, newphrase);
       this.sync(true);
       return true;
     }))(),
-  
+
   _autoConnectAttempts: 0,
   _autoConnect: function WeaveSvc__attemptAutoConnect() {
     try {
@@ -681,17 +681,17 @@ WeaveSvc.prototype = {
         this._autoConnect();
       }));
     this._autoConnectTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+
     
-    
-    var interval = Math.floor(Math.random() * SCHEDULED_SYNC_INTERVAL + 
+    let interval = Math.floor(Math.random() * SCHEDULED_SYNC_INTERVAL +
                               SCHEDULED_SYNC_INTERVAL * this._autoConnectAttempts);
     this._autoConnectAttempts++;
     this._autoConnectTimer.initWithCallback(listener, interval,
                                             Ci.nsITimer.TYPE_ONE_SHOT);
-    this._log.debug("Scheduling next autoconnect attempt in " + 
+    this._log.debug("Scheduling next autoconnect attempt in " +
                     interval / 1000 + " seconds.");
   },
-  
+
   login: function WeaveSvc_login(username, password, passphrase)
     this._catch(this._lock(this._notify("login", "", function() {
       this._loggedIn = false;
@@ -790,7 +790,7 @@ WeaveSvc.prototype = {
     let remoteVersion = (meta && meta.payload.storageVersion)?
       meta.payload.storageVersion : "";
 
-    this._log.debug(["Weave Version:", WEAVE_VERSION, "Compatible:", 
+    this._log.debug(["Weave Version:", WEAVE_VERSION, "Compatible:",
       COMPATIBLE_VERSION, "Remote:", remoteVersion].join(" "));
 
     if (!meta || !meta.payload.storageVersion || !meta.payload.syncID ||
@@ -976,7 +976,7 @@ WeaveSvc.prototype = {
                     IDLE_TIME + " seconds of inactivity.");
     Svc.Idle.addIdleObserver(this, IDLE_TIME);
   },
-  
+
   
 
 
@@ -989,7 +989,7 @@ WeaveSvc.prototype = {
       this._syncTimer.cancel();
     else
       this._syncTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    
+
     let listener = new Utils.EventListener(Utils.bind2(this,
       function WeaveSvc__scheduleNextSyncCallback(timer) {
         this._syncTimer = null;
@@ -1006,7 +1006,7 @@ WeaveSvc.prototype = {
 
   _handleSyncError: function WeaveSvc__handleSyncError() {
     let shouldBackoff = false;
-    
+
     let err = Weave.Service.detailedStatus.sync;
     
     switch (err) {
@@ -1028,11 +1028,11 @@ WeaveSvc.prototype = {
         shouldBackoff = true;
       }
     }
-    
+
     
     if (!shouldBackoff) {
       this._scheduleNextSync();
-      return;      
+      return;
     }
 
     
@@ -1376,7 +1376,7 @@ WeaveSvc.prototype = {
       
       for each ({command: command, args: args} in commands) {
         this._log.debug("Processing command: " + command + "(" + args + ")");
-        
+
         let engines = [args[0]];
         switch (command) {
           case "resetAll":
