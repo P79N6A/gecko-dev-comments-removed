@@ -1221,14 +1221,16 @@ NS_IMETHODIMP
 nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
                                              nsISupports *aCOMObj,
                                              nsIPrincipal * aPrincipal,
-                                             nsISupports * aExtraPtr,
                                              PRUint32 aFlags,
                                              nsIXPConnectJSObjectHolder **_retval)
 {
     NS_ASSERTION(aJSContext, "bad param");
     NS_ASSERTION(aCOMObj, "bad param");
     NS_ASSERTION(_retval, "bad param");
-    NS_ASSERTION(aPrincipal, "must be able to find a compartment");
+
+    
+    
+    MOZ_ASSERT(aPrincipal);
 
     
     
@@ -1241,7 +1243,7 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     JSObject* tempGlobal;
 
     nsresult rv = xpc_CreateGlobalObject(ccx, &xpcTempGlobalClass, aPrincipal,
-                                         aExtraPtr, false, &tempGlobal, &compartment);
+                                         nsnull, false, &tempGlobal, &compartment);
     NS_ENSURE_SUCCESS(rv, rv);
 
     JSAutoEnterCompartment ac;
