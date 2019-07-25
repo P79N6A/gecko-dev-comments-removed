@@ -189,18 +189,27 @@ DrawTargetD2D::~DrawTargetD2D()
     mTempRT->EndDraw();
   }
 
+  if (mSnapshot) {
+    
+	
+	
+    RefPtr<SourceSurfaceD2DTarget> deathGrip = mSnapshot;
+	
+	
+	deathGrip->MarkIndependent();
+	
+  }
+
   
   
-  for (std::vector<DrawTargetD2D*>::iterator iter = mDependentTargets.begin();
+  for (TargetSet::iterator iter = mDependentTargets.begin();
        iter != mDependentTargets.end(); iter++) {
-    (*iter)->mDependingOnTargets.erase(
-      std::find((*iter)->mDependingOnTargets.begin(), (*iter)->mDependingOnTargets.end(), this));
+    (*iter)->mDependingOnTargets.erase(this);
   }
   
-  for (std::vector<DrawTargetD2D*>::iterator iter = mDependingOnTargets.begin();
+  for (TargetSet::iterator iter = mDependingOnTargets.begin();
        iter != mDependingOnTargets.end(); iter++) {
-    (*iter)->mDependentTargets.erase(
-      std::find((*iter)->mDependentTargets.begin(), (*iter)->mDependentTargets.end(), this));
+    (*iter)->mDependentTargets.erase(this);
   }
 }
 
@@ -210,17 +219,12 @@ DrawTargetD2D::~DrawTargetD2D()
 TemporaryRef<SourceSurface>
 DrawTargetD2D::Snapshot()
 {
-  RefPtr<SourceSurfaceD2DTarget> newSurf = new SourceSurfaceD2DTarget();
+  if (!mSnapshot) {
+    mSnapshot = new SourceSurfaceD2DTarget(this, mTexture, mFormat);
+    Flush();
+  }
 
-  newSurf->mFormat = mFormat;
-  newSurf->mTexture = mTexture;
-  newSurf->mDrawTarget = this;
-
-  mSnapshots.push_back(newSurf);
-
-  Flush();
-
-  return newSurf;
+  return mSnapshot;
 }
 
 void
@@ -235,12 +239,20 @@ DrawTargetD2D::Flush()
   }
 
   
-  for (std::vector<DrawTargetD2D*>::iterator iter = mDependingOnTargets.begin();
+  for (TargetSet::iterator iter = mDependingOnTargets.begin();
        iter != mDependingOnTargets.end(); iter++) {
-    (*iter)->mDependentTargets.erase(
-      std::find((*iter)->mDependentTargets.begin(), (*iter)->mDependentTargets.end(), this));
+    (*iter)->mDependentTargets.erase(this);
   }
   mDependingOnTargets.clear();
+}
+
+void
+DrawTargetD2D::AddDependencyOnSource(SourceSurfaceD2DTarget* aSource)
+{
+  if (aSource->mDrawTarget) {
+    aSource->mDrawTarget->mDependentTargets.insert(this);
+    mDependingOnTargets.insert(aSource->mDrawTarget);
+  }
 }
 
 void
@@ -292,11 +304,7 @@ DrawTargetD2D::DrawSurface(SourceSurface *aSurface,
     {
       SourceSurfaceD2DTarget *srcSurf = static_cast<SourceSurfaceD2DTarget*>(aSurface);
       bitmap = srcSurf->GetBitmap(mRT);
-
-      if (!srcSurf->IsCopy()) {
-        srcSurf->mDrawTarget->mDependentTargets.push_back(this);
-        mDependingOnTargets.push_back(srcSurf->mDrawTarget);
-      }
+      AddDependencyOnSource(srcSurf);
     }
     break;
   }
@@ -721,11 +729,7 @@ DrawTargetD2D::CopySurface(SourceSurface *aSurface,
     {
       SourceSurfaceD2DTarget *srcSurf = static_cast<SourceSurfaceD2DTarget*>(aSurface);
       bitmap = srcSurf->GetBitmap(mRT);
-
-      if (!srcSurf->IsCopy()) {
-        srcSurf->mDrawTarget->mDependentTargets.push_back(this);
-        mDependingOnTargets.push_back(srcSurf->mDrawTarget);
-      }
+      AddDependencyOnSource(srcSurf);
     }
     break;
   }
@@ -1271,18 +1275,20 @@ DrawTargetD2D::PrepareForDrawing(ID2D1RenderTarget *aRT)
 void
 DrawTargetD2D::MarkChanged()
 {
-  if (mSnapshots.size()) {
-    for (std::vector<SourceSurfaceD2DTarget*>::iterator iter = mSnapshots.begin();
-         iter != mSnapshots.end(); iter++) {
-      (*iter)->DrawTargetWillChange();
+  if (mSnapshot) {
+    if (mSnapshot->hasOneRef()) {
+      
+      mSnapshot = NULL;
+    } else {
+      mSnapshot->DrawTargetWillChange();
+      
+      MOZ_ASSERT(!mSnapshot);
     }
-    
-    mSnapshots.clear();
   }
   if (mDependentTargets.size()) {
     
-    std::vector<DrawTargetD2D*> tmpTargets = mDependentTargets;
-    for (std::vector<DrawTargetD2D*>::iterator iter = tmpTargets.begin();
+    TargetSet tmpTargets = mDependentTargets;
+    for (TargetSet::iterator iter = tmpTargets.begin();
          iter != tmpTargets.end(); iter++) {
       (*iter)->Flush();
     }
@@ -1678,13 +1684,8 @@ DrawTargetD2D::CreateBrushForPattern(const Pattern &aPattern, Float aAlpha)
       {
         SourceSurfaceD2DTarget *surf =
           static_cast<SourceSurfaceD2DTarget*>(pat->mSurface.get());
-
         bitmap = surf->GetBitmap(mRT);
-
-        if (!surf->IsCopy()) {
-          surf->mDrawTarget->mDependentTargets.push_back(this);
-          mDependingOnTargets.push_back(surf->mDrawTarget);
-        }
+        AddDependencyOnSource(surf);
       }
       break;
     }

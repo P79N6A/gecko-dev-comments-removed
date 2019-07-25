@@ -51,7 +51,8 @@ class DrawTargetD2D;
 class SourceSurfaceD2DTarget : public SourceSurface
 {
 public:
-  SourceSurfaceD2DTarget();
+  SourceSurfaceD2DTarget(DrawTargetD2D* aDrawTarget, ID3D10Texture2D* aTexture,
+                         SurfaceFormat aFormat);
   ~SourceSurfaceD2DTarget();
 
   virtual SurfaceType GetType() const { return SURFACE_D2D1_DRAWTARGET; }
@@ -62,10 +63,6 @@ public:
 private:
   friend class DrawTargetD2D;
   ID3D10ShaderResourceView *GetSRView();
-
-  
-  
-  bool IsCopy() { return mIsCopy; }
 
   
   
@@ -80,15 +77,13 @@ private:
 
   RefPtr<ID3D10ShaderResourceView> mSRView;
   RefPtr<ID2D1Bitmap> mBitmap;
-  RefPtr<DrawTargetD2D> mDrawTarget;
+  
+  
+  
+  
+  DrawTargetD2D* mDrawTarget;
   mutable RefPtr<ID3D10Texture2D> mTexture;
   SurfaceFormat mFormat;
-
-  
-  
-  std::vector<RefPtr<DrawTargetD2D>> mDependentSurfaces;
-
-  bool mIsCopy;
 };
 
 class DataSourceSurfaceD2DTarget : public DataSourceSurface

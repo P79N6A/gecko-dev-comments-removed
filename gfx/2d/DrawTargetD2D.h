@@ -45,6 +45,7 @@
 
 #include <vector>
 #include <sstream>
+#include <hash_set>
 
 namespace mozilla {
 namespace gfx {
@@ -148,12 +149,15 @@ private:
   friend class AutoSaveRestoreClippedOut;
   friend class SourceSurfaceD2DTarget;
 
+  typedef stdext::hash_set<DrawTargetD2D*> TargetSet;
+
   bool InitD2DRenderTarget();
   void PrepareForDrawing(ID2D1RenderTarget *aRT);
 
   
   
   void MarkChanged();
+  void AddDependencyOnSource(SourceSurfaceD2DTarget* aSource);
 
   ID3D10BlendState *GetBlendStateForOperator(CompositionOp aOperator);
   ID2D1RenderTarget *GetRTForOperation(CompositionOp aOperator, const Pattern &aPattern);
@@ -196,11 +200,11 @@ private:
   
   
   
-  std::vector<SourceSurfaceD2DTarget*> mSnapshots;
+  RefPtr<SourceSurfaceD2DTarget> mSnapshot;
   
-  std::vector<DrawTargetD2D*> mDependentTargets;
+  TargetSet mDependentTargets;
   
-  std::vector<DrawTargetD2D*> mDependingOnTargets;
+  TargetSet mDependingOnTargets;
 
   
   bool mClipsArePushed;

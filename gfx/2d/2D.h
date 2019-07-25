@@ -464,6 +464,11 @@ public:
   virtual ~DrawTarget() {}
 
   virtual BackendType GetType() const = 0;
+  
+
+
+
+
   virtual TemporaryRef<SourceSurface> Snapshot() = 0;
   virtual IntSize GetSize() = 0;
 
