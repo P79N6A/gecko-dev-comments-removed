@@ -31,7 +31,6 @@
 
 class imgCacheValidator;
 
-class imgLoader;
 class imgRequestProxy;
 class imgCacheEntry;
 class imgMemoryReporter;
@@ -51,7 +50,7 @@ class imgRequest : public imgIDecoderObserver,
                    public nsIAsyncVerifyRedirectCallback
 {
 public:
-  imgRequest(imgLoader* aLoader);
+  imgRequest();
   virtual ~imgRequest();
 
   NS_DECL_ISUPPORTS
@@ -184,8 +183,6 @@ public:
 private:
   friend class imgMemoryReporter;
 
-  
-  imgLoader* mLoader;
   nsCOMPtr<nsIRequest> mRequest;
   
   
