@@ -241,27 +241,34 @@ FrameState::pushSynced(JSValueType type, RegisterID reg)
 inline void
 FrameState::push(Address address)
 {
-    FrameEntry *fe = rawPush();
-
+#ifdef JS_PUNBOX64
     
-    fe->resetUnsynced();
-
+    
+    
+    RegisterID typeReg = allocReg();
+    RegisterID dataReg = allocReg();
+    masm.loadValueAsComponents(address, typeReg, dataReg);
+#elif JS_NUNBOX32
     
     bool free = freeRegs.hasReg(address.base);
     if (free)
         freeRegs.takeReg(address.base);
 
-    RegisterID dreg = allocReg(fe, RematInfo::DATA);
-    masm.loadPayload(address, dreg);
-    fe->data.setRegister(dreg);
+    RegisterID typeReg = allocReg();
 
+    masm.loadTypeTag(address, typeReg);
+
+    
+    
     
     if (free)
         freeRegs.putReg(address.base);
 
-    RegisterID treg = allocReg(fe, RematInfo::TYPE);
-    masm.loadTypeTag(address, treg);
-    fe->type.setRegister(treg);
+    RegisterID dataReg = allocReg();
+    masm.loadPayload(address, dataReg);
+#endif
+
+    pushRegs(typeReg, dataReg);
 }
 
 inline void
