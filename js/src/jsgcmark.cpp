@@ -4,6 +4,7 @@
 
 
 
+
 #include "jsgcmark.h"
 #include "jsprf.h"
 #include "jsscope.h"
@@ -932,6 +933,10 @@ PushArena(GCMarker *gcmarker, ArenaHeader *aheader)
 
       case JSTRACE_TYPE_OBJECT:
         PushArenaTyped<js::types::TypeObject>(gcmarker, aheader);
+        break;
+
+      case JSTRACE_IONCODE:
+        PushArenaTyped<js::ion::IonCode>(gcmarker, aheader);
         break;
 
 #if JS_HAS_XML_SUPPORT
