@@ -1,9 +1,5 @@
 
 
-
-
-
-
 package org.json.simple.parser;
 
 class Yylex {
