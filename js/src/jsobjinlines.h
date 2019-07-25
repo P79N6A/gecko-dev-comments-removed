@@ -391,6 +391,18 @@ JSObject::zeroRegExpLastIndex()
     fslots[JSSLOT_REGEXP_LAST_INDEX] = JSVAL_ZERO;
 }
 
+inline NativeIterator *
+JSObject::getNativeIterator() const
+{
+    return (NativeIterator *) getPrivate();
+}
+
+inline void
+JSObject::setNativeIterator(NativeIterator *ni)
+{
+    setPrivate(ni);
+}
+
 inline void
 JSObject::initSharingEmptyScope(JSClass *clasp, JSObject *proto, JSObject *parent,
                                 jsval privateSlotValue)
@@ -512,10 +524,6 @@ NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
     DTrace::ObjectCreationScope objectCreationScope(cx, cx->fp, clasp);
 
     
-    JS_ASSERT_IF(clasp->flags & JSCLASS_IS_EXTENDED,
-                 ((JSExtendedClass *)clasp)->equality);
-
-    
     JSObjectOps *ops = clasp->getObjectOps
                        ? clasp->getObjectOps(cx, clasp)
                        : &js_ObjectOps;
@@ -536,9 +544,7 @@ NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
 #endif
     } else {
         JS_ASSERT(!objectSize || objectSize == sizeof(JSObject));
-        obj = (clasp == &js_IteratorClass)
-            ? js_NewGCIter(cx)
-            : js_NewGCObject(cx);
+        obj = js_NewGCObject(cx);
     }
     if (!obj)
         goto out;

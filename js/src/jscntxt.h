@@ -519,6 +519,10 @@ struct JSLocalRootStack {
 
 const uint32 JSLRS_NULL_MARK = uint32(-1);
 
+#define NATIVE_ITER_CACHE_LOG2  8
+#define NATIVE_ITER_CACHE_MASK  JS_BITMASK(NATIVE_ITER_CACHE_LOG2)
+#define NATIVE_ITER_CACHE_SIZE  JS_BIT(NATIVE_ITER_CACHE_LOG2)
+
 struct JSThreadData {
     JSGCFreeLists       gcFreeLists;
 
@@ -568,24 +572,7 @@ struct JSThreadData {
     } dtoaCache;
 
     
-
-
-
-
-#define NATIVE_ENUM_CACHE_LOG2  8
-#define NATIVE_ENUM_CACHE_MASK  JS_BITMASK(NATIVE_ENUM_CACHE_LOG2)
-#define NATIVE_ENUM_CACHE_SIZE  JS_BIT(NATIVE_ENUM_CACHE_LOG2)
-
-#define NATIVE_ENUM_CACHE_HASH(shape)                                         \
-    ((((shape) >> NATIVE_ENUM_CACHE_LOG2) ^ (shape)) & NATIVE_ENUM_CACHE_MASK)
-
-    jsuword             nativeEnumCache[NATIVE_ENUM_CACHE_SIZE];
-
-    
-
-
-
-    JSObject           *cachedIteratorObject;
+    JSObject *cachedNativeIterators[NATIVE_ITER_CACHE_SIZE];
 
     bool init();
     void finish();
@@ -675,12 +662,6 @@ typedef enum JSRuntimeState {
     JSRTS_UP,
     JSRTS_LANDING
 } JSRuntimeState;
-
-typedef enum JSBuiltinFunctionId {
-    JSBUILTIN_ObjectToIterator,
-    JSBUILTIN_CallIteratorNext,
-    JSBUILTIN_LIMIT
-} JSBuiltinFunctionId;
 
 typedef struct JSPropertyTreeEntry {
     JSDHashEntryHdr     hdr;
@@ -846,14 +827,6 @@ struct JSRuntime {
     js::DeflatedStringCache *deflatedStringCache;
 
     JSString            *emptyString;
-
-    
-
-
-
-
-
-    JSObject            *builtinFunctions[JSBUILTIN_LIMIT];
 
     
     JSCList             contextList;
@@ -1418,6 +1391,9 @@ struct JSContext
     
     int64               rngSeed;
 
+    
+    jsval               iterValue;
+
 #ifdef JS_TRACER
     
 
@@ -1947,7 +1923,6 @@ class AutoEnumStateRooter : private AutoGCRooter
   protected:
     void trace(JSTracer *trc) {
         JS_CALL_OBJECT_TRACER(trc, obj, "js::AutoEnumStateRooter.obj");
-        js_MarkEnumeratorState(trc, obj, stateValue);
     }
 
     JSObject * const obj;
@@ -2454,17 +2429,15 @@ class AutoValueVector : private AutoGCRooter
 
     size_t length() const { return vector.length(); }
 
-    bool push(jsval v) { return vector.append(v); }
-    bool push(JSString *str) { return push(STRING_TO_JSVAL(str)); }
-    bool push(JSObject *obj) { return push(OBJECT_TO_JSVAL(obj)); }
-    bool push(jsdouble *dp) { return push(DOUBLE_TO_JSVAL(dp)); }
+    bool append(jsval v) { return vector.append(v); }
+    bool append(JSString *str) { return append(STRING_TO_JSVAL(str)); }
+    bool append(JSObject *obj) { return append(OBJECT_TO_JSVAL(obj)); }
+    bool append(jsdouble *dp) { return append(DOUBLE_TO_JSVAL(dp)); }
 
-    void pop() { vector.popBack(); }
+    void popBack() { vector.popBack(); }
 
     bool resize(size_t newLength) {
-        if (!vector.resize(newLength))
-            return false;
-        return true;
+        return vector.resize(newLength);
     }
 
     bool reserve(size_t newLength) {
@@ -2474,8 +2447,13 @@ class AutoValueVector : private AutoGCRooter
     jsval &operator[](size_t i) { return vector[i]; }
     jsval operator[](size_t i) const { return vector[i]; }
 
-    const jsval *buffer() const { return vector.begin(); }
-    jsval *buffer() { return vector.begin(); }
+    const jsval *begin() const { return vector.begin(); }
+    jsval *begin() { return vector.begin(); }
+
+    const jsval *end() const { return vector.end(); }
+    jsval *end() { return vector.end(); }
+
+    jsval back() const { return end()[-1]; }
 
     friend void AutoGCRooter::trace(JSTracer *trc);
 

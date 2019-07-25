@@ -198,6 +198,8 @@ private:
     void operator=(JSObjectMap &);
 };
 
+struct NativeIterator;
+
 const uint32 JS_INITIAL_NSLOTS = 5;
 
 const uint32 JSSLOT_PROTO   = 0;
@@ -538,6 +540,13 @@ struct JSObject {
 
 
 
+    inline NativeIterator *getNativeIterator() const;
+    inline void setNativeIterator(NativeIterator *);
+
+    
+
+
+
     bool isCallable();
 
     
@@ -816,11 +825,6 @@ js_HasOwnProperty(JSContext *cx, JSLookupPropOp lookup, JSObject *obj, jsid id,
 
 extern JSBool
 js_PropertyIsEnumerable(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
-
-#ifdef OLD_GETTER_SETTER_METHODS
-JS_FRIEND_API(JSBool) js_obj_defineGetter(JSContext *cx, uintN argc, jsval *vp);
-JS_FRIEND_API(JSBool) js_obj_defineSetter(JSContext *cx, uintN argc, jsval *vp);
-#endif
 
 extern JSObject *
 js_InitEval(JSContext *cx, JSObject *obj);
@@ -1117,12 +1121,6 @@ js_DefaultValue(JSContext *cx, JSObject *obj, JSType hint, jsval *vp);
 extern JSBool
 js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
              jsval *statep, jsid *idp);
-
-extern void
-js_MarkEnumeratorState(JSTracer *trc, JSObject *obj, jsval state);
-
-extern void
-js_PurgeCachedNativeEnumerators(JSContext *cx, JSThreadData *data);
 
 extern JSBool
 js_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,

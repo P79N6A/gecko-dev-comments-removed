@@ -2220,6 +2220,40 @@ JS_STATIC_ASSERT(JSOP_INCNAME_LENGTH == JSOP_NAMEDEC_LENGTH);
 # define ABORT_RECORDING(cx, reason)    ((void) 0)
 #endif
 
+
+
+
+
+static inline bool
+IteratorMore(JSContext *cx, JSObject *iterobj, JSBool *cond, jsval *rval)
+{
+    if (iterobj->getClass() == &js_IteratorClass.base) {
+        NativeIterator *ni = (NativeIterator *) iterobj->getPrivate();
+        *cond = (ni->props_cursor < ni->props_end);
+    } else {
+        if (!js_IteratorMore(cx, iterobj, rval))
+            return false;
+        *cond = (*rval == JSVAL_TRUE);
+    }
+    return true;
+}
+
+static inline bool
+IteratorNext(JSContext *cx, JSObject *iterobj, jsval *rval)
+{
+    if (iterobj->getClass() == &js_IteratorClass.base) {
+        NativeIterator *ni = (NativeIterator *) iterobj->getPrivate();
+        JS_ASSERT(ni->props_cursor < ni->props_end);
+        *rval = *ni->props_cursor;
+        if (JSVAL_IS_STRING(*rval) || (ni->flags & JSITER_FOREACH)) {
+            ni->props_cursor++;
+            return true;
+        }
+        
+    }
+    return js_IteratorNext(cx, iterobj, rval);
+}
+
 JS_REQUIRES_STACK JSBool
 js_Interpret(JSContext *cx)
 {
@@ -2647,22 +2681,6 @@ js_Interpret(JSContext *cx)
 #ifdef JS_TRACER
     if (fp->imacpc && cx->throwing) {
         
-        if (*fp->imacpc == JSOP_NEXTITER &&
-            InCustomIterNextTryRegion(regs.pc) &&
-            js_ValueIsStopIteration(cx->exception)) {
-            
-            
-
-            
-            JS_ASSERT(*regs.pc == JSOP_CALL || *regs.pc == JSOP_DUP);
-            cx->throwing = JS_FALSE;
-            cx->exception = JSVAL_VOID;
-            regs.sp[-1] = JSVAL_HOLE;
-            PUSH(JSVAL_FALSE);
-            goto end_imacro;
-        }
-
-        
         regs.pc = fp->imacpc;
         fp->imacpc = NULL;
         atoms = script->atomMap.vector;
@@ -2791,24 +2809,19 @@ js_Interpret(JSContext *cx)
                 len = 0;
                 DO_NEXT_OP(len);
 
-              case JSTRY_ITER:
+              case JSTRY_ITER: {
                 
-
-
-
-
-
-
                 JS_ASSERT(js_GetOpcode(cx, fp->script, regs.pc) == JSOP_ENDITER);
-                regs.sp[-1] = cx->exception;
-                cx->throwing = JS_FALSE;
-                ok = js_CloseIterator(cx, regs.sp[-2]);
-                regs.sp -= 2;
+                AutoValueRooter tvr(cx, cx->exception);
+                cx->throwing = false;
+                ok = js_CloseIterator(cx, regs.sp[-1]);
+                regs.sp -= 1;
                 if (!ok)
                     goto error;
-                cx->throwing = JS_TRUE;
-                cx->exception = regs.sp[1];
-            }
+                cx->throwing = true;
+                cx->exception = tvr.value();
+              }
+           }
         } while (++tn != tnlimit);
 
       no_catch:

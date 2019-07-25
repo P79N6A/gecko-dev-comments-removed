@@ -177,6 +177,8 @@ LInsPrinter::formatGuardXov(InsBuf *buf, LIns *ins)
 
 } 
 
+JS_DEFINE_CALLINFO_2(extern, STRING, js_IntToString, CONTEXT, INT32, 1, nanojit::ACC_NONE)
+
 namespace js {
 
 using namespace nanojit;
@@ -5211,74 +5213,17 @@ TraceRecorder::checkTraceEnd(jsbytecode *pc)
             JSFrameRegs orig = *cx->fp->regs;
 
             cx->fp->regs->pc = (jsbytecode*)tree->ip;
-            cx->fp->regs->sp -= fused ? 2 : 1;
+            cx->fp->regs->sp -= fused ? (*orig.pc == JSOP_MOREITER ? 0 : 2) : 1;
 
             JSContext* localcx = cx;
             AbortableRecordingStatus ars = closeLoop();
             *localcx->fp->regs = orig;
             return ars;
-        } else {
-            return endLoop();
         }
+
+        return endLoop();
     }
     return ARECORD_CONTINUE;
-}
-
-AbortableRecordingStatus
-TraceRecorder::hasMethod(JSObject* obj, jsid id, bool& found)
-{
-    found = false;
-    AbortableRecordingStatus status = ARECORD_CONTINUE;
-    if (!obj)
-        return status;
-
-    TraceMonitor &localtm = *traceMonitor;
-    JSContext *localcx = cx;
-
-    JSObject* pobj;
-    JSProperty* prop;
-    int protoIndex = obj->lookupProperty(cx, id, &pobj, &prop);
-    if (protoIndex < 0)
-        RETURN_ERROR_A("lookupProperty failed");
-
-    
-    if (!localtm.recorder) {
-        if (prop)
-            pobj->dropProperty(localcx, prop);
-        return ARECORD_ABORTED;
-    }
-
-    if (!prop)
-        return status;
-
-    if (!pobj->isNative()) {
-        
-        
-        status = ARECORD_STOP;
-    } else {
-        JSScope* scope = pobj->scope();
-        JSScopeProperty* sprop = (JSScopeProperty*) prop;
-
-        if (sprop->hasDefaultGetterOrIsMethod() && SPROP_HAS_VALID_SLOT(sprop, scope)) {
-            jsval v = pobj->lockedGetSlot(sprop->slot);
-            if (VALUE_IS_FUNCTION(cx, v)) {
-                found = true;
-                if (!scope->generic() && !scope->branded() && !scope->brand(cx, sprop->slot, v))
-                    status = ARECORD_STOP;
-            }
-        }
-    }
-
-    pobj->dropProperty(cx, prop);
-    return status;
-}
-
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::hasIteratorMethod(JSObject* obj, bool& found)
-{
-    JS_ASSERT(cx->fp->regs->sp + 2 <= cx->fp->slots + cx->fp->script->nslots);
-
-    return hasMethod(obj, ATOM_TO_JSID(cx->runtime->atomState.iteratorAtom), found);
 }
 
 
@@ -5307,11 +5252,8 @@ CheckGlobalObjectShape(JSContext* cx, TraceMonitor* tm, JSObject* globalObj,
 
 
     if (!globalObj->scope()->hasOwnShape()) {
-        JS_LOCK_OBJ(cx, globalObj);
         JSScope *scope = js_GetMutableScope(cx, globalObj);
-        bool ok = scope && scope->globalObjectOwnShapeChange(cx);
-        JS_UNLOCK_OBJ(cx, globalObj);
-        if (!ok) {
+        if (!scope || !scope->globalObjectOwnShapeChange(cx)) {
             debug_only_print0(LC_TMTracer,
                               "Can't record: failed to give globalObj a unique shape.\n");
             return false;
@@ -6678,7 +6620,10 @@ LeaveTree(TraceMonitor *tm, TracerState& state, VMSideExit* lr)
                       op == JSOP_GETELEM || op == JSOP_CALLELEM || op == JSOP_CALLPROP ||
                       op == JSOP_SETPROP || op == JSOP_SETNAME || op == JSOP_SETMETHOD ||
                       op == JSOP_SETELEM || op == JSOP_INITELEM || op == JSOP_ENUMELEM ||
-                      op == JSOP_INSTANCEOF);
+                      op == JSOP_INSTANCEOF ||
+                      op == JSOP_ITER || op == JSOP_MOREITER || op == JSOP_ENDITER ||
+                      op == JSOP_FORARG || op == JSOP_FORLOCAL ||
+                      op == JSOP_FORNAME || op == JSOP_FORPROP || op == JSOP_FORELEM);
 
             
 
@@ -7791,13 +7736,6 @@ DeepBail(JSContext *cx)
 
 
     state->deepBailSp = state->sp;
-}
-
-extern bool
-InCustomIterNextTryRegion(jsbytecode *pc)
-{
-    return nextiter_imacros.custom_iter_next <= pc &&
-           pc < nextiter_imacros.custom_iter_next + sizeof(nextiter_imacros.custom_iter_next);
 }
 
 JS_REQUIRES_STACK jsval&
@@ -12789,21 +12727,6 @@ TraceRecorder::record_JSOP_APPLY()
     return InjectStatus(callImacro(call_imacro_table[argc]));
 }
 
-static JSBool FASTCALL
-CatchStopIteration_tn(JSContext* cx, JSBool ok, jsval* vp)
-{
-    if (!ok && cx->throwing && js_ValueIsStopIteration(cx->exception)) {
-        cx->throwing = JS_FALSE;
-        cx->exception = JSVAL_VOID;
-        *vp = JSVAL_HOLE;
-        return JS_TRUE;
-    }
-    return ok;
-}
-
-JS_DEFINE_TRCINFO_1(CatchStopIteration_tn,
-    (3, (static, BOOL, CatchStopIteration_tn, CONTEXT, BOOL, JSVALPTR, 0, ACC_STORE_ANY)))
-
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_NativeCallComplete()
 {
@@ -12840,16 +12763,6 @@ TraceRecorder::record_NativeCallComplete()
                                     (int) offsetof(TracerState, builtinStatus), ACC_OTHER);
         if (pendingSpecializedNative == &generatedSpecializedNative) {
             LIns* ok_ins = v_ins;
-
-            
-
-
-
-            if (uintptr_t(pc - nextiter_imacros.custom_iter_next) <
-                sizeof(nextiter_imacros.custom_iter_next)) {
-                LIns* args[] = { native_rval_ins, ok_ins, cx_ins }; 
-                ok_ins = lir->insCall(&CatchStopIteration_tn_ci, args);
-            }
 
             
 
@@ -13600,56 +13513,217 @@ TraceRecorder::record_JSOP_IMACOP()
     return ARECORD_CONTINUE;
 }
 
+static JSBool FASTCALL
+ObjectToIterator(JSContext* cx, JSObject *obj, int32 flags, JSObject **objp)
+{
+    AutoValueRooter tvr(cx, obj);
+    bool ok = js_ValueToIterator(cx, flags, tvr.addr());
+    if (!ok) {
+        SetBuiltinError(cx);
+        return false;
+    }
+    *objp = JSVAL_TO_OBJECT(tvr.value());
+    return cx->tracerState->builtinStatus == 0;
+}
+JS_DEFINE_CALLINFO_4(static, BOOL_FAIL, ObjectToIterator, CONTEXT, OBJECT, INT32, OBJECTPTR, 0,
+                     ACC_STORE_ANY)
+
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_ITER()
 {
     jsval& v = stackval(-1);
     if (JSVAL_IS_PRIMITIVE(v))
         RETURN_STOP_A("for-in on a primitive value");
+
     RETURN_IF_XML_A(v);
 
+    LIns *obj_ins = get(&v);
     jsuint flags = cx->fp->regs->pc[1];
 
-    bool found;
-    AbortableRecordingStatus status = hasIteratorMethod(JSVAL_TO_OBJECT(v), found);
-    if (status != ARECORD_CONTINUE)
-        return status;
-    if (found) {
-        if (flags == JSITER_ENUMERATE)
-            return InjectStatus(callImacro(iter_imacros.for_in));
-        if (flags == (JSITER_ENUMERATE | JSITER_FOREACH))
-            return InjectStatus(callImacro(iter_imacros.for_each));
-    } else {
-        if (flags == JSITER_ENUMERATE)
-            return InjectStatus(callImacro(iter_imacros.for_in_native));
-        if (flags == (JSITER_ENUMERATE | JSITER_FOREACH))
-            return InjectStatus(callImacro(iter_imacros.for_each_native));
-    }
-    RETURN_STOP_A("unimplemented JSITER_* flags");
+    enterDeepBailCall();
+
+    LIns* objp_ins = lir->insAlloc(sizeof(JSObject*));
+    LIns* args[] = { objp_ins, lir->insImmI(flags), obj_ins, cx_ins };
+    LIns* ok_ins = lir->insCall(&ObjectToIterator_ci, args);
+
+    
+    
+    pendingGuardCondition = ok_ins;
+
+    leaveDeepBailCall();
+
+    stack(-1, addName(lir->insLoad(LIR_ldp, objp_ins, 0, ACC_OTHER), "iterobj"));
+
+    return ARECORD_CONTINUE;
 }
 
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_NEXTITER()
+static JSBool FASTCALL
+IteratorMore(JSContext *cx, JSObject *iterobj, jsval *vp)
 {
-    jsval& iterobj_val = stackval(-2);
+    AutoValueRooter tvr(cx);
+    if (!js_IteratorMore(cx, iterobj, tvr.addr())) {
+        SetBuiltinError(cx);
+        return false;
+    }
+    *vp = tvr.value();
+    return cx->tracerState->builtinStatus == 0;
+}
+JS_DEFINE_CALLINFO_3(extern, BOOL_FAIL, IteratorMore, CONTEXT, OBJECT, JSVALPTR, 0, nanojit::ACC_STORE_ANY)
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_MOREITER()
+{
+    jsval& iterobj_val = stackval(-1);
     if (JSVAL_IS_PRIMITIVE(iterobj_val))
         RETURN_STOP_A("for-in on a primitive value");
+
     RETURN_IF_XML_A(iterobj_val);
+
     JSObject* iterobj = JSVAL_TO_OBJECT(iterobj_val);
     JSClass* clasp = iterobj->getClass();
     LIns* iterobj_ins = get(&iterobj_val);
-    guardClass(iterobj, iterobj_ins, clasp, snapshot(BRANCH_EXIT), ACC_OTHER);
-    if (clasp == &js_IteratorClass || clasp == &js_GeneratorClass)
-        return InjectStatus(callImacro(nextiter_imacros.native_iter_next));
-    return InjectStatus(callImacro(nextiter_imacros.custom_iter_next));
+    bool cond;
+    LIns* cond_ins;
+
+    
+    if (clasp == &js_IteratorClass.base) {
+        NativeIterator *ni = (NativeIterator *) iterobj->getPrivate();
+        jsval *cursor = ni->props_cursor;
+        jsval *end = ni->props_end;
+
+        LIns *ni_ins = stobj_get_const_fslot(iterobj_ins, JSSLOT_PRIVATE);
+        LIns *cursor_ins = addName(lir->insLoad(LIR_ldp, ni_ins, offsetof(NativeIterator, props_cursor), ACC_OTHER), "cursor");
+        LIns *end_ins = addName(lir->insLoad(LIR_ldp, ni_ins, offsetof(NativeIterator, props_end), ACC_OTHER), "end");
+
+        
+        cond = cursor < end;
+        cond_ins = lir->ins2(LIR_ltp, cursor_ins, end_ins);
+    } else {
+        enterDeepBailCall();
+
+        LIns* vp_ins = lir->insAlloc(sizeof(jsval));
+        LIns* args[] = { vp_ins, iterobj_ins, cx_ins };
+        LIns* ok_ins = lir->insCall(&IteratorMore_ci, args);
+
+        
+
+
+
+
+
+        guard(true, ok_ins, OOM_EXIT);
+
+        leaveDeepBailCall();
+
+        
+
+
+
+        JSContext *localCx = cx;
+        if (!js_IteratorMore(cx, iterobj, &stackval(0)))
+            RETURN_ERROR_A("error in js_IteratorMore");
+        if (!TRACE_RECORDER(localCx))
+            return ARECORD_ABORTED;
+
+        cond = (stackval(0) == JSVAL_TRUE);
+        cond_ins = lir->ins2(LIR_peq,
+                             lir->insLoad(LIR_ldp, vp_ins, 0, ACC_OTHER),
+                             INS_CONSTWORD(JSVAL_TRUE));
+    }
+
+    jsbytecode* pc = cx->fp->regs->pc;
+
+    if (pc[1] == JSOP_IFNE) {
+        fuseIf(pc + 1, cond, cond_ins);
+        return checkTraceEnd(pc + 1);
+    }
+
+    stack(0, cond_ins);
+
+    return ARECORD_CONTINUE;
 }
+
+static JSBool FASTCALL
+CloseIterator(JSContext *cx, JSObject *iterobj)
+{
+    if (!js_CloseIterator(cx, OBJECT_TO_JSVAL(iterobj))) {
+        SetBuiltinError(cx);
+        return false;
+    }
+    return cx->tracerState->builtinStatus == 0;
+}
+JS_DEFINE_CALLINFO_2(extern, BOOL_FAIL, CloseIterator, CONTEXT, OBJECT, 0, nanojit::ACC_STORE_ANY)
 
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_ENDITER()
 {
-    LIns* args[] = { stack(-2), cx_ins };
-    LIns* ok_ins = lir->insCall(&js_CloseIterator_ci, args);
-    guard(false, lir->insEqI_0(ok_ins), MISMATCH_EXIT);
+    enterDeepBailCall();
+
+    LIns* args[] = { stack(-1), cx_ins };
+    LIns* ok_ins = lir->insCall(&CloseIterator_ci, args);
+
+    
+    
+    pendingGuardCondition = ok_ins;
+
+    leaveDeepBailCall();
+
+    return ARECORD_CONTINUE;
+}
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::unboxNextValue(LIns* &v_ins)
+{
+    jsval &iterobj_val = stackval(-1);
+    JSObject *iterobj = JSVAL_TO_OBJECT(iterobj_val);
+    LIns* iterobj_ins = get(&iterobj_val);
+
+    if (guardClass(iterobj, iterobj_ins, &js_IteratorClass.base, snapshot(BRANCH_EXIT), ACC_OTHER)) {
+        NativeIterator *ni = (NativeIterator *) iterobj->getPrivate();
+        jsval *cursor = ni->props_cursor;
+
+        LIns *ni_ins = stobj_get_const_fslot(iterobj_ins, JSSLOT_PRIVATE);
+        LIns *cursor_ins = addName(lir->insLoad(LIR_ldp, ni_ins, offsetof(NativeIterator, props_cursor), ACC_OTHER), "cursor");
+
+        
+        jsval v = *cursor;
+        v_ins = addName(lir->insLoad(LIR_ldp, cursor_ins, 0, ACC_OTHER), "next");
+
+        
+        if (!(((NativeIterator *) iterobj->getPrivate())->flags & JSITER_FOREACH)) {
+            
+
+
+
+            guard(!JSVAL_IS_INT(v),
+                  lir->insEqP_0(lir->ins2(LIR_piand, v_ins, INS_CONSTWORD(JSVAL_INT))),
+                  snapshot(BRANCH_EXIT));
+
+            if (JSVAL_IS_INT(v)) {
+                
+                LIns* args[] = { p2i(lir->ins2ImmI(LIR_rshp, v_ins, 1)), cx_ins };
+                v_ins = lir->insCall(&js_IntToString_ci, args);
+                guard(false, lir->insEqP_0(v_ins), OOM_EXIT);
+            } else {
+                JS_ASSERT(JSVAL_IS_STRING(v));
+                v_ins = lir->ins2(LIR_piand, v_ins, lir->insImmWord(~JSVAL_TAGMASK));
+            }
+        } else {
+            v_ins = unbox_jsval(v, v_ins, snapshot(BRANCH_EXIT));
+        }
+
+        
+        cursor_ins = lir->ins2(LIR_piadd, cursor_ins, INS_CONSTWORD(sizeof(jsval)));
+        lir->insStore(LIR_stp, cursor_ins, ni_ins, offsetof(NativeIterator, props_cursor), ACC_OTHER);
+    } else {
+        jsval v = cx->iterValue;
+        v_ins = addName(lir->insLoad(LIR_ldp, cx_ins, offsetof(JSContext, iterValue), ACC_OTHER), "next");
+
+        v_ins = unbox_jsval(v, v_ins, snapshot(BRANCH_EXIT));
+
+        lir->insStore(INS_CONSTWORD(JSVAL_HOLE), cx_ins, offsetof(JSContext, iterValue), ACC_OTHER);
+    }
+
     return ARECORD_CONTINUE;
 }
 
@@ -13662,7 +13736,9 @@ TraceRecorder::record_JSOP_FORNAME()
     CHECK_STATUS_A(name(vp, x_ins, nr));
     if (!nr.tracked)
         RETURN_STOP_A("forname on non-tracked value not supported");
-    set(vp, stack(-1));
+    LIns* v_ins;
+    CHECK_STATUS_A(unboxNextValue(v_ins));
+    set(vp, v_ins);
     return ARECORD_CONTINUE;
 }
 
@@ -13675,19 +13751,28 @@ TraceRecorder::record_JSOP_FORPROP()
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_FORELEM()
 {
-    return record_JSOP_DUP();
+    LIns* v_ins;
+    CHECK_STATUS_A(unboxNextValue(v_ins));
+    stack(0, v_ins);
+    return ARECORD_CONTINUE;
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_FORARG()
 {
-    return record_JSOP_SETARG();
+    LIns* v_ins;
+    CHECK_STATUS_A(unboxNextValue(v_ins));
+    arg(GET_ARGNO(cx->fp->regs->pc), v_ins);
+    return ARECORD_CONTINUE;
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_FORLOCAL()
 {
-    return record_JSOP_SETLOCAL();
+    LIns* v_ins;
+    CHECK_STATUS_A(unboxNextValue(v_ins));
+    var(GET_SLOTNO(cx->fp->regs->pc), v_ins);
+    return ARECORD_CONTINUE;
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus
@@ -15008,104 +15093,10 @@ TraceRecorder::record_JSOP_CALLARG()
     return ARECORD_CONTINUE;
 }
 
-
-
-static JSBool
-ObjectToIterator(JSContext *cx, uintN argc, jsval *vp)
-{
-    jsval *argv = JS_ARGV(cx, vp);
-    JS_ASSERT(JSVAL_IS_INT(argv[0]));
-    JS_SET_RVAL(cx, vp, JS_THIS(cx, vp));
-    return js_ValueToIterator(cx, JSVAL_TO_INT(argv[0]), &JS_RVAL(cx, vp));
-}
-
-static JSObject* FASTCALL
-ObjectToIterator_tn(JSContext* cx, jsbytecode* pc, JSObject *obj, int32 flags)
-{
-    jsval v = OBJECT_TO_JSVAL(obj);
-    JSBool ok = js_ValueToIterator(cx, flags, &v);
-
-    if (!ok) {
-        SetBuiltinError(cx);
-        return NULL;
-    }
-    return JSVAL_TO_OBJECT(v);
-}
-
-static JSBool
-CallIteratorNext(JSContext *cx, uintN argc, jsval *vp)
-{
-    return js_CallIteratorNext(cx, JS_THIS_OBJECT(cx, vp), &JS_RVAL(cx, vp));
-}
-
-static jsval FASTCALL
-CallIteratorNext_tn(JSContext* cx, jsbytecode* pc, JSObject* iterobj)
-{
-    AutoValueRooter tvr(cx);
-    JSBool ok = js_CallIteratorNext(cx, iterobj, tvr.addr());
-
-    if (!ok) {
-        SetBuiltinError(cx);
-        return JSVAL_NULL; 
-    }
-    return tvr.value();
-}
-
-JS_DEFINE_TRCINFO_1(ObjectToIterator,
-    (4, (static, OBJECT_FAIL, ObjectToIterator_tn, CONTEXT, PC, THIS, INT32, 0, ACC_STORE_ANY)))
-JS_DEFINE_TRCINFO_1(CallIteratorNext,
-    (3, (static, JSVAL_FAIL,  CallIteratorNext_tn, CONTEXT, PC, THIS,        0, ACC_STORE_ANY)))
-
-static const struct BuiltinFunctionInfo {
-    JSNativeTraceInfo *ti;
-    int nargs;
-} builtinFunctionInfo[JSBUILTIN_LIMIT] = {
-    {&ObjectToIterator_trcinfo,   1},
-    {&CallIteratorNext_trcinfo,   0},
-};
-
-JSObject *
-GetBuiltinFunction(JSContext *cx, uintN index)
-{
-    JSRuntime *rt = cx->runtime;
-    JSObject *funobj = rt->builtinFunctions[index];
-
-    if (!funobj) {
-        
-        JS_ASSERT(index < JS_ARRAY_LENGTH(builtinFunctionInfo));
-        const BuiltinFunctionInfo *bfi = &builtinFunctionInfo[index];
-        JSFunction *fun = js_NewFunction(cx,
-                                         NULL,
-                                         JS_DATA_TO_FUNC_PTR(JSNative, bfi->ti),
-                                         bfi->nargs,
-                                         JSFUN_FAST_NATIVE | JSFUN_TRCINFO,
-                                         NULL,
-                                         NULL);
-        if (fun) {
-            funobj = FUN_OBJECT(fun);
-            funobj->clearProto();
-            funobj->clearParent();
-
-            AutoLockGC lock(rt);
-            if (!rt->builtinFunctions[index]) 
-                rt->builtinFunctions[index] = funobj;
-            else
-                funobj = rt->builtinFunctions[index];
-        }
-    }
-    return funobj;
-}
-
 JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_CALLBUILTIN()
+TraceRecorder::record_JSOP_UNUSED218()
 {
-    JSObject *obj = GetBuiltinFunction(cx, GET_INDEX(cx->fp->regs->pc));
-    if (!obj)
-        RETURN_ERROR_A("error in js_GetBuiltinFunction");
-
-    stack(0, get(&stackval(-1)));
-    stack(-1, INS_CONSTOBJ(obj));
-    return ARECORD_CONTINUE;
+    return ARECORD_ABORTED;
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus
