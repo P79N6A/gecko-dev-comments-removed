@@ -5,771 +5,944 @@
 
 
 
-#include "builtin/ParallelArray.h"
-#include "builtin/ParallelArray-inl.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "jsapi.h"
 #include "jsobj.h"
-#include "jsarray.h"
 #include "jsprf.h"
 
-#include "gc/Marking.h"
-#include "vm/GlobalObject.h"
-#include "vm/Stack.h"
-#include "vm/StringBuffer.h"
-
+#include "vm/MethodGuard-inl.h"
 #include "jsobjinlines.h"
 #include "jsarrayinlines.h"
 
 using namespace js;
-using namespace js::types;
 
+enum {
+    JSSLOT_PA_LENGTH = 0,
+    JSSLOT_PA_BUFFER,
+    JSSLOT_PA_MAX
+};
 
-
-
-
-typedef ParallelArrayObject::IndexVector IndexVector;
-typedef ParallelArrayObject::IndexInfo IndexInfo;
-
-bool
-ParallelArrayObject::IndexInfo::isInitialized()
-{
-    return (dimensions.length() > 0 &&
-            indices.capacity() >= dimensions.length() &&
-            partialProducts.length() == dimensions.length());
+inline uint32_t
+GetLength(JSObject *obj) {
+    return uint32_t(obj->getSlot(JSSLOT_PA_LENGTH).toInt32());
 }
 
-
-
-
-
+inline JSObject *
+GetBuffer(JSObject *obj) {
+    return &(obj->getSlot(JSSLOT_PA_BUFFER).toObject());
+}
 
 static bool
-MaybeGetParallelArrayObjectAndLength(JSContext *cx, HandleObject obj,
-                                     MutableHandle<ParallelArrayObject *> pa,
-                                     IndexInfo *iv, uint32_t *length)
-{
-    if (ParallelArrayObject::is(obj)) {
-        pa.set(ParallelArrayObject::as(obj));
-        if (!pa->isOneDimensional() && !iv->initialize(cx, pa, 1))
-            return false;
-        *length = pa->outermostDimension();
-    } else if (!GetLengthProperty(cx, obj, length)) {
+NewParallelArray(JSContext *cx, JSObject *buffer, uint32_t length, JSObject **result) {
+    *result = NewBuiltinClassInstance(cx, &ParallelArrayClass);
+    if (!*result)
         return false;
-    }
+
+    (*result)->setSlot(JSSLOT_PA_LENGTH, Int32Value(int32_t(length)));
+    (*result)->setSlot(JSSLOT_PA_BUFFER, ObjectValue(*buffer));
 
     return true;
 }
 
-
-
-
-
-
-
-
-static bool
-GetElementFromArrayLikeObject(JSContext *cx, HandleObject obj, HandleParallelArrayObject pa,
-                              IndexInfo &iv, uint32_t i, MutableHandleValue vp)
+static JSBool
+ParallelArray_get(JSContext *cx, unsigned argc, Value *vp)
 {
-    
-    
-    
-    if (pa && pa->getParallelArrayElement(cx, i, &iv, vp))
-        return true;
+    CallArgs args = CallArgsFromVp(argc, vp);
 
-    if (obj->isDenseArray() && i < obj->getDenseArrayInitializedLength() &&
-        !js_PrototypeHasIndexedProperties(cx, obj))
-    {
-        vp.set(obj->getDenseArrayElement(i));
-        if (vp.isMagic(JS_ARRAY_HOLE))
-            vp.setUndefined();
-        return true;
-    }
+    bool ok;
+    JSObject *obj = NonGenericMethodGuard(cx, args, ParallelArray_get, &ParallelArrayClass, &ok);
+    if (!obj)
+        return ok;
 
-    if (obj->isArguments()) {
-        if (obj->asArguments().maybeGetElement(static_cast<uint32_t>(i), vp))
-            return true;
-    }
-
-    
-    
-    return JSObject::getElement(cx, obj, obj, i, vp);
-}
-
-static inline bool
-SetArrayNewType(JSContext *cx, HandleObject obj)
-{
-    RootedTypeObject newtype(cx, GetTypeCallerInitObject(cx, JSProto_Array));
-    if (!newtype)
+    if (args.length() < 1) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
+                             "ParallelArray.get", "0", "s");
         return false;
-    obj->setType(newtype);
+    }
+
+    uint32_t index;
+    if (!ToUint32(cx, args[0], &index))
+        return false;
+
+    uint32_t length = GetLength(obj);
+
+    if (index >= length)
+        return false;
+
+    args.rval() = GetBuffer(obj)->getDenseArrayElement(index);
+
     return true;
 }
 
-static JSObject *
-NewDenseCopiedArrayWithType(JSContext *cx, uint32_t length, HandleObject source)
+static JSBool
+ParallelArray_build(JSContext *cx, uint32_t length, const Value &thisv, JSObject *elementalFun,
+                    bool passElement, unsigned extrasc, Value *extrasp, Value *vp)
 {
-    JS_ASSERT(source);
-
-    RootedObject buffer(cx, NewDenseAllocatedArray(cx, length));
+    
+    JSObject *buffer = NewDenseAllocatedArray(cx, length);
     if (!buffer)
-        return NULL;
-    JS_ASSERT(buffer->getDenseArrayCapacity() >= length);
-    buffer->setDenseArrayInitializedLength(length);
-
-    uint32_t srclen;
-    uint32_t copyUpTo;
-
-    if (source->isDenseArray() && !js_PrototypeHasIndexedProperties(cx, source)) {
-        
-        
-        
-        
-        const Value *srcvp = source->getDenseArrayElements();
-
-        srclen = source->getDenseArrayInitializedLength();
-        copyUpTo = Min(length, srclen);
-
-        
-        Value elem;
-        for (uint32_t i = 0; i < copyUpTo; i++) {
-            elem = srcvp[i].isMagic(JS_ARRAY_HOLE) ? UndefinedValue() : srcvp[i];
-            buffer->initDenseArrayElementWithType(cx, i, elem);
-        }
-
-        
-        for (uint32_t i = copyUpTo; i < length; i++)
-            buffer->initDenseArrayElementWithType(cx, i, UndefinedValue());
-    } else {
-        
-        
-        
-        for (uint32_t i = 0; i < length; i++)
-            buffer->initDenseArrayElementWithType(cx, i, UndefinedValue());
-
-        IndexInfo siv(cx);
-        RootedParallelArrayObject sourcePA(cx);
-
-        if (!MaybeGetParallelArrayObjectAndLength(cx, source, &sourcePA, &siv, &srclen))
-            return NULL;
-        copyUpTo = Min(length, srclen);
-
-        
-        RootedValue elem(cx);
-        for (uint32_t i = 0; i < copyUpTo; i++) {
-            if (!GetElementFromArrayLikeObject(cx, source, sourcePA, siv, i, &elem))
-                return NULL;
-            buffer->setDenseArrayElementWithType(cx, i, elem);
-        }
-    }
-
-    if (!SetArrayNewType(cx, buffer))
-        return NULL;
-
-    return *buffer.address();
-}
-
-static inline JSObject *
-NewDenseArrayWithType(JSContext *cx, uint32_t length)
-{
-    RootedObject buffer(cx, NewDenseAllocatedArray(cx, length));
-    if (!buffer)
-        return NULL;
+        return false;
 
     buffer->ensureDenseArrayInitializedLength(cx, length, 0);
 
-    if (!SetArrayNewType(cx, buffer))
-        return NULL;
+    
+    JSObject *srcBuffer;
+    if (passElement)
+        srcBuffer = &(thisv.toObject().getSlot(JSSLOT_PA_BUFFER).toObject());
 
-    return *buffer.address();
+    
+    InvokeArgsGuard args;
+    cx->stack.pushInvokeArgs(cx, extrasc + 1, &args);
+
+    for (uint32_t i = 0; i < length; i++) {
+        args.setCallee(ObjectValue(*elementalFun));
+        if (passElement)
+            args[0] = srcBuffer->getDenseArrayElement(i);
+        else
+            args[0].setNumber(i);
+
+        
+        args.thisv() = thisv;
+
+        
+        for (unsigned j = 0; j < extrasc; j++) {
+            JSObject &extra = extrasp[j].toObject();
+
+            if (!extra.getElement(cx, &extra, i, &(args[j+1])))
+                return false;
+        }
+
+        
+        if (!Invoke(cx, args))
+            return false;
+
+        
+        buffer->setDenseArrayElementWithType(cx, i, args.rval());
+    }
+
+    
+    JSObject *result;
+    if (!NewParallelArray(cx, buffer, length, &result))
+        return false;
+
+    vp->setObject(*result);
+    return true;
+}
+
+static JSBool
+ParallelArray_construct(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    if (args.length() < 1) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
+                             "ParallelArray", "0", "s");
+        return false;
+    }
+
+    if (args.length() == 1) {
+        
+        if (!args[0].isObject()) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_NONNULL_OBJECT);
+            return false;
+        }
+
+        JSObject *src = &(args[0].toObject());
+
+        uint32_t srcLen;
+        if (!js_GetLengthProperty(cx, src, &srcLen))
+            return false;
+
+        
+        JSObject *buffer = NewDenseAllocatedArray(cx, srcLen);
+        if (!buffer)
+            return false;
+
+        buffer->ensureDenseArrayInitializedLength(cx, srcLen, 0);
+
+        for (uint32_t i = 0; i < srcLen; i++) {
+            Value elem;
+            if (src->isDenseArray() && (i < src->getDenseArrayInitializedLength())) {
+                
+                elem = src->getDenseArrayElement(i);
+                if (elem.isMagic(JS_ARRAY_HOLE))
+                    elem.setUndefined();
+            } else {
+                
+                if (!src->getElement(cx, src, i, &elem))
+                    return false;
+            }
+
+            buffer->setDenseArrayElementWithType(cx, i, elem);
+        }
+
+        JSObject *result;
+        if (!NewParallelArray(cx, buffer, srcLen, &result))
+            return false;
+
+        args.rval().setObject(*result);
+        return true;
+    }
+
+    
+    
+    uint32_t length;
+    if (!ToUint32(cx, args[0], &length))
+        return false;
+
+    
+    JSObject *elementalFun = js_ValueToCallableObject(cx, &args[1], JSV2F_SEARCH_STACK);
+    if (!elementalFun)
+        return false;
+
+    
+    return ParallelArray_build(cx, length, UndefinedValue(), elementalFun, false, 0, NULL, &(args.rval()));
 }
 
 
+static JSBool
+ParallelArray_mapOrCombine(JSContext *cx, unsigned argc, Value *vp, bool isMap);
 
-static inline bool
-ArrayLikeToIndexVector(JSContext *cx, HandleObject obj, IndexVector &indices)
+static JSBool
+ParallelArray_map(JSContext *cx, unsigned argc, Value *vp)
 {
-    IndexInfo iv(cx);
-    RootedParallelArrayObject pa(cx);
-    uint32_t length;
+    return ParallelArray_mapOrCombine(cx, argc, vp, true);
+}
 
-    if (!MaybeGetParallelArrayObjectAndLength(cx, obj, &pa, &iv, &length))
+static JSBool
+ParallelArray_combine(JSContext *cx, unsigned argc, Value *vp)
+{
+    return ParallelArray_mapOrCombine(cx, argc, vp, false);
+}
+
+static JSBool
+ParallelArray_mapOrCombine(JSContext *cx, unsigned argc, Value *vp, bool isMap)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    
+    bool ok;
+    JSObject *obj = NonGenericMethodGuard(cx, args, (isMap ? ParallelArray_map : ParallelArray_combine),
+                                          &ParallelArrayClass, &ok);
+    if (!obj)
+        return ok;
+
+    if (args.length() < 1) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
+                             (isMap ? "map" : "combine"), "0", "s");
         return false;
-
-    if (!indices.resize(length))
-        return false;
-
-    RootedValue elem(cx);
-    for (uint32_t i = 0; i < length; i++) {
-        if (!GetElementFromArrayLikeObject(cx, obj, pa, iv, i, &elem) ||
-            !ToUint32(cx, elem, &indices[i]))
-        {
-            return false;
-        }
     }
+
+    
+    JSObject *elementalFun = js_ValueToCallableObject(cx, &args[0], JSV2F_SEARCH_STACK);
+    if (!elementalFun)
+        return false;
+
+    
+    if (isMap && (argc > 1))
+        for (unsigned i = 1; i < argc; i++)
+            if (!args[i].isObject()) {
+                char buffer[4];
+                JS_snprintf(buffer, 4, "%d", i+1);
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_MAP_INVALID_ARG,
+                                     buffer);
+
+                return false;
+            }
+
+    return ParallelArray_build(cx, GetLength(obj), ObjectValue(*obj), elementalFun, isMap,
+                               (isMap ? argc-1 : 0), ((argc > 1) ? &(args[1]) : NULL), &(args.rval()));
+}
+
+
+static JSBool
+ParallelArray_scanOrReduce(JSContext *cx, unsigned argc, Value *vp, bool isScan);
+
+static JSBool
+ParallelArray_scan(JSContext *cx, unsigned argc, Value *vp)
+{
+    return ParallelArray_scanOrReduce(cx, argc, vp, true);
+}
+
+static JSBool
+ParallelArray_reduce(JSContext *cx, unsigned argc, Value *vp)
+{
+    return ParallelArray_scanOrReduce(cx, argc, vp, false);
+}
+
+static JSBool
+ParallelArray_scanOrReduce(JSContext *cx, unsigned argc, Value *vp, bool isScan)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    
+    bool ok;
+    JSObject *obj = NonGenericMethodGuard(cx, args, (isScan ? ParallelArray_scan : ParallelArray_reduce), &ParallelArrayClass, &ok);
+    if (!obj)
+        return ok;
+
+    if (args.length() < 1) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
+                             (isScan ? "scan" : "reduce"), "0", "s");
+        return false;
+    }
+
+    uint32_t length = GetLength(obj);
+
+    JSObject *result = NULL, *resBuffer = NULL;
+    if (isScan) {
+        
+        resBuffer = NewDenseAllocatedArray(cx, length);
+        if (!resBuffer)
+            return false;
+
+        resBuffer->ensureDenseArrayInitializedLength(cx, length, 0);
+
+        
+        if (!NewParallelArray(cx, resBuffer, length, &result))
+            return false;
+    }
+
+    
+    JSObject *elementalFun = js_ValueToCallableObject(cx, &args[0], JSV2F_SEARCH_STACK);
+    if (!elementalFun)
+        return false;
+
+    
+    if (length == 0) {
+        args.rval() = (isScan ? ObjectValue(*result) : UndefinedValue());
+        return true;
+    }
+
+    JSObject *buffer = GetBuffer(obj);
+
+    Value accu = buffer->getDenseArrayElement(0);
+    if (isScan)
+        resBuffer->setDenseArrayElementWithType(cx, 0, accu);
+
+    
+    InvokeArgsGuard ag;
+    if (!cx->stack.pushInvokeArgs(cx, 2, &ag))
+        return false;
+
+    for (uint32_t i = 1; i < length; i++) {
+        
+        ag.setCallee(ObjectValue(*elementalFun));
+        ag[0] = accu;
+        ag[1] = buffer->getDenseArrayElement(i);
+
+        
+        
+        ag.thisv() = args.thisv();
+
+        
+        if (!Invoke(cx, ag))
+            return false;
+
+        
+        accu = ag.rval();
+        if (isScan)
+            resBuffer->setDenseArrayElementWithType(cx, i, accu);
+    }
+
+    args.rval() = (isScan ? ObjectValue(*result) : accu);
 
     return true;
 }
 
-template <bool impl(JSContext *, CallArgs)>
-static inline
-JSBool NonGenericMethod(JSContext *cx, unsigned argc, Value *vp)
+static JSBool
+ParallelArray_filter(JSContext *cx, unsigned argc, Value *vp) {
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    
+    bool ok;
+    JSObject *obj = NonGenericMethodGuard(cx, args, ParallelArray_filter, &ParallelArrayClass, &ok);
+    if (!obj)
+        return false;
+
+    if (args.length() < 1) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
+                             "filter", "0", "s");
+        return false;
+    }
+
+    
+    JSObject *elementalFun = js_ValueToCallableObject(cx, &args[0], JSV2F_SEARCH_STACK);
+    if (!elementalFun)
+        return false;
+
+    JSObject *buffer = GetBuffer(obj);
+    uint32_t length = GetLength(obj);
+
+    
+    JSObject *resBuffer = NewDenseAllocatedArray(cx, length);
+    if (!resBuffer)
+        return false;
+
+    resBuffer->ensureDenseArrayInitializedLength(cx, length, 0);
+
+    
+    InvokeArgsGuard frame;
+    cx->stack.pushInvokeArgs(cx, 1, &frame);
+
+    uint32_t pos = 0;
+    for (uint32_t i = 0; i < length; i++) {
+        frame.setCallee(ObjectValue(*elementalFun));
+        frame[0].setNumber(i);
+        frame.thisv() = ObjectValue(*obj);
+
+        
+        if (!Invoke(cx, frame))
+            return false;
+
+        if (js_ValueToBoolean(frame.rval()))
+            resBuffer->setDenseArrayElementWithType(cx, pos++, buffer->getDenseArrayElement(i));
+    }
+
+    
+    resBuffer->setArrayLength(cx, pos);
+
+    
+    JSObject *result;
+    if (!NewParallelArray(cx, resBuffer, pos, &result))
+        return false;
+
+    args.rval() = ObjectValue(*result);
+    return true;
+}
+
+static JSBool
+ParallelArray_scatter(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CallNonGenericMethod(cx, ParallelArrayObject::is, impl, args);
-}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-ParallelArrayObject::SequentialMode ParallelArrayObject::sequential;
-ParallelArrayObject::ParallelMode ParallelArrayObject::parallel;
-ParallelArrayObject::FallbackMode ParallelArrayObject::fallback;
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::SequentialMode::build(JSContext *cx, IndexInfo &iv,
-                                           HandleObject elementalFun, HandleObject buffer)
-{
-    JS_ASSERT(iv.isInitialized());
-
-    uint32_t length = iv.scalarLengthOfDimensions();
-
-    InvokeArgsGuard args;
-    if (!cx->stack.pushInvokeArgs(cx, iv.dimensions.length(), &args))
-        return ExecutionFailed;
-
-    for (uint32_t i = 0; i < length; i++) {
-        args.setCallee(ObjectValue(*elementalFun));
-        args.setThis(UndefinedValue());
-
-        
-        iv.fromScalar(i);
-        for (size_t j = 0; j < iv.indices.length(); j++)
-            args[j].setNumber(iv.indices[j]);
-
-        if (!Invoke(cx, args))
-            return ExecutionFailed;
-
-        buffer->setDenseArrayElementWithType(cx, i, args.rval());
+    
+    bool ok;
+    JSObject *obj = NonGenericMethodGuard(cx, args, ParallelArray_scatter, &ParallelArrayClass, &ok);
+    if (!obj)
+        return false;
+
+    JSObject *buffer = GetBuffer(obj);
+
+    if (args.length() < 1) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
+                             "scatter", "0", "s");
+        return false;
     }
 
-    return ExecutionSucceeded;
-}
+    
+    if (!args[0].isObject()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_SCATTER_INVALID_VEC);
+        return false;
+    }
+    JSObject &targets = args[0].toObject();
 
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::SequentialMode::map(JSContext *cx, HandleParallelArrayObject source,
-                                         HandleObject elementalFun, HandleObject buffer)
-{
-    JS_ASSERT(is(source));
-    JS_ASSERT(source->outermostDimension() == buffer->getDenseArrayInitializedLength());
-    JS_ASSERT(buffer->isDenseArray());
+    uint32_t scatterLen;
+    if (!JS_GetArrayLength(cx, &targets, &scatterLen))
+        return false;
 
-    uint32_t length = source->outermostDimension();
-
-    IndexInfo iv(cx);
-    if (!source->isOneDimensional() && !iv.initialize(cx, source, 1))
-        return ExecutionFailed;
-
-    InvokeArgsGuard args;
-    if (!cx->stack.pushInvokeArgs(cx, 3, &args))
-        return ExecutionFailed;
-
-    RootedValue elem(cx);
-    for (uint32_t i = 0; i < length; i++) {
-        args.setCallee(ObjectValue(*elementalFun));
-        args.setThis(UndefinedValue());
-
-        if (!source->getParallelArrayElement(cx, i, &iv, &elem))
-            return ExecutionFailed;
-
-        
-        args[0] = elem;
-        args[1].setNumber(i);
-        args[2].setObject(*source);
-
-        if (!Invoke(cx, args))
-            return ExecutionFailed;
-
-        buffer->setDenseArrayElementWithType(cx, i, args.rval());
+    if (scatterLen > GetLength(obj)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_SCATTER_INVALID_VEC);
+        return false;
     }
 
-    return ExecutionSucceeded;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::SequentialMode::reduce(JSContext *cx, HandleParallelArrayObject source,
-                                            HandleObject elementalFun, HandleObject buffer,
-                                            MutableHandleValue vp)
-{
-    JS_ASSERT(is(source));
-    JS_ASSERT_IF(buffer, buffer->isDenseArray());
-    JS_ASSERT_IF(buffer, buffer->getDenseArrayInitializedLength() >= 1);
-
-    uint32_t length = source->outermostDimension();
-
     
+    Value defValue = UndefinedValue();
+    if (args.length() >= 2)
+        defValue = args[1];
+
+    JSObject *conflictFun = NULL;
     
-    
-    
-    
-    RootedValue acc(cx);
-    IndexInfo iv(cx);
-
-    if (!source->isOneDimensional() && !iv.initialize(cx, source, 1))
-        return ExecutionFailed;
-
-    if (!source->getParallelArrayElement(cx, 0, &iv, &acc))
-        return ExecutionFailed;
-
-    if (buffer)
-        buffer->setDenseArrayElementWithType(cx, 0, acc);
-
-    InvokeArgsGuard args;
-    if (!cx->stack.pushInvokeArgs(cx, 2, &args))
-        return ExecutionFailed;
-
-    RootedValue elem(cx);
-    for (uint32_t i = 1; i < length; i++) {
-        args.setCallee(ObjectValue(*elementalFun));
-        args.setThis(UndefinedValue());
-
-        if (!source->getParallelArrayElement(cx, i, &iv, &elem))
-            return ExecutionFailed;
-
-        
-        args[0] = acc;
-        args[1] = elem;
-
-        if (!Invoke(cx, args))
-            return ExecutionFailed;
-
-        
-        acc = args.rval();
-        if (buffer)
-            buffer->setDenseArrayElementWithType(cx, i, args.rval());
+    if ((args.length() >= 3) && !args[2].isUndefined()) {
+        conflictFun = js_ValueToCallableObject(cx, &args[2], JSV2F_SEARCH_STACK);
+        if (!conflictFun)
+            return false;
     }
 
-    vp.set(acc);
-
-    return ExecutionSucceeded;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::SequentialMode::scatter(JSContext *cx, HandleParallelArrayObject source,
-                                             HandleObject targets, const Value &defaultValue,
-                                             HandleObject conflictFun, HandleObject buffer)
-{
-    JS_ASSERT(buffer->isDenseArray());
-
-    uint32_t length = buffer->getDenseArrayInitializedLength();
-
-    IndexInfo iv(cx);
-    if (!source->isOneDimensional() && !iv.initialize(cx, source, 1))
-        return ExecutionFailed;
+    
+    uint32_t length;
+    if (args.length() >= 4) {
+        if (!ToUint32(cx, args[3], &length))
+            return false;
+    } else {
+        
+        length = GetLength(obj);
+    }
 
     
-    
-    IndexInfo tiv(cx);
-    RootedParallelArrayObject targetsPA(cx);
+    JSObject *resBuffer = NewDenseAllocatedArray(cx, length);
+    if (!resBuffer)
+        return false;
+
+    resBuffer->ensureDenseArrayInitializedLength(cx, length, 0);
 
     
-    uint32_t targetsLength;
+    for (uint32_t i = 0; i < scatterLen; i++) {
+        
+        Value elem;
+        if (!targets.getElement(cx, &targets, i, &elem))
+            return false;
 
-    if (!MaybeGetParallelArrayObjectAndLength(cx, targets, &targetsPA, &tiv, &targetsLength))
-        return ExecutionFailed;
+        uint32_t targetIdx;
+        if (!ToUint32(cx, elem, &targetIdx))
+            return false;
 
-    
-    RootedValue elem(cx);
-    RootedValue telem(cx);
-    RootedValue targetElem(cx);
-    for (uint32_t i = 0; i < targetsLength; i++) {
-        uint32_t targetIndex;
-
-        if (!GetElementFromArrayLikeObject(cx, targets, targetsPA, tiv, i, &telem) ||
-            !ToUint32(cx, telem, &targetIndex))
-        {
-            return ExecutionFailed;
+        if (targetIdx >= length) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_SCATTER_BNDS);
+            return false;
         }
 
-        if (targetIndex >= length) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                 JSMSG_PAR_ARRAY_SCATTER_BOUNDS);
-            return ExecutionFailed;
-        }
-
-        if (!source->getParallelArrayElement(cx, i, &iv, &elem))
-            return ExecutionFailed;
-
-        targetElem = buffer->getDenseArrayElement(targetIndex);
-
         
-        
-        
-        if (!targetElem.isMagic(JS_ARRAY_HOLE)) {
+        Value readV = buffer->getDenseArrayElement(i);
+
+        Value previous = resBuffer->getDenseArrayElement(targetIdx);
+
+        if (!previous.isMagic(JS_ARRAY_HOLE)) {
             if (conflictFun) {
-                InvokeArgsGuard args;
-                if (!cx->stack.pushInvokeArgs(cx, 2, &args))
-                    return ExecutionFailed;
+                
+                InvokeArgsGuard ag;
+                if (!cx->stack.pushInvokeArgs(cx, 2, &ag))
+                    return false;
+                ag.setCallee(ObjectValue(*conflictFun));
+                ag[0] = readV;
+                ag[1] = previous;
 
-                args.setCallee(ObjectValue(*conflictFun));
-                args.setThis(UndefinedValue());
-                args[0] = elem;
-                args[1] = targetElem;
+                
+                ag.thisv() = args.thisv();
 
-                if (!Invoke(cx, args))
-                    return ExecutionFailed;
+                if (!Invoke(cx, ag))
+                    return false;
 
-                elem = args.rval();
+                readV = ag.rval();
             } else {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                     JSMSG_PAR_ARRAY_SCATTER_CONFLICT);
-                return ExecutionFailed;
+                
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_SCATTER_CONFLICT);
+                return false;
             }
         }
 
-        buffer->setDenseArrayElementWithType(cx, targetIndex, elem);
+        
+        resBuffer->setDenseArrayElementWithType(cx, targetIdx, readV);
     }
 
     
     for (uint32_t i = 0; i < length; i++) {
-        if (buffer->getDenseArrayElement(i).isMagic(JS_ARRAY_HOLE))
-            buffer->setDenseArrayElementWithType(cx, i, defaultValue);
+        if (resBuffer->getDenseArrayElement(i).isMagic(JS_ARRAY_HOLE))
+            resBuffer->setDenseArrayElementWithType(cx, i, defValue);
     }
-
-    return ExecutionSucceeded;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::SequentialMode::filter(JSContext *cx, HandleParallelArrayObject source,
-                                            HandleObject filters, HandleObject buffer)
-{
-    JS_ASSERT(buffer->isDenseArray());
-
-    IndexInfo iv(cx);
-    if (!source->isOneDimensional() && !iv.initialize(cx, source, 1))
-        return ExecutionFailed;
 
     
+    JSObject *result;
+    if (!NewParallelArray(cx, resBuffer, length, &result))
+        return false;
+
+    args.rval() = ObjectValue(*result);
+    return true;
+}
+
+static JSBool
+ParallelArray_forward_method(JSContext *cx, unsigned argc, Value *vp, Native native, PropertyName *name)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    bool ok;
+    JSObject *obj = NonGenericMethodGuard(cx, args, native, &ParallelArrayClass, &ok);
+    if (!ok)
+        return false;
+
+    Value callable;
+    JSObject *buffer = GetBuffer(obj);
+    if (!js_GetMethod(cx, buffer, ATOM_TO_JSID(name), JSGET_NO_METHOD_BARRIER, &callable))
+        return false;
+
+    Value rval;
+    if (!Invoke(cx, ObjectOrNullValue(buffer), callable, argc, vp, &rval))
+        return false;
+
+    *vp = rval;
+    return true;
+}
+
+static JSBool
+ParallelArray_toString(JSContext *cx, unsigned argc, Value *vp)
+{
+    return ParallelArray_forward_method(cx, argc, vp, ParallelArray_toString, cx->runtime->atomState.toStringAtom);
+}
+
+static JSBool
+ParallelArray_toLocaleString(JSContext *cx, unsigned argc, Value *vp)
+{
+    return ParallelArray_forward_method(cx, argc, vp, ParallelArray_toLocaleString, cx->runtime->atomState.toStringAtom);
+}
+
+static JSBool
+ParallelArray_toSource(JSContext *cx, unsigned argc, Value *vp)
+{
+    return ParallelArray_forward_method(cx, argc, vp, ParallelArray_toSource, cx->runtime->atomState.toStringAtom);
+}
+
+static JSBool
+ParallelArray_length_getter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
+{
     
-    IndexInfo fiv(cx);
-    RootedParallelArrayObject filtersPA(cx);
-
-    
-    uint32_t filtersLength;
-
-    if (!MaybeGetParallelArrayObjectAndLength(cx, filters, &filtersPA, &fiv, &filtersLength))
-        return ExecutionFailed;
-
-    RootedValue elem(cx);
-    RootedValue felem(cx);
-    for (uint32_t i = 0, pos = 0; i < filtersLength; i++) {
-        if (!GetElementFromArrayLikeObject(cx, filters, filtersPA, fiv, i, &felem))
-            return ExecutionFailed;
-
-        
-        if (!ToBoolean(felem))
-            continue;
-
-        if (!source->getParallelArrayElement(cx, i, &iv, &elem))
-            return ExecutionFailed;
-
-        
-        JSObject::EnsureDenseResult result = JSObject::ED_SPARSE;
-        result = buffer->ensureDenseArrayElements(cx, pos, 1);
-        if (result != JSObject::ED_OK)
-            return ExecutionFailed;
-        if (i >= buffer->getArrayLength())
-            buffer->setDenseArrayLength(pos + 1);
-        buffer->setDenseArrayElementWithType(cx, pos, elem);
-
-        
-        pos++;
-    }
-
-    return ExecutionSucceeded;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::ParallelMode::build(JSContext *cx, IndexInfo &iv,
-                                         HandleObject elementalFun, HandleObject buffer)
-{
-    return ExecutionFailed;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::ParallelMode::map(JSContext *cx, HandleParallelArrayObject source,
-                                       HandleObject elementalFun, HandleObject buffer)
-{
-    return ExecutionFailed;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::ParallelMode::reduce(JSContext *cx, HandleParallelArrayObject source,
-                                          HandleObject elementalFun, HandleObject buffer,
-                                          MutableHandleValue vp)
-{
-    return ExecutionFailed;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::ParallelMode::scatter(JSContext *cx, HandleParallelArrayObject source,
-                                           HandleObject targetsObj, const Value &defaultValue,
-                                           HandleObject conflictFun, HandleObject buffer)
-{
-    return ExecutionFailed;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::ParallelMode::filter(JSContext *cx, HandleParallelArrayObject source,
-                                          HandleObject filtersObj, HandleObject buffer)
-{
-    return ExecutionFailed;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::FallbackMode::build(JSContext *cx, IndexInfo &iv,
-                                         HandleObject elementalFun, HandleObject buffer)
-{
-    if (parallel.build(cx, iv, elementalFun, buffer) ||
-        sequential.build(cx, iv, elementalFun, buffer))
-    {
-        return ExecutionSucceeded;
-    }
-    return ExecutionFailed;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::FallbackMode::map(JSContext *cx, HandleParallelArrayObject source,
-                                       HandleObject elementalFun, HandleObject buffer)
-{
-    if (parallel.map(cx, source, elementalFun, buffer) ||
-        sequential.map(cx, source, elementalFun, buffer))
-    {
-        return ExecutionSucceeded;
-    }
-    return ExecutionFailed;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::FallbackMode::reduce(JSContext *cx, HandleParallelArrayObject source,
-                                          HandleObject elementalFun, HandleObject buffer,
-                                          MutableHandleValue vp)
-{
-    if (parallel.reduce(cx, source, elementalFun, buffer, vp) ||
-        sequential.reduce(cx, source, elementalFun, buffer, vp))
-    {
-        return ExecutionSucceeded;
-    }
-    return ExecutionFailed;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::FallbackMode::scatter(JSContext *cx, HandleParallelArrayObject source,
-                                           HandleObject targetsObj, const Value &defaultValue,
-                                           HandleObject conflictFun, HandleObject buffer)
-{
-    if (parallel.scatter(cx, source, targetsObj, defaultValue, conflictFun, buffer) ||
-        sequential.scatter(cx, source, targetsObj, defaultValue, conflictFun, buffer))
-    {
-        return ExecutionSucceeded;
-    }
-    return ExecutionFailed;
-}
-
-ParallelArrayObject::ExecutionStatus
-ParallelArrayObject::FallbackMode::filter(JSContext *cx, HandleParallelArrayObject source,
-                                          HandleObject filtersObj, HandleObject buffer)
-{
-    if (parallel.filter(cx, source, filtersObj, buffer) ||
-        sequential.filter(cx, source, filtersObj, buffer))
-    {
-        return ExecutionSucceeded;
-    }
-    return ExecutionFailed;
-}
-
-#ifdef DEBUG
-
-const char *
-ParallelArrayObject::ExecutionStatusToString(ExecutionStatus ss)
-{
-    switch (ss) {
-      case ExecutionFailed:
-        return "failure";
-      case ExecutionCompiled:
-        return "compilation";
-      case ExecutionSucceeded:
-        return "success";
-    }
-    return "(unknown status)";
-}
-
-bool
-ParallelArrayObject::DebugOptions::init(JSContext *cx, const Value &v)
-{
-    if (!v.isObject())
+    if (obj->getClass() != &ParallelArrayClass)
         return false;
 
-    RootedObject obj(cx, &v.toObject());
-    RootedId id(cx);
-    RootedValue propv(cx);
-    JSString *propStr;
-    JSBool match = false;
+    vp->setNumber(GetLength(obj));
+    return true;
+}
 
-    id = AtomToId(Atomize(cx, "mode", strlen("mode")));
-    if (!JSObject::getGeneric(cx, obj, obj, id, &propv))
-        return false;
 
-    propStr = ToString(cx, propv);
-    if (!JS_StringEqualsAscii(cx, propStr, "par", &match))
-        return false;
-    if (match) {
-        mode = &parallel;
+static inline bool
+IsDenseArrayIndex(JSObject *obj, uint32_t index)
+{
+    JS_ASSERT(obj->isDenseArray());
+
+    return index < obj->getDenseArrayInitializedLength();
+}
+
+
+static inline bool
+IsDenseArrayId(JSContext *cx, JSObject *obj, jsid id)
+{
+    JS_ASSERT(obj->isDenseArray());
+
+    uint32_t i;
+    return (js_IdIsIndex(id, &i) && IsDenseArrayIndex(obj, i));
+}
+
+static JSBool
+ParallelArray_lookupGeneric(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
+                            JSProperty **propp)
+{
+    JSObject *buffer = GetBuffer(obj);
+
+    if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom) ||
+        IsDenseArrayId(cx, buffer, id))
+    {
+        *propp = (JSProperty *) 1; 
+        *objp = obj;
+        return true;
+    }
+
+    JSObject *proto = obj->getProto();
+    if (proto)
+        return proto->lookupGeneric(cx, id, objp, propp);
+
+    *objp = NULL;
+    *propp = NULL;
+    return true;
+}
+
+static JSBool
+ParallelArray_lookupProperty(JSContext *cx, JSObject *obj, PropertyName *name, JSObject **objp,
+                             JSProperty **propp)
+{
+    return ParallelArray_lookupGeneric(cx, obj, ATOM_TO_JSID(name), objp, propp);
+}
+
+static JSBool
+ParallelArray_lookupElement(JSContext *cx, JSObject *obj, uint32_t index, JSObject **objp,
+                            JSProperty **propp)
+{
+    if (IsDenseArrayIndex(GetBuffer(obj), index)) {
+        *propp = (JSProperty *) 1;  
+        *objp = obj;
+        return true;
+    }
+
+    JSObject *proto = obj->getProto();
+    if (proto)
+        return proto->lookupElement(cx, index, objp, propp);
+
+    *objp = NULL;
+    *propp = NULL;
+    return true;
+}
+
+static JSBool
+ParallelArray_lookupSpecial(JSContext *cx, JSObject *obj, SpecialId sid, JSObject **objp,
+                            JSProperty **propp)
+{
+    return ParallelArray_lookupGeneric(cx, obj, SPECIALID_TO_JSID(sid), objp, propp);
+}
+
+static JSBool
+ParallelArray_getGeneric(JSContext *cx, JSObject *obj, JSObject *receiver, jsid id, Value *vp)
+{
+
+    if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
+        vp->setNumber(GetLength(obj));
+        return true;
+    }
+
+    JSObject *buffer = GetBuffer(obj);
+    if (IsDenseArrayId(cx, buffer, id))
+        return buffer->getGeneric(cx, receiver, id, vp);
+
+    JSObject *proto = obj->getProto();
+    if (proto)
+        return proto->getGeneric(cx, receiver, id, vp);
+
+    vp->setUndefined();
+    return true;
+}
+
+static JSBool
+ParallelArray_getProperty(JSContext *cx, JSObject *obj, JSObject *receiver, PropertyName *name, Value *vp)
+{
+    return ParallelArray_getGeneric(cx, obj, receiver, ATOM_TO_JSID(name), vp);
+}
+
+static JSBool
+ParallelArray_getElement(JSContext *cx, JSObject *obj, JSObject *receiver, uint32_t index, Value *vp)
+{
+    JSObject *buffer = GetBuffer(obj);
+    if (IsDenseArrayIndex(buffer, index)) {
+        *vp = buffer->getDenseArrayElement(index);
+        return true;
+    }
+
+    JSObject *proto = obj->getProto();
+    if (proto)
+        return proto->getElement(cx, receiver, index, vp);
+
+    vp->setUndefined();
+    return true;
+}
+
+static JSBool
+ParallelArray_getSpecial(JSContext *cx, JSObject *obj, JSObject *receiver, SpecialId sid, Value *vp)
+{
+    return ParallelArray_getGeneric(cx, obj, receiver, SPECIALID_TO_JSID(sid), vp);
+}
+
+static JSBool
+ParallelArray_defineGeneric(JSContext *cx, JSObject *obj, jsid id, const Value *value,
+                            JSPropertyOp getter, StrictPropertyOp setter, unsigned attrs)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
+
+    return false;
+}
+
+static JSBool
+ParallelArray_defineProperty(JSContext *cx, JSObject *obj, PropertyName *name, const Value *value,
+                             JSPropertyOp getter, StrictPropertyOp setter, unsigned attrs)
+{
+    return ParallelArray_defineGeneric(cx, obj, ATOM_TO_JSID(name), value, getter, setter, attrs);
+}
+
+static JSBool
+ParallelArray_defineElement(JSContext *cx, JSObject *obj, uint32_t index, const Value *value,
+                            PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
+
+    return false;
+}
+
+static JSBool
+ParallelArray_defineSpecial(JSContext *cx, JSObject *obj, SpecialId sid, const Value *value,
+                            PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
+{
+    return ParallelArray_defineGeneric(cx, obj, SPECIALID_TO_JSID(sid), value, getter, setter, attrs);
+}
+
+static JSBool
+ParallelArray_setGeneric(JSContext *cx, JSObject *obj, jsid id, Value *vp, JSBool strict)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
+
+    return false;
+}
+
+static JSBool
+ParallelArray_setProperty(JSContext *cx, JSObject *obj, PropertyName *name, Value *vp, JSBool strict)
+{
+    return ParallelArray_setGeneric(cx, obj, ATOM_TO_JSID(name), vp, strict);
+}
+
+static JSBool
+ParallelArray_setElement(JSContext *cx, JSObject *obj, uint32_t index, Value *vp, JSBool strict)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
+
+    return false;
+}
+
+static JSBool
+ParallelArray_setSpecial(JSContext *cx, JSObject *obj, SpecialId sid, Value *vp, JSBool strict)
+{
+    return ParallelArray_setGeneric(cx, obj, SPECIALID_TO_JSID(sid), vp, strict);
+}
+
+static JSBool
+ParallelArray_getGenericAttributes(JSContext *cx, JSObject *obj, jsid id, unsigned *attrsp)
+{
+    if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
+        *attrsp = JSPROP_PERMANENT | JSPROP_READONLY;
     } else {
-        if (!JS_StringEqualsAscii(cx, propStr, "seq", &match))
-            return false;
-        if (match)
-            mode = &sequential;
-        else
-            return false;
+        
+        *attrsp = JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_ENUMERATE;
     }
 
-    id = AtomToId(Atomize(cx, "expect", strlen("expect")));
-    if (!JSObject::getGeneric(cx, obj, obj, id, &propv))
-        return false;
+    return true;
+}
 
-    propStr = ToString(cx, propv);
-    if (!JS_StringEqualsAscii(cx, propStr, "fail", &match))
-        return false;
-    if (match) {
-        expect = ExecutionFailed;
-    } else {
-        if (!JS_StringEqualsAscii(cx, propStr, "bail", &match))
-            return false;
-        if (match) {
-            expect = ExecutionCompiled;
+static JSBool
+ParallelArray_getPropertyAttributes(JSContext *cx, JSObject *obj, PropertyName *name, unsigned *attrsp)
+{
+    return ParallelArray_getGenericAttributes(cx, obj, ATOM_TO_JSID(name), attrsp);
+}
+
+static JSBool
+ParallelArray_getElementAttributes(JSContext *cx, JSObject *obj, uint32_t index, unsigned *attrsp)
+{
+    *attrsp = JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_ENUMERATE;
+    return true;
+}
+
+static JSBool
+ParallelArray_getSpecialAttributes(JSContext *cx, JSObject *obj, SpecialId sid, unsigned *attrsp)
+{
+    return ParallelArray_getGenericAttributes(cx, obj, SPECIALID_TO_JSID(sid), attrsp);
+}
+
+static JSBool
+ParallelArray_setGenericAttributes(JSContext *cx, JSObject *obj, jsid id, unsigned *attrsp)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
+
+    return false;
+}
+
+static JSBool
+ParallelArray_setPropertyAttributes(JSContext *cx, JSObject *obj, PropertyName *name, unsigned *attrsp)
+{
+    return ParallelArray_setGenericAttributes(cx, obj, ATOM_TO_JSID(name), attrsp);
+}
+
+static JSBool
+ParallelArray_setElementAttributes(JSContext *cx, JSObject *obj, uint32_t index, unsigned *attrsp)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
+
+    return false;
+}
+
+static JSBool
+ParallelArray_setSpecialAttributes(JSContext *cx, JSObject *obj, SpecialId sid, unsigned *attrsp)
+{
+    return ParallelArray_setGenericAttributes(cx, obj, SPECIALID_TO_JSID(sid), attrsp);
+}
+
+static JSBool
+ParallelArray_deleteGeneric(JSContext *cx, JSObject *obj, jsid id, Value *rval, JSBool strict)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
+
+    return false;
+}
+
+static JSBool
+ParallelArray_deleteProperty(JSContext *cx, JSObject *obj, PropertyName *name, Value *rval, JSBool strict)
+{
+    return ParallelArray_deleteGeneric(cx, obj, ATOM_TO_JSID(name), rval, strict);
+}
+
+static JSBool
+ParallelArray_deleteElement(JSContext *cx, JSObject *obj, uint32_t index, Value *rval, JSBool strict)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
+
+    return false;
+}
+
+static JSBool
+ParallelArray_deleteSpecial(JSContext *cx, JSObject *obj, SpecialId sid, Value *rval, JSBool strict)
+{
+    return ParallelArray_deleteGeneric(cx, obj, SPECIALID_TO_JSID(sid), rval, strict);
+}
+
+static JSBool
+ParallelArray_enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op, Value *statep, jsid *idp)
+{
+    
+
+
+
+
+    switch (enum_op) {
+      case JSENUMERATE_INIT_ALL:
+        statep->setBoolean(true);
+        if (idp)
+            *idp = ::INT_TO_JSID(GetLength(obj) + 1);
+        break;
+
+      case JSENUMERATE_INIT:
+        statep->setInt32(0);
+        if (idp)
+            *idp = ::INT_TO_JSID(GetLength(obj));
+        break;
+
+      case JSENUMERATE_NEXT:
+        if (statep->isTrue()) {
+            *idp = ATOM_TO_JSID(cx->runtime->atomState.lengthAtom);
+            statep->setInt32(0);
         } else {
-            if (!JS_StringEqualsAscii(cx, propStr, "success", &match))
-                return false;
-            if (match)
-                expect = ExecutionSucceeded;
-            else
-                return false;
+            uint32_t index = statep->toInt32();
+            if (index < GetLength(obj)) {
+                *idp = ::INT_TO_JSID(index);
+                statep->setInt32(index + 1);
+            } else {
+                JS_ASSERT(index == GetLength(obj));
+                statep->setNull();
+            }
         }
+        break;
+
+      case JSENUMERATE_DESTROY:
+        statep->setNull();
+        break;
     }
 
     return true;
 }
 
-bool
-ParallelArrayObject::DebugOptions::check(JSContext *cx, ExecutionStatus actual)
-{
-    if (expect != actual) {
-        JS_ReportError(cx, "expected %s for %s execution, got %s",
-                       ExecutionStatusToString(expect),
-                       mode->toString(),
-                       ExecutionStatusToString(actual));
-        return false;
-    }
-
-    return true;
-}
-
-#endif 
-
-
-
-
-
-JSFunctionSpec ParallelArrayObject::methods[] = {
-    JS_FN("map",                 NonGenericMethod<map>,            1, 0),
-    JS_FN("reduce",              NonGenericMethod<reduce>,         1, 0),
-    JS_FN("scan",                NonGenericMethod<scan>,           1, 0),
-    JS_FN("scatter",             NonGenericMethod<scatter>,        1, 0),
-    JS_FN("filter",              NonGenericMethod<filter>,         1, 0),
-    JS_FN("flatten",             NonGenericMethod<flatten>,        0, 0),
-    JS_FN("partition",           NonGenericMethod<partition>,      1, 0),
-    JS_FN("get",                 NonGenericMethod<get>,            1, 0),
-    JS_FN(js_toString_str,       NonGenericMethod<toString>,       0, 0),
-    JS_FN(js_toLocaleString_str, NonGenericMethod<toLocaleString>, 0, 0),
-    JS_FS_END
-};
-
-Class ParallelArrayObject::protoClass = {
+Class js::ParallelArrayProtoClass = {
     "ParallelArray",
     JSCLASS_HAS_CACHED_PROTO(JSProto_ParallelArray),
     JS_PropertyStub,         
@@ -781,11 +954,9 @@ Class ParallelArrayObject::protoClass = {
     JS_ConvertStub
 };
 
-Class ParallelArrayObject::class_ = {
+Class js::ParallelArrayClass = {
     "ParallelArray",
-    Class::NON_NATIVE |
-    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_ParallelArray),
+    JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_PA_MAX) | JSCLASS_HAS_CACHED_PROTO(JSProto_ParallelArray) | Class::NON_NATIVE,
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_PropertyStub,         
@@ -798,1141 +969,87 @@ Class ParallelArrayObject::class_ = {
     NULL,                    
     NULL,                    
     NULL,                    
-    mark,                    
+    NULL,                    
     JS_NULL_CLASS_EXT,
     {
-        lookupGeneric,
-        lookupProperty,
-        lookupElement,
-        lookupSpecial,
-        defineGeneric,
-        defineProperty,
-        defineElement,
-        defineSpecial,
-        getGeneric,
-        getProperty,
-        getElement,
-        NULL,                
-        getSpecial,
-        setGeneric,
-        setProperty,
-        setElement,
-        setSpecial,
-        getGenericAttributes,
-        getPropertyAttributes,
-        getElementAttributes,
-        getSpecialAttributes,
-        setGenericAttributes,
-        setPropertyAttributes,
-        setElementAttributes,
-        setSpecialAttributes,
-        deleteProperty,
-        deleteElement,
-        deleteSpecial,
-        NULL,                
-        NULL,                
-        NULL,                
+        ParallelArray_lookupGeneric,
+        ParallelArray_lookupProperty,
+        ParallelArray_lookupElement,
+        ParallelArray_lookupSpecial,
+        ParallelArray_defineGeneric,
+        ParallelArray_defineProperty,
+        ParallelArray_defineElement,
+        ParallelArray_defineSpecial,
+        ParallelArray_getGeneric,
+        ParallelArray_getProperty,
+        ParallelArray_getElement,
+        NULL,       
+        ParallelArray_getSpecial,
+        ParallelArray_setGeneric,
+        ParallelArray_setProperty,
+        ParallelArray_setElement,
+        ParallelArray_setSpecial,
+        ParallelArray_getGenericAttributes,
+        ParallelArray_getPropertyAttributes,
+        ParallelArray_getElementAttributes,
+        ParallelArray_getSpecialAttributes,
+        ParallelArray_setGenericAttributes,
+        ParallelArray_setPropertyAttributes,
+        ParallelArray_setElementAttributes,
+        ParallelArray_setSpecialAttributes,
+        ParallelArray_deleteProperty,
+        ParallelArray_deleteElement,
+        ParallelArray_deleteSpecial,
+        ParallelArray_enumerate,
+        NULL,       
+        NULL,       
+        NULL,       
+        NULL,       
     }
 };
 
-JSObject *
-ParallelArrayObject::initClass(JSContext *cx, JSObject *obj)
-{
-    JS_ASSERT(obj->isNative());
-
-    Rooted<GlobalObject *> global(cx, &obj->asGlobal());
-
-    RootedObject proto(cx, global->createBlankPrototype(cx, &protoClass));
-    if (!proto)
-        return NULL;
-
-    JSProtoKey key = JSProto_ParallelArray;
-    JSAtom *atom = CLASS_NAME(cx, ParallelArray);
-    RootedFunction ctor(cx, global->createConstructor(cx, construct, atom, 0));
-    if (!ctor ||
-        !LinkConstructorAndPrototype(cx, ctor, proto) ||
-        !DefinePropertiesAndBrand(cx, proto, NULL, methods) ||
-        !DefineConstructorAndPrototype(cx, global, key, ctor, proto))
-    {
-        return NULL;
-    }
-
-    
-    RootedId lengthId(cx, AtomToId(cx->runtime->atomState.lengthAtom));
-    RootedId shapeId(cx, AtomToId(cx->runtime->atomState.shapeAtom));
-    unsigned flags = JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_GETTER;
-
-    JSObject *scriptedLength = js_NewFunction(cx, NULL, NonGenericMethod<lengthGetter>,
-                                              0, 0, global, NULL);
-    JSObject *scriptedShape = js_NewFunction(cx, NULL, NonGenericMethod<dimensionsGetter>,
-                                             0, 0, global, NULL);
-
-    RootedValue value(cx, UndefinedValue());
-    if (!scriptedLength || !scriptedShape ||
-        !DefineNativeProperty(cx, proto, lengthId, value,
-                              JS_DATA_TO_FUNC_PTR(PropertyOp, scriptedLength), NULL,
-                              flags, 0, 0) ||
-        !DefineNativeProperty(cx, proto, shapeId, value,
-                              JS_DATA_TO_FUNC_PTR(PropertyOp, scriptedShape), NULL,
-                              flags, 0, 0))
-    {
-        return NULL;
-    }
-
-    return proto;
-}
-
-bool
-ParallelArrayObject::getParallelArrayElement(JSContext *cx, IndexInfo &iv, MutableHandleValue vp)
-{
-    JS_ASSERT(iv.isInitialized());
-
-    
-    
-    
-    uint32_t d = iv.indices.length();
-    uint32_t ndims = iv.dimensions.length();
-    JS_ASSERT(d <= ndims);
-
-    uint32_t base = bufferOffset();
-    uint32_t end = base + iv.scalarLengthOfDimensions();
-
-    
-    
-    if (d == ndims) {
-        uint32_t index = base + iv.toScalar();
-        if (index >= end)
-            vp.setUndefined();
-        else
-            vp.set(buffer()->getDenseArrayElement(index));
-        return true;
-    }
-
-    
-    
-    
-    
-    uint32_t rowLength = iv.partialProducts[d - 1];
-    uint32_t offset = base + iv.toScalar();
-
-    
-    
-    if (offset >= end || offset + rowLength > end) {
-        vp.setUndefined();
-        return true;
-    }
-
-    RootedObject buf(cx, buffer());
-    IndexVector newDims(cx);
-    return (newDims.append(iv.dimensions.begin() + d, iv.dimensions.end()) &&
-            create(cx, buf, offset, newDims, vp));
-}
-
-bool
-ParallelArrayObject::getParallelArrayElement(JSContext *cx, uint32_t index, IndexInfo *maybeIV,
-                                             MutableHandleValue vp)
-{
-    
-    if (isOneDimensional()) {
-        uint32_t base = bufferOffset();
-        uint32_t end = base + outermostDimension();
-
-        if (base + index >= end)
-            vp.setUndefined();
-        else
-            vp.set(buffer()->getDenseArrayElement(base + index));
-
-        return true;
-    }
-
-    
-    JS_ASSERT(maybeIV);
-    JS_ASSERT(maybeIV->isInitialized());
-    JS_ASSERT(maybeIV->indices.length() == 1);
-
-    maybeIV->indices[0] = index;
-    return getParallelArrayElement(cx, *maybeIV, vp);
-}
-
-bool
-ParallelArrayObject::getParallelArrayElement(JSContext *cx, uint32_t index, MutableHandleValue vp)
-{
-    if (isOneDimensional())
-        return getParallelArrayElement(cx, index, NULL, vp);
-
-    
-    
-    
-    IndexInfo iv(cx);
-    if (!getDimensions(cx, iv.dimensions) || !iv.initialize(1))
-        return false;
-    iv.indices[0] = index;
-    return getParallelArrayElement(cx, iv, vp);
-}
-
-bool
-ParallelArrayObject::create(JSContext *cx, MutableHandleValue vp)
-{
-    IndexVector dims(cx);
-    if (!dims.append(0))
-        return false;
-    RootedObject buffer(cx, NewDenseArrayWithType(cx, 0));
-    if (!buffer)
-        return false;
-    return create(cx, buffer, 0, dims, vp);
-}
-
-bool
-ParallelArrayObject::create(JSContext *cx, HandleObject buffer, MutableHandleValue vp)
-{
-    IndexVector dims(cx);
-    if (!dims.append(buffer->getArrayLength()))
-        return false;
-    return create(cx, buffer, 0, dims, vp);
-}
-
-bool
-ParallelArrayObject::create(JSContext *cx, HandleObject buffer, uint32_t offset,
-                            const IndexVector &dims, MutableHandleValue vp)
-{
-    JS_ASSERT(buffer->isDenseArray());
-
-    RootedObject result(cx, NewBuiltinClassInstance(cx, &class_));
-    if (!result)
-        return false;
-
-    
-    if (cx->typeInferenceEnabled()) {
-        AutoEnterTypeInference enter(cx);
-        TypeObject *bufferType = buffer->getType(cx);
-        TypeObject *resultType = result->getType(cx);
-        if (!bufferType->unknownProperties() && !resultType->unknownProperties()) {
-            HeapTypeSet *bufferIndexTypes = bufferType->getProperty(cx, JSID_VOID, false);
-            HeapTypeSet *resultIndexTypes = resultType->getProperty(cx, JSID_VOID, true);
-            bufferIndexTypes->addSubset(cx, resultIndexTypes);
-        }
-    }
-
-    
-    RootedObject dimArray(cx, NewDenseArrayWithType(cx, dims.length()));
-    if (!dimArray)
-        return false;
-
-    for (uint32_t i = 0; i < dims.length(); i++)
-        dimArray->setDenseArrayElementWithType(cx, i, Int32Value(static_cast<int32_t>(dims[i])));
-
-    result->setSlot(SLOT_DIMENSIONS, ObjectValue(*dimArray));
-
-    
-    result->setSlot(SLOT_BUFFER, ObjectValue(*buffer));
-    result->setSlot(SLOT_BUFFER_OFFSET, Int32Value(static_cast<int32_t>(offset)));
-
-    
-    vp.setObject(*result);
-
-    return true;
-}
-
-JSBool
-ParallelArrayObject::construct(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    
-    if (args.length() < 1)
-        return create(cx, args.rval());
-
-    
-    if (args.length() == 1) {
-        if (!args[0].isObject()) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_BAD_ARG, "");
-            return false;
-        }
-
-        RootedObject source(cx, &(args[0].toObject()));
-
-        
-        IndexVector dims(cx);
-        uint32_t length;
-        if (!dims.resize(1) || !GetLengthProperty(cx, source, &length))
-            return false;
-        dims[0] = length;
-
-        RootedObject buffer(cx, NewDenseCopiedArrayWithType(cx, length, source));
-        if (!buffer)
-            return false;
-
-        return create(cx, buffer, 0, dims, args.rval());
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    IndexInfo iv(cx);
-    if (args[0].isObject()) {
-        RootedObject dimObj(cx, &(args[0].toObject()));
-        if (!ArrayLikeToIndexVector(cx, dimObj, iv.dimensions))
-            return false;
-    } else {
-        if (!iv.dimensions.resize(1) || !ToUint32(cx, args[0], &iv.dimensions[0]))
-            return false;
-    }
-
-    
-    
-    if (iv.dimensions.length() == 0 && !iv.dimensions.append(0))
-        return false;
-
-    if (!iv.initialize(0))
-        return false;
-
-    
-    RootedObject elementalFun(cx, ValueToCallable(cx, &args[1]));
-    if (!elementalFun)
-        return false;
-
-    
-    uint32_t length = iv.scalarLengthOfDimensions();
-
-    
-    RootedObject buffer(cx, NewDenseArrayWithType(cx, length));
-    if (!buffer)
-        return false;
-
-#ifdef DEBUG
-    if (args.length() > 1) {
-        DebugOptions options;
-        if (options.init(cx, args[1])) {
-            if (!options.check(cx, options.mode->build(cx, iv, elementalFun, buffer)))
-                return false;
-            return create(cx, buffer, 0, iv.dimensions, args.rval());
-        }
-    }
-#endif
-
-    if (fallback.build(cx, iv, elementalFun, buffer) != ExecutionSucceeded)
-        return false;
-
-    return create(cx, buffer, 0, iv.dimensions, args.rval());
-}
-
-bool
-ParallelArrayObject::map(JSContext *cx, CallArgs args)
-{
-    if (args.length() < 1) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
-                             "ParallelArray.prototype.map", "0", "s");
-        return false;
-    }
-
-    RootedParallelArrayObject obj(cx, as(&args.thisv().toObject()));
-
-    uint32_t outer = obj->outermostDimension();
-    RootedObject buffer(cx, NewDenseArrayWithType(cx, outer));
-    if (!buffer)
-        return false;
-
-    RootedObject elementalFun(cx, ValueToCallable(cx, &args[0]));
-    if (!elementalFun)
-        return false;
-
-#ifdef DEBUG
-    if (args.length() > 1) {
-        DebugOptions options;
-        if (options.init(cx, args[1])) {
-            if (!options.check(cx, options.mode->map(cx, obj, elementalFun, buffer)))
-                return false;
-            return create(cx, buffer, args.rval());
-        }
-    }
-#endif
-
-    if (fallback.map(cx, obj, elementalFun, buffer) != ExecutionSucceeded)
-        return false;
-
-    return create(cx, buffer, args.rval());
-}
-
-bool
-ParallelArrayObject::reduce(JSContext *cx, CallArgs args)
-{
-    if (args.length() < 1) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
-                             "ParallelArray.prototype.reduce", "0", "s");
-        return false;
-    }
-
-    RootedParallelArrayObject obj(cx, as(&args.thisv().toObject()));
-    uint32_t outer = obj->outermostDimension();
-
-    
-    if (outer == 0) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_REDUCE_EMPTY);
-        return false;
-    }
-
-    RootedObject elementalFun(cx, ValueToCallable(cx, &args[0]));
-    if (!elementalFun)
-        return false;
-
-#ifdef DEBUG
-    if (args.length() > 1) {
-        DebugOptions options;
-        if (options.init(cx, args[1])) {
-            return options.check(cx, options.mode->reduce(cx, obj, elementalFun, NullPtr(),
-                                                          args.rval()));
-        }
-    }
-#endif
-
-    
-    return fallback.reduce(cx, obj, elementalFun, NullPtr(), args.rval()) == ExecutionSucceeded;
-}
-
-bool
-ParallelArrayObject::scan(JSContext *cx, CallArgs args)
-{
-    if (args.length() < 1) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
-                             "ParallelArray.prototype.scan", "0", "s");
-        return false;
-    }
-
-    RootedParallelArrayObject obj(cx, as(&args.thisv().toObject()));
-
-    uint32_t outer = obj->outermostDimension();
-
-    
-    if (outer == 0) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_REDUCE_EMPTY);
-        return false;
-    }
-
-    RootedObject buffer(cx, NewDenseArrayWithType(cx, outer));
-    if (!buffer)
-        return false;
-
-    RootedObject elementalFun(cx, ValueToCallable(cx, &args[0]));
-    if (!elementalFun)
-        return false;
-
-    
-    
-    RootedValue dummy(cx);
-
-#ifdef DEBUG
-    if (args.length() > 1) {
-        DebugOptions options;
-        if (options.init(cx, args[1])) {
-            if (!options.check(cx, options.mode->reduce(cx, obj, elementalFun, buffer, &dummy)))
-                return false;
-            return create(cx, buffer, args.rval());
-        }
-    }
-#endif
-
-    if (fallback.reduce(cx, obj, elementalFun, buffer, &dummy) != ExecutionSucceeded)
-        return false;
-
-    return create(cx, buffer, args.rval());
-}
-
-bool
-ParallelArrayObject::scatter(JSContext *cx, CallArgs args)
-{
-    if (args.length() < 1) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
-                             "ParallelArray.prototype.scatter", "0", "s");
-        return false;
-    }
-
-    if (!args[0].isObject()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_BAD_ARG,
-                             ".prototype.scatter");
-        return false;
-    }
-
-    RootedParallelArrayObject obj(cx, as(&args.thisv().toObject()));
-    uint32_t outer = obj->outermostDimension();
-
-    
-    RootedObject targets(cx, &args[0].toObject());
-    uint32_t targetsLength;
-    if (!GetLengthProperty(cx, targets, &targetsLength))
-        return false;
-
-    
-    if (targetsLength > outer)
-        targetsLength = outer;
-
-    
-    Value defaultValue;
-    if (args.length() >= 2)
-        defaultValue = args[1];
-    else
-        defaultValue.setUndefined();
-
-    
-    RootedObject conflictFun(cx);
-    if (args.length() >= 3 && !args[2].isUndefined()) {
-        conflictFun = ValueToCallable(cx, &args[2]);
-        if (!conflictFun)
-            return false;
-    }
-
-    
-    
-    uint32_t resultLength;
-    if (args.length() >= 4) {
-        if (!ToUint32(cx, args[3], &resultLength))
-            return false;
-    } else {
-        resultLength = outer;
-    }
-
-    
-    RootedObject buffer(cx, NewDenseArrayWithType(cx, resultLength));
-    if (!buffer)
-        return false;
-
-#ifdef DEBUG
-    if (args.length() > 1) {
-        DebugOptions options;
-        if (options.init(cx, args[1])) {
-            if (!options.check(cx, options.mode->scatter(cx, obj, targets, defaultValue,
-                                                         conflictFun, buffer)))
-            {
-                return false;
-            }
-            return create(cx, buffer, args.rval());
-        }
-    }
-#endif
-
-    if (fallback.scatter(cx, obj, targets, defaultValue,
-                         conflictFun, buffer) != ExecutionSucceeded)
-    {
-        return false;
-    }
-
-    return create(cx, buffer, args.rval());
-}
-
-bool
-ParallelArrayObject::filter(JSContext *cx, CallArgs args)
-{
-    if (args.length() < 1) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
-                             "ParallelArray.prototype.filter", "0", "s");
-        return false;
-    }
-
-    if (!args[0].isObject()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_BAD_ARG,
-                             ".prototype.filter");
-        return false;
-    }
-
-    RootedParallelArrayObject obj(cx, as(&args.thisv().toObject()));
-
-    
-    RootedObject filters(cx, &args[0].toObject());
-
-    RootedObject buffer(cx, NewDenseArrayWithType(cx, 0));
-    if (!buffer)
-        return false;
-
-#ifdef DEBUG
-    if (args.length() > 1) {
-        DebugOptions options;
-        if (options.init(cx, args[1])) {
-            if (!options.check(cx, options.mode->filter(cx, obj, filters, buffer)))
-                return false;
-            return create(cx, buffer, args.rval());
-        }
-    }
-#endif
-
-    if (fallback.filter(cx, obj, filters, buffer) != ExecutionSucceeded)
-        return false;
-
-    return create(cx, buffer, args.rval());
-}
-
-bool
-ParallelArrayObject::flatten(JSContext *cx, CallArgs args)
-{
-    RootedParallelArrayObject obj(cx, as(&args.thisv().toObject()));
-
-    IndexVector dims(cx);
-    if (!obj->getDimensions(cx, dims))
-        return false;
-
-    
-    if (dims.length() == 1) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_ALREADY_FLAT);
-        return false;
-    }
-
-    
-    dims[1] *= dims[0];
-    dims.erase(dims.begin());
-
-    RootedObject buffer(cx, obj->buffer());
-    return create(cx, buffer, obj->bufferOffset(), dims, args.rval());
-}
-
-bool
-ParallelArrayObject::partition(JSContext *cx, CallArgs args)
-{
-    if (args.length() < 1) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
-                             "ParallelArray.prototype.partition", "0", "s");
-        return false;
-    }
-
-    uint32_t newDimension;
-    if (!ToUint32(cx, args[0], &newDimension))
-        return false;
-
-    RootedParallelArrayObject obj(cx, as(&args.thisv().toObject()));
-
-    
-    uint32_t outer = obj->outermostDimension();
-    if (newDimension == 0 || outer % newDimension) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_BAD_PARTITION);
-        return false;
-    }
-
-    IndexVector dims(cx);
-    if (!obj->getDimensions(cx, dims))
-        return false;
-
-    
-    
-    if (!dims.insert(dims.begin(), outer / newDimension))
-        return false;
-
-    
-    dims[1] = newDimension;
-
-    RootedObject buffer(cx, obj->buffer());
-    return create(cx, buffer, obj->bufferOffset(), dims, args.rval());
-}
-
-bool
-ParallelArrayObject::get(JSContext *cx, CallArgs args)
-{
-    if (args.length() < 1) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
-                             "ParallelArray.prototype.get", "0", "s");
-        return false;
-    }
-
-    if (!args[0].isObject()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_BAD_ARG,
-                             ".prototype.get");
-        return false;
-    }
-
-    RootedParallelArrayObject obj(cx, as(&args.thisv().toObject()));
-    RootedObject indicesObj(cx, &(args[0].toObject()));
-
-    IndexInfo iv(cx);
-    if (!iv.initialize(cx, obj, 0))
-        return false;
-    if (!ArrayLikeToIndexVector(cx, indicesObj, iv.indices))
-        return false;
-
-    
-    if (iv.indices.length() == 0 || iv.indices.length() > iv.dimensions.length()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_BAD_ARG,
-                             ".prototype.get");
-        return false;
-    }
-
-    return obj->getParallelArrayElement(cx, iv, args.rval());
-}
-
-bool
-ParallelArrayObject::dimensionsGetter(JSContext *cx, CallArgs args)
-{
-    args.rval().setObject(*(as(&args.thisv().toObject())->dimensionArray()));
-    return true;
-}
-
-bool
-ParallelArrayObject::lengthGetter(JSContext *cx, CallArgs args)
-{
-    args.rval().setNumber(as(&args.thisv().toObject())->outermostDimension());
-    return true;
-}
-
-bool
-ParallelArrayObject::toStringBufferImpl(JSContext *cx, IndexInfo &iv, bool useLocale,
-                                        HandleObject buffer, StringBuffer &sb)
-{
-    JS_ASSERT(iv.isInitialized());
-
-    
-    uint32_t d = iv.indices.length() + 1;
-
-    
-    if (d < iv.dimensions.length()) {
-        if (!sb.append('<'))
-            return false;
-
-        iv.indices.infallibleAppend(0);
-        uint32_t length = iv.dimensions[d - 1];
-        for (size_t i = 0; i < length; i++) {
-            iv.indices[d - 1] = i;
-            if (!toStringBufferImpl(cx, iv, useLocale, buffer, sb) ||
-                (i + 1 != length && !sb.append(',')))
-            {
-                return false;
-            }
-        }
-        iv.indices.shrinkBy(1);
-
-        if (!sb.append('>'))
-            return false;
-
-        return true;
-    }
-
-    
-    if (!sb.append('<'))
-        return false;
-
-    uint32_t offset;
-    uint32_t length;
-
-    
-    if (d == 1) {
-        offset = bufferOffset();
-        length = iv.dimensions[0];
-    } else {
-        offset = bufferOffset() + iv.toScalar();
-        length = iv.partialProducts[d - 2];
-    }
-
-    RootedValue tmp(cx);
-    RootedValue localeElem(cx);
-    RootedId id(cx);
-
-    const Value *start = buffer->getDenseArrayElements() + offset;
-    const Value *end = start + length;
-    const Value *elem;
-
-    for (elem = start; elem < end; elem++) {
-        
-        JS_ASSERT(!elem->isMagic(JS_ARRAY_HOLE));
-
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
-            return false;
-
-        if (!elem->isNullOrUndefined()) {
-            if (useLocale) {
-                tmp = *elem;
-                JSObject *robj = ToObject(cx, tmp);
-                if (!robj)
-                    return false;
-
-                id = NameToId(cx->runtime->atomState.toLocaleStringAtom);
-                if (!robj->callMethod(cx, id, 0, NULL, &localeElem) ||
-                    !ValueToStringBuffer(cx, localeElem, sb))
-                {
-                    return false;
-                }
-            } else {
-                if (!ValueToStringBuffer(cx, *elem, sb))
-                    return false;
-            }
-        }
-
-        if (elem + 1 != end && !sb.append(','))
-            return false;
-    }
-
-    if (!sb.append('>'))
-        return false;
-
-    return true;
-}
-
-bool
-ParallelArrayObject::toStringBuffer(JSContext *cx, bool useLocale, StringBuffer &sb)
-{
-    RootedParallelArrayObject self(cx, this);
-    IndexInfo iv(cx);
-    if (!iv.initialize(cx, self, 0))
-        return false;
-    RootedObject buffer(cx, this->buffer());
-    return toStringBufferImpl(cx, iv, useLocale, buffer, sb);
-}
-
-bool
-ParallelArrayObject::toString(JSContext *cx, CallArgs args)
-{
-    StringBuffer sb(cx);
-    if (!as(&args.thisv().toObject())->toStringBuffer(cx, false, sb))
-        return false;
-
-    if (JSString *str = sb.finishString()) {
-        args.rval().setString(str);
-        return true;
-    }
-
-    return false;
-}
-
-bool
-ParallelArrayObject::toLocaleString(JSContext *cx, CallArgs args)
-{
-    StringBuffer sb(cx);
-    if (!as(&args.thisv().toObject())->toStringBuffer(cx, true, sb))
-        return false;
-
-    if (JSString *str = sb.finishString()) {
-        args.rval().setString(str);
-        return true;
-    }
-
-    return false;
-}
-
-void
-ParallelArrayObject::mark(JSTracer *trc, JSObject *obj)
-{
-    gc::MarkSlot(trc, &obj->getSlotRef(SLOT_DIMENSIONS), "parallelarray.shape");
-    gc::MarkSlot(trc, &obj->getSlotRef(SLOT_BUFFER), "parallelarray.buffer");
-}
-
-JSBool
-ParallelArrayObject::lookupGeneric(JSContext *cx, HandleObject obj, HandleId id,
-                                   MutableHandleObject objp, MutableHandleShape propp)
-{
-    uint32_t i;
-    if (js_IdIsIndex(id, &i))
-        return lookupElement(cx, obj, i, objp, propp);
-
-    if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
-        MarkNonNativePropertyFound(obj, propp);
-        objp.set(obj);
-        return true;
-    }
-
-    RootedObject proto(cx, obj->getProto());
-    if (proto)
-        return JSObject::lookupGeneric(cx, proto, id, objp, propp);
-
-    objp.set(NULL);
-    propp.set(NULL);
-    return true;
-}
-
-JSBool
-ParallelArrayObject::lookupProperty(JSContext *cx, HandleObject obj, HandlePropertyName name,
-                                    MutableHandleObject objp, MutableHandleShape propp)
-{
-    RootedId id(cx, NameToId(name));
-    return lookupGeneric(cx, obj, id, objp, propp);
-}
-
-JSBool
-ParallelArrayObject::lookupElement(JSContext *cx, HandleObject obj, uint32_t index,
-                                   MutableHandleObject objp, MutableHandleShape propp)
-{
-    
-    if (index < as(obj)->outermostDimension()) {
-        MarkNonNativePropertyFound(obj, propp);
-        objp.set(obj);
-        return true;
-    }
-
-    objp.set(NULL);
-    propp.set(NULL);
-    return true;
-}
-
-JSBool
-ParallelArrayObject::lookupSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid,
-                                   MutableHandleObject objp, MutableHandleShape propp)
-{
-    RootedId id(cx, SPECIALID_TO_JSID(sid));
-    return lookupGeneric(cx, obj, id, objp, propp);
-}
-
-JSBool
-ParallelArrayObject::defineGeneric(JSContext *cx, HandleObject obj, HandleId id, HandleValue Value,
-                                   JSPropertyOp getter, StrictPropertyOp setter, unsigned attrs)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::defineProperty(JSContext *cx, HandleObject obj,
-                                    HandlePropertyName name, HandleValue value,
-                                    JSPropertyOp getter, StrictPropertyOp setter, unsigned attrs)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::defineElement(JSContext *cx, HandleObject obj,
-                                   uint32_t index, HandleValue value,
-                                   PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::defineSpecial(JSContext *cx, HandleObject obj,
-                                   HandleSpecialId sid, HandleValue value,
-                                   PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::getGeneric(JSContext *cx, HandleObject obj, HandleObject receiver,
-                                HandleId id, MutableHandleValue vp)
-{
-    Value idval = IdToValue(id);
-
-    uint32_t index;
-    if (IsDefinitelyIndex(idval, &index))
-        return getElement(cx, obj, receiver, index, vp);
-
-    JSAtom *atom = ToAtom(cx, idval);
-    if (!atom)
-        return false;
-
-    if (atom->isIndex(&index))
-        return getElement(cx, obj, receiver, index, vp);
-
-    Rooted<PropertyName*> name(cx, atom->asPropertyName());
-    return getProperty(cx, obj, receiver, name, vp);
-}
-
-JSBool
-ParallelArrayObject::getProperty(JSContext *cx, HandleObject obj, HandleObject receiver,
-                                 HandlePropertyName name, MutableHandleValue vp)
-{
-    if (name == cx->runtime->atomState.lengthAtom) {
-        vp.setNumber(as(obj)->outermostDimension());
-        return true;
-    }
-
-    RootedObject proto(cx, obj->getProto());
-    if (proto)
-        return JSObject::getProperty(cx, proto, receiver, name, vp);
-
-    vp.setUndefined();
-    return true;
-}
-
-JSBool
-ParallelArrayObject::getElement(JSContext *cx, HandleObject obj, HandleObject receiver,
-                                uint32_t index, MutableHandleValue vp)
-{
-    
-    
-    return as(obj)->getParallelArrayElement(cx, index, vp);
-}
-
-JSBool
-ParallelArrayObject::getSpecial(JSContext *cx, HandleObject obj, HandleObject receiver,
-                                HandleSpecialId sid, MutableHandleValue vp)
-{
-    if (!obj->getProto()) {
-        vp.setUndefined();
-        return true;
-    }
-
-    RootedId id(cx, SPECIALID_TO_JSID(sid));
-    return baseops::GetProperty(cx, obj, receiver, id, vp);
-}
-
-JSBool
-ParallelArrayObject::setGeneric(JSContext *cx, HandleObject obj, HandleId id,
-                                MutableHandleValue vp, JSBool strict)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::setProperty(JSContext *cx, HandleObject obj, HandlePropertyName name,
-                                 MutableHandleValue vp, JSBool strict)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::setElement(JSContext *cx, HandleObject obj, uint32_t index,
-                                MutableHandleValue vp, JSBool strict)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::setSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid,
-                                MutableHandleValue vp, JSBool strict)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::getGenericAttributes(JSContext *cx, HandleObject obj, HandleId id,
-                                          unsigned *attrsp)
-{
-    if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom))
-        *attrsp = JSPROP_PERMANENT | JSPROP_READONLY;
-    else
-        *attrsp = JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_ENUMERATE;
-
-    return true;
-}
-
-JSBool
-ParallelArrayObject::getPropertyAttributes(JSContext *cx, HandleObject obj, HandlePropertyName name,
-                                           unsigned *attrsp)
-{
-    if (name == cx->runtime->atomState.lengthAtom)
-        *attrsp = JSPROP_PERMANENT | JSPROP_READONLY;
-    return true;
-}
-
-JSBool
-ParallelArrayObject::getElementAttributes(JSContext *cx, HandleObject obj, uint32_t index,
-                                          unsigned *attrsp)
-{
-    *attrsp = JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_ENUMERATE;
-    return true;
-}
-
-JSBool
-ParallelArrayObject::getSpecialAttributes(JSContext *cx, HandleObject obj, HandleSpecialId sid,
-                                          unsigned *attrsp)
-{
-    *attrsp = JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_ENUMERATE;
-    return true;
-}
-
-JSBool
-ParallelArrayObject::setGenericAttributes(JSContext *cx, HandleObject obj, HandleId id,
-                                          unsigned *attrsp)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::setPropertyAttributes(JSContext *cx, HandleObject obj, HandlePropertyName name,
-                                           unsigned *attrsp)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::setElementAttributes(JSContext *cx, HandleObject obj, uint32_t index,
-                                          unsigned *attrsp)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::setSpecialAttributes(JSContext *cx, HandleObject obj, HandleSpecialId sid,
-                                          unsigned *attrsp)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::deleteGeneric(JSContext *cx, HandleObject obj, HandleId id,
-                                   MutableHandleValue rval, JSBool strict)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::deleteProperty(JSContext *cx, HandleObject obj, HandlePropertyName name,
-                                    MutableHandleValue rval, JSBool strict)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::deleteElement(JSContext *cx, HandleObject obj, uint32_t index,
-                                   MutableHandleValue rval, JSBool strict)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-JSBool
-ParallelArrayObject::deleteSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid,
-                                   MutableHandleValue rval, JSBool strict)
-{
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_PAR_ARRAY_IMMUTABLE);
-    return false;
-}
-
-bool
-ParallelArrayObject::enumerate(JSContext *cx, HandleObject obj, unsigned flags,
-                               AutoIdVector *props)
-{
-    RootedParallelArrayObject source(cx, as(obj));
-
-    if (flags & JSITER_HIDDEN && !props->append(NameToId(cx->runtime->atomState.lengthAtom)))
-        return false;
-
-    
-    if (source->outermostDimension() > 0) {
-        for (uint32_t i = 0; i < source->outermostDimension(); i++)
-            props->append(INT_TO_JSID(i));
-    }
-
-    if (flags & JSITER_OWNONLY)
-        return true;
-
-    RootedObject proto(cx, obj->getProto());
-    if (proto) {
-        AutoIdVector protoProps(cx);
-        if (!GetPropertyNames(cx, proto, flags, &protoProps))
-            return false;
-
-        
-        
-        uint32_t dummy;
-        for (uint32_t i = 0; i < protoProps.length(); i++) {
-            if (!js_IdIsIndex(protoProps[i], &dummy) && !props->append(protoProps[i]))
-                return false;
-        }
-    }
-
-    return true;
-}
+static JSFunctionSpec parallel_array_methods[] = {
+    JS_FN("get",                 ParallelArray_get,            1, 0),
+    JS_FN("map",                 ParallelArray_map,            1, 0),
+    JS_FN("combine",             ParallelArray_combine,        1, 0),
+    JS_FN("scan",                ParallelArray_scan,           1, 0),
+    JS_FN("reduce",              ParallelArray_reduce,         1, 0),
+    JS_FN("filter",              ParallelArray_filter,         1, 0),
+    JS_FN("scatter",             ParallelArray_scatter,        1, 0),
+    JS_FN(js_toString_str,       ParallelArray_toString,       0, 0),
+    JS_FN(js_toLocaleString_str, ParallelArray_toLocaleString, 0, 0),
+    JS_FN(js_toSource_str,       ParallelArray_toSource,       0, 0),
+    JS_FS_END
+};
 
 JSObject *
 js_InitParallelArrayClass(JSContext *cx, JSObject *obj)
 {
-    return ParallelArrayObject::initClass(cx, obj);
+    JS_ASSERT(obj->isNative());
+
+    GlobalObject *global = &obj->asGlobal();
+
+    JSObject *parallelArrayProto = global->createBlankPrototype(cx, &ParallelArrayProtoClass);
+    if (!parallelArrayProto)
+        return NULL;
+    
+    const jsid lengthId = ATOM_TO_JSID(cx->runtime->atomState.lengthAtom);
+
+    parallelArrayProto->addProperty(cx, lengthId, ParallelArray_length_getter, NULL,
+                                    SHAPE_INVALID_SLOT, JSPROP_PERMANENT | JSPROP_READONLY, 0, 0);
+
+    JSFunction *ctor = global->createConstructor(cx, ParallelArray_construct, &ParallelArrayClass,
+                                                 CLASS_ATOM(cx, ParallelArray), 0);
+    if (!ctor)
+        return NULL;
+
+    if (!LinkConstructorAndPrototype(cx, ctor, parallelArrayProto))
+        return NULL;
+
+    if (!DefinePropertiesAndBrand(cx, parallelArrayProto, NULL, parallel_array_methods))
+        return NULL;
+
+    if (!DefineConstructorAndPrototype(cx, global, JSProto_ParallelArray, ctor, parallelArrayProto))
+        return NULL;
+    return parallelArrayProto;
 }
