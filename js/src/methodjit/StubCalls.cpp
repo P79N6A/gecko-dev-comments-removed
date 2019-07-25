@@ -326,7 +326,7 @@ stubs::DefFun(VMFrame &f, JSFunction *fun_)
     Rooted<JSObject*> parent(cx, &fp->varObj());
 
     
-    RootedPropertyName name(cx, fun->atom->asPropertyName());
+    RootedPropertyName name(cx, fun->atom()->asPropertyName());
     RootedShape shape(cx);
     RootedObject pobj(cx);
     if (!JSObject::lookupProperty(cx, parent, name, &pobj, &shape))
