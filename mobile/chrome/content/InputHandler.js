@@ -41,42 +41,39 @@
 
 
 
+
 function getScrollboxFromElement(elem) {
   
   let scrollbox = null;
+  let qinterface = null;
 
   while (elem.parentNode) {
     try {
-      if ("scrollBoxObject" in elem && elem.scrollBoxObject) {
+      if (elem.scrollBoxObject) {
+
         scrollbox = elem;
+        qinterface = elem.scrollBoxObject;
         break;
+
+      } else if (elem.boxObject) {
+
+        let qi = elem.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+        if (qi) {
+          scrollbox = elem;
+          qinterface = qi;
+          break;
+        }
+
       }
-      else if (elem.boxObject && elem.boxObject.QueryInterface(Ci.nsIScrollBoxObject)) {
-        scrollbox = elem;
-        break;
-      }
-    }
-    catch (e) {
+    } catch (e) {
       
     }
     elem = elem.parentNode;
   }
-  return scrollbox;
+
+  return [scrollbox, qinterface];
 }
 
-function getScrollBoxObjectFromElement(elem) {
-  
-  let scrollbox = null;
-
-  try {
-    if ("scrollBoxObject" in elem && elem.scrollBoxObject)
-      scrollbox = elem.scrollBoxObject;
-    else if (elem.boxObject)
-      scrollbox = elem.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
-  } catch (e) {}
-
-  return scrollbox;
-}
 
 
 
@@ -190,10 +187,9 @@ InputHandler.prototype = {
 
 
 
-function DragData(owner, dragRadius, dragger, dragStartTimeoutLength) {
+function DragData(owner, dragRadius, dragStartTimeoutLength) {
   this._owner = owner;
   this._dragRadius = dragRadius;
-  this._dragger = dragger;
   this.reset();
 }
 
@@ -265,10 +261,10 @@ DragData.prototype = {
 
 
 
-function ChromeInputModule(owner, browserCanvas) {
+function ChromeInputModule(owner) {
   this._owner = owner;
-  this._browserCanvas = browserCanvas;
   this._dragData = new DragData(this, 50, 200);
+  this._defaultDragger = new ChromeInputModule.DefaultDragger();
   this._targetScrollFunction = null;
   this._clickEvents = [];
 }
@@ -296,75 +292,31 @@ ChromeInputModule.prototype = {
     this._targetScrollFunction = null;
   },
 
-  
-  _dragStart: function _dragStart(sX, sY) {
-    let dragData = this._dragData;
-
-    dragData.setDragStart(sX, sY);
-
-
-    
-    Browser._browserView.pauseRendering();
-
-    [sX, sY] = dragData.lockAxis(sX, sY);
-  },
-
-  _dragStop: function _dragStop(sX, sY) {
-    let dragData = this._dragData;
-    [sX, sY] = dragData.lockMouseMove(sX, sY);
-    if (this._targetScrollFunction)
-      this._targetScrollFunction.call(null, dragData.sX - sX, dragData.sY - sY);
-    this._targetScrollFunction = null;
-
-    
-    Browser._browserView.resumeRendering();
-  },
-
-  _dragMove: function _dragMove(sX, sY) {
-    let dragData = this._dragData;
-    if (dragData.isPointOutsideRadius(sX, sY))
-      this._clickEvents = [];
-
-    [sX, sY] = dragData.lockMouseMove(sX, sY);
-
-    if (this._targetScrollFunction)
-      this._targetScrollFunction.call(null, dragData.sX - sX, dragData.sY - sY);
-    dragData.setDragPosition(sX, sY);
-  },
-
   _onMouseDown: function _onMouseDown(aEvent) {
-    
-    if (aEvent.target === this._browserCanvas) {
-      return;
-    }
-
     
     this._owner.allowClicks();
 
     let dragData = this._dragData;
 
-    let targetScrollbox = getScrollboxFromElement(aEvent.target);
+    let [targetScrollbox, targetScrollInterface] =
+      getScrollboxFromElement(aEvent.target);
+
     if (!targetScrollbox)
       return;
 
-    if (targetScrollbox.scrollByFunc) {
-      this._targetScrollFunction = targetScrollbox.scrollByFunc;
-    } else {
-      let targetScrollBoxObject = getScrollBoxObjectFromElement(targetScrollbox);
-      if (!targetScrollBoxObject)
-	return;
+    this._dragger = targetScrollbox.customDragger || this._defaultDragger;
+    let tsi = this._targetScrollInterface = targetScrollInterface;
 
-      this._targetScrollFunction = function defaultScrollFunction(dx, dy) {
-	targetScrollBoxObject.scrollBy(dx, dy);
-      }
-    }
+    if (!tsi)
+      return;
 
     
     this._owner.grab(this);
     aEvent.stopPropagation();
     aEvent.preventDefault();
 
-    this._dragStart(aEvent.screenX, aEvent.screenY);
+    this._doDragStart(aEvent.screenX, aEvent.screenY);
+
     this._onMouseMove(aEvent); 
 
     
@@ -379,7 +331,7 @@ ChromeInputModule.prototype = {
 
   _onMouseUp: function _onMouseUp(aEvent) {
     
-    if (!this._targetScrollFunction)
+    if (!this._targetScrollInterface)
       return;
 
     aEvent.stopPropagation();
@@ -387,7 +339,7 @@ ChromeInputModule.prototype = {
 
     let dragData = this._dragData;
     if (dragData.dragging)
-      this._dragStop(aEvent.screenX, aEvent.screenY);
+      this._doDragStop(aEvent.screenX, aEvent.screenY);
 
     dragData.reset(); 
 
@@ -408,7 +360,7 @@ ChromeInputModule.prototype = {
       this._owner.suppressNextClick();
     }
 
-    this._targetScrollFunction = null;
+    this._targetScrollInterface = null;
     this._owner.ungrab(this);
   },
 
@@ -416,7 +368,7 @@ ChromeInputModule.prototype = {
     let dragData = this._dragData;
 
     
-    if (!this._targetScrollFunction)
+    if (!this._targetScrollInterface)
       return;
 
     aEvent.stopPropagation();
@@ -435,7 +387,7 @@ ChromeInputModule.prototype = {
 
     [sX, sY] = dragData.lockMouseMove(sX, sY);
 
-    this._dragMove(sX, sY);
+    this._doDragMove(sX, sY);
   },
 
   
@@ -463,8 +415,58 @@ ChromeInputModule.prototype = {
     let cwu = Browser.windowUtils;
     cwu.sendMouseEvent(aEvent.type, aEvent.clientX, aEvent.clientY,
                        aEvent.button, aEvent.detail, 0, true);
+  },
+
+  _doDragStart: function _doDragStart(sX, sY) {
+    let dragData = this._dragData;
+    dragData.setDragStart(sX, sY);
+
+    this._dragger.dragStart(this._targetScrollInterface);
+  },
+
+  _doDragStop: function _doDragStop(sX, sY) {
+    let dragData = this._dragData;
+    [sX, sY] = dragData.lockMouseMove(sX, sY);
+
+    let dx = dragData.sX - sX;
+    let dy = dragData.sY - sY;
+
+    this._dragger.dragStop(dx, dy, this._targetScrollInterface);
+  },
+
+  _doDragMove: function _doDragMove(sX, sY) {
+    let dragData = this._dragData;
+    if (dragData.isPointOutsideRadius(sX, sY))
+      this._clickEvents = [];
+
+    [sX, sY] = dragData.lockMouseMove(sX, sY);
+
+    let dx = dragData.sX - sX;
+    let dy = dragData.sY - sY;
+
+    dragData.setDragPosition(sX, sY);
+
+    this._dragger.dragMove(dx, dy, this._targetScrollInterface);
   }
 };
+
+
+
+ChromeInputModule.DefaultDragger = function DefaultDragger() {};
+ChromeInputModule.Dragger.prototype = {
+
+  dragStart: function dragStart(scroller) {},
+
+  dragStop: function dragStop(dx, dy, scroller) {
+    scroller.scrollBy(dx, dy);
+  },
+
+  dragMove: function dragMove(dx, dy, scroller) {
+    scroller.scrollBy(dx, dy);
+  }
+
+};
+
 
 
 
@@ -481,7 +483,7 @@ function KineticData(owner) {
     
     this._decelerationRate = gPrefService.getIntPref("browser.ui.kinetic.decelerationRate") / 100;
   }
-  catch (e) { 
+  catch (e) {
     this._updateInterval = 33;
     this._emaAlpha = .8;
     this._decelerationRate = .15;
@@ -522,13 +524,13 @@ KineticData.prototype = {
         let dx = Math.round(self._speedX * self._updateInterval);
         let dy = Math.round(self._speedY * self._updateInterval);
         
-  
+
         let panned = self._owner._dragBy(dx, dy);
         if (!panned) {
           self.endKinetic();
           return;
         }
-        
+
         if (self._speedX < 0) {
           self._speedX = Math.min(self._speedX + self._decelerationRate, 0);
         } else if (self._speedX > 0) {
@@ -571,7 +573,7 @@ KineticData.prototype = {
       let me = mb[i];
 
       let timeDiff = me.t - prev.t;
-      
+
       this._speedX = ema( ((me.sx - prev.sx) / timeDiff), this._speedX, this._emaAlpha);
       this._speedY = ema( ((me.sy - prev.sy) / timeDiff), this._speedY, this._emaAlpha);
 
