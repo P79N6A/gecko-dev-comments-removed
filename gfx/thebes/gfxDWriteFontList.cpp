@@ -50,6 +50,8 @@
 
 #include "nsIWindowsRegKey.h"
 
+using namespace mozilla;
+
 #ifdef PR_LOGGING
 
 #define LOG_FONTLIST(args) PR_LOG(gfxPlatform::GetLog(eGfxLog_fontlist), \
@@ -431,6 +433,41 @@ gfxDWriteFontEntry::InitLogFont(IDWriteFont *aFont, LOGFONTW *aLogFont)
         gfxDWriteFontList::PlatformFontList()->GetGDIInterop();
     hr = gdi->ConvertFontToLOGFONT(aFont, aLogFont, &isInSystemCollection);
     return (FAILED(hr) ? PR_FALSE : PR_TRUE);
+}
+
+PRBool
+gfxDWriteFontEntry::IsCJKFont()
+{
+    if (mIsCJK != UNINITIALIZED_VALUE) {
+        return mIsCJK;
+    }
+
+    mIsCJK = PR_FALSE;
+
+    const PRUint32 kOS2Tag = TRUETYPE_TAG('O','S','/','2');
+    AutoFallibleTArray<PRUint8,128> buffer;
+    if (GetFontTable(kOS2Tag, buffer) != NS_OK) {
+        return mIsCJK;
+    }
+
+    
+    
+    const PRUint32 CJK_CODEPAGE_BITS =
+        (1 << 17) | 
+        (1 << 18) | 
+        (1 << 19) | 
+        (1 << 20) | 
+        (1 << 21);  
+
+    if (buffer.Length() >= offsetof(OS2Table, sxHeight)) {
+        const OS2Table* os2 =
+            reinterpret_cast<const OS2Table*>(buffer.Elements());
+        if ((PRUint32(os2->codePageRange1) & CJK_CODEPAGE_BITS) != 0) {
+            mIsCJK = PR_TRUE;
+        }
+    }
+
+    return mIsCJK;
 }
 
 
