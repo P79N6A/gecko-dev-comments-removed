@@ -725,6 +725,21 @@ PrivateBrowsingService.prototype = {
     }
 
     
+    let (idbm = Cc["@mozilla.org/dom/indexeddb/manager;1"].
+                getService(Ci.nsIIndexedDatabaseManager)) {
+      
+      let caUtils = {};
+      let scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
+                         getService(Ci.mozIJSSubScriptLoader);
+      scriptLoader.loadSubScript("chrome://global/content/contentAreaUtils.js",
+                                 caUtils);
+      let httpURI = caUtils.makeURI("http://" + aDomain);
+      let httpsURI = caUtils.makeURI("https://" + aDomain);
+      idbm.clearDatabasesForURI(httpURI);
+      idbm.clearDatabasesForURI(httpsURI);
+    }
+
+    
     this._obs.notifyObservers(null, "browser:purge-domain-data", aDomain);
   }
 };

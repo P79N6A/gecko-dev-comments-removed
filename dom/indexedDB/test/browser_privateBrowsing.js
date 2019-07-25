@@ -12,7 +12,7 @@ function test()
   waitForExplicitFinish();
   
   setPermission(testPageURL, "indexedDB");
-  executeSoon(test2);
+  executeSoon(test1);
 }
 
 function test1()
