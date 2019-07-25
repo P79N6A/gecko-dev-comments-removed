@@ -1274,6 +1274,9 @@ public:
     }
 
     void *GetD3DShareHandle() {
+        if (!mPBufferCanBindToTexture)
+            return nsnull;
+
         if (!sEGLLibrary.HasANGLESurfaceD3DTexture2DShareHandle()) {
             return nsnull;
         }
@@ -2360,7 +2363,7 @@ GLContextEGL::CreateEGLPBufferOffscreenContext(const gfxIntSize& aSize,
 
     
     
-    if (sEGLLibrary.IsANGLE() || bufferUnused)
+    if (sEGLLibrary.IsANGLE())
         configCanBindToTexture = false;
 
     nsTArray<EGLint> attribs(32);
@@ -2444,11 +2447,10 @@ TRY_ATTRIBS_AGAIN:
         return nsnull;
     }
 
-    glContext->mPBufferCanBindToTexture = configCanBindToTexture;
-
-    if (!bufferUnused) {  
+    if (!bufferUnused) {
       glContext->SetOffscreenSize(aSize, pbsize);
       glContext->mIsPBuffer = true;
+      glContext->mPBufferCanBindToTexture = configCanBindToTexture;
     }
 
     return glContext.forget();
@@ -2609,20 +2611,13 @@ GLContextProviderEGL::CreateOffscreen(const gfxIntSize& aSize,
     }
 
 #if defined(ANDROID) || defined(XP_WIN)
-    bool usePBuffers = false; 
-
-    if (sEGLLibrary.IsANGLE())
-      usePBuffers = true; 
-
-    gfxIntSize pbufferSize = usePBuffers ? aSize : gfxIntSize(16, 16);
     nsRefPtr<GLContextEGL> glContext =
-        GLContextEGL::CreateEGLPBufferOffscreenContext(pbufferSize, aFormat, !usePBuffers);
+        GLContextEGL::CreateEGLPBufferOffscreenContext(gfxIntSize(16, 16), aFormat, true);
 
     if (!glContext)
         return nsnull;
 
-    gfxIntSize fboSize = usePBuffers ? glContext->OffscreenActualSize() : aSize;
-    if (!glContext->ResizeOffscreenFBO(fboSize, !usePBuffers))
+    if (!glContext->ResizeOffscreenFBO(aSize, true))
         return nsnull;
 
     return glContext.forget();
