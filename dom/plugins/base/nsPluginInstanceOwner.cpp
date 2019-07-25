@@ -748,7 +748,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
   }
 
   return rv;
-#elif defined(MOZ_WIDGET_GTK2) || defined(MOZ_WIDGET_QT)
+#elif (defined(MOZ_WIDGET_GTK2) || defined(MOZ_WIDGET_QT)) && defined(MOZ_X11)
   
   nsIWidget* win = mObjectFrame->GetNearestWidget();
   if (!win)
@@ -2917,14 +2917,8 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
 
   PRInt32 model = mInstance->GetANPDrawingModel();
 
-  float xResolution = mObjectFrame->PresContext()->GetRootPresContext()->PresShell()->GetXResolution();
-  float yResolution = mObjectFrame->PresContext()->GetRootPresContext()->PresShell()->GetYResolution();
-
-  gfxRect scaledFrameRect = aFrameRect;
-  scaledFrameRect.Scale(xResolution, yResolution);
-
   if (model == kSurface_ANPDrawingModel) {
-    if (!AddPluginView(scaledFrameRect)) {
+    if (!AddPluginView(aFrameRect)) {
       Invalidate();
     }
     return;
@@ -2934,9 +2928,11 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
     if (!mLayer)
       mLayer = new AndroidMediaLayer();
 
-    mLayer->UpdatePosition(scaledFrameRect, xResolution);
+    
+    float zoomLevel = aFrameRect.width / (float)mPluginWindow->width;
+    mLayer->UpdatePosition(aFrameRect, zoomLevel);
 
-    SendSize((int)scaledFrameRect.width, (int)scaledFrameRect.height);
+    SendSize((int)aFrameRect.width, (int)aFrameRect.height);
     return;
   }
 
