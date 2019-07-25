@@ -161,6 +161,7 @@ private:
   bool mRunningVersionChange;
 
   
+  nsRefPtr<nsDOMEventListenerWrapper> mOnAbortListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnErrorListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnVersionChangeListener;
 };
