@@ -177,6 +177,9 @@ public:
     static gfxContentType ContentFromFormat(gfxImageFormat format);
     static gfxImageFormat FormatFromContent(gfxContentType format);
 
+    void SetSubpixelAntialiasingEnabled(PRBool aEnabled);
+    PRBool GetSubpixelAntialiasingEnabled();
+
     
 
 
