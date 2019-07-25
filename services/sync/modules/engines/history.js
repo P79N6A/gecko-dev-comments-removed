@@ -62,14 +62,39 @@ HistoryEngine.prototype = {
   logName: "History",
   _storeObj: HistoryStore,
   _trackerObj: HistoryTracker,
+
   
   
   
-  _syncFinish: function HistoryEngine__syncFinish(error) {
+  
+  
+  
+  
+  
+  
+  
+  
+  _reconcile: function HistEngine__reconcile(item) {
     let self = yield;
-    this._log.debug("Finishing up sync");
-    this._log.debug(this._store._pidStm);
-    this._tracker.resetScore();
+    let ret = true;
+
+    
+    
+    if (item.id in this._tracker.changedIDs) {
+      if (this._isEqual(item))
+        this._tracker.removeChangedID(item.id);
+      self.done(false);
+      return;
+    }
+
+    
+    if (item.cleartext == null) {
+      self.done(false);
+      return;
+    }
+
+    
+    self.done(true);
   }
 };
 
@@ -132,33 +157,21 @@ HistoryStore.prototype = {
     }
   },
 
-  tempTableExists: function HistStore__tempTableExists(tableName) {
-    
-    
-    
+  
+  
+  tableExists: function HistStore__tableExists(tableName) {
     let statement = this._db.createStatement(
       "SELECT count(*) as count FROM sqlite_temp_master WHERE type='table' " +
-      "AND name='" + tableName + "'"
-    );
-    dump("Checking if temp table " + tableName + " exists.\n");
-    this._log.debug("Checking if temp table " + tableName + " exists.");
+      "AND name='" + tableName + "'");
     statement.step();
     let num = statement.row["count"];
-    if (num == 0) {
-      this._log.debug("No: the table does not exist.");
-      dump("No: the table does not exist.\n");
-      return false;
-    } else {
-      this._log.debug("Yes: the table exists.");
-      dump("Yes: the table exists.\n");
-      return true;
-    }
+    return num != 0;
   },
 
   get _visitStm() {
     this._log.trace("Creating SQL statement: _visitStm");
     let stm;
-    if (this.tempTableExists("moz_historyvisits_temp")) {
+    if (this.tableExists("moz_historyvisits_temp")) {
       stm = this._db.createStatement(
         "SELECT * FROM ( " +
           "SELECT visit_type AS type, visit_date AS date " +
@@ -193,7 +206,7 @@ HistoryStore.prototype = {
     this._log.trace("Creating SQL statement: _pidStm");
     let stm;
     
-    if (this.tempTableExists("moz_places_temp")) {
+    if (this.tableExists("moz_places_temp")) {
       stm = this._db.createStatement(
         "SELECT * FROM " +
           "(SELECT id FROM moz_places_temp WHERE url = :url LIMIT 1) " +
@@ -222,7 +235,7 @@ HistoryStore.prototype = {
 
 
     let stm;
-    if (this.tempTableExists("moz_places_temp")) {
+    if (this.tableExists("moz_places_temp")) {
       stm = this._db.createStatement(
       "SELECT * FROM " +
         "(SELECT url,title FROM moz_places_temp WHERE id = :id LIMIT 1) " +
@@ -359,44 +372,49 @@ HistoryStore.prototype = {
   },
 
   create: function HistStore_create(record) {
-    this._log.debug("  -> creating history entry: " + record.cleartext.uri);
-
-    let uri = Utils.makeURI(record.cleartext.uri);
-    let visit;
-    while ((visit = record.cleartext.visits.pop())) {
-      this._log.debug("     visit " + visit.date);
-      this._hsvc.addVisit(uri, visit.date, null, visit.type,
-                          (visit.type == 5 || visit.type == 6), 0);
-    }
-    this._hsvc.setPageTitle(uri, record.cleartext.title);
-
-    let guid = this._getGUID(record.cleartext.uri);
-    if (guid != record.id)
-      this.changeItemID(guid, record.id);
+    this.update(record);
   },
 
   remove: function HistStore_remove(record) {
-    this._log.trace("  -> NOT removing history entry: " + record.id);
+    
     
   },
 
-  
   update: function HistStore_update(record) {
-    this._log.trace("  -> editing history entry: " + record.cleartext.uri);
+    this._log.trace("  -> processing history entry: " + record.cleartext.uri);
+
     let uri = Utils.makeURI(record.cleartext.uri);
+    let curvisits = [];
+    if (this.urlExists(uri))
+      curvisits = this._getVisits(record.cleartext.uri);
+
     let visit;
     while ((visit = record.cleartext.visits.pop())) {
+      if (curvisits.filter(function(i) i.date == visit.date).length)
+        continue;
       this._log.debug("     visit " + visit.date);
       this._hsvc.addVisit(uri, visit.date, null, visit.type,
                           (visit.type == 5 || visit.type == 6), 0);
     }
     this._hsvc.setPageTitle(uri, record.cleartext.title);
+
+    
+    let localId = this._getGUID(record.cleartext.uri);
+    if (localId != record.id)
+      this.changeItemID(localId, record.id);
+
   },
 
   itemExists: function HistStore_itemExists(id) {
     if (this._findURLByGUID(id))
       return true;
     return false;
+  },
+
+  urlExists: function HistStore_urlExists(url) {
+    if (typeof(url) == "string")
+      url = Utils.makeURI(url);
+    return this._hsvc.isVisited(url);
   },
 
   createRecord: function HistStore_createRecord(guid) {
