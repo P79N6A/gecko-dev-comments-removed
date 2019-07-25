@@ -12,6 +12,7 @@ const Cc = Components.classes;
 
 
 
+
 function run_test() {
   let ioService = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
   let currentSpec = ""; 
@@ -89,7 +90,29 @@ function run_test() {
   do_check_eq(exception, false);
   exception = false; 
 
-  do_check_eq(fileURL != null, true);
+  do_check_neq(fileURL, null);
+
+  
+  currentSpec = "moz-icon://file://foo.txt";
+  try {
+    uri = ioService.newURI(currentSpec, null, null);
+  } catch (e) {
+    exception = true;
+  }
+  do_check_eq(exception, false);
+  exception = false; 
+
+  iconURI = uri.QueryInterface(Ci.nsIMozIconURI);
+  let fileURL = null;
+  try {
+    fileURL = iconURI.iconURL.QueryInterface(Ci.nsIFileURL);
+  } catch (e) {
+    exception = true;
+  }
+  do_check_eq(exception, false);
+  exception = false; 
+
+  do_check_neq(fileURL, null);
 
   
   currentSpec = "moz-icon:foo";
