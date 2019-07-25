@@ -590,17 +590,6 @@ public:
 
 
 
-
-
-
-
-  static PRBool NumberFromString(const nsAString& aString, float* aValue,
-                                 PRBool aAllowPercentages = PR_FALSE);
-
-  
-
-
-
   static PRInt32 ClampToInt(double aVal)
   {
     return NS_lround(NS_MAX(double(PR_INT32_MIN),
