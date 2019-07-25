@@ -821,6 +821,9 @@ nsTreeContentView::AttributeChanged(nsIDocument *aDocument,
                                     PRInt32      aModType)
 {
   
+  nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
+
+  
   
   nsIAtom *tag = aContent->Tag();
 

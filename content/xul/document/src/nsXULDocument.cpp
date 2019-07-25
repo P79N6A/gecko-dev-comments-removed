@@ -1002,6 +1002,9 @@ nsXULDocument::AttributeChanged(nsIDocument* aDocument,
     NS_ASSERTION(aDocument == this, "unexpected doc");
 
     
+    nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
+
+    
     Element* aElement = aElementContent->AsElement();
 
     

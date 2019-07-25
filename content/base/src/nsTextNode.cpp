@@ -344,12 +344,9 @@ nsAttributeTextNode::AttributeChanged(nsIDocument* aDocument,
     
     
     
-    
-    
-    
     void (nsAttributeTextNode::*update)() = &nsAttributeTextNode::UpdateText;
     nsCOMPtr<nsIRunnable> ev = NS_NewRunnableMethod(this, update);
-    NS_DispatchToCurrentThread(ev);
+    nsContentUtils::AddScriptRunner(ev);
   }
 }
 

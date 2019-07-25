@@ -188,6 +188,12 @@ public:
 
 
 
+
+
+
+
+
+
   virtual void AttributeChanged(nsIDocument* aDocument,
                                 nsIContent*  aContent,
                                 PRInt32      aNameSpaceID,

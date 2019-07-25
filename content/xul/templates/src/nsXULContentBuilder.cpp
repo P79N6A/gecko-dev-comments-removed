@@ -1562,6 +1562,8 @@ nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
                                       nsIAtom*     aAttribute,
                                       PRInt32      aModType)
 {
+    nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
+
     
     
     
