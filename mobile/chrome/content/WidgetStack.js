@@ -765,6 +765,16 @@ WidgetStack.prototype = {
   },
 
   
+  
+  
+  dragUpdate: function dragUpdate() {
+    if (!this._dragging)
+      return;
+
+    this._viewportDragUpdate();
+  },
+
+  
   dragMove: function dragMove(clientX, clientY) {
     if (!this._dragging)
       return false;
@@ -785,6 +795,8 @@ WidgetStack.prototype = {
 
   
   dragBy: function dragBy(dx, dy) {
+    if (!this._dragging)
+      return false;
     return this.dragMove(this._dragState.outerCurX + dx, this._dragState.outerCurY + dy);
   },
 
