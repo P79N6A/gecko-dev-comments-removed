@@ -36,9 +36,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-
 var gResultListener = {
   _lastResult: null,
   _lastValue: "",

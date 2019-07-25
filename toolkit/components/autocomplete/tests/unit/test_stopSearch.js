@@ -7,8 +7,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
