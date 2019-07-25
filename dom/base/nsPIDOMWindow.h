@@ -579,6 +579,11 @@ public:
   
 
 
+  virtual void RemoveOrientationEventListener() = 0;
+
+  
+
+
 
 
 
