@@ -505,6 +505,10 @@ const gPopupBlockerObserver = {
     var pageReport = gBrowser.pageReport;
     if (pageReport) {
       for (var i = 0; i < pageReport.length; ++i) {
+        
+        
+        if (!pageReport[i].popupWindowURI)
+          continue;
         var popupURIspec = pageReport[i].popupWindowURI.spec;
 
         
