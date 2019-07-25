@@ -50,6 +50,7 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "nsISocketTransportService.h"
 #include "nsIDNSListener.h"
+#include "nsHashSets.h"
 
 #include "nsIObserver.h"
 #include "nsITimer.h"
@@ -132,6 +133,11 @@ public:
     
     
     nsresult UpdateParam(nsParamName name, PRUint16 value);
+
+    
+    bool GetSpdyAlternateProtocol(nsACString &key);
+    void ReportSpdyAlternateProtocol(nsHttpConnection *);
+    void RemoveSpdyAlternateProtocol(nsACString &key);
 
     
     
@@ -405,6 +411,13 @@ private:
     
     
     nsClassHashtable<nsCStringHashKey, nsConnectionEntry> mCT;
+
+    
+    nsCStringHashSet mAlternateProtocolHash;
+    static PLDHashOperator TrimAlternateProtocolHash(PLDHashTable *table,
+                                                     PLDHashEntryHdr *hdr,
+                                                     PRUint32 number,
+                                                     void *closure);
 };
 
 #endif 

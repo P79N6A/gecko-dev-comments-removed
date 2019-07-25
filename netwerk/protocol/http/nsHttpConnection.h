@@ -177,6 +177,10 @@ private:
     void     SetupNPN(PRUint8 caps);
 
     
+    
+    void     HandleAlternateProtocol(nsHttpResponseHead *);
+
+    
     nsresult AddTransaction(nsAHttpTransaction *, PRInt32);
 
 private:

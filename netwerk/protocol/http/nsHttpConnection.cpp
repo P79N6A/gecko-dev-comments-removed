@@ -320,6 +320,32 @@ nsHttpConnection::SetupNPN(PRUint8 caps)
     }
 }
 
+void
+nsHttpConnection::HandleAlternateProtocol(nsHttpResponseHead *responseHead)
+{
+    
+    
+    
+    
+
+    if (!gHttpHandler->IsSpdyEnabled() || mUsingSpdy)
+        return;
+
+    const char *val = responseHead->PeekHeader(nsHttp::Alternate_Protocol);
+    if (!val)
+        return;
+
+    
+    
+    
+    
+
+    if (nsHttp::FindToken(val, "443:npn-spdy/2", HTTP_HEADER_VALUE_SEPS)) {
+        LOG(("Connection %p Transaction %p found Alternate-Protocol "
+             "header %s", this, mTransaction.get(), val));
+        gHttpHandler->ConnMgr()->ReportSpdyAlternateProtocol(this);
+    }
+}
 
 nsresult
 nsHttpConnection::AddTransaction(nsAHttpTransaction *httpTransaction,
@@ -614,6 +640,9 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
         
         LOG(("Connection can be reused [this=%x idle-timeout=%u]\n", this, mIdleTimeout));
     }
+
+    if (!mProxyConnectStream)
+        HandleAlternateProtocol(responseHead);
 
     
     
