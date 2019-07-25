@@ -197,7 +197,11 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   
   
   
-  if (!container || container->Manager() != aManager) {
+  
+  if (!container || 
+      (container->Manager() && container->Manager() != aManager) ||
+      container->GetBackendType() != aManager->GetBackendType())
+  {
     nsRefPtr<ImageContainer> tmpContainer = aManager->CreateImageContainer();
     if (!tmpContainer)
       return nsnull;

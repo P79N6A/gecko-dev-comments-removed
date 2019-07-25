@@ -1722,7 +1722,11 @@ nsObjectFrame::GetImageContainer()
     return nsnull;
   }
 
-  if (mImageContainer && mImageContainer->Manager() == manager) {
+  
+  
+  if (mImageContainer && 
+      (!mImageContainer->Manager() || mImageContainer->Manager() == manager) &&
+      mImageContainer->GetBackendType() == manager->GetBackendType()) {
     return mImageContainer;
   }
 
