@@ -19,7 +19,7 @@ if (typeof window == 'undefined')
 }
 else
 {
-  expect = /(Script error.|Permission denied to access property 'classes')/;
+  expect = /NS_ERROR_XPC_NOT_ENOUGH_ARGS/;
 
   window._onerror = window.onerror;
   window.onerror = (function (msg, page, line) { 
@@ -32,7 +32,7 @@ else
   gDelayTestDriverEnd = true;
 
   
-  window.location="javascript:Components.classes = 42";
+  window.alert();
   actual = 'No Error';
 }
 
