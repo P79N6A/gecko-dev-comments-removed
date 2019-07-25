@@ -4516,10 +4516,11 @@ public class Tokenizer implements Locator {
                                     ch = strBuf[strBufMark];
                                     
                                 }
-                                if ((ch >= '0' && ch <= '9')
+                                if (ch == '=' || (ch >= '0' && ch <= '9')
                                         || (ch >= 'A' && ch <= 'Z')
                                         || (ch >= 'a' && ch <= 'z')) {
                                     
+
 
 
 
