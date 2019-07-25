@@ -35,6 +35,7 @@
 
 
 
+gTestfile = 'regress-6359.js';
 
 
 
@@ -68,17 +69,17 @@ startTest();
 
 
 
-AddTestCase( '/(a*)b\1+/("baaac").length',
+AddTestCase( '/(a*)b\1+/.exec("baaac").length',
 	     2,
-	     /(a*)b\1+/("baaac").length );
+	     /(a*)b\1+/.exec("baaac").length );
 
-AddTestCase( '/(a*)b\1+/("baaac")[0]',
+AddTestCase( '/(a*)b\1+/.exec("baaac")[0]',
 	     "b",
-	     /(a*)b\1+/("baaac")[0]);
+	     /(a*)b\1+/.exec("baaac")[0]);
 
-AddTestCase( '/(a*)b\1+/("baaac")[1]',
+AddTestCase( '/(a*)b\1+/.exec("baaac")[1]',
 	     "",
-	     /(a*)b\1+/("baaac")[1]);
+	     /(a*)b\1+/.exec("baaac")[1]);
 
 
 test();       
