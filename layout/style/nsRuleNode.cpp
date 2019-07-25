@@ -3502,7 +3502,26 @@ nsRuleNode::ComputeTextResetData(void* aStartStruct,
   } else if (eCSSUnit_Inherit == textOverflowValue->GetUnit()) {
     canStoreInRuleTree = PR_FALSE;
     text->mTextOverflow = parentText->mTextOverflow;
+  } else if (eCSSUnit_Enumerated == textOverflowValue->GetUnit()) {
+    
+    SetDiscrete(*textOverflowValue, text->mTextOverflow.mRight.mType,
+                canStoreInRuleTree,
+                SETDSC_ENUMERATED, parentText->mTextOverflow.mRight.mType,
+                NS_STYLE_TEXT_OVERFLOW_CLIP, 0, 0, 0, 0);
+    text->mTextOverflow.mRight.mString.Truncate();
+    text->mTextOverflow.mLeft.mType = NS_STYLE_TEXT_OVERFLOW_CLIP;
+    text->mTextOverflow.mLeft.mString.Truncate();
+    text->mTextOverflow.mLogicalDirections = true;
+  } else if (eCSSUnit_String == textOverflowValue->GetUnit()) {
+    
+    text->mTextOverflow.mRight.mType = NS_STYLE_TEXT_OVERFLOW_STRING;
+    textOverflowValue->GetStringValue(text->mTextOverflow.mRight.mString);
+    text->mTextOverflow.mLeft.mType = NS_STYLE_TEXT_OVERFLOW_CLIP;
+    text->mTextOverflow.mLeft.mString.Truncate();
+    text->mTextOverflow.mLogicalDirections = true;
   } else if (eCSSUnit_Pair == textOverflowValue->GetUnit()) {
+    
+    text->mTextOverflow.mLogicalDirections = false;
     const nsCSSValuePair& textOverflowValue =
       aRuleData->ValueForTextOverflow()->GetPairValue();
 

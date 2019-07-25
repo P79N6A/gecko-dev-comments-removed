@@ -1148,6 +1148,7 @@ struct nsStyleTextOverflowSide {
 };
 
 struct nsStyleTextOverflow {
+  nsStyleTextOverflow() : mLogicalDirections(true) {}
   bool operator==(const nsStyleTextOverflow& aOther) const {
     return mLeft == aOther.mLeft && mRight == aOther.mRight;
   }
@@ -1155,8 +1156,35 @@ struct nsStyleTextOverflow {
     return !(*this == aOther);
   }
 
-  nsStyleTextOverflowSide mLeft;
-  nsStyleTextOverflowSide mRight;
+  
+  const nsStyleTextOverflowSide& GetLeft(PRUint8 aDirection) const {
+    NS_ASSERTION(aDirection == NS_STYLE_DIRECTION_LTR ||
+                 aDirection == NS_STYLE_DIRECTION_RTL, "bad direction");
+    return !mLogicalDirections || aDirection == NS_STYLE_DIRECTION_LTR ?
+             mLeft : mRight;
+  }
+
+  
+  const nsStyleTextOverflowSide& GetRight(PRUint8 aDirection) const {
+    NS_ASSERTION(aDirection == NS_STYLE_DIRECTION_LTR ||
+                 aDirection == NS_STYLE_DIRECTION_RTL, "bad direction");
+    return !mLogicalDirections || aDirection == NS_STYLE_DIRECTION_LTR ?
+             mRight : mLeft;
+  }
+
+  
+  const nsStyleTextOverflowSide* GetFirstValue() const {
+    return mLogicalDirections ? &mRight : &mLeft;
+  }
+
+  
+  const nsStyleTextOverflowSide* GetSecondValue() const {
+    return mLogicalDirections ? nsnull : &mRight;
+  }
+
+  nsStyleTextOverflowSide mLeft;  
+  nsStyleTextOverflowSide mRight; 
+  bool mLogicalDirections;  
 };
 
 struct nsStyleTextReset {

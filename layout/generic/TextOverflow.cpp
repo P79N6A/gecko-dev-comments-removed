@@ -277,11 +277,11 @@ TextOverflow::WillProcessLines(nsDisplayListBuilder*   aBuilder,
       scroll->GetScrollbarStyles().mHorizontal != NS_STYLE_OVERFLOW_HIDDEN;
     textOverflow->mContentArea.MoveBy(scroll->GetScrollPosition());
   }
-  textOverflow->mBlockIsRTL =
-    aBlockFrame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  PRUint8 direction = aBlockFrame->GetStyleVisibility()->mDirection;
+  textOverflow->mBlockIsRTL = direction == NS_STYLE_DIRECTION_RTL;
   const nsStyleTextReset* style = aBlockFrame->GetStyleTextReset();
-  textOverflow->mLeft.Init(style->mTextOverflow.mLeft);
-  textOverflow->mRight.Init(style->mTextOverflow.mRight);
+  textOverflow->mLeft.Init(*style->mTextOverflow.GetLeft(direction));
+  textOverflow->mRight.Init(*style->mTextOverflow.GetRight(direction));
   
   
 
@@ -403,30 +403,30 @@ TextOverflow::ExamineLineFrames(nsLineBox*      aLine,
                                 AlignmentEdges* aAlignmentEdges)
 {
   
+  bool suppressLeft = mLeft.mStyle->mType == NS_STYLE_TEXT_OVERFLOW_CLIP;
+  bool suppressRight = mRight.mStyle->mType == NS_STYLE_TEXT_OVERFLOW_CLIP;
+
+  
   
   
   nsRect contentArea = mContentArea;
   const nscoord scrollAdjust = mCanHaveHorizontalScrollbar ?
     mBlock->PresContext()->AppUnitsPerDevPixel() : 0;
-  InflateLeft(&contentArea,
-              mLeft.mStyle->mType == NS_STYLE_TEXT_OVERFLOW_CLIP,
-              scrollAdjust);
-  InflateRight(&contentArea,
-               mRight.mStyle->mType == NS_STYLE_TEXT_OVERFLOW_CLIP,
-               scrollAdjust);
+  InflateLeft(&contentArea, suppressLeft, scrollAdjust);
+  InflateRight(&contentArea, suppressRight, scrollAdjust);
   nsRect lineRect = aLine->GetScrollableOverflowArea();
-  const bool leftOverflow = lineRect.x < contentArea.x;
-  const bool rightOverflow = lineRect.XMost() > contentArea.XMost();
+  const bool leftOverflow =
+    !suppressLeft && lineRect.x < contentArea.x;
+  const bool rightOverflow =
+    !suppressRight && lineRect.XMost() > contentArea.XMost();
   if (!leftOverflow && !rightOverflow) {
     
     return;
   }
 
   PRUint32 pass = 0;
-  bool guessLeft =
-    mLeft.mStyle->mType != NS_STYLE_TEXT_OVERFLOW_CLIP && leftOverflow;
-  bool guessRight =
-    mRight.mStyle->mType != NS_STYLE_TEXT_OVERFLOW_CLIP && rightOverflow;
+  bool guessLeft = leftOverflow;
+  bool guessRight = rightOverflow;
   do {
     
     if (guessLeft) {
