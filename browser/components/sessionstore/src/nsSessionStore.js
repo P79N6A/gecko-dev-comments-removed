@@ -1007,7 +1007,11 @@ SessionStoreService.prototype = {
   onTabLoad: function sss_onTabLoad(aWindow, aBrowser, aEvent) { 
     
     
-    if (aEvent.type != "load" && !aEvent.persisted) {
+    
+    
+    if ((aEvent.type != "load" && !aEvent.persisted) ||
+        (aBrowser.__SS_restoreState &&
+         aBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE)) {
       return;
     }
     
