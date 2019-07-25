@@ -209,9 +209,13 @@ nsHttpChannel::Connect(PRBool firstTime)
 
         PRBool isStsHost = PR_FALSE;
         rv = stss->IsStsURI(mURI, &isStsHost);
-        NS_ENSURE_SUCCESS(rv, rv);
 
-        if (isStsHost) {
+        
+        
+        NS_ASSERTION(NS_SUCCEEDED(rv),
+                     "Something is wrong with STS: IsStsURI failed.");
+
+        if (NS_SUCCEEDED(rv) && isStsHost) {
             LOG(("nsHttpChannel::Connect() STS permissions found\n"));
             return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
         }
@@ -944,7 +948,7 @@ nsHttpChannel::ProcessSTSHeader()
 
     nsCAutoString asciiHost;
     rv = mURI->GetAsciiHost(asciiHost);
-    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_SUCCESS(rv, NS_OK);
 
     
     
@@ -958,10 +962,14 @@ nsHttpChannel::ProcessSTSHeader()
     
     
     
-    NS_ENSURE_TRUE(mSecurityInfo, NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE(mSecurityInfo, NS_OK);
+
+    
+    
+    
     PRBool tlsIsBroken = PR_FALSE;
     rv = stss->ShouldIgnoreStsHeader(mSecurityInfo, &tlsIsBroken);
-    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_SUCCESS(rv, NS_OK);
 
     
     
@@ -970,7 +978,9 @@ nsHttpChannel::ProcessSTSHeader()
     
     PRBool wasAlreadySTSHost;
     rv = stss->IsStsURI(mURI, &wasAlreadySTSHost);
-    NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    NS_ENSURE_SUCCESS(rv, NS_OK);
     NS_ASSERTION(!(wasAlreadySTSHost && tlsIsBroken),
                  "connection should have been aborted by nss-bad-cert-handler");
 
@@ -992,6 +1002,7 @@ nsHttpChannel::ProcessSTSHeader()
         LOG(("STS: No STS header, continuing load.\n"));
         return NS_OK;
     }
+    
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = stss->ProcessStsHeader(mURI, stsHeader.get());
@@ -1012,13 +1023,16 @@ nsHttpChannel::ProcessResponse()
     LOG(("nsHttpChannel::ProcessResponse [this=%p httpStatus=%u]\n",
         this, httpStatus));
 
-    if (mTransaction->SSLConnectFailed() &&
-        !ShouldSSLProxyResponseContinue(httpStatus))
-        return ProcessFailedSSLConnect(httpStatus);
-
-    
-    rv = ProcessSTSHeader();
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (mTransaction->SSLConnectFailed()) {
+        if (!ShouldSSLProxyResponseContinue(httpStatus))
+            return ProcessFailedSSLConnect(httpStatus);
+        
+        
+    } else {
+        
+        rv = ProcessSTSHeader();
+        NS_ASSERTION(NS_SUCCEEDED(rv), "ProcessSTSHeader failed, continuing load.");
+    }
 
     
     gHttpHandler->OnExamineResponse(this);
