@@ -351,6 +351,14 @@ public:
 
 
   virtual LayersBackend GetBackendType() = 0;
+ 
+  
+
+
+
+  virtual already_AddRefed<gfxASurface>
+    CreateOptimalSurface(const gfxIntSize &aSize,
+                         gfxASurface::gfxImageFormat imageFormat);
 
   
 

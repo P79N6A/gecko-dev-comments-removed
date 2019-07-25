@@ -948,6 +948,12 @@ public:
   
 
 
+  static gfxRect RectToGfxRect(const nsRect& aRect,
+                               PRInt32 aAppUnitsPerDevPixel);
+
+  
+
+
 
 
 

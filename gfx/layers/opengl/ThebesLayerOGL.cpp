@@ -143,9 +143,8 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
   
   
   ColorTextureLayerProgram *program =
-    mLayer->CanUseOpaqueSurface()
-    ? aManager->GetBGRXLayerProgram()
-    : aManager->GetBGRALayerProgram();
+    aManager->GetBasicLayerProgram(mLayer->CanUseOpaqueSurface(),
+                                   mTexImage->IsRGB());
 
   if (!mTexImage->InUpdate() || !mTexImage->EndUpdate()) {
     gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexImage->Texture());
