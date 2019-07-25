@@ -675,8 +675,16 @@ Readability.prototype = {
       
       this._prepArticle(articleContent);
 
-      if (this._curPageNum === 1)
-        articleContent.innerHTML = '<div id="readability-page-1" class="page">' + articleContent.innerHTML + '</div>';
+      if (this._curPageNum === 1) {
+        let div = doc.createElement("DIV");
+        div.id = "readability-page-1";
+        div.className = "page";
+        let children = articleContent.childNodes;
+        for (let i = 0; i < children.length; ++i) {
+          div.appendChild(children[i]);
+        }
+        articleContent.appendChild(div);
+      }
 
       
       
