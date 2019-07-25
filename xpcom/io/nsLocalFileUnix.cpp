@@ -1401,6 +1401,45 @@ nsLocalFile::IsExecutable(PRBool *_retval)
     CHECK_mPath();
     NS_ENSURE_ARG_POINTER(_retval);
 
+    
+    
+    
+    
+
+    
+    PRBool symLink;
+    nsresult rv = IsSymlink(&symLink);
+    if (NS_FAILED(rv))
+        return rv;
+
+    nsAutoString path;
+    if (symLink)
+        GetTarget(path);
+    else
+        GetPath(path);
+
+    PRInt32 dotIdx = path.RFindChar(PRUnichar('.'));
+    if (dotIdx != kNotFound) {
+        
+        PRUnichar *p = path.BeginWriting();
+        for(p += dotIdx + 1; *p; p++)
+            *p +=  (*p >= L'A' && *p <= L'Z') ? 'a' - 'A' : 0; 
+        
+        
+        static const char * const executableExts[] = {
+            "air",         
+            "jar"};        
+        nsDependentSubstring ext = Substring(path, dotIdx + 1);
+        for (int i = 0; i < NS_ARRAY_LENGTH(executableExts); i++) {
+            if (ext.EqualsASCII(executableExts[i])) {
+                
+                *_retval = PR_TRUE;
+                return NS_OK;
+            }
+        }
+    }
+
+    
     *_retval = (access(mPath.get(), X_OK) == 0);
 #ifdef SOLARIS
     
