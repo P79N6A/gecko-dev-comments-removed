@@ -1540,8 +1540,8 @@ HUD_SERVICE.prototype =
     this.wakeup();
 
     let window = aContext.linkedBrowser.contentWindow;
-    let nBox = aContext.ownerDocument.defaultView.
-      getNotificationBox(window);
+    let chromeDocument = aContext.ownerDocument;
+    let nBox = chromeDocument.defaultView.getNotificationBox(window);
     this.registerActiveContext(nBox.id);
     this.windowInitializer(window);
 
@@ -1551,6 +1551,8 @@ HUD_SERVICE.prototype =
     if (!aAnimated || hudRef.consolePanel) {
       this.disableAnimation(hudId);
     }
+
+    chromeDocument.getElementById("Tools:WebConsole").setAttribute("checked", "true");
 
     
     
@@ -1600,6 +1602,8 @@ HUD_SERVICE.prototype =
 
       window.focus();
     }
+
+    chromeDocument.getElementById("Tools:WebConsole").setAttribute("checked", "false");
 
     
     
