@@ -99,8 +99,7 @@ extern PRLogModuleInfo *gWidgetDrawLog;
 class QEvent;
 
 class MozQWidget;
-
-class nsIdleService;
+class QGraphicsScene;
 
 class nsWindow : public nsBaseWidget,
                  public nsSupportsWeakReference
@@ -324,7 +323,6 @@ private:
     PluginType         mPluginType;
 
     nsRefPtr<gfxASurface> mThebesSurface;
-    nsCOMPtr<nsIdleService> mIdleService;
 
     PRBool       mIsTransparent;
  
@@ -366,9 +364,10 @@ private:
     }
     PRInt32 mQCursor;
 
-    
-    
-    void UserActivity();
+    PRPackedBool mNeedsResize;
+    PRPackedBool mNeedsMove;
+    PRPackedBool mListenForResizes;
+    PRPackedBool mNeedsShow;
 
     
     QRegion mDirtyScrollArea;
@@ -377,12 +376,7 @@ private:
     double mTouchPointDistance;
     double mLastPinchDistance;
     PRBool mMouseEventsDisabled;
-#endif
-
-    PRPackedBool mNeedsResize;
-    PRPackedBool mNeedsMove;
-    PRPackedBool mListenForResizes;
-    PRPackedBool mNeedsShow;
+ #endif
 };
 
 class nsChildWindow : public nsWindow
