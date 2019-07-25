@@ -295,6 +295,9 @@ typedef PRUint64 nsFrameState;
 
 
 
+#define NS_FRAME_HAS_CACHED_BACKGROUND              NS_FRAME_STATE_BIT(46)
+
+
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
 #define NS_STATE_IS_DIRECTION_NORMAL                NS_FRAME_STATE_BIT(31)
 
@@ -874,6 +877,11 @@ public:
     delete static_cast<nsOverflowAreas*>(aPropertyValue);
   }
 
+  static void DestroySurface(void* aPropertyValue)
+  {
+    static_cast<gfxASurface*>(aPropertyValue)->Release();
+  }
+
 #ifdef _MSC_VER
 
 
@@ -916,6 +924,8 @@ public:
   NS_DECLARE_FRAME_PROPERTY(ScrollLayerCount, nsnull)
 
   NS_DECLARE_FRAME_PROPERTY(LineBaselineOffset, nsnull)
+
+  NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImage, DestroySurface)
 
   
 
@@ -2592,6 +2602,8 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
 
   virtual bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false);
+
+  void ClearDisplayItemCache();
 
   
   
