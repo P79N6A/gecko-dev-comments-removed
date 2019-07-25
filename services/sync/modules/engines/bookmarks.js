@@ -969,7 +969,7 @@ BookmarksTracker.prototype = {
 
   
   _upScore: function BMT__upScore() {
-    this._score += 10;
+    this.score += 10;
   },
 
   

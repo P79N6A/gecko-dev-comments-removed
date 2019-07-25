@@ -426,12 +426,12 @@ TabTracker.prototype = {
     this._log.trace("Tab opened.");
     event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
     
-    this._score += 50;
+    this.score += 1;
   },
 
   onTabClosed: function TabTracker_onTabSelected(event) {
     
-    this._score += 10;
+    this.score += 1;
   },
 
   onTabSelected: function TabTracker_onTabSelected(event) {
@@ -440,14 +440,14 @@ TabTracker.prototype = {
     
     event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
     
-    this._score += 10;
+    this.score += 1;
   },
   
 
   get changedIDs() {
     
     let obj = {};
-    if (this._score > 0)
+    if (this.score > 0)
       obj[Clients.clientID] = true;
     return obj;
   }

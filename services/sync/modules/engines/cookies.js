@@ -281,7 +281,7 @@ CookieTracker.prototype = {
 
   _init: function CT__init() {
     this._log = Log4Moz.Service.getLogger("Service." + this._logName);
-    this._score = 0;
+    this.score = 0;
     
 
 
@@ -299,9 +299,9 @@ CookieTracker.prototype = {
     var newCookie = aSubject.QueryInterface( Ci.nsICookie2 );
     if ( newCookie ) {
       if ( !newCookie.isSession ) {
-	
+      
 
-	this._score += 10;
+        this.score += 10;
       }
     }
   }

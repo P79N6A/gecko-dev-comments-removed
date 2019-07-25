@@ -57,6 +57,11 @@ MULTI_MOBILE_SYNC:                     5 * 60 * 1000,
 PARTIAL_DATA_SYNC:                     60 * 1000, 
 
 
+SINGLE_USER_THRESHOLD:                 100,
+MULTI_DESKTOP_THRESHOLD:               500,
+MULTI_MOBILE_THRESHOLD:                1000,
+
+
 MODE_RDONLY:                           0x01,
 MODE_WRONLY:                           0x02,
 MODE_CREATE:                           0x08,
