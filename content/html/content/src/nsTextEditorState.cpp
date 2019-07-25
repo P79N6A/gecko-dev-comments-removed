@@ -1564,6 +1564,9 @@ nsresult
 nsTextEditorState::InitializeRootNode()
 {
   
+  mRootNode->SetFlags(NODE_IS_EDITABLE);
+
+  
   
   
   nsAutoString classValue;
