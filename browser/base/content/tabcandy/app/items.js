@@ -513,7 +513,6 @@ window.Item.prototype = {
   
   
   setTrenches: function(rect) {
-
     if (this.parent !== null)
       return;
 
