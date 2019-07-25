@@ -165,7 +165,9 @@ public:
     
     static void      SetDiskCacheCapacity(PRInt32  capacity);
     
+    
     static void      SetDiskCacheMaxEntrySize(PRInt32  maxSize);
+    
     
     static void      SetMemoryCacheMaxEntrySize(PRInt32  maxSize);
 
