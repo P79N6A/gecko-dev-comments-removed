@@ -77,11 +77,11 @@ TabSyncCore.prototype = {
     
     
     if (GUID in tabs) {
-      this._log.debug("_itemExists: " + GUID + " exists");
+      this._log.trace("_itemExists: " + GUID + " exists");
       return true;
     }
 
-    this._log.debug("_itemExists: " + GUID + " doesn't exist");
+    this._log.trace("_itemExists: " + GUID + " doesn't exist");
     return false;
   },
 
@@ -333,7 +333,7 @@ TabStore.prototype = {
       
       
       let windowID = i + 1;
-      this._log.debug("_wrapRealTabs: window " + windowID);
+      this._log.trace("_wrapRealTabs: window " + windowID);
       for (let j = 0; j < window.tabs.length; j++) {
         let tab = window.tabs[j];
 
@@ -348,7 +348,7 @@ TabStore.prototype = {
 	}
 
 	let tabID = currentEntry.url;
-        this._log.debug("_wrapRealTabs: tab " + tabID);
+        this._log.trace("_wrapRealTabs: tab " + tabID);
 
         
         
