@@ -64,7 +64,6 @@ public:
 
   
   virtual void Initialize(const Data& aData);
-  virtual void Updated(const nsIntRect& aRect);
 
   
   virtual Layer* GetLayer();
@@ -72,6 +71,8 @@ public:
 
 private:
   typedef mozilla::gl::GLContext GLContext;
+
+  void UpdateSurface();
 
   nsRefPtr<gfxASurface> mSurface;
   nsRefPtr<GLContext> mGLContext;
