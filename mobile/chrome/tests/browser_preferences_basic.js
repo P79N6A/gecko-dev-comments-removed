@@ -75,15 +75,13 @@ gTests.push({
       "Got " + x.value + " " + y.value + ", expected " + initialDragOffset + ",0");
 
     
-
-
-
-
-
+    let w = controls.clientWidth;
+    let h = controls.clientHeight;
+    dragElement(controls, w / 2, h / 2, w / 4, h / 2);
 
     
     gCurrentTest._contentScrollbox.getPosition(x,y);
-    todo((x.value == finalDragOffset && y.value == 0), "The right sidebar must be visible",
+    ok(x.value == finalDragOffset && y.value == 0, "The right sidebar must be visible",
       "Got " + x.value + " " + y.value + ", expected " + finalDragOffset + ",0");
 
     
@@ -97,7 +95,9 @@ gTests.push({
     
     var prefsClick = document.getElementById("tool-panel-open");
     prefsClick.click();
-    waitFor(gCurrentTest.onPrefsView, BrowserUI.isPanelVisible);
+    waitFor(function() {
+      setTimeout(gCurrentTest.onPrefsView, 0);
+    }, BrowserUI.isPanelVisible);
   },
 
   onPrefsView: function() {
@@ -157,8 +157,8 @@ gTests.push({
     ok((x.value == 0 && y.value == distance), "Preferences pane is panned up", "Got " + x.value + " " + y.value + ", expected 0," + distance);
 
     
-    addEventListener("MozBeforePaint", function(aEvent) {
-      removeEventListener("MozBeforePaint", arguments.callee, false);
+    window.addEventListener("MozAfterPaint", function(aEvent) {
+      window.removeEventListener("MozAfterPaint", arguments.callee, false);
 
       
       EventUtils.synthesizeMouse(prefsList, x1, y1, { type: "mousemove" });
@@ -181,11 +181,11 @@ gTests.push({
 
     
     gCurrentTest._contentScrollbox.getPosition(x, y);
-    todo((x.value == finalDragOffset && y.value == 0), "The right sidebar is still visible",
+    ok(x.value == finalDragOffset && y.value == 0, "The right sidebar is still visible",
        "Got " + x.value + " " + y.value + ", expected " + finalDragOffset + ",0");
 
     
-    var prefsOpen = document.getElementById("tool-panel-open");
+    let prefsOpen = document.getElementById("tool-panel-open");
     is(prefsOpen.checked, false, "Preferences open button must not be depressed");
 
     
