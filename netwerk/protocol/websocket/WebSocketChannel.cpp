@@ -376,6 +376,8 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(OutboundEnqueuer, nsIRunnable)
 
 
 
+
+
 class nsWSAdmissionManager
 {
 public:
@@ -414,6 +416,9 @@ public:
     
     
 
+    
+    
+    
     bool found = (IndexOf(aStr) >= 0);
     nsOpenConn *newdata = new nsOpenConn(aStr, ws);
     mData.AppendElement(newdata);
@@ -1938,34 +1943,60 @@ WebSocketChannel::AsyncOnChannelRedirect(
   rv = newChannel->GetURI(getter_AddRefs(newuri));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!mAutoFollowRedirects) {
-    nsCAutoString spec;
-    if (NS_SUCCEEDED(newuri->GetSpec(spec)))
-      LOG(("WebSocketChannel: Redirect to %s denied by configuration\n",
-            spec.get()));
-    callback->OnRedirectVerifyCallback(NS_ERROR_FAILURE);
-    return NS_OK;
-  }
-
-  bool isHttps = false;
-  rv = newuri->SchemeIs("https", &isHttps);
+  
+  bool newuriIsHttps = false;
+  rv = newuri->SchemeIs("https", &newuriIsHttps);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (mEncrypted && !isHttps) {
+  if (!mAutoFollowRedirects) {
+    
+    
+
+    nsCOMPtr<nsIURI> clonedNewURI;
+    rv = newuri->Clone(getter_AddRefs(clonedNewURI));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = clonedNewURI->SetScheme(NS_LITERAL_CSTRING("ws"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIURI> currentURI;
+    rv = GetURI(getter_AddRefs(currentURI));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    bool currentIsHttps = false;
+    rv = currentURI->SchemeIs("wss", &currentIsHttps);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    bool uriEqual = false;
+    rv = clonedNewURI->Equals(currentURI, &uriEqual);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    if (!(!currentIsHttps && newuriIsHttps && uriEqual)) {
+      nsCAutoString newSpec;
+      rv = newuri->GetSpec(newSpec);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      LOG(("WebSocketChannel: Redirect to %s denied by configuration\n",
+           newSpec.get()));
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  if (mEncrypted && !newuriIsHttps) {
     nsCAutoString spec;
     if (NS_SUCCEEDED(newuri->GetSpec(spec)))
       LOG(("WebSocketChannel: Redirect to %s violates encryption rule\n",
            spec.get()));
-    callback->OnRedirectVerifyCallback(NS_ERROR_FAILURE);
-    return NS_OK;
+    return NS_ERROR_FAILURE;
   }
 
   nsCOMPtr<nsIHttpChannel> newHttpChannel = do_QueryInterface(newChannel, &rv);
-
   if (NS_FAILED(rv)) {
     LOG(("WebSocketChannel: Redirect could not QI to HTTP\n"));
-    callback->OnRedirectVerifyCallback(rv);
-    return NS_OK;
+    return rv;
   }
 
   nsCOMPtr<nsIHttpChannelInternal> newUpgradeChannel =
@@ -1973,21 +2004,26 @@ WebSocketChannel::AsyncOnChannelRedirect(
 
   if (NS_FAILED(rv)) {
     LOG(("WebSocketChannel: Redirect could not QI to HTTP Upgrade\n"));
-    callback->OnRedirectVerifyCallback(rv);
-    return NS_OK;
+    return rv;
   }
 
   
 
   newChannel->SetNotificationCallbacks(this);
-  mURI = newuri;
+
+  mEncrypted = newuriIsHttps;
+  newuri->Clone(getter_AddRefs(mURI));
+  if (mEncrypted)
+    rv = mURI->SetScheme(NS_LITERAL_CSTRING("wss"));
+  else
+    rv = mURI->SetScheme(NS_LITERAL_CSTRING("ws"));
+
   mHttpChannel = newHttpChannel;
   mChannel = newUpgradeChannel;
   rv = SetupRequest();
   if (NS_FAILED(rv)) {
     LOG(("WebSocketChannel: Redirect could not SetupRequest()\n"));
-    callback->OnRedirectVerifyCallback(rv);
-    return NS_OK;
+    return rv;
   }
 
   
@@ -2004,8 +2040,8 @@ WebSocketChannel::AsyncOnChannelRedirect(
   rv = ApplyForAdmission();
   if (NS_FAILED(rv)) {
     LOG(("WebSocketChannel: Redirect failed due to DNS failure\n"));
-    callback->OnRedirectVerifyCallback(rv);
     mRedirectCallback = nsnull;
+    return rv;
   }
 
   return NS_OK;

@@ -147,6 +147,8 @@ protected:
   
   void DontKeepAliveAnyMore();
 
+  nsresult UpdateURI();
+
   nsCOMPtr<nsIWebSocketChannel> mChannel;
 
   nsRefPtr<nsDOMEventListenerWrapper> mOnOpenListener;
@@ -156,6 +158,7 @@ protected:
 
   
   nsString mOriginalURL;
+  nsString mEffectiveURL;   
   bool mSecure; 
                         
 
