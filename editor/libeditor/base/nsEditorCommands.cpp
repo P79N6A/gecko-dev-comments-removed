@@ -662,11 +662,9 @@ nsSelectAllCommand::IsCommandEnabled(const char * aCommandName,
   NS_ENSURE_ARG_POINTER(outCmdEnabled);
 
   nsresult rv = NS_OK;
-  
-  
-  *outCmdEnabled = true;
+  *outCmdEnabled = false;
   bool docIsEmpty, selectionIsEditable;
-
+ 
   
   nsCOMPtr<nsIEditor> editor = do_QueryInterface(aCommandRefCon);
   if (editor) {
@@ -678,7 +676,7 @@ nsSelectAllCommand::IsCommandEnabled(const char * aCommandName,
       NS_ENSURE_SUCCESS(rv, rv);
       *outCmdEnabled = !docIsEmpty;
     }
-  }
+  } 
 
   return rv;
 }

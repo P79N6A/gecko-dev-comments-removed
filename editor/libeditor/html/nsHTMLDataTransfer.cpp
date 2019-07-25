@@ -313,9 +313,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
     
     
     res = GetStartNodeAndOffset(selection, getter_AddRefs(targetNode), &targetOffset);
-    if (!targetNode || !IsEditable(targetNode)) {
-      res = NS_ERROR_FAILURE;
-    }
+    if (!targetNode) res = NS_ERROR_FAILURE;
     NS_ENSURE_SUCCESS(res, res);
   }
   else

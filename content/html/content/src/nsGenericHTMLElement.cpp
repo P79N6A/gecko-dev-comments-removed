@@ -1793,6 +1793,37 @@ nsGenericHTMLElement::MapCommonAttributesInto(const nsMappedAttributes* aAttribu
   }
 }
 
+void
+nsGenericHTMLFormElement::UpdateEditableFormControlState(bool aNotify)
+{
+  
+  
+
+  ContentEditableTristate value = GetContentEditableValue();
+  if (value != eInherit) {
+    DoSetEditableFlag(!!value, aNotify);
+    return;
+  }
+
+  nsIContent *parent = GetParent();
+
+  if (parent && parent->HasFlag(NODE_IS_EDITABLE)) {
+    DoSetEditableFlag(true, aNotify);
+    return;
+  }
+
+  if (!IsTextControl(false)) {
+    DoSetEditableFlag(false, aNotify);
+    return;
+  }
+
+  
+  bool roState;
+  GetBoolAttr(nsGkAtoms::readonly, &roState);
+
+  DoSetEditableFlag(!roState, aNotify);
+}
+
 
  const nsGenericHTMLElement::MappedAttributeEntry
 nsGenericHTMLElement::sCommonAttributeMap[] = {
@@ -2883,18 +2914,6 @@ nsGenericHTMLFormElement::IntrinsicState() const
                    "Default submit element that isn't a submit control.");
       
       state |= NS_EVENT_STATE_DEFAULT;
-  }
-
-  
-  if (!state.HasState(NS_EVENT_STATE_MOZ_READWRITE) &&
-      IsTextControl(false)) {
-    bool roState;
-    GetBoolAttr(nsGkAtoms::readonly, &roState);
-
-    if (!roState) {
-      state |= NS_EVENT_STATE_MOZ_READWRITE;
-      state &= ~NS_EVENT_STATE_MOZ_READONLY;
-    }
   }
 
   return state;
