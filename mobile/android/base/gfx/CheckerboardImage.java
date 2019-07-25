@@ -79,7 +79,11 @@ public class CheckerboardImage extends CairoImage {
 
 
     public void update(boolean showChecks, int color) {
-        mMainColor = color;
+        
+        
+        
+        
+        mMainColor = 0;
         mShowChecks = showChecks;
 
         short mainColor16 = convertTo16Bit(mMainColor);
