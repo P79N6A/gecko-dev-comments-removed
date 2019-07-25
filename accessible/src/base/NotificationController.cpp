@@ -681,10 +681,15 @@ NotificationController::TextEnumerator(nsCOMPtrHashKey<nsIContent>* aEntry,
              tag.get(), id.get(), index);
 #endif
 
+    
     nsAccessible* container = document->GetAccessibleOrContainer(containerNode);
-    nsTArray<nsCOMPtr<nsIContent> > insertedContents;
-    insertedContents.AppendElement(textNode);
-    document->ProcessContentInserted(container, &insertedContents);
+    NS_ASSERTION(container,
+                 "Text node having rendered text hasn't accessible document!");
+    if (container) {
+      nsTArray<nsCOMPtr<nsIContent> > insertedContents;
+      insertedContents.AppendElement(textNode);
+      document->ProcessContentInserted(container, &insertedContents);
+    }
   }
 
   return PL_DHASH_NEXT;

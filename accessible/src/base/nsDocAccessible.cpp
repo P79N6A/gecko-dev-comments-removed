@@ -1418,10 +1418,8 @@ nsDocAccessible::RecreateAccessible(nsIContent* aContent)
   
 
   
-  nsIContent* parentContent = aContent->GetParent();
-  if (parentContent && parentContent->IsInDoc()) {
-    nsAccessible* container = GetAccessibleOrContainer(parentContent);
-
+  nsAccessible* container = GetContainerAccessible(aContent);
+  if (container) {
     
     UpdateTree(container, aContent, false);
     container->UpdateChildren();
@@ -1440,8 +1438,6 @@ nsDocAccessible::ProcessInvalidationList()
     nsAccessible* accessible = GetAccessible(content);
     if (!accessible) {
       nsAccessible* container = GetContainerAccessible(content);
-      NS_ASSERTION(container,
-                   "Got a referenced element that is not in document!");
       if (container) {
         container->UpdateChildren();
         accessible = GetAccessible(content);
