@@ -2230,8 +2230,9 @@ nsAccessible::DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex)
   nsIPresShell* presShell = mDoc->PresShell();
 
   
-  presShell->ScrollContentIntoView(aContent, NS_PRESSHELL_SCROLL_ANYWHERE,
-                                   NS_PRESSHELL_SCROLL_ANYWHERE,
+  presShell->ScrollContentIntoView(aContent,
+                                   nsIPresShell::ScrollAxis(),
+                                   nsIPresShell::ScrollAxis(),
                                    nsIPresShell::SCROLL_OVERFLOW_HIDDEN);
 
   
