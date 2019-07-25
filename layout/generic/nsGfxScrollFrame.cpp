@@ -1463,7 +1463,7 @@ nsGfxScrollFrameInner::nsGfxScrollFrameInner(nsContainerFrame* aOuter,
   , mShouldBuildLayer(PR_FALSE)
 {
   
-  PRBool canOverlap;
+  PRInt32 canOverlap;
   nsPresContext* presContext = mOuter->PresContext();
   presContext->LookAndFeel()->
     GetMetric(nsILookAndFeel::eMetric_ScrollbarsCanOverlapContent, canOverlap);

@@ -148,7 +148,7 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
 
   
   
-  PRBool tempBool;
+  PRInt32 tempBool;
   presContext->LookAndFeel()->
     GetMetric(nsILookAndFeel::eMetric_MenusCanOverlapOSBar, tempBool);
   mMenuCanOverlapOSBar = tempBool;
