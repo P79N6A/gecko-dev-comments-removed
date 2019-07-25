@@ -773,12 +773,12 @@ var Browser = {
     
     
 
-    function transformScreenToBrowser(sX, sY) {
-      return Browser.screenToBrowserView(sX, sY).map(browserView.viewportToBrowser);
+    function transformClientToBrowser(cX, cY) {
+      return Browser.clientToBrowserView(cX, cY).map(browserView.viewportToBrowser);
     }
 
     function elementFromPoint(browser, x, y) {
-      [x, y] = transformScreenToBrowser(browserView, x, y);
+      [x, y] = transformClientToBrowser(browserView, x, y);
       let cwu = BrowserView.Util.getBrowserDOMWindowUtils(browser);
       return cwu.elementFromPoint(x, y,
 				  true,   
@@ -801,7 +801,7 @@ var Browser = {
         let browser = browserView.getBrowser();
         if (browser) {
 	        dump('singleClick was invoked with ' + cX + ', ' + cY + '\n');
-          let [x, y] = transformScreenToBrowser(cX, cY);
+          let [x, y] = transformClientToBrowser(cX, cY);
 	        dump('dispatching in browser ' + x + ', ' + y + '\n');
           dispatchContentClick(browser, x, y);
         }
@@ -896,7 +896,7 @@ var Browser = {
   
 
 
-  screenToBrowserView: function screenToBrowserView(x, y) {
+  clientToBrowserView: function clientToBrowserView(x, y) {
     let container = document.getElementById("tile-container");
     let containerBCR = container.getBoundingClientRect();
 
