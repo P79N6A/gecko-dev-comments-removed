@@ -186,6 +186,12 @@ public:
   
 
 
+
+  bool HasListenersFor(nsIAtom* aEventNameWithOn);
+
+  
+
+
   bool HasListeners();
 
   
