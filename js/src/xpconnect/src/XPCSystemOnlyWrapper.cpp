@@ -48,36 +48,36 @@
 
 
 static JSBool
-XPC_SOW_AddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+XPC_SOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 
 static JSBool
-XPC_SOW_DelProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+XPC_SOW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 
 static JSBool
-XPC_SOW_GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+XPC_SOW_GetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 
 static JSBool
-XPC_SOW_SetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+XPC_SOW_SetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 
 static JSBool
 XPC_SOW_Enumerate(JSContext *cx, JSObject *obj);
 
 static JSBool
-XPC_SOW_NewResolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
+XPC_SOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
                    JSObject **objp);
 
 static JSBool
 XPC_SOW_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp);
 
 static JSBool
-XPC_SOW_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
+XPC_SOW_CheckAccess(JSContext *cx, JSObject *obj, jsval id, JSAccessMode mode,
                     jsval *vp);
 
 static JSBool
-XPC_SOW_HasInstance(JSContext *cx, JSObject *obj, const jsval *valp, JSBool *bp);
+XPC_SOW_HasInstance(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
 
 static JSBool
-XPC_SOW_Equality(JSContext *cx, JSObject *obj, const jsval *valp, JSBool *bp);
+XPC_SOW_Equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
 
 static JSObject *
 XPC_SOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly);
@@ -98,34 +98,28 @@ static const char prefix[] = "chrome://global/";
 
 namespace SystemOnlyWrapper {
 
-js::Class SOWClass = {
-    "SystemOnlyWrapper",
-    JSCLASS_NEW_RESOLVE |
+JSExtendedClass SOWClass = {
+  
+  { "SystemOnlyWrapper",
+    JSCLASS_NEW_RESOLVE | JSCLASS_IS_EXTENDED |
     JSCLASS_HAS_RESERVED_SLOTS(XPCWrapper::sNumSlots),
-    js::Valueify(XPC_SOW_AddProperty),
-    js::Valueify(XPC_SOW_DelProperty),
-    js::Valueify(XPC_SOW_GetProperty),
-    js::Valueify(XPC_SOW_SetProperty),
-    XPC_SOW_Enumerate,
-    (JSResolveOp)XPC_SOW_NewResolve,
-    js::Valueify(XPC_SOW_Convert),
-    nsnull,   
-    nsnull,   
-    js::Valueify(XPC_SOW_CheckAccess),
-    nsnull,   
-    nsnull,   
-    nsnull,   
-    js::Valueify(XPC_SOW_HasInstance),
-    nsnull,   
+    XPC_SOW_AddProperty, XPC_SOW_DelProperty,
+    XPC_SOW_GetProperty, XPC_SOW_SetProperty,
+    XPC_SOW_Enumerate,   (JSResolveOp)XPC_SOW_NewResolve,
+    XPC_SOW_Convert,     nsnull,
+    nsnull,              XPC_SOW_CheckAccess,
+    nsnull,              nsnull,
+    nsnull,              XPC_SOW_HasInstance,
+    nsnull,              nsnull
+  },
 
-    
-    {
-      js::Valueify(XPC_SOW_Equality),
-      nsnull, 
-      nsnull, 
-      XPC_SOW_Iterator,
-      XPC_SOW_WrappedObject
-    }
+  
+  XPC_SOW_Equality,
+  nsnull,             
+  nsnull,             
+  XPC_SOW_Iterator,
+  XPC_SOW_WrappedObject,
+  JSCLASS_NO_RESERVED_MEMBERS
 };
 
 JSBool
@@ -139,7 +133,7 @@ WrapObject(JSContext *cx, JSObject *parent, jsval v, jsval *vp)
   }
 
   JSObject *wrapperObj =
-    JS_NewObjectWithGivenProto(cx, js::Jsvalify(&SOWClass), NULL, parent);
+    JS_NewObjectWithGivenProto(cx, &SOWClass.base, NULL, parent);
   if (!wrapperObj) {
     return JS_FALSE;
   }
@@ -160,9 +154,10 @@ MakeSOW(JSContext *cx, JSObject *obj)
 {
 #ifdef DEBUG
   {
-    js::Class *clasp = obj->getClass();
-    NS_ASSERTION(clasp != &SystemOnlyWrapper::SOWClass &&
-                 clasp != &XPCCrossOriginWrapper::XOWClass,
+    JSClass *clasp = obj->getJSClass();
+    NS_ASSERTION(clasp != &SystemOnlyWrapper::SOWClass.base &&
+                 clasp != &XPCCrossOriginWrapper::XOWClass.base &&
+                 strcmp(clasp->name, "XPCNativeWrapper"),
                  "bad call");
   }
 #endif
@@ -176,7 +171,7 @@ MakeSOW(JSContext *cx, JSObject *obj)
 
 
 JSBool
-AllowedToAct(JSContext *cx, jsid id)
+AllowedToAct(JSContext *cx, jsval idval)
 {
   
   nsIScriptSecurityManager *ssm = GetSecurityManager();
@@ -200,7 +195,7 @@ AllowedToAct(JSContext *cx, jsid id)
     
     
     fp = nsnull;
-  } else if (!fp->hasScript()) {
+  } else if (!fp->script) {
     fp = nsnull;
   }
 
@@ -215,7 +210,7 @@ AllowedToAct(JSContext *cx, jsid id)
   
   const char *filename;
   if (fp &&
-      (filename = fp->getScript()->filename) &&
+      (filename = fp->script->filename) &&
       !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
     return JS_TRUE;
   }
@@ -226,13 +221,12 @@ AllowedToAct(JSContext *cx, jsid id)
     return JS_TRUE;
   }
 
-  if (JSID_IS_VOID(id)) {
+  if (JSVAL_IS_VOID(idval)) {
     ThrowException(NS_ERROR_XPC_SECURITY_MANAGER_VETO, cx);
   } else {
     
-    jsval idval;
-    JSString *str;
-    if (JS_IdToValue(cx, id, &idval) && (str = JS_ValueToString(cx, idval))) {
+    JSString *str = JS_ValueToString(cx, idval);
+    if (str) {
       JS_ReportError(cx, "Permission denied to access property '%hs' from a non-chrome context",
                      JS_GetStringChars(str));
     }
@@ -242,21 +236,21 @@ AllowedToAct(JSContext *cx, jsid id)
 }
 
 JSBool
-CheckFilename(JSContext *cx, jsid id, JSStackFrame *fp)
+CheckFilename(JSContext *cx, jsval idval, JSStackFrame *fp)
 {
   const char *filename;
   if (fp &&
-      (filename = fp->getScript()->filename) &&
+      (filename = fp->script->filename) &&
       !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
     return JS_TRUE;
   }
 
-  if (JSID_IS_VOID(id)) {
+  if (JSVAL_IS_VOID(idval)) {
     ThrowException(NS_ERROR_XPC_SECURITY_MANAGER_VETO, cx);
   } else {
-    jsval idval;
-    JSString *str;
-    if (JS_IdToValue(cx, id, &idval) && (str = JS_ValueToString(cx, idval))) {
+    
+    JSString *str = JS_ValueToString(cx, idval);
+    if (str) {
       JS_ReportError(cx, "Permission denied to access property '%hs' from a non-chrome context",
                      JS_GetStringChars(str));
     }
@@ -274,9 +268,17 @@ using namespace SystemOnlyWrapper;
 static inline JSObject *
 GetWrappedJSObject(JSContext *cx, JSObject *obj)
 {
-  if (JSObjectOp op = obj->getClass()->ext.wrappedObject)
-    return op(cx, obj);
-  return obj;
+  JSClass *clasp = obj->getJSClass();
+  if (!(clasp->flags & JSCLASS_IS_EXTENDED)) {
+    return obj;
+  }
+
+  JSExtendedClass *xclasp = (JSExtendedClass *)clasp;
+  if (!xclasp->wrappedObject) {
+    return obj;
+  }
+
+  return xclasp->wrappedObject(cx, obj);
 }
 
 
@@ -284,7 +286,7 @@ static inline
 JSObject *
 GetWrapper(JSObject *obj)
 {
-  while (obj->getClass() != &SOWClass) {
+  while (obj->getJSClass() != &SOWClass.base) {
     obj = obj->getProto();
     if (!obj) {
       break;
@@ -305,7 +307,7 @@ static JSBool
 XPC_SOW_FunctionWrapper(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
                         jsval *rval)
 {
-  if (!AllowedToAct(cx, JSID_VOID)) {
+  if (!AllowedToAct(cx, JSVAL_VOID)) {
     return JS_FALSE;
   }
 
@@ -403,7 +405,7 @@ XPC_SOW_RewrapValue(JSContext *cx, JSObject *wrapperObj, jsval *vp)
     return XPC_SOW_WrapFunction(cx, wrapperObj, obj, vp);
   }
 
-  if (obj->getClass() == &SOWClass) {
+  if (obj->getJSClass() == &SOWClass.base) {
     
     
     
@@ -426,9 +428,9 @@ XPC_SOW_RewrapValue(JSContext *cx, JSObject *wrapperObj, jsval *vp)
 }
 
 static JSBool
-XPC_SOW_AddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+XPC_SOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-  NS_ASSERTION(obj->getClass() == &SOWClass, "Wrong object");
+  NS_ASSERTION(obj->getJSClass() == &SOWClass.base, "Wrong object");
 
   jsval resolving;
   if (!JS_GetReservedSlot(cx, obj, sFlagsSlot, &resolving)) {
@@ -453,7 +455,7 @@ XPC_SOW_AddProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 }
 
 static JSBool
-XPC_SOW_DelProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+XPC_SOW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
   JSObject *wrappedObj = GetWrappedObject(cx, obj);
   if (!wrappedObj) {
@@ -468,7 +470,7 @@ XPC_SOW_DelProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 }
 
 static JSBool
-XPC_SOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
+XPC_SOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
                          JSBool isSet)
 {
   obj = GetWrapper(obj);
@@ -487,14 +489,19 @@ XPC_SOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
     return ThrowException(NS_ERROR_ILLEGAL_VALUE, cx);
   }
 
-  if (isSet && id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_PROTO)) {
+  if (isSet && id == GetRTStringByIndex(cx, XPCJSRuntime::IDX_PROTO)) {
     
     return ThrowException(NS_ERROR_INVALID_ARG, cx); 
   }
 
+  jsid interned_id;
+  if (!JS_ValueToId(cx, id, &interned_id)) {
+    return JS_FALSE;
+  }
+
   JSBool ok = isSet
-              ? JS_SetPropertyById(cx, wrappedObj, id, vp)
-              : JS_GetPropertyById(cx, wrappedObj, id, vp);
+              ? JS_SetPropertyById(cx, wrappedObj, interned_id, vp)
+              : JS_GetPropertyById(cx, wrappedObj, interned_id, vp);
   if (!ok) {
     return JS_FALSE;
   }
@@ -503,13 +510,13 @@ XPC_SOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
 }
 
 static JSBool
-XPC_SOW_GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+XPC_SOW_GetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
   return XPC_SOW_GetOrSetProperty(cx, obj, id, vp, JS_FALSE);
 }
 
 static JSBool
-XPC_SOW_SetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+XPC_SOW_SetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
   return XPC_SOW_GetOrSetProperty(cx, obj, id, vp, JS_TRUE);
 }
@@ -524,7 +531,7 @@ XPC_SOW_Enumerate(JSContext *cx, JSObject *obj)
     return JS_TRUE;
   }
 
-  if (!AllowedToAct(cx, JSID_VOID)) {
+  if (!AllowedToAct(cx, JSVAL_VOID)) {
     return JS_FALSE;
   }
 
@@ -532,7 +539,7 @@ XPC_SOW_Enumerate(JSContext *cx, JSObject *obj)
 }
 
 static JSBool
-XPC_SOW_NewResolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
+XPC_SOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
                    JSObject **objp)
 {
   obj = GetWrapper(obj);
@@ -554,7 +561,7 @@ XPC_SOW_NewResolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 static JSBool
 XPC_SOW_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
 {
-  if (!AllowedToAct(cx, JSID_VOID)) {
+  if (!AllowedToAct(cx, JSVAL_VOID)) {
     return JS_FALSE;
   }
 
@@ -575,7 +582,7 @@ XPC_SOW_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
 }
 
 static JSBool
-XPC_SOW_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
+XPC_SOW_CheckAccess(JSContext *cx, JSObject *obj, jsval prop, JSAccessMode mode,
                     jsval *vp)
 {
   
@@ -588,13 +595,15 @@ XPC_SOW_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
   }
 
   uintN junk;
-  return JS_CheckAccess(cx, wrappedObj, id, mode, vp, &junk);
+  jsid id;
+  return JS_ValueToId(cx, prop, &id) &&
+         JS_CheckAccess(cx, wrappedObj, id, mode, vp, &junk);
 }
 
 static JSBool
-XPC_SOW_HasInstance(JSContext *cx, JSObject *obj, const jsval *valp, JSBool *bp)
+XPC_SOW_HasInstance(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
 {
-  if (!AllowedToAct(cx, JSID_VOID)) {
+  if (!AllowedToAct(cx, JSVAL_VOID)) {
     return JS_FALSE;
   }
 
@@ -614,7 +623,6 @@ XPC_SOW_HasInstance(JSContext *cx, JSObject *obj, const jsval *valp, JSBool *bp)
   
   
   
-  jsval v = *valp;
   if (!JSVAL_IS_PRIMITIVE(v)) {
     JSObject *test = JSVAL_TO_OBJECT(v);
 
@@ -625,14 +633,13 @@ XPC_SOW_HasInstance(JSContext *cx, JSObject *obj, const jsval *valp, JSBool *bp)
     }
   }
 
-  return clasp->hasInstance(cx, iface, &v, bp);
+  return clasp->hasInstance(cx, iface, v, bp);
 }
 
 static JSBool
-XPC_SOW_Equality(JSContext *cx, JSObject *obj, const jsval *valp, JSBool *bp)
+XPC_SOW_Equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
 {
   
-  jsval v = *valp;
   if (JSVAL_IS_PRIMITIVE(v)) {
     *bp = JS_FALSE;
     return JS_TRUE;
@@ -651,16 +658,21 @@ XPC_SOW_Equality(JSContext *cx, JSObject *obj, const jsval *valp, JSBool *bp)
   }
 
   if (lhs) {
-    if (JSEqualityOp op = js::Jsvalify(lhs->getClass()->ext.equality)) {
-      jsval rhsVal = OBJECT_TO_JSVAL(rhs);
-      return op(cx, lhs, &rhsVal, bp);
+    
+    JSClass *clasp = lhs->getJSClass();
+    if (clasp->flags & JSCLASS_IS_EXTENDED) {
+      JSExtendedClass *xclasp = (JSExtendedClass *) clasp;
+      
+      return xclasp->equality(cx, lhs, OBJECT_TO_JSVAL(rhs), bp);
     }
   }
 
   
-  if (JSEqualityOp op = js::Jsvalify(rhs->getClass()->ext.equality)) {
-    jsval lhsVal = OBJECT_TO_JSVAL(lhs);
-    return op(cx, rhs, &lhsVal, bp);
+  JSClass *clasp = rhs->getJSClass();
+  if (clasp->flags & JSCLASS_IS_EXTENDED) {
+    JSExtendedClass *xclasp = (JSExtendedClass *) clasp;
+    
+    return xclasp->equality(cx, rhs, OBJECT_TO_JSVAL(lhs), bp);
   }
 
   *bp = JS_FALSE;
@@ -676,7 +688,7 @@ XPC_SOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
     return nsnull;
   }
 
-  JSObject *wrapperIter = JS_NewObject(cx, js::Jsvalify(&SOWClass), nsnull,
+  JSObject *wrapperIter = JS_NewObject(cx, &SOWClass.base, nsnull,
                                        JS_GetGlobalForObject(cx, obj));
   if (!wrapperIter) {
     return nsnull;

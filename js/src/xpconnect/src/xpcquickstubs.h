@@ -40,8 +40,6 @@
 #ifndef xpcquickstubs_h___
 #define xpcquickstubs_h___
 
-#include "nsINode.h"
-
 
 
 class XPCCallContext;
@@ -78,89 +76,6 @@ struct xpc_qsHashEntry {
     size_t chain;
 };
 
-inline nsISupports*
-ToSupports(nsISupports *p)
-{
-    return p;
-}
-
-inline nsISupports*
-ToCanonicalSupports(nsISupports* p)
-{
-  return nsnull;
-}
-
-#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 2) || \
-    _MSC_FULL_VER >= 140050215
-
-
-
-#define QS_CASTABLE_TO(_interface, _class) __is_base_of(_interface, _class)
-
-#else
-
-
-
-
-
-
-
-
-
-template <typename Interface> struct QS_CastableTo {
-  struct false_type { int x[1]; };
-  struct true_type { int x[2]; };
-  static false_type p(void*);
-  static true_type p(Interface*);
-};
-
-#define QS_CASTABLE_TO(_interface, _class)                                 \
-  (sizeof(QS_CastableTo<_interface>::p(static_cast<_class*>(0))) ==        \
-   sizeof(QS_CastableTo<_interface>::true_type))
-
-#endif
-
-#define QS_IS_NODE(_class)                                                 \
-  QS_CASTABLE_TO(nsINode, _class) ||                                       \
-  QS_CASTABLE_TO(nsIDOMNode, _class)
-
-class qsObjectHelper : public xpcObjectHelper
-{
-public:
-  template <class T>
-  inline
-  qsObjectHelper(T *aObject, nsWrapperCache *aCache)
-  : xpcObjectHelper(ToSupports(aObject), ToCanonicalSupports(aObject),
-                    aCache, QS_IS_NODE(T))
-  {}
-  template <class T>
-  inline
-  qsObjectHelper(nsCOMPtr<T>& aObject, nsWrapperCache *aCache)
-  : xpcObjectHelper(ToSupports(aObject.get()),
-                    ToCanonicalSupports(aObject.get()), aCache, QS_IS_NODE(T))
-  {
-    if (mCanonical)
-    {
-        
-        mCanonicalStrong = dont_AddRef(mCanonical);
-        aObject.forget();
-    }
-  }
-  template <class T>
-  inline
-  qsObjectHelper(nsRefPtr<T>& aObject, nsWrapperCache *aCache)
-  : xpcObjectHelper(ToSupports(aObject.get()),
-                    ToCanonicalSupports(aObject.get()), aCache, QS_IS_NODE(T))
-  {
-    if (mCanonical)
-    {
-        
-        mCanonicalStrong = dont_AddRef(mCanonical);
-        aObject.forget();
-    }
-  }
-};
-
 JSBool
 xpc_qsDefineQuickStubs(JSContext *cx, JSObject *proto, uintN extraFlags,
                        PRUint32 ifacec, const nsIID **interfaces,
@@ -185,7 +100,7 @@ xpc_qsThrow(JSContext *cx, nsresult rv);
 
 JSBool
 xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
-                              JSObject *obj, jsid memberId);
+                              JSObject *obj, jsval memberId);
 
 
 
@@ -225,11 +140,8 @@ xpc_qsThrowBadArgWithDetails(JSContext *cx, nsresult rv, uintN paramnum,
 
 void
 xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
-                          jsid propId);
+                          jsval propId);
 
-
-JSBool
-xpc_qsGetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 
 
@@ -428,15 +340,8 @@ xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, jsval *pval, PRUnichar **pstr);
 
 
 
-
-
-
 JSBool
-xpc_qsStringToJsval(JSContext *cx, nsString &str, jsval *rval);
-
-
-JSBool
-xpc_qsStringToJsstring(JSContext *cx, nsString &str, JSString **rval);
+xpc_qsStringToJsval(JSContext *cx, const nsAString &str, jsval *rval);
 
 nsresult
 getWrapper(JSContext *cx,
@@ -634,12 +539,10 @@ xpc_qsGetWrapperCache(void *p)
 }
 
 
-
-
-
 JSBool
 xpc_qsXPCOMObjectToJsval(XPCLazyCallContext &lccx,
-                         qsObjectHelper &aHelper,
+                         nsISupports *p,
+                         nsWrapperCache *cache,
                          const nsIID *iid,
                          XPCNativeInterface **iface,
                          jsval *rval);
@@ -660,18 +563,6 @@ inline PRBool
 xpc_qsSameResult(nsISupports *result1, nsISupports *result2)
 {
     return SameCOMIdentity(result1, result2);
-}
-
-inline PRBool
-xpc_qsSameResult(const nsString &result1, const nsString &result2)
-{
-    return result1.Equals(result2);
-}
-
-inline PRBool
-xpc_qsSameResult(PRInt32 result1, PRInt32 result2)
-{
-    return result1 == result2;
 }
 
 #define XPC_QS_ASSERT_CONTEXT_OK(cx) xpc_qsAssertContextOK(cx)

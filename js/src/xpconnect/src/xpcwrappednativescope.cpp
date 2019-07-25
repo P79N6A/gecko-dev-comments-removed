@@ -204,31 +204,29 @@ XPCWrappedNativeScope::SetComponents(nsXPCComponents* aComponents)
 
 
 
-js::Class XPC_WN_NoHelper_Proto_JSClass = {
+JSClass XPC_WN_NoHelper_Proto_JSClass = {
     "XPC_WN_NoHelper_Proto_JSClass",
     WRAPPER_SLOTS,                  
 
     
-    js::PropertyStub,               
-    js::PropertyStub,               
-    js::PropertyStub,               
-    js::PropertyStub,               
-    js::EnumerateStub,              
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_EnumerateStub,               
     JS_ResolveStub,                 
-    js::ConvertStub,                
+    JS_ConvertStub,                 
     nsnull,                         
 
     
+    XPC_WN_Proto_GetObjectOps,      
     nsnull,                         
     nsnull,                         
     nsnull,                         
     nsnull,                         
     nsnull,                         
     nsnull,                         
-    nsnull,                         
-
-    JS_NULL_CLASS_EXT,
-    XPC_WN_NoCall_ObjectOps
+    nsnull                          
 };
 
 
@@ -352,8 +350,7 @@ XPCWrappedNativeScope::GetPrototypeNoHelper(XPCCallContext& ccx)
     if(!mPrototypeNoHelper)
     {
         mPrototypeNoHelper =
-            xpc_NewSystemInheritingJSObject(ccx,
-                                            js::Jsvalify(&XPC_WN_NoHelper_Proto_JSClass),
+            xpc_NewSystemInheritingJSObject(ccx, &XPC_WN_NoHelper_Proto_JSClass,
                                             mPrototypeJSObject,
                                             mGlobalJSObject);
 
@@ -411,20 +408,15 @@ WrappedNativeSuspecter(JSDHashTable *table, JSDHashEntryHdr *hdr,
 {
     SuspectClosure* closure = static_cast<SuspectClosure*>(arg);
     XPCWrappedNative* wrapper = ((Native2WrappedNativeMap::Entry*)hdr)->value;
-
-    if(wrapper->IsValid() &&
-       wrapper->HasExternalReference() &&
-       !wrapper->IsWrapperExpired())
+    if(wrapper->IsValid())
     {
         NS_ASSERTION(NS_IsMainThread(), 
                      "Suspecting wrapped natives from non-main thread");
-        NS_ASSERTION(!JS_IsAboutToBeFinalized(closure->cx, wrapper->GetFlatJSObject()),
-                     "WrappedNativeSuspecter attempting to touch dead object");
 
         
         
-        if(!(closure->cb.WantAllTraces()) &&
-           !nsXPConnect::IsGray(wrapper->GetFlatJSObject()))
+        if(!(closure->cb.WantAllTraces()) && 
+           !JS_IsAboutToBeFinalized(closure->cx, wrapper->GetFlatJSObject()))
             return JS_DHASH_NEXT;
 
         closure->cb.NoteRoot(nsIProgrammingLanguage::JAVASCRIPT,
@@ -728,7 +720,7 @@ XPCWrappedNativeScope*
 GetScopeOfObject(JSObject* obj)
 {
     nsISupports* supports;
-    js::Class* clazz = obj->getClass();
+    JSClass* clazz = obj->getJSClass();
     JSBool isWrapper = IS_WRAPPER_CLASS(clazz);
 
     if(isWrapper && IS_SLIM_WRAPPER_OBJECT(obj))
@@ -1039,12 +1031,8 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
             principalEqual = PR_TRUE;
     }
 
-    PRBool native = IS_WRAPPER_CLASS(obj->getClass());
-    XPCWrappedNative *wrapper = (native && IS_WN_WRAPPER_OBJECT(obj))
-                                ? (XPCWrappedNative *) xpc_GetJSPrivate(obj)
-                                : nsnull;
     if(wn)
-        *wn = wrapper;
+        *wn = nsnull;
 
     
     
@@ -1065,19 +1053,25 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
             XPCCrossOriginWrapper::ClassNeedsXOW(obj->getClass()->name);
 
         
+        JSObject *obj2;
+        XPCWrappedNative *wrapper =
+            XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nsnull, &obj2);
         if(principalEqual || obj->isSystem())
         {
             if(hint & XPCNW)
-                return native ? hint : NONE;
+                return (wrapper || obj2) ? hint : NONE;
             return wantsXOW ? SJOW : NONE;
         }
 
         
         
 
-        if(!native)
+        if(!wrapper && !obj2)
             hint = SJOW;
-        else if(hint == UNKNOWN)
+
+        if(wn)
+            *wn = wrapper;
+        if(hint == UNKNOWN)
             hint = XPCNW_IMPLICIT;
 
         NS_ASSERTION(hint <= SJOW, "returning the wrong wrapper for chrome code");
@@ -1086,6 +1080,12 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
 
     
     
+
+    JSObject *obj2;
+    XPCWrappedNative *wrapper =
+        XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nsnull, &obj2);
+    if(wn)
+        *wn = wrapper;
 
     nsIPrincipal *otherprincipal = other->GetPrincipal();
     XPCWrapper::GetSecurityManager()->IsSystemPrincipal(otherprincipal, &system);
@@ -1096,9 +1096,9 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
 
         if(wrapper)
         {
-            NS_ASSERTION(!wrapper->NeedsCOW(),
+            NS_ASSERTION(!wrapper->IsDoubleWrapper(),
                          "chrome object that's double wrapped makes no sense");
-            if(wrapper->NeedsSOW())
+            if(wrapper->NeedsChromeWrapper())
                 return WrapperType(SOW | hint);
         }
 
@@ -1107,7 +1107,7 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
 
     
     
-    if(!native)
+    if(!wrapper && !obj2)
     {
 #if 0
         
@@ -1124,9 +1124,9 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
     
     if(wrapper)
     {
-        if(wrapper->NeedsSOW())
+        if(wrapper->NeedsChromeWrapper())
             return WrapperType(SOW | (hint & (SJOW | XPCNW_EXPLICIT | COW)));
-        if(wrapper->NeedsCOW())
+        if(wrapper->IsDoubleWrapper())
         {
 #ifdef DEBUG
             {
