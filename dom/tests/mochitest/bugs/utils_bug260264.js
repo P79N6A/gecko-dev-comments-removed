@@ -1,3 +1,10 @@
+(function() {
+  
+  document.getElementsByTagName("head").item(0)
+    .appendChild(document.createElement("script")).src =
+      "/tests/SimpleTest/EventUtils.js";
+})();
+
 
 
 
