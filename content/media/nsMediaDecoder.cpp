@@ -80,6 +80,7 @@ nsMediaDecoder::nsMediaDecoder() :
   mFrameBufferLength(0),
   mPinnedForSeek(PR_FALSE),
   mSizeChanged(PR_FALSE),
+  mImageContainerSizeChanged(PR_FALSE),
   mShuttingDown(PR_FALSE)
 {
   MOZ_COUNT_CTOR(nsMediaDecoder);
@@ -138,9 +139,15 @@ void nsMediaDecoder::Invalidate()
     return;
 
   nsIFrame* frame = mElement->GetPrimaryFrame();
+  PRBool invalidateFrame = PR_FALSE;
 
   {
     nsAutoLock lock(mVideoUpdateLock);
+
+    
+    invalidateFrame = mImageContainerSizeChanged;
+    mImageContainerSizeChanged = PR_FALSE;
+
     if (mSizeChanged) {
       nsIntSize scaledSize(mRGBWidth, mRGBHeight);
       
@@ -169,8 +176,11 @@ void nsMediaDecoder::Invalidate()
 
   if (frame) {
     nsRect contentRect = frame->GetContentRect() - frame->GetPosition();
-    
-    frame->InvalidateLayer(contentRect, nsDisplayItem::TYPE_VIDEO);
+    if (invalidateFrame) {
+      frame->Invalidate(contentRect);
+    } else {
+      frame->InvalidateLayer(contentRect, nsDisplayItem::TYPE_VIDEO);
+    }
   }
 
 #ifdef MOZ_SVG
@@ -257,7 +267,12 @@ void nsMediaDecoder::SetVideoData(const gfxIntSize& aSize,
     mSizeChanged = PR_TRUE;
   }
   if (mImageContainer && aImage) {
+    gfxIntSize oldFrameSize = mImageContainer->GetCurrentSize();
     mImageContainer->SetCurrentImage(aImage);
+    gfxIntSize newFrameSize = mImageContainer->GetCurrentSize();
+    if (oldFrameSize != newFrameSize) {
+      mImageContainerSizeChanged = PR_TRUE;
+    }
   }
 }
 

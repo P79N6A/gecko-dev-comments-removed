@@ -352,7 +352,18 @@ protected:
   PRPackedBool mPinnedForSeek;
 
   
+  
+  
+  
   PRPackedBool mSizeChanged;
+
+  
+  
+  
+  
+  
+  
+  PRPackedBool mImageContainerSizeChanged;
 
   
   
