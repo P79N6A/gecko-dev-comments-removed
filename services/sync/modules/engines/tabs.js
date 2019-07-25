@@ -409,7 +409,7 @@ TabTracker.prototype = {
       return;
     }
     
-    dump("Tab listeners registered!\n");
+    
     let container = browser.tabContainer;
     container.addEventListener("TabOpen", this.onTabOpened, false);
     container.addEventListener("TabClose", this.onTabClosed, false);
@@ -444,8 +444,7 @@ TabTracker.prototype = {
 
   onTabOpened: function TabTracker_onTabOpened(event) {
     
-    
-    dump("Tab opened.\n");
+    this._log.trace("Tab opened.");
     event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
     
     this._score += 50;
@@ -458,7 +457,7 @@ TabTracker.prototype = {
 
   onTabSelected: function TabTracker_onTabSelected(event) {
     
-    dump("Tab selected.\n");
+    this._log.trace("Tab selected.");
     
     event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
     
