@@ -394,10 +394,8 @@ var PrintPreviewListener = {
       browser = document.createElement("browser");
       browser.setAttribute("id", "ppBrowser");
       browser.setAttribute("flex", "1");
-
-      
-      let browserBottomBox = document.getElementById("browser-bottombox");
-      browserBottomBox.insertBefore(browser, browserBottomBox.firstChild);
+      document.getElementById("appcontent").
+        insertBefore(browser, document.getElementById("FindToolbar"));
     }
     return browser;
   },
