@@ -64,11 +64,11 @@ function isUsableDirectory(aDirectory)
 
 
 
-function nsUnkownContentTypeDialogProgressListener(aHelperAppDialog) {
+function nsUnknownContentTypeDialogProgressListener(aHelperAppDialog) {
   this.helperAppDlg = aHelperAppDialog;
 }
 
-nsUnkownContentTypeDialogProgressListener.prototype = {
+nsUnknownContentTypeDialogProgressListener.prototype = {
   
   
   onStatusChange: function( aWebProgress, aRequest, aStatus, aMessage ) {
@@ -214,7 +214,7 @@ nsUnknownContentTypeDialog.prototype = {
     this.getSpecialFolderKey = this.mDialog.getSpecialFolderKey;
 
     
-    var progressListener = new nsUnkownContentTypeDialogProgressListener(this);
+    var progressListener = new nsUnknownContentTypeDialogProgressListener(this);
     this.mLauncher.setWebProgressListener(progressListener);
   },
 
@@ -365,9 +365,9 @@ nsUnknownContentTypeDialog.prototype = {
 
 
 
-  validateLeafName: function (aLocalFile, aLeafName, aFileExt)
+  validateLeafName: function (aLocalFolder, aLeafName, aFileExt)
   {
-    if (!(aLocalFile && isUsableDirectory(aLocalFile)))
+    if (!(aLocalFolder && isUsableDirectory(aLocalFolder)))
       return null;
 
     
@@ -376,9 +376,9 @@ nsUnknownContentTypeDialog.prototype = {
 
     if (aLeafName == "")
       aLeafName = "unnamed" + (aFileExt ? "." + aFileExt : "");
-    aLocalFile.append(aLeafName);
+    aLocalFolder.append(aLeafName);
 
-    var createdFile = DownloadPaths.createNiceUniqueFile(aLocalFile);
+    var createdFile = DownloadPaths.createNiceUniqueFile(aLocalFolder);
 
 #ifdef XP_WIN
     let ext;
@@ -392,8 +392,8 @@ nsUnknownContentTypeDialog.prototype = {
     let leaf = createdFile.leafName;
     if (ext && leaf.slice(-ext.length) != ext && createdFile.isExecutable()) {
       createdFile.remove(false);
-      aLocalFile.leafName = leaf + ext;
-      createdFile = DownloadPaths.createNiceUniqueFile(aLocalFile);
+      aLocalFolder.leafName = leaf + ext;
+      createdFile = DownloadPaths.createNiceUniqueFile(aLocalFolder);
     }
 #endif
 
