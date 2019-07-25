@@ -248,12 +248,5 @@ let TabView = {
         });
       }
     }, true);
-  },
-  
-  
-  
-  prepareUndoCloseTab: function() {
-    if (this._window)
-      this._window.UI.restoredClosedTab = true;
   }
 };
