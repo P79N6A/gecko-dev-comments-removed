@@ -544,6 +544,43 @@ nsComboboxControlFrame::ReflowDropdown(nsPresContext*  aPresContext,
   return rv;
 }
 
+nsPoint
+nsComboboxControlFrame::GetCSSTransformTranslate()
+{
+  nsIFrame* frame = this;
+  PRBool is3DTransform = PR_FALSE;
+  gfxMatrix transform;
+  while (frame) {
+    nsIFrame* parent = nsnull;
+    gfx3DMatrix ctm = frame->GetTransformMatrix(&parent);
+    gfxMatrix matrix;
+    if (ctm.Is2D(&matrix)) {
+      transform = transform * matrix;
+    } else {
+      is3DTransform = PR_TRUE;
+      break;
+    }
+    frame = parent;
+  }
+  nsPoint translation;
+  if (!is3DTransform && !transform.HasNonTranslation()) {
+    nsPresContext* pc = PresContext();
+    gfxPoint pixelTranslation = transform.GetTranslation();
+    PRInt32 apd = pc->AppUnitsPerDevPixel();
+    translation.x = NSFloatPixelsToAppUnits(float(pixelTranslation.x), apd);
+    translation.y = NSFloatPixelsToAppUnits(float(pixelTranslation.y), apd);
+    
+    
+    nsRootPresContext* rootPC = pc->GetRootPresContext();
+    if (rootPC) {
+      translation -= GetOffsetToCrossDoc(rootPC->PresShell()->GetRootFrame());
+    } else {
+      translation.x = translation.y = 0;
+    }
+  }
+  return translation;
+}
+
 void
 nsComboboxControlFrame::AbsolutelyPositionDropDown()
 {
@@ -558,6 +595,11 @@ nsComboboxControlFrame::AbsolutelyPositionDropDown()
    
    
 
+  
+  
+  
+  nsPoint translation = GetCSSTransformTranslation();
+
    
    
   nscoord dropdownYOffset = GetRect().height;
@@ -566,7 +608,7 @@ nsComboboxControlFrame::AbsolutelyPositionDropDown()
   nsRect screen = nsFormControlFrame::GetUsableScreenRect(PresContext());
 
   
-  if (GetScreenRectInAppUnits().YMost() + dropdownSize.height > screen.YMost()) {
+  if ((GetScreenRectInAppUnits() + translation).YMost() + dropdownSize.height > screen.YMost()) {
     
     dropdownYOffset = - (dropdownSize.height);
   }
@@ -581,7 +623,7 @@ nsComboboxControlFrame::AbsolutelyPositionDropDown()
   }
   dropdownPosition.y = dropdownYOffset; 
 
-  mDropdownFrame->SetPosition(dropdownPosition);
+  mDropdownFrame->SetPosition(dropdownPosition + translation);
 }
 
 

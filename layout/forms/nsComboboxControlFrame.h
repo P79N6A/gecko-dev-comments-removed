@@ -254,6 +254,12 @@ protected:
   void HandleRedisplayTextEvent();
   void ActuallyDisplayText(PRBool aNotify);
 
+private:
+  
+  
+  nsPoint GetCSSTransformTranslation();
+
+protected:
   nsFrameList              mPopupFrames;             
   nsCOMPtr<nsIContent>     mDisplayContent;          
   nsCOMPtr<nsIContent>     mButtonContent;           
