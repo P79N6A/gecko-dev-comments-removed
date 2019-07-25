@@ -113,8 +113,9 @@ PlacesItem.prototype = {
   _logName: "Sync.Record.PlacesItem",
 };
 
-Utils.deferGetSet(PlacesItem, "cleartext", ["hasDupe", "parentid", "parentName",
-                                            "type"]);
+Utils.deferGetSet(PlacesItem,
+                  "cleartext",
+                  ["hasDupe", "parentid", "parentName", "type"]);
 
 function Bookmark(collection, id, type) {
   PlacesItem.call(this, collection, id, type || "bookmark");
@@ -124,8 +125,10 @@ Bookmark.prototype = {
   _logName: "Sync.Record.Bookmark",
 };
 
-Utils.deferGetSet(Bookmark, "cleartext", ["title", "bmkUri", "description",
-  "loadInSidebar", "tags", "keyword"]);
+Utils.deferGetSet(Bookmark,
+                  "cleartext",
+                  ["title", "bmkUri", "description",
+                   "loadInSidebar", "tags", "keyword"]);
 
 function BookmarkQuery(collection, id) {
   Bookmark.call(this, collection, id, "query");
@@ -135,8 +138,9 @@ BookmarkQuery.prototype = {
   _logName: "Sync.Record.BookmarkQuery",
 };
 
-Utils.deferGetSet(BookmarkQuery, "cleartext", ["folderName",
-                                               "queryId"]);
+Utils.deferGetSet(BookmarkQuery,
+                  "cleartext",
+                  ["folderName", "queryId"]);
 
 function BookmarkFolder(collection, id, type) {
   PlacesItem.call(this, collection, id, type || "folder");
@@ -169,14 +173,6 @@ BookmarkSeparator.prototype = {
 
 Utils.deferGetSet(BookmarkSeparator, "cleartext", "pos");
 
-
-function archiveBookmarks() {
-  
-  try {
-    PlacesUtils.archiveBookmarksFile(null, true);
-  }
-  catch(ex) {}
-}
 
 let kSpecialIds = {
 
@@ -389,8 +385,9 @@ BookmarksEngine.prototype = {
     SyncEngine.prototype._syncStartup.call(this);
 
     
-    if (this.lastSync == 0)
-      archiveBookmarks();
+    if (this.lastSync == 0) {
+      PlacesUtils.archiveBookmarksFile(null, true);
+    }
 
     this.__defineGetter__("_guidMap", function() {
       
@@ -1240,7 +1237,7 @@ BookmarksStore.prototype = {
 
   wipe: function BStore_wipe() {
     
-    archiveBookmarks();
+    PlacesUtils.archiveBookmarksFile(null, true);
 
     for each (let guid in kSpecialIds.guids)
       if (guid != "places") {
