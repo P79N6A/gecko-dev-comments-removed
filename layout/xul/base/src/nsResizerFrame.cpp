@@ -62,9 +62,11 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
   bool doDefault = true;
 
   switch (aEvent->message) {
+    case NS_TOUCH_START:
     case NS_MOUSE_BUTTON_DOWN: {
-      if (aEvent->eventStructType == NS_MOUSE_EVENT &&
-        static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton)
+      if (aEvent->eventStructType == NS_TOUCH_EVENT ||
+          (aEvent->eventStructType == NS_MOUSE_EVENT &&
+        static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton))
       {
         nsCOMPtr<nsIBaseWindow> window;
         nsIPresShell* presShell = aPresContext->GetPresShell();
@@ -113,20 +115,25 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         }
 
         
-        mTrackingMouseMove = true;
+        nsIntPoint refPoint;
+        if (!GetEventPoint(aEvent, refPoint))
+          return NS_OK;
+        mMouseDownPoint = refPoint + aEvent->widget->WidgetToScreenOffset();
 
         
-        mMouseDownPoint = aEvent->refPoint + aEvent->widget->WidgetToScreenOffset();
+        mTrackingMouseMove = true;
 
         nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
       }
     }
     break;
 
+  case NS_TOUCH_END:
   case NS_MOUSE_BUTTON_UP: {
 
-    if (mTrackingMouseMove && aEvent->eventStructType == NS_MOUSE_EVENT &&
-        static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton)
+      if (aEvent->eventStructType == NS_TOUCH_EVENT ||
+          (aEvent->eventStructType == NS_MOUSE_EVENT &&
+        static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton))
     {
       
       mTrackingMouseMove = false;
@@ -138,6 +145,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
   }
   break;
 
+  case NS_TOUCH_MOVE:
   case NS_MOUSE_MOVE: {
     if (mTrackingMouseMove)
     {
@@ -160,7 +168,10 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
 
       
       
-      nsIntPoint screenPoint(aEvent->refPoint + aEvent->widget->WidgetToScreenOffset());
+      nsIntPoint refPoint;
+      if (!GetEventPoint(aEvent, refPoint))
+        return NS_OK;
+      nsIntPoint screenPoint(refPoint + aEvent->widget->WidgetToScreenOffset());
       nsIntPoint mouseMove(screenPoint - mMouseDownPoint);
 
       

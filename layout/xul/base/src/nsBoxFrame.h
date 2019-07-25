@@ -210,6 +210,13 @@ protected:
 
     nsCOMPtr<nsBoxLayout> mLayoutManager;
 
+    
+    
+    bool GetEventPoint(nsGUIEvent *aEvent, nsPoint &aPoint);
+    
+    
+    bool GetEventPoint(nsGUIEvent *aEvent, nsIntPoint &aPoint);
+
 protected:
     nsresult RegUnregAccessKey(bool aDoReg);
 
