@@ -49,7 +49,6 @@
 #include "nsILoadGroup.h"
 #include "nsIObserver.h"
 #include "ImageLayers.h"
-
 #include "nsAudioStream.h"
 
 
@@ -64,6 +63,10 @@ class nsHTMLMediaElement : public nsGenericHTMLElement,
   typedef mozilla::layers::ImageContainer ImageContainer;
 
 public:
+
+  typedef mozilla::TimeStamp TimeStamp;
+  typedef mozilla::TimeDuration TimeDuration;
+
   enum CanPlayStatus {
     CANPLAY_NO,
     CANPLAY_MAYBE,
@@ -339,6 +342,14 @@ public:
 
   void SetRequestHeaders(nsIHttpChannel* aChannel);
 
+  
+
+
+
+
+
+  void FireTimeUpdate(PRBool aPeriodic);
+
 protected:
   class MediaLoadListener;
 
@@ -590,6 +601,14 @@ protected:
   
   
   nsIntSize mMediaSize;
+
+  
+  
+  TimeStamp mTimeUpdateTime;
+
+  
+  
+  float mLastCurrentTime;
 
   nsRefPtr<gfxASurface> mPrintSurface;
 

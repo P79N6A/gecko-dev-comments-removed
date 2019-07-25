@@ -145,8 +145,6 @@ void nsBuiltinDecoder::Shutdown()
 
   mShuttingDown = PR_TRUE;
 
-  StopTimeUpdate();
-
   
   
   
@@ -392,8 +390,6 @@ void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,
   if (resourceIsLoaded) {
     ResourceLoaded();
   }
-
-  StartTimeUpdate();
 }
 
 void nsBuiltinDecoder::ResourceLoaded()
