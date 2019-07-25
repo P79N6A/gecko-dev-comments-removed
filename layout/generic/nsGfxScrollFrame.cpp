@@ -3141,6 +3141,69 @@ nsGfxScrollFrameInner::SetCoordAttribute(nsIContent* aContent, nsIAtom* aAtom,
   aContent->SetAttr(kNameSpaceID_None, aAtom, newValue, PR_TRUE);
 }
 
+static void
+ReduceRadii(nscoord aXBorder, nscoord aYBorder,
+            nscoord& aXRadius, nscoord& aYRadius)
+{
+  
+  
+  if (aXRadius <= aXBorder || aYRadius <= aYBorder)
+    return;
+
+  
+  double ratio = NS_MAX(double(aXBorder) / aXRadius,
+                        double(aYBorder) / aYRadius);
+  aXRadius *= ratio;
+  aYRadius *= ratio;
+}
+
+
+
+
+
+
+
+
+
+PRBool
+nsGfxScrollFrameInner::GetBorderRadii(nscoord aRadii[8]) const
+{
+  if (!mOuter->nsContainerFrame::GetBorderRadii(aRadii))
+    return PR_FALSE;
+
+  
+  
+  
+  nsMargin sb = GetActualScrollbarSizes();
+  nsMargin border = mOuter->GetUsedBorder();
+
+  if (sb.left > 0 || sb.top > 0) {
+    ReduceRadii(border.left, border.top,
+                aRadii[NS_CORNER_TOP_LEFT_X],
+                aRadii[NS_CORNER_TOP_LEFT_Y]);
+  }
+
+  if (sb.top > 0 || sb.right > 0) {
+    ReduceRadii(border.right, border.top,
+                aRadii[NS_CORNER_TOP_RIGHT_X],
+                aRadii[NS_CORNER_TOP_RIGHT_Y]);
+  }
+
+  if (sb.right > 0 || sb.bottom > 0) {
+    ReduceRadii(border.right, border.bottom,
+                aRadii[NS_CORNER_BOTTOM_RIGHT_X],
+                aRadii[NS_CORNER_BOTTOM_RIGHT_Y]);
+  }
+
+  if (sb.bottom > 0 || sb.left > 0) {
+    ReduceRadii(border.left, border.bottom,
+                aRadii[NS_CORNER_BOTTOM_LEFT_X],
+                aRadii[NS_CORNER_BOTTOM_LEFT_Y]);
+  }
+
+  return PR_TRUE;
+}
+
 nsRect
 nsGfxScrollFrameInner::GetScrolledRect() const
 {
