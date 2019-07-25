@@ -126,13 +126,11 @@ class Preprocessor:
                                                             'file': self.context['FILE'],
                                                             'le': self.LE})
         self.writtenLines = ln
-    filteredLine = self.applyFilters(aLine)
-    if filteredLine != aLine:
-      self.actionLevel = 2
+    aLine = self.applyFilters(aLine)
     
     
-    filteredLine = re.sub('\n', self.LE, filteredLine)
-    self.out.write(filteredLine)
+    aLine = re.sub('\n', self.LE, aLine)
+    self.out.write(aLine)
   
   def handleCommandLine(self, args, defaultToStdin = False):
     """
