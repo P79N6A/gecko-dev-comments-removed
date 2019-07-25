@@ -2,54 +2,24 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.net;
 
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 import org.mozilla.gecko.sync.CryptoRecord;
+import org.mozilla.gecko.sync.KeyBundleProvider;
 
 
 
 
 
 
-public abstract class WBOCollectionRequestDelegate extends
-    SyncStorageCollectionRequestDelegate {
+public abstract class WBOCollectionRequestDelegate
+extends SyncStorageCollectionRequestDelegate
+implements KeyBundleProvider {
 
-  public abstract void handleWBO(CryptoRecord record);
+  @Override
   public abstract KeyBundle keyBundle();
+  public abstract void handleWBO(CryptoRecord record);
 
   @Override
   public void handleRequestProgress(String progress) {
