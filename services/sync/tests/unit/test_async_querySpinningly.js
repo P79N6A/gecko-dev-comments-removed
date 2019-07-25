@@ -1,7 +1,7 @@
 _("Make sure querySpinningly will synchronously fetch rows for a query asyncly");
 Cu.import("resource://services-sync/async.js");
 
-const SQLITE_CONSTRAINT_VIOLATION = 19;  // http://www.sqlite.org/c3ref/c_abort.html
+const SQLITE_CONSTRAINT_VIOLATION = 19;  
 
 function run_test() {
   initTestLogging("Trace");
@@ -11,7 +11,7 @@ function run_test() {
 
   _("Make sure the call is async and allows other events to process");
   let isAsync = false;
-  Utils.delay(function() isAsync = true, 0);
+  Utils.nextTick(function() { isAsync = true; });
   do_check_false(isAsync);
 
   _("Empty out the formhistory table");

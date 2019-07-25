@@ -599,7 +599,7 @@ ChannelListener.prototype = {
 
 
   delayAbort: function delayAbort() {
-    Utils.delay(this.abortRequest, this._timeout, this, "abortTimer");
+    Utils.namedTimer(this.abortRequest, this._timeout, this, "abortTimer");
   },
 
   abortRequest: function abortRequest() {

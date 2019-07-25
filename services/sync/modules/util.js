@@ -936,14 +936,23 @@ let Utils = {
   
 
 
+  nextTick: function nextTick(callback, thisObj) {
+    if (thisObj) {
+      callback = callback.bind(thisObj);
+    }
+    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    timer.initWithCallback(callback, 0, timer.TYPE_ONE_SHOT);
+  },
+
+  
 
 
-  delay: function delay(callback, wait, thisObj, name) {
-    
-    wait = wait || 0;
 
-    
-    thisObj = thisObj || {};
+
+  namedTimer: function delay(callback, wait, thisObj, name) {
+    if (!thisObj || !name) {
+      throw "You must provide both an object and a property name for the timer!";
+    }
 
     
     if (name in thisObj && thisObj[name] instanceof Ci.nsITimer) {

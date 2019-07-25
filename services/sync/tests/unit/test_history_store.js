@@ -35,7 +35,7 @@ function onNextTitleChanged(callback) {
     onPageChanged: function onPageChanged() {},
     onTitleChanged: function onTitleChanged() {
       PlacesUtils.history.removeObserver(this);
-      Utils.delay(callback, 0, this);
+      Utils.nextTick(callback);
     },
     onVisit: function onVisit() {},
     onDeleteVisits: function onDeleteVisits() {},
@@ -51,8 +51,8 @@ function onNextTitleChanged(callback) {
   }, true);
 }
 
-// Ensure exceptions from inside callbacks leads to test failures while
-// we still clean up properly.
+
+
 function ensureThrows(func) {
   return function() {
     try {
