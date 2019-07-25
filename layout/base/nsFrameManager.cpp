@@ -982,7 +982,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     aMinChange =
       NS_SubtractHint(aMinChange, nsChangeHint_ClearAncestorIntrinsics);
   }
-  
+
   
   
   
@@ -1023,6 +1023,15 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     
     nsIContent* content = localContent ? localContent : aParentContent;
 
+    if (content && content->IsElement()) {
+      RestyleTracker::RestyleData restyleData;
+      if (aRestyleTracker.GetRestyleData(content->AsElement(), &restyleData)) {
+        if (NS_UpdateHint(aMinChange, restyleData.mChangeHint)) {
+          aChangeList->AppendChange(aFrame, content, restyleData.mChangeHint);
+        }
+      }
+    }
+  
     nsStyleContext* parentContext;
     nsIFrame* resolvedChild = nsnull;
     
@@ -1256,6 +1265,14 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         NS_ASSERTION(!undisplayed->mStyle->GetPseudo(),
                      "Shouldn't have random pseudo style contexts in the "
                      "undisplayed map");
+        RestyleTracker::RestyleData undisplayedRestyleData;
+        if (aRestyleTracker.GetRestyleData(undisplayed->mContent->AsElement(),
+                                           &undisplayedRestyleData)) {
+          
+          
+          
+          
+        }
         nsRefPtr<nsStyleContext> undisplayedContext =
           styleSet->ResolveStyleFor(undisplayed->mContent->AsElement(), newContext);
         if (undisplayedContext) {

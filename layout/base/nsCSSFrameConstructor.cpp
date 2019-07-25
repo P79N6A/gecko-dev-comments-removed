@@ -2338,6 +2338,14 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     state.mPresShell->CaptureHistoryState(getter_AddRefs(mTempFrameTreeState));
 
   
+  
+  
+  
+  
+  
+  aDocElement->UnsetFlags(ELEMENT_ALL_RESTYLE_FLAGS);
+
+  
   nsRefPtr<nsStyleContext> styleContext;
   styleContext = mPresShell->StyleSet()->ResolveStyleFor(aDocElement,
                                                          nsnull);
@@ -5028,6 +5036,16 @@ nsCSSFrameConstructor::AddFrameConstructionItems(nsFrameConstructorState& aState
                                                  FrameConstructionItemList& aItems)
 {
   aContent->UnsetFlags(NODE_DESCENDANTS_NEED_FRAMES | NODE_NEEDS_FRAME);
+  if (aContent->IsElement()) {
+    
+    
+    
+    
+    
+    
+    aContent->UnsetFlags(ELEMENT_ALL_RESTYLE_FLAGS &
+                         ~ELEMENT_PENDING_RESTYLE_FLAGS);
+  }
 
   
   if (!NeedFrameFor(aState, aParentFrame, aContent)) {
@@ -9625,7 +9643,13 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
          iter != last;
          ++iter) {
       PRInt32 i = iter.XBLInvolved() ? -1 : iter.position();
-      AddFrameConstructionItems(aState, *iter, i, aFrame, itemsToConstruct);
+      nsIContent* child = *iter;
+      
+      
+      if (child->IsElement()) {
+        child->UnsetFlags(ELEMENT_ALL_RESTYLE_FLAGS);
+      }
+      AddFrameConstructionItems(aState, child, i, aFrame, itemsToConstruct);
     }
     itemsToConstruct.SetParentHasNoXBLChildren(!iter.XBLInvolved());
 
@@ -10949,6 +10973,13 @@ nsCSSFrameConstructor::BuildInlineChildItems(nsFrameConstructorState& aState,
         content->IsNodeOfType(nsINode::ePROCESSING_INSTRUCTION)) {
       continue;
     }
+    if (content->IsElement()) {
+      
+      
+      
+      
+      content->UnsetFlags(ELEMENT_ALL_RESTYLE_FLAGS);
+    }
 
     nsRefPtr<nsStyleContext> childContext =
       ResolveStyleContext(parentStyleContext, content);
@@ -11402,11 +11433,14 @@ static void
 RestyleSiblingsStartingWith(nsCSSFrameConstructor *aFrameConstructor,
                             nsIContent *aStartingSibling )
 {
-  if (aStartingSibling) {
-    nsIContent* parent = aStartingSibling->GetParent();
-    if (parent && parent->IsElement()) {
-      aFrameConstructor->PostRestyleEvent(parent->AsElement(), eRestyle_Self,
-                                          NS_STYLE_HINT_NONE);
+  for (nsIContent *sibling = aStartingSibling; sibling;
+       sibling = sibling->GetNextSibling()) {
+    if (sibling->IsElement()) {
+      aFrameConstructor->
+        PostRestyleEvent(sibling->AsElement(),
+                         nsRestyleHint(eRestyle_Self | eRestyle_LaterSiblings),
+                         NS_STYLE_HINT_NONE);
+      break;
     }
   }
 }

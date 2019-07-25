@@ -45,6 +45,7 @@
 
 #include "mozilla/dom/Element.h"
 #include "nsDataHashtable.h"
+#include "nsIFrame.h"
 
 class nsCSSFrameConstructor;
 
@@ -57,7 +58,8 @@ public:
 
   RestyleTracker(PRUint32 aRestyleBits,
                  nsCSSFrameConstructor* aFrameConstructor) :
-    mRestyleBits(aRestyleBits), mFrameConstructor(aFrameConstructor)
+    mRestyleBits(aRestyleBits), mFrameConstructor(aFrameConstructor),
+    mHaveLaterSiblingRestyles(PR_FALSE)
   {
     NS_PRECONDITION((mRestyleBits & ~ELEMENT_ALL_RESTYLE_FLAGS) == 0,
                     "Why do we have these bits set?");
@@ -84,20 +86,47 @@ public:
   
 
 
-  void AddPendingRestyle(Element* aElement, nsRestyleHint aRestyleHint,
-                         nsChangeHint aMinChangeHint) {
-    AddPendingRestyle(aElement, aRestyleHint, nsRestyleHint(0), aMinChangeHint);
-  }
+
+  PRBool AddPendingRestyle(Element* aElement, nsRestyleHint aRestyleHint,
+                           nsChangeHint aMinChangeHint);
 
   
 
 
   void ProcessRestyles();
 
+  
+  PRUint32 RestyleBit() const {
+    return mRestyleBits & ELEMENT_PENDING_RESTYLE_FLAGS;
+  }
+
+  
+  PRUint32 RootBit() const {
+    return mRestyleBits & ~ELEMENT_PENDING_RESTYLE_FLAGS;
+  }
+  
   struct RestyleData {
     nsRestyleHint mRestyleHint;  
     nsChangeHint  mChangeHint;   
   };
+
+  
+
+
+
+
+
+
+
+
+
+
+  PRBool GetRestyleData(Element* aElement, RestyleData* aData);
+
+  
+
+
+  inline nsIDocument* Document() const;
 
   struct RestyleEnumerateData : public RestyleData {
     nsCOMPtr<Element> mElement;
@@ -109,41 +138,97 @@ private:
 
 
 
-  inline void AddPendingRestyle(Element* aElement, nsRestyleHint aRestyleHint,
-                                nsRestyleHint aRestyleHintToRemove,
-                                nsChangeHint aMinChangeHint);
-
-  
   inline void ProcessOneRestyle(Element* aElement,
                                 nsRestyleHint aRestyleHint,
                                 nsChangeHint aChangeHint);
-  
+
   typedef nsDataHashtable<nsISupportsHashKey, RestyleData> PendingRestyleTable;
+  typedef nsAutoTArray< nsRefPtr<Element>, 32> RestyleRootArray;
   
   
   
   PRUint32 mRestyleBits;
   nsCSSFrameConstructor* mFrameConstructor; 
+  
+  
+  
+  
+  
   PendingRestyleTable mPendingRestyles;
+  
+  
+  
+  
+  
+  
+  RestyleRootArray mRestyleRoots;
+  
+  
+  
+  PRBool mHaveLaterSiblingRestyles;
 };
 
-inline void RestyleTracker::AddPendingRestyle(Element* aElement,
-                                              nsRestyleHint aRestyleHint,
-                                              nsRestyleHint aRestyleHintToRemove,
-                                              nsChangeHint aMinChangeHint)
+inline PRBool RestyleTracker::AddPendingRestyle(Element* aElement,
+                                                nsRestyleHint aRestyleHint,
+                                                nsChangeHint aMinChangeHint)
 {
   RestyleData existingData;
   existingData.mRestyleHint = nsRestyleHint(0);
   existingData.mChangeHint = NS_STYLE_HINT_NONE;
 
-  mPendingRestyles.Get(aElement, &existingData);
+  
+  
+  
+  if (aElement->HasFlag(RestyleBit())) {
+    mPendingRestyles.Get(aElement, &existingData);
+  } else {
+    aElement->SetFlags(RestyleBit());
+  }
 
+  PRBool hadRestyleLaterSiblings =
+    (existingData.mRestyleHint & eRestyle_LaterSiblings) != 0;
   existingData.mRestyleHint =
-    nsRestyleHint((existingData.mRestyleHint | aRestyleHint) &
-                  ~aRestyleHintToRemove);
+    nsRestyleHint(existingData.mRestyleHint | aRestyleHint);
   NS_UpdateHint(existingData.mChangeHint, aMinChangeHint);
 
   mPendingRestyles.Put(aElement, existingData);
+
+  
+  
+  
+  if ((aRestyleHint & eRestyle_Self) ||
+      (aMinChangeHint & nsChangeHint_ReconstructFrame)) {
+    for (const Element* cur = aElement; !cur->HasFlag(RootBit()); ) {
+      nsIContent* parent = cur->GetFlattenedTreeParent();
+      
+      
+      
+      
+      
+      if (!parent || !parent->IsElement() ||
+          
+          
+          
+          
+          
+          
+          (cur->IsInNativeAnonymousSubtree() && !parent->GetParent() &&
+           cur->GetPrimaryFrame() &&
+           cur->GetPrimaryFrame()->GetParent() != parent->GetPrimaryFrame())) {
+        mRestyleRoots.AppendElement(aElement);
+        break;
+      }
+      cur = parent->AsElement();
+    }
+    
+    
+    
+    aElement->SetFlags(RootBit());
+  }
+
+  mHaveLaterSiblingRestyles =
+    mHaveLaterSiblingRestyles || (aRestyleHint & eRestyle_LaterSiblings) != 0;
+  return hadRestyleLaterSiblings;
 }
 
 } 
