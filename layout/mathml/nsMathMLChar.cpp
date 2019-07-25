@@ -1125,10 +1125,7 @@ nsMathMLChar::StretchEnumContext::TryVariants(nsGlyphTable*    aGlyphTable,
   PRBool haveBetter = PR_FALSE;
 
   
-  PRInt32 size = 1; 
-  if (largeop && aGlyphTable->BigOf(mPresContext, mChar, 2).Exists()) {
-    size = 2;
-  }
+  PRInt32 size = 1;
 #ifdef NOISY_SEARCH
   printf("  searching in %s ...\n",
            NS_LossyConvertUTF16toASCII(aFamily).get());
