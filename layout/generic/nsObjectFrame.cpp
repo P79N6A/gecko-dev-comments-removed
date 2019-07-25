@@ -5857,6 +5857,9 @@ void nsPluginInstanceOwner::Paint(const gfxRect& aDirtyRect, CGContextRef cgCont
 
 void nsPluginInstanceOwner::DoCocoaEventDrawRect(const gfxRect& aDrawRect, CGContextRef cgContext)
 {
+  if (!mInstance || !mObjectFrame)
+    return;
+ 
   
   NPCocoaEvent updateEvent;
   InitializeNPCocoaEvent(&updateEvent);
