@@ -302,21 +302,12 @@
 
 
 
-#titlebar {
+#main-window[sizemode="normal"] > #titlebar {
   -moz-appearance: -moz-window-titlebar;
-  
-
-  margin-left: -15px;
-  margin-right: -15px;
 }
 
 #main-window[sizemode="maximized"] > #titlebar {
   -moz-appearance: -moz-window-titlebar-maximized;
-}
-
-#titlebar-content {
-  margin-left: 15px;
-  margin-right: 15px;
 }
 
 @media all and (-moz-windows-classic) {

@@ -1197,9 +1197,19 @@ RENDER_AGAIN:
   }
 #endif
 
-  
-  
-  if (aWidgetType == NS_THEME_TAB) {
+  if (aWidgetType == NS_THEME_WINDOW_TITLEBAR) {
+    
+    
+    widgetRect.left -= GetSystemMetrics(SM_CXFRAME);
+    widgetRect.right += GetSystemMetrics(SM_CXFRAME);
+  } else if (aWidgetType == NS_THEME_WINDOW_TITLEBAR_MAXIMIZED) {
+    
+    
+    
+    widgetRect.top += GetSystemMetrics(SM_CYFRAME);
+  } else if (aWidgetType == NS_THEME_TAB) {
+    
+    
     PRBool isLeft = IsLeftToSelectedTab(aFrame);
     PRBool isRight = !isLeft && IsRightToSelectedTab(aFrame);
 
@@ -3294,8 +3304,6 @@ RENDER_AGAIN:
 
       
       rect.top += offset;
-      rect.left += offset;
-      rect.right -= offset;
       
       
       BOOL bFlag = TRUE;
@@ -3337,8 +3345,10 @@ RENDER_AGAIN:
         GradientFill(hdc, vertex, 2, &gRect, 1, GRADIENT_FILL_RECT_H);
       }
 
-      
-      DrawEdge(hdc, &widgetRect, EDGE_RAISED, BF_TOP|BF_LEFT|BF_RIGHT);
+      if (aWidgetType == NS_THEME_WINDOW_TITLEBAR) {
+        
+        DrawEdge(hdc, &widgetRect, EDGE_RAISED, BF_TOP);
+      }
       break;
     }
 
