@@ -226,64 +226,75 @@ var gViewSourceUtils = {
     onStateChange: function(aProgress, aRequest, aFlag, aStatus) {
       
       if ((aFlag & this.mnsIWebProgressListener.STATE_STOP) && aStatus == 0) {
-        try {
-          if (!this.file) {
-            
-
-            
-            
-            this.file = gViewSourceUtils.getTemporaryFile(this.data.uri, this.data.doc, 
-                                                          this.data.doc.contentType);
-
-            
-            var webNavigation = this.webShell.QueryInterface(Components.interfaces.nsIWebNavigation);
-            var foStream = Components.classes["@mozilla.org/network/file-output-stream;1"]
-                                     .createInstance(Components.interfaces.nsIFileOutputStream);
-            foStream.init(this.file, 0x02 | 0x08 | 0x20, 0664, 0); 
-            var coStream = Components.classes["@mozilla.org/intl/converter-output-stream;1"]
-                                     .createInstance(Components.interfaces.nsIConverterOutputStream);
-            coStream.init(foStream, this.data.doc.characterSet, 0, null);
-
-            
-            coStream.writeString(webNavigation.document.body.textContent);
+        var webNavigation = this.webShell.QueryInterface(Components.interfaces.nsIWebNavigation);
+        if (webNavigation.document.readyState == "complete") {
           
-            
-            coStream.close();
-            foStream.close();
-
-            
-            Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"]
-                      .getService(Components.interfaces.nsPIExternalAppLauncher)
-                      .deleteTemporaryFileOnExit(this.file);
-          }
-
-          
-          
-          
-          var editorArgs = [];
-          var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                                .getService(Components.interfaces.nsIPrefBranch);
-          var args = prefs.getCharPref("view_source.editor.args");
-          if (args) {
-            args = args.replace("%LINE%", this.data.lineNumber || "0");
-            
-            const argumentRE = /"([^"]+)"|(\S+)/g;
-            while (argumentRE.test(args))
-              editorArgs.push(RegExp.$1 || RegExp.$2);
-          }
-          editorArgs.push(this.file.path);
-          this.editor.runw(false, editorArgs, editorArgs.length);
-
-          gViewSourceUtils.handleCallBack(this.callBack, true, this.data);
-        } catch (ex) {
-          
-          Components.utils.reportError(ex);
-          gViewSourceUtils.handleCallBack(this.callBack, false, this.data);
-        } finally {
-          this.destroy();
+          this.onContentLoaded();
+        } else {
+          webNavigation.document.addEventListener("DOMContentLoaded",
+                                                  this.onContentLoaded.bind(this));
         }
       }
       return 0;
+    },
+
+    onContentLoaded: function() {
+      try {
+        if (!this.file) {
+          
+
+          
+          
+          this.file = gViewSourceUtils.getTemporaryFile(this.data.uri, this.data.doc, 
+                                                        this.data.doc.contentType);
+
+          
+          var webNavigation = this.webShell.QueryInterface(Components.interfaces.nsIWebNavigation);
+          var foStream = Components.classes["@mozilla.org/network/file-output-stream;1"]
+                                   .createInstance(Components.interfaces.nsIFileOutputStream);
+          foStream.init(this.file, 0x02 | 0x08 | 0x20, 0664, 0); 
+          var coStream = Components.classes["@mozilla.org/intl/converter-output-stream;1"]
+                                   .createInstance(Components.interfaces.nsIConverterOutputStream);
+          coStream.init(foStream, this.data.doc.characterSet, 0, null);
+
+          
+          coStream.writeString(webNavigation.document.body.textContent);
+          
+          
+          coStream.close();
+          foStream.close();
+
+          
+          Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"]
+                    .getService(Components.interfaces.nsPIExternalAppLauncher)
+                    .deleteTemporaryFileOnExit(this.file);
+        }
+
+        
+        
+        
+        var editorArgs = [];
+        var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                              .getService(Components.interfaces.nsIPrefBranch);
+        var args = prefs.getCharPref("view_source.editor.args");
+        if (args) {
+          args = args.replace("%LINE%", this.data.lineNumber || "0");
+          
+          const argumentRE = /"([^"]+)"|(\S+)/g;
+          while (argumentRE.test(args))
+            editorArgs.push(RegExp.$1 || RegExp.$2);
+        }
+        editorArgs.push(this.file.path);
+        this.editor.runw(false, editorArgs, editorArgs.length);
+
+        gViewSourceUtils.handleCallBack(this.callBack, true, this.data);
+      } catch (ex) {
+        
+        Components.utils.reportError(ex);
+        gViewSourceUtils.handleCallBack(this.callBack, false, this.data);
+      } finally {
+        this.destroy();
+      }
     },
 
     onLocationChange: function() {return 0;},
