@@ -9,6 +9,9 @@
 
 #include "AccIterator.h"
 
+namespace mozilla {
+namespace a11y {
+
 
 
 
@@ -116,6 +119,9 @@ private:
   nsAutoPtr<AccIterable> mFirstIter;
   AccIterable* mLastIter;
 };
+
+} 
+} 
 
 #endif
 
