@@ -5052,9 +5052,10 @@ JSObject::splicePrototype(JSContext *cx, JSObject *proto)
 
 
 
-    getType(cx);
+    TypeObject *type = getType(cx);
+    TypeObject *protoType = NULL;
     if (proto) {
-        proto->getType(cx);
+        protoType = proto->getType(cx);
         if (!proto->getNewType(cx))
             return false;
     }
@@ -5067,22 +5068,22 @@ JSObject::splicePrototype(JSContext *cx, JSObject *proto)
         return true;
     }
 
-    type()->proto = proto;
+    type->proto = proto;
 
     AutoEnterTypeInference enter(cx);
 
-    if (proto && proto->type()->unknownProperties() && !type()->unknownProperties()) {
-        type()->markUnknown(cx);
+    if (protoType && protoType->unknownProperties() && !type->unknownProperties()) {
+        type->markUnknown(cx);
         return true;
     }
 
-    if (!type()->unknownProperties()) {
+    if (!type->unknownProperties()) {
         
-        unsigned count = type()->getPropertyCount();
+        unsigned count = type->getPropertyCount();
         for (unsigned i = 0; i < count; i++) {
-            Property *prop = type()->getProperty(i);
+            Property *prop = type->getProperty(i);
             if (prop && prop->types.hasPropagatedProperty())
-                type()->getFromPrototypes(cx, prop->id, &prop->types, true);
+                type->getFromPrototypes(cx, prop->id, &prop->types, true);
         }
     }
 
