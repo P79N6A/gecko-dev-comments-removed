@@ -3218,18 +3218,10 @@ pref("gfx.color_management.mode", 0);
 #endif
 
 
-#ifdef XP_WIN
-pref("layers.accelerate-all", true);
-#else
-#ifdef XP_MACOSX
-pref("layers.accelerate-all", true);
-#else
-pref("layers.accelerate-all", false);
-#endif
-#endif
+pref("layers.acceleration.disabled", false);
 
 
-pref("layers.accelerate-none", false);
+pref("layers.acceleration.force-enabled", false);
 
 #ifdef XP_WIN
 #ifndef WINCE
