@@ -86,7 +86,8 @@ function setupTwo() {
     
     tabItems.forEach(function(tabItem) {
       let tabData = contentWindow.Storage.getTabData(tabItem.tab);
-      ok(tabData && tabData.imageData, "TabItem has stored image data before closing");
+      ok(tabData && tabData.imageData, 
+        "TabItem has stored image data before closing");
     });
 
     
@@ -100,12 +101,12 @@ function setupTwo() {
         restoredWin.removeEventListener("load", arguments.callee, false);
 
         
+        restoredWin.addEventListener("tabviewshown", onTabViewShown, false);
+
+        
         newTabOne = restoredWin.gBrowser.tabs[0];
         newTabTwo = restoredWin.gBrowser.tabs[1];
         restoredWin.gBrowser.addTabsProgressListener(gTabsProgressListener);
-
-        
-        restoredWin.addEventListener("tabviewframeinitialized", onTabViewFrameInitialized, false);
       }, false);
     }, false);
 
@@ -117,14 +118,16 @@ function setupTwo() {
     ok(aTopic == "quit-application-requested" &&
         aSubject instanceof Ci.nsISupportsPRBool,
         "Received a quit request and going to deny it");
-    Services.obs.removeObserver(quitRequestObserver, "quit-application-requested", false);
+    Services.obs.removeObserver(
+      quitRequestObserver, "quit-application-requested", false);
 
     aSubject.data = true;
     
     
     executeSoon(checkDataAndCloseWindow);
   }
-  Services.obs.addObserver(quitRequestObserver, "quit-application-requested", false);
+  Services.obs.addObserver(
+    quitRequestObserver, "quit-application-requested", false);
   ok(!Application.quit(), "Tried to quit and canceled it");
 }
 
@@ -152,15 +155,17 @@ let gTabsProgressListener = {
   }
 };
 
-function onTabViewFrameInitialized() {
-  restoredWin.removeEventListener("tabviewframeinitialized", onTabViewFrameInitialized, false);
+function onTabViewShown() {
+  restoredWin.removeEventListener("tabviewshown", onTabViewShown, false);
 
-  let contentWindow = restoredWin.document.getElementById("tab-view").contentWindow;
+  let contentWindow = 
+    restoredWin.document.getElementById("tab-view").contentWindow;
 
   let nextStep = function() {
     
     
     if (restoredNewTabOneLoaded && restoredNewTabTwoLoaded) {
+      
       
       
       executeSoon(updateAndCheck);
@@ -174,13 +179,16 @@ function onTabViewFrameInitialized() {
     
     
     if (tabItem.reconnected) {
-      ok(tabItem.isShowingCachedData(), "Tab item is showing cached data");
+      ok(tabItem.isShowingCachedData(), 
+         "Tab item is showing cached data and is already connected");
       count--;
       if (count == 0)
         nextStep();
     } else {
       tabItem.addSubscriber(tabItem, "reconnected", function() {
         tabItem.removeSubscriber(tabItem, "reconnected");
+        ok(tabItem.isShowingCachedData(), 
+           "Tab item is showing cached data and is just connected");
         count--;
         if (count == 0)
           nextStep();
@@ -191,12 +199,14 @@ function onTabViewFrameInitialized() {
 
 function updateAndCheck() {
   
-  let contentWindow = restoredWin.document.getElementById("tab-view").contentWindow;
+  let contentWindow = 
+    restoredWin.document.getElementById("tab-view").contentWindow;
 
   let tabItems = contentWindow.TabItems.getItems();
   tabItems.forEach(function(tabItem) {
     contentWindow.TabItems._update(tabItem.tab);
-    ok(!tabItem.isShowingCachedData(), "Tab item is not showing cached data anymore");
+    ok(!tabItem.isShowingCachedData(), 
+      "Tab item is not showing cached data anymore");
   });
 
   
