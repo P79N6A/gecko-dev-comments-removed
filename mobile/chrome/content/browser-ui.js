@@ -325,6 +325,9 @@ var BrowserUI = {
 
   sizeControls : function(windowW, windowH) {
     
+    document.getElementById("tabs").resize();
+
+    
     let popup = document.getElementById("popup_autocomplete");
     popup.top = this.toolbarH;
     popup.height = windowH - this.toolbarH;
