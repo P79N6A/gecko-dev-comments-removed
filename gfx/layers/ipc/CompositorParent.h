@@ -151,6 +151,10 @@ private:
   
   bool mIsFirstPaint;
 
+  
+  
+  bool mLayersUpdated;
+
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
 };
 

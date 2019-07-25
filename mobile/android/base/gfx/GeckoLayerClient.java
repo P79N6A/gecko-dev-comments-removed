@@ -145,11 +145,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
             RectF position = mGeckoViewport.getViewport();
             mRootLayer.setPositionAndResolution(RectUtils.round(position), mGeckoViewport.getZoomFactor());
         }
-
-        
-        if (mDrawListener != null) {
-            mDrawListener.drawFinished();
-        }
     }
 
     RectF getDisplayPort() {
@@ -392,7 +387,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-    public ViewTransform syncViewportInfo(int x, int y, int width, int height, float resolution) {
+    public ViewTransform syncViewportInfo(int x, int y, int width, int height, float resolution, boolean layersUpdated) {
         
         
         
@@ -408,6 +403,11 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
         mGeckoDisplayPort.set(x, y, x + width, y + height);
         mRootLayer.setDisplayPort(mGeckoDisplayPort);
+
+        if (layersUpdated && mDrawListener != null) {
+            
+            mDrawListener.drawFinished();
+        }
 
         return mCurrentViewTransform;
     }
