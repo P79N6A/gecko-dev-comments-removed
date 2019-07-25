@@ -173,23 +173,20 @@ let UI = {
       this._addTabActionHandlers();
 
       
-      GroupItems.pauseArrange();
       GroupItems.init();
-
-      let firstTime = true;
-      if (gPrefBranch.prefHasUserValue("experienced_first_run"))
-        firstTime = !gPrefBranch.getBoolPref("experienced_first_run");
-      let groupItemsData = Storage.readGroupItemsData(gWindow);
-      let groupItemData = Storage.readGroupItemData(gWindow);
-      GroupItems.reconstitute(groupItemsData, groupItemData);
-      GroupItems.killNewTabGroup(); 
+      GroupItems.pauseArrange();
+      let hasGroupItemsData = GroupItems.load();
 
       
       TabItems.init();
       TabItems.pausePainting();
 
       
-      if (firstTime || !groupItemsData || Utils.isEmptyObject(groupItemsData))
+      let firstTime = true;
+      if (gPrefBranch.prefHasUserValue("experienced_first_run"))
+        firstTime = !gPrefBranch.getBoolPref("experienced_first_run");
+
+      if (firstTime || !hasGroupItemsData)
         this.reset(firstTime);
 
       
@@ -524,6 +521,10 @@ let UI = {
     function srObserver(aSubject, aTopic, aData) {
       if (aTopic != "sessionstore-browser-state-restored")
         return;
+        
+      let hasGroupItemsData = GroupItems.load();
+      if (!hasGroupItemsData)
+        self.reset(false);
         
       
       if (self._privateBrowsing.transitionStage == 1)

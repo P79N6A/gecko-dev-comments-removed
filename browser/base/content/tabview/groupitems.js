@@ -555,7 +555,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   close: function GroupItem_close() {
-    this.removeAll();
+    this.removeAll({dontClose: true});
     GroupItems.unregister(this);
 
     if (this.hidden) {
@@ -814,6 +814,10 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
+  
+  
+  
   add: function GroupItem_add(a, dropPos, options) {
     try {
       var item;
@@ -933,6 +937,10 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
+  
+  
+  
   remove: function GroupItem_remove(a, options) {
     try {
       var $el;
@@ -988,11 +996,16 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  removeAll: function GroupItem_removeAll() {
-    var self = this;
-    var toRemove = this._children.concat();
+  
+  removeAll: function GroupItem_removeAll(options) {
+    let self = this;
+    let newOptions = {dontArrange: true};
+    if (options)
+      Utils.extend(newOptions, options);
+      
+    let toRemove = this._children.concat();
     toRemove.forEach(function(child) {
-      self.remove(child, {dontArrange: true});
+      self.remove(child, newOptions);
     });
   },
   
@@ -1727,14 +1740,14 @@ let GroupItems = {
 
       if (groupItemsData) {
         if (groupItemsData.nextID)
-          this.nextID = groupItemsData.nextID;
+          this.nextID = Math.max(this.nextID, groupItemsData.nextID);
         if (groupItemsData.activeGroupId)
           activeGroupId = groupItemsData.activeGroupId;
       }
 
       if (groupItemData) {
         for (var id in groupItemData) {
-          var groupItem = groupItemData[id];
+          let groupItem = groupItemData[id];
           if (this.groupItemStorageSanity(groupItem)) {
             var options = {
               dontPush: true,
@@ -1757,6 +1770,24 @@ let GroupItems = {
     } catch(e) {
       Utils.log("error in recons: "+e);
     }
+  },
+
+  
+  
+  
+  
+  load: function GroupItems_load() {
+    var toClose = this.groupItems.concat();
+    toClose.forEach(function(groupItem) {
+      groupItem.close();
+    });
+
+    let groupItemsData = Storage.readGroupItemsData(gWindow);
+    let groupItemData = Storage.readGroupItemData(gWindow);
+    this.reconstitute(groupItemsData, groupItemData);
+    this.killNewTabGroup(); 
+    
+    return (groupItemsData && !Utils.isEmptyObject(groupItemsData));
   },
 
   
