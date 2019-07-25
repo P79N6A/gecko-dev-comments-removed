@@ -183,9 +183,7 @@ function run_test() {
 
   
   
-  let id = new Identity(PWDMGR_PASSWORD_REALM, "johndoe");
-  id.password = "ilovejane";
-  ID.set("WeaveID", id);
+  setBasicCredentials("johndoe", "ilovejane");
 
   server = httpd_setup({"/new_channel": server_new_channel,
                         "/report":      server_report});

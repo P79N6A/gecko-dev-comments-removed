@@ -6070,7 +6070,15 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
                                         getter_AddRefs(referrer));
 
         
-        AddURIVisit(oldURI, referrer, previousURI, previousFlags);
+        PRUint32 responseStatus = 0;
+        nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aOldChannel);
+        if (httpChannel) {
+            (void)httpChannel->GetResponseStatus(&responseStatus);
+        }
+
+        
+        AddURIVisit(oldURI, referrer, previousURI, previousFlags,
+                    responseStatus);
 
         
         
@@ -8364,6 +8372,12 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             rv = ScrollToAnchor(curHash, newHash, aLoadType);
             NS_ENSURE_SUCCESS(rv, rv);
 
+            
+            
+            
+            
+            AutoRestore<PRUint32> loadTypeResetter(mLoadType);
+
             mLoadType = aLoadType;
             mURIResultedInDocument = true;
 
@@ -9263,11 +9277,10 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
     }
 #endif
 
-    bool updateHistory = true;
     bool equalUri = false;
-    bool shAvailable = true;  
 
     
+    PRUint32 responseStatus = 0;
     nsCOMPtr<nsIInputStream> inputStream;
     if (aChannel) {
         nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
@@ -9285,13 +9298,21 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
 
             
             
-            PRUint32 responseStatus;
             nsresult rv = httpChannel->GetResponseStatus(&responseStatus);
             if (mLSHE && NS_SUCCEEDED(rv) && responseStatus >= 400) {
                 mLSHE->AbandonBFCacheEntry();
             }
         }
     }
+
+    
+    bool updateGHistory = !(aLoadType == LOAD_BYPASS_HISTORY ||
+                            aLoadType == LOAD_ERROR_PAGE ||
+                            aLoadType & LOAD_CMD_HISTORY);
+
+    
+    bool updateSHistory = updateGHistory && (!(aLoadType & LOAD_CMD_RELOAD));
+
     
 
 
@@ -9299,26 +9320,26 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
     if (!rootSH) {
         
         GetRootSessionHistory(getter_AddRefs(rootSH));
-        if (!rootSH)
-            shAvailable = false;
+        if (!rootSH) {
+            updateSHistory = false;
+            updateGHistory = false; 
+        }
     }  
-
-
-    
-    if (aLoadType == LOAD_BYPASS_HISTORY ||
-        aLoadType == LOAD_ERROR_PAGE ||
-        aLoadType & LOAD_CMD_HISTORY ||
-        aLoadType & LOAD_CMD_RELOAD)
-        updateHistory = false;
 
     
     if (mCurrentURI)
         aURI->Equals(mCurrentURI, &equalUri);
 
 #ifdef DEBUG
+    bool shAvailable = (rootSH != nsnull);
+
+    
+    
+
     PR_LOG(gDocShellLog, PR_LOG_DEBUG,
-           ("  shAvailable=%i updateHistory=%i equalURI=%i\n",
-            shAvailable, updateHistory, equalUri));
+           ("  shAvailable=%i updateSHistory=%i updateGHistory=%i"
+            " equalURI=%i\n",
+            shAvailable, updateSHistory, updateGHistory, equalUri));
 
     if (shAvailable && mCurrentURI && !mOSHE && aLoadType != LOAD_ERROR_PAGE) {
         NS_ASSERTION(NS_IsAboutBlank(mCurrentURI), "no SHEntry for a non-transient viewer?");
@@ -9366,8 +9387,9 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
         (aLoadType == LOAD_RELOAD_BYPASS_CACHE ||
          aLoadType == LOAD_RELOAD_BYPASS_PROXY ||
          aLoadType == LOAD_RELOAD_BYPASS_PROXY_AND_CACHE)) {
-        NS_ASSERTION(!updateHistory,
-                     "We shouldn't be updating history for forced reloads!");
+        NS_ASSERTION(!updateSHistory,
+                     "We shouldn't be updating session history for forced"
+                     " reloads!");
         
         nsCOMPtr<nsICachingChannel> cacheChannel(do_QueryInterface(aChannel));
         nsCOMPtr<nsISupports>  cacheKey;
@@ -9405,7 +9427,7 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
         ClearFrameHistory(mOSHE);
     }
 
-    if (updateHistory && shAvailable) { 
+    if (updateSHistory) { 
         
         if (!mLSHE && (mItemType == typeContent) && mURIResultedInDocument) {
             
@@ -9415,24 +9437,31 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
             (void) AddToSessionHistory(aURI, aChannel, aOwner, aCloneSHChildren,
                                        getter_AddRefs(mLSHE));
         }
+    }
 
-        if (aAddToGlobalHistory) {
+    
+    
+    if (updateGHistory &&
+        aAddToGlobalHistory && 
+        !ChannelIsPost(aChannel)) {
+        nsCOMPtr<nsIURI> previousURI;
+        PRUint32 previousFlags = 0;
+
+        if (aLoadType & LOAD_CMD_RELOAD) {
             
-            
-            if (!ChannelIsPost(aChannel)) {
-                nsCOMPtr<nsIURI> previousURI;
-                PRUint32 previousFlags = 0;
-                ExtractLastVisit(aChannel, getter_AddRefs(previousURI),
-                                 &previousFlags);
-
-                nsCOMPtr<nsIURI> referrer;
-                
-                (void)NS_GetReferrerFromChannel(aChannel,
-                                                getter_AddRefs(referrer));
-
-                AddURIVisit(aURI, referrer, previousURI, previousFlags);
-            }
+            previousURI = aURI;
+        } else {
+            ExtractLastVisit(aChannel, getter_AddRefs(previousURI),
+                             &previousFlags);
         }
+
+        
+        
+        nsCOMPtr<nsIURI> referrer;
+        
+        (void)NS_GetReferrerFromChannel(aChannel, getter_AddRefs(referrer));
+
+        AddURIVisit(aURI, referrer, previousURI, previousFlags, responseStatus);
     }
 
     
@@ -10578,9 +10607,13 @@ void
 nsDocShell::AddURIVisit(nsIURI* aURI,
                         nsIURI* aReferrerURI,
                         nsIURI* aPreviousURI,
-                        PRUint32 aChannelRedirectFlags)
+                        PRUint32 aChannelRedirectFlags,
+                        PRUint32 aResponseStatus)
 {
-    NS_ASSERTION(aURI, "Visited URI is null!");
+    MOZ_ASSERT(aURI, "Visited URI is null!");
+    MOZ_ASSERT(mLoadType != LOAD_ERROR_PAGE &&
+               mLoadType != LOAD_BYPASS_HISTORY,
+               "Do not add error or bypass pages to global history");
 
     
     
@@ -10603,6 +10636,19 @@ nsDocShell::AddURIVisit(nsIURI* aURI,
         else if (aChannelRedirectFlags &
                  nsIChannelEventSink::REDIRECT_PERMANENT) {
             visitURIFlags |= IHistory::REDIRECT_PERMANENT;
+        }
+
+        if (aResponseStatus >= 300 && aResponseStatus < 400) {
+            visitURIFlags |= IHistory::REDIRECT_SOURCE;
+        }
+        
+        
+        
+        
+        else if (aResponseStatus != 408 &&
+                 (aResponseStatus >= 400 && aResponseStatus <= 501 ||
+                  aResponseStatus == 505)) {
+            visitURIFlags |= IHistory::UNRECOVERABLE_ERROR;
         }
 
         (void)history->VisitURI(aURI, aPreviousURI, visitURIFlags);
@@ -11766,6 +11812,42 @@ nsDocShell::GetIsBrowserFrame(bool *aOut)
 NS_IMETHODIMP
 nsDocShell::SetIsBrowserFrame(bool aValue)
 {
+  
+  
+  
+  
+  
+  NS_ENSURE_STATE(!mIsBrowserFrame);
+
+  bool wasBrowserFrame = mIsBrowserFrame;
   mIsBrowserFrame = aValue;
+  if (aValue && !wasBrowserFrame) {
+    nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+    if (os) {
+      os->NotifyObservers(GetAsSupports(this),
+                          "docshell-marked-as-browser-frame", NULL);
+    }
+  }
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::GetContainedInBrowserFrame(bool *aOut)
+{
+    *aOut = false;
+
+    if (mIsBrowserFrame) {
+        *aOut = true;
+        return NS_OK;
+    }
+
+    nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
+    GetSameTypeParent(getter_AddRefs(parentAsItem));
+
+    nsCOMPtr<nsIDocShell> parent = do_QueryInterface(parentAsItem);
+    if (parent) {
+        return parent->GetContainedInBrowserFrame(aOut);
+    }
+
+    return NS_OK;
 }

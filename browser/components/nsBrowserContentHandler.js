@@ -581,6 +581,15 @@ nsBrowserContentHandler.prototype = {
     var overridePage = "";
     var haveUpdateSession = false;
     try {
+      
+      
+      
+      
+      
+      let old_mstone = "unknown";
+      try {
+        old_mstone = Services.prefs.getCharPref("browser.startup.homepage_override.mstone");
+      } catch (ex) {}
       let override = needHomepageOverride(prefb);
       if (override != OVERRIDE_NONE) {
         
@@ -604,6 +613,8 @@ nsBrowserContentHandler.prototype = {
             overridePage = Services.urlFormatter.formatURLPref("startup.homepage_override_url");
             if (prefb.prefHasUserValue("app.update.postupdate"))
               overridePage = getPostUpdateOverridePage(overridePage);
+
+            overridePage = overridePage.replace("%OLD_VERSION%", old_mstone);
             break;
         }
       }

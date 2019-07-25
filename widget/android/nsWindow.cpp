@@ -214,9 +214,9 @@ nsWindow::~nsWindow()
         mRootAccessible = nsnull;
 #endif
     ALOG("nsWindow %p destructor", (void*)this);
-
-    AndroidBridge::Bridge()->SetCompositorParent(NULL, NULL);
-
+#ifdef MOZ_JAVA_COMPOSITOR
+    SetCompositor(NULL, NULL, NULL);
+#endif
 }
 
 bool
@@ -772,21 +772,21 @@ nsWindow::GetLayerManager(PLayersChild*, LayersBackend, LayerManagerPersistence,
         mLayerManager = CreateBasicLayerManager();
         return mLayerManager;
     }
-
+#ifdef MOZ_JAVA_COMPOSITOR
     bool useCompositor =
         Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
 
     if (useCompositor) {
         CreateCompositor();
         if (mLayerManager) {
-            AndroidBridge::Bridge()->SetCompositorParent(mCompositorParent, mCompositorThread);
+            SetCompositor(mCompositorParent, mCompositorChild, mCompositorThread);
             return mLayerManager;
         }
 
         
         sFailedToCreateGLContext = true;
     }
-
+#endif
     mUseAcceleratedRendering = GetShouldAccelerate();
 
     if (!mUseAcceleratedRendering ||
@@ -983,6 +983,31 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             sValidSurface = false;
             break;
 
+#ifdef MOZ_JAVA_COMPOSITOR
+        case AndroidGeckoEvent::COMPOSITOR_PAUSE:
+            
+            
+            
+            
+            if (sCompositorChild) {
+                sCompositorChild->SendPause();
+            }
+            sCompositorPaused = true;
+            break;
+
+        case AndroidGeckoEvent::COMPOSITOR_RESUME:
+            
+            
+            
+            
+            
+            
+            
+            sCompositorPaused = false;
+            win->RedrawAll();
+            break;
+#endif
+
         case AndroidGeckoEvent::GECKO_EVENT_SYNC:
             AndroidBridge::Bridge()->AcknowledgeEventSync();
             break;
@@ -1136,7 +1161,7 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
     AndroidBridge::AutoLocalJNIFrame jniFrame;
 #ifdef MOZ_JAVA_COMPOSITOR
     
-    if (gAndroidBounds.width <= 0 || gAndroidBounds.height <= 0) {
+    if (sCompositorPaused || gAndroidBounds.width <= 0 || gAndroidBounds.height <= 0) {
         return;
     }
 
@@ -1698,6 +1723,8 @@ nsWindow::InitKeyEvent(nsKeyEvent& event, AndroidGeckoEvent& key)
     case AndroidKeyEvent::KEYCODE_ENVELOPE:
         break;
     case AndroidKeyEvent::KEYCODE_DPAD_CENTER:
+        event.keyCode = NS_VK_ENTER;
+        break;
     case AndroidKeyEvent::KEYCODE_ENTER:
         event.keyCode = NS_VK_RETURN;
         break;
@@ -2273,13 +2300,17 @@ nsWindow::DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) {
 
 
 nsRefPtr<mozilla::layers::CompositorParent> nsWindow::sCompositorParent = 0;
+nsRefPtr<mozilla::layers::CompositorChild> nsWindow::sCompositorChild = 0;
 base::Thread * nsWindow::sCompositorThread = 0;
+bool nsWindow::sCompositorPaused = false;
 
 void
-nsWindow::SetCompositorParent(mozilla::layers::CompositorParent* aCompositorParent,
-                              ::base::Thread* aCompositorThread)
+nsWindow::SetCompositor(mozilla::layers::CompositorParent* aCompositorParent,
+                        mozilla::layers::CompositorChild* aCompositorChild,
+                        ::base::Thread* aCompositorThread)
 {
     sCompositorParent = aCompositorParent;
+    sCompositorChild = aCompositorChild;
     sCompositorThread = aCompositorThread;
 }
 

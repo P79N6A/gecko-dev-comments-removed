@@ -291,8 +291,8 @@ private:
 
 
 #define NS_INODE_IID \
-{ 0xfcd3b0d1, 0x75db, 0x46c4, \
-  { 0xa1, 0xf5, 0x07, 0xc2, 0x09, 0xf8, 0x1f, 0x44 } }
+{ 0x458300ed, 0xe418, 0x4577, \
+  { 0x89, 0xd7, 0xfe, 0xf1, 0x34, 0xf3, 0x52, 0x19 } }
 
 
 
@@ -590,9 +590,7 @@ public:
 
 
 
-
-  virtual nsresult RemoveChildAt(PRUint32 aIndex, 
-                                 bool aNotify) = 0;
+  virtual void RemoveChildAt(PRUint32 aIndex, bool aNotify) = 0;
 
   
 
@@ -1423,6 +1421,12 @@ public:
   
   virtual nsXPCClassInfo* GetClassInfo() = 0;
 
+  
+
+
+
+  PRUint32 Length() const;
+
 protected:
 
   
@@ -1507,8 +1511,8 @@ protected:
 
 
 
-  nsresult doRemoveChildAt(PRUint32 aIndex, bool aNotify, nsIContent* aKid,
-                           nsAttrAndChildArray& aChildArray);
+  void doRemoveChildAt(PRUint32 aIndex, bool aNotify, nsIContent* aKid,
+                       nsAttrAndChildArray& aChildArray);
 
   
 

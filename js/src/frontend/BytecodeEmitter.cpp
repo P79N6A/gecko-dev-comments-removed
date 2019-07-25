@@ -1315,10 +1315,6 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
             if (caller->isGlobalFrame() && TryConvertToGname(bce, pn, &op)) {
-                jsatomid _;
-                if (!bce->makeAtomIndex(atom, &_))
-                    return JS_FALSE;
-
                 pn->setOp(op);
                 pn->pn_dflags |= PND_BOUND;
                 return JS_TRUE;
@@ -1334,10 +1330,6 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         
         if (!TryConvertToGname(bce, pn, &op))
             return JS_TRUE;
-
-        jsatomid _;
-        if (!bce->makeAtomIndex(atom, &_))
-            return JS_FALSE;
 
         pn->setOp(op);
         pn->pn_dflags |= PND_BOUND;
@@ -2918,7 +2910,9 @@ EmitDestructuringLHS(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmit
           case JSOP_SETLOCAL:
           {
             uint16_t slot = pn->pn_cookie.slot();
-            EMIT_UINT16_IMM_OP(JSOP_SETLOCALPOP, slot);
+            EMIT_UINT16_IMM_OP(JSOP_SETLOCAL, slot);
+            if (Emit1(cx, bce, JSOP_POP) < 0)
+                return JS_FALSE;
             break;
           }
 
@@ -3952,7 +3946,9 @@ EmitCatch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
       case PNK_NAME:
         
         JS_ASSERT(!pn2->pn_cookie.isFree());
-        EMIT_UINT16_IMM_OP(JSOP_SETLOCALPOP, pn2->pn_cookie.slot());
+        EMIT_UINT16_IMM_OP(JSOP_SETLOCAL, pn2->pn_cookie.slot());
+        if (Emit1(cx, bce, JSOP_POP) < 0)
+            return false;
         break;
 
       default:
@@ -4903,7 +4899,7 @@ EmitFor(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
            : EmitNormalFor(cx, bce, pn, top);
 }
 
-static bool
+static JS_NEVER_INLINE bool
 EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
 #if JS_HAS_XML_SUPPORT
@@ -4928,23 +4924,17 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                  fun->kind() == JSFUN_INTERPRETED);
 
     {
-        
-
-
-
-
-        AutoPtr<BytecodeEmitter> bce2(cx);
-        bce2 = cx->new_<BytecodeEmitter>(bce->parser, pn->pn_pos.begin.lineno);
-        if (!bce2 || !bce2->init(cx))
+        BytecodeEmitter bce2(bce->parser, pn->pn_pos.begin.lineno);
+        if (!bce2.init(cx))
             return false;
 
-        bce2->flags = pn->pn_funbox->tcflags | TCF_COMPILING | TCF_IN_FUNCTION |
+        bce2.flags = pn->pn_funbox->tcflags | TCF_COMPILING | TCF_IN_FUNCTION |
                      (bce->flags & TCF_FUN_MIGHT_ALIAS_LOCALS);
-        bce2->bindings.transfer(cx, &pn->pn_funbox->bindings);
-        bce2->setFunction(fun);
-        bce2->funbox = pn->pn_funbox;
-        bce2->parent = bce;
-        bce2->globalScope = bce->globalScope;
+        bce2.bindings.transfer(cx, &pn->pn_funbox->bindings);
+        bce2.setFunction(fun);
+        bce2.funbox = pn->pn_funbox;
+        bce2.parent = bce;
+        bce2.globalScope = bce->globalScope;
 
         
 
@@ -4953,10 +4943,10 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
         JS_ASSERT(bce->staticLevel < JS_BITMASK(16) - 1);
-        bce2->staticLevel = bce->staticLevel + 1;
+        bce2.staticLevel = bce->staticLevel + 1;
 
         
-        if (!EmitFunctionScript(cx, bce2.get(), pn->pn_body))
+        if (!EmitFunctionScript(cx, &bce2, pn->pn_body))
             return false;
     }
 
@@ -5823,7 +5813,6 @@ EmitObject(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             return false;
     }
 
-    unsigned methodInits = 0, slowMethodInits = 0;
     for (ParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
         
         ParseNode *pn3 = pn2->pn_left;

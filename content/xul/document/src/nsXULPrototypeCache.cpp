@@ -254,8 +254,14 @@ nsXULPrototypeCache::PutScript(nsIURI* aURI, PRUint32 aLangID, JSScript* aScript
 {
     CacheScriptEntry existingEntry;
     if (mScriptTable.Get(aURI, &existingEntry)) {
-        NS_WARNING("loaded the same script twice (bug 392650)");
-
+#ifdef DEBUG
+        nsCAutoString scriptName;
+        aURI->GetSpec(scriptName);
+        nsCAutoString message("Loaded script ");
+        message += scriptName;
+        message += " twice (bug 392650)";
+        NS_WARNING(message.get());
+#endif
         
         ReleaseScriptObjectCallback(aURI, existingEntry, nsnull);
     }

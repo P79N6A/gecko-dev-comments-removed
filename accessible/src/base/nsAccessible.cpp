@@ -1804,14 +1804,11 @@ nsAccessible::GetKeyBindings(PRUint8 aActionIndex,
 }
 
 role
-nsAccessible::ARIARoleInternal()
+nsAccessible::ARIATransformRole(role aRole)
 {
-  NS_PRECONDITION(mRoleMapEntry && mRoleMapEntry->roleRule == kUseMapRole,
-                  "ARIARoleInternal should only be called when ARIA role overrides!");
-
   
   
-  if (mRoleMapEntry->role == roles::PUSHBUTTON) {
+  if (aRole == roles::PUSHBUTTON) {
     if (nsAccUtils::HasDefinedARIAToken(mContent, nsGkAtoms::aria_pressed)) {
       
       
@@ -1826,7 +1823,7 @@ nsAccessible::ARIARoleInternal()
       return roles::BUTTONMENU;
     }
 
-  } else if (mRoleMapEntry->role == roles::LISTBOX) {
+  } else if (aRole == roles::LISTBOX) {
     
     
     if (mParent && mParent->Role() == roles::COMBOBOX) {
@@ -1839,12 +1836,12 @@ nsAccessible::ARIARoleInternal()
           return roles::COMBOBOX_LIST;
     }
 
-  } else if (mRoleMapEntry->role == roles::OPTION) {
+  } else if (aRole == roles::OPTION) {
     if (mParent && mParent->Role() == roles::COMBOBOX_LIST)
       return roles::COMBOBOX_OPTION;
   }
 
-  return mRoleMapEntry->role;
+  return aRole;
 }
 
 role
@@ -2521,6 +2518,8 @@ nsAccessible::Shutdown()
 {
   
   
+  mFlags |= eIsDefunct;
+
   InvalidateChildren();
   if (mParent)
     mParent->RemoveChild(this);

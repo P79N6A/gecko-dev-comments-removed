@@ -237,18 +237,6 @@ GetPrefixInteger(JSContext *cx, const jschar *start, const jschar *end, int base
 
 
 JS_ALWAYS_INLINE bool
-ToNumber(JSContext *cx, const Value &v, double *out)
-{
-    if (v.isNumber()) {
-        *out = v.toNumber();
-        return true;
-    }
-    extern bool ToNumberSlow(JSContext *cx, js::Value v, double *dp);
-    return ToNumberSlow(cx, v, out);
-}
-
-
-JS_ALWAYS_INLINE bool
 ToNumber(JSContext *cx, Value *vp)
 {
     if (vp->isNumber())
@@ -266,16 +254,6 @@ ToNumber(JSContext *cx, Value *vp)
 
 
 
-JS_ALWAYS_INLINE bool
-ToInt32(JSContext *cx, const js::Value &v, int32_t *out)
-{
-    if (v.isInt32()) {
-        *out = v.toInt32();
-        return true;
-    }
-    extern bool ToInt32Slow(JSContext *cx, const js::Value &v, int32_t *ip);
-    return ToInt32Slow(cx, v, out);
-}
 
 JS_ALWAYS_INLINE bool
 ToUint32(JSContext *cx, const js::Value &v, uint32_t *out)

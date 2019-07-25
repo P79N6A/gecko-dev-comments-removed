@@ -37,9 +37,10 @@
 
 
 
-const EXPORTED_SYMBOLS = ["Resource", "AsyncResource",
-                          "Auth", "BrokenBasicAuthenticator",
-                          "BasicAuthenticator", "NoOpAuthenticator"];
+const EXPORTED_SYMBOLS = [
+  "AsyncResource",
+  "Resource"
+];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -50,67 +51,9 @@ Cu.import("resource://services-sync/async.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/ext/Observers.js");
 Cu.import("resource://services-sync/ext/Preferences.js");
+Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/log4moz.js");
 Cu.import("resource://services-sync/util.js");
-
-XPCOMUtils.defineLazyGetter(this, "Auth", function () {
-  return new AuthMgr();
-});
-
-
-
-
-function NoOpAuthenticator() {}
-NoOpAuthenticator.prototype = {
-  onRequest: function NoOpAuth_onRequest(headers) {
-    return headers;
-  }
-};
-
-
-
-function BrokenBasicAuthenticator(identity) {
-  this._id = identity;
-}
-BrokenBasicAuthenticator.prototype = {
-  onRequest: function BasicAuth_onRequest(headers) {
-    headers['authorization'] = 'Basic ' +
-      btoa(this._id.username + ':' + this._id.password);
-    return headers;
-  }
-};
-
-function BasicAuthenticator(identity) {
-  this._id = identity;
-}
-BasicAuthenticator.prototype = {
-  onRequest: function onRequest(headers) {
-    headers['authorization'] = 'Basic ' +
-      btoa(this._id.username + ':' + this._id.passwordUTF8);
-    return headers;
-  }
-};
-
-function AuthMgr() {
-  this._authenticators = {};
-  this.defaultAuthenticator = new NoOpAuthenticator();
-}
-AuthMgr.prototype = {
-  defaultAuthenticator: null,
-
-  registerAuthenticator: function AuthMgr_register(match, authenticator) {
-    this._authenticators[match] = authenticator;
-  },
-
-  lookupAuthenticator: function AuthMgr_lookup(uri) {
-    for (let match in this._authenticators) {
-      if (uri.match(match))
-        return this._authenticators[match];
-    }
-    return this.defaultAuthenticator;
-  }
-};
-
 
 
 
@@ -151,6 +94,14 @@ AsyncResource.prototype = {
   serverTime: null,
 
   
+
+
+
+
+
+  authenticator: null,
+
+  
   
   
   
@@ -172,24 +123,8 @@ AsyncResource.prototype = {
   
   
   
-  
-  get authenticator() {
-    if (this._authenticator)
-      return this._authenticator;
-    else
-      return Auth.lookupAuthenticator(this.spec);
-  },
-  set authenticator(value) {
-    this._authenticator = value;
-  },
-
-  
-  
-  
-  
-  
   get headers() {
-    return this.authenticator.onRequest(this._headers);
+    return this._headers;
   },
   set headers(value) {
     this._headers = value;
@@ -235,7 +170,7 @@ AsyncResource.prototype = {
   
   
   
-  _createRequest: function Res__createRequest() {
+  _createRequest: function Res__createRequest(method) {
     let channel = Services.io.newChannel(this.spec, null, null)
                           .QueryInterface(Ci.nsIRequest)
                           .QueryInterface(Ci.nsIHttpChannel);
@@ -253,9 +188,24 @@ AsyncResource.prototype = {
       channel.setRequestHeader("user-agent", ua, false);
     }
 
-    
     let headers = this.headers;
-    for (let key in headers) {
+
+    let authenticator = this.authenticator;
+    if (!authenticator) {
+      authenticator = Identity.getResourceAuthenticator();
+    }
+    if (authenticator) {
+      let result = authenticator(this, method);
+      if (result && result.headers) {
+        for (let [k, v] in Iterator(result.headers)) {
+          headers[k.toLowerCase()] = v;
+        }
+      }
+    } else {
+      this._log.debug("No authenticator found.");
+    }
+
+    for (let [key, value] in Iterator(headers)) {
       if (key == 'authorization')
         this._log.trace("HTTP Header " + key + ": ***** (suppressed)");
       else
@@ -270,7 +220,7 @@ AsyncResource.prototype = {
   _doRequest: function _doRequest(action, data, callback) {
     this._log.trace("In _doRequest.");
     this._callback = callback;
-    let channel = this._createRequest();
+    let channel = this._createRequest(action);
 
     if ("undefined" != typeof(data))
       this._data = data;

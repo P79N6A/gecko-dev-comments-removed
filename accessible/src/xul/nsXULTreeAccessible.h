@@ -78,7 +78,6 @@ public:
   NS_IMETHOD GetValue(nsAString& aValue);
 
   
-  virtual bool IsDefunct() const;
   virtual void Shutdown();
 
   
@@ -204,7 +203,6 @@ public:
   NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual bool IsDefunct() const;
   virtual void Shutdown();
   virtual bool IsPrimaryForNode() const;
 
@@ -287,7 +285,6 @@ public:
   NS_IMETHOD GetName(nsAString& aName);
 
   
-  virtual bool IsDefunct() const;
   virtual bool Init();
   virtual void Shutdown();
 

@@ -1,39 +1,39 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "nsHTMLFieldSetElement.h"
 #include "nsIDOMHTMLFormElement.h"
@@ -53,10 +53,10 @@ nsHTMLFieldSetElement::nsHTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNode
   , mElements(nsnull)
   , mFirstLegend(nsnull)
 {
-  
+  // <fieldset> is always barred from constraint validation.
   SetBarredFromConstraintValidation(true);
 
-  
+  // We start out enabled
   AddStatesSilently(NS_EVENT_STATE_ENABLED);
 }
 
@@ -68,7 +68,7 @@ nsHTMLFieldSetElement::~nsHTMLFieldSetElement()
   }
 }
 
-
+// nsISupports
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsHTMLFieldSetElement,
                                                 nsGenericHTMLFormElement)
@@ -86,7 +86,7 @@ NS_IMPL_RELEASE_INHERITED(nsHTMLFieldSetElement, nsGenericElement)
 
 DOMCI_NODE_DATA(HTMLFieldSetElement, nsHTMLFieldSetElement)
 
-
+// QueryInterface implementation for nsHTMLFieldSetElement
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLFieldSetElement)
   NS_HTML_CONTENT_INTERFACE_TABLE2(nsHTMLFieldSetElement,
                                    nsIDOMHTMLFieldSetElement,
@@ -101,14 +101,14 @@ NS_IMPL_ELEMENT_CLONE(nsHTMLFieldSetElement)
 NS_IMPL_BOOL_ATTR(nsHTMLFieldSetElement, Disabled, disabled)
 NS_IMPL_STRING_ATTR(nsHTMLFieldSetElement, Name, name)
 
-
+// nsIConstraintValidation
 NS_IMPL_NSICONSTRAINTVALIDATION(nsHTMLFieldSetElement)
 
-
+// nsIContent
 nsresult
 nsHTMLFieldSetElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
-  
+  // Do not process any DOM events if the element is disabled.
   aVisitor.mCanHandle = false;
   if (IsElementDisabledForEvents(aVisitor.mEvent->message, NULL)) {
     return NS_OK;
@@ -139,7 +139,7 @@ nsHTMLFieldSetElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                                 aValue, aNotify);
 }
 
-
+// nsIDOMHTMLFieldSetElement
 
 NS_IMETHODIMP
 nsHTMLFieldSetElement::GetForm(nsIDOMHTMLFormElement** aForm)
@@ -154,7 +154,7 @@ nsHTMLFieldSetElement::GetType(nsAString& aType)
   return NS_OK;
 }
 
-
+/* static */
 bool
 nsHTMLFieldSetElement::MatchListedElements(nsIContent* aContent, PRInt32 aNamespaceID,
                                            nsIAtom* aAtom, void* aData)
@@ -176,7 +176,7 @@ nsHTMLFieldSetElement::GetElements(nsIDOMHTMLCollection** aElements)
   return NS_OK;
 }
 
-
+// nsIFormControl
 
 nsresult
 nsHTMLFieldSetElement::Reset()
@@ -199,10 +199,10 @@ nsHTMLFieldSetElement::InsertChildAt(nsIContent* aChild, PRUint32 aIndex,
   if (aChild->IsHTML(nsGkAtoms::legend)) {
     if (!mFirstLegend) {
       mFirstLegend = aChild;
-      
+      // We do not want to notify the first time mFirstElement is set.
     } else {
-      
-      
+      // If mFirstLegend is before aIndex, we do not change it.
+      // Otherwise, mFirstLegend is now aChild.
       if (PRInt32(aIndex) <= IndexOf(mFirstLegend)) {
         mFirstLegend = aChild;
         firstLegendHasChanged = true;
@@ -220,13 +220,13 @@ nsHTMLFieldSetElement::InsertChildAt(nsIContent* aChild, PRUint32 aIndex,
   return rv;
 }
 
-nsresult
+void
 nsHTMLFieldSetElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
 {
   bool firstLegendHasChanged = false;
 
   if (mFirstLegend && (GetChildAt(aIndex) == mFirstLegend)) {
-    
+    // If we are removing the first legend we have to found another one.
     nsIContent* child = mFirstLegend->GetNextSibling();
     mFirstLegend = nsnull;
     firstLegendHasChanged = true;
@@ -239,25 +239,22 @@ nsHTMLFieldSetElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
     }
   }
 
-  nsresult rv = nsGenericHTMLFormElement::RemoveChildAt(aIndex, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsGenericHTMLFormElement::RemoveChildAt(aIndex, aNotify);
 
   if (firstLegendHasChanged) {
     NotifyElementsForFirstLegendChange(aNotify);
   }
-
-  return rv;
 }
 
 void
 nsHTMLFieldSetElement::NotifyElementsForFirstLegendChange(bool aNotify)
 {
-  
-
-
-
-
-
+  /**
+   * NOTE: this could be optimized if only call when the fieldset is currently
+   * disabled.
+   * This should also make sure that mElements is set when we happen to be here.
+   * However, this method shouldn't be called very often in normal use cases.
+   */
   if (!mElements) {
     mElements = new nsContentList(this, MatchListedElements, nsnull, nsnull,
                                   true);

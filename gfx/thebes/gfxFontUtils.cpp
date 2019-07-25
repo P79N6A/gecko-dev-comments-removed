@@ -1137,10 +1137,13 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
     }
     
     
-    bool foundHead = false, foundOS2 = false, foundName = false;
+#ifdef XP_WIN
+    bool foundOS2 = false;
+#endif
+    bool foundHead = false, foundName = false;
     bool foundGlyphs = false, foundCFF = false, foundKern = false;
     bool foundLoca = false, foundMaxp = false;
-    PRUint32 headOffset = 0, headLen, nameOffset = 0, nameLen, kernOffset = 0,
+    PRUint32 headOffset = 0, headLen, nameOffset = 0, kernOffset = 0,
         kernLen = 0, glyfLen = 0, locaOffset = 0, locaLen = 0,
         maxpOffset = 0, maxpLen;
     PRUint32 i, numTables;
@@ -1197,11 +1200,12 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
         case TRUETYPE_TAG('n','a','m','e'):
             foundName = true;
             nameOffset = dirEntry->offset;
-            nameLen = dirEntry->length;
             break;
 
         case TRUETYPE_TAG('O','S','/','2'):
+#ifdef XP_WIN
             foundOS2 = true;
+#endif
             break;
 
         case TRUETYPE_TAG('g','l','y','f'):  
@@ -1423,17 +1427,15 @@ gfxFontUtils::RenameFont(const nsAString& aName, const PRUint8 *aFontData,
         reinterpret_cast<TableDirEntry*>(newFontData + sizeof(SFNTHeader));
 
     PRUint32 numTables = sfntHeader->numTables;
-    bool foundName = false;
     
     for (i = 0; i < numTables; i++, dirEntry++) {
         if (dirEntry->tag == TRUETYPE_TAG('n','a','m','e')) {
-            foundName = true;
             break;
         }
     }
     
     
-    NS_ASSERTION(foundName, "attempt to rename font with no name table");
+    NS_ASSERTION(i < numTables, "attempt to rename font with no name table");
 
     
     

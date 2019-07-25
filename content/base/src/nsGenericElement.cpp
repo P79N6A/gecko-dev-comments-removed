@@ -535,7 +535,8 @@ nsINode::RemoveChild(nsINode *aOldChild)
     return NS_ERROR_DOM_NOT_FOUND_ERR;
   }
 
-  return RemoveChildAt(index, true);
+  RemoveChildAt(index, true);
+  return NS_OK;
 }
 
 nsresult
@@ -3848,20 +3849,18 @@ nsINode::doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
   return NS_OK;
 }
 
-nsresult
+void
 nsGenericElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
 {
   nsCOMPtr<nsIContent> oldKid = mAttrsAndChildren.GetSafeChildAt(aIndex);
   NS_ASSERTION(oldKid == GetChildAt(aIndex), "Unexpected child in RemoveChildAt");
 
   if (oldKid) {
-    return doRemoveChildAt(aIndex, aNotify, oldKid, mAttrsAndChildren);
+    doRemoveChildAt(aIndex, aNotify, oldKid, mAttrsAndChildren);
   }
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsINode::doRemoveChildAt(PRUint32 aIndex, bool aNotify,
                          nsIContent* aKid, nsAttrAndChildArray& aChildArray)
 {
@@ -3888,8 +3887,6 @@ nsINode::doRemoveChildAt(PRUint32 aIndex, bool aNotify,
   }
 
   aKid->UnbindFromTree();
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -4273,12 +4270,9 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
   }
 
-  nsresult res;
-
   
   if (aReplace) {
-    res = RemoveChildAt(insPos, true);
-    NS_ENSURE_SUCCESS(res, res);
+    RemoveChildAt(insPos, true);
   }
 
   if (newContent->IsRootOfAnonymousSubtree()) {
@@ -4298,8 +4292,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
     }
 
-    res = oldParent->RemoveChildAt(removeIndex, true);
-    NS_ENSURE_SUCCESS(res, res);
+    oldParent->RemoveChildAt(removeIndex, true);
 
     
     
@@ -4308,6 +4301,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     }
   }
 
+  nsresult res = NS_OK;
   
   
   
@@ -4582,9 +4576,7 @@ void
 nsGenericElement::MarkUserDataHandler(void* aObject, nsIAtom* aKey,
                                       void* aChild, void* aData)
 {
-  nsCOMPtr<nsIXPConnectWrappedJS> wjs =
-    do_QueryInterface(static_cast<nsISupports*>(aChild));
-  xpc_UnmarkGrayObject(wjs);
+  xpc_TryUnmarkWrappedGrayObject(static_cast<nsISupports*>(aChild));
 }
 
 void
@@ -4992,6 +4984,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGenericElement)
       classes.AppendLiteral(" class='");
       nsAutoString classString;
       classAttrValue->ToString(classString);
+      classString.ReplaceChar(PRUnichar('\n'), PRUnichar(' '));
       classes.Append(classString);
       classes.AppendLiteral("'");
     }
@@ -5623,7 +5616,7 @@ nsGenericElement::GetText()
 }
 
 PRUint32
-nsGenericElement::TextLength()
+nsGenericElement::TextLength() const
 {
   
   
@@ -6416,6 +6409,25 @@ nsINode::Contains(nsIDOMNode* aOther, bool* aReturn)
   nsCOMPtr<nsINode> node = do_QueryInterface(aOther);
   *aReturn = Contains(node);
   return NS_OK;
+}
+
+PRUint32
+nsINode::Length() const
+{
+  switch (NodeType()) {
+  case nsIDOMNode::DOCUMENT_TYPE_NODE:
+    return 0;
+
+  case nsIDOMNode::TEXT_NODE:
+  case nsIDOMNode::CDATA_SECTION_NODE:
+  case nsIDOMNode::PROCESSING_INSTRUCTION_NODE:
+  case nsIDOMNode::COMMENT_NODE:
+    MOZ_ASSERT(IsNodeOfType(eCONTENT));
+    return static_cast<const nsIContent*>(this)->TextLength();
+
+  default:
+    return GetChildCount();
+  }
 }
 
 nsresult nsGenericElement::MozRequestFullScreen()

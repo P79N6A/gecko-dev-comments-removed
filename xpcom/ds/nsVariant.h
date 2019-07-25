@@ -39,6 +39,9 @@
 
 
 
+#ifndef nsVariant_h
+#define nsVariant_h
+
 #include "nsIVariant.h"
 #include "nsStringFwd.h"
 #include "xpt_struct.h"
@@ -206,3 +209,4 @@ protected:
 
 #define NS_VARIANT_CLASSNAME "Variant"
 
+#endif 

@@ -724,7 +724,7 @@ public:
   virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
                                  bool aNotify);
   virtual nsresult AppendChildTo(nsIContent* aKid, bool aNotify);
-  virtual nsresult RemoveChildAt(PRUint32 aIndex, bool aNotify);
+  virtual void RemoveChildAt(PRUint32 aIndex, bool aNotify);
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
   {
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -934,6 +934,16 @@ public:
   virtual NS_HIDDEN_(nsresult) AddImage(imgIRequest* aImage);
   virtual NS_HIDDEN_(nsresult) RemoveImage(imgIRequest* aImage);
   virtual NS_HIDDEN_(nsresult) SetImageLockingState(bool aLocked);
+
+  
+  
+  virtual nsresult AddPlugin(nsIObjectLoadingContent* aPlugin);
+  
+  
+  virtual void RemovePlugin(nsIObjectLoadingContent* aPlugin);
+  
+  
+  virtual void GetPlugins(nsTArray<nsIObjectLoadingContent*>& aPlugins);
 
   virtual nsresult GetStateObject(nsIVariant** aResult);
 
@@ -1303,6 +1313,9 @@ private:
 
   
   nsDataHashtable< nsPtrHashKey<imgIRequest>, PRUint32> mImageTracker;
+
+  
+  nsTHashtable< nsPtrHashKey<nsIObjectLoadingContent> > mPlugins;
 
   VisibilityState mVisibilityState;
 

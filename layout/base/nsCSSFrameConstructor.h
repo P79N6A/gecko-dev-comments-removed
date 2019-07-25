@@ -1139,9 +1139,9 @@ private:
 
 
 
-  inline nsresult CreateNeededTablePseudos(nsFrameConstructorState& aState,
-                                           FrameConstructionItemList& aItems,
-                                           nsIFrame* aParentFrame);
+  inline void CreateNeededTablePseudos(nsFrameConstructorState& aState,
+                                       FrameConstructionItemList& aItems,
+                                       nsIFrame* aParentFrame);
 
   
 

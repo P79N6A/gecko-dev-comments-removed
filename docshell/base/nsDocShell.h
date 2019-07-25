@@ -521,10 +521,13 @@ protected:
 
 
 
+
+
     void AddURIVisit(nsIURI* aURI,
                      nsIURI* aReferrerURI,
                      nsIURI* aPreviousURI,
-                     PRUint32 aChannelRedirectFlags);
+                     PRUint32 aChannelRedirectFlags,
+                     PRUint32 aResponseStatus=0);
 
     
     nsresult   ConfirmRepost(bool * aRepost);

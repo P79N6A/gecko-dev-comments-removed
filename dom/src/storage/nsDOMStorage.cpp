@@ -1134,10 +1134,6 @@ DOMStorageImpl::GetKey(bool aCallerSecure, PRUint32 aIndex, nsAString& aKey)
   
   
   
-
-  
-  
-  
   
 
   if (UseDB()) {
@@ -1149,7 +1145,8 @@ DOMStorageImpl::GetKey(bool aCallerSecure, PRUint32 aIndex, nsAString& aKey)
 
   if (!data.mItem) {
     
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    aKey.SetIsVoid(true);
+    return NS_OK;
   }
 
   aKey = data.mItem->GetKey();

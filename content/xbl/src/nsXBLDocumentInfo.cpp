@@ -61,6 +61,7 @@
 #include "nsCCUncollectableMarker.h"
 
 using namespace mozilla::scache;
+using namespace mozilla;
 
 static const char kXBLCachePrefix[] = "xblcache";
 
@@ -272,7 +273,7 @@ nsXBLDocGlobalObject::SetContext(nsIScriptContext *aScriptContext)
   
   
   
-  nsresult rv;
+  DebugOnly<nsresult> rv;
   rv = aScriptContext->InitContext();
   NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Script Language's InitContext failed");
   aScriptContext->SetGCOnDestruction(false);

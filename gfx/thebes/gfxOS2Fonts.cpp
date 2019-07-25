@@ -45,7 +45,7 @@
 #include "gfxOS2Surface.h"
 #include "gfxOS2Fonts.h"
 #include "nsTArray.h"
-#include "gfxAtoms.h"
+#include "nsGkAtoms.h"
 
 #include "nsIPlatformCharset.h"
 
@@ -547,10 +547,10 @@ gfxOS2FontGroup::gfxOS2FontGroup(const nsAString& aFamilies,
     
     
     nsString fontString;
-    gfxPlatform::GetPlatform()->GetPrefFonts(gfxAtoms::x_unicode, fontString, false);
-    ForEachFont(fontString, gfxAtoms::x_unicode, FontCallback, &familyArray);
-    gfxPlatform::GetPlatform()->GetPrefFonts(gfxAtoms::x_user_def, fontString, false);
-    ForEachFont(fontString, gfxAtoms::x_user_def, FontCallback, &familyArray);
+    gfxPlatform::GetPlatform()->GetPrefFonts(nsGkAtoms::Unicode, fontString, false);
+    ForEachFont(fontString, nsGkAtoms::Unicode, FontCallback, &familyArray);
+    gfxPlatform::GetPlatform()->GetPrefFonts(nsGkAtoms::x_user_def, fontString, false);
+    ForEachFont(fontString, nsGkAtoms::x_user_def, FontCallback, &familyArray);
 
     
     
