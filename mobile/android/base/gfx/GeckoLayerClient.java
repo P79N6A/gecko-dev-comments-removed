@@ -204,7 +204,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
                 
                 float scaleFactor = oldMetrics.zoomFactor / messageMetrics.getZoomFactor();
                 newMetrics = new ViewportMetrics(oldMetrics);
-                newMetrics.setPageSize(messageMetrics.getPageSize().scale(scaleFactor), messageMetrics.getCssPageSize());
+                newMetrics.setPageRect(RectUtils.scale(messageMetrics.getPageRect(), scaleFactor), messageMetrics.getCssPageRect());
                 break;
             }
 
@@ -306,7 +306,8 @@ public class GeckoLayerClient implements GeckoEventResponder,
             final ViewportMetrics currentMetrics = new ViewportMetrics(mLayerController.getViewportMetrics());
             currentMetrics.setOrigin(new PointF(offsetX, offsetY));
             currentMetrics.setZoomFactor(zoom);
-            currentMetrics.setPageSize(new FloatSize(pageWidth, pageHeight), new FloatSize(cssPageWidth, cssPageHeight));
+            currentMetrics.setPageRect(new RectF(0.0f, 0.0f, pageWidth, pageHeight),
+                                       new RectF(0.0f, 0.0f, cssPageWidth, cssPageHeight));
             
             
             
@@ -350,10 +351,10 @@ public class GeckoLayerClient implements GeckoEventResponder,
             
             
             
+            RectF pageRect = new RectF(0.0f, 0.0f, pageWidth, pageHeight);
+            RectF cssPageRect = new RectF(0.0f, 0.0f, cssPageWidth, cssPageHeight);
             float ourZoom = mLayerController.getZoomFactor();
-            pageWidth = pageWidth * ourZoom / zoom;
-            pageHeight = pageHeight * ourZoom /zoom;
-            mLayerController.setPageSize(new FloatSize(pageWidth, pageHeight), new FloatSize(cssPageWidth, cssPageHeight));
+            mLayerController.setPageRect(RectUtils.scale(pageRect, ourZoom / zoom), cssPageRect);
             
             
             
