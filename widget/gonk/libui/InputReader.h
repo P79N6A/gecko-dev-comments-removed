@@ -18,9 +18,7 @@
 #define _UI_INPUT_READER_H
 
 #include "EventHub.h"
-#ifdef HAVE_ANDROID_OS
 #include "PointerController.h"
-#endif
 #include "InputListener.h"
 
 #include "Input.h"
@@ -209,10 +207,8 @@ public:
     
     virtual void getReaderConfiguration(InputReaderConfiguration* outConfig) = 0;
 
-#ifdef HAVE_ANDROID_OS
     
     virtual sp<PointerControllerInterface> obtainPointerController(int32_t deviceId) = 0;
-#endif
 };
 
 
@@ -938,7 +934,6 @@ private:
 };
 
 
-#ifdef HAVE_ANDROID_OS
 class CursorInputMapper : public InputMapper {
 public:
     CursorInputMapper(InputDevice* device);
@@ -1002,7 +997,6 @@ private:
 
     void sync(nsecs_t when);
 };
-#endif 
 
 
 class TouchInputMapper : public InputMapper {
@@ -1176,10 +1170,8 @@ protected:
     
     nsecs_t mDownTime;
 
-#ifdef HAVE_ANDROID_OS
     
     sp<PointerControllerInterface> mPointerController;
-#endif
 
     Vector<VirtualKey> mVirtualKeys;
 
