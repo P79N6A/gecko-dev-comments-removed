@@ -52,6 +52,7 @@
 #include "nsCOMArray.h"
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
+#include "nsIMutableArray.h"
 
 
 #include "nsIFormSubmitObserver.h"
@@ -412,7 +413,7 @@ nsHTMLFormElement::Reset()
 NS_IMETHODIMP
 nsHTMLFormElement::CheckValidity(PRBool* retVal)
 {
-  *retVal = CheckFormValidity();
+  *retVal = CheckFormValidity(nsnull);
   return NS_OK;
 }
 
@@ -699,16 +700,6 @@ nsHTMLFormElement::DoSubmit(nsEvent* aEvent)
     
     return NS_OK;
   }
-
-#ifdef DEBUG
-  if (!CheckFormValidity()) {
-    printf("= The form is not valid!\n");
-#if 0
-    
-    return NS_OK;
-#endif 
-  }
-#endif 
 
   
   mIsSubmitting = PR_TRUE;
@@ -1604,7 +1595,7 @@ nsHTMLFormElement::ForgetCurrentSubmission()
 }
 
 PRBool
-nsHTMLFormElement::CheckFormValidity() const
+nsHTMLFormElement::CheckFormValidity(nsIMutableArray* aInvalidElements) const
 {
   PRBool ret = PR_TRUE;
 
@@ -1631,10 +1622,18 @@ nsHTMLFormElement::CheckFormValidity() const
     if (cvElmt && cvElmt->IsCandidateForConstraintValidation() &&
         !cvElmt->IsValid()) {
       ret = PR_FALSE;
+      PRBool defaultAction = PR_TRUE;
       nsContentUtils::DispatchTrustedEvent(sortedControls[i]->GetOwnerDoc(),
                                            static_cast<nsIContent*>(sortedControls[i]),
                                            NS_LITERAL_STRING("invalid"),
-                                           PR_FALSE, PR_TRUE);
+                                           PR_FALSE, PR_TRUE, &defaultAction);
+
+      
+      
+      if (defaultAction && aInvalidElements) {
+        aInvalidElements->AppendElement((nsGenericHTMLElement*)sortedControls[i],
+                                        PR_FALSE);
+      }
     }
   }
 
@@ -1644,6 +1643,74 @@ nsHTMLFormElement::CheckFormValidity() const
   }
 
   return ret;
+}
+
+bool
+nsHTMLFormElement::CheckValidFormSubmission()
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  nsCOMPtr<nsIObserverService> service =
+    mozilla::services::GetObserverService();
+  if (!service) {
+    NS_WARNING("No observer service available!");
+    return true;
+  }
+
+  nsCOMPtr<nsISimpleEnumerator> theEnum;
+  nsresult rv = service->EnumerateObservers(NS_INVALIDFORMSUBMIT_SUBJECT,
+                                            getter_AddRefs(theEnum));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRBool hasObserver = PR_FALSE;
+  rv = theEnum->HasMoreElements(&hasObserver);
+
+  
+  
+  if (NS_SUCCEEDED(rv) && hasObserver) {
+    nsCOMPtr<nsIMutableArray> invalidElements =
+      do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!CheckFormValidity(invalidElements.get())) {
+      nsCOMPtr<nsISupports> inst;
+      nsCOMPtr<nsIFormSubmitObserver> observer;
+      PRBool more = PR_TRUE;
+      while (NS_SUCCEEDED(theEnum->HasMoreElements(&more)) && more) {
+        theEnum->GetNext(getter_AddRefs(inst));
+        observer = do_QueryInterface(inst);
+
+        if (observer) {
+          rv = observer->
+            NotifyInvalidSubmit(this,
+                                static_cast<nsIArray*>(invalidElements));
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
+      }
+
+      
+      return false;
+    }
+  } else {
+    NS_WARNING("There is no observer for \"invalidformsubmit\". \
+One should be implemented!");
+  }
+
+  return true;
 }
 
 void

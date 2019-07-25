@@ -55,6 +55,7 @@
 #include "nsInterfaceHashtable.h"
 
 class nsFormControlList;
+class nsIMutableArray;
 
 
 
@@ -271,6 +272,16 @@ public:
 
   PRBool GetValidity() const { return !mInvalidElementsCount; }
 
+  
+
+
+
+
+
+
+
+  bool CheckValidFormSubmission();
+
   virtual nsXPCClassInfo* GetClassInfo();
 protected:
   class RemoveElementRunnable;
@@ -366,7 +377,7 @@ protected:
 
 
 
-  PRBool CheckFormValidity() const;
+  PRBool CheckFormValidity(nsIMutableArray* aInvalidElements) const;
 
 public:
   
