@@ -733,7 +733,9 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
   
   if (rv == NS_ERROR_HTMLPARSER_BLOCK) {
     mScriptElements.AppendObject(sele);
-    mParser->BlockParser();
+    if (mParser) {
+      mParser->BlockParser();
+    }
   } else {
     
     
