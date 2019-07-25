@@ -44,6 +44,7 @@
 
 #include "nsAutoPtr.h"
 #include "nsViewManager.h"
+#include "nsIDeviceContext.h"
 #include "nsGfxCIID.h"
 #include "nsView.h"
 #include "nsISupportsArray.h"
@@ -651,7 +652,7 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
           childWidget->GetWindowClipRegion(&clipRects);
           for (PRUint32 i = 0; i < clipRects.Length(); ++i) {
             nsRect rr = (clipRects[i] + bounds.TopLeft()).
-              ToAppUnits(AppUnitsPerDevPixel());
+              ToAppUnits(mContext->AppUnitsPerDevPixel());
             children.Or(children, rr - aWidgetView->ViewToWidgetOffset()); 
             children.SimplifyInward(20);
           }
@@ -751,7 +752,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 
             if (aView == mRootView)
               {
-                PRInt32 p2a = AppUnitsPerDevPixel();
+                PRInt32 p2a = mContext->AppUnitsPerDevPixel();
                 SetWindowDimensions(NSIntPixelsToAppUnits(width, p2a),
                                     NSIntPixelsToAppUnits(height, p2a));
                 *aStatus = nsEventStatus_eConsumeNoDefault;
@@ -958,7 +959,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
         }
 
         if (nsnull != view) {
-          PRInt32 p2a = AppUnitsPerDevPixel();
+          PRInt32 p2a = mContext->AppUnitsPerDevPixel();
 
           if ((aEvent->message == NS_MOUSE_MOVE &&
                static_cast<nsMouseEvent*>(aEvent)->reason ==
@@ -1539,7 +1540,7 @@ nsIntRect nsViewManager::ViewToWidget(nsView *aView, nsView* aWidgetView, const 
   rect += aView->ViewToWidgetOffset();
 
   
-  return rect.ToOutsidePixels(AppUnitsPerDevPixel());
+  return rect.ToOutsidePixels(mContext->AppUnitsPerDevPixel());
 }
 
 NS_IMETHODIMP
@@ -1714,18 +1715,17 @@ static nsView* FindFloatingViewContaining(nsView* aView, nsPoint aPt)
 
 static nsView* FindViewContaining(nsView* aView, nsPoint aPt)
 {
-  if (!aView->GetDimensions().Contains(aPt) ||
-      aView->GetVisibility() == nsViewVisibility_kHide) {
-    return nsnull;
-  }
-
   for (nsView* v = aView->GetFirstChild(); v; v = v->GetNextSibling()) {
-    nsView* r = FindViewContaining(v, aPt - v->GetOffsetTo(aView));
-    if (r)
-      return r;
+    if (aView->GetDimensions().Contains(aPt) &&
+        aView->GetVisibility() != nsViewVisibility_kHide) {
+      nsView* r = FindViewContaining(v, aPt - v->GetOffsetTo(aView));
+      if (r)
+        return r;
+      return v;
+    }
   }
 
-  return aView;
+  return nsnull;
 }
 
 void
@@ -1753,7 +1753,7 @@ nsViewManager::ProcessSynthMouseMoveEvent(PRBool aFromScroll)
 #endif
                                                        
   nsPoint pt;
-  PRInt32 p2a = AppUnitsPerDevPixel();
+  PRInt32 p2a = mContext->AppUnitsPerDevPixel();
   pt.x = NSIntPixelsToAppUnits(mMouseLocation.x, p2a);
   pt.y = NSIntPixelsToAppUnits(mMouseLocation.y, p2a);
   
