@@ -63,9 +63,9 @@ public class SyncConfiguration implements CredentialsSource {
       this.editor = config.getEditor();
     }
 
-    @Override
     public void apply() {
-      this.editor.apply();
+      
+      this.editor.commit();
     }
 
     @Override
