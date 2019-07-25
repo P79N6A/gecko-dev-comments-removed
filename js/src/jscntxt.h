@@ -1180,15 +1180,6 @@ struct JSRuntime {
 
 
 
-    js::PropertyTree    propertyTree;
-
-#define JS_PROPERTY_TREE(cx) ((cx)->runtime->propertyTree)
-
-    
-
-
-
-
     int32               propertyRemovals;
 
     
@@ -1244,17 +1235,6 @@ struct JSRuntime {
 
 
 
-    js::EmptyShape      *emptyArgumentsShape;
-    js::EmptyShape      *emptyBlockShape;
-    js::EmptyShape      *emptyCallShape;
-    js::EmptyShape      *emptyDeclEnvShape;
-    js::EmptyShape      *emptyEnumeratorShape;
-    js::EmptyShape      *emptyWithShape;
-
-    
-
-
-
 
 #ifdef JS_DUMP_ENUM_CACHE_STATS
     int32               nativeEnumProbes;
@@ -1276,17 +1256,11 @@ struct JSRuntime {
     jsrefcount          nonInlineCalls;
     jsrefcount          constructs;
 
-    
     jsrefcount          liveObjectProps;
     jsrefcount          liveObjectPropsPreSweep;
-    jsrefcount          totalObjectProps;
-    jsrefcount          livePropTreeNodes;
-    jsrefcount          duplicatePropTreeNodes;
-    jsrefcount          totalPropTreeNodes;
-    jsrefcount          propTreeKidsChunks;
-    jsrefcount          liveDictModeNodes;
 
     
+
 
 
 
@@ -1296,12 +1270,6 @@ struct JSRuntime {
     const char          *propTreeDumpFilename;
 
     bool meterEmptyShapes() const { return propTreeStatFilename || propTreeDumpFilename; }
-
-    typedef js::HashSet<js::EmptyShape *,
-                        js::DefaultHasher<js::EmptyShape *>,
-                        js::SystemAllocPolicy> EmptyShapeSet;
-
-    EmptyShapeSet       emptyShapes;
 
     
     jsrefcount          liveStrings;
@@ -3214,19 +3182,19 @@ js_IsPropertyCacheDisabled(JSContext *cx)
 }
 
 static JS_INLINE uint32
-js_RegenerateShapeForGC(JSContext *cx)
+js_RegenerateShapeForGC(JSRuntime *rt)
 {
-    JS_ASSERT(cx->runtime->gcRunning);
-    JS_ASSERT(cx->runtime->gcRegenShapes);
+    JS_ASSERT(rt->gcRunning);
+    JS_ASSERT(rt->gcRegenShapes);
 
     
 
 
 
 
-    uint32 shape = cx->runtime->shapeGen;
+    uint32 shape = rt->shapeGen;
     shape = (shape + 1) | (shape & js::SHAPE_OVERFLOW_BIT);
-    cx->runtime->shapeGen = shape;
+    rt->shapeGen = shape;
     return shape;
 }
 

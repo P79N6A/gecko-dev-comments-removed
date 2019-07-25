@@ -596,6 +596,12 @@ DropWatchPointAndUnlock(JSContext *cx, JSWatchPoint *wp, uintN flag)
     }
 
     
+
+
+
+    SwitchToCompartment sc(cx, wp->object);
+
+    
     ++rt->debuggerMutations;
     JS_REMOVE_LINK(&wp->links);
     DBG_UNLOCK(rt);
