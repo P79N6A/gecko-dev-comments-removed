@@ -796,7 +796,7 @@ CookieStore.prototype = {
     return this.__cookieManager
   },
 
-  _createCommand: function HistStore__createCommand(command) {
+  _createCommand: function CookieStore__createCommand(command) {
     
 
 
