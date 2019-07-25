@@ -284,10 +284,21 @@ ic::CallFastNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *fu
     
     ncc.masm.add32(Imm32(stackAdjustment), JSC::X86Registers::esp);
 
+#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
+    
+    
+    
+    ncc.masm.sub32(Imm32(8), JSC::X86Registers::esp);
+#endif
+
     
     Jump hasException =
         ncc.masm.branchTest32(Assembler::Zero, Registers::ReturnReg, Registers::ReturnReg);
     ncc.addLink(hasException, JS_FUNC_TO_DATA_PTR(uint8 *, JaegerThrowpoline));
+
+#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
+    ncc.masm.add32(Imm32(8), JSC::X86Registers::esp);
+#endif
 
     
     Address rval(JSFrameReg, vpOffset);

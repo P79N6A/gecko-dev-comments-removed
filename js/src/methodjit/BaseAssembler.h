@@ -110,6 +110,11 @@ class BaseAssembler : public JSC::MacroAssembler
     Vector<CallPatch, 64, SystemAllocPolicy> callPatches;
 
   public:
+#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
+    
+    
+    Label callLabel;
+#endif
     BaseAssembler()
       : callPatches(SystemAllocPolicy())
     {
@@ -259,8 +264,9 @@ static const JSC::MacroAssembler::RegisterID JSReturnReg_Data = JSC::ARMRegister
 #endif
         Call cl = call(pfun);
 #if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
-        pop();
-        pop();
+        callLabel = label();
+        addPtr(JSC::MacroAssembler::Imm32(8),
+               JSC::MacroAssembler::stackPointerRegister);
 #endif
         return cl;
     }
