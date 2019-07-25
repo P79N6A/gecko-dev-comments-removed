@@ -508,14 +508,8 @@ struct JSScript : public js::gc::Cell
 
     
 
-  private:
-    
-    
-    
-    uint8_t         hasArrayBits;
-
-    
   public:
+    
     enum ArrayKind {
         CONSTS,
         OBJECTS,
@@ -526,7 +520,14 @@ struct JSScript : public js::gc::Cell
         CLOSED_VARS,
         LIMIT
     };
-    JS_STATIC_ASSERT(sizeof(hasArrayBits) * 8 >= LIMIT);
+
+    typedef uint8_t ArrayBitsT;
+
+  private:
+    
+    
+    
+    ArrayBitsT      hasArrayBits;
 
     
 
@@ -936,6 +937,8 @@ struct JSScript : public js::gc::Cell
 
     void markChildren(JSTracer *trc);
 };
+
+JS_STATIC_ASSERT(sizeof(JSScript::ArrayBitsT) * 8 >= JSScript::LIMIT);
 
 
 JS_STATIC_ASSERT(sizeof(JSScript) % js::gc::Cell::CellSize == 0);
