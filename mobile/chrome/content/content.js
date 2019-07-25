@@ -33,6 +33,7 @@ let XULDocument = Ci.nsIDOMXULDocument;
 let HTMLHtmlElement = Ci.nsIDOMHTMLHtmlElement;
 let HTMLIFrameElement = Ci.nsIDOMHTMLIFrameElement;
 let HTMLFrameElement = Ci.nsIDOMHTMLFrameElement;
+let HTMLFrameSetElement = Ci.nsIDOMHTMLFrameSetElement;
 let HTMLSelectElement = Ci.nsIDOMHTMLSelectElement;
 let HTMLOptionElement = Ci.nsIDOMHTMLOptionElement;
 
@@ -743,6 +744,11 @@ let ViewportHandler = {
     
     
     if (Util.isParentProcess())
+      return { defaultZoom: 1, autoSize: true, allowZoom: false, autoScale: false };
+
+    
+    
+    if (content.frames.length > 0 && (content.document.body instanceof HTMLFrameSetElement))
       return { defaultZoom: 1, autoSize: true, allowZoom: false, autoScale: false };
 
     
