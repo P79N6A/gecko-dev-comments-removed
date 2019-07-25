@@ -255,6 +255,12 @@ public:
 
 
 
+  static void InvalidateThebesLayersInSubtreeWithUntrustedFrameGeometry(nsIFrame* aFrame);
+
+  
+
+
+
   static void InvalidateAllLayers(LayerManager* aManager);
 
   
