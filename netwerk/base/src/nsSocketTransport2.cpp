@@ -943,14 +943,12 @@ nsSocketTransport::ResolveHost()
     if (mConnectionFlags & nsSocketTransport::BYPASS_CACHE)
         dnsFlags = nsIDNSService::RESOLVE_BYPASS_CACHE;
 
+    SendStatus(STATUS_RESOLVING);
     rv = dns->AsyncResolve(SocketHost(), dnsFlags, this, nsnull,
                            getter_AddRefs(mDNSRequest));
     if (NS_SUCCEEDED(rv)) {
         SOCKET_LOG(("  advancing to STATE_RESOLVING\n"));
         mState = STATE_RESOLVING;
-        
-        if (mResolving)
-            SendStatus(STATUS_RESOLVING);
     }
     return rv;
 }
@@ -1439,6 +1437,9 @@ nsSocketTransport::OnSocketEvent(PRUint32 type, nsresult status, nsISupports *pa
         break;
 
     case MSG_DNS_LOOKUP_COMPLETE:
+        if (mDNSRequest)  
+            SendStatus(STATUS_RESOLVED);
+
         SOCKET_LOG(("  MSG_DNS_LOOKUP_COMPLETE\n"));
         mDNSRequest = 0;
         if (param) {
