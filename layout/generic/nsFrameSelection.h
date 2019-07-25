@@ -466,6 +466,12 @@ public:
   
 
 
+  
+  nsresult CharacterExtendForBackspace();
+
+  
+
+
 
 
   
