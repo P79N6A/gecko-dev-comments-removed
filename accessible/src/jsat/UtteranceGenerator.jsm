@@ -123,6 +123,16 @@ var UtteranceGenerator = {
     }
   },
 
+  
+
+
+
+
+  genForEditingMode: function genForEditingMode(aIsEditing) {
+    return [gStringBundle.GetStringFromName(
+              aIsEditing ? 'editingMode' : 'navigationMode')];
+  },
+
   verbosityRoleMap: {
     'menubar': INCLUDE_DESC,
     'scrollbar': INCLUDE_DESC,
