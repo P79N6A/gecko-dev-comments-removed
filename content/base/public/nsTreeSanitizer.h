@@ -43,6 +43,10 @@
 #include "nsIPrincipal.h"
 #include "mozilla/dom/Element.h"
 
+
+
+
+
 class NS_STACK_CLASS nsTreeSanitizer {
 
   public:
@@ -52,8 +56,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-
-    nsTreeSanitizer(bool aAllowStyles, bool aAllowComments);
+    nsTreeSanitizer(PRUint32 aFlags = 0);
 
     static void InitializeStatics();
     static void ReleaseStatics();
@@ -67,6 +70,14 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
     void Sanitize(nsIContent* aFragment);
 
+    
+
+
+
+
+
+    void Sanitize(nsIDocument* aDocument);
+
   private:
 
     
@@ -78,6 +89,33 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
     bool mAllowComments;
+
+    
+
+
+    bool mDropNonCSSPresentation;
+
+    
+
+
+    bool mDropForms;
+
+    
+
+
+    bool mCidEmbedsOnly;
+
+    
+
+
+    bool mDropMedia;
+
+    
+
+
+    bool mFullDocument;
+
+    void SanitizeChildren(nsINode* aRoot);
 
     
 
@@ -181,6 +219,11 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
     static nsTHashtable<nsISupportsHashKey>* sAttributesHTML;
+
+    
+
+
+    static nsTHashtable<nsISupportsHashKey>* sPresAttributesHTML;
 
     
 
