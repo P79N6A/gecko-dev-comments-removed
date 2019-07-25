@@ -182,6 +182,13 @@ let Util = {
 #endif
   },
 
+  modifierMaskFromEvent: function modifierMaskFromEvent(aEvent) {
+    return (aEvent.altKey   ? Ci.nsIDOMNSEvent.ALT_MASK     : 0) |
+           (aEvent.ctrlKey  ? Ci.nsIDOMNSEvent.CONTROL_MASK : 0) |
+           (aEvent.shiftKey ? Ci.nsIDOMNSEvent.SHIFT_MASK   : 0) |
+           (aEvent.metaKey  ? Ci.nsIDOMNSEvent.META_MASK    : 0);
+  },
+
   get isKeyboardOpened() {
     
     
