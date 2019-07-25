@@ -75,7 +75,7 @@ function ImageListener(start_callback, stop_callback)
 
     
     
-    aRequest.cancel(0);
+    aRequest.cancelAndForgetObserver(0);
 
     this.state |= STOP_REQUEST;
 
