@@ -1665,7 +1665,17 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
       default :
         mode = SW_RESTORE;
     }
-    ::ShowWindow(mWnd, mode);
+
+    WINDOWPLACEMENT pl;
+    pl.length = sizeof(pl);
+    ::GetWindowPlacement(mWnd, &pl);
+    
+    
+    
+    
+    if( !(pl.showCmd == SW_SHOWNORMAL && mode == SW_RESTORE) ) {
+      ::ShowWindow(mWnd, mode);
+    }
     
     
     if (mode == SW_RESTORE || mode == SW_MAXIMIZE || mode == SW_SHOW)
