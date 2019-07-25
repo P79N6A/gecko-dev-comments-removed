@@ -859,6 +859,10 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_COLOR_INTERPOLATION_LINEARRGB      2
 
 
+#define NS_STYLE_BACKFACE_VISIBILITY_VISIBLE        1
+#define NS_STYLE_BACKFACE_VISIBILITY_HIDDEN         0
+
+
 
 
 

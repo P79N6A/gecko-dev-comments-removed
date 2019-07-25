@@ -137,6 +137,12 @@ public:
   
 
 
+
+  gfxPoint3D GetNormalVector() const;
+
+  
+
+
   PRBool IsSingular() const;
 
   

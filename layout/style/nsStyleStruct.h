@@ -1516,6 +1516,7 @@ struct nsStyleDisplay {
   const nsCSSValueList *mSpecifiedTransform; 
   nsStyleCoord mTransformOrigin[2]; 
   nsStyleCoord mChildPerspective; 
+  PRUint8 mBackfaceVisibility;
 
   nsAutoTArray<nsTransition, 1> mTransitions; 
   
