@@ -161,6 +161,7 @@ struct DBState
   nsTHashtable<nsCookieEntry>     hostTable;
   PRUint32                        cookieCount;
   PRInt64                         cookieOldestTime;
+  nsCOMPtr<nsIFile>               cookieFile;
   nsCOMPtr<mozIStorageConnection> dbConn;
   nsCOMPtr<mozIStorageAsyncStatement> stmtInsert;
   nsCOMPtr<mozIStorageAsyncStatement> stmtDelete;
@@ -203,6 +204,14 @@ enum CookieStatus
 };
 
 
+enum OpenDBResult
+{
+  RESULT_OK,
+  RESULT_RETRY,
+  RESULT_FAILURE
+};
+
+
 
 
 
@@ -228,11 +237,11 @@ class nsCookieService : public nsICookieService
   protected:
     void                          PrefChanged(nsIPrefBranch *aPrefBranch);
     void                          InitDBStates();
-    nsresult                      TryInitDB(PRBool aDeleteExistingDB);
+    OpenDBResult                  TryInitDB(bool aDeleteExistingDB);
     nsresult                      CreateTable();
     void                          CloseDBStates();
     void                          CloseDefaultDBConnection();
-    nsresult                      Read();
+    OpenDBResult                  Read();
     template<class T> nsCookie*   GetCookieFromRow(T &aRow);
     void                          AsyncReadComplete();
     void                          CancelAsyncRead(PRBool aPurgeReadSet);
