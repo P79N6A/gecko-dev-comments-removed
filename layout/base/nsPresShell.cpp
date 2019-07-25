@@ -5322,6 +5322,7 @@ PresShell::ProcessSynthMouseMoveEvent(bool aFromScroll)
   event.refPoint = refpoint.ToNearestPixels(viewAPD);
   event.time = PR_IntervalNow();
   
+  
 
   nsCOMPtr<nsIPresShell> shell = pointVM->GetPresShell();
   if (shell) {
