@@ -60,6 +60,7 @@ public:
   virtual void UnselectRow(uint32_t aRowIdx);
 
 protected:
+
   
 
 
@@ -114,6 +115,27 @@ public:
   virtual void Shutdown();
   virtual void ApplyARIAState(uint64_t* aState) const;
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
+
+protected:
+
+  
+
+
+  Accessible* Row() const
+  {
+    Accessible* row = Parent();
+    return row && row->Role() == roles::ROW ? row : nullptr;
+  }
+
+  
+
+
+  Accessible* TableFor(Accessible* aRow) const;
+
+  
+
+
+  int32_t RowIndexFor(Accessible* aRow) const;
 };
 
 } 

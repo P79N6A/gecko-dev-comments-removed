@@ -4,13 +4,15 @@
 
 
 
-#ifndef nsAccIterator_h_
-#define nsAccIterator_h_
+#ifndef mozilla_a11y_AccIterator_h__
+#define mozilla_a11y_AccIterator_h__
 
-#include "nsAccessibilityService.h"
-#include "filters.h"
-#include "nscore.h"
 #include "DocAccessible.h"
+#include "Filters.h"
+#include "nsAccessibilityService.h"
+
+namespace mozilla {
+namespace a11y {
 
 
 
@@ -33,24 +35,7 @@ private:
 class AccIterator : public AccIterable
 {
 public:
-  
-
-
-  enum IterationType {
-    
-
-
-    eFlatNav,
-
-    
-
-
-
-    eTreeNav
-  };
-
-  AccIterator(Accessible* aRoot, filters::FilterFuncPtr aFilterFunc,
-              IterationType aIterationType = eFlatNav);
+  AccIterator(Accessible* aRoot, filters::FilterFuncPtr aFilterFunc);
   virtual ~AccIterator();
 
   
@@ -70,12 +55,11 @@ private:
 
     Accessible* mParent;
     int32_t mIndex;
-    IteratorState *mParentState;
+    IteratorState* mParentState;
   };
 
   filters::FilterFuncPtr mFilterFunc;
-  bool mIsDeep;
-  IteratorState *mState;
+  IteratorState* mState;
 };
 
 
@@ -281,5 +265,8 @@ private:
 
   nsRefPtr<Accessible> mAcc;
 };
+
+} 
+} 
 
 #endif
