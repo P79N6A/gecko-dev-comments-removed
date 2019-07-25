@@ -57,10 +57,7 @@ let AllTabs = {
   get tabs() {
     
     return Array.concat.apply(null, browserWindows.map(function(browserWindow) {
-      let removingTabs = browserWindow.gBrowser._removingTabs;
-      return Array.filter(browserWindow.gBrowser.tabs, function (tab) {
-        return removingTabs.indexOf(tab) == -1;
-      });
+      return Array.filter(browserWindow.gBrowser.tabs, function (tab) !tab.closing);
     }));
   },
 

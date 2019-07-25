@@ -755,8 +755,7 @@ let UI = {
         if (gBrowser.tabs.length > 1) {
           
           for (let a = 0; a < gBrowser._numPinnedTabs; a++) {
-            let theTab = gBrowser.tabs[a]; 
-            if (gBrowser._removingTabs.indexOf(theTab) == -1) 
+            if (!gBrowser.tabs[a].closing)
               return;
           }
 
