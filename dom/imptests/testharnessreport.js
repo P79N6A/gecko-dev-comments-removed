@@ -20,6 +20,13 @@ var W3CTest = {
   
 
 
+
+  "collapsedMessages": 0,
+  "MAX_COLLAPSED_MESSAGES": 100,
+
+  
+
+
   "runner": parent === this ? null : parent.TestRunner || parent.wrappedJSObject.TestRunner,
 
   
@@ -44,10 +51,29 @@ var W3CTest = {
 
   "_log": function(test) {
     var msg = this.prefixes[+test.todo][+test.result] + " | ";
-    if (this.runner.currentTestURL)
+    if (this.runner.currentTestURL) {
       msg += this.runner.currentTestURL;
+    }
     msg += " | " + test.message;
     this.runner[(test.result === !test.todo) ? "log" : "error"](msg);
+  },
+
+  
+
+
+
+  "_maybeLog": function(test) {
+    var success = (test.result === !test.todo);
+    if (success && ++this.collapsedMessages < this.MAX_COLLAPSED_MESSAGES) {
+      return;
+    }
+    this._log({
+      "result": true,
+      "todo": false,
+      "message": "Elided " + this.collapsedMessages + " passes."
+    });
+    this.collapsedMessages = 0;
+    this._log(test);
   },
 
   
@@ -60,7 +86,7 @@ var W3CTest = {
 
   "report": function(test) {
     this.tests.push(test);
-    this._log(test);
+    this._maybeLog(test);
   },
 
   
