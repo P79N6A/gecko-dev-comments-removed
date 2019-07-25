@@ -297,8 +297,21 @@ SyncEngine.prototype = {
     record.encryption = this.cryptoMetaURL;
     record.cleartext = this._store.wrapItem(id);
 
-    if (record.cleartext && record.cleartext.parentid)
+    
+    if (record.cleartext) {
+      if (record.cleartext.parentid) {
         record.parentid = record.cleartext.parentid;
+        delete record.cleartext.parentid;
+      }
+      if (typeof(record.cleartext.depth) != "undefined") {
+        record.depth = record.cleartext.depth;
+        delete record.cleartext.depth;
+      }
+      if (typeof(record.cleartext.sortindex) != "undefined") {
+        record.sortindex = record.cleartext.sortindex;
+        delete record.cleartext.sortindex;
+      }
+    }
 
     if (encrypt || encrypt == undefined)
       yield record.encrypt(self.cb, ID.get('WeaveCryptoID').password);
@@ -313,6 +326,9 @@ SyncEngine.prototype = {
   _recordLike: function SyncEngine__recordLike(a, b) {
     if (a.parentid != b.parentid)
       return false;
+    if (a.depth != b.depth)
+      return false;
+    
     return Utils.deepEquals(a.cleartext, b.cleartext);
   },
 
@@ -322,27 +338,6 @@ SyncEngine.prototype = {
       if (rec.parentid == oldID)
         rec.parentid = newID;
     }
-  },
-
-  _recDepth: function SyncEngine__recDepth(rec) {
-    
-    if (rec.depth)
-      return rec.depth;
-
-    
-    if (!rec.parentid)
-      return 0;
-
-    
-    for each (let inc in this.incoming) {
-      if (inc.id == rec.parentid) {
-        rec.depth = this._recDepth(inc) + 1;
-        return rec.depth;
-      }
-    }
-
-    
-    return 0;
   },
 
   
@@ -426,6 +421,8 @@ SyncEngine.prototype = {
       else
         this._log.debug("Skipping reconciled incoming item");
     }
+    if (typeof(this._lastSyncTmp) == "string")
+      this._lastSyncTmp = parseInt(this._lastSyncTmp);
     if (this.lastSync < this._lastSyncTmp)
         this.lastSync = this._lastSyncTmp;
 
@@ -496,10 +493,10 @@ SyncEngine.prototype = {
   _applyIncoming: function SyncEngine__applyIncoming(item) {
     let self = yield;
     this._log.debug("Applying incoming record");
-    this._log.trace("Incoming record: " + this._json.encode(item.cleartext));
+    this._log.trace("Incoming:\n" + item);
     try {
       yield this._store.applyIncoming(self.cb, item);
-      if (item.modified > this._lastSyncTmp)
+      if (this._lastSyncTmp < item.modified)
         this._lastSyncTmp = item.modified;
     } catch (e) {
       this._log.warn("Error while applying incoming record: " +
@@ -510,18 +507,41 @@ SyncEngine.prototype = {
   
   _uploadOutgoing: function SyncEngine__uploadOutgoing() {
     let self = yield;
+
     if (this.outgoing.length) {
-      this._log.debug("Uploading client changes");
+      this._log.debug("Uploading client changes (" + this.outgoing.length + ")");
+
+      
       let up = new Collection(this.engineURL);
+
+      
+      this._store.cacheItemsHint();
+      let depth = {};
+
       let out;
       while ((out = this.outgoing.pop())) {
-        this._log.trace("Outgoing record: " + this._json.encode(out.cleartext));
+        this._log.trace("Outgoing:\n" + out);
         yield out.encrypt(self.cb, ID.get('WeaveCryptoID').password);
         yield up.pushRecord(self.cb, out);
+        this._store.wrapDepth(out.id, depth);
       }
+
+      
+      this._log.trace(depth.length + "outgoing depth records");
+      for (let id in depth) {
+        up.pushDepthRecord({id: id, depth: depth[id]});
+      }
+      this._store.clearItemCacheHint();
+
+      
       yield up.post(self.cb);
-      if (up.data.modified > this.lastSync)
-        this.lastSync = up.data.modified;
+
+      
+      let mod = up.data.modified;
+      if (typeof(mod) == "string")
+        mod = parseInt(mod);
+      if (mod > this.lastSync)
+        this.lastSync = mod;
     }
     this._tracker.clearChangedIDs();
   },
