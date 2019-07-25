@@ -244,7 +244,13 @@ public class LayerController {
 
         
         
-        mView.requestRender();
+
+        mView.post(new Runnable() {
+            public void run() {
+                mPanZoomController.pageSizeUpdated();
+                mView.requestRender();
+            }
+        });
     }
 
     
