@@ -624,6 +624,8 @@ var FormHelperUI = {
     Elements.browsers.addEventListener("PanFinished", this, false);
     window.addEventListener("AnimatedZoomBegin", this, false);
     window.addEventListener("AnimatedZoomEnd", this, false);
+    window.addEventListener("MozBeforeResize", this, true);
+    window.addEventListener("resize", this, false);
   },
 
   _currentBrowser: null,
@@ -748,6 +750,16 @@ var FormHelperUI = {
           SelectHelperUI.sizeToContent();
           self._zoom(self._currentElementRect, self._currentCaretRect);
         }, 0, this);
+        break;
+
+      case "MozBeforeResize":
+        if (this._hasSuggestions)
+          this._suggestionsContainer.left = 0;
+        break;
+
+      case "resize":
+        if (this._hasSuggestions)
+          this._ensureSuggestionsVisible();
         break;
     }
   },
@@ -952,6 +964,12 @@ var FormHelperUI = {
       virtualContentRect.right -= offsetX;
     }
 
+    if (virtualContentRect.left < leftOffset) {
+      let offsetX = (virtualContentRect.right - virtualContentRect.width);
+      virtualContentRect.width += offsetX;
+      virtualContentRect.left -= offsetX;
+    }
+
     
     let browserRect = Rect.fromRect(browser.getBoundingClientRect());
     if (BrowserUI.isToolbarLocked()) {
@@ -972,10 +990,11 @@ var FormHelperUI = {
     let top = rect.top - scroll.y + topOffset + (rect.height);
 
     
-    
     let arrowboxRect = Rect.fromRect(container.getBoundingClientRect());
     if (left + arrowboxRect.width > window.innerWidth)
       left -= (left + arrowboxRect.width - window.innerWidth);
+    else if (left < leftOffset)
+      left += (leftOffset - left);
     container.left = left;
 
     
