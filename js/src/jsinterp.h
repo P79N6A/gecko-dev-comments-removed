@@ -86,12 +86,12 @@ struct JSStackFrame
     JSObject            *callobj;       
     JSObject            *argsobj;       
     JSScript            *script;        
-    JSFunction          *fun;           
     js::Value           thisv;          
+    JSFunction          *fun;           
     uintN               argc;           
     js::Value           *argv;          
-    js::Value           rval;           
     void                *annotation;    
+    js::Value           rval;           
 
     
     JSStackFrame        *down;          

@@ -116,12 +116,6 @@ namespace mozilla {
 namespace plugins {
 namespace parent {
 
-
-
-
-
-
-
 JS_STATIC_ASSERT(sizeof(NPIdentifier) == sizeof(jsid));
 
 static inline jsid
