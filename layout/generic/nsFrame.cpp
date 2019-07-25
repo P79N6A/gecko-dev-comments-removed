@@ -6564,9 +6564,14 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
   
   
   
+  
+  
+  
   NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+    DebugOnly<nsRect*> r = &aOverflowAreas.Overflow(otype);
     NS_ASSERTION(aNewSize.width == 0 || aNewSize.height == 0 ||
-                 aOverflowAreas.Overflow(otype).Contains(nsRect(nsPoint(0,0), aNewSize)),
+                 r->width == nscoord_MAX || r->height == nscoord_MAX ||
+                 r->Contains(nsRect(nsPoint(0,0), aNewSize)),
                  "Computed overflow area must contain frame bounds");
   }
 
