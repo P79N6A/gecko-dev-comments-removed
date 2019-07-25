@@ -56,15 +56,6 @@
 class nsNPAPIPluginStreamListener;
 class nsPIDOMWindow;
 
-struct nsInstanceStream
-{
-  nsInstanceStream *mNext;
-  nsNPAPIPluginStreamListener *mPluginStreamListener;
-
-  nsInstanceStream();
-  ~nsInstanceStream();
-};
-
 class nsNPAPITimer
 {
 public:
@@ -180,7 +171,7 @@ public:
   
   PRPackedBool mInPluginInitCall;
   PluginLibrary* mLibrary;
-  nsInstanceStream *mStreams;
+  nsTArray<nsNPAPIPluginStreamListener*> mStreamListeners;
 
 private:
   nsTArray<PopupControlState> mPopupStates;
