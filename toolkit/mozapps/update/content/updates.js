@@ -1390,7 +1390,7 @@ var gDownloadingPage = {
       return;
 
     this.removeDownloadListener();
- },
+  },
 
   
 
