@@ -39,6 +39,7 @@
 
 
 #include "imgRequest.h"
+#include "ImageLogging.h"
 
 
 
@@ -54,7 +55,6 @@
 #include "VectorImage.h"
 
 #include "imgILoader.h"
-#include "ImageLogging.h"
 
 #include "netCore.h"
 
