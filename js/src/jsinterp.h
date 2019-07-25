@@ -347,8 +347,13 @@ struct JSStackFrame
 
 
 
+    
+    bool hasArgs() const {
+        return isFunctionFrame() && !isEvalFrame();
+    }
+
     uintN numFormalArgs() const {
-        JS_ASSERT(isFunctionFrame() && !isEvalFrame());
+        JS_ASSERT(hasArgs());
         return fun()->nargs;
     }
 
@@ -358,12 +363,12 @@ struct JSStackFrame
     }
 
     js::Value *formalArgs() const {
-        JS_ASSERT(isFunctionFrame() && !isEvalFrame());
+        JS_ASSERT(hasArgs());
         return (js::Value *)this - numFormalArgs();
     }
 
     js::Value *formalArgsEnd() const {
-        JS_ASSERT(isFunctionFrame() && !isEvalFrame());
+        JS_ASSERT(hasArgs());
         return (js::Value *)this;
     }
 
@@ -381,6 +386,7 @@ struct JSStackFrame
     template <class Op> inline void forEachCanonicalActualArg(Op op);
     template <class Op> inline void forEachFormalArg(Op op);
 
+    
     bool hasArgsObj() const {
         return !!(flags_ & JSFRAME_HAS_ARGS_OBJ);
     }
@@ -420,7 +426,7 @@ struct JSStackFrame
     }
 
     JSObject &constructorThis() const {
-        JS_ASSERT(isFunctionFrame() && !isEvalFrame());
+        JS_ASSERT(hasArgs());
         return formalArgs()[-1].toObject();
     }
 
