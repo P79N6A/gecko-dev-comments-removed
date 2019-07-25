@@ -875,7 +875,7 @@ static nsresult pref_InitInitialObjects()
 
   
   static const char* specialFiles[] = {
-#if defined(XP_MAC) || defined(XP_MACOSX)
+#if defined(XP_MACOSX)
       "macprefs.js"
 #elif defined(XP_WIN)
       "winpref.js"
