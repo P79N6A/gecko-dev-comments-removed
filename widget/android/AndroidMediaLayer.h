@@ -1,0 +1,96 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef AndroidMediaLayer_h_
+#define AndroidMediaLayer_h_
+
+#include <map>
+#include <jni.h>
+#include "gfxRect.h"
+
+namespace mozilla {
+
+class AndroidMediaLayer
+{
+public:
+
+  AndroidMediaLayer();
+  virtual ~AndroidMediaLayer();
+  
+  void* GetNativeWindowForContent();
+
+  void* RequestNativeWindowForVideo();
+  void  ReleaseNativeWindowForVideo(void* aWindow);
+
+  void SetNativeWindowDimensions(void* aWindow, const gfxRect& aDimensions);
+
+  void UpdatePosition(const gfxRect& aRect, float aZoomLevel);
+
+  bool Inverted() {
+    return mInverted;
+  }
+
+  void SetInverted(bool aInverted) {
+    mInverted = aInverted;
+  }
+
+private:
+  bool mInverted;
+
+  class SurfaceData {
+    public:
+      SurfaceData() :
+        surface(NULL), window(NULL) {
+      }
+
+      SurfaceData(jobject aSurface, void* aWindow) :
+        surface(aSurface), window(aWindow) {
+      }
+
+      jobject surface;
+      void* window;
+      gfxRect dimensions;
+  };
+
+  bool EnsureContentSurface();
+
+  SurfaceData mContentData;
+  std::map<void*, SurfaceData*> mVideoSurfaces;
+};
+
+} 
+#endif 

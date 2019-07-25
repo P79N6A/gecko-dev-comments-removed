@@ -94,11 +94,9 @@ using mozilla::DefaultXDisplay;
 #include "nsFocusManager.h"
 #include "nsIDOMDragEvent.h"
 #include "nsIScrollableFrame.h"
-#include "nsIImageLoadingContent.h"
 
 #include "nsContentCID.h"
 #include "nsWidgetsCID.h"
-static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
 #ifdef XP_WIN
@@ -122,6 +120,7 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 #include "ANPBase.h"
 #include "android_npapi.h"
 #include "AndroidBridge.h"
+#include "AndroidMediaLayer.h"
 using namespace mozilla::dom;
 
 #include <android/log.h>
@@ -187,7 +186,7 @@ nsPluginInstanceOwner::NotifyPaintWaiter(nsDisplayListBuilder* aBuilder)
 #ifdef XP_MACOSX
 static void DrawPlugin(ImageContainer* aContainer, void* aPluginInstanceOwner)
 {
-  nsObjectFrame* frame = static_cast<nsPluginInstanceOwner*>(aPluginInstanceOwner)->GetFrame();
+  nsObjectFrame* frame = static_cast<nsPluginInstanceOwner*>(aPluginInstanceOwner)->GetOwner();
   if (frame) {
     frame->UpdateImageLayer(aContainer, gfxRect(0,0,0,0));
   }
@@ -259,14 +258,7 @@ bool
 nsPluginInstanceOwner::UseAsyncRendering()
 {
 #ifdef XP_MACOSX
-  if (mUseAsyncRendering) {
-    return true;
-  }
-
-  nsRefPtr<ImageContainer> container;
-  if (mObjectFrame) {
-    container = mObjectFrame->GetImageContainer();
-  }
+  nsRefPtr<ImageContainer> container = mObjectFrame->GetImageContainer();
 #endif
 
   bool useAsyncRendering;
@@ -283,13 +275,7 @@ nsPluginInstanceOwner::UseAsyncRendering()
 #endif
           );
 
-#ifdef XP_MACOSX
-  if (result) {
-    mUseAsyncRendering = true;
-  }
-#endif
-
-  return result;
+    return result;
 }
 
 nsIntSize
@@ -307,16 +293,14 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   
   
   nsCOMPtr<nsIPluginHost> pluginHostCOM = do_GetService(MOZ_PLUGIN_HOST_CONTRACTID);
-  mPluginHost = static_cast<nsPluginHost*>(pluginHostCOM.get());  
-  if (mPluginHost)
-    mPluginHost->NewPluginNativeWindow(&mPluginWindow);
+  nsPluginHost *pluginHost = static_cast<nsPluginHost*>(pluginHostCOM.get());  
+  if (pluginHost)
+    pluginHost->NewPluginNativeWindow(&mPluginWindow);
   else
     mPluginWindow = nsnull;
 
   mObjectFrame = nsnull;
-  mContent = nsnull;
   mTagText = nsnull;
-  mWidgetCreationComplete = false;
 #ifdef XP_MACOSX
   memset(&mCGPluginPortCopy, 0, sizeof(NP_CGContext));
 #ifndef NP_NO_QUICKDRAW
@@ -335,6 +319,7 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mNumCachedParams = 0;
   mCachedAttrParamNames = nsnull;
   mCachedAttrParamValues = nsnull;
+  mDestroyWidget = false;
 
 #ifdef XP_MACOSX
 #ifndef NP_NO_QUICKDRAW
@@ -342,14 +327,14 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
 #else
   mEventModel = NPEventModelCocoa;
 #endif
-  mUseAsyncRendering = false;
 #endif
 
   mWaitingForPaint = false;
 
 #ifdef MOZ_WIDGET_ANDROID
-  mPluginViewAdded = false;
-  mLastPluginRect = gfxRect(0, 0, 0, 0);
+  mOnScreen = false;
+  mInverted = false;
+  mLayer = new AndroidMediaLayer();
 #endif
 }
 
@@ -397,8 +382,20 @@ nsPluginInstanceOwner::~nsPluginInstanceOwner()
     mTagText = nsnull;
   }
 
-  PLUG_DeletePluginNativeWindow(mPluginWindow);
-  mPluginWindow = nsnull;
+  
+  nsCOMPtr<nsIPluginHost> pluginHostCOM = do_GetService(MOZ_PLUGIN_HOST_CONTRACTID);
+  nsPluginHost *pluginHost = static_cast<nsPluginHost*>(pluginHostCOM.get());
+  if (pluginHost) {
+    pluginHost->DeletePluginNativeWindow(mPluginWindow);
+    mPluginWindow = nsnull;
+  }
+
+#ifdef MOZ_WIDGET_ANDROID
+  if (mLayer) {
+    delete mLayer;
+    mLayer = nsnull;
+  }
+#endif
 
   if (mInstance) {
     mInstance->InvalidateOwner();
@@ -502,29 +499,14 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
                                             void *aHeadersData,
                                             PRUint32 aHeadersDataLen)
 {
-  NS_ENSURE_TRUE(mContent, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_TRUE(mObjectFrame, NS_ERROR_NULL_POINTER);
 
   if (mContent->IsEditable()) {
     return NS_OK;
   }
 
-  nsIDocument *doc = mContent->GetCurrentDoc();
-  if (!doc) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsIPresShell *presShell = doc->GetShell();
-  if (!presShell) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsPresContext *presContext = presShell->GetPresContext();
-  if (!presContext) {
-    return NS_ERROR_FAILURE;
-  }
-
   
-  nsCOMPtr<nsISupports> container = presContext->GetContainer();
+  nsCOMPtr<nsISupports> container = mObjectFrame->PresContext()->GetContainer();
   NS_ENSURE_TRUE(container,NS_ERROR_FAILURE);
   nsCOMPtr<nsILinkHandler> lh = do_QueryInterface(container);
   NS_ENSURE_TRUE(lh, NS_ERROR_FAILURE);
@@ -770,6 +752,12 @@ NS_IMETHODIMP nsPluginInstanceOwner::SetEventModel(PRInt32 eventModel)
 #else
   return NS_ERROR_NOT_IMPLEMENTED;
 #endif
+}
+
+NS_IMETHODIMP nsPluginInstanceOwner::SetWindow()
+{
+  NS_ENSURE_TRUE(mObjectFrame, NS_ERROR_NULL_POINTER);
+  return mObjectFrame->CallSetWindow(false);
 }
 
 NPError nsPluginInstanceOwner::ShowNativeContextMenu(NPMenu* menu, void* event)
@@ -1113,6 +1101,7 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
                     !mCachedAttrParamNames,
                   "re-cache of attrs/params not implemented! use the DOM "
                     "node directy instead");
+  NS_ENSURE_TRUE(mObjectFrame, NS_ERROR_NULL_POINTER);
 
   
   
@@ -1184,6 +1173,9 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
       }
     }
   }
+
+  
+  NS_ENSURE_TRUE(mObjectFrame, NS_ERROR_OUT_OF_MEMORY);
 
   
   PRUint32 cparams = ourParams.Count();
@@ -1683,17 +1675,49 @@ void nsPluginInstanceOwner::ScrollPositionDidChange(nscoord aX, nscoord aY)
 }
 
 #ifdef MOZ_WIDGET_ANDROID
+
+void nsPluginInstanceOwner::SendSize(int width, int height)
+{
+  if (!mInstance)
+    return;
+
+  PRInt32 model = mInstance->GetANPDrawingModel();
+
+  if (model != kOpenGL_ANPDrawingModel)
+    return;
+
+  ANPEvent event;
+  event.inSize = sizeof(ANPEvent);
+  event.eventType = kDraw_ANPEventType;
+  event.data.draw.model = kOpenGL_ANPDrawingModel;
+  event.data.draw.data.surfaceSize.width = width;
+  event.data.draw.data.surfaceSize.height = height;
+
+  mInstance->HandleEvent(&event, nsnull);
+}
+
+void nsPluginInstanceOwner::SendOnScreenEvent(bool onScreen)
+{
+  if (!mInstance)
+    return;
+
+  if ((onScreen && !mOnScreen) || (!onScreen && mOnScreen)) {
+    ANPEvent event;
+    event.inSize = sizeof(ANPEvent);
+    event.eventType = kLifecycle_ANPEventType;
+    event.data.lifecycle.action = onScreen ? kOnScreen_ANPLifecycleAction : kOffScreen_ANPLifecycleAction;
+    mInstance->HandleEvent(&event, nsnull);
+
+    mOnScreen = onScreen;
+  }
+}
+
 bool nsPluginInstanceOwner::AddPluginView(const gfxRect& aRect)
 {
   void* javaSurface = mInstance->GetJavaSurface();
   if (!javaSurface) {
     mInstance->RequestJavaSurface();
     return false;
-  }
-
-  if (aRect.IsEqualEdges(mLastPluginRect)) {
-    
-    return true;
   }
 
   JNIEnv* env = GetJNIForThread();
@@ -1738,25 +1762,15 @@ bool nsPluginInstanceOwner::AddPluginView(const gfxRect& aRect)
                             aRect.height);
 #endif
 
-  if (!mPluginViewAdded) {
-    ANPEvent event;
-    event.inSize = sizeof(ANPEvent);
-    event.eventType = kLifecycle_ANPEventType;
-    event.data.lifecycle.action = kOnScreen_ANPLifecycleAction;
-    mInstance->HandleEvent(&event, nsnull);
-
-    mPluginViewAdded = true;
-  }
+  SendOnScreenEvent(true);
 
   return true;
 }
 
 void nsPluginInstanceOwner::RemovePluginView()
 {
-  if (!mInstance || !mObjectFrame | !mPluginViewAdded)
+  if (!mInstance || !mObjectFrame | !mOnScreen)
     return;
-
-  mPluginViewAdded = false;
 
   void* surface = mInstance->GetJavaSurface();
   if (!surface)
@@ -1773,13 +1787,17 @@ void nsPluginInstanceOwner::RemovePluginView()
                                             "removePluginView",
                                             "(Landroid/view/View;)V");
   env->CallStaticVoidMethod(cls, method, surface);
-
-    ANPEvent event;
-    event.inSize = sizeof(ANPEvent);
-    event.eventType = kLifecycle_ANPEventType;
-    event.data.lifecycle.action = kOffScreen_ANPLifecycleAction;
-    mInstance->HandleEvent(&event, nsnull);
+  SendOnScreenEvent(false);
 }
+
+void nsPluginInstanceOwner::Invalidate() {
+  NPRect rect;
+  rect.left = rect.top = 0;
+  rect.right = mPluginWindow->width;
+  rect.bottom = mPluginWindow->height;
+  InvalidateRect(&rect);
+}
+
 #endif
 
 nsresult nsPluginInstanceOwner::DispatchFocusToPlugin(nsIDOMEvent* aFocusEvent)
@@ -2747,18 +2765,81 @@ nsPluginInstanceOwner::Destroy()
 #endif
 
   if (mWidget) {
-    if (mPluginWindow) {
-      mPluginWindow->SetPluginWidget(nsnull);
-    }
-
     nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
-    if (pluginWidget) {
+    if (pluginWidget)
       pluginWidget->SetPluginInstanceOwner(nsnull);
-    }
-    mWidget->Destroy();
+
+    if (mDestroyWidget)
+      mWidget->Destroy();
   }
 
   return NS_OK;
+}
+
+
+
+
+void
+nsPluginInstanceOwner::PrepareToStop(bool aDelayedStop)
+{
+  
+  nsRefPtr<ImageContainer> container = mObjectFrame->GetImageContainer();
+  if (container) {
+#ifdef XP_MACOSX
+    nsRefPtr<Image> image = container->GetCurrentImage();
+    if (image && (image->GetFormat() == Image::MAC_IO_SURFACE) && mObjectFrame) {
+      
+      MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image.get());
+      oglImage->SetUpdateCallback(nsnull, nsnull);
+      oglImage->SetDestroyCallback(nsnull);
+      
+      
+      
+      NS_RELEASE_THIS();
+    }
+#endif
+    container->SetCurrentImage(nsnull);
+  }
+
+#if defined(XP_WIN) || defined(MOZ_X11)
+  if (aDelayedStop && mWidget) {
+    
+    
+    
+
+    
+    
+    mWidget->Show(false);
+    mWidget->Enable(false);
+
+    
+    
+    
+    mWidget->SetParent(nsnull);
+
+    mDestroyWidget = true;
+  }
+#endif
+
+#ifdef MOZ_WIDGET_ANDROID
+
+  PRInt32 model = mInstance->GetANPDrawingModel();
+  if (model == kSurface_ANPDrawingModel) {
+    RemovePluginView();
+  } else if (model == kOpenGL_ANPDrawingModel && mLayer) {
+    delete mLayer;
+    mLayer = nsnull;
+  }
+
+#endif
+
+  
+  for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+    nsIScrollableFrame* sf = do_QueryFrame(f);
+    if (sf) {
+      sf->RemoveScrollPositionListener(this);
+    }
+  }
 }
 
 
@@ -2861,12 +2942,18 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
 
   if (model == kSurface_ANPDrawingModel) {
     if (!AddPluginView(aFrameRect)) {
-      NPRect rect;
-      rect.left = rect.top = 0;
-      rect.right = aFrameRect.width;
-      rect.bottom = aFrameRect.height;
-      InvalidateRect(&rect);
+      Invalidate();
     }
+    return;
+  }
+
+  if (model == kOpenGL_ANPDrawingModel) {
+    
+    float zoomLevel = aFrameRect.width / (float)mPluginWindow->width;
+    mLayer->UpdatePosition(aFrameRect, zoomLevel);
+
+    SendOnScreenEvent(true);
+    SendSize((int)aFrameRect.width, (int)aFrameRect.height);
     return;
   }
 
@@ -3168,24 +3255,25 @@ void nsPluginInstanceOwner::CancelTimer()
 }
 #endif
 
-nsresult nsPluginInstanceOwner::Init(nsIContent* aContent)
+nsresult nsPluginInstanceOwner::Init(nsPresContext* aPresContext,
+                                     nsObjectFrame* aFrame,
+                                     nsIContent*    aContent)
 {
   mLastEventloopNestingLevel = GetEventloopNestingLevel();
 
+  mObjectFrame = aFrame;
   mContent = aContent;
+
+  nsWeakFrame weakFrame(aFrame);
 
   
   
-  nsIFrame* frame = aContent->GetPrimaryFrame();
-  nsIObjectFrame* iObjFrame = do_QueryFrame(frame);
-  nsObjectFrame* objFrame =  static_cast<nsObjectFrame*>(iObjFrame);
-  if (objFrame) {
-    SetFrame(objFrame);
-    
-    
-    
-    
-    objFrame->PresContext()->EnsureVisible();
+  
+  
+  aPresContext->EnsureVisible();
+
+  if (!weakFrame.IsAlive()) {
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
   
@@ -3228,6 +3316,16 @@ nsresult nsPluginInstanceOwner::Init(nsIContent* aContent)
 #if defined(MOZ_WIDGET_QT) && (MOZ_PLATFORM_MAEMO == 6)
   mContent->AddEventListener(NS_LITERAL_STRING("text"), this, true);
 #endif
+  
+  
+  
+  
+  for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+    nsIScrollableFrame* sf = do_QueryFrame(f);
+    if (sf) {
+      sf->AddScrollPositionListener(this);
+    }
+  }
 
   return NS_OK; 
 }
@@ -3269,95 +3367,88 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
 {
   NS_ENSURE_TRUE(mPluginWindow, NS_ERROR_NULL_POINTER);
 
-    nsresult rv = NS_ERROR_FAILURE;
-  
-  
-  if (mWidget) {
-    NS_WARNING("Trying to create a plugin widget twice!");
-    return NS_ERROR_FAILURE;
-  }
-  
-  bool windowless = false;
-  mInstance->IsWindowless(&windowless);
-  if (!windowless && !nsIWidget::UsePuppetWidgets()) {
-    
-    
-    nsCOMPtr<nsIWidget> parentWidget;
-    nsIDocument *doc = nsnull;
-    if (mContent) {
-      doc = mContent->OwnerDoc();
-      parentWidget = nsContentUtils::WidgetForDocument(doc);
-    }
-
-    mWidget = do_CreateInstance(kWidgetCID, &rv);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    nsWidgetInitData initData;
-    initData.mWindowType = eWindowType_plugin;
-    initData.mUnicode = false;
-    initData.clipChildren = true;
-    initData.clipSiblings = true;
-    rv = mWidget->Create(parentWidget.get(), nsnull, nsIntRect(0,0,0,0),
-                         nsnull, nsnull, &initData);
-    if (NS_FAILED(rv)) {
-      mWidget->Destroy();
-      mWidget = nsnull;
-      return rv;
-    }
-
-    mWidget->EnableDragDrop(true);
-    mWidget->Show(false);
-    mWidget->Enable(false);
-  }
+  nsresult  rv = NS_ERROR_FAILURE;
 
   if (mObjectFrame) {
-    
-    mObjectFrame->PrepForDrawing(mWidget);
-  }
+    if (!mWidget) {
+      bool windowless = false;
+      mInstance->IsWindowless(&windowless);
+      nsIDocument *doc = mContent ? mContent->OwnerDoc() : nsnull;
+      
+      nsPresContext* context = mObjectFrame->PresContext();
+      rv = mObjectFrame->CreateWidget(context->DevPixelsToAppUnits(mPluginWindow->width),
+                                      context->DevPixelsToAppUnits(mPluginWindow->height),
+                                      windowless);
+      if (NS_OK == rv) {
+        mWidget = mObjectFrame->GetWidget();
 
-  if (windowless) {
-    mPluginWindow->type = NPWindowTypeDrawable;
+        if (true == windowless) {
+          mPluginWindow->type = NPWindowTypeDrawable;
 
-    
-    
-    
-    
-    mPluginWindow->window = nsnull;
+          
+          
+          
+          
+          mPluginWindow->window = nsnull;
 #ifdef MOZ_X11
-    
-    NPSetWindowCallbackStruct* ws_info = 
-    static_cast<NPSetWindowCallbackStruct*>(mPluginWindow->ws_info);
-    ws_info->display = DefaultXDisplay();
-    
-    nsCAutoString description;
-    GetPluginDescription(description);
-    NS_NAMED_LITERAL_CSTRING(flash10Head, "Shockwave Flash 10.");
-    mFlash10Quirks = StringBeginsWith(description, flash10Head);
+          
+          NPSetWindowCallbackStruct* ws_info = 
+            static_cast<NPSetWindowCallbackStruct*>(mPluginWindow->ws_info);
+          ws_info->display = DefaultXDisplay();
+
+          nsCAutoString description;
+          GetPluginDescription(description);
+          NS_NAMED_LITERAL_CSTRING(flash10Head, "Shockwave Flash 10.");
+          mFlash10Quirks = StringBeginsWith(description, flash10Head);
 #endif
-  } else if (mWidget) {
-    
-    
-    mPluginWindow->type = NPWindowTypeWindow;
-    mPluginWindow->window = GetPluginPortFromWidget();
+
+          
+          mObjectFrame->FixupWindow(mObjectFrame->GetContentRectRelativeToSelf().Size());
+        } else if (mWidget) {
+          nsIWidget* parent = mWidget->GetParent();
+          NS_ASSERTION(parent, "Plugin windows must not be toplevel");
+          
+          
+          
+          
+          
+          
+          nsAutoTArray<nsIWidget::Configuration,1> configuration;
+          mObjectFrame->GetEmptyClipConfiguration(&configuration);
+          if (configuration.Length() > 0) {
+            configuration[0].mBounds.width = mPluginWindow->width;
+            configuration[0].mBounds.height = mPluginWindow->height;
+          }
+          parent->ConfigureChildren(configuration);
+
+          
+          
+          mPluginWindow->type = NPWindowTypeWindow;
+          mPluginWindow->window = GetPluginPortFromWidget();
+
 #ifdef MAC_CARBON_PLUGINS
-    
-    StartTimer(true);
+          
+          StartTimer(true);
 #endif
-    
-    mPluginWindow->SetPluginWidget(mWidget);
-    
-    
-    nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
-    if (pluginWidget) {
-      pluginWidget->SetPluginInstanceOwner(this);
+
+          
+          mPluginWindow->SetPluginWidget(mWidget);
+
+          
+          nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
+          if (pluginWidget)
+            pluginWidget->SetPluginInstanceOwner(this);
+        }
+      }
     }
   }
 
-  mWidgetCreationComplete = true;
+  return rv;
+}
 
-  return NS_OK;
+void nsPluginInstanceOwner::SetPluginHost(nsIPluginHost* aHost)
+{
+  mPluginHost = static_cast<nsPluginHost*>(aHost);
 }
 
 
@@ -3463,12 +3554,7 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
       mPluginWindow->clipRect.right   != oldClipRect.right  ||
       mPluginWindow->clipRect.bottom  != oldClipRect.bottom)
   {
-    if (UseAsyncRendering()) {
-      mInstance->AsyncSetWindow(mPluginWindow);
-    }
-    else {
-      mPluginWindow->CallSetWindow(mInstance);
-    }
+    CallSetWindow();
     mPluginPortChanged = false;
 #ifdef MAC_CARBON_PLUGINS
     
@@ -3482,12 +3568,7 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
     }
 #endif
   } else if (mPluginPortChanged) {
-    if (UseAsyncRendering()) {
-      mInstance->AsyncSetWindow(mPluginWindow);
-    }
-    else {
-      mPluginWindow->CallSetWindow(mInstance);
-    }
+    CallSetWindow();
     mPluginPortChanged = false;
   }
 
@@ -3529,7 +3610,7 @@ nsPluginInstanceOwner::HidePluginWindow()
   mPluginWindow->clipRect.bottom = mPluginWindow->clipRect.top;
   mPluginWindow->clipRect.right  = mPluginWindow->clipRect.left;
   mWidgetVisible = false;
-  if (UseAsyncRendering()) {
+  if (mAsyncHidePluginWindow) {
     mInstance->AsyncSetWindow(mPluginWindow);
   } else {
     mInstance->SetWindow(mPluginWindow);
@@ -3566,8 +3647,16 @@ void nsPluginInstanceOwner::UpdateWindowPositionAndClipRect(bool aSetWindow)
   } else {
     mPluginWindow->clipRect.right = 0;
     mPluginWindow->clipRect.bottom = 0;
-#ifdef MOZ_WIDGET_ANDROID
-    RemovePluginView();
+#if 0 
+    if (mInstance) {
+      PRInt32 model = mInstance->GetANPDrawingModel();
+
+      if (model == kSurface_ANPDrawingModel) {
+        RemovePluginView();
+      } else if (model == kOpenGL_ANPDrawingModel) {
+        HidePluginLayer();
+      }
+    }
 #endif
   }
 
@@ -3599,98 +3688,19 @@ nsPluginInstanceOwner::UpdateDocumentActiveState(bool aIsActive)
 }
 #endif 
 
-NS_IMETHODIMP
+void
 nsPluginInstanceOwner::CallSetWindow()
 {
-  if (mObjectFrame) {
-    mObjectFrame->CallSetWindow(false);
-  } else if (mInstance) {
-    if (UseAsyncRendering()) {
-      mInstance->AsyncSetWindow(mPluginWindow);
-    } else {
-      mInstance->SetWindow(mPluginWindow);
-    }
-  }
-
-  return NS_OK;
-}
-
-void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
-{
-  
-  if (mObjectFrame == aFrame) {
+  if (!mInstance)
     return;
-  }
 
-  
-  if (mObjectFrame) {
-    
-    
-    nsRefPtr<ImageContainer> container = mObjectFrame->GetImageContainer();
-    if (container) {
-#ifdef XP_MACOSX
-      nsRefPtr<Image> image = container->GetCurrentImage();
-      if (image && (image->GetFormat() == Image::MAC_IO_SURFACE) && mObjectFrame) {
-        
-        MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image.get());
-        oglImage->SetUpdateCallback(nsnull, nsnull);
-        oglImage->SetDestroyCallback(nsnull);
-        
-        
-        
-        NS_RELEASE_THIS();
-      }
-#endif
-      container->SetCurrentImage(nsnull);
-    }
-
-    
-    
-    if (!aFrame) {
-      
-      for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
-        nsIScrollableFrame* sf = do_QueryFrame(f);
-        if (sf) {
-          sf->RemoveScrollPositionListener(this);
-        }
-      }
-    }
-
-    
-    mObjectFrame->SetInstanceOwner(nsnull);
+  if (UseAsyncRendering()) {
+    mAsyncHidePluginWindow = true;
+    mInstance->AsyncSetWindow(mPluginWindow);
   } else {
-    if (aFrame) {
-      
-      
-      
-      for (nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
-        nsIScrollableFrame* sf = do_QueryFrame(f);
-        if (sf) {
-          sf->AddScrollPositionListener(this);
-        }
-      }
-    }
+    mAsyncHidePluginWindow = false;
+    mInstance->SetWindow(mPluginWindow);
   }
-
-  
-  mObjectFrame = aFrame;
-
-  
-  if (mObjectFrame) {
-    mObjectFrame->SetInstanceOwner(this);
-    
-    
-    if (mWidgetCreationComplete) {
-      mObjectFrame->PrepForDrawing(mWidget);
-    }
-    mObjectFrame->FixupWindow(mObjectFrame->GetContentRectRelativeToSelf().Size());
-    mObjectFrame->Invalidate(mObjectFrame->GetContentRectRelativeToSelf());
-  }
-}
-
-nsObjectFrame* nsPluginInstanceOwner::GetFrame()
-{
-  return mObjectFrame;
 }
 
 

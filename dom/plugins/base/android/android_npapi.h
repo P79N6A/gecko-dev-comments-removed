@@ -36,8 +36,9 @@
 #define android_npapi_H
 
 #include <stdint.h>
-#include "npapi.h"
 #include <jni.h>
+#include "npapi.h"
+#include "GLDefs.h"
 
 
 
@@ -120,6 +121,16 @@ typedef uint32_t ANPMatrixFlag;
 #define kSystemInterfaceV0_ANPGetValue      ((NPNVariable)1010)
 #define kEventInterfaceV0_ANPGetValue       ((NPNVariable)1011)
 
+#define kAudioTrackInterfaceV1_ANPGetValue  ((NPNVariable)1012)
+#define kOpenGLInterfaceV0_ANPGetValue      ((NPNVariable)1013)
+#define kWindowInterfaceV1_ANPGetValue      ((NPNVariable)1014)
+#define kVideoInterfaceV0_ANPGetValue       ((NPNVariable)1015)
+#define kSystemInterfaceV1_ANPGetValue      ((NPNVariable)1016)
+#define kSystemInterfaceV2_ANPGetValue      ((NPNVariable)1017)
+#define kWindowInterfaceV2_ANPGetValue      ((NPNVariable)1018)
+#define kNativeWindowInterfaceV0_ANPGetValue ((NPNVariable)1019)
+#define kVideoInterfaceV1_ANPGetValue       ((NPNVariable)1020)
+
 
 
 
@@ -180,6 +191,7 @@ enum ANPDrawingModels {
 
 
     kSurface_ANPDrawingModel = 1 << 1,
+    kOpenGL_ANPDrawingModel  = 1 << 2,
 };
 typedef int32_t ANPDrawingModel;
 
@@ -678,6 +690,25 @@ struct ANPWindowInterfaceV0 : ANPInterface {
     void    (*requestCenterFitZoom)(NPP instance);
 };
 
+struct ANPWindowInterfaceV1 : ANPWindowInterfaceV0 {
+    
+
+
+
+    ANPRectI (*visibleRect)(NPP instance);
+};
+
+typedef int32_t ANPScreenOrientation;
+
+struct ANPWindowInterfaceV2 : ANPWindowInterfaceV1 {
+    
+
+
+
+
+    void (*requestFullScreenOrientation)(NPP instance, ANPScreenOrientation orientation);
+};
+
 
 
 enum ANPSampleFormats {
@@ -761,6 +792,12 @@ struct ANPAudioTrackInterfaceV0 : ANPInterface {
 
     bool (*isStopped)(ANPAudioTrack*);
 };
+
+struct ANPAudioTrackInterfaceV1 : ANPAudioTrackInterfaceV0 {
+    
+    uint32_t (*trackLatency)(ANPAudioTrack*);
+};
+
 
 
 
@@ -922,11 +959,15 @@ struct ANPEvent {
             
             union {
                 ANPBitmap   bitmap;
+                struct {
+                    int32_t width;
+                    int32_t height;
+                } surfaceSize;
             } data;
         } draw;
-        int32_t     other[8];
     } data;
 };
+
 
 struct ANPEventInterfaceV0 : ANPInterface {
     
@@ -975,5 +1016,118 @@ typedef int32_t   int32;
 typedef uint32_t uint32;
 typedef int16_t   int16;
 typedef uint16_t uint16;
+
+
+
+
+struct ANPTextureInfo {
+    GLuint      textureId;
+    uint32_t    width;
+    uint32_t    height;
+    GLenum      internalFormat;
+};
+
+typedef void* ANPEGLContext;
+
+struct ANPOpenGLInterfaceV0 : ANPInterface {
+    ANPEGLContext (*acquireContext)(NPP instance);
+
+    ANPTextureInfo (*lockTexture)(NPP instance);
+
+    void (*releaseTexture)(NPP instance, const ANPTextureInfo*);
+
+    
+
+
+
+    void (*invertPluginContent)(NPP instance, bool isContentInverted);
+};
+
+enum ANPPowerStates {
+    kDefault_ANPPowerState  = 0,
+    kScreenOn_ANPPowerState = 1
+};
+typedef int32_t ANPPowerState;
+
+struct ANPSystemInterfaceV1 : ANPSystemInterfaceV0 {
+    void (*setPowerState)(NPP instance, ANPPowerState powerState);
+};
+
+struct ANPSystemInterfaceV2 : ANPInterface {
+    
+
+
+
+    const char* (*getApplicationDataDirectory)(NPP instance);
+
+    
+    jclass (*loadJavaClass)(NPP instance, const char* className);
+    void (*setPowerState)(NPP instance, ANPPowerState powerState);
+};
+
+typedef void* ANPNativeWindow;
+
+struct ANPVideoInterfaceV0 : ANPInterface {
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    ANPNativeWindow (*acquireNativeWindow)(NPP instance);
+
+    
+
+
+
+
+
+    void (*setWindowDimensions)(NPP instance, const ANPNativeWindow window, const ANPRectF* dimensions);
+
+    
+
+    void (*releaseNativeWindow)(NPP instance, ANPNativeWindow window);
+};
+
+
+
+
+
+
+
+typedef void (*ANPVideoFrameCallbackProc)(ANPNativeWindow* window, int64_t timestamp);
+
+struct ANPVideoInterfaceV1 : ANPVideoInterfaceV0 {
+    
+
+
+    void (*setFramerateCallback)(NPP instance, const ANPNativeWindow window, ANPVideoFrameCallbackProc);
+};
+
+struct ANPNativeWindowInterfaceV0 : ANPInterface {
+    
+
+
+
+
+
+
+
+    ANPNativeWindow (*acquireNativeWindow)(NPP instance);
+
+    
+
+
+
+    void (*invertPluginContent)(NPP instance, bool isContentInverted);
+};
+
 
 #endif
