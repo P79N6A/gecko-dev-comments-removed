@@ -521,7 +521,7 @@ Recompiler::recompile()
 
 
 
-    JSStackFrame *top = (cx->fp() && cx->fp()->isScriptFrame()) ? cx->fp() : NULL;
+    JSStackFrame *top = (cx->regs && cx->fp() && cx->fp()->isScriptFrame()) ? cx->fp() : NULL;
     bool keepNormal = !normalFrames.empty() || script->inlineParents ||
         (top && top->script() == script && !top->isConstructing());
     bool keepCtor = !ctorFrames.empty() ||

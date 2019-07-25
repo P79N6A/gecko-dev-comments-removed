@@ -3260,6 +3260,10 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
     FrameEntry *origThis = frame.peek(-(speculatedArgc + 1));
 
     
+
+
+
+
     if (callingNew)
         frame.discardFe(origThis);
 
