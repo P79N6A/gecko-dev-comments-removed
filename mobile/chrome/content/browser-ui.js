@@ -229,6 +229,12 @@ var BrowserUI = {
       if (urlString == "about:blank")
         urlString = "";
       this._edit.value = urlString;
+
+      
+      
+      
+      this._edit.blur();
+      this._edit.focus();
     }
     else if (!aEdit && Browser.selectedTab.isLoading() && icons.getAttribute("mode") != "loading") {
       icons.setAttribute("mode", "loading");
