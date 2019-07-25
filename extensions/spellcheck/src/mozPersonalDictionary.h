@@ -46,7 +46,6 @@
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
 #include "nsTHashtable.h"
-#include "nsTArray.h"
 #include "nsCRT.h"
 #include "nsCycleCollectionParticipant.h"
 
@@ -104,7 +103,6 @@ public:
   nsresult Init();
 
 protected:
-  nsTArray<nsString>  mDictionary;  
   PRBool         mDirty;       
   nsTHashtable<nsUniCharEntry> mDictionaryTable;
   nsTHashtable<nsUniCharEntry> mIgnoreTable;
