@@ -95,7 +95,8 @@ nsAppShell::nsAppShell()
       mCondLock("nsAppShell.mCondLock"),
       mQueueCond(mCondLock, "nsAppShell.mQueueCond"),
       mQueuedDrawEvent(nsnull),
-      mQueuedViewportEvent(nsnull)
+      mQueuedViewportEvent(nsnull),
+      mAllowCoalescingNextDraw(false)
 {
     gAppShell = this;
 }
@@ -576,7 +577,15 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
                 delete mQueuedDrawEvent;
             }
 
-            mQueuedDrawEvent = ae;
+            if (mAllowCoalescingNextDraw) {
+                
+                
+                
+                mAllowCoalescingNextDraw = true;
+                mQueuedDrawEvent = nsnull;
+            } else {
+                mQueuedDrawEvent = ae;
+            }
             mEventQueue.AppendElement(ae);
             break;
 
@@ -588,6 +597,10 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
                 delete mQueuedViewportEvent;
             }
             mQueuedViewportEvent = ae;
+            
+            
+            mAllowCoalescingNextDraw = false;
+
             mEventQueue.AppendElement(ae);
             break;
 
