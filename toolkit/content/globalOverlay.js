@@ -16,18 +16,19 @@ function closeWindow(aClose, aPromptFunction)
     if (++windowCount == 2) 
       break;
   }
-
+  
   var inPrivateBrowsing = false;
-  try {
-    if (["@mozilla.org/privatebrowsing;1"] in Components.classes) {
-      var pbSvc = Components.classes["@mozilla.org/privatebrowsing;1"]
-                            .getService(Components.interfaces.nsIPrivateBrowsingService);
-      inPrivateBrowsing = pbSvc.privateBrowsingEnabled;
-    }
-  } catch(e) {
-    
-  }
-
+  let chromeWin  = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIWebNavigation)
+                         .QueryInterface(Ci.nsIDocShellTreeItem)
+                         .rootTreeItem
+                         .QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIDOMWindow)
+                         .wrappedJSObject;
+  
+  if (chromeWin != null) 
+    inPrivateBrowsing = chromeWin.gPrivateBrowsingUI.privateWindow;
+  
   
   if (windowCount == 1 && !canQuitApplication("lastwindow"))
     return false;
