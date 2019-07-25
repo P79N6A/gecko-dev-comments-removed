@@ -1015,6 +1015,7 @@ void
 ion::Invalidate(JSContext *cx, const Vector<JSScript *> &invalid)
 {
     
+    
     for (size_t i = 0; i < invalid.length(); i++) {
         if (invalid[i]->hasIonScript())
             invalid[i]->ion->incref();
