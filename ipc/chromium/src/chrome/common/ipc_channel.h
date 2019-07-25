@@ -59,6 +59,20 @@ class Channel : public Message::Sender {
   
   Channel(const std::wstring& channel_id, Mode mode, Listener* listener);
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  
+  
+# if defined(OS_POSIX)
+  
+  Channel(int fd, Mode mode, Listener* listener);
+# elif defined(OS_WIN)
+  
+  
+  Channel(const std::wstring& channel_id, void* server_pipe,
+	  Mode mode, Listener* listener);
+# endif
+#endif
+
   ~Channel();
 
   
@@ -99,6 +113,16 @@ class Channel : public Message::Sender {
   
   
   void GetClientFileDescriptorMapping(int *src_fd, int *dest_fd) const;
+
+# if defined(CHROMIUM_MOZILLA_BUILD)
+  
+  int GetServerFileDescriptor() const;
+# endif
+#elif defined(OS_WIN)
+# if defined(CHROMIUM_MOZILLA_BUILD)
+  
+  void* GetServerPipeHandle() const;
+# endif
 #endif  
 
  private:
