@@ -1649,6 +1649,32 @@ void nsRegion::SimplifyOutward (PRUint32 aMaxRects)
   if (mRectCount <= aMaxRects)
     return;
 
+  
+  RgnRect* pRect = mRectListHead.next;
+  while (pRect != &mRectListHead)
+  {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    while (pRect->next != &mRectListHead &&
+           pRect->YMost () >= pRect->next->y)
+    {
+      pRect->UnionRect(*pRect, *pRect->next);
+      delete Remove (pRect->next);
+    }
+
+    pRect = pRect->next;
+  }
+
+  if (mRectCount <= aMaxRects)
+    return;
+
   *this = GetBounds();
 }
 
