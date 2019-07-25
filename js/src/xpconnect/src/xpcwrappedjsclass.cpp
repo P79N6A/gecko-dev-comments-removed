@@ -247,6 +247,10 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
     JSBool success = JS_FALSE;
     jsid funid;
     jsval fun;
+    JSAutoCrossCompartmentCall accc;
+
+    if(!accc.enter(cx, jsobj))
+        return nsnull;
 
     
     
