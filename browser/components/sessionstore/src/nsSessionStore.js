@@ -2079,18 +2079,32 @@ SessionStoreService.prototype = {
     
     if (aTabs.length > 0) {
       
-      let maxVisibleTabs = Math.ceil(tabbrowser.tabContainer.mTabstrip.scrollClientSize /
-                                     aTabs[aTabs.length - 1].clientWidth);
+      let unhiddenTabs = aTabs.length;
+      for (let t = 0; t < unhiddenTabs; ) {
+        if (aTabs[t].hidden) {
+          aTabs = aTabs.concat(aTabs.splice(t, 1));
+          aTabData = aTabData.concat(aTabData.splice(t, 1));
+          if (aSelectTab > t)
+            --aSelectTab;
+          --unhiddenTabs;
+          continue;
+        }
+        ++t;
+      }
 
       
-      if (maxVisibleTabs < aTabs.length && aSelectTab > 1) {
+      let maxVisibleTabs = Math.ceil(tabbrowser.tabContainer.mTabstrip.scrollClientSize /
+                                     aTabs[unhiddenTabs - 1].clientWidth);
+
+      
+      if (maxVisibleTabs < unhiddenTabs && aSelectTab > 1) {
         let firstVisibleTab = 0;
-        if (aTabs.length - maxVisibleTabs > aSelectTab) {
+        if (unhiddenTabs - maxVisibleTabs > aSelectTab) {
           
           firstVisibleTab = aSelectTab - 1;
         } else {
           
-          firstVisibleTab = aTabs.length - maxVisibleTabs;
+          firstVisibleTab = unhiddenTabs - maxVisibleTabs;
         }
         aTabs = aTabs.splice(firstVisibleTab, maxVisibleTabs).concat(aTabs);
         aTabData = aTabData.splice(firstVisibleTab, maxVisibleTabs).concat(aTabData);
