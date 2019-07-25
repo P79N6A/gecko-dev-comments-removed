@@ -2577,7 +2577,7 @@ ASTSerializer::expression(ParseNode *pn, Value *dst)
       {
         
         if (pn->pn_xflags & PNX_DESTRUCT) {
-            parser->reportErrorNumber(pn, JSREPORT_ERROR, JSMSG_BAD_OBJECT_INIT);
+            parser->reportError(pn, JSMSG_BAD_OBJECT_INIT);
             return false;
         }
         NodeVector elts(cx);

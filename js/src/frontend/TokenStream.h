@@ -501,9 +501,17 @@ class TokenStream
     bool hasOctalCharacterEscape() const { return flags & TSF_OCTAL_CHAR; }
 
     
+    bool reportError(unsigned errorNumber, ...);
+    bool reportWarning(unsigned errorNumber, ...);
+    bool reportStrictWarning(unsigned errorNumber, ...);
+    bool reportStrictModeError(unsigned errorNumber, ...);
+
+    
+    
     
     bool reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned errorNumber,
-                                    va_list ap);
+                                    va_list args);
+    bool reportStrictModeErrorNumberVA(ParseNode *pn, unsigned errorNumber, va_list args);
 
   private:
     static JSAtom *atomize(JSContext *cx, CharBuffer &cb);
@@ -829,22 +837,6 @@ IsIdentifier(JSLinearString *str);
 
 
 #define JSREPORT_UC 0x100
-
-
-
-
-
-
-bool
-ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, ParseNode *pn, unsigned flags,
-                         unsigned errorNumber, ...);
-
-
-
-
-
-bool
-ReportStrictModeError(JSContext *cx, TokenStream *ts, ParseNode *pn, unsigned errorNumber, ...);
 
 } 
 
