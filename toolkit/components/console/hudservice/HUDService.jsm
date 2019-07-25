@@ -5437,15 +5437,81 @@ HUDConsoleObserver = {
 
     if (aSubject instanceof Ci.nsIScriptError) {
       switch (aSubject.category) {
+        
+        
         case "XPConnect JavaScript":
+          
+          
         case "component javascript":
         case "chrome javascript":
           
+        case "chrome registration":
+          
+        case "XBL":
+          
+        case "XBL Prototype Handler":
+          
+        case "XBL Content Sink":
+          
+        case "xbl javascript":
+          
+        case "FrameConstructor":
           
           return;
+
+        
         case "HUDConsole":
         case "CSS Parser":
+          
+        case "CSS Loader":
+          
         case "content javascript":
+          
+        case "DOM Events":
+          
+          
+          
+          
+          
+        case "DOM:HTML":
+          
+        case "DOM Window":
+          
+          
+          
+        case "SVG":
+          
+          
+        case "ImageMap":
+          
+        case "HTML":
+          
+        case "Canvas":
+          
+          
+          
+        case "DOM3 Load":
+          
+          
+          
+          
+          
+        case "DOM":
+          
+          
+          
+          
+        case "malformed-xml":
+          
+          
+          
+          
+        case "DOM Worker javascript":
+          
+          
+          
+          
+          
           HUDService.reportConsoleServiceContentScriptError(aSubject);
           return;
         default:
