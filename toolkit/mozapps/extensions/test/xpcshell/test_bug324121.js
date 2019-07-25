@@ -7,7 +7,7 @@
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
 
-do_load_httpd_js();
+Components.utils.import("resource://testing-common/httpd.js");
 var testserver;
 
 var next_test = null;
@@ -130,7 +130,7 @@ function run_test() {
   const dataDir = do_get_file("data");
 
   
-  testserver = new nsHttpServer();
+  testserver = new HttpServer();
   testserver.registerDirectory("/data/", dataDir);
   testserver.start(4444);
 

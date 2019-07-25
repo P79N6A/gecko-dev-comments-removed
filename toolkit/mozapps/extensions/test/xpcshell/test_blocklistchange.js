@@ -27,14 +27,18 @@
 
 
 
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
 const URI_EXTENSION_BLOCKLIST_DIALOG = "chrome://mozapps/content/extensions/blocklist.xul";
 
-Components.utils.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false)
 
-do_load_httpd_js();
+Cu.import("resource://testing-common/httpd.js");
 var testserver;
 
 var default_theme = {
@@ -512,7 +516,7 @@ function check_addon(aAddon, aExpectedVersion, aExpectedUserDisabled,
 
 function run_test() {
   
-  testserver = new nsHttpServer();
+  testserver = new HttpServer();
   testserver.registerDirectory("/data/", do_get_file("data/blocklistchange"));
   testserver.registerDirectory("/addons/", do_get_file("addons"));
   testserver.start(4444);

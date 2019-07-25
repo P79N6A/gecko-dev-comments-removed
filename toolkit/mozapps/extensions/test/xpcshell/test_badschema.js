@@ -5,7 +5,7 @@
 
 
 
-do_load_httpd_js();
+Components.utils.import("resource://testing-common/httpd.js");
 var testserver;
 
 
@@ -143,7 +143,7 @@ function run_test() {
   writeInstallRDFForExtension(theme2, profileDir);
 
   
-  testserver = new nsHttpServer();
+  testserver = new HttpServer();
   testserver.registerDirectory("/addons/", do_get_file("addons"));
   testserver.registerDirectory("/data/", do_get_file("data"));
   testserver.start(4444);
