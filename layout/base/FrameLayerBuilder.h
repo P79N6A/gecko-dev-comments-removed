@@ -237,7 +237,7 @@ public:
                               const nsIntRegion& aRegionToInvalidate,
                               void* aCallbackData);
 
-#ifdef DEBUG
+#ifdef MOZ_DUMP_PAINTING
   
 
 

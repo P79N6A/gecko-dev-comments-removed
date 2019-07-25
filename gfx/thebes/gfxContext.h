@@ -681,7 +681,7 @@ public:
     void ClearFlag(PRInt32 aFlag) { mFlags &= ~aFlag; }
     PRInt32 GetFlags() const { return mFlags; }
 
-#ifdef DEBUG
+#ifdef MOZ_DUMP_PAINTING
     
 
 
