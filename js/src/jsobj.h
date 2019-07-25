@@ -866,27 +866,30 @@ struct JSObject : js::gc::Cell
         return type_->proto;
     }
 
-    JSObject *getParent() const {
-        return parent;
-    }
-
-    void clearParent() {
-        parent = NULL;
-    }
-
-    void setParent(JSObject *newParent) {
-#ifdef DEBUG
-        for (JSObject *obj = newParent; obj; obj = obj->getParent())
-            JS_ASSERT(obj != this);
-#endif
-        setDelegateNullSafe(newParent);
-        parent = newParent;
-    }
+    inline JSObject *getParent() const;
+    inline void clearParent();
+    inline void setParent(JSObject *newParent);
 
     JS_FRIEND_API(js::GlobalObject *) getGlobal() const;
 
     inline bool isGlobal() const;
     inline js::GlobalObject *asGlobal();
+
+    
+
+
+
+
+    inline bool isScope() const;
+    inline JSObject *scopeChain() const;
+    inline void setScopeChain(JSObject *obj);
+
+    static inline size_t offsetOfScopeChain();
+
+    inline JSObject *getParentOrScopeChain() const;
+    inline JSObject *getParentMaybeScope() const;
+
+    static const uint32 SCOPE_CHAIN_SLOT = 0;
 
     inline bool hasPrivate() const;
     inline void *getPrivate() const;
@@ -1531,10 +1534,11 @@ class ValueArray {
 
 
 
-static const uint32 JSSLOT_BLOCK_DEPTH = 0;
+
+static const uint32 JSSLOT_BLOCK_DEPTH = 1;
 static const uint32 JSSLOT_BLOCK_FIRST_FREE_SLOT = JSSLOT_BLOCK_DEPTH + 1;
 
-static const uint32 JSSLOT_WITH_THIS = 1;
+static const uint32 JSSLOT_WITH_THIS = 2;
 
 #define OBJ_BLOCK_COUNT(cx,obj)                                               \
     (obj)->propertyCount()

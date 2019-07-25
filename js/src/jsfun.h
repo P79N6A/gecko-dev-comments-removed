@@ -163,10 +163,7 @@ struct JSFunction : public JSObject_Slots2
         return flags & JSFUN_JOINABLE;
     }
 
-    JSObject *callScope() const {
-        JS_ASSERT(isInterpreted());
-        return u.i.scope;
-    }
+    inline JSObject *callScope() const;
 
     
 
@@ -285,49 +282,6 @@ js_FinalizeFunction(JSContext *cx, JSFunction *fun);
 extern JSFunction * JS_FASTCALL
 js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
                        JSObject *proto);
-
-inline JSFunction *
-CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
-                    bool ignoreSingletonClone = false)
-{
-    JS_ASSERT(parent);
-    JSObject *proto;
-    if (!js_GetClassPrototype(cx, parent, JSProto_Function, &proto))
-        return NULL;
-
-    
-
-
-
-
-
-
-    if (ignoreSingletonClone && fun->hasSingletonType()) {
-        JS_ASSERT(fun->getProto() == proto);
-        fun->setParent(parent);
-        return fun;
-    }
-
-    return js_CloneFunctionObject(cx, fun, parent, proto);
-}
-
-inline JSFunction *
-CloneFunctionObject(JSContext *cx, JSFunction *fun)
-{
-    
-
-
-
-
-
-
-    JS_ASSERT(fun->getParent() && fun->getProto());
-
-    if (fun->hasSingletonType())
-        return fun;
-
-    return js_CloneFunctionObject(cx, fun, fun->getParent(), fun->getProto());
-}
 
 extern JSObject * JS_FASTCALL
 js_AllocFlatClosure(JSContext *cx, JSFunction *fun, JSObject *scopeChain);

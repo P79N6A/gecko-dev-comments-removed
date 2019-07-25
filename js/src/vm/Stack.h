@@ -817,14 +817,7 @@ class StackFrame
 
 
 
-    JSObject &scopeChain() const {
-        JS_ASSERT_IF(!(flags_ & HAS_SCOPECHAIN), isFunctionFrame());
-        if (!(flags_ & HAS_SCOPECHAIN)) {
-            scopeChain_ = callee().getParent();
-            flags_ |= HAS_SCOPECHAIN;
-        }
-        return *scopeChain_;
-    }
+    inline JSObject &scopeChain() const;
 
     bool hasCallObj() const {
         bool ret = !!(flags_ & HAS_CALL_OBJ);
@@ -873,12 +866,7 @@ class StackFrame
 
 
 
-    JSObject &varObj() {
-        JSObject *obj = &scopeChain();
-        while (!obj->isVarObj())
-            obj = obj->getParent();
-        return *obj;
-    }
+    inline JSObject &varObj();
 
     
 
@@ -887,10 +875,7 @@ class StackFrame
 
 
 
-    JSCompartment *compartment() const {
-        JS_ASSERT_IF(isScriptFrame(), scopeChain().compartment() == script()->compartment());
-        return scopeChain().compartment();
-    }
+    inline JSCompartment *compartment() const;
 
     
 

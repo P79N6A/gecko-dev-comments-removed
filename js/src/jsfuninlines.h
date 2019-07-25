@@ -49,6 +49,14 @@ JSFunction::inStrictMode() const
     return script()->strictModeCode;
 }
 
+inline JSObject *
+JSFunction::callScope() const
+{
+    JS_ASSERT(isInterpreted());
+    return getParent();
+    
+}
+
 inline void
 JSFunction::setJoinable()
 {
@@ -222,6 +230,49 @@ IsBuiltinFunctionConstructor(JSFunction *fun);
 
 const Shape *
 LookupInterpretedFunctionPrototype(JSContext *cx, JSObject *funobj);
+
+inline JSFunction *
+CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
+                    bool ignoreSingletonClone = false)
+{
+    JS_ASSERT(parent);
+    JSObject *proto;
+    if (!js_GetClassPrototype(cx, parent, JSProto_Function, &proto))
+        return NULL;
+
+    
+
+
+
+
+
+
+    if (ignoreSingletonClone && fun->hasSingletonType()) {
+        JS_ASSERT(fun->getProto() == proto);
+        fun->setParent(parent);
+        return fun;
+    }
+
+    return js_CloneFunctionObject(cx, fun, parent, proto);
+}
+
+inline JSFunction *
+CloneFunctionObject(JSContext *cx, JSFunction *fun)
+{
+    
+
+
+
+
+
+
+    JS_ASSERT(fun->getParent() && fun->getProto());
+
+    if (fun->hasSingletonType())
+        return fun;
+
+    return js_CloneFunctionObject(cx, fun, fun->getParent(), fun->getProto());
+}
 
 } 
 
