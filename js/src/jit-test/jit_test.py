@@ -491,19 +491,19 @@ def main(argv):
     job_list = []
     if OPTIONS.ion_tbpl:
         
-        ion_flags = [ '--ion-eager',
-                      '--ion-regalloc=greedy',
-                      '--ion-gvn=off',
-                      '--ion-licm=off',
-                      '--ion-inlining=off' ]
+        ion_flags = [ 
+                      ['--ion-eager' ],
+                      ['--ion-eager', '--ion-gvn=off', '--ion-licm=off'],
+                      ['--ion-eager', '--ion-gvn=off', '--ion-licm=off', '--ion-regalloc=greedy'],
+                      ['--ion', '-n'],
+                      ['--ion', '-n', '--ion-regalloc=greedy'],
+                      ['--ion', '-n', '--ion-gvn=off', '--ion-licm=off' ],
+                      ['--ion', '-n', '--ion-gvn=off', '--ion-licm=off', '--ion-regalloc=greedy']
+                    ]
         for test in test_list:
-            for i in range(0, 2 ** len(ion_flags)):
-                args = ['--ion']
-                for j in range(0, len(ion_flags)):
-                    if i & (1 << j):
-                        args.append(ion_flags[j])
+            for variant in ion_flags:
                 new_test = test.copy()
-                new_test.jitflags.extend(args)
+                new_test.jitflags.extend(variant)
                 job_list.append(new_test)
     elif OPTIONS.ion:
         args = ['--ion']
