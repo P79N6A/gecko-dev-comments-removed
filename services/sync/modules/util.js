@@ -1309,7 +1309,8 @@ let Utils = {
 
   normalizePassphrase: function normalizePassphrase(pp) {
     
-    pp = pp.toLowerCase();
+    
+    pp = pp.toLowerCase().replace(/^\s+/, "").replace(/\s+$/, "");
 
     
     if (pp.length == 23 &&
