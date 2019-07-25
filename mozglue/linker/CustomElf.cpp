@@ -541,6 +541,28 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
         debug_dyn("DT_FINI_ARRAYSZ", dyn);
         fini_array.InitSize(dyn->d_un.d_val);
         break;
+      case DT_PLTREL:
+        if (dyn->d_un.d_val != RELOC()) {
+          log("%s: Error: DT_PLTREL is not " STR_RELOC(), GetPath());
+          return false;
+        }
+        break;
+      case DT_SONAME: 
+      case DT_SYMBOLIC: 
+
+
+      case RELOC(COUNT): 
+
+
+      case UNSUPPORTED_RELOC(COUNT): 
+
+      case DT_VERSYM: 
+      case DT_VERDEF: 
+      case DT_VERDEFNUM:
+      case DT_VERNEED:
+      case DT_VERNEEDNUM:
+        
+        break;
       default:
         log("%s: Warning: dynamic header type #%" PRIxAddr" not handled",
             GetPath(), dyn->d_tag);
