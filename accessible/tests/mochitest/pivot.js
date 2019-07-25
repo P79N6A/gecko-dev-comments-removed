@@ -86,9 +86,8 @@ function VCChangedChecker(aDocAcc, aIdOrNameOrAcc, aTextOffsets)
     }
 
     var position = aDocAcc.virtualCursor.position;
-
-    var idMatches = position.DOMNode.id == aIdOrNameOrAcc;
-    var nameMatches = position.name == aIdOrNameOrAcc;
+    var idMatches = position && position.DOMNode.id == aIdOrNameOrAcc;
+    var nameMatches = position && position.name == aIdOrNameOrAcc;
     var accMatches = position == aIdOrNameOrAcc;
 
     SimpleTest.ok(idMatches || nameMatches || accMatches, "id or name matches",
@@ -173,23 +172,67 @@ function setVCRangeInvoker(aDocAcc, aTextAccessible, aTextOffsets)
 
 
 
+
 function setVCPosInvoker(aDocAcc, aPivotMoveMethod, aRule, aIdOrNameOrAcc)
 {
+  var expectMove = (aIdOrNameOrAcc != false);
   this.invoke = function virtualCursorChangedInvoker_invoke()
   {
     VCChangedChecker.
       storePreviousPosAndOffset(aDocAcc.virtualCursor);
     var moved = aDocAcc.virtualCursor[aPivotMoveMethod](aRule);
-    SimpleTest.ok((aIdOrNameOrAcc && moved) || (!aIdOrNameOrAcc && !moved),
+    SimpleTest.ok((expectMove && moved) || (!expectMove && !moved),
                   "moved pivot");
   };
 
   this.getID = function setVCPosInvoker_getID()
   {
-    return "Do " + (aIdOrNameOrAcc ? "" : "no-op ") + aPivotMoveMethod;
+    return "Do " + (expectMove ? "" : "no-op ") + aPivotMoveMethod;
   };
 
-  if (aIdOrNameOrAcc) {
+  if (expectMove) {
+    this.eventSeq = [ new VCChangedChecker(aDocAcc, aIdOrNameOrAcc) ];
+  } else {
+    this.eventSeq = [];
+    this.unexpectedEventSeq = [
+      new invokerChecker(EVENT_VIRTUALCURSOR_CHANGED, aDocAcc)
+    ];
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function moveVCCoordInvoker(aDocAcc, aX, aY, aIgnoreNoMatch,
+                            aRule, aIdOrNameOrAcc)
+{
+  var expectMove = (aIdOrNameOrAcc != false);
+  this.invoke = function virtualCursorChangedInvoker_invoke()
+  {
+    VCChangedChecker.
+      storePreviousPosAndOffset(aDocAcc.virtualCursor);
+    var moved = aDocAcc.virtualCursor.moveToPoint(aRule, aX, aY,
+                                                  aIgnoreNoMatch);
+    SimpleTest.ok((expectMove && moved) || (!expectMove && !moved),
+                  "moved pivot");
+  };
+
+  this.getID = function setVCPosInvoker_getID()
+  {
+    return "Do " + (expectMove ? "" : "no-op ") + "moveToPoint " + aIdOrNameOrAcc;
+  };
+
+  if (expectMove) {
     this.eventSeq = [ new VCChangedChecker(aDocAcc, aIdOrNameOrAcc) ];
   } else {
     this.eventSeq = [];
@@ -220,7 +263,7 @@ function queueTraversalSequence(aQueue, aDocAcc, aRule, aSequence)
   }
 
   
-  aQueue.push(new setVCPosInvoker(aDocAcc, "moveNext", aRule, null));
+  aQueue.push(new setVCPosInvoker(aDocAcc, "moveNext", aRule, false));
 
   for (var i = aSequence.length-2; i >= 0; i--) {
     var invoker =
@@ -229,18 +272,18 @@ function queueTraversalSequence(aQueue, aDocAcc, aRule, aSequence)
   }
 
   
-  aQueue.push(new setVCPosInvoker(aDocAcc, "movePrevious", aRule, null));
+  aQueue.push(new setVCPosInvoker(aDocAcc, "movePrevious", aRule, false));
 
   aQueue.push(new setVCPosInvoker(aDocAcc, "moveLast", aRule,
                                   aSequence[aSequence.length - 1]));
 
   
-  aQueue.push(new setVCPosInvoker(aDocAcc, "moveNext", aRule, null));
+  aQueue.push(new setVCPosInvoker(aDocAcc, "moveNext", aRule, false));
 
   aQueue.push(new setVCPosInvoker(aDocAcc, "moveFirst", aRule, aSequence[0]));
 
   
-  aQueue.push(new setVCPosInvoker(aDocAcc, "movePrevious", aRule, null));
+  aQueue.push(new setVCPosInvoker(aDocAcc, "movePrevious", aRule, false));
 }
 
 
