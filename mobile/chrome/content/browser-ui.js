@@ -1762,6 +1762,8 @@ var FormHelperUI = {
 
   
   _zoom: function _formHelperZoom(aElementRect, aCaretRect) {
+    return;
+
     let bv = Browser._browserView;
     let zoomRect = bv.getVisibleRect();
 
