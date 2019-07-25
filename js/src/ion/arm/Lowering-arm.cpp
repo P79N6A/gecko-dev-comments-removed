@@ -275,9 +275,8 @@ LIRGeneratorARM::lowerForShift(LInstructionHelper<1, 2, 0> *ins, MDefinition *mi
 bool
 LIRGeneratorARM::lowerDivI(MDiv *div)
 {
-    
-    LDivI *lir = new LDivI(useFixedAtStart(div->lhs(), r0), useFixedAtStart(div->rhs(), r1),
-                           tempFixed(r1), tempFixed(r2), tempFixed(r3));
+    LDivI *lir = new LDivI(useFixed(div->lhs(), r0), use(div->rhs(), r1),
+                           tempFixed(r2), tempFixed(r3));
 
     return defineFixed(lir, div, LAllocation(AnyRegister(r0))) && assignSnapshot(lir);
 }

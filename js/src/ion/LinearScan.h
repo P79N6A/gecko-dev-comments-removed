@@ -335,6 +335,12 @@ class LiveInterval
         
         
         JS_ASSERT(requirement.kind() != Requirement::SAME_AS_OTHER);
+
+        
+        
+        JS_ASSERT_IF(requirement.kind() == Requirement::FIXED,
+                     !requirement.allocation().isRegister());
+
         requirement_ = requirement;
     }
     Requirement *hint() {
@@ -346,10 +352,6 @@ class LiveInterval
     bool isSpill() const {
         return alloc_.isStackSlot();
     }
-    bool isSpillInterval() const {
-        return !reg_;
-    }
-    bool requireSpill(const LiveInterval *other) const;
     bool splitFrom(CodePosition pos, LiveInterval *after);
 
     void addUse(UsePosition *use);
@@ -578,6 +580,11 @@ class LinearScanAllocator
     
     BitSet **liveIn;
     VirtualRegisterMap vregs;
+    FixedArityList<LiveInterval *, AnyRegister::Total> fixedIntervals;
+
+    
+    
+    LiveInterval *fixedIntervalsUnion;
 
     
     StackSlotAllocator stackSlotAllocator;
@@ -590,6 +597,7 @@ class LinearScanAllocator
     UnhandledQueue unhandled;
     InlineList<LiveInterval> active;
     InlineList<LiveInterval> inactive;
+    InlineList<LiveInterval> fixed;
     InlineList<LiveInterval> handled;
     LiveInterval *current;
 
@@ -619,9 +627,12 @@ class LinearScanAllocator
     bool moveBeforeAlloc(CodePosition pos, LAllocation *from, LAllocation *to);
     bool moveAfter(CodePosition pos, LiveInterval *from, LiveInterval *to);
     void setIntervalRequirement(LiveInterval *interval);
-    void addSpillInterval(CodePosition pos, const Requirement &req);
-    bool copyFixedRegister(LInstruction *ins, CodePosition pos, LUse *src, LUse *dest);
     size_t findFirstSafepoint(LiveInterval *interval, size_t firstSafepoint);
+
+    void addFixedRange(AnyRegister reg, CodePosition from, CodePosition to) {
+        fixedIntervals[reg.code()]->addRange(from, to);
+        fixedIntervalsUnion->addRange(from, to);
+    }
 
 #ifdef DEBUG
     void validateIntervals();
