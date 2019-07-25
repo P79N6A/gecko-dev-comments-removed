@@ -237,9 +237,6 @@ protected:
     gfxMixedFontFamily *GetFamily(const nsAString& aName) const;
 
     
-    void RemoveFamily(const nsAString& aFamilyName);
-
-    
     nsRefPtrHashtable<nsStringHashKey, gfxMixedFontFamily> mFontFamilies;
 
     PRUint64        mGeneration;
