@@ -76,6 +76,8 @@
 #ifdef CAIRO_HAS_D2D_SURFACE
 #include "gfxD2DSurface.h"
 
+#include <d3d10_1.h>
+
 #include "nsIMemoryReporter.h"
 #include "nsMemory.h"
 
@@ -136,6 +138,18 @@ typedef HRESULT (WINAPI*DWriteCreateFactoryFunc)(
 );
 #endif
 
+#ifdef CAIRO_HAS_D2D_SURFACE
+typedef HRESULT (WINAPI*D3D10CreateDevice1Func)(
+  IDXGIAdapter *pAdapter,
+  D3D10_DRIVER_TYPE DriverType,
+  HMODULE Software,
+  UINT Flags,
+  D3D10_FEATURE_LEVEL1 HardwareLevel,
+  UINT SDKVersion,
+  ID3D10Device1 **ppDevice
+);
+#endif
+
 static __inline void
 BuildKeyNameFromFontName(nsAString &aName)
 {
@@ -167,11 +181,65 @@ gfxWindowsPlatform::gfxWindowsPlatform()
 #endif
 
     nsCOMPtr<nsIPrefBranch2> pref = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    
+    OSVERSIONINFOA versionInfo;
+    versionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOA);
+    ::GetVersionExA(&versionInfo);
+    bool isVistaOrHigher = versionInfo.dwMajorVersion >= 6;
 
 #ifdef CAIRO_HAS_D2D_SURFACE
     NS_RegisterMemoryReporter(new D2DCacheReporter());
     mD2DDevice = NULL;
+
+    if (isVistaOrHigher) {
+        
+        HMODULE d3d10module = LoadLibraryA("d3d10_1.dll");
+        D3D10CreateDevice1Func createD3DDevice = (D3D10CreateDevice1Func)
+            GetProcAddress(d3d10module, "D3D10CreateDevice1");
+        nsRefPtr<ID3D10Device1> device;
+
+        if (createD3DDevice) {
+            
+            
+            HRESULT hr = createD3DDevice(
+	        NULL, 
+	        D3D10_DRIVER_TYPE_HARDWARE,
+	        NULL,
+	        D3D10_CREATE_DEVICE_BGRA_SUPPORT |
+	        D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
+	        D3D10_FEATURE_LEVEL_10_0,
+	        D3D10_1_SDK_VERSION,
+	        getter_AddRefs(device));
+
+            if (SUCCEEDED(hr)) {
+                
+                
+                
+                
+                nsRefPtr<ID3D10Device1> device1;
+                hr = createD3DDevice(
+	            NULL, 
+	            D3D10_DRIVER_TYPE_HARDWARE,
+	            NULL,
+	            D3D10_CREATE_DEVICE_BGRA_SUPPORT |
+	            D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
+	            D3D10_FEATURE_LEVEL_10_1,
+	            D3D10_1_SDK_VERSION,
+	            getter_AddRefs(device1));
+
+                if (SUCCEEDED(hr)) {
+                    device = device1;
+                }
+
+                mD2DDevice = cairo_d2d_create_device_from_d3d10device(device);
+                if (mD2DDevice) {
+                    mRenderMode = RENDER_DIRECT2D;
+                }
+            }
+        }
+    }
 #endif
+
 #ifdef CAIRO_HAS_DWRITE_FONT
     nsresult rv;
     PRBool useDirectWrite = PR_FALSE;
@@ -181,8 +249,10 @@ gfxWindowsPlatform::gfxWindowsPlatform()
     if (NS_FAILED(rv)) {
         useDirectWrite = PR_FALSE;
     }
-            
-    if (useDirectWrite) {
+
+    
+    
+    if ((useDirectWrite && isVistaOrHigher) || mRenderMode == RENDER_DIRECT2D) {
         DWriteCreateFactoryFunc createDWriteFactory = (DWriteCreateFactoryFunc)
             GetProcAddress(LoadLibraryW(L"dwrite.dll"), "DWriteCreateFactory");
 
@@ -214,9 +284,11 @@ gfxWindowsPlatform::gfxWindowsPlatform()
 #ifndef CAIRO_HAS_D2D_SURFACE
                 return;
 #else
-		mD2DDevice = cairo_d2d_create_device();
                 if (!mD2DDevice) {
-                    return;
+		    mD2DDevice = cairo_d2d_create_device();
+                    if (!mD2DDevice) {
+                        return;
+                    }
                 }
 #ifdef CAIRO_HAS_DWRITE_FONT
                 if (!GetDWriteFactory()) {
