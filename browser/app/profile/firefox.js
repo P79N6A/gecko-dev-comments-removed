@@ -183,7 +183,9 @@ pref("xpinstall.whitelist.add.36", "getpersonas.com");
 pref("lightweightThemes.update.enabled", true);
 
 pref("keyword.enabled", true);
-pref("keyword.URL", "chrome://browser-region/locale/region.properties");
+
+
+pref("keyword.URL", "");
 
 pref("general.useragent.locale", "@AB_CD@");
 pref("general.skins.selectedSkin", "classic/1.0");

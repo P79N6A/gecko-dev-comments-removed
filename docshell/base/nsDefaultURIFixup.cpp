@@ -406,9 +406,22 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
         searchSvc->GetDefaultEngine(getter_AddRefs(defaultEngine));
         if (defaultEngine) {
             nsCOMPtr<nsISearchSubmission> submission;
+            
+            
+            
+            
+            
             defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(aKeyword),
-                                         EmptyString(),
+                                         NS_LITERAL_STRING("application/x-moz-keywordsearch"),
                                          getter_AddRefs(submission));
+            
+            
+            if (!submission) {
+                defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(aKeyword),
+                                             EmptyString(),
+                                             getter_AddRefs(submission));
+            }
+
             if (submission) {
                 
                 
