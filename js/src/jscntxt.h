@@ -542,6 +542,9 @@ struct JSRuntime : js::RuntimeFriendFields
     uint64_t            gcStartNumber;
 
     
+    int                 gcIsIncremental;
+
+    
     bool                gcIsFull;
 
     

@@ -746,6 +746,10 @@ extern JS_FRIEND_API(GCSliceCallback)
 SetGCSliceCallback(JSRuntime *rt, GCSliceCallback callback);
 
 
+extern JS_FRIEND_API(bool)
+WasIncrementalGC(JSRuntime *rt);
+
+
 
 
 
