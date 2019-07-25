@@ -598,7 +598,8 @@ iQ.fn = iQ.prototype = {
       
       var easings = {
         tabcandyBounce: 'cubic-bezier(0.0, 0.63, .6, 1.29)', 
-        easeInQuad: 'ease-in' 
+        easeInQuad: 'ease-in', 
+        fast: 'cubic-bezier(0.7,0,1,1)'
       };
       
       var duration = (options.duration || 400);

@@ -413,18 +413,25 @@ window.TabItems = {
           Utils.log(e);
         }
       }
-
+      
+      
+      
+      
+      
+      
+      
+      var scaleCheat = 1.7;
       TabMirror.pausePainting();
       iQ(tabEl)
         .addClass("front")
         .animate({
-          top:    -10,
-          left:   0,
-          width:  orig.width*scale,
-          height: orig.height*scale
+          top:    orig.pos.top * (1-1/scaleCheat),
+          left:   orig.pos.left * (1-1/scaleCheat),
+          width:  orig.width*scale/scaleCheat,
+          height: orig.height*scale/scaleCheat
         }, {
-          duration: 200,
-          easing: 'easeInQuad',
+          duration: 230,
+          easing: 'fast',
           complete: onZoomDone
         });
     }    
