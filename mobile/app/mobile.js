@@ -568,6 +568,7 @@ pref("notification.feature.enabled", true);
 
 pref("browser.chrome.toolbar_tips", false);
 pref("indexedDB.feature.enabled", true);
+pref("dom.indexedDB.warningQuota", 5);
 
 
 pref("media.preload.default", 1); 
