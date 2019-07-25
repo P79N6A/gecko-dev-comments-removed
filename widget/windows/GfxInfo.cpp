@@ -963,10 +963,10 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
       return NS_ERROR_FAILURE;
     }
 
-    if (adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorIntel) &&
-        adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorNVIDIA) &&
-        adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorAMD) &&
-        adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorATI) &&
+    if (!adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorIntel), nsCaseInsensitiveStringComparator()) &&
+        !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), nsCaseInsensitiveStringComparator()) &&
+        !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorAMD), nsCaseInsensitiveStringComparator()) &&
+        !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorATI), nsCaseInsensitiveStringComparator()) &&
         
         
         
@@ -988,7 +988,7 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
     
     
     if (mWindowsVersion == gfxWindowsPlatform::kWindowsXP &&
-        adapterVendorID == GfxDriverInfo::GetDeviceVendor(VendorNVIDIA) &&
+        adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), nsCaseInsensitiveStringComparator()) &&
         adapterDeviceID.LowerCaseEqualsLiteral("0x0861") && 
         driverVersion == V(6,14,11,7756))
     {
