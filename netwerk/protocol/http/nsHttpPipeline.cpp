@@ -349,12 +349,12 @@ nsHttpPipeline::Classification()
 }
 
 void
-nsHttpPipeline::SetSSLConnectFailed()
+nsHttpPipeline::SetProxyConnectFailed()
 {
     nsAHttpTransaction *trans = Request(0);
 
     if (trans)
-        trans->SetSSLConnectFailed();
+        trans->SetProxyConnectFailed();
 }
 
 nsHttpRequestHead *
