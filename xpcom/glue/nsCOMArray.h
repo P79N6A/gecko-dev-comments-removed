@@ -39,6 +39,8 @@
 #ifndef nsCOMArray_h__
 #define nsCOMArray_h__
 
+#include "mozilla/Attributes.h"
+
 #include "nsVoidArray.h"
 #include "nsISupports.h"
 
@@ -125,7 +127,7 @@ private:
     nsVoidArray mArray;
 
     
-    nsCOMArray_base& operator=(const nsCOMArray_base& other);
+    nsCOMArray_base& operator=(const nsCOMArray_base& other) MOZ_DELETE;
 };
 
 
@@ -277,7 +279,7 @@ class nsCOMArray : public nsCOMArray_base
 private:
 
     
-    nsCOMArray<T>& operator=(const nsCOMArray<T>& other);
+    nsCOMArray<T>& operator=(const nsCOMArray<T>& other) MOZ_DELETE;
 };
 
 

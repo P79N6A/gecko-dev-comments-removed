@@ -34,8 +34,11 @@
 
 
 
+
 #ifndef nsPrintData_h___
 #define nsPrintData_h___
+
+#include "mozilla/Attributes.h"
 
 
 #include "nsIDOMWindow.h"
@@ -123,8 +126,8 @@ public:
   PRUnichar*            mBrandName; 
 
 private:
-  nsPrintData(); 
-  nsPrintData& operator=(const nsPrintData& aOther); 
+  nsPrintData() MOZ_DELETE;
+  nsPrintData& operator=(const nsPrintData& aOther) MOZ_DELETE;
 
 };
 

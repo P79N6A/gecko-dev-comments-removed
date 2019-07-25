@@ -44,6 +44,8 @@
 #ifndef mozilla_css_Declaration_h
 #define mozilla_css_Declaration_h
 
+#include "mozilla/Attributes.h"
+
 
 
 #ifndef _IMPL_NS_LAYOUT
@@ -239,9 +241,8 @@ public:
 #endif
 
 private:
-  
-  Declaration& operator=(const Declaration& aCopy);
-  bool operator==(const Declaration& aCopy) const;
+  Declaration& operator=(const Declaration& aCopy) MOZ_DELETE;
+  bool operator==(const Declaration& aCopy) const MOZ_DELETE;
 
   static void AppendImportanceToString(bool aIsImportant, nsAString& aString);
   

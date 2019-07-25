@@ -41,6 +41,8 @@
 #ifndef LifoAlloc_h__
 #define LifoAlloc_h__
 
+#include "mozilla/Attributes.h"
+
 
 
 
@@ -181,8 +183,8 @@ class LifoAlloc
     size_t      markCount;
     size_t      defaultChunkSize_;
 
-    void operator=(const LifoAlloc &);
-    LifoAlloc(const LifoAlloc &);
+    void operator=(const LifoAlloc &) MOZ_DELETE;
+    LifoAlloc(const LifoAlloc &) MOZ_DELETE;
 
     
 

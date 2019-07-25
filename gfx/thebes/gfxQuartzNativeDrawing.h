@@ -38,6 +38,8 @@
 #ifndef _GFXQUARTZNATIVEDRAWING_H_
 #define _GFXQUARTZNATIVEDRAWING_H_
 
+#include "mozilla/Attributes.h"
+
 #include "gfxContext.h"
 #include "gfxQuartzSurface.h"
 
@@ -71,8 +73,8 @@ public:
 
 private:
     
-    gfxQuartzNativeDrawing(const gfxQuartzNativeDrawing&);
-    const gfxQuartzNativeDrawing& operator=(const gfxQuartzNativeDrawing&);
+    gfxQuartzNativeDrawing(const gfxQuartzNativeDrawing&) MOZ_DELETE;
+    const gfxQuartzNativeDrawing& operator=(const gfxQuartzNativeDrawing&) MOZ_DELETE;
 
     
     nsRefPtr<gfxContext> mContext;
