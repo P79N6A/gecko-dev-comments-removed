@@ -147,7 +147,7 @@ AsyncAddonListCallback.prototype = {
 
   handleResult: function(aResults) {
     let row = null;
-    while (row = aResults.getNextRow()) {
+    while ((row = aResults.getNextRow())) {
       this.count++;
       let self = this;
       XPIDatabase.makeAddonFromRowAsync(row, function(aAddon) {
@@ -296,118 +296,6 @@ function copyRowProperties(aRow, aProperties, aTarget) {
   });
   return aTarget;
 }
-
-
-
-
-
-
-
-
-
-function logSQLError(aError, aErrorString) {
-  ERROR("SQL error " + aError + ": " + aErrorString);
-}
-
-
-
-
-
-
-
-function asyncErrorLogger(aError) {
-  logSQLError(aError.result, aError.message);
-}
-
-
-
-
-
-
-
-
-function executeStatement(aStatement) {
-  try {
-    aStatement.execute();
-  }
-  catch (e) {
-    logSQLError(XPIDatabase.connection.lastError,
-                XPIDatabase.connection.lastErrorString);
-    throw e;
-  }
-}
-
-
-
-
-
-
-
-
-function stepStatement(aStatement) {
-  try {
-    return aStatement.executeStep();
-  }
-  catch (e) {
-    logSQLError(XPIDatabase.connection.lastError,
-                XPIDatabase.connection.lastErrorString);
-    throw e;
-  }
-}
-
-
-
-
-
-
-
-
-
-
-function AsyncAddonListCallback(aCallback) {
-  this.callback = aCallback;
-  this.addons = [];
-}
-
-AsyncAddonListCallback.prototype = {
-  callback: null,
-  complete: false,
-  count: 0,
-  addons: null,
-
-  handleResult: function(aResults) {
-    let row = null;
-    while (row = aResults.getNextRow()) {
-      this.count++;
-      let self = this;
-      XPIDatabase.makeAddonFromRowAsync(row, function(aAddon) {
-        function completeAddon(aRepositoryAddon) {
-          aAddon._repositoryAddon = aRepositoryAddon;
-          aAddon.compatibilityOverrides = aRepositoryAddon ?
-                                            aRepositoryAddon.compatibilityOverrides :
-                                            null;
-          self.addons.push(aAddon);
-          if (self.complete && self.addons.length == self.count)
-            self.callback(self.addons);
-        }
-
-        if ("getCachedAddonByID" in AddonRepository)
-          AddonRepository.getCachedAddonByID(aAddon.id, completeAddon);
-        else
-          completeAddon(null);
-      });
-    }
-  },
-
-  handleError: asyncErrorLogger,
-
-  handleCompletion: function(aReason) {
-    this.complete = true;
-    if (this.addons.length == this.count)
-      this.callback(this.addons);
-  }
-};
-
 
 var XPIDatabase = {
   
@@ -1203,7 +1091,7 @@ var XPIDatabase = {
       stmt.executeAsync({
         handleResult: function(aResults) {
           let row = null;
-          while (row = aResults.getNextRow()) {
+          while ((row = aResults.getNextRow())) {
             let type = row.getResultByName("type");
             if (!(type in aLocale))
               aLocale[type] = [];
@@ -1254,7 +1142,7 @@ var XPIDatabase = {
       stmt.executeAsync({
         handleResult: function(aResults) {
           let row = null;
-          while (row = aResults.getNextRow()) {
+          while ((row = aResults.getNextRow())) {
             let locale = {
               id: row.getResultByName("id"),
               locales: [row.getResultByName("locale")]
@@ -1289,7 +1177,7 @@ var XPIDatabase = {
       stmt.executeAsync({
         handleResult: function(aResults) {
           let row = null;
-          while (row = aResults.getNextRow())
+          while ((row = aResults.getNextRow()))
             aAddon.targetApplications.push(copyRowProperties(row, PROP_TARGETAPP));
         },
 
@@ -1310,7 +1198,7 @@ var XPIDatabase = {
       stmt.executeAsync({
         handleResult: function(aResults) {
           let row = null;
-          while (row = aResults.getNextRow())
+          while ((row = aResults.getNextRow()))
             aAddon.targetPlatforms.push(copyRowProperties(row, ["os", "abi"]));
         },
 
@@ -1627,7 +1515,7 @@ var XPIDatabase = {
 
     let stmt = this.getStatement("getAddons");
 
-    return [this.makeAddonFromRow(row) for each (row in resultRows(stmt))];;
+    return [this.makeAddonFromRow(row) for each (row in resultRows(stmt))];
   },
 
   
