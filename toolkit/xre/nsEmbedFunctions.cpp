@@ -635,8 +635,46 @@ nsresult
 XRE_RunAppShell()
 {
     nsCOMPtr<nsIAppShell> appShell(do_GetService(kAppShellCID));
-    NS_ENSURE_TRUE(appShell, NS_ERROR_FAILURE);
+#if defined(XP_MACOSX)
+    {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      MessageLoop* loop = MessageLoop::current();
+      bool couldNest = loop->NestableTasksAllowed();
 
+      loop->SetNestableTasksAllowed(true);
+      loop->PostTask(FROM_HERE, new MessageLoop::QuitTask());
+      loop->Run();
+
+      loop->SetNestableTasksAllowed(couldNest);
+    }
+#endif  
     return appShell->Run();
 }
 
