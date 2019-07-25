@@ -788,7 +788,7 @@ typedef JSBool
 
 
 typedef JSBool
-(* JSHasInstanceOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
+(* JSHasInstanceOp)(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
 
 
 
@@ -878,7 +878,7 @@ typedef uint32
 
 
 typedef JSBool
-(* JSEqualityOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
+(* JSEqualityOp)(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
 
 
 
@@ -1068,14 +1068,14 @@ typedef JSBool
 (* NewEnumerateOp)(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
                    Value *statep, jsval *idp);
 typedef JSBool
-(* HasInstanceOp)(JSContext *cx, JSObject *obj, const Value *v, JSBool *bp);
+(* HasInstanceOp)(JSContext *cx, JSObject *obj, Value v, JSBool *bp);
 typedef JSBool
 (* CheckAccessOp)(JSContext *cx, JSObject *obj, jsval id, JSAccessMode mode,
                   Value *vp);
 typedef JSObjectOps *
 (* GetObjectOps)(JSContext *cx, Class *clasp);
 typedef JSBool
-(* EqualityOp)(JSContext *cx, JSObject *obj, const Value *v, JSBool *bp);
+(* EqualityOp)(JSContext *cx, JSObject *obj, Value v, JSBool *bp);
 
 
 

@@ -357,7 +357,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
                 {
                     
                     if(JSVAL_IS_DOUBLE(jsexception))
-                        rv = (nsresult)(*JSVAL_TO_DOUBLE(jsexception));
+                        rv = (nsresult)(JSVAL_TO_DOUBLE(jsexception));
                     else
                         rv = (nsresult)(JSVAL_TO_INT(jsexception));
 
@@ -1284,7 +1284,6 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     JSContext* cx;
     JSObject* thisObj;
     bool invokeCall;
-    bool invokeCall;
 
     
     
@@ -1471,7 +1470,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
         goto pre_call_clean_up;
     }
 
-    sp = stackbase = args.getvp();
+    sp = stackbase = Jsvalify(args.getvp());
 
     
     if(invokeCall)
@@ -1688,7 +1687,7 @@ pre_call_clean_up:
     {
         if(!JSVAL_IS_PRIMITIVE(fval))
         {
-            success = js_Invoke(cx, args, 0);
+            success = js::Invoke(cx, args, 0);
         }
         else
         {

@@ -68,8 +68,6 @@
 #include "nsReadableUtils.h"
 #include "nsIPrefBranch2.h"
 #include "mozilla/AutoRestore.h"
-#include "nsINode.h"
-#include "nsHashtable.h"
 
 #include "jsapi.h"
 
@@ -77,6 +75,7 @@ struct nsNativeKeyEvent;
 
 class nsIDOMScriptObjectFactory;
 class nsIXPConnect;
+class nsINode;
 class nsIContent;
 class nsIDOMNode;
 class nsIDOMKeyEvent;
@@ -111,8 +110,8 @@ class nsIScriptContext;
 class nsIRunnable;
 class nsIInterfaceRequestor;
 template<class E> class nsCOMArray;
-template<class K, class V> class nsRefPtrHashtable;
 struct JSRuntime;
+class nsICaseConversion;
 class nsIUGenCategory;
 class nsIWidget;
 class nsIDragSession;
@@ -121,7 +120,6 @@ class nsPIDOMEventTarget;
 class nsIPresShell;
 class nsIXPConnectJSObjectHolder;
 class nsPrefOldCallback;
-class nsPrefObserverHashKey;
 #ifdef MOZ_XTF
 class nsIXTFService;
 #endif
@@ -131,9 +129,6 @@ class nsIBidiKeyboard;
 class nsIMIMEHeaderParam;
 class nsIObserver;
 class nsPresContext;
-class nsIChannel;
-struct nsIntMargin;
-class nsPIDOMWindow;
 
 #ifndef have_PrefChangedFunc_typedef
 typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
@@ -143,14 +138,9 @@ typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
 namespace mozilla {
   class IHistory;
 
-namespace layers {
-  class LayerManager;
-} 
-
 namespace dom {
 class Element;
 } 
-
 } 
 
 extern const char kLoadAsData[];
@@ -161,18 +151,14 @@ enum EventNameType {
   EventNameType_XUL = 0x0002,
   EventNameType_SVGGraphic = 0x0004, 
   EventNameType_SVGSVG = 0x0008, 
-  EventNameType_SMIL = 0x0016, 
 
   EventNameType_HTMLXUL = 0x0003,
   EventNameType_All = 0xFFFF
 };
 
-struct EventNameMapping
-{
-  nsIAtom* mAtom;
-  PRUint32 mId;
-  PRInt32  mType;
-  PRUint32 mStructType;
+struct EventNameMapping {
+  PRUint32  mId;
+  PRInt32 mType;
 };
 
 struct nsShortcutCandidate {
@@ -186,8 +172,6 @@ struct nsShortcutCandidate {
 
 class nsContentUtils
 {
-  typedef mozilla::dom::Element Element;
-
 public:
   static nsresult Init();
 
@@ -229,9 +213,6 @@ public:
   
 
 
-  static nsINode* GetCrossDocParentNode(nsINode* aChild);
-
-  
 
 
 
@@ -242,10 +223,8 @@ public:
 
 
 
-
-
-  static PRBool ContentIsDescendantOf(const nsINode* aPossibleDescendant,
-                                      const nsINode* aPossibleAncestor);
+  static PRBool ContentIsDescendantOf(nsINode* aPossibleDescendant,
+                                      nsINode* aPossibleAncestor);
 
   
 
@@ -294,10 +273,27 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+  static PRUint16 ComparePosition(nsINode* aNode1,
+                                  nsINode* aNode2);
+
+  
+
+
+
   static PRBool PositionIsBefore(nsINode* aNode1,
                                  nsINode* aNode2)
   {
-    return (aNode2->CompareDocumentPosition(aNode1) &
+    return (ComparePosition(aNode1, aNode2) &
       (nsIDOM3Node::DOCUMENT_POSITION_PRECEDING |
        nsIDOM3Node::DOCUMENT_POSITION_DISCONNECTED)) ==
       nsIDOM3Node::DOCUMENT_POSITION_PRECEDING;
@@ -335,12 +331,14 @@ public:
 
 
 
-  static Element* MatchElementId(nsIContent *aContent, const nsAString& aId);
+  static nsIContent* MatchElementId(nsIContent *aContent,
+                                    const nsAString& aId);
 
   
 
 
-  static Element* MatchElementId(nsIContent *aContent, nsIAtom* aId);
+  static nsIContent* MatchElementId(nsIContent *aContent,
+                                    nsIAtom* aId);
 
   
 
@@ -386,7 +384,6 @@ public:
   static const nsDependentSubstring TrimCharsInSet(const char* aSet,
                                                    const nsAString& aValue);
 
-  template<PRBool IsWhitespace(PRUnichar)>
   static const nsDependentSubstring TrimWhitespace(const nsAString& aStr,
                                                    PRBool aTrimTrailing = PR_TRUE);
 
@@ -412,16 +409,6 @@ public:
 
   static PRBool IsHTMLWhitespace(PRUnichar aChar);
 
-  
-
-
-
-
-
-
-
-  static PRBool ParseIntMarginValue(const nsAString& aString, nsIntMargin& aResult);
-
   static void Shutdown();
 
   
@@ -444,12 +431,6 @@ public:
 
 
   static nsIDocShell *GetDocShellFromCaller();
-
-  
-
-
-
-  static nsPIDOMWindow *GetWindowFromCaller();
 
   
 
@@ -502,8 +483,6 @@ public:
 
   static imgILoader* GetImgLoader()
   {
-    if (!sImgLoaderInitialized)
-      InitImgLoader();
     return sImgLoader;
   }
 
@@ -617,11 +596,6 @@ public:
     return sPrefBranch;
   }
 
-  
-  
-  
-  static PRBool IsSitePermAllow(nsIURI* aURI, const char* aType);
-
   static nsILineBreaker* LineBreaker()
   {
     return sLineBreaker;
@@ -630,6 +604,11 @@ public:
   static nsIWordBreaker* WordBreaker()
   {
     return sWordBreaker;
+  }
+  
+  static nsICaseConversion* GetCaseConv()
+  {
+    return sCaseConv;
   }
 
   static nsIUGenCategory* GetGenCat()
@@ -996,19 +975,6 @@ public:
 
 
 
-  static nsIAtom* GetEventIdAndAtom(const nsAString& aName,
-                                    PRUint32 aEventStruct,
-                                    PRUint32* aEventID);
-
-  
-
-
-
-
-
-
-
-
 
 
   static void TraverseListenerManager(nsINode *aNode,
@@ -1050,11 +1016,6 @@ public:
                                 PRInt32 aNamespaceID);
 
   
-
-
-
-
-
 
 
 
@@ -1405,6 +1366,12 @@ public:
 
 
 
+  static nsIAtom* IsNamedItem(mozilla::dom::Element* aElement);
+
+  
+
+
+
 
 
 
@@ -1515,14 +1482,12 @@ public:
   
 
 
-  static void ASCIIToLower(nsAString& aStr);
   static void ASCIIToLower(const nsAString& aSource, nsAString& aDest);
 
   
 
 
   static void ASCIIToUpper(nsAString& aStr);
-  static void ASCIIToUpper(const nsAString& aSource, nsAString& aDest);
 
   static nsIInterfaceRequestor* GetSameOriginChecker();
 
@@ -1577,8 +1542,6 @@ public:
   static already_AddRefed<nsIDocument>
   GetDocumentFromScriptContext(nsIScriptContext *aScriptContext);
 
-  static PRBool CheckMayLoad(nsIPrincipal* aPrincipal, nsIChannel* aChannel);
-
   
 
 
@@ -1591,33 +1554,17 @@ public:
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull,
-                             PRBool aAllowWrapping = PR_FALSE)
-  {
-    return WrapNative(cx, scope, native, nsnull, aIID, vp, aHolder,
-                      aAllowWrapping);
-  }
+                             PRBool aAllowWrapping = PR_FALSE);
 
   
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, jsval *vp,
+                             nsISupports *native,  jsval *vp,
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull,
                              PRBool aAllowWrapping = PR_FALSE)
   {
-    return WrapNative(cx, scope, native, nsnull, nsnull, vp, aHolder,
-                      aAllowWrapping);
-  }
-  static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, nsWrapperCache *cache,
-                             jsval *vp,
-                             
-                             
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull,
-                             PRBool aAllowWrapping = PR_FALSE)
-  {
-    return WrapNative(cx, scope, native, cache, nsnull, vp, aHolder,
-                      aAllowWrapping);
+    return WrapNative(cx, scope, native, nsnull, vp, aHolder, aAllowWrapping);
   }
 
   static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
@@ -1664,53 +1611,6 @@ public:
   {
     sIsHandlingKeyBoardEvent = aHandling;
   }
-
-  
-
-
-
-  static nsresult GetElementsByClassName(nsINode* aRootNode,
-                                         const nsAString& aClasses,
-                                         nsIDOMNodeList** aReturn);
-
-  
-
-
-
-
-
-
-
-
-
-  static already_AddRefed<mozilla::layers::LayerManager>
-  LayerManagerForDocument(nsIDocument *aDoc);
-
-  
-
-
-
-
-
-  static PRBool IsFocusedContent(nsIContent *aContent);
-
-#ifdef MOZ_IPC
-#ifdef ANDROID
-  static void SetActiveFrameLoader(nsFrameLoader *aFrameLoader)
-  {
-    sActiveFrameLoader = aFrameLoader;
-  }
-
-  static void ClearActiveFrameLoader(const nsFrameLoader *aFrameLoader)
-  {
-    if (sActiveFrameLoader == aFrameLoader)
-      sActiveFrameLoader = nsnull;
-  }
-
-  static already_AddRefed<nsFrameLoader> GetActiveFrameLoader();
-#endif
-#endif
-
 private:
 
   static PRBool InitializeEventTable();
@@ -1724,12 +1624,6 @@ private:
 
   static PRBool CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
                                 nsIPrincipal* aPrincipal);
-
-  static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, nsWrapperCache *cache,
-                             const nsIID* aIID, jsval *vp,
-                             nsIXPConnectJSObjectHolder** aHolder,
-                             PRBool aAllowWrapping);
 
   static nsIDOMScriptObjectFactory *sDOMScriptObjectFactory;
 
@@ -1751,13 +1645,8 @@ private:
 
   static nsIPrefBranch2 *sPrefBranch;
   
-  static nsRefPtrHashtable<nsPrefObserverHashKey, nsPrefOldCallback>
-    *sPrefCallbackTable;
+  static nsCOMArray<nsPrefOldCallback> *sPrefCallbackList;
 
-  static bool sImgLoaderInitialized;
-  static void InitImgLoader();
-
-  
   static imgILoader* sImgLoader;
   static imgICache* sImgCache;
 
@@ -1765,9 +1654,7 @@ private:
 
   static nsIConsoleService* sConsoleService;
 
-  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sAtomEventTable;
-  static nsDataHashtable<nsStringHashKey, EventNameMapping>* sStringEventTable;
-  static nsCOMArray<nsIAtom>* sUserDefinedEvents;
+  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sEventTable;
 
   static nsIStringBundleService* sStringBundleService;
   static nsIStringBundle* sStringBundles[PropertiesFile_COUNT];
@@ -1777,6 +1664,7 @@ private:
 
   static nsILineBreaker* sLineBreaker;
   static nsIWordBreaker* sWordBreaker;
+  static nsICaseConversion* sCaseConv;
   static nsIUGenCategory* sGenCat;
 
   
@@ -1800,12 +1688,6 @@ private:
   static nsIInterfaceRequestor* sSameOriginChecker;
 
   static PRBool sIsHandlingKeyBoardEvent;
-
-#ifdef MOZ_IPC
-#ifdef ANDROID
-  static nsFrameLoader *sActiveFrameLoader;
-#endif
-#endif
 };
 
 #define NS_HOLD_JS_OBJECTS(obj, clazz)                                         \
@@ -1829,7 +1711,7 @@ public:
   PRBool RePush(nsPIDOMEventTarget *aCurrentTarget);
   
   
-  PRBool Push(JSContext *cx, PRBool aRequiresScriptContext = PR_TRUE);
+  PRBool Push(JSContext *cx);
   
   PRBool PushNull();
 

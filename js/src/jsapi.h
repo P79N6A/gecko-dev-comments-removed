@@ -171,6 +171,7 @@ JSVAL_TO_OBJECT(jsval v)
 }
 
 
+
 static JS_ALWAYS_INLINE jsval
 OBJECT_TO_JSVAL(JSObject *obj)
 {
@@ -736,8 +737,6 @@ JS_StringToVersion(const char *string);
                                                    leaving that up to the
                                                    embedding. */
 
-#define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
-
 extern JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx);
 
@@ -901,6 +900,9 @@ JS_AddStringRoot(JSContext *cx, JSString **rp);
 extern JS_PUBLIC_API(JSBool)
 JS_AddObjectRoot(JSContext *cx, JSObject **rp);
 
+extern JS_PUBLIC_API(JSBool)
+JS_AddGCThingRoot(JSContext *cx, void **rp);
+
 #ifdef NAME_ALL_GC_ROOTS
 #define JS_DEFINE_TO_TOKEN(def) #def
 #define JS_DEFINE_TO_STRING(def) JS_DEFINE_TO_TOKEN(def)
@@ -919,13 +921,7 @@ extern JS_PUBLIC_API(JSBool)
 JS_AddNamedObjectRoot(JSContext *cx, JSObject **rp, const char *name);
 
 extern JS_PUBLIC_API(JSBool)
-JS_AddNamedValueRootRT(JSRuntime *rt, jsval *vp, const char *name);
-
-extern JS_PUBLIC_API(JSBool)
-JS_AddNamedStringRootRT(JSRuntime *rt, JSString **rp, const char *name);
-
-extern JS_PUBLIC_API(JSBool)
-JS_AddNamedObjectRootRT(JSRuntime *rt, JSObject **rp, const char *name);
+JS_AddNamedGCThingRoot(JSContext *cx, void **rp, const char *name);
 
 extern JS_PUBLIC_API(JSBool)
 JS_RemoveValueRoot(JSContext *cx, jsval *vp);
@@ -937,13 +933,18 @@ extern JS_PUBLIC_API(JSBool)
 JS_RemoveObjectRoot(JSContext *cx, JSObject **rp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_RemoveValueRootRT(JSRuntime *rt, jsval *vp);
+JS_RemoveGCThingRoot(JSContext *cx, void **rp);
 
-extern JS_PUBLIC_API(JSBool)
-JS_RemoveStringRootRT(JSRuntime *rt, JSString **rp);
 
-extern JS_PUBLIC_API(JSBool)
-JS_RemoveObjectRootRT(JSRuntime *rt, JSObject **rp);
+
+extern JS_FRIEND_API(JSBool)
+js_AddRootRT(JSRuntime *rt, jsval *vp, const char *name);
+
+extern JS_FRIEND_API(JSBool)
+js_AddGCThingRootRT(JSRuntime *rt, void **rp, const char *name);
+
+extern JS_FRIEND_API(JSBool)
+js_RemoveRoot(JSRuntime *rt, void *rp);
 
 
 
@@ -1144,9 +1145,6 @@ JS_MarkGCThing(JSContext *cx, jsval v, const char *name, void *arg);
 
 #define JSTRACE_OBJECT  0
 #define JSTRACE_STRING  1
-
-
-#define JSTRACE_DOUBLE  2
 
 
 
@@ -1548,8 +1546,10 @@ struct JSExtendedClass {
 
 
 
+
+
 #define JSCLASS_GLOBAL_FLAGS \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 2))
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -1577,7 +1577,7 @@ JS_DestroyIdArray(JSContext *cx, JSIdArray *ida);
 extern JS_PUBLIC_API(JSBool)
 JS_ValueToId(JSContext *cx, jsval v, jsid *idp);
 
-extern JS_PUBLIC_API(void)
+extern JS_PUBLIC_API(JSBool)
 JS_IdToValue(JSContext *cx, jsid id, jsval *vp);
 
 
