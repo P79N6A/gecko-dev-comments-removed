@@ -412,7 +412,8 @@ class FrameState
 
 
 
-    void allocForBinary(FrameEntry *lhs, FrameEntry *rhs, JSOp op, BinaryAlloc &alloc);
+    void allocForBinary(FrameEntry *lhs, FrameEntry *rhs, JSOp op, BinaryAlloc &alloc,
+                        bool resultNeeded = true);
 
     
 
