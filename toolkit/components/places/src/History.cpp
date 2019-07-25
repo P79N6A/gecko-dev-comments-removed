@@ -820,6 +820,33 @@ private:
   nsRefPtr<History> mHistory;
 };
 
+
+
+
+
+
+
+void
+StoreAndNotifyEmbedVisit(VisitData& aPlace)
+{
+  NS_PRECONDITION(aPlace.transitionType == nsINavHistoryService::TRANSITION_EMBED,
+                  "Must only pass TRANSITION_EMBED visits to this!");
+  NS_PRECONDITION(NS_IsMainThread(), "Must be called on the main thread!");
+
+  nsCOMPtr<nsIURI> uri;
+  (void)NS_NewURI(getter_AddRefs(uri), aPlace.spec);
+
+  nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+  if (!navHistory || !uri) {
+    return;
+  }
+
+  navHistory->registerEmbedVisit(uri, aPlace.visitTime);
+  VisitData noReferrer;
+  nsCOMPtr<nsIRunnable> event = new NotifyVisitObservers(aPlace, noReferrer);
+  (void)NS_DispatchToMainThread(event);
+}
+
 } 
 
 
@@ -1189,12 +1216,7 @@ History::VisitURI(nsIURI* aURI,
   
   
   if (place.transitionType == nsINavHistoryService::TRANSITION_EMBED) {
-    navHistory->registerEmbedVisit(aURI, place.visitTime);
-    
-    VisitData noReferrer;
-    nsCOMPtr<nsIRunnable> event = new NotifyVisitObservers(place, noReferrer);
-    rv = NS_DispatchToMainThread(event);
-    NS_ENSURE_SUCCESS(rv, rv);
+    StoreAndNotifyEmbedVisit(place);
   }
   else {
     mozIStorageConnection* dbConn = GetDBConn();
