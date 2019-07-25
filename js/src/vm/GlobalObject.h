@@ -132,6 +132,12 @@ class GlobalObject : public ::JSObject {
 
     JSObject *createBlankPrototype(JSContext *cx, js::Class *clasp);
 
+    
+
+
+
+    JSObject *createBlankPrototypeInheriting(JSContext *cx, js::Class *clasp, JSObject &proto);
+
     void setThrowTypeError(JSFunction *fun) {
         
         
