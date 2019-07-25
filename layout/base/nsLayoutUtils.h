@@ -87,6 +87,17 @@ public:
 
 
 
+  static ViewID FindIDFor(nsIContent* aContent);
+
+  
+
+
+  static nsIContent* FindContentFor(ViewID aId);
+
+  
+
+
+
   static nsIAtom* GetChildListNameFor(nsIFrame* aChildFrame);
 
   
@@ -1289,6 +1300,8 @@ public:
       (aPresContext->Type() == nsPresContext::eContext_PrintPreview ||
        aPresContext->Type() == nsPresContext::eContext_PageLayout);
   }
+
+  static void Shutdown();
 
 #ifdef DEBUG
   
