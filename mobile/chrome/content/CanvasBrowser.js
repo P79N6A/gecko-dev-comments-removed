@@ -77,6 +77,15 @@ CanvasBrowser.prototype = {
     return this.canvasDimensions.map(this._screenToPage, this);
   },
 
+  get contentDOMWindowUtils() {
+    if (!this._contentDOMWindowUtils) {
+      this._contentDOMWindowUtils = this._browser.contentWindow
+        .QueryInterface(Ci.nsIInterfaceRequestor)
+        .getInterface(Ci.nsIDOMWindowUtils);
+    }
+    return this._contentDOMWindowUtils;
+  },
+  
   setCurrentBrowser: function(browser, skipZoom) {
     let currentBrowser = this._browser;
     if (currentBrowser) {
@@ -85,6 +94,7 @@ CanvasBrowser.prototype = {
       currentBrowser.setAttribute("type", "content");
       currentBrowser.docShell.isOffScreenBrowser = false;
     }
+    this._contentDOMWindowUtils = null;
 
     browser.setAttribute("type", "content-primary");
     if (!skipZoom)
@@ -253,9 +263,12 @@ CanvasBrowser.prototype = {
     
     
     
-    if (boundsSizeChanged)
+    if (boundsSizeChanged) {
       this.clearRegion();
-    else
+      
+      
+      this.contentDOMWindowUtils.clearMozAfterPaintEvents();
+    } else
       this.flushRegion();
     
     this._visibleBounds = visibleBounds;
@@ -424,15 +437,10 @@ CanvasBrowser.prototype = {
 
   elementFromPoint: function(aX, aY) {
     let [x, y] = this._clientToContentCoords(aX, aY);
-    let cwu = this._browser.contentWindow
-                  .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                  .getInterface(Components.interfaces.nsIDOMWindowUtils);
-
-    let element = cwu.elementFromPoint(x, y,
-                                       true,   
-                                       false); 
-
-    return element;
+    let cwu = this.contentDOMWindowUtils
+    return cwu.elementFromPoint(x, y,
+                                true,   
+                                false); 
   },
 
   

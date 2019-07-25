@@ -805,11 +805,10 @@ ContentClickingModule.prototype = {
       return;
     }
 
-    var [x, y] = Browser.canvasBrowser._clientToContentCoords(aEvent.clientX, aEvent.clientY);
-
-    var cwin = Browser.selectedBrowser.contentWindow;
-    var cwu = cwin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-
+    let cb = Browser.canvasBrowser;
+    var [x, y] = cb._clientToContentCoords(aEvent.clientX, aEvent.clientY);
+    var cwu = cb.contentDOMWindowUtils;
+    
     
     cwu.sendMouseEvent(aType || aEvent.type,
                        x, y,
