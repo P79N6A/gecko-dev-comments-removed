@@ -54,6 +54,7 @@
 #include "mozilla/dom/Element.h"
 #include "nsIFrame.h"
 #include "nsRange.h"
+#include "nsContentUtils.h"
 
 using namespace mozilla;
 
@@ -525,6 +526,10 @@ mozInlineSpellWordUtil::BuildSoftText()
       
       
       
+      break;
+    }
+    
+    if (!nsContentUtils::ContentIsDescendantOf(node, mRootNode)) {
       break;
     }
     node = node->GetPreviousContent(mRootNode);
