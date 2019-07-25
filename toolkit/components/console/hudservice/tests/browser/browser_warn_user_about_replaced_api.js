@@ -36,7 +36,6 @@
 
 
 
-
 const TEST_REPLACED_API_URI = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/test-console-replaced-api.html";
 
 function test()
@@ -66,7 +65,9 @@ function testWarning()
   const successMsg = "Found the warning message";
   const errMsg = "Could not find the warning message about the replaced API";
 
-  outputNode = HUDService.hudWeakReferences[hudId].get().outputNode;
+  var display = HUDService.getDisplayByURISpec(content.location.href);
+  var outputNode = display.querySelectorAll(".hud-output-node")[0];
+
   testLogEntry(outputNode, "disabled", { success: successMsg, err: errMsg });
 
   finishTest();
