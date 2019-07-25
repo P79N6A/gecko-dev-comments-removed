@@ -105,6 +105,11 @@ public:
     
     
     virtual nsresult PushBack(const char *data, PRUint32 length) = 0;
+
+    
+    
+    virtual PRBool LastTransactionExpectedNoContent() = 0;
+    virtual void   SetLastTransactionExpectedNoContent(PRBool) = 0;
 };
 
 #define NS_DECL_NSAHTTPCONNECTION \
@@ -116,6 +121,8 @@ public:
     void GetSecurityInfo(nsISupports **); \
     PRBool IsPersistent(); \
     PRBool IsReused(); \
-    nsresult PushBack(const char *, PRUint32);
+    nsresult PushBack(const char *, PRUint32); \
+    PRBool LastTransactionExpectedNoContent(); \
+    void   SetLastTransactionExpectedNoContent(PRBool);
 
 #endif 

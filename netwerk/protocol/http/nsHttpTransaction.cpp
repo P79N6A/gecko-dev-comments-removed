@@ -83,6 +83,10 @@ static NS_DEFINE_CID(kMultiplexInputStream, NS_MULTIPLEXINPUTSTREAM_CID);
 
 
 
+#define MAX_INVALID_RESPONSE_BODY_SIZE (1024 * 128)
+
+
+
 
 
 #if defined(PR_LOGGING)
@@ -115,6 +119,7 @@ nsHttpTransaction::nsHttpTransaction()
     , mResponseHead(nsnull)
     , mContentLength(-1)
     , mContentRead(0)
+    , mInvalidResponseBytesRead(0)
     , mChunkedDecoder(nsnull)
     , mStatus(NS_OK)
     , mPriority(0)
@@ -818,19 +823,9 @@ nsHttpTransaction::ParseHead(char *buf,
         
         
         
-
         
         
-        
-        
-        nsRefPtr<nsHttpConnectionInfo> ci;
-        if (mConnection) {
-            mConnection->GetConnectionInfo(getter_AddRefs(ci));
-        }
-
-        
-        
-        if (ci && ci->IsHttp09Allowed()) {
+        if (!mConnection || !mConnection->LastTransactionExpectedNoContent()) {
             
             mHttpResponseMatched = PR_TRUE;
             char *p = LocateHttpStart(buf, PR_MIN(count, 8), PR_TRUE);
@@ -846,6 +841,7 @@ nsHttpTransaction::ParseHead(char *buf,
             }
             if (p > buf) {
                 
+                mInvalidResponseBytesRead += p - buf;
                 *countRead = p - buf;
                 buf = p;
             }
@@ -853,11 +849,20 @@ nsHttpTransaction::ParseHead(char *buf,
         else {
             char *p = LocateHttpStart(buf, count, PR_FALSE);
             if (p) {
+                mInvalidResponseBytesRead += p - buf;
                 *countRead = p - buf;
                 buf = p;
                 mHttpResponseMatched = PR_TRUE;
             } else {
+                mInvalidResponseBytesRead += count;
                 *countRead = count;
+                if (mInvalidResponseBytesRead > MAX_INVALID_RESPONSE_BODY_SIZE) {
+                    LOG(("nsHttpTransaction::ParseHead() "
+                         "Cannot find Response Header\n"));
+                    
+                    
+                    return NS_ERROR_ABORT;
+                }
                 return NS_OK;
             }
         }
@@ -942,6 +947,7 @@ nsHttpTransaction::HandleContentStart()
             LOG(("this response should not contain a body.\n"));
             break;
         }
+        mConnection->SetLastTransactionExpectedNoContent(mNoContent);
 
         if (mNoContent)
             mContentLength = 0;

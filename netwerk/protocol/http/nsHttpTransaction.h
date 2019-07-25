@@ -182,6 +182,13 @@ private:
     nsInt64                         mContentLength;   
     nsInt64                         mContentRead;     
 
+    
+    
+    
+    
+    
+    PRUint32                        mInvalidResponseBytesRead;
+
     nsHttpChunkedDecoder           *mChunkedDecoder;
 
     nsresult                        mStatus;
