@@ -98,7 +98,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsGenericDOMDataNode)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsGenericDOMDataNode)
-  return nsGenericElement::CanSkip(tmp, aRemovingAllowed);
+  return nsGenericElement::CanSkip(tmp);
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsGenericDOMDataNode)
@@ -312,6 +312,9 @@ nsGenericDOMDataNode::SetTextInternal(PRUint32 aOffset, PRUint32 aCount,
 
     return NS_ERROR_DOM_DOMSTRING_SIZE_ERR;
   }
+
+  if (aCount == aLength && mText.SubstringEquals(aOffset, aBuffer, aLength))
+    return NS_OK;
 
   nsIDocument *document = GetCurrentDoc();
   mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, aNotify);
