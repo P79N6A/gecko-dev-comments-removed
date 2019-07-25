@@ -144,9 +144,26 @@ struct PropDesc {
     PropDesc();
 
     
+
+
+
+
+
+
+
+
+
     bool initialize(JSContext* cx, const js::Value &v, bool checkAccessors=true);
 
     
+
+
+
+
+
+
+
+
     void initFromPropertyDescriptor(const PropertyDescriptor &desc);
     bool makeObject(JSContext *cx);
 
@@ -197,6 +214,11 @@ struct PropDesc {
     js::StrictPropertyOp setter() const {
         return js::CastAsStrictPropertyOp(setterObject());
     }
+
+    
+
+
+
 
     inline bool checkGetter(JSContext *cx);
     inline bool checkSetter(JSContext *cx);
@@ -1656,6 +1678,10 @@ LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
 
 
+
+
+
+
 extern bool
 DefineProperty(JSContext *cx, JSObject *obj, const jsid &id, const PropDesc &desc, bool throwError,
                bool *rval);
@@ -1766,7 +1792,7 @@ GetOwnPropertyDescriptor(JSContext *cx, JSObject *obj, jsid id, Value *vp);
 bool
 NewPropertyDescriptorObject(JSContext *cx, const PropertyDescriptor *desc, Value *vp);
 
-}
+} 
 
 extern JSBool
 js_GetMethod(JSContext *cx, JSObject *obj, jsid id, uintN getHow, js::Value *vp);
