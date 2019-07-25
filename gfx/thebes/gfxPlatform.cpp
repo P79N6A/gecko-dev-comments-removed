@@ -615,57 +615,53 @@ gfxPlatform::GetScaledFontForFont(DrawTarget* aTarget, gfxFont *aFont)
   return scaledFont;
 }
 
-UserDataKey kThebesSurfaceKey;
-void
-DestroyThebesSurface(void *data)
+cairo_user_data_key_t kDrawSourceSurface;
+static void
+DataSourceSurfaceDestroy(void *dataSourceSurface)
 {
-  gfxASurface *surface = static_cast<gfxASurface*>(data);
-  surface->Release();
+  static_cast<DataSourceSurface*>(dataSourceSurface)->Release();
+}
+
+cairo_user_data_key_t kDrawTargetForSurface;
+static void
+DataDrawTargetDestroy(void *aTarget)
+{
+  static_cast<DrawTarget*>(aTarget)->Release();
 }
 
 already_AddRefed<gfxASurface>
 gfxPlatform::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
 {
-  
-  void *surface = aTarget->GetUserData(&kThebesSurfaceKey);
-  if (surface) {
-    nsRefPtr<gfxASurface> surf = static_cast<gfxASurface*>(surface);
-    return surf.forget();
-  }
-
-  nsRefPtr<gfxASurface> surf;
   if (aTarget->GetType() == BACKEND_CAIRO) {
     cairo_surface_t* csurf =
       static_cast<cairo_surface_t*>(aTarget->GetNativeSurface(NATIVE_SURFACE_CAIRO_SURFACE));
-    surf = gfxASurface::Wrap(csurf);
-  } else {
-    
-    
-    
-    
-    
-    RefPtr<SourceSurface> source = aTarget->Snapshot();
-    RefPtr<DataSourceSurface> data = source->GetDataSurface();
-
-    if (!data) {
-      return NULL;
-    }
-
-    IntSize size = data->GetSize();
-    gfxASurface::gfxImageFormat format = OptimalFormatForContent(ContentForFormat(data->GetFormat()));
-
-    
-    nsRefPtr<gfxImageSurface> imageSurf = new gfxImageSurface(gfxIntSize(size.width, size.height), format, false);
- 
-    bool resultOfCopy = imageSurf->CopyFrom(source);
-    NS_ASSERTION(resultOfCopy, "Failed to copy surface.");
-    surf = imageSurf;
+    return gfxASurface::Wrap(csurf);
   }
 
   
   
-  surf->AddRef();
-  aTarget->AddUserData(&kThebesSurfaceKey, surf.get(), DestroyThebesSurface);
+  
+  
+  
+  RefPtr<SourceSurface> source = aTarget->Snapshot();
+  RefPtr<DataSourceSurface> data = source->GetDataSurface();
+
+  if (!data) {
+    return NULL;
+  }
+
+  IntSize size = data->GetSize();
+  gfxASurface::gfxImageFormat format = OptimalFormatForContent(ContentForFormat(data->GetFormat()));
+
+
+  nsRefPtr<gfxASurface> surf =
+    new gfxImageSurface(data->GetData(), gfxIntSize(size.width, size.height),
+                        data->Stride(), format);
+
+  surf->SetData(&kDrawSourceSurface, data.forget().drop(), DataSourceSurfaceDestroy);
+  
+  aTarget->AddRef();
+  surf->SetData(&kDrawTargetForSurface, aTarget, DataDrawTargetDestroy);
 
   return surf.forget();
 }
