@@ -244,6 +244,7 @@ mjit::Compiler::loadDouble(FrameEntry *fe, FPRegisterID fpReg)
         frame.convertInt32ToDouble(masm, fe, fpReg);
         Jump converted = masm.jump();
         j.linkTo(masm.label(), &masm);
+        
         frame.loadDouble(fe, fpReg, masm);
         converted.linkTo(masm.label(), &masm);
     } else if (fe->getKnownType() == JSVAL_TYPE_INT32) {
@@ -1017,13 +1018,15 @@ mjit::Compiler::emitLeftDoublePath(FrameEntry *lhs, FrameEntry *rhs, FrameState:
         rhsIsDouble.get().linkTo(stubcc.masm.label(), &stubcc.masm);
 
         
-        frame.loadDouble(rhs, fpRight, stubcc.masm);
+        frame.loadDouble(regs.rhsType.reg(), regs.rhsData.reg(),
+                         rhs, fpRight, stubcc.masm);
 
         converted.linkTo(stubcc.masm.label(), &stubcc.masm);
     }
 
     
-    frame.loadDouble(lhs, fpLeft, stubcc.masm);
+    frame.loadDouble(regs.lhsType.reg(), regs.lhsData.reg(),
+                     lhs, fpLeft, stubcc.masm);
     lhsUnknownDone = stubcc.masm.jump();
 }
 
@@ -1051,7 +1054,8 @@ mjit::Compiler::emitRightDoublePath(FrameEntry *lhs, FrameEntry *rhs, FrameState
         stubcc.masm.convertInt32ToDouble(regs.lhsData.reg(), fpLeft);
 
     
-    frame.loadDouble(rhs, fpRight, stubcc.masm);
+    frame.loadDouble(regs.rhsType.reg(), regs.rhsData.reg(),
+                     rhs, fpRight, stubcc.masm);
 }
 
 static inline Assembler::DoubleCondition

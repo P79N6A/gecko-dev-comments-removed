@@ -438,6 +438,13 @@ class FrameState
 
 
 
+    inline void loadDouble(RegisterID type, RegisterID data, FrameEntry *fe, FPRegisterID fpReg,
+                           Assembler &masm) const;
+
+    
+
+
+
 
     inline bool shouldAvoidTypeRemat(FrameEntry *fe);
 
@@ -674,6 +681,7 @@ class FrameState
     void pushCopyOf(uint32 index);
     void syncFancy(Assembler &masm, Registers avail, uint32 resumeAt,
                    FrameEntry *bottom) const;
+    inline bool tryFastDoubleLoad(FrameEntry *fe, FPRegisterID fpReg, Assembler &masm) const;
 
     
 
