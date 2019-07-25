@@ -713,50 +713,6 @@ let Utils = {
     return [stream, file];
   },
 
-  
-
-
-
-
-
-
-
-
-
-  _openWin: function Utils__openWin(name, type ) {
-    
-    let openedWindow = Svc.WinMediator.getMostRecentWindow("Weave:" + name);
-    if (openedWindow) {
-      openedWindow.focus();
-      return;
-    }
-
-    
-    let win = Svc.WinWatcher;
-    if (type == "Dialog")
-      win = win.activeWindow;
-    win["open" + type].apply(win, Array.slice(arguments, 2));
-  },
-
-  _openChromeWindow: function Utils_openCWindow(name, uri, options, args) {
-    Utils.openWindow(name, "chrome://weave/content/" + uri, options, args);
-  },
-
-  openWindow: function Utils_openWindow(name, uri, options, args) {
-    Utils._openWin(name, "Window", null, uri, "",
-    options || "centerscreen,chrome,dialog,resizable=yes", args);
-  },
-
-  openDialog: function Utils_openDialog(name, uri, options, args) {
-    Utils._openWin(name, "Dialog", "chrome://weave/content/" + uri, "",
-      options || "centerscreen,chrome,dialog,modal,resizable=no", args);
-  },
-
-  openGenericDialog: function Utils_openGenericDialog(type) {
-    this._genericDialogType = type;
-    this.openDialog("ChangeSomething", "generic-change.xul");
-  },
-
   getIcon: function(iconUri, defaultIcon) {
     try {
       let iconURI = Utils.makeURI(iconUri);
