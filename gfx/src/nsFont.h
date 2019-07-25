@@ -42,6 +42,7 @@
 #include "nsCoord.h"
 #include "nsStringGlue.h"
 #include "gfxFontConstants.h"
+#include "gfxFontFeatures.h"
 
 
 
@@ -62,6 +63,8 @@ const PRUint8 kGenericFont_sans_serif   = 0x04;
 const PRUint8 kGenericFont_monospace    = 0x08;
 const PRUint8 kGenericFont_cursive      = 0x10;
 const PRUint8 kGenericFont_fantasy      = 0x20;
+
+class gfxFontStyle;
 
 
 struct NS_GFX nsFont {
@@ -97,6 +100,9 @@ struct NS_GFX nsFont {
   
   
   float sizeAdjust;
+
+  
+  nsTArray<gfxFontFeature> fontFeatureSettings;
 
   
   nsString featureSettings;
@@ -135,6 +141,9 @@ struct NS_GFX nsFont {
   bool BaseEquals(const nsFont& aOther) const;
 
   nsFont& operator=(const nsFont& aOther);
+
+  
+  void AddFontFeaturesToStyle(gfxFontStyle *aStyle) const;
 
   
   
