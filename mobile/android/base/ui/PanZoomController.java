@@ -50,6 +50,7 @@ import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoEventListener;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.util.FloatMath;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -293,8 +294,9 @@ public class PanZoomController
             Log.e(LOGTAG, "Received impossible touch move while in " + mState);
             return false;
         case TOUCHING:
-            if (panDistance(event) < PAN_THRESHOLD * GeckoAppShell.getDpi())
+            if (panDistance(event) < PAN_THRESHOLD * GeckoAppShell.getDpi()) {
                 return false;
+            }
             cancelTouch();
             
         case PANNING_HOLD_LOCKED:
@@ -370,9 +372,9 @@ public class PanZoomController
     }
 
     private float panDistance(MotionEvent move) {
-        float dx = mX.firstTouchPos - move.getX(0);
-        float dy = mY.firstTouchPos - move.getY(0);
-        return (float)Math.sqrt(dx * dx + dy * dy);
+        float dx = mX.panDistance(move.getX(0));
+        float dy = mY.panDistance(move.getY(0));
+        return FloatMath.sqrt(dx * dx + dy * dy);
     }
 
     private void track(float x, float y, long time) {
@@ -386,7 +388,7 @@ public class PanZoomController
 
         if (mState == PanZoomState.PANNING_LOCKED) {
             
-            double angle = Math.atan2(y - mY.firstTouchPos, x - mX.firstTouchPos); 
+            double angle = Math.atan2(mY.panDistance(y), mX.panDistance(x)); 
             angle = Math.abs(angle); 
             if (angle < AXIS_LOCK_ANGLE || angle > (Math.PI - AXIS_LOCK_ANGLE)) {
                 
@@ -699,7 +701,7 @@ public class PanZoomController
             BOTH,       
         }
 
-        public float firstTouchPos;             
+        private float firstTouchPos;            
         public float touchPos;                  
         public float lastTouchPos;              
         public float velocity;                  
@@ -731,6 +733,10 @@ public class PanZoomController
             velocity = 0.0f;
             locked = false;
             firstTouchPos = touchPos = lastTouchPos = pos;
+        }
+
+        float panDistance(float currentPos) {
+            return currentPos - firstTouchPos;
         }
 
         void updateWithTouchAt(float pos, float timeDelta) {
