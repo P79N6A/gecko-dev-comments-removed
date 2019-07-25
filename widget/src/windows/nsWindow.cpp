@@ -7606,39 +7606,14 @@ nsWindow::GetRootAccessible()
   }
 
   NS_LOG_WMGETOBJECT_THISWND
-
-  if (mContentType != eContentTypeInherit) {
-    
-    
-    
-    
-    HWND accessibleWnd = ::GetTopWindow(mWnd);
-    NS_LOG_WMGETOBJECT_WND("Top Window", accessibleWnd);
-    if (!accessibleWnd) {
-      NS_LOG_WMGETOBJECT_WND("This Window", mWnd);
-      return DispatchAccessibleEvent(NS_GETACCESSIBLE);
-    }
-
-    nsWindow* accessibleWindow = nsnull;
-    while (accessibleWnd) {
-      
-      accessibleWindow = GetNSWindowPtr(accessibleWnd);
-      if (accessibleWindow) {
-        nsAccessible *rootAccessible =
-          accessibleWindow->DispatchAccessibleEvent(NS_GETACCESSIBLE);
-        if (rootAccessible) {
-          
-          return rootAccessible;
-        }
-      }
-      accessibleWnd = ::GetNextWindow(accessibleWnd, GW_HWNDNEXT);
-      NS_LOG_WMGETOBJECT_WND("Next Window", accessibleWnd);
-    }
-    return nsnull;
-  }
-
   NS_LOG_WMGETOBJECT_WND("This Window", mWnd);
-  return DispatchAccessibleEvent(NS_GETACCESSIBLE);
+
+  nsAccessible* docAcc = DispatchAccessibleEvent(NS_GETACCESSIBLE);
+
+  nsCOMPtr<nsIAccessibleDocument> rootDocAcc;
+  docAcc->GetRootDocument(getter_AddRefs(rootDocAcc));
+  nsRefPtr<nsAccessible> rootAcc(do_QueryObject(rootDocAcc));
+  return rootAcc;
 }
 
 STDMETHODIMP_(LRESULT)
