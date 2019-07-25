@@ -58,8 +58,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS2(TimerThread, nsIRunnable, nsIObserver)
 TimerThread::TimerThread() :
   mInitInProgress(0),
   mInitialized(PR_FALSE),
-  mLock("TimerThread.mLock"),
-  mCondVar(mLock, "TimerThread.mCondVar"),
+  mMonitor("TimerThread.mMonitor"),
   mShutdown(PR_FALSE),
   mWaiting(PR_FALSE),
   mSleeping(PR_FALSE),
@@ -118,15 +117,15 @@ nsresult TimerThread::Init()
     }
 
     {
-      MutexAutoLock lock(mLock);
+      MonitorAutoLock lock(mMonitor);
       mInitialized = PR_TRUE;
-      mCondVar.NotifyAll();
+      mMonitor.NotifyAll();
     }
   }
   else {
-    MutexAutoLock lock(mLock);
+    MonitorAutoLock lock(mMonitor);
     while (!mInitialized) {
-      mCondVar.Wait();
+      mMonitor.Wait();
     }
   }
 
@@ -145,13 +144,13 @@ nsresult TimerThread::Shutdown()
 
   nsTArray<nsTimerImpl*> timers;
   {   
-    MutexAutoLock lock(mLock);
+    MonitorAutoLock lock(mMonitor);
 
     mShutdown = PR_TRUE;
 
     
     if (mWaiting)
-      mCondVar.Notify();
+      mMonitor.Notify();
 
     
     
@@ -233,7 +232,7 @@ void TimerThread::UpdateFilter(PRUint32 aDelay, TimeStamp aTimeout,
 
 NS_IMETHODIMP TimerThread::Run()
 {
-  MutexAutoLock lock(mLock);
+  MonitorAutoLock lock(mMonitor);
 
   
   
@@ -285,7 +284,7 @@ NS_IMETHODIMP TimerThread::Run()
 
           {
             
-            MutexAutoUnlock unlock(mLock);
+            MonitorAutoUnlock unlock(mMonitor);
 
 #ifdef DEBUG_TIMERS
             if (PR_LOG_TEST(gTimerLog, PR_LOG_DEBUG)) {
@@ -360,7 +359,7 @@ NS_IMETHODIMP TimerThread::Run()
     }
 
     mWaiting = PR_TRUE;
-    mCondVar.Wait(waitFor);
+    mMonitor.Wait(waitFor);
     mWaiting = PR_FALSE;
   }
 
@@ -369,7 +368,7 @@ NS_IMETHODIMP TimerThread::Run()
 
 nsresult TimerThread::AddTimer(nsTimerImpl *aTimer)
 {
-  MutexAutoLock lock(mLock);
+  MonitorAutoLock lock(mMonitor);
 
   
   PRInt32 i = AddTimerInternal(aTimer);
@@ -378,14 +377,14 @@ nsresult TimerThread::AddTimer(nsTimerImpl *aTimer)
 
   
   if (mWaiting && i == 0)
-    mCondVar.Notify();
+    mMonitor.Notify();
 
   return NS_OK;
 }
 
 nsresult TimerThread::TimerDelayChanged(nsTimerImpl *aTimer)
 {
-  MutexAutoLock lock(mLock);
+  MonitorAutoLock lock(mMonitor);
 
   
   
@@ -397,14 +396,14 @@ nsresult TimerThread::TimerDelayChanged(nsTimerImpl *aTimer)
 
   
   if (mWaiting && i == 0)
-    mCondVar.Notify();
+    mMonitor.Notify();
 
   return NS_OK;
 }
 
 nsresult TimerThread::RemoveTimer(nsTimerImpl *aTimer)
 {
-  MutexAutoLock lock(mLock);
+  MonitorAutoLock lock(mMonitor);
 
   
   
@@ -418,7 +417,7 @@ nsresult TimerThread::RemoveTimer(nsTimerImpl *aTimer)
 
   
   if (mWaiting)
-    mCondVar.Notify();
+    mMonitor.Notify();
 
   return NS_OK;
 }
