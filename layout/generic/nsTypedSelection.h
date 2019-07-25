@@ -99,6 +99,8 @@ public:
   nsINode*     GetFocusNode();
   PRInt32      GetFocusOffset();
 
+  bool IsCollapsed();
+
   
   
   const nsRange* GetAnchorFocusRange() const {
