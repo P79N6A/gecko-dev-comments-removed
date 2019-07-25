@@ -73,8 +73,7 @@ class nsXULPrototypeAttribute
 {
 public:
     nsXULPrototypeAttribute()
-        : mName(nsGkAtoms::id),  
-          mEventHandler(nsnull)
+        : mName(nsGkAtoms::id)  
     {
         XUL_PROTOTYPE_ATTRIBUTE_METER(gNumAttributes);
         MOZ_COUNT_CTOR(nsXULPrototypeAttribute);
@@ -84,61 +83,16 @@ public:
 
     nsAttrName mName;
     nsAttrValue mValue;
-    
-    
-    
-    JSObject* mEventHandler;
 
 #ifdef XUL_PROTOTYPE_ATTRIBUTE_METERING
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     static PRUint32   gNumElements;
     static PRUint32   gNumAttributes;
-    static PRUint32   gNumEventHandlers;
     static PRUint32   gNumCacheTests;
     static PRUint32   gNumCacheHits;
     static PRUint32   gNumCacheSets;
     static PRUint32   gNumCacheFills;
 #endif 
 };
-
-
 
 
 
@@ -194,11 +148,10 @@ public:
     nsXULPrototypeElement()
         : nsXULPrototypeNode(eType_Element),
           mNumAttributes(0),
-          mAttributes(nsnull),
           mHasIdAttribute(false),
           mHasClassAttribute(false),
           mHasStyleAttribute(false),
-          mHoldsScriptObject(false)
+          mAttributes(nsnull)
     {
     }
 
@@ -238,14 +191,11 @@ public:
 
     nsCOMPtr<nsINodeInfo>    mNodeInfo;           
 
-    PRUint32                 mNumAttributes;
+    PRUint32                 mNumAttributes:29;
+    PRUint32                 mHasIdAttribute:1;
+    PRUint32                 mHasClassAttribute:1;
+    PRUint32                 mHasStyleAttribute:1;
     nsXULPrototypeAttribute* mAttributes;         
-    
-    bool                     mHasIdAttribute:1;
-    bool                     mHasClassAttribute:1;
-    bool                     mHasStyleAttribute:1;
-    bool                     mHoldsScriptObject:1;
-
 };
 
 class nsXULDocument;
