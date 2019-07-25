@@ -106,6 +106,7 @@ protected:
     DeallocPPluginInstance(PPluginInstanceParent* aActor);
 
 public:
+    
     PluginModuleParent(const char* aFilePath);
     virtual ~PluginModuleParent();
 

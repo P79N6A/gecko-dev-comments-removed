@@ -161,6 +161,7 @@ public:
     PluginModuleChild();
     virtual ~PluginModuleChild();
 
+    
     bool Init(const std::string& aPluginFilename,
               base::ProcessHandle aParentProcessHandle,
               MessageLoop* aIOLoop,
@@ -282,7 +283,7 @@ private:
 #endif
 
     PRLibrary* mLibrary;
-    nsCString mPluginFilename;
+    nsCString mPluginFilename; 
     nsCString mUserAgent;
     int mQuirks;
 
