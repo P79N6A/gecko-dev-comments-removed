@@ -1372,6 +1372,31 @@ nsHTMLInputElement::SetFiles(const nsCOMArray<nsIDOMFile>& aFiles,
   mFiles.Clear();
   mFiles.AppendObjects(aFiles);
 
+  AfterSetFiles(aSetValueChanged);
+}
+
+void
+nsHTMLInputElement::SetFiles(nsIDOMFileList* aFiles,
+                             bool aSetValueChanged)
+{
+  mFiles.Clear();
+
+  if (aFiles) {
+    PRUint32 listLength;
+    aFiles->GetLength(&listLength);
+    for (PRUint32 i = 0; i < listLength; i++) {
+      nsCOMPtr<nsIDOMFile> file;
+      aFiles->Item(i, getter_AddRefs(file));
+      mFiles.AppendObject(file);
+    }
+  }
+
+  AfterSetFiles(aSetValueChanged);
+}
+
+void
+nsHTMLInputElement::AfterSetFiles(bool aSetValueChanged)
+{
   
   
   
