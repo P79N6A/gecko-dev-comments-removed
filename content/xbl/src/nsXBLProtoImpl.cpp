@@ -307,7 +307,7 @@ nsXBLProtoImpl::Read(nsIScriptContext* aContext,
                      nsIScriptGlobalObject* aGlobal)
 {
   
-  JSContext *cx = static_cast<JSContext *>(aContext->GetNativeContext());
+  JSContext *cx = aContext->GetNativeContext();
   JSObject *global = aGlobal->GetGlobalJSObject();
 
   void* classObject;
