@@ -86,7 +86,11 @@ enum StmtType {
     STMT_LIMIT
 };
 
-#define STMT_TYPE_IN_RANGE(t,b,e) ((uint)((t) - (b)) <= (uintN)((e) - (b)))
+inline bool
+STMT_TYPE_IN_RANGE(uint16_t type, StmtType begin, StmtType end)
+{
+    return begin <= type && type <= end;
+}
 
 
 
@@ -126,9 +130,9 @@ enum StmtType {
 #define STMT_IS_LOOP(stmt)      STMT_TYPE_IS_LOOP((stmt)->type)
 
 struct StmtInfo {
-    uint16          type;           
-    uint16          flags;          
-    uint32          blockid;        
+    uint16_t        type;           
+    uint16_t        flags;          
+    uint32_t        blockid;        
     ptrdiff_t       update;         
     ptrdiff_t       breaks;         
     ptrdiff_t       continues;      
@@ -284,14 +288,14 @@ struct StmtInfo {
 struct BytecodeEmitter;
 
 struct TreeContext {                
-    uint32          flags;          
-    uint32          bodyid;         
-    uint32          blockidGen;     
-    uint32          parenDepth;     
+    uint32_t        flags;          
+    uint32_t        bodyid;         
+    uint32_t        blockidGen;     
+    uint32_t        parenDepth;     
 
-    uint32          yieldCount;     
+    uint32_t        yieldCount;     
 
-    uint32          argumentsCount; 
+    uint32_t        argumentsCount; 
 
     StmtInfo        *topStmt;       
     StmtInfo        *topScopeStmt;  
@@ -486,7 +490,7 @@ bool
 SetStaticLevel(TreeContext *tc, uintN staticLevel);
 
 bool
-GenerateBlockId(TreeContext *tc, uint32& blockid);
+GenerateBlockId(TreeContext *tc, uint32_t &blockid);
 
 } 
 
@@ -556,7 +560,7 @@ struct TryNode {
 };
 
 struct CGObjectList {
-    uint32              length;     
+    uint32_t            length;     
     ObjectBox           *lastbox;   
 
     CGObjectList() : length(0), lastbox(NULL) {}
@@ -583,10 +587,10 @@ struct GlobalScope {
         JSAtom        *atom;        
         FunctionBox   *funbox;      
                                     
-        uint32        knownSlot;    
+        uint32_t      knownSlot;    
 
         GlobalDef() { }
-        GlobalDef(uint32 knownSlot) : atom(NULL), knownSlot(knownSlot) { }
+        GlobalDef(uint32_t knownSlot) : atom(NULL), knownSlot(knownSlot) { }
         GlobalDef(JSAtom *atom, FunctionBox *box) : atom(atom), funbox(box) { }
     };
 
@@ -661,11 +665,11 @@ struct BytecodeEmitter : public TreeContext
     OwnedAtomIndexMapPtr globalMap; 
 
     
-    typedef Vector<uint32, 8> SlotVector;
+    typedef Vector<uint32_t, 8> SlotVector;
     SlotVector      closedArgs;
     SlotVector      closedVars;
 
-    uint16          typesetCount;   
+    uint16_t        typesetCount;   
 
     BytecodeEmitter(Parser *parser, uintN lineno);
     bool init(JSContext *cx, TreeContext::InitBehavior ib = USED_AS_CODE_GENERATOR);
@@ -696,7 +700,7 @@ struct BytecodeEmitter : public TreeContext
 
 
 
-    bool addGlobalUse(JSAtom *atom, uint32 slot, UpvarCookie *cookie);
+    bool addGlobalUse(JSAtom *atom, uint32_t slot, UpvarCookie *cookie);
 
     bool hasUpvarIndices() const {
         return upvarIndices.hasMap() && !upvarIndices->empty();
@@ -796,7 +800,7 @@ Emit3(JSContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1, jsbytecode o
 
 
 ptrdiff_t
-Emit5(JSContext *cx, BytecodeEmitter *bce, JSOp op, uint16 op1, uint16 op2);
+Emit5(JSContext *cx, BytecodeEmitter *bce, JSOp op, uint16_t op1, uint16_t op2);
 
 
 
@@ -947,7 +951,6 @@ enum SrcNoteType {
     SRC_WHILE       = 4,        
 
 
-    SRC_LOOPHEAD    = 4,        
     SRC_CONTINUE    = 5,        
 
 
@@ -1113,9 +1116,9 @@ BytecodeEmitter::countFinalSourceNotes()
 
 struct JSSrcNoteSpec {
     const char      *name;      
-    int8            arity;      
-    uint8           offsetBias; 
-    int8            isSpanDep;  
+    int8_t          arity;      
+    uint8_t         offsetBias; 
+    int8_t          isSpanDep;  
 
 };
 

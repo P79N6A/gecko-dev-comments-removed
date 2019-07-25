@@ -11,7 +11,7 @@
 Components.utils.import("resource:///modules/gcli.jsm");
 let require = gcli._internal.require;
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/browser/test-console.html";
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console.html";
 
 registerCleanupFunction(function() {
   require = undefined;

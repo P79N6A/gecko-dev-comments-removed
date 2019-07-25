@@ -53,7 +53,7 @@ const uintN MIN_SPARSE_INDEX = 256;
 
 namespace js {
 
-const uint32 MAX_ARRAY_INDEX = 4294967294u;
+const uint32_t MAX_ARRAY_INDEX = 4294967294u;
 }
 
 inline JSBool
@@ -102,8 +102,7 @@ js_InitArrayClass(JSContext *cx, JSObject *obj);
 extern bool
 js_InitContextBusyArrayTable(JSContext *cx);
 
-namespace js
-{
+namespace js {
 
 
 extern JSObject * JS_FASTCALL
@@ -111,7 +110,7 @@ NewDenseEmptyArray(JSContext *cx, JSObject *proto=NULL);
 
 
 extern JSObject * JS_FASTCALL
-NewDenseAllocatedArray(JSContext *cx, uint length, JSObject *proto=NULL);
+NewDenseAllocatedArray(JSContext *cx, uint32_t length, JSObject *proto=NULL);
 
 
 
@@ -119,24 +118,24 @@ NewDenseAllocatedArray(JSContext *cx, uint length, JSObject *proto=NULL);
 
 
 extern JSObject * JS_FASTCALL
-NewDenseAllocatedEmptyArray(JSContext *cx, uint length, JSObject *proto=NULL);
+NewDenseAllocatedEmptyArray(JSContext *cx, uint32_t length, JSObject *proto=NULL);
 
 
 
 
 
 extern JSObject * JS_FASTCALL
-NewDenseUnallocatedArray(JSContext *cx, uint length, JSObject *proto=NULL);
+NewDenseUnallocatedArray(JSContext *cx, uint32_t length, JSObject *proto=NULL);
 
 
 extern JSObject *
-NewDenseCopiedArray(JSContext *cx, uint32 length, const Value *vp, JSObject *proto = NULL);
+NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *vp, JSObject *proto = NULL);
 
 
 extern JSObject *
 NewSlowEmptyArray(JSContext *cx);
 
-}
+} 
 
 extern JSBool
 js_GetLengthProperty(JSContext *cx, JSObject *obj, jsuint *lengthp);
@@ -147,11 +146,11 @@ js_SetLengthProperty(JSContext *cx, JSObject *obj, jsdouble length);
 namespace js {
 
 extern JSBool
-array_defineElement(JSContext *cx, JSObject *obj, uint32 index, const Value *value,
+array_defineElement(JSContext *cx, JSObject *obj, uint32_t index, const Value *value,
                     PropertyOp getter, StrictPropertyOp setter, uintN attrs);
 
 extern JSBool
-array_deleteElement(JSContext *cx, JSObject *obj, uint32 index, Value *rval, JSBool strict);
+array_deleteElement(JSContext *cx, JSObject *obj, uint32_t index, Value *rval, JSBool strict);
 
 
 
@@ -162,10 +161,7 @@ array_deleteElement(JSContext *cx, JSObject *obj, uint32 index, Value *rval, JSB
 extern bool
 GetElements(JSContext *cx, JSObject *aobj, jsuint length, js::Value *vp);
 
-}
 
-
-namespace js {
 
 extern JSBool
 array_sort(JSContext *cx, uintN argc, js::Value *vp);
@@ -212,8 +208,5 @@ js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, jsid id,
 
 JSBool
 js_Array(JSContext *cx, uintN argc, js::Value *vp);
-
-extern JSBool JS_FASTCALL
-js_EnsureDenseArrayCapacity(JSContext *cx, JSObject *obj, jsint i);
 
 #endif 

@@ -8,7 +8,7 @@
 
 
 
-const TESTS_PATH = "http://example.com/browser/browser/devtools/webconsole/test/";
+const TESTS_PATH = "http://example.com/browser/browser/devtools/webconsole/test//";
 const TESTS = [
   { 
     file: "test-bug-595934-css-loader.html",
@@ -38,12 +38,6 @@ const TESTS = [
       let form = content.document.querySelector("form");
       form.submit();
     },
-  },
-  { 
-    file: "test-bug-595934-workers.html",
-    category: "Web Worker",
-    matchString: "fooBarWorker",
-    expectError: true,
   },
   { 
     file: "test-bug-595934-malformedxml.xhtml",
@@ -95,49 +89,59 @@ const TESTS = [
     category: "Image",
     matchString: "corrupt",
   },
+  
+
+
+
+
+
 ];
 
 let pos = -1;
 
 let foundCategory = false;
 let foundText = false;
-let pageLoaded = false;
-let pageError = false;
 let output = null;
 let jsterm = null;
-let testEnded = false;
 
 let TestObserver = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
 
   observe: function test_observe(aSubject)
   {
-    if (testEnded || !(aSubject instanceof Ci.nsIScriptError)) {
+    if (!(aSubject instanceof Ci.nsIScriptError)) {
       return;
     }
 
-    var expectedCategory = TESTS[pos].category;
+    is(aSubject.category, TESTS[pos].category,
+      "test #" + pos + ": error category '" + TESTS[pos].category + "'");
 
-    info("test #" + pos + " console observer got " + aSubject.category + ", is expecting " + expectedCategory);
-
-    if (aSubject.category == expectedCategory) {
+    if (aSubject.category == TESTS[pos].category) {
       foundCategory = true;
+      if (foundText) {
+        executeSoon(testNext);
+      }
     }
     else {
-      info("unexpected message was: " + aSubject.sourceName + ':' + aSubject.lineNumber + '; ' +
+      ok(false, aSubject.sourceName + ':' + aSubject.lineNumber + '; ' +
                 aSubject.errorMessage);
+      executeSoon(finish);
     }
   }
 };
 
-function consoleOpened(hud) {
+function tabLoad(aEvent) {
+  browser.removeEventListener(aEvent.type, arguments.callee, true);
+
+  openConsole();
+
+  let hudId = HUDService.getHudIdByWindow(content);
+  let hud = HUDService.hudReferences[hudId];
   output = hud.outputNode;
   output.addEventListener("DOMNodeInserted", onDOMNodeInserted, false);
   jsterm = hud.jsterm;
 
   Services.console.registerListener(TestObserver);
-
-  registerCleanupFunction(testEnd);
 
   executeSoon(testNext);
 }
@@ -146,60 +150,32 @@ function testNext() {
   jsterm.clearOutput();
   foundCategory = false;
   foundText = false;
-  pageLoaded = false;
-  pageError = false;
 
   pos++;
   if (pos < TESTS.length) {
-    waitForSuccess({
-      name: "test #" + pos + " succesful finish",
-      validatorFn: function()
-      {
-        return foundCategory && foundText && pageLoaded && pageError;
-      },
-      successFn: testNext,
-      failureFn: function() {
-        info("foundCategory " + foundCategory + " foundText " + foundText +
-             " pageLoaded " + pageLoaded + " pageError " + pageError);
-        finishTest();
-      },
-    });
-
     let test = TESTS[pos];
     let testLocation = TESTS_PATH + test.file;
-    browser.addEventListener("load", function onLoad(aEvent) {
-      if (content.location.href != testLocation) {
-        return;
-      }
-      browser.removeEventListener(aEvent.type, onLoad, true);
-
-      pageLoaded = true;
-      test.onload && test.onload(aEvent);
-
-      if (test.expectError) {
-        content.addEventListener("error", function _onError() {
-          content.removeEventListener("error", _onError);
-          pageError = true;
-        });
-        expectUncaughtException();
-      }
-      else {
-        pageError = true;
-      }
-    }, true);
+    if (test.onload) {
+      browser.addEventListener("load", function(aEvent) {
+        if (content.location.href == testLocation) {
+          browser.removeEventListener(aEvent.type, arguments.callee, true);
+          test.onload(aEvent);
+        }
+      }, true);
+    }
 
     content.location = testLocation;
   }
   else {
-    testEnded = true;
-    executeSoon(finishTest);
+    executeSoon(finish);
   }
 }
 
 function testEnd() {
   Services.console.unregisterListener(TestObserver);
   output.removeEventListener("DOMNodeInserted", onDOMNodeInserted, false);
-  TestObserver = output = jsterm = null;
+  output = jsterm = null;
+  finishTest();
 }
 
 function onDOMNodeInserted(aEvent) {
@@ -208,13 +184,16 @@ function onDOMNodeInserted(aEvent) {
   if (foundText) {
     ok(foundText, "test #" + pos + ": message found '" + TESTS[pos].matchString + "'");
   }
+
+  if (foundCategory) {
+    executeSoon(testNext);
+  }
 }
 
 function test() {
-  addTab("data:text/html;charset=utf-8,Web Console test for bug 595934 - message categories coverage.");
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    openConsole(null, consoleOpened);
-  }, true);
+  registerCleanupFunction(testEnd);
+
+  addTab("data:text/html,Web Console test for bug 595934 - message categories coverage.");
+  browser.addEventListener("load", tabLoad, true);
 }
 

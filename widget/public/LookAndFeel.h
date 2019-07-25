@@ -375,7 +375,11 @@ public:
 
 
 
-    eIntID_ScrollbarButtonAutoRepeatBehavior
+    eIntID_ScrollbarButtonAutoRepeatBehavior,
+    
+
+
+    eIntID_TooltipDelay
   };
 
   

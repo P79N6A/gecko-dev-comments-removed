@@ -61,7 +61,7 @@ struct Int32Key {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
 
     MaybeRegisterID reg_;
-    int32 index_;
+    int32_t index_;
 
     Int32Key() : index_(0) { }
 
@@ -70,13 +70,13 @@ struct Int32Key {
         key.reg_ = reg;
         return key;
     }
-    static Int32Key FromConstant(int32 index) {
+    static Int32Key FromConstant(int32_t index) {
         Int32Key key;
         key.index_ = index;
         return key;
     }
 
-    int32 index() const {
+    int32_t index() const {
         JS_ASSERT(!reg_.isSet());
         return index_;
     }
@@ -87,7 +87,7 @@ struct Int32Key {
 
 struct FrameAddress : JSC::MacroAssembler::Address
 {
-    FrameAddress(int32 offset)
+    FrameAddress(int32_t offset)
       : Address(JSC::MacroAssembler::stackPointerRegister, offset)
     { }
 };
@@ -100,10 +100,10 @@ struct ImmIntPtr : public JSC::MacroAssembler::ImmPtr
 };
 
 struct StackMarker {
-    uint32 base;
-    uint32 bytes;
+    uint32_t base;
+    uint32_t bytes;
 
-    StackMarker(uint32 base, uint32 bytes)
+    StackMarker(uint32_t base, uint32_t bytes)
       : base(base), bytes(bytes)
     { }
 };
@@ -134,14 +134,14 @@ class Assembler : public ValueAssembler
 
     
     
-    uint32      extraStackSpace;
+    uint32_t    extraStackSpace;
 
     
     Registers::CallConvention callConvention;
 
     
     
-    uint32      stackAdjust;
+    uint32_t    stackAdjust;
 
     
 #ifdef DEBUG
@@ -199,7 +199,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     
 
 
-    Address objSlotRef(JSObject *obj, RegisterID reg, uint32 slot) {
+    Address objSlotRef(JSObject *obj, RegisterID reg, uint32_t slot) {
         move(ImmPtr(obj), reg);
         if (obj->isFixedSlot(slot)) {
             return Address(reg, JSObject::getFixedSlotOffset(slot));
@@ -280,7 +280,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     void negateDouble(FPRegisterID fpreg)
     {
 #if defined JS_CPU_X86 || defined JS_CPU_X64
-        static const uint64 DoubleNegMask = 0x8000000000000000ULL;
+        static const uint64_t DoubleNegMask = 0x8000000000000000ULL;
         loadDouble(&DoubleNegMask, Registers::FPConversionTemp);
         xorDouble(Registers::FPConversionTemp, fpreg);
 #elif defined JS_CPU_ARM || defined JS_CPU_SPARC
@@ -328,7 +328,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 #endif
     }
 
-    static inline uint32 align(uint32 bytes, uint32 alignment) {
+    static inline uint32_t align(uint32_t bytes, uint32_t alignment) {
         return (alignment - (bytes % alignment)) % alignment;
     }
 
@@ -338,7 +338,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     
     
     
-    StackMarker allocStack(uint32 bytes, uint32 alignment = 4) {
+    StackMarker allocStack(uint32_t bytes, uint32_t alignment = 4) {
         bytes += align(bytes + extraStackSpace, alignment);
         subPtr(Imm32(bytes), stackPointerRegister);
         extraStackSpace += bytes;
@@ -358,9 +358,9 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         pop(reg);
     }
 
-    static const uint32 StackAlignment = 16;
+    static const uint32_t StackAlignment = 16;
 
-    static inline uint32 alignForCall(uint32 stackBytes) {
+    static inline uint32_t alignForCall(uint32_t stackBytes) {
 #if defined(JS_CPU_X86) || defined(JS_CPU_X64)
         
         
@@ -381,11 +381,11 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     
     
 #ifdef _WIN64
-    static const uint32 ReturnStackAdjustment = 32;
+    static const uint32_t ReturnStackAdjustment = 32;
 #elif defined(JS_CPU_X86) && defined(JS_NO_FASTCALL)
-    static const uint32 ReturnStackAdjustment = 16;
+    static const uint32_t ReturnStackAdjustment = 16;
 #else
-    static const uint32 ReturnStackAdjustment = 0;
+    static const uint32_t ReturnStackAdjustment = 0;
 #endif
 
     void throwInJIT() {
@@ -397,17 +397,17 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
     
 #ifdef _WIN64
-    static const uint32 ShadowStackSpace = 32;
+    static const uint32_t ShadowStackSpace = 32;
 #elif defined(JS_CPU_SPARC)
-    static const uint32 ShadowStackSpace = 92;
+    static const uint32_t ShadowStackSpace = 92;
 #else
-    static const uint32 ShadowStackSpace = 0;
+    static const uint32_t ShadowStackSpace = 0;
 #endif
 
 #if defined(JS_CPU_SPARC)
-    static const uint32 BaseStackSpace = 104;
+    static const uint32_t BaseStackSpace = 104;
 #else
-    static const uint32 BaseStackSpace = 0;
+    static const uint32_t BaseStackSpace = 0;
 #endif
 
     
@@ -419,11 +419,11 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     
     
     
-    void setupABICall(Registers::CallConvention convention, uint32 generalArgs) {
+    void setupABICall(Registers::CallConvention convention, uint32_t generalArgs) {
         JS_ASSERT(!callIsAligned);
 
-        uint32 numArgRegs = Registers::numArgRegs(convention);
-        uint32 pushCount = (generalArgs > numArgRegs)
+        uint32_t numArgRegs = Registers::numArgRegs(convention);
+        uint32_t pushCount = (generalArgs > numArgRegs)
                            ? generalArgs - numArgRegs
                            : 0;
 
@@ -432,7 +432,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
         
         
-        uint32 total = (pushCount * sizeof(void *)) +
+        uint32_t total = (pushCount * sizeof(void *)) +
                        extraStackSpace;
 
         stackAdjust = (pushCount * sizeof(void *)) +
@@ -454,7 +454,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     }
 
     
-    Address vmFrameOffset(uint32 offs) {
+    Address vmFrameOffset(uint32_t offs) {
         return Address(stackPointerRegister, stackAdjust + extraStackSpace + offs);
     }
 
@@ -474,18 +474,18 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     
     
     
-    Address addressOfArg(uint32 i) {
-        uint32 numArgRegs = Registers::numArgRegs(callConvention);
+    Address addressOfArg(uint32_t i) {
+        uint32_t numArgRegs = Registers::numArgRegs(callConvention);
         JS_ASSERT(i >= numArgRegs);
 
         
         
-        int32 spOffset = ((i - numArgRegs) * sizeof(void *)) + ShadowStackSpace;
+        int32_t spOffset = ((i - numArgRegs) * sizeof(void *)) + ShadowStackSpace;
         return Address(stackPointerRegister, spOffset);
     }
 
     
-    void storeArg(uint32 i, RegisterID reg) {
+    void storeArg(uint32_t i, RegisterID reg) {
         JS_ASSERT(callIsAligned);
         RegisterID to;
         if (Registers::regForArg(callConvention, i, &to)) {
@@ -499,7 +499,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
     
     
-    void storeArg(uint32 i, Address address) {
+    void storeArg(uint32_t i, Address address) {
         JS_ASSERT(callIsAligned);
         RegisterID to;
         if (Registers::regForArg(callConvention, i, &to)) {
@@ -521,7 +521,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
     
     
-    void storeArgAddr(uint32 i, Address address) {
+    void storeArgAddr(uint32_t i, Address address) {
         JS_ASSERT(callIsAligned);
         RegisterID to;
         if (Registers::regForArg(callConvention, i, &to)) {
@@ -541,7 +541,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         }
     }
 
-    void storeArg(uint32 i, ImmPtr imm) {
+    void storeArg(uint32_t i, ImmPtr imm) {
         JS_ASSERT(callIsAligned);
         RegisterID to;
         if (Registers::regForArg(callConvention, i, &to)) {
@@ -611,11 +611,11 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     }
 
 
-#define STUB_CALL_TYPE(type)                                                             \
-    Call callWithVMFrame(bool inlining, type stub, jsbytecode *pc,                       \
-                         DataLabelPtr *pinlined, uint32 fd) {                            \
-        return fallibleVMCall(inlining, JS_FUNC_TO_DATA_PTR(void *, stub),               \
-                              pc, pinlined, fd);                                         \
+#define STUB_CALL_TYPE(type)                                                  \
+    Call callWithVMFrame(bool inlining, type stub, jsbytecode *pc,            \
+                         DataLabelPtr *pinlined, uint32_t fd) {               \
+        return fallibleVMCall(inlining, JS_FUNC_TO_DATA_PTR(void *, stub),    \
+                              pc, pinlined, fd);                              \
     }
 
     STUB_CALL_TYPE(JSObjStub);
@@ -625,7 +625,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
 #undef STUB_CALL_TYPE
 
-    void setupFrameDepth(int32 frameDepth) {
+    void setupFrameDepth(int32_t frameDepth) {
         
         
         if (frameDepth >= 0) {
@@ -638,7 +638,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         }
     }
 
-    void setupInfallibleVMFrame(int32 frameDepth) {
+    void setupInfallibleVMFrame(int32_t frameDepth) {
         setupFrameDepth(frameDepth);
 
         
@@ -648,7 +648,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     }
 
     void setupFallibleVMFrame(bool inlining, jsbytecode *pc,
-                              DataLabelPtr *pinlined, int32 frameDepth) {
+                              DataLabelPtr *pinlined, int32_t frameDepth) {
         setupInfallibleVMFrame(frameDepth);
 
         
@@ -668,7 +668,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         restoreStackBase();
     }
 
-    void setupFallibleABICall(bool inlining, jsbytecode *pc, int32 frameDepth) {
+    void setupFallibleABICall(bool inlining, jsbytecode *pc, int32_t frameDepth) {
         setupFrameDepth(frameDepth);
 
         
@@ -697,7 +697,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     
     
     
-    Call infallibleVMCall(void *ptr, int32 frameDepth) {
+    Call infallibleVMCall(void *ptr, int32_t frameDepth) {
         setupInfallibleVMFrame(frameDepth);
         return wrapVMCall(ptr);
     }
@@ -706,7 +706,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     
     
     Call fallibleVMCall(bool inlining, void *ptr, jsbytecode *pc,
-                        DataLabelPtr *pinlined, int32 frameDepth) {
+                        DataLabelPtr *pinlined, int32_t frameDepth) {
         setupFallibleVMFrame(inlining, pc, pinlined, frameDepth);
         Call call = wrapVMCall(ptr);
 
@@ -807,7 +807,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
             store32(key.reg(), address);
     }
 
-    void bumpKey(Int32Key &key, int32 delta) {
+    void bumpKey(Int32Key &key, int32_t delta) {
         if (key.isConstant())
             key.index_ += delta;
         else
@@ -851,7 +851,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         return testObjClass(cond, fun, temp, &js::FunctionClass);
     }
 
-    void branchValue(Condition cond, RegisterID reg, int32 value, RegisterID result)
+    void branchValue(Condition cond, RegisterID reg, int32_t value, RegisterID result)
     {
         if (Registers::maskReg(result) & Registers::SingleByteRegs) {
             set32(cond, reg, Imm32(value), result);
@@ -886,7 +886,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
             move(remat.reg(), reg);
     }
 
-    void loadDynamicSlot(RegisterID objReg, uint32 index,
+    void loadDynamicSlot(RegisterID objReg, uint32_t index,
                          RegisterID typeReg, RegisterID dataReg) {
         loadPtr(Address(objReg, JSObject::offsetOfSlots()), dataReg);
         loadValueAsComponents(Address(dataReg, index * sizeof(Value)), typeReg, dataReg);
@@ -1146,7 +1146,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     }
 #endif 
 
-    Address objPropAddress(JSObject *obj, RegisterID objReg, uint32 slot)
+    Address objPropAddress(JSObject *obj, RegisterID objReg, uint32_t slot)
     {
         if (obj->isFixedSlot(slot))
             return Address(objReg, JSObject::getFixedSlotOffset(slot));
@@ -1154,11 +1154,11 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         return Address(objReg, obj->dynamicSlotIndex(slot) * sizeof(Value));
     }
 
-    static uint32 maskAddress(Address address) {
+    static uint32_t maskAddress(Address address) {
         return Registers::maskReg(address.base);
     }
 
-    static uint32 maskAddress(BaseIndex address) {
+    static uint32_t maskAddress(BaseIndex address) {
         return Registers::maskReg(address.base) |
                Registers::maskReg(address.index);
     }
@@ -1331,7 +1331,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         }
 
         if (templateObject->hasPrivate()) {
-            uint32 nfixed = templateObject->numFixedSlots();
+            uint32_t nfixed = templateObject->numFixedSlots();
             storePtr(ImmPtr(templateObject->getPrivate()),
                      Address(result, JSObject::getPrivateDataOffset(nfixed)));
         }
@@ -1388,7 +1388,7 @@ class PreserveRegisters {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
 
     Assembler   &masm;
-    uint32      count;
+    uint32_t    count;
     RegisterID  regs[JSC::MacroAssembler::TotalRegisters];
 
   public:

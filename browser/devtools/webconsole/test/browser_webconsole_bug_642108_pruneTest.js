@@ -8,73 +8,64 @@
 
 
 
-const TEST_URI = "data:text/html;charset=utf-8,<p>test for bug 642108.";
+const TEST_URI = "data:text/html,<p>test for bug 642108.";
 const LOG_LIMIT = 20;
 const CATEGORY_CSS = 1;
 const SEVERITY_WARNING = 1;
 
 function test() {
   addTab(TEST_URI);
-  browser.addEventListener("load", function onLoad(){
-    browser.removeEventListener("load", onLoad, false);
-
-    Services.prefs.setIntPref("devtools.hud.loglimit.cssparser", LOG_LIMIT);
-
-    registerCleanupFunction(function() {
-      Services.prefs.clearUserPref("devtools.hud.loglimit.cssparser");
-    });
-
-    openConsole(null, testCSSPruning);
-  }, true);
+  browser.addEventListener("DOMContentLoaded", testCSSPruning, false);
 }
 
 function populateConsoleRepeats(aHudRef) {
-  for (let i = 0; i < 5; i++) {
-    let node = aHudRef.ui.createMessageNode(CATEGORY_CSS, SEVERITY_WARNING,
-                                            "css log x");
-    aHudRef.ui.outputMessage(CATEGORY_CSS, node);
+  let hud = aHudRef.HUDBox;
+
+  for (i = 0; i < 5; i++) {
+    let node = ConsoleUtils.createMessageNode(hud.ownerDocument,
+                                              CATEGORY_CSS,
+                                              SEVERITY_WARNING,
+                                              "css log x",
+                                              aHudRef.hudId);
+    ConsoleUtils.outputMessageNode(node, aHudRef.hudId);
   }
 }
+
 
 function populateConsole(aHudRef) {
-  for (let i = 0; i < LOG_LIMIT + 5; i++) {
-    let node = aHudRef.ui.createMessageNode(CATEGORY_CSS, SEVERITY_WARNING,
-                                            "css log " + i);
-    aHudRef.ui.outputMessage(CATEGORY_CSS, node);
+  let hud = aHudRef.HUDBox;
+
+  for (i = 0; i < LOG_LIMIT + 5; i++) {
+    let node = ConsoleUtils.createMessageNode(hud.ownerDocument,
+                                              CATEGORY_CSS,
+                                              SEVERITY_WARNING,
+                                              "css log " + i,
+                                              aHudRef.hudId);
+    ConsoleUtils.outputMessageNode(node, aHudRef.hudId);
   }
 }
 
-function testCSSPruning(hudRef) {
+function testCSSPruning() {
+  let prefBranch = Services.prefs.getBranch("devtools.hud.loglimit.");
+  prefBranch.setIntPref("cssparser", LOG_LIMIT);
+
+  browser.removeEventListener("DOMContentLoaded",testCSSPruning, false);
+
+  openConsole();
+  let hudRef = HUDService.getHudByWindow(content);
+
   populateConsoleRepeats(hudRef);
+  ok(hudRef.cssNodes["css log x"], "repeated nodes in cssNodes");
 
-  let waitForNoRepeatedNodes = {
-    name:  "number of nodes is LOG_LIMIT",
-    validatorFn: function()
-    {
-      return countMessageNodes() == LOG_LIMIT;
-    },
-    successFn: function()
-    {
-      ok(!hudRef.ui._cssNodes["css log x"],
-         "repeated nodes pruned from cssNodes");
-      finishTest();
-    },
-    failureFn: finishTest,
-  };
+  populateConsole(hudRef);
 
-  waitForSuccess({
-    name: "repeated nodes in cssNodes",
-    validatorFn: function()
-    {
-      return hudRef.ui._cssNodes["css log x"];
-    },
-    successFn: function()
-    {
-      populateConsole(hudRef);
-      waitForSuccess(waitForNoRepeatedNodes);
-    },
-    failureFn: finishTest,
-  });
+  is(countMessageNodes(), LOG_LIMIT, "number of nodes is LOG_LIMIT");
+  ok(!hudRef.cssNodes["css log x"], "repeated nodes pruned from cssNodes");
+
+  prefBranch.clearUserPref("loglimit");
+  prefBranch = null;
+
+  finishTest();
 }
 
 function countMessageNodes() {

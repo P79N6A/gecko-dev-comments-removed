@@ -38,11 +38,11 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH			= ../../../../..
+DEPTH			= ../../../..
 topsrcdir	= @top_srcdir@
 srcdir		= @srcdir@
 VPATH			= @srcdir@
-relativesrcdir  = browser/devtools/webconsole/test/browser
+relativesrcdir  = browser/devtools/webconsole/test
 
 include $(DEPTH)/config/autoconf.mk
 include $(topsrcdir)/config/rules.mk
@@ -142,6 +142,7 @@ _BROWSER_TEST_FILES = \
 	browser_webconsole_bug_659907_console_dir.js \
 	browser_webconsole_bug_678816.js \
 	browser_webconsole_bug_664131_console_group.js \
+	browser_webconsole_bug_704295.js \
 	browser_gcli_inspect.js \
 	browser_gcli_integrate.js \
 	browser_gcli_require.js \

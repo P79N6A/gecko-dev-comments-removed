@@ -40,6 +40,7 @@
 
 #include "Layers.h"
 
+#include "nsISupportsImpl.h"
 #include "gfxPattern.h"
 #include "nsThreadUtils.h"
 #include "mozilla/ReentrantMonitor.h"
@@ -74,7 +75,7 @@ enum StereoMode {
 
 
 class THEBES_API Image {
-  THEBES_INLINE_DECL_THREADSAFE_REFCOUNTING(Image)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Image)
 
 public:
   virtual ~Image() {}
@@ -132,7 +133,7 @@ protected:
 
 
 class THEBES_API ImageContainer {
-  THEBES_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 
 public:
   ImageContainer() :

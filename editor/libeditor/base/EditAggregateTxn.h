@@ -65,19 +65,6 @@ public:
   NS_IMETHOD AppendChild(EditTxn *aTxn);
 
   
-
-
-  NS_IMETHOD GetCount(PRUint32 *aCount);
-
-  
-
-
-  NS_IMETHOD GetTxnAt(PRInt32 aIndex, EditTxn **aTxn);
-
-  
-  NS_IMETHOD SetName(nsIAtom *aName);
-
-  
   NS_IMETHOD GetName(nsIAtom **aName);
 
 protected:

@@ -121,8 +121,6 @@ static bool sAccessibilityChecked = false;
 
 bool nsWindow::sAccessibilityEnabled = false;
 static const char sAccEnv [] = "GNOME_ACCESSIBILITY";
-static const char sUseSystemPrefsKey[] = "config.use_system_prefs";
-static const char sAccessibilityKey [] = "config.use_system_prefs.accessibility";
 static const char sGconfAccessibilityKey[] = "/desktop/gnome/interface/accessibility";
 #endif
 
@@ -204,6 +202,8 @@ static void   key_event_to_context_menu_event(nsMouseEvent &aEvent,
 
 static int    is_parent_ungrab_enter(GdkEventCrossing *aEvent);
 static int    is_parent_grab_leave(GdkEventCrossing *aEvent);
+
+static void GetBrandName(nsXPIDLString& brandName);
 
 
 #if defined(MOZ_WIDGET_GTK2)
@@ -1848,38 +1848,62 @@ nsWindow::SetIcon(const nsAString& aIconSpec)
     if (!mShell)
         return NS_OK;
 
+    nsCAutoString iconName;
+    
+    if (aIconSpec.EqualsLiteral("default")) {
+        nsXPIDLString brandName;
+        GetBrandName(brandName);
+        AppendUTF16toUTF8(brandName, iconName);
+        ToLowerCase(iconName);
+    } else {
+        AppendUTF16toUTF8(aIconSpec, iconName);
+    }
+    
     nsCOMPtr<nsILocalFile> iconFile;
     nsCAutoString path;
-    nsTArray<nsCString> iconList;
 
-    
-    
-    
+    bool foundIcon = gtk_icon_theme_has_icon(gtk_icon_theme_get_default(),
+                                             iconName.get());
 
-    const char extensions[6][7] = { ".png", "16.png", "32.png", "48.png",
+    if (!foundIcon) {
+        
+        
+        
+
+        const char extensions[6][7] = { ".png", "16.png", "32.png", "48.png",
                                     ".xpm", "16.xpm" };
 
-    for (PRUint32 i = 0; i < ArrayLength(extensions); i++) {
-        
-        if (i == ArrayLength(extensions) - 2 && iconList.Length())
-            break;
+        for (PRUint32 i = 0; i < ArrayLength(extensions); i++) {
+            
+            if (i == ArrayLength(extensions) - 2 && foundIcon)
+                break;
 
-        nsAutoString extension;
-        extension.AppendASCII(extensions[i]);
+            nsAutoString extension;
+            extension.AppendASCII(extensions[i]);
 
-        ResolveIconName(aIconSpec, extension, getter_AddRefs(iconFile));
-        if (iconFile) {
-            iconFile->GetNativePath(path);
-            iconList.AppendElement(path);
+            ResolveIconName(aIconSpec, extension, getter_AddRefs(iconFile));
+            if (iconFile) {
+                iconFile->GetNativePath(path);
+                GdkPixbuf *icon = gdk_pixbuf_new_from_file(path.get(), NULL);
+                if (icon){
+                    gtk_icon_theme_add_builtin_icon(iconName.get(),
+                                                    gdk_pixbuf_get_height(icon),
+                                                    icon);
+                    g_object_unref(icon);
+                    foundIcon = true;
+                }
+            }
         }
     }
 
     
-    if (iconList.Length() == 0)
-        return NS_OK;
+    if (foundIcon) {
+        gtk_window_set_icon_name(GTK_WINDOW(mShell), iconName.get());
+    }
 
-    return SetWindowIconList(iconList);
+    return NS_OK;
 }
+
 
 nsIntPoint
 nsWindow::WidgetToScreenOffset()
@@ -4341,9 +4365,8 @@ nsWindow::Create(nsIWidget        *aParent,
         if (envValue) {
             sAccessibilityEnabled = atoi(envValue) != 0;
             LOG(("Accessibility Env %s=%s\n", sAccEnv, envValue));
-        }
-        
-        else if (Preferences::GetBool(sUseSystemPrefsKey, false)) {
+        } else {
+            
             nsCOMPtr<nsIGConfService> gconf =
                 do_GetService(NS_GCONFSERVICE_CONTRACTID, &rv); 
             if (NS_SUCCEEDED(rv) && gconf) {
@@ -4353,10 +4376,6 @@ nsWindow::Create(nsIWidget        *aParent,
                 gconf->GetBool(NS_LITERAL_CSTRING(sGconfAccessibilityKey),
                                &sAccessibilityEnabled);
             }
-
-        } else {
-            sAccessibilityEnabled =
-                Preferences::GetBool(sAccessibilityKey, false);
         }
     }
 #endif
@@ -5152,33 +5171,6 @@ nsWindow::SetupPluginPort(void)
     return (void *)window;
 }
 
-nsresult
-nsWindow::SetWindowIconList(const nsTArray<nsCString> &aIconList)
-{
-    GList *list = NULL;
-
-    for (PRUint32 i = 0; i < aIconList.Length(); ++i) {
-        const char *path = aIconList[i].get();
-        LOG(("window [%p] Loading icon from %s\n", (void *)this, path));
-
-        GdkPixbuf *icon = gdk_pixbuf_new_from_file(path, NULL);
-        if (!icon)
-            continue;
-
-        list = g_list_append(list, icon);
-    }
-
-    if (!list)
-        return NS_ERROR_FAILURE;
-
-    gtk_window_set_icon_list(GTK_WINDOW(mShell), list);
-
-    g_list_foreach(list, (GFunc) g_object_unref, NULL);
-    g_list_free(list);
-
-    return NS_OK;
-}
-
 void
 nsWindow::SetDefaultIcon(void)
 {
@@ -5654,7 +5646,15 @@ get_gtk_cursor(nsCursor aCursor)
 
     
     
-    if (newType != 0xff) {
+    
+    
+    if (newType != 0xFF && GtkCursors[newType].hash) {
+        gdkcursor = gdk_cursor_new_from_name(gdk_display_get_default(),
+                                             GtkCursors[newType].hash);
+    }
+
+    
+    if (newType != 0xff && !gdkcursor) {
         GdkPixbuf * cursor_pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 32, 32);
         if (!cursor_pixbuf)
             return NULL;

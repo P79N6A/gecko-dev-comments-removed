@@ -478,9 +478,13 @@ enum ParseNodeArity {
 
 struct Definition;
 
+class LoopControlStatement;
+class BreakStatement;
+class ContinueStatement;
+
 struct ParseNode {
   private:
-    uint32              pn_type   : 16, 
+    uint32_t            pn_type   : 16, 
                         pn_op     : 8,  
                         pn_arity  : 5,  
                         pn_parens : 1,  
@@ -555,7 +559,7 @@ struct ParseNode {
     void setDefn(bool enabled)             { pn_defn = enabled; }
 
     TokenPos            pn_pos;         
-    int32               pn_offset;      
+    int32_t             pn_offset;      
     ParseNode           *pn_next;       
     ParseNode           *pn_link;       
 
@@ -565,8 +569,8 @@ struct ParseNode {
         struct {                        
             ParseNode   *head;          
             ParseNode   **tail;         
-            uint32      count;          
-            uint32      xflags:12,      
+            uint32_t    count;          
+            uint32_t    xflags:12,      
                         blockid:20;     
         } list;
         struct {                        
@@ -601,7 +605,7 @@ struct ParseNode {
             UpvarCookie cookie;         
 
 
-            uint32      dflags:12,      
+            uint32_t    dflags:12,      
                         blockid:20;     
 
         } name;
@@ -614,6 +618,10 @@ struct ParseNode {
             JSAtom           *data;     
         } xmlpi;
         jsdouble        dval;           
+        class {
+            friend class LoopControlStatement;
+            PropertyName     *label;    
+        } loopControl;
     } pn_u;
 
 #define pn_funbox       pn_u.name.funbox
@@ -903,6 +911,10 @@ struct ParseNode {
 
     bool getConstantValue(JSContext *cx, bool strictChecks, Value *vp);
     inline bool isConstant();
+
+    
+    inline BreakStatement &asBreakStatement();
+    inline ContinueStatement &asContinueStatement();
 };
 
 struct NullaryNode : public ParseNode {
@@ -988,6 +1000,55 @@ struct LexicalScopeNode : public ParseNode {
         return (LexicalScopeNode *)ParseNode::create(kind, PN_NAME, tc);
     }
 };
+
+class LoopControlStatement : public ParseNode {
+  protected:
+    LoopControlStatement(ParseNodeKind kind, PropertyName *label,
+                         const TokenPtr &begin, const TokenPtr &end)
+      : ParseNode(kind, JSOP_NOP, PN_NULLARY, TokenPos::make(begin, end))
+    {
+        JS_ASSERT(kind == PNK_BREAK || kind == PNK_CONTINUE);
+        pn_u.loopControl.label = label;
+    }
+
+  public:
+    
+    PropertyName *label() const {
+        return pn_u.loopControl.label;
+    }
+};
+
+class BreakStatement : public LoopControlStatement {
+  public:
+    BreakStatement(PropertyName *label, const TokenPtr &begin, const TokenPtr &end)
+      : LoopControlStatement(PNK_BREAK, label, begin, end)
+    { }
+};
+
+inline BreakStatement &
+ParseNode::asBreakStatement()
+{
+    JS_ASSERT(isKind(PNK_BREAK));
+    JS_ASSERT(isOp(JSOP_NOP));
+    JS_ASSERT(pn_arity == PN_NULLARY);
+    return *static_cast<BreakStatement *>(this);
+}
+
+class ContinueStatement : public LoopControlStatement {
+  public:
+    ContinueStatement(PropertyName *label, TokenPtr &begin, TokenPtr &end)
+      : LoopControlStatement(PNK_CONTINUE, label, begin, end)
+    { }
+};
+
+inline ContinueStatement &
+ParseNode::asContinueStatement()
+{
+    JS_ASSERT(isKind(PNK_CONTINUE));
+    JS_ASSERT(isOp(JSOP_NOP));
+    JS_ASSERT(pn_arity == PN_NULLARY);
+    return *static_cast<ContinueStatement *>(this);
+}
 
 ParseNode *
 CloneLeftHandSide(ParseNode *opn, TreeContext *tc);
@@ -1251,10 +1312,10 @@ struct FunctionBox : public ObjectBox
 
 
     Bindings            bindings;               
-    uint32              queued:1,
+    uint32_t            queued:1,
                         inLoop:1,               
                         level:JSFB_LEVEL_BITS;
-    uint32              tcflags;
+    uint32_t            tcflags;
 
     JSFunction *function() const { return (JSFunction *) object; }
 
@@ -1284,7 +1345,7 @@ struct FunctionBoxQueue {
     FunctionBoxQueue()
       : vector(NULL), head(0), tail(0), lengthMask(0) { }
 
-    bool init(uint32 count) {
+    bool init(uint32_t count) {
         lengthMask = JS_BITMASK(JS_CEILING_LOG2W(count));
         vector = (FunctionBox **) OffTheBooks::malloc_(sizeof(FunctionBox) * length());
         return !!vector;

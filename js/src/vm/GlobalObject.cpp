@@ -338,7 +338,7 @@ GlobalObject::clear(JSContext *cx)
 
 
 
-    int32 flags = getSlot(FLAGS).toInt32();
+    int32_t flags = getSlot(FLAGS).toInt32();
     flags |= FLAGS_CLEARED;
     setSlot(FLAGS, Int32Value(flags));
 

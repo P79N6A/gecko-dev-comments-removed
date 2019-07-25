@@ -69,10 +69,11 @@ struct Parser : private AutoGCRooter
     TokenStream         tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    
+    JSPrincipals        *originPrincipals;   
     StackFrame          *const callerFrame;  
     JSObject            *const callerVarObj; 
     ParseNodeAllocator  allocator;
-    uint32              functionCount;  
+    uint32_t            functionCount;  
     ObjectBox           *traceListHead; 
     TreeContext         *tc;            
 
@@ -82,7 +83,8 @@ struct Parser : private AutoGCRooter
     
     bool                foldConstants;
 
-    Parser(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL, bool fold = true);
+    Parser(JSContext *cx, JSPrincipals *prin = NULL, JSPrincipals *originPrin = NULL,
+           StackFrame *cfp = NULL, bool fold = true);
     ~Parser();
 
     friend void AutoGCRooter::trace(JSTracer *trc);
@@ -98,7 +100,7 @@ struct Parser : private AutoGCRooter
     bool init(const jschar *base, size_t length, const char *filename, uintN lineno,
               JSVersion version);
 
-    void setPrincipals(JSPrincipals *prin);
+    void setPrincipals(JSPrincipals *prin, JSPrincipals *originPrin);
 
     const char *getFilename() const { return tokenStream.getFilename(); }
     JSVersion versionWithFlags() const { return tokenStream.versionWithFlags(); }

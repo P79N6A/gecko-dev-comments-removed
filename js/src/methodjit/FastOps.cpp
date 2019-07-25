@@ -206,8 +206,8 @@ mjit::Compiler::jsop_bitop(JSOp op)
     ensureInteger(rhs, Uses(2));
 
     if (lhs->isConstant() && rhs->isConstant()) {
-        int32 L = lhs->getValue().toInt32();
-        int32 R = rhs->getValue().toInt32();
+        int32_t L = lhs->getValue().toInt32();
+        int32_t R = rhs->getValue().toInt32();
 
         frame.popn(2);
         switch (op) {
@@ -228,9 +228,9 @@ mjit::Compiler::jsop_bitop(JSOp op)
             return;
           case JSOP_URSH:
           {
-            uint32 unsignedL;
+            uint32_t unsignedL;
             ToUint32(cx, Int32Value(L), (uint32_t*)&unsignedL);  
-            Value v = NumberValue(uint32(unsignedL >> (R & 31)));
+            Value v = NumberValue(uint32_t(unsignedL >> (R & 31)));
             JS_ASSERT(v.isInt32());
             frame.push(v);
             return;
@@ -257,7 +257,7 @@ mjit::Compiler::jsop_bitop(JSOp op)
 
         reg = frame.ownRegForData(lhs);
         if (rhs->isConstant()) {
-            int32 rhsInt = rhs->getValue().toInt32();
+            int32_t rhsInt = rhs->getValue().toInt32();
             if (op == JSOP_BITAND)
                 masm.and32(Imm32(rhsInt), reg);
             else if (op == JSOP_BITXOR)
@@ -901,7 +901,7 @@ mjit::Compiler::jsop_andor(JSOp op, jsbytecode *target)
 }
 
 bool
-mjit::Compiler::jsop_localinc(JSOp op, uint32 slot)
+mjit::Compiler::jsop_localinc(JSOp op, uint32_t slot)
 {
     restoreVarType();
 
@@ -964,7 +964,7 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot)
 }
 
 bool
-mjit::Compiler::jsop_arginc(JSOp op, uint32 slot)
+mjit::Compiler::jsop_arginc(JSOp op, uint32_t slot)
 {
     restoreVarType();
 
@@ -2730,7 +2730,7 @@ mjit::Compiler::jsop_initelem()
         return;
     }
 
-    int32 idx = id->getValue().toInt32();
+    int32_t idx = id->getValue().toInt32();
 
     RegisterID objReg = frame.copyDataIntoReg(obj);
     masm.loadPtr(Address(objReg, JSObject::offsetOfElements()), objReg);

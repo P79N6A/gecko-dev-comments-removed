@@ -112,8 +112,9 @@ NS_IMETHODIMP nsICOEncoder::InitFromData(const PRUint8* aData,
 }
 
 
+
 NS_IMETHODIMP 
-nsICOEncoder::GetImageBufferSize(PRUint32 *aOutputSize)
+nsICOEncoder::GetImageBufferUsed(PRUint32 *aOutputSize)
 {
   NS_ENSURE_ARG_POINTER(aOutputSize);
   *aOutputSize = mImageBufferSize;
@@ -147,16 +148,16 @@ nsICOEncoder::AddImageFrame(const PRUint8* aData,
                                          aStride, aInputFormat, noParams);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    PRUint32 imageBufferSize;
-    mContainedEncoder->GetImageBufferSize(&imageBufferSize);
+    PRUint32 PNGImageBufferSize;
+    mContainedEncoder->GetImageBufferUsed(&PNGImageBufferSize);
     mImageBufferSize = ICONFILEHEADERSIZE + ICODIRENTRYSIZE + 
-                       imageBufferSize;
+                       PNGImageBufferSize;
     mImageBufferStart = static_cast<PRUint8*>(moz_malloc(mImageBufferSize));
     if (!mImageBufferStart) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
     mImageBufferCurr = mImageBufferStart;
-    mICODirEntry.mBytesInRes = imageBufferSize;
+    mICODirEntry.mBytesInRes = PNGImageBufferSize;
 
     EncodeFileHeader();
     EncodeInfoHeader();
@@ -164,8 +165,8 @@ nsICOEncoder::AddImageFrame(const PRUint8* aData,
     char *imageBuffer;
     rv = mContainedEncoder->GetImageBuffer(&imageBuffer);
     NS_ENSURE_SUCCESS(rv, rv);
-    memcpy(mImageBufferCurr, imageBuffer, imageBufferSize);
-    mImageBufferCurr += imageBufferSize;
+    memcpy(mImageBufferCurr, imageBuffer, PNGImageBufferSize);
+    mImageBufferCurr += PNGImageBufferSize;
   } else {
     mContainedEncoder = new nsBMPEncoder();
     nsresult rv;
@@ -181,10 +182,10 @@ nsICOEncoder::AddImageFrame(const PRUint8* aData,
     PRUint32 andMaskSize = ((GetRealWidth() + 31) / 32) * 4 * 
                            GetRealHeight(); 
 
-    PRUint32 imageBufferSize;
-    mContainedEncoder->GetImageBufferSize(&imageBufferSize);
+    PRUint32 BMPImageBufferSize;
+    mContainedEncoder->GetImageBufferUsed(&BMPImageBufferSize);
     mImageBufferSize = ICONFILEHEADERSIZE + ICODIRENTRYSIZE + 
-                       imageBufferSize + andMaskSize;
+                       BMPImageBufferSize + andMaskSize;
     mImageBufferStart = static_cast<PRUint8*>(moz_malloc(mImageBufferSize));
     if (!mImageBufferStart) {
       return NS_ERROR_OUT_OF_MEMORY;
@@ -192,7 +193,7 @@ nsICOEncoder::AddImageFrame(const PRUint8* aData,
     mImageBufferCurr = mImageBufferStart;
 
     
-    mICODirEntry.mBytesInRes = imageBufferSize - BFH_LENGTH + andMaskSize;
+    mICODirEntry.mBytesInRes = BMPImageBufferSize - BFH_LENGTH + andMaskSize;
 
     
     EncodeFileHeader();
@@ -202,13 +203,13 @@ nsICOEncoder::AddImageFrame(const PRUint8* aData,
     rv = mContainedEncoder->GetImageBuffer(&imageBuffer);
     NS_ENSURE_SUCCESS(rv, rv);
     memcpy(mImageBufferCurr, imageBuffer + BFH_LENGTH, 
-           imageBufferSize - BFH_LENGTH);
+           BMPImageBufferSize - BFH_LENGTH);
     
     PRUint32 fixedHeight = GetRealHeight() * 2;
     fixedHeight = NATIVE32_TO_LITTLE(fixedHeight);
     
     memcpy(mImageBufferCurr + 8, &fixedHeight, sizeof(fixedHeight));
-    mImageBufferCurr += imageBufferSize - BFH_LENGTH;
+    mImageBufferCurr += BMPImageBufferSize - BFH_LENGTH;
 
     
     PRUint32 rowSize = ((GetRealWidth() + 31) / 32) * 4; 

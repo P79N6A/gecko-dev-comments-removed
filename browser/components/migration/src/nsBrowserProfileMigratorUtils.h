@@ -104,15 +104,6 @@ void GetProfilePath(nsIProfileStartup* aStartup, nsCOMPtr<nsIFile>& aProfileDir)
 
 
 
-nsresult AnnotatePersonalToolbarFolder(nsIFile* aSourceBookmarksFile,
-                                       nsIFile* aTargetBookmarksFile,
-                                       const char* aToolbarFolderName);
-
-
-
-
-
-
 
 nsresult ImportBookmarksHTML(nsIFile* aBookmarksFile, 
                              bool aImportIntoRoot,

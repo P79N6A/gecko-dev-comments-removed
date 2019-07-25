@@ -305,6 +305,14 @@ public:
 
     bool SanitizeDownloadedFonts();
 
+#ifdef MOZ_GRAPHITE
+    
+
+
+
+    bool UseGraphiteShaping();
+#endif
+
     
 
 
@@ -423,6 +431,9 @@ protected:
                                                
     PRInt8  mAllowDownloadableFonts;
     PRInt8  mDownloadableFontsSanitize;
+#ifdef MOZ_GRAPHITE
+    PRInt8  mGraphiteShapingEnabled;
+#endif
 
     
     PRInt32 mUseHarfBuzzScripts;

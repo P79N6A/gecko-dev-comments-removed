@@ -745,6 +745,9 @@ ReportError(JSContext *cx, const char *message, JSErrorReport *reportp,
 }
 
 
+
+
+
 static void
 PopulateReportBlame(JSContext *cx, JSErrorReport *report)
 {
@@ -756,6 +759,7 @@ PopulateReportBlame(JSContext *cx, JSErrorReport *report)
         if (iter.fp()->isScriptFrame()) {
             report->filename = iter.fp()->script()->filename;
             report->lineno = js_PCToLineNumber(cx, iter.fp()->script(), iter.pc());
+            report->originPrincipals = iter.fp()->script()->originPrincipals;
             break;
         }
     }

@@ -690,6 +690,7 @@ JSCompartment::updateForDebugMode(JSContext *cx)
         JSScript *script = i.get<JSScript>();
         if (script->debugMode != enabled) {
             mjit::ReleaseScriptCode(cx, script);
+            script->clearAnalysis();
             script->debugMode = enabled;
         }
     }

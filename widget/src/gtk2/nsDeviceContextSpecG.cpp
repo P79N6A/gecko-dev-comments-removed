@@ -180,11 +180,6 @@ public:
   
   void SetCanChangeNumCopies( bool aCanSetNumCopies );
 
-  
-
-
-  void SetMultipleConcurrentDeviceContextsSupported( bool aCanUseMultipleInstances );
-  
 private:
   
   void SetBoolValue( const char *tagname, bool value );
@@ -370,11 +365,6 @@ void nsPrinterFeatures::SetSupportsJobTitleChange( bool aSupportsJobTitle )
 void nsPrinterFeatures::SetCanChangeNumCopies( bool aCanSetNumCopies )
 {
   SetBoolValue("can_change_num_copies", aCanSetNumCopies);
-}
-
-void nsPrinterFeatures::SetMultipleConcurrentDeviceContextsSupported( bool aCanUseMultipleInstances )
-{
-  SetBoolValue("can_use_multiple_devicecontexts_concurrently", aCanUseMultipleInstances);
 }
 
 #endif 
@@ -571,10 +561,6 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetPath(const char **aPath)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsDeviceContextSpecGTK::GetPrintMethod(PrintMethod &aMethod)
-{
-  return GetPrintMethod(mPrinter, aMethod);
-}
 
 nsresult nsDeviceContextSpecGTK::GetPrintMethod(const char *aPrinter, PrintMethod &aMethod)
 {

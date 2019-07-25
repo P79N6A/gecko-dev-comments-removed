@@ -469,6 +469,11 @@ CssHtmlTree.prototype = {
     this.searchField.removeEventListener("command", this.filterChanged);
 
     
+    if (this._refreshProcess) {
+      this._refreshProcess.cancel();
+    }
+
+    
     delete this.root;
     delete this.propertyContainer;
     delete this.panel;

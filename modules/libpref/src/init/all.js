@@ -200,6 +200,10 @@ pref("gfx.downloadable_fonts.enabled", true);
 pref("gfx.downloadable_fonts.fallback_delay", 3000);
 pref("gfx.downloadable_fonts.sanitize", true);
 
+#ifdef MOZ_GRAPHITE
+pref("gfx.font_rendering.graphite.enabled", false);
+#endif
+
 
 #ifdef XP_MACOSX
 
@@ -1159,6 +1163,7 @@ pref("intl.hyphenation-alias.uk-*", "uk");
 
 pref("intl.hyphenation-alias.de", "de-1996");
 pref("intl.hyphenation-alias.de-*", "de-1996");
+pref("intl.hyphenation-alias.de-AT-1901", "de-1901");
 pref("intl.hyphenation-alias.de-DE-1901", "de-1901");
 pref("intl.hyphenation-alias.de-CH-*", "de-CH");
 
@@ -1437,12 +1442,6 @@ pref("browser.popups.showPopupBlocker", true);
 pref("viewmanager.do_doublebuffering", true);
 
 
-pref("config.use_system_prefs", false);
-
-
-pref("config.use_system_prefs.accessibility", false);
-
-
 pref("gestures.enable_single_finger_input", true);
 
 
@@ -1472,6 +1471,9 @@ pref("dom.max_script_run_time", 10);
 
 
 pref("hangmonitor.timeout", 0);
+
+
+pref("plugins.click_to_play", false);
 
 #ifndef DEBUG
 
@@ -3392,6 +3394,10 @@ pref("dom.event.handling-user-input-time-limit", 1000);
 
 pref("layout.3d-transforms.enabled", true);
 
+pref("dom.vibrator.enabled", true);
+pref("dom.vibrator.max_vibrate_ms", 10000);
+pref("dom.vibrator.max_vibrate_list_len", 128);
+
 
 pref("dom.battery.enabled", true);
 
@@ -3407,3 +3413,17 @@ pref("profiler.enabled", false);
 pref("profiler.interval", 10);
 pref("profiler.entries", 100000);
 
+#ifdef XP_WIN
+
+
+pref("memory.low_virtual_memory_threshold_mb", 128);
+
+
+
+pref("memory.low_physical_mem_threshold_mb", 0);
+
+
+
+
+pref("memory.low_physical_memory_notification_interval_ms", 10000);
+#endif

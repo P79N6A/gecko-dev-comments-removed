@@ -218,7 +218,7 @@ class ContextStack
 
     inline StackFrame *
     getCallFrame(JSContext *cx, MaybeReportError report, const CallArgs &args,
-                 JSFunction *fun, JSScript *script,  uint32 *pflags) const;
+                 JSFunction *fun, JSScript *script,  uint32_t *pflags) const;
 
     
     void popSegment();

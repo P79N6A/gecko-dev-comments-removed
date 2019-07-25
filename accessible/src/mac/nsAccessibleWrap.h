@@ -55,16 +55,15 @@
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
 
-struct AccessibleWrapper;
+#if defined(__OBJC__)
+@class mozAccessible;
+#endif
 
 class nsAccessibleWrap : public nsAccessible
 {
   public: 
     nsAccessibleWrap(nsIContent *aContent, nsIWeakReference *aShell);
     virtual ~nsAccessibleWrap();
-    
-    
-    virtual bool Init ();
     
     
     NS_IMETHOD GetNativeInterface (void **aOutAccessible);
@@ -91,17 +90,43 @@ class nsAccessibleWrap : public nsAccessible
     void GetUnignoredChildren(nsTArray<nsRefPtr<nsAccessibleWrap> > &aChildrenArray);
     virtual already_AddRefed<nsIAccessible> GetUnignoredParent();
     
-  protected:
+protected:
 
-    virtual nsresult FirePlatformEvent(AccEvent* aEvent);
+  virtual nsresult FirePlatformEvent(AccEvent* aEvent);
 
   
 
 
   bool AncestorIsFlat();
 
-    
-    AccessibleWrapper *mNativeWrapper;
+  
+
+
+#if defined(__OBJC__)
+  mozAccessible* GetNativeObject();
+#else
+  id GetNativeObject();
+#endif
+
+private:
+
+  
+
+
+
+#if defined(__OBJC__)
+  
+  mozAccessible* mNativeObject;
+#else
+  id mNativeObject;
+#endif
+
+  
+
+
+
+
+  bool mNativeInited;  
 };
 
 

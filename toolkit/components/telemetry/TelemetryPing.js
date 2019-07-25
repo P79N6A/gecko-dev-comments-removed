@@ -33,6 +33,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -323,7 +324,8 @@ TelemetryPing.prototype = {
       ver: PAYLOAD_VERSION,
       info: this.getMetadata(reason),
       simpleMeasurements: getSimpleMeasurements(),
-      histograms: this.getHistograms()
+      histograms: this.getHistograms(),
+      slowSQL: Telemetry.slowSQL
     };
 
     let isTestPing = (reason == "test-ping");

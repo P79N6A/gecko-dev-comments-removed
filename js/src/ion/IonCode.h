@@ -43,6 +43,7 @@
 #define jsion_coderef_h__
 
 #include "jscell.h"
+#include "IonTypes.h"
 
 namespace JSC {
     class ExecutablePool;
@@ -57,8 +58,6 @@ namespace ion {
 
 
 static const uint32 MAX_BUFFER_SIZE = (1 << 30) - 1;
-
-typedef uint32 SnapshotOffset;
 
 class MacroAssembler;
 

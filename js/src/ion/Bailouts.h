@@ -122,7 +122,6 @@ namespace ion {
 
 
 
-typedef uint32 BailoutId;
 static const BailoutId INVALID_BAILOUT_ID = BailoutId(-1);
 
 
@@ -197,8 +196,8 @@ uint32 ReflowTypeInfo(uint32 bailoutResult);
 
 
 
-} 
-} 
+}
+}
 
 #endif 
 

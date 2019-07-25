@@ -42,6 +42,7 @@
 
 
 
+
 #include "jstypes.h"
 #include "jscompat.h"
 
@@ -94,15 +95,15 @@ typedef ptrdiff_t jsid;
 JS_BEGIN_EXTERN_C
 
 
-typedef JSInt32   jsint;
-typedef JSUint32  jsuint;
+typedef int32_t   jsint;
+typedef uint32_t  jsuint;
 typedef double    jsdouble;
-typedef JSInt32   jsrefcount;   
+typedef int32_t   jsrefcount;   
 
 #ifdef WIN32
 typedef wchar_t   jschar;
 #else
-typedef JSUint16  jschar;
+typedef uint16_t  jschar;
 #endif
 
 

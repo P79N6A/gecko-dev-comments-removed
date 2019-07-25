@@ -138,15 +138,18 @@ public:
 
   virtual bool MediumFeaturesChanged(nsPresContext* aPresContext);
 
-  virtual PRInt64 SizeOf() const;
+  virtual NS_MUST_OVERRIDE size_t
+    SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) const MOZ_OVERRIDE;
+  virtual NS_MUST_OVERRIDE size_t
+    SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf) const MOZ_OVERRIDE;
 
   
   
   bool AppendFontFaceRules(nsPresContext* aPresContext,
-                             nsTArray<nsFontFaceRuleContainer>& aArray);
+                           nsTArray<nsFontFaceRuleContainer>& aArray);
 
   bool AppendKeyframesRules(nsPresContext* aPresContext,
-                              nsTArray<nsCSSKeyframesRule*>& aArray);
+                            nsTArray<nsCSSKeyframesRule*>& aArray);
 
 #ifdef DEBUG
   void AssertQuirksChangeOK() {

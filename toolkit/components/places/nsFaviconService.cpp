@@ -75,13 +75,12 @@
 #define MAX_FAVICON_CACHE_SIZE 256
 #define FAVICON_CACHE_REDUCE_COUNT 64
 
+#define MAX_UNASSOCIATED_FAVICONS 64
 
 
 
 
-
-
-#define MAX_FAVICON_EXPIRATION ((PRTime)7 * 24 * 60 * 60 * PR_USEC_PER_SEC)
+#define UNASSOCIATED_ICON_EXPIRY_INTERVAL 60000
 
 
 
@@ -108,10 +107,11 @@ private:
 PLACES_FACTORY_SINGLETON_IMPLEMENTATION(nsFaviconService, gFaviconService)
 
 NS_IMPL_CLASSINFO(nsFaviconService, NULL, 0, NS_FAVICONSERVICE_CID)
-NS_IMPL_ISUPPORTS2_CI(
+NS_IMPL_ISUPPORTS3_CI(
   nsFaviconService
 , nsIFaviconService
 , mozIAsyncFavicons
+, nsITimerCallback
 )
 
 nsFaviconService::nsFaviconService()
@@ -144,9 +144,15 @@ nsFaviconService::Init()
   if (!mFailedFavicons.Init(MAX_FAVICON_CACHE_SIZE))
     return NS_ERROR_OUT_OF_MEMORY;
 
+  if (!mUnassociatedIcons.Init(MAX_UNASSOCIATED_FAVICONS))
+    return NS_ERROR_OUT_OF_MEMORY;
+
   mOptimizedIconDimension = Preferences::GetInt(
     "places.favicons.optimizeToDimension", OPTIMIZED_FAVICON_DIMENSION
   );
+
+  mExpireUnassociatedIconsTimer = do_CreateInstance("@mozilla.org/timer;1");
+  NS_ENSURE_STATE(mExpireUnassociatedIconsTimer);
 
   return NS_OK;
 }
@@ -167,7 +173,7 @@ nsFaviconService::ExpireAllFavicons()
     ")"
   );
   NS_ENSURE_STATE(removeIconsStmt);
-  
+
   mozIStorageBaseStatement* stmts[] = {
     unlinkIconsStmt.get()
   , removeIconsStmt.get()
@@ -183,6 +189,39 @@ nsFaviconService::ExpireAllFavicons()
   return NS_OK;
 }
 
+
+
+
+static PLDHashOperator
+ExpireNonrecentUnassociatedIconsEnumerator(
+  UnassociatedIconHashKey* aIconKey,
+  void* aNow)
+{
+  PRTime now = *(reinterpret_cast<PRTime*>(aNow));
+  if (now - aIconKey->created >= UNASSOCIATED_ICON_EXPIRY_INTERVAL) {
+    return PL_DHASH_REMOVE;
+  }
+  return PL_DHASH_NEXT;
+}
+
+NS_IMETHODIMP
+nsFaviconService::Notify(nsITimer* timer)
+{
+  if (timer != mExpireUnassociatedIconsTimer.get()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  PRTime now = PR_Now();
+  mUnassociatedIcons.EnumerateEntries(
+    ExpireNonrecentUnassociatedIconsEnumerator, &now);
+  
+  if (mUnassociatedIcons.Count() > 0) {
+    mExpireUnassociatedIconsTimer->InitWithCallback(
+      this, UNASSOCIATED_ICON_EXPIRY_INTERVAL, nsITimer::TYPE_ONE_SHOT);
+  }
+
+  return NS_OK;
+}
 
 
 
@@ -384,6 +423,74 @@ nsFaviconService::SetAndFetchFaviconForPage(nsIURI* aPageURI,
                                   aForceReload, aCallback);
 }
 
+NS_IMETHODIMP
+nsFaviconService::ReplaceFaviconData(nsIURI* aFaviconURI,
+                                    const PRUint8* aData,
+                                    PRUint32 aDataLen,
+                                    const nsACString& aMimeType,
+                                    PRTime aExpiration)
+{
+  NS_ENSURE_ARG(aFaviconURI);
+  NS_ENSURE_ARG(aData);
+  NS_ENSURE_TRUE(aDataLen > 0, NS_ERROR_INVALID_ARG);
+  NS_ENSURE_TRUE(aMimeType.Length() > 0, NS_ERROR_INVALID_ARG);
+  if (aExpiration == 0) {
+    aExpiration = PR_Now() + MAX_FAVICON_EXPIRATION;
+  }
+
+  if (mFaviconsExpirationRunning)
+    return NS_OK;
+
+  UnassociatedIconHashKey* iconKey = mUnassociatedIcons.PutEntry(aFaviconURI);
+  if (!iconKey) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  iconKey->created = PR_Now();
+
+  
+  
+  PRInt32 unassociatedCount = mUnassociatedIcons.Count();
+  if (unassociatedCount == 1) {
+    mExpireUnassociatedIconsTimer->Cancel();
+    mExpireUnassociatedIconsTimer->InitWithCallback(
+      this, UNASSOCIATED_ICON_EXPIRY_INTERVAL, nsITimer::TYPE_ONE_SHOT);
+  }
+
+  IconData* iconData = &(iconKey->iconData);
+  iconData->expiration = aExpiration;
+  iconData->status = ICON_STATUS_CACHED;
+  iconData->fetchMode = FETCH_NEVER;
+  nsresult rv = aFaviconURI->GetSpec(iconData->spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  if (aDataLen > MAX_ICON_FILESIZE(mOptimizedIconDimension)) {
+    rv = OptimizeFaviconImage(aData, aDataLen, aMimeType, iconData->data, iconData->mimeType);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (iconData->data.Length() > MAX_FAVICON_SIZE) {
+      
+      
+      mUnassociatedIcons.RemoveEntry(aFaviconURI);
+      return NS_ERROR_FAILURE;
+    }
+  } else {
+    iconData->mimeType.Assign(aMimeType);
+    iconData->data.Assign(TO_CHARBUFFER(aData), aDataLen);
+  }
+
+  
+  
+  
+  rv = AsyncReplaceFaviconData::start(iconData);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
 
 
 
@@ -496,6 +603,72 @@ nsFaviconService::SetFaviconData(nsIURI* aFaviconURI, const PRUint8* aData,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsFaviconService::ReplaceFaviconDataFromDataURL(nsIURI* aFaviconURI,
+                                               const nsAString& aDataURL,
+                                               PRTime aExpiration)
+{
+  NS_ENSURE_ARG(aFaviconURI);
+  NS_ENSURE_TRUE(aDataURL.Length() > 0, NS_ERROR_INVALID_ARG);
+  if (aExpiration == 0) {
+    aExpiration = PR_Now() + MAX_FAVICON_EXPIRATION;
+  }
+
+  if (mFaviconsExpirationRunning)
+    return NS_OK;
+
+  nsCOMPtr<nsIURI> dataURI;
+  nsresult rv = NS_NewURI(getter_AddRefs(dataURI), aDataURL);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIProtocolHandler> protocolHandler;
+  rv = ioService->GetProtocolHandler("data", getter_AddRefs(protocolHandler));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIChannel> channel;
+  rv = protocolHandler->NewChannel(dataURI, getter_AddRefs(channel));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsIInputStream> stream;
+  rv = channel->Open(getter_AddRefs(stream));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRUint32 available;
+  rv = stream->Available(&available);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (available == 0)
+    return NS_ERROR_FAILURE;
+
+  
+  PRUint8* buffer = static_cast<PRUint8*>
+                               (nsMemory::Alloc(sizeof(PRUint8) * available));
+  if (!buffer)
+    return NS_ERROR_OUT_OF_MEMORY;
+  PRUint32 numRead;
+  rv = stream->Read(TO_CHARBUFFER(buffer), available, &numRead);
+  if (NS_FAILED(rv) || numRead != available) {
+    nsMemory::Free(buffer);
+    return rv;
+  }
+
+  nsCAutoString mimeType;
+  rv = channel->GetContentType(mimeType);
+  if (NS_FAILED(rv)) {
+    nsMemory::Free(buffer);
+    return rv;
+  }
+
+  
+  rv = ReplaceFaviconData(aFaviconURI, buffer, available, mimeType, aExpiration);
+  nsMemory::Free(buffer);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 nsFaviconService::SetFaviconDataFromDataURL(nsIURI* aFaviconURI,

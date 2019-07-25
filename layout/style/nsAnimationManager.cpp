@@ -432,6 +432,21 @@ nsAnimationManager::RulesMatching(XULTreeRuleProcessorData* aData)
 }
 #endif
 
+ size_t
+nsAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  
+  
+  return CommonAnimationManager::SizeOfExcludingThis(aMallocSizeOf);
+}
+
+ size_t
+nsAnimationManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return aMallocSizeOf(this, sizeof(nsAnimationManager)) +
+         SizeOfExcludingThis(aMallocSizeOf);
+}
+
 nsIStyleRule*
 nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
                                        mozilla::dom::Element* aElement)
@@ -531,6 +546,9 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
     
     
     
+    if (!mPendingEvents.IsEmpty()) {
+      mPresContext->Document()->SetNeedStyleFlush();
+    }
   }
 
   return GetAnimationRule(aElement, aStyleContext->GetPseudoType());
@@ -886,7 +904,7 @@ nsAnimationManager::WillRefresh(mozilla::TimeStamp aTime)
 }
 
 void
-nsAnimationManager::DispatchEvents()
+nsAnimationManager::DoDispatchEvents()
 {
   EventArray events;
   mPendingEvents.SwapElements(events);

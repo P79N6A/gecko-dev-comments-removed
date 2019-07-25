@@ -193,8 +193,7 @@ private:
 
     
   enum {
-    kTooltipAutoHideTime = 5000,       
-    kTooltipShowTime = 500             
+    kTooltipAutoHideTime = 5000        
   };
 
   NS_IMETHOD AddTooltipListener();

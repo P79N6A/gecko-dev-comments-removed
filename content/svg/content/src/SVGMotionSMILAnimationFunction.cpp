@@ -1,39 +1,39 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Mozilla SVG project.
+ *
+ * The Initial Developer of the Original Code is the Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Daniel Holbert <dholbert@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "SVGMotionSMILAnimationFunction.h"
 #include "nsSMILParserUtils.h"
@@ -41,7 +41,7 @@
 #include "SVGMotionSMILType.h"
 #include "SVGMotionSMILPathUtils.h"
 #include "nsSVGPathDataParser.h"
-#include "nsSVGPathElement.h" 
+#include "nsSVGPathElement.h" // for nsSVGPathList
 #include "nsSVGMpathElement.h"
 
 namespace mozilla {
@@ -50,7 +50,7 @@ SVGMotionSMILAnimationFunction::SVGMotionSMILAnimationFunction()
   : mRotateType(eRotateType_Explicit),
     mRotateAngle(0.0f),
     mPathSourceType(ePathSourceType_None),
-    mIsPathStale(true)  
+    mIsPathStale(true)  // Try to initialize path on first GetValues call
 {
 }
 
@@ -84,7 +84,7 @@ SVGMotionSMILAnimationFunction::SetAttr(nsIAtom* aAttribute,
                                         nsAttrValue& aResult,
                                         nsresult* aParseResult)
 {
-  
+  // Handle motion-specific attrs
   if (aAttribute == nsGkAtoms::keyPoints) {
     nsresult rv = SetKeyPoints(aValue, aResult);
     if (aParseResult) {
@@ -107,7 +107,7 @@ SVGMotionSMILAnimationFunction::SetAttr(nsIAtom* aAttribute,
              aAttribute == nsGkAtoms::values) {
     MarkStaleIfAttributeAffectsPath(aAttribute);
   } else {
-    
+    // Defer to superclass method
     return nsSMILAnimationFunction::SetAttr(aAttribute, aValue,
                                             aResult, aParseResult);
   }
@@ -129,7 +129,7 @@ SVGMotionSMILAnimationFunction::UnsetAttr(nsIAtom* aAttribute)
              aAttribute == nsGkAtoms::values) {
     MarkStaleIfAttributeAffectsPath(aAttribute);
   } else {
-    
+    // Defer to superclass method
     return nsSMILAnimationFunction::UnsetAttr(aAttribute);
   }
 
@@ -141,18 +141,18 @@ SVGMotionSMILAnimationFunction::GetCalcMode() const
 {
   const nsAttrValue* value = GetAttr(nsGkAtoms::calcMode);
   if (!value) {
-    return CALC_PACED; 
+    return CALC_PACED; // animateMotion defaults to calcMode="paced"
   }
 
   return nsSMILCalcMode(value->GetEnumValue());
 }
 
+//----------------------------------------------------------------------
+// Helpers for GetValues
 
-
-
-
-
-
+/*
+ * Returns the first <mpath> child of the given element
+ */
 
 static nsSVGMpathElement*
 GetFirstMpathChild(nsIContent* aElem)
@@ -160,8 +160,7 @@ GetFirstMpathChild(nsIContent* aElem)
   for (nsIContent* child = aElem->GetFirstChild();
        child;
        child = child->GetNextSibling()) {
-    if (child->Tag() == nsGkAtoms::mpath &&
-        child->GetNameSpaceID() == kNameSpaceID_SVG) {
+    if (child->IsSVG(nsGkAtoms::mpath)) {
       return static_cast<nsSVGMpathElement*>(child);
     }
   }
@@ -179,7 +178,7 @@ SVGMotionSMILAnimationFunction::
   NS_ABORT_IF_FALSE(mPathVertices.IsEmpty(),
                     "regenerating when we already have vertices");
 
-  if (aContextElem->GetNameSpaceID() != kNameSpaceID_SVG) {
+  if (!aContextElem->IsSVG()) {
     NS_ERROR("Uh oh, SVG animateMotion element targeting a non-SVG node");
     return;
   }
@@ -189,7 +188,7 @@ SVGMotionSMILAnimationFunction::
 
   bool success = false;
   if (HasAttr(nsGkAtoms::values)) {
-    
+    // Generate path based on our values array
     mPathSourceType = ePathSourceType_ValuesAttr;
     const nsAString& valuesStr = GetAttr(nsGkAtoms::values)->GetStringValue();
     SVGMotionSMILPathUtils::MotionValueParser parser(&pathGenerator,
@@ -197,16 +196,16 @@ SVGMotionSMILAnimationFunction::
     success =
       NS_SUCCEEDED(nsSMILParserUtils::ParseValuesGeneric(valuesStr, parser));
   } else if (HasAttr(nsGkAtoms::to) || HasAttr(nsGkAtoms::by)) {
-    
+    // Apply 'from' value (or a dummy 0,0 'from' value)
     if (HasAttr(nsGkAtoms::from)) {
       const nsAString& fromStr = GetAttr(nsGkAtoms::from)->GetStringValue();
       success = pathGenerator.MoveToAbsolute(fromStr);
       mPathVertices.AppendElement(0.0);
     } else {
-      
-      
-      
-      
+      // Create dummy 'from' value at 0,0, if we're doing by-animation.
+      // (NOTE: We don't add the dummy 0-point to our list for *to-animation*,
+      // because the nsSMILAnimationFunction logic for to-animation doesn't
+      // expect a dummy value. It only expects one value: the final 'to' value.)
       pathGenerator.MoveToOrigin();
       if (!HasAttr(nsGkAtoms::to)) {
         mPathVertices.AppendElement(0.0);
@@ -214,14 +213,14 @@ SVGMotionSMILAnimationFunction::
       success = true;
     }
 
-    
+    // Apply 'to' or 'by' value
     if (success) {
       double dist;
       if (HasAttr(nsGkAtoms::to)) {
         mPathSourceType = ePathSourceType_ToAttr;
         const nsAString& toStr = GetAttr(nsGkAtoms::to)->GetStringValue();
         success = pathGenerator.LineToAbsolute(toStr, dist);
-      } else { 
+      } else { // HasAttr(nsGkAtoms::by)
         mPathSourceType = ePathSourceType_ByAttr;
         const nsAString& byStr = GetAttr(nsGkAtoms::by)->GetStringValue();
         success = pathGenerator.LineToRelative(byStr, dist);
@@ -234,7 +233,7 @@ SVGMotionSMILAnimationFunction::
   if (success) {
     mPath = pathGenerator.GetResultingPath();
   } else {
-    
+    // Parse failure. Leave path as null, and clear path-related member data.
     mPathVertices.Clear();
   }
 }
@@ -245,12 +244,12 @@ SVGMotionSMILAnimationFunction::
 {
   mPathSourceType = ePathSourceType_Mpath;
 
-  
+  // Use the path that's the target of our chosen <mpath> child.
   nsSVGPathElement* pathElem = aMpathElem->GetReferencedPath();
   if (pathElem) {
     const SVGPathData &path = pathElem->GetAnimPathSegList()->GetAnimValue();
-    
-    
+    // Path data must contain of at least one path segment (if the path data
+    // doesn't begin with a valid "M", then it's invalid).
     if (path.Length()) {
       bool ok =
         path.GetDistancesFromOriginToEndsOfVisibleSegments(&mPathVertices);
@@ -267,14 +266,14 @@ SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromPathAttr()
   const nsAString& pathSpec = GetAttr(nsGkAtoms::path)->GetStringValue();
   mPathSourceType = ePathSourceType_PathAttr;
 
-  
+  // Generate gfxFlattenedPath from |path| attr
   SVGPathData path;
   nsSVGPathDataParserToInternal pathParser(&path);
 
-  
-  
-  
-  
+  // We ignore any failure returned from Parse() since the SVG spec says to
+  // accept all segments up to the first invalid token. Instead we must
+  // explicitly check that the parse produces at least one path segment (if
+  // the path data doesn't begin with a valid "M", then it's invalid).
   pathParser.Parse(pathSpec);
   if (!path.Length()) {
     return;
@@ -287,20 +286,20 @@ SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromPathAttr()
   }
 }
 
-
+// Helper to regenerate our path representation & its list of vertices
 void
 SVGMotionSMILAnimationFunction::
   RebuildPathAndVertices(const nsIContent* aTargetElement)
 {
   NS_ABORT_IF_FALSE(mIsPathStale, "rebuilding path when it isn't stale");
 
-  
+  // Clear stale data
   mPath = nsnull;
   mPathVertices.Clear();
   mPathSourceType = ePathSourceType_None;
 
-  
-  
+  // Do we have a mpath child? if so, it trumps everything. Otherwise, we look
+  // through our list of path-defining attributes, in order of priority.
   nsSVGMpathElement* firstMpathChild =
     GetFirstMpathChild(&mAnimationElement->AsElement());
 
@@ -311,7 +310,7 @@ SVGMotionSMILAnimationFunction::
     RebuildPathAndVerticesFromPathAttr();
     mValueNeedsReparsingEverySample = false;
   } else {
-    
+    // Get path & vertices from basic SMIL attrs: from/by/to/values
 
     RebuildPathAndVerticesFromBasicAttrs(aTargetElement);
     mValueNeedsReparsingEverySample = true;
@@ -328,8 +327,8 @@ SVGMotionSMILAnimationFunction::
 {
   NS_ABORT_IF_FALSE(aResult.IsEmpty(), "outparam is non-empty");
 
-  
-  
+  // If we're using "keyPoints" as our list of input distances, then we need
+  // to de-normalize from the [0, 1] scale to the [0, totalPathLen] scale.
   double distanceMultiplier = aIsKeyPoints ? aPath->GetLength() : 1.0;
   const PRUint32 numPoints = aPointDistances.Length();
   for (PRUint32 i = 0; i < numPoints; ++i) {
@@ -353,13 +352,13 @@ SVGMotionSMILAnimationFunction::GetValues(const nsISMILAttr& aSMILAttr,
   NS_ABORT_IF_FALSE(!mIsPathStale, "Forgot to clear 'is path stale' state");
 
   if (!mPath) {
-    
+    // This could be due to e.g. a parse error.
     NS_ABORT_IF_FALSE(mPathVertices.IsEmpty(), "have vertices but no path");
     return NS_ERROR_FAILURE;
   }
   NS_ABORT_IF_FALSE(!mPathVertices.IsEmpty(), "have a path but no vertices");
 
-  
+  // Now: Make the actual list of nsSMILValues (using keyPoints, if set)
   bool isUsingKeyPoints = !mKeyPoints.IsEmpty();
   bool success = GenerateValuesForPathAndPoints(mPath, isUsingKeyPoints,
                                                   isUsingKeyPoints ?
@@ -376,20 +375,20 @@ void
 SVGMotionSMILAnimationFunction::
   CheckValueListDependentAttrs(PRUint32 aNumValues)
 {
-  
+  // Call superclass method.
   nsSMILAnimationFunction::CheckValueListDependentAttrs(aNumValues);
 
-  
+  // Added behavior: Do checks specific to keyPoints.
   CheckKeyPoints();
 }
 
 bool
 SVGMotionSMILAnimationFunction::IsToAnimation() const
 {
-  
-  
-  
-  
+  // Rely on inherited method, but not if we have an <mpath> child or a |path|
+  // attribute, because they'll override any 'to' attr we might have.
+  // NOTE: We can't rely on mPathSourceType, because it might not have been
+  // set to a useful value yet (or it might be stale).
   return !GetFirstMpathChild(&mAnimationElement->AsElement()) &&
     !HasAttr(nsGkAtoms::path) &&
     nsSMILAnimationFunction::IsToAnimation();
@@ -401,25 +400,25 @@ SVGMotionSMILAnimationFunction::CheckKeyPoints()
   if (!HasAttr(nsGkAtoms::keyPoints))
     return;
 
-  
+  // attribute is ignored for calcMode="paced" (even if it's got errors)
   if (GetCalcMode() == CALC_PACED) {
     SetKeyPointsErrorFlag(false);
   }
 
   if (mKeyPoints.IsEmpty()) {
-    
+    // keyPoints attr is set, but array is empty => it failed preliminary checks
     SetKeyPointsErrorFlag(true);
     return;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
+  // Nothing else to check -- we can catch all keyPoints errors elsewhere.
+  // -  Formatting & range issues will be caught in SetKeyPoints, and will
+  //  result in an empty mKeyPoints array, which will drop us into the error
+  //  case above.
+  // -  Number-of-entries issues will be caught in CheckKeyTimes (and flagged
+  //  as a problem with |keyTimes|), since we use our keyPoints entries to
+  //  populate the "values" list, and that list's count gets passed to
+  //  CheckKeyTimes.
 }
 
 nsresult
@@ -467,19 +466,19 @@ SVGMotionSMILAnimationFunction::SetRotate(const nsAString& aRotate,
   } else {
     mRotateType = eRotateType_Explicit;
 
-    
+    // Parse numeric angle string, with the help of a temp nsSVGAngle.
     nsSVGAngle svgAngle;
     svgAngle.Init();
     nsresult rv = svgAngle.SetBaseValueString(aRotate, nsnull, false);
-    if (NS_FAILED(rv)) { 
-      mRotateAngle = 0.0f; 
-      
+    if (NS_FAILED(rv)) { // Parse error
+      mRotateAngle = 0.0f; // set default rotate angle
+      // XXX report to console?
       return rv;
     }
 
     mRotateAngle = svgAngle.GetBaseValInSpecifiedUnits();
 
-    
+    // Convert to radian units, if we're not already in radians.
     PRUint8 angleUnit = svgAngle.GetBaseValueUnit();
     if (angleUnit != nsIDOMSVGAngle::SVG_ANGLETYPE_RAD) {
       mRotateAngle *= nsSVGAngle::GetDegreesPerUnit(angleUnit) /
@@ -492,9 +491,9 @@ SVGMotionSMILAnimationFunction::SetRotate(const nsAString& aRotate,
 void
 SVGMotionSMILAnimationFunction::UnsetRotate()
 {
-  mRotateAngle = 0.0f; 
+  mRotateAngle = 0.0f; // default value
   mRotateType = eRotateType_Explicit;
   mHasChanged = true;
 }
 
-} 
+} // namespace mozilla

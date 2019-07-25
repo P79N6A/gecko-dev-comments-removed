@@ -335,22 +335,23 @@ protected:
   void PopGroup();
 
   bool ParseRuleSet(RuleAppendFunc aAppendFunc, void* aProcessData,
-                      bool aInsideBraces = false);
-  bool ParseAtRule(RuleAppendFunc aAppendFunc, void* aProcessData);
+                    bool aInsideBraces = false);
+  bool ParseAtRule(RuleAppendFunc aAppendFunc, void* aProcessData,
+                   bool aInAtRule);
   bool ParseCharsetRule(RuleAppendFunc aAppendFunc, void* aProcessData);
   bool ParseImportRule(RuleAppendFunc aAppendFunc, void* aProcessData);
   bool ParseURLOrString(nsString& aURL);
   bool GatherMedia(nsMediaList* aMedia,
-                     bool aInAtRule);
+                   bool aInAtRule);
   bool ParseMediaQuery(bool aInAtRule, nsMediaQuery **aQuery,
-                         bool *aHitStop);
+                       bool *aHitStop);
   bool ParseMediaQueryExpression(nsMediaQuery* aQuery);
   void ProcessImport(const nsString& aURLSpec,
                      nsMediaList* aMedia,
                      RuleAppendFunc aAppendFunc,
                      void* aProcessData);
   bool ParseGroupRule(css::GroupRule* aRule, RuleAppendFunc aAppendFunc,
-                        void* aProcessData);
+                      void* aProcessData);
   bool ParseMediaRule(RuleAppendFunc aAppendFunc, void* aProcessData);
   bool ParseMozDocumentRule(RuleAppendFunc aAppendFunc, void* aProcessData);
   bool ParseNameSpaceRule(RuleAppendFunc aAppendFunc, void* aProcessData);
@@ -361,7 +362,7 @@ protected:
   bool ParseFontFaceRule(RuleAppendFunc aAppendFunc, void* aProcessData);
   bool ParseFontDescriptor(nsCSSFontFaceRule* aRule);
   bool ParseFontDescriptorValue(nsCSSFontDesc aDescID,
-                                  nsCSSValue& aValue);
+                                nsCSSValue& aValue);
 
   bool ParsePageRule(RuleAppendFunc aAppendFunc, void* aProcessData);
   bool ParseKeyframesRule(RuleAppendFunc aAppendFunc, void* aProcessData);
@@ -919,7 +920,7 @@ CSSParserImpl::ParseSheet(const nsAString& aInput,
       continue; 
     }
     if (eCSSToken_AtKeyword == tk->mType) {
-      ParseAtRule(AppendRuleToSheet, this);
+      ParseAtRule(AppendRuleToSheet, this, false);
       continue;
     }
     UngetToken();
@@ -1050,7 +1051,7 @@ CSSParserImpl::ParseRule(const nsAString&        aRule,
     REPORT_UNEXPECTED(PEParseRuleWSOnly);
     OUTPUT_ERROR();
   } else if (eCSSToken_AtKeyword == tk->mType) {
-    ParseAtRule(AppendRuleToArray, &aResult);
+    ParseAtRule(AppendRuleToArray, &aResult, false);
   }
   else {
     UngetToken();
@@ -1508,14 +1509,10 @@ CSSParserImpl::SkipAtRule(bool aInsideBlock)
 
 bool
 CSSParserImpl::ParseAtRule(RuleAppendFunc aAppendFunc,
-                           void* aData)
+                           void* aData,
+                           bool aInAtRule)
 {
-  
-  
-  
-  
-  
-  
+
   nsCSSSection newSection;
   bool (CSSParserImpl::*parseFunc)(RuleAppendFunc, void*);
 
@@ -1560,16 +1557,27 @@ CSSParserImpl::ParseAtRule(RuleAppendFunc aAppendFunc,
       OUTPUT_ERROR();
     }
     
-    return SkipAtRule(false);
+    return SkipAtRule(aInAtRule);
   }
 
-  if (!(this->*parseFunc)(aAppendFunc, aData)) {
+  
+  
+  bool unnestable = aInAtRule && newSection != eCSSSection_General;
+  if (unnestable) {
+    REPORT_UNEXPECTED_TOKEN(PEGroupRuleNestedAtRule);
+  }
+  
+  if (unnestable || !(this->*parseFunc)(aAppendFunc, aData)) {
     
     OUTPUT_ERROR();
-    return SkipAtRule(false);
+    return SkipAtRule(aInAtRule);
   }
 
-  mSection = newSection;
+  
+  if (!aInAtRule) {
+    mSection = newSection;
+  }
+  
   return true;
 }
 
@@ -1637,7 +1645,7 @@ CSSParserImpl::ParseMediaQuery(bool aInAtRule,
   }
 
   if (eCSSToken_Symbol == mToken.mType && aInAtRule &&
-      (mToken.mSymbol == ';' || mToken.mSymbol == '{')) {
+      (mToken.mSymbol == ';' || mToken.mSymbol == '{' || mToken.mSymbol == '}' )) {
     *aHitStop = true;
     UngetToken();
     return true;
@@ -1701,7 +1709,7 @@ CSSParserImpl::ParseMediaQuery(bool aInAtRule,
     }
 
     if (eCSSToken_Symbol == mToken.mType && aInAtRule &&
-        (mToken.mSymbol == ';' || mToken.mSymbol == '{')) {
+        (mToken.mSymbol == ';' || mToken.mSymbol == '{' || mToken.mSymbol == '}')) {
       *aHitStop = true;
       UngetToken();
       break;
@@ -1742,14 +1750,14 @@ CSSParserImpl::GatherMedia(nsMediaList* aMedia,
       }
       if (aInAtRule) {
         const PRUnichar stopChars[] =
-          { PRUnichar(','), PRUnichar('{'), PRUnichar(';'), PRUnichar(0) };
+          { PRUnichar(','), PRUnichar('{'), PRUnichar(';'), PRUnichar('}'), PRUnichar(0) };
         SkipUntilOneOf(stopChars);
       } else {
         SkipUntil(',');
       }
       
       if (mToken.mType == eCSSToken_Symbol && aInAtRule &&
-          (mToken.mSymbol == '{' || mToken.mSymbol == ';')) {
+          (mToken.mSymbol == '{' || mToken.mSymbol == ';'  || mToken.mSymbol == '}')) {
         UngetToken();
         hitStop = true;
       }
@@ -1993,9 +2001,8 @@ CSSParserImpl::ParseGroupRule(css::GroupRule* aRule,
       break;
     }
     if (eCSSToken_AtKeyword == mToken.mType) {
-      REPORT_UNEXPECTED_TOKEN(PEGroupRuleNestedAtRule);
-      OUTPUT_ERROR();
-      SkipAtRule(true); 
+      
+      ParseAtRule(aAppendFunc, aData, true);
       continue;
     }
     UngetToken();
@@ -2040,13 +2047,19 @@ CSSParserImpl::ParseMozDocumentRule(RuleAppendFunc aAppendFunc, void* aData)
   css::DocumentRule::URL *urls = nsnull;
   css::DocumentRule::URL **next = &urls;
   do {
-    if (!GetToken(true) ||
-        !(eCSSToken_URL == mToken.mType ||
+    if (!GetToken(true)) {
+      REPORT_UNEXPECTED_EOF(PEMozDocRuleEOF);
+      delete urls;
+      return false;
+    }
+        
+    if (!(eCSSToken_URL == mToken.mType ||
           (eCSSToken_Function == mToken.mType &&
            (mToken.mIdent.LowerCaseEqualsLiteral("url-prefix") ||
             mToken.mIdent.LowerCaseEqualsLiteral("domain") ||
             mToken.mIdent.LowerCaseEqualsLiteral("regexp"))))) {
       REPORT_UNEXPECTED_TOKEN(PEMozDocRuleBadFunc);
+      UngetToken();
       delete urls;
       return false;
     }
@@ -7902,11 +7915,7 @@ CSSParserImpl::ParseOutline()
 
   
   if ((found & 1) == 0) { 
-#ifdef GFX_HAS_INVERT
-    values[0].SetIntValue(NS_STYLE_COLOR_INVERT, eCSSUnit_Enumerated);
-#else
     values[0].SetIntValue(NS_STYLE_COLOR_MOZ_USE_TEXT_COLOR, eCSSUnit_Enumerated);
-#endif
   }
   if ((found & 2) == 0) { 
     values[1].SetIntValue(NS_STYLE_BORDER_STYLE_NONE, eCSSUnit_Enumerated);

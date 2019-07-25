@@ -58,12 +58,6 @@ protected:
 
   nsresult GetDefaultBrowserMigratorKey(nsACString& key,
                                         nsCOMPtr<nsIBrowserProfileMigrator>& bpm);
-
-  
-
-
-
-  bool ImportRegistryProfiles(const nsACString& aAppName);
 };
 
 #endif

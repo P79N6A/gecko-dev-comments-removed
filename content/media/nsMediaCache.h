@@ -43,7 +43,9 @@
 #include "nsIPrincipal.h"
 #include "nsCOMPtr.h"
 
+class nsMediaStream;
 class nsByteRange;
+
 namespace mozilla {
 class ReentrantMonitorAutoEnter;
 }
@@ -354,7 +356,9 @@ public:
 
   
   
-  bool AreAllStreamsForResourceSuspended();
+  
+  
+  bool AreAllStreamsForResourceSuspended(nsMediaStream** aActiveStream);
 
   
   

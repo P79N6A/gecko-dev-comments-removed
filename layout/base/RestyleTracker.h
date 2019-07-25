@@ -94,7 +94,13 @@ public:
   
 
 
-  void ProcessRestyles();
+  void ProcessRestyles() {
+    
+    
+    if (mPendingRestyles.Count()) {
+      DoProcessRestyles();
+    }
+  }
 
   
   PRUint32 RestyleBit() const {
@@ -142,6 +148,11 @@ private:
   inline void ProcessOneRestyle(Element* aElement,
                                 nsRestyleHint aRestyleHint,
                                 nsChangeHint aChangeHint);
+
+  
+
+
+  void DoProcessRestyles();
 
   typedef nsDataHashtable<nsISupportsHashKey, RestyleData> PendingRestyleTable;
   typedef nsAutoTArray< nsRefPtr<Element>, 32> RestyleRootArray;

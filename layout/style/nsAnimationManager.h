@@ -96,6 +96,10 @@ public:
 #ifdef MOZ_XUL
   virtual void RulesMatching(XULTreeRuleProcessorData* aData);
 #endif
+  virtual NS_MUST_OVERRIDE size_t
+    SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
+  virtual NS_MUST_OVERRIDE size_t
+    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
 
   
   virtual void WillRefresh(mozilla::TimeStamp aTime);
@@ -127,7 +131,12 @@ public:
 
 
 
-  void DispatchEvents();
+  void DispatchEvents() {
+    
+    if (!mPendingEvents.IsEmpty()) {
+      DoDispatchEvents();
+    }
+  }
 
 private:
   ElementAnimations* GetElementAnimations(mozilla::dom::Element *aElement,
@@ -144,6 +153,9 @@ private:
                                  nsCSSPseudoElements::Type aPseudoType);
 
   nsCSSKeyframesRule* KeyframesRuleFor(const nsSubstring& aName);
+
+  
+  void DoDispatchEvents();
 
   bool mKeyframesListIsDirty;
   nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRules;

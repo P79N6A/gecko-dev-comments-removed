@@ -976,12 +976,16 @@ public:
   bool MayHaveFixedBackgroundFrames() { return mMayHaveFixedBackgroundFrames; }
   void SetHasFixedBackgroundFrame() { mMayHaveFixedBackgroundFrames = true; }
 
-  PRUint32 EstimateMemoryUsed() {
-    PRUint32 result = 0;
-
-    result += sizeof(nsPresContext);
-
-    return result;
+  virtual NS_MUST_OVERRIDE size_t
+        SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
+    
+    
+    return 0;
+  }
+  virtual NS_MUST_OVERRIDE size_t
+        SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
+    return aMallocSizeOf(this, sizeof(nsPresContext)) +
+           SizeOfExcludingThis(aMallocSizeOf);
   }
 
   bool IsRootContentDocument();
@@ -1313,6 +1317,18 @@ public:
 
 
   void FlushWillPaintObservers();
+
+  virtual NS_MUST_OVERRIDE size_t
+        SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE {
+    
+    
+    return nsPresContext::SizeOfExcludingThis(aMallocSizeOf);
+  }
+  virtual NS_MUST_OVERRIDE size_t
+        SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE {
+    return aMallocSizeOf(this, sizeof(nsRootPresContext)) +
+           SizeOfExcludingThis(aMallocSizeOf);
+  }
 
 protected:
   class RunWillPaintObservers : public nsRunnable {

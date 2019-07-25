@@ -92,7 +92,7 @@ class nsStyleSet
  public:
   nsStyleSet();
 
-  size_t SizeOf() const;
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
   
   

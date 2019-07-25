@@ -989,6 +989,9 @@ nsBindingManager::AddToAttachedQueue(nsXBLBinding* aBinding)
     PostProcessAttachedQueueEvent();
   }
 
+  
+  mDocument->SetNeedStyleFlush();
+
   return NS_OK;
 
 }

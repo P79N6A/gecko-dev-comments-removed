@@ -39,8 +39,7 @@
 #define nsHTMLEditUtils_h__
 
 #include "prtypes.h"  
-#include "nsError.h"  
-class nsIEditor;
+
 class nsIDOMNode;
 
 class nsHTMLEditUtils
@@ -69,7 +68,6 @@ public:
   static bool IsUnorderedList(nsIDOMNode *aNode);
   static bool IsBlockquote(nsIDOMNode *aNode);
   static bool IsPre(nsIDOMNode *aNode);
-  static bool IsAddress(nsIDOMNode *aNode);
   static bool IsAnchor(nsIDOMNode *aNode);
   static bool IsImage(nsIDOMNode *aNode);
   static bool IsLink(nsIDOMNode *aNode);

@@ -622,6 +622,8 @@ struct MemoryReporterData
 
 } 
 
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(LayoutMallocSizeOf, "layout")
+
  PLDHashOperator
 PresShell::MemoryReporter::SizeEnumerator(PresShellPtrKey *aEntry,
                                           void *userArg)
@@ -659,14 +661,14 @@ PresShell::MemoryReporter::SizeEnumerator(PresShellPtrKey *aEntry,
   nsCAutoString stylePath = str + NS_LITERAL_CSTRING("/styledata");
   nsCAutoString textRunsPath = str + NS_LITERAL_CSTRING("/textruns");
 
-  PRUint32 arenasSize;
-  arenasSize = aShell->EstimateMemoryUsed();
-  arenasSize += aShell->mPresContext->EstimateMemoryUsed();
+  PRInt64 arenasSize =
+    aShell->SizeOfIncludingThis(LayoutMallocSizeOf) +
+    aShell->mPresContext->SizeOfIncludingThis(LayoutMallocSizeOf);
 
-  PRUint32 styleSize;
-  styleSize = aShell->StyleSet()->SizeOf();
+  PRInt64 styleSize =
+    aShell->StyleSet()->SizeOfIncludingThis(LayoutMallocSizeOf);
 
-  PRInt64 textRunsSize = aShell->SizeOfTextRuns(MemoryReporterMallocSizeOf);
+  PRInt64 textRunsSize = aShell->SizeOfTextRuns(LayoutMallocSizeOf);
 
   data->callback->
     Callback(EmptyCString(), arenaPath, nsIMemoryReporter::KIND_HEAP,
@@ -687,6 +689,8 @@ PresShell::MemoryReporter::SizeEnumerator(PresShellPtrKey *aEntry,
 
   return PL_DHASH_NEXT;
 }
+
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(GfxTextrunWordCacheMallocSizeOf, "gfx/textrun-word-cache")
 
 NS_IMETHODIMP
 PresShell::MemoryReporter::CollectReports(nsIMemoryMultiReporterCallback* aCb,
@@ -709,7 +713,7 @@ PresShell::MemoryReporter::CollectReports(nsIMemoryMultiReporterCallback* aCb,
 
   
   PRInt64 textRunWordCacheSize =
-    gfxTextRunWordCache::MaybeSizeOfExcludingThis(MemoryReporterMallocSizeOf);
+    gfxTextRunWordCache::MaybeSizeOfExcludingThis(GfxTextrunWordCacheMallocSizeOf);
 
   aCb->Callback(EmptyCString(), kTextRunWordCachePath,
                 nsIMemoryReporter::KIND_HEAP, nsIMemoryReporter::UNITS_BYTES,
@@ -2179,6 +2183,7 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
         NS_NewRunnableMethod(this, &PresShell::FireResizeEvent);
       if (NS_SUCCEEDED(NS_DispatchToCurrentThread(resizeEvent))) {
         mResizeEvent = resizeEvent;
+        mDocument->SetNeedStyleFlush();
       }
     }
   }
@@ -2860,6 +2865,7 @@ PresShell::FrameNeedsReflow(nsIFrame *aFrame, IntrinsicDirty aIntrinsicDirty,
         
         if (!wasDirty) {
           mDirtyRoots.AppendElement(f);
+          mDocument->SetNeedLayoutFlush();
         }
 #ifdef DEBUG
         else {
@@ -3440,6 +3446,7 @@ PresShell::ScrollContentIntoView(nsIContent* aContent,
   mContentToScrollToFlags = aFlags;
 
   
+  currentDoc->SetNeedLayoutFlush();
   currentDoc->FlushPendingNotifications(Flush_InterruptibleLayout);
 
   
@@ -3831,7 +3838,7 @@ PresShell::UnsuppressPainting()
   
   
   
-  if (mDirtyRoots.Length() > 0)
+  if (!mDirtyRoots.IsEmpty())
     mShouldUnsuppressPainting = true;
   else
     UnsuppressAndInvalidate();
@@ -3962,6 +3969,12 @@ PresShell::IsSafeToFlush() const
 void
 PresShell::FlushPendingNotifications(mozFlushType aType)
 {
+  
+
+
+
+
+
 #ifdef NS_FUNCTION_TIMER
   NS_TIME_FUNCTION_DECLARE_DOCURL;
   static const char *flushTypeNames[] = {
@@ -4096,6 +4109,11 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
                                 mContentToScrollToFlags);
         mContentToScrollTo = nsnull;
       }
+    } else if (!mIsDestroying && mSuppressInterruptibleReflows &&
+               aType == Flush_InterruptibleLayout) {
+      
+      
+      mDocument->SetNeedLayoutFlush();
     }
 
     if (aType >= Flush_Layout) {
@@ -7339,6 +7357,7 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
     mFramesToDirty.EnumerateEntries(&MarkFramesDirtyToRoot, target);
     NS_ASSERTION(NS_SUBTREE_DIRTY(target), "Why is the target not dirty?");
     mDirtyRoots.AppendElement(target);
+    mDocument->SetNeedLayoutFlush();
 
     
     
@@ -7381,7 +7400,7 @@ PresShell::DoVerifyReflow()
              ok ? "ok" : "failed");
     }
 
-    if (0 != mDirtyRoots.Length()) {
+    if (!mDirtyRoots.IsEmpty()) {
       printf("XXX yikes! reflow commands queued during verify-reflow\n");
     }
   }
@@ -7391,10 +7410,15 @@ PresShell::DoVerifyReflow()
 bool
 PresShell::ProcessReflowCommands(bool aInterruptible)
 {
+  if (mDirtyRoots.IsEmpty() && !mShouldUnsuppressPainting) {
+    
+    return true;
+  }
+
   NS_TIME_FUNCTION_WITH_DOCURL;
   mozilla::TimeStamp timerStart = mozilla::TimeStamp::Now();
   bool interrupted = false;
-  if (0 != mDirtyRoots.Length()) {
+  if (!mDirtyRoots.IsEmpty()) {
 
 #ifdef DEBUG
     if (VERIFY_REFLOW_DUMP_COMMANDS & gVerifyReflowFlags) {
@@ -7430,10 +7454,10 @@ PresShell::ProcessReflowCommands(bool aInterruptible)
 
         
         
-      } while (!interrupted && mDirtyRoots.Length() &&
+      } while (!interrupted && !mDirtyRoots.IsEmpty() &&
                (!aInterruptible || PR_IntervalNow() < deadline));
 
-      interrupted = mDirtyRoots.Length() != 0;
+      interrupted = !mDirtyRoots.IsEmpty();
     }
 
     
@@ -7456,13 +7480,16 @@ PresShell::ProcessReflowCommands(bool aInterruptible)
       
       
       
-      if (mDirtyRoots.Length())
+      if (!mDirtyRoots.IsEmpty()) {
         MaybeScheduleReflow();
+        
+        mDocument->SetNeedLayoutFlush();
+      }
     }
   }
 
   if (!mIsDestroying && mShouldUnsuppressPainting &&
-      mDirtyRoots.Length() == 0) {
+      mDirtyRoots.IsEmpty()) {
     
     
     

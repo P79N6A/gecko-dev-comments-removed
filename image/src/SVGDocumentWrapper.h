@@ -183,10 +183,6 @@ private:
   nsCOMPtr<nsIStreamListener> mListener;
   bool                        mIgnoreInvalidation;
   bool                        mRegisteredForXPCOMShutdown;
-
-  
-  
-  static nsIAtom* kSVGAtom;
 };
 
 } 

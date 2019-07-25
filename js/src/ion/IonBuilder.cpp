@@ -231,11 +231,6 @@ IonBuilder::build()
         current->initSlot(info().localSlot(i), undef);
     }
 
-    
-    MCheckOverRecursed *check = new MCheckOverRecursed;
-    current->add(check);
-    check->setResumePoint(current->entryResumePoint());
-
     current->makeStart(MStart::New(MStart::StartType_Default));
 
     
@@ -537,7 +532,7 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_NOP:
         return true;
 
-      case JSOP_PUSH:
+      case JSOP_UNDEFINED:
         return pushConstant(UndefinedValue());
 
       case JSOP_IFEQ:

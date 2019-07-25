@@ -76,7 +76,7 @@ JS_END_EXTERN_C
 
 struct JSSharpObjectMap {
     jsrefcount  depth;
-    uint32      sharpgen;
+    uint32_t    sharpgen;
     JSHashTable *table;
 };
 
@@ -129,7 +129,7 @@ struct ThreadData {
 
 
 
-    volatile int32      interruptFlags;
+    volatile int32_t    interruptFlags;
 
 #ifdef JS_THREADSAFE
     
@@ -212,9 +212,8 @@ struct ThreadData {
 
     
     
-    uint8               *ionTop;
+    uint8_t             *ionTop;
     JSContext           *ionJSContext;
-    jsuword             ionStackLimit;
 
     
     ion::IonActivation  *ionActivation;
@@ -427,20 +426,20 @@ struct JSRuntime
     js::RootedValueMap  gcRootsHash;
     js::GCLocks         gcLocksHash;
     jsrefcount          gcKeepAtoms;
-    uint32              gcBytes;
-    uint32              gcTriggerBytes;
+    uint32_t            gcBytes;
+    uint32_t            gcTriggerBytes;
     size_t              gcLastBytes;
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
-    uint32              gcEmptyArenaPoolLifespan;
+    uint32_t            gcEmptyArenaPoolLifespan;
     
-    volatile uint32     gcNumFreeArenas;
-    uint32              gcNumber;
+    volatile uint32_t   gcNumFreeArenas;
+    uint32_t            gcNumber;
     js::GCMarker        *gcIncrementalTracer;
     void                *gcVerifyData;
     bool                gcChunkAllocationSinceLastGC;
-    int64               gcNextFullGCTime;
-    int64               gcJitReleaseTime;
+    int64_t             gcNextFullGCTime;
+    int64_t             gcJitReleaseTime;
     JSGCMode            gcMode;
     volatile jsuword    gcBarrierFailed;
     volatile jsuword    gcIsNeeded;
@@ -451,12 +450,7 @@ struct JSRuntime
     js::gcstats::Reason gcTriggerReason;
 
     
-    void                *gcMarkStackObjs[js::OBJECT_MARK_STACK_SIZE / sizeof(void *)];
-    void                *gcMarkStackRopes[js::ROPES_MARK_STACK_SIZE / sizeof(void *)];
-    void                *gcMarkStackTypes[js::TYPE_MARK_STACK_SIZE / sizeof(void *)];
-    void                *gcMarkStackXMLs[js::XML_MARK_STACK_SIZE / sizeof(void *)];
-    void                *gcMarkStackLarges[js::LARGE_MARK_STACK_SIZE / sizeof(void *)];
-    void                *gcMarkStackIonCode[js::IONCODE_MARK_STACK_SIZE / sizeof(void *)];
+    uintptr_t           gcMarkStackArray[js::MARK_STACK_LENGTH];
 
     
 
@@ -580,7 +574,7 @@ struct JSRuntime
     PRLock              *gcLock;
     PRCondVar           *gcDone;
     PRCondVar           *requestDone;
-    uint32              requestCount;
+    uint32_t            requestCount;
     JSThread            *gcThread;
 
     js::GCHelperThread  gcHelperThread;
@@ -603,7 +597,7 @@ struct JSRuntime
     JSThread::Map       threads;
 #endif 
 
-    uint32              debuggerMutations;
+    uint32_t            debuggerMutations;
 
     
 
@@ -622,7 +616,7 @@ struct JSRuntime
 
 
 
-    int32               propertyRemovals;
+    int32_t             propertyRemovals;
 
     
     struct JSHashTable  *scriptFilenameTable;
@@ -647,7 +641,7 @@ struct JSRuntime
 
 #ifdef JS_THREADSAFE
     
-    volatile int32      interruptCounter;
+    volatile int32_t    interruptCounter;
 #else
     js::ThreadData      threadData;
 
@@ -668,23 +662,24 @@ struct JSRuntime
 
     JSWrapObjectCallback wrapObjectCallback;
     JSPreWrapCallback    preWrapObjectCallback;
+    js::PreserveWrapperCallback preserveWrapperCallback;
 
     
 
 
 
 
-    int32               inOOMReport;
+    int32_t             inOOMReport;
 
     JSRuntime();
     ~JSRuntime();
 
-    bool init(uint32 maxbytes);
+    bool init(uint32_t maxbytes);
 
     JSRuntime *thisFromCtor() { return this; }
 
     void setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind);
-    void reduceGCTriggerBytes(uint32 amount);
+    void reduceGCTriggerBytes(uint32_t amount);
 
     
 
@@ -805,15 +800,15 @@ class AutoGCRooter;
 struct AutoResolving;
 
 static inline bool
-OptionsHasXML(uint32 options)
+OptionsHasXML(uint32_t options)
 {
     return !!(options & JSOPTION_XML);
 }
 
 static inline bool
-OptionsSameVersionFlags(uint32 self, uint32 other)
+OptionsSameVersionFlags(uint32_t self, uint32_t other)
 {
-    static const uint32 mask = JSOPTION_XML;
+    static const uint32_t mask = JSOPTION_XML;
     return !((self & mask) ^ (other & mask));
 }
 
@@ -834,7 +829,7 @@ static const uintN FULL_MASK    = 0x3FFF;
 static inline JSVersion
 VersionNumber(JSVersion version)
 {
-    return JSVersion(uint32(version) & VersionFlags::MASK);
+    return JSVersion(uint32_t(version) & VersionFlags::MASK);
 }
 
 static inline bool
@@ -854,15 +849,15 @@ static inline void
 VersionSetXML(JSVersion *version, bool enable)
 {
     if (enable)
-        *version = JSVersion(uint32(*version) | VersionFlags::HAS_XML);
+        *version = JSVersion(uint32_t(*version) | VersionFlags::HAS_XML);
     else
-        *version = JSVersion(uint32(*version) & ~VersionFlags::HAS_XML);
+        *version = JSVersion(uint32_t(*version) & ~VersionFlags::HAS_XML);
 }
 
 static inline JSVersion
 VersionExtractFlags(JSVersion version)
 {
-    return JSVersion(uint32(version) & ~VersionFlags::MASK);
+    return JSVersion(uint32_t(version) & ~VersionFlags::MASK);
 }
 
 static inline void
@@ -927,7 +922,7 @@ struct JSContext
     uintN               runOptions;            
 
   public:
-    int32               reportGranularity;  
+    int32_t             reportGranularity;  
 
     
     JSLocaleCallbacks   *localeCallbacks;
@@ -1118,7 +1113,7 @@ struct JSContext
     uintN               resolveFlags;
 
     
-    int64               rngSeed;
+    int64_t             rngSeed;
 
     
     js::Value           iterValue;
