@@ -629,14 +629,20 @@ CallJSNativeConstructor(JSContext *cx, js::Native native, uintN argc, js::Value 
     JS_ASSERT(vp[1].isMagic());
     if (!CallJSNative(cx, native, argc, vp))
         return false;
-    JS_ASSERT(!vp->isPrimitive());
 
     
 
 
 
 
-    JS_ASSERT(callee != &vp[0].toObject());
+
+
+
+
+    extern JSBool proxy_Construct(JSContext *, uintN, Value *);
+    JS_ASSERT_IF(native != proxy_Construct,
+                 !vp->isPrimitive() && callee != &vp[0].toObject());
+
     return true;
 }
 
