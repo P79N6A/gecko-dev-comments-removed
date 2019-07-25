@@ -95,19 +95,19 @@ gTests.push({
   onPopupGone2: function() {
     
     is(document.getElementById("bookmark-popup").hidden, true, "Bookmark popup should be hidden by clicking star");
+
     
-    
-    var starbutton = document.getElementById("tool-star");
+    let starbutton = document.getElementById("tool-star");
     starbutton.click();
-    
+
     waitFor(gCurrentTest.onPopupReady3, function() { return document.getElementById("bookmark-popup").hidden == false; });
   },
 
   onPopupReady3: function() {
     
-    var contentarea = document.getElementById("tile-container");
+    let contentarea = document.getElementById("browsers");
     EventUtils.synthesizeMouse(contentarea, contentarea.clientWidth / 2, contentarea.clientHeight / 2, {});
-    
+
     waitFor(gCurrentTest.onPopupGone3, function() { return document.getElementById("bookmark-popup").hidden == true; });
   },
 

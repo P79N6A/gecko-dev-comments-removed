@@ -1,13 +1,9 @@
 let testURL_click = "chrome://mochikit/content/browser/mobile/chrome/browser_click_content.html";
 
-let newTab;
+let currentTab;
 let element;
 let isClickFired = false;
 let clickPosition = { x: null, y: null};
-let isLoading = function() {
-  return !newTab.isLoading() &&
-    newTab.browser.currentURI.spec != "about:blank";
-};
 
 
 
@@ -16,11 +12,15 @@ function test() {
   waitForExplicitFinish();
 
   
-  newTab = Browser.addTab(testURL_click, true);
-  ok(newTab, "Tab Opened");
+  currentTab = Browser.addTab(testURL_click, true);
+  ok(currentTab, "Tab Opened");
 
   
-  waitFor(testClickAndPosition, isLoading);
+  messageManager.addMessageListener("pageshow", function() {
+  if (currentTab.browser.currentURI.spec == testURL_click) {
+    messageManager.removeMessageListener("pageshow", arguments.callee);
+    testClickAndPosition();
+  }});
 }
 
 function clickFired(aEvent) {
@@ -32,11 +32,11 @@ function clickFired(aEvent) {
 
 function testClickAndPosition() {
   
-  let uri = newTab.browser.currentURI.spec;
+  let uri = currentTab.browser.currentURI.spec;
   is(uri, testURL_click, "URL Matches newly created Tab");
 
   
-  element = newTab.browser.contentDocument.getElementById("iframe-1");
+  element = currentTab.browser.contentDocument.getElementById("iframe-1");
   element.addEventListener("click", clickFired, true);
 
   EventUtils.synthesizeMouseForContent(element, 1, 1, {}, window);
@@ -49,7 +49,7 @@ function checkClick() {
 
   
   isClickFired = false;
-  element = newTab.browser.contentDocument.documentElement;
+  element = currentTab.browser.contentDocument.documentElement;
   element.addEventListener("click", clickFired, true);
 
   let rect = getBoundingContentRect(element);
@@ -68,7 +68,7 @@ function checkPosition() {
 }
 
 function checkThickBorder() {
-  let frame = newTab.browser.contentDocument.getElementById("iframe-2");
+  let frame = currentTab.browser.contentDocument.getElementById("iframe-2");
   let element = frame.contentDocument.getElementsByTagName("input")[0];
 
   let frameRect = getBoundingContentRect(frame);
@@ -84,7 +84,7 @@ function checkThickBorder() {
 
 function close() {
   
-  Browser.closeTab(newTab);
+  Browser.closeTab(currentTab);
 
   
   finish();
