@@ -231,6 +231,10 @@ let DOMEvents =  {
           persisted: aEvent.persisted
         };
 
+        
+        let focusManager = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+        focusManager.clearFocus(content);
+
         sendAsyncMessage(aEvent.type, json);
         break;
       }
