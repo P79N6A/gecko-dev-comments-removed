@@ -76,6 +76,10 @@ const NOTIFY_WINDOWS_RESTORED = "sessionstore-windows-restored";
 const NOTIFY_BROWSER_STATE_RESTORED = "sessionstore-browser-state-restored";
 
 
+
+const MAX_CONCURRENT_TAB_RESTORES = 3;
+
+
 const OBSERVING = [
   "domwindowopened", "domwindowclosed",
   "quit-application-requested", "quit-application-granted",
@@ -192,7 +196,7 @@ SessionStoreService.prototype = {
 
   
   
-  _restoreCount: 0,
+  _restoreCount: -1,
 
   
   _browserSetState: false,
@@ -230,8 +234,8 @@ SessionStoreService.prototype = {
   _tabsRestoringCount: 0,
 
   
-  _maxConcurrentTabRestores: null,
-  
+  _restoreOnDemand: false,
+
   
   _restoreHiddenTabs: null,
 
@@ -281,7 +285,10 @@ SessionStoreService.prototype = {
     var pbs = Cc["@mozilla.org/privatebrowsing;1"].
               getService(Ci.nsIPrivateBrowsingService);
     this._inPrivateBrowsing = pbs.privateBrowsingEnabled;
+
     
+    this._migratePrefs();
+
     
     this._prefBranch.addObserver("sessionstore.max_tabs_undo", this, true);
     this._prefBranch.addObserver("sessionstore.max_windows_undo", this, true);
@@ -290,9 +297,9 @@ SessionStoreService.prototype = {
     this._sessionhistory_max_entries =
       this._prefBranch.getIntPref("sessionhistory.max_entries");
 
-    this._maxConcurrentTabRestores =
-      this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
-    this._prefBranch.addObserver("sessionstore.max_concurrent_tabs", this, true);
+    this._restoreOnDemand =
+      this._prefBranch.getBoolPref("sessionstore.restore_on_demand");
+    this._prefBranch.addObserver("sessionstore.restore_on_demand", this, true);
 
     this._restoreHiddenTabs =
       this._prefBranch.getBoolPref("sessionstore.restore_hidden_tabs");
@@ -364,6 +371,9 @@ SessionStoreService.prototype = {
           delete this._initialState.windows[0].hidden;
           
           delete this._initialState.windows[0].isPopup;
+          
+          if (this._initialState.windows[0].sizemode == "minimized")
+            this._initialState.windows[0].sizemode = "normal";
         }
       }
       catch (ex) { debug("The session file is invalid: " + ex); }
@@ -437,6 +447,19 @@ SessionStoreService.prototype = {
     if (this._saveTimer) {
       this._saveTimer.cancel();
       this._saveTimer = null;
+    }
+  },
+
+  _migratePrefs: function sss__migratePrefs() {
+    
+    
+    
+    if (this._prefBranch.prefHasUserValue("sessionstore.max_concurrent_tabs") &&
+        !this._prefBranch.prefHasUserValue("sessionstore.restore_on_demand")) {
+      let maxConcurrentTabs =
+        this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
+      this._prefBranch.setBoolPref("sessionstore.restore_on_demand", maxConcurrentTabs == 0);
+      this._prefBranch.clearUserPref("sessionstore.max_concurrent_tabs");
     }
   },
 
@@ -629,9 +652,9 @@ SessionStoreService.prototype = {
           this._clearDisk();
         this.saveState(true);
         break;
-      case "sessionstore.max_concurrent_tabs":
-        this._maxConcurrentTabRestores =
-          this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
+      case "sessionstore.restore_on_demand":
+        this._restoreOnDemand =
+          this._prefBranch.getBoolPref("sessionstore.restore_on_demand");
         break;
       case "sessionstore.restore_hidden_tabs":
         this._restoreHiddenTabs =
@@ -3042,8 +3065,8 @@ SessionStoreService.prototype = {
       return;
 
     
-    if (this._maxConcurrentTabRestores >= 0 &&
-        this._tabsRestoringCount >= this._maxConcurrentTabRestores)
+    if (this._restoreOnDemand ||
+        this._tabsRestoringCount >= MAX_CONCURRENT_TAB_RESTORES)
       return;
 
     
@@ -3972,16 +3995,23 @@ SessionStoreService.prototype = {
   },
 
   _sendRestoreCompletedNotifications: function sss_sendRestoreCompletedNotifications() {
-    if (this._restoreCount) {
+    
+    if (this._restoreCount > 1) {
       this._restoreCount--;
-      if (this._restoreCount == 0) {
-        
-        Services.obs.notifyObservers(null,
-          this._browserSetState ? NOTIFY_BROWSER_STATE_RESTORED : NOTIFY_WINDOWS_RESTORED,
-          "");
-        this._browserSetState = false;
-      }
+      return;
     }
+
+    
+    if (this._restoreCount == -1)
+      return;
+
+    
+    Services.obs.notifyObservers(null,
+      this._browserSetState ? NOTIFY_BROWSER_STATE_RESTORED : NOTIFY_WINDOWS_RESTORED,
+      "");
+
+    this._browserSetState = false;
+    this._restoreCount = -1;
   },
 
   
