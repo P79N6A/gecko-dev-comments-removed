@@ -2565,7 +2565,8 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     int stackDummy;
 # if JS_STACK_GROWTH_DIRECTION > 0
     
-    JS_ASSERT_IF(cx->stackLimit, JS_CHECK_STACK_SIZE(cx->stackLimit, &stackDummy));
+    JS_ASSERT_IF(cx->stackLimit != jsuword(-1),
+                 JS_CHECK_STACK_SIZE(cx->stackLimit + 4096, &stackDummy));
 # else
     
     JS_ASSERT_IF(cx->stackLimit, JS_CHECK_STACK_SIZE(cx->stackLimit - 4096, &stackDummy));
