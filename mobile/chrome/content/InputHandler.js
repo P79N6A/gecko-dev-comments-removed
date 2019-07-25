@@ -43,6 +43,27 @@
 
 
 
+const kDoubleClickInterval = 400;
+
+
+const kMsUntilLock = 50;
+
+
+const kTapRadius = 15;
+
+
+const kKineticUpdateInterval = 25;
+
+
+const kDecelerationRate = .10;
+
+
+const kSpeedSensitivity = .8;
+
+
+const kTimeRelevance = .01;
+
+
 
 
 
@@ -399,7 +420,7 @@ InputHandler.EventInfo.prototype = {
 function MouseModule(owner, browserViewContainer) {
   this._owner = owner;
   this._browserViewContainer = browserViewContainer;
-  this._dragData = new DragData(this, 15, 200);
+  this._dragData = new DragData(this, kTapRadius);
 
   this._dragger = null;
   this._clicker = null;
@@ -410,7 +431,7 @@ function MouseModule(owner, browserViewContainer) {
   var self = this;
   this._kinetic = new KineticController(
     function _dragByBound(dx, dy) { return self._dragBy(dx, dy); },
-    function _dragStopBound() { return self._doDragStop(0, 0, true); }
+    function _dragStopBound() { return self._doDragStop(0, 0, 0, true); }
   );
 }
 
@@ -516,8 +537,8 @@ MouseModule.prototype = {
 
     this._movedOutOfRadius = this._movedOutOfRadius || dragData.isPointOutsideRadius(sX, sY);
 
-    if (dragData.dragging)       
-      this._doDragStop(sX, sY);  
+    if (dragData.dragging)                               
+      this._doDragStop(sX, sY, evInfo.event.timeStamp);  
 
     if (this._clicker)
       this._clicker.mouseUp(evInfo.event.clientX, evInfo.event.clientY);
@@ -542,7 +563,7 @@ MouseModule.prototype = {
       let [sX, sY] = dragData.lockAxis(evInfo.event.screenX, evInfo.event.screenY);
       evInfo.event.stopPropagation();
       evInfo.event.preventDefault();
-      this._doDragMove(sX, sY);
+      this._doDragMove(sX, sY, evInfo.event.timeStamp);
     }
 
     this._movedOutOfRadius = this._movedOutOfRadius || 
@@ -572,7 +593,7 @@ MouseModule.prototype = {
     let dragData = this._dragData;
 
     dragData.setDragStart(event.screenX, event.screenY);
-    this._kinetic.addData(event.screenX, event.screenY);
+    this._kinetic.addData(event.screenX, event.screenY, event.timeStamp);
 
     this._dragger.dragStart(event.clientX, event.clientY, event.target, this._targetScrollInterface);
   },
@@ -582,7 +603,7 @@ MouseModule.prototype = {
 
 
 
-  _doDragStop: function _doDragStop(sX, sY, kineticStop) {
+  _doDragStop: function _doDragStop(sX, sY, t, kineticStop) {
     let dragData = this._dragData;
 
     if (!kineticStop) {    
@@ -592,7 +613,7 @@ MouseModule.prototype = {
 
       dragData.endDrag();
 
-      this._kinetic.addData(sX, sY);
+      this._kinetic.addData(sX, sY, t);
 
       this._kinetic.start();
     } else {               
@@ -604,11 +625,11 @@ MouseModule.prototype = {
   
 
 
-  _doDragMove: function _doDragMove(sX, sY) {
+  _doDragMove: function _doDragMove(sX, sY, t) {
     let dragData = this._dragData;
     let dX = dragData.sX - sX;
     let dY = dragData.sY - sY;
-    this._kinetic.addData(sX, sY);
+    this._kinetic.addData(sX, sY, t);
     return this._dragBy(dX, dY);
   },
 
@@ -651,14 +672,13 @@ MouseModule.prototype = {
 
 
   _commitAnotherClick: function _commitAnotherClick() {
-    const doubleClickInterval = 400;
 
     if (this._clickTimeout) {   
       window.clearTimeout(this._clickTimeout);
       this._doDoubleClick();
     } else {
       this._clickTimeout = window.setTimeout(function _clickTimeout(self) { self._doSingleClick(); },
-                                             doubleClickInterval, this);
+                                             kDoubleClickInterval, this);
     }
   },
 
@@ -824,14 +844,11 @@ MouseModule.prototype = {
 
 
 
-function DragData(owner, dragRadius, dragStartTimeoutLength) {
+function DragData(owner, dragRadius) {
   this._owner = owner;
   this._dragRadius = dragRadius;
   this.reset();
 };
-
-
-const kMsUntilLock = 50;
 
 DragData.prototype = {
   reset: function reset() {
@@ -912,7 +929,7 @@ DragData.prototype = {
     if (this._originX === null)
       return false;
     return (Math.pow(sX - this._originX, 2) + Math.pow(sY - this._originY, 2)) >
-      (2 * Math.pow(this._dragRadius, 2));
+      (Math.pow(this._dragRadius, 2));
   },
 
   toString: function toString() {
@@ -936,16 +953,29 @@ function KineticController(aPanBy, aEndCallback) {
 
   try {
     this._updateInterval = gPrefService.getIntPref("browser.ui.kinetic.updateInterval");
-    
-    this._emaAlpha = gPrefService.getIntPref("browser.ui.kinetic.ema.alphaValue") / 10;
+  } catch(e) {
+    this._updateInterval = kKineticUpdateInterval;
+  }
+
+  try {
     
     this._decelerationRate = gPrefService.getIntPref("browser.ui.kinetic.decelerationRate") / 100;
-  }
-  catch (e) {
-    this._updateInterval = 33;
-    this._emaAlpha = .8;
-    this._decelerationRate = .15;
+  } catch (e) {
+    this._decelerationRate = kDecelerationRate;
   };
+
+  try {
+    
+    this._speedSensitivity = gPrefService.getIntPref("browser.ui.kinetic.speedsensitivity") / 100;
+  } catch(e) {
+    this._speedSensitivity = kSpeedSensitivity;
+  }
+
+  try {
+    this._timeRelevance = gPrefService.getIntPref("browser.ui.kinetic.timerelevance") / 100;
+  } catch(e) {
+    this._timeRelevance = kTimeRelevance;
+  }
 
   this._reset();
 }
@@ -983,7 +1013,6 @@ KineticController.prototype = {
         }
         let dx = Math.round(self._speedX * self._updateInterval);
         let dy = Math.round(self._speedY * self._updateInterval);
-        
 
         let panned = false;
         try { panned = self._panBy(-dx, -dy); } catch (e) {}
@@ -1025,22 +1054,26 @@ KineticController.prototype = {
       return false;
     }
 
-    function ema(currentSpeed, lastSpeed, alpha) {
-      return alpha * currentSpeed + (1 - alpha) * lastSpeed;
-    };
+    let lastTime = mb[mblen - 1].t;
+    let weightedSpeedSumX = 0;
+    let weightedSpeedSumY = 0;
+    let weightSum = 0;
+    let prev = mb[0];
 
     
-    let prev = mb[0];
+    
     for (let i = 1; i < mblen; i++) {
       let me = mb[i];
-
+      let weight = Math.exp((me.t - lastTime) * this._timeRelevance);
       let timeDiff = me.t - prev.t;
-
-      this._speedX = ema( ((me.sx - prev.sx) / timeDiff), this._speedX, this._emaAlpha);
-      this._speedY = ema( ((me.sy - prev.sy) / timeDiff), this._speedY, this._emaAlpha);
-
+      weightSum += weight;
+      weightedSpeedSumX += weight * (me.sx - prev.sx) / timeDiff;
+      weightedSpeedSumY += weight * (me.sy - prev.sy) / timeDiff;
       prev = me;
     }
+
+    this._speedX = (weightedSpeedSumX / weightSum) * this._speedSensitivity;
+    this._speedY = (weightedSpeedSumY / weightSum) * this._speedSensitivity;
 
     
     this._startTimer();
@@ -1054,19 +1087,23 @@ KineticController.prototype = {
     this._reset();
   },
 
-  addData: function addData(sx, sy) {
+  addData: function addData(sx, sy, t) {
     
     if (this.isActive())
       this.end();
 
     let mbLength = this.momentumBuffer.length;
-    
-    let now = Date.now();
+    let now = t || Date.now();
  
+    
     if (mbLength > 0) {
       let mbLast = this.momentumBuffer[mbLength - 1];
-      if ((mbLast.sx == sx && mbLast.sy == sy) || mbLast.t == now)
+      if ((mbLast.sx == sx && mbLast.sy == sy) || mbLast.t == now) {
+        mbLast.sx = sx;
+        mbLast.sy = sy;
+        mbLast.t = t;
         return;
+      }
     }
 
     
