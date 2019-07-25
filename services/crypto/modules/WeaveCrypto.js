@@ -482,6 +482,8 @@ WeaveCrypto.prototype = {
 
         
         
+        if (iv.length < this.blockSize)
+            throw "IV too short; must be " + this.blockSize + " bytes.";
         if (iv.length > this.blockSize)
             iv = iv.slice(0, this.blockSize);
 
@@ -642,13 +644,8 @@ WeaveCrypto.prototype = {
     byteCompressInts : function byteCompressInts (jsString, intArray, count) {
         let len = jsString.length;
         let end = Math.min(len, count);
-
         for (let i = 0; i < end; i++)
-            intArray[i] = jsString.charCodeAt(i) % 256; 
-
-        
-        for (let i = len; i < count; i++)
-            intArray[i] = 0;
+            intArray[i] = jsString.charCodeAt(i) & 0xFF;  
     },
 
     
