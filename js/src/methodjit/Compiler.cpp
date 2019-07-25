@@ -4035,10 +4035,19 @@ mjit::Compiler::jsop_instanceof()
         RegisterID reg = frame.tempRegForData(rhs);
         j = masm.testFunction(Assembler::NotEqual, reg);
         stubcc.linkExit(j, Uses(2));
+    }
+
+    
+    RegisterID obj = frame.tempRegForData(rhs);
+    Jump isBound = masm.branchTest32(Assembler::NonZero, Address(obj, offsetof(JSObject, flags)),
+                                     Imm32(JSObject::BOUND_FUNCTION));
+    {
+        stubcc.linkExit(isBound, Uses(2));
         stubcc.leave();
         stubcc.call(stubs::InstanceOf);
         firstSlow = stubcc.masm.jump();
     }
+    
 
     
     frame.dup();
@@ -4051,7 +4060,7 @@ mjit::Compiler::jsop_instanceof()
     stubcc.linkExit(j, Uses(3));
 
     
-    RegisterID obj = frame.copyDataIntoReg(lhs);
+    obj = frame.copyDataIntoReg(lhs);
     RegisterID proto = frame.copyDataIntoReg(rhs);
     RegisterID temp = frame.allocReg();
 
