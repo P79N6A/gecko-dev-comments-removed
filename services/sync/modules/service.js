@@ -358,7 +358,7 @@ WeaveSvc.prototype = {
     if (Svc.Prefs.get("autoconnect") && this.username) {
       try {
 	if (yield this.login(self.cb))
-	  yield this.sync(self.cb);
+	  yield this.sync(self.cb, true);
       } catch (e) {}
     }
     self.done();
@@ -693,7 +693,19 @@ WeaveSvc.prototype = {
 
   
 
-  _sync: function WeaveSvc__sync() {
+
+
+
+  _syncThresh: {},
+
+  
+
+
+
+
+
+
+  _sync: function WeaveSvc__sync(useThresh) {
     let self = yield;
 
     if (!this.enabled)
@@ -713,106 +725,76 @@ WeaveSvc.prototype = {
     yield Clients.sync(self.cb);
 
     try {
-      let engines = Engines.getAll();
-      for each (let engine in engines) {
+      for each (let engine in Engines.getAll()) {
+        let name = engine.name;
+
+        
         if (!engine.enabled)
           continue;
 
-	if (!(yield this._syncEngine.async(this, self.cb, engine))) {
-	  this._mostRecentError = "Failure in " + engine.displayName;
-	  this._log.info("Aborting sync");
-	  break;
-	}
+        
+        let resetThresh = Utils.bind2(this, function WeaveSvc__resetThresh(cond)
+          cond ? this._syncThresh[name] = INITIAL_THRESHOLD : undefined);
+
+        
+        resetThresh(!(name in this._syncThresh));
+
+        
+        if (useThresh) {
+          let score = engine.score;
+          let thresh = this._syncThresh[name];
+          if (score >= thresh)
+            this._log.debug("Syncing " + name + "; " +
+                            "score " + score + " >= thresh " + thresh);
+          else {
+            this._log.debug("Not syncing " + name + "; " +
+                            "score " + score + " < thresh " + thresh);
+
+            
+            this._syncThresh[name] = Math.max(thresh - THRESHOLD_DECREMENT_STEP, 1);
+
+            
+            continue;
+          }
+        }
+
+        
+        if (!(yield this._syncEngine.async(this, self.cb, engine))) {
+          this._mostRecentError = "Failure in " + engine.displayName;
+          this._log.info("Aborting sync");
+          break;
+        }
+
+        
+        
+        
+        resetThresh(useThresh);
       }
 
-      if (!this._syncError) {
-	Svc.Prefs.set("lastSync", new Date().toString());
-	this._log.info("Sync completed successfully");
-      } else
+      if (this._syncError)
         this._log.warn("Some engines did not sync correctly");
-
+      else {
+        Svc.Prefs.set("lastSync", new Date().toString());
+        this._log.info("Sync completed successfully");
+      }
     } finally {
       this.cancelRequested = false;
       this._syncError = false;
     }
   },
-  sync: function WeaveSvc_sync(onComplete) {
-    this._catchAll(
-      this._notify("sync", "",
-		   this._localLock(this._sync))).async(this, onComplete);
-  },
 
   
-  
-  
-  _syncThresholds: {},
 
-  _syncAsNeeded: function WeaveSvc__syncAsNeeded() {
-    let self = yield;
 
-    if (!this.enabled)
-      return;
 
-    try {
 
-      if (!this._loggedIn) {
-	this._disableSchedule();
-	throw "aborting sync, not logged in";
-      }
 
-      let engines = Engines.getAll();
-      for each (let engine in engines) {
-        if (!engine.enabled)
-          continue;
 
-        if (!(engine.name in this._syncThresholds))
-          this._syncThresholds[engine.name] = INITIAL_THRESHOLD;
 
-        let score = engine.score;
-        if (score >= this._syncThresholds[engine.name]) {
-          this._log.debug(engine.name + " score " + score +
-                          " reaches threshold " +
-                          this._syncThresholds[engine.name] + "; syncing");
-          if (!(yield this._syncEngine.async(this, self.cb, engine))) {
-	    this._mostRecentError = "Failure in " + engine.displayName;
-	    this._log.info("Aborting sync");
-	    break;
-	  }
-
-          
-          
-          
-          
-          
-          
-          
-          this._syncThresholds[engine.name] = INITIAL_THRESHOLD;
-        }
-        else {
-          this._log.debug(engine.name + " score " + score +
-                          " does not reach threshold " +
-                          this._syncThresholds[engine.name] + "; not syncing");
-
-          
-          
-          
-          
-          this._syncThresholds[engine.name] -= THRESHOLD_DECREMENT_STEP;
-          if (this._syncThresholds[engine.name] <= 0)
-            this._syncThresholds[engine.name] = 1;
-        }
-      }
-
-      if (!this._syncError) {
-	Svc.Prefs.set("lastSync", new Date().toString());
-        this._log.info("Sync completed successfully");
-      } else
-        this._log.warn("Some engines did not sync correctly");
-
-    } finally {
-      this._cancelRequested = false;
-      this._syncError = false;
-    }
+  sync: function WeaveSvc_sync(onComplete, fullSync) {
+    let useThresh = false; 
+    this._catchAll(this._notify("sync", "", this._localLock(this._sync))).
+      async(this, onComplete, useThresh);
   },
 
   
