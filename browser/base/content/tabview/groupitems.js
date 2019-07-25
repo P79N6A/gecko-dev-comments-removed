@@ -1206,6 +1206,31 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
   
   
+  arrangeAppTab: function GroupItem_arrangeAppTab(xulTab) {
+    let self = this;
+
+    let elements = iQ(".appTabIcon", this.$appTabTray);
+    let length = elements.length;
+
+    elements.each(function(icon) {
+      let $icon = iQ(icon);
+      if ($icon.data("xulTab") != xulTab)
+        return;
+
+      let targetIndex = xulTab._tPos;
+
+      $icon.remove();
+      if (targetIndex < (length - 1))
+        self.$appTabTray[0].insertBefore(
+          icon,
+        iQ(".appTabIcon:nth-child(" + (targetIndex + 1) + ")", self.$appTabTray)[0]);
+      else
+        $icon.appendTo(self.$appTabTray);
+    });
+  },
+
+  
+  
   
   hideExpandControl: function GroupItem_hideExpandControl() {
     this.$expander.hide();
@@ -2034,6 +2059,15 @@ let GroupItems = {
       groupItem.removeAppTab(xulTab);
     });
     this.updateGroupCloseButtons();
+  },
+
+  
+  
+  
+  arrangeAppTab: function GroupItems_arrangeAppTab(xulTab) {
+    this.groupItems.forEach(function(groupItem) {
+      groupItem.arrangeAppTab(xulTab);
+    });
   },
 
   
