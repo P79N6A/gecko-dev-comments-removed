@@ -846,8 +846,8 @@ class VFPOff
 class VFPOffImm : public VFPOff
 {
   public:
-    VFPOffImm(uint32 imm)
-      : VFPOff(datastore::Imm8VFPOffData(imm >> 2), imm < 0 ? IsDown : IsUp)
+    VFPOffImm(int32 imm)
+      : VFPOff(datastore::Imm8VFPOffData(abs(imm) >> 2), imm < 0 ? IsDown : IsUp)
     { }
 };
 class VFPAddr
@@ -1032,13 +1032,8 @@ class Operand
     }
 };
 
-static inline void
-PatchJump(CodeLocationJump jump, CodeLocationLabel label)
-{
-    
-    
-    JS_NOT_REACHED("NYI");
-}
+void
+PatchJump(CodeLocationJump jump_, CodeLocationLabel label);
 
 class Assembler;
 typedef js::ion::AssemblerBufferWithConstantPool<16, 4, Instruction, Assembler> ARMBuffer;
@@ -1115,7 +1110,10 @@ class Assembler
     Instruction * editSrc (BufferOffset bo) {
         return m_buffer.getInst(bo);
     }
-
+  public:
+    void resetCounter();
+    ptrdiff_t actualOffset(uint8*);
+    BufferOffset actualOffset(BufferOffset);
   protected:
 
     

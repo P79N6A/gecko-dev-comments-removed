@@ -127,8 +127,11 @@ class IonCache
     CodeLocationLabel cacheLabel_;
 
     
+#ifdef JS_CPU_ARM
+    static const size_t REJOIN_LABEL_OFFSET = 4;
+#else
     static const size_t REJOIN_LABEL_OFFSET = 0;
-
+#endif
     union {
         struct {
             Register object;
@@ -168,11 +171,7 @@ class IonCache
 
     IonCache() { PodZero(this); }
 
-    void updateBaseAddress(IonCode *code) {
-        initialJump_.repoint(code);
-        lastJump_.repoint(code);
-        cacheLabel_.repoint(code);
-    }
+    void updateBaseAddress(IonCode *code, MacroAssembler &masm);
 
     CodeLocationJump lastJump() const { return lastJump_; }
     CodeLocationLabel cacheLabel() const { return cacheLabel_; }

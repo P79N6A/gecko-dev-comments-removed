@@ -377,10 +377,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         ma_mov(imm, dest);
     }
     void mov(Register src, Address dest) {
-        JS_NOT_REACHED("NYI");
+        JS_NOT_REACHED("NYI-IC");
     }
     void mov(Address src, Register dest) {
-        JS_NOT_REACHED("NYI");
+        JS_NOT_REACHED("NYI-IC");
     }
 
     void call(const Register reg) {
@@ -543,16 +543,31 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void moveValue(const Value &val, Register type, Register data);
 
     CodeOffsetJump jumpWithPatch(Label *label) {
+        CodeOffsetJump ret(nextOffset().getOffset());
         jump(label);
-        return CodeOffsetJump(size());
+        return ret;
     }
     CodeOffsetJump branchPtrWithPatch(Condition cond, Address addr, ImmGCPtr ptr, Label *label) {
-        JS_NOT_REACHED("NYI-IC");
-        return CodeOffsetJump(size());
+        
+        
+        
+        
+        
+        
+        
+        
+        ma_ldr(addr, lr);
+        ma_cmp(lr, ptr);
+        CodeOffsetJump ret(nextOffset().getOffset());
+        ma_b(label, cond);
+        return ret;
     }
 
     void loadUnboxedValue(Address address, AnyRegister dest) {
-        JS_NOT_REACHED("NYI");
+        if (dest.isFloat())
+            loadInt32OrDouble(Operand(address), dest.fpu());
+        else
+            ma_ldr(address, dest.gpr());
     }
 
     void moveValue(const Value &val, const ValueOperand &dest);
@@ -703,6 +718,11 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     
     void callWithABI(void *fun);
+
+    CodeOffsetLabel labelForPatch() {
+        return CodeOffsetLabel(nextOffset().getOffset());
+    }
+
 };
 
 typedef MacroAssemblerARMCompat MacroAssemblerSpecific;
