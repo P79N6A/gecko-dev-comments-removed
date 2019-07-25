@@ -113,15 +113,6 @@ static gfxIntSize          sSharedSurfaceSize;
 
 
 
-static NS_DEFINE_CID(kRegionCID,                  NS_REGION_CID);
-static NS_DEFINE_IID(kRenderingContextCID,        NS_RENDERING_CONTEXT_CID);
-
-
-
-
-
-
-
 
 
 
