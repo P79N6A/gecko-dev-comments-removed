@@ -117,9 +117,6 @@ public:
   virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
                               PRBool aNullParent = PR_TRUE);
 
-  virtual PRBool IsDoneAddingChildren();
-  virtual nsresult DoneAddingChildren(PRBool aHaveNotified);
-
   
 
 
@@ -148,6 +145,10 @@ public:
   
   
   void DecodeError();
+
+  
+  
+  void LoadAborted();
 
   
   
@@ -333,8 +334,6 @@ public:
 
 protected:
   class MediaLoadListener;
-  class LoadNextSourceEvent;
-  class SelectResourceEvent;
 
   
 
@@ -396,6 +395,7 @@ protected:
   
 
 
+
   void QueueLoadFromSourceTask();
 
   
@@ -404,6 +404,7 @@ protected:
   void SelectResource();
 
   
+
 
 
   void QueueSelectResourceTask();
@@ -417,7 +418,8 @@ protected:
 
 
 
-  already_AddRefed<nsIURI> GetNextSource();
+
+  nsIContent* GetNextSource();
 
   
 
@@ -493,6 +495,17 @@ protected:
 
   void UpdatePreloadAction();
 
+  
+
+
+  void DispatchAsyncSourceError(nsIContent* aSourceElement);
+
+  
+
+
+
+  void Error(PRUint16 aErrorCode);
+
   nsRefPtr<nsMediaDecoder> mDecoder;
 
   
@@ -528,15 +541,16 @@ protected:
 
   enum LoadAlgorithmState {
     
+    
     NOT_WAITING,
     
-    WAITING_FOR_SRC_OR_SOURCE,
     
     
     
     WAITING_FOR_SOURCE
   };
 
+  
   
   
   LoadAlgorithmState mLoadWaitStatus;
@@ -554,7 +568,8 @@ protected:
   
   
   
-  nsCOMPtr<nsIURI> mPreloadURI;
+  
+  nsCOMPtr<nsIURI> mLoadingSrc;
   
   
   
@@ -566,6 +581,10 @@ protected:
   nsIntSize mMediaSize;
 
   nsRefPtr<gfxASurface> mPrintSurface;
+
+  
+  
+  nsCOMPtr<nsIContent> mSourceLoadCandidate;
 
   
   nsAutoPtr<nsAudioStream> mAudioStream;
@@ -603,10 +622,6 @@ protected:
 
   
   PRPackedBool mMuted;
-
-  
-  
-  PRPackedBool mIsDoneAddingChildren;
 
   
   

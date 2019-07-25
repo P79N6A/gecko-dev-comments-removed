@@ -1466,7 +1466,6 @@ nsWaveDecoder::ResourceLoaded()
 
   if (mElement) {
     
-    mElement->DispatchAsyncProgressEvent(NS_LITERAL_STRING("progress"));
     mElement->ResourceLoaded();
   }
 
@@ -1533,8 +1532,10 @@ nsWaveDecoder::NotifyDownloadEnded(nsresult aStatus)
 {
   if (NS_SUCCEEDED(aStatus)) {
     ResourceLoaded();
-  } else if (aStatus != NS_BASE_STREAM_CLOSED &&
-             aStatus != NS_BINDING_ABORTED) {
+  } else if (aStatus == NS_BINDING_ABORTED) {
+    
+    mElement->LoadAborted();
+  } else if (aStatus != NS_BASE_STREAM_CLOSED) {
     NetworkError();
   }
   UpdateReadyStateForData();

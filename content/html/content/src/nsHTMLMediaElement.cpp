@@ -57,6 +57,7 @@
 #include "nsXPCOMStrings.h"
 #include "prlock.h"
 #include "nsThreadUtils.h"
+#include "nsIThreadInternal.h"
 #include "nsContentUtils.h"
 #include "nsFrameManager.h"
 
@@ -88,6 +89,8 @@
 #include <limits>
 #include "nsIDocShellTreeItem.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
+#include "nsIAppShell.h"
+#include "nsWidgetsCID.h"
 
 #include "nsIPrivateDOMEvent.h"
 #include "nsIDOMNotifyAudioAvailableEvent.h"
@@ -209,49 +212,30 @@ public:
   }
 };
 
-class nsHTMLMediaElement::LoadNextSourceEvent : public nsMediaEvent {
+class nsSourceErrorEventRunner : public nsMediaEvent
+{
+private:
+  nsCOMPtr<nsIContent> mSource;
 public:
-  LoadNextSourceEvent(nsHTMLMediaElement *aElement)
-    : nsMediaEvent(aElement) {}
+  nsSourceErrorEventRunner(nsHTMLMediaElement* aElement,
+                           nsIContent* aSource)
+    : nsMediaEvent(aElement),
+      mSource(aSource)
+  {
+  }
+
   NS_IMETHOD Run() {
-    if (!IsCancelled())
-      mElement->LoadFromSourceChildren();
-    return NS_OK;
+    
+    if (IsCancelled())
+      return NS_OK;
+    LOG_EVENT(PR_LOG_DEBUG, ("%p Dispatching simple event source error", mElement.get()));
+    return nsContentUtils::DispatchTrustedEvent(mElement->GetOwnerDoc(),
+                                                mSource,
+                                                NS_LITERAL_STRING("error"),
+                                                PR_TRUE,
+                                                PR_TRUE);
   }
 };
-
-class nsHTMLMediaElement::SelectResourceEvent : public nsMediaEvent {
-public:
-  SelectResourceEvent(nsHTMLMediaElement *aElement)
-    : nsMediaEvent(aElement) {}
-  NS_IMETHOD Run() {
-    if (!IsCancelled()) {
-      NS_ASSERTION(mElement->mIsRunningSelectResource,
-                   "Should have flagged that we're running SelectResource()");
-      mElement->SelectResource();
-      mElement->mIsRunningSelectResource = PR_FALSE;
-    }
-    return NS_OK;
-  }
-};
-
-void nsHTMLMediaElement::QueueSelectResourceTask()
-{
-  
-  if (mIsRunningSelectResource)
-    return;
-  mIsRunningSelectResource = PR_TRUE;
-  ChangeDelayLoadStatus(PR_TRUE);
-  nsCOMPtr<nsIRunnable> event = new SelectResourceEvent(this);
-  NS_DispatchToMainThread(event);
-}
-
-void nsHTMLMediaElement::QueueLoadFromSourceTask()
-{
-  ChangeDelayLoadStatus(PR_TRUE);
-  nsCOMPtr<nsIRunnable> event = new LoadNextSourceEvent(this);
-  NS_DispatchToMainThread(event);
-}
 
 
 
@@ -441,6 +425,8 @@ NS_IMETHODIMP nsHTMLMediaElement::GetCurrentSrc(nsAString & aCurrentSrc)
     if (stream) {
       stream->URI()->GetSpec(src);
     }
+  } else if (mLoadingSrc) {
+    mLoadingSrc->GetSpec(src);
   }
 
   aCurrentSrc = NS_ConvertUTF8toUTF16(src);
@@ -504,7 +490,6 @@ void nsHTMLMediaElement::AbortExistingLoads()
   if (mNetworkState == nsIDOMHTMLMediaElement::NETWORK_LOADING ||
       mNetworkState == nsIDOMHTMLMediaElement::NETWORK_IDLE)
   {
-    mError = new nsMediaError(nsIDOMMediaError::MEDIA_ERR_ABORTED);
     DispatchProgressEvent(NS_LITERAL_STRING("abort"));
   }
 
@@ -551,6 +536,62 @@ void nsHTMLMediaElement::NoSupportedMediaSourceError()
   ChangeDelayLoadStatus(PR_FALSE);
 }
 
+typedef void (nsHTMLMediaElement::*SyncSectionFn)();
+
+
+
+
+class nsSyncSection : public nsMediaEvent
+{
+private:
+  SyncSectionFn mClosure;
+public:
+  nsSyncSection(nsHTMLMediaElement* aElement,
+                SyncSectionFn aClosure) :
+    nsMediaEvent(aElement),
+    mClosure(aClosure)
+  {
+  }
+
+  NS_IMETHOD Run() {
+    
+    if (IsCancelled())
+      return NS_OK;
+    (mElement.get()->*mClosure)();
+    return NS_OK;
+  }
+};
+
+static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
+
+
+
+
+void AsyncAwaitStableState(nsHTMLMediaElement* aElement,
+                           SyncSectionFn aClosure)
+{
+  nsCOMPtr<nsIRunnable> event = new nsSyncSection(aElement, aClosure);
+  nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
+  appShell->RunInStableState(event);
+}
+
+void nsHTMLMediaElement::QueueLoadFromSourceTask()
+{
+  ChangeDelayLoadStatus(PR_TRUE);
+  mNetworkState = nsIDOMHTMLMediaElement::NETWORK_LOADING;
+  AsyncAwaitStableState(this, &nsHTMLMediaElement::LoadFromSourceChildren);
+}
+
+void nsHTMLMediaElement::QueueSelectResourceTask()
+{
+  
+  if (mIsRunningSelectResource)
+    return;
+  mIsRunningSelectResource = PR_TRUE;
+  mNetworkState = nsIDOMHTMLMediaElement::NETWORK_NO_SOURCE;
+  AsyncAwaitStableState(this, &nsHTMLMediaElement::SelectResource);
+}
+
 
 NS_IMETHODIMP nsHTMLMediaElement::Load()
 {
@@ -591,17 +632,19 @@ static PRBool HasPotentialResource(nsIContent *aElement)
 
 void nsHTMLMediaElement::SelectResource()
 {
-  NS_ASSERTION(mDelayingLoadEvent, "Load event not delayed during resource selection?");
-
+  NS_ASSERTION(!mDelayingLoadEvent,
+    "Load event should not be delayed at start of resource selection.");
   if (!HasPotentialResource(this)) {
     
     
-    mNetworkState = nsIDOMHTMLMediaElement::NETWORK_NO_SOURCE;
-    mLoadWaitStatus = WAITING_FOR_SRC_OR_SOURCE;
+    mNetworkState = nsIDOMHTMLMediaElement::NETWORK_EMPTY;
     
     ChangeDelayLoadStatus(PR_FALSE);
+    mIsRunningSelectResource = PR_FALSE;
     return;
   }
+
+  ChangeDelayLoadStatus(PR_TRUE);
 
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_LOADING;
   
@@ -617,29 +660,37 @@ void nsHTMLMediaElement::SelectResource()
     if (NS_SUCCEEDED(rv)) {
       LOG(PR_LOG_DEBUG, ("%p Trying load from src=%s", this, NS_ConvertUTF16toUTF8(src).get()));
       mIsLoadingFromSrcAttribute = PR_TRUE;
+      mLoadingSrc = uri;
       if (mPreloadAction == nsHTMLMediaElement::PRELOAD_NONE) {
         
         
         SuspendLoad(uri);
+        mIsRunningSelectResource = PR_FALSE;
         return;
       }
 
       rv = LoadResource(uri);
-      if (NS_SUCCEEDED(rv))
+      if (NS_SUCCEEDED(rv)) {
+        mIsRunningSelectResource = PR_FALSE;
         return;
+      }
     }
     NoSupportedMediaSourceError();
   } else {
     
     LoadFromSourceChildren();
   }
+  mIsRunningSelectResource = PR_FALSE;
 }
 
 void nsHTMLMediaElement::NotifyLoadError()
 {
   if (mIsLoadingFromSrcAttribute) {
+    LOG(PR_LOG_DEBUG, ("NotifyLoadError(), no supported media error"));
     NoSupportedMediaSourceError();
   } else {
+    NS_ASSERTION(mSourceLoadCandidate, "Must know the source we were loading from!");
+    DispatchAsyncSourceError(mSourceLoadCandidate);
     QueueLoadFromSourceTask();
   }
 }
@@ -682,18 +733,47 @@ void nsHTMLMediaElement::LoadFromSourceChildren()
 {
   NS_ASSERTION(mDelayingLoadEvent,
                "Should delay load event (if in document) during load");
+  NS_ASSERTION(!mIsLoadingFromSrcAttribute,
+               "Must remember we're loading from source children");
   while (PR_TRUE) {
     nsresult rv;
-    nsCOMPtr<nsIURI> uri = GetNextSource();
-    if (!uri) {
+    nsIContent* child = GetNextSource();
+    if (!child) {
       
       
       mLoadWaitStatus = WAITING_FOR_SOURCE;
-      NoSupportedMediaSourceError();
+      mNetworkState = nsIDOMHTMLMediaElement::NETWORK_NO_SOURCE;
+      ChangeDelayLoadStatus(PR_FALSE);
       return;
     }
 
-    mNetworkState = nsIDOMHTMLMediaElement::NETWORK_LOADING;
+    nsCOMPtr<nsIURI> uri;
+    nsAutoString src,type;
+
+    
+    if (!child->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src)) {
+      DispatchAsyncSourceError(child);
+      continue;
+    }
+
+    
+    if (child->GetAttr(kNameSpaceID_None, nsGkAtoms::type, type) &&
+        GetCanPlay(type) == CANPLAY_NO)
+    {
+      DispatchAsyncSourceError(child);
+      continue;
+    }
+    LOG(PR_LOG_DEBUG, ("%p Trying load from <source>=%s type=%s", this,
+      NS_ConvertUTF16toUTF8(src).get(), NS_ConvertUTF16toUTF8(type).get()));
+    NewURIFromString(src, getter_AddRefs(uri));
+    if (!uri) {
+      DispatchAsyncSourceError(child);
+      continue;
+    }
+
+    mLoadingSrc = uri;
+    NS_ASSERTION(mNetworkState == nsIDOMHTMLMediaElement::NETWORK_LOADING,
+                 "Network state should be loading");
 
     if (mPreloadAction == nsHTMLMediaElement::PRELOAD_NONE) {
       
@@ -707,6 +787,7 @@ void nsHTMLMediaElement::LoadFromSourceChildren()
       return;
 
     
+    DispatchAsyncSourceError(child);
   }
   NS_NOTREACHED("Execution should not reach here!");
 }
@@ -714,7 +795,6 @@ void nsHTMLMediaElement::LoadFromSourceChildren()
 void nsHTMLMediaElement::SuspendLoad(nsIURI* aURI)
 {
   mLoadIsSuspended = PR_TRUE;
-  mPreloadURI = aURI;
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_IDLE;
   DispatchAsyncProgressEvent(NS_LITERAL_STRING("suspend"));
   ChangeDelayLoadStatus(PR_FALSE);
@@ -723,9 +803,8 @@ void nsHTMLMediaElement::SuspendLoad(nsIURI* aURI)
 void nsHTMLMediaElement::ResumeLoad(PreloadAction aAction)
 {
   NS_ASSERTION(mLoadIsSuspended, "Can only resume preload if halted for one");
-  nsCOMPtr<nsIURI> uri = mPreloadURI;
+  nsCOMPtr<nsIURI> uri = mLoadingSrc;
   mLoadIsSuspended = PR_FALSE;
-  mPreloadURI = nsnull;
   mPreloadAction = aAction;
   ChangeDelayLoadStatus(PR_TRUE);
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_LOADING;
@@ -1063,6 +1142,7 @@ NS_IMETHODIMP nsHTMLMediaElement::GetPaused(PRBool *aPaused)
 NS_IMETHODIMP nsHTMLMediaElement::Pause()
 {
   if (mNetworkState == nsIDOMHTMLMediaElement::NETWORK_EMPTY) {
+    LOG(PR_LOG_DEBUG, ("Loading due to Pause()"));
     nsresult rv = Load();
     NS_ENSURE_SUCCESS(rv, rv);
   } else if (mDecoder) {
@@ -1200,7 +1280,6 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo,
     mAutoplayEnabled(PR_TRUE),
     mPaused(PR_TRUE),
     mMuted(PR_FALSE),
-    mIsDoneAddingChildren(!aFromParser),
     mPlayingBeforeSeek(PR_FALSE),
     mPausedForInactiveDocument(PR_FALSE),
     mWaitingFired(PR_FALSE),
@@ -1369,16 +1448,11 @@ nsresult nsHTMLMediaElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                     aNotify);
   if (NS_FAILED(rv))
     return rv;
+  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::src) {
+    Load();
+  }
   if (aNotify && aNameSpaceID == kNameSpaceID_None) {
-    if (aName == nsGkAtoms::src) {
-      if (mLoadWaitStatus == WAITING_FOR_SRC_OR_SOURCE) {
-        
-        
-        
-        mLoadWaitStatus = NOT_WAITING;
-        QueueSelectResourceTask();
-      }
-    } else if (aName == nsGkAtoms::autoplay) {
+    if (aName == nsGkAtoms::autoplay) {
       StopSuspendingAfterFirstFrame();
       if (mReadyState == nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) {
         NotifyAutoplayDataReady();
@@ -1429,15 +1503,6 @@ nsresult nsHTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aPar
                                                  aParent,
                                                  aBindingParent,
                                                  aCompileEventHandlers);
-  if (aDocument) {
-    if (NS_SUCCEEDED(rv) &&
-        mIsDoneAddingChildren &&
-        mNetworkState == nsIDOMHTMLMediaElement::NETWORK_EMPTY)
-    {
-      QueueSelectResourceTask();
-    }
-  }
-
   mIsBindingToTree = PR_FALSE;
 
   return rv;
@@ -1814,6 +1879,9 @@ nsresult nsHTMLMediaElement::FinishDecoderSetup(nsMediaDecoder* aDecoder)
   mDecoder = aDecoder;
 
   
+  mLoadingSrc = nsnull;
+
+  
   mMediaSecurityVerified = PR_FALSE;
 
   
@@ -1903,28 +1971,42 @@ void nsHTMLMediaElement::ResourceLoaded()
   AddRemoveSelfReference();
   ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
   
+  DispatchAsyncProgressEvent(NS_LITERAL_STRING("progress"));
+  
   DispatchAsyncSimpleEvent(NS_LITERAL_STRING("suspend"));
 }
 
 void nsHTMLMediaElement::NetworkError()
 {
-  mError = new nsMediaError(nsIDOMMediaError::MEDIA_ERR_NETWORK);
-  mBegun = PR_FALSE;
-  DispatchAsyncProgressEvent(NS_LITERAL_STRING("error"));
-  mNetworkState = nsIDOMHTMLMediaElement::NETWORK_EMPTY;
-  AddRemoveSelfReference();
-  DispatchAsyncSimpleEvent(NS_LITERAL_STRING("emptied"));
-  ChangeDelayLoadStatus(PR_FALSE);
+  Error(nsIDOMMediaError::MEDIA_ERR_NETWORK);
 }
 
 void nsHTMLMediaElement::DecodeError()
 {
-  mError = new nsMediaError(nsIDOMMediaError::MEDIA_ERR_DECODE);
+  Error(nsIDOMMediaError::MEDIA_ERR_DECODE);
+}
+
+void nsHTMLMediaElement::LoadAborted()
+{
+  Error(nsIDOMMediaError::MEDIA_ERR_ABORTED);
+}
+
+void nsHTMLMediaElement::Error(PRUint16 aErrorCode)
+{
+  NS_ASSERTION(aErrorCode == nsIDOMMediaError::MEDIA_ERR_DECODE ||
+               aErrorCode == nsIDOMMediaError::MEDIA_ERR_NETWORK ||
+               aErrorCode == nsIDOMMediaError::MEDIA_ERR_ABORTED,
+               "Only use nsIDOMMediaError codes!");
+  mError = new nsMediaError(aErrorCode);
   mBegun = PR_FALSE;
   DispatchAsyncProgressEvent(NS_LITERAL_STRING("error"));
-  mNetworkState = nsIDOMHTMLMediaElement::NETWORK_EMPTY;
+  if (mReadyState == nsIDOMHTMLMediaElement::HAVE_NOTHING) {
+    mNetworkState = nsIDOMHTMLMediaElement::NETWORK_EMPTY;
+    DispatchAsyncSimpleEvent(NS_LITERAL_STRING("emptied"));
+  } else {
+    mNetworkState = nsIDOMHTMLMediaElement::NETWORK_IDLE;
+  }
   AddRemoveSelfReference();
-  DispatchAsyncSimpleEvent(NS_LITERAL_STRING("emptied"));
   ChangeDelayLoadStatus(PR_FALSE);
 }
 
@@ -2211,25 +2293,6 @@ nsresult nsHTMLMediaElement::DispatchProgressEvent(const nsAString& aName)
   return target->DispatchEvent(event, &dummy);
 }
 
-nsresult nsHTMLMediaElement::DoneAddingChildren(PRBool aHaveNotified)
-{
-  if (!mIsDoneAddingChildren) {
-    mIsDoneAddingChildren = PR_TRUE;
-
-    UpdatePreloadAction();
-    if (mNetworkState == nsIDOMHTMLMediaElement::NETWORK_EMPTY) {
-      QueueSelectResourceTask();
-    }
-  }
-
-  return NS_OK;
-}
-
-PRBool nsHTMLMediaElement::IsDoneAddingChildren()
-{
-  return mIsDoneAddingChildren;
-}
-
 PRBool nsHTMLMediaElement::IsPotentiallyPlaying() const
 {
   
@@ -2349,20 +2412,40 @@ nsHTMLMediaElement::IsNodeOfType(PRUint32 aFlags) const
   return !(aFlags & ~(eCONTENT | eMEDIA));
 }
 
+void nsHTMLMediaElement::DispatchAsyncSourceError(nsIContent* aSourceElement)
+{
+  LOG_EVENT(PR_LOG_DEBUG, ("%p Queuing simple source error event", this));
+
+  nsCOMPtr<nsIRunnable> event = new nsSourceErrorEventRunner(this, aSourceElement);
+  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+}
+
 void nsHTMLMediaElement::NotifyAddedSource()
 {
-  if (mLoadWaitStatus == WAITING_FOR_SRC_OR_SOURCE) {
+  
+  
+  
+  
+  if (!HasAttr(kNameSpaceID_None, nsGkAtoms::src) &&
+      mNetworkState == nsIDOMHTMLMediaElement::NETWORK_EMPTY)
+  {
     QueueSelectResourceTask();
-  } else if (mLoadWaitStatus == WAITING_FOR_SOURCE) {
+  }
+
+  
+  
+  if (mLoadWaitStatus == WAITING_FOR_SOURCE) {
     QueueLoadFromSourceTask();
   }
 }
 
-already_AddRefed<nsIURI> nsHTMLMediaElement::GetNextSource()
+nsIContent* nsHTMLMediaElement::GetNextSource()
 {
   nsresult rv = NS_OK;
   nsCOMPtr<nsIDOMNode> thisDomNode =
     do_QueryInterface(static_cast<nsGenericElement*>(this));
+
+  mSourceLoadCandidate = nsnull;
 
   if (!mSourcePointer) {
     
@@ -2402,22 +2485,8 @@ already_AddRefed<nsIURI> nsHTMLMediaElement::GetNextSource()
         child->Tag() == nsGkAtoms::source &&
         child->IsHTML())
     {
-      nsCOMPtr<nsIURI> uri;
-      nsAutoString src,type;
-
-      
-      if (!child->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src))
-        continue;
-
-      
-      if (child->GetAttr(kNameSpaceID_None, nsGkAtoms::type, type) &&
-          GetCanPlay(type) == CANPLAY_NO)
-        continue;
-
-      LOG(PR_LOG_DEBUG, ("%p Trying load from <source>=%s type=%s", this,
-                         NS_ConvertUTF16toUTF8(src).get(), NS_ConvertUTF16toUTF8(type).get()));
-      NewURIFromString(src, getter_AddRefs(uri));
-      return uri.forget();
+      mSourceLoadCandidate = child;
+      return child;
     }
   }
   NS_NOTREACHED("Execution should not reach here!");

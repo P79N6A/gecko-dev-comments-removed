@@ -324,7 +324,27 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, PRBool mayWait,
     thr->Dispatch(mDummyEvent, NS_DISPATCH_NORMAL);
   }
 
+  
+  RunSyncSections();
+
   return NS_OK;
+}
+
+void
+nsBaseAppShell::RunSyncSections()
+{
+  if (mSyncSections.Count() == 0) {
+    return;
+  }
+  
+  
+  
+  
+  
+  for (PRUint32 i=0; i<mSyncSections.Count(); i++) {
+    mSyncSections[i]->Run();
+  }
+  mSyncSections.Clear();
 }
 
 
@@ -332,6 +352,8 @@ NS_IMETHODIMP
 nsBaseAppShell::AfterProcessNextEvent(nsIThreadInternal *thr,
                                       PRUint32 recursionDepth)
 {
+  
+  RunSyncSections();
   return NS_OK;
 }
 
@@ -341,5 +363,20 @@ nsBaseAppShell::Observe(nsISupports *subject, const char *topic,
 {
   NS_ASSERTION(!strcmp(topic, NS_XPCOM_SHUTDOWN_OBSERVER_ID), "oops");
   Exit();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsBaseAppShell::RunInStableState(nsIRunnable* aRunnable)
+{
+  if (!mRunning) {
+    
+    
+    aRunnable->Run();
+    return NS_OK;
+  }
+  
+  
+  mSyncSections.AppendObject(aRunnable);
   return NS_OK;
 }
