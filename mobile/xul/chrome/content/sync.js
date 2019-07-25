@@ -335,7 +335,7 @@ let WeaveGlue = {
 
     
     
-    Weave.Service.login(Weave.Service.username, this.setupData.password, this.setupData.synckey);
+    Weave.Service.login(Weave.Identity.username, this.setupData.password, this.setupData.synckey);
   },
 
   connect: function connect(aSetupData) {
@@ -344,7 +344,7 @@ let WeaveGlue = {
       this.setupData = aSetupData;
 
     
-    if (this.setupData.account != Weave.Service.account)
+    if (this.setupData.account != Weave.Identity.account)
       Weave.Service.startOver();
 
     
@@ -355,9 +355,9 @@ let WeaveGlue = {
       Weave.Service.serverURL = this.setupData.serverURL;
 
     
-    Weave.Service.account = this.setupData.account;
-    Weave.Service.password = this.setupData.password;
-    Weave.Service.passphrase = this.setupData.synckey;
+    Weave.Identity.account = this.setupData.account;
+    Weave.Identity.basicPassword = this.setupData.password;
+    Weave.Identity.syncKey = this.setupData.synckey;
     Weave.Service.persistLogin();
     Weave.Svc.Obs.notify("weave:service:setup-complete");
     setTimeout(function () { Weave.Service.sync(); }, 0);
@@ -505,7 +505,7 @@ let WeaveGlue = {
     }, 0, this);
 
     
-    let accountStr = this._bundle.formatStringFromName("account.label", [Weave.Service.account], 1);
+    let accountStr = this._bundle.formatStringFromName("account.label", [Weave.Identity.account], 1);
     disconnect.setAttribute("title", accountStr);
 
     
@@ -589,9 +589,9 @@ let WeaveGlue = {
 
   loadSetupData: function _loadSetupData() {
     this.setupData = {};
-    this.setupData.account = Weave.Service.account || "";
-    this.setupData.password = Weave.Service.password || "";
-    this.setupData.synckey = Weave.Service.passphrase || "";
+    this.setupData.account = Weave.Identity.account || "";
+    this.setupData.password = Weave.Identity.basicPassword || "";
+    this.setupData.synckey = Weave.Identity.syncKey || "";
 
     let serverURL = Weave.Service.serverURL;
     let defaultPrefs = Services.prefs.getDefaultBranch(null);
@@ -652,9 +652,9 @@ let SyncPairDevice = {
     let self = this;
     let jpake = this.jpake = new Weave.JPAKEClient({
       onPaired: function onPaired() {
-        let credentials = {account:   Weave.Service.account,
-                           password:  Weave.Service.password,
-                           synckey:   Weave.Service.passphrase,
+        let credentials = {account:   Weave.Identity.account,
+                           password:  Weave.Identity.basicPassword,
+                           synckey:   Weave.Identity.syncKey,
                            serverURL: Weave.Service.serverURL};
         jpake.sendAndComplete(credentials);
       },
