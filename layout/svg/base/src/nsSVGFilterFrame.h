@@ -74,11 +74,8 @@ public:
 
 
 
-
-
-
   nsIntRect GetPostFilterBounds(nsIFrame *aFilteredFrame,
-                                const gfxRect *aOverrideBBox = nsnull,
+                                const nsIntRect *aOverrideBBox = nsnull,
                                 const nsIntRect *aPreFilterBounds = nsnull);
 
 #ifdef DEBUG
