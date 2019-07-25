@@ -415,6 +415,8 @@ protected:
   nsPresContext* GetPresContext();
   nsIViewManager* GetViewManager();
 
+  void DetachFromTopLevelWidget();
+
   
   
   
@@ -439,6 +441,7 @@ protected:
   nsCOMPtr<nsISHEntry> mSHEntry;
 
   nsIWidget* mParentWidget; 
+  PRBool mAttachedToParent; 
 
   nsIntRect mBounds;
 
@@ -520,6 +523,7 @@ void DocumentViewerImpl::PrepareToStartLoad()
 {
   mStopped          = PR_FALSE;
   mLoaded           = PR_FALSE;
+  mAttachedToParent = PR_FALSE;
   mDeferredWindowClose = PR_FALSE;
   mCallerIsClosingWindow = PR_FALSE;
 
@@ -1853,8 +1857,16 @@ DocumentViewerImpl::SetBounds(const nsIntRect& aBounds)
   if (mWindow) {
     
     
-    mWindow->Resize(aBounds.x, aBounds.y, aBounds.width, aBounds.height,
-                    PR_FALSE);
+    
+    
+    if (mAttachedToParent)
+      mWindow->ResizeClient(aBounds.x, aBounds.y,
+                            aBounds.width, aBounds.height,
+                            PR_FALSE);
+    else
+      mWindow->Resize(aBounds.x, aBounds.y,
+                      aBounds.width, aBounds.height,
+                      PR_FALSE);
   } else if (mPresContext && mViewManager) {
     PRInt32 p2a = mPresContext->AppUnitsPerDevPixel();
     mViewManager->SetWindowDimensions(NSIntPixelsToAppUnits(mBounds.width, p2a),
@@ -2235,6 +2247,29 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
   if (GetIsPrintPreview())
     return NS_OK;
 
+  
+  
+  
+  
+  
+  
+#ifdef XP_WIN
+  nsCOMPtr<nsIDocShellTreeItem> containerItem = do_QueryReferent(mContainer);
+  if (mParentWidget && containerItem) {
+    PRInt32 docType;
+    nsWindowType winType;
+    containerItem->GetItemType(&docType);
+    mParentWidget->GetWindowType(winType);
+    if (winType == eWindowType_toplevel &&
+        docType == nsIDocShellTreeItem::typeChrome) {
+      
+      DetachFromTopLevelWidget();
+      
+      mAttachedToParent = PR_TRUE;
+    }
+  }
+#endif
+
   nsresult rv;
   mViewManager = do_CreateInstance(kViewManagerCID, &rv);
   if (NS_FAILED(rv))
@@ -2271,10 +2306,17 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
     } else {
       initDataPtr = nsnull;
     }
-    rv = view->CreateWidget(kWidgetCID, initDataPtr,
-                            (aContainerView != nsnull || !mParentWidget) ?
-                              nsnull : mParentWidget->GetNativeData(NS_NATIVE_WIDGET),
-                            PR_TRUE, PR_FALSE);
+
+    if (mAttachedToParent) {
+      
+      rv = view->AttachToTopLevelWidget(mParentWidget);
+    }
+    else {
+      nsNativeWidget nw = (aContainerView != nsnull || !mParentWidget) ?
+                 nsnull : mParentWidget->GetNativeData(NS_NATIVE_WIDGET);
+      rv = view->CreateWidget(kWidgetCID, initDataPtr,
+                              nw, PR_TRUE, PR_FALSE);
+    }
     if (NS_FAILED(rv))
       return rv;
   }
@@ -2290,6 +2332,19 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
   
 
   return rv;
+}
+
+void
+DocumentViewerImpl::DetachFromTopLevelWidget()
+{
+  if (mViewManager) {
+    nsIView* oldView = nsnull;
+    mViewManager->GetRootView(oldView);
+    if (oldView && oldView->IsAttachedToTopLevel()) {
+      oldView->DetachFromTopLevelWidget();
+    }
+  }
+  mAttachedToParent = PR_FALSE;
 }
 
 nsIView*
