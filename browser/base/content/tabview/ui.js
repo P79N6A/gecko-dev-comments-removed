@@ -184,11 +184,14 @@ var UIManager = {
         });
 
         
+        let welcome = "How to organize your tabs";
+        let more = "";
+        let video = "http://videos-cdn.mozilla.net/firefox4beta/tabcandy_howto.webm";
         var html =
           "<div class='intro'>"
-            + "<h1>Welcome to Firefox Tab Sets</h1>" 
-            + "<div>(more goes here)</div><br>"
-            + "<video src='http://people.mozilla.org/~araskin/movies/tabcandy_howto.webm' "
+            + "<h1>" + welcome + "</h1>"
+            + ( more && more.length ? "<div>" + more + "</div><br>" : "")
+            + "<video src='" + video + "' "
             + "width='100%' preload controls>"
           + "</div>";
 
