@@ -191,7 +191,7 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo)
       
       
       
-      readAllBOS = PR_TRUE;
+      readAllBOS = true;
     } else if (!mCodecStates.Get(serial, nsnull)) {
       
       
@@ -262,7 +262,7 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo)
                         mTheoraState->mInfo.frame_height);
     if (nsVideoInfo::ValidateVideoRegion(frameSize, picture, displaySize)) {
       
-      mInfo.mHasVideo = PR_TRUE;
+      mInfo.mHasVideo = true;
       mInfo.mDisplay = displaySize;
       mPicture = picture;
 
@@ -277,7 +277,7 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo)
   }
 
   if (mVorbisState && ReadHeaders(mVorbisState)) {
-    mInfo.mHasAudio = PR_TRUE;
+    mInfo.mHasAudio = true;
     mInfo.mAudioRate = mVorbisState->mInfo.rate;
     mInfo.mAudioChannels = mVorbisState->mInfo.channels;
     
@@ -399,7 +399,7 @@ bool nsOggReader::DecodeAudioData()
   } while (packet && mVorbisState->IsHeader(packet));
   if (!packet) {
     mAudioQueue.Finish();
-    return PR_FALSE;
+    return false;
   }
 
   NS_ASSERTION(packet && packet->granulepos != -1,
@@ -411,10 +411,10 @@ bool nsOggReader::DecodeAudioData()
     
     
     mAudioQueue.Finish();
-    return PR_FALSE;
+    return false;
   }
 
-  return PR_TRUE;
+  return true;
 }
 
 nsresult nsOggReader::DecodeTheora(ogg_packet* aPacket, PRInt64 aTimeThreshold)
@@ -502,7 +502,7 @@ bool nsOggReader::DecodeVideoFrame(bool &aKeyframeSkip,
   } while (packet && mTheoraState->IsHeader(packet));
   if (!packet) {
     mVideoQueue.Finish();
-    return PR_FALSE;
+    return false;
   }
   nsAutoReleasePacket autoRelease(packet);
 
@@ -514,11 +514,11 @@ bool nsOggReader::DecodeVideoFrame(bool &aKeyframeSkip,
   if (!aKeyframeSkip ||
      (th_packet_iskeyframe(packet) && frameEndTime >= aTimeThreshold))
   {
-    aKeyframeSkip = PR_FALSE;
+    aKeyframeSkip = false;
     nsresult res = DecodeTheora(packet, aTimeThreshold);
     decoded++;
     if (NS_FAILED(res)) {
-      return PR_FALSE;
+      return false;
     }
   }
 
@@ -526,10 +526,10 @@ bool nsOggReader::DecodeVideoFrame(bool &aKeyframeSkip,
     
     
     mVideoQueue.Finish();
-    return PR_FALSE;
+    return false;
   }
 
-  return PR_TRUE;
+  return true;
 }
 
 PRInt64 nsOggReader::ReadOggPage(ogg_page* aPage)
@@ -643,7 +643,7 @@ PRInt64 nsOggReader::RangeEndTime(PRInt64 aEndOffset)
   nsMediaStream* stream = mDecoder->GetCurrentStream();
   NS_ENSURE_TRUE(stream != nsnull, -1);
   PRInt64 position = stream->Tell();
-  PRInt64 endTime = RangeEndTime(0, aEndOffset, PR_FALSE);
+  PRInt64 endTime = RangeEndTime(0, aEndOffset, false);
   nsresult res = stream->Seek(nsISeekableStream::NS_SEEK_SET, position);
   NS_ENSURE_SUCCESS(res, -1);
   return endTime;
@@ -669,7 +669,7 @@ PRInt64 nsOggReader::RangeEndTime(PRInt64 aStartOffset,
   PRUint32 checksumAfterSeek = 0;
   PRUint32 prevChecksumAfterSeek = 0;
   bool mustBackOff = false;
-  while (PR_TRUE) {
+  while (true) {
     ogg_page page;    
     int ret = ogg_sync_pageseek(&sync.mState, &page);
     if (ret == 0) {
@@ -680,7 +680,7 @@ PRInt64 nsOggReader::RangeEndTime(PRInt64 aStartOffset,
           
           break;
         }
-        mustBackOff = PR_FALSE;
+        mustBackOff = false;
         prevChecksumAfterSeek = checksumAfterSeek;
         checksumAfterSeek = 0;
         ogg_sync_reset(&sync.mState);
@@ -739,7 +739,7 @@ PRInt64 nsOggReader::RangeEndTime(PRInt64 aStartOffset,
       
       
       
-      mustBackOff = PR_TRUE;
+      mustBackOff = true;
       continue;
     }
 
@@ -895,7 +895,7 @@ nsOggReader::IndexedSeekResult nsOggReader::SeekToKeyframeUsingIndex(PRInt64 aTa
   int skippedBytes = 0;
   PageSyncResult syncres = PageSync(stream,
                                     &mOggState,
-                                    PR_FALSE,
+                                    false,
                                     mPageOffset,
                                     stream->GetLength(),
                                     &page,
@@ -970,7 +970,7 @@ nsresult nsOggReader::SeekInBufferedRange(PRInt64 aTarget,
                                   keyframeTime,
                                   aStartTime,
                                   aEndTime,
-                                  PR_FALSE);
+                                  false);
     res = SeekBisection(keyframeTime, k, SEEK_FUZZ_USECS);
   }
   return res;
@@ -1002,7 +1002,7 @@ nsresult nsOggReader::SeekInUnbuffered(PRInt64 aTarget,
   PRInt64 seekTarget = NS_MAX(aStartTime, aTarget - keyframeOffsetMs);
   
   
-  SeekRange k = SelectSeekRange(aRanges, seekTarget, aStartTime, aEndTime, PR_FALSE);
+  SeekRange k = SelectSeekRange(aRanges, seekTarget, aStartTime, aEndTime, false);
   return SeekBisection(seekTarget, k, SEEK_FUZZ_USECS);
 }
 
@@ -1044,7 +1044,7 @@ nsresult nsOggReader::Seek(PRInt64 aTarget,
       NS_ENSURE_SUCCESS(res,res);
 
       
-      SeekRange r = SelectSeekRange(ranges, aTarget, aStartTime, aEndTime, PR_TRUE);
+      SeekRange r = SelectSeekRange(ranges, aTarget, aStartTime, aEndTime, true);
 
       if (!r.IsNull()) {
         
@@ -1171,7 +1171,7 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
   
   
   
-  while (PR_TRUE) {
+  while (true) {
     ogg_int64_t duration = 0;
     double target = 0;
     ogg_int64_t interval = 0;
@@ -1186,7 +1186,7 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
     
     
     
-    while (PR_TRUE) {
+    while (true) {
   
       
       if (NS_FAILED(ResetDecode())) {
@@ -1230,7 +1230,7 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
         backsteps = NS_MIN(backsteps + 1, maxBackStep);
         
         
-        mustBackoff = PR_FALSE;
+        mustBackoff = false;
       } else {
         backsteps = 0;
       }
@@ -1254,7 +1254,7 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
       
       PageSyncResult res = PageSync(stream,
                                     &mOggState,
-                                    PR_FALSE,
+                                    false,
                                     guess,
                                     endOffset,
                                     &page,
@@ -1271,7 +1271,7 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
         
         
         
-        mustBackoff = PR_TRUE;
+        mustBackoff = true;
         SEEK_LOG(PR_LOG_DEBUG, ("Hit the end of range, backing off"));
         continue;
       }
@@ -1336,7 +1336,7 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
 
         
         
-        mustBackoff = PR_TRUE;
+        mustBackoff = true;
         continue;
       }
 
@@ -1438,7 +1438,7 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
       PRInt32 discard;
       PageSyncResult res = PageSync(stream,
                                     &sync.mState,
-                                    PR_TRUE,
+                                    true,
                                     startOffset,
                                     endOffset,
                                     &page,
@@ -1484,7 +1484,7 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
     if (startTime != -1) {
       
       
-      PRInt64 endTime = RangeEndTime(startOffset, endOffset, PR_TRUE);
+      PRInt64 endTime = RangeEndTime(startOffset, endOffset, true);
       if (endTime != -1) {
         aBuffered->Add((startTime - aStartTime) / static_cast<double>(USECS_PER_S),
                        (endTime - aStartTime) / static_cast<double>(USECS_PER_S));
@@ -1500,9 +1500,9 @@ bool nsOggReader::IsKnownStream(PRUint32 aSerial)
   for (PRUint32 i = 0; i < mKnownStreams.Length(); i++) {
     PRUint32 serial = mKnownStreams[i];
     if (serial == aSerial) {
-      return PR_TRUE;
+      return true;
     }
   }
 
-  return PR_FALSE;
+  return false;
 }

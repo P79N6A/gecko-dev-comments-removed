@@ -71,11 +71,11 @@ nsMediaChannelStream::nsMediaChannelStream(nsMediaDecoder* aDecoder,
     nsIChannel* aChannel, nsIURI* aURI)
   : nsMediaStream(aDecoder, aChannel, aURI),
     mOffset(0), mSuspendCount(0),
-    mReopenOnError(PR_FALSE), mIgnoreClose(PR_FALSE),
+    mReopenOnError(false), mIgnoreClose(false),
     mCacheStream(this),
     mLock("nsMediaChannelStream.mLock"),
     mCacheSuspendCount(0),
-    mIgnoreResume(PR_FALSE)
+    mIgnoreResume(false)
 {
 }
 
@@ -229,7 +229,7 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
           mDecoder->SetDuration(duration);
         }
       } else {
-        mDecoder->SetInfinite(PR_TRUE);
+        mDecoder->SetInfinite(true);
       }
     }
 
@@ -241,7 +241,7 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
       mOffset = 0;
 
       
-      acceptsRanges = PR_FALSE;
+      acceptsRanges = false;
     } else if (mOffset == 0 &&
                (responseStatus == HTTP_OK_CODE ||
                 responseStatus == HTTP_PARTIAL_RESPONSE_CODE)) {
@@ -263,7 +263,7 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
       responseStatus == HTTP_PARTIAL_RESPONSE_CODE || acceptsRanges;
 
     if (seekable) {
-      mDecoder->SetInfinite(PR_FALSE);
+      mDecoder->SetInfinite(false);
     }
   }
   mDecoder->SetSeekable(seekable);
@@ -274,7 +274,7 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
     bool fromCache = false;
     rv = cc->IsFromCache(&fromCache);
     if (NS_SUCCEEDED(rv) && !fromCache) {
-      cc->SetCacheAsFile(PR_TRUE);
+      cc->SetCacheAsFile(true);
     }
   }
 
@@ -283,19 +283,19 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
     mChannelStatistics.Start(TimeStamp::Now());
   }
 
-  mReopenOnError = PR_FALSE;
-  mIgnoreClose = PR_FALSE;
+  mReopenOnError = false;
+  mIgnoreClose = false;
   if (mSuspendCount > 0) {
     
     
     
     mChannel->Suspend();
-    mIgnoreResume = PR_FALSE;
+    mIgnoreResume = false;
   }
 
   
   
-  mDecoder->Progress(PR_FALSE);
+  mDecoder->Progress(false);
 
   return NS_OK;
 }
@@ -324,7 +324,7 @@ nsMediaChannelStream::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
     
     
     
-    nsresult rv = CacheClientSeek(mOffset, PR_FALSE);
+    nsresult rv = CacheClientSeek(mOffset, false);
     if (NS_SUCCEEDED(rv))
       return rv;
     
@@ -338,7 +338,7 @@ nsMediaChannelStream::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
     
     
     if (mLoadInBackground) {
-      mLoadInBackground = PR_FALSE;
+      mLoadInBackground = false;
 
       nsLoadFlags loadFlags;
       DebugOnly<nsresult> rv = mChannel->GetLoadFlags(&loadFlags);
@@ -470,7 +470,7 @@ nsresult nsMediaChannelStream::OpenChannel(nsIStreamListener** aStreamListener)
         new nsCORSListenerProxy(mListener,
                                 element->NodePrincipal(),
                                 mChannel,
-                                PR_FALSE,
+                                false,
                                 &rv);
       listener = crossSiteListener;
       NS_ENSURE_TRUE(crossSiteListener, NS_ERROR_OUT_OF_MEMORY);
@@ -503,7 +503,7 @@ void nsMediaChannelStream::SetupChannelHeaders()
     nsCAutoString rangeString("bytes=");
     rangeString.AppendInt(mOffset);
     rangeString.Append("-");
-    hc->SetRequestHeader(NS_LITERAL_CSTRING("Range"), rangeString, PR_FALSE);
+    hc->SetRequestHeader(NS_LITERAL_CSTRING("Range"), rangeString, false);
 
     
     NS_ASSERTION(NS_IsMainThread(), "Don't call on non-main thread");
@@ -632,7 +632,7 @@ void nsMediaChannelStream::Suspend(bool aCloseImmediately)
   if (mChannel) {
     if (aCloseImmediately && mCacheStream.IsSeekable()) {
       
-      mIgnoreClose = PR_TRUE;
+      mIgnoreClose = true;
       CloseChannel();
       element->DownloadSuspended();
     } else if (mSuspendCount == 0) {
@@ -670,7 +670,7 @@ void nsMediaChannelStream::Resume()
       }
       
       
-      mReopenOnError = PR_TRUE;
+      mReopenOnError = true;
       PossiblyResume();
       element->DownloadResumed();
     } else {
@@ -683,7 +683,7 @@ void nsMediaChannelStream::Resume()
       if (totalLength < 0 || mOffset < totalLength) {
         
         
-        CacheClientSeek(mOffset, PR_FALSE);
+        CacheClientSeek(mOffset, false);
       }
       element->DownloadResumed();
     }
@@ -792,7 +792,7 @@ nsMediaChannelStream::CacheClientSuspend()
     MutexAutoLock lock(mLock);
     ++mCacheSuspendCount;
   }
-  Suspend(PR_FALSE);
+  Suspend(false);
 
   mDecoder->NotifySuspendedStatusChanged();
   return NS_OK;
@@ -888,9 +888,9 @@ nsMediaChannelStream::PossiblySuspend()
   nsresult rv = mChannel->IsPending(&isPending);
   if (NS_SUCCEEDED(rv) && isPending) {
     mChannel->Suspend();
-    mIgnoreResume = PR_FALSE;
+    mIgnoreResume = false;
   } else {
-    mIgnoreResume = PR_TRUE;
+    mIgnoreResume = true;
   }
 }
 
@@ -900,7 +900,7 @@ nsMediaChannelStream::PossiblyResume()
   if (!mIgnoreResume) {
     mChannel->Resume();
   } else {
-    mIgnoreResume = PR_FALSE;
+    mIgnoreResume = false;
   }
 }
 
@@ -940,7 +940,7 @@ public:
   virtual double  GetDownloadRate(bool* aIsReliable)
   {
     
-    *aIsReliable = PR_TRUE;
+    *aIsReliable = true;
     return 100*1024*1024; 
   }
   virtual PRInt64 GetLength() { return mSize; }
@@ -1196,7 +1196,7 @@ nsMediaStream::Create(nsMediaDecoder* aDecoder, nsIChannel* aChannel)
 
 void nsMediaStream::MoveLoadsToBackground() {
   NS_ASSERTION(!mLoadInBackground, "Why are you calling this more than once?");
-  mLoadInBackground = PR_TRUE;
+  mLoadInBackground = true;
   if (!mChannel) {
     
     return;

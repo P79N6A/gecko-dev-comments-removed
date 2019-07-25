@@ -113,7 +113,7 @@ public:
   
   
   virtual bool DecodeHeader(ogg_packet* aPacket) {
-    return (mDoneReadingHeaders = PR_TRUE);
+    return (mDoneReadingHeaders = true);
   }
 
   
@@ -132,8 +132,8 @@ public:
   
   
   void Deactivate() {
-    mActive = PR_FALSE;
-    mDoneReadingHeaders = PR_TRUE;
+    mActive = false;
+    mDoneReadingHeaders = true;
     Reset();
   }
 

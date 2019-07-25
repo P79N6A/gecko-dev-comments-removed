@@ -226,14 +226,14 @@ public:
   
   
   nsMediaCacheStream(nsMediaChannelStream* aClient)
-    : mClient(aClient), mResourceID(0), mInitialized(PR_FALSE),
-      mIsSeekable(PR_FALSE), mCacheSuspended(PR_FALSE),
-      mUsingNullPrincipal(PR_FALSE),
+    : mClient(aClient), mResourceID(0), mInitialized(false),
+      mIsSeekable(false), mCacheSuspended(false),
+      mUsingNullPrincipal(false),
       mChannelOffset(0), mStreamLength(-1),  
       mStreamOffset(0), mPlaybackBytesPerSecond(10000),
       mPinCount(0), mCurrentMode(MODE_PLAYBACK),
-      mMetadataInPartialBlockBuffer(PR_FALSE),
-      mClosed(PR_FALSE) {}
+      mMetadataInPartialBlockBuffer(false),
+      mClosed(false) {}
   ~nsMediaCacheStream();
 
   

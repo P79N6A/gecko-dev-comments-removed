@@ -80,19 +80,19 @@ public:
     mLastStartTime = TimeStamp();
     mAccumulatedTime = TimeDuration(0);
     mAccumulatedBytes = 0;
-    mIsStarted = PR_FALSE;
+    mIsStarted = false;
   }
   void Start(TimeStamp aNow) {
     if (mIsStarted)
       return;
     mLastStartTime = aNow;
-    mIsStarted = PR_TRUE;
+    mIsStarted = true;
   }
   void Stop(TimeStamp aNow) {
     if (!mIsStarted)
       return;
     mAccumulatedTime += aNow - mLastStartTime;
-    mIsStarted = PR_FALSE;
+    mIsStarted = false;
   }
   void AddBytes(PRInt64 aBytes) {
     if (!mIsStarted) {
@@ -304,7 +304,7 @@ protected:
     mDecoder(aDecoder),
     mChannel(aChannel),
     mURI(aURI),
-    mLoadInBackground(PR_FALSE)
+    mLoadInBackground(false)
   {
     MOZ_COUNT_CTOR(nsMediaStream);
   }

@@ -58,8 +58,8 @@ public:
       mAudioChannels(0),
       mDisplay(0,0),
       mStereoMode(mozilla::layers::STEREO_MODE_MONO),
-      mHasAudio(PR_FALSE),
-      mHasVideo(PR_FALSE)
+      mHasAudio(false),
+      mHasVideo(false)
   {}
 
   
@@ -236,8 +236,8 @@ public:
       mTime(aTime),
       mEndTime(aEndTime),
       mTimecode(aTimecode),
-      mDuplicate(PR_TRUE),
-      mKeyframe(PR_FALSE)
+      mDuplicate(true),
+      mKeyframe(false)
   {
     MOZ_COUNT_CTOR(VideoData);
     NS_ASSERTION(aEndTime >= aTime, "Frame must start before it ends.");
@@ -254,7 +254,7 @@ public:
       mTime(aTime),
       mEndTime(aEndTime),
       mTimecode(aTimecode),
-      mDuplicate(PR_FALSE),
+      mDuplicate(false),
       mKeyframe(aKeyframe)
   {
     MOZ_COUNT_CTOR(VideoData);
@@ -338,7 +338,7 @@ template <class T> class MediaQueue : private nsDeque {
       T* x = PopFront();
       delete x;
     }
-    mEndOfStream = PR_FALSE;
+    mEndOfStream = false;
   }
 
   bool AtEndOfStream() {
@@ -357,7 +357,7 @@ template <class T> class MediaQueue : private nsDeque {
   
   void Finish() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    mEndOfStream = PR_TRUE;
+    mEndOfStream = true;
   }
 
   
