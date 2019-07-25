@@ -702,6 +702,35 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+  void SetMaskLayer(Layer* aMaskLayer)
+  {
+#ifdef DEBUG
+    if (aMaskLayer) {
+      gfxMatrix maskTransform;
+      bool maskIs2D = aMaskLayer->GetTransform().CanDraw2D(&maskTransform);
+      NS_ASSERTION(maskIs2D && maskTransform.HasOnlyIntegerTranslation(),
+                   "Mask layer has invalid transform.");
+    }
+#endif
+
+    mMaskLayer = aMaskLayer;
+  }
+
+  
+
+
+
+
+
+
   void SetTransform(const gfx3DMatrix& aMatrix)
   {
     mTransform = aMatrix;
@@ -722,6 +751,7 @@ public:
   virtual Layer* GetLastChild() { return nsnull; }
   const gfx3DMatrix& GetTransform() { return mTransform; }
   bool GetIsFixedPosition() { return mIsFixedPosition; }
+  Layer* GetMaskLayer() { return mMaskLayer; }
 
   
 
@@ -903,6 +933,7 @@ protected:
     mNextSibling(nsnull),
     mPrevSibling(nsnull),
     mImplData(aImplData),
+    mMaskLayer(nsnull),
     mOpacity(1.0),
     mContentFlags(0),
     mUseClipRect(false),
@@ -946,6 +977,7 @@ protected:
   Layer* mNextSibling;
   Layer* mPrevSibling;
   void* mImplData;
+  nsRefPtr<Layer> mMaskLayer;
   LayerUserDataSet mUserData;
   nsIntRegion mVisibleRegion;
   gfx3DMatrix mTransform;
