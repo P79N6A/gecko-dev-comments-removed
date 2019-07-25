@@ -184,6 +184,8 @@ struct JSFunction : public JSObject
     bool isHeavyweight()     const { return JSFUN_HEAVYWEIGHT_TEST(flags); }
     unsigned minArgs()       const { return FUN_MINARGS(this); }
 
+    inline bool inStrictMode() const;
+
     uintN countVars() const {
         JS_ASSERT(FUN_INTERPRETED(this));
         return u.i.nvars;
@@ -290,12 +292,28 @@ JS_STATIC_ASSERT(sizeof(JSFunction) % JS_GCTHING_ALIGN == 0);
 
 
 
+
 extern js::Class js_ArgumentsClass;
+namespace js {
+extern Class StrictArgumentsClass;
+}
+
+inline bool
+JSObject::isNormalArguments() const
+{
+    return getClass() == &js_ArgumentsClass;
+}
+
+inline bool
+JSObject::isStrictArguments() const
+{
+    return getClass() == &js::StrictArgumentsClass;
+}
 
 inline bool
 JSObject::isArguments() const
 {
-    return getClass() == &js_ArgumentsClass;
+    return isNormalArguments() || isStrictArguments();
 }
 
 #define JS_ARGUMENT_OBJECT_ON_TRACE ((void *)0xa126)
@@ -490,7 +508,6 @@ js_IsNamedLambda(JSFunction *fun) { return (fun->flags & JSFUN_LAMBDA) && fun->a
 
 
 const uint32 JS_ARGS_LENGTH_MAX = JS_BIT(19) - 1024;
-
 
 
 
