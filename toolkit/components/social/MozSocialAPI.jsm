@@ -227,6 +227,9 @@ function openServiceWindow(provider, contentWindow, url, name, options) {
   chromeWindow.gBrowser.selectedBrowser.setAttribute("origin", provider.origin);
 
   
+  chromeWindow.gBrowser.docShell.QueryInterface(Components.interfaces.nsIDocShellHistory).useGlobalHistory = false;
+
+  
   
   serviceWindow.addEventListener("DOMTitleChanged", function() {
     let sep = xulWindow.document.documentElement.getAttribute("titlemenuseparator");

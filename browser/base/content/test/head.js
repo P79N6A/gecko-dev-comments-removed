@@ -88,8 +88,26 @@ function waitForCondition(condition, nextTest, errorMsg) {
   var moveOn = function() { clearInterval(interval); nextTest(); };
 }
 
+
+
+function ensureSocialUrlNotRemembered(url) {
+  let gh = Cc["@mozilla.org/browser/global-history;2"]
+           .getService(Ci.nsIGlobalHistory2);
+  let uri = Services.io.newURI(url, null, null);
+  ok(!gh.isVisited(uri), "social URL " + url + " should not be in global history");
+}
+
 function runSocialTestWithProvider(manifest, callback) {
   let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
+
+  
+  registerCleanupFunction(function () {
+    for (let what of ['sidebarURL', 'workerURL', 'iconURL']) {
+      if (manifest[what]) {
+        ensureSocialUrlNotRemembered(manifest[what]);
+      }
+    }
+  });
 
   info("runSocialTestWithProvider: " + manifest.toSource());
 
