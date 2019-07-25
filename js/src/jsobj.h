@@ -822,10 +822,6 @@ OBJ_TO_INNER_OBJECT(JSContext *cx, JSObject *&obj)
         obj = op(cx, obj);
 }
 
-
-
-
-
 inline void
 OBJ_TO_OUTER_OBJECT(JSContext *cx, JSObject *&obj)
 {
