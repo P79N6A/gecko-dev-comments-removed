@@ -98,7 +98,7 @@ private:
   
 
 
-  void RenderVisibleRegion();
+  void RenderRegion(const nsIntRegion& aRegion);
 
   
   void DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
