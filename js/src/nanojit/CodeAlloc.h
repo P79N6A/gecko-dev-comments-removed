@@ -120,6 +120,12 @@ namespace nanojit
         static const size_t minAllocSize = LARGEST_UNDERRUN_PROT;
 
         
+        static size_t headerSpaceFor(uint32_t nbrBlks)  { return nbrBlks * sizeofMinBlock; }
+
+        
+        static size_t blkSpaceFor(uint32_t nbrBlks)     { return (nbrBlks * minAllocSize) + headerSpaceFor(nbrBlks); }
+
+        
 
 
         CodeList* heapblocks;
@@ -182,7 +188,7 @@ namespace nanojit
         void reset();
 
         
-        void alloc(NIns* &start, NIns* &end);
+        void alloc(NIns* &start, NIns* &end, size_t byteLimit);
 
         
         void free(NIns* start, NIns* end);

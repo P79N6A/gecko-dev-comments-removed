@@ -127,15 +127,49 @@ namespace nanojit
         }
     }
 
-    void CodeAlloc::alloc(NIns* &start, NIns* &end) {
+   void CodeAlloc::alloc(NIns* &start, NIns* &end, size_t byteLimit) {
         if (!availblocks) {
             
             addMem();
         }
 
         
+        NanoAssert(!byteLimit || byteLimit > blkSpaceFor(2));  
         markBlockWrite(availblocks);
         CodeList* b = removeBlock(availblocks);
+
+        
+        if (byteLimit > 0 && b->size() > byteLimit) {
+
+            size_t consume;   
+
+            
+            if (b->size() >= byteLimit + headerSpaceFor(1) + blkSpaceFor(1)) {
+                
+                consume = byteLimit + headerSpaceFor(1);
+            } else {
+                
+                consume = blkSpaceFor(1);
+
+                
+                NanoAssert( b->size() > blkSpaceFor(2) );
+                NanoAssert( b->size() - consume > blkSpaceFor(1) );  
+            }
+
+            
+            CodeList* higher = b->higher;
+            b->end = (NIns*) ( (uintptr_t)b->end - consume );
+            CodeList* b1 = b->higher;
+            higher->lower = b1;
+            b1->higher = higher;
+            b1->lower = b;
+            b1->terminator = b->terminator;
+            NanoAssert(b->size() > minAllocSize);
+            addBlock(availblocks, b);  
+            b = b1;
+        }
+        NanoAssert(b->size() >= minAllocSize);
+        b->next = 0; 
         b->isFree = false;
         start = b->start();
         end = b->end;
@@ -399,10 +433,9 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
         
         holeStart = (NIns*) ((uintptr_t(holeStart) + sizeof(NIns*)-1) & ~(sizeof(NIns*)-1));
         holeEnd = (NIns*) (uintptr_t(holeEnd) & ~(sizeof(NIns*)-1));
-        size_t minHole = minAllocSize;
-        if (minHole < 2*sizeofMinBlock)
-            minHole = 2*sizeofMinBlock;
-        if (uintptr_t(holeEnd) - uintptr_t(holeStart) < minHole) {
+        
+        size_t minHole = headerSpaceFor(2) + blkSpaceFor(1);
+        if (uintptr_t(holeEnd) < minHole + uintptr_t(holeStart) ) {
             
             
             add(blocks, start, end);

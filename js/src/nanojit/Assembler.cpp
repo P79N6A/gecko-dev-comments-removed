@@ -276,14 +276,15 @@ namespace nanojit
     }
 
     void Assembler::codeAlloc(NIns *&start, NIns *&end, NIns *&eip
-                              verbose_only(, size_t &nBytes))
+                              verbose_only(, size_t &nBytes)
+                              , size_t byteLimit)
     {
         
         if (start)
             CodeAlloc::add(codeList, start, end);
 
         
-        _codeAlloc.alloc(start, end);
+        _codeAlloc.alloc(start, end, byteLimit);
         verbose_only( nBytes += (end - start) * sizeof(NIns); )
         NanoAssert(uintptr_t(end) - uintptr_t(start) >= (size_t)LARGEST_UNDERRUN_PROT);
         eip = end;
