@@ -586,7 +586,11 @@ InvokeSessionGuard::invoke(JSContext *cx) const
     formals_[-1] = savedThis_;
 
     void *code;
+#ifdef JS_METHODJIT
     if (!optimized() || !(code = script_->getJIT(false )->invokeEntry))
+#else
+    if (!optimized())
+#endif
         return Invoke(cx, args_, 0);
 
     
