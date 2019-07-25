@@ -395,21 +395,21 @@ namespace places {
     while (matches && tokenizer.hasMoreTokens()) {
       const nsDependentCSubstring &token = tokenizer.nextToken();
 
-      bool matchTags = searchFunction(token, tags);
-      bool matchTitle = searchFunction(token, title);
-
-      
-      matches = matchTags || matchTitle;
-      if (HAS_BEHAVIOR(TITLE) && !matches)
-        break;
-
-      bool matchURL = searchFunction(token, fixedURI);
-      
-      
-      if (HAS_BEHAVIOR(URL) && !matchURL)
-        matches = false;
-      else
-        matches = matches || matchURL;
+      if (HAS_BEHAVIOR(TITLE) && HAS_BEHAVIOR(URL)) {
+        matches = (searchFunction(token, title) || searchFunction(token, tags)) &&
+                  searchFunction(token, fixedURI);
+      }
+      else if (HAS_BEHAVIOR(TITLE)) {
+        matches = searchFunction(token, title) || searchFunction(token, tags);
+      }
+      else if (HAS_BEHAVIOR(URL)) {
+        matches = searchFunction(token, fixedURI);
+      }
+      else {
+        matches = searchFunction(token, title) ||
+                  searchFunction(token, tags) ||
+                  searchFunction(token, fixedURI);
+      }
     }
 
     NS_ADDREF(*_result = new IntegerVariant(matches ? 1 : 0));
