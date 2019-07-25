@@ -180,6 +180,7 @@ const UnsolicitedNotifications = {
 
 
 const DebugProtocolTypes = {
+  "assign": "assign",
   "attach": "attach",
   "clientEvaluate": "clientEvaluate",
   "delete": "delete",
@@ -582,6 +583,14 @@ ThreadClient.prototype = {
   },
 
   
+
+
+
+
+
+
+
+
 
 
 

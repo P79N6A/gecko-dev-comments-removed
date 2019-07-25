@@ -631,6 +631,18 @@ StackFrames.prototype = {
       return aFrame["calleeName"] ? aFrame["calleeName"] : "(anonymous)";
     }
     return "(" + aFrame.type + ")";
+  },
+
+  
+
+
+
+
+
+
+  evaluate: function SF_evaluate(aExpression) {
+    let frame = this.activeThread.cachedFrames[this.selectedFrame];
+    this.activeThread.eval(frame.actor, aExpression);
   }
 };
 
@@ -709,6 +721,11 @@ SourceScripts.prototype = {
 
 
   _onNewScript: function SS__onNewScript(aNotification, aPacket) {
+    
+    if (aPacket.url == "debugger eval code") {
+      return;
+    }
+
     this._addScript({ url: aPacket.url, startLine: aPacket.startLine }, true);
   },
 

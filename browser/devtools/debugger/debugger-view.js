@@ -862,6 +862,14 @@ PropertiesView.prototype = {
         value: value
       }));
 
+      
+      Object.defineProperty(element, "token", {
+        value: aName,
+        writable: false,
+        enumerable: true,
+        configurable: true
+      });
+
       title.appendChild(separator);
       title.appendChild(value);
 
@@ -1079,6 +1087,14 @@ PropertiesView.prototype = {
       }));
 
       
+      Object.defineProperty(element, "token", {
+        value: aVar.token + "['" + pKey + "']",
+        writable: false,
+        enumerable: true,
+        configurable: true
+      });
+
+      
       Object.defineProperty(aVar, pKey, { value: element,
                                           writable: false,
                                           enumerable: true,
@@ -1160,35 +1176,8 @@ PropertiesView.prototype = {
     
     function DVP_element_textbox_save() {
       if (textbox.value !== value.textContent) {
-        
-        
-        let result = eval(textbox.value);
-        let grip;
-
-        
-        switch (typeof result) {
-          case "number":
-          case "boolean":
-          case "string":
-            grip = result;
-            break;
-          case "object":
-            if (result === null) {
-              grip = {
-                "type": "null"
-              };
-            } else {
-              grip = {
-                "type": "object",
-                "class": result.constructor.name || "Object"
-              };
-            }
-            break;
-          case "undefined":
-            grip = { type: "undefined" };
-        }
-
-        self._applyGrip(value, grip);
+        let expr = "(" + element.token + "=" + textbox.value + ")";
+        DebuggerController.StackFrames.evaluate(expr);
       }
       DVP_element_textbox_clear();
     }
