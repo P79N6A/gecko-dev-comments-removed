@@ -1220,6 +1220,13 @@ JSObject::removeProperty(JSContext *cx, jsid id)
         }
     }
 
+    
+    if (hasSlotsArray()) {
+        JS_ASSERT(slotSpan() <= numSlots());
+        if ((slotSpan() + (slotSpan() >> 2)) < numSlots())
+            shrinkSlots(cx, slotSpan());
+    }
+
     CHECK_SHAPE_CONSISTENCY(this);
     LIVE_SCOPE_METER(cx, --cx->runtime->liveObjectProps);
     METER(removes);

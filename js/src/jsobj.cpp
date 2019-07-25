@@ -6490,19 +6490,6 @@ js_TraceObject(JSTracer *trc, JSObject *obj)
 {
     JS_ASSERT(obj->isNative());
 
-    JSContext *cx = trc->context;
-    if (obj->hasSlotsArray() && !obj->nativeEmpty() && IS_GC_MARKING_TRACER(trc)) {
-        
-
-
-
-
-
-        size_t slots = obj->slotSpan();
-        if (obj->numSlots() != slots)
-            obj->shrinkSlots(cx, slots);
-    }
-
 #ifdef JS_DUMP_SCOPE_METERS
     MeterEntryCount(obj->propertyCount);
 #endif
