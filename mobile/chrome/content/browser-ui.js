@@ -428,7 +428,7 @@ var BrowserUI = {
     window.addEventListener("mousedown", this, true);
 
     
-    window.addEventListener("keypress", this, false);
+    window.addEventListener("keypress", this, true);
 
     
     window.addEventListener("AppCommand", this, true);
@@ -945,6 +945,10 @@ var BrowserUI = {
         break;
       
       case "keypress":
+        
+        
+        if (aEvent.target.localName == "browser")
+          break;
         if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE)
           this.handleEscape(aEvent);
         break;
