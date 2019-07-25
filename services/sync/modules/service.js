@@ -759,10 +759,9 @@ WeaveSvc.prototype = {
             
             
             if (this._remoteSetup()) {
-
               
-            Status.login = LOGIN_SUCCEEDED;
-            return true;
+              Status.login = LOGIN_SUCCEEDED;
+              return true;
             }
 
             this._log.warn("Remote setup failed.");
@@ -917,7 +916,6 @@ WeaveSvc.prototype = {
 
   startOver: function() {
     Svc.Obs.notify("weave:engine:stop-tracking");
-    Status.resetSync();
 
     
     
@@ -946,6 +944,7 @@ WeaveSvc.prototype = {
     this.resetClient();
     CollectionKeys.clear();
     Status.resetBackoff();
+    Status.resetSync();
 
     
     this._ignorePrefObserver = true;
@@ -955,6 +954,7 @@ WeaveSvc.prototype = {
     Svc.Prefs.set("lastversion", WEAVE_VERSION);
     
     this.password = "";
+    this.passphrase = "";
     Services.logins.findLogins({}, PWDMGR_HOST, "", "").map(function(login) {
       Services.logins.removeLogin(login);
     });
