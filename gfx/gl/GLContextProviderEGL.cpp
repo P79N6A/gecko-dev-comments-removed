@@ -1183,7 +1183,7 @@ public:
             
             succeeded = sEGLLibrary.fMakeCurrent(EGL_DISPLAY(),
                                                  EGL_NO_SURFACE, EGL_NO_SURFACE,
-                                                 EGL_NO_CONTEXT);
+                                                 mContext);
             if (!succeeded && sEGLLibrary.fGetError() == LOCAL_EGL_CONTEXT_LOST) {
                 mContextLost = true;
                 NS_WARNING("EGL context has been lost.");
@@ -2245,22 +2245,27 @@ CreateSurfaceForWindow(nsIWidget *aWidget, EGLConfig config)
 {
     EGLSurface surface;
 
-
 #ifdef DEBUG
     sEGLLibrary.DumpEGLConfig(config);
 #endif
 
-#ifdef MOZ_WIDGET_ANDROID
+#ifdef MOZ_JAVA_COMPOSITOR
+    surface = mozilla::AndroidBridge::Bridge()->ProvideEGLSurface();
+#elif defined(MOZ_WIDGET_ANDROID)
+
     
     
     
     
     
-    printf_stderr("... requesting window surface from bridge\n");
+    AndroidGeckoSurfaceView& sview = mozilla::AndroidBridge::Bridge()->SurfaceView();
+    if (sview.isNull()) {
+        printf_stderr("got null surface\n");
+        return NULL;
+    }
+
     surface = mozilla::AndroidBridge::Bridge()->
-        CallEglCreateWindowSurface(EGL_DISPLAY(), config,
-                                   mozilla::AndroidBridge::Bridge()->SurfaceView());
-    printf_stderr("got surface %p\n", surface);
+        CallEglCreateWindowSurface(EGL_DISPLAY(), config, sview);
 #else
     surface = sEGLLibrary.fCreateWindowSurface(EGL_DISPLAY(), config, GET_NATIVE_WINDOW(aWidget), 0);
 #endif
@@ -2299,7 +2304,11 @@ GLContextProviderEGL::CreateForWindow(nsIWidget *aWidget)
         return nsnull;
     }
 
-    EGLSurface surface = CreateSurfaceForWindow(aWidget, config);
+#ifdef MOZ_JAVA_COMPOSITOR
+    mozilla::AndroidBridge::Bridge()->RegisterCompositor();
+#endif
+
+   EGLSurface surface = CreateSurfaceForWindow(aWidget, config);
 
     if (!surface) {
         return nsnull;

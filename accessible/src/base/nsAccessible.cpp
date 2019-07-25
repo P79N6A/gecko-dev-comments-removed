@@ -1617,11 +1617,7 @@ nsAccessible::State()
       state |= states::HORIZONTAL;
     }
   }
-  
-  
-  if (state & states::EDITABLE)
-    state &= ~states::READONLY;
- 
+
   return state;
 }
 
@@ -1668,7 +1664,6 @@ nsAccessible::ApplyARIAState(PRUint64* aState)
   if (!mRoleMapEntry)
     return;
 
-  
   *aState |= mRoleMapEntry->state;
   if (nsStateMapEntry::MapToStates(mContent, aState,
                                    mRoleMapEntry->attributeMap1) &&
@@ -1677,7 +1672,6 @@ nsAccessible::ApplyARIAState(PRUint64* aState)
     nsStateMapEntry::MapToStates(mContent, aState,
                                  mRoleMapEntry->attributeMap3);
   }
-
 }
 
 

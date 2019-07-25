@@ -55,7 +55,10 @@
 #include "gfxCrashReporterUtils.h"
 #include "gfxUtils.h"
 
+#include "mozilla/Preferences.h"
 #include "mozilla/Util.h" 
+
+using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace gl {
@@ -388,12 +391,15 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
     const char *glRendererString;
 
     if (mInitialized) {
+        
+        
         glVendorString = (const char *)fGetString(LOCAL_GL_VENDOR);
         const char *vendorMatchStrings[VendorOther] = {
                 "Intel",
                 "NVIDIA",
                 "ATI",
-                "Qualcomm"
+                "Qualcomm",
+                "Imagination"
         };
         mVendor = VendorOther;
         for (int i = 0; i < VendorOther; ++i) {
@@ -403,9 +409,13 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             }
         }
 
+        
+        
         glRendererString = (const char *)fGetString(LOCAL_GL_RENDERER);
         const char *rendererMatchStrings[RendererOther] = {
-                "Adreno 200"
+                "Adreno 200",
+                "Adreno 205",
+                "PowerVR SGX 540"
         };
         mRenderer = RendererOther;
         for (int i = 0; i < RendererOther; ++i) {
@@ -595,19 +605,99 @@ GLContext::InitExtensions()
 #endif
 }
 
+
+
+static void
+CopyAndPadTextureData(const GLvoid* srcBuffer,
+                      GLvoid* dstBuffer,
+                      GLsizei srcWidth, GLsizei srcHeight,
+                      GLsizei dstWidth, GLsizei dstHeight,
+                      GLsizei stride, GLint pixelsize)
+{
+    unsigned char *rowDest = static_cast<unsigned char*>(dstBuffer);
+    const unsigned char *source = static_cast<const unsigned char*>(srcBuffer);
+
+    for (GLsizei h = 0; h < srcHeight; ++h) {
+        memcpy(rowDest, source, srcWidth * pixelsize);
+        rowDest += dstWidth * pixelsize;
+        source += stride;
+    }
+
+    GLsizei padHeight = srcHeight;
+
+    
+    if (dstHeight > srcHeight) {
+        memcpy(rowDest, source - stride, srcWidth * pixelsize);
+        padHeight++;
+    }
+
+    
+    if (dstWidth > srcWidth) {
+        rowDest = static_cast<unsigned char*>(dstBuffer) + srcWidth * pixelsize;
+        for (GLsizei h = 0; h < padHeight; ++h) {
+            memcpy(rowDest, rowDest - pixelsize, pixelsize);
+            rowDest += dstWidth * pixelsize;
+        }
+    }
+}
+
 bool
 GLContext::IsExtensionSupported(const char *extension)
 {
     return ListHasExtension(fGetString(LOCAL_GL_EXTENSIONS), extension);
 }
 
+
+
+
+
+
+
 bool
 GLContext::CanUploadSubTextures()
 {
     
     
+    return (Renderer() != RendererAdreno200 &&
+            Renderer() != RendererAdreno205);
+}
 
-    return !(Renderer() == RendererAdreno200);
+bool
+GLContext::CanUploadNonPowerOfTwo()
+{
+    static bool sPowerOfTwoForced;
+    static bool sPowerOfTwoPrefCached = false;
+
+    if (!sPowerOfTwoPrefCached) {
+        sPowerOfTwoPrefCached = true;
+        mozilla::Preferences::AddBoolVarCache(&sPowerOfTwoForced,
+                                              "gfx.textures.poweroftwo.force-enabled");
+    }
+
+    
+    return sPowerOfTwoForced ? false : (Renderer() != RendererAdreno200 &&
+                                        Renderer() != RendererAdreno205);
+}
+
+bool
+GLContext::WantsSmallTiles()
+{
+#ifdef MOZ_WIDGET_ANDROID
+    
+    
+    if (!CanUploadSubTextures())
+        return true;
+
+    
+    if (Renderer() == RendererSGX540)
+        return false;
+
+    
+    
+    return false;
+#else
+    return false;
+#endif
 }
 
 
@@ -677,9 +767,6 @@ void GLContext::ApplyFilterToBoundTexture(gfxPattern::GraphicsFilter aFilter)
         fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_NEAREST);
         fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_NEAREST);
     } else {
-        if (aFilter != gfxPattern::FILTER_GOOD) {
-            NS_WARNING("Unsupported filter type!");
-        }
         fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
        fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_LINEAR);
     }
@@ -862,7 +949,7 @@ TiledTextureImage::TiledTextureImage(GLContext* aGL,
     , mUseNearestFilter(aUseNearestFilter)
     , mTextureState(Created)
 {
-    mTileSize = mGL->GetMaxTextureSize();
+    mTileSize = mGL->WantsSmallTiles() ? 256 : mGL->GetMaxTextureSize();
     if (aSize != nsIntSize(0,0)) {
         Resize(aSize);
     }
@@ -1971,16 +2058,23 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
             PushViewportRect(nsIntRect(0, 0, dstSize.width, dstSize.height));
 
             RectTriangles rects;
+
+            nsIntSize realTexSize = srcSize;
+            if (!CanUploadNonPowerOfTwo()) {
+                realTexSize = nsIntSize(NextPowerOfTwo(srcSize.width),
+                                        NextPowerOfTwo(srcSize.height));
+            }
+
             if (aSrc->GetWrapMode() == LOCAL_GL_REPEAT) {
                 rects.addRect(
                         dx0, dy0, dx1, dy1,
                         
-                        srcSubRect.x / float(srcSize.width),
-                        srcSubRect.y / float(srcSize.height),
-                        srcSubRect.XMost() / float(srcSize.width),
-                        srcSubRect.YMost() / float(srcSize.height));
+                        srcSubRect.x / float(realTexSize.width),
+                        srcSubRect.y / float(realTexSize.height),
+                        srcSubRect.XMost() / float(realTexSize.width),
+                        srcSubRect.YMost() / float(realTexSize.height));
             } else {
-                DecomposeIntoNoRepeatTriangles(srcSubRect, srcSize, rects);
+                DecomposeIntoNoRepeatTriangles(srcSubRect, realTexSize, rects);
 
                 
                 
@@ -2225,6 +2319,41 @@ GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat,
     NS_ASSERTION(format == internalformat,
                  "format and internalformat not the same for glTexImage2D on GLES2");
 
+    if (!CanUploadNonPowerOfTwo()
+        && (stride != width * pixelsize
+        || !IsPowerOfTwo(width)
+        || !IsPowerOfTwo(height))) {
+
+        
+        
+        GLsizei paddedWidth = NextPowerOfTwo(width);
+        GLsizei paddedHeight = NextPowerOfTwo(height);
+
+        GLvoid* paddedPixels = new unsigned char[paddedWidth * paddedHeight * pixelsize];
+
+        
+        
+        CopyAndPadTextureData(pixels, paddedPixels, width, height,
+                              paddedWidth, paddedHeight, stride, pixelsize);
+
+        fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
+                 NS_MIN(GetAddressAlignment((ptrdiff_t)paddedPixels),
+                        GetAddressAlignment((ptrdiff_t)paddedWidth * pixelsize)));
+        fTexImage2D(target,
+                    border,
+                    internalformat,
+                    paddedWidth,
+                    paddedHeight,
+                    border,
+                    format,
+                    type,
+                    paddedPixels);
+        fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4);
+
+        delete[] static_cast<unsigned char*>(paddedPixels);
+        return;
+    }
+
     if (stride == width * pixelsize) {
         fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
                  NS_MIN(GetAddressAlignment((ptrdiff_t)pixels),
@@ -2415,7 +2544,8 @@ GLContext::TexSubImage2DWithoutUnpackSubimage(GLenum target, GLint level,
 
 void
 GLContext::RectTriangles::addRect(GLfloat x0, GLfloat y0, GLfloat x1, GLfloat y1,
-                                  GLfloat tx0, GLfloat ty0, GLfloat tx1, GLfloat ty1)
+                                  GLfloat tx0, GLfloat ty0, GLfloat tx1, GLfloat ty1,
+                                  bool flip_y )
 {
     vert_coord v;
     v.x = x0; v.y = y0;
@@ -2432,20 +2562,37 @@ GLContext::RectTriangles::addRect(GLfloat x0, GLfloat y0, GLfloat x1, GLfloat y1
     v.x = x1; v.y = y1;
     vertexCoords.AppendElement(v);
 
-    tex_coord t;
-    t.u = tx0; t.v = ty0;
-    texCoords.AppendElement(t);
-    t.u = tx1; t.v = ty0;
-    texCoords.AppendElement(t);
-    t.u = tx0; t.v = ty1;
-    texCoords.AppendElement(t);
+    if (flip_y) {
+        tex_coord t;
+        t.u = tx0; t.v = ty1;
+        texCoords.AppendElement(t);
+        t.u = tx1; t.v = ty1;
+        texCoords.AppendElement(t);
+        t.u = tx0; t.v = ty0;
+        texCoords.AppendElement(t);
 
-    t.u = tx0; t.v = ty1;
-    texCoords.AppendElement(t);
-    t.u = tx1; t.v = ty0;
-    texCoords.AppendElement(t);
-    t.u = tx1; t.v = ty1;
-    texCoords.AppendElement(t);
+        t.u = tx0; t.v = ty0;
+        texCoords.AppendElement(t);
+        t.u = tx1; t.v = ty1;
+        texCoords.AppendElement(t);
+        t.u = tx1; t.v = ty0;
+        texCoords.AppendElement(t);
+    } else {
+        tex_coord t;
+        t.u = tx0; t.v = ty0;
+        texCoords.AppendElement(t);
+        t.u = tx1; t.v = ty0;
+        texCoords.AppendElement(t);
+        t.u = tx0; t.v = ty1;
+        texCoords.AppendElement(t);
+
+        t.u = tx0; t.v = ty1;
+        texCoords.AppendElement(t);
+        t.u = tx1; t.v = ty0;
+        texCoords.AppendElement(t);
+        t.u = tx1; t.v = ty1;
+        texCoords.AppendElement(t);
+    }
 }
 
 static GLfloat
@@ -2465,13 +2612,14 @@ WrapTexCoord(GLfloat v)
 void
 GLContext::DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
                                           const nsIntSize& aTexSize,
-                                          RectTriangles& aRects)
+                                          RectTriangles& aRects,
+                                          bool aFlipY )
 {
     
     nsIntRect tcr(aTexCoordRect);
-    while (tcr.x > aTexSize.width)
+    while (tcr.x >= aTexSize.width)
         tcr.x -= aTexSize.width;
-    while (tcr.y > aTexSize.height)
+    while (tcr.y >= aTexSize.height)
         tcr.y -= aTexSize.height;
 
     
@@ -2531,47 +2679,58 @@ GLContext::DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
                  aTexCoordRect.height <= aTexSize.height, "tex coord rect would cause tiling!");
 
     if (!xwrap && !ywrap) {
-        aRects.addRect(0.0f, 0.0f, 1.0f, 1.0f,
-                       tl[0], tl[1], br[0], br[1]);
+        aRects.addRect(0.0f, 0.0f,
+                       1.0f, 1.0f,
+                       tl[0], tl[1],
+                       br[0], br[1],
+                       aFlipY);
     } else if (!xwrap && ywrap) {
         GLfloat ymid = (1.0f - tl[1]) / ylen;
         aRects.addRect(0.0f, 0.0f,
                        1.0f, ymid,
                        tl[0], tl[1],
-                       br[0], 1.0f);
+                       br[0], 1.0f,
+                       aFlipY);
         aRects.addRect(0.0f, ymid,
                        1.0f, 1.0f,
                        tl[0], 0.0f,
-                       br[0], br[1]);
+                       br[0], br[1],
+                       aFlipY);
     } else if (xwrap && !ywrap) {
         GLfloat xmid = (1.0f - tl[0]) / xlen;
         aRects.addRect(0.0f, 0.0f,
                        xmid, 1.0f,
                        tl[0], tl[1],
-                       1.0f, br[1]);
+                       1.0f, br[1],
+                       aFlipY);
         aRects.addRect(xmid, 0.0f,
                        1.0f, 1.0f,
                        0.0f, tl[1],
-                       br[0], br[1]);
+                       br[0], br[1],
+                       aFlipY);
     } else {
         GLfloat xmid = (1.0f - tl[0]) / xlen;
         GLfloat ymid = (1.0f - tl[1]) / ylen;
         aRects.addRect(0.0f, 0.0f,
                        xmid, ymid,
                        tl[0], tl[1],
-                       1.0f, 1.0f);
+                       1.0f, 1.0f,
+                       aFlipY);
         aRects.addRect(xmid, 0.0f,
                        1.0f, ymid,
                        0.0f, tl[1],
-                       br[0], 1.0f);
+                       br[0], 1.0f,
+                       aFlipY);
         aRects.addRect(0.0f, ymid,
                        xmid, 1.0f,
                        tl[0], 0.0f,
-                       1.0f, br[1]);
+                       1.0f, br[1],
+                       aFlipY);
         aRects.addRect(xmid, ymid,
                        1.0f, 1.0f,
                        0.0f, 0.0f,
-                       br[0], br[1]);
+                       br[0], br[1],
+                       aFlipY);
     }
 }
 

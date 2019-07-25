@@ -283,7 +283,11 @@ CanvasLayerOGL::RenderLayer(int aPreviousDestination,
   program->SetRenderOffset(aOffset);
   program->SetTextureUnit(0);
 
-  mOGLManager->BindAndDrawQuad(program, mNeedsYFlip ? true : false);
+  if (gl()->CanUploadNonPowerOfTwo()) {
+    mOGLManager->BindAndDrawQuad(program, mNeedsYFlip ? true : false);
+  } else {
+    mOGLManager->BindAndDrawQuadWithTextureRect(program, drawRect, drawRect.Size());
+  }
 
 #if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
   if (mPixmap && !mDelayedUpdates) {
@@ -415,11 +419,29 @@ ShadowCanvasLayerOGL::RenderLayer(int aPreviousFrameBuffer,
   program->SetTextureUnit(0);
 
   mTexImage->BeginTileIteration();
-  do {
-    TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
-    program->SetLayerQuadRect(mTexImage->GetTileRect());
-    mOGLManager->BindAndDrawQuad(program, mNeedsYFlip); 
-  } while (mTexImage->NextTile());
+  if (gl()->CanUploadNonPowerOfTwo()) {
+    do {
+      TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
+      program->SetLayerQuadRect(mTexImage->GetTileRect());
+      mOGLManager->BindAndDrawQuad(program, mNeedsYFlip); 
+    } while (mTexImage->NextTile());
+  } else {
+    do {
+      TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
+      program->SetLayerQuadRect(mTexImage->GetTileRect());
+      
+      
+      
+      
+      
+      mOGLManager->BindAndDrawQuadWithTextureRect(program,
+                                                  nsIntRect(0, 0, mTexImage->GetTileRect().width,
+                                                                  mTexImage->GetTileRect().height),
+                                                  mTexImage->GetTileRect().Size(),
+                                                  mTexImage->GetWrapMode(),
+                                                  mNeedsYFlip);
+    } while (mTexImage->NextTile());
+  }
 }
 
 void

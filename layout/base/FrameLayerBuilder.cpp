@@ -872,6 +872,8 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
   layer->SetTransform(gfx3DMatrix::From2D(matrix));
 
   
+#ifndef MOZ_JAVA_COMPOSITOR
+  
   
   gfxPoint activeScrolledRootTopLeft = scaledOffset - matrix.GetTranslation();
   
@@ -882,6 +884,7 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
     nsIntRect invalidate = layer->GetValidRegion().GetBounds();
     layer->InvalidateRegion(invalidate);
   }
+#endif
 
   return layer.forget();
 }

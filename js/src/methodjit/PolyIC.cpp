@@ -565,6 +565,13 @@ class SetPropCompiler : public PICStubCompiler
 
 
 
+            if (JSOp(*f.pc()) == JSOP_SETNAME)
+                return disable("add property under SETNAME");
+
+            
+
+
+
             JSObject *proto = obj;
             while (proto) {
                 if (!proto->isNative())

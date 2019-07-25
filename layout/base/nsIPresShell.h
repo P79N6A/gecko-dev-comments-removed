@@ -1149,6 +1149,16 @@ public:
   
 
 
+  void SetIsFirstPaint(bool aIsFirstPaint) { mIsFirstPaint = aIsFirstPaint; }
+
+  
+
+
+  bool GetIsFirstPaint() const { return mIsFirstPaint; }
+
+  
+
+
 
 
   virtual void SynthesizeMouseMove(bool aFromScroll) = 0;
@@ -1260,6 +1270,8 @@ protected:
   bool                      mIsThemeSupportDisabled;  
   bool                      mIsActive;
   bool                      mFrozen;
+
+  bool                      mIsFirstPaint;
 
   bool                      mObservesMutationsForPrint;
 

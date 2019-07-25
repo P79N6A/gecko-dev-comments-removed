@@ -102,15 +102,7 @@ void GetProfilePath(nsIProfileStartup* aStartup, nsCOMPtr<nsIFile>& aProfileDir)
 
 
 
-
-
-
-nsresult ImportBookmarksHTML(nsIFile* aBookmarksFile, 
-                             bool aImportIntoRoot,
-                             bool aOverwriteDefaults,
-                             const PRUnichar* aImportSourceNameKey);
-
-nsresult InitializeBookmarks(nsIFile* aTargetProfile);
+nsresult ImportDefaultBookmarks();
 
 #endif
 
