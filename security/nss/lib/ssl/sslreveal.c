@@ -111,14 +111,26 @@ SSL_HandshakeNegotiatedExtension(PRFileDesc * socket,
   
   sslSocket * sslsocket = NULL;
   SECStatus rv = SECFailure;
+  PRBool enoughFirstHsDone = PR_FALSE;
 
   if (!pYes)
     return rv;
 
   sslsocket = ssl_FindSocket(socket);
+  if (!sslsocket) {
+    SSL_DBG(("%d: SSL[%d]: bad socket in HandshakeNegotiatedExtension",
+             SSL_GETPID(), socket));
+    return rv;
+  }
+
+  if (sslsocket->firstHsDone) {
+    enoughFirstHsDone = PR_TRUE;
+  } else if (sslsocket->ssl3.initialized && ssl3_CanFalseStart(sslsocket)) {
+    enoughFirstHsDone = PR_TRUE;
+  }
 
   
-  if (sslsocket && sslsocket->opt.useSecurity && sslsocket->firstHsDone) {
+  if (sslsocket->opt.useSecurity && enoughFirstHsDone) {
     if (sslsocket->ssl3.initialized) { 
       
 
