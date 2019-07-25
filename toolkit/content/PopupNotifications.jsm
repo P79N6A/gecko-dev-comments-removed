@@ -412,17 +412,13 @@ PopupNotifications.prototype = {
       return;
 
     
-    var position = (this.window.getComputedStyle(this.panel, "").direction == "rtl") ?
-      "bottomcenter topright" : "bottomcenter topleft";
-
-    
     
     
     this._hidePanel();
 
     this._currentAnchorElement = anchorElement;
 
-    this.panel.openPopup(anchorElement, position);
+    this.panel.openPopup(anchorElement, "bottomcenter topleft");
     notificationsToShow.forEach(function (n) {
       this._fireCallback(n, "shown");
     }, this);

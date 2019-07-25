@@ -7507,10 +7507,6 @@ var gIdentityHandler = {
     this.setPopupMessages(this._identityBox.className);
 
     
-    
-    var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'bottomcenter topright' : 'bottomcenter topleft';
-
-    
     this._identityBox.setAttribute("open", "true");
     var self = this;
     this._identityPopup.addEventListener("popuphidden", function (e) {
@@ -7519,7 +7515,7 @@ var gIdentityHandler = {
     }, false);
 
     
-    this._identityPopup.openPopup(this._identityBox, position);
+    this._identityPopup.openPopup(this._identityBox, "bottomcenter topleft");
   },
 
   onDragStart: function (event) {

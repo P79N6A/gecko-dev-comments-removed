@@ -387,6 +387,19 @@ protected:
   
   void MoveToAttributePosition();
 
+  
+
+
+
+
+
+
+  bool IsDirectionRTL() const {
+    return mAnchorContent && mAnchorContent->GetPrimaryFrame()
+      ? mAnchorContent->GetPrimaryFrame()->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL
+      : GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  }
+
   nsString     mIncrementalString;  
 
   
