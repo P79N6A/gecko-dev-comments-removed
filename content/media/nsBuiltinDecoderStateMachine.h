@@ -247,6 +247,10 @@ public:
     return mEndTime;
   }
 
+  
+  
+  virtual void SetFrameBufferLength(PRUint32 aLength);
+
 protected:
 
   
