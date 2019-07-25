@@ -802,11 +802,8 @@ GLFormatForImage(gfxASurface::gfxImageFormat aFormat)
 {
     switch (aFormat) {
     case gfxASurface::ImageFormatARGB32:
-        return LOCAL_GL_RGBA;
     case gfxASurface::ImageFormatRGB24:
         
-        
-        NS_WARNING("Using GL_RGBA for ImageFormatRGB24, are you sure you know what you're doing?");
         return LOCAL_GL_RGBA;
     case gfxASurface::ImageFormatRGB16_565:
         return LOCAL_GL_RGB;
@@ -867,18 +864,14 @@ public:
             }
             Resize(aSize);
         } else {
-            
-            
-            
-            
-            
-            
-            
             if (mUpdateFormat == gfxASurface::ImageFormatRGB24) {
-                mUpdateFormat = gfxASurface::ImageFormatARGB32;
+                
+                
+                
+                mShaderType = BGRXLayerProgramType;
+            } else {
+                mShaderType = BGRALayerProgramType;
             }
-            
-            mShaderType = BGRALayerProgramType;
         }
     }
 
