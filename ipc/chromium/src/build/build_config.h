@@ -86,7 +86,6 @@
 #elif defined(__s390__)
 #define ARCH_CPU_S390 1
 #define ARCH_CPU_32_BITS 1
-#endif
 #else
 #error Please add support for your architecture in build/build_config.h
 #endif
@@ -98,4 +97,4 @@
 #define WCHAR_T_IS_UTF32
 #endif
 
-#endif
+#endif  
