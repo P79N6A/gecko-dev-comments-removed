@@ -290,7 +290,7 @@ CompositorParent::AllocPLayers(const LayersBackend &backendType)
 #ifdef MOZ_WIDGET_ANDROID
   
   
-  RegisterCompositorWithJava();
+  
 #endif
 
   if (backendType == LayerManager::LAYERS_OPENGL) {

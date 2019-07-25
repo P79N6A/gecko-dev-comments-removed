@@ -49,6 +49,7 @@
 #include "nsIObserver.h"
 #include "nsThreadUtils.h"
 
+#include "AndroidFlexViewWrapper.h"
 #include "AndroidJavaWrappers.h"
 
 #include "nsIMutableArray.h"
@@ -308,7 +309,7 @@ public:
     void *CallEglCreateWindowSurface(void *dpy, void *config, AndroidGeckoSurfaceView& surfaceView);
 
     
-    void RegisterCompositor();
+    EGLSurface RegisterCompositor();
 
     bool GetStaticStringField(const char *classID, const char *field, nsAString &result);
 
