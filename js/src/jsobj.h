@@ -1005,16 +1005,25 @@ struct JSObject {
     bool allocSlot(JSContext *cx, uint32 *slotp);
     void freeSlot(JSContext *cx, uint32 slot);
 
-  private:
-    void reportReadOnlyScope(JSContext *cx);
+    bool reportReadOnly(JSContext* cx, jsid id, uintN report = JSREPORT_ERROR);
+    bool reportNotConfigurable(JSContext* cx, jsid id, uintN report = JSREPORT_ERROR);
+    bool reportNotExtensible(JSContext *cx, uintN report = JSREPORT_ERROR);
 
+  private:
     js::Shape *getChildProperty(JSContext *cx, js::Shape *parent, js::Shape &child);
 
-    const js::Shape *addPropertyCommon(JSContext *cx, jsid id,
-                                       js::PropertyOp getter, js::PropertyOp setter,
-                                       uint32 slot, uintN attrs,
-                                       uintN flags, intN shortid,
-                                       js::Shape **spp);
+    
+
+
+
+
+
+
+    const js::Shape *addPropertyInternal(JSContext *cx, jsid id,
+                                         js::PropertyOp getter, js::PropertyOp setter,
+                                         uint32 slot, uintN attrs,
+                                         uintN flags, intN shortid,
+                                         js::Shape **spp);
 
     bool toDictionaryMode(JSContext *cx);
 
