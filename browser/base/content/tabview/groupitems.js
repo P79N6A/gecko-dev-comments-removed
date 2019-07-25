@@ -1913,7 +1913,7 @@ let GroupItems = {
 
   
   
-  uninit : function GroupItems_uninit () {
+  uninit: function GroupItems_uninit() {
     
     this._cleanupFunctions.forEach(function(func) {
       func();
@@ -1928,7 +1928,7 @@ let GroupItems = {
   
   
   
-  newGroup: function () {
+  newGroup: function GroupItems_newGroup() {
     let bounds = new Rect(20, 20, 250, 200);
     return new GroupItem([], {bounds: bounds, immediately: true});
   },
