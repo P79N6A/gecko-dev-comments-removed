@@ -153,19 +153,21 @@ template <class T> struct StripConst<const T> { typedef T result; };
 
 
 
-template <class T> struct IsPodType           { static const bool result = false; };
-template <> struct IsPodType<char>            { static const bool result = true; };
-template <> struct IsPodType<signed char>     { static const bool result = true; };
-template <> struct IsPodType<unsigned char>   { static const bool result = true; };
-template <> struct IsPodType<short>           { static const bool result = true; };
-template <> struct IsPodType<unsigned short>  { static const bool result = true; };
-template <> struct IsPodType<int>             { static const bool result = true; };
-template <> struct IsPodType<unsigned int>    { static const bool result = true; };
-template <> struct IsPodType<long>            { static const bool result = true; };
-template <> struct IsPodType<unsigned long>   { static const bool result = true; };
-template <> struct IsPodType<float>           { static const bool result = true; };
-template <> struct IsPodType<double>          { static const bool result = true; };
-template <typename T> struct IsPodType<T *>   { static const bool result = true; };
+template <class T> struct IsPodType                 { static const bool result = false; };
+template <> struct IsPodType<char>                  { static const bool result = true; };
+template <> struct IsPodType<signed char>           { static const bool result = true; };
+template <> struct IsPodType<unsigned char>         { static const bool result = true; };
+template <> struct IsPodType<short>                 { static const bool result = true; };
+template <> struct IsPodType<unsigned short>        { static const bool result = true; };
+template <> struct IsPodType<int>                   { static const bool result = true; };
+template <> struct IsPodType<unsigned int>          { static const bool result = true; };
+template <> struct IsPodType<long>                  { static const bool result = true; };
+template <> struct IsPodType<unsigned long>         { static const bool result = true; };
+template <> struct IsPodType<long long>             { static const bool result = true; };
+template <> struct IsPodType<unsigned long long>    { static const bool result = true; };
+template <> struct IsPodType<float>                 { static const bool result = true; };
+template <> struct IsPodType<double>                { static const bool result = true; };
+template <typename T> struct IsPodType<T *>         { static const bool result = true; };
 
 
 template <class T, size_t N> inline T *ArraySize(T (&)[N]) { return N; }
