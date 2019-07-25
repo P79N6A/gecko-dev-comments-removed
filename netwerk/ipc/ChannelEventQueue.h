@@ -58,10 +58,14 @@ class ChannelEvent
 
 
 
+template<class T> class AutoEventEnqueuerBase;
+
+template<class T>
 class ChannelEventQueue
 {
  public:
-  ChannelEventQueue() : mQueuePhase(PHASE_UNQUEUED) {}
+  ChannelEventQueue(T* self) : mQueuePhase(PHASE_UNQUEUED)
+                             , mSelf(self) {}
   ~ChannelEventQueue() {}
   
  protected:
@@ -69,10 +73,7 @@ class ChannelEventQueue
   void EndEventQueueing();
   void EnqueueEvent(ChannelEvent* callback);
   bool ShouldEnqueue();
-
-  
-  
-  virtual void FlushEventQueue() = 0;
+  void FlushEventQueue();
 
   nsTArray<nsAutoPtr<ChannelEvent> > mEventQueue;
   enum {
@@ -82,11 +83,16 @@ class ChannelEventQueue
     PHASE_FLUSHING
   } mQueuePhase;
 
-  friend class AutoEventEnqueuer;
+  typedef AutoEventEnqueuerBase<T> AutoEventEnqueuer;
+
+ private:
+  T* mSelf;
+
+  friend class AutoEventEnqueuerBase<T>;
 };
 
-inline void
-ChannelEventQueue::BeginEventQueueing()
+template<class T> inline void
+ChannelEventQueue<T>::BeginEventQueueing()
 {
   if (mQueuePhase != PHASE_UNQUEUED)
     return;
@@ -94,8 +100,8 @@ ChannelEventQueue::BeginEventQueueing()
   mQueuePhase = PHASE_QUEUEING;
 }
 
-inline void
-ChannelEventQueue::EndEventQueueing()
+template<class T> inline void
+ChannelEventQueue<T>::EndEventQueueing()
 {
   if (mQueuePhase != PHASE_QUEUEING)
     return;
@@ -103,34 +109,72 @@ ChannelEventQueue::EndEventQueueing()
   mQueuePhase = PHASE_FINISHED_QUEUEING;
 }
 
-inline bool
-ChannelEventQueue::ShouldEnqueue()
+template<class T> inline bool
+ChannelEventQueue<T>::ShouldEnqueue()
 {
-  return mQueuePhase != PHASE_UNQUEUED;
+  return mQueuePhase != PHASE_UNQUEUED || mSelf->IsSuspended();
 }
 
-inline void
-ChannelEventQueue::EnqueueEvent(ChannelEvent* callback)
+template<class T> inline void
+ChannelEventQueue<T>::EnqueueEvent(ChannelEvent* callback)
 {
   mEventQueue.AppendElement(callback);
 }
 
+template<class T> void
+ChannelEventQueue<T>::FlushEventQueue()
+{
+  NS_ABORT_IF_FALSE(mQueuePhase != PHASE_UNQUEUED,
+                    "Queue flushing should not occur if PHASE_UNQUEUED");
+  
+  
+  if (mQueuePhase != PHASE_FINISHED_QUEUEING || mSelf->IsSuspended())
+    return;
+  
+  nsRefPtr<T> kungFuDeathGrip(mSelf);
+  if (mEventQueue.Length() > 0) {
+    
+    
+    
+    mQueuePhase = PHASE_FLUSHING;
+    
+    PRUint32 i;
+    for (i = 0; i < mEventQueue.Length(); i++) {
+      mEventQueue[i]->Run();
+      if (mSelf->IsSuspended())
+        break;
+    }
+
+    
+    if (i < mEventQueue.Length())
+      i++;
+
+    mEventQueue.RemoveElementsAt(0, i);
+  }
+
+  if (mSelf->IsSuspended())
+    mQueuePhase = PHASE_QUEUEING;
+  else
+    mQueuePhase = PHASE_UNQUEUED;
+}
 
 
-class AutoEventEnqueuer 
+
+template<class T>
+class AutoEventEnqueuerBase
 {
  public:
-  AutoEventEnqueuer(ChannelEventQueue* queue) : mEventQueue(queue) 
+  AutoEventEnqueuerBase(ChannelEventQueue<T>* queue) : mEventQueue(queue) 
   {
     mEventQueue->BeginEventQueueing();
   }
-  ~AutoEventEnqueuer() 
+  ~AutoEventEnqueuerBase() 
   { 
     mEventQueue->EndEventQueueing();
     mEventQueue->FlushEventQueue(); 
   }
  private:
-  ChannelEventQueue *mEventQueue;
+  ChannelEventQueue<T> *mEventQueue;
 };
 
 }
