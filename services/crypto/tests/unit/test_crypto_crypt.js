@@ -8,69 +8,7 @@ try {
                 .getService(Ci.IWeaveCrypto);
 }
 
-function weavecrypto_memo() {
-  if (!cryptoSvc._importSymKey)
-    return
-      
-  let w = new WeaveCrypto();
-  let key = w.generateRandomKey();
-  let keyItem1 = w.makeSECItem(key, true, true);
-  let keyItem2 = w.makeSECItem(key, true, true);
-  do_check_eq(keyItem1, keyItem2);
-  
-  do_check_eq("" + w.nss.PK11_AlgtagToMechanism(w.algorithm),
-              "" + w.nss.PK11_AlgtagToMechanism(w.algorithm));
-  
-  let symKey1 =
-    w._importSymKey(w.nss.PK11_GetInternalKeySlot(),
-                    w.nss.PK11_AlgtagToMechanism(w.algorithm),
-                    w.nss.PK11_OriginUnwrap,
-                    w.nss.CKA_DECRYPT, 
-                    keyItem1);
-  let symKey2 =
-    w._importSymKey(w.nss.PK11_GetInternalKeySlot(),
-                    w.nss.PK11_AlgtagToMechanism(w.algorithm),
-                    w.nss.PK11_OriginUnwrap,
-                    w.nss.CKA_DECRYPT, 
-                    keyItem1);
-  do_check_eq(symKey1, symKey2);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-function multiple_decrypts(iterations) {
-  let iv = cryptoSvc.generateRandomIV();
-  let key = cryptoSvc.generateRandomKey();
-  let cipherText = cryptoSvc.encrypt("Hello, world.", key, iv);
-  
-  for (let i = 0; i < iterations; ++i) {
-    let clearText = cryptoSvc.decrypt(cipherText, key, iv);
-    do_check_eq(clearText + " " + i, "Hello, world. " + i);
-  }
-}
-  
-function test_encryption() {
+function run_test() {
   
   
   var iv = cryptoSvc.generateRandomIV();
@@ -223,10 +161,4 @@ function test_encryption() {
   }
   do_check_true(failure);
 
-}
-
-function run_test() {
-  weavecrypto_memo();
-  multiple_decrypts(6000);
-  test_encryption();
 }
