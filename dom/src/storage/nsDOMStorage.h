@@ -257,15 +257,6 @@ public:
   DOMStorageImpl(nsDOMStorage*, DOMStorageImpl&);
   ~DOMStorageImpl();
 
-  
-  
-  void InitFromChild(bool aUseDB, bool aCanUseChromePersist,
-                     const nsACString& aDomain,
-                     const nsACString& aScopeDBKey,
-                     const nsACString& aQuotaDomainDBKey,
-                     const nsACString& aQuotaETLDplus1DomainDBKey,
-                     PRUint32 aStorageType);
-
   virtual void InitAsSessionStorage(nsIURI* aDomainURI);
   virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist);
   virtual void InitAsGlobalStorage(const nsACString& aDomainDemanded);
@@ -339,6 +330,16 @@ private:
   friend class StorageParent;
 
   void Init(nsDOMStorage*);
+
+  
+  
+  void InitFromChild(bool aUseDB, bool aCanUseChromePersist, bool aSessionOnly,
+                     const nsACString& aDomain,
+                     const nsACString& aScopeDBKey,
+                     const nsACString& aQuotaDomainDBKey,
+                     const nsACString& aQuotaETLDplus1DomainDBKey,
+                     PRUint32 aStorageType);
+  void SetSessionOnly(bool aSessionOnly);
 
   static nsresult InitDB();
 
