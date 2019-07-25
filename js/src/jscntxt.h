@@ -1321,12 +1321,6 @@ struct JSContext : js::ContextFriendFields
 
 
     bool stackIterAssertionEnabled;
-
-    
-
-
-
-    unsigned okToAccessUnaliasedBindings;
 #endif
 
     
@@ -1362,23 +1356,6 @@ struct JSContext : js::ContextFriendFields
 }; 
 
 namespace js {
-
-class AutoAllowUnaliasedVarAccess
-{
-    JSContext *cx;
-  public:
-    AutoAllowUnaliasedVarAccess(JSContext *cx) : cx(cx) {
-#ifdef DEBUG
-        cx->okToAccessUnaliasedBindings++;
-#endif
-    }
-    ~AutoAllowUnaliasedVarAccess() {
-#ifdef DEBUG
-        JS_ASSERT(cx->okToAccessUnaliasedBindings);
-        cx->okToAccessUnaliasedBindings--;
-#endif
-    }
-};
 
 struct AutoResolving {
   public:
