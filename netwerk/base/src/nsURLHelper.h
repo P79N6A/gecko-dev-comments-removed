@@ -147,6 +147,7 @@ inline PRBool net_IsValidScheme(const nsAFlatCString &scheme)
 
 
 
+
 NS_HIDDEN_(PRBool) net_FilterURIString(const char *str, nsACString& result);
 
 #if defined(XP_WIN) || defined(XP_OS2)

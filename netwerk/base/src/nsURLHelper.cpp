@@ -589,15 +589,60 @@ net_FilterURIString(const char *str, nsACString& result)
         p++;
     }
 
+    
+    
+    
+    PRBool found_colon = PR_FALSE;
+    const char *first = nsnull;
     while (*p) {
-        if (*p == '\t' || *p == '\r' || *p == '\n') {
-            writing = PR_TRUE;
-            
-            if (p > str)
-                result.Append(str, p - str);
-            str = p + 1;
+        switch (*p) {
+            case '\t': 
+            case '\r': 
+            case '\n':
+                if (found_colon) {
+                    writing = PR_TRUE;
+                    
+                    if (p > str)
+                        result.Append(str, p - str);
+                    str = p + 1;
+                } else {
+                    
+                    if (!first)
+                        first = p;
+                }
+                break;
+
+            case ':':
+                found_colon = PR_TRUE;
+                break;
+
+            case '/':
+            case '@':
+                if (!found_colon) {
+                    
+                    found_colon = PR_TRUE; 
+                    if (first) {
+                        
+                        p = first;
+                        continue; 
+                    }
+                }
+                break;
+
+            default:
+                break;
         }
         p++;
+
+        
+        
+        if (!*p && first != nsnull && !found_colon) {
+            
+            
+            p = first;
+            
+            found_colon = PR_TRUE; 
+        }
     }
 
     
