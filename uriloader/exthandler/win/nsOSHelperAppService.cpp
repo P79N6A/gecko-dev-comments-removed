@@ -428,8 +428,38 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aAppInfo,
      
     
     rv = regKey->ReadStringValue(EmptyString(), handlerCommand);
-    if (NS_FAILED(rv))
-      return NS_ERROR_FAILURE;
+    if (NS_FAILED(rv)) {
+
+      
+      nsAutoString delegateExecute;
+      rv = regKey->ReadStringValue(NS_LITERAL_STRING("DelegateExecute"), delegateExecute);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      nsAutoString delegateExecuteRegPath;
+      delegateExecuteRegPath.AssignLiteral("CLSID\\");
+      delegateExecuteRegPath.Append(delegateExecute);
+      delegateExecuteRegPath.AppendLiteral("\\InProcServer32");
+      rv = chkKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT,
+                        delegateExecuteRegPath, 
+                        nsIWindowsRegKey::ACCESS_QUERY_VALUE);
+      if (NS_SUCCEEDED(rv)) {
+        rv = chkKey->ReadStringValue(EmptyString(), handlerCommand);
+      }
+
+      if (NS_FAILED(rv)) {
+        
+        delegateExecuteRegPath.AssignLiteral("CLSID\\");
+        delegateExecuteRegPath.Append(delegateExecute);
+        delegateExecuteRegPath.AppendLiteral("\\LocalServer32");
+        rv = chkKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT,
+                          delegateExecuteRegPath, 
+                          nsIWindowsRegKey::ACCESS_QUERY_VALUE);
+        NS_ENSURE_SUCCESS(rv, rv);
+        rv = chkKey->ReadStringValue(EmptyString(), handlerCommand);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+    }
   }
 
   if (!CleanupCmdHandlerPath(handlerCommand))
