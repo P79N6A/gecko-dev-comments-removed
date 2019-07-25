@@ -119,18 +119,18 @@ struct JSString {
 
     
     
+    size_t                  mLengthAndFlags;  
+    union {
+        jschar              *mChars; 
+        JSString            *mLeft;  
+    };
     union {
         size_t              mCapacity; 
         JSString            *mParent; 
         JSRopeBufferInfo    *mBufferWithInfo; 
+        jschar              mInlineStorage[1]; 
     };
     union {
-        size_t              mOffset; 
-        JSString            *mLeft;  
-    };
-    size_t                  mLengthAndFlags;  
-    union {
-        jschar              *mChars; 
         JSString            *mBase;  
         JSString            *mRight; 
     };
@@ -213,20 +213,9 @@ struct JSString {
     }
 
     JS_ALWAYS_INLINE jschar *chars() {
-        return isFlat() ? flatChars() : nonFlatChars();
-    }
-
-    JS_ALWAYS_INLINE jschar *nonFlatChars() {
-        if (isDependent())
-            return dependentChars();
-        else {
+        if (JS_UNLIKELY(isRope()))
             flatten();
-            JS_ASSERT(isFlat() || isDependent());
-            if (isFlat())
-                return flatChars();
-            else
-                return dependentChars();
-        }
+        return mChars;
     }
 
     JS_ALWAYS_INLINE size_t length() const {
@@ -246,10 +235,15 @@ struct JSString {
         end = length() + (chars = this->chars());
     }
 
+    JS_ALWAYS_INLINE jschar *inlineStorage() {
+        JS_ASSERT(isFlat());
+        return mInlineStorage;
+    }
+
     
     JS_ALWAYS_INLINE void initFlat(jschar *chars, size_t length) {
         JS_ASSERT(length <= MAX_LENGTH);
-        mOffset = 0;
+        mBase = NULL;
         mCapacity = 0;
         mLengthAndFlags = (length << FLAGS_LENGTH_SHIFT) | FLAT;
         mChars = chars;
@@ -257,7 +251,7 @@ struct JSString {
 
     JS_ALWAYS_INLINE void initFlatMutable(jschar *chars, size_t length, size_t cap) {
         JS_ASSERT(length <= MAX_LENGTH);
-        mOffset = 0;
+        mBase = NULL;
         mCapacity = cap;
         mLengthAndFlags = (length << FLAGS_LENGTH_SHIFT) | FLAT | MUTABLE;
         mChars = chars;
@@ -321,10 +315,14 @@ struct JSString {
         mLengthAndFlags &= ~MUTABLE;
     }
 
-    inline void initDependent(JSString *bstr, size_t off, size_t len) {
+    
+
+
+
+    inline void initDependent(JSString *bstr, jschar *chars, size_t len) {
         JS_ASSERT(len <= MAX_LENGTH);
         mParent = NULL;
-        mOffset = off;
+        mChars = chars;
         mLengthAndFlags = DEPENDENT | (len << FLAGS_LENGTH_SHIFT);
         mBase = bstr;
     }
@@ -335,13 +333,7 @@ struct JSString {
     }
 
     JS_ALWAYS_INLINE jschar *dependentChars() {
-        return dependentBase()->isFlat()
-               ? dependentBase()->flatChars() + dependentStart()
-               : js_GetDependentStringChars(this);
-    }
-
-    inline size_t dependentStart() const {
-        return mOffset;
+        return mChars;
     }
 
     inline size_t dependentLength() const {
@@ -399,18 +391,19 @@ struct JSString {
 
 
 
-    inline void startTraversalConversion(size_t offset) {
+    inline void startTraversalConversion(jschar *chars, size_t offset) {
         JS_ASSERT(isInteriorNode());
-        mOffset = offset;
+        mChars = chars + offset;
     }    
 
-    inline void finishTraversalConversion(JSString *base, size_t end) {
+    inline void finishTraversalConversion(JSString *base, jschar *chars,
+                                          size_t end) {
         JS_ASSERT(isInteriorNode());
         
         mLengthAndFlags = JSString::DEPENDENT |
-            ((end - mOffset) << JSString::FLAGS_LENGTH_SHIFT);
+            ((chars + end - mChars) << JSString::FLAGS_LENGTH_SHIFT);
         mBase = base;
-    }    
+    }
 
     inline void ropeClearTraversalCount() {
         JS_ASSERT(isRope());
@@ -481,6 +474,53 @@ struct JSString {
     static JSString *getUnitString(JSContext *cx, JSString *str, size_t index);
     static JSString *intString(jsint i);
 };
+
+
+
+
+
+
+struct JSShortString {
+    JSString mHeader;
+    JSString mDummy;
+
+    
+
+
+
+
+    inline jschar *init(size_t length) {
+        JS_ASSERT(length <= MAX_SHORT_STRING_LENGTH);
+        mHeader.initFlat(mHeader.inlineStorage(), length);
+        return mHeader.inlineStorage();
+    }
+
+    inline void resetLength(size_t length) {
+        mHeader.initFlat(mHeader.flatChars(), length);
+    }
+
+    inline JSString *header() {
+        return &mHeader;
+    }
+
+    static const size_t MAX_SHORT_STRING_LENGTH =
+            ((sizeof(JSString) + 2 * sizeof(size_t)) / sizeof(jschar)) - 1;
+
+    static inline bool fitsIntoShortString(size_t length) {
+        return length <= MAX_SHORT_STRING_LENGTH;
+    }
+};
+
+
+
+
+
+JS_STATIC_ASSERT(offsetof(JSString, mInlineStorage) == 2 * sizeof(void *));
+JS_STATIC_ASSERT(offsetof(JSString, mBase) == 3 * sizeof(void *));
+JS_STATIC_ASSERT(offsetof(JSShortString, mDummy) == sizeof(JSString));
+JS_STATIC_ASSERT(offsetof(JSString, mInlineStorage) +
+                 sizeof(jschar) * (JSShortString::MAX_SHORT_STRING_LENGTH + 1) ==
+                 sizeof(JSShortString));
 
 
 
@@ -828,9 +868,15 @@ js_NewDependentString(JSContext *cx, JSString *base, size_t start,
 extern JSString *
 js_NewStringCopyN(JSContext *cx, const jschar *s, size_t n);
 
+extern JSString *
+js_NewStringCopyN(JSContext *cx, const char *s, size_t n);
+
 
 extern JSString *
 js_NewStringCopyZ(JSContext *cx, const jschar *s);
+
+extern JSString *
+js_NewStringCopyZ(JSContext *cx, const char *s);
 
 
 
@@ -913,6 +959,32 @@ extern jschar *
 js_strchr_limit(const jschar *s, jschar c, const jschar *limit);
 
 #define js_strncpy(t, s, n)     memcpy((t), (s), (n) * sizeof(jschar))
+
+inline void
+js_short_strncpy(jschar *dest, const jschar *src, size_t num)
+{
+    
+
+
+
+    JS_ASSERT(JSShortString::fitsIntoShortString(num));
+    switch (num) {
+      case 1:
+        *dest = *src;
+        break;
+      case 2:
+        JS_ASSERT(sizeof(uint32) == 2 * sizeof(jschar));
+        *(uint32 *)dest = *(uint32 *)src;
+        break;
+      case 4:
+        JS_ASSERT(sizeof(uint64) == 4 * sizeof(jschar));
+        *(uint64 *)dest = *(uint64 *)src;
+        break;
+      default:
+        for (size_t i = 0; i < num; i++)
+            dest[i] = src[i];
+    }
+}
 
 
 
