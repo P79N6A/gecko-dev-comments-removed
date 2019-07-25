@@ -45,6 +45,7 @@
 #include "nsIPrincipal.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIURI.h"
+#include "nsXULAppAPI.h"
 
 #include "nsContentUtils.h"
 #include "nsNetUtil.h"
@@ -180,7 +181,12 @@ CheckQuotaHelper::Run()
 
   nsresult rv;
   if (mHasPrompted) {
-    if (mPromptResult != nsIPermissionManager::UNKNOWN_ACTION) {
+    
+    
+    
+    
+    if (mPromptResult != nsIPermissionManager::UNKNOWN_ACTION &&
+        XRE_GetProcessType() == GeckoProcessType_Default) {
       nsCOMPtr<nsIURI> uri;
       rv = NS_NewURI(getter_AddRefs(uri), mOrigin);
       NS_ENSURE_SUCCESS(rv, rv);

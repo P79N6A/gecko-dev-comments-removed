@@ -120,7 +120,12 @@ CheckPermissionsHelper::Run()
 
   nsresult rv;
   if (mHasPrompted) {
-    if (permission != nsIPermissionManager::UNKNOWN_ACTION) {
+    
+    
+    
+    
+    if (permission != nsIPermissionManager::UNKNOWN_ACTION &&
+        XRE_GetProcessType() == GeckoProcessType_Default) {
       nsCOMPtr<nsIURI> uri;
       rv = NS_NewURI(getter_AddRefs(uri), mASCIIOrigin);
       NS_ENSURE_SUCCESS(rv, rv);

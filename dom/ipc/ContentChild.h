@@ -149,6 +149,10 @@ public:
     gfxIntSize GetScreenSize() { return mScreenSize; }
 #endif
 
+    
+    
+    nsString &GetIndexedDBPath();
+
 private:
     NS_OVERRIDE
     virtual void ActorDestroy(ActorDestroyReason why);

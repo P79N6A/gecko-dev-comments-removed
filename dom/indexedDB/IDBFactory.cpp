@@ -37,12 +37,15 @@
 
 
 
+#include "base/basictypes.h"
+
 #include "IDBFactory.h"
 
 #include "nsILocalFile.h"
 #include "nsIScriptContext.h"
 
 #include "mozilla/storage.h"
+#include "mozilla/dom/ContentChild.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
@@ -54,6 +57,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
 #include "nsXPCOMCID.h"
+#include "nsXULAppAPI.h"
 
 #include "AsyncConnectionHelper.h"
 #include "CheckPermissionsHelper.h"
@@ -62,6 +66,7 @@
 #include "IDBKeyRange.h"
 #include "IndexedDatabaseManager.h"
 #include "LazyIdleThread.h"
+#include "nsIObserverService.h"
 
 #define PREF_INDEXEDDB_QUOTA "dom.indexedDB.warningQuota"
 
@@ -75,6 +80,8 @@
 USING_INDEXEDDB_NAMESPACE
 
 namespace {
+
+GeckoProcessType gAllowedProcessType = GeckoProcessType_Invalid;
 
 PRUintn gCurrentDatabaseIndex = BAD_TLS_INDEX;
 
@@ -357,12 +364,7 @@ CreateDatabaseConnection(const nsACString& aASCIIOrigin,
   aDatabaseFilePath.Truncate();
 
   nsCOMPtr<nsIFile> dbDirectory;
-  nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
-                                       getter_AddRefs(dbDirectory));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = dbDirectory->Append(NS_LITERAL_STRING("indexedDB"));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsresult rv = IDBFactory::GetDirectory(getter_AddRefs(dbDirectory));
 
   PRBool exists;
   rv = dbDirectory->Exists(&exists);
@@ -509,6 +511,11 @@ CreateDatabaseConnection(const nsACString& aASCIIOrigin,
 
 } 
 
+IDBFactory::IDBFactory()
+{
+  IDBFactory::NoteUsedByProcessType(XRE_GetProcessType());
+}
+
 
 already_AddRefed<nsIIDBFactory>
 IDBFactory::Create(nsPIDOMWindow* aWindow)
@@ -621,16 +628,44 @@ IDBFactory::GetIndexedDBQuota()
 }
 
 
+void
+IDBFactory::NoteUsedByProcessType(GeckoProcessType aProcessType)
+{
+  if (gAllowedProcessType == GeckoProcessType_Invalid) {
+    gAllowedProcessType = aProcessType;
+  } else if (aProcessType != gAllowedProcessType) {
+    NS_RUNTIMEABORT("More than one process type is accessing IndexedDB!");
+  }
+}
+
+
+nsresult
+IDBFactory::GetDirectory(nsIFile** aDirectory)
+{
+  nsresult rv;
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, aDirectory);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = (*aDirectory)->Append(NS_LITERAL_STRING("indexedDB"));
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    nsCOMPtr<nsILocalFile> localDirectory =
+      do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
+    rv = localDirectory->InitWithPath(
+      ContentChild::GetSingleton()->GetIndexedDBPath());
+    NS_ENSURE_SUCCESS(rv, rv);
+    localDirectory.forget((nsILocalFile**)aDirectory);
+  }
+  return NS_OK;
+}
+
+
 nsresult
 IDBFactory::GetDirectoryForOrigin(const nsACString& aASCIIOrigin,
                                   nsIFile** aDirectory)
 {
   nsCOMPtr<nsIFile> directory;
-  nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
-                                       getter_AddRefs(directory));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = directory->Append(NS_LITERAL_STRING("indexedDB"));
+  nsresult rv = GetDirectory(getter_AddRefs(directory));
   NS_ENSURE_SUCCESS(rv, rv);
 
   NS_ConvertASCIItoUTF16 originSanitized(aASCIIOrigin);
@@ -819,6 +854,14 @@ IDBFactory::Open(const nsAString& aName,
                  nsIIDBRequest** _retval)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    
+    
+    
+    
+    ContentChild::GetSingleton()->GetIndexedDBPath();
+  }
 
   if (aName.IsEmpty()) {
     return NS_ERROR_DOM_INDEXEDDB_NON_TRANSIENT_ERR;

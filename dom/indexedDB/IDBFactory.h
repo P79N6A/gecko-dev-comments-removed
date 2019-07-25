@@ -46,6 +46,7 @@
 #include "nsIIDBFactory.h"
 
 #include "nsIWeakReferenceUtils.h"
+#include "nsXULAppAPI.h"
 
 class nsPIDOMWindow;
 
@@ -73,6 +74,16 @@ public:
   static PRUint32
   GetIndexedDBQuota();
 
+  
+  
+  
+  
+  static void
+  NoteUsedByProcessType(GeckoProcessType aProcessType);
+
+  static nsresult
+  GetDirectory(nsIFile** aDirectory);
+
   static nsresult
   GetDirectoryForOrigin(const nsACString& aASCIIOrigin,
                         nsIFile** aDirectory);
@@ -89,7 +100,7 @@ public:
                          ObjectStoreInfoArray& aObjectStores);
 
 private:
-  IDBFactory() { }
+  IDBFactory();
   ~IDBFactory() { }
 
   nsCOMPtr<nsIWeakReference> mWindow;

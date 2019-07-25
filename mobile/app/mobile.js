@@ -567,7 +567,7 @@ pref("notification.feature.enabled", true);
 
 
 pref("browser.chrome.toolbar_tips", false);
-pref("indexedDB.feature.enabled", false);
+pref("indexedDB.feature.enabled", true);
 
 
 pref("media.preload.default", 1); 

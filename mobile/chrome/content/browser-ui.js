@@ -488,6 +488,11 @@ var BrowserUI = {
     });
 
     
+    messageManager.addMessageListener("IndexedDB:Prompt", function(aMessage) {
+      return IndexedDB.receiveMessage(aMessage);
+    });
+
+    
     window.addEventListener("UIReadyDelayed", function(aEvent) {
       window.removeEventListener(aEvent.type, arguments.callee, false);
 
