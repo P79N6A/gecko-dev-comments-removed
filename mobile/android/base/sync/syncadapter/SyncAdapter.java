@@ -249,7 +249,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
 
     
     
-    Logger.refreshLogLevels();
+    Logger.resetLogging();
 
     
     Log.i(LOG_TAG, "Got onPerformSync. Extras bundle is " + extras);

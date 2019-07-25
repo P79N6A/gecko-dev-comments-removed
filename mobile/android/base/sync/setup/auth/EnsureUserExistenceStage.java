@@ -17,7 +17,6 @@ import org.mozilla.gecko.sync.net.BaseResource;
 import org.mozilla.gecko.sync.net.SyncResourceDelegate;
 import org.mozilla.gecko.sync.setup.Constants;
 
-import android.util.Log;
 import ch.boye.httpclientandroidlib.HttpResponse;
 import ch.boye.httpclientandroidlib.client.ClientProtocolException;
 
@@ -37,7 +36,7 @@ public class EnsureUserExistenceStage implements AuthenticatorStage {
       @Override
       public void handleSuccess() {
         
-        Log.d(LOG_TAG, "handleSuccess()");
+        Logger.debug(LOG_TAG, "handleSuccess()");
         aa.runNextStage();
       }
 

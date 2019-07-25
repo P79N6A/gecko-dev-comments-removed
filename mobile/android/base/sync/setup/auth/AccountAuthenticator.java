@@ -12,8 +12,6 @@ import org.mozilla.gecko.sync.ThreadPool;
 import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.setup.activities.AccountActivity;
 
-import android.util.Log;
-
 public class AccountAuthenticator {
   private final String LOG_TAG = "AccountAuthenticator";
 
@@ -59,7 +57,7 @@ public class AccountAuthenticator {
     }
     Logger.debug(LOG_TAG, "username:" + username);
 
-    Log.d(LOG_TAG, "running first stage.");
+    Logger.debug(LOG_TAG, "running first stage.");
     
     runNextStage();
   }
