@@ -755,14 +755,6 @@ class ObjectPtr
 
 } 
 
-
-
-
-
-extern JS_FRIEND_API(JSBool)
-js_GetClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey,
-                     JSObject **protop, js::Class *clasp = NULL);
-
 #endif
 
 

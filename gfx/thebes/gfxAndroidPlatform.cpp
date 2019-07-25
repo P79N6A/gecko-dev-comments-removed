@@ -41,6 +41,7 @@
 
 #include "gfxFT2FontList.h"
 #include "gfxImageSurface.h"
+#include "nsXULAppAPI.h"
 
 #include "cairo.h"
 
@@ -195,3 +196,28 @@ gfxAndroidPlatform::GetScaledFontForFont(gfxFont *aFont)
     return scaledFont;
 }
 
+bool
+gfxAndroidPlatform::FontHintingEnabled()
+{
+    
+    
+#ifdef MOZ_USING_ANDROID_JAVA_WIDGETS
+    
+    
+    
+    
+    
+    
+    return false;
+#else
+    
+    
+    
+    
+    
+    
+    
+    
+    return (XRE_GetProcessType() != GeckoProcessType_Content);
+#endif 
+}

@@ -190,7 +190,7 @@ static void DrawPlugin(ImageContainer* aContainer, void* aPluginInstanceOwner)
 {
   nsObjectFrame* frame = static_cast<nsPluginInstanceOwner*>(aPluginInstanceOwner)->GetFrame();
   if (frame) {
-    frame->UpdateImageLayer(aContainer, gfxRect(0,0,0,0));
+    frame->UpdateImageLayer(gfxRect(0,0,0,0));
   }
 }
 
@@ -201,29 +201,28 @@ static void OnDestroyImage(void* aPluginInstanceOwner)
 }
 #endif 
 
-bool
-nsPluginInstanceOwner::SetCurrentImage(ImageContainer* aContainer)
+already_AddRefed<ImageContainer>
+nsPluginInstanceOwner::GetImageContainer()
 {
   if (mInstance) {
-    nsRefPtr<Image> image;
+    nsRefPtr<ImageContainer> container;
     
     
-    mInstance->GetImage(aContainer, getter_AddRefs(image));
-    if (image) {
+    mInstance->GetImageContainer(getter_AddRefs(container));
+    if (container) {
 #ifdef XP_MACOSX
-      if (image->GetFormat() == Image::MAC_IO_SURFACE && mObjectFrame) {
+      nsRefPtr<Image> image = container->GetCurrentImage();
+      if (image && image->GetFormat() == Image::MAC_IO_SURFACE && mObjectFrame) {
         MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image.get());
         NS_ADDREF_THIS();
         oglImage->SetUpdateCallback(&DrawPlugin, this);
         oglImage->SetDestroyCallback(&OnDestroyImage);
       }
 #endif
-      aContainer->SetCurrentImage(image);
-      return true;
+      return container.forget();
     }
   }
-  aContainer->SetCurrentImage(nsnull);
-  return false;
+  return nsnull;
 }
 
 void
@@ -635,12 +634,9 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
   
   
   
-  nsRefPtr<ImageContainer> container = mObjectFrame->GetImageContainer();
+  nsRefPtr<ImageContainer> container;
+  mInstance->GetImageContainer(getter_AddRefs(container));
   gfxIntSize oldSize(0, 0);
-  if (container) {
-    oldSize = container->GetCurrentSize();
-    SetCurrentImage(container);
-  }
 
 #ifndef XP_MACOSX
   
@@ -676,11 +672,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
 NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRegion(NPRegion invalidRegion)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP nsPluginInstanceOwner::ForceRedraw()
-{
-  return NS_OK;
 }
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
@@ -1090,13 +1081,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetBorderHorizSpace(PRUint32 *result)
     *result = 0;
 
   return rv;
-}
-
-NS_IMETHODIMP nsPluginInstanceOwner::GetUniqueID(PRUint32 *result)
-{
-  NS_ENSURE_ARG_POINTER(result);
-  *result = NS_PTR_TO_INT32(mObjectFrame);
-  return NS_OK;
 }
 
 

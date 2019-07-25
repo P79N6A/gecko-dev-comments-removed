@@ -860,12 +860,6 @@ nsContextMenu.prototype = {
     let video = this.target;
     if (document.mozFullScreenEnabled)
       video.mozRequestFullScreen();
-    else {
-      
-      video.pause();
-      openDialog("chrome://browser/content/fullscreen-video.xhtml",
-                  "", "chrome,centerscreen,dialog=no", video);
-    }
   },
 
   

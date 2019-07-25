@@ -1331,6 +1331,7 @@ Parser::functionArguments(TreeContext &funtc, FunctionBox *funbox, ParseNode **l
 
 
                 if (funtc.decls.lookupFirst(name)) {
+                    funtc.bindings.noteDup();
                     duplicatedArg = name;
                     if (destructuringArg)
                         goto report_dup_and_destructuring;

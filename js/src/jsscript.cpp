@@ -185,6 +185,47 @@ Bindings::add(JSContext *cx, JSAtom *name, BindingKind kind)
     return true;
 }
 
+Shape *
+Bindings::callObjectShape(JSContext *cx) const
+{
+    if (!hasDup())
+        return lastShape();
+
+    
+
+
+
+
+    Vector<const Shape *> shapes(cx);
+    HashSet<jsid> seen(cx);
+    if (!seen.init())
+        return NULL;
+
+    for (Shape::Range r = lastShape()->all(); !r.empty(); r.popFront()) {
+        const Shape &s = r.front();
+        HashSet<jsid>::AddPtr p = seen.lookupForAdd(s.propid());
+        if (!p) {
+            if (!seen.add(p, s.propid()))
+                return NULL;
+            if (!shapes.append(&s))
+                return NULL;
+        }
+    }
+
+    
+
+
+    RootedVarShape shape(cx);
+    shape = initialShape(cx);
+    for (int i = shapes.length() - 1; i >= 0; --i) {
+        shape = shape->getChildBinding(cx, shapes[i]);
+        if (!shape)
+            return NULL;
+    }
+
+    return shape;
+}
+
 bool
 Bindings::getLocalNameArray(JSContext *cx, Vector<JSAtom *> *namesp)
 {

@@ -52,7 +52,6 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsdhash.h"
-#include "jsgcchunk.h"
 #include "jslock.h"
 #include "jsutil.h"
 #include "jsversion.h"
@@ -98,13 +97,22 @@ const size_t MAX_BACKGROUND_FINALIZE_KINDS = FINALIZE_LIMIT - FINALIZE_OBJECT_LI
 
 
 
- 
+
+
+
 #if defined(SOLARIS) && (defined(__sparc) || defined(__sparcv9))
-const size_t ArenaShift = 13;
+const size_t PageShift = 13;
 #else
-const size_t ArenaShift = 12;
+const size_t PageShift = 12;
 #endif
-const size_t ArenaSize = size_t(1) << ArenaShift;
+const size_t PageSize = size_t(1) << PageShift;
+
+const size_t ChunkShift = 20;
+const size_t ChunkSize = size_t(1) << ChunkShift;
+const size_t ChunkMask = ChunkSize - 1;
+
+const size_t ArenaShift = PageShift;
+const size_t ArenaSize = PageSize;
 const size_t ArenaMask = ArenaSize - 1;
 
 

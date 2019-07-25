@@ -123,8 +123,11 @@ SVGLengthListSMILType::Add(nsSMILValue& aDest,
   
   
 
-  NS_ABORT_IF_FALSE(!dest.IsEmpty() || !valueToAdd.IsEmpty(),
-                    "Expecting at least one non-identity operand");
+  if (dest.IsEmpty() && valueToAdd.IsEmpty()) {
+    
+    
+    return NS_OK;
+  }
 
   if (!valueToAdd.Element()) { 
     NS_ABORT_IF_FALSE(valueToAdd.IsEmpty(),

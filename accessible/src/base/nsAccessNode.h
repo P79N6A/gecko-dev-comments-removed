@@ -71,7 +71,7 @@ class nsAccessNode: public nsISupports
 {
 public:
 
-  nsAccessNode(nsIContent *aContent, nsIWeakReference *aShell);
+  nsAccessNode(nsIContent* aContent, nsDocAccessible* aDoc);
   virtual ~nsAccessNode();
 
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -88,7 +88,7 @@ public:
   
 
 
-  nsDocAccessible *GetDocAccessible() const;
+  nsDocAccessible* Document() const { return mDoc; }
 
   
 
@@ -150,16 +150,6 @@ public:
   
 
 
-  already_AddRefed<nsIPresShell> GetPresShell();
-
-  
-
-
-  nsIWeakReference* GetWeakShell() const { return mWeakShell; }
-
-  
-
-
   void* UniqueID() { return static_cast<void*>(this); }
 
   
@@ -174,12 +164,6 @@ public:
   
 
 
-  static nsIStringBundle* GetStringBundle()
-    { return gStringBundle; }
-
-  
-
-
   void Language(nsAString& aLocale);
   void ScrollTo(PRUint32 aType);
 
@@ -189,7 +173,7 @@ protected:
     void LastRelease();
 
   nsCOMPtr<nsIContent> mContent;
-  nsCOMPtr<nsIWeakReference> mWeakShell;
+  nsDocAccessible* mDoc;
 
     
 
@@ -202,9 +186,9 @@ protected:
     static bool gIsFormFillEnabled;
 
 private:
-  nsAccessNode();
-  nsAccessNode(const nsAccessNode&);
-  nsAccessNode& operator =(const nsAccessNode&);
+  nsAccessNode() MOZ_DELETE;
+  nsAccessNode(const nsAccessNode&) MOZ_DELETE;
+  nsAccessNode& operator =(const nsAccessNode&) MOZ_DELETE;
   
   static nsApplicationAccessible *gApplicationAccessible;
 };

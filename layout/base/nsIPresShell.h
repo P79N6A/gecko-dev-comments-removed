@@ -71,6 +71,7 @@
 #include "nsChangeHint.h"
 #include "nsGUIEvent.h"
 #include "nsInterfaceHashtable.h"
+#include "nsEventStates.h"
 
 class nsIContent;
 class nsIDocument;
@@ -143,8 +144,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID    \
-        { 0x87acd089, 0x8da7, 0x4438, \
-          { 0xa5, 0xcd, 0x90, 0x1e, 0x5d, 0x8f, 0xd8, 0x19 } }
+        { 0x87719fd6, 0xe50c, 0x4d72, \
+          { 0xbd, 0x55, 0x05, 0xf9, 0x5f, 0x33, 0x9e, 0xf2 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -781,6 +782,13 @@ public:
 
 
   virtual nsresult ReconstructFrames() = 0;
+
+  
+
+
+  virtual void ContentStateChanged(nsIDocument* aDocument,
+                                   nsIContent* aContent,
+                                   nsEventStates aStateMask) = 0;
 
   
 

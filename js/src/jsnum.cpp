@@ -1297,35 +1297,6 @@ ToUint32Slow(JSContext *cx, const Value &v, uint32_t *out)
 
 }  
 
-uint32_t
-js_DoubleToECMAUint32(jsdouble d)
-{
-    int32_t i;
-    JSBool neg;
-    jsdouble two32;
-
-    if (!JSDOUBLE_IS_FINITE(d))
-        return 0;
-
-    
-
-
-
-
-    i = (int32_t) d;
-    if ((jsdouble) i == d)
-        return (int32_t)i;
-
-    neg = (d < 0);
-    d = floor(neg ? -d : d);
-    d = neg ? -d : d;
-
-    two32 = 4294967296.0;
-    d = fmod(d, two32);
-
-    return (uint32_t) (d >= 0 ? d : d + two32);
-}
-
 namespace js {
 
 bool

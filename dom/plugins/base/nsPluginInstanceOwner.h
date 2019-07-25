@@ -275,8 +275,10 @@ public:
   }
   
   void NotifyPaintWaiter(nsDisplayListBuilder* aBuilder);
+
   
-  bool SetCurrentImage(ImageContainer* aContainer);
+  already_AddRefed<ImageContainer> GetImageContainer();
+
   
 
 

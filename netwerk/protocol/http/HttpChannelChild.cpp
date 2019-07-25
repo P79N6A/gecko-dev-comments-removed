@@ -93,8 +93,8 @@ NS_IMETHODIMP_(nsrefcnt) HttpChannelChild::Release()
   
   
   
-  if (mKeptAlive && mRefCnt == 1) {
-    NS_ASSERTION(mIPCOpen, "mIPCOpen false!");
+  
+  if (mKeptAlive && mRefCnt == 1 && mIPCOpen) {
     mKeptAlive = false;
     
     

@@ -213,6 +213,10 @@ nsTableFrame::Init(nsIContent*      aContent,
   const nsStyleTableBorder* tableStyle = GetStyleTableBorder();
   bool borderCollapse = (NS_STYLE_BORDER_COLLAPSE == tableStyle->mBorderCollapse);
   SetBorderCollapse(borderCollapse);
+
+  
+  mState &= ~NS_FRAME_MAY_BE_TRANSFORMED;
+
   
   if (!aPrevInFlow) {
     mCellMap = new nsTableCellMap(*this, borderCollapse);

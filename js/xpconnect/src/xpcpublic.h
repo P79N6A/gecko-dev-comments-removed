@@ -195,6 +195,9 @@ xpc_MarkInCCGeneration(nsISupports* aVariant, PRUint32 aGeneration);
 extern void
 xpc_UnmarkGrayObject(nsIXPConnectWrappedJS* aWrappedJS);
 
+extern void
+xpc_UnmarkSkippableJSHolders();
+
 
 
 NS_EXPORT_(void)

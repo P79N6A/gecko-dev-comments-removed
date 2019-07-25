@@ -87,8 +87,6 @@ public:
   NS_DECL_NSIOBSERVER
 
   
-  virtual nsAccessible* GetAccessibleInShell(nsINode* aNode,
-                                             nsIPresShell* aPresShell);
   virtual nsAccessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
                                                   bool aCanCreate);
 
@@ -190,15 +188,14 @@ public:
 
 
 
-
-  nsAccessible* GetOrCreateAccessible(nsINode* aNode, nsIPresShell* aPresShell,
-                                      nsIWeakReference* aWeakShell,
+  nsAccessible* GetOrCreateAccessible(nsINode* aNode, nsDocAccessible* aDoc,
                                       bool* aIsSubtreeHidden = nsnull);
 
   
 
 
-  nsAccessible* GetAccessible(nsINode* aNode);
+
+  nsAccessible* GetAccessible(nsINode* aNode, nsIPresShell* aPresShell);
 
   
 
@@ -206,28 +203,16 @@ public:
 
 
 
-  inline nsAccessible* GetAccessibleInWeakShell(nsINode* aNode,
-                                                nsIWeakReference* aWeakShell)
-  {
-    
-    return GetAccessible(aNode);
-  }
+
+  nsAccessible* GetAccessibleOrContainer(nsINode* aNode, nsDocAccessible* aDoc);
 
   
 
 
-
-  nsAccessible* GetAccessibleOrContainer(nsINode* aNode,
-                                         nsIWeakReference* aWeakShell);
-
-  
-
-
-  inline nsAccessible* GetContainerAccessible(nsINode* aNode,
-                                              nsIWeakReference* aWeakShell)
+  nsAccessible* GetContainerAccessible(nsINode* aNode, nsDocAccessible* aDoc)
   {
     return aNode ?
-      GetAccessibleOrContainer(aNode->GetNodeParent(), aWeakShell) : nsnull;
+      GetAccessibleOrContainer(aNode->GetNodeParent(), aDoc) : nsnull;
   }
 
 private:
@@ -253,28 +238,28 @@ private:
 
 
   already_AddRefed<nsAccessible>
-    CreateAccessibleByType(nsIContent* aContent, nsIWeakReference* aWeakShell);
+    CreateAccessibleByType(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
 
 
   already_AddRefed<nsAccessible>
     CreateHTMLAccessibleByMarkup(nsIFrame* aFrame, nsIContent* aContent,
-                                 nsIWeakReference* aWeakShell);
+                                 nsDocAccessible* aDoc);
 
   
 
 
   already_AddRefed<nsAccessible>
     CreateAccessibleForDeckChild(nsIFrame* aFrame, nsIContent* aContent,
-                                 nsIWeakReference* aWeakShell);
+                                 nsDocAccessible* aDoc);
 
 #ifdef MOZ_XUL
   
 
 
   already_AddRefed<nsAccessible>
-    CreateAccessibleForXULTree(nsIContent* aContent, nsIWeakReference* aWeakShell);
+    CreateAccessibleForXULTree(nsIContent* aContent, nsDocAccessible* aDoc);
 #endif
 
   

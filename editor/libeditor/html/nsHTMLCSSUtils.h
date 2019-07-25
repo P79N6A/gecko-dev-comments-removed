@@ -108,7 +108,8 @@ public:
 
 
 
-  bool        IsCSSEditableProperty(nsIDOMNode * aNode, nsIAtom * aProperty, const nsAString * aAttribute);
+  bool IsCSSEditableProperty(nsIContent* aNode, nsIAtom* aProperty, const nsAString* aAttribute);
+  bool IsCSSEditableProperty(nsIDOMNode* aNode, nsIAtom* aProperty, const nsAString* aAttribute);
 
   
 
@@ -193,7 +194,7 @@ public:
 
 
 
-  nsresult    GetCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
+  nsresult    GetCSSEquivalentToHTMLInlineStyleSet(nsINode* aNode,
                                                    nsIAtom * aHTMLProperty,
                                                    const nsAString * aAttribute,
                                                    nsAString & aValueString,
@@ -299,6 +300,7 @@ public:
 
 
 
+  mozilla::dom::Element* GetElementContainerOrSelf(nsINode* aNode);
   already_AddRefed<nsIDOMElement> GetElementContainerOrSelf(nsIDOMNode* aNode);
 
   
@@ -307,7 +309,8 @@ public:
 
 
 
-  nsresult        GetDefaultViewCSS(nsIDOMNode* aNode, nsIDOMWindow** aWindow);
+  nsresult GetDefaultViewCSS(nsINode* aNode, nsIDOMWindow** aWindow);
+  nsresult GetDefaultViewCSS(nsIDOMNode* aNode, nsIDOMWindow** aWindow);
 
 
 private:
@@ -350,12 +353,12 @@ private:
 
 
 
-  void      GenerateCSSDeclarationsFromHTMLStyle(nsIDOMNode * aNode,
-                                                 nsIAtom * aHTMLProperty,
-                                                 const nsAString *aAttribute,
-                                                 const nsAString *aValue,
-                                                 nsTArray<nsIAtom*> & aPropertyArray,
-                                                 nsTArray<nsString> & aValueArray,
+  void      GenerateCSSDeclarationsFromHTMLStyle(mozilla::dom::Element* aNode,
+                                                 nsIAtom* aHTMLProperty,
+                                                 const nsAString* aAttribute,
+                                                 const nsAString* aValue,
+                                                 nsTArray<nsIAtom*>& aPropertyArray,
+                                                 nsTArray<nsString>& aValueArray,
                                                  bool aGetOrRemoveRequest);
 
   
@@ -381,10 +384,12 @@ private:
 
 
 
-  nsresult    GetCSSInlinePropertyBase(nsIDOMNode * aNode, nsIAtom * aProperty,
-                                       nsAString & aValue,
-                                       nsIDOMWindow* aWindow,
-                                       PRUint8 aStyleType);
+  nsresult GetCSSInlinePropertyBase(nsINode* aNode, nsIAtom* aProperty,
+                                    nsAString& aValue, nsIDOMWindow* aWindow,
+                                    PRUint8 aStyleType);
+  nsresult GetCSSInlinePropertyBase(nsIDOMNode* aNode, nsIAtom* aProperty,
+                                    nsAString& aValue, nsIDOMWindow* aWindow,
+                                    PRUint8 aStyleType);
 
 
 private:

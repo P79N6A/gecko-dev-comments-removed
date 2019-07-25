@@ -381,9 +381,6 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
   if (!isRootDoc) {
     
     
-    
-    
-    
     parentDocAcc = GetDocAccessible(aDocument->GetParentDocument());
     NS_ASSERTION(parentDocAcc,
                  "Can't create an accessible for the document!");
@@ -393,10 +390,9 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
 
   
   
-  nsCOMPtr<nsIWeakReference> weakShell(do_GetWeakReference(presShell));
   nsRefPtr<nsDocAccessible> docAcc = isRootDoc ?
-    new nsRootAccessibleWrap(aDocument, rootElm, weakShell) :
-    new nsDocAccessibleWrap(aDocument, rootElm, weakShell);
+    new nsRootAccessibleWrap(aDocument, rootElm, presShell) :
+    new nsDocAccessibleWrap(aDocument, rootElm, presShell);
 
   
   if (!docAcc || !mDocAccessibleCache.Put(aDocument, docAcc))

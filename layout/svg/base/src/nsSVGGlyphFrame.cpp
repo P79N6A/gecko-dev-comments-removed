@@ -440,7 +440,9 @@ nsSVGGlyphFrame::GetFrameForPoint(const nsPoint &aPoint)
 NS_IMETHODIMP_(nsRect)
 nsSVGGlyphFrame::GetCoveredRegion()
 {
-  return mRect;
+  
+  
+  return mCoveredRegion;
 }
 
 NS_IMETHODIMP
@@ -448,13 +450,9 @@ nsSVGGlyphFrame::UpdateCoveredRegion()
 {
   mRect.SetEmpty();
 
-  gfxMatrix matrix = GetCanvasTM();
-  if (matrix.IsSingular()) {
-    return NS_ERROR_FAILURE;
-  }
-
+  
+  
   nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
-  tmpCtx->Multiply(matrix);
 
   bool hasStroke = HasStroke();
   if (hasStroke) {
@@ -487,12 +485,18 @@ nsSVGGlyphFrame::UpdateCoveredRegion()
   
   gfxRect extent = tmpCtx->GetUserPathExtent();
   if (hasStroke) {
-    extent = nsSVGUtils::PathExtentsToMaxStrokeExtents(extent, this);
+    extent =
+      nsSVGUtils::PathExtentsToMaxStrokeExtents(extent, this, gfxMatrix());
   }
 
   if (!extent.IsEmpty()) {
-    mRect = nsSVGUtils::ToAppPixelRect(PresContext(), extent);
+    mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent, 
+              PresContext()->AppUnitsPerDevPixel());
   }
+
+  
+  mCoveredRegion = nsSVGUtils::TransformFrameRectToOuterSVG(
+    mRect, GetCanvasTM(), PresContext());
 
   return NS_OK;
 }
@@ -620,7 +624,9 @@ nsSVGGlyphFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
   if ((aFlags & nsSVGUtils::eBBoxIncludeStroke) != 0 &&
       ((aFlags & nsSVGUtils::eBBoxIgnoreStrokeIfNone) == 0 || HasStroke())) {
     bbox =
-      bbox.Union(nsSVGUtils::PathExtentsToMaxStrokeExtents(pathExtents, this));
+      bbox.Union(nsSVGUtils::PathExtentsToMaxStrokeExtents(pathExtents,
+                                                           this,
+                                                           aToBBoxUserspace));
   }
 
   return bbox;

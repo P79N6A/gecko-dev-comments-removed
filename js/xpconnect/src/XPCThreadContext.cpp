@@ -239,11 +239,7 @@ XPCJSContextStack::GetSafeJSContext()
             
             nsIScriptObjectPrincipal* priv = nsnull;
             sop.swap(priv);
-            if (!JS_SetPrivate(mSafeJSContext, glob, priv)) {
-                
-                NS_RELEASE(priv);
-                glob = nsnull;
-            }
+            JS_SetPrivate(glob, priv);
         }
 
         

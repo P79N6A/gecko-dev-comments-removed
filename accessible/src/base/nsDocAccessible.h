@@ -97,7 +97,7 @@ public:
   using nsAccessible::GetParent;
 
   nsDocAccessible(nsIDocument *aDocument, nsIContent *aRootContent,
-                  nsIWeakReference* aShell);
+                  nsIPresShell* aPresShell);
   virtual ~nsDocAccessible();
 
   
@@ -141,6 +141,11 @@ public:
   
 
 
+  nsIPresShell* PresShell() const { return mPresShell; }
+
+  
+
+
   bool IsContentLoaded() const
   {
     
@@ -170,7 +175,8 @@ public:
 
 
   bool HasLoadState(LoadState aState) const
-    { return (mLoadState & aState) == aState; }
+    { return (mLoadState & static_cast<PRUint32>(aState)) == 
+        static_cast<PRUint32>(aState); }
 
   
 
@@ -181,7 +187,7 @@ public:
 
 
   nsDocAccessible* ParentDocument() const
-    { return mParent ? mParent->GetDocAccessible() : nsnull; }
+    { return mParent ? mParent->Document() : nsnull; }
 
   
 
@@ -376,6 +382,8 @@ public:
   void RecreateAccessible(nsIContent* aContent);
 
 protected:
+
+  void LastRelease();
 
   
   virtual void CacheChildren();
@@ -653,6 +661,10 @@ protected:
 
   nsRefPtr<NotificationController> mNotificationController;
   friend class NotificationController;
+
+private:
+
+  nsIPresShell* mPresShell;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsDocAccessible,

@@ -448,13 +448,18 @@ public:
   GetCoveredRegion(const nsFrameList &aFrames);
 
   
-
+  
+  
+  
+  static nsPoint
+  TransformOuterSVGPointToChildFrame(nsPoint aPoint,
+                                     const gfxMatrix& aFrameToCanvasTM,
+                                     nsPresContext* aPresContext);
 
   static nsRect
-  ToAppPixelRect(nsPresContext *aPresContext,
-                 double xmin, double ymin, double xmax, double ymax);
-  static nsRect
-  ToAppPixelRect(nsPresContext *aPresContext, const gfxRect& rect);
+  TransformFrameRectToOuterSVG(const nsRect& aRect,
+                               const gfxMatrix& aMatrix,
+                               nsPresContext* aPresContext);
 
   
 
@@ -581,9 +586,11 @@ public:
 
 
   static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
-                                               nsSVGGeometryFrame* aFrame);
+                                               nsSVGGeometryFrame* aFrame,
+                                               const gfxMatrix& aMatrix);
   static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
-                                               nsSVGPathGeometryFrame* aFrame);
+                                               nsSVGPathGeometryFrame* aFrame,
+                                               const gfxMatrix& aMatrix);
 
   
 

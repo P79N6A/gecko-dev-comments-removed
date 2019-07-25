@@ -1228,12 +1228,12 @@ function BrowserStartup() {
   if ("arguments" in window && window.arguments[0])
     uriToLoad = window.arguments[0];
 
-  var isLoadingBlank = uriToLoad == "about:blank";
+  var isLoadingBlank = isBlankPageURL(uriToLoad);
   var mustLoadSidebar = false;
 
   prepareForStartup();
 
-  if (uriToLoad && !isLoadingBlank) {
+  if (uriToLoad && uriToLoad != "about:blank") {
     if (uriToLoad instanceof Ci.nsISupportsArray) {
       let count = uriToLoad.Count();
       let specs = [];
@@ -1929,7 +1929,7 @@ function nonBrowserWindowStartup() {
                        'viewToolbarsMenu', 'viewSidebarMenuMenu', 'Browser:Reload',
                        'viewFullZoomMenu', 'pageStyleMenu', 'charsetMenu', 'View:PageSource', 'View:FullScreen',
                        'viewHistorySidebar', 'Browser:AddBookmarkAs', 'Browser:BookmarkAllTabs',
-                       'View:PageInfo', 'Tasks:InspectPage', 'Browser:ToggleTabView', ];
+                       'View:PageInfo', 'Tasks:InspectPage', 'Browser:ToggleTabView', 'Browser:ToggleAddonBar'];
   var element;
 
   for (var id in disabledItems) {
@@ -5865,7 +5865,7 @@ function hrefAndLinkNodeForClickEvent(event)
 function contentAreaClick(event, isPanelClick)
 {
   if (!event.isTrusted || event.defaultPrevented || event.button == 2)
-    return true;
+    return;
 
   let [href, linkNode] = hrefAndLinkNodeForClickEvent(event);
   if (!href) {
@@ -5876,7 +5876,7 @@ function contentAreaClick(event, isPanelClick)
       middleMousePaste(event);
       event.preventDefault();
     }
-    return true;
+    return;
   }
 
   
@@ -5893,7 +5893,7 @@ function contentAreaClick(event, isPanelClick)
       if (linkNode.getAttribute("onclick") ||
           href.substr(0, 11) === "javascript:" ||
           href.substr(0, 5) === "data:")
-        return true;
+        return;
 
       try {
         urlSecurityCheck(href, linkNode.ownerDocument.nodePrincipal);
@@ -5901,16 +5901,16 @@ function contentAreaClick(event, isPanelClick)
       catch(ex) {
         
         event.preventDefault();
-        return true;
+        return;
       }
 
       let postData = {};
       let url = getShortcutOrURI(href, postData);
       if (!url)
-        return true;
+        return;
       loadURI(url, null, postData.value, false);
       event.preventDefault();
-      return true;
+      return;
     }
 
     if (linkNode.getAttribute("rel") == "sidebar") {
@@ -5927,7 +5927,7 @@ function contentAreaClick(event, isPanelClick)
                                                      , "keyword" ]
                                        }, window);
       event.preventDefault();
-      return true;
+      return;
     }
   }
 
@@ -5940,8 +5940,6 @@ function contentAreaClick(event, isPanelClick)
   try {
     PlacesUIUtils.markPageAsFollowedLink(href);
   } catch (ex) {  }
-
-  return true;
 }
 
 
@@ -7151,24 +7149,9 @@ var gPluginHandler = {
   },
 
   
-  retryPluginPage: function (browser, plugin, pluginDumpID, browserDumpID) {
-    let doc = plugin.ownerDocument;
-
-    let statusDiv =
-      doc.getAnonymousElementByAttribute(plugin, "class", "submitStatus");
-    let status = statusDiv.getAttribute("status");
-
-    let submitChk =
-      doc.getAnonymousElementByAttribute(plugin, "class", "pleaseSubmitCheckbox");
-
+  submitReport : function(pluginDumpID, browserDumpID) {
     
-    if (status == "please" && submitChk.checked) {
-      this.submitReport(pluginDumpID, browserDumpID);
-    }
-    this.reloadPage(browser);
-  },
-
-  submitReport: function (pluginDumpID, browserDumpID) {
+    
     this.CrashSubmit.submit(pluginDumpID);
     if (browserDumpID)
       this.CrashSubmit.submit(browserDumpID);
@@ -7387,6 +7370,7 @@ var gPluginHandler = {
 
     let submittedReport = aEvent.getData("submittedCrashReport");
     let doPrompt        = true; 
+    let submitReports   = true; 
     let pluginName      = aEvent.getData("pluginName");
     let pluginFilename  = aEvent.getData("pluginFilename");
     let pluginDumpID    = aEvent.getData("pluginDumpID");
@@ -7404,7 +7388,6 @@ var gPluginHandler = {
     let overlay = doc.getAnonymousElementByAttribute(plugin, "class", "mainBox");
     let statusDiv = doc.getAnonymousElementByAttribute(plugin, "class", "submitStatus");
 #ifdef MOZ_CRASHREPORTER
-    let submitReports = gCrashReporter.submitReports;
     let status;
 
     
@@ -7415,21 +7398,18 @@ var gPluginHandler = {
       status = "noSubmit";
     }
     else { 
-      
-      let submitChk = doc.getAnonymousElementByAttribute(
-                        plugin, "class", "pleaseSubmitCheckbox");
-      submitChk.checked = submitReports;
-      submitChk.addEventListener("click", function() {
-        gCrashReporter.submitReports = this.checked;
-      }, false);
-
       status = "please";
+      
+      let pleaseLink = doc.getAnonymousElementByAttribute(
+                            plugin, "class", "pleaseSubmitLink");
+      this.addLinkClickCallback(pleaseLink, "submitReport",
+                                pluginDumpID, browserDumpID);
     }
 
     
     
     if (!pluginDumpID) {
-      status = "noReport";
+        status = "noReport";
     }
 
     statusDiv.setAttribute("status", status);
@@ -7443,19 +7423,6 @@ var gPluginHandler = {
     
     
     if (doPrompt) {
-      let submitReportsPrefObserver = {
-        QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
-                                               Ci.nsISupportsWeakReference]),
-        observe : function(subject, topic, data) {
-          let submitChk = doc.getAnonymousElementByAttribute(
-                            plugin, "class", "pleaseSubmitCheckbox");
-          submitChk.checked = gCrashReporter.submitReports;
-        },
-        handleEvent : function(event) {
-            
-        }
-      };
-
       let observer = {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                                Ci.nsISupportsWeakReference]),
@@ -7472,21 +7439,16 @@ var gPluginHandler = {
         handleEvent : function(event) {
             
         }
-      };
+      }
 
       
       Services.obs.addObserver(observer, "crash-report-status", true);
-      Services.obs.addObserver(
-        submitReportsPrefObserver, "submit-reports-pref-changed", true);
-
       
       
       
       
       
       doc.addEventListener("mozCleverClosureHack", observer, false);
-      doc.addEventListener(
-        "mozCleverClosureHack", submitReportsPrefObserver, false);
     }
 #endif
 
@@ -7496,12 +7458,7 @@ var gPluginHandler = {
     let browser = gBrowser.getBrowserForDocument(doc.defaultView.top.document);
 
     let link = doc.getAnonymousElementByAttribute(plugin, "class", "reloadLink");
-#ifdef MOZ_CRASHREPORTER
-    this.addLinkClickCallback(
-      link, "retryPluginPage", browser, plugin, pluginDumpID, browserDumpID);
-#else
     this.addLinkClickCallback(link, "reloadPage", browser);
-#endif
 
     let notificationBox = gBrowser.getNotificationBox(browser);
 

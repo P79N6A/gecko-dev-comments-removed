@@ -328,9 +328,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    static PluginSupportState
-      GetPluginSupportState(nsIContent* aContent,
-                            const nsCString& aContentType);
+    PluginSupportState GetPluginSupportState(nsIContent* aContent, const nsCString& aContentType);
 
     
 
@@ -339,17 +337,17 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    static PluginSupportState
-      GetPluginDisabledState(const nsCString& aContentType);
+    PluginSupportState GetPluginDisabledState(const nsCString& aContentType);
 
     
 
 
 
 
-    static void
-      UpdateFallbackState(nsIContent* aContent, AutoFallback& fallback,
-                          const nsCString& aTypeHint);
+    void UpdateFallbackState(nsIContent* aContent, AutoFallback& fallback, const nsCString& aTypeHint);
+
+    nsresult IsPluginEnabledForType(const nsCString& aMIMEType);
+    bool IsPluginEnabledByExtension(nsIURI* uri, nsCString& mimeType);
 
     
 

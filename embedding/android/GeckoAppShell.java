@@ -603,6 +603,11 @@ public class GeckoAppShell
                 imm, text, start, end, newEnd);
     }
 
+    public static void notifyScreenShot(ByteBuffer data, int tabId, int width, int height) {
+        
+        
+    }
+
     private static CountDownLatch sGeckoPendingAcks = null;
 
     

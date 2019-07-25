@@ -570,15 +570,20 @@ SetFunctionKinds(FunctionBox *funbox, uint32_t *tcflags, bool isDirectEval)
                 }
             }
 
+            
+
+
+
+
+            if (fn->isOp(JSOP_DEFFUN))
+                canFlatten = false;
+
             if (!hasUpvars) {
                 
                 fun->setKind(JSFUN_NULL_CLOSURE);
             } else if (canFlatten) {
                 fun->setKind(JSFUN_FLAT_CLOSURE);
                 switch (fn->getOp()) {
-                  case JSOP_DEFFUN:
-                    fn->setOp(JSOP_DEFFUN_FC);
-                    break;
                   case JSOP_DEFLOCALFUN:
                     fn->setOp(JSOP_DEFLOCALFUN_FC);
                     break;

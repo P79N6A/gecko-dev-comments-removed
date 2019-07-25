@@ -365,7 +365,9 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
     if (aDirtyRect) {
       dirtyRect = aDirtyRect->ToAppUnits(appUnitsPerDevPx);
       
-      dirtyRect.MoveBy(-mRect.TopLeft());
+      nsRect rootRect =
+        nsSVGUtils::TransformFrameRectToOuterSVG(mRect, GetCanvasTM(), PresContext());
+      dirtyRect.MoveBy(-rootRect.TopLeft());
     }
 
     
@@ -483,14 +485,19 @@ nsSVGImageFrame::UpdateCoveredRegion()
 
   gfxContext context(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
 
-  GeneratePath(&context);
-  context.IdentityMatrix();
+  gfxMatrix identity;
+  GeneratePath(&context, &identity);
 
   gfxRect extent = context.GetUserPathExtent();
 
   if (!extent.IsEmpty()) {
-    mRect = nsSVGUtils::ToAppPixelRect(PresContext(), extent);
+    mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent, 
+              PresContext()->AppUnitsPerDevPixel());
   }
+
+  
+  mCoveredRegion = nsSVGUtils::TransformFrameRectToOuterSVG(
+    mRect, GetCanvasTM(), PresContext());
 
   return NS_OK;
 }

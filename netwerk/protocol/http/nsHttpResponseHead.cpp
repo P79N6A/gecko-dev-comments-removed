@@ -213,13 +213,14 @@ nsHttpResponseHead::ParseHeaderLine(const char *line)
     
     if (hdr == nsHttp::Content_Length) {
         PRInt64 len;
+        const char *ignored;
         
-        if (nsHttp::ParseInt64(val, &len)) {
+        if (nsHttp::ParseInt64(val, &ignored, &len)) {
             mContentLength = len;
         }
         else {
-            LOG(("invalid content-length!\n"));
-            return NS_ERROR_CORRUPTED_CONTENT;
+            
+            LOG(("invalid content-length! %s\n", val));
         }
     }
     else if (hdr == nsHttp::Content_Type) {

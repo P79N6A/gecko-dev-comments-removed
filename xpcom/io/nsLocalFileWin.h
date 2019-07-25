@@ -95,6 +95,7 @@ private:
     ~nsLocalFile() {}
 
     bool mDirty;            
+    bool mResolveDirty;
     bool mFollowSymlinks;   
     
     
@@ -110,9 +111,15 @@ private:
 
     PRFileInfo64 mFileInfo64;
 
-    void MakeDirty() { mDirty = true; mShortWorkingPath.Truncate(); }
+    void MakeDirty() 
+    { 
+      mDirty = true;
+      mResolveDirty = true;
+      mShortWorkingPath.Truncate();
+    }
 
     nsresult ResolveAndStat();
+    nsresult Resolve();
     nsresult ResolveShortcut();
 
     void EnsureShortPath();

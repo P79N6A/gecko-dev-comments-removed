@@ -119,9 +119,10 @@ InitAndSealCTypesClass(JSContext* cx, JSObject* global)
 
   
   jsval ctypes;
-  if (!JS_GetProperty(cx, global, "ctypes", &ctypes) ||
-      !JS_SetCTypesCallbacks(cx, JSVAL_TO_OBJECT(ctypes), &sCallbacks))
+  if (!JS_GetProperty(cx, global, "ctypes", &ctypes))
     return false;
+
+  JS_SetCTypesCallbacks(JSVAL_TO_OBJECT(ctypes), &sCallbacks);
 
   
   

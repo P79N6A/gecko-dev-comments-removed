@@ -428,12 +428,7 @@ class StackFrame
                        JSScript *script, uint32_t nactual, StackFrame::Flags flags);
 
     
-    void resetCallFrame(JSScript *script);
-
-    
-    void initJitFrameCallerHalf(StackFrame *prev, StackFrame::Flags flags, void *ncode);
-    void initJitFrameEarlyPrologue(JSFunction *fun, uint32_t nactual);
-    bool initJitFrameLatePrologue(JSContext *cx, Value **limit);
+    void initFixupFrame(StackFrame *prev, StackFrame::Flags flags, void *ncode, uintN nactual);
 
     
     void initExecuteFrame(JSScript *script, StackFrame *prev, FrameRegs *regs,
@@ -548,6 +543,12 @@ class StackFrame
     Value &varSlot(uintN i) {
         JS_ASSERT(i < script()->nfixed);
         JS_ASSERT_IF(maybeFun(), i < script()->bindings.countVars());
+        return slots()[i];
+    }
+
+    Value &localSlot(uintN i) {
+        
+        JS_ASSERT(i < script()->nslots);
         return slots()[i];
     }
 
@@ -1586,7 +1587,7 @@ class ContextStack
 
     inline StackFrame *
     getCallFrame(JSContext *cx, MaybeReportError report, const CallArgs &args,
-                 JSFunction *fun, JSScript *script,  uint32_t *pflags) const;
+                 JSFunction *fun, JSScript *script, StackFrame::Flags *pflags) const;
 
     
     void popSegment();
@@ -1705,9 +1706,6 @@ class ContextStack
     inline JSObject *currentScriptedScopeChain() const;
 
     
-
-
-
 
 
 

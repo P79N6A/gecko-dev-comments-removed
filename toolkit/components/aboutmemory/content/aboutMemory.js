@@ -230,8 +230,8 @@ Reporter.prototype = {
   treeNameMatches: function(aTreeName) {
     
     
-    aTreeName += "/";
-    return this._unsafePath.slice(0, aTreeName.length) === aTreeName;
+    return this._unsafePath.indexOf(aTreeName) === 0 &&
+           this._unsafePath.charAt(aTreeName.length) === '/';
   }
 };
 
@@ -310,7 +310,9 @@ function appendTextNode(aP, aText)
 function appendElement(aP, aTagName, aClassName)
 {
   var e = document.createElement(aTagName);
-  e.className = aClassName;
+  if (aClassName) {
+    e.className = aClassName;
+  }
   aP.appendChild(e);
   return e;
 }
@@ -378,7 +380,7 @@ function update()
   appendButton(CCDesc, doCC,                     "CC");
   appendButton(MPDesc, sendHeapMinNotifications, "Minimize memory usage");
 
-  var div1 = appendElement(content, "div", "");
+  var div1 = appendElement(content, "div");
   var a;
   if (gVerbose) {
     var a = appendElementWithText(div1, "a", "option", "Less verbose");
@@ -388,7 +390,7 @@ function update()
     a.href = "about:memory?verbose";
   }
 
-  var div2 = appendElement(content, "div", "");
+  var div2 = appendElement(content, "div");
   a = appendElementWithText(div2, "a", "option", "Troubleshooting information");
   a.href = "about:support";
 
@@ -495,10 +497,18 @@ function buildTree(aReporters, aTreeName)
         }
       }
       
+      if (r._amount !== kUnknown) {
+        u._amount = r._amount;
+      } else {
+        u._amount = 0;
+        u._isUnknown = true;
+      }
+      u._unsafeDescription = r._unsafeDescription;
       u._kind = r._kind;
       if (r._nMerged) {
         u._nMerged = r._nMerged;
       }
+      r._done = true;
     }
   }
 
@@ -508,28 +518,18 @@ function buildTree(aReporters, aTreeName)
 
   
   
-  function fillInTree(aT, aUnsafePrePath)
+  function fillInNonLeafNodes(aT)
   {
-    var unsafePath =
-      aUnsafePrePath ? aUnsafePrePath + '/' + aT._unsafeName : aT._unsafeName; 
     if (aT._kids.length === 0) {
       
       assert(aT._kind !== undefined, "aT._kind is undefined for leaf node");
-      aT._unsafeDescription = getUnsafeDescription(aReporters, unsafePath);
-      var amount = getBytes(aReporters, unsafePath);
-      if (amount !== kUnknown) {
-        aT._amount = amount;
-      } else {
-        aT._amount = 0;
-        aT._isUnknown = true;
-      }
     } else {
       
       
       assert(aT._kind === undefined, "aT._kind is defined for non-leaf node");
       var childrenBytes = 0;
       for (var i = 0; i < aT._kids.length; i++) {
-        childrenBytes += fillInTree(aT._kids[i], unsafePath);
+        childrenBytes += fillInNonLeafNodes(aT._kids[i]);
       }
       aT._amount = childrenBytes;
       aT._unsafeDescription =
@@ -539,7 +539,7 @@ function buildTree(aReporters, aTreeName)
     return aT._amount;
   }
 
-  fillInTree(t, "");
+  fillInNonLeafNodes(t);
 
   
   
@@ -569,7 +569,7 @@ function ignoreSmapsTrees(aReporters)
   for (var unsafePath in aReporters) {
     var r = aReporters[unsafePath];
     if (r.treeNameMatches("smaps")) {
-      var dummy = getBytes(aReporters, unsafePath);
+      r._done = true;
     }
   }
 }
@@ -604,7 +604,9 @@ function fixUpExplicitTree(aT, aReporters)
   
   
   
-  var heapAllocatedBytes = getBytes(aReporters, "heap-allocated", true);
+  var heapAllocatedReporter = aReporters["heap-allocated"];
+  assert(heapAllocatedReporter, "no 'heap-allocated' reporter");
+  var heapAllocatedBytes = heapAllocatedReporter._amount;
   var heapUnclassifiedT = new TreeNode("heap-unclassified");
   var hasKnownHeapAllocated = heapAllocatedBytes !== kUnknown;
   if (hasKnownHeapAllocated) {
@@ -736,12 +738,12 @@ function appendWarningElements(aP, aHasKnownHeapAllocated,
   }
 
   if (gUnsafePathsWithInvalidValuesForThisProcess.length > 0) {
-    var div = appendElement(aP, "div", "");
+    var div = appendElement(aP, "div");
     appendElementWithText(div, "p", "", 
       "WARNING: the following values are negative or unreasonably large.");
     appendTextNode(div, "\n");  
 
-    var ul = appendElement(div, "ul", "");
+    var ul = appendElement(div, "ul");
     for (var i = 0;
          i < gUnsafePathsWithInvalidValuesForThisProcess.length;
          i++)
@@ -754,8 +756,7 @@ function appendWarningElements(aP, aHasKnownHeapAllocated,
 
     appendElementWithText(div, "p", "",
       "This indicates a defect in one or more memory reporters.  The " +
-      "invalid values are highlighted, but you may need to expand one " +
-      "or more sub-trees to see them.");
+      "invalid values are highlighted.");
     appendTextNode(div, "\n\n");  
     gUnsafePathsWithInvalidValuesForThisProcess = [];  
   }
@@ -810,14 +811,13 @@ function appendProcessElements(aP, aProcess, aReporters,
 
   
   
-  var otherText = appendOtherElements(aP, aReporters, aProcess);
+  appendOtherElements(aP, aReporters);
 
   
   
   
-  var warningElements =
-        appendWarningElements(warningsDiv, hasKnownHeapAllocated,
-                              aHasMozMallocUsableSize);
+  appendWarningElements(warningsDiv, hasKnownHeapAllocated,
+                        aHasMozMallocUsableSize);
 }
 
 
@@ -843,31 +843,43 @@ function hasNegativeSign(aN)
 
 
 
-function formatInt(aN)
+
+
+
+
+
+
+function formatInt(aN, aExtra)
 {
   var neg = false;
   if (hasNegativeSign(aN)) {
     neg = true;
     aN = -aN;
   }
-  var s = "";
+  var s = [];
   while (true) {
     var k = aN % 1000;
     aN = Math.floor(aN / 1000);
     if (aN > 0) {
       if (k < 10) {
-        s = ",00" + k + s;
+        s.unshift(",00", k);
       } else if (k < 100) {
-        s = ",0" + k + s;
+        s.unshift(",0", k);
       } else {
-        s = "," + k + s;
+        s.unshift(",", k);
       }
     } else {
-      s = k + s;
+      s.unshift(k);
       break;
     }
   }
-  return neg ? "-" + s : s;
+  if (neg) {
+    s.unshift("-");
+  }
+  if (aExtra) {
+    s.push(aExtra);
+  }
+  return s.join("");
 }
 
 
@@ -879,16 +891,16 @@ function formatInt(aN)
 
 function formatBytes(aBytes)
 {
-  var unit = gVerbose ? "B" : "MB";
+  var unit = gVerbose ? " B" : " MB";
 
   var s;
   if (gVerbose) {
-    s = formatInt(aBytes) + " " + unit;
+    s = formatInt(aBytes, unit);
   } else {
     var mbytes = (aBytes / (1024 * 1024)).toFixed(2);
     var a = String(mbytes).split(".");
     
-    s = formatInt(Number(a[0])) + "." + a[1] + " " + unit;
+    s = formatInt(Number(a[0])) + "." + a[1] + unit;
   }
   return s;
 }
@@ -930,44 +942,6 @@ function pad(aS, aN, aC)
 
 
 
-
-
-
-
-
-
-
-
-function getBytes(aReporters, aUnsafePath, aDoNotMark)
-{
-  var r = aReporters[aUnsafePath];
-  assert(r, "getBytes: no such Reporter: " + makeSafe(aUnsafePath));
-  if (!aDoNotMark) {
-    r._done = true;
-  }
-  return r._amount;
-}
-
-
-
-
-
-
-
-
-
-
-function getUnsafeDescription(aReporters, aUnsafePath)
-{
-  var r = aReporters[aUnsafePath];
-  assert(r, "getUnsafeDescription: no such Reporter: " + makeSafe(aUnsafePath));
-  return r._unsafeDescription;
-}
-
-
-
-
-
 const kHorizontal       = "\u2500",
       kVertical         = "\u2502",
       kUpAndRight       = "\u2514",
@@ -991,20 +965,25 @@ function kindToString(aKind)
   }
 }
 
-function appendMrNameSpan(aP, aKind, aShowSubtrees, aHasKids, aUnsafeDesc,
-                          aUnsafeName, aIsUnknown, aIsInvalid, aNMerged)
+
+const kNoKids   = 0;
+const kHideKids = 1;
+const kShowKids = 2;
+
+function appendMrNameSpan(aP, aKind, aKidsState, aUnsafeDesc, aUnsafeName,
+                          aIsUnknown, aIsInvalid, aNMerged)
 {
   var text = "";
-  if (aHasKids) {
-    if (aShowSubtrees) {
-      appendElementWithText(aP, "span", "mrSep hidden", " ++ ");
-      appendElementWithText(aP, "span", "mrSep",        " -- ");
-    } else {
-      appendElementWithText(aP, "span", "mrSep",        " ++ ");
-      appendElementWithText(aP, "span", "mrSep hidden", " -- ");
-    }
-  } else {
+  if (aKidsState === kNoKids) {
     appendElementWithText(aP, "span", "mrSep", kDoubleHorizontalSep);
+  } else if (aKidsState === kHideKids) {
+    appendElementWithText(aP, "span", "mrSep",        " ++ ");
+    appendElementWithText(aP, "span", "mrSep hidden", " -- ");
+  } else if (aKidsState === kShowKids) {
+    appendElementWithText(aP, "span", "mrSep hidden", " ++ ");
+    appendElementWithText(aP, "span", "mrSep",        " -- ");
+  } else {
+    assert(false, "bad aKidsState");
   }
 
   var nameSpan = appendElementWithText(aP, "span", "mrName",
@@ -1039,6 +1018,11 @@ function appendMrNameSpan(aP, aKind, aShowSubtrees, aHasKids, aUnsafeDesc,
 
 var gTogglesBySafeTreeId = {};
 
+function assertClassListContains(e, className) {
+  assert(e, "undefined " + className);
+  assert(e.classList.contains(className), "classname isn't " + className);
+}
+
 function toggle(aEvent)
 {
   
@@ -1047,27 +1031,21 @@ function toggle(aEvent)
   
   
 
-  function assertClassName(span, className) {
-    assert(span, "undefined " + className);
-    assert(span.nodeName === "span", "non-span " + className);
-    assert(span.classList.contains(className), "bad " + className);
-  }
-
   
   var outerSpan = aEvent.target.parentNode;
-  assertClassName(outerSpan, "hasKids");
+  assertClassListContains(outerSpan, "hasKids");
 
   
   var plusSpan  = outerSpan.childNodes[2];
   var minusSpan = outerSpan.childNodes[3];
-  assertClassName(plusSpan,  "mrSep");
-  assertClassName(minusSpan, "mrSep");
+  assertClassListContains(plusSpan,  "mrSep");
+  assertClassListContains(minusSpan, "mrSep");
   plusSpan .classList.toggle("hidden");
   minusSpan.classList.toggle("hidden");
 
   
   var subTreeSpan = outerSpan.nextSibling;
-  assertClassName(subTreeSpan, "kids");
+  assertClassListContains(subTreeSpan, "kids");
   subTreeSpan.classList.toggle("hidden");
 
   
@@ -1076,6 +1054,28 @@ function toggle(aEvent)
     delete gTogglesBySafeTreeId[safeTreeId];
   } else {
     gTogglesBySafeTreeId[safeTreeId] = true;
+  }
+}
+
+function expandPathToThisElement(aElement)
+{
+  if (aElement.classList.contains("kids")) {
+    
+    aElement.classList.remove("hidden");
+    expandPathToThisElement(aElement.previousSibling);  
+
+  } else if (aElement.classList.contains("hasKids")) {
+    
+    var  plusSpan = aElement.childNodes[2];
+    var minusSpan = aElement.childNodes[3];
+    assertClassListContains(plusSpan,  "mrSep");
+    assertClassListContains(minusSpan, "mrSep");
+    plusSpan.classList.add("hidden");
+    minusSpan.classList.remove("hidden");
+    expandPathToThisElement(aElement.parentNode);       
+
+  } else {
+    assertClassListContains(aElement, "tree");
   }
 }
 
@@ -1114,47 +1114,32 @@ function appendTreeElements(aPOuter, aT, aProcess)
 
 
 
+
+
+
   function appendTreeElements2(aP, aUnsafePrePath, aT, aIndentGuide,
-                               aParentStringLength)
+                               aBaseIndentText, aParentStringLength)
   {
-    function repeatStr(aC, aN)
+    function repeatStr(aA, aC, aN)
     {
-      var s = "";
       for (var i = 0; i < aN; i++) {
-        s += aC;
+        aA.push(aC);
       }
-      return s;
     }
 
-    
-    
     var unsafePath = aUnsafePrePath + aT._unsafeName;
-    var safeTreeId = makeSafe(aProcess + ":" + unsafePath);
-    var showSubtrees = !aT._hideKids;
-    if (gTogglesBySafeTreeId[safeTreeId]) {
-      showSubtrees = !showSubtrees;
-    }
 
-    
-    var indent = "";
-    if (aIndentGuide.length > 0) {
-      for (var i = 0; i < aIndentGuide.length - 1; i++) {
-        indent += aIndentGuide[i]._isLastKid ? " " : kVertical;
-        indent += repeatStr(" ", aIndentGuide[i]._depth - 1);
-      }
-      indent += aIndentGuide[i]._isLastKid ? kUpAndRight : kVerticalAndRight;
-      indent += repeatStr(kHorizontal, aIndentGuide[i]._depth - 1);
-    }
     
     
     var tString = aT.toString();
+    var extraIndentArray = [];
     var extraIndentLength = Math.max(aParentStringLength - tString.length, 0);
     if (extraIndentLength > 0) {
-      for (var i = 0; i < extraIndentLength; i++) {
-        indent += kHorizontal;
-      }
+      repeatStr(extraIndentArray, kHorizontal, extraIndentLength);
       aIndentGuide[aIndentGuide.length - 1]._depth += extraIndentLength;
     }
+    var indentText = aBaseIndentText + extraIndentArray.join("");
+    appendElementWithText(aP, "span", "treeLine", indentText);
 
     
     
@@ -1175,19 +1160,24 @@ function appendTreeElements(aPOuter, aT, aProcess)
 
     
     
-    var hasKids = aT._kids.length > 0;
-    if (!hasKids) {
-      assert(!aT._hideKids, "leaf node with _hideKids set")
-    }
-
-    appendElementWithText(aP, "span", "treeLine", indent);
-
     var d;
+    var hasKids = aT._kids.length > 0;
+    var kidsState;
     if (hasKids) {
+      
+      
+      var safeTreeId = makeSafe(aProcess + ":" + unsafePath);
+      var showSubtrees = !aT._hideKids;
+      if (gTogglesBySafeTreeId[safeTreeId]) {
+        showSubtrees = !showSubtrees;
+      }
       d = appendElement(aP, "span", "hasKids");
       d.id = safeTreeId;
       d.onclick = toggle;
+      kidsState = showSubtrees ? kShowKids : kHideKids;
     } else {
+      assert(!aT._hideKids, "leaf node with _hideKids set")
+      kidsState = kNoKids;
       d = aP;
     }
 
@@ -1197,30 +1187,48 @@ function appendTreeElements(aPOuter, aT, aProcess)
     
     
     var kind = isExplicitTree ? aT._kind : undefined;
-    appendMrNameSpan(d, kind, showSubtrees, hasKids, aT._unsafeDescription,
-                     aT._unsafeName, aT._isUnknown, tIsInvalid, aT._nMerged);
+    appendMrNameSpan(d, kind, kidsState, aT._unsafeDescription, aT._unsafeName,
+                     aT._isUnknown, tIsInvalid, aT._nMerged);
     appendTextNode(d, "\n");
+
+    
+    
+    if (!gVerbose && tIsInvalid) {
+      expandPathToThisElement(d);
+    }
 
     if (hasKids) {
       
       d = appendElement(aP, "span", showSubtrees ? "kids" : "kids hidden");
-    } else {
-      d = aP;
-    }
 
-    for (var i = 0; i < aT._kids.length; i++) {
-      
-      aIndentGuide.push({ _isLastKid: (i === aT._kids.length - 1), _depth: 3 });
-      appendTreeElements2(d, unsafePath + "/", aT._kids[i], aIndentGuide,
-                          tString.length);
-      aIndentGuide.pop();
+      for (var i = 0; i < aT._kids.length; i++) {
+        
+        aIndentGuide.push({ _isLastKid: (i === aT._kids.length - 1), _depth: 3 });
+
+        
+        var baseIndentArray = [];
+        if (aIndentGuide.length > 0) {
+          for (var j = 0; j < aIndentGuide.length - 1; j++) {
+            baseIndentArray.push(aIndentGuide[j]._isLastKid ? " " : kVertical);
+            repeatStr(baseIndentArray, " ", aIndentGuide[j]._depth - 1);
+          }
+          baseIndentArray.push(aIndentGuide[j]._isLastKid ?
+                               kUpAndRight : kVerticalAndRight);
+          repeatStr(baseIndentArray, kHorizontal, aIndentGuide[j]._depth - 1);
+        }
+
+        var baseIndentText = baseIndentArray.join("");
+        appendTreeElements2(d, unsafePath + "/", aT._kids[i], aIndentGuide,
+                            baseIndentText, tString.length);
+        aIndentGuide.pop();
+      }
     }
   }
 
   appendSectionHeader(aPOuter, kTreeNames[aT._unsafeName]);
  
   var pre = appendElement(aPOuter, "pre", "tree");
-  appendTreeElements2(pre, "", aT, [], rootStringLength);
+  appendTreeElements2(pre, "", aT, [], "", rootStringLength);
   appendTextNode(aPOuter, "\n");  
 }
 
@@ -1282,7 +1290,7 @@ OtherReporter.compare = function(a, b) {
 
 
 
-function appendOtherElements(aP, aReportersByProcess, aProcess)
+function appendOtherElements(aP, aReportersByProcess)
 {
   appendSectionHeader(aP, kTreeNames['other']);
 
@@ -1318,8 +1326,7 @@ function appendOtherElements(aP, aReportersByProcess, aProcess)
       gUnsafePathsWithInvalidValuesForThisProcess.push(o._unsafePath);
     }
     appendMrValueSpan(pre, pad(o._asString, maxStringLength, ' '), oIsInvalid);
-    appendMrNameSpan(pre, KIND_OTHER, true,
-                     false, o._unsafeDescription,
+    appendMrNameSpan(pre, KIND_OTHER, kNoKids, o._unsafeDescription,
                      o._unsafePath, o._isUnknown, oIsInvalid);
     appendTextNode(pre, "\n");
   }
