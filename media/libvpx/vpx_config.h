@@ -24,6 +24,14 @@
 
 #include "vpx_config_x86_64-linux-gcc.h"
 
+#elif defined(__OpenBSD__) && defined(__i386__)
+
+#include "vpx_config_x86-linux-gcc.h"
+
+#elif defined(__OpenBSD__) && defined(__x86_64__)
+
+#include "vpx_config_x86_64-linux-gcc.h"
+
 #elif defined(__sun) && defined(__i386)
 
 #include "vpx_config_x86-linux-gcc.h"
