@@ -123,11 +123,20 @@ let DebuggerController = {
     this._remoteConnectionTimeout = window.setTimeout(function() {
       
       if (!DebuggerController.activeThread) {
+        DebuggerController._onRemoteConnectionTimeout();
         DebuggerController._connect();
       }
     }, Prefs.remoteTimeout);
 
     return true;
+  },
+
+  
+
+
+  _onRemoteConnectionTimeout: function DC__onRemoteConnectionTimeout() {
+    Cu.reportError("Couldn't connect to " +
+      Prefs.remoteHost + ":" + Prefs.remotePort);
   },
 
   
