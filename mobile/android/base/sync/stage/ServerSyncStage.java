@@ -496,6 +496,11 @@ public abstract class ServerSyncStage implements
     Logger.debug(LOG_TAG, "Reached end of execute.");
   }
 
+  
+
+
+
+
   @Override
   public void onSynchronized(Synchronizer synchronizer) {
     Logger.debug(LOG_TAG, "onSynchronized.");
@@ -511,16 +516,31 @@ public abstract class ServerSyncStage implements
     session.advance();
   }
 
+  
+
+
+
+
+
+
   @Override
   public void onSynchronizeFailed(Synchronizer synchronizer,
                                   Exception lastException, String reason) {
-    Logger.debug(LOG_TAG, "onSynchronizeFailed: " + reason);
+    Logger.warn(LOG_TAG, "Synchronize failed: " + reason, lastException);
 
     
+    
     if (lastException instanceof HTTPFailureException) {
-      session.handleHTTPError(((HTTPFailureException)lastException).response, reason);
-    } else {
-      session.abort(lastException, reason);
+      SyncStorageResponse response = ((HTTPFailureException)lastException).response;
+      if (response.retryAfterInSeconds() > 0) {
+        session.handleHTTPError(response, reason); 
+        return;
+      } else {
+        session.interpretHTTPFailure(response.httpResponse()); 
+      }
     }
+
+    Logger.info(LOG_TAG, "Advancing session even though stage failed. Timestamps not persisted.");
+    session.advance();
   }
 }
