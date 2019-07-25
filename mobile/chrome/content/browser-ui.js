@@ -63,6 +63,7 @@ let Elements = {};
 [
   ["contentShowing",     "bcast_contentShowing"],
   ["urlbarState",        "bcast_urlbarState"],
+  ["mainKeyset",         "mainKeyset"],
   ["stack",              "stack"],
   ["tabList",            "tabs"],
   ["tabs",               "tabs-container"],
@@ -947,7 +948,7 @@ var BrowserUI = {
       case "keypress":
         
         
-        if (aEvent.target.localName == "browser")
+        if (aEvent.target == Elements.mainKeyset)
           break;
         if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE)
           this.handleEscape(aEvent);
