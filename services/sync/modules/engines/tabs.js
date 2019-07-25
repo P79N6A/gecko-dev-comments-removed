@@ -100,6 +100,13 @@ TabStore.prototype = {
     return Clients.clientName;
   },
 
+  get _fennecTabs() {
+    let wm = Cc["@mozilla.org/appshell/window-mediator;1"]
+	       .getService(Ci.nsIWindowMediator);
+    let browserWindow = wm.getMostRecentWindow("navigator:browser");
+    return browserWindow.Browser._tabs;
+  },
+
   _writeToFile: function TabStore_writeToFile() {
     
     this._log.debug("Writing out to file...");
@@ -138,7 +145,6 @@ TabStore.prototype = {
   },
 
   get _sessionStore() {
-    
     let sessionStore = Cc["@mozilla.org/browser/sessionstore;1"].
 		       getService(Ci.nsISessionStore);
     this.__defineGetter__("_sessionStore", function() { return sessionStore;});
@@ -151,29 +157,40 @@ TabStore.prototype = {
     return this._json;
   },
 
-  _createLocalClientTabSetRecord: function TabStore__createLocalTabSet() {
-    let session = this._json.decode(this._sessionStore.getBrowserState());
+  _addTabToRecord: function( tab, record ) {
+    
+    let title = tab.contentDocument.title.innerHtml; 
+    this._log.debug("Wrapping a tab with title " + title);
+    let urlHistory = [];
+    let entries = tab.entries.slice(tab.entries.length - 10);
+    for (let entry in entries) {
+      urlHistory.push( entry.url );
+    }
+    record.addTab(title, urlHistory);
+  },
 
+  _createLocalClientTabSetRecord: function TabStore__createLocalTabSet() {
+    
+    
     let record = new TabSetRecord();
     record.setClientName( this._localClientName );
 
-    for (let i = 0; i < session.windows.length; i++) {
-      let window = session.windows[i];
-      
-      
-      
-      let windowID = i + 1;
+    if (Cc["@mozilla.org/browser/sessionstore;1"])  {
+      let session = this._json.decode(this._sessionStore.getBrowserState());
+      for (let i = 0; i < session.windows.length; i++) {
+	let window = session.windows[i];
+	
 
-      for (let j = 0; j < window.tabs.length; j++) {
-        let tab = window.tabs[j];
-	let title = tab.contentDocument.title.innerHtml; 
-	this._log.debug("Wrapping a tab with title " + title);
-	let urlHistory = [];
-	let entries = tab.entries.slice(tab.entries.length - 10);
-	for (let entry in entries) {
-	  urlHistory.push( entry.url );
+
+	let windowID = i + 1;
+
+	for (let j = 0; j < window.tabs.length; j++) {
+	  this._addTabToRecord(window.tabs[j], record);
 	}
-	record.addTab(title, urlHistory);
+      }
+    } else {
+      for each ( let tab in this._fennecTabs) {
+	this._addTabToRecord(tab, record);
       }
     }
     return record;
@@ -277,6 +294,7 @@ TabTracker.prototype = {
   _TabTracker_init: function TabTracker__init() {
     this._init();
 
+    
     
     
     
