@@ -147,7 +147,7 @@ public:
   {
     EntryType* ent = this->GetEntry(aKey);
     if (!ent)
-      return NULL;
+      return nsnull;
 
     return ent->mData;
   }
@@ -272,7 +272,7 @@ public:
 
 
   size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                             nsMallocSizeOfFun mallocSizeOf, void *userArg = NULL)
+                             nsMallocSizeOfFun mallocSizeOf, void *userArg = nsnull)
   {
     if (IsInitialized()) {
       s_SizeOfArgs args = { sizeOfEntryExcludingThis, userArg };
