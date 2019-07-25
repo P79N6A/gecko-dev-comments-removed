@@ -1255,7 +1255,7 @@ scaled_bilinear_scanline_8888_8888_OVER (uint32_t *       dst,
     }
 }
 
-#if 1
+#ifndef LOWER_QUALITY_INTERPOLATION
 
 static force_inline void
 scaled_bilinear_scanline_565_565_SRC (uint16_t *       dst,
@@ -1290,39 +1290,47 @@ scaled_bilinear_scanline_565_565_SRC (uint16_t *       dst,
 
 #else
 
-#define SK_G16_MASK_IN_PLACE 0xfc0
 
-static inline uint32_t SkExpand_rgb_16(uint16_t c) {
 
-    return ((c & SK_G16_MASK_IN_PLACE) << 16) | (c & ~SK_G16_MASK_IN_PLACE);
+
+
+
+
+
+
+
+
+
+
+#define GREEN_MASK (((1 << 6) - 1) << 5)
+
+static inline uint32_t
+expand_rgb_565 (uint16_t c) {
+    return ((c & GREEN_MASK) << 16) | (c & ~GREEN_MASK);
 }
 
-
-
-
-
-
-
-static inline uint16_t SkCompact_rgb_16(uint32_t c) {
-    return ((c >> 16) & SK_G16_MASK_IN_PLACE) | (c & ~SK_G16_MASK_IN_PLACE);
+static inline uint16_t
+compact_rgb_565 (uint32_t c) {
+    return ((c >> 16) & GREEN_MASK) | (c & ~GREEN_MASK);
 }
 
-static inline uint32_t Filter_565_Expanded(unsigned x, unsigned y,
-                                           uint32_t a00, uint32_t a01,
-                                           uint32_t a10, uint32_t a11) {
-    a00 = SkExpand_rgb_16(a00);
-    a01 = SkExpand_rgb_16(a01);
-    a10 = SkExpand_rgb_16(a10);
-    a11 = SkExpand_rgb_16(a11);
-    
-    int xy = x * y >> 3;
-    return  a00 * (32 - 2*y - 2*x + xy) +
-            a01 * (2*x - xy) +
-            a10 * (2*y - xy) +
-            a11 * xy;
+static inline uint16_t
+bilinear_interpolation_565(uint16_t tl, uint16_t tr,
+			   uint16_t bl, uint16_t br,
+			   int x, int y)
+{
+    int xy;
+    uint32_t a00 = expand_rgb_565 (tl);
+    uint32_t a01 = expand_rgb_565 (tr);
+    uint32_t a10 = expand_rgb_565 (bl);
+    uint32_t a11 = expand_rgb_565 (br);
+
+    xy = (x * y) >> 3;
+    return compact_rgb_565 ((a00 * (32 - 2*y - 2*x + xy) +
+			     a01 * (2*x - xy) +
+			     a10 * (2*y - xy) +
+			     a11 * xy) >> 5);
 }
-
-
 
 static force_inline void
 scaled_bilinear_scanline_565_565_SRC (uint16_t *       dst,
@@ -1344,14 +1352,14 @@ scaled_bilinear_scanline_565_565_SRC (uint16_t *       dst,
 	uint16_t bl = src_bottom [pixman_fixed_to_int (vx)];
 	uint16_t br = src_bottom [pixman_fixed_to_int (vx) + 1];
 
-        uint32_t tmp = Filter_565_Expanded((vx>>12)&0xf, wb>>4, tl, tr, bl, br);
+        uint16_t d = bilinear_interpolation_565 (tl, tr, bl, br, (vx >> 12) & 0xf, wb >> 4);
         vx += unit_x;
-        *dst++ = SkCompact_rgb_16((tmp) >> 5);
+        *dst++ = d;
     }
 }
 
-
 #endif
+
 FAST_BILINEAR_MAINLOOP_COMMON (565_565_cover_SRC,
 			       scaled_bilinear_scanline_565_565_SRC,
 			       uint16_t, uint32_t, uint16_t,
