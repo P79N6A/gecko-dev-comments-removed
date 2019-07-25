@@ -112,19 +112,19 @@ XPCWrappedNativeScope* XPCWrappedNativeScope::gDyingScopes = nsnull;
 
 
 XPCWrappedNativeScope*
-XPCWrappedNativeScope::GetNewOrUsed(XPCCallContext& ccx, JSObject* aGlobal)
+XPCWrappedNativeScope::GetNewOrUsed(XPCCallContext& ccx, JSObject* aGlobal, nsISupports* aNative)
 {
 
     XPCWrappedNativeScope* scope = FindInJSObjectScope(ccx, aGlobal, true);
     if (!scope)
-        scope = new XPCWrappedNativeScope(ccx, aGlobal);
+        scope = new XPCWrappedNativeScope(ccx, aGlobal, aNative);
     else {
         
         
         
         
         
-        scope->SetGlobal(ccx, aGlobal);
+        scope->SetGlobal(ccx, aGlobal, aNative);
     }
     if (js::GetObjectClass(aGlobal)->flags & JSCLASS_XPCONNECT_GLOBAL)
         JS_SetReservedSlot(aGlobal,
@@ -134,7 +134,8 @@ XPCWrappedNativeScope::GetNewOrUsed(XPCCallContext& ccx, JSObject* aGlobal)
 }
 
 XPCWrappedNativeScope::XPCWrappedNativeScope(XPCCallContext& ccx,
-                                             JSObject* aGlobal)
+                                             JSObject* aGlobal,
+                                             nsISupports* aNative)
     :   mRuntime(ccx.GetRuntime()),
         mWrappedNativeMap(Native2WrappedNativeMap::newMap(XPC_NATIVE_MAP_SIZE)),
         mWrappedNativeProtoMap(ClassInfo2WrappedNativeProtoMap::newMap(XPC_NATIVE_PROTO_MAP_SIZE)),
@@ -165,7 +166,7 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(XPCCallContext& ccx,
     }
 
     if (aGlobal)
-        SetGlobal(ccx, aGlobal);
+        SetGlobal(ccx, aGlobal, aNative);
 
     DEBUG_TrackNewScope(this);
     MOZ_COUNT_CTOR(XPCWrappedNativeScope);
@@ -226,32 +227,32 @@ js::Class XPC_WN_NoHelper_Proto_JSClass = {
 
 
 void
-XPCWrappedNativeScope::SetGlobal(XPCCallContext& ccx, JSObject* aGlobal)
+XPCWrappedNativeScope::SetGlobal(XPCCallContext& ccx, JSObject* aGlobal,
+                                 nsISupports* aNative)
 {
     
     
 
     mGlobalJSObject = aGlobal;
     mScriptObjectPrincipal = nsnull;
-    
 
-    const JSClass* jsClass = js::GetObjectJSClass(aGlobal);
-    if (!(~jsClass->flags & (JSCLASS_HAS_PRIVATE |
-                             JSCLASS_PRIVATE_IS_NSISUPPORTS))) {
+    
+    
+    nsISupports* native = aNative;
+    if (!native &&
+        !(~js::GetObjectJSClass(aGlobal)->flags & (JSCLASS_HAS_PRIVATE |
+                                                   JSCLASS_PRIVATE_IS_NSISUPPORTS)))
+    {
         
-        
-        nsISupports* priv = (nsISupports*)xpc_GetJSPrivate(aGlobal);
-        nsCOMPtr<nsIXPConnectWrappedNative> native =
-            do_QueryInterface(priv);
-        nsCOMPtr<nsIScriptObjectPrincipal> sop;
-        if (native) {
-            sop = do_QueryWrappedNative(native);
-        }
-        if (!sop) {
-            sop = do_QueryInterface(priv);
-        }
-        mScriptObjectPrincipal = sop;
+        native = (nsISupports*)xpc_GetJSPrivate(aGlobal);
+        nsCOMPtr<nsIXPConnectWrappedNative> wn = do_QueryInterface(native);
+        if (wn)
+            native = static_cast<XPCWrappedNative*>(native)->GetIdentityObject();
     }
+
+    
+    nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(native);
+    mScriptObjectPrincipal = sop;
 
     
     {
@@ -261,7 +262,15 @@ XPCWrappedNativeScope::SetGlobal(XPCCallContext& ccx, JSObject* aGlobal)
         jsid idObj = mRuntime->GetStringID(XPCJSRuntime::IDX_OBJECT);
         jsid idProto = mRuntime->GetStringID(XPCJSRuntime::IDX_PROTOTYPE);
 
-        if (JS_GetPropertyById(ccx, aGlobal, idObj, &val) &&
+        
+        
+        
+        
+        
+        JSBool didResolve;
+
+        if (JS_ResolveStandardClass(ccx, aGlobal, idObj, &didResolve) &&
+            JS_GetPropertyById(ccx, aGlobal, idObj, &val) &&
             !JSVAL_IS_PRIMITIVE(val) &&
             JS_GetPropertyById(ccx, JSVAL_TO_OBJECT(val), idProto, &val) &&
             !JSVAL_IS_PRIMITIVE(val)) {

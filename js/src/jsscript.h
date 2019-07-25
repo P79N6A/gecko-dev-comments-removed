@@ -574,7 +574,11 @@ struct JSScript : public js::gc::Cell {
 #ifdef JS_CRASH_DIAGNOSTICS
     
     uint32_t        cookie2[Cell::CellSize / sizeof(uint32_t)];
-#endif
+
+    void CheckScript(JSScript *prev);
+#else
+    void CheckScript(JSScript *prev) {}
+#endif 
 
 #ifdef DEBUG
     
@@ -848,6 +852,8 @@ struct JSScript : public js::gc::Cell {
                                                    JSPrincipals *originPrincipals) {
         return originPrincipals ? originPrincipals : principals;
     }
+
+    void markChildren(JSTracer *trc);
 };
 
 

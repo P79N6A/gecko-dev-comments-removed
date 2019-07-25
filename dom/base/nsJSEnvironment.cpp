@@ -144,7 +144,11 @@ static PRLogModuleInfo* gJSDiagnostics;
 
 #define NS_CC_SKIPPABLE_DELAY       400 // ms
 
-#define NS_CC_FORCED                (5 * 60 * PR_USEC_PER_SEC) // 5 min
+
+#define NS_CC_FORCED                (2 * 60 * PR_USEC_PER_SEC) // 2 min
+
+
+#define NS_CC_PURPLE_LIMIT          250
 
 #define JAVASCRIPT nsIProgrammingLanguage::JAVASCRIPT
 
@@ -2227,11 +2231,9 @@ nsJSContext::CreateNativeGlobalForInner(
 
   nsRefPtr<nsIXPConnectJSObjectHolder> jsholder;
   nsresult rv = xpc->
-          InitClassesWithNewWrappedGlobal(mContext,
-                                          aNewInner, NS_GET_IID(nsISupports),
+          InitClassesWithNewWrappedGlobal(mContext, aNewInner,
                                           aIsChrome ? systemPrincipal.get() : aPrincipal,
-                                          nsnull, flags,
-                                          getter_AddRefs(jsholder));
+                                          flags, getter_AddRefs(jsholder));
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -2324,7 +2326,7 @@ nsJSContext::SetOuterObject(JSObject* aOuterObject)
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ABORT_IF_FALSE(wrapper, "bad wrapper");
 
-  wrapper->RefreshPrototype();
+  wrapper->FinishInitForWrappedGlobal();
   JS_SetPrototype(mContext, aOuterObject, JS_GetPrototype(inner));
 
   return NS_OK;
@@ -3286,46 +3288,70 @@ ShrinkGCBuffersTimerFired(nsITimer *aTimer, void *aClosure)
   nsJSContext::ShrinkGCBuffersNow();
 }
 
+static bool
+ShouldTriggerCC(PRUint32 aSuspected)
+{
+  return sNeedsFullCC ||
+         aSuspected > NS_CC_PURPLE_LIMIT ||
+         sLastCCEndTime + NS_CC_FORCED < PR_Now();
+}
 
-void
+static void
+TimerFireForgetSkippable(PRUint32 aSuspected, bool aRemoveChildless)
+{
+  PRTime startTime = PR_Now();
+  nsCycleCollector_forgetSkippable(aRemoveChildless);
+  sPreviousSuspectedCount = nsCycleCollector_suspectedCount();
+  sCleanupSinceLastGC = true;
+  PRTime delta = PR_Now() - startTime;
+  if (sMinForgetSkippableTime > delta) {
+    sMinForgetSkippableTime = delta;
+  }
+  if (sMaxForgetSkippableTime < delta) {
+    sMaxForgetSkippableTime = delta;
+  }
+  sTotalForgetSkippableTime += delta;
+  sRemovedPurples += (aSuspected - sPreviousSuspectedCount);
+  ++sForgetSkippableBeforeCC;
+}
+
+static void
 CCTimerFired(nsITimer *aTimer, void *aClosure)
 {
-  if (sDidShutdown) {
-    return;
-  }
-  if (sCCLockedOut) {
+  if (sDidShutdown || sCCLockedOut) {
     return;
   }
   ++sCCTimerFireCount;
-  if (sCCTimerFireCount < (NS_CC_DELAY / NS_CC_SKIPPABLE_DELAY)) {
-    PRUint32 suspected = nsCycleCollector_suspectedCount();
-    if ((sPreviousSuspectedCount + 100) > suspected) {
+
+  
+  
+  
+  const PRUint32 numEarlyTimerFires = NS_CC_DELAY / NS_CC_SKIPPABLE_DELAY - 2;
+  bool isLateTimerFire = sCCTimerFireCount > numEarlyTimerFires;
+  PRUint32 suspected = nsCycleCollector_suspectedCount();
+  if (isLateTimerFire && ShouldTriggerCC(suspected)) {
+    if (sCCTimerFireCount == numEarlyTimerFires + 1) {
+      TimerFireForgetSkippable(suspected, true);
+      if (ShouldTriggerCC(nsCycleCollector_suspectedCount())) {
+        
+        
+        return;
+      }
+    } else {
       
-      return;
-    }
-    
-    PRTime startTime = PR_Now();
-    nsCycleCollector_forgetSkippable();
-    sPreviousSuspectedCount = nsCycleCollector_suspectedCount();
-    sCleanupSinceLastGC = true;
-    PRTime delta = PR_Now() - startTime;
-    if (sMinForgetSkippableTime > delta) {
-      sMinForgetSkippableTime = delta;
-    }
-    if (sMaxForgetSkippableTime < delta) {
-      sMaxForgetSkippableTime = delta;
-    }
-    sTotalForgetSkippableTime += delta;
-    sRemovedPurples += (suspected - sPreviousSuspectedCount);
-    ++sForgetSkippableBeforeCC;
-  } else {
-    sPreviousSuspectedCount = 0;
-    nsJSContext::KillCCTimer();
-    if (sNeedsFullCC ||
-        nsCycleCollector_suspectedCount() > 500 ||
-        sLastCCEndTime + NS_CC_FORCED < PR_Now()) {
+      
       nsJSContext::CycleCollectNow();
     }
+  } else if ((sPreviousSuspectedCount + 100) <= suspected) {
+    
+    TimerFireForgetSkippable(suspected, false);
+  }
+
+  if (isLateTimerFire) {
+    
+    
+    sPreviousSuspectedCount = 0;
+    nsJSContext::KillCCTimer();
   }
 }
 

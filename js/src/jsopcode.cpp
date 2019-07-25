@@ -77,11 +77,11 @@
 #include "jscntxtinlines.h"
 #include "jsobjinlines.h"
 #include "jsopcodeinlines.h"
-#include "jsscriptinlines.h"
 
 #include "jsautooplen.h"
 
 #include "vm/RegExpObject-inl.h"
+#include "vm/StringBuffer-inl.h"
 
 using namespace mozilla;
 using namespace js;
@@ -2447,14 +2447,9 @@ SprintNormalFor(JSContext *cx, JSPrinter *jp, SprintStack *ss, const char *initP
     ptrdiff_t tail = js_GetSrcNoteOffset(sn, 2);
 
     
-
-
-
     jsbytecode *pc2 = pc;
-    if (cond != tail) {
-        LOCAL_ASSERT(*pc == JSOP_GOTO);
-        pc2 += JSOP_GOTO_LENGTH;
-    }
+    if (*pc == JSOP_GOTO || *pc == JSOP_NOP)
+        pc2 += GetBytecodeLength(pc);
     LOCAL_ASSERT(tail + GET_JUMP_OFFSET(pc + tail) == pc2 - pc);
 
     if (cond != tail) {

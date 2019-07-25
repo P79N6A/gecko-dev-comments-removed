@@ -367,7 +367,20 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
     console->LogStringMessage(msg.get());
   }
 
-  Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
+  if (NS_IsMainThread()) {
+    Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
+  } else {
+    
+    class ReadDrawFPSPref : public nsRunnable {
+    public:
+      NS_IMETHOD Run()
+      {
+        Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
+        return NS_OK;
+      }
+    };
+    NS_DispatchToMainThread(new ReadDrawFPSPref());
+  }
 
   reporter.SetSuccessful();
   return true;
