@@ -115,10 +115,9 @@ TiledThebesLayerOGL::TiledThebesLayerOGL(LayerManagerOGL *aManager)
   : ShadowThebesLayer(aManager, nullptr)
   , LayerOGL(aManager)
   , mVideoMemoryTiledBuffer(aManager->gl())
+  , mReusableTileStore(nsnull)
 {
   mImplData = static_cast<LayerOGL*>(this);
-  
-  mReusableTileStore = new ReusableTileStoreOGL(aManager->gl(), 1);
 }
 
 TiledThebesLayerOGL::~TiledThebesLayerOGL()
@@ -144,6 +143,17 @@ TiledThebesLayerOGL::ProcessUploadQueue()
 {
   if (mRegionToUpload.IsEmpty())
     return;
+
+  
+  
+  
+  if (mReusableTileStore && mIsFixedPosition) {
+    delete mReusableTileStore;
+    mReusableTileStore = nsnull;
+  } else if (!mReusableTileStore && !mIsFixedPosition) {
+    
+    mReusableTileStore = new ReusableTileStoreOGL(gl(), 1);
+  }
 
   gfxSize resolution(1, 1);
   if (mReusableTileStore) {
