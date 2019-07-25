@@ -40,6 +40,7 @@
 #ifndef jsstrinlines_h___
 #define jsstrinlines_h___
 
+#include "jsatom.h"
 #include "jsstr.h"
 
 #include "jscntxtinlines.h"
@@ -127,8 +128,10 @@ class StringBuffer
 
 
 
-
     JSFixedString *finishString();
+
+    
+    JSAtom *finishAtom();
 
     template <size_t ArrayLength>
     bool append(const char (&array)[ArrayLength]) {
