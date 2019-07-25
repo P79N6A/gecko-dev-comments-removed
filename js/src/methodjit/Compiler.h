@@ -602,6 +602,12 @@ private:
     void truncateDoubleToInt32(FrameEntry *fe, Uses uses);
 
     
+
+
+
+    void tryConvertInteger(FrameEntry *fe, Uses uses);
+
+    
     bool jumpAndTrace(Jump j, jsbytecode *target, Jump *slow = NULL, bool *trampoline = NULL);
     bool startLoop(jsbytecode *head, Jump entry, jsbytecode *entryTarget);
     bool finishLoop(jsbytecode *head);
