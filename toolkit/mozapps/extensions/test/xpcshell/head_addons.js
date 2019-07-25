@@ -204,6 +204,45 @@ function shutdownManager() {
 
   
   gAppInfo.annotations = {};
+
+  let dbfile = gProfD.clone();
+  dbfile.append("extensions.sqlite");
+
+  
+  if (!dbfile.exists())
+    return;
+
+  let thr = AM_Cc["@mozilla.org/thread-manager;1"].
+            getService(AM_Ci.nsIThreadManager).
+            mainThread;
+
+  
+  let db = null;
+  while (!db) {
+    
+    try {
+      db = Services.storage.openUnsharedDatabase(dbfile);
+    }
+    catch (e) {
+      if (thr.hasPendingEvents())
+        thr.processNextEvent(false);
+    }
+  }
+
+  
+  while (db) {
+    
+    try {
+      db.executeSimpleSQL("PRAGMA user_version = 1");
+      db.executeSimpleSQL("PRAGMA user_version = 0");
+      db.close();
+      db = null;
+    }
+    catch (e) {
+      if (thr.hasPendingEvents())
+        thr.processNextEvent(false);
+    }
+  }
 }
 
 function loadAddonsList(aAppChanged) {
