@@ -322,23 +322,25 @@ nsresult nsBuiltinDecoder::Seek(double aTime)
   PRInt32 range = 0;
   if (!IsInRanges(seekable, aTime, range)) {
     if (range != -1) {
-      double leftBound, rightBound;
-      res = seekable.End(range, &leftBound);
-      NS_ENSURE_SUCCESS(res, NS_OK);
-      double distanceLeft = NS_ABS(leftBound - aTime);
-
-      double distanceRight = -1;
       if (range + 1 < length) {
-        res = seekable.Start(range+1, &rightBound);
+        double leftBound, rightBound;
+        res = seekable.End(range, &leftBound);
         NS_ENSURE_SUCCESS(res, NS_OK);
-        distanceRight = NS_ABS(rightBound - aTime);
+        res = seekable.Start(range + 1, &rightBound);
+        NS_ENSURE_SUCCESS(res, NS_OK);
+        double distanceLeft = NS_ABS(leftBound - aTime);
+        double distanceRight = NS_ABS(rightBound - aTime);
+        if (distanceLeft == distanceRight) {
+          distanceLeft = NS_ABS(leftBound - mCurrentTime);
+          distanceRight = NS_ABS(rightBound - mCurrentTime);
+        } 
+        aTime = (distanceLeft < distanceRight) ? leftBound : rightBound;
+      } else {
+        
+        
+        res = seekable.End(length - 1, &aTime);
+        NS_ENSURE_SUCCESS(res, NS_OK);
       }
-
-      if (distanceLeft == distanceRight) {
-        distanceLeft = NS_ABS(leftBound - mCurrentTime);
-        distanceRight = NS_ABS(rightBound - mCurrentTime);
-      } 
-      aTime = (distanceLeft < distanceRight) ? leftBound : rightBound;
     } else {
       
       
