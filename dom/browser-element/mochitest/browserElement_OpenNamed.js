@@ -21,6 +21,7 @@ function runTest() {
     is(gotPopup, false, 'Should get just one popup.');
     gotPopup = true;
     popupFrame = e.detail.frameElement;
+    is(popupFrame.getAttribute('name'), 'OpenNamed');
 
     
     popupFrame.addEventListener('mozbrowsershowmodalprompt', function promptlistener(e) {
