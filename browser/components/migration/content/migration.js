@@ -18,7 +18,6 @@ var MigrationWizard = {
   _wiz: null,
   _migrator: null,
   _autoMigrate: null,
-  _bookmarks: false,
 
   init: function ()
   {
@@ -64,34 +63,15 @@ var MigrationWizard = {
   
   onImportSourcePageShow: function ()
   {
-    
-    var fromfile = null;
-
-    
-    if ("arguments" in window && window.arguments[0] == "bookmarks") {
-      this._bookmarks = true;
-
-      fromfile = document.getElementById("fromfile");
-      fromfile.hidden = false;
-
-      var importBookmarks = document.getElementById("importBookmarks");
-      importBookmarks.hidden = false;
-
-      var importAll = document.getElementById("importAll");
-      importAll.hidden = true;
-    }
-
     this._wiz.canRewind = false;
 
-    
-    
-    var selectedMigrator = fromfile;
+    var selectedMigrator = null;
 
     
     var group = document.getElementById("importSourceGroup");
     for (var i = 0; i < group.childNodes.length; ++i) {
       var migratorKey = group.childNodes[i].id;
-      if (migratorKey != "nothing" && migratorKey != "fromfile") {
+      if (migratorKey != "nothing") {
         var migrator = MigrationUtils.getMigrator(migratorKey);
         if (migrator) {
           
@@ -128,9 +108,7 @@ var MigrationWizard = {
   {
     var newSource = document.getElementById("importSourceGroup").selectedItem.id;
     
-    if (newSource == "nothing" || newSource == "fromfile") {
-      if(newSource == "fromfile")
-        window.opener.fromFile = true;
+    if (newSource == "nothing") {
       document.documentElement.cancel();
       return false;
     }
@@ -152,8 +130,6 @@ var MigrationWizard = {
     else {
       if (this._autoMigrate)
         this._wiz.currentPage.next = "homePageImport";
-      else if (this._bookmarks)
-        this._wiz.currentPage.next = "migrating"
       else
         this._wiz.currentPage.next = "importItems";
 
@@ -205,8 +181,6 @@ var MigrationWizard = {
     
     if (this._autoMigrate)
       this._wiz.currentPage.next = "homePageImport";
-    else if (this._bookmarks)
-      this._wiz.currentPage.next = "migrating"
   },
   
   
@@ -351,10 +325,6 @@ var MigrationWizard = {
     
     if (this._autoMigrate)
       this._itemsFlags = this._migrator.getMigrateData(this._selectedProfile, this._autoMigrate);
-
-    
-    if (this._bookmarks)
-      this._itemsFlags = 32;
 
     this._listItems("migratingItems");
     setTimeout(this.onMigratingMigrate, 0, this);
