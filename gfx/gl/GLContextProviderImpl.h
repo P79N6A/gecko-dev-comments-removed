@@ -78,7 +78,7 @@ public:
 
 
     static GLContext *
-    GetGlobalContext();
+    GetGlobalContext( const ContextFlags aFlags = GLContext::ContextFlagsNone);
 
     
 
