@@ -674,9 +674,6 @@ progress {
   vertical-align: -0.2em;
 
   
-  overflow: hidden;
-
-  
   border: 2px solid;
   -moz-border-top-colors: ThreeDShadow -moz-Dialog;
   -moz-border-right-colors: ThreeDHighlight -moz-Dialog;
@@ -685,7 +682,13 @@ progress {
   background-color: -moz-Dialog;
 }
 
-progress > div {
+::-moz-progress-bar {
+  
+  display: inline-block ! important;
+  float: none ! important;
+  position: static ! important;
+  overflow: visible ! important;
+
   -moz-appearance: progresschunk;
   height: 100%;
 
