@@ -2387,7 +2387,7 @@ nsFormControlList::AddElementToTable(nsGenericHTMLFormElement* aChild,
 
       
       
-      nsBaseContentList *list = new nsBaseContentList();
+      nsSimpleContentList *list = new nsSimpleContentList(mForm);
       NS_ENSURE_TRUE(list, NS_ERROR_OUT_OF_MEMORY);
 
       NS_ASSERTION(content->GetParent(), "Item in list without parent");
@@ -2411,7 +2411,7 @@ nsFormControlList::AddElementToTable(nsGenericHTMLFormElement* aChild,
       NS_ENSURE_TRUE(nodeList, NS_ERROR_FAILURE);
 
       
-      nsBaseContentList *list = static_cast<nsBaseContentList *>
+      nsSimpleContentList *list = static_cast<nsSimpleContentList *>
                                            ((nsIDOMNodeList *)nodeList.get());
 
       NS_ASSERTION(list->Length() > 1,

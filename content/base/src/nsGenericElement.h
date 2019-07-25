@@ -95,8 +95,7 @@ typedef PRUptrdiff PtrBits;
 
 
 
-class nsChildContentList : public nsINodeList,
-                           public nsWrapperCache
+class nsChildContentList : public nsINodeList
 {
 public:
   nsChildContentList(nsINode* aNode)
@@ -118,25 +117,9 @@ public:
     mNode = nsnull;
   }
 
-  nsINode* GetParentObject()
+  virtual nsINode* GetParentObject()
   {
     return mNode;
-  }
-
-  static nsChildContentList* FromSupports(nsISupports* aSupports)
-  {
-    nsINodeList* list = static_cast<nsINodeList*>(aSupports);
-#ifdef DEBUG
-    {
-      nsCOMPtr<nsINodeList> list_qi = do_QueryInterface(aSupports);
-
-      
-      
-      
-      NS_ASSERTION(list_qi == list, "Uh, fix QI!");
-    }
-#endif
-    return static_cast<nsChildContentList*>(list);
   }
 
 private:

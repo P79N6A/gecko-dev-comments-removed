@@ -74,7 +74,6 @@ typedef PRBool (*nsContentListMatchFunc)(nsIContent* aContent,
 typedef void (*nsContentListDestroyFunc)(void* aData);
 
 class nsIDocument;
-class nsIDOMHTMLFormElement;
 
 
 class nsBaseContentList : public nsINodeList
@@ -126,13 +125,35 @@ protected:
 };
 
 
-
-
-
-class nsFormContentList : public nsBaseContentList
+class nsSimpleContentList : public nsBaseContentList
 {
 public:
-  nsFormContentList(nsIDOMHTMLFormElement *aForm,
+  nsSimpleContentList(nsINode *aRoot) : nsBaseContentList(),
+                                        mRoot(aRoot)
+  {
+  }
+
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsSimpleContentList,
+                                           nsBaseContentList)
+
+  virtual nsINode* GetParentObject()
+  {
+    return mRoot;
+  }
+
+private:
+  
+  nsCOMPtr<nsINode> mRoot;
+};
+
+
+
+
+class nsFormContentList : public nsSimpleContentList
+{
+public:
+  nsFormContentList(nsIContent *aForm,
                     nsBaseContentList& aContentList);
 };
 
@@ -197,8 +218,7 @@ struct nsContentListKey
 
 class nsContentList : public nsBaseContentList,
                       public nsIHTMLCollection,
-                      public nsStubMutationObserver,
-                      public nsWrapperCache
+                      public nsStubMutationObserver
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -258,6 +278,10 @@ public:
   virtual PRInt32 IndexOf(nsIContent *aContent, PRBool aDoFlush);
   virtual nsIContent* GetNodeAt(PRUint32 aIndex);
   virtual PRInt32 IndexOf(nsIContent* aContent);
+  virtual nsINode* GetParentObject()
+  {
+    return mRootNode;
+  }
 
   
   
@@ -265,7 +289,6 @@ public:
                                     nsWrapperCache** aCache);
 
   
-  NS_HIDDEN_(nsINode*) GetParentObject() { return mRootNode; }
   NS_HIDDEN_(PRUint32) Length(PRBool aDoFlush);
   NS_HIDDEN_(nsIContent*) Item(PRUint32 aIndex, PRBool aDoFlush);
   NS_HIDDEN_(nsIContent*) NamedItem(const nsAString& aName, PRBool aDoFlush);
