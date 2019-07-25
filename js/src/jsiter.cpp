@@ -176,11 +176,9 @@ Enumerate(JSContext *cx, JSObject *obj, JSObject *pobj, jsid id,
 {
     JS_ASSERT_IF(flags & JSITER_OWNONLY, obj == pobj);
 
-    if (!(flags & JSITER_OWNONLY) || pobj->isProxy()) {
-        IdSet::AddPtr p = ht.lookupForAdd(id);
-        JS_ASSERT_IF(obj == pobj && !obj->isProxy(), !p);
-
+    if (!(flags & JSITER_OWNONLY) || pobj->isProxy() || pobj->getOps()->enumerate) {
         
+        IdSet::AddPtr p = ht.lookupForAdd(id);
         if (JS_UNLIKELY(!!p))
             return true;
 
@@ -189,7 +187,7 @@ Enumerate(JSContext *cx, JSObject *obj, JSObject *pobj, jsid id,
 
 
 
-        if ((pobj->getProto() || pobj->isProxy()) && !ht.add(p, id))
+        if ((pobj->getProto() || pobj->isProxy() || pobj->getOps()->enumerate) && !ht.add(p, id))
             return false;
     }
 
