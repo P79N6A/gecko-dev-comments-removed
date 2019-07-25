@@ -66,15 +66,6 @@ NS_IMPL_ISUPPORTS_INHERITED1(GfxInfo, GfxInfoBase, nsIGfxInfoDebug)
 
 static const PRUint32 allWindowsVersions = 0xffffffff;
 
-
-
-
-
-
-
-static PRUint32 gDeviceID;
-static PRUint32 gVendorID;
-
 #define V(a,b,c,d) GFX_DRIVER_VERSION(a,b,c,d)
 
 
@@ -391,10 +382,6 @@ GfxInfo::Init()
 
     SetupDiDestroyDeviceInfoList(devinfo);
   }
-
-  
-  gVendorID = ParseIDFromDeviceID(mDeviceID, "VEN_", 4);
-  gDeviceID = ParseIDFromDeviceID(mDeviceID, "&DEV_", 4);
 
   mAdapterVendorID.AppendPrintf("0x%04x", ParseIDFromDeviceID(mDeviceID, "VEN_", 4));
   mAdapterDeviceID.AppendPrintf("0x%04x", ParseIDFromDeviceID(mDeviceID, "&DEV_", 4));
@@ -913,63 +900,6 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
   *aStatus = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
   if (aOS)
     *aOS = os;
-
-  
-
-
-
-
-
-
-  {
-    nsAutoString adapterDriverVersionString;
-    GetAdapterDriverVersion(adapterDriverVersionString);
-
-    PRUint64 driverVersion;
-    if (!ParseDriverVersion(adapterDriverVersionString, &driverVersion)) {
-      return NS_ERROR_FAILURE;
-    }
-
-    static PRUint32 IntelGMAX4500HD[] = {
-      0x2a42, 
-      0x2a43, 
-      0x2e42, 
-      0x2e43, 
-      0x2e92, 
-      0x2e93, 
-      0x2e32, 
-      0x2e33, 
-      0x2e22, 
-      0x2e23, 
-      0x2e12, 
-      0x2e13, 
-      0x0042, 
-      0x0046, 
-      0x0102, 
-      0x0106, 
-      0x0112, 
-      0x0116, 
-      0x0122, 
-      0x0126, 
-      0x010a, 
-      0x0080 
-    };
-
-    if (((mWindowsVersion == gfxWindowsPlatform::kWindowsXP &&
-         driverVersion < V(6,14,10,5284)) ||
-         (mWindowsVersion == gfxWindowsPlatform::kWindowsVista &&
-         driverVersion < V(8,15,10,2202)) ||
-         (mWindowsVersion == gfxWindowsPlatform::kWindows7 &&
-         driverVersion < V(8,15,10,2202))) &&
-        gVendorID == 0x8086 ) {
-      for (PRUint32 i = 0; i < ArrayLength(IntelGMAX4500HD); i++) {
-        if (IntelGMAX4500HD[i] == gDeviceID) {
-          *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
-          return NS_OK;
-        }
-      } 
-    }
-  }
 
   
   if (!aDriverInfo.Length()) {
