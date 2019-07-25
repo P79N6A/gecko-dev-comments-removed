@@ -217,22 +217,10 @@ public class PanZoomController
         
         
         
-        switch (mState) {
-        case FLING:
+        if (mState == PanZoomState.FLING) {
             mX.stopFling();
             mY.stopFling();
             mState = PanZoomState.NOTHING;
-            
-        case ANIMATED_ZOOM:
-            
-            
-            
-        case NOTHING:
-            
-            
-            mController.setViewportMetrics(getValidViewportMetrics());
-            mController.notifyLayerClientOfGeometryChange();
-            break;
         }
     }
 
