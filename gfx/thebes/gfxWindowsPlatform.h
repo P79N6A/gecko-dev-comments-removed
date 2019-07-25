@@ -149,6 +149,21 @@ public:
     RenderMode GetRenderMode() { return mRenderMode; }
     void SetRenderMode(RenderMode rmode) { mRenderMode = rmode; }
 
+    
+
+
+
+    void UpdateRenderMode();
+
+    
+
+
+
+
+
+
+    void VerifyD2DDevice(PRBool aAttemptForce);
+
     HDC GetScreenDC() { return mScreenDC; }
 
     nsresult GetFontList(nsIAtom *aLangGroup,
@@ -215,8 +230,8 @@ public:
     virtual void FontsPrefsChanged(nsIPrefBranch *aPrefBranch, const char *aPref);
 
 #ifdef CAIRO_HAS_DWRITE_FONT
-    IDWriteFactory *GetDWriteFactory() { return mDWriteFactory; }
-    inline PRBool DWriteEnabled() { return !!mDWriteFactory; }
+    IDWriteFactory *GetDWriteFactory() { return mUseDirectWrite ? mDWriteFactory : nsnull; }
+    inline PRBool DWriteEnabled() { return mUseDirectWrite; }
 #else
     inline PRBool DWriteEnabled() { return PR_FALSE; }
 #endif
@@ -237,6 +252,8 @@ protected:
 
 private:
     void Init();
+
+    PRBool mUseDirectWrite;
 
 #ifdef CAIRO_HAS_DWRITE_FONT
     nsRefPtr<IDWriteFactory> mDWriteFactory;

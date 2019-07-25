@@ -3203,9 +3203,6 @@ pref("gfx.color_management.mode", 0);
 #endif
 
 
-pref("mozilla.widget.render-mode", -1);
-
-
 #ifdef XP_WIN
 pref("layers.accelerate-all", true);
 #else
@@ -3219,6 +3216,9 @@ pref("layers.accelerate-none", false);
 #ifndef WINCE
 
 pref("gfx.direct2d.disabled", false);
+
+
+pref("gfx.direct2d.force-enabled", false);
 
 pref("layers.prefer-opengl", false);
 #endif

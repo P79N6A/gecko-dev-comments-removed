@@ -212,177 +212,13 @@ gfxWindowsPlatform::gfxWindowsPlatform()
     FT_Init_FreeType(&gPlatformFTLibrary);
 #endif
 
-
-
-
-#if defined(WINCE_WINDOWS_MOBILE)
-    mRenderMode = RENDER_IMAGE_DDRAW16;
-#elif defined(WINCE)
-    mRenderMode = RENDER_DDRAW_GL;
-#else
-    mRenderMode = RENDER_GDI;
-#endif
-
-    nsCOMPtr<nsIPrefBranch2> pref = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    
-    OSVERSIONINFOA versionInfo;
-    versionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOA);
-    ::GetVersionExA(&versionInfo);
-    bool isVistaOrHigher = versionInfo.dwMajorVersion >= 6;
-
-    PRBool safeMode = PR_FALSE;
-    nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
-    if (xr)
-      xr->GetInSafeMode(&safeMode);
-
 #ifdef CAIRO_HAS_D2D_SURFACE
-    PRBool d2dDisabled = PR_FALSE;
-    PRBool d2dBlocked = PR_FALSE;
-
-    nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
-    if (gfxInfo) {
-        PRInt32 status;
-        if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT2D, &status))) {
-            if (status != nsIGfxInfo::FEATURE_STATUS_UNKNOWN &&
-                status != nsIGfxInfo::FEATURE_AVAILABLE)
-            {
-                d2dDisabled = PR_TRUE;
-                if (status == nsIGfxInfo::FEATURE_BLOCKED) {
-                    d2dBlocked = PR_TRUE;
-                }
-            }
-        }
-    }
-
     NS_RegisterMemoryReporter(new D2DCacheReporter());
     NS_RegisterMemoryReporter(new D2DVRAMReporter());
-    mD2DDevice = NULL;
-
-    nsresult rv = pref->GetBoolPref("gfx.direct2d.disabled", &d2dDisabled);
-    if (NS_FAILED(rv))
-        d2dDisabled = PR_FALSE;
-
-    if (isVistaOrHigher && !d2dDisabled && !d2dBlocked && !safeMode) {
-        
-        HMODULE d3d10module = LoadLibraryA("d3d10_1.dll");
-        D3D10CreateDevice1Func createD3DDevice = (D3D10CreateDevice1Func)
-            GetProcAddress(d3d10module, "D3D10CreateDevice1");
-        nsRefPtr<ID3D10Device1> device;
-
-        if (createD3DDevice) {
-            
-            
-            HRESULT hr = createD3DDevice(
-	        NULL, 
-	        D3D10_DRIVER_TYPE_HARDWARE,
-	        NULL,
-	        D3D10_CREATE_DEVICE_BGRA_SUPPORT |
-	        D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
-	        D3D10_FEATURE_LEVEL_10_0,
-	        D3D10_1_SDK_VERSION,
-	        getter_AddRefs(device));
-
-            if (SUCCEEDED(hr)) {
-                
-                
-                
-                
-                nsRefPtr<ID3D10Device1> device1;
-                hr = createD3DDevice(
-	            NULL, 
-	            D3D10_DRIVER_TYPE_HARDWARE,
-	            NULL,
-	            D3D10_CREATE_DEVICE_BGRA_SUPPORT |
-	            D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
-	            D3D10_FEATURE_LEVEL_10_1,
-	            D3D10_1_SDK_VERSION,
-	            getter_AddRefs(device1));
-
-                if (SUCCEEDED(hr)) {
-                    device = device1;
-                }
-
-                mD2DDevice = cairo_d2d_create_device_from_d3d10device(device);
-                if (mD2DDevice) {
-                    mRenderMode = RENDER_DIRECT2D;
-                }
-            }
-        }
-    }
+    mD2DDevice = nsnull;
 #endif
 
-#ifdef CAIRO_HAS_DWRITE_FONT
-    PRBool useDirectWrite = PR_FALSE;
-
-    rv = pref->GetBoolPref(
-        "gfx.font_rendering.directwrite.enabled", &useDirectWrite);
-    if (NS_FAILED(rv)) {
-        useDirectWrite = PR_FALSE;
-    }
-
-    
-    
-    if ((useDirectWrite && isVistaOrHigher) || mRenderMode == RENDER_DIRECT2D) {
-        DWriteCreateFactoryFunc createDWriteFactory = (DWriteCreateFactoryFunc)
-            GetProcAddress(LoadLibraryW(L"dwrite.dll"), "DWriteCreateFactory");
-
-        if (createDWriteFactory) {
-            
-
-
-
-
-            IDWriteFactory *factory;
-            HRESULT hr = createDWriteFactory(
-                DWRITE_FACTORY_TYPE_SHARED,
-                __uuidof(IDWriteFactory),
-                reinterpret_cast<IUnknown**>(&factory));
-            mDWriteFactory = factory;
-            factory->Release();
-        }
-    }
-#endif
-
-    PRInt32 rmode;
-    if (!safeMode &&
-	NS_SUCCEEDED(pref->GetIntPref("mozilla.widget.render-mode", &rmode))) {
-        if (rmode >= 0 && rmode < RENDER_MODE_MAX) {
-#ifdef CAIRO_HAS_DWRITE_FONT
-            if (rmode != RENDER_DIRECT2D && !useDirectWrite) {
-                mDWriteFactory = nsnull;
-            }
-#endif
-#ifndef CAIRO_HAS_DDRAW_SURFACE
-            if (rmode == RENDER_DDRAW || rmode == RENDER_DDRAW_GL)
-                rmode = RENDER_IMAGE_STRETCH24;
-#endif
-            if (rmode == RENDER_DIRECT2D) {
-#ifndef CAIRO_HAS_D2D_SURFACE
-                return;
-#else
-                if (d2dBlocked) {
-                    return;
-                }
-
-                if (!mD2DDevice) {
-                    mD2DDevice = cairo_d2d_create_device();
-                    if (!mD2DDevice) {
-                        return;
-                    }
-                }
-#ifdef CAIRO_HAS_DWRITE_FONT
-                if (!GetDWriteFactory()) {
-#endif
-
-                    return;
-#ifdef CAIRO_HAS_DWRITE_FONT
-                }
-#endif
-#endif
-            }
-            mRenderMode = (RenderMode) rmode;
-        }
-    }
+    UpdateRenderMode();
 }
 
 gfxWindowsPlatform::~gfxWindowsPlatform()
@@ -403,6 +239,173 @@ gfxWindowsPlatform::~gfxWindowsPlatform()
 
 }
 
+void
+gfxWindowsPlatform::UpdateRenderMode()
+{
+
+
+
+#if defined(WINCE_WINDOWS_MOBILE)
+    mRenderMode = RENDER_IMAGE_DDRAW16;
+#elif defined(WINCE)
+    mRenderMode = RENDER_DDRAW_GL;
+#else
+    mRenderMode = RENDER_GDI;
+#endif
+
+    OSVERSIONINFOA versionInfo;
+    versionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOA);
+    ::GetVersionExA(&versionInfo);
+    bool isVistaOrHigher = versionInfo.dwMajorVersion >= 6;
+
+    PRBool safeMode = PR_FALSE;
+    nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
+    if (xr)
+      xr->GetInSafeMode(&safeMode);
+
+    nsCOMPtr<nsIPrefBranch2> pref = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    nsresult rv;
+
+    PRBool preferDirectWrite = PR_FALSE;
+
+    rv = pref->GetBoolPref(
+        "gfx.font_rendering.directwrite.enabled", &preferDirectWrite);
+    if (NS_FAILED(rv)) {
+        preferDirectWrite = PR_FALSE;
+    }
+
+    mUseDirectWrite = preferDirectWrite;
+
+#ifdef CAIRO_HAS_D2D_SURFACE
+    PRBool d2dDisabled = PR_FALSE;
+    PRBool d2dForceEnabled = PR_FALSE;
+    PRBool d2dBlocked = PR_FALSE;
+
+    nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
+    if (gfxInfo) {
+        PRInt32 status;
+        if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT2D, &status))) {
+            if (status != nsIGfxInfo::FEATURE_STATUS_UNKNOWN &&
+                status != nsIGfxInfo::FEATURE_AVAILABLE)
+            {
+                d2dDisabled = PR_TRUE;
+                if (status == nsIGfxInfo::FEATURE_BLOCKED) {
+                    d2dBlocked = PR_TRUE;
+                }
+            }
+        }
+    }
+
+    rv = pref->GetBoolPref("gfx.direct2d.disabled", &d2dDisabled);
+    if (NS_FAILED(rv))
+        d2dDisabled = PR_FALSE;
+    rv = pref->GetBoolPref("gfx.direct2d.force-enabled", &d2dForceEnabled);
+    if (NS_FAILED(rv))
+        d2dDisabled = PR_FALSE;
+
+    bool tryD2D = !d2dBlocked || d2dForceEnabled;
+    
+    
+    if (d2dDisabled) {
+        tryD2D = false;
+    }
+
+    if (isVistaOrHigher  && !safeMode && tryD2D) {
+        VerifyD2DDevice(d2dForceEnabled);
+        if (mD2DDevice) {
+            mRenderMode = RENDER_DIRECT2D;
+            mUseDirectWrite = PR_TRUE;
+        }
+    } else {
+        mD2DDevice = nsnull;
+    }
+#endif
+
+#ifdef CAIRO_HAS_DWRITE_FONT
+    
+    
+    if (!mDWriteFactory && (mUseDirectWrite && isVistaOrHigher)) {
+        DWriteCreateFactoryFunc createDWriteFactory = (DWriteCreateFactoryFunc)
+            GetProcAddress(LoadLibraryW(L"dwrite.dll"), "DWriteCreateFactory");
+
+        if (createDWriteFactory) {
+            
+
+
+
+
+            IDWriteFactory *factory;
+            HRESULT hr = createDWriteFactory(
+                DWRITE_FACTORY_TYPE_SHARED,
+                __uuidof(IDWriteFactory),
+                reinterpret_cast<IUnknown**>(&factory));
+            mDWriteFactory = factory;
+            factory->Release();
+        }
+    }
+#endif
+}
+
+void
+gfxWindowsPlatform::VerifyD2DDevice(PRBool aAttemptForce)
+{
+#ifdef CAIRO_HAS_D2D_SURFACE
+    if (mD2DDevice) {
+        ID3D10Device1 *device = cairo_d2d_device_get_device(mD2DDevice);
+
+        if (SUCCEEDED(device->GetDeviceRemovedReason())) {
+            return;
+        }
+        mD2DDevice = nsnull;
+    }
+
+    HMODULE d3d10module = LoadLibraryA("d3d10_1.dll");
+    D3D10CreateDevice1Func createD3DDevice = (D3D10CreateDevice1Func)
+        GetProcAddress(d3d10module, "D3D10CreateDevice1");
+    nsRefPtr<ID3D10Device1> device;
+
+    if (createD3DDevice) {
+        
+        
+        HRESULT hr = createD3DDevice(
+            NULL, 
+            D3D10_DRIVER_TYPE_HARDWARE,
+            NULL,
+            D3D10_CREATE_DEVICE_BGRA_SUPPORT |
+            D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
+            D3D10_FEATURE_LEVEL_10_0,
+            D3D10_1_SDK_VERSION,
+            getter_AddRefs(device));
+
+        if (SUCCEEDED(hr)) {
+            
+            
+            
+            
+            nsRefPtr<ID3D10Device1> device1;
+            hr = createD3DDevice(
+                NULL, 
+                D3D10_DRIVER_TYPE_HARDWARE,
+                NULL,
+                D3D10_CREATE_DEVICE_BGRA_SUPPORT |
+                D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
+                D3D10_FEATURE_LEVEL_10_1,
+                D3D10_1_SDK_VERSION,
+                getter_AddRefs(device1));
+
+            if (SUCCEEDED(hr)) {
+                device = device1;
+            }
+
+            mD2DDevice = cairo_d2d_create_device_from_d3d10device(device);
+        }
+    }
+
+    if (!mD2DDevice && aAttemptForce) {
+        mD2DDevice = cairo_d2d_create_device();
+    }
+#endif
+}
 gfxPlatformFontList*
 gfxWindowsPlatform::CreatePlatformFontList()
 {
