@@ -71,7 +71,7 @@ class nsCookie : public nsICookie2
              const char     *aEnd,
              PRInt64         aExpiry,
              PRInt64         aLastAccessed,
-             PRInt64         aCreationID,
+             PRInt64         aCreationTime,
              PRBool          aIsSession,
              PRBool          aIsSecure,
              PRBool          aIsHttpOnly)
@@ -82,7 +82,7 @@ class nsCookie : public nsICookie2
      , mEnd(aEnd)
      , mExpiry(aExpiry)
      , mLastAccessed(aLastAccessed)
-     , mCreationID(aCreationID)
+     , mCreationTime(aCreationTime)
      , mIsSession(aIsSession != PR_FALSE)
      , mIsSecure(aIsSecure != PR_FALSE)
      , mIsHttpOnly(aIsHttpOnly != PR_FALSE)
@@ -92,8 +92,7 @@ class nsCookie : public nsICookie2
   public:
     
     
-    
-    static PRInt64 GenerateCreationID(PRInt64 aCreationTime);
+    static PRInt64 GenerateUniqueCreationTime(PRInt64 aCreationTime);
 
     
     
@@ -103,7 +102,7 @@ class nsCookie : public nsICookie2
                              const nsACString &aPath,
                              PRInt64           aExpiry,
                              PRInt64           aLastAccessed,
-                             PRInt64           aCreationID,
+                             PRInt64           aCreationTime,
                              PRBool            aIsSession,
                              PRBool            aIsSecure,
                              PRBool            aIsHttpOnly);
@@ -118,7 +117,7 @@ class nsCookie : public nsICookie2
     inline const nsDependentCString Path()  const { return nsDependentCString(mPath, mEnd); }
     inline PRInt64 Expiry()                 const { return mExpiry; }        
     inline PRInt64 LastAccessed()           const { return mLastAccessed; }  
-    inline PRInt64 CreationID()             const { return mCreationID; }    
+    inline PRInt64 CreationTime()           const { return mCreationTime; }  
     inline PRBool IsSession()               const { return mIsSession; }
     inline PRBool IsDomain()                const { return *mHost == '.'; }
     inline PRBool IsSecure()                const { return mIsSecure; }
@@ -130,7 +129,7 @@ class nsCookie : public nsICookie2
     inline void SetIsSession(PRBool aIsSession)   { mIsSession = (PRPackedBool) aIsSession; }
     
     
-    inline void SetCreationID(PRInt64 aID)        { mCreationID = aID; }
+    inline void SetCreationTime(PRInt64 aTime)    { mCreationTime = aTime; }
 
   protected:
     
@@ -145,9 +144,7 @@ class nsCookie : public nsICookie2
     const char  *mEnd;
     PRInt64      mExpiry;
     PRInt64      mLastAccessed;
-    
-    
-    PRInt64      mCreationID;
+    PRInt64      mCreationTime;
     PRPackedBool mIsSession;
     PRPackedBool mIsSecure;
     PRPackedBool mIsHttpOnly;
