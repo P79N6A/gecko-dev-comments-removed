@@ -1049,7 +1049,7 @@ pref("devtools.styleeditor.enabled", true);
 pref("devtools.chrome.enabled", false);
 
 
-pref("devtools.gcli.enable", false);
+pref("devtools.gcli.enable", true);
 
 
 
