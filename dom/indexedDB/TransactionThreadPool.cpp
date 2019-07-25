@@ -116,7 +116,8 @@ TransactionThreadPool::TransactionThreadPool()
 TransactionThreadPool::~TransactionThreadPool()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(!gInstance, "More than one instance!");
+  NS_ASSERTION(gInstance == this, "Different instances!");
+  gInstance = nsnull;
 }
 
 
@@ -125,20 +126,12 @@ TransactionThreadPool::GetOrCreate()
 {
   if (!gInstance && !gShutdown) {
     NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-    nsRefPtr<TransactionThreadPool> pool(new TransactionThreadPool());
+    nsAutoPtr<TransactionThreadPool> pool(new TransactionThreadPool());
 
     nsresult rv = pool->Init();
     NS_ENSURE_SUCCESS(rv, nsnull);
 
-    nsCOMPtr<nsIObserverService> obs =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, nsnull);
-
-    rv = obs->AddObserver(pool, "xpcom-shutdown-threads", PR_FALSE);
-    NS_ENSURE_SUCCESS(rv, nsnull);
-
-    
-    gInstance = pool;
+    gInstance = pool.forget();
   }
   return gInstance;
 }
@@ -162,6 +155,7 @@ TransactionThreadPool::Shutdown()
     if (NS_FAILED(gInstance->Cleanup())) {
       NS_WARNING("Failed to shutdown thread pool!");
     }
+    delete gInstance;
     gInstance = nsnull;
   }
 }
@@ -247,6 +241,19 @@ TransactionThreadPool::FinishTransaction(IDBTransaction* aTransaction)
     }
 #endif
     mTransactionsInProgress.Remove(databaseId);
+
+    
+    for (PRUint32 index = 0; index < mCompleteRunnables.Length(); index++) {
+      nsRefPtr<DatabaseCompleteCallbackRunnable>& runnable =
+        mCompleteRunnables[index];
+      if (runnable->mDatabase == aTransaction->Database()) {
+        if (NS_FAILED(NS_DispatchToCurrentThread(runnable))) {
+          NS_WARNING("Failed to dispatch to current thread?!");
+        }
+        mCompleteRunnables.RemoveElementAt(index);
+        index--;
+      }
+    }
   }
   else {
     
@@ -483,37 +490,37 @@ TransactionThreadPool::Dispatch(IDBTransaction* aTransaction,
   return mThreadPool->Dispatch(transactionInfo->queue, NS_DISPATCH_NORMAL);
 }
 
-void
-TransactionThreadPool::WaitForAllTransactionsToComplete(IDBDatabase* aDatabase)
+bool
+TransactionThreadPool::WaitForAllTransactionsToComplete(
+                                             IDBDatabase* aDatabase,
+                                             DatabaseCompleteCallback aCallback,
+                                             void* aUserData)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  NS_ASSERTION(aDatabase, "Null pointer!");
+  NS_ASSERTION(aCallback, "Null pointer!");
 
+  nsRefPtr<DatabaseCompleteCallbackRunnable> runnable =
+    new DatabaseCompleteCallbackRunnable(aDatabase, aCallback, aUserData);
+
+  
+  
   const PRUint32 databaseId = aDatabase->Id();
-  nsIThread* currentThread = NS_GetCurrentThread();
-
-  
-  
-  
-  while (mTransactionsInProgress.Get(databaseId, nsnull)) {
-    if (NS_FAILED(NS_ProcessNextEvent(currentThread, PR_TRUE))) {
-      NS_WARNING("Failed to process next event?!");
+  if (!mTransactionsInProgress.Get(databaseId, nsnull)) {
+    if (NS_FAILED(NS_DispatchToCurrentThread(runnable))) {
+      NS_WARNING("Failed to dispatch to current thread?!");
+      return false;
     }
+    return true;
   }
-}
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(TransactionThreadPool, nsIObserver)
+  
+  if (!mCompleteRunnables.AppendElement(runnable)) {
+    NS_WARNING("Out of memory!");
+    return false;
+  }
 
-NS_IMETHODIMP
-TransactionThreadPool::Observe(nsISupports* ,
-                               const char*  aTopic,
-                               const PRUnichar* )
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(!strcmp("xpcom-shutdown-threads", aTopic), "Wrong topic!");
-
-  Shutdown();
-
-  return NS_OK;
+  return true;
 }
 
 TransactionThreadPool::
@@ -635,5 +642,20 @@ FinishTransactionRunnable::Run()
     mFinishRunnable = nsnull;
   }
 
+  return NS_OK;
+}
+
+NS_IMPL_ISUPPORTS1(TransactionThreadPool::DatabaseCompleteCallbackRunnable,
+                   nsIRunnable)
+
+NS_IMETHODIMP
+TransactionThreadPool::DatabaseCompleteCallbackRunnable::Run()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
+  
+  nsRefPtr<IDBDatabase> database;
+  database.swap(mDatabase);
+  mCallback(database, mUserData);
   return NS_OK;
 }

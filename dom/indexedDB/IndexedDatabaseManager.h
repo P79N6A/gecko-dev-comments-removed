@@ -41,9 +41,13 @@
 #define mozilla_dom_indexeddb_indexeddatabasemanager_h__
 
 #include "mozilla/dom/indexedDB/IndexedDatabase.h"
+#include "mozilla/dom/indexedDB/IDBDatabase.h"
 
 #include "nsIIndexedDatabaseManager.h"
 #include "nsIObserver.h"
+#include "nsIRunnable.h"
+#include "nsIThread.h"
+#include "nsIURI.h"
 
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
@@ -51,11 +55,9 @@
 #define INDEXEDDB_MANAGER_CONTRACTID \
   "@mozilla.org/dom/indexeddb/manager;1"
 
-class nsIRunnable;
+class nsITimer;
 
 BEGIN_INDEXEDDB_NAMESPACE
-
-class IDBDatabase;
 
 class IndexedDatabaseManager : public nsIIndexedDatabaseManager,
                                public nsIObserver
@@ -63,11 +65,13 @@ class IndexedDatabaseManager : public nsIIndexedDatabaseManager,
   friend class IDBDatabase;
 
 public:
-  
-  static IndexedDatabaseManager* GetOrCreateInstance();
+  static already_AddRefed<IndexedDatabaseManager> GetOrCreate();
 
   
-  static IndexedDatabaseManager* GetInstance();
+  static IndexedDatabaseManager* Get();
+
+  
+  static IndexedDatabaseManager* FactoryCreate();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIINDEXEDDATABASEMANAGER
@@ -83,17 +87,78 @@ private:
   bool RegisterDatabase(IDBDatabase* aDatabase);
   void UnregisterDatabase(IDBDatabase* aDatabase);
 
-  struct OriginClearData
+  
+  
+  class OriginClearRunnable : public nsIRunnable
   {
-    nsCString origin;
-    nsTArray<nsCOMPtr<nsIRunnable> > delayedRunnables;
+  public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIRUNNABLE
+
+    static void DatabaseCompleteCallback(IDBDatabase* aDatabase,
+                                         void* aClosure)
+    {
+      nsRefPtr<OriginClearRunnable> runnable =
+        static_cast<OriginClearRunnable*>(aClosure);
+      runnable->OnDatabaseComplete(aDatabase);
+    }
+
+    void OnDatabaseComplete(IDBDatabase* aDatabase);
+
+    OriginClearRunnable(const nsACString& aOrigin,
+                        nsIThread* aThread,
+                        nsTArray<nsRefPtr<IDBDatabase> >& aDatabasesWaiting)
+    : mOrigin(aOrigin),
+      mThread(aThread)
+    {
+      mDatabasesWaiting.SwapElements(aDatabasesWaiting);
+    }
+
+    nsCString mOrigin;
+    nsCOMPtr<nsIThread> mThread;
+    nsTArray<nsRefPtr<IDBDatabase> > mDatabasesWaiting;
+    nsTArray<nsCOMPtr<nsIRunnable> > mDelayedRunnables;
   };
+
+  inline void OnOriginClearComplete(OriginClearRunnable* aRunnable);
+
+  
+  
+  class AsyncUsageRunnable : public nsIRunnable
+  {
+  public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIRUNNABLE
+
+    AsyncUsageRunnable(nsIURI* aURI,
+                       const nsACString& aOrigin,
+                       nsIIndexedDatabaseUsageCallback* aCallback);
+
+    void Cancel();
+
+    inline nsresult RunInternal();
+
+    nsCOMPtr<nsIURI> mURI;
+    nsCString mOrigin;
+    nsCOMPtr<nsIIndexedDatabaseUsageCallback> mCallback;
+    PRUint64 mUsage;
+    PRInt32 mCanceled;
+  };
+
+  inline void OnUsageCheckComplete(AsyncUsageRunnable* aRunnable);
 
   
   nsClassHashtable<nsCStringHashKey, nsTArray<IDBDatabase*> > mLiveDatabases;
 
   
-  nsAutoTArray<OriginClearData, 1> mOriginClearData;
+  nsAutoTArray<nsRefPtr<OriginClearRunnable>, 1> mOriginClearRunnables;
+
+  
+  
+  nsAutoTArray<nsRefPtr<AsyncUsageRunnable>, 1> mUsageRunnables;
+
+  nsCOMPtr<nsIThread> mIOThread;
+  nsCOMPtr<nsITimer> mShutdownTimer;
 };
 
 END_INDEXEDDB_NAMESPACE
