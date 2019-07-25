@@ -449,3 +449,174 @@ function reflectBoolean(aParameters)
   is(element[contentAttr], false,
      "When not set, the IDL attribute should return false");
 }
+
+
+
+
+
+
+
+
+
+
+
+function reflectInt(aParameters)
+{
+  
+  function testExponential(value) {
+    return !!/^[ \t\n\f\r]*[\+\-]?[0-9]+e[0-9]+/.exec(value);
+  }
+
+  
+  function expectedGetAttributeResult(value) {
+    return (value !== null) ? String(value) : "";
+  }
+
+  function stringToInteger(value, nonNegative, defaultValue) {
+    if (nonNegative === false) {
+      
+      var result = /^[ \t\n\f\r]*([\+\-]?[0-9]+)/.exec(value);
+      if (result) {
+        if (-0x80000000 <= result[1] && result[1] <= 0x7FFFFFFF) {
+          
+          return result[1];
+        }
+      }
+    } else {
+      var result = /^[ \t\n\f\r]*(\+?[0-9]+)/.exec(value);
+      if (result) {
+        if (0 <= result[1] && result[1] <= 0x7FFFFFFF) {
+          
+          return result[1];
+        }
+      }
+    }
+    return defaultValue;
+  }
+
+  
+  function expectedIdlAttributeResult(value) {
+    
+    return value << 0;
+  }
+
+  var element = aParameters.element;
+  var attr = aParameters.attribute;
+  var nonNegative = aParameters.nonNegative;
+
+  var defaultValue = aParameters.defaultValue !== undefined
+                      ? aParameters.defaultValue
+                      : nonNegative ? -1 : 0;
+
+  ok(attr in element, attr + " should be an IDL attribute of this element");
+  is(typeof element[attr], "number", attr + " IDL attribute should be a number");
+
+  
+  is(element[attr], defaultValue, "default value should be " + defaultValue);
+  ok(!element.hasAttribute(attr), attr + " shouldn't be present");
+
+  
+
+
+
+
+  var valuesToTest = [
+    
+    0, 1, 55555, 2147483647, +42,
+    
+    "0", "1", "777777", "2147483647", "+42",
+    
+    -0, -1, -3333, -2147483648,
+    
+    "-0", "-1", "-222", "-2147483647", "-2147483648",
+    
+    -2147483649, -3000000000, -4294967296, 2147483649, 4000000000, -4294967297,
+    
+    "     1111111", "  23456   ",
+    
+    "", " ", "+", "-", "foo", "+foo", "-foo", "+     foo", "-     foo", "+-2", "-+2", "++2", "--2", "hello1234", "1234hello",
+    "444 world 555", "why 567 what", "-3 nots", "2e5", "300e2", "42+-$", "+42foo", "-514not", "\vblah", "0x10FFFF", "-0xABCDEF",
+    
+    1.2345, 42.0, 3456789.1, -2.3456, -6789.12345, -2147483649.1234,
+    
+    "1.2345", "42.0", "3456789.1", "-2.3456", "-6789.12345", "-2147483649.1234",
+    
+    undefined, null, NaN, Infinity, -Infinity,
+  ];
+
+  valuesToTest.forEach(function(v) {
+    var intValue = stringToInteger(v, nonNegative, defaultValue);
+
+    element.setAttribute(attr, v);
+
+    is(element.getAttribute(attr), expectedGetAttributeResult(v), element.localName + ".setAttribute(" +
+      attr + ", " + v + "), " + element.localName + ".getAttribute(" + attr + ") ");
+
+    if (intValue == -2147483648 && element[attr] == defaultValue) {
+      
+      todo_is(element[attr], intValue, "Bug 586761: " + element.localName +
+        ".setAttribute(value, " + v + "), " + element.localName + "[" + attr + "] ");
+    } else if (testExponential(v)) {
+      
+      todo_is(element[attr], intValue, "Bug 673820: " + element.localName +
+        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
+    } else if (v == "why 567 what") {
+      
+      todo_is(element[attr], intValue, "Bug 679672: " + element.localName +
+        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
+    } else if (v === "-0" && nonNegative) {
+      
+      todo_is(element[attr], intValue, "Bug 688093: " + element.localName +
+        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
+    } else if (v == "+42foo") {
+      
+      todo_is(element[attr], intValue, "Bug: " + element.localName +
+        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
+    } else if (v == "0x10FFFF" && defaultValue != 0) {
+      
+      todo_is(element[attr], intValue, "Bug: " + element.localName +
+        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
+    } else if (v == "-0xABCDEF" && !nonNegative && defaultValue != 0) {
+      
+      todo_is(element[attr], intValue, "Bug: " + element.localName +
+        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
+    } else if ((v == "++2" || v == "+-2" || v == "--2" || v == "-+2") && element[attr] != defaultValue)  {
+      
+      todo_is(element[attr], intValue, "Bug: " + element.localName +
+        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
+    } else {
+      is(element[attr], intValue, element.localName +
+        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
+    }
+    element.removeAttribute(attr);
+
+    if (nonNegative && expectedIdlAttributeResult(v) < 0) {
+      try {
+        element[attr] = v;
+        ok(false, element.localName + "[" + attr + "] = " + v + " should throw NS_ERROR_DOM_INDEX_SIZE_ERR");
+      } catch(e) {
+        is(e.code, DOMException.INDEX_SIZE_ERR, element.localName + "[" + attr + "] = " + v +
+          " should throw NS_ERROR_DOM_INDEX_SIZE_ERR");
+      }
+    } else {
+      element[attr] = v;
+      if (expectedIdlAttributeResult(v) == -2147483648 && element[attr] == defaultValue) {
+        
+        todo_is(element[attr], expectedIdlAttributeResult(v), "Bug 586761: " + element.localName + "[" +
+          attr + "] = " + v + ", " + element.localName + "[" + attr + "] ");
+      } else {
+        is(element[attr], expectedIdlAttributeResult(v), element.localName + "[" + attr + "] = " + v +
+          ", " + element.localName + "[" + attr + "] ");
+        is(element.getAttribute(attr), expectedIdlAttributeResult(v), element.localName + "[" + attr +
+          "] = " + v + ", " + element.localName + ".getAttribute(" + attr + ") ");
+      }
+    }
+    element.removeAttribute(attr);
+  });
+
+  
+  is(element.getAttribute(attr), null,
+     "When not set, the content attribute should be null.");
+  is(element[attr], defaultValue,
+     "When not set, the IDL attribute should return default value.");
+}
