@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.stage;
 
 import java.io.IOException;
@@ -47,13 +14,12 @@ import org.mozilla.gecko.sync.CollectionKeys;
 import org.mozilla.gecko.sync.CryptoRecord;
 import org.mozilla.gecko.sync.ExtendedJSONObject;
 import org.mozilla.gecko.sync.GlobalSession;
+import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.NonObjectJSONException;
 import org.mozilla.gecko.sync.delegates.KeyUploadDelegate;
 import org.mozilla.gecko.sync.net.SyncStorageRecordRequest;
 import org.mozilla.gecko.sync.net.SyncStorageRequestDelegate;
 import org.mozilla.gecko.sync.net.SyncStorageResponse;
-
-import android.util.Log;
 
 public class EnsureKeysStage implements GlobalSyncStage, SyncStorageRequestDelegate, KeyUploadDelegate {
   private static final String LOG_TAG = "EnsureKeysStage";
@@ -90,7 +56,9 @@ public class EnsureKeysStage implements GlobalSyncStage, SyncStorageRequestDeleg
     CollectionKeys k = new CollectionKeys();
     try {
       ExtendedJSONObject body = response.jsonObjectBody();
-      Log.i(LOG_TAG, "Fetched keys: " + body.toJSONString());
+      if (Logger.LOG_PERSONAL_INFORMATION) {
+        Logger.pii(LOG_TAG, "Fetched keys: " + body.toJSONString());
+      }
       k.setKeyPairsFromWBO(CryptoRecord.fromJSONRecord(body), session.config.syncKeyBundle);
 
     } catch (IllegalStateException e) {
@@ -111,7 +79,7 @@ public class EnsureKeysStage implements GlobalSyncStage, SyncStorageRequestDeleg
       return;
     }
 
-    Log.i("rnewman", "Setting keys. Yay!");
+    Logger.trace(LOG_TAG, "Setting keys.");
     session.setCollectionKeys(k);
     session.advance();
   }
@@ -124,7 +92,7 @@ public class EnsureKeysStage implements GlobalSyncStage, SyncStorageRequestDeleg
     }
 
     int statusCode = response.getStatusCode();
-    Log.i(LOG_TAG, "Got " + statusCode + " fetching keys.");
+    Logger.debug(LOG_TAG, "Got " + statusCode + " fetching keys.");
     if (statusCode == 404) {
       
       CryptoRecord keysWBO;
@@ -158,7 +126,7 @@ public class EnsureKeysStage implements GlobalSyncStage, SyncStorageRequestDeleg
 
   @Override
   public void onKeysUploaded() {
-    Log.i(LOG_TAG, "New keys uploaded. Starting stage again to fetch them.");
+    Logger.debug(LOG_TAG, "New keys uploaded. Starting stage again to fetch them.");
     try {
       this.execute(this.session);
     } catch (NoSuchStageException e) {
@@ -168,8 +136,7 @@ public class EnsureKeysStage implements GlobalSyncStage, SyncStorageRequestDeleg
 
   @Override
   public void onKeyUploadFailed(Exception e) {
-    Log.i(LOG_TAG, "Key upload failed. Aborting sync.");
+    Logger.warn(LOG_TAG, "Key upload failed. Aborting sync.");
     session.abort(e, "Key upload failed.");
   }
-
 }
