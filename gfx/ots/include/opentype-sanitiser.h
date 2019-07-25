@@ -77,8 +77,9 @@ class OTSStream {
     }
 
     if (chksum_buffer_offset_ == 4) {
-      
-      chksum_ += ntohl(*reinterpret_cast<const uint32_t*>(chksum_buffer_));
+      uint32_t chksum;
+      std::memcpy(&chksum, chksum_buffer_, 4);
+      chksum_ += ntohl(chksum);
       chksum_buffer_offset_ = 0;
     }
 

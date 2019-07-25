@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <map>
 #include <vector>
 
@@ -31,6 +32,9 @@ struct OpenTypeTable {
 
 
 template<typename T> T Round4(T value) {
+  if (std::numeric_limits<T>::max() - value < 3) {
+    return value;
+  }
   return (value + 3) & ~3;
 }
 
@@ -280,7 +284,7 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
     return OTS_FAILURE();
   }
 
-  if (!file.ReadU16(&header->num_tables)) {
+  if (!file.ReadU16(&header->num_tables) || !header->num_tables) {
     return OTS_FAILURE();
   }
 
@@ -289,18 +293,52 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
     return OTS_FAILURE();
   }
 
-  
-  
-  
-  
-  
-  if (!file.Skip(6 * 4 + 2 * 2)) {
+  uint32_t reported_total_sfnt_size;
+  if (!file.ReadU32(&reported_total_sfnt_size)) {
     return OTS_FAILURE();
+  }
+
+  
+  
+  if (!file.Skip(2 * 2)) {
+    return OTS_FAILURE();
+  }
+
+  
+  uint32_t meta_offset;
+  uint32_t meta_length;
+  uint32_t meta_length_orig;
+  if (!file.ReadU32(&meta_offset) ||
+      !file.ReadU32(&meta_length) ||
+      !file.ReadU32(&meta_length_orig)) {
+    return OTS_FAILURE();
+  }
+  if (meta_offset) {
+    if (meta_offset >= length || length - meta_offset < meta_length) {
+      return OTS_FAILURE();
+    }
+  }
+
+  
+  uint32_t priv_offset;
+  uint32_t priv_length;
+  if (!file.ReadU32(&priv_offset) ||
+      !file.ReadU32(&priv_length)) {
+    return OTS_FAILURE();
+  }
+  if (priv_offset) {
+    if (priv_offset >= length || length - priv_offset < priv_length) {
+      return OTS_FAILURE();
+    }
   }
 
   
   std::vector<OpenTypeTable> tables;
 
+  uint32_t first_index = 0;
+  uint32_t last_index = 0;
+  
+  uint64_t total_sfnt_size = 12 + 16 * header->num_tables;
   for (unsigned i = 0; i < header->num_tables; ++i) {
     OpenTypeTable table;
     if (!file.ReadTag(&table.tag) ||
@@ -311,7 +349,60 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
       return OTS_FAILURE();
     }
 
+    total_sfnt_size += Round4(table.uncompressed_length);
+    if (total_sfnt_size > std::numeric_limits<uint32_t>::max()) {
+      return OTS_FAILURE();
+    }
     tables.push_back(table);
+    if (i == 0 || tables[first_index].offset > table.offset)
+      first_index = i;
+    if (i == 0 || tables[last_index].offset < table.offset)
+      last_index = i;
+  }
+
+  if (reported_total_sfnt_size != total_sfnt_size) {
+    return OTS_FAILURE();
+  }
+
+  
+  if (tables[first_index].offset != Round4(file.offset())) {
+    return OTS_FAILURE();
+  }
+
+  if (tables[last_index].offset >= length ||
+      length - tables[last_index].offset < tables[last_index].length) {
+    return OTS_FAILURE();
+  }
+  
+  
+  uint64_t block_end = Round4(
+      static_cast<uint64_t>(tables[last_index].offset) +
+      static_cast<uint64_t>(tables[last_index].length));
+  if (block_end > std::numeric_limits<uint32_t>::max()) {
+    return OTS_FAILURE();
+  }
+  if (meta_offset) {
+    if (block_end != meta_offset) {
+      return OTS_FAILURE();
+    }
+    block_end = Round4(static_cast<uint64_t>(meta_offset) +
+                       static_cast<uint64_t>(meta_length));
+    if (block_end > std::numeric_limits<uint32_t>::max()) {
+      return OTS_FAILURE();
+    }
+  }
+  if (priv_offset) {
+    if (block_end != priv_offset) {
+      return OTS_FAILURE();
+    }
+    block_end = Round4(static_cast<uint64_t>(priv_offset) +
+                       static_cast<uint64_t>(priv_length));
+    if (block_end > std::numeric_limits<uint32_t>::max()) {
+      return OTS_FAILURE();
+    }
+  }
+  if (block_end != Round4(length)) {
+    return OTS_FAILURE();
   }
 
   return ProcessGeneric(header, output, data, length, tables, file);
@@ -378,11 +469,11 @@ bool ProcessGeneric(ots::OpenTypeFile *header, ots::OTSStream *output,
     }
     
     
-    const uint32_t end_byte = Round4(tables[i].offset + tables[i].length);
+    const uint32_t end_byte = tables[i].offset + tables[i].length;
     
     
     
-    if (!end_byte || end_byte > Round4(length)) {
+    if (!end_byte || end_byte > length) {
       return OTS_FAILURE();
     }
   }
