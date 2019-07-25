@@ -77,7 +77,7 @@ LIRGraph::noteNeedsSafepoint(LInstruction *ins)
 {
     
     JS_ASSERT_IF(safepoints_.length(), safepoints_[safepoints_.length() - 1]->id() < ins->id());
-    if (ins->isCall() && !nonCallSafepoints_.append(ins))
+    if (!ins->isCall() && !nonCallSafepoints_.append(ins))
         return false;
     return safepoints_.append(ins);
 }
