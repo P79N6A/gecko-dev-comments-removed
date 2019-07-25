@@ -560,7 +560,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
         
         
         ensureSpace(20);
-        int initFlushCount = flushCount();
+        DebugOnly<int> initFlushCount = flushCount();
 #endif
         
         
