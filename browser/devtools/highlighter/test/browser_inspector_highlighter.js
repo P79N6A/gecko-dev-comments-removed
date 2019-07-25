@@ -68,7 +68,7 @@ function runSelectionTests(subject)
   is(subject.wrappedJSObject, InspectorUI,
      "InspectorUI accessible in the observer");
 
-  InspectorUI.highlighter.veilContainer.setAttribute("disable-transitions", "true");
+  InspectorUI.highlighter.outline.setAttribute("disable-transitions", "true");
 
   executeSoon(function() {
     InspectorUI.highlighter.addListener("nodeselected", performTestComparisons);
@@ -105,10 +105,10 @@ function finishTestComparisons()
   let divHeight = divDims.height;
 
   
-  let veilBoxDims = 
-    InspectorUI.highlighter.veilTransparentBox.getBoundingClientRect();
-  let veilBoxWidth = veilBoxDims.width;
-  let veilBoxHeight = veilBoxDims.height;
+  let outlineDims = 
+    InspectorUI.highlighter.outline.getBoundingClientRect();
+  let outlineWidth = outlineDims.width;
+  let outlineHeight = outlineDims.height;
 
   
   
@@ -119,7 +119,10 @@ function finishTestComparisons()
                              .QueryInterface(Ci.nsIMarkupDocumentViewer);
   contentViewer.fullZoom = 2;
 
-  executeSoon(function() {
+  
+  
+
+  window.setTimeout(function() {
     
     let zoom = InspectorUI.highlighter.zoom;
     is(zoom, 2, "zoom is 2?");
@@ -130,9 +133,10 @@ function finishTestComparisons()
     let divHeight = divDims.height * zoom;
 
     
-    let veilBoxDims = InspectorUI.highlighter.veilTransparentBox.getBoundingClientRect();
-    let veilBoxWidth = veilBoxDims.width;
-    let veilBoxHeight = veilBoxDims.height;
+    let outlineDims = 
+      InspectorUI.highlighter.outline.getBoundingClientRect();
+    let outlineWidth = outlineDims.width;
+    let outlineHeight = outlineDims.height;
 
     
     
@@ -140,7 +144,7 @@ function finishTestComparisons()
 
     doc = h1 = div = null;
     executeSoon(finishUp);
-  });
+  }, 500);
 }
 
 function finishUp() {
