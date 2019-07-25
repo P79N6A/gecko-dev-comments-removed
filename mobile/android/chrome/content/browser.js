@@ -1991,7 +1991,7 @@ var UserAgent = {
         }
 
         
-        if (tab.desktopMode && (channel.loadFlags & Ci.nsIChannel.LOAD_DOCUMENT_URI))
+        if (tab.desktopMode)
           channel.setRequestHeader("User-Agent", this.DESKTOP_UA, false);
 
         break;
