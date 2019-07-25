@@ -297,6 +297,7 @@ public:
         LOADING_FAILED       
     };
     LoadingState             mLoadingState;
+    bool                     mUnsupportedFormat;
 
     nsTArray<gfxFontFaceSrc> mSrcList;
     PRUint32                 mSrcIndex; 
