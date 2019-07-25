@@ -84,15 +84,25 @@ var gSecurityPane = {
 
 
 
+
   readSavePasswords: function ()
   {
     var pref = document.getElementById("signon.rememberSignons");
     var excepts = document.getElementById("passwordExceptions");
 
-    excepts.disabled = !pref.value;
+    const Cc = Components.classes, Ci = Components.interfaces;
+    var pbs = Cc["@mozilla.org/privatebrowsing;1"].
+              getService(Ci.nsIPrivateBrowsingService);
 
-    
-    return undefined;
+    if (pbs.autoStarted) {
+      document.getElementById("savePasswords").disabled = true;
+      excepts.disabled = true;
+      return false;
+    } else {
+      excepts.disabled = !pref.value;
+      
+      return undefined;
+    }
   },
 
   
