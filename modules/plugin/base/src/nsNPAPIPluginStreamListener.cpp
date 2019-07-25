@@ -168,8 +168,9 @@ mResponseHeaderBuf(nsnull)
 nsNPAPIPluginStreamListener::~nsNPAPIPluginStreamListener()
 {
   
-  mInst->mStreamListeners.RemoveElement(this);
-  
+  nsTArray<nsNPAPIPluginStreamListener*> *pStreamListeners = mInst->PStreamListeners();
+  pStreamListeners->RemoveElement(this);
+
   
   
   
@@ -416,9 +417,10 @@ nsNPAPIPluginStreamListener::PluginInitJSLoadInProgress()
 {
   if (!mInst)
     return PR_FALSE;
-  
-  for (unsigned int i = 0; i < mInst->mStreamListeners.Length(); i++) {
-    if (mInst->mStreamListeners[i]->mIsPluginInitJSStream) {
+
+  nsTArray<nsNPAPIPluginStreamListener*> *pStreamListeners = mInst->PStreamListeners();
+  for (unsigned int i = 0; i < pStreamListeners->Length(); i++) {
+    if (pStreamListeners->ElementAt(i)->mIsPluginInitJSStream) {
       return PR_TRUE;
     }
   }

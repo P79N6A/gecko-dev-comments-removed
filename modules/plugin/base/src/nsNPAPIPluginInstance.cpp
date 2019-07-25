@@ -176,10 +176,10 @@ NS_IMETHODIMP nsNPAPIPluginInstance::Stop()
   OnPluginDestroy(&mNPP);
 
   
-  for (unsigned int i = 0; i < mStreamListeners.Length(); i++) {
-    mStreamListeners[i]->CleanUpStream(NPRES_USER_BREAK);
+  for (unsigned int i = 0; i < mPStreamListeners.Length(); i++) {
+    mPStreamListeners[i]->CleanUpStream(NPRES_USER_BREAK);
   }
-  mStreamListeners.Clear();
+  mPStreamListeners.Clear();
 
   NPError error = NPERR_GENERIC_ERROR;
   if (mCallbacks->destroy) {
@@ -264,6 +264,18 @@ nsNPAPIPluginInstance::GetMode(PRInt32 *result)
     return mOwner->GetMode(result);
   else
     return NS_ERROR_FAILURE;
+}
+
+nsTArray<nsNPAPIPluginStreamListener*>*
+nsNPAPIPluginInstance::PStreamListeners()
+{
+  return &mPStreamListeners;
+}
+
+nsTArray<nsPluginStreamListenerPeer*>*
+nsNPAPIPluginInstance::BStreamListeners()
+{
+  return &mBStreamListeners;
 }
 
 nsresult
@@ -456,7 +468,7 @@ nsresult nsNPAPIPluginInstance::NewNotifyStream(nsIPluginStreamListener** listen
   nsNPAPIPluginStreamListener* stream = new nsNPAPIPluginStreamListener(this, notifyData, aURL);
   NS_ENSURE_TRUE(stream, NS_ERROR_OUT_OF_MEMORY);
 
-  mStreamListeners.AppendElement(stream);
+  mPStreamListeners.AppendElement(stream);
   stream->SetCallNotify(aCallNotify); 
 
   return stream->QueryInterface(kIPluginStreamListenerIID, (void**)listener);

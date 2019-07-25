@@ -50,7 +50,8 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/PluginLibrary.h"
 
-class nsNPAPIPluginStreamListener;
+class nsPluginStreamListenerPeer; 
+class nsNPAPIPluginStreamListener; 
 class nsIPluginInstanceOwner;
 
 class nsNPAPITimer
@@ -126,6 +127,12 @@ public:
   void          UnscheduleTimer(uint32_t timerID);
   NPError       PopUpContextMenu(NPMenu* menu);
   NPBool        ConvertPoint(double sourceX, double sourceY, NPCoordinateSpace sourceSpace, double *destX, double *destY, NPCoordinateSpace destSpace);
+
+  
+  nsTArray<nsNPAPIPluginStreamListener*> *PStreamListeners();
+  
+  nsTArray<nsPluginStreamListenerPeer*> *BStreamListeners();
+
 protected:
   nsresult InitializePlugin();
 
@@ -168,9 +175,14 @@ public:
   
   PRPackedBool mInPluginInitCall;
   PluginLibrary* mLibrary;
-  nsTArray<nsNPAPIPluginStreamListener*> mStreamListeners;
 
 private:
+  
+  nsTArray<nsNPAPIPluginStreamListener*> mPStreamListeners;
+  
+  
+  nsTArray<nsPluginStreamListenerPeer*> mBStreamListeners;
+
   nsTArray<PopupControlState> mPopupStates;
 
   char* mMIMEType;

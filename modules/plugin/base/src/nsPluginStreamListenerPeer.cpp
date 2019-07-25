@@ -279,6 +279,9 @@ nsPluginStreamListenerPeer::~nsPluginStreamListenerPeer()
     mFileCacheOutputStream = nsnull;
   
   delete mDataForwardToRequest;
+
+  if (mPluginInstance)
+    mPluginInstance->BStreamListeners()->RemoveElement(this);
 }
 
 
@@ -377,16 +380,16 @@ nsPluginStreamListenerPeer::SetupPluginCacheFile(nsIChannel* channel)
   nsresult rv = NS_OK;
   
   PRBool useExistingCacheFile = PR_FALSE;
-  
   nsRefPtr<nsPluginHost> pluginHost = dont_AddRef(nsPluginHost::GetInst());
+
+  
   nsTArray< nsAutoPtr<nsPluginInstanceTag> > *instanceTags = pluginHost->InstanceTagArray();
   for (PRUint32 i = 0; i < instanceTags->Length(); i++) {
     nsPluginInstanceTag *instanceTag = (*instanceTags)[i];
     
-    
-    for (PRInt32 i = instanceTag->mStreams.Count() - 1; i >= 0; --i) {
-      nsPluginStreamListenerPeer *lp =
-      static_cast<nsPluginStreamListenerPeer*>(instanceTag->mStreams[i]);
+    nsTArray<nsPluginStreamListenerPeer*> *bStreamListeners = instanceTag->mInstance->BStreamListeners();
+    for (PRInt32 i = bStreamListeners->Length() - 1; i >= 0; --i) {
+      nsPluginStreamListenerPeer *lp = bStreamListeners->ElementAt(i);
       if (lp && lp->mLocalCachedFileHolder) {
         useExistingCacheFile = lp->UseExistingPluginCacheFile(this);
         if (useExistingCacheFile) {
@@ -398,6 +401,7 @@ nsPluginStreamListenerPeer::SetupPluginCacheFile(nsIChannel* channel)
         break;
     }
   }
+
   
   if (!useExistingCacheFile) {
     nsCOMPtr<nsIFile> pluginTmp;
@@ -438,17 +442,12 @@ nsPluginStreamListenerPeer::SetupPluginCacheFile(nsIChannel* channel)
       return rv;
     
     
-    
     mLocalCachedFileHolder = new CachedFileHolder(pluginTmp);
   }
+
   
-  
-  
-  
-  nsPluginInstanceTag *instanceTag = pluginHost->FindInstanceTag(mPluginInstance);
-  if (instanceTag)
-    instanceTag->mStreams.AppendObject(this);
-  
+  mPluginInstance->BStreamListeners()->AppendElement(this);
+
   return rv;
 }
 
@@ -829,7 +828,7 @@ nsPluginStreamListenerPeer::UseExistingPluginCacheFile(nsPluginStreamListenerPee
   
   NS_ENSURE_ARG_POINTER(psi);
   
-  if ( psi->mLength == mLength &&
+  if (psi->mLength == mLength &&
       psi->mModified == mModified &&
       mStreamComplete &&
       mURLSpec.Equals(psi->mURLSpec))
