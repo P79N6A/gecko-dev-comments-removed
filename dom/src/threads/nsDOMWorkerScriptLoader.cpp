@@ -43,7 +43,6 @@
 #include "nsIContentPolicy.h"
 #include "nsIHttpChannel.h"
 #include "nsIIOService.h"
-#include "nsIProtocolHandler.h"
 #include "nsIRequest.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIStreamLoader.h"
@@ -91,7 +90,7 @@ NS_IMPL_ISUPPORTS_INHERITED2(nsDOMWorkerScriptLoader, nsDOMWorkerFeature,
 nsresult
 nsDOMWorkerScriptLoader::LoadScripts(JSContext* aCx,
                                      const nsTArray<nsString>& aURLs,
-                                     PRBool aExecute)
+                                     PRBool aForWorker)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(aCx, "Null context!");
@@ -102,6 +101,8 @@ nsDOMWorkerScriptLoader::LoadScripts(JSContext* aCx,
   if (mCanceled) {
     return NS_ERROR_ABORT;
   }
+
+  mForWorker = aForWorker;
 
   mScriptCount = aURLs.Length();
   if (!mScriptCount) {
@@ -146,26 +147,23 @@ nsDOMWorkerScriptLoader::LoadScripts(JSContext* aCx,
     return rv;
   }
 
-  if (aExecute) {
-    rv = ExecuteScripts(aCx);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
+  rv = ExecuteScripts(aCx);
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   return NS_OK;
 }
 
 nsresult
-nsDOMWorkerScriptLoader::LoadWorkerScript(JSContext* aCx,
-                                          const nsString& aURL)
+nsDOMWorkerScriptLoader::LoadScript(JSContext* aCx,
+                                    const nsString& aURL,
+                                    PRBool aForWorker)
 {
-  mForWorker = PR_TRUE;
-
   nsAutoTArray<nsString, 1> url;
   url.AppendElement(aURL);
 
-  return LoadScripts(aCx, url, PR_FALSE);
+  return LoadScripts(aCx, url, aForWorker);
 }
 
 nsresult
@@ -410,56 +408,45 @@ nsDOMWorkerScriptLoader::RunInternal()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
+  
+  nsCOMPtr<nsIDocument> parentDoc = mWorker->Pool()->ParentDocument();
+  if (!parentDoc) {
+    
+    return NS_ERROR_ABORT;
+  }
+
+  nsIPrincipal* principal;
+  nsIURI* baseURI;
+
   if (mForWorker) {
     NS_ASSERTION(mScriptCount == 1, "Bad state!");
-  }
 
-  nsRefPtr<nsDOMWorker> parentWorker = mWorker->GetParent();
-
-  
-  nsIPrincipal* principal = mWorker->GetPrincipal();
-  if (!principal) {
-    if (!parentWorker) {
-      NS_ERROR("Must have a principal if this is not a subworker!");
-    }
-    principal = parentWorker->GetPrincipal();
-  }
-  NS_ASSERTION(principal, "This should never be null here!");
-
-  
-  nsCOMPtr<nsIURI> baseURI;
-  if (mForWorker) {
+    nsRefPtr<nsDOMWorker> parentWorker = mWorker->GetParent();
     if (parentWorker) {
-      baseURI = parentWorker->GetBaseURI();
-      NS_ASSERTION(baseURI, "Should have been set already!");
+      principal = parentWorker->GetPrincipal();
+      NS_ENSURE_STATE(principal);
+
+      baseURI = parentWorker->GetURI();
+      NS_ENSURE_STATE(baseURI);
     }
     else {
-      
-      baseURI = mWorker->GetBaseURI();
+      principal = parentDoc->NodePrincipal();
+      NS_ENSURE_STATE(principal);
 
-      
-      mWorker->ClearBaseURI();
+      baseURI = parentDoc->GetDocBaseURI();
     }
-    NS_ASSERTION(!mWorker->GetBaseURI(), "Should not be set here!");
   }
   else {
-    baseURI = mWorker->GetBaseURI();
-    NS_ASSERTION(baseURI, "Should have been set already!");
-  }
+    principal = mWorker->GetPrincipal();
+    baseURI = mWorker->GetURI();
 
-  nsCOMPtr<nsIDocument> parentDoc = mWorker->Pool()->ParentDocument();
+    NS_ASSERTION(principal && baseURI, "Should have been set already!");
+  }
 
   
   
-  nsCOMPtr<nsILoadGroup> loadGroup;
-  if (parentDoc) {
-    loadGroup = parentDoc->GetDocumentLoadGroup();
-  }
-
+  nsCOMPtr<nsILoadGroup> loadGroup(parentDoc->GetDocumentLoadGroup());
   nsCOMPtr<nsIIOService> ios(do_GetIOService());
-
-  nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
-  NS_ASSERTION(secMan, "This should never be null!");
 
   for (PRUint32 index = 0; index < mScriptCount; index++) {
     ScriptLoadInfo& loadInfo = mLoadInfos[index];
@@ -473,30 +460,39 @@ nsDOMWorkerScriptLoader::RunInternal()
       return rv;
     }
 
-    
-    if (parentDoc) {
-      PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
-      rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_SCRIPT, uri,
-                                     principal, parentDoc,
-                                     NS_LITERAL_CSTRING("text/javascript"),
-                                     nsnull, &shouldLoad,
-                                     nsContentUtils::GetContentPolicy(),
-                                     secMan);
-      if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
-        if (NS_FAILED(rv) || shouldLoad != nsIContentPolicy::REJECT_TYPE) {
-          return (rv = NS_ERROR_CONTENT_BLOCKED);
-        }
-        return (rv = NS_ERROR_CONTENT_BLOCKED_SHOW_ALT);
+    nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
+    NS_ENSURE_TRUE(secMan, NS_ERROR_FAILURE);
+
+    PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
+    rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_SCRIPT, uri,
+                                   principal, parentDoc,
+                                   NS_LITERAL_CSTRING("text/javascript"),
+                                   nsnull, &shouldLoad,
+                                   nsContentUtils::GetContentPolicy(), secMan);
+    if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
+      if (NS_FAILED(rv) || shouldLoad != nsIContentPolicy::REJECT_TYPE) {
+        return NS_ERROR_CONTENT_BLOCKED;
       }
+      return NS_ERROR_CONTENT_BLOCKED_SHOW_ALT;
     }
 
     
     
     
-    rv = mForWorker ?
-         principal->CheckMayLoad(uri, PR_FALSE):
-         secMan->CheckLoadURIWithPrincipal(principal, uri, 0);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (mForWorker) {
+      rv = principal->CheckMayLoad(uri, PR_FALSE);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      mWorker->SetPrincipal(principal);
+
+      rv = mWorker->SetURI(uri);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    else {
+      rv = secMan->CheckLoadURIWithPrincipal(principal, uri, 0);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
 
     
     
@@ -514,26 +510,24 @@ nsDOMWorkerScriptLoader::RunInternal()
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    nsCOMPtr<nsIContentSecurityPolicy> csp;
-    rv = principal->GetCsp(getter_AddRefs(csp));
-    NS_ENSURE_SUCCESS(rv, rv);
-
     nsCOMPtr<nsIChannelPolicy> channelPolicy;
+    nsCOMPtr<nsIContentSecurityPolicy> csp;
+    rv = parentDoc->NodePrincipal()->GetCsp(getter_AddRefs(csp));
+    NS_ENSURE_SUCCESS(rv, rv);
     if (csp) {
-      channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1", &rv);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = channelPolicy->SetContentSecurityPolicy(csp);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = channelPolicy->SetLoadType(nsIContentPolicy::TYPE_SCRIPT);
-      NS_ENSURE_SUCCESS(rv, rv);
+        channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
+        channelPolicy->SetContentSecurityPolicy(csp);
+        channelPolicy->SetLoadType(nsIContentPolicy::TYPE_SCRIPT);
     }
 
     rv = NS_NewChannel(getter_AddRefs(loadInfo.channel),
-                       uri, ios, loadGroup, nsnull,
-                       nsIRequest::LOAD_NORMAL | nsIChannel::LOAD_CLASSIFY_URI,
-                       channelPolicy);
+                       uri,
+                       ios,
+                       loadGroup,
+                       nsnull,                            
+                       nsIRequest::LOAD_NORMAL |
+                       nsIChannel::LOAD_CLASSIFY_URI,     
+                       channelPolicy);                    
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = loadInfo.channel->AsyncOpen(loader, indexSupports);
@@ -572,11 +566,34 @@ nsDOMWorkerScriptLoader::OnStreamCompleteInternal(nsIStreamLoader* aLoader,
   NS_ASSERTION(!loadInfo.done, "Got complete on the same load twice!");
   loadInfo.done = PR_TRUE;
 
+#ifdef DEBUG
   
-  nsresult& rv = loadInfo.result;
+  nsCOMPtr<nsIRequest> requestDebug;
+  nsresult rvDebug = aLoader->GetRequest(getter_AddRefs(requestDebug));
 
-  if (NS_FAILED(aStatus)) {
-    return rv = aStatus;
+  
+  
+  NS_ASSERTION(NS_SUCCEEDED(rvDebug) || mCanceled, "GetRequest failed!");
+
+  if (NS_SUCCEEDED(rvDebug)) {
+    nsCOMPtr<nsIChannel> channel(do_QueryInterface(requestDebug));
+    NS_ASSERTION(channel, "QI failed!");
+
+    nsCOMPtr<nsISupports> thisChannel(do_QueryInterface(channel));
+    NS_ASSERTION(thisChannel, "QI failed!");
+
+    nsCOMPtr<nsISupports> ourChannel(do_QueryInterface(loadInfo.channel));
+    NS_ASSERTION(ourChannel, "QI failed!");
+
+    NS_ASSERTION(thisChannel == ourChannel, "Wrong channel!");
+  }
+#endif
+
+  
+  nsresult& rv = loadInfo.result = aStatus;
+
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   if (!(aStringLen && aString)) {
@@ -589,7 +606,7 @@ nsDOMWorkerScriptLoader::OnStreamCompleteInternal(nsIStreamLoader* aLoader,
   rv = aLoader->GetRequest(getter_AddRefs(request));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(request));
   if (httpChannel) {
     PRBool requestSucceeded;
     rv = httpChannel->GetRequestSucceeded(&requestSucceeded);
@@ -600,8 +617,12 @@ nsDOMWorkerScriptLoader::OnStreamCompleteInternal(nsIStreamLoader* aLoader,
     }
   }
 
-  
   nsIDocument* parentDoc = mWorker->Pool()->ParentDocument();
+  if (!parentDoc) {
+    NS_ASSERTION(mWorker->IsCanceled(),
+                 "Null parent document when we're not canceled?!");
+    return rv = NS_ERROR_FAILURE;
+  }
 
   
   
@@ -617,8 +638,7 @@ nsDOMWorkerScriptLoader::OnStreamCompleteInternal(nsIStreamLoader* aLoader,
   }
 
   nsCString filename;
-  rv = loadInfo.finalURI->GetSpec(filename);
-  NS_ENSURE_SUCCESS(rv, rv);
+  loadInfo.finalURI->GetSpec(filename);
 
   if (filename.IsEmpty()) {
     filename.Assign(NS_LossyConvertUTF16toASCII(loadInfo.url));
@@ -627,32 +647,6 @@ nsDOMWorkerScriptLoader::OnStreamCompleteInternal(nsIStreamLoader* aLoader,
     
     
     loadInfo.url.Assign(NS_ConvertUTF8toUTF16(filename));
-  }
-
-  
-  
-  if (mForWorker) {
-    nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
-    NS_ASSERTION(channel, "This should never fail!");
-
-    
-    
-    if (!nsContentUtils::IsSystemPrincipal(mWorker->GetPrincipal())) {
-      nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-      NS_ASSERTION(ssm, "Should never be null!");
-
-      nsCOMPtr<nsIPrincipal> principal;
-      rv = ssm->GetChannelPrincipal(channel, getter_AddRefs(principal));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      mWorker->SetPrincipal(principal);
-    }
-
-    nsCOMPtr<nsIURI> finalURI;
-    rv = NS_GetFinalChannelURI(channel, getter_AddRefs(finalURI));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mWorker->SetBaseURI(finalURI);
   }
 
   nsRefPtr<ScriptCompiler> compiler =

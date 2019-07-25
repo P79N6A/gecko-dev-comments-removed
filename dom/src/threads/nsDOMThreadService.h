@@ -49,7 +49,6 @@
 #include "jsapi.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
-#include "nsDataHashtable.h"
 #include "nsRefPtrHashtable.h"
 #include "nsStringGlue.h"
 #include "nsTPtrArray.h"
@@ -69,13 +68,6 @@ class nsIScriptGlobalObject;
 class nsIThreadJSContextStack;
 class nsIXPConnect;
 class nsIXPCSecurityManager;
-
-enum ThreadsafeStatus
-{
-  Threadsafe,
-  NotThreadsafe,
-  Unknown
-};
 
 class nsDOMThreadService : public nsIEventTarget,
                            public nsIObserver,
@@ -121,11 +113,6 @@ public:
   void ResumeWorkersForGlobal(nsIScriptGlobalObject* aGlobalObject);
 
   nsresult ChangeThreadPoolMaxThreads(PRInt16 aDelta);
-
-  void NoteThreadsafeContractId(const nsACString& aContractId,
-                                PRBool aIsThreadsafe);
-
-  ThreadsafeStatus GetContractIdThreadsafeStatus(const nsACString& aContractId);
 
 private:
   nsDOMThreadService();
@@ -197,9 +184,6 @@ private:
   
   
   nsTArray<nsDOMWorkerRunnable*> mSuspendedWorkers;
-
-  
-  nsDataHashtable<nsCStringHashKey, PRBool> mThreadsafeContractIDs;
 
   nsString mAppName;
   nsString mAppVersion;
