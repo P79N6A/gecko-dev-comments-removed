@@ -37,6 +37,7 @@
 
 let EXPORTED_SYMBOLS = [((this[key] = val), key) for ([key, val] in Iterator({
 
+WEAVE_CHANNEL:                         "@xpi_type@",
 WEAVE_VERSION:                         "@weave_version@",
 WEAVE_ID:                              "@weave_id@",
 
@@ -46,11 +47,12 @@ WEAVE_ID:                              "@weave_id@",
 STORAGE_VERSION:                       @storage_version@,
 
 DEFAULT_SERVER:                        "@server_url@",
+UPDATED_URL:                           "https:
 
 PREFS_BRANCH:                          "extensions.weave.",
 
 
-PWDMGR_HOST:                           "chrome:
+PWDMGR_HOST:                           "chrome://weave",
 
 
 SINGLE_USER_SYNC:                      24 * 60 * 60 * 1000, 
