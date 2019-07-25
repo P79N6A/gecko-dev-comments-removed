@@ -1624,32 +1624,11 @@ RemapWrappers(JSContext *cx, JSObject *orig, JSObject *target)
         }
     }
 
-    for (Value *begin = toTransplant.begin(), *end = toTransplant.end(); begin != end; ++begin) {
-        JSObject *wobj = &begin->toObject();
-        JSCompartment *wcompartment = wobj->compartment();
-        WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
-
-        
-        
-        JS_ASSERT(pmap.lookup(origv));
-        pmap.remove(origv);
-        NukeCrossCompartmentWrapper(wobj);
-
-        
-        
-        AutoCompartment ac(cx, wobj);
-        JSObject *tobj = target;
-        if (!ac.enter() || !wcompartment->wrap(cx, &tobj))
+    for (Value *begin = toTransplant.begin(), *end = toTransplant.end();
+         begin != end; ++begin)
+    {
+        if (!RemapWrapper(cx, &begin->toObject(), target))
             return false;
-
-        
-        
-        
-        
-        JS_ASSERT(tobj != wobj);
-        if (!wobj->swap(cx, tobj))
-            return false;
-        pmap.put(targetv, ObjectValue(*wobj));
     }
 
     return true;
