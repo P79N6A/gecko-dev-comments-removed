@@ -1032,6 +1032,8 @@ nsTableRowGroupFrame::UndoContinuedRow(nsPresContext*   aPresContext,
   
   overflows->DestroyFrame(aRow);
 
+  if (overflows->IsEmpty())
+    return;
   
   mFrames.InsertFrames(nsnull, rowBefore, *overflows);
 }
