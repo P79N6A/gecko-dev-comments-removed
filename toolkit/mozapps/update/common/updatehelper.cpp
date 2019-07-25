@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include "shlobj.h"
 #include "updatehelper.h"
+#include "pathhash.h"
 
 
 #include <shlwapi.h>
@@ -337,7 +338,7 @@ StartServiceCommand(int argc, LPCWSTR* argv)
 
 
 DWORD
-LaunchServiceSoftwareUpdateCommand(DWORD argc, LPCWSTR* argv)
+LaunchServiceSoftwareUpdateCommand(int argc, LPCWSTR* argv)
 {
   
   
@@ -630,4 +631,24 @@ WaitForProcessExit(LPCWSTR filename, DWORD maxSeconds)
   }
 
   return applicationRunningError;
+}
+
+
+
+
+
+
+BOOL
+DoesFallbackKeyExist()
+{
+  HKEY testOnlyFallbackKey;
+  if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, 
+                    TEST_ONLY_FALLBACK_KEY_PATH, 0,
+                    KEY_READ | KEY_WOW64_64KEY, 
+                    &testOnlyFallbackKey) != ERROR_SUCCESS) {
+    return FALSE;
+  }
+
+  RegCloseKey(testOnlyFallbackKey);
+  return TRUE;
 }

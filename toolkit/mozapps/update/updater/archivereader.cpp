@@ -144,9 +144,16 @@ ArchiveReader::VerifySignature()
   }
 
 #ifdef XP_WIN
-  int rv = VerifyLoadedCert(mArchive, IDR_PRIMARY_CERT, TYPE_CERT);
-  if (rv != OK) {
-    rv = VerifyLoadedCert(mArchive, IDR_BACKUP_CERT, TYPE_CERT);
+  
+  
+  int rv;
+  if (DoesFallbackKeyExist()) {
+    rv = VerifyLoadedCert(mArchive, IDR_XPCSHELL_CERT, TYPE_CERT);
+  } else {
+    rv = VerifyLoadedCert(mArchive, IDR_PRIMARY_CERT, TYPE_CERT);
+    if (rv != OK) {
+      rv = VerifyLoadedCert(mArchive, IDR_BACKUP_CERT, TYPE_CERT);
+    }
   }
   return rv;
 #else

@@ -1674,15 +1674,7 @@ int NS_main(int argc, NS_tchar **argv)
   
   
   
-  HKEY testOnlyFallbackKey;
-  if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, 
-                    TEST_ONLY_FALLBACK_KEY_PATH, 0,
-                    KEY_READ | KEY_WOW64_64KEY, 
-                    &testOnlyFallbackKey) == ERROR_SUCCESS) {
-    testOnlyFallbackKeyExists = true;
-    RegCloseKey(testOnlyFallbackKey);
-  }
-
+  testOnlyFallbackKeyExists = DoesFallbackKeyExist();
 #endif
 #endif
 
