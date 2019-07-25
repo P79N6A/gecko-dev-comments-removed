@@ -4491,7 +4491,7 @@ JSObject::growSlots(JSContext *cx, size_t newcap)
 
 
 
-    JS_ASSERT_IF(isCall(), maybeCallObjStackFrame() != NULL);
+    JS_ASSERT_IF(isCall(), asCall().maybeStackFrame() != NULL);
 
     
 

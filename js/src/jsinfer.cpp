@@ -5055,8 +5055,8 @@ TypeScript::SetScope(JSContext *cx, JSScript *script, JSObject *scope)
 
 
 
-    JS_ASSERT_IF(scope && scope->isCall() && !scope->callIsForEval(),
-                 scope->getCallObjCalleeFunction() != fun);
+    JS_ASSERT_IF(scope && scope->isCall() && !scope->asCall().isForEval(),
+                 scope->asCall().getCalleeFunction() != fun);
 
     if (!script->compileAndGo) {
         script->types->global = NULL;
@@ -5089,11 +5089,13 @@ TypeScript::SetScope(JSContext *cx, JSScript *script, JSObject *scope)
     while (!scope->isCall())
         scope = scope->getParent();
 
-    
-    JS_ASSERT(!scope->callIsForEval());
+    CallObject &call = scope->asCall();
 
     
-    JSFunction *parentFun = scope->getCallObjCalleeFunction();
+    JS_ASSERT(!call.isForEval());
+
+    
+    JSFunction *parentFun = call.getCalleeFunction();
     if (!parentFun || !parentFun->isHeavyweight())
         return true;
     JSScript *parent = parentFun->script();
@@ -5121,8 +5123,8 @@ TypeScript::SetScope(JSContext *cx, JSScript *script, JSObject *scope)
         if (!SetScope(cx, parent, scope->getParent()))
             return false;
         parent->nesting()->activeCall = scope;
-        parent->nesting()->argArray = scope->callObjArgArray();
-        parent->nesting()->varArray = scope->callObjVarArray();
+        parent->nesting()->argArray = call.argArray();
+        parent->nesting()->varArray = call.varArray();
     }
 
     JS_ASSERT(!script->types->nesting);
@@ -5212,7 +5214,7 @@ CheckNestingParent(JSContext *cx, JSObject *scope, JSScript *script)
     JSScript *parent = script->nesting()->parent;
     JS_ASSERT(parent);
 
-    while (!scope->isCall() || scope->getCallObjCalleeFunction()->script() != parent)
+    while (!scope->isCall() || scope->asCall().getCalleeFunction()->script() != parent)
         scope = scope->getParent();
 
     if (scope != parent->nesting()->activeCall) {
