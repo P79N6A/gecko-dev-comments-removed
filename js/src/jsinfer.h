@@ -470,7 +470,11 @@ class TypeSet
     static bool HasObjectFlags(JSContext *cx, TypeObject *object, TypeObjectFlags flags);
 
     
-    static void WatchObjectReallocation(JSContext *cx, JSObject *object);
+
+
+
+
+    static void WatchObjectStateChange(JSContext *cx, TypeObject *object);
 
     
 
@@ -818,7 +822,7 @@ struct TypeObject : gc::Cell
     void addPropertyType(JSContext *cx, const char *name, Type type);
     void addPropertyType(JSContext *cx, const char *name, const Value &value);
     void markPropertyConfigured(JSContext *cx, jsid id);
-    void markSlotReallocation(JSContext *cx);
+    void markStateChange(JSContext *cx);
     void setFlags(JSContext *cx, TypeObjectFlags flags);
     void markUnknown(JSContext *cx);
     void clearNewScript(JSContext *cx);

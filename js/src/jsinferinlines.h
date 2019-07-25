@@ -411,17 +411,10 @@ MarkTypePropertyConfigured(JSContext *cx, JSObject *obj, jsid id)
 
 
 inline void
-MarkGlobalReallocation(JSContext *cx, JSObject *obj)
+MarkObjectStateChange(JSContext *cx, JSObject *obj)
 {
-    JS_ASSERT(obj->isGlobal());
-
-    if (obj->hasLazyType()) {
-        
-        return;
-    }
-
-    if (cx->typeInferenceEnabled() && !obj->type()->unknownProperties())
-        obj->type()->markSlotReallocation(cx);
+    if (cx->typeInferenceEnabled() && !obj->hasLazyType() && !obj->type()->unknownProperties())
+        obj->type()->markStateChange(cx);
 }
 
 
