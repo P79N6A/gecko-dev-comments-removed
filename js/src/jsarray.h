@@ -257,26 +257,6 @@ js_ArrayInfo(JSContext *cx, uintN argc, jsval *vp);
 extern JSBool
 js_ArrayCompPush(JSContext *cx, JSObject *obj, const js::Value &vp);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-JS_FRIEND_API(JSBool)
-js_CoerceArrayToCanvasImageData(JSObject *obj, jsuint offset, jsuint count,
-                                JSUint8 *dest);
-
 JSBool
 js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj);
 
