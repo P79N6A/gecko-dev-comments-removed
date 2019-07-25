@@ -841,7 +841,7 @@ JSRuntime::init(uint32_t maxbytes)
     }
 
     atomsCompartment->isSystemCompartment = true;
-    atomsCompartment->setGCLastBytes(8192, GC_NORMAL);
+    atomsCompartment->setGCLastBytes(8192, 8192, GC_NORMAL);
 
     if (!js_InitAtomState(this))
         return false;
@@ -2201,6 +2201,18 @@ JS_ComputeThis(JSContext *cx, jsval *vp)
     if (!BoxNonStrictThis(cx, call))
         return JSVAL_NULL;
     return call.thisv();
+}
+
+JS_PUBLIC_API(void)
+JS_MallocInCompartment(JSCompartment *comp, size_t nbytes)
+{
+    comp->mallocInCompartment(nbytes);
+}
+
+JS_PUBLIC_API(void)
+JS_FreeInCompartment(JSCompartment *comp, size_t nbytes)
+{
+    comp->freeInCompartment(nbytes);
 }
 
 JS_PUBLIC_API(void *)
@@ -6467,23 +6479,10 @@ JS_ClearPendingException(JSContext *cx)
 JS_PUBLIC_API(JSBool)
 JS_ReportPendingException(JSContext *cx)
 {
-    JSBool ok;
-    bool save;
-
     AssertNoGC(cx);
     CHECK_REQUEST(cx);
 
-    
-
-
-
-
-
-    save = cx->generatingError;
-    cx->generatingError = JS_TRUE;
-    ok = js_ReportUncaughtException(cx);
-    cx->generatingError = save;
-    return ok;
+    return js_ReportUncaughtException(cx);
 }
 
 struct JSExceptionState {
