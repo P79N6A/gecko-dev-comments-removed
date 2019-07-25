@@ -2813,29 +2813,11 @@ nsDocument::ElementFromPointHelper(float aX, float aY,
   if (!ptFrame)
     return NS_OK;
 
-  nsIContent* ptContent = ptFrame->GetContent();
-  NS_ENSURE_STATE(ptContent);
-
-  
-  nsIDocument *currentDoc = ptContent->GetCurrentDoc();
-  if (currentDoc && (currentDoc != this)) {
-    *aReturn = CheckAncestryAndGetFrame(currentDoc).get();
-    return NS_OK;
+  nsIContent* elem = GetContentInThisDocument(ptFrame);
+  if (elem && !elem->IsElement()) {
+    elem = elem->GetParent();
   }
-
-  
-  
-  
-  while (ptContent &&
-         (!ptContent->IsElement() ||
-          ptContent->IsInAnonymousSubtree())) {
-    
-    ptContent = ptContent->GetParent();
-  }
- 
-  if (ptContent)
-    CallQueryInterface(ptContent, aReturn);
-  return NS_OK;
+  return CallQueryInterface(elem, aReturn);
 }
 
 nsresult
@@ -2882,47 +2864,23 @@ nsDocument::NodesFromRectHelper(float aX, float aY,
   nsLayoutUtils::GetFramesForArea(rootFrame, rect, outFrames,
                                   true, aIgnoreRootScrollFrame);
 
-  PRInt32 length = outFrames.Length();
-  if (!length)
-    return NS_OK;
-
   
   nsIContent* lastAdded = nsnull;
 
-  for (PRInt32 i = 0; i < length; i++) {
+  for (PRInt32 i = 0; i < outFrames.Length(); i++) {
+    nsIContent* node = GetContentInThisDocument(outFrames[i]);
 
-    nsIContent* ptContent = outFrames.ElementAt(i)->GetContent();
-    NS_ENSURE_STATE(ptContent);
-
-    
-    nsIDocument *currentDoc = ptContent->GetCurrentDoc();
-    if (currentDoc && (currentDoc != this)) {
+    if (node && !node->IsElement() && !node->IsNodeOfType(nsINode::eTEXT)) {
       
-      nsCOMPtr<nsIDOMElement> x = CheckAncestryAndGetFrame(currentDoc);
-      nsCOMPtr<nsIContent> elementDoc = do_QueryInterface(x);
-      if (elementDoc != lastAdded) {
-        elements->AppendElement(elementDoc);
-        lastAdded = elementDoc;
-      }
-      continue;
-    }
-
-    
-    
-    
-    while (ptContent &&
-           (!(ptContent->IsElement() ||
-              ptContent->IsNodeOfType(nsINode::eTEXT)) ||
-            ptContent->IsInAnonymousSubtree())) {
       
-      ptContent = ptContent->GetParent();
+      node = node->GetParent();
     }
-   
-    if (ptContent && ptContent != lastAdded) {
-      elements->AppendElement(ptContent);
-      lastAdded = ptContent;
+    if (node && node != lastAdded) {
+      elements->AppendElement(node);
+      lastAdded = node;
     }
   }
+
   return NS_OK;
 }
 
@@ -7213,42 +7171,25 @@ nsDocument::DoUnblockOnload()
   }
 }
 
-
-
-already_AddRefed<nsIDOMElement>
-nsDocument::CheckAncestryAndGetFrame(nsIDocument* aDocument) const
+nsIContent*
+nsDocument::GetContentInThisDocument(nsIFrame* aFrame) const
 {
-  nsIDocument* parentDoc;
-  for (parentDoc = aDocument->GetParentDocument();
-       parentDoc != static_cast<const nsIDocument* const>(this);
-       parentDoc = parentDoc->GetParentDocument()) {
-    if (!parentDoc) {
-      return nsnull;
+  for (nsIFrame* f = aFrame; f;
+       f = nsLayoutUtils::GetParentOrPlaceholderForCrossDoc(f)) {
+    nsIContent* ptContent = f->GetContent();
+    if (!ptContent || ptContent->IsInAnonymousSubtree())
+      continue;
+
+    if (ptContent->OwnerDoc() == this) {
+      return ptContent;
     }
-
-    aDocument = parentDoc;
+    
+    
+    
+    f = f->PresContext()->GetPresShell()->GetRootFrame();
   }
 
-  
-  nsPIDOMWindow* currentWindow = aDocument->GetWindow();
-  if (!currentWindow) {
-    return nsnull;
-  }
-  nsIDOMElement* frameElement = currentWindow->GetFrameElementInternal();
-  if (!frameElement) {
-    return nsnull;
-  }
-
-  
-  nsCOMPtr<nsIDOMDocument> domDocument;
-  frameElement->GetOwnerDocument(getter_AddRefs(domDocument));
-  if (domDocument != this) {
-    NS_ERROR("Child documents should live in windows the parent owns");
-    return nsnull;
-  }
-
-  NS_ADDREF(frameElement);
-  return frameElement;
+  return nsnull;
 }
 
 void
