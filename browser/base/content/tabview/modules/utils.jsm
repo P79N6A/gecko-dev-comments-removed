@@ -164,10 +164,61 @@ window.Rect.prototype = {
 
 
 window.Subscribable = function() {
+  this.subscribers = {};
   this.onCloseSubscribers = null;
 };
 
 window.Subscribable.prototype = {
+  
+  
+  
+  
+  addSubscriber: function(refObject, eventName, callback) {
+    if(!this.subscribers[eventName])
+      this.subscribers[eventName] = [];
+      
+    var subs = this.subscribers[eventName];
+    var existing = jQuery.grep(subs, function(element) {
+      return element.refObject == refObject;
+    });
+    
+    if(existing.length) {
+      Utils.assert('should only ever be one', existing.length == 1);
+      existing[0].callback = callback;
+    } else {  
+      subs.push({
+        refObject: refObject, 
+        callback: callback
+      });
+    }
+  },
+  
+  
+  
+  
+  removeSubscriber: function(refObject, eventName) {
+    if(!this.subscribers[eventName])
+      return;
+      
+    this.subscribers[eventName] = jQuery.grep(this.subscribers[eventName], function(element) {
+      return element.refObject == refObject;
+    }, true);
+  },
+  
+  
+  
+  
+  _sendToSubscribers: function(eventName, eventInfo) {
+    if(!this.subscribers[eventName])
+      return;
+      
+    var self = this;
+    var subsCopy = $.merge([], this.subscribers[eventName]);
+    $.each(subsCopy, function(index, object) { 
+      object.callback(self, eventInfo);
+    });
+  },
+  
   
   
   
