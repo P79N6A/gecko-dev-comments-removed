@@ -5913,7 +5913,7 @@ CloneFunctionForSetMethod(JSContext *cx, Value *vp)
 
 
     if (fun == funobj) {
-        funobj = CloneFunctionObject(cx, fun, fun->parent, true);
+        funobj = CloneFunctionObject(cx, fun);
         if (!funobj)
             return false;
         vp->setObject(*funobj);
