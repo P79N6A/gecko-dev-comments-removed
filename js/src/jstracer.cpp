@@ -14347,14 +14347,8 @@ TraceRecorder::typedArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
     LIns* priv_ins = w.ldpObjPrivate(obj_ins);
 
     
-    if ((jsuint) idx >= tarray->length) {
-        CHECK_STATUS_A(guard(false,
-                             w.ltui(idx_ins, w.ldiConstTypedArrayLength(priv_ins)),
-                             BRANCH_EXIT,
-                             true));
-        v_ins = w.immiUndefined();
-        return ARECORD_CONTINUE;
-    }
+    if ((jsuint) idx >= tarray->length)
+        RETURN_STOP_A("out-of-range index on typed array");
 
     
 
