@@ -2058,33 +2058,6 @@ nsPluginHost::SiteHasData(nsIPluginTag* plugin, const nsACString& domain,
   return NS_OK;
 }
 
-
-
-
-static PRBool isUnwantedPlugin(nsPluginTag * tag)
-{
-  if (tag->mFileName.IsEmpty())
-    return PR_TRUE;
-
-  for (PRInt32 i = 0; i < tag->mVariants; ++i) {
-    if (!PL_strcasecmp(tag->mMimeTypeArray[i], "application/pdf"))
-      return PR_FALSE;
-
-    if (tag->mIsFlashPlugin)
-      return PR_FALSE;
-
-    if (!PL_strcasecmp(tag->mMimeTypeArray[i], "application/x-director"))
-      return PR_FALSE;
-  }
-
-  
-  
-  if (tag->mFileName.Find("npqtplugin", PR_TRUE, 0, -1) != kNotFound)
-    return PR_FALSE;
-
-  return PR_TRUE;
-}
-
 PRBool nsPluginHost::IsJavaMIMEType(const char* aType)
 {
   return aType &&
@@ -2182,11 +2155,9 @@ class nsDefaultComparator<pluginFileinDirectory, pluginFileinDirectory>
 
 typedef NS_NPAPIPLUGIN_CALLBACK(char *, NP_GETMIMEDESCRIPTION)(void);
 
-nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
-                                            nsIComponentManager * compManager,
+nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
                                             PRBool aCreatePluginList,
-                                            PRBool * aPluginsChanged,
-                                            PRBool checkForUnwantedPlugins)
+                                            PRBool *aPluginsChanged)
 {
   NS_ENSURE_ARG_POINTER(aPluginsChanged);
   nsresult rv;
@@ -2277,8 +2248,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
       else {
         
         
-        if ((checkForUnwantedPlugins && isUnwantedPlugin(pluginTag)) ||
-           IsDuplicatePlugin(pluginTag)) {
+        if (IsDuplicatePlugin(pluginTag)) {
           if (!pluginTag->HasFlag(NS_PLUGIN_FLAG_UNWANTED)) {
             
             *aPluginsChanged = PR_TRUE;
@@ -2383,8 +2353,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
       
       NS_ASSERTION(!pluginTag->HasFlag(NS_PLUGIN_FLAG_UNWANTED),
                    "Brand-new tags should not be unwanted");
-      if ((checkForUnwantedPlugins && isUnwantedPlugin(pluginTag)) ||
-         IsDuplicatePlugin(pluginTag)) {
+      if (IsDuplicatePlugin(pluginTag)) {
         pluginTag->Mark(NS_PLUGIN_FLAG_UNWANTED);
         pluginTag->mNext = mCachedPlugins;
         mCachedPlugins = pluginTag;
@@ -2401,20 +2370,12 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
     
     
     PRBool bAddIt = PR_TRUE;
-
     
-    if (checkForUnwantedPlugins && isUnwantedPlugin(pluginTag))
+    if (HaveSamePlugin(pluginTag)) {
+      
+      
+      
       bAddIt = PR_FALSE;
-
-    
-    
-    if (bAddIt) {
-      if (HaveSamePlugin(pluginTag)) {
-        
-        
-        
-        bAddIt = PR_FALSE;
-      }
     }
 
     
@@ -2445,11 +2406,9 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
   return NS_OK;
 }
 
-nsresult nsPluginHost::ScanPluginsDirectoryList(nsISimpleEnumerator * dirEnum,
-                                                nsIComponentManager * compManager,
+nsresult nsPluginHost::ScanPluginsDirectoryList(nsISimpleEnumerator *dirEnum,
                                                 PRBool aCreatePluginList,
-                                                PRBool * aPluginsChanged,
-                                                PRBool checkForUnwantedPlugins)
+                                                PRBool *aPluginsChanged)
 {
     PRBool hasMore;
     while (NS_SUCCEEDED(dirEnum->HasMoreElements(&hasMore)) && hasMore) {
@@ -2463,7 +2422,7 @@ nsresult nsPluginHost::ScanPluginsDirectoryList(nsISimpleEnumerator * dirEnum,
 
       
       PRBool pluginschanged = PR_FALSE;
-      ScanPluginsDirectory(nextDir, compManager, aCreatePluginList, &pluginschanged, checkForUnwantedPlugins);
+      ScanPluginsDirectory(nextDir, aCreatePluginList, &pluginschanged);
 
       if (pluginschanged)
         *aPluginsChanged = PR_TRUE;
@@ -2528,9 +2487,6 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
   if (ReadPluginInfo() == NS_ERROR_NOT_AVAILABLE)
     return NS_OK;
 
-  nsCOMPtr<nsIComponentManager> compManager;
-  NS_GetComponentManager(getter_AddRefs(compManager));
-
 #ifdef XP_WIN
   
   rv = EnsurePrivateDirServiceProvider();
@@ -2551,7 +2507,7 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
   
   rv = dirService->Get(NS_APP_PLUGINS_DIR_LIST, NS_GET_IID(nsISimpleEnumerator), getter_AddRefs(dirList));
   if (NS_SUCCEEDED(rv)) {
-    ScanPluginsDirectoryList(dirList, compManager, aCreatePluginList, &pluginschanged);
+    ScanPluginsDirectoryList(dirList, aCreatePluginList, &pluginschanged);
 
     if (pluginschanged)
       *aPluginsChanged = PR_TRUE;
@@ -2578,7 +2534,7 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
   if (bScanPLIDs && mPrivateDirServiceProvider) {
     rv = mPrivateDirServiceProvider->GetPLIDDirectories(getter_AddRefs(dirList));
     if (NS_SUCCEEDED(rv)) {
-      ScanPluginsDirectoryList(dirList, compManager, aCreatePluginList, &pluginschanged);
+      ScanPluginsDirectoryList(dirList, aCreatePluginList, &pluginschanged);
 
       if (pluginschanged)
         *aPluginsChanged = PR_TRUE;
@@ -2597,37 +2553,22 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
   
 
   
-  const char* const prefs[] = {NS_WIN_JRE_SCAN_KEY,         nsnull,
-                               NS_WIN_ACROBAT_SCAN_KEY,     nsnull,
-                               NS_WIN_QUICKTIME_SCAN_KEY,   nsnull,
-                               NS_WIN_WMP_SCAN_KEY,         nsnull,
-                               NS_WIN_4DOTX_SCAN_KEY,       "1"   };
+  const char* const prefs[] = {NS_WIN_JRE_SCAN_KEY,
+                               NS_WIN_ACROBAT_SCAN_KEY,
+                               NS_WIN_QUICKTIME_SCAN_KEY,
+                               NS_WIN_WMP_SCAN_KEY};
 
   PRUint32 size = sizeof(prefs) / sizeof(prefs[0]);
 
-  for (PRUint32 i = 0; i < size; i+=2) {
+  for (PRUint32 i = 0; i < size; i+=1) {
     nsCOMPtr<nsIFile> dirToScan;
     PRBool bExists;
     if (NS_SUCCEEDED(dirService->Get(prefs[i], NS_GET_IID(nsIFile), getter_AddRefs(dirToScan))) &&
         dirToScan &&
         NS_SUCCEEDED(dirToScan->Exists(&bExists)) &&
         bExists) {
-
-      PRBool bFilterUnwanted = PR_FALSE;
-
       
-      
-      
-      if (prefs[i+1]) {
-        PRBool bScanEverything;
-        bFilterUnwanted = PR_TRUE;  
-        if (mPrefService &&
-            NS_SUCCEEDED(mPrefService->GetBoolPref(prefs[i], &bScanEverything)) &&
-            bScanEverything)
-          bFilterUnwanted = PR_FALSE;
-
-      }
-      ScanPluginsDirectory(dirToScan, compManager, aCreatePluginList, &pluginschanged, bFilterUnwanted);
+      ScanPluginsDirectory(dirToScan, aCreatePluginList, &pluginschanged);
 
       if (pluginschanged)
         *aPluginsChanged = PR_TRUE;
