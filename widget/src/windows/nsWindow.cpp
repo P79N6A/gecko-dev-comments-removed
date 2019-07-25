@@ -159,6 +159,8 @@
 #include "mozilla/Services.h"
 #include "nsNativeThemeWin.h"
 #include "nsWindowsDllInterceptor.h"
+#include "nsIWindowMediator.h"
+#include "nsIServiceManager.h"
 
 #if defined(WINCE)
 #include "nsWindowCE.h"
@@ -296,6 +298,8 @@ PRBool          nsWindow::sDefaultTrackPointHack  = PR_FALSE;
 
 const char*     nsWindow::sDefaultMainWindowClass = kClassNameGeneral;
 
+
+bool            nsWindow::sAllowD3D9              = false;
 
 #ifdef ACCESSIBILITY
 BOOL            nsWindow::sIsAccessibilityOn      = FALSE;
@@ -3232,7 +3236,12 @@ nsWindow::GetLayerManager(LayerManagerPersistence aPersistence, bool* aAllowReta
   }
 #endif
 
-  if (!mLayerManager) {
+  if (!mLayerManager ||
+      (!sAllowD3D9 && aPersistence == LAYER_MANAGER_PERSISTENT &&
+        mLayerManager->GetBackendType() == 
+        mozilla::layers::LayerManager::LAYERS_BASIC)) {
+    
+    
     nsCOMPtr<nsIPrefBranch2> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
 
     PRBool accelerateByDefault = PR_TRUE;
@@ -3271,6 +3280,12 @@ nsWindow::GetLayerManager(LayerManagerPersistence aPersistence, bool* aAllowReta
       mUseAcceleratedRendering = PR_TRUE;
 
     if (mUseAcceleratedRendering) {
+      if (aPersistence == LAYER_MANAGER_PERSISTENT && !sAllowD3D9) {
+        
+        
+        nsToolkit::StartAllowingD3D9();
+      }
+
 #ifdef MOZ_ENABLE_D3D10_LAYER
       if (!preferD3D9) {
         nsRefPtr<mozilla::layers::LayerManagerD3D10> layerManager =
@@ -3281,7 +3296,7 @@ nsWindow::GetLayerManager(LayerManagerPersistence aPersistence, bool* aAllowReta
       }
 #endif
 #ifdef MOZ_ENABLE_D3D9_LAYER
-      if (!preferOpenGL && !mLayerManager) {
+      if (!preferOpenGL && !mLayerManager && sAllowD3D9) {
         nsRefPtr<mozilla::layers::LayerManagerD3D9> layerManager =
           new mozilla::layers::LayerManagerD3D9(this);
         if (layerManager->Initialize()) {
@@ -7521,6 +7536,37 @@ PRBool nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
 PRBool nsWindow::AutoErase(HDC dc)
 {
   return PR_FALSE;
+}
+
+void
+nsWindow::AllowD3D9Callback(nsWindow *aWindow)
+{
+  if (aWindow->mLayerManager) {
+    aWindow->mLayerManager->Destroy();
+    aWindow->mLayerManager = NULL;
+  }
+}
+
+void
+nsWindow::AllowD3D9WithReinitializeCallback(nsWindow *aWindow)
+{
+  if (aWindow->mLayerManager) {
+    aWindow->mLayerManager->Destroy();
+    aWindow->mLayerManager = NULL;
+    (void) aWindow->GetLayerManager();
+  }
+}
+
+void
+nsWindow::StartAllowingD3D9(bool aReinitialize)
+{
+  sAllowD3D9 = true;
+
+  if (aReinitialize) {
+    EnumAllWindows(AllowD3D9WithReinitializeCallback);
+  } else {
+    EnumAllWindows(AllowD3D9Callback);
+  }
 }
 
 
