@@ -152,11 +152,6 @@ Sanitizer.prototype = {
               
               cookieMgr.remove(cookie.host, cookie.name, cookie.path, false);
           }
-
-          
-          var domStorageManager = Components.classes["@mozilla.org/dom/storagemanager;1"]
-                                            .getService(Ci.nsIDOMStorageManager);
-          domStorageManager.clearStorageDataSince(this.range[0]);
         }
         else {
           
