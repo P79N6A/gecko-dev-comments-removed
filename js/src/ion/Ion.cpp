@@ -154,21 +154,22 @@ IonCompartment::initialize(JSContext *cx)
 void
 IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
 {
-    if (compartment->active) {
-        
-        if (enterJIT_)
-            MarkIonCode(trc, enterJIT_, "enterJIT");
-        if (returnError_)
-            MarkIonCode(trc, returnError_, "returnError");
+    if (!compartment->active)
+        return;
 
-        
-        
-        if (bailoutHandler_)
-            MarkIonCode(trc, bailoutHandler_, "bailoutHandler");
-        for (size_t i = 0; i < bailoutTables_.length(); i++) {
-            if (bailoutTables_[i])
-                MarkIonCode(trc, bailoutTables_[i], "bailoutTable");
-        }
+    
+    if (enterJIT_)
+        MarkIonCode(trc, enterJIT_, "enterJIT");
+    if (returnError_)
+        MarkIonCode(trc, returnError_, "returnError");
+
+    
+    
+    if (bailoutHandler_)
+        MarkIonCode(trc, bailoutHandler_, "bailoutHandler");
+    for (size_t i = 0; i < bailoutTables_.length(); i++) {
+        if (bailoutTables_[i])
+            MarkIonCode(trc, bailoutTables_[i], "bailoutTable");
     }
 }
 
