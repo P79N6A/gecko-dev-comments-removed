@@ -38,10 +38,6 @@ let Social = {
     return SocialService.enabled;
   },
 
-  get uiVisible() {
-    return this.provider && this.provider.enabled && this.provider.port;
-  },
-
   sendWorkerMessage: function Social_sendWorkerMessage(message) {
     
     
