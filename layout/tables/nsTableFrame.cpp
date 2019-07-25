@@ -1308,7 +1308,7 @@ nsTableFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     
     
-    if (deflate.IsZero()) {
+    if (deflate == nsMargin(0, 0, 0, 0)) {
       nsresult rv = DisplayBackgroundUnconditional(aBuilder, aLists, PR_FALSE);
       NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -1356,7 +1356,7 @@ nsTableFrame::PaintTableBorderBackground(nsRenderingContext& aRenderingContext,
   nsMargin deflate = GetDeflationForBackground(presContext);
   
   
-  nsresult rv = painter.PaintTable(this, deflate, !deflate.IsZero());
+  nsresult rv = painter.PaintTable(this, deflate, deflate != nsMargin(0, 0, 0, 0));
   if (NS_FAILED(rv)) return;
 
   if (GetStyleVisibility()->IsVisible()) {

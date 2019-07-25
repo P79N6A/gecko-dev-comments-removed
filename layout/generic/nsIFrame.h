@@ -941,7 +941,9 @@ public:
 
 
   nsRect GetPaddingRect() const;
+  nsRect GetPaddingRectRelativeToSelf() const;
   nsRect GetContentRect() const;
+  nsRect GetContentRectRelativeToSelf() const;
 
   
 
