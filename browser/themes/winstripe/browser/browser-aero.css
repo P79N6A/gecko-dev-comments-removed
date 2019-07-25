@@ -71,12 +71,10 @@
     color: black;
   }
 
-  
-
-
-
-
-
+  #urlbar > .autocomplete-textbox-container > .textbox-input-box > html|*.textbox-input:-moz-placeholder,
+  .searchbar-textbox > .autocomplete-textbox-container > .textbox-input-box > html|*.textbox-input:-moz-placeholder {
+    color: #777;
+  }
 
   #urlbar:hover,
   .searchbar-textbox:hover {
