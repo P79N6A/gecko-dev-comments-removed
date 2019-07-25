@@ -105,7 +105,7 @@ my_strtoui(int* result, const char* s) {
 
 
 static inline unsigned
-my_int_len(int i) {
+my_int_len(intmax_t i) {
   if (!i)
     return 1;
 
@@ -125,7 +125,7 @@ my_int_len(int i) {
 
 
 static inline void
-my_itos(char* output, int i, unsigned i_len) {
+my_itos(char* output, intmax_t i, unsigned i_len) {
   for (unsigned index = i_len; index; --index, i /= 10)
     output[index - 1] = '0' + (i % 10);
 }
