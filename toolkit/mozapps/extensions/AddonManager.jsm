@@ -273,7 +273,6 @@ var AddonManagerInternal = {
   typeListeners: [],
   providers: [],
   types: {},
-  startupChanges: {},
 
   
   typesProxy: Proxy.create({
@@ -386,13 +385,6 @@ var AddonManagerInternal = {
       callProvider(provider, "startup", null, appChanged, oldAppVersion,
                    oldPlatformVersion);
     });
-
-    
-    if (appChanged === undefined) {
-      for (let type in this.startupChanges)
-        delete this.startupChanges[type];
-    }
-
     gStarted = true;
   },
 
@@ -475,7 +467,7 @@ var AddonManagerInternal = {
 
 
 
-  shutdown: function AMI_shutdown() {
+  shutdown: function AM_shutdown() {
     this.providers.forEach(function(provider) {
       callProvider(provider, "shutdown");
     });
@@ -483,8 +475,6 @@ var AddonManagerInternal = {
     this.installListeners.splice(0);
     this.addonListeners.splice(0);
     this.typeListeners.splice(0);
-    for (let type in this.startupChanges)
-      delete this.startupChanges[type];
     gStarted = false;
   },
 
@@ -546,49 +536,6 @@ var AddonManagerInternal = {
 
       notifyComplete();
     });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  addStartupChange: function AMI_addStartupChange(aType, aID) {
-    if (gStarted)
-      return;
-
-    
-    for (let type in this.startupChanges)
-      this.removeStartupChange(type, aID);
-
-    if (!(aType in this.startupChanges))
-      this.startupChanges[aType] = [];
-    this.startupChanges[aType].push(aID);
-  },
-
-  
-
-
-
-
-
-
-
-  removeStartupChange: function AMI_removeStartupChange(aType, aID) {
-    if (gStarted)
-      return;
-
-    if (!(aType in this.startupChanges))
-      return;
-
-    this.startupChanges[aType] = this.startupChanges[aType].filter(function(aItem) aItem != aID);
   },
 
   
@@ -1117,14 +1064,6 @@ var AddonManagerPrivate = {
     AddonManagerInternal.backgroundUpdateCheck();
   },
 
-  addStartupChange: function AMP_addStartupChange(aType, aID) {
-    AddonManagerInternal.addStartupChange(aType, aID);
-  },
-
-  removeStartupChange: function AMP_removeStartupChange(aType, aID) {
-    AddonManagerInternal.removeStartupChange(aType, aID);
-  },
-
   notifyAddonChanged: function AMP_notifyAddonChanged(aId, aType, aPendingRestart) {
     AddonManagerInternal.notifyAddonChanged(aId, aType, aPendingRestart);
   },
@@ -1281,26 +1220,6 @@ var AddonManager = {
   
   OPTIONS_TYPE_TAB: 3,
 
-  
-  
-  
-  STARTUP_CHANGE_INSTALLED: "installed",
-  
-  
-  
-  STARTUP_CHANGE_CHANGED: "changed",
-  
-  
-  STARTUP_CHANGE_UNINSTALLED: "uninstalled",
-  
-  
-  
-  STARTUP_CHANGE_DISABLED: "disabled",
-  
-  
-  
-  STARTUP_CHANGE_ENABLED: "enabled",
-
   getInstallForURL: function AM_getInstallForURL(aUrl, aCallback, aMimetype,
                                                  aHash, aName, aIconURL,
                                                  aVersion, aLoadGroup) {
@@ -1310,19 +1229,6 @@ var AddonManager = {
 
   getInstallForFile: function AM_getInstallForFile(aFile, aCallback, aMimetype) {
     AddonManagerInternal.getInstallForFile(aFile, aCallback, aMimetype);
-  },
-
-  
-
-
-
-
-
-
-  getStartupChanges: function AM_getStartupChanges(aType) {
-    if (!(aType in AddonManagerInternal.startupChanges))
-      return [];
-    return AddonManagerInternal.startupChanges[aType].slice(0);
   },
 
   getAddonByID: function AM_getAddonByID(aId, aCallback) {
