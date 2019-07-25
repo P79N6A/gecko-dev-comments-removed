@@ -197,8 +197,9 @@ public class ProfileMigrator {
     private static final String FAVICON_GUID      = "f_guid";
 
     
-    private static final int PLACES_TYPE_BOOKMARK = 1;
-    private static final int PLACES_TYPE_FOLDER   = 2;
+    private static final int PLACES_TYPE_BOOKMARK  = 1;
+    private static final int PLACES_TYPE_FOLDER    = 2;
+    private static final int PLACES_TYPE_SEPARATOR = 3;
 
     
 
@@ -1098,7 +1099,7 @@ public class ProfileMigrator {
         protected void addBookmark(String url, String title, String guid,
                                    long parent, long added,
                                    long modified, long position,
-                                   boolean folder) {
+                                   int type) {
             ContentValues values = new ContentValues();
             if (title == null && url != null) {
                 title = url;
@@ -1121,7 +1122,11 @@ public class ProfileMigrator {
                 parent = mRerootMap.get(parent);
             }
             values.put(Bookmarks.PARENT, parent);
-            values.put(Bookmarks.TYPE, (folder ? Bookmarks.TYPE_FOLDER : Bookmarks.TYPE_BOOKMARK));
+
+            
+            values.put(Bookmarks.TYPE, type == PLACES_TYPE_BOOKMARK ? Bookmarks.TYPE_BOOKMARK :
+                                       type == PLACES_TYPE_FOLDER ? Bookmarks.TYPE_FOLDER :
+                                       Bookmarks.TYPE_SEPARATOR);
 
             Cursor cursor = null;
             ContentProviderOperation.Builder builder = null;
@@ -1232,6 +1237,15 @@ public class ProfileMigrator {
                         }
 
                         int type = cursor.getInt(typeCol);
+
+                        
+                        if (!(type == PLACES_TYPE_BOOKMARK ||
+                              type == PLACES_TYPE_FOLDER ||
+                              type == PLACES_TYPE_SEPARATOR)) {
+                            cursor.moveToNext();
+                            continue;
+                        }
+
                         long parent = cursor.getLong(parentCol);
 
                         
@@ -1262,13 +1276,12 @@ public class ProfileMigrator {
                         
                         if (knownFolders.contains(parent)) {
                             try {
-                                boolean isFolder = (type == PLACES_TYPE_FOLDER);
                                 addBookmark(url, title, guid, parent,
                                             dateadded, datemodified,
-                                            position, isFolder);
+                                            position, type);
                                 addFavicon(url, faviconUrl, faviconGuid,
                                            faviconMime, faviconDataBuff);
-                                if (isFolder) {
+                                if (type == PLACES_TYPE_FOLDER) {
                                     
                                     
                                     
