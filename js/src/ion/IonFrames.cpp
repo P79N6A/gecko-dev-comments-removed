@@ -272,6 +272,12 @@ ion::HandleException(ResumeFromException *rfe)
         ++iter;
     }
 
+    
+    
+    
+    while (cx->enumerators != cx->runtime->ionActivation->savedEnumerators())
+        UnwindIteratorForException(cx, cx->enumerators);
+
     rfe->stackPointer = iter.fp();
 }
 
