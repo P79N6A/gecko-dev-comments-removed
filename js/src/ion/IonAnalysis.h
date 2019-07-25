@@ -42,6 +42,8 @@
 #ifndef jsion_ion_analysis_h__
 #define jsion_ion_analysis_h__
 
+
+
 #include "IonAllocPolicy.h"
 
 namespace js {
@@ -55,9 +57,6 @@ ApplyTypeInformation(MIRGraph &graph);
 
 bool
 ReorderBlocks(MIRGraph &graph);
-
-void
-RenumberInstructions(MIRGraph &graph);
 
 } 
 } 

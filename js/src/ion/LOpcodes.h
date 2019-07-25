@@ -1,0 +1,68 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef jsion_lir_opcodes_common_h__
+#define jsion_lir_opcodes_common_h__
+
+#define LIR_COMMON_OPCODE_LIST(_)   \
+    _(Integer)                      \
+    _(Pointer)                      \
+    _(Double)                       \
+    _(Parameter)                    \
+    _(Goto)                         \
+    _(Test)                         \
+    _(BitOp)                        \
+    _(Return)
+
+#if defined(JS_CPU_X86)
+# include "x86/LOpcodes-x86.h"
+#elif defined(JS_CPU_X64)
+# include "x64/LOpcodes-x64.h"
+#elif defined(JS_CPU_ARM)
+# include "arm/LOpcodes-arm.h"
+#endif
+
+#define LIR_OPCODE_LIST(_)          \
+    LIR_COMMON_OPCODE_LIST(_)       \
+    LIR_CPU_OPCODE_LIST(_)
+
+#endif 
+

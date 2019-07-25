@@ -42,7 +42,11 @@
 #ifndef jsion_bytecode_analyzer_h__
 #define jsion_bytecode_analyzer_h__
 
+
+
+
 #include "MIR.h"
+#include "MIRGraph.h"
 
 namespace js {
 namespace ion {
@@ -153,7 +157,7 @@ class IonBuilder : public MIRGenerator
                MIRGraph &graph, TypeOracle *oracle);
 
   public:
-    bool analyze();
+    bool build();
 
   private:
     bool traverseBytecode();
