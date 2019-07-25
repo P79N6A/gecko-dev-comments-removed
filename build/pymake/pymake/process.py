@@ -4,7 +4,7 @@ parsing command lines into argv and making sure that no shell magic is being use
 """
 
 
-import multiprocessing, multiprocessing.dummy
+import multiprocessing
 import subprocess, shlex, re, logging, sys, traceback, os, imp, glob
 
 subprocess._cleanup = lambda: None
@@ -160,14 +160,27 @@ class PopenJob(Job):
         self.shell = shell
         self.env = env
         self.cwd = cwd
+        self.parentpid = os.getpid()
 
     def run(self):
+        assert os.getpid() != self.parentpid
+        
+        
+        
+        
+        
+        
+        oldpath = os.environ['PATH']
         try:
+            if self.env is not None and self.env.has_key('PATH'):
+                os.environ['PATH'] = self.env['PATH']
             p = subprocess.Popen(self.argv, executable=self.executable, shell=self.shell, env=self.env, cwd=self.cwd)
             return p.wait()
         except OSError, e:
             print >>sys.stderr, e
             return -127
+        finally:
+            os.environ['PATH'] = oldpath
 
 class PythonException(Exception):
     def __init__(self, message, exitcode):
@@ -205,8 +218,10 @@ class PythonJob(Job):
         self.env = env
         self.cwd = cwd
         self.pycommandpath = pycommandpath or []
+        self.parentpid = os.getpid()
 
     def run(self):
+        assert os.getpid() != self.parentpid
         
         
         oldenv = dict(os.environ)
@@ -266,7 +281,6 @@ class ParallelContext(object):
         self.exit = False
 
         self.processpool = multiprocessing.Pool(processes=jcount)
-        self.threadpool = multiprocessing.dummy.Pool(processes=jcount)
         self.pending = [] 
         self.running = [] 
 
@@ -275,9 +289,7 @@ class ParallelContext(object):
     def finish(self):
         assert len(self.pending) == 0 and len(self.running) == 0, "pending: %i running: %i" % (len(self.pending), len(self.running))
         self.processpool.close()
-        self.threadpool.close()
         self.processpool.join()
-        self.threadpool.join()
         self._allcontexts.remove(self)
 
     def run(self):
@@ -305,7 +317,7 @@ class ParallelContext(object):
         """
 
         job = PopenJob(argv, executable=executable, shell=shell, env=env, cwd=cwd)
-        self.defer(self._docall_generic, self.threadpool, job, cb, echo, justprint)
+        self.defer(self._docall_generic, self.processpool, job, cb, echo, justprint)
 
     def call_native(self, module, method, argv, env, cwd, cb,
                     echo, justprint=False, pycommandpath=None):
