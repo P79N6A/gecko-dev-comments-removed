@@ -72,10 +72,6 @@ nsNativeDragTarget::nsNativeDragTarget(nsIWidget * aWnd)
 
 
   CallGetService(kCDragServiceCID, &mDragService);
-
-  
-  CoCreateInstance(CLSID_DragDropHelper, NULL, CLSCTX_INPROC_SERVER,
-                   IID_IDropTargetHelper, (LPVOID*)&mDropTargetHelper);
 }
 
 nsNativeDragTarget::~nsNativeDragTarget()
@@ -265,9 +261,9 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   AddLinkSupportIfCanBeGenerated(pIDataSource);
 
   
-  if (mDropTargetHelper) {
+  if (GetDropTargetHelper()) {
     POINT pt = { ptl.x, ptl.y };
-    mDropTargetHelper->DragEnter(mHWnd, pIDataSource, &pt, *pdwEffect);
+    GetDropTargetHelper()->DragEnter(mHWnd, pIDataSource, &pt, *pdwEffect);
   }
 
   
@@ -341,9 +337,9 @@ nsNativeDragTarget::DragOver(DWORD   grfKeyState,
   this->AddRef();
 
   
-  if (mDropTargetHelper) {
+  if (GetDropTargetHelper()) {
     POINT pt = { ptl.x, ptl.y };
-    mDropTargetHelper->DragOver(&pt, *pdwEffect);
+    GetDropTargetHelper()->DragOver(&pt, *pdwEffect);
   }
 
   mDragService->FireDragEventAtSource(NS_DRAGDROP_DRAG);
@@ -363,8 +359,8 @@ nsNativeDragTarget::DragLeave()
   }
 
   
-  if (mDropTargetHelper) {
-    mDropTargetHelper->DragLeave();
+  if (GetDropTargetHelper()) {
+    GetDropTargetHelper()->DragLeave();
   }
 
   
@@ -401,8 +397,8 @@ nsNativeDragTarget::DragCancel()
 {
   
   if (mTookOwnRef) {
-    if (mDropTargetHelper) {
-      mDropTargetHelper->DragLeave();
+    if (GetDropTargetHelper()) {
+      GetDropTargetHelper()->DragLeave();
     }
     if (mDragService) {
       mDragService->EndDragSession(false);
@@ -426,9 +422,9 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   AddLinkSupportIfCanBeGenerated(pData);
 
   
-  if (mDropTargetHelper) {
+  if (GetDropTargetHelper()) {
     POINT pt = { aPT.x, aPT.y };
-    mDropTargetHelper->Drop(pData, &pt, *pdwEffect);
+    GetDropTargetHelper()->Drop(pData, &pt, *pdwEffect);
   }
 
   
@@ -476,4 +472,19 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   }
 
   return S_OK;
+}
+
+
+
+
+
+IDropTargetHelper*
+nsNativeDragTarget::GetDropTargetHelper()
+{
+  if (!mDropTargetHelper) { 
+    CoCreateInstance(CLSID_DragDropHelper, NULL, CLSCTX_INPROC_SERVER,
+                     IID_IDropTargetHelper, (LPVOID*)&mDropTargetHelper);
+  }
+
+  return mDropTargetHelper;
 }
