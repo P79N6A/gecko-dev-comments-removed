@@ -598,7 +598,7 @@ protected:
   nsCOMPtr<nsIContent> mSourceLoadCandidate;
 
   
-  nsAutoPtr<nsAudioStream> mAudioStream;
+  nsRefPtr<nsAudioStream> mAudioStream;
 
   
   

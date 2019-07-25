@@ -295,7 +295,7 @@ private:
   
   
   
-  nsAutoPtr<nsAudioStream> mAudioStream;
+  nsRefPtr<nsAudioStream> mAudioStream;
 
   
   TimeDuration mBufferingWait;
@@ -906,7 +906,7 @@ nsWaveStateMachine::ChangeState(State aState)
 void
 nsWaveStateMachine::OpenAudioStream()
 {
-  mAudioStream = new nsAudioStream();
+  mAudioStream = nsAudioStream::AllocateStream();
   if (!mAudioStream) {
     LOG(PR_LOG_ERROR, ("Could not create audio stream"));
   } else {

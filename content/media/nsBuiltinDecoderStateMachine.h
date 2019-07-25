@@ -426,7 +426,7 @@ protected:
   
   
   
-  nsAutoPtr<nsAudioStream> mAudioStream;
+  nsRefPtr<nsAudioStream> mAudioStream;
 
   
   

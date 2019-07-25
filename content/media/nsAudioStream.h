@@ -39,14 +39,13 @@
 #define nsAudioStream_h_
 
 #include "nscore.h"
-#include "prlog.h"
-#include "nsTArray.h"
+#include "nsISupportsImpl.h"
+#include "nsIThread.h"
 
-extern PRLogModuleInfo* gAudioStreamLog;
-
-class nsAudioStream 
+class nsAudioStream : public nsISupports
 {
- public:
+public:
+
   enum SampleFormat
   {
     FORMAT_U8,
@@ -62,71 +61,59 @@ class nsAudioStream
   
   static void ShutdownLibrary();
 
-  nsAudioStream();
-  ~nsAudioStream();
-
   
   
-  
-  nsresult Init(PRInt32 aNumChannels, PRInt32 aRate, SampleFormat aFormat);
-
-  
-  void Shutdown();
+  static nsIThread *GetGlobalThread();
 
   
   
   
   
-  
-  
-  nsresult Write(const void* aBuf, PRUint32 aCount, PRBool aBlocking);
+  static nsAudioStream* AllocateStream();
 
   
   
-  PRUint32 Available();
+  
+  virtual nsresult Init(PRInt32 aNumChannels, PRInt32 aRate, SampleFormat aFormat) = 0;
 
   
-  
-  void SetVolume(float aVolume);
-
-  
-  void Drain();
-
-  
-  void Pause();
-
-  
-  void Resume();
-
-  
-  
-  PRInt64 GetPosition();
-
-  
-  
-  PRInt64 GetSampleOffset();
-
-  
-  PRBool IsPaused() { return mPaused; }
-
- private:
-  double mVolume;
-  void* mAudioHandle;
-  int mRate;
-  int mChannels;
-
-  SampleFormat mFormat;
+  virtual void Shutdown() = 0;
 
   
   
   
   
-  nsTArray<short> mBufferOverflow;
+  
+  
+  virtual nsresult Write(const void* aBuf, PRUint32 aCount, PRBool aBlocking) = 0;
 
   
-  PRPackedBool mPaused;
+  
+  virtual PRUint32 Available() = 0;
 
   
-  PRPackedBool mInError;
+  
+  virtual void SetVolume(float aVolume) = 0;
+
+  
+  virtual void Drain() = 0;
+
+  
+  virtual void Pause() = 0;
+
+  
+  virtual void Resume() = 0;
+
+  
+  
+  virtual PRInt64 GetPosition() = 0;
+
+  
+  
+  virtual PRInt64 GetSampleOffset() = 0;
+
+  
+  virtual PRBool IsPaused() = 0;
 };
+
 #endif
