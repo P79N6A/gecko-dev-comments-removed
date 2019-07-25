@@ -51,7 +51,7 @@ const LPCWSTR kClassNameTabContent = L"MozillaContentWindowClass";
 
 const LPCWSTR kJAWSModuleHandle = L"jhook";
 const LPCWSTR kWEModuleHandle = L"gwm32inc";
-const LPCWSTR kDolphnModuleHandle = L"dolwinhk";
+const LPCWSTR kDolphinModuleHandle = L"dolwinhk";
 
 class nsWinUtils
 {
@@ -71,12 +71,24 @@ public:
   
 
 
-  static HWND CreateNativeWindow(LPCWSTR aWindowClass, HWND aParentWnd);
+  static HWND CreateNativeWindow(LPCWSTR aWindowClass, HWND aParentWnd,
+                                 int aX, int aY, int aWidth, int aHeight,
+                                 bool aIsActive);
 
   
 
 
-  static bool IsWindowEmulationEnabled();
+  static void ShowNativeWindow(HWND aWnd);
+
+  
+
+
+  static void HideNativeWindow(HWND aWnd);
+
+  
+
+
+  static bool IsWindowEmulationEnabled(LPCWSTR kModuleHandle = 0);
 
   
 

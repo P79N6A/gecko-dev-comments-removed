@@ -90,7 +90,6 @@ public:
          BSTR __RPC_FAR *pszValue);
 
   
-  virtual PRBool Init();
   virtual void Shutdown();
 
   
@@ -98,6 +97,10 @@ public:
 
   
   virtual void* GetNativeWindow() const;
+
+protected:
+  
+  virtual void NotifyOfInitialUpdate();
 
 protected:
   void* mHWND;

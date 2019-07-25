@@ -345,6 +345,13 @@ protected:
     virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
     virtual nsresult AddEventListeners();
     virtual nsresult RemoveEventListeners();
+
+  
+
+
+
+  virtual void NotifyOfInitialUpdate();
+
     void AddScrollListener();
     void RemoveScrollListener();
 
