@@ -2119,9 +2119,15 @@ FrameState::storeTop(FrameEntry *target)
 
 
 
+
+
+
     bool wasSynced = target->type.synced();
     JSValueType oldType = target->isTypeKnown() ? target->getKnownType() : JSVAL_TYPE_UNKNOWN;
-    bool trySyncType = wasSynced && oldType != JSVAL_TYPE_UNKNOWN && oldType != JSVAL_TYPE_DOUBLE;
+    bool trySyncType = wasSynced &&
+        oldType != JSVAL_TYPE_UNKNOWN &&
+        oldType != JSVAL_TYPE_DOUBLE &&
+        oldType != JSVAL_TYPE_UNDEFINED;
 
     
     forgetEntry(target);
