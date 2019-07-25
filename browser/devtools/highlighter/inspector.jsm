@@ -989,6 +989,7 @@ InspectorUI.prototype = {
     }
 
     this.stopInspecting();
+    this.browser.removeEventListener("keypress", this, true);
 
     this.saveToolState(this.winID);
     this.toolsDo(function IUI_toolsHide(aTool) {
@@ -996,6 +997,9 @@ InspectorUI.prototype = {
     }.bind(this));
 
     if (this.highlighter) {
+      this.highlighter.highlighterContainer.removeEventListener("keypress",
+                                                                this,
+                                                                true);
       this.highlighter.destroy();
       this.highlighter = null;
     }
@@ -1026,7 +1030,12 @@ InspectorUI.prototype = {
       this.treePanel.closeEditor();
 
     this.inspectToolbutton.checked = true;
-    this.attachPageListeners();
+    
+    
+    this.browser.addEventListener("keypress", this, true);
+    this.highlighter.highlighterContainer.addEventListener("keypress", this, true);
+    this.highlighter.attachInspectListeners();
+
     this.inspecting = true;
     this.toolsDim(true);
     this.highlighter.veilContainer.removeAttribute("locked");
@@ -1046,7 +1055,12 @@ InspectorUI.prototype = {
     }
 
     this.inspectToolbutton.checked = false;
-    this.detachPageListeners();
+    
+    
+    
+    
+    this.highlighter.detachInspectListeners();
+
     this.inspecting = false;
     this.toolsDim(false);
     if (this.highlighter.node) {
@@ -1166,11 +1180,9 @@ InspectorUI.prototype = {
         switch (event.keyCode) {
           case this.chromeWin.KeyEvent.DOM_VK_RETURN:
           case this.chromeWin.KeyEvent.DOM_VK_ESCAPE:
-            if (this.inspecting) {
-              this.stopInspecting();
-              event.preventDefault();
-              event.stopPropagation();
-            }
+            this.toggleInspection();
+            event.preventDefault();
+            event.stopPropagation();
             break;
           case this.chromeWin.KeyEvent.DOM_VK_LEFT:
             let node;
@@ -1238,26 +1250,6 @@ InspectorUI.prototype = {
         }
         break;
     }
-  },
-
-  
-
-
-
-  attachPageListeners: function IUI_attachPageListeners()
-  {
-    this.browser.addEventListener("keypress", this, true);
-    this.highlighter.attachInspectListeners();
-  },
-
-  
-
-
-
-  detachPageListeners: function IUI_detachPageListeners()
-  {
-    this.browser.removeEventListener("keypress", this, true);
-    this.highlighter.detachInspectListeners();
   },
 
   
