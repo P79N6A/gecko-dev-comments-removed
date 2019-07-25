@@ -18,6 +18,8 @@ window.addEventListener('ContentStart', function() {
     .getInterface(Components.interfaces.nsIDOMWindowUtils);
   let hostDPI = windowUtils.displayDPI;
 
+  let DEFAULT_SCREEN = "320x480";
+
   
   
   
@@ -64,7 +66,7 @@ window.addEventListener('ContentStart', function() {
 
     
     if (screenarg === null)
-      return;
+      screenarg = DEFAULT_SCREEN;
 
     
     if (screenarg == '')
