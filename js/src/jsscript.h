@@ -46,6 +46,7 @@
 #include "jsatom.h"
 #include "jsprvtd.h"
 #include "jsdbgapi.h"
+#include "jsclist.h"
 
 
 
@@ -184,6 +185,8 @@ union CallSite;
 #endif
 
 struct JSScript {
+    
+    JSCList         links;      
     jsbytecode      *code;      
     uint32          length;     
     uint16          version;    
@@ -212,6 +215,9 @@ struct JSScript {
     bool            warnedAboutTwoArgumentEval:1; 
 
 
+#ifdef JS_METHODJIT
+    bool            debugMode:1;      
+#endif
 
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
