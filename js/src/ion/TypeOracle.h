@@ -66,6 +66,7 @@ enum MIRType
     MIRType_None,       
     MIRType_Slots,      
     MIRType_Elements,   
+    MIRType_UpvarSlots, 
     MIRType_StackFrame  
 };
 
@@ -324,6 +325,8 @@ StringFromMIRType(MIRType type)
       return "Slots";
     case MIRType_Elements:
       return "Elements";
+    case MIRType_UpvarSlots:
+      return "UpvarSlots";
     case MIRType_StackFrame:
       return "StackFrame";
     default:
