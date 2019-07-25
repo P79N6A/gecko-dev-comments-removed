@@ -270,7 +270,7 @@ PushInlinedFrame(JSContext *cx, StackFrame *callerFrame)
 
     JSFunction *fun = calleeVal.toObject().toFunction();
     JSScript *script = fun->script();
-    CallArgs inlineArgs = CallArgsFromSp(callerArgc, regs.sp);
+    CallArgs inlineArgs = CallArgsFromArgv(fun->nargs, regs.sp - callerArgc);
     
     
     
