@@ -550,6 +550,8 @@ public:
 
 
 
+
+
   static gfxRect
   GetRelativeRect(PRUint16 aUnits, const nsSVGLength2 *aXYWH,
                   const gfxRect &aBBox, nsIFrame *aFrame);

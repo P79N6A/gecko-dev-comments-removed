@@ -63,9 +63,41 @@ class nsSVGFilterPaintCallback;
 
 
 
+
+
+
+
+
+
 class NS_STACK_CLASS nsSVGFilterInstance
 {
 public:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsSVGFilterInstance(nsIFrame *aTargetFrame,
                       nsSVGFilterPaintCallback *aPaintCallback,
                       const nsSVGFilterElement *aFilterElement,
@@ -84,29 +116,75 @@ public:
     mFilterSpaceToDeviceSpaceTransform(aFilterSpaceToDeviceSpaceTransform),
     mFilterRect(aFilterRect),
     mFilterSpaceSize(aFilterSpaceSize),
+    mSurfaceRect(nsIntPoint(0, 0), aFilterSpaceSize),
     mTargetBounds(aTargetBounds),
     mDirtyOutputRect(aDirtyOutputRect),
     mDirtyInputRect(aDirtyInputRect),
-    mSurfaceRect(nsIntPoint(0, 0), aFilterSpaceSize),
     mPrimitiveUnits(aPrimitiveUnits) {
   }
+
   
-  
-  void SetSurfaceRect(const nsIntRect& aRect) { mSurfaceRect = aRect; }
+
+
+
+
 
   gfxRect GetFilterRect() const { return mFilterRect; }
+
+  
+
+
+
+
+
+
 
   const nsIntSize& GetFilterSpaceSize() { return mFilterSpaceSize; }
   PRUint32 GetFilterResX() const { return mFilterSpaceSize.width; }
   PRUint32 GetFilterResY() const { return mFilterSpaceSize.height; }
+
   
+
+
+
+
+
   const nsIntRect& GetSurfaceRect() const { return mSurfaceRect; }
   PRInt32 GetSurfaceWidth() const { return mSurfaceRect.width; }
   PRInt32 GetSurfaceHeight() const { return mSurfaceRect.height; }
+
   
+
+
+
+
+
+
   nsresult Render(gfxASurface** aOutput);
+
+  
+
+
+
+
+
+
   nsresult ComputeOutputDirtyRect(nsIntRect* aDirty);
+
+  
+
+
+
+
+
+
   nsresult ComputeSourceNeededRect(nsIntRect* aDirty);
+
+  
+
+
+
+
   nsresult ComputeOutputBBox(nsIntRect* aBBox);
 
   float GetPrimitiveNumber(PRUint8 aCtxType, const nsSVGNumber2 *aNumber) const
@@ -118,6 +196,7 @@ public:
   {
     return GetPrimitiveNumber(aCtxType, aNumberPair->GetAnimValue(aIndex));
   }
+
   
 
 
@@ -125,10 +204,19 @@ public:
 
   void ConvertLocation(float aValues[3]) const;
 
+  
+
+
+
   gfxMatrix GetUserSpaceToFilterSpaceTransform() const;
+
+  
+
+
   gfxMatrix GetFilterSpaceToDeviceSpaceTransform() const {
     return mFilterSpaceToDeviceSpaceTransform;
   }
+
   gfxPoint FilterSpaceToUserSpace(const gfxPoint& aPt) const;
 
 private:
@@ -136,19 +224,50 @@ private:
   typedef nsSVGFE::ColorModel ColorModel;
 
   struct PrimitiveInfo {
+    
     nsSVGFE*  mFE;
+
     
-    
+
+
+
+
+
+
     nsIntRect mResultBoundingBox;
+
     
-    
-    
+
+
+
+
+
+
+
+
+
+
     nsIntRect mResultNeededBox;
+
     
-    
-    
+
+
+
+
+
+
+
     nsIntRect mResultChangeBox;
+
     Image     mImage;
+
+    
+
+
+
+
+
+
     PRInt32   mImageUsers;
   
     
@@ -168,27 +287,76 @@ private:
     PrimitiveInfo* mInfo;
   };
 
+  
+
+
+
+
   nsresult BuildSources();
+
   
-  nsresult BuildPrimitives();
-  
-  void ComputeResultBoundingBoxes();
-  
-  
-  void ComputeNeededBoxes();
-  
-  
-  void ComputeResultChangeBoxes();
-  nsIntRect ComputeUnionOfAllNeededBoxes();
+
+
+
+
+
   nsresult BuildSourceImages();
 
   
+
+
+
+
+
+  nsresult BuildPrimitives();
+
   
+
+
+
+
+
+
+  void ComputeResultBoundingBoxes();
+
   
+
+
+
+
+   void ComputeNeededBoxes();
+
   
+
+
+
+
+  void ComputeResultChangeBoxes();
+
+  
+
+
+
+
+  nsIntRect ComputeUnionOfAllNeededBoxes();
+
+  
+
+
+
+
   already_AddRefed<gfxImageSurface> CreateImage();
 
+  
+
+
   void ComputeFilterPrimitiveSubregion(PrimitiveInfo* aInfo);
+
+  
+
+
+
+
   void EnsureColorModel(PrimitiveInfo* aPrimitive,
                         ColorModel aColorModel);
 
@@ -199,26 +367,58 @@ private:
   float GetPrimitiveNumber(PRUint8 aCtxType, float aValue) const;
 
   gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
+
+  
+
+
   void ClipToFilterSpace(nsIntRect* aRect) const
   {
     nsIntRect filterSpace(nsIntPoint(0, 0), mFilterSpaceSize);
     aRect->IntersectRect(*aRect, filterSpace);
   }
-  void ClipToGfxRect(nsIntRect* aRect, const gfxRect& aGfx) const;
+
+  
+
 
   nsIFrame*               mTargetFrame;
+
   nsSVGFilterPaintCallback* mPaintCallback;
   const nsSVGFilterElement* mFilterElement;
+
   
+
+
   gfxRect                 mTargetBBox;
+
   gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
   gfxRect                 mFilterRect;
   nsIntSize               mFilterSpaceSize;
-  
-  nsIntRect               mTargetBounds;
-  nsIntRect               mDirtyOutputRect;
-  nsIntRect               mDirtyInputRect;
   nsIntRect               mSurfaceRect;
+
+  
+
+
+
+  nsIntRect               mTargetBounds;
+
+  
+
+
+
+
+  nsIntRect               mDirtyOutputRect;
+
+  
+
+
+
+
+
+  nsIntRect               mDirtyInputRect;
+
+  
+
+
   PRUint16                mPrimitiveUnits;
 
   PrimitiveInfo           mSourceColorAlpha;

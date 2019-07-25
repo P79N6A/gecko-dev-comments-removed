@@ -100,7 +100,7 @@ public:
                        const nsIntRect *aDirtyOutputRect,
                        const nsIntRect *aDirtyInputRect,
                        const nsIntRect *aOverrideSourceBBox);
-  ~nsAutoFilterInstance();
+  ~nsAutoFilterInstance() {}
 
   
   
@@ -108,9 +108,6 @@ public:
 
 private:
   nsAutoPtr<nsSVGFilterInstance> mInstance;
-  
-  
-  nsISVGChildFrame*              mTarget;
 };
 
 nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
@@ -120,8 +117,6 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
                                            const nsIntRect *aDirtyInputRect,
                                            const nsIntRect *aOverrideSourceBBox)
 {
-  mTarget = do_QueryFrame(aTarget);
-
   const nsSVGFilterElement *filter = aFilterFrame->GetFilterContent();
 
   PRUint16 filterUnits =
@@ -245,10 +240,6 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
                                       filterToDeviceSpace, targetBoundsFilterSpace,
                                       dirtyOutputRect, dirtyInputRect,
                                       primitiveUnits);
-}
-
-nsAutoFilterInstance::~nsAutoFilterInstance()
-{
 }
 
 PRUint16
