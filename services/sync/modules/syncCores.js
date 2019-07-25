@@ -179,7 +179,7 @@ SyncCore.prototype = {
     for (let i = 0; i < list.length; i++) {
       if (!list[i])
         continue;
-      if (list[i].data.parentGUID == oldGUID)
+      if (list[i].data && list[i].data.parentGUID == oldGUID)
         list[i].data.parentGUID = newGUID;
       for (let j = 0; j < list[i].parents.length; j++) {
         if (list[i].parents[j] == oldGUID)
@@ -227,83 +227,76 @@ SyncCore.prototype = {
     this._log.debug("Reconciling " + listA.length +
 		    " against " + listB.length + "commands");
 
-    try {
-      let guidChanges = [];
-      for (let i = 0; i < listA.length; i++) {
-	let a = listA[i];
+    let guidChanges = [];
+    for (let i = 0; i < listA.length; i++) {
+      let a = listA[i];
+      timer.initWithCallback(listener, 0, timer.TYPE_ONE_SHOT);
+      yield; 
+
+      
+
+      let skip = false;
+      listB = listB.filter(function(b) {
+        
+        if (skip)
+          return true;
+
+        if (Utils.deepEquals(a, b)) {
+          delete listA[i]; 
+          skip = true;
+          return false; 
+
+        } else if (this._commandLike(a, b)) {
+          this._fixParents(listA, a.GUID, b.GUID);
+          guidChanges.push({action: "edit",
+      		      GUID: a.GUID,
+      		      data: {GUID: b.GUID}});
+          delete listA[i]; 
+          skip = true;
+          return false; 
+        }
+
+        
+        if (b.action == "create" && this._itemExists(b.GUID)) {
+          this._log.error("Remote command has GUID that already exists " +
+                          "locally. Dropping command.");
+          return false; 
+        }
+        return true; 
+      }, this);
+    }
+
+    listA = listA.filter(function(elt) { return elt });
+    listB = guidChanges.concat(listB);
+
+    for (let i = 0; i < listA.length; i++) {
+      for (let j = 0; j < listB.length; j++) {
+
         timer.initWithCallback(listener, 0, timer.TYPE_ONE_SHOT);
         yield; 
 
-	
-
-	let skip = false;
-	listB = listB.filter(function(b) {
-	  
-	  if (skip)
-	    return true;
-
-          if (Utils.deepEquals(a, b)) {
-            delete listA[i]; 
-	    skip = true;
-	    return false; 
-
-          } else if (this._commandLike(a, b)) {
-            this._fixParents(listA, a.GUID, b.GUID);
-	    guidChanges.push({action: "edit",
-			      GUID: a.GUID,
-			      data: {GUID: b.GUID}});
-            delete listA[i]; 
-	    skip = true;
-	    return false; 
-          }
-  
-          
-          if (b.action == "create" && this._itemExists(b.GUID)) {
-            this._log.error("Remote command has GUID that already exists " +
-                            "locally. Dropping command.");
-	    return false; 
-          }
-	  return true; 
-        }, this);
-      }
-  
-      listA = listA.filter(function(elt) { return elt });
-      listB = guidChanges.concat(listB);
-  
-      for (let i = 0; i < listA.length; i++) {
-        for (let j = 0; j < listB.length; j++) {
-
-          timer.initWithCallback(listener, 0, timer.TYPE_ONE_SHOT);
-          yield; 
-  
-          if (this._conflicts(listA[i], listB[j]) ||
-              this._conflicts(listB[j], listA[i])) {
-            if (!conflicts[0].some(
-              function(elt) { return elt.GUID == listA[i].GUID }))
-              conflicts[0].push(listA[i]);
-            if (!conflicts[1].some(
-              function(elt) { return elt.GUID == listB[j].GUID }))
-              conflicts[1].push(listB[j]);
-          }
+        if (this._conflicts(listA[i], listB[j]) ||
+            this._conflicts(listB[j], listA[i])) {
+          if (!conflicts[0].some(
+            function(elt) { return elt.GUID == listA[i].GUID }))
+            conflicts[0].push(listA[i]);
+          if (!conflicts[1].some(
+            function(elt) { return elt.GUID == listB[j].GUID }))
+            conflicts[1].push(listB[j]);
         }
       }
-  
-      this._getPropagations(listA, conflicts[0], propagations[1]);
-  
-      timer.initWithCallback(listener, 0, timer.TYPE_ONE_SHOT);
-      yield; 
-  
-      this._getPropagations(listB, conflicts[1], propagations[0]);
-      ret = {propagations: propagations, conflicts: conflicts};
-
-    } catch (e) {
-      this._log.error("Exception caught: " + (e.message? e.message : e) +
-                      " - " + (e.location? e.location : "_reconcile"));
-
-    } finally {
-      timer = null;
-      self.done(ret);
     }
+
+    this._getPropagations(listA, conflicts[0], propagations[1]);
+
+    timer.initWithCallback(listener, 0, timer.TYPE_ONE_SHOT);
+    yield; 
+
+    this._getPropagations(listB, conflicts[1], propagations[0]);
+    ret = {propagations: propagations, conflicts: conflicts};
+
+    timer = null;
+    self.done(ret);
   },
 
   
@@ -335,7 +328,27 @@ BookmarksSyncCore.prototype = {
     return this._bms.getItemIdForGUID(GUID) >= 0;
   },
 
-  _commandLike: function BSC_commandLike(a, b) {
+  _getEdits: function BSC__getEdits(a, b) {
+    
+    
+    let ret = SyncCore.prototype._getEdits.call(this, a, b);
+    ret.props.type = a.type;
+    return ret;
+  },
+
+  
+  
+  
+  
+  _comp: function BSC__comp(a, b, prop) {
+    return (!a.data[prop] && !b.data[prop]) ||
+      (a.data[prop] && b.data[prop] && (a.data[prop] == b.data[prop]));
+  },
+
+  _commandLike: function BSC__commandLike(a, b) {
+    
+    
+    
     
     
     
@@ -346,10 +359,11 @@ BookmarksSyncCore.prototype = {
     
     
     if (!a || !b ||
-       a.action != b.action ||
-       a.data.type != b.data.type ||
-       a.data.parentGUID != b.data.parentGUID ||
-       a.GUID == b.GUID)
+        a.action != b.action ||
+        a.action != "create" ||
+        a.data.type != b.data.type ||
+        a.data.parentGUID != b.data.parentGUID ||
+        a.GUID == b.GUID)
       return false;
 
     
@@ -357,33 +371,33 @@ BookmarksSyncCore.prototype = {
     
     switch (a.data.type) {
     case "bookmark":
-      if (a.data.URI == b.data.URI &&
-          a.data.title == b.data.title)
+      if (this._comp(a, b, 'URI') &&
+          this._comp(a, b, 'title'))
         return true;
       return false;
     case "query":
-      if (a.data.URI == b.data.URI &&
-          a.data.title == b.data.title)
+      if (this._comp(a, b, 'URI') &&
+          this._comp(a, b, 'title'))
         return true;
       return false;
     case "microsummary":
-      if (a.data.URI == b.data.URI &&
-          a.data.generatorURI == b.data.generatorURI)
+      if (this._comp(a, b, 'URI') &&
+          this._comp(a, b, 'generatorURI'))
         return true;
       return false;
     case "folder":
-      if (a.index == b.index &&
-          a.data.title == b.data.title)
+      if (this._comp(a, b, 'index') &&
+          this._comp(a, b, 'title'))
         return true;
       return false;
     case "livemark":
-      if (a.data.title == b.data.title &&
-          a.data.siteURI == b.data.siteURI &&
-          a.data.feedURI == b.data.feedURI)
+      if (this._comp(a, b, 'title') &&
+          this._comp(a, b, 'siteURI') &&
+          this._comp(a, b, 'feedURI'))
         return true;
       return false;
     case "separator":
-      if (a.index == b.index)
+      if (this._comp(a, b, 'index'))
         return true;
       return false;
     default:
@@ -415,8 +429,6 @@ HistorySyncCore.prototype = {
   }
 };
 HistorySyncCore.prototype.__proto__ = new SyncCore();
-
-
 
 
 function CookiesSyncCore() {
