@@ -1267,12 +1267,25 @@ public:
 
   void RootForgetUpdatePluginGeometryFrame(nsIFrame* aFrame);
 
+  
+
+
+
+
+  void IncrementDOMGeneration() { mDOMGeneration++; }
+
+  
+
+
+  PRUint32 GetDOMGeneration() { return mDOMGeneration; }
+
 private:
   nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;
   
   
   
   nsIFrame* mUpdatePluginGeometryForFrame;
+  PRUint32 mDOMGeneration;
   PRPackedBool mNeedsToUpdatePluginGeometry;
 };
 

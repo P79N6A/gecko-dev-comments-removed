@@ -49,6 +49,7 @@ class nsDisplayListBuilder;
 class nsDisplayList;
 class nsDisplayItem;
 class gfxContext;
+class nsRootPresContext;
 
 namespace mozilla {
 
@@ -97,12 +98,15 @@ public:
 
   FrameLayerBuilder() :
     mRetainingManager(nsnull),
+    mDetectedDOMModification(PR_FALSE),
     mInvalidateAllThebesContent(PR_FALSE),
     mInvalidateAllLayers(PR_FALSE)
   {
     mNewDisplayItemData.Init();
     mThebesLayerItems.Init();
   }
+
+  void Init(nsDisplayListBuilder* aBuilder);
 
   
 
@@ -415,7 +419,18 @@ protected:
 
 
 
+
+  PRBool CheckDOMModified();
+
+  
+
+
+
   LayerManager*                       mRetainingManager;
+  
+
+
+  nsRootPresContext*                  mRootPresContext;
   
 
 
@@ -426,6 +441,15 @@ protected:
 
 
   nsTHashtable<ThebesLayerItemsEntry> mThebesLayerItems;
+  
+
+
+  PRUint32                            mInitialDOMGeneration;
+  
+
+
+
+  PRPackedBool                        mDetectedDOMModification;
   
 
 
