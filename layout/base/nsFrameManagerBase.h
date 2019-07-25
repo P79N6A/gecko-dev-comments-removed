@@ -53,6 +53,8 @@ public:
     mRootFrame = aRootFrame;
   }
 
+  static PRUint32 GetGlobalGenerationNumber() { return sGlobalGenerationNumber; }
+
 protected:
   class UndisplayedMap;
 
@@ -64,6 +66,16 @@ protected:
   PLDHashTable                    mPlaceholderMap;
   UndisplayedMap*                 mUndisplayedMap;
   bool                            mIsDestroyingFrames;  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  static PRUint32                 sGlobalGenerationNumber;
 };
 
 #endif

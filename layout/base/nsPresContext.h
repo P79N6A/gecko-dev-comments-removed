@@ -1351,6 +1351,9 @@ public:
   
 
 
+
+
+
   PRUint32 GetDOMGeneration() { return mDOMGeneration; }
 
   
