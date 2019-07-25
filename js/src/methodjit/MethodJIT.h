@@ -320,7 +320,7 @@ enum RejoinState {
     REJOIN_BRANCH,
 
     
-    REJOIN_FINISH_FRAME
+    REJOIN_RUN_TRACER
 };
 
 
@@ -463,6 +463,9 @@ class JaegerCompartment {
 
     Vector<StackFrame *, 8, SystemAllocPolicy> orphanedNativeFrames;
     Vector<JSC::ExecutablePool *, 8, SystemAllocPolicy> orphanedNativePools;
+
+    
+    bool finishingTracer;
 };
 
 

@@ -235,10 +235,9 @@ enum InterpMode
 {
     JSINTERP_NORMAL    = 0, 
     JSINTERP_RECORD    = 1, 
-    JSINTERP_SAFEPOINT = 2, 
-    JSINTERP_PROFILE   = 3, 
-    JSINTERP_REJOIN    = 4, 
-    JSINTERP_SKIP_TRAP = 5  
+    JSINTERP_PROFILE   = 2, 
+    JSINTERP_REJOIN    = 3, 
+    JSINTERP_SKIP_TRAP = 4  
 };
 
 
