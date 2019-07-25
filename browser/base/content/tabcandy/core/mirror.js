@@ -189,18 +189,27 @@ TabMirror.prototype = {
     var self = this;
     
     
-    Tabs.onOpen(function() {
-
+    Tabs.onOpen(function() { 
+      var tab = this;
+      setTimeout(function() { 
+        self.update(tab);
+      }, 1);
     });
 
     
     Tabs.onReady( function(evt){
-      self.update(evt.tab);
+      var tab = evt.tab;
+      setTimeout(function() { 
+        self.update(tab);
+      }, 1);
     });
     
     
     Tabs.onClose( function(){
-      self.unlink(this);
+      var tab = this;
+      setTimeout(function() { 
+        self.unlink(tab);
+      }, 1);
     });
     
     

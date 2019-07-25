@@ -246,18 +246,20 @@ window.Page = {
     this.setupKeyHandlers();
         
     Tabs.onClose(function(){
-      
-      
-      var group = Groups.getActiveGroup();
-      if( group && group._children.length == 0 )
-        Page.show();
-
-      
-      
-      
-      if( group == null && Tabbar.getVisibleTabs().length == 0){
-        Page.show();
-      }
+      setTimeout(function() { 
+        
+        
+        var group = Groups.getActiveGroup();
+        if( group && group._children.length == 0 )
+          Page.show();
+  
+        
+        
+        
+        if( group == null && Tabbar.getVisibleTabs().length == 0){
+          Page.show();
+        }
+      }, 1);
 
       return false;
     });
@@ -491,22 +493,26 @@ function UIClass(){
   }
   
   Tabs.onFocus(function() {
-    try{
-      if(this.contentWindow.location.host == "tabcandy") {
-        self.focused = true;
-        self.navBar.hide();
-        self.tabBar.hide();
-      } else {
-        self.focused = false;
-        self.navBar.show();      
+    setTimeout(function() { 
+      try{
+        if(this.contentWindow.location.host == "tabcandy") {
+          self.focused = true;
+          self.navBar.hide();
+          self.tabBar.hide();
+        } else {
+          self.focused = false;
+          self.navBar.show();      
+        }
+      }catch(e){
+        Utils.log()
       }
-    }catch(e){
-      Utils.log()
-    }
+    }, 1);
   });
 
   Tabs.onOpen(function(a, b) {
-    self.navBar.show();
+    setTimeout(function() { 
+      self.navBar.show();
+    }, 1);
   });
 
   
@@ -531,7 +537,8 @@ function UIClass(){
     if(self.initialized) 
       self.save();
       
-    self.tabBar.show();    
+    self.navBar.show();
+    self.tabBar.show(false);    
     self.tabBar.showAllTabs();
   });
   
