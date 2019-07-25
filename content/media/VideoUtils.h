@@ -130,18 +130,12 @@ PRBool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
 
 
 
-PRBool SamplesToUsecs(PRInt64 aSamples, PRUint32 aRate, PRInt64& aOutUsecs);
+PRBool SamplesToMs(PRInt64 aSamples, PRUint32 aRate, PRInt64& aOutMs);
 
 
 
 
 
-PRBool UsecsToSamples(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutSamples);
-
-
-#define USECS_PER_S 1000000
-
-
-#define USECS_PER_MS 1000
+PRBool MsToSamples(PRInt64 aMs, PRUint32 aRate, PRInt64& aOutSamples);
 
 #endif

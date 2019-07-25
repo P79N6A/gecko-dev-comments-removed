@@ -251,7 +251,7 @@ protected:
 
   
   
-  PRBool HasLowDecodedData(PRInt64 aAudioUsecs) const;
+  PRBool HasLowDecodedData(PRInt64 aAudioMs) const;
 
   
   
@@ -265,7 +265,7 @@ protected:
   
   
   
-  PRInt64 AudioDecodedUsecs() const;
+  PRInt64 AudioDecodedMs() const;
 
   
   
@@ -280,7 +280,7 @@ protected:
   
   
   
-  void Wait(PRInt64 aUsecs);
+  void Wait(PRInt64 aMs);
 
   
   void UpdateReadyState();
@@ -330,8 +330,7 @@ protected:
   
   
   
-  PRUint32 PlaySilence(PRUint32 aSamples,
-                       PRUint32 aChannels,
+  PRUint32 PlaySilence(PRUint32 aSamples, PRUint32 aChannels,
                        PRUint64 aSampleOffset);
 
   
@@ -427,7 +426,7 @@ protected:
   
   
   
-  PRInt64 mPlayDuration;
+  TimeDuration mPlayDuration;
 
   
   
@@ -466,7 +465,6 @@ protected:
   
   PRInt64 mCurrentFrameTime;
 
-  
   
   
   
