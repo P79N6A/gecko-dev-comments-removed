@@ -107,7 +107,7 @@ nsProgressFrame::DestroyFrom(nsIFrame* aDestructRoot)
 }
 
 nsresult
-nsProgressFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
+nsProgressFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
   
   nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
