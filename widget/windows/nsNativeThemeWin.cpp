@@ -78,6 +78,9 @@ using namespace mozilla::widget;
 extern PRLogModuleInfo* gWindowsLog;
 #endif
 
+
+#define DEFAULT_ANIMATION_FPS 30
+
 NS_IMPL_ISUPPORTS_INHERITED1(nsNativeThemeWin, nsNativeTheme, nsITheme)
 
 static inline bool IsHTMLContent(nsIFrame *frame)
@@ -223,6 +226,193 @@ static SIZE GetGutterSize(HANDLE theme, HDC hdc)
     ret.cx = width;
     ret.cy = height;
     return ret;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool
+RenderThemedAnimationFrame(gfxContext* aCtx,
+                           gfxWindowsNativeDrawing* aNative,
+                           HANDLE aTheme, HDC aHdc,
+                           int aPartsList[], int aPartCount,
+                           int aBaseState, int aAlphaState,
+                           double aAlpha,
+                           const gfxRect& aDRect, const gfxRect& aDDirtyRect,
+                           const RECT& aWRect, const RECT& aWDirtyRect)
+{
+  NS_ASSERTION(aPartCount > 0, "Bad parts array.");
+  NS_ASSERTION(aCtx, "Bad context.");
+  NS_ASSERTION(aNative, "Bad native pointer.");
+
+#if 0
+  printf("rect:(%d %d %d %d) dirty:(%d %d %d %d) alpha=%f\n",
+  aWRect.left, aWRect.top, aWRect.right, aWRect.bottom,
+  aWDirtyRect.left, aWDirtyRect.top, aWDirtyRect.right, aWDirtyRect.bottom,
+  aAlpha);
+#endif
+
+  
+  
+  bool backBufferInUse = aNative->IsDoublePass();
+
+  nsRefPtr<gfxContext> paintCtx;
+  if (backBufferInUse) {
+    
+    
+    
+    nsRefPtr<gfxASurface> currentSurf = aNative->GetCurrentSurface();
+    NS_ENSURE_TRUE(currentSurf, false);
+
+    
+    paintCtx = new gfxContext(currentSurf);
+    NS_ENSURE_TRUE(paintCtx, false);
+  } else {
+    
+    paintCtx = aCtx;
+  }
+
+  int width = aWDirtyRect.right - aWDirtyRect.left;
+  int height = aWDirtyRect.bottom - aWDirtyRect.top;
+
+  RECT surfaceDrawRect = { 0, 0, width, height }; 
+
+  
+  nsRefPtr<gfxWindowsSurface> surfBase =
+    new gfxWindowsSurface(gfxIntSize(width, height),
+                          gfxASurface::ImageFormatRGB24);
+  NS_ENSURE_TRUE(surfBase, false);
+
+  
+  
+  if (backBufferInUse) {
+    
+    if (!aNative->IsSecondPass()) {
+      FillRect(surfBase->GetDC(), &surfaceDrawRect,
+               (HBRUSH)GetStockObject(BLACK_BRUSH));
+    } else {
+      FillRect(surfBase->GetDC(), &surfaceDrawRect,
+               (HBRUSH)GetStockObject(WHITE_BRUSH));
+    }
+  } else {
+    
+    BitBlt(surfBase->GetDC(), 0, 0, width, height, aHdc, aWDirtyRect.left,
+           aWDirtyRect.top, SRCCOPY);
+  }
+
+  
+  for (int idx = 0; idx < aPartCount; idx++) {
+    DrawThemeBackground(aTheme, surfBase->GetDC(), aPartsList[idx],
+                        aBaseState, &surfaceDrawRect, &surfaceDrawRect);
+  }
+
+  
+  nsRefPtr<gfxWindowsSurface> surfAlpha =
+    new gfxWindowsSurface(gfxIntSize(width, height),
+                          gfxASurface::ImageFormatRGB24);
+  NS_ENSURE_TRUE(surfAlpha, false);
+
+  if (backBufferInUse) {
+    if (!aNative->IsSecondPass()) {
+      FillRect(surfAlpha->GetDC(), &surfaceDrawRect,
+               (HBRUSH)GetStockObject(BLACK_BRUSH));
+    } else {
+      FillRect(surfAlpha->GetDC(), &surfaceDrawRect,
+               (HBRUSH)GetStockObject(WHITE_BRUSH));
+    }
+  } else {
+    BitBlt(surfAlpha->GetDC(), 0, 0, width, height, aHdc, aWDirtyRect.left,
+           aWDirtyRect.top, SRCCOPY);
+  }
+
+  
+  for (int idx = 0; idx < aPartCount; idx++) {
+    DrawThemeBackground(aTheme, surfAlpha->GetDC(), aPartsList[idx],
+                        aAlphaState, &surfaceDrawRect, &surfaceDrawRect);
+ }
+
+  
+  nsRefPtr<gfxImageSurface> imageBase = surfBase->GetAsImageSurface();
+  nsRefPtr<gfxImageSurface> imageAlpha = surfAlpha->GetAsImageSurface();
+  NS_ENSURE_TRUE(imageBase, false);
+  NS_ENSURE_TRUE(imageAlpha, false);
+
+  gfxContext::GraphicsOperator currentOp = paintCtx->CurrentOperator();
+  paintCtx->Save();
+  paintCtx->ResetClip();
+  if (!backBufferInUse) {
+    
+    
+    
+    
+    gfxRect roundedRect = aDDirtyRect;
+    roundedRect.Round();
+    paintCtx->Clip(roundedRect);
+    paintCtx->Translate(roundedRect.TopLeft());
+  }
+  paintCtx->SetOperator(gfxContext::OPERATOR_SOURCE);
+  paintCtx->SetSource(imageBase);
+  paintCtx->Paint();
+  paintCtx->SetOperator(gfxContext::OPERATOR_OVER);
+  paintCtx->SetSource(imageAlpha);
+  paintCtx->Paint(aAlpha);
+  paintCtx->Restore();
+  paintCtx->SetOperator(currentOp);
+
+  return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+nsNativeThemeWin::QueueAnimation(gfxWindowsNativeDrawing* aNativeDrawing,
+                                 nsIContent* aContent, FadeState aDirection,
+                                 DWORD aDuration, PRUint32 aUserValue)
+{
+  NS_ASSERTION(aNativeDrawing, "bad draw pointer");
+  NS_ASSERTION(aContent, "bad content pointer");
+  NS_ASSERTION((aDirection == FADE_IN ||
+                aDirection == FADE_OUT), "bad direction");
+  
+  
+  
+  
+  
+  if (!aNativeDrawing->IsDoublePass() || aNativeDrawing->IsSecondPass())
+    QueueAnimatedContentRefreshForFade(aContent, aDirection,
+      DEFAULT_ANIMATION_FPS, aDuration, aUserValue);
 }
 
 static HRESULT DrawThemeBGRTLAware(HANDLE theme, HDC hdc, int part, int state,

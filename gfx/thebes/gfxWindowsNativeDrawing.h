@@ -115,6 +115,13 @@ public:
     bool IsDoublePass();
 
     
+
+    bool IsSecondPass();
+
+    
+    gfxWindowsSurface* GetCurrentSurface();
+
+    
     void PaintToContext();
 
 private:
