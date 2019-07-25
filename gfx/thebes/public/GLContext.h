@@ -158,6 +158,13 @@ public:
 
     virtual PRBool Resize(const gfxIntSize& aNewSize) { return PR_FALSE; }
 
+    
+
+
+
+
+    virtual PRBool SwapBuffers() { return PR_FALSE; }
+
 protected:
 
     PRBool mInitialized;

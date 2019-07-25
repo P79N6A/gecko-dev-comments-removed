@@ -509,7 +509,13 @@ LayerManagerOGL::Render()
 
   DEBUG_GL_ERROR_CHECK(mGLContext);
 
-  mGLContext->fFinish();
+  
+  
+  
+  
+  if (!mGLContext->SwapBuffers()) {
+    mGLContext->fFlush();
+  } 
 
   DEBUG_GL_ERROR_CHECK(mGLContext);
 }
