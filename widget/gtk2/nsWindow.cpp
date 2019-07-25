@@ -467,56 +467,6 @@ nsWindow::CommonCreate(nsIWidget *aParent, bool aListenForResizes)
 }
 
 void
-nsWindow::InitKeyEvent(nsKeyEvent &aEvent, GdkEventKey *aGdkEvent)
-{
-    aEvent.keyCode   = KeymapWrapper::ComputeDOMKeyCode(aGdkEvent->keyval);
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    guint modifierState = aGdkEvent->state;
-    guint changingMask = 0;
-    switch (aEvent.keyCode) {
-        case NS_VK_SHIFT:
-            changingMask = GDK_SHIFT_MASK;
-            break;
-        case NS_VK_CONTROL:
-            changingMask = GDK_CONTROL_MASK;
-            break;
-        case NS_VK_ALT:
-            changingMask = GDK_MOD1_MASK;
-            break;
-        case NS_VK_META:
-            changingMask = GDK_MOD4_MASK;
-            break;
-    }
-    if (changingMask != 0) {
-        
-        if (aGdkEvent->type == GDK_KEY_PRESS) {
-            
-            modifierState |= changingMask;
-        } else {
-            
-            
-        }
-    }
-    KeymapWrapper::InitInputEvent(aEvent, modifierState);
-
-    
-    
-    
-    
-    aEvent.pluginEvent = (void *)aGdkEvent;
-
-    aEvent.time      = aGdkEvent->time;
-}
-
-void
 nsWindow::DispatchResizeEvent(nsIntRect &aRect, nsEventStatus &aStatus)
 {
     nsSizeEvent event(true, NS_SIZE, this);
@@ -2968,49 +2918,6 @@ nsWindow::DispatchContentCommandEvent(PRInt32 aMsg)
   return TRUE;
 }
 
-static PRUint32
-GetCharCodeFor(const GdkEventKey *aEvent, guint aShiftState,
-               gint aGroup)
-{
-    guint keyval;
-    GdkKeymap *keymap = gdk_keymap_get_default();
-
-    if (gdk_keymap_translate_keyboard_state(keymap, aEvent->hardware_keycode,
-                                            GdkModifierType(aShiftState),
-                                            aGroup,
-                                            &keyval, NULL, NULL, NULL)) {
-        GdkEventKey tmpEvent = *aEvent;
-        tmpEvent.state = guint(aShiftState);
-        tmpEvent.keyval = keyval;
-        tmpEvent.group = aGroup;
-        return nsConvertCharCodeToUnicode(&tmpEvent);
-    }
-    return 0;
-}
-
-static gint
-GetKeyLevel(GdkEventKey *aEvent)
-{
-    gint level;
-    GdkKeymap *keymap = gdk_keymap_get_default();
-
-    if (!gdk_keymap_translate_keyboard_state(keymap,
-                                             aEvent->hardware_keycode,
-                                             GdkModifierType(aEvent->state),
-                                             aEvent->group,
-                                             NULL, NULL, &level, NULL))
-        return -1;
-    return level;
-}
-
-static bool
-IsBasicLatinLetterOrNumeral(PRUint32 aChar)
-{
-    return (aChar >= 'a' && aChar <= 'z') ||
-           (aChar >= 'A' && aChar <= 'Z') ||
-           (aChar >= '0' && aChar <= '9');
-}
-
 static bool
 IsCtrlAltTab(GdkEventKey *aEvent)
 {
@@ -3032,7 +2939,7 @@ nsWindow::DispatchKeyDownEvent(GdkEventKey *aEvent, bool *aCancelled)
     
     nsEventStatus status;
     nsKeyEvent downEvent(true, NS_KEY_DOWN, this);
-    InitKeyEvent(downEvent, aEvent);
+    KeymapWrapper::InitKeyEvent(downEvent, aEvent);
     DispatchEvent(&downEvent, status);
     *aCancelled = (status == nsEventStatus_eConsumeNoDefault);
     return true;
@@ -3137,88 +3044,10 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
 #endif 
 
     nsKeyEvent event(true, NS_KEY_PRESS, this);
-    InitKeyEvent(event, aEvent);
+    KeymapWrapper::InitKeyEvent(event, aEvent);
     if (isKeyDownCancelled) {
       
       event.flags |= NS_EVENT_FLAG_NO_DEFAULT;
-    }
-    event.charCode = nsConvertCharCodeToUnicode(aEvent);
-    if (event.charCode) {
-        event.keyCode = 0;
-        gint level = GetKeyLevel(aEvent);
-        if ((event.isControl || event.isAlt || event.isMeta) &&
-            (level == 0 || level == 1)) {
-            guint baseState =
-                aEvent->state & ~(GDK_SHIFT_MASK | GDK_CONTROL_MASK |
-                                  GDK_MOD1_MASK | GDK_MOD4_MASK);
-            
-            
-            
-            
-            nsAlternativeCharCode altCharCodes(0, 0);
-            
-            altCharCodes.mUnshiftedCharCode =
-                GetCharCodeFor(aEvent, baseState, aEvent->group);
-            bool isLatin = (altCharCodes.mUnshiftedCharCode <= 0xFF);
-            
-            altCharCodes.mShiftedCharCode =
-                GetCharCodeFor(aEvent, baseState | GDK_SHIFT_MASK,
-                               aEvent->group);
-            isLatin = isLatin && (altCharCodes.mShiftedCharCode <= 0xFF);
-            if (altCharCodes.mUnshiftedCharCode ||
-                altCharCodes.mShiftedCharCode) {
-                event.alternativeCharCodes.AppendElement(altCharCodes);
-            }
-
-            if (!isLatin) {
-                
-                GdkKeymapKey *keys;
-                gint count;
-                gint minGroup = -1;
-                if (gdk_keymap_get_entries_for_keyval(NULL, GDK_a,
-                                                      &keys, &count)) {
-                    
-                    for (gint i = 0; i < count && minGroup != 0; ++i) {
-                        if (keys[i].level != 0 && keys[i].level != 1)
-                            continue;
-                        if (minGroup >= 0 && keys[i].group > minGroup)
-                            continue;
-                        minGroup = keys[i].group;
-                    }
-                    g_free(keys);
-                }
-                if (minGroup >= 0) {
-                    PRUint32 unmodifiedCh =
-                               event.isShift ? altCharCodes.mShiftedCharCode :
-                                               altCharCodes.mUnshiftedCharCode;
-                    
-                    PRUint32 ch =
-                        GetCharCodeFor(aEvent, baseState, minGroup);
-                    altCharCodes.mUnshiftedCharCode =
-                        IsBasicLatinLetterOrNumeral(ch) ? ch : 0;
-                    
-                    ch = GetCharCodeFor(aEvent, baseState | GDK_SHIFT_MASK,
-                                        minGroup);
-                    altCharCodes.mShiftedCharCode =
-                        IsBasicLatinLetterOrNumeral(ch) ? ch : 0;
-                    if (altCharCodes.mUnshiftedCharCode ||
-                        altCharCodes.mShiftedCharCode) {
-                        event.alternativeCharCodes.AppendElement(altCharCodes);
-                    }
-                    
-                    
-                    
-                    
-                    
-                    ch = event.isShift ? altCharCodes.mShiftedCharCode :
-                                         altCharCodes.mUnshiftedCharCode;
-                    if (ch && !(event.isAlt || event.isMeta) &&
-                        event.charCode == unmodifiedCh) {
-                        event.charCode = ch;
-                    }
-                }
-            }
-        }
     }
 
     
@@ -3271,7 +3100,7 @@ nsWindow::OnKeyReleaseEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
 
     
     nsKeyEvent event(true, NS_KEY_UP, this);
-    InitKeyEvent(event, aEvent);
+    KeymapWrapper::InitKeyEvent(event, aEvent);
 
     nsEventStatus status;
     DispatchEvent(&event, status);

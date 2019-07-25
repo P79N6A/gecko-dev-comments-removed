@@ -44,8 +44,6 @@
 
 #include <gdk/gdk.h>
 
-PRUint32 nsConvertCharCodeToUnicode (GdkEventKey* aEvent);
-
 namespace mozilla {
 namespace widget {
 
@@ -124,6 +122,16 @@ public:
 
     static void InitInputEvent(nsInputEvent& aInputEvent,
                                guint aModifierState);
+
+    
+
+
+
+
+
+
+
+    static void InitKeyEvent(nsKeyEvent& aKeyEvent, GdkEventKey* aGdkKeyEvent);
 
 protected:
 
@@ -226,6 +234,53 @@ protected:
     static void OnKeysChanged(GdkKeymap* aKeymap, KeymapWrapper* aKeymapWrapper);
     static void OnDestroyKeymap(KeymapWrapper* aKeymapWrapper,
                                 GdkKeymap *aGdkKeymap);
+
+    
+
+
+
+
+
+
+
+
+
+
+    static PRUint32 GetCharCodeFor(const GdkEventKey *aGdkKeyEvent);
+    PRUint32 GetCharCodeFor(const GdkEventKey *aGdkKeyEvent,
+                            guint aModifierState,
+                            gint aGroup);
+
+    
+
+
+
+
+
+
+    gint GetKeyLevel(GdkEventKey *aGdkKeyEvent);
+
+    
+
+
+
+
+
+
+
+    static PRBool IsBasicLatinLetterOrNumeral(PRUint32 aCharCode);
+
+    
+
+
+
+
+
+
+
+
+
+    void InitKeypressEvent(nsKeyEvent& aKeyEvent, GdkEventKey* aGdkKeyEvent);
 };
 
 } 
