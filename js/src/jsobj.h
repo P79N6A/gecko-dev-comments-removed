@@ -2300,6 +2300,21 @@ template <typename T>
 inline bool
 BoxedPrimitiveMethodGuard(JSContext *cx, CallArgs args, T *v, bool *ok);
 
+
+
+
+
+enum ESClassValue { ESClass_Array, ESClass_Number, ESClass_String, ESClass_Boolean };
+
+
+
+
+
+
+
+inline bool
+ObjectClassIs(JSObject &obj, ESClassValue classValue, JSContext *cx);
+
 }  
 
 #endif 
