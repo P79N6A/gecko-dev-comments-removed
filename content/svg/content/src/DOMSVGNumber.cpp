@@ -1,0 +1,190 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "DOMSVGNumber.h"
+#include "DOMSVGNumberList.h"
+#include "DOMSVGAnimatedNumberList.h"
+#include "SVGAnimatedNumberList.h"
+#include "nsSVGElement.h"
+#include "nsIDOMSVGNumber.h"
+#include "nsDOMError.h"
+
+
+
+using namespace mozilla;
+
+
+
+
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGNumber)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGNumber)
+  
+  if (tmp->mList) {
+    tmp->mList->mItems[tmp->mListIndex] = nsnull;
+  }
+NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mList)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(DOMSVGNumber)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mList)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(DOMSVGNumber)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(DOMSVGNumber)
+
+DOMCI_DATA(SVGNumber, DOMSVGNumber)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMSVGNumber)
+  NS_INTERFACE_MAP_ENTRY(DOMSVGNumber) 
+  NS_INTERFACE_MAP_ENTRY(nsIDOMSVGNumber)
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGNumber)
+NS_INTERFACE_MAP_END
+
+DOMSVGNumber::DOMSVGNumber(DOMSVGNumberList *aList,
+                           PRUint32 aAttrEnum,
+                           PRUint8 aListIndex,
+                           PRUint8 aIsAnimValItem)
+  : mList(aList)
+  , mListIndex(aListIndex)
+  , mAttrEnum(aAttrEnum)
+  , mIsAnimValItem(aIsAnimValItem)
+  , mValue(0.0f)
+{
+  
+  NS_ABORT_IF_FALSE(aList &&
+                    aAttrEnum < (1 << 27) &&
+                    aListIndex < (1 << 4) &&
+                    aIsAnimValItem < (1 << 1), "bad arg");
+
+  NS_ABORT_IF_FALSE(IndexIsValid(), "Bad index for DOMSVGNumber!");
+}
+
+DOMSVGNumber::DOMSVGNumber()
+  : mList(nsnull)
+  , mListIndex(0)
+  , mAttrEnum(0)
+  , mIsAnimValItem(PR_FALSE)
+  , mValue(0.0f)
+{
+}
+
+NS_IMETHODIMP
+DOMSVGNumber::GetValue(float* aValue)
+{
+#ifdef MOZ_SMIL
+  if (mIsAnimValItem && HasOwner()) {
+    Element()->FlushAnimations(); 
+  }
+#endif
+  *aValue = HasOwner() ? InternalItem() : mValue;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+DOMSVGNumber::SetValue(float aValue)
+{
+  if (mIsAnimValItem) {
+    return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR;
+  }
+
+  NS_ENSURE_FINITE(aValue, NS_ERROR_ILLEGAL_VALUE);
+
+  if (HasOwner()) {
+    InternalItem() = aValue;
+    Element()->DidChangeNumberList(mAttrEnum, PR_TRUE);
+#ifdef MOZ_SMIL
+    if (mList->mAList->IsAnimating()) {
+      Element()->AnimationNeedsResample();
+    }
+#endif
+    return NS_OK;
+  }
+  mValue = aValue;
+  return NS_OK;
+}
+
+void
+DOMSVGNumber::InsertingIntoList(DOMSVGNumberList *aList,
+                                PRUint32 aAttrEnum,
+                                PRUint8 aListIndex,
+                                PRUint8 aIsAnimValItem)
+{
+  NS_ASSERTION(!HasOwner(), "Inserting item that is already in a list");
+
+  mList = aList;
+  mAttrEnum = aAttrEnum;
+  mListIndex = aListIndex;
+  mIsAnimValItem = aIsAnimValItem;
+
+  NS_ABORT_IF_FALSE(IndexIsValid(), "Bad index for DOMSVGNumber!");
+}
+
+void
+DOMSVGNumber::RemovingFromList()
+{
+  mValue = InternalItem();
+  mList = nsnull;
+  mIsAnimValItem = PR_FALSE;
+}
+
+float
+DOMSVGNumber::ToSVGNumber()
+{
+  return HasOwner() ? InternalItem() : mValue;
+}
+
+float&
+DOMSVGNumber::InternalItem()
+{
+  SVGAnimatedNumberList *alist = Element()->GetAnimatedNumberList(mAttrEnum);
+  return mIsAnimValItem && alist->mAnimVal ?
+    (*alist->mAnimVal)[mListIndex] :
+    alist->mBaseVal[mListIndex];
+}
+
+#ifdef DEBUG
+PRBool
+DOMSVGNumber::IndexIsValid()
+{
+  SVGAnimatedNumberList *alist = Element()->GetAnimatedNumberList(mAttrEnum);
+  return (mIsAnimValItem &&
+          mListIndex < alist->GetAnimValue().Length()) ||
+         (!mIsAnimValItem &&
+          mListIndex < alist->GetBaseValue().Length());
+}
+#endif
+

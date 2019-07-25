@@ -39,6 +39,7 @@
 
 
 #include "nsGkAtoms.h"
+#include "DOMSVGNumber.h"
 #include "DOMSVGLength.h"
 #include "nsSVGAngle.h"
 #include "nsCOMPtr.h"
@@ -52,7 +53,6 @@
 #include "nsIDOMEventTarget.h"
 #include "nsIFrame.h"
 #include "nsISVGSVGFrame.h" 
-#include "nsSVGNumber.h"
 #include "nsSVGRect.h"
 #include "nsISVGValueUtils.h"
 #include "nsDOMError.h"
@@ -632,7 +632,8 @@ nsSVGSVGElement::DeSelectAll()
 NS_IMETHODIMP
 nsSVGSVGElement::CreateSVGNumber(nsIDOMSVGNumber **_retval)
 {
-  return NS_NewSVGNumber(_retval);
+  NS_ADDREF(*_retval = new DOMSVGNumber());
+  return NS_OK;
 }
 
 

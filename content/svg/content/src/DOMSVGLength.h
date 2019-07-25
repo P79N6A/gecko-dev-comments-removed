@@ -205,6 +205,10 @@ private:
 
   SVGLength& InternalItem();
 
+#ifdef DEBUG
+  PRBool IndexIsValid();
+#endif
+
   nsRefPtr<DOMSVGLengthList> mList;
 
   
