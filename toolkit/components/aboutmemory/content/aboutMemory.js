@@ -318,7 +318,10 @@ function appendElement(aP, aTagName, aClassName)
 function appendElementWithText(aP, aTagName, aClassName, aText)
 {
   let e = appendElement(aP, aTagName, aClassName);
-  appendTextNode(e, aText);
+  
+  
+  
+  e.textContent = aText;
   return e;
 }
 
