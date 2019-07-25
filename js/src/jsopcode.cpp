@@ -2530,15 +2530,6 @@ InitSprintStack(JSContext *cx, SprintStack *ss, JSPrinter *jp, unsigned depth)
     return JS_TRUE;
 }
 
-template <typename T>
-void
-Swap(T &a, T &b)
-{
-    T tmp = a;
-    a = b;
-    b = tmp;
-}
-
 
 
 
