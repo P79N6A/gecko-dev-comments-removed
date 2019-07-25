@@ -894,8 +894,7 @@ let AboutHomeUtils = {
 
   loadDefaultSearchEngine: function AHU_loadDefaultSearchEngine()
   {
-    
-    let defaultEngine = Services.search.defaultEngine;
+    let defaultEngine = Services.search.originalDefaultEngine;
     let submission = defaultEngine.getSubmission("_searchTerms_");
     if (submission.postData)
       throw new Error("Home page does not support POST search engines.");
