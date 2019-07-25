@@ -119,8 +119,13 @@ public class TabsTray extends Activity implements GeckoApp.OnTabsChangedListener
         
         if (hasFocus) {
             int position = mTabsAdapter.getPositionForTab(Tabs.getInstance().getSelectedTab());
-            if (position != -1) 
+            if (position == -1)
+                return;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
                 mList.smoothScrollToPosition(position);
+            } else {
+                
+            }
         }
     } 
    
