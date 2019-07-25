@@ -14,22 +14,22 @@
 
 
 
-if (typeof(SimpleTest) == "undefined") {
-    var SimpleTest = {};
-}
+var SimpleTest = { };
 
 var parentRunner = null;
-if (typeof(parent) != "undefined" && parent.TestRunner) {
+if (parent) {
     parentRunner = parent.TestRunner;
-} else if (parent && parent.wrappedJSObject &&
-           parent.wrappedJSObject.TestRunner) {
-    parentRunner = parent.wrappedJSObject.TestRunner;
+    if (!parentRunner && parent.wrappedJSObject) {
+        parentRunner = parent.wrappedJSObject.TestRunner;
+    }
 }
 
 
 var ipcMode = false;
 if (parentRunner) {
-  ipcMode = parentRunner.ipcMode;
+    ipcMode = parentRunner.ipcMode;
+} else if (typeof SpecialPowers != 'undefined') {
+    ipcMode = SpecialPowers.hasContentProcesses();
 }
 
 
@@ -67,11 +67,6 @@ SimpleTest.testPluginIsOOP = function () {
     return testPluginIsOOP;
 };
 
-
-if (parentRunner) {
-    SimpleTest._logEnabled = parentRunner.logEnabled;
-}
-
 SimpleTest._tests = [];
 SimpleTest._stopOnLoad = true;
 
@@ -80,8 +75,7 @@ SimpleTest._stopOnLoad = true;
 
 SimpleTest.ok = function (condition, name, diag) {
     var test = {'result': !!condition, 'name': name, 'diag': diag};
-    if (SimpleTest._logEnabled)
-        SimpleTest._logResult(test, "TEST-PASS", "TEST-UNEXPECTED-FAIL");
+    SimpleTest._logResult(test, "TEST-PASS", "TEST-UNEXPECTED-FAIL");
     SimpleTest._tests.push(test);
 };
 
@@ -107,31 +101,32 @@ SimpleTest.isnot = function (a, b, name) {
 
 
 SimpleTest.todo = function(condition, name, diag) {
-  var test = {'result': !!condition, 'name': name, 'diag': diag, todo: true};
-  if (SimpleTest._logEnabled)
-      SimpleTest._logResult(test, "TEST-UNEXPECTED-PASS", "TEST-KNOWN-FAIL");
-  SimpleTest._tests.push(test);
+    var test = {'result': !!condition, 'name': name, 'diag': diag, todo: true};
+    SimpleTest._logResult(test, "TEST-UNEXPECTED-PASS", "TEST-KNOWN-FAIL");
+    SimpleTest._tests.push(test);
+};
+
+SimpleTest._getCurrentTestURL = function() {
+    return parentRunner && parentRunner.currentTestURL ||
+           typeof gTestPath == "string" && gTestPath ||
+           "";
 };
 
 SimpleTest._logResult = function(test, passString, failString) {
-  var msg = test.result ? passString : failString;
-  msg += " | ";
-  if (parentRunner.currentTestURL)
-    msg += parentRunner.currentTestURL;
-  msg += " | " + test.name;
-  if (test.diag)
-    msg += " - " + test.diag;
-  if (test.result) {
-      if (test.todo)
-          parentRunner.logger.error(msg);
-      else
-          parentRunner.logger.log(msg);
-  } else {
-      if (test.todo)
-          parentRunner.logger.log(msg);
-      else
-          parentRunner.logger.error(msg);
-  }
+    var isError = !test.result == !test.todo;
+    var resultString = test.result ? passString : failString;
+    var url = SimpleTest._getCurrentTestURL();
+    var diagnostic = test.name + (test.diag ? " - " + test.diag : "");
+    var msg = [resultString, url, diagnostic].join(" | ");
+    if (parentRunner) {
+        if (isError) {
+            parentRunner.error(msg);
+        } else {
+            parentRunner.log(msg);
+        }
+    } else {
+        dump(msg + "\n");
+    }
 };
 
 
@@ -227,7 +222,6 @@ SimpleTest.toggleByClass = function (cls, evt) {
 
 
 
-
 SimpleTest.showReport = function() {
     var togglePassed = A({'href': '#'}, "Toggle passed checks");
     var toggleFailed = A({'href': '#'}, "Toggle failed checks");
@@ -318,8 +312,8 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
                      getInterface(Components.interfaces.nsIDOMWindowUtils);
 
       
-      if (parent && parent.ipcWaitForFocus != undefined) {
-        parent.contentAsyncEvent("waitForFocus", {"callback":callback, "targetWindow":domutils.outerWindowID});
+      if (parent && parent.ipcWaitForFocus) {
+          parent.contentAsyncEvent("waitForFocus", {"callback":callback, "targetWindow":domutils.outerWindowID});
       }
       return;
     }
@@ -336,10 +330,7 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     childTargetWindow = childTargetWindow.value;
 
     function info(msg) {
-      if (SimpleTest._logEnabled)
         SimpleTest._logResult({result: true, name: msg}, "TEST-INFO");
-      else
-        dump("TEST-INFO | " + msg + "\n");
     }
 
     function debugFocusLog(prefix) {
@@ -781,28 +772,41 @@ var isDeeply = SimpleTest.isDeeply;
 
 var gOldOnError = window.onerror;
 window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
-  var funcIdentifier = "[SimpleTest/SimpleTest.js, window.onerror] ";
+    var funcIdentifier = "[SimpleTest/SimpleTest.js, window.onerror]";
 
-  
-  ok(false, funcIdentifier + "An error occurred", errorMsg + " at " + url + ":" + lineNumber);
-  
-
-  
-  if (gOldOnError) {
-    try {
-      
-      gOldOnError(errorMsg, url, lineNumber);
-    } catch (e) {
-      
-      ok(false, funcIdentifier + "Exception thrown by gOldOnError()", e);
-      
-      if (e.stack)
-        ok(false, funcIdentifier + "JavaScript error stack:\n" + e.stack);
-    }
-  }
-
-  if (!SimpleTest._stopOnLoad) {
     
-    SimpleTest.executeSoon(SimpleTest.finish);
-  }
-}
+    
+    
+    
+    
+    
+    function logInfo(message) {
+        if (parentRunner) {
+            SimpleTest._logInfo(funcIdentifier, message);
+        } else {
+            dump(funcIdentifier + " " + message);
+        }
+    }
+    logInfo("An error occurred: " + errorMsg + " at " + url + ":" + lineNumber);
+    
+
+    
+    if (gOldOnError) {
+        try {
+            
+            gOldOnError(errorMsg, url, lineNumber);
+        } catch (e) {
+            
+            logInfo("Exception thrown by gOldOnError(): " + e);
+            
+            if (e.stack) {
+                logInfo("JavaScript error stack:\n" + e.stack);
+            }
+        }
+    }
+
+    if (!SimpleTest._stopOnLoad) {
+        
+        SimpleTest.executeSoon(SimpleTest.finish);
+    }
+};
