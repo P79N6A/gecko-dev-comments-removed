@@ -55,6 +55,11 @@
 
 #include "nsDOMWorkerMessageHandler.h"
 
+
+#define NS_WORKERFACTORY_CID \
+ {0x1295efb5, 0x8644, 0x42b2, \
+  {0x8b, 0x8e, 0x80, 0xee, 0xf5, 0x6e, 0x42, 0x84} }
+
 class nsDOMWorker;
 class nsDOMWorkerFeature;
 class nsDOMWorkerMessageHandler;
@@ -133,7 +138,7 @@ private:
 };
 
 class nsDOMWorker : public nsDOMWorkerMessageHandler,
-                    public nsIChromeWorker,
+                    public nsIWorker,
                     public nsITimerCallback,
                     public nsIJSNativeInitializer,
                     public nsIXPCScriptable
@@ -164,13 +169,13 @@ public:
                               PRUint8 optional_argc);
   NS_DECL_NSIABSTRACTWORKER
   NS_DECL_NSIWORKER
-  NS_DECL_NSICHROMEWORKER
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSICLASSINFO
   NS_DECL_NSIXPCSCRIPTABLE
 
   static nsresult NewWorker(nsISupports** aNewObject);
   static nsresult NewChromeWorker(nsISupports** aNewObject);
+  static nsresult NewChromeDOMWorker(nsDOMWorker** aNewObject);
 
   enum WorkerPrivilegeModel { CONTENT, CHROME };
 
@@ -435,4 +440,11 @@ private:
   PRPackedBool mFreeToDie;
 };
 
-#endif 
+class nsWorkerFactory : public nsIWorkerFactory
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIWORKERFACTORY
+};
+
+#endif

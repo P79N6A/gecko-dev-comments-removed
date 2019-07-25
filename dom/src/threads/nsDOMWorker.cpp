@@ -1178,7 +1178,7 @@ nsDOMWorker::NewWorker(nsISupports** aNewObject)
 
 
 nsresult
-nsDOMWorker::NewChromeWorker(nsISupports** aNewObject)
+nsDOMWorker::NewChromeDOMWorker(nsDOMWorker** aNewObject)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
@@ -1189,16 +1189,24 @@ nsDOMWorker::NewChromeWorker(nsISupports** aNewObject)
   PRBool enabled;
   nsresult rv = ssm->IsCapabilityEnabled("UniversalXPConnect", &enabled);
   NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(enabled, NS_ERROR_DOM_SECURITY_ERR);
 
-  if(!enabled) {
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  nsCOMPtr<nsISupports> newWorker =
-    NS_ISUPPORTS_CAST(nsIWorker*, new nsDOMWorker(nsnull, nsnull, CHROME));
+  nsRefPtr<nsDOMWorker> newWorker = new nsDOMWorker(nsnull, nsnull, CHROME);
   NS_ENSURE_TRUE(newWorker, NS_ERROR_OUT_OF_MEMORY);
 
   newWorker.forget(aNewObject);
+  return NS_OK;
+}
+
+
+nsresult
+nsDOMWorker::NewChromeWorker(nsISupports** aNewObject)
+{
+  nsDOMWorker* newWorker;
+  nsresult rv = NewChromeDOMWorker(&newWorker);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *aNewObject = NS_ISUPPORTS_CAST(nsIWorker*, newWorker);
   return NS_OK;
 }
 
@@ -1216,7 +1224,6 @@ NS_INTERFACE_MAP_BEGIN(nsDOMWorker)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIDOMEventTarget, nsDOMWorkerMessageHandler)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
-  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIChromeWorker, IsPrivileged())
 NS_INTERFACE_MAP_END
 
 
@@ -1245,8 +1252,11 @@ nsDOMWorker::PreCreate(nsISupports* aObject,
                        JSObject* ,
                        JSObject** )
 {
-  nsCOMPtr<nsIChromeWorker> privilegedWorker(do_QueryInterface(aObject));
-  return privilegedWorker ? NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
+  nsCOMPtr<nsIWorker> iworker(do_QueryInterface(aObject));
+  if (iworker && static_cast<nsDOMWorker *>(iworker.get())->IsPrivileged()) {
+    return NS_SUCCESS_CHROME_ACCESS_ONLY;
+  }
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1304,7 +1314,6 @@ nsDOMWorker::Finalize(nsIXPConnectWrappedNative* ,
 
   return NS_OK;
 }
-
 
 NS_IMPL_CI_INTERFACE_GETTER4(nsDOMWorker, nsIWorker,
                                           nsIAbstractWorker,
@@ -2312,3 +2321,52 @@ nsDOMWorker::Notify(nsITimer* aTimer)
   Kill();
   return NS_OK;
 }
+
+NS_IMETHODIMP
+nsWorkerFactory::NewChromeWorker(nsIWorker** _retval)
+{
+  nsresult rv;
+
+  
+  nsCOMPtr<nsIXPConnect> xpc;
+  xpc = do_GetService(nsIXPConnect::GetCID());
+  NS_ASSERTION(xpc, "Could not get XPConnect");
+
+  nsAXPCNativeCallContext* cc;
+  rv = xpc->GetCurrentNativeCallContext(&cc);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  JSContext* cx;
+  rv = cc->GetJSContext(&cx);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRUint32 argc;
+  rv = cc->GetArgc(&argc);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  jsval* argv;
+  rv = cc->GetArgvPtr(&argv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  JSObject* globalobj = JS_GetGlobalForScopeChain(cx);
+  NS_ENSURE_TRUE(globalobj, NS_ERROR_UNEXPECTED);
+
+  nsCOMPtr<nsIScriptGlobalObject> global =
+    nsJSUtils::GetStaticScriptGlobal(cx, globalobj);
+  NS_ENSURE_TRUE(global, NS_ERROR_UNEXPECTED);
+
+  
+  nsRefPtr<nsDOMWorker> chromeWorker;
+  rv = nsDOMWorker::NewChromeDOMWorker(getter_AddRefs(chromeWorker));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = chromeWorker->InitializeInternal(global, cx, globalobj, argc, argv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  chromeWorker.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMPL_ISUPPORTS1(nsWorkerFactory, nsIWorkerFactory)
