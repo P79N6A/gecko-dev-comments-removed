@@ -57,6 +57,7 @@ import org.mozilla.gecko.sync.crypto.CryptoInfo;
 import org.mozilla.gecko.sync.crypto.Cryptographer;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 import org.mozilla.gecko.sync.cryptographer.CryptoStatusBundle.CryptoStatus;
+import java.security.GeneralSecurityException;
 
 
 
@@ -190,6 +191,10 @@ public class SyncCryptographer {
       json = (JSONObject) new JSONParser().parse(in);
     } catch (Exception e) {
       e.printStackTrace();
+    }
+
+    if (json == null) {
+      throw new CryptoException(new GeneralSecurityException("Could not decrypt JSON payload"));
     }
 
     
