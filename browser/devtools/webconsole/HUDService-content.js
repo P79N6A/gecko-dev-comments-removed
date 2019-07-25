@@ -525,9 +525,9 @@ function JSTermHelper(aJSTerm)
 
 
 
-  aJSTerm.sandbox.$ = function JSTH_$(aId)
+  aJSTerm.sandbox.$ = function JSTH_$(aSelector)
   {
-    return aJSTerm.window.document.getElementById(aId);
+    return aJSTerm.window.document.querySelector(aSelector);
   };
 
   
