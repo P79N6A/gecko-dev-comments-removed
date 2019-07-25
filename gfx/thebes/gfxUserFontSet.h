@@ -103,8 +103,10 @@ public:
         for (PRUint32 i = 0; i < numFonts; i++) {
             gfxFontEntry *fe = mAvailableFonts[i];
             if (fe == aOldFontEntry) {
-                mAvailableFonts[i] = aNewFontEntry;
                 aOldFontEntry->SetFamily(nsnull);
+                
+                
+                mAvailableFonts[i] = aNewFontEntry;
                 aNewFontEntry->SetFamily(this);
                 return;
             }
