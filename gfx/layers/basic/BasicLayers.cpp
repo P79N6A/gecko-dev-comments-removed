@@ -378,9 +378,18 @@ ShouldRetainTransparentSurface(PRUint32 aContentFlags,
   case gfxASurface::TEXT_QUALITY_OK:
     return PR_TRUE;
   case gfxASurface::TEXT_QUALITY_OK_OVER_OPAQUE_PIXELS:
+    
+    
+    
     return (aContentFlags & Layer::CONTENT_NO_TEXT_OVER_TRANSPARENT) != 0;
+  case gfxASurface::TEXT_QUALITY_BAD:
+    
+    
+    
+    return aTargetSurface->GetContentType() != gfxASurface::CONTENT_COLOR;
   default:
-    return PR_FALSE;
+    NS_ERROR("Unknown quality type");
+    return PR_TRUE;
   }
 }
 
