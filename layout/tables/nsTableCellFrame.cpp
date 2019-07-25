@@ -107,6 +107,10 @@ nsTableCellFrame::Init(nsIContent*      aContent,
   
   nsresult rv = nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
 
+  if (GetStateBits() & NS_FRAME_FONT_INFLATION_CONTAINER) {
+    AddStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT);
+  }
+
   if (aPrevInFlow) {
     
     nsTableCellFrame* cellFrame = (nsTableCellFrame*)aPrevInFlow;
