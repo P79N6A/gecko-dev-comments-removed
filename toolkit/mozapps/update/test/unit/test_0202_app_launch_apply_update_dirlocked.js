@@ -37,12 +37,6 @@ let gActiveUpdate;
 
 
 
-do_timeout(1100 * 1000, function() {
-  do_throw("timed out");
-});
-
-
-
 function symlinkUpdateFilesIntoBundleDirectory() {
   if (!shouldAdjustPathsOnMac()) {
     return;
