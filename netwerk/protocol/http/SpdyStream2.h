@@ -4,22 +4,22 @@
 
 
 
-#ifndef mozilla_net_SpdyStream_h
-#define mozilla_net_SpdyStream_h
+#ifndef mozilla_net_SpdyStream2_h
+#define mozilla_net_SpdyStream2_h
 
 #include "nsAHttpTransaction.h"
 
 namespace mozilla { namespace net {
 
-class SpdyStream : public nsAHttpSegmentReader
-                 , public nsAHttpSegmentWriter
+class SpdyStream2 : public nsAHttpSegmentReader
+                  , public nsAHttpSegmentWriter
 {
 public:
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
 
-  SpdyStream(nsAHttpTransaction *,
-             SpdySession *, nsISocketTransport *,
+  SpdyStream2(nsAHttpTransaction *,
+             SpdySession2 *, nsISocketTransport *,
              PRUint32, z_stream *, PRInt32);
 
   PRUint32 StreamID() { return mStreamID; }
@@ -64,8 +64,8 @@ private:
   
   
   
-  friend class nsAutoPtr<SpdyStream>;
-  ~SpdyStream();
+  friend class nsAutoPtr<SpdyStream2>;
+  ~SpdyStream2();
 
   enum stateType {
     GENERATING_SYN_STREAM,
@@ -104,7 +104,7 @@ private:
   nsRefPtr<nsAHttpTransaction> mTransaction;
 
   
-  SpdySession                *mSession;
+  SpdySession2                *mSession;
 
   
   nsISocketTransport         *mSocketTransport;

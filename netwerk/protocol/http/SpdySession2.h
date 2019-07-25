@@ -4,14 +4,13 @@
 
 
 
-#ifndef mozilla_net_SpdySession_h
-#define mozilla_net_SpdySession_h
+#ifndef mozilla_net_SpdySession2_h
+#define mozilla_net_SpdySession2_h
 
 
 
 
-#include "nsAHttpTransaction.h"
-#include "nsAHttpConnection.h"
+#include "ASpdySession.h"
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
 #include "nsDeque.h"
@@ -23,12 +22,12 @@ class nsISocketTransport;
 
 namespace mozilla { namespace net {
 
-class SpdyStream;
+class SpdyStream2;
 
-class SpdySession : public nsAHttpTransaction
-                  , public nsAHttpConnection
-                  , public nsAHttpSegmentReader
-                  , public nsAHttpSegmentWriter
+class SpdySession2 : public ASpdySession
+                   , public nsAHttpConnection
+                   , public nsAHttpSegmentReader
+                   , public nsAHttpSegmentWriter
 {
 public:
   NS_DECL_ISUPPORTS
@@ -37,8 +36,8 @@ public:
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
 
-  SpdySession(nsAHttpTransaction *, nsISocketTransport *, PRInt32);
-  ~SpdySession();
+  SpdySession2(nsAHttpTransaction *, nsISocketTransport *, PRInt32);
+  ~SpdySession2();
 
   bool AddStream(nsAHttpTransaction *, PRInt32);
   bool CanReuse() { return !mShouldGoAway && !mClosed; }
@@ -50,7 +49,7 @@ public:
   
   PRIntervalTime IdleTime();
 
-  PRUint32 RegisterStreamID(SpdyStream *);
+  PRUint32 RegisterStreamID(SpdyStream2 *);
 
   const static PRUint8 kFlag_Control   = 0x80;
 
@@ -122,7 +121,6 @@ public:
   const static PRUint32 kQueueTailRoom    =  4096;
   const static PRUint32 kQueueReserved    =  1024;
 
-  const static PRUint32 kSendingChunkSize = 4096;
   const static PRUint32 kDefaultMaxConcurrent = 100;
   const static PRUint32 kMaxStreamID = 0x7800000;
   
@@ -130,28 +128,28 @@ public:
   
   const static PRUint32 kDeadStreamID = 0xffffdead;
   
-  static nsresult HandleSynStream(SpdySession *);
-  static nsresult HandleSynReply(SpdySession *);
-  static nsresult HandleRstStream(SpdySession *);
-  static nsresult HandleSettings(SpdySession *);
-  static nsresult HandleNoop(SpdySession *);
-  static nsresult HandlePing(SpdySession *);
-  static nsresult HandleGoAway(SpdySession *);
-  static nsresult HandleHeaders(SpdySession *);
-  static nsresult HandleWindowUpdate(SpdySession *);
+  static nsresult HandleSynStream(SpdySession2 *);
+  static nsresult HandleSynReply(SpdySession2 *);
+  static nsresult HandleRstStream(SpdySession2 *);
+  static nsresult HandleSettings(SpdySession2 *);
+  static nsresult HandleNoop(SpdySession2 *);
+  static nsresult HandlePing(SpdySession2 *);
+  static nsresult HandleGoAway(SpdySession2 *);
+  static nsresult HandleHeaders(SpdySession2 *);
+  static nsresult HandleWindowUpdate(SpdySession2 *);
 
   static void EnsureBuffer(nsAutoArrayPtr<char> &,
                            PRUint32, PRUint32, PRUint32 &);
 
   
-  static void LogIO(SpdySession *, SpdyStream *, const char *,
+  static void LogIO(SpdySession2 *, SpdyStream2 *, const char *,
                     const char *, PRUint32);
 
   
   void TransactionHasDataToWrite(nsAHttpTransaction *);
 
   
-  void TransactionHasDataToWrite(SpdyStream *);
+  void TransactionHasDataToWrite(SpdyStream2 *);
 
   
   virtual nsresult CommitToSegmentSize(PRUint32 size);
@@ -181,16 +179,16 @@ private:
   void        ClearPing(bool);
   void        GenerateRstStream(PRUint32, PRUint32);
   void        GenerateGoAway();
-  void        CleanupStream(SpdyStream *, nsresult, rstReason);
+  void        CleanupStream(SpdyStream2 *, nsresult, rstReason);
 
   void        SetWriteCallbacks();
   void        FlushOutputQueue();
 
   bool        RoomForMoreConcurrent();
-  void        ActivateStream(SpdyStream *);
+  void        ActivateStream(SpdyStream2 *);
   void        ProcessPending();
   nsresult    SetInputFrameDataStream(PRUint32);
-  bool        VerifyStream(SpdyStream *, PRUint32);
+  bool        VerifyStream(SpdyStream2 *, PRUint32);
   void        SetNeedsCleanup();
 
   
@@ -198,7 +196,7 @@ private:
   nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, PRUint32, PRUint32 *);
   
   static PLDHashOperator ShutdownEnumerator(nsAHttpTransaction *,
-                                            nsAutoPtr<SpdyStream> &,
+                                            nsAutoPtr<SpdyStream2> &,
                                             void *);
 
   
@@ -228,9 +226,9 @@ private:
   
   
   
-  nsDataHashtable<nsUint32HashKey, SpdyStream *>      mStreamIDHash;
+  nsDataHashtable<nsUint32HashKey, SpdyStream2 *>     mStreamIDHash;
   nsClassHashtable<nsPtrHashKey<nsAHttpTransaction>,
-                   SpdyStream>                        mStreamTransactionHash;
+                   SpdyStream2>                       mStreamTransactionHash;
   nsDeque                                             mReadyForWrite;
   nsDeque                                             mQueuedStreams;
 
@@ -262,14 +260,14 @@ private:
   
   
   
-  SpdyStream          *mInputFrameDataStream;
+  SpdyStream2          *mInputFrameDataStream;
   
   
   
   
   
   
-  SpdyStream          *mNeedsCleanup;
+  SpdyStream2          *mNeedsCleanup;
 
   
   PRUint32             mFrameControlType;
