@@ -188,9 +188,15 @@ BrowserCLH.prototype = {
 
     
     let win;
+    let localePickerWin;
     try {
       win = Services.wm.getMostRecentWindow("navigator:browser");
-      if (!win) {
+      localePickerWin = Services.wm.getMostRecentWindow("navigator:localepicker");
+      if (localePickerWin) {
+        localePickerWin.focus();
+        aCmdLine.preventDefault = true;
+        return;
+      } else  if (!win) {
         
         let defaultURL = getHomePage();
 
