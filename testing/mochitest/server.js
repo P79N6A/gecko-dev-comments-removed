@@ -458,7 +458,12 @@ function isTest(filename, pattern)
   if (pattern)
     return pattern.test(filename);
 
-  return filename.indexOf("test_") > -1 &&
+  
+  
+  testPattern = /^test_/;
+  pathPieces = filename.split('/');
+  
+  return testPattern.test(pathPieces[pathPieces.length - 1]) &&
          filename.indexOf(".js") == -1 &&
          filename.indexOf(".css") == -1 &&
          !/\^headers\^$/.test(filename);
