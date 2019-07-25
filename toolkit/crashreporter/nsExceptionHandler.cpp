@@ -717,6 +717,31 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   }
 #endif
 
+#ifdef XP_WIN
+  
+  
+  MINIDUMP_TYPE minidump_type = MiniDumpNormal;
+  DWORD version_size = GetFileVersionInfoSizeW(L"dbghelp.dll", NULL);
+  if (version_size > 0) {
+    std::vector<BYTE> buffer(version_size);
+    if (GetFileVersionInfoW(L"dbghelp.dll",
+                           0,
+                           version_size,
+                           &buffer[0])) {
+      UINT len;
+      VS_FIXEDFILEINFO* file_info;
+      VerQueryValue(&buffer[0], L"\\", (void**)&file_info, &len);
+      WORD major = HIWORD(file_info->dwFileVersionMS),
+           minor = LOWORD(file_info->dwFileVersionMS),
+           revision = HIWORD(file_info->dwFileVersionLS);
+      if (major > 6 || (major == 6 && minor > 1) ||
+          (major == 6 && minor == 1 && revision >= 7600)) {
+        minidump_type = MiniDumpWithFullMemoryInfo;
+      }
+    }
+  }
+#endif
+
   
   gExceptionHandler = new google_breakpad::
     ExceptionHandler(tempPath.get(),
@@ -728,7 +753,10 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
                      MinidumpCallback,
                      nsnull,
 #if defined(XP_WIN32)
-                     google_breakpad::ExceptionHandler::HANDLER_ALL);
+                     google_breakpad::ExceptionHandler::HANDLER_ALL,
+                     minidump_type,
+                     NULL,
+                     NULL);
 #else
                      true
 #if defined(XP_MACOSX)
