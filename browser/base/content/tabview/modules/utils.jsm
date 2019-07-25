@@ -570,30 +570,28 @@ var Utils = {
   
   trace: function() {
     var text = this.expandArgumentsForLog(arguments);
-    if (typeof(printStackTrace) != 'function')
-      this.log(text + ' trace: you need to include stacktrace.js');
-    else {
-      var calls = printStackTrace();
-      calls.splice(0, 3); 
-      this.log('trace: ' + text + '\n' + calls.join('\n'));
+    try { 
+      throw new Error("error");
+    } catch (e) {
+      
+      var stack = e.stack.replace(/^.*?\n.*?\n/,'');
+      
+      if (this.trace.caller.name == 'Utils_assert')
+        stack = stack.replace(/^.*?\n/,'');
+      this.log('trace: ' + text + '\n' + stack);
     }
   },
 
   
   
   
-  assert: function(label, condition) {
+  assert: function Utils_assert(label, condition) {
     if (!condition) {
       var text;
       if (typeof(label) == 'undefined')
         text = 'badly formed assert';
       else
         text = 'tabcandy assert: ' + label;
-
-      if (typeof(printStackTrace) == 'function') {
-        var calls = printStackTrace();
-        text += '\n' + calls[3];
-      }
 
       this.trace(text);
     }
@@ -610,10 +608,11 @@ var Utils = {
       else
         text = 'tabcandy assert: ' + label;
 
-      if (typeof(printStackTrace) == 'function') {
-        var calls = printStackTrace();
-        calls.splice(0, 3); 
-        text += '\n' + calls.join('\n');
+      try { 
+        throw new Error("error");
+      } catch (e) {
+        
+        text += e.stack.replace(/^.*?\n.*?\n/,'');
       }
 
       throw text;
