@@ -153,6 +153,11 @@ public:
   virtual void GetScriptLocation(nsACString& aStr) MOZ_OVERRIDE;
   void SetURI(nsIURI* aURI);
 
+  
+
+
+  static nsresult GetOriginForURI(nsIURI* aURI, char **aOrigin);
+
   nsCOMPtr<nsIURI> mDomain;
   nsCOMPtr<nsIURI> mCodebase;
   
