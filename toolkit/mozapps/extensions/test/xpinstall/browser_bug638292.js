@@ -13,6 +13,12 @@ function test() {
 
 function check_load(aCallback) {
   gBrowser.addEventListener("load", function(aEvent) {
+    
+    if (!aEvent.target.location) {
+      info("Ignoring about:blank load. (Expected (a few times) on SeaMonkey only.)");
+      return;
+    }
+
     gBrowser.removeEventListener("load", arguments.callee, true);
 
     
