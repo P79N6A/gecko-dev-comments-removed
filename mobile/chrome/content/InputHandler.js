@@ -101,6 +101,10 @@ function InputHandler() {
   this._suppressNextClick = true;
 
   
+  window.addEventListener("URLChanged", this, true);
+  window.addEventListener("TabSelect", this, true);
+
+  
   window.addEventListener("mouseout", this, true);
 
   
@@ -163,6 +167,12 @@ InputHandler.prototype = {
   handleEvent: function handleEvent(aEvent) {
     if (this._ignoreEvents)
       return;
+
+    
+    if (aEvent.type == "URLChanged" || aEvent.type == "TabSelect") {
+      this.grab(null);
+      return;
+    }
 
     if (this._suppressNextClick && aEvent.type == "click") {
       this._suppressNextClick = false;
