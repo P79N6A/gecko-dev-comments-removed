@@ -19,11 +19,15 @@ const FILE_UPDATER_INI_BAK = "updater.ini.bak";
 const CHECK_TIMEOUT_MILLI = 1000;
 
 
+const MAX_TIMEOUT_RUNS = 300;
+
+
 
 const APP_TIMER_TIMEOUT = 15000;
 
 let gAppTimer;
 let gProcess;
+let gTimeoutRuns = 0;
 
 function run_test() {
   do_test_pending();
@@ -236,19 +240,26 @@ function getUpdateTestDir() {
 
 
 function checkUpdateFinished() {
+  gTimeoutRuns++;
   
   let log = getUpdatesDir();
   log.append("0");
   log.append(FILE_UPDATE_LOG);
   if (!log.exists()) {
-    do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+    if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for updates log to be created");
+    else
+      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
     return;
   }
 
   
   let status = readStatusFile();
   if (status == STATE_PENDING || status == STATE_APPLYING) {
-    do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+    if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for updates status to not be pending or applying");
+    else
+      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
     return;
   }
 

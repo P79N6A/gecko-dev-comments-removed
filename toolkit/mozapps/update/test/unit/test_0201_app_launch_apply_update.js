@@ -22,12 +22,16 @@ const FILE_UPDATER_INI_BAK = "updater.ini.bak";
 const CHECK_TIMEOUT_MILLI = 1000;
 
 
+const MAX_TIMEOUT_RUNS = 300;
+
+
 
 const APP_TIMER_TIMEOUT = 15000;
 
 let gAppTimer;
 let gProcess;
 let gActiveUpdate;
+let gTimeoutRuns = 0;
 
 
 
@@ -327,9 +331,13 @@ function getUpdateTestDir() {
 
 
 function checkUpdateApplied() {
+  gTimeoutRuns++;
   
   if (gUpdateManager.activeUpdate.state != STATE_APPLIED_PLATFORM) {
-    do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
+    if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update to be applied");
+    else
+      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
     return;
   }
 
@@ -459,11 +467,15 @@ function checkUpdateApplied() {
 
 
 function checkUpdateFinished() {
+  gTimeoutRuns++;
   
   try {
     let status = readStatusFile();
     if (status != STATE_SUCCEEDED) {
-      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+      if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
+        do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for succeeded state");
+      else
+        do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
       return;
     }
   } catch (e) {
@@ -477,7 +489,10 @@ function checkUpdateFinished() {
     if (e.result == Components.results.NS_ERROR_FILE_IS_LOCKED) {
       
       
-      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+      if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
+        do_throw("Exceeded whilst waiting for file to be unlocked");
+      else
+        do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
       return;
     } else {
       do_throw("getAppConsoleLogPath threw: " + e);
@@ -493,7 +508,10 @@ function checkUpdateFinished() {
   updatedDir.append(UPDATED_DIR_SUFFIX.replace("/", ""));
   logTestInfo("testing " + updatedDir.path + " shouldn't exist");
   if (updatedDir.exists()) {
-    do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+    if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
+      do_throw("Exceeded whilst waiting for update dir to not exist");
+    else
+      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
     return;
   }
 

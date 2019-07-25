@@ -28,10 +28,14 @@ const FILE_UPDATER_INI_BAK = "updater.ini.bak";
 const CHECK_TIMEOUT_MILLI = 1000;
 
 
+const MAX_TIMEOUT_RUNS = 300;
+
+
 
 const APP_TIMER_TIMEOUT = 15000;
 
 let gActiveUpdate;
+let gTimeoutRuns = 0;
 
 
 
@@ -300,7 +304,10 @@ function getUpdateTestDir() {
 function checkUpdateApplied() {
   
   if (gUpdateManager.activeUpdate.state != STATE_PENDING) {
-    do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
+    if (++gTimeoutRuns > MAX_TIMEOUT_RUNS)
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whist waiting for pending state to finish");
+    else
+      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
     return;
   }
 
