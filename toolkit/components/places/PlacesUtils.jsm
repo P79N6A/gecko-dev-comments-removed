@@ -2242,7 +2242,26 @@ XPCOMUtils.defineLazyGetter(PlacesUtils, "transactionManager", function() {
     this.transactionManager.RemoveListener(this);
     this.transactionManager.clear();
   });
-  return tm;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  return Object.create(tm, {
+    "doTransaction": {
+      value: function(aTransaction) {
+        tm.doTransaction(aTransaction);
+      }
+    }
+  });
 });
 
 XPCOMUtils.defineLazyGetter(this, "bundle", function() {
