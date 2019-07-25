@@ -53,16 +53,16 @@ const Cu = Components.utils;
 
 
 
-const SCHEDULED_SYNC_INTERVAL = 60 * 1000; 
+const SCHEDULED_SYNC_INTERVAL = 60 * 1000 * 5; 
 
 
 
 
-const INITIAL_THRESHOLD = 100;
+const INITIAL_THRESHOLD = 75;
 
 
 
-const THRESHOLD_DECREMENT_STEP = 5;
+const THRESHOLD_DECREMENT_STEP = 25;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave/log4moz.js");
