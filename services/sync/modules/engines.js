@@ -358,7 +358,21 @@ SyncEngine.prototype = {
     this._log.trace("Ensuring server crypto records are there");
 
     
-    let wipeServerData = false;
+    let meta = CryptoMetas.get(this.cryptoMetaURL);
+    if (meta) {
+      try {
+        let pubkey = PubKeys.getDefaultKey();
+        let privkey = PrivKeys.get(pubkey.privateKeyUri);
+        meta.getKey(privkey, ID.get("WeaveCryptoID"));
+      }
+      catch(ex) {
+        
+        this._log.debug("Purging bad data after failed unwrap crypto: " + ex);
+        meta = null;
+      }
+    }
+
+    
     let metaGlobal = Records.get(this.metaURL);
     let engines = metaGlobal.payload.engines || {};
     let engineData = engines[this.name] || {};
@@ -368,7 +382,7 @@ SyncEngine.prototype = {
       this._log.debug("Old engine data: " + [engineData.version, this.version]);
 
       
-      wipeServerData = true;
+      meta = null;
       this.syncID = "";
 
       
@@ -394,30 +408,11 @@ SyncEngine.prototype = {
     };
 
     
-    let meta = CryptoMetas.get(this.cryptoMetaURL);
-    if (meta) {
-      try {
-        let pubkey = PubKeys.getDefaultKey();
-        let privkey = PrivKeys.get(pubkey.privateKeyUri);
-        meta.getKey(privkey, ID.get("WeaveCryptoID"));
-      }
-      catch(ex) {
-        
-        this._log.debug("Purging bad data after failed unwrap crypto: " + ex);
-        CryptoMetas.del(this.cryptoMetaURL);
-        meta = null;
-        wipeServerData = true;
-      }
-    }
-
-    
-    if (wipeServerData) {
+    if (meta == null) {
       new Resource(this.engineURL).delete();
       this._resetClient();
-    }
 
-    
-    if (!meta) {
+      
       let symkey = Svc.Crypto.generateRandomKey();
       let pubkey = PubKeys.getDefaultKey();
       meta = new CryptoMeta(this.cryptoMetaURL);
@@ -486,6 +481,10 @@ SyncEngine.prototype = {
       }
       catch(ex) {
         this._log.warn("Error processing record: " + Utils.exceptionStr(ex));
+
+        
+        if (this._store.itemExists(item.id))
+          this._tracker.addChangedID(item.id, 0);
       }
       this._tracker.ignoreAll = false;
       Sync.sleep(0);
