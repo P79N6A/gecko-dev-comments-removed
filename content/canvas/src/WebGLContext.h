@@ -97,6 +97,7 @@ class WebGLUniformLocation;
 class WebGLExtension;
 struct WebGLVertexAttribData;
 
+class WebGLRectangleObject;
 class WebGLContextBoundObject;
 
 enum FakeBlackStatus { DoNotNeedFakeBlack, DoNeedFakeBlack, DontKnowIfNeedFakeBlack };
@@ -435,6 +436,47 @@ private:
     CheckedInt<WebGLMonotonicHandle> mCurrentMonotonicHandle;
 };
 
+
+
+class WebGLRectangleObject
+{
+public:
+    WebGLRectangleObject()
+        : mWidth(0), mHeight(0) { }
+
+    WebGLRectangleObject(WebGLsizei width, WebGLsizei height)
+        : mWidth(width), mHeight(height) { }
+
+    WebGLsizei Width() const { return mWidth; }
+    void width(WebGLsizei value) { mWidth = value; }
+
+    WebGLsizei Height() const { return mHeight; }
+    void height(WebGLsizei value) { mHeight = value; }
+
+    void setDimensions(WebGLsizei width, WebGLsizei height) {
+        mWidth = width;
+        mHeight = height;
+    }
+
+    void setDimensions(WebGLRectangleObject *rect) {
+        if (rect) {
+            mWidth = rect->Width();
+            mHeight = rect->Height();
+        } else {
+            mWidth = 0;
+            mHeight = 0;
+        }
+    }
+
+    bool HasSameDimensionsAs(const WebGLRectangleObject& other) const {
+        return Width() == other.Width() && Height() == other.Height(); 
+    }
+
+protected:
+    WebGLsizei mWidth;
+    WebGLsizei mHeight;
+};
+
 struct WebGLContextOptions {
     
     WebGLContextOptions()
@@ -469,7 +511,8 @@ class WebGLContext :
     public nsIDOMWebGLRenderingContext,
     public nsICanvasRenderingContextInternal,
     public nsSupportsWeakReference,
-    public nsITimerCallback
+    public nsITimerCallback,
+    public WebGLRectangleObject
 {
     friend class WebGLMemoryReporter;
     friend class WebGLExtensionLoseContext;
@@ -543,6 +586,8 @@ public:
     
     
     PRUint32 Generation() { return mGeneration.value(); }
+
+    const WebGLRectangleObject *FramebufferRectangleObject() const;
 
     
     
@@ -642,7 +687,6 @@ protected:
 
     nsRefPtr<gl::GLContext> gl;
 
-    PRInt32 mWidth, mHeight;
     CheckedUint32 mGeneration;
 
     WebGLContextOptions mOptions;
@@ -913,45 +957,6 @@ public:
 
 
 
-class WebGLRectangleObject
-{
-protected:
-    WebGLRectangleObject()
-        : mWidth(0), mHeight(0) { }
-
-public:
-    WebGLsizei width() const { return mWidth; }
-    void width(WebGLsizei value) { mWidth = value; }
-
-    WebGLsizei height() const { return mHeight; }
-    void height(WebGLsizei value) { mHeight = value; }
-
-    void setDimensions(WebGLsizei width, WebGLsizei height) {
-        mWidth = width;
-        mHeight = height;
-    }
-
-    void setDimensions(WebGLRectangleObject *rect) {
-        if (rect) {
-            mWidth = rect->width();
-            mHeight = rect->height();
-        } else {
-            mWidth = 0;
-            mHeight = 0;
-        }
-    }
-
-    bool HasSameDimensionsAs(const WebGLRectangleObject& other) const {
-        return width() == other.width() && height() == other.height(); 
-    }
-
-protected:
-    WebGLsizei mWidth;
-    WebGLsizei mHeight;
-};
-
-
-
 
 class WebGLContextBoundObject
 {
@@ -1206,11 +1211,12 @@ protected:
 
 public:
 
-    struct ImageInfo {
-        ImageInfo() : mWidth(0), mHeight(0), mFormat(0), mType(0), mIsDefined(false) {}
+    class ImageInfo : public WebGLRectangleObject {
+    public:
+        ImageInfo() : mFormat(0), mType(0), mIsDefined(false) {}
         ImageInfo(WebGLsizei width, WebGLsizei height,
                   WebGLenum format, WebGLenum type)
-            : mWidth(width), mHeight(height), mFormat(format), mType(type), mIsDefined(true) {}
+            : WebGLRectangleObject(width, height), mFormat(format), mType(type), mIsDefined(true) {}
 
         bool operator==(const ImageInfo& a) const {
             return mWidth == a.mWidth && mHeight == a.mHeight &&
@@ -1235,9 +1241,13 @@ public:
             PRInt64 texelSize = WebGLContext::GetTexelSize(mFormat, mType);
             return PRInt64(mWidth) * PRInt64(mHeight) * texelSize;
         }
-        WebGLsizei mWidth, mHeight;
+        WebGLenum Format() const { return mFormat; }
+        WebGLenum Type() const { return mType; }
+    protected:
         WebGLenum mFormat, mType;
         bool mIsDefined;
+
+        friend class WebGLTexture;
     };
 
     ImageInfo& ImageInfoAt(size_t level, size_t face = 0) {
@@ -1826,7 +1836,7 @@ public:
     void SetInternalFormatForGL(WebGLenum aInternalFormatForGL) { mInternalFormatForGL = aInternalFormatForGL; }
     
     PRInt64 MemoryUsage() const {
-        PRInt64 pixels = PRInt64(width()) * PRInt64(height());
+        PRInt64 pixels = PRInt64(Width()) * PRInt64(Height());
         switch (mInternalFormatForGL) {
             case LOCAL_GL_STENCIL_INDEX8:
                 return pixels;
@@ -1864,7 +1874,6 @@ protected:
 };
 
 class WebGLFramebufferAttachment
-    : public WebGLRectangleObject
 {
     
     WebGLRefPtr<WebGLTexture> mTexturePtr;
@@ -1890,10 +1899,10 @@ public:
 
     bool HasAlpha() const {
         WebGLenum format = 0;
-        if (Texture() && Texture()->HasImageInfoAt(0,0))
-            format = mTexturePtr->ImageInfoAt(0,0).mFormat;
+        if (Texture() && Texture()->HasImageInfoAt(mTextureLevel, mTextureCubeMapFace))
+            format = Texture()->ImageInfoAt(mTextureLevel, mTextureCubeMapFace).Format();
         else if (Renderbuffer())
-            format = mRenderbufferPtr->InternalFormat();
+            format = Renderbuffer()->InternalFormat();
         return format == LOCAL_GL_RGBA ||
                format == LOCAL_GL_LUMINANCE_ALPHA ||
                format == LOCAL_GL_ALPHA ||
@@ -1906,23 +1915,22 @@ public:
         mRenderbufferPtr = nsnull;
         mTextureLevel = level;
         mTextureCubeMapFace = face;
-        if (tex) {
-            const WebGLTexture::ImageInfo &imageInfo = tex->ImageInfoAt(level, face);
-            setDimensions(imageInfo.mWidth, imageInfo.mHeight);
-        } else {
-            setDimensions(0, 0);
-        }
     }
     void SetRenderbuffer(WebGLRenderbuffer *rb) {
         mTexturePtr = nsnull;
         mRenderbufferPtr = rb;
-        setDimensions(rb);
     }
-    WebGLTexture *Texture() const {
-        return mTexturePtr.get();
+    const WebGLTexture *Texture() const {
+        return mTexturePtr;
     }
-    WebGLRenderbuffer *Renderbuffer() const {
-        return mRenderbufferPtr.get();
+    WebGLTexture *Texture() {
+        return mTexturePtr;
+    }
+    const WebGLRenderbuffer *Renderbuffer() const {
+        return mRenderbufferPtr;
+    }
+    WebGLRenderbuffer *Renderbuffer() {
+        return mRenderbufferPtr;
     }
     WebGLint TextureLevel() const {
         return mTextureLevel;
@@ -1964,6 +1972,22 @@ public:
         mTexturePtr = nsnull;
         mRenderbufferPtr = nsnull;
     }
+
+    const WebGLRectangleObject* RectangleObject() const {
+        if (Texture() && Texture()->HasImageInfoAt(mTextureLevel, mTextureCubeMapFace))
+            return &Texture()->ImageInfoAt(mTextureLevel, mTextureCubeMapFace);
+        else if (Renderbuffer())
+            return Renderbuffer();
+        else
+            return nsnull;
+    }
+    bool HasSameDimensionsAs(const WebGLFramebufferAttachment& other) const {
+        const WebGLRectangleObject *thisRect = RectangleObject();
+        const WebGLRectangleObject *otherRect = other.RectangleObject();
+        return thisRect &&
+               otherRect &&
+               thisRect->HasSameDimensionsAs(*otherRect);
+    }
 };
 
 class WebGLFramebuffer
@@ -2002,9 +2026,6 @@ public:
     bool HasEverBeenBound() { return mHasEverBeenBound; }
     void SetHasEverBeenBound(bool x) { mHasEverBeenBound = x; }
     WebGLuint GLName() { return mGLName; }
-
-    WebGLsizei width() { return mColorAttachment.width(); }
-    WebGLsizei height() { return mColorAttachment.height(); }
 
     nsresult FramebufferRenderbuffer(WebGLenum target,
                                      WebGLenum attachment,
@@ -2210,6 +2231,10 @@ public:
             FramebufferRenderbuffer(LOCAL_GL_FRAMEBUFFER, LOCAL_GL_DEPTH_STENCIL_ATTACHMENT, LOCAL_GL_RENDERBUFFER, nsnull);
     }
 
+    const WebGLRectangleObject *RectangleObject() {
+        return mColorAttachment.RectangleObject();
+    }
+
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBGLFRAMEBUFFER
 
@@ -2240,8 +2265,8 @@ protected:
             mask |= LOCAL_GL_STENCIL_BUFFER_BIT;
         }
 
-        
-        mContext->ForceClearFramebufferWithDefaultValues(mask, nsIntRect(0,0,width(),height()));
+        const WebGLRectangleObject *rect = mColorAttachment.RectangleObject();
+        mContext->ForceClearFramebufferWithDefaultValues(mask, nsIntRect(0, 0, rect->Width(), rect->Height()));
 
         if (mColorAttachment.HasUninitializedRenderbuffer())
             mColorAttachment.Renderbuffer()->SetInitialized(true);
@@ -2362,6 +2387,11 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBGLEXTENSION
 };
+
+inline const WebGLRectangleObject *WebGLContext::FramebufferRectangleObject() const {
+    return mBoundFramebuffer ? mBoundFramebuffer->RectangleObject()
+                             : static_cast<const WebGLRectangleObject*>(this);
+}
 
 
 
