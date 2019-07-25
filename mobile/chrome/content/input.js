@@ -95,6 +95,7 @@ function MouseModule() {
 
   this._downUpEvents = [];
   this._targetScrollInterface = null;
+  this._suppressNextMouseUp = false;
 
   this._kinetic = new KineticController(this._dragBy.bind(this),
                                         this._kineticStop.bind(this));
@@ -230,6 +231,12 @@ MouseModule.prototype = {
 
   
   _onMouseUp: function _onMouseUp(aEvent) {
+    if (this._suppressNextMouseUp) {
+      this._suppressNextMouseUp = false;
+      aEvent.stopPropagation();
+      aEvent.preventDefault();
+    }
+
     this._onMouseMove(aEvent);
 
     let dragData = this._dragData;
@@ -393,12 +400,8 @@ MouseModule.prototype = {
   
   _doLongClick: function _doLongClick() {
     let ev = this._downUpEvents[0];
-
-    let event = document.createEvent("Events");
-    event.initEvent("TapLong", true, false);
-    event.clientX = ev.clientX;
-    event.clientY = ev.clientY;
-    ev.target.dispatchEvent(event);
+    this._suppressNextMouseUp = true;
+    this._dispatchTap("TapLong", ev);
   },
 
   
