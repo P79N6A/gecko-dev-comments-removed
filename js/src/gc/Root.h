@@ -96,7 +96,7 @@ class Handle
 
 
 
-    template <typename S> inline Handle(Rooted<S> &root);
+    template <typename S> inline Handle(const Rooted<S> &root);
 
     const T *address() const { return ptr; }
     T value() const { return *ptr; }
@@ -163,6 +163,15 @@ class Rooted
     Rooted(JSContext *cx) { init(cx, RootMethods<T>::initial()); }
     Rooted(JSContext *cx, T initial) { init(cx, initial); }
 
+    
+
+
+
+
+
+
+    operator Handle<T> () const { return Handle<T>(*this); }
+
     ~Rooted()
     {
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
@@ -208,7 +217,7 @@ class Rooted
 
 template<typename T> template <typename S>
 inline
-Handle<T>::Handle(Rooted<S> &root)
+Handle<T>::Handle(const Rooted<S> &root)
 {
     testAssign<S>();
     ptr = reinterpret_cast<const T *>(root.address());
