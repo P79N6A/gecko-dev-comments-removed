@@ -86,6 +86,8 @@ public abstract class GeckoLayerClient extends LayerClient implements GeckoEvent
     
     private boolean mUpdateViewportOnEndDraw;
 
+    private String mLastCheckerboardColor;
+
     private static Pattern sColorPattern;
 
     
@@ -145,7 +147,8 @@ public abstract class GeckoLayerClient extends LayerClient implements GeckoEvent
 
             
             String backgroundColorString = viewportObject.optString("backgroundColor");
-            if (backgroundColorString != null) {
+            if (backgroundColorString != null && !backgroundColorString.equals(mLastCheckerboardColor)) {
+                mLastCheckerboardColor = backgroundColorString;
                 LayerController controller = getLayerController();
                 controller.setCheckerboardColor(parseColorFromGecko(backgroundColorString));
             }
