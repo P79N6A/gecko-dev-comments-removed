@@ -2158,6 +2158,7 @@ TypeCompartment::nukeTypes(JSContext *cx)
 void
 TypeCompartment::addPendingRecompile(JSContext *cx, JSScript *script)
 {
+#ifdef JS_METHODJIT
     if (!script->jitNormal && !script->jitCtor) {
         
         return;
@@ -2180,6 +2181,7 @@ TypeCompartment::addPendingRecompile(JSContext *cx, JSScript *script)
         cx->compartment->types.setPendingNukeTypes(cx);
         return;
     }
+#endif
 }
 
 void
@@ -2217,8 +2219,7 @@ TypeCompartment::monitorBytecode(JSContext *cx, JSScript *script, uint32 offset,
     if (!returnOnly)
         code.monitoredTypes = true;
 
-    if (script->hasJITCode())
-        cx->compartment->types.addPendingRecompile(cx, script);
+    cx->compartment->types.addPendingRecompile(cx, script);
 
     
     if (script->fun)
@@ -5161,7 +5162,7 @@ TypeScript::checkBytecode(JSContext *cx, jsbytecode *pc, const js::Value *sp)
         if (!TypeMatches(cx, types, type)) {
             
             fprintf(stderr, "Missing type at #%u:%05u pushed %u: %s\n", 
-                    script()->id(), pc - script()->code, i, TypeString(type));
+                    script()->id(), unsigned(pc - script()->code), i, TypeString(type));
             TypeFailure(cx, "Missing type pushed %u: %s", i, TypeString(type));
         }
 
@@ -5182,7 +5183,7 @@ TypeScript::checkBytecode(JSContext *cx, jsbytecode *pc, const js::Value *sp)
                     
                     fprintf(stderr, "Object not %s array at #%u:%05u popped %u: %s\n",
                             packed ? "packed" : "dense",
-                            script()->id(), pc - script()->code, i, object->name());
+                            script()->id(), unsigned(pc - script()->code), i, object->name());
                     TypeFailure(cx, "Object not %s array, popped %u: %s",
                                 packed ? "packed" : "dense", i, object->name());
                 }
