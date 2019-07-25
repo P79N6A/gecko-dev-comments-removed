@@ -5076,9 +5076,9 @@ mjit::Compiler::jsop_setprop(PropertyName *name, bool popGuaranteed)
             if (!isObject)
                 notObject = frame.testObject(Assembler::NotEqual, lhs);
 #ifdef JSGC_INCREMENTAL_MJ
+            frame.pinReg(reg);
             if (cx->compartment->needsBarrier() && propertyTypes->needsBarrier(cx)) {
                 
-                frame.pinReg(reg);
                 Jump j = masm.testGCThing(Address(reg, JSObject::getFixedSlotOffset(slot)));
                 stubcc.linkExit(j, Uses(0));
                 stubcc.leave();
@@ -5086,8 +5086,8 @@ mjit::Compiler::jsop_setprop(PropertyName *name, bool popGuaranteed)
                                    reg, Registers::ArgReg1);
                 OOL_STUBCALL(stubs::GCThingWriteBarrier, REJOIN_NONE);
                 stubcc.rejoin(Changes(0));
-                frame.unpinReg(reg);
             }
+            frame.unpinReg(reg);
 #endif
             if (!isObject) {
                 stubcc.linkExit(notObject.get(), Uses(2));
