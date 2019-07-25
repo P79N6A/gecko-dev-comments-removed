@@ -227,6 +227,31 @@ static nsresult UnescapeFragment(const nsACString& aFragment, nsIURI* aURI,
 
 
 
+static void ExtractDisposition(nsIChannel* aChannel, nsACString& aDisposition)
+{
+  aDisposition.Truncate();
+  
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
+  if (httpChannel) 
+  {
+    httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-disposition"), aDisposition);
+  }
+  if (aDisposition.IsEmpty())
+  {
+    nsCOMPtr<nsIMultiPartChannel> multipartChannel(do_QueryInterface(aChannel));
+    if (multipartChannel)
+    {
+      multipartChannel->GetContentDisposition(aDisposition);
+    }
+  }
+
+}
+
+
+
+
+
+
 
 
 
@@ -289,7 +314,7 @@ static PRBool GetFilenameAndExtensionFromChannel(nsIChannel* aChannel,
 
 
   nsCAutoString disp;
-  aChannel->GetContentDisposition(disp);
+  ExtractDisposition(aChannel, disp);
   PRBool handleExternally = PR_FALSE;
   nsCOMPtr<nsIURI> uri;
   nsresult rv;

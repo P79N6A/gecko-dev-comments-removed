@@ -632,13 +632,6 @@ nsJARChannel::SetContentCharset(const nsACString &aContentCharset)
 }
 
 NS_IMETHODIMP
-nsJARChannel::GetContentDisposition(nsACString &result)
-{
-    result = mContentDisposition;
-    return NS_OK;
-}
-
-NS_IMETHODIMP
 nsJARChannel::GetContentLength(PRInt64 *result)
 {
     
@@ -778,6 +771,7 @@ nsJARChannel::OnDownloadComplete(nsIDownloader *downloader,
     }
 
     if (NS_SUCCEEDED(status) && channel) {
+        nsCAutoString header;
         
         channel->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
 
@@ -786,7 +780,6 @@ nsJARChannel::OnDownloadComplete(nsIDownloader *downloader,
             
             
             
-            nsCAutoString header;
             httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Content-Type"),
                                            header);
             nsCAutoString contentType;
@@ -797,6 +790,10 @@ nsJARChannel::OnDownloadComplete(nsIDownloader *downloader,
             mIsUnsafe = !(contentType.Equals(channelContentType) &&
                           (contentType.EqualsLiteral("application/java-archive") ||
                            contentType.EqualsLiteral("application/x-jar")));
+            rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Content-Disposition"),
+                                                header);
+            if (NS_SUCCEEDED(rv))
+                SetPropertyAsACString(NS_CHANNEL_PROP_CONTENT_DISPOSITION, header);
         } else {
             nsCOMPtr<nsIJARChannel> innerJARChannel(do_QueryInterface(channel));
             if (innerJARChannel) {
@@ -804,9 +801,11 @@ nsJARChannel::OnDownloadComplete(nsIDownloader *downloader,
                 innerJARChannel->GetIsUnsafe(&unsafe);
                 mIsUnsafe = unsafe;
             }
+            
+            rv = NS_GetContentDisposition(request, header);
+            if (NS_SUCCEEDED(rv))
+                SetPropertyAsACString(NS_CHANNEL_PROP_CONTENT_DISPOSITION, header);
         }
-
-        channel->GetContentDisposition(mContentDisposition);
     }
 
     if (NS_SUCCEEDED(status) && mIsUnsafe) {
