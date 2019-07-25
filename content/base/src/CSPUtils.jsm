@@ -45,7 +45,7 @@ const R_HOSTCHAR   = new RegExp ("[a-zA-Z0-9\\-]", 'i');
 
 
 const R_HOST       = new RegExp ("\\*|(((\\*\\.)?" + R_HOSTCHAR.source +
-                                      "+)(\\." + R_HOSTCHAR.source +"+)+)",'i');
+                                      "+)(\\." + R_HOSTCHAR.source +"+)*)",'i');
 
 const R_PORT       = new RegExp ("(\\:([0-9]+|\\*))", 'i');
 
@@ -539,7 +539,7 @@ CSPRep.prototype = {
     newRep._allowEval =          this.allowsEvalInScripts
                            && aCSPRep.allowsEvalInScripts;
 
-    newRep._allowInlineScripts = this.allowsInlineScripts 
+    newRep._allowInlineScripts = this.allowsInlineScripts
                            && aCSPRep.allowsInlineScripts;
 
     return newRep;
@@ -996,19 +996,26 @@ CSPSource.fromString = function(aStr, self, enforceSelfChecks) {
   }
 
   
-  if (R_HOSTSRC.test(aStr) || R_EXTHOSTSRC.test(aStr)){
+  if (R_HOSTSRC.test(aStr) || R_EXTHOSTSRC.test(aStr)) {
     var schemeMatch = R_GETSCHEME.exec(aStr);
-    if (!schemeMatch)
+    
+    
+    if (!schemeMatch || aStr.indexOf("://") == -1) {
       sObj._scheme = self.scheme;
-    else {
+      schemeMatch = null;
+    } else {
       sObj._scheme = schemeMatch[0];
     }
 
+    
     var hostMatch = R_HOST.exec(aStr);
-    if (!hostMatch) {
+    if (!hostMatch){
       CSPError(CSPLocalizer.getFormatStr("couldntParseInvalidSource", [aStr]));
       return null;
     }
+    
+    if (schemeMatch)
+      hostMatch = R_HOST.exec(aStr.substring(schemeMatch[0].length + 3));
     sObj._host = CSPHost.fromString(hostMatch[0]);
     var portMatch = R_PORT.exec(aStr);
     if (!portMatch) {
@@ -1046,7 +1053,7 @@ CSPSource.validSchemeName = function(aStr) {
   
   
   
-  
+
   return aStr.match(/^[a-zA-Z][a-zA-Z0-9+.-]*$/);
 };
 
@@ -1101,7 +1108,7 @@ CSPSource.prototype = {
 
   toString:
   function() {
-    if (this._isSelf) 
+    if (this._isSelf)
       return this._self.toString();
 
     var s = "";
@@ -1312,7 +1319,7 @@ CSPHost.fromString = function(aStr) {
         CSPdebug("Wildcard char located at invalid position in '" + aStr + "'");
         return null;
       }
-    } 
+    }
     else if (seg.match(/[^a-zA-Z0-9\-]/)) {
       
       CSPdebug("Invalid segment '" + seg + "' in host value");
@@ -1379,7 +1386,7 @@ CSPHost.prototype = {
     
     
     for (var i=1; i <= thislen; i++) {
-      if (this._segments[thislen-i] != "*" && 
+      if (this._segments[thislen-i] != "*" &&
           (this._segments[thislen-i] != aHost._segments[thatlen-i])) {
         return false;
       }
@@ -1404,7 +1411,7 @@ CSPHost.prototype = {
       
       
       return null;
-    } 
+    }
 
     
     if (this._segments.length == that._segments.length) {
