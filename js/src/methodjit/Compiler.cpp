@@ -5843,7 +5843,8 @@ mjit::Compiler::jsop_aliasedVar(ScopeCoordinate sc, bool get, bool poppedAfter)
 
 
     Address addr;
-    if (ScopeCoordinateBlockChain(script, PC)) {
+    StaticBlockObject *block = ScopeCoordinateBlockChain(script, PC);
+    if (block) {
         
 
 
@@ -5871,9 +5872,10 @@ mjit::Compiler::jsop_aliasedVar(ScopeCoordinate sc, bool get, bool poppedAfter)
     }
 
     if (get) {
-        FrameEntry *fe = script->bindings.slotIsLocal(sc.slot)
-                         ? frame.getLocal(script->bindings.slotToLocal(sc.slot))
-                         : frame.getArg(script->bindings.slotToArg(sc.slot));
+        unsigned index;
+        FrameEntry *fe = ScopeCoordinateToFrameVar(script, PC, &index) == FrameVar_Local
+                         ? frame.getLocal(index)
+                         : frame.getArg(index);
         JSValueType type = fe->isTypeKnown() ? fe->getKnownType() : JSVAL_TYPE_UNKNOWN;
         frame.push(addr, type, true );
     } else {

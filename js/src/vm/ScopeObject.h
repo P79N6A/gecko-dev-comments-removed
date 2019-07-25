@@ -51,6 +51,17 @@ ScopeCoordinateName(JSRuntime *rt, JSScript *script, jsbytecode *pc);
 
 
 
+enum FrameVarType { FrameVar_Local, FrameVar_Arg };
+extern FrameVarType
+ScopeCoordinateToFrameVar(JSScript *script, jsbytecode *pc, unsigned *index);
+
+
+
+
+
+
+
+
 
 
 
