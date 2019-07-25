@@ -39,6 +39,7 @@
 
 
 
+
 html {
   background: -moz-Dialog;
 }
@@ -89,7 +90,17 @@ body[dir="rtl"] #errorPageContainer {
   background : url("chrome://browser/skin/section_expanded.png") left 0 no-repeat;
 }
 
+body[dir="rtl"] #technicalContent > h2,
+body[dir="rtl"] #expertContent > h2 {
+  background-position: right 0;
+}
+
 #technicalContent[collapsed] > h2,
 #expertContent[collapsed] > h2{
   background-image: url("chrome://browser/skin/section_collapsed.png");
+}
+
+body[dir="rtl"] #technicalContent[collapsed] > h2,
+body[dir="rtl"] #expertContent[collapsed] > h2 {
+  background-image: url("chrome://browser/skin/section_collapsed-rtl.png");
 }
