@@ -109,15 +109,18 @@ CodeGeneratorX86Shared::generateEpilogue()
 
 
 bool
-CodeGeneratorX86Shared::callVM(const VMFunction &fun, LInstruction *ins)
+CodeGeneratorX86Shared::callVM(const VMFunction * f, LInstruction *ins)
 {
+    JS_ASSERT(f);
+    const VMFunction& fun = *f;
+
     
     
     
 
     
     IonCompartment *ion = gen->cx->compartment->ionCompartment();
-    IonCode *wrapper = ion->generateVMWrapper(gen->cx, fun);
+    IonCode *wrapper = ion->generateCWrapper(gen->cx, fun);
     if (!wrapper)
         return false;
 
@@ -137,9 +140,6 @@ CodeGeneratorX86Shared::callVM(const VMFunction &fun, LInstruction *ins)
     masm.call(wrapper);
     if (!createSafepoint(ins))
         return false;
-
-    
-    masm.implicitPop(fun.explicitArgs);
 
     
     
@@ -765,22 +765,6 @@ CodeGeneratorX86Shared::visitTableSwitch(LTableSwitch *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitNewArray(LNewArray *ins)
-{
-    
-    
-    const Register type = ReturnReg;
-    masm.movePtr(ImmWord(ins->mir()->type()), type);
-
-    JS_ASSERT(ins->function().explicitArgs == 2);
-    masm.Push(type);
-    masm.Push(Imm32(ins->mir()->count()));
-    if (!callVM(ins->function(), ins))
-        return false;
-    return true;
-}
-
-bool
 CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
 {
     
@@ -799,13 +783,10 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
     uint32 unused_stack = StackOffsetOfPassedArg(callargslot);
 
     
-    masm.movePtr(Operand(objreg, JSObject::offsetOfClassPointer()), tokreg);
+    masm.loadObjClass(objreg, tokreg);
     masm.cmpPtr(tokreg, ImmWord(&js::FunctionClass));
     if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
         return false;
-
-    
-    masm.movePtr(Operand(objreg, offsetof(JSObject, privateData)), objreg);
 
     
     

@@ -239,6 +239,11 @@ struct ThreadData {
         propertyCache.purge(cx);
     }
 
+#ifdef JS_THREADSAFE
+    void sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
+                             size_t *regexpCode, size_t *stackCommitted);
+#endif
+
     
     void triggerOperationCallback(JSRuntime *rt);
 
@@ -298,6 +303,10 @@ struct JSThread {
     bool init() {
         return data.init();
     }
+
+    JS_FRIEND_API(void) sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal,
+                                            size_t *temporary, size_t *regexpCode,
+                                            size_t *stackCommitted);
 };
 
 #define JS_THREAD_DATA(cx)      (&(cx)->thread()->data)
@@ -399,20 +408,6 @@ struct JSRuntime
 
     
 
-
-
-
-
-
-
-
-
-
-
-    uint32              protoHazardShape;
-
-    
-
     
 
 
@@ -489,7 +484,6 @@ struct JSRuntime
     bool                gcPoke;
     bool                gcMarkAndSweep;
     bool                gcRunning;
-    bool                gcRegenShapes;
 
     
 
@@ -667,21 +661,6 @@ struct JSRuntime
   public:
     void setTrustedPrincipals(JSPrincipals *p) { trustedPrincipals_ = p; }
     JSPrincipals *trustedPrincipals() const { return trustedPrincipals_; }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    volatile uint32     shapeGen;
 
     
     JSAtomState         atomState;
@@ -1281,6 +1260,8 @@ struct JSContext
 
 
     bool runningWithTrustedPrincipals() const;
+
+    JS_FRIEND_API(size_t) sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const;
 
     static inline JSContext *fromLinkField(JSCList *link) {
         JS_ASSERT(link);
@@ -2137,29 +2118,6 @@ enum FrameExpandKind {
     FRAME_EXPAND_NONE = 0,
     FRAME_EXPAND_ALL = 1
 };
-
-static JS_INLINE JSBool
-js_IsPropertyCacheDisabled(JSContext *cx)
-{
-    return cx->runtime->shapeGen >= js::SHAPE_OVERFLOW_BIT;
-}
-
-static JS_INLINE uint32
-js_RegenerateShapeForGC(JSRuntime *rt)
-{
-    JS_ASSERT(rt->gcRunning);
-    JS_ASSERT(rt->gcRegenShapes);
-
-    
-
-
-
-
-    uint32 shape = rt->shapeGen;
-    shape = (shape + 1) | (shape & js::SHAPE_OVERFLOW_BIT);
-    rt->shapeGen = shape;
-    return shape;
-}
 
 namespace js {
 

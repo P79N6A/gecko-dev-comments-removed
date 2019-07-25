@@ -51,10 +51,6 @@ namespace JSC {
 struct JSScript;
 
 namespace js {
-    struct VMFunction;
-}
-
-namespace js {
 namespace ion {
 
 
@@ -110,7 +106,7 @@ class IonCode : public gc::Cell
         return insnSize_;
     }
     void trace(JSTracer *trc);
-    void finalize(JSContext *cx);
+    void finalize(JSContext *cx, bool background);
 
     template <typename T> T as() const {
         return JS_DATA_TO_FUNC_PTR(T, raw());
@@ -260,12 +256,14 @@ struct IonScript
     void copyFrameInfoTable(const IonFrameInfo *hf);
 };
 
+struct VMFunction;
+
 } 
 
 namespace gc {
 
 inline bool
-IsMarked(JSContext *, const VMFunction *)
+IsMarked(JSContext *, const ion::VMFunction *)
 {
     
     

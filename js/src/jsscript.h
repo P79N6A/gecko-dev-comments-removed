@@ -174,11 +174,9 @@ class Bindings {
     uint16 nargs;
     uint16 nvars;
     uint16 nupvars;
-    bool hasExtensibleParents;
 
   public:
     inline Bindings(JSContext *cx);
-    inline ~Bindings();
 
     
 
@@ -210,6 +208,12 @@ class Bindings {
 
     
     inline js::Shape *lastShape() const;
+
+    
+    inline bool extensibleParents();
+    bool setExtensibleParents(JSContext *cx);
+
+    bool setParent(JSContext *cx, JSObject *obj);
 
     enum {
         
@@ -293,54 +297,6 @@ class Bindings {
 
 
     void makeImmutable();
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    void setExtensibleParents() { hasExtensibleParents = true; }
-    bool extensibleParents() const { return hasExtensibleParents; }
 
     
 
@@ -502,10 +458,8 @@ struct JSScript : public js::gc::Cell {
 
 
     bool            hasSingletons:1;  
-    bool            hasFunction:1;       
-    bool            isHeavyweightFunction:1; 
-    bool            isOuterFunction:1;       
-    bool            isInnerFunction:1;       
+    bool            isOuterFunction:1; 
+    bool            isInnerFunction:1; 
 
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
@@ -532,8 +486,10 @@ struct JSScript : public js::gc::Cell {
 
 
 
+#if JS_BITS_PER_WORD == 64
 #define JS_SCRIPT_INLINE_DATA_LIMIT 4
     uint8           inlineData[JS_SCRIPT_INLINE_DATA_LIMIT];
+#endif
 
     const char      *filename;  
     JSAtom          **atoms;    
@@ -567,13 +523,24 @@ struct JSScript : public js::gc::Cell {
 
     
     js::ScriptOpcodeCounts pcCounters;
-
+	
 #ifdef JS_ION
     js::ion::IonScript *ion;          
 # if JS_BITS_PER_WORD == 32
     uint32 padding_;
 # endif
 #endif
+
+  private:
+    JSFunction      *function_;
+  public:
+
+    
+
+
+
+    JSFunction *function() const { return function_; }
+    void setFunction(JSFunction *fun) { function_ = fun; }
 
 #ifdef JS_CRASH_DIAGNOSTICS
     
@@ -596,7 +563,7 @@ struct JSScript : public js::gc::Cell {
     js::types::TypeScript *types;
 
     
-    inline bool ensureHasTypes(JSContext *cx, JSFunction *fun = NULL);
+    inline bool ensureHasTypes(JSContext *cx);
 
     
 
@@ -604,7 +571,7 @@ struct JSScript : public js::gc::Cell {
 
 
 
-    inline bool ensureRanAnalysis(JSContext *cx, JSFunction *fun = NULL, JSObject *scope = NULL);
+    inline bool ensureRanAnalysis(JSContext *cx, JSObject *scope);
 
     
     inline bool ensureRanInference(JSContext *cx);
@@ -622,7 +589,6 @@ struct JSScript : public js::gc::Cell {
     inline bool hasGlobal() const;
     inline bool hasClearedGlobal() const;
 
-    inline JSFunction *function() const;
     inline js::GlobalObject *global() const;
     inline js::types::TypeScriptNesting *nesting() const;
 
@@ -634,7 +600,7 @@ struct JSScript : public js::gc::Cell {
     }
 
   private:
-    bool makeTypes(JSContext *cx, JSFunction *fun);
+    bool makeTypes(JSContext *cx);
     bool makeAnalysis(JSContext *cx);
   public:
 
@@ -822,7 +788,7 @@ struct JSScript : public js::gc::Cell {
     uint32 stepModeCount() { return stepMode & stepCountMask; }
 #endif
 
-    void finalize(JSContext *cx);
+    void finalize(JSContext *cx, bool background);
 
     static inline void writeBarrierPre(JSScript *script);
     static inline void writeBarrierPost(JSScript *script, void *addr);

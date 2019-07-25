@@ -2276,12 +2276,13 @@ public:
 
 
 
-  void FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
+
+  bool FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
                               nsSize aNewSize);
 
-  void FinishAndStoreOverflow(nsHTMLReflowMetrics* aMetrics) {
-    FinishAndStoreOverflow(aMetrics->mOverflowAreas,
-                           nsSize(aMetrics->width, aMetrics->height));
+  bool FinishAndStoreOverflow(nsHTMLReflowMetrics* aMetrics) {
+    return FinishAndStoreOverflow(aMetrics->mOverflowAreas,
+                                  nsSize(aMetrics->width, aMetrics->height));
   }
 
   
@@ -2295,7 +2296,8 @@ public:
   
 
 
-  void ClearOverflowRects();
+
+  bool ClearOverflowRects();
 
   
 
@@ -2822,14 +2824,24 @@ protected:
   
   
   
+  struct VisualDeltas {
+    PRUint8 mLeft;
+    PRUint8 mTop;
+    PRUint8 mRight;
+    PRUint8 mBottom;
+    bool operator==(const VisualDeltas& aOther) const
+    {
+      return mLeft == aOther.mLeft && mTop == aOther.mTop &&
+             mRight == aOther.mRight && mBottom == aOther.mBottom;
+    }
+    bool operator!=(const VisualDeltas& aOther) const
+    {
+      return !(*this == aOther);
+    }
+  };
   union {
-    PRUint32  mType;
-    struct {
-      PRUint8 mLeft;
-      PRUint8 mTop;
-      PRUint8 mRight;
-      PRUint8 mBottom;
-    } mVisualDeltas;
+    PRUint32     mType;
+    VisualDeltas mVisualDeltas;
   } mOverflow;
 
   
@@ -2944,7 +2956,10 @@ private:
                   mRect.height + mOverflow.mVisualDeltas.mBottom +
                                  mOverflow.mVisualDeltas.mTop);
   }
-  void SetOverflowAreas(const nsOverflowAreas& aOverflowAreas);
+  
+
+
+  bool SetOverflowAreas(const nsOverflowAreas& aOverflowAreas);
   nsPoint GetOffsetToCrossDoc(const nsIFrame* aOther, const PRInt32 aAPD) const;
 
 #ifdef NS_DEBUG

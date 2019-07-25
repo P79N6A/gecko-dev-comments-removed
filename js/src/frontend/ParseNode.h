@@ -1271,18 +1271,6 @@ struct FunctionBox : public ObjectBox
 
 
     bool scopeIsExtensible() const;
-
-    
-
-
-
-
-
-
-
-
-
-    bool shouldUnbrand(uintN methods, uintN slowMethods) const;
 };
 
 struct FunctionBoxQueue {

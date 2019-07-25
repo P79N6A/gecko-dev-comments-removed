@@ -279,6 +279,9 @@ JS_GetFrameFunction(JSContext *cx, JSStackFrame *fp);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetFrameFunctionObject(JSContext *cx, JSStackFrame *fp);
 
+extern JS_PUBLIC_API(JSObject *)
+JS_GetParentOrScopeChain(JSContext *cx, JSObject *obj);
+
 
 #define JS_IsContructorFrame JS_IsConstructorFrame
 extern JS_PUBLIC_API(JSBool)
@@ -460,8 +463,6 @@ JS_GetScriptTotalSize(JSContext *cx, JSScript *script);
 
 
 
-
-
 extern JS_PUBLIC_API(JSBool)
 JS_IsSystemObject(JSContext *cx, JSObject *obj);
 
@@ -575,28 +576,6 @@ js_PauseVtune();
 extern JS_FRIEND_API(bool)
 js_ResumeVtune();
 
-#endif 
-
-#ifdef MOZ_TRACE_JSCALLS
-typedef void (*JSFunctionCallback)(const JSFunction *fun,
-                                   const JSScript *scr,
-                                   const JSContext *cx,
-                                   int entering);
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb);
-
-extern JS_PUBLIC_API(JSFunctionCallback)
-JS_GetFunctionCallback(JSContext *cx);
 #endif 
 
 extern JS_PUBLIC_API(void)

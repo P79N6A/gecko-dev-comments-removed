@@ -788,6 +788,13 @@ pref("network.http.connection-retry-timeout", 250);
 pref("network.http.fast-fallback-to-IPv4", true);
 
 
+pref("network.http.spdy.enabled", false);
+pref("network.http.spdy.chunk-size", 4096);
+pref("network.http.spdy.timeout", 180);
+pref("network.http.spdy.coalesce-hostnames", true);
+pref("network.http.spdy.use-alternate-protocol", true);
+
+
 
 
 
@@ -2707,7 +2714,6 @@ pref("print.print_paper_size", 0);
 
 pref("print.print_extra_margin", 0); 
 
-pref("font.allow_double_byte_special_chars", true);
 
 
 pref("font.alias-list", "sans,sans-serif,serif,monospace");
@@ -2973,7 +2979,6 @@ pref("print.print_paper_size", 0);
 
 pref("print.print_extra_margin", 0); 
 
-pref("font.allow_double_byte_special_chars", true);
 
 
 pref("font.alias-list", "sans,sans-serif,serif,monospace");

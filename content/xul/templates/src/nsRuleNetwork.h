@@ -883,14 +883,6 @@ public:
 
 
 
-
-    bool HasAncestor(const ReteNode* aNode) const;
-
-    
-
-
-
-
     nsresult AddChild(ReteNode* aNode) { return mKids.Add(aNode); }
 
     

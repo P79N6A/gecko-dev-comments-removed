@@ -732,17 +732,14 @@ struct TypeObject : gc::Cell
     HeapPtrObject singleton;
 
     
-    HeapPtr<EmptyShape> *emptyShapes;
+
+
+
+    static const size_t LAZY_SINGLETON = 1;
+    bool lazy() const { return singleton == (JSObject *) LAZY_SINGLETON; }
 
     
     TypeObjectFlags flags;
-
-    
-
-
-
-
-    HeapPtr<TypeNewScript> newScript;
 
     
 
@@ -757,6 +754,13 @@ struct TypeObject : gc::Cell
 
     uint32 contribution;
     static const uint32 CONTRIBUTION_LIMIT = 2000;
+
+    
+
+
+
+
+    HeapPtr<TypeNewScript> newScript;
 
     
 
@@ -793,6 +797,10 @@ struct TypeObject : gc::Cell
     
     HeapPtrFunction interpretedFunction;
 
+#if JS_BITS_PER_WORD == 32
+    void *padding;
+#endif
+
     inline TypeObject(JSObject *proto, bool isFunction, bool unknown);
 
     bool isFunction() { return !!(flags & OBJECT_FLAG_FUNCTION); }
@@ -811,16 +819,6 @@ struct TypeObject : gc::Cell
                      hasAllFlags(OBJECT_FLAG_DYNAMIC_MASK));
         return !!(flags & OBJECT_FLAG_UNKNOWN_PROPERTIES);
     }
-
-    
-
-
-
-
-
-
-    inline bool canProvideEmptyShape(js::Class *clasp);
-    inline js::EmptyShape *getEmptyShape(JSContext *cx, js::Class *aclasp, gc::AllocKind kind);
 
     
 
@@ -874,10 +872,11 @@ struct TypeObject : gc::Cell
 
 
 
-    void finalize(JSContext *cx) {}
+    void finalize(JSContext *cx, bool background) {}
 
     static inline void writeBarrierPre(TypeObject *type);
     static inline void writeBarrierPost(TypeObject *type, void *addr);
+    static inline void readBarrier(TypeObject *type);
 
   private:
     inline uint32 basePropertyCount() const;
@@ -889,7 +888,17 @@ struct TypeObject : gc::Cell
 };
 
 
-extern TypeObject emptyTypeObject;
+
+
+
+struct TypeObjectEntry
+{
+    typedef JSObject *Lookup;
+
+    static inline HashNumber hash(JSObject *base);
+    static inline bool match(TypeObject *key, JSObject *lookup);
+};
+typedef HashSet<TypeObject *, TypeObjectEntry, SystemAllocPolicy> TypeObjectSet;
 
 
 
@@ -1021,9 +1030,6 @@ class TypeScript
     analyze::ScriptAnalysis *analysis;
 
     
-    HeapPtrFunction function;
-
-    
 
 
 
@@ -1041,8 +1047,7 @@ class TypeScript
     
     TypeResult *dynamicList;
 
-    inline TypeScript(JSFunction *fun);
-    inline ~TypeScript();
+    inline TypeScript();
 
     bool hasScope() { return size_t(global.get()) != GLOBAL_MISSING_SCOPE; }
 
@@ -1269,5 +1274,9 @@ void TypeFailure(JSContext *cx, const char *fmt, ...);
 
 } 
 } 
+
+namespace JS {
+    template<> class AnchorPermitted<js::types::TypeObject *> { };
+}
 
 #endif 

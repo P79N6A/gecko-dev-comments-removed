@@ -1174,6 +1174,13 @@ function escapeAddonURI(aAddon, aUri, aUpdateType, aAppVersion)
     maxVersion = "";
   uri = uri.replace(/%ITEM_MAXAPPVERSION%/g, maxVersion);
 
+  let compatMode = "normal";
+  if (!XPIProvider.checkCompatibility)
+    compatMode = "ignore";
+  else if (AddonManager.strictCompatibility)
+    compatMode = "strict";
+  uri = uri.replace(/%COMPATIBILITY_MODE%/g, compatMode);
+
   
   
   var catMan = null;
@@ -3350,6 +3357,41 @@ var XPIProvider = {
 
 
 
+
+
+  updateAddonRepositoryData: function XPI_updateAddonRepositoryData(aCallback) {
+    let self = this;
+    XPIDatabase.getVisibleAddons(null, function UARD_getVisibleAddonsCallback(aAddons) {
+      let pending = aAddons.length;
+      if (pending == 0) {
+        aCallback();
+        return;
+      }
+
+      function notifyComplete() {
+        if (--pending == 0)
+          aCallback();
+      }
+
+      aAddons.forEach(function UARD_forEachCallback(aAddon) {
+        AddonRepository.getCachedAddonByID(aAddon.id,
+                                           function UARD_getCachedAddonCallback(aRepoAddon) {
+          if (aRepoAddon) {
+            aAddon._repositoryAddon = aRepoAddon;
+            aAddon.compatibilityOverrides = aRepoAddon.compatibilityOverrides;
+            self.updateAddonDisabledState(aAddon);
+          }
+
+          notifyComplete();
+        });
+      });
+    });
+  },
+
+  
+
+
+
   enableDefaultTheme: function XPI_enableDefaultTheme() {
     LOG("Activating default theme");
     let addon = XPIDatabase.getVisibleAddonForInternalName(this.defaultSkin);
@@ -4052,6 +4094,9 @@ AsyncAddonListCallback.prototype = {
       XPIDatabase.makeAddonFromRowAsync(row, function(aAddon) {
         function completeAddon(aRepositoryAddon) {
           aAddon._repositoryAddon = aRepositoryAddon;
+          aAddon.compatibilityOverrides = aRepositoryAddon ?
+                                            aRepositoryAddon.compatibilityOverrides :
+                                            null;
           self.addons.push(aAddon);
           if (self.complete && self.addons.length == self.count)
            self.callback(self.addons);
@@ -6152,6 +6197,7 @@ AddonInstall.prototype = {
       AddonRepository.getCachedAddonByID(aAddon.id, function(aRepoAddon) {
         if (aRepoAddon) {
           aAddon._repositoryAddon = aRepoAddon;
+          aAddon.compatibilityOverrides = aRepoAddon.compatibilityOverrides;
           aCallback();
           return;
         }
@@ -6160,6 +6206,9 @@ AddonInstall.prototype = {
         AddonRepository.cacheAddons([aAddon.id], function() {
           AddonRepository.getCachedAddonByID(aAddon.id, function(aRepoAddon) {
             aAddon._repositoryAddon = aRepoAddon;
+            aAddon.compatibilityOverrides = aRepoAddon ?
+                                              aRepoAddon.compatibilityOverrides :
+                                              null;
             aCallback();
           });
         });
@@ -6970,10 +7019,24 @@ UpdateChecker.prototype = {
   onUpdateCheckComplete: function UC_onUpdateCheckComplete(aUpdates) {
     let AUC = AddonUpdateChecker;
 
+    let ignoreMaxVersion = false;
+    let ignoreStrictCompat = false;
+    if (!XPIProvider.checkCompatibility) {
+      ignoreMaxVersion = true;
+      ignoreStrictCompat = true;
+    } else if (this.addon.type == "extension" &&
+               !AddonManager.strictCompatibility &&
+               !this.addon.strictCompatibility &&
+               !this.addon.hasBinaryComponents) {
+      ignoreMaxVersion = true;
+    }
+
     
     let compatUpdate = AUC.getCompatibilityUpdate(aUpdates, this.addon.version,
-                                                  this.syncCompatibility);
-
+                                                  this.syncCompatibility,
+                                                  null, null,
+                                                  ignoreMaxVersion,
+                                                  ignoreStrictCompat);
     
     if (compatUpdate)
       this.addon.applyCompatibilityUpdate(compatUpdate, this.syncCompatibility);
@@ -6987,7 +7050,9 @@ UpdateChecker.prototype = {
          Services.vc.compare(this.platformVersion, Services.appinfo.platformVersion) != 0)) {
       compatUpdate = AUC.getCompatibilityUpdate(aUpdates, this.addon.version,
                                                 false, this.appVersion,
-                                                this.platformVersion);
+                                                this.platformVersion,
+                                                ignoreMaxVersion,
+                                                ignoreStrictCompat);
     }
 
     if (compatUpdate)
@@ -7007,9 +7072,16 @@ UpdateChecker.prototype = {
                          AddonManager.UPDATE_STATUS_NO_ERROR);
     }
 
+    let compatOverrides = AddonManager.strictCompatibility ?
+                            null :
+                            this.addon.compatibilityOverrides;
+
     let update = AUC.getNewestCompatibleUpdate(aUpdates,
                                                this.appVersion,
-                                               this.platformVersion);
+                                               this.platformVersion,
+                                               ignoreMaxVersion,
+                                               ignoreStrictCompat,
+                                               compatOverrides);
 
     if (update && Services.vc.compare(this.addon.version, update.version) < 0) {
       for (let i = 0; i < XPIProvider.installs.length; i++) {
@@ -7150,6 +7222,17 @@ AddonInternal.prototype = {
         !this.strictCompatibility && !this.hasBinaryComponents) {
 
       
+      
+      if (this._repositoryAddon &&
+          this._repositoryAddon.compatibilityOverrides) {
+        let overrides = this._repositoryAddon.compatibilityOverrides;
+        let override = AddonRepository.findMatchingCompatOverride(this.version,
+                                                                  overrides);
+        if (override && override.type == "incompatible")
+          return false;
+      }
+
+      
       let minCompatVersion;
       if (app.id == Services.appinfo.ID)
         minCompatVersion = XPIProvider.minCompatibleAppVersion;
@@ -7252,7 +7335,7 @@ AddonInternal.prototype = {
   importMetadata: function(aObj) {
     ["targetApplications", "userDisabled", "softDisabled", "existingAddonID",
      "sourceURI", "releaseNotesURI", "installDate", "updateDate",
-     "applyBackgroundUpdates"].forEach(function(aProp) {
+     "applyBackgroundUpdates", "compatibilityOverrides"].forEach(function(aProp) {
       if (!(aProp in aObj))
         return;
 
@@ -7368,7 +7451,7 @@ function AddonWrapper(aAddon) {
   ["id", "syncGUID", "version", "type", "isCompatible", "isPlatformCompatible",
    "providesUpdatesSecurely", "blocklistState", "blocklistURL", "appDisabled",
    "softDisabled", "skinnable", "size", "foreignInstall", "hasBinaryComponents",
-   "strictCompatibility"].forEach(function(aProp) {
+   "strictCompatibility", "compatibilityOverrides"].forEach(function(aProp) {
      this.__defineGetter__(aProp, function() aAddon[aProp]);
   }, this);
 

@@ -563,7 +563,7 @@ struct Arena {
     }
 
     template <typename T>
-    bool finalize(JSContext *cx, AllocKind thingKind, size_t thingSize);
+    bool finalize(JSContext *cx, AllocKind thingKind, size_t thingSize, bool background);
 };
 
 
@@ -956,9 +956,9 @@ MapAllocToTraceKind(AllocKind thingKind)
         JSTRACE_OBJECT,     
         JSTRACE_OBJECT,     
         JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
         JSTRACE_SCRIPT,     
         JSTRACE_SHAPE,      
+        JSTRACE_BASE_SHAPE, 
         JSTRACE_TYPE_OBJECT,
 #if JS_HAS_XML_SUPPORT      
         JSTRACE_XML,

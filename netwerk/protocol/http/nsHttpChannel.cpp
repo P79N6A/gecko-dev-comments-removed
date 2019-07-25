@@ -209,6 +209,18 @@ nsHttpChannel::Connect(bool firstTime)
             LOG(("nsHttpChannel::Connect() STS permissions found\n"));
             return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
         }
+
+        
+        if (gHttpHandler->IsSpdyEnabled() && mAllowSpdy) {
+            nsCAutoString hostPort;
+
+            if (NS_SUCCEEDED(mURI->GetHostPort(hostPort)) &&
+                gHttpHandler->ConnMgr()->GetSpdyAlternateProtocol(hostPort)) {
+                LOG(("nsHttpChannel::Connect() Alternate-Protocol found\n"));
+                return AsyncCall(
+                    &nsHttpChannel::HandleAsyncRedirectChannelToHttps);
+            }
+        }
     }
 
     
@@ -507,6 +519,9 @@ nsHttpChannel::SetupTransaction()
         }
     }
 
+    if (!mAllowSpdy)
+        mCaps |= NS_HTTP_DISALLOW_SPDY;
+
     
     
     nsCAutoString buf, path;
@@ -634,6 +649,7 @@ nsHttpChannel::SetupTransaction()
         mCaps |=  NS_HTTP_STICKY_CONNECTION;
         mCaps &= ~NS_HTTP_ALLOW_PIPELINING;
         mCaps &= ~NS_HTTP_ALLOW_KEEPALIVE;
+        mCaps |=  NS_HTTP_DISALLOW_SPDY;
     }
 
     nsCOMPtr<nsIAsyncInputStream> responseStream;
@@ -4088,6 +4104,16 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
         
         
         mSecurityInfo = mTransaction->SecurityInfo();
+    }
+
+    if (gHttpHandler->IsSpdyEnabled() && !mCachePump && NS_FAILED(mStatus) &&
+        (mLoadFlags & LOAD_REPLACE) && mOriginalURI && mAllowSpdy) {
+        
+        
+
+        nsCAutoString hostPort;
+        if (NS_SUCCEEDED(mOriginalURI->GetHostPort(hostPort)))
+            gHttpHandler->ConnMgr()->RemoveSpdyAlternateProtocol(hostPort);
     }
 
     

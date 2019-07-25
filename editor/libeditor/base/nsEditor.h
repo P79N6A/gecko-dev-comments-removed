@@ -651,7 +651,7 @@ public:
   virtual already_AddRefed<nsIDOMEventTarget> GetDOMEventTarget() = 0;
 
   
-  nsIDOMElement *GetRoot();
+  mozilla::dom::Element *GetRoot();
 
   
   bool IsPlaintextEditor() const
@@ -763,8 +763,8 @@ public:
 
 protected:
 
-  PRUint32        mModCount;		
-  PRUint32        mFlags;		
+  PRUint32        mModCount;     
+  PRUint32        mFlags;        
 
   nsWeakPtr       mSelConWeak;   
   PRInt32         mUpdateCount;
@@ -785,7 +785,7 @@ protected:
   nsSelectionState *mSelState;           
   nsSelectionState  mSavedSel;           
   nsRangeUpdater    mRangeUpdater;       
-  nsCOMPtr<nsIDOMElement> mRootElement;    
+  nsCOMPtr<mozilla::dom::Element> mRootElement;   
   PRInt32           mAction;             
   EDirection        mDirection;          
   

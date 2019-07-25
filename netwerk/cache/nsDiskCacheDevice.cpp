@@ -419,7 +419,9 @@ nsDiskCacheDevice::Init()
     rv = mBindery.Init();
     if (NS_FAILED(rv))
         return rv;
-    
+
+    nsDeleteDir::RemoveOldTrashes(mCacheDirectory);
+
     
     rv = OpenDiskCache();
     if (NS_FAILED(rv)) {
@@ -443,17 +445,6 @@ nsDiskCacheDevice::Shutdown()
     nsresult rv = Shutdown_Private(true);
     if (NS_FAILED(rv))
         return rv;
-
-    if (mCacheDirectory) {
-        
-        nsCOMPtr<nsIFile> trashDir;
-        GetTrashDir(mCacheDirectory, &trashDir);
-        if (trashDir) {
-            bool exists;
-            if (NS_SUCCEEDED(trashDir->Exists(&exists)) && exists)
-                DeleteDir(trashDir, false, true);
-        }
-    }
 
     return NS_OK;
 }
@@ -1004,18 +995,16 @@ nsDiskCacheDevice::OpenDiskCache()
     if (NS_FAILED(rv))
         return rv;
 
-    bool trashing = false;
     if (exists) {
         
         rv = mCacheMap.Open(mCacheDirectory);        
         
         if (rv == NS_ERROR_FILE_CORRUPTED) {
             
-            rv = DeleteDir(mCacheDirectory, true, false, 60000);
+            rv = nsDeleteDir::DeleteDir(mCacheDirectory, true, 60000);
             if (NS_FAILED(rv))
                 return rv;
             exists = false;
-            trashing = true;
         }
         else if (NS_FAILED(rv))
             return rv;
@@ -1035,19 +1024,6 @@ nsDiskCacheDevice::OpenDiskCache()
             return rv;
     }
 
-    if (!trashing) {
-        
-        nsCOMPtr<nsIFile> trashDir;
-        GetTrashDir(mCacheDirectory, &trashDir);
-        if (trashDir) {
-            bool exists;
-            if (NS_SUCCEEDED(trashDir->Exists(&exists)) && exists) {
-                
-                DeleteDir(trashDir, false, false);
-            }
-        }
-    }
-
     return NS_OK;
 }
 
@@ -1064,7 +1040,7 @@ nsDiskCacheDevice::ClearDiskCache()
 
     
     
-    rv = DeleteDir(mCacheDirectory, true, false);
+    rv = nsDeleteDir::DeleteDir(mCacheDirectory, true);
     if (NS_FAILED(rv) && rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST)
         return rv;
 

@@ -193,7 +193,6 @@ test_visited_notifies()
   nsresult rv = history->RegisterVisitedCallback(testURI, link);
   do_check_success(rv);
 
-  link.forget(); 
   
 }
 
@@ -236,8 +235,6 @@ test_same_uri_notifies_both()
   rv = history->RegisterVisitedCallback(testURI, link2);
   do_check_success(rv);
 
-  link1.forget(); 
-  link2.forget(); 
   
 }
 
@@ -288,7 +285,6 @@ test_new_visit_notifies_waiting_Link()
   
   addURI(testURI);
 
-  link.forget(); 
   
 }
 
@@ -402,7 +398,6 @@ test_observer_topic_dispatched()
   
   nsRefPtr<Link> visitedLink = new mock_Link(expect_visit, false);
   nsRefPtr<Link> visitedLinkCopy = visitedLink;
-  visitedLinkCopy.forget(); 
   nsRefPtr<Link> notVisitedLink = new mock_Link(expect_no_visit);
 
   

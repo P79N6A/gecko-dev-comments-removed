@@ -46,6 +46,7 @@
 #include "jsgc.h"
 #include "jsgcstats.h"
 #include "jsobj.h"
+#include "jsscope.h"
 #include "vm/GlobalObject.h"
 
 #ifdef _MSC_VER
@@ -236,7 +237,7 @@ struct JS_FRIEND_API(JSCompartment) {
 
     bool ensureJaegerCompartmentExists(JSContext *cx);
 
-    void getMjitCodeStats(size_t& method, size_t& regexp, size_t& unused) const;
+    void sizeOfCode(size_t *method, size_t *regexp, size_t *unused) const;
 #endif
 
     
@@ -252,37 +253,28 @@ struct JS_FRIEND_API(JSCompartment) {
     jsrefcount                   liveDictModeNodes;
 #endif
 
-    typedef js::ReadBarriered<js::EmptyShape> BarrieredEmptyShape;
-    typedef js::ReadBarriered<const js::Shape> BarrieredShape;
+    
+    js::BaseShapeSet             baseShapes;
+    void sweepBaseShapeTable(JSContext *cx);
 
     
-
-
-
-    BarrieredEmptyShape          emptyArgumentsShape;
-    BarrieredEmptyShape          emptyBlockShape;
-    BarrieredEmptyShape          emptyCallShape;
-    BarrieredEmptyShape          emptyDeclEnvShape;
-    BarrieredEmptyShape          emptyEnumeratorShape;
-    BarrieredEmptyShape          emptyWithShape;
-
-    typedef js::HashSet<js::EmptyShape *,
-                        js::DefaultHasher<js::EmptyShape *>,
-                        js::SystemAllocPolicy> EmptyShapeSet;
-
-    EmptyShapeSet                emptyShapes;
+    js::InitialShapeSet          initialShapes;
+    void sweepInitialShapeTable(JSContext *cx);
 
     
+    js::types::TypeObjectSet     newTypeObjects;
+    js::types::TypeObjectSet     lazyTypeObjects;
+    void sweepNewTypeObjectTable(JSContext *cx, js::types::TypeObjectSet &table);
 
+    js::types::TypeObject        *emptyTypeObject;
 
+    
+    inline js::types::TypeObject *getEmptyType(JSContext *cx);
 
+    js::types::TypeObject *getLazyType(JSContext *cx, JSObject *proto);
 
-
-
-
-
-    BarrieredShape               initialRegExpShape;
-    BarrieredShape               initialStringShape;
+    
+    js::NewObjectCache           newObjectCache;
 
   private:
     enum { DebugFromC = 1, DebugFromJS = 2 };

@@ -3051,6 +3051,16 @@ WorkerPrivate::NotifyInternal(JSContext* aCx, Status aStatus)
     mStatus = aStatus;
   }
 
+  
+  
+  if (mCrossThreadDispatcher) {
+    
+    
+    
+    
+    mCrossThreadDispatcher->Forget();
+  }
+
   NS_ASSERTION(previousStatus != Pending, "How is this possible?!");
 
   NS_ASSERTION(previousStatus >= Canceling || mKillTime.IsNull(),
@@ -3587,6 +3597,16 @@ WorkerPrivate::AssertIsOnWorkerThread() const
   }
 }
 #endif
+
+WorkerCrossThreadDispatcher*
+WorkerPrivate::GetCrossThreadDispatcher()
+{
+  mozilla::MutexAutoLock lock(mMutex);
+  if (!mCrossThreadDispatcher && mStatus <= Running) {
+    mCrossThreadDispatcher = new WorkerCrossThreadDispatcher(this);
+  }
+  return mCrossThreadDispatcher;
+}
 
 BEGIN_WORKERS_NAMESPACE
 

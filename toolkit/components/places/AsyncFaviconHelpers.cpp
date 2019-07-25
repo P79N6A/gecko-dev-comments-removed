@@ -36,6 +36,7 @@
 
 
 
+
 #include "AsyncFaviconHelpers.h"
 
 #include "nsIContentSniffer.h"
@@ -724,11 +725,18 @@ AsyncAssociateIconToPage::Run()
 
   
   if (mIcon.id == 0 || (mIcon.status & ICON_STATUS_CHANGED)) {
+    
+    
+    
     nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
       "INSERT OR REPLACE INTO moz_favicons "
-        "(id, url, data, mime_type, expiration) "
+        "(id, url, data, mime_type, expiration, guid) "
       "VALUES ((SELECT id FROM moz_favicons WHERE url = :icon_url), "
-              ":icon_url, :data, :mime_type, :expiration) "
+              ":icon_url, :data, :mime_type, :expiration, "
+              "COALESCE(:guid, "
+                       "(SELECT guid FROM moz_favicons "
+                        "WHERE url = :icon_url), "
+                       "GENERATE_GUID()))"
     );
     NS_ENSURE_STATE(stmt);
     mozStorageStatementScoper scoper(stmt);
@@ -741,6 +749,16 @@ AsyncAssociateIconToPage::Run()
     NS_ENSURE_SUCCESS(rv, rv);
     rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("expiration"), mIcon.expiration);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    if (mIcon.guid.IsEmpty()) {
+      rv = stmt->BindNullByName(NS_LITERAL_CSTRING("guid"));
+    }
+    else {
+      rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("guid"), mIcon.guid);
+    }
+    NS_ENSURE_SUCCESS(rv, rv);
+
     rv = stmt->Execute();
     NS_ENSURE_SUCCESS(rv, rv);
 

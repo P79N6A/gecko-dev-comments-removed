@@ -277,38 +277,6 @@ public:
 
   
   static already_AddRefed<nsIDOMNode> GetBlockNodeParent(nsIDOMNode *aNode);
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult GetBlockSection(nsIDOMNode  *aNode,
-                                  nsIDOMNode **aLeftNode, 
-                                  nsIDOMNode **aRightNode);
-
-  
-
-
-
-
-
-
-
-
-  static nsresult GetBlockSectionsForRange(nsIDOMRange      *aRange, 
-                                           nsCOMArray<nsIDOMRange>& aSections);
 
   static already_AddRefed<nsIDOMNode> NextNodeInBlock(nsIDOMNode *aNode, IterDirection aDir);
   nsresult IsNextCharWhitespace(nsIDOMNode *aParentNode, 

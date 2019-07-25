@@ -115,6 +115,7 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
   :nsBoxFrame(aShell, aContext),
   mCurrentMenu(nsnull),
   mPrefSize(-1, -1),
+  mLastClientOffset(0, 0),
   mPopupType(ePopupTypePanel),
   mPopupState(ePopupClosed),
   mPopupAlignment(POPUPALIGNMENT_NONE),
@@ -486,21 +487,6 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
     nsRect rect = GetRect();
     rect.x = rect.y = 0;
 
-    
-    
-    
-    
-    
-    if (mPopupType == ePopupTypePanel && view) {
-      nsIWidget* widget = view->GetWidget();
-      if (widget) {
-        nsIntSize popupSize = nsIntSize(pc->AppUnitsToDevPixels(rect.width),
-                                        pc->AppUnitsToDevPixels(rect.height));
-        popupSize = widget->ClientToWindowSize(popupSize);
-        rect.width = pc->DevPixelsToAppUnits(popupSize.width);
-        rect.height = pc->DevPixelsToAppUnits(popupSize.height);
-      }
-    }
     viewManager->ResizeView(view, rect);
 
     viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
@@ -1318,8 +1304,6 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
 
   nsIView* view = GetView();
   NS_ASSERTION(view, "popup with no view");
-  presContext->GetPresShell()->GetViewManager()->
-    MoveViewTo(view, viewPoint.x, viewPoint.y);
 
   
   
@@ -1327,10 +1311,13 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
   
   nsIWidget* widget = view->GetWidget();
   if (mPopupType == ePopupTypePanel && widget) {
-    nsIntPoint offset = widget->GetClientOffset();
-    viewPoint.x += presContext->DevPixelsToAppUnits(offset.x);
-    viewPoint.y += presContext->DevPixelsToAppUnits(offset.y);
+    mLastClientOffset = widget->GetClientOffset();
+    viewPoint.x += presContext->DevPixelsToAppUnits(mLastClientOffset.x);
+    viewPoint.y += presContext->DevPixelsToAppUnits(mLastClientOffset.y);
   }
+
+  presContext->GetPresShell()->GetViewManager()->
+    MoveViewTo(view, viewPoint.x, viewPoint.y);
 
   
   nsBoxFrame::SetPosition(viewPoint - GetParent()->GetOffsetTo(rootFrame));
@@ -1763,16 +1750,14 @@ nsMenuPopupFrame::LockMenuUntilClosed(bool aLock)
   }
 }
 
-NS_IMETHODIMP
-nsMenuPopupFrame::GetWidget(nsIWidget **aWidget)
+nsIWidget*
+nsMenuPopupFrame::GetWidget()
 {
   nsIView * view = GetRootViewForPopup(this);
   if (!view)
-    return NS_OK;
+    return nsnull;
 
-  *aWidget = view->GetWidget();
-  NS_IF_ADDREF(*aWidget);
-  return NS_OK;
+  return view->GetWidget();
 }
 
 void
@@ -1871,8 +1856,11 @@ nsMenuPopupFrame::DestroyFrom(nsIFrame* aDestructRoot)
 void
 nsMenuPopupFrame::MoveTo(PRInt32 aLeft, PRInt32 aTop, bool aUpdateAttrs)
 {
-  if (mScreenXPos == aLeft && mScreenYPos == aTop)
+  nsIWidget* widget = GetWidget();
+  if ((mScreenXPos == aLeft && mScreenYPos == aTop) &&
+      (!widget || widget->GetClientOffset() == mLastClientOffset)) {
     return;
+  }
 
   
   

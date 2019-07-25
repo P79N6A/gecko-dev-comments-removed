@@ -73,6 +73,12 @@ class nsFontFaceList;
 class nsBlockFrame;
 class gfxDrawable;
 
+namespace mozilla {
+namespace dom {
+class Element;
+} 
+} 
+
 
 
 
@@ -1381,7 +1387,7 @@ public:
     bool mCORSUsed;
   };
 
-  static SurfaceFromElementResult SurfaceFromElement(nsIDOMElement *aElement,
+  static SurfaceFromElementResult SurfaceFromElement(mozilla::dom::Element *aElement,
                                                      PRUint32 aSurfaceFlags = 0);
 
   

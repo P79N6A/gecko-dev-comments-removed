@@ -1605,7 +1605,20 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
                                                      nsIWeakReference* aWeakShell)
 {
   
-  nsIAtom *tag = aContent->Tag();
+  nsIAtom* tag = aContent->Tag();
+  if (tag == nsGkAtoms::figcaption) {
+    nsAccessible* accessible =
+      new nsHTMLFigcaptionAccessible(aContent, aWeakShell);
+    NS_IF_ADDREF(accessible);
+    return accessible;
+  }
+
+  if (tag == nsGkAtoms::figure) {
+    nsAccessible* accessible = new nsHTMLFigureAccessible(aContent, aWeakShell);
+    NS_IF_ADDREF(accessible);
+    return accessible;
+  }
+
   if (tag == nsGkAtoms::legend) {
     nsAccessible* accessible = new nsHTMLLegendAccessible(aContent, aWeakShell);
     NS_IF_ADDREF(accessible);

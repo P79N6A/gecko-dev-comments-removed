@@ -139,8 +139,6 @@ public:
   nsresult    SetCSSPropertyPixels(nsIDOMElement * aElement,
                                    const nsAString & aProperty,
                                    PRInt32 aIntValue);
-  nsresult    RemoveCSSProperty(nsIDOMElement * aElement,
-                                const nsAString & aProperty);
 
   
 

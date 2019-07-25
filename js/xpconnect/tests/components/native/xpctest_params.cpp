@@ -249,11 +249,11 @@ NS_IMETHODIMP nsXPCTestParams::TestShortArray(PRUint32 aLength, PRInt16 *a,
 
 
 
-NS_IMETHODIMP nsXPCTestParams::TestLongLongArray(PRUint32 aLength, PRInt64 *a,
-                                                 PRUint32 *bLength NS_INOUTPARAM, PRInt64 **b NS_INOUTPARAM,
-                                                 PRUint32 *rvLength NS_OUTPARAM, PRInt64 **rv NS_OUTPARAM)
+NS_IMETHODIMP nsXPCTestParams::TestDoubleArray(PRUint32 aLength, double *a,
+                                               PRUint32 *bLength NS_INOUTPARAM, double **b NS_INOUTPARAM,
+                                               PRUint32 *rvLength NS_OUTPARAM,  double **rv NS_OUTPARAM)
 {
-    BUFFER_METHOD_IMPL(PRInt64, 0, TAKE_OWNERSHIP_NOOP);
+    BUFFER_METHOD_IMPL(double, 0, TAKE_OWNERSHIP_NOOP);
 }
 
 

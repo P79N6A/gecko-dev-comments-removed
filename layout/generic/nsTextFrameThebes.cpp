@@ -7084,6 +7084,34 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   return NS_OK;
 }
 
+#ifdef ACCESSIBILITY
+
+
+
+class NS_STACK_CLASS ReflowTextA11yNotifier
+{
+public:
+  ReflowTextA11yNotifier(nsPresContext* aPresContext, nsIContent* aContent) :
+    mPresContext(aPresContext), mContent(aContent)
+  {
+  }
+  ~ReflowTextA11yNotifier()
+  {
+    nsAccessibilityService* accService = nsIPresShell::AccService();
+    if (accService) {
+      accService->UpdateText(mPresContext->PresShell(), mContent);
+    }
+  }
+private:
+  ReflowTextA11yNotifier();
+  ReflowTextA11yNotifier(const ReflowTextA11yNotifier&);
+  ReflowTextA11yNotifier& operator =(const ReflowTextA11yNotifier&);
+
+  nsIContent* mContent;
+  nsPresContext* mPresContext;
+};
+#endif
+
 void
 nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
                         nsRenderingContext* aRenderingContext,
@@ -7097,6 +7125,11 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
 #endif
 
   nsPresContext* presContext = PresContext();
+
+#ifdef ACCESSIBILITY
+  
+  ReflowTextA11yNotifier(presContext, mContent);
+#endif
 
   
   
@@ -7607,14 +7640,6 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   printf(": desiredSize=%d,%d(b=%d) status=%x\n",
          aMetrics.width, aMetrics.height, aMetrics.ascent,
          aStatus);
-#endif
-
-#ifdef ACCESSIBILITY
-  
-  nsAccessibilityService* accService = nsIPresShell::AccService();
-  if (accService) {
-    accService->UpdateText(presContext->PresShell(), mContent);
-  }
 #endif
 }
 

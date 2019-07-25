@@ -74,7 +74,11 @@ using namespace js::gc;
 using namespace js::types;
 
 
-static const uint8 ARRAYBUFFER_RESERVED_SLOTS = 16;
+
+
+
+
+static const uint8 ARRAYBUFFER_RESERVED_SLOTS = JSObject::MAX_FIXED_SLOTS - 1;
 
 static bool
 ValueIsLength(JSContext *cx, const Value &v, jsuint *len)
@@ -160,25 +164,29 @@ JSObject::allocateArrayBufferSlots(JSContext *cx, uint32 size)
 
 
 
-    JS_ASSERT(isArrayBuffer() && !hasSlotsArray());
 
-    uint32 bytes = size + sizeof(Value);
-    if (size > sizeof(HeapValue) * ARRAYBUFFER_RESERVED_SLOTS - sizeof(HeapValue) ) {
-        HeapValue *tmpslots = (HeapValue *)cx->calloc_(bytes);
-        if (!tmpslots)
+    JS_ASSERT(isArrayBuffer() && !hasDynamicSlots() && !hasDynamicElements());
+
+    size_t usableSlots = ARRAYBUFFER_RESERVED_SLOTS - ObjectElements::VALUES_PER_HEADER;
+
+    if (size > sizeof(Value) * usableSlots) {
+        ObjectElements *newheader = (ObjectElements *)cx->calloc_(size + sizeof(ObjectElements));
+        if (!newheader)
             return false;
-        slots = tmpslots;
-        
-
-
-
-
-        capacity = bytes / sizeof(HeapValue);
+        elements = newheader->elements();
     } else {
-        slots = fixedSlots();
-        memset(slots, 0, bytes);
+        elements = fixedElements();
+        memset(fixedSlots(), 0, size + sizeof(ObjectElements));
     }
-    *((uint32*)slots) = size;
+    getElementsHeader()->length = size;
+
+    
+
+
+
+
+    getElementsHeader()->capacity = size / sizeof(Value);
+
     return true;
 }
 
@@ -186,7 +194,7 @@ static JSObject *
 DelegateObject(JSContext *cx, JSObject *obj)
 {
     if (!obj->getPrivate()) {
-        JSObject *delegate = NewNonFunction<WithProto::Given>(cx, &ObjectClass, obj->getProto(), NULL);
+        JSObject *delegate = NewObjectWithGivenProto(cx, &ObjectClass, obj->getProto(), NULL);
         obj->setPrivate(delegate);
         return delegate;
     }
@@ -199,6 +207,7 @@ ArrayBuffer::create(JSContext *cx, int32 nbytes)
     JSObject *obj = NewBuiltinClassInstance(cx, &ArrayBuffer::slowClass);
     if (!obj)
         return NULL;
+    JS_ASSERT(obj->getAllocKind() == gc::FINALIZE_OBJECT16);
 
     if (nbytes < 0) {
         
@@ -211,8 +220,13 @@ ArrayBuffer::create(JSContext *cx, int32 nbytes)
     }
 
     JS_ASSERT(obj->getClass() == &ArrayBuffer::slowClass);
-    obj->setSharedNonNativeMap();
-    obj->setClass(&ArrayBufferClass);
+
+    js::Shape *empty = EmptyShape::getInitialShape(cx, &ArrayBufferClass,
+                                                   obj->getProto(), obj->getParent(),
+                                                   gc::FINALIZE_OBJECT16);
+    if (!empty)
+        return false;
+    obj->setLastPropertyInfallible(empty);
 
     
 
@@ -831,7 +845,7 @@ TypedArray::lengthOffset()
  int
 TypedArray::dataOffset()
 {
-    return offsetof(JSObject, privateData);
+    return JSObject::getPrivateDataOffset(NUM_FIXED_SLOTS);
 }
 
 
@@ -1331,6 +1345,7 @@ class TypedArrayTemplate
         JSObject *obj = NewBuiltinClassInstance(cx, slowClass());
         if (!obj)
             return NULL;
+        JS_ASSERT(obj->getAllocKind() == gc::FINALIZE_OBJECT8);
 
         
 
@@ -1363,11 +1378,16 @@ class TypedArrayTemplate
         JS_ASSERT(getDataOffset(obj) <= offsetData(obj, bufferByteLength));
 
         JS_ASSERT(obj->getClass() == slowClass());
-        obj->setSharedNonNativeMap();
-        obj->setClass(fastClass());
 
-        
-        obj->flags |= JSObject::NOT_EXTENSIBLE;
+        js::Shape *empty = EmptyShape::getInitialShape(cx, fastClass(),
+                                                       obj->getProto(), obj->getParent(),
+                                                       gc::FINALIZE_OBJECT8,
+                                                       BaseShape::NOT_EXTENSIBLE);
+        if (!empty)
+            return false;
+        obj->setLastPropertyInfallible(empty);
+
+        JS_ASSERT(obj->numFixedSlots() == NUM_FIXED_SLOTS);
 
         return obj;
     }

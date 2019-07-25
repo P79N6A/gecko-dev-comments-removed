@@ -51,20 +51,6 @@
 
 const uintN MIN_SPARSE_INDEX = 256;
 
-inline uint32
-JSObject::getDenseArrayInitializedLength()
-{
-    JS_ASSERT(isDenseArray());
-    return initializedLength();
-}
-
-inline bool
-JSObject::isPackedDenseArray()
-{
-    JS_ASSERT(isDenseArray());
-    return flags & PACKED_ARRAY;
-}
-
 namespace js {
 
 const uint32 MAX_ARRAY_INDEX = 4294967294u;

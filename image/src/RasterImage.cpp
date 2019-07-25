@@ -325,6 +325,7 @@ RasterImage::AdvanceFrame(TimeStamp aTime, nsIntRect* aDirtyRect)
   PRUint32 currentFrameIndex = mAnim->currentAnimationFrameIndex;
   PRUint32 nextFrameIndex = mAnim->currentAnimationFrameIndex + 1;
   PRUint32 timeout = 0;
+  mImageContainer = nsnull;
 
   
   
@@ -1409,6 +1410,7 @@ RasterImage::ResetAnimation()
 
   mAnim->lastCompositedFrameIndex = -1;
   mAnim->currentAnimationFrameIndex = 0;
+  mImageContainer = nsnull;
 
   
   

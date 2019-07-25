@@ -90,13 +90,11 @@ void JS_FASTCALL ScriptProbeOnlyEpilogue(VMFrame &f);
 
 
 struct UncachedCallResult {
-    JSObject   *callee;       
     JSFunction *fun;          
     void       *codeAddr;     
     bool       unjittable;    
 
     void init() {
-        callee = NULL;
         fun = NULL;
         codeAddr = NULL;
         unjittable = false;
@@ -192,8 +190,6 @@ JSBool JS_FASTCALL ValueToBoolean(VMFrame &f);
 JSString * JS_FASTCALL TypeOf(VMFrame &f);
 JSBool JS_FASTCALL InstanceOf(VMFrame &f);
 void JS_FASTCALL FastInstanceOf(VMFrame &f);
-void JS_FASTCALL Unbrand(VMFrame &f);
-void JS_FASTCALL UnbrandThis(VMFrame &f);
 
 
 

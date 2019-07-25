@@ -148,6 +148,7 @@ function GroupItem(listOfEls, options) {
     .click(function() {
       self.closeAll();
     })
+    .attr("title", tabviewString("groupItem.closeGroup"))
     .appendTo($container);
 
   
@@ -198,7 +199,8 @@ function GroupItem(listOfEls, options) {
       e.stopPropagation();
     })
     .keypress(handleKeyPress)
-    .keyup(handleKeyUp);
+    .keyup(handleKeyUp)
+    .attr("title", tabviewString("groupItem.defaultName"));
 
   this.$titleShield
     .mousedown(function(e) {
@@ -212,7 +214,8 @@ function GroupItem(listOfEls, options) {
 
       if (!self.isDragging)
         self.focusTitle();
-    });
+    })
+    .attr("title", tabviewString("groupItem.defaultName"));
 
   if (options.focusTitle)
     this.focusTitle();
@@ -904,6 +907,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       .appendTo(this.$undoContainer);
     let undoClose = iQ("<span/>")
       .addClass("close")
+      .attr("title", tabviewString("groupItem.discardClosedGroup"))
       .appendTo(this.$undoContainer);
 
     this.$undoContainer.css({
@@ -1143,7 +1147,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       let closed = options.dontClose ? false : this.closeIfEmpty();
       if (closed ||
-          (this._children.length == 0 && !gBrowser.selectedTab.pinned &&
+          (this._children.length == 0 && !gBrowser._numPinnedTabs &&
            !item.isDragging)) {
         this._makeLastActiveGroupItemActive();
       } else if (!options.dontArrange) {
@@ -2232,27 +2236,29 @@ let GroupItems = {
         toClose.forEach(function(groupItem) {
           
           
-          
-          let children = groupItem.getChildren().concat();
-
-          children.forEach(function (tabItem) {
-            if (tabItem.parent && tabItem.parent.hidden)
+          groupItem.getChildren().forEach(function (tabItem) {
+            if (tabItem.parent.hidden)
               iQ(tabItem.container).show();
+
+            tabItem._reconnected = false;
 
             
             let tabData = Storage.getTabData(tabItem.tab);
-            let parentGroup = GroupItems.groupItem(tabData.groupID);
 
-            
-            if (!parentGroup || -1 < toClose.indexOf(parentGroup)) {
-              tabData.groupID = activeGroupId || Object.keys(groupItemData)[0];
-              Storage.saveTab(tabItem.tab, tabData);
+            if (tabData) {
+              let parentGroup = GroupItems.groupItem(tabData.groupID);
+
+              
+              
+              
+              if (!parentGroup || -1 < toClose.indexOf(parentGroup)) {
+                tabData.groupID = activeGroupId || Object.keys(groupItemData)[0];
+                Storage.saveTab(tabItem.tab, tabData);
+              }
             }
-
-            tabItem._reconnected = false;
-            tabItem._reconnect();
           });
 
+          
           groupItem.close({immediately: true});
         });
       }
@@ -2466,10 +2472,14 @@ let GroupItems = {
   
   
   
-  updateActiveGroupItemAndTabBar: function GroupItems_updateActiveGroupItemAndTabBar(tabItem) {
+  
+  
+  
+  updateActiveGroupItemAndTabBar: 
+    function GroupItems_updateActiveGroupItemAndTabBar(tabItem, options) {
     Utils.assertThrow(tabItem && tabItem.isATabItem, "tabItem must be a TabItem");
 
-    UI.setActive(tabItem);
+    UI.setActive(tabItem, options);
     this._updateTabBar();
   },
 

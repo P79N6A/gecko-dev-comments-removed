@@ -228,4 +228,36 @@ public:
   virtual Relation RelationByType(PRUint32 aType);
 };
 
-#endif  
+
+
+
+class nsHTMLFigureAccessible : public nsHyperTextAccessibleWrap
+{
+public:
+  nsHTMLFigureAccessible(nsIContent* aContent, nsIWeakReference* aShell);
+
+  
+  virtual nsresult GetAttributesInternal(nsIPersistentProperties* aAttributes);
+  virtual nsresult GetNameInternal(nsAString& aName);
+  virtual PRUint32 NativeRole();
+  virtual Relation RelationByType(PRUint32 aType);
+
+protected:
+  nsIContent* Caption() const;
+};
+
+
+
+
+
+class nsHTMLFigcaptionAccessible : public nsHyperTextAccessibleWrap
+{
+public:
+  nsHTMLFigcaptionAccessible(nsIContent* aContent, nsIWeakReference* aShell);
+
+  
+  virtual PRUint32 NativeRole();
+  virtual Relation RelationByType(PRUint32 aType);
+};
+
+#endif

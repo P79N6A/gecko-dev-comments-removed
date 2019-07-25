@@ -118,8 +118,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x34460b01, 0x3dc2, 0x4b58, \
-    { 0x8e, 0xd3, 0x7e, 0x7c, 0x33, 0xb5, 0x78, 0x8b } }
+  { 0x41fc0f2c, 0x65c2, 0x418e, \
+    { 0x89, 0x91, 0x5f, 0x0c, 0xa7, 0x01, 0x05, 0x34 } }
 
 
 
@@ -680,6 +680,21 @@ class nsIWidget : public nsISupports {
 
 
 
+
+
+
+
+
+    NS_IMETHOD MoveClient(PRInt32 aX, PRInt32 aY) = 0;
+
+    
+
+
+
+
+
+
+
     NS_IMETHOD Resize(PRInt32 aWidth,
                       PRInt32 aHeight,
                       bool     aRepaint) = 0;
@@ -701,6 +716,25 @@ class nsIWidget : public nsISupports {
                       bool     aRepaint) = 0;
 
     
+
+
+
+
+
+
+
+    NS_IMETHOD ResizeClient(PRInt32 aWidth,
+                            PRInt32 aHeight,
+                            bool  aRepaint) = 0;
+
+    
+
+
+
+
+
+
+
 
 
 
@@ -799,6 +833,7 @@ class nsIWidget : public nsISupports {
     NS_IMETHOD GetScreenBounds(nsIntRect &aRect) = 0;
 
     
+
 
 
 

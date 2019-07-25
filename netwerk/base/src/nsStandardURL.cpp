@@ -533,7 +533,8 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
         
         approxLen += encoder.EncodeSegmentCount(spec, mUsername,  esc_Username,      encUsername,  useEncUsername, 1);
         
-        approxLen += encoder.EncodeSegmentCount(spec, mPassword,  esc_Password,      encPassword,  useEncPassword, 1);
+        if (mPassword.mLen >= 0)
+            approxLen += 1 + encoder.EncodeSegmentCount(spec, mPassword,  esc_Password,      encPassword,  useEncPassword);
         
         NS_ABORT_IF_FALSE(mPort > 0 || mPort == -1, "Invalid negative mPort");
         if (mPort != -1 && mPort != mDefaultPort)
@@ -563,6 +564,7 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
     
     
     mHostEncoding = eEncoding_ASCII;
+    
     if (mHost.mLen > 0) {
         const nsCSubstring& tempHost =
             Substring(spec + mHost.mPos, spec + mHost.mPos + mHost.mLen);

@@ -888,12 +888,14 @@ net_ParseMediaType(const nsACString &aMediaTypeStr,
         } while (curParamStart < flatStr.Length());
     }
 
+    bool charsetNeedsQuotedStringUnescaping = false;
     if (typeHasCharset) {
         
         
         
         charset = net_FindCharNotInSet(charset, charsetEnd, HTTP_LWS);
         if (*charset == '"') {
+            charsetNeedsQuotedStringUnescaping = true;
             charsetEnd =
                 start + net_FindStringEnd(flatStr, charset - start, *charset);
             charset++;
@@ -924,7 +926,21 @@ net_ParseMediaType(const nsACString &aMediaTypeStr,
 
         if ((!eq && *aHadCharset) || typeHasCharset) {
             *aHadCharset = true;
-            aContentCharset.Assign(charset, charsetEnd - charset);
+            if (charsetNeedsQuotedStringUnescaping) {
+                
+                
+                aContentCharset.Truncate();
+                for (const char *c = charset; c != charsetEnd; c++) {
+                    if (*c == '\\' && c + 1 != charsetEnd) {
+                        
+                        c++;  
+                    }
+                    aContentCharset.Append(*c);
+                }
+            }
+            else {
+                aContentCharset.Assign(charset, charsetEnd - charset);
+            }
             if (typeHasCharset) {
                 *aCharsetStart = charsetParamStart + aOffset;
                 *aCharsetEnd = charsetParamEnd + aOffset;

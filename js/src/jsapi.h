@@ -1118,6 +1118,14 @@ typedef JSBool
 typedef void
 (* JSErrorReporter)(JSContext *cx, const char *message, JSErrorReport *report);
 
+#ifdef MOZ_TRACE_JSCALLS
+typedef void
+(* JSFunctionCallback)(const JSFunction *fun,
+                       const JSScript *scr,
+                       const JSContext *cx,
+                       int entering);
+#endif
+
 
 
 
@@ -2100,6 +2108,9 @@ JS_GetRuntime(JSContext *cx);
 
 extern JS_PUBLIC_API(JSContext *)
 JS_ContextIterator(JSRuntime *rt, JSContext **iterp);
+
+extern JS_PUBLIC_API(JSContext *)
+JS_ContextIteratorUnlocked(JSRuntime *rt, JSContext **iterp);
 
 extern JS_PUBLIC_API(JSVersion)
 JS_GetVersion(JSContext *cx);
@@ -3142,8 +3153,7 @@ struct JSClass {
 #define JSCLASS_NEW_ENUMERATE           (1<<1)  /* has JSNewEnumerateOp hook */
 #define JSCLASS_NEW_RESOLVE             (1<<2)  /* has JSNewResolveOp hook */
 #define JSCLASS_PRIVATE_IS_NSISUPPORTS  (1<<3)  /* private is (nsISupports *) */
-#define JSCLASS_CONCURRENT_FINALIZER    (1<<4)  /* finalize is called on background thread */
-#define JSCLASS_NEW_RESOLVE_GETS_START  (1<<5)  /* JSNewResolveOp gets starting
+#define JSCLASS_NEW_RESOLVE_GETS_START  (1<<4)  /* JSNewResolveOp gets starting
                                                    object in prototype chain
                                                    passed in via *objp in/out
                                                    parameter */
@@ -4176,6 +4186,23 @@ JS_SaveFrameChain(JSContext *cx);
 
 extern JS_PUBLIC_API(void)
 JS_RestoreFrameChain(JSContext *cx);
+
+#ifdef MOZ_TRACE_JSCALLS
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb);
+
+extern JS_PUBLIC_API(JSFunctionCallback)
+JS_GetFunctionCallback(JSContext *cx);
+#endif 
 
 
 
