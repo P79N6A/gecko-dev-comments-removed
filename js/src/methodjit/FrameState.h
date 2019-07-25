@@ -242,14 +242,20 @@ class FrameState
 
 
 
-    inline void pushUntypedPayload(JSValueType type, RegisterID payload,
-                                   bool popGuaranteed = false,
-                                   bool fastTyped = false);
+    inline void pushUntypedPayload(JSValueType type, RegisterID payload);
 
     
 
 
-    inline void pushNumber(MaybeRegisterID payload);
+
+
+
+
+
+
+
+
+    inline void pushNumber(MaybeRegisterID payload, bool asInt32 = false);
 
     
 
