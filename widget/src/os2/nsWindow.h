@@ -214,10 +214,10 @@ public:
                                            PRBool* aLEDState);
   NS_IMETHOD            DispatchEvent(nsGUIEvent* event,
                                       nsEventStatus& aStatus);
+  NS_IMETHOD            ReparentNativeWidget(nsIWidget* aNewParent);
 
   
   static void           ReleaseGlobals();
-
 protected:
   
   virtual void          OnDestroy();

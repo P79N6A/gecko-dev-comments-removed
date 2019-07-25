@@ -1100,6 +1100,8 @@ nsEventStatus nsViewManager::HandleEvent(nsView* aView, nsGUIEvent* aEvent)
 
 void nsViewManager::ReparentChildWidgets(nsIView* aView, nsIWidget *aNewWidget)
 {
+  NS_PRECONDITION(aNewWidget, "");
+
   if (aView->HasWidget()) {
     
     
@@ -1107,13 +1109,18 @@ void nsViewManager::ReparentChildWidgets(nsIView* aView, nsIWidget *aNewWidget)
     
     nsIWidget* widget = aView->GetWidget();
     nsIWidget* parentWidget = widget->GetParent();
-    
-    if (parentWidget && parentWidget != aNewWidget) {
+    if (parentWidget) {
+      
+      if (parentWidget != aNewWidget) {
 #ifdef DEBUG
-      nsresult rv =
+        nsresult rv =
 #endif
-        widget->SetParent(aNewWidget);
-      NS_ASSERTION(NS_SUCCEEDED(rv), "SetParent failed!");
+          widget->SetParent(aNewWidget);
+        NS_ASSERTION(NS_SUCCEEDED(rv), "SetParent failed!");
+      }
+    } else {
+      
+      widget->ReparentNativeWidget(aNewWidget);
     }
     return;
   }

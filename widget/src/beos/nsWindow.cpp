@@ -396,6 +396,13 @@ void nsWindow::InitEvent(nsGUIEvent& event, nsPoint* aPoint)
 	event.time = PR_IntervalNow();
 }
 
+NS_IMETHODIMP nsWindow::ReparentNativeWidget(nsIWidget* aNewParent)
+{
+	NS_PRECONDITION(aNewParent, "");
+
+	return NS_OK;
+}
+
 
 
 

@@ -231,6 +231,7 @@ public:
     
     PRBool AreBoundsSane(void);
 
+    NS_IMETHOD         ReparentNativeWidget(nsIWidget* aNewParent);
 protected:
     nsCOMPtr<nsIWidget> mParent;
     
