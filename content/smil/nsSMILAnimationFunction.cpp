@@ -215,7 +215,6 @@ nsSMILAnimationFunction::Activate(nsSMILTime aBeginTime)
   mBeginTime = aBeginTime;
   mIsActive = true;
   mIsFrozen = false;
-  mFrozenValue = nsSMILValue();
   mHasChanged = true;
 }
 
@@ -224,7 +223,6 @@ nsSMILAnimationFunction::Inactivate(bool aIsFrozen)
 {
   mIsActive = false;
   mIsFrozen = aIsFrozen;
-  mFrozenValue = nsSMILValue();
   mHasChanged = true;
 }
 
@@ -286,11 +284,6 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
       result.Add(last, mRepeatIteration);
     }
 
-  } else if (!mFrozenValue.IsNull() && !mHasChanged) {
-
-    
-    result = mFrozenValue;
-
   } else {
 
     
@@ -299,10 +292,6 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
 
     if (NS_FAILED(AccumulateResult(values, result)))
       return;
-
-    if (IsToAnimation() && mIsFrozen) {
-      mFrozenValue = result;
-    }
   }
 
   
@@ -363,8 +352,7 @@ nsSMILAnimationFunction::WillReplace() const
 
 
 
-  return !mErrorFlags && (!(IsAdditive() || IsToAnimation()) ||
-                          (IsToAnimation() && mIsFrozen && !mHasChanged));
+  return !mErrorFlags && !(IsAdditive() || IsToAnimation());
 }
 
 bool
@@ -374,7 +362,8 @@ nsSMILAnimationFunction::HasChanged() const
 }
 
 bool
-nsSMILAnimationFunction::UpdateCachedTarget(const nsSMILTargetIdentifier& aNewTarget)
+nsSMILAnimationFunction::UpdateCachedTarget(
+  const nsSMILTargetIdentifier& aNewTarget)
 {
   if (!mLastTarget.Equals(aNewTarget)) {
     mLastTarget = aNewTarget;
@@ -514,8 +503,7 @@ nsresult
 nsSMILAnimationFunction::AccumulateResult(const nsSMILValueArray& aValues,
                                           nsSMILValue& aResult)
 {
-  if (!IsToAnimation() && GetAccumulate() && mRepeatIteration)
-  {
+  if (!IsToAnimation() && GetAccumulate() && mRepeatIteration) {
     const nsSMILValue& lastValue = aValues[aValues.Length() - 1];
 
     
@@ -819,7 +807,7 @@ nsSMILAnimationFunction::GetValues(const nsISMILAttr& aSMILAttr,
                          preventCachingOfSandwich);
     parseOk &= ParseAttr(nsGkAtoms::by,   aSMILAttr, by,
                          preventCachingOfSandwich);
-    
+
     if (preventCachingOfSandwich) {
       mValueNeedsReparsingEverySample = true;
     }

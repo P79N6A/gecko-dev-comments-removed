@@ -456,31 +456,6 @@ protected:
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsSMILValue                   mFrozenValue;
-
-  
-  
-  
   nsSMILWeakTargetIdentifier    mLastTarget;
 
   
