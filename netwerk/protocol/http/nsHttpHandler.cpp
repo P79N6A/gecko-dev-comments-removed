@@ -660,6 +660,18 @@ nsHttpHandler::BuildUserAgent()
     mUserAgent += mProductSub;
 
     
+    if (!mCompatFirefox.IsEmpty()) {
+        mUserAgent += ' ';
+        mUserAgent += mCompatFirefox;
+    }
+
+    
+    mUserAgent += ' ';
+    mUserAgent += mAppName;
+    mUserAgent += '/';
+    mUserAgent += mAppVersion;
+
+    
     if (!mVendor.IsEmpty()) {
         mUserAgent += ' ';
         mUserAgent += mVendor;
@@ -667,16 +679,6 @@ nsHttpHandler::BuildUserAgent()
             mUserAgent += '/';
             mUserAgent += mVendorSub;
         }
-    }
-
-    mUserAgent += ' ';
-    mUserAgent += mAppName;
-    mUserAgent += '/';
-    mUserAgent += mAppVersion;
-
-    if (!mCompatFirefox.IsEmpty()) {
-        mUserAgent += ' ';
-        mUserAgent += mCompatFirefox;
     }
 }
 
