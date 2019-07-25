@@ -719,8 +719,6 @@ Preferences::WritePrefFile(nsIFile* aFile)
 
 
 
-
-
 "
     NS_LINEBREAK
     NS_LINEBREAK;
