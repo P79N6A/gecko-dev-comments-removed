@@ -2172,45 +2172,10 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                                 break starttagloop;
                             case OPTGROUP:
                             case OPTION:
-                                
-
-
-
-
-                                if (findLastInScope("option") != TreeBuilder.NOT_FOUND_ON_STACK) {
-                                    optionendtagloop: for (;;) {
-                                        if (isCurrent("option")) {
-                                            pop();
-                                            break optionendtagloop;
-                                        }
-
-                                        eltPos = currentPtr;
-                                        for (;;) {
-                                            if (stack[eltPos].name == "option") {
-                                                generateImpliedEndTags();
-                                                if (errorHandler != null
-                                                        && !isCurrent("option")) {
-                                                    errNoCheck("End tag \u201C"
-                                                            + name
-                                                            + "\u201D seen but there were unclosed elements.");
-                                                }
-                                                while (currentPtr >= eltPos) {
-                                                    pop();
-                                                }
-                                                break optionendtagloop;
-                                            }
-                                            eltPos--;
-                                        }
-                                    }
+                                if (isCurrent("option")) {
+                                    pop();
                                 }
-                                
-
-
-
                                 reconstructTheActiveFormattingElements();
-                                
-
-
                                 appendToCurrentNodeAndPushElementMayFoster(
                                         elementName,
                                         attributes);
