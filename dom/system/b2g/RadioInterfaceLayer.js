@@ -219,6 +219,21 @@ RadioInterfaceLayer.prototype = {
       case "datacalllist":
         this.handleDataCallList(message);
         break;
+      case "nitzTime":
+        
+        
+        
+        
+        
+        
+        
+        if (DEBUG) {
+          debug("nitzTime networkTime=" + message.networkTimeInSeconds
+               + " timezone=" + message.networkTimeZoneInMinutes
+               + " dst=" + message.dstFlag
+               + " timestamp=" + message.localTimeStampInMS);
+        }
+        break;
       default:
         throw new Error("Don't know about this message type: " + message.type);
     }
