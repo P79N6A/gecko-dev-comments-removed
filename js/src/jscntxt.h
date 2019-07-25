@@ -103,6 +103,7 @@ class JaegerRuntime;
 class MathCache;
 class WeakMapBase;
 class InterpreterFrames;
+class DebugScopes;
 
 
 
@@ -702,6 +703,9 @@ struct JSRuntime : js::RuntimeFriendFields
     JSCList             debuggerList;
 
     
+    js::DebugScopes     *debugScopes;
+
+    
     void                *data;
 
 #ifdef JS_THREADSAFE
@@ -1263,7 +1267,6 @@ struct JSContext : js::ContextFriendFields
     }
 
     inline void* calloc_(size_t bytes) {
-        JS_ASSERT(bytes != 0);
         return runtime->calloc_(bytes, this);
     }
 
@@ -1303,20 +1306,26 @@ struct JSContext : js::ContextFriendFields
         this->exception.setUndefined();
     }
 
-    
-
-
-
-
-    unsigned activeCompilations;
-
 #ifdef DEBUG
     
 
 
 
     bool stackIterAssertionEnabled;
+
+    
+
+
+
+    unsigned okToAccessUnaliasedBindings;
 #endif
+
+    
+
+
+
+
+    unsigned activeCompilations;
 
     
 
@@ -1344,6 +1353,23 @@ struct JSContext : js::ContextFriendFields
 }; 
 
 namespace js {
+
+class AutoAllowUnaliasedVarAccess
+{
+    JSContext *cx;
+  public:
+    AutoAllowUnaliasedVarAccess(JSContext *cx) : cx(cx) {
+#ifdef DEBUG
+        cx->okToAccessUnaliasedBindings++;
+#endif
+    }
+    ~AutoAllowUnaliasedVarAccess() {
+#ifdef DEBUG
+        JS_ASSERT(cx->okToAccessUnaliasedBindings);
+        cx->okToAccessUnaliasedBindings--;
+#endif
+    }
+};
 
 struct AutoResolving {
   public:

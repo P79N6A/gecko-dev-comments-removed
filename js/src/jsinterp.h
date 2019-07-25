@@ -57,20 +57,6 @@ namespace js {
 
 
 
-
-
-extern JSObject *
-GetScopeChain(JSContext *cx);
-
-extern JSObject *
-GetScopeChain(JSContext *cx, StackFrame *fp);
-
-
-
-
-
-
-
 inline bool
 ScriptPrologue(JSContext *cx, StackFrame *fp, JSScript *script);
 
@@ -321,8 +307,8 @@ UnwindForUncatchableException(JSContext *cx, const FrameRegs &regs);
 extern bool
 OnUnknownMethod(JSContext *cx, HandleObject obj, Value idval, Value *vp);
 
-extern bool
-IsActiveWithOrBlock(JSContext *cx, JSObject &obj, uint32_t stackDepth);
+inline void
+AssertValidFunctionScopeChainAtExit(StackFrame *fp);
 
 class TryNoteIter
 {

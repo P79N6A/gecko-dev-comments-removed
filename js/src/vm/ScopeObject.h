@@ -44,8 +44,11 @@
 
 #include "jscntxt.h"
 #include "jsobj.h"
+#include "jsweakmap.h"
 
 namespace js {
+
+
 
 
 
@@ -107,6 +110,10 @@ ScopeCoordinateAtom(JSScript *script, jsbytecode *pc);
 
 
 
+
+
+
+
 class ScopeObject : public JSObject
 {
     
@@ -125,6 +132,7 @@ class ScopeObject : public JSObject
     inline bool setEnclosingScope(JSContext *cx, HandleObject obj);
 
     
+
 
 
 
@@ -210,6 +218,10 @@ class NestedScopeObject : public ScopeObject
 
 class WithObject : public NestedScopeObject
 {
+    
+    js::StackFrame *maybeStackFrame() const;
+    void setStackFrame(StackFrame *frame);
+
     static const unsigned THIS_SLOT = 2;
 
     
@@ -220,7 +232,7 @@ class WithObject : public NestedScopeObject
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4;
 
     static WithObject *
-    create(JSContext *cx, StackFrame *fp, HandleObject proto, HandleObject enclosing, uint32_t depth);
+    create(JSContext *cx, HandleObject proto, HandleObject enclosing, uint32_t depth);
 
     
     JSObject &withThis() const;
@@ -272,13 +284,20 @@ class StaticBlockObject : public BlockObject
     void setAliased(unsigned i, bool aliased);
     bool isAliased(unsigned i);
 
+    
+
+
+
+    bool needsClone() const;
+
     const Shape *addVar(JSContext *cx, jsid id, int index, bool *redeclared);
 };
 
 class ClonedBlockObject : public BlockObject
 {
   public:
-    static ClonedBlockObject *create(JSContext *cx, Handle<StaticBlockObject*> block, StackFrame *fp);
+    static ClonedBlockObject *create(JSContext *cx, Handle<StaticBlockObject *> block,
+                                     StackFrame *fp);
 
     
     StaticBlockObject &staticBlock() const;
@@ -287,7 +306,7 @@ class ClonedBlockObject : public BlockObject
 
 
 
-    void put(JSContext *cx);
+    void put(StackFrame *fp);
 
     
     const Value &closedSlot(unsigned i);
@@ -304,6 +323,165 @@ extern JSObject *
 CloneStaticBlockObject(JSContext *cx, StaticBlockObject &srcBlock,
                        const AutoObjectVector &objects, JSScript *src);
 
-}  
 
-#endif 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class ScopeIter
+{
+  public:
+    enum Type { Call, Block, With, StrictEvalScope };
+
+  private:
+    StackFrame *fp_;
+    JSObject *cur_;
+    StaticBlockObject *block_;
+    Type type_;
+    bool hasScopeObject_;
+
+    void settle();
+
+  public:
+    
+    explicit ScopeIter();
+
+    
+    explicit ScopeIter(StackFrame *fp);
+
+    
+
+
+
+    explicit ScopeIter(JSObject &enclosingScope);
+
+    
+
+
+
+    ScopeIter(ScopeIter si, StackFrame *fp);
+
+    
+    ScopeIter(StackFrame *fp, ScopeObject &scope);
+
+    bool done() const { return !fp_; }
+
+    
+
+    JSObject &enclosingScope() const { JS_ASSERT(done()); return *cur_; }
+
+    
+
+    ScopeIter enclosing() const;
+
+    StackFrame *fp() const { JS_ASSERT(!done()); return fp_; }
+    Type type() const { JS_ASSERT(!done()); return type_; }
+    bool hasScopeObject() const { JS_ASSERT(!done()); return hasScopeObject_; }
+    ScopeObject &scope() const;
+
+    StaticBlockObject &staticBlock() const { JS_ASSERT(type() == Block); return *block_; }
+
+    
+    typedef ScopeIter Lookup;
+    static HashNumber hash(ScopeIter si);
+    static bool match(ScopeIter si1, ScopeIter si2);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JSObject *
+GetDebugScopeForFunction(JSContext *cx, JSFunction *fun);
+
+extern JSObject *
+GetDebugScopeForFrame(JSContext *cx, StackFrame *fp);
+
+
+class DebugScopeObject : public JSObject
+{
+    static const unsigned ENCLOSING_EXTRA = 0;
+
+  public:
+    static DebugScopeObject *create(JSContext *cx, ScopeObject &scope, JSObject &enclosing);
+
+    ScopeObject &scope() const;
+    JSObject &enclosingScope() const;
+
+    
+    bool isForDeclarative() const;
+};
+
+
+class DebugScopes
+{
+    
+    typedef WeakMap<HeapPtrObject, HeapPtrObject> ObjectWeakMap;
+    ObjectWeakMap proxiedScopes;
+
+    
+
+
+
+    typedef HashMap<ScopeIter, DebugScopeObject *, ScopeIter, RuntimeAllocPolicy> MissingScopeMap;
+    MissingScopeMap missingScopes;
+
+  public:
+    DebugScopes(JSRuntime *rt);
+    ~DebugScopes();
+    bool init();
+
+    void mark(JSTracer *trc);
+    void sweep();
+
+    DebugScopeObject *hasDebugScope(JSContext *cx, ScopeObject &scope) const;
+    bool addDebugScope(JSContext *cx, ScopeObject &scope, DebugScopeObject &debugScope);
+
+    DebugScopeObject *hasDebugScope(JSContext *cx, ScopeIter si) const;
+    bool addDebugScope(JSContext *cx, ScopeIter si, DebugScopeObject &debugScope);
+
+    
+
+
+
+    void onPopCall(StackFrame *fp);
+    void onPopBlock(JSContext *cx, StackFrame *fp);
+    void onGeneratorFrameChange(StackFrame *from, StackFrame *to);
+    void onCompartmentLeaveDebugMode(JSCompartment *c);
+};
+
+}  
+#endif

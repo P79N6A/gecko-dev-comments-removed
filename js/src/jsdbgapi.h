@@ -306,6 +306,17 @@ JS_GetFrameCalleeObject(JSContext *cx, JSStackFrame *fp);
 
 
 
+
+
+
+
+
+
+extern JS_PUBLIC_API(const char *)
+JS_GetDebugClassName(JSObject *obj);
+
+
+
 extern JS_PUBLIC_API(const char *)
 JS_GetScriptFilename(JSContext *cx, JSScript *script);
 

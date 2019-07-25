@@ -436,8 +436,8 @@ class StackFrame
         NoPostBarrier = false
     };
     template <class T, class U, TriggerPostBarriers doPostBarrier>
-    void stealFrameAndSlots(StackFrame *fp, T *vp, StackFrame *otherfp, U *othervp,
-                            Value *othersp);
+    void stealFrameAndSlots(JSContext *cx, StackFrame *fp, T *vp,
+                            StackFrame *otherfp, U *othervp, Value *othersp);
     void writeBarrierPost();
 
     
@@ -503,6 +503,14 @@ class StackFrame
 
     bool isNonStrictEvalFrame() const {
         return isEvalFrame() && !script()->strictModeCode;
+    }
+
+    bool isDirectEvalFrame() const {
+        return isEvalFrame() && script()->staticLevel > 0;
+    }
+
+    bool isNonStrictDirectEvalFrame() const {
+        return isNonStrictEvalFrame() && isDirectEvalFrame();
     }
 
     
@@ -802,9 +810,9 @@ class StackFrame
 
 
 
-    JSObject &callee() const {
+    JSFunction &callee() const {
         JS_ASSERT(isFunctionFrame());
-        return calleev().toObject();
+        return *calleev().toObject().toFunction();
     }
 
     const Value &calleev() const {
@@ -872,50 +880,8 @@ class StackFrame
     }
 
     inline CallObject &callObj() const;
-    inline void setScopeChainNoCallObj(JSObject &obj);
-    inline void setScopeChainWithOwnCallObj(CallObject &obj);
-
-    
-
-    bool hasBlockChain() const {
-        return (flags_ & HAS_BLOCKCHAIN) && blockChain_;
-    }
-
-    StaticBlockObject *maybeBlockChain() {
-        return (flags_ & HAS_BLOCKCHAIN) ? blockChain_ : NULL;
-    }
-
-    StaticBlockObject &blockChain() const {
-        JS_ASSERT(hasBlockChain());
-        return *blockChain_;
-    }
-
-    void setBlockChain(StaticBlockObject *obj) {
-        flags_ |= HAS_BLOCKCHAIN;
-        blockChain_ = obj;
-    }
-
-    
-
-
-
-    inline bool functionPrologue(JSContext *cx);
-
-    
-
-
-
-
-
-    inline void functionEpilogue();
-
-    
-
-
-
-    inline void updateEpilogueFlags();
-
-    inline bool maintainNestingState() const;
+    inline void initScopeChain(CallObject &callobj);
+    inline void setScopeChain(JSObject &obj);
 
     
 
@@ -933,6 +899,50 @@ class StackFrame
 
 
     inline JSObject &varObj();
+
+    
+
+    bool hasBlockChain() const {
+        return (flags_ & HAS_BLOCKCHAIN) && blockChain_;
+    }
+
+    StaticBlockObject *maybeBlockChain() {
+        return (flags_ & HAS_BLOCKCHAIN) ? blockChain_ : NULL;
+    }
+
+    StaticBlockObject &blockChain() const {
+        JS_ASSERT(hasBlockChain());
+        return *blockChain_;
+    }
+
+    
+    bool pushBlock(JSContext *cx, StaticBlockObject &block);
+    void popBlock(JSContext *cx);
+
+    
+    void popWith(JSContext *cx);
+
+    
+
+
+
+    inline bool functionPrologue(JSContext *cx);
+
+    
+
+
+
+
+
+    inline void functionEpilogue(JSContext *cx);
+
+    
+
+
+
+    inline void updateEpilogueFlags();
+
+    inline bool maintainNestingState() const;
 
     
 
@@ -1129,11 +1139,6 @@ class StackFrame
     bool finishedInInterpreter() const {
         return !!(flags_ & FINISHED_IN_INTERP);
     }
-
-#ifdef DEBUG
-    
-    static JSObject *const sInvalidScopeChain;
-#endif
 
   public:
     

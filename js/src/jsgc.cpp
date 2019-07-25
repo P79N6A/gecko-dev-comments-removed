@@ -2325,6 +2325,7 @@ MarkRuntime(JSTracer *trc, bool useSavedRoots = false)
 #endif
 
     rt->stackSpace.mark(trc);
+    rt->debugScopes->mark(trc);
 
     
     if (JSTraceDataOp op = rt->gcBlackRootsTraceOp)
@@ -3178,6 +3179,7 @@ SweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool *startBackgroundSweep)
 
     
     WeakMapBase::sweepAll(&rt->gcMarker);
+    rt->debugScopes->sweep();
 
     SweepAtomState(rt);
 

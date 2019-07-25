@@ -1485,8 +1485,9 @@ js_NewGenerator(JSContext *cx)
     
     gen->regs.rebaseFromTo(stackRegs, *genfp);
     genfp->stealFrameAndSlots<HeapValue, Value, StackFrame::DoPostBarrier>(
-                              genfp, genvp, stackfp, stackvp, stackRegs.sp);
+                              cx, genfp, genvp, stackfp, stackvp, stackRegs.sp);
     genfp->initFloatingGenerator();
+    stackfp->setYielding();  
 
     obj->setPrivate(gen);
     return obj;
