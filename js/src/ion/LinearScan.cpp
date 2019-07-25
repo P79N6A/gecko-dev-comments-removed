@@ -585,7 +585,12 @@ LinearScanAllocator::buildLivenessInfo()
                         addFixedRange(reg, inputOf(*ins), outputOf(*ins));
                         to = inputOf(*ins);
                     } else {
-                        to = use->usedAtStart() ? inputOf(*ins) : outputOf(*ins);
+                        
+                        
+                        if (use->usedAtStart() || (ins->isCall() && !alloc.isSnapshotInput()))
+                            to = inputOf(*ins);
+                        else
+                            to = outputOf(*ins);
                     }
 
                     LiveInterval *interval = vregs[use].getInterval(0);
