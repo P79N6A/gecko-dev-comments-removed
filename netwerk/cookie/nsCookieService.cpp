@@ -733,7 +733,8 @@ nsCookieService::TryInitDB(PRBool aDeleteExistingDB)
   
   
   
-  rv = mStorageService->OpenDatabase(cookieFile, getter_AddRefs(mDBState->dbConn));
+  rv = mStorageService->OpenUnsharedDatabase(cookieFile,
+    getter_AddRefs(mDBState->dbConn));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -881,9 +882,6 @@ nsCookieService::TryInitDB(PRBool aDeleteExistingDB)
 
   
   mDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("PRAGMA synchronous = OFF"));
-
-  
-  mDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("PRAGMA locking_mode = EXCLUSIVE"));
 
   
   rv = mDBState->dbConn->CreateStatement(NS_LITERAL_CSTRING(
@@ -1559,7 +1557,7 @@ nsCookieService::GetSyncDBConn()
   mDefaultDBState.dbConn->GetDatabaseFile(getter_AddRefs(cookieFile));
   NS_ASSERTION(cookieFile, "no cookie file on connection");
 
-  mStorageService->OpenDatabase(cookieFile,
+  mStorageService->OpenUnsharedDatabase(cookieFile,
     getter_AddRefs(mDefaultDBState.syncConn));
   NS_ASSERTION(mDefaultDBState.syncConn, "can't open sync db connection");
   return mDefaultDBState.syncConn;
