@@ -49,8 +49,7 @@ nsInputStreamChannel::OpenContentStream(PRBool async, nsIInputStream **result,
   
   
 
-  PRInt64 len = ContentLength64();
-  if (len < 0) {
+  if (ContentLength() < 0) {
     PRUint32 avail;
     nsresult rv = mContentStream->Available(&avail);
     if (rv == NS_BASE_STREAM_CLOSED) {
@@ -59,7 +58,7 @@ nsInputStreamChannel::OpenContentStream(PRBool async, nsIInputStream **result,
     } else if (NS_FAILED(rv)) {
       return rv;
     }
-    SetContentLength64(avail);
+    ContentLength() = avail;
   }
 
   EnableSynthesizedProgressEvents(PR_TRUE);

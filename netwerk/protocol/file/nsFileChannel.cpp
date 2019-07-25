@@ -357,7 +357,7 @@ nsFileChannel::OpenContentStream(PRBool async, nsIInputStream **result,
     }
     stream = uploadStream;
 
-    SetContentLength64(0);
+    ContentLength() = 0;
 
     
     
@@ -374,12 +374,12 @@ nsFileChannel::OpenContentStream(PRBool async, nsIInputStream **result,
     EnableSynthesizedProgressEvents(PR_TRUE);
 
     
-    if (ContentLength64() < 0) {
+    if (ContentLength() < 0) {
       PRInt64 size;
       rv = file->GetFileSize(&size);
       if (NS_FAILED(rv))
         return rv;
-      SetContentLength64(size);
+      ContentLength() = size;
     }
     if (!contentType.IsEmpty())
       SetContentType(contentType);

@@ -456,22 +456,6 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
                                          getter_AddRefs(dir));
     NS_ENSURE_SUCCESS(rv, rv);
   }
-#elif defined(ANDROID)
-  char* sdcard = getenv("EXTERNAL_STORAGE");
-  nsresult rv;
-  if (sdcard) {
-    nsCOMPtr<nsILocalFile> ldir; 
-    rv = NS_NewNativeLocalFile(nsDependentCString(sdcard),
-                               PR_TRUE, getter_AddRefs(ldir));
-    NS_ENSURE_SUCCESS(rv, rv);
-    dir = ldir;
-    
-  }
-  else {
-    rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  
 #else
   
   nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir));
@@ -643,26 +627,6 @@ nsExternalHelperAppService::~nsExternalHelperAppService()
   gExtProtSvc = nsnull;
 }
 
-static PRInt64 GetContentLengthAsInt64(nsIRequest *request)
-{
-  PRInt64 contentLength = -1;
-  nsresult rv;
-  nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(request, &rv));
-  if (props)
-    rv = props->GetPropertyAsInt64(NS_CHANNEL_PROP_CONTENT_LENGTH, &contentLength);
-
-  if (NS_FAILED(rv)) {
-    nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
-    if (channel) {
-      PRInt32 smallLen;
-      channel->GetContentLength(&smallLen);
-      contentLength = smallLen;
-    }
-  }
-
-  return contentLength;
-}
-
 NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeContentType,
                                                     nsIRequest *aRequest,
                                                     nsIInterfaceRequestor *aWindowContext,
@@ -681,7 +645,6 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
     channel->GetURI(getter_AddRefs(uri));
 
 #ifdef MOZ_IPC
-  PRInt64 contentLength = GetContentLengthAsInt64(aRequest);
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     
     
@@ -697,6 +660,10 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
     nsCOMPtr<nsITabChild> tabchild = do_GetInterface(owner);
     if (!tabchild)
       return NS_ERROR_FAILURE;
+
+    PRInt64 contentLength = -1;
+    if (channel)
+      channel->GetContentLength(&contentLength);
 
     
     
@@ -1417,7 +1384,7 @@ void nsExternalAppHandler::EnsureSuggestedFileName()
   }
 }
 
-nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
+nsresult nsExternalAppHandler::SetUpTempFile()
 {
   
   
@@ -1554,9 +1521,6 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   nsCOMPtr<nsIFileChannel> fileChan(do_QueryInterface(request));
   mIsFileChannel = fileChan != nsnull;
 
-  
-  mContentLength.mValue = GetContentLengthAsInt64(request);
-
   nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(request, &rv));
   
   if (props) {
@@ -1567,12 +1531,14 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   }
 
   
+  mContentLength = -1;
   if (aChannel)
   {
     aChannel->GetURI(getter_AddRefs(mSourceUrl));
+    aChannel->GetContentLength(&mContentLength);
   }
 
-  rv = SetUpTempFile(aChannel);
+  rv = SetUpTempFile();
   if (NS_FAILED(rv)) {
     mCanceled = PR_TRUE;
     request->Cancel(rv);

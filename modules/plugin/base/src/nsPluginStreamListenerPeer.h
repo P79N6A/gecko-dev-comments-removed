@@ -136,7 +136,7 @@ private:
   PRPackedBool      mStartBinding;
   PRPackedBool      mHaveFiredOnStartRequest;
   
-  PRUint32                mLength;
+  PRUint64                mLength;
   PRInt32                 mStreamType;
   
   

@@ -99,9 +99,15 @@ nsStreamLoader::OnStartRequest(nsIRequest* request, nsISupports *ctxt)
 {
   nsCOMPtr<nsIChannel> chan( do_QueryInterface(request) );
   if (chan) {
-    PRInt32 contentLength = -1;
+    PRInt64 contentLength = -1;
     chan->GetContentLength(&contentLength);
     if (contentLength >= 0) {
+      if (contentLength > PR_UINT32_MAX) {
+        
+        
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+
       
       mData = static_cast<PRUint8*>(NS_Alloc(contentLength));
       if (!mData) {
