@@ -3227,10 +3227,6 @@ nsHttpChannel::InstallCacheListener(PRUint32 offset)
         if (NS_FAILED(rv)) {
             LOG(("unable to mark cache entry for compression"));
         }
-
-        
-        rv = mCacheEntry->SetPredictedDataSize(-1);
-        if (NS_FAILED(rv)) return rv;
     } 
       
     nsCOMPtr<nsIOutputStream> out;
