@@ -239,6 +239,7 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   addClass: function( value ) {
     if ( iQ.isFunction(value) ) {
       Utils.assert('does not support function argument', false);
@@ -259,6 +260,7 @@ iQ.fn = iQ.prototype = {
     return this;
   },
 
+  
   
   
   removeClass: function( value ) {
@@ -287,6 +289,7 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   hasClass: function( selector ) {
     for ( var i = 0, l = this.length; i < l; i++ ) {
       if ( this[i].classList.contains( selector ) ) {
@@ -296,6 +299,8 @@ iQ.fn = iQ.prototype = {
     return false;
   },
 
+  
+  
   
   
   find: function( selector ) {
@@ -327,6 +332,7 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   remove: function(unused) {
     Utils.assert('does not accept a selector', unused === undefined);
     for ( var i = 0, elem; (elem = this[i]) != null; i++ ) {
@@ -338,6 +344,7 @@ iQ.fn = iQ.prototype = {
     return this;
   },
 
+  
   
   
   empty: function() {
@@ -352,6 +359,7 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   width: function(unused) {
     Utils.assert('does not yet support setting', unused === undefined);
     return parseInt(this.css('width'));
@@ -359,11 +367,13 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   height: function(unused) {
     Utils.assert('does not yet support setting', unused === undefined);
     return parseInt(this.css('height'));
   },
 
+  
   
   
   position: function(unused) {
@@ -376,12 +386,15 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   bounds: function(unused) {
     Utils.assert('does not yet support setting', unused === undefined);
     var p = this.position();
     return new Rect(p.left, p.top, this.width(), this.height());
   },
 
+  
+  
   
   
   data: function(key, value) {
@@ -407,6 +420,7 @@ iQ.fn = iQ.prototype = {
   
   
   
+  
   html: function(value) {
     Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
     if (value === undefined)
@@ -418,6 +432,7 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   text: function(value) {
     Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
     if (value === undefined) {
@@ -427,6 +442,7 @@ iQ.fn = iQ.prototype = {
     return this.empty().append( (this[0] && this[0].ownerDocument || document).createTextNode(value));
   },
 
+  
   
   
   val: function(value) {
@@ -441,12 +457,14 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   appendTo: function(selector) {
     Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
     iQ(selector).append(this);
     return this;
   },
 
+  
   
   
   append: function(selector) {
@@ -477,6 +495,13 @@ iQ.fn = iQ.prototype = {
     return this;
   },
 
+  
+  
+  
+  
+  
+  
+  
   
   
   css: function(a, b) {
@@ -596,6 +621,7 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   fadeOut: function(callback) {
     try {
       Utils.assert('does not yet support duration', iQ.isFunction(callback) || callback === undefined);
@@ -618,6 +644,7 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   fadeIn: function() {
     try {
       this.css({display: ''});
@@ -635,6 +662,7 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
   hide: function() {
     try {
       this.css({display: 'none', opacity: 0});
@@ -645,6 +673,7 @@ iQ.fn = iQ.prototype = {
     return this;
   },
 
+  
   
   
   show: function() {
@@ -692,6 +721,8 @@ iQ.fn = iQ.prototype = {
 
   
   
+  
+  
   one: function(type, func) {
     Utils.assert('does not support eventData argument', iQ.isFunction(func));
 
@@ -703,6 +734,7 @@ iQ.fn = iQ.prototype = {
     return this.bind(type, handler);
   },
 
+  
   
   
   unbind: function(type, func) {
@@ -731,6 +763,11 @@ iQ.fn = iQ.prototype = {
 
 
 iQ.fn.init.prototype = iQ.fn;
+
+
+
+
+
 
 
 
@@ -790,21 +827,8 @@ iQ.extend = iQ.fn.extend = function() {
   return target;
 };
 
-
-
-
 iQ.extend({
   
-  
-  
-  animationCount: 0,
-
-  
-  
-  isAnimating: function() {
-    return (this.animationCount != 0);
-  },
-
   
   
   isFunction: function( obj ) {
@@ -813,10 +837,12 @@ iQ.extend({
 
   
   
+  
   isArray: function( obj ) {
     return toString.call(obj) === "[object Array]";
   },
 
+  
   
   
   isPlainObject: function( obj ) {
@@ -845,6 +871,7 @@ iQ.extend({
 
   
   
+  
   isEmptyObject: function( obj ) {
     for ( var name in obj ) {
       return false;
@@ -852,6 +879,7 @@ iQ.extend({
     return true;
   },
 
+  
   
   
   merge: function( first, second ) {
