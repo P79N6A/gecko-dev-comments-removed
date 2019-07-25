@@ -100,7 +100,7 @@ void nsDateTimeFormatUnix::LocalePreferred24hour()
   struct tm *tmc;
   int i;
 
-  tt = time((time_t)0);
+  tt = time(nullptr);
   tmc = localtime(&tt);
 
   tmc->tm_hour=22;    
