@@ -162,7 +162,7 @@ JSRuntime *nsJSRuntime::sRuntime;
 static const char kJSRuntimeServiceContractID[] =
   "@mozilla.org/js/xpc/RuntimeService;1";
 
-static JSGCCallback gOldJSGCCallback;
+static PRTime sFirstCollectionTime;
 
 static bool sIsInitialized;
 static bool sDidShutdown;
@@ -3252,10 +3252,17 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener)
 
   if (sPostGCEventsToConsole) {
     PRTime now = PR_Now();
+    PRTime delta = 0;
+    if (sFirstCollectionTime) {
+      delta = now - sFirstCollectionTime;
+    } else {
+      sFirstCollectionTime = now;
+    }
+
     NS_NAMED_LITERAL_STRING(kFmt,
-                            "CC timestamp: %lld, collected: %lu (%lu waiting for GC), suspected: %lu, duration: %llu ms.");
+                            "CC(T+%.1f) collected: %lu (%lu waiting for GC), suspected: %lu, duration: %llu ms.");
     nsString msg;
-    msg.Adopt(nsTextFormatter::smprintf(kFmt.get(), now,
+    msg.Adopt(nsTextFormatter::smprintf(kFmt.get(), double(delta) / PR_USEC_PER_SEC,
                                         collected, sCCollectedWaitingForGC, suspected,
                                         (now - start) / PR_USEC_PER_MSEC));
     nsCOMPtr<nsIConsoleService> cs =
@@ -3396,67 +3403,59 @@ nsJSContext::GC()
   PokeGC();
 }
 
-static JSBool
-DOMGCCallback(JSContext *cx, JSGCStatus status)
+static void
+DOMGCFinishedCallback(JSRuntime *rt, JSCompartment *comp, const char *status)
 {
-  static PRTime start;
+  NS_ASSERTION(NS_IsMainThread(), "GCs must run on the main thread");
 
-  if (sPostGCEventsToConsole && NS_IsMainThread()) {
-    if (status == JSGC_BEGIN) {
-      start = PR_Now();
-    } else if (status == JSGC_END) {
-      PRTime now = PR_Now();
-      NS_NAMED_LITERAL_STRING(kFmt, "GC mode: %s, timestamp: %lld, duration: %llu ms.");
-      nsString msg;
-      msg.Adopt(nsTextFormatter::smprintf(kFmt.get(),
-                cx->runtime->gcTriggerCompartment ? "compartment" : "full",
-                now,
-                (now - start) / PR_USEC_PER_MSEC));
-      nsCOMPtr<nsIConsoleService> cs = do_GetService(NS_CONSOLESERVICE_CONTRACTID);
-      if (cs) {
-        cs->LogStringMessage(msg.get());
-      }
-    }
-  }
-
-  if (status == JSGC_END) {
-    sCCollectedWaitingForGC = 0;
-    if (sGCTimer) {
-      
-      nsJSContext::KillGCTimer();
-
-      
-      
-      
-      
-      
-      if (cx->runtime->gcTriggerCompartment) {
-        nsJSContext::PokeGC();
-
-        
-        nsJSContext::KillCCTimer();
-      }
+  if (sPostGCEventsToConsole) {
+    PRTime now = PR_Now();
+    PRTime delta = 0;
+    if (sFirstCollectionTime) {
+      delta = now - sFirstCollectionTime;
     } else {
-      
-      if (!cx->runtime->gcTriggerCompartment) {
-        sGCHasRun = true;
-        nsJSContext::PokeCC();
-      }
+      sFirstCollectionTime = now;
     }
 
-    
-    
-    if (!sGCTimer && JS_GetGCParameter(cx->runtime, JSGC_UNUSED_CHUNKS) > 0) {
-      nsJSContext::PokeGC();
+    NS_NAMED_LITERAL_STRING(kFmt, "GC(T+%.1f) %s");
+    nsString msg;
+    msg.Adopt(nsTextFormatter::smprintf(kFmt.get(),
+                                        double(delta) / PR_USEC_PER_SEC, status));
+    nsCOMPtr<nsIConsoleService> cs = do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+    if (cs) {
+      cs->LogStringMessage(msg.get());
     }
   }
 
-  JSBool result = gOldJSGCCallback ? gOldJSGCCallback(cx, status) : JS_TRUE;
+  sCCollectedWaitingForGC = 0;
+  if (sGCTimer) {
+    
+    nsJSContext::KillGCTimer();
 
-  if (status == JSGC_BEGIN && !NS_IsMainThread())
-    return JS_FALSE;
+    
+    
+    
+    
+    
+    if (comp) {
+      nsJSContext::PokeGC();
 
-  return result;
+      
+      nsJSContext::KillCCTimer();
+    }
+  } else {
+    
+    if (!comp) {
+      sGCHasRun = true;
+      nsJSContext::PokeCC();
+    }
+  }
+
+  
+  
+  if (!sGCTimer && JS_GetGCParameter(rt, JSGC_UNUSED_CHUNKS) > 0) {
+    nsJSContext::PokeGC();
+  }
 }
 
 
@@ -3561,7 +3560,6 @@ nsJSRuntime::Startup()
   gNameSpaceManager = nsnull;
   sRuntimeService = nsnull;
   sRuntime = nsnull;
-  gOldJSGCCallback = nsnull;
   sIsInitialized = false;
   sDidShutdown = false;
   sContextCount = 0;
@@ -3715,11 +3713,7 @@ nsJSRuntime::Init()
   
   NS_ASSERTION(NS_IsMainThread(), "bad");
 
-  NS_ASSERTION(!gOldJSGCCallback,
-               "nsJSRuntime initialized more than once");
-
-  
-  gOldJSGCCallback = ::JS_SetGCCallbackRT(sRuntime, DOMGCCallback);
+  ::JS_SetGCFinishedCallback(sRuntime, DOMGCFinishedCallback);
 
   JSSecurityCallbacks *callbacks = JS_GetRuntimeSecurityCallbacks(sRuntime);
   NS_ASSERTION(callbacks, "SecMan should have set security callbacks!");
