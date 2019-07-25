@@ -325,11 +325,11 @@ protected:
 
 
   
-  NS_IMETHOD DoAfterDoTransaction(nsITransaction *aTxn);
+  void DoAfterDoTransaction(nsITransaction *aTxn);
   
-  NS_IMETHOD DoAfterUndoTransaction();
+  void DoAfterUndoTransaction();
   
-  NS_IMETHOD DoAfterRedoTransaction();
+  void DoAfterRedoTransaction();
 
   typedef enum {
     eDocumentCreated,
