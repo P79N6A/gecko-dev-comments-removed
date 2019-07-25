@@ -579,10 +579,9 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
     }
 
     
-    LoadStatus status;
+    (void)LoadNext(aProxy);
 
-    status = LoadNext(aProxy);
-
+    
     
     
     
