@@ -52,6 +52,7 @@ class ComputedTimingFunction;
 namespace layers {
 
 class Animation;
+class AnimationData;
 class CommonLayerAttributes;
 class Layer;
 class ThebesLayer;
@@ -707,7 +708,10 @@ public:
   void SetIsFixedPosition(bool aFixedPosition) { mIsFixedPosition = aFixedPosition; }
 
   
-  void AddAnimation(const Animation& aAnimation);
+  
+  Animation* AddAnimation(mozilla::TimeStamp aStart, mozilla::TimeDuration aDuration,
+                          float aIterations, int aDirection,
+                          nsCSSProperty aProperty, const AnimationData& aData);
   
   void ClearAnimations();
   
