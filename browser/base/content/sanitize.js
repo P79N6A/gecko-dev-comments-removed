@@ -156,10 +156,9 @@ Sanitizer.prototype = {
         }
 
         
-        let ph = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
         const phInterface = Ci.nsIPluginHost;
         const FLAG_CLEAR_ALL = phInterface.FLAG_CLEAR_ALL;
-        ph.QueryInterface(phInterface);
+        let ph = Cc["@mozilla.org/plugin/host;1"].getService(phInterface);
 
         
         
@@ -195,13 +194,13 @@ Sanitizer.prototype = {
         } catch (e) {}
 
       },
-      
+
       get canClear()
       {
         return true;
       }
     },
-    
+
     offlineApps: {
       clear: function ()
       {
