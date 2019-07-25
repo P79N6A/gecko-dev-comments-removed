@@ -678,9 +678,6 @@ nsSVGOuterSVGFrame::IsRedrawSuspended()
 NS_IMETHODIMP
 nsSVGOuterSVGFrame::SuspendRedraw()
 {
-#ifdef DEBUG
-  
-#endif
   if (++mRedrawSuspendCount != 1)
     return NS_OK;
 
@@ -697,10 +694,6 @@ nsSVGOuterSVGFrame::SuspendRedraw()
 NS_IMETHODIMP
 nsSVGOuterSVGFrame::UnsuspendRedraw()
 {
-#ifdef DEBUG
-
-#endif
-
   NS_ASSERTION(mRedrawSuspendCount >=0, "unbalanced suspend count!");
 
   if (--mRedrawSuspendCount > 0)

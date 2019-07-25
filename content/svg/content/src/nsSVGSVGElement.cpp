@@ -393,18 +393,9 @@ nsSVGSVGElement::SuspendRedraw(PRUint32 max_wait_milliseconds, PRUint32 *_retval
     return NS_OK;
 
   nsIFrame* frame = GetPrimaryFrame();
-#ifdef DEBUG
-  
-  
-  
-  
-  
-  
-  NS_ASSERTION(frame, "suspending redraw w/o frame");
-#endif
   if (frame) {
     nsISVGSVGFrame* svgframe = do_QueryFrame(frame);
-    NS_ASSERTION(svgframe, "wrong frame type");
+    
     if (svgframe) {
       svgframe->SuspendRedraw();
     }
@@ -418,7 +409,6 @@ NS_IMETHODIMP
 nsSVGSVGElement::UnsuspendRedraw(PRUint32 suspend_handle_id)
 {
   if (mRedrawSuspendCount == 0) {
-    NS_ASSERTION(1==0, "unbalanced suspend/unsuspend calls");
     return NS_ERROR_FAILURE;
   }
                  
@@ -437,12 +427,9 @@ nsSVGSVGElement::UnsuspendRedrawAll()
   mRedrawSuspendCount = 0;
 
   nsIFrame* frame = GetPrimaryFrame();
-#ifdef DEBUG
-  NS_ASSERTION(frame, "unsuspending redraw w/o frame");
-#endif
   if (frame) {
     nsISVGSVGFrame* svgframe = do_QueryFrame(frame);
-    NS_ASSERTION(svgframe, "wrong frame type");
+    
     if (svgframe) {
       svgframe->UnsuspendRedraw();
     }
@@ -1131,17 +1118,13 @@ void
 nsSVGSVGElement::InvalidateTransformNotifyFrame()
 {
   nsIFrame* frame = GetPrimaryFrame();
-  nsISVGSVGFrame* svgframe = do_QueryFrame(frame);
-  if (svgframe) {
-    svgframe->NotifyViewportChange();
-  }
-#ifdef DEBUG
-  else if (frame) {
+  if (frame) {
+    nsISVGSVGFrame* svgframe = do_QueryFrame(frame);
     
-    
-    NS_WARNING("wrong frame type");
+    if (svgframe) {
+      svgframe->NotifyViewportChange();
+    }
   }
-#endif
 }
 
 PRBool
