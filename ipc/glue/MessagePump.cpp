@@ -83,9 +83,10 @@ MessagePump::Run(MessagePump::Delegate* aDelegate)
     if (!keep_running_)
       break;
 
-    did_work |= aDelegate->DoWork();
-    if (!keep_running_)
-      break;
+    
+    
+    
+    
 
 #ifdef MOZ_WIDGET_ANDROID
     
@@ -207,6 +208,25 @@ MessagePumpForChildProcess::Run(MessagePump::Delegate* aDelegate)
 #ifdef DEBUG
   NS_ASSERTION(aDelegate && aDelegate == gFirstDelegate, "Huh?!");
 #endif
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  MessageLoop* loop = MessageLoop::current();
+  bool nestableTasksAllowed = loop->NestableTasksAllowed();
+  loop->SetNestableTasksAllowed(true);
+
+  while (aDelegate->DoWork());
+
+  loop->SetNestableTasksAllowed(nestableTasksAllowed);
+
+
   
   mozilla::ipc::MessagePump::Run(aDelegate);
 }
