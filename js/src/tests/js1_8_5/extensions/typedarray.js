@@ -28,7 +28,7 @@ function test()
 
     var TODO = 1;
 
-    function check(fun, todo) {
+    function check(fun, msg, todo) {
         var thrown = null;
         var success = false;
         try {
@@ -60,6 +60,8 @@ function test()
 
             var ex = new Error;
             print ("=== FAILED ===");
+            if (msg)
+                print (msg);
             print (ex.stack);
             if (thrown) {
                 print ("    threw exception:");
@@ -69,18 +71,29 @@ function test()
         }
     }
 
-    function checkThrows(fun, todo) {
-        let thrown = false;
+    function checkThrows(fun, type, todo) {
+        var thrown = false;
         try {
             fun();
         } catch (x) {
-            thrown = true;
+            thrown = x;
         }
 
-        check(function() thrown, todo);
+        if (typeof(type) !== 'undefined')
+            if (thrown) {
+                check(function () thrown instanceof type,
+                      "expected " + type.name + " but saw " + thrown,
+                      todo);
+            } else {
+                check(function () thrown, "expected " + type.name + " but no exception thrown", todo);
+            }
+        else
+            check(function () thrown, undefined, todo);
     }
 
-    check(function() ArrayBuffer.prototype.byteLength == 0);
+    function checkThrowsTODO(fun, type) {
+        checkThrows(fun, type, true);
+    }
 
     var buf, buf2;
 
@@ -101,9 +114,9 @@ function test()
     var zerobuf2 = new ArrayBuffer();
     check(function() zerobuf2.byteLength == 0);
 
-    checkThrows(function() new ArrayBuffer(-100));
+    checkThrows(function() new ArrayBuffer(-100), RangeError);
     
-    checkThrows(function() new ArrayBuffer("abc"), TODO);
+    checkThrowsTODO(function() new ArrayBuffer("abc"), TypeError);
 
     var zeroarray = new Int32Array(0);
     check(function() zeroarray.length == 0);
@@ -187,7 +200,7 @@ function test()
     check(function() a[1] == 0xbb);
 
     
-    checkThrows(function() new Int32Array([0xaa, "foo", 0xbb]), TODO);
+    checkThrowsTODO(function() new Int32Array([0xaa, "foo", 0xbb]), Error);
 
     checkThrows(function() new Int32Array(-100));
 
@@ -265,8 +278,8 @@ function test()
     checkThrows(function() a.set([1,2,3], 2147483647));
 
     a.set(ArrayBuffer.prototype);
-    a.set(Int16Array.prototype);
-    a.set(Int32Array.prototype);
+    checkThrows(function () a.set(Int16Array.prototype), TypeError);
+    checkThrows(function () a.set(Int32Array.prototype), TypeError);
 
     a.set([1,2,3]);
     a.set([4,5,6], 3);
@@ -319,10 +332,37 @@ function test()
 
     
     
-    check(function() new Int32Array(ArrayBuffer.prototype).length == 0);
-    check(function() new Int32Array(Int32Array.prototype).length == 0);
-    check(function() new Int32Array(Float64Array.prototype).length == 0);
+    
+    checkThrows(function() ArrayBuffer.prototype.byteLength, TypeError);
+    checkThrows(function() Int32Array.prototype.length, TypeError);
+    checkThrows(function() Int32Array.prototype.byteLength, TypeError);
+    checkThrows(function() Int32Array.prototype.byteOffset, TypeError);
+    checkThrows(function() Float64Array.prototype.length, TypeError);
+    checkThrows(function() Float64Array.prototype.byteLength, TypeError);
+    checkThrows(function() Float64Array.prototype.byteOffset, TypeError);
 
+    
+    
+    
+    check(function() Int32Array.prototype.length = true);
+    check(function() Float64Array.prototype.length = true);
+    check(function() Int32Array.prototype.byteLength = true);
+    check(function() Float64Array.prototype.byteLength = true);
+    check(function() Int32Array.prototype.byteOffset = true);
+    check(function() Float64Array.prototype.byteOffset = true);
+
+    
+    
+    check(function() (new Int32Array(ArrayBuffer)).length >= 0);
+    check(function() (new Int32Array(Int32Array)).length >= 0);
+    check(function() (new Int32Array(Float64Array)).length >= 0);
+
+    
+    
+    
+    
+    
+    
     
     
     
