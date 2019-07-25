@@ -48,7 +48,7 @@
 
 
 
-window.TabItem = function(tab, options) {
+window.TabItem = function(tab) {
 
   Utils.assert(tab, "tab");
 
@@ -56,9 +56,6 @@ window.TabItem = function(tab, options) {
   
   this.tab.tabItem = this;
 
-  if (!options)
-    options = {};
-  
   
   var $div = iQ('<div>')
     .addClass('tab')
@@ -99,10 +96,6 @@ window.TabItem = function(tab, options) {
 
   
   this._init($div[0]);
-
-  
-  this._hasBeenDrawn = false;
-  let reconnected = TabItems.reconnect(this);
 
   
   
@@ -171,6 +164,7 @@ window.TabItem = function(tab, options) {
   };
 
   this.draggable();
+  this.droppable(true);
 
   
   $div.mousedown(function(e) {
@@ -200,20 +194,17 @@ window.TabItem = function(tab, options) {
     .addClass('expander')
     .appendTo($div);
 
+  
+  this.reconnected = false;
+  this._hasBeenDrawn = false;
+  this.setResizable(true);
+
   this._updateDebugBounds();
 
   TabItems.register(this);
-  
-  if (!this.reconnected) {
-    GroupItems.newTab(this, options);
-  }
-  
-  
-  
-  if (!this.reconnected || (reconnected && !reconnected.addedToGroup) ) {
-    this.setResizable(true, options.immediately);
-    this.droppable(true);
-  }
+
+  if (!TabItems.reconnect(this))
+    GroupItems.newTab(this);
 };
 
 window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
@@ -373,9 +364,9 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       if (css.fontSize && !this.inStack()) {
         if (css.fontSize < fontSizeRange.min)
-          immediately ? $title.hide() : $title.fadeOut();
+          $title.fadeOut();
         else
-          immediately ? $title.show() : $title.fadeIn();
+          $title.fadeIn();
       }
 
       if (css.width) {
@@ -479,16 +470,17 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setResizable: function(value, immediately) {
+  setResizable: function(value) {
     var $resizer = iQ('.expander', this.container);
 
+    this.resizeOptions.minWidth = TabItems.minTabWidth;
+    this.resizeOptions.minHeight = TabItems.minTabWidth * (TabItems.tabHeight / TabItems.tabWidth);
+
     if (value) {
-      this.resizeOptions.minWidth = TabItems.minTabWidth;
-      this.resizeOptions.minHeight = TabItems.minTabWidth * (TabItems.tabHeight / TabItems.tabWidth);
-      immediately ? $resizer.show() : $resizer.fadeIn();
+      $resizer.fadeIn();
       this.resizable(true);
     } else {
-      immediately ? $resizer.hide() : $resizer.fadeOut();
+      $resizer.fadeOut();
       this.resizable(false);
     }
   },
@@ -497,19 +489,17 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   makeActive: function() {
-    iQ(this.container).find("canvas").addClass("focus");
-    iQ(this.container).find("img.cached-thumb").addClass("focus");
+   iQ(this.container).find("canvas").addClass("focus");
+   iQ(this.container).find("img.cached-thumb").addClass("focus");
 
-    if (this.parent)
-      this.parent.setActiveTab(this);
   },
 
   
   
   
   makeDeactive: function() {
-    iQ(this.container).find("canvas").removeClass("focus");
-    iQ(this.container).find("img.cached-thumb").removeClass("focus");
+   iQ(this.container).find("canvas").removeClass("focus");
+   iQ(this.container).find("img.cached-thumb").removeClass("focus");
   },
 
   
@@ -705,7 +695,7 @@ window.TabItems = {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      self.link(tab, {immediately: true});
+      self.link(tab);
       self.update(tab);
     });
   },
@@ -826,11 +816,11 @@ window.TabItems = {
   
   
   
-  link: function(tab, options){
+  link: function(tab){
     try {
       Utils.assertThrow(tab, "tab");
       Utils.assertThrow(!tab.tabItem, "shouldn't already be linked");
-      new TabItem(tab, options); 
+      new TabItem(tab); 
     } catch(e) {
       Utils.log(e);
     }
@@ -991,7 +981,7 @@ window.TabItems = {
       let tabData = Storage.getTabData(item.tab);
       if (tabData && this.storageSanity(tabData)) {
         if (item.parent)
-          item.parent.remove(item, {immediately: true});
+          item.parent.remove(item);
 
         item.setBounds(tabData.bounds, true);
 
@@ -1001,7 +991,7 @@ window.TabItems = {
         if (tabData.groupID) {
           var groupItem = GroupItems.groupItem(tabData.groupID);
           if (groupItem) {
-            groupItem.add(item, null, {immediately: true});
+            groupItem.add(item);
 
             if (item.tab == gBrowser.selectedTab)
               GroupItems.setActiveGroupItem(item.parent);
@@ -1020,7 +1010,7 @@ window.TabItems = {
         }
 
         item.reconnected = true;
-        found = {addedToGroup: tabData.groupID};
+        found = true;
       } else
         item.reconnected = item.tab.linkedBrowser.currentURI.spec != 'about:blank';
 

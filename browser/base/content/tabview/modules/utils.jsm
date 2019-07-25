@@ -328,20 +328,6 @@ Range.prototype = {
   
   
   
-  overlaps: function Rect_overlaps(value) {
-    if (Utils.isNumber(value))
-      return this.contains(value);
-    if (Utils.isRange(value))
-      return !(value.max < this.min || this.max < value.min);
-    return false;
-  },
-
-  
-  
-  
-  
-  
-  
   
   
   proportion: function(value, smooth) {
