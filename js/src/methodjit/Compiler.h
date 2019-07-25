@@ -277,6 +277,7 @@ class Compiler : public BaseCompiler
     bool debugMode;
     bool addTraceHints;
 
+    Compiler *thisFromCtor() { return this; }
   public:
     
     
