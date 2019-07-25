@@ -675,7 +675,8 @@ public:
                                gfxTextRun *aTextRun,
                                const PRUnichar *aString,
                                PRUint32 aRunStart,
-                               PRUint32 aRunLength) = 0;
+                               PRUint32 aRunLength,
+                               PRInt32 aRunScript) = 0;
 
 protected:
     
@@ -949,7 +950,8 @@ public:
                              gfxTextRun *aTextRun,
                              const PRUnichar *aString,
                              PRUint32 aRunStart,
-                             PRUint32 aRunLength);
+                             PRUint32 aRunLength,
+                             PRInt32 aRunScript);
 
 protected:
     nsRefPtr<gfxFontEntry> mFontEntry;
@@ -1946,10 +1948,21 @@ protected:
     
     void InitMetricsForBadFont(gfxFont* aBadFont);
 
+    
+    
     void InitTextRun(gfxContext *aContext,
                      gfxTextRun *aTextRun,
                      const PRUnichar *aString,
                      PRUint32 aLength);
+
+    
+    void InitTextRun(gfxContext *aContext,
+                     gfxTextRun *aTextRun,
+                     const PRUnichar *aString,
+                     PRUint32 aTotalLength,
+                     PRUint32 aScriptRunStart,
+                     PRUint32 aScriptRunEnd,
+                     PRInt32 aRunScript);
 
     
 

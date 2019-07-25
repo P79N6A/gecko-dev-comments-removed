@@ -50,7 +50,8 @@ gfxDWriteShaper::InitTextRun(gfxContext *aContext,
                              gfxTextRun *aTextRun,
                              const PRUnichar *aString,
                              PRUint32 aRunStart,
-                             PRUint32 aRunLength)
+                             PRUint32 aRunLength,
+                             PRInt32 aRunScript)
 {
     HRESULT hr;
     
