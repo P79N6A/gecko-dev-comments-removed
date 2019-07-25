@@ -96,17 +96,18 @@ public:
 
 
 
+  nsEventStates State() const {
+    return IntrinsicState() | mState;
+  }
 
-
-  virtual nsEventStates IntrinsicState() const;
-
+protected:
   
 
 
 
-  nsEventStates State() const {
-    return IntrinsicState() | mState;
-  }
+
+
+  virtual nsEventStates IntrinsicState() const;
 
 private:
   
