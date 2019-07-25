@@ -124,6 +124,12 @@ private:
 
   nsCOMPtr<nsIChannel> mRedirectChannel;
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
+
+  
+  
+  nsresult mStoredStatus;
+  PRUint64 mStoredProgress;
+  PRUint64 mStoredProgressMax;
 };
 
 } 
