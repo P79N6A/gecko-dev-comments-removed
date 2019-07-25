@@ -279,6 +279,7 @@ if __name__ == '__main__':
         op.error('missing JS_SHELL argument')
     
     JS, test_args = os.path.normpath(args[0]), args[1:]
+    JS = os.path.realpath(JS) 
 
     if OPTIONS.retest:
         OPTIONS.read_tests = OPTIONS.retest
