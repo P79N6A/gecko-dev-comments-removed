@@ -36,7 +36,6 @@
 
 
 
-
 #include "EmbedContextMenuInfo.h"
 #include "nsIImageLoadingContent.h"
 #include "imgILoader.h"
@@ -61,7 +60,6 @@
 #include "nsIDOMWindow.h"
 #include "nsIDOMWindowCollection.h"
 #include "nsIWebBrowser.h"
-#include "nsIDOM3Document.h"
 #include "nsIContent.h"
 #include "nsIPresShell.h"
 #include "nsIFormControl.h"
@@ -555,8 +553,7 @@ EmbedContextMenuInfo::UpdateContextData(nsIDOMEvent *aDOMEvent)
   if (NS_SUCCEEDED(rv) && domDoc && mCtxDocument != domDoc) {
     mCtxDocument = domDoc;
     mNSHHTMLElementSc = nsnull;
-    nsCOMPtr<nsIDOM3Document> docuri = do_QueryInterface(mCtxDocument);
-    docuri->GetDocumentURI(mCtxURI);
+    mCtxDocument->GetDocumentURI(mCtxURI);
     NS_ENSURE_ARG_POINTER(mOwner);
     nsCOMPtr<nsIWebBrowser> webBrowser;
     mOwner->mWindow->GetWebBrowser(getter_AddRefs(webBrowser));
