@@ -85,6 +85,36 @@ private:
   GLuint mTexture;
 };
 
+
+
+
+
+
+
+
+class RecycleBin {
+  THEBES_INLINE_DECL_THREADSAFE_REFCOUNTING(RecycleBin)
+
+public:
+  RecycleBin();
+
+  void RecycleBuffer(PRUint8* aBuffer, PRUint32 aSize);
+  
+  PRUint8* TakeBuffer(PRUint32 aSize);
+
+private:
+  typedef mozilla::Mutex Mutex;
+
+  
+  Mutex mLock;
+
+  
+  
+  nsTArray<nsAutoArrayPtr<PRUint8> > mRecycledBuffers;
+  
+  PRUint32 mRecycledBufferSize;
+};
+
 class THEBES_API ImageContainerOGL : public ImageContainer
 {
 public:
@@ -105,9 +135,12 @@ public:
 private:
   typedef mozilla::Mutex Mutex;
 
-  nsRefPtr<Image> mActiveImage;
+  nsRefPtr<RecycleBin> mRecycleBin;
 
+  
   Mutex mActiveImageLock;
+
+  nsRefPtr<Image> mActiveImage;
 };
 
 class THEBES_API ImageLayerOGL : public ImageLayer,
@@ -134,7 +167,8 @@ class THEBES_API PlanarYCbCrImageOGL : public PlanarYCbCrImage
   typedef mozilla::gl::GLContext GLContext;
 
 public:
-  PlanarYCbCrImageOGL();
+  PlanarYCbCrImageOGL(RecycleBin *aRecycleBin);
+  ~PlanarYCbCrImageOGL();
 
   virtual void SetData(const Data &aData);
 
@@ -151,6 +185,8 @@ public:
   }
 
   nsAutoArrayPtr<PRUint8> mBuffer;
+  PRUint32 mBufferSize;
+  nsRefPtr<RecycleBin> mRecycleBin;
   GLTexture mTextures[3];
   Data mData;
   gfxIntSize mSize;
