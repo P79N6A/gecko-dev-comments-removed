@@ -49,12 +49,11 @@ class nsIEventListenerManager;
 class nsIDOMEventListener;
 class nsIDOMEventGroup;
 class nsIScriptContext;
-struct JSContext;
 
 
 #define NS_PIDOMEVENTTARGET_IID \
-  { 0x89292f3a, 0x535d, 0x4ba0, \
-    { 0x88, 0x2a, 0x10, 0xcf, 0xf9, 0xe2, 0x1b, 0xcc } }
+  { 0xe6579895, 0xa23c, 0x4afc, \
+    { 0x87, 0x2a, 0xd5, 0x3d, 0xa7, 0x1d, 0xef, 0x5d } }
 
 class nsPIDOMEventTarget : public nsISupports
 {
@@ -165,12 +164,6 @@ public:
 
 
   virtual nsIScriptContext* GetContextForEventHandlers(nsresult* aRv) = 0;
-
-  
-
-
-
-   virtual JSContext* GetJSContextForEventHandlers() { return nsnull; }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMEventTarget, NS_PIDOMEVENTTARGET_IID)

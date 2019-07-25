@@ -2700,12 +2700,6 @@ nsCxPusher::Push(nsPIDOMEventTarget *aCurrentTarget)
 
   if (!scx) {
     
-    JSContext* cx = aCurrentTarget->GetJSContextForEventHandlers();
-    if (cx) {
-      DoPush(cx);
-    }
-
-    
     
     return PR_TRUE;
   }
@@ -2754,7 +2748,7 @@ nsCxPusher::RePush(nsPIDOMEventTarget *aCurrentTarget)
 }
 
 PRBool
-nsCxPusher::Push(JSContext *cx, PRBool aRequiresScriptContext)
+nsCxPusher::Push(JSContext *cx)
 {
   if (mPushedSomething) {
     NS_ERROR("Whaaa! No double pushing with nsCxPusher::Push()!");
@@ -2770,7 +2764,7 @@ nsCxPusher::Push(JSContext *cx, PRBool aRequiresScriptContext)
   
   
   mScx = GetScriptContextFromJSContext(cx);
-  if (!mScx && aRequiresScriptContext) {
+  if (!mScx) {
     
     return PR_TRUE;
   }
@@ -3194,22 +3188,14 @@ nsContentUtils::DispatchChromeEvent(nsIDocument *aDoc,
   NS_ASSERTION(aDoc, "GetEventAndTarget lied?");
   if (!aDoc->GetWindow())
     return NS_ERROR_INVALID_ARG;
-
-  nsPIDOMEventTarget* piTarget = aDoc->GetWindow()->GetChromeEventHandler();
-  if (!target)
+  if (!aDoc->GetWindow()->GetChromeEventHandler())
     return NS_ERROR_INVALID_ARG;
 
-  nsCOMPtr<nsIFrameLoaderOwner> flo = do_QueryInterface(piTarget);
-  if (flo) {
-    nsRefPtr<nsFrameLoader> fl = flo->GetFrameLoader();
-    if (fl) {
-      nsPIDOMEventTarget* t = fl->GetTabChildGlobalAsEventTarget();
-      piTarget = t ? t : piTarget;
-    }
-  }
-
   nsEventStatus status = nsEventStatus_eIgnore;
-  rv = piTarget->DispatchDOMEvent(nsnull, event, nsnull, &status);
+  rv = aDoc->GetWindow()->GetChromeEventHandler()->DispatchDOMEvent(nsnull,
+                                                                    event,
+                                                                    nsnull,
+                                                                    &status);
   if (aDefaultAction) {
     *aDefaultAction = (status != nsEventStatus_eConsumeNoDefault);
   }
