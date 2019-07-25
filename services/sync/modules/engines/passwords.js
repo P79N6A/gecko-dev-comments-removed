@@ -36,6 +36,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['PasswordEngine', 'LoginRec'];
 
 const Cu = Components.utils;
@@ -91,6 +92,9 @@ PasswordEngine.prototype = {
 
   _findDupe: function _findDupe(item) {
     let login = this._store._nsLoginInfoFromRecord(item);
+    if (!login)
+      return;
+
     let logins = Svc.Login.findLogins({}, login.hostname, login.formSubmitURL,
       login.httpRealm);
 
@@ -110,9 +114,20 @@ PasswordStore.prototype = {
   __proto__: Store.prototype,
 
   _nsLoginInfoFromRecord: function PasswordStore__nsLoginInfoRec(record) {
+    if (record.formSubmitURL &&
+        record.httpRealm) {
+      this._log.warn("Record " + record.id +
+                     " has both formSubmitURL and httpRealm. Skipping.");
+      return null;
+    }
+    
+    
+    
+    
+    function nullUndefined(x) (x == undefined) ? null : x;
     let info = new this._nsLoginInfo(record.hostname,
-                                     record.formSubmitURL,
-                                     record.httpRealm,
+                                     nullUndefined(record.formSubmitURL),
+                                     nullUndefined(record.httpRealm),
                                      record.username,
                                      record.password,
                                      record.usernameField,
@@ -198,8 +213,18 @@ PasswordStore.prototype = {
   },
 
   create: function PasswordStore__create(record) {
+    let login = this._nsLoginInfoFromRecord(record);
+    if (!login)
+      return;
     this._log.debug("Adding login for " + record.hostname);
-    Svc.Login.addLogin(this._nsLoginInfoFromRecord(record));
+    this._log.trace("httpRealm: " + JSON.stringify(login.httpRealm) + "; " +
+                    "formSubmitURL: " + JSON.stringify(login.formSubmitURL));
+    try {
+      Svc.Login.addLogin(login);
+    } catch(ex) {
+      this._log.debug("Adding record " + record.id +
+                      " resulted in exception " + Utils.exceptionStr(ex));
+    }
   },
 
   remove: function PasswordStore__remove(record) {
@@ -223,7 +248,15 @@ PasswordStore.prototype = {
 
     this._log.debug("Updating " + record.hostname);
     let newinfo = this._nsLoginInfoFromRecord(record);
-    Svc.Login.modifyLogin(loginItem, newinfo);
+    if (!newinfo)
+      return;
+    try {
+      Svc.Login.modifyLogin(loginItem, newinfo);
+    } catch(ex) {
+      this._log.debug("Modifying record " + record.id +
+                      " resulted in exception " + Utils.exceptionStr(ex) +
+                      ". Not modifying.");
+    }
   },
 
   wipe: function PasswordStore_wipe() {
