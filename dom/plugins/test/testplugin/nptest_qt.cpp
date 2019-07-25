@@ -121,6 +121,7 @@ pluginDrawWindow(InstanceData* instanceData, void* event)
   const XGraphicsExposeEvent& expose = nsEvent->xgraphicsexpose;
 
   QColor drawColor((QColor)instanceData->scriptableObject->drawColor);
+#ifdef Q_WS_X11
   QPixmap pixmap = QPixmap::fromX11Pixmap(expose.drawable, QPixmap::ExplicitlyShared);
 
   QRect exposeRect(expose.x, expose.y, expose.width, expose.height);
@@ -134,6 +135,7 @@ pluginDrawWindow(InstanceData* instanceData, void* event)
 
   }
 #endif
+#endif
 
   NPP npp = instanceData->npp;
   if (!npp)
@@ -144,6 +146,7 @@ pluginDrawWindow(InstanceData* instanceData, void* event)
     return;
 
 #ifdef MOZ_X11
+#ifdef Q_WS_X11
   
   
   QColor color;
@@ -156,6 +159,7 @@ pluginDrawWindow(InstanceData* instanceData, void* event)
   painter.drawRect(theRect);
   painter.drawText(QRect(theRect), Qt::AlignCenter, text);
   notifyDidPaint(instanceData);
+#endif
 #endif
   return;
 }

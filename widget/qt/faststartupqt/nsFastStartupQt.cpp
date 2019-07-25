@@ -36,7 +36,7 @@
 
 
 
-#include <QtGui/QApplication>
+#include <QApplication>
 #include "nsQAppInstance.h"
 #include <QtOpenGL/QGLWidget>
 #include <QThread>
