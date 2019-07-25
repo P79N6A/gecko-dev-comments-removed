@@ -1666,10 +1666,6 @@ extern JSBool
 js_CheckContentSecurityPolicy(JSContext *cx);
 
 
-extern JSObject *
-js_GetWrappedObject(JSContext *cx, JSObject *obj);
-
-
 extern const char *
 js_ComputeFilename(JSContext *cx, JSStackFrame *caller,
                    JSPrincipals *principals, uintN *linenop);
