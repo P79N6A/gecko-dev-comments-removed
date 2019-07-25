@@ -970,6 +970,12 @@ ContainerState::PopThebesLayerData()
       nsRefPtr<ImageLayer> imageLayer = CreateOrRecycleImageLayer();
       imageLayer->SetContainer(imageContainer);
       data->mImage->ConfigureLayer(imageLayer);
+      if (mParameters.mInActiveTransformedSubtree) {
+        
+        gfx3DMatrix transform = imageLayer->GetTransform()*
+        gfx3DMatrix::ScalingMatrix(mParameters.mXScale, mParameters.mYScale, 1.0f);
+        imageLayer->SetTransform(transform);
+      }
       NS_ASSERTION(data->mImageClip.mRoundedClipRects.IsEmpty(),
                    "How did we get rounded clip rects here?");
       if (data->mImageClip.mHaveClipRect) {
@@ -1126,6 +1132,17 @@ ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
   bool isUniform = aItem->IsUniform(aState->mBuilder, &uniformColor);
   
   
+
+
+  if (aItem->GetType() == nsDisplayItem::TYPE_IMAGE && mVisibleRegion.IsEmpty()) {
+    mImage = static_cast<nsDisplayImage*>(aItem);
+    mImageClip = aClip;
+  } else {
+    mImage = nsnull;
+  }
+
+  
+  
   
   if (!isUniform || NS_GET_A(uniformColor) > 0) {
     if (isUniform &&
@@ -1151,16 +1168,6 @@ ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
     mVisibleRegion.SimplifyOutward(4);
     mDrawRegion.Or(mDrawRegion, aDrawRect);
     mDrawRegion.SimplifyOutward(4);
-  }
-
-  
-
-
-  if (aItem->GetType() == nsDisplayItem::TYPE_IMAGE && mVisibleRegion.IsEmpty()) {
-    mImage = static_cast<nsDisplayImage*>(aItem);
-    mImageClip = aClip;
-  } else {
-    mImage = nsnull;
   }
   
   bool forceTransparentSurface = false;
