@@ -341,6 +341,8 @@ BookmarksSharingManager.prototype = {
 
 
 
+
+
     let self = yield;
     let myUserName = ID.get('WeaveID').username;
     this._log.debug("Turning folder " + folderName + " into outgoing share" +
@@ -383,8 +385,8 @@ BookmarksSharingManager.prototype = {
 
     
 
-    let idRSA = ID.get('WeaveCryptoID'); 
-    let userPubKeyFile = new Resource("/user/" + username + "/public/pubkey");
+    let idRSA = ID.get('WeaveCryptoID');
+    let userPubKeyFile = new Resource("/user/" + username + "/public/pubkey"); 
     userPubKeyFile.get(self.cb);
     let userPubKey = yield;
 
