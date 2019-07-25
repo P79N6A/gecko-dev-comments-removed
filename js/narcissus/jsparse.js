@@ -596,7 +596,7 @@ Narcissus.parser = (function() {
 
         LET_BLOCK: {
             build: function(t) {
-                var n = Node(t, LET_BLOCK);
+                var n = new Node(t, LET_BLOCK);
                 n.varDecls = [];
                 return n;
             },
@@ -629,19 +629,6 @@ Narcissus.parser = (function() {
             },
 
             addStatement: function(n, n2) {
-                n.push(n2);
-            },
-
-            finish: function(n) {
-            }
-        },
-
-        EXPRESSION: {
-            build: function(t, tt) {
-                return new Node(t, tt);
-            },
-
-            addOperand: function(n, n2) {
                 n.push(n2);
             },
 
@@ -804,6 +791,15 @@ Narcissus.parser = (function() {
 
             addProperty: function(n, n2) {
                 n.push(n2);
+            },
+
+            finish: function(n) {
+            }
+        },
+
+        PROPERTY_NAME: {
+            build: function(t) {
+                return new Node(t, IDENTIFIER);
             },
 
             finish: function(n) {
@@ -1140,6 +1136,7 @@ Narcissus.parser = (function() {
                 
                 if (!forBlock) {
                     var forBlock = builder.BLOCK.build(t, x.blockId++);
+                    forBlock.isInternalForInBlock = true;
                     x.stmtStack.push(forBlock);
                 }
 
@@ -1249,6 +1246,9 @@ Narcissus.parser = (function() {
                 while (i < ss.length - 1 && ss[i+1].type === LABEL)
                     i++;
                 if (i < ss.length - 1 && ss[i+1].isLoop)
+                    i++;
+                else if (i < ss.length - 1 && ss[i+1].isInternalForInBlock
+                                           && ss[i+2].isLoop)
                     i++;
                 else if (tt === CONTINUE)
                     throw t.newSyntaxError("Invalid continue");
@@ -1418,7 +1418,8 @@ Narcissus.parser = (function() {
         n = b.build(t);
 
         tt2 = t.peek(true);
-        if (tt2 !== END && tt2 !== NEWLINE && tt2 !== SEMICOLON && tt2 !== RIGHT_CURLY
+        if (tt2 !== END && tt2 !== NEWLINE &&
+            tt2 !== SEMICOLON && tt2 !== RIGHT_CURLY
             && (tt !== YIELD ||
                 (tt2 !== tt && tt2 !== RIGHT_BRACKET && tt2 !== RIGHT_PAREN &&
                  tt2 !== COLON && tt2 !== COMMA))) {
@@ -1551,9 +1552,7 @@ Narcissus.parser = (function() {
 
         if (x2.needsHoisting) {
             
-
-
-
+            
             builder.setHoists(f.body.id, x2.varDecls.concat(x2.funDecls));
 
             if (x.inFunction) {
@@ -1595,10 +1594,9 @@ Narcissus.parser = (function() {
 
 
     function Variables(t, x, letBlock) {
-        var b, bDecl, bAssign, n, n2, n3, ss, i, s, tt, id, data;
+        var b, n, n2, ss, i, s, tt;
         var builder = x.builder;
         var bDecl = builder.DECL;
-        var bAssign = builder.ASSIGN;
 
         switch (t.token.type) {
           case VAR:
@@ -1637,15 +1635,7 @@ Narcissus.parser = (function() {
 
         do {
             tt = t.get();
-            
-
-
-
-
             if (tt === LEFT_BRACKET || tt === LEFT_CURLY) {
-                
-                
-                data = null;
                 
                 t.unget();
 
@@ -1845,10 +1835,8 @@ Narcissus.parser = (function() {
                 bVar.finish(n2);
                 bFor.setIterator(n, n3, n2);
                 
-
-
-
-
+                
+                
                 break;
 
               default:
@@ -2182,7 +2170,10 @@ Narcissus.parser = (function() {
     }
 
     function MemberExpression(t, x, allowCallSyntax) {
-        var n, n2, tt, b = x.builder.MEMBER;
+        var n, n2, name, tt;
+        var builder = x.builder;
+        var b = builder.MEMBER
+        var b2 = builder.PROPERTY_NAME;
 
         if (t.match(NEW)) {
             n = b.build(t);
@@ -2202,7 +2193,9 @@ Narcissus.parser = (function() {
                 n2 = b.build(t);
                 b.addOperand(n2, n);
                 t.mustMatch(IDENTIFIER);
-                b.addOperand(n2, b.build(t));
+                name = b2.build(t);
+                b2.finish(name);
+                b.addOperand(n2, name);
                 break;
 
               case LEFT_BRACKET:
@@ -2263,6 +2256,7 @@ Narcissus.parser = (function() {
         var bArrayInit = builder.ARRAY_INIT;
         var bArrayComp = builder.ARRAY_COMP;
         var bPrimary = builder.PRIMARY;
+        var bPropName = builder.PROPERTY_NAME;
         var bObjInit = builder.OBJECT_INIT;
         var bPropInit = builder.PROPERTY_INIT;
 
@@ -2293,7 +2287,7 @@ Narcissus.parser = (function() {
                 n = n2;
             }
             t.mustMatch(RIGHT_BRACKET);
-            bPrimary.finish(n);
+            bArrayInit.finish(n);
             break;
 
           case LEFT_CURLY:
@@ -2313,8 +2307,8 @@ Narcissus.parser = (function() {
                     } else {
                         switch (tt) {
                           case IDENTIFIER: case NUMBER: case STRING:
-                            id = bPrimary.build(t, IDENTIFIER);
-                            bPrimary.finish(id);
+                            id = bPropName.build(t);
+                            bPropName.finish(id);
                             break;
                           case RIGHT_CURLY:
                             if (x.ecma3OnlyMode)
@@ -2322,8 +2316,8 @@ Narcissus.parser = (function() {
                             break object_init;
                           default:
                             if (t.token.value in definitions.keywords) {
-                                id = bPrimary.build(t, IDENTIFIER);
-                                bPrimary.finish(id);
+                                id = bPropName.build(t);
+                                bPropName.finish(id);
                                 break;
                             }
                             throw t.newSyntaxError("Invalid property name");
