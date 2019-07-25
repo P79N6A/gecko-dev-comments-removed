@@ -2906,13 +2906,6 @@ nsGenericHTMLFrameElement::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP
-nsGenericHTMLFrameElement::GetCrossProcessObjectWrapper(nsIVariant**)
-{
-  
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
 nsresult
 nsGenericHTMLFrameElement::LoadSrc()
 {
