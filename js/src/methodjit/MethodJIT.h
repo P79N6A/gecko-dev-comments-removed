@@ -362,9 +362,10 @@ JSBool JaegerShotAtSafePoint(JSContext *cx, void *safePoint);
 
 enum CompileStatus
 {
-    Compile_Okay,
-    Compile_Abort,
-    Compile_Error
+    Compile_Okay,      
+    Compile_Abort,     
+    Compile_Overflow,  
+    Compile_Error      
 };
 
 void JS_FASTCALL
