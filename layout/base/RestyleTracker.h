@@ -84,8 +84,10 @@ public:
   
 
 
-  inline void AddPendingRestyle(Element* aElement, nsRestyleHint aRestyleHint,
-                                nsChangeHint aMinChangeHint);
+  void AddPendingRestyle(Element* aElement, nsRestyleHint aRestyleHint,
+                         nsChangeHint aMinChangeHint) {
+    AddPendingRestyle(aElement, aRestyleHint, nsRestyleHint(0), aMinChangeHint);
+  }
 
   
 
@@ -103,6 +105,15 @@ public:
 
 private:
   
+
+
+
+
+  inline void AddPendingRestyle(Element* aElement, nsRestyleHint aRestyleHint,
+                                nsRestyleHint aRestyleHintToRemove,
+                                nsChangeHint aMinChangeHint);
+
+  
   inline void ProcessOneRestyle(Element* aElement,
                                 nsRestyleHint aRestyleHint,
                                 nsChangeHint aChangeHint);
@@ -118,6 +129,7 @@ private:
 
 inline void RestyleTracker::AddPendingRestyle(Element* aElement,
                                               nsRestyleHint aRestyleHint,
+                                              nsRestyleHint aRestyleHintToRemove,
                                               nsChangeHint aMinChangeHint)
 {
   RestyleData existingData;
@@ -127,7 +139,8 @@ inline void RestyleTracker::AddPendingRestyle(Element* aElement,
   mPendingRestyles.Get(aElement, &existingData);
 
   existingData.mRestyleHint =
-    nsRestyleHint(existingData.mRestyleHint | aRestyleHint);
+    nsRestyleHint((existingData.mRestyleHint | aRestyleHint) &
+                  ~aRestyleHintToRemove);
   NS_UpdateHint(existingData.mChangeHint, aMinChangeHint);
 
   mPendingRestyles.Put(aElement, existingData);
