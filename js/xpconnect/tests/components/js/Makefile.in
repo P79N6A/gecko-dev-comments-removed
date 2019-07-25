@@ -1,3 +1,4 @@
+#
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
@@ -11,16 +12,14 @@
 # for the specific language governing rights and limitations under the
 # License.
 #
-# The Original Code is worker threads.
+# The Original Code is XPConnect Test Code.
 #
 # The Initial Developer of the Original Code is
-#   Mozilla Corporation
-# Portions created by the Initial Developer are Copyright (C) 2008
+# Portions created by the Initial Developer are Copyright (C) 2011
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
-#   Vladimir Vukicevic <vladimir@pobox.com> (Original Author)
-#   Ben Turner <bent.mozilla@gmail.com>
+#   Bobby Holley <bobbyholley@gmail.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -36,53 +35,34 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH            = ../..
-topsrcdir        = @top_srcdir@
-srcdir           = @srcdir@
-VPATH            = @srcdir@
+DEPTH = ../../../../..
+topsrcdir = @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
 
 include $(DEPTH)/config/autoconf.mk
 
-MODULE           = dom
-LIBRARY_NAME     = domworkers_s
-LIBXUL_LIBRARY   = 1
-FORCE_STATIC_LIB = 1
+MODULE = xpctest
+LIBRARY_NAME = xpctest
+IS_COMPONENT = 1
+MODULE_NAME = xpconnect_test
+NO_DIST_INSTALL = 1
 
-EXPORTS_NAMESPACES = mozilla/dom/workers
-
-EXPORTS_mozilla/dom/workers = Workers.h
-
-CPPSRCS = \
-  ChromeWorkerScope.cpp \
-  Events.cpp \
-  EventTarget.cpp \
-  Exceptions.cpp \
-  File.cpp \
-  FileReaderSync.cpp \
-  FileReaderSyncPrivate.cpp \
-  ListenerManager.cpp \
-  Location.cpp \
-  Navigator.cpp \
-  Principal.cpp \
-  RuntimeService.cpp \
-  ScriptLoader.cpp \
-  Worker.cpp \
-  WorkerPrivate.cpp \
-  WorkerScope.cpp \
-  XMLHttpRequest.cpp \
-  XMLHttpRequestPrivate.cpp \
+JS_FILES = \
+  xpctest_attributes.js \
+  xpctest_params.js \
   $(NULL)
 
-LOCAL_INCLUDES = \
-  -I$(topsrcdir)/content/base/src \
-  -I$(topsrcdir)/content/events/src \
-  -I$(topsrcdir)/dom/base \
-  -I$(topsrcdir)/js/xpconnect/src \
-  -I$(topsrcdir)/xpcom/build \
-  $(NULL)
+include $(topsrcdir)/config/config.mk
 
-ifdef ENABLE_TESTS
-DIRS += test
-endif
+MANIFEST_FILE = xpctest.manifest
 
 include $(topsrcdir)/config/rules.mk
+
+componentdir = js/xpconnect/tests/components/js
+
+libs:: $(JS_FILES)
+	$(INSTALL) $^ $(testxpcobjdir)/$(componentdir)
+
+libs:: $(MANIFEST_FILE)
+	$(PYTHON) $(topsrcdir)/config/Preprocessor.py $(DEFINES) $(ACDEFINES) $(XULPPFLAGS) $< > $(testxpcobjdir)/$(componentdir)/$(<F)
