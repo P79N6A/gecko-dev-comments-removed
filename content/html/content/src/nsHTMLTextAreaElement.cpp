@@ -1,41 +1,41 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=2 et tw=80: */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Pierre Phaneuf <pp@ludusdesign.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMHTMLTextAreaElement.h"
 #include "nsIDOMNSHTMLTextAreaElement.h"
 #include "nsITextControlElement.h"
@@ -101,32 +101,32 @@ public:
   nsHTMLTextAreaElement(already_AddRefed<nsINodeInfo> aNodeInfo,
                         mozilla::dom::FromParser aFromParser = mozilla::dom::NOT_FROM_PARSER);
 
-  // nsISupports
+  
   NS_DECL_ISUPPORTS_INHERITED
 
-  // nsIDOMNode
+  
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLFormElement::)
 
-  // nsIDOMElement
+  
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLFormElement::)
 
-  // nsIDOMHTMLElement
+  
   NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLFormElement::)
 
-  // nsIDOMHTMLTextAreaElement
+  
   NS_DECL_NSIDOMHTMLTEXTAREAELEMENT
 
-  // nsIDOMNSHTMLTextAreaElement
+  
   NS_DECL_NSIDOMNSHTMLTEXTAREAELEMENT
 
-  // nsIDOMNSEditableElement
+  
   NS_IMETHOD GetEditor(nsIEditor** aEditor)
   {
     return nsGenericHTMLElement::GetEditor(aEditor);
   }
   NS_IMETHOD SetUserInput(const nsAString& aInput);
 
-  // nsIFormControl
+  
   NS_IMETHOD_(PRUint32) GetType() const { return NS_FORM_TEXTAREA; }
   NS_IMETHOD Reset();
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission);
@@ -137,7 +137,7 @@ public:
 
   virtual nsEventStates IntrinsicState() const;
 
-  // nsITextControlElemet
+  
   NS_IMETHOD SetValueChanged(PRBool aValueChanged);
   NS_IMETHOD_(PRBool) IsSingleLineTextControl() const;
   NS_IMETHOD_(PRBool) IsTextArea() const;
@@ -164,7 +164,7 @@ public:
   NS_IMETHOD_(void) InitializeKeyboardEventListeners();
   NS_IMETHOD_(void) OnValueChanged(PRBool aNotify);
 
-  // nsIContent
+  
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                nsIContent* aBindingParent,
                                PRBool aCompileEventHandlers);
@@ -191,13 +191,13 @@ public:
 
   nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
-  /**
-   * Called when an attribute is about to be changed
-   */
+  
+
+
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  const nsAString* aValue, PRBool aNotify);
 
-  // nsIMutationObserver
+  
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
@@ -213,7 +213,7 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 
-  // nsIConstraintValidation
+  
   PRBool   IsTooLong();
   PRBool   IsValueMissing() const;
   void     UpdateTooLongValidityState();
@@ -223,31 +223,31 @@ public:
                                 ValidityStateType aType);
 
 protected:
-  using nsGenericHTMLFormElement::IsSingleLineTextControl; // get rid of the compiler warning
+  using nsGenericHTMLFormElement::IsSingleLineTextControl; 
 
   nsCOMPtr<nsIControllers> mControllers;
-  /** Whether or not the value has changed since its default value was given. */
+  
   PRPackedBool             mValueChanged;
-  /** Whether or not we are already handling select event. */
+  
   PRPackedBool             mHandlingSelect;
-  /** Whether or not we are done adding children (always PR_TRUE if not
-      created by a parser */
+  
+
   PRPackedBool             mDoneAddingChildren;
-  /** Whether state restoration should be inhibited in DoneAddingChildren. */
+  
   PRPackedBool             mInhibitStateRestoration;
-  /** Whether our disabled state has changed from the default **/
+  
   PRPackedBool             mDisabledChanged;
-  /** The state of the text editor (selection controller and the editor) **/
+  
   nsRefPtr<nsTextEditorState> mState;
   
   NS_IMETHOD SelectAll(nsPresContext* aPresContext);
-  /**
-   * Get the value, whether it is from the content or the frame.
-   * @param aValue the value [out]
-   * @param aIgnoreWrap whether to ignore the wrap attribute when getting the
-   *        value.  If this is true, linebreaks will not be inserted even if
-   *        wrap=hard.
-   */
+  
+
+
+
+
+
+
   void GetValueInternal(nsAString& aValue, PRBool aIgnoreWrap) const;
 
   nsresult SetValueInternal(const nsAString& aValue,
@@ -259,19 +259,19 @@ protected:
     return PR_TRUE;
   }
 
-  /**
-   * Common method to call from the various mutation observer methods.
-   * aContent is a content node that's either the one that changed or its
-   * parent; we should only respond to the change if aContent is non-anonymous.
-   */
+  
+
+
+
+
   void ContentChanged(nsIContent* aContent);
 
   virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom *aName,
                                 const nsAString* aValue, PRBool aNotify);
 
-  /**
-   * Get the mutable state of the element.
-   */
+  
+
+
   PRBool IsMutable() const;
 };
 
@@ -310,7 +310,7 @@ NS_IMPL_RELEASE_INHERITED(nsHTMLTextAreaElement, nsGenericElement)
 
 DOMCI_NODE_DATA(HTMLTextAreaElement, nsHTMLTextAreaElement)
 
-// QueryInterface implementation for nsHTMLTextAreaElement
+
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLTextAreaElement)
   NS_HTML_CONTENT_INTERFACE_TABLE6(nsHTMLTextAreaElement,
                                    nsIDOMHTMLTextAreaElement,
@@ -324,12 +324,12 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLTextAreaElement)
 NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLTextAreaElement)
 
 
-// nsIDOMHTMLTextAreaElement
+
 
 
 NS_IMPL_ELEMENT_CLONE(nsHTMLTextAreaElement)
 
-// nsIConstraintValidation
+
 NS_IMPL_NSICONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(nsHTMLTextAreaElement)
 
 
@@ -340,7 +340,7 @@ nsHTMLTextAreaElement::GetForm(nsIDOMHTMLFormElement** aForm)
 }
 
 
-// nsIContent
+
 
 NS_IMETHODIMP
 nsHTMLTextAreaElement::Blur()
@@ -357,8 +357,8 @@ nsHTMLTextAreaElement::Focus()
 NS_IMETHODIMP
 nsHTMLTextAreaElement::Select()
 {
-  // XXX Bug?  We have to give the input focus before contents can be
-  // selected
+  
+  
 
   FocusTristate state = FocusState();
   if (state == eUnfocusable) {
@@ -377,21 +377,21 @@ nsHTMLTextAreaElement::Select()
 
   nsEventStatus status = nsEventStatus_eIgnore;
   nsGUIEvent event(PR_TRUE, NS_FORM_SELECTED, nsnull);
-  // XXXbz nsHTMLInputElement guards against this reentering; shouldn't we?
+  
   nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this), presContext,
                               &event, nsnull, &status);
 
-  // If the DOM event was not canceled (e.g. by a JS event handler
-  // returning false)
+  
+  
   if (status == nsEventStatus_eIgnore) {
     if (fm) {
       fm->SetFocus(this, nsIFocusManager::FLAG_NOSCROLL);
 
-      // ensure that the element is actually focused
+      
       nsCOMPtr<nsIDOMElement> focusedElement;
       fm->GetFocusedElement(getter_AddRefs(focusedElement));
       if (SameCOMIdentity(static_cast<nsIDOMNode*>(this), focusedElement)) {
-        // Now Select all the text!
+        
         SelectAll(presContext);
       }
     }
@@ -420,7 +420,7 @@ nsHTMLTextAreaElement::IsHTMLFocusable(PRBool aWithMouse,
     return PR_TRUE;
   }
 
-  // disabled textareas are not focusable
+  
   *aIsFocusable = !IsDisabled();
   return PR_FALSE;
 }
@@ -533,9 +533,9 @@ nsresult
 nsHTMLTextAreaElement::SetValueInternal(const nsAString& aValue,
                                         PRBool aUserInput)
 {
-  // Need to set the value changed flag here, so that
-  // nsTextControlFrame::UpdateValueDisplay retrieves the correct value
-  // if needed.
+  
+  
+  
   SetValueChanged(PR_TRUE);
   mState->SetValue(aValue, aUserInput);
 
@@ -568,12 +568,17 @@ nsHTMLTextAreaElement::SetValueChanged(PRBool aValueChanged)
     mState->EmptyValue();
   }
 
-  if (mValueChanged != previousValue &&
-      HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
+  if (mValueChanged != previousValue) {
+    nsEventStates states = NS_EVENT_STATE_MOZ_UI_INVALID;
+
+    if (HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
+      states |= NS_EVENT_STATE_MOZ_PLACEHOLDER;
+    }
+
     nsIDocument* doc = GetCurrentDoc();
     if (doc) {
       mozAutoDocUpdate upd(doc, UPDATE_CONTENT_STATE, PR_TRUE);
-      doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_MOZ_PLACEHOLDER);
+      doc->ContentStatesChanged(this, nsnull, states);
     }
   }
 
@@ -663,7 +668,7 @@ nsHTMLTextAreaElement::GetAttributeMappingFunction() const
 nsresult
 nsHTMLTextAreaElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
-  // Do not process any DOM events if the element is disabled
+  
   aVisitor.mCanHandle = PR_FALSE;
   if (IsDisabled()) {
     return NS_OK;
@@ -682,8 +687,8 @@ nsHTMLTextAreaElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     }
   }
 
-  // Don't dispatch a second select event if we are already handling
-  // one.
+  
+  
   if (aVisitor.mEvent->message == NS_FORM_SELECTED) {
     if (mHandlingSelect) {
       return NS_OK;
@@ -691,9 +696,9 @@ nsHTMLTextAreaElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     mHandlingSelect = PR_TRUE;
   }
 
-  // If NS_EVENT_FLAG_NO_CONTENT_DISPATCH is set we will not allow content to handle
-  // this event.  But to allow middle mouse button paste to work we must allow 
-  // middle clicks to go to text fields anyway.
+  
+  
+  
   if (aVisitor.mEvent->flags & NS_EVENT_FLAG_NO_CONTENT_DISPATCH)
     aVisitor.mItemFlags |= NS_NO_CONTENT_DISPATCH;
   if (aVisitor.mEvent->message == NS_MOUSE_CLICK &&
@@ -703,7 +708,7 @@ nsHTMLTextAreaElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     aVisitor.mEvent->flags &= ~NS_EVENT_FLAG_NO_CONTENT_DISPATCH;
   }
 
-  // Fire onchange (if necessary), before we do the blur, bug 370521.
+  
   if (aVisitor.mEvent->message == NS_BLUR_CONTENT) {
     nsIFrame* primaryFrame = GetPrimaryFrame();
     if (primaryFrame) {
@@ -725,8 +730,8 @@ nsHTMLTextAreaElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   }
 
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder) &&
-      // TODO: checking if the value is empty could be a good idea but we do not
-      // have a simple way to do that, see bug 585100
+      
+      
       (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
        aVisitor.mEvent->message == NS_BLUR_CONTENT)) {
     nsIDocument* doc = GetCurrentDoc();
@@ -736,7 +741,7 @@ nsHTMLTextAreaElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     }
   }
 
-  // Reset the flag for other content besides this text field
+  
   aVisitor.mEvent->flags |= (aVisitor.mItemFlags & NS_NO_CONTENT_DISPATCH)
     ? NS_EVENT_FLAG_NO_CONTENT_DISPATCH : NS_EVENT_FLAG_NONE;
 
@@ -748,8 +753,8 @@ nsHTMLTextAreaElement::DoneAddingChildren(PRBool aHaveNotified)
 {
   if (!mValueChanged) {
     if (!mDoneAddingChildren) {
-      // Reset now that we're done adding children if the content sink tried to
-      // sneak some text in without calling AppendChildTo.
+      
+      
       Reset();
     }
     if (!mInhibitStateRestoration) {
@@ -768,7 +773,7 @@ nsHTMLTextAreaElement::IsDoneAddingChildren()
   return mDoneAddingChildren;
 }
 
-// Controllers Methods
+
 
 NS_IMETHODIMP
 nsHTMLTextAreaElement::GetControllers(nsIControllers** aResult)
@@ -889,8 +894,8 @@ nsHTMLTextAreaElement::Reset()
 {
   nsresult rv;
 
-  // To get the initial spellchecking, reset value to
-  // empty string before setting the default value.
+  
+  
   SetValue(EmptyString());
   nsAutoString resetVal;
   GetDefaultValue(resetVal);
@@ -906,29 +911,29 @@ nsHTMLTextAreaElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
 {
   nsresult rv = NS_OK;
 
-  // Disabled elements don't submit
+  
   if (IsDisabled()) {
     return NS_OK;
   }
 
-  //
-  // Get the name (if no name, no submit)
-  //
+  
+  
+  
   nsAutoString name;
   GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
   if (name.IsEmpty()) {
     return NS_OK;
   }
 
-  //
-  // Get the value
-  //
+  
+  
+  
   nsAutoString value;
   GetValueInternal(value, PR_FALSE);
 
-  //
-  // Submit
-  //
+  
+  
+  
   rv = aFormSubmission->AddNameValuePair(name, value);
 
   return rv;
@@ -939,7 +944,7 @@ nsHTMLTextAreaElement::SaveState()
 {
   nsresult rv = NS_OK;
 
-  // Only save if value != defaultValue (bug 62713)
+  
   nsPresState *state = nsnull;
   if (mValueChanged) {
     rv = GetPrimaryPresState(this, &state);
@@ -968,8 +973,8 @@ nsHTMLTextAreaElement::SaveState()
       rv = GetPrimaryPresState(this, &state);
     }
     if (state) {
-      // We do not want to save the real disabled state but the disabled
-      // attribute.
+      
+      
       state->SetDisabled(HasAttr(kNameSpaceID_None, nsGkAtoms::disabled));
     }
   }
@@ -1007,8 +1012,17 @@ nsHTMLTextAreaElement::IntrinsicState() const
   }
 
   if (IsCandidateForConstraintValidation()) {
-    state |= IsValid() ? NS_EVENT_STATE_VALID
-                       : NS_EVENT_STATE_INVALID | NS_EVENT_STATE_MOZ_UI_INVALID;
+    if (IsValid()) {
+      state |= NS_EVENT_STATE_VALID;
+    } else {
+      state |= NS_EVENT_STATE_INVALID;
+      
+      
+      
+      if (mValueChanged || GetValidityState(VALIDITY_STATE_CUSTOM_ERROR)) {
+        state |= NS_EVENT_STATE_MOZ_UI_INVALID;
+      }
+    }
   }
 
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder) &&
@@ -1033,8 +1047,8 @@ nsHTMLTextAreaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                      aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // If there is a disabled fieldset in the parent chain, the element is now
-  // barred from constraint validation and can't suffer from value missing.
+  
+  
   UpdateValueMissingValidityState();
   UpdateBarredFromConstraintValidation();
 
@@ -1046,7 +1060,7 @@ nsHTMLTextAreaElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
 
-  // We might be no longer disabled because of parent chain changed.
+  
   UpdateValueMissingValidityState();
   UpdateBarredFromConstraintValidation();
 }
@@ -1076,7 +1090,7 @@ void
 nsHTMLTextAreaElement::ContentAppended(nsIDocument* aDocument,
                                        nsIContent* aContainer,
                                        nsIContent* aFirstNewContent,
-                                       PRInt32 /* unused */)
+                                       PRInt32 )
 {
   ContentChanged(aFirstNewContent);
 }
@@ -1085,7 +1099,7 @@ void
 nsHTMLTextAreaElement::ContentInserted(nsIDocument* aDocument,
                                        nsIContent* aContainer,
                                        nsIContent* aChild,
-                                       PRInt32 /* unused */)
+                                       PRInt32 )
 {
   ContentChanged(aChild);
 }
@@ -1105,8 +1119,8 @@ nsHTMLTextAreaElement::ContentChanged(nsIContent* aContent)
 {
   if (!mValueChanged && mDoneAddingChildren &&
       nsContentUtils::IsInSameAnonymousTree(this, aContent)) {
-    // Hard to say what the reset can trigger, so be safe pending
-    // further auditing.
+    
+    
     nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
     Reset();
   }
@@ -1123,7 +1137,7 @@ nsHTMLTextAreaElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
         aName == nsGkAtoms::readonly) {
       UpdateValueMissingValidityState();
 
-      // This *has* to be called *after* validity has changed.
+      
       if (aName == nsGkAtoms::readonly || aName == nsGkAtoms::disabled) {
         UpdateBarredFromConstraintValidation();
       }
@@ -1176,7 +1190,7 @@ nsHTMLTextAreaElement::IsMutable() const
   return (!HasAttr(kNameSpaceID_None, nsGkAtoms::readonly) && !IsDisabled());
 }
 
-// nsIConstraintValidation
+
 
 NS_IMETHODIMP
 nsHTMLTextAreaElement::SetCustomValidity(const nsAString& aError)
@@ -1204,7 +1218,7 @@ nsHTMLTextAreaElement::IsTooLong()
   PRInt32 maxLength = -1;
   GetMaxLength(&maxLength);
 
-  // Maxlength of -1 means parsing error.
+  
   if (maxLength == -1) {
     return PR_FALSE;
   }
@@ -1231,7 +1245,7 @@ nsHTMLTextAreaElement::IsValueMissing() const
 void
 nsHTMLTextAreaElement::UpdateTooLongValidityState()
 {
-  // TODO: this code will be re-enabled with bug 613016 and bug 613019.
+  
 #if 0
   SetValidityState(VALIDITY_STATE_TOO_LONG, IsTooLong());
 #endif
@@ -1311,7 +1325,7 @@ nsHTMLTextAreaElement::IsTextArea() const
 NS_IMETHODIMP_(PRBool)
 nsHTMLTextAreaElement::IsPlainTextControl() const
 {
-  // need to check our HTML attribute and/or CSS.
+  
   return PR_TRUE;
 }
 
@@ -1328,7 +1342,7 @@ nsHTMLTextAreaElement::GetCols()
   if (attr) {
     PRInt32 cols = attr->Type() == nsAttrValue::eInteger ?
                    attr->GetIntegerValue() : 0;
-    // XXX why a default of 1 char, why hide it
+    
     return (cols <= 0) ? 1 : cols;
   }
 
@@ -1338,15 +1352,15 @@ nsHTMLTextAreaElement::GetCols()
 NS_IMETHODIMP_(PRInt32)
 nsHTMLTextAreaElement::GetWrapCols()
 {
-  // wrap=off means -1 for wrap width no matter what cols is
+  
   nsHTMLTextWrap wrapProp;
   nsITextControlElement::GetWrapPropertyEnum(this, wrapProp);
   if (wrapProp == nsITextControlElement::eHTMLTextWrap_Off) {
-    // do not wrap when wrap=off
+    
     return -1;
   }
 
-  // Otherwise we just wrap at the given number of columns
+  
   return GetCols();
 }
 
@@ -1398,7 +1412,7 @@ nsHTMLTextAreaElement::InitializeKeyboardEventListeners()
 NS_IMETHODIMP_(void)
 nsHTMLTextAreaElement::OnValueChanged(PRBool aNotify)
 {
-  // Update the validity state
+  
   PRBool validBefore = IsValid();
   UpdateTooLongValidityState();
   UpdateValueMissingValidityState();
