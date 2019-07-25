@@ -876,11 +876,12 @@ let StorageServerCallback = {
 
 
 function StorageServer(callback) {
-  this.callback = callback || {__proto__: StorageServerCallback};
-  this.server   = new HttpServer();
-  this.started  = false;
-  this.users    = {};
-  this._log     = Log4Moz.repository.getLogger(STORAGE_HTTP_LOGGER);
+  this.callback     = callback || {__proto__: StorageServerCallback};
+  this.server       = new HttpServer();
+  this.started      = false;
+  this.users        = {};
+  this.requestCount = 0;
+  this._log         = Log4Moz.repository.getLogger(STORAGE_HTTP_LOGGER);
 
   
   
@@ -1266,6 +1267,7 @@ StorageServer.prototype = {
 
 
   handleDefault: function handleDefault(handler, req, resp) {
+    this.requestCount++;
     let timestamp = new_timestamp();
     try {
       this._handleDefault(handler, req, resp, timestamp);
