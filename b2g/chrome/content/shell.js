@@ -191,13 +191,13 @@ var shell = {
     audioManager.masterVolume = volume;
   },
 
-  forwardKeyToHomescreen: function shell_forwardKeyToHomescreen(evt) {
+  forwardKeyToContent: function shell_forwardKeyToContent(evt) {
     let generatedEvent = content.document.createEvent('KeyboardEvent');
     generatedEvent.initKeyEvent(evt.type, true, true, evt.view, evt.ctrlKey,
                                 evt.altKey, evt.shiftKey, evt.metaKey,
                                 evt.keyCode, evt.charCode);
 
-    content.dispatchEvent(generatedEvent);
+    content.document.documentElement.dispatchEvent(generatedEvent);
   },
 
   handleEvent: function shell_handleEvent(evt) {
@@ -206,29 +206,8 @@ var shell = {
       case 'keyup':
       case 'keypress':
         
-        if (evt.eventPhase == evt.CAPTURING_PHASE) {
-          if (evt.keyCode == evt.VK_DOM_HOME) {
-            window.setTimeout(this.forwardKeyToHomescreen, 0, evt);
-            evt.preventDefault();
-            evt.stopPropagation();
-          } 
-          return;
-        }
-
         
-        
-        let homescreen = (evt.target.ownerDocument.defaultView == content);
-        if (!homescreen && evt.defaultPrevented)
-          return;
-
-        
-        
-        if (!homescreen)
-          window.setTimeout(this.forwardKeyToHomescreen, 0, evt);
-
-        
-        
-        if (evt.type == 'keyup') {
+        if (evt.type == 'keyup' && evt.eventPhase == evt.BUBBLING_PHASE) {
           switch (evt.keyCode) {
             case evt.DOM_VK_F5:
               if (Services.prefs.getBoolPref('b2g.keys.search.enabled'))
@@ -243,6 +222,16 @@ var shell = {
               this.changeVolume(1);
               break;
           }
+        }
+
+        
+        
+        let rootContentEvt = (evt.target.ownerDocument.defaultView == content);
+        if (!rootContentEvt && evt.eventPhase == evt.CAPTURING_PHASE &&
+            evt.keyCode == evt.DOM_VK_HOME) {
+          this.forwardKeyToContent(evt);
+          evt.preventDefault();
+          evt.stopImmediatePropagation();
         }
         break;
 
