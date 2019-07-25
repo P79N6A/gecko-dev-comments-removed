@@ -1943,13 +1943,12 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
 
 nsresult
 nsJSContext::BindCompiledEventHandler(nsISupports* aTarget, void *aScope,
-                                      nsIAtom *aName,
-                                      void *aHandler)
+                                      void *aHandler,
+                                      nsScriptObjectHolder& aBoundHandler)
 {
   NS_ENSURE_ARG(aHandler);
   NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
-
-  NS_PRECONDITION(AtomIsEventHandlerName(aName), "Bad event name");
+  NS_PRECONDITION(!aBoundHandler, "Shouldn't already have a bound handler!");
 
   JSAutoRequest ar(mContext);
 
@@ -1979,69 +1978,15 @@ nsJSContext::BindCompiledEventHandler(nsISupports* aTarget, void *aScope,
   }
 
   
-  
-  nsCOMPtr<nsIJSContextStack> stack =
-           do_GetService("@mozilla.org/js/xpc/ContextStack;1", &rv);
-  if (NS_FAILED(rv) || NS_FAILED(stack->Push(mContext))) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
   if (funobj) { 
     funobj = ::JS_CloneFunctionObject(mContext, funobj, target);
     if (!funobj)
       rv = NS_ERROR_OUT_OF_MEMORY;
   }
 
-  if (NS_SUCCEEDED(rv) &&
-      
-      !::JS_DefineProperty(mContext, target, nsAtomCString(aName).get(),
-                           OBJECT_TO_JSVAL(funobj), nsnull, nsnull,
-                           JSPROP_ENUMERATE | JSPROP_PERMANENT)) {
-    ReportPendingException();
-    rv = NS_ERROR_FAILURE;
-  }
-
-  
-  
-
-  if (NS_FAILED(stack->Pop(nsnull)) && NS_SUCCEEDED(rv)) {
-    rv = NS_ERROR_FAILURE;
-  }
+  aBoundHandler.set(funobj);
 
   return rv;
-}
-
-nsresult
-nsJSContext::GetBoundEventHandler(nsISupports* aTarget, void *aScope,
-                                  nsIAtom* aName,
-                                  nsScriptObjectHolder &aHandler)
-{
-    NS_PRECONDITION(AtomIsEventHandlerName(aName), "Bad event name");
-
-    JSAutoRequest ar(mContext);
-    JSObject *obj = nsnull;
-    nsresult rv = JSObjectFromInterface(aTarget, aScope, &obj);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    JSAutoEnterCompartment ac;
-    if (!ac.enter(mContext, obj)) {
-      return NS_ERROR_FAILURE;
-    }
-
-    jsval funval;
-    if (!JS_LookupProperty(mContext, obj,
-                           nsAtomCString(aName).get(), &funval))
-        return NS_ERROR_FAILURE;
-
-    if (JS_TypeOfValue(mContext, funval) != JSTYPE_FUNCTION) {
-        NS_WARNING("Event handler object not a function");
-        aHandler.drop();
-        return NS_OK;
-    }
-    NS_ASSERTION(aHandler.getScriptTypeID()==JAVASCRIPT,
-                 "Expecting JS script object holder");
-    return aHandler.set(JSVAL_TO_OBJECT(funval));
 }
 
 

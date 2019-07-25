@@ -792,7 +792,7 @@ JSCompartment::setDebugModeFromC(JSContext *cx, bool b)
 
     debugModeBits = (debugModeBits & ~uintN(DebugFromC)) | (b ? DebugFromC : 0);
     JS_ASSERT(debugMode() == enabledAfter);
-    if (enabledBefore != enabledAfter && !onStack)
+    if (enabledBefore != enabledAfter)
         updateForDebugMode(cx);
     return true;
 }
@@ -800,6 +800,12 @@ JSCompartment::setDebugModeFromC(JSContext *cx, bool b)
 void
 JSCompartment::updateForDebugMode(JSContext *cx)
 {
+    for (ThreadContextRange r(cx); !r.empty(); r.popFront()) {
+        JSContext *cx = r.front();
+        if (cx->compartment == this) 
+            cx->updateJITEnabled();
+    }
+
 #ifdef JS_METHODJIT
     bool enabled = debugMode();
 
@@ -923,7 +929,7 @@ JSCompartment::clearTraps(JSContext *cx, JSScript *script)
 }
 
 bool
-JSCompartment::markBreakpointsIteratively(JSTracer *trc)
+JSCompartment::markTrapClosuresIteratively(JSTracer *trc)
 {
     bool markedAny = false;
     JSContext *cx = trc->context;
@@ -933,7 +939,7 @@ JSCompartment::markBreakpointsIteratively(JSTracer *trc)
         
         
         if (site->trapHandler &&
-            (!site->scriptObject || IsAboutToBeFinalized(cx, site->scriptObject)))
+            (!site->scriptObject || !IsAboutToBeFinalized(cx, site->scriptObject)))
         {
             if (site->trapClosure.isMarkable() &&
                 IsAboutToBeFinalized(cx, site->trapClosure.toGCThing()))
@@ -941,26 +947,6 @@ JSCompartment::markBreakpointsIteratively(JSTracer *trc)
                 markedAny = true;
             }
             MarkValue(trc, site->trapClosure, "trap closure");
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        if (!site->scriptObject || !IsAboutToBeFinalized(cx, site->scriptObject)) {
-            for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = bp->nextInSite()) {
-                if (!IsAboutToBeFinalized(cx, bp->debugger->toJSObject()) &&
-                    bp->handler &&
-                    IsAboutToBeFinalized(cx, bp->handler))
-                {
-                    MarkObject(trc, *bp->handler, "breakpoint handler");
-                    markedAny = true;
-                }
-            }
         }
     }
     return markedAny;

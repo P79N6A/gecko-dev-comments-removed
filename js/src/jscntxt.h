@@ -227,6 +227,12 @@ struct ThreadData {
 
     
     void triggerOperationCallback(JSRuntime *rt);
+
+    
+
+
+
+    InterpreterFrames *interpreterFrames;
 };
 
 } 
@@ -1151,9 +1157,6 @@ struct JSContext
 
 
     JSCList             threadLinks;        
-
-#define CX_FROM_THREAD_LINKS(tl) \
-    ((JSContext *)((char *)(tl) - offsetof(JSContext, threadLinks)))
 #endif
 
     
@@ -1336,6 +1339,18 @@ struct JSContext
 
     bool runningWithTrustedPrincipals() const;
 
+    static inline JSContext *fromLinkField(JSCList *link) {
+        JS_ASSERT(link);
+        return reinterpret_cast<JSContext *>(uintptr_t(link) - offsetof(JSContext, link));
+    }
+
+#ifdef JS_THREADSAFE
+    static inline JSContext *fromThreadLinks(JSCList *link) {
+        JS_ASSERT(link);
+        return reinterpret_cast<JSContext *>(uintptr_t(link) - offsetof(JSContext, threadLinks));
+    }
+#endif
+
   private:
     
 
@@ -1479,8 +1494,9 @@ class AutoGCRooter {
         IDVECTOR =    -15, 
         BINDINGS =    -16, 
         SHAPEVECTOR = -17, 
-        TYPE =        -18, 
-        VALARRAY =    -19  
+        OBJVECTOR =   -18, 
+        TYPE =        -19, 
+        VALARRAY =    -20  
     };
 
     private:
@@ -2150,6 +2166,36 @@ class ThreadDataIter
 
 #endif  
 
+
+
+
+
+class ThreadContextRange {
+    JSCList *begin;
+    JSCList *end;
+
+public:
+    explicit ThreadContextRange(JSContext *cx) {
+#ifdef JS_THREADSAFE
+        end = &cx->thread()->contextList;
+#else
+        end = &cx->runtime->contextList;
+#endif
+        begin = end->next;
+    }
+
+    bool empty() const { return begin == end; }
+    void popFront() { JS_ASSERT(!empty()); begin = begin->next; }
+
+    JSContext *front() const {
+#ifdef JS_THREADSAFE
+        return JSContext::fromThreadLinks(begin);
+#else
+        return JSContext::fromLinkField(begin);
+#endif
+    }
+};
+
 } 
 
 
@@ -2161,13 +2207,6 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize);
 
 extern void
 js_DestroyContext(JSContext *cx, JSDestroyContextMode mode);
-
-static JS_INLINE JSContext *
-js_ContextFromLinkField(JSCList *link)
-{
-    JS_ASSERT(link);
-    return reinterpret_cast<JSContext *>(uintptr_t(link) - offsetof(JSContext, link));
-}
 
 
 
@@ -2481,6 +2520,19 @@ class AutoValueVector : public AutoVectorRooter<Value>
 
     const jsval *jsval_end() const { return Jsvalify(end()); }
     jsval *jsval_end() { return Jsvalify(end()); }
+
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+class AutoObjectVector : public AutoVectorRooter<JSObject *>
+{
+  public:
+    explicit AutoObjectVector(JSContext *cx
+                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
+        : AutoVectorRooter<JSObject *>(cx, OBJVECTOR)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
