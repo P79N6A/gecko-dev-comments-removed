@@ -130,8 +130,17 @@ AsyncChannel::Close()
     {
         MutexAutoLock lock(mMutex);
 
-        if (ChannelError == mChannelState)
+        if (ChannelError == mChannelState) {
+            
+            
+            
+            
+            
+            if (mListener) {
+                NotifyMaybeChannelError();
+            }
             return;
+        }
 
         if (ChannelConnected != mChannelState)
             
