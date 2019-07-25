@@ -165,9 +165,7 @@ function CssHtmlTree(aStyleInspector)
 
   
   this.root = this.styleDocument.getElementById("root");
-  this.path = this.styleDocument.getElementById("path");
   this.templateRoot = this.styleDocument.getElementById("templateRoot");
-  this.templatePath = this.styleDocument.getElementById("templatePath");
   this.propertyContainer = this.styleDocument.getElementById("propertyContainer");
   this.panel = aStyleInspector.panel;
 
@@ -270,8 +268,6 @@ CssHtmlTree.prototype = {
     this._unmatchedProperties = null;
     this._matchedProperties = null;
 
-    CssHtmlTree.processTemplate(this.templatePath, this.path, this);
-
     if (this.htmlComplete) {
       this.refreshPanel();
     } else {
@@ -346,20 +342,6 @@ CssHtmlTree.prototype = {
 
 
 
-
-  pathClick: function CssHtmlTree_pathClick(aEvent)
-  {
-    aEvent.preventDefault();
-    if (aEvent.target && this.viewedElement != aEvent.target.pathElement) {
-      this.styleInspector.selectFromPath(aEvent.target.pathElement);
-    }
-  },
-
-  
-
-
-
-
   filterChanged: function CssHtmlTree_filterChanged(aEvent)
   {
     let win = this.styleWin.contentWindow;
@@ -390,18 +372,6 @@ CssHtmlTree.prototype = {
                                  CssLogic.FILTER.ALL :
                                  CssLogic.FILTER.UA;
     this.refreshPanel();
-  },
-
-  
-
-
-
-
-
-
-  get pathElements()
-  {
-    return CssLogic.getShortNamePath(this.viewedElement);
   },
 
   
@@ -497,8 +467,6 @@ CssHtmlTree.prototype = {
 
     
     delete this.root;
-    delete this.path;
-    delete this.templatePath;
     delete this.propertyContainer;
     delete this.panel;
 
