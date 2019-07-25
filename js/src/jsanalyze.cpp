@@ -1392,14 +1392,6 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
             break;
           }
 
-          case JSOP_CALLARG:
-          case JSOP_CALLLOCAL: {
-            uint32_t slot = GetBytecodeSlot(script, pc);
-            if (trackSlot(slot))
-                stack[stackDepth - 2] = code->poppedValues[0] = values[slot];
-            break;
-          }
-
           
 
           case JSOP_MOREITER:
@@ -1855,21 +1847,6 @@ CrossScriptSSA::foldValue(const CrossSSAValue &cv)
                         return foldValue(CrossSSAValue(calleeFrame, analysis->poppedValue(pc, 0)));
                     offset += GetBytecodeLength(pc);
                 }
-            }
-            break;
-          }
-
-          case JSOP_CALLPROP: {
-            
-
-
-
-
-
-
-            if (v.pushedIndex() == 1) {
-                ScriptAnalysis *analysis = frame.script->analysis();
-                return foldValue(CrossSSAValue(cv.frame, analysis->poppedValue(pc, 0)));
             }
             break;
           }
