@@ -816,10 +816,10 @@ extern JS_FRIEND_API(const jschar*)
 GetErrorTypeNameFromNumber(JSContext* cx, const unsigned errorNumber);
 
 
-typedef enum NukedGlobalHandling {
-    NukeForGlobalObject,
-    DontNukeForGlobalObject
-} NukedGlobalHandling;
+typedef enum NukeReferencesToWindow {
+    NukeWindowReferences,
+    DontNukeWindowReferences
+} NukeReferencesToWindow;
 
 
 
@@ -861,7 +861,7 @@ extern JS_FRIEND_API(JSBool)
 NukeCrossCompartmentWrappers(JSContext* cx,
                              const CompartmentFilter& sourceFilter,
                              const CompartmentFilter& targetFilter,
-                             NukedGlobalHandling nukeGlobal);
+                             NukeReferencesToWindow nukeReferencesToWindow);
 
 } 
 
