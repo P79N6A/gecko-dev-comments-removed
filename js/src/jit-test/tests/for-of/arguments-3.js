@@ -1,7 +1,5 @@
 
 
-Object.prototype.iterator = Array.prototype.iterator;
-
 var s;
 function test() {
     "use strict";

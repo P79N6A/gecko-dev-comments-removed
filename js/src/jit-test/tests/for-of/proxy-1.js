@@ -1,23 +1,23 @@
 
 
-function iterableProxy(arr) {
-    return Proxy.create({
-        getPropertyDescriptor: function (name) {
-            for (var obj = arr; obj; obj = Object.getPrototypeOf(obj)) {
-                var desc = Object.getOwnPropertyDescriptor(obj, name);
-                if (desc)
-                    return desc;
-            }
-            return undefined;
+function iter(arr) {
+    var i = 0;
+    return {
+        next: function () {
+            if (i < arr.length)
+                return arr[i++];
+            throw StopIteration;
         }
-    });
+    };
+}
+
+function iterableProxy(arr) {
+    return Proxy.create({iterate: function () { return iter(arr); }});
 }
 
 var s = '';
 var arr = ['a', 'b', 'c', 'd'];
 var p = iterableProxy(arr);
-
-
 
 
 for (var i = 0; i < 2; i++) {

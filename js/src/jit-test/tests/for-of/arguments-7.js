@@ -1,7 +1,5 @@
 
 
-Object.prototype.iterator = Array.prototype.iterator;
-
 var s;
 function f() {
     for (var v of arguments) {

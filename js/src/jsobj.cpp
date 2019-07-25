@@ -5123,7 +5123,7 @@ js_GetPropertyHelperInline(JSContext *cx, HandleObject obj, HandleObject receive
 
 
 
-            if (JSID_IS_ATOM(id, cx->runtime->atomState.iteratorIntrinsicAtom))
+            if (JSID_IS_ATOM(id, cx->runtime->atomState.iteratorAtom))
                 return JS_TRUE;
 
             
