@@ -90,7 +90,7 @@ public class LayerController {
 
     
     private int mCheckerboardColor;
-    private boolean mCheckerboardShouldShowChecks;
+    private boolean mCheckerboardShouldShowChecks = true;
 
     private boolean mForceRedraw;
 
