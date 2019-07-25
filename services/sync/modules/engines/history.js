@@ -10,6 +10,9 @@ Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/syncCores.js");
 Cu.import("resource://weave/stores.js");
 Cu.import("resource://weave/trackers.js");
+Cu.import("resource://weave/async.js");
+
+Function.prototype.async = Async.sugar;
 
 function HistoryEngine(pbeId) {
   this._init(pbeId);
@@ -59,6 +62,21 @@ HistorySyncCore.prototype = {
     
     
     return false;
+  },
+
+  
+
+
+
+
+  _detectUpdates: function HSC__detectUpdates(a, b) {
+    let self = yield;
+
+    this.__proto__.__proto__._detectUpdates.async(this, self.cb, a, b);
+    let cmds = yield;
+    cmds = cmds.filter(function (v) v.action != "remove");
+
+    self.done(cmds);
   }
 };
 HistorySyncCore.prototype.__proto__ = new SyncCore();
