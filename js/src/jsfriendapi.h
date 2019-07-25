@@ -313,7 +313,6 @@ GCThingIsMarkedGray(void *thing);
 
 
 
-
 namespace shadow {
 
 struct TypeObject {
@@ -763,7 +762,6 @@ class ObjectPtr
             IncrementalReferenceBarrier(value);
         value = NULL;
     }
-    void finalize(JSContext *cx) { finalize(JS_GetRuntime(cx)); }
 
     void init(JSObject *obj) { value = obj; }
 
@@ -786,6 +784,17 @@ class ObjectPtr
 
 extern JS_FRIEND_API(JSObject *)
 GetTestingFunctions(JSContext *cx);
+
+
+
+
+
+
+inline JSFreeOp *
+CastToJSFreeOp(FreeOp *fop)
+{
+    return reinterpret_cast<JSFreeOp *>(fop);
+}
 
 } 
 

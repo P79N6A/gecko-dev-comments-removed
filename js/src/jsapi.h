@@ -1344,13 +1344,34 @@ typedef JSBool
 typedef JSType
 (* JSTypeOfOp)(JSContext *cx, JSObject *obj);
 
+typedef struct JSFreeOp JSFreeOp;
+
+struct JSFreeOp {
+    JSContext   *context;
+#ifndef __cplusplus
+    JSRuntime   *runtime;
+#else
+  private:
+    JSRuntime   *runtime_;
+
+  protected:
+    JSFreeOp(JSRuntime *rt, JSContext *cx)
+      : context(cx), runtime_(rt) { }
+
+  public:
+    JSRuntime *runtime() const {
+        return runtime_;
+    }
+#endif
+};
+
 
 
 
 
 
 typedef void
-(* JSFinalizeOp)(JSContext *cx, JSObject *obj);
+(* JSFinalizeOp)(JSFreeOp *fop, JSObject *obj);
 
 
 
@@ -1455,7 +1476,7 @@ typedef enum JSFinalizeStatus {
 } JSFinalizeStatus;
 
 typedef void
-(* JSFinalizeCallback)(JSContext *cx, JSFinalizeStatus status);
+(* JSFinalizeCallback)(JSFreeOp *fop, JSFinalizeStatus status);
 
 
 
@@ -2954,8 +2975,19 @@ JS_malloc(JSContext *cx, size_t nbytes);
 extern JS_PUBLIC_API(void *)
 JS_realloc(JSContext *cx, void *p, size_t nbytes);
 
+
+
+
+
 extern JS_PUBLIC_API(void)
 JS_free(JSContext *cx, void *p);
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_freeop(JSFreeOp *fop, void *p);
 
 extern JS_PUBLIC_API(void)
 JS_updateMallocCounter(JSContext *cx, size_t nbytes);

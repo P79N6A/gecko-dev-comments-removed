@@ -875,7 +875,7 @@ struct TypeObject : gc::Cell
 
 
 
-    void finalize(JSContext *cx, bool background) {}
+    void finalize(FreeOp *fop) {}
 
     static inline void writeBarrierPre(TypeObject *type);
     static inline void writeBarrierPost(TypeObject *type, void *addr);

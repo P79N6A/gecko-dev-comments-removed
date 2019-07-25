@@ -808,7 +808,7 @@ public:
     return true;
   }
   JSString *obj_toString(JSContext *cx, JSObject *wrapper);
-  void finalize(JSContext *cx, JSObject *proxy);
+  void finalize(JSFreeOp *fop, JSObject *proxy);
 
   static nsOuterWindowProxy singleton;
 };
@@ -823,7 +823,7 @@ nsOuterWindowProxy::obj_toString(JSContext *cx, JSObject *proxy)
 }
 
 void
-nsOuterWindowProxy::finalize(JSContext *cx, JSObject *proxy)
+nsOuterWindowProxy::finalize(JSFreeOp *fop, JSObject *proxy)
 {
   nsISupports *global =
     static_cast<nsISupports*>(js::GetProxyExtra(proxy, 0).toPrivate());
@@ -7153,8 +7153,6 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
   options.AppendLiteral(",scrollbars=1,centerscreen=1,resizable=0");
 
   nsCOMPtr<nsIDOMWindow> callerWin = EnterModalState();
-  PRUint32 oldMicroTaskLevel = nsContentUtils::MicroTaskLevel();
-  nsContentUtils::SetMicroTaskLevel(0);
   nsresult rv = OpenInternal(aURI, EmptyString(), options,
                              false,          
                              true,           
@@ -7164,7 +7162,6 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
                              GetPrincipal(),    
                              nsnull,            
                              getter_AddRefs(dlgWin));
-  nsContentUtils::SetMicroTaskLevel(oldMicroTaskLevel);
   LeaveModalState(callerWin);
 
   NS_ENSURE_SUCCESS(rv, rv);

@@ -703,7 +703,7 @@ XPCJSRuntime::GCCallback(JSRuntime *rt, JSGCStatus status)
 }
 
  void
-XPCJSRuntime::FinalizeCallback(JSContext *cx, JSFinalizeStatus status)
+XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status)
 {
     XPCJSRuntime* self = nsXPConnect::GetRuntimeInstance();
     if (!self)
@@ -734,7 +734,7 @@ XPCJSRuntime::FinalizeCallback(JSContext *cx, JSFinalizeStatus status)
                 Enumerate(WrappedJSDyingJSObjectFinder, dyingWrappedJSArray);
 
             
-            XPCWrappedNativeScope::FinishedMarkPhaseOfGC(cx, self);
+            XPCWrappedNativeScope::StartFinalizationPhaseOfGC(fop, self);
 
             
             self->GetCompartmentMap().EnumerateRead((XPCCompartmentMap::EnumReadFunction)
@@ -850,7 +850,7 @@ XPCJSRuntime::FinalizeCallback(JSContext *cx, JSFinalizeStatus status)
 #endif
 
             
-            XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC(cx);
+            XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC();
 
             
             

@@ -220,14 +220,14 @@ PropertyTree::getChild(JSContext *cx, Shape *parent, uint32_t nfixed, const Stac
 }
 
 void
-Shape::finalize(JSContext *cx, bool background)
+Shape::finalize(FreeOp *fop)
 {
     if (!inDictionary()) {
         if (parent && parent->isMarked())
             parent->removeChild(this);
 
         if (kids.isHash())
-            cx->delete_(kids.toHash());
+            fop->delete_(kids.toHash());
     }
 }
 
@@ -337,7 +337,7 @@ Shape::dumpSubtree(JSContext *cx, int level, FILE *fp) const
 }
 
 void
-js::PropertyTree::dumpShapes(JSContext *cx)
+js::PropertyTree::dumpShapes(JSRuntime *rt)
 {
     static bool init = false;
     static FILE *dumpfp = NULL;
@@ -352,7 +352,6 @@ js::PropertyTree::dumpShapes(JSContext *cx)
     if (!dumpfp)
         return;
 
-    JSRuntime *rt = cx->runtime;
     fprintf(dumpfp, "rt->gcNumber = %lu", (unsigned long)rt->gcNumber);
 
     for (gc::GCCompartmentsIter c(rt); !c.done(); c.next()) {
