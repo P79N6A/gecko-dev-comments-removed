@@ -383,6 +383,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   
   
   
+  
   bool compare = mRuleNode != aOther->mRuleNode;
 
 #define DO_STRUCT_DIFFERENCE(struct_)                                         \
@@ -393,7 +394,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
     if (this##struct_) {                                                      \
       const nsStyle##struct_* other##struct_ = aOther->GetStyle##struct_();   \
       if ((compare || nsStyle##struct_::ForceCompare()) &&                    \
-          !NS_IsHintSubset(maxHint, hint) &&                                  \
+          !NS_IsHintSubset(nsStyle##struct_::MaxDifference(), hint) &&        \
           this##struct_ != other##struct_) {                                  \
         NS_ASSERTION(NS_IsHintSubset(                                         \
              this##struct_->CalcDifference(*other##struct_),                  \
