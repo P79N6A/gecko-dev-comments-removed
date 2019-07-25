@@ -399,7 +399,7 @@ FunctionBox::FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseContext *
     strictModeState(sms),
     inWith(false),                  
     inGenexpLambda(false),
-    cxFlags(outerpc->sc->context)   
+    cxFlags()                       
 {
     isFunctionBox = true;
 
