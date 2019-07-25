@@ -603,7 +603,6 @@ GLContext::CanUploadNonPowerOfTwo()
 bool
 GLContext::WantsSmallTiles()
 {
-#ifdef MOZ_WIDGET_ANDROID
     
     
     if (!CanUploadSubTextures())
@@ -616,9 +615,6 @@ GLContext::WantsSmallTiles()
     
     
     return false;
-#else
-    return false;
-#endif
 }
 
 
