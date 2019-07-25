@@ -1533,7 +1533,6 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
   
   
   
-  
   if (!mInfo.mHasVideo && !mInfo.mHasAudio) {
     
     return NS_OK;
