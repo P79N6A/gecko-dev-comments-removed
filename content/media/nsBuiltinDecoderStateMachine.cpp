@@ -353,15 +353,13 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
     
     mDecoder->GetReentrantMonitor().NotifyAll();
 
-    if (!IsPlaying()) {
-      
-      
-      
-      UpdateReadyState();
-    }
+    
+    
+    UpdateReadyState();
 
     if (mState != DECODER_STATE_SHUTDOWN &&
         !mStopDecodeThreads &&
+        (videoPlaying || audioPlaying) &&
         (!audioPlaying || (GetDecodedAudioDuration() >= ampleAudioThreshold &&
                            audioQueue.GetSize() > 0))
         &&
@@ -1436,6 +1434,9 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
         mVideoFrameEndTime = frame->mEndTime;
         currentFrame = frame;
         mReader->mVideoQueue.PopFront();
+        
+        
+        mDecoder->GetReentrantMonitor().NotifyAll();
         mDecoder->UpdatePlaybackOffset(frame->mOffset);
         if (mReader->mVideoQueue.GetSize() == 0)
           break;
@@ -1491,10 +1492,6 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
       remainingTime = currentFrame->mEndTime - mStartTime - now;
       currentFrame = nsnull;
     }
-
-    
-    
-    mDecoder->GetReentrantMonitor().NotifyAll();
 
     
     
