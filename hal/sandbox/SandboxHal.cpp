@@ -10,33 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "Hal.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/hal_sandbox/PHalChild.h"
@@ -150,6 +123,22 @@ void
 SetScreenBrightness(double brightness)
 {
   Hal()->SendSetScreenBrightness(brightness);
+}
+
+bool
+SetLight(hal::LightType light, const hal::LightConfiguration& aConfig)
+{
+  bool status;
+  Hal()->SendSetLight(light, aConfig, &status);
+  return status;
+}
+
+bool
+GetLight(hal::LightType light, hal::LightConfiguration* aConfig)
+{
+  bool status;
+  Hal()->SendGetLight(light, aConfig, &status);
+  return status;
 }
 
 void
@@ -288,6 +277,20 @@ public:
   RecvSetScreenBrightness(const double &brightness)
   {
     hal::SetScreenBrightness(brightness);
+    return true;
+  }
+
+  NS_OVERRIDE virtual bool
+  RecvSetLight(const LightType& aLight,  const hal::LightConfiguration& aConfig, bool *status)
+  {
+    *status = hal::SetLight(aLight, aConfig);
+    return true;
+  }
+
+  NS_OVERRIDE virtual bool
+  RecvGetLight(const LightType& aLight, LightConfiguration* aConfig, bool* status)
+  {
+    *status = hal::GetLight(aLight, aConfig);
     return true;
   }
 
