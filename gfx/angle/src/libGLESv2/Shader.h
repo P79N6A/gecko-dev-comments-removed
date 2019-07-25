@@ -1,0 +1,155 @@
+
+
+
+
+
+
+
+
+
+
+
+#ifndef LIBGLESV2_SHADER_H_
+#define LIBGLESV2_SHADER_H_
+
+#define GL_APICALL
+#include <GLES2/gl2.h>
+#include <d3dx9.h>
+#include <list>
+#include <vector>
+
+#include "libGLESv2/Context.h"
+
+namespace gl
+{
+struct Varying
+{
+    Varying(GLenum type, const std::string &name, int size, bool array)
+        : type(type), name(name), size(size), array(array), reg(-1), col(-1)
+    {
+    }
+
+    GLenum type;
+    std::string name;
+    int size;   
+    bool array;
+
+    int reg;    
+    int col;    
+};
+
+typedef std::list<Varying> VaryingList;
+
+class Shader
+{
+    friend Program;
+
+  public:
+    Shader(Context *context, GLuint handle);
+
+    virtual ~Shader();
+
+    virtual GLenum getType() = 0;
+    GLuint getHandle() const;
+
+    void deleteSource();
+    void setSource(GLsizei count, const char **string, const GLint *length);
+    int getInfoLogLength() const;
+    void getInfoLog(GLsizei bufSize, GLsizei *length, char *infoLog);
+    int getSourceLength() const;
+    void getSource(GLsizei bufSize, GLsizei *length, char *source);
+
+    virtual void compile() = 0;
+    bool isCompiled();
+    const char *getHLSL();
+
+    void attach();
+    void detach();
+    bool isAttached() const;
+    bool isFlaggedForDeletion() const;
+    void flagForDeletion();
+
+    static void releaseCompiler();
+
+  protected:
+    DISALLOW_COPY_AND_ASSIGN(Shader);
+
+    void parseVaryings();
+
+    void compileToHLSL(void *compiler);
+
+    static GLenum parseType(const std::string &type);
+    static bool compareVarying(const Varying &x, const Varying &y);
+
+    const GLuint mHandle;
+    int mAttachCount;     
+    bool mDeleteStatus;   
+
+    char *mSource;
+    char *mHlsl;
+    char *mInfoLog;
+
+    VaryingList varyings;
+
+    bool mUsesFragCoord;
+    bool mUsesFrontFacing;
+
+    Context *mContext;
+
+    static void *mFragmentCompiler;
+    static void *mVertexCompiler;
+};
+
+struct Attribute
+{
+    Attribute() : type(GL_NONE), name("")
+    {
+    }
+
+    Attribute(GLenum type, const std::string &name) : type(type), name(name)
+    {
+    }
+
+    GLenum type;
+    std::string name;
+};
+
+typedef std::vector<Attribute> AttributeArray;
+
+class VertexShader : public Shader
+{
+    friend Program;
+
+  public:
+    VertexShader(Context *context, GLuint handle);
+
+    ~VertexShader();
+
+    GLenum getType();
+    void compile();
+    int getSemanticIndex(const std::string &attributeName);
+
+  private:
+    DISALLOW_COPY_AND_ASSIGN(VertexShader);
+
+    void parseAttributes();
+
+    AttributeArray mAttributes;
+};
+
+class FragmentShader : public Shader
+{
+  public:
+    FragmentShader(Context *context, GLuint handle);
+
+    ~FragmentShader();
+
+    GLenum getType();
+    void compile();
+
+  private:
+    DISALLOW_COPY_AND_ASSIGN(FragmentShader);
+};
+}
+
+#endif   
