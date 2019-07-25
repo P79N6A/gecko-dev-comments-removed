@@ -1,0 +1,106 @@
+
+
+
+
+
+
+
+
+
+#ifndef GrStencilBuffer_DEFINED
+#define GrStencilBuffer_DEFINED
+
+#include "GrClip.h"
+#include "GrResource.h"
+
+class GrRenderTarget;
+class GrResourceEntry;
+
+class GrStencilBuffer : public GrResource {
+public:
+    virtual ~GrStencilBuffer() {
+        
+        
+        GrAssert(0 == fRTAttachmentCnt);
+    }
+
+    int width() const { return fWidth; }
+    int height() const { return fHeight; }
+    int bits() const { return fBits; }
+    int numSamples() const { return fSampleCnt; }
+
+    
+    void setLastClip(const GrClip& clip, int width, int height) {
+        fLastClip = clip;
+        fLastClipWidth = width;
+        fLastClipHeight = height;
+        GrAssert(width <= fWidth);
+        GrAssert(height <= fHeight);
+    }
+
+    
+    bool mustRenderClip(const GrClip& clip, int width, int height) const {
+        
+        
+        
+        
+        return width > fLastClipWidth ||
+               height > fLastClipHeight ||
+               clip != fLastClip;
+    }
+
+    const GrClip& getLastClip() const {
+        return fLastClip;
+    }
+
+    
+    
+    void transferToCacheAndLock();
+
+    void wasAttachedToRenderTarget(const GrRenderTarget* rt) {
+        ++fRTAttachmentCnt;
+    }
+
+    void wasDetachedFromRenderTarget(const GrRenderTarget* rt);
+
+protected:
+    GrStencilBuffer(GrGpu* gpu, int width, int height, int bits, int sampleCnt)
+        : GrResource(gpu)
+        , fWidth(width)
+        , fHeight(height)
+        , fBits(bits)
+        , fSampleCnt(sampleCnt)
+        , fLastClip()
+        , fLastClipWidth(-1)
+        , fLastClipHeight(-1)
+        , fCacheEntry(NULL)
+        , fRTAttachmentCnt(0) {
+    }
+
+    
+
+    
+    virtual void onRelease();
+    
+    virtual void onAbandon();
+
+private:
+
+    void unlockInCache();
+
+    int fWidth;
+    int fHeight;
+    int fBits;
+    int fSampleCnt;
+
+    GrClip     fLastClip;
+    int        fLastClipWidth;
+    int        fLastClipHeight;
+
+    GrResourceEntry* fCacheEntry;
+    int              fRTAttachmentCnt;
+
+    typedef GrResource INHERITED;
+};
+
+#endif
