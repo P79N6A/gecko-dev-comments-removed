@@ -112,10 +112,7 @@ public abstract class TileLayer extends Layer {
 
 
 
-        IntSize bufferSize = mImage.getSize();
-        IntSize textureSize = bufferSize;
-
-        textureSize = bufferSize.nextPowerOfTwo();
+        IntSize textureSize = mImage.getSize().nextPowerOfTwo();
 
         if (!textureSize.equals(mSize)) {
             mSize = textureSize;
@@ -178,8 +175,35 @@ public abstract class TileLayer extends Layer {
 
         bindAndSetGLParameters();
 
-        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width,
-                            mSize.height, 0, glInfo.format, glInfo.type, imageBuffer);
+        
+        
+        IntSize bufferSize = mImage.getSize();
+        if (mSize.equals(bufferSize)) {
+            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width,
+                                mSize.height, 0, glInfo.format, glInfo.type, imageBuffer);
+        } else {
+            
+            
+            throw new RuntimeException("Buffer/image size mismatch in TileLayer!");
+
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        }
     }
 
     private void bindAndSetGLParameters() {
