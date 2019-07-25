@@ -66,6 +66,7 @@ class   nsGUIEvent;
 class   imgIContainer;
 class   gfxASurface;
 class   nsIContent;
+class   ViewWrapper;
 
 namespace mozilla {
 namespace layers {
@@ -110,8 +111,9 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0xf286438a, 0x6ec6, 0x4766, \
-  { 0xa4, 0x76, 0x4a, 0x44, 0x80, 0x95, 0xd3, 0x1f } }
+{ 0x271ac413, 0xa202, 0x46dc, \
+{ 0xbc, 0xd5, 0x67, 0xa1, 0xfb, 0x58, 0x89, 0x7f } }
+
 
 
 
@@ -234,6 +236,28 @@ class nsIWidget : public nsISupports {
                       nsIAppShell      *aAppShell = nsnull,
                       nsIToolkit       *aToolkit = nsnull,
                       nsWidgetInitData *aInitData = nsnull) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    NS_IMETHOD AttachViewToTopLevel(EVENT_CALLBACK aViewEventFunction,
+                                    nsIDeviceContext *aContext) = 0;
+
+    
+
+
+
+    NS_IMETHOD SetAttachedViewPtr(ViewWrapper* aViewWrapper) = 0;
+    virtual ViewWrapper* GetAttachedViewPtr() = 0;
 
     
 
@@ -411,6 +435,22 @@ class nsIWidget : public nsISupports {
     
 
 
+
+
+
+
+
+
+
+    NS_IMETHOD ResizeClient(PRInt32 aX,
+                            PRInt32 aY,
+                            PRInt32 aWidth,
+                            PRInt32 aHeight,
+                            PRBool  aRepaint) = 0;
+
+    
+
+
     NS_IMETHOD SetZIndex(PRInt32 aZIndex) = 0;
 
     
@@ -501,6 +541,14 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD GetClientBounds(nsIntRect &aRect) = 0;
+
+    
+
+
+
+
+
+    NS_IMETHOD GetClientOffset(nsIntPoint &aPt) = 0;
 
     
 

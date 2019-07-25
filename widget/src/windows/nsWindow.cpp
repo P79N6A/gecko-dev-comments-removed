@@ -582,8 +582,10 @@ nsWindow::Create(nsIWidget *aParent,
                            nsToolkit::mDllInstance,
                            NULL);
 
-  if (!mWnd)
+  if (!mWnd) {
+    NS_WARNING("nsWindow CreateWindowEx failed.");
     return NS_ERROR_FAILURE;
+  }
 
   if (nsWindow::sTrackPointHack &&
       mWindowType != eWindowType_plugin &&
@@ -1337,6 +1339,10 @@ NS_METHOD nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
   NS_ASSERTION((aWidth >=0 ) , "Negative width passed to nsWindow::Resize");
   NS_ASSERTION((aHeight >=0 ), "Negative height passed to nsWindow::Resize");
 
+  
+  if (mBounds.width == aWidth && mBounds.height == aHeight)
+    return NS_OK;
+
 #ifdef MOZ_XUL
   if (eTransparencyTransparent == mTransparencyMode)
     ResizeTranslucentWindow(aWidth, aHeight);
@@ -1372,6 +1378,11 @@ NS_METHOD nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeig
   NS_ASSERTION((aWidth >=0 ),  "Negative width passed to nsWindow::Resize");
   NS_ASSERTION((aHeight >=0 ), "Negative height passed to nsWindow::Resize");
 
+  
+  if (mBounds.x == aX && mBounds.y == aY &&
+      mBounds.width == aWidth && mBounds.height == aHeight)
+    return NS_OK;
+
 #ifdef MOZ_XUL
   if (eTransparencyTransparent == mTransparencyMode)
     ResizeTranslucentWindow(aWidth, aHeight);
@@ -1400,6 +1411,30 @@ NS_METHOD nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeig
     Invalidate(PR_FALSE);
 
   return NS_OK;
+}
+
+
+NS_METHOD nsWindow::ResizeClient(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
+{
+  NS_ASSERTION((aWidth >=0) , "Negative width passed to ResizeClient");
+  NS_ASSERTION((aHeight >=0), "Negative height passed to ResizeClient");
+
+  
+  RECT client;
+  GetClientRect(mWnd, &client);
+  nsIntPoint dims(client.right - client.left, client.bottom - client.top);
+  aWidth = mBounds.width + (aWidth - dims.x);
+  aHeight = mBounds.height + (aHeight - dims.y);
+  
+  if (aX || aY) {
+    
+    nsIntRect bounds;
+    GetScreenBounds(bounds);
+    aX += bounds.x;
+    aY += bounds.y;
+    return Resize(aX, aY, aWidth, aHeight, aRepaint);
+  }
+  return Resize(aWidth, aHeight, aRepaint);
 }
 
 #if !defined(WINCE)
@@ -1692,6 +1727,8 @@ NS_METHOD nsWindow::SetFocus(PRBool aRaise)
 
 
 
+
+
 NS_METHOD nsWindow::GetBounds(nsIntRect &aRect)
 {
   if (mWnd) {
@@ -1703,12 +1740,46 @@ NS_METHOD nsWindow::GetBounds(nsIntRect &aRect)
     aRect.height = r.bottom - r.top;
 
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
     HWND parent = ::GetParent(mWnd);
     if (parent) {
       RECT pr;
       VERIFY(::GetWindowRect(parent, &pr));
       r.left -= pr.left;
       r.top  -= pr.top;
+      
+      nsWindow* pWidget = static_cast<nsWindow*>(GetParent());
+      if (pWidget && pWidget->IsTopLevelWidget()) {
+        nsIntPoint clientOffset;
+        pWidget->GetClientOffset(clientOffset);
+        r.left -= clientOffset.x;
+        r.top  -= clientOffset.y;
+      }
     }
     aRect.x = r.left;
     aRect.y = r.top;
@@ -1753,6 +1824,23 @@ NS_METHOD nsWindow::GetScreenBounds(nsIntRect &aRect)
     aRect = mBounds;
 
   return NS_OK;
+}
+
+
+
+NS_METHOD nsWindow::GetClientOffset(nsIntPoint &aPt)
+{
+  if (!mWnd) {
+    aPt.x = aPt.y = 0;
+    return NS_OK;
+  }
+
+  RECT r1;
+  GetWindowRect(mWnd, &r1);
+  nsIntPoint pt = WidgetToScreenOffset();
+  aPt.x = pt.x - r1.left; 
+  aPt.y = pt.y - r1.top; 
+  return NS_OK;  
 }
 
 
@@ -6332,6 +6420,13 @@ PRBool nsWindow::OnResize(nsIntRect &aWindowRect)
       event.mWinWidth  = 0;
       event.mWinHeight = 0;
     }
+
+#if 0
+    printf("[%X] OnResize: client:(%d x %d x %d x %d) window:(%d x %d)\n", this,
+      aWindowRect.x, aWindowRect.y, aWindowRect.width, aWindowRect.height,
+      event.mWinWidth, event.mWinHeight);
+#endif
+
     return DispatchWindowEvent(&event);
   }
 
