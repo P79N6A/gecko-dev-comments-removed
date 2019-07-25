@@ -94,7 +94,7 @@
 #include "nsISupportsArray.h"
 #include "nsIWebNavigation.h"
 #include "nsIWebPageDescriptor.h"
-#include "nsIWebProgressListener2.h"
+#include "nsIWebProgressListener.h"
 #include "nsISHContainer.h"
 #include "nsIDocShellLoadInfo.h"
 #include "nsIDocShellHistory.h"
@@ -269,12 +269,9 @@ public:
     friend class OnLinkClickEvent;
 
     
-    
     void FireDummyOnLocationChange()
     {
-        FireOnLocationChange
-            (this, nsnull, mCurrentURI, 
-             nsIWebProgressListener2::LOCATION_CHANGE_SAME_DOCUMENT);
+      FireOnLocationChange(this, nsnull, mCurrentURI);
     }
 
     nsresult HistoryTransactionRemoved(PRInt32 aIndex);
@@ -595,8 +592,7 @@ protected:
     
     
     PRBool SetCurrentURI(nsIURI *aURI, nsIRequest *aRequest,
-                         PRBool aFireOnLocationChange,
-                         PRUint32 aLocationFlags);
+                         PRBool aFireOnLocationChange);
 
     
     
