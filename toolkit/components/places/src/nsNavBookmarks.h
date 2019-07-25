@@ -381,8 +381,7 @@ private:
   nsCOMPtr<mozIStorageStatement> mDBSetItemLastModified;
   nsCOMPtr<mozIStorageStatement> mDBSetItemIndex;
   nsCOMPtr<mozIStorageStatement> mDBGetKeywordForURI;
-  nsCOMPtr<mozIStorageStatement> mDBGetKeywordForBookmark;
-  nsCOMPtr<mozIStorageStatement> mDBGetURIForKeyword;
+  nsCOMPtr<mozIStorageStatement> mDBGetBookmarksToKeywords;
   nsCOMPtr<mozIStorageStatement> mDBAdjustPosition;
   nsCOMPtr<mozIStorageStatement> mDBRemoveItem;
   nsCOMPtr<mozIStorageStatement> mDBGetLastChildId;
@@ -449,6 +448,21 @@ private:
   nsCategoryCache<nsINavBookmarkObserver> mCacheObservers;
 
   bool mShuttingDown;
+
+  
+
+
+
+  nsresult EnsureKeywordsHash();
+  nsDataHashtable<nsTrimInt64HashKey, nsString> mBookmarkToKeywordHash;
+
+  
+
+
+
+
+
+  nsresult UpdateKeywordsHashForRemovedBookmark(PRInt64 aItemId);
 };
 
 struct nsBookmarksUpdateBatcher
