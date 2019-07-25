@@ -391,10 +391,6 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
     }
 
     
-    FrameRegs regs = f.regs;
-    PreserveRegsGuard regsGuard(cx, regs);
-
-    
     StackFrame *newfp = cx->stack.getInlineFrameWithinLimit(cx, f.regs.sp, argc,
                                                             newfun, newscript, &flags,
                                                             f.entryfp, &f.stackLimit, NULL);
@@ -404,6 +400,13 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
     
     newfp->initCallFrame(cx, callee, newfun, argc, flags);
     SetValueRangeToUndefined(newfp->slots(), newscript->nfixed);
+
+    
+
+
+
+    FrameRegs regs = f.regs;
+    PreserveRegsGuard regsGuard(cx, regs);
 
     
     cx->stack.pushInlineFrame(newscript, newfp, regs);
