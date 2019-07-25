@@ -12,23 +12,24 @@ let gPage = {
   
 
 
-  init: function Page_init() {
+
+
+  init: function Page_init(aToolbarSelector, aGridSelector) {
+    gToolbar.init(aToolbarSelector);
+    this._gridSelector = aGridSelector;
+
     
     gAllPages.register(this);
 
     
-    addEventListener("unload", this, false);
+    function unload() { gAllPages.unregister(this); }
+    addEventListener("unload", unload.bind(this), false);
 
     
-    let button = document.getElementById("newtab-toggle");
-    button.addEventListener("click", this, false);
-
-    
-    let enabled = gAllPages.enabled;
-    if (enabled)
+    if (gAllPages.enabled)
       this._init();
-
-    this._updateAttributes(enabled);
+    else
+      this._updateAttributes(false);
   },
 
   
@@ -47,7 +48,23 @@ let gPage = {
 
 
   update: function Page_update() {
+    this.updateModifiedFlag();
     gGrid.refresh();
+  },
+
+  
+
+
+  updateModifiedFlag: function Page_updateModifiedFlag() {
+    let node = document.getElementById("toolbar-button-reset");
+    let modified = this._isModified();
+
+    if (modified)
+      node.setAttribute("modified", "true");
+    else
+      node.removeAttribute("modified");
+
+    this._updateTabIndices(gAllPages.enabled, modified);
   },
 
   
@@ -62,16 +79,18 @@ let gPage = {
 
     gLinks.populateCache(function () {
       
-      gGrid.init();
+      this.updateModifiedFlag();
+
+      
+      gGrid.init(this._gridSelector);
 
       
       gDropTargetShim.init();
 
-#ifdef XP_MACOSX
       
-      document.addEventListener("dragover", this, false);
-      document.addEventListener("drop", this, false);
-#endif
+      let doc = document.documentElement;
+      doc.addEventListener("dragover", this.onDragOver, false);
+      doc.addEventListener("drop", this.onDrop, false);
     }.bind(this));
   },
 
@@ -80,50 +99,75 @@ let gPage = {
 
 
   _updateAttributes: function Page_updateAttributes(aValue) {
+    let nodes = document.querySelectorAll("#grid, #scrollbox, #toolbar, .toolbar-button");
+
     
-    let nodeSelector = "#newtab-scrollbox, #newtab-toggle, #newtab-grid";
-    for (let node of document.querySelectorAll(nodeSelector)) {
+    for (let i = 0; i < nodes.length; i++) {
+      let node = nodes[i];
       if (aValue)
         node.removeAttribute("page-disabled");
       else
         node.setAttribute("page-disabled", "true");
     }
 
-    
-    let inputSelector = ".newtab-control, .newtab-link";
-    for (let input of document.querySelectorAll(inputSelector)) {
-      if (aValue) 
-        input.removeAttribute("tabindex");
-      else
-        input.setAttribute("tabindex", "-1");
-    }
-
-    
-    let toggle = document.getElementById("newtab-toggle");
-    toggle.setAttribute("title", newTabString(aValue ? "hide" : "show"));
+    this._updateTabIndices(aValue, this._isModified());
   },
 
   
 
 
-  handleEvent: function Page_handleEvent(aEvent) {
-    switch (aEvent.type) {
-      case "unload":
-        gAllPages.unregister(this);
-        break;
-      case "click":
-        gAllPages.enabled = !gAllPages.enabled;
-        break;
-      case "dragover":
-        if (gDrag.isValid(aEvent) && gDrag.draggedSite)
-          aEvent.preventDefault();
-        break;
-      case "drop":
-        if (gDrag.isValid(aEvent) && gDrag.draggedSite) {
-          aEvent.preventDefault();
-          aEvent.stopPropagation();
-        }
-        break;
+
+  _isModified: function Page_isModified() {
+    
+    return !gBlockedLinks.isEmpty();
+  },
+
+  
+
+
+
+
+  _updateTabIndices: function Page_updateTabIndices(aEnabled, aModified) {
+    function setFocusable(aNode, aFocusable) {
+      if (aFocusable)
+        aNode.removeAttribute("tabindex");
+      else
+        aNode.setAttribute("tabindex", "-1");
+    }
+
+    
+    let nodes = document.querySelectorAll(".site, #toolbar-button-hide");
+    for (let i = 0; i < nodes.length; i++)
+      setFocusable(nodes[i], aEnabled);
+
+    
+    let btnShow = document.getElementById("toolbar-button-show");
+    setFocusable(btnShow, !aEnabled);
+
+    
+    let btnReset = document.getElementById("toolbar-button-reset");
+    setFocusable(btnReset, aEnabled && aModified);
+  },
+
+  
+
+
+
+
+  onDragOver: function Page_onDragOver(aEvent) {
+    if (gDrag.isValid(aEvent))
+      aEvent.preventDefault();
+  },
+
+  
+
+
+
+
+  onDrop: function Page_onDrop(aEvent) {
+    if (gDrag.isValid(aEvent)) {
+      aEvent.preventDefault();
+      aEvent.stopPropagation();
     }
   }
 };
