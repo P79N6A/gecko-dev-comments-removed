@@ -236,6 +236,7 @@ var BrowserApp = {
     CharacterEncoding.init();
     SearchEngines.init();
     ActivityObserver.init();
+    WebappsUI.init();
 
     
     Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
@@ -415,6 +416,7 @@ var BrowserApp = {
     ConsoleAPI.uninit();
     CharacterEncoding.uninit();
     SearchEngines.uninit();
+    WebappsUI.uninit();
   },
 
   
