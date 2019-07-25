@@ -52,12 +52,39 @@ enum nsStyleStructID {
 
 
 
-#define STYLE_STRUCT(name, checkdata_cb, ctor_args) eStyleStruct_##name,
+
+
+
+
+nsStyleStructID_Inherited_Start = 0,
+
+nsStyleStructID_DUMMY1 = nsStyleStructID_Inherited_Start - 1,
+
+#define STYLE_STRUCT_INHERITED(name, checkdata_cb, ctor_args) \
+  eStyleStruct_##name,
+#define STYLE_STRUCT_RESET(name, checkdata_cb, ctor_args)
 #include "nsStyleStructList.h"
-#undef STYLE_STRUCT
+#undef STYLE_STRUCT_INHERITED
+#undef STYLE_STRUCT_RESET
+
+nsStyleStructID_Reset_Start,
+
+nsStyleStructID_DUMMY2 = nsStyleStructID_Reset_Start - 1,
+
+#define STYLE_STRUCT_RESET(name, checkdata_cb, ctor_args) \
+  eStyleStruct_##name,
+#define STYLE_STRUCT_INHERITED(name, checkdata_cb, ctor_args)
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT_INHERITED
+#undef STYLE_STRUCT_RESET
 
 
 nsStyleStructID_Length,
+
+nsStyleStructID_Inherited_Count =
+  nsStyleStructID_Reset_Start - nsStyleStructID_Inherited_Start,
+nsStyleStructID_Reset_Count =
+  nsStyleStructID_Length - nsStyleStructID_Reset_Start,
 
 
 
