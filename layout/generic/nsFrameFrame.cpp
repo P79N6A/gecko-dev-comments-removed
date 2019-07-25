@@ -427,15 +427,17 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                        mInnerView->GetPosition() +
                        GetOffsetTo(aBuilder->ReferenceFrame());
 
+  if (f && NS_SUCCEEDED(rv)) {
+    rv = f->BuildDisplayListForStackingContext(aBuilder, dirty, &childItems);
+  }
+
   if (!aBuilder->IsForEventDelivery()) {
+    
+    
     
     rv = presShell->AddCanvasBackgroundColorItem(
            *aBuilder, childItems, f ? f : this, shellBounds, NS_RGBA(0,0,0,0),
            PR_TRUE);
-  }
-
-  if (f && NS_SUCCEEDED(rv)) {
-    rv = f->BuildDisplayListForStackingContext(aBuilder, dirty, &childItems);
   }
 
   if (NS_SUCCEEDED(rv)) {

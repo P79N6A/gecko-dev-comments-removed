@@ -2162,6 +2162,9 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   
   
+  
+  
+  
   PRBool isCanvasFrame = IsCanvasFrame(aForFrame);
 
   
