@@ -974,6 +974,12 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
   
 
   
+  UINT filterIdxResult;
+  if (SUCCEEDED(dialog->GetFileTypeIndex(&filterIdxResult))) {
+    mSelectedType = (PRInt16)filterIdxResult;
+  }
+
+  
   if (mMode != modeOpenMultiple) {
     nsRefPtr<IShellItem> item;
     if (FAILED(dialog->GetResult(getter_AddRefs(item))) || !item) {
