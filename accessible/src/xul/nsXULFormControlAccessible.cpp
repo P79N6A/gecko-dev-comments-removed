@@ -205,23 +205,23 @@ nsXULButtonAccessible::CacheChildren()
   if (!isMenu && !isMenuButton)
     return;
 
-  nsRefPtr<nsAccessible> menupopupAccessible;
-  nsRefPtr<nsAccessible> buttonAccessible;
+  nsAccessible* menupopup = nsnull;
+  nsAccessible* button = nsnull;
 
   nsAccTreeWalker walker(mWeakShell, mContent, PR_TRUE);
 
-  nsRefPtr<nsAccessible> child;
-  while ((child = walker.GetNextChild())) {
+  nsAccessible* child = nsnull;
+  while ((child = walker.NextChild())) {
     PRUint32 role = child->Role();
 
     if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
       
-      menupopupAccessible.swap(child);
+      menupopup = child;
 
     } else if (isMenuButton && role == nsIAccessibleRole::ROLE_PUSHBUTTON) {
       
       
-      buttonAccessible.swap(child);
+      button = child;
       break;
 
     } else {
@@ -230,12 +230,12 @@ nsXULButtonAccessible::CacheChildren()
     }
   }
 
-  if (!menupopupAccessible)
+  if (!menupopup)
     return;
 
-  AppendChild(menupopupAccessible);
-  if (buttonAccessible)
-    AppendChild(buttonAccessible);
+  AppendChild(menupopup);
+  if (button)
+    AppendChild(button);
 }
 
 
@@ -1045,8 +1045,8 @@ nsXULTextFieldAccessible::CacheChildren()
 
   nsAccTreeWalker walker(mWeakShell, inputContent, PR_FALSE);
 
-  nsRefPtr<nsAccessible> child;
-  while ((child = walker.GetNextChild()) && AppendChild(child));
+  nsAccessible* child = nsnull;
+  while ((child = walker.NextChild()) && AppendChild(child));
 }
 
 

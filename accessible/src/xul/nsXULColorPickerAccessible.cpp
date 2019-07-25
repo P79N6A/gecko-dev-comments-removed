@@ -163,8 +163,8 @@ nsXULColorPickerAccessible::CacheChildren()
 {
   nsAccTreeWalker walker(mWeakShell, mContent, PR_TRUE);
 
-  nsRefPtr<nsAccessible> child;
-  while ((child = walker.GetNextChild())) {
+  nsAccessible* child = nsnull;
+  while ((child = walker.NextChild())) {
     PRUint32 role = child->Role();
 
     

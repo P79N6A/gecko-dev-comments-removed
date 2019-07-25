@@ -158,10 +158,9 @@ public:
 
 
 
-  already_AddRefed<nsAccessible>
-    GetOrCreateAccessible(nsINode* aNode, nsIPresShell* aPresShell,
-                          nsIWeakReference* aWeakShell,
-                          bool* aIsSubtreeHidden = nsnull);
+  nsAccessible* GetOrCreateAccessible(nsINode* aNode, nsIPresShell* aPresShell,
+                                      nsIWeakReference* aWeakShell,
+                                      bool* aIsSubtreeHidden = nsnull);
 
   
 

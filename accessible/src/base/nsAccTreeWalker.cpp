@@ -94,8 +94,8 @@ nsAccTreeWalker::~nsAccTreeWalker()
 
 
 
-already_AddRefed<nsAccessible>
-nsAccTreeWalker::GetNextChildInternal(PRBool aNoWalkUp)
+nsAccessible*
+nsAccTreeWalker::NextChildInternal(bool aNoWalkUp)
 {
   if (!mState || !mState->content)
     return nsnull;
@@ -114,28 +114,28 @@ nsAccTreeWalker::GetNextChildInternal(PRBool aNoWalkUp)
     mState->childIdx++;
 
     bool isSubtreeHidden = false;
-    nsRefPtr<nsAccessible> accessible =
+    nsAccessible* accessible =
       GetAccService()->GetOrCreateAccessible(childNode, presShell, mWeakShell,
                                              &isSubtreeHidden);
 
     if (accessible)
-      return accessible.forget();
+      return accessible;
 
     
     if (!isSubtreeHidden) {
       if (!PushState(childNode))
         break;
 
-      accessible = GetNextChildInternal(PR_TRUE);
+      accessible = NextChildInternal(true);
       if (accessible)
-        return accessible.forget();
+        return accessible;
     }
   }
 
   
   PopState();
 
-  return aNoWalkUp ? nsnull : GetNextChildInternal(PR_FALSE);
+  return aNoWalkUp ? nsnull : NextChildInternal(false);
 }
 
 void

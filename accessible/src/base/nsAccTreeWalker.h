@@ -60,9 +60,13 @@ public:
   
 
 
-  already_AddRefed<nsAccessible> GetNextChild()
+
+
+
+
+  inline nsAccessible* NextChild()
   {
-    return GetNextChildInternal(PR_FALSE);
+    return NextChildInternal(false);
   }
 
 private:
@@ -74,8 +78,7 @@ private:
 
 
 
-  already_AddRefed<nsAccessible>
-    GetNextChildInternal(PRBool aNoWalkUp = PR_FALSE);
+  nsAccessible* NextChildInternal(bool aNoWalkUp);
 
   
 

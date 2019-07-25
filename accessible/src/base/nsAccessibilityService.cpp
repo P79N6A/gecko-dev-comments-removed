@@ -858,7 +858,7 @@ static PRBool HasRelatedContent(nsIContent *aContent)
   return PR_FALSE;
 }
 
-already_AddRefed<nsAccessible>
+nsAccessible*
 nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
                                               nsIPresShell* aPresShell,
                                               nsIWeakReference* aWeakShell,
@@ -872,10 +872,8 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
 
   
   nsAccessible* cachedAccessible = GetAccessibleInWeakShell(aNode, aWeakShell);
-  if (cachedAccessible) {
-    NS_ADDREF(cachedAccessible);
+  if (cachedAccessible)
     return cachedAccessible;
-  }
 
   
 
@@ -883,9 +881,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     
     
     nsCOMPtr<nsIDocument> document(do_QueryInterface(aNode));
-    nsAccessible *accessible = GetDocAccessible(document);
-    NS_IF_ADDREF(accessible);
-    return accessible;
+    return GetDocAccessible(document);
   }
 
   
@@ -924,16 +920,13 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     
     
     
-    nsAccessible* areaAcc = GetAreaAccessible(weakFrame.GetFrame(),
-                                              aNode, aWeakShell);
-    NS_IF_ADDREF(areaAcc);
-    return areaAcc;
+    return GetAreaAccessible(weakFrame.GetFrame(), aNode, aWeakShell);
   }
 
   nsDocAccessible* docAcc =
     GetAccService()->GetDocAccessible(aNode->GetOwnerDoc());
   if (!docAcc) {
-    NS_NOTREACHED("No document for accessible being created!");
+    NS_NOTREACHED("Node has no host document accessible!");
     return nsnull;
   }
 
@@ -954,7 +947,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     newAcc = weakFrame->CreateAccessible();
     if (docAcc->BindToDocument(newAcc, nsnull)) {
       newAcc->AsTextLeaf()->SetText(text);
-      return newAcc.forget();
+      return newAcc;
     }
 
     return nsnull;
@@ -981,7 +974,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
 
     newAcc = new nsHyperTextAccessibleWrap(content, aWeakShell);
     if (docAcc->BindToDocument(newAcc, nsAccUtils::GetRoleMapEntry(aNode)))
-      return newAcc.forget();
+      return newAcc;
     return nsnull;
   }
 
@@ -1167,9 +1160,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     }
   }
 
-  if (docAcc->BindToDocument(newAcc, roleMapEntry))
-    return newAcc.forget();
-  return nsnull;
+  return docAcc->BindToDocument(newAcc, roleMapEntry) ? newAcc : nsnull;
 }
 
 
