@@ -295,10 +295,11 @@ public:
 
 
 
+
   bool MaybeCheckSameAttrVal(PRInt32 aNamespaceID, nsIAtom* aName,
-                               nsIAtom* aPrefix, const nsAString& aValue,
-                               bool aNotify, nsAutoString* aOldValue,
-                               PRUint8* aModType, bool* aHasListeners);
+                             nsIAtom* aPrefix, const nsAttrValue& aValue,
+                             bool aNotify, nsAttrValue& aOldValue,
+                             PRUint8* aModType, bool* aHasListeners);
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, nsIAtom* aPrefix,
                            const nsAString& aValue, bool aNotify);
   virtual nsresult SetParsedAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
@@ -655,7 +656,7 @@ protected:
   nsresult SetAttrAndNotify(PRInt32 aNamespaceID,
                             nsIAtom* aName,
                             nsIAtom* aPrefix,
-                            const nsAString& aOldValue,
+                            const nsAttrValue& aOldValue,
                             nsAttrValue& aParsedValue,
                             PRUint8 aModType,
                             bool aFireMutation,
