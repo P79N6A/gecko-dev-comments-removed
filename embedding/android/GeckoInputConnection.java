@@ -494,6 +494,9 @@ public class GeckoInputConnection
             return;
 
         mUpdateExtract.flags = 0;
+
+        
+        
         mUpdateExtract.partialStartOffset = 0;
         mUpdateExtract.partialEndOffset = oldEnd;
 
@@ -501,7 +504,7 @@ public class GeckoInputConnection
         mUpdateExtract.selectionStart = newEnd;
         mUpdateExtract.selectionEnd = newEnd;
 
-        mUpdateExtract.text = text;
+        mUpdateExtract.text = text.substring(0, newEnd);
         mUpdateExtract.startOffset = 0;
 
         imm.updateExtractedText(GeckoApp.surfaceView,
