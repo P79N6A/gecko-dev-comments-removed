@@ -55,11 +55,12 @@
 
 class CSSGroupRuleRuleListImpl;
 class nsMediaList;
+template<class T> struct already_AddRefed;
 
 #define DECL_STYLE_RULE_INHERIT_NO_DOMRULE  \
-NS_IMETHOD GetStyleSheet(nsIStyleSheet*& aSheet) const; \
-NS_IMETHOD SetStyleSheet(nsCSSStyleSheet* aSheet); \
-NS_IMETHOD SetParentRule(nsICSSGroupRule* aRule); \
+virtual already_AddRefed<nsIStyleSheet> GetStyleSheet() const; \
+virtual void SetStyleSheet(nsCSSStyleSheet* aSheet); \
+virtual void SetParentRule(nsICSSGroupRule* aRule); \
 virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 
 #define DECL_STYLE_RULE_INHERIT  \
@@ -128,9 +129,9 @@ public:
 #endif
 
   
-  NS_IMETHOD SetStyleSheet(nsCSSStyleSheet* aSheet); 
-  NS_IMETHOD GetType(PRInt32& aType) const;
-  NS_IMETHOD Clone(nsICSSRule*& aClone) const;
+  virtual void SetStyleSheet(nsCSSStyleSheet* aSheet); 
+  virtual PRInt32 GetType() const;
+  virtual nsresult Clone(nsICSSRule*& aClone) const;
   nsIDOMCSSRule* GetDOMRuleWeak(nsresult *aResult)
   {
     *aResult = NS_OK;
@@ -170,8 +171,8 @@ public:
 #endif
 
   
-  NS_IMETHOD GetType(PRInt32& aType) const;
-  NS_IMETHOD Clone(nsICSSRule*& aClone) const;
+  virtual PRInt32 GetType() const;
+  virtual nsresult Clone(nsICSSRule*& aClone) const;
   nsIDOMCSSRule* GetDOMRuleWeak(nsresult *aResult)
   {
     *aResult = NS_OK;
@@ -263,8 +264,8 @@ public:
   
   DECL_STYLE_RULE_INHERIT
 
-  NS_IMETHOD GetType(PRInt32& aType) const;
-  NS_IMETHOD Clone(nsICSSRule*& aClone) const;
+  virtual PRInt32 GetType() const;
+  virtual nsresult Clone(nsICSSRule*& aClone) const;
 
   
   NS_DECL_NSIDOMCSSRULE

@@ -46,11 +46,12 @@
 class nsCSSStyleSheet;
 class nsICSSGroupRule;
 class nsAString;
+template<class T> struct already_AddRefed;
 
 
 #define NS_ICSS_RULE_IID     \
-{ 0x2a1fef35, 0xeee9, 0x4a5d, \
- { 0xbc, 0x87, 0xe2, 0x22, 0x8a, 0xcc, 0x92, 0x6b } }
+{ 0x471d733e, 0xc138, 0x4a50, \
+ { 0x9e, 0x1a, 0xd1, 0x3c, 0xbb, 0x65, 0xb5, 0x26 } }
 
 
 
@@ -74,13 +75,13 @@ public:
     DOCUMENT_RULE
   };
 
-  NS_IMETHOD GetType(PRInt32& aType) const = 0;
+  virtual PRInt32 GetType() const = 0;
 
-  NS_IMETHOD GetStyleSheet(nsIStyleSheet*& aSheet) const = 0;
-  NS_IMETHOD SetStyleSheet(nsCSSStyleSheet* aSheet) = 0;
-  NS_IMETHOD SetParentRule(nsICSSGroupRule* aRule) = 0;
+  virtual already_AddRefed<nsIStyleSheet> GetStyleSheet() const = 0;
+  virtual void SetStyleSheet(nsCSSStyleSheet* aSheet) = 0;
+  virtual void SetParentRule(nsICSSGroupRule* aRule) = 0;
 
-  NS_IMETHOD Clone(nsICSSRule*& aClone) const = 0;
+  virtual nsresult Clone(nsICSSRule*& aClone) const = 0;
 
   
   

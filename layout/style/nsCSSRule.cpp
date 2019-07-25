@@ -61,32 +61,29 @@ nsCSSRule::~nsCSSRule(void)
 NS_IMPL_ADDREF(nsCSSRule)
 NS_IMPL_RELEASE(nsCSSRule)
 
-NS_IMETHODIMP
-nsCSSRule::GetStyleSheet(nsIStyleSheet*& aSheet) const
+ already_AddRefed<nsIStyleSheet>
+nsCSSRule::GetStyleSheet() const
 {
   NS_IF_ADDREF(mSheet);
-  aSheet = mSheet;
-  return NS_OK;
+  return mSheet;
 }
 
-NS_IMETHODIMP
+ void
 nsCSSRule::SetStyleSheet(nsCSSStyleSheet* aSheet)
 {
   
   
   
   mSheet = aSheet;
-  return NS_OK;
 }
 
-NS_IMETHODIMP
+ void
 nsCSSRule::SetParentRule(nsICSSGroupRule* aRule)
 {
   
   
   
   mParentRule = aRule;
-  return NS_OK;
 }
 
  void
