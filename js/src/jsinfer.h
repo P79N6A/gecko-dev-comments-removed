@@ -74,7 +74,7 @@ struct ClonedTypeSet;
 
 
 
-typedef jsword jstype;
+typedef jsuword jstype;
 
 
 const jstype TYPE_UNDEFINED = 1;

@@ -4011,11 +4011,11 @@ DefineConstructorAndPrototype(JSContext *cx, JSObject *obj, JSProtoKey key, JSAt
 
 
 
-        if (key != JSProto_Null && !(clasp->flags & JSCLASS_CONSTRUCT_PROTOTYPE) &&
-            !SetClassObject(cx, obj, key, fun, proto)) {
-            goto bad;
+        if (key != JSProto_Null && !(clasp->flags & JSCLASS_CONSTRUCT_PROTOTYPE)) {
+            if (!SetClassObject(cx, obj, key, fun, proto))
+                goto bad;
+            cached = true;
         }
-        cached = true;
 
         AutoValueRooter tvr2(cx, ObjectValue(*fun));
         if (!DefineStandardSlot(cx, obj, key, atom, tvr2.value(), 0, named))
