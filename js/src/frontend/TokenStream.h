@@ -330,8 +330,8 @@ struct Token {
       private:
         friend struct Token;
         struct {                        
-            JSAtom       *data;         
             PropertyName *target;       
+            JSAtom       *data;         
         } xmlpi;
         uint16_t        sharpNumber;    
         jsdouble        number;         
@@ -359,6 +359,9 @@ struct Token {
     }
 
     void setProcessingInstruction(PropertyName *target, JSAtom *data) {
+        JS_ASSERT(target);
+        JS_ASSERT(data);
+        JS_ASSERT(!target->empty());
         u.xmlpi.target = target;
         u.xmlpi.data = data;
     }
