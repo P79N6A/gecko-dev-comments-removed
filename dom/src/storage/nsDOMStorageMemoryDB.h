@@ -82,14 +82,14 @@ public:
 
 
   nsresult
-  GetItemsTable(nsDOMStorage* aStorage,
+  GetItemsTable(DOMStorageImpl* aStorage,
                 nsInMemoryStorage** aMemoryStorage);
 
   
 
 
   nsresult
-  GetAllKeys(nsDOMStorage* aStorage,
+  GetAllKeys(DOMStorageImpl* aStorage,
              nsTHashtable<nsSessionStorageEntry>* aKeys);
 
   
@@ -98,7 +98,7 @@ public:
 
 
   nsresult
-  GetKeyValue(nsDOMStorage* aStorage,
+  GetKeyValue(DOMStorageImpl* aStorage,
               const nsAString& aKey,
               nsAString& aValue,
               PRBool* aSecure);
@@ -107,7 +107,7 @@ public:
 
 
   nsresult
-  SetKey(nsDOMStorage* aStorage,
+  SetKey(DOMStorageImpl* aStorage,
          const nsAString& aKey,
          const nsAString& aValue,
          PRBool aSecure,
@@ -120,7 +120,7 @@ public:
 
 
   nsresult
-  SetSecure(nsDOMStorage* aStorage,
+  SetSecure(DOMStorageImpl* aStorage,
             const nsAString& aKey,
             const PRBool aSecure);
 
@@ -128,7 +128,7 @@ public:
 
 
   nsresult
-  RemoveKey(nsDOMStorage* aStorage,
+  RemoveKey(DOMStorageImpl* aStorage,
             const nsAString& aKey,
             PRBool aExcludeOfflineFromUsage,
             PRInt32 aKeyUsage);
@@ -137,13 +137,13 @@ public:
 
 
   nsresult
-  ClearStorage(nsDOMStorage* aStorage);
+  ClearStorage(DOMStorageImpl* aStorage);
 
   
 
 
   nsresult
-  DropStorage(nsDOMStorage* aStorage);
+  DropStorage(DOMStorageImpl* aStorage);
 
   
 
@@ -169,7 +169,7 @@ public:
 
 
   nsresult
-  GetUsage(nsDOMStorage* aStorage, PRBool aExcludeOfflineFromUsage, PRInt32 *aUsage);
+  GetUsage(DOMStorageImpl* aStorage, PRBool aExcludeOfflineFromUsage, PRInt32 *aUsage);
 
   
 

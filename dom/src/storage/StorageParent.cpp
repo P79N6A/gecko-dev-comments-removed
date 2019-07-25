@@ -1,0 +1,175 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "StorageParent.h"
+#include "mozilla/dom/PContentParent.h"
+#include "mozilla/unused.h"
+#include "nsDOMString.h"
+
+using mozilla::unused;
+
+namespace mozilla {
+namespace dom {
+
+StorageParent::StorageParent(const StorageConstructData& aData)
+{
+  if (aData.type() == StorageConstructData::Tnull_t) {
+    mStorage = new DOMStorageImpl(nsnull);
+  } else {
+    const StorageClone& clone = aData.get_StorageClone();
+    StorageParent* other = static_cast<StorageParent*>(clone.actorParent());
+    mStorage = new DOMStorageImpl(nsnull, *other->mStorage.get());
+    mStorage->CloneFrom(clone.callerSecure(), other->mStorage);
+  }
+}
+
+bool
+StorageParent::RecvInit(const bool& aUseDB,
+                        const bool& aCanUseChromePersist,
+                        const nsCString& aDomain,
+                        const nsCString& aScopeDBKey,
+                        const nsCString& aQuotaDomainDBKey,
+                        const nsCString& aQuotaETLDplus1DomainDBKey,
+                        const PRUint32& aStorageType)
+{
+  mStorage->InitFromChild(aUseDB, aCanUseChromePersist, aDomain, aScopeDBKey,
+                          aQuotaDomainDBKey, aQuotaETLDplus1DomainDBKey,
+                          aStorageType);
+  return true;
+}
+
+bool
+StorageParent::RecvGetKeys(const bool& aCallerSecure, InfallibleTArray<nsString>* aKeys)
+{
+  
+  nsAutoPtr<nsTArray<nsString> > keys(mStorage->GetKeys(aCallerSecure));
+  aKeys->SwapElements(*keys);
+  return true;
+}
+
+bool
+StorageParent::RecvGetLength(const bool& aCallerSecure, PRUint32* aLength,
+                             nsresult* rv)
+{
+  *rv = mStorage->GetLength(aCallerSecure, aLength);
+  return true;
+}
+
+bool
+StorageParent::RecvGetKey(const bool& aCallerSecure, const PRUint32& aIndex,
+                          nsString* aKey, nsresult* rv)
+{
+  *rv = mStorage->GetKey(aCallerSecure, aIndex, *aKey);
+  return true;
+}
+
+bool
+StorageParent::RecvGetValue(const bool& aCallerSecure, const nsString& aKey,
+                            StorageItem* aItem, nsresult* rv)
+{
+  
+  
+
+  *rv = NS_OK;
+  nsCOMPtr<nsIDOMStorageItem> item = mStorage->GetValue(aCallerSecure, aKey, rv);
+  if (NS_FAILED(*rv) || !item) {
+    *aItem = null_t();
+    return true;
+  }
+
+  ItemData data(EmptyString(), false);
+  nsDOMStorageItem* internalItem = static_cast<nsDOMStorageItem*>(item.get());
+  data.value() = internalItem->GetValueInternal();
+  if (aCallerSecure)
+    data.secure() = internalItem->IsSecure();
+  *aItem = data;
+  return true;
+}
+
+bool
+StorageParent::RecvSetValue(const bool& aCallerSecure, const nsString& aKey,
+                            const nsString& aData, nsString* aOldValue,
+                            nsresult* rv)
+{
+  *rv = mStorage->SetValue(aCallerSecure, aKey, aData, *aOldValue);
+  return true;
+}
+
+bool
+StorageParent::RecvRemoveValue(const bool& aCallerSecure, const nsString& aKey,
+                               nsString* aOldValue, nsresult* rv)
+{
+  *rv = mStorage->RemoveValue(aCallerSecure, aKey, *aOldValue);
+  return true;
+}
+
+bool
+StorageParent::RecvClear(const bool& aCallerSecure, PRInt32* aOldCount,
+                         nsresult* rv)
+{
+  *rv = mStorage->Clear(aCallerSecure, aOldCount);
+  return true;
+}
+
+bool
+StorageParent::RecvGetDBValue(const nsString& aKey, nsString* aValue,
+                              PRBool* aSecure, nsresult* rv)
+{
+  *rv = mStorage->GetDBValue(aKey, *aValue, aSecure);
+  return true;
+}
+
+bool
+StorageParent::RecvSetDBValue(const nsString& aKey, const nsString& aValue,
+                              const PRBool& aSecure, nsresult* rv)
+{
+  *rv = mStorage->SetDBValue(aKey, aValue, aSecure);
+  return true;
+}
+
+bool
+StorageParent::RecvSetSecure(const nsString& aKey, const PRBool& aSecure,
+                             nsresult* rv)
+{
+  *rv = mStorage->SetSecure(aKey, aSecure);
+  return true;
+}
+
+}
+}

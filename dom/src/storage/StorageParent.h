@@ -1,0 +1,90 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef mozilla_dom_StorageParent_h
+#define mozilla_dom_StorageParent_h
+
+#include "mozilla/dom/PStorageParent.h"
+#include "nsDOMStorage.h"
+
+namespace mozilla {
+namespace dom {
+
+class StorageConstructData;
+
+class StorageParent : public PStorageParent
+{
+public:
+  StorageParent(const StorageConstructData& aData);
+
+private:
+  bool RecvGetKeys(const bool& aCallerSecure, InfallibleTArray<nsString>* aKeys);
+  bool RecvGetLength(const bool& aCallerSecure, PRUint32* aLength, nsresult* rv);
+  bool RecvGetKey(const bool& aCallerSecure, const PRUint32& aIndex,
+                  nsString* aKey, nsresult* rv);
+  bool RecvGetValue(const bool& aCallerSecure, const nsString& aKey,
+                    StorageItem* aItem, nsresult* rv);
+  bool RecvSetValue(const bool& aCallerSecure, const nsString& aKey,
+                    const nsString& aData, nsString* aOldValue, nsresult* rv);
+  bool RecvRemoveValue(const bool& aCallerSecure, const nsString& aKey,
+                       nsString* aOldData, nsresult* rv);
+  bool RecvClear(const bool& aCallerSecure, PRInt32* aOldCount, nsresult* rv);
+
+  bool RecvGetDBValue(const nsString& aKey, nsString* aValue, PRBool* aSecure,
+                      nsresult* rv);
+  bool RecvSetDBValue(const nsString& aKey, const nsString& aValue,
+                      const PRBool& aSecure, nsresult* rv);
+  bool RecvSetSecure(const nsString& aKey, const PRBool& aSecure,
+                     nsresult* rv);
+
+  bool RecvInit(const bool& aUseDB,
+                const bool& aCanUseChromePersist,
+                const nsCString& aDomain,
+                const nsCString& aScopeDBKey,
+                const nsCString& aQuotaDomainDBKey,
+                const nsCString& aQuotaETLDplus1DomainDBKey,
+                const PRUint32& aStorageType);
+
+  nsRefPtr<DOMStorageImpl> mStorage;
+};
+
+}
+}
+
+#endif
