@@ -673,6 +673,29 @@ BookmarksStore.prototype = {
 
     let parentId = Svc.Bookmark.getFolderIdForItem(itemId);
     let predecessorId = Svc.Bookmark.getIdForItemAt(parentId, itemPos - 1);
+
+    if (predecessorId == -1) {
+      this._log.debug("No predecessor directly before " + itemId + " under " +
+        parentId + " at " + itemPos);
+
+      
+      do {
+        
+        if (--itemPos < 0)
+          break;
+        predecessorId = Svc.Bookmark.getIdForItemAt(parentId, itemPos);
+      } while (predecessorId == -1);
+
+      
+      itemPos++;
+      this._log.debug("Fixing " + itemId + " to be at position " + itemPos);
+      Svc.Bookmark.moveItem(itemId, parentId, itemPos);
+
+      
+      if (itemPos == 0)
+        return;
+    }
+
     return GUIDForId(predecessorId);
   },
 
