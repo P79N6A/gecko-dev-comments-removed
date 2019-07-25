@@ -2642,7 +2642,11 @@ frontend::EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *bod
 
     if (!EmitTree(cx, bce, body))
         return false;
-        
+
+    
+
+
+
     if (Emit1(cx, bce, JSOP_STOP) < 0)
         return false;
 

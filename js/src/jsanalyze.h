@@ -122,7 +122,7 @@ class Bytecode
 
     union {
         
-        types::TypeSet *observedTypes;
+        types::StackTypeSet *observedTypes;
 
         
         LoopAnalysis *loop;
@@ -164,7 +164,7 @@ class Bytecode
     
 
     
-    types::TypeSet *pushedTypes;
+    types::StackTypeSet *pushedTypes;
 
     
     types::TypeBarrier *typeBarriers;
@@ -739,7 +739,7 @@ class SSAValue
 
 struct SSAPhiNode
 {
-    types::TypeSet types;
+    types::StackTypeSet types;
     uint32_t slot;
     uint32_t length;
     SSAValue *options;
@@ -809,6 +809,7 @@ class ScriptAnalysis
     Bytecode **codeArray;
 
     uint32_t numSlots;
+    uint32_t numPropertyReads_;
 
     bool outOfMemory;
     bool hadFailure;
@@ -873,6 +874,9 @@ class ScriptAnalysis
     bool jaegerCompileable() { return isJaegerCompileable; }
 
     
+    uint32_t numPropertyReads() const { return numPropertyReads_; }
+
+    
     bool usesReturnValue() const { return usesReturnValue_; }
 
     
@@ -925,7 +929,7 @@ class ScriptAnalysis
         return (cs->format & JOF_POST) && !popGuaranteed(pc);
     }
 
-    types::TypeSet *bytecodeTypes(const jsbytecode *pc) {
+    types::StackTypeSet *bytecodeTypes(const jsbytecode *pc) {
         JS_ASSERT(js_CodeSpec[*pc].format & JOF_TYPESET);
         return getCode(pc).observedTypes;
     }
@@ -946,15 +950,15 @@ class ScriptAnalysis
     }
     const SlotValue *newValues(const jsbytecode *pc) { return newValues(pc - script->code); }
 
-    types::TypeSet *pushedTypes(uint32_t offset, uint32_t which = 0) {
+    types::StackTypeSet *pushedTypes(uint32_t offset, uint32_t which = 0) {
         JS_ASSERT(offset < script->length);
         JS_ASSERT(which < GetDefCount(script, offset) +
                   (ExtendedDef(script->code + offset) ? 1 : 0));
-        types::TypeSet *array = getCode(offset).pushedTypes;
+        types::StackTypeSet *array = getCode(offset).pushedTypes;
         JS_ASSERT(array);
         return array + which;
     }
-    types::TypeSet *pushedTypes(const jsbytecode *pc, uint32_t which) {
+    types::StackTypeSet *pushedTypes(const jsbytecode *pc, uint32_t which) {
         return pushedTypes(pc - script->code, which);
     }
 
@@ -988,7 +992,7 @@ class ScriptAnalysis
 
     inline void addPushedType(JSContext *cx, uint32_t offset, uint32_t which, types::Type type);
 
-    types::TypeSet *getValueTypes(const SSAValue &v) {
+    types::StackTypeSet *getValueTypes(const SSAValue &v) {
         switch (v.kind()) {
           case SSAValue::PUSHED:
             return pushedTypes(v.pushedOffset(), v.pushedIndex());
@@ -1014,10 +1018,10 @@ class ScriptAnalysis
         }
     }
 
-    types::TypeSet *poppedTypes(uint32_t offset, uint32_t which) {
+    types::StackTypeSet *poppedTypes(uint32_t offset, uint32_t which) {
         return getValueTypes(poppedValue(offset, which));
     }
-    types::TypeSet *poppedTypes(const jsbytecode *pc, uint32_t which) {
+    types::StackTypeSet *poppedTypes(const jsbytecode *pc, uint32_t which) {
         return getValueTypes(poppedValue(pc, which));
     }
 
@@ -1157,9 +1161,12 @@ class ScriptAnalysis
         Vector<SSAPhiNode *> phiNodes;
         bool hasGetSet;
         bool hasHole;
-        types::TypeSet *forTypes;
+        types::StackTypeSet *forTypes;
+        bool hasPropertyReadTypes;
+        uint32_t propertyReadIndex;
         TypeInferenceState(JSContext *cx)
-            : phiNodes(cx), hasGetSet(false), hasHole(false), forTypes(NULL)
+            : phiNodes(cx), hasGetSet(false), hasHole(false), forTypes(NULL),
+              hasPropertyReadTypes(false), propertyReadIndex(0)
         {}
     };
 
@@ -1269,7 +1276,7 @@ class CrossScriptSSA
         return res;
     }
 
-    types::TypeSet *getValueTypes(const CrossSSAValue &cv) {
+    types::StackTypeSet *getValueTypes(const CrossSSAValue &cv) {
         return getFrame(cv.frame).script->analysis()->getValueTypes(cv.v);
     }
 

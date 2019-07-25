@@ -249,12 +249,10 @@ struct JSCompartment
     int64_t                      lastCodeRelease;
 
     
-
-
-
-
-    static const size_t TYPE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 128 * 1024;
+    static const size_t LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 128 * 1024;
+    js::LifoAlloc                analysisLifoAlloc;
     js::LifoAlloc                typeLifoAlloc;
+
     bool                         activeAnalysis;
     bool                         activeInference;
 
