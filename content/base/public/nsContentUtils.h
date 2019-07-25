@@ -1550,6 +1550,11 @@ public:
                                       uint32_t aDisplayHeight);
 
   
+
+
+  static double GetDevicePixelsPerMetaViewportPixel(nsIWidget* aWidget);
+
+  
   
   static void EnterMicroTask() { ++sMicroTaskLevel; }
   static void LeaveMicroTask();
