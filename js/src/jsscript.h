@@ -141,12 +141,9 @@ class Bindings
 
     inline void clone(JSContext *cx, Bindings *bindings);
 
-    uint16_t countArgs() const { return nargs; }
-    uint16_t countVars() const { return nvars; }
-
-    unsigned countLocalNames() const { return nargs + nvars; }
-
-    bool hasLocalNames() const { return countLocalNames() > 0; }
+    uint16_t numArgs() const { return nargs; }
+    uint16_t numVars() const { return nvars; }
+    unsigned count() const { return nargs + nvars; }
 
     
     inline bool ensureShape(JSContext *cx);
@@ -450,10 +447,6 @@ struct JSScript : public js::gc::Cell
     size_t          useCount;   
 
 
-#if JS_BITS_PER_WORD == 32
-    void *padding_;
-#endif
-
     
 
   public:
@@ -489,6 +482,9 @@ struct JSScript : public js::gc::Cell
 
     uint16_t        nslots;     
     uint16_t        staticLevel;
+
+  private:
+    uint16_t        argsSlot_;  
 
     
 
@@ -535,22 +531,12 @@ struct JSScript : public js::gc::Cell
     bool            failedBoundsCheck:1; 
 #endif
     bool            callDestroyHook:1;
-
-    
-
-
-
-
-
-
-
-
-
-
+    bool            isGenerator:1;    
 
   private:
-    bool            mayNeedArgsObj_:1;
-    bool            analyzedArgsUsage_:1;
+    
+    bool            argsHasLocalBinding_:1;
+    bool            needsArgsAnalysis_:1;
     bool            needsArgsObj_:1;
 
     
@@ -576,15 +562,26 @@ struct JSScript : public js::gc::Cell
                                JSVersion version);
     static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
 
-    bool mayNeedArgsObj() const { return mayNeedArgsObj_; }
-    bool analyzedArgsUsage() const { return analyzedArgsUsage_; }
+    
+    bool argumentsHasLocalBinding() const { return argsHasLocalBinding_; }
+    jsbytecode *argumentsBytecode() const { JS_ASSERT(code[0] == JSOP_ARGUMENTS); return code; }
+    unsigned argumentsLocalSlot() const { JS_ASSERT(argsHasLocalBinding_); return argsSlot_; }
+    void setArgumentsHasLocalBinding(uint16_t slot);
+
+    
+
+
+
+
+
+
+
+
+
+    bool analyzedArgsUsage() const { return !needsArgsAnalysis_; }
     bool needsArgsObj() const { JS_ASSERT(analyzedArgsUsage()); return needsArgsObj_; }
     void setNeedsArgsObj(bool needsArgsObj);
     bool applySpeculationFailed(JSContext *cx);
-
-    void setMayNeedArgsObj() {
-        mayNeedArgsObj_ = true;
-    }
 
     
     JSScript *&evalHashLink() { return *globalObject.unsafeGetUnioned(); }

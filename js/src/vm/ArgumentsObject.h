@@ -145,7 +145,7 @@ class ArgumentsObject : public JSObject
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4;
 
     
-    static bool create(JSContext *cx, StackFrame *fp);
+    static ArgumentsObject *create(JSContext *cx, StackFrame *fp);
 
     
 

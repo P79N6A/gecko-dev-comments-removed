@@ -113,7 +113,6 @@ class ScopeObject : public JSObject
 class CallObject : public ScopeObject
 {
     static const uint32_t CALLEE_SLOT = 1;
-    static const uint32_t ARGUMENTS_SLOT = 2;
 
     static CallObject *
     create(JSContext *cx, JSScript *script, JSObject &enclosing, JSObject *callee);
@@ -136,15 +135,6 @@ class CallObject : public ScopeObject
     inline void setCallee(JSObject *callee);
 
     
-
-
-
-
-
-    inline const Value &arguments() const;
-    inline void setArguments(const Value &v);
-
-    
     inline const Value &arg(unsigned i) const;
     inline void setArg(unsigned i, const Value &v);
     inline void initArgUnchecked(unsigned i, const Value &v);
@@ -164,8 +154,6 @@ class CallObject : public ScopeObject
 
     inline void copyValues(unsigned nargs, Value *argv, unsigned nvars, Value *slots);
 
-    static JSBool getArgumentsOp(JSContext *cx, JSObject *obj, jsid id, Value *vp);
-    static JSBool setArgumentsOp(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp);
     static JSBool getArgOp(JSContext *cx, JSObject *obj, jsid id, Value *vp);
     static JSBool getVarOp(JSContext *cx, JSObject *obj, jsid id, Value *vp);
     static JSBool setArgOp(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp);

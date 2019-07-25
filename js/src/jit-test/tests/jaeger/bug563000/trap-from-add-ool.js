@@ -3,7 +3,7 @@ setDebug(true);
 x = "notset";
 function main() {
   
-  a = { valueOf: function () { trap(main, 84, "success()"); } };
+  a = { valueOf: function () { trap(main, 89, "success()"); } };
   b = "";
   eval();
   a + b;

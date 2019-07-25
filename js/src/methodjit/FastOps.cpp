@@ -2127,7 +2127,7 @@ mjit::Compiler::jsop_getelem()
     
     if (cx->typeInferenceEnabled() && !id->isType(JSVAL_TYPE_STRING)) {
         types::TypeSet *types = analysis->poppedTypes(PC, 1);
-        if (types->isLazyArguments(cx) && !outerScript->analysis()->modifiesArguments()) {
+        if (types->isMagicArguments(cx) && !outerScript->analysis()->modifiesArguments()) {
             
             jsop_getelem_args();
             return true;

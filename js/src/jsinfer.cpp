@@ -3255,10 +3255,8 @@ ScriptAnalysis::resolveNameAccess(JSContext *cx, jsid id, bool addDependency)
 
 
 
-        if (script->analysis()->addsScopeObjects() ||
-            JSOp(*script->code) == JSOP_GENERATOR) {
+        if (script->analysis()->addsScopeObjects() || script->isGenerator)
             return access;
-        }
 
         
         unsigned index;
@@ -3668,7 +3666,7 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         if (script->needsArgsObj())
             pushed[0].addType(cx, Type::UnknownType());
         else
-            pushed[0].addType(cx, Type::LazyArgsType());
+            pushed[0].addType(cx, Type::MagicArgType());
         break;
 
       case JSOP_SETPROP: {
@@ -4131,11 +4129,8 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
 
 
 
-            if (nesting->parent->analysis()->addsScopeObjects() || 
-                JSOp(*nesting->parent->code) == JSOP_GENERATOR)
-            {
+            if (nesting->parent->analysis()->addsScopeObjects() || nesting->parent->isGenerator)
                 DetachNestingParent(script);
-            }
         }
     }
 

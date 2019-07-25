@@ -1076,25 +1076,18 @@ ic::SplatApplyArgs(VMFrame &f)
 {
     JSContext *cx = f.cx;
     JS_ASSERT(!f.regs.inlined());
-    JS_ASSERT(GET_ARGC(f.regs.pc) == 2);
 
-    
+    CallArgs args = CallArgsFromSp(GET_ARGC(f.regs.pc), f.regs.sp);
+    JS_ASSERT(args.length() == 2);
+    JS_ASSERT(IsNativeFunction(args.calleev(), js_fun_apply));
 
-
-
-
-
-
-
-
-
-
-    if (f.u.call.lazyArgsObj) {
+    if (args[1].isMagic(JS_OPTIMIZED_ARGUMENTS)) {
         
         
         unsigned length = f.regs.fp()->numActualArgs();
         JS_ASSERT(length <= StackSpace::ARGS_LENGTH_MAX);
 
+        f.regs.sp--;
         if (!BumpStack(f, length))
             THROWV(false);
 
@@ -1106,29 +1099,26 @@ ic::SplatApplyArgs(VMFrame &f)
         return true;
     }
 
-    Value *vp = f.regs.sp - 4;
-    JS_ASSERT(JS_CALLEE(cx, vp).toObject().toFunction()->native() == js_fun_apply);
-
     
 
 
 
 
     
-    if (vp[3].isNullOrUndefined()) {
+    if (args[1].isNullOrUndefined()) {
         f.regs.sp--;
         f.u.call.dynamicArgc = 0;
         return true;
     }
 
     
-    if (!vp[3].isObject()) {
+    if (!args[1].isObject()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_APPLY_ARGS, js_apply_str);
         THROWV(false);
     }
 
     
-    JSObject *aobj = &vp[3].toObject();
+    JSObject *aobj = &args[1].toObject();
     uint32_t length;
     if (!js_GetLengthProperty(cx, aobj, &length))
         THROWV(false);

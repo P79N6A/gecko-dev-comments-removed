@@ -734,6 +734,8 @@ struct ParseNode {
     newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
                       TreeContext *tc);
 
+    inline PropertyName *atom() const;
+
     
 
 

@@ -16,7 +16,6 @@ function handlePop(c) {
     
     assertEq(this.eval('a').return, 'frieze');
     assertEq(this.eval('b = "architrave"').return, 'architrave');
-    assertEq(this.eval('arguments[1]').return, 'architrave');
     assertEq(this.eval('b').return, 'architrave');
 
     
