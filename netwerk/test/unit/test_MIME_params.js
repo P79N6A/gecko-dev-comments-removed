@@ -256,6 +256,17 @@ var tests = [
   
 
   
+  ["attachment; filename*=''foo", 
+   "attachment", Cr.NS_ERROR_INVALID_ARG],      
+
+  
+  ["attachment; filename*=a''foo", 
+   "attachment", "foo"],      
+
+  
+  
+
+  
   ["attachment; filename*=UTF-8'foo-%41.html", 
    "attachment", Cr.NS_ERROR_INVALID_ARG],
 

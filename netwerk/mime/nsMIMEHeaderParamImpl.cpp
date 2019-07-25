@@ -377,12 +377,19 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
           goto increment_str;
         }
 
-        if (aCharset && sQuote1 > valueStart && sQuote1 < valueEnd)
-        {
+        
+        if (! (sQuote1 > valueStart && sQuote1 < valueEnd)) {
+          
+          NS_WARNING("Mandatory charset part missing in header parameter, parameter ignored\n");
+          goto increment_str;
+        }
+        
+        if (aCharset) {
           *aCharset = (char *) nsMemory::Clone(valueStart, sQuote1 - valueStart + 1);
           if (*aCharset) 
             *(*aCharset + (sQuote1 - valueStart)) = 0;
         }
+        
         if (aLang && sQuote2 > sQuote1 + 1 && sQuote2 < valueEnd)
         {
           *aLang = (char *) nsMemory::Clone(sQuote1 + 1, sQuote2 - (sQuote1 + 1) + 1);
