@@ -72,7 +72,7 @@ GfxInfo::GetDWriteEnabled(PRBool *aEnabled)
 
 
 
-static const nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName, nsAString& destString, int type)
+static nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName, nsAString& destString, int type)
 {
   HKEY key;
   DWORD dwcbData;
@@ -142,7 +142,7 @@ static const nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName
 
 
 
-static const void normalizeDriverId(nsString& driverid) {
+static void normalizeDriverId(nsString& driverid) {
   ToUpperCase(driverid);
   PRInt32 rev = driverid.Find(NS_LITERAL_CSTRING("&REV_"));
   if (rev != -1) {
@@ -444,6 +444,18 @@ static const PRUint32 deviceFamilyIntelGMAX3000[] = {
     0
 };
 
+
+
+
+static const PRUint32 deviceFamilyIntelGMAX3000BlockDirect2D[] = {
+    0x2982, 
+    0x2983, 
+    0x2A02, 
+    0x2A03, 
+    0x2A12, 
+    0x2A13  
+};
+
 static const PRUint32 deviceFamilyIntelGMAX4500HD[] = {
     0x2A42, 
     0x2A43, 
@@ -474,6 +486,18 @@ static const GfxDriverInfo driverInfo[] = {
   
 
 
+
+  
+
+
+
+  
+
+
+  { allWindowsVersions,
+    vendorIntel, deviceFamilyIntelGMAX3000BlockDirect2D,
+    nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED,
+    DRIVER_LESS_THAN, allDriverVersions },
 
   
 
