@@ -468,5 +468,13 @@ WebGLContext::InitAndValidateGL()
     }
 #endif
 
+    
+    
+    GLenum error = gl->fGetError();
+    if (error != LOCAL_GL_NO_ERROR) {
+        LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
+        return PR_FALSE;
+    }
+
     return PR_TRUE;
 }
