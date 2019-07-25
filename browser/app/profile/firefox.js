@@ -281,7 +281,7 @@ pref("browser.urlbar.doubleClickSelectsAll", true);
 #else
 pref("browser.urlbar.doubleClickSelectsAll", false);
 #endif
-pref("browser.urlbar.autoFill", true);
+pref("browser.urlbar.autoFill", false);
 
 
 
@@ -294,7 +294,7 @@ pref("browser.urlbar.maxRichResults", 12);
 
 
 
-pref("browser.urlbar.delay", 0);
+pref("browser.urlbar.delay", 50);
 
 
 
@@ -1041,6 +1041,7 @@ pref("devtools.scratchpad.enabled", true);
 
 
 pref("devtools.styleeditor.enabled", true);
+pref("devtools.styleeditor.transitions", true);
 
 
 pref("devtools.chrome.enabled", false);

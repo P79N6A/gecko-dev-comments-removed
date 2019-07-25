@@ -59,6 +59,23 @@ const UPDATE_STYLESHEET_THROTTLE_DELAY = 500;
 
 const STYLESHEET_EXPANDO = "-moz-styleeditor-stylesheet-";
 
+const TRANSITIONS_PREF = "devtools.styleeditor.transitions";
+
+const TRANSITION_CLASS = "moz-styleeditor-transitioning";
+const TRANSITION_DURATION_MS = 500;
+const TRANSITION_RULE = "\
+:root.moz-styleeditor-transitioning, :root.moz-styleeditor-transitioning * {\
+-moz-transition-duration: " + TRANSITION_DURATION_MS + "ms !important; \
+-moz-transition-delay: 0ms !important;\
+-moz-transition-timing-function: ease-out !important;\
+-moz-transition-property: all !important;\
+}";
+
+
+
+
+const TRANSITIONS_ENABLED = Services.prefs.getBoolPref(TRANSITIONS_PREF);
+
 
 
 
@@ -107,6 +124,9 @@ function StyleEditor(aDocument, aStyleSheet)
 
   
   this._onWindowUnloadBinding = this._onWindowUnload.bind(this);
+
+  this._transitionRefCount = 0;
+
   this._focusOnSourceEditorReady = false;
 }
 
@@ -415,6 +435,11 @@ StyleEditor.prototype = {
 
 
 
+
+
+
+
+
   addActionListener: function SE_addActionListener(aListener)
   {
     this._actionListeners.push(aListener);
@@ -640,14 +665,49 @@ StyleEditor.prototype = {
     let source = this._state.text;
     let oldNode = this.styleSheet.ownerNode;
     let oldIndex = this.styleSheetIndex;
-
-    let newNode = this.contentDocument.createElement("style");
+    let content = this.contentDocument;
+    let newNode = content.createElement("style");
     newNode.setAttribute("type", "text/css");
-    newNode.appendChild(this.contentDocument.createTextNode(source));
+    newNode.appendChild(content.createTextNode(source));
     oldNode.parentNode.replaceChild(newNode, oldNode);
 
-    this._styleSheet = this.contentDocument.styleSheets[oldIndex];
+    this._styleSheet = content.styleSheets[oldIndex];
     this._persistExpando();
+
+    if (!TRANSITIONS_ENABLED) {
+      this._triggerAction("Update");
+      this._triggerAction("Commit");
+      return;
+    }
+
+    
+    
+    
+    if (!this._transitionRefCount) {
+      this._styleSheet.insertRule(TRANSITION_RULE, 0);
+      content.documentElement.classList.add(TRANSITION_CLASS);
+    }
+
+    this._transitionRefCount++;
+
+    
+    
+    content.defaultView.setTimeout(this._onTransitionEnd.bind(this),
+                                   Math.floor(TRANSITION_DURATION_MS * 1.1));
+
+    this._triggerAction("Update");
+  },
+
+  
+
+
+
+  _onTransitionEnd: function SE__onTransitionEnd()
+  {
+    if (--this._transitionRefCount == 0) {
+      this.contentDocument.documentElement.classList.remove(TRANSITION_CLASS);
+      this.styleSheet.deleteRule(0);
+    }
 
     this._triggerAction("Commit");
   },
