@@ -171,7 +171,9 @@ nsNSSSocketInfo::nsNSSSocketInfo()
     mPort(0),
     mIsCertIssuerBlacklisted(false),
     mNPNCompleted(false),
-    mHandshakeCompleted(false)
+    mHandshakeCompleted(false),
+    mJoined(false),
+    mSentClientCert(false)
 {
 }
 
@@ -493,6 +495,12 @@ nsNSSSocketInfo::JoinConnection(const nsACString & npnProtocol,
 
   
   
+  
+  if (mSentClientCert)
+    return NS_OK;
+
+  
+  
 
   CERTCertificate *nssCert = nsnull;
   CERTCertificateCleaner nsscertCleaner(nssCert);
@@ -509,6 +517,7 @@ nsNSSSocketInfo::JoinConnection(const nsACString & npnProtocol,
     return NS_OK;
 
   
+  mJoined = true;
   *_retval = true;
   return NS_OK;
 }
@@ -2883,9 +2892,9 @@ public:
                          CERTCertificate * serverCert) 
     : mRV(SECFailure)
     , mErrorCodeToReport(SEC_ERROR_NO_MEMORY)
-    , mCANames(caNames)
     , mPRetCert(pRetCert)
     , mPRetKey(pRetKey)
+    , mCANames(caNames)
     , mSocketInfo(info)
     , mServerCert(serverCert)
   {
@@ -2893,12 +2902,12 @@ public:
 
   SECStatus mRV;                        
   PRErrorCode mErrorCodeToReport;       
+  CERTCertificate** const mPRetCert;    
+  SECKEYPrivateKey** const mPRetKey;    
 protected:
   virtual void RunOnTargetThread();
 private:
   CERTDistNames* const mCANames;        
-  CERTCertificate** const mPRetCert;    
-  SECKEYPrivateKey** const mPRetKey;    
   nsNSSSocketInfo * const mSocketInfo;  
   CERTCertificate * const mServerCert;  
 };
@@ -2941,6 +2950,18 @@ SECStatus nsNSS_SSLGetClientAuthData(void* arg, PRFileDesc* socket,
     return SECFailure;
   }
 
+  if (info->GetJoined()) {
+    
+    
+    
+
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("[%p] Not returning client cert due to previous join\n", socket));
+    *pRetCert = nsnull;
+    *pRetKey = nsnull;
+    return SECSuccess;
+  }
+
   
   nsRefPtr<ClientAuthDataRunnable> runnable =
     new ClientAuthDataRunnable(caNames, pRetCert, pRetKey, info, serverCert);
@@ -2952,6 +2973,9 @@ SECStatus nsNSS_SSLGetClientAuthData(void* arg, PRFileDesc* socket,
   
   if (runnable->mRV != SECSuccess) {
     PR_SetError(runnable->mErrorCodeToReport, 0);
+  } else if (*runnable->mPRetCert || *runnable->mPRetKey) {
+    
+    info->SetSentClientCert();
   }
 
   return runnable->mRV;
