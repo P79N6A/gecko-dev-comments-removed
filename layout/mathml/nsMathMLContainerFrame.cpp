@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsHTMLParts.h"
 #include "nsFrame.h"
@@ -1463,6 +1464,80 @@ nsMathMLContainerFrame::DidReflowChildren(nsIFrame* aFirst, nsIFrame* aStop)
                        NS_FRAME_REFLOW_FINISHED);
     }
   }
+}
+
+
+
+nsresult
+nsMathMLContainerFrame::TransmitAutomaticDataForMrowLikeElement()
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIFrame *childFrame, *baseFrame;
+  PRBool embellishedOpFound = PR_FALSE;
+  nsEmbellishData embellishData;
+  
+  for (childFrame = GetFirstChild(nsnull);
+       childFrame;
+       childFrame = childFrame->GetNextSibling()) {
+    nsIMathMLFrame* mathMLFrame = do_QueryFrame(childFrame);
+    if (!mathMLFrame) break;
+    if (!mathMLFrame->IsSpaceLike()) {
+      if (embellishedOpFound) break;
+      baseFrame = childFrame;
+      GetEmbellishDataFrom(baseFrame, embellishData);
+      if (!NS_MATHML_IS_EMBELLISH_OPERATOR(embellishData.flags)) break;
+      embellishedOpFound = PR_TRUE;
+    }
+  }
+
+  if (!childFrame) {
+    
+    
+    if (!embellishedOpFound) {
+      
+      mPresentationData.flags |= NS_MATHML_SPACE_LIKE;
+    } else {
+      
+      
+      mPresentationData.baseFrame = baseFrame;
+      mEmbellishData = embellishData;
+    }
+  }
+
+  if (childFrame || !embellishedOpFound) {
+    
+    mPresentationData.baseFrame = nsnull;
+    mEmbellishData.flags = 0;
+    mEmbellishData.coreFrame = nsnull;
+    mEmbellishData.direction = NS_STRETCH_DIRECTION_UNSUPPORTED;
+    mEmbellishData.leftSpace = 0;
+    mEmbellishData.rightSpace = 0;
+  }
+
+  if (childFrame || embellishedOpFound) {
+    
+    mPresentationData.flags &= ~NS_MATHML_SPACE_LIKE;
+  }
+
+  return NS_OK;
 }
 
 

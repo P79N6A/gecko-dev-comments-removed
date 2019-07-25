@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsIMathMLFrame_h___
 #define nsIMathMLFrame_h___
 
@@ -65,6 +66,9 @@ class nsIMathMLFrame
 {
 public:
   NS_DECL_QUERYFRAME_TARGET(nsIMathMLFrame)
+
+  
+  virtual PRBool IsSpaceLike() = 0;
 
  
  
@@ -324,6 +328,9 @@ struct nsPresentationData {
 #define NS_MATHML_EXPLICIT_DISPLAYSTYLE               0x00000020U
 
 
+#define NS_MATHML_SPACE_LIKE                          0x00000040U
+
+
 
 
 #define NS_MATHML_ERROR                               0x80000000U
@@ -353,6 +360,9 @@ struct nsPresentationData {
 
 #define NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(_flags) \
   (NS_MATHML_EXPLICIT_DISPLAYSTYLE == ((_flags) & NS_MATHML_EXPLICIT_DISPLAYSTYLE))
+
+#define NS_MATHML_IS_SPACE_LIKE(_flags) \
+  (NS_MATHML_SPACE_LIKE == ((_flags) & NS_MATHML_SPACE_LIKE))
 
 #define NS_MATHML_HAS_ERROR(_flags) \
   (NS_MATHML_ERROR == ((_flags) & NS_MATHML_ERROR))

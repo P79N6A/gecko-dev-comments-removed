@@ -52,6 +52,14 @@ public:
 
   friend nsIFrame* NS_NewMathMLmspaceFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
+  NS_IMETHOD
+  TransmitAutomaticData() {
+    
+    
+    mPresentationData.flags |= NS_MATHML_SPACE_LIKE;
+    return NS_OK;
+  }
+
   virtual PRBool IsLeaf() const;
 
   NS_IMETHOD

@@ -162,6 +162,27 @@ nsMathMLmactionFrame::Init(nsIContent*      aContent,
   return nsMathMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
 }
 
+NS_IMETHODIMP
+nsMathMLmactionFrame::TransmitAutomaticData() {
+  
+  
+  
+  nsIMathMLFrame* mathMLFrame = do_QueryFrame(mSelectedFrame);
+  if (mathMLFrame && mathMLFrame->IsSpaceLike()) {
+    mPresentationData.flags |= NS_MATHML_SPACE_LIKE;
+  } else {
+    mPresentationData.flags &= ~NS_MATHML_SPACE_LIKE;
+  }
+
+  
+  
+  
+  mPresentationData.baseFrame = mSelectedFrame;
+  GetEmbellishDataFrom(mSelectedFrame, mEmbellishData);
+
+  return NS_OK;
+}
+
 nsresult
 nsMathMLmactionFrame::ChildListChanged(PRInt32 aModType)
 {
@@ -216,11 +237,6 @@ nsMathMLmactionFrame::GetSelectedFrame()
 
   mChildCount = count;
   mSelection = selection;
-
-  
-  
-  mPresentationData.baseFrame = mSelectedFrame;
-  GetEmbellishDataFrom(mSelectedFrame, mEmbellishData);
 
   return mSelectedFrame;
 }

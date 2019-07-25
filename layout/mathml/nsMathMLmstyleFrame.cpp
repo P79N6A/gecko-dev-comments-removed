@@ -84,12 +84,7 @@ nsMathMLmstyleFrame::InheritAutomaticData(nsIFrame* aParent)
 NS_IMETHODIMP
 nsMathMLmstyleFrame::TransmitAutomaticData()
 {
-  
-  
-  
-  
-
-  return NS_OK;
+  return TransmitAutomaticDataForMrowLikeElement();
 }
 
 

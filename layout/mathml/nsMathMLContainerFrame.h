@@ -39,6 +39,7 @@
 
 
 
+
 #ifndef nsMathMLContainerFrame_h___
 #define nsMathMLContainerFrame_h___
 
@@ -255,6 +256,11 @@ protected:
                           PRUint32             aOptions,
                           nsStretchDirection   aStretchDirection,
                           nsBoundingMetrics&   aPreferredStretchSize);
+
+  
+  
+  nsresult
+  TransmitAutomaticDataForMrowLikeElement();
 
 public:
   
