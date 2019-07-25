@@ -1171,7 +1171,6 @@ public:
             } else {
                 mShaderType = RGBALayerProgramType;
             }
-            CreateBackingSurface(gfxIntSize(aSize.width, aSize.height));
         } else {
             
             
@@ -1186,6 +1185,9 @@ public:
             
             mShaderType = BGRALayerProgramType;
         }
+
+	
+        Resize(aSize);
     }
 
     virtual ~TextureImageEGL()
@@ -1399,9 +1401,15 @@ public:
             return;
 
         mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
-        if (mBackingSurface) {
+	
+        
+        if (gUseBackingSurface) {
             CreateBackingSurface(gfxIntSize(aSize.width, aSize.height));
-        } else {
+        }
+
+        if (!mBackingSurface) {
+            
+            
             mGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D,
                                     0,
                                     GLFormatForImage(mUpdateFormat),
