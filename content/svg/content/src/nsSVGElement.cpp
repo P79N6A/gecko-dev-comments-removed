@@ -167,7 +167,7 @@ nsSVGElement::Init()
     viewBox->Init();
   }
 
-  nsSVGPreserveAspectRatio *preserveAspectRatio =
+  SVGAnimatedPreserveAspectRatio *preserveAspectRatio =
     GetPreserveAspectRatio();
 
   if (preserveAspectRatio) {
@@ -538,7 +538,7 @@ nsSVGElement::ParseAttribute(PRInt32 aNamespaceID,
         }
       
       } else if (aAttribute == nsGkAtoms::preserveAspectRatio) {
-        nsSVGPreserveAspectRatio *preserveAspectRatio =
+        SVGAnimatedPreserveAspectRatio *preserveAspectRatio =
           GetPreserveAspectRatio();
         if (preserveAspectRatio) {
           rv = preserveAspectRatio->SetBaseValueString(aValue, this, PR_FALSE);
@@ -759,7 +759,7 @@ nsSVGElement::UnsetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
         }
       
       } else if (aName == nsGkAtoms::preserveAspectRatio) {
-        nsSVGPreserveAspectRatio *preserveAspectRatio =
+        SVGAnimatedPreserveAspectRatio *preserveAspectRatio =
           GetPreserveAspectRatio();
 
         if (preserveAspectRatio) {
@@ -2076,7 +2076,7 @@ nsSVGElement::DidAnimateViewBox()
   }
 }
 
-nsSVGPreserveAspectRatio *
+SVGAnimatedPreserveAspectRatio *
 nsSVGElement::GetPreserveAspectRatio()
 {
   return nsnull;
@@ -2088,7 +2088,8 @@ nsSVGElement::DidChangePreserveAspectRatio(PRBool aDoSetAttr)
   if (!aDoSetAttr)
     return;
 
-  nsSVGPreserveAspectRatio *preserveAspectRatio = GetPreserveAspectRatio();
+  SVGAnimatedPreserveAspectRatio *preserveAspectRatio =
+    GetPreserveAspectRatio();
 
   NS_ASSERTION(preserveAspectRatio,
                "DidChangePreserveAspectRatio on element with no preserveAspectRatio attrib");
@@ -2413,8 +2414,10 @@ nsSVGElement::GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName)
 
     
     if (aName == nsGkAtoms::preserveAspectRatio) {
-      nsSVGPreserveAspectRatio *preserveAspectRatio = GetPreserveAspectRatio();
-      return preserveAspectRatio ? preserveAspectRatio->ToSMILAttr(this) : nsnull;
+      SVGAnimatedPreserveAspectRatio *preserveAspectRatio =
+        GetPreserveAspectRatio();
+      return preserveAspectRatio ?
+        preserveAspectRatio->ToSMILAttr(this) : nsnull;
     }
 
     

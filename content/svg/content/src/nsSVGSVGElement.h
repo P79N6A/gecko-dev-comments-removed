@@ -139,6 +139,7 @@ protected:
                   mozilla::dom::FromParser aFromParser);
   
 public:
+  typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -280,12 +281,12 @@ protected:
   static EnumInfo sEnumInfo[1];
 
   virtual nsSVGViewBox *GetViewBox();
-  virtual nsSVGPreserveAspectRatio *GetPreserveAspectRatio();
+  virtual SVGAnimatedPreserveAspectRatio *GetPreserveAspectRatio();
 
-  nsSVGViewBox             mViewBox;
-  nsSVGPreserveAspectRatio mPreserveAspectRatio;
+  nsSVGViewBox                   mViewBox;
+  SVGAnimatedPreserveAspectRatio mPreserveAspectRatio;
 
-  nsSVGSVGElement                  *mCoordCtx;
+  nsSVGSVGElement               *mCoordCtx;
 
   
   

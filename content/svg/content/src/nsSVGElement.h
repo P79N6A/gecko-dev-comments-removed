@@ -80,8 +80,6 @@ class SVGAnimatedPathSegList;
 class SVGAnimatedPreserveAspectRatio;
 }
 
-typedef mozilla::SVGAnimatedPreserveAspectRatio nsSVGPreserveAspectRatio;
-
 typedef nsStyledElement nsSVGElementBase;
 
 class nsSVGElement : public nsSVGElementBase,    
@@ -99,6 +97,7 @@ public:
   typedef mozilla::SVGAnimatedLengthList SVGAnimatedLengthList;
   typedef mozilla::SVGAnimatedPointList SVGAnimatedPointList;
   typedef mozilla::SVGAnimatedPathSegList SVGAnimatedPathSegList;
+  typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -466,7 +465,7 @@ protected:
   
   
   virtual nsSVGViewBox *GetViewBox();
-  virtual nsSVGPreserveAspectRatio *GetPreserveAspectRatio();
+  virtual SVGAnimatedPreserveAspectRatio *GetPreserveAspectRatio();
   virtual NumberListAttributesInfo GetNumberListInfo();
   virtual LengthListAttributesInfo GetLengthListInfo();
   virtual StringAttributesInfo GetStringInfo();

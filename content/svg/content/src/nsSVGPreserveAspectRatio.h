@@ -243,7 +243,4 @@ public:
 
 } 
 
-
-typedef mozilla::SVGAnimatedPreserveAspectRatio nsSVGPreserveAspectRatio;
-
 #endif 
