@@ -201,6 +201,23 @@ SessionStoreService.prototype = {
   
   _restoreLastWindow: false,
 
+  
+  _lastSessionState: null,
+
+
+
+  get canRestoreLastSession() {
+    
+    return this._lastSessionState && !this._inPrivateBrowsing;
+  },
+
+  set canRestoreLastSession(val) {
+    
+    if (val)
+      return;
+    this._lastSessionState = null;
+  },
+
 
 
   
@@ -250,10 +267,11 @@ SessionStoreService.prototype = {
 
     
     var iniString;
+    var ss = Cc["@mozilla.org/browser/sessionstartup;1"].
+             getService(Ci.nsISessionStartup);
     try {
-      var ss = Cc["@mozilla.org/browser/sessionstartup;1"].
-               getService(Ci.nsISessionStartup);
-      if (ss.doRestore())
+      if (ss.doRestore() ||
+          ss.sessionType == Ci.nsISessionStartup.DEFER_SESSION)
         iniString = ss.state;
     }
     catch(ex) { dump(ex + "\n"); } 
@@ -261,29 +279,42 @@ SessionStoreService.prototype = {
     if (iniString) {
       try {
         
-        this._initialState = JSON.parse(iniString);
         
-        let lastSessionCrashed =
-          this._initialState.session && this._initialState.session.state &&
-          this._initialState.session.state == STATE_RUNNING_STR;
-        if (lastSessionCrashed) {
-          this._recentCrashes = (this._initialState.session &&
-                                 this._initialState.session.recentCrashes || 0) + 1;
+        if (ss.sessionType == Ci.nsISessionStartup.DEFER_SESSION) {
+          let [iniState, remainingState] = this._prepDataForDeferredRestore(iniString);
           
-          if (this._needsRestorePage(this._initialState, this._recentCrashes)) {
-            
-            let pageData = {
-              url: "about:sessionrestore",
-              formdata: { "#sessionData": iniString }
-            };
-            this._initialState = { windows: [{ tabs: [{ entries: [pageData] }] }] };
-          }
+          
+          if (iniState.windows.length)
+            this._initialState = iniState;
+          if (remainingState.windows.length)
+            this._lastSessionState = remainingState;
         }
-        
-        
-        delete this._initialState.windows[0].hidden;
-        
-        delete this._initialState.windows[0].isPopup;
+        else {
+          
+          this._initialState = JSON.parse(iniString);
+
+          let lastSessionCrashed =
+            this._initialState.session && this._initialState.session.state &&
+            this._initialState.session.state == STATE_RUNNING_STR;
+          if (lastSessionCrashed) {
+            this._recentCrashes = (this._initialState.session &&
+                                   this._initialState.session.recentCrashes || 0) + 1;
+            
+            if (this._needsRestorePage(this._initialState, this._recentCrashes)) {
+              
+              let pageData = {
+                url: "about:sessionrestore",
+                formdata: { "#sessionData": iniString }
+              };
+              this._initialState = { windows: [{ tabs: [{ entries: [pageData] }] }] };
+            }
+          }
+          
+          
+          delete this._initialState.windows[0].hidden;
+          
+          delete this._initialState.windows[0].isPopup;
+        }
       }
       catch (ex) { debug("The session file is invalid: " + ex); }
     }
@@ -316,11 +347,6 @@ SessionStoreService.prototype = {
   _uninit: function sss_uninit() {
     
     this.saveState(true);
-
-    if (!this._doResumeSession()) {
-      
-      this._clearDisk();
-    }
 
     
     if (this._saveTimer) {
@@ -1134,6 +1160,78 @@ SessionStoreService.prototype = {
     this.saveStateDelayed();
   },
 
+  
+
+
+
+
+
+
+  restoreLastSession: function sss_restoreLastSession() {
+    
+    if (!this.canRestoreLastSession)
+      throw (Components.returnCode = Cr.NS_ERROR_FAILURE);
+
+    
+    let windows = {};
+    this._forEachBrowserWindow(function(aWindow) {
+      if (aWindow.__SS_lastSessionWindowID)
+        windows[aWindow.__SS_lastSessionWindowID] = aWindow;
+    });
+
+    let lastSessionState = this._lastSessionState;
+
+    
+    if (!lastSessionState.windows.length)
+      throw (Components.returnCode = Cr.NS_ERROR_UNEXPECTED);
+
+    
+    
+    this._restoreCount = lastSessionState.windows.length;
+    this._browserSetState = true;
+
+    
+    for (let i = 0; i < lastSessionState.windows.length; i++) {
+      let winState = lastSessionState.windows[i];
+      let lastSessionWindowID = winState.__lastSessionWindowID;
+      
+      delete winState.__lastSessionWindowID;
+      
+      if (windows[lastSessionWindowID]) {
+        
+        
+        if (winState._closedTabs && winState._closedTabs.length) {
+          let curWinState = this._windows[windows[lastSessionWindowID].__SSi];
+          curWinState._closedTabs = curWinState._closedTabs.concat(winState._closedTabs);
+          curWinState._closedTabs.splice(this._prefBranch.getIntPref("sessionstore.max_tabs_undo"));
+        }
+
+        
+        
+        
+        
+        
+        
+        this.restoreWindow(windows[lastSessionWindowID], { windows: [winState] },
+                           false, true);
+      }
+      else {
+        this._openWindowWithState({ windows: [winState] });
+      }
+    }
+
+    
+    if (lastSessionState._closedWindows) {
+      this._closedWindows = this._closedWindows.concat(lastSessionState._closedWindows);
+      this._capClosedWindows();
+    }
+    
+    this._recentCrashes = lastSessionState.session &&
+                          lastSessionState.session.recentCrashes || 0;
+
+    this._lastSessionState = null;
+  },
+
 
 
   
@@ -1191,9 +1289,11 @@ SessionStoreService.prototype = {
       tabData.index = history.index + 1;
     }
     else if (history && history.count > 0) {
-      for (var j = 0; j < history.count; j++)
-        tabData.entries.push(this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
-                                                         aFullData));
+      for (var j = 0; j < history.count; j++) {
+        let entry = this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
+                                                aFullData, aTab.pinned);
+        tabData.entries.push(entry);
+      }
       tabData.index = history.index + 1;
 
       
@@ -1242,7 +1342,8 @@ SessionStoreService.prototype = {
       delete tabData.extData;
     
     if (history && browser.docShell instanceof Ci.nsIDocShell)
-      this._serializeSessionStorage(tabData, history, browser.docShell, aFullData);
+      this._serializeSessionStorage(tabData, history, browser.docShell, aFullData,
+                                    aTab.pinned);
     
     return tabData;
   },
@@ -1256,7 +1357,10 @@ SessionStoreService.prototype = {
 
 
 
-  _serializeHistoryEntry: function sss_serializeHistoryEntry(aEntry, aFullData) {
+
+
+  _serializeHistoryEntry:
+    function sss_serializeHistoryEntry(aEntry, aFullData, aIsPinned) {
     var entry = { url: aEntry.URI.spec };
     
     if (aEntry.title && aEntry.title != entry.url) {
@@ -1291,8 +1395,8 @@ SessionStoreService.prototype = {
     
     try {
       var prefPostdata = this._prefBranch.getIntPref("sessionstore.postdata");
-      if (aEntry.postData && (aFullData ||
-            prefPostdata && this._checkPrivacyLevel(aEntry.URI.schemeIs("https")))) {
+      if (aEntry.postData && (aFullData || prefPostdata &&
+            this._checkPrivacyLevel(aEntry.URI.schemeIs("https"), aIsPinned))) {
         aEntry.postData.QueryInterface(Ci.nsISeekableStream).
                         seek(Ci.nsISeekableStream.NS_SEEK_SET, 0);
         var stream = Cc["@mozilla.org/binaryinputstream;1"].
@@ -1355,7 +1459,8 @@ SessionStoreService.prototype = {
       for (var i = 0; i < aEntry.childCount; i++) {
         var child = aEntry.GetChildAt(i);
         if (child) {
-          entry.children.push(this._serializeHistoryEntry(child, aFullData));
+          entry.children.push(this._serializeHistoryEntry(child, aFullData,
+                                                          aIsPinned));
         }
         else { 
           entry.children.push({ url: "about:blank" });
@@ -1382,8 +1487,10 @@ SessionStoreService.prototype = {
 
 
 
+
+
   _serializeSessionStorage:
-    function sss_serializeSessionStorage(aTabData, aHistory, aDocShell, aFullData) {
+    function sss_serializeSessionStorage(aTabData, aHistory, aDocShell, aFullData, aIsPinned) {
     let storageData = {};
     let hasContent = false;
 
@@ -1396,7 +1503,8 @@ SessionStoreService.prototype = {
           domain = uri.prePath;
       }
       catch (ex) {  }
-      if (storageData[domain] || !(aFullData || this._checkPrivacyLevel(uri.schemeIs("https"))))
+      if (storageData[domain] ||
+          !(aFullData || this._checkPrivacyLevel(uri.schemeIs("https"), aIsPinned)))
         continue;
 
       let storage, storageItemCount = 0;
@@ -1479,7 +1587,8 @@ SessionStoreService.prototype = {
     
     this._updateTextAndScrollDataForFrame(aWindow, aBrowser.contentWindow,
                                           aTabData.entries[tabIndex],
-                                          !aTabData._formDataSaved, aFullData);
+                                          !aTabData._formDataSaved, aFullData,
+                                          !!aTabData.pinned);
     aTabData._formDataSaved = true;
     if (aBrowser.currentURI.spec == "about:config")
       aTabData.entries[tabIndex].formdata = {
@@ -1501,17 +1610,20 @@ SessionStoreService.prototype = {
 
 
 
+
+
   _updateTextAndScrollDataForFrame:
     function sss_updateTextAndScrollDataForFrame(aWindow, aContent, aData,
-                                                 aUpdateFormData, aFullData) {
+                                                 aUpdateFormData, aFullData, aIsPinned) {
     for (var i = 0; i < aContent.frames.length; i++) {
       if (aData.children && aData.children[i])
         this._updateTextAndScrollDataForFrame(aWindow, aContent.frames[i],
-                                              aData.children[i], aUpdateFormData, aFullData);
+                                              aData.children[i], aUpdateFormData,
+                                              aFullData, aIsPinned);
     }
     var isHTTPS = this._getURIFromString((aContent.parent || aContent).
                                          document.location.href).schemeIs("https");
-    if (aFullData || this._checkPrivacyLevel(isHTTPS) ||
+    if (aFullData || this._checkPrivacyLevel(isHTTPS, aIsPinned) ||
         aContent.top.document.location.href == "about:sessionrestore") {
       if (aFullData || aUpdateFormData) {
         let formData = this._collectFormDataForFrame(aContent.document);
@@ -1647,27 +1759,50 @@ SessionStoreService.prototype = {
 
 
 
-  _updateCookieHosts: function sss_updateCookieHosts(aWindow) {
-    var hosts = this._windows[aWindow.__SSi]._hosts = {};
-    
-    
-    function extractHosts(aEntry) {
-      var match;
-      if ((match = /^https?:\/\/(?:[^@\/\s]+@)?([\w.-]+)/.exec(aEntry.url)) != null) {
-        if (!hosts[match[1]] && _this._checkPrivacyLevel(_this._getURIFromString(aEntry.url).schemeIs("https"))) {
-          hosts[match[1]] = true;
-        }
-      }
-      else if ((match = /^file:\/\/([^\/]*)/.exec(aEntry.url)) != null) {
-        hosts[match[1]] = true;
-      }
-      if (aEntry.children) {
-        aEntry.children.forEach(extractHosts);
+
+
+
+
+
+
+
+  _extractHostsForCookies:
+    function sss__extractHostsForCookies(aEntry, aHosts, aCheckPrivacy, aIsPinned) {
+    let match;
+
+    if ((match = /^https?:\/\/(?:[^@\/\s]+@)?([\w.-]+)/.exec(aEntry.url)) != null) {
+      if (!aHosts[match[1]] &&
+          (!aCheckPrivacy ||
+           this._checkPrivacyLevel(this._getURIFromString(aEntry.url).schemeIs("https"),
+                                   aIsPinned))) {
+        
+        
+        aHosts[match[1]] = aIsPinned;
       }
     }
+    else if ((match = /^file:\/\/([^\/]*)/.exec(aEntry.url)) != null) {
+      aHosts[match[1]] = true;
+    }
+    if (aEntry.children) {
+      aEntry.children.forEach(function(entry) {
+        this._extractHostsForCookies(entry, aHosts, aCheckPrivacy, aIsPinned);
+      }, this);
+    }
+  },
 
-    var _this = this;
-    this._windows[aWindow.__SSi].tabs.forEach(function(aTabData) { aTabData.entries.forEach(extractHosts); });
+  
+
+
+
+
+  _updateCookieHosts: function sss_updateCookieHosts(aWindow) {
+    var hosts = this._windows[aWindow.__SSi]._hosts = {};
+
+    this._windows[aWindow.__SSi].tabs.forEach(function(aTabData) {
+      aTabData.entries.forEach(function(entry) {
+        this._extractHostsForCookies(entry, hosts, true, !!aTabData.pinned);
+      }, this);
+    }, this);
   },
 
   
@@ -1695,11 +1830,16 @@ SessionStoreService.prototype = {
     
     var MAX_EXPIRY = Math.pow(2, 62);
     aWindows.forEach(function(aWindow) {
-      for (var host in aWindow._hosts) {
+      if (!aWindow._hosts)
+        return;
+      for (var [host, isPinned] in Iterator(aWindow._hosts)) {
         var list = CookieSvc.getCookiesFromHost(host);
         while (list.hasMoreElements()) {
           var cookie = list.getNext().QueryInterface(Ci.nsICookie2);
-          if (cookie.isSession && _this._checkPrivacyLevel(cookie.isSecure)) {
+          
+          
+          
+          if (cookie.isSession && _this._checkPrivacyLevel(cookie.isSecure, isPinned)) {
             
             
             if (!(cookie.host in jscookies &&
@@ -1870,7 +2010,13 @@ SessionStoreService.prototype = {
     this._updateTextAndScrollData(aWindow);
     this._updateCookieHosts(aWindow);
     this._updateWindowFeatures(aWindow);
+
     
+    
+    if (aWindow.__SS_lastSessionWindowID)
+      this._windows[aWindow.__SSi].__lastSessionWindowID =
+        aWindow.__SS_lastSessionWindowID;
+
     this._dirtyWindows[aWindow.__SSi] = false;
   },
 
@@ -1967,6 +2113,13 @@ SessionStoreService.prototype = {
         tabbrowser.unpinTab(tabs[t]);
       tabs[t].hidden = winData.tabs[t].hidden;
     }
+
+    
+    
+    
+    delete aWindow.__SS_lastSessionWindowID;
+    if (winData.__lastSessionWindowID)
+      aWindow.__SS_lastSessionWindowID = winData.__lastSessionWindowID;
 
     
     if (aOverwriteTabs && newTabCount < openTabCount) {
@@ -2618,11 +2771,9 @@ SessionStoreService.prototype = {
     if (this._inPrivateBrowsing)
       return;
 
-    var pinnedOnly = false;
-    if (this._loadState == STATE_QUITTING && !this._doResumeSession() ||
-        
-        this._loadState == STATE_RUNNING && !this._resume_from_crash)
-      pinnedOnly = true;
+    
+    
+    let pinnedOnly = this._loadState == STATE_RUNNING && !this._resume_from_crash;
 
     var oState = this._getCurrentState(aUpdateAll, pinnedOnly);
     if (!oState)
@@ -2818,8 +2969,16 @@ SessionStoreService.prototype = {
 
 
 
-  _checkPrivacyLevel: function sss_checkPrivacyLevel(aIsHTTPS) {
-    return this._prefBranch.getIntPref("sessionstore.privacy_level") < (aIsHTTPS ? PRIVACY_ENCRYPTED : PRIVACY_FULL);
+
+
+  _checkPrivacyLevel: function sss_checkPrivacyLevel(aIsHTTPS, aUseDefaultPref) {
+    let pref = "sessionstore.privacy_level";
+    
+    
+    
+    if (!aUseDefaultPref && this._loadState == STATE_QUITTING && !this._doResumeSession())
+      pref = "sessionstore.privacy_level_deferred";
+    return this._prefBranch.getIntPref(pref) < (aIsHTTPS ? PRIVACY_ENCRYPTED : PRIVACY_FULL);
   },
 
   
@@ -2940,10 +3099,144 @@ SessionStoreService.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+  _prepDataForDeferredRestore: function sss__prepDataForDeferredRestore(stateString) {
+    let state = JSON.parse(stateString);
+    let defaultState = { windows: [], selectedWindow: 1 };
+
+    state.selectedWindow = state.selectedWindow || 1;
+
+    
+    
+    for (let wIndex = 0; wIndex < state.windows.length;) {
+      let window = state.windows[wIndex];
+      window.selected = window.selected || 1;
+      
+      let pinnedWindowState = { tabs: [], cookies: []};
+      for (let tIndex = 0; tIndex < window.tabs.length;) {
+        if (window.tabs[tIndex].pinned) {
+          
+          if (tIndex + 1 < window.selected)
+            window.selected -= 1;
+          else if (tIndex + 1 == window.selected)
+            pinnedWindowState.selected = pinnedWindowState.tabs.length + 2;
+            
+
+          
+          pinnedWindowState.tabs =
+            pinnedWindowState.tabs.concat(window.tabs.splice(tIndex, 1));
+          
+          continue;
+        }
+        tIndex++;
+      }
+
+      
+      
+      if (pinnedWindowState.tabs.length) {
+        
+        WINDOW_ATTRIBUTES.forEach(function(attr) {
+          if (attr in window) {
+            pinnedWindowState[attr] = window[attr];
+            delete window[attr];
+          }
+        });
+        
+        
+        
+        
+        
+        
+
+        
+        
+        window.__lastSessionWindowID = pinnedWindowState.__lastSessionWindowID
+                                     = "" + Date.now() + Math.random();
+
+        
+        this._splitCookiesFromWindow(window, pinnedWindowState);
+
+        
+        defaultState.windows.push(pinnedWindowState);
+        
+        if (!window.tabs.length) {
+          if (wIndex + 1 <= state.selectedWindow)
+            state.selectedWindow -= 1;
+          else if (wIndex + 1 == state.selectedWindow)
+            defaultState.selectedIndex = defaultState.windows.length + 1;
+
+          state.windows.splice(wIndex, 1);
+          
+          continue;
+        }
+
+
+      }
+      wIndex++;
+    }
+
+    return [defaultState, state];
+  },
+
+  
+
+
+
+
+  _splitCookiesFromWindow:
+    function sss__splitCookiesFromWindow(aWinState, aTargetWinState) {
+    if (!aWinState.cookies || !aWinState.cookies.length)
+      return;
+
+    
+    let cookieHosts = {};
+    aTargetWinState.tabs.forEach(function(tab) {
+      tab.entries.forEach(function(entry) {
+        this._extractHostsForCookies(entry, cookieHosts, false)
+      }, this);
+    }, this);
+
+    
+    
+    let hosts = Object.keys(cookieHosts).join("|").replace("\\.", "\\.", "g");
+    let cookieRegex = new RegExp(".*(" + hosts + ")");
+    for (let cIndex = 0; cIndex < aWinState.cookies.length;) {
+      if (cookieRegex.test(aWinState.cookies[cIndex].host)) {
+        aTargetWinState.cookies =
+          aTargetWinState.cookies.concat(aWinState.cookies.splice(cIndex, 1));
+        continue;
+      }
+      cIndex++;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
   _toJSONString: function sss_toJSONString(aJSObject) {
+    
+    
+    let internalKeys = INTERNAL_KEYS;
+    if (this._loadState == STATE_QUITTING) {
+      internalKeys = internalKeys.slice();
+      internalKeys.push("__lastSessionWindowID");
+    }
     function exclude(key, value) {
       
-      return INTERNAL_KEYS.indexOf(key) == -1 ? value : undefined;
+      return internalKeys.indexOf(key) == -1 ? value : undefined;
     }
     return JSON.stringify(aJSObject, exclude);
   },

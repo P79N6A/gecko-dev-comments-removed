@@ -781,6 +781,8 @@ pref("browser.sessionstore.postdata", 0);
 
 pref("browser.sessionstore.privacy_level", 1);
 
+pref("browser.sessionstore.privacy_level_deferred", 2);
+
 pref("browser.sessionstore.max_tabs_undo", 10);
 
 
