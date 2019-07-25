@@ -446,6 +446,11 @@ public:
   void TestChildCache(nsAccessible* aCachedChild) const;
 
   
+
+
+  virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
+
+  
   
 
   inline bool IsAbbreviation() const
@@ -744,9 +749,6 @@ protected:
 
 
   mozilla::a11y::role ARIATransformRole(mozilla::a11y::role aRole);
-
-  virtual nsIFrame* GetBoundsFrame();
-  virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
 
   
   

@@ -914,7 +914,7 @@ void nsAccessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame
 
   
   *aBoundingFrame = nsnull;
-  nsIFrame *firstFrame = GetBoundsFrame();
+  nsIFrame* firstFrame = GetFrame();
   if (!firstFrame)
     return;
 
@@ -1027,13 +1027,6 @@ nsAccessible::GetBounds(PRInt32* aX, PRInt32* aY,
   *aY += orgRectPixels.y;
 
   return NS_OK;
-}
-
-
-
-nsIFrame* nsAccessible::GetBoundsFrame()
-{
-  return GetFrame();
 }
 
 NS_IMETHODIMP nsAccessible::SetSelected(bool aSelect)

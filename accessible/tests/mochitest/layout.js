@@ -94,10 +94,10 @@ function getChildAtPoint(aIdentifier, aX, aY, aFindDeepestChild)
 
 
 
-function testBounds(aID)
+function testBounds(aID, aRect)
 {
   var [expectedX, expectedY, expectedWidth, expectedHeight] =
-    getBoundsForDOMElm(aID);
+    (aRect != undefined) ? aRect : getBoundsForDOMElm(aID);
 
   var [x, y, width, height] = getBounds(aID);
   is(x, expectedX, "Wrong x coordinate of " + prettyName(aID));
@@ -166,6 +166,9 @@ function CSSToDevicePixels(aWindow, aX, aY, aWidth, aHeight)
     getInterface(Components.interfaces.nsIDOMWindowUtils);
 
   var ratio = winUtil.screenPixelsPerCSSPixel;
-  return [aX * ratio, aY * ratio, aWidth * ratio, aHeight * ratio];
-}
 
+  
+  
+  return [ Math.round(aX * ratio), Math.round(aY * ratio),
+           Math.round(aWidth * ratio), Math.round(aHeight * ratio) ];
+}
