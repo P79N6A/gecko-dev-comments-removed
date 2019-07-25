@@ -4,6 +4,8 @@
 
 
 function A(i,j) {
+  
+  
   return 1/((i+j)*(i+j+1)/2+i+1);
 }
 
