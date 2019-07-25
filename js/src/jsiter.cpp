@@ -468,7 +468,7 @@ RegisterEnumerator(JSContext *cx, JSObject *iterobj, NativeIterator *ni)
         cx->enumerators = iterobj;
 
         JS_ASSERT(!(ni->flags & JSITER_ACTIVE));
-        ni->flags |= JSITER_ACTIVE;
+        ni->flags |= (JSITER_ACTIVE | JSITER_REUSABLE);
     }
 }
 
@@ -788,7 +788,7 @@ js_CloseIterator(JSContext *cx, JSObject *obj)
         
         NativeIterator *ni = obj->getNativeIterator();
 
-        if (ni->flags & JSITER_ENUMERATE) {
+        if (ni->flags & JSITER_REUSABLE) {
             JS_ASSERT(cx->enumerators == obj);
             cx->enumerators = ni->next;
 
@@ -882,6 +882,10 @@ SuppressDeletedPropertyHelper(JSContext *cx, JSObject *obj, IdPredicate predicat
                         memmove(idp, idp + 1, (props_end - (idp + 1)) * sizeof(jsid));
                         ni->props_end = ni->end() - 1;
                     }
+
+                    
+                    ni->flags &= (~JSITER_REUSABLE);
+
                     if (predicate.matchesAtMostOne())
                         break;
                 }
