@@ -198,15 +198,11 @@ public:
   NS_IMETHOD OnSetSelectedIndex(PRInt32 aOldIndex, PRInt32 aNewIndex);
 
   
-  nsresult MouseDown(nsIDOMEvent* aMouseEvent);
-  nsresult MouseUp(nsIDOMEvent* aMouseEvent);
-
-  
+  nsresult MouseDown(nsIDOMEvent* aMouseEvent); 
+  nsresult MouseUp(nsIDOMEvent* aMouseEvent);   
   nsresult MouseMove(nsIDOMEvent* aMouseEvent);
   nsresult DragMove(nsIDOMEvent* aMouseEvent);
-
-  
-  nsresult KeyPress(nsIDOMEvent* aKeyEvent);
+  nsresult KeyPress(nsIDOMEvent* aKeyEvent);    
 
   
 
