@@ -22,7 +22,6 @@
 #include "nsIBrowserDOMWindow.h"
 #include "nsIDOMXULElement.h"
 #include "nsIEmbeddingSiteWindow.h"
-#include "nsIEmbeddingSiteWindow2.h"
 #include "nsIPrompt.h"
 #include "nsIAuthPrompt.h"
 #include "nsIWindowMediator.h"
@@ -53,15 +52,14 @@ static const char *sJSStackContractID="@mozilla.org/js/xpc/ContextStack;1";
 
 
 
-class nsSiteWindow2 : public nsIEmbeddingSiteWindow2
+class nsSiteWindow : public nsIEmbeddingSiteWindow
 {
 public:
-  nsSiteWindow2(nsContentTreeOwner *aAggregator);
-  virtual ~nsSiteWindow2();
+  nsSiteWindow(nsContentTreeOwner *aAggregator);
+  virtual ~nsSiteWindow();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIEMBEDDINGSITEWINDOW
-  NS_DECL_NSIEMBEDDINGSITEWINDOW2
 
 private:
   nsContentTreeOwner *mAggregator;
@@ -75,12 +73,12 @@ nsContentTreeOwner::nsContentTreeOwner(bool fPrimary) : mXULWindow(nsnull),
    mPrimary(fPrimary), mContentTitleSetting(false)
 {
   
-  mSiteWindow2 = new nsSiteWindow2(this);
+  mSiteWindow = new nsSiteWindow(this);
 }
 
 nsContentTreeOwner::~nsContentTreeOwner()
 {
-  delete mSiteWindow2;
+  delete mSiteWindow;
 }
 
 
@@ -107,8 +105,7 @@ NS_INTERFACE_MAP_BEGIN(nsContentTreeOwner)
    
    
    
-   NS_INTERFACE_MAP_ENTRY_AGGREGATED(nsIEmbeddingSiteWindow, mSiteWindow2)
-   NS_INTERFACE_MAP_ENTRY_AGGREGATED(nsIEmbeddingSiteWindow2, mSiteWindow2)
+   NS_INTERFACE_MAP_ENTRY_AGGREGATED(nsIEmbeddingSiteWindow, mSiteWindow)
 NS_INTERFACE_MAP_END
 
 
@@ -983,26 +980,25 @@ nsXULWindow* nsContentTreeOwner::XULWindow()
 
 
 
-nsSiteWindow2::nsSiteWindow2(nsContentTreeOwner *aAggregator)
+nsSiteWindow::nsSiteWindow(nsContentTreeOwner *aAggregator)
 {
   mAggregator = aAggregator;
 }
 
-nsSiteWindow2::~nsSiteWindow2()
+nsSiteWindow::~nsSiteWindow()
 {
 }
 
-NS_IMPL_ADDREF_USING_AGGREGATOR(nsSiteWindow2, mAggregator)
-NS_IMPL_RELEASE_USING_AGGREGATOR(nsSiteWindow2, mAggregator)
+NS_IMPL_ADDREF_USING_AGGREGATOR(nsSiteWindow, mAggregator)
+NS_IMPL_RELEASE_USING_AGGREGATOR(nsSiteWindow, mAggregator)
 
-NS_INTERFACE_MAP_BEGIN(nsSiteWindow2)
+NS_INTERFACE_MAP_BEGIN(nsSiteWindow)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
   NS_INTERFACE_MAP_ENTRY(nsIEmbeddingSiteWindow)
-  NS_INTERFACE_MAP_ENTRY(nsIEmbeddingSiteWindow2)
 NS_INTERFACE_MAP_END_AGGREGATED(mAggregator)
 
 NS_IMETHODIMP
-nsSiteWindow2::SetDimensions(PRUint32 aFlags,
+nsSiteWindow::SetDimensions(PRUint32 aFlags,
                     PRInt32 aX, PRInt32 aY, PRInt32 aCX, PRInt32 aCY)
 {
   
@@ -1010,7 +1006,7 @@ nsSiteWindow2::SetDimensions(PRUint32 aFlags,
 }
 
 NS_IMETHODIMP
-nsSiteWindow2::GetDimensions(PRUint32 aFlags,
+nsSiteWindow::GetDimensions(PRUint32 aFlags,
                     PRInt32 *aX, PRInt32 *aY, PRInt32 *aCX, PRInt32 *aCY)
 {
   
@@ -1018,7 +1014,7 @@ nsSiteWindow2::GetDimensions(PRUint32 aFlags,
 }
 
 NS_IMETHODIMP
-nsSiteWindow2::SetFocus(void)
+nsSiteWindow::SetFocus(void)
 {
 #if 0
   
@@ -1042,7 +1038,7 @@ nsSiteWindow2::SetFocus(void)
 
 
 NS_IMETHODIMP
-nsSiteWindow2::Blur(void)
+nsSiteWindow::Blur(void)
 {
   nsCOMPtr<nsISimpleEnumerator> windowEnumerator;
   nsCOMPtr<nsIXULWindow>        xulWindow;
@@ -1099,31 +1095,31 @@ nsSiteWindow2::Blur(void)
 }
 
 NS_IMETHODIMP
-nsSiteWindow2::GetVisibility(bool *aVisibility)
+nsSiteWindow::GetVisibility(bool *aVisibility)
 {
   return mAggregator->GetVisibility(aVisibility);
 }
 
 NS_IMETHODIMP
-nsSiteWindow2::SetVisibility(bool aVisibility)
+nsSiteWindow::SetVisibility(bool aVisibility)
 {
   return mAggregator->SetVisibility(aVisibility);
 }
 
 NS_IMETHODIMP
-nsSiteWindow2::GetTitle(PRUnichar * *aTitle)
+nsSiteWindow::GetTitle(PRUnichar * *aTitle)
 {
   return mAggregator->GetTitle(aTitle);
 }
 
 NS_IMETHODIMP
-nsSiteWindow2::SetTitle(const PRUnichar * aTitle)
+nsSiteWindow::SetTitle(const PRUnichar * aTitle)
 {
   return mAggregator->SetTitle(aTitle);
 }
 
 NS_IMETHODIMP
-nsSiteWindow2::GetSiteWindow(void **aSiteWindow)
+nsSiteWindow::GetSiteWindow(void **aSiteWindow)
 {
   return mAggregator->GetParentNativeWindow(aSiteWindow);
 }

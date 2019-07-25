@@ -98,7 +98,7 @@
 #include "nsIDOMDesktopNotification.h"
 #include "nsPIDOMStorage.h"
 #include "nsDOMString.h"
-#include "nsIEmbeddingSiteWindow2.h"
+#include "nsIEmbeddingSiteWindow.h"
 #include "nsThreadUtils.h"
 #include "nsEventStateManager.h"
 #include "nsIHttpProtocolHandler.h"
@@ -5028,7 +5028,7 @@ nsGlobalWindow::Blur()
 
   nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
   GetTreeOwner(getter_AddRefs(treeOwner));
-  nsCOMPtr<nsIEmbeddingSiteWindow2> siteWindow(do_GetInterface(treeOwner));
+  nsCOMPtr<nsIEmbeddingSiteWindow> siteWindow(do_GetInterface(treeOwner));
   if (siteWindow) {
     
     rv = siteWindow->Blur();
