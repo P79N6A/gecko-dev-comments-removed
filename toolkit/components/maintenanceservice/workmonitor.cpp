@@ -239,6 +239,7 @@ StartUpdateProcess(int argc,
     if (updateWasSuccessful && argc > 2) {
       LPCWSTR installationDir = argv[2];
       LPCWSTR updateInfoDir = argv[1];
+      bool backgroundUpdate = (argc == 4 && !wcscmp(argv[3], L"-1"));
 
       
       
@@ -247,9 +248,14 @@ StartUpdateProcess(int argc,
       
       
       
-      LOG(("Launching post update process as the service in session 0.\n"));
-      if (!LaunchWinPostProcess(installationDir, updateInfoDir, true, NULL)) {
-        LOG(("The post update process could not be launched.\n"));
+      
+      
+      
+      if (!backgroundUpdate) {
+        LOG(("Launching post update process as the service in session 0.\n"));
+        if (!LaunchWinPostProcess(installationDir, updateInfoDir, true, NULL)) {
+          LOG(("The post update process could not be launched.\n"));
+        }
       }
     }
   }

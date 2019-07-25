@@ -2428,7 +2428,10 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      if (useService) {
+      
+      
+      
+      if (useService && !sBackgroundUpdate) {
         bool updateStatusSucceeded = false;
         if (IsUpdateStatusSucceeded(updateStatusSucceeded) && 
             updateStatusSucceeded) {
@@ -2751,12 +2754,12 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       if (!usingService) {
-        if (!LaunchWinPostProcess(argv[callbackIndex], gSourcePath, false, NULL)) {
-          LOG(("NS_main: The post update process could not be launched.\n"));
-        }
-
         NS_tchar installDir[MAXPATHLEN];
         if (GetInstallationDir(installDir)) {
+          if (!LaunchWinPostProcess(installDir, gSourcePath, false, NULL)) {
+            LOG(("NS_main: The post update process could not be launched.\n"));
+          }
+
           StartServiceUpdate(installDir);
         }
       }
