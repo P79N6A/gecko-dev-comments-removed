@@ -130,6 +130,7 @@ struct Parser : private AutoGCRooter
 
 
 
+
     bool init(const jschar *base, size_t length, const char *filename, uintN lineno,
               JSVersion version);
 
@@ -150,6 +151,7 @@ struct Parser : private AutoGCRooter
 #endif
 
     
+
 
 
     ObjectBox *newObjectBox(JSObject *obj);

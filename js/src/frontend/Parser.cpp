@@ -181,6 +181,7 @@ Parser::newObjectBox(JSObject *obj)
 
 
 
+
     ObjectBox *objbox = context->tempLifoAlloc().new_<ObjectBox>();
     if (!objbox) {
         js_ReportOutOfMemory(context);
@@ -201,6 +202,7 @@ Parser::newFunctionBox(JSObject *obj, ParseNode *fn, TreeContext *tc)
     JS_ASSERT(obj->isFunction());
 
     
+
 
 
 

@@ -651,6 +651,7 @@ js_XDRAtom(JSXDRState *xdr, JSAtom **atomp)
 
 
 
+
         chars = (jschar *) cx->malloc_(nchars * sizeof(jschar));
         if (!chars)
             return JS_FALSE;
