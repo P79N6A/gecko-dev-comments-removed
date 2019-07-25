@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'splice1.js';
 
 
 

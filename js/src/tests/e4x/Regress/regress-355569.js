@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'regress-355569.js';
 
 var bug = 355569;
 var actual = '';

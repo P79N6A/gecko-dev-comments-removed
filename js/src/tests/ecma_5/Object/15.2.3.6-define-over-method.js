@@ -1,7 +1,6 @@
 
 
 
-var gTestfile = '15.2.3.6-define-over-method.js';
 
 var BUGNUMBER = 568786;
 var summary =

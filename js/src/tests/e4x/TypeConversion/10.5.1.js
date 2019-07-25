@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '10.5.1.js';
 
 START("10.5.1 - ToAttributeName applied to the String type");
 

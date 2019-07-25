@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'String.js';
 
 
 

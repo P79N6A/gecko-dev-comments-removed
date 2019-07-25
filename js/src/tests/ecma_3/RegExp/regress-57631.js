@@ -47,7 +47,6 @@
 
 
 
-var gTestfile = 'regress-57631.js';
 var BUGNUMBER = '57631';
 var summary = 'Testing new RegExp(pattern,flag) with illegal pattern or flag';
 var statprefix = 'Testing for error creating illegal RegExp object on pattern ';

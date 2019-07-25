@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'date-002.js';
 
 
 

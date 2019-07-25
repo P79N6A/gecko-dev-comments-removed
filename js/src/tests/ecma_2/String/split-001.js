@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'split-001.js';
 
 
 

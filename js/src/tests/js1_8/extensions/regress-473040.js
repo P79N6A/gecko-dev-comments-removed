@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-473040.js';
 
 var BUGNUMBER = 473040;
 var summary = 'Do not assert: tm->reservedDoublePoolPtr > tm->reservedDoublePool';

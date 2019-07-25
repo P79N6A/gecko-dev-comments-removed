@@ -59,7 +59,6 @@
 
 
 
-var gTestfile = 'errstack-001.js';
 var UBound = 0;
 var BUGNUMBER = '(none)';
 var summary = 'Testing Error.stack';

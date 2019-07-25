@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'charCodeAt.js';
 
 
 

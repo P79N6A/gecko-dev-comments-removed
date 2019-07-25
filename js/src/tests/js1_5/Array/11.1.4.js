@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = '11.1.4.js';
 
 var BUGNUMBER = 260106;
 var summary = 'Elisons in Array literals should not be enumed';

@@ -1,7 +1,6 @@
 
 
 
-var gTestfile = 'parseInt-octal.js';
 
 var BUGNUMBER = 583925;
 var summary =

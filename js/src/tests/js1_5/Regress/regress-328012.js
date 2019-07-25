@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-328012.js';
 
 var BUGNUMBER = 328012;
 var summary = 'Content PropertyIterator should not root in chrome';

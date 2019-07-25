@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = 'regress-244470.js';
 
 var BUGNUMBER = 244470;
 var summary = 'Don\'t Crash';

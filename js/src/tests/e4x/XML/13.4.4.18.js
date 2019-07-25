@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '13.4.4.18.js';
 
 START("13.4.4.18 - XML insertChildAfter()");
 

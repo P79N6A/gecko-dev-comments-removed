@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'regexp-literals-002.js';
 
 
 

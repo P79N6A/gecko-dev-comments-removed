@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '13.5.4.8.js';
 
 START("13.5.4.8 - XMLList copy()");
 

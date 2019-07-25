@@ -38,7 +38,6 @@
 
 
 
-var gTestfile = 'uc-004.js';
 
 test();
 

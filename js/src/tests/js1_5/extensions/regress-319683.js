@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-319683.js';
 
 var BUGNUMBER = 319683;
 var summary = 'Do not crash in call_enumerate';

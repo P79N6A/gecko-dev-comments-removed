@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-461233.js';
 
 var summary = 'Decompilation of ({0: (4, <></>)})';
 var BUGNUMBER = 461233;

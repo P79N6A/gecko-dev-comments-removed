@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = '15.2.3.3-01.js';
 
 var BUGNUMBER = 505587;
 var summary = 'ES5 Object.getOwnPropertyDescriptor(O)';

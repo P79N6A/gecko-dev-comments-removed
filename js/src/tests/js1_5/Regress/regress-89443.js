@@ -45,7 +45,6 @@
 
 
 
-var gTestfile = 'regress-89443.js';
 var BUGNUMBER = 89443;
 var summary = 'Testing this script will compile without stack overflow';
 

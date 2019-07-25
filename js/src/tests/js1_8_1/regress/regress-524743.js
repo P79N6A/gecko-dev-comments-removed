@@ -1,6 +1,5 @@
 
 
-gTestfile = 'regress-524743';
 
 if (typeof gczeal != 'undefined' && typeof gc != 'undefined') {
     try

@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'toString-01.js';
 
 var BUGNUMBER = 562446;
 var summary = 'ES5: Array.prototype.toString';

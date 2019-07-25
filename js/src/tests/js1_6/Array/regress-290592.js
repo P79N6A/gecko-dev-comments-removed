@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = 'regress-290592.js';
 
 var BUGNUMBER = 290592;
 var summary = 'Array extras: forEach, indexOf, filter, map';

@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'forin-001.js';
 
 
 

@@ -47,7 +47,6 @@
 
 
 
-var gTestfile = 'regress-85721.js';
 var BUGNUMBER = 85721;
 var summary = 'Performance: execution of regular expression';
 var FAST = 100; 

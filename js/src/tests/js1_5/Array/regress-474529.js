@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-474529.js';
 
 var BUGNUMBER = 474529;
 var summary = 'Do not assert: _buf->_nextPage';

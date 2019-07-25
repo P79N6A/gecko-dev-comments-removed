@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-374112.js';
 
 var BUGNUMBER = 374112;
 var summary = 'E4X Do not assert with xml.setName(...)';

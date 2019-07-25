@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'general1.js';
 
 
 

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'delete-001.js';
 
 
 

@@ -52,7 +52,6 @@
 
 
 
-var gTestfile = 'class-004.js';
 var i = 0;
 var UBound = 0;
 var BUGNUMBER = 56868;

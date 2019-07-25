@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '11.1.5.js';
 
 START("11.1.5 - XMLList Initializer");
 

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'word_boundary.js';
 
 
 

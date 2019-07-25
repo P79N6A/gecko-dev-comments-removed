@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '9.1.1.9.js';
 
 START("9.1.1.9 - XML [[Equals]]");
 

@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'number-003.js';
 
 
 

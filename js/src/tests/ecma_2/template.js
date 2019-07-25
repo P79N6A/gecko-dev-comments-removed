@@ -5,7 +5,6 @@
 
 
 
-gTestfile = 'template.js';
 
 
 

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-450871-02.js';
 
 var summary = 'Do not crash: __proto__ = <x/>; <x/>.indexOf(this)';
 var BUGNUMBER = 450871;

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'string_search.js';
 
 
 

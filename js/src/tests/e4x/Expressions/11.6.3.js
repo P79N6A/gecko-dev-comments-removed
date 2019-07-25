@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '11.6.3.js';
 
 START("11.6.3 - Compound Assignment");
 

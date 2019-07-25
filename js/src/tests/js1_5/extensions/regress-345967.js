@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-345967.js';
 
 var BUGNUMBER = 345967;
 var summary = 'Yet another unrooted atom in jsarray.c';

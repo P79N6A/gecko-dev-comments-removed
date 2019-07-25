@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-322772.js';
 
 var BUGNUMBER = 322772;
 var summary = 'String == should short circuit for length';

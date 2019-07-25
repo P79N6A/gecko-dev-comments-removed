@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-352269.js';
 
 var BUGNUMBER = 352269;
 var summary = 'decompilation of |yield(1,2)|';

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-458679-01.js';
 
 var summary = 'GetXMLEntity should not assume FastAppendChar is infallible';
 var BUGNUMBER = 458679;

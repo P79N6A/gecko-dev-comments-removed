@@ -38,7 +38,6 @@
 
 
 
-var gTestfile = 'regress-178389.js';
 
 var BUGNUMBER = 178389;
 var summary = 'Function.prototype.toSource should not override Function.prototype.toString';

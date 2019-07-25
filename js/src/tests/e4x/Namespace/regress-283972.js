@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-283972.js';
 
 var summary = 'throw error when two attributes with the same local name and ' +
     'the same namespace';

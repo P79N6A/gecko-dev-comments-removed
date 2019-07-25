@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'exception-009.js';
 
 
 

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-352613-01.js';
 
 var BUGNUMBER = 352613;
 var summary = 'decompilation of |switch| |case| with computed value';

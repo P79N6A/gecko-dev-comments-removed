@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-375801.js';
 
 var BUGNUMBER = 375801;
 var summary = 'uneval should use "(void 0)" instead of "undefined"';

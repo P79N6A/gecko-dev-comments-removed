@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-432075.js';
 
 var BUGNUMBER = 432075;
 var summary = 'A function decompiles as [object Function] after export/import';

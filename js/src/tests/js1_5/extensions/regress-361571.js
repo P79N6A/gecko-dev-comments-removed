@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-361571.js';
 
 var BUGNUMBER = 361571;
 var summary = 'Do not assert: fp->scopeChain == parent';

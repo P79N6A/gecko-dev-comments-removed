@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = '15.10.4.1-5-n.js';
 
 
 

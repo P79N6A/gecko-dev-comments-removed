@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'RegExp_input_as_array.js';
 
 
 

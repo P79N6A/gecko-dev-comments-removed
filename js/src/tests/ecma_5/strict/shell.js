@@ -5,7 +5,6 @@
 
 
 
-var gTestsubsuite='strict';
 
 
 

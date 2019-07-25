@@ -3,7 +3,6 @@
 
 
 
-gTestfile = 'regress-530879';
 function f(a, b, c, d) {
     yield arguments.length;
 }

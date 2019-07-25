@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'RegExp_lastParen.js';
 
 
 

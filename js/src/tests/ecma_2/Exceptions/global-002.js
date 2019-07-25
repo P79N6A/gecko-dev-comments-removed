@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'global-002.js';
 
 
 

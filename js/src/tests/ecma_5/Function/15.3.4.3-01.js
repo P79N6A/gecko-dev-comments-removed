@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = '15.3.4.3-01.js';
 
 var BUGNUMBER = 562448;
 var summary = 'Function.prototype.apply should accept any arraylike arguments';

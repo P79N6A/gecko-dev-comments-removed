@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'regexp-enumerate-001.js';
 
 
 

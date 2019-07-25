@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-406477.js';
 
 var BUGNUMBER = 406477;
 var summary = 'eval of function x() in a function with an argument "x" and "let x"';

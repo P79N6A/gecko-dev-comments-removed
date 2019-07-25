@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'simple-tree.js';
 
 
 var summary = "Create a tree of threads";

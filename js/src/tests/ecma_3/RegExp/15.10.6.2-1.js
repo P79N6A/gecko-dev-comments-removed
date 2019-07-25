@@ -80,7 +80,6 @@
 
 
 
-var gTestfile = '15.10.6.2-1.js';
 var i = 0;
 var BUGNUMBER = '(none)';
 var summary = 'Testing regexps with the global flag set';

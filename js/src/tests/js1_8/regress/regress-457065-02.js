@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-457065-02.js';
 
 var BUGNUMBER = 457065;
 var summary = 'Do not assert: !fp->callee || fp->thisp == JSVAL_TO_OBJECT(fp->argv[-1])';

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = '8.6.1-01.js';
 
 
 var BUGNUMBER = 315436;

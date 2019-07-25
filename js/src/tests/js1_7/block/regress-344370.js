@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-344370.js';
 
 var BUGNUMBER = 344370;
 var summary = 'let declaration in let statement shows assertion';

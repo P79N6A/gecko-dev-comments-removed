@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-462734-02.js';
 
 var BUGNUMBER = 462734;
 var summary = 'Do not assert: pobj_ == obj2';

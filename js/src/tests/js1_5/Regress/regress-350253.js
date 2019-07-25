@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-350253.js';
 
 var BUGNUMBER = 350253;
 var summary = 'Do not assert on (g()) = 3';

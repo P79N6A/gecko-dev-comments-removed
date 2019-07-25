@@ -39,7 +39,6 @@
 
 
 
-gTestsuite = 'e4x';
 
 
 

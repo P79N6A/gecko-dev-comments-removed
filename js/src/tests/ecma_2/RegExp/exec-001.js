@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'exec-001.js';
 
 
 

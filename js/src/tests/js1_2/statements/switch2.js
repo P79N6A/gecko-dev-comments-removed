@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'switch2.js';
 
 
 

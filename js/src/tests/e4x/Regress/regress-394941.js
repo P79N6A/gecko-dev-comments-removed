@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-394941.js';
 
 var summary = 'Infinite recursion should throw catchable exception';
 var BUGNUMBER = 394941;

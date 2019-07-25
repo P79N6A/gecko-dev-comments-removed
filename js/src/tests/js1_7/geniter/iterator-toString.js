@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'iterator-toString.js';
 
 var BUGNUMBER     = "(none)";
 var summary = "gen.toString() omitting 'yield' from value";

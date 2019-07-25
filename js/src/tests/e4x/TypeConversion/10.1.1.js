@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '10.1.1.js';
 
 START("10.1.1 - XML.toString");
 

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-430717.js';
 
 var BUGNUMBER = 430717;
 var summary = 'Dense Arrays should inherit deleted elements from Array.prototype';

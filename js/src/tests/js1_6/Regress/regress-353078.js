@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-353078.js';
 
 var BUGNUMBER = 353078;
 var summary = 'Do not assert with bogus toString, map, split';

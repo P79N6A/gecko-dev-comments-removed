@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-466905-05.js';
 
 var BUGNUMBER = 466905;
 var summary = 'Sandbox shapes';

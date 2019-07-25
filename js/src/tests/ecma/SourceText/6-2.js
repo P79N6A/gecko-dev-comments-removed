@@ -36,7 +36,6 @@
 
 
 
-gTestfile = '6-2.js';
 
 
 

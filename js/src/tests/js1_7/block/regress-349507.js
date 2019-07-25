@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-349507.js';
 
 var BUGNUMBER = 349507;
 var summary = 'Do not assert with let block, let statement and const';

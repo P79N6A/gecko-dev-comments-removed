@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-349482-01.js';
 
 var BUGNUMBER = 349482;
 var summary = 'Decompiling try/catch in for..in should not crash';

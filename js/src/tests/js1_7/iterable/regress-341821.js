@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-341821.js';
 
 var BUGNUMBER = 341821;
 var summary = 'Close hook crash';

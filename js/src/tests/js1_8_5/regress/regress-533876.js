@@ -3,7 +3,6 @@
 
 
 
-gTestfile = 'regress-533876';
 
 var savedEval = eval;
 var x = [0];

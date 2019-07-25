@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'regress-459085.js';
 
 var BUGNUMBER = 459085;
 var summary = 'Do not assert with JIT: Should not move data from GPR to XMM';

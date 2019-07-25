@@ -47,7 +47,6 @@
 
 
 
-var gTestfile = 'getset-006.js';
 var UBound = 0;
 var BUGNUMBER = 71992;
 var summary = 'Testing  obj.__lookupGetter__(), obj.__lookupSetter__()';

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-367561-03.js';
 
 var BUGNUMBER = 367561;
 var summary = 'JSOP_(GET|SET)METHOD and JSOP_SETCONST with > 64K atoms';

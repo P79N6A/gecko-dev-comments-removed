@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = 'regress-313967-02.js';
 
 var BUGNUMBER = 313967;
 var summary = 'Compile time of N functions should be O(N)';

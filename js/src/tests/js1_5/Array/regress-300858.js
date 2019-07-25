@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-300858.js';
 
 var BUGNUMBER = 300858;
 var summary = 'Do not crash when sorting array with holes';

@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'regress-7635.js';
 
 
 

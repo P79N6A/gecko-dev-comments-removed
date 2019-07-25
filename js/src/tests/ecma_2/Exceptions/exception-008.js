@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'exception-008.js';
 
 
 

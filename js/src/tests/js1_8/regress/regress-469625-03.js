@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'regress-469625-03.js';
 
 var BUGNUMBER = 469625;
 var summary = 'Do not assert: script->objectsOffset != 0';

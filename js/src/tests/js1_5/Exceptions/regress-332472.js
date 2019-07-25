@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-332472.js';
 
 var BUGNUMBER = 332472;
 var summary = 'new RegExp() ignores string boundaries when throwing exceptions';

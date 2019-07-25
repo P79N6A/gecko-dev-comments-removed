@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-473709.js';
 
 var summary = 'Do not assert: cursor == (uint8 *)copy->messageArgs[0] + argsCopySize';
 var BUGNUMBER = 473709;

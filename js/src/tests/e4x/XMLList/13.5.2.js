@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '13.5.2.js';
 
 START("13.5.2 - XMLList Constructor");
 

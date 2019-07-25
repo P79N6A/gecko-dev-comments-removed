@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'match-002.js';
 
 
 

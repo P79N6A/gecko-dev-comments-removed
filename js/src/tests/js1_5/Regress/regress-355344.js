@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-355344.js';
 
 var BUGNUMBER = 355344;
 var summary = 'Exceptions thrown by watch point';

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-435345-01.js';
 
 var BUGNUMBER = 435345;
 var summary = 'Watch the length property of arrays';

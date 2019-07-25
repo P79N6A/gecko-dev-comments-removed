@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-443074.js';
 
 var BUGNUMBER = 443074;
 var summary = 'Decompilation of genexp in for loop condition';

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-294195-02.js';
 
 var BUGNUMBER = 294195;
 var summary = 'Do not crash during String replace when accessing methods on backreferences';

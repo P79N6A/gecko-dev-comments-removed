@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'function-001.js';
 
 
 

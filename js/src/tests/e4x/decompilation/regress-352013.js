@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-352013.js';
 
 var BUGNUMBER = 352013;
 var summary = 'Decompilation with new operator redeaux';

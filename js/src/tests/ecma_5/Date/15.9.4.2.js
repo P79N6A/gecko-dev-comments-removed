@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = '15.9.4.2.js';
 
 var BUGNUMBER = 430930;
 

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-336409-2.js';
 
 var BUGNUMBER = 336409;
 var summary = 'Integer overflow in js_obj_toSource';

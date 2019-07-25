@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'regress-469625.js';
 
 var BUGNUMBER = 469625;
 var summary = 'TM: Array prototype and expression closures';

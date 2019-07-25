@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'pi-generator.js';
 
 var BUGNUMBER     = "(none)";
 var summary = "A (slow) generator of pi";

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-280844-2.js';
 
 var summary = 'Uncontrolled recursion in js_MarkXML during GC';
 var BUGNUMBER = 280844;

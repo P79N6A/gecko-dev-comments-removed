@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-461930.js';
 
 var BUGNUMBER = 461930;
 var summary = 'TM: Do not assert: count == _stats.pages';

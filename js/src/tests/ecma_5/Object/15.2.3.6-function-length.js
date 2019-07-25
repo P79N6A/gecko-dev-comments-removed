@@ -1,7 +1,6 @@
 
 
 
-var gTestfile = '15.2.3.6-function-length.js';
 
 var BUGNUMBER = 430133;
 var summary = 'ES5 Object.defineProperty(O, P, Attributes): Function.length';

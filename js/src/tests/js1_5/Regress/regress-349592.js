@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-349592.js';
 
 var BUGNUMBER = 349592;
 var summary = 'Do not assert with try/finally inside finally';

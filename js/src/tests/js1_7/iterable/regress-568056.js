@@ -1,7 +1,6 @@
 
 
 
-var gTestfile = 'regress-568056.js';
 var BUGNUMBER = 568056;
 var summary = "Iterator(obj) must not go up obj's prototype chain";
 

@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'regress-283349.js';
 
 var summary = "13.3.5.4 - [[GetNamespace]]";
 var BUGNUMBER = 283349;

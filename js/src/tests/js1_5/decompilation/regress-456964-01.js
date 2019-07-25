@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-456964-01.js';
 
 var BUGNUMBER = 456964;
 var summary = 'Infinite loop decompling function';

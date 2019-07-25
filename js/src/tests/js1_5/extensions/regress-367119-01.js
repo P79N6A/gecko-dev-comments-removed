@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-367119-01.js';
 
 var BUGNUMBER = 367119;
 var summary = 'memory corruption in script_exec';

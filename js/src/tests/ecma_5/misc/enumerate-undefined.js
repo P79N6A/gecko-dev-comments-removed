@@ -3,7 +3,6 @@
 
 
 
-var gTestfile = 'enumerate-undefined.js';
 
 var BUGNUMBER = 547087;
 var summary = 'JS_EnumerateStandardClasses uses wrong attributes for undefined';

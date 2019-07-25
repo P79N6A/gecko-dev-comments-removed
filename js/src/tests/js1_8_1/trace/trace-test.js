@@ -43,7 +43,6 @@
 
 
 
-var gTestfile = 'trace-test.js';
 
 var BUGNUMBER = 'none';
 var summary = 'trace-capability mini-testsuite';

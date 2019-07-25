@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '13.4.4.23.js';
 
 START("13.4.4.23 - XML namespace()");
 

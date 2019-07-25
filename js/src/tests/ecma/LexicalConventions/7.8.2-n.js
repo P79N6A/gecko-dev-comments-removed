@@ -36,7 +36,6 @@
 
 
 
-gTestfile = '7.8.2-n.js';
 
 
 

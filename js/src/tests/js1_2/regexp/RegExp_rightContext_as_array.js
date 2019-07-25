@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'RegExp_rightContext_as_array.js';
 
 
 

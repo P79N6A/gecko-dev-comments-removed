@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'tostring-1.js';
 
 
 

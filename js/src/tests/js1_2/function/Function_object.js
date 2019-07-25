@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'Function_object.js';
 
 
 

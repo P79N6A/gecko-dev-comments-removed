@@ -49,7 +49,6 @@
 
 
 
-var gTestfile = 'regress-228087.js';
 var i = 0;
 var BUGNUMBER = 228087;
 var summary = 'Testing regexps with unescaped braces';

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-371369.js';
 
 var BUGNUMBER = 371369;
 var summary = 'delete xml.function::name does not work';

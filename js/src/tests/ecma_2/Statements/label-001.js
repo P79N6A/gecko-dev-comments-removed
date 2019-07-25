@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'label-001.js';
 
 
 

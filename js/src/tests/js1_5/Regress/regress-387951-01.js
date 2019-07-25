@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-387951-01.js';
 
 var BUGNUMBER = 387951;
 var summary = 'Do not assert: cg->stackDepth >= 0';

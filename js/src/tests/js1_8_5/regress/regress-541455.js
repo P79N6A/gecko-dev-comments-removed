@@ -3,7 +3,6 @@
 
 
 
-gTestfile = 'regress-541455';
 
 function f(x) { return eval('"mumble"; x + 42'); }
 

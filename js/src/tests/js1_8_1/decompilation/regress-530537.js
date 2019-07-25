@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'regress-530537.js';
 
 var BUGNUMBER = 530537;
 var summary = 'Decompilation of JSOP_CONCATN with a ternary operator';

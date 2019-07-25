@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-375183.js';
 
 var BUGNUMBER = 375183;
 var summary = '__noSuchMethod__ should not allocate beyond fp->script->depth';

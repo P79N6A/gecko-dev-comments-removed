@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-176125.js';
 
 var BUGNUMBER = 176125;
 var summary = 'if() should not return a value';

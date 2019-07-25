@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-476427.js';
 
 var BUGNUMBER = 476427;
 var summary = 'Do not assert: v != JSVAL_ERROR_COOKIE';

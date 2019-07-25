@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-465220.js';
 
 var BUGNUMBER = 465220;
 var summary = 'Do not assert: anti-nesting';

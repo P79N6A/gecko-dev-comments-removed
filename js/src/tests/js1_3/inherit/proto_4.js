@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'proto_4.js';
 
 
 

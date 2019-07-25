@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-350793-02.js';
 
 var BUGNUMBER = 350793;
 var summary = 'for-in loops must be yieldable';

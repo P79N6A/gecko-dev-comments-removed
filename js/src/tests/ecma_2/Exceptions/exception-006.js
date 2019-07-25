@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'exception-006.js';
 
 
 

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-373828.js';
 
 var BUGNUMBER = 373828;
 var summary = 'Do not assert: op == JSOP_LEAVEBLOCKEXPR ? ' + 

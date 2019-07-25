@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-349491.js';
 
 var BUGNUMBER = 349491;
 var summary = 'Incorrect decompilation due to assign to const';

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-352640-01.js';
 
 var BUGNUMBER = 352640;
 var summary = 'Do not assert: scopeStmt or crash @ js_LexicalLookup';

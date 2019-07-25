@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-417817.js';
 
 var BUGNUMBER = 417817;
 var summary = 'Do not assert: ASSERT_VALID_PROPERTY_CACHE_HIT';

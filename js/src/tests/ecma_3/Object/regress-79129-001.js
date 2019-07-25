@@ -44,7 +44,6 @@
 
 
 
-var gTestfile = 'regress-79129-001.js';
 var BUGNUMBER = 79129;
 var summary = "Regression test: we shouldn't crash on this code";
 

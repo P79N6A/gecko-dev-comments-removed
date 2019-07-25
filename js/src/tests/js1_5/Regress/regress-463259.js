@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-463259.js';
 
 var BUGNUMBER = 463259;
 var summary = 'Do not assert: VALUE_IS_FUNCTION(cx, fval)';

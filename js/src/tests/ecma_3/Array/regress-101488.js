@@ -54,7 +54,6 @@
 
 
 
-var gTestfile = 'regress-101488.js';
 var UBound = 0;
 var BUGNUMBER = 101488;
 var summary = 'Try assigning arr.length = new Number(n)';

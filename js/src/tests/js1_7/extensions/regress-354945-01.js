@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-354945-01.js';
 
 var BUGNUMBER = 354945;
 var summary = 'Do not crash with new Iterator';

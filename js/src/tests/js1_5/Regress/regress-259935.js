@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-259935.js';
 
 var BUGNUMBER = 259935;
 var summary = 'document.all can be easily detected';

@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'octal-003.js';
 
 
 

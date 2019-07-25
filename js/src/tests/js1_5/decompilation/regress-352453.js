@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-352453.js';
 
 var BUGNUMBER = 352453;
 var summary = 'Decompilation of function() { (eval)(x)-- }';

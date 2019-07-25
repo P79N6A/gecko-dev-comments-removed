@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-367923.js';
 
 var BUGNUMBER = 367923;
 var summary = 'strict warning for variable redeclares argument';

@@ -43,7 +43,6 @@
 
 
 
-var gTestfile = 'regress-104375.js';
 var UBound = 0;
 var BUGNUMBER = 104375;
 var summary = 'Testing string.replace() with backreferences';

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-469927.js';
 
 var BUGNUMBER = 469927;
 var summary = 'TM: jit should not slow down short loop with let';

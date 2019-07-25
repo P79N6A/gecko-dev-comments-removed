@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'dowhile-003.js';
 
 
 

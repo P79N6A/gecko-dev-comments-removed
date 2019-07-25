@@ -54,7 +54,6 @@
 
 
 
-var gTestfile = '15.9.5.3.js';
 var SECTION = "15.9.5.3";
 var VERSION = "ECMA_3"; 
 var TITLE   = "Date.prototype.toDateString()"; 

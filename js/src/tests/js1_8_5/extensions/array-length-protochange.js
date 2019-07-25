@@ -1,7 +1,6 @@
 
 
 
-var gTestfile = 'array-length-protochange.js';
 
 var BUGNUMBER = 548671;
 var summary =

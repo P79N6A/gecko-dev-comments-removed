@@ -38,7 +38,6 @@
 
 
 
-var gTestfile = 'regress-23346.js';
 
 var CALL_CALLED = "PASSED";
 

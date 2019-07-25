@@ -53,7 +53,6 @@
 
 
 
-var gTestfile = 'regress-57043.js';
 var BUGNUMBER = 57043;
 var summary = 'Indexing object properties by signed numerical literals -'
   var statprefix = 'Adding a property to test object with an index of ';

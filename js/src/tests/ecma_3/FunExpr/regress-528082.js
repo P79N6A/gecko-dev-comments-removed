@@ -3,7 +3,6 @@
 
 
 
-var gTestfile = 'regress-528082.js';
 var BUGNUMBER = 528082;
 var summary = 'named function expression function-name-as-upvar slot botch';
 

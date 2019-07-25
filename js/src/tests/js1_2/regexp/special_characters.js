@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'special_characters.js';
 
 
 

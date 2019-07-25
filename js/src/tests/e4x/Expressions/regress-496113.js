@@ -40,7 +40,6 @@
 
 
 
-gTestfile = 'regress-496113.js';
 
 var summary = 'simple filter';
 var BUGNUMBER = 496113;

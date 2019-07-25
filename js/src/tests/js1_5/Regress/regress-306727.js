@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-306727.js';
 
 var BUGNUMBER = 306727;
 var summary = 'Parsing RegExp of octal expressions in strict mode';

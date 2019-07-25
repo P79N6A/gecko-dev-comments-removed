@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-355004.js';
 
 var BUGNUMBER = 355004;
 var summary = 'decompilation of |[,] =x|';

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-477053.js';
 
 var summary = 'Do not assert: JSVAL_IS_STRING(v)';
 var BUGNUMBER = 477053;

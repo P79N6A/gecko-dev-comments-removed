@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = 'regress-321757.js';
 
 var BUGNUMBER = 321757;
 var summary = 'Compound assignment operators should not bind LHS';

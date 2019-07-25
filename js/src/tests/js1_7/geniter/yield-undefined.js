@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'yield-undefined.js';
 
 
 

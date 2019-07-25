@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = '15.2.3.4-01.js';
 
 var BUGNUMBER = 518663;
 var summary =

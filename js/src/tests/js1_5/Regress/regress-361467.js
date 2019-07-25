@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-361467.js';
 
 var BUGNUMBER = 361467;
 var summary = 'Do not crash with certain watchers';

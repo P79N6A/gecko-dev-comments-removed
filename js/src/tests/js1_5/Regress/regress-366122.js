@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-366122.js';
 
 var BUGNUMBER = 366122;
 var summary = 'Compile large script';

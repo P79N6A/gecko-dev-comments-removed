@@ -49,7 +49,6 @@
 
 
 
-var gTestfile = 'regress-103087.js';
 var UBound = 0;
 var BUGNUMBER = 103087;
 var summary = "Testing that we don't crash on any of these regexps -";

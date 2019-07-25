@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-385134.js';
 
 var BUGNUMBER = 385134;
 var summary = 'Do not crash with setter, watch, uneval';

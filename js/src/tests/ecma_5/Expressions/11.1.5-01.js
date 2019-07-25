@@ -1,7 +1,6 @@
 
 
 
-var gTestfile = '11.1.5-01.js';
 
 var BUGNUMBER = 520696;
 var summary =

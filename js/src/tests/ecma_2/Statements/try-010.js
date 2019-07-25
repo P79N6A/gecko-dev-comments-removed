@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'try-010.js';
 
 
 

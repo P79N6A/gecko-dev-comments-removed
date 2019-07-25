@@ -45,7 +45,6 @@
 
 
 
-var gTestfile = 'regress-105972.js';
 var i = 0;
 var BUGNUMBER = 105972;
 var summary = 'Regression test for Bugzilla bug 105972';

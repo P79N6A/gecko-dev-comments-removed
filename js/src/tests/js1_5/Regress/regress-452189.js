@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'regress-452189.js';
 
 var BUGNUMBER = 452189;
 var summary = "Don't shadow a readonly or setter proto-property";

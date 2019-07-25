@@ -39,7 +39,6 @@
 
 
 
-gTestfile = 'regress-263936.js';
 
 START("Testing replacing an element with a list that contains a text node");
 printBugNumber(263936);

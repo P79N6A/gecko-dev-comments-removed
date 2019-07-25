@@ -36,7 +36,6 @@
 
 
 
-gTestfile = '11.1.4-08.js';
 
 var summary = "11.1.4 - XML Initializer - {} Expressions - 08";
 

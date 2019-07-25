@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-420399.js';
 
 var BUGNUMBER = 420399;
 var summary = 'Let expression error involving undefined';

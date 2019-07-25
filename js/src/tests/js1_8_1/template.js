@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'template.js';
 
 var BUGNUMBER = 99999;
 var summary = '';

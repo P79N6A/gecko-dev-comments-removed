@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-350415.js';
 
 var BUGNUMBER = 350415;
 var summary = 'Do not assert with new Function("let /*")';

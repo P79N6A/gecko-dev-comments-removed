@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-343713.js';
 
 var BUGNUMBER = 343713;
 var summary = 'Do not JS_Assert with nested function evaluation';

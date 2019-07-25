@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-479567.js';
 
 var BUGNUMBER = 479567;
 var summary = 'Do not assert: thing';

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-465337.js';
 
 var BUGNUMBER = 465337;
 var summary = 'Do not assert: (m != JSVAL_INT) || isInt32(*vp)';

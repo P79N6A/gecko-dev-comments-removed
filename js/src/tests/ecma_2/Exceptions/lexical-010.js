@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'lexical-010.js';
 
 
 

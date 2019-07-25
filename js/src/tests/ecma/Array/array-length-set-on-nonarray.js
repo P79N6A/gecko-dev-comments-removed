@@ -1,7 +1,6 @@
 
 
 
-var gTestfile = 'array-length-set-on-nonarray.js';
 
 var BUGNUMBER = 548671;
 var summary =

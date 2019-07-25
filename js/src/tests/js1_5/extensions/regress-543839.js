@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'regress-543839.js';
 
 var BUGNUMBER = 543839;
 var summary = 'js_GetMutableScope caller must lock the object';

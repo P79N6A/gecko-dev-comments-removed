@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-364017.js';
 
 var BUGNUMBER = 364017;
 var summary = 'Do not assert map->vector && i < map->length';

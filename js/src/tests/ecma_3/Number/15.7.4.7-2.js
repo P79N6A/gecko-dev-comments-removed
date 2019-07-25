@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = '15.7.4.7-2.js';
 
 var BUGNUMBER = "411893";
 var summary = "num.toPrecision(undefined) should equal num.toString()";

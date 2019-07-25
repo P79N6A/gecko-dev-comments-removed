@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-334807-06.js';
 
 var BUGNUMBER = 334807;
 var summary = '12.14 - exception prototype is the original Object prototype.';

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-470061.js';
 
 var BUGNUMBER = 470061;
 var summary = 'TM: Do not assert: cx->fp->regs->pc == f->ip && f->root == f';

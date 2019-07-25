@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = 'regress-281930.js';
 
 var BUGNUMBER = 281930;
 var summary = 'this reference should point to global object in function expressions';

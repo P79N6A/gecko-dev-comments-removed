@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'properties-002.js';
 
 
 

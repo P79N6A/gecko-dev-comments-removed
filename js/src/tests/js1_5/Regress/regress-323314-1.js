@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-323314-1.js';
 
 var BUGNUMBER = 323314;
 var summary = 'JSMSG_EQUAL_AS_ASSIGN in js.msg should be JSEXN_SYNTAXERR';

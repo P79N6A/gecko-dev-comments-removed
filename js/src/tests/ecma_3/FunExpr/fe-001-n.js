@@ -38,7 +38,6 @@
 
 
 
-var gTestfile = 'fe-001-n.js';
 
 DESCRIPTION = "Previous statement should have thrown a ReferenceError";
 EXPECTED = "error";

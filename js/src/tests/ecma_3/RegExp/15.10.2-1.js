@@ -46,7 +46,6 @@
 
 
 
-var gTestfile = '15.10.2-1.js';
 var i = 0;
 var BUGNUMBER = '(none)';
 var summary = 'RegExp conformance test';

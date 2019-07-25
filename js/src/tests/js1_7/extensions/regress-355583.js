@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-355583.js';
 
 var BUGNUMBER = 355583;
 var summary = 'block object access to arbitrary stack slots';

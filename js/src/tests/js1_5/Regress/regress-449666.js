@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'regress-449666.js';
 
 var BUGNUMBER = 449666;
 var summary = 'Do not assert: JSSTRING_IS_FLAT(str_)';

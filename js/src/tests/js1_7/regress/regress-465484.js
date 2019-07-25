@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-465484.js';
 
 var BUGNUMBER = 465484;
 var summary = 'TM: Do not assert: _allocator.active[FST0] && _fpuStkDepth == -1 || ' +

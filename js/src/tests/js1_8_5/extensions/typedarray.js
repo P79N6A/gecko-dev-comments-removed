@@ -6,7 +6,6 @@
 
 
 
-var gTestfile = 'template.js';
 
 var BUGNUMBER = 532774;
 var summary = 'js typed arrays (webgl arrays)';

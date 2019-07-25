@@ -1,7 +1,6 @@
 
 
 
-var gTestfile = '0x-without-following-hexdigits.js';
 
 var BUGNUMBER = 582643;
 var summary = "'0x' not followed by hex digits should be a syntax error";

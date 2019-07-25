@@ -37,7 +37,6 @@
 
 
 
-gTestfile = 'regress-369536.js';
 
 START("Assignment to XML property removes attributes");
 printBugNumber(369536);

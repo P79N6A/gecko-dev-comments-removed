@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-425360.js';
 
 var BUGNUMBER = 425360;
 var summary = 'Do not assert: !cx->throwing';

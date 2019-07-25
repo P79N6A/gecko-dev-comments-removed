@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-368516.js';
 
 var BUGNUMBER = 368516;
 var summary = 'Treat unicode BOM characters as whitespace';

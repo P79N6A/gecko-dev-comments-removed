@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-349493.js';
 
 var BUGNUMBER = 349493;
 var summary = 'Decompilation of let expression in ternary';

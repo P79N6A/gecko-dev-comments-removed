@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'regress-320887.js';
 
 var BUGNUMBER = 320887;
 var summary = 'var x should not throw a ReferenceError';

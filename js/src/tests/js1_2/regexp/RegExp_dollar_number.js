@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'RegExp_dollar_number.js';
 
 
 

@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'instanceof-002.js';
 
 
 

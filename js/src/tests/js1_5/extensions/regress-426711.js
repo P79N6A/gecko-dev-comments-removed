@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-426711.js';
 
 var BUGNUMBER = 426711;
 var summary = 'Setting window.__count__ causes a crash';

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'beginLine.js';
 
 
 

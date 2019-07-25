@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '13.5.4.5.js';
 
 START("13.5.4.5 - XMLList children()");
 

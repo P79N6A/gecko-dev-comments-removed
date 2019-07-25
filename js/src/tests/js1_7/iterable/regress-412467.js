@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-412467.js';
 
 var BUGNUMBER = 412467;
 var summary = 'Iterator values in array comprehension';

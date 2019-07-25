@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'while-004.js';
 
 
 

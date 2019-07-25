@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-354151-02.js';
 
 var BUGNUMBER = 354151;
 var summary = 'Bad assumptions about Array elements';

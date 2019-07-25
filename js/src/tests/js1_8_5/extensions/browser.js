@@ -2,5 +2,5 @@
 
 
 workerDir = (document.location.href.replace(/\/[^/?]*(\?.*)?$/, '/') +
-             gTestsuite + '/' + gTestsubsuite + '/');
+             'js1_8_5/extensions/');
 

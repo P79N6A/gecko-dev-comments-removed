@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-351104.js';
 
 var BUGNUMBER = 351104;
 var summary = 'decompilation of for with ternary as initializer';

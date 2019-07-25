@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '12.2.js';
 
 START("12.2 - For-in statement");
 

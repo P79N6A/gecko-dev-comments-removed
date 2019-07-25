@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-349489.js';
 
 var BUGNUMBER = 349489;
 var summary = 'Incorrect decompilation of labeled useless statements';

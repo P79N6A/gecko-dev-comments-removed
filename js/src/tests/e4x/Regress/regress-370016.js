@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-370016.js';
 
 var BUGNUMBER = 370016;
 var summary = 'with (nonxmlobj) function::';

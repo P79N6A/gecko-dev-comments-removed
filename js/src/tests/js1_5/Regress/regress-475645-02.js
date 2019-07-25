@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-475645-02.js';
 
 var BUGNUMBER = 475645;
 var summary = 'Do not crash @ nanojit::LIns::isop';

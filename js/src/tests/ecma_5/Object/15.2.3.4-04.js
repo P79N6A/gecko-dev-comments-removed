@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = '15.2.3.4-04.js';
 
 var BUGNUMBER = 518663;
 var summary = 'Object.getOwnPropertyNames: regular expression objects';

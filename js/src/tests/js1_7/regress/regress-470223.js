@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-470223.js';
 
 var BUGNUMBER = 470223;
 var summary = 'TM: Do not crash @ js_NewObjectWithGivenProto';

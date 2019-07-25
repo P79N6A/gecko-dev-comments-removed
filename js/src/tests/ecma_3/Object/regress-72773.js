@@ -51,7 +51,6 @@
 
 
 
-var gTestfile = 'regress-72773.js';
 var BUGNUMBER = 72773;
 var summary = "Regression test: we shouldn't crash on this code";
 var status = '';

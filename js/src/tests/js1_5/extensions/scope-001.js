@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = 'scope-001.js';
 
 var BUGNUMBER = '53268';
 var status = 'Testing scope after changing obj.__proto__';

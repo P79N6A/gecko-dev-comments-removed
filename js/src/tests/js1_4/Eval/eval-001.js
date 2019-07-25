@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'eval-001.js';
 
 
 

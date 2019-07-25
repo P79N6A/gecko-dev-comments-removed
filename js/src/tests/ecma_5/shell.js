@@ -37,4 +37,3 @@
 
 
 
-gTestsuite = 'ecma_5';

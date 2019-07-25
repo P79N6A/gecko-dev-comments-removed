@@ -47,7 +47,6 @@
 
 
 
-var gTestfile = 'regress-188206.js';
 var UBound = 0;
 var BUGNUMBER = 188206;
 var summary = 'Invalid use of regexp quantifiers should generate SyntaxErrors';

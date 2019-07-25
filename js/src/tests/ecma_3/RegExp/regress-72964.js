@@ -45,7 +45,6 @@
 
 
 
-var gTestfile = 'regress-72964.js';
 var i = 0;
 var BUGNUMBER = 72964;
 var summary = 'Testing regular expressions containing non-Latin1 characters';

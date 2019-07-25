@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'statement-004.js';
 
 
 

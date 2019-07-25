@@ -5,7 +5,6 @@
 
 
 
-var gTestfile = 'regress-306794.js';
 
 var BUGNUMBER = 306794;
 var summary = 'Do not assert: parsing foo getter';

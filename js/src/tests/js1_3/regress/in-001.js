@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'in-001.js';
 
 
 

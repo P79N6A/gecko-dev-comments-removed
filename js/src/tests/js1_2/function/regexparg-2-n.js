@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regexparg-2-n.js';
 
 
 

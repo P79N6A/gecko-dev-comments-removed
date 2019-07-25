@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-465453.js';
 
 var BUGNUMBER = 465453;
 var summary = 'Do not convert (undefined) to "undefined"';

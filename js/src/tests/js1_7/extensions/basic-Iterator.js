@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'basic-Iterator.js';
 
 var BUGNUMBER     = "(none)";
 var summary = "Basic support for accessing iterable objects using Iterator";

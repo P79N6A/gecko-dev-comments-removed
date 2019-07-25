@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '9.2.1.1.js';
 
 START("9.2.1.1 XMLList [[Get]]");
 

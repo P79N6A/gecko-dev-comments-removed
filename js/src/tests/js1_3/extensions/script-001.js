@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'script-001.js';
 
 
 

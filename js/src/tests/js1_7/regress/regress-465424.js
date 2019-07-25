@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-465424.js';
 
 var BUGNUMBER = 465424;
 var summary = 'TM: issue with post-decrement operator';

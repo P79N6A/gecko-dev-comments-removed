@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-301573.js';
 
 var summary = "E4X - Entities";
 var BUGNUMBER = 301573;

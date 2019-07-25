@@ -37,4 +37,3 @@
 
 
 
-gTestsuite = 'js1_6';

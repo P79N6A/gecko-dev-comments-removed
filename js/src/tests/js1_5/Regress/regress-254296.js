@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = 'regress-254296.js';
 
 var BUGNUMBER = 254296;
 var summary = 'javascript regular expression negative lookahead';

@@ -46,7 +46,6 @@
 
 
 
-var gTestfile = 'getset-005.js';
 var UBound = 0;
 var BUGNUMBER = '(none)';
 var summary = 'Testing  obj.__defineSetter__(), obj.__defineGetter__()';

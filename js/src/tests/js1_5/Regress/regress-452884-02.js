@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-452884-02.js';
 
 var BUGNUMBER = 452884;
 var summary = 'Do not crash in switch';

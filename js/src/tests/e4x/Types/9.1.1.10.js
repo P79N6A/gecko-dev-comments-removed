@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '9.1.1.10.js';
 
 START("9.1.1.10 - XML [[ResolveValue]]");
 

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-339785.js';
 
 var summary = "scanner: memory exposure to scripts";
 var BUGNUMBER = 339785;

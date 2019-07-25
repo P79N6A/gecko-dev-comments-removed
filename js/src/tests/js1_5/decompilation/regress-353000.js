@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-353000.js';
 
 var BUGNUMBER = 353000;
 var summary = 'decompilation of RegExp literal after catch block';

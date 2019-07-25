@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-286216.js';
 
 var BUGNUMBER = 286216;
 var summary = 'Do not crash tracing a for-in loop';

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-445818.js';
 
 var BUGNUMBER = 445818;
 var summary = 'Do not crash with threads';

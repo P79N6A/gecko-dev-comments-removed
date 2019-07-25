@@ -58,7 +58,6 @@
 
 
 
-var gTestfile = '15.9.5.7.js';
 var SECTION = "15.9.5.7";
 var VERSION = "ECMA_3"; 
 var TITLE   = "Date.prototype.toLocaleTimeString()";

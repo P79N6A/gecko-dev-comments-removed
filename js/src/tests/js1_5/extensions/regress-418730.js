@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-418730.js';
 
 var BUGNUMBER = 418730;
 var summary = 'export * should not halt script';

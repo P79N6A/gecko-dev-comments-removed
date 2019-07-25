@@ -1,4 +1,3 @@
-var gTestfile = 'strict-warning.js';
 
 if (options().split().indexOf('strict') == -1)
     options('strict');

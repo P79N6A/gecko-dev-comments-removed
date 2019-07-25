@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-467495-01.js';
 
 var BUGNUMBER = 467495;
 var summary = 'Do not crash @ js_Interpret';

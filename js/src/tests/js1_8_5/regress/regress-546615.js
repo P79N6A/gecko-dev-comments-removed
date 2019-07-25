@@ -3,7 +3,6 @@
 
 
 
-gTestfile = 'regress-546615';
 
 try {
     <y a={0

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-465063.js';
 
 var summary = 'Do not crash @ TraceRecorder::hasMethod';
 var BUGNUMBER = 465063;

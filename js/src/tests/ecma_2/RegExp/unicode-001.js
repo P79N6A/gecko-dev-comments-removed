@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'unicode-001.js';
 
 
 

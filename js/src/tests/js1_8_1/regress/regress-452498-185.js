@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-452498-185.js';
 
 var BUGNUMBER = 452498;
 var summary = 'TM: upvar2 regression tests';

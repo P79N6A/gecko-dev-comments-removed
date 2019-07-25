@@ -35,7 +35,6 @@
 
 
 
-gTestfile = 'string-002.js';
 
 
 

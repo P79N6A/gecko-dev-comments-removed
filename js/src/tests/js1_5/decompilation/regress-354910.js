@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-354910.js';
 
 var BUGNUMBER = 354910;
 var summary = 'decompilation of (delete r(s)).t = a;';

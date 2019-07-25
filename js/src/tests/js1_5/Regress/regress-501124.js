@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-501124.js';
 
 var BUGNUMBER = 501124;
 var summary = 'Crypotographic login routines';

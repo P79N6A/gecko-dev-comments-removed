@@ -36,7 +36,6 @@
 
 
 
-var gTestfile = 'regress-248444.js';
 
 var BUGNUMBER = 248444;
 var summary = 'toString/toSource of RegExp should escape slashes';

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-370372.js';
 
 var BUGNUMBER = 370372;
 var summary = 'with (xmllist) function::name assignments';

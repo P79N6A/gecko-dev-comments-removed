@@ -36,7 +36,6 @@
 
 
 
-gTestfile = '9.6.js';
 
 
 

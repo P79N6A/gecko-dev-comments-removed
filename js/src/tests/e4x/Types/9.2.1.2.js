@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '9.2.1.2.js';
 
 START("9.2.1.2 - XMLList [[Put]]");
 

@@ -3,7 +3,6 @@
 
 
 
-var gTestfile = 'regress-518103.js';
 var BUGNUMBER = 518103;
 var summary = 'lambda constructor "method" vs. instanceof';
 var actual;

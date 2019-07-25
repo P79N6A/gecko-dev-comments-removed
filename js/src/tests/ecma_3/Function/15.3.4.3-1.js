@@ -46,7 +46,6 @@
 
 
 
-var gTestfile = '15.3.4.3-1.js';
 var UBound = 0;
 var BUGNUMBER = 145791;
 var summary = 'Testing ECMA conformance of Function.prototype.apply';

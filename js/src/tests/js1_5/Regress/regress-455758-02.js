@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-455758-02.js';
 
 var BUGNUMBER = 455758;
 var summary = 'Do not crash: divide by zero';

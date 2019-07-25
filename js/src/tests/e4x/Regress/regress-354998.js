@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-354998.js';
 
 var BUGNUMBER = 354998;
 var summary = 'prototype should not be enumerated for XML objects.';

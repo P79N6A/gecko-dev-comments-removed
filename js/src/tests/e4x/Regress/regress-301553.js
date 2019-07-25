@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-301553.js';
 
 var summary = "E4X - Should not repress exceptions";
 var BUGNUMBER = 301553;

@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-355105.js';
 
 var BUGNUMBER = 355105;
 var summary = 'decompilation of empty destructuring';

@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'do_while.js';
 
 
 

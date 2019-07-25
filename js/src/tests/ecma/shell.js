@@ -36,7 +36,6 @@
 
 
 
-gTestsuite = 'ecma';
 
 
 

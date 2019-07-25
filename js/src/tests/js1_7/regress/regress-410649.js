@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-410649.js';
 
 var BUGNUMBER = 410649;
 var summary = 'function statement and destructuring parameter name clash';

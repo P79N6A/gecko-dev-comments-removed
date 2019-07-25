@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-416354.js';
 
 var BUGNUMBER = 416354;
 var summary = 'GC hazard due to missing SAVE_SP_AND_PC';

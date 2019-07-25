@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'string_split.js';
 
 
 

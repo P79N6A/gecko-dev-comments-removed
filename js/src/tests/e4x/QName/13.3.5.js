@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '13.3.5.js';
 
 START("13.3.5 - Properties of QName Instances");
 

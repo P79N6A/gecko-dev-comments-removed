@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '13.4.2.js';
 
 START("13.4.2 - XML Constructor");
 

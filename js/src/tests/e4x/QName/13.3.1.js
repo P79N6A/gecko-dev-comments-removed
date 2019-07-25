@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '13.3.1.js';
 
 START("13.3.1 - QName Constructor as a Function");
 

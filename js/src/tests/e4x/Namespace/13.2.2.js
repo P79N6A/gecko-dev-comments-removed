@@ -40,7 +40,6 @@
 
 
 
-gTestfile = '13.2.2.js';
 
 START("13.2.2 - Namespace Constructor");
 

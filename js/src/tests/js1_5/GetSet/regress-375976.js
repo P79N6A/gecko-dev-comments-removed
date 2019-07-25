@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-375976.js';
 
 
 var BUGNUMBER = 375976;

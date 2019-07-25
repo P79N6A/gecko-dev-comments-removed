@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'regress-376052.js';
 
 var BUGNUMBER = 376052;
 var summary = 'javascript.options.anonfunfix to allow function (){} expressions';

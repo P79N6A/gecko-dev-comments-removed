@@ -36,7 +36,6 @@
 
 
 
-gTestfile = 'regress-354145-01.js';
 
 var BUGNUMBER = 354145;
 var summary = 'Immutable XML';

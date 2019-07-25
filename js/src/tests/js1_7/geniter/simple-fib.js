@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'simple-fib.js';
 
 var BUGNUMBER     = 326466;  
 var summary = "Simple Fibonacci iterator";

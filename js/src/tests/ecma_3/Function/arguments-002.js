@@ -35,7 +35,6 @@
 
 
 
-var gTestfile = 'arguments-002.js';
 
 var BUGNUMBER = 383269;
 var summary = 'Allow override of arguments';
