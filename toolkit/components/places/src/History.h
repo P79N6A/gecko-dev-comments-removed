@@ -46,13 +46,12 @@
 #include "nsString.h"
 #include "nsURIHashKey.h"
 #include "nsTArray.h"
-#include "nsDeque.h"
 
 namespace mozilla {
 namespace places {
 
 #define NS_HISTORYSERVICE_CID \
-  {0x0937a705, 0x91a6, 0x417a, {0x82, 0x92, 0xb2, 0x2e, 0xb1, 0x0d, 0xa8, 0x6c}}
+  {0x9fc91e65, 0x1475, 0x4353, {0x9b, 0x9a, 0x93, 0xd7, 0x6f, 0x5b, 0xd9, 0xb7}}
 
 class History : public IHistory
 {
@@ -73,26 +72,6 @@ public:
   
 
 
-
-
-
-
-
-
-  void AppendTask(class Step* aTask);
-
-  
-
-
-
-
-
-
-  void CurrentTaskFinished();
-
-  
-
-
   static History *GetService();
 
   
@@ -103,26 +82,6 @@ public:
 
 private:
   ~History();
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  nsDeque mPendingVisits;
-
-  
-
-
-
-  void StartNextTask();
 
   static History *gService;
 
