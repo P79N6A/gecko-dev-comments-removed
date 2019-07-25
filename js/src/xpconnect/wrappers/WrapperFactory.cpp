@@ -84,9 +84,15 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
             wrapper = &XrayWrapperWaivedWrapper;
         } else {
             
-            wrapper = IS_WN_WRAPPER_OBJECT(obj)
-                      ? &XrayWrapper<JSCrossCompartmentWrapper>::singleton
-                      : &JSCrossCompartmentWrapper::singleton;
+            if (!obj->getGlobal()->isSystem() &&
+                (IS_WN_WRAPPER(obj) || obj->getClass()->ext.innerObject)) {
+                typedef XrayWrapper<JSCrossCompartmentWrapper> Xray;
+
+                wrapper = &Xray::singleton;
+                obj = Xray::createHolder(cx, parent, obj);
+            } else {
+                wrapper = &JSCrossCompartmentWrapper::singleton;
+            }
         }
     } else if (AccessCheck::isChrome(origin)) {
         
@@ -108,8 +114,15 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
         
         
         
-        wrapper = &FilteringWrapper<XrayWrapper<CrossOriginWrapper>,
-                                    CrossOriginAccessiblePropertiesOnly>::singleton;
+        if (!IS_WN_WRAPPER(obj)) {
+            wrapper = &FilteringWrapper<JSCrossCompartmentWrapper,
+                                        CrossOriginAccessiblePropertiesOnly>::singleton;
+        } else {
+            typedef XrayWrapper<CrossOriginWrapper> Xray;
+            wrapper = &FilteringWrapper<XrayWrapper<CrossOriginWrapper>,
+                                        CrossOriginAccessiblePropertiesOnly>::singleton;
+            obj = Xray::createHolder(cx, parent, obj);
+        }
     }
     return JSWrapper::New(cx, obj, wrappedProto, NULL, wrapper);
 }
