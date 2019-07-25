@@ -564,14 +564,6 @@ txXPathNodeUtils::isWhitespace(const txXPathNode& aNode)
 
 
 txXPathNode*
-txXPathNodeUtils::getDocument(const txXPathNode& aNode)
-{
-    nsIDocument* document = aNode.mNode->GetCurrentDoc();
-    return document ? new txXPathNode(document) : nsnull;
-}
-
-
-txXPathNode*
 txXPathNodeUtils::getOwnerDocument(const txXPathNode& aNode)
 {
     return new txXPathNode(aNode.mNode->OwnerDoc());
