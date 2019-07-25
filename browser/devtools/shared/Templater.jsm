@@ -39,7 +39,6 @@
 
 
 
-
 var EXPORTED_SYMBOLS = ["Templater"];
 
 const Ci = Components.interfaces;
@@ -47,13 +46,15 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
-var Node = Ci.nsIDOMNode;
+const Node = Ci.nsIDOMNode;
+
+
 
 
 
 
 function Templater() {
-  this.scope = [];
+  this.stack = [];
 }
 
 
@@ -66,10 +67,10 @@ Templater.prototype.processNode = function(node, data) {
   if (typeof node === 'string') {
     node = document.getElementById(node);
   }
-  if (data === null || data === undefined) {
+  if (data == null) {
     data = {};
   }
-  this.scope.push(node.nodeName + (node.id ? '#' + node.id : ''));
+  this.stack.push(node.nodeName + (node.id ? '#' + node.id : ''));
   try {
     
     if (node.attributes && node.attributes.length) {
@@ -77,11 +78,11 @@ Templater.prototype.processNode = function(node, data) {
       
       
       if (node.hasAttribute('foreach')) {
-        this.processForEach(node, data);
+        this._processForEach(node, data);
         return;
       }
       if (node.hasAttribute('if')) {
-        if (!this.processIf(node, data)) {
+        if (!this._processIf(node, data)) {
           return;
         }
       }
@@ -93,19 +94,19 @@ Templater.prototype.processNode = function(node, data) {
       for (var i = 0; i < attrs.length; i++) {
         var value = attrs[i].value;
         var name = attrs[i].name;
-        this.scope.push(name);
+        this.stack.push(name);
         try {
           if (name === 'save') {
             
-            value = this.stripBraces(value);
-            this.property(value, data, node);
+            value = this._stripBraces(value);
+            this._property(value, data, node);
             node.removeAttribute('save');
           } else if (name.substring(0, 2) === 'on') {
             
-            value = this.stripBraces(value);
-            var func = this.property(value, data);
+            value = this._stripBraces(value);
+            var func = this._property(value, data);
             if (typeof func !== 'function') {
-              this.handleError('Expected ' + value +
+              this._handleError('Expected ' + value +
                 ' to resolve to a function, but got ' + typeof func);
             }
             node.removeAttribute(name);
@@ -117,7 +118,7 @@ Templater.prototype.processNode = function(node, data) {
           } else {
             
             var newValue = value.replace(/\$\{[^}]*\}/g, function(path) {
-              return this.envEval(path.slice(2, -1), data, value);
+              return this._envEval(path.slice(2, -1), data, value);
             }.bind(this));
             
             
@@ -129,7 +130,7 @@ Templater.prototype.processNode = function(node, data) {
             }
           }
         } finally {
-          this.scope.pop();
+          this.stack.pop();
         }
       }
     }
@@ -142,10 +143,11 @@ Templater.prototype.processNode = function(node, data) {
     }
 
     if (node.nodeType === Node.TEXT_NODE) {
-      this.processTextNode(node, data);
+      this._processTextNode(node, data);
     }
   } finally {
-    this.scope.pop();
+    delete data.__element;
+    this.stack.pop();
   }
 };
 
@@ -155,17 +157,17 @@ Templater.prototype.processNode = function(node, data) {
 
 
 
-Templater.prototype.processIf = function(node, data) {
-  this.scope.push('if');
+Templater.prototype._processIf = function(node, data) {
+  this.stack.push('if');
   try {
     var originalValue = node.getAttribute('if');
-    var value = this.stripBraces(originalValue);
+    var value = this._stripBraces(originalValue);
     var recurse = true;
     try {
-      var reply = this.envEval(value, data, originalValue);
+      var reply = this._envEval(value, data, originalValue);
       recurse = !!reply;
     } catch (ex) {
-      this.handleError('Error with \'' + value + '\'', ex);
+      this._handleError('Error with \'' + value + '\'', ex);
       recurse = false;
     }
     if (!recurse) {
@@ -174,7 +176,7 @@ Templater.prototype.processIf = function(node, data) {
     node.removeAttribute('if');
     return recurse;
   } finally {
-    this.scope.pop();
+    this.stack.pop();
   }
 };
 
@@ -184,8 +186,12 @@ Templater.prototype.processIf = function(node, data) {
 
 
 
-Templater.prototype.processForEach = function(node, data) {
-  this.scope.push('foreach');
+
+
+
+
+Templater.prototype._processForEach = function(node, data) {
+  this.stack.push('foreach');
   try {
     var originalValue = node.getAttribute('foreach');
     var value = originalValue;
@@ -193,62 +199,25 @@ Templater.prototype.processForEach = function(node, data) {
     var paramName = 'param';
     if (value.charAt(0) === '$') {
       
-      value = this.stripBraces(value);
+      value = this._stripBraces(value);
     } else {
       
       var nameArr = value.split(' in ');
       paramName = nameArr[0].trim();
-      value = this.stripBraces(nameArr[1].trim());
+      value = this._stripBraces(nameArr[1].trim());
     }
     node.removeAttribute('foreach');
     try {
-      var self = this;
-      
-      var processSingle = function(member, clone, ref) {
-        ref.parentNode.insertBefore(clone, ref);
-        data[paramName] = member;
-        self.processNode(clone, data);
-        delete data[paramName];
-      };
-
-      
-      
-      var processAll = function(scope, member) {
-        self.scope.push(scope);
-        try {
-          if (node.nodeName.toLowerCase() === 'loop') {
-            for (var i = 0; i < node.childNodes.length; i++) {
-              var clone = node.childNodes[i].cloneNode(true);
-              processSingle(member, clone, node);
-            }
-          } else {
-            var clone = node.cloneNode(true);
-            clone.removeAttribute('foreach');
-            processSingle(member, clone, node);
-          }
-        } finally {
-          self.scope.pop();
-        }
-      };
-
-      var reply = this.envEval(value, data, originalValue);
-      if (Array.isArray(reply)) {
-        reply.forEach(function(data, i) {
-          processAll('' + i, data);
-        }, this);
-      } else {
-        for (var param in reply) {
-          if (reply.hasOwnProperty(param)) {
-            processAll(param, param);
-          }
-        }
-      }
+      var evaled = this._envEval(value, data, originalValue);
+      this._handleAsync(evaled, node, function(reply, siblingNode) {
+        this._processForEachLoop(reply, node, siblingNode, data, paramName);
+      }.bind(this));
       node.parentNode.removeChild(node);
     } catch (ex) {
-      this.handleError('Error with \'' + value + '\'', ex);
+      this._handleError('Error with \'' + value + '\'', ex);
     }
   } finally {
-    this.scope.pop();
+    this.stack.pop();
   }
 };
 
@@ -259,7 +228,68 @@ Templater.prototype.processForEach = function(node, data) {
 
 
 
-Templater.prototype.processTextNode = function(node, data) {
+
+
+
+
+Templater.prototype._processForEachLoop = function(set, template, sibling, data, paramName) {
+  if (Array.isArray(set)) {
+    set.forEach(function(member, i) {
+      this._processForEachMember(member, template, sibling, data, paramName, '' + i);
+    }, this);
+  } else {
+    for (var member in set) {
+      if (set.hasOwnProperty(member)) {
+        this._processForEachMember(member, template, sibling, data, paramName, member);
+      }
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+Templater.prototype._processForEachMember = function(member, template, siblingNode, data, paramName, frame) {
+  this.stack.push(frame);
+  try {
+    this._handleAsync(member, siblingNode, function(reply, node) {
+      data[paramName] = reply;
+      if (node.nodeName.toLowerCase() === 'loop') {
+        for (var i = 0; i < node.childNodes.length; i++) {
+          var clone = node.childNodes[i].cloneNode(true);
+          node.parentNode.insertBefore(clone, node);
+          this.processNode(clone, data);
+        }
+      } else {
+        var clone = template.cloneNode(true);
+        clone.removeAttribute('foreach');
+        node.parentNode.insertBefore(clone, node);
+        this.processNode(clone, data);
+      }
+      delete data[paramName];
+    }.bind(this));
+  } finally {
+    this.stack.pop();
+  }
+};
+
+
+
+
+
+
+
+
+Templater.prototype._processTextNode = function(node, data) {
   
   var value = node.data;
   
@@ -279,20 +309,12 @@ Templater.prototype.processTextNode = function(node, data) {
         return;
       }
       if (part.charAt(0) === '$') {
-        part = this.envEval(part.slice(1), data, node.data);
+        part = this._envEval(part.slice(1), data, node.data);
       }
-      
-      if (part === null) {
-        part = "null";
-      }
-      if (part === undefined) {
-        part = "undefined";
-      }
-      
-      if (typeof part.cloneNode !== 'function') {
-        part = node.ownerDocument.createTextNode(part.toString());
-      }
-      node.parentNode.insertBefore(part, node);
+      this._handleAsync(part, node, function(reply, siblingNode) {
+        reply = this._toNode(reply, siblingNode.ownerDocument);
+        siblingNode.parentNode.insertBefore(reply, siblingNode);
+      }.bind(this));
     }, this);
     node.parentNode.removeChild(node);
   }
@@ -303,9 +325,52 @@ Templater.prototype.processTextNode = function(node, data) {
 
 
 
-Templater.prototype.stripBraces = function(str) {
+
+
+Templater.prototype._toNode = function(thing, document) {
+  if (thing == null) {
+    thing = '' + thing;
+  }
+  
+  if (typeof thing.cloneNode !== 'function') {
+    thing = document.createTextNode(thing.toString());
+  }
+  return thing;
+};
+
+
+
+
+
+
+
+
+
+
+
+Templater.prototype._handleAsync = function(thing, siblingNode, inserter) {
+  if (typeof thing.then === 'function') {
+    
+    var tempNode = siblingNode.ownerDocument.createElement('span');
+    siblingNode.parentNode.insertBefore(tempNode, siblingNode);
+    thing.then(function(delayed) {
+      inserter(delayed, tempNode);
+      tempNode.parentNode.removeChild(tempNode);
+    }.bind(this));
+  }
+  else {
+    inserter(thing, siblingNode);
+  }
+};
+
+
+
+
+
+
+Templater.prototype._stripBraces = function(str) {
   if (!str.match(/\$\{.*\}/g)) {
-    this.handleError('Expected ' + str + ' to match ${...}');
+    this._handleError('Expected ' + str + ' to match ${...}');
     return str;
   }
   return str.slice(2, -1);
@@ -328,8 +393,8 @@ Templater.prototype.stripBraces = function(str) {
 
 
 
-Templater.prototype.property = function(path, data, newValue) {
-  this.scope.push(path);
+Templater.prototype._property = function(path, data, newValue) {
+  this.stack.push(path);
   try {
     if (typeof path === 'string') {
       path = path.split('.');
@@ -345,12 +410,12 @@ Templater.prototype.property = function(path, data, newValue) {
       return value;
     }
     if (!value) {
-      this.handleError('Can\'t find path=' + path);
+      this._handleError('Can\'t find path=' + path);
       return null;
     }
-    return this.property(path.slice(1), value, newValue);
+    return this._property(path.slice(1), value, newValue);
   } finally {
-    this.scope.pop();
+    this.stack.pop();
   }
 };
 
@@ -367,17 +432,17 @@ Templater.prototype.property = function(path, data, newValue) {
 
 
 
-Templater.prototype.envEval = function(script, env, context) {
-  with (env) {
+Templater.prototype._envEval = function(script, data, frame) {
+  with (data) {
     try {
-      this.scope.push(context);
+      this.stack.push(frame);
       return eval(script);
     } catch (ex) {
-      this.handleError('Template error evaluating \'' + script + '\'' +
-          ' environment=' + Object.keys(env).join(', '), ex);
+      this._handleError('Template error evaluating \'' + script + '\'' +
+          ' environment=' + Object.keys(data).join(', '), ex);
       return script;
     } finally {
-      this.scope.pop();
+      this.stack.pop();
     }
   }
 };
@@ -388,11 +453,11 @@ Templater.prototype.envEval = function(script, env, context) {
 
 
 
-Templater.prototype.handleError = function(message, ex) {
-  this.logError(message);
-  this.logError('In: ' + this.scope.join(' > '));
+Templater.prototype._handleError = function(message, ex) {
+  this._logError(message);
+  this._logError('In: ' + this.stack.join(' > '));
   if (ex) {
-    this.logError(ex);
+    this._logError(ex);
   }
 };
 
@@ -402,7 +467,7 @@ Templater.prototype.handleError = function(message, ex) {
 
 
 
-Templater.prototype.logError = function(message) {
+Templater.prototype._logError = function(message) {
   Services.console.logStringMessage(message);
 };
 
