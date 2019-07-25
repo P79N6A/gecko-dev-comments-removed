@@ -941,8 +941,9 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
                 }
             }
             for (unsigned i = 0; i < savedCount; i++) {
-                JS_ASSERT(!saved[i]->lifetime && saved[i]->saved);
-                if (!saved[i]->savedEnd) {
+                LifetimeVariable &var = *saved[i];
+                JS_ASSERT(!var.lifetime && var.saved);
+                if (!var.savedEnd) {
                     
 
 
@@ -950,15 +951,18 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
 
 
 
-                    saved[i]->savedEnd = offset;
+                    var.savedEnd = offset;
                 }
-                if (saved[i]->live(targetOffset)) {
+                if (var.live(targetOffset)) {
                     
 
 
 
-                    if (!addVariable(cx, *saved[i], saved[i]->savedEnd))
+                    var.lifetime = ArenaNew<Lifetime>(pool, offset, var.saved);
+                    if (!var.lifetime)
                         return false;
+                    var.saved = NULL;
+                    saved[i--] = saved[--savedCount];
                 }
             }
             break;
