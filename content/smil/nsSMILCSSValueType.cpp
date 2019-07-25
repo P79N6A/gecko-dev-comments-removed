@@ -380,10 +380,16 @@ ValueFromStringHelper(nsCSSProperty aPropID,
   
   bool isNegative = false;
   PRUint32 subStringBegin = 0;
-  PRInt32 absValuePos = nsSMILParserUtils::CheckForNegativeNumber(aString);
-  if (absValuePos > 0) {
-    isNegative = true;
-    subStringBegin = (PRUint32)absValuePos; 
+
+  
+  
+  
+  if (aPropID != eCSSProperty_stroke_dasharray) {
+    PRInt32 absValuePos = nsSMILParserUtils::CheckForNegativeNumber(aString);
+    if (absValuePos > 0) {
+      isNegative = true;
+      subStringBegin = (PRUint32)absValuePos; 
+    }
   }
   nsDependentSubstring subString(aString, subStringBegin);
   if (!nsStyleAnimation::ComputeValue(aPropID, aTargetElement, subString,
