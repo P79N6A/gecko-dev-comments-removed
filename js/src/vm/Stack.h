@@ -1690,6 +1690,7 @@ class ContextStack
 
     
     inline JSScript *currentScript(jsbytecode **pc = NULL) const;
+    inline JSScript *currentScriptWithDiagnostics(jsbytecode **pc = NULL) const;
 
     
     inline JSObject *currentScriptedScopeChain() const;
