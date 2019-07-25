@@ -117,6 +117,7 @@ nsTextFragment::ReleaseText()
   }
 
   m1b = nsnull;
+  mState.mIsBidi = PR_FALSE;
 
   
   mAllBits = 0;
@@ -145,8 +146,8 @@ nsTextFragment::operator=(const nsTextFragment& aOther)
   return *this;
 }
 
-static inline PRBool
-Is8BitUnvectorized(const PRUnichar *str, const PRUnichar *end)
+static inline PRInt32
+FirstNon8BitUnvectorized(const PRUnichar *str, const PRUnichar *end)
 {
 #if PR_BYTES_PER_WORD == 4
   const size_t mask = 0xff00ff00;
@@ -168,7 +169,7 @@ Is8BitUnvectorized(const PRUnichar *str, const PRUnichar *end)
     NS_MIN(len, PRInt32(((-NS_PTR_TO_INT32(str)) & alignMask) / sizeof(PRUnichar)));
   for (; i < alignLen; i++) {
     if (str[i] > 255)
-      return PR_FALSE;
+      return i;
   }
 
   
@@ -176,40 +177,47 @@ Is8BitUnvectorized(const PRUnichar *str, const PRUnichar *end)
   for (; i < wordWalkEnd; i += numUnicharsPerWord) {
     const size_t word = *reinterpret_cast<const size_t*>(str + i);
     if (word & mask)
-      return PR_FALSE;
+      return i;
   }
 
   
   for (; i < len; i++) {
     if (str[i] > 255)
-      return PR_FALSE;
+      return i;
   }
 
-  return PR_TRUE;
+  return -1;
 }
 
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
 namespace mozilla {
   namespace SSE2 {
-    PRBool Is8Bit(const PRUnichar *str, const PRUnichar *end);
+    PRInt32 FirstNon8Bit(const PRUnichar *str, const PRUnichar *end);
   }
 }
 #endif
 
-static inline PRBool
-Is8Bit(const PRUnichar *str, const PRUnichar *end)
+
+
+
+
+
+
+
+static inline PRInt32
+FirstNon8Bit(const PRUnichar *str, const PRUnichar *end)
 {
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
   if (mozilla::supports_sse2()) {
-    return mozilla::SSE2::Is8Bit(str, end);
+    return mozilla::SSE2::FirstNon8Bit(str, end);
   }
 #endif
 
-  return Is8BitUnvectorized(str, end);
+  return FirstNon8BitUnvectorized(str, end);
 }
 
 void
-nsTextFragment::SetTo(const PRUnichar* aBuffer, PRInt32 aLength)
+nsTextFragment::SetTo(const PRUnichar* aBuffer, PRInt32 aLength, PRBool aUpdateBidi)
 {
   ReleaseText();
 
@@ -268,15 +276,21 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, PRInt32 aLength)
   }
 
   
-  PRBool need2 = !Is8Bit(ucp, uend);
+  PRInt32 first16bit = FirstNon8Bit(ucp, uend);
 
-  if (need2) {
+  if (first16bit != -1) { 
     
     m2b = (PRUnichar *)nsMemory::Clone(aBuffer,
                                        aLength * sizeof(PRUnichar));
     if (!m2b) {
       return;
     }
+
+    mState.mIs2b = PR_TRUE;
+    if (aUpdateBidi) {
+      UpdateBidiFlag(aBuffer + first16bit, aLength - first16bit);
+    }
+
   } else {
     
     char* buff = (char *)nsMemory::Alloc(aLength * sizeof(char));
@@ -288,11 +302,11 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, PRInt32 aLength)
     LossyConvertEncoding16to8 converter(buff);
     copy_string(aBuffer, aBuffer+aLength, converter);
     m1b = buff;
+    mState.mIs2b = PR_FALSE;
   }
 
   
   mState.mInHeap = PR_TRUE;
-  mState.mIs2b = need2;
   mState.mLength = aLength;
 }
 
@@ -323,12 +337,12 @@ nsTextFragment::CopyTo(PRUnichar *aDest, PRInt32 aOffset, PRInt32 aCount)
 }
 
 void
-nsTextFragment::Append(const PRUnichar* aBuffer, PRUint32 aLength)
+nsTextFragment::Append(const PRUnichar* aBuffer, PRUint32 aLength, PRBool aUpdateBidi)
 {
   
   
   if (mState.mLength == 0) {
-    SetTo(aBuffer, aLength);
+    SetTo(aBuffer, aLength, aUpdateBidi);
 
     return;
   }
@@ -341,17 +355,22 @@ nsTextFragment::Append(const PRUnichar* aBuffer, PRUint32 aLength)
     if (!buff) {
       return;
     }
-    
+
     memcpy(buff + mState.mLength, aBuffer, aLength * sizeof(PRUnichar));
     mState.mLength += aLength;
     m2b = buff;
+
+    if (aUpdateBidi) {
+      UpdateBidiFlag(aBuffer, aLength);
+    }
 
     return;
   }
 
   
+  PRInt32 first16bit = FirstNon8Bit(aBuffer, aBuffer + aLength);
 
-  if (!Is8Bit(aBuffer, aBuffer + aLength)) {
+  if (first16bit != -1) { 
     
     
     PRUnichar* buff = (PRUnichar*)nsMemory::Alloc((mState.mLength + aLength) *
@@ -365,7 +384,6 @@ nsTextFragment::Append(const PRUnichar* aBuffer, PRUint32 aLength)
     copy_string(m1b, m1b+mState.mLength, converter);
 
     memcpy(buff + mState.mLength, aBuffer, aLength * sizeof(PRUnichar));
-
     mState.mLength += aLength;
     mState.mIs2b = PR_TRUE;
 
@@ -375,6 +393,10 @@ nsTextFragment::Append(const PRUnichar* aBuffer, PRUint32 aLength)
     m2b = buff;
 
     mState.mInHeap = PR_TRUE;
+
+    if (aUpdateBidi) {
+      UpdateBidiFlag(aBuffer + first16bit, aLength - first16bit);
+    }
 
     return;
   }

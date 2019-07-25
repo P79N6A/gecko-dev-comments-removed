@@ -40,7 +40,6 @@
 
 
 
-
 #ifndef nsTextFragment_h___
 #define nsTextFragment_h___
 
@@ -158,12 +157,15 @@ public:
 
 
 
-  void SetTo(const PRUnichar* aBuffer, PRInt32 aLength);
+
+  void SetTo(const PRUnichar* aBuffer, PRInt32 aLength, PRBool aUpdateBidi);
 
   
 
 
-  void Append(const PRUnichar* aBuffer, PRUint32 aLength);
+
+
+  void Append(const PRUnichar* aBuffer, PRUint32 aLength, PRBool aUpdateBidi);
 
   
 
@@ -208,12 +210,6 @@ public:
     return mState.mIs2b ? m2b[aIndex] : static_cast<unsigned char>(m1b[aIndex]);
   }
 
-  
-
-
-
-  void UpdateBidiFlag(const PRUnichar* aBuffer, PRUint32 aLength);
-
   struct FragmentBits {
     
     
@@ -240,6 +236,12 @@ public:
 private:
   void ReleaseText();
 
+  
+
+
+
+  void UpdateBidiFlag(const PRUnichar* aBuffer, PRUint32 aLength);
+ 
   union {
     PRUnichar *m2b;
     const char *m1b; 

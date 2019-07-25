@@ -329,11 +329,12 @@ nsGenericDOMDataNode::SetTextInternal(PRUint32 aOffset, PRUint32 aCount,
 
   if (aOffset == 0 && endOffset == textLength) {
     
-    mText.SetTo(aBuffer, aLength);
+    
+    mText.SetTo(aBuffer, aLength, !document || !document->GetBidiEnabled());
   }
   else if (aOffset == textLength) {
     
-    mText.Append(aBuffer, aLength);
+    mText.Append(aBuffer, aLength, !document || !document->GetBidiEnabled());
   }
   else {
     
@@ -355,12 +356,16 @@ nsGenericDOMDataNode::SetTextInternal(PRUint32 aOffset, PRUint32 aCount,
     }
 
     
-    mText.SetTo(to, newLength);
+    mText.SetTo(to, newLength, !document || !document->GetBidiEnabled());
 
     delete [] to;
   }
 
-  UpdateBidiStatus(aBuffer, aLength);
+  if (document && mText.IsBidi()) {
+    
+    
+    document->SetBidiEnabled();
+  }
 
   
   if (aNotify) {
@@ -969,21 +974,6 @@ void
 nsGenericDOMDataNode::AppendTextTo(nsAString& aResult)
 {
   mText.AppendTo(aResult);
-}
-
-void nsGenericDOMDataNode::UpdateBidiStatus(const PRUnichar* aBuffer, PRUint32 aLength)
-{
-  nsIDocument *document = GetCurrentDoc();
-  if (document && document->GetBidiEnabled()) {
-    
-    return;
-  }
-
-  mText.UpdateBidiFlag(aBuffer, aLength);
-
-  if (document && mText.IsBidi()) {
-    document->SetBidiEnabled();
-  }
 }
 
 already_AddRefed<nsIAtom>
