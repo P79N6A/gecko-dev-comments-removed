@@ -1657,7 +1657,10 @@ public:
         SkASSERT(count > 0);
 
         
-        if (fDiffRadius == 0) {
+        
+        
+        
+        if (fDiffRadius == 0 && fCenter1 == fCenter2) {
           sk_bzero(dstC, count * sizeof(*dstC));
           return;
         }
