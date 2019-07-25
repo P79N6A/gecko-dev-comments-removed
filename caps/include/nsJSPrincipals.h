@@ -47,7 +47,6 @@ struct nsJSPrincipals : nsIPrincipal, JSPrincipals
 {
   static JSBool Subsume(JSPrincipals *jsprin, JSPrincipals *other);
   static void Destroy(JSPrincipals *jsprin);
-  static JSBool Transcode(JSXDRState *xdr, JSPrincipals **jsprinp);
 
   
 

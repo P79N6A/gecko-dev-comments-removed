@@ -1537,16 +1537,6 @@ typedef JSBool
 
 
 
-typedef JSBool
-(* JSPrincipalsTranscoder)(JSXDRState *xdr, JSPrincipals **principalsp);
-
-
-
-
-
-
-
-
 
 typedef JSPrincipals *
 (* JSObjectPrincipalsFinder)(JSObject *obj);
@@ -4127,7 +4117,6 @@ JS_DropPrincipals(JSRuntime *rt, JSPrincipals *principals);
 struct JSSecurityCallbacks {
     JSCheckAccessOp            checkObjectAccess;
     JSSubsumePrincipalsOp      subsumePrincipals;
-    JSPrincipalsTranscoder     principalsTranscoder;
     JSObjectPrincipalsFinder   findObjectPrincipals;
     JSCSPEvalChecker           contentSecurityPolicyAllows;
 };

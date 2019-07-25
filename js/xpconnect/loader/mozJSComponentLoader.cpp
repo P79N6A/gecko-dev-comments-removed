@@ -751,7 +751,7 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (cache) {
-        rv = ReadCachedScript(cache, cachePath, cx, &script);
+        rv = ReadCachedScript(cache, cachePath, cx, mSystemPrincipal, &script);
         if (NS_SUCCEEDED(rv)) {
             LOG(("Successfully loaded %s from startupcache\n", nativePath.get()));
         } else {
@@ -934,7 +934,7 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
 
     if (writeToCache) {
         
-        rv = WriteCachedScript(cache, cachePath, cx, script);
+        rv = WriteCachedScript(cache, cachePath, cx, mSystemPrincipal, script);
 
         
         

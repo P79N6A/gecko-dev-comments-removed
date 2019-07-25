@@ -501,7 +501,7 @@ private:
     
     
     static nsIPrincipal*
-    GetScriptPrincipal(JSContext* cx, JSScript* script, nsresult* rv);
+    GetScriptPrincipal(JSScript* script, nsresult* rv);
 
     
     
