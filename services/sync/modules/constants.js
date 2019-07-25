@@ -37,6 +37,7 @@
 
 
 
+
 let EXPORTED_SYMBOLS = [((this[key] = val), key) for ([key, val] in Iterator({
 
 WEAVE_CHANNEL:                         "@weave_channel@",
@@ -195,6 +196,12 @@ JPAKE_ERROR_NODATA:                    "jpake.error.nodata",
 JPAKE_ERROR_KEYMISMATCH:               "jpake.error.keymismatch",
 JPAKE_ERROR_WRONGMESSAGE:              "jpake.error.wrongmessage",
 JPAKE_ERROR_USERABORT:                 "jpake.error.userabort",
+
+
+INFO_COLLECTIONS:                      "collections",
+INFO_COLLECTION_USAGE:                 "collection_usage",
+INFO_COLLECTION_COUNTS:                "collection_counts",
+INFO_QUOTA:                            "quota",
 
 
 kSyncMasterPasswordLocked:             "User elected to leave Master Password locked",
