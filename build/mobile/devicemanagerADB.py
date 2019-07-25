@@ -18,56 +18,57 @@ class DeviceManagerADB(DeviceManager):
     self.useZip = False
     self.packageName = None
     self.tempDir = None
-    if packageName == None:
-      if os.getenv('USER'):
-        packageName = 'org.mozilla.fennec_' + os.getenv('USER')
-      else:
-        packageName = 'org.mozilla.fennec_'
-    self.Init(packageName)
 
-  def __del__(self):
-    if self.host:
-      self.disconnectRemoteADB()
-
-  def Init(self, packageName):
-    
-    
-    try:
-      self.verifyADB()
-      if self.host:
-        self.connectRemoteADB()
-      self.verifyRunAs(packageName)
-    except:
-      self.useRunAs = False
+    if packageName:
       self.packageName = packageName
-    try:
-      self.verifyZip()
-    except:
-      self.useZip = False
+    else:
+      if os.getenv('USER'):
+        self.packageName = 'org.mozilla.fennec_' + os.getenv('USER')
+      else:
+        self.packageName = 'org.mozilla.fennec_'
 
-    def verifyRoot():
-      
-      files = self.listFiles("/data/data")
-      if (len(files) == 1):
-        if (files[0].find("Permission denied") != -1):
-          print "NOT running as root"
-          raise Exception("not running as root")
-      self.haveRoot = True
+    
+    self.verifyADB()
 
+    
+    if self.host:
+      self.connectRemoteADB()
+
+    
+    self.verifyDevice()
+
+    
     try:
-      verifyRoot()
-    except:
+      self.verifyRunAs()
+    except DMError:
+      pass
+
+    
+    try:
+      self.verifyRoot()
+    except DMError, e:
       try:
         self.checkCmd(["root"])
         
         
         
-        verifyRoot()
-      except:
-        if (self.useRunAs):
+        self.verifyRoot()
+      except DMError:
+        if self.useRunAs:
           print "restarting as root failed, but run-as available"
         else:
           print "restarting as root failed"
+
+    
+    
+    try:
+      self.verifyZip()
+    except DMError:
+      pass
+
+  def __del__(self):
+    if self.host:
+      self.disconnectRemoteADB()
 
   
   
@@ -708,10 +709,29 @@ class DeviceManagerADB(DeviceManager):
   def verifyADB(self):
     
     try:
-      self.runCmd(["version"])
-    except:
-      print "unable to execute ADB: ensure Android SDK is installed and adb is in your $PATH"
+      self.checkCmd(["version"])
+    except os.error, err:
+      raise DMError("unable to execute ADB (%s): ensure Android SDK is installed and adb is in your $PATH" % err)
+    except subprocess.CalledProcessError:
+      raise DMError("unable to execute ADB: ensure Android SDK is installed and adb is in your $PATH")
+
+  def verifyDevice(self):
     
+    try:
+      self.checkCmd(["shell", "echo"])
+    except subprocess.CalledProcessError:
+      raise DMError("unable to connect to device: is it plugged in?")
+
+  def verifyRoot(self):
+    
+    files = self.listFiles("/data/data")
+    if (len(files) == 1):
+      if (files[0].find("Permission denied") != -1):
+        print "NOT running as root"
+        raise DMError("not running as root")
+
+    self.haveRoot = True
+
   def isCpAvailable(self):
     
     
@@ -727,7 +747,7 @@ class DeviceManagerADB(DeviceManager):
       print "unable to execute 'cp' on device; consider installing busybox from Android Market"
       return False
 
-  def verifyRunAs(self, packageName):
+  def verifyRunAs(self):
     
     
     
@@ -737,28 +757,27 @@ class DeviceManagerADB(DeviceManager):
     
     self.useRunAs = False
     devroot = self.getDeviceRoot()
-    if (packageName and self.isCpAvailable() and devroot):
+    if (self.packageName and self.isCpAvailable() and devroot):
       tmpDir = self.getTempDir()
 
       
       
-      runAsOut = self.runCmd(["shell", "run-as", packageName, "mkdir", devroot + "/sanity"]).communicate()[0]
-      if runAsOut.startswith("run-as:") and ("not debuggable" in runAsOut[0] or
-                                             "is unknown" in runAsOut[0]):
+      runAsOut = self.runCmd(["shell", "run-as", self.packageName, "mkdir", devroot + "/sanity"]).communicate()[0]
+      if runAsOut.startswith("run-as:") and ("not debuggable" in runAsOut or
+                                             "is unknown" in runAsOut):
         raise DMError("run-as failed sanity check")
 
       self.checkCmd(["push", os.path.abspath(sys.argv[0]), tmpDir + "/tmpfile"])
       if self.useDDCopy:
-        self.checkCmd(["shell", "run-as", packageName, "dd", "if=" + tmpDir + "/tmpfile", "of=" + devroot + "/sanity/tmpfile"])
+        self.checkCmd(["shell", "run-as", self.packageName, "dd", "if=" + tmpDir + "/tmpfile", "of=" + devroot + "/sanity/tmpfile"])
       else:
-        self.checkCmd(["shell", "run-as", packageName, "cp", tmpDir + "/tmpfile", devroot + "/sanity"])
+        self.checkCmd(["shell", "run-as", self.packageName, "cp", tmpDir + "/tmpfile", devroot + "/sanity"])
       if (self.fileExists(devroot + "/sanity/tmpfile")):
-        print "will execute commands via run-as " + packageName
-        self.packageName = packageName
+        print "will execute commands via run-as " + self.packageName
         self.useRunAs = True
       self.checkCmd(["shell", "rm", devroot + "/tmp/tmpfile"])
-      self.checkCmd(["shell", "run-as", packageName, "rm", "-r", devroot + "/sanity"])
-      
+      self.checkCmd(["shell", "run-as", self.packageName, "rm", "-r", devroot + "/sanity"])
+
   def isUnzipAvailable(self):
     data = self.runCmdAs(["shell", "unzip"]).stdout.read()
     if (re.search('Usage', data)):
@@ -781,3 +800,5 @@ class DeviceManagerADB(DeviceManager):
     if (self.isUnzipAvailable() and self.isLocalZipAvailable()):
       print "will use zip to push directories"
       self.useZip = True
+    else:
+      raise DMError("zip not available")
