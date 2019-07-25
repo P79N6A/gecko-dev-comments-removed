@@ -166,12 +166,14 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   for (PRUint32 i = 0; i < oldLockCount; i++)
     LockImage();
 
-  
-  for (PRUint32 i = 0; i < oldAnimationConsumers; i++)
-    IncrementAnimationConsumers();
+  if (mCanceled) {
+    
+    
+    for (PRUint32 i = 0; i < oldAnimationConsumers; i++)
+      IncrementAnimationConsumers();
 
-  if (mCanceled)
     return NS_OK;
+  }
 
   
   PRBool wasDecoded = PR_FALSE;
@@ -184,6 +186,12 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   
   
   mOwner->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER, PR_FALSE);
+
+  
+  
+  
+  for (PRUint32 i = 0; i < oldAnimationConsumers; i++)
+    IncrementAnimationConsumers();
 
   mOwner = aNewOwner;
 
