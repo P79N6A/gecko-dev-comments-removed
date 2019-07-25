@@ -33,6 +33,41 @@ if (parentRunner) {
 }
 
 
+
+
+SimpleTest.testPluginIsOOP = function () {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    var prefservice = Components.classes["@mozilla.org/preferences-service;1"]
+                                .getService(CI.nsIPrefBranch);
+
+    var testPluginIsOOP = false;
+    if (navigator.platform.indexOf("Mac") == 0) {
+        var xulRuntime = Components.classes["@mozilla.org/xre/app-info;1"]
+                                   .getService(CI.nsIXULAppInfo)
+                                   .QueryInterface(CI.nsIXULRuntime);
+        if (xulRuntime.XPCOMABI.match(/x86-/)) {
+            try {
+                testPluginIsOOP = prefservice.getBoolPref("dom.ipc.plugins.enabled.i386.test.plugin");
+            } catch (e) {
+                testPluginIsOOP = prefservice.getBoolPref("dom.ipc.plugins.enabled.i386");
+            }
+        }
+        else if (xulRuntime.XPCOMABI.match(/x86_64-/)) {
+            try {
+                testPluginIsOOP = prefservice.getBoolPref("dom.ipc.plugins.enabled.x86_64.test.plugin");
+            } catch (e) {
+                testPluginIsOOP = prefservice.getBoolPref("dom.ipc.plugins.enabled.x86_64");
+            }
+        }
+    }
+    else {
+        testPluginIsOOP = prefservice.getBoolPref("dom.ipc.plugins.enabled");
+    }
+
+    return testPluginIsOOP;
+};
+
+
 if (parentRunner) {
     SimpleTest._logEnabled = parentRunner.logEnabled;
 }
