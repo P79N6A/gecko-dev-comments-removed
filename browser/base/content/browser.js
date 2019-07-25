@@ -4276,14 +4276,12 @@ var XULBrowserWindow = {
 
   
   _state: null,
-  _tooltipText: null,
   _hostChanged: false, 
 
   onSecurityChange: function (aWebProgress, aRequest, aState) {
     
     
     if (this._state == aState &&
-        this._tooltipText == gBrowser.securityUI.tooltipText &&
         !this._hostChanged) {
 #ifdef DEBUG
       try {
@@ -4309,7 +4307,6 @@ var XULBrowserWindow = {
 #endif
 
     this._hostChanged = false;
-    this._tooltipText = gBrowser.securityUI.tooltipText
 
     
     
@@ -7940,7 +7937,7 @@ var TabContextMenu = {
 };
 
 XPCOMUtils.defineLazyGetter(this, "HUDConsoleUI", function () {
-  Cu.import("resource://gre/modules/HUDService.jsm");
+  Cu.import("resource:///modules/HUDService.jsm");
   try {
     return HUDService.consoleUI;
   }
