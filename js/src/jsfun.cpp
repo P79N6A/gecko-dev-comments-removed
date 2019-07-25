@@ -1518,6 +1518,12 @@ StackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
                             if (IsFunctionObject(v, &clone) &&
                                 GET_FUNCTION_PRIVATE(cx, clone) == fun &&
                                 clone->hasMethodObj(*thisp)) {
+                                
+
+
+
+
+
                                 JS_ASSERT_IF(!clone->getType()->singleton, clone != &funobj);
                                 *vp = v;
                                 calleev().setObject(*clone);
@@ -1545,7 +1551,7 @@ StackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
 
 
 
-            JSObject *newfunobj = CloneFunctionObject(cx, fun, fun->getParent());
+            JSObject *newfunobj = CloneFunctionObject(cx, fun, fun->getParent(), true);
             if (!newfunobj)
                 return false;
             newfunobj->setMethodObj(*first_barriered_thisp);
@@ -2845,18 +2851,6 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
 
 
 
-
-        if (fun->getType()->singleton) {
-            JS_ASSERT(fun->getType()->singleton == fun);
-            JS_ASSERT(fun->getProto() == proto);
-            fun->setParent(parent);
-            return fun;
-        }
-
-        
-
-
-
         clone = NewNativeClassInstance(cx, &js_FunctionClass, proto, parent);
         if (!clone)
             return NULL;
@@ -2866,7 +2860,9 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
 
 
 
-        if (fun->getProto() == proto)
+
+
+        if (fun->getProto() == proto && !fun->getType()->singleton)
             clone->setTypeAndShape(fun->getType(), fun->lastProperty());
 
         clone->setPrivate(fun);

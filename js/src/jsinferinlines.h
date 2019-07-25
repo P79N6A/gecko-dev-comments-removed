@@ -211,9 +211,6 @@ struct AutoEnterCompilation
     }
 };
 
-bool
-UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
-
 
 static inline bool
 CanHaveReadBarrier(const jsbytecode *pc)

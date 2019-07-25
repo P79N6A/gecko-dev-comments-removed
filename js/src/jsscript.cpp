@@ -1565,6 +1565,18 @@ js_DestroyCachedScript(JSContext *cx, JSScript *script)
 void
 js_TraceScript(JSTracer *trc, JSScript *script)
 {
+    JS_ASSERT_IF(trc->context->runtime->gcCurrentCompartment, IS_GC_MARKING_TRACER(trc));
+
+    
+
+
+
+
+
+    JSRuntime *rt = trc->context->runtime;
+    if (rt->gcCurrentCompartment && rt->gcCurrentCompartment != script->compartment)
+        return;
+
     JSAtomMap *map = &script->atomMap;
     MarkAtomRange(trc, map->length, map->vector, "atomMap");
 

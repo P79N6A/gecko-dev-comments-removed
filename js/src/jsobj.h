@@ -63,6 +63,7 @@ namespace js {
 
 class JSProxyHandler;
 class AutoPropDescArrayRooter;
+struct GCMarker;
 
 namespace mjit { class Compiler; }
 
@@ -322,6 +323,8 @@ class ValidateWriter;
 
 
 
+
+
 struct JSObject : js::gc::Cell {
     
 
@@ -428,7 +431,7 @@ struct JSObject : js::gc::Cell {
     }
 
     inline void trace(JSTracer *trc);
-    void markSlots(JSTracer *trc);
+    inline void scanSlots(js::GCMarker *gcmarker);
 
     uint32 shape() const {
         JS_ASSERT(objShape != INVALID_SHAPE);
@@ -630,6 +633,8 @@ struct JSObject : js::gc::Cell {
   private:
     inline js::Value* fixedSlots() const;
     inline bool hasSlotsArray() const;
+
+    inline size_t numDynamicSlots(size_t capacity) const;
 
   public:
     
@@ -1119,7 +1124,7 @@ struct JSObject : js::gc::Cell {
 
     
     void init(JSContext *cx, js::Class *aclasp, js::types::TypeObject *type,
-              JSObject *parent, void *priv, bool useHoles);
+              JSObject *parent, void *priv, bool denseArray);
 
     inline void finish(JSContext *cx);
     JS_ALWAYS_INLINE void finalize(JSContext *cx);
@@ -1180,7 +1185,14 @@ struct JSObject : js::gc::Cell {
 
     bool toDictionaryMode(JSContext *cx);
 
-    static bool TradeGuts(JSContext *cx, JSObject *a, JSObject *b);
+    struct TradeGutsReserved;
+    static bool ReserveForTradeGuts(JSContext *cx, JSObject *a, JSObject *b,
+                                    TradeGutsReserved &reserved);
+
+    static void TradeGuts(JSContext *cx, JSObject *a, JSObject *b,
+                          TradeGutsReserved &reserved);
+
+    void updateFixedSlots(uintN fixed);
 
   public:
     

@@ -724,6 +724,17 @@ struct TypeObject
 };
 
 
+bool
+UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
+
+
+
+
+
+void
+CheckNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script);
+
+
 
 
 

@@ -2149,9 +2149,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                 else if (op == JSOP_GETELEM2)
                     saveop = JSOP_GETELEM;
             }
-            
-            
-            
 
             jp->dvgfence = NULL;
         }

@@ -493,7 +493,7 @@ class Writer
     nj::LIns *ldpObjProto(nj::LIns *obj) const {
         nj::LIns *type = name(lir->insLoad(nj::LIR_ldp, obj, offsetof(JSObject, type), ACCSET_OBJ_TYPE),
                               "type");
-        return name(lir->insLoad(nj::LIR_ldp, type, offsetof(types::TypeObject, proto), 0),
+        return name(lir->insLoad(nj::LIR_ldp, type, offsetof(types::TypeObject, proto), ACCSET_OBJ_TYPE),
                     "proto");
     }
 

@@ -4531,6 +4531,60 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script, JS
     return true;
 }
 
+void
+types::CheckNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script)
+{
+    if (type->unknownProperties())
+        return;
+
+    
+    JSObject *baseobj = NewBuiltinClassInstance(cx, &js_ObjectClass, gc::FINALIZE_OBJECT16);
+    if (!baseobj)
+        return;
+
+    Vector<TypeNewScript::Initializer> initializerList(cx);
+    AnalyzeNewScriptProperties(cx, type, script, &baseobj, &initializerList);
+    if (!baseobj || baseobj->slotSpan() == 0 && type->newScriptCleared)
+        return;
+
+    gc::FinalizeKind kind = gc::GetGCObjectKind(baseobj->slotSpan());
+
+    
+    JS_ASSERT(gc::GetGCKindSlots(kind) >= baseobj->slotSpan());
+
+    TypeNewScript::Initializer done(TypeNewScript::Initializer::DONE, 0);
+
+    
+
+
+
+
+    baseobj = NewReshapedObject(cx, type, baseobj->getParent(), kind,
+                                baseobj->lastProperty());
+    if (!baseobj ||
+        !type->addDefiniteProperties(cx, baseobj) ||
+        !initializerList.append(done)) {
+        cx->compartment->types.setPendingNukeTypes(cx);
+        return;
+    }
+
+    size_t numBytes = sizeof(TypeNewScript)
+                    + (initializerList.length() * sizeof(TypeNewScript::Initializer));
+    type->newScript = (TypeNewScript *) cx->calloc_(numBytes);
+    if (!type->newScript) {
+        cx->compartment->types.setPendingNukeTypes(cx);
+        return;
+    }
+
+    type->newScript->script = script;
+    type->newScript->finalizeKind = unsigned(kind);
+    type->newScript->shape = baseobj->lastProperty();
+
+    type->newScript->initializerList = (TypeNewScript::Initializer *)
+        ((char *) type->newScript + sizeof(TypeNewScript));
+    PodCopy(type->newScript->initializerList, initializerList.begin(), initializerList.length());
+}
+
 
 
 
@@ -5173,53 +5227,8 @@ JSObject::makeNewType(JSContext *cx, JSScript *newScript)
             types->addType(cx, (jstype) type);
     }
 
-    if (newScript && !type->unknownProperties()) {
-        
-        JSObject *baseobj = NewBuiltinClassInstance(cx, &js_ObjectClass, gc::FINALIZE_OBJECT16);
-        if (!baseobj)
-            return;
-
-        Vector<TypeNewScript::Initializer> initializerList(cx);
-        AnalyzeNewScriptProperties(cx, type, newScript, &baseobj, &initializerList);
-        if (baseobj && baseobj->slotSpan() > 0 && !type->newScriptCleared) {
-            js::gc::FinalizeKind kind = js::gc::GetGCObjectKind(baseobj->slotSpan());
-
-            
-            JS_ASSERT(js::gc::GetGCKindSlots(kind) >= baseobj->slotSpan());
-
-            TypeNewScript::Initializer done(TypeNewScript::Initializer::DONE, 0);
-
-            
-
-
-
-
-            baseobj = NewReshapedObject(cx, type, baseobj->getParent(), kind,
-                                        baseobj->lastProperty());
-            if (!baseobj ||
-                !type->addDefiniteProperties(cx, baseobj) ||
-                !initializerList.append(done)) {
-                cx->compartment->types.setPendingNukeTypes(cx);
-                return;
-            }
-
-            size_t numBytes = sizeof(TypeNewScript)
-                            + (initializerList.length() * sizeof(TypeNewScript::Initializer));
-            type->newScript = (TypeNewScript *) cx->calloc_(numBytes);
-            if (!type->newScript) {
-                cx->compartment->types.setPendingNukeTypes(cx);
-                return;
-            }
-
-            type->newScript->script = newScript;
-            type->newScript->finalizeKind = unsigned(kind);
-            type->newScript->shape = baseobj->lastProperty();
-
-            type->newScript->initializerList = (TypeNewScript::Initializer *)
-                ((char *) type->newScript + sizeof(TypeNewScript));
-            PodCopy(type->newScript->initializerList, initializerList.begin(), initializerList.length());
-        }
-    }
+    if (newScript)
+        CheckNewScriptProperties(cx, type, newScript);
 
     newType = type;
     setDelegate();
@@ -5228,49 +5237,6 @@ JSObject::makeNewType(JSContext *cx, JSScript *newScript)
 
 
 
-
-void
-types::TypeObject::trace(JSTracer *trc)
-{
-    JS_ASSERT(!marked);
-
-    
-
-
-
-    if (trc->context->runtime->gcMarkAndSweep)
-        marked = true;
-
-#ifdef DEBUG
-    gc::MarkId(trc, name_, "type_name");
-#endif
-
-    unsigned count = getPropertyCount();
-    for (unsigned i = 0; i < count; i++) {
-        Property *prop = getProperty(i);
-        if (prop)
-            gc::MarkId(trc, prop->id, "type_prop");
-    }
-
-    if (emptyShapes) {
-        int count = gc::FINALIZE_OBJECT_LAST - gc::FINALIZE_OBJECT0 + 1;
-        for (int i = 0; i < count; i++) {
-            if (emptyShapes[i])
-                MarkShape(trc, emptyShapes[i], "empty_shape");
-        }
-    }
-
-    if (proto)
-        gc::MarkObject(trc, *proto, "type_proto");
-
-    if (singleton)
-        gc::MarkObject(trc, *singleton, "type_singleton");
-
-    if (newScript) {
-        js_TraceScript(trc, newScript->script);
-        gc::MarkShape(trc, newScript->shape, "new_shape");
-    }
-}
 
 
 

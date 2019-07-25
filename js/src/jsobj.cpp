@@ -2952,21 +2952,35 @@ js_CreateThis(JSContext *cx, JSObject *callee)
     return obj;
 }
 
+static inline JSObject *
+CreateThisForFunctionWithType(JSContext *cx, types::TypeObject *type, JSObject *parent)
+{
+    if (type->newScript) {
+        
+
+
+
+
+        gc::FinalizeKind kind = gc::FinalizeKind(type->newScript->finalizeKind);
+        JSObject *res = NewObjectWithType(cx, type, parent, kind);
+        if (res)
+            res->setMap((Shape *) type->newScript->shape);
+        return res;
+    }
+
+    gc::FinalizeKind kind = NewObjectGCKind(cx, &js_ObjectClass);
+    return NewObjectWithType(cx, type, parent, kind);
+}
+
 JSObject *
 js_CreateThisForFunctionWithProto(JSContext *cx, JSObject *callee, JSObject *proto)
 {
     if (proto) {
         JSScript *calleeScript = callee->getFunctionPrivate()->script();
         types::TypeObject *type = proto->getNewType(cx, calleeScript);
-
-        if (type && type->newScript) {
-            JS_ASSERT(type->newScript->script == calleeScript);
-            gc::FinalizeKind kind = gc::FinalizeKind(type->newScript->finalizeKind);
-            JSObject *res = NewObjectWithType(cx, type, callee->getParent(), kind);
-            if (res)
-                res->setMap((Shape *) type->newScript->shape);
-            return res;
-        }
+        if (!type)
+            return NULL;
+        return CreateThisForFunctionWithType(cx, type, callee->getParent());
     }
 
     gc::FinalizeKind kind = NewObjectGCKind(cx, &js_ObjectClass);
@@ -2994,7 +3008,10 @@ js_CreateThisForFunction(JSContext *cx, JSObject *callee, bool newType)
 
 
 
+
+
         JS_ASSERT(cx->typeInferenceEnabled());
+        JSScript *calleeScript = callee->getFunctionPrivate()->script();
 
 #ifdef DEBUG
         static unsigned count = 0;
@@ -3004,16 +3021,25 @@ js_CreateThisForFunction(JSContext *cx, JSObject *callee, bool newType)
         char *name = NULL;
 #endif
 
+        types::AutoEnterTypeInference enter(cx);
         types::TypeObject *type = cx->compartment->types.newTypeObject(cx, NULL, name, "",
                                                                        false, false,
                                                                        obj->getProto());
-        types::AutoTypeRooter root(cx, type);
 
-        obj = NewReshapedObject(cx, type, obj->getParent(), gc::FinalizeKind(obj->finalizeKind()),
-                                obj->lastProperty());
+        
+
+
+
+
+        types::CheckNewScriptProperties(cx, type, calleeScript);
+
+        obj = CreateThisForFunctionWithType(cx, type, obj->getParent());
         if (!obj)
             return NULL;
-        callee->getFunctionPrivate()->script()->typeSetThis(cx, (types::jstype) type);
+        type->singleton = obj;
+        if (type->newScript)
+            obj->setMap((Shape *) type->newScript->shape);
+        calleeScript->typeSetThis(cx, (types::jstype) type);
     }
 
     return obj;
@@ -3592,8 +3618,80 @@ JSObject::clone(JSContext *cx, JSObject *proto, JSObject *parent)
     return clone;
 }
 
+struct JSObject::TradeGutsReserved {
+    JSContext *cx;
+    Vector<Value> avals;
+    Vector<Value> bvals;
+    Value *newaslots;
+    Value *newbslots;
+
+    TradeGutsReserved(JSContext *cx)
+        : cx(cx), avals(cx), bvals(cx), newaslots(NULL), newbslots(NULL)
+    {}
+
+    ~TradeGutsReserved()
+    {
+        if (newaslots)
+            cx->free_(newaslots);
+        if (newbslots)
+            cx->free_(newbslots);
+    }
+};
+
 bool
-JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b)
+JSObject::ReserveForTradeGuts(JSContext *cx, JSObject *a, JSObject *b,
+                              TradeGutsReserved &reserved)
+{
+    
+
+
+
+
+
+    if (a->structSize() == b->structSize())
+        return true;
+
+    
+
+    unsigned acap = a->numSlots();
+    unsigned bcap = b->numSlots();
+
+    if (!reserved.avals.reserve(acap))
+        return false;
+    if (!reserved.bvals.reserve(bcap))
+        return false;
+
+    
+
+
+
+
+
+    unsigned afixed = a->numFixedSlots();
+    unsigned bfixed = b->numFixedSlots();
+
+    if (afixed < bcap) {
+        reserved.newaslots = (Value *) cx->malloc_(sizeof(Value) * (bcap - afixed));
+        if (!reserved.newaslots)
+            return false;
+    }
+    if (bfixed < acap) {
+        reserved.newbslots = (Value *) cx->malloc_(sizeof(Value) * (acap - bfixed));
+        if (!reserved.newbslots)
+            return false;
+    }
+
+    return true;
+}
+
+void
+JSObject::updateFixedSlots(uintN fixed)
+{
+    flags = (flags & ~FIXED_SLOTS_MASK) | (fixed << FIXED_SLOTS_SHIFT);
+}
+
+void
+JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &reserved)
 {
     JS_ASSERT(a->compartment() == b->compartment());
     JS_ASSERT(a->isFunction() == b->isFunction());
@@ -3635,6 +3733,9 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b)
 
 
 
+        
+
+
 
 
         if (a->isNative())
@@ -3645,41 +3746,11 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b)
         unsigned acap = a->numSlots();
         unsigned bcap = b->numSlots();
 
-        AutoValueVector avals(cx);
-        if (!avals.reserve(acap))
-            return false;
         for (size_t i = 0; i < acap; i++)
-            avals.infallibleAppend(a->getSlot(i));
+            reserved.avals.infallibleAppend(a->getSlot(i));
 
-        AutoValueVector bvals(cx);
-        if (!bvals.reserve(bcap))
-            return false;
         for (size_t i = 0; i < bcap; i++)
-            bvals.infallibleAppend(b->getSlot(i));
-
-        unsigned afixed = a->numFixedSlots();
-        unsigned bfixed = b->numFixedSlots();
-
-        
-
-
-
-        Value *newaslots = NULL, *newbslots = NULL;
-        if (afixed < bcap) {
-            newaslots = (Value *) cx->malloc_(sizeof(Value) * (bcap - afixed));
-            if (!newaslots)
-                return false;
-        }
-        if (bfixed < acap) {
-            newbslots = (Value *) cx->malloc_(sizeof(Value) * (acap - bfixed));
-            if (!newbslots) {
-                if (newaslots)
-                    cx->free_(newaslots);
-                return false;
-            }
-        }
-
-        
+            reserved.bvals.infallibleAppend(b->getSlot(i));
 
         
         if (a->hasSlotsArray())
@@ -3687,25 +3758,30 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b)
         if (b->hasSlotsArray())
             cx->free_(b->slots);
 
+        unsigned afixed = a->numFixedSlots();
+        unsigned bfixed = b->numFixedSlots();
+
         JSObject tmp;
         memcpy(&tmp, a, sizeof tmp);
         memcpy(a, b, sizeof tmp);
         memcpy(b, &tmp, sizeof tmp);
 
-        a->flags = (a->flags & ~FIXED_SLOTS_MASK) | (afixed << FIXED_SLOTS_SHIFT);
-        a->slots = newaslots;
+        a->updateFixedSlots(afixed);
+        a->slots = reserved.newaslots;
         a->capacity = Max(afixed, bcap);
-        a->copySlotRange(0, bvals.begin(), bcap);
+        a->copySlotRange(0, reserved.bvals.begin(), bcap);
         a->clearSlotRange(bcap, a->capacity - bcap);
 
-        b->flags = (b->flags & ~FIXED_SLOTS_MASK) | (bfixed << FIXED_SLOTS_SHIFT);
-        b->slots = newbslots;
+        b->updateFixedSlots(bfixed);
+        b->slots = reserved.newbslots;
         b->capacity = Max(bfixed, acap);
-        b->copySlotRange(0, avals.begin(), acap);
+        b->copySlotRange(0, reserved.avals.begin(), acap);
         b->clearSlotRange(acap, b->capacity - acap);
-    }
 
-    return true;
+        
+        reserved.newaslots = NULL;
+        reserved.newbslots = NULL;
+    }
 }
 
 
@@ -3717,8 +3793,13 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b)
 bool
 JSObject::swap(JSContext *cx, JSObject *other)
 {
-    if (this->compartment() == other->compartment())
-        return TradeGuts(cx, this, other);
+    if (this->compartment() == other->compartment()) {
+        TradeGutsReserved reserved(cx);
+        if (!ReserveForTradeGuts(cx, this, other, reserved))
+            return false;
+        TradeGuts(cx, this, other, reserved);
+        return true;
+    }
 
     JSObject *thisClone;
     JSObject *otherClone;
@@ -3738,10 +3819,17 @@ JSObject::swap(JSContext *cx, JSObject *other)
         if (!otherClone || !otherClone->copyPropertiesFrom(cx, other))
             return false;
     }
-    if (!TradeGuts(cx, this, otherClone))
+
+    TradeGutsReserved reservedThis(cx);
+    TradeGutsReserved reservedOther(cx);
+
+    if (!ReserveForTradeGuts(cx, this, otherClone, reservedThis) ||
+        !ReserveForTradeGuts(cx, other, thisClone, reservedOther)) {
         return false;
-    if (!TradeGuts(cx, other, thisClone))
-        return false;
+    }
+
+    TradeGuts(cx, this, otherClone, reservedThis);
+    TradeGuts(cx, other, thisClone, reservedOther);
 
     return true;
 }
@@ -4308,6 +4396,14 @@ JSObject::copySlotRange(size_t start, const Value *vector, size_t length)
     }
 }
 
+
+inline size_t
+JSObject::numDynamicSlots(size_t capacity) const
+{
+    JS_ASSERT(capacity >= numFixedSlots());
+    return isDenseArray() ? capacity : capacity - numFixedSlots();
+}
+
 bool
 JSObject::allocSlots(JSContext *cx, size_t newcap)
 {
@@ -4320,23 +4416,18 @@ JSObject::allocSlots(JSContext *cx, size_t newcap)
 
 
 
+
     if (type->newScript) {
-        unsigned newScriptSlots = gc::GetGCKindSlots(gc::FinalizeKind(type->newScript->finalizeKind));
-        if (newScriptSlots == numFixedSlots()) {
-            
+        gc::FinalizeKind kind = gc::FinalizeKind(type->newScript->finalizeKind);
+        unsigned newScriptSlots = gc::GetGCKindSlots(kind);
+        if (newScriptSlots == numFixedSlots() && gc::CanBumpFinalizeKind(kind)) {
+            kind = gc::BumpFinalizeKind(kind);
+            JSObject *obj = NewReshapedObject(cx, type, getParent(), kind, type->newScript->shape);
+            if (!obj)
+                return false;
 
-
-
-            unsigned newKind = type->newScript->finalizeKind + 2;
-            if (newKind <= gc::FINALIZE_OBJECT_LAST) {
-                JSObject *obj = NewReshapedObject(cx, type, getParent(),
-                                                  gc::FinalizeKind(newKind), type->newScript->shape);
-                if (!obj)
-                    return false;
-
-                type->newScript->finalizeKind = newKind;
-                type->newScript->shape = obj->lastProperty();
-            }
+            type->newScript->finalizeKind = kind;
+            type->newScript->shape = obj->lastProperty();
         }
     }
 
@@ -4346,7 +4437,7 @@ JSObject::allocSlots(JSContext *cx, size_t newcap)
         return false;
     }
 
-    uint32 allocCount = isDenseArray() ? newcap : newcap - numFixedSlots();
+    uint32 allocCount = numDynamicSlots(newcap);
 
     Value *tmpslots = (Value*) cx->malloc_(allocCount * sizeof(Value));
     if (!tmpslots)
@@ -4403,8 +4494,8 @@ JSObject::growSlots(JSContext *cx, size_t newcap)
     if (!hasSlotsArray())
         return allocSlots(cx, actualCapacity);
 
-    uint32 oldAllocCount = isDenseArray() ? oldcap : oldcap - numFixedSlots();
-    uint32 allocCount = isDenseArray() ? actualCapacity : actualCapacity - numFixedSlots();
+    uint32 oldAllocCount = numDynamicSlots(oldcap);
+    uint32 allocCount = numDynamicSlots(actualCapacity);
 
     Value *tmpslots = (Value*) cx->realloc_(slots, oldAllocCount * sizeof(Value),
                                             allocCount * sizeof(Value));
@@ -4435,8 +4526,6 @@ JSObject::shrinkSlots(JSContext *cx, size_t newcap)
     JS_ASSERT(newcap <= oldcap);
     JS_ASSERT(newcap >= slotSpan());
 
-    size_t fixed = numFixedSlots();
-
     if (oldcap <= SLOT_CAPACITY_MIN || !hasSlotsArray()) {
         
 
@@ -4449,10 +4538,8 @@ JSObject::shrinkSlots(JSContext *cx, size_t newcap)
     }
 
     uint32 fill = newcap;
-    if (newcap < SLOT_CAPACITY_MIN)
-        newcap = SLOT_CAPACITY_MIN;
-    if (newcap < fixed)
-        newcap = fixed;
+    newcap = Max(newcap, size_t(SLOT_CAPACITY_MIN));
+    newcap = Max(newcap, numFixedSlots());
 
     Value *tmpslots = (Value*) cx->realloc_(slots, newcap * sizeof(Value));
     if (!tmpslots)
@@ -4463,6 +4550,10 @@ JSObject::shrinkSlots(JSContext *cx, size_t newcap)
 
     if (fill < newcap) {
         
+
+
+
+
         if (!isDenseArray())
             clearSlotRange(fill, newcap - fill);
     }
@@ -6050,7 +6141,7 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
                 JSObject *funobj = &vp->toObject();
                 JSFunction *fun = funobj->getFunctionPrivate();
                 if (fun == funobj) {
-                    funobj = CloneFunctionObject(cx, fun, fun->parent);
+                    funobj = CloneFunctionObject(cx, fun, fun->parent, true);
                     if (!funobj)
                         return JS_FALSE;
                     vp->setObject(*funobj);
