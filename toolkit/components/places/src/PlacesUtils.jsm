@@ -2082,17 +2082,17 @@ var PlacesUtils = {
     let url = aURI instanceof Ci.nsIURI ? aURI.spec : aURI;
     this._asyncGetBookmarksStmt.params.url = url;
     this._asyncGetBookmarksStmt.params.name = this.LMANNO_FEEDURI;
-    return this._asyncGetBookmarksStmt.executeAsync({
+
+    
+    
+    let stmt = new AsyncStatementCancelWrapper(this._asyncGetBookmarksStmt);
+    return stmt.executeAsync({
       _itemIds: [],
       handleResult: function(aResultSet) {
         let row, haveMatches = false;
         for (let row; (row = aResultSet.getNextRow());) {
           this._itemIds.push(row.getResultByIndex(0));
         }
-      },
-      handleError: function(aError) {
-        Cu.reportError("Async statement execution returned (" + aError.result +
-                       "): " + aError.message);
       },
       handleCompletion: function(aReason)
       {
@@ -2103,6 +2103,41 @@ var PlacesUtils = {
     });
   }
 };
+
+
+
+
+
+function AsyncStatementCancelWrapper(aStmt) {
+  this._stmt = aStmt;
+}
+AsyncStatementCancelWrapper.prototype = {
+  _canceled: false,
+  _cancel: function() {
+    this._canceled = true;
+    this._pendingStmt.cancel();
+  },
+  handleResult: function(aResultSet) {
+    this._callback.handleResult(aResultSet);
+  },
+  handleError: function(aError) {
+    Cu.reportError("Async statement execution returned (" + aError.result +
+                   "): " + aError.message);
+  },
+  handleCompletion: function(aReason)
+  {
+    let reason = this._canceled ?
+                   Ci.mozIStorageStatementCallback.REASON_CANCELED :
+                   aReason;
+    this._callback.handleCompletion(reason);
+  },
+  executeAsync: function(aCallback) {
+    this._pendingStmt = this._stmt.executeAsync(this);
+    this._callback = aCallback;
+    let self = this;
+    return { cancel: function () { self._cancel(); } }
+  }
+}
 
 XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "history",
                                    "@mozilla.org/browser/nav-history-service;1",
