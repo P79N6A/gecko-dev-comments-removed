@@ -23,7 +23,7 @@ namespace layers {
 struct THEBES_API FrameMetrics {
 public:
   
-  typedef uint64_t ViewID;
+  typedef PRUint64 ViewID;
   static const ViewID NULL_SCROLL_ID;   
   static const ViewID ROOT_SCROLL_ID;   
   static const ViewID START_SCROLL_ID;  
@@ -36,6 +36,7 @@ public:
     , mScrollId(NULL_SCROLL_ID)
     , mCSSContentRect(0, 0, 0, 0)
     , mResolution(1, 1)
+    , mMayHaveTouchListeners(false)
   {}
 
   
@@ -81,6 +82,9 @@ public:
   
   
   gfxSize mResolution;
+
+  
+  bool mMayHaveTouchListeners;
 };
 
 }

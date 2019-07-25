@@ -8,6 +8,8 @@
 #include "InputData.h"
 #include "Axis.h"
 
+#include "base/message_loop.h"
+
 namespace mozilla {
 namespace layers {
 
@@ -163,7 +165,7 @@ protected:
 
 
 
-  uint64_t mTapStartTime;
+  PRUint64 mTapStartTime;
 
   
 

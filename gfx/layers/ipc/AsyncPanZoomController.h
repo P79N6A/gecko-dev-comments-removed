@@ -15,6 +15,8 @@
 #include "InputData.h"
 #include "Axis.h"
 
+#include "base/message_loop.h"
+
 namespace mozilla {
 namespace layers {
 
@@ -79,7 +81,7 @@ public:
 
 
 
-  nsEventStatus HandleInputEvent(const InputData& aEvent);
+  nsEventStatus ReceiveInputEvent(const InputData& aEvent);
 
   
 
@@ -91,8 +93,8 @@ public:
 
 
 
-  nsEventStatus HandleInputEvent(const nsInputEvent& aEvent,
-                                 nsInputEvent* aOutEvent);
+  nsEventStatus ReceiveInputEvent(const nsInputEvent& aEvent,
+                                  nsInputEvent* aOutEvent);
 
   
 
@@ -133,6 +135,14 @@ public:
 
 
   void ZoomToRect(const gfxRect& aRect);
+
+  
+
+
+
+
+
+  void ContentReceivedTouch(bool aPreventDefault);
 
   
   
@@ -194,6 +204,11 @@ public:
   int GetDPI();
 
 protected:
+  
+
+
+  nsEventStatus HandleInputEvent(const InputData& aEvent);
+
   
 
 
@@ -382,6 +397,15 @@ protected:
 
   const FrameMetrics& GetFrameMetrics();
 
+  
+
+
+
+
+
+
+  void TimeoutTouchListeners();
+
 private:
   enum PanZoomState {
     NOTHING,        
@@ -389,7 +413,10 @@ private:
     TOUCHING,       
     PANNING,        
     PINCHING,       
-    ANIMATING_ZOOM  
+    ANIMATING_ZOOM, 
+    WAITING_LISTENERS, 
+
+
   };
 
   enum ContentPainterStatus {
@@ -443,6 +470,10 @@ private:
   
   FrameMetrics mEndZoomToMetrics;
 
+  nsTArray<MultiTouchInput> mTouchQueue;
+
+  CancelableTask* mTouchListenerTimeoutTask;
+
   AxisX mX;
   AxisY mY;
 
@@ -456,7 +487,7 @@ private:
   
   TimeStamp mLastSampleTime;
   
-  int32_t mLastEventTime;
+  PRInt32 mLastEventTime;
 
   
   
@@ -485,6 +516,12 @@ private:
   
   
   bool mDisableNextTouchBatch;
+
+  
+  
+  
+  
+  bool mHandlingTouchQueue;
 
   friend class Axis;
 };
