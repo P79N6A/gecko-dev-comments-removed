@@ -222,6 +222,7 @@ pref("accessibility.tabfocus_applies_to_xul", true);
 pref("accessibility.usetexttospeech", "");
 pref("accessibility.usebrailledisplay", "");
 pref("accessibility.accesskeycausesactivation", true);
+pref("accessibility.mouse_focuses_formcontrol", false);
 
 
 pref("accessibility.typeaheadfind", true);
@@ -1260,13 +1261,17 @@ pref("editor.positioning.offset",            0);
 pref("dom.max_chrome_script_run_time", 20);
 pref("dom.max_script_run_time", 10);
 
-
-
 #ifndef DEBUG
+
+
 pref("dom.ipc.plugins.timeoutSecs", 45);
+
+
+pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 #else
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
+pref("dom.ipc.plugins.processLaunchTimeoutSecs", 0);
 #endif
 
 #ifndef ANDROID

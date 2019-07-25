@@ -495,18 +495,24 @@ static const char kDOMStringBundleURL[] =
 
 
 
-#define WINDOW_SCRIPTABLE_FLAGS                                               \
+#define COMMON_WINDOW_SCRIPTABLE_FLAGS                                        \
  (nsIXPCScriptable::WANT_GETPROPERTY |                                        \
   nsIXPCScriptable::WANT_SETPROPERTY |                                        \
   nsIXPCScriptable::WANT_PRECREATE |                                          \
   nsIXPCScriptable::WANT_ADDPROPERTY |                                        \
   nsIXPCScriptable::WANT_DELPROPERTY |                                        \
-  nsIXPCScriptable::WANT_NEWENUMERATE |                                       \
   nsIXPCScriptable::WANT_FINALIZE |                                           \
   nsIXPCScriptable::WANT_EQUALITY |                                           \
-  nsIXPCScriptable::WANT_OUTER_OBJECT |                                       \
-  nsIXPCScriptable::WANT_INNER_OBJECT |                                       \
   nsIXPCScriptable::DONT_ENUM_QUERY_INTERFACE)
+
+#define INNER_WINDOW_SCRIPTABLE_FLAGS                                         \
+ (COMMON_WINDOW_SCRIPTABLE_FLAGS |                                            \
+  nsIXPCScriptable::WANT_OUTER_OBJECT)                                        \
+
+#define OUTER_WINDOW_SCRIPTABLE_FLAGS                                         \
+ (COMMON_WINDOW_SCRIPTABLE_FLAGS |                                            \
+  nsIXPCScriptable::WANT_INNER_OBJECT |                                       \
+  nsIXPCScriptable::WANT_NEWENUMERATE)
 
 #define NODE_SCRIPTABLE_FLAGS                                                 \
  ((DOM_DEFAULT_SCRIPTABLE_FLAGS |                                             \
@@ -633,11 +639,11 @@ static nsDOMClassInfoData sClassInfoData[] = {
 
   NS_DEFINE_CLASSINFO_DATA(Window, nsOuterWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
-                           WINDOW_SCRIPTABLE_FLAGS)
+                           OUTER_WINDOW_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(InnerWindow, nsInnerWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
-                           WINDOW_SCRIPTABLE_FLAGS)
+                           INNER_WINDOW_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(Location, nsLocationSH,
                            (DOM_DEFAULT_SCRIPTABLE_FLAGS &
@@ -928,11 +934,11 @@ static nsDOMClassInfoData sClassInfoData[] = {
   
   NS_DEFINE_CLASSINFO_DATA(ChromeWindow, nsOuterWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
-                           WINDOW_SCRIPTABLE_FLAGS)
+                           OUTER_WINDOW_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(InnerChromeWindow, nsInnerWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
-                           WINDOW_SCRIPTABLE_FLAGS)
+                           INNER_WINDOW_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(CSSRGBColor, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
@@ -1315,11 +1321,11 @@ static nsDOMClassInfoData sClassInfoData[] = {
 
   NS_DEFINE_CLASSINFO_DATA(ModalContentWindow, nsOuterWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
-                           WINDOW_SCRIPTABLE_FLAGS)
+                           OUTER_WINDOW_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(InnerModalContentWindow, nsInnerWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
-                           WINDOW_SCRIPTABLE_FLAGS)
+                           INNER_WINDOW_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(DataContainerEvent, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
@@ -5379,34 +5385,15 @@ nsCommonWindowSH::SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 NS_IMETHODIMP
-nsCommonWindowSH::AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                              JSObject *obj, jsid id, jsval *vp,
-                              PRBool *_retval)
+nsOuterWindowSH::AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                             JSObject *obj, jsid id, jsval *vp,
+                             PRBool *_retval)
 {
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
-#ifdef DEBUG_SH_FORWARDING
-  {
-    nsDependentJSString str(::JS_ValueToString(cx, id));
-
-    if (win->IsInnerWindow()) {
-#ifdef DEBUG_PRINT_INNER
-      printf("Property '%s' add on inner window %p\n",
-             NS_ConvertUTF16toUTF8(str).get(), (void *)win);
-#endif
-    } else {
-      printf("Property '%s' add on outer window %p\n",
-             NS_ConvertUTF16toUTF8(str).get(), (void *)win);
-    }
-  }
-#endif
-
   JSObject *realObj;
   wrapper->GetJSObject(&realObj);
-  if (win->IsOuterWindow() && obj == realObj) {
-    
-    
-
+  if (obj == realObj) {
     nsGlobalWindow *innerWin = win->GetCurrentInnerWindowInternal();
 
     JSObject *innerObj;
@@ -6523,38 +6510,22 @@ ContentWindowGetter(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 }
 
 PRBool
-nsCommonWindowSH::sResolving = PR_FALSE;
+nsOuterWindowSH::sResolving = PR_FALSE;
 
 NS_IMETHODIMP
-nsCommonWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                             JSObject *obj, jsid id, PRUint32 flags,
-                             JSObject **objp, PRBool *_retval)
+nsOuterWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                            JSObject *obj, jsid id, PRUint32 flags,
+                            JSObject **objp, PRBool *_retval)
 {
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
-#ifdef DEBUG_SH_FORWARDING
-  {
-    nsDependentJSString str(::JS_ValueToString(cx, id));
-
-    if (win->IsInnerWindow()) {
-#ifdef DEBUG_PRINT_INNER
-      printf("Property '%s' resolve on inner window %p\n",
-             NS_ConvertUTF16toUTF8(str).get(), (void *)win);
-#endif
-    } else {
-      printf("Property '%s' resolve on outer window %p\n",
-             NS_ConvertUTF16toUTF8(str).get(), (void *)win);
-    }
-  }
-#endif
-
   
   
   
   
   
   
-  if (win->IsOuterWindow() && id != sLocation_id) {
+  if (id != sLocation_id) {
     
     
 
@@ -6634,6 +6605,17 @@ nsCommonWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       return NS_OK;
     }
   }
+
+  return nsCommonWindowSH::NewResolve(wrapper, cx, obj, id, flags, objp,
+                                      _retval);
+}
+
+NS_IMETHODIMP
+nsCommonWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                             JSObject *obj, jsid id, PRUint32 flags,
+                             JSObject **objp, PRBool *_retval)
+{
+  nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
   if (!JSID_IS_STRING(id)) {
     if (JSID_IS_INT(id) && !(flags & JSRESOLVE_ASSIGNING)) {
@@ -7159,32 +7141,30 @@ nsCommonWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 NS_IMETHODIMP
-nsCommonWindowSH::NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                               JSObject *obj, PRUint32 enum_op, jsval *statep,
-                               jsid *idp, PRBool *_retval)
+nsOuterWindowSH::NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                              JSObject *obj, PRUint32 enum_op, jsval *statep,
+                              jsid *idp, PRBool *_retval)
 {
   switch ((JSIterateOp)enum_op) {
     
     case JSENUMERATE_INIT_ALL:
     case JSENUMERATE_INIT:
     {
+#ifdef DEBUG
       
       
       nsDOMClassInfo::Enumerate(wrapper, cx, obj, _retval);
       if (!*_retval) {
+        NS_ERROR("security wrappers failed us");
         return NS_OK;
       }
+#endif
 
       
       
-      nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
-      JSObject *enumobj = win->GetGlobalJSObject();
-      if (win->IsOuterWindow()) {
-        nsGlobalWindow *inner = win->GetCurrentInnerWindowInternal();
-        if (inner) {
-          enumobj = inner->GetGlobalJSObject();
-        }
-      }
+      nsGlobalWindow *win =
+        nsGlobalWindow::FromWrapper(wrapper)->GetCurrentInnerWindowInternal();
+      JSObject *enumobj = win->FastGetGlobalJSObject();
 
       
       JSObject *iterator = JS_NewPropertyIterator(cx, enumobj);
@@ -7272,8 +7252,8 @@ nsCommonWindowSH::Equality(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
 }
 
 NS_IMETHODIMP
-nsCommonWindowSH::OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
-                              JSObject * obj, JSObject * *_retval)
+nsInnerWindowSH::OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
+                             JSObject * obj, JSObject * *_retval)
 {
   nsGlobalWindow *origWin = nsGlobalWindow::FromWrapper(wrapper);
   nsGlobalWindow *win = origWin->GetOuterWindowInternal();
@@ -7300,12 +7280,12 @@ nsCommonWindowSH::OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx
 }
 
 NS_IMETHODIMP
-nsCommonWindowSH::InnerObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
-                              JSObject * obj, JSObject * *_retval)
+nsOuterWindowSH::InnerObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
+                             JSObject * obj, JSObject * *_retval)
 {
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
-  if (win->IsInnerWindow() || win->IsFrozen()) {
+  if (win->IsFrozen()) {
     
     
 
@@ -7317,7 +7297,7 @@ nsCommonWindowSH::InnerObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx
     if (!inner) {
       
       
-
+      NS_ERROR("using an outer that doesn't have an inner?");
       *_retval = nsnull;
 
       return NS_ERROR_UNEXPECTED;
