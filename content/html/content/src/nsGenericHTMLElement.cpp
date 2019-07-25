@@ -2141,7 +2141,8 @@ nsGenericHTMLElement::ParseBackgroundAttribute(int32_t aNamespaceID,
                                                nsAttrValue& aResult)
 {
   if (aNamespaceID == kNameSpaceID_None &&
-      aAttribute == nsGkAtoms::background) {
+      aAttribute == nsGkAtoms::background &&
+      !aValue.IsEmpty()) {
     
     nsIDocument* doc = OwnerDoc();
     nsCOMPtr<nsIURI> baseURI = GetBaseURI();
@@ -2776,12 +2777,14 @@ nsGenericHTMLElement::MapBackgroundInto(const nsMappedAttributes* aAttributes,
       const_cast<nsAttrValue*>(aAttributes->GetAttr(nsGkAtoms::background));
     
     
-    if (value &&
-        (value->Type() == nsAttrValue::eImage ||
-         (value->Type() == nsAttrValue::eURL &&
-          value->LoadImage(presContext->Document())))) {
-      nsCSSValueList* list = backImage->SetListValue();
-      list->mValue.SetImageValue(value->GetImageValue());
+    if (value) {
+      if (value->Type() == nsAttrValue::eURL) {
+        value->LoadImage(presContext->Document());
+      }
+      if (value->Type() == nsAttrValue::eImage) {
+        nsCSSValueList* list = backImage->SetListValue();
+        list->mValue.SetImageValue(value->GetImageValue());
+      }
     }
   }
 }
