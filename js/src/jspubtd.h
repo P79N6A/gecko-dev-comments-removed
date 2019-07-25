@@ -559,7 +559,8 @@ typedef JSBool
 
 
 typedef JSObject *
-(* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto, uintN flags);
+(* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
+                         uintN flags);
 
 typedef enum {
     JSCOMPARTMENT_NEW, 

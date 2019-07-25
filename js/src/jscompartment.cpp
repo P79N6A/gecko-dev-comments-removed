@@ -194,19 +194,6 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
 
-    JSObject *wrapper = cx->runtime->wrapObjectCallback(cx, obj, proto, flags);
-    if (!wrapper)
-        return false;
-    wrapper->setProto(proto);
-    vp->setObject(*wrapper);
-    if (!crossCompartmentWrappers.put(wrapper->getProxyPrivate(), *vp))
-        return false;
-
-    
-
-
-
-
 
 
     JSObject *global;
@@ -218,6 +205,29 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         if (!global)
             return false;
     }
+
+    
+
+
+
+
+    JSObject *wrapper = cx->runtime->wrapObjectCallback(cx, obj, proto, global, flags);
+    if (!wrapper)
+        return false;
+
+    vp->setObject(*wrapper);
+
+    
+
+
+
+
+    if (!wrapper->isProxy())
+        return true;
+
+    wrapper->setProto(proto);
+    if (!crossCompartmentWrappers.put(wrapper->getProxyPrivate(), *vp))
+        return false;
 
     wrapper->setParent(global);
     return true;
