@@ -2970,6 +2970,7 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
 
   virtual void SetText(const PRUnichar* text, PRInt32 length, nsBidiDirection direction)
   {
+    mFontgrp->UpdateFontList(); 
     mTextRun = mFontgrp->MakeTextRun(text,
                                      length,
                                      mThebes,
