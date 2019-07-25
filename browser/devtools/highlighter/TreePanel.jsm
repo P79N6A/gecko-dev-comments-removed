@@ -47,7 +47,7 @@ Cu.import("resource:///modules/domplate.jsm");
 Cu.import("resource:///modules/InsideOutBox.jsm");
 Cu.import("resource:///modules/Services.jsm");
 
-var EXPORTED_SYMBOLS = ["TreePanel"];
+var EXPORTED_SYMBOLS = ["TreePanel", "DOMHelpers"];
 
 const INSPECTOR_URI = "chrome://browser/content/inspector.html";
 
@@ -95,6 +95,8 @@ TreePanel.prototype = {
     this.document = this.window.document;
 
     domplateUtils.setDOM(this.window);
+
+    this.DOMHelpers = new DOMHelpers(this.window);
 
     let isOpen = this.isOpen.bind(this);
 
@@ -315,93 +317,23 @@ TreePanel.prototype = {
 
   getParentObject: function TP_getParentObject(node)
   {
-    let parentNode = node ? node.parentNode : null;
-
-    if (!parentNode) {
-      
-      
-      if (node && node == this.window.Node.DOCUMENT_NODE) {
-        
-        if (node.defaultView) {
-          let embeddingFrame = node.defaultView.frameElement;
-          if (embeddingFrame)
-            return embeddingFrame.parentNode;
-        }
-      }
-      
-      return null;  
-    }
-
-    if (parentNode.nodeType == this.window.Node.DOCUMENT_NODE) {
-      if (parentNode.defaultView) {
-        return parentNode.defaultView.frameElement;
-      }
-      
-      return null;
-    }
-
-    if (!parentNode.localName)
-      return null;
-
-    return parentNode;
+    return this.DOMHelpers.getParentObject(node);
   },
 
   getChildObject: function TP_getChildObject(node, index, previousSibling)
   {
-    if (!node)
-      return null;
-
-    if (node.contentDocument) {
-      
-      if (index == 0) {
-        return node.contentDocument.documentElement;  
-      }
-      return null;
-    }
-
-    if (node instanceof this.window.GetSVGDocument) {
-      let svgDocument = node.getSVGDocument();
-      if (svgDocument) {
-        
-        if (index == 0) {
-          return svgDocument.documentElement;  
-        }
-        return null;
-      }
-    }
-
-    let child = null;
-    if (previousSibling)  
-      child = this.getNextSibling(previousSibling);
-    else
-      child = this.getFirstChild(node);
-
-    if (this.showTextNodesWithWhitespace)
-      return child;
-
-    for (; child; child = this.getNextSibling(child)) {
-      if (!domplateUtils.isWhitespaceText(child))
-        return child;
-    }
-
-    return null;  
+    return this.DOMHelpers.getChildObject(node, index, previousSibling,
+                                        this.showTextNodesWithWhitespace);
   },
 
   getFirstChild: function TP_getFirstChild(node)
   {
-    this.treeWalker = node.ownerDocument.createTreeWalker(node,
-      this.window.NodeFilter.SHOW_ALL, null, false);
-    return this.treeWalker.firstChild();
+    return this.DOMHelpers.getFirstChild(node);
   },
 
   getNextSibling: function TP_getNextSibling(node)
   {
-    let next = this.treeWalker.nextSibling();
-
-    if (!next)
-      delete this.treeWalker;
-
-    return next;
+    return this.DOMHelpers.getNextSibling(node);
   },
 
   
@@ -747,7 +679,11 @@ TreePanel.prototype = {
     domplateUtils.setDOM(null);
 
     delete this.resizer;
-    delete this.treeWalker;
+
+    if (this.DOMHelpers) {
+      this.DOMHelpers.destroy();
+      delete this.DOMHelpers;
+    }
 
     if (this.treePanelDiv) {
       this.treePanelDiv.ownerPanel = null;
@@ -777,3 +713,122 @@ TreePanel.prototype = {
   }
 };
 
+
+
+
+
+
+
+
+
+
+function DOMHelpers(aWindow) {
+  this.window = aWindow;
+};
+
+DOMHelpers.prototype = {
+  getParentObject: function Helpers_getParentObject(node)
+  {
+    let parentNode = node ? node.parentNode : null;
+
+    if (!parentNode) {
+      
+      
+      if (node && node == this.window.Node.DOCUMENT_NODE) {
+        
+        if (node.defaultView) {
+          let embeddingFrame = node.defaultView.frameElement;
+          if (embeddingFrame)
+            return embeddingFrame.parentNode;
+        }
+      }
+      
+      return null;  
+    }
+
+    if (parentNode.nodeType == this.window.Node.DOCUMENT_NODE) {
+      if (parentNode.defaultView) {
+        return parentNode.defaultView.frameElement;
+      }
+      
+      return null;
+    }
+
+    if (!parentNode.localName)
+      return null;
+
+    return parentNode;
+  },
+
+  getChildObject: function Helpers_getChildObject(node, index, previousSibling,
+                                                showTextNodesWithWhitespace)
+  {
+    if (!node)
+      return null;
+
+    if (node.contentDocument) {
+      
+      if (index == 0) {
+        return node.contentDocument.documentElement;  
+      }
+      return null;
+    }
+
+    if (node instanceof this.window.GetSVGDocument) {
+      let svgDocument = node.getSVGDocument();
+      if (svgDocument) {
+        
+        if (index == 0) {
+          return svgDocument.documentElement;  
+        }
+        return null;
+      }
+    }
+
+    let child = null;
+    if (previousSibling)  
+      child = this.getNextSibling(previousSibling);
+    else
+      child = this.getFirstChild(node);
+
+    if (showTextNodesWithWhitespace)
+      return child;
+
+    for (; child; child = this.getNextSibling(child)) {
+      if (!this.isWhitespaceText(child))
+        return child;
+    }
+
+    return null;  
+  },
+
+  getFirstChild: function Helpers_getFirstChild(node)
+  {
+    let SHOW_ALL = Components.interfaces.nsIDOMNodeFilter.SHOW_ALL;
+    this.treeWalker = node.ownerDocument.createTreeWalker(node,
+      SHOW_ALL, null, false);
+    return this.treeWalker.firstChild();
+  },
+
+  getNextSibling: function Helpers_getNextSibling(node)
+  {
+    let next = this.treeWalker.nextSibling();
+
+    if (!next)
+      delete this.treeWalker;
+
+    return next;
+  },
+
+  isWhitespaceText: function Helpers_isWhitespaceText(node)
+  {
+    return node.nodeType == this.window.Node.TEXT_NODE &&
+                            !/[^\s]/.exec(node.nodeValue);
+  },
+
+  destroy: function Helpers_destroy()
+  {
+    delete this.window;
+    delete this.treeWalker;
+  }
+};
