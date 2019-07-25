@@ -52,8 +52,6 @@
 #include "nsCRT.h"
 #include "nsIURI.h"
 #include "nsIStandardURL.h"
-#include "nsIURLParser.h"
-#include "nsIUUIDGenerator.h"
 #include "nsIInputStream.h"
 #include "nsIOutputStream.h"
 #include "nsISafeOutputStream.h"
@@ -1776,83 +1774,6 @@ NS_IsInternalSameURIRedirect(nsIChannel *aOldChannel,
 
   PRBool res;
   return NS_SUCCEEDED(oldURI->Equals(newURI, &res)) && res;
-}
-
-
-
-
-  
-#define NS_FAKE_SCHEME "http://"
-#define NS_FAKE_TLD ".invalid"
-inline nsresult
-NS_MakeRandomInvalidURLString(nsCString& result)
-{
-  nsresult rv;
-  nsCOMPtr<nsIUUIDGenerator> uuidgen =
-    do_GetService("@mozilla.org/uuid-generator;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsID idee;
-  rv = uuidgen->GenerateUUIDInPlace(&idee);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  char chars[NSID_LENGTH];
-  idee.ToProvidedString(chars);
-
-  result.AssignLiteral(NS_FAKE_SCHEME);
-  
-  result.Append(chars + 1, NSID_LENGTH - 3);
-  result.AppendLiteral(NS_FAKE_TLD);
-
-  return NS_OK;
-}
-#undef NS_FAKE_SCHEME
-#undef NS_FAKE_TLD
-
-
-
-
-
-
-  
-inline nsresult
-NS_CheckIsJavaCompatibleURLString(nsCString& urlString, PRBool *result)
-{
-  *result = PR_FALSE; 
-
-  nsresult rv = NS_OK;
-  nsCOMPtr<nsIURLParser> urlParser =
-    do_GetService(NS_STDURLPARSER_CONTRACTID, &rv);
-  if (NS_FAILED(rv) || !urlParser)
-    return NS_ERROR_FAILURE;
-
-  PRBool compatible = PR_TRUE;
-  PRUint32 schemePos = 0;
-  PRInt32 schemeLen = 0;
-  urlParser->ParseURL(urlString.get(), -1, &schemePos, &schemeLen,
-                      nsnull, nsnull, nsnull, nsnull);
-  if (schemeLen != -1) {
-    nsCString scheme;
-    scheme.Assign(urlString.get() + schemePos, schemeLen);
-    
-    
-    
-    
-    
-    
-    if (PL_strcasecmp(scheme.get(), "http") &&
-        PL_strcasecmp(scheme.get(), "https") &&
-        PL_strcasecmp(scheme.get(), "file") &&
-        PL_strcasecmp(scheme.get(), "ftp") &&
-        PL_strcasecmp(scheme.get(), "gopher"))
-      compatible = PR_FALSE;
-  } else {
-    compatible = PR_FALSE;
-  }
-
-  *result = compatible;
-
-  return NS_OK;
 }
 
 #endif 
