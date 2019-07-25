@@ -564,6 +564,14 @@ var ctrlTab = {
     
     
     document.getElementById("menu_showAllTabs").hidden = !enable;
+
+    
+    
+    var key_showAllTabs = document.getElementById("key_showAllTabs");
+    if (enable)
+      key_showAllTabs.removeAttribute("disabled");
+    else
+      key_showAllTabs.setAttribute("disabled", "true");
   }
 };
 
@@ -628,6 +636,7 @@ var allTabs = {
     var allTabsButton = document.getElementById("alltabs-button");
     if (!allTabsButton)
       return;
+
     if (gPrefService.getBoolPref(this.prefName)) {
       allTabsButton.removeAttribute("type");
       allTabsButton.setAttribute("command", "Browser:ShowAllTabs");
