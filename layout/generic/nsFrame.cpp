@@ -4662,11 +4662,6 @@ nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
       !(aFlags & INVALIDATE_NO_THEBES_LAYERS)) {
     
     
-    
-    
-    
-    
-    
     FrameLayerBuilder::InvalidateThebesLayerContents(this,
         aDamageRect + nsPoint(aX, aY));
     

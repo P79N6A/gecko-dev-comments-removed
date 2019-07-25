@@ -240,6 +240,7 @@ public:
 
 
 
+
   static void InvalidateThebesLayerContents(nsIFrame* aFrame,
                                             const nsRect& aRect);
 
