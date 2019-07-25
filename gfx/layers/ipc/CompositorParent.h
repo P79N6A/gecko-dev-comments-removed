@@ -112,6 +112,12 @@ private:
 
 
   void RegisterCompositorWithJava();
+
+  
+
+
+
+  void RequestViewTransform();
 #endif
 
   nsRefPtr<LayerManager> mLayerManager;
