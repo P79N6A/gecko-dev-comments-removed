@@ -1198,9 +1198,6 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
   nsINode* endParent = mRange->GetEndParent();
   PRInt32 endOffset = mRange->EndOffset();
   MOZ_ASSERT(mCommonParent && startParent && endParent);
-  
-  MOZ_ASSERT(startOffset <= startParent->Length() &&
-             endOffset <= endParent->Length());
 
   
   if (startParent == endParent) {
@@ -1271,6 +1268,8 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
   PRInt32 numChildren = endParent->GetChildCount();
 
   if (offset > numChildren) {
+    
+    
     
     offset = numChildren;
   }
