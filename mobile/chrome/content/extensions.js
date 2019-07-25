@@ -393,6 +393,9 @@ var ExtensionsView = {
   uninstall: function ev_uninstall(aItem) {
     let opType;
     if (aItem.getAttribute("type") == "1024") {
+      
+      
+      aItem._engine.hidden = false;
       this._search.removeEngine(aItem._engine);
       
       
