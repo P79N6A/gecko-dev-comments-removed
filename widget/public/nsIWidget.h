@@ -111,8 +111,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0xeedce486, 0xeb2b, 0x41af, \
-  { 0x9a, 0x25, 0x59, 0xd1, 0x0f, 0xd1, 0xd5, 0x6f } }
+  { 0x21eff578, 0x942a, 0x40ff, \
+    { 0x98, 0xb9, 0x75, 0x49, 0x0b, 0x68, 0x24, 0xa2 } }
 
 
 
@@ -769,31 +769,6 @@ class nsIWidget : public nsISupports {
 
 
     virtual LayerManager* GetLayerManager() = 0;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual void Scroll(const nsIntPoint& aDelta,
-                        const nsTArray<nsIntRect>& aDestRects,
-                        const nsTArray<Configuration>& aReconfigureChildren) = 0;
 
     
 
