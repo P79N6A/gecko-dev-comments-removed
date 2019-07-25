@@ -143,15 +143,17 @@ BookmarksEngine.prototype = {
 
 
 
+
+
+
  	let words = messageText.split(" ");
 	let commandWord = words[0];
-	let directoryName = words.slice(1).join(" ");
-	
-	
+	let serverPath = words[1];
+	let directoryName = words.slice(2).join(" ");
         if ( commandWord == "share" ) {
-	  bmkEngine._incomingShareOffer( directoryName, from );
+	  bmkEngine._incomingShareOffer(from, serverPath, folderName);
 	} else if ( commandWord == "stop" ) {
-	  bmkEngine._incomingShareWithdrawn( directoryName, from );
+	  bmkEngine._incomingShareWithdrawn(from, serverPath, folderName);
 	}
       }
     };
@@ -168,7 +170,9 @@ BookmarksEngine.prototype = {
     self.done();
   },
 
-  _incomingShareOffer: function BmkEngine__incomingShareOffer( dir, user ) {
+  _incomingShareOffer: function BmkEngine__incomingShareOffer(user,
+                                                              serverPath,
+                                                              folderName) {
     
 
 
@@ -181,10 +185,13 @@ BookmarksEngine.prototype = {
 
 
     dump( "I was offered the directory " + dir + " from user " + dir );
-    _createIncomingShare( dir, user, dir );
+    _createIncomingShare( user, serverPath, folderName );
   },
 
-  _incomingShareWithdrawn: function BmkEngine__incomingShareStop( dir, user ) {
+  _incomingShareWithdrawn: function BmkEngine__incomingShareStop(user,
+                                                                 serverPath,
+                                                                 folderName) {
+
     
 
 
@@ -225,6 +232,7 @@ BookmarksEngine.prototype = {
     let serverPath = yield;
     dump( "Done calling _createOutgoingShare asynchronously.\n" );
     this._updateOutgoingShare.async( this, self.cb, selectedFolder );
+    yield;
 
     
 
@@ -237,9 +245,8 @@ BookmarksEngine.prototype = {
     
     if ( this._xmppClient ) {
       if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
-	dump( "Gonna send notification...\n" );
-	
-	let msgText = "share " + folderName;
+	let msgText = "share " + serverPath + " " + folderName;
+	this._log.debug( "Sending XMPP message: " + msgText );
 	this._xmppClient.sendMessage( username, msgText );
       } else {
 	this._log.warn( "No XMPP connection for share notification." );
