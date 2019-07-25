@@ -68,6 +68,12 @@ namespace hal {
 class BatteryInformation;
 } 
 
+namespace dom {
+namespace sms {
+struct SmsFilterData;
+} 
+} 
+
 
 
 typedef struct AndroidSystemColors {
@@ -339,6 +345,7 @@ public:
     PRInt32 SaveSentMessage(const nsAString& aRecipient, const nsAString& aBody, PRUint64 aDate);
     void GetMessage(PRInt32 aMessageId, PRInt32 aRequestId, PRUint64 aProcessId);
     void DeleteMessage(PRInt32 aMessageId, PRInt32 aRequestId, PRUint64 aProcessId);
+    void CreateMessageList(const dom::sms::SmsFilterData& aFilter, bool aReverse, PRInt32 aRequestId, PRUint64 aProcessId);
 
     bool IsTablet();
 
@@ -432,6 +439,7 @@ protected:
     jmethodID jSaveSentMessage;
     jmethodID jGetMessage;
     jmethodID jDeleteMessage;
+    jmethodID jCreateMessageList;
 
     
     jclass jEGLSurfaceImplClass;

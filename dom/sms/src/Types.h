@@ -45,8 +45,10 @@ namespace dom {
 namespace sms {
 
 
+
+
 enum DeliveryState {
-  eDeliveryState_Sent,
+  eDeliveryState_Sent = 0,
   eDeliveryState_Received,
   eDeliveryState_Unknown,
   
