@@ -103,6 +103,19 @@ public:
   
   static void InitUploadLastDir();
   static void DestroyUploadLastDir();
+
+  
+
+
+
+
+
+
+
+
+
+  PRInt32 GetFileFilterFromAccept() const;
+
 protected:
   class MouseListener;
   friend class MouseListener;

@@ -373,7 +373,17 @@ nsFileControlFrame::MouseListener::MouseClick(nsIDOMEvent* aMouseEvent)
     return result;
 
   
-  filePicker->AppendFilters(nsIFilePicker::filterAll);
+  
+  PRUint32 filter = mFrame->GetFileFilterFromAccept();
+  filePicker->AppendFilters(filter | nsIFilePicker::filterAll);
+
+  
+  if (filter) {
+    
+    
+    
+    filePicker->SetFilterIndex(1);
+  }
 
   
   nsAutoString defaultName;
@@ -851,6 +861,18 @@ NS_IMETHODIMP nsFileControlFrame::GetAccessible(nsIAccessible** aAccessible)
 }
 #endif
 
+PRInt32
+nsFileControlFrame::GetFileFilterFromAccept() const
+{
+  nsAutoString accept;
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::accept, accept);
+
+  if (accept.EqualsLiteral("image/*")) {
+    return nsIFilePicker::filterImages;
+  }
+
+  return 0;
+}
 
 
 
