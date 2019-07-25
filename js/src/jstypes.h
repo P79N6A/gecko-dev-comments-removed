@@ -290,11 +290,7 @@
 #define JS_MIN(x,y)     ((x)<(y)?(x):(y))
 #define JS_MAX(x,y)     ((x)>(y)?(x):(y))
 
-#ifdef _MSC_VER
-# include "jscpucfg.h"  
-#else
-# include "jsautocfg.h" 
-#endif
+#include "jscpucfg.h"
 
 
 
