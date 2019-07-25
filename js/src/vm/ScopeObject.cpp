@@ -878,18 +878,23 @@ Class js::BlockClass = {
 
 #define NO_PARENT_INDEX UINT32_MAX
 
+
+
+
+
+
 static uint32_t
-FindObjectIndex(JSObjectArray *array, JSObject *obj)
+FindObjectIndex(JSScript *script, StaticBlockObject *maybeBlock)
 {
-    size_t i;
+    if (!maybeBlock || !JSScript::isValidOffset(script->objectsOffset))
+        return NO_PARENT_INDEX;
 
-    if (array) {
-        i = array->length;
-        do {
-
-            if (array->vector[--i] == obj)
-                return i;
-        } while (i != 0);
+    JSObjectArray *objects = script->objects();
+    HeapPtrObject *vector = objects->vector;
+    unsigned length = objects->length;
+    for (unsigned i = 0; i < length; ++i) {
+        if (vector[i] == maybeBlock)
+            return i;
     }
 
     return NO_PARENT_INDEX;
@@ -899,6 +904,8 @@ template<XDRMode mode>
 bool
 js::XDRStaticBlockObject(XDRState<mode> *xdr, JSScript *script, StaticBlockObject **objp)
 {
+    
+
     JSContext *cx = xdr->cx();
 
     StaticBlockObject *obj = NULL;
@@ -907,9 +914,7 @@ js::XDRStaticBlockObject(XDRState<mode> *xdr, JSScript *script, StaticBlockObjec
     uint32_t depthAndCount = 0;
     if (mode == XDR_ENCODE) {
         obj = *objp;
-        parentId = JSScript::isValidOffset(script->objectsOffset)
-                   ? FindObjectIndex(script->objects(), obj->enclosingBlock())
-                   : NO_PARENT_INDEX;
+        parentId = FindObjectIndex(script, obj->enclosingBlock());
         uint32_t depth = obj->stackDepth();
         JS_ASSERT(depth <= UINT16_MAX);
         count = obj->slotCount();
@@ -926,11 +931,6 @@ js::XDRStaticBlockObject(XDRState<mode> *xdr, JSScript *script, StaticBlockObjec
         if (!obj)
             return false;
         *objp = obj;
-
-        
-
-
-
 
         obj->setEnclosingBlock(parentId == NO_PARENT_INDEX
                                ? NULL
@@ -976,7 +976,8 @@ js::XDRStaticBlockObject(XDRState<mode> *xdr, JSScript *script, StaticBlockObjec
         }
     } else {
         AutoShapeVector shapes(cx);
-        shapes.growBy(count);
+        if (!shapes.growBy(count))
+            return false;
 
         for (Shape::Range r(obj->lastProperty()); !r.empty(); r.popFront()) {
             const Shape *shape = &r.front();
@@ -1016,3 +1017,43 @@ js::XDRStaticBlockObject(XDRState<XDR_ENCODE> *xdr, JSScript *script, StaticBloc
 
 template bool
 js::XDRStaticBlockObject(XDRState<XDR_DECODE> *xdr, JSScript *script, StaticBlockObject **objp);
+
+JSObject *
+js::CloneStaticBlockObject(JSContext *cx, StaticBlockObject &srcBlock,
+                           const AutoObjectVector &objects, JSScript *src)
+{
+    
+
+    StaticBlockObject *clone = StaticBlockObject::create(cx);
+    if (!clone)
+        return false;
+
+    uint32_t parentId = FindObjectIndex(src, srcBlock.enclosingBlock());
+    clone->setEnclosingBlock(parentId == NO_PARENT_INDEX
+                             ? NULL
+                             : &objects[parentId]->asStaticBlock());
+
+    clone->setStackDepth(srcBlock.stackDepth());
+
+    
+    AutoShapeVector shapes(cx);
+    if (!shapes.growBy(srcBlock.slotCount()))
+        return false;
+    for (Shape::Range r = srcBlock.lastProperty()->all(); !r.empty(); r.popFront())
+        shapes[r.front().shortid()] = &r.front();
+
+    for (const Shape **p = shapes.begin(); p != shapes.end(); ++p) {
+        jsid id = (*p)->propid();
+        unsigned i = (*p)->shortid();
+
+        bool redeclared;
+        if (!clone->addVar(cx, id, i, &redeclared)) {
+            JS_ASSERT(!redeclared);
+            return false;
+        }
+
+        clone->setAliased(i, srcBlock.isAliased(i));
+    }
+
+    return clone;
+}
