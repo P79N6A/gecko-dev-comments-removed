@@ -1459,9 +1459,13 @@ function prepareForStartup() {
     Components.utils.reportError("Places database may be locked: " + ex);
   }
 
+#ifdef MOZ_E10S_COMPAT
+  
+#else
   
   gBrowser.addProgressListener(window.XULBrowserWindow);
   gBrowser.addTabsProgressListener(window.TabsProgressListener);
+#endif
 
   
   gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
@@ -1583,9 +1587,13 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
     Components.utils.reportError("Failed to init content pref service:\n" + ex);
   }
 
+#ifdef MOZ_E10S_COMPAT
+  
+#else
   let NP = {};
   Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
   NP.trackBrowserWindow(window);
+#endif
 
   
   try {
@@ -1636,8 +1644,12 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   gBrowser.mPanelContainer.addEventListener("PreviewBrowserTheme", LightWeightThemeWebInstaller, false, true);
   gBrowser.mPanelContainer.addEventListener("ResetBrowserThemePreview", LightWeightThemeWebInstaller, false, true);
 
+#ifdef MOZ_E10S_COMPAT
+  
+#else
   if (Win7Features)
     Win7Features.onOpenWindow();
+#endif
 
   
   
@@ -4157,11 +4169,15 @@ var XULBrowserWindow = {
   init: function () {
     this.throbberElement = document.getElementById("navigator-throbber");
 
+#ifdef MOZ_E10S_COMPAT
+    
+#else
     
     
     var securityUI = gBrowser.securityUI;
     this._hostChanged = true;
     this.onSecurityChange(null, null, securityUI.state);
+#endif
   },
 
   destroy: function () {

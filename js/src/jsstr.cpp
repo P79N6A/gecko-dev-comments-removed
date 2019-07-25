@@ -1,53 +1,53 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=99:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * JS string type implementation.
+ *
+ * In order to avoid unnecessary js_LockGCThing/js_UnlockGCThing calls, these
+ * native methods store strings (possibly newborn) converted from their 'this'
+ * parameter and arguments on the stack: 'this' conversions at argv[-1], arg
+ * conversions at their index (argv[0], argv[1]).  This is a legitimate method
+ * of rooting things that might lose their newborn root due to subsequent GC
+ * allocations in the same native method.
+ */
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
@@ -61,7 +61,6 @@
 #include "jsbool.h"
 #include "jsbuiltins.h"
 #include "jscntxt.h"
-#include "jsfun.h"      
 #include "jsgc.h"
 #include "jsinterp.h"
 #include "jslock.h"
@@ -79,7 +78,7 @@
 #include "jsinterpinlines.h"
 #include "jsobjinlines.h"
 #include "jsregexpinlines.h"
-#include "jsautooplen.h"        
+#include "jsautooplen.h"        // generated headers last
 
 #include "vm/StringObject-inl.h"
 #include "vm/String-inl.h"
@@ -96,7 +95,7 @@ js_FlattenOnTrace(JSContext *cx, JSString* str)
 }
 JS_DEFINE_CALLINFO_2(extern, BOOL, js_FlattenOnTrace, CONTEXT, STRING, 0, nanojit::ACCSET_STORE_ANY)
 
-#endif 
+#endif /* !JS_TRACER */
 
 static JSLinearString *
 ArgToRootedString(JSContext *cx, uintN argc, Value *vp, uintN arg)
@@ -127,9 +126,9 @@ ArgToRootedString(JSContext *cx, uintN argc, Value *vp, uintN arg)
     return str;
 }
 
-
-
-
+/*
+ * Forward declarations for URI encode/decode and helper routines
+ */
 static JSBool
 str_decodeURI(JSContext *cx, uintN argc, Value *vp);
 
@@ -142,17 +141,17 @@ str_encodeURI(JSContext *cx, uintN argc, Value *vp);
 static JSBool
 str_encodeURI_Component(JSContext *cx, uintN argc, Value *vp);
 
-static const uint32 OVERLONG_UTF8 = UINT32_MAX;
+static const uint32 INVALID_UTF8 = UINT32_MAX;
 
 static uint32
 Utf8ToOneUcs4Char(const uint8 *utf8Buffer, int utf8Length);
 
+/*
+ * Global string methods
+ */
 
 
-
-
-
-
+/* ES5 B.2.1 */
 static JSBool
 str_escape(JSContext *cx, uintN argc, Value *vp)
 {
@@ -169,15 +168,15 @@ str_escape(JSContext *cx, uintN argc, Value *vp)
     static const uint8 shouldPassThrough[256] = {
          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,       
-         1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,       
-         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,       
-         1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,       
-         0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,       
-         1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,     
+         0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,       /*    !"#$%&'()*+,-./  */
+         1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,       /*   0123456789:;<=>?  */
+         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,       /*   @ABCDEFGHIJKLMNO  */
+         1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,       /*   PQRSTUVWXYZ[\]^_  */
+         0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,       /*   `abcdefghijklmno  */
+         1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,     /*   pqrstuvwxyz{\}~  DEL */
     };
 
-    
+    /* In step 7, exactly 69 characters should pass through unencoded. */
 #ifdef DEBUG
     int count = 0;
     for (uint i = 0; i < sizeof(shouldPassThrough); i++) {
@@ -189,20 +188,20 @@ str_escape(JSContext *cx, uintN argc, Value *vp)
 #endif
 
 
-    
+    /* Take a first pass and see how big the result string will need to be. */
     size_t newlength = length;
     for (size_t i = 0; i < length; i++) {
         jschar ch = chars[i];
         if (ch < 128 && shouldPassThrough[ch])
             continue;
 
-        
+        /* The character will be encoded as %XX or %uXXXX. */
         newlength += (ch < 256) ? 2 : 5;
 
-        
-
-
-
+        /*
+         * This overflow test works because newlength is incremented by at
+         * most 5 on each iteration.
+         */
         if (newlength < length) {
             js_ReportAllocationOverflow(cx);
             return JS_FALSE;
@@ -247,7 +246,7 @@ str_escape(JSContext *cx, uintN argc, Value *vp)
     return JS_TRUE;
 }
 
-
+/* ES5 B.2.2 */
 static JSBool
 str_unescape(JSContext *cx, uintN argc, Value *vp)
 {
@@ -258,7 +257,7 @@ str_unescape(JSContext *cx, uintN argc, Value *vp)
     size_t length = str->length();
     const jschar *chars = str->chars();
 
-    
+    /* Don't bother allocating less space for the new string. */
     jschar *newchars = (jschar *) cx->malloc_((length + 1) * sizeof(jschar));
     if (!newchars)
         return false;
@@ -266,7 +265,7 @@ str_unescape(JSContext *cx, uintN argc, Value *vp)
     while (i < length) {
         jschar ch = chars[i++];
         if (ch == '%') {
-            
+            /* Incomplete escapes are interpreted as literal characters. */
             if (i + 1 < length &&
                 JS7_ISHEX(chars[i]) && JS7_ISHEX(chars[i + 1]))
             {
@@ -384,21 +383,21 @@ Class js_StringClass = {
     js_String_str,
     JSCLASS_HAS_RESERVED_SLOTS(StringObject::RESERVED_SLOTS) |
     JSCLASS_NEW_RESOLVE | JSCLASS_HAS_CACHED_PROTO(JSProto_String),
-    PropertyStub,         
-    PropertyStub,         
-    PropertyStub,         
-    StrictPropertyStub,   
+    PropertyStub,         /* addProperty */
+    PropertyStub,         /* delProperty */
+    PropertyStub,         /* getProperty */
+    StrictPropertyStub,   /* setProperty */
     str_enumerate,
     (JSResolveOp)str_resolve,
     ConvertStub
 };
 
-
-
-
-
-
-
+/*
+ * Returns a JSString * for the |this| value associated with vp, or throws a
+ * TypeError if |this| is null or undefined.  This algorithm is the same as
+ * calling CheckObjectCoercible(this), then returning ToString(this), as all
+ * String.prototype.* methods do.
+ */
 static JS_ALWAYS_INLINE JSString *
 ThisToStringForStringProto(JSContext *cx, Value *vp)
 {
@@ -433,10 +432,10 @@ ThisToStringForStringProto(JSContext *cx, Value *vp)
 
 #if JS_HAS_TOSOURCE
 
-
-
-
-
+/*
+ * String.prototype.quote is generic (as are most string methods), unlike
+ * toSource, toString, and valueOf.
+ */
 static JSBool
 str_quote(JSContext *cx, uintN argc, Value *vp)
 {
@@ -493,7 +492,7 @@ str_toSource(JSContext *cx, uintN argc, Value *vp)
     return true;
 }
 
-#endif 
+#endif /* JS_HAS_TOSOURCE */
 
 JSBool
 js_str_toString(JSContext *cx, uintN argc, Value *vp)
@@ -505,9 +504,9 @@ js_str_toString(JSContext *cx, uintN argc, Value *vp)
     return true;
 }
 
-
-
-
+/*
+ * Java-like string native methods.
+ */
  
 JS_ALWAYS_INLINE bool
 ValueToIntegerRange(JSContext *cx, const Value &v, int32 *out)
@@ -612,10 +611,10 @@ str_toLowerCase(JSContext *cx, uintN argc, Value *vp)
 static JSBool
 str_toLocaleLowerCase(JSContext *cx, uintN argc, Value *vp)
 {
-    
-
-
-
+    /*
+     * Forcefully ignore the first (or any) argument and return toLowerCase(),
+     * ECMA has reserved that argument, presumably for defining the locale.
+     */
     if (cx->localeCallbacks && cx->localeCallbacks->localeToLowerCase) {
         JSString *str = ThisToStringForStringProto(cx, vp);
         if (!str)
@@ -663,10 +662,10 @@ str_toUpperCase(JSContext *cx, uintN argc, Value *vp)
 static JSBool
 str_toLocaleUpperCase(JSContext *cx, uintN argc, Value *vp)
 {
-    
-
-
-
+    /*
+     * Forcefully ignore the first (or any) argument and return toUpperCase(),
+     * ECMA has reserved that argument, presumably for defining the locale.
+     */
     if (cx->localeCallbacks && cx->localeCallbacks->localeToUpperCase) {
         JSString *str = ThisToStringForStringProto(cx, vp);
         if (!str)
@@ -774,15 +773,15 @@ out_of_range:
     return true;
 }
 
-
-
-
-
-
-
-static const jsuint sBMHCharSetSize = 256; 
-static const jsuint sBMHPatLenMax   = 255; 
-static const jsint  sBMHBadPattern  = -2;  
+/*
+ * Boyer-Moore-Horspool superlinear search for pat:patlen in text:textlen.
+ * The patlen argument must be positive and no greater than sBMHPatLenMax.
+ *
+ * Return the index of pat in text, or -1 if not found.
+ */
+static const jsuint sBMHCharSetSize = 256; /* ISO-Latin-1 */
+static const jsuint sBMHPatLenMax   = 255; /* skip table element is uint8 */
+static const jsint  sBMHBadPattern  = -2;  /* return value if pat is not ISO-Latin-1 */
 
 jsint
 js_BoyerMooreHorspool(const jschar *text, jsuint textlen,
@@ -808,7 +807,7 @@ js_BoyerMooreHorspool(const jschar *text, jsuint textlen,
             if (text[i] != pat[j])
                 break;
             if (j == 0)
-                return static_cast<jsint>(i);  
+                return static_cast<jsint>(i);  /* safe: max string size */
         }
     }
     return -1;
@@ -894,10 +893,10 @@ StringMatch(const jschar *text, jsuint textlen,
         return -1;
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__i386)
-    
-
-
-
+    /*
+     * Given enough registers, the unrolled loop below is faster than the
+     * following loop. 32-bit x86 does not have enough registers.
+     */
     if (patlen == 1) {
         const jschar p0 = *pat;
         for (const jschar *c = text, *end = text + textlen; c != end; ++c) {
@@ -908,31 +907,31 @@ StringMatch(const jschar *text, jsuint textlen,
     }
 #endif
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * If the text or pattern string is short, BMH will be more expensive than
+     * the basic linear scan due to initialization cost and a more complex loop
+     * body. While the correct threshold is input-dependent, we can make a few
+     * conservative observations:
+     *  - When |textlen| is "big enough", the initialization time will be
+     *    proportionally small, so the worst-case slowdown is minimized.
+     *  - When |patlen| is "too small", even the best case for BMH will be
+     *    slower than a simple scan for large |textlen| due to the more complex
+     *    loop body of BMH.
+     * From this, the values for "big enough" and "too small" are determined
+     * empirically. See bug 526348.
+     */
     if (textlen >= 512 && patlen >= 11 && patlen <= sBMHPatLenMax) {
         jsint index = js_BoyerMooreHorspool(text, textlen, pat, patlen);
         if (index != sBMHBadPattern)
             return index;
     }
 
-    
-
-
-
-
-
+    /*
+     * For big patterns with large potential overlap we want the SIMD-optimized
+     * speed of memcmp. For small patterns, a simple loop is faster.
+     *
+     * FIXME: Linux memcmp performance is sad and the manual loop is faster.
+     */
     return
 #if !defined(__linux__)
            patlen > 128 ? UnrolledMatch<MemCmp>(text, textlen, pat, patlen)
@@ -943,11 +942,11 @@ StringMatch(const jschar *text, jsuint textlen,
 
 static const size_t sRopeMatchThresholdRatioLog2 = 5;
 
-
-
-
-
-
+/*
+ * RopeMatch takes the text to search, the patern to search for in the text.
+ * RopeMatch returns false on OOM and otherwise returns the match index through
+ * the 'match' outparam (-1 for not found).
+ */
 static bool
 RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, jsint *match)
 {
@@ -962,19 +961,19 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, js
         return true;
     }
 
-    
-
-
-
-
+    /*
+     * List of leaf nodes in the rope. If we run out of memory when trying to
+     * append to this list, we can still fall back to StringMatch, so use the
+     * system allocator so we don't report OOM in that case.
+     */
     Vector<JSLinearString *, 16, SystemAllocPolicy> strs;
 
-    
-
-
-
-
-
+    /*
+     * We don't want to do rope matching if there is a poor node-to-char ratio,
+     * since this means spending a lot of time in the match loop below. We also
+     * need to build the list of leaf nodes. Do both here: iterate over the
+     * nodes so long as there are not too many.
+     */
     {
         size_t textstrlen = textstr->length();
         size_t threshold = textstrlen >> sRopeMatchThresholdRatioLog2;
@@ -994,13 +993,13 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, js
         }
     }
 
-    
+    /* Absolute offset from the beginning of the logical string textstr. */
     jsint pos = 0;
 
-    
+    // TODO: consider branching to a simple loop if patlen == 1
 
     for (JSLinearString **outerp = strs.begin(); outerp != strs.end(); ++outerp) {
-        
+        /* First try to match without spanning two nodes. */
         JSLinearString *outer = *outerp;
         const jschar *chars = outer->chars();
         size_t len = outer->length();
@@ -1010,13 +1009,13 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, js
             return true;
         }
 
-        
+        /* Test the overlap. */
         JSLinearString **innerp = outerp;
 
-        
-
-
-
+        /*
+         * Start searching at the first place where StringMatch wouldn't have
+         * found the match.
+         */
         const jschar *const text = chars + (patlen > len ? 0 : len - patlen + 1);
         const jschar *const textend = chars + len;
         const jschar p0 = *pat;
@@ -1040,8 +1039,8 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, js
                     goto break_continue;
             }
 
-            
-            *match = pos + (t - chars) - 1;  
+            /* Matched! */
+            *match = pos + (t - chars) - 1;  /* -1 because of *t++ above */
             return true;
 
           break_continue:;
@@ -1129,7 +1128,7 @@ str_lastIndexOf(JSContext *cx, uintN argc, Value *vp)
     size_t patlen = patstr->length();
     const jschar *pat = patstr->chars();
 
-    jsint i = textlen - patlen; 
+    jsint i = textlen - patlen; // Start searching here
     if (i < 0) {
         vp->setInt32(-1);
         return true;
@@ -1234,11 +1233,11 @@ str_trimRight(JSContext *cx, uintN argc, Value *vp)
     return js_TrimString(cx, vp, JS_FALSE, JS_TRUE);
 }
 
+/*
+ * Perl-inspired string functions.
+ */
 
-
-
-
-
+/* Result of a successfully performed flat match. */
 class FlatMatch
 {
     JSLinearString  *patstr;
@@ -1249,18 +1248,18 @@ class FlatMatch
     friend class RegExpGuard;
 
   public:
-    FlatMatch() : patstr(NULL) {} 
+    FlatMatch() : patstr(NULL) {} /* Old GCC wants this initialization. */
     JSString *pattern() const { return patstr; }
     size_t patternLength() const { return patlen; }
 
-    
-
-
-
+    /*
+     * Note: The match is -1 when the match is performed successfully,
+     * but no match is found.
+     */
     int32 match() const { return match_; }
 };
 
-
+/* A regexp and optional associated object. */
 class RegExpPair
 {
     AutoRefCount<RegExp>    re_;
@@ -1283,19 +1282,19 @@ class RegExpPair
         re_.reset(re);
     }
 
-    
+    /* Note: May be null. */
     JSObject *reobj() const { return reobj_; }
     bool hasRegExp() const { return !re_.null(); }
     RegExp &re() const { JS_ASSERT(hasRegExp()); return *re_; }
 };
 
-
-
-
-
-
-
-
+/*
+ * RegExpGuard factors logic out of String regexp operations.
+ *
+ * @param optarg    Indicates in which argument position RegExp
+ *                  flags will be found, if present. This is a Mozilla
+ *                  extension and not part of any ECMA spec.
+ */
 class RegExpGuard
 {
     RegExpGuard(const RegExpGuard &);
@@ -1305,10 +1304,10 @@ class RegExpGuard
     RegExpPair  rep;
     FlatMatch   fm;
 
-    
-
-
-
+    /*
+     * Upper bound on the number of characters we are willing to potentially
+     * waste on searching for RegExp meta-characters.
+     */
     static const size_t MAX_FLAT_PAT_LEN = 256;
 
     static JSString *flattenPattern(JSContext *cx, JSLinearString *patstr) {
@@ -1335,7 +1334,7 @@ class RegExpGuard
     explicit RegExpGuard(JSContext *cx) : cx(cx), rep(cx) {}
     ~RegExpGuard() {}
 
-    
+    /* init must succeed in order to call tryFlatMatch or normalizeRegExp. */
     bool
     init(uintN argc, Value *vp)
     {
@@ -1349,15 +1348,15 @@ class RegExpGuard
         return true;
     }
 
-    
-
-
-
-
-
-
-
-
+    /*
+     * Attempt to match |patstr| to |textstr|. A flags argument, metachars in the
+     * pattern string, or a lengthy pattern string can thwart this process.
+     *
+     * @param checkMetaChars    Look for regexp metachars in the pattern string.
+     * @return                  Whether flat matching could be used.
+     *
+     * N.B. tryFlatMatch returns NULL on OOM, so the caller must check cx->isExceptionPending().
+     */
     const FlatMatch *
     tryFlatMatch(JSContext *cx, JSString *textstr, uintN optarg, uintN argc,
                  bool checkMetaChars = true)
@@ -1376,10 +1375,10 @@ class RegExpGuard
             return NULL;
         }
 
-        
-
-
-
+        /*
+         * textstr could be a rope, so we want to avoid flattening it for as
+         * long as possible.
+         */
         if (textstr->isRope()) {
             if (!RopeMatch(cx, textstr, fm.pat, fm.patlen, &fm.match_))
                 return NULL;
@@ -1391,14 +1390,14 @@ class RegExpGuard
         return &fm;
     }
 
-    
+    /* If the pattern is not already a regular expression, make it so. */
     const RegExpPair *
     normalizeRegExp(bool flat, uintN optarg, uintN argc, Value *vp)
     {
         if (rep.hasRegExp())
             return &rep;
 
-        
+        /* Build RegExp from pattern string. */
         JSString *opt;
         if (optarg < argc) {
             opt = js_ValueToString(cx, vp[2 + optarg]);
@@ -1430,7 +1429,7 @@ class RegExpGuard
 #endif
 };
 
-
+/* js_ExecuteRegExp indicates success in two ways, based on the 'test' flag. */
 static JS_ALWAYS_INLINE bool
 Matched(bool test, const Value &v)
 {
@@ -1439,28 +1438,28 @@ Matched(bool test, const Value &v)
 
 typedef bool (*DoMatchCallback)(JSContext *cx, RegExpStatics *res, size_t count, void *data);
 
-
-
-
-
+/*
+ * BitOR-ing these flags allows the DoMatch caller to control when how the
+ * RegExp engine is called and when callbacks are fired.
+ */
 enum MatchControlFlags {
-   TEST_GLOBAL_BIT         = 0x1, 
-   TEST_SINGLE_BIT         = 0x2, 
-   CALLBACK_ON_SINGLE_BIT  = 0x4, 
+   TEST_GLOBAL_BIT         = 0x1, /* use RegExp.test for global regexps */
+   TEST_SINGLE_BIT         = 0x2, /* use RegExp.test for non-global regexps */
+   CALLBACK_ON_SINGLE_BIT  = 0x4, /* fire callback on non-global match */
 
    MATCH_ARGS    = TEST_GLOBAL_BIT,
    MATCHALL_ARGS = CALLBACK_ON_SINGLE_BIT,
    REPLACE_ARGS  = TEST_GLOBAL_BIT | TEST_SINGLE_BIT | CALLBACK_ON_SINGLE_BIT
 };
 
-
+/* Factor out looping and matching logic. */
 static bool
 DoMatch(JSContext *cx, RegExpStatics *res, JSString *str, const RegExpPair &rep,
         DoMatchCallback callback, void *data, MatchControlFlags flags, Value *rval)
 {
     RegExp &re = rep.re();
     if (re.global()) {
-        
+        /* global matching ('g') */
         bool testGlobal = flags & TEST_GLOBAL_BIT;
         if (rep.reobj())
             rep.reobj()->zeroRegExpLastIndex();
@@ -1475,7 +1474,7 @@ DoMatch(JSContext *cx, RegExpStatics *res, JSString *str, const RegExpPair &rep,
                 ++i;
         }
     } else {
-        
+        /* single match */
         bool testSingle = !!(flags & TEST_SINGLE_BIT),
              callbackOnSingle = !!(flags & CALLBACK_ON_SINGLE_BIT);
         size_t i = 0;
@@ -1495,7 +1494,7 @@ BuildFlatMatchArray(JSContext *cx, JSString *textstr, const FlatMatch &fm, Value
         return true;
     }
 
-    
+    /* For this non-global match, produce a RegExp.exec-style array. */
     JSObject *obj = NewSlowEmptyArray(cx);
     if (!obj)
         return false;
@@ -1510,14 +1509,14 @@ BuildFlatMatchArray(JSContext *cx, JSString *textstr, const FlatMatch &fm, Value
 
 typedef JSObject **MatchArgType;
 
-
-
-
-
+/*
+ * DoMatch will only callback on global matches, hence this function builds
+ * only the "array of matches" returned by match on global regexps.
+ */
 static bool
 MatchCallback(JSContext *cx, RegExpStatics *res, size_t count, void *p)
 {
-    JS_ASSERT(count <= JSID_INT_MAX);  
+    JS_ASSERT(count <= JSID_INT_MAX);  /* by max string length */
 
     JSObject *&arrayobj = *static_cast<MatchArgType>(p);
     if (!arrayobj) {
@@ -1546,7 +1545,7 @@ str_match(JSContext *cx, uintN argc, Value *vp)
         return false;
     if (const FlatMatch *fm = g.tryFlatMatch(cx, str, 1, argc))
         return BuildFlatMatchArray(cx, str, *fm, vp);
-    if (cx->isExceptionPending())  
+    if (cx->isExceptionPending())  /* from tryFlatMatch */
         return false;
 
     const RegExpPair *rep = g.normalizeRegExp(false, 1, argc, vp);
@@ -1581,7 +1580,7 @@ str_search(JSContext *cx, uintN argc, Value *vp)
         vp->setInt32(fm->match());
         return true;
     }
-    if (cx->isExceptionPending())  
+    if (cx->isExceptionPending())  /* from tryFlatMatch */
         return false;
     const RegExpPair *rep = g.normalizeRegExp(false, 1, argc, vp);
     if (!rep)
@@ -1605,19 +1604,19 @@ struct ReplaceData
      : g(cx), sb(cx)
     {}
 
-    JSString           *str;           
-    RegExpGuard        g;              
-    JSObject           *lambda;        
-    JSObject           *elembase;      
-    JSLinearString     *repstr;        
-    const jschar       *dollar;        
-    const jschar       *dollarEnd;     
-    jsint              leftIndex;      
-    JSSubString        dollarStr;      
-    bool               calledBack;     
-    InvokeSessionGuard session;        
-    InvokeArgsGuard    singleShot;     
-    StringBuffer       sb;             
+    JSString           *str;           /* 'this' parameter object as a string */
+    RegExpGuard        g;              /* regexp parameter object and private data */
+    JSObject           *lambda;        /* replacement function object or null */
+    JSObject           *elembase;      /* object for function(a){return b[a]} replace */
+    JSLinearString     *repstr;        /* replacement string */
+    const jschar       *dollar;        /* null or pointer to first $ in repstr */
+    const jschar       *dollarEnd;     /* limit pointer for js_strchr_limit */
+    jsint              leftIndex;      /* left context index in str->chars */
+    JSSubString        dollarStr;      /* for "$$" InterpretDollar result */
+    bool               calledBack;     /* record whether callback has been called */
+    InvokeSessionGuard session;        /* arguments for repeated lambda Invoke call */
+    InvokeArgsGuard    singleShot;     /* arguments for single lambda Invoke call */
+    StringBuffer       sb;             /* buffer built during DoMatch */
 };
 
 static bool
@@ -1626,14 +1625,14 @@ InterpretDollar(JSContext *cx, RegExpStatics *res, const jschar *dp, const jscha
 {
     JS_ASSERT(*dp == '$');
 
-    
+    /* If there is only a dollar, bail now */
     if (dp + 1 >= ep)
         return false;
 
-    
+    /* Interpret all Perl match-induced dollar variables. */
     jschar dc = dp[1];
     if (JS7_ISDEC(dc)) {
-        
+        /* ECMA-262 Edition 3: 1-9 or 01-99 */
         uintN num = JS7_UNDEC(dc);
         if (num > res->parenCount())
             return false;
@@ -1653,10 +1652,10 @@ InterpretDollar(JSContext *cx, RegExpStatics *res, const jschar *dp, const jscha
 
         JS_ASSERT(num <= res->parenCount());
 
-        
-
-
-
+        /* 
+         * Note: we index to get the paren with the (1-indexed) pair
+         * number, as opposed to a (0-indexed) paren number.
+         */
         res->getParen(num, out);
         return true;
     }
@@ -1689,12 +1688,12 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
 {
     JSObject *base = rdata.elembase;
     if (base) {
-        
-
-
-
-
-
+        /*
+         * The base object is used when replace was passed a lambda which looks like
+         * 'function(a) { return b[a]; }' for the base object b.  b will not change
+         * in the course of the replace unless we end up making a scripted call due
+         * to accessing a scripted getter or a value with a scripted toString.
+         */
         JS_ASSERT(rdata.lambda);
         JS_ASSERT(!base->getOps()->lookupProperty);
         JS_ASSERT(!base->getOps()->getProperty);
@@ -1719,7 +1718,7 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
         if (!LookupPropertyWithFlags(cx, base, id, JSRESOLVE_QUALIFIED, &holder, &prop))
             return false;
 
-        
+        /* Only handle the case where the property exists and is on this object. */
         if (prop && holder == base) {
             Shape *shape = (Shape *) prop;
             if (shape->slot != SHAPE_INVALID_SLOT && shape->hasDefaultGetter()) {
@@ -1734,23 +1733,23 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
             }
         }
 
-        
-
-
-
+        /*
+         * Couldn't handle this property, fall through and despecialize to the
+         * general lambda case.
+         */
         rdata.elembase = NULL;
     }
 
     JSObject *lambda = rdata.lambda;
     if (lambda) {
-        
-
-
-
-
-
-
-
+        /*
+         * In the lambda case, not only do we find the replacement string's
+         * length, we compute repstr and return it via rdata for use within
+         * DoReplace.  The lambda is called with arguments ($&, $1, $2, ...,
+         * index, input), i.e., all the properties of a regexp match array.
+         * For $&, etc., we must create string jsvals from cx->regExpStatics.
+         * We grab up stack space to keep the newborn strings GC-rooted.
+         */
         uintN p = res->parenCount();
         uintN argc = 1 + p + 2;
 
@@ -1765,7 +1764,7 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
         if (!staticsGuard.init(cx))
             return false;
 
-        
+        /* Push $&, $1, $2, ... */
         uintN argi = 0;
         if (!res->createLastMatch(cx, &session[argi++]))
             return false;
@@ -1775,14 +1774,14 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
                 return false;
         }
 
-        
+        /* Push match index and input string. */
         session[argi++].setInt32(res->matchStart());
         session[argi].setString(rdata.str);
 
         if (!session.invoke(cx))
             return false;
 
-        
+        /* root repstr: rdata is on the stack, so scanned by conservative gc. */
         JSString *repstr = ValueToString_TestForStringInline(cx, session.rval());
         if (!repstr)
             return false;
@@ -1810,10 +1809,10 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
     return true;
 }
 
-
-
-
-
+/* 
+ * Precondition: |rdata.sb| already has necessary growth space reserved (as
+ * derived from FindReplaceLength).
+ */
 static void
 DoReplace(JSContext *cx, RegExpStatics *res, ReplaceData &rdata)
 {
@@ -1824,7 +1823,7 @@ DoReplace(JSContext *cx, RegExpStatics *res, ReplaceData &rdata)
     const jschar *dp = rdata.dollar;
     const jschar *ep = rdata.dollarEnd;
     for (; dp; dp = js_strchr_limit(dp, '$', ep)) {
-        
+        /* Move one of the constant portions of the replacement value. */
         size_t len = dp - cp;
         rdata.sb.infallibleAppend(cp, len);
         cp = dp;
@@ -1849,20 +1848,20 @@ ReplaceRegExpCallback(JSContext *cx, RegExpStatics *res, size_t count, void *p)
     ReplaceData &rdata = *static_cast<ReplaceData *>(p);
 
     rdata.calledBack = true;
-    JSLinearString &str = rdata.str->asLinear();  
+    JSLinearString &str = rdata.str->asLinear();  /* flattened for regexp */
     size_t leftoff = rdata.leftIndex;
     const jschar *left = str.chars() + leftoff;
     size_t leftlen = res->matchStart() - leftoff;
     rdata.leftIndex = res->matchLimit();
 
-    size_t replen = 0;  
+    size_t replen = 0;  /* silence 'unused' warning */
     if (!FindReplaceLength(cx, res, rdata, &replen))
         return false;
 
     size_t growth = leftlen + replen;
     if (!rdata.sb.reserve(rdata.sb.length() + growth))
         return false;
-    rdata.sb.infallibleAppend(left, leftlen); 
+    rdata.sb.infallibleAppend(left, leftlen); /* skipped-over portion of the search value */
     DoReplace(cx, res, rdata);
     return true;
 }
@@ -1876,10 +1875,10 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
     size_t matchEnd = match + fm.patternLength();
 
     if (textstr->isRope()) {
-        
-
-
-
+        /*
+         * If we are replacing over a rope, avoid flattening it by iterating
+         * through it, building a new rope.
+         */
         StringSegmentRange r(cx);
         if (!r.init(textstr))
             return false;
@@ -1889,17 +1888,17 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
             size_t len = str->length();
             size_t strEnd = pos + len;
             if (pos < matchEnd && strEnd > match) {
-                
-
-
-
+                /*
+                 * We need to special-case any part of the rope that overlaps
+                 * with the replacement string.
+                 */
                 if (match >= pos) {
-                    
-
-
-
-
-
+                    /*
+                     * If this part of the rope overlaps with the left side of
+                     * the pattern, then it must be the only one to overlap with
+                     * the first character in the pattern, so we include the
+                     * replacement string here.
+                     */
                     JSString *leftSide = js_NewDependentString(cx, str, 0, match - pos);
                     if (!leftSide ||
                         !builder.append(leftSide) ||
@@ -1908,10 +1907,10 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
                     }
                 }
 
-                
-
-
-
+                /*
+                 * If str runs off the end of the matched string, append the
+                 * last part of str.
+                 */
                 if (strEnd > matchEnd) {
                     JSString *rightSide = js_NewDependentString(cx, str, matchEnd - pos,
                                                                 strEnd - matchEnd);
@@ -1944,12 +1943,12 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
     return true;
 }
 
-
-
-
-
-
-
+/*
+ * Perform a linear-scan dollar substitution on the replacement text,
+ * constructing a result string that looks like:
+ *
+ *      newstring = string[:matchStart] + dollarSub(replaceValue) + string[matchLimit:]
+ */
 static inline bool
 BuildDollarReplacement(JSContext *cx, JSString *textstrArg, JSLinearString *repstr,
                        const jschar *firstDollar, const FlatMatch &fm, Value *vp)
@@ -1962,21 +1961,21 @@ BuildDollarReplacement(JSContext *cx, JSString *textstrArg, JSLinearString *reps
     size_t matchStart = fm.match();
     size_t matchLimit = matchStart + fm.patternLength();
 
-    
-
-
-
-
-
-
+    /*
+     * Most probably:
+     *
+     *      len(newstr) >= len(orig) - len(match) + len(replacement)
+     *
+     * Note that dollar vars _could_ make the resulting text smaller than this.
+     */
     StringBuffer newReplaceChars(cx);
     if (!newReplaceChars.reserve(textstr->length() - fm.patternLength() + repstr->length()))
         return false;
 
-    
+    /* Move the pre-dollar chunk in bulk. */
     newReplaceChars.infallibleAppend(repstr->chars(), firstDollar);
 
-    
+    /* Move the rest char-by-char, interpreting dollars as we encounter them. */
 #define ENSURE(__cond) if (!(__cond)) return false;
     const jschar *repstrLimit = repstr->chars() + repstr->length();
     for (const jschar *it = firstDollar; it < repstrLimit; ++it) {
@@ -1986,7 +1985,7 @@ BuildDollarReplacement(JSContext *cx, JSString *textstrArg, JSLinearString *reps
         }
 
         switch (*(it + 1)) {
-          case '$': 
+          case '$': /* Eat one of the dollars. */
             ENSURE(newReplaceChars.append(*it));
             break;
           case '&':
@@ -2000,11 +1999,11 @@ BuildDollarReplacement(JSContext *cx, JSString *textstrArg, JSLinearString *reps
             ENSURE(newReplaceChars.append(textstr->chars() + matchLimit,
                                           textstr->chars() + textstr->length()));
             break;
-          default: 
+          default: /* The dollar we saw was not special (no matter what its mother told it). */
             ENSURE(newReplaceChars.append(*it));
             continue;
         }
-        ++it; 
+        ++it; /* We always eat an extra char in the above switch. */
     }
 
     JSString *leftSide = js_NewDependentString(cx, textstr, 0, matchStart);
@@ -2044,7 +2043,7 @@ str_replace_regexp(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata)
         return false;
 
     if (!rdata.calledBack) {
-        
+        /* Didn't match, so the string is unmodified. */
         vp->setString(rdata.str);
         return true;
     }
@@ -2073,7 +2072,7 @@ str_replace_flat_lambda(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata
     if (!matchStr)
         return false;
 
-    
+    /* lambda(matchStr, matchStart, textstr) */
     static const uint32 lambdaArgc = 3;
     if (!cx->stack.pushInvokeArgs(cx, lambdaArgc, &rdata.singleShot))
         return false;
@@ -2124,7 +2123,7 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
         return false;
     static const uint32 optarg = 2;
 
-    
+    /* Extract replacement string/function. */
     if (argc >= optarg && js_IsCallable(vp[3])) {
         rdata.lambda = &vp[3].toObject();
         rdata.elembase = NULL;
@@ -2134,14 +2133,14 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
         if (rdata.lambda->isFunction()) {
             JSFunction *fun = rdata.lambda->getFunctionPrivate();
             if (fun->isInterpreted()) {
-                
-
-
-
-
-
-
-
+                /*
+                 * Pattern match the script to check if it is is indexing into a
+                 * particular object, e.g. 'function(a) { return b[a]; }'.  Avoid
+                 * calling the script in such cases, which are used by javascript
+                 * packers (particularly the popular Dean Edwards packer) to efficiently
+                 * encode large scripts.  We only handle the code patterns generated
+                 * by such packers here.
+                 */
                 JSScript *script = fun->script();
                 jsbytecode *pc = script->code;
 
@@ -2171,7 +2170,7 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
         if (!rdata.repstr)
             return false;
 
-        
+        /* We're about to store pointers into the middle of our string. */
         JSFixedString *fixed = rdata.repstr->ensureFixed(cx);
         if (!fixed)
             return false;
@@ -2182,19 +2181,19 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
     if (!rdata.g.init(argc, vp))
         return false;
 
-    
-
-
-
-
-
-
-
-
+    /*
+     * Unlike its |String.prototype| brethren, |replace| doesn't convert
+     * its input to a regular expression. (Even if it contains metachars.)
+     *
+     * However, if the user invokes our (non-standard) |flags| argument
+     * extension then we revert to creating a regular expression. Note that
+     * this is observable behavior through the side-effect mutation of the
+     * |RegExp| statics.
+     */
 
     const FlatMatch *fm = rdata.g.tryFlatMatch(cx, rdata.str, optarg, argc, false);
     if (!fm) {
-        if (cx->isExceptionPending())  
+        if (cx->isExceptionPending())  /* oom in RopeMatch in tryFlatMatch */
             return false;
         JS_ASSERT_IF(!rdata.g.hasRegExpPair(), argc > optarg);
         return str_replace_regexp(cx, argc, vp, rdata);
@@ -2208,10 +2207,10 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
     if (rdata.lambda)
         return str_replace_flat_lambda(cx, argc, vp, rdata, *fm);
 
-    
-
-
-
+    /* 
+     * Note: we could optimize the text.length == pattern.length case if we wanted,
+     * even in the presence of dollar metachars.
+     */
     if (rdata.dollar)
         return BuildDollarReplacement(cx, rdata.str, rdata.repstr, rdata.dollar, *fm, vp);
 
@@ -2251,21 +2250,21 @@ SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch
     size_t strLength = str->length();
     SplitMatchResult result;
 
-    
+    /* Step 11. */
     if (strLength == 0) {
         if (!splitMatch(cx, str, 0, &result))
             return NULL;
 
-        
-
-
-
-
-
-
-
-
-
+        /*
+         * NB: Unlike in the non-empty string case, it's perfectly fine
+         *     (indeed the spec requires it) if we match at the end of the
+         *     string.  Thus these cases should hold:
+         *
+         *   var a = "".split("");
+         *   assertEq(a.length, 0);
+         *   var b = "".split(/.?/);
+         *   assertEq(b.length, 0);
+         */
         if (!result.isFailure())
             return NewDenseEmptyArray(cx);
 
@@ -2273,71 +2272,71 @@ SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch
         return NewDenseCopiedArray(cx, 1, &v);
     }
 
-    
+    /* Step 12. */
     size_t lastEndIndex = 0;
     size_t index = 0;
 
-    
+    /* Step 13. */
     AutoValueVector splits(cx);
 
     while (index < strLength) {
-        
+        /* Step 13(a). */
         if (!splitMatch(cx, str, index, &result))
             return NULL;
 
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        /*
+         * Step 13(b).
+         *
+         * Our match algorithm differs from the spec in that it returns the
+         * next index at which a match happens.  If no match happens we're
+         * done.
+         *
+         * But what if the match is at the end of the string (and the string is
+         * not empty)?  Per 13(c)(ii) this shouldn't be a match, so we have to
+         * specially exclude it.  Thus this case should hold:
+         *
+         *   var a = "abc".split(/\b/);
+         *   assertEq(a.length, 1);
+         *   assertEq(a[0], "abc");
+         */
         if (result.isFailure())
             break;
 
-        
+        /* Step 13(c)(i). */
         size_t sepLength = result.length();
         size_t endIndex = result.endIndex();
         if (sepLength == 0 && endIndex == strLength)
             break;
 
-        
+        /* Step 13(c)(ii). */
         if (endIndex == lastEndIndex) {
             index++;
             continue;
         }
 
-        
+        /* Step 13(c)(iii). */
         JS_ASSERT(lastEndIndex < endIndex);
         JS_ASSERT(sepLength <= strLength);
         JS_ASSERT(lastEndIndex + sepLength <= endIndex);
 
-        
+        /* Steps 13(c)(iii)(1-3). */
         size_t subLength = size_t(endIndex - sepLength - lastEndIndex);
         JSString *sub = js_NewDependentString(cx, str, lastEndIndex, subLength);
         if (!sub || !splits.append(StringValue(sub)))
             return NULL;
 
-        
+        /* Step 13(c)(iii)(4). */
         if (splits.length() == limit)
             return NewDenseCopiedArray(cx, splits.length(), splits.begin());
 
-        
+        /* Step 13(c)(iii)(5). */
         lastEndIndex = endIndex;
 
-        
+        /* Step 13(c)(iii)(6-7). */
         if (Matcher::returnsCaptures) {
             RegExpStatics *res = cx->regExpStatics();
             for (size_t i = 0; i < res->parenCount(); i++) {
-                
+                /* Steps 13(c)(iii)(7)(a-c). */
                 if (res->pairIsPresent(i + 1)) {
                     JSSubString parsub;
                     res->getParen(i + 1, &parsub);
@@ -2349,32 +2348,32 @@ SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch
                         return NULL;
                 }
 
-                
+                /* Step 13(c)(iii)(7)(d). */
                 if (splits.length() == limit)
                     return NewDenseCopiedArray(cx, splits.length(), splits.begin());
             }
         }
 
-        
+        /* Step 13(c)(iii)(8). */
         index = lastEndIndex;
     }
 
-    
+    /* Steps 14-15. */
     JSString *sub = js_NewDependentString(cx, str, lastEndIndex, strLength - lastEndIndex);
     if (!sub || !splits.append(StringValue(sub)))
         return NULL;
 
-    
+    /* Step 16. */
     return NewDenseCopiedArray(cx, splits.length(), splits.begin());
 }
 
-
-
-
-
-
-
-
+/*
+ * The SplitMatch operation from ES5 15.5.4.14 is implemented using different
+ * matchers for regular expression and string separators.
+ *
+ * The algorithm differs from the spec in that the matchers return the next
+ * index at which a match happens.
+ */
 class SplitRegExpMatcher {
     RegExpStatics *res;
     RegExp *re;
@@ -2387,7 +2386,7 @@ class SplitRegExpMatcher {
     inline bool operator()(JSContext *cx, JSLinearString *str, size_t index,
                            SplitMatchResult *result) {
         Value rval
-#ifdef __GNUC__ 
+#ifdef __GNUC__ /* quell GCC overwarning */
             = UndefinedValue()
 #endif
         ;
@@ -2429,16 +2428,16 @@ class SplitStringMatcher {
     }
 };
 
-
+/* ES5 15.5.4.14 */
 static JSBool
 str_split(JSContext *cx, uintN argc, Value *vp)
 {
-    
+    /* Steps 1-2. */
     JSString *str = ThisToStringForStringProto(cx, vp);
     if (!str)
         return false;
 
-    
+    /* Step 5: Use the second argument as the split limit, if given. */
     uint32 limit;
     if (argc > 1 && !vp[3].isUndefined()) {
         jsdouble d;
@@ -2449,7 +2448,7 @@ str_split(JSContext *cx, uintN argc, Value *vp)
         limit = UINT32_MAX;
     }
 
-    
+    /* Step 8. */
     RegExp *re = NULL;
     JSLinearString *sepstr = NULL;
     bool sepUndefined = (argc == 0 || vp[2].isUndefined());
@@ -2468,7 +2467,7 @@ str_split(JSContext *cx, uintN argc, Value *vp)
         }
     }
 
-    
+    /* Step 9. */
     if (limit == 0) {
         JSObject *aobj = NewDenseEmptyArray(cx);
         if (!aobj)
@@ -2477,7 +2476,7 @@ str_split(JSContext *cx, uintN argc, Value *vp)
         return true;
     }
 
-    
+    /* Step 10. */
     if (sepUndefined) {
         Value v = StringValue(str);
         JSObject *aobj = NewDenseCopiedArray(cx, 1, &v);
@@ -2490,18 +2489,18 @@ str_split(JSContext *cx, uintN argc, Value *vp)
     if (!strlin)
         return false;
 
-    
+    /* Steps 11-15. */
     JSObject *aobj;
     if (re) {
         aobj = SplitHelper(cx, strlin, limit, SplitRegExpMatcher(re, cx->regExpStatics()));
     } else {
-        
+        // NB: sepstr is anchored through its storage in vp[2].
         aobj = SplitHelper(cx, strlin, limit, SplitStringMatcher(sepstr));
     }
     if (!aobj)
         return false;
 
-    
+    /* Step 16. */
     vp->setObject(*aobj);
     return true;
 }
@@ -2525,7 +2524,7 @@ str_substr(JSContext *cx, uintN argc, Value *vp)
             goto out;
         }
         if (begin < 0) {
-            begin += length; 
+            begin += length; /* length + INT_MIN will always be less then 0 */
             if (begin < 0)
                 begin = 0;
         }
@@ -2554,11 +2553,11 @@ out:
     vp->setString(str);
     return true;
 }
-#endif 
+#endif /* JS_HAS_PERL_SUBSTR */
 
-
-
-
+/*
+ * Python-esque sequence operations.
+ */
 static JSBool
 str_concat(JSContext *cx, uintN argc, Value *vp)
 {
@@ -2651,9 +2650,9 @@ str_slice(JSContext *cx, uintN argc, Value *vp)
 }
 
 #if JS_HAS_STR_HTML_HELPERS
-
-
-
+/*
+ * HTML composition aids.
+ */
 static bool
 tagify(JSContext *cx, const char *begin, JSLinearString *param, const char *end,
        Value *vp)
@@ -2669,14 +2668,14 @@ tagify(JSContext *cx, const char *begin, JSLinearString *param, const char *end,
         end = begin;
 
     size_t beglen = strlen(begin);
-    size_t taglen = 1 + beglen + 1;                     
-    size_t parlen = 0; 
+    size_t taglen = 1 + beglen + 1;                     /* '<begin' + '>' */
+    size_t parlen = 0; /* Avoid warning. */
     if (param) {
         parlen = param->length();
-        taglen += 2 + parlen + 1;                       
+        taglen += 2 + parlen + 1;                       /* '="param"' */
     }
     size_t endlen = strlen(end);
-    taglen += str->length() + 2 + endlen + 1;           
+    taglen += str->length() + 2 + endlen + 1;           /* 'str</end>' */
 
     if (taglen >= ~(size_t)0 / sizeof(jschar)) {
         js_ReportAllocationOverflow(cx);
@@ -2806,7 +2805,7 @@ str_sub(JSContext *cx, uintN argc, Value *vp)
 {
     return tagify(cx, "sub", NULL, NULL, vp);
 }
-#endif 
+#endif /* JS_HAS_STR_HTML_HELPERS */
 
 #ifdef JS_TRACER
 JSString* FASTCALL
@@ -2828,7 +2827,7 @@ static JSFunctionSpec string_methods[] = {
     JS_FN(js_toSource_str,     str_toSource,          0,0),
 #endif
 
-    
+    /* Java-like methods. */
     JS_FN(js_toString_str,     js_str_toString,       0,0),
     JS_FN(js_valueOf_str,      js_str_toString,       0,0),
     JS_FN("substring",         str_substring,         2,JSFUN_GENERIC_NATIVE),
@@ -2845,7 +2844,7 @@ static JSFunctionSpec string_methods[] = {
     JS_FN("toLocaleUpperCase", str_toLocaleUpperCase, 0,JSFUN_GENERIC_NATIVE),
     JS_FN("localeCompare",     str_localeCompare,     1,JSFUN_GENERIC_NATIVE),
 
-    
+    /* Perl-ish methods (search is actually Python-esque). */
     JS_FN("match",             str_match,             1,JSFUN_GENERIC_NATIVE),
     JS_FN("search",            str_search,            1,JSFUN_GENERIC_NATIVE),
     JS_FN("replace",           str_replace,           2,JSFUN_GENERIC_NATIVE),
@@ -2854,11 +2853,11 @@ static JSFunctionSpec string_methods[] = {
     JS_FN("substr",            str_substr,            2,JSFUN_GENERIC_NATIVE),
 #endif
 
-    
+    /* Python-esque sequence methods. */
     JS_TN("concat",            str_concat,            1,JSFUN_GENERIC_NATIVE, &str_concat_trcinfo),
     JS_FN("slice",             str_slice,             2,JSFUN_GENERIC_NATIVE),
 
-    
+    /* HTML string methods. */
 #if JS_HAS_STR_HTML_HELPERS
     JS_FN("bold",              str_bold,              0,0),
     JS_FN("italics",           str_italics,           0,0),
@@ -2878,13 +2877,13 @@ static JSFunctionSpec string_methods[] = {
     JS_FS_END
 };
 
-
-
-
-
-
-
-
+/*
+ * Set up some tools to make it easier to generate large tables. After constant
+ * folding, for each n, Rn(0) is the comma-separated list R(0), R(1), ..., R(2^n-1).
+ * Similary, Rn(k) (for any k and n) generates the list R(k), R(k+1), ..., R(k+2^n-1).
+ * To use this, define R appropriately, then use Rn(0) (for some value of n), then
+ * undefine R.
+ */
 #define R2(n)  R(n),   R((n) + (1 << 0)),    R((n) + (2 << 0)),    R((n) + (3 << 0))
 #define R4(n)  R2(n),  R2((n) + (1 << 2)),   R2((n) + (2 << 2)),   R2((n) + (3 << 2))
 #define R6(n)  R4(n),  R4((n) + (1 << 4)),   R4((n) + (2 << 4)),   R4((n) + (3 << 4))
@@ -2898,27 +2897,27 @@ static JSFunctionSpec string_methods[] = {
 #define BUILD_LENGTH_AND_FLAGS(length, flags)                                 \
     (((length) << JSString::LENGTH_SHIFT) | (flags))
 
-
-
-
-
+/*
+ * Declare unit strings. Pack the string data itself into the mInlineChars
+ * place in the header.
+ */
 #define R(c) {                                                                \
     BUILD_LENGTH_AND_FLAGS(1, JSString::STATIC_ATOM_FLAGS),                   \
     { (jschar *)(uintptr_t(unitStaticTable + (c)) +                           \
       offsetof(JSString::Data, inlineStorage)) },                             \
     { {(c), 0x00} } }
 
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * For all the pragma pack usage in this file, the following logic applies:
+ *          To apply:       To reset:
+ * Sun CC:  pack(#)       / pack(0)
+ * IBM xlC: pack(#)       / pack(pop)
+ * HP aCC:  pack #        / pack
+ * Others:  pack(push, #) / pack(pop)
+ * The -Dlint case is explicitly excluded because GCC will error out when
+ * pack pragmas are used on unsupported platforms. If GCC is being used
+ * simply for error checking, these errors will be avoided.
+ */
 
 #if defined(__SUNPRO_CC) || defined(__xlC__)
 #pragma pack(8)
@@ -2944,11 +2943,11 @@ __attribute__ ((aligned (8)))
 
 #undef R
 
-
-
-
-
-
+/*
+ * Declare length-2 strings. We only store strings where both characters are
+ * alphanumeric. The lower 10 short chars are the numerals, the next 26 are
+ * the lowercase letters, and the next 26 are the uppercase letters.
+ */
 #define TO_SMALL_CHAR(c) ((c) >= '0' && (c) <= '9' ? (c) - '0' :              \
                           (c) >= 'a' && (c) <= 'z' ? (c) - 'a' + 10 :         \
                           (c) >= 'A' && (c) <= 'Z' ? (c) - 'A' + 36 :         \
@@ -2960,10 +2959,10 @@ const JSAtom::SmallChar JSAtom::toSmallChar[] = { R7(0) };
 
 #undef R
 
-
-
-
-
+/*
+ * This is used when we generate our table of short strings, so the compiler is
+ * happier if we use |c| as few times as possible.
+ */
 #define FROM_SMALL_CHAR(c) ((c) + ((c) < 10 ? '0' :      \
                                    (c) < 36 ? 'a' - 10 : \
                                    'A' - 36))
@@ -2973,11 +2972,11 @@ const jschar JSAtom::fromSmallChar[] = { R6(0) };
 
 #undef R
 
-
-
-
-
-
+/*
+ * For code-generation ease, length-2 strings are encoded as 12-bit int values,
+ * where the upper 6 bits is the first character and the lower 6 bits is the
+ * second character.
+ */
 #define R(c) {                                                                \
     BUILD_LENGTH_AND_FLAGS(2, JSString::STATIC_ATOM_FLAGS),                   \
     { (jschar *)(uintptr_t(length2StaticTable + (c)) +                        \
@@ -3008,13 +3007,13 @@ __attribute__ ((aligned (8)))
 
 #undef R
 
-
-
-
-
-
-
-
+/*
+ * Declare int strings. Only int strings from 100 to 255 actually have to be
+ * generated, since the rest are either unit strings or length-2 strings. To
+ * avoid the runtime cost of figuring out where to look for the string for a
+ * particular integer, we precompute a table of JSString*s which refer to the
+ * correct location of the int string.
+ */
 #define R(c) {                                                                \
     BUILD_LENGTH_AND_FLAGS(3, JSString::STATIC_ATOM_FLAGS),                   \
     { (jschar *)(uintptr_t(hundredStaticTable + ((c) - 100)) +                \
@@ -3036,10 +3035,10 @@ const JSString::Data JSAtom::hundredStaticTable[]
 #if defined(__GNUC__) || defined(__xlC__)
 __attribute__ ((aligned (8)))
 #endif
-= { R7(100), 
-    R4(100 + (1 << 7)), 
-    R3(100 + (1 << 7) + (1 << 4)), 
-    R2(100 + (1 << 7) + (1 << 4) + (1 << 3)) 
+= { R7(100), /* 100 through 227 */
+    R4(100 + (1 << 7)), /* 228 through 243 */
+    R3(100 + (1 << 7) + (1 << 4)), /* 244 through 251 */
+    R2(100 + (1 << 7) + (1 << 4) + (1 << 3)) /* 252 through 255 */
 };
 
 #undef R
@@ -3101,7 +3100,7 @@ static JSBool
 str_fromCharCode(JSContext *cx, uintN argc, Value *vp)
 {
     Value *argv = JS_ARGV(cx, vp);
-    JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
+    JS_ASSERT(argc <= StackSpace::ARGS_LENGTH_MAX);
     if (argc == 1) {
         uint16_t code;
         if (!ValueToUint16(cx, argv[0], &code))
@@ -3164,37 +3163,26 @@ StringObject::assignInitialShape(JSContext *cx)
 }
 
 JSObject *
-js_InitStringClass(JSContext *cx, JSObject *global)
+js_InitStringClass(JSContext *cx, JSObject *obj)
 {
-    JS_ASSERT(global->isGlobal());
-    JS_ASSERT(global->isNative());
+    JS_ASSERT(obj->isNative());
 
-    
+    GlobalObject *global = obj->asGlobal();
 
-
-
-    if (!JS_DefineFunctions(cx, global, string_functions))
-        return NULL;
-
-    
-    JSObject *objectProto;
-    if (!js_GetClassPrototype(cx, global, JSProto_Object, &objectProto))
-        return NULL;
-
-    JSObject *proto = NewObject<WithProto::Class>(cx, &js_StringClass, objectProto, global);
+    JSObject *proto = global->createBlankPrototype(cx, &js_StringClass);
     if (!proto || !proto->asString()->init(cx, cx->runtime->emptyString))
         return NULL;
 
-    
+    /* Now create the String function. */
     JSAtom *atom = CLASS_ATOM(cx, String);
     JSFunction *ctor = js_NewFunction(cx, NULL, js_String, 1, JSFUN_CONSTRUCTOR, global, atom);
     if (!ctor)
         return NULL;
 
-    
+    /* String creates string objects. */
     FUN_CLASP(ctor) = &js_StringClass;
 
-    
+    /* Define String.prototype and String.prototype.constructor. */
     if (!ctor->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom),
                               ObjectValue(*proto), PropertyStub, StrictPropertyStub,
                               JSPROP_PERMANENT | JSPROP_READONLY) ||
@@ -3204,30 +3192,26 @@ js_InitStringClass(JSContext *cx, JSObject *global)
         return NULL;
     }
 
-    
+    /* Add properties and methods to the prototype and the constructor. */
     if (!JS_DefineFunctions(cx, proto, string_methods) ||
         !JS_DefineFunctions(cx, ctor, string_static_methods))
     {
         return NULL;
     }
 
-    
+    /* Pre-brand String and String.prototype for trace-jitted code. */
     proto->brand(cx);
     ctor->brand(cx);
 
-    
-
-
-
-
-
-
-
-    if (!proto->getEmptyShape(cx, &js_StringClass, FINALIZE_OBJECT0))
+    /* Install the fully-constructed String and String.prototype. */
+    if (!DefineConstructorAndPrototype(cx, global, JSProto_String, ctor, proto))
         return NULL;
 
-    
-    if (!DefineConstructorAndPrototype(cx, global, JSProto_String, ctor, proto))
+    /*
+     * Define escape/unescape, the URI encode/decode functions, and maybe
+     * uneval on the global object.
+     */
+    if (!JS_DefineFunctions(cx, global, string_functions))
         return NULL;
 
     return proto;
@@ -3245,10 +3229,10 @@ js_NewString(JSContext *cx, jschar *chars, size_t length)
 static JS_ALWAYS_INLINE JSFixedString *
 NewShortString(JSContext *cx, const jschar *chars, size_t length)
 {
-    
-
-
-
+    /*
+     * Don't bother trying to find a static atom; measurement shows that not
+     * many get here (for one, Atomize is catching them).
+     */
 
     JS_ASSERT(JSShortString::lengthFits(length));
     JSInlineString *str = JSInlineString::lengthFits(length)
@@ -3303,7 +3287,7 @@ StringBuffer::extractWellSized()
     if (!buf)
         return NULL;
 
-    
+    /* For medium/big buffers, avoid wasting more than 1/4 of the memory. */
     JS_ASSERT(capacity >= length);
     if (length > CharBuffer::sMaxInlineStorage &&
         capacity - length > (length >> 2)) {
@@ -3477,7 +3461,7 @@ js_ValueToString(JSContext *cx, const Value &arg)
     return str;
 }
 
-
+/* This function implements E-262-3 section 9.8, toString. */
 bool
 js::ValueToStringBufferSlow(JSContext *cx, const Value &arg, StringBuffer &sb)
 {
@@ -3507,9 +3491,9 @@ js_ValueToSource(JSContext *cx, const Value &v)
     if (v.isString())
         return js_QuoteString(cx, v.toString(), '"');
     if (v.isPrimitive()) {
-        
+        /* Special case to preserve negative zero, _contra_ toString. */
         if (v.isDouble() && JSDOUBLE_IS_NEGZERO(v.toDouble())) {
-            
+            /* NB: _ucNstr rather than _ucstr to indicate non-terminated. */
             static const jschar js_negzero_ucNstr[] = {'-', '0'};
 
             return js_NewStringCopyN(cx, js_negzero_ucNstr, 2);
@@ -3570,7 +3554,7 @@ EqualStrings(JSLinearString *str1, JSLinearString *str2)
     return PodEqual(str1->chars(), str2->chars(), length1);
 }
 
-}  
+}  /* namespace js */
 
 JSBool JS_FASTCALL
 js_EqualStringsOnTrace(JSContext *cx, JSString *str1, JSString *str2)
@@ -3621,7 +3605,7 @@ CompareStrings(JSContext *cx, JSString *str1, JSString *str2, int32 *result)
     return CompareStringsImpl(cx, str1, str2, result);
 }
 
-}  
+}  /* namespace js */
 
 int32 JS_FASTCALL
 js_CompareStringsOnTrace(JSContext *cx, JSString *str1, JSString *str2)
@@ -3655,7 +3639,7 @@ StringEqualsAscii(JSLinearString *str, const char *asciiBytes)
     return true;
 }
 
-} 
+} /* namespacejs */
 
 size_t
 js_strlen(const jschar *s)
@@ -3718,17 +3702,17 @@ InflateString(JSContext *cx, const char *bytes, size_t *lengthp, FlationCoding f
     return chars;
 
   bad:
-    
-
-
-
+    /*
+     * For compatibility with callers of JS_DecodeBytes we must zero lengthp
+     * on errors.
+     */
     *lengthp = 0;
     return NULL;
 }
 
-
-
-
+/*
+ * May be called with null cx.
+ */
 char *
 DeflateString(JSContext *cx, const jschar *chars, size_t nchars)
 {
@@ -3764,9 +3748,9 @@ GetDeflatedStringLength(JSContext *cx, const jschar *chars, size_t nchars)
     return GetDeflatedUTF8StringLength(cx, chars, nchars);
 }
 
-
-
-
+/*
+ * May be called with null cx through public API, see below.
+ */
 size_t
 GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
                                 size_t nchars, FlationCoding fc)
@@ -3783,10 +3767,10 @@ GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
         if (c < 0x80)
             continue;
         if (0xD800 <= c && c <= 0xDFFF && !useCESU8) {
-            
+            /* Surrogate pair. */
             chars++;
 
-            
+            /* nbytes sets 1 length since this is surrogate pair. */
             nbytes--;
             if (c >= 0xDC00 || chars == end)
                 goto bad_surrogate;
@@ -3870,7 +3854,7 @@ DeflateStringToUTF8Buffer(JSContext *cx, const jschar *src, size_t srclen,
             v = ((c - 0xD800) << 10) + (c2 - 0xDC00) + 0x10000;
         }
         if (v < 0x0080) {
-            
+            /* no encoding necessary - performance hack */
             if (dstlen == 0)
                 goto bufferTooSmall;
             *dst++ = (char) v;
@@ -3889,7 +3873,7 @@ DeflateStringToUTF8Buffer(JSContext *cx, const jschar *src, size_t srclen,
 
 badSurrogate:
     *dstlenp = (origDstlen - dstlen);
-    
+    /* Delegate error reporting to the measurement function. */
     if (cx)
         GetDeflatedStringLength(cx, src - 1, srclen + 1);
     return JS_FALSE;
@@ -4012,1294 +3996,1294 @@ bufferTooSmall:
     return JS_FALSE;
 }
 
-} 
+} /* namepsace js */
 
+/*
+ * From java.lang.Character.java:
+ *
+ * The character properties are currently encoded into 32 bits in the
+ * following manner:
+ *
+ * 10 bits      signed offset used for converting case
+ *  1 bit       if 1, adding the signed offset converts the character to
+ *              lowercase
+ *  1 bit       if 1, subtracting the signed offset converts the character to
+ *              uppercase
+ *  1 bit       if 1, character has a titlecase equivalent (possibly itself)
+ *  3 bits      0  may not be part of an identifier
+ *              1  ignorable control; may continue a Unicode identifier or JS
+ *                 identifier
+ *              2  may continue a JS identifier but not a Unicode identifier
+ *                 (unused)
+ *              3  may continue a Unicode identifier or JS identifier
+ *              4  is a JS whitespace character
+ *              5  may start or continue a JS identifier;
+ *                 may continue but not start a Unicode identifier (_)
+ *              6  may start or continue a JS identifier but not a Unicode
+ *                 identifier ($)
+ *              7  may start or continue a Unicode identifier or JS identifier
+ *              Thus:
+ *                 5, 6, 7 may start a JS identifier
+ *                 1, 2, 3, 5, 6, 7 may continue a JS identifier
+ *                 7 may start a Unicode identifier
+ *                 1, 3, 5, 7 may continue a Unicode identifier
+ *                 1 is ignorable within an identifier
+ *                 4 is JS whitespace
+ *  2 bits      0  this character has no numeric property
+ *              1  adding the digit offset to the character code and then
+ *                 masking with 0x1F will produce the desired numeric value
+ *              2  this character has a "strange" numeric value
+ *              3  a JS supradecimal digit: adding the digit offset to the
+ *                 character code, then masking with 0x1F, then adding 10
+ *                 will produce the desired numeric value
+ *  5 bits      digit offset
+ *  1 bit       XML 1.0 name start character
+ *  1 bit       XML 1.0 name character
+ *  2 bits      reserved for future use
+ *  5 bits      character type
+ */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* The X table has 1024 entries for a total of 1024 bytes. */
 
 const uint8 js_X[] = {
-  0,   1,   2,   3,   4,   5,   6,   7,  
-  8,   9,  10,  11,  12,  13,  14,  15,  
- 16,  17,  18,  19,  20,  21,  22,  23,  
- 24,  25,  26,  27,  28,  28,  28,  28,  
- 28,  28,  28,  28,  29,  30,  31,  32,  
- 33,  34,  35,  36,  37,  38,  39,  40,  
- 41,  42,  43,  44,  45,  46,  28,  28,  
- 47,  48,  49,  50,  51,  52,  53,  28,  
- 28,  28,  54,  55,  56,  57,  58,  59,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 60,  60,  61,  62,  63,  64,  65,  66,  
- 67,  68,  69,  70,  71,  72,  73,  74,  
- 75,  75,  75,  76,  77,  78,  28,  28,  
- 79,  80,  81,  82,  83,  83,  84,  85,  
- 86,  85,  28,  28,  87,  88,  89,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 90,  91,  92,  93,  94,  56,  95,  28,  
- 96,  97,  98,  99,  83, 100,  83, 101,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56, 102,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 28,  28,  28,  28,  28,  28,  28,  28,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56,  56,  56,  
- 56,  56,  56,  56,  56,  56, 103,  28,  
-104, 104, 104, 104, 104, 104, 104, 104,  
-104, 104, 104, 104, 104, 104, 104, 104,  
-104, 104, 104, 104, 104, 104, 104, 104,  
-104, 104, 104, 104, 104, 104, 104, 104,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105, 105, 105, 105, 105,  
-105, 105, 105, 105,  56,  56,  56,  56,  
-106,  28,  28,  28, 107, 108, 109, 110,  
- 56,  56,  56,  56, 111, 112, 113, 114,  
-115, 116,  56, 117, 118, 119, 120, 121   
+  0,   1,   2,   3,   4,   5,   6,   7,  /*  0x0000 */
+  8,   9,  10,  11,  12,  13,  14,  15,  /*  0x0200 */
+ 16,  17,  18,  19,  20,  21,  22,  23,  /*  0x0400 */
+ 24,  25,  26,  27,  28,  28,  28,  28,  /*  0x0600 */
+ 28,  28,  28,  28,  29,  30,  31,  32,  /*  0x0800 */
+ 33,  34,  35,  36,  37,  38,  39,  40,  /*  0x0A00 */
+ 41,  42,  43,  44,  45,  46,  28,  28,  /*  0x0C00 */
+ 47,  48,  49,  50,  51,  52,  53,  28,  /*  0x0E00 */
+ 28,  28,  54,  55,  56,  57,  58,  59,  /*  0x1000 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x1200 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x1400 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x1600 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x1800 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x1A00 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x1C00 */
+ 60,  60,  61,  62,  63,  64,  65,  66,  /*  0x1E00 */
+ 67,  68,  69,  70,  71,  72,  73,  74,  /*  0x2000 */
+ 75,  75,  75,  76,  77,  78,  28,  28,  /*  0x2200 */
+ 79,  80,  81,  82,  83,  83,  84,  85,  /*  0x2400 */
+ 86,  85,  28,  28,  87,  88,  89,  28,  /*  0x2600 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x2800 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x2A00 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x2C00 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x2E00 */
+ 90,  91,  92,  93,  94,  56,  95,  28,  /*  0x3000 */
+ 96,  97,  98,  99,  83, 100,  83, 101,  /*  0x3200 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x3400 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x3600 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x3800 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x3A00 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x3C00 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x3E00 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x4000 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x4200 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x4400 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x4600 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x4800 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x4A00 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0x4C00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x4E00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x5000 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x5200 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x5400 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x5600 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x5800 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x5A00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x5C00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x5E00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x6000 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x6200 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x6400 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x6600 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x6800 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x6A00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x6C00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x6E00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x7000 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x7200 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x7400 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x7600 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x7800 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x7A00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x7C00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x7E00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x8000 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x8200 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x8400 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x8600 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x8800 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x8A00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x8C00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x8E00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x9000 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x9200 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x9400 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x9600 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x9800 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x9A00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0x9C00 */
+ 56,  56,  56,  56,  56,  56, 102,  28,  /*  0x9E00 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0xA000 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0xA200 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0xA400 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0xA600 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0xA800 */
+ 28,  28,  28,  28,  28,  28,  28,  28,  /*  0xAA00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xAC00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xAE00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xB000 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xB200 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xB400 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xB600 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xB800 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xBA00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xBC00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xBE00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xC000 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xC200 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xC400 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xC600 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xC800 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xCA00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xCC00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xCE00 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xD000 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xD200 */
+ 56,  56,  56,  56,  56,  56,  56,  56,  /*  0xD400 */
+ 56,  56,  56,  56,  56,  56, 103,  28,  /*  0xD600 */
+104, 104, 104, 104, 104, 104, 104, 104,  /*  0xD800 */
+104, 104, 104, 104, 104, 104, 104, 104,  /*  0xDA00 */
+104, 104, 104, 104, 104, 104, 104, 104,  /*  0xDC00 */
+104, 104, 104, 104, 104, 104, 104, 104,  /*  0xDE00 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xE000 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xE200 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xE400 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xE600 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xE800 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xEA00 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xEC00 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xEE00 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xF000 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xF200 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xF400 */
+105, 105, 105, 105, 105, 105, 105, 105,  /*  0xF600 */
+105, 105, 105, 105,  56,  56,  56,  56,  /*  0xF800 */
+106,  28,  28,  28, 107, 108, 109, 110,  /*  0xFA00 */
+ 56,  56,  56,  56, 111, 112, 113, 114,  /*  0xFC00 */
+115, 116,  56, 117, 118, 119, 120, 121   /*  0xFE00 */
 };
 
-
+/* The Y table has 7808 entries for a total of 7808 bytes. */
 
 const uint8 js_Y[] = {
-  0,   0,   0,   0,   0,   0,   0,   0,  
-  0,   1,   1,   1,   1,   1,   0,   0,  
-  0,   0,   0,   0,   0,   0,   0,   0,  
-  0,   0,   0,   0,   0,   0,   0,   0,  
-  2,   3,   3,   3,   4,   3,   3,   3,  
-  5,   6,   3,   7,   3,   8,   3,   3,  
-  9,   9,   9,   9,   9,   9,   9,   9,  
-  9,   9,   3,   3,   7,   7,   7,   3,  
-  3,  10,  10,  10,  10,  10,  10,  10,  
- 10,  10,  10,  10,  10,  10,  10,  10,  
- 10,  10,  10,  10,  10,  10,  10,  10,  
- 10,  10,  10,   5,   3,   6,  11,  12,  
- 11,  13,  13,  13,  13,  13,  13,  13,  
- 13,  13,  13,  13,  13,  13,  13,  13,  
- 13,  13,  13,  13,  13,  13,  13,  13,  
- 13,  13,  13,   5,   7,   6,   7,   0,  
-  0,   0,   0,   0,   0,   0,   0,   0,  
-  0,   0,   0,   0,   0,   0,   0,   0,  
-  0,   0,   0,   0,   0,   0,   0,   0,  
-  0,   0,   0,   0,   0,   0,   0,   0,  
-  2,   3,   4,   4,   4,   4,  15,  15,  
- 11,  15,  16,   5,   7,   8,  15,  11,  
- 15,   7,  17,  17,  11,  16,  15,   3,  
- 11,  18,  16,   6,  19,  19,  19,   3,  
- 20,  20,  20,  20,  20,  20,  20,  20,  
- 20,  20,  20,  20,  20,  20,  20,  20,  
- 20,  20,  20,  20,  20,  20,  20,   7,  
- 20,  20,  20,  20,  20,  20,  20,  16,  
- 21,  21,  21,  21,  21,  21,  21,  21,  
- 21,  21,  21,  21,  21,  21,  21,  21,  
- 21,  21,  21,  21,  21,  21,  21,   7,  
- 21,  21,  21,  21,  21,  21,  21,  22,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 25,  26,  23,  24,  23,  24,  23,  24,  
- 16,  23,  24,  23,  24,  23,  24,  23,  
- 24,  23,  24,  23,  24,  23,  24,  23,  
- 24,  16,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 27,  23,  24,  23,  24,  23,  24,  28,  
- 16,  29,  23,  24,  23,  24,  30,  23,  
- 24,  31,  31,  23,  24,  16,  32,  32,  
- 33,  23,  24,  31,  34,  16,  35,  36,  
- 23,  24,  16,  16,  35,  37,  16,  38,  
- 23,  24,  23,  24,  23,  24,  38,  23,  
- 24,  39,  40,  16,  23,  24,  39,  23,  
- 24,  41,  41,  23,  24,  23,  24,  42,  
- 23,  24,  16,  40,  23,  24,  40,  40,  
- 40,  40,  40,  40,  43,  44,  45,  43,  
- 44,  45,  43,  44,  45,  23,  24,  23,  
- 24,  23,  24,  23,  24,  23,  24,  23,  
- 24,  23,  24,  23,  24,  16,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 16,  43,  44,  45,  23,  24,  46,  46,  
- 46,  46,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 16,  16,  16,  47,  48,  16,  49,  49,  
- 50,  50,  16,  51,  16,  16,  16,  16,  
- 49,  16,  16,  52,  16,  16,  16,  16,  
- 53,  54,  16,  16,  16,  16,  16,  54,  
- 16,  16,  55,  16,  16,  16,  16,  16,  
- 16,  16,  16,  16,  16,  16,  16,  16,  
- 16,  16,  16,  56,  16,  16,  16,  16,  
- 56,  16,  57,  57,  16,  16,  16,  16,  
- 16,  16,  58,  16,  16,  16,  16,  16,  
- 16,  16,  16,  16,  16,  16,  16,  16,  
- 16,  16,  16,  16,  16,  16,  16,  16,  
- 16,  46,  46,  46,  46,  46,  46,  46,  
- 59,  59,  59,  59,  59,  59,  59,  59,  
- 59,  11,  11,  59,  59,  59,  59,  59,  
- 59,  59,  11,  11,  11,  11,  11,  11,  
- 11,  11,  11,  11,  11,  11,  11,  11,  
- 59,  59,  11,  11,  11,  11,  11,  11,  
- 11,  11,  11,  11,  11,  11,  11,  46,  
- 59,  59,  59,  59,  59,  11,  11,  11,  
- 11,  11,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 60,  60,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,   3,   3,  46,  46,  
- 46,  46,  59,  46,  46,  46,   3,  46,  
- 46,  46,  46,  46,  11,  11,  61,   3,  
- 62,  62,  62,  46,  63,  46,  64,  64,  
- 16,  20,  20,  20,  20,  20,  20,  20,  
- 20,  20,  20,  20,  20,  20,  20,  20,  
- 20,  20,  46,  20,  20,  20,  20,  20,  
- 20,  20,  20,  20,  65,  66,  66,  66,  
- 16,  21,  21,  21,  21,  21,  21,  21,  
- 21,  21,  21,  21,  21,  21,  21,  21,  
- 21,  21,  16,  21,  21,  21,  21,  21,  
- 21,  21,  21,  21,  67,  68,  68,  46,  
- 69,  70,  38,  38,  38,  71,  72,  46,  
- 46,  46,  38,  46,  38,  46,  38,  46,  
- 38,  46,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 73,  74,  16,  40,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  75,  75,  75,  75,  75,  75,  75,  
- 75,  75,  75,  75,  75,  46,  75,  75,  
- 20,  20,  20,  20,  20,  20,  20,  20,  
- 20,  20,  20,  20,  20,  20,  20,  20,  
- 20,  20,  20,  20,  20,  20,  20,  20,  
- 20,  20,  20,  20,  20,  20,  20,  20,  
- 21,  21,  21,  21,  21,  21,  21,  21,  
- 21,  21,  21,  21,  21,  21,  21,  21,  
- 21,  21,  21,  21,  21,  21,  21,  21,  
- 21,  21,  21,  21,  21,  21,  21,  21,  
- 46,  74,  74,  74,  74,  74,  74,  74,  
- 74,  74,  74,  74,  74,  46,  74,  74,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  15,  60,  60,  60,  60,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 40,  23,  24,  23,  24,  46,  46,  23,  
- 24,  46,  46,  23,  24,  46,  46,  46,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  46,  46,  23,  24,  
- 23,  24,  23,  24,  23,  24,  46,  46,  
- 23,  24,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  76,  76,  76,  76,  76,  76,  76,  
- 76,  76,  76,  76,  76,  76,  76,  76,  
- 76,  76,  76,  76,  76,  76,  76,  76,  
- 76,  76,  76,  76,  76,  76,  76,  76,  
- 76,  76,  76,  76,  76,  76,  76,  46,  
- 46,  59,   3,   3,   3,   3,   3,   3,  
- 46,  77,  77,  77,  77,  77,  77,  77,  
- 77,  77,  77,  77,  77,  77,  77,  77,  
- 77,  77,  77,  77,  77,  77,  77,  77,  
- 77,  77,  77,  77,  77,  77,  77,  77,  
- 77,  77,  77,  77,  77,  77,  77,  16,  
- 46,   3,  46,  46,  46,  46,  46,  46,  
- 46,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  46,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  46,  60,  60,  60,   3,  60,  
-  3,  60,  60,   3,  60,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  46,  46,  46,  46,  46,  
- 40,  40,  40,   3,   3,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,   3,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,   3,  46,  46,  46,   3,  
- 46,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  46,  46,  46,  46,  46,  
- 59,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  60,  60,  60,  60,  60,  
- 60,  60,  60,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 78,  78,  78,  78,  78,  78,  78,  78,  
- 78,  78,   3,   3,   3,   3,  46,  46,  
- 60,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 46,  46,  40,  40,  40,  40,  40,  46,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  46,  
- 40,  40,  40,  40,   3,  40,  60,  60,  
- 60,  60,  60,  60,  60,  79,  79,  60,  
- 60,  60,  60,  60,  60,  59,  59,  60,  
- 60,  15,  60,  60,  60,  60,  46,  46,  
-  9,   9,   9,   9,   9,   9,   9,   9,  
-  9,   9,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  60,  60,  80,  46,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  46,  46,  60,  40,  80,  80,  
- 80,  60,  60,  60,  60,  60,  60,  60,  
- 60,  80,  80,  80,  80,  60,  46,  46,  
- 15,  60,  60,  60,  60,  46,  46,  46,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  60,  60,   3,   3,  81,  81,  
- 81,  81,  81,  81,  81,  81,  81,  81,  
-  3,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  60,  80,  80,  46,  40,  40,  40,  
- 40,  40,  40,  40,  40,  46,  46,  40,  
- 40,  46,  46,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  46,  46,  46,  40,  40,  
- 40,  40,  46,  46,  60,  46,  80,  80,  
- 80,  60,  60,  60,  60,  46,  46,  80,  
- 80,  46,  46,  80,  80,  60,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  80,  
- 46,  46,  46,  46,  40,  40,  46,  40,  
- 40,  40,  60,  60,  46,  46,  81,  81,  
- 81,  81,  81,  81,  81,  81,  81,  81,  
- 40,  40,   4,   4,  82,  82,  82,  82,  
- 19,  83,  15,  46,  46,  46,  46,  46,  
- 46,  46,  60,  46,  46,  40,  40,  40,  
- 40,  40,  40,  46,  46,  46,  46,  40,  
- 40,  46,  46,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  40,  46,  40,  40,  46,  
- 40,  40,  46,  46,  60,  46,  80,  80,  
- 80,  60,  60,  46,  46,  46,  46,  60,  
- 60,  46,  46,  60,  60,  60,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  40,  40,  40,  40,  46,  40,  46,  
- 46,  46,  46,  46,  46,  46,  81,  81,  
- 81,  81,  81,  81,  81,  81,  81,  81,  
- 60,  60,  40,  40,  40,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  60,  60,  80,  46,  40,  40,  40,  
- 40,  40,  40,  40,  46,  40,  46,  40,  
- 40,  40,  46,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  40,  46,  40,  40,  40,  
- 40,  40,  46,  46,  60,  40,  80,  80,  
- 80,  60,  60,  60,  60,  60,  46,  60,  
- 60,  80,  46,  80,  80,  60,  46,  46,  
- 15,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 40,  46,  46,  46,  46,  46,  81,  81,  
- 81,  81,  81,  81,  81,  81,  81,  81,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  60,  80,  80,  46,  40,  40,  40,  
- 40,  40,  40,  40,  40,  46,  46,  40,  
- 40,  46,  46,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  40,  46,  46,  40,  40,  
- 40,  40,  46,  46,  60,  40,  80,  60,  
- 80,  60,  60,  60,  46,  46,  46,  80,  
- 80,  46,  46,  80,  80,  60,  46,  46,  
- 46,  46,  46,  46,  46,  46,  60,  80,  
- 46,  46,  46,  46,  40,  40,  46,  40,  
- 40,  40,  46,  46,  46,  46,  81,  81,  
- 81,  81,  81,  81,  81,  81,  81,  81,  
- 15,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  60,  80,  46,  40,  40,  40,  
- 40,  40,  40,  46,  46,  46,  40,  40,  
- 40,  46,  40,  40,  40,  40,  46,  46,  
- 46,  40,  40,  46,  40,  46,  40,  40,  
- 46,  46,  46,  40,  40,  46,  46,  46,  
- 40,  40,  40,  46,  46,  46,  40,  40,  
- 40,  40,  40,  40,  40,  40,  46,  40,  
- 40,  40,  46,  46,  46,  46,  80,  80,  
- 60,  80,  80,  46,  46,  46,  80,  80,  
- 80,  46,  80,  80,  80,  60,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  80,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  81,  
- 81,  81,  81,  81,  81,  81,  81,  81,  
- 84,  19,  19,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  80,  80,  80,  46,  40,  40,  40,  
- 40,  40,  40,  40,  40,  46,  40,  40,  
- 40,  46,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  46,  40,  40,  40,  
- 40,  40,  46,  46,  46,  46,  60,  60,  
- 60,  80,  80,  80,  80,  46,  60,  60,  
- 60,  46,  60,  60,  60,  60,  46,  46,  
- 46,  46,  46,  46,  46,  60,  60,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 40,  40,  46,  46,  46,  46,  81,  81,  
- 81,  81,  81,  81,  81,  81,  81,  81,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  80,  80,  46,  40,  40,  40,  
- 40,  40,  40,  40,  40,  46,  40,  40,  
- 40,  46,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  46,  40,  40,  40,  
- 40,  40,  46,  46,  46,  46,  80,  60,  
- 80,  80,  80,  80,  80,  46,  60,  80,  
- 80,  46,  80,  80,  60,  60,  46,  46,  
- 46,  46,  46,  46,  46,  80,  80,  46,  
- 46,  46,  46,  46,  46,  46,  40,  46,  
- 40,  40,  46,  46,  46,  46,  81,  81,  
- 81,  81,  81,  81,  81,  81,  81,  81,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  80,  80,  46,  40,  40,  40,  
- 40,  40,  40,  40,  40,  46,  40,  40,  
- 40,  46,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  46,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  46,  46,  46,  46,  80,  80,  
- 80,  60,  60,  60,  46,  46,  80,  80,  
- 80,  46,  80,  80,  80,  60,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  80,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 40,  40,  46,  46,  46,  46,  81,  81,  
- 81,  81,  81,  81,  81,  81,  81,  81,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,   3,  
- 40,  60,  40,  40,  60,  60,  60,  60,  
- 60,  60,  60,  46,  46,  46,  46,   4,  
- 40,  40,  40,  40,  40,  40,  59,  60,  
- 60,  60,  60,  60,  60,  60,  60,  15,  
-  9,   9,   9,   9,   9,   9,   9,   9,  
-  9,   9,   3,   3,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  40,  40,  46,  40,  46,  46,  40,  
- 40,  46,  40,  46,  46,  40,  46,  46,  
- 46,  46,  46,  46,  40,  40,  40,  40,  
- 46,  40,  40,  40,  40,  40,  40,  40,  
- 46,  40,  40,  40,  46,  40,  46,  40,  
- 46,  46,  40,  40,  46,  40,  40,   3,  
- 40,  60,  40,  40,  60,  60,  60,  60,  
- 60,  60,  46,  60,  60,  40,  46,  46,  
- 40,  40,  40,  40,  40,  46,  59,  46,  
- 60,  60,  60,  60,  60,  60,  46,  46,  
-  9,   9,   9,   9,   9,   9,   9,   9,  
-  9,   9,  46,  46,  40,  40,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 15,  15,  15,  15,   3,   3,   3,   3,  
-  3,   3,   3,   3,   3,   3,   3,   3,  
-  3,   3,   3,  15,  15,  15,  15,  15,  
- 60,  60,  15,  15,  15,  15,  15,  15,  
- 78,  78,  78,  78,  78,  78,  78,  78,  
- 78,  78,  85,  85,  85,  85,  85,  85,  
- 85,  85,  85,  85,  15,  60,  15,  60,  
- 15,  60,   5,   6,   5,   6,  80,  80,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 46,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  46,  46,  46,  46,  46,  46,  
- 46,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  80,  
- 60,  60,  60,  60,  60,   3,  60,  60,  
- 60,  60,  60,  60,  46,  46,  46,  46,  
- 60,  60,  60,  60,  60,  60,  46,  60,  
- 46,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  60,  46,  46,  
- 46,  60,  60,  60,  60,  60,  60,  60,  
- 46,  60,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 76,  76,  76,  76,  76,  76,  76,  76,  
- 76,  76,  76,  76,  76,  76,  76,  76,  
- 76,  76,  76,  76,  76,  76,  76,  76,  
- 76,  76,  76,  76,  76,  76,  76,  76,  
- 76,  76,  76,  76,  76,  76,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 16,  16,  16,  16,  16,  16,  16,  16,  
- 16,  16,  16,  16,  16,  16,  16,  16,  
- 16,  16,  16,  16,  16,  16,  16,  16,  
- 16,  16,  16,  16,  16,  16,  16,  16,  
- 16,  16,  16,  16,  16,  16,  16,  46,  
- 46,  46,  46,   3,  46,  46,  46,  46,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  46,  46,  46,  46,  46,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  46,  46,  46,  46,  46,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  46,  46,  46,  46,  46,  46,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  16,  16,  
- 16,  16,  16,  16,  46,  46,  46,  46,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  23,  24,  23,  24,  23,  24,  
- 23,  24,  46,  46,  46,  46,  46,  46,  
- 86,  86,  86,  86,  86,  86,  86,  86,  
- 87,  87,  87,  87,  87,  87,  87,  87,  
- 86,  86,  86,  86,  86,  86,  46,  46,  
- 87,  87,  87,  87,  87,  87,  46,  46,  
- 86,  86,  86,  86,  86,  86,  86,  86,  
- 87,  87,  87,  87,  87,  87,  87,  87,  
- 86,  86,  86,  86,  86,  86,  86,  86,  
- 87,  87,  87,  87,  87,  87,  87,  87,  
- 86,  86,  86,  86,  86,  86,  46,  46,  
- 87,  87,  87,  87,  87,  87,  46,  46,  
- 16,  86,  16,  86,  16,  86,  16,  86,  
- 46,  87,  46,  87,  46,  87,  46,  87,  
- 86,  86,  86,  86,  86,  86,  86,  86,  
- 87,  87,  87,  87,  87,  87,  87,  87,  
- 88,  88,  89,  89,  89,  89,  90,  90,  
- 91,  91,  92,  92,  93,  93,  46,  46,  
- 86,  86,  86,  86,  86,  86,  86,  86,  
- 87,  87,  87,  87,  87,  87,  87,  87,  
- 86,  86,  86,  86,  86,  86,  86,  86,  
- 87,  87,  87,  87,  87,  87,  87,  87,  
- 86,  86,  86,  86,  86,  86,  86,  86,  
- 87,  87,  87,  87,  87,  87,  87,  87,  
- 86,  86,  16,  94,  16,  46,  16,  16,  
- 87,  87,  95,  95,  96,  11,  38,  11,  
- 11,  11,  16,  94,  16,  46,  16,  16,  
- 97,  97,  97,  97,  96,  11,  11,  11,  
- 86,  86,  16,  16,  46,  46,  16,  16,  
- 87,  87,  98,  98,  46,  11,  11,  11,  
- 86,  86,  16,  16,  16,  99,  16,  16,  
- 87,  87, 100, 100, 101,  11,  11,  11,  
- 46,  46,  16,  94,  16,  46,  16,  16,  
-102, 102, 103, 103,  96,  11,  11,  46,  
-  2,   2,   2,   2,   2,   2,   2,   2,  
-  2,   2,   2,   2, 104, 104, 104, 104,  
-  8,   8,   8,   8,   8,   8,   3,   3,  
-  5,   6,   5,   5,   5,   6,   5,   5,  
-  3,   3,   3,   3,   3,   3,   3,   3,  
-105, 106, 104, 104, 104, 104, 104,  46,  
-  3,   3,   3,   3,   3,   3,   3,   3,  
-  3,   5,   6,   3,   3,   3,   3,  12,  
- 12,   3,   3,   3,   7,   5,   6,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46, 104, 104, 104, 104, 104, 104,  
- 17,  46,  46,  46,  17,  17,  17,  17,  
- 17,  17,   7,   7,   7,   5,   6,  16,  
-107, 107, 107, 107, 107, 107, 107, 107,  
-107, 107,   7,   7,   7,   5,   6,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
-  4,   4,   4,   4,   4,   4,   4,   4,  
-  4,   4,   4,   4,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 60,  60,  60,  60,  60,  60,  60,  60,  
- 60,  60,  60,  60,  60,  79,  79,  79,  
- 79,  60,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 15,  15,  38,  15,  15,  15,  15,  38,  
- 15,  15,  16,  38,  38,  38,  16,  16,  
- 38,  38,  38,  16,  15,  38,  15,  15,  
- 38,  38,  38,  38,  38,  38,  15,  15,  
- 15,  15,  15,  15,  38,  15,  38,  15,  
- 38,  15,  38,  38,  38,  38,  16,  16,  
- 38,  38,  15,  38,  16,  40,  40,  40,  
- 40,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  19,  19,  19,  19,  19,  
- 19,  19,  19,  19,  19,  19,  19, 108,  
-109, 109, 109, 109, 109, 109, 109, 109,  
-109, 109, 109, 109, 110, 110, 110, 110,  
-111, 111, 111, 111, 111, 111, 111, 111,  
-111, 111, 111, 111, 112, 112, 112, 112,  
-113, 113, 113,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
-  7,   7,   7,   7,   7,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,   7,  15,   7,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,   7,   7,   7,   7,   7,   7,  
-  7,   7,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 15,  46,  15,  15,  15,  15,  15,  15,  
-  7,   7,   7,   7,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
-  7,   7,  15,  15,  15,  15,  15,  15,  
- 15,   5,   6,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  46,  46,  46,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
-114, 114, 114, 114, 114, 114, 114, 114,  
-114, 114, 114, 114, 114, 114, 114, 114,  
-114, 114, 114, 114,  82,  82,  82,  82,  
- 82,  82,  82,  82,  82,  82,  82,  82,  
- 82,  82,  82,  82,  82,  82,  82,  82,  
-115, 115, 115, 115, 115, 115, 115, 115,  
-115, 115, 115, 115, 115, 115, 115, 115,  
-115, 115, 115, 115,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15, 116, 116,  
-116, 116, 116, 116, 116, 116, 116, 116,  
-116, 116, 116, 116, 116, 116, 116, 116,  
-116, 116, 116, 116, 116, 116, 116, 116,  
-117, 117, 117, 117, 117, 117, 117, 117,  
-117, 117, 117, 117, 117, 117, 117, 117,  
-117, 117, 117, 117, 117, 117, 117, 117,  
-117, 117, 118,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  46,  46,  46,  46,  
- 46,  46,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 46,  15,  15,  15,  15,  46,  15,  15,  
- 15,  15,  46,  46,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 46,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  46,  15,  46,  15,  
- 15,  15,  15,  46,  46,  46,  15,  46,  
- 15,  15,  15,  15,  15,  15,  15,  46,  
- 46,  15,  15,  15,  15,  15,  15,  15,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46, 119, 119,  
-119, 119, 119, 119, 119, 119, 119, 119,  
-114, 114, 114, 114, 114, 114, 114, 114,  
-114, 114,  83,  83,  83,  83,  83,  83,  
- 83,  83,  83,  83,  15,  46,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 46,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  46,  
-  2,   3,   3,   3,  15,  59,   3, 120,  
-  5,   6,   5,   6,   5,   6,   5,   6,  
-  5,   6,  15,  15,   5,   6,   5,   6,  
-  5,   6,   5,   6,   8,   5,   6,   5,  
- 15, 121, 121, 121, 121, 121, 121, 121,  
-121, 121,  60,  60,  60,  60,  60,  60,  
-  8,  59,  59,  59,  59,  59,  15,  15,  
- 46,  46,  46,  46,  46,  46,  46,  15,  
- 46,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  46,  46,  46,  
- 46,  60,  60,  59,  59,  59,  59,  46,  
- 46,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,   3,  59,  59,  59,  46,  
- 46,  46,  46,  46,  46,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  46,  46,  46,  
- 46,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  46,  
- 15,  15,  85,  85,  85,  85,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  46,  46,  46,  
- 85,  85,  85,  85,  85,  85,  85,  85,  
- 85,  85,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  46,  46,  46,  15,  
-114, 114, 114, 114, 114, 114, 114, 114,  
-114, 114,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  46,  46,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  46,  
- 46,  46,  46,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  46,  46,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  15,  
- 15,  15,  15,  15,  15,  15,  15,  46,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
-122, 122, 122, 122, 122, 122, 122, 122,  
-122, 122, 122, 122, 122, 122, 122, 122,  
-122, 122, 122, 122, 122, 122, 122, 122,  
-122, 122, 122, 122, 122, 122, 122, 122,  
-122, 122, 122, 122, 122, 122, 122, 122,  
-122, 122, 122, 122, 122, 122, 122, 122,  
-122, 122, 122, 122, 122, 122, 122, 122,  
-122, 122, 122, 122, 122, 122, 122, 122,  
-123, 123, 123, 123, 123, 123, 123, 123,  
-123, 123, 123, 123, 123, 123, 123, 123,  
-123, 123, 123, 123, 123, 123, 123, 123,  
-123, 123, 123, 123, 123, 123, 123, 123,  
-123, 123, 123, 123, 123, 123, 123, 123,  
-123, 123, 123, 123, 123, 123, 123, 123,  
-123, 123, 123, 123, 123, 123, 123, 123,  
-123, 123, 123, 123, 123, 123, 123, 123,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 16,  16,  16,  16,  16,  16,  16,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  16,  16,  16,  16,  16,  
- 46,  46,  46,  46,  46,  46,  60,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,   7,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  46,  
- 40,  40,  40,  40,  40,  46,  40,  46,  
- 40,  40,  46,  40,  40,  46,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,   5,   6,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 46,  46,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 60,  60,  60,  60,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
-  3,   8,   8,  12,  12,   5,   6,   5,  
-  6,   5,   6,   5,   6,   5,   6,   5,  
-  6,   5,   6,   5,   6,  46,  46,  46,  
- 46,   3,   3,   3,   3,  12,  12,  12,  
-  3,   3,   3,  46,   3,   3,   3,   3,  
-  8,   5,   6,   5,   6,   5,   6,   3,  
-  3,   3,   7,   8,   7,   7,   7,  46,  
-  3,   4,   3,   3,  46,  46,  46,  46,  
- 40,  40,  40,  46,  40,  46,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  46,  46, 104,  
- 46,   3,   3,   3,   4,   3,   3,   3,  
-  5,   6,   3,   7,   3,   8,   3,   3,  
-  9,   9,   9,   9,   9,   9,   9,   9,  
-  9,   9,   3,   3,   7,   7,   7,   3,  
-  3,  10,  10,  10,  10,  10,  10,  10,  
- 10,  10,  10,  10,  10,  10,  10,  10,  
- 10,  10,  10,  10,  10,  10,  10,  10,  
- 10,  10,  10,   5,   3,   6,  11,  12,  
- 11,  13,  13,  13,  13,  13,  13,  13,  
- 13,  13,  13,  13,  13,  13,  13,  13,  
- 13,  13,  13,  13,  13,  13,  13,  13,  
- 13,  13,  13,   5,   7,   6,   7,  46,  
- 46,   3,   5,   6,   3,   3,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 59,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  59,  59,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  40,  
- 40,  40,  40,  40,  40,  40,  40,  46,  
- 46,  46,  40,  40,  40,  40,  40,  40,  
- 46,  46,  40,  40,  40,  40,  40,  40,  
- 46,  46,  40,  40,  40,  40,  40,  40,  
- 46,  46,  40,  40,  40,  46,  46,  46,  
-  4,   4,   7,  11,  15,   4,   4,  46,  
-  7,   7,   7,   7,   7,  15,  15,  46,  
- 46,  46,  46,  46,  46,  46,  46,  46,  
- 46,  46,  46,  46,  46,  15,  46,  46   
+  0,   0,   0,   0,   0,   0,   0,   0,  /*    0 */
+  0,   1,   1,   1,   1,   1,   0,   0,  /*    0 */
+  0,   0,   0,   0,   0,   0,   0,   0,  /*    0 */
+  0,   0,   0,   0,   0,   0,   0,   0,  /*    0 */
+  2,   3,   3,   3,   4,   3,   3,   3,  /*    0 */
+  5,   6,   3,   7,   3,   8,   3,   3,  /*    0 */
+  9,   9,   9,   9,   9,   9,   9,   9,  /*    0 */
+  9,   9,   3,   3,   7,   7,   7,   3,  /*    0 */
+  3,  10,  10,  10,  10,  10,  10,  10,  /*    1 */
+ 10,  10,  10,  10,  10,  10,  10,  10,  /*    1 */
+ 10,  10,  10,  10,  10,  10,  10,  10,  /*    1 */
+ 10,  10,  10,   5,   3,   6,  11,  12,  /*    1 */
+ 11,  13,  13,  13,  13,  13,  13,  13,  /*    1 */
+ 13,  13,  13,  13,  13,  13,  13,  13,  /*    1 */
+ 13,  13,  13,  13,  13,  13,  13,  13,  /*    1 */
+ 13,  13,  13,   5,   7,   6,   7,   0,  /*    1 */
+  0,   0,   0,   0,   0,   0,   0,   0,  /*    2 */
+  0,   0,   0,   0,   0,   0,   0,   0,  /*    2 */
+  0,   0,   0,   0,   0,   0,   0,   0,  /*    2 */
+  0,   0,   0,   0,   0,   0,   0,   0,  /*    2 */
+  2,   3,   4,   4,   4,   4,  15,  15,  /*    2 */
+ 11,  15,  16,   5,   7,   8,  15,  11,  /*    2 */
+ 15,   7,  17,  17,  11,  16,  15,   3,  /*    2 */
+ 11,  18,  16,   6,  19,  19,  19,   3,  /*    2 */
+ 20,  20,  20,  20,  20,  20,  20,  20,  /*    3 */
+ 20,  20,  20,  20,  20,  20,  20,  20,  /*    3 */
+ 20,  20,  20,  20,  20,  20,  20,   7,  /*    3 */
+ 20,  20,  20,  20,  20,  20,  20,  16,  /*    3 */
+ 21,  21,  21,  21,  21,  21,  21,  21,  /*    3 */
+ 21,  21,  21,  21,  21,  21,  21,  21,  /*    3 */
+ 21,  21,  21,  21,  21,  21,  21,   7,  /*    3 */
+ 21,  21,  21,  21,  21,  21,  21,  22,  /*    3 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    4 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    4 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    4 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    4 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    4 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    4 */
+ 25,  26,  23,  24,  23,  24,  23,  24,  /*    4 */
+ 16,  23,  24,  23,  24,  23,  24,  23,  /*    4 */
+ 24,  23,  24,  23,  24,  23,  24,  23,  /*    5 */
+ 24,  16,  23,  24,  23,  24,  23,  24,  /*    5 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    5 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    5 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    5 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    5 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    5 */
+ 27,  23,  24,  23,  24,  23,  24,  28,  /*    5 */
+ 16,  29,  23,  24,  23,  24,  30,  23,  /*    6 */
+ 24,  31,  31,  23,  24,  16,  32,  32,  /*    6 */
+ 33,  23,  24,  31,  34,  16,  35,  36,  /*    6 */
+ 23,  24,  16,  16,  35,  37,  16,  38,  /*    6 */
+ 23,  24,  23,  24,  23,  24,  38,  23,  /*    6 */
+ 24,  39,  40,  16,  23,  24,  39,  23,  /*    6 */
+ 24,  41,  41,  23,  24,  23,  24,  42,  /*    6 */
+ 23,  24,  16,  40,  23,  24,  40,  40,  /*    6 */
+ 40,  40,  40,  40,  43,  44,  45,  43,  /*    7 */
+ 44,  45,  43,  44,  45,  23,  24,  23,  /*    7 */
+ 24,  23,  24,  23,  24,  23,  24,  23,  /*    7 */
+ 24,  23,  24,  23,  24,  16,  23,  24,  /*    7 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    7 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    7 */
+ 16,  43,  44,  45,  23,  24,  46,  46,  /*    7 */
+ 46,  46,  23,  24,  23,  24,  23,  24,  /*    7 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    8 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    8 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*    8 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*    8 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*    8 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*    8 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*    8 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*    8 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*    9 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*    9 */
+ 16,  16,  16,  47,  48,  16,  49,  49,  /*    9 */
+ 50,  50,  16,  51,  16,  16,  16,  16,  /*    9 */
+ 49,  16,  16,  52,  16,  16,  16,  16,  /*    9 */
+ 53,  54,  16,  16,  16,  16,  16,  54,  /*    9 */
+ 16,  16,  55,  16,  16,  16,  16,  16,  /*    9 */
+ 16,  16,  16,  16,  16,  16,  16,  16,  /*    9 */
+ 16,  16,  16,  56,  16,  16,  16,  16,  /*   10 */
+ 56,  16,  57,  57,  16,  16,  16,  16,  /*   10 */
+ 16,  16,  58,  16,  16,  16,  16,  16,  /*   10 */
+ 16,  16,  16,  16,  16,  16,  16,  16,  /*   10 */
+ 16,  16,  16,  16,  16,  16,  16,  16,  /*   10 */
+ 16,  46,  46,  46,  46,  46,  46,  46,  /*   10 */
+ 59,  59,  59,  59,  59,  59,  59,  59,  /*   10 */
+ 59,  11,  11,  59,  59,  59,  59,  59,  /*   10 */
+ 59,  59,  11,  11,  11,  11,  11,  11,  /*   11 */
+ 11,  11,  11,  11,  11,  11,  11,  11,  /*   11 */
+ 59,  59,  11,  11,  11,  11,  11,  11,  /*   11 */
+ 11,  11,  11,  11,  11,  11,  11,  46,  /*   11 */
+ 59,  59,  59,  59,  59,  11,  11,  11,  /*   11 */
+ 11,  11,  46,  46,  46,  46,  46,  46,  /*   11 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   11 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   11 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   12 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   12 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   12 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   12 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   12 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   12 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   12 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   12 */
+ 60,  60,  60,  60,  60,  60,  46,  46,  /*   13 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   13 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   13 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   13 */
+ 60,  60,  46,  46,  46,  46,  46,  46,  /*   13 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   13 */
+ 46,  46,  46,  46,   3,   3,  46,  46,  /*   13 */
+ 46,  46,  59,  46,  46,  46,   3,  46,  /*   13 */
+ 46,  46,  46,  46,  11,  11,  61,   3,  /*   14 */
+ 62,  62,  62,  46,  63,  46,  64,  64,  /*   14 */
+ 16,  20,  20,  20,  20,  20,  20,  20,  /*   14 */
+ 20,  20,  20,  20,  20,  20,  20,  20,  /*   14 */
+ 20,  20,  46,  20,  20,  20,  20,  20,  /*   14 */
+ 20,  20,  20,  20,  65,  66,  66,  66,  /*   14 */
+ 16,  21,  21,  21,  21,  21,  21,  21,  /*   14 */
+ 21,  21,  21,  21,  21,  21,  21,  21,  /*   14 */
+ 21,  21,  16,  21,  21,  21,  21,  21,  /*   15 */
+ 21,  21,  21,  21,  67,  68,  68,  46,  /*   15 */
+ 69,  70,  38,  38,  38,  71,  72,  46,  /*   15 */
+ 46,  46,  38,  46,  38,  46,  38,  46,  /*   15 */
+ 38,  46,  23,  24,  23,  24,  23,  24,  /*   15 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   15 */
+ 73,  74,  16,  40,  46,  46,  46,  46,  /*   15 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   15 */
+ 46,  75,  75,  75,  75,  75,  75,  75,  /*   16 */
+ 75,  75,  75,  75,  75,  46,  75,  75,  /*   16 */
+ 20,  20,  20,  20,  20,  20,  20,  20,  /*   16 */
+ 20,  20,  20,  20,  20,  20,  20,  20,  /*   16 */
+ 20,  20,  20,  20,  20,  20,  20,  20,  /*   16 */
+ 20,  20,  20,  20,  20,  20,  20,  20,  /*   16 */
+ 21,  21,  21,  21,  21,  21,  21,  21,  /*   16 */
+ 21,  21,  21,  21,  21,  21,  21,  21,  /*   16 */
+ 21,  21,  21,  21,  21,  21,  21,  21,  /*   17 */
+ 21,  21,  21,  21,  21,  21,  21,  21,  /*   17 */
+ 46,  74,  74,  74,  74,  74,  74,  74,  /*   17 */
+ 74,  74,  74,  74,  74,  46,  74,  74,  /*   17 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   17 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   17 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   17 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   17 */
+ 23,  24,  15,  60,  60,  60,  60,  46,  /*   18 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   18 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   18 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   18 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   18 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   18 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   18 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   18 */
+ 40,  23,  24,  23,  24,  46,  46,  23,  /*   19 */
+ 24,  46,  46,  23,  24,  46,  46,  46,  /*   19 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   19 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   19 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   19 */
+ 23,  24,  23,  24,  46,  46,  23,  24,  /*   19 */
+ 23,  24,  23,  24,  23,  24,  46,  46,  /*   19 */
+ 23,  24,  46,  46,  46,  46,  46,  46,  /*   19 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   20 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   20 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   20 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   20 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   20 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   20 */
+ 46,  76,  76,  76,  76,  76,  76,  76,  /*   20 */
+ 76,  76,  76,  76,  76,  76,  76,  76,  /*   20 */
+ 76,  76,  76,  76,  76,  76,  76,  76,  /*   21 */
+ 76,  76,  76,  76,  76,  76,  76,  76,  /*   21 */
+ 76,  76,  76,  76,  76,  76,  76,  46,  /*   21 */
+ 46,  59,   3,   3,   3,   3,   3,   3,  /*   21 */
+ 46,  77,  77,  77,  77,  77,  77,  77,  /*   21 */
+ 77,  77,  77,  77,  77,  77,  77,  77,  /*   21 */
+ 77,  77,  77,  77,  77,  77,  77,  77,  /*   21 */
+ 77,  77,  77,  77,  77,  77,  77,  77,  /*   21 */
+ 77,  77,  77,  77,  77,  77,  77,  16,  /*   22 */
+ 46,   3,  46,  46,  46,  46,  46,  46,  /*   22 */
+ 46,  60,  60,  60,  60,  60,  60,  60,  /*   22 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   22 */
+ 60,  60,  46,  60,  60,  60,  60,  60,  /*   22 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   22 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   22 */
+ 60,  60,  46,  60,  60,  60,   3,  60,  /*   22 */
+  3,  60,  60,   3,  60,  46,  46,  46,  /*   23 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   23 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   23 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   23 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   23 */
+ 40,  40,  40,  46,  46,  46,  46,  46,  /*   23 */
+ 40,  40,  40,   3,   3,  46,  46,  46,  /*   23 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   23 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   24 */
+ 46,  46,  46,  46,   3,  46,  46,  46,  /*   24 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   24 */
+ 46,  46,  46,   3,  46,  46,  46,   3,  /*   24 */
+ 46,  40,  40,  40,  40,  40,  40,  40,  /*   24 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   24 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   24 */
+ 40,  40,  40,  46,  46,  46,  46,  46,  /*   24 */
+ 59,  40,  40,  40,  40,  40,  40,  40,  /*   25 */
+ 40,  40,  40,  60,  60,  60,  60,  60,  /*   25 */
+ 60,  60,  60,  46,  46,  46,  46,  46,  /*   25 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   25 */
+ 78,  78,  78,  78,  78,  78,  78,  78,  /*   25 */
+ 78,  78,   3,   3,   3,   3,  46,  46,  /*   25 */
+ 60,  40,  40,  40,  40,  40,  40,  40,  /*   25 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   25 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   26 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   26 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   26 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   26 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   26 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   26 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   26 */
+ 46,  46,  40,  40,  40,  40,  40,  46,  /*   26 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   27 */
+ 40,  40,  40,  40,  40,  40,  40,  46,  /*   27 */
+ 40,  40,  40,  40,   3,  40,  60,  60,  /*   27 */
+ 60,  60,  60,  60,  60,  79,  79,  60,  /*   27 */
+ 60,  60,  60,  60,  60,  59,  59,  60,  /*   27 */
+ 60,  15,  60,  60,  60,  60,  46,  46,  /*   27 */
+  9,   9,   9,   9,   9,   9,   9,   9,  /*   27 */
+  9,   9,  46,  46,  46,  46,  46,  46,  /*   27 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   28 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   28 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   28 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   28 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   28 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   28 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   28 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   28 */
+ 46,  60,  60,  80,  46,  40,  40,  40,  /*   29 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   29 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   29 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   29 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   29 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   29 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   29 */
+ 40,  40,  46,  46,  60,  40,  80,  80,  /*   29 */
+ 80,  60,  60,  60,  60,  60,  60,  60,  /*   30 */
+ 60,  80,  80,  80,  80,  60,  46,  46,  /*   30 */
+ 15,  60,  60,  60,  60,  46,  46,  46,  /*   30 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   30 */
+ 40,  40,  60,  60,   3,   3,  81,  81,  /*   30 */
+ 81,  81,  81,  81,  81,  81,  81,  81,  /*   30 */
+  3,  46,  46,  46,  46,  46,  46,  46,  /*   30 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   30 */
+ 46,  60,  80,  80,  46,  40,  40,  40,  /*   31 */
+ 40,  40,  40,  40,  40,  46,  46,  40,  /*   31 */
+ 40,  46,  46,  40,  40,  40,  40,  40,  /*   31 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   31 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   31 */
+ 40,  46,  40,  40,  40,  40,  40,  40,  /*   31 */
+ 40,  46,  40,  46,  46,  46,  40,  40,  /*   31 */
+ 40,  40,  46,  46,  60,  46,  80,  80,  /*   31 */
+ 80,  60,  60,  60,  60,  46,  46,  80,  /*   32 */
+ 80,  46,  46,  80,  80,  60,  46,  46,  /*   32 */
+ 46,  46,  46,  46,  46,  46,  46,  80,  /*   32 */
+ 46,  46,  46,  46,  40,  40,  46,  40,  /*   32 */
+ 40,  40,  60,  60,  46,  46,  81,  81,  /*   32 */
+ 81,  81,  81,  81,  81,  81,  81,  81,  /*   32 */
+ 40,  40,   4,   4,  82,  82,  82,  82,  /*   32 */
+ 19,  83,  15,  46,  46,  46,  46,  46,  /*   32 */
+ 46,  46,  60,  46,  46,  40,  40,  40,  /*   33 */
+ 40,  40,  40,  46,  46,  46,  46,  40,  /*   33 */
+ 40,  46,  46,  40,  40,  40,  40,  40,  /*   33 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   33 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   33 */
+ 40,  46,  40,  40,  40,  40,  40,  40,  /*   33 */
+ 40,  46,  40,  40,  46,  40,  40,  46,  /*   33 */
+ 40,  40,  46,  46,  60,  46,  80,  80,  /*   33 */
+ 80,  60,  60,  46,  46,  46,  46,  60,  /*   34 */
+ 60,  46,  46,  60,  60,  60,  46,  46,  /*   34 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   34 */
+ 46,  40,  40,  40,  40,  46,  40,  46,  /*   34 */
+ 46,  46,  46,  46,  46,  46,  81,  81,  /*   34 */
+ 81,  81,  81,  81,  81,  81,  81,  81,  /*   34 */
+ 60,  60,  40,  40,  40,  46,  46,  46,  /*   34 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   34 */
+ 46,  60,  60,  80,  46,  40,  40,  40,  /*   35 */
+ 40,  40,  40,  40,  46,  40,  46,  40,  /*   35 */
+ 40,  40,  46,  40,  40,  40,  40,  40,  /*   35 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   35 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   35 */
+ 40,  46,  40,  40,  40,  40,  40,  40,  /*   35 */
+ 40,  46,  40,  40,  46,  40,  40,  40,  /*   35 */
+ 40,  40,  46,  46,  60,  40,  80,  80,  /*   35 */
+ 80,  60,  60,  60,  60,  60,  46,  60,  /*   36 */
+ 60,  80,  46,  80,  80,  60,  46,  46,  /*   36 */
+ 15,  46,  46,  46,  46,  46,  46,  46,  /*   36 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   36 */
+ 40,  46,  46,  46,  46,  46,  81,  81,  /*   36 */
+ 81,  81,  81,  81,  81,  81,  81,  81,  /*   36 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   36 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   36 */
+ 46,  60,  80,  80,  46,  40,  40,  40,  /*   37 */
+ 40,  40,  40,  40,  40,  46,  46,  40,  /*   37 */
+ 40,  46,  46,  40,  40,  40,  40,  40,  /*   37 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   37 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   37 */
+ 40,  46,  40,  40,  40,  40,  40,  40,  /*   37 */
+ 40,  46,  40,  40,  46,  46,  40,  40,  /*   37 */
+ 40,  40,  46,  46,  60,  40,  80,  60,  /*   37 */
+ 80,  60,  60,  60,  46,  46,  46,  80,  /*   38 */
+ 80,  46,  46,  80,  80,  60,  46,  46,  /*   38 */
+ 46,  46,  46,  46,  46,  46,  60,  80,  /*   38 */
+ 46,  46,  46,  46,  40,  40,  46,  40,  /*   38 */
+ 40,  40,  46,  46,  46,  46,  81,  81,  /*   38 */
+ 81,  81,  81,  81,  81,  81,  81,  81,  /*   38 */
+ 15,  46,  46,  46,  46,  46,  46,  46,  /*   38 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   38 */
+ 46,  46,  60,  80,  46,  40,  40,  40,  /*   39 */
+ 40,  40,  40,  46,  46,  46,  40,  40,  /*   39 */
+ 40,  46,  40,  40,  40,  40,  46,  46,  /*   39 */
+ 46,  40,  40,  46,  40,  46,  40,  40,  /*   39 */
+ 46,  46,  46,  40,  40,  46,  46,  46,  /*   39 */
+ 40,  40,  40,  46,  46,  46,  40,  40,  /*   39 */
+ 40,  40,  40,  40,  40,  40,  46,  40,  /*   39 */
+ 40,  40,  46,  46,  46,  46,  80,  80,  /*   39 */
+ 60,  80,  80,  46,  46,  46,  80,  80,  /*   40 */
+ 80,  46,  80,  80,  80,  60,  46,  46,  /*   40 */
+ 46,  46,  46,  46,  46,  46,  46,  80,  /*   40 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   40 */
+ 46,  46,  46,  46,  46,  46,  46,  81,  /*   40 */
+ 81,  81,  81,  81,  81,  81,  81,  81,  /*   40 */
+ 84,  19,  19,  46,  46,  46,  46,  46,  /*   40 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   40 */
+ 46,  80,  80,  80,  46,  40,  40,  40,  /*   41 */
+ 40,  40,  40,  40,  40,  46,  40,  40,  /*   41 */
+ 40,  46,  40,  40,  40,  40,  40,  40,  /*   41 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   41 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   41 */
+ 40,  46,  40,  40,  40,  40,  40,  40,  /*   41 */
+ 40,  40,  40,  40,  46,  40,  40,  40,  /*   41 */
+ 40,  40,  46,  46,  46,  46,  60,  60,  /*   41 */
+ 60,  80,  80,  80,  80,  46,  60,  60,  /*   42 */
+ 60,  46,  60,  60,  60,  60,  46,  46,  /*   42 */
+ 46,  46,  46,  46,  46,  60,  60,  46,  /*   42 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   42 */
+ 40,  40,  46,  46,  46,  46,  81,  81,  /*   42 */
+ 81,  81,  81,  81,  81,  81,  81,  81,  /*   42 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   42 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   42 */
+ 46,  46,  80,  80,  46,  40,  40,  40,  /*   43 */
+ 40,  40,  40,  40,  40,  46,  40,  40,  /*   43 */
+ 40,  46,  40,  40,  40,  40,  40,  40,  /*   43 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   43 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   43 */
+ 40,  46,  40,  40,  40,  40,  40,  40,  /*   43 */
+ 40,  40,  40,  40,  46,  40,  40,  40,  /*   43 */
+ 40,  40,  46,  46,  46,  46,  80,  60,  /*   43 */
+ 80,  80,  80,  80,  80,  46,  60,  80,  /*   44 */
+ 80,  46,  80,  80,  60,  60,  46,  46,  /*   44 */
+ 46,  46,  46,  46,  46,  80,  80,  46,  /*   44 */
+ 46,  46,  46,  46,  46,  46,  40,  46,  /*   44 */
+ 40,  40,  46,  46,  46,  46,  81,  81,  /*   44 */
+ 81,  81,  81,  81,  81,  81,  81,  81,  /*   44 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   44 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   44 */
+ 46,  46,  80,  80,  46,  40,  40,  40,  /*   45 */
+ 40,  40,  40,  40,  40,  46,  40,  40,  /*   45 */
+ 40,  46,  40,  40,  40,  40,  40,  40,  /*   45 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   45 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   45 */
+ 40,  46,  40,  40,  40,  40,  40,  40,  /*   45 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   45 */
+ 40,  40,  46,  46,  46,  46,  80,  80,  /*   45 */
+ 80,  60,  60,  60,  46,  46,  80,  80,  /*   46 */
+ 80,  46,  80,  80,  80,  60,  46,  46,  /*   46 */
+ 46,  46,  46,  46,  46,  46,  46,  80,  /*   46 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   46 */
+ 40,  40,  46,  46,  46,  46,  81,  81,  /*   46 */
+ 81,  81,  81,  81,  81,  81,  81,  81,  /*   46 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   46 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   46 */
+ 46,  40,  40,  40,  40,  40,  40,  40,  /*   47 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   47 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   47 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   47 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   47 */
+ 40,  40,  40,  40,  40,  40,  40,   3,  /*   47 */
+ 40,  60,  40,  40,  60,  60,  60,  60,  /*   47 */
+ 60,  60,  60,  46,  46,  46,  46,   4,  /*   47 */
+ 40,  40,  40,  40,  40,  40,  59,  60,  /*   48 */
+ 60,  60,  60,  60,  60,  60,  60,  15,  /*   48 */
+  9,   9,   9,   9,   9,   9,   9,   9,  /*   48 */
+  9,   9,   3,   3,  46,  46,  46,  46,  /*   48 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   48 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   48 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   48 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   48 */
+ 46,  40,  40,  46,  40,  46,  46,  40,  /*   49 */
+ 40,  46,  40,  46,  46,  40,  46,  46,  /*   49 */
+ 46,  46,  46,  46,  40,  40,  40,  40,  /*   49 */
+ 46,  40,  40,  40,  40,  40,  40,  40,  /*   49 */
+ 46,  40,  40,  40,  46,  40,  46,  40,  /*   49 */
+ 46,  46,  40,  40,  46,  40,  40,   3,  /*   49 */
+ 40,  60,  40,  40,  60,  60,  60,  60,  /*   49 */
+ 60,  60,  46,  60,  60,  40,  46,  46,  /*   49 */
+ 40,  40,  40,  40,  40,  46,  59,  46,  /*   50 */
+ 60,  60,  60,  60,  60,  60,  46,  46,  /*   50 */
+  9,   9,   9,   9,   9,   9,   9,   9,  /*   50 */
+  9,   9,  46,  46,  40,  40,  46,  46,  /*   50 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   50 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   50 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   50 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   50 */
+ 15,  15,  15,  15,   3,   3,   3,   3,  /*   51 */
+  3,   3,   3,   3,   3,   3,   3,   3,  /*   51 */
+  3,   3,   3,  15,  15,  15,  15,  15,  /*   51 */
+ 60,  60,  15,  15,  15,  15,  15,  15,  /*   51 */
+ 78,  78,  78,  78,  78,  78,  78,  78,  /*   51 */
+ 78,  78,  85,  85,  85,  85,  85,  85,  /*   51 */
+ 85,  85,  85,  85,  15,  60,  15,  60,  /*   51 */
+ 15,  60,   5,   6,   5,   6,  80,  80,  /*   51 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   52 */
+ 46,  40,  40,  40,  40,  40,  40,  40,  /*   52 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   52 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   52 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   52 */
+ 40,  40,  46,  46,  46,  46,  46,  46,  /*   52 */
+ 46,  60,  60,  60,  60,  60,  60,  60,  /*   52 */
+ 60,  60,  60,  60,  60,  60,  60,  80,  /*   52 */
+ 60,  60,  60,  60,  60,   3,  60,  60,  /*   53 */
+ 60,  60,  60,  60,  46,  46,  46,  46,  /*   53 */
+ 60,  60,  60,  60,  60,  60,  46,  60,  /*   53 */
+ 46,  60,  60,  60,  60,  60,  60,  60,  /*   53 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   53 */
+ 60,  60,  60,  60,  60,  60,  46,  46,  /*   53 */
+ 46,  60,  60,  60,  60,  60,  60,  60,  /*   53 */
+ 46,  60,  46,  46,  46,  46,  46,  46,  /*   53 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   54 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   54 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   54 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   54 */
+ 76,  76,  76,  76,  76,  76,  76,  76,  /*   54 */
+ 76,  76,  76,  76,  76,  76,  76,  76,  /*   54 */
+ 76,  76,  76,  76,  76,  76,  76,  76,  /*   54 */
+ 76,  76,  76,  76,  76,  76,  76,  76,  /*   54 */
+ 76,  76,  76,  76,  76,  76,  46,  46,  /*   55 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   55 */
+ 16,  16,  16,  16,  16,  16,  16,  16,  /*   55 */
+ 16,  16,  16,  16,  16,  16,  16,  16,  /*   55 */
+ 16,  16,  16,  16,  16,  16,  16,  16,  /*   55 */
+ 16,  16,  16,  16,  16,  16,  16,  16,  /*   55 */
+ 16,  16,  16,  16,  16,  16,  16,  46,  /*   55 */
+ 46,  46,  46,   3,  46,  46,  46,  46,  /*   55 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   56 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   56 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   56 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   56 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   56 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   56 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   56 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   56 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   57 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   57 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   57 */
+ 40,  40,  46,  46,  46,  46,  46,  40,  /*   57 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   57 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   57 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   57 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   57 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   58 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   58 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   58 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   58 */
+ 40,  40,  40,  46,  46,  46,  46,  46,  /*   58 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   58 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   58 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   58 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   59 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   59 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   59 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   59 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   59 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   59 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   59 */
+ 40,  40,  46,  46,  46,  46,  46,  46,  /*   59 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   60 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   60 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   60 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   60 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   60 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   60 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   60 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   60 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   61 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   61 */
+ 23,  24,  23,  24,  23,  24,  16,  16,  /*   61 */
+ 16,  16,  16,  16,  46,  46,  46,  46,  /*   61 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   61 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   61 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   61 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   61 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   62 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   62 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   62 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   62 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   62 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   62 */
+ 23,  24,  23,  24,  23,  24,  23,  24,  /*   62 */
+ 23,  24,  46,  46,  46,  46,  46,  46,  /*   62 */
+ 86,  86,  86,  86,  86,  86,  86,  86,  /*   63 */
+ 87,  87,  87,  87,  87,  87,  87,  87,  /*   63 */
+ 86,  86,  86,  86,  86,  86,  46,  46,  /*   63 */
+ 87,  87,  87,  87,  87,  87,  46,  46,  /*   63 */
+ 86,  86,  86,  86,  86,  86,  86,  86,  /*   63 */
+ 87,  87,  87,  87,  87,  87,  87,  87,  /*   63 */
+ 86,  86,  86,  86,  86,  86,  86,  86,  /*   63 */
+ 87,  87,  87,  87,  87,  87,  87,  87,  /*   63 */
+ 86,  86,  86,  86,  86,  86,  46,  46,  /*   64 */
+ 87,  87,  87,  87,  87,  87,  46,  46,  /*   64 */
+ 16,  86,  16,  86,  16,  86,  16,  86,  /*   64 */
+ 46,  87,  46,  87,  46,  87,  46,  87,  /*   64 */
+ 86,  86,  86,  86,  86,  86,  86,  86,  /*   64 */
+ 87,  87,  87,  87,  87,  87,  87,  87,  /*   64 */
+ 88,  88,  89,  89,  89,  89,  90,  90,  /*   64 */
+ 91,  91,  92,  92,  93,  93,  46,  46,  /*   64 */
+ 86,  86,  86,  86,  86,  86,  86,  86,  /*   65 */
+ 87,  87,  87,  87,  87,  87,  87,  87,  /*   65 */
+ 86,  86,  86,  86,  86,  86,  86,  86,  /*   65 */
+ 87,  87,  87,  87,  87,  87,  87,  87,  /*   65 */
+ 86,  86,  86,  86,  86,  86,  86,  86,  /*   65 */
+ 87,  87,  87,  87,  87,  87,  87,  87,  /*   65 */
+ 86,  86,  16,  94,  16,  46,  16,  16,  /*   65 */
+ 87,  87,  95,  95,  96,  11,  38,  11,  /*   65 */
+ 11,  11,  16,  94,  16,  46,  16,  16,  /*   66 */
+ 97,  97,  97,  97,  96,  11,  11,  11,  /*   66 */
+ 86,  86,  16,  16,  46,  46,  16,  16,  /*   66 */
+ 87,  87,  98,  98,  46,  11,  11,  11,  /*   66 */
+ 86,  86,  16,  16,  16,  99,  16,  16,  /*   66 */
+ 87,  87, 100, 100, 101,  11,  11,  11,  /*   66 */
+ 46,  46,  16,  94,  16,  46,  16,  16,  /*   66 */
+102, 102, 103, 103,  96,  11,  11,  46,  /*   66 */
+  2,   2,   2,   2,   2,   2,   2,   2,  /*   67 */
+  2,   2,   2,   2, 104, 104, 104, 104,  /*   67 */
+  8,   8,   8,   8,   8,   8,   3,   3,  /*   67 */
+  5,   6,   5,   5,   5,   6,   5,   5,  /*   67 */
+  3,   3,   3,   3,   3,   3,   3,   3,  /*   67 */
+105, 106, 104, 104, 104, 104, 104,  46,  /*   67 */
+  3,   3,   3,   3,   3,   3,   3,   3,  /*   67 */
+  3,   5,   6,   3,   3,   3,   3,  12,  /*   67 */
+ 12,   3,   3,   3,   7,   5,   6,  46,  /*   68 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   68 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   68 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   68 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   68 */
+ 46,  46, 104, 104, 104, 104, 104, 104,  /*   68 */
+ 17,  46,  46,  46,  17,  17,  17,  17,  /*   68 */
+ 17,  17,   7,   7,   7,   5,   6,  16,  /*   68 */
+107, 107, 107, 107, 107, 107, 107, 107,  /*   69 */
+107, 107,   7,   7,   7,   5,   6,  46,  /*   69 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   69 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   69 */
+  4,   4,   4,   4,   4,   4,   4,   4,  /*   69 */
+  4,   4,   4,   4,  46,  46,  46,  46,  /*   69 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   69 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   69 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   70 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   70 */
+ 60,  60,  60,  60,  60,  60,  60,  60,  /*   70 */
+ 60,  60,  60,  60,  60,  79,  79,  79,  /*   70 */
+ 79,  60,  46,  46,  46,  46,  46,  46,  /*   70 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   70 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   70 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   70 */
+ 15,  15,  38,  15,  15,  15,  15,  38,  /*   71 */
+ 15,  15,  16,  38,  38,  38,  16,  16,  /*   71 */
+ 38,  38,  38,  16,  15,  38,  15,  15,  /*   71 */
+ 38,  38,  38,  38,  38,  38,  15,  15,  /*   71 */
+ 15,  15,  15,  15,  38,  15,  38,  15,  /*   71 */
+ 38,  15,  38,  38,  38,  38,  16,  16,  /*   71 */
+ 38,  38,  15,  38,  16,  40,  40,  40,  /*   71 */
+ 40,  46,  46,  46,  46,  46,  46,  46,  /*   71 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   72 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   72 */
+ 46,  46,  46,  19,  19,  19,  19,  19,  /*   72 */
+ 19,  19,  19,  19,  19,  19,  19, 108,  /*   72 */
+109, 109, 109, 109, 109, 109, 109, 109,  /*   72 */
+109, 109, 109, 109, 110, 110, 110, 110,  /*   72 */
+111, 111, 111, 111, 111, 111, 111, 111,  /*   72 */
+111, 111, 111, 111, 112, 112, 112, 112,  /*   72 */
+113, 113, 113,  46,  46,  46,  46,  46,  /*   73 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   73 */
+  7,   7,   7,   7,   7,  15,  15,  15,  /*   73 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   73 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   73 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   73 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   73 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   73 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   74 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   74 */
+ 15,  15,   7,  15,   7,  15,  15,  15,  /*   74 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   74 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   74 */
+ 15,  15,  15,  46,  46,  46,  46,  46,  /*   74 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   74 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   74 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   75 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   75 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   75 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   75 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   75 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   75 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   75 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   75 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   76 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   76 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   76 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   76 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   76 */
+  7,   7,   7,   7,   7,   7,   7,   7,  /*   76 */
+  7,   7,  46,  46,  46,  46,  46,  46,  /*   76 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   76 */
+ 15,  46,  15,  15,  15,  15,  15,  15,  /*   77 */
+  7,   7,   7,   7,  15,  15,  15,  15,  /*   77 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   77 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   77 */
+  7,   7,  15,  15,  15,  15,  15,  15,  /*   77 */
+ 15,   5,   6,  15,  15,  15,  15,  15,  /*   77 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   77 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   77 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   78 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   78 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   78 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   78 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   78 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   78 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   78 */
+ 15,  15,  15,  46,  46,  46,  46,  46,  /*   78 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   79 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   79 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   79 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   79 */
+ 15,  15,  15,  15,  15,  46,  46,  46,  /*   79 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   79 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   79 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   79 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   80 */
+ 15,  15,  15,  46,  46,  46,  46,  46,  /*   80 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   80 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   80 */
+114, 114, 114, 114, 114, 114, 114, 114,  /*   80 */
+114, 114, 114, 114, 114, 114, 114, 114,  /*   80 */
+114, 114, 114, 114,  82,  82,  82,  82,  /*   80 */
+ 82,  82,  82,  82,  82,  82,  82,  82,  /*   80 */
+ 82,  82,  82,  82,  82,  82,  82,  82,  /*   81 */
+115, 115, 115, 115, 115, 115, 115, 115,  /*   81 */
+115, 115, 115, 115, 115, 115, 115, 115,  /*   81 */
+115, 115, 115, 115,  15,  15,  15,  15,  /*   81 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   81 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   81 */
+ 15,  15,  15,  15,  15,  15, 116, 116,  /*   81 */
+116, 116, 116, 116, 116, 116, 116, 116,  /*   81 */
+116, 116, 116, 116, 116, 116, 116, 116,  /*   82 */
+116, 116, 116, 116, 116, 116, 116, 116,  /*   82 */
+117, 117, 117, 117, 117, 117, 117, 117,  /*   82 */
+117, 117, 117, 117, 117, 117, 117, 117,  /*   82 */
+117, 117, 117, 117, 117, 117, 117, 117,  /*   82 */
+117, 117, 118,  46,  46,  46,  46,  46,  /*   82 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   82 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   82 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   83 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   83 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   83 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   83 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   83 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   83 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   83 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   83 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   84 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   84 */
+ 15,  15,  15,  15,  15,  15,  46,  46,  /*   84 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   84 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   84 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   84 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   84 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   84 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   85 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   85 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   85 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   85 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   85 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   85 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   85 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   85 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   86 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   86 */
+ 15,  15,  15,  15,  46,  46,  46,  46,  /*   86 */
+ 46,  46,  15,  15,  15,  15,  15,  15,  /*   86 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   86 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   86 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   86 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   86 */
+ 46,  15,  15,  15,  15,  46,  15,  15,  /*   87 */
+ 15,  15,  46,  46,  15,  15,  15,  15,  /*   87 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   87 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   87 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   87 */
+ 46,  15,  15,  15,  15,  15,  15,  15,  /*   87 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   87 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   87 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   88 */
+ 15,  15,  15,  15,  46,  15,  46,  15,  /*   88 */
+ 15,  15,  15,  46,  46,  46,  15,  46,  /*   88 */
+ 15,  15,  15,  15,  15,  15,  15,  46,  /*   88 */
+ 46,  15,  15,  15,  15,  15,  15,  15,  /*   88 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   88 */
+ 46,  46,  46,  46,  46,  46, 119, 119,  /*   88 */
+119, 119, 119, 119, 119, 119, 119, 119,  /*   88 */
+114, 114, 114, 114, 114, 114, 114, 114,  /*   89 */
+114, 114,  83,  83,  83,  83,  83,  83,  /*   89 */
+ 83,  83,  83,  83,  15,  46,  46,  46,  /*   89 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   89 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   89 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   89 */
+ 46,  15,  15,  15,  15,  15,  15,  15,  /*   89 */
+ 15,  15,  15,  15,  15,  15,  15,  46,  /*   89 */
+  2,   3,   3,   3,  15,  59,   3, 120,  /*   90 */
+  5,   6,   5,   6,   5,   6,   5,   6,  /*   90 */
+  5,   6,  15,  15,   5,   6,   5,   6,  /*   90 */
+  5,   6,   5,   6,   8,   5,   6,   5,  /*   90 */
+ 15, 121, 121, 121, 121, 121, 121, 121,  /*   90 */
+121, 121,  60,  60,  60,  60,  60,  60,  /*   90 */
+  8,  59,  59,  59,  59,  59,  15,  15,  /*   90 */
+ 46,  46,  46,  46,  46,  46,  46,  15,  /*   90 */
+ 46,  40,  40,  40,  40,  40,  40,  40,  /*   91 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   91 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   91 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   91 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   91 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   91 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   91 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   91 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   92 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   92 */
+ 40,  40,  40,  40,  40,  46,  46,  46,  /*   92 */
+ 46,  60,  60,  59,  59,  59,  59,  46,  /*   92 */
+ 46,  40,  40,  40,  40,  40,  40,  40,  /*   92 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   92 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   92 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   92 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   93 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   93 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   93 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   93 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   93 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   93 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   93 */
+ 40,  40,  40,   3,  59,  59,  59,  46,  /*   93 */
+ 46,  46,  46,  46,  46,  40,  40,  40,  /*   94 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   94 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   94 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   94 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   94 */
+ 40,  40,  40,  40,  40,  46,  46,  46,  /*   94 */
+ 46,  40,  40,  40,  40,  40,  40,  40,  /*   94 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   94 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*   95 */
+ 40,  40,  40,  40,  40,  40,  40,  46,  /*   95 */
+ 15,  15,  85,  85,  85,  85,  15,  15,  /*   95 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   95 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   95 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   95 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   95 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   95 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   96 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   96 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   96 */
+ 15,  15,  15,  15,  15,  46,  46,  46,  /*   96 */
+ 85,  85,  85,  85,  85,  85,  85,  85,  /*   96 */
+ 85,  85,  15,  15,  15,  15,  15,  15,  /*   96 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   96 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   96 */
+ 15,  15,  15,  15,  46,  46,  46,  46,  /*   97 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   97 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   97 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   97 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   97 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   97 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   97 */
+ 15,  15,  15,  15,  46,  46,  46,  15,  /*   97 */
+114, 114, 114, 114, 114, 114, 114, 114,  /*   98 */
+114, 114,  15,  15,  15,  15,  15,  15,  /*   98 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   98 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   98 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   98 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   98 */
+ 15,  46,  46,  46,  46,  46,  46,  46,  /*   98 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*   98 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   99 */
+ 15,  15,  15,  15,  46,  46,  46,  46,  /*   99 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   99 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   99 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   99 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   99 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*   99 */
+ 15,  15,  15,  15,  15,  15,  15,  46,  /*   99 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  100 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  100 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  100 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  100 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  100 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  100 */
+ 15,  15,  15,  15,  15,  15,  15,  46,  /*  100 */
+ 46,  46,  46,  15,  15,  15,  15,  15,  /*  100 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  101 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  101 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  101 */
+ 15,  15,  15,  15,  15,  15,  46,  46,  /*  101 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  101 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  101 */
+ 15,  15,  15,  15,  15,  15,  15,  15,  /*  101 */
+ 15,  15,  15,  15,  15,  15,  15,  46,  /*  101 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  102 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  102 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  102 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  102 */
+ 40,  40,  40,  40,  40,  40,  46,  46,  /*  102 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  102 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  102 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  102 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  103 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  103 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  103 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  103 */
+ 40,  40,  40,  40,  46,  46,  46,  46,  /*  103 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  103 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  103 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  103 */
+122, 122, 122, 122, 122, 122, 122, 122,  /*  104 */
+122, 122, 122, 122, 122, 122, 122, 122,  /*  104 */
+122, 122, 122, 122, 122, 122, 122, 122,  /*  104 */
+122, 122, 122, 122, 122, 122, 122, 122,  /*  104 */
+122, 122, 122, 122, 122, 122, 122, 122,  /*  104 */
+122, 122, 122, 122, 122, 122, 122, 122,  /*  104 */
+122, 122, 122, 122, 122, 122, 122, 122,  /*  104 */
+122, 122, 122, 122, 122, 122, 122, 122,  /*  104 */
+123, 123, 123, 123, 123, 123, 123, 123,  /*  105 */
+123, 123, 123, 123, 123, 123, 123, 123,  /*  105 */
+123, 123, 123, 123, 123, 123, 123, 123,  /*  105 */
+123, 123, 123, 123, 123, 123, 123, 123,  /*  105 */
+123, 123, 123, 123, 123, 123, 123, 123,  /*  105 */
+123, 123, 123, 123, 123, 123, 123, 123,  /*  105 */
+123, 123, 123, 123, 123, 123, 123, 123,  /*  105 */
+123, 123, 123, 123, 123, 123, 123, 123,  /*  105 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  106 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  106 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  106 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  106 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  106 */
+ 40,  40,  40,  40,  40,  40,  46,  46,  /*  106 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  106 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  106 */
+ 16,  16,  16,  16,  16,  16,  16,  46,  /*  107 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  107 */
+ 46,  46,  46,  16,  16,  16,  16,  16,  /*  107 */
+ 46,  46,  46,  46,  46,  46,  60,  40,  /*  107 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  107 */
+ 40,   7,  40,  40,  40,  40,  40,  40,  /*  107 */
+ 40,  40,  40,  40,  40,  40,  40,  46,  /*  107 */
+ 40,  40,  40,  40,  40,  46,  40,  46,  /*  107 */
+ 40,  40,  46,  40,  40,  46,  40,  40,  /*  108 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  108 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  108 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  108 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  108 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  108 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  108 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  108 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  109 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  109 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  109 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  109 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  109 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  109 */
+ 40,  40,  46,  46,  46,  46,  46,  46,  /*  109 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  109 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  110 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  110 */
+ 46,  46,  46,  40,  40,  40,  40,  40,  /*  110 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  110 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  110 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  110 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  110 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  110 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  111 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  111 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  111 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  111 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  111 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  111 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  111 */
+ 40,  40,  40,  40,  40,  40,   5,   6,  /*  111 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  112 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  112 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  112 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  112 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  112 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  112 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  112 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  112 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  113 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  113 */
+ 46,  46,  40,  40,  40,  40,  40,  40,  /*  113 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  113 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  113 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  113 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  113 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  113 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  114 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  114 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  114 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  114 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  114 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  114 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  114 */
+ 40,  40,  40,  40,  46,  46,  46,  46,  /*  114 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  115 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  115 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  115 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  115 */
+ 60,  60,  60,  60,  46,  46,  46,  46,  /*  115 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  115 */
+  3,   8,   8,  12,  12,   5,   6,   5,  /*  115 */
+  6,   5,   6,   5,   6,   5,   6,   5,  /*  115 */
+  6,   5,   6,   5,   6,  46,  46,  46,  /*  116 */
+ 46,   3,   3,   3,   3,  12,  12,  12,  /*  116 */
+  3,   3,   3,  46,   3,   3,   3,   3,  /*  116 */
+  8,   5,   6,   5,   6,   5,   6,   3,  /*  116 */
+  3,   3,   7,   8,   7,   7,   7,  46,  /*  116 */
+  3,   4,   3,   3,  46,  46,  46,  46,  /*  116 */
+ 40,  40,  40,  46,  40,  46,  40,  40,  /*  116 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  116 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  117 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  117 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  117 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  117 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  117 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  117 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  117 */
+ 40,  40,  40,  40,  40,  46,  46, 104,  /*  117 */
+ 46,   3,   3,   3,   4,   3,   3,   3,  /*  118 */
+  5,   6,   3,   7,   3,   8,   3,   3,  /*  118 */
+  9,   9,   9,   9,   9,   9,   9,   9,  /*  118 */
+  9,   9,   3,   3,   7,   7,   7,   3,  /*  118 */
+  3,  10,  10,  10,  10,  10,  10,  10,  /*  118 */
+ 10,  10,  10,  10,  10,  10,  10,  10,  /*  118 */
+ 10,  10,  10,  10,  10,  10,  10,  10,  /*  118 */
+ 10,  10,  10,   5,   3,   6,  11,  12,  /*  118 */
+ 11,  13,  13,  13,  13,  13,  13,  13,  /*  119 */
+ 13,  13,  13,  13,  13,  13,  13,  13,  /*  119 */
+ 13,  13,  13,  13,  13,  13,  13,  13,  /*  119 */
+ 13,  13,  13,   5,   7,   6,   7,  46,  /*  119 */
+ 46,   3,   5,   6,   3,   3,  40,  40,  /*  119 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  119 */
+ 59,  40,  40,  40,  40,  40,  40,  40,  /*  119 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  119 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  120 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  120 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  120 */
+ 40,  40,  40,  40,  40,  40,  59,  59,  /*  120 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  120 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  120 */
+ 40,  40,  40,  40,  40,  40,  40,  40,  /*  120 */
+ 40,  40,  40,  40,  40,  40,  40,  46,  /*  120 */
+ 46,  46,  40,  40,  40,  40,  40,  40,  /*  121 */
+ 46,  46,  40,  40,  40,  40,  40,  40,  /*  121 */
+ 46,  46,  40,  40,  40,  40,  40,  40,  /*  121 */
+ 46,  46,  40,  40,  40,  46,  46,  46,  /*  121 */
+  4,   4,   7,  11,  15,   4,   4,  46,  /*  121 */
+  7,   7,   7,   7,   7,  15,  15,  46,  /*  121 */
+ 46,  46,  46,  46,  46,  46,  46,  46,  /*  121 */
+ 46,  46,  46,  46,  46,  15,  46,  46   /*  121 */
 };
 
-
+/* The A table has 124 entries for a total of 496 bytes. */
 
 const uint32 js_A[] = {
-0x0001000F,  
-0x0004000F,  
-0x0004000C,  
-0x00000018,  
-0x0006001A,  
-0x00000015,  
-0x00000016,  
-0x00000019,  
-0x00000014,  
-0x00036089,  
-0x0827FF81,  
-0x0000001B,  
-0x00050017,  
-0x0817FF82,  
-0x0000000C,  
-0x0000001C,  
-0x00070182,  
-0x0000600B,  
-0x0000500B,  
-0x0000800B,  
-0x08270181,  
-0x08170182,  
-0xE1D70182,  
-0x00670181,  
-0x00570182,  
-0xCE670181,  
-0x3A170182,  
-0xE1E70181,  
-0x4B170182,  
-0x34A70181,  
-0x33A70181,  
-0x33670181,  
-0x32A70181,  
-0x32E70181,  
-0x33E70181,  
-0x34E70181,  
-0x34670181,  
-0x35670181,  
-0x00070181,  
-0x36A70181,  
-0x00070185,  
-0x36670181,  
-0x36E70181,  
-0x00AF0181,  
-0x007F0183,  
-0x009F0182,  
-0x00000000,  
-0x34970182,  
-0x33970182,  
-0x33570182,  
-0x32970182,  
-0x32D70182,  
-0x33D70182,  
-0x34570182,  
-0x34D70182,  
-0x35570182,  
-0x36970182,  
-0x36570182,  
-0x36D70182,  
-0x00070084,  
-0x00030086,  
-0x09A70181,  
-0x09670181,  
-0x10270181,  
-0x0FE70181,  
-0x09970182,  
-0x09570182,  
-0x10170182,  
-0x0FD70182,  
-0x0F970182,  
-0x0E570182,  
-0x0BD70182,  
-0x0D970182,  
-0x15970182,  
-0x14170182,  
-0x14270181,  
-0x0C270181,  
-0x0C170182,  
-0x00034089,  
-0x00000087,  
-0x00030088,  
-0x00037489,  
-0x00005A0B,  
-0x00006E0B,  
-0x0000740B,  
-0x0000000B,  
-0xFE170182,  
-0xFE270181,  
-0xED970182,  
-0xEA970182,  
-0xE7170182,  
-0xE0170182,  
-0xE4170182,  
-0xE0970182,  
-0xFDD70182,  
-0xEDA70181,  
-0xFDE70181,  
-0xEAA70181,  
-0xE7270181,  
-0xFE570182,  
-0xE4270181,  
-0xFE670181,  
-0xE0270181,  
-0xE0A70181,  
-0x00010010,  
-0x0004000D,  
-0x0004000E,  
-0x0000400B,  
-0x0000440B,  
-0x0427438A,  
-0x0427818A,  
-0x0417638A,  
-0x0417818A,  
-0x0007818A,  
-0x0000420B,  
-0x0000720B,  
-0x06A0001C,  
-0x0690001C,  
-0x00006C0B,  
-0x0000560B,  
-0x0007738A,  
-0x0007418A,  
-0x00000013,  
-0x00000012   
+0x0001000F,  /*    0   Cc, ignorable */
+0x0004000F,  /*    1   Cc, whitespace */
+0x0004000C,  /*    2   Zs, whitespace */
+0x00000018,  /*    3   Po */
+0x0006001A,  /*    4   Sc, currency */
+0x00000015,  /*    5   Ps */
+0x00000016,  /*    6   Pe */
+0x00000019,  /*    7   Sm */
+0x00000014,  /*    8   Pd */
+0x00036089,  /*    9   Nd, identifier part, decimal 16 */
+0x0827FF81,  /*   10   Lu, hasLower (add 32), identifier start, supradecimal 31 */
+0x0000001B,  /*   11   Sk */
+0x00050017,  /*   12   Pc, underscore */
+0x0817FF82,  /*   13   Ll, hasUpper (subtract 32), identifier start, supradecimal 31 */
+0x0000000C,  /*   14   Zs */
+0x0000001C,  /*   15   So */
+0x00070182,  /*   16   Ll, identifier start */
+0x0000600B,  /*   17   No, decimal 16 */
+0x0000500B,  /*   18   No, decimal 8 */
+0x0000800B,  /*   19   No, strange */
+0x08270181,  /*   20   Lu, hasLower (add 32), identifier start */
+0x08170182,  /*   21   Ll, hasUpper (subtract 32), identifier start */
+0xE1D70182,  /*   22   Ll, hasUpper (subtract -121), identifier start */
+0x00670181,  /*   23   Lu, hasLower (add 1), identifier start */
+0x00570182,  /*   24   Ll, hasUpper (subtract 1), identifier start */
+0xCE670181,  /*   25   Lu, hasLower (add -199), identifier start */
+0x3A170182,  /*   26   Ll, hasUpper (subtract 232), identifier start */
+0xE1E70181,  /*   27   Lu, hasLower (add -121), identifier start */
+0x4B170182,  /*   28   Ll, hasUpper (subtract 300), identifier start */
+0x34A70181,  /*   29   Lu, hasLower (add 210), identifier start */
+0x33A70181,  /*   30   Lu, hasLower (add 206), identifier start */
+0x33670181,  /*   31   Lu, hasLower (add 205), identifier start */
+0x32A70181,  /*   32   Lu, hasLower (add 202), identifier start */
+0x32E70181,  /*   33   Lu, hasLower (add 203), identifier start */
+0x33E70181,  /*   34   Lu, hasLower (add 207), identifier start */
+0x34E70181,  /*   35   Lu, hasLower (add 211), identifier start */
+0x34670181,  /*   36   Lu, hasLower (add 209), identifier start */
+0x35670181,  /*   37   Lu, hasLower (add 213), identifier start */
+0x00070181,  /*   38   Lu, identifier start */
+0x36A70181,  /*   39   Lu, hasLower (add 218), identifier start */
+0x00070185,  /*   40   Lo, identifier start */
+0x36670181,  /*   41   Lu, hasLower (add 217), identifier start */
+0x36E70181,  /*   42   Lu, hasLower (add 219), identifier start */
+0x00AF0181,  /*   43   Lu, hasLower (add 2), hasTitle, identifier start */
+0x007F0183,  /*   44   Lt, hasUpper (subtract 1), hasLower (add 1), hasTitle, identifier start */
+0x009F0182,  /*   45   Ll, hasUpper (subtract 2), hasTitle, identifier start */
+0x00000000,  /*   46   unassigned */
+0x34970182,  /*   47   Ll, hasUpper (subtract 210), identifier start */
+0x33970182,  /*   48   Ll, hasUpper (subtract 206), identifier start */
+0x33570182,  /*   49   Ll, hasUpper (subtract 205), identifier start */
+0x32970182,  /*   50   Ll, hasUpper (subtract 202), identifier start */
+0x32D70182,  /*   51   Ll, hasUpper (subtract 203), identifier start */
+0x33D70182,  /*   52   Ll, hasUpper (subtract 207), identifier start */
+0x34570182,  /*   53   Ll, hasUpper (subtract 209), identifier start */
+0x34D70182,  /*   54   Ll, hasUpper (subtract 211), identifier start */
+0x35570182,  /*   55   Ll, hasUpper (subtract 213), identifier start */
+0x36970182,  /*   56   Ll, hasUpper (subtract 218), identifier start */
+0x36570182,  /*   57   Ll, hasUpper (subtract 217), identifier start */
+0x36D70182,  /*   58   Ll, hasUpper (subtract 219), identifier start */
+0x00070084,  /*   59   Lm, identifier start */
+0x00030086,  /*   60   Mn, identifier part */
+0x09A70181,  /*   61   Lu, hasLower (add 38), identifier start */
+0x09670181,  /*   62   Lu, hasLower (add 37), identifier start */
+0x10270181,  /*   63   Lu, hasLower (add 64), identifier start */
+0x0FE70181,  /*   64   Lu, hasLower (add 63), identifier start */
+0x09970182,  /*   65   Ll, hasUpper (subtract 38), identifier start */
+0x09570182,  /*   66   Ll, hasUpper (subtract 37), identifier start */
+0x10170182,  /*   67   Ll, hasUpper (subtract 64), identifier start */
+0x0FD70182,  /*   68   Ll, hasUpper (subtract 63), identifier start */
+0x0F970182,  /*   69   Ll, hasUpper (subtract 62), identifier start */
+0x0E570182,  /*   70   Ll, hasUpper (subtract 57), identifier start */
+0x0BD70182,  /*   71   Ll, hasUpper (subtract 47), identifier start */
+0x0D970182,  /*   72   Ll, hasUpper (subtract 54), identifier start */
+0x15970182,  /*   73   Ll, hasUpper (subtract 86), identifier start */
+0x14170182,  /*   74   Ll, hasUpper (subtract 80), identifier start */
+0x14270181,  /*   75   Lu, hasLower (add 80), identifier start */
+0x0C270181,  /*   76   Lu, hasLower (add 48), identifier start */
+0x0C170182,  /*   77   Ll, hasUpper (subtract 48), identifier start */
+0x00034089,  /*   78   Nd, identifier part, decimal 0 */
+0x00000087,  /*   79   Me */
+0x00030088,  /*   80   Mc, identifier part */
+0x00037489,  /*   81   Nd, identifier part, decimal 26 */
+0x00005A0B,  /*   82   No, decimal 13 */
+0x00006E0B,  /*   83   No, decimal 23 */
+0x0000740B,  /*   84   No, decimal 26 */
+0x0000000B,  /*   85   No */
+0xFE170182,  /*   86   Ll, hasUpper (subtract -8), identifier start */
+0xFE270181,  /*   87   Lu, hasLower (add -8), identifier start */
+0xED970182,  /*   88   Ll, hasUpper (subtract -74), identifier start */
+0xEA970182,  /*   89   Ll, hasUpper (subtract -86), identifier start */
+0xE7170182,  /*   90   Ll, hasUpper (subtract -100), identifier start */
+0xE0170182,  /*   91   Ll, hasUpper (subtract -128), identifier start */
+0xE4170182,  /*   92   Ll, hasUpper (subtract -112), identifier start */
+0xE0970182,  /*   93   Ll, hasUpper (subtract -126), identifier start */
+0xFDD70182,  /*   94   Ll, hasUpper (subtract -9), identifier start */
+0xEDA70181,  /*   95   Lu, hasLower (add -74), identifier start */
+0xFDE70181,  /*   96   Lu, hasLower (add -9), identifier start */
+0xEAA70181,  /*   97   Lu, hasLower (add -86), identifier start */
+0xE7270181,  /*   98   Lu, hasLower (add -100), identifier start */
+0xFE570182,  /*   99   Ll, hasUpper (subtract -7), identifier start */
+0xE4270181,  /*  100   Lu, hasLower (add -112), identifier start */
+0xFE670181,  /*  101   Lu, hasLower (add -7), identifier start */
+0xE0270181,  /*  102   Lu, hasLower (add -128), identifier start */
+0xE0A70181,  /*  103   Lu, hasLower (add -126), identifier start */
+0x00010010,  /*  104   Cf, ignorable */
+0x0004000D,  /*  105   Zl, whitespace */
+0x0004000E,  /*  106   Zp, whitespace */
+0x0000400B,  /*  107   No, decimal 0 */
+0x0000440B,  /*  108   No, decimal 2 */
+0x0427438A,  /*  109   Nl, hasLower (add 16), identifier start, decimal 1 */
+0x0427818A,  /*  110   Nl, hasLower (add 16), identifier start, strange */
+0x0417638A,  /*  111   Nl, hasUpper (subtract 16), identifier start, decimal 17 */
+0x0417818A,  /*  112   Nl, hasUpper (subtract 16), identifier start, strange */
+0x0007818A,  /*  113   Nl, identifier start, strange */
+0x0000420B,  /*  114   No, decimal 1 */
+0x0000720B,  /*  115   No, decimal 25 */
+0x06A0001C,  /*  116   So, hasLower (add 26) */
+0x0690001C,  /*  117   So, hasUpper (subtract 26) */
+0x00006C0B,  /*  118   No, decimal 22 */
+0x0000560B,  /*  119   No, decimal 11 */
+0x0007738A,  /*  120   Nl, identifier start, decimal 25 */
+0x0007418A,  /*  121   Nl, identifier start, decimal 0 */
+0x00000013,  /*  122   Cs */
+0x00000012   /*  123   Co */
 };
 
 const jschar js_uriReservedPlusPound_ucstr[] =
@@ -5314,71 +5298,71 @@ const jschar js_uriUnescaped_ucstr[] =
 
 #define ____ false
 
-
-
-
-
-
-
-
+/*
+ * Identifier start chars:
+ * -      36:    $
+ * -  65..90: A..Z
+ * -      95:    _
+ * - 97..122: a..z
+ */
 const bool js_isidstart[] = {
-
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, true, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, ____, ____, ____, ____, true, ____, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, true, true, ____, ____, ____, ____, ____
+/*       0     1     2     3     4     5     6     7     8     9  */
+/*  0 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  1 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  2 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  3 */ ____, ____, ____, ____, ____, ____, true, ____, ____, ____,
+/*  4 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  5 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  6 */ ____, ____, ____, ____, ____, true, true, true, true, true, 
+/*  7 */ true, true, true, true, true, true, true, true, true, true, 
+/*  8 */ true, true, true, true, true, true, true, true, true, true, 
+/*  9 */ true, ____, ____, ____, ____, true, ____, true, true, true, 
+/* 10 */ true, true, true, true, true, true, true, true, true, true, 
+/* 11 */ true, true, true, true, true, true, true, true, true, true, 
+/* 12 */ true, true, true, ____, ____, ____, ____, ____
 };
 
-
-
-
-
-
-
-
-
+/*
+ * Identifier chars:
+ * -      36:    $
+ * -  48..57: 0..9
+ * -  65..90: A..Z
+ * -      95:    _
+ * - 97..122: a..z
+ */
 const bool js_isident[] = {
-
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, true, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, true, true, 
- true, true, true, true, true, true, true, true, ____, ____,
- ____, ____, ____, ____, ____, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, ____, ____, ____, ____, true, ____, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, true, true, ____, ____, ____, ____, ____
+/*       0     1     2     3     4     5     6     7     8     9  */
+/*  0 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  1 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  2 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  3 */ ____, ____, ____, ____, ____, ____, true, ____, ____, ____,
+/*  4 */ ____, ____, ____, ____, ____, ____, ____, ____, true, true, 
+/*  5 */ true, true, true, true, true, true, true, true, ____, ____,
+/*  6 */ ____, ____, ____, ____, ____, true, true, true, true, true, 
+/*  7 */ true, true, true, true, true, true, true, true, true, true, 
+/*  8 */ true, true, true, true, true, true, true, true, true, true, 
+/*  9 */ true, ____, ____, ____, ____, true, ____, true, true, true, 
+/* 10 */ true, true, true, true, true, true, true, true, true, true, 
+/* 11 */ true, true, true, true, true, true, true, true, true, true, 
+/* 12 */ true, true, true, ____, ____, ____, ____, ____
 };
 
-
+/* Whitespace chars: '\t', '\n', '\v', '\f', '\r', ' '. */
 const bool js_isspace[] = {
-
- ____, ____, ____, ____, ____, ____, ____, ____, ____, true,
- true, true, true, true, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, true, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____
+/*       0     1     2     3     4     5     6     7     8     9  */
+/*  0 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, true,
+/*  1 */ true, true, true, true, ____, ____, ____, ____, ____, ____,
+/*  2 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  3 */ ____, ____, true, ____, ____, ____, ____, ____, ____, ____,
+/*  4 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  5 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  6 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  7 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  8 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/*  9 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/* 10 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/* 11 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+/* 12 */ ____, ____, ____, ____, ____, ____, ____, ____
 };
 
 #undef ____
@@ -5395,18 +5379,18 @@ TransferBufferToString(JSContext *cx, StringBuffer &sb, Value *rval)
     return true;
 }
 
-
-
-
-
-
-
-
+/*
+ * ECMA 3, 15.1.3 URI Handling Function Properties
+ *
+ * The following are implementations of the algorithms
+ * given in the ECMA specification for the hidden functions
+ * 'Encode' and 'Decode'.
+ */
 static JSBool
 Encode(JSContext *cx, JSString *str, const jschar *unescapedSet,
        const jschar *unescapedSet2, Value *rval)
 {
-    static const char HexDigits[] = "0123456789ABCDEF"; 
+    static const char HexDigits[] = "0123456789ABCDEF"; /* NB: uppercase */
 
     size_t length = str->length();
     const jschar *chars = str->getChars(cx);
@@ -5544,7 +5528,7 @@ Decode(JSContext *cx, JSString *str, const jschar *reservedSet, Value *rval)
 
   report_bad_uri:
     JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_URI);
-    
+    /* FALL THROUGH */
 
     return JS_FALSE;
 }
@@ -5586,10 +5570,10 @@ str_encodeURI_Component(JSContext *cx, uintN argc, Value *vp)
     return Encode(cx, str, js_uriUnescaped_ucstr, NULL, vp);
 }
 
-
-
-
-
+/*
+ * Convert one UCS-4 char and write it into a UTF-8 buffer, which must be at
+ * least 4 bytes long.  Return the number of UTF-8 bytes of data written.
+ */
 int
 js_OneUcs4ToUtf8Char(uint8 *utf8Buffer, uint32 ucs4Char)
 {
@@ -5616,17 +5600,17 @@ js_OneUcs4ToUtf8Char(uint8 *utf8Buffer, uint32 ucs4Char)
     return utf8Length;
 }
 
-
-
-
-
-
+/*
+ * Convert a utf8 character sequence into a UCS-4 character and return that
+ * character.  It is assumed that the caller already checked that the sequence
+ * is valid.
+ */
 static uint32
 Utf8ToOneUcs4Char(const uint8 *utf8Buffer, int utf8Length)
 {
     uint32 ucs4Char;
     uint32 minucs4Char;
-    
+    /* from Unicode 3.1, non-shortest form is illegal */
     static const uint32 minucs4Table[] = {
         0x00000080, 0x00000800, 0x00010000
     };
@@ -5644,8 +5628,8 @@ Utf8ToOneUcs4Char(const uint8 *utf8Buffer, int utf8Length)
             JS_ASSERT((*utf8Buffer & 0xC0) == 0x80);
             ucs4Char = ucs4Char<<6 | (*utf8Buffer++ & 0x3F);
         }
-        if (JS_UNLIKELY(ucs4Char < minucs4Char)) {
-            ucs4Char = OVERLONG_UTF8;
+        if (JS_UNLIKELY(ucs4Char < minucs4Char || (ucs4Char >= 0xD800 && ucs4Char <= 0xDFFF))) {
+            ucs4Char = INVALID_UTF8;
         } else if (ucs4Char == 0xFFFE || ucs4Char == 0xFFFF) {
             ucs4Char = 0xFFFD;
         }
@@ -5678,7 +5662,7 @@ PutEscapedStringImpl(char *buffer, size_t bufferSize, FILE *fp, JSLinearString *
     uintN shift = 0;
     uintN hex = 0;
     uintN u = 0;
-    char c = 0;  
+    char c = 0;  /* to quell GCC warnings */
 
     for (;;) {
         switch (state) {
@@ -5766,4 +5750,4 @@ PutEscapedStringImpl(char *buffer, size_t bufferSize, FILE *fp, JSLinearString *
     return n;
 }
 
-} 
+} /* namespace js */

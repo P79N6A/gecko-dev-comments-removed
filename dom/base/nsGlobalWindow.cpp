@@ -1026,6 +1026,8 @@ nsGlobalWindow::~nsGlobalWindow()
 
   CleanUp(PR_TRUE);
 
+  NS_ASSERTION(!mHasDeviceMotion, "Window still registered with device motion.");
+
 #ifdef DEBUG
   nsCycleCollector_DEBUG_wasFreed(static_cast<nsIScriptGlobalObject*>(this));
 #endif
@@ -9089,6 +9091,8 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   dummy_timeout.AddRef();
 
   last_insertion_point = mTimeoutInsertionPoint;
+  
+  
   mTimeoutInsertionPoint = &dummy_timeout;
 
   for (timeout = FirstTimeout();
@@ -9426,7 +9430,16 @@ nsresult nsGlobalWindow::ResetTimersForNonBackgroundWindow()
 
   TimeStamp now = TimeStamp::Now();
 
-  for (nsTimeout *timeout = FirstTimeout(); IsTimeout(timeout); ) {
+  
+  
+  
+  
+  
+  
+  
+  for (nsTimeout *timeout = mTimeoutInsertionPoint ?
+         mTimeoutInsertionPoint->Next() : FirstTimeout();
+       IsTimeout(timeout); ) {
     
     
     

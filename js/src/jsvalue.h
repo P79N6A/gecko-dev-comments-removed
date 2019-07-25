@@ -1,107 +1,116 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=99 ft=cpp:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
+ * June 30, 2010
+ *
+ * The Initial Developer of the Original Code is
+ *   the Mozilla Corporation.
+ *
+ * Contributor(s):
+ *   Luke Wagner <lw@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jsvalue_h__
 #define jsvalue_h__
-
-
-
+/*
+ * Private value interface.
+ */
 #include "jsprvtd.h"
 #include "jsstdint.h"
 
+/*
+ * js::Value is a C++-ified version of jsval that provides more information and
+ * helper functions than the basic jsval interface exposed by jsapi.h. A few
+ * general notes on js::Value:
+ *
+ * - Since js::Value and jsval have the same representation, values of these
+ *   types, function pointer types differing only in these types, and structs
+ *   differing only in these types can be converted back and forth at no cost
+ *   using the Jsvalify() and Valueify(). See Jsvalify comment below.
+ *
+ * - js::Value has setX() and isX() members for X in
+ *
+ *     { Int32, Double, String, Boolean, Undefined, Null, Object, Magic }
+ *
+ *   js::Value also contains toX() for each of the non-singleton types.
+ *
+ * - Magic is a singleton type whose payload contains a JSWhyMagic "reason" for
+ *   the magic value. By providing JSWhyMagic values when creating and checking
+ *   for magic values, it is possible to assert, at runtime, that only magic
+ *   values with the expected reason flow through a particular value. For
+ *   example, if cx->exception has a magic value, the reason must be
+ *   JS_GENERATOR_CLOSING.
+ *
+ * - A key difference between jsval and js::Value is that js::Value gives null
+ *   a separate type. Thus
+ *
+ *           JSVAL_IS_OBJECT(v) === v.isObjectOrNull()
+ *       !JSVAL_IS_PRIMITIVE(v) === v.isObject()
+ *
+ *   To help prevent mistakenly boxing a nullable JSObject* as an object,
+ *   Value::setObject takes a JSObject&. (Conversely, Value::asObject returns a
+ *   JSObject&. A convenience member Value::setObjectOrNull is provided.
+ *
+ * - JSVAL_VOID is the same as the singleton value of the Undefined type.
+ *
+ * - Note that js::Value is always 64-bit. Thus, on 32-bit user code should
+ *   avoid copying jsval/js::Value as much as possible, preferring to pass by
+ *   const Value &.
+ */
 
+/******************************************************************************/
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* To avoid a circular dependency, pull in the necessary pieces of jsnum.h. */
 
 #define JSDOUBLE_SIGNBIT (((uint64) 1) << 63)
 #define JSDOUBLE_EXPMASK (((uint64) 0x7ff) << 52)
 #define JSDOUBLE_MANTMASK ((((uint64) 1) << 52) - 1)
+#define JSDOUBLE_HI32_SIGNBIT   0x80000000
 
 static JS_ALWAYS_INLINE JSBool
 JSDOUBLE_IS_NEGZERO(jsdouble d)
 {
+    if (d != 0)
+        return false;
     union {
+        struct {
+#if defined(IS_LITTLE_ENDIAN) && !defined(FPU_IS_ARM_FPA)
+            uint32 lo, hi;
+#else
+            uint32 hi, lo;
+#endif
+        } s;
         jsdouble d;
-        uint64 bits;
     } x;
     x.d = d;
-    return x.bits == JSDOUBLE_SIGNBIT;
+    return (x.s.hi & JSDOUBLE_HI32_SIGNBIT) != 0;
 }
 
 static inline bool
@@ -112,9 +121,9 @@ JSDOUBLE_IS_INT32(jsdouble d, int32_t* pi)
     return d == (*pi = int32_t(d));
 }
 
+/******************************************************************************/
 
-
-
+/* Additional value operations used in js::Value but not in jsapi.h. */
 
 #if JS_BITS_PER_WORD == 32
 
@@ -203,7 +212,7 @@ BOX_NON_DOUBLE_JSVAL(JSValueType type, uint64 *slot)
                  type == JSVAL_TYPE_FUNOBJ,
                  *(uint32 *)slot != 0);
     l.s.tag = JSVAL_TYPE_TO_TAG(type & 0xF);
-    
+    /* A 32-bit value in a 64-bit slot always occupies the low-addressed end. */
     l.s.payload.u32 = *(uint32 *)slot;
     return l;
 }
@@ -294,7 +303,7 @@ JS_STATIC_ASSERT((JSVAL_TYPE_FUNOBJ & 0xF) == JSVAL_TYPE_OBJECT);
 static JS_ALWAYS_INLINE jsval_layout
 BOX_NON_DOUBLE_JSVAL(JSValueType type, uint64 *slot)
 {
-    
+    /* N.B. for 32-bit payloads, the high 32 bits of the slot are trash. */
     jsval_layout l;
     JS_ASSERT(type > JSVAL_TYPE_DOUBLE && type <= JSVAL_UPPER_INCL_TYPE_OF_BOXABLE_SET);
     uint32 isI32 = (uint32)(type < JSVAL_LOWER_INCL_TYPE_OF_PTR_PAYLOAD_SET);
@@ -319,19 +328,19 @@ UNBOX_NON_DOUBLE_JSVAL(jsval_layout l, uint64 *out)
 
 #endif
 
-
+/******************************************************************************/
 
 namespace js {
 
 class Value
 {
   public:
-    
+    /*
+     * N.B. the default constructor leaves Value unitialized. Adding a default
+     * constructor prevents Value from being stored in a union.
+     */
 
-
-
-
-    
+    /*** Mutatators ***/
 
     JS_ALWAYS_INLINE
     void setNull() {
@@ -445,7 +454,7 @@ class Value
         data.asBits = tmp;
     }
 
-    
+    /*** Value type queries ***/
 
     JS_ALWAYS_INLINE
     bool isUndefined() const {
@@ -559,7 +568,7 @@ class Value
     }
 #endif
 
-    
+    /*** Comparison ***/
 
     JS_ALWAYS_INLINE
     bool operator==(const Value &rhs) const {
@@ -571,12 +580,12 @@ class Value
         return data.asBits != rhs.data.asBits;
     }
 
-    
-
-
+    /* This function used to be inlined here, but this triggered a gcc bug
+       due to SameType being used in a template method.
+       See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=38850 */
     friend bool SameType(const Value &lhs, const Value &rhs);
 
-    
+    /*** Extract the value's typed payload ***/
 
     JS_ALWAYS_INLINE
     int32 toInt32() const {
@@ -637,12 +646,12 @@ class Value
         return data.asBits;
     }
 
-    
-
-
-
-
-
+    /*
+     * In the extract/box/unbox functions below, "NonDouble" means this
+     * functions must not be called on a value that is a double. This allows
+     * these operations to be implemented more efficiently, since doubles
+     * generally already require special handling by the caller.
+     */
     JS_ALWAYS_INLINE
     JSValueType extractNonDoubleType() const {
         return JSVAL_EXTRACT_NON_DOUBLE_TYPE_IMPL(data);
@@ -663,11 +672,11 @@ class Value
         data = BOX_NON_DOUBLE_JSVAL(type, out);
     }
 
-    
-
-
-
-
+    /*
+     * The trace-jit specializes JSVAL_TYPE_OBJECT into JSVAL_TYPE_FUNOBJ and
+     * JSVAL_TYPE_NONFUNOBJ. Since these two operations just return the type of
+     * a value, the caller must handle JSVAL_TYPE_OBJECT separately.
+     */
     JS_ALWAYS_INLINE
     JSValueType extractNonDoubleObjectTraceType() const {
         JS_ASSERT(!isObject());
@@ -680,14 +689,14 @@ class Value
         return JSVAL_EXTRACT_NON_DOUBLE_TAG_IMPL(data);
     }
 
-    
-
-
-
-
-
-
-
+    /*
+     * Private API
+     *
+     * Private setters/getters allow the caller to read/write arbitrary types
+     * that fit in the 64-bit payload. It is the caller's responsibility, after
+     * storing to a value with setPrivateX to read only using getPrivateX.
+     * Privates values are given a type type which ensures they are not marked.
+     */
 
     JS_ALWAYS_INLINE
     void setPrivate(void *ptr) {
@@ -717,11 +726,11 @@ class Value
         return data.s.payload.u32;
     }
 
-    
-
-
-
-
+    /*
+     * An unmarked value is just a void* cast as a Value. Thus, the Value is
+     * not safe for GC and must not be marked. This API avoids raw casts
+     * and the ensuing strict-aliasing warnings.
+     */
 
     JS_ALWAYS_INLINE
     void setUnmarkedPtr(void *ptr) {
@@ -855,31 +864,31 @@ ClearValueRange(Value *vec, uintN len, bool useHoles)
     }
 }
 
+/******************************************************************************/
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * As asserted above, js::Value and jsval are layout equivalent. This means:
+ *  - an instance of jsval may be reinterpreted as a js::Value and vice versa;
+ *  - a pointer to a function taking jsval arguments may be reinterpreted as a
+ *    function taking the same arguments, s/jsval/js::Value/, and vice versa;
+ *  - a struct containing jsval members may be reinterpreted as a struct with
+ *    the same members, s/jsval/js::Value/, and vice versa.
+ *
+ * To prevent widespread conversion using casts, which would effectively
+ * disable the C++ typesystem in places where we want it, a set of safe
+ * conversions between known-equivalent types is provided below. Given a type
+ * JsvalT expressedin terms of jsval and an equivalent type ValueT expressed in
+ * terms of js::Value, instances may be converted back and forth using:
+ *
+ *   JsvalT *x = ...
+ *   ValueT *y = js::Valueify(x);
+ *   JsvalT *z = js::Jsvalify(y);
+ *   assert(x == z);
+ *
+ * Conversions between references is also provided for some types. If it seems
+ * like a cast is needed to convert between jsval/js::Value, consider adding a
+ * new safe overload to Jsvalify/Valueify.
+ */
 
 static inline jsval *        Jsvalify(Value *v)        { return (jsval *)v; }
 static inline const jsval *  Jsvalify(const Value *v)  { return (const jsval *)v; }
@@ -936,13 +945,13 @@ typedef void
 
 class AutoIdVector;
 
-
-
-
-
-
-
-
+/*
+ * Prepare to make |obj| non-extensible; in particular, fully resolve its properties.
+ * On error, return false.
+ * If |obj| is now ready to become non-extensible, set |*fixed| to true and return true.
+ * If |obj| refuses to become non-extensible, set |*fixed| to false and return true; the
+ * caller will throw an appropriate error.
+ */
 typedef JSBool
 (* FixOp)(JSContext *cx, JSObject *obj, bool *fixed, AutoIdVector *props);
 
@@ -960,8 +969,8 @@ static inline HasInstanceOp      Valueify(JSHasInstanceOp f)    { return (HasIns
 static inline JSHasInstanceOp    Jsvalify(HasInstanceOp f)      { return (JSHasInstanceOp)f; }
 static inline CheckAccessOp      Valueify(JSCheckAccessOp f)    { return (CheckAccessOp)f; }
 static inline JSCheckAccessOp    Jsvalify(CheckAccessOp f)      { return (JSCheckAccessOp)f; }
-static inline EqualityOp         Valueify(JSEqualityOp f);      
-static inline JSEqualityOp       Jsvalify(EqualityOp f);        
+static inline EqualityOp         Valueify(JSEqualityOp f);      /* Same type as JSHasInstanceOp */
+static inline JSEqualityOp       Jsvalify(EqualityOp f);        /* Same type as HasInstanceOp */
 
 static const PropertyOp       PropertyStub       = (PropertyOp)JS_PropertyStub;
 static const StrictPropertyOp StrictPropertyStub = (StrictPropertyOp)JS_StrictPropertyStub;
@@ -993,10 +1002,10 @@ static const JSFinalizeOp     FinalizeStub       = JS_FinalizeStub;
     HasInstanceOp       hasInstance;                                          \
     JSTraceOp           trace
 
-
-
-
-
+/*
+ * The helper struct to measure the size of JS_CLASS_MEMBERS to know how much
+ * we have to padd js::Class to match the size of JSClass;
+ */
 struct ClassSizeMeasurement {
     JS_CLASS_MEMBERS;
 };
@@ -1035,7 +1044,7 @@ struct Class {
     uint8               pad[sizeof(JSClass) - sizeof(ClassSizeMeasurement) -
                             sizeof(ClassExtension) - sizeof(ObjectOps)];
 
-    
+    /* Class is not native and its map is not a scope. */
     static const uint32 NON_NATIVE = JSCLASS_INTERNAL_FLAG2;
 
     bool isNative() const {
@@ -1083,12 +1092,12 @@ static JS_ALWAYS_INLINE Class *                Valueify(JSClass *c)             
 static JS_ALWAYS_INLINE JSPropertyDescriptor * Jsvalify(PropertyDescriptor *p) { return (JSPropertyDescriptor *) p; }
 static JS_ALWAYS_INLINE PropertyDescriptor *   Valueify(JSPropertyDescriptor *p) { return (PropertyDescriptor *) p; }
 
+/******************************************************************************/
 
-
-
-
-
-
+/*
+ * Any cast-via-function-call, inlined or not, will cause initialization to
+ * happen at startup, rather than statically, so just cast in release builds.
+ */
 #ifdef DEBUG
 
 # define JS_VALUEIFY(type, v) js::Valueify(v)
@@ -1120,21 +1129,21 @@ static inline JSStrictPropertyOp CastNativeToJSStrictPropertyOp(Native n) {
 
 #endif
 
-
-
-
-
-
+/*
+ * JSFunctionSpec uses JSAPI jsval in function signatures whereas the engine
+ * uses js::Value. To avoid widespread (JSNative) casting, have JS_FN perform a
+ * type-safe cast.
+ */
 #undef JS_FN
 #define JS_FN(name,call,nargs,flags)                                          \
      {name, JS_JSVALIFY_NATIVE(call), nargs, (flags) | JSFUN_STUB_GSOPS}
 
-
-
-
-
-
-
+/*
+ * JSPropertySpec uses JSAPI JSPropertyOp and JSStrictPropertyOp in function
+ * signatures, but with JSPROP_NATIVE_ACCESSORS the actual values must be
+ * JSNatives. To avoid widespread casting, have JS_PSG and JS_PSGS perform
+ * type-safe casts.
+ */
 #define JS_PSG(name,getter,flags)                                             \
     {name, 0, (flags) | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS,              \
      JS_CAST_NATIVE_TO_JSPROPERTYOP(getter),                                  \
@@ -1145,14 +1154,14 @@ static inline JSStrictPropertyOp CastNativeToJSStrictPropertyOp(Native n) {
      JS_CAST_NATIVE_TO_JSSTRICTPROPERTYOP(setter)}
 #define JS_PS_END {0, 0, 0, 0, 0}
 
+/******************************************************************************/
 
-
-
-
-
-
-
-
+/*
+ * In some cases (quickstubs) we want to take a value in whatever manner is
+ * appropriate for the architecture and normalize to a const js::Value &. On
+ * x64, passing a js::Value may cause the to unnecessarily be passed through
+ * memory instead of registers, so jsval, which is a builtin uint64 is used.
+ */
 #if JS_BITS_PER_WORD == 32
 typedef const js::Value *ValueArgType;
 
@@ -1172,7 +1181,7 @@ ValueArgToConstRef(const Value &v)
 }
 #endif
 
-
+/******************************************************************************/
 
 static JS_ALWAYS_INLINE void
 MakeRangeGCSafe(Value *vec, size_t len)
@@ -1237,12 +1246,12 @@ SetValueRangeToNull(Value *vec, size_t len)
     SetValueRangeToNull(vec, vec + len);
 }
 
-
-
-
-
-
-
+/*
+ * To really poison a set of values, using 'magic' or 'undefined' isn't good
+ * enough since often these will just be ignored by buggy code (see bug 629974)
+ * in debug builds and crash in release builds. Instead, we use a safe-for-crash
+ * pointer.
+ */
 static JS_ALWAYS_INLINE void
 Debug_SetValueRangeToCrashOnTouch(Value *beg, Value *end)
 {
@@ -1260,5 +1269,5 @@ Debug_SetValueRangeToCrashOnTouch(Value *vec, size_t len)
 #endif
 }
 
-}      
-#endif 
+}      /* namespace js */
+#endif /* jsvalue_h__ */
