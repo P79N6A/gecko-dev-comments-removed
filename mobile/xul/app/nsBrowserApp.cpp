@@ -200,18 +200,12 @@ int main(int argc, char* argv[])
   struct rusage initialRUsage;
   gotCounters = !getrusage(RUSAGE_SELF, &initialRUsage);
 #elif defined(XP_WIN)
-  
-  
-  
-  
-  
   IO_COUNTERS ioCounters;
   gotCounters = GetProcessIoCounters(GetCurrentProcess(), &ioCounters);
-  if (gotCounters && !ioCounters.ReadOperationCount)
 #endif
-  {
-      XPCOMGlueEnablePreload();
-  }
+
+  
+  XPCOMGlueEnablePreload();
 
 #if MOZ_PLATFORM_MAEMO == 6
   nsFastStartup startup;

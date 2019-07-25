@@ -1,5 +1,0 @@
-
-
-
-
-BOOL ClearKnownPrefetch();
