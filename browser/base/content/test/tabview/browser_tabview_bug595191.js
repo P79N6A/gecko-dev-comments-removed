@@ -100,10 +100,6 @@ function toggleTabViewTest(contentWindow) {
   
   setTimeout( function() {
     
-    if(navigator.platform.indexOf("Mac") >= 0) {
-      EventUtils.synthesizeKey("VK_SPACE", {altKey : true}, contentWindow);
-    } else {
-      EventUtils.synthesizeKey("VK_SPACE", {ctrlKey : true}, contentWindow);
-    }
+    EventUtils.synthesizeKey("e", { accelKey: true });
   }, 0);
 }
