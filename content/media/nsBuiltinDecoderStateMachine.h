@@ -163,7 +163,7 @@ public:
   }
 
   virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus();
-  virtual void Decode();
+  virtual void Play();
   virtual void Seek(double aTime);
   virtual double GetCurrentTime() const;
   virtual void ClearPositionChangeFlag();
@@ -274,6 +274,9 @@ protected:
   PRBool HasFutureAudio() const;
 
   
+  PRBool JustExitedQuickBuffering();
+
+  
   
   
   
@@ -370,6 +373,10 @@ protected:
 
   
   
+  void StartDecoding();
+
+  
+  
   PRBool IsPlaying();
 
   
@@ -430,11 +437,6 @@ protected:
   
   
   
-  PRInt64 mBufferingEndOffset;
-
-  
-  
-  
   
   PRInt64 mStartTime;
 
@@ -484,6 +486,9 @@ protected:
   double mVolume;
 
   
+  TimeStamp mDecodeStartTime;
+
+  
   
   PRPackedBool mSeekable;
 
@@ -508,6 +513,13 @@ protected:
   
   
   PRPackedBool mStopDecodeThreads;
+
+  
+  
+  
+  
+  
+  PRPackedBool mQuickBuffering;
 
 private:
   

@@ -268,7 +268,7 @@ public:
   
   
   
-  virtual void Decode() = 0;
+  virtual void Play() = 0;
 
   
   virtual void Seek(double aTime) = 0;

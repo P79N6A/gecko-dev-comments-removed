@@ -119,6 +119,27 @@ PR_STATIC_ASSERT(LOW_DATA_THRESHOLD_MS > AMPLE_AUDIO_MS);
 
 static const PRUint32 EXHAUSTED_DATA_MARGIN_MS = 60;
 
+
+
+
+
+
+
+
+
+
+static const PRUint32 QUICK_BUFFER_THRESHOLD_MS = 2000;
+
+
+
+static const PRUint32 QUICK_BUFFERING_LOW_DATA_MS = 1000;
+
+
+
+
+
+PR_STATIC_ASSERT(QUICK_BUFFERING_LOW_DATA_MS <= AMPLE_AUDIO_MS);
+
 static TimeDuration MsToDuration(PRInt64 aMs) {
   return TimeDuration::FromMilliseconds(static_cast<double>(aMs));
 }
@@ -159,7 +180,6 @@ nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDe
   mAudioMonitor("media.audiostream"),
   mCbCrSize(0),
   mPlayDuration(0),
-  mBufferingEndOffset(-1),
   mStartTime(-1),
   mEndTime(-1),
   mSeekTime(0),
@@ -174,6 +194,7 @@ nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDe
   mAudioCompleted(PR_FALSE),
   mGotDurationFromMetaData(PR_FALSE),
   mStopDecodeThreads(PR_TRUE),
+  mQuickBuffering(PR_FALSE),
   mEventManager(aDecoder)
 {
   MOZ_COUNT_CTOR(nsBuiltinDecoderStateMachine);
@@ -827,15 +848,28 @@ void nsBuiltinDecoderStateMachine::Shutdown()
   mDecoder->GetMonitor().NotifyAll();
 }
 
-void nsBuiltinDecoderStateMachine::Decode()
+void nsBuiltinDecoderStateMachine::StartDecoding()
+{
+  NS_ASSERTION(IsCurrentThread(mDecoder->mStateMachineThread),
+               "Should be on state machine thread.");
+  MonitorAutoEnter mon(mDecoder->GetMonitor());
+  if (mState != DECODER_STATE_DECODING) {
+    mDecodeStartTime = TimeStamp::Now();
+  }
+  mState = DECODER_STATE_DECODING;
+}
+
+void nsBuiltinDecoderStateMachine::Play()
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  
   
   
   MonitorAutoEnter mon(mDecoder->GetMonitor());
   if (mState == DECODER_STATE_BUFFERING) {
     LOG(PR_LOG_DEBUG, ("%p Changed state from BUFFERING to DECODING", mDecoder));
     mState = DECODER_STATE_DECODING;
+    mDecodeStartTime = TimeStamp::Now();
     mDecoder->GetMonitor().NotifyAll();
   }
 }
@@ -1062,7 +1096,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
 
         if (mState == DECODER_STATE_DECODING_METADATA) {
           LOG(PR_LOG_DEBUG, ("%p Changed state from DECODING_METADATA to DECODING", mDecoder));
-          mState = DECODER_STATE_DECODING;
+          StartDecoding();
         }
 
         
@@ -1177,7 +1211,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
           LOG(PR_LOG_DEBUG, ("%p Changed state from SEEKING (to %lldms) to DECODING",
                              mDecoder, seekTime));
           stopEvent = NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::SeekingStopped);
-          mState = DECODER_STATE_DECODING;
+          StartDecoding();
         }
         mDecoder->GetMonitor().NotifyAll();
 
@@ -1185,6 +1219,11 @@ nsresult nsBuiltinDecoderStateMachine::Run()
           MonitorAutoExit exitMon(mDecoder->GetMonitor());
           NS_DispatchToMainThread(stopEvent, NS_DISPATCH_SYNC);
         }
+
+        
+        
+        
+        mQuickBuffering = PR_FALSE;
       }
       break;
 
@@ -1196,21 +1235,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
         }
 
         TimeStamp now = TimeStamp::Now();
-        if (mBufferingEndOffset == -1) {
-          
-          
-          mBufferingStart = now;
-          PRPackedBool reliable;
-          double playbackRate = mDecoder->ComputePlaybackRate(&reliable);
-          mBufferingEndOffset = mDecoder->mDecoderPosition +
-            BUFFERING_RATE(playbackRate) * BUFFERING_WAIT;
-          nsMediaDecoder::Statistics stats = mDecoder->GetStatistics();
-          LOG(PR_LOG_DEBUG, ("Starting to buffer playback=%.1lfKB/s%s download=%.1lfKB/s%s",
-              stats.mDownloadRate/1024, stats.mDownloadRateReliable ? "" : " (unreliable)",
-              stats.mPlaybackRate/1024, stats.mPlaybackRateReliable ? "" : " (unreliable)"));
-        }
-        NS_ASSERTION(mBufferingEndOffset != -1 && !mBufferingStart.IsNull(),
-                     "Must know buffering end conditions.");
+        NS_ASSERTION(!mBufferingStart.IsNull(), "Must know buffering start time.");
 
         
         
@@ -1219,14 +1244,17 @@ nsresult nsBuiltinDecoderStateMachine::Run()
         PRBool isLiveStream = mDecoder->GetCurrentStream()->GetLength() == -1;
         if ((isLiveStream || !mDecoder->CanPlayThrough()) &&
              elapsed < TimeDuration::FromSeconds(BUFFERING_WAIT) &&
-             HasLowDecodedData(1000) &&
+             (mQuickBuffering ? HasLowDecodedData(QUICK_BUFFERING_LOW_DATA_MS)
+                              : (GetUndecodedData() < BUFFERING_WAIT * 1000)) &&
              !stream->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
              !stream->IsSuspended())
         {
           LOG(PR_LOG_DEBUG,
-              ("In buffering: buffering data until %u bytes available or %f seconds",
-               PRUint32(mBufferingEndOffset - stream->GetCachedDataEnd(mDecoder->mDecoderPosition)),
-               BUFFERING_WAIT - elapsed.ToSeconds()));
+              ("Buffering: %.3lfs/%ds, timeout in %.3lfs %s",
+               GetUndecodedData() / 1000.0,
+               BUFFERING_WAIT,
+               BUFFERING_WAIT - elapsed.ToSeconds(),
+               (mQuickBuffering ? "(quick exit)" : "")));
           Wait(1000);
           if (mState == DECODER_STATE_SHUTDOWN)
             continue;
@@ -1235,9 +1263,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
           LOG(PR_LOG_DEBUG, ("%p Buffered for %.3lfs",
                              mDecoder,
                              (now - mBufferingStart).ToSeconds()));
-          mBufferingEndOffset = -1;
-          mBufferingStart = TimeStamp();
-          mState = DECODER_STATE_DECODING;
+          StartDecoding();
         }
 
         if (mState != DECODER_STATE_BUFFERING) {
@@ -1413,12 +1439,12 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
         HasLowDecodedData(remainingTime + EXHAUSTED_DATA_MARGIN_MS) &&
         !stream->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
         !stream->IsSuspended() &&
-        HasLowUndecodedData())
+        (JustExitedQuickBuffering() || HasLowUndecodedData()))
     {
       if (currentFrame) {
         mReader->mVideoQueue.PushFront(currentFrame.forget());
       }
-      mState = DECODER_STATE_BUFFERING;
+      StartBuffering();
       return;
     }
 
@@ -1605,9 +1631,25 @@ void nsBuiltinDecoderStateMachine::LoadMetadata()
   mGotDurationFromMetaData = (GetDuration() != -1);
 }
 
+PRBool nsBuiltinDecoderStateMachine::JustExitedQuickBuffering()
+{
+  return !mDecodeStartTime.IsNull() &&
+    mQuickBuffering &&
+    (TimeStamp::Now() - mDecodeStartTime) < TimeDuration::FromSeconds(QUICK_BUFFER_THRESHOLD_MS);
+}
+
 void nsBuiltinDecoderStateMachine::StartBuffering()
 {
   mDecoder->GetMonitor().AssertCurrentThreadIn();
+
+  TimeDuration decodeDuration = TimeStamp::Now() - mDecodeStartTime;
+  
+  
+  
+  mQuickBuffering =
+    !JustExitedQuickBuffering() &&
+    decodeDuration < TimeDuration::FromMilliseconds(QUICK_BUFFER_THRESHOLD_MS);
+  mBufferingStart = TimeStamp::Now();
 
   
   
@@ -1620,5 +1662,10 @@ void nsBuiltinDecoderStateMachine::StartBuffering()
   
   UpdateReadyState();
   mState = DECODER_STATE_BUFFERING;
-  LOG(PR_LOG_DEBUG, ("Changed state from DECODING to BUFFERING"));
+  LOG(PR_LOG_DEBUG, ("Changed state from DECODING to BUFFERING, decoded for %.3lfs",
+                     decodeDuration.ToSeconds()));
+  nsMediaDecoder::Statistics stats = mDecoder->GetStatistics();
+  LOG(PR_LOG_DEBUG, ("Playback rate: %.1lfKB/s%s download rate: %.1lfKB/s%s",
+    stats.mPlaybackRate/1024, stats.mPlaybackRateReliable ? "" : " (unreliable)",
+    stats.mDownloadRate/1024, stats.mDownloadRateReliable ? "" : " (unreliable)"));
 }
