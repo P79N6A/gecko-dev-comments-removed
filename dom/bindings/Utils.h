@@ -10,7 +10,7 @@
 #include "mozilla/dom/bindings/DOMJSClass.h"
 
 #include "jsapi.h"
-#include "jsfriendapi.h"
+#include "jstypedarray.h"
 
 #include "XPCQuickStubs.h"
 #include "XPCWrapper.h"
@@ -169,7 +169,7 @@ IsPlatformObject(JSContext* cx, JSObject* obj)
     clasp = js::GetObjectJSClass(obj);
   }
   return IS_WRAPPER_CLASS(js::Valueify(clasp)) || IsDOMClass(clasp) ||
-    JS_IsArrayBufferObject(obj, cx);
+    JS_IsArrayBufferObject(obj);
 }
 
 template <class T>
@@ -269,10 +269,10 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
 
   
   
-  JSAutoEnterCompartment ac;
-  if (!ac.enter(cx, scope)) {
-    return false;
-  }
+  
+  
+  
+  MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
   *vp = JS::ObjectValue(*obj);
   return JS_WrapValue(cx, vp);
 }

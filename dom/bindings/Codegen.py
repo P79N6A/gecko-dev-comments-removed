@@ -1512,11 +1512,15 @@ def getWrapTemplateForTypeImpl(type, result, descriptorProvider,
     if type.isCallback() and not type.isInterface():
         
         
+        
+        
         return """
   ${jsvalRef} = JS::ObjectOrNullValue(%s);
   return JS_WrapValue(cx, ${jsvalPtr});""" % result
 
     if type.tag() == IDLType.Tags.any:
+        
+        
         return """
   ${jsvalRef} = %s;\n
   return JS_WrapValue(cx, ${jsvalPtr});""" % result
