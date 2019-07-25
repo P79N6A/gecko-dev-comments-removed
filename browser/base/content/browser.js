@@ -2728,9 +2728,11 @@ function FillInHTMLTooltip(tipElement)
 }
 
 var browserDragAndDrop = {
+  canDropLink: function (aEvent) Services.droppedLinkHandler.canDropLink(aEvent, true),
+
   dragOver: function (aEvent, statusString)
   {
-    if (Services.droppedLinkHandler.canDropLink(aEvent, true)) {
+    if (this.canDropLink(aEvent)) {
       aEvent.preventDefault();
 
       if (statusString) {
@@ -2872,8 +2874,6 @@ var newWindowButtonObserver = {
 }
 
 var DownloadsButtonDNDObserver = {
-  
-  
   onDragOver: function (aEvent)
   {
     var statusTextFld = document.getElementById("statusbar-display");
@@ -3098,7 +3098,7 @@ const BrowserSearch = {
           setTimeout(BrowserSearch.webSearch, 0);
         }
 
-        win = window.openDialog("chrome:
+        win = window.openDialog("chrome://browser/content/", "_blank",
                                 "chrome,all,dialog=no", "about:blank");
         win.addEventListener("load", webSearchCallback, false);
       }
@@ -3301,7 +3301,7 @@ function OpenBrowserWindow()
   }
   else 
   {
-    win = window.openDialog("chrome:
+    win = window.openDialog("chrome://browser/content/", "_blank", "chrome,all,dialog=no", defaultArgs);
   }
 
   return win;
