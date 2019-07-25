@@ -1681,7 +1681,7 @@ static JSObject *
 GetXMLScopeChain(JSContext *cx)
 {
     if (JSStackFrame *fp = js_GetTopStackFrame(cx))
-        return GetScopeChain(cx, fp);
+        return GetScopeChain(cx, fp, ORIGIN_LAME);
 
     
 
