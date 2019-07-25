@@ -1420,7 +1420,7 @@ PlacesToolbar.prototype = {
 
       
       if (draggedElt.open) {
-        draggedElt.firstChild.hidePopup();
+        draggedElt.lastChild.hidePopup();
         draggedElt.open = false;
       }
     }

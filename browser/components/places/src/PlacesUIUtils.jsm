@@ -675,8 +675,8 @@ var PlacesUIUtils = {
     
     
     if (node.localName == "menu" && !node._placesNode &&
-        node.firstChild._placesView)
-      return node.firstChild._placesView;
+        node.lastChild._placesView)
+      return node.lastChild._placesView;
 
     while (node instanceof Ci.nsIDOMElement) {
       if (node._placesView)

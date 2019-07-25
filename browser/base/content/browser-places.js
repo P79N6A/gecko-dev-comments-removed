@@ -765,7 +765,7 @@ HistoryMenu.prototype = {
 
 
 
-var BookmarksEventHandler = {  
+var BookmarksEventHandler = {
   
 
 
@@ -775,7 +775,7 @@ var BookmarksEventHandler = {
 
 
 
-  onClick: function BT_onClick(aEvent) {
+  onClick: function BEH_onClick(aEvent) {
     
 #ifdef XP_MACOSX
     var modifKey = aEvent.metaKey || aEvent.shiftKey;
@@ -817,13 +817,13 @@ var BookmarksEventHandler = {
 
 
 
-  onCommand: function BM_onCommand(aEvent) {
+  onCommand: function BEH_onCommand(aEvent) {
     var target = aEvent.originalTarget;
     if (target._placesNode)
       PlacesUIUtils.openNodeWithEvent(target._placesNode, aEvent);
   },
 
-  fillInBHTooltip: function(aDocument, aEvent) {
+  fillInBHTooltip: function BEH_fillInBHTooltip(aDocument, aEvent) {
     var node;
     var cropped = false;
     var targetURI;
@@ -883,8 +883,81 @@ var BookmarksEventHandler = {
 
 
 
-let BookmarksMenuDropHandler = {
-  onDragOver: function BMDH_onDragOver(event) {
+var PlacesMenuDNDHandler = {
+  _springLoadDelay: 350, 
+  _loadTimer: null,
+
+  
+
+
+
+
+  onDragEnter: function PMDH_onDragEnter(event) {
+    
+    if (!this._isStaticContainer(event.target))
+      return;
+
+    this._loadTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    this._loadTimer.initWithCallback(function() {
+      PlacesMenuDNDHandler._loadTimer = null;
+      event.target.lastChild.setAttribute("autoopened", "true");
+      event.target.lastChild.showPopup(event.target.lastChild);
+    }, this._springLoadDelay, Ci.nsITimer.TYPE_ONE_SHOT);
+    event.preventDefault();
+    event.stopPropagation();
+  },
+
+  
+
+
+
+
+  onDragLeave: function PMDH_onDragLeave(event) {
+    
+    if (!this._isStaticContainer(event.target))
+      return;
+
+    if (this._loadTimer) {
+      this._loadTimer.cancel();
+      this._loadTimer = null;
+    }
+    let closeTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    closeTimer.initWithCallback(function() {
+      let node = PlacesControllerDragHelper.currentDropTarget;
+      let inHierarchy = false;
+      while (node && !inHierarchy) {
+        inHierarchy = node == event.target;
+        node = node.parentNode;
+      }
+      if (!inHierarchy && event.target.lastChild &&
+          event.target.lastChild.hasAttribute("autoopened")) {
+        event.target.lastChild.removeAttribute("autoopened");
+        event.target.lastChild.hidePopup();
+      }
+    }, this._springLoadDelay, Ci.nsITimer.TYPE_ONE_SHOT);
+  },
+
+  
+
+
+
+
+  _isStaticContainer: function PMDH__isContainer(node) {
+    let isMenu = node.localName == "menu" ||
+                 (node.localName == "toolbarbutton" &&
+                  node.getAttribute("type") == "menu");
+    let isStatic = !("_placesNode" in node) && node.lastChild &&
+                   node.lastChild.hasAttribute("placespopup") &&
+                   !node.parentNode.hasAttribute("placespopup");
+    return isMenu && isStatic;
+  },
+
+  
+
+
+
+
+  onDragOver: function PMDH_onDragOver(event) {
     let ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId,
                                 PlacesUtils.bookmarks.DEFAULT_INDEX,
                                 Ci.nsITreeView.DROP_ON);
@@ -894,7 +967,12 @@ let BookmarksMenuDropHandler = {
     event.stopPropagation();
   },
 
-  onDrop: function BMDH_onDrop(event) {
+  
+
+
+
+
+  onDrop: function PMDH_onDrop(event) {
     
     let ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId,
                                 PlacesUtils.bookmarks.DEFAULT_INDEX,
@@ -904,107 +982,6 @@ let BookmarksMenuDropHandler = {
   }
 };
 
-
-
-
-
-var PlacesMenuDNDController = {
-  _springLoadDelay: 350, 
-
-  
-
-
-  _timers: { },
-  
-  
-
-
-
-
-  onBookmarksMenuDragEnter: function PMDC_onDragEnter(event) {
-    if ("loadTime" in this._timers) 
-      return;
-    
-    this._setDragTimer("loadTime", this._openBookmarksMenu, 
-                       this._springLoadDelay, [event]);
-  },
-  
-  
-
-
-
-
-
-
-
-
-
-
-  _setDragTimer: function PMDC__setDragTimer(id, callback, delay, args) {
-    if (!this._dragSupported)
-      return;
-
-    
-    if (id in this._timers)
-      this._timers[id].cancel();
-      
-    
-
-
-
-    function Callback(object, method, args) {
-      this._method = method;
-      this._args = args;
-      this._object = object;
-    }
-    Callback.prototype = {
-      notify: function C_notify(timer) {
-        this._method.apply(this._object, this._args);
-      }
-    };
-    
-    var timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    timer.initWithCallback(new Callback(this, callback, args), delay, 
-                           timer.TYPE_ONE_SHOT);
-    this._timers[id] = timer;
-  },
-  
-  
-
-
-
-
-  _isContainer: function PMDC__isContainer(node) {
-    return node.localName == "menu" ||
-           (node.localName == "toolbarbutton" &&
-            node.getAttribute("type") == "menu");
-  },
-  
-  
-
-
-
-
-
-
-  _openBookmarksMenu: function PMDC__openBookmarksMenu(event) {
-    if ("loadTime" in this._timers)
-      delete this._timers.loadTime;
-    if (event.target.id == "bookmarksMenu") {
-      
-      event.target.lastChild.setAttribute("autoopened", "true");
-      event.target.lastChild.showPopup(event.target.lastChild);
-    }  
-  },
-
-  
-  
-#ifdef XP_MACOSX
-  _dragSupported: false
-#else
-  _dragSupported: true
-#endif
-};
 
 var PlacesStarButton = {
   init: function PSB_init() {
@@ -1019,13 +996,7 @@ var PlacesStarButton = {
     PlacesUtils.bookmarks.removeObserver(this);
   },
 
-  QueryInterface: function PSB_QueryInterface(aIID) {
-    if (aIID.equals(Ci.nsINavBookmarkObserver) ||
-        aIID.equals(Ci.nsISupports))
-      return this;
-
-    throw Cr.NS_NOINTERFACE;
-  },
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsINavBookmarkObserver]),
 
   _starred: false,
   _batching: false,
@@ -1086,9 +1057,10 @@ var PlacesStarButton = {
       this.updateState();
   },
 
-  onItemVisited: function() { },
-  onItemMoved: function() { }
+  onItemVisited: function() {},
+  onItemMoved: function() {}
 };
+
 
 
 
@@ -1119,5 +1091,96 @@ let PlacesToolbarHelper = {
       this._cachedElt._placesView.uninit();
       this._cachedElt = null;
     }
+  }
+};
+
+
+
+let BookmarksMenuButton = {
+  get button() {
+    delete this.button;
+    return this.button = document.getElementById("bookmarks-menu-button");
+  },
+
+  get navbarButtonContainer() {
+    delete this.navbarButtonContainer;
+    return this.navbarButtonContainer =
+             document.getElementById("bookmarks-menu-button-container");
+  },
+
+  get personalToolbar() {
+    delete this.personalToolbar;
+    return this.personalToolbar = document.getElementById("PersonalToolbar");
+  },
+
+  get bookmarksToolbarItem() {
+    return document.getElementById("personal-bookmarks");
+  },
+
+  init: function BMB_init() {
+    this.updatePosition();
+
+    
+    
+  },
+
+  _popupInitialized: false,
+  _popupNeedsUpdating: true,
+  onPopupShowing: function BMB_onPopupShowing(event) {
+    if (!this._popupNeedsUpdating)
+      return;
+    this._popupNeedsUpdating = false;
+
+    let viewToolbar = document.getElementById("BMB_viewBookmarksToolbar");
+    if (!this._popupInitialized) {
+      
+      this._popupInitialized = true;
+      
+      viewToolbar.setAttribute("toolbarindex",
+                               Array.indexOf(gNavToolbox.childNodes,
+                                             this.personalToolbar));
+
+      
+      let unsortedBookmarksElt =
+        document.getElementById("BMB_unsortedBookmarksFolderMenu");
+      unsortedBookmarksElt.label =
+        PlacesUtils.getString("UnsortedBookmarksFolderTitle");
+    }
+
+    
+    viewToolbar.setAttribute("checked", !this.personalToolbar.collapsed);
+
+    
+    
+    let bookmarksToolbarElt =
+      document.getElementById("BMB_bookmarksToolbarFolderMenu");
+    bookmarksToolbarElt.collapsed =
+      this.button.parentNode == this.bookmarksToolbarItem;
+  },
+
+  updatePosition: function BMB_updatePosition() {
+    this._popupNeedsUpdating = true;
+
+    let bookmarksToolbarItem = this.bookmarksToolbarItem;
+    if (isElementVisible(bookmarksToolbarItem)) {
+      bookmarksToolbarItem.appendChild(this.button);
+      this.button.classList.add("bookmark-item");
+      this.button.classList.remove("toolbarbutton-1");
+    }
+    else {
+      this.navbarButtonContainer.appendChild(this.button);
+      this.button.classList.remove("bookmark-item");
+      this.button.classList.add("toolbarbutton-1");
+    }
+  },
+
+  customizeStart: function BMB_customizeStart() {
+    var bmToolbarItem = this.bookmarksToolbarItem;
+    if (this.button.parentNode == bmToolbarItem)
+      bmToolbarItem.removeChild(this.button);
+  },
+
+  customizeDone: function BMB_customizeDone() {
+    this.updatePosition();
   }
 };

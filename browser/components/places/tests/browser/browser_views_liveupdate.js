@@ -42,7 +42,14 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
+let toolbar = document.getElementById("PersonalToolbar");
+let wasCollapsed = toolbar.collapsed;
+
 function test() {
+  
+  if (wasCollapsed)
+    toolbar.collapsed = false;
+
   waitForExplicitFinish();
 
   
@@ -194,6 +201,10 @@ function startTest() {
 function finishTest() {
   
   toggleSidebar("viewBookmarksSidebar", false);
+
+  
+  if (wasCollapsed)
+    toolbar.collapsed = true;
 
   finish();
 }
