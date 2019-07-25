@@ -235,8 +235,8 @@ public:
     return nsnull;
   }
 
-  nsIContent* GetTriggerContent() { return mTriggerContent; }
-  void SetTriggerContent(nsIContent* aTriggerContent) { mTriggerContent = aTriggerContent; }
+  static nsIContent* GetTriggerContent(nsMenuPopupFrame* aMenuPopupFrame);
+  void ClearTriggerContent() { mTriggerContent = nsnull; }
 
   
   
