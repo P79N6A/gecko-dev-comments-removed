@@ -357,6 +357,23 @@ nsSMILTimedElement::GetStartTime() const
 
 
 
+nsSMILTimeValue
+nsSMILTimedElement::GetHyperlinkTime() const
+{
+  nsSMILTimeValue hyperlinkTime; 
+
+  if (mElementState == STATE_ACTIVE) {
+    hyperlinkTime = mCurrentInterval->Begin()->Time();
+  } else if (!mBeginInstances.IsEmpty()) {
+    hyperlinkTime = mBeginInstances[0]->Time();
+  }
+
+  return hyperlinkTime;
+}
+
+
+
+
 void
 nsSMILTimedElement::AddInstanceTime(nsSMILInstanceTime* aInstanceTime,
                                     bool aIsBegin)
@@ -1506,6 +1523,16 @@ nsSMILTimedElement::FilterIntervals()
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   PRUint32 threshold = mOldIntervals.Length() > sMaxNumIntervals ?
                        mOldIntervals.Length() - sMaxNumIntervals :
@@ -1514,7 +1541,8 @@ nsSMILTimedElement::FilterIntervals()
   for (PRUint32 i = 0; i < mOldIntervals.Length(); ++i)
   {
     nsSMILInterval* interval = mOldIntervals[i].get();
-    if (i + 1 < mOldIntervals.Length()  &&
+    if (i != 0 && 
+        i + 1 < mOldIntervals.Length() && 
         (i < threshold || !interval->IsDependencyChainLink())) {
       interval->Unlink(true );
     } else {
@@ -1584,6 +1612,7 @@ nsSMILTimedElement::FilterInstanceTimes(InstanceTimeList& aList)
     
     
     
+    
     nsTArray<const nsSMILInstanceTime *> timesToKeep;
     if (mCurrentInterval) {
       timesToKeep.AppendElement(mCurrentInterval->Begin());
@@ -1591,6 +1620,9 @@ nsSMILTimedElement::FilterInstanceTimes(InstanceTimeList& aList)
     const nsSMILInterval* prevInterval = GetPreviousInterval();
     if (prevInterval) {
       timesToKeep.AppendElement(prevInterval->End());
+    }
+    if (!mOldIntervals.IsEmpty()) {
+      timesToKeep.AppendElement(mOldIntervals[0]->Begin());
     }
     RemoveBelowThreshold removeBelowThreshold(threshold, timesToKeep);
     RemoveInstanceTimes(aList, removeBelowThreshold);

@@ -100,6 +100,9 @@ public:
   virtual nsSMILTimedElement& TimedElement();
   virtual nsSMILTimeContainer* GetTimeContainer();
 
+  
+  void ActivateByHyperlink();
+
 protected:
   
   bool IsEventName(nsIAtom* aName);

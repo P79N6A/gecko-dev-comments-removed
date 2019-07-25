@@ -425,6 +425,34 @@ nsSVGAnimationElement::IsNodeOfType(PRUint32 aFlags) const
 
 
 
+void
+nsSVGAnimationElement::ActivateByHyperlink()
+{
+  FlushAnimations();
+
+  
+  
+  
+  nsSMILTimeValue seekTime = mTimedElement.GetHyperlinkTime();
+  if (seekTime.IsDefinite()) {
+    nsSMILTimeContainer* timeContainer = GetTimeContainer();
+    if (timeContainer) {
+      timeContainer->SetCurrentTime(seekTime.GetMillis());
+      AnimationNeedsResample();
+      
+      
+      FlushAnimations();
+    }
+    
+    
+  } else {
+    BeginElement();
+  }
+}
+
+
+
+
 nsSMILTimeContainer*
 nsSVGAnimationElement::GetTimeContainer()
 {

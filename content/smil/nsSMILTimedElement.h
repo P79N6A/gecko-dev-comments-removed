@@ -147,6 +147,25 @@ public:
 
 
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  nsSMILTimeValue GetHyperlinkTime() const;
+
+  
+
+
+
 
 
 
