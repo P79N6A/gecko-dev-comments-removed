@@ -1229,9 +1229,19 @@ namespace nanojit
         
         
         releaseRegisters();
+#ifdef NANOJIT_IA32
+        
+        debug_only( _fpuStkDepth = 0; )
+#endif
         if (label && label->addr) {
             
             unionRegisterState(label->regs);
+#ifdef NANOJIT_IA32
+            
+            
+            
+            debug_only( _fpuStkDepth = (_allocator.getActive(FST0) ? -1 : 0); )
+#endif
             JMP(label->addr);
         }
         else {
@@ -1243,6 +1253,9 @@ namespace nanojit
             }
             else {
                 intersectRegisterState(label->regs);
+#ifdef NANOJIT_IA32
+                debug_only( _fpuStkDepth = (_allocator.getActive(FST0) ? -1 : 0); )
+#endif
             }
             JMP(0);
             _patches.put(_nIns, to);
