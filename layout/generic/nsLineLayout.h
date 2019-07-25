@@ -221,11 +221,9 @@ public:
   
   
   
-  PRBool AddFloat(nsIFrame*       aFloat,
-                  nscoord         aAvailableWidth,
-                  nsReflowStatus& aReflowStatus)
+  PRBool AddFloat(nsIFrame* aFloat, nscoord aAvailableWidth)
   {
-    return mBlockRS->AddFloat(this, aFloat, aAvailableWidth, aReflowStatus);
+    return mBlockRS->AddFloat(this, aFloat, aAvailableWidth);
   }
 
   void SetTrimmableWidth(nscoord aTrimmableWidth) {

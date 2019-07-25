@@ -539,8 +539,7 @@ nsBlockReflowState::RecoverStateFrom(nsLineList::iterator aLine,
 PRBool
 nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
                              nsIFrame*           aFloat,
-                             nscoord             aAvailableWidth,
-                             nsReflowStatus&     aReflowStatus)
+                             nscoord             aAvailableWidth)
 {
   NS_PRECONDITION(aLineLayout, "must have line layout");
   NS_PRECONDITION(mBlock->end_lines() != mCurrentLine, "null ptr");
@@ -572,9 +571,6 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
   }
 
   
-  aReflowStatus = NS_FRAME_COMPLETE;
-
-  
   
   
   
@@ -598,7 +594,7 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
        mBlock->ComputeFloatWidth(*this, floatAvailableSpace, aFloat)
        <= aAvailableWidth)) {
     
-    placed = FlowAndPlaceFloat(aFloat, aReflowStatus);
+    placed = FlowAndPlaceFloat(aFloat);
     if (placed) {
       
       nsFlowAreaRect floatAvailSpace = GetFloatAvailableSpace(mY);
@@ -662,11 +658,8 @@ FloatMarginWidth(const nsHTMLReflowState& aCBReflowState,
 }
 
 PRBool
-nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
-                                      
-                                      nsReflowStatus& aReflowStatus)
+nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 {
-  aReflowStatus = NS_FRAME_COMPLETE;
   
   
   
@@ -975,8 +968,7 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList)
     }
 #endif
     
-    nsReflowStatus reflowStatus;
-    PRBool placed = FlowAndPlaceFloat(fc->mFloat, reflowStatus);
+    PRBool placed = FlowAndPlaceFloat(fc->mFloat);
     nsFloatCache *next = fc->Next();
     if (!placed) {
       aList.Remove(fc);
