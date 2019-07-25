@@ -1661,16 +1661,19 @@ js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                            JSObject **objp, JSProperty **propp);
 
 
+extern JS_FRIEND_DATA(js::Class) js_CallClass;
+extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
+
+namespace js {
+
 
 
 
 
 
 inline bool
-js_IsCacheableNonGlobalScope(JSObject *obj)
+IsCacheableNonGlobalScope(JSObject *obj)
 {
-    extern JS_FRIEND_DATA(js::Class) js_CallClass;
-    extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
     JS_ASSERT(obj->getParent());
 
     js::Class *clasp = obj->getClass();
@@ -1680,6 +1683,11 @@ js_IsCacheableNonGlobalScope(JSObject *obj)
 
     JS_ASSERT_IF(cacheable, !obj->getOps()->lookupProperty);
     return cacheable;
+}
+
+bool
+IsCacheableCallee(JSContext *cx, const Value &funval);
+
 }
 
 
