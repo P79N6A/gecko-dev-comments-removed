@@ -6829,10 +6829,8 @@ EmitArray(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, jsint sharpnum)
 
 #if JS_HAS_GENERATORS
     if (pn->isKind(PNK_ARRAYCOMP)) {
-        uintN saveDepth;
-
         if (!EmitNewInit(cx, bce, JSProto_Array, pn, sharpnum))
-            return JS_FALSE;
+            return false;
 
         
 
@@ -6840,34 +6838,33 @@ EmitArray(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, jsint sharpnum)
 
 
         JS_ASSERT(bce->stackDepth > 0);
-        saveDepth = bce->arrayCompDepth;
+        uintN saveDepth = bce->arrayCompDepth;
         bce->arrayCompDepth = (uint32) (bce->stackDepth - 1);
         if (!EmitTree(cx, bce, pn->pn_head))
-            return JS_FALSE;
+            return false;
         bce->arrayCompDepth = saveDepth;
 
         
         if (!EmitEndInit(cx, bce, 1))
-            return JS_FALSE;
+            return false;
         return true;
     }
 #endif 
 
     if (!bce->hasSharps() && !(pn->pn_xflags & PNX_NONCONST) && pn->pn_head &&
-        bce->checkSingletonContext()) {
-        if (!EmitSingletonInitialiser(cx, bce, pn))
-            return JS_FALSE;
-        return true;
+        bce->checkSingletonContext())
+    {
+        return EmitSingletonInitialiser(cx, bce, pn);
     }
 
     
     if (bce->hasSharps()) {
         if (!EmitNewInit(cx, bce, JSProto_Array, pn, sharpnum))
-            return JS_FALSE;
+            return false;
     } else {
         ptrdiff_t off = EmitN(cx, bce, JSOP_NEWARRAY, 3);
         if (off < 0)
-            return JS_FALSE;
+            return false;
         jsbytecode *pc = bce->code(off);
         SET_UINT24(pc, pn->pn_count);
     }
@@ -6876,32 +6873,30 @@ EmitArray(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, jsint sharpnum)
     jsatomid atomIndex;
     for (atomIndex = 0; pn2; atomIndex++, pn2 = pn2->pn_next) {
         if (!EmitNumberOp(cx, atomIndex, bce))
-            return JS_FALSE;
+            return false;
         if (pn2->isKind(PNK_COMMA) && pn2->isArity(PN_NULLARY)) {
             if (Emit1(cx, bce, JSOP_HOLE) < 0)
-                return JS_FALSE;
+                return false;
         } else {
             if (!EmitTree(cx, bce, pn2))
-                return JS_FALSE;
+                return false;
         }
         if (Emit1(cx, bce, JSOP_INITELEM) < 0)
-            return JS_FALSE;
+            return false;
     }
     JS_ASSERT(atomIndex == pn->pn_count);
 
     if (pn->pn_xflags & PNX_ENDCOMMA) {
         
         if (NewSrcNote(cx, bce, SRC_CONTINUE) < 0)
-            return JS_FALSE;
+            return false;
     }
 
     
 
 
 
-    if (!EmitEndInit(cx, bce, atomIndex))
-        return JS_FALSE;
-    return true;
+    return EmitEndInit(cx, bce, atomIndex);
 }
 
 JSBool
