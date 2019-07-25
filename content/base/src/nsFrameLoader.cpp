@@ -119,6 +119,7 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::layers;
+using namespace mozilla::layout;
 typedef FrameMetrics::ViewID ViewID;
 
 #include "jsapi.h"
@@ -170,7 +171,7 @@ nsContentView::Update(const ViewConfig& aConfig)
 
   
   
-  if (!mOwnerContent) {
+  if (!mFrameLoader) {
     if (IsRoot()) {
       
       
@@ -182,10 +183,13 @@ nsContentView::Update(const ViewConfig& aConfig)
     }
   }
 
-  nsIFrame* frame = mOwnerContent->GetPrimaryFrame();
+  if (RenderFrameParent* rfp = mFrameLoader->GetCurrentRemoteFrame()) {
+    rfp->ContentViewScaleChanged(this);
+  }
 
   
   
+  nsIFrame* frame = mFrameLoader->GetPrimaryFrameOfOwningContent();
   InvalidateFrame(frame);
   return NS_OK;
 }
@@ -914,9 +918,7 @@ nsFrameLoader::ShowRemoteFrame(const nsIntSize& size)
 
     EnsureMessageManager();
   } else {
-    nsRect dimensions;
-    NS_ENSURE_SUCCESS(GetWindowDimensions(dimensions), false);
-    mRemoteBrowser->UpdateDimensions(dimensions, size);
+    mRemoteBrowser->Move(size);
   }
 
   return true;
@@ -1602,51 +1604,13 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
   return NS_OK;
 }
 
-nsresult
-nsFrameLoader::GetWindowDimensions(nsRect& aRect)
-{
-  
-  nsIDocument* doc = mOwnerContent->GetDocument();
-  if (!doc) {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (doc->GetDisplayDocument()) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsIWebNavigation> parentAsWebNav =
-    do_GetInterface(doc->GetScriptGlobalObject());
-
-  if (!parentAsWebNav) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsIDocShellTreeItem> parentAsItem(do_QueryInterface(parentAsWebNav));
-
-  NS_ASSERTION(mIsTopLevelContent, "Outer dimensions must be taken only from TopLevel content");
-
-  nsCOMPtr<nsIDocShellTreeOwner> parentOwner;
-  if (NS_FAILED(parentAsItem->GetTreeOwner(getter_AddRefs(parentOwner))) ||
-      !parentOwner) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin(do_GetInterface(parentOwner));
-  treeOwnerAsWin->GetPosition(&aRect.x, &aRect.y);
-  treeOwnerAsWin->GetSize(&aRect.width, &aRect.height);
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsFrameLoader::UpdatePositionAndSize(nsIFrame *aIFrame)
 {
   if (mRemoteFrame) {
     if (mRemoteBrowser) {
       nsIntSize size = GetSubDocumentSize(aIFrame);
-      nsRect dimensions;
-      NS_ENSURE_SUCCESS(GetWindowDimensions(dimensions), NS_ERROR_FAILURE);
-      mRemoteBrowser->UpdateDimensions(dimensions, size);
+      mRemoteBrowser->Move(size);
     }
     return NS_OK;
   }

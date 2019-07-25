@@ -127,11 +127,11 @@ public:
     float mYScale;
   };
 
-  nsContentView(nsIContent* aOwnerContent, ViewID aScrollId,
+  nsContentView(nsFrameLoader* aFrameLoader, ViewID aScrollId,
                 ViewConfig aConfig = ViewConfig())
     : mViewportSize(0, 0)
     , mContentSize(0, 0)
-    , mOwnerContent(aOwnerContent)
+    , mFrameLoader(aFrameLoader)
     , mScrollId(aScrollId)
     , mConfig(aConfig)
   {}
@@ -151,7 +151,7 @@ public:
   nsSize mViewportSize;
   nsSize mContentSize;
 
-  nsIContent *mOwnerContent; 
+  nsFrameLoader* mFrameLoader;  
 
 private:
   nsresult Update(const ViewConfig& aConfig);
@@ -296,7 +296,6 @@ private:
 
   
   NS_HIDDEN_(nsIntSize) GetSubDocumentSize(const nsIFrame *aIFrame);
-  nsresult GetWindowDimensions(nsRect& aRect);
 
   
   

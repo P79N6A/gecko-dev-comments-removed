@@ -396,7 +396,7 @@ BuildViewMap(ViewMap& oldContentViews, ViewMap& newContentViews,
       ViewConfig config = view->GetViewConfig();
       aXScale *= config.mXScale;
       aYScale *= config.mYScale;
-      view->mOwnerContent = aFrameLoader->GetOwnerContent();
+      view->mFrameLoader = aFrameLoader;
     } else {
       
       
@@ -405,7 +405,7 @@ BuildViewMap(ViewMap& oldContentViews, ViewMap& newContentViews,
       config.mScrollOffset = nsPoint(
         NSIntPixelsToAppUnits(metrics.mViewportScrollOffset.x, auPerDevPixel) * aXScale,
         NSIntPixelsToAppUnits(metrics.mViewportScrollOffset.y, auPerDevPixel) * aYScale);
-      view = new nsContentView(aFrameLoader->GetOwnerContent(), scrollId, config);
+      view = new nsContentView(aFrameLoader, scrollId, config);
     }
 
     view->mViewportSize = nsSize(
@@ -558,7 +558,7 @@ BuildBackgroundPatternFor(ContainerLayer* aContainer,
   bgRgn.Sub(bgRgn, localIntContentVis);
   bgRgn.MoveBy(-translation);
   layer->SetVisibleRegion(bgRgn);
-      
+
   aContainer->InsertAfter(layer, nsnull);
 }
 
@@ -567,8 +567,7 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader)
 {
   NS_ABORT_IF_FALSE(aFrameLoader, "Need a frameloader here");
   mContentViews[FrameMetrics::ROOT_SCROLL_ID] =
-    new nsContentView(aFrameLoader->GetOwnerContent(),
-                      FrameMetrics::ROOT_SCROLL_ID);
+    new nsContentView(aFrameLoader, FrameMetrics::ROOT_SCROLL_ID);
 }
 
 RenderFrameParent::~RenderFrameParent()
@@ -592,6 +591,14 @@ nsContentView*
 RenderFrameParent::GetContentView(ViewID aId)
 {
   return FindViewForId(mContentViews, aId);
+}
+
+void
+RenderFrameParent::ContentViewScaleChanged(nsContentView* aView)
+{
+  
+  
+  BuildViewMap();
 }
 
 void
@@ -762,7 +769,7 @@ RenderFrameParent::BuildViewMap()
     for (ViewMap::const_iterator iter = mContentViews.begin();
          iter != mContentViews.end();
          ++iter) {
-      iter->second->mOwnerContent = NULL;
+      iter->second->mFrameLoader = NULL;
     }
 
     mozilla::layout::BuildViewMap(mContentViews, newContentViews, mFrameLoader, GetRootLayer());
@@ -776,7 +783,7 @@ RenderFrameParent::BuildViewMap()
     newContentViews[FrameMetrics::ROOT_SCROLL_ID] =
       FindViewForId(mContentViews, FrameMetrics::ROOT_SCROLL_ID);
   }
-  
+
   mContentViews = newContentViews;
 }
 
