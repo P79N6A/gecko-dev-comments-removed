@@ -52,7 +52,6 @@ EXPORTS	= \
 	GLContextProvider.h \
 	GLContextProviderImpl.h \
 	EGLUtils.h \
-	ForceDiscreteGPUHelperCGL.h \
 	$(NULL)
 
 ifdef MOZ_X11
@@ -121,6 +120,10 @@ endif
 # Win32 is a special snowflake, for ANGLE
 ifeq ($(MOZ_WIDGET_TOOLKIT),windows)
 CPPSRCS += GLContextProviderEGL.cpp
+endif
+
+ifdef MOZ_JAVA_COMPOSITOR
+DEFINES += -DMOZ_JAVA_COMPOSITOR
 endif
 
 include $(topsrcdir)/config/rules.mk
