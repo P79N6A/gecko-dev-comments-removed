@@ -981,9 +981,6 @@ let RIL = {
     options.SMSC = this.SMSC;
 
     
-    
-    
-    GsmPDUHelper.calculateUserDataLength(options);
 
     Buf.newParcel(REQUEST_SEND_SMS, options);
     Buf.writeUint32(2);
@@ -2045,13 +2042,6 @@ let GsmPDUHelper = {
   
 
 
-  enabledGsmTableTuples: [
-    [PDU_NL_IDENTIFIER_DEFAULT, PDU_NL_IDENTIFIER_DEFAULT],
-  ],
-
-  
-
-
 
 
   readHexNibble: function readHexNibble() {
@@ -2366,137 +2356,6 @@ let GsmPDUHelper = {
       let code = message.charCodeAt(i);
       this.writeHexOctet((code >> 8) & 0xFF);
       this.writeHexOctet(code & 0xFF);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _calculateLangEncodedSeptets: function _calculateLangEncodedSeptets(message, langTable, langShiftTable) {
-    let length = 0;
-    for (let msgIndex = 0; msgIndex < message.length; msgIndex++) {
-      let septet = langTable.indexOf(message.charAt(msgIndex));
-
-      
-      
-      if (septet == PDU_NL_EXTENDED_ESCAPE) {
-        continue;
-      }
-
-      if (septet >= 0) {
-        length++;
-        continue;
-      }
-
-      septet = langShiftTable.indexOf(message.charAt(msgIndex));
-      if (septet == -1) {
-        return -1;
-      }
-
-      
-      
-      
-      if (septet == PDU_NL_RESERVED_CONTROL) {
-        continue;
-      }
-
-      
-      
-      
-      
-      
-      length += 2;
-    }
-
-    return length;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  calculateUserDataLength: function calculateUserDataLength(options) {
-    
-    options.dcs = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
-    options.langIndex = PDU_NL_IDENTIFIER_DEFAULT;
-    options.langShiftIndex = PDU_NL_IDENTIFIER_DEFAULT;
-    options.encodedBodyLength = 0;
-    options.userDataHeaderLength = 0;
-
-    let needUCS2 = true;
-    let minUserDataSeptets = Number.MAX_VALUE;
-    for (let i = 0; i < this.enabledGsmTableTuples.length; i++) {
-      let [langIndex, langShiftIndex] = this.enabledGsmTableTuples[i];
-
-      const langTable = PDU_NL_LOCKING_SHIFT_TABLES[langIndex];
-      const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[langShiftIndex];
-
-      let bodySeptets = this._calculateLangEncodedSeptets(options.body,
-                                                          langTable,
-                                                          langShiftTable);
-      if (bodySeptets < 0) {
-        continue;
-      }
-
-      let headerLen = 0;
-      if (langIndex != PDU_NL_IDENTIFIER_DEFAULT) {
-        headerLen += 3; 
-      }
-      if (langShiftIndex != PDU_NL_IDENTIFIER_DEFAULT) {
-        headerLen += 3; 
-      }
-
-      
-      let headerSeptets = Math.ceil((headerLen ? headerLen + 1 : 0) * 8 / 7);
-      let userDataSeptets = bodySeptets + headerSeptets;
-      if (userDataSeptets >= minUserDataSeptets) {
-        continue;
-      }
-
-      needUCS2 = false;
-      minUserDataSeptets = userDataSeptets;
-
-      options.encodedBodyLength = bodySeptets;
-      options.userDataHeaderLength = headerLen;
-      options.langIndex = langIndex;
-      options.langShiftIndex = langShiftIndex;
-    }
-
-    if (needUCS2) {
-      options.dcs = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
-      options.encodedBodyLength = options.body.length * 2;
-      options.userDataHeaderLength = 0;
     }
   },
 

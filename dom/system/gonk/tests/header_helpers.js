@@ -122,6 +122,20 @@ function newIncomingParcel(fakeParcelSize, response, request, data) {
 
 
 
+function newRadioInterfaceLayer() {
+  let ril_ns = {
+    ChromeWorker: function ChromeWorker() {
+      
+    },
+  };
+
+  subscriptLoader.loadSubScript("resource://gre/components/RadioInterfaceLayer.js", ril_ns);
+  return new ril_ns.RadioInterfaceLayer();
+}
+
+
+
+
 
 
 

@@ -532,6 +532,144 @@ RadioInterfaceLayer.prototype = {
     gAudioManager.setForceForUse(nsIAudioManager.USE_COMMUNICATION, force);
   },
 
+  
+
+
+  enabledGsmTableTuples: [
+    [RIL.PDU_NL_IDENTIFIER_DEFAULT, RIL.PDU_NL_IDENTIFIER_DEFAULT],
+  ],
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _calculateLangEncodedSeptets: function _calculateLangEncodedSeptets(message, langTable, langShiftTable) {
+    let length = 0;
+    for (let msgIndex = 0; msgIndex < message.length; msgIndex++) {
+      let septet = langTable.indexOf(message.charAt(msgIndex));
+
+      
+      
+      if (septet == RIL.PDU_NL_EXTENDED_ESCAPE) {
+        continue;
+      }
+
+      if (septet >= 0) {
+        length++;
+        continue;
+      }
+
+      septet = langShiftTable.indexOf(message.charAt(msgIndex));
+      if (septet == -1) {
+        return -1;
+      }
+
+      
+      
+      
+      if (septet == RIL.PDU_NL_RESERVED_CONTROL) {
+        continue;
+      }
+
+      
+      
+      
+      
+      
+      length += 2;
+    }
+
+    return length;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _calculateUserDataLength: function _calculateUserDataLength(options) {
+    
+    options.dcs = RIL.PDU_DCS_MSG_CODING_7BITS_ALPHABET;
+    options.langIndex = RIL.PDU_NL_IDENTIFIER_DEFAULT;
+    options.langShiftIndex = RIL.PDU_NL_IDENTIFIER_DEFAULT;
+    options.encodedBodyLength = 0;
+    options.userDataHeaderLength = 0;
+
+    let needUCS2 = true;
+    let minUserDataSeptets = Number.MAX_VALUE;
+    for (let i = 0; i < this.enabledGsmTableTuples.length; i++) {
+      let [langIndex, langShiftIndex] = this.enabledGsmTableTuples[i];
+
+      const langTable = RIL.PDU_NL_LOCKING_SHIFT_TABLES[langIndex];
+      const langShiftTable = RIL.PDU_NL_SINGLE_SHIFT_TABLES[langShiftIndex];
+
+      let bodySeptets = this._calculateLangEncodedSeptets(options.body,
+                                                          langTable,
+                                                          langShiftTable);
+      if (bodySeptets < 0) {
+        continue;
+      }
+
+      let headerLen = 0;
+      if (langIndex != RIL.PDU_NL_IDENTIFIER_DEFAULT) {
+        headerLen += 3; 
+      }
+      if (langShiftIndex != RIL.PDU_NL_IDENTIFIER_DEFAULT) {
+        headerLen += 3; 
+      }
+
+      
+      let headerSeptets = Math.ceil((headerLen ? headerLen + 1 : 0) * 8 / 7);
+      let userDataSeptets = bodySeptets + headerSeptets;
+      if (userDataSeptets >= minUserDataSeptets) {
+        continue;
+      }
+
+      needUCS2 = false;
+      minUserDataSeptets = userDataSeptets;
+
+      options.encodedBodyLength = bodySeptets;
+      options.userDataHeaderLength = headerLen;
+      options.langIndex = langIndex;
+      options.langShiftIndex = langShiftIndex;
+    }
+
+    if (needUCS2) {
+      options.dcs = RIL.PDU_DCS_MSG_CODING_16BITS_ALPHABET;
+      options.encodedBodyLength = options.body.length * 2;
+      options.userDataHeaderLength = 0;
+    }
+  },
+
   getNumberOfMessagesForText: function getNumberOfMessagesForText(text) {
     
     
@@ -540,11 +678,16 @@ RadioInterfaceLayer.prototype = {
   },
 
   sendSMS: function sendSMS(number, message, requestId, processId) {
-    this.worker.postMessage({type: "sendSMS",
-                             number: number,
-                             body: message,
-                             requestId: requestId,
-                             processId: processId});
+    let options = {
+      type: "sendSMS",
+      number: number,
+      body: message,
+      requestId: requestId,
+      processId: processId
+    };
+
+    this._calculateUserDataLength(options);
+    this.worker.postMessage(options);
   },
 
   _callbacks: null,
