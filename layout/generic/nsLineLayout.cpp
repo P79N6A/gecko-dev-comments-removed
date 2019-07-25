@@ -120,6 +120,9 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   mTopEdge = 0;
   mTrimmableWidth = 0;
 
+  mInflationMinFontSize =
+    nsLayoutUtils::InflationMinFontSizeFor(*aOuterReflowState);
+
   
   
   
@@ -1589,7 +1592,10 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 
   
   nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(spanFrame, getter_AddRefs(fm));
+  float inflation =
+    nsLayoutUtils::FontSizeInflationInner(spanFrame, mInflationMinFontSize);
+  nsLayoutUtils::GetFontMetricsForFrame(spanFrame, getter_AddRefs(fm),
+                                        inflation);
   mBlockReflowState->rendContext->SetFont(fm);
 
   bool preMode = mStyleText->WhiteSpaceIsSignificant();
@@ -1720,9 +1726,12 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     
     
     
+    float inflation =
+      nsLayoutUtils::FontSizeInflationInner(spanFrame, mInflationMinFontSize);
     nscoord logicalHeight = nsHTMLReflowState::
       CalcLineHeight(spanFrame->GetStyleContext(),
-                     mBlockReflowState->ComputedHeight());
+                     mBlockReflowState->ComputedHeight(),
+                     inflation);
     nscoord contentHeight = spanFramePFD->mBounds.height -
       spanFramePFD->mBorderPadding.top - spanFramePFD->mBorderPadding.bottom;
 
@@ -1959,8 +1968,11 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       if (verticalAlign.HasPercent()) {
         
         
+        float inflation =
+          nsLayoutUtils::FontSizeInflationInner(frame, mInflationMinFontSize);
         pctBasis = nsHTMLReflowState::CalcLineHeight(
-          frame->GetStyleContext(), mBlockReflowState->ComputedHeight());
+          frame->GetStyleContext(), mBlockReflowState->ComputedHeight(),
+          inflation);
       }
       nscoord offset =
         nsRuleNode::ComputeCoordPercentCalc(verticalAlign, pctBasis);

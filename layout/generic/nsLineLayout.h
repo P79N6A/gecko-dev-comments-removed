@@ -550,6 +550,8 @@ protected:
   nscoord mMaxTopBoxHeight;
   nscoord mMaxBottomBoxHeight;
 
+  nscoord mInflationMinFontSize;
+
   
   
   nscoord mFinalLineHeight;
