@@ -179,17 +179,7 @@ public:
   
 
 
-  bool ScheduleBeforePaintEvent(nsIDocument* aDocument);
-
-  
-
-
   void ScheduleFrameRequestCallbacks(nsIDocument* aDocument);
-
-  
-
-
-  void RevokeBeforePaintEvent(nsIDocument* aDocument);
 
   
 
@@ -282,8 +272,6 @@ private:
 
   nsAutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
   nsAutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
-  
-  nsTArray< nsCOMPtr<nsIDocument> > mBeforePaintTargets;
   
   nsTArray<nsIDocument*> mFrameRequestCallbackDocs;
 

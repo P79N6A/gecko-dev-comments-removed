@@ -1518,11 +1518,7 @@ public:
 
   virtual Element* LookupImageElement(const nsAString& aElementId) = 0;
 
-  void ScheduleBeforePaintEvent(nsIFrameRequestCallback* aCallback);
-  void BeforePaintEventFiring()
-  {
-    mHavePendingPaint = false;
-  }
+  void ScheduleFrameRequestCallback(nsIFrameRequestCallback* aCallback);
 
   typedef nsTArray< nsCOMPtr<nsIFrameRequestCallback> > FrameRequestCallbackList;
   
@@ -1745,9 +1741,6 @@ protected:
 
   
   bool mHasHadScriptHandlingObject;
-
-  
-  bool mHavePendingPaint;
 
   
   bool mIsBeingUsedAsImage;

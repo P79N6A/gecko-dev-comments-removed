@@ -3214,9 +3214,6 @@ nsDocument::MaybeRescheduleAnimationFrameNotifications()
   }
 
   nsRefreshDriver* rd = mPresShell->GetPresContext()->RefreshDriver();
-  if (mHavePendingPaint) {
-    rd->ScheduleBeforePaintEvent(this);
-  }
   if (!mFrameRequestCallbacks.IsEmpty()) {
     rd->ScheduleFrameRequestCallbacks(this);
   }
@@ -3243,9 +3240,6 @@ nsDocument::DeleteShell()
 void
 nsDocument::RevokeAnimationFrameNotifications()
 {
-  if (mHavePendingPaint) {
-    mPresShell->GetPresContext()->RefreshDriver()->RevokeBeforePaintEvent(this);
-  }
   if (!mFrameRequestCallbacks.IsEmpty()) {
     mPresShell->GetPresContext()->RefreshDriver()->
       RevokeFrameRequestCallbacks(this);
@@ -8074,30 +8068,14 @@ nsIDocument::CreateStaticClone(nsISupports* aCloneContainer)
 }
 
 void
-nsIDocument::ScheduleBeforePaintEvent(nsIFrameRequestCallback* aCallback)
+nsIDocument::ScheduleFrameRequestCallback(nsIFrameRequestCallback* aCallback)
 {
-  if (aCallback) {
-    bool alreadyRegistered = !mFrameRequestCallbacks.IsEmpty();
-    if (mFrameRequestCallbacks.AppendElement(aCallback) &&
-        !alreadyRegistered && mPresShell && IsEventHandlingEnabled()) {
-      mPresShell->GetPresContext()->RefreshDriver()->
-        ScheduleFrameRequestCallbacks(this);
-    }
-
-    return;
+  bool alreadyRegistered = !mFrameRequestCallbacks.IsEmpty();
+  if (mFrameRequestCallbacks.AppendElement(aCallback) &&
+      !alreadyRegistered && mPresShell && IsEventHandlingEnabled()) {
+    mPresShell->GetPresContext()->RefreshDriver()->
+      ScheduleFrameRequestCallbacks(this);
   }
-
-  if (!mHavePendingPaint) {
-    
-    
-    
-    mHavePendingPaint =
-      !mPresShell ||
-      !IsEventHandlingEnabled() ||
-      mPresShell->GetPresContext()->RefreshDriver()->
-        ScheduleBeforePaintEvent(this);
-  }
-
 }
 
 nsresult

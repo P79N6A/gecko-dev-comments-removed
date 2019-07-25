@@ -269,7 +269,6 @@ nsRefreshDriver::ObserverCount() const
   
   sum += mStyleFlushObservers.Length();
   sum += mLayoutFlushObservers.Length();
-  sum += mBeforePaintTargets.Length();
   sum += mFrameRequestCallbackDocs.Length();
   return sum;
 }
@@ -366,15 +365,6 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
 
     if (i == 0) {
       
-      
-      
-      nsTArray< nsCOMPtr<nsIDocument> > targets;
-      targets.SwapElements(mBeforePaintTargets);
-      for (PRUint32 i = 0; i < targets.Length(); ++i) {
-        targets[i]->BeforePaintEventFiring();
-      }
-
-      
       nsIDocument::FrameRequestCallbackList frameRequestCallbacks;
       for (PRUint32 i = 0; i < mFrameRequestCallbackDocs.Length(); ++i) {
         mFrameRequestCallbackDocs[i]->
@@ -385,12 +375,6 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
       mFrameRequestCallbackDocs.Clear();
 
       PRInt64 eventTime = mMostRecentRefreshEpochTime / PR_USEC_PER_MSEC;
-      for (PRUint32 i = 0; i < targets.Length(); ++i) {
-        nsEvent ev(true, NS_BEFOREPAINT);
-        ev.time = eventTime;
-        nsEventDispatcher::Dispatch(targets[i], nsnull, &ev);
-      }
-
       for (PRUint32 i = 0; i < frameRequestCallbacks.Length(); ++i) {
         frameRequestCallbacks[i]->Sample(eventTime);
       }
@@ -541,17 +525,6 @@ nsRefreshDriver::IsRefreshObserver(nsARefreshObserver *aObserver,
 }
 #endif
 
-bool
-nsRefreshDriver::ScheduleBeforePaintEvent(nsIDocument* aDocument)
-{
-  NS_ASSERTION(mBeforePaintTargets.IndexOf(aDocument) ==
-               mBeforePaintTargets.NoIndex,
-               "Shouldn't have a paint event posted for this document");
-  bool appended = mBeforePaintTargets.AppendElement(aDocument) != nsnull;
-  EnsureTimerStarted(false);
-  return appended;
-}
-
 void
 nsRefreshDriver::ScheduleFrameRequestCallbacks(nsIDocument* aDocument)
 {
@@ -562,12 +535,6 @@ nsRefreshDriver::ScheduleFrameRequestCallbacks(nsIDocument* aDocument)
   
   
   EnsureTimerStarted(false);
-}
-
-void
-nsRefreshDriver::RevokeBeforePaintEvent(nsIDocument* aDocument)
-{
-  mBeforePaintTargets.RemoveElement(aDocument);
 }
 
 void
