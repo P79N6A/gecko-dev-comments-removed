@@ -122,7 +122,6 @@ let SyncScheduler = {
       case "weave:service:sync:start":
         
         this.clearSyncTriggers();
-        this.nextSync = 0;
 
         
         
@@ -131,9 +130,8 @@ let SyncScheduler = {
         this.globalScore = 0;
         break;
       case "weave:service:sync:finish":
+        this.nextSync = 0;
         this.adjustSyncInterval();
-
-        let sync_interval;
 
         if (Status.service == SYNC_FAILED_PARTIAL && this.requiresBackoff) {
           this.requiresBackoff = false;
@@ -141,6 +139,7 @@ let SyncScheduler = {
           return;
         }
 
+        let sync_interval;
         this._syncErrors = 0;
         if (Status.sync == NO_SYNC_NODE_FOUND) {
           this._log.trace("Scheduling a sync at interval NO_SYNC_NODE_FOUND.");
@@ -182,6 +181,7 @@ let SyncScheduler = {
         
         this.updateClientMode();
         this.adjustSyncInterval();
+        this.nextSync = 0;
         this.handleSyncError();
         break;
       case "weave:service:backoff:interval":
@@ -238,7 +238,7 @@ let SyncScheduler = {
           this._log.trace("Genuine return from idle. Syncing.");
           
           if (this.numClients > 1) {
-            Utils.nextTick(Weave.Service.sync, Weave.Service);
+            this.scheduleNextSync(0);
           }
         }, IDLE_OBSERVER_BACK_DELAY, this, "idleDebouncerTimer");
         break;
@@ -351,13 +351,22 @@ let SyncScheduler = {
 
   scheduleNextSync: function scheduleNextSync(interval) {
     
-    if (interval == null || interval == undefined) {
+    if (interval == null) {
+      interval = this.syncInterval;
+    }
+
+    
+    if (Status.backoffInterval && interval < Status.backoffInterval) {
+      interval = Status.backoffInterval;
+    }
+
+    if (this.nextSync != 0) {
       
-      if (this.nextSync != 0)
-        interval = Math.min(this.syncInterval, (this.nextSync - Date.now()));
       
-      else
-        interval = Math.max(this.syncInterval, Status.backoffInterval);
+      let currentInterval = this.nextSync - Date.now();
+      if (currentInterval < interval) {
+        return;
+      }
     }
 
     
