@@ -172,37 +172,25 @@ NewKeyValuePair(JSContext *cx, jsid id, const Value &val, Value *rval)
 
 static inline bool
 Enumerate(JSContext *cx, JSObject *obj, JSObject *pobj, jsid id,
-          bool enumerable, bool sharedPermanent, uintN flags, IdSet& ht,
-          AutoIdVector *props)
+          bool enumerable, uintN flags, IdSet& ht, AutoIdVector *props)
 {
-    IdSet::AddPtr p = ht.lookupForAdd(id);
-    JS_ASSERT_IF(obj == pobj && !obj->isProxy(), !p);
+    JS_ASSERT_IF(flags & JSITER_OWNONLY, obj == pobj);
 
-    
-    if (JS_UNLIKELY(!!p))
-        return true;
+    if (!(flags & JSITER_OWNONLY) || pobj->isProxy()) {
+        IdSet::AddPtr p = ht.lookupForAdd(id);
+        JS_ASSERT_IF(obj == pobj && !obj->isProxy(), !p);
 
-    
+        
+        if (JS_UNLIKELY(!!p))
+            return true;
 
-
-
-
-    if ((pobj->getProto() || pobj->isProxy()) && !ht.add(p, id))
-        return false;
-
-    if (JS_UNLIKELY(flags & JSITER_OWNONLY)) {
         
 
 
 
 
-
-
-
-        if (!pobj->getProto() && id == ATOM_TO_JSID(cx->runtime->atomState.protoAtom))
-            return true;
-        if (pobj != obj && !(sharedPermanent && pobj->getClass() == obj->getClass()))
-            return true;
+        if ((pobj->getProto() || pobj->isProxy()) && !ht.add(p, id))
+            return false;
     }
 
     if (enumerable || (flags & JSITER_HIDDEN))
@@ -223,8 +211,7 @@ EnumerateNativeProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uintN fl
 
         if (!JSID_IS_DEFAULT_XML_NAMESPACE(shape.propid) &&
             !shape.isAlias() &&
-            !Enumerate(cx, obj, pobj, shape.propid, shape.enumerable(),
-                       shape.isSharedPermanent(), flags, ht, props))
+            !Enumerate(cx, obj, pobj, shape.propid, shape.enumerable(), flags, ht, props))
         {
             return false;
         }
@@ -238,7 +225,7 @@ static bool
 EnumerateDenseArrayProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uintN flags,
                               IdSet &ht, AutoIdVector *props)
 {
-    if (!Enumerate(cx, obj, pobj, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom), false, true,
+    if (!Enumerate(cx, obj, pobj, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom), false,
                    flags, ht, props)) {
         return false;
     }
@@ -249,7 +236,7 @@ EnumerateDenseArrayProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uint
         for (size_t i = 0; i < capacity; ++i, ++vp) {
             if (!vp->isMagic(JS_ARRAY_HOLE)) {
                 
-                if (!Enumerate(cx, obj, pobj, INT_TO_JSID(i), true, false, flags, ht, props))
+                if (!Enumerate(cx, obj, pobj, INT_TO_JSID(i), true, flags, ht, props))
                     return false;
             }
         }
@@ -261,11 +248,6 @@ EnumerateDenseArrayProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uint
 static bool
 Snapshot(JSContext *cx, JSObject *obj, uintN flags, AutoIdVector *props)
 {
-    
-
-
-
-
     IdSet ht(cx);
     if (!ht.init(32))
         return NULL;
@@ -299,7 +281,7 @@ Snapshot(JSContext *cx, JSObject *obj, uintN flags, AutoIdVector *props)
                         return false;
                 }
                 for (size_t n = 0, len = proxyProps.length(); n < len; n++) {
-                    if (!Enumerate(cx, obj, pobj, proxyProps[n], true, false, flags, ht, props))
+                    if (!Enumerate(cx, obj, pobj, proxyProps[n], true, flags, ht, props))
                         return false;
                 }
                 
@@ -319,13 +301,13 @@ Snapshot(JSContext *cx, JSObject *obj, uintN flags, AutoIdVector *props)
                         return false;
                     if (state.isNull())
                         break;
-                    if (!Enumerate(cx, obj, pobj, id, true, false, flags, ht, props))
+                    if (!Enumerate(cx, obj, pobj, id, true, flags, ht, props))
                         return false;
                 }
             }
         }
 
-        if (JS_UNLIKELY(pobj->isXML()))
+        if ((flags & JSITER_OWNONLY) || pobj->isXML())
             break;
     } while ((pobj = pobj->getProto()) != NULL);
 
