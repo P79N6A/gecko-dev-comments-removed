@@ -17,6 +17,12 @@ function onLoad() {
   document.documentElement.setAttribute("title", manifest.name);
 
   
+  
+  
+  document.getElementById("content").addEventListener("click", onContentClick,
+                                                      false, true);
+
+  
   if ("arguments" in window) {
     
     let installRecord = WebappRT.config.app;
@@ -27,6 +33,38 @@ function onLoad() {
   }
 }
 window.addEventListener("load", onLoad, false);
+
+
+
+
+
+
+
+
+
+function onContentClick(event) {
+  let target = event.target;
+
+  if (!(target instanceof HTMLAnchorElement) ||
+      target.getAttribute("target") != "_blank") {
+    return;
+  }
+
+  let uri = Services.io.newURI(target.href,
+                               target.ownerDocument.characterSet,
+                               null);
+
+  
+  Cc["@mozilla.org/uriloader/external-protocol-service;1"].
+    getService(Ci.nsIExternalProtocolService).
+    getProtocolHandlerInfo(uri.scheme).
+    launchWithURI(uri);
+
+  
+  
+  
+  event.preventDefault();
+}
 
 #ifdef XP_MACOSX
 
