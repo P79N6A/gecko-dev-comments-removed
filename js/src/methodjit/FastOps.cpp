@@ -2088,19 +2088,22 @@ mjit::Compiler::jsop_getelem_typed(int atype)
 #endif 
 
 bool
-mjit::Compiler::jsop_getelem()
+mjit::Compiler::jsop_getelem(bool isCall)
 {
     FrameEntry *obj = frame.peek(-2);
     FrameEntry *id = frame.peek(-1);
 
     if (!IsCacheableGetElem(obj, id)) {
-        jsop_getelem_slow();
+        if (isCall)
+            jsop_callelem_slow();
+        else
+            jsop_getelem_slow();
         return true;
     }
 
     
     
-    if (cx->typeInferenceEnabled() && !id->isType(JSVAL_TYPE_STRING)) {
+    if (cx->typeInferenceEnabled() && !id->isType(JSVAL_TYPE_STRING) && !isCall) {
         types::TypeSet *types = analysis->poppedTypes(PC, 1);
         if (types->isLazyArguments(cx) && !outerScript->analysis()->modifiesArguments()) {
             
@@ -2134,7 +2137,10 @@ mjit::Compiler::jsop_getelem()
     frame.forgetMismatchedObject(obj);
 
     if (id->isType(JSVAL_TYPE_DOUBLE) || !globalObj) {
-        jsop_getelem_slow();
+        if (isCall)
+            jsop_callelem_slow();
+        else
+            jsop_getelem_slow();
         return true;
     }
 
@@ -2161,6 +2167,14 @@ mjit::Compiler::jsop_getelem()
 
     
     ic.objReg = frame.copyDataIntoReg(obj);
+
+    
+    
+    MaybeRegisterID thisReg;
+    if (isCall && id->mightBeType(JSVAL_TYPE_INT32)) {
+        thisReg = frame.allocReg();
+        masm.move(ic.objReg, thisReg.reg());
+    }
 
     
     
@@ -2212,6 +2226,14 @@ mjit::Compiler::jsop_getelem()
         Assembler::FastArrayLoadFails fails =
             masm.fastArrayLoad(ic.objReg, key, ic.typeReg, ic.objReg);
 
+        
+        
+        if (isCall) {
+            Address thisSlot = frame.addressOf(id);
+            masm.storeValueFromComponents(ImmType(JSVAL_TYPE_OBJECT), thisReg.reg(), thisSlot);
+            frame.freeReg(thisReg.reg());
+        }
+
         stubcc.linkExitDirect(fails.rangeCheck, ic.slowPathStart);
         stubcc.linkExitDirect(fails.holeCheck, ic.slowPathStart);
     } else {
@@ -2226,9 +2248,15 @@ mjit::Compiler::jsop_getelem()
         objTypeGuard.get().linkTo(stubcc.masm.label(), &stubcc.masm);
 #ifdef JS_POLYIC
     passICAddress(&ic);
-    ic.slowPathCall = OOL_STUBCALL(ic::GetElement, REJOIN_FALLTHROUGH);
+    if (isCall)
+        ic.slowPathCall = OOL_STUBCALL(ic::CallElement, REJOIN_FALLTHROUGH);
+    else
+        ic.slowPathCall = OOL_STUBCALL(ic::GetElement, REJOIN_FALLTHROUGH);
 #else
-    ic.slowPathCall = OOL_STUBCALL(stubs::GetElem, REJOIN_FALLTHROUGH);
+    if (isCall)
+        ic.slowPathCall = OOL_STUBCALL(stubs::CallElem, REJOIN_FALLTHROUGH);
+    else
+        ic.slowPathCall = OOL_STUBCALL(stubs::GetElem, REJOIN_FALLTHROUGH);
 #endif
 
     testPushedType(REJOIN_FALLTHROUGH, -2);
@@ -2242,15 +2270,17 @@ mjit::Compiler::jsop_getelem()
     frame.pushRegs(ic.typeReg, ic.objReg, knownPushedType(0));
     BarrierState barrier = testBarrier(ic.typeReg, ic.objReg, false, false,
                                         ic.forcedTypeBarrier);
+    if (isCall)
+        frame.pushSynced(knownPushedType(1));
 
-    stubcc.rejoin(Changes(1));
+    stubcc.rejoin(Changes(isCall ? 2 : 1));
 
 #ifdef JS_POLYIC
     if (!getElemICs.append(ic))
         return false;
 #endif
 
-    finishBarrier(barrier, REJOIN_FALLTHROUGH, 0);
+    finishBarrier(barrier, REJOIN_FALLTHROUGH, isCall ? 1 : 0);
     return true;
 }
 
