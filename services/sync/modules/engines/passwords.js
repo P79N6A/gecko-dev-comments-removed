@@ -180,10 +180,9 @@ PasswordStore.prototype = {
       record.password = login.password;
       record.usernameField = login.usernameField;
       record.passwordField = login.passwordField;
-    } else {
-      
-      record.payload = null;
     }
+    else
+      record.deleted = true;
     return record;
   },
 
