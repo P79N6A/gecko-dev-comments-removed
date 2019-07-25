@@ -1828,7 +1828,7 @@ static const uintN RESOLVE_INFER = 0xffff;
 
 
 
-extern PropertyCacheEntry *
+extern bool
 FindPropertyHelper(JSContext *cx, PropertyName *name, bool cacheResult, bool global,
                    JSObject **objp, JSObject **pobjp, JSProperty **propp);
 
@@ -1861,9 +1861,9 @@ js_FindVariableScope(JSContext *cx, JSFunction **funp);
 
 
 
-const uintN JSGET_CACHE_RESULT      = 1; 
 const uintN JSGET_METHOD_BARRIER    = 0; 
-const uintN JSGET_NO_METHOD_BARRIER = 2; 
+const uintN JSGET_NO_METHOD_BARRIER = 1; 
+const uintN JSGET_CACHE_RESULT      = 2; 
 
 
 
@@ -1947,12 +1947,12 @@ js_IsDelegate(JSContext *cx, JSObject *obj, const js::Value &v);
 extern JSBool
 js_PrimitiveToObject(JSContext *cx, js::Value *vp);
 
-
-
-
-
 extern JSBool
 js_ValueToObjectOrNull(JSContext *cx, const js::Value &v, JSObject **objp);
+
+
+extern JSObject *
+js_ValueToNonNullObject(JSContext *cx, const js::Value &v);
 
 namespace js {
 
@@ -1971,14 +1971,16 @@ ToObject(JSContext *cx, Value *vp)
     return ToObjectSlow(cx, vp);
 }
 
+
+inline JSObject *
+ValueToObject(JSContext *cx, const Value &v)
+{
+    if (v.isObject())
+        return &v.toObject();
+    return js_ValueToNonNullObject(cx, v);
+}
+
 } 
-
-
-
-
-
-extern JSObject *
-js_ValueToNonNullObject(JSContext *cx, const js::Value &v);
 
 extern JSBool
 js_XDRObject(JSXDRState *xdr, JSObject **objp);
