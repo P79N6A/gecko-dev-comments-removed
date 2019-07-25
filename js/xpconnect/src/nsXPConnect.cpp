@@ -728,7 +728,6 @@ NoteJSChild(JSTracer *trc, void **thingp, JSGCTraceKind kind)
 
 
     if (AddToCCKind(kind)) {
-#if defined(DEBUG)
         if (NS_UNLIKELY(tracer->cb.WantDebugInfo())) {
             
             if (tracer->debugPrinter) {
@@ -745,7 +744,6 @@ NoteJSChild(JSTracer *trc, void **thingp, JSGCTraceKind kind)
                 tracer->cb.NoteNextEdgeName(static_cast<const char*>(tracer->debugPrintArg));
             }
         }
-#endif
         tracer->cb.NoteJSChild(thing);
     } else if (kind == JSTRACE_SHAPE) {
         JS_TraceShapeCycleCollectorChildren(trc, thing);
@@ -2405,8 +2403,17 @@ nsXPConnect::CheckForDebugMode(JSRuntime *rt)
         } adc(cx);
         JSAutoRequest ar(cx);
 
-        if (!JS_SetDebugModeForAllCompartments(cx, gDesiredDebugMode))
-            goto fail;
+        const js::CompartmentVector &vector = js::GetRuntimeCompartments(rt);
+        for (JSCompartment * const *p = vector.begin(); p != vector.end(); ++p) {
+            JSCompartment *comp = *p;
+            if (!JS_GetCompartmentPrincipals(comp)) {
+                
+                continue;
+            }
+
+            if (!JS_SetDebugModeForCompartment(cx, comp, gDesiredDebugMode))
+                goto fail;
+        }
     }
 
     if (gDesiredDebugMode) {
