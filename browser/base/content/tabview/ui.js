@@ -283,13 +283,16 @@ let UI = {
       gWindow.addEventListener("SSWindowClosing", function onWindowClosing() {
         gWindow.removeEventListener("SSWindowClosing", onWindowClosing, false);
 
+        
         self.isDOMWindowClosing = true;
 
         if (self.isTabViewVisible())
           GroupItems.removeHiddenGroups();
 
+        TabItems.saveAll();
+        TabItems.saveAllThumbnails({synchronously: true});
+
         Storage.saveActiveGroupName(gWindow);
-        TabItems.saveAll(true);
         self._save();
       }, false);
 
@@ -716,6 +719,11 @@ let UI = {
         if (data == "enter" || data == "exit") {
           hideSearch();
           self._privateBrowsing.transitionMode = data;
+
+          
+          
+          if (data == "enter")
+            TabItems.saveAllThumbnails({synchronously: true});
         }
       } else if (topic == "private-browsing-transition-complete") {
         

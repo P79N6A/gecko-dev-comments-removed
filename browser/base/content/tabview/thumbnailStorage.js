@@ -84,20 +84,38 @@ let ThumbnailStorage = {
   
   
   
-  _openCacheEntry: function ThumbnailStorage__openCacheEntry(url, access, successCallback, errorCallback) {
-    let onCacheEntryAvailable = function(entry, accessGranted, status) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  _openCacheEntry:
+    function ThumbnailStorage__openCacheEntry(url, access, successCallback,
+                                              errorCallback, options) {
+    Utils.assert(url, "invalid or missing argument <url>");
+    Utils.assert(access, "invalid or missing argument <access>");
+    Utils.assert(successCallback, "invalid or missing argument <successCallback>");
+    Utils.assert(errorCallback, "invalid or missing argument <errorCallback>");
+
+    function onCacheEntryAvailable(entry, accessGranted, status) {
       if (entry && access == accessGranted && Components.isSuccessCode(status)) {
         successCallback(entry);
       } else {
-        entry && entry.close();
+        if (entry)
+          entry.close();
+
         errorCallback();
       }
     }
 
     let key = this.CACHE_PREFIX + url;
 
-    
-    if (UI.isDOMWindowClosing) {
+    if (options && options.synchronously) {
       let entry = this._cacheSession.openCacheEntry(key, access, true);
       let status = Cr.NS_OK;
       onCacheEntryAvailable(entry, entry.accessGranted, status);
@@ -112,44 +130,35 @@ let ThumbnailStorage = {
   
   
   
-  saveThumbnail: function ThumbnailStorage_saveThumbnail(tab, imageData, callback) {
-    Utils.assert(tab, "tab");
-    Utils.assert(imageData, "imageData");
+  
+  
+  
+  
+  
+  
+  
+  saveThumbnail:
+    function ThumbnailStorage_saveThumbnail(url, imageData, callback, options) {
+    Utils.assert(url, "invalid or missing argument <url>");
+    Utils.assert(imageData, "invalid or missing argument <imageData>");
+    Utils.assert(callback, "invalid or missing argument <callback>");
 
-    if (!StoragePolicy.canStoreThumbnailForTab(tab)) {
-      tab._tabViewTabItem._sendToSubscribers("deniedToCacheImageData");
-      if (callback)
-        callback(false);
-      return;
-    }
-
+    let synchronously = (options && options.synchronously);
     let self = this;
 
-    let completed = function(status) {
-      if (callback)
-        callback(status);
-
-      if (status) {
-        
-        tab._tabViewTabItem._sendToSubscribers("savedCachedImageData");
-      } else {
-        Utils.log("Error while saving thumbnail: " + e);
-      }
-    };
-
-    let onCacheEntryAvailable = function(entry) {
+    function onCacheEntryAvailable(entry) {
       let outputStream = entry.openOutputStream(0);
 
-      let cleanup = function() {
+      function cleanup() {
         outputStream.close();
         entry.close();
       }
 
       
-      if (UI.isDOMWindowClosing) {
+      if (synchronously) {
         outputStream.write(imageData, imageData.length);
         cleanup();
-        completed(true);
+        callback();
         return;
       }
 
@@ -158,17 +167,16 @@ let ThumbnailStorage = {
       gNetUtil.asyncCopy(inputStream, outputStream, function (result) {
         cleanup();
         inputStream.close();
-        completed(Components.isSuccessCode(result));
+        callback(Components.isSuccessCode(result) ? "" : "failure");
       });
     }
 
-    let onCacheEntryUnavailable = function() {
-      completed(false);
+    function onCacheEntryUnavailable() {
+      callback("unavailable");
     }
 
-    this._openCacheEntry(tab.linkedBrowser.currentURI.spec, 
-        Ci.nsICache.ACCESS_WRITE, onCacheEntryAvailable, 
-        onCacheEntryUnavailable);
+    this._openCacheEntry(url, Ci.nsICache.ACCESS_WRITE, onCacheEntryAvailable,
+                         onCacheEntryUnavailable, options);
   },
 
   
@@ -176,25 +184,15 @@ let ThumbnailStorage = {
   
   
   
-  loadThumbnail: function ThumbnailStorage_loadThumbnail(tab, url, callback) {
-    Utils.assert(tab, "tab");
-    Utils.assert(url, "url");
-    Utils.assert(typeof callback == "function", "callback arg must be a function");
+  
+  
+  loadThumbnail: function ThumbnailStorage_loadThumbnail(url, callback) {
+    Utils.assert(url, "invalid or missing argument <url>");
+    Utils.assert(callback, "invalid or missing argument <callback>");
 
     let self = this;
 
-    let completed = function(status, imageData) {
-      callback(status, imageData);
-
-      if (status) {
-        
-        tab._tabViewTabItem._sendToSubscribers("loadedCachedImageData");
-      } else {
-        Utils.log("Error while loading thumbnail");
-      }
-    }
-
-    let onCacheEntryAvailable = function(entry) {
+    function onCacheEntryAvailable(entry) {
       let imageChunks = [];
       let nativeInputStream = entry.openInputStream(0);
 
@@ -228,16 +226,16 @@ let ThumbnailStorage = {
         }
 
         cleanup();
-        completed(isSuccess, imageData);
+        callback(isSuccess ? "" : "failure", imageData);
       });
     }
 
-    let onCacheEntryUnavailable = function() {
-      completed(false);
+    function onCacheEntryUnavailable() {
+      callback("unavailable");
     }
 
-    this._openCacheEntry(url, Ci.nsICache.ACCESS_READ,
-        onCacheEntryAvailable, onCacheEntryUnavailable);
+    this._openCacheEntry(url, Ci.nsICache.ACCESS_READ, onCacheEntryAvailable,
+                         onCacheEntryUnavailable);
   }
 }
 

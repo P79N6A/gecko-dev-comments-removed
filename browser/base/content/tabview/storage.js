@@ -99,15 +99,6 @@ let Storage = {
   saveTab: function Storage_saveTab(tab, data) {
     Utils.assert(tab, "tab");
 
-    if (data != null) {
-      let imageData = data.imageData;
-      
-      delete data.imageData;
-
-      if (imageData != null)
-        ThumbnailStorage.saveThumbnail(tab, imageData);
-    }
-
     this._sessionStore.setTabValue(tab, this.TAB_DATA_IDENTIFIER,
       JSON.stringify(data));
   },
@@ -115,31 +106,20 @@ let Storage = {
   
   
   
-  
-  getTabData: function Storage_getTabData(tab, callback) {
+  getTabData: function Storage_getTabData(tab) {
     Utils.assert(tab, "tab");
-    Utils.assert(typeof callback == "function", "callback arg must be a function");
 
     let existingData = null;
 
     try {
       let tabData = this._sessionStore.getTabValue(tab, this.TAB_DATA_IDENTIFIER);
-      if (tabData != "") {
+      if (tabData != "")
         existingData = JSON.parse(tabData);
-      }
     } catch (e) {
       
       Utils.log(e);
     }
 
-    if (existingData) {
-      ThumbnailStorage.loadThumbnail(
-        tab, existingData.url,
-        function(status, imageData) { 
-          callback(imageData);
-        }
-      );
-    }
     return existingData;
   },
 
