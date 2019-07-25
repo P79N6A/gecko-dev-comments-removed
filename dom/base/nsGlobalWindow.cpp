@@ -175,6 +175,7 @@
 #include "nsNetUtil.h"
 #include "nsFocusManager.h"
 #include "nsIJSON.h"
+#include "nsIXULWindow.h"
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
 #include "nsIDOMXULControlElement.h"
@@ -3941,6 +3942,15 @@ nsGlobalWindow::SetFullScreen(PRBool aFullScreen)
   
   if (!DispatchCustomEvent("fullscreen")) {
     return NS_OK;
+  }
+
+  
+  
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
+  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIXULWindow> xulWin(do_GetInterface(treeOwnerAsWin));
+  if (aFullScreen && xulWin) {
+    xulWin->SetIntrinsicallySized(PR_FALSE);
   }
 
   nsCOMPtr<nsIWidget> widget = GetMainWidget();
