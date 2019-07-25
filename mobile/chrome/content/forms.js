@@ -176,6 +176,12 @@ FormAssistant.prototype = {
       case "Content:SetWindowSize":
         
         
+        
+        if (this._open)
+          return;
+
+        
+        
         sendAsyncMessage("FormAssist:Show", this._getJSON());
         break;
 
