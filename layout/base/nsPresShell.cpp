@@ -6566,10 +6566,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
         return NS_OK;
       }
 
-      nsCOMPtr<nsIDOMNode> domNode(do_QueryInterface(mDocument));
-      NS_ASSERTION(domNode, "No dom node for doc");
-
-      accEvent->mAccessible = accService->GetAccessibleInShell(domNode, this);
+      accEvent->mAccessible = accService->GetAccessibleInShell(mDocument, this);
 
       
       
