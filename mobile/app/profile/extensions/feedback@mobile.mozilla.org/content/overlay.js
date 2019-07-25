@@ -75,7 +75,7 @@ var Feedback = {
       return;
 
     let currentURL = Browser.selectedBrowser.currentURI.spec;
-    let newTab = BrowserUI.newTab(url);
+    let newTab = BrowserUI.newTab(url, Browser.selectedTab);
 
     
     newTab.browser.messageManager.addMessageListener("DOMContentLoaded", function() {
@@ -87,7 +87,7 @@ var Feedback = {
   openReadme: function() {
     let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
     let url = formatter.formatURLPref("app.releaseNotesURL");
-    BrowserUI.newTab(url);
+    BrowserUI.newTab(url, Browser.selectedTab);
   },
 
   updateRestart: function updateRestart() {
