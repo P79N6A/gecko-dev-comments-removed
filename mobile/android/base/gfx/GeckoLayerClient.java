@@ -324,6 +324,8 @@ public class GeckoLayerClient implements GeckoEventResponder,
             mLayerController.setCheckerboardColor(tab.getCheckerboardColor());
             mLayerController.setAllowZoom(tab.getAllowZoom());
             mLayerController.setDefaultZoom(tab.getDefaultZoom());
+            mLayerController.setMinZoom(tab.getMinZoom());
+            mLayerController.setMaxZoom(tab.getMaxZoom());
 
             
             
