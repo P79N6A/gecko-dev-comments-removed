@@ -495,13 +495,14 @@ nsHTMLTextFieldAccessible::GetStateInternal(PRUint32 *aState,
   nsCOMPtr<nsIContent> bindingContent = mContent->GetBindingParent();
   if (bindingContent &&
       bindingContent->NodeInfo()->Equals(nsAccessibilityAtoms::textbox,
-                                         kNameSpaceID_XUL) &&
-      bindingContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
-                                  nsAccessibilityAtoms::autocomplete,
-                                  eIgnoreCase)) {
-    
-    
-    *aExtraState |= nsIAccessibleStates::EXT_STATE_SUPPORTS_AUTOCOMPLETION;
+                                         kNameSpaceID_XUL)) {
+     if (bindingContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                                     nsAccessibilityAtoms::autocomplete,
+                                     eIgnoreCase)) {
+       
+       
+       *aExtraState |= nsIAccessibleStates::EXT_STATE_SUPPORTS_AUTOCOMPLETION;
+     }
   } else if (gIsFormFillEnabled && htmlInput &&
              !(*aState & nsIAccessibleStates::STATE_PROTECTED)) {
     
