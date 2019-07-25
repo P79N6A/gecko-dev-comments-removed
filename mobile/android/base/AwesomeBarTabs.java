@@ -240,29 +240,6 @@ public class AwesomeBarTabs extends TabHost {
         allPages.filter(searchTerm);
     }
 
-    
-
-
-
-    public void setSuggestions(final ArrayList<String> suggestions) {
-        GeckoAppShell.getMainHandler().post(new Runnable() {
-            public void run() {
-                getAllPagesTab().setSuggestions(suggestions);
-            }
-        });
-    }
-
-    
-
-
-    public void setSearchEngines(final String suggestEngineName, final JSONArray engines) {
-        GeckoAppShell.getMainHandler().post(new Runnable() {
-            public void run() {
-                getAllPagesTab().setSearchEngines(suggestEngineName, engines);
-            }
-        });
-    }
-
     public boolean isInReadingList() {
         return getBookmarksTab().isInReadingList();
     }
