@@ -2397,10 +2397,14 @@ IonBuilder::jsop_incslot(JSOp op, uint32 slot)
     current->pushSlot(slot);
     MDefinition *value = current->pop();
     MInstruction *lhs;
-    if (types.lhs == MIRType_Int32)
+    if (types.lhs == MIRType_Int32) {
         lhs = MToInt32::New(value);
-    else
+    } else if (types.lhs == MIRType_Double) {
         lhs = MToDouble::New(value);
+    } else {
+        
+        return abort("INCSLOT non-int/double lhs");
+    }
     current->add(lhs);
 
     
