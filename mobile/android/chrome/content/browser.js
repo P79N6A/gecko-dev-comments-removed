@@ -1935,7 +1935,12 @@ Tab.prototype = {
 
 
 
-      if (doc.readyState === 'complete' || (pageWidth >= gScreenWidth && pageHeight >= gScreenHeight)) {
+
+
+
+      let pageLargerThanScreen = (cssPageWidth >= Math.floor(viewport.cssWidth))
+                              && (cssPageHeight >= Math.floor(viewport.cssHeight));
+      if (doc.readyState === 'complete' || pageLargerThanScreen) {
         viewport.cssPageWidth = cssPageWidth;
         viewport.cssPageHeight = cssPageHeight;
         viewport.pageWidth = pageWidth;
