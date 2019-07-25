@@ -1600,7 +1600,7 @@ public:
     XPCContext *GetContext() { return mContext; }
     void SetContext(XPCContext *xpcc) { mContext = nsnull; }
 
-    nsDataHashtable<nsIDHashKey, JSObject*>& GetCachedDOMPrototypes()
+    nsDataHashtable<nsDepCharHashKey, JSObject*>& GetCachedDOMPrototypes()
     {
         return mCachedDOMPrototypes;
     }
@@ -1656,7 +1656,7 @@ private:
     
     nsIScriptObjectPrincipal* mScriptObjectPrincipal;
 
-    nsDataHashtable<nsIDHashKey, JSObject*> mCachedDOMPrototypes;
+    nsDataHashtable<nsDepCharHashKey, JSObject*> mCachedDOMPrototypes;
 };
 
 JSObject* xpc_CloneJSFunction(XPCCallContext &ccx, JSObject *funobj,
