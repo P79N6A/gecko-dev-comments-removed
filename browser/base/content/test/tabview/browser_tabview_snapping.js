@@ -1,0 +1,202 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function test() {
+  waitForExplicitFinish();
+
+  window.addEventListener("tabviewshown", onTabViewWindowLoaded, false);
+  if (TabView.isVisible())
+    onTabViewWindowLoaded();
+  else
+    TabView.show();
+}
+
+function onTabViewWindowLoaded() {
+  window.removeEventListener("tabviewshown", onTabViewWindowLoaded, false);
+
+  let contentWindow = document.getElementById("tab-view").contentWindow;
+  let [originalTab] = gBrowser.visibleTabs;
+
+  ok(TabView.isVisible(), "Tab View is visible");
+  is(contentWindow.GroupItems.groupItems.length, 1, "There is only one group");
+  let currentActiveGroup = contentWindow.GroupItems.getActiveGroupItem();
+
+  
+  
+  let firstBox = new contentWindow.Rect(80, 80, 160, 160);
+  let firstGroup = new contentWindow.GroupItem([], { bounds: firstBox });
+  ok(firstGroup.getBounds().equals(firstBox), "This group got its bounds");
+  
+  
+  let secondBox = new contentWindow.Rect(80, 280, 160, 160);
+  let secondGroup = new contentWindow.GroupItem([], { bounds: secondBox });
+  ok(secondGroup.getBounds().equals(secondBox), "This second group got its bounds");
+  
+  
+  let thirdGroup = null;
+
+  is(secondGroup.getBounds().top - firstGroup.getBounds().bottom, 40,
+    "There's currently 40 px between the first group and second group");
+
+  let endGame = function() {
+    dump("END GAME!");
+    firstGroup.container.parentNode.removeChild(firstGroup.container);
+    firstGroup.close();
+    thirdGroup.container.parentNode.removeChild(thirdGroup.container);
+    thirdGroup.close();
+    let onTabViewHidden = function() {
+      window.removeEventListener("tabviewhidden", onTabViewHidden, false);
+      ok(!TabView.isVisible(), "TabView is shown");
+      finish();
+    };
+    window.addEventListener("tabviewhidden", onTabViewHidden, false);
+
+    ok(TabView.isVisible(), "TabView is shown");
+    
+    gBrowser.selectedTab = originalTab;
+    TabView.hide();
+  }
+  
+  let continueWithPart2 = function() {
+    
+    ok(firstGroup.getBounds().equals(firstBox), "The first group should still have its bounds");
+    
+    
+    let thirdBox = new contentWindow.Rect(80, 280, 200, 160);
+    thirdGroup = new contentWindow.GroupItem([], { bounds: thirdBox });
+    ok(thirdGroup.getBounds().equals(thirdBox), "This third group got its bounds");
+  
+    is(thirdGroup.getBounds().top - firstGroup.getBounds().bottom, 40,
+      "There's currently 40 px between the first group and third group");
+  
+    
+    checkSnap(thirdGroup, 0, 0, contentWindow, function(snapped){
+      ok(!snapped,"Offset: Just move it to the left and drop it");
+      
+      
+      checkSnap(thirdGroup, 0, -10, contentWindow, function(snapped){
+        ok(!snapped,"Offset: Moving up 10 should not snap");
+  
+        
+        checkSnap(thirdGroup, 0, -10, contentWindow, function(snapped){
+          ok(snapped,"Offset: Moving up 10 again should snap!");
+          contentWindow.Utils.log('endGame!');
+          endGame();
+        });
+      });
+    });
+  };
+
+  let part1 = function() {
+    
+    checkSnap(secondGroup, 0, 0, contentWindow, function(snapped){
+      ok(!snapped,"Right under: Just pick it up and drop it");
+      
+      
+      checkSnap(secondGroup, 0, -10, contentWindow, function(snapped){
+        ok(!snapped,"Right under: Moving up 10 should not snap");
+  
+        
+        checkSnap(secondGroup, 0, -10, contentWindow, function(snapped){
+          ok(snapped,"Right under: Moving up 10 again should snap!");
+          
+          secondGroup.container.parentNode.removeChild(secondGroup.container);
+          secondGroup.close();
+          continueWithPart2();
+        });
+      });
+    });
+  }
+  
+  part1();
+}
+
+function simulateDragDrop(tabItem, offsetX, offsetY, contentWindow) {
+  
+  let dataTransfer;
+
+  EventUtils.synthesizeMouse(
+    tabItem.container, 1, 1, { type: "mousedown" }, contentWindow);
+  event = contentWindow.document.createEvent("DragEvents");
+  event.initDragEvent(
+    "dragenter", true, true, contentWindow, 0, 0, 0, 0, 0,
+    false, false, false, false, 1, null, dataTransfer);
+  tabItem.container.dispatchEvent(event);
+
+  
+  if (offsetX || offsetY) {
+    let Ci = Components.interfaces;
+    let utils = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).
+                              getInterface(Ci.nsIDOMWindowUtils);
+    let rect = tabItem.getBounds();
+    for (let i = 1; i <= 5; i++) {
+      let left = rect.left + 1 + Math.round(i * offsetX / 5);
+      let top = rect.top + 1 + Math.round(i * offsetY / 5);
+      utils.sendMouseEvent("mousemove", left, top, 0, 1, 0);
+    }
+    event = contentWindow.document.createEvent("DragEvents");
+    event.initDragEvent(
+      "dragover", true, true, contentWindow, 0, 0, 0, 0, 0,
+      false, false, false, false, 0, null, dataTransfer);
+    tabItem.container.dispatchEvent(event);
+  }
+  
+  
+  EventUtils.synthesizeMouse(
+    tabItem.container, 0, 0, { type: "mouseup" }, contentWindow);
+  event = contentWindow.document.createEvent("DragEvents");
+  event.initDragEvent(
+    "drop", true, true, contentWindow, 0, 0, 0, 0, 0,
+    false, false, false, false, 0, null, dataTransfer);
+  tabItem.container.dispatchEvent(event);
+}
+
+function checkSnap(item, offsetX, offsetY, contentWindow, callback) {
+  let firstTop = item.getBounds().top;
+  let firstLeft = item.getBounds().left;
+  let onDrop = function() {
+    let snapped = false;
+    item.container.removeEventListener('drop', onDrop, false);
+    if (item.getBounds().top != firstTop + offsetY)
+      snapped = true;
+    if (item.getBounds().left != firstLeft + offsetX)
+      snapped = true;
+    callback(snapped);
+  };
+  item.container.addEventListener('drop', onDrop, false);
+  simulateDragDrop(item, offsetX, offsetY, contentWindow);
+}
