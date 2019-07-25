@@ -155,8 +155,10 @@ public:
   inline void ScheduleTextUpdate(nsIContent* aTextNode)
   {
     
-    if (mTreeConstructedState != eTreeConstructionPending)
-      mTextHash.PutEntry(aTextNode);
+    if (mTreeConstructedState != eTreeConstructionPending &&
+        mTextHash.PutEntry(aTextNode)) {
+      ScheduleProcessing();
+    }
   }
 
   
