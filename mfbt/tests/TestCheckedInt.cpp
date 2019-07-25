@@ -102,14 +102,16 @@ void test()
   
   
 
-  T bit = 1;
+  unsignedT bit = 1;
+  unsignedT unsignedMinValue(min.value());
+  unsignedT unsignedMaxValue(max.value());
   for (size_t i = 0; i < sizeof(T) * CHAR_BIT - 1; i++)
   {
-    VERIFY((min.value() & bit) == 0);
+    VERIFY((unsignedMinValue & bit) == 0);
     bit <<= 1;
   }
-  VERIFY((min.value() & bit) == (isTSigned ? bit : T(0)));
-  VERIFY(max.value() == T(~(min.value())));
+  VERIFY((unsignedMinValue & bit) == (isTSigned ? bit : unsignedT(0)));
+  VERIFY(unsignedMaxValue == unsignedT(~unsignedMinValue));
 
   const CheckedInt<T> zero(0);
   const CheckedInt<T> one(1);
