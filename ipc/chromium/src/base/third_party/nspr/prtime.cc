@@ -74,6 +74,8 @@
 #include <errno.h>  
 #include <time.h>
 
+namespace nspr {
+
 
 #if defined(OS_WIN)
 static void localtime_r(const time_t* secs, struct tm* time) {
@@ -1201,3 +1203,5 @@ PR_ParseTimeString(
   *result_imploded = PR_ImplodeTime(result);
   return PR_SUCCESS;
 }
+
+} 

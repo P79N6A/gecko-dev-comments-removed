@@ -171,11 +171,17 @@ typedef struct PRExplodedTime {
 
 typedef PRTimeParameters (PR_CALLBACK *PRTimeParamFn)(const PRExplodedTime *gmt);
 
+#ifdef CHROMIUM_MOZILLA_BUILD
+PR_END_EXTERN_C
+#endif
+
+namespace nspr {
 
 
 
 
-NSPR_API(PRTime)
+
+PRTime
 PR_ImplodeTime(const PRExplodedTime *exploded);
 
 
@@ -190,21 +196,14 @@ PR_ImplodeTime(const PRExplodedTime *exploded);
 
 
 
-NSPR_API(void) PR_NormalizeTime(
-    PRExplodedTime *exploded, PRTimeParamFn params);
+void PR_NormalizeTime(PRExplodedTime *exploded, PRTimeParamFn params);
 
 
 
 
 
 
-NSPR_API(PRTimeParameters) PR_GMTParameters(const PRExplodedTime *gmt);
-
-
-
-
-
-
+PRTimeParameters PR_GMTParameters(const PRExplodedTime *gmt);
 
 
 
@@ -231,13 +230,17 @@ NSPR_API(PRTimeParameters) PR_GMTParameters(const PRExplodedTime *gmt);
 
 
 
-NSPR_API(PRStatus) PR_ParseTimeString (
+
+
+
+
+
+
+PRStatus PR_ParseTimeString (
 	const char *string,
 	PRBool default_to_gmt,
 	PRTime *result);
 
-#ifdef CHROMIUM_MOZILLA_BUILD
-PR_END_EXTERN_C
-#endif
+} 
 
 #endif  
