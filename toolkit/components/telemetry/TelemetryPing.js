@@ -252,7 +252,8 @@ TelemetryPing.prototype = {
       this.addValue(mr.path, id, val);
     }
     
-    this.addValue("explicit", "MEMORY_EXPLICIT", Math.floor(mgr.explicit / 1024));
+    
+    
   },
   
   
