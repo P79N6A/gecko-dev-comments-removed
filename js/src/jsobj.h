@@ -321,6 +321,10 @@ struct JSObject : js::gc::Cell {
 
 
 
+
+
+
+
     union {
         js::Shape       *lastProp;
         JSObjectMap     *map;
