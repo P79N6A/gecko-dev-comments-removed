@@ -961,7 +961,7 @@ WeaveSvc.prototype = {
       yield res.get(self.cb);
 
       
-      let allCollections = Svc.Json.decode(res.data);
+      let allCollections = JSON.parse(res.data);
       for each (let name in allCollections) {
         try {
           
@@ -1198,9 +1198,9 @@ WeaveSvc.prototype = {
     let actionStr = command + "(" + args + ")";
 
     
-    let jsonArgs = Svc.Json.encode(args);
+    let jsonArgs = JSON.stringify(args);
     let notDupe = function(action) action.command != command ||
-      Svc.Json.encode(action.args) != jsonArgs;
+      JSON.stringify(action.args) != jsonArgs;
 
     this._log.info("Sending clients: " + actionStr + "; " + commandData.desc);
 

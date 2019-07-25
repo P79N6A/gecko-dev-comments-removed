@@ -454,7 +454,7 @@ SyncEngine.prototype = {
         if (out.payload) 
           this._store.createMetaRecords(out.id, meta);
         yield out.encrypt(self.cb, ID.get('WeaveCryptoID').password);
-        up.pushData(Svc.Json.decode(out.serialize())); 
+        up.pushData(JSON.parse(out.serialize())); 
       }
 
       this._store.cache.enabled = true;
