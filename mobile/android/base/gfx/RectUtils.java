@@ -3,21 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package org.mozilla.gecko.gfx;
 
-import org.mozilla.gecko.util.FloatUtils;
-
+import org.mozilla.gecko.FloatUtils;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.graphics.Point;
-import android.graphics.PointF;
-import android.graphics.Rect;
-import android.graphics.RectF;
-
 public final class RectUtils {
-    private RectUtils() {}
-
     public static Rect create(JSONObject json) {
         try {
             int x = json.getInt("x");
@@ -30,14 +56,22 @@ public final class RectUtils {
         }
     }
 
-    public static String toJSON(RectF rect) {
-        StringBuffer sb = new StringBuffer(256);
-        sb.append("{ \"left\": ").append(rect.left)
-          .append(", \"top\": ").append(rect.top)
-          .append(", \"right\": ").append(rect.right)
-          .append(", \"bottom\": ").append(rect.bottom)
-          .append('}');
-        return sb.toString();
+    public static Rect contract(Rect rect, int lessWidth, int lessHeight) {
+        float halfLessWidth = lessWidth / 2.0f;
+        float halfLessHeight = lessHeight / 2.0f;
+        return new Rect(Math.round(rect.left + halfLessWidth),
+                        Math.round(rect.top + halfLessHeight),
+                        Math.round(rect.right - halfLessWidth),
+                        Math.round(rect.bottom - halfLessHeight));
+    }
+
+    public static RectF contract(RectF rect, float lessWidth, float lessHeight) {
+        float halfLessWidth = lessWidth / 2;
+        float halfLessHeight = lessHeight / 2;
+        return new RectF(rect.left + halfLessWidth,
+                         rect.top + halfLessHeight,
+                         rect.right - halfLessWidth,
+                         rect.bottom - halfLessHeight);
     }
 
     public static RectF expand(RectF rect, float moreWidth, float moreHeight) {
@@ -47,15 +81,6 @@ public final class RectUtils {
                          rect.top - halfMoreHeight,
                          rect.right + halfMoreWidth,
                          rect.bottom + halfMoreHeight);
-    }
-
-    public static RectF contract(RectF rect, float lessWidth, float lessHeight) {
-        float halfLessWidth = lessWidth / 2.0f;
-        float halfLessHeight = lessHeight / 2.0f;
-        return new RectF(rect.left + halfLessWidth,
-                         rect.top + halfLessHeight,
-                         rect.right - halfLessWidth,
-                         rect.bottom - halfLessHeight);
     }
 
     public static RectF intersect(RectF one, RectF two) {
@@ -76,31 +101,18 @@ public final class RectUtils {
 
     
     public static Rect round(RectF rect) {
-        Rect r = new Rect();
-        round(rect, r);
-        return r;
+        return new Rect(Math.round(rect.left), Math.round(rect.top),
+                        Math.round(rect.right), Math.round(rect.bottom));
     }
 
-    public static void round(RectF rect, Rect dest) {
-        dest.set(Math.round(rect.left), Math.round(rect.top),
-                 Math.round(rect.right), Math.round(rect.bottom));
-    }
-
-    public static Rect roundIn(RectF rect) {
-        return new Rect((int)Math.ceil(rect.left), (int)Math.ceil(rect.top),
-                        (int)Math.floor(rect.right), (int)Math.floor(rect.bottom));
+    
+    public static Rect roundOut(RectF rect) {
+        return new Rect((int)Math.floor(rect.left), (int)Math.floor(rect.top),
+                        (int)Math.ceil(rect.right), (int)Math.ceil(rect.bottom));
     }
 
     public static IntSize getSize(Rect rect) {
         return new IntSize(rect.width(), rect.height());
-    }
-
-    public static Point getOrigin(Rect rect) {
-        return new Point(rect.left, rect.top);
-    }
-
-    public static PointF getOrigin(RectF rect) {
-        return new PointF(rect.left, rect.top);
     }
 
     
@@ -115,14 +127,9 @@ public final class RectUtils {
     }
 
     public static boolean fuzzyEquals(RectF a, RectF b) {
-        if (a == null && b == null)
-            return true;
-        else if ((a == null && b != null) || (a != null && b == null))
-            return false;
-        else
-            return FloatUtils.fuzzyEquals(a.top, b.top)
-                && FloatUtils.fuzzyEquals(a.left, b.left)
-                && FloatUtils.fuzzyEquals(a.right, b.right)
-                && FloatUtils.fuzzyEquals(a.bottom, b.bottom);
+        return FloatUtils.fuzzyEquals(a.top, b.top)
+            && FloatUtils.fuzzyEquals(a.left, b.left)
+            && FloatUtils.fuzzyEquals(a.right, b.right)
+            && FloatUtils.fuzzyEquals(a.bottom, b.bottom);
     }
 }
