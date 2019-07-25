@@ -1086,6 +1086,8 @@ JSD_GetErrorReporter(JSDContext*        jsdc,
 
 
 
+struct JSDStaticLock;
+
 
 
 
@@ -1095,7 +1097,7 @@ JSD_IsLockingAndThreadIdSupported();
 
 
 
-extern JSD_PUBLIC_API(void*)
+extern JSD_PUBLIC_API(JSDStaticLock*)
 JSD_CreateLock();
 
 
@@ -1103,27 +1105,27 @@ JSD_CreateLock();
 
 
 extern JSD_PUBLIC_API(void)
-JSD_Lock(void* lock);
+JSD_Lock(JSDStaticLock* lock);
 
 
 
 
 
 extern JSD_PUBLIC_API(void)
-JSD_Unlock(void* lock);
+JSD_Unlock(JSDStaticLock* lock);
 
 
 
 
 
 extern JSD_PUBLIC_API(JSBool)
-JSD_IsLocked(void* lock);
+JSD_IsLocked(JSDStaticLock* lock);
 
 
 
 
 extern JSD_PUBLIC_API(JSBool)
-JSD_IsUnlocked(void* lock);
+JSD_IsUnlocked(JSDStaticLock* lock);
 
 
 
