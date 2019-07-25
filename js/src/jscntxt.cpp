@@ -125,11 +125,7 @@ JSRuntime::sizeOfExplicitNonHeap()
 void
 JSRuntime::triggerOperationCallback()
 {
-    
-
-
-
-    JS_ATOMIC_SET(&interrupt, 1);
+    interrupt = 1;
 }
 
 void
@@ -438,8 +434,9 @@ js_ReportOutOfMemory(JSContext *cx)
     }
 
     if (onError) {
-        AutoAtomicIncrement incr(&cx->runtime->inOOMReport);
+        ++cx->runtime->inOOMReport;
         onError(cx, msg, &report);
+        --cx->runtime->inOOMReport;
     }
 }
 
@@ -911,7 +908,7 @@ js_InvokeOperationCallback(JSContext *cx)
 
 
 
-    JS_ATOMIC_SET(&rt->interrupt, 0);
+    rt->interrupt = 0;
 
     if (rt->gcIsNeeded)
         GCSlice(rt, GC_NORMAL, rt->gcTriggerReason);
