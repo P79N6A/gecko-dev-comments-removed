@@ -1813,11 +1813,17 @@ var FormHelperUI = {
 
     this._updateContainer(lastElement, this._currentElement);
     this._zoom(Rect.fromRect(aElement.rect), Rect.fromRect(aElement.caretRect));
+
+    
+    Browser.selectedBrowser.scrollSync = false;
   },
 
   hide: function formHelperHide() {
     if (!this._open)
       return;
+
+    
+    Browser.selectedBrowser.scrollSync = true;
 
     
     this._currentElementRect = null;
