@@ -61,7 +61,6 @@ function testClosingAfterCompletion() {
 
   let errorWhileClosing = false;
   function errorListener(evt) {
-    browser.removeEventListener("error", errorListener, false);
     errorWhileClosing = true;
   }
 
@@ -74,6 +73,7 @@ function testClosingAfterCompletion() {
   
   
   executeSoon(function() {
+    browser.removeEventListener("error", errorListener, false);
     is(errorWhileClosing, false, "no error while closing the WebConsole");
     finishTest();
   });
