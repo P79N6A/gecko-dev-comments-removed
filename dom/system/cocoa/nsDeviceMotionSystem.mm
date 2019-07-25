@@ -34,52 +34,63 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "nsISupports.idl"
+#include "nsDeviceMotionSystem.h"
+#include "nsIServiceManager.h"
+#include "stdlib.h"
 
-interface nsIDOMWindow;
+#include <sys/sysctl.h>
+#include <sys/resource.h>
+#include <sys/vm.h>
 
-[scriptable, uuid(1B406E32-CF42-471E-A470-6FD600BF4C7B)]
-interface nsIDeviceMotionData : nsISupports
+#import "smslib.h"
+#define MEAN_GRAVITY 9.80665
+#define DEFAULT_SENSOR_POLL 100
+
+nsDeviceMotionSystem::nsDeviceMotionSystem()
 {
-  const unsigned long TYPE_ACCELERATION = 0;
-  const unsigned long TYPE_ORIENTATION = 1;
-  const unsigned long TYPE_LINEAR_ACCELERATION = 2;
-  const unsigned long TYPE_GYROSCOPE = 3;
+}
 
-  readonly attribute unsigned long type;
-
-  readonly attribute double x;
-  readonly attribute double y;
-  readonly attribute double z;
-};
-
-[scriptable, uuid(D29EA788-CCB6-4875-88E0-32A34BB71CBB)]
-interface nsIDeviceMotionListener : nsISupports
+nsDeviceMotionSystem::~nsDeviceMotionSystem()
 {
-  void onMotionChange(in nsIDeviceMotionData aMotionData);
-  void needsCalibration();
-};
+}
 
-[scriptable, uuid(B6E5C463-AAA6-44E2-BD07-7A7DC6192E68)]
-interface nsIDeviceMotion : nsISupports
+void
+nsDeviceMotionSystem::UpdateHandler(nsITimer *aTimer, void *aClosure)
 {
-  void addListener(in nsIDeviceMotionListener aListener);
-  void removeListener(in nsIDeviceMotionListener aListener);
+  nsDeviceMotionSystem *self = reinterpret_cast<nsDeviceMotionSystem *>(aClosure);
+  if (!self) {
+    NS_ERROR("no self");
+    return;
+  }
+  sms_acceleration accel;
+  smsGetData(&accel);
 
-  // Holds pointers, not AddRef objects -- it is up to the caller
-  // to call RemoveWindowListener before the window is deleted.
-  [noscript] void addWindowListener(in nsIDOMWindow aWindow);
-  [noscript] void removeWindowListener(in nsIDOMWindow aWindow);
+  self->DeviceMotionChanged(nsIDeviceMotionData::TYPE_ACCELERATION,
+			    accel.x * MEAN_GRAVITY,
+			    accel.y * MEAN_GRAVITY,
+			    accel.z * MEAN_GRAVITY);
+}
 
-};
-
-/* for use by IPC system to notify non-chrome processes of 
- * device motion events
- */
-[uuid(C12C0157-DCFF-41B5-83F3-89179BF6CA4E)]
-interface nsIDeviceMotionUpdate : nsIDeviceMotion
+void nsDeviceMotionSystem::Startup()
 {
-  /* must be called on the main thread or else */
-  void deviceMotionChanged(in unsigned long type, in double x, in double y, in double z);
-  void needsCalibration();
-};
+  smsStartup(nil, nil);
+  smsLoadCalibration();
+
+  mUpdateTimer = do_CreateInstance("@mozilla.org/timer;1");
+  if (mUpdateTimer)
+    mUpdateTimer->InitWithFuncCallback(UpdateHandler,
+                                       this,
+                                       DEFAULT_SENSOR_POLL,
+                                       nsITimer::TYPE_REPEATING_SLACK);
+}
+
+void nsDeviceMotionSystem::Shutdown()
+{
+  if (mUpdateTimer) {
+    mUpdateTimer->Cancel();
+    mUpdateTimer = nsnull;
+  }
+
+  smsShutdown();
+}
+
