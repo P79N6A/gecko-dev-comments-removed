@@ -608,15 +608,19 @@ class PreserveCompartment {
     JSContext *cx;
   private:
     JSCompartment *oldCompartment;
+    bool oldInferenceEnabled;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
   public:
      PreserveCompartment(JSContext *cx JS_GUARD_OBJECT_NOTIFIER_PARAM) : cx(cx) {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
         oldCompartment = cx->compartment;
+        oldInferenceEnabled = cx->inferenceEnabled;
     }
 
     ~PreserveCompartment() {
-        cx->setCompartment(oldCompartment);
+        
+        cx->compartment = oldCompartment;
+        cx->inferenceEnabled = oldInferenceEnabled;
     }
 };
 
