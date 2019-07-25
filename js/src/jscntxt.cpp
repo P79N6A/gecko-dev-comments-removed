@@ -2036,6 +2036,7 @@ error:
 
 
 
+
 void
 JSContext::wrapPendingException()
 {
