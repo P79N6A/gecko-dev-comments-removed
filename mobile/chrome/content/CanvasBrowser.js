@@ -437,7 +437,7 @@ CanvasBrowser.prototype = {
 
   elementFromPoint: function(aX, aY) {
     let [x, y] = this._clientToContentCoords(aX, aY);
-    let cwu = this.contentDOMWindowUtils
+    let cwu = this.contentDOMWindowUtils;
     return cwu.elementFromPoint(x, y,
                                 true,   
                                 false); 
