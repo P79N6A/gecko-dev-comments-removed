@@ -600,6 +600,9 @@ var gSyncSetup = {
     if (this._jpakeclient)
       return;
 
+    
+    const JPAKE_ERROR_USERABORT = Weave.JPAKE_ERROR_USERABORT;
+
     let self = this;
     this._jpakeclient = new Weave.JPAKEClient({
       displayPIN: function displayPIN(pin) {
@@ -620,7 +623,7 @@ var gSyncSetup = {
         delete self._jpakeclient;
 
         
-        if (!error)
+        if (error == JPAKE_ERROR_USERABORT)
           return;
 
         
