@@ -84,13 +84,17 @@ var gTabsListener = {
 
       
       this._loadedURIs.length = 0;
-      
-      while (gBrowser.tabs.length > 1)
-        gBrowser.removeCurrentTab();
+
       this._openTabsCount = 0;
 
-      
-      waitForFocus(gCurrentTest.finish, gBrowser.ownerDocument.defaultView);
+      executeSoon(function () {
+        
+        while (gBrowser.tabs.length > 1)
+          gBrowser.removeCurrentTab();
+
+        
+        waitForFocus(gCurrentTest.finish, gBrowser.ownerDocument.defaultView);
+      });
     }
   }
 }
