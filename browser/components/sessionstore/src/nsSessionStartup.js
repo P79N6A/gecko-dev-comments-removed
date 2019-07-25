@@ -167,7 +167,7 @@ SessionStartup.prototype = {
              win.tabs.every(function (tab) tab.pinned)))
         Services.obs.addObserver(this, "domwindowopened", true);
 
-      Services.obs.addObserver(this, "browser:purge-session-history", true);
+      Services.obs.addObserver(this, "sessionstore-windows-restored", true);
     }
   },
 
@@ -197,6 +197,14 @@ SessionStartup.prototype = {
         self._onWindowOpened(window);
         window.removeEventListener("load", arguments.callee, false);
       }, false);
+      break;
+    case "sessionstore-windows-restored":
+      Services.obs.removeObserver(this, "sessionstore-windows-restored");
+      
+      
+      
+      
+      Services.obs.addObserver(this, "browser:purge-session-history", true);
       break;
     case "browser:purge-session-history":
       
