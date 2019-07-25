@@ -46,7 +46,7 @@
 
      
      let libc;
-     let libc_candidates =  [ "libSystem.dylib",
+     let libc_candidates =  [ "libsystem.B.dylib",
                               "libc.so.6",
                               "libc.so" ];
      for (let i = 0; i < libc_candidates.length; ++i) {
@@ -150,6 +150,47 @@
          Types.intn_t(OS.Constants.libc.OSFILE_SIZEOF_MODE_T),
          {name: {value: "mode_t"}});
 
+
+       Types.DIR =
+         new Type("DIR",
+                  ctypes.StructType("DIR"));
+
+       Types.null_or_DIR_ptr =
+         new Type("null_or_DIR*",
+                  Types.DIR.out_ptr.implementation,
+                  function(dir, operation) {
+                    if (dir == null || dir.isNull()) {
+                      return null;
+                    }
+                    return ctypes.CDataFinalizer(dir, _close_dir);
+                  });
+
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       {
+         let dirent = new OS.Shared.HollowStructure("dirent",
+           OS.Constants.libc.OSFILE_SIZEOF_DIRENT);
+         dirent.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_DIRENT_D_TYPE,
+           "d_type", ctypes.uint8_t);
+         dirent.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_DIRENT_D_NAME,
+           "d_name", ctypes.ArrayType(ctypes.char, OS.Constants.libc.OSFILE_SIZEOF_DIRENT_D_NAME));
+
+         
+         Types.dirent = dirent.getType();
+         LOG("dirent is: " + Types.dirent.implementation.toSource());
+       }
+       Types.null_or_dirent_ptr =
+         new Type("null_of_dirent",
+                  Types.dirent.out_ptr.implementation);
+
        
 
        
@@ -159,6 +200,16 @@
                              ctypes.int);
 
        UnixFile.close = function close(fd) {
+         
+         return fd.dispose();
+       };
+
+       let _close_dir =
+         libc.declare("closedir", ctypes.default_abi,
+                        ctypes.int,
+                           Types.DIR.in_ptr.implementation);
+
+       UnixFile.closedir = function closedir(fd) {
          
          return fd.dispose();
        };
@@ -284,6 +335,12 @@
                      Types.off_t,
                      Types.int);
 
+       UnixFile.mkdir =
+         declareFFI("mkdir", ctypes.default_abi,
+                     Types.int,
+                     Types.string,
+                     Types.int);
+
        UnixFile.mkstemp =
          declareFFI("mkstemp", ctypes.default_abi,
                      Types.null_or_string,
@@ -295,6 +352,11 @@
                       Types.string,
                     Types.int,
                       Types.int);
+
+       UnixFile.opendir =
+         declareFFI("opendir", ctypes.default_abi,
+                     Types.null_or_DIR_ptr,
+                       Types.string);
 
        UnixFile.pread =
          declareFFI("pread", ctypes.default_abi,
@@ -319,11 +381,32 @@
                        Types.char.out_ptr,
                     Types.size_t);
 
+       if (OS.Constants.libc._DARWIN_FEATURE_64_BIT_INODE) {
+         
+         
+         
+         
+         UnixFile.readdir =
+           declareFFI("readdir$INODE64", ctypes.default_abi,
+                     Types.null_or_dirent_ptr,
+                         Types.DIR.in_ptr); 
+       } else {
+         UnixFile.readdir =
+           declareFFI("readdir", ctypes.default_abi,
+                      Types.null_or_dirent_ptr,
+                         Types.DIR.in_ptr); 
+       }
+
        UnixFile.rename =
          declareFFI("rename", ctypes.default_abi,
                      Types.negativeone_or_nothing,
                         Types.string,
                         Types.string);
+
+       UnixFile.rmdir =
+         declareFFI("rmdir", ctypes.default_abi,
+                     Types.int,
+                       Types.string);
 
        UnixFile.splice =
          declareFFI("splice", ctypes.default_abi,
