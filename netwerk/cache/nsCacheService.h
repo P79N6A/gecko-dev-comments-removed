@@ -182,7 +182,7 @@ public:
     static void      OnEnterExitPrivateBrowsing();
 
     
-    static nsresult  SetDiskSmartSize();
+    static nsresult  SetDiskSmartSize(bool checkPref);
 
     nsresult         Init();
     void             Shutdown();
@@ -196,6 +196,7 @@ private:
     friend class nsProcessRequestEvent;
     friend class nsSetSmartSizeEvent;
     friend class nsBlockOnCacheThreadEvent;
+    friend class nsSetDiskSmartSizeCallback;
 
     
 
