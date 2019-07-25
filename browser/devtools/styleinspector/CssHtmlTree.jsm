@@ -65,6 +65,7 @@ function CssHtmlTree(aStyleWin, aCssLogic, aPanel)
   this.doc = aPanel.ownerDocument;
   this.win = this.doc.defaultView;
   this.getRTLAttr = CssHtmlTree.getRTLAttr;
+  this.propertyViews = {};
 
   
   this.styleDocument = this.styleWin.contentWindow.document;
@@ -78,8 +79,6 @@ function CssHtmlTree(aStyleWin, aCssLogic, aPanel)
 
   
   this.viewedElement = null;
-  this.viewedDocument = null;
-
   this.createStyleViews();
 }
 
@@ -148,7 +147,10 @@ XPCOMUtils.defineLazyGetter(CssHtmlTree, "_strings", function() Services.strings
     .createBundle("chrome:
 
 CssHtmlTree.prototype = {
+  htmlComplete: false,
+
   
+
 
 
 
@@ -160,38 +162,49 @@ CssHtmlTree.prototype = {
 
     this.viewedElement = aElement;
 
-    if (this.viewedElement) {
-      this.viewedDocument = this.viewedElement.ownerDocument;
-      CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
+    CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
+
+    if (this.htmlComplete) {
+      this.refreshPanel();
     } else {
-      this.viewedDocument = null;
-      this.root.innerHTML = "";
-    }
-
-    this.propertyContainer.innerHTML = "";
-
-    
-    
-    
-    let i = 0;
-    let batchSize = 25;
-    let max = CssHtmlTree.propertyNames.length - 1;
-    function displayProperties() {
-      if (this.viewedElement == aElement && this.panel.isOpen()) {
-        
-        for (let step = i + batchSize; i < step && i <= max; i++) {
-          let propView = new PropertyView(this, CssHtmlTree.propertyNames[i]);
-          CssHtmlTree.processTemplate(
-              this.templateProperty, this.propertyContainer, propView, true);
-        }
-        if (i < max) {
+      
+      
+      let i = 0;
+      let batchSize = 15;
+      let max = CssHtmlTree.propertyNames.length - 1;
+      function displayProperties() {
+        if (this.viewedElement == aElement && this.panel.isOpen()) {
           
-          
-          this.win.setTimeout(displayProperties.bind(this), 0);
+          for (let step = i + batchSize; i < step && i <= max; i++) {
+            let name = CssHtmlTree.propertyNames[i];
+            let propView = new PropertyView(this, name);
+            CssHtmlTree.processTemplate(this.templateProperty,
+              this.propertyContainer, propView, true);
+            propView.refreshMatchedSelectors();
+            propView.refreshUnmatchedSelectors();
+            this.propertyViews[name] = propView;
+          }
+          if (i < max) {
+            
+            
+            this.win.setTimeout(displayProperties.bind(this), 50);
+          } else {
+            this.htmlComplete = true;
+          }
         }
       }
+      this.win.setTimeout(displayProperties.bind(this), 50);
     }
-    this.win.setTimeout(displayProperties.bind(this), 0);
+  },
+
+  
+
+
+  refreshPanel: function CssHtmlTree_refreshPanel()
+  {
+    for each(let propView in this.propertyViews) {
+      propView.refresh();
+    }
   },
 
   
@@ -204,7 +217,6 @@ CssHtmlTree.prototype = {
   {
     aEvent.preventDefault();
     if (aEvent.target && this.viewedElement != aEvent.target.pathElement) {
-      this.propertyContainer.innerHTML = "";
       if (this.win.InspectorUI.selection) {
         if (aEvent.target.pathElement != this.win.InspectorUI.selection) {
           let elt = aEvent.target.pathElement;
@@ -273,53 +285,57 @@ function PropertyView(aTree, aName)
   this.name = aName;
   this.getRTLAttr = CssHtmlTree.getRTLAttr;
 
-  this.populated = false;
-  this.showUnmatched = false;
-
   this.link = "https://developer.mozilla.org/en/CSS/" + aName;
 
-  this.templateRules = aTree.styleDocument.getElementById("templateRules");
-
-  
-  this.element = null;
-  
-  this.rules = null;
-
-  this.str = {};
+  this.templateMatchedSelectors = aTree.styleDocument.getElementById("templateMatchedSelectors");
+  this.templateUnmatchedSelectors = aTree.styleDocument.getElementById("templateUnmatchedSelectors");
 }
 
 PropertyView.prototype = {
   
+  element: null,
 
+  
+  valueNode: null,
 
+  
+  matchedExpanded: false,
 
+  
+  unmatchedExpanded: false,
 
+  
+  matchedSelectorsContainer: null,
 
+  
+  unmatchedSelectorsContainer: null,
 
-  click: function PropertyView_click(aEvent)
-  {
-    
-    if (aEvent.target.tagName.toLowerCase() == "a") {
-      return;
-    }
+  
+  matchedExpander: null,
 
-    if (this.element.hasAttribute("open")) {
-      this.element.removeAttribute("open");
-      return;
-    }
+  
+  unmatchedExpander: null,
 
-    if (!this.populated) {
-      let matchedRuleCount = this.propertyInfo.matchedRuleCount;
+  
+  matchedSelectorsTitleNode: null,
 
-      if (matchedRuleCount == 0 && this.showUnmatchedLink) {
-        this.showUnmatchedLinkClick(aEvent);
-      } else {
-        CssHtmlTree.processTemplate(this.templateRules, this.rules, this);
-      }
-      this.populated = true;
-    }
-    this.element.setAttribute("open", "");
-  },
+  
+  unmatchedSelectorsTitleNode: null,
+
+  
+  matchedSelectorTable: null,
+
+  
+  unmatchedSelectorTable: null,
+
+  
+  _matchedSelectorViews: null,
+
+  
+  _unmatchedSelectorViews: null,
+
+  
+  prevViewedElement: null,
 
   
 
@@ -343,31 +359,96 @@ PropertyView.prototype = {
   
 
 
+  get matchedSelectorCount()
+  {
+    return this.propertyInfo.matchedSelectors.length;
+  },
+
+  
+
+
+  get unmatchedSelectorCount()
+  {
+    return this.propertyInfo.unmatchedSelectors.length;
+  },
+
+  
+
+
+  refresh: function PropertyView_refresh()
+  {
+    if (!this.tree.viewedElement) {
+      this.valueNode.innerHTML = "";
+      this.matchedSelectorsContainer.hidden = true;
+      this.unmatchedSelectorsContainer.hidden = true;
+      this.matchedSelectorTable.innerHTML = "";
+      this.unmatchedSelectorTable.innerHTML = "";
+      this.matchedExpander.removeAttribute("open");
+      this.unmatchedExpander.removeAttribute("open");
+      return;
+    }
+
+    this.valueNode.innerHTML = this.propertyInfo.value;
+
+    if (this.prevViewedElement != this.tree.viewedElement) {
+      this._matchedSelectorViews = null;
+      this._unmatchedSelectorViews = null;
+      this.prevViewedElement = this.tree.viewedElement;
+    }
+
+    this.refreshMatchedSelectors();
+    this.refreshUnmatchedSelectors();
+  },
+
+  
+
+
+  refreshMatchedSelectors: function PropertyView_refreshMatchedSelectors()
+  {
+    this.matchedSelectorsTitleNode.innerHTML = this.matchedSelectorTitle();
+    this.matchedSelectorsContainer.hidden = this.matchedSelectorCount == 0;
+
+    if (this.matchedExpanded && this.matchedSelectorCount > 0) {
+      CssHtmlTree.processTemplate(this.templateMatchedSelectors,
+        this.matchedSelectorTable, this);
+      this.matchedExpander.setAttribute("open", "");
+    } else {
+      this.matchedSelectorTable.innerHTML = "";
+      this.matchedExpander.removeAttribute("open");
+    }
+  },
+
+  
+
+
+  refreshUnmatchedSelectors: function PropertyView_refreshUnmatchedSelectors() {
+    this.unmatchedSelectorsTitleNode.innerHTML = this.unmatchedSelectorTitle();
+    this.unmatchedSelectorsContainer.hidden = this.unmatchedSelectorCount == 0;
+
+    if (this.unmatchedExpanded && this.unmatchedSelectorCount > 0) {
+      CssHtmlTree.processTemplate(this.templateUnmatchedSelectors,
+          this.unmatchedSelectorTable, this);
+      this.unmatchedExpander.setAttribute("open", "");
+    } else {
+      this.unmatchedSelectorTable.innerHTML = "";
+      this.unmatchedExpander.removeAttribute("open");
+    }
+  },
+
+  
 
 
 
 
 
-  ruleTitle: function PropertyView_ruleTitle(aElement)
+  matchedSelectorTitle: function PropertyView_matchedSelectorTitle()
   {
     let result = "";
-    let matchedSelectorCount = this.propertyInfo.matchedSelectors.length;
 
-    if (matchedSelectorCount > 0) {
-      aElement.classList.add("rule-count");
-      aElement.firstElementChild.className = "expander";
-
-      let str = CssHtmlTree.l10n("property.numberOfSelectors");
-      result = PluralForm.get(matchedSelectorCount, str)
-          .replace("#1", matchedSelectorCount);
-    } else if (this.showUnmatchedLink) {
-      aElement.classList.add("rule-unmatched");
-      aElement.firstElementChild.className = "expander";
-
-      let unmatchedSelectorCount = this.propertyInfo.unmatchedSelectors.length;
-      let str = CssHtmlTree.l10n("property.numberOfUnmatchedSelectors");
-      result = PluralForm.get(unmatchedSelectorCount, str)
-          .replace("#1", unmatchedSelectorCount);
+    if (this.matchedSelectorCount > 0) {
+      let str = CssHtmlTree.l10n("property.numberOfMatchedSelectors");
+      result = PluralForm.get(this.matchedSelectorCount, str)
+                         .replace("#1", this.matchedSelectorCount);
     }
     return result;
   },
@@ -375,72 +456,72 @@ PropertyView.prototype = {
   
 
 
-  close: function PropertyView_close()
+
+
+
+  unmatchedSelectorTitle: function PropertyView_unmatchedSelectorTitle()
   {
-    if (this.rules && this.element) {
-      this.element.removeAttribute("open");
+    let result = "";
+
+    if (this.unmatchedSelectorCount > 0) {
+      let str = CssHtmlTree.l10n("property.numberOfUnmatchedSelectors");
+      result = PluralForm.get(this.unmatchedSelectorCount, str)
+                         .replace("#1", this.unmatchedSelectorCount);
     }
+    return result;
   },
 
   
 
 
-  reset: function PropertyView_reset()
+
+  get matchedSelectorViews()
   {
-    this.close();
-    this.populated = false;
-    this.showUnmatched = false;
-    this.element = false;
-  },
-
-  
-
-
-  get selectorViews()
-  {
-    var all = [];
-
-    function convert(aSelectorInfo) {
-      all.push(new SelectorView(aSelectorInfo));
-    }
-
-    this.propertyInfo.matchedSelectors.forEach(convert);
-    if (this.showUnmatched) {
-      this.propertyInfo.unmatchedSelectors.forEach(convert);
+    if (!this._matchedSelectorViews) {
+      this._matchedSelectorViews = [];
+      this.propertyInfo.matchedSelectors.forEach(
+        function matchedSelectorViews_convert(aSelectorInfo) {
+          this._matchedSelectorViews.push(new SelectorView(aSelectorInfo));
+        }, this);
     }
 
-    return all;
+    return this._matchedSelectorViews;
+  },
+
+    
+
+
+
+  get unmatchedSelectorViews()
+  {
+    if (!this._unmatchedSelectorViews) {
+      this._unmatchedSelectorViews = [];
+      this.propertyInfo.unmatchedSelectors.forEach(
+        function unmatchedSelectorViews_convert(aSelectorInfo) {
+          this._unmatchedSelectorViews.push(new SelectorView(aSelectorInfo));
+        }, this);
+    }
+
+    return this._unmatchedSelectorViews;
   },
 
   
 
 
-
-
-  get showUnmatchedLink()
+  matchedSelectorsClick: function PropertyView_matchedSelectorsClick(aEvent)
   {
-    return !this.showUnmatched && this.propertyInfo.unmatchedRuleCount > 0;
+    this.matchedExpanded = !this.matchedExpanded;
+    this.refreshMatchedSelectors();
+    aEvent.preventDefault();
   },
 
   
 
 
-
-  get showUnmatchedLinkText()
+  unmatchedSelectorsClick: function PropertyView_unmatchedSelectorsClick(aEvent)
   {
-    let smur = CssHtmlTree.l10n("rule.showUnmatchedLink");
-    let unmatchedSelectorCount = this.propertyInfo.unmatchedSelectors.length;
-    let plural = PluralForm.get(unmatchedSelectorCount, smur);
-    return plural.replace("#1", unmatchedSelectorCount);
-  },
-
-  
-
-
-  showUnmatchedLinkClick: function PropertyView_showUnmatchedLinkClick(aEvent)
-  {
-    this.showUnmatched = true;
-    CssHtmlTree.processTemplate(this.templateRules, this.rules, this);
+    this.unmatchedExpanded = !this.unmatchedExpanded;
+    this.refreshUnmatchedSelectors();
     aEvent.preventDefault();
   },
 };
