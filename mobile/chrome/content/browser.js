@@ -659,6 +659,10 @@ var Browser = {
     if (!tab)
       return;
 
+    
+    if (tab.isLoading())
+      BrowserUI.unlockToolbar();
+
     let tabIndex = this._tabs.indexOf(tab);
     if (tabIndex == -1)
       return;
