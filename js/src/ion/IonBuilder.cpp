@@ -660,6 +660,20 @@ IonBuilder::processDoWhileBodyEnd(CFGState &state)
     if (!processDeferredContinues(state))
         return ControlStatus_Error;
 
+    
+    
+    if (!current) {
+        if (!finalizeLoop(state, NULL))
+            return ControlStatus_Error;
+
+        current = state.loop.successor;
+        if (!current)
+            return ControlStatus_Ended;
+
+        pc = current->pc();
+        return ControlStatus_Joined;
+    }
+
     MBasicBlock *header = newBlock(current, state.loop.updatepc);
     if (!header)
         return ControlStatus_Error;
