@@ -364,6 +364,11 @@ class MacroAssemblerARM : public Assembler
     void breakpoint();
     Condition compareDoubles(JSOp compare, FloatRegister lhs, FloatRegister rhs);
     void checkStackAlignment();
+
+    void rshiftPtr(Imm32 imm, const Register &dest) {
+        ma_lsr(imm, dest, dest);
+    }
+
     
     
     

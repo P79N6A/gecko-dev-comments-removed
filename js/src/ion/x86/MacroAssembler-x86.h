@@ -456,6 +456,10 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         bind(&end);
     }
 
+    void rshiftPtr(Imm32 imm, const Register &dest) {
+        shrl(imm, dest);
+    }
+
     
     
     

@@ -1901,6 +1901,28 @@ class MInitializedLength
 };
 
 
+class MArrayLength
+  : public MUnaryInstruction
+{
+  public:
+    MArrayLength(MDefinition *elements)
+      : MUnaryInstruction(elements)
+    {
+        setResultType(MIRType_Int32);
+        setMovable();
+    }
+
+    INSTRUCTION_HEADER(ArrayLength);
+
+    MDefinition *elements() const {
+        return getOperand(0);
+    }
+    virtual AliasSet getAliasSet() const {
+        return AliasSet::Load(AliasSet::ObjectFields);
+    }
+};
+
+
 class MBoundsCheck
   : public MBinaryInstruction
 {
@@ -2259,6 +2281,39 @@ class MLoadProperty
     }
     bool congruentTo(MDefinition * const &) const {
         return false;
+    }
+    virtual AliasSet getAliasSet() const {
+        
+        
+        
+        return AliasSet::Load(AliasSet::Any) |
+               AliasSet::Store(AliasSet::Any);
+    }
+};
+
+class MStringLength
+  : public MUnaryInstruction,
+    public StringPolicy
+{
+  public:
+    MStringLength(MDefinition *string)
+      : MUnaryInstruction(string)
+    {
+        setResultType(MIRType_Int32);
+        setMovable();
+    }
+
+    INSTRUCTION_HEADER(StringLength);
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+
+    MDefinition *string() const {
+        return getOperand(0);
+    }
+    virtual AliasSet getAliasSet() const {
+        return AliasSet::Load(AliasSet::ObjectFields);
     }
 };
 
