@@ -104,11 +104,15 @@
 PRBool gDisableNativeTheme = PR_FALSE;
 
 
+
+
 static QPixmap *gBufferPixmap = nsnull;
-static int gBufferPixmapUsageCount = 0;
+
 
 
 static gfxImageSurface *gBufferImage = nsnull;
+
+static int gBufferPixmapUsageCount = 0;
 static gfxIntSize gBufferMaxSize(0, 0);
 
 
@@ -253,7 +257,7 @@ UpdateOffScreenBuffers(QPaintEngine::Type aType, int aDepth, QSize aSize)
     gBufferMaxSize.width = PR_MAX(gBufferMaxSize.width, size.width);
     gBufferMaxSize.height = PR_MAX(gBufferMaxSize.height, size.height);
     
-    if (aType == QPaintEngine::X11) {
+    if (aType == QPaintEngine::X11 || aType == QPaintEngine::OpenGL2) {
         gBufferPixmap = new QPixmap(gBufferMaxSize.width, gBufferMaxSize.height);
         return true;
     }
@@ -1014,10 +1018,10 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption)
         if (!UpdateOffScreenBuffers(paintEngineType, depth, QSize(r.width(), r.height())))
             return nsEventStatus_eIgnore;
 
-        if (paintEngineType == QPaintEngine::X11) {
+        if (gBufferPixmap) {
             targetSurface = GetSurfaceForQPixmap(gBufferPixmap);
         }
-        else if (paintEngineType == QPaintEngine::Raster) {
+        else if (gBufferImage) {
             NS_ADDREF(targetSurface = gBufferImage);
         }
 
@@ -1059,12 +1063,12 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption)
 
     
     if (renderMode == gfxQtPlatform::RENDER_BUFFERED) {
-        if (paintEngineType == QPaintEngine::X11) {
+        if (gBufferPixmap) {
             
             aPainter->drawPixmap(QPoint(rect.x, rect.y), *gBufferPixmap,
                                  QRect(0, 0, rect.width, rect.height));
 
-        } else if (paintEngineType == QPaintEngine::Raster) {
+        } else if (gBufferImage) {
             
             QImage img(gBufferImage->Data(),
                        gBufferImage->Width(),
