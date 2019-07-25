@@ -372,12 +372,6 @@ BookmarksSharingManager.prototype = {
 
     
 
-
-
-
-
-    
-
     dump( "Calling crypto to wrap sym key with my public key.\n" );
     Crypto.wrapKey.async(Crypto, self.cb, bulkKey, {realm : "tmpWrapID",
 						    pubkey: idRSA.pubkey} );
@@ -491,7 +485,6 @@ BookmarksSharingManager.prototype = {
     let jsonService = Components.classes["@mozilla.org/dom/json;1"]
                  .createInstance(Components.interfaces.nsIJSON);
     let json = jsonService.encode( wrapMount );
-    dump( "Wrapped json before encryption is like this: " + json + "\n" );
 
     
     let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
