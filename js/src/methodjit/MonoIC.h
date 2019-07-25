@@ -130,6 +130,7 @@ struct SetGlobalNameIC : public GlobalNameIC
     bool objConst : 1;          
     RegisterID objReg   : 5;    
     RegisterID shapeReg : 5;    
+    bool hasExtraStub : 1;      
 
     int fastRejoinOffset : 16;  
     int extraStoreOffset : 16;  
