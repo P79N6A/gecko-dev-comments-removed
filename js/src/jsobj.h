@@ -278,6 +278,10 @@ struct JSObject {
     JSObject    *proto;                     
     js::Value   *dslots;                    
 #if JS_BITS_PER_WORD == 32
+    
+    
+    
+    
     uint32      padding;
 #endif
     js::Value   fslots[JS_INITIAL_NSLOTS];  
