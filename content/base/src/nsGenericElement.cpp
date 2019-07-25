@@ -3674,10 +3674,10 @@ nsGenericElement::SaveSubtreeState()
 
 static
 PRBool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
-                        PRBool aIsReplace, nsIContent* aRefContent)
+                        PRBool aIsReplace, nsINode* aRefChild)
 {
   NS_PRECONDITION(aNewChild, "Must have new child");
-  NS_PRECONDITION(!aIsReplace || aRefContent,
+  NS_PRECONDITION(!aIsReplace || aRefChild,
                   "Must have ref content for replace");
   NS_PRECONDITION(aParent->IsNodeOfType(nsINode::eDOCUMENT) ||
                   aParent->IsNodeOfType(nsINode::eDOCUMENT_FRAGMENT) ||
@@ -3712,12 +3712,12 @@ PRBool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
       if (rootElement) {
         
         
-        return aIsReplace && rootElement == aRefContent;
+        return aIsReplace && rootElement == aRefChild;
       }
 
       
       
-      if (!aRefContent) {
+      if (!aRefChild) {
         
         return PR_TRUE;
       }
@@ -3735,7 +3735,7 @@ PRBool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
       }
 
       PRInt32 doctypeIndex = aParent->IndexOf(docTypeContent);
-      PRInt32 insertIndex = aParent->IndexOf(aRefContent);
+      PRInt32 insertIndex = aParent->IndexOf(aRefChild);
 
       
       
@@ -3757,7 +3757,7 @@ PRBool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
       nsCOMPtr<nsIContent> docTypeContent = do_QueryInterface(docType);
       if (docTypeContent) {
         
-        return aIsReplace && docTypeContent == aRefContent;
+        return aIsReplace && docTypeContent == aRefChild;
       }
 
       
@@ -3769,13 +3769,13 @@ PRBool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
         return PR_TRUE;
       }
 
-      if (!aRefContent) {
+      if (!aRefChild) {
         
         return PR_FALSE;
       }
 
       PRInt32 rootIndex = aParent->IndexOf(rootElement);
-      PRInt32 insertIndex = aParent->IndexOf(aRefContent);
+      PRInt32 insertIndex = aParent->IndexOf(aRefChild);
 
       
       
@@ -3806,8 +3806,7 @@ PRBool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
         }
         
         
-        if (!IsAllowedAsChild(childContent, aParent, aIsReplace,
-                              aRefContent)) {
+        if (!IsAllowedAsChild(childContent, aParent, aIsReplace, aRefChild)) {
           return PR_FALSE;
         }
       }
@@ -3878,7 +3877,8 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
     }
 
     
-    if (aReplace) {
+    
+    if (aReplace && aRefChild != aNewChild) {
       nsContentUtils::MaybeFireNodeRemoved(aRefChild, this, GetOwnerDoc());
     }
 
@@ -3899,7 +3899,6 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
 
   nsIDocument* doc = GetOwnerDoc();
   nsIContent* newContent = static_cast<nsIContent*>(aNewChild);
-  nsIContent* refContent;
   PRInt32 insPos;
 
   mozAutoDocUpdate batch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, PR_TRUE);
@@ -3910,23 +3909,13 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
     if (insPos < 0) {
       return NS_ERROR_DOM_NOT_FOUND_ERR;
     }
-
-    if (aRefChild == aNewChild) {
-      return NS_OK;
-    }
-
-    NS_ASSERTION(aRefChild->IsNodeOfType(eCONTENT),
-                 "A child node must be nsIContent!");
-
-    refContent = static_cast<nsIContent*>(aRefChild);
   }
   else {
     insPos = GetChildCount();
-    refContent = nsnull;
   }
 
   
-  if (!IsAllowedAsChild(newContent, this, aReplace, refContent)) {
+  if (!IsAllowedAsChild(newContent, this, aReplace, aRefChild)) {
     return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
   }
 
@@ -3934,8 +3923,6 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
 
   
   if (aReplace) {
-    refContent = GetChildAt(insPos + 1);
-
     res = RemoveChildAt(insPos, PR_TRUE);
     NS_ENSURE_SUCCESS(res, res);
   }
@@ -3956,9 +3943,6 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
       NS_ERROR("How come our flags didn't catch this?");
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
     }
-    
-    NS_ASSERTION(!(oldParent == this && removeIndex == insPos),
-                 "invalid removeIndex");
 
     res = oldParent->RemoveChildAt(removeIndex, PR_TRUE);
     NS_ENSURE_SUCCESS(res, res);
