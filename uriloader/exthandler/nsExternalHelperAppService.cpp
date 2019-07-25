@@ -148,6 +148,10 @@
 #include "ExternalHelperAppChild.h"
 #endif
 
+#ifdef ANDROID
+#include "AndroidBridge.h"
+#endif
+
 
 #define BUFFERED_OUTPUT_SIZE (1024 * 32)
 
