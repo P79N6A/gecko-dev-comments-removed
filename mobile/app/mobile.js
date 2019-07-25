@@ -48,7 +48,6 @@ pref("browser.ui.cursor", false);
 pref("browser.ui.cursor", false);
 #else 
 pref("browser.ui.cursor", true);
-pref("layout.css.dpi", 265);
 #endif
 
 
@@ -338,8 +337,6 @@ pref("geo.wifi.uri", "https://www.google.com/loc/json");
 
 
 pref("geo.enabled", true);
-
-pref("layout.css.devPixelsPerPx", "1");
 
 
 pref("content.max.deflected.tokens", 10);
