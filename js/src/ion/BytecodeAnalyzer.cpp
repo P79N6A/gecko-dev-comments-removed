@@ -251,11 +251,17 @@ BytecodeAnalyzer::traverseBytecode()
         
         
         
-        ControlStatus status = snoopControlFlow(JSOp(*pc));
-        if (status == ControlStatus_Error)
-            return false;
-        if (!current)
-            return true;
+        
+        
+        
+        
+        ControlStatus status;
+        while ((status = snoopControlFlow(JSOp(*pc))) != ControlStatus_None) {
+            if (status == ControlStatus_Error)
+                return false;
+            if (!current)
+                return true;
+        }
 
         JSOp op = JSOp(*pc);
         if (!inspectOpcode(op))
@@ -395,6 +401,8 @@ BytecodeAnalyzer::inspectOpcode(JSOp op)
         return true;
 
       default:
+        fprintf(stdout, "%d\n", op);
+        JS_NOT_REACHED("what");
         return false;
     }
 }
