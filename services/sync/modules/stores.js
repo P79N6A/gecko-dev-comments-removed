@@ -361,6 +361,11 @@ BookmarksStore.prototype = {
       this._ts.untagURI(URI, null);
       this._ts.tagURI(URI, command.data.tags);
       this._bms.setKeywordForBookmark(newId, command.data.keyword);
+      if (command.data.description) {
+        this._ans.setItemAnnotation(newId, "bookmarkProperties/description",
+                                    command.data.description, 0,
+                                    this._ans.EXPIRE_NEVER);
+      }
 
       if (command.data.type == "microsummary") {
         this._log.debug("   \-> is a microsummary");
@@ -497,6 +502,13 @@ BookmarksStore.prototype = {
       case "keyword":
         this._bms.setKeywordForBookmark(itemId, command.data.keyword);
         break;
+      case "description":
+        if (command.data.description) {
+          this._ans.setItemAnnotation(itemId, "bookmarkProperties/description",
+                                      command.data.description, 0,
+                                      this._ans.EXPIRE_NEVER);
+        }
+        break;
       case "generatorURI": {
         let micsumURI = Utils.makeURI(this._bms.getBookmarkURI(itemId));
         let genURI = Utils.makeURI(command.data.generatorURI);
@@ -573,6 +585,14 @@ BookmarksStore.prototype = {
         item.type = "bookmark";
         item.title = node.title;
       }
+
+      try {
+        item.description =
+          this._ans.getItemAnnotation(node.itemId, "bookmarkProperties/description");
+      } catch (e) {
+        item.description = undefined;
+      }
+
       item.URI = node.uri;
       item.tags = this._ts.getTagsForURI(Utils.makeURI(node.uri), {});
       item.keyword = this._bms.getKeywordForBookmark(node.itemId);
@@ -797,7 +817,7 @@ CookieStore.prototype = {
 
 
 
-    
+
     this._log.info("CookieStore got removeCommand: " + command );
 
     
@@ -827,7 +847,7 @@ CookieStore.prototype = {
 	  matchingCookie = cookie;
 	  break;
 	}
-      }   
+      }
     }
     
     for (var key in command.data) {
@@ -848,7 +868,7 @@ CookieStore.prototype = {
 			     matchingCookie.isHttpOnly,
 			     matchingCookie.isSession,
 			     matchingCookie.expiry );
-    
+
     
     
   },
@@ -878,11 +898,11 @@ CookieStore.prototype = {
 			 isSession: cookie.isSession,
 			 expiry: cookie.expiry,
 			 isHttpOnly: cookie.isHttpOnly }
-	
+
 	
 
 
-	
+
       }
     }
     return items;
