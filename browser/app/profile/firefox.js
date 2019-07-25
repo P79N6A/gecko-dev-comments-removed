@@ -877,7 +877,7 @@ pref("browser.ssl_override_behavior", 2);
 
 
 
-pref("browser.identity.ssl_domain_display", 1);
+pref("browser.identity.ssl_domain_display", 0);
 
 
 
@@ -1152,3 +1152,8 @@ pref("full-screen-api.enabled", true);
 
 
 pref("toolkit.startup.max_resumed_crashes", 2);
+
+
+
+
+pref("image.mem.max_decoded_image_kb", 256000);
