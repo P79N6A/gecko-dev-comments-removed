@@ -2944,13 +2944,13 @@ let GsmPDUHelper = {
 
     
     
+    
+    
+    
     let tzOctet = this.readHexOctet();
     let tzOffset = this.octetToBCD(tzOctet & ~0x08) * 15 * 60 * 1000;
-    if (tzOctet & 0x08) {
-      timestamp -= tzOffset;
-    } else {
-      timestamp += tzOffset;
-    }
+    tzOffset = (tzOctet & 0x08) ? -tzOffset : tzOffset;
+    timestamp -= tzOffset;
 
     return timestamp;
   },
