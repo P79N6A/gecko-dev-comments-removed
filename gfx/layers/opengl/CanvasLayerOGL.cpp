@@ -110,7 +110,7 @@ CanvasLayerOGL::Initialize(const Data& aData)
   }
 
   mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
-      
+
   
   
   GLint texSize = gl()->GetMaxTextureSize();
@@ -119,7 +119,7 @@ CanvasLayerOGL::Initialize(const Data& aData)
     MakeTextureIfNeeded(gl(), mTexture);
     
     
-    NS_ABORT_IF_FALSE(mCanvasSurface || mDrawTarget, 
+    NS_ABORT_IF_FALSE(mCanvasSurface || mDrawTarget,
                       "Invalid texture size when WebGL surface already exists at that size?");
   }
 }
@@ -291,7 +291,7 @@ ShadowCanvasLayerOGL::ShadowCanvasLayerOGL(LayerManagerOGL* aManager)
 {
   mImplData = static_cast<LayerOGL*>(this);
 }
- 
+
 ShadowCanvasLayerOGL::~ShadowCanvasLayerOGL()
 {}
 
