@@ -2933,8 +2933,7 @@ SessionStoreService.prototype = {
         
         
         browser.webNavigation.sessionHistory.getEntryAtIndex(activeIndex, true);
-        browser.webNavigation.sessionHistory.
-          QueryInterface(Ci.nsISHistory).reloadCurrentEntry();
+        browser.webNavigation.sessionHistory.reloadCurrentEntry();
       }
       catch (ex) {
         
