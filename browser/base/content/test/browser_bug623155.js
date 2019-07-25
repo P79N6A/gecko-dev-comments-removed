@@ -43,6 +43,8 @@ function isRedirectedURI(aURI) {
 
 
 
+var gNewTab;
+
 function test() {
   waitForExplicitFinish();
 

@@ -68,7 +68,7 @@ var tests = [
   },
 ]
 
-let gCurrentTest, gCurrentTestIndex = -1;
+let gCurrentTest, gCurrentTestIndex = -1, gTestDesc;
 
 
 let gForward = true;
