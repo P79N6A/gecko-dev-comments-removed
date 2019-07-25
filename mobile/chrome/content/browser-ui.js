@@ -662,14 +662,20 @@ var BrowserUI = {
     Util.forceOnline();
 
     
-    Browser.hideSidebars();
     this.closeAutoComplete();
-
     this._edit.value = aURI;
 
     let postData = {};
     aURI = Browser.getShortcutOrURI(aURI, postData);
     Browser.loadURI(aURI, { flags: Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP, postData: postData });
+
+    
+    
+    
+    
+    
+    
+    Browser.hideSidebars();
 
     
     
@@ -922,9 +928,14 @@ var BrowserUI = {
           let { x: x1, y: y1 } = Browser.getScrollboxPosition(Browser.controlsScrollboxScroller);
           tabs.removeClosedTab();
 
-          let [,, leftWidth, rightWidth] = Browser.computeSidebarVisibility();
-          let delta = (oldLeftWidth - leftWidth) || (oldRightWidth - rightWidth);
-          x1 += (x1 == leftWidth) ? delta : -delta;
+          
+          
+          if (tabs.getBoundingClientRect().left < 0) {
+            let [,, leftWidth, rightWidth] = Browser.computeSidebarVisibility();
+            let delta = (oldLeftWidth - leftWidth) || (oldRightWidth - rightWidth);
+            x1 += (x1 == leftWidth) ? delta : -delta;
+          }
+
           Browser.controlsScrollboxScroller.scrollTo(x1, 0);
           Browser.tryFloatToolbar(0, 0);
         }
