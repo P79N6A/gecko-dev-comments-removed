@@ -662,6 +662,9 @@ var Browser = {
     newTab.chromeTab.dispatchEvent(event);
     newTab.browser.messageManager.sendAsyncMessage("Browser:TabOpen");
 
+    
+    BrowserUI._titleChanged(newTab.browser);
+
     return newTab;
   },
 
