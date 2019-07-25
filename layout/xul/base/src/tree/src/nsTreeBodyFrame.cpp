@@ -3394,6 +3394,9 @@ nsTreeBodyFrame::PaintImage(PRInt32              aRowIndex,
   nsStyleContext* imageContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreeimage);
 
   
+  float opacity = imageContext->GetStyleDisplay()->mOpacity;
+
+  
   
   nsRect imageRect(aImageRect);
   nsMargin imageMargin;
@@ -3499,10 +3502,20 @@ nsTreeBodyFrame::PaintImage(PRInt32              aRowIndex,
       nsLayoutUtils::GetWholeImageDestination(rawImageSize, sourceRect,
           nsRect(destRect.TopLeft(), imageDestSize));
 
+    gfxContext* ctx = aRenderingContext.ThebesContext();
+    if (opacity != 1.0f) {
+      ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+    }
+
     nsLayoutUtils::DrawImage(&aRenderingContext, image,
         nsLayoutUtils::GetGraphicsFilterForFrame(this),
         wholeImageDest, destRect, destRect.TopLeft(), aDirtyRect,
         imgIContainer::FLAG_NONE);
+
+    if (opacity != 1.0f) {
+      ctx->PopGroupToSource();
+      ctx->Paint(opacity);
+    }
   }
 
   
