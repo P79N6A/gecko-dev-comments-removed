@@ -118,6 +118,12 @@ public:
 
 
 
+
+
+
+
+
+
   virtual void CharacterDataWillChange(nsIDocument *aDocument,
                                        nsIContent* aContent,
                                        CharacterDataChangeInfo* aInfo) = 0;
