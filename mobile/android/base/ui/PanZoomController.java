@@ -84,7 +84,7 @@ public class PanZoomController
     private static final int SUBDIVISION_COUNT = 1000;
     
     
-    private static final float PAN_THRESHOLD = 4.0f;
+    private static final float PAN_THRESHOLD = 0.1f;
     
     private static final double AXIS_LOCK_ANGLE = Math.PI / 6.0; 
     
@@ -179,7 +179,7 @@ public class PanZoomController
             Log.e(LOGTAG, "Received impossible touch move while in " + mState);
             return false;
         case TOUCHING:
-            if (panDistance(event) < PAN_THRESHOLD)
+            if (panDistance(event) < PAN_THRESHOLD * GeckoAppShell.getDpi())
                 return false;
             
         case PANNING_HOLD_LOCKED:
