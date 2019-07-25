@@ -28,7 +28,8 @@ function runNextTest() {
     gCurrentTest.run();
   }
   else {
-    BrowserUI.closeAutoComplete();
+    
+    BrowserUI.activePanel = null;
     finish();
   }
 }
@@ -36,7 +37,7 @@ function runNextTest() {
 
 
 gTests.push({
-  desc: "Test awesome bar open attribute",
+  desc: "Test awesome bar collapsed state",
 
   run: function() {
     window.addEventListener("NavigationPanelShown", function(aEvent) {
@@ -91,6 +92,9 @@ gTests.push({
     is(awesomeHeader.hidden, false, "Awesome header should be visible");
 
     BrowserUI._edit.addEventListener("onsearchbegin", function(aEvent) {
+      if (BrowserUI._edit.value == "")
+        return;
+
       BrowserUI._edit.removeEventListener(aEvent.type, arguments.callee, true);
       let awesomeHeader = document.getElementById("awesome-header");
       is(awesomeHeader.hidden, true, "Awesome header should be hidden");
