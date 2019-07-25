@@ -2962,18 +2962,21 @@ nsCookieService::AddCookieToList(const nsCString               &aBaseDomain,
 
   
   if (aWriteToDB && !aCookie->IsSession() && mDBState->dbConn) {
-    nsCOMPtr<mozIStorageBindingParamsArray> array(aParamsArray);
-    if (!array) {
-      mDBState->stmtInsert->NewBindingParamsArray(getter_AddRefs(array));
+    mozIStorageStatement *stmt = mDBState->stmtInsert;
+    nsCOMPtr<mozIStorageBindingParamsArray> paramsArray(aParamsArray);
+    if (!paramsArray) {
+      stmt->NewBindingParamsArray(getter_AddRefs(paramsArray));
     }
-    bindCookieParameters(array, aCookie);
+    bindCookieParameters(paramsArray, aCookie);
 
     
     
     if (!aParamsArray) {
+      nsresult rv = stmt->BindParameters(paramsArray);
+      NS_ASSERT_SUCCESS(rv);
       nsCOMPtr<mozIStoragePendingStatement> handle;
-      nsresult rv = mDBState->stmtInsert->ExecuteAsync(&sInsertCookieDBListener,
-                                                       getter_AddRefs(handle));
+      rv = stmt->ExecuteAsync(&sInsertCookieDBListener,
+                              getter_AddRefs(handle));
       NS_ASSERT_SUCCESS(rv);
     }
   }
