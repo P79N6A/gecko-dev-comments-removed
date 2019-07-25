@@ -1218,7 +1218,6 @@ struct JSRuntime {
 
     
     struct JSHashTable  *scriptFilenameTable;
-    JSCList             scriptFilenamePrefixes;
 #ifdef JS_THREADSAFE
     PRLock              *scriptFilenameTableLock;
 #endif

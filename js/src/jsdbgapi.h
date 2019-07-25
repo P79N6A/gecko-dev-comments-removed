@@ -486,40 +486,6 @@ JS_GetScriptTotalSize(JSContext *cx, JSScript *script);
 
 
 
-extern JS_PUBLIC_API(uint32)
-JS_GetTopScriptFilenameFlags(JSContext *cx, JSStackFrame *fp);
-
-
-
-
-
-extern JS_PUBLIC_API(uint32)
-JS_GetScriptFilenameFlags(JSScript *script);
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_FlagScriptFilenamePrefix(JSRuntime *rt, const char *prefix, uint32 flags);
-
-#define JSFILENAME_NULL         0xffffffff      /* null script filename */
-#define JSFILENAME_SYSTEM       0x00000001      /* "system" script, see below */
-#define JSFILENAME_PROTECTED    0x00000002      /* scripts need protection */
-
-
-
-
-
-
 
 
 
