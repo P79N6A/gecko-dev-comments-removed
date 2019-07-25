@@ -1619,18 +1619,6 @@ let RIL = {
 
   sendSMS: function sendSMS(options) {
     
-    if (!this.SMSC) {
-      
-      
-      this.getSMSCAddress(options);
-      return;
-    }
-    
-    
-    
-    options.SMSC = this.SMSC;
-
-    
 
     if (!options.retryCount) {
       options.retryCount = 0;
@@ -1702,11 +1690,8 @@ let RIL = {
   
 
 
-
-
-
-  getSMSCAddress: function getSMSCAddress(pendingSMS) {
-    Buf.simpleRequest(REQUEST_GET_SMSC_ADDRESS, pendingSMS);
+  getSMSCAddress: function getSMSCAddress() {
+    Buf.simpleRequest(REQUEST_GET_SMSC_ADDRESS);
   },
 
   
@@ -3375,24 +3360,10 @@ RIL[REQUEST_DEVICE_IDENTITY] = null;
 RIL[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = null;
 RIL[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS(length, options) {
   if (options.rilRequestError) {
-    if (options.type == "sendSMS") {
-      this.sendDOMMessage({
-        type: "sms-send-failed",
-        envelopeId: options.envelopeId,
-        error: options.rilRequestError,
-      });
-    }
     return;
   }
 
   this.SMSC = Buf.readString();
-  
-  
-  
-  
-  if (this.SMSC && options.body) {
-    this.sendSMS(options);
-  }
 };
 RIL[REQUEST_SET_SMSC_ADDRESS] = null;
 RIL[REQUEST_REPORT_SMS_MEMORY_STATUS] = null;
