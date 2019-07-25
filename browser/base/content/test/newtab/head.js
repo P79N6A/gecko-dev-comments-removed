@@ -203,10 +203,7 @@ function addNewTabPageTab() {
   let tab = gBrowser.selectedTab = gBrowser.addTab("about:newtab");
   let browser = tab.linkedBrowser;
 
-  
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-
+  function whenNewTabLoaded() {
     if (NewTabUtils.allPages.enabled) {
       
       NewTabUtils.links.populateCache(function () {
@@ -215,6 +212,18 @@ function addNewTabPageTab() {
     } else {
       TestRunner.next();
     }
+  }
+
+  
+  if (browser.contentDocument.readyState == "complete") {
+    whenNewTabLoaded();
+    return;
+  }
+
+  
+  browser.addEventListener("load", function onLoad() {
+    browser.removeEventListener("load", onLoad, true);
+    whenNewTabLoaded();
   }, true);
 }
 
