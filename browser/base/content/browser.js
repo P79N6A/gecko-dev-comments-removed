@@ -2051,7 +2051,7 @@ function BrowserCloseTabOrWindow() {
 #endif
 
   
-  gBrowser.removeCurrentTab();
+  gBrowser.removeCurrentTab({animate: true});
 }
 
 function BrowserTryToCloseWindow()
