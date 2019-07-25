@@ -239,7 +239,7 @@ InstallTriggerManager.prototype = {
     
     
     
-    var obj = this;
+    var obj = XPCNativeWrapper.unwrap(this);
     while (!obj.hasOwnProperty('InstallTrigger')) {
       obj = XPCNativeWrapper.unwrap(Object.getPrototypeOf(obj));
     }
