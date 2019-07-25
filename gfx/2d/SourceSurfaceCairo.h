@@ -36,7 +36,6 @@ public:
 private: 
   friend class DrawTargetCairo;
   void DrawTargetWillChange();
-  void MarkIndependent();
 
 private: 
   IntSize mSize;

@@ -148,18 +148,13 @@ private:
                    DrawPatternType aDrawType);
 
   
-  friend class SourceSurfaceCairo;
-  void AppendSnapshot(SourceSurfaceCairo* aSnapshot);
-  void RemoveSnapshot(SourceSurfaceCairo* aSnapshot);
-
-  
   
   
   void WillChange(const Path* aPath = nullptr);
 
   
   
-  void MarkSnapshotsIndependent();
+  void MarkSnapshotIndependent();
 
   
   
@@ -168,7 +163,10 @@ private:
   cairo_t* mContext;
   cairo_surface_t* mSurface;
   IntSize mSize;
-  std::vector<SourceSurfaceCairo*> mSnapshots;
+
+  
+  
+  RefPtr<SourceSurfaceCairo> mSnapshot;
 
   
   
