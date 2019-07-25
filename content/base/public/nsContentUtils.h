@@ -1998,18 +1998,6 @@ public:
 
 
 
-  static bool URIIsChromeOrInPref(nsIURI *aURI, const char *aPref);
-
-  
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2076,24 +2064,6 @@ public:
 
 
   static nsresult IsUserIdle(uint32_t aRequestedIdleTimeInMS, bool* aUserIsIdle);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult IsOnPrefWhitelist(nsPIDOMWindow* aWindow,
-                                    const char* aPrefURL, bool *aAllowed);
 
   
 
