@@ -99,10 +99,6 @@ public class JPakeCrypto {
 
 
 
-
-
-
-
   public static void round1(JPakeParty jp, JPakeNumGenerator gen) throws NoSuchAlgorithmException, UnsupportedEncodingException {
     
     BigInteger x1 = gen.generateFromRange(Q); 
@@ -121,16 +117,6 @@ public class JPakeCrypto {
   }
 
   
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -163,13 +149,6 @@ public class JPakeCrypto {
   }
 
   
-
-
-
-
-
-
-
 
 
   public static KeyBundle finalRound(BigInteger secretValue, JPakeParty jp)
