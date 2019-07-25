@@ -8,7 +8,17 @@
 
 
 let gBrowserThumbnails = {
+  
+
+
+  PREF_DISK_CACHE_SSL: "browser.cache.disk_cache_ssl",
+
   _captureDelayMS: 1000,
+
+  
+
+
+  _sslDiskCacheEnabled: null,
 
   
 
@@ -32,6 +42,10 @@ let gBrowserThumbnails = {
     } catch (e) {}
 
     gBrowser.addTabsProgressListener(this);
+    Services.prefs.addObserver(this.PREF_DISK_CACHE_SSL, this, false);
+
+    this._sslDiskCacheEnabled =
+      Services.prefs.getBoolPref(this.PREF_DISK_CACHE_SSL);
 
     this._tabEvents.forEach(function (aEvent) {
       gBrowser.tabContainer.addEventListener(aEvent, this, false);
@@ -45,6 +59,7 @@ let gBrowserThumbnails = {
 
   uninit: function Thumbnails_uninit() {
     gBrowser.removeTabsProgressListener(this);
+    Services.prefs.removeObserver(this.PREF_DISK_CACHE_SSL, this);
 
     this._tabEvents.forEach(function (aEvent) {
       gBrowser.tabContainer.removeEventListener(aEvent, this, false);
@@ -66,6 +81,11 @@ let gBrowserThumbnails = {
         break;
       }
     }
+  },
+
+  observe: function Thumbnails_observe() {
+    this._sslDiskCacheEnabled =
+      Services.prefs.getBoolPref(this.PREF_DISK_CACHE_SSL);
   },
 
   
@@ -129,19 +149,30 @@ let gBrowserThumbnails = {
 
     
     
-    if (channel.originalURI.schemeIs("about"))
+    let uri = channel.originalURI;
+    if (uri.schemeIs("about"))
       return false;
 
+    let httpChannel;
     try {
+      httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
+    } catch (e) {  }
+
+    if (httpChannel) {
       
-      let httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
+      if (Math.floor(httpChannel.responseStatus / 100) != 2)
+        return false;
 
       
-      return Math.floor(httpChannel.responseStatus / 100) == 2;
-    } catch (e) {
+      if (httpChannel.isNoStoreResponse())
+        return false;
+
       
-      return true;
+      if (uri.schemeIs("https") && !this._sslDiskCacheEnabled)
+        return false;
     }
+
+    return true;
   },
 
   _clearTimeout: function Thumbnails_clearTimeout(aBrowser) {
