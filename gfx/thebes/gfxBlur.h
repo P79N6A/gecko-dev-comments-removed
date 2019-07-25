@@ -106,11 +106,6 @@ public:
     
 
 
-    void PremultiplyAlpha(gfxFloat alpha);
-
-    
-
-
 
 
 
