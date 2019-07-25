@@ -1724,6 +1724,10 @@ toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
 
 
 
+.splitmenu-menuitem {
+  -moz-margin-end: 1px;
+}
+
 #appmenu-toolbar-button > .toolbarbutton-text,
 #appmenu-toolbar-button > .toolbarbutton-menu-dropmarker {
   margin-top: -2px !important;
