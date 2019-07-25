@@ -40,6 +40,9 @@
 
 
 
+#include "mozilla/Attributes.h"
+#include "mozilla/Util.h"
+
 
 
 
@@ -50,8 +53,6 @@
 
 #include <math.h>
 #include <string.h>     
-
-#include "mozilla/Util.h"
 
 #include "jstypes.h"
 #include "jsstdint.h"
@@ -2782,9 +2783,8 @@ class AutoGCSession {
   private:
     JSContext   *context;
 
-    
-    AutoGCSession(const AutoGCSession&);
-    void operator=(const AutoGCSession&);
+    AutoGCSession(const AutoGCSession&) MOZ_DELETE;
+    void operator=(const AutoGCSession&) MOZ_DELETE;
 };
 
 
