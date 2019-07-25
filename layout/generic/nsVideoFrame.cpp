@@ -276,6 +276,7 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
 
   layer->SetContainer(container);
   layer->SetFilter(nsLayoutUtils::GetGraphicsFilterForFrame(this));
+  layer->SetContentFlags(Layer::CONTENT_OPAQUE);
   
   gfxMatrix transform;
   transform.Translate(r.pos);
