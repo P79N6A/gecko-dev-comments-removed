@@ -104,6 +104,9 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 {
     MacroAssembler masm(cx);
     Assembler *aasm = &masm;
+
+    
+    
     
     masm.startDataTransferM(IsStore, sp, DB, WriteBack);
     masm.transferReg(r3); 

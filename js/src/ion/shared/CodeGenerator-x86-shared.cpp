@@ -840,11 +840,11 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
 
     
     if (unusedStack)
-        masm.addPtr(Imm32(unusedStack), StackPointer);
+        masm.freeStack(unusedStack);
 
     
-    masm.push(tokreg);
-    masm.push(Imm32(sizeDescriptor));
+    masm.Push(tokreg);
+    masm.Push(Imm32(sizeDescriptor));
 
     
     {
@@ -884,9 +884,9 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
     int restoreDiff = prefixGarbage - unusedStack;
     
     if (restoreDiff > 0)
-        masm.addPtr(Imm32(restoreDiff), StackPointer);
+        masm.freeStack(restoreDiff);
     else if (restoreDiff < 0)
-        masm.subPtr(Imm32(-restoreDiff), StackPointer);
+        masm.reserveStack(-restoreDiff);
 
     masm.bind(&end);
 

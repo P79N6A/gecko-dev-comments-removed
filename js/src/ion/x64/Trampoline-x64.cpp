@@ -103,6 +103,8 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.mov(rsp, rbp);
 
     
+    
+    
     masm.push(rbx);
     masm.push(r12);
     masm.push(r13);

@@ -110,18 +110,19 @@ class IonFrameIterator
 
 class IonActivationIterator
 {
-    JSContext *cx_;
     uint8 *top_;
     IonActivation *activation_;
 
   public:
     IonActivationIterator(JSContext *cx);
+    IonActivationIterator(ThreadData *td);
 
     IonActivationIterator &operator++();
 
     uint8 *top() const {
         return top_;
     }
+    bool more() const;
 };
 
 } 
