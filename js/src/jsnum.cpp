@@ -104,14 +104,12 @@ JS_STATIC_ASSERT(uintptr_t(PTRDIFF_MAX) + uintptr_t(1) == uintptr_t(PTRDIFF_MIN)
 
 #endif 
 
-namespace {
 
 
 
 
 
-
-bool
+static bool
 ComputeAccurateDecimalInteger(JSContext *cx, const jschar *start, const jschar *end, jsdouble *dp)
 {
     size_t length = end - start;
@@ -186,7 +184,7 @@ class BinaryDigitReader
 
 
 
-jsdouble
+static jsdouble
 ComputeAccurateBinaryBaseInteger(JSContext *cx, const jschar *start, const jschar *end, int base)
 {
     BinaryDigitReader bdr(base, start, end);
@@ -225,8 +223,6 @@ ComputeAccurateBinaryBaseInteger(JSContext *cx, const jschar *start, const jscha
 
     return value;
 }
-
-} 
 
 namespace js {
 
@@ -346,9 +342,7 @@ ParseFloat(JSContext* cx, JSString* str)
 }
 #endif
 
-namespace {
-
-bool
+static bool
 ParseIntStringHelper(JSContext *cx, const jschar *ws, const jschar *end, int maybeRadix,
                      bool stripPrefix, jsdouble *dp)
 {
@@ -401,7 +395,7 @@ ParseIntStringHelper(JSContext *cx, const jschar *ws, const jschar *end, int may
     return true;
 }
 
-jsdouble
+static jsdouble
 ParseIntDoubleHelper(jsdouble d)
 {
     if (!JSDOUBLE_IS_FINITE(d))
@@ -412,8 +406,6 @@ ParseIntDoubleHelper(jsdouble d)
         return -floor(-d);
     return 0;
 }
-
-} 
 
 
 static JSBool

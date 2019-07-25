@@ -2019,10 +2019,8 @@ date_toISOString(JSContext *cx, uintN argc, Value *vp)
     return date_utc_format(cx, vp, print_iso_string);
 }
 
-namespace {
 
-
-JSBool
+static JSBool
 date_toJSON(JSContext *cx, uintN argc, Value *vp)
 {
     
@@ -2066,8 +2064,6 @@ date_toJSON(JSContext *cx, uintN argc, Value *vp)
         return false;
     *vp = args.rval();
     return true;
-}
-
 }
 
 
