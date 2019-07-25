@@ -109,6 +109,12 @@ public:
 
     static bool AreModifiersCurrentlyActive(Modifiers aModifiers);
 
+    
+
+
+    static void InitInputEvent(nsInputEvent& aInputEvent,
+                               guint aModifierState);
+
 protected:
 
     

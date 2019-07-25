@@ -347,6 +347,11 @@ KeymapWrapper* KeymapWrapper::sInstance = nsnull;
 
 #ifdef PR_LOGGING
 
+static const char* GetBoolName(bool aBool)
+{
+    return aBool ? "TRUE" : "FALSE";
+}
+
  const char*
 KeymapWrapper::GetModifierName(Modifier aModifier)
 {
@@ -679,6 +684,30 @@ KeymapWrapper::AreModifiersActive(Modifiers aModifiers,
         aModifiers &= ~modifier;
     }
     return true;
+}
+
+ void
+KeymapWrapper::InitInputEvent(nsInputEvent& aInputEvent,
+                              guint aModifierState)
+{
+    KeymapWrapper* keymapWrapper = GetInstance();
+
+    aInputEvent.isShift =
+        keymapWrapper->AreModifiersActive(SHIFT, aModifierState);
+    aInputEvent.isControl =
+        keymapWrapper->AreModifiersActive(CTRL, aModifierState);
+    aInputEvent.isAlt =
+        keymapWrapper->AreModifiersActive(ALT, aModifierState);
+    
+    
+    aInputEvent.isMeta = false;
+
+    PR_LOG(gKeymapWrapperLog, PR_LOG_DEBUG,
+        ("KeymapWrapper(%p): InitInputEvent, aModifierState=0x%08X "
+         "aKeyEvent={ isShift=%s, isControl=%s, isAlt=%s, isMeta=%s }",
+         keymapWrapper, aModifierState,
+         GetBoolName(aInputEvent.isShift), GetBoolName(aInputEvent.isControl),
+         GetBoolName(aInputEvent.isAlt), GetBoolName(aInputEvent.isMeta)));
 }
 
 } 
