@@ -13,6 +13,7 @@
 #include "GestureEventListener.h"
 #include "nsIThreadManager.h"
 #include "nsThreadUtils.h"
+#include "Layers.h"
 
 namespace mozilla {
 namespace layers {
@@ -697,7 +698,7 @@ void AsyncPanZoomController::RequestContentRepaint() {
 
 bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSampleTime,
                                                             const FrameMetrics& aFrame,
-                                                            const gfx3DMatrix& aCurrentTransform,
+                                                            Layer* aLayer,
                                                             gfx3DMatrix* aNewTransform) {
   
   
@@ -706,9 +707,11 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
   
   bool requestAnimationFrame = false;
 
+  const gfx3DMatrix& currentTransform = aLayer->GetTransform();
+
   
-  float rootScaleX = aCurrentTransform.GetXScale(),
-        rootScaleY = aCurrentTransform.GetYScale();
+  float rootScaleX = currentTransform.GetXScale(),
+        rootScaleY = currentTransform.GetYScale();
 
   nsIntPoint metricsScrollOffset(0, 0);
   nsIntPoint scrollOffset;
@@ -740,7 +743,14 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
     (scrollOffset.y / rootScaleY - metricsScrollOffset.y) * localScaleY);
 
   ViewTransform treeTransform(-scrollCompensation, localScaleX, localScaleY);
-  *aNewTransform = gfx3DMatrix(treeTransform) * aCurrentTransform;
+  *aNewTransform = gfx3DMatrix(treeTransform) * currentTransform;
+
+  
+  
+  
+  aNewTransform->Scale(1.0f/aLayer->GetXScale(),
+                       1.0f/aLayer->GetYScale(),
+                       1);
 
   mLastSampleTime = aSampleTime;
 

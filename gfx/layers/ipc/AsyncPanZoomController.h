@@ -118,7 +118,7 @@ public:
 
   bool SampleContentTransformForFrame(const TimeStamp& aSampleTime,
                                       const FrameMetrics& aFrame,
-                                      const gfx3DMatrix& aCurrentTransform,
+                                      Layer* aLayer,
                                       gfx3DMatrix* aNewTransform);
 
   
