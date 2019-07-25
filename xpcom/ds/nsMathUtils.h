@@ -107,4 +107,15 @@ inline NS_HIDDEN_(bool) NS_finite(double d)
 #endif
 }
 
+
+
+
+
+
+
+inline NS_HIDDEN_(double) NS_floorModulo(double x, double y)
+{
+  return (x - y * floor(x / y));
+}
+
 #endif
