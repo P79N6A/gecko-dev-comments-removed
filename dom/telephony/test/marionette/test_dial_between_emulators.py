@@ -52,4 +52,6 @@ window.navigator.mozTelephony.dial("%s");
         
         self.assertEqual(received, fromPhoneNumber)
 
+        sender.execute_script("window.navigator.mozTelephony.calls[0].hangUp();")
+        receiver.execute_script("window.navigator.mozTelephony.calls[0].hangUp();")
 
