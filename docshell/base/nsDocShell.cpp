@@ -162,6 +162,8 @@
 #include "nsIStrictTransportSecurityService.h"
 #include "nsStructuredCloneContainer.h"
 #include "nsIStructuredCloneContainer.h"
+#include "nsIFaviconService.h"
+#include "mozIAsyncFavicons.h"
 
 
 #include "nsIEditingSession.h"
@@ -9435,6 +9437,43 @@ nsDocShell::SetReferrerURI(nsIURI * aURI)
 
 
 
+namespace
+{
+    
+    
+    
+    class nsAddStateFaviconCallback : public nsIFaviconDataCallback
+    {
+    public:
+        NS_DECL_ISUPPORTS
+
+        nsAddStateFaviconCallback(nsIURI *aNewURI)
+          : mNewURI(aNewURI)
+        {
+        }
+
+        NS_IMETHODIMP
+        OnFaviconDataAvailable(nsIURI *aFaviconURI, PRUint32 aDataLen,
+                               const PRUint8 *aData, const nsACString &aMimeType)
+        {
+            NS_ASSERTION(aDataLen == 0,
+                         "We weren't expecting the callback to deliver data.");
+            nsCOMPtr<mozIAsyncFavicons> favSvc =
+                do_GetService("@mozilla.org/browser/favicon-service;1");
+            NS_ENSURE_STATE(favSvc);
+
+            return favSvc->SetAndFetchFaviconForPage(mNewURI, aFaviconURI,
+                                                     PR_FALSE, nsnull);
+        }
+
+    private:
+        nsCOMPtr<nsIURI> mNewURI;
+    };
+
+    NS_IMPL_ISUPPORTS1(nsAddStateFaviconCallback, nsIFaviconDataCallback)
+
+} 
+
 NS_IMETHODIMP
 nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
                      const nsAString& aURL, PRBool aReplace, JSContext* aCx)
@@ -9721,6 +9760,16 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
             else if (mGlobalHistory) {
                 mGlobalHistory->SetPageTitle(newURI, mTitle);
             }
+        }
+
+        
+        
+        nsCOMPtr<mozIAsyncFavicons> favSvc =
+            do_GetService("@mozilla.org/browser/favicon-service;1");
+        if (favSvc) {
+            nsCOMPtr<nsIFaviconDataCallback> callback =
+                new nsAddStateFaviconCallback(newURI);
+            favSvc->GetFaviconURLForPage(oldURI, callback);
         }
     }
     else {

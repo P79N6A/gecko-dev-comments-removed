@@ -116,7 +116,28 @@ struct PageData
 
 
 
-class AsyncFetchAndSetIconForPage : public nsRunnable
+
+class AsyncFaviconHelperBase : public nsRunnable
+{
+protected:
+  AsyncFaviconHelperBase(nsCOMPtr<mozIStorageConnection>& aDBConn,
+                         nsRefPtr<nsFaviconService>& aFaviconSvc,
+                         nsCOMPtr<nsIFaviconDataCallback>& aCallback);
+
+  virtual ~AsyncFaviconHelperBase();
+
+  nsCOMPtr<mozIStorageConnection>& mDBConn;
+  
+  nsRefPtr<nsFaviconService> mFaviconSvc;
+  
+  nsCOMPtr<nsIFaviconDataCallback> mCallback;
+};
+
+
+
+
+
+class AsyncFetchAndSetIconForPage : public AsyncFaviconHelperBase
 {
 public:
   NS_DECL_NSIRUNNABLE
@@ -165,12 +186,6 @@ public:
 protected:
   IconData mIcon;
   PageData mPage;
-  nsCOMPtr<mozIStorageConnection>& mDBConn;
-  
-  nsRefPtr<nsFaviconService> mFaviconSvc;
-  
-  nsCOMPtr<nsIFaviconDataCallback> mCallback;
-
 };
 
 
@@ -178,7 +193,7 @@ protected:
 
 
 
-class AsyncFetchAndSetIconFromNetwork : public nsRunnable
+class AsyncFetchAndSetIconFromNetwork : public AsyncFaviconHelperBase
                                       , public nsIStreamListener
                                       , public nsIInterfaceRequestor
                                       , public nsIChannelEventSink
@@ -214,11 +229,6 @@ public:
 protected:
   IconData mIcon;
   PageData mPage;
-  nsCOMPtr<mozIStorageConnection>& mDBConn;
-  
-  nsRefPtr<nsFaviconService> mFaviconSvc;
-  
-  nsCOMPtr<nsIFaviconDataCallback> mCallback;
   nsCOMPtr<nsIChannel> mChannel;
 };
 
@@ -226,7 +236,7 @@ protected:
 
 
 
-class AsyncAssociateIconToPage : public nsRunnable
+class AsyncAssociateIconToPage : public AsyncFaviconHelperBase
 {
 public:
   NS_DECL_NSIRUNNABLE
@@ -254,17 +264,58 @@ public:
 protected:
   IconData mIcon;
   PageData mPage;
-  nsCOMPtr<mozIStorageConnection>& mDBConn;
-  
-  nsRefPtr<nsFaviconService> mFaviconSvc;
-  
-  nsCOMPtr<nsIFaviconDataCallback> mCallback;
 };
 
 
 
 
-class NotifyIconObservers : public nsRunnable
+
+class AsyncGetFaviconURLForPage : public AsyncFaviconHelperBase
+{
+public:
+  NS_DECL_NSIRUNNABLE
+
+  
+
+
+
+
+
+
+
+
+
+  static nsresult start(nsIURI* aPageURI,
+                        nsCOMPtr<mozIStorageConnection>& aDBConn,
+                        nsIFaviconDataCallback* aCallback);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  AsyncGetFaviconURLForPage(const nsACString& aPageSpec,
+                            nsCOMPtr<mozIStorageConnection>& aDBConn,
+                            nsRefPtr<nsFaviconService>& aFaviconSvc,
+                            nsCOMPtr<nsIFaviconDataCallback>& aCallback);
+
+  virtual ~AsyncGetFaviconURLForPage();
+
+private:
+  nsCString mPageSpec;
+};
+
+
+
+
+class NotifyIconObservers : public AsyncFaviconHelperBase
 {
 public:
   NS_DECL_NSIRUNNABLE
@@ -279,11 +330,6 @@ public:
 protected:
   IconData mIcon;
   PageData mPage;
-  nsCOMPtr<mozIStorageConnection>& mDBConn;
-  
-  nsRefPtr<nsFaviconService> mFaviconSvc;
-  
-  nsCOMPtr<nsIFaviconDataCallback> mCallback;
 };
 
 } 

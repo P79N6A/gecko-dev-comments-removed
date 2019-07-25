@@ -58,8 +58,7 @@ function setAndGetFaviconData(aFilename, aData, aMimeType) {
 
 
 try {
-  var iconsvc = Cc["@mozilla.org/browser/favicon-service;1"].
-                getService(Ci.nsIFaviconService);
+  var iconsvc = PlacesUtils.favicons;
 
   
   
@@ -333,6 +332,19 @@ try {
 iconsvc.setFaviconUrlForPage(page1URI, icon1URI);
 do_check_guid_for_uri(page1URI);
 var savedIcon1URI = iconsvc.getFaviconForPage(page1URI);
+
+
+do_test_pending();
+iconsvc.getFaviconURLForPage(page1URI, {
+    onFaviconDataAvailable: function(aURI, aDataLen, aData, aMimeType) {
+      do_check_true(aURI.equals(savedIcon1URI));
+      do_check_eq(aDataLen, 0);
+      do_check_eq(aData.length, 0);
+      do_check_eq(aMimeType, "");
+      do_test_finished();
+  },
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIFaviconDataCallback])
+});
 
 
 try {
