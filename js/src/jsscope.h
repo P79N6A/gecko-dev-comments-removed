@@ -1162,6 +1162,9 @@ Shape::searchNoAllocation(JSContext *cx, Shape *start, jsid id)
 }
 #endif 
 
+void
+MarkNonNativePropertyFound(HandleObject obj, MutableHandleShape propp);
+
 } 
 
 #ifdef _MSC_VER

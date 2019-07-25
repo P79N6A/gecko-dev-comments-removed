@@ -454,19 +454,17 @@ class SetPropCompiler : public PICStubCompiler
             return disable("ops set property hook");
 
         RootedObject holder(cx);
-        JSProperty *prop = NULL;
+        RootedShape shape(cx);
 
         
         RecompilationMonitor monitor(cx);
-        if (!obj->lookupProperty(cx, name, &holder, &prop))
+        if (!obj->lookupProperty(cx, name, &holder, &shape))
             return error();
         if (monitor.recompiled())
             return Lookup_Uncacheable;
 
         
-        if (prop && holder != obj) {
-            Shape *shape = (Shape *) prop;
-
+        if (shape && holder != obj) {
             if (!holder->isNative())
                 return disable("non-native holder");
 
@@ -479,10 +477,10 @@ class SetPropCompiler : public PICStubCompiler
             if (!shape->hasSlot())
                 return disable("missing slot");
 
-            prop = NULL;
+            shape = NULL;
         }
 
-        if (!prop) {
+        if (!shape) {
             
             if (obj->isDelegate())
                 return disable("delegate");
@@ -523,7 +521,7 @@ class SetPropCompiler : public PICStubCompiler
 
 
 
-            Shape *shape =
+            shape =
                 obj->putProperty(cx, name, getter, clasp->setProperty,
                                  SHAPE_INVALID_SLOT, JSPROP_ENUMERATE, flags, 0);
             if (!shape)
@@ -575,7 +573,6 @@ class SetPropCompiler : public PICStubCompiler
             return generateStub(initialShape, shape, true);
         }
 
-        Shape *shape = (Shape *) prop;
         if (!shape->writable())
             return disable("readonly");
         if (shape->hasDefaultSetter()) {
@@ -661,14 +658,14 @@ struct GetPropHelper {
     
     
     RootedObject       holder;
-    JSProperty         *prop;
+    RootedShape        prop;
 
     
     
-    Shape *shape;
+    RootedShape        shape;
 
     GetPropHelper(JSContext *cx, JSObject *obj, PropertyName *name, IC &ic, VMFrame &f)
-      : cx(cx), obj(cx, obj), name(cx, name), ic(ic), f(f), holder(cx), prop(NULL), shape(NULL)
+      : cx(cx), obj(cx, obj), name(cx, name), ic(ic), f(f), holder(cx), prop(cx), shape(cx)
     { }
 
   public:
@@ -687,7 +684,7 @@ struct GetPropHelper {
             return ic.disable(cx, "non-native");
         if (!IsCacheableProtoChain(obj, holder))
             return ic.disable(cx, "non-native holder");
-        shape = (Shape *)prop;
+        shape = prop;
         return Lookup_Cacheable;
     }
 
@@ -708,7 +705,7 @@ struct GetPropHelper {
             return ic.disable(f, "lookup failed");
         if (!IsCacheableProtoChain(obj, holder))
             return ic.disable(f, "non-native holder");
-        shape = (Shape *)prop;
+        shape = prop;
         return Lookup_Cacheable;
     }
 
@@ -1675,7 +1672,7 @@ class ScopeNameCompiler : public PICStubCompiler
     {
         JSObject *obj = getprop.obj;
         Rooted<JSObject*> holder(cx, getprop.holder);
-        const JSProperty *prop = getprop.prop;
+        RootedShape prop(cx, getprop.prop);
 
         if (!prop) {
             
@@ -1698,7 +1695,7 @@ class ScopeNameCompiler : public PICStubCompiler
             return true;
         }
 
-        Shape *shape = getprop.shape;
+        RootedShape shape(cx, getprop.shape);
         Rooted<JSObject*> normalized(cx, obj);
         if (obj->isWith() && !shape->hasDefaultGetter())
             normalized = &obj->asWith().object();

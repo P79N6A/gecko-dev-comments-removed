@@ -1393,3 +1393,16 @@ JSCompartment::sweepInitialShapeTable()
         }
     }
 }
+
+
+
+
+
+
+
+void
+js::MarkNonNativePropertyFound(HandleObject obj, MutableHandleShape propp)
+{
+    propp.set(obj->lastProperty());
+}
+
