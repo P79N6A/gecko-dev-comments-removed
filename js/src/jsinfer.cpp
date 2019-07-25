@@ -5508,15 +5508,18 @@ JSObject::shouldSplicePrototype(JSContext *cx)
 }
 
 bool
-JSObject::splicePrototype(JSContext *cx, JSObject *proto)
+JSObject::splicePrototype(JSContext *cx, JSObject *proto_)
 {
+    RootedObject proto(cx, proto_);
+    RootedObject self(cx, this);
+
     
 
 
 
 
 
-    JS_ASSERT_IF(cx->typeInferenceEnabled(), hasSingletonType());
+    JS_ASSERT_IF(cx->typeInferenceEnabled(), self->hasSingletonType());
 
     
     JS_ASSERT_IF(proto, !proto->getClass()->ext.outerObject);
@@ -5525,7 +5528,7 @@ JSObject::splicePrototype(JSContext *cx, JSObject *proto)
 
 
 
-    TypeObject *type = getType(cx);
+    TypeObject *type = self->getType(cx);
     TypeObject *protoType = NULL;
     if (proto) {
         protoType = proto->getType(cx);
@@ -5537,7 +5540,7 @@ JSObject::splicePrototype(JSContext *cx, JSObject *proto)
         TypeObject *type = proto ? proto->getNewType(cx) : cx->compartment->getEmptyType(cx);
         if (!type)
             return false;
-        type_ = type;
+        self->type_ = type;
         return true;
     }
 

@@ -190,13 +190,13 @@ class Debugger {
 
 
 
-    JSObject *newDebuggerScript(JSContext *cx, Handle<JSScript*> script);
+    JSObject *newDebuggerScript(JSContext *cx, HandleScript script);
 
     
 
 
 
-    void fireNewScript(JSContext *cx, Handle<JSScript*> script);
+    void fireNewScript(JSContext *cx, HandleScript script);
 
     static inline Debugger *fromLinks(JSCList *links);
     inline Breakpoint *firstBreakpoint() const;
@@ -337,7 +337,7 @@ class Debugger {
 
 
 
-    JSObject *wrapScript(JSContext *cx, Handle<JSScript*> script);
+    JSObject *wrapScript(JSContext *cx, HandleScript script);
 
   private:
     Debugger(const Debugger &) MOZ_DELETE;

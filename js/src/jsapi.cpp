@@ -5301,7 +5301,8 @@ JS_ExecuteScript(JSContext *cx, JSObject *obj, JSScript *scriptArg, jsval *rval)
 
 
     if (scriptArg->compartment() != obj->compartment()) {
-        script = CloneScript(cx, scriptArg);
+        RootedScript scriptArgRoot(cx, scriptArg);
+        script = CloneScript(cx, scriptArgRoot);
         if (!script.get())
             return false;
     } else {
