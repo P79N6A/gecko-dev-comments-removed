@@ -3196,7 +3196,7 @@ nsCookieService::CheckPath(nsCookieAttributes &aCookieAttributes,
                            nsIURI             *aHostURI)
 {
   
-  if (aCookieAttributes.path.IsEmpty()) {
+  if (aCookieAttributes.path.IsEmpty() || aCookieAttributes.path.First() != '/') {
     
     
     
