@@ -380,7 +380,7 @@ PRIVATE PRBool uCheckAndScanAlways2ByteGR128(
 
   if(inbuflen < 2)    
     return PR_FALSE;
-  else if (!(in[1] & 0x80))     
+  else if (in[1] < 0x41)     
   {
     *inscanlen = 2; 
     *out = 0xFF;  
