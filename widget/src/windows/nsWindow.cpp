@@ -5235,7 +5235,10 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     case WM_GETOBJECT:
     {
       *aRetValue = 0;
-      if (lParam == OBJID_CLIENT) { 
+      
+      
+      DWORD objId = static_cast<DWORD>(lParam);
+      if (objId == OBJID_CLIENT) { 
         nsAccessible *rootAccessible = GetRootAccessible(); 
         if (rootAccessible) {
           IAccessible *msaaAccessible = NULL;
