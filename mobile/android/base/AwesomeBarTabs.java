@@ -202,6 +202,7 @@ public class AwesomeBarTabs extends TabHost {
         private static final int VIEW_TYPE_COUNT = 2;
 
         private LayoutInflater mInflater;
+        private Resources mResources;
         private LinkedList<Pair<Integer, String>> mParentStack;
         private RefreshBookmarkCursorTask mRefreshTask = null;
         private TextView mBookmarksTitleView;
@@ -210,6 +211,7 @@ public class AwesomeBarTabs extends TabHost {
             super(context, layout, c, from, to);
 
             mInflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            mResources = mContext.getResources();
 
             
             
@@ -268,6 +270,24 @@ public class AwesomeBarTabs extends TabHost {
             if (!c.moveToPosition(position))
                 return "";
 
+            String guid = c.getString(c.getColumnIndexOrThrow(Bookmarks.GUID));
+
+            
+            if (guid == null || guid.length() == 12)
+                return c.getString(c.getColumnIndexOrThrow(Bookmarks.TITLE));
+
+            
+            if (guid.equals(Bookmarks.MOBILE_FOLDER_GUID))
+                return mResources.getString(R.string.bookmarks_folder_mobile);
+            else if (guid.equals(Bookmarks.MENU_FOLDER_GUID))
+                return mResources.getString(R.string.bookmarks_folder_menu);
+            else if (guid.equals(Bookmarks.TOOLBAR_FOLDER_GUID))
+                return mResources.getString(R.string.bookmarks_folder_toolbar);
+            else if (guid.equals(Bookmarks.UNFILED_FOLDER_GUID))
+                return mResources.getString(R.string.bookmarks_folder_unfiled);
+
+            
+            
             return c.getString(c.getColumnIndexOrThrow(Bookmarks.TITLE));
         }
 
