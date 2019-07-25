@@ -139,9 +139,6 @@
 #include "nsHTMLDocument.h"
 
 
-#include "nsIDOMValidityState.h"
-
-
 #include "nsIDOMHTMLSelectElement.h"
 
 
@@ -837,6 +834,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
   NS_DEFINE_CLASSINFO_DATA(HTMLSelectElement, nsHTMLSelectElementSH,
                            ELEMENT_SCRIPTABLE_FLAGS |
                            nsIXPCScriptable::WANT_GETPROPERTY)
+  NS_DEFINE_CLASSINFO_DATA(HTMLSpacerElement, nsElementSH,
+                           ELEMENT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(HTMLSpanElement, nsElementSH,
                            ELEMENT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(HTMLStyleElement, nsElementSH,
@@ -861,10 +860,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            ELEMENT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(HTMLUnknownElement, nsElementSH,
                            ELEMENT_SCRIPTABLE_FLAGS)
-
-  
-  NS_DEFINE_CLASSINFO_DATA(ValidityState, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   
   NS_DEFINE_CLASSINFO_DATA(CSSStyleRule, nsDOMGenericSH,
@@ -2712,6 +2707,11 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
+  DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(HTMLSpacerElement, nsIDOMHTMLElement)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLElement)
+    DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES
+  DOM_CLASSINFO_MAP_END
+
   DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(HTMLSpanElement, nsIDOMHTMLElement)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLElement)
     DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES
@@ -2774,10 +2774,6 @@ nsDOMClassInfo::Init()
   DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(HTMLUnknownElement, nsIDOMHTMLElement)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLElement)
     DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES
-  DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(ValidityState, nsIDOMValidityState)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMValidityState)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(CSSStyleRule, nsIDOMCSSStyleRule)
@@ -4896,8 +4892,8 @@ nsDOMClassInfo::ShutDown()
 
 
 NS_IMETHODIMP
-nsCommonWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
-                            JSObject *globalObj, JSObject **parentObj)
+nsInnerWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
+                           JSObject *globalObj, JSObject **parentObj)
 {
   
   
@@ -4915,25 +4911,30 @@ nsCommonWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
   NS_ASSERTION(sgo, "nativeObj not a global object!");
 
   nsGlobalWindow *win = nsGlobalWindow::FromSupports(nativeObj);
-
-  if (win->IsOuterWindow()) {
-    win->EnsureInnerWindow();
+  JSObject *winObj = win->FastGetGlobalJSObject();
+  if (!winObj) {
+    NS_ASSERTION(win->GetOuterWindowInternal()->IsCreatingInnerWindow(),
+                 "should have a JS object by this point");
+    return NS_OK;
   }
 
-  if (sgo) {
-    *parentObj = sgo->GetGlobalJSObject();
+  *parentObj = winObj;
+  return NS_OK;
+}
 
-    if (*parentObj) {
-      return win->IsChromeWindow() ? NS_OK : NS_SUCCESS_NEEDS_XOW;
-    }
+NS_IMETHODIMP
+nsOuterWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
+                           JSObject *globalObj, JSObject **parentObj)
+{
+  nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryInterface(nativeObj));
+  NS_ASSERTION(sgo, "nativeObj not a global object!");
+
+  nsGlobalWindow *win = nsGlobalWindow::FromSupports(nativeObj);
+  if (!win->EnsureInnerWindow()) {
+    return NS_ERROR_FAILURE;
   }
 
-  
-  
-  
-
-  *parentObj = globalObj;
-
+  *parentObj = win->GetCurrentInnerWindowInternal()->FastGetGlobalJSObject();
   return win->IsChromeWindow() ? NS_OK : NS_SUCCESS_NEEDS_XOW;
 }
 
@@ -6666,33 +6667,33 @@ nsCommonWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     my_cx = (JSContext *)my_context->GetNativeContext();
   }
 
-  JSBool ok;
-  jsval exn;
-  {
+  JSBool ok = JS_TRUE;
+  jsval exn = JSVAL_VOID;
+  if (win->IsInnerWindow()) {
     JSAutoRequest transfer(my_cx);
 
     JSObject *realObj;
     wrapper->GetJSObject(&realObj);
-    
+
     
     
     ok = obj == realObj ?
          ::JS_ResolveStandardClass(my_cx, obj, id, &did_resolve) :
          JS_TRUE;
-    
+
     if (!ok) {
       
       
-      
+
       if (!JS_GetPendingException(my_cx, &exn)) {
         return NS_ERROR_UNEXPECTED;
       }
+
       
       
       
       
-      
-      
+
       JS_ClearPendingException(my_cx);
     }
   }

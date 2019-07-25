@@ -383,6 +383,11 @@ public:
     
     return (nsGlobalWindow *)(nsIScriptGlobalObject *)supports;
   }
+  static nsISupports *ToSupports(nsGlobalWindow *win)
+  {
+    
+    return (nsISupports *)(nsIScriptGlobalObject *)win;
+  }
   static nsGlobalWindow *FromWrapper(nsIXPConnectWrappedNative *wrapper)
   {
     return FromSupports(wrapper->Native());
