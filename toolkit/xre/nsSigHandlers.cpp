@@ -408,7 +408,11 @@ LONG __stdcall FpeHandler(PEXCEPTION_POINTERS pe)
 
 void InstallSignalHandlers(const char *ProgramName)
 {
+#if 0
+  
+  
   SetUnhandledExceptionFilter(FpeHandler);
+#endif
 }
 
 #else
