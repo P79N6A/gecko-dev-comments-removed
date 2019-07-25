@@ -131,3 +131,67 @@ function catchFail(func) {
     }
   };
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForValue(aOptions)
+{
+  let start = Date.now();
+  let timeout = aOptions.timeout || 5000;
+  let lastValue;
+
+  function wait(validatorFn, successFn, failureFn)
+  {
+    if ((Date.now() - start) > timeout) {
+      
+      ok(false, "Timed out while waiting for: " + aOptions.name);
+      let expected = "value" in aOptions ?
+                     "'" + aOptions.value + "'" :
+                     "a trueish value";
+      info("timeout info :: got '" + lastValue + "', expected " + expected);
+      failureFn(aOptions, lastValue);
+      return;
+    }
+
+    lastValue = validatorFn(aOptions, lastValue);
+    let successful = "value" in aOptions ?
+                      lastValue == aOptions.value :
+                      lastValue;
+    if (successful) {
+      ok(true, aOptions.name);
+      successFn(aOptions, lastValue);
+    }
+    else {
+      setTimeout(function() wait(validatorFn, successFn, failureFn), 100);
+    }
+  }
+
+  wait(aOptions.validator, aOptions.success, aOptions.failure);
+}

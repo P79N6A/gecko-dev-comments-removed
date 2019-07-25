@@ -1412,10 +1412,8 @@ HeadsUpDisplay.prototype = {
       switch (aMessage._type) {
         case "PageError": {
           let category = this.categoryForScriptError(aMessage.category);
-          if (category != -1) {
-            this.outputMessage(category, this.reportPageError,
-                               [category, aMessage]);
-          }
+          this.outputMessage(category, this.reportPageError,
+                             [category, aMessage]);
           break;
         }
         case "ConsoleAPI":
@@ -2053,10 +2051,6 @@ HeadsUpDisplay.prototype = {
 
   reportPageError: function HUD_reportPageError(aCategory, aScriptError)
   {
-    if (!aScriptError.outerWindowID) {
-      return;
-    }
-
     
     
     let severity = SEVERITY_ERROR;
@@ -2090,17 +2084,6 @@ HeadsUpDisplay.prototype = {
   categoryForScriptError: function HUD_categoryForScriptError(aScriptError)
   {
     switch (aScriptError.category) {
-      
-      case "XPConnect JavaScript":
-      case "component javascript":
-      case "chrome javascript":
-      case "chrome registration":
-      case "XBL":
-      case "XBL Prototype Handler":
-      case "XBL Content Sink":
-      case "xbl javascript":
-        return -1;
-
       case "CSS Parser":
       case "CSS Loader":
         return CATEGORY_CSS;
@@ -2282,8 +2265,6 @@ HeadsUpDisplay.prototype = {
   receiveMessage: function HUD_receiveMessage(aMessage)
   {
     if (!aMessage.json || aMessage.json.hudId != this.hudId) {
-      Cu.reportError("JSTerm: received message " + aMessage.name +
-                     " from wrong hudId.");
       return;
     }
 
@@ -2306,10 +2287,8 @@ HeadsUpDisplay.prototype = {
       case "WebConsole:PageError": {
         let pageError = aMessage.json.pageError;
         let category = this.categoryForScriptError(pageError);
-        if (category != -1) {
-          this.outputMessage(category, this.reportPageError,
-                             [category, pageError]);
-        }
+        this.outputMessage(category, this.reportPageError,
+                           [category, pageError]);
         break;
       }
       case "WebConsole:CachedMessages":

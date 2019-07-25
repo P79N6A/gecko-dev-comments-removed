@@ -8,6 +8,9 @@ const EXPORTED_SYMBOLS = [ "DeveloperToolbar" ];
 
 const NS_XHTML = "http://www.w3.org/1999/xhtml";
 
+const WEBCONSOLE_CONTENT_SCRIPT_URL =
+  "chrome://browser/content/devtools/HUDService-content.js";
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -36,6 +39,10 @@ function DeveloperToolbar(aChromeWindow, aToolbarElement)
   this._lastState = NOTIFICATIONS.HIDE;
   this._pendingShowCallback = undefined;
   this._pendingHide = false;
+  this._errorsCount = {};
+  this._webConsoleButton = this._doc
+                           .getElementById("developer-toolbar-webconsole");
+  this._webConsoleButtonLabel = this._webConsoleButton.label;
 }
 
 
@@ -58,12 +65,27 @@ const NOTIFICATIONS = {
 
 DeveloperToolbar.prototype.NOTIFICATIONS = NOTIFICATIONS;
 
+DeveloperToolbar.prototype._contentMessageListeners =
+  ["WebConsole:CachedMessages", "WebConsole:PageError"];
+
 
 
 
 Object.defineProperty(DeveloperToolbar.prototype, 'visible', {
   get: function DT_visible() {
     return !this._element.hidden;
+  },
+  enumerable: true
+});
+
+var _gSequenceId = 0;
+
+
+
+
+Object.defineProperty(DeveloperToolbar.prototype, 'sequenceId', {
+  get: function DT_visible() {
+    return _gSequenceId++;
   },
   enumerable: true
 });
@@ -152,8 +174,12 @@ DeveloperToolbar.prototype._onload = function DT_onload()
   this.display.onOutput.add(this.outputPanel._outputChanged, this.outputPanel);
 
   this._chromeWindow.getBrowser().tabContainer.addEventListener("TabSelect", this, false);
+  this._chromeWindow.getBrowser().tabContainer.addEventListener("TabClose", this, false);
   this._chromeWindow.getBrowser().addEventListener("load", this, true);
+  this._chromeWindow.getBrowser().addEventListener("beforeunload", this, true);
   this._chromeWindow.addEventListener("resize", this, false);
+
+  this._initErrorsCount(this._chromeWindow.getBrowser().selectedTab);
 
   this._element.hidden = false;
   this._input.focus();
@@ -176,6 +202,67 @@ DeveloperToolbar.prototype._onload = function DT_onload()
     this.display.maybeShowIntro();
     DeveloperToolbar.introShownThisSession = true;
   }
+};
+
+
+
+
+
+
+
+
+
+DeveloperToolbar.prototype._initErrorsCount = function DT__initErrorsCount(aTab)
+{
+  let tabId = aTab.linkedPanel;
+  if (tabId in this._errorsCount) {
+    this._updateErrorsCount();
+    return;
+  }
+
+  let messageManager = aTab.linkedBrowser.messageManager;
+  messageManager.loadFrameScript(WEBCONSOLE_CONTENT_SCRIPT_URL, true);
+
+  this._errorsCount[tabId] = 0;
+
+  this._contentMessageListeners.forEach(function(aName) {
+    messageManager.addMessageListener(aName, this);
+  }, this);
+
+  let message = {
+    features: ["PageError"],
+    cachedMessages: ["PageError"],
+  };
+
+  this.sendMessageToTab(aTab, "WebConsole:Init", message);
+  this._updateErrorsCount();
+};
+
+
+
+
+
+
+
+
+
+DeveloperToolbar.prototype._stopErrorsCount = function DT__stopErrorsCount(aTab)
+{
+  let tabId = aTab.linkedPanel;
+  if (!(tabId in this._errorsCount)) {
+    this._updateErrorsCount();
+    return;
+  }
+
+  this.sendMessageToTab(aTab, "WebConsole:Destroy", {});
+
+  let messageManager = aTab.linkedBrowser.messageManager;
+  this._contentMessageListeners.forEach(function(aName) {
+    messageManager.removeMessageListener(aName, this);
+  }, this);
+
+  delete this._errorsCount[tabId];
+  this._updateErrorsCount();
 };
 
 
@@ -207,6 +294,11 @@ DeveloperToolbar.prototype.destroy = function DT_destroy()
 {
   this._chromeWindow.getBrowser().tabContainer.removeEventListener("TabSelect", this, false);
   this._chromeWindow.getBrowser().removeEventListener("load", this, true); 
+  this._chromeWindow.getBrowser().removeEventListener("beforeunload", this, true);
+  this._chromeWindow.removeEventListener("resize", this, false);
+
+  let tabs = this._chromeWindow.getBrowser().tabs;
+  Array.prototype.forEach.call(tabs, this._stopErrorsCount, this);
 
   this.display.onVisibilityChange.remove(this.outputPanel._visibilityChanged, this.outputPanel);
   this.display.onVisibilityChange.remove(this.tooltipPanel._visibilityChanged, this.tooltipPanel);
@@ -261,10 +353,147 @@ DeveloperToolbar.prototype.handleEvent = function DT_handleEvent(aEvent)
           contentDocument: contentDocument
         },
       });
+
+      if (aEvent.type == "TabSelect") {
+        this._initErrorsCount(aEvent.target);
+      }
     }
   }
   else if (aEvent.type == "resize") {
     this.outputPanel._resize();
+  }
+  else if (aEvent.type == "TabClose") {
+    this._stopErrorsCount(aEvent.target);
+  }
+  else if (aEvent.type == "beforeunload") {
+    this._onPageBeforeUnload(aEvent);
+  }
+};
+
+
+
+
+
+
+DeveloperToolbar.prototype.receiveMessage = function DT_receiveMessage(aMessage)
+{
+  if (!aMessage.json || !(aMessage.json.hudId in this._errorsCount)) {
+    return;
+  }
+
+  let tabId = aMessage.json.hudId;
+  let errors = this._errorsCount[tabId];
+
+  switch (aMessage.name) {
+    case "WebConsole:PageError":
+      this._onPageError(tabId, aMessage.json.pageError);
+      break;
+    case "WebConsole:CachedMessages":
+      aMessage.json.messages.forEach(this._onPageError.bind(this, tabId));
+      break;
+  }
+
+  if (errors != this._errorsCount[tabId]) {
+    this._updateErrorsCount(tabId);
+  }
+};
+
+
+
+
+
+
+
+
+
+DeveloperToolbar.prototype.sendMessageToTab =
+function DT_sendMessageToTab(aTab, aName, aMessage)
+{
+  let tabId = aTab.linkedPanel;
+  aMessage.hudId = tabId;
+  if (!("id" in aMessage)) {
+    aMessage.id = "DevToolbar-" + this.sequenceId;
+  }
+
+  aTab.linkedBrowser.messageManager.sendAsyncMessage(aName, aMessage);
+};
+
+
+
+
+
+
+
+
+
+
+DeveloperToolbar.prototype._onPageError =
+function DT__onPageError(aTabId, aPageError)
+{
+  if (aPageError.category == "CSS Parser" ||
+      aPageError.category == "CSS Loader" ||
+      (aPageError.flags & aPageError.warningFlag) ||
+      (aPageError.flags & aPageError.strictFlag)) {
+    return; 
+  }
+
+  this._errorsCount[aTabId]++;
+};
+
+
+
+
+
+
+
+
+DeveloperToolbar.prototype._onPageBeforeUnload =
+function DT__onPageBeforeUnload(aEvent)
+{
+  let window = aEvent.target.defaultView;
+  if (window.top !== window) {
+    return;
+  }
+
+  let tabs = this._chromeWindow.getBrowser().tabs;
+  Array.prototype.some.call(tabs, function(aTab) {
+    if (aTab.linkedBrowser.contentWindow === window) {
+      let tabId = aTab.linkedPanel;
+      if (tabId in this._errorsCount) {
+        this._errorsCount[tabId] = 0;
+        this._updateErrorsCount(tabId);
+      }
+      return true;
+    }
+    return false;
+  }, this);
+};
+
+
+
+
+
+
+
+
+
+
+DeveloperToolbar.prototype._updateErrorsCount =
+function DT__updateErrorsCount(aChangedTabId)
+{
+  let tabId = this._chromeWindow.getBrowser().selectedTab.linkedPanel;
+  if (aChangedTabId && tabId != aChangedTabId) {
+    return;
+  }
+
+  let errors = this._errorsCount[tabId];
+
+  if (errors) {
+    this._webConsoleButton.label =
+      this._webConsoleButtonLabel + " (" + errors + ")";
+  }
+  else {
+    this._webConsoleButton.label = this._webConsoleButtonLabel;
   }
 };
 
