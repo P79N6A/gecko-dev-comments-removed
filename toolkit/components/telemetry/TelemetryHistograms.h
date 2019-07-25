@@ -273,6 +273,11 @@ HISTOGRAM(PLACES_AUTOCOMPLETE_1ST_RESULT_TIME_MS, 50, 500, 10, EXPONENTIAL, "PLA
 
 
 
+HISTOGRAM(UPDATE_STATUS, 0, 16004, 18, LINEAR, "Updater: the status of the latest update performed")
+
+
+
+
 #ifdef MOZ_THUNDERBIRD
 HISTOGRAM(THUNDERBIRD_GLODA_SIZE_MB, 1, 1000, 40, LINEAR, "Gloda: size of global-messages-db.sqlite (MB)")
 HISTOGRAM(THUNDERBIRD_CONVERSATIONS_TIME_TO_2ND_GLODA_QUERY_MS, 1, 10000, 30, EXPONENTIAL, "Conversations: time between the moment we click and the second gloda query returns (ms)")
