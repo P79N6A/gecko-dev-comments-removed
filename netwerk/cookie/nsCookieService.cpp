@@ -957,7 +957,10 @@ nsCookieService::TryInitDB(PRBool aDeleteExistingDB)
   mDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("PRAGMA synchronous = OFF"));
 
   
+  
   mDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("PRAGMA journal_mode = WAL"));
+  mDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "PRAGMA wal_autocheckpoint = 16"));
 
   
   rv = mDBState->dbConn->CreateStatement(NS_LITERAL_CSTRING(
