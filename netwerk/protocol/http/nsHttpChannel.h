@@ -161,6 +161,23 @@ public:
         return NS_OK;
     }
 
+    
+    
+    class OfflineCacheEntryAsForeignMarker {
+        nsCOMPtr<nsIApplicationCache> mApplicationCache;
+        nsCString mCacheKey;
+    public:
+        OfflineCacheEntryAsForeignMarker(nsIApplicationCache* appCache,
+                                         const nsCSubstring& key)
+             : mApplicationCache(appCache)
+             , mCacheKey(key)
+        {}
+
+        nsresult MarkAsForeign();
+    };
+
+    OfflineCacheEntryAsForeignMarker* GetOfflineCacheEntryAsForeignMarker();
+
 private:
     typedef nsresult (nsHttpChannel::*nsContinueRedirectionFunc)(nsresult result);
 
