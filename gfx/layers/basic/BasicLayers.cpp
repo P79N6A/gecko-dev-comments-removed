@@ -1357,24 +1357,28 @@ already_AddRefed<gfxContext>
 BasicLayerManager::PushGroupWithCachedSurface(gfxContext *aTarget,
                                               gfxASurface::gfxContentType aContent)
 {
-  if (mCachedSurfaceInUse || !aTarget->IsCairo()) {
-    
-    aTarget->PushGroup(aContent);
-    nsRefPtr<gfxContext> result = aTarget;
-    return result.forget();
-  }
-  mCachedSurfaceInUse = true;
-
-  gfxContextMatrixAutoSaveRestore saveMatrix(aTarget);
-  aTarget->IdentityMatrix();
-
-  nsRefPtr<gfxASurface> currentSurf = aTarget->CurrentSurface();
-  gfxRect clip = aTarget->GetClipExtents();
-  clip.RoundOut();
-
-  nsRefPtr<gfxContext> ctx = mCachedSurface.Get(aContent, clip, currentSurf);
+  nsRefPtr<gfxContext> ctx;
   
-  ctx->SetMatrix(saveMatrix.Matrix());
+  if (!mCachedSurfaceInUse && aTarget->IsCairo()) {
+    gfxContextMatrixAutoSaveRestore saveMatrix(aTarget);
+    aTarget->IdentityMatrix();
+
+    nsRefPtr<gfxASurface> currentSurf = aTarget->CurrentSurface();
+    gfxRect clip = aTarget->GetClipExtents();
+    clip.RoundOut();
+
+    ctx = mCachedSurface.Get(aContent, clip, currentSurf);
+
+    if (ctx) {
+      mCachedSurfaceInUse = true;
+      
+      ctx->SetMatrix(saveMatrix.Matrix());
+      return ctx.forget();
+    }
+  }
+
+  ctx = aTarget;
+  ctx->PushGroup(aContent);
   return ctx.forget();
 }
 
