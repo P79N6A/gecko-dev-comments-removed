@@ -166,6 +166,14 @@ function showSnippets()
   if (snippets) {
     let snippetsElt = document.getElementById("snippets");
     snippetsElt.innerHTML = snippets;
+    
+    
+    Array.forEach(snippetsElt.getElementsByTagName("script"), function(elt) {
+      let relocatedScript = document.createElement("script");
+      relocatedScript.type = "text/javascript;version=1.8";
+      relocatedScript.text = elt.text;
+      snippetsElt.replaceChild(relocatedScript, elt);
+    });
     snippetsElt.hidden = false;
   } else {
     
