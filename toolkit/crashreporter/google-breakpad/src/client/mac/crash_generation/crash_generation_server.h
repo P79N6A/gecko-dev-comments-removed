@@ -65,6 +65,7 @@ class CrashGenerationServer {
 
   typedef void (*OnClientExitingCallback)(void *context,
                                           const ClientInfo &client_info);
+  typedef bool (*FilterCallback)(void *context);
 
   
   
@@ -79,7 +80,12 @@ class CrashGenerationServer {
   
   
   
+  
+  
+  
   CrashGenerationServer(const char *mach_port_name,
+                        FilterCallback filter,
+                        void *filter_context,
                         OnClientDumpRequestCallback dump_callback,
                         void *dump_context,
                         OnClientExitingCallback exit_callback,
@@ -108,6 +114,9 @@ class CrashGenerationServer {
   
   
   bool WaitForOneMessage();
+
+  FilterCallback filter_;
+  void *filter_context_;
 
   OnClientDumpRequestCallback dump_callback_;
   void *dump_context_;
