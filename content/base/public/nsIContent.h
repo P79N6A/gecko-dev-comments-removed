@@ -74,9 +74,9 @@ enum nsLinkState {
 };
 
 
-#define NS_ICONTENT_IID       \
-{ 0xdec4b381, 0xa3fc, 0x402b, \
- { 0x83, 0x96, 0x0a, 0x7b, 0x37, 0x52, 0xcf, 0x70 } }
+#define NS_ICONTENT_IID \
+{ 0xb651e0a7, 0x1471, 0x49cc, \
+  { 0xb4, 0xe1, 0xc2, 0xca, 0x01, 0xfe, 0xb7, 0x80 } }
 
 
 
@@ -757,14 +757,8 @@ public:
 
 
 
-
-
-
-
-
-  virtual nsresult DoneAddingChildren(bool aHaveNotified)
+  virtual void DoneAddingChildren(bool aHaveNotified)
   {
-    return NS_OK;
   }
 
   
