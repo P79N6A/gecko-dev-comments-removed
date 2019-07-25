@@ -4950,7 +4950,7 @@ nsHTMLEditor::IsEmptyNodeImpl( nsIDOMNode *aNode,
             }
           }
           
-          else if (nsHTMLEditUtils::IsFormWidget(aNode))
+          else if (nsHTMLEditUtils::IsFormWidget(node))
           { 
             *outIsEmptyNode = false;
             return NS_OK;
