@@ -115,6 +115,10 @@ public:
 
     
     
+    nsresult ClosePersistentConnections();
+
+    
+    
     nsresult GetSocketThreadTarget(nsIEventTarget **);
 
     
@@ -263,6 +267,7 @@ private:
     static PRIntn PruneDeadConnectionsCB(nsHashKey *, void *, void *);
     static PRIntn ShutdownPassCB(nsHashKey *, void *, void *);
     static PRIntn PurgeExcessIdleConnectionsCB(nsHashKey *, void *, void *);
+    static PRIntn ClosePersistentConnectionsCB(nsHashKey *, void *, void *);
     PRBool   ProcessPendingQForEntry(nsConnectionEntry *);
     PRBool   AtActiveConnectionLimit(nsConnectionEntry *, PRUint8 caps);
     void     GetConnection(nsConnectionEntry *, nsHttpTransaction *,
@@ -334,6 +339,7 @@ private:
     void OnMsgPruneDeadConnections (PRInt32, void *);
     void OnMsgReclaimConnection    (PRInt32, void *);
     void OnMsgUpdateParam          (PRInt32, void *);
+    void OnMsgClosePersistentConnections (PRInt32, void *);
 
     
     
