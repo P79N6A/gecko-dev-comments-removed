@@ -247,27 +247,11 @@ function test() {
   gPrefService.setBoolPref(ENABLE_HISTORY_PREF, false);
 
   
-  var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-           getService(Ci.nsIWindowWatcher);
-  function windowObserver(aSubject, aTopic, aData) {
-    if (aTopic != "domwindowopened")
-      return;
-    ww.unregisterNotification(windowObserver);
-    gLibrary = aSubject.QueryInterface(Ci.nsIDOMWindow);
-    gLibrary.addEventListener("load", function onLoad(event) {
-      gLibrary.removeEventListener("load", onLoad, false);
-      
-      setTimeout(runNextTest, 0);
-    }, false);
-  }
-
-  
-  ww.registerNotification(windowObserver);
-  ww.openWindow(null,
-                "chrome://browser/content/places/places.xul",
-                "",
-                "chrome,toolbar=yes,dialog=no,resizable",
-                null); 
+  openLibrary(function (library) {
+    gLibrary = library;
+    
+    runNextTest();
+  });
 }
 
 function runNextTest() {

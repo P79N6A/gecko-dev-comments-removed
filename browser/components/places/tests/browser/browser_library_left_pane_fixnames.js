@@ -40,23 +40,13 @@
 
 
 
-var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-         getService(Ci.nsIWindowWatcher);
-
 
 
 
 
 var leftPaneQueries = [];
 
-function windowObserver(aSubject, aTopic, aData) {
-  if (aTopic != "domwindowopened")
-    return;
-  ww.unregisterNotification(windowObserver);
-  var organizer = aSubject.QueryInterface(Ci.nsIDOMWindow);
-  organizer.addEventListener("load", function onLoad(event) {
-    organizer.removeEventListener("load", onLoad, false);
-    executeSoon(function () {
+function onLibraryReady(organizer) {
       
       for (var i = 0; i < leftPaneQueries.length; i++) {
         var query = leftPaneQueries[i];
@@ -72,8 +62,6 @@ function windowObserver(aSubject, aTopic, aData) {
       organizer.close();
       
       finish();
-    });
-  }, false);
 }
 
 function test() {
@@ -134,10 +122,5 @@ function test() {
   PlacesUIUtils.__defineGetter__("leftPaneFolderId", cachedLeftPaneFolderIdGetter);
 
   
-  ww.registerNotification(windowObserver);
-  ww.openWindow(null,
-                "chrome://browser/content/places/places.xul",
-                "",
-                "chrome,toolbar=yes,dialog=no,resizable",
-                null);
+  openLibrary(onLibraryReady);
 }
