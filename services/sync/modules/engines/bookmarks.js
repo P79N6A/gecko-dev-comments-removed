@@ -281,14 +281,20 @@ BookmarksEngine.prototype = {
     dump( "CreateOutgoingShare: " + folder + ", " + username  + "\n" );
     this._log.debug("Sharing bookmarks from " + folder + " with " + username);
 
+    
     this._getSymKey.async(this, self.cb);
     yield;
 
     dump( "Trying DAV.GET...\n" );
+    dump( "Keyfile is " + this.keysFile + "\n" );
 
 
 
 
+
+
+    
+    
 
 
     
