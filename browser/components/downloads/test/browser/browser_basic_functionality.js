@@ -36,8 +36,10 @@ function gen_test()
 
     
     let richlistbox = document.getElementById("downloadsListBox");
-    is(richlistbox.children.length, DownloadData.length,
-       "There is the correct number of richlistitems");
+
+
+
+
     for (let i = 0; i < richlistbox.children.length; i++) {
       let element = richlistbox.children[i];
       let dataItem = new DownloadsViewItemController(element).dataItem;
