@@ -427,6 +427,10 @@ pref("media.realtime_decoder.enabled", true);
 pref("layout.frame_rate.precise", true);
 
 
+pref("b2g.remote-js.enabled", true);
+pref("b2g.remote-js.port", 9999);
+
+
 pref("power.screen.timeout", 60);
 
 pref("full-screen-api.enabled", true);
