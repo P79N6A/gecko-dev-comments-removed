@@ -1492,13 +1492,10 @@ namespace nanojit
             {
                 size_t delta = (uintptr_t)priorIns - (uintptr_t)_nIns; 
 
-                if (codeList) {
-                    codeList = codeList;
-                }
                 
                 if (!codeList || !codeList->isInBlock(priorIns)) {
                     NanoAssert(delta < VMPI_getVMPageSize()); 
-                    nopInsertTrigger -= delta;
+                    nopInsertTrigger -= (int32_t) delta;
                     if (nopInsertTrigger < 0)
                     {
                         nopInsertTrigger = noiseForNopInsertion(_noise);
