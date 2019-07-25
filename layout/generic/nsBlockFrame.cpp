@@ -1213,6 +1213,13 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   aStatus = state.mReflowStatus;
 
 #ifdef DEBUG
+  
+  
+  
+  
+  
+  nsLayoutUtils::AssertNoDuplicateContinuations(this, mFloats);
+
   if (gNoisyReflow) {
     IndentBy(stdout, gNoiseIndent);
     ListTag(stdout);
@@ -4511,6 +4518,15 @@ nsBlockFrame::DrainOverflowLines(nsBlockReflowState& aState)
 void
 nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
 {
+#ifdef DEBUG
+  
+  
+  
+  
+  
+  nsLayoutUtils::AssertNoDuplicateContinuations(this, mFloats);
+#endif
+
   
   nsBlockFrame* prevBlock = static_cast<nsBlockFrame*>(GetPrevInFlow());
   if (!prevBlock)
@@ -4522,15 +4538,6 @@ nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
     }
     delete list;
   }
-
-#ifdef DEBUG
-  for (nsIFrame* f = mFloats.FirstChild(); f ; f = f->GetNextSibling()) {
-    for (nsIFrame* c = f->GetFirstInFlow(); c ; c = c->GetNextInFlow()) {
-      NS_ASSERTION(c == f || c->GetParent() != this || !mFloats.ContainsFrame(c),
-                   "Two floats with same parent in same floats list, expect weird errors.");
-    }
-  }
-#endif
 }
 
 nsLineList*

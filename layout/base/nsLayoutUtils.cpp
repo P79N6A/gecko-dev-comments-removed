@@ -3794,6 +3794,25 @@ nsLayoutUtils::GetEditableRootContentByContentEditable(nsIDocument* aDocument)
   return nsnull;
 }
 
+#ifdef DEBUG
+ void
+nsLayoutUtils::AssertNoDuplicateContinuations(nsIFrame* aContainer,
+                                              const nsFrameList& aFrameList)
+{
+  for (nsIFrame* f = aFrameList.FirstChild(); f ; f = f->GetNextSibling()) {
+    
+    
+    
+    for (nsIFrame *c = f; (c = c->GetNextInFlow());) {
+      NS_ASSERTION(c->GetParent() != aContainer ||
+                   !aFrameList.ContainsFrame(c),
+                   "Two continuations of the same frame in the same "
+                   "frame list");
+    }
+  }
+}
+#endif
+
 nsSetAttrRunnable::nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,
                                      const nsAString& aValue)
   : mContent(aContent),

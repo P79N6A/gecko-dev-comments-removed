@@ -1263,6 +1263,17 @@ public:
       (aPresContext->Type() == nsPresContext::eContext_PrintPreview ||
        aPresContext->Type() == nsPresContext::eContext_PageLayout);
   }
+
+#ifdef DEBUG
+  
+
+
+
+
+  static void
+  AssertNoDuplicateContinuations(nsIFrame* aContainer,
+                                 const nsFrameList& aFrameList);
+#endif
 };
 
 class nsSetAttrRunnable : public nsRunnable
