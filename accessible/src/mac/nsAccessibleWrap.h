@@ -78,7 +78,7 @@ class nsAccessibleWrap : public nsAccessible
     virtual void Shutdown ();
     virtual void InvalidateChildren();
 
-    virtual nsresult HandleAccEvent(nsAccEvent *aEvent);
+    virtual nsresult HandleAccEvent(AccEvent* aEvent);
 
     
     
@@ -98,7 +98,7 @@ class nsAccessibleWrap : public nsAccessible
     
   protected:
 
-    virtual nsresult FirePlatformEvent(nsAccEvent *aEvent);
+    virtual nsresult FirePlatformEvent(AccEvent* aEvent);
 
   
 

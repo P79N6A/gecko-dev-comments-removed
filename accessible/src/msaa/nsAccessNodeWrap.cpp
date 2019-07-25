@@ -70,7 +70,7 @@ PRBool nsAccessNodeWrap::gIsEnumVariantSupportDisabled = 0;
 
 PRBool nsAccessNodeWrap::gIsIA2Disabled = PR_FALSE;
 
-nsAccTextChangeEvent *nsAccessNodeWrap::gTextEvent = nsnull;
+AccTextChangeEvent* nsAccessNodeWrap::gTextEvent = nsnull;
 
 
 

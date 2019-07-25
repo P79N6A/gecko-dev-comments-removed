@@ -307,7 +307,7 @@ public:
                                            UINT *puArgErr);
 
   
-  virtual nsresult HandleAccEvent(nsAccEvent *aEvent);
+  virtual nsresult HandleAccEvent(AccEvent* aEvent);
 
   
   static PRInt32 GetChildIDFor(nsIAccessible* aAccessible);
@@ -346,7 +346,7 @@ public:
   void UnattachIEnumVariant();
 
 protected:
-  virtual nsresult FirePlatformEvent(nsAccEvent *aEvent);
+  virtual nsresult FirePlatformEvent(AccEvent* aEvent);
 
   
   

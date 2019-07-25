@@ -39,7 +39,7 @@
 #ifndef _nsEventShell_H_
 #define _nsEventShell_H_
 
-#include "nsAccEvent.h"
+#include "AccEvent.h"
 
 #include "a11yGeneric.h"
 
@@ -59,7 +59,7 @@ public:
   
 
 
-  static void FireEvent(nsAccEvent *aEvent);
+  static void FireEvent(AccEvent* aEvent);
 
   
 
@@ -105,7 +105,7 @@ public:
   
 
 
-  void Push(nsAccEvent *aEvent);
+  void Push(AccEvent* aEvent);
 
   
 
@@ -142,20 +142,20 @@ private:
 
   void ApplyToSiblings(PRUint32 aStart, PRUint32 aEnd,
                        PRUint32 aEventType, nsINode* aNode,
-                       nsAccEvent::EEventRule aEventRule);
+                       AccEvent::EEventRule aEventRule);
 
   
 
 
-  void CoalesceReorderEventsFromSameSource(nsAccEvent *aAccEvent1,
-                                           nsAccEvent *aAccEvent2);
+  void CoalesceReorderEventsFromSameSource(AccEvent* aAccEvent1,
+                                           AccEvent* aAccEvent2);
 
   
 
 
 
-  void CoalesceReorderEventsFromSameTree(nsAccEvent *aAccEvent,
-                                         nsAccEvent *aDescendantAccEvent);
+  void CoalesceReorderEventsFromSameTree(AccEvent* aAccEvent,
+                                         AccEvent* aDescendantAccEvent);
 
   
 
@@ -186,7 +186,7 @@ private:
 
 
 
-  nsTArray<nsRefPtr<nsAccEvent> > mEvents;
+  nsTArray<nsRefPtr<AccEvent> > mEvents;
 };
 
 #endif

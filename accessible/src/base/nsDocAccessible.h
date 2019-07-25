@@ -117,7 +117,7 @@ public:
   virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
 
 #ifdef DEBUG_ACCDOCMGR
-  virtual nsresult HandleAccEvent(nsAccEvent *aAccEvent);
+  virtual nsresult HandleAccEvent(AccEvent* aAccEvent);
 #endif
 
   
@@ -151,7 +151,7 @@ public:
 
 
   nsresult FireDelayedAccessibleEvent(PRUint32 aEventType, nsINode *aNode,
-                                      nsAccEvent::EEventRule aAllowDupes = nsAccEvent::eRemoveDupes,
+                                      AccEvent::EEventRule aAllowDupes = AccEvent::eRemoveDupes,
                                       PRBool aIsAsynch = PR_FALSE,
                                       EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
@@ -160,7 +160,7 @@ public:
 
 
 
-  nsresult FireDelayedAccessibleEvent(nsAccEvent *aEvent);
+  nsresult FireDelayedAccessibleEvent(AccEvent* aEvent);
 
   
 
@@ -207,7 +207,7 @@ public:
 
 
 
-  void ProcessPendingEvent(nsAccEvent* aEvent);
+  void ProcessPendingEvent(AccEvent* aEvent);
 
 protected:
 
@@ -276,7 +276,7 @@ protected:
 
 
 
-  already_AddRefed<nsAccEvent>
+  already_AddRefed<AccEvent>
     CreateTextChangeEventForNode(nsAccessible *aContainerAccessible,
                                  nsIContent *aChangeNode,
                                  nsAccessible *aAccessible,

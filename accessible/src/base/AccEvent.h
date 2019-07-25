@@ -38,13 +38,12 @@
 
 
 
-#ifndef _nsAccEvent_H_
-#define _nsAccEvent_H_
-
-#include "nsIAccessibleEvent.h"
+#ifndef _AccEvent_H_
+#define _AccEvent_H_
 
 #include "nsAccessible.h"
 
+class nsAccEvent;
 class nsDocAccessible;
 
 
@@ -61,7 +60,7 @@ enum EIsFromUserInput
 
 
 
-class nsAccEvent: public nsIAccessibleEvent
+class AccEvent
 {
 public:
 
@@ -90,20 +89,15 @@ public:
   };
 
   
-  nsAccEvent(PRUint32 aEventType, nsAccessible *aAccessible,
-             PRBool aIsAsynch = PR_FALSE,
-             EIsFromUserInput aIsFromUserInput = eAutoDetect,
-             EEventRule aEventRule = eRemoveDupes);
+  AccEvent(PRUint32 aEventType, nsAccessible* aAccessible,
+           PRBool aIsAsynch = PR_FALSE,
+           EIsFromUserInput aIsFromUserInput = eAutoDetect,
+           EEventRule aEventRule = eRemoveDupes);
   
-  nsAccEvent(PRUint32 aEventType, nsINode *aNode, PRBool aIsAsynch = PR_FALSE,
-             EIsFromUserInput aIsFromUserInput = eAutoDetect,
-             EEventRule aEventRule = eRemoveDupes);
-  virtual ~nsAccEvent() {}
-
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsAccEvent)
-
-  NS_DECL_NSIACCESSIBLEEVENT
+  AccEvent(PRUint32 aEventType, nsINode* aNode, PRBool aIsAsynch = PR_FALSE,
+           EIsFromUserInput aIsFromUserInput = eAutoDetect,
+           EEventRule aEventRule = eRemoveDupes);
+  virtual ~AccEvent() {}
 
   
   PRUint32 GetEventType() const { return mEventType; }
@@ -114,6 +108,14 @@ public:
   nsAccessible *GetAccessible();
   nsDocAccessible* GetDocAccessible();
   nsINode* GetNode();
+
+  
+
+
+  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
+
+  
+
 
   enum EventGroup {
     eGenericEvent,
@@ -131,6 +133,12 @@ public:
     return 1U << eGenericEvent;
   }
 
+  
+
+
+  NS_INLINE_DECL_REFCOUNTING(AccEvent)
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(AccEvent)
+
 protected:
   
 
@@ -144,7 +152,6 @@ protected:
   void CaptureIsFromUserInput(EIsFromUserInput aIsFromUserInput);
 
   PRBool mIsFromUserInput;
-
   PRUint32 mEventType;
   EEventRule mEventRule;
   PRPackedBool mIsAsync;
@@ -158,19 +165,17 @@ protected:
 
 
 
-class nsAccReorderEvent : public nsAccEvent
+class AccReorderEvent : public AccEvent
 {
 public:
-  nsAccReorderEvent(nsAccessible *aAccTarget, PRBool aIsAsynch,
-                    PRBool aIsUnconditional, nsINode *aReasonNode);
-
-  NS_DECL_ISUPPORTS_INHERITED
+  AccReorderEvent(nsAccessible* aAccTarget, PRBool aIsAsynch,
+                  PRBool aIsUnconditional, nsINode* aReasonNode);
 
   
   static const EventGroup kEventGroup = eReorderEvent;
   virtual unsigned int GetEventGroups() const
   {
-    return nsAccEvent::GetEventGroups() | (1U << eReorderEvent);
+    return AccEvent::GetEventGroups() | (1U << eReorderEvent);
   }
 
   
@@ -193,28 +198,26 @@ private:
 
 
 
-class nsAccStateChangeEvent: public nsAccEvent,
-                             public nsIAccessibleStateChangeEvent
+class AccStateChangeEvent: public AccEvent
 {
 public:
-  nsAccStateChangeEvent(nsAccessible *aAccessible,
-                        PRUint32 aState, PRBool aIsExtraState,
-                        PRBool aIsEnabled, PRBool aIsAsynch = PR_FALSE,
-                        EIsFromUserInput aIsFromUserInput = eAutoDetect);
+  AccStateChangeEvent(nsAccessible* aAccessible,
+                      PRUint32 aState, PRBool aIsExtraState,
+                      PRBool aIsEnabled, PRBool aIsAsynch = PR_FALSE,
+                      EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
-  nsAccStateChangeEvent(nsINode *aNode, PRUint32 aState, PRBool aIsExtraState,
-                        PRBool aIsEnabled);
+  AccStateChangeEvent(nsINode* aNode, PRUint32 aState, PRBool aIsExtraState,
+                      PRBool aIsEnabled);
 
-  nsAccStateChangeEvent(nsINode *aNode, PRUint32 aState, PRBool aIsExtraState);
-
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIACCESSIBLESTATECHANGEEVENT
+  AccStateChangeEvent(nsINode* aNode, PRUint32 aState, PRBool aIsExtraState);
 
   
+  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
+
   static const EventGroup kEventGroup = eStateChangeEvent;
   virtual unsigned int GetEventGroups() const
   {
-    return nsAccEvent::GetEventGroups() | (1U << eStateChangeEvent);
+    return AccEvent::GetEventGroups() | (1U << eStateChangeEvent);
   }
 
   
@@ -232,29 +235,29 @@ private:
 
 
 
-class nsAccTextChangeEvent: public nsAccEvent,
-                            public nsIAccessibleTextChangeEvent
+class AccTextChangeEvent: public AccEvent
 {
 public:
-  nsAccTextChangeEvent(nsAccessible *aAccessible, PRInt32 aStart,
-                       nsAString& aModifiedText,
-                       PRBool aIsInserted, PRBool aIsAsynch = PR_FALSE,
-                       EIsFromUserInput aIsFromUserInput = eAutoDetect);
-
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIACCESSIBLETEXTCHANGEEVENT
+  AccTextChangeEvent(nsAccessible* aAccessible, PRInt32 aStart,
+                     nsAString& aModifiedText,
+                     PRBool aIsInserted, PRBool aIsAsynch = PR_FALSE,
+                     EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
   
+  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
+
   static const EventGroup kEventGroup = eTextChangeEvent;
   virtual unsigned int GetEventGroups() const
   {
-    return nsAccEvent::GetEventGroups() | (1U << eTextChangeEvent);
+    return AccEvent::GetEventGroups() | (1U << eTextChangeEvent);
   }
 
   
   PRInt32 GetStartOffset() const { return mStart; }
   PRUint32 GetLength() const { return mModifiedText.Length(); }
   PRBool IsTextInserted() const { return mIsInserted; }
+  void GetModifiedText(nsAString& aModifiedText)
+    { aModifiedText = mModifiedText; }
 
 private:
   PRInt32 mStart;
@@ -268,7 +271,7 @@ private:
 
 
 
-class AccHideEvent : public nsAccEvent
+class AccHideEvent : public AccEvent
 {
 public:
   AccHideEvent(nsAccessible* aTarget, nsINode* aTargetNode,
@@ -278,14 +281,14 @@ public:
   static const EventGroup kEventGroup = eHideEvent;
   virtual unsigned int GetEventGroups() const
   {
-    return nsAccEvent::GetEventGroups() | (1U << eHideEvent);
+    return AccEvent::GetEventGroups() | (1U << eHideEvent);
   }
 
 protected:
   nsRefPtr<nsAccessible> mParent;
   nsRefPtr<nsAccessible> mNextSibling;
   nsRefPtr<nsAccessible> mPrevSibling;
-  nsRefPtr<nsAccTextChangeEvent> mTextChangeEvent;
+  nsRefPtr<AccTextChangeEvent> mTextChangeEvent;
 
   friend class nsAccEventQueue;
 };
@@ -294,21 +297,19 @@ protected:
 
 
 
-class nsAccCaretMoveEvent: public nsAccEvent,
-                           public nsIAccessibleCaretMoveEvent
+class AccCaretMoveEvent: public AccEvent
 {
 public:
-  nsAccCaretMoveEvent(nsAccessible *aAccessible, PRInt32 aCaretOffset);
-  nsAccCaretMoveEvent(nsINode *aNode);
-
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIACCESSIBLECARETMOVEEVENT
+  AccCaretMoveEvent(nsAccessible* aAccessible, PRInt32 aCaretOffset);
+  AccCaretMoveEvent(nsINode* aNode);
 
   
+  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
+
   static const EventGroup kEventGroup = eCaretMoveEvent;
   virtual unsigned int GetEventGroups() const
   {
-    return nsAccEvent::GetEventGroups() | (1U << eCaretMoveEvent);
+    return AccEvent::GetEventGroups() | (1U << eCaretMoveEvent);
   }
 
   
@@ -322,22 +323,20 @@ private:
 
 
 
-class nsAccTableChangeEvent : public nsAccEvent,
-                              public nsIAccessibleTableChangeEvent
+class AccTableChangeEvent : public AccEvent
 {
 public:
-  nsAccTableChangeEvent(nsAccessible *aAccessible, PRUint32 aEventType,
-                        PRInt32 aRowOrColIndex, PRInt32 aNumRowsOrCols,
-                        PRBool aIsAsynch);
-
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIACCESSIBLETABLECHANGEEVENT
+  AccTableChangeEvent(nsAccessible* aAccessible, PRUint32 aEventType,
+                      PRInt32 aRowOrColIndex, PRInt32 aNumRowsOrCols,
+                      PRBool aIsAsynch);
 
   
+  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
+
   static const EventGroup kEventGroup = eTableChangeEvent;
   virtual unsigned int GetEventGroups() const
   {
-    return nsAccEvent::GetEventGroups() | (1U << eTableChangeEvent);
+    return AccEvent::GetEventGroups() | (1U << eTableChangeEvent);
   }
 
   
@@ -356,7 +355,7 @@ private:
 class downcast_accEvent
 {
 public:
-  downcast_accEvent(nsAccEvent *e) : mRawPtr(e) { }
+  downcast_accEvent(AccEvent* e) : mRawPtr(e) { }
 
   template<class Destination>
   operator Destination*() {
@@ -368,7 +367,7 @@ public:
   }
 
 private:
-  nsAccEvent *mRawPtr;
+  AccEvent* mRawPtr;
 };
 
 #endif

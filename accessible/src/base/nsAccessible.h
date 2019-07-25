@@ -55,7 +55,7 @@
 class AccGroupInfo;
 class EmbeddedObjCollector;
 class nsAccessible;
-class nsAccEvent;
+class AccEvent;
 struct nsRoleMapEntry;
 
 struct nsRect;
@@ -303,7 +303,7 @@ public:
 
 
 
-  virtual nsresult HandleAccEvent(nsAccEvent *aAccEvent);
+  virtual nsresult HandleAccEvent(AccEvent* aAccEvent);
 
   
 
@@ -454,7 +454,7 @@ protected:
 
 
 
-  virtual nsresult FirePlatformEvent(nsAccEvent *aEvent) = 0;
+  virtual nsresult FirePlatformEvent(AccEvent* aEvent) = 0;
 
   
   nsRefPtr<nsAccessible> mParent;
