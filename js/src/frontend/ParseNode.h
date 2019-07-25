@@ -1425,27 +1425,13 @@ ParseNode::test(unsigned flag) const
     return !!(pn_dflags & flag);
 }
 
-
-
-
-
-
-
-
-
-
 inline Definition *
 ParseNode::resolve()
 {
-    ParseNode *pn = this;
-    while (!pn->isDefn()) {
-        if (pn->isAssignment()) {
-            pn = pn->pn_left;
-            continue;
-        }
-        pn = pn->lexdef();
-    }
-    return (Definition *) pn;
+    if (isDefn())
+        return (Definition *)this;
+    JS_ASSERT(lexdef()->isDefn());
+    return (Definition *)lexdef();
 }
 
 inline void
