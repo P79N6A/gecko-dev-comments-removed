@@ -604,7 +604,7 @@ pref("media.preload.auto", 2);
 
 
 
-pref("widget.ime.android.landscape_fullscreen", -1);
+pref("widget.ime.android.landscape_fullscreen", 1);
 pref("widget.ime.android.fullscreen_threshold", 250); 
 
 
