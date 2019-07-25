@@ -55,6 +55,8 @@ class RemoteBlob;
 template <ActorFlavorEnum ActorFlavor>
 class Blob : public BlobTraits<ActorFlavor>::BaseType
 {
+  friend class RemoteBlob<ActorFlavor>;
+
 public:
   typedef typename BlobTraits<ActorFlavor>::BaseType BaseType;
   typedef typename BlobTraits<ActorFlavor>::StreamType StreamType;
@@ -69,6 +71,7 @@ protected:
   nsIDOMBlob* mBlob;
   RemoteBlobType* mRemoteBlob;
   bool mOwnsBlob;
+  bool mBlobIsFile;
 
 public:
   
@@ -82,11 +85,20 @@ public:
   static Blob*
   Create(const BlobConstructorParams& aParams);
 
+  
+  
+  
   already_AddRefed<nsIDOMBlob>
   GetBlob();
 
-  void
-  NoteDyingRemoteBlob();
+  
+  bool
+  SetMysteryBlobInfo(const nsString& aName, const nsString& aContentType,
+                     PRUint64 aLength);
+
+  
+  bool
+  SetMysteryBlobInfo(const nsString& aContentType, PRUint64 aLength);
 
 private:
   
@@ -95,9 +107,18 @@ private:
   
   Blob(const BlobConstructorParams& aParams);
 
+  void
+  SetRemoteBlob(nsRefPtr<RemoteBlobType>& aRemoteBlob);
+
+  void
+  NoteDyingRemoteBlob();
+
   
   virtual void
   ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+
+  virtual bool
+  RecvResolveMystery(const ResolveMysteryParams& aParams) MOZ_OVERRIDE;
 
   virtual bool
   RecvPBlobStreamConstructor(StreamType* aActor) MOZ_OVERRIDE;
