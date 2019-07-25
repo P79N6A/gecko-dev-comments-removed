@@ -158,6 +158,7 @@ private:
 
   PLHashTable *mNodeInfoHash;
   nsIDocument *mDocument; 
+  PRUint32 mNonDocumentNodeInfos;
   nsIPrincipal *mPrincipal; 
                             
                             
