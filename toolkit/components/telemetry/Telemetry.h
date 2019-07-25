@@ -118,11 +118,9 @@ bool CanRecord();
 
 
 
-
 void RecordSlowSQLStatement(const nsACString &statement,
                             const nsACString &dbName,
-                            PRUint32 delay,
-                            bool isDynamicString);
+                            PRUint32 delay);
 
 
 
