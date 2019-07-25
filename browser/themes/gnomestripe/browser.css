@@ -2564,11 +2564,6 @@ stack[anonid=browserStack][responsivemode] {
   transition: height 100ms;
 }
 
-.web-console-splitter {
-  box-shadow: 0 -1px 0 0 ThreeDShadow inset, 0 0 0 10px -moz-Dialog inset;
-}
-
-
 
 
 .developer-toolbar-button {
@@ -2740,6 +2735,14 @@ stack[anonid=browserStack][responsivemode] {
 #social-statusarea-username:hover {
   text-decoration: underline;
 }
+
+#social-notification-panel {
+  min-height: 100px;
+  min-width: 100px;
+  max-height: 600px;
+  max-width: 400px;
+}
+
 
 .chat-status-icon {
   max-height: 16px;
