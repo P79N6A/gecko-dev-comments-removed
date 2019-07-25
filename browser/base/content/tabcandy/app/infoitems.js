@@ -124,6 +124,19 @@ window.InfoItem.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   
+  addOnClose: function(referenceObject, callback) {
+    this.addSubscriber(referenceObject, "close", callback);      
+  },
+
+  
+  
+  removeOnClose: function(referenceObject) {
+    this.removeSubscriber(referenceObject, "close");      
+  },
+  
+  
+  
+  
   getStorageData: function() {
     var data = null;
     
@@ -230,7 +243,7 @@ window.InfoItem.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   close: function() {
     try {
-      this._sendOnClose();
+      this._sendToSubscribers("close");
       this.removeTrenches();
       iQ(this.container).fadeOut(function() {
         iQ(this).remove();

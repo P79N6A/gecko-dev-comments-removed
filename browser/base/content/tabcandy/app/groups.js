@@ -337,6 +337,19 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   
+  addOnClose: function(referenceObject, callback) {
+    this.addSubscriber(referenceObject, "close", callback);      
+  },
+
+  
+  
+  removeOnClose: function(referenceObject) {
+    this.removeSubscriber(referenceObject, "close");      
+  },
+  
+  
+  
+  
   setActiveTab: function(tab){
     Utils.assert('tab must be a TabItem', tab && tab.isATabItem);
     this._activeTab = tab;
@@ -570,7 +583,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   close: function() {
     this.removeAll();
-    this._sendOnClose();
+    this._sendToSubscribers("close");
     Groups.unregister(this);
     this.removeTrenches();
     iQ(this.container).fadeOut(function() {

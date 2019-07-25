@@ -163,7 +163,7 @@ window.TabItem = function(container, tab) {
   this._updateDebugBounds();
   
   TabItems.register(this);
-  this.tab.mirror.addOnClose(this, function(who, info) {
+  this.tab.mirror.addSubscriber(this, "close", function(who, info) {
     TabItems.unregister(self);
     self.removeTrenches();
   });   
@@ -380,13 +380,18 @@ window.TabItem.prototype = iQ.extend(new Item(), {
   },
   
   
+  
+  
+  
   addOnClose: function(referenceObject, callback) {
-    this.tab.mirror.addOnClose(referenceObject, callback);      
+    this.tab.mirror.addSubscriber(referenceObject, "close", callback);      
   },
 
   
+  
+  
   removeOnClose: function(referenceObject) {
-    this.tab.mirror.removeOnClose(referenceObject);      
+    this.tab.mirror.removeSubscriber(referenceObject, "close");      
   },
   
   
