@@ -1024,8 +1024,11 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
         return JS_FALSE;
     obj = obj->wrappedObject(cx);
 
-    
+    OBJ_TO_INNER_OBJECT(cx, obj);
+    if (!obj)
+        return JS_FALSE;
 
+    
 
 
 
@@ -1085,10 +1088,6 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
     if (indirectCall) {
         
         staticLevel = 0;
-
-        OBJ_TO_INNER_OBJECT(cx, obj);
-        if (!obj)
-            return JS_FALSE;
 
         if (!js_CheckPrincipalsAccess(cx, obj,
                                       JS_StackFramePrincipals(cx, caller),
