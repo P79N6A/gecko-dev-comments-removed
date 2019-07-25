@@ -111,18 +111,7 @@ CallObject::create(JSContext *cx, JSScript *script, HandleObject enclosing, Hand
     if (!obj)
         return NULL;
 
-    
-
-
-
-
-    if (&enclosing->global() != obj->getParent()) {
-        JS_ASSERT(obj->getParent() == NULL);
-        Rooted<GlobalObject*> global(cx, &enclosing->global());
-        if (!JSObject::setParent(cx, obj, global))
-            return NULL;
-    }
-
+    JS_ASSERT(enclosing->global() == obj->global());
     if (!obj->asScope().setEnclosingScope(cx, enclosing))
         return NULL;
 

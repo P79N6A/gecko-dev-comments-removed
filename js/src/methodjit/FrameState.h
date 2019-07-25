@@ -929,14 +929,6 @@ class FrameState
     inline void syncAndForgetFe(FrameEntry *fe, bool markSynced = false);
     inline void forgetLoopReg(FrameEntry *fe);
 
-    
-
-
-
-    inline Address loadNameAddress(const analyze::ScriptAnalysis::NameAccess &access);
-    inline Address loadNameAddress(const analyze::ScriptAnalysis::NameAccess &access,
-                                   RegisterID reg);
-
   private:
     inline AnyRegisterID allocAndLoadReg(FrameEntry *fe, bool fp, RematInfo::RematType type);
     inline void forgetReg(AnyRegisterID reg);

@@ -408,17 +408,7 @@ struct JSScript : public js::gc::Cell
     JSPrincipals    *originPrincipals; 
 
     
-
-
-
-
-
-
-
-
-
-
-    js::HeapPtr<js::GlobalObject, JSScript*> globalObject;
+    js::HeapPtrScript evalHashLink;
 
     
     js::types::TypeScript *types;
@@ -508,14 +498,9 @@ struct JSScript : public js::gc::Cell
 
 
     bool            hasSingletons:1;  
-    bool            isOuterFunction:1; 
-    bool            isInnerFunction:1; 
-
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
     bool            uninlineable:1;   
-    bool            reentrantOuterFunction:1; 
-    bool            typesPurged:1;    
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            failedBoundsCheck:1; 
@@ -543,8 +528,7 @@ struct JSScript : public js::gc::Cell
     static JSScript *Create(JSContext *cx, bool savedCallerFun,
                             JSPrincipals *principals, JSPrincipals *originPrincipals,
                             bool compileAndGo, bool noScriptRval,
-                            js::GlobalObject *globalObject, JSVersion version,
-                            unsigned staticLevel);
+                            JSVersion version, unsigned staticLevel);
 
     
     
@@ -593,14 +577,14 @@ struct JSScript : public js::gc::Cell
     }
 
     
-    JSScript *&evalHashLink() { return *globalObject.unsafeGetUnioned(); }
-
-    
 
 
 
     JSFunction *function() const { return function_; }
     void setFunction(JSFunction *fun);
+
+    
+    bool isForEval() { return isCachedEval || isActiveEval; }
 
 #ifdef DEBUG
     unsigned id();
@@ -615,9 +599,7 @@ struct JSScript : public js::gc::Cell
 
 
 
-
-
-    inline bool ensureRanAnalysis(JSContext *cx, JSObject *scope);
+    inline bool ensureRanAnalysis(JSContext *cx);
 
     
     inline bool ensureRanInference(JSContext *cx);
@@ -629,15 +611,7 @@ struct JSScript : public js::gc::Cell
     inline bool hasGlobal() const;
     inline bool hasClearedGlobal() const;
 
-    inline js::GlobalObject * global() const;
-    inline js::types::TypeScriptNesting *nesting() const;
-
-    inline void clearNesting();
-
-    
-    js::GlobalObject *getGlobalObjectOrNull() const {
-        return (isCachedEval || isActiveEval) ? NULL : globalObject.get();
-    }
+    inline js::GlobalObject &global() const;
 
   private:
     bool makeTypes(JSContext *cx);
@@ -873,8 +847,7 @@ struct JSScript : public js::gc::Cell
         return hasDebugScript ? debugScript()->breakpoints[pc - code] : NULL;
     }
 
-    js::BreakpointSite *getOrCreateBreakpointSite(JSContext *cx, jsbytecode *pc,
-                                                  js::GlobalObject *scriptGlobal);
+    js::BreakpointSite *getOrCreateBreakpointSite(JSContext *cx, jsbytecode *pc);
 
     void destroyBreakpointSite(js::FreeOp *fop, jsbytecode *pc);
 
