@@ -973,6 +973,21 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aF
 #else
   if (!GUIEvent->widget)
     return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+
+  nsIView* view = aFrame->GetView();
+  if (view) {
+    nsIWidget* widget = view->GetWidget();
+    if (widget && widget == GUIEvent->widget) {
+      
+      
+      
+      nsPresContext* presContext = aFrame->PresContext();
+      nsPoint pt(presContext->DevPixelsToAppUnits(GUIEvent->refPoint.x),
+                 presContext->DevPixelsToAppUnits(GUIEvent->refPoint.y));
+      return pt - view->ViewToWidgetOffset();
+    }
+  }
+
   
 
 
@@ -1029,6 +1044,20 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent,
   nsIWidget* widget = GUIEvent->widget;
   if (!widget) {
     return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+  }
+
+  nsIView* view = aFrame->GetView();
+  if (view) {
+    nsIWidget* fwidget = view->GetWidget();
+    if (fwidget && fwidget == GUIEvent->widget) {
+      
+      
+      
+      nsPresContext* presContext = aFrame->PresContext();
+      nsPoint pt(presContext->DevPixelsToAppUnits(GUIEvent->refPoint.x),
+                 presContext->DevPixelsToAppUnits(GUIEvent->refPoint.y));
+      return pt - view->ViewToWidgetOffset();
+    }
   }
 
   
