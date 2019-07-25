@@ -564,74 +564,16 @@ static nsresult GetCharsetFromData(const unsigned char* aStyleSheetData,
     step = 1;
     pos = 0;
   }
-  
-  
-  else if (aStyleSheetData[0] == 0x00 &&
-           aStyleSheetData[1] == 0x00 &&
-           aStyleSheetData[2] == 0xFF &&
-           aStyleSheetData[3] == 0xFE) {
-    
-    NS_WARNING("Our unicode decoders aren't likely  to deal with this one");
-    step = 4;
-    pos = 6;
-    aCharset = "UTF-32";
-  }
-  else if (aStyleSheetData[0] == 0xFE &&
-           aStyleSheetData[1] == 0xFF &&
-           aStyleSheetData[2] == 0x00 &&
-           aStyleSheetData[3] == 0x00) {
-    
-    NS_WARNING("Our unicode decoders aren't likely  to deal with this one");
-    step = 4;
-    pos = 5;
-    aCharset = "UTF-32";
-  }
   else if (nsContentUtils::CheckForBOM(aStyleSheetData,
                                        aDataLength, aCharset, &bigEndian)) {
     if (aCharset.Equals("UTF-8")) {
       step = 1;
       pos = 3;
     }
-    else if (aCharset.Equals("UTF-32")) {
-      step = 4;
-      pos = bigEndian ? 7 : 4;
-    }
     else if (aCharset.Equals("UTF-16")) {
       step = 2;
       pos = bigEndian ? 3 : 2;
     }
-  }
-  else if (aStyleSheetData[0] == 0x00 &&
-           aStyleSheetData[1] == 0x00 &&
-           aStyleSheetData[2] == 0x00 &&
-           aStyleSheetData[3] == 0x40) {
-    
-    step = 4;
-    pos = 3;
-  }
-  else if (aStyleSheetData[0] == 0x40 &&
-           aStyleSheetData[1] == 0x00 &&
-           aStyleSheetData[2] == 0x00 &&
-           aStyleSheetData[3] == 0x00) {
-    
-    step = 4;
-    pos = 0;
-  }
-  else if (aStyleSheetData[0] == 0x00 &&
-           aStyleSheetData[1] == 0x00 &&
-           aStyleSheetData[2] == 0x40 &&
-           aStyleSheetData[3] == 0x00) {
-    
-    step = 4;
-    pos = 2;
-  }
-  else if (aStyleSheetData[0] == 0x00 &&
-           aStyleSheetData[1] == 0x40 &&
-           aStyleSheetData[2] == 0x00 &&
-           aStyleSheetData[3] == 0x00) {
-    
-    step = 4;
-    pos = 1;
   }
   else if (aStyleSheetData[0] == 0x00 &&
            aStyleSheetData[1] == 0x40 &&

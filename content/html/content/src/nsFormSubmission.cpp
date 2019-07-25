@@ -712,8 +712,7 @@ nsEncodingFormSubmission::nsEncodingFormSubmission(const nsACString& aCharset,
 
   
   
-  if (StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-16")) || 
-      StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-32"))) {
+  if (StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-16"))) {
     charset.AssignLiteral("UTF-8");
   }
 
