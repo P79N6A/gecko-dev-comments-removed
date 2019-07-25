@@ -216,6 +216,10 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
 
   
   
+  docAcc->MarkAsLoading();
+
+  
+  
   nsRefPtr<AccEvent> stateEvent =
     new AccStateChangeEvent(document, nsIAccessibleStates::STATE_BUSY,
                             PR_FALSE, PR_TRUE);
@@ -310,8 +314,7 @@ nsAccDocManager::HandleEvent(nsIDOMEvent *aEvent)
       nsCoreUtils::IsErrorPage(document)) {
     NS_LOG_ACCDOCLOAD2("handled 'DOMContentLoaded' event", document)
     HandleDOMDocumentLoad(document,
-                          nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE,
-                          PR_TRUE);
+                          nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE);
   }
 
   return NS_OK;
@@ -322,8 +325,7 @@ nsAccDocManager::HandleEvent(nsIDOMEvent *aEvent)
 
 void
 nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
-                                       PRUint32 aLoadEventType,
-                                       PRBool aMarkAsLoaded)
+                                       PRUint32 aLoadEventType)
 {
   
   
@@ -335,8 +337,8 @@ nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
       return;
   }
 
-  if (aMarkAsLoaded)
-    docAcc->MarkAsLoaded();
+  
+  docAcc->MarkAsLoaded();
 
   
   

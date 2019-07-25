@@ -117,12 +117,8 @@ private:
 
 
 
-
-
-
   void HandleDOMDocumentLoad(nsIDocument *aDocument,
-                             PRUint32 aLoadEventType,
-                             PRBool aMarkAsLoaded = PR_FALSE);
+                             PRUint32 aLoadEventType);
 
   
 

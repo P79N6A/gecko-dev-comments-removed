@@ -226,11 +226,6 @@ public:
   
 
 
-  static PRBool IsDocumentBusy(nsIDocument *aDocument);
-
-  
-
-
   static PRBool IsRootDocument(nsIDocument *aDocument);
 
   
