@@ -1,83 +1,57 @@
 
 
 
-let tabViewShownCount = 0;
 let timerId;
+let newWin;
 
 
 function test() {
   waitForExplicitFinish();
 
   
-  ok(!TabView.isVisible(), "Tab View starts hidden");
+  newWindowWithTabView(function() {}, function(win) {
+    newWin = win;
 
-  
-  window.addEventListener("tabviewshown", onTabViewLoadedAndShown, false);
-  TabView.toggle();
+    let onSelect = function(event) {
+      if (deck != event.target)
+        return;
+
+      let iframe = win.document.getElementById("tab-view");
+      if (deck.selectedPanel != iframe)
+        return;
+
+      deck.removeEventListener("select", onSelect, true);
+
+      whenTabViewIsShown(function() {
+        executeSoon(function() {
+          testMethodToHideAndShowTabView(function() {
+            newWin.document.getElementById("menu_tabview").doCommand();
+          }, function() {
+            testMethodToHideAndShowTabView(function() {
+              EventUtils.synthesizeKey("E", { accelKey: true, shiftKey: true }, newWin);
+            }, finish);
+          });
+        });
+      }, win);
+    };
+
+    let deck = win.document.getElementById("tab-view-deck");
+    deck.addEventListener("select", onSelect, true);
+  });
 
   registerCleanupFunction(function () {
-    window.removeEventListener("tabviewshown", onTabViewLoadedAndShown, false);
-    if (timerId) 
-      clearTimeout(timerId);
-    TabView.hide()
+    newWin.close();
   });
 }
 
-
-function onTabViewLoadedAndShown() {
-  window.removeEventListener("tabviewshown", onTabViewLoadedAndShown, false);
-
-  
-  
-  
-  
-  
-  
-  let deck = document.getElementById("tab-view-deck");
-  let iframe = document.getElementById("tab-view");
-  ok(iframe, "The tab view iframe exists");
-  
-  function waitForSwitch() {
-    if (deck.selectedPanel == iframe) {
-      ok(TabView.isVisible(), "Tab View is visible. Count: " + tabViewShownCount);
-      tabViewShownCount++;
-
-      
-      window.addEventListener("tabviewshown", onTabViewShown, false);
-      window.addEventListener("tabviewhidden", onTabViewHidden, false);
-
-      registerCleanupFunction(function () {
-        window.removeEventListener("tabviewshown", onTabViewShown, false);
-        window.removeEventListener("tabviewhidden", onTabViewHidden, false);
-      });
-      TabView.toggle();
-    } else {
-      timerId = setTimeout(waitForSwitch, 10);
-    }
-  }
-
-  timerId = setTimeout(waitForSwitch, 1);
-}
-
-
-function onTabViewShown() {
-  
-  ok(TabView.isVisible(), "Tab View is visible. Count: " + tabViewShownCount);
-  tabViewShownCount++;
-  TabView.toggle();
-}
-
-
-function onTabViewHidden() {
-  ok(!TabView.isVisible(), "Tab View is hidden. Count: " + tabViewShownCount);
-
-  if (tabViewShownCount == 1) {
-    document.getElementById("menu_tabview").doCommand();
-  } else if (tabViewShownCount == 2) {
-    EventUtils.synthesizeKey("E", { accelKey: true, shiftKey: true });
-  } else if (tabViewShownCount == 3) {
-    window.removeEventListener("tabviewshown", onTabViewShown, false);
-    window.removeEventListener("tabviewhidden", onTabViewHidden, false);
-    finish();
-  }
+function testMethodToHideAndShowTabView(executeFunc, callback) {
+  whenTabViewIsHidden(function() {
+    ok(!newWin.TabView.isVisible(), "Tab View is not visible after executing the function");
+    whenTabViewIsShown(function() {
+      ok(newWin.TabView.isVisible(), "Tab View is visible after executing the function again");
+      callback();
+    }, newWin);
+    executeFunc();
+  }, newWin);
+  executeFunc();
 }
