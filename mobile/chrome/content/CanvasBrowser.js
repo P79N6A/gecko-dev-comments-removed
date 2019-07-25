@@ -40,49 +40,57 @@
 
 
 
+
 function CanvasBrowser(canvas) {
+  
   this._canvas = canvas;
+
+  
   this._rgnPage = Cc["@mozilla.org/gfx/region;1"].createInstance(Ci.nsIScriptableRegion);
+
+  
   this._pageBounds = new wsRect(0,0,0,0);
+
+  
   this._visibleBounds = new wsRect(0,0,0,0);
+
+  
+  this._zoomLevel = 1.0;
+
+  
+  this._browser = null;
+
+  
+  this._screenX = 0;
+  this._screenY = 0;
+
+   
+  this._lazyWidthChanged = false;
+  this._lazyHeightChanged = false;
+
+   
+  this._pageLoading = true;
+
+   
+   
+  this._isPanning = false;
+
+   
+   
+  this._drawTimeout = 0;
+
+   
+   
+   
+  this._maxRight = 0;
+  this._maxBottom = 0;
+
+  
+  this._needToPanToTop = false;
 }
 
 CanvasBrowser.prototype = {
-  _canvas: null,
-  _zoomLevel: 1,
-  _browser: null,
-  _pageBounds: null,
-  _screenX: 0,
-  _screenY: 0,
-  _visibleBounds: null,
-
   
-  _lazyWidthChanged: false,
-  _lazyHeightChanged: false,
-
-  
-  _pageLoading: true,
-
-  
-  _rgnPage: null,
-
-  
-  
-  _isPanning: false,
-
-  
-  
-  _drawTimeout: 0,
-
-  
-  
-  
-  _maxRight: 0,
-  _maxBottom: 0,
-
-  
-  _needToPanToTop: false,
-
   get canvasDimensions() {
     if (!this._canvasRect) {
       let canvasRect = this._canvas.getBoundingClientRect();
@@ -107,7 +115,7 @@ CanvasBrowser.prototype = {
     return this._contentDOMWindowUtils;
   },
 
-  setCurrentBrowser: function(browser, skipZoom) {
+  setCurrentBrowser: function setCurrentBrowser(browser, skipZoom) {
     let currentBrowser = this._browser;
     if (currentBrowser) {
       
@@ -248,7 +256,7 @@ CanvasBrowser.prototype = {
     this._needToPanToTop = true;
   },
 
-  endLoading: function() {
+  endLoading: function endLoading() {
     this._pageLoading = false;
     this._lazyWidthChanged = false;
     this._lazyHeightChanged = false;
@@ -359,7 +367,7 @@ CanvasBrowser.prototype = {
     this._redrawRects(rectsToDraw);
   },
 
-  _handleMozAfterPaint: function(aEvent) {
+  _handleMozAfterPaint: function _handleMozAfterPaint(aEvent) {
     let [scrollX, scrollY] = this.contentScrollValues;
     let clientRects = aEvent.clientRects;
 
@@ -376,7 +384,7 @@ CanvasBrowser.prototype = {
     this._redrawRects(rects);
   },
 
-  _redrawRects: function(rects) {
+  _redrawRects: function _redrawRects(rects) {
     
     if (!this._pageLoading && rects.length == 1
         && this._visibleBounds.contains(rects[0])) {
@@ -476,7 +484,7 @@ CanvasBrowser.prototype = {
     }
   },
 
-  _clampZoomLevel: function(aZoomLevel) {
+  _clampZoomLevel: function _clampZoomLevel(aZoomLevel) {
     const min = 0.2;
     const max = 2.0;
 
@@ -492,7 +500,7 @@ CanvasBrowser.prototype = {
     return this._zoomLevel;
   },
 
-  zoom: function(aDirection) {
+  zoom: function zoom(aDirection) {
     if (aDirection == 0)
       return;
 
@@ -503,7 +511,7 @@ CanvasBrowser.prototype = {
     this.zoomLevel = this._zoomLevel + zoomDelta;
   },
 
-  zoomToPage: function() {
+  zoomToPage: function zoomToPage() {
     let needToPanToTop = this._needToPanToTop;
     
     
@@ -524,7 +532,7 @@ CanvasBrowser.prototype = {
       ws.endUpdateBatch();
   },
 
-  zoomToElement: function(aElement) {
+  zoomToElement: function zoomToElement(aElement) {
     const margin = 15;
 
     let elRect = this._getPagePosition(aElement);
@@ -554,7 +562,7 @@ CanvasBrowser.prototype = {
     ws.endUpdateBatch();
   },
 
-  zoomFromElement: function(aElement) {
+  zoomFromElement: function zoomFromElement(aElement) {
     let elRect = this._getPagePosition(aElement);
 
     ws.beginUpdateBatch();
@@ -573,7 +581,7 @@ CanvasBrowser.prototype = {
 
 
 
-  elementFromPoint: function(aX, aY) {
+  elementFromPoint: function elementFromPoint(aX, aY) {
     let [x, y] = this._clientToContentCoords(aX, aY);
     let cwu = this.contentDOMWindowUtils;
     return cwu.elementFromPoint(x, y,
@@ -585,7 +593,7 @@ CanvasBrowser.prototype = {
 
 
 
-  _getPagePosition: function(aElement) {
+  _getPagePosition: function _getPagePosition(aElement) {
     let [scrollX, scrollY] = this.contentScrollValues;
     let r = aElement.getBoundingClientRect();
 
@@ -600,7 +608,7 @@ CanvasBrowser.prototype = {
   
 
 
-  _clientToContentCoords: function(aClientX, aClientY) {
+  _clientToContentCoords: function _clientToContentCoords(aClientX, aClientY) {
     
     
     
@@ -627,6 +635,7 @@ CanvasBrowser.prototype = {
     return this._contentAreaDimensions.map(this._pageToScreen, this);
   },
 
+  
   get _contentAreaDimensions() {
     var cdoc = this._browser.contentDocument;
 
@@ -648,16 +657,16 @@ CanvasBrowser.prototype = {
     return [w, h];
   },
 
-  _screenToPage: function(aValue) {
+  _screenToPage: function _screenToPage(aValue) {
     return aValue / this._zoomLevel;
   },
 
-  _pageToScreen: function(aValue) {
+  _pageToScreen: function _pageToScreen(aValue) {
     return aValue * this._zoomLevel;
   },
 
   
-  ensureElementIsVisible: function(aElement) {
+  ensureElementIsVisible: function ensureElementIsVisible(aElement) {
     let elRect = this._getPagePosition(aElement);
     let curRect = this._visibleBounds;
     let newx = curRect.x;
@@ -679,13 +688,13 @@ CanvasBrowser.prototype = {
   },
 
   
-  panToElement: function(aElement) {
+  panToElement: function panToElement(aElement) {
     var elRect = this._getPagePosition(aElement);
 
     this.panTo(elRect.x, elRect.y);
   },
 
-  panTo: function(x, y) {
+  panTo: function panTo(x, y) {
     ws.panTo(x, y);
   }
 };
