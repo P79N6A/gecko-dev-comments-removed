@@ -133,7 +133,7 @@ PluginInstanceParent::ActorDestroy(ActorDestroyReason why)
         const NPRect rect = {0, 0, 0, 0};
         RecvNPN_InvalidateRect(rect);
 #ifdef MOZ_X11
-        XSync(DefaultXDisplay(), False);
+        FinishX(DefaultXDisplay());
 #endif
     }
 }
@@ -634,7 +634,7 @@ PluginInstanceParent::RecvShow(const NPRect& updatedRect,
         
         
         
-        XSync(DefaultXDisplay(), False);
+        FinishX(DefaultXDisplay());
 #endif
 
     if (mFrontSurface && gfxSharedImageSurface::IsSharedImage(mFrontSurface))
@@ -1260,7 +1260,7 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
         
         
         
-        XSync(DefaultXDisplay(), False);
+        FinishX(DefaultXDisplay());
 
         return CallPaint(npremoteevent, &handled) ? handled : 0;
 

@@ -187,7 +187,7 @@ ShadowLayerManager::PlatformSyncBeforeReplyUpdate()
     
     
     
-    XSync(DefaultXDisplay(), False);
+    FinishX(DefaultXDisplay());
   }
 }
 

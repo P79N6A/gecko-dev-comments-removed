@@ -56,6 +56,19 @@ XVisualIDToInfo(Display* aDisplay, VisualID aVisualID,
 
 
 
+
+
+
+
+
+
+void
+FinishX(Display* aDisplay);
+
+
+
+
+
 template <typename T>
 struct ScopedXFreePtrTraits
 {

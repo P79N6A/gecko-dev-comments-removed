@@ -49,7 +49,7 @@ public:
 
     ~nsShmImage() {
         if (mImage) {
-            XSync(DISPLAY(), False);
+            mozilla::FinishX(DISPLAY());
             if (mXAttached) {
                 XShmDetach(DISPLAY(), &mInfo);
             }
