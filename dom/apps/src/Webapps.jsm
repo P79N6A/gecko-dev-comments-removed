@@ -513,7 +513,8 @@ let DOMApplicationRegistry = {
             installOrigin: aData.installOrigin,
             origin: "app://" + id,
             manifestURL: manifestURL,
-            receipts: aData.receipts
+            receipts: aData.receipts,
+            categories: aData.categories
           }
         }
         let zipReader = Cc["@mozilla.org/libjar/zip-reader;1"]
