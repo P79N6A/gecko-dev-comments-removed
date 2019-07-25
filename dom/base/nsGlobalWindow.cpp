@@ -91,9 +91,9 @@
 #include "nsLayoutStatics.h"
 #include "nsCycleCollector.h"
 #include "nsCCUncollectableMarker.h"
+#include "nsDOMThreadService.h"
 #include "nsAutoJSValHolder.h"
 #include "nsDOMMediaQueryList.h"
-#include "mozilla/dom/workers/Workers.h"
 
 
 #include "nsIFrame.h"
@@ -1244,11 +1244,18 @@ nsGlobalWindow::FreeInnerObjects(PRBool aClearScope)
   NS_ASSERTION(IsInnerWindow(), "Don't free inner objects on an outer window");
 
   
-  nsIScriptContext *scx = GetContextInternal();
-  JSContext *cx = scx ?
-                  static_cast<JSContext*>(scx->GetNativeContext()) :
-                  nsnull;
-  mozilla::dom::workers::CancelWorkersForWindow(cx, this);
+  nsDOMThreadService* dts = nsDOMThreadService::get();
+  if (dts) {
+    nsIScriptContext *scx = GetContextInternal();
+
+    JSContext *cx = scx ? (JSContext *)scx->GetNativeContext() : nsnull;
+
+    
+    
+    JSAutoSuspendRequest asr(cx);
+
+    dts->CancelWorkersForGlobal(static_cast<nsIScriptGlobalObject*>(this));
+  }
 
   
   indexedDB::IndexedDatabaseManager* idbManager =
@@ -9921,13 +9928,11 @@ nsGlobalWindow::SuspendTimeouts(PRUint32 aIncrease,
   if (!suspended) {
     DisableDeviceMotionUpdates();
 
-    
-    nsIScriptContext *scx = GetContextInternal();
-    JSContext *cx = scx ?
-                    static_cast<JSContext*>(scx->GetNativeContext()) :
-                    nsnull;
-    mozilla::dom::workers::SuspendWorkersForWindow(cx, this);
-
+    nsDOMThreadService* dts = nsDOMThreadService::get();
+    if (dts) {
+      dts->SuspendWorkersForGlobal(static_cast<nsIScriptGlobalObject*>(this));
+    }
+  
     TimeStamp now = TimeStamp::Now();
     for (nsTimeout *t = FirstTimeout(); IsTimeout(t); t = t->Next()) {
       
@@ -9999,12 +10004,10 @@ nsGlobalWindow::ResumeTimeouts(PRBool aThawChildren)
   if (shouldResume) {
     EnableDeviceMotionUpdates();
 
-    
-    nsIScriptContext *scx = GetContextInternal();
-    JSContext *cx = scx ?
-                    static_cast<JSContext*>(scx->GetNativeContext()) :
-                    nsnull;
-    mozilla::dom::workers::ResumeWorkersForWindow(cx, this);
+    nsDOMThreadService* dts = nsDOMThreadService::get();
+    if (dts) {
+      dts->ResumeWorkersForGlobal(static_cast<nsIScriptGlobalObject*>(this));
+    }
 
     
     
