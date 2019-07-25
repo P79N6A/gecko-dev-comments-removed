@@ -37,6 +37,7 @@
 
 var PreferencesView = {
   _currentLocale: null,
+  _languages: null,
   _msg: null,
 
   _messageActions: function pv__messageActions(aData) {
@@ -96,47 +97,28 @@ var PreferencesView = {
       return;
 
     this._msg = document.getElementById("prefs-messages");
+    this._languages = document.getElementById("prefs-languages");
     this._loadLocales();
 
     this._loadHomePage();
 
     MasterPasswordUI.updatePreference();
     WeaveGlue.init();
-
-    Services.prefs.addObserver("general.useragent.locale", this, false);
-    let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry);
-    chrome.QueryInterface(Ci.nsIToolkitChromeRegistry);
-    this._currentLocale = chrome.getSelectedLocale("browser");
-  },
-
-  observe: function(aSubject, aTopic, aData) {
-    if (aData == "general.useragent.locale") {
-      if (Services.prefs.getCharPref("general.useragent.locale") != this._currentLocale)
-        this.showRestart();
-      else
-        this.hideRestart();
-      this._loadLocales();
-    }
   },
 
   _loadLocales: function _loadLocales() {
     
     let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry);
     chrome.QueryInterface(Ci.nsIToolkitChromeRegistry);
-
+ 
     let selectedLocale = chrome.getSelectedLocale("browser");
-
-    
-    
-    if (Services.prefs.prefHasUserValue("general.useragent.locale"))
-      selectedLocale = Services.prefs.getCharPref("general.useragent.locale");
-
     let availableLocales = chrome.getLocalesForPackage("browser");
-
+ 
     let strings = Services.strings.createBundle("chrome://browser/content/languages.properties");
-
+ 
+    
     let selectedItem = null;
-    let selectedLabel = selectedLocale;
+    let localeCount = 0;
     while (availableLocales.hasMore()) {
       let locale = availableLocales.getNext();
       try {
@@ -144,16 +126,53 @@ var PreferencesView = {
       } catch (e) {
         label = locale;
       }
+      let item = this._languages.appendItem(label, locale);
       if (locale == selectedLocale) {
-        selectedLabel = label;
-        break;
+        this._currentLocale = locale;
+        selectedItem = item;
       }
+      localeCount++;
     }
-    document.getElementById("prefs-uilanguage-button").setAttribute("label", selectedLabel);
+
+    
+    let autoDetect = false;
+    try {
+      autoDetect = Services.prefs.getBoolPref("intl.locale.matchOS");
+    }
+    catch (e) {}
+
+    
+    if (autoDetect) {
+      this._languages.selectedItem = document.getElementById("prefs-languages-auto");
+      this._currentLocale = "auto";
+    } else {
+      this._languages.selectedItem = selectedItem;
+    }
+
+    
+    if (localeCount == 1)
+      document.getElementById("prefs-uilanguage").hidden = true;
   },
 
-  showLocalePicker: function showLocalePicker() {
-    Services.ww.openWindow(window, "chrome://browser/content/localePicker.xul", "_browser", "chrome,dialog=no,all", null);
+  updateLocale: function updateLocale() {
+    
+    let newLocale = this._languages.selectedItem.value;
+    let prefs = Services.prefs;
+
+    if (newLocale == "auto") {
+      if (prefs.prefHasUserValue("general.useragent.locale"))
+        prefs.clearUserPref("general.useragent.locale");
+      prefs.setBoolPref("intl.locale.matchOS", true);
+    } else {
+      prefs.setBoolPref("intl.locale.matchOS", false);
+      prefs.setCharPref("general.useragent.locale", newLocale);
+    }
+
+    
+    if (this._currentLocale == newLocale)
+      this.hideRestart();
+    else
+      this.showRestart();
   },
 
   _showHomePageHint: function _showHomePageHint(aHint) {

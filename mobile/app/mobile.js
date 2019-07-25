@@ -668,7 +668,7 @@ pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.goog
 
 
 pref("browser.firstrun.show.uidiscovery", true);
-pref("browser.firstrun.show.localepicker", true);
+pref("browser.firstrun.show.localepicker", false);
 
 
 
