@@ -1350,18 +1350,6 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
       nsIFrame::INVALIDATE_NO_THEBES_LAYERS |
       nsIFrame::INVALIDATE_EXCLUDE_CURRENT_PAINT);
 
-  
-  
-  
-  
-  
-  
-  
-  nsRefPtr<nsIRenderingContext> rc;
-  nsPresContext* lastPresContext = nsnull;
-  nsRect currentClip;
-  PRBool setClipRect = PR_FALSE;
-
   PRUint32 i;
   
   
@@ -1375,13 +1363,8 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
   for (i = items.Length(); i > 0; --i) {
     ClippedDisplayItem* cdi = &items[i - 1];
 
-    presContext = cdi->mItem->GetUnderlyingFrame()->PresContext();
-    if (presContext->AppUnitsPerDevPixel() != appUnitsPerDevPixel) {
-      
-      nsRegion tmp(cdi->mItem->GetBounds(builder));
-      cdi->mItem->RecomputeVisibility(builder, &tmp);
-      continue;
-    }
+    NS_ASSERTION(AppUnitsPerDevPixel(cdi->mItem) == appUnitsPerDevPixel,
+                 "a thebes layer should contain items only at the same zoom");
 
     if (!cdi->mHasClipRect || cdi->mClipRect.Contains(visible.GetBounds())) {
       cdi->mItem->RecomputeVisibility(builder, &visible);
@@ -1404,13 +1387,22 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
     }
   }
 
+  nsRefPtr<nsIRenderingContext> rc;
+  nsresult rv =
+    presContext->DeviceContext()->CreateRenderingContextInstance(*getter_AddRefs(rc));
+  if (NS_FAILED(rv))
+    return;
+  rc->Init(presContext->DeviceContext(), aContext);
+
+  nsRect currentClip;
+  PRBool setClipRect = PR_FALSE;
+
   for (i = 0; i < items.Length(); ++i) {
     ClippedDisplayItem* cdi = &items[i];
 
     if (cdi->mItem->GetVisibleRect().IsEmpty())
       continue;
 
-    presContext = cdi->mItem->GetUnderlyingFrame()->PresContext();
     
     
     if (setClipRect != cdi->mHasClipRect ||
@@ -1436,16 +1428,6 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
       cdi->mTempLayerManager->BeginTransactionWithTarget(aContext);
       cdi->mTempLayerManager->EndTransaction(DrawThebesLayer, builder);
     } else {
-      if (presContext != lastPresContext) {
-        
-        
-        nsresult rv =
-          presContext->DeviceContext()->CreateRenderingContextInstance(*getter_AddRefs(rc));
-        if (NS_FAILED(rv))
-          break;
-        rc->Init(presContext->DeviceContext(), aContext);
-        lastPresContext = presContext;
-      }
       cdi->mItem->Paint(builder, rc);
     }
   }
