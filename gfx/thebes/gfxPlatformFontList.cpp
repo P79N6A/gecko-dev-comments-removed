@@ -454,6 +454,10 @@ gfxPlatformFontList::SystemFindFontForChar(const PRUint32 aCh,
                           intElapsed);
     first = false;
 
+    
+    
+    Telemetry::Accumulate(Telemetry::SYSTEM_FONT_FALLBACK_SCRIPT, aRunScript + 1);
+
     return fontEntry;
 }
 
