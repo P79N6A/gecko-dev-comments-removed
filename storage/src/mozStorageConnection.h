@@ -46,7 +46,7 @@
 #include "mozilla/Mutex.h"
 
 #include "nsString.h"
-#include "nsInterfaceHashtable.h"
+#include "nsDataHashtable.h"
 #include "mozIStorageProgressHandler.h"
 #include "SQLiteMutex.h"
 #include "mozIStorageConnection.h"
@@ -70,7 +70,28 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_MOZISTORAGECONNECTION
 
-  Connection(Service *aService);
+  
+
+
+  struct FunctionInfo {
+    enum FunctionType {
+      SIMPLE,
+      AGGREGATE
+    };
+
+    nsCOMPtr<nsISupports> function;
+    FunctionType type;
+    PRInt32 numArgs;
+  };
+
+  
+
+
+
+
+
+
+  Connection(Service *aService, int aFlags);
 
   
 
@@ -80,10 +101,7 @@ public:
 
 
 
-
-
-
-  nsresult initialize(nsIFile *aDatabaseFile, int aFlags);
+  nsresult initialize(nsIFile *aDatabaseFile);
 
   
   sqlite3 *GetNativeConnection() { return mDBConn; }
@@ -200,13 +218,18 @@ private:
 
 
 
-  nsInterfaceHashtable<nsCStringHashKey, nsISupports> mFunctions;
+  nsDataHashtable<nsCStringHashKey, FunctionInfo> mFunctions;
 
   
 
 
 
   nsCOMPtr<mozIStorageProgressHandler> mProgressHandler;
+
+  
+
+
+  const int mFlags;
 
   
   
