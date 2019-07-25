@@ -214,7 +214,7 @@ public:
   
 
 
-  PRBool HasShadowManager() { return !!mShadowManager; }
+  PRBool HasShadowManager() const { return !!mShadowManager; }
 
   PRBool AllocDoubleBuffer(const gfxIntSize& aSize,
                            gfxASurface::gfxImageFormat aFormat,
@@ -248,11 +248,9 @@ public:
 
   void SetForwarder(PLayersParent* aForwarder)
   {
-    NS_ASSERTION(!HasForwarder(), "setting forwarder twice?");
+    NS_ASSERTION(!aForwarder || !HasForwarder(), "stomping live forwarder?");
     mForwarder = aForwarder;
   }
-
-  virtual void GetBackendName(nsAString& name) { name.AssignLiteral("Shadow"); }
 
   void DestroySharedSurface(gfxSharedImageSurface* aSurface);
 
