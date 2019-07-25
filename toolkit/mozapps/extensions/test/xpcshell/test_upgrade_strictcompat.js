@@ -5,8 +5,6 @@
 
 
 
-Services.prefs.setBoolPref(PREF_EM_STRICT_COMPATIBILITY, false);
-
 
 Services.prefs.setIntPref("extensions.enabledScopes",
                           AddonManager.SCOPE_PROFILE +
@@ -82,6 +80,8 @@ function run_test() {
 
   do_test_pending();
 
+  Services.prefs.setBoolPref(PREF_EM_STRICT_COMPATIBILITY, true);
+
   run_test_1();
 }
 
@@ -93,6 +93,9 @@ function end_test() {
     globalDir.append(do_get_expected_addon_name("addon4@tests.mozilla.org"));
     globalDir.remove(true);
   }
+
+  Services.prefs.clearUserPref(PREF_EM_STRICT_COMPATIBILITY);
+
   do_test_finished();
 }
 
@@ -113,7 +116,7 @@ function run_test_1() {
     do_check_true(isExtensionInAddonsList(profileDir, a2.id));
 
     do_check_neq(a3, null);
-    do_check_true(isExtensionInAddonsList(profileDir, a3.id));
+    do_check_false(isExtensionInAddonsList(profileDir, a3.id));
 
     do_check_neq(a4, null);
     do_check_true(isExtensionInAddonsList(globalDir, a4.id));
@@ -146,7 +149,7 @@ function run_test_2() {
                                function([a1, a2, a3, a4]) {
 
     do_check_neq(a1, null);
-    do_check_true(isExtensionInAddonsList(profileDir, a1.id));
+    do_check_false(isExtensionInAddonsList(profileDir, a1.id));
 
     do_check_neq(a2, null);
     do_check_true(isExtensionInAddonsList(profileDir, a2.id));
@@ -191,7 +194,7 @@ function run_test_3() {
                                function([a1, a2, a3, a4]) {
 
     do_check_neq(a1, null);
-    do_check_true(isExtensionInAddonsList(profileDir, a1.id));
+    do_check_false(isExtensionInAddonsList(profileDir, a1.id));
 
     do_check_neq(a2, null);
     do_check_true(isExtensionInAddonsList(profileDir, a2.id));

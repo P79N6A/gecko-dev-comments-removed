@@ -10,7 +10,7 @@ var testserver;
 
 
 Services.prefs.setBoolPref(PREF_EM_CHECK_UPDATE_SECURITY, false);
-Services.prefs.setBoolPref(PREF_EM_STRICT_COMPATIBILITY, false);
+Services.prefs.setBoolPref(PREF_EM_STRICT_COMPATIBILITY, true);
 
 
 var addon1 = {
@@ -218,9 +218,9 @@ function run_test_1() {
     do_check_eq(a4.pendingOperations, AddonManager.PENDING_NONE);
 
     do_check_neq(a5, null);
-    do_check_true(a5.isActive);
+    do_check_false(a5.isActive);
     do_check_false(a5.userDisabled);
-    do_check_false(a5.appDisabled);
+    do_check_true(a5.appDisabled);
     do_check_eq(a5.pendingOperations, AddonManager.PENDING_NONE);
 
     do_check_neq(a6, null);
@@ -286,23 +286,21 @@ function run_test_1() {
       do_check_neq(a3, null);
       do_check_true(a3.isActive);
       do_check_false(a3.userDisabled);
-      do_check_false(a3.appDisabled);
-      do_check_eq(a3.pendingOperations, AddonManager.PENDING_NONE);
+      do_check_true(a3.appDisabled);
+      do_check_eq(a3.pendingOperations, AddonManager.PENDING_DISABLE);
 
-      
-      
       
       
       do_check_neq(a4, null);
       do_check_false(a4.isActive);
-      do_check_true(a4.userDisabled);
-      do_check_false(a4.appDisabled);
+      do_check_false(a4.userDisabled);
+      do_check_true(a4.appDisabled);
       do_check_eq(a4.pendingOperations, AddonManager.PENDING_NONE);
 
       do_check_neq(a5, null);
-      do_check_true(a5.isActive);
+      do_check_false(a5.isActive);
       do_check_false(a5.userDisabled);
-      do_check_false(a5.appDisabled);
+      do_check_true(a5.appDisabled);
       do_check_eq(a5.pendingOperations, AddonManager.PENDING_NONE);
 
       do_check_neq(a6, null);
@@ -357,21 +355,21 @@ function run_test_1() {
         do_check_eq(a2.pendingOperations, AddonManager.PENDING_NONE);
 
         do_check_neq(a3, null);
-        do_check_true(a3.isActive);
+        do_check_false(a3.isActive);
         do_check_false(a3.userDisabled);
-        do_check_false(a3.appDisabled);
+        do_check_true(a3.appDisabled);
         do_check_eq(a3.pendingOperations, AddonManager.PENDING_NONE);
 
         do_check_neq(a4, null);
         do_check_false(a4.isActive);
-        do_check_true(a4.userDisabled);
-        do_check_false(a4.appDisabled);
+        do_check_false(a4.userDisabled);
+        do_check_true(a4.appDisabled);
         do_check_eq(a4.pendingOperations, AddonManager.PENDING_NONE);
 
         do_check_neq(a5, null);
-        do_check_true(a5.isActive);
+        do_check_false(a5.isActive);
         do_check_false(a5.userDisabled);
-        do_check_false(a5.appDisabled);
+        do_check_true(a5.appDisabled);
         do_check_eq(a5.pendingOperations, AddonManager.PENDING_NONE);
 
         do_check_neq(a6, null);

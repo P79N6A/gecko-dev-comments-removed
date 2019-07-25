@@ -8,6 +8,9 @@ const AM_Ci = Components.interfaces;
 const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
 const XULAPPINFO_CID = Components.ID("{c763b610-9d49-455a-bbd2-ede71682a1ac}");
 
+const PREF_EM_CHECK_UPDATE_SECURITY   = "extensions.checkUpdateSecurity";
+const PREF_EM_STRICT_COMPATIBILITY    = "extensions.strictCompatibility";
+
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/AddonRepository.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -1104,6 +1107,10 @@ Services.prefs.setCharPref("extensions.blocklist.url", "http://127.0.0.1/blockli
 Services.prefs.setBoolPref("extensions.installDistroAddons", false);
 
 
+Services.prefs.setBoolPref("extensions.strictCompatibility", true);
+
+
+
 const gTmpD = gProfD.clone();
 gTmpD.append("temp");
 gTmpD.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
@@ -1146,4 +1153,12 @@ do_register_cleanup(function() {
   do_check_false(testDir.exists());
 
   shutdownManager();
+
+  
+  try {
+    Services.prefs.clearUserPref(PREF_EM_CHECK_UPDATE_SECURITY);
+  } catch (e) {}
+  try {
+    Services.prefs.clearUserPref(PREF_EM_STRICT_COMPATIBILITY);
+  } catch (e) {}
 });
