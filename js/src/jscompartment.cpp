@@ -188,31 +188,21 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
             return js_FindClassObject(cx, NULL, JSProto_StopIteration, vp);
 
         
-        if (!obj->getClass()->ext.innerObject) {
-            obj = UnwrapObject(&vp->toObject(), true, &flags);
-            vp->setObject(*obj);
-            if (obj->compartment() == this)
-                return true;
+        obj = UnwrapObject(&vp->toObject(),  true, &flags);
 
-            if (cx->runtime->preWrapObjectCallback) {
-                obj = cx->runtime->preWrapObjectCallback(cx, global, obj, flags);
-                if (!obj)
-                    return false;
-            }
+        vp->setObject(*obj);
+        if (obj->compartment() == this)
+            return true;
 
-            vp->setObject(*obj);
-            if (obj->compartment() == this)
-                return true;
-        } else {
-            if (cx->runtime->preWrapObjectCallback) {
-                obj = cx->runtime->preWrapObjectCallback(cx, global, obj, flags);
-                if (!obj)
-                    return false;
-            }
-
-            JS_ASSERT(!obj->isWrapper() || obj->getClass()->ext.innerObject);
-            vp->setObject(*obj);
+        if (cx->runtime->preWrapObjectCallback) {
+            obj = cx->runtime->preWrapObjectCallback(cx, global, obj, flags);
+            if (!obj)
+                return false;
         }
+
+        vp->setObject(*obj);
+        if (obj->compartment() == this)
+            return true;
 
 #ifdef DEBUG
         {
