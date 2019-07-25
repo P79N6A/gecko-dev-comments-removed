@@ -1412,7 +1412,7 @@ function Tab(aURL, aParams) {
   this.viewportExcess = { x: 0, y: 0 };
   this.documentIdForCurrentViewport = null;
   this.userScrollPos = { x: 0, y: 0 };
-  this._pluginsToPlay = [];
+  this._pluginCount = 0;
   this._pluginOverlayShowing = false;
 }
 
@@ -1730,7 +1730,9 @@ Tab.prototype = {
         }
 
         
-        if (this._pluginsToPlay.length && !this._pluginOverlayShowing)
+        
+        
+        if (this._pluginCount && !this._pluginOverlayShowing)
           PluginHelper.showDoorHanger(this);
 
         break;
@@ -1822,10 +1824,11 @@ Tab.prototype = {
       }
 
       case "PluginClickToPlay": {
-        let plugin = aEvent.target;
         
-        this._pluginsToPlay.push(plugin);
+        
+        this._pluginCount++;
 
+        let plugin = aEvent.target;
         let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");
         if (!overlay)
           return;
@@ -1838,7 +1841,7 @@ Tab.prototype = {
         }
 
         
-        plugin.addEventListener("click", (function(event) {
+        overlay.addEventListener("click", (function(event) {
           
           PluginHelper.playAllPlugins(this, event);
         }).bind(this), true);
@@ -1851,7 +1854,7 @@ Tab.prototype = {
         
         if (aEvent.target.defaultView == this.browser.contentWindow) {
           
-          this._pluginsToPlay = [];
+          this._pluginCount = 0;
           this._pluginOverlayShowing = false;
         }
         break;
@@ -3730,22 +3733,40 @@ var PluginHelper = {
   },
 
   playAllPlugins: function(aTab, aEvent) {
-    let plugins = aTab._pluginsToPlay;
-    if (!plugins.length)
-      return;
-
     if (aEvent) {
       if (!aEvent.isTrusted)
         return;
       aEvent.preventDefault();
     }
 
-    for (let i = 0; i < plugins.length; i++) {
-      let objLoadingContent = plugins[i].QueryInterface(Ci.nsIObjectLoadingContent);
-      objLoadingContent.playPlugin();
+    this._findAndPlayAllPlugins(aTab.browser.contentWindow);
+  },
+
+  
+  _findAndPlayAllPlugins: function _findAndPlayAllPlugins(aWindow) {
+    let embeds = aWindow.document.getElementsByTagName("embed");
+    for (let i = 0; i < embeds.length; i++) {
+      if (!embeds[i].hasAttribute("played"))
+        this._playPlugin(embeds[i]);
     }
+
+    let objects = aWindow.document.getElementsByTagName("object");
+    for (let i = 0; i < objects.length; i++) {
+      if (!objects[i].hasAttribute("played"))
+        this._playPlugin(objects[i]);
+    }
+
+    for (let i = 0; i < aWindow.frames.length; i++) {
+      this._findAndPlayAllPlugins(aWindow.frames[i]);
+    }
+  },
+
+  _playPlugin: function _playPlugin(aPlugin) {
+    let objLoadingContent = aPlugin.QueryInterface(Ci.nsIObjectLoadingContent);
+    objLoadingContent.playPlugin();
+
     
-    aTab._pluginsToPlay = [];
+    aPlugin.setAttribute("played", true);
   },
 
   getPluginPreference: function getPluginPreference() {
