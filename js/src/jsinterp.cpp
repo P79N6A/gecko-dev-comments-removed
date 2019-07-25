@@ -2776,11 +2776,13 @@ BEGIN_CASE(JSOP_STOP)
         }
 
         JSStackFrame *down = fp->down;
+        Value *newsp = fp->argv - 1;
 
         
         cx->stack().popInlineFrame(cx, fp, down);
 
         
+        regs.sp = newsp;
         regs.sp[-1] = fp->rval;
 
         
