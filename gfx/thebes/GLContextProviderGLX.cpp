@@ -283,23 +283,17 @@ TRY_AGAIN_NO_SHARING:
             error = true;
         }
 
-        if (shareContext) {
-            if (error || xErrorHandler.SyncAndGetError(display)) {
+        error |= xErrorHandler.SyncAndGetError(display);
+
+        if (error) {
+            if (shareContext) {
                 shareContext = nsnull;
                 goto TRY_AGAIN_NO_SHARING;
             }
-        }
 
-        
-        
-        if (!shareContext) {
-            if (error || 
-                xErrorHandler.SyncAndGetError(display))
-            {
-                NS_WARNING("Failed to create GLXContext!");
-                glContext = nsnull; 
-                                    
-            }
+            NS_WARNING("Failed to create GLXContext!");
+            glContext = nsnull; 
+                                
         }
 
         return glContext.forget();
