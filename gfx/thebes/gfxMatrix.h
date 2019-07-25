@@ -41,7 +41,6 @@
 #include "gfxPoint.h"
 #include "gfxTypes.h"
 #include "gfxRect.h"
-#include "gfxUtils.h"
 #include "nsMathUtils.h"
 
 
@@ -189,8 +188,8 @@ public:
 
     PRBool HasNonIntegerTranslation() const {
         return HasNonTranslation() ||
-            !gfxUtils::FuzzyEqual(x0, NS_floor(x0 + 0.5)) ||
-            !gfxUtils::FuzzyEqual(y0, NS_floor(y0 + 0.5));
+            !FuzzyEqual(x0, NS_floor(x0 + 0.5)) ||
+            !FuzzyEqual(y0, NS_floor(y0 + 0.5));
     }
 
     
@@ -198,8 +197,8 @@ public:
 
 
     PRBool HasNonTranslation() const {
-        return !gfxUtils::FuzzyEqual(xx, 1.0) || !gfxUtils::FuzzyEqual(yy, 1.0) ||
-               !gfxUtils::FuzzyEqual(xy, 0.0) || !gfxUtils::FuzzyEqual(yx, 0.0);
+        return !FuzzyEqual(xx, 1.0) || !FuzzyEqual(yy, 1.0) ||
+               !FuzzyEqual(xy, 0.0) || !FuzzyEqual(yx, 0.0);
     }
 
     
@@ -207,9 +206,9 @@ public:
 
 
     PRBool HasNonTranslationOrFlip() const {
-        return !gfxUtils::FuzzyEqual(xx, 1.0) ||
-               (!gfxUtils::FuzzyEqual(yy, 1.0) && !gfxUtils::FuzzyEqual(yy, -1.0)) ||
-               !gfxUtils::FuzzyEqual(xy, 0.0) || !gfxUtils::FuzzyEqual(yx, 0.0);
+        return !FuzzyEqual(xx, 1.0) ||
+               (!FuzzyEqual(yy, 1.0) && !FuzzyEqual(yy, -1.0)) ||
+               !FuzzyEqual(xy, 0.0) || !FuzzyEqual(yx, 0.0);
     }
 
     
@@ -218,7 +217,7 @@ public:
 
 
     PRBool HasNonAxisAlignedTransform() const {
-        return !gfxUtils::FuzzyEqual(xy, 0.0) || !gfxUtils::FuzzyEqual(yx, 0.0);
+        return !FuzzyEqual(xy, 0.0) || !FuzzyEqual(yx, 0.0);
     }
 
     
@@ -257,6 +256,11 @@ public:
             return gfxSize(major, minor);
 
         return gfxSize(minor, major);
+    }
+
+private:
+    static PRBool FuzzyEqual(gfxFloat aV1, gfxFloat aV2) {
+        return fabs(aV2 - aV1) < 1e-6;
     }
 };
 
