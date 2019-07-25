@@ -485,6 +485,23 @@ protected:
     KeyEventState() : mKeyEvent(nsnull)
     {
       Clear();
+    }    
+
+    KeyEventState(NSEvent* aNativeKeyEvent) : mKeyEvent(nsnull)
+    {
+      Clear();
+      Set(aNativeKeyEvent);
+    }
+
+    KeyEventState(const KeyEventState &aOther) : mKeyEvent(nsnull)
+    {
+      Clear();
+      if (aOther.mKeyEvent) {
+        mKeyEvent = [aOther.mKeyEvent retain];
+      }
+      mKeyDownHandled = aOther.mKeyDownHandled;
+      mKeyPressDispatched = aOther.mKeyPressDispatched;
+      mKeyPressHandled = aOther.mKeyPressHandled;
     }
 
     ~KeyEventState()
@@ -529,15 +546,67 @@ protected:
 
     ~AutoKeyEventStateCleaner()
     {
-      mHandler->mCurrentKeyEvent.Clear();
+      mHandler->RemoveCurrentKeyEvent();
     }
   private:
-    TextInputHandlerBase* mHandler;
+    nsRefPtr<TextInputHandlerBase> mHandler;
   };
 
   
+
+
+
+
+  nsTArray<KeyEventState*> mCurrentKeyEvents;
+
   
-  KeyEventState mCurrentKeyEvent;
+
+
+
+  KeyEventState mFirstKeyEvent;
+
+  
+
+
+  KeyEventState* PushKeyEvent(NSEvent* aNativeKeyEvent)
+  {
+    KeyEventState* keyEvent = nsnull;
+    if (mCurrentKeyEvents.Length() == 0) {
+      mFirstKeyEvent.Set(aNativeKeyEvent);
+      keyEvent = &mFirstKeyEvent;
+    } else {
+      keyEvent = new KeyEventState(aNativeKeyEvent);
+    }
+    return *mCurrentKeyEvents.AppendElement(keyEvent);
+  }
+
+  
+
+
+
+  void RemoveCurrentKeyEvent()
+  {
+    NS_ASSERTION(mCurrentKeyEvents.Length() > 0,
+                 "RemoveCurrentKeyEvent() is called unexpectedly");
+    KeyEventState* keyEvent = GetCurrentKeyEvent();
+    mCurrentKeyEvents.RemoveElementAt(mCurrentKeyEvents.Length() - 1);
+    if (keyEvent == &mFirstKeyEvent) {
+      keyEvent->Clear();
+    } else {
+      delete keyEvent;
+    }
+  }
+
+  
+
+
+  KeyEventState* GetCurrentKeyEvent()
+  {
+    if (mCurrentKeyEvents.Length() == 0) {
+      return nsnull;
+    }
+    return mCurrentKeyEvents[mCurrentKeyEvents.Length() - 1];
+  }
 
   
 
@@ -1119,7 +1188,8 @@ public:
 
   bool KeyPressWasHandled()
   {
-    return mCurrentKeyEvent.mKeyPressHandled;
+    KeyEventState* currentKeyEvent = GetCurrentKeyEvent();
+    return currentKeyEvent && currentKeyEvent->mKeyPressHandled;
   }
 
 protected:
