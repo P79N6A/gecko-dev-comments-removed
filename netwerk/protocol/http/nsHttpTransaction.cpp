@@ -138,11 +138,10 @@ nsHttpTransaction::nsHttpTransaction()
     , mSSLConnectFailed(false)
     , mHttpResponseMatched(false)
     , mPreserveStream(false)
-    , mToReadBeforeRestart(0)
     , mReportedStart(false)
     , mReportedResponseHeader(false)
     , mForTakeResponseHead(nsnull)
-    , mTakenResponseHeader(false)
+    , mResponseHeadTaken(false)
 {
     LOG(("Creating nsHttpTransaction @%x\n", this));
     gHttpHandler->GetMaxPipelineObjectSize(mMaxPipelineObjectSize);
@@ -360,12 +359,12 @@ nsHttpTransaction::Connection()
 nsHttpResponseHead *
 nsHttpTransaction::TakeResponseHead()
 {
-    NS_ABORT_IF_FALSE(!mTakenResponseHeader, "TakeResponseHead called 2x");
+    NS_ABORT_IF_FALSE(!mResponseHeadTaken, "TakeResponseHead called 2x");
 
     
     MutexAutoLock lock(*nsHttp::GetLock());
 
-    mTakenResponseHeader = true;
+    mResponseHeadTaken = true;
 
     
     
@@ -470,7 +469,7 @@ nsHttpTransaction::OnTransportStatus(nsITransport* transport,
                 PR_Now(), LL_ZERO, EmptyCString());
 
         
-        if (!mRestartInProgressVerifier.Active())
+        if (!mRestartInProgressVerifier.IsDiscardingContent())
             mActivityDistributor->ObserveActivity(
                 mChannel,
                 NS_HTTP_ACTIVITY_TYPE_SOCKET_TRANSPORT,
@@ -841,30 +840,40 @@ nsHttpTransaction::RestartInProgress()
 {
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
     
+    if ((mRestartCount + 1) >= gHttpHandler->MaxRequestAttempts()) {
+        LOG(("nsHttpTransaction::RestartInProgress() "
+             "reached max request attempts, failing transaction %p\n", this));
+        return NS_ERROR_NET_RESET;
+    }
+
     
     MutexAutoLock lock(*nsHttp::GetLock());
 
     
-    if (mHaveAllHeaders && !mRestartInProgressVerifier.IsSetup())
+    
+    
+    if (!mHaveAllHeaders)
+        return NS_ERROR_NET_RESET;
+
+    
+    if (!mRestartInProgressVerifier.IsSetup())
         return NS_ERROR_NET_RESET;
 
     LOG(("Will restart transaction %p and skip first %lld bytes, "
          "old Content-Length %lld",
          this, mContentRead, mContentLength));
 
-    if (mHaveAllHeaders) {
-        mRestartInProgressVerifier.SetAlreadyProcessed(
-            PR_MAX(mRestartInProgressVerifier.AlreadyProcessed(), mContentRead));
-        mToReadBeforeRestart = mRestartInProgressVerifier.AlreadyProcessed();
-        mRestartInProgressVerifier.SetActive(true);
+    mRestartInProgressVerifier.SetAlreadyProcessed(
+        PR_MAX(mRestartInProgressVerifier.AlreadyProcessed(), mContentRead));
 
-        if (!mTakenResponseHeader && !mForTakeResponseHead) {
-            
-            
-            
-            mForTakeResponseHead = mResponseHead;
-            mResponseHead = nsnull;
-        }
+    if (!mResponseHeadTaken && !mForTakeResponseHead) {
+        
+        
+        
+        
+        
+        mForTakeResponseHead = mResponseHead;
+        mResponseHead = nsnull;
     }
 
     if (mResponseHead) {
@@ -1253,7 +1262,7 @@ nsHttpTransaction::HandleContentStart()
                 LOG(("waiting for the server to close the connection.\n"));
 #endif
         }
-        if (mRestartInProgressVerifier.Active() &&
+        if (mRestartInProgressVerifier.IsSetup() &&
             !mRestartInProgressVerifier.Verify(mContentLength, mResponseHead)) {
             LOG(("Restart in progress subsequent transaction failed to match"));
             return NS_ERROR_ABORT;
@@ -1261,8 +1270,12 @@ nsHttpTransaction::HandleContentStart()
     }
 
     mDidContentStart = true;
+
+    
+    
     if (mRequestHead->Method() == nsHttp::Get)
         mRestartInProgressVerifier.Set(mContentLength, mResponseHead);
+
     return NS_OK;
 }
 
@@ -1322,17 +1335,19 @@ nsHttpTransaction::HandleContent(char *buf,
         *contentRead = count;
     }
     
-    if (mRestartInProgressVerifier.Active() &&
-        mToReadBeforeRestart && *contentRead) {
-        PRUint32 ignore = PR_MIN(*contentRead, PRUint32(mToReadBeforeRestart));
+    PRInt64 toReadBeforeRestart =
+        mRestartInProgressVerifier.ToReadBeforeRestart();
+
+    if (toReadBeforeRestart && *contentRead) {
+        PRUint32 ignore =
+            PR_MIN(toReadBeforeRestart, PR_UINT32_MAX);
+        ignore = PR_MIN(*contentRead, ignore);
         LOG(("Due To Restart ignoring %d of remaining %ld",
-             ignore, mToReadBeforeRestart));
+             ignore, toReadBeforeRestart));
         *contentRead -= ignore;
         mContentRead += ignore;
-        mToReadBeforeRestart -= ignore;
+        mRestartInProgressVerifier.HaveReadBeforeRestart(ignore);
         memmove(buf, buf + ignore, *contentRead + *contentRemaining);
-        if (!mToReadBeforeRestart)
-            mRestartInProgressVerifier.SetActive(false);
     }
 
     if (*contentRead) {
@@ -1647,6 +1662,12 @@ nsHttpTransaction::RestartVerifier::Set(PRInt64 contentLength,
         val = head->PeekHeader(nsHttp::Transfer_Encoding);
         if (val)
             mTransferEncoding.Assign(val);
+
+        
+        
+        if (mETag.IsEmpty() && mLastModified.IsEmpty())
+            return;
+
         mSetup = true;
     }
 }
