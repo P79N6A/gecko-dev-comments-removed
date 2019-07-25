@@ -29,11 +29,17 @@ static const float FLING_FRICTION = 0.013f;
 
 
 
+static const float VELOCITY_THRESHOLD = 0.1f;
 
 
 
 
-static const float VELOCITY_THRESHOLD = 1.0f;
+
+
+
+
+
+static const float ACCELERATION_MULTIPLIER = 1.125f;
 
 
 
@@ -45,6 +51,7 @@ static const float FLING_STOPPED_THRESHOLD = 0.01f;
 Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
   : mPos(0.0f),
     mVelocity(0.0f),
+    mAcceleration(0),
     mAsyncPanZoomController(aAsyncPanZoomController),
     mLockPanning(false)
 {
@@ -59,7 +66,14 @@ void Axis::UpdateWithTouchAtDevicePoint(PRInt32 aPos, const TimeDuration& aTimeD
   float newVelocity = (mPos - aPos) / aTimeDelta.ToMilliseconds();
 
   bool curVelocityIsLow = fabsf(newVelocity) < 0.01f;
-  bool directionChange = (mVelocity > 0) != (newVelocity != 0);
+  bool curVelocityBelowThreshold = fabsf(newVelocity) < VELOCITY_THRESHOLD;
+  bool directionChange = (mVelocity > 0) != (newVelocity > 0);
+
+  
+  
+  if (directionChange || curVelocityBelowThreshold) {
+    mAcceleration = 0;
+  }
 
   
   
@@ -81,7 +95,9 @@ void Axis::StartTouch(PRInt32 aPos) {
 }
 
 PRInt32 Axis::GetDisplacementForDuration(float aScale, const TimeDuration& aDelta) {
-  PRInt32 displacement = NS_lround(mVelocity * aScale * aDelta.ToMilliseconds());
+  float velocityFactor = powf(ACCELERATION_MULTIPLIER,
+                              NS_MAX(0, (mAcceleration - 4) * 3));
+  PRInt32 displacement = NS_lround(mVelocity * aScale * aDelta.ToMilliseconds() * velocityFactor);
   
   
   if (DisplacementWillOverscroll(displacement) != OVERSCROLL_NONE) {
@@ -98,10 +114,12 @@ float Axis::PanDistance() {
 }
 
 void Axis::EndTouch() {
+  mAcceleration++;
 }
 
 void Axis::CancelTouch() {
   mVelocity = 0.0f;
+  mAcceleration = 0;
 }
 
 void Axis::LockPanning() {

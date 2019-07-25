@@ -179,6 +179,12 @@ protected:
   PRInt32 mPos;
   PRInt32 mStartPos;
   float mVelocity;
+  
+  
+  
+  
+  
+  PRInt32 mAcceleration;
   nsRefPtr<AsyncPanZoomController> mAsyncPanZoomController;
   bool mLockPanning;
 };
