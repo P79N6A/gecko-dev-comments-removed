@@ -2291,7 +2291,7 @@ PluginInstanceChild::CreateOptSurface(void)
     
     mCurrentSurface = new gfxSharedImageSurface();
     return static_cast<gfxSharedImageSurface*>(mCurrentSurface.get())->
-        Init(this, gfxIntSize(mWindow.width, mWindow.height), format);
+        InitUnsafe(this, gfxIntSize(mWindow.width, mWindow.height), format);
 }
 
 bool
@@ -2777,7 +2777,8 @@ PluginInstanceChild::ReadbackDifferenceRect(const nsIntRect& rect)
     
     
 #if defined(MOZ_X11)
-    if (mBackSurface->GetType() != gfxASurface::SurfaceTypeXlib)
+    if (mBackSurface->GetType() != gfxASurface::SurfaceTypeXlib &&
+        !gfxSharedImageSurface::IsSharedImage(mBackSurface))
         return false;
 #elif defined(XP_WIN)
     if (!SharedDIBSurface::IsSharedDIBSurface(mBackSurface))
