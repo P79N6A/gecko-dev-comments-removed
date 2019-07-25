@@ -257,6 +257,11 @@ public:
     virtual void BindTexture(GLenum aTextureUnit) = 0;
     virtual void ReleaseTexture() {};
 
+    void BindTextureAndApplyFilter(GLenum aTextureUnit) {
+        BindTexture(aTextureUnit);
+        ApplyFilter();
+    }
+
     class ScopedBindTexture
     {
     public:
@@ -275,10 +280,22 @@ public:
             }       
         }
 
-    private:
+    protected:
         TextureImage *mTexture;
     };
 
+    class ScopedBindTextureAndApplyFilter
+        : public ScopedBindTexture
+    {
+    public:
+        ScopedBindTextureAndApplyFilter(TextureImage *aTexture, GLenum aTextureUnit) :
+          ScopedBindTexture(aTexture, aTextureUnit)
+        {
+            if (mTexture) {
+                mTexture->ApplyFilter();
+            }
+        }
+    };
 
     
 
@@ -306,6 +323,8 @@ public:
 
     bool IsRGB() const { return mIsRGBFormat; }
 
+    void SetFilter(gfxPattern::GraphicsFilter aFilter) { mFilter = aFilter; }
+
 protected:
     friend class GLContext;
 
@@ -324,11 +343,18 @@ protected:
         , mIsRGBFormat(aIsRGB)
     {}
 
+    
+
+
+
+    virtual void ApplyFilter() = 0;
+
     nsIntSize mSize;
     GLenum mWrapMode;
     ContentType mContentType;
     bool mIsRGBFormat;
     ShaderProgramType mShaderType;
+    gfxPattern::GraphicsFilter mFilter;
 };
 
 
@@ -391,6 +417,8 @@ protected:
 
     
     nsIntPoint mUpdateOffset;
+
+    virtual void ApplyFilter();
 };
 
 
@@ -434,6 +462,8 @@ protected:
     
     nsIntRegion mUpdateRegion;
     TextureState mTextureState;
+
+    virtual void ApplyFilter();
 };
 
 struct THEBES_API ContextFormat
@@ -659,6 +689,12 @@ public:
 
 
     virtual bool ReleaseTexImage() { return false; }
+
+    
+
+
+    void ApplyFilterToBoundTexture(gfxPattern::GraphicsFilter aFilter);
+
 
     
 
