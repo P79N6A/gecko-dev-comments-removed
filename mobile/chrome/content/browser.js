@@ -365,8 +365,13 @@ var Browser = {
     if (window.arguments && window.arguments[0])
       defaultURL = window.arguments[0];
 
-    this.addTab(defaultURL, true);
-
+    
+    let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
+    if (ss.shouldRestore())
+      ss.restoreLastSession();
+    else
+      this.addTab(defaultURL, true);
+    
     
     if (Services.prefs.getBoolPref("browser.console.showInPanel")){
       let button = document.getElementById("tool-console");
@@ -2753,6 +2758,10 @@ Tab.prototype = {
   create: function create(aURI, aParams) {
     this._chromeTab = document.getElementById("tabs").addTab();
     let browser = this._createBrowser(aURI, null);
+
+    
+    if ("delayLoad" in aParams && aParams.delayLoad)
+      return;
 
     let flags = aParams.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
     browser.loadURIWithFlags(aURI, flags, aParams.referrerURI, aParams.charset, aParams.postData);

@@ -113,6 +113,12 @@ pref("browser.sessionhistory.max_total_viewers", 1);
 pref("browser.sessionhistory.max_entries", 50);
 
 
+pref("browser.sessionstore.resume_from_crash", true);
+pref("browser.sessionstore.resume_from_crash_timeout", 60); 
+pref("browser.sessionstore.interval", 10000); 
+pref("browser.sessionstore.max_tabs_undo", 5);
+
+
 pref("mozilla.widget.force-24bpp", true);
 pref("mozilla.widget.use-buffer-pixmap", true);
 pref("mozilla.widget.disable-native-theme", true);
