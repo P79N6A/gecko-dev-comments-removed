@@ -1103,6 +1103,26 @@ public:
 
   nsIContent* GetNextNode(const nsINode* aRoot = nsnull) const
   {
+    return GetNextNodeImpl(aRoot, PR_FALSE);
+  }
+
+  
+
+
+
+
+
+
+  nsIContent* GetNextNonChildNode(const nsINode* aRoot = nsnull) const
+  {
+    return GetNextNodeImpl(aRoot, PR_TRUE);
+  }
+
+private:
+
+  nsIContent* GetNextNodeImpl(const nsINode* aRoot,
+                              const PRBool aSkipChildren) const
+  {
     
     
 #ifdef DEBUG
@@ -1113,9 +1133,11 @@ public:
       NS_ASSERTION(cur, "aRoot not an ancestor of |this|?");
     }
 #endif
-    nsIContent* kid = GetFirstChild();
-    if (kid) {
-      return kid;
+    if (!aSkipChildren) {
+      nsIContent* kid = GetFirstChild();
+      if (kid) {
+        return kid;
+      }
     }
     if (this == aRoot) {
       return nsnull;
@@ -1134,6 +1156,8 @@ public:
     }
     NS_NOTREACHED("How did we get here?");
   }
+
+public:
 
   
 

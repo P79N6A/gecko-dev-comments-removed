@@ -84,8 +84,9 @@
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
 #include "nsLinebreakConverter.h"
-#include "nsIFragmentContentSink.h"
-#include "nsIContentSink.h"
+#include "nsAHtml5FragmentParser.h"
+#include "nsHtml5Module.h"
+#include "nsTreeSanitizer.h"
 
 
 #include "nsIURI.h"
@@ -2589,12 +2590,11 @@ nsresult nsHTMLEditor::CreateDOMFragmentFromPaste(const nsAString &aInputString,
   NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
   
   
-  nsAutoTArray<nsString, 32> tagStack;
   nsCOMPtr<nsIDOMDocumentFragment> contextfrag;
   nsCOMPtr<nsIDOMNode> contextLeaf, junk;
   if (!aContextStr.IsEmpty())
   {
-    res = ParseFragment(aContextStr, tagStack, doc, address_of(contextAsNode),
+    res = ParseFragment(aContextStr, nsnull, doc, address_of(contextAsNode),
                         aTrustedInput);
     NS_ENSURE_SUCCESS(res, res);
     NS_ENSURE_TRUE(contextAsNode, NS_ERROR_FAILURE);
@@ -2610,12 +2610,23 @@ nsresult nsHTMLEditor::CreateDOMFragmentFromPaste(const nsAString &aInputString,
     NS_ENSURE_SUCCESS(res, res);
   }
 
-  
-  res = CreateTagStack(tagStack, contextLeaf);
-  NS_ENSURE_SUCCESS(res, res);
+  nsCOMPtr<nsIContent> contextLeafAsContent = do_QueryInterface(contextLeaf);
 
   
-  res = ParseFragment(aInputString, tagStack, doc, outFragNode, aTrustedInput);
+  nsIAtom* contextAtom;
+  if (contextLeafAsContent) {
+    contextAtom = contextLeafAsContent->Tag();
+    if (contextAtom == nsGkAtoms::html) {
+      contextAtom = nsGkAtoms::body;
+    }
+  } else {
+    contextAtom = nsGkAtoms::body;
+  }
+  res = ParseFragment(aInputString,
+                      contextAtom,
+                      doc,
+                      outFragNode,
+                      aTrustedInput);
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(*outFragNode, NS_ERROR_FAILURE);
 
@@ -2673,99 +2684,36 @@ nsresult nsHTMLEditor::CreateDOMFragmentFromPaste(const nsAString &aInputString,
 
 
 nsresult nsHTMLEditor::ParseFragment(const nsAString & aFragStr,
-                                     nsTArray<nsString> &aTagStack,
+                                     nsIAtom* aContextLocalName,
                                      nsIDocument* aTargetDocument,
                                      nsCOMPtr<nsIDOMNode> *outNode,
                                      PRBool aTrustedInput)
 {
   
-  PRBool bContext = aTagStack.IsEmpty();
-
   
-  nsresult res;
-  nsCOMPtr<nsIParser> parser = do_CreateInstance(kCParserCID, &res);
-  NS_ENSURE_SUCCESS(res, res);
-  NS_ENSURE_TRUE(parser, NS_ERROR_FAILURE);
-
   
-  nsCOMPtr<nsIContentSink> sink;
-  if (aTrustedInput) {
-    if (bContext)
-      sink = do_CreateInstance(NS_HTMLFRAGMENTSINK2_CONTRACTID);
-    else
-      sink = do_CreateInstance(NS_HTMLFRAGMENTSINK_CONTRACTID);
-  } else {
-    if (bContext)
-      sink = do_CreateInstance(NS_HTMLPARANOIDFRAGMENTSINK2_CONTRACTID);
-    else
-      sink = do_CreateInstance(NS_HTMLPARANOIDFRAGMENTSINK_CONTRACTID);
-
-    nsCOMPtr<nsIParanoidFragmentContentSink> paranoidSink(do_QueryInterface(sink));
-    NS_ASSERTION(paranoidSink, "Our content sink is paranoid");
-    if (bContext) {
-      
-      paranoidSink->AllowComments();
-    } else {
-      
-      paranoidSink->AllowStyles();
-    }
+  
+  nsCOMPtr<nsIParser> parser = nsHtml5Module::NewHtml5Parser();
+  nsAHtml5FragmentParser* asFragmentParser =
+      static_cast<nsAHtml5FragmentParser*> (parser.get());
+  nsCOMPtr<nsIDOMDocumentFragment> frag;
+  NS_NewDocumentFragment(getter_AddRefs(frag),
+                         aTargetDocument->NodeInfoManager());
+  nsCOMPtr<nsIContent> fragment = do_QueryInterface(frag);
+  asFragmentParser->ParseHtml5Fragment(aFragStr,
+                                      fragment,
+                                      aContextLocalName ?
+                                          aContextLocalName : nsGkAtoms::body,
+                                      kNameSpaceID_XHTML,
+                                      PR_FALSE,
+                                      PR_TRUE);
+  if (!aTrustedInput) {
+    nsTreeSanitizer sanitizer(!!aContextLocalName, !aContextLocalName);
+    sanitizer.Sanitize(fragment);
   }
-
-  NS_ENSURE_TRUE(sink, NS_ERROR_FAILURE);
-  nsCOMPtr<nsIFragmentContentSink> fragSink(do_QueryInterface(sink));
-  NS_ENSURE_TRUE(fragSink, NS_ERROR_FAILURE);
-
-  fragSink->SetTargetDocument(aTargetDocument);
-
-  
-  parser->SetContentSink(sink);
-  if (bContext)
-    parser->Parse(aFragStr, (void*)0, NS_LITERAL_CSTRING("text/html"), PR_TRUE, eDTDMode_fragment);
-  else
-    parser->ParseFragment(aFragStr, 0, aTagStack, PR_FALSE, NS_LITERAL_CSTRING("text/html"), eDTDMode_quirks);
-  
-  nsCOMPtr<nsIDOMDocumentFragment> contextfrag;
-  res = fragSink->GetFragment(PR_TRUE, getter_AddRefs(contextfrag));
-  NS_ENSURE_SUCCESS(res, res);
-  *outNode = do_QueryInterface(contextfrag);
-  
-  return res;
+  *outNode = do_QueryInterface(frag);
+  return NS_OK;
 }
-
-nsresult nsHTMLEditor::CreateTagStack(nsTArray<nsString> &aTagStack, nsIDOMNode *aNode)
-{
-  nsresult res = NS_OK;
-  nsCOMPtr<nsIDOMNode> node= aNode;
-  PRBool bSeenBody = PR_FALSE;
-  
-  while (node) 
-  {
-    if (nsTextEditUtils::IsBody(node))
-      bSeenBody = PR_TRUE;
-    nsCOMPtr<nsIDOMNode> temp = node;
-    PRUint16 nodeType;
-    
-    node->GetNodeType(&nodeType);
-    if (nsIDOMNode::ELEMENT_NODE == nodeType)
-    {
-      nsString* tagName = aTagStack.AppendElement();
-      NS_ENSURE_TRUE(tagName, NS_ERROR_OUT_OF_MEMORY);
-
-      node->GetNodeName(*tagName);
-      
-    }
-
-    res = temp->GetParentNode(getter_AddRefs(node));
-    NS_ENSURE_SUCCESS(res, res);  
-  }
-  
-  if (!bSeenBody)
-  {
-      aTagStack.AppendElement(NS_LITERAL_STRING("BODY"));
-  }
-  return res;
-}
-
 
 nsresult nsHTMLEditor::CreateListOfNodesToPaste(nsIDOMNode  *aFragmentAsNode,
                                                 nsCOMArray<nsIDOMNode>& outNodeList,

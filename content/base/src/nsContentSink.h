@@ -407,9 +407,4 @@ protected:
   static PRBool sCanInterruptParser;
 };
 
-
-extern PRBool IsAttrURI(nsIAtom *aName);
-extern nsIAtom** const kDefaultAllowedTags [];
-extern nsIAtom** const kDefaultAllowedAttributes [];
-
 #endif 
