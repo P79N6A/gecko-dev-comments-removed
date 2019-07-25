@@ -227,67 +227,43 @@ class AutoReserveICSpace {
     typedef Assembler::Label Label;
 
     Assembler           &masm;
-#ifdef DEBUG
-    Label               startLabel;
     bool                didCheck;
-#endif
+    bool                *overflowSpace;
+    int                 flushCount;
 
   public:
-    AutoReserveICSpace(Assembler &masm) : masm(masm) {
+    AutoReserveICSpace(Assembler &masm, bool *overflowSpace)
+        : masm(masm), didCheck(false), overflowSpace(overflowSpace)
+    {
         masm.ensureSpace(reservedSpace);
-#ifdef DEBUG
-        didCheck = false;
-
-        startLabel = masm.label();
-
-        
-        masm.allowPoolFlush(false);
-
-        JaegerSpew(JSpew_Insns, " -- BEGIN CONSTANT-POOL-FREE REGION -- \n");
-#endif
+        flushCount = masm.flushCount();
     }
 
     
 
     void check() {
-#ifdef DEBUG
         JS_ASSERT(!didCheck);
         didCheck = true;
 
-        Label endLabel = masm.label();
-        int spaceUsed = masm.differenceBetween(startLabel, endLabel);
-
-        
-        JaegerSpew(JSpew_Insns,
-                   " -- END CONSTANT-POOL-FREE REGION: %u bytes used of %u reserved. -- \n",
-                   spaceUsed, reservedSpace);
-
-        
-        JS_ASSERT(spaceUsed >= 0);
-        JS_ASSERT(size_t(spaceUsed) <= reservedSpace);
-
-        
-        masm.allowPoolFlush(true);
-#endif
+        if (masm.flushCount() != flushCount)
+            *overflowSpace = true;
     }
 
     ~AutoReserveICSpace() {
-#ifdef DEBUG
         
         if (!didCheck) {
             check();
         }
-#endif
     }
 };
 
-# define RESERVE_IC_SPACE(__masm)       AutoReserveICSpace<256> arics(__masm)
+# define RESERVE_IC_SPACE(__masm)       AutoReserveICSpace<256> arics(__masm, &this->overflowICSpace)
 # define CHECK_IC_SPACE()               arics.check()
 
 
 
 
-# define RESERVE_OOL_SPACE(__masm)      AutoReserveICSpace<2048> arics_ool(__masm)
+# define RESERVE_OOL_SPACE(__masm)      AutoReserveICSpace<2048> arics_ool(__masm, &this->overflowICSpace)
 
 
 
