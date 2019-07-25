@@ -190,12 +190,14 @@ nsMathMLmunderFrame::TransmitAutomaticData()
     mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_ACCENTUNDER;
 
   
-  static nsIContent::AttrValuesArray strings[] =
-    {&nsGkAtoms::_true, &nsGkAtoms::_false, nsnull};
-  switch (mContent->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::accentunder_,
-                                    strings, eCaseMatters)) {
-    case 0: mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTUNDER; break;
-    case 1: mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_ACCENTUNDER; break;
+  nsAutoString value;
+  if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::accentunder_,
+                   value)) {
+    if (value.EqualsLiteral("true")) {
+      mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTUNDER;
+    } else if (value.EqualsLiteral("false")) {
+      mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_ACCENTUNDER;
+    }
   }
 
   
