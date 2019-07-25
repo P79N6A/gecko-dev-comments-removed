@@ -29,6 +29,7 @@ BEGIN_INDEXEDDB_NAMESPACE
 
 class AsyncConnectionHelper;
 struct DatabaseInfo;
+class IDBFactory;
 class IDBIndex;
 class IDBObjectStore;
 class IDBTransaction;
@@ -54,6 +55,7 @@ public:
 
   static already_AddRefed<IDBDatabase>
   Create(IDBWrapperCache* aOwnerCache,
+         IDBFactory* aFactory,
          already_AddRefed<DatabaseInfo> aDatabaseInfo,
          const nsACString& aASCIIOrigin,
          FileManager* aFileManager,
@@ -159,7 +161,13 @@ private:
 
   void OnUnlink();
 
+  
+  
+  
+  nsRefPtr<IDBFactory> mFactory;
+
   nsRefPtr<DatabaseInfo> mDatabaseInfo;
+
   
   
   nsRefPtr<DatabaseInfo> mPreviousDatabaseInfo;
