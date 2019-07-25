@@ -139,14 +139,14 @@ nsPluginFile::~nsPluginFile()
 
 
 
-nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
+nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
 {
         nsCAutoString path;
         nsresult rv = mPlugin->GetNativePath(path);
         if (NS_OK != rv) {
             return rv;
         }
-        pLibrary = *outLibrary = PR_LoadLibrary(path.get());
+        pLibrary = outLibrary = PR_LoadLibrary(path.get());
 
 #ifdef NS_DEBUG
         printf("LoadPlugin() %s returned %lx\n",path,(unsigned long)pLibrary);
@@ -161,10 +161,8 @@ typedef char* (*BeOS_Plugin_GetMIMEDescription)();
 
 
 
-nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
+nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
 {
-    *outLibrary = nsnull;
-
     info.fVersion = nsnull;
 
     nsCAutoString fullPath;

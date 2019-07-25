@@ -220,7 +220,7 @@ nsPluginFile::nsPluginFile(nsIFile *spec)
 
 nsPluginFile::~nsPluginFile() {}
 
-nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
+nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
 {
   if (!mPlugin)
     return NS_ERROR_NULL_POINTER;
@@ -261,9 +261,9 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
   const char *executablePath = bundlePath.get();
 #endif
 
-  *outLibrary = PR_LoadLibrary(executablePath);
-  pLibrary = *outLibrary;
-  if (!pLibrary) {
+  outLibrary = PR_LoadLibrary(executablePath);
+  pLibrary = outLibrary;
+  if (!outLibrary) {
     return NS_ERROR_FAILURE;
   }
 #ifdef DEBUG
@@ -350,14 +350,14 @@ private:
 
 
 
-nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
+nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
 {
-  *outLibrary = nsnull;
-
   nsresult rv = NS_OK;
 
   
   memset(&info, 0, sizeof(info));
+
+  
 
 #ifndef __LP64__
   
@@ -428,18 +428,13 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
     ParsePlistPluginInfo(info, bundle);
     ::CFRelease(bundle);
     if (info.fVariantCount > 0)
-      return NS_OK;
+      return NS_OK;    
   }
 
   
   
   
   
-
-  
-  rv = LoadPlugin(outLibrary);
-  if (NS_FAILED(rv))
-    return rv;
 
   
   if (pLibrary) {

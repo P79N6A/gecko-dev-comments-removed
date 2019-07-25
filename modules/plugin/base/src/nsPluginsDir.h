@@ -93,13 +93,12 @@ public:
 
 
 
-	nsresult LoadPlugin(PRLibrary **outLibrary);
+	nsresult LoadPlugin(PRLibrary* &outLibrary);
 
 	
 
 
-
-	nsresult GetPluginInfo(nsPluginInfo &outPluginInfo, PRLibrary **outLibrary);
+	nsresult GetPluginInfo(nsPluginInfo &outPluginInfo);
 
   
 
