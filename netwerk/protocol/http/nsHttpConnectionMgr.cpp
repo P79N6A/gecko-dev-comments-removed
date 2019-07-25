@@ -51,6 +51,9 @@
 #include "nsIDNSService.h"
 #include "nsICancelable.h"
 
+#include "nsISSLStatusProvider.h"
+#include "nsISSLStatus.h"
+
 using namespace mozilla;
 
 
@@ -447,15 +450,22 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
     PRUint64 timeOfExpire = NowInSeconds() + ttl;
     if (!mTimer || timeOfExpire < mTimeOfNextWakeUp)
         PruneDeadConnectionsAfter(ttl);
-        
-    nsConnectionEntry *preferred = GetSpdyPreferred(ent->mDottedDecimalAddress);
+
+    
+    
+    
+    
+    
+    nsConnectionEntry *preferred =
+        mSpdyPreferredHash.Get(ent->mDottedDecimalAddress);
+
     LOG(("ReportSpdyConnection %s %s ent=%p ispreferred=%d\n",
          ent->mConnInfo->Host(), ent->mDottedDecimalAddress.get(),
          ent, preferred));
     
     if (!preferred) {
         ent->mSpdyPreferred = true;
-        SetSpdyPreferred(ent->mDottedDecimalAddress, ent);
+        SetSpdyPreferred(ent);
         ent->mSpdyRedir = false;
     }
     else if (preferred != ent) {
@@ -464,6 +474,36 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
         ent->mSpdyRedir = true;
         conn->DontReuse();
     }
+
+    
+    
+    
+    
+    
+
+    
+    
+    ent->mCert = nsnull;
+
+    nsCOMPtr<nsISupports> securityInfo;
+    nsCOMPtr<nsISSLStatusProvider> sslStatusProvider;
+    nsCOMPtr<nsISSLStatus> sslStatus;
+    nsCOMPtr<nsIX509Cert> cert;
+
+    conn->GetSecurityInfo(getter_AddRefs(securityInfo));
+    if (securityInfo)
+        sslStatusProvider = do_QueryInterface(securityInfo);
+
+    if (sslStatusProvider)
+        sslStatusProvider->
+            GetSSLStatus(getter_AddRefs(sslStatus));
+
+    if (sslStatus)
+        sslStatus->GetServerCert(getter_AddRefs(cert));
+
+    if (cert)
+        ent->mCert = do_QueryInterface(cert);
+
     ProcessSpdyPendingQ();
 }
 
@@ -534,27 +574,52 @@ nsHttpConnectionMgr::TrimAlternateProtocolHash(PLDHashTable *table,
 }
 
 nsHttpConnectionMgr::nsConnectionEntry *
-nsHttpConnectionMgr::GetSpdyPreferred(nsACString &aDottedDecimal)
+nsHttpConnectionMgr::GetSpdyPreferred(nsConnectionEntry *aOriginalEntry)
 {
     if (!gHttpHandler->IsSpdyEnabled() ||
         !gHttpHandler->CoalesceSpdy() ||
-        aDottedDecimal.IsEmpty())
+        aOriginalEntry->mDottedDecimalAddress.IsEmpty())
         return nsnull;
 
-    return mSpdyPreferredHash.Get(aDottedDecimal);
+    nsConnectionEntry *preferred =
+        mSpdyPreferredHash.Get(aOriginalEntry->mDottedDecimalAddress);
+
+    if (preferred == aOriginalEntry)
+        return aOriginalEntry;   
+
+    if (!preferred || !preferred->mCert)
+        return nsnull;                         
+
+    nsresult rv;
+    bool validCert = false;
+
+    rv = preferred->mCert->IsValidForHostname(
+        aOriginalEntry->mConnInfo->GetHost(), &validCert);
+
+    if (NS_FAILED(rv) || !validCert) {
+        LOG(("nsHttpConnectionMgr::GetSpdyPreferredConnection "
+             "Host %s has cert which cannot be confirmed to use "
+             "with %s connections",
+             preferred->mConnInfo->Host(), aOriginalEntry->mConnInfo->Host()));
+        return nsnull;                            
+    }
+
+    LOG(("nsHttpConnectionMgr::GetSpdyPreferredConnection "
+         "Host %s has cert valid for %s connections",
+         preferred->mConnInfo->Host(), aOriginalEntry->mConnInfo->Host()));
+    return preferred;
 }
 
 void
-nsHttpConnectionMgr::SetSpdyPreferred(nsACString &aDottedDecimal,
-                                      nsConnectionEntry *ent)
+nsHttpConnectionMgr::SetSpdyPreferred(nsConnectionEntry *ent)
 {
     if (!gHttpHandler->CoalesceSpdy())
         return;
 
-    if (aDottedDecimal.IsEmpty())
+    if (ent->mDottedDecimalAddress.IsEmpty())
         return;
     
-    mSpdyPreferredHash.Put(aDottedDecimal, ent);
+    mSpdyPreferredHash.Put(ent->mDottedDecimalAddress, ent);
 }
 
 void
@@ -982,8 +1047,7 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent,
             ent->mConnInfo->UsingSSL() &&
             !ent->mConnInfo->UsingHttpProxy())
         {
-            nsConnectionEntry *preferred =
-                GetSpdyPreferred(ent->mDottedDecimalAddress);
+            nsConnectionEntry *preferred = GetSpdyPreferred(ent);
             if (preferred)
                 ent = preferred;
 
@@ -1200,8 +1264,7 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
 
     
     
-    nsConnectionEntry *preferredEntry =
-        GetSpdyPreferred(ent->mDottedDecimalAddress);
+    nsConnectionEntry *preferredEntry = GetSpdyPreferred(ent);
     if (preferredEntry) {
         LOG(("nsHttpConnectionMgr::ProcessNewTransaction trans=%p "
              "redirected via coalescing from %s to %s\n", trans,
@@ -1294,7 +1357,7 @@ nsHttpConnectionMgr::GetSpdyPreferredConn(nsConnectionEntry *ent)
     NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
     NS_ABORT_IF_FALSE(ent, "no connection entry");
 
-    nsConnectionEntry *preferred = GetSpdyPreferred(ent->mDottedDecimalAddress);
+    nsConnectionEntry *preferred = GetSpdyPreferred(ent);
 
     
     if (preferred && preferred != ent) {
