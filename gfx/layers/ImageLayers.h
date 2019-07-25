@@ -188,6 +188,20 @@ public:
 
 
 
+  virtual void Flush() {}
+
+  
+
+
+
+
+
+  virtual void Disconnect() {}
+
+  
+
+
+
 
 
 
