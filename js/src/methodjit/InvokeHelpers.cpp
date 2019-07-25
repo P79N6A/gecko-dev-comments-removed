@@ -1,42 +1,42 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
- * May 28, 2008.
- *
- * The Initial Developer of the Original Code is
- *   Brendan Eich <brendan@mozilla.org>
- *
- * Contributor(s):
- *   David Anderson <danderson@mozilla.com>
- *   David Mandelin <dmandelin@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "jscntxt.h"
 #include "jsscope.h"
@@ -96,7 +96,7 @@ FindExceptionHandler(JSContext *cx)
 
 top:
     if (cx->throwing && script->trynotesOffset) {
-        // The PC is updated before every stub call, so we can use it here.
+        
         unsigned offset = cx->regs->pc - script->main;
 
         JSTryNoteArray *tnarray = script->trynotes();
@@ -117,23 +117,23 @@ top:
                   JS_ASSERT(js_GetOpcode(cx, fp->script, pc) == JSOP_ENTERBLOCK);
 
 #if JS_HAS_GENERATORS
-                  /* Catch cannot intercept the closing of a generator. */
+                  
                   if (JS_UNLIKELY(cx->exception.isMagic(JS_GENERATOR_CLOSING)))
                       break;
 #endif
 
-                  /*
-                   * Don't clear cx->throwing to save cx->exception from GC
-                   * until it is pushed to the stack via [exception] in the
-                   * catch block.
-                   */
+                  
+
+
+
+
                   return pc;
 
                 case JSTRY_FINALLY:
-                  /*
-                   * Push (true, exception) pair for finally to indicate that
-                   * [retsub] should rethrow the exception.
-                   */
+                  
+
+
+
                   cx->regs->sp[0].setBoolean(true);
                   cx->regs->sp[1] = cx->exception;
                   cx->regs->sp += 2;
@@ -142,13 +142,13 @@ top:
 
                 case JSTRY_ITER:
                 {
-                  /*
-                   * This is similar to JSOP_ENDITER in the interpreter loop,
-                   * except the code now uses the stack slot normally used by
-                   * JSOP_NEXTITER, namely regs.sp[-1] before the regs.sp -= 2
-                   * adjustment and regs.sp[1] after, to save and restore the
-                   * pending exception.
-                   */
+                  
+
+
+
+
+
+
                   AutoValueRooter tvr(cx, cx->exception);
                   JS_ASSERT(js_GetOpcode(cx, fp->script, pc) == JSOP_ENDITER);
                   cx->throwing = JS_FALSE;
@@ -184,7 +184,7 @@ CreateFrame(VMFrame &f, uint32 flags, uint32 argc)
         return false;
     }
 
-    /* Allocate the frame. */
+    
     StackSpace &stack = cx->stack();
     uintN nslots = newscript->nslots;
     uintN funargs = fun->nargs;
@@ -203,7 +203,7 @@ CreateFrame(VMFrame &f, uint32 flags, uint32 argc)
             return false;
     }
 
-    /* Initialize the frame. */
+    
     newfp->ncode = NULL;
     newfp->callobj = NULL;
     newfp->argsobj = NULL;
@@ -220,24 +220,24 @@ CreateFrame(VMFrame &f, uint32 flags, uint32 argc)
     newfp->thisv = vp[1];
     newfp->imacpc = NULL;
 
-    /* Push void to initialize local variables. */
+    
     Value *newslots = newfp->slots();
     Value *newsp = newslots + fun->u.i.nvars;
     for (Value *v = newslots; v != newsp; ++v)
         v->setUndefined();
 
-    /* Scope with a call object parented by callee's parent. */
+    
     if (fun->isHeavyweight() && !js_GetCallObject(cx, newfp))
         return false;
 
-    /* :TODO: Switch version if currentVersion wasn't overridden. */
+    
     newfp->callerVersion = (JSVersion)cx->version;
 
-    // Marker for debug support.
+    
     if (JSInterpreterHook hook = cx->debugHooks->callHook) {
         newfp->hookData = hook(cx, fp, JS_TRUE, 0,
                                cx->debugHooks->callHookData);
-        // CHECK_INTERRUPT_HANDLER();
+        
     } else {
         newfp->hookData = NULL;
     }
@@ -296,7 +296,7 @@ InlineReturn(JSContext *cx, JSBool ok)
     JS_ASSERT(!fp->blockChain);
     JS_ASSERT(!js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
 
-    // Marker for debug support.
+    
     void *hookData = fp->hookData;
     if (JS_UNLIKELY(hookData != NULL)) {
         JSInterpreterHook hook;
@@ -304,20 +304,20 @@ InlineReturn(JSContext *cx, JSBool ok)
 
         hook = cx->debugHooks->callHook;
         if (hook) {
-            /*
-             * Do not pass &ok directly as exposing the address inhibits
-             * optimizations and uninitialised warnings.
-             */
+            
+
+
+
             status = ok;
             hook(cx, fp, JS_FALSE, &status, hookData);
             ok = (status == JS_TRUE);
-            // CHECK_INTERRUPT_HANDLER();
+            
         }
     }
 
     fp->putActivationObjects(cx);
 
-    /* :TODO: version stuff */
+    
 
     if (fp->flags & JSFRAME_CONSTRUCTING && fp->rval.isPrimitive())
         fp->rval = fp->thisv;
@@ -438,7 +438,7 @@ CreateLightFrame(VMFrame &f, uint32 flags, uint32 argc)
         return false;
     }
 
-    /* Allocate the frame. */
+    
     StackSpace &stack = cx->stack();
     uintN nslots = newscript->nslots;
     uintN funargs = fun->nargs;
@@ -457,7 +457,7 @@ CreateLightFrame(VMFrame &f, uint32 flags, uint32 argc)
             return false;
     }
 
-    /* Initialize the frame. */
+    
     newfp->ncode = NULL;
     newfp->callobj = NULL;
     newfp->argsobj = NULL;
@@ -476,7 +476,7 @@ CreateLightFrame(VMFrame &f, uint32 flags, uint32 argc)
     newfp->hookData = NULL;
 
 #if 0
-    /* :TODO: Switch version if currentVersion wasn't overridden. */
+    
     newfp->callerVersion = (JSVersion)cx->version;
 #endif
 
@@ -490,9 +490,9 @@ CreateLightFrame(VMFrame &f, uint32 flags, uint32 argc)
     return true;
 }
 
-/*
- * stubs::Call is guaranteed to be called on a scripted call with JIT'd code.
- */
+
+
+
 void * JS_FASTCALL
 stubs::Call(VMFrame &f, uint32 argc)
 {
@@ -504,9 +504,9 @@ stubs::Call(VMFrame &f, uint32 argc)
     return f.fp->script->ncode;
 }
 
-/*
- * stubs::New is guaranteed to be called on a scripted call with JIT'd code.
- */
+
+
+
 void * JS_FASTCALL
 stubs::New(VMFrame &f, uint32 argc)
 {
@@ -550,7 +550,7 @@ js_InternalThrow(VMFrame &f)
 {
     JSContext *cx = f.cx;
 
-    // Make sure sp is up to date.
+    
     JS_ASSERT(cx->regs == &f.regs);
 
     jsbytecode *pc = NULL;
@@ -559,10 +559,10 @@ js_InternalThrow(VMFrame &f)
         if (pc)
             break;
 
-        // If |f.inlineCallCount == 0|, then we are on the 'topmost' frame (where
-        // topmost means the first frame called into through js_Interpret). In this
-        // case, we still unwind, but we shouldn't return from a JS function, because
-        // we're not in a JS function.
+        
+        
+        
+        
         bool lastFrame = (f.inlineCallCount == 0);
         js_UnwindScope(cx, 0, cx->throwing);
         if (lastFrame)
@@ -597,11 +597,11 @@ stubs::GetCallObject(VMFrame &f)
 static inline void
 AdvanceReturnPC(JSContext *cx)
 {
-    /*
-     * Simulate an inline_return by advancing the pc, then
-     * finish off the imacro. The inlineCallCount passed is
-     * bogus here, but it doesn't really matter.
-     */
+    
+
+
+
+
     JS_ASSERT(*cx->regs->pc == JSOP_CALL ||
               *cx->regs->pc == JSOP_NEW ||
               *cx->regs->pc == JSOP_EVAL ||
@@ -616,12 +616,12 @@ SwallowErrors(VMFrame &f, JSStackFrame *stopFp)
 {
     JSContext *cx = f.cx;
 
-    /* Remove the bottom frame. */
+    
     bool ok = false;
     for (;;) {
         JSStackFrame *fp = cx->fp;
 
-        /* Look for an imacro with hard-coded exception handlers. */
+        
         if (fp->imacpc && cx->throwing) {
             cx->regs->pc = fp->imacpc;
             fp->imacpc = NULL;
@@ -630,7 +630,7 @@ SwallowErrors(VMFrame &f, JSStackFrame *stopFp)
         }
         JS_ASSERT(!fp->imacpc);
 
-        /* If there's an exception and a handler, set the pc and leave. */
+        
         jsbytecode *pc = FindExceptionHandler(cx);
         if (pc) {
             cx->regs->pc = pc;
@@ -638,16 +638,16 @@ SwallowErrors(VMFrame &f, JSStackFrame *stopFp)
             break;
         }
 
-        /* Don't unwind if this was the entry frame. */
+        
         if (fp == stopFp)
             break;
 
-        /* Unwind and return. */
+        
         ok &= js_UnwindScope(cx, 0, cx->throwing);
         InlineReturn(cx, ok);
     }
 
-    /* Update the VMFrame before leaving. */
+    
     JS_ASSERT(&f.regs == cx->regs);
 
     JS_ASSERT_IF(!ok, cx->fp == stopFp);
@@ -711,7 +711,7 @@ RemoveExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
                 if (!SwallowErrors(f, entryFrame))
                     return false;
 
-                /* Could be anywhere - restart outer loop. */
+                
                 continue;
             }
             InlineReturn(cx, JS_TRUE);
@@ -721,10 +721,10 @@ RemoveExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
                 if (!SwallowErrors(f, entryFrame))
                     return false;
             } else {
-                /*
-                 * Partial interpret could have dropped us anywhere. Deduce the
-                 * edge case: at a RETURN, needing to pop a frame.
-                 */
+                
+
+
+
                 if (!cx->fp->imacpc && FrameIsFinished(cx)) {
                     InlineReturn(cx, JS_TRUE);
                     AdvanceReturnPC(cx);
@@ -742,11 +742,11 @@ DisableTraceHint(VMFrame &f, ic::MICInfo &mic)
 {
     JS_ASSERT(mic.kind == ic::MICInfo::TRACER);
 
-    /*
-     * Hack: The value that will be patched is before the executable address,
-     * so to get protection right, just unprotect the general region around
-     * the jump.
-     */
+    
+
+
+
+
     uint8 *addr = (uint8 *)(mic.traceHint.executableAddress());
     JSC::RepatchBuffer repatch(addr - 64, 128);
     repatch.relink(mic.traceHint, mic.load);
@@ -768,7 +768,7 @@ RunTracer(VMFrame &f)
     JSStackFrame *entryFrame = f.fp;
     TracePointAction tpa;
 
-    /* :TODO: nuke PIC? */
+    
     if (!cx->jitEnabled)
         return NULL;
 
@@ -803,33 +803,33 @@ RunTracer(VMFrame &f)
         break;
     }
 
-    /*
-     * The tracer could have dropped us off on any frame at any position.
-     * Well, it could not have removed frames (recursion is disabled).
-     *
-     * Frames after the entryFrame cannot be entered via JaegerShot()
-     * unless each is at a safe point. We can JaegerShot these frames
-     * individually, but we must unwind to the entryFrame.
-     *
-     * If we land on entryFrame without a safe point in sight, we'll end up
-     * at the RETURN op. This is an edge case with two paths:
-     *
-     * 1) The entryFrame is the last inline frame. If it fell on a RETURN,
-     *    move the return value down.
-     * 2) The entryFrame is NOT the last inline frame. Pop the frame.
-     *
-     * In both cases, we hijack the stub to return to JaegerFromTracer. This
-     * moves |oldFp->rval| into the scripted return registers, places the
-     * new f.scriptedReturn in the machine return register, and returns to its
-     * caller safely.
-     */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   restart:
-    /* Step 1. Initial removal of excess frames. */
+    
     if (!RemoveExcessFrames(f, entryFrame))
         THROWV(NULL);
 
-    /* Step 2. If there's an imacro on the entry frame, remove it. */
+    
     entryFrame->flags &= ~JSFRAME_RECORDING;
     while (entryFrame->imacpc) {
         if (!PartialInterpret(cx)) {
@@ -837,24 +837,24 @@ RunTracer(VMFrame &f)
                 THROWV(NULL);
         }
 
-        /* After partial interpreting, we could have more frames again. */
+        
         goto restart;
     }
 
-    /* Step 3.1. If entryFrame is at a safe point, just leave. */
+    
     if (AtSafePoint(cx)) {
         uint32 offs = uint32(cx->regs->pc - entryFrame->script->code);
         JS_ASSERT(entryFrame->script->nmap[offs]);
         return entryFrame->script->nmap[offs];
     }
 
-    /* Step 3.2. If entryFrame is at a RETURN, then leave slightly differently. */
+    
     if (JSOp op = FrameIsFinished(cx)) {
-        /* We're not guaranteed that the RETURN was run. */
+        
         if (op == JSOP_RETURN)
             entryFrame->rval = f.regs.sp[-1];
 
-        /* Don't pop the frame if it's maybe owned by an Invoke. */
+        
         if (f.inlineCallCount) {
             if (!InlineReturn(cx, JS_TRUE))
                 THROWV(NULL);
@@ -867,7 +867,7 @@ RunTracer(VMFrame &f)
         return NULL;
     }
 
-    /* Step 3.3. Do a partial interp, then restart the whole process. */
+    
     if (!PartialInterpret(cx)) {
         if (!SwallowErrors(f, entryFrame))
             THROWV(NULL);
@@ -876,9 +876,10 @@ RunTracer(VMFrame &f)
     goto restart;
 }
 
-#endif /* JS_TRACER */
+#endif 
 
-#if JS_MONOIC
+#if defined JS_TRACER
+# if defined JS_MONOIC
 void *JS_FASTCALL
 stubs::InvokeTracer(VMFrame &f, uint32 index)
 {
@@ -890,12 +891,13 @@ stubs::InvokeTracer(VMFrame &f, uint32 index)
     return RunTracer(f, mic);
 }
 
-#else
+# else
 
 void *JS_FASTCALL
 stubs::InvokeTracer(VMFrame &f)
 {
     return RunTracer(f);
 }
-#endif
+# endif 
+#endif 
 
