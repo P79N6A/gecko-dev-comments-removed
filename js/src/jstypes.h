@@ -77,6 +77,9 @@
 
 
 
+
+#define DEFINE_LOCAL_CLASS_OF_STATIC_FUNCTION(Name) class Name
+
 #ifdef WIN32
 
 
@@ -111,9 +114,8 @@
 
 
 
+#   undef  DEFINE_LOCAL_CLASS_OF_STATIC_FUNCTION
 #   define DEFINE_LOCAL_CLASS_OF_STATIC_FUNCTION(Name) class __attribute__((visibility ("hidden"))) Name
-#  else
-#   define DEFINE_LOCAL_CLASS_OF_STATIC_FUNCTION class Name
 #  endif
 # elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 #  define JS_EXTERNAL_VIS __global

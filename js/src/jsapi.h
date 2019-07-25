@@ -802,8 +802,6 @@ JS_StringToVersion(const char *string);
                                                    leaving that up to the
                                                    embedding. */
 
-#define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
-
 extern JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx);
 
@@ -1622,8 +1620,10 @@ struct JSExtendedClass {
 
 
 
+
+
 #define JSCLASS_GLOBAL_FLAGS \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 2))
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -3053,6 +3053,7 @@ struct PrivateVoidPtrTag {
 
 
 
+VALUE_ALIGNMENT_BEFORE
 class Value
 {
     
@@ -3236,7 +3237,7 @@ class Value
         data.i32 = i;
     }
 
-    int32_t &asInt32Ref() {
+    int32 &asInt32Ref() {
         JS_ASSERT(isInt32());
         return data.i32;
     }
@@ -3505,7 +3506,7 @@ class Value
         JS_ASSERT(mask == JSVAL_INT32_MASK);
         return data.u32;
     }
-} VALUE_ALIGNMENT;
+} VALUE_ALIGNMENT_AFTER;
 
 
 
