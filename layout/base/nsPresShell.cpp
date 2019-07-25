@@ -2468,17 +2468,6 @@ PresShell::ScrollLine(bool aForward)
     scrollFrame->ScrollBy(nsIntPoint(0, aForward ? lineCount : -lineCount),
                           nsIScrollableFrame::LINES,
                           nsIScrollableFrame::SMOOTH);
-      
-
-    
-    
-
-  
-    
-    nsIViewManager* viewManager = GetViewManager();
-    if (viewManager) {
-      viewManager->ForceUpdate();
-    }
   }
   return NS_OK;
 }
@@ -2492,16 +2481,6 @@ PresShell::ScrollCharacter(bool aRight)
     scrollFrame->ScrollBy(nsIntPoint(aRight ? 1 : -1, 0),
                           nsIScrollableFrame::LINES,
                           nsIScrollableFrame::SMOOTH);
-
-    
-    
-
-  
-    
-    nsIViewManager* viewManager = GetViewManager();
-    if (viewManager) {
-      viewManager->ForceUpdate();
-    }
   }
   return NS_OK;
 }
@@ -3154,8 +3133,8 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll)
     
     
     nsRefPtr<nsIDOMRange> jumpToRange = new nsRange();
-    while (content && content->GetFirstChild()) {
-      content = content->GetFirstChild();
+    while (content && content->GetChildCount() > 0) {
+      content = content->GetChildAt(0);
     }
     nsCOMPtr<nsIDOMNode> node(do_QueryInterface(content));
     NS_ASSERTION(node, "No nsIDOMNode for descendant of anchor");
