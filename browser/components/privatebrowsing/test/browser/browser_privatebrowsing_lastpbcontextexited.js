@@ -37,7 +37,7 @@
 function test() {
   
   
-  let newWin = window.openDialog("chrome://browser/content/", "_blank", "chrome,all,dialog=no");
+  let newWin = window.openDialog(getBrowserURL(), "_blank", "chrome,all,dialog=no");
   waitForExplicitFinish();
   SimpleTest.waitForFocus(function() {
     let notificationCount = 0;
