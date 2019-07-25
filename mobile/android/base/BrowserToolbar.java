@@ -213,14 +213,17 @@ public class BrowserToolbar extends LinearLayout {
             mTabsCount.setOutAnimation(mSlideUpOut);
         }
 
-        if (count > 1)
-            mTabs.setImageLevel(count);
-        else
-            mTabs.setImageLevel(0);
-
-        mTabsCount.setVisibility(View.VISIBLE);
+        
+        
         mTabsCount.setText(String.valueOf(count));
         mCount = count;
+
+        if (count > 1) {
+            
+            mTabsCount.setVisibility(View.VISIBLE);
+            
+            mTabs.setImageLevel(count);
+        }
 
         mHandler.postDelayed(new Runnable() {
             public void run() {
@@ -230,13 +233,15 @@ public class BrowserToolbar extends LinearLayout {
 
         mHandler.postDelayed(new Runnable() {
             public void run() {
+                
+                
+                
                 if (Tabs.getInstance().getCount() == 1) {
+                    
                     mTabs.setImageLevel(1);
                     mTabsCount.setVisibility(View.GONE);
-                    ((TextView) mTabsCount.getCurrentView()).setTextColor(mCounterColor);
-                } else {
-                    ((TextView) mTabsCount.getCurrentView()).setTextColor(mCounterColor);
                 }
+                ((TextView) mTabsCount.getCurrentView()).setTextColor(mCounterColor);
             }
         }, 2 * mDuration);
     }
