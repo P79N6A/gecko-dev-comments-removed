@@ -219,8 +219,11 @@ PropertyTree::insertChild(JSContext *cx, Shape *parent, Shape *child)
     KidsHash *hash = kidp->toHash();
     KidsHash::AddPtr addPtr = hash->lookupForAdd(child);
     if (!addPtr) {
-        if (!hash->add(addPtr, child))
+        if (!hash->add(addPtr, child)) {
+            JS_UNLOCK_GC(cx->runtime);
+            JS_ReportOutOfMemory(cx);
             return false;
+        }
     } else {
         
     }
