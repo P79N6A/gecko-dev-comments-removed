@@ -80,10 +80,7 @@ const char* XPCJSRuntime::mStrings[] = {
     "__proto__",            
     "__iterator__",         
     "__exposedProps__",     
-    "__scriptOnly__",       
-    "baseURIObject",        
-    "nodePrincipal",        
-    "documentURIObject"     
+    "__scriptOnly__"        
 };
 
 
