@@ -1111,6 +1111,13 @@ class ScriptAnalysis
         return localDefined(local, pc - script->code);
     }
 
+    
+
+
+
+
+
+
     bool slotEscapes(uint32 slot) {
         JS_ASSERT(script->compartment->activeAnalysis);
         if (slot >= numSlots)
@@ -1150,6 +1157,7 @@ class ScriptAnalysis
                         unsigned *currentOffset, unsigned *forwardJump,
                         unsigned stackDepth, uint32 *defineArray, unsigned defineCount);
     inline void setLocal(uint32 local, uint32 offset);
+    void checkAliasedName(JSContext *cx, jsbytecode *pc);
 
     
     inline void addVariable(JSContext *cx, LifetimeVariable &var, unsigned offset,

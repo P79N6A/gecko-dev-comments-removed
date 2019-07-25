@@ -223,6 +223,35 @@ ScriptAnalysis::setLocal(uint32 local, uint32 offset)
     definedLocals[local] = offset;
 }
 
+void
+ScriptAnalysis::checkAliasedName(JSContext *cx, jsbytecode *pc)
+{
+    
+
+
+
+
+
+
+
+    JSAtom *atom;
+    if (JSOp(*pc) == JSOP_DEFFUN) {
+        JSFunction *fun = script->getFunction(js_GetIndexFromBytecode(cx, script, pc, 0));
+        atom = fun->atom;
+    } else {
+        JS_ASSERT(JOF_TYPE(js_CodeSpec[*pc].format) == JOF_ATOM);
+        atom = script->getAtom(js_GetIndexFromBytecode(cx, script, pc, 0));
+    }
+
+    uintN index;
+    BindingKind kind = script->bindings.lookup(cx, atom, &index);
+
+    if (kind == ARGUMENT)
+        escapedSlots[ArgSlot(index)] = true;
+    else if (kind == VARIABLE)
+        escapedSlots[LocalSlot(script, index)] = true;
+}
+
 
 static inline bool
 BytecodeNoFallThrough(JSOp op)
@@ -464,6 +493,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_NAMEINC:
           case JSOP_NAMEDEC:
           case JSOP_FORNAME:
+            checkAliasedName(cx, pc);
             usesScope = true;
             isInlineable = false;
             break;
@@ -472,6 +502,9 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_DEFVAR:
           case JSOP_DEFCONST:
           case JSOP_SETCONST:
+            checkAliasedName(cx, pc);
+            
+
           case JSOP_ENTERWITH:
             isInlineable = canTrackVars = false;
             break;
