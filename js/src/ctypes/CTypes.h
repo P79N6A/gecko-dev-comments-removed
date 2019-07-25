@@ -369,6 +369,8 @@ JSBool ExplicitConvert(JSContext* cx, jsval val, JSObject* targetType,
 
 enum CTypesGlobalSlot {
   SLOT_CALLBACKS = 0, 
+  SLOT_ERRNO = 1,     
+  SLOT_LASTERROR = 2, 
   CTYPESGLOBAL_SLOTS
 };
 
@@ -389,8 +391,9 @@ enum CTypeProtoSlot {
   SLOT_FUNCTIONDATAPROTO = 8,  
   SLOT_INT64PROTO        = 9,  
   SLOT_UINT64PROTO       = 10, 
-  SLOT_OURDATAPROTO      = 11, 
-  SLOT_CLOSURECX         = 12, 
+  SLOT_CTYPES            = 11, 
+  SLOT_OURDATAPROTO      = 12, 
+  SLOT_CLOSURECX         = 13, 
   CTYPEPROTO_SLOTS
 };
 

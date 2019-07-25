@@ -56,6 +56,12 @@
 #include <sys/types.h>
 #endif
 
+#if defined(XP_UNIX)
+#include <errno.h>
+#elif defined(XP_WIN)
+#include <windows.h>
+#endif
+
 using namespace std;
 
 namespace js {
@@ -86,6 +92,17 @@ namespace CType {
   static JSBool ToString(JSContext* cx, unsigned argc, jsval* vp);
   static JSBool ToSource(JSContext* cx, unsigned argc, jsval* vp);
   static JSBool HasInstance(JSContext* cx, JSObject* obj, const jsval* v, JSBool* bp);
+
+
+  
+
+
+
+
+
+
+  static JSObject* GetGlobalCTypes(JSContext* cx, JSObject* obj);
+
 }
 
 namespace PointerType {
@@ -168,6 +185,14 @@ namespace CData {
   static JSBool Address(JSContext* cx, unsigned argc, jsval* vp);
   static JSBool ReadString(JSContext* cx, unsigned argc, jsval* vp);
   static JSBool ToSource(JSContext* cx, unsigned argc, jsval* vp);
+
+  static JSBool ErrnoGetter(JSContext* cx, JSObject *obj, jsid idval,
+                            jsval* vp);
+
+#if defined(XP_WIN)
+  static JSBool LastErrorGetter(JSContext* cx, JSObject *obj, jsid idval,
+                                jsval* vp);
+#endif 
 }
 
 
@@ -440,6 +465,16 @@ static JSFunctionSpec sUInt64Functions[] = {
   JS_FN("toString", UInt64::ToString, 0, CTYPESFN_FLAGS),
   JS_FN("toSource", UInt64::ToSource, 0, CTYPESFN_FLAGS),
   JS_FS_END
+};
+
+static JSPropertySpec sModuleProps[] = {
+  { "errno", 0, JSPROP_SHARED | JSPROP_PERMANENT,
+    CData::ErrnoGetter, NULL },
+#if defined(XP_WIN)
+  { "winLastError", 0, JSPROP_SHARED | JSPROP_PERMANENT,
+    CData::LastErrorGetter, NULL },
+#endif 
+  { 0, 0, 0, NULL, NULL }
 };
 
 static JSFunctionSpec sModuleFunctions[] = {
@@ -731,7 +766,7 @@ AttachProtos(JSObject* proto, JSObject** protos)
   
   
   
-  for (uint32_t i = 0; i <= SLOT_UINT64PROTO; ++i)
+  for (uint32_t i = 0; i <= SLOT_CTYPES; ++i)
     JS_SetReservedSlot(proto, i, OBJECT_TO_JSVAL(protos[i]));
 }
 
@@ -849,6 +884,10 @@ InitTypeClasses(JSContext* cx, JSObject* parent)
 
   
   
+  protos[SLOT_CTYPES] = parent;
+
+  
+  
   
   AttachProtos(CTypeProto, protos);
   AttachProtos(protos[SLOT_POINTERPROTO], protos);
@@ -943,7 +982,8 @@ JS_InitCTypesClass(JSContext* cx, JSObject* global)
     return false;
 
   
-  if (!JS_DefineFunctions(cx, ctypes, sModuleFunctions))
+  if (!JS_DefineFunctions(cx, ctypes, sModuleFunctions) ||
+      !JS_DefineProperties(cx, ctypes, sModuleProps))
     return false;
 
   
@@ -3226,6 +3266,23 @@ CType::HasInstance(JSContext* cx, JSObject* obj, const jsval* v, JSBool* bp)
   return JS_TRUE;
 }
 
+static JSObject*
+CType::GetGlobalCTypes(JSContext* cx, JSObject* obj)
+{
+  JS_ASSERT(CType::IsCType(obj));
+
+  JSObject *objTypeProto = JS_GetPrototype(obj);
+  if (!objTypeProto) {
+  }
+  JS_ASSERT(objTypeProto);
+  JS_ASSERT(CType::IsCTypeProto(objTypeProto));
+
+  jsval valCTypes = JS_GetReservedSlot(objTypeProto, SLOT_CTYPES);
+  JS_ASSERT(!JSVAL_IS_PRIMITIVE(valCTypes));
+
+  return JSVAL_TO_OBJECT(valCTypes);
+}
+
 
 
 
@@ -5149,13 +5206,45 @@ FunctionType::Call(JSContext* cx,
 
   uintptr_t fn = *reinterpret_cast<uintptr_t*>(CData::GetData(obj));
 
+#if defined(XP_WIN)
+  int32_t lastErrorStatus; 
+  int32_t savedLastError = GetLastError();
+  SetLastError(0);
+#endif 
+  int errnoStatus;         
+  int savedErrno = errno;
+  errno = 0;
+
   
   
   {
     JSAutoSuspendRequest suspend(cx);
     ffi_call(&fninfo->mCIF, FFI_FN(fn), returnValue.mData,
              reinterpret_cast<void**>(values.begin()));
+
+    
+    
+    
+    
+
+    errnoStatus = errno;
+#if defined(XP_WIN)
+    lastErrorStatus = GetLastError();
+#endif 
   }
+#if defined(XP_WIN)
+  SetLastError(savedLastError);
+#endif 
+
+  errno = savedErrno;
+
+  
+  JSObject *objCTypes = CType::GetGlobalCTypes(cx, typeObj);
+
+  JS_SetReservedSlot(objCTypes, SLOT_ERRNO, INT_TO_JSVAL(errnoStatus));
+#if defined(XP_WIN)
+  JS_SetReservedSlot(objCTypes, SLOT_LASTERROR, INT_TO_JSVAL(lastErrorStatus));
+#endif 
 
   
   
@@ -5975,6 +6064,33 @@ CData::ToSource(JSContext* cx, unsigned argc, jsval* vp)
   JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(result));
   return JS_TRUE;
 }
+
+JSBool
+CData::ErrnoGetter(JSContext* cx, JSObject* obj, jsid, jsval* vp)
+{
+  if (!IsCTypesGlobal(obj)) {
+    JS_ReportError(cx, "this is not not global object ctypes");
+    return JS_FALSE;
+  }
+
+  *vp = JS_GetReservedSlot(obj, SLOT_ERRNO);
+  return JS_TRUE;
+}
+
+#if defined(XP_WIN)
+JSBool
+CData::LastErrorGetter(JSContext* cx, JSObject* obj, jsid, jsval* vp)
+{
+  if (!IsCTypesGlobal(obj)) {
+    JS_ReportError(cx, "not global object ctypes");
+    return JS_FALSE;
+  }
+
+
+  *vp = JS_GetReservedSlot(obj, SLOT_LASTERROR);
+  return JS_TRUE;
+}
+#endif 
 
 
 
