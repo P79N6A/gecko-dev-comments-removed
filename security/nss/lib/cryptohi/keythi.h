@@ -60,9 +60,9 @@ typedef enum {
     nullKey = 0, 
     rsaKey = 1, 
     dsaKey = 2, 
-    fortezzaKey = 3,
+    fortezzaKey = 3, 
     dhKey = 4, 
-    keaKey = 5,
+    keaKey = 5, 
     ecKey = 6,
     rsaPssKey = 7,
     rsaOaepKey = 8
@@ -74,6 +74,7 @@ typedef enum {
 
 SEC_BEGIN_PROTOS
 extern const SEC_ASN1Template SECKEY_RSAPublicKeyTemplate[];
+extern const SEC_ASN1Template SECKEY_RSAPSSParamsTemplate[];
 extern const SEC_ASN1Template SECKEY_DSAPublicKeyTemplate[];
 extern const SEC_ASN1Template SECKEY_DHPublicKeyTemplate[];
 extern const SEC_ASN1Template SECKEY_DHParamKeyTemplate[];
@@ -81,8 +82,9 @@ extern const SEC_ASN1Template SECKEY_PQGParamsTemplate[];
 extern const SEC_ASN1Template SECKEY_DSAPrivateKeyExportTemplate[];
 
 
-extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_DSAPublicKeyTemplate;
-extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_RSAPublicKeyTemplate;
+SEC_ASN1_CHOOSER_DECLARE(SECKEY_DSAPublicKeyTemplate)
+SEC_ASN1_CHOOSER_DECLARE(SECKEY_RSAPublicKeyTemplate)
+SEC_ASN1_CHOOSER_DECLARE(SECKEY_RSAPSSParamsTemplate)
 SEC_END_PROTOS
 
 
@@ -98,6 +100,16 @@ struct SECKEYRSAPublicKeyStr {
 };
 typedef struct SECKEYRSAPublicKeyStr SECKEYRSAPublicKey;
 
+
+
+
+struct SECKEYRSAPSSParamsStr {
+    SECAlgorithmID *hashAlg;
+    SECAlgorithmID *maskAlg;
+    SECItem saltLength;
+    SECItem trailerField;
+};
+typedef struct SECKEYRSAPSSParamsStr SECKEYRSAPSSParams;
 
 
 

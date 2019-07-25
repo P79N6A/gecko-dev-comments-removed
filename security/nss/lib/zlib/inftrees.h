@@ -40,8 +40,15 @@ typedef struct {
 
 
 
-#define ENOUGH 2048
-#define MAXD 592
+
+
+
+
+
+
+#define ENOUGH_LENS 852
+#define ENOUGH_DISTS 592
+#define ENOUGH (ENOUGH_LENS+ENOUGH_DISTS)
 
 
 typedef enum {
@@ -50,6 +57,6 @@ typedef enum {
     DISTS
 } codetype;
 
-extern int inflate_table OF((codetype type, unsigned short FAR *lens,
+int ZLIB_INTERNAL inflate_table OF((codetype type, unsigned short FAR *lens,
                              unsigned codes, code FAR * FAR *table,
                              unsigned FAR *bits, unsigned short FAR *work));

@@ -52,17 +52,10 @@
 
 
 
-#ifdef macintosh
-#define PATH_SEPARATOR ":"
-#define SECMOD_DB "Security Modules"
-#define CERT_DB_FMT "%sCertificates%s"
-#define KEY_DB_FMT "%sKey Database%s"
-#else
 #define PATH_SEPARATOR "/"
 #define SECMOD_DB "secmod.db"
 #define CERT_DB_FMT "%scert%s.db"
 #define KEY_DB_FMT "%skey%s.db"
-#endif
 
 SEC_BEGIN_PROTOS
 
@@ -197,14 +190,14 @@ SEC_END_PROTOS
 
 #ifndef XP_UNIX
 
-#define NO_CHECK_FORK
+#define NO_FORK_CHECK
 
 #endif
 
-#ifndef NO_CHECK_FORK
+#ifndef NO_FORK_CHECK
 
-extern PRBool parentForkedAfterC_Initialize;
-#define SKIP_AFTER_FORK(x) if (!parentForkedAfterC_Initialize) x
+extern PRBool lg_parentForkedAfterC_Initialize;
+#define SKIP_AFTER_FORK(x) if (!lg_parentForkedAfterC_Initialize) x
 
 #else
 

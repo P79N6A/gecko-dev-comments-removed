@@ -64,6 +64,11 @@ typedef void (PR_CALLBACK * SEC_PKCS12EncoderOutputCallback)(
 typedef void (PR_CALLBACK * SEC_PKCS12DecoderOutputCallback)(
                             void *arg, const char *buf,
                             unsigned long len);
+
+
+
+
+
 typedef SECItem * (PR_CALLBACK * SEC_PKCS12NicknameCollisionCallback)(
                                  SECItem *old_nickname,
                                  PRBool *cancel,

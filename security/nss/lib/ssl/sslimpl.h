@@ -1258,15 +1258,24 @@ extern PRBool    ssl3_CanFalseStart(sslSocket *ss);
 #define SSL_LOCK_WRITER(ss)		if (ss->sendLock) PZ_Lock(ss->sendLock)
 #define SSL_UNLOCK_WRITER(ss)		if (ss->sendLock) PZ_Unlock(ss->sendLock)
 
+
 #define ssl_Get1stHandshakeLock(ss)     \
-    { if (!ss->opt.noLocks) PZ_EnterMonitor((ss)->firstHandshakeLock); }
+    { if (!ss->opt.noLocks) { \
+	  PORT_Assert(PZ_InMonitor((ss)->firstHandshakeLock) || \
+		      !ssl_HaveRecvBufLock(ss)); \
+	  PZ_EnterMonitor((ss)->firstHandshakeLock); \
+      } }
 #define ssl_Release1stHandshakeLock(ss) \
     { if (!ss->opt.noLocks) PZ_ExitMonitor((ss)->firstHandshakeLock); }
 #define ssl_Have1stHandshakeLock(ss)    \
     (PZ_InMonitor((ss)->firstHandshakeLock))
 
+
 #define ssl_GetSSL3HandshakeLock(ss)	\
-    { if (!ss->opt.noLocks) PZ_EnterMonitor((ss)->ssl3HandshakeLock); }
+    { if (!ss->opt.noLocks) { \
+	  PORT_Assert(!ssl_HaveXmitBufLock(ss)); \
+	  PZ_EnterMonitor((ss)->ssl3HandshakeLock); \
+      } }
 #define ssl_ReleaseSSL3HandshakeLock(ss) \
     { if (!ss->opt.noLocks) PZ_ExitMonitor((ss)->ssl3HandshakeLock); }
 #define ssl_HaveSSL3HandshakeLock(ss)	\
@@ -1277,6 +1286,8 @@ extern PRBool    ssl3_CanFalseStart(sslSocket *ss);
 #define ssl_ReleaseSpecReadLock(ss)	\
     { if (!ss->opt.noLocks) NSSRWLock_UnlockRead((ss)->specLock); }
 
+
+
 #define ssl_GetSpecWriteLock(ss)	\
     { if (!ss->opt.noLocks) NSSRWLock_LockWrite((ss)->specLock); }
 #define ssl_ReleaseSpecWriteLock(ss)	\
@@ -1284,12 +1295,18 @@ extern PRBool    ssl3_CanFalseStart(sslSocket *ss);
 #define ssl_HaveSpecWriteLock(ss)	\
     (NSSRWLock_HaveWriteLock((ss)->specLock))
 
+
 #define ssl_GetRecvBufLock(ss)		\
-    { if (!ss->opt.noLocks) PZ_EnterMonitor((ss)->recvBufLock); }
+    { if (!ss->opt.noLocks) { \
+	  PORT_Assert(!ssl_HaveSSL3HandshakeLock(ss)); \
+	  PORT_Assert(!ssl_HaveXmitBufLock(ss)); \
+	  PZ_EnterMonitor((ss)->recvBufLock); \
+      } }
 #define ssl_ReleaseRecvBufLock(ss)	\
     { if (!ss->opt.noLocks) PZ_ExitMonitor( (ss)->recvBufLock); }
 #define ssl_HaveRecvBufLock(ss)		\
     (PZ_InMonitor((ss)->recvBufLock))
+
 
 #define ssl_GetXmitBufLock(ss)		\
     { if (!ss->opt.noLocks) PZ_EnterMonitor((ss)->xmitBufLock); }

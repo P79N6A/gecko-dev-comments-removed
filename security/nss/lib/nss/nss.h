@@ -66,12 +66,12 @@
 
 
 
-#define NSS_VERSION  "3.12.11.0" _NSS_ECC_STRING _NSS_CUSTOMIZED
+#define NSS_VERSION  "3.13.0.0" _NSS_ECC_STRING _NSS_CUSTOMIZED " Beta"
 #define NSS_VMAJOR   3
-#define NSS_VMINOR   12
-#define NSS_VPATCH   11
+#define NSS_VMINOR   13
+#define NSS_VPATCH   0
 #define NSS_VBUILD   0
-#define NSS_BETA     PR_FALSE
+#define NSS_BETA     PR_TRUE
 
 #ifndef RC_INVOKED
 
@@ -164,6 +164,11 @@ SEC_BEGIN_PROTOS
 
 
 extern PRBool NSS_VersionCheck(const char *importedVersion);
+
+
+
+
+extern const char *NSS_GetVersion(void);
 
 
 

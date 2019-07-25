@@ -883,18 +883,21 @@ CK_RV PKM_KeyTests(CK_FUNCTION_LIST_PTR pFunctionList,
 
     mech_str digestMechs[] = {
         {CKM_SHA_1, "CKM_SHA_1 "},
+        {CKM_SHA224, "CKM_SHA224"},
         {CKM_SHA256, "CKM_SHA256"},
         {CKM_SHA384, "CKM_SHA384"},
         {CKM_SHA512, "CKM_SHA512"}
     };
     mech_str hmacMechs[] = {
         {CKM_SHA_1_HMAC, "CKM_SHA_1_HMAC"}, 
+        {CKM_SHA224_HMAC, "CKM_SHA224_HMAC"},
         {CKM_SHA256_HMAC, "CKM_SHA256_HMAC"},
         {CKM_SHA384_HMAC, "CKM_SHA384_HMAC"},
         {CKM_SHA512_HMAC, "CKM_SHA512_HMAC"}
     };
     mech_str sigRSAMechs[] = {
         {CKM_SHA1_RSA_PKCS, "CKM_SHA1_RSA_PKCS"}, 
+        {CKM_SHA224_RSA_PKCS, "CKM_SHA224_RSA_PKCS"},
         {CKM_SHA256_RSA_PKCS, "CKM_SHA256_RSA_PKCS"},
         {CKM_SHA384_RSA_PKCS, "CKM_SHA384_RSA_PKCS"},
         {CKM_SHA512_RSA_PKCS, "CKM_SHA512_RSA_PKCS"}

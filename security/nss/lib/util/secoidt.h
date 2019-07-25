@@ -274,6 +274,9 @@ typedef enum {
     SEC_OID_X942_DIFFIE_HELMAN_KEY = 174,
 
     
+    
+
+
     SEC_OID_NETSCAPE_NICKNAME = 175,
 
     
@@ -455,6 +458,13 @@ typedef enum {
     SEC_OID_PKCS1_PSPECIFIED                = 306,
     SEC_OID_PKCS1_RSA_PSS_SIGNATURE         = 307,
     SEC_OID_PKCS1_SHA224_WITH_RSA_ENCRYPTION = 308,
+
+    SEC_OID_SHA224                          = 309,
+
+    SEC_OID_EV_INCORPORATION_LOCALITY       = 310,
+    SEC_OID_EV_INCORPORATION_STATE          = 311,
+    SEC_OID_EV_INCORPORATION_COUNTRY        = 312,
+    SEC_OID_BUSINESS_CATEGORY               = 313,
 
     SEC_OID_TOTAL
 } SECOidTag;

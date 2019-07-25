@@ -44,6 +44,26 @@
 #include "lgdb.h"
 #include "secoid.h"
 #include "prenv.h"
+#include "softkver.h"
+
+
+
+#if defined(DEBUG)
+#define _DEBUG_STRING " (debug)"
+#else
+#define _DEBUG_STRING ""
+#endif
+
+
+
+
+
+
+
+const char __nss_dbm_rcsid[] = "$Header: NSS " SOFTOKEN_VERSION _DEBUG_STRING
+        "  " __DATE__ " " __TIME__ " $";
+const char __nss_dbm_sccsid[] = "@(#)NSS " SOFTOKEN_VERSION _DEBUG_STRING
+        "  " __DATE__ " " __TIME__;
 
 typedef struct LGPrivateStr {
     NSSLOWCERTCertDBHandle *certDB;
@@ -462,11 +482,11 @@ lg_getKeyDB(SDB *sdb)
     return lgdb_p->keyDB;
 }
 
-PRBool parentForkedAfterC_Initialize;
+PRBool lg_parentForkedAfterC_Initialize;
 
 void lg_SetForkState(PRBool forked)
 {
-    parentForkedAfterC_Initialize = forked;
+    lg_parentForkedAfterC_Initialize = forked;
 }
 
 CK_RV
@@ -606,6 +626,9 @@ legacy_Open(const char *configdir, const char *certPrefix,
     CK_RV crv = CKR_OK;
     SECStatus rv;
     PRBool readOnly = (flags == SDB_RDONLY)? PR_TRUE: PR_FALSE;
+    volatile char c; 
+
+    c = __nss_dbm_rcsid[0] + __nss_dbm_sccsid[0];
 
     rv = SECOID_Init();
     if (SECSuccess != rv) {

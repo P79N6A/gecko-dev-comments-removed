@@ -579,6 +579,14 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
 	        if (flags & CERTDB_VALID_CA) {
 	            validCAOverride = PR_TRUE;
 	        }
+		
+		if ((flags & CERTDB_TERMINAL_RECORD) && 
+			((flags & (CERTDB_VALID_CA|CERTDB_TRUSTED)) == 0)) {
+		    
+
+		    PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
+		    LOG_ERROR_OR_EXIT(log,issuerCert,count+1,flags);
+		}
 	    } else {
                 
 
@@ -591,6 +599,22 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
                     }
                     if (flags & CERTDB_VALID_CA)
                         validCAOverride = PR_TRUE;
+                }
+		
+
+
+
+                for (trustType = trustSSL; trustType < trustTypeNone;
+                     trustType++) {
+                    flags = SEC_GET_TRUST_FLAGS(issuerCert->trust, trustType);
+		    
+		    if ((flags & CERTDB_TERMINAL_RECORD) && 
+			((flags & (CERTDB_VALID_CA|CERTDB_TRUSTED)) == 0)) {
+			
+
+			PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
+			LOG_ERROR_OR_EXIT(log,issuerCert,count+1,flags);
+		    }
                 }
             }
         }
@@ -826,6 +850,14 @@ CERT_VerifyCACertForUsage(CERTCertDBHandle *handle, CERTCertificate *cert,
 	if (flags & CERTDB_VALID_CA) {
 	    validCAOverride = PR_TRUE;
 	}
+	
+	if ((flags & CERTDB_TERMINAL_RECORD) && 
+		((flags & (CERTDB_VALID_CA|CERTDB_TRUSTED)) == 0)) {
+	    
+
+	    PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
+	    LOG_ERROR_OR_EXIT(log,cert,0,flags);
+	}
     }
     if (!validCAOverride) {
 	
@@ -896,6 +928,154 @@ done:
 
 
 
+SECStatus
+cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
+	            unsigned int *failedFlags, PRBool *trusted)
+{
+    unsigned int flags;
+
+    *failedFlags = 0;
+    *trusted = PR_FALSE;
+			
+    
+    if ( cert->trust ) { 
+	switch ( certUsage ) {
+	  case certUsageSSLClient:
+	  case certUsageSSLServer:
+	    flags = cert->trust->sslFlags;
+	    
+	    
+	    if ( flags & CERTDB_TERMINAL_RECORD) { 
+
+		if ( flags & CERTDB_TRUSTED ) {	
+		    *trusted = PR_TRUE;
+		    return SECSuccess;
+		} else { 
+		    *failedFlags = flags;
+		    return SECFailure;
+		}
+	    }
+	    break;
+	  case certUsageSSLServerWithStepUp:
+	    
+	    flags = cert->trust->sslFlags;
+	    if ( flags & CERTDB_TERMINAL_RECORD) { 
+
+		if (( flags & CERTDB_TRUSTED ) == 0) {	
+		    
+		    *failedFlags = flags;
+		    return SECFailure;
+		}
+	    }
+	    break;
+	  case certUsageSSLCA:
+	    flags = cert->trust->sslFlags;
+	    
+
+	    if ( flags & CERTDB_TERMINAL_RECORD) { 
+
+		if (( flags & CERTDB_TRUSTED_CA ) == 0) {	
+		    
+		    *failedFlags = flags;
+		    return SECFailure;
+		}
+	    }
+	    break;
+	  case certUsageEmailSigner:
+	  case certUsageEmailRecipient:
+	    flags = cert->trust->emailFlags;
+	    if ( flags & CERTDB_TERMINAL_RECORD) { 
+
+		if ( flags & CERTDB_TRUSTED ) {	
+		    *trusted = PR_TRUE;
+		    return SECSuccess;
+		} 
+		else { 
+		    *failedFlags = flags;
+		    return SECFailure;
+		}
+	    }
+	    
+	    break;
+	  case certUsageObjectSigner:
+	    flags = cert->trust->objectSigningFlags;
+
+	    if ( flags & CERTDB_TERMINAL_RECORD) { 
+
+		if ( flags & CERTDB_TRUSTED ) {	
+		    *trusted = PR_TRUE;
+		    return SECSuccess;
+		} else { 
+		    *failedFlags = flags;
+		    return SECFailure;
+		}
+	    }
+	    break;
+	  case certUsageVerifyCA:
+	  case certUsageStatusResponder:
+	    flags = cert->trust->sslFlags;
+	    
+	    if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
+		( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
+		*trusted = PR_TRUE;
+		return SECSuccess;
+	    }
+	    flags = cert->trust->emailFlags;
+	    
+	    if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
+		( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
+		*trusted = PR_TRUE;
+		return SECSuccess;
+	    }
+	    flags = cert->trust->objectSigningFlags;
+	    
+	    if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
+		( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
+		*trusted = PR_TRUE;
+		return SECSuccess;
+	    }
+	    
+	  case certUsageAnyCA:
+	  case certUsageUserCertImport:
+	    
+	    flags = cert->trust->sslFlags;
+	    if ( flags & CERTDB_TERMINAL_RECORD) { 
+
+		if ((flags & CERTDB_TRUSTED_CA) == 0) {
+		    *failedFlags = flags;
+		    return SECFailure;
+		}
+	    }
+	    flags = cert->trust->emailFlags;
+	    if ( flags & CERTDB_TERMINAL_RECORD) { 
+
+		if ((flags & CERTDB_TRUSTED_CA) == 0) {
+		    *failedFlags = flags;
+		    return SECFailure;
+		}
+	    }
+	  case certUsageProtectedObjectSigner:
+	    flags = cert->trust->objectSigningFlags;
+	    if ( flags & CERTDB_TERMINAL_RECORD) { 
+
+		if ((flags & CERTDB_TRUSTED_CA) == 0) {
+		    *failedFlags = flags;
+		    return SECFailure;
+		}
+	    }
+	    break;
+	}
+    }
+    return SECSuccess;
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -921,6 +1101,7 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
     PRBool checkAllUsages = PR_FALSE;
     PRBool revoked = PR_FALSE;
     PRBool sigerror = PR_FALSE;
+    PRBool trusted = PR_FALSE;
 
     if (!requiredUsages) {
         
@@ -1008,91 +1189,21 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
             INVALID_USAGE();
         }
 
-        
-        if ( cert->trust ) { 
-            switch ( certUsage ) {
-              case certUsageSSLClient:
-              case certUsageSSLServer:
-                flags = cert->trust->sslFlags;
+	rv = cert_CheckLeafTrust(cert, certUsage, &flags, &trusted);
+	if (rv == SECFailure) {
+	    if (PR_TRUE == requiredUsage) {
+		PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
+	    }
+	    LOG_ERROR(log, cert, 0, flags);
+	    INVALID_USAGE();
+	}
+	if (trusted) {
+	    VALID_USAGE();
+	}
 
-                
-                if ( flags & CERTDB_VALID_PEER ) {
-                    if ( flags & CERTDB_TRUSTED ) {	
-                        VALID_USAGE();
-                    } else { 
-                        if (PR_TRUE == requiredUsage) {
-                            PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
-                        }
-                        LOG_ERROR(log,cert,0,flags);
-                        INVALID_USAGE();
-                    }
-                }
-                break;
-              case certUsageSSLServerWithStepUp:
-                
-                break;
-              case certUsageSSLCA:
-                break;
-              case certUsageEmailSigner:
-              case certUsageEmailRecipient:
-                flags = cert->trust->emailFlags;
-
-                
-                if ( ( flags & ( CERTDB_VALID_PEER | CERTDB_TRUSTED ) ) ==
-                    ( CERTDB_VALID_PEER | CERTDB_TRUSTED ) ) {
-                    VALID_USAGE();
-                }
-                break;
-              case certUsageObjectSigner:
-                flags = cert->trust->objectSigningFlags;
-
-                
-                if ( flags & CERTDB_VALID_PEER ) {
-                    if ( flags & CERTDB_TRUSTED ) {	
-                        VALID_USAGE();
-                    } else { 
-                        if (PR_TRUE == requiredUsage) {
-                            PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
-                        }
-                        LOG_ERROR(log,cert,0,flags);
-                        INVALID_USAGE();
-                    }
-                }
-                break;
-              case certUsageVerifyCA:
-              case certUsageStatusResponder:
-                flags = cert->trust->sslFlags;
-                
-                if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
-                    ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
-                    VALID_USAGE();
-                }
-                flags = cert->trust->emailFlags;
-                
-                if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
-                    ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
-                    VALID_USAGE();
-                }
-                flags = cert->trust->objectSigningFlags;
-                
-                if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
-                    ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
-                    VALID_USAGE();
-                }
-                break;
-              case certUsageAnyCA:
-              case certUsageProtectedObjectSigner:
-              case certUsageUserCertImport:
-                
-
-
-                break;
-            }
-        }
-
-        if (PR_TRUE == revoked || PR_TRUE == sigerror) {
-            INVALID_USAGE();
-        }
+	if (PR_TRUE == revoked || PR_TRUE == sigerror) {
+	    INVALID_USAGE();
+	}
 
         rv = cert_VerifyCertChain(handle, cert,
             checkSig, &sigerror,
@@ -1146,6 +1257,7 @@ CERT_VerifyCert(CERTCertDBHandle *handle, CERTCertificate *cert,
     unsigned int requiredCertType;
     unsigned int flags;
     unsigned int certType;
+    PRBool       trusted;
     PRBool       allowOverride;
     SECCertTimeValidity validity;
     CERTStatusConfig *statusConfig;
@@ -1212,81 +1324,15 @@ CERT_VerifyCert(CERTCertDBHandle *handle, CERTCertificate *cert,
 	LOG_ERROR_OR_EXIT(log,cert,0,requiredCertType);
     }
 
-    
-    if ( cert->trust ) { 
-	switch ( certUsage ) {
-	  case certUsageSSLClient:
-	  case certUsageSSLServer:
-	    flags = cert->trust->sslFlags;
-	    
-	    
-	    if ( flags & CERTDB_VALID_PEER ) {
-		if ( flags & CERTDB_TRUSTED ) {	
-		    goto winner;
-		} else { 
-		    PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
-		    LOG_ERROR_OR_EXIT(log,cert,0,flags);
-		}
-	    }
-	    break;
-	  case certUsageSSLServerWithStepUp:
-	    
-	    break;
-	  case certUsageSSLCA:
-	    break;
-	  case certUsageEmailSigner:
-	  case certUsageEmailRecipient:
-	    flags = cert->trust->emailFlags;
-	    
-	    
-	    if ( ( flags & ( CERTDB_VALID_PEER | CERTDB_TRUSTED ) ) ==
-		( CERTDB_VALID_PEER | CERTDB_TRUSTED ) ) {
-		goto winner;
-	    }
-	    break;
-	  case certUsageObjectSigner:
-	    flags = cert->trust->objectSigningFlags;
-
-	    
-	    if ( flags & CERTDB_VALID_PEER ) {
-		if ( flags & CERTDB_TRUSTED ) {	
-		    goto winner;
-		} else { 
-		    PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
-		    LOG_ERROR_OR_EXIT(log,cert,0,flags);
-		}
-	    }
-	    break;
-	  case certUsageVerifyCA:
-	  case certUsageStatusResponder:
-	    flags = cert->trust->sslFlags;
-	    
-	    if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
-		( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
-		goto winner;
-	    }
-	    flags = cert->trust->emailFlags;
-	    
-	    if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
-		( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
-		goto winner;
-	    }
-	    flags = cert->trust->objectSigningFlags;
-	    
-	    if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
-		( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
-		goto winner;
-	    }
-	    break;
-	  case certUsageAnyCA:
-	  case certUsageProtectedObjectSigner:
-	  case certUsageUserCertImport:
-	    
-
-
-	    break;
-	}
+    rv = cert_CheckLeafTrust(cert,certUsage, &flags, &trusted);
+    if (rv  == SECFailure) {
+	PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
+	LOG_ERROR_OR_EXIT(log,cert,0,flags);
     }
+    if (trusted) {
+	goto winner;
+    }
+
 
     rv = CERT_VerifyCertChain(handle, cert, checkSig, certUsage,
 			      t, wincx, log);

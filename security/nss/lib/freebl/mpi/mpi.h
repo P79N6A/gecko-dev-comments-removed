@@ -62,9 +62,7 @@
 #undef ULLONG_MAX
 #endif
 
-#if defined( macintosh )
-#include <Types.h>
-#elif defined( _WIN32_WCE)
+#if defined( _WIN32_WCE)
 
 #else
 #include <sys/types.h>

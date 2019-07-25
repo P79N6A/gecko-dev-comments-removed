@@ -301,13 +301,6 @@ extern SECKEYPublicKey *CERT_ExtractPublicKey(CERTCertificate *cert);
 
 
 
-extern SECKEYPublicKey *CERT_KMIDPublicKey(CERTCertificate *cert);
-
-
-
-
-
-
 extern KeyType CERT_GetCertKeyType (CERTSubjectPublicKeyInfo *spki);
 
 
@@ -455,7 +448,7 @@ CERT_DecodeDERCertificate (SECItem *derSignedCert, PRBool copyDER, char *nicknam
 
 
 #define SEC_CRL_TYPE	1
-#define SEC_KRL_TYPE	0
+#define SEC_KRL_TYPE	0 /* deprecated */
 
 extern CERTSignedCrl *
 CERT_DecodeDERCrl (PLArenaPool *arena, SECItem *derSignedCrl,int type);
@@ -520,12 +513,6 @@ SECStatus CERT_CacheCRL(CERTCertDBHandle* dbhandle, SECItem* newcrl);
 
 
 SECStatus CERT_UncacheCRL(CERTCertDBHandle* dbhandle, SECItem* oldcrl);
-
-
-
-
-extern CERTCertificate *
-CERT_DecodeCertificate (SECItem *derCert, char *nickname,PRBool copyDER);
 
 
 
@@ -1305,9 +1292,6 @@ CERT_GetCertificateNames(CERTCertificate *cert, PLArenaPool *arena);
 CERTGeneralName *
 CERT_GetConstrainedCertificateNames(CERTCertificate *cert, PLArenaPool *arena,
                                     PRBool includeSubjectCommonName);
-
-char *
-CERT_GetNickName(CERTCertificate   *cert, CERTCertDBHandle *handle, PLArenaPool *nicknameArena);
 
 
 

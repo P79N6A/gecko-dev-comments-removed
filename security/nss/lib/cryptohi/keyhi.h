@@ -76,12 +76,6 @@ SECKEY_UpdateCertPQG(CERTCertificate * subjectCert);
 
 
 
-extern SECStatus
-SECKEY_KEAParamCompare(CERTCertificate *cert1,CERTCertificate *cert2);
-
-
-
-
 extern unsigned SECKEY_PublicKeyStrength(const SECKEYPublicKey *pubk);
 
 

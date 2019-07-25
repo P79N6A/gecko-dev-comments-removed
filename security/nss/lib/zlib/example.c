@@ -5,15 +5,15 @@
 
 
 
-#include <stdio.h>
 #include "zlib.h"
+#include <stdio.h>
 
 #ifdef STDC
 #  include <string.h>
 #  include <stdlib.h>
 #endif
 
-#if defined(RISCOS)
+#if defined(VMS) || defined(RISCOS)
 #  define TESTFILE "foo-gz"
 #else
 #  define TESTFILE "foo.gz"

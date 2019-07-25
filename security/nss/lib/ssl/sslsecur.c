@@ -107,6 +107,7 @@
 
 
 
+
 int 
 ssl_Do1stHandshake(sslSocket *ss)
 {
@@ -117,6 +118,7 @@ ssl_Do1stHandshake(sslSocket *ss)
 	PORT_Assert(ss->opt.noLocks ||  ssl_Have1stHandshakeLock(ss) );
 	PORT_Assert(ss->opt.noLocks || !ssl_HaveRecvBufLock(ss));
 	PORT_Assert(ss->opt.noLocks || !ssl_HaveXmitBufLock(ss));
+	PORT_Assert(ss->opt.noLocks || !ssl_HaveSSL3HandshakeLock(ss));
 
 	if (ss->handshake == 0) {
 	    
@@ -157,6 +159,7 @@ ssl_Do1stHandshake(sslSocket *ss)
 
     PORT_Assert(ss->opt.noLocks || !ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || !ssl_HaveXmitBufLock(ss));
+    PORT_Assert(ss->opt.noLocks || !ssl_HaveSSL3HandshakeLock(ss));
 
     if (rv == SECWouldBlock) {
 	PORT_SetError(PR_WOULD_BLOCK_ERROR);
@@ -235,7 +238,6 @@ SSL_ResetHandshake(PRFileDesc *s, PRBool asServer)
 
     
     ssl_Get1stHandshakeLock(ss);
-    ssl_GetSSL3HandshakeLock(ss);
 
     ss->firstHsDone = PR_FALSE;
     if ( asServer ) {
@@ -251,6 +253,8 @@ SSL_ResetHandshake(PRFileDesc *s, PRBool asServer)
     ssl_GetRecvBufLock(ss);
     status = ssl_InitGather(&ss->gs);
     ssl_ReleaseRecvBufLock(ss);
+
+    ssl_GetSSL3HandshakeLock(ss);
 
     
 
@@ -1210,12 +1214,15 @@ ssl_SecureSend(sslSocket *ss, const unsigned char *buf, int len, int flags)
     if (!ss->firstHsDone) {
 	PRBool canFalseStart = PR_FALSE;
 	ssl_Get1stHandshakeLock(ss);
-	if (ss->version >= SSL_LIBRARY_VERSION_3_0 &&
-	    (ss->ssl3.hs.ws == wait_change_cipher ||
-	     ss->ssl3.hs.ws == wait_finished ||
-	     ss->ssl3.hs.ws == wait_new_session_ticket) &&
-	    ssl3_CanFalseStart(ss)) {
-	    canFalseStart = PR_TRUE;
+	if (ss->version >= SSL_LIBRARY_VERSION_3_0) {
+	    ssl_GetSSL3HandshakeLock(ss);
+	    if ((ss->ssl3.hs.ws == wait_change_cipher ||
+		ss->ssl3.hs.ws == wait_finished ||
+		ss->ssl3.hs.ws == wait_new_session_ticket) &&
+		ssl3_CanFalseStart(ss)) {
+		canFalseStart = PR_TRUE;
+	    }
+	    ssl_ReleaseSSL3HandshakeLock(ss);
 	}
 	if (!canFalseStart &&
 	    (ss->handshake || ss->nextHandshake || ss->securityHandshake)) {

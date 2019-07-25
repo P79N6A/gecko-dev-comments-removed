@@ -237,11 +237,18 @@ extern char * cert_GetCertificateEmailAddresses(CERTCertificate *cert);
 
 
 
+
 SECStatus
 cert_CreateSubjectKeyIDHashTable(void);
 
 SECStatus
 cert_AddSubjectKeyIDMapping(SECItem *subjKeyID, CERTCertificate *cert);
+
+SECStatus
+cert_UpdateSubjectKeyIDSlotCheck(SECItem *slotid, int series);
+
+int
+cert_SubjectKeyIDSlotCheckSeries(SECItem *slotid);
 
 
 

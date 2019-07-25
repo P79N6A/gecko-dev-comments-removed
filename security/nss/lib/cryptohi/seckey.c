@@ -51,6 +51,7 @@
 #include "keyi.h"
 
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
+SEC_ASN1_MKSUB(SEC_IntegerTemplate)
 
 const SEC_ASN1Template CERT_SubjectPublicKeyInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE,
@@ -76,6 +77,34 @@ const SEC_ASN1Template SECKEY_RSAPublicKeyTemplate[] = {
     { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.rsa.modulus), },
     { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.rsa.publicExponent), },
     { 0, }
+};
+
+static const SEC_ASN1Template seckey_PointerToAlgorithmIDTemplate[] = {
+    { SEC_ASN1_POINTER | SEC_ASN1_XTRN, 0,
+      SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) }
+};
+
+
+const SEC_ASN1Template SECKEY_RSAPSSParamsTemplate[] =
+{
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SECKEYRSAPSSParams) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
+          SEC_ASN1_CONTEXT_SPECIFIC | 0,
+          offsetof(SECKEYRSAPSSParams, hashAlg),
+          seckey_PointerToAlgorithmIDTemplate },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
+          SEC_ASN1_CONTEXT_SPECIFIC | 1,
+          offsetof(SECKEYRSAPSSParams, maskAlg),
+          seckey_PointerToAlgorithmIDTemplate },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
+          SEC_ASN1_XTRN | SEC_ASN1_CONTEXT_SPECIFIC | 2,
+          offsetof(SECKEYRSAPSSParams, saltLength),
+          SEC_ASN1_SUB(SEC_IntegerTemplate) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
+          SEC_ASN1_XTRN | SEC_ASN1_CONTEXT_SPECIFIC | 3,
+          offsetof(SECKEYRSAPSSParams, trailerField),
+          SEC_ASN1_SUB(SEC_IntegerTemplate) },
+    { 0 }
 };
 
 const SEC_ASN1Template SECKEY_DSAPublicKeyTemplate[] = {
@@ -107,6 +136,7 @@ const SEC_ASN1Template SECKEY_DHParamKeyTemplate[] = {
 
 SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_DSAPublicKeyTemplate)
 SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_RSAPublicKeyTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_RSAPSSParamsTemplate)
 SEC_ASN1_CHOOSER_IMPLEMENT(CERT_SubjectPublicKeyInfoTemplate)
 
 
@@ -296,120 +326,6 @@ SECKEY_CopySubjectPublicKeyInfo(PRArenaPool *arena,
     return rv;
 }
 
-SECStatus
-SECKEY_KEASetParams(SECKEYKEAParams * params, SECKEYPublicKey * pubKey) {
-
-    if (pubKey->keyType == fortezzaKey) {
-        
-
-	
-
-
-
-	
-
-    } else if (pubKey->keyType == keaKey) {
-
-        
-        SECITEM_CopyItem(pubKey->arena, &params->hash, 
-	                 &pubKey->u.kea.params.hash );
-
-    } else {
-
-	
-	return SECFailure;
-    }
-    return SECSuccess;
-}
-
-
-SECStatus
-SECKEY_KEAParamCompare(CERTCertificate *cert1,CERTCertificate *cert2) 
-{
-
-    SECStatus rv;
-
-    SECKEYPublicKey *pubKey1 = 0;
-    SECKEYPublicKey *pubKey2 = 0;
-
-    SECKEYKEAParams params1;
-    SECKEYKEAParams params2;
-
-
-    rv = SECFailure;
-
-    
-    pubKey1 = CERT_ExtractPublicKey(cert1);
-    if ( !pubKey1 ) {
-	return(SECFailure);
-    }
-    
-
-    
-    pubKey2 = CERT_ExtractPublicKey(cert2);
-    if ( !pubKey2 ) {
-	return(SECFailure);
-    }
-
-    
-
-
-    if ((pubKey1->keyType == keaKey) &&
-        (pubKey2->keyType == keaKey) ) {
-
-        rv = (SECStatus)SECITEM_CompareItem(&pubKey1->u.kea.params.hash,
-	                         &pubKey2->u.kea.params.hash);
-	goto done;
-    }
-
-    
-
-
-    if ((pubKey1->keyType == fortezzaKey) &&
-        (pubKey2->keyType == fortezzaKey) ) {
-
-        rv = (SECStatus)SECITEM_CompareItem(&pubKey1->u.fortezza.keaParams.prime,
-	                         &pubKey2->u.fortezza.keaParams.prime);
-
-	if (rv == SECEqual) {
-	    rv = (SECStatus)SECITEM_CompareItem(&pubKey1->u.fortezza.keaParams.subPrime,
-	                             &pubKey2->u.fortezza.keaParams.subPrime);
-	}
-
-	if (rv == SECEqual) {
-	    rv = (SECStatus)SECITEM_CompareItem(&pubKey1->u.fortezza.keaParams.base,
-	                             &pubKey2->u.fortezza.keaParams.base);
-	}
-	
-	goto done;
-    }
-
-
-    
-
-
-    rv = SECKEY_KEASetParams(&params1, pubKey1);
-    if (rv != SECSuccess) return rv;
-
-    rv = SECKEY_KEASetParams(&params2, pubKey2);
-    if (rv != SECSuccess) return rv;
-
-    rv = (SECStatus)SECITEM_CompareItem(&params1.hash, &params2.hash);
-
-done:
-    SECKEY_DestroyPublicKey(pubKey1);
-    SECKEY_DestroyPublicKey(pubKey2);
-
-    return rv;   
-
-}
-
-
-
-
-
-
-
 
 
 
@@ -446,11 +362,7 @@ seckey_UpdateCertPQGChain(CERTCertificate * subjectCert, int count)
         
 
 
-	if ( (tag != SEC_OID_MISSI_KEA_DSS_OLD) &&
-	     (tag != SEC_OID_MISSI_DSS_OLD) &&
-             (tag != SEC_OID_MISSI_KEA_DSS) &&
-             (tag != SEC_OID_MISSI_DSS) &&               
-             (tag != SEC_OID_ANSIX9_DSA_SIGNATURE) &&
+	if ( (tag != SEC_OID_ANSIX9_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
              (tag != SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
              (tag != SEC_OID_SDN702_DSA_SIGNATURE) &&
@@ -492,11 +404,7 @@ seckey_UpdateCertPQGChain(CERTCertificate * subjectCert, int count)
         
 
 
-	if ( (tag != SEC_OID_MISSI_KEA_DSS_OLD) &&
-	     (tag != SEC_OID_MISSI_DSS_OLD) &&
-             (tag != SEC_OID_MISSI_KEA_DSS) &&
-             (tag != SEC_OID_MISSI_DSS) &&               
-             (tag != SEC_OID_ANSIX9_DSA_SIGNATURE) &&
+	if ( (tag != SEC_OID_ANSIX9_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
              (tag != SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
              (tag != SEC_OID_SDN702_DSA_SIGNATURE) &&
@@ -777,18 +685,6 @@ CERT_ExtractPublicKey(CERTCertificate *cert)
     rv = SECKEY_UpdateCertPQG(cert);
     if (rv != SECSuccess) return NULL;
 
-    return seckey_ExtractPublicKey(&cert->subjectPublicKeyInfo);
-}
-
-
-
-
-
-
-
-SECKEYPublicKey *
-CERT_KMIDPublicKey(CERTCertificate *cert)
-{
     return seckey_ExtractPublicKey(&cert->subjectPublicKeyInfo);
 }
 
@@ -1076,7 +972,6 @@ SECKEY_PublicKeyStrength(const SECKEYPublicKey *pubk)
     unsigned size;
 
     
-
     if (!pubk)
     	goto loser;
     switch (pubk->keyType) {
@@ -1094,8 +989,6 @@ SECKEY_PublicKeyStrength(const SECKEYPublicKey *pubk)
     	b0 = pubk->u.dh.publicValue.data[0];
     	return b0 ? pubk->u.dh.publicValue.len :
 	    pubk->u.dh.publicValue.len - 1;
-    case fortezzaKey:
-	return PR_MAX(pubk->u.fortezza.KEAKey.len, pubk->u.fortezza.DSSKey.len);
     case ecKey:
 	
 	size =	SECKEY_ECParamsToKeySize(&pubk->u.ec.DEREncodedParams);
@@ -1117,7 +1010,6 @@ SECKEY_PublicKeyStrengthInBits(const SECKEYPublicKey *pubk)
     case rsaKey:
     case dsaKey:
     case dhKey:
-    case fortezzaKey:
 	return SECKEY_PublicKeyStrength(pubk) * 8; 
     case ecKey:
 	size = SECKEY_ECParamsToKeySize(&pubk->u.ec.DEREncodedParams);
@@ -1140,7 +1032,6 @@ SECKEY_SignatureLen(const SECKEYPublicKey *pubk)
     case rsaKey:
     	b0 = pubk->u.rsa.modulus.data[0];
     	return b0 ? pubk->u.rsa.modulus.len : pubk->u.rsa.modulus.len - 1;
-    case fortezzaKey:
     case dsaKey:
     	return DSA_SIGNATURE_LEN;
     case ecKey:
@@ -1255,51 +1146,6 @@ SECKEY_CopyPublicKey(const SECKEYPublicKey *pubk)
           rv = SECITEM_CopyItem(arena, &copyk->u.dsa.params.base,
                                 &pubk->u.dsa.params.base);
           break;
-      case keaKey:
-          rv = SECITEM_CopyItem(arena, &copyk->u.kea.publicValue,
-                                &pubk->u.kea.publicValue);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.kea.params.hash,
-                                &pubk->u.kea.params.hash);
-          break;
-      case fortezzaKey:
-          copyk->u.fortezza.KEAversion = pubk->u.fortezza.KEAversion;
-          copyk->u.fortezza.DSSversion = pubk->u.fortezza.DSSversion;
-          PORT_Memcpy(copyk->u.fortezza.KMID, pubk->u.fortezza.KMID,
-                      sizeof(pubk->u.fortezza.KMID));
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.clearance, 
-                                &pubk->u.fortezza.clearance);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.KEAprivilege, 
-                                &pubk->u.fortezza.KEAprivilege);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.DSSprivilege, 
-                                &pubk->u.fortezza.DSSprivilege);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.KEAKey, 
-                                &pubk->u.fortezza.KEAKey);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.DSSKey, 
-                                &pubk->u.fortezza.DSSKey);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.params.prime, 
-                                &pubk->u.fortezza.params.prime);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.params.subPrime, 
-                                &pubk->u.fortezza.params.subPrime);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.params.base, 
-                                &pubk->u.fortezza.params.base);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.keaParams.prime, 
-                                &pubk->u.fortezza.keaParams.prime);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.keaParams.subPrime, 
-                                &pubk->u.fortezza.keaParams.subPrime);
-          if (rv != SECSuccess) break;
-          rv = SECITEM_CopyItem(arena, &copyk->u.fortezza.keaParams.base, 
-                                &pubk->u.fortezza.keaParams.base);
-          break;
       case dhKey:
           rv = SECITEM_CopyItem(arena,&copyk->u.dh.prime,&pubk->u.dh.prime);
           if (rv != SECSuccess) break;
@@ -1366,12 +1212,7 @@ SECKEY_ConvertToPublicKey(SECKEYPrivateKey *privk)
     pubk->pkcs11ID = CK_INVALID_HANDLE;
     pubk->arena = arena;
 
-    
-
-
-
     switch(privk->keyType) {
-      case fortezzaKey:
       case nullKey:
       case dhKey:
       case dsaKey:
@@ -1500,40 +1341,8 @@ SECKEY_CreateSubjectPublicKeyInfo(SECKEYPublicKey *pubk)
 		return spki;
 	    }
 	    break;
-	  case keaKey:
 	  case dhKey: 
 
-	  break;  
-	  case fortezzaKey:
-#ifdef notdef
-	    
-	    rv = FortezzaBuildParams(&params,pubk);
-	    if (rv != SECSuccess) break;
-
-	    
-	    rv = SECOID_SetAlgorithmID(arena, &spki->algorithm,
-				       SEC_OID_MISSI_KEA_DSS, &params);
-	    PORT_Free(params.data);
-	    if (rv == SECSuccess) {
-		
-
-
-
-		rv = FortezzaEncodeCertKey(arena,&spki->subjectPublicKey,pubk);
-		if (rv == SECSuccess) {
-		    
-
-
-
-		    spki->subjectPublicKey.len <<= 3;
-
-		    
-
-
-		    return spki;
-		}
-	    }
-#endif
 	    break;
 	  default:
 	    break;

@@ -39,7 +39,7 @@
 #define _PKCS11N_H_
 
 #ifdef DEBUG
-static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.19.22.2 $ $Date: 2010/12/04 19:10:46 $";
+static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.22 $ $Date: 2011/04/13 00:10:27 $";
 #endif 
 
 
@@ -330,16 +330,71 @@ typedef CK_ULONG          CK_TRUST;
 
 #define CKT_NSS_TRUSTED            (CKT_NSS + 1)
 #define CKT_NSS_TRUSTED_DELEGATOR  (CKT_NSS + 2)
-#define CKT_NSS_UNTRUSTED          (CKT_NSS + 3)
-#define CKT_NSS_MUST_VERIFY        (CKT_NSS + 4)
+#define CKT_NSS_MUST_VERIFY_TRUST  (CKT_NSS + 3)
+#define CKT_NSS_NOT_TRUSTED        (CKT_NSS + 10)
 #define CKT_NSS_TRUST_UNKNOWN      (CKT_NSS + 5) /* default */
 
 
 
 
 
-#define CKT_NSS_VALID              (CKT_NSS + 10)
 #define CKT_NSS_VALID_DELEGATOR    (CKT_NSS + 11)
+
+
+
+
+
+
+
+#if __GNUC__ > 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if (__GNUC__  == 4) && (__GNUC_MINOR < 5)
+
+
+typedef CK_TRUST __CKT_NSS_UNTRUSTED __attribute__((deprecated));
+typedef CK_TRUST __CKT_NSS_VALID __attribute__ ((deprecated));
+typedef CK_TRUST __CKT_NSS_MUST_VERIFY __attribute__((deprecated));
+#else
+
+
+typedef CK_TRUST __CKT_NSS_UNTRUSTED __attribute__((deprecated
+    ("CKT_NSS_UNTRUSTED really means CKT_NSS_MUST_VERIFY_TRUST")));
+typedef CK_TRUST __CKT_NSS_VALID __attribute__ ((deprecated
+    ("CKT_NSS_VALID really means CKT_NSS_NOT_TRUSTED")));
+typedef CK_TRUST __CKT_NSS_MUST_VERIFY __attribute__((deprecated
+    ("CKT_NSS_MUST_VERIFY really functions as CKT_NSS_TRUST_UNKNOWN")));
+#endif
+#define CKT_NSS_UNTRUSTED ((__CKT_NSS_UNTRUSTED)CKT_NSS_MUST_VERIFY_TRUST)
+#define CKT_NSS_VALID     ((__CKT_NSS_VALID) CKT_NSS_NOT_TRUSTED)
+
+#define CKT_NSS_MUST_VERIFY ((__CKT_NSS_MUST_VERIFY)(CKT_NSS +4))
+#else
+#ifdef _WIN32
+
+
+#pragma deprecated(CKT_NSS_UNTRUSTED, CKT_NSS_MUST_VERIFY, CKT_NSS_VALID)
+#endif
+
+#define CKT_NSS_UNTRUSTED          CKT_NSS_MUST_VERIFY_TRUST
+
+#define CKT_NSS_VALID              CKT_NSS_NOT_TRUSTED
+
+#define CKT_NSS_MUST_VERIFY        (CKT_NSS + 4)  /*really means trust unknown*/
+#endif
 
 
 
@@ -367,6 +422,7 @@ typedef CK_ULONG          CK_TRUST;
 #define CKM_NETSCAPE_AES_KEY_WRAP_PAD	CKM_NSS_AES_KEY_WRAP_PAD
 #define CKR_NETSCAPE_CERTDB_FAILED      CKR_NSS_CERTDB_FAILED
 #define CKR_NETSCAPE_KEYDB_FAILED       CKR_NSS_KEYDB_FAILED
+
 #define CKT_NETSCAPE_TRUSTED            CKT_NSS_TRUSTED
 #define CKT_NETSCAPE_TRUSTED_DELEGATOR  CKT_NSS_TRUSTED_DELEGATOR
 #define CKT_NETSCAPE_UNTRUSTED          CKT_NSS_UNTRUSTED

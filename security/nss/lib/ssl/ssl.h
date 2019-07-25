@@ -639,6 +639,23 @@ SSL_IMPORT SECStatus SSL_HandshakeNegotiatedExtension(PRFileDesc * socket,
                                                       SSLExtensionType extId,
                                                       PRBool *yes);
 
+
+
+
+
+
+
+
+
+
+
+extern PRBool NSSSSL_VersionCheck(const char *importedVersion);
+
+
+
+
+extern const char *NSSSSL_GetVersion(void);
+
 SEC_END_PROTOS
 
 #endif 

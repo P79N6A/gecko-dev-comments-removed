@@ -257,6 +257,7 @@ static const struct FREEBLVectorStr vector =
     PRNGTEST_Instantiate,
     PRNGTEST_Reseed,
     PRNGTEST_Generate,
+
     PRNGTEST_Uninstantiate,
 
     
@@ -269,6 +270,24 @@ static const struct FREEBLVectorStr vector =
     JPAKE_Verify,
     JPAKE_Round2,
     JPAKE_Final,
+
+    
+
+    MGF1,
+    TLS_P_hash,
+    SHA224_NewContext,
+    SHA224_DestroyContext,
+    SHA224_Begin,
+    SHA224_Update,
+    SHA224_End,
+    SHA224_HashBuf,
+    SHA224_Hash,
+    SHA224_TraceState,
+    SHA224_FlattenSize,
+    SHA224_Flatten,
+    SHA224_Resurrect,
+    SHA224_Clone,
+    BLAPI_SHVerifyFile
 
     
 };

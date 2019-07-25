@@ -51,6 +51,208 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef FREEBL_USE_PRELINK
+#ifndef FREELB_PRELINK_COMMAND
+#define FREEBL_PRELINK_COMMAND "/usr/sbin/prelink -u -o -"
+#endif
+#include "private/pprio.h"
+
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRFileDesc *
+bl_OpenUnPrelink(const char *shName, int *pid)
+{
+    char *command= strdup(FREEBL_PRELINK_COMMAND);
+    char *argString = NULL;
+    char  **argv = NULL;
+    char *shNameArg = NULL;
+    char *cp;
+    pid_t child;
+    int argc = 0, argNext = 0;
+    struct stat statBuf;
+    int pipefd[2] = {-1,-1};
+    int ret;
+
+    *pid = 0;
+
+    
+
+    for (cp = command; *cp ; cp++) {
+	if (*cp == ' ') {
+	    *cp++ = 0;
+	    argString = cp;
+	    break;
+        }
+    }
+    memset (&statBuf, 0, sizeof(statBuf));
+    
+    ret = stat(command, &statBuf);
+    if (ret < 0) {
+	free(command);
+	return PR_Open(shName, PR_RDONLY, 0);
+    }
+    
+    if (!S_ISREG(statBuf.st_mode) || 
+			((statBuf.st_mode & (S_IXUSR|S_IXGRP|S_IXOTH)) == 0)) {
+	free(command);
+	return PR_Open(shName, PR_RDONLY, 0);
+    }
+
+    
+    
+    
+    if (argString && *argString) {
+	
+	for (cp = argString; *cp && *cp == ' '; cp++);
+	argString = cp;
+	if (*cp) {
+	    
+	    argc = 1;
+	}
+
+        
+
+	for (cp = argString; *cp ; cp++) {
+	    if (*cp == ' ') {
+		while (*cp && *cp == ' ') cp++;
+		if (*cp) argc++;
+	    }
+	}
+    }
+
+    
+    argc += 3;
+    argv = PORT_NewArray(char *, argc);
+    if (argv == NULL) {
+	goto loser;
+    }
+
+    
+    argv[argNext++] = command;
+    if (argString && *argString) {
+	argv[argNext++] = argString;
+	for (cp = argString; *cp; cp++) {
+	    if (*cp == ' ') {
+		*cp++ = 0;
+		while (*cp && *cp == ' ') cp++;
+		if (*cp) argv[argNext++] = cp;
+	    }
+	}
+    }
+    
+
+    shNameArg = strdup(shName);
+    if (shNameArg == NULL) {
+	goto loser;
+    }
+    argv[argNext++] = shNameArg;
+    argv[argNext++] = 0;
+    
+    ret = pipe(pipefd);
+    if (ret < 0) {
+	goto loser;
+    }
+
+    
+    child = vfork();
+    if (child < 0) goto loser;
+    if (child == 0) {
+	
+	
+
+	close(0);
+	
+	if (pipefd[1] != 1) dup2(pipefd[1], 1);
+	close(2);
+	close(pipefd[0]);
+	
+
+
+	execv(command, argv);
+	
+	_exit(1); 
+    }
+    close(pipefd[1]);
+    pipefd[1] = -1;
+
+    
+
+
+    free(command);
+    free(shNameArg);
+    PORT_Free(argv);
+
+    *pid = child;
+
+    return PR_ImportPipe(pipefd[0]);
+
+loser:
+    if (pipefd[0] != -1) {
+	close(pipefd[0]);
+    }
+    if (pipefd[1] != -1) {
+	close(pipefd[1]);
+    }
+    free(command);
+    free(shNameArg);
+    PORT_Free(argv);
+
+    return NULL;
+}
+
+
+
+
+
+
+
+
+
+void
+bl_CloseUnPrelink( PRFileDesc *file, int pid)
+{
+    
+    PR_Close(file);
+    
+    if (pid) {
+	waitpid(pid, NULL, 0);
+    }
+}
+#endif
+
+
+
 static char *
 mkCheckFileName(const char *libName)
 {
@@ -105,8 +307,26 @@ readItem(PRFileDesc *fd, SECItem *item)
 PRBool
 BLAPI_SHVerify(const char *name, PRFuncPtr addr)
 {
+    PRBool result = PR_FALSE; 
+
     
     char *shName = PR_GetLibraryFilePathname(name, addr);
+    if (!shName) {
+	goto loser;
+    }
+    result = BLAPI_SHVerifyFile(shName);
+
+loser:
+    if (shName != NULL) {
+	PR_Free(shName);
+    }
+
+    return result;
+}
+
+PRBool
+BLAPI_SHVerifyFile(const char *shName)
+{
     char *checkName = NULL;
     PRFileDesc *checkFD = NULL;
     PRFileDesc *shFD = NULL;
@@ -117,10 +337,13 @@ BLAPI_SHVerify(const char *name, PRFuncPtr addr)
     SECStatus rv;
     DSAPublicKey key;
     int count;
+#ifdef FREEBL_USE_PRELINK
+    int pid = 0;
+#endif
 
     PRBool result = PR_FALSE; 
 
-    unsigned char buf[512];
+    unsigned char buf[4096];
     unsigned char hashBuf[SHA1_LENGTH];
 
     PORT_Memset(&key,0,sizeof(key));
@@ -197,7 +420,11 @@ BLAPI_SHVerify(const char *name, PRFuncPtr addr)
     checkFD = NULL;
 
     
+#ifdef FREEBL_USE_PRELINK
+    shFD = bl_OpenUnPrelink(shName,&pid);
+#else
     shFD = PR_Open(shName, PR_RDONLY, 0);
+#endif
     if (shFD == NULL) {
 #ifdef DEBUG_SHVERIFY
         fprintf(stderr, "Failed to open the library file %s: (%d, %d)\n",
@@ -218,7 +445,11 @@ BLAPI_SHVerify(const char *name, PRFuncPtr addr)
 	SHA1_Update(hashcx, buf, bytesRead);
 	count += bytesRead;
     }
+#ifdef FREEBL_USE_PRELINK
+    bl_CloseUnPrelink(shFD, pid);
+#else
     PR_Close(shFD);
+#endif
     shFD = NULL;
 
     SHA1_End(hashcx, hash.data, &hash.len, hash.len);
@@ -255,9 +486,6 @@ BLAPI_SHVerify(const char *name, PRFuncPtr addr)
 
 
 loser:
-    if (shName != NULL) {
-	PR_Free(shName);
-    }
     if (checkName != NULL) {
 	PORT_Free(checkName);
     }
@@ -292,8 +520,11 @@ loser:
 PRBool
 BLAPI_VerifySelf(const char *name)
 {
-    
     if (name == NULL) {
+	
+
+
+
 	return PR_TRUE;
     }
     return BLAPI_SHVerify(name, (PRFuncPtr) decodeInt);

@@ -47,6 +47,13 @@
 #include <c_asm.h>
 #endif
 
+#if defined(__arm__) && \
+    ((defined(__thumb__) && !defined(__thumb2__)) || defined(__ARM_ARCH_3__))
+
+#undef MP_ASSEMBLY_MULTIPLY
+#undef MP_ASSEMBLY_SQUARE
+#endif
+
 #if MP_LOGTAB
 
 
@@ -2939,8 +2946,6 @@ void     s_mp_exch(mp_int *a, mp_int *b)
 
 
 
-
-
    
 
 mp_err   s_mp_lshd(mp_int *mp, mp_size p)
@@ -4210,6 +4215,7 @@ mp_err   s_mp_div(mp_int *rem,
   if(mp_cmp_z(div) == 0)
     return MP_RANGE;
 
+  DIGITS(&t) = 0;
   
   if((ix = s_mp_ispow2(div)) >= 0) {
     MP_CHECKOK( mp_copy(rem, quot) );
@@ -4219,7 +4225,6 @@ mp_err   s_mp_div(mp_int *rem,
     return MP_OKAY;
   }
 
-  DIGITS(&t) = 0;
   MP_SIGN(rem) = ZPOS;
   MP_SIGN(div) = ZPOS;
 
@@ -4747,7 +4752,7 @@ mp_to_unsigned_octets(const mp_int *mp, unsigned char *str, mp_size maxlen)
   ARGCHK(mp != NULL && str != NULL && !SIGN(mp), MP_BADARG);
 
   bytes = mp_unsigned_octet_size(mp);
-  ARGCHK(bytes <= maxlen, MP_BADARG);
+  ARGCHK(bytes >= 0 && bytes <= maxlen, MP_BADARG);
 
   
   for(ix = USED(mp) - 1; ix >= 0; ix--) {
@@ -4779,7 +4784,7 @@ mp_to_signed_octets(const mp_int *mp, unsigned char *str, mp_size maxlen)
   ARGCHK(mp != NULL && str != NULL && !SIGN(mp), MP_BADARG);
 
   bytes = mp_unsigned_octet_size(mp);
-  ARGCHK(bytes <= maxlen, MP_BADARG);
+  ARGCHK(bytes >= 0 && bytes <= maxlen, MP_BADARG);
 
   
   for(ix = USED(mp) - 1; ix >= 0; ix--) {
@@ -4819,7 +4824,7 @@ mp_to_fixlen_octets(const mp_int *mp, unsigned char *str, mp_size length)
   ARGCHK(mp != NULL && str != NULL && !SIGN(mp), MP_BADARG);
 
   bytes = mp_unsigned_octet_size(mp);
-  ARGCHK(bytes <= length, MP_BADARG);
+  ARGCHK(bytes >= 0 && bytes <= length, MP_BADARG);
 
   
   for (;length > bytes; --length) {

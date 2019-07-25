@@ -272,13 +272,23 @@ typedef enum {
 #define SFTK_MAX_MAC_LENGTH 64
 #define SFTK_INVALID_MAC_SIZE 0xffffffff
 
+
+
+
+
+
+
+
+
 struct SFTKSessionContextStr {
     SFTKContextType	type;
     PRBool		multi; 		
     PRBool		doPad; 		
     unsigned int	blockSize; 	
     unsigned int	padDataLength; 	
+    
     unsigned char	padBuf[SFTK_MAX_BLOCK_SIZE];
+    
     unsigned char	macBuf[SFTK_MAX_BLOCK_SIZE];
     CK_ULONG		macSize;	
     void		*cipherInfo;
@@ -385,11 +395,13 @@ struct SFTKSlotStr {
 
 struct SFTKHashVerifyInfoStr {
     SECOidTag   	hashOid;
+    void		*params;
     NSSLOWKEYPublicKey	*key;
 };
 
 struct SFTKHashSignInfoStr {
     SECOidTag   	hashOid;
+    void		*params;
     NSSLOWKEYPrivateKey	*key;
 };
 
@@ -566,17 +578,10 @@ typedef struct sftk_parametersStr {
 
 
 
-#ifdef macintosh
-#define PATH_SEPARATOR ":"
-#define SECMOD_DB "Security Modules"
-#define CERT_DB_FMT "%sCertificates%s"
-#define KEY_DB_FMT "%sKey Database%s"
-#else
 #define PATH_SEPARATOR "/"
 #define SECMOD_DB "secmod.db"
 #define CERT_DB_FMT "%scert%s.db"
 #define KEY_DB_FMT "%skey%s.db"
-#endif
 
 SEC_BEGIN_PROTOS
 

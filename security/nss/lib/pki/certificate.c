@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: certificate.c,v $ $Revision: 1.67 $ $Date: 2010/04/03 18:27:32 $";
+static const char CVS_ID[] = "@(#) $RCSfile: certificate.c,v $ $Revision: 1.68 $ $Date: 2011/07/12 21:29:17 $";
 #endif 
 
 #ifndef NSSPKI_H
@@ -960,6 +960,44 @@ nssCertificateList_AddReferences (
     (void)nssCertificateList_DoCallback(certList, add_ref_callback, NULL);
 }
 
+
+
+
+
+
+
+
+
+PRBool
+nssTrust_IsSafeToIgnoreCertHash(nssTrustLevel serverAuth, 
+		nssTrustLevel clientAuth, nssTrustLevel codeSigning, 
+		nssTrustLevel email, PRBool stepup)
+{
+    
+    if (stepup) {
+	return PR_FALSE;
+    }
+    if ((serverAuth != nssTrustLevel_Unknown) && 
+	(serverAuth != nssTrustLevel_NotTrusted)) {
+	return PR_FALSE;
+    }
+    if ((clientAuth != nssTrustLevel_Unknown) && 
+	(clientAuth != nssTrustLevel_NotTrusted)) {
+	return PR_FALSE;
+    }
+    if ((codeSigning != nssTrustLevel_Unknown) && 
+	(codeSigning != nssTrustLevel_NotTrusted)) {
+	return PR_FALSE;
+    }
+    if ((email != nssTrustLevel_Unknown) && 
+	(email != nssTrustLevel_NotTrusted)) {
+	return PR_FALSE;
+    }
+    
+
+    return PR_TRUE;
+}
+
 NSS_IMPLEMENT NSSTrust *
 nssTrust_Create (
   nssPKIObject *object,
@@ -1009,7 +1047,19 @@ nssTrust_Create (
 	    nssPKIObject_Unlock(object);
 	    return (NSSTrust *)NULL;
 	}
-	if (PORT_Memcmp(sha1_hashin,sha1_hashcmp,SHA1_LENGTH) != 0) {
+	
+
+
+	if (!(
+            
+
+	     ((sha1_hash.size == 0)  && 
+		nssTrust_IsSafeToIgnoreCertHash(serverAuth,clientAuth,
+		codeSigning, emailProtection,stepUp)) 
+	   ||
+            
+            ((sha1_hash.size == SHA1_LENGTH) && (PORT_Memcmp(sha1_hashin,
+	        sha1_hashcmp,SHA1_LENGTH) == 0))   )) {
 	    nssPKIObject_Unlock(object);
 	    return (NSSTrust *)NULL;
 	}

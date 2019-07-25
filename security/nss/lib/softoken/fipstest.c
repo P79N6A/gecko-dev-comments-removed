@@ -866,6 +866,13 @@ sftk_fips_HMAC_PowerUpSelfTest( void )
         0x5d, 0x0e, 0x1e, 0x11};
 
     
+    static const PRUint8 known_SHA224_hmac[] = {
+        0x1c, 0xc3, 0x06, 0x8e, 0xce, 0x37, 0x68, 0xfb, 
+        0x1a, 0x82, 0x4a, 0xbe, 0x2b, 0x00, 0x51, 0xf8,
+        0x9d, 0xb6, 0xe0, 0x90, 0x0d, 0x00, 0xc9, 0x64,
+        0x9a, 0xb8, 0x98, 0x4e};
+
+    
     static const PRUint8 known_SHA256_hmac[] = {
         0x05, 0x75, 0x9a, 0x9e, 0x70, 0x5e, 0xe7, 0x44, 
         0xe2, 0x46, 0x4b, 0x92, 0x22, 0x14, 0x22, 0xe0, 
@@ -909,6 +916,22 @@ sftk_fips_HMAC_PowerUpSelfTest( void )
     if( ( hmac_status != SECSuccess ) || 
         ( PORT_Memcmp( hmac_computed, known_SHA1_hmac,
                        SHA1_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    
+    
+    
+
+    hmac_status = sftk_fips_HMAC(hmac_computed, 
+                                 HMAC_known_secret_key,
+                                 HMAC_known_secret_key_length,
+                                 known_hash_message,
+                                 FIPS_KNOWN_HASH_MESSAGE_LENGTH,
+                                 HASH_AlgSHA224);
+
+    if( ( hmac_status != SECSuccess ) || 
+        ( PORT_Memcmp( hmac_computed, known_SHA224_hmac,
+                       SHA224_LENGTH ) != 0 ) )
         return( CKR_DEVICE_ERROR );
 
     
@@ -972,6 +995,13 @@ sftk_fips_SHA_PowerUpSelfTest( void )
 			       0xe0,0x68,0x47,0x7a};
 
     
+    static const PRUint8 sha224_known_digest[] = {
+        0x89,0x5e,0x7f,0xfd,0x0e,0xd8,0x35,0x6f,
+        0x64,0x6d,0xf2,0xde,0x5e,0xed,0xa6,0x7f, 
+        0x29,0xd1,0x12,0x73,0x42,0x84,0x95,0x4f, 
+        0x8e,0x08,0xe5,0xcb};
+
+    
     static const PRUint8 sha256_known_digest[] = {
         0x38,0xa9,0xc1,0xf0,0x35,0xf6,0x5d,0x61,
         0x11,0xd4,0x0b,0xdc,0xce,0x35,0x14,0x8d,
@@ -1012,6 +1042,18 @@ sftk_fips_SHA_PowerUpSelfTest( void )
     if( ( sha_status != SECSuccess ) ||
         ( PORT_Memcmp( sha_computed_digest, sha1_known_digest,
                        SHA1_LENGTH ) != 0 ) )
+        return( CKR_DEVICE_ERROR );
+
+    
+    
+    
+
+    sha_status = SHA224_HashBuf( sha_computed_digest, known_hash_message,
+                                FIPS_KNOWN_HASH_MESSAGE_LENGTH );
+
+    if( ( sha_status != SECSuccess ) ||
+        ( PORT_Memcmp( sha_computed_digest, sha224_known_digest,
+                       SHA224_LENGTH ) != 0 ) )
         return( CKR_DEVICE_ERROR );
 
     

@@ -1037,13 +1037,11 @@ pk11_mergeTrustEntry(CK_ATTRIBUTE *target, CK_ATTRIBUTE *source)
 
 
 
-    if ((sourceTrust == CKT_NSS_MUST_VERIFY) 
-	|| (sourceTrust == CKT_NSS_VALID)
+    if ((sourceTrust == CKT_NSS_MUST_VERIFY_TRUST) 
 	|| (sourceTrust == CKT_NSS_VALID_DELEGATOR)) {
 	return USE_TARGET;
     }
-    if ((targetTrust == CKT_NSS_MUST_VERIFY) 
-	|| (targetTrust == CKT_NSS_VALID)
+    if ((targetTrust == CKT_NSS_MUST_VERIFY_TRUST) 
 	|| (targetTrust == CKT_NSS_VALID_DELEGATOR)) {
 	
 	return USE_SOURCE;

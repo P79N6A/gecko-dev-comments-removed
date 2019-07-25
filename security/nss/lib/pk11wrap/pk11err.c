@@ -41,6 +41,10 @@
 
 
 
+
+
+
+
 #include "pkcs11t.h"
 #include "pk11func.h"
 #include "secerr.h"
@@ -147,7 +151,7 @@ PK11_MapError(CK_RV rv) {
 	    return pk11_error_map[i].sec_error;
 	}
     }
-    return SEC_ERROR_IO;
+    return SEC_ERROR_UNKNOWN_PKCS11_ERROR;
  }
 
 
@@ -156,7 +160,7 @@ PK11_MapError(CK_RV rv) {
     default:
 	break;
     }
-    return SEC_ERROR_IO;
+    return SEC_ERROR_UNKNOWN_PKCS11_ERROR;
 }
 
 

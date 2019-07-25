@@ -638,6 +638,7 @@ sftkdb_DeleteSecmodDB(SDBType dbType, const char *appName,
     PORT_Free(dbname2);
     PORT_Free(lib);
     PORT_Free(name);
+    PORT_Free(block);
     return SECSuccess;
 
 loser:

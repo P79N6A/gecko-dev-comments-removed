@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: dev3hack.c,v $ $Revision: 1.25 $ $Date: 2008/09/30 04:09:04 $";
+static const char CVS_ID[] = "@(#) $RCSfile: dev3hack.c,v $ $Revision: 1.26 $ $Date: 2010/09/09 21:14:24 $";
 #endif 
 
 #ifndef PKIT_H
@@ -85,39 +85,41 @@ nssSlot_CreateSession
 )
 {
     nssSession *rvSession;
+
+    if (!readWrite) {
+	
+	return NULL;
+    }
     rvSession = nss_ZNEW(arenaOpt, nssSession);
     if (!rvSession) {
 	return (nssSession *)NULL;
     }
-    if (readWrite) {
-	rvSession->handle = PK11_GetRWSession(slot->pk11slot);
-	if (rvSession->handle == CK_INVALID_HANDLE) {
+
+    rvSession->handle = PK11_GetRWSession(slot->pk11slot);
+    if (rvSession->handle == CK_INVALID_HANDLE) {
 	    nss_ZFreeIf(rvSession);
 	    return NULL;
-	}
-	rvSession->isRW = PR_TRUE;
-	rvSession->slot = slot;
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        rvSession->lock = NULL;
-        rvSession->ownLock = PR_FALSE;
-	return rvSession;
-    } else {
-	return NULL;
     }
+    rvSession->isRW = PR_TRUE;
+    rvSession->slot = slot;
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    rvSession->lock = NULL;
+    rvSession->ownLock = PR_FALSE;
+    return rvSession;
 }
 
 NSS_IMPLEMENT PRStatus

@@ -106,6 +106,7 @@
 #define MD2_BLOCK_LENGTH 	 64 	/* bytes */
 #define MD5_BLOCK_LENGTH 	 64 	/* bytes */
 #define SHA1_BLOCK_LENGTH 	 64 	/* bytes */
+#define SHA224_BLOCK_LENGTH 	 64 	/* bytes */
 #define SHA256_BLOCK_LENGTH 	 64 	/* bytes */
 #define SHA384_BLOCK_LENGTH 	128 	/* bytes */
 #define SHA512_BLOCK_LENGTH 	128 	/* bytes */
@@ -206,6 +207,8 @@ typedef struct MD2ContextStr        MD2Context;
 typedef struct MD5ContextStr        MD5Context;
 typedef struct SHA1ContextStr       SHA1Context;
 typedef struct SHA256ContextStr     SHA256Context;
+
+typedef struct SHA256ContextStr     SHA224Context;
 typedef struct SHA512ContextStr     SHA512Context;
 
 typedef struct SHA512ContextStr     SHA384Context;

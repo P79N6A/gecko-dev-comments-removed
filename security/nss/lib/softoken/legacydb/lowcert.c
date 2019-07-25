@@ -120,6 +120,11 @@ nsslowcert_dataStart(unsigned char *buf, unsigned int length,
     unsigned char tag;
     unsigned int used_length= 0;
 
+    
+    if (length < 2) {
+	return NULL;
+    }
+
     tag = buf[used_length++];
 
     if (rettag) {
@@ -135,6 +140,10 @@ nsslowcert_dataStart(unsigned char *buf, unsigned int length,
 
     if (*data_length&0x80) {
 	int  len_count = *data_length & 0x7f;
+
+	if (len_count+used_length > length) {
+	   return NULL;
+	}
 
 	*data_length = 0;
 
@@ -213,6 +222,9 @@ nsslowcert_GetCertFields(unsigned char *cert,int cert_length,
     
     if (derSN) {
 	derSN->data=nsslowcert_dataStart(buf,buf_length,&derSN->len,PR_TRUE, NULL);
+	
+
+
     }
     serial->data = nsslowcert_dataStart(buf,buf_length,&serial->len,PR_FALSE, NULL);
     if (serial->data == NULL) return SECFailure;
@@ -256,7 +268,21 @@ nsslowcert_GetCertFields(unsigned char *cert,int cert_length,
 	if (buf[0] == 0xa3) {
 	    extensions->data = nsslowcert_dataStart(buf,buf_length, 
 					&extensions->len, PR_FALSE, NULL);
-	    break;
+	    
+
+	    if (extensions->data == NULL ||
+	       (extensions->data - buf) + extensions->len != buf_length) 
+                return SECFailure;
+            buf = extensions->data;
+            buf_length = extensions->len; 
+            
+            dummy = nsslowcert_dataStart(buf,buf_length,&dummylen,PR_FALSE,NULL);
+            if (dummy == NULL ||
+               (dummy - buf) + dummylen != buf_length)
+                return SECFailure;
+            buf_length -= (dummy - buf);
+            buf = dummy;
+            
 	}
 	dummy = nsslowcert_dataStart(buf,buf_length,&dummylen,PR_FALSE,NULL);
 	if (dummy == NULL) return SECFailure;
@@ -628,6 +654,10 @@ nsslowcert_DecodeDERCertificate(SECItem *derSignedCert, char *nickname)
 	&cert->derIssuer, &cert->serialNumber, &cert->derSN, &cert->derSubject,
 	&cert->validity, &cert->derSubjKeyInfo, &cert->extensions);
 
+    if (rv != SECSuccess) {
+	goto loser;
+    }
+
     
     cert->subjectKeyID.data = NULL;
     cert->subjectKeyID.len = 0;
@@ -825,7 +855,7 @@ nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *cert)
         break;
     }
 
-    nsslowkey_DestroyPublicKey (pubk);
+    lg_nsslowkey_DestroyPublicKey (pubk);
     return NULL;
 }
 

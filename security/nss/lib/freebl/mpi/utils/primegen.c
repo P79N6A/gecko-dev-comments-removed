@@ -58,12 +58,6 @@
 #include "mplogic.h"
 #include "mpprime.h"
 
-#undef MACOS		/* define if running on a Macintosh */
-
-#ifdef MACOS
-#include <console.h>
-#endif
-
 #define NUM_TESTS 5  /* Number of Rabin-Miller iterations to test with */
 
 #ifdef DEBUG
@@ -82,10 +76,6 @@ int main(int argc, char *argv[])
   mp_int	testval;
   mp_err	res;
   clock_t	start, end;
-
-#ifdef MACOS
-  argc = ccommand(&argv);
-#endif
 
   
 

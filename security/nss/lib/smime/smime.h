@@ -151,6 +151,23 @@ extern SECStatus
 NSS_SMIMEUtil_FindBulkAlgForRecipients(CERTCertificate **rcerts, SECOidTag *bulkalgtag, int *keysize);
 
 
+
+
+
+
+
+
+
+
+
+extern PRBool NSSSMIME_VersionCheck(const char *importedVersion);
+
+
+
+
+extern const char *NSSSMIME_GetVersion(void);
+
+
 SEC_END_PROTOS
 
 #endif 

@@ -251,6 +251,10 @@ SECITEM_CopyItem(PRArenaPool *arena, SECItem *to, const SECItem *from)
 	PORT_Memcpy(to->data, from->data, from->len);
 	to->len = from->len;
     } else {
+	
+
+
+
 	to->data = 0;
 	to->len = 0;
     }

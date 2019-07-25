@@ -56,14 +56,13 @@ SEC_BEGIN_PROTOS
 
 
 
-extern void prepare_low_rsa_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
-extern void prepare_low_pqg_params_for_asn1(PQGParams *params);
-extern void prepare_low_dsa_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
-extern void prepare_low_dsa_priv_key_export_for_asn1(NSSLOWKEYPrivateKey *key);
-extern void prepare_low_dh_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
+extern void lg_prepare_low_rsa_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
+extern void lg_prepare_low_pqg_params_for_asn1(PQGParams *params);
+extern void lg_prepare_low_dsa_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
+extern void lg_prepare_low_dh_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
 #ifdef NSS_ENABLE_ECC
-extern void prepare_low_ec_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
-extern void prepare_low_ecparams_for_asn1(ECParams *params);
+extern void lg_prepare_low_ec_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
+extern void lg_prepare_low_ecparams_for_asn1(ECParams *params);
 #endif 
 
 typedef char * (* NSSLOWKEYDBNameFunc)(void *arg, int dbVersion);
@@ -116,32 +115,21 @@ extern PRBool nsslowkey_KeyForIDExists(NSSLOWKEYDBHandle *handle, SECItem *id);
 
 
 
-extern void nsslowkey_DestroyPrivateKey(NSSLOWKEYPrivateKey *key);
+extern void lg_nsslowkey_DestroyPrivateKey(NSSLOWKEYPrivateKey *key);
 
 
 
 
 
 
-extern void nsslowkey_DestroyPublicKey(NSSLOWKEYPublicKey *key);
-
-
-
-
-extern unsigned int nsslowkey_PublicModulusLen(NSSLOWKEYPublicKey *pubKey);
-
-
-
-
-
-extern unsigned int nsslowkey_PrivateModulusLen(NSSLOWKEYPrivateKey *privKey);
+extern void lg_nsslowkey_DestroyPublicKey(NSSLOWKEYPublicKey *key);
 
 
 
 
 
 extern NSSLOWKEYPublicKey 
-		*nsslowkey_ConvertToPublicKey(NSSLOWKEYPrivateKey *privateKey);
+	*lg_nsslowkey_ConvertToPublicKey(NSSLOWKEYPrivateKey *privateKey);
 
 
 SECStatus

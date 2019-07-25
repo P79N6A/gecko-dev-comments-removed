@@ -77,12 +77,14 @@
 #endif
 
 
+
+
 mp_err s_mp_redc(mp_int *T, mp_mont_modulus *mmm)
 {
   mp_err res;
   mp_size i;
 
-  i = MP_USED(T) + MP_USED(&mmm->N) + 2;
+  i = (MP_USED(&mmm->N) << 1) + 1;
   MP_CHECKOK( s_mp_pad(T, i) );
   for (i = 0; i < MP_USED(&mmm->N); ++i ) {
     mp_digit m_i = MP_DIGIT(T, i) * mmm->n0prime;
@@ -92,7 +94,7 @@ mp_err s_mp_redc(mp_int *T, mp_mont_modulus *mmm)
   s_mp_clamp(T);
 
   
-  s_mp_div_2d(T, mmm->b); 
+  s_mp_rshd( T, MP_USED(&mmm->N) );
 
   if ((res = s_mp_cmp(T, &mmm->N)) >= 0) {
     
@@ -109,14 +111,20 @@ CLEANUP:
   return res;
 }
 
-#if !defined(MP_ASSEMBLY_MUL_MONT) && !defined(MP_MONT_USE_MP_MUL)
+#if !defined(MP_MONT_USE_MP_MUL)
+
+
+
+
+
+
 mp_err s_mp_mul_mont(const mp_int *a, const mp_int *b, mp_int *c, 
 	           mp_mont_modulus *mmm)
 {
   mp_digit *pb;
   mp_digit m_i;
   mp_err   res;
-  mp_size  ib;
+  mp_size  ib; 
   mp_size  useda, usedb;
 
   ARGCHK(a != NULL && b != NULL && c != NULL, MP_BADARG);
@@ -128,7 +136,7 @@ mp_err s_mp_mul_mont(const mp_int *a, const mp_int *b, mp_int *c,
   }
 
   MP_USED(c) = 1; MP_DIGIT(c, 0) = 0;
-  ib = MP_USED(a) + MP_MAX(MP_USED(b), MP_USED(&mmm->N)) + 2;
+  ib = (MP_USED(&mmm->N) << 1) + 1;
   if((res = s_mp_pad(c, ib)) != MP_OKAY)
     goto CLEANUP;
 
@@ -157,7 +165,7 @@ mp_err s_mp_mul_mont(const mp_int *a, const mp_int *b, mp_int *c,
     }
   }
   s_mp_clamp(c);
-  s_mp_div_2d(c, mmm->b); 
+  s_mp_rshd( c, MP_USED(&mmm->N) ); 
   if (s_mp_cmp(c, &mmm->N) >= 0) {
     MP_CHECKOK( s_mp_sub(c, &mmm->N) );
   }
@@ -174,7 +182,8 @@ mp_err s_mp_to_mont(const mp_int *x, mp_mont_modulus *mmm, mp_int *xMont)
   mp_err res;
 
   
-  MP_CHECKOK( mpl_lsh(x, xMont, mmm->b) );  		
+  MP_CHECKOK( mp_copy( x, xMont ) );
+  MP_CHECKOK( s_mp_lshd( xMont, MP_USED(&mmm->N) ) );	
   MP_CHECKOK( mp_div(xMont, &mmm->N, 0, xMont) );	
 CLEANUP:
   return res;
@@ -1109,9 +1118,6 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
   MP_CHECKOK( mp_init_size(&montBase, 2 * nLen + 2) );
 
   mmm.N = *modulus;			
-  i = mpl_significant_bits(modulus);
-  i += MP_DIGIT_BIT - 1;
-  mmm.b = i - i % MP_DIGIT_BIT;
 
   
 
