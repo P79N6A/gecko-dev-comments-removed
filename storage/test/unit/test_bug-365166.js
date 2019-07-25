@@ -21,12 +21,6 @@ function run_test() {
     try {
       
       do_check_eq(statement.getColumnName(0), colName);
-
-      
-      
-      var wrapper = Components.classes["@mozilla.org/storage/statement-wrapper;1"]
-                              .createInstance(Components.interfaces.mozIStorageStatementWrapper);
-      wrapper.initialize(statement);
     } finally {
       statement.reset();
       statement.finalize();
