@@ -52,6 +52,10 @@
 #endif
 #include "xpcom-config.h"
 
+#if defined(__cplusplus)
+#include "mozilla/fallible.h"
+#endif
+
 #define MOZALLOC_HAVE_XMALLOC
 
 #if defined(MOZALLOC_EXPORT)
@@ -290,12 +294,6 @@ void operator delete[](void* ptr, const std::nothrow_t&) MOZALLOC_THROW_IF_HAS_E
 
 
 
-
-namespace mozilla {
-
-struct MOZALLOC_EXPORT fallible_t { };
-
-} 
 
 MOZALLOC_INLINE
 void* operator new(size_t size, const mozilla::fallible_t&) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
