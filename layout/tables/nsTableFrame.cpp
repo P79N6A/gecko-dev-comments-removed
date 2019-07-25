@@ -200,10 +200,13 @@ nsTableFrame::Init(nsIContent*      aContent,
                    nsIFrame*        aParent,
                    nsIFrame*        aPrevInFlow)
 {
-  nsresult  rv;
+  NS_PRECONDITION(!mCellMap, "Init called twice");
+  NS_PRECONDITION(!aPrevInFlow ||
+                  aPrevInFlow->GetType() == nsGkAtoms::tableFrame,
+                  "prev-in-flow must be of same type");
 
   
-  rv = nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
+  nsresult rv = nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
 
   
   const nsStyleTableBorder* tableStyle = GetStyleTableBorder();
@@ -214,8 +217,6 @@ nsTableFrame::Init(nsIContent*      aContent,
     mCellMap = new nsTableCellMap(*this, borderCollapse);
     if (!mCellMap)
       return NS_ERROR_OUT_OF_MEMORY;
-  } else {
-    mCellMap = nsnull;
   }
 
   if (aPrevInFlow) {
@@ -236,7 +237,6 @@ nsTableFrame::Init(nsIContent*      aContent,
 
   return rv;
 }
-
 
 nsTableFrame::~nsTableFrame()
 {
