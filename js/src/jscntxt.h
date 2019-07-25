@@ -138,7 +138,7 @@ struct GSNCache {
 
     void purge();
 };
- 
+
 inline GSNCache *
 GetGSNCache(JSContext *cx);
 
@@ -212,7 +212,7 @@ struct ThreadData {
     ~ThreadData();
 
     bool init();
-    
+
     void mark(JSTracer *trc) {
         stackSpace.mark(trc);
     }
@@ -263,7 +263,7 @@ struct JSThread {
         suspendCount(0)
 # ifdef DEBUG
       , checkRequestDepth(0)
-# endif        
+# endif
     {
         JS_INIT_CLIST(&contextList);
     }
@@ -390,8 +390,31 @@ struct JSRuntime
     uint32              protoHazardShape;
 
     
-    js::GCChunkSet      gcUserChunkSet;
-    js::GCChunkSet      gcSystemChunkSet;
+
+    
+
+
+
+
+    js::GCChunkSet      gcChunkSet;
+
+    
+
+
+
+
+
+
+    js::gc::Chunk       *gcSystemAvailableChunkListHead;
+    js::gc::Chunk       *gcUserAvailableChunkListHead;
+
+    
+
+
+
+
+    js::gc::Chunk       *gcEmptyChunkListHead;
+    size_t              gcEmptyChunkCount;
 
     js::RootedValueMap  gcRootsHash;
     js::GCLocks         gcLocksHash;
@@ -401,7 +424,6 @@ struct JSRuntime
     size_t              gcLastBytes;
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
-    size_t              gcChunksWaitingToExpire;
     uint32              gcEmptyArenaPoolLifespan;
     uint32              gcNumber;
     js::GCMarker        *gcMarkingTracer;

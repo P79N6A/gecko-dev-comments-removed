@@ -956,6 +956,8 @@ typedef void
 
 class AutoIdVector;
 
+class PropertyName;
+
 
 
 
@@ -982,6 +984,9 @@ static inline CheckAccessOp      Valueify(JSCheckAccessOp f)    { return (CheckA
 static inline JSCheckAccessOp    Jsvalify(CheckAccessOp f)      { return (JSCheckAccessOp)f; }
 static inline EqualityOp         Valueify(JSEqualityOp f);      
 static inline JSEqualityOp       Jsvalify(EqualityOp f);        
+
+static inline PropertyName       *Valueify(JSPropertyName *n)     { return (PropertyName *)n; }
+static inline JSPropertyName     *Jsvalify(PropertyName *n)       { return (JSPropertyName *)n; }
 
 static const PropertyOp       PropertyStub       = (PropertyOp)JS_PropertyStub;
 static const StrictPropertyOp StrictPropertyStub = (StrictPropertyOp)JS_StrictPropertyStub;
