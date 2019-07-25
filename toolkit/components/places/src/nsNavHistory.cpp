@@ -91,11 +91,6 @@ using namespace mozilla::places;
 
 
 
-#define RECENT_EVENT_THRESHOLD PRTime((PRInt64)15 * 60 * PR_USEC_PER_SEC)
-
-
-
-
 
 
 #define RECENT_EVENT_QUEUE_MAX_LENGTH 128
@@ -232,20 +227,11 @@ NS_IMPL_CI_INTERFACE_GETTER5(
 
 namespace {
 
-static nsresult GetReversedHostname(nsIURI* aURI, nsAString& host);
-static void GetReversedHostname(const nsString& aForward, nsAString& aReversed);
 static PRInt64 GetSimpleBookmarksQueryFolder(
     const nsCOMArray<nsNavHistoryQuery>& aQueries,
     nsNavHistoryQueryOptions* aOptions);
 static void ParseSearchTermsFromQueries(const nsCOMArray<nsNavHistoryQuery>& aQueries,
                                         nsTArray<nsTArray<nsString>*>* aTerms);
-
-inline void ReverseString(const nsString& aInput, nsAString& aReversed)
-{
-  aReversed.Truncate(0);
-  for (PRInt32 i = aInput.Length() - 1; i >= 0; i --)
-    aReversed.Append(aInput[i]);
-}
 
 } 
 
@@ -888,6 +874,27 @@ nsresult
 nsNavHistory::UpdateSchemaVersion()
 {
   return mDBConn->SetSchemaVersion(DATABASE_SCHEMA_VERSION);
+}
+
+
+PRUint32
+nsNavHistory::GetRecentFlags(nsIURI *aURI)
+{
+  PRUint32 result = 0;
+  nsCAutoString spec;
+  nsresult rv = aURI->GetSpec(spec);
+  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Unable to get aURI's spec");
+
+  if (NS_SUCCEEDED(rv)) {
+    if (CheckIsRecentEvent(&mRecentTyped, spec))
+      result |= RECENT_TYPED;
+    if (CheckIsRecentEvent(&mRecentLink, spec))
+      result |= RECENT_ACTIVATED;
+    if (CheckIsRecentEvent(&mRecentBookmark, spec))
+      result |= RECENT_BOOKMARKED;
+  }
+
+  return result;
 }
 
 
@@ -1849,6 +1856,9 @@ nsNavHistory::GetUrlIdFor(nsIURI* aURI, PRInt64* aEntryID,
 
 
 
+
+
+
 nsresult
 nsNavHistory::InternalAddNewPage(nsIURI* aURI,
                                  const nsAString& aTitle,
@@ -2141,6 +2151,22 @@ nsNavHistory::GetNewSessionID()
     mLastSessionID = 1;
 
   return mLastSessionID;
+}
+
+
+void
+nsNavHistory::NotifyOnVisit(nsIURI* aURI,
+                          PRInt64 aVisitID,
+                          PRTime aTime,
+                          PRInt64 aSessionID,
+                          PRInt64 referringVisitID,
+                          PRInt32 aTransitionType)
+{
+  PRUint32 added = 0;
+  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                   nsINavHistoryObserver,
+                   OnVisit(aURI, aVisitID, aTime, aSessionID,
+                           referringVisitID, aTransitionType, &added));
 }
 
 
@@ -2848,12 +2874,9 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
   
   
   
-  PRUint32 added = 0;
   if (!hidden) {
-    NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                     nsINavHistoryObserver,
-                     OnVisit(aURI, *aVisitID, aTime, aSessionID,
-                             referringVisitID, aTransitionType, &added));
+    NotifyOnVisit(aURI, *aVisitID, aTime, aSessionID, referringVisitID,
+                  aTransitionType);
   }
 
   
@@ -7528,52 +7551,6 @@ nsNavHistory::RemoveDuplicateURIs()
 
 
 namespace {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-GetReversedHostname(nsIURI* aURI, nsAString& aRevHost)
-{
-  nsCString forward8;
-  nsresult rv = aURI->GetHost(forward8);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  
-  NS_ConvertUTF8toUTF16 forward(forward8);
-  GetReversedHostname(forward, aRevHost);
-  return NS_OK;
-}
-
-
-
-
-
-
-void
-GetReversedHostname(const nsString& aForward, nsAString& aRevHost)
-{
-  ReverseString(aForward, aRevHost);
-  aRevHost.Append(PRUnichar('.'));
-}
-
 
 
 

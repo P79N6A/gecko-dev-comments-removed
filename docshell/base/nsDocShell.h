@@ -435,10 +435,75 @@ protected:
 
     
 
-    nsresult AddToGlobalHistory(nsIURI * aURI, PRBool aRedirect,
-                                nsIChannel * aChannel);
-    nsresult AddToGlobalHistory(nsIURI * aURI, PRBool aRedirect,
-                                nsIURI * aReferrer);
+
+
+
+
+
+
+    bool ChannelIsPost(nsIChannel* aChannel);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void ExtractLastVisit(nsIChannel* aChannel,
+                          nsIURI** aURI,
+                          PRUint32* aChannelRedirectFlags);
+
+    
+
+
+
+
+
+
+
+
+
+    void SaveLastVisit(nsIChannel* aChannel,
+                       nsIURI* aURI,
+                       PRUint32 aChannelRedirectFlags);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void AddURIVisit(nsIURI* aURI,
+                     nsIURI* aReferrerURI,
+                     nsIURI* aPreviousURI,
+                     PRUint32 aChannelRedirectFlags);
 
     
     nsresult   ConfirmRepost(PRBool * aRepost);
@@ -700,6 +765,9 @@ protected:
 
     PRInt32                    mMarginWidth;
     PRInt32                    mMarginHeight;
+
+    
+    
     PRInt32                    mItemType;
 
     
