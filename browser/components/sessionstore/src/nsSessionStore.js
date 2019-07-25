@@ -550,6 +550,7 @@ SessionStoreService.prototype = {
           delete aTab.linkedBrowser.__SS_data;
           delete aTab.linkedBrowser.__SS_tabStillLoading;
           delete aTab.linkedBrowser.__SS_formDataSaved;
+          delete aTab.linkedBrowser.__SS_hostSchemeData;
           if (aTab.linkedBrowser.__SS_restoreState)
             this._resetTabRestoringState(aTab);
         });
@@ -1058,6 +1059,7 @@ SessionStoreService.prototype = {
     delete browser.__SS_data;
     delete browser.__SS_tabStillLoading;
     delete browser.__SS_formDataSaved;
+    delete browser.__SS_hostSchemeData;
 
     
     
@@ -1757,10 +1759,11 @@ SessionStoreService.prototype = {
       tabData.index = history.index + 1;
     }
     else if (history && history.count > 0) {
+      browser.__SS_hostSchemeData = [];
       try {
         for (var j = 0; j < history.count; j++) {
           let entry = this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
-                                                  aFullData, aTab.pinned);
+                                                  aFullData, aTab.pinned, browser.__SS_hostSchemeData);
           tabData.entries.push(entry);
         }
         
@@ -1851,13 +1854,14 @@ SessionStoreService.prototype = {
 
 
 
+
+
   _serializeHistoryEntry:
-    function sss_serializeHistoryEntry(aEntry, aFullData, aIsPinned) {
+    function sss_serializeHistoryEntry(aEntry, aFullData, aIsPinned, aHostSchemeData) {
     var entry = { url: aEntry.URI.spec };
 
     try {
-      entry._host = aEntry.URI.host;
-      entry._scheme = aEntry.URI.scheme;
+      aHostSchemeData.push({ host: aEntry.URI.host, scheme: aEntry.URI.scheme });
     }
     catch (ex) {
       
@@ -1960,7 +1964,7 @@ SessionStoreService.prototype = {
         var child = aEntry.GetChildAt(i);
         if (child) {
           entry.children.push(this._serializeHistoryEntry(child, aFullData,
-                                                          aIsPinned));
+                                                          aIsPinned, aHostSchemeData));
         }
         else { 
           entry.children.push({ url: "about:blank" });
@@ -2274,8 +2278,8 @@ SessionStoreService.prototype = {
 
 
 
-  _extractHostsForCookies:
-    function sss__extractHostsForCookies(aEntry, aHosts, aCheckPrivacy, aIsPinned) {
+  _extractHostsForCookiesFromEntry:
+    function sss__extractHostsForCookiesFromEntry(aEntry, aHosts, aCheckPrivacy, aIsPinned) {
 
     let host = aEntry._host,
         scheme = aEntry._scheme;
@@ -2289,21 +2293,9 @@ SessionStoreService.prototype = {
         let uri = this._getURIFromString(aEntry.url);
         host = uri.host;
         scheme = uri.scheme;
+        this._extractHostsForCookiesFromHostScheme(host, scheme, aHosts, aCheckPrivacy, aIsPinned);
       }
       catch(ex) { }
-    }
-
-    
-    
-    if (/https?/.test(scheme) && !aHosts[host] &&
-        (!aCheckPrivacy ||
-         this._checkPrivacyLevel(scheme == "https", aIsPinned))) {
-      
-      
-      aHosts[host] = aIsPinned;
-    }
-    else if (scheme == "file") {
-      aHosts[host] = true;
     }
 
     if (aEntry.children) {
@@ -2318,14 +2310,51 @@ SessionStoreService.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+  _extractHostsForCookiesFromHostScheme:
+    function sss__extractHostsForCookiesFromHostScheme(aHost, aScheme, aHosts, aCheckPrivacy, aIsPinned) {
+    
+    
+    if (/https?/.test(aScheme) && !aHosts[aHost] &&
+        (!aCheckPrivacy ||
+         this._checkPrivacyLevel(aScheme == "https", aIsPinned))) {
+      
+      
+      aHosts[aHost] = aIsPinned;
+    }
+    else if (aScheme == "file") {
+      aHosts[aHost] = true;
+    }
+  },
+
+  
+
+
+
+
   _updateCookieHosts: function sss_updateCookieHosts(aWindow) {
     var hosts = this._internalWindows[aWindow.__SSi].hosts = {};
 
-    this._windows[aWindow.__SSi].tabs.forEach(function(aTabData) {
-      aTabData.entries.forEach(function(entry) {
-        this._extractHostsForCookies(entry, hosts, true, !!aTabData.pinned);
-      }, this);
-    }, this);
+    
+    
+    
+    for (let i = 0; i < aWindow.gBrowser.tabs.length; i++) {
+      let tab = aWindow.gBrowser.tabs[i];
+      let hostSchemeData = tab.linkedBrowser.__SS_hostSchemeData || [];
+      for (let j = 0; j < hostSchemeData.length; j++) {
+        this._extractHostsForCookiesFromHostScheme(hostSchemeData[j].host,
+                                                   hostSchemeData[j].scheme,
+                                                   hosts, true, tab.pinned);
+      }
+    }
   },
 
   
@@ -4069,7 +4098,7 @@ SessionStoreService.prototype = {
     let cookieHosts = {};
     aTargetWinState.tabs.forEach(function(tab) {
       tab.entries.forEach(function(entry) {
-        this._extractHostsForCookies(entry, cookieHosts, false)
+        this._extractHostsForCookiesFromEntry(entry, cookieHosts, false);
       }, this);
     }, this);
 
