@@ -80,7 +80,7 @@ IsModuleVersionLessThan(HMODULE aModuleHandle, DWORD aMajor, DWORD aMinor)
 
 
 
-PRUint32 Compatibility::sMode = Compatibility::NoCompatibilityMode;
+PRUint32 Compatibility::sConsumers = Compatibility::UNKNOWN;
 
 void
 Compatibility::Init()
@@ -88,47 +88,50 @@ Compatibility::Init()
   
 
   HMODULE jawsHandle = ::GetModuleHandleW(L"jhook");
-  if (jawsHandle) {
-    sMode |= JAWSMode;
-    
-    if (IsModuleVersionLessThan(jawsHandle, 8, 2173)) {
-      sMode |= IA2OffMode;
-      statistics::A11yConsumers(OLDJAWS);
-    } else {
-      statistics::A11yConsumers(JAWS);
-    }
-  }
+  if (jawsHandle)
+    sConsumers |= (IsModuleVersionLessThan(jawsHandle, 8, 2173)) ?
+                   OLDJAWS : JAWS;
 
-  if (::GetModuleHandleW(L"gwm32inc")) {
-    sMode |= WEMode;
-    statistics::A11yConsumers(WE);
-  }
-  if (::GetModuleHandleW(L"dolwinhk")) {
-    sMode |= DolphinMode;
-    statistics::A11yConsumers(DOLPHIN);
-  }
+  if (::GetModuleHandleW(L"gwm32inc"))
+    sConsumers |= WE;
+
+  if (::GetModuleHandleW(L"dolwinhk"))
+    sConsumers |= DOLPHIN;
 
   if (::GetModuleHandleW(L"STSA32"))
-    statistics::A11yConsumers(SEROTEK);
+    sConsumers |= SEROTEK;
 
   if (::GetModuleHandleW(L"nvdaHelperRemote"))
-    statistics::A11yConsumers(NVDA);
+    sConsumers |= NVDA;
 
   if (::GetModuleHandleW(L"OsmHooks"))
-    statistics::A11yConsumers(COBRA);
+    sConsumers |= COBRA;
 
   if (::GetModuleHandleW(L"WebFinderRemote"))
-    statistics::A11yConsumers(ZOOMTEXT);
+    sConsumers |= ZOOMTEXT;
 
   if (::GetModuleHandleW(L"Kazahook"))
-    statistics::A11yConsumers(KAZAGURU);
+    sConsumers |= KAZAGURU;
 
   if (::GetModuleHandleW(L"TextExtractorImpl32") ||
       ::GetModuleHandleW(L"TextExtractorImpl64"))
-    statistics::A11yConsumers(YOUDAO);
+    sConsumers |= YOUDAO;
 
   
-  if (sMode & JAWSMode || sMode & WEMode) {
+  if (sConsumers != Compatibility::UNKNOWN)
+    sConsumers ^= Compatibility::UNKNOWN;
+
+  
+  PRUint32 temp = sConsumers;
+  for (int i = 0; temp; i++) {
+    if (temp & 0x1)
+      statistics::A11yConsumers(i);
+
+    temp >>= 1;
+  }
+
+  
+  if (sConsumers & (JAWS | OLDJAWS | WE)) {
     
     
     if (!Preferences::HasUserValue("browser.ctrlTab.disallowForScreenReaders"))

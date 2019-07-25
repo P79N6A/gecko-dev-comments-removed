@@ -57,22 +57,22 @@ public:
   
 
 
-  static bool IsIA2Off() { return sMode & IA2OffMode; }
+  static bool IsIA2Off() { return !!(sConsumers & OLDJAWS); }
 
   
 
 
-  static bool IsJAWS() { return sMode & JAWSMode; }
+  static bool IsJAWS() { return !!(sConsumers & (JAWS | OLDJAWS)); }
 
   
 
 
-  static bool IsWE() { return sMode & WEMode; }
+  static bool IsWE() { return !!(sConsumers & WE); }
 
   
 
 
-  static bool IsDolphin() { return sMode & DolphinMode; }
+  static bool IsDolphin() { return !!(sConsumers & DOLPHIN); }
 
 private:
   Compatibility();
@@ -90,31 +90,21 @@ private:
 
 
   enum {
-    NoCompatibilityMode = 0,
-    JAWSMode = 1 << 0,
-    WEMode = 1 << 1,
-    DolphinMode = 1 << 2,
-    IA2OffMode = 1 << 3
-  };
-
-  
-
-
-  enum {
-    NVDA = 0,
-    JAWS = 1,
-    OLDJAWS = 2,
-    WE = 3,
-    DOLPHIN = 4,
-    SEROTEK = 5,
-    COBRA = 6,
-    ZOOMTEXT = 7,
-    KAZAGURU = 8,
-    YOUDAO = 9
+    NVDA = 1 << 0,
+    JAWS = 1 << 1,
+    OLDJAWS = 1 << 2,
+    WE = 1 << 3,
+    DOLPHIN = 1 << 4,
+    SEROTEK = 1 << 5,
+    COBRA = 1 << 6,
+    ZOOMTEXT = 1 << 7,
+    KAZAGURU = 1 << 8,
+    YOUDAO = 1 << 9,
+    UNKNOWN = 1 << 10
   };
 
 private:
-  static PRUint32 sMode;
+  static PRUint32 sConsumers;
 };
 
 } 
