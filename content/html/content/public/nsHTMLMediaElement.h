@@ -73,6 +73,10 @@ public:
     CANPLAY_YES
   };
 
+  CORSMode GetCORSMode() {
+    return mCORSMode;
+  }
+
   nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLMediaElement();
 
@@ -233,7 +237,6 @@ public:
   
   void NotifyAutoplayDataReady();
 
-  
   
   bool ShouldCheckAllowOrigin();
 
@@ -761,6 +764,9 @@ protected:
 
   
   bool mMediaSecurityVerified;
+
+  
+  CORSMode mCORSMode;
 };
 
 #endif

@@ -1510,6 +1510,12 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD ReparentNativeWidget(nsIWidget* aNewParent) = 0;
+
+    
+
+
+
+    virtual PRUint32 GetGLFrameBufferFormat() { return 0;  }
 protected:
 
     

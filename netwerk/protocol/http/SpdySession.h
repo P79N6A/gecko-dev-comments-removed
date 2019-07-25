@@ -132,11 +132,15 @@ public:
   
   
   
-  const static PRUint32 kDefaultBufferSize = 2000;
+  const static PRUint32 kDefaultBufferSize = 2048;
 
-  const static PRUint32 kDefaultQueueSize =  16000;
-  const static PRUint32 kQueueTailRoom    =  4000;
-  const static PRUint32 kSendingChunkSize = 4000;
+  
+  const static PRUint32 kDefaultQueueSize =  16384;
+  const static PRUint32 kQueueMinimumCleanup = 8192;
+  const static PRUint32 kQueueTailRoom    =  4096;
+  const static PRUint32 kQueueReserved    =  1024;
+
+  const static PRUint32 kSendingChunkSize = 4096;
   const static PRUint32 kDefaultMaxConcurrent = 100;
   const static PRUint32 kMaxStreamID = 0x7800000;
   
@@ -157,19 +161,29 @@ public:
   static void LogIO(SpdySession *, SpdyStream *, const char *,
                     const char *, PRUint32);
 
+  
+  void TransactionHasDataToWrite(nsAHttpTransaction *);
+
+  
+  void TransactionHasDataToWrite(SpdyStream *);
+
+  
+  virtual nsresult CommitToSegmentSize(PRUint32 size);
+  
 private:
 
   enum stateType {
     BUFFERING_FRAME_HEADER,
     BUFFERING_CONTROL_FRAME,
     PROCESSING_DATA_FRAME,
-    DISCARD_DATA_FRAME,
+    DISCARDING_DATA_FRAME,
     PROCESSING_CONTROL_SYN_REPLY,
     PROCESSING_CONTROL_RST_STREAM
   };
 
-  PRUint32    WriteQueueSize();
+  PRUint32    GetWriteQueueSize();
   void        ChangeDownstreamState(enum stateType);
+  void        ResetDownstreamState();
   nsresult    DownstreamUncompress(char *, PRUint32);
   void        zlibInit();
   nsresult    FindHeader(nsCString, nsDependentCSubstring &);
@@ -180,16 +194,16 @@ private:
   void        GenerateGoAway();
   void        CleanupStream(SpdyStream *, nsresult);
 
-  void        SetWriteCallbacks(nsAHttpTransaction *);
+  void        SetWriteCallbacks();
   void        FlushOutputQueue();
 
   bool        RoomForMoreConcurrent();
   void        ActivateStream(SpdyStream *);
   void        ProcessPending();
 
-  static PLDHashOperator Shutdown(nsAHttpTransaction *,
-                                  nsAutoPtr<SpdyStream> &,
-                                  void *);
+  static PLDHashOperator ShutdownEnumerator(nsAHttpTransaction *,
+                                            nsAutoPtr<SpdyStream> &,
+                                            void *);
 
   
   
@@ -233,31 +247,30 @@ private:
   
   
   
-  SpdyStream        *mPartialFrame;
-
-  
-  
-  
   z_stream            mDownstreamZlib;
   z_stream            mUpstreamZlib;
 
   
   
-  PRUint32             mFrameBufferSize;
-  PRUint32             mFrameBufferUsed;
-  nsAutoArrayPtr<char> mFrameBuffer;
+  PRUint32             mInputFrameBufferSize;
+  PRUint32             mInputFrameBufferUsed;
+  nsAutoArrayPtr<char> mInputFrameBuffer;
   
   
   
   
-  PRUint32             mFrameDataSize;
-  PRUint32             mFrameDataRead;
-  bool                 mFrameDataLast; 
+  PRUint32             mInputFrameDataSize;
+  PRUint32             mInputFrameDataRead;
+  bool                 mInputFrameDataLast; 
 
   
   
   
-  SpdyStream          *mFrameDataStream;
+  SpdyStream          *mInputFrameDataStream;
+  
+  
+  
+  
   
   
   SpdyStream          *mNeedsCleanup;
@@ -280,6 +293,10 @@ private:
   nsCString            mFlatHTTPResponseHeaders;
   PRUint32             mFlatHTTPResponseHeadersOut;
 
+  
+  
+  
+  
   
   bool                 mShouldGoAway;
 

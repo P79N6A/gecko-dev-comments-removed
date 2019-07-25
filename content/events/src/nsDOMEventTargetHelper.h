@@ -104,4 +104,11 @@ protected:
   nsCOMPtr<nsPIDOMWindow>    mOwner; 
 };
 
+#define NS_UNMARK_LISTENER_WRAPPER(_event)                       \
+  if (tmp->mOn##_event##Listener) {                              \
+    nsCOMPtr<nsIXPConnectWrappedJS> wjs =                        \
+      do_QueryInterface(tmp->mOn##_event##Listener->GetInner()); \
+    xpc_UnmarkGrayObject(wjs);                                   \
+  }
+
 #endif 

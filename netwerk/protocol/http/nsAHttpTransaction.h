@@ -131,6 +131,20 @@ public:
     virtual nsresult OnReadSegment(const char *segment,
                                    PRUint32 count,
                                    PRUint32 *countRead) = 0;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    virtual nsresult CommitToSegmentSize(PRUint32 size)
+    {
+        return NS_ERROR_FAILURE;
+    }
 };
 
 #define NS_DECL_NSAHTTPSEGMENTREADER \

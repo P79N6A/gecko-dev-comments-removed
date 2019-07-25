@@ -205,7 +205,12 @@ private:
         
         bool mUsingSpdy;
 
+        
+        
+        
+        
         bool mTestedSpdy;
+
         bool mSpdyPreferred;
     };
 
@@ -321,9 +326,8 @@ private:
     void     RecvdConnect();
 
     
-    nsConnectionEntry *GetSpdyPreferred(nsConnectionEntry *aOriginalEntry);
-    void               SetSpdyPreferred(nsConnectionEntry *ent);
-    void               RemoveSpdyPreferred(nsACString &aDottedDecimal);
+    nsConnectionEntry *GetSpdyPreferredEnt(nsConnectionEntry *aOriginalEntry);
+    void               RemoveSpdyPreferredEnt(nsACString &aDottedDecimal);
     nsHttpConnection  *GetSpdyPreferredConn(nsConnectionEntry *ent);
     nsDataHashtable<nsCStringHashKey, nsConnectionEntry *>   mSpdyPreferredHash;
     nsConnectionEntry *LookupConnectionEntry(nsHttpConnectionInfo *ci,
@@ -331,7 +335,7 @@ private:
                                              nsHttpTransaction *trans);
 
     void               ProcessSpdyPendingQ(nsConnectionEntry *ent);
-    void               ProcessSpdyPendingQ();
+    void               ProcessAllSpdyPendingQ();
     static PLDHashOperator ProcessSpdyPendingQCB(
         const nsACString &key, nsAutoPtr<nsConnectionEntry> &ent,
         void *closure);
@@ -415,7 +419,7 @@ private:
     nsClassHashtable<nsCStringHashKey, nsConnectionEntry> mCT;
 
     
-    nsCStringHashSet mAlternateProtocolHash;
+    nsCStringHashSet mAlternateProtocolHash; 
     static PLDHashOperator TrimAlternateProtocolHash(PLDHashTable *table,
                                                      PLDHashEntryHdr *hdr,
                                                      PRUint32 number,

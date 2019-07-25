@@ -198,6 +198,8 @@ static const char sPrintOptionsContractID[]         = "@mozilla.org/gfx/printset
 
 #include "mozilla/dom/Element.h"
 
+#include "jsfriendapi.h"
+
 using namespace mozilla;
 
 #ifdef NS_DEBUG
@@ -1287,7 +1289,7 @@ DocumentViewerImpl::PageHide(bool aIsUnload)
 
   if (aIsUnload) {
     
-    nsJSContext::PokeGC();
+    nsJSContext::PokeGC(js::gcreason::PAGE_HIDE);
 
     
     NS_ENSURE_STATE(mDocument);

@@ -171,10 +171,6 @@ pref("browser.chrome.image_icons.max_size", 1024);
 pref("browser.triple_click_selects_paragraph", true);
 
 
-
-pref("media.enforce_same_site_origin", false);
-
-
 pref("media.cache_size", 512000);
 
 

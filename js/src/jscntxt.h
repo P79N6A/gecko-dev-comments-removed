@@ -322,7 +322,7 @@ struct JSRuntime
     js::gcstats::Statistics gcStats;
 
     
-    js::gcstats::Reason gcTriggerReason;
+    js::gcreason::Reason gcTriggerReason;
 
     
     uintptr_t           gcMarkStackArray[js::MARK_STACK_LENGTH];

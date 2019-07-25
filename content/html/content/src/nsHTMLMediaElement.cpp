@@ -940,6 +940,16 @@ nsresult nsHTMLMediaElement::LoadResource()
     mChannel = nsnull;
   }
 
+  
+  
+  mCORSMode = CORS_NONE;
+  const nsAttrValue* value = GetParsedAttr(nsGkAtoms::crossorigin);
+  if (value) {
+    NS_ASSERTION(value->Type() == nsAttrValue::eEnum,
+                 "Why is this not an enum value?");
+    mCORSMode = CORSMode(value->GetEnumValue());
+  }
+
   nsHTMLMediaElement* other = LookupMediaElementURITable(mLoadingSrc);
   if (other) {
     
@@ -1002,7 +1012,7 @@ nsresult nsHTMLMediaElement::LoadResource()
       new nsCORSListenerProxy(loadListener,
                               NodePrincipal(),
                               channel,
-                              false,
+                              GetCORSMode() == CORS_USE_CREDENTIALS,
                               &rv);
   } else {
     rv = nsContentUtils::GetSecurityManager()->
@@ -1394,9 +1404,8 @@ nsHTMLMediaElement::LookupMediaElementURITable(nsIURI* aURI)
     bool equal;
     
     
-    
-    
-    if (NS_SUCCEEDED(elem->NodePrincipal()->Equals(NodePrincipal(), &equal)) && equal) {
+    if (NS_SUCCEEDED(elem->NodePrincipal()->Equals(NodePrincipal(), &equal)) && equal &&
+        elem->mCORSMode == mCORSMode) {
       NS_ASSERTION(elem->mDecoder && elem->mDecoder->GetStream(), "Decoder gone");
       return elem;
     }
@@ -1438,7 +1447,8 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mHasSelfReference(false),
     mShuttingDown(false),
     mLoadIsSuspended(false),
-    mMediaSecurityVerified(false)
+    mMediaSecurityVerified(false),
+    mCORSMode(CORS_NONE)
 {
 #ifdef PR_LOGGING
   if (!gMediaElementLog) {
@@ -1559,6 +1569,8 @@ NS_IMETHODIMP nsHTMLMediaElement::Play()
   return NS_OK;
 }
 
+NS_IMPL_STRING_ATTR(nsHTMLMediaElement, Crossorigin, crossorigin)
+
 bool nsHTMLMediaElement::ParseAttribute(PRInt32 aNamespaceID,
                                           nsIAtom* aAttribute,
                                           const nsAString& aValue,
@@ -1576,6 +1588,12 @@ bool nsHTMLMediaElement::ParseAttribute(PRInt32 aNamespaceID,
   if (aNamespaceID == kNameSpaceID_None) {
     if (ParseImageAttribute(aAttribute, aValue, aResult)) {
       return true;
+    }
+    if (aAttribute == nsGkAtoms::crossorigin) {
+      return aResult.ParseEnumValue(aValue, kCORSAttributeTable, false,
+                                    
+                                    
+                                    &kCORSAttributeTable[0]);
     }
     if (aAttribute == nsGkAtoms::preload) {
       return aResult.ParseEnumValue(aValue, kPreloadTable, false);
@@ -2330,7 +2348,7 @@ void nsHTMLMediaElement::DownloadStalled()
 
 bool nsHTMLMediaElement::ShouldCheckAllowOrigin()
 {
-  return Preferences::GetBool("media.enforce_same_site_origin", true);
+  return mCORSMode != CORS_NONE;
 }
 
 void nsHTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)

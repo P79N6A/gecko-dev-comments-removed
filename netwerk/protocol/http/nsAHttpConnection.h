@@ -77,9 +77,20 @@ public:
     
     
     
-    virtual nsresult ResumeSend(nsAHttpTransaction *caller) = 0;
-    virtual nsresult ResumeRecv(nsAHttpTransaction *caller) = 0;
+    virtual nsresult ResumeSend() = 0;
+    virtual nsresult ResumeRecv() = 0;
 
+    
+    
+    
+    
+    
+    
+    virtual void TransactionHasDataToWrite(nsAHttpTransaction *)
+    {
+        
+        return;
+    }
     
     
     
@@ -132,8 +143,8 @@ public:
 
 #define NS_DECL_NSAHTTPCONNECTION \
     nsresult OnHeadersAvailable(nsAHttpTransaction *, nsHttpRequestHead *, nsHttpResponseHead *, bool *reset); \
-    nsresult ResumeSend(nsAHttpTransaction *); \
-    nsresult ResumeRecv(nsAHttpTransaction *); \
+    nsresult ResumeSend(); \
+    nsresult ResumeRecv(); \
     void CloseTransaction(nsAHttpTransaction *, nsresult); \
     void GetConnectionInfo(nsHttpConnectionInfo **); \
     nsresult TakeTransport(nsISocketTransport **,    \
