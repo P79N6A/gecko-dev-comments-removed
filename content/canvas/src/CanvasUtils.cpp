@@ -54,9 +54,11 @@ DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
     if (CORSUsed)
         return;
 
+    
     bool subsumes;
     nsresult rv =
-        aCanvasElement->NodePrincipal()->Subsumes(aPrincipal, &subsumes);
+        aCanvasElement->NodePrincipal()->SubsumesIgnoringDomain(aPrincipal,
+                                                                &subsumes);
 
     if (NS_SUCCEEDED(rv) && subsumes) {
         
