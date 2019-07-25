@@ -2606,8 +2606,12 @@ mjit::Compiler::generateMethod()
 
  
 
-        if (cx->typeInferenceEnabled()) {
+        if (cx->typeInferenceEnabled() && PC == oldPC + analyze::GetBytecodeLength(oldPC)) {
             
+
+
+
+
             unsigned nuses = analyze::GetUseCount(script, oldPC - script->code);
             unsigned ndefs = analyze::GetDefCount(script, oldPC - script->code);
             for (unsigned i = 0; i < ndefs; i++) {
