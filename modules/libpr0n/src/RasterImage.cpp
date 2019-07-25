@@ -1030,20 +1030,6 @@ RasterImage::SetFrameHasNoAlpha(PRUint32 aFrameNum)
 }
 
 nsresult
-RasterImage::EndFrameDecode(PRUint32 aFrameNum)
-{
-  if (mError)
-    return NS_ERROR_FAILURE;
-
-  
-  
-  if (mAnim)
-    mAnim->currentDecodingFrameIndex = aFrameNum;
-  
-  return NS_OK;
-}
-
-nsresult
 RasterImage::DecodingComplete()
 {
   if (mError)
@@ -1054,8 +1040,6 @@ RasterImage::DecodingComplete()
   
   mDecoded = PR_TRUE;
   mHasBeenDecoded = PR_TRUE;
-  if (mAnim)
-    mAnim->doneDecoding = PR_TRUE;
 
   nsresult rv;
 
@@ -1451,9 +1435,18 @@ RasterImage::Notify(nsITimer *timer)
   
   
   
+  NS_ABORT_IF_FALSE(mDecoder || nextFrameIndex <= mFrames.Length(),
+                    "How did we get 2 indicies too far by incrementing?");
+  bool haveFullNextFrame = !mDecoder || nextFrameIndex < mDecoder->GetCompleteFrameCount();
+
   
-  if (mAnim->doneDecoding || 
-      (nextFrameIndex < mAnim->currentDecodingFrameIndex)) {
+  NS_ABORT_IF_FALSE(haveFullNextFrame ||
+                    (mDecoder && mFrames.Length() > mDecoder->GetCompleteFrameCount()),
+                    "What is the next frame supposed to be?");
+
+  
+  
+  if (haveFullNextFrame) {
     if (mFrames.Length() == nextFrameIndex) {
       
 
@@ -1482,23 +1475,11 @@ RasterImage::Notify(nsITimer *timer)
     }
     timeout = nextFrame->GetTimeout();
 
-  } else if (nextFrameIndex == mAnim->currentDecodingFrameIndex) {
+  } else {
     
     
     mAnim->timer->SetDelay(100);
     return NS_OK;
-  } else { 
-    
-    
-    NS_WARNING("RasterImage::Notify()  Frame is passed decoded frame");
-    nextFrameIndex = mAnim->currentDecodingFrameIndex;
-    if (!(nextFrame = mFrames[nextFrameIndex])) {
-      
-      mAnim->currentAnimationFrameIndex = nextFrameIndex;
-      mAnim->timer->SetDelay(100);
-      return NS_OK;
-    }
-    timeout = nextFrame->GetTimeout();
   }
 
   if (timeout > 0)

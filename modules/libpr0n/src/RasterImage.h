@@ -242,9 +242,6 @@ public:
   void FrameUpdated(PRUint32 aFrameNum, nsIntRect& aUpdatedRect);
 
   
-  nsresult EndFrameDecode(PRUint32 aFrameNum);
-
-  
   nsresult DecodingComplete();
 
   
@@ -313,8 +310,6 @@ private:
   {
     
     nsIntRect                  firstFrameRefreshArea;
-    
-    PRUint32                   currentDecodingFrameIndex; 
     PRUint32                   currentAnimationFrameIndex; 
     
     PRInt32                    lastCompositedFrameIndex;
@@ -336,16 +331,11 @@ private:
     nsAutoPtr<imgFrame>        compositingPrevFrame;
     
     nsCOMPtr<nsITimer>         timer;
-    
-    
-    PRPackedBool               doneDecoding;
 
     Anim() :
       firstFrameRefreshArea(),
-      currentDecodingFrameIndex(0),
       currentAnimationFrameIndex(0),
-      lastCompositedFrameIndex(-1),
-      doneDecoding(PR_FALSE)
+      lastCompositedFrameIndex(-1)
     {
       ;
     }

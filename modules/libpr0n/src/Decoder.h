@@ -118,6 +118,9 @@ public:
   PRUint32 GetFrameCount() { return mFrameCount; }
 
   
+  PRUint32 GetCompleteFrameCount() { return mInFrame ? mFrameCount - 1 : mFrameCount; }
+
+  
   bool IsError() { return IsDataError() || IsDecoderError(); };
   bool IsDataError() { return mDataError; };
   bool IsDecoderError() { return NS_FAILED(mFailCode); };

@@ -341,7 +341,6 @@ void nsGIFDecoder2::EndImageFrame()
     
     
     mImage->SetFrameTimeout(mGIFStruct.images_decoded, mGIFStruct.delay_time);
-    mImage->EndFrameDecode(mGIFStruct.images_decoded);
   }
 
   
