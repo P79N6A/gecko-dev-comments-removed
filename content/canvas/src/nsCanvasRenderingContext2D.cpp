@@ -1238,9 +1238,6 @@ nsCanvasRenderingContext2D::Render(gfxContext *ctx, gfxPattern::GraphicsFilter a
     if (mOpaque)
         ctx->SetOperator(op);
 
-    mIsEntireFrameInvalid = PR_FALSE;
-    mInvalidateCount = 0;
-
     return rv;
 }
 
@@ -4061,8 +4058,13 @@ nsCanvasRenderingContext2D::GetCanvasLayer(CanvasLayer *aOldLayer,
     if (!mResetLayer && aOldLayer &&
         aOldLayer->HasUserData(&g2DContextLayerUserData)) {
         NS_ADDREF(aOldLayer);
-        
-        aOldLayer->Updated(nsIntRect(0, 0, mWidth, mHeight));
+        if (mIsEntireFrameInvalid || mInvalidateCount > 0) {
+            
+            
+            aOldLayer->Updated(nsIntRect(0, 0, mWidth, mHeight));
+            MarkContextClean();
+        }
+
         return aOldLayer;
     }
 
@@ -4084,6 +4086,9 @@ nsCanvasRenderingContext2D::GetCanvasLayer(CanvasLayer *aOldLayer,
     canvasLayer->Updated(nsIntRect(0, 0, mWidth, mHeight));
 
     mResetLayer = PR_FALSE;
+
+    MarkContextClean();
+
     return canvasLayer.forget().get();
 }
 
@@ -4091,5 +4096,6 @@ void
 nsCanvasRenderingContext2D::MarkContextClean()
 {
     mIsEntireFrameInvalid = PR_FALSE;
+    mInvalidateCount = 0;
 }
 
