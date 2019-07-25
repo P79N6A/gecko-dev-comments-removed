@@ -169,7 +169,7 @@ mjit::Compiler::compile()
     } else if (status != Compile_Retry) {
         *checkAddr = JS_UNJITTABLE_SCRIPT;
         if (outerScript->fun)
-            cx->markTypeFunctionUninlineable(outerScript->fun->getType());
+            cx->markTypeObjectFlags(outerScript->fun->getType(), types::OBJECT_FLAG_UNINLINEABLE);
     }
 
     return status;
@@ -268,14 +268,6 @@ mjit::Compiler::scanInlineCalls(uint32 index, uint32 depth)
         if (calleeTypes->getKnownTypeTag(cx) != JSVAL_TYPE_OBJECT)
             continue;
 
-        
-
-
-
-        types::ObjectKind kind = calleeTypes->getKnownObjectKind(cx);
-        if (kind != types::OBJECT_INLINEABLE_FUNCTION)
-            continue;
-
         if (calleeTypes->getObjectCount() >= INLINE_SITE_LIMIT)
             continue;
 
@@ -346,6 +338,12 @@ mjit::Compiler::scanInlineCalls(uint32 index, uint32 depth)
                 return status;
 
             if (!script->analysis(cx)->inlineable(argc)) {
+                okay = false;
+                break;
+            }
+
+            if (types::TypeSet::HasObjectFlags(cx, fun->getType(),
+                                               types::OBJECT_FLAG_UNINLINEABLE)) {
                 okay = false;
                 break;
             }
@@ -3857,7 +3855,7 @@ mjit::Compiler::inlineScriptedFunction(uint32 argc, bool callingNew)
             popActiveFrame();
             if (status == Compile_Abort) {
                 
-                cx->markTypeFunctionUninlineable(script->fun->getType());
+                cx->markTypeObjectFlags(script->fun->getType(), types::OBJECT_FLAG_UNINLINEABLE);
                 return Compile_Retry;
             }
             return status;
@@ -4123,7 +4121,7 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, JSValueType knownType,
 
     frame.forgetMismatchedObject(top);
 
-    if (JSOp(*PC) == JSOP_LENGTH) {
+    if (JSOp(*PC) == JSOP_LENGTH && cx->typeInferenceEnabled()) {
         
 
 
@@ -4144,9 +4142,8 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, JSValueType knownType,
 
 
 
-        types::TypeSet *types = frame.extra(top).types;
-        types::ObjectKind kind = types ? types->getKnownObjectKind(cx) : types::OBJECT_UNKNOWN;
-        if (kind == types::OBJECT_DENSE_ARRAY || kind == types::OBJECT_PACKED_ARRAY) {
+        types::TypeSet *types = analysis->poppedTypes(PC, 0);
+        if (!types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY)) {
             bool isObject = top->isTypeKnown();
             if (!isObject) {
                 Jump notObject = frame.testObject(Assembler::NotEqual, top);
@@ -6924,13 +6921,8 @@ mjit::Compiler::pushedSingleton(unsigned pushed)
 bool
 mjit::Compiler::arrayPrototypeHasIndexedProperty()
 {
-    if (!cx->typeInferenceEnabled())
+    if (!cx->typeInferenceEnabled() || !outerScript->compileAndGo)
         return true;
-
-    
-
-
-
 
     JSObject *proto;
     if (!js_GetClassPrototype(cx, NULL, JSProto_Array, &proto, NULL))

@@ -1404,16 +1404,10 @@ struct JSContext
     inline void aliasTypeProperties(js::types::TypeObject *obj, jsid first, jsid second);
 
     
-    inline void markTypeArrayNotPacked(js::types::TypeObject *obj, bool notDense);
-
-    
-    inline void markTypeFunctionUninlineable(js::types::TypeObject *obj);
+    inline void markTypeObjectFlags(js::types::TypeObject *obj, js::types::TypeObjectFlags flags);
 
     
     inline void markTypeObjectUnknownProperties(js::types::TypeObject *obj);
-
-    
-    inline void markTypeObjectHasSpecialEquality(js::types::TypeObject *obj);
 
     
     inline void markTypePropertyConfigured(js::types::TypeObject *obj, jsid id);
@@ -1427,10 +1421,6 @@ struct JSContext
 
     inline void fixArrayType(JSObject *obj);
     inline void fixObjectType(JSObject *obj);
-
-  private:
-
-    inline void addTypeFlags(js::types::TypeObject *obj, js::types::TypeObjectFlags flags);
 
 }; 
 

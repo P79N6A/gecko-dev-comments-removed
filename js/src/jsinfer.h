@@ -203,31 +203,6 @@ public:
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-enum ObjectKind {
-    OBJECT_NONE,
-    OBJECT_UNKNOWN,
-    OBJECT_PACKED_ARRAY,
-    OBJECT_DENSE_ARRAY,
-    OBJECT_INLINEABLE_FUNCTION,
-    OBJECT_SCRIPTED_FUNCTION,
-    OBJECT_NO_SPECIAL_EQUALITY
-};
-
-
 enum {
     TYPE_FLAG_UNDEFINED = 1 << TYPE_UNDEFINED,
     TYPE_FLAG_NULL      = 1 << TYPE_NULL,
@@ -267,9 +242,38 @@ enum {
     
     TYPE_FLAG_BASE_MASK           = 0xffffff00
 };
-
-
 typedef uint32 TypeFlags;
+
+
+enum {
+    
+
+
+
+
+
+
+    OBJECT_FLAG_UNKNOWN_MASK = uint32(-1),
+
+    
+
+
+
+    OBJECT_FLAG_NON_DENSE_ARRAY = 1 << 0,
+
+    
+    OBJECT_FLAG_NON_PACKED_ARRAY = 1 << 1,
+
+    
+    OBJECT_FLAG_UNINLINEABLE = 1 << 2,
+
+    
+    OBJECT_FLAG_SPECIAL_EQUALITY = 1 << 3,
+
+    
+    OBJECT_FLAG_ITERATED = 1 << 4
+};
+typedef uint32 TypeObjectFlags;
 
 
 class TypeSet
@@ -378,10 +382,8 @@ class TypeSet
     JSValueType getKnownTypeTag(JSContext *cx);
 
     
-    ObjectKind getKnownObjectKind(JSContext *cx);
-
-    
-    static ObjectKind GetObjectKind(JSContext *cx, TypeObject *object);
+    bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
+    static bool HasObjectFlags(JSContext *cx, TypeObject *object, TypeObjectFlags flags);
 
     
     static void WatchObjectReallocation(JSContext *cx, JSObject *object);
@@ -445,34 +447,6 @@ struct Property
     static uint32 keyBits(jsid id) { return (uint32) JSID_BITS(id); }
     static jsid getKey(Property *p) { return p->id; }
 };
-
-
-enum {
-    
-
-
-
-
-
-
-    OBJECT_FLAG_UNKNOWN_MASK = uint32(-1),
-
-    
-
-
-
-    OBJECT_FLAG_NON_DENSE_ARRAY = 1 << 0,
-
-    
-    OBJECT_FLAG_NON_PACKED_ARRAY = 1 << 1,
-
-    
-    OBJECT_FLAG_UNINLINEABLE = 1 << 2,
-
-    
-    OBJECT_FLAG_SPECIAL_EQUALITY = 1 << 3
-};
-typedef uint32 TypeObjectFlags;
 
 
 struct TypeObject
@@ -561,7 +535,8 @@ struct TypeObject
     }
 
     bool unknownProperties() { return flags == OBJECT_FLAG_UNKNOWN_MASK; }
-    bool hasFlags(TypeObjectFlags flags) { return (this->flags & flags) == flags; }
+    bool hasAnyFlags(TypeObjectFlags flags) { return (this->flags & flags) != 0; }
+    bool hasAllFlags(TypeObjectFlags flags) { return (this->flags & flags) == flags; }
 
     
 
