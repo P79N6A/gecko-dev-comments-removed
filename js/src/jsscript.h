@@ -175,7 +175,7 @@ class Bindings {
     uint16 nupvars;
 
   public:
-    inline Bindings(JSContext *cx);
+    inline Bindings(JSContext *cx, EmptyShape *emptyCallShape);
 
     
 
