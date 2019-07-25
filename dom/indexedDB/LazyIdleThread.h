@@ -76,9 +76,11 @@ public:
 
 
 
-  LazyIdleThread(PRUint32 aIdleTimeoutMS);
+  LazyIdleThread(PRUint32 aIdleTimeoutMS,
+                 nsIObserver* aIdleObserver = nsnull);
 
   
+
 
 
 
@@ -97,6 +99,11 @@ private:
   
 
 
+  void PreDispatch();
+
+  
+
+
   nsresult EnsureThread();
 
   
@@ -107,12 +114,24 @@ private:
   
 
 
-  void ShutdownThread();
+  void CleanupThread();
 
   
 
 
-  void CancelTimer(nsITimer* aTimer);
+
+  void ScheduleTimer();
+
+  
+
+
+  nsresult ShutdownThread();
+
+  
+
+
+
+  void SelfDestruct();
 
   
 
@@ -128,18 +147,7 @@ private:
   
 
 
-  const PRUint32 mIdleTimeoutMS;
-
-  
-
-
   nsCOMPtr<nsIThread> mThread;
-
-  
-
-
-
-  PRBool mShutdown;
 
   
 
@@ -152,13 +160,37 @@ private:
 
 
 
-  PRBool mThreadHasTimedOut;
+  nsIObserver* mIdleObserver;
+
+  
+
+
+  const PRUint32 mIdleTimeoutMS;
 
   
 
 
 
-  nsIObserver* mIdleObserver;
+  PRUint32 mPendingEventCount;
+
+  
+
+
+
+
+  PRUint32 mIdleNotificationCount;
+
+  
+
+
+
+  PRPackedBool mShutdown;
+
+  
+
+
+
+  PRPackedBool mThreadIsShuttingDown;
 };
 
 END_INDEXEDDB_NAMESPACE
