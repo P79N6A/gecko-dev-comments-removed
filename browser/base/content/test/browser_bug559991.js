@@ -18,13 +18,6 @@ function test() {
   let oldAPTS = FullZoom._applyPrefToSetting;
   let uri = "http://example.org/browser/browser/base/content/test/dummy_page.html";
 
-  
-  
-  FullZoom._applyPrefToSetting = function() {
-    ok(false, "This should not be called");
-  };
-  FullZoom.onLocationChange(makeURI(uri), true);
-
   let tab = gBrowser.addTab();
   tab.linkedBrowser.addEventListener("load", function(event) {
     tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
