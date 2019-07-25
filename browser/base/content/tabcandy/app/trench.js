@@ -99,11 +99,6 @@ var Trench = function(element, xory, type, edge) {
   
   
   
-  this.radius = Trenches.defaultRadius;
-
-  
-  
-  
   
   
   this.range = new Range(0,10000);
@@ -111,6 +106,12 @@ var Trench = function(element, xory, type, edge) {
   this.activeRange = new Range(0,10000);
 };
 Trench.prototype = {
+
+  
+  
+  
+  get radius() { return this.customRadius || Trenches.defaultRadius; },
+
   
   
   
