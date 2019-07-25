@@ -34,33 +34,23 @@ public class ScreenshotLayer extends SingleTileLayer {
     
     private IntSize mImageSize;
     
-    private boolean mIsSingleColor = true;
-    
-    private boolean mForceSingleColor = false;
-    
-    
-    private int mCurrentBackgroundColor = 0;
+    private boolean mHasImage;
 
     public static int getMaxNumPixels() {
         return SCREENSHOT_SIZE_LIMIT;
     }
 
     public void reset() {
-        mIsSingleColor = true;
-        updateBackground(mForceSingleColor, Color.WHITE);
-        setPaintMode(TileLayer.PaintMode.STRETCH);
+        mHasImage = false;
     }
 
     void setBitmap(Bitmap bitmap) {
-        if (mForceSingleColor)
-            return;
         mImageSize = new IntSize(bitmap.getWidth(), bitmap.getHeight());
         int width = IntSize.nextPowerOfTwo(bitmap.getWidth());
         int height = IntSize.nextPowerOfTwo(bitmap.getHeight());
         mBufferSize = new IntSize(width, height);
         mImage.setBitmap(bitmap, width, height, CairoImage.FORMAT_RGB16_565);
-        mIsSingleColor = false;
-        setPaintMode(TileLayer.PaintMode.NORMAL);
+        mHasImage = true;
     }
 
     public void updateBitmap(Bitmap bitmap, float x, float y, float width, float height) {
@@ -68,9 +58,7 @@ public class ScreenshotLayer extends SingleTileLayer {
     }
 
     public static ScreenshotLayer create() {
-        
-        
-        return ScreenshotLayer.create(new IntSize(3, 3));
+        return ScreenshotLayer.create(new IntSize(4, 4));
     }
 
     public static ScreenshotLayer create(IntSize size) {
@@ -92,58 +80,20 @@ public class ScreenshotLayer extends SingleTileLayer {
     }
 
     private ScreenshotLayer(ScreenshotImage image, IntSize size) {
-        super(image, TileLayer.PaintMode.STRETCH);
+        super(image, TileLayer.PaintMode.NORMAL);
         mBufferSize = size;
         mImage = image;
     }
 
-    public boolean updateBackground(boolean showChecks, int color) {
-        if (!showChecks) {
-            mIsSingleColor = true;
-            mForceSingleColor = true;
-        } else {
-            mForceSingleColor = false;
-        }
-
-        if (!mIsSingleColor || color == mCurrentBackgroundColor)
-            return false;
-
-        mCurrentBackgroundColor = color;
-
-        
-
-
-
-
-        int red =   ((color & 0x00FF0000 >> 16)* 31 / 255);
-        int green = ((color & 0x0000FF00 >> 8) * 63 / 255);
-        int blue =   (color & 0x000000FF) * 31 / 255;
-        
-
-
-
-
-
-        byte byte1 = (byte)((red << 3 | green >> 3) & 0x0000FFFF);
-        byte byte2 = (byte)((green << 5 | blue) & 0x0000FFFF);
-        mImage.mBuffer.put(1, byte1);
-        mImage.mBuffer.put(0, byte2);
-        mImage.mBuffer.put(3, byte1);
-        mImage.mBuffer.put(2, byte2);
-        mImage.mBuffer.put(5, byte1);
-        mImage.mBuffer.put(4, byte2);
-        mImage.mBuffer.put(mImageSize.width + 1, byte1);
-        mImage.mBuffer.put(mImageSize.width + 0, byte2);
-        mImage.mBuffer.put(mImageSize.width + 3, byte1);
-        mImage.mBuffer.put(mImageSize.width + 2, byte2);
-        mImage.mBuffer.put(mImageSize.width + 5, byte1);
-        mImage.mBuffer.put(mImageSize.width + 4, byte2);
-        return true;
+    @Override
+    public void draw(RenderContext context) {
+        if (mHasImage)
+            super.draw(context);
     }
 
     
     static class ScreenshotImage extends CairoImage {
-        ByteBuffer mBuffer;
+        private ByteBuffer mBuffer;
         private IntSize mSize;
         private int mFormat;
 

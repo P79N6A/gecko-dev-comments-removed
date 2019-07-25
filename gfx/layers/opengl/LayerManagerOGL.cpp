@@ -817,8 +817,13 @@ LayerManagerOGL::Render()
 
   mGLContext->fEnable(LOCAL_GL_SCISSOR_TEST);
 
+  
+  
+  
+#ifndef MOZ_JAVA_COMPOSITOR
   mGLContext->fClearColor(0.0, 0.0, 0.0, 0.0);
   mGLContext->fClear(LOCAL_GL_COLOR_BUFFER_BIT | LOCAL_GL_DEPTH_BUFFER_BIT);
+#endif
 
   
   mWidget->DrawWindowUnderlay(this, rect);

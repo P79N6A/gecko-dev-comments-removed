@@ -100,6 +100,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     private final FloatBuffer mCoordBuffer;
     private RenderContext mLastPageContext;
     private int mMaxTextureSize;
+    private int mBackgroundColor;
 
     private ArrayList<Layer> mExtraLayers = new ArrayList<Layer>();
 
@@ -186,12 +187,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     public void resetCheckerboard() {
         mCheckerboardLayer.reset();
-        mCheckerboardLayer.beginTransaction();
-        try {
-            mCheckerboardLayer.invalidate();
-        } finally {
-            mCheckerboardLayer.endTransaction();
-        }
     }
 
     public LayerRenderer(LayerView view) {
@@ -423,20 +418,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         }).start();
     }
 
-    private void updateCheckerboardImage() {
-        int checkerboardColor = mView.getController().getCheckerboardColor();
-        boolean showChecks = mView.getController().checkerboardShouldShowChecks();
-
-        mCheckerboardLayer.beginTransaction();  
-        try {
-            if (mCheckerboardLayer.updateBackground(showChecks, checkerboardColor))
-                mCheckerboardLayer.invalidate();
-        } finally {
-            mCheckerboardLayer.endTransaction();
-        }
-
-    }
-
     
 
 
@@ -564,7 +545,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             if (rootLayer != null) mUpdated &= rootLayer.update(mPageContext);  
             mUpdated &= mBackgroundLayer.update(mScreenContext);    
             mUpdated &= mShadowLayer.update(mPageContext);  
-            updateCheckerboardImage();
             mUpdated &= mCheckerboardLayer.update(mPageContext);   
             if (mFrameRateLayer != null) mUpdated &= mFrameRateLayer.update(mScreenContext); 
             mUpdated &= mVertScrollLayer.update(mPageContext);  
@@ -599,11 +579,17 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             if (mask.left <= 2) {
                 mask.left = -1;
             }
-            if (mask.right >= mPageRect.right - 2) {
-                mask.right = mPageRect.right + 1;
+
+            
+            
+            int pageRight = mPageRect.width();
+            int pageBottom = mPageRect.height();
+
+            if (mask.right >= pageRight - 2) {
+                mask.right = pageRight + 1;
             }
-            if (mask.bottom >= mPageRect.bottom - 2) {
-                mask.bottom = mPageRect.bottom + 1;
+            if (mask.bottom >= pageBottom - 2) {
+                mask.bottom = pageBottom + 1;
             }
 
             return mask;
@@ -611,6 +597,19 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
         
         public void drawBackground() {
+            
+            mBackgroundColor = mView.getController().getCheckerboardColor();
+
+            
+
+
+            GLES20.glClearColor(((mBackgroundColor>>16)&0xFF) / 255.0f,
+                                ((mBackgroundColor>>8)&0xFF) / 255.0f,
+                                (mBackgroundColor&0xFF) / 255.0f,
+                                0.0f);
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT |
+                           GLES20.GL_DEPTH_BUFFER_BIT);
+
             
             mBackgroundLayer.setMask(mPageRect);
             mBackgroundLayer.draw(mScreenContext);
@@ -622,13 +621,20 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 mShadowLayer.draw(mPageContext);
 
             
-            Rect rootMask = getMaskForLayer(mView.getController().getRoot());
 
-            
-            setScissorRect();
-            mCheckerboardLayer.setMask(rootMask);
-            mCheckerboardLayer.draw(mPageContext);
-            GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
+
+            if (mView.getController().checkerboardShouldShowChecks()) {
+                
+                Rect rootMask = getMaskForLayer(mView.getController().getRoot());
+                mCheckerboardLayer.setMask(rootMask);
+
+                
+
+
+                setScissorRect();
+                mCheckerboardLayer.draw(mPageContext);
+                GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
+            }
         }
 
         
