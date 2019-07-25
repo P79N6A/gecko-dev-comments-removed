@@ -176,6 +176,7 @@ public:
 
   nsresult Resolve(nsBlockFrame* aBlockFrame);
   void ResolveParagraph(nsBlockFrame* aBlockFrame);
+  void ResolveParagraphWithinBlock(nsBlockFrame* aBlockFrame);
 
   
 
@@ -367,8 +368,12 @@ private:
 
 
 
-  void InitLogicalArray(nsBlockInFlowLineIterator* aLineIter,
-                        nsIFrame* aCurrentFrame);
+
+
+
+  void TraverseFrames(nsBlockFrame*              aBlockFrame,
+                      nsBlockInFlowLineIterator* aLineIter,
+                      nsIFrame*                  aCurrentFrame);
 
   
 
@@ -508,7 +513,8 @@ private:
                           PRUint32 aSrcLength,
                           PRUnichar* aDest);
 
-  nsAutoString    mBuffer;
+  nsString        mBuffer;
+  nsTArray<PRUnichar> mEmbeddingStack;
   nsTArray<nsIFrame*> mLogicalFrames;
   nsTArray<nsLineBox*> mLinePerFrame;
   nsTArray<nsIFrame*> mVisualFrames;
