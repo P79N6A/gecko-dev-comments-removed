@@ -169,14 +169,16 @@ static PRLogModuleInfo* gJSDiagnostics;
 #define NS_MIN_CC_INTERVAL          10000 // ms
 
 
+
+
 #define NS_COLLECTED_OBJECTS_LIMIT  5000
 
 
 #define NS_MAX_GC_COUNT             5
-#define NS_MIN_SUSPECT_CHANGES      10
+#define NS_MIN_SUSPECT_CHANGES      100
 
 
-#define NS_MAX_SUSPECT_CHANGES      100
+#define NS_MAX_SUSPECT_CHANGES      1000
 
 
 
@@ -271,7 +273,7 @@ nsUserActivityObserver::Observe(nsISupports* aSubject, const char* aTopic,
     if (sUserIsActive) {
       sUserIsActive = PR_FALSE;
       if (!sGCTimer) {
-        nsJSContext::IntervalCC();
+        nsJSContext::MaybeCC(PR_FALSE);
         return NS_OK;
       }
     }
@@ -3610,6 +3612,21 @@ nsJSContext::ScriptExecuted()
   return NS_OK;
 }
 
+static inline uint32
+GetGCRunsSinceLastCC()
+{
+    
+    
+    if (!nsJSRuntime::sRuntime)
+        return 0;
+
+    
+    
+    
+    return JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER) -
+           sSavedGCCount;
+}
+
 
 void
 nsJSContext::CC(nsICycleCollectorListener *aListener)
@@ -3626,7 +3643,9 @@ nsJSContext::CC(nsICycleCollectorListener *aListener)
   sCCSuspectChanges = 0;
   
   
-  if (nsContentUtils::XPConnect()) {
+  if (nsContentUtils::XPConnect() &&
+      !GetGCRunsSinceLastCC() &&
+      sCCSuspectedCount > NS_COLLECTED_OBJECTS_LIMIT) {
     nsContentUtils::XPConnect()->GarbageCollect();
   }
   sCollectedObjectsCounts = nsCycleCollector_collect(aListener);
@@ -3639,21 +3658,6 @@ nsJSContext::CC(nsICycleCollectorListener *aListener)
          sCollectedObjectsCounts, sCCSuspectedCount,
          (PR_Now() - sPreviousCCTime) / PR_USEC_PER_MSEC);
 #endif
-}
-
-static inline uint32
-GetGCRunsSinceLastCC()
-{
-    
-    
-    if (!nsJSRuntime::sRuntime)
-        return 0;
-
-    
-    
-    
-    return JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER) -
-           sSavedGCCount;
 }
 
 
