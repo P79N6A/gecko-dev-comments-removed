@@ -2547,14 +2547,12 @@ ProgressController.prototype = {
         this._networkStart();
       else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP)
         this._networkStop();
-    } else if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
-      if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP)
-        this._documentStop();
     }
   },
 
   
   onProgressChange: function onProgressChange(aWebProgress, aRequest, aCurSelf, aMaxSelf, aCurTotal, aMaxTotal) {
+    
   },
 
   
@@ -2582,6 +2580,7 @@ ProgressController.prototype = {
 
 
   onStatusChange: function onStatusChange(aWebProgress, aRequest, aStatus, aMessage) {
+    
   },
 
   
@@ -2629,9 +2628,6 @@ ProgressController.prototype = {
 
     if (this.browser.currentURI.spec != "about:blank")
       this._tab.updateThumbnail();
-  },
-
-  _documentStop: function _documentStop() {
   }
 };
 
@@ -2928,8 +2924,11 @@ Tab.prototype = {
     browser.stop();
 
     
+    let flags = Ci.nsIWebProgress.NOTIFY_LOCATION |
+                Ci.nsIWebProgress.NOTIFY_SECURITY |
+                Ci.nsIWebProgress.NOTIFY_STATE_NETWORK;
     this._listener = new ProgressController(this);
-    browser.addProgressListener(this._listener);
+    browser.webProgress.addProgressListener(this._listener, flags);
   },
 
   _destroyBrowser: function _destroyBrowser() {
