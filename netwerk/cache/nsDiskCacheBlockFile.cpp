@@ -40,6 +40,7 @@
 
 #include "nsDiskCache.h"
 #include "nsDiskCacheBlockFile.h"
+#include "mozilla/FileUtils.h"
 
 
 
@@ -54,8 +55,6 @@ const unsigned short kBitMapWords = (kBitMapBytes/4);
 nsresult
 nsDiskCacheBlockFile::Open( nsILocalFile *  blockFile, PRUint32  blockSize)
 {
-    PRInt32   fileSize;
-
     mBlockSize = blockSize;
     
     
@@ -70,20 +69,19 @@ nsDiskCacheBlockFile::Open( nsILocalFile *  blockFile, PRUint32  blockSize)
     }
     
     
-    fileSize = PR_Available(mFD);
-    if (fileSize < 0) {
+    mFileSize = PR_Available(mFD);
+    if (mFileSize < 0) {
         
         rv = NS_ERROR_UNEXPECTED;
         goto error_exit;
     }
-    if (fileSize == 0) {
+    if (mFileSize == 0) {
         
         memset(mBitMap, 0, kBitMapBytes);
-        PRInt32 bytesWritten = PR_Write(mFD, mBitMap, kBitMapBytes);
-        if (bytesWritten < kBitMapBytes) 
+        if (!Write(0, mBitMap, kBitMapBytes))
             goto error_exit;
         
-    } else if (fileSize < kBitMapBytes) {
+    } else if (mFileSize < kBitMapBytes) {
         rv = NS_ERROR_UNEXPECTED;  
         goto error_exit;
         
@@ -104,7 +102,7 @@ nsDiskCacheBlockFile::Open( nsILocalFile *  blockFile, PRUint32  blockSize)
         
         
         const PRUint32  estimatedSize = CalcBlockFileSize();
-        if ((PRUint32)fileSize + blockSize < estimatedSize) {
+        if ((PRUint32)mFileSize + blockSize < estimatedSize) {
             rv = NS_ERROR_UNEXPECTED;
             goto error_exit;
         }
@@ -223,24 +221,16 @@ nsDiskCacheBlockFile::WriteBlocks( void *   buffer,
 {
     
     NS_ENSURE_TRUE(mFD, NS_ERROR_NOT_AVAILABLE);
-    
+
     
     *startBlock = AllocateBlocks(numBlocks);
     NS_ENSURE_STATE(*startBlock >= 0);
     
     
     PRInt32 blockPos = kBitMapBytes + *startBlock * mBlockSize;
-    PRInt32 filePos = PR_Seek(mFD, blockPos, PR_SEEK_SET);
-    NS_ENSURE_STATE(filePos == blockPos);
     
     
-    PRInt32 bytesWritten = PR_Write(mFD, buffer, size);
-    NS_ENSURE_STATE(bytesWritten >= 0 && PRUint32(bytesWritten) == size);
-    
-    
-    
-    
-    return NS_OK;
+    return Write(blockPos, buffer, size) ? NS_OK : NS_ERROR_FAILURE;
 }
 
 
@@ -282,10 +272,6 @@ nsresult
 nsDiskCacheBlockFile::FlushBitMap()
 {
     if (!mBitMapDirty)  return NS_OK;
-
-    
-    PRInt32 filePos = PR_Seek(mFD, 0, PR_SEEK_SET);
-    if (filePos != 0)  return NS_ERROR_UNEXPECTED;
     
 #if defined(IS_LITTLE_ENDIAN)
     PRUint32 bitmap[kBitMapWords];
@@ -298,8 +284,8 @@ nsDiskCacheBlockFile::FlushBitMap()
 #endif
 
     
-    PRInt32 bytesWritten = PR_Write(mFD, bitmap, kBitMapBytes);
-    if (bytesWritten < kBitMapBytes)  return NS_ERROR_UNEXPECTED;
+    if (!Write(0, bitmap, kBitMapBytes))
+        return NS_ERROR_UNEXPECTED;
 
     PRStatus err = PR_Sync(mFD);
     if (err != PR_SUCCESS)  return NS_ERROR_UNEXPECTED;
@@ -368,4 +354,39 @@ nsDiskCacheBlockFile::CalcBlockFileSize()
     }
 
     return estimatedSize;
+}
+
+
+
+
+
+
+
+bool
+nsDiskCacheBlockFile::Write(PRInt32 offset, const void *buf, PRInt32 amount)
+{
+    
+
+
+
+    const PRInt32 upTo = offset + amount;
+    
+    const PRInt32 minPreallocate = 4*1024*1024;
+    const PRInt32 maxPreallocate = 20*1000*1000;
+    if (mFileSize < upTo) {
+        if (upTo > maxPreallocate) {
+            
+            mFileSize = ((upTo + minPreallocate - 1) / minPreallocate) * minPreallocate;
+        } else {
+            
+            if (mFileSize)
+                while(mFileSize < upTo)
+                    mFileSize *= 2;
+            mFileSize = PR_MIN(maxPreallocate, PR_MAX(mFileSize, minPreallocate));
+        }
+        mozilla::fallocate(mFD, mFileSize);
+    }
+    if (PR_Seek(mFD, offset, PR_SEEK_SET) != offset)
+        return false;
+    return PR_Write(mFD, buf, amount) == amount;
 }

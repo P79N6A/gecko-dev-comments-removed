@@ -80,13 +80,15 @@ private:
     PRInt32   AllocateBlocks( PRInt32  numBlocks);
     nsresult  VerifyAllocation( PRInt32 startBlock, PRInt32 numBLocks);
     PRUint32  CalcBlockFileSize();
+    bool   Write(PRInt32 offset, const void *buf, PRInt32 amount);
 
 
 
 
     PRFileDesc *                mFD;
-    PRUint32                    mBlockSize;
     PRUint32 *                  mBitMap;      
+    PRUint32                    mBlockSize;
+    PRInt32                     mFileSize;
     PRBool                      mBitMapDirty;
 };
 

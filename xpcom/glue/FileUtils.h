@@ -41,6 +41,9 @@
 #define mozilla_FileUtils_h
 namespace mozilla {
 
+
+
+
 class AutoFDClose
 {
 public:
@@ -59,6 +62,17 @@ public:
 private:
   PRFileDesc *mFD;
 };
+
+
+
+
+
+
+
+
+
+
+bool fallocate(PRFileDesc *aFD, PRInt64 aLength);
 
 } 
 #endif
