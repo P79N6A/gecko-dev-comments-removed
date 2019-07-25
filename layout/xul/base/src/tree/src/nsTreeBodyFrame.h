@@ -384,8 +384,7 @@ protected:
   nsresult EnsureRowIsVisibleInternal(const ScrollParts& aParts, PRInt32 aRow);
   
   
-  void AdjustClientCoordsToBoxCoordSpace(PRInt32 aX, PRInt32 aY,
-                                         nscoord* aResultX, nscoord* aResultY);
+  nsPoint AdjustClientCoordsToBoxCoordSpace(PRInt32 aX, PRInt32 aY);
 
   
   nsLineStyle ConvertBorderStyleToLineStyle(PRUint8 aBorderStyle);

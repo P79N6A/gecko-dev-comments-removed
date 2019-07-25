@@ -1016,33 +1016,19 @@ nsTreeBodyFrame::InvalidateScrollbars(const ScrollParts& aParts, nsWeakFrame& aW
 
 
 
-void
-nsTreeBodyFrame::AdjustClientCoordsToBoxCoordSpace(PRInt32 aX, PRInt32 aY,
-                                                   nscoord* aResultX,
-                                                   nscoord* aResultY)
+nsPoint
+nsTreeBodyFrame::AdjustClientCoordsToBoxCoordSpace(PRInt32 aX, PRInt32 aY)
 {
-  nsPresContext* presContext = PresContext();
-
   nsPoint point(nsPresContext::CSSPixelsToAppUnits(aX),
                 nsPresContext::CSSPixelsToAppUnits(aY));
 
-  
-  
-  nsPoint clientOffset;
-  nsIView* closestView = GetClosestView(&clientOffset);
-  point -= clientOffset;
-
-  nsIView* rootView;
-  presContext->GetPresShell()->GetViewManager()->GetRootView(rootView);
-  NS_ASSERTION(closestView && rootView, "No view?");
-  point -= closestView->GetOffsetTo(rootView);
+  nsPresContext* presContext = PresContext();
+  point -= GetOffsetTo(presContext->GetPresShell()->GetRootFrame());
 
   
   
   point -= mInnerBox.TopLeft();
-
-  *aResultX = point.x;
-  *aResultY = point.y;
+  return point;
 } 
 
 nsresult
@@ -1051,17 +1037,15 @@ nsTreeBodyFrame::GetRowAt(PRInt32 aX, PRInt32 aY, PRInt32* _retval)
   if (!mView)
     return NS_OK;
 
-  nscoord x;
-  nscoord y;
-  AdjustClientCoordsToBoxCoordSpace(aX, aY, &x, &y);
+  nsPoint point = AdjustClientCoordsToBoxCoordSpace(aX, aY);
 
   
-  if (y < 0) {
+  if (point.y < 0) {
     *_retval = -1;
     return NS_OK;
   }
 
-  *_retval = GetRowAt(x, y);
+  *_retval = GetRowAt(point.x, point.y);
 
   return NS_OK;
 }
@@ -1073,19 +1057,17 @@ nsTreeBodyFrame::GetCellAt(PRInt32 aX, PRInt32 aY, PRInt32* aRow, nsITreeColumn*
   if (!mView)
     return NS_OK;
 
-  nscoord x;
-  nscoord y;
-  AdjustClientCoordsToBoxCoordSpace(aX, aY, &x, &y);
+  nsPoint point = AdjustClientCoordsToBoxCoordSpace(aX, aY);
 
   
-  if (y < 0) {
+  if (point.y < 0) {
     *aRow = -1;
     return NS_OK;
   }
 
   nsTreeColumn* col;
   nsIAtom* child;
-  GetCellAt(x, y, aRow, &col, &child);
+  GetCellAt(point.x, point.y, aRow, &col, &child);
 
   if (col) {
     NS_ADDREF(*aCol = col);
