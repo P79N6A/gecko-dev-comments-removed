@@ -2123,8 +2123,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(WebGLExtension, WEBGLACTIVEINFO_PRIVATE_IID)
 
 
 
-
-
 template<class ConcreteObjectType, class BaseInterfaceType>
 inline bool
 WebGLContext::GetConcreteObject(const char *info,
@@ -2151,12 +2149,18 @@ WebGLContext::GetConcreteObject(const char *info,
     if (isNull)
         *isNull = PR_FALSE;
 
-    nsresult rv;
-    nsCOMPtr<ConcreteObjectType> tmp(do_QueryInterface(aInterface, &rv));
-    if (NS_FAILED(rv))
-        return PR_FALSE;
-
-    *aConcreteObject = tmp;
+#ifdef DEBUG
+    {
+        
+        nsresult rv;
+        do_QueryInterface(aInterface, &rv);
+        NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv),
+                          "QueryInterface failed. WebGL objects are builtinclass, so this should never happen. "
+                          "Please file a bug at bugzilla.mozilla.org -> Core -> Canvas:WebGL and link to the present page.");
+    }
+#endif
+    
+    *aConcreteObject = static_cast<ConcreteObjectType*>(aInterface);
 
     if (!(*aConcreteObject)->IsCompatibleWithContext(this)) {
         
