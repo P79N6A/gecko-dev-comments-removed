@@ -252,7 +252,7 @@ public class SQLiteBridge {
         SQLiteBridge bridge = null;
         try {
             bridge = new SQLiteBridge(path);
-            bridge.mDbPointer = bridge.openDatabase(path);
+            bridge.mDbPointer = SQLiteBridge.openDatabase(path);
         } catch(SQLiteBridgeException ex) {
             
             throw new SQLiteException(ex.getMessage());
