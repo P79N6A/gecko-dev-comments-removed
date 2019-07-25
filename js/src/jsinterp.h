@@ -51,6 +51,7 @@
 #include "jsvalue.h"
 
 typedef struct JSFrameRegs {
+    JSStackFrame    *fp;            
     jsbytecode      *pc;            
     js::Value       *sp;            
 } JSFrameRegs;

@@ -359,7 +359,7 @@ MozAxAutoPushJSContext::MozAxAutoPushJSContext(JSContext *cx,
     
     
     PRBool hasScript = PR_FALSE;
-    JSStackFrame* tempFP = cx->fp;
+    JSStackFrame* tempFP = cx->fp();
     while (tempFP)
     {
         if (tempFP->script)
