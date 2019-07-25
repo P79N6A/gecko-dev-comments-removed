@@ -43,6 +43,9 @@
 const Cu = Components.utils;
 const FILTER_CHANGED_TIMEOUT = 300;
 
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PluralForm.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -50,6 +53,94 @@ Cu.import("resource:///modules/devtools/CssLogic.jsm");
 Cu.import("resource:///modules/devtools/Templater.jsm");
 
 var EXPORTED_SYMBOLS = ["CssHtmlTree", "PropertyView"];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function UpdateProcess(aWin, aGenerator, aOptions)
+{
+  this.win = aWin;
+  this.iter = Iterator(aGenerator);
+  this.onItem = aOptions.onItem || function() {};
+  this.onBatch = aOptions.onBatch || function () {};
+  this.onDone = aOptions.onDone || function() {};
+  this.onCancel = aOptions.onCancel || function() {};
+  this.threshold = aOptions.threshold || 45;
+
+  this.canceled = false;
+}
+
+UpdateProcess.prototype = {
+  
+
+
+  schedule: function UP_schedule()
+  {
+    if (this.cancelled) {
+      return;
+    }
+    this._timeout = this.win.setTimeout(this._timeoutHandler.bind(this), 0);
+  },
+
+  
+
+
+
+  cancel: function UP_cancel()
+  {
+    if (this._timeout) {
+      this.win.clearTimeout(this._timeout);
+      this._timeout = 0;
+    }
+    this.canceled = true;
+    this.onCancel();
+  },
+
+  _timeoutHandler: function UP_timeoutHandler() {
+    this._timeout = null;
+    try {
+      this._runBatch();
+      this.schedule();
+    } catch(e) {
+      if (e instanceof StopIteration) {
+        this.onBatch();
+        this.onDone();
+        return;
+      }
+      throw e;
+    }
+  },
+
+  _runBatch: function Y_runBatch()
+  {
+    let time = Date.now();
+    while(!this.cancelled) {
+      
+      let next = this.iter.next();
+      this.onItem(next[1]);
+      if ((Date.now() - time) > this.threshold) {
+        this.onBatch();
+        return;
+      }
+    }
+  }
+};
 
 
 
@@ -78,7 +169,6 @@ function CssHtmlTree(aStyleInspector)
   this.templateRoot = this.styleDocument.getElementById("templateRoot");
   this.templatePath = this.styleDocument.getElementById("templatePath");
   this.propertyContainer = this.styleDocument.getElementById("propertyContainer");
-  this.templateProperty = this.styleDocument.getElementById("templateProperty");
   this.panel = aStyleInspector.panel;
 
   
@@ -135,6 +225,10 @@ CssHtmlTree.processTemplate = function CssHtmlTree_processTemplate(aTemplate,
 XPCOMUtils.defineLazyGetter(CssHtmlTree, "_strings", function() Services.strings
         .createBundle("chrome:
 
+XPCOMUtils.defineLazyGetter(CssHtmlTree, "HELP_LINK_TITLE", function() {
+  return CssHtmlTree.HELP_LINK_TITLE = CssHtmlTree.l10n("helpLinkTitle");
+});
+
 CssHtmlTree.prototype = {
   
   _matchedProperties: null,
@@ -181,46 +275,38 @@ CssHtmlTree.prototype = {
     if (this.htmlComplete) {
       this.refreshPanel();
     } else {
-      if (this._panelRefreshTimeout) {
-        this.win.clearTimeout(this._panelRefreshTimeout);
+      if (this._refreshProcess) {
+        this._refreshProcess.cancel();
       }
 
       CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
 
-      
-      
-      let i = 0;
-      let batchSize = 15;
-      let max = CssHtmlTree.propertyNames.length - 1;
-      function displayProperties() {
-        if (this.viewedElement == aElement && this.styleInspector.isOpen()) {
+      this.numVisibleProperties = 0;
+      let fragment = this.doc.createDocumentFragment();
+      this._refreshProcess = new UpdateProcess(this.win, CssHtmlTree.propertyNames, {
+        onItem: function(aPropertyName) {
           
-          for (let step = i + batchSize; i < step && i <= max; i++) {
-            let name = CssHtmlTree.propertyNames[i];
-            let propView = new PropertyView(this, name);
-            CssHtmlTree.processTemplate(this.templateProperty,
-              this.propertyContainer, propView, true);
-            if (propView.visible) {
-              this.numVisibleProperties++;
-            }
-            propView.refreshAllSelectors();
-            this.propertyViews.push(propView);
+          if (this.viewedElement != aElement || !this.styleInspector.isOpen()) {
+            return false;
           }
-          if (i < max) {
-            
-            
-            this._panelRefreshTimeout =
-              this.win.setTimeout(displayProperties.bind(this), 15);
-          } else {
-            this.htmlComplete = true;
-            this._panelRefreshTimeout = null;
-            this.noResults.hidden = this.numVisibleProperties > 0;
-            Services.obs.notifyObservers(null, "StyleInspector-populated", null);
+          let propView = new PropertyView(this, aPropertyName);
+          fragment.appendChild(propView.build());
+          if (propView.visible) {
+            this.numVisibleProperties++;
           }
-        }
-      }
-      this._panelRefreshTimeout =
-        this.win.setTimeout(displayProperties.bind(this), 15);
+          propView.refreshAllSelectors();
+          this.propertyViews.push(propView);
+        }.bind(this),
+        onDone: function() {
+          
+          this.htmlComplete = true;
+          this.propertyContainer.appendChild(fragment);
+          this.noResults.hidden = this.numVisibleProperties > 0;
+          this._refreshProcess = null;
+          Services.obs.notifyObservers(null, "StyleInspector-populated", null);
+        }.bind(this)});
+
+      this._refreshProcess.schedule();
     }
   },
 
@@ -229,8 +315,8 @@ CssHtmlTree.prototype = {
 
   refreshPanel: function CssHtmlTree_refreshPanel()
   {
-    if (this._panelRefreshTimeout) {
-      this.win.clearTimeout(this._panelRefreshTimeout);
+    if (this._refreshProcess) {
+      this._refreshProcess.cancel();
     }
 
     this.noResults.hidden = true;
@@ -241,27 +327,18 @@ CssHtmlTree.prototype = {
     
     this._darkStripe = true;
 
-    
-    
-    let i = 0;
-    let batchSize = 15;
-    let max = this.propertyViews.length - 1;
-    function refreshView() {
-      
-      for (let step = i + batchSize; i < step && i <= max; i++) {
-        this.propertyViews[i].refresh();
-      }
-      if (i < max) {
-        
-        
-        this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 15);
-      } else {
-        this._panelRefreshTimeout = null;
-        this.noResults.hidden = this.numVisibleProperties > 0;
+    let display = this.propertyContainer.style.display;
+    this._refreshProcess = new UpdateProcess(this.win, this.propertyViews, {
+      onItem: function(aPropView) {
+        aPropView.refresh();
+      }.bind(this),
+      onDone: function() {
+        this._refreshProcess = null;
+        this.noResults.hidden = this.numVisibleProperties > 0
         Services.obs.notifyObservers(null, "StyleInspector-populated", null);
-      }
-    }
-    this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 15);
+      }.bind(this)
+    });
+    this._refreshProcess.schedule();
   },
 
   
@@ -423,7 +500,6 @@ CssHtmlTree.prototype = {
     delete this.path;
     delete this.templatePath;
     delete this.propertyContainer;
-    delete this.templateProperty;
     delete this.panel;
 
     
@@ -568,6 +644,50 @@ PropertyView.prototype = {
       return darkValue;
     }
     return "property-view-hidden";
+  },
+
+  build: function PropertyView_build()
+  {
+    let doc = this.tree.doc;
+    this.element = doc.createElementNS(HTML_NS, "div");
+    this.element.setAttribute("class", this.className);
+
+    this.propertyHeader = doc.createElementNS(XUL_NS, "hbox");
+    this.element.appendChild(this.propertyHeader);
+    this.propertyHeader.setAttribute("class", "property-header");
+    this.propertyHeader.addEventListener("click", this.propertyHeaderClick.bind(this), false);
+
+    this.matchedExpander = doc.createElementNS(HTML_NS, "div");
+    this.propertyHeader.appendChild(this.matchedExpander);
+    this.matchedExpander.setAttribute("class", "match expander");
+
+    let name = doc.createElementNS(HTML_NS, "div");
+    this.propertyHeader.appendChild(name);
+    name.setAttribute("class", "property-name");
+    name.textContent = this.name;
+
+    let helpcontainer = doc.createElementNS(HTML_NS, "div");
+    this.propertyHeader.appendChild(helpcontainer);
+    helpcontainer.setAttribute("class", "helplink-container");
+
+    let helplink = doc.createElementNS(HTML_NS, "a");
+    helpcontainer.appendChild(helplink);
+    helplink.setAttribute("class", "helplink");
+    helplink.setAttribute("title", CssHtmlTree.HELP_LINK_TITLE);
+    helplink.textContent = CssHtmlTree.HELP_LINK_TITLE;
+    helplink.addEventListener("click", this.mdnLinkClick.bind(this), false);
+
+    this.valueNode = doc.createElementNS(HTML_NS, "div");
+    this.propertyHeader.appendChild(this.valueNode);
+    this.valueNode.setAttribute("class", "property-value");
+    this.valueNode.setAttribute("dir", "ltr");
+    this.valueNode.textContent = this.value;
+
+    this.matchedSelectorsContainer = doc.createElementNS(HTML_NS, "div");
+    this.element.appendChild(this.matchedSelectorsContainer);
+    this.matchedSelectorsContainer.setAttribute("class", "rulelink");
+
+    return this.element;
   },
 
   
