@@ -286,7 +286,7 @@ ClientEngine.prototype = {
             Weave.Service.logout();
             return false;
           case "displayURI":
-            this._handleDisplayURI(args[0], args[1]);
+            this._handleDisplayURI.apply(this, args);
             break;
           default:
             this._log.debug("Received an unknown command: " + command);
@@ -378,10 +378,15 @@ ClientEngine.prototype = {
 
 
 
-  _handleDisplayURI: function _handleDisplayURI(uri, clientId) {
-    this._log.info("Received a URI for display: " + uri + " from " + clientId);
 
-    let subject = { uri: uri, client: clientId };
+
+
+
+  _handleDisplayURI: function _handleDisplayURI(uri, clientId, title) {
+    this._log.info("Received a URI for display: " + uri + " (" + title +
+                   ") from " + clientId);
+
+    let subject = {uri: uri, client: clientId, title: title};
     Svc.Obs.notify("weave:engine:clients:display-uri", subject);
   }
 };
