@@ -2727,6 +2727,22 @@ nsGenericHTMLFormElement::CanBeDisabled() const
 }
 
 PRBool
+nsGenericHTMLFormElement::IsHTMLFocusable(PRBool aWithMouse,
+                                          PRBool* aIsFocusable,
+                                          PRInt32* aTabIndex)
+{
+  if (nsGenericHTMLElement::IsHTMLFocusable(aWithMouse, aIsFocusable, aTabIndex)) {
+    return PR_TRUE;
+  }
+
+#ifdef XP_MACOSX
+  *aIsFocusable =
+    (!aWithMouse || nsFocusManager::sMouseFocusesFormControl) && *aIsFocusable;
+#endif
+  return PR_FALSE;
+}
+
+PRBool
 nsGenericHTMLFormElement::IsSubmitControl() const
 {
   PRInt32 type = GetType();
@@ -3317,10 +3333,6 @@ nsGenericHTMLElement::IsHTMLFocusable(PRBool aWithMouse,
 
   
   *aIsFocusable = 
-#ifdef XP_MACOSX
-    
-    (!aWithMouse || override) &&
-#endif
     (tabIndex >= 0 || (!disabled && HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)));
 
   return override;
