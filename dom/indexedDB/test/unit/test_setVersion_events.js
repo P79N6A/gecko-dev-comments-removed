@@ -113,11 +113,28 @@ function testSteps()
   is(event.oldVersion, 2, "Correct event oldVersion");
   is(event.newVersion, 3, "Correct event newVersion");
   versionChangeEventCount++;
+  
   db2.close();
-  db3.close();
+  db3 = null;
+  gc();
 
   request.onupgradeneeded = grabEventAndContinueHandler;
   request.onsuccess = grabEventAndContinueHandler;
+
+  executeSoon(function() { testGenerator.next(); });
+  yield;
+  gc();
+
+  if (!this.window) {
+    
+    
+    let thread = Components.classes["@mozilla.org/thread-manager;1"]
+                           .getService(Components.interfaces.nsIThreadManager)
+                           .currentThread;
+    while (thread.hasPendingEvents()) {
+      thread.processNextEvent(false);
+    }
+  }
 
   event = yield;
   event = yield;
