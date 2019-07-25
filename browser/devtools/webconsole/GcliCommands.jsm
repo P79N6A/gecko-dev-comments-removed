@@ -88,6 +88,18 @@ gcli.addCommand({
 
 
 gcli.addCommand({
+  name: "console close",
+  description: gcli.lookup("consolecloseDesc"),
+  exec: function(args, context) {
+    let tab = HUDService.getHudReferenceById(context.environment.hudId).tab;
+    HUDService.deactivateHUDForContext(tab);
+  }
+});
+
+
+
+
+gcli.addCommand({
   name: "inspect",
   description: gcli.lookup("inspectDesc"),
   manual: gcli.lookup("inspectManual"),
