@@ -2248,28 +2248,38 @@ moz_gtk_progress_chunk_paint(GdkDrawable* drawable, GdkRectangle* rect,
 
     TSOffsetStyleGCs(style, rect->x, rect->y);
 
-    if (widget == MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE) {
+    if (widget == MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE ||
+        widget == MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE) {
       
 
 
 
+      gboolean vertical = (widget == MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE);
+
+      
+      const gint progressSize = vertical ? rect->height : rect->width;
 
       
 
-      const gint barWidth = MAX(1, rect->width / 5);
+      const gint barSize = MAX(1, progressSize / 5);
 
       
-      const gint travel = 2 * (rect->width - barWidth);
+      const gint travel = 2 * (progressSize - barSize);
 
       
 
 
-      const guint period = 1600;
+      static const guint period = 1600;
       const gint t = PR_IntervalToMilliseconds(PR_IntervalNow()) % period;
       const gint dx = travel * t / period;
 
-      rect->x += (dx < travel / 2) ? dx : travel - dx;
-      rect->width = barWidth;
+      if (vertical) {
+        rect->y += (dx < travel / 2) ? dx : travel - dx;
+        rect->height = barSize;
+      } else {
+        rect->x += (dx < travel / 2) ? dx : travel - dx;
+        rect->width = barSize;
+      }
     }
 
     gtk_paint_box(style, drawable, GTK_STATE_PRELIGHT, GTK_SHADOW_OUT,
@@ -2986,6 +2996,7 @@ moz_gtk_get_widget_border(GtkThemeWidgetType widget, gint* left, gint* top,
     case MOZ_GTK_GRIPPER:
     case MOZ_GTK_PROGRESS_CHUNK:
     case MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE:
+    case MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE:
     case MOZ_GTK_EXPANDER:
     case MOZ_GTK_TREEVIEW_EXPANDER:
     case MOZ_GTK_TOOLBAR_SEPARATOR:
@@ -3333,6 +3344,7 @@ moz_gtk_widget_paint(GtkThemeWidgetType widget, GdkDrawable* drawable,
         break;
     case MOZ_GTK_PROGRESS_CHUNK:
     case MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE:
+    case MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE:
         return moz_gtk_progress_chunk_paint(drawable, rect, cliprect,
                                             direction, widget);
         break;
