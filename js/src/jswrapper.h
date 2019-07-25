@@ -113,14 +113,8 @@ class JS_FRIEND_API(Wrapper)
 
 
 
-
-
-
-
     virtual bool enter(JSContext *cx, JSObject *wrapper, jsid id, Action act,
                        bool *bp);
-
-    virtual void leave(JSContext *cx, JSObject *wrapper);
 };
 
 
