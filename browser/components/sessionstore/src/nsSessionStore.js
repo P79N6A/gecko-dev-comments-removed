@@ -575,17 +575,13 @@ SessionStoreService.prototype = {
         this.onTabInput(win, aEvent.currentTarget);
         break;
       case "TabOpen":
+        this.onTabAdd(win, aEvent.originalTarget);
+        break;
       case "TabClose":
-        let browser = aEvent.originalTarget.linkedBrowser;
-        if (aEvent.type == "TabOpen") {
-          this.onTabAdd(win, browser);
-        }
-        else {
-          
-          if (!aEvent.detail)
-            this.onTabClose(win, aEvent.originalTarget);
-          this.onTabRemove(win, browser);
-        }
+        
+        if (!aEvent.detail)
+          this.onTabClose(win, aEvent.originalTarget);
+        this.onTabRemove(win, aEvent.originalTarget);
         break;
       case "TabSelect":
         this.onTabSelect(win);
@@ -692,8 +688,8 @@ SessionStoreService.prototype = {
     var tabbrowser = aWindow.gBrowser;
     
     
-    for (let i = 0; i < tabbrowser.browsers.length; i++) {
-      this.onTabAdd(aWindow, tabbrowser.browsers[i], true);
+    for (let i = 0; i < tabbrowser.tabs.length; i++) {
+      this.onTabAdd(aWindow, tabbrowser.tabs[i], true);
     }
     
     tabbrowser.tabContainer.addEventListener("TabOpen", this, true);
@@ -760,8 +756,8 @@ SessionStoreService.prototype = {
       this.saveStateDelayed();
     }
     
-    for (let i = 0; i < tabbrowser.browsers.length; i++) {
-      this.onTabRemove(aWindow, tabbrowser.browsers[i], true);
+    for (let i = 0; i < tabbrowser.tabs.length; i++) {
+      this.onTabRemove(aWindow, tabbrowser.tabs[i], true);
     }
     
     
@@ -779,13 +775,14 @@ SessionStoreService.prototype = {
 
 
 
-  onTabAdd: function sss_onTabAdd(aWindow, aBrowser, aNoNotification) {
-    aBrowser.addEventListener("load", this, true);
-    aBrowser.addEventListener("pageshow", this, true);
-    aBrowser.addEventListener("change", this, true);
-    aBrowser.addEventListener("input", this, true);
-    aBrowser.addEventListener("DOMAutoComplete", this, true);
-    
+  onTabAdd: function sss_onTabAdd(aWindow, aTab, aNoNotification) {
+    let browser = aTab.linkedBrowser;
+    browser.addEventListener("load", this, true);
+    browser.addEventListener("pageshow", this, true);
+    browser.addEventListener("change", this, true);
+    browser.addEventListener("input", this, true);
+    browser.addEventListener("DOMAutoComplete", this, true);
+
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
     }
@@ -802,15 +799,16 @@ SessionStoreService.prototype = {
 
 
 
-  onTabRemove: function sss_onTabRemove(aWindow, aBrowser, aNoNotification) {
-    aBrowser.removeEventListener("load", this, true);
-    aBrowser.removeEventListener("pageshow", this, true);
-    aBrowser.removeEventListener("change", this, true);
-    aBrowser.removeEventListener("input", this, true);
-    aBrowser.removeEventListener("DOMAutoComplete", this, true);
-    
-    delete aBrowser.__SS_data;
-    
+  onTabRemove: function sss_onTabRemove(aWindow, aTab, aNoNotification) {
+    let browser = aTab.linkedBrowser;
+    browser.removeEventListener("load", this, true);
+    browser.removeEventListener("pageshow", this, true);
+    browser.removeEventListener("change", this, true);
+    browser.removeEventListener("input", this, true);
+    browser.removeEventListener("DOMAutoComplete", this, true);
+
+    delete browser.__SS_data;
+
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
     }
