@@ -283,11 +283,7 @@ toolbarbutton.page-button {
 
   #panel-controls {
     -moz-box-orient: vertical;
-    -moz-box-pack: end;
-  }
-
-  #tool-panel-close {
-    -moz-box-ordinal-group: 1000;
+    -moz-box-direction: normal;
   }
 }
 
@@ -299,12 +295,11 @@ toolbarbutton.page-button {
 
   #panel-controls {
     -moz-box-orient: horizontal;
-    -moz-box-pack: start;
+    -moz-box-direction: reverse;
     padding-top: 8px; 
   }
 
   #tool-panel-close {
-    -moz-box-ordinal-group: 1;
     margin-right: 8px; 
   }
 
@@ -318,6 +313,7 @@ toolbarbutton.page-button {
   padding-left: 8px; 
   padding-right: 8px; 
   -moz-box-align: end;
+  -moz-box-pack: end;
 }
 
 .panel-header {
