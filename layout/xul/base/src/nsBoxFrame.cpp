@@ -1844,63 +1844,6 @@ nsBoxFrame::GetFrameSizeWithMargin(nsIBox* aBox, nsSize& aSize)
 
 
 
-
-
-
-nsresult
-nsBoxFrame::CreateViewForFrame(nsPresContext*  aPresContext,
-                               nsIFrame*        aFrame,
-                               nsStyleContext*  aStyleContext,
-                               PRBool           aForce,
-                               PRBool           aIsPopup)
-{
-  NS_ASSERTION(aForce, "We only get called to force view creation now");
-  
-  if (!aFrame->HasView()) {
-    nsViewVisibility visibility = nsViewVisibility_kShow;
-    PRInt32 zIndex = 0;
-    PRBool  autoZIndex = PR_FALSE;
-
-    if (aForce) {
-      nsIView* parentView;
-      nsIViewManager* viewManager = aPresContext->GetPresShell()->GetViewManager();
-      NS_ASSERTION(nsnull != viewManager, "null view manager");
-
-      
-      if (aIsPopup) {
-        parentView = viewManager->GetRootView();
-        visibility = nsViewVisibility_kHide;
-        zIndex = PR_INT32_MAX;
-      }
-      else {
-        parentView = aFrame->GetParent()->GetClosestView();
-      }
-
-      NS_ASSERTION(parentView, "no parent view");
-
-      
-      nsIView *view = viewManager->CreateView(aFrame->GetRect(), parentView, visibility);
-      if (view) {
-        viewManager->SetViewZIndex(view, autoZIndex, zIndex);
-        
-        viewManager->InsertChild(parentView, view, nsnull, PR_TRUE);
-      }
-
-      
-      aFrame->SetView(view);
-
-      NS_FRAME_LOG(NS_FRAME_TRACE_CALLS,
-        ("nsBoxFrame::CreateViewForFrame: frame=%p view=%p",
-         aFrame));
-      if (!view)
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-  }
-  return NS_OK;
-}
-
-
-
 nsresult
 nsBoxFrame::RegUnregAccessKey(PRBool aDoReg)
 {

@@ -182,14 +182,6 @@ public:
 
   
   
-  static nsresult CreateViewForFrame(nsPresContext* aPresContext,
-                                     nsIFrame* aChild,
-                                     nsStyleContext* aStyleContext,
-                                     PRBool aForce,
-                                     PRBool aIsPopup = PR_FALSE);
-
-  
-  
   NS_IMETHOD BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
                                          const nsRect&           aDirtyRect,
                                          const nsDisplayListSet& aLists);
