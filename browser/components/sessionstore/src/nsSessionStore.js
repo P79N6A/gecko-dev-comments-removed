@@ -3014,24 +3014,17 @@ SessionStoreService.prototype = {
     let activeIndex = (tabData.index || tabData.entries.length) - 1;
     if (activeIndex >= tabData.entries.length)
       activeIndex = tabData.entries.length - 1;
-
     
     
     
     browser.webNavigation.setCurrentURI(this._getURIFromString("about:blank"));
-
     
     if (activeIndex > -1) {
-      let curSHEntry = browser.webNavigation.sessionHistory.
-                       getEntryAtIndex(activeIndex, false).
-                       QueryInterface(Ci.nsISHEntry);
-
       
       
       browser.__SS_restore_data = tabData.entries[activeIndex] || {};
       browser.__SS_restore_pageStyle = tabData.pageStyle || "";
       browser.__SS_restore_tab = aTab;
-
       didStartLoad = true;
       try {
         
