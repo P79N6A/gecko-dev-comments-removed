@@ -51,6 +51,8 @@
 
 #ifdef MOZ_HAVE_SHMIMAGE
 
+using namespace mozilla::ipc;
+
 
 
 static PRBool gShmAvailable = PR_TRUE;
@@ -76,7 +78,8 @@ nsShmImage::Create(const gfxIntSize& aSize,
         return nsnull;
     }
 
-    size_t size = shm->mImage->bytes_per_line * shm->mImage->height;
+    size_t size = SharedMemory::PageAlignedSize(
+        shm->mImage->bytes_per_line * shm->mImage->height);
     shm->mSegment = new SharedMemorySysV();
     if (!shm->mSegment->Create(size) || !shm->mSegment->Map(size)) {
         return nsnull;
