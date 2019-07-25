@@ -17,7 +17,7 @@
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsDOMMultipartFile, nsDOMFileBase,
+NS_IMPL_ISUPPORTS_INHERITED1(nsDOMMultipartFile, nsDOMFile,
                              nsIJSNativeInitializer)
 
 NS_IMETHODIMP
@@ -137,6 +137,15 @@ nsDOMMultipartFile::CreateSlice(PRUint64 aStart, PRUint64 aLength,
   
   nsCOMPtr<nsIDOMBlob> blob = new nsDOMMultipartFile(blobs, aContentType);
   return blob.forget();
+}
+
+ nsresult
+nsDOMMultipartFile::NewFile(const nsAString& aName, nsISupports* *aNewObject)
+{
+  nsCOMPtr<nsISupports> file =
+    do_QueryObject(new nsDOMMultipartFile(aName));
+  file.forget(aNewObject);
+  return NS_OK;
 }
 
  nsresult

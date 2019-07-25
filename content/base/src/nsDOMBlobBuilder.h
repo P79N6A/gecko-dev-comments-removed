@@ -12,7 +12,7 @@
 
 using namespace mozilla;
 
-class nsDOMMultipartFile : public nsDOMFileBase,
+class nsDOMMultipartFile : public nsDOMFile,
                            public nsIJSNativeInitializer
 {
 public:
@@ -20,7 +20,7 @@ public:
   nsDOMMultipartFile(nsTArray<nsCOMPtr<nsIDOMBlob> > aBlobs,
                      const nsAString& aName,
                      const nsAString& aContentType)
-    : nsDOMFileBase(aName, aContentType, UINT64_MAX),
+    : nsDOMFile(aName, aContentType, UINT64_MAX),
       mBlobs(aBlobs)
   {
   }
@@ -28,14 +28,20 @@ public:
   
   nsDOMMultipartFile(nsTArray<nsCOMPtr<nsIDOMBlob> > aBlobs,
                      const nsAString& aContentType)
-    : nsDOMFileBase(aContentType, UINT64_MAX),
+    : nsDOMFile(aContentType, UINT64_MAX),
       mBlobs(aBlobs)
   {
   }
 
   
+  nsDOMMultipartFile(const nsAString& aName)
+    : nsDOMFile(aName, EmptyString(), UINT64_MAX)
+  {
+  }
+
+  
   nsDOMMultipartFile()
-    : nsDOMFileBase(EmptyString(), UINT64_MAX)
+    : nsDOMFile(EmptyString(), UINT64_MAX)
   {
   }
 
@@ -59,6 +65,9 @@ public:
 
   NS_IMETHOD GetSize(PRUint64*);
   NS_IMETHOD GetInternalStream(nsIInputStream**);
+
+  static nsresult
+  NewFile(const nsAString& aName, nsISupports* *aNewObject);
 
   
   static nsresult

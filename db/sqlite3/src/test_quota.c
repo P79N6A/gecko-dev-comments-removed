@@ -1042,7 +1042,7 @@ size_t sqlite3_quota_fread(
 
 
 size_t sqlite3_quota_fwrite(
-  void *pBuf,            
+  const void *pBuf,      
   size_t size,           
   size_t nmemb,          
   quota_FILE *p          
@@ -1052,7 +1052,7 @@ size_t sqlite3_quota_fwrite(
   sqlite3_int64 szNew;
   quotaFile *pFile;
   size_t rc;
-  
+
   iOfst = ftell(p->f);
   iEnd = iOfst + size*nmemb;
   pFile = p->pFile;
@@ -1091,7 +1091,7 @@ size_t sqlite3_quota_fwrite(
     pFile->iSize = iNewEnd;
     quotaLeave();
   }
-  return rc;    
+  return rc;
 }
 
 
@@ -1158,6 +1158,13 @@ void sqlite3_quota_rewind(quota_FILE *p){
 
 long sqlite3_quota_ftell(quota_FILE *p){
   return ftell(p->f);
+}
+
+
+
+
+int sqlite3_quota_ferror(quota_FILE *p){
+  return ferror(p->f);
 }
 
 
@@ -1235,6 +1242,25 @@ sqlite3_int64 sqlite3_quota_file_truesize(quota_FILE *p){
 
 sqlite3_int64 sqlite3_quota_file_size(quota_FILE *p){
   return p->pFile ? p->pFile->iSize : -1;
+}
+
+
+
+
+
+long sqlite3_quota_file_available(quota_FILE *p){
+  FILE* f = p->f;
+  long pos1, pos2;
+  int rc;
+  pos1 = ftell(f);
+  if ( pos1 < 0 ) return -1;
+  rc = fseek(f, 0, SEEK_END);
+  if ( rc != 0 ) return -1;
+  pos2 = ftell(f);
+  if ( pos2 < 0 ) return -1;
+  rc = fseek(f, pos1, SEEK_SET);
+  if ( rc != 0 ) return -1;
+  return pos2 - pos1;
 }
 
 

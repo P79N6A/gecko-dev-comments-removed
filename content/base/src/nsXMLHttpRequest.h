@@ -616,7 +616,7 @@ protected:
   
   
   
-  nsRefPtr<nsDOMFileBase> mDOMFile;
+  nsRefPtr<nsDOMFile> mDOMFile;
   
   
   nsRefPtr<nsDOMBlobBuilder> mBuilder;

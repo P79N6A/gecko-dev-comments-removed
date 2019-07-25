@@ -162,7 +162,7 @@ quota_FILE *sqlite3_quota_fopen(const char *zFilename, const char *zMode);
 
 
 size_t sqlite3_quota_fread(void*, size_t, size_t, quota_FILE*);
-size_t sqlite3_quota_fwrite(void*, size_t, size_t, quota_FILE*);
+size_t sqlite3_quota_fwrite(const void*, size_t, size_t, quota_FILE*);
 
 
 
@@ -195,10 +195,17 @@ long sqlite3_quota_ftell(quota_FILE*);
 
 
 
+int sqlite3_quota_ferror(quota_FILE*);
 
 
 
-int sqlite3_quota_ftrunate(quota_FILE*, sqlite3_int64 newSize);
+
+
+
+
+
+
+int sqlite3_quota_ftruncate(quota_FILE*, sqlite3_int64 newSize);
 
 
 
@@ -231,6 +238,14 @@ sqlite3_int64 sqlite3_quota_file_size(quota_FILE*);
 
 
 sqlite3_int64 sqlite3_quota_file_truesize(quota_FILE*);
+
+
+
+
+
+
+
+long sqlite3_quota_file_available(quota_FILE*);
 
 
 

@@ -96,6 +96,9 @@ enum DOM4ErrorTypeCodeMap {
 
   
   NotReadableError         = 0,
+
+  
+  LockedFileInactiveError = 0,
 };
 
 #define DOM4_MSG_DEF(name, message, nsresult) {(nsresult), name, #name, message},
