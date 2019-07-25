@@ -101,12 +101,8 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
     SharedContext sc(cx, scopeChain,  NULL,  NULL);
 
-    TreeContext tc(&parser, &sc, staticLevel);
+    TreeContext tc(&parser, &sc, staticLevel,  0);
     if (!tc.init())
-        return NULL;
-    
-    
-    if (!GenerateBlockId(&tc, tc.bodyid))
         return NULL;
 
     bool savedCallerFun = compileAndGo && callerFrame && callerFrame->isFunctionFrame();
@@ -262,10 +258,8 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
     fun->setArgCount(funsc.bindings.numArgs());
 
     unsigned staticLevel = 0;
-    TreeContext funtc(&parser, &funsc, staticLevel);
+    TreeContext funtc(&parser, &funsc, staticLevel,  0);
     if (!funtc.init())
-        return false;
-    if (!GenerateBlockId(&funtc, funtc.bodyid))
         return false;
 
     GlobalObject *globalObject = fun->getParent() ? &fun->getParent()->global() : NULL;

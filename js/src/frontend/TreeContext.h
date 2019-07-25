@@ -258,7 +258,7 @@ struct TreeContext {
 
     void trace(JSTracer *trc);
 
-    inline TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel);
+    inline TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
     inline ~TreeContext();
 
     inline bool init();

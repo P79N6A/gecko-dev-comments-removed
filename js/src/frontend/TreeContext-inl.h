@@ -57,10 +57,10 @@ SharedContext::argumentsLocal() const
 }
 
 inline
-TreeContext::TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel)
+TreeContext::TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid)
   : sc(sc),
-    bodyid(0),
-    blockidGen(0),
+    bodyid(0),           
+    blockidGen(bodyid),  
     topStmt(NULL),
     topScopeStmt(NULL),
     blockChain(prs->context),
@@ -87,6 +87,9 @@ TreeContext::TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel)
 inline bool
 TreeContext::init()
 {
+    if (!frontend::GenerateBlockId(this, this->bodyid))
+        return false;
+
     return decls.init() && lexdeps.ensureMap(sc->context);
 }
 
