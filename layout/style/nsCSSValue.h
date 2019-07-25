@@ -120,7 +120,6 @@ enum nsCSSUnit {
   
   
   
-  
 
   
   
@@ -134,9 +133,6 @@ enum nsCSSUnit {
   eCSSUnit_Calc_Times_L = 28,     
   eCSSUnit_Calc_Times_R = 29,     
   eCSSUnit_Calc_Divided = 30,     
-  
-  eCSSUnit_Calc_Minimum = 31,     
-  eCSSUnit_Calc_Maximum = 32,     
 
   eCSSUnit_URL          = 40,     
   eCSSUnit_Image        = 41,     
@@ -277,12 +273,12 @@ public:
   PRBool    IsTimeUnit() const  
     { return eCSSUnit_Seconds <= mUnit && mUnit <= eCSSUnit_Milliseconds; }
   PRBool    IsCalcUnit() const
-    { return eCSSUnit_Calc <= mUnit && mUnit <= eCSSUnit_Calc_Maximum; }
+    { return eCSSUnit_Calc <= mUnit && mUnit <= eCSSUnit_Calc_Divided; }
 
   PRBool    UnitHasStringValue() const
     { return eCSSUnit_String <= mUnit && mUnit <= eCSSUnit_Element; }
   PRBool    UnitHasArrayValue() const
-    { return eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Calc_Maximum; }
+    { return eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Calc_Divided; }
 
   PRInt32 GetIntValue() const
   {

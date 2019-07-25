@@ -3225,7 +3225,6 @@ nsIFrame::InlinePrefWidthData::ForceBreak(nsIRenderingContext *aRenderingContext
 
 
 
-
 struct LengthPercentPairWithMinMaxCalcOps : public css::StyleCoordInputCalcOps
 {
   struct result_type {
@@ -3253,23 +3252,11 @@ struct LengthPercentPairWithMinMaxCalcOps : public css::StyleCoordInputCalcOps
                                               aValue2.mLength),
                          aValue1.mPercent + aValue2.mPercent);
     }
-    if (aCalcFunction == eCSSUnit_Calc_Minus) {
-      return result_type(NSCoordSaturatingSubtract(aValue1.mLength,
-                                                   aValue2.mLength, 0),
-                         aValue1.mPercent - aValue2.mPercent);
-    }
-    if (aCalcFunction == eCSSUnit_Calc_Minimum) {
-      
-      
-      return result_type(NS_MIN(aValue1.mLength, aValue2.mLength),
-                         NS_MIN(aValue1.mPercent, aValue2.mPercent));
-    }
-    NS_ABORT_IF_FALSE(aCalcFunction == eCSSUnit_Calc_Maximum,
+    NS_ABORT_IF_FALSE(aCalcFunction == eCSSUnit_Calc_Minus,
                       "unexpected unit");
-    
-    
-    return result_type(NS_MAX(aValue1.mLength, aValue2.mLength),
-                       NS_MAX(aValue1.mPercent, aValue2.mPercent));
+    return result_type(NSCoordSaturatingSubtract(aValue1.mLength,
+                                                 aValue2.mLength, 0),
+                       aValue1.mPercent - aValue2.mPercent);
   }
 
   result_type
