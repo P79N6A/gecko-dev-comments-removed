@@ -151,7 +151,7 @@ StackWalkInitCriticalAddress()
   
   
 
-  MOZ_ASSERT(malloc_logger == NULL);
+  malloc_logger_t *old_malloc_logger = malloc_logger;
   malloc_logger = my_malloc_logger;
 
   pthread_cond_t cond;
@@ -164,7 +164,7 @@ StackWalkInitCriticalAddress()
   MOZ_ASSERT(r == 0);
   struct timespec abstime = {0, 1};
   r = pthread_cond_timedwait_relative_np(&cond, &mutex, &abstime);
-  malloc_logger = NULL;
+  malloc_logger = old_malloc_logger;
 
   
   
