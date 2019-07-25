@@ -118,6 +118,21 @@ function addA11yLoadEvent(aFunc, aWindow)
 
 
 
+function isObject(aObj, aExpectedObj, aMsg)
+{
+  if (aObj == aExpectedObj) {
+    ok(true, aMsg);
+    return;
+  }
+
+  ok(false,
+     aMsg + " - got '" + prettyName(aObj) +
+            "', expected '" + prettyName(aExpectedObj) + "'");
+}
+
+
+
+
 
 
 
