@@ -201,7 +201,8 @@ public:
 
 
 
-  nsresult CreateHTMLContent(const nsAString& aTag, nsIContent** aContent);
+  nsresult CreateHTMLContent(const nsAString& aTag,
+                             mozilla::dom::Element** aContent);
 
   
   virtual nsresult BeginIMEComposition();

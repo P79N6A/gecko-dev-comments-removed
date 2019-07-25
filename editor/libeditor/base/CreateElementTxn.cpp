@@ -11,12 +11,13 @@
 #include "nsIDOMElement.h"
 #include "nsReadableUtils.h"
 
-
-#include "nsIContent.h"
+#include "mozilla/dom/Element.h"
 
 #ifdef NS_DEBUG
 static bool gNoisy = false;
 #endif
+
+using namespace mozilla;
 
 CreateElementTxn::CreateElementTxn()
   : EditTxn()
@@ -80,7 +81,7 @@ NS_IMETHODIMP CreateElementTxn::DoTransaction(void)
   NS_ASSERTION(mEditor && mParent, "bad state");
   NS_ENSURE_TRUE(mEditor && mParent, NS_ERROR_NOT_INITIALIZED);
 
-  nsCOMPtr<nsIContent> newContent;
+  nsCOMPtr<dom::Element> newContent;
  
   
   nsresult result = mEditor->CreateHTMLContent(mTag, getter_AddRefs(newContent));
