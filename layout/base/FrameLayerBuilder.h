@@ -284,16 +284,27 @@ public:
 
 
 
+
+  static PLDHashOperator RemoveDisplayItemDataForFrame(nsPtrHashKey<nsIFrame>* aEntry,
+                                                       void* aClosure)
+  {
+    return UpdateDisplayItemDataForFrame(aEntry, nsnull);
+  }
+
+  
+
+
+
+
   nscolor FindOpaqueColorCovering(nsDisplayListBuilder* aBuilder,
                                   ThebesLayer* aLayer, const nsRect& aRect);
 
   
 
 
-
   static void DestroyDisplayItemDataFor(nsIFrame* aFrame)
   {
-    aFrame->Properties().Delete(LayerManagerProperty());
+    aFrame->Properties().Delete(DisplayItemDataProperty());
   }
 
   LayerManager* GetRetainingLayerManager() { return mRetainingManager; }
@@ -410,10 +421,18 @@ protected:
     LayerState    mLayerState;
   };
 
-  static void RemoveFrameFromLayerManager(nsIFrame* aFrame, void* aPropertyValue);
+  static void InternalDestroyDisplayItemData(nsIFrame* aFrame,
+                                             void* aPropertyValue,
+                                             bool aRemoveFromFramesWithLayers);
+  static void DestroyDisplayItemData(nsIFrame* aFrame, void* aPropertyValue);
 
-  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerProperty,
-                                               RemoveFrameFromLayerManager)
+  
+
+
+
+
+  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(DisplayItemDataProperty,
+                                               DestroyDisplayItemData)
 
   
 
@@ -423,44 +442,18 @@ protected:
   class DisplayItemDataEntry : public nsPtrHashKey<nsIFrame> {
   public:
     DisplayItemDataEntry(const nsIFrame *key) : nsPtrHashKey<nsIFrame>(key) {}
-    DisplayItemDataEntry(DisplayItemDataEntry &toCopy) :
-      nsPtrHashKey<nsIFrame>(toCopy.mKey)
+    DisplayItemDataEntry(const DisplayItemDataEntry &toCopy) :
+      nsPtrHashKey<nsIFrame>(toCopy.mKey), mData(toCopy.mData)
     {
-      
-      
-      mData.SwapElements(toCopy.mData);
+      NS_ERROR("Should never be called, since we ALLOW_MEMMOVE");
     }
 
     bool HasNonEmptyContainerLayer();
 
-    nsAutoTArray<DisplayItemData, 1> mData;
+    nsTArray<DisplayItemData> mData;
 
-    enum { ALLOW_MEMMOVE = false };
+    enum { ALLOW_MEMMOVE = PR_TRUE };
   };
-
-  
-  friend class LayerManagerData;
-
-  
-
-
-
-
-
-
-  static nsTArray<DisplayItemData>* GetDisplayItemDataArrayForFrame(nsIFrame *aFrame);
-
-  
-
-
-
-
-
-  static PLDHashOperator RemoveDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
-                                                       void* aClosure)
-  {
-    return UpdateDisplayItemDataForFrame(aEntry, nsnull);
-  }
 
   
 
@@ -510,7 +503,7 @@ protected:
 
   void RemoveThebesItemsForLayerSubtree(Layer* aLayer);
 
-  static PLDHashOperator UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
+  static PLDHashOperator UpdateDisplayItemDataForFrame(nsPtrHashKey<nsIFrame>* aEntry,
                                                        void* aUserArg);
   static PLDHashOperator StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
                                                  void* aUserArg);
