@@ -55,17 +55,15 @@ public:
 
 protected:
   enum GestureState {
-    
-    GESTURE_NONE,
-    
-    GESTURE_PINCH,
-    
-    
-    
-    GESTURE_WAITING_SINGLE_TAP,
-    
-    GESTURE_WAITING_DOUBLE_TAP
+    NoGesture = 0,
+    InPinchGesture
   };
+
+  
+
+
+
+  enum { MAX_TAP_TIME = 500 };
 
   
 
@@ -102,24 +100,6 @@ protected:
 
   nsEventStatus HandleTapCancel(const MultiTouchInput& aEvent);
 
-  
-
-
-
-
-
-
-  nsEventStatus HandleDoubleTap(const MultiTouchInput& aEvent);
-
-  
-
-
-
-
-
-
-  void TimeoutDoubleTap();
-
   nsRefPtr<AsyncPanZoomController> mAsyncPanZoomController;
 
   
@@ -127,10 +107,6 @@ protected:
 
 
   nsTArray<SingleTouchData> mTouches;
-
-  
-
-
   GestureState mState;
 
   
@@ -143,26 +119,7 @@ protected:
 
 
 
-
-
-
-  PRUint64 mTapStartTime;
-
-  
-
-
-
-
-
-
-  MultiTouchInput mLastTouchInput;
-
-  
-
-
-
-
-  CancelableTask *mDoubleTapTimeoutTask;
+  PRUint64 mTouchStartTime;
 };
 
 }
