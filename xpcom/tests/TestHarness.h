@@ -44,6 +44,14 @@
 #ifndef TestHarness_h__
 #define TestHarness_h__
 
+#if defined(_MSC_VER) && defined(MOZ_STATIC_JS)
+
+
+
+
+#define STATIC_JS_API
+#endif
+
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsCOMPtr.h"
