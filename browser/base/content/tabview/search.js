@@ -132,7 +132,7 @@ var TabUtils = {
     
     
     
-    return tab.label != undefined ? tab.label : tab.$tabTitle[0].innerHTML;
+    return tab.label != undefined ? tab.label : tab.$tabTitle[0].textContent;
   },
   
   
