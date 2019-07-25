@@ -93,7 +93,6 @@ const ORION_ANNOTATION_TYPES = {
   matchingBracket: "orion.annotation.matchingBracket",
   breakpoint: "orion.annotation.breakpoint",
   task: "orion.annotation.task",
-  currentLine: "orion.annotation.currentLine",
 };
 
 
@@ -156,7 +155,6 @@ SourceEditor.prototype = {
   _annotationStyler: null,
   _annotationModel: null,
   _dragAndDrop: null,
-  _currentLineAnnotation: null,
   _mode: null,
   _expandTab: null,
   _tabSize: null,
@@ -269,7 +267,7 @@ SourceEditor.prototype = {
     }.bind(this);
 
     this._view.addEventListener("Load", onOrionLoad);
-    if (config.highlightCurrentLine || Services.appinfo.OS == "Linux") {
+    if (Services.appinfo.OS == "Linux") {
       this._view.addEventListener("Selection", this._onOrionSelection);
     }
 
@@ -557,66 +555,15 @@ SourceEditor.prototype = {
 
 
 
-
   _onOrionSelection: function SE__onOrionSelection(aEvent)
   {
-    if (this._config.highlightCurrentLine) {
-      this._highlightCurrentLine(aEvent);
-    }
-
-    if (Services.appinfo.OS == "Linux") {
-      let text = this.getText(aEvent.newValue.start, aEvent.newValue.end);
-      if (!text) {
-        return;
-      }
-
-      clipboardHelper.copyStringToClipboard(text,
-                                            Ci.nsIClipboard.kSelectionClipboard);
-    }
-  },
-
-  
-
-
-
-
-
-
-  _highlightCurrentLine: function SE__highlightCurrentLine(aEvent)
-  {
-    let annotationModel = this._annotationModel;
-    let model = this._model;
-    let oldAnnotation = this._currentLineAnnotation;
-    let newSelection = aEvent.newValue;
-
-    let collapsed = newSelection.start == newSelection.end;
-    if (!collapsed) {
-      if (oldAnnotation) {
-        annotationModel.removeAnnotation(oldAnnotation);
-        this._currentLineAnnotation = null;
-      }
+    let text = this.getText(aEvent.newValue.start, aEvent.newValue.end);
+    if (!text) {
       return;
     }
 
-    let line = model.getLineAtOffset(newSelection.start);
-    let lineStart = model.getLineStart(line);
-    let lineEnd = model.getLineEnd(line);
-
-    let title = oldAnnotation ? oldAnnotation.title :
-                SourceEditorUI.strings.GetStringFromName("annotation.currentLine");
-
-    this._currentLineAnnotation = {
-      start: lineStart,
-      end: lineEnd,
-      type: ORION_ANNOTATION_TYPES.currentLine,
-      title: title,
-      html: "<div class='annotationHTML currentLine'></div>",
-      overviewStyle: {styleClass: "annotationOverview currentLine"},
-      lineStyle: {styleClass: "annotationLine currentLine"},
-    };
-
-    annotationModel.replaceAnnotations(oldAnnotation ? [oldAnnotation] : null,
-                                       [this._currentLineAnnotation]);
+    clipboardHelper.copyStringToClipboard(text,
+                                          Ci.nsIClipboard.kSelectionClipboard);
   },
 
   
@@ -640,10 +587,6 @@ SourceEditor.prototype = {
     styler.addAnnotationType(ORION_ANNOTATION_TYPES.matchingBracket);
     styler.addAnnotationType(ORION_ANNOTATION_TYPES.currentBracket);
     styler.addAnnotationType(ORION_ANNOTATION_TYPES.task);
-
-    if (this._config.highlightCurrentLine) {
-      styler.addAnnotationType(ORION_ANNOTATION_TYPES.currentLine);
-    }
   },
 
   
@@ -1089,6 +1032,7 @@ SourceEditor.prototype = {
 
         this._styler = new TextStyler(this._view, aMode, this._annotationModel);
         this._styler.setFoldingEnabled(false);
+        this._styler.setHighlightCaretLine(true);
         break;
 
       case SourceEditor.MODES.HTML:
@@ -1243,7 +1187,7 @@ SourceEditor.prototype = {
 
   destroy: function SE_destroy()
   {
-    if (this._config.highlightCurrentLine || Services.appinfo.OS == "Linux") {
+    if (Services.appinfo.OS == "Linux") {
       this._view.removeEventListener("Selection", this._onOrionSelection);
     }
     this._onOrionSelection = null;
@@ -1264,7 +1208,6 @@ SourceEditor.prototype = {
     this._dragAndDrop = null;
     this._annotationModel = null;
     this._annotationStyler = null;
-    this._currentLineAnnotation = null;
     this._eventTarget = null;
     this._eventListenersQueue = null;
     this._view = null;
