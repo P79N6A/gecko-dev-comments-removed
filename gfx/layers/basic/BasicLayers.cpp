@@ -1082,6 +1082,22 @@ BasicCanvasLayer::UpdateSurface(gfxASurface* aDestSurface)
       return;
     }
 
+    
+    mGLContext->MakeCurrent();
+
+#if defined (MOZ_X11) && defined (MOZ_EGL_XRENDER_COMPOSITE)
+    mGLContext->fFinish();
+    gfxASurface* offscreenSurface = mGLContext->GetOffscreenPixmapSurface();
+
+    
+    
+    if (offscreenSurface && (mGLBufferIsPremultiplied || (GetContentFlags() & CONTENT_OPAQUE))) {  
+        mSurface = offscreenSurface;
+        mNeedsYFlip = false;
+    }
+    else
+#endif
+    {
     nsRefPtr<gfxImageSurface> isurf = aDestSurface ?
         static_cast<gfxImageSurface*>(aDestSurface) :
         new gfxImageSurface(gfxIntSize(mBounds.width, mBounds.height),
@@ -1094,9 +1110,6 @@ BasicCanvasLayer::UpdateSurface(gfxASurface* aDestSurface)
     }
 
     NS_ASSERTION(isurf->Stride() == mBounds.width * 4, "gfxImageSurface stride isn't what we expect!");
-
-    
-    mGLContext->MakeCurrent();
 
     
     
@@ -1132,6 +1145,7 @@ BasicCanvasLayer::UpdateSurface(gfxASurface* aDestSurface)
     }
   }
 }
+}
 
 void
 BasicCanvasLayer::Paint(gfxContext* aContext)
@@ -1162,12 +1176,34 @@ BasicCanvasLayer::PaintWithOpacity(gfxContext* aContext,
     aContext->Scale(1.0, -1.0);
   }
 
+  
+  
+  
+  gfxContext::GraphicsOperator savedOp;
+  if (GetContentFlags() & CONTENT_OPAQUE) {
+    savedOp = aContext->CurrentOperator();
+    aContext->SetOperator(gfxContext::OPERATOR_SOURCE);
+  }
+
   AutoSetOperator setOperator(aContext, GetOperator());
   aContext->NewPath();
   
   aContext->Rectangle(gfxRect(0, 0, mBounds.width, mBounds.height));
   aContext->SetPattern(pat);
   aContext->FillWithOpacity(aOpacity);
+
+#if defined (MOZ_X11) && defined (MOZ_EGL_XRENDER_COMPOSITE)
+  if (mGLContext) {
+    
+    
+    mGLContext->WaitNative();
+  }
+#endif
+
+  
+  if (GetContentFlags() & CONTENT_OPAQUE) {
+    aContext->SetOperator(savedOp);
+  }  
 
   if (mNeedsYFlip) {
     aContext->SetMatrix(m);
