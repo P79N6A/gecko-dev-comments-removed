@@ -291,7 +291,7 @@ var VirtualCursorController = {
             target.blur();
         }
 
-        if (Utils.OS == 'Android')
+        if (Utils.MozBuildApp == 'mobile/android')
           
           Cc['@mozilla.org/android/bridge;1'].
             getService(Ci.nsIAndroidBridge).handleGeckoMessage(
