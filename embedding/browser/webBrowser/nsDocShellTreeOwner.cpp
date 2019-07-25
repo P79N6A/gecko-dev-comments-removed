@@ -1109,8 +1109,12 @@ DefaultTooltipTextProvider::GetNodeText(nsIDOMNode *aNode, PRUnichar **aText,
   
   nsCOMPtr<nsIConstraintValidation> cvElement = do_QueryInterface(current);
   if (cvElement) {
-    cvElement->GetValidationMessage(outText);
-    found = !outText.IsEmpty();
+    nsCOMPtr<nsIContent> content = do_QueryInterface(cvElement);
+    nsCOMPtr<nsIAtom> titleAtom = do_GetAtom("title");
+    if (content->HasAttr(kNameSpaceID_None, titleAtom)) {
+      cvElement->GetValidationMessage(outText);
+      found = !outText.IsEmpty();
+    }
   }
 
   while ( !found && current ) {
