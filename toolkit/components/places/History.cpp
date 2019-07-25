@@ -56,7 +56,6 @@
 #include "nsThreadUtils.h"
 #include "nsNetUtil.h"
 #include "nsIXPConnect.h"
-#include "mozilla/unused.h"
 #include "mozilla/Util.h"
 #include "nsContentUtils.h"
 
@@ -67,7 +66,6 @@
 #define TOPIC_UPDATEPLACES_COMPLETE "places-updatePlaces-complete"
 
 using namespace mozilla::dom;
-using mozilla::unused;
 
 namespace mozilla {
 namespace places {
@@ -533,12 +531,12 @@ private:
 
 
 
-class NotifyCompletion : public nsRunnable
+class NotifyVisitInfoCallback : public nsRunnable
 {
 public:
-  NotifyCompletion(mozIVisitInfoCallback* aCallback,
-                   const VisitData& aPlace,
-                   nsresult aResult)
+  NotifyVisitInfoCallback(mozIVisitInfoCallback* aCallback,
+                          const VisitData& aPlace,
+                          nsresult aResult)
   : mCallback(aCallback)
   , mPlace(aPlace)
   , mResult(aResult)
@@ -626,7 +624,7 @@ CanAddURI(nsIURI* aURI,
     VisitData place(aURI);
     place.guid = aGUID;
     nsCOMPtr<nsIRunnable> event =
-      new NotifyCompletion(aCallback, place, NS_ERROR_INVALID_ARG);
+      new NotifyVisitInfoCallback(aCallback, place, NS_ERROR_INVALID_ARG);
     (void)NS_DispatchToMainThread(event);
 
     
@@ -697,7 +695,7 @@ public:
       nsresult rv = DoDatabaseInserts(known, place, referrer);
       if (mCallback) {
         nsCOMPtr<nsIRunnable> event =
-          new NotifyCompletion(mCallback, place, rv);
+          new NotifyVisitInfoCallback(mCallback, place, rv);
         nsresult rv2 = NS_DispatchToMainThread(event);
         NS_ENSURE_SUCCESS(rv2, rv2);
       }
@@ -1235,7 +1233,7 @@ StoreAndNotifyEmbedVisit(VisitData& aPlace,
     
     NS_ADDREF(aCallback);
     nsCOMPtr<nsIRunnable> event =
-      new NotifyCompletion(aCallback, aPlace, NS_OK);
+      new NotifyVisitInfoCallback(aCallback, aPlace, NS_OK);
     (void)NS_DispatchToMainThread(event);
 
     
@@ -1290,11 +1288,10 @@ History::NotifyVisited(nsIURI* aURI)
   nsAutoScriptBlocker scriptBlocker;
 
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
-    nsTArray<ContentParent*> cplist;
-    ContentParent::GetAll(cplist);
-    for (PRUint32 i = 0; i < cplist.Length(); ++i) {
-      unused << cplist[i]->SendNotifyVisited(aURI);
-    }
+    mozilla::dom::ContentParent* cpp = 
+      mozilla::dom::ContentParent::GetSingleton(PR_FALSE);
+    if (cpp)
+      (void)cpp->SendNotifyVisited(aURI);
   }
 
   
