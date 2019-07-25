@@ -53,7 +53,7 @@
 class nsDiskCache {
 public:
     enum {
-            kCurrentVersion = 0x0001000C      
+            kCurrentVersion = 0x0001000D      
     };
 
     enum { kData, kMetaData };
