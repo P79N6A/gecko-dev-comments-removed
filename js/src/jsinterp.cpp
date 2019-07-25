@@ -2379,15 +2379,11 @@ Interpret(JSContext *cx)
 
 
     JSOp op;
+    jsint len;
+    len = 0;
 #if JS_THREADED_INTERP
-    {
-        jsint len = 0;
-        DO_NEXT_OP(len);
-    }
+    DO_NEXT_OP(len);
 #else
-    
-    
-    jsint len = 0;
     DO_NEXT_OP(len);
 #endif
 
