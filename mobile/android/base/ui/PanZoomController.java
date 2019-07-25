@@ -92,6 +92,8 @@ public class PanZoomController
     
     
     private static final float MIN_SCROLLABLE_DISTANCE = 0.5f;
+    
+    private static final float MAX_ZOOM = 4.0f;
 
     
     private static final float[] EASE_OUT_ANIMATION_FRAMES = {
@@ -817,6 +819,9 @@ public class PanZoomController
         if (!FloatUtils.fuzzyEquals(minZoomFactor, 0.0f)) {
             PointF center = new PointF(viewport.width() / 2.0f, viewport.height() / 2.0f);
             viewportMetrics.scaleTo(minZoomFactor, center);
+        } else if (zoomFactor > MAX_ZOOM) {
+            PointF center = new PointF(viewport.width() / 2.0f, viewport.height() / 2.0f);
+            viewportMetrics.scaleTo(MAX_ZOOM, center);
         }
 
         
