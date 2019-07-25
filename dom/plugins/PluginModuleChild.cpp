@@ -264,6 +264,8 @@ PluginModuleChild::DetectNestedEventLoop(gpointer data)
                       "not canceled before returning to main event loop!");
 
     PLUGIN_LOG_DEBUG(("Detected nested glib event loop"));
+    fprintf(stderr, "Detected nested glib event loop\n");
+    fflush(stderr);
 
     
     
@@ -286,6 +288,9 @@ PluginModuleChild::ProcessBrowserEvents(gpointer data)
                       "not canceled before returning to main event loop!");
 
     PluginModuleChild* pmc = static_cast<PluginModuleChild*>(data);
+
+    fprintf(stderr, "Time to process browser events\n");
+    fflush(stderr);
 
     pmc->CallProcessSomeEvents();
 
