@@ -6,6 +6,7 @@ package org.mozilla.gecko.sync;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -23,19 +24,26 @@ public class InfoCollections implements SyncStorageRequestDelegate {
   protected String credentials;
 
   
-  
-  
-  private HashMap<String, Long> timestamps;
 
-  public HashMap<String, Long> getTimestamps() {
-    if (this.timestamps == null) {
-      throw new IllegalStateException("No record fetched.");
-    }
-    return this.timestamps;
-  }
+
+
+
+
+  private Map<String, Long> timestamps = null;
+
+  
+
+
+
+
+
+
 
   public Long getTimestamp(String collection) {
-    return this.getTimestamps().get(collection);
+    if (timestamps == null) {
+      return null;
+    }
+    return timestamps.get(collection);
   }
 
   
@@ -74,12 +82,8 @@ public class InfoCollections implements SyncStorageRequestDelegate {
   }
 
   public void fetch(InfoCollectionsDelegate callback) {
-    if (this.timestamps == null) {
-      this.callback = callback;
-      this.doFetch();
-      return;
-    }
-    callback.handleSuccess(this);
+    this.callback = callback;
+    this.doFetch();
   }
 
   private void doFetch() {
