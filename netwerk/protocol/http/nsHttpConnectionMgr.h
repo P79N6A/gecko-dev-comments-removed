@@ -48,13 +48,18 @@
 #include "nsAutoPtr.h"
 #include "prmon.h"
 
+#include "nsIObserver.h"
+#include "nsITimer.h"
+
 class nsHttpPipeline;
 
 
 
-class nsHttpConnectionMgr
+class nsHttpConnectionMgr : public nsIObserver
 {
 public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIOBSERVER
 
     
     enum nsParamName {
@@ -86,18 +91,12 @@ public:
     
     
 
-    nsrefcnt AddRef()
-    {
-        return PR_AtomicIncrement(&mRef);
-    }
+    
+    
+    void PruneDeadConnectionsAfter(PRUint32 time);
 
-    nsrefcnt Release()
-    {
-        nsrefcnt n = PR_AtomicDecrement(&mRef);
-        if (n == 0)
-            delete this;
-        return n;
-    }
+    
+    void StopPruneDeadConnectionsTimer();
 
     
     nsresult AddTransaction(nsHttpTransaction *, PRInt32 priority);
@@ -275,8 +274,16 @@ private:
     void OnMsgUpdateParam          (PRInt32, void *);
 
     
+    
     PRUint16 mNumActiveConns;
+    
+    
     PRUint16 mNumIdleConns;
+
+    
+    PRUint64 mTimeOfNextWakeUp;
+    
+    nsCOMPtr<nsITimer> mTimer;
 
     
     

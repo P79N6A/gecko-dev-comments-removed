@@ -99,6 +99,10 @@ public:
     PRBool   SupportsPipelining() { return mSupportsPipelining; }
     PRBool   IsKeepAlive() { return mKeepAliveMask && mKeepAlive; }
     PRBool   CanReuse();   
+
+    
+    PRUint32 TimeToLive();
+
     void     DontReuse()   { mKeepAliveMask = PR_FALSE;
                              mKeepAlive = PR_FALSE;
                              mIdleTimeout = 0; }

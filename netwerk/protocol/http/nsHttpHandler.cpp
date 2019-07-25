@@ -210,9 +210,6 @@ nsHttpHandler::nsHttpHandler()
 
 nsHttpHandler::~nsHttpHandler()
 {
-    
-    
-
     LOG(("Deleting nsHttpHandler [this=%x]\n", this));
 
     
@@ -335,7 +332,6 @@ nsHttpHandler::Init()
         mObserverService->AddObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC, PR_TRUE);
     }
  
-    StartPruneDeadConnectionsTimer();
     return NS_OK;
 }
 
@@ -361,31 +357,6 @@ nsHttpHandler::InitConnectionMgr()
                         mMaxRequestDelay,
                         mMaxPipelinedRequests);
     return rv;
-}
-
-void
-nsHttpHandler::StartPruneDeadConnectionsTimer()
-{
-    LOG(("nsHttpHandler::StartPruneDeadConnectionsTimer\n"));
-
-    mTimer = do_CreateInstance("@mozilla.org/timer;1");
-    NS_ASSERTION(mTimer, "no timer");
-    
-    
-    if (mTimer)
-        mTimer->Init(this, 15*1000, 
-                     nsITimer::TYPE_REPEATING_SLACK);
-}
-
-void
-nsHttpHandler::StopPruneDeadConnectionsTimer()
-{
-    LOG(("nsHttpHandler::StopPruneDeadConnectionsTimer\n"));
-
-    if (mTimer) {
-        mTimer->Cancel();
-        mTimer = 0;
-    }
 }
 
 nsresult
@@ -1650,9 +1621,6 @@ nsHttpHandler::Observe(nsISupports *subject,
              strcmp(topic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)    == 0) {
 
         
-        StopPruneDeadConnectionsTimer();
-
-        
         mAuthCache.ClearAll();
 
         
@@ -1666,18 +1634,6 @@ nsHttpHandler::Observe(nsISupports *subject,
     else if (strcmp(topic, "profile-change-net-restore") == 0) {
         
         InitConnectionMgr();
-
-        
-        StartPruneDeadConnectionsTimer();
-    }
-    else if (strcmp(topic, "timer-callback") == 0) {
-        
-#ifdef DEBUG
-        nsCOMPtr<nsITimer> timer = do_QueryInterface(subject);
-        NS_ASSERTION(timer == mTimer, "unexpected timer-callback");
-#endif
-        if (mConnMgr)
-            mConnMgr->PruneDeadConnections();
     }
     else if (strcmp(topic, "net:clear-active-logins") == 0) {
         mAuthCache.ClearAll();

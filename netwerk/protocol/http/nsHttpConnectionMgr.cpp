@@ -46,12 +46,17 @@
 
 #include "nsIServiceManager.h"
 
+#include "nsIObserverService.h"
+
 
 extern PRThread *gSocketThread;
 
 static NS_DEFINE_CID(kSocketTransportServiceCID, NS_SOCKETTRANSPORTSERVICE_CID);
 
 
+
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsHttpConnectionMgr, nsIObserver)
 
 static void
 InsertTransactionSorted(nsTArray<nsHttpTransaction*> &pendingQ, nsHttpTransaction *trans)
@@ -82,6 +87,7 @@ nsHttpConnectionMgr::nsHttpConnectionMgr()
     , mMaxPersistConnsPerProxy(0)
     , mNumActiveConns(0)
     , mNumIdleConns(0)
+    , mTimeOfNextWakeUp(LL_MAXUINT)
 {
     LOG(("Creating nsHttpConnectionMgr @%x\n", this));
 }
@@ -176,6 +182,59 @@ nsHttpConnectionMgr::PostEvent(nsConnEventHandler handler, PRInt32 iparam, void 
     }
     return rv;
 }
+
+void
+nsHttpConnectionMgr::PruneDeadConnectionsAfter(PRUint32 timeInSeconds)
+{
+    LOG(("nsHttpConnectionMgr::PruneDeadConnectionsAfter\n"));
+
+    if(!mTimer)
+        mTimer = do_CreateInstance("@mozilla.org/timer;1");
+
+    
+    
+    if (mTimer) {
+        mTimeOfNextWakeUp = timeInSeconds + NowInSeconds();
+        mTimer->Init(this, timeInSeconds*1000, nsITimer::TYPE_ONE_SHOT);
+    } else {
+        NS_WARNING("failed to create: timer for pruning the dead connections!");
+    }
+}
+
+void
+nsHttpConnectionMgr::StopPruneDeadConnectionsTimer()
+{
+    LOG(("nsHttpConnectionMgr::StopPruneDeadConnectionsTimer\n"));
+
+    if (mTimer) {
+        mTimer->Cancel();
+        mTimer = NULL;
+    }
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsHttpConnectionMgr::Observe(nsISupports *subject,
+                             const char *topic,
+                             const PRUnichar *data)
+{
+    LOG(("nsHttpConnectionMgr::Observe [topic=\"%s\"]\n", topic));
+
+    if (0 == strcmp(topic, "timer-callback")) {
+        
+        PruneDeadConnections();
+#ifdef DEBUG
+        nsCOMPtr<nsITimer> timer = do_QueryInterface(subject);
+        NS_ASSERTION(timer == mTimer, "unexpected timer-callback");
+#endif
+    }
+
+    return NS_OK;
+}
+
 
 
 
@@ -317,6 +376,8 @@ nsHttpConnectionMgr::PurgeOneIdleConnectionCB(nsHashKey *key, void *data, void *
         conn->Close(NS_ERROR_ABORT);
         NS_RELEASE(conn);
         self->mNumIdleConns--;
+        if (0 == self->mNumIdleConns)
+            self->StopPruneDeadConnectionsTimer();
         return kHashEnumerateStop;
     }
 
@@ -331,6 +392,9 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(nsHashKey *key, void *data, void *cl
 
     LOG(("  pruning [ci=%s]\n", ent->mConnInfo->HashKey().get()));
 
+    
+    
+    PRUint32 timeToNextExpire = PR_UINT32_MAX;
     PRInt32 count = ent->mIdleConns.Length();
     if (count > 0) {
         for (PRInt32 i=count-1; i>=0; --i) {
@@ -340,10 +404,27 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(nsHashKey *key, void *data, void *cl
                 conn->Close(NS_ERROR_ABORT);
                 NS_RELEASE(conn);
                 self->mNumIdleConns--;
+            } else {
+                timeToNextExpire = PR_MIN(timeToNextExpire, conn->TimeToLive());
             }
         }
     }
 
+    
+    
+    if (0 < ent->mIdleConns.Length()) {
+        PRUint32 now = NowInSeconds();
+        PRUint64 timeOfNextExpire = now + timeToNextExpire;
+        
+        
+        
+        
+        if (!self->mTimer || timeOfNextExpire < self->mTimeOfNextWakeUp) {
+            self->PruneDeadConnectionsAfter(timeToNextExpire);
+        }
+    } else if (0 == self->mNumIdleConns) {
+        self->StopPruneDeadConnectionsTimer();
+    }
 #ifdef DEBUG
     count = ent->mActiveConns.Length();
     if (count > 0) {
@@ -401,6 +482,10 @@ nsHttpConnectionMgr::ShutdownPassCB(nsHashKey *key, void *data, void *closure)
         conn->Close(NS_ERROR_ABORT);
         NS_RELEASE(conn);
     }
+    
+    
+    if (0 == self->mNumIdleConns)
+        self->StopPruneDeadConnectionsTimer();
 
     
     while (ent->mPendingQ.Length()) {
@@ -543,6 +628,12 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
     }
 
     if (!conn) {
+        
+        
+        
+        if (0 == mNumIdleConns)
+            StopPruneDeadConnectionsTimer();
+
         conn = new nsHttpConnection();
         if (!conn)
             return;
@@ -556,7 +647,8 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
         
         
         
-        if (mNumIdleConns + mNumActiveConns + 1 > mMaxConns)
+        
+        if (0 < mNumIdleConns && mNumIdleConns + mNumActiveConns + 1 > mMaxConns)
             mCT.Enumerate(PurgeOneIdleConnectionCB, this);
 
         
@@ -874,6 +966,12 @@ nsHttpConnectionMgr::OnMsgReclaimConnection(PRInt32, void *param)
             
             ent->mIdleConns.AppendElement(conn);
             mNumIdleConns++;
+            
+            
+            
+            PRUint32 timeToLive = conn->TimeToLive();
+            if(!mTimer || NowInSeconds() + timeToLive < mTimeOfNextWakeUp)
+                PruneDeadConnectionsAfter(timeToLive);
         }
         else {
             LOG(("  connection cannot be reused; closing connection\n"));
@@ -990,3 +1088,4 @@ nsHttpConnectionMgr::nsConnectionHandle::PushBack(const char *buf, PRUint32 bufL
 {
     return mConn->PushBack(buf, bufLen);
 }
+
