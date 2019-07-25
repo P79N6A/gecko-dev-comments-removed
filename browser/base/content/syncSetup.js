@@ -384,11 +384,6 @@ var gSyncSetup = {
     
     if ((this.wizard.pageIndex >= 0) &&
         !Weave.Utils.ensureMPUnlocked()) {
-      
-      
-      
-      
-      this.onPageShow();
       return false;
     }
       
