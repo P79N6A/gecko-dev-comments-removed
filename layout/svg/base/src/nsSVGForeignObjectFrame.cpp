@@ -528,6 +528,15 @@ void nsSVGForeignObjectFrame::UpdateGraphic()
 void
 nsSVGForeignObjectFrame::MaybeReflowFromOuterSVGFrame()
 {
+  
+  
+  
+  
+  
+  if (IsDisabled()) {
+    return;
+  }
+
   nsIFrame* kid = GetFirstChild(nsnull);
 
   
