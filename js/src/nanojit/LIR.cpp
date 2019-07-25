@@ -283,7 +283,6 @@ namespace nanojit
         InsSet incoming(_alloc);    
         bool last = true;           
         LIns* priorBlock = 0;       
-        LIns* priorIns = 0;         
 
         LirReader rdr(finalIns());
         LIns* ins = rdr.read();
@@ -323,8 +322,6 @@ namespace nanojit
                     n.insert(ins);
                 if ( _alt.containsKey(ins) )
                     incoming.put(ins,true);
-
-                priorIns = ins;
             }
         }
 
