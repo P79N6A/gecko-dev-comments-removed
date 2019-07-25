@@ -85,12 +85,18 @@ struct TreeMatchContext {
   
   nsIContent* mScopedRoot;
 
+  
+  
+  const PRPackedBool mIsHTMLDocument;
+
   TreeMatchContext(PRBool aForStyling,
-                   nsRuleWalker::VisitedHandlingType aVisitedHandling)
+                   nsRuleWalker::VisitedHandlingType aVisitedHandling,
+                   PRBool aIsHTMLDocument)
     : mForStyling(aForStyling)
     , mHaveRelevantLink(PR_FALSE)
     , mVisitedHandling(aVisitedHandling)
     , mScopedRoot(nsnull)
+    , mIsHTMLDocument(aIsHTMLDocument)
   {
   }
 };
@@ -182,8 +188,6 @@ public:
   
   nsIAtom*          mContentTag;    
   nsIAtom*          mContentID;     
-  PRPackedBool      mIsHTMLContent; 
-  PRPackedBool      mIsHTML;        
   PRPackedBool      mHasAttributes; 
   nsCompatibility   mCompatMode;    
   PRInt32           mNameSpaceID;   

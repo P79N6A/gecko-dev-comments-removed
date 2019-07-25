@@ -1115,7 +1115,8 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
   : TreeMatchContext(aForStyling,
                      aRuleWalker ?
                        aRuleWalker->VisitedHandling() :
-                       nsRuleWalker::eLinksVisitedOrUnvisited),
+                       nsRuleWalker::eLinksVisitedOrUnvisited,
+                     aElement->IsInHTMLDocument()),
     mPresContext(aPresContext),
     mElement(aElement),
     mRuleWalker(aRuleWalker),
@@ -1163,10 +1164,6 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
 
   
   mNameSpaceID = aElement->GetNameSpaceID();
-
-  
-  mIsHTMLContent = (mNameSpaceID == kNameSpaceID_XHTML);
-  mIsHTML = mIsHTMLContent && aElement->IsInHTMLDocument();
 
   
   
@@ -1651,10 +1648,13 @@ static PRBool SelectorMatches(Element* aElement,
        data.mNameSpaceID != aSelector->mNameSpace))
     return PR_FALSE;
 
-  if (aSelector->mLowercaseTag && 
-      (data.mIsHTML ? aSelector->mLowercaseTag : aSelector->mCasedTag) !=
-        data.mContentTag) {
-    return PR_FALSE;
+  if (aSelector->mLowercaseTag) {
+    nsIAtom* selectorTag =
+      (aTreeMatchContext.mIsHTMLDocument && aElement->IsHTML()) ?
+        aSelector->mLowercaseTag : aSelector->mCasedTag;
+    if (selectorTag != data.mContentTag) {
+      return PR_FALSE;
+    }
   }
 
   nsAtomList* IDList = aSelector->mIDList;
@@ -1988,7 +1988,7 @@ static PRBool SelectorMatches(Element* aElement,
         break;
 
       case nsCSSPseudoClasses::ePseudoClass_mozIsHTML:
-        if (!data.mIsHTML) {
+        if (!aTreeMatchContext.mIsHTMLDocument || !aElement->IsHTML()) {
           return PR_FALSE;
         }
         break;
@@ -2056,7 +2056,7 @@ static PRBool SelectorMatches(Element* aElement,
 
       case nsCSSPseudoClasses::ePseudoClass_mozTableBorderNonzero:
         {
-          if (!data.mIsHTMLContent || data.mContentTag != nsGkAtoms::table) {
+          if (!aElement->IsHTML() || data.mContentTag != nsGkAtoms::table) {
             return PR_FALSE;
           }
           nsGenericElement *ge = static_cast<nsGenericElement*>(data.mElement);
@@ -2085,7 +2085,7 @@ static PRBool SelectorMatches(Element* aElement,
           
           !isNegated &&
           
-          data.mIsHTMLContent && !data.IsLink() &&
+          aElement->IsHTML() && !data.IsLink() &&
           !IsQuirkEventSensitive(data.mContentTag)) {
         
         
@@ -2118,7 +2118,9 @@ static PRBool SelectorMatches(Element* aElement,
       nsIAtom* matchAttribute;
 
       do {
-        matchAttribute = data.mIsHTML ? attr->mLowercaseAttr : attr->mCasedAttr;
+        PRBool isHTML =
+          (aTreeMatchContext.mIsHTMLDocument && aElement->IsHTML());
+        matchAttribute = isHTML ? attr->mLowercaseAttr : attr->mCasedAttr;
         if (attr->mNameSpace == kNameSpaceID_Unknown) {
           
           
@@ -2146,7 +2148,7 @@ static PRBool SelectorMatches(Element* aElement,
                 data.mElement->GetAttr(attrName->NamespaceID(),
                                        attrName->LocalName(), value);
               NS_ASSERTION(hasAttr, "GetAttrNameAt lied");
-              result = AttrMatchesValue(attr, value, data.mIsHTML);
+              result = AttrMatchesValue(attr, value, isHTML);
             }
 
             
@@ -2163,8 +2165,8 @@ static PRBool SelectorMatches(Element* aElement,
           result =
             data.mElement->
               AttrValueIs(attr->mNameSpace, matchAttribute, attr->mValue,
-                          (!data.mIsHTML || attr->mCaseSensitive) ? eCaseMatters
-                                                                  : eIgnoreCase);
+                          (!isHTML || attr->mCaseSensitive) ? eCaseMatters
+                                                            : eIgnoreCase);
         }
         else if (!data.mElement->HasAttr(attr->mNameSpace, matchAttribute)) {
           result = PR_FALSE;
@@ -2176,7 +2178,7 @@ static PRBool SelectorMatches(Element* aElement,
 #endif
               data.mElement->GetAttr(attr->mNameSpace, matchAttribute, value);
           NS_ASSERTION(hasAttr, "HasAttr lied");
-          result = AttrMatchesValue(attr, value, data.mIsHTML);
+          result = AttrMatchesValue(attr, value, isHTML);
         }
         
         attr = attr->mNext;
