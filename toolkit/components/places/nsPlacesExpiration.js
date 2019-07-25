@@ -63,23 +63,6 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-const nsPlacesExpirationFactory = {
-  _instance: null,
-  createInstance: function(aOuter, aIID) {
-    if (aOuter != null)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-    return this._instance === null ? this._instance = new nsPlacesExpiration() :
-                                     this._instance;
-  },
-  lockFactory: function (aDoLock) {},
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIFactory
-  ]),
-};
-
-
-
-
 
 const TOPIC_SHUTDOWN = "places-will-close-connection";
 const TOPIC_PREF_CHANGED = "nsPref:changed";
@@ -1031,13 +1014,13 @@ nsPlacesExpiration.prototype = {
 
   classID: Components.ID("705a423f-2f69-42f3-b9fe-1517e0dee56f"),
 
-  _xpcom_factory: nsPlacesExpirationFactory,
+  _xpcom_factory: XPCOMUtils.generateSingletonFactory(nsPlacesExpiration),
 
   QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsINavHistoryObserver,
-    Ci.nsITimerCallback,
-    Ci.mozIStorageStatementCallback,
+    Ci.nsIObserver
+  , Ci.nsINavHistoryObserver
+  , Ci.nsITimerCallback
+  , Ci.mozIStorageStatementCallback
   ])
 };
 

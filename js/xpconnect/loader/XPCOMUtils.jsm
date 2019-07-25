@@ -317,6 +317,32 @@ var XPCOMUtils = {
     let i = uri.lastIndexOf("/");
     Components.utils.import(uri.substring(0, i+1) + path, that);
   },
+
+  
+
+
+
+
+
+  generateSingletonFactory:
+  function XPCOMUtils_generateSingletonFactory(aServiceConstructor) {
+    return {
+      _instance: null,
+      createInstance: function XPCU_SF_createInstance(aOuter, aIID) {
+        if (aOuter !== null) {
+          throw Cr.NS_ERROR_NO_AGGREGATION;
+        }
+        if (this._instance === null) {
+          this._instance = new aServiceConstructor();
+        }
+        return this._instance.QueryInterface(aIID);
+      },
+      lockFactory: function XPCU_SF_lockFactory(aDoLock) {
+        throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+      },
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIFactory])
+    };
+  },
 };
 
 
@@ -336,4 +362,3 @@ function makeQI(interfaceNames) {
     throw Cr.NS_ERROR_NO_INTERFACE;
   };
 }
-
