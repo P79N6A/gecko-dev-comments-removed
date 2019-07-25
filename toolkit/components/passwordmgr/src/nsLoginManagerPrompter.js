@@ -853,7 +853,7 @@ LoginManagerPrompter.prototype = {
                     pwmgr.addLogin(aLogin);
                 }
             };
-    
+
             var secondaryActions = [
                 
                 {
@@ -864,12 +864,12 @@ LoginManagerPrompter.prototype = {
                     }
                 }
             ];
-    
+
             var notifyWin = this._getNotifyWindow();
             var chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
             var browser = chromeWin.gBrowser.
                                     getBrowserForDocument(this._window.top.document);
-    
+
             aNotifyObj.show(browser, "password-save", notificationText,
                             "password-notification-icon", mainAction,
                             secondaryActions, { timeout: Date.now() + 20000 });
@@ -888,7 +888,7 @@ LoginManagerPrompter.prototype = {
                         pwmgr.addLogin(aLogin);
                     }
                 },
-    
+
                 
                 {
                     label:     neverButtonText,
@@ -898,16 +898,16 @@ LoginManagerPrompter.prototype = {
                         pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
                     }
                 },
-    
+
                 
                 {
                     label:     notNowButtonText,
                     accessKey: notNowButtonAccessKey,
                     popup:     null,
-                    callback:  function() {  } 
+                    callback:  function() {  }
                 }
             ];
-    
+
             this._showLoginNotification(aNotifyObj, "password-save",
                                         notificationText, buttons);
         }
@@ -932,7 +932,7 @@ LoginManagerPrompter.prototype = {
                 this.log("Removing save-password notification bar.");
                 notifyBox.removeNotification(oldBar);
             }
-    
+
             oldBar = notifyBox.getNotificationWithValue("password-change");
             if (oldBar) {
                 this.log("Removing change-password notification bar.");
@@ -1060,15 +1060,15 @@ LoginManagerPrompter.prototype = {
                     self._updateLogin(aOldLogin, aNewPassword);
                 }
             };
-            
+
             var notifyWin = this._getNotifyWindow();
             var chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
             var browser = chromeWin.gBrowser.
                                     getBrowserForDocument(this._window.top.document);
-    
+
             aNotifyObj.show(browser, "password-change", notificationText,
                             "password-notification-icon", mainAction,
-                            null, { timeout: Date.now() + 20000 });    
+                            null, { timeout: Date.now() + 20000 });
         } else {
             var dontChangeButtonText =
                   this._getLocalizedString("notifyBarDontChangeButtonText");
@@ -1084,7 +1084,7 @@ LoginManagerPrompter.prototype = {
                         self._updateLogin(aOldLogin, aNewPassword);
                     }
                 },
-    
+
                 
                 {
                     label:     dontChangeButtonText,
@@ -1095,7 +1095,7 @@ LoginManagerPrompter.prototype = {
                     }
                 }
             ];
-    
+
             this._showLoginNotification(aNotifyObj, "password-change",
                                         notificationText, buttons);
         }
@@ -1329,7 +1329,7 @@ LoginManagerPrompter.prototype = {
 
 
 
- 
+
     _getLocalizedString : function (key, formatArgs) {
         if (formatArgs)
             return this._strBundle.formatStringFromName(
