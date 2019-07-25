@@ -9,15 +9,13 @@
 #include "nsIDOMHTMLFrameElement.h"
 #include "nsIMozBrowserFrame.h"
 #include "nsIDOMEventListener.h"
-#include "nsIWebProgressListener.h"
 
 
 
 
 class nsGenericHTMLFrameElement : public nsGenericHTMLElement,
                                   public nsIFrameLoaderOwner,
-                                  public nsIMozBrowserFrame,
-                                  public nsIWebProgressListener
+                                  public nsIMozBrowserFrame
 {
 public:
   nsGenericHTMLFrameElement(already_AddRefed<nsINodeInfo> aNodeInfo,
@@ -34,7 +32,6 @@ public:
   NS_DECL_NSIFRAMELOADEROWNER
   NS_DECL_NSIDOMMOZBROWSERFRAME
   NS_DECL_NSIMOZBROWSERFRAME
-  NS_DECL_NSIWEBPROGRESSLISTENER
 
   
   virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32 *aTabIndex);
@@ -61,9 +58,6 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsGenericHTMLFrameElement,
                                                      nsGenericHTMLElement)
-
-  
-  bool GetReallyIsBrowser();
 
 protected:
   
@@ -95,13 +89,7 @@ protected:
   nsresult GetContentDocument(nsIDOMDocument** aContentDocument);
   nsresult GetContentWindow(nsIDOMWindow** aContentWindow);
 
-  void MaybeEnsureBrowserFrameListenersRegistered();
-  nsresult MaybeFireBrowserEvent(const nsAString &aEventName,
-                                 const nsAString &aEventType,
-                                 const nsAString &aValue = EmptyString());
-
   nsRefPtr<nsFrameLoader> mFrameLoader;
-  nsRefPtr<TitleChangedListener> mTitleChangedListener;
 
   
   
