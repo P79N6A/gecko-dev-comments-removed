@@ -3262,7 +3262,7 @@ namespace js {
 
 
 
-void
+JS_FRIEND_API(void)
 TriggerOperationCallback(JSContext *cx);
 
 void
