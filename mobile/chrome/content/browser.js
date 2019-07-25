@@ -1488,6 +1488,7 @@ const BrowserSearch = {
 
 function ContentCustomClicker(browserView) {
   this._browserView = browserView;
+  this._fm = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
 }
 
 ContentCustomClicker.prototype = {
@@ -1504,8 +1505,14 @@ ContentCustomClicker.prototype = {
     },
 
     mouseDown: function mouseDown(cX, cY) {
-      this._dispatchMouseEvent("mousedown", cX, cY);
       
+      
+      let [x, y] = Browser.transformClientToBrowser(cX, cY);
+      let element = Browser.elementFromPoint(x, y);
+      if (!element)
+        return;
+
+      this._fm.setFocus(element, Ci.nsIFocusManager.FLAG_NOSCROLL);
       Util.executeSoon(this._browserView.renderNow);
     },
 
@@ -1513,7 +1520,7 @@ ContentCustomClicker.prototype = {
     },
 
     singleClick: function singleClick(cX, cY) {
-      
+      this._dispatchMouseEvent("mousedown", cX, cY);
       this._dispatchMouseEvent("mouseup", cX, cY);
     },
 
