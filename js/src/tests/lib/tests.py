@@ -80,13 +80,7 @@ class Test(object):
 
     def get_command(self, js_cmd_prefix):
         dirname, filename = os.path.split(self.path)
-        cmd = js_cmd_prefix
-        if self.allowXml:
-            cmd = cmd + [ '-e', 'options("allow_xml")' ]
-        cmd = cmd + Test.prefix_command(dirname)
-        if self.debugMode:
-            cmd += [ '-d' ]
-        cmd += [ '-f', self.path ]
+        cmd = js_cmd_prefix + self.options + Test.prefix_command(dirname) + [ '-f', self.path ]
         return cmd
 
     def run(self, js_cmd_prefix, timeout=30.0):
@@ -98,14 +92,13 @@ class TestCase(Test):
     """A test case consisting of a test and an expected result."""
     js_cmd_prefix = None
 
-    def __init__(self, path, enable, expect, random, slow, debugMode, allowXml):
+    def __init__(self, path):
         Test.__init__(self, path)
-        self.enable = enable     
-        self.expect = expect     
-        self.random = random     
-        self.slow = slow         
-        self.debugMode = debugMode 
-        self.allowXml = allowXml 
+        self.enable = True   
+        self.expect = True   
+        self.random = False  
+        self.slow = False    
+        self.options = []    
 
         
         self.terms = None
@@ -126,8 +119,10 @@ class TestCase(Test):
             ans += ', random'
         if self.slow:
             ans += ', slow'
-        if self.debugMode:
+        if '-d' in self.options:
             ans += ', debugMode'
+        if 'options("allow_xml");' in self.options:
+            ans += ', pref(javascript.options.xml.content,true)'
         return ans
 
     @classmethod
