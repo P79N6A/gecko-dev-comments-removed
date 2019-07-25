@@ -56,6 +56,9 @@ Cu.import("resource://weave/syncCores.js");
 Cu.import("resource://weave/trackers.js");
 Cu.import("resource://weave/async.js");
 
+Cu.import("resource://weave/base_records/wbo.js");
+Cu.import("resource://weave/base_records/crypto.js");
+
 Function.prototype.async = Async.sugar;
 
 
@@ -272,11 +275,29 @@ NewEngine.prototype = {
     
 
     
+    let all = this._store.wrap();
+    for (let key in all) {
+      let record = new CryptoWrapper();
+      record.id = key;
+      record.cleartext = all[key];
+      this.outgoing.push(record);
+    }
+
 
     
-    foreach (this.outgoing) {
+
+    
+    
+    for each (record in this.outgoing) {
+      
+      this._log.info(uneval(record.payload));
       
     }
+
+    
+    for each (record in this.outgoing) {
+    }
+
     self.done();
   }
 };
