@@ -65,7 +65,6 @@ MockObjectRegisterer.prototype = {
 
 
   register: function MOR_register() {
-    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
     if (this._originalFactory)
       throw new Exception("Invalid object state when calling register()");
 
@@ -79,41 +78,24 @@ MockObjectRegisterer.prototype = {
       }
     };
 
-    var componentRegistrar = Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-
-    
-    this._cid = componentRegistrar.contractIDToCID(this._contractID);
-
-    
-    this._originalFactory = Components.manager.getClassObject(Components.classes[this._contractID],
-                                                              Components.interfaces.nsIFactory);
-
-    componentRegistrar.unregisterFactory(this._cid, this._originalFactory);
-
-    componentRegistrar.registerFactory(this._cid,
-                                       "",
-                                       this._contractID,
-                                       this._mockFactory);
+    var retVal = SpecialPowers.swapFactoryRegistration(this._cid, this._contractID, this._mockFactory, this._originalFactory);
+    if ('error' in retVal) {
+      throw new Exception("ERROR: " + retVal.error);
+    } else {
+      this._cid = retVal.cid;
+      this._originalFactory = retVal.originalFactory;
+    }
   },
 
   
 
 
   unregister: function MOR_unregister() {
-    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
     if (!this._originalFactory)
       throw new Exception("Invalid object state when calling unregister()");
 
     
-    var componentRegistrar = Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-    componentRegistrar.unregisterFactory(this._cid,
-                                         this._mockFactory);
-
-    
-    componentRegistrar.registerFactory(this._cid,
-                                       "",
-                                       this._contractID,
-                                       this._originalFactory);
+    SpecialPowers.swapFactoryRegistration(this._cid, this._contractID, this._mockFactory, this._originalFactory);
 
     
     this._cid = null;
