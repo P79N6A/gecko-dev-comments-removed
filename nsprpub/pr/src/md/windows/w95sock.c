@@ -107,6 +107,7 @@ typedef struct _WSA_COMPATIBILITY_MODE {
 static HMODULE libWinsock2 = NULL;
 static WSAIOCTLPROC wsaioctlProc = NULL;
 static PRBool socketSetCompatMode = PR_FALSE;
+static PRBool socketFixInet6RcvBuf = PR_FALSE;
 
 void _PR_MD_InitSockets(void)
 {
@@ -129,6 +130,11 @@ void _PR_MD_InitSockets(void)
                 socketSetCompatMode = PR_TRUE;
             }
         }
+    }
+    else if (osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 1)
+    {
+        
+        socketFixInet6RcvBuf = PR_TRUE;
     }
 }
 
@@ -187,6 +193,27 @@ _PR_MD_SOCKET(int af, int type, int flags)
 
 
  
+        }
+    }
+
+    if (af == AF_INET6 && socketFixInet6RcvBuf)
+    {
+        int bufsize;
+        int len = sizeof(bufsize);
+        int rv;
+
+        
+
+
+
+
+
+
+        rv = getsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char*)&bufsize, &len);
+        if (rv == 0 && bufsize > 65535)
+        {
+            bufsize = 65535;
+            setsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char*)&bufsize, len);
         }
     }
 
