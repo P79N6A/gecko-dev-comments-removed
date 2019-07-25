@@ -977,7 +977,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
 
       
       
-      if (NS_STYLE_DISPLAY_INLINE == mStyleDisplay->mOriginalDisplay) {
+      if (mStyleDisplay->IsOriginalDisplayInlineOutside()) {
         
         
         aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
@@ -1029,7 +1029,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   if (NS_STYLE_DIRECTION_LTR == blockVis->mDirection) {
     
     
-    if (NS_STYLE_DISPLAY_INLINE == mStyleDisplay->mOriginalDisplay) {
+    if (mStyleDisplay->IsOriginalDisplayInlineOutside()) {
       
       aHypotheticalBox.mLeft = placeholderOffset.x;
     } else {
@@ -1056,7 +1056,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
 
   } else {
     
-    if (NS_STYLE_DISPLAY_INLINE == mStyleDisplay->mOriginalDisplay) {
+    if (mStyleDisplay->IsOriginalDisplayInlineOutside()) {
       aHypotheticalBox.mRight = placeholderOffset.x;
     } else {
       aHypotheticalBox.mRight = aBlockLeftContentEdge + aBlockContentWidth;
