@@ -167,10 +167,6 @@ pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%B
 
 
 
-
-pref("app.update.nagTimer.restart", 86400);
-
-
 pref("app.update.promptWaitTime", 43200);
 
 pref("app.update.idletime", 60);
