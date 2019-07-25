@@ -1981,7 +1981,7 @@ nsHttpChannel::OpenCacheEntry()
     
     nsCacheAccessMode accessRequested;
     rv = DetermineCacheAccess(&accessRequested);
-    if NS_FAILED(rv) return rv;
+    if (NS_FAILED(rv)) return rv;
 
     if (!mApplicationCache && mInheritApplicationCache) {
         
@@ -2166,7 +2166,7 @@ nsHttpChannel::OpenNormalCacheEntry(PRBool aIsSync)
 
     nsCacheAccessMode accessRequested;
     rv = DetermineCacheAccess(&accessRequested);
-    if NS_FAILED(rv) return rv;
+    if (NS_FAILED(rv)) return rv;
 
     if (mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY) {
         if (!aIsSync) {
