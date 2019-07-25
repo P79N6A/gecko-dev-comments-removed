@@ -35,6 +35,8 @@
 
 
 
+
+
 package org.mozilla.gecko;
 
 import java.io.*;
@@ -323,6 +325,15 @@ abstract public class GeckoApp
                 } else {
                     return false;
                 }
+            case KeyEvent.KEYCODE_MENU:
+                if (event.getRepeatCount() == 0) {
+                    event.startTracking();
+                    break;
+                } else if ((event.getFlags() & KeyEvent.FLAG_LONG_PRESS) != 0) {
+                    break;
+                }
+                
+                return false;
             case KeyEvent.KEYCODE_VOLUME_UP:
             case KeyEvent.KEYCODE_VOLUME_DOWN:
             case KeyEvent.KEYCODE_SEARCH:
@@ -343,7 +354,7 @@ abstract public class GeckoApp
     }
 
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        switch(keyCode) {
+        switch (keyCode) {
             case KeyEvent.KEYCODE_BACK:
                 if (!event.isTracking() || event.isCanceled())
                     return false;
@@ -358,6 +369,24 @@ abstract public class GeckoApp
     public boolean onKeyMultiple(int keyCode, int repeatCount, KeyEvent event) {
         GeckoAppShell.sendEventToGecko(new GeckoEvent(event));
         return true;
+    }
+
+    public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_BACK:
+                GeckoAppShell.sendEventToGecko(new GeckoEvent(event));
+                return true;
+            case KeyEvent.KEYCODE_MENU:
+                InputMethodManager imm = (InputMethodManager)
+                    surfaceView.getContext().getSystemService(
+                            Context.INPUT_METHOD_SERVICE);
+                imm.toggleSoftInputFromWindow(surfaceView.getWindowToken(),
+                                              imm.SHOW_FORCED, 0);
+                return true;
+            default:
+                break;
+        }
+        return false;
     }
 
     abstract public String getAppName();
