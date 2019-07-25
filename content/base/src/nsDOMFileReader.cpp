@@ -506,7 +506,7 @@ nsDOMFileReader::ReadFileContent(nsIDOMFile* aFile,
     
     
     
-    nsDOMFileInternalUrlHolder urlHolder(mFile);
+    nsDOMFileInternalUrlHolder urlHolder(mFile, mPrincipal);
 
     nsCOMPtr<nsIURI> uri;
     rv = NS_NewURI(getter_AddRefs(uri), urlHolder.mUrl);
