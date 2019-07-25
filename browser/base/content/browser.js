@@ -3526,7 +3526,12 @@ const BrowserSearch = {
 
 
 
-  loadSearch: function BrowserSearch_search(searchText, useNewTab) {
+
+
+
+
+
+  loadSearch: function BrowserSearch_search(searchText, useNewTab, responseType) {
     var engine;
 
     
@@ -3536,7 +3541,12 @@ const BrowserSearch = {
     else
       engine = Services.search.defaultEngine;
 
-    var submission = engine.getSubmission(searchText); 
+    var submission = engine.getSubmission(searchText, responseType);
+
+    
+    
+    if (!submission && responseType)
+      submission = engine.getSubmission(searchText);
 
     
     
