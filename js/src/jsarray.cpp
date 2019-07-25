@@ -1981,7 +1981,89 @@ CompareStringValues(JSContext *cx, const Value &a, const Value &b, bool *lessOrE
     return true;
 }
 
-struct SortComparatorStrings {
+static int32_t const powersOf10Int32[] = {
+    1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000
+};
+
+static inline int
+NumDigitsBase10(int32_t n)
+{
+    
+
+
+
+
+    int32_t log2, t;
+    JS_CEILING_LOG2(log2, n);
+    t = log2 * 1233 >> 12;
+    return t - (n < powersOf10Int32[t]) + 1;
+}
+
+inline bool
+CompareLexicographicInt32(JSContext *cx, const Value &a, const Value &b, bool *lessOrEqualp)
+{
+    int32_t aint = a.toInt32();
+    int32_t bint = b.toInt32();
+
+    
+
+
+
+
+
+
+    if (aint == bint) {
+        *lessOrEqualp = true;
+    } else if ((aint < 0) && (bint >= 0)) {
+        *lessOrEqualp = true;
+    } else if ((aint >= 0) && (bint < 0)) {
+        *lessOrEqualp = false;
+    } else if (bint == INT32_MIN) { 
+        *lessOrEqualp = true;
+    } else if (aint == INT32_MIN) { 
+        *lessOrEqualp = false;
+    } else {
+        if (aint < 0) { 
+            aint = -aint;
+            bint = -bint;
+        }
+
+        
+
+
+
+
+
+        int digitsa = NumDigitsBase10(aint);
+        int digitsb = NumDigitsBase10(bint);
+        if (digitsa == digitsb)
+            *lessOrEqualp = (aint <= bint);
+        else if (digitsa > digitsb)
+            *lessOrEqualp = (aint < bint*powersOf10Int32[digitsa - digitsb]);
+        else 
+            *lessOrEqualp = (aint*powersOf10Int32[digitsb - digitsa] <= bint);
+    }
+
+    return true;
+}
+
+inline bool
+CompareSubStringValues(JSContext *cx, const jschar *s1, size_t l1,
+                       const jschar *s2, size_t l2, bool *lessOrEqualp)
+{
+    if (!JS_CHECK_OPERATION_LIMIT(cx))
+        return false;
+
+    int32_t result;
+    if (!s1 || !s2 || !CompareChars(s1, l1, s2, l2, &result))
+        return false;
+
+    *lessOrEqualp = (result <= 0);
+    return true;
+}
+
+struct SortComparatorStrings
+{
     JSContext   *const cx;
 
     SortComparatorStrings(JSContext *cx)
@@ -1992,23 +2074,42 @@ struct SortComparatorStrings {
     }
 };
 
-struct StringValuePair {
-    Value   str;
-    Value   v;
-};
-
-struct SortComparatorStringValuePairs {
+struct SortComparatorLexicographicInt32
+{
     JSContext   *const cx;
 
-    SortComparatorStringValuePairs(JSContext *cx)
+    SortComparatorLexicographicInt32(JSContext *cx)
       : cx(cx) {}
 
-    bool operator()(const StringValuePair &a, const StringValuePair &b, bool *lessOrEqualp) {
-        return CompareStringValues(cx, a.str, b.str, lessOrEqualp);
+    bool operator()(const Value &a, const Value &b, bool *lessOrEqualp) {
+        return CompareLexicographicInt32(cx, a, b, lessOrEqualp);
     }
 };
 
-struct SortComparatorFunction {
+struct StringifiedElement
+{
+    size_t charsBegin;
+    size_t charsEnd;
+    size_t elementIndex;
+};
+
+struct SortComparatorStringifiedElements
+{
+    JSContext           *const cx;
+    const StringBuffer  &sb;
+
+    SortComparatorStringifiedElements(JSContext *cx, const StringBuffer &sb)
+      : cx(cx), sb(sb) {}
+
+    bool operator()(const StringifiedElement &a, const StringifiedElement &b, bool *lessOrEqualp) {
+        return CompareSubStringValues(cx, sb.begin() + a.charsBegin, a.charsEnd - a.charsBegin,
+                                      sb.begin() + b.charsBegin, b.charsEnd - b.charsBegin,
+                                      lessOrEqualp);
+    }
+};
+
+struct SortComparatorFunction
+{
     JSContext          *const cx;
     const Value        &fval;
     InvokeArgsGuard    &ag;
@@ -2123,6 +2224,7 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
 
         undefs = 0;
         bool allStrings = true;
+        bool allInts = true;
         for (jsuint i = 0; i < len; i++) {
             if (!JS_CHECK_OPERATION_LIMIT(cx))
                 return false;
@@ -2140,6 +2242,7 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
             }
             vec.infallibleAppend(v);
             allStrings = allStrings && v.isString();
+            allInts = allInts && v.isInt32();
         }
 
         n = vec.length();
@@ -2151,6 +2254,7 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
         JS_ALWAYS_TRUE(vec.resize(n * 2));
 
         
+        Value *result = vec.begin();
         if (fval.isNull()) {
             
 
@@ -2159,6 +2263,11 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
             if (allStrings) {
                 if (!MergeSort(vec.begin(), n, vec.begin() + n, SortComparatorStrings(cx)))
                     return false;
+            } else if (allInts) {
+                if (!MergeSort(vec.begin(), n, vec.begin() + n,
+                               SortComparatorLexicographicInt32(cx))) {
+                    return false;
+                }
             } else {
                 
 
@@ -2167,61 +2276,47 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
 
 
 
+                StringBuffer sb(cx);
+                Vector<StringifiedElement, 0, TempAllocPolicy> strElements(cx);
+                if (!strElements.reserve(2 * n))
+                    return false;
 
-
-                size_t i = n;
-                do {
-                    --i;
+                int cursor = 0;
+                for (size_t i = 0; i < n; i++) {
                     if (!JS_CHECK_OPERATION_LIMIT(cx))
                         return false;
-                    const Value &v = vec[i];
-                    JSString *str = ToString(cx, v);
-                    if (!str)
+
+                    if (!ValueToStringBuffer(cx, vec[i], sb))
                         return false;
 
-                    
+                    StringifiedElement el = { cursor, sb.length(), i };
+                    strElements.infallibleAppend(el);
+                    cursor = sb.length();
+                }
 
+                
+                JS_ALWAYS_TRUE(strElements.resize(2 * n));
 
-
-                    vec[2 * i + 1] = v;
-                    vec[2 * i].setString(str);
-                } while (i != 0);
-
-                AutoValueVector extraScratch(cx);
-                if (!extraScratch.resize(n * 2))
-                    return false;
-                if (!MergeSort(reinterpret_cast<StringValuePair *>(vec.begin()), n,
-                               reinterpret_cast<StringValuePair *>(extraScratch.begin()),
-                               SortComparatorStringValuePairs(cx))) {
+                if (!MergeSort(strElements.begin(), n, strElements.begin() + n,
+                               SortComparatorStringifiedElements(cx, sb))) {
                     return false;
                 }
 
                 
+                for (size_t i = 0; i < n; i ++)
+                    vec[n + i] = vec[strElements[i].elementIndex];
 
-
-
-
-                i = 0;
-                do {
-                    vec[i] = vec[2 * i + 1];
-                } while (++i != n);
+                result = vec.begin() + n;
             }
         } else {
             InvokeArgsGuard args;
             if (!MergeSort(vec.begin(), n, vec.begin() + n,
-                           SortComparatorFunction(cx, fval, args)))
-            {
+                           SortComparatorFunction(cx, fval, args))) {
                 return false;
             }
         }
 
-        
-
-
-
-
-        vec.resize(n);
-        if (!InitArrayElements(cx, obj, 0, jsuint(n), vec.begin(), DontUpdateTypes))
+        if (!InitArrayElements(cx, obj, 0, jsuint(n), result, DontUpdateTypes))
             return false;
     }
 
