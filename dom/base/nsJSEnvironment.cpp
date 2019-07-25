@@ -148,6 +148,9 @@ static PRLogModuleInfo* gJSDiagnostics;
 #define NS_CC_FORCED                (2 * 60 * PR_USEC_PER_SEC) // 2 min
 
 
+#define NS_MAX_CC_LOCKEDOUT_TIME    (5 * PR_USEC_PER_SEC) // 5 seconds
+
+
 #define NS_CC_PURPLE_LIMIT          250
 
 #define JAVASCRIPT nsIProgrammingLanguage::JAVASCRIPT
@@ -160,8 +163,8 @@ static nsITimer *sCCTimer;
 
 static PRTime sLastCCEndTime;
 
-static bool sGCHasRun;
 static bool sCCLockedOut;
+static PRTime sCCLockedOutTime;
 
 static js::GCSliceCallback sPrevGCSliceCallback;
 
@@ -3310,9 +3313,24 @@ TimerFireForgetSkippable(PRUint32 aSuspected, bool aRemoveChildless)
 static void
 CCTimerFired(nsITimer *aTimer, void *aClosure)
 {
-  if (sDidShutdown || sCCLockedOut) {
+  if (sDidShutdown) {
     return;
   }
+
+  if (sCCLockedOut) {
+    PRTime now = PR_Now();
+    if (sCCLockedOutTime == 0) {
+      sCCLockedOutTime = now;
+      return;
+    }
+    if (now - sCCLockedOutTime < NS_MAX_CC_LOCKEDOUT_TIME) {
+      return;
+    }
+
+    
+    nsJSContext::GarbageCollectNow(js::gcreason::CC_FORCED, nsGCNormal);
+  }
+
   ++sCCTimerFireCount;
 
   
@@ -3478,6 +3496,8 @@ nsJSContext::KillShrinkGCBuffersTimer()
 void
 nsJSContext::KillCCTimer()
 {
+  sCCLockedOutTime = 0;
+
   if (sCCTimer) {
     sCCTimer->Cancel();
 
@@ -3519,6 +3539,7 @@ DOMGCSliceCallback(JSRuntime *aRt, js::GCProgress aProgress, const js::GCDescrip
   
   if (aProgress == js::GC_CYCLE_BEGIN) {
     sCCLockedOut = true;
+    nsJSContext::KillShrinkGCBuffersTimer();
   } else if (aProgress == js::GC_CYCLE_END) {
     sCCLockedOut = false;
   }
@@ -3526,43 +3547,31 @@ DOMGCSliceCallback(JSRuntime *aRt, js::GCProgress aProgress, const js::GCDescrip
   
   if (aProgress == js::GC_SLICE_END) {
     nsJSContext::KillGCTimer();
-    nsJSContext::KillCCTimer();
-
     nsJSContext::PokeGC(js::gcreason::INTER_SLICE_GC, NS_INTERSLICE_GC_DELAY);
   }
 
   if (aProgress == js::GC_CYCLE_END) {
+    
+    nsJSContext::KillGCTimer();
+
     sCCollectedWaitingForGC = 0;
     sCleanupSinceLastGC = false;
 
-    if (sGCTimer) {
-      
-      nsJSContext::KillGCTimer();
-
+    if (aDesc.isCompartment) {
       
       
       
       
       
-      if (aDesc.isCompartment) {
-        nsJSContext::PokeGC(js::gcreason::POST_COMPARTMENT);
-
-        
-        nsJSContext::KillCCTimer();
-      }
-    } else {
-      
-      if (!aDesc.isCompartment) {
-        sGCHasRun = true;
-        sNeedsFullCC = true;
-        nsJSContext::MaybePokeCC();
-      }
+      nsJSContext::PokeGC(js::gcreason::POST_COMPARTMENT);
     }
 
-    
-    
-    nsJSContext::KillShrinkGCBuffersTimer();
-    if (!sGCTimer) {
+    sNeedsFullCC = true;
+    nsJSContext::MaybePokeCC();
+
+    if (!aDesc.isCompartment) {
+      
+      
       nsJSContext::PokeShrinkGCBuffers();
     }
   }
@@ -3661,8 +3670,8 @@ nsJSRuntime::Startup()
 {
   
   sGCTimer = sCCTimer = nsnull;
-  sGCHasRun = false;
   sCCLockedOut = false;
+  sCCLockedOutTime = 0;
   sLastCCEndTime = 0;
   sPendingLoadCount = 0;
   sLoadingInProgress = false;
