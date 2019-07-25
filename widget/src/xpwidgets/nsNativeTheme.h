@@ -175,6 +175,8 @@ class nsNativeTheme : public nsITimerCallback
   
   PRBool IsRegularMenuItem(nsIFrame *aFrame);
 
+  PRBool IsMenuListEditable(nsIFrame *aFrame);
+
   nsIPresShell *GetPresShell(nsIFrame* aFrame);
   PRInt32 CheckIntAttr(nsIFrame* aFrame, nsIAtom* aAtom, PRInt32 defaultValue);
   PRBool CheckBooleanAttr(nsIFrame* aFrame, nsIAtom* aAtom);
