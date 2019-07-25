@@ -320,10 +320,27 @@ NewEngine.prototype = {
     record.uri = this.engineURL + id;
     record.encryption = this.cryptoMetaURL;
     record.cleartext = payload;
+    if (payload.parentGUID) 
+      record.parentid = payload.parentGUID;
     if (encrypt || encrypt == undefined)
       yield record.encrypt(self.cb, ID.get('WeaveCryptoID').password);
 
     self.done(record);
+  },
+
+  _recDepth: function NewEngine__recDepth(rec) {
+    if (rec.depth)
+      return rec.depth;
+    if (!rec.parentid)
+      return 0;
+    for each (let inc in this.incoming) {
+      if (inc.id == rec.parentid) {
+        rec.depth = this._recDepth(inc) + 1;
+        return rec.depth;
+      }
+    }
+    this._log.warn("Couldn't calculate depth of item " + rec.id);
+    return 0;
   },
 
   _sync: function NewEngine__sync() {
@@ -373,6 +390,24 @@ NewEngine.prototype = {
     }
 
     
+    for each (let inc in this.incoming) {
+      this._recDepth(inc);
+    }
+    this.incoming.sort(function(a, b) {
+      if ((typeof(a.depth) == "number" && typeof(b.depth) == "undefined") ||
+          (typeof(a.depth) == "number" && b.depth == null) ||
+          (a.depth > b.depth))
+        return 1;
+      if ((typeof(a.depth) == "undefined" && typeof(b.depth) == "number") ||
+          (a.depth == null && typeof(b.depth) == "number") ||
+          (a.depth < b.depth))
+        return -1;
+      
+      
+      
+      
+      return 0;
+    });
 
     
     this._log.debug("Reconciling server/client changes");
@@ -398,7 +433,7 @@ NewEngine.prototype = {
     this._log.debug("Applying server changes");
 
     let inc;
-    while ((inc = this.incoming.pop())) {
+    while ((inc = this.incoming.shift())) {
       yield this._store.applyIncoming(self.cb, inc);
       if (inc.modified > this.lastSync)
         this.lastSync = inc.modified;
