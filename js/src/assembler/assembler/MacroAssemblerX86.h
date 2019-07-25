@@ -183,6 +183,16 @@ public:
         return label;
     }
 
+    void pushAllRegs()
+    {
+        m_assembler.pusha();
+    }
+
+    void popAllRegs()
+    {
+        m_assembler.popa();
+    }
+
     bool supportsFloatingPoint() const { return m_isSSE2Present; }
     
     bool supportsFloatingPointTruncate() const { return m_isSSE2Present; }
