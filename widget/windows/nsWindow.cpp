@@ -3489,8 +3489,8 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
   
   
   
-  if (mViewWrapperPtr) {
-    aStatus = mViewWrapperPtr->HandleEvent(event, mUseAttachedEvents);
+  if (mAttachedWidgetListener) {
+    aStatus = mAttachedWidgetListener->HandleEvent(event, mUseAttachedEvents);
   }
   else if (mWidgetListener) {
     aStatus = mWidgetListener->HandleEvent(event, mUseAttachedEvents);
@@ -6934,6 +6934,7 @@ void nsWindow::OnDestroy()
 
   
   mWidgetListener = nullptr;
+  mAttachedWidgetListener = nullptr;
 
   
   
@@ -7024,8 +7025,8 @@ bool nsWindow::OnResize(nsIntRect &aWindowRect)
 #endif
 
   
-  if (mViewWrapperPtr) {
-    mViewWrapperPtr->WindowResized(this, aWindowRect.width, aWindowRect.height);
+  if (mAttachedWidgetListener) {
+    mAttachedWidgetListener->WindowResized(this, aWindowRect.width, aWindowRect.height);
   }
 
   return mWidgetListener ?
