@@ -188,28 +188,6 @@ nsPlacesExportService::Init()
   return NS_OK;
 }
 
-
-
-
-
-
-static nsresult
-SyncChannelStatus(nsIChannel* channel, nsresult status)
-{
-  nsresult channelStatus;
-  channel->GetStatus(&channelStatus);
-  if (NS_FAILED(channelStatus))
-    return channelStatus;
-
-  if (NS_SUCCEEDED(status))
-    return NS_OK; 
-
-  
-  channel->Cancel(status);
-  return status;
-}
-
-
 static char kFileIntro[] =
     "<!DOCTYPE NETSCAPE-Bookmark-file-1>" NS_LINEBREAK
     
