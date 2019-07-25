@@ -443,7 +443,7 @@ WeaveSvc.prototype = {
       this.syncOnIdle();
     }
     else if (!this._syncTimer) 
-      this._scheduleNextSync();
+      this._checkSyncStatus();
   },
 
   
@@ -617,25 +617,12 @@ WeaveSvc.prototype = {
   resetPassphrase: function WeaveSvc_resetPassphrase(newphrase)
     this._catch(this._notify("resetpph", "", function() {
       
-      this.prepCommand("logout", []);
-      let clientsBackup = Clients._store.clients;
-
-      
-      this.wipeServer();
-      PubKeys.clearCache();
-      PrivKeys.clearCache();
-
-      
-      Clients._store.clients = clientsBackup;
-      let username = this.username;
-      let password = this.password;
-      this.logout();
-
-      
       this.passphrase = newphrase;
+      this.persistLogin();
 
       
-      this.login(username, password, newphrase);
+      this.login();
+      this._freshStart(SYNCID_RESET_PASSPHRASE);
       this.sync(true);
       return true;
     }))(),
@@ -806,8 +793,6 @@ WeaveSvc.prototype = {
   
   
   _remoteSetup: function WeaveSvc__remoteSetup() {
-    let reset = false;
-
     this._log.debug("Fetching global metadata record");
     let meta = Records.import(this.metaURL);
 
@@ -843,7 +828,6 @@ WeaveSvc.prototype = {
         Status.sync = DESKTOP_VERSION_OUT_OF_DATE;
         return false;
       }
-      reset = true;
       this._log.info("Wiping server data");
       this._freshStart();
 
@@ -861,13 +845,19 @@ WeaveSvc.prototype = {
       return false;
 
     } else if (meta.payload.syncID != Clients.syncID) {
-      this._log.warn("Meta.payload.syncID is " + meta.payload.syncID +
-                     ", Clients.syncID is " + Clients.syncID);
+      let reason = meta.payload.reason;
       this.resetClient();
-      this._log.info("Reset client because of syncID mismatch.");
+      this._log.debug("Reset client on syncID mismatch: " + reason);
       Clients.syncID = meta.payload.syncID;
-      this._log.info("Reset the client after a server/client sync ID mismatch");
       this._updateRemoteVersion(meta);
+
+      
+      switch (reason) {
+        case SYNCID_WIPE_REMOTE:
+        case SYNCID_RESET_PASSPHRASE:
+          Status.sync = reason;
+          return false;
+      }
     }
     
     else
@@ -906,12 +896,6 @@ WeaveSvc.prototype = {
                        "is disabled.  Aborting sync");
         Status.sync = NO_KEYS_NO_KEYGEN;
         return false;
-      }
-
-      if (!reset) {
-        this._log.warn("Calling freshStart from !reset case.");
-        this._freshStart();
-        this._log.info("Server data wiped to ensure consistency due to missing keys");
       }
 
       let passphrase = ID.get("WeaveCryptoID");
@@ -1110,24 +1094,6 @@ WeaveSvc.prototype = {
     Clients.sync();
 
     
-    if (Clients.getClients()[Clients.clientID].commands) {
-      try {
-        if (!(this.processCommands())) {
-          Status.sync = ABORT_SYNC_COMMAND;
-          throw "aborting sync, process commands said so";
-        }
-
-        
-        if (!(this._remoteSetup()))
-          throw "aborting sync, remote setup failed after processing commands";
-      }
-      finally {
-        
-        Clients.sync();
-      }
-    }
-
-    
     this._updateClientMode();
 
     try {
@@ -1217,18 +1183,17 @@ WeaveSvc.prototype = {
     }
   },
 
-  _freshStart: function WeaveSvc__freshStart() {
+  _freshStart: function WeaveSvc__freshStart(reason) {
     this.resetClient();
-    this._log.info("Reset client data from freshStart.");
-    this._log.info("Client metadata wiped, deleting server data");
+    this._log.info("Resetting client and wiping server: " + reason);
     this.wipeServer();
 
     
     Sync.sleep(2000);
 
-    this._log.debug("Uploading new metadata record");
     let meta = new WBORecord(this.metaURL);
     meta.payload.syncID = Clients.syncID;
+    meta.payload.reason = reason;
     this._updateRemoteVersion(meta);
   },
 
@@ -1331,16 +1296,7 @@ WeaveSvc.prototype = {
   wipeRemote: function WeaveSvc_wipeRemote(engines)
     this._catch(this._notify("wipe-remote", "", function() {
       
-      
-
-      
-      if (engines) {
-        engines.forEach(function(e) this.prepCommand("wipeEngine", [e]), this);
-        return;
-      }
-
-      
-      this.prepCommand("wipeAll", []);
+      this._freshStart(SYNCID_WIPE_REMOTE);
     }))(),
 
   
@@ -1394,126 +1350,4 @@ WeaveSvc.prototype = {
         this._log.debug("Could not remove old snapshots: " + Utils.exceptionStr(e));
       }
     }))(),
-
-  
-
-
-
-
-  _commands: [
-    ["resetAll", 0, "Clear temporary local data for all engines"],
-    ["resetEngine", 1, "Clear temporary local data for engine"],
-    ["wipeAll", 0, "Delete all client data for all engines"],
-    ["wipeEngine", 1, "Delete all client data for engine"],
-    ["logout", 0, "Log out client"],
-  ].reduce(function WeaveSvc__commands(commands, entry) {
-    commands[entry[0]] = {};
-    for (let [i, attr] in Iterator(["args", "desc"]))
-      commands[entry[0]][attr] = entry[i + 1];
-    return commands;
-  }, {}),
-
-  
-
-
-
-
-  processCommands: function WeaveSvc_processCommands()
-    this._notify("process-commands", "", function() {
-      let info = Clients.getInfo(Clients.clientID);
-      let commands = info.commands;
-
-      
-      delete info.commands;
-      Clients.setInfo(Clients.clientID, info);
-
-      
-      for each ({command: command, args: args} in commands) {
-        this._log.debug("Processing command: " + command + "(" + args + ")");
-
-        let engines = [args[0]];
-        switch (command) {
-          case "resetAll":
-            engines = null;
-            
-          case "resetEngine":
-            this.resetClient(engines);
-            break;
-          case "wipeAll":
-            engines = null;
-            
-          case "wipeEngine":
-            this.wipeClient(engines);
-            break;
-          case "logout":
-            this.logout();
-            return false;
-          default:
-            this._log.debug("Received an unknown command: " + command);
-            break;
-        }
-      }
-
-      return true;
-    })(),
-
-  
-
-
-
-
-
-
-
-
-
-  prepCommand: function WeaveSvc_prepCommand(command, args) {
-    let commandData = this._commands[command];
-    
-    if (commandData == null) {
-      this._log.error("Unknown command to send: " + command);
-      return;
-    }
-    
-    else if (args == null || args.length != commandData.args) {
-      this._log.error("Expected " + commandData.args + " args for '" +
-                      command + "', but got " + args);
-      return;
-    }
-
-    
-    let action = {
-      command: command,
-      args: args,
-    };
-    let actionStr = command + "(" + args + ")";
-
-    
-    let jsonArgs = JSON.stringify(args);
-    let notDupe = function(action) action.command != command ||
-      JSON.stringify(action.args) != jsonArgs;
-
-    this._log.info("Sending clients: " + actionStr + "; " + commandData.desc);
-
-    
-    for (let guid in Clients.getClients()) {
-      
-      if (guid == Clients.clientID)
-        continue;
-
-      let info = Clients.getInfo(guid);
-      
-      if (info.commands == null)
-        info.commands = [action];
-      
-      else if (info.commands.every(notDupe))
-        info.commands.push(action);
-      
-      else
-        continue;
-
-      Clients.setInfo(guid, info);
-      this._log.trace("Client " + guid + " got a new action: " + actionStr);
-    }
-  },
 };
