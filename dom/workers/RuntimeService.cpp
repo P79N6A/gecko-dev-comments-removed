@@ -368,13 +368,13 @@ BEGIN_WORKERS_NAMESPACE
 
 JSBool
 ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsigned aFlags,
-                     JSObject** aObjp)
+                     JSMutableHandleObject aObjp)
 {
   AssertIsOnMainThread();
 
   
   if (aFlags & JSRESOLVE_ASSIGNING) {
-    *aObjp = nsnull;
+    aObjp.set(nsnull);
     return true;
   }
 
@@ -418,7 +418,7 @@ ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsign
   if (shouldResolve) {
     
     if (!isChrome && !Preferences::GetBool(PREF_WORKERS_ENABLED)) {
-      *aObjp = nsnull;
+      aObjp.set(nsnull);
       return true;
     }
 
@@ -440,12 +440,12 @@ ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsign
       return false;
     }
 
-    *aObjp = aObj;
+    aObjp.set(aObj);
     return true;
   }
 
   
-  *aObjp = nsnull;
+  aObjp.set(nsnull);
   return true;
 }
 

@@ -453,7 +453,7 @@ class SetPropCompiler : public PICStubCompiler
         if (clasp->ops.setProperty)
             return disable("ops set property hook");
 
-        JSObject *holder;
+        RootedObject holder(cx);
         JSProperty *prop = NULL;
 
         
@@ -652,23 +652,23 @@ IsCacheableProtoChain(JSObject *obj, JSObject *holder)
 template <typename IC>
 struct GetPropHelper {
     
-    JSContext   *cx;
-    JSObject    *obj;
+    JSContext          *cx;
+    RootedObject       obj;
     RootedPropertyName name;
-    IC          &ic;
-    VMFrame     &f;
+    IC                 &ic;
+    VMFrame            &f;
 
     
     
-    JSObject    *holder;
-    JSProperty  *prop;
+    RootedObject       holder;
+    JSProperty         *prop;
 
     
     
     const Shape *shape;
 
     GetPropHelper(JSContext *cx, JSObject *obj, PropertyName *name, IC &ic, VMFrame &f)
-      : cx(cx), obj(obj), name(cx, name), ic(ic), f(f), holder(NULL), prop(NULL), shape(NULL)
+      : cx(cx), obj(cx, obj), name(cx, name), ic(ic), f(f), holder(cx), prop(NULL), shape(NULL)
     { }
 
   public:

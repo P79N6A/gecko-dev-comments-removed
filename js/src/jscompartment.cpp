@@ -175,8 +175,13 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
             return WrapForSameCompartment(cx, obj, vp);
 
         
-        if (obj->isStopIteration())
-            return js_FindClassObject(cx, NULL, JSProto_StopIteration, vp);
+        if (obj->isStopIteration()) {
+            RootedObject null(cx);
+            RootedValue vvp(cx, *vp);
+            bool result = js_FindClassObject(cx, null, JSProto_StopIteration, &vvp);
+            *vp = vvp;
+            return result;
+        }
 
         
         obj = UnwrapObject(&vp->toObject(),  true, &flags);
