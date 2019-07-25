@@ -3829,6 +3829,29 @@ js_GetClassObject(JSContext *cx, HandleObject obj, JSProtoKey key,
     return true;
 }
 
+JSProtoKey
+js_IdentifyClassPrototype(JSObject *obj)
+{
+    
+    
+    
+    JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(obj->getClass());
+    if (key == JSProto_Null)
+        return JSProto_Null;
+
+    
+    
+    
+    
+    JSObject &global = obj->global();
+    Value v = global.getReservedSlot(JSProto_LIMIT + key);
+    if (v.isObject() && obj == &v.toObject())
+        return key;
+
+    
+    return JSProto_Null;
+}
+
 bool
 js_FindClassObject(JSContext *cx, HandleObject start, JSProtoKey protoKey,
                    MutableHandleValue vp, Class *clasp)
