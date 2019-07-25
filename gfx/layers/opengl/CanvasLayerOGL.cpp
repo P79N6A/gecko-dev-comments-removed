@@ -35,9 +35,6 @@
 
 
 
-#include "mozilla/layers/PLayers.h"
-#include "mozilla/layers/ShadowLayers.h"
-
 #include "gfxSharedImageSurface.h"
 
 #include "CanvasLayerOGL.h"
