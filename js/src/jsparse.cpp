@@ -1903,23 +1903,20 @@ struct BindData {
 };
 
 static bool
-BindLocalVariable(JSContext *cx, JSTreeContext *tc, JSAtom *atom, BindingKind kind, bool isArg)
+BindLocalVariable(JSContext *cx, JSTreeContext *tc, JSParseNode *pn, BindingKind kind)
 {
     JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
 
     
+    JS_ASSERT_IF(pn->pn_atom == cx->runtime->atomState.argumentsAtom, kind == VARIABLE);
 
+    uintN index = tc->bindings.countVars();
+    if (!tc->bindings.add(cx, pn->pn_atom, kind))
+        return false;
 
-
-
-
-
-
-
-    if (atom == cx->runtime->atomState.argumentsAtom && !isArg)
-        return true;
-
-    return tc->bindings.add(cx, atom, kind);
+    pn->pn_cookie.set(tc->staticLevel, index);
+    pn->pn_dflags |= PND_BOUND;
+    return true;
 }
 
 #if JS_HAS_DESTRUCTURING
@@ -3190,10 +3187,8 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
             if (apn->pn_op != JSOP_SETLOCAL)
                 continue;
 
-            uint16 index = funtc.bindings.countVars();
-            if (!BindLocalVariable(context, &funtc, apn->pn_atom, VARIABLE, true))
+            if (!BindLocalVariable(context, &funtc, apn, VARIABLE))
                 return NULL;
-            apn->pn_cookie.set(funtc.staticLevel, index);
         }
     }
 #endif
@@ -3788,7 +3783,7 @@ DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom)
 }
 
 static bool
-BindTopLevelVar(JSContext *cx, BindData *data, JSParseNode *pn, JSAtom *varname, JSTreeContext *tc)
+BindTopLevelVar(JSContext *cx, BindData *data, JSParseNode *pn, JSTreeContext *tc)
 {
     JS_ASSERT(pn->pn_op == JSOP_NAME);
     JS_ASSERT(!tc->inFunction());
@@ -3841,10 +3836,18 @@ BindTopLevelVar(JSContext *cx, BindData *data, JSParseNode *pn, JSAtom *varname,
 }
 
 static bool
-BindFunctionLocal(JSContext *cx, BindData *data, MultiDeclRange &mdl, JSParseNode *pn,
-                  JSAtom *name, JSTreeContext *tc)
+BindFunctionLocal(JSContext *cx, BindData *data, MultiDeclRange &mdl, JSTreeContext *tc)
 {
     JS_ASSERT(tc->inFunction());
+
+    JSParseNode *pn = data->pn;
+    JSAtom *name = pn->pn_atom;
+
+    
+
+
+
+
 
     if (name == cx->runtime->atomState.argumentsAtom) {
         pn->pn_op = JSOP_ARGUMENTS;
@@ -3863,12 +3866,9 @@ BindFunctionLocal(JSContext *cx, BindData *data, MultiDeclRange &mdl, JSParseNod
 
         kind = (data->op == JSOP_DEFCONST) ? CONSTANT : VARIABLE;
 
-        uintN index = tc->bindings.countVars();
-        if (!BindLocalVariable(cx, tc, name, kind, false))
+        if (!BindLocalVariable(cx, tc, pn, kind))
             return false;
         pn->pn_op = JSOP_GETLOCAL;
-        pn->pn_cookie.set(tc->staticLevel, index);
-        pn->pn_dflags |= PND_BOUND;
         return true;
     }
 
@@ -4027,9 +4027,9 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
         pn->pn_dflags |= PND_CONST;
 
     if (tc->inFunction())
-        return BindFunctionLocal(cx, data, mdl, pn, atom, tc);
+        return BindFunctionLocal(cx, data, mdl, tc);
 
-    return BindTopLevelVar(cx, data, pn, atom, tc);
+    return BindTopLevelVar(cx, data, pn, tc);
 }
 
 static bool
@@ -7199,8 +7199,9 @@ Parser::comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,
         if (isGenexp) {
             if (!guard.checkValidBody(pn2))
                 return NULL;
-        } else if (!guard.maybeNoteGenerator()) {
-            return NULL;
+        } else {
+            if (!guard.maybeNoteGenerator())
+                return NULL;
         }
 
         switch (tt) {
