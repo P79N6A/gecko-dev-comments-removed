@@ -151,8 +151,6 @@ class nsHashKey;
 #define NS_WINDOW_START                 100
 
 
-#define NS_CREATE                       (NS_WINDOW_START)
-
 #define NS_XUL_CLOSE                    (NS_WINDOW_START + 1)
 
 #define NS_DESTROY                      (NS_WINDOW_START + 2)
@@ -182,9 +180,6 @@ class nsHashKey;
 
 
 #define NS_MOVE                         (NS_WINDOW_START + 34) 
-
-
-#define NS_TABCHANGE                    (NS_WINDOW_START + 35)
 
 #define NS_OS_TOOLBAR                   (NS_WINDOW_START + 36)
 

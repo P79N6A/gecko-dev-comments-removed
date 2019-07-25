@@ -2949,9 +2949,7 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus& aStatus)
   }
 
   
-  
-  if ((mWindowState & nsWindowState_eLive) ||
-      (mWindowState == nsWindowState_eInCreate && event->message == NS_CREATE)) {
+  if (mWindowState & nsWindowState_eLive) {
     aStatus = (*mEventCallback)(event);
   }
   return NS_OK;
