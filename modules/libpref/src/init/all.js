@@ -1822,10 +1822,12 @@ pref("gfx.font_rendering.cleartype_params.rendering_mode", -1);
 
 
 
-pref("gfx.font_rendering.cleartype_params.force_gdi_classic_for_families", "");
+
+pref("gfx.font_rendering.cleartype_params.force_gdi_classic_for_families",
+     "Arial,Courier New,Tahoma,Trebuchet MS,Verdana");
 
 
-pref("gfx.font_rendering.cleartype_params.force_gdi_classic_max_size", 0);
+pref("gfx.font_rendering.cleartype_params.force_gdi_classic_max_size", 15);
 
 pref("ui.key.menuAccessKeyFocuses", true);
 
