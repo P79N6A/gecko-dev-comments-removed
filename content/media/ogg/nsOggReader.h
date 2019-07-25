@@ -91,13 +91,6 @@ private:
 
   
   
-  
-  
-  PRBool CanDecodeToTarget(PRInt64 aTarget,
-                           PRInt64 aCurrentTime);
-
-  
-  
   enum IndexedSeekResult {
     SEEK_OK,          
     SEEK_INDEX_FAIL,  

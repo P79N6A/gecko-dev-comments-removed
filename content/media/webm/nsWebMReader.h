@@ -190,12 +190,6 @@ private:
   
   void Cleanup();
 
-  
-  
-  
-  
-  PRBool CanDecodeToTarget(PRInt64 aTarget, PRInt64 aCurrentTime);
-
 private:
   
   
