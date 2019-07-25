@@ -552,7 +552,8 @@ FindReferences(JSContext *cx, unsigned argc, jsval *vp)
 
     
     ReferenceFinder finder(cx, reverser);
-    JSObject *references = finder.findReferences(RootedObject(cx, &target.toObject()));
+    Rooted<JSObject*> targetObj(cx, &target.toObject());
+    JSObject *references = finder.findReferences(targetObj);
     if (!references)
         return false;
 
