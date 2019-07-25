@@ -472,6 +472,25 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
     return wrapperObj;
 }
 
+JSObject *
+WrapperFactory::WrapForSameCompartment(JSContext *cx, JSObject *obj)
+{
+    
+    
+    
+    
+    
+    if (!IS_WN_WRAPPER(obj))
+        return obj;
+
+    
+    XPCWrappedNative *wn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
+    MOZ_ASSERT(wn, "Trying to wrap a dead WN!");
+
+    
+    return wn->GetSameCompartmentSecurityWrapper(cx);
+}
+
 typedef FilteringWrapper<XrayWrapper<SameCompartmentSecurityWrapper>, LocationPolicy> LW;
 
 bool

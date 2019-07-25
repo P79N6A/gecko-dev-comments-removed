@@ -100,6 +100,10 @@ class WrapperFactory {
                             unsigned flags);
 
     
+    static JSObject *WrapForSameCompartment(JSContext *cx,
+                                            JSObject *obj);
+
+    
     static bool IsLocationObject(JSObject *obj);
 
     
