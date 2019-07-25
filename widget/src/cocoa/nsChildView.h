@@ -152,9 +152,6 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   PRBool mKeyPressHandled;
 
   
-  NSRange mMarkedRange;
-  
-  
   NSEvent* mLastMouseDownEvent;
 
   

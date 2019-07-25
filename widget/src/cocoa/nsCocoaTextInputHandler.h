@@ -50,6 +50,7 @@
 #include "nsITimer.h"
 #include "npapi.h"
 #include "nsTArray.h"
+#include "nsEvent.h"
 
 struct PRLogModuleInfo;
 class nsChildView;
@@ -233,10 +234,6 @@ public:
   virtual void OnFocusChangeInGecko(PRBool aFocus);
   virtual void OnDestroyView(NSView<mozView> *aDestroyingView);
 
-  void OnStartIMEComposition(NSView<mozView> *aView);
-  void OnUpdateIMEComposition(NSString* aIMECompositionString);
-  void OnEndIMEComposition();
-
   
 
 
@@ -251,6 +248,41 @@ public:
                            NSAttributedString* aAttrString,
                            NSRange& aSelectedRange,
                            PRBool aDoCommit);
+
+  
+
+
+
+
+
+
+
+
+
+
+  void SetMarkedText(NSAttributedString* aAttrString,
+                     NSRange& aSelectedRange);
+
+  
+
+
+
+
+
+  void InsertTextAsCommittingComposition(NSAttributedString* aAttrString);
+
+  PRBool HasMarkedText()
+  {
+    return (mMarkedRange.location != NSNotFound) && (mMarkedRange.length != 0);
+  }
+
+  NSRange MarkedRange()
+  {
+    if (!HasMarkedText()) {
+      return NSMakeRange(NSNotFound, 0);
+    }
+    return mMarkedRange;
+  }
 
   PRBool IsIMEComposing() { return mIsIMEComposing; }
   PRBool IsIMEOpened();
@@ -308,6 +340,8 @@ protected:
 private:
   
   NSString* mIMECompositionString;
+
+  NSRange mMarkedRange;
 
   PRPackedBool mIsIMEComposing;
   PRPackedBool mIsIMEEnabled;
@@ -378,6 +412,29 @@ private:
   void SetTextRangeList(nsTArray<nsTextRange>& aTextRangeList,
                         NSAttributedString *aAttrString,
                         NSRange& aSelectedRange);
+
+  
+
+
+
+
+
+  void InitCompositionEvent(nsCompositionEvent& aCompositionEvent);
+
+  
+
+
+  void OnStartIMEComposition();
+
+  
+
+
+  void OnUpdateIMEComposition(NSString* aIMECompositionString);
+
+  
+
+
+  void OnEndIMEComposition();
 
   
   
