@@ -192,8 +192,8 @@ Resource.prototype = {
         this._dirty = false;
         if (action == "GET")
           this._data = this._lastRequest.responseText;
-        else if (action == "PUT")
-          this._data = data;
+        
+        
         break;
 
       } else if (action == "GET" && this._lastRequest.status == 404) {

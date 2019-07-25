@@ -61,18 +61,24 @@ TabEngine.prototype = {
   get displayName() { return "Tabs"; },
   get logName() "TabEngine",
   get serverPrefix() "user-data/tabs/",
-  get store() this._store,
+
+  get virtualTabs() {
+    let virtualTabs = {};
+    let realTabs = this._store.wrap();
+
+    for each (let tabset in this._file.data) {
+      for (let guid in tabset) {
+        if (!(guid in realTabs) && !(guid in virtualTabs))
+          virtualTabs[guid] = tabset[guid];
+      }
+    }
+    return virtualTabs;
+  },
 
   get _store() {
     let store = new TabStore();
     this.__defineGetter__("_store", function() store);
     return this._store;
-  },
-
-  get _core() {
-    let core = new TabSyncCore(this._store);
-    this.__defineGetter__("_core", function() core);
-    return this._core;
   },
 
   get _tracker() {
@@ -83,29 +89,11 @@ TabEngine.prototype = {
 
 };
 
-function TabSyncCore(store) {
-  this._store = store;
-  this._init();
-}
-TabSyncCore.prototype = {
-  __proto__: new SyncCore(),
-
-  _logName: "TabSync",
-  _store: null,
-
-  _commandLike: function TSC_commandLike(a, b) {
-    
-    return false;
-  }
-};
-
 function TabStore() {
-  this._virtualTabs = {};
   this._init();
 }
 TabStore.prototype = {
   __proto__: new Store(),
-
   _logName: "TabStore",
 
   get _sessionStore() {
@@ -113,163 +101,6 @@ TabStore.prototype = {
 		       getService(Ci.nsISessionStore);
     this.__defineGetter__("_sessionStore", function() sessionStore);
     return this._sessionStore;
-  },
-
-  get _windowMediator() {
-    let windowMediator = Cc["@mozilla.org/appshell/window-mediator;1"].
-			 getService(Ci.nsIWindowMediator);
-    this.__defineGetter__("_windowMediator", function() windowMediator);
-    return this._windowMediator;
-  },
-
-  get _dirSvc() {
-    let dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-                 getService(Ci.nsIProperties);
-    this.__defineGetter__("_dirSvc", function() dirSvc);
-    return this._dirSvc;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _virtualTabs: null,
-
-  get virtualTabs() {
-    
-    
-    
-    let realTabs = this._wrapRealTabs();
-    let virtualTabsChanged = false;
-    for (let id in this._virtualTabs) {
-      if (id in realTabs) {
-        this._log.warn("get virtualTabs: both real and virtual tabs exist for "
-                       + id + "; removing virtual one");
-        delete this._virtualTabs[id];
-        virtualTabsChanged = true;
-      }
-    }
-    if (virtualTabsChanged)
-      this._saveVirtualTabs();
-
-    return this._virtualTabs;
-  },
-
-  set virtualTabs(newValue) {
-    this._virtualTabs = newValue;
-    this._saveVirtualTabs();
-  },
-
-  
-
-
-
-
-
-
-  validateVirtualTab: function TabStore__validateVirtualTab(tab) {
-    if (!tab.state || !tab.state.entries || !tab.state.index) {
-      this._log.warn("invalid virtual tab state: " + this._json.encode(tab));
-      return false;
-    }
-
-    let currentEntry = tab.state.entries[tab.state.index - 1];
-
-    if (!currentEntry || !currentEntry.url) {
-      this._log.warn("no current entry or no URL: " + this._json.encode(tab));
-      return false;
-    }
-
-    return true;
-  },
-
-  
-  get _file() {
-    let file = this._dirSvc.get("ProfD", Ci.nsILocalFile);
-    file.append("weave");
-    file.append("store");
-    file.append("tabs");
-    file.append("virtual.json");
-    this.__defineGetter__("_file", function() file);
-    return this._file;
-  },
-
-  _saveVirtualTabs: function TabStore__saveVirtualTabs() {
-    try {
-      if (!this._file.exists())
-        this._file.create(Ci.nsIFile.NORMAL_FILE_TYPE, PERMS_FILE);
-      let out = this._json.encode(this._virtualTabs);
-      let [fos] = Utils.open(this._file, ">");
-      fos.writeString(out);
-      fos.close();
-    }
-    catch(ex) {
-      this._log.warn("could not serialize virtual tabs to disk: " + ex);
-    }
-  },
-
-  _restoreVirtualTabs: function TabStore__restoreVirtualTabs() {
-    try {
-      if (this._file.exists()) {
-        let [is] = Utils.open(this._file, "<");
-        let json = Utils.readStream(is);
-        is.close();
-        this._virtualTabs = this._json.decode(json);
-      }
-    }
-    catch (ex) {
-      this._log.warn("could not parse virtual tabs from disk: " + ex);
-    }
-  },
-
-  _init: function TabStore__init() {
-    this._restoreVirtualTabs();
-
-    this.__proto__.__proto__._init.call(this);
-  },
-
-  
-
-
-
-
-  applyCommands: function TabStore_applyCommands(commandList) {
-    let self = yield;
-
-    this.__proto__.__proto__.applyCommands.async(this, self.cb, commandList);
-    yield;
-
-    this._saveVirtualTabs();
-
-    self.done();
-  },
-
-  _itemExists: function TabStore__itemExists(GUID) {
-    
-    
-    
-    
-    
-
-    
-    let tabs = this.wrap();
-
-    
-    
-    if (GUID in tabs) {
-      this._log.trace("_itemExists: " + GUID + " exists");
-      return true;
-    }
-
-    this._log.trace("_itemExists: " + GUID + " doesn't exist");
-    return false;
   },
 
   _createCommand: function TabStore__createCommand(command) {
@@ -290,99 +121,10 @@ TabStore.prototype = {
     this._os.notifyObservers(null, "weave:store:tabs:virtual:created", null);
   },
 
-  _removeCommand: function TabStore__removeCommand(command) {
-    this._log.debug("_removeCommand: " + command.GUID);
-
-    
-    
-    
-    if (command.GUID in this._virtualTabs) {
-      delete this._virtualTabs[command.GUID];
-      this._os.notifyObservers(null, "weave:store:tabs:virtual:removed", null);
-    }
-  },
-
-  _editCommand: function TabStore__editCommand(command) {
-    this._log.debug("_editCommand: " + command.GUID);
-
-    
-    
-    if (!this.validateVirtualTab(command.data)) {
-      this._log.warn("could not edit command " + command.GUID + "; invalid");
-      return;
-    }
-
-    
-    
-    
-
-    if (this._virtualTabs[command.GUID])
-      this._virtualTabs[command.GUID] = command.data;
-  },
-
   
 
 
-
-
-
-
-
-
   wrap: function TabStore_wrap() {
-    return this._wrapRealTabs();
-    let items;
-
-    let virtualTabs = this._wrapVirtualTabs();
-    let realTabs = this._wrapRealTabs();
-
-    
-    
-    
-    
-    items = virtualTabs;
-    let virtualTabsChanged = false;
-    for (let id in realTabs) {
-      
-      
-      
-      
-      if (this._virtualTabs[id]) {
-        this._log.warn("wrap: both real and virtual tabs exist for " + id +
-                       "; removing virtual one");
-        delete this._virtualTabs[id];
-        virtualTabsChanged = true;
-      }
-
-      items[id] = realTabs[id];
-    }
-    if (virtualTabsChanged)
-      this._saveVirtualTabs();
-
-    return items;
-  },
-
-  _wrapVirtualTabs: function TabStore__wrapVirtualTabs() {
-    let items = {};
-
-    for (let id in this._virtualTabs) {
-      let virtualTab = this._virtualTabs[id];
-
-      
-      
-      
-      let item = {};
-      for (let property in virtualTab)
-        if (property[0] != "_")
-          item[property] = virtualTab[property];
-
-      items[id] = item;
-    }
-
-    return items;
-  },
-
-  _wrapRealTabs: function TabStore__wrapRealTabs() {
     let items = {};
 
     let session = this._json.decode(this._sessionStore.getBrowserState());
@@ -393,7 +135,7 @@ TabStore.prototype = {
       
       
       let windowID = i + 1;
-      this._log.trace("_wrapRealTabs: window " + windowID);
+
       for (let j = 0; j < window.tabs.length; j++) {
         let tab = window.tabs[j];
 
@@ -407,7 +149,6 @@ TabStore.prototype = {
 	}
 
 	let tabID = currentEntry.url;
-        this._log.trace("_wrapRealTabs: tab " + tabID);
 
         
         
@@ -443,15 +184,7 @@ TabStore.prototype = {
   wipe: function TabStore_wipe() {
     
     
-    this._virtualTabs = {};
-    this._saveVirtualTabs();
-  },
-
-  _resetGUIDs: function TabStore__resetGUIDs() {
-    let self = yield;
-    
   }
-
 };
 
 function TabTracker(engine) {
