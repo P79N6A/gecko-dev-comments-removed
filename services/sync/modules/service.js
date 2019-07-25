@@ -743,6 +743,10 @@ WeaveSvc.prototype = {
     })))(),
 
   logout: function WeaveSvc_logout() {
+    
+    if (!this._loggedIn)
+      return;
+
     this._log.info("Logging out");
     this._loggedIn = false;
     this._keyPair = {};
