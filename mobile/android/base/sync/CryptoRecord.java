@@ -156,6 +156,8 @@ public class CryptoRecord extends Record {
 
 
 
+
+
   public static CryptoRecord fromJSONRecord(String jsonRecord)
       throws ParseException, NonObjectJSONException, IOException {
     byte[] bytes = jsonRecord.getBytes("UTF-8");

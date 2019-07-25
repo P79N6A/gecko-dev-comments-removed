@@ -212,6 +212,7 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
 
 
 
+
   public static Stage nextStage(Stage current) {
     int index = current.ordinal() + 1;
     int max   = Stage.completed.ordinal() + 1;
@@ -219,9 +220,6 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
   }
 
   
-
-
-
 
 
   public void advance() {
@@ -674,6 +672,9 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
   }
 
   
+
+
+
 
 
 

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync;
 
 import java.net.URI;
@@ -46,7 +13,6 @@ import org.mozilla.gecko.sync.crypto.KeyBundle;
 
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.util.Log;
 
 public class SyncConfiguration implements CredentialsSource {
 
@@ -238,11 +204,13 @@ public class SyncConfiguration implements CredentialsSource {
   }
 
   public SharedPreferences getPrefs() {
-    Log.d(LOG_TAG, "Returning prefs for " + prefsPath);
+    Logger.debug(LOG_TAG, "Returning prefs for " + prefsPath);
     return prefsSource.getPrefs(prefsPath, Utils.SHARED_PREFERENCES_MODE);
   }
 
   
+
+
 
 
 
@@ -257,14 +225,14 @@ public class SyncConfiguration implements CredentialsSource {
       String u = prefs.getString("clusterURL", null);
       try {
         clusterURL = new URI(u);
-        Log.i(LOG_TAG, "Set clusterURL from bundle: " + u);
+        Logger.info(LOG_TAG, "Set clusterURL from bundle: " + u);
       } catch (URISyntaxException e) {
-        Log.w(LOG_TAG, "Ignoring bundle clusterURL (" + u + "): invalid URI.", e);
+        Logger.warn(LOG_TAG, "Ignoring bundle clusterURL (" + u + "): invalid URI.", e);
       }
     }
     if (prefs.contains("syncID")) {
       syncID = prefs.getString("syncID", null);
-      Log.i(LOG_TAG, "Set syncID from bundle: " + syncID);
+      Logger.info(LOG_TAG, "Set syncID from bundle: " + syncID);
     }
     
   }
@@ -371,8 +339,8 @@ public class SyncConfiguration implements CredentialsSource {
   public void setAndPersistClusterURL(URI u, SharedPreferences prefs) {
     boolean shouldPersist = (prefs != null) && (clusterURL == null);
 
-    Log.d(LOG_TAG, "Setting cluster URL to " + u.toASCIIString() +
-                   (shouldPersist ? ". Persisting." : ". Not persisting."));
+    Logger.debug(LOG_TAG, "Setting cluster URL to " + u.toASCIIString() +
+                          (shouldPersist ? ". Persisting." : ". Not persisting."));
     clusterURL = u;
     if (shouldPersist) {
       Editor edit = prefs.edit();
@@ -387,7 +355,7 @@ public class SyncConfiguration implements CredentialsSource {
 
   public void setClusterURL(URI u, SharedPreferences prefs) {
     if (u == null) {
-      Log.w(LOG_TAG, "Refusing to set cluster URL to null.");
+      Logger.warn(LOG_TAG, "Refusing to set cluster URL to null.");
       return;
     }
     URI uri = u.normalize();
@@ -396,7 +364,7 @@ public class SyncConfiguration implements CredentialsSource {
       return;
     }
     setAndPersistClusterURL(uri.resolve("/"), prefs);
-    Log.i(LOG_TAG, "Set cluster URL to " + clusterURL.toASCIIString() + ", given input " + u.toASCIIString());
+    Logger.info(LOG_TAG, "Set cluster URL to " + clusterURL.toASCIIString() + ", given input " + u.toASCIIString());
   }
 
   public void setClusterURL(String url) throws URISyntaxException {
@@ -404,7 +372,6 @@ public class SyncConfiguration implements CredentialsSource {
   }
 
   
-
 
 
   public Editor getEditor() {

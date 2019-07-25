@@ -172,6 +172,8 @@ public abstract class Record {
 
 
 
+
+
   public boolean congruentWith(Object o) {
     if (!this.equalIdentifiers(o)) {
       return false;
@@ -306,7 +308,6 @@ public abstract class Record {
   }
 
   
-
 
 
 
