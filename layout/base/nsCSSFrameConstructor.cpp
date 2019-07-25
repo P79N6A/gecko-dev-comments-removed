@@ -2479,9 +2479,9 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
   
   
   
-  PRBool isChild;
-  contentFrame->GetParentStyleContextFrame(state.mPresContext,
-          &mRootElementStyleFrame, &isChild);
+  mRootElementStyleFrame = contentFrame->GetParentStyleContextFrame();
+  bool isChild = mRootElementStyleFrame &&
+                 mRootElementStyleFrame->GetParent() == contentFrame;
   if (!isChild) {
     mRootElementStyleFrame = mRootElementFrame;
   }
@@ -5788,13 +5788,8 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
     
     if (UNSET_DISPLAY == aDisplay) {
       nsRefPtr<nsStyleContext> styleContext;
-      nsIFrame* styleParent;
-      PRBool providerIsChild;
-      if (NS_FAILED(aSibling->
-                      GetParentStyleContextFrame(aSibling->PresContext(),
-                                                 &styleParent,
-                                                 &providerIsChild)) ||
-          !styleParent) {
+      nsIFrame* styleParent = aSibling->GetParentStyleContextFrame();
+      if (!styleParent) {
         NS_NOTREACHED("Shouldn't happen");
         return PR_FALSE;
       }

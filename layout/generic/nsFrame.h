@@ -268,9 +268,18 @@ public:
   virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
-  NS_IMETHOD GetParentStyleContextFrame(nsPresContext* aPresContext,
-                                        nsIFrame**      aProviderFrame,
-                                        PRBool*         aIsChild);
+  virtual nsIFrame* GetParentStyleContextFrame() {
+    return DoGetParentStyleContextFrame();
+  }
+
+  
+
+
+
+
+
+
+  nsIFrame* DoGetParentStyleContextFrame();
 
   virtual PRBool IsEmpty();
   virtual PRBool IsSelfEmpty();
@@ -398,15 +407,6 @@ public:
   PRBool IsFrameTreeTooDeep(const nsHTMLReflowState& aReflowState,
                             nsHTMLReflowMetrics& aMetrics,
                             nsReflowStatus& aStatus);
-
-  
-  
-  
-  
-  
-  nsresult DoGetParentStyleContextFrame(nsPresContext* aPresContext,
-                                        nsIFrame**      aProviderFrame,
-                                        PRBool*         aIsChild);
 
   
   

@@ -268,7 +268,7 @@ nsFrameManager::Destroy()
 
 
 nsPlaceholderFrame*
-nsFrameManager::GetPlaceholderFrameFor(nsIFrame*  aFrame)
+nsFrameManager::GetPlaceholderFrameFor(nsIFrame* aFrame)
 {
   NS_PRECONDITION(aFrame, "null param unexpected");
 
@@ -587,10 +587,7 @@ VerifyContextParent(nsPresContext* aPresContext, nsIFrame* aFrame,
     
 
     
-    nsIFrame* providerFrame = nsnull;
-    PRBool providerIsChild;
-    aFrame->GetParentStyleContextFrame(aPresContext,
-                                       &providerFrame, &providerIsChild);
+    nsIFrame* providerFrame = aFrame->GetParentStyleContextFrame();
     if (providerFrame)
       aParentContext = providerFrame->GetStyleContext();
     
@@ -808,13 +805,11 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
   
   if (oldContext) {
     nsRefPtr<nsStyleContext> newContext;
-    nsIFrame* providerFrame = nsnull;
-    PRBool providerIsChild = PR_FALSE;
-    nsIFrame* providerChild = nsnull;
-    aFrame->GetParentStyleContextFrame(GetPresContext(), &providerFrame,
-                                       &providerIsChild);
+    nsIFrame* providerFrame = aFrame->GetParentStyleContextFrame();
+    bool isChild = providerFrame && providerFrame->GetParent() == aFrame;
     nsStyleContext* newParentContext = nsnull;
-    if (providerIsChild) {
+    nsIFrame* providerChild = nsnull;
+    if (isChild) {
       ReparentStyleContext(providerFrame);
       newParentContext = providerFrame->GetStyleContext();
       providerChild = providerFrame;
@@ -1107,11 +1102,9 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     nsIFrame* resolvedChild = nsnull;
     
     
-    nsIFrame* providerFrame = nsnull;
-    PRBool providerIsChild = PR_FALSE;
-    aFrame->GetParentStyleContextFrame(aPresContext,
-                                       &providerFrame, &providerIsChild); 
-    if (!providerIsChild) {
+    nsIFrame* providerFrame = aFrame->GetParentStyleContextFrame();
+    bool isChild = providerFrame && providerFrame->GetParent() == aFrame;
+    if (!isChild) {
       if (providerFrame)
         parentContext = providerFrame->GetStyleContext();
       else

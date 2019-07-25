@@ -2400,15 +2400,7 @@ public:
 
 
 
-
-
-
-
-
-
-  NS_IMETHOD GetParentStyleContextFrame(nsPresContext* aPresContext,
-                                        nsIFrame**      aProviderFrame,
-                                        PRBool*         aIsChild) = 0;
+  virtual nsIFrame* GetParentStyleContextFrame() = 0;
 
   
 
