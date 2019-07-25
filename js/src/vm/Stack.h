@@ -345,7 +345,10 @@ class StackFrame
 
         
         DOWN_FRAMES_EXPANDED = 0x100000,  
-        LOWERED_CALL_APPLY   = 0x200000   
+        LOWERED_CALL_APPLY   = 0x200000,  
+
+        
+        PREV_UP_TO_DATE    =   0x400000   
     };
 
   private:
@@ -1087,6 +1090,14 @@ class StackFrame
 
     bool isDebuggerFrame() const {
         return !!(flags_ & DEBUGGER);
+    }
+
+    bool prevUpToDate() const {
+        return !!(flags_ & PREV_UP_TO_DATE);
+    }
+
+    void setPrevUpToDate() {
+        flags_ |= PREV_UP_TO_DATE;
     }
 
     bool hasOverflowArgs() const {

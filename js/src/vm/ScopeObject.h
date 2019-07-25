@@ -422,8 +422,24 @@ class DebugScopes
 
 
 
-    typedef HashMap<ScopeIter, DebugScopeObject *, ScopeIter, RuntimeAllocPolicy> MissingScopeMap;
+    typedef HashMap<ScopeIter,
+                    DebugScopeObject *,
+                    ScopeIter,
+                    RuntimeAllocPolicy> MissingScopeMap;
     MissingScopeMap missingScopes;
+
+    
+
+
+
+
+
+
+    typedef HashMap<ScopeObject *,
+                    StackFrame *,
+                    DefaultHasher<ScopeObject *>,
+                    RuntimeAllocPolicy> LiveScopeMap;
+    LiveScopeMap liveScopes;
 
   public:
     DebugScopes(JSRuntime *rt);
@@ -439,12 +455,17 @@ class DebugScopes
     DebugScopeObject *hasDebugScope(JSContext *cx, ScopeIter si) const;
     bool addDebugScope(JSContext *cx, ScopeIter si, DebugScopeObject &debugScope);
 
+    bool updateLiveScopes(JSContext *cx);
+    StackFrame *hasLiveFrame(ScopeObject &scope);
+
     
 
 
 
     void onPopCall(StackFrame *fp);
     void onPopBlock(JSContext *cx, StackFrame *fp);
+    void onPopWith(StackFrame *fp);
+    void onPopStrictEvalScope(StackFrame *fp);
     void onGeneratorFrameChange(StackFrame *from, StackFrame *to);
     void onCompartmentLeaveDebugMode(JSCompartment *c);
 };
