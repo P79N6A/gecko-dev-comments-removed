@@ -138,6 +138,17 @@ FormAssistant.prototype = {
         aElement.focus();
       }
 
+      
+      
+      
+      if (aElement instanceof HTMLSelectElement) {
+        let self = this;
+        let timer = new Util.Timeout(function() {
+          sendAsyncMessage("FormAssist:Show", self._getJSON());
+        });
+        timer.once(0);
+      }
+
       return false;
     }
 
