@@ -942,119 +942,192 @@ mjit::Compiler::jsop_mod()
 }
 
 void
-mjit::Compiler::jsop_relational_int(JSOp op, BoolStub stub, jsbytecode *target, JSOp fused)
+mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *target, JSOp fused)
 {
     FrameEntry *rhs = frame.peek(-1);
     FrameEntry *lhs = frame.peek(-2);
 
     
-    if (!rhs->isTypeKnown()) {
-        Jump rhsFail = frame.testInt32(Assembler::NotEqual, rhs);
-        if (target)
-            stubcc.linkExitForBranch(rhsFail);
-        else
-            stubcc.linkExit(rhsFail, Uses(2));
-        frame.learnType(rhs, JSVAL_TYPE_INT32);
-    }
-    if (!lhs->isTypeKnown() && !frame.haveSameBacking(lhs, rhs)) {
-        Jump lhsFail = frame.testInt32(Assembler::NotEqual, lhs);
-        if (target)
-            stubcc.linkExitForBranch(lhsFail);
-        else
-            stubcc.linkExit(lhsFail, Uses(2));
+    if (lhs->isConstant() ||
+        (frame.shouldAvoidDataRemat(lhs) && !rhs->isConstant())) {
+        FrameEntry *temp = rhs;
+        rhs = lhs;
+        lhs = temp;
     }
 
+    bool lhsInt = lhs->isType(JSVAL_TYPE_INT32);
+    bool rhsInt = rhs->isType(JSVAL_TYPE_INT32);
+    bool lhsString = lhs->isType(JSVAL_TYPE_STRING);
+    bool rhsString = rhs->isType(JSVAL_TYPE_STRING);
+
+    
+    bool flipCondition = (target && fused == JSOP_IFEQ);
+
+    
     Assembler::Condition cond;
     switch (op) {
       case JSOP_EQ:
-        cond = Assembler::Equal;
+        cond = flipCondition ? Assembler::NotEqual : Assembler::Equal;
         break;
       case JSOP_NE:
-        cond = Assembler::NotEqual;
+        cond = flipCondition ? Assembler::Equal : Assembler::NotEqual;
         break;
       default:
         JS_NOT_REACHED("wat");
         return;
     }
 
-    
-    bool swapped = false;
-    if (lhs->isConstant() ||
-        (frame.shouldAvoidDataRemat(lhs) && !rhs->isConstant())) {
-        FrameEntry *temp = rhs;
-        rhs = lhs;
-        lhs = temp;
-        swapped = true;
-    }
-
-    stubcc.leave();
-    stubcc.call(stub);
-
     if (target) {
-        
-        RegisterID lr = frame.ownRegForData(lhs);
-        
-        
-        bool rhsConst;
-        int32 rval = 0;
-        RegisterID rr = Registers::ReturnReg;
-        if (!(rhsConst = rhs->isConstant()))
-            rr = frame.ownRegForData(rhs);
-        else
-            rval = rhs->getValue().toInt32();
-
-        frame.pop();
-        frame.pop();
-
-        
-
-
-
-        frame.forgetEverything();
-
-        
-        if (fused == JSOP_IFEQ) {
-            switch (cond) {
-              case Assembler::Equal:
-                cond = Assembler::NotEqual;
-                break;
-              case Assembler::NotEqual:
-                cond = Assembler::Equal;
-                break;
-              default:
-                JS_NOT_REACHED("hello");
-            }
+        Value rval;
+        bool rhsConst = false;
+        if (rhs->isConstant()) {
+            rhsConst = true;
+            rval = rhs->getValue();
         }
 
-        Jump j, fast;
-        if (!rhsConst)
-            fast = masm.branch32(cond, lr, rr);
-        else
-            fast = masm.branch32(cond, lr, Imm32(rval));
-
-        JaegerSpew(JSpew_Insns, " ---- BEGIN SLOW RESTORE CODE ---- \n");
-        
-
-
-
-        Assembler::Condition cond = (fused == JSOP_IFEQ)
-                                    ? Assembler::Zero
-                                    : Assembler::NonZero;
-        j = stubcc.masm.branchTest32(cond, Registers::ReturnReg, Registers::ReturnReg);
-
-        
-        Jump j2 = stubcc.masm.jump();
-        stubcc.crossJump(j2, masm.label());
+        ValueRemat lvr, rvr;
+        frame.pinEntry(lhs, lvr);
+        frame.pinEntry(rhs, rvr);
 
         
 
 
 
-        jumpAndTrace(fast, target, &j);
+        frame.syncAndKill(Registers(Registers::AvailRegs), Uses(frame.frameDepth()), Uses(2));
 
-        JaegerSpew(JSpew_Insns, " ---- END SLOW RESTORE CODE ---- \n");
+        
+        RegisterID T1 = frame.allocReg();
+
+        frame.pop();
+        frame.pop();
+        frame.throwaway();
+
+        
+        Label stubCall = stubcc.masm.label();
+
+        JaegerSpew(JSpew_Insns, " ---- BEGIN STUB CALL CODE ---- \n");
+
+        
+        frame.syncEntry(stubcc.masm, lhs, lvr);
+        frame.syncEntry(stubcc.masm, rhs, rvr);
+
+        
+        stubcc.call(stub, frame.stackDepth() + script->nfixed + 2);
+
+        
+
+
+
+        Assembler::Condition ncond = (fused == JSOP_IFEQ)
+                                   ? Assembler::Zero
+                                   : Assembler::NonZero;
+        Jump stubBranch =
+            stubcc.masm.branchTest32(ncond, Registers::ReturnReg, Registers::ReturnReg);
+        Jump stubFallthrough = stubcc.masm.jump();
+
+        JaegerSpew(JSpew_Insns, " ---- END STUB CALL CODE ---- \n");
+
+        
+        bool stringPath = !(lhsInt || rhsInt);
+        Label missedInt = stubCall;
+        Jump stringFallthrough;
+        Jump stringMatched;
+
+        if (stringPath) {
+            missedInt = stubcc.masm.label();
+
+            if (!lhsString) {
+                Jump lhsFail = stubcc.masm.testString(Assembler::NotEqual, lvr.typeReg());
+                lhsFail.linkTo(stubCall, &stubcc.masm);
+            }
+            if (!rhsString) {
+                JS_ASSERT(!rhsConst);
+                Jump rhsFail = stubcc.masm.testString(Assembler::NotEqual, rvr.typeReg());
+                rhsFail.linkTo(stubCall, &stubcc.masm);
+            }
+
+            
+            Imm32 atomizedFlags(JSString::FLAT | JSString::ATOMIZED);
+
+            stubcc.masm.load32(Address(lvr.dataReg(), offsetof(JSString, mLengthAndFlags)), T1);
+            stubcc.masm.and32(Imm32(JSString::TYPE_FLAGS_MASK), T1);
+            Jump lhsNotAtomized = stubcc.masm.branch32(Assembler::NotEqual, T1, atomizedFlags);
+            lhsNotAtomized.linkTo(stubCall, &stubcc.masm);
+
+            if (!rhsConst) {
+                stubcc.masm.load32(Address(rvr.dataReg(), offsetof(JSString, mLengthAndFlags)), T1);
+                stubcc.masm.and32(Imm32(JSString::TYPE_FLAGS_MASK), T1);
+                Jump rhsNotAtomized = stubcc.masm.branch32(Assembler::NotEqual, T1, atomizedFlags);
+                rhsNotAtomized.linkTo(stubCall, &stubcc.masm);
+            }
+
+            if (rhsConst) {
+                JSString *str = rval.toString();
+                JS_ASSERT(str->isAtomized());
+                stringMatched = stubcc.masm.branchPtr(cond, lvr.dataReg(), ImmPtr(str));
+            } else {
+                stringMatched = stubcc.masm.branchPtr(cond, lvr.dataReg(), rvr.dataReg());
+            }
+
+            stringFallthrough = stubcc.masm.jump();
+        }
+
+        Jump fast;
+        if (lhsString || rhsString) {
+            
+            Jump jump = masm.jump();
+            stubcc.linkExitDirect(jump, missedInt);
+            fast = masm.jump();
+        } else {
+            
+            if (!lhsInt) {
+                Jump lhsFail = masm.testInt32(Assembler::NotEqual, lvr.typeReg());
+                stubcc.linkExitDirect(lhsFail, missedInt);
+            }
+            if (!rhsInt) {
+                if (rhsConst) {
+                    Jump rhsFail = masm.jump();
+                    stubcc.linkExitDirect(rhsFail, missedInt);
+                } else {
+                    Jump rhsFail = masm.testInt32(Assembler::NotEqual, rvr.typeReg());
+                    stubcc.linkExitDirect(rhsFail, missedInt);
+                }
+            }
+
+            if (rhsConst)
+                fast = masm.branch32(cond, lvr.dataReg(), Imm32(rval.toInt32()));
+            else
+                fast = masm.branch32(cond, lvr.dataReg(), rvr.dataReg());
+        }
+
+        
+        stubcc.crossJump(stubFallthrough, masm.label());
+        if (stringPath)
+            stubcc.crossJump(stringFallthrough, masm.label());
+
+        
+
+
+
+        jumpAndTrace(fast, target, &stubBranch, stringPath ? &stringMatched : NULL);
     } else {
         
+
+        
+        JS_ASSERT(!lhsString && !rhsString);
+
+        
+        if (!lhsInt) {
+            Jump lhsFail = frame.testInt32(Assembler::NotEqual, lhs);
+            stubcc.linkExit(lhsFail, Uses(2));
+        }
+        if (!rhsInt) {
+            Jump rhsFail = frame.testInt32(Assembler::NotEqual, rhs);
+            stubcc.linkExit(rhsFail, Uses(2));
+        }
+
+        stubcc.leave();
+        stubcc.call(stub);
 
         RegisterID reg = frame.ownRegForData(lhs);
 

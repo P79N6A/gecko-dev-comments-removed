@@ -398,6 +398,18 @@ class FrameState
     RegisterID copyInt32ConstantIntoReg(FrameEntry *fe);
     RegisterID copyInt32ConstantIntoReg(Assembler &masm, FrameEntry *fe);
 
+    
+
+
+
+    void pinEntry(FrameEntry *fe, ValueRemat &vr);
+
+    
+    void unpinEntry(const ValueRemat &vr);
+
+    
+    void syncEntry(Assembler &masm, FrameEntry *fe, const ValueRemat &vr);
+
     struct BinaryAlloc {
         MaybeRegisterID lhsType;
         MaybeRegisterID lhsData;
@@ -511,7 +523,8 @@ class FrameState
 
 
 
-    void syncAndKill(Registers kill, Uses uses); 
+    void syncAndKill(Registers kill, Uses uses, Uses ignored);
+    void syncAndKill(Registers kill, Uses uses) { syncAndKill(kill, uses, Uses(0)); }
 
     
 
