@@ -58,6 +58,32 @@ public:
 
 
   static already_AddRefed<nsIWidget> DOMWindowToWidget(nsIDOMWindow *aDOMWindow);
+
+  
+
+
+  static PRUint32 ComputeKeyCodeFromChar(PRUint32 aCharCode);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void GetLatinCharCodeForKeyCode(PRUint32 aKeyCode,
+                                         bool aIsCapsLock,
+                                         PRUint32* aUnshiftedCharCode,
+                                         PRUint32* aShiftedCharCode);
 };
 
 } 
