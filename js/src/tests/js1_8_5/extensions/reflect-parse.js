@@ -339,6 +339,12 @@ assertExpr("typeof(0?0:a)", unExpr("typeof", condExpr(lit(0), lit(0), ident("a")
 assertExpr("[x for each (x in y) if (false)]", compExpr(ident("x"), [compEachBlock(ident("x"), ident("y"))], lit(false)));
 
 
+program([exprStmt(ident("f")),
+         ifStmt(lit(1),
+                funDecl(ident("f"), [], blockStmt([])),
+                null)]).assert(Reflect.parse("f; if (1) function f(){}"));
+
+
 
 assertStmt("throw 42", throwStmt(lit(42)));
 assertStmt("for (;;) break", forStmt(null, null, null, breakStmt(null)));
