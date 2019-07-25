@@ -757,6 +757,12 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
         }
       };
     }
+
+    
+    if( Keys.meta == false ){
+      Groups.setActiveGroup(self);
+      return { shouldZoom: true };      
+    }
       
     
     Groups.setActiveGroup(self);
