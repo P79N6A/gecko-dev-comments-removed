@@ -111,6 +111,9 @@ public:
                                  guint             info,
                                  guint32           aTime);
 
+    
+    void SetDragIcon(GdkDragContext* aContext);
+
 private:
 
     
@@ -142,6 +145,9 @@ private:
     GtkWidget     *mGrabWidget;
     
     nsCOMPtr<nsISupportsArray> mSourceDataItems;
+
+    nsCOMPtr<nsIScriptableRegion> mSourceRegion;
+
     
     GtkTargetList *GetSourceList(void);
 
