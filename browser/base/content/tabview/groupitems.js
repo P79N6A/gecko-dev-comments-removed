@@ -643,7 +643,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   close: function GroupItem_close(options) {
-    this.removeAll({dontClose: true});
+    this.removeAll();
     GroupItems.unregister(this);
 
     
@@ -715,21 +715,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     let closestTabItem = UI.getClosestTab(closeCenter);
     UI.setActive(closestTabItem);
-  },
-
-  
-  
-  
-  
-  
-  closeIfEmpty: function() {
-    if (!this._children.length && !this.getTitle() &&
-        !GroupItems.getUnclosableGroupItemId() &&
-        !GroupItems._autoclosePaused) {
-      this.close();
-      return true;
-    }
-    return false;
   },
 
   
@@ -1005,8 +990,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         item.addSubscriber(this, "close", function() {
           let count = self._children.length;
           let dontArrange = self.expanded || !self.shouldStack(count);
-          let dontClose = !item.closedManually && gBrowser._numPinnedTabs > 0;
-          self.remove(item, {dontArrange: dontArrange, dontClose: dontClose});
+          self.remove(item, {dontArrange: dontArrange});
 
           if (dontArrange)
             self._freezeItemSize(count);
@@ -1042,7 +1026,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     }
   },
 
-  
   
   
   
@@ -1102,15 +1085,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       if (typeof item.setResizable == 'function')
         item.setResizable(true, options.immediately);
 
-      
-      
-      if (item.tab._tabViewTabIsRemovedAfterRestore)
-        options.dontClose = true;
-
-      let closed = options.dontClose ? false : this.closeIfEmpty();
-      if (closed)
-        this._makeClosestTabActive();
-      else if (!options.dontArrange) {
+      if (!options.dontArrange) {
         this.arrange({animate: !options.immediately});
         this._unfreezeItemSize({dontArrange: true});
       }
@@ -1725,7 +1700,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       self.arrange();
       var groupItem = drag.info.item.parent;
       if (groupItem)
-        groupItem.remove(drag.info.$el, {dontClose: true});
+        groupItem.remove(drag.info.$el);
       iQ(this.container).removeClass("acceptsDrop");
     }
 
@@ -1857,7 +1832,6 @@ let GroupItems = {
   _arrangesPending: [],
   _removingHiddenGroups: false,
   _delayedModUpdates: [],
-  _autoclosePaused: false,
   minGroupHeight: 110,
   minGroupWidth: 125,
 
@@ -2629,21 +2603,5 @@ let GroupItems = {
     return new Point(
       Math.max(size.x, GroupItems.minGroupWidth),
       Math.max(size.y, GroupItems.minGroupHeight));
-  },
-
-  
-  
-  
-  
-  
-  pauseAutoclose: function GroupItems_pauseAutoclose() {
-    this._autoclosePaused = true;
-  },
-
-  
-  
-  
-  resumeAutoclose: function GroupItems_resumeAutoclose() {
-    this._autoclosePaused = false;
   }
 };

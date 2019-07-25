@@ -58,15 +58,17 @@ function onTabViewWindowLoaded() {
     gBrowser.unpinTab(appXulTab);
     gBrowser.removeTab(appXulTab);
 
-    ok(groupItem.closeIfEmpty(), "the second group was empty");
+    ok(!groupItem.getChildren().length, "the second group is empty");
 
-    
-    is(gBrowser.tabs.length, 1, "we finish with one tab");
-    is(contentWindow.GroupItems.groupItems.length, 1,
-       "we finish with one group");
-    ok(!TabView.isVisible(), "we finish with Tab View hidden");
+    closeGroupItem(groupItem, function () {
       
-    finish();
+      is(gBrowser.tabs.length, 1, "we finish with one tab");
+      is(contentWindow.GroupItems.groupItems.length, 1,
+         "we finish with one group");
+      ok(!TabView.isVisible(), "we finish with Tab View hidden");
+  
+      finish();
+    });
   }
 
   window.addEventListener("tabviewhidden", onTabViewHidden, false);
