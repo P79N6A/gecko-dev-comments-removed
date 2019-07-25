@@ -620,23 +620,24 @@ Debug::sweepAll(JSRuntime *rt)
     for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
         Debug *dbg = (Debug *) ((unsigned char *) p - offsetof(Debug, link));
 
-        
-        
-        
-        
-        
-        
-        if (!dbg->object->isMarked()) {
+        if (dbg->object->isMarked()) {
+            
+            for (ObjectMap::Enum e(dbg->objects); !e.empty(); e.popFront()) {
+                JS_ASSERT(e.front().key->isMarked() == e.front().value->isMarked());
+                if (!e.front().value->isMarked())
+                    e.removeFront();
+            }
+        } else {
+            
+            
+            
+            
+            
+            
             for (GlobalObjectSet::Enum e(dbg->debuggees); !e.empty(); e.popFront())
                 dbg->removeDebuggeeGlobal(e.front(), NULL, &e);
         }
 
-        
-        for (ObjectMap::Enum e(dbg->objects); !e.empty(); e.popFront()) {
-            JS_ASSERT(e.front().key->isMarked() == e.front().value->isMarked());
-            if (!e.front().value->isMarked())
-                e.removeFront();
-        }
     }
 
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
