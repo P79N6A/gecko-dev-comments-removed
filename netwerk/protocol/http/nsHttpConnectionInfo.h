@@ -98,7 +98,6 @@ public:
         SetOriginServer(nsDependentCString(host), port);
     }
     
-    
     nsHttpConnectionInfo* Clone() const;
 
     const char *ProxyHost() const { return mProxyInfo ? mProxyInfo->Host().get() : nsnull; }
