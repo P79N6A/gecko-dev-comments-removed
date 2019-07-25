@@ -764,6 +764,87 @@ StyleEditor.prototype = {
 
 
 
+
+
+
+
+
+  _decodeCSSCharset: function SE__decodeCSSCharset(aString, aChannelCharset)
+  {
+    
+
+    if (aChannelCharset.length > 0) {
+      
+      return this._convertToUnicode(aString, aChannelCharset);
+    }
+
+    let sheet = this.styleSheet;
+    if (sheet) {
+      
+      
+      if (sheet.cssRules) {
+        let rules = sheet.cssRules;
+        if (rules.length
+            && rules.item(0).type == Ci.nsIDOMCSSRule.CHARSET_RULE) {
+          return this._convertToUnicode(aString, rules.item(0).encoding);
+        }
+      }
+
+      if (sheet.ownerNode) {
+        
+        let linkCharset = sheet.ownerNode.getAttribute("charset");
+        if (linkCharset != null) {
+          return this._convertToUnicode(aString, linkCharset);
+        }
+      }
+
+      
+      let parentSheet = sheet.parentStyleSheet;
+      if (parentSheet && parentSheet.cssRules &&
+          parentSheet.cssRules[0].type == Ci.nsIDOMCSSRule.CHARSET_RULE) {
+        return this._convertToUnicode(aString,
+            parentSheet.cssRules[0].encoding);
+      }
+
+      
+      if (sheet.ownerNode && sheet.ownerNode.ownerDocument.characterSet) {
+        return this._convertToUnicode(aString,
+            sheet.ownerNode.ownerDocument.characterSet);
+      }
+    }
+
+    
+    return this._convertToUnicode(aString, "UTF-8");
+  },
+
+  
+
+
+
+
+
+
+
+
+  _convertToUnicode: function SE__convertToUnicode(aString, aCharset) {
+    
+    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+        .createInstance(Ci.nsIScriptableUnicodeConverter);
+
+    try {
+      converter.charset = aCharset;
+      return converter.ConvertToUnicode(aString);
+    } catch(e) {
+      return aString;
+    }
+  },
+
+  
+
+
+
+
+
   _loadSourceFromFile: function SE__loadSourceFromFile(aHref)
   {
     try {
@@ -790,6 +871,7 @@ StyleEditor.prototype = {
   {
     let channel = Services.io.newChannel(aHref, null, null);
     let chunks = [];
+    let channelCharset = "";
     let streamListener = { 
       onStartRequest: function (aRequest, aContext, aStatusCode) {
         if (!Components.isSuccessCode(aStatusCode)) {
@@ -797,6 +879,10 @@ StyleEditor.prototype = {
         }
       }.bind(this),
       onDataAvailable: function (aRequest, aContext, aStream, aOffset, aCount) {
+        let channel = aRequest.QueryInterface(Ci.nsIChannel);
+        if (!channelCharset) {
+          channelCharset = channel.contentCharset;
+        }
         chunks.push(NetUtil.readInputStreamToString(aStream, aCount));
       },
       onStopRequest: function (aRequest, aContext, aStatusCode) {
@@ -804,7 +890,7 @@ StyleEditor.prototype = {
           return this._signalError(LOAD_ERROR);
         }
 
-        this._onSourceLoad(chunks.join(""));
+        this._onSourceLoad(chunks.join(""), channelCharset);
       }.bind(this)
     };
 
@@ -817,8 +903,13 @@ StyleEditor.prototype = {
 
 
 
-  _onSourceLoad: function SE__onSourceLoad(aSourceText)
+
+
+
+
+  _onSourceLoad: function SE__onSourceLoad(aSourceText, aCharset)
   {
+    aSourceText = this._decodeCSSCharset(aSourceText, aCharset || "");
     this._restoreExpando();
     this._state.text = prettifyCSS(aSourceText);
     this._loaded = true;
