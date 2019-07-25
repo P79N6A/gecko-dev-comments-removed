@@ -2346,6 +2346,9 @@ HUD_SERVICE.prototype =
       var urlIdx = timestampedMessage.indexOf(aActivityObject.url);
       messageObject.prefix = timestampedMessage.substring(0, urlIdx);
 
+      messageObject.messageNode.classList.add("hud-clickable");
+      messageObject.messageNode.setAttribute("crop", "end");
+
       this.logMessage(messageObject.messageObject, outputNode, messageObject.messageNode);
       return messageObject;
     }
@@ -2479,11 +2482,6 @@ HUD_SERVICE.prototype =
     let chromeDocument = aConsoleNode.ownerDocument;
     let groupNode = chromeDocument.createElement("vbox");
     groupNode.setAttribute("class", "hud-group");
-
-    let separatorNode = chromeDocument.createElement("separator");
-    separatorNode.setAttribute("class", "groove hud-divider");
-    separatorNode.setAttribute("orient", "horizontal");
-    groupNode.appendChild(separatorNode);
 
     aConsoleNode.appendChild(groupNode);
     return groupNode;
@@ -3340,23 +3338,25 @@ function HUDConsole(aHeadsUpDisplay)
 
 
 
-function NodeFactory(aFactoryType, aNameSpace, aDocument)
+
+
+function NodeFactory(aFactoryType, ignored, aDocument)
 {
   
   if (aFactoryType == "text") {
-    function factory(aText) {
+    return function factory(aText)
+    {
       return aDocument.createTextNode(aText);
     }
-    return factory;
+  }
+  else if (aFactoryType == "xul") {
+    return function factory(aTag)
+    {
+      return aDocument.createElement(aTag);
+    }
   }
   else {
-    if (aNameSpace == "xul") {
-      function factory(aTag)
-      {
-        return aDocument.createElement(aTag);
-      }
-      return factory;
-    }
+    throw new Error('NodeFactory: Unknown factory type: ' + aFactoryType);
   }
 }
 
@@ -3977,8 +3977,9 @@ JSTerm.prototype = {
 
     var self = this;
     var node = this.xulElementFactory("label");
-    node.setAttribute("class", "jsterm-output-line");
+    node.setAttribute("class", "jsterm-output-line hud-clickable");
     node.setAttribute("aria-haspopup", "true");
+    node.setAttribute("crop", "end");
     node.onclick = function() {
       self.openPropertyPanel(aEvalString, aOutputObject, node);
     }
@@ -4651,32 +4652,6 @@ ConsoleUtils = {
     nsIScrollBoxObject.ensureElementIsVisible(aNode);
   }
 };
-
-
-
-
-
-
-
-function NodeFactory(aFactoryType, aNameSpace, aDocument)
-{
-  
-  if (aFactoryType == "text") {
-    function factory(aText) {
-      return aDocument.createTextNode(aText);
-    }
-    return factory;
-  }
-  else {
-    if (aNameSpace == "xul") {
-      function factory(aTag) {
-        return aDocument.createElement(aTag);
-      }
-      return factory;
-    }
-  }
-}
-
 
 
 
