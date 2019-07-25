@@ -443,10 +443,10 @@ var gInstallingPage = {
     actionItem.value = label;
   },
 
-  onInstallEnded: function(aInstall) {
+  onInstallEnded: function(aInstall, aAddon) {
     
     AddonManagerPrivate.addStartupChange(AddonManager.STARTUP_CHANGE_CHANGED,
-                                         aInstall.id);
+                                         aAddon.id);
 
     this.startNextInstall();
   },
