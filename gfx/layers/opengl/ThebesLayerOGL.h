@@ -63,10 +63,6 @@ public:
 
   void EndDrawing();
 
-  void CopyFrom(ThebesLayer* aSource,
-                const nsIntRegion& aRegion,
-                const nsIntPoint& aDelta);
-
   
   LayerType GetType();
   Layer* GetLayer();

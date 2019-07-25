@@ -218,14 +218,6 @@ ThebesLayerOGL::EndDrawing()
   mContext = NULL;
 }
 
-void
-ThebesLayerOGL::CopyFrom(ThebesLayer* aSource,
-                           const nsIntRegion& aRegion,
-                           const nsIntPoint& aDelta)
-{
-  
-}
-
 LayerOGL::LayerType
 ThebesLayerOGL::GetType()
 {

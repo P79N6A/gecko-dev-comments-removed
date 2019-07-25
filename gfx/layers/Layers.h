@@ -364,20 +364,6 @@ public:
 
   virtual void EndDrawing() = 0;
 
-  
-
-
-
-
-
-
-
-
-
-  virtual void CopyFrom(ThebesLayer* aSource,
-                        const nsIntRegion& aRegion,
-                        const nsIntPoint& aDelta) = 0;
-
 protected:
   ThebesLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData) {}
