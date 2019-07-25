@@ -228,9 +228,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
     }
 
     
-    
-    if (audioDecoded > AMPLE_AUDIO_MS ||
-        (skipToNextKeyframe && audioDecoded > audioPumpThresholdMs)) {
+    if (audioDecoded > AMPLE_AUDIO_MS) {
       audioWait = PR_TRUE;
     }
     if (audioPump && audioDecoded > audioPumpThresholdMs) {
