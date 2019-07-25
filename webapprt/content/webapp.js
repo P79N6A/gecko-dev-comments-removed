@@ -12,9 +12,35 @@ Cu.import("resource://gre/modules/Services.jsm");
 function onLoad() {
   window.removeEventListener("load", onLoad, false);
 
+  let cmdLineArgs = window.arguments && window.arguments[0] ?
+                    window.arguments[0].QueryInterface(Ci.nsIPropertyBag2) :
+                    null;
+
+  
+  
+  if (cmdLineArgs && cmdLineArgs.hasKey("test-mode")) {
+    Services.obs.addObserver(function observe(subj, topic, data) {
+      
+      initWindow(false);
+    }, "webapprt-test-did-install", false);
+    let testURL = cmdLineArgs.get("test-mode");
+    if (testURL) {
+      document.getElementById("content").loadURI(testURL);
+    }
+    return;
+  }
+
+  initWindow(!!cmdLineArgs);
+}
+
+window.addEventListener("load", onLoad, false);
+
+function initWindow(isMainWindow) {
   
   let manifest = WebappRT.config.app.manifest;
   document.documentElement.setAttribute("title", manifest.name);
+
+  updateMenuItems();
 
   
   
@@ -23,7 +49,7 @@ function onLoad() {
                                                       false, true);
 
   
-  if ("arguments" in window) {
+  if (isMainWindow) {
     
     let installRecord = WebappRT.config.app;
     let url = Services.io.newURI(installRecord.origin, null, null);
@@ -32,7 +58,6 @@ function onLoad() {
     document.getElementById("content").setAttribute("src", url.spec);
   }
 }
-window.addEventListener("load", onLoad, false);
 
 
 
@@ -66,11 +91,10 @@ function onContentClick(event) {
   event.preventDefault();
 }
 
+
+
+function updateMenuItems() {
 #ifdef XP_MACOSX
-
-
-window.addEventListener("load", function onLoadUpdateMenuItems() {
-  window.removeEventListener("load", onLoadUpdateMenuItems, false);
   let installRecord = WebappRT.config.app;
   let manifest = WebappRT.config.app.manifest;
   let bundle =
@@ -81,8 +105,8 @@ window.addEventListener("load", function onLoadUpdateMenuItems() {
                                               [manifest.name], 1);
   document.getElementById("menu_FileQuitItem").setAttribute("label", quitLabel);
   document.getElementById("menu_mac_hide_app").setAttribute("label", hideLabel);
-}, false);
 #endif
+}
 
 function updateEditUIVisibility() {
 #ifndef XP_MACOSX

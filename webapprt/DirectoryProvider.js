@@ -12,6 +12,14 @@ const NS_APP_CHROME_DIR_LIST = "AChromDL";
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+
+let gInTestMode = false;
+Services.obs.addObserver(function observe(subj, topic, data) {
+  Services.obs.removeObserver(observe, "webapprt-command-line");
+  let args = subj.QueryInterface(Ci.nsIPropertyBag2);
+  gInTestMode = args.hasKey("test-mode");
+}, "webapprt-command-line", false);
 
 function DirectoryProvider() {}
 
@@ -23,6 +31,13 @@ DirectoryProvider.prototype = {
 
   getFile: function(prop, persistent) {
     if (prop == WEBAPP_REGISTRY_DIR) {
+      if (gInTestMode) {
+        
+        
+        
+        
+        return FileUtils.getDir("ProfD", []);
+      }
       let dir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
       dir.initWithPath(WebappRT.config.registryDir);
       return dir;

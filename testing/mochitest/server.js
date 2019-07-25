@@ -432,7 +432,9 @@ function isTest(filename, pattern)
 
   
   
-  testPattern = /^test_/;
+  var testPrefix = typeof(_TEST_PREFIX) == "string" ? _TEST_PREFIX : "test_";
+  var testPattern = new RegExp("^" + testPrefix);
+
   pathPieces = filename.split('/');
     
   return testPattern.test(pathPieces[pathPieces.length - 1]) &&
