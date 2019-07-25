@@ -41,6 +41,7 @@
 
 #include "nsDeque.h"
 #include "nsBuiltinDecoderReader.h"
+#include "nsWebMBufferedParser.h"
 #include "nestegg/nestegg.h"
 #include "vpx/vpx_decoder.h"
 #include "vpx/vp8dx.h"
@@ -126,6 +127,7 @@ public:
   virtual nsresult ReadMetadata();
   virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime, PRInt64 aCurrentTime);
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
+  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRUint32 aOffset);
 
 private:
   
@@ -189,6 +191,21 @@ private:
 
   
   PRUint64 mAudioSamples;
+
+  
+  
+  PRUint64 mTimecodeScale;
+
+  
+  void CalculateBufferedForRange(nsTimeRanges* aBuffered,
+                                 PRInt64 aStartOffset, PRInt64 aEndOffset);
+
+  
+  
+  nsTArray<nsWebMTimeDataOffset> mTimeMapping;
+
+  
+  nsTArray<nsWebMBufferedParser> mRangeParsers;
 
   
   PRPackedBool mHasVideo;

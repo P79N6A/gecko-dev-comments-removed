@@ -347,6 +347,9 @@ nsMediaChannelStream::CopySegmentToCache(nsIInputStream *aInStream,
                                          PRUint32 *aWriteCount)
 {
   CopySegmentClosure* closure = static_cast<CopySegmentClosure*>(aClosure);
+
+  closure->mStream->mDecoder->NotifyDataArrived(aFromSegment, aCount, closure->mStream->mOffset);
+
   
   closure->mStream->mOffset += aCount;
   closure->mStream->mCacheStream.NotifyDataReceived(aCount, aFromSegment,

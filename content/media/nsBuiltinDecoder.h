@@ -295,7 +295,9 @@ public:
   virtual void UpdatePlaybackPosition(PRInt64 aTime) = 0;
 
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered) = 0;
-  
+
+  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRUint32 aOffset) = 0;
+
   
   
   
@@ -434,6 +436,10 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered) {
     return mDecoderStateMachine->GetBuffered(aBuffered);
+  }
+
+  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRUint32 aOffset) {
+    return mDecoderStateMachine->NotifyDataArrived(aBuffer, aLength, aOffset);
   }
 
  public:

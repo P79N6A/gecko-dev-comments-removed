@@ -241,6 +241,8 @@ class nsWaveDecoder : public nsMediaDecoder
   
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered);
 
+  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRUint32 aOffset) {}
+
 private:
   
   void SeekingStarted();
