@@ -230,8 +230,9 @@ nsRect
 nsInlineFrame::ComputeTightBounds(gfxContext* aContext) const
 {
   
-  if (GetStyleContext()->HasTextDecorations())
+  if (GetStyleContext()->HasTextDecorationLines()) {
     return GetVisualOverflowRect();
+  }
   return ComputeSimpleTightBounds(aContext);
 }
 

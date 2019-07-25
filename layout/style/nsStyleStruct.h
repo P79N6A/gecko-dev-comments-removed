@@ -82,7 +82,7 @@ struct nsCSSValueList;
 
 
 
-#define NS_STYLE_HAS_TEXT_DECORATIONS     0x01000000
+#define NS_STYLE_HAS_TEXT_DECORATION_LINES 0x01000000
 
 #define NS_STYLE_HAS_PSEUDO_ELEMENT_DATA  0x02000000
 
@@ -1210,7 +1210,8 @@ struct nsStyleTextReset {
 
   nsStyleCoord  mVerticalAlign;         
 
-  PRUint8 mTextDecoration;              
+  PRUint8 mTextBlink;                   
+  PRUint8 mTextDecorationLine;          
   PRUint8 mUnicodeBidi;                 
 protected:
   PRUint8 mTextDecorationStyle;         

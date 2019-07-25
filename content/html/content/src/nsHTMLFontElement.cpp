@@ -246,8 +246,8 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
     const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::color);
     nscolor color;
     if (value && value->GetColorValue(color)) {
-      nsCSSValue* decoration = aData->ValueForTextDecoration();
-      PRInt32 newValue = NS_STYLE_TEXT_DECORATION_OVERRIDE_ALL;
+      nsCSSValue* decoration = aData->ValueForTextDecorationLine();
+      PRInt32 newValue = NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL;
       if (decoration->GetUnit() == eCSSUnit_Enumerated) {
         newValue |= decoration->GetIntValue();
       }
