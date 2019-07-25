@@ -812,7 +812,7 @@ var BrowserApp = {
 
       
       
-      focused.scrollIntoView(true);
+      focused.scrollIntoView(false);
 
       
       
