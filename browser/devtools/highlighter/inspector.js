@@ -1,5 +1,6 @@
 
 
+#ifdef 0
 
 
 
@@ -40,15 +41,7 @@
 
 
 
-
-const Cu = Components.utils;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-
-var EXPORTED_SYMBOLS = ["InspectorUI"];
-
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+#endif
 
 const INSPECTOR_INVISIBLE_ELEMENTS = {
   "head": true,
@@ -101,29 +94,27 @@ const INSPECTOR_NOTIFICATIONS = {
 
 
 
-function Highlighter(aInspector)
+function Highlighter(aBrowser)
 {
-  this.IUI = aInspector;
-  this._init();
+  this._init(aBrowser);
 }
 
 Highlighter.prototype = {
-  _init: function Highlighter__init()
-  {
-    this.browser = this.IUI.browser;
-    this.chromeDoc = this.IUI.chromeDoc;
 
+  _init: function Highlighter__init(aBrowser)
+  {
+    this.browser = aBrowser;
     let stack = this.browser.parentNode;
     this.win = this.browser.contentWindow;
     this._highlighting = false;
 
-    this.highlighterContainer = this.chromeDoc.createElement("stack");
+    this.highlighterContainer = document.createElement("stack");
     this.highlighterContainer.id = "highlighter-container";
 
-    this.veilContainer = this.chromeDoc.createElement("vbox");
+    this.veilContainer = document.createElement("vbox");
     this.veilContainer.id = "highlighter-veil-container";
 
-    let controlsBox = this.chromeDoc.createElement("box");
+    let controlsBox = document.createElement("box");
     controlsBox.id = "highlighter-controls";
 
     
@@ -162,31 +153,32 @@ Highlighter.prototype = {
 
   buildVeil: function Highlighter_buildVeil(aParent)
   {
+
     
     
 
-    this.veilTopBox = this.chromeDoc.createElement("box");
+    this.veilTopBox = document.createElement("box");
     this.veilTopBox.id = "highlighter-veil-topbox";
     this.veilTopBox.className = "highlighter-veil";
 
-    this.veilMiddleBox = this.chromeDoc.createElement("hbox");
+    this.veilMiddleBox = document.createElement("hbox");
     this.veilMiddleBox.id = "highlighter-veil-middlebox";
 
-    this.veilLeftBox = this.chromeDoc.createElement("box");
+    this.veilLeftBox = document.createElement("box");
     this.veilLeftBox.id = "highlighter-veil-leftbox";
     this.veilLeftBox.className = "highlighter-veil";
 
-    this.veilTransparentBox = this.chromeDoc.createElement("box");
+    this.veilTransparentBox = document.createElement("box");
     this.veilTransparentBox.id = "highlighter-veil-transparentbox";
 
     
     
 
-    let veilRightBox = this.chromeDoc.createElement("box");
+    let veilRightBox = document.createElement("box");
     veilRightBox.id = "highlighter-veil-rightbox";
     veilRightBox.className = "highlighter-veil";
 
-    let veilBottomBox = this.chromeDoc.createElement("box");
+    let veilBottomBox = document.createElement("box");
     veilBottomBox.id = "highlighter-veil-bottombox";
     veilBottomBox.className = "highlighter-veil";
 
@@ -208,12 +200,11 @@ Highlighter.prototype = {
 
   buildControls: function Highlighter_buildControls(aParent)
   {
-    let closeButton = this.chromeDoc.createElement("box");
+    let closeButton = document.createElement("box");
     closeButton.id = "highlighter-close-button";
-    closeButton.appendChild(this.chromeDoc.createElement("image"));
+    closeButton.appendChild(document.createElement("image"));
 
-    closeButton.addEventListener("click",
-      this.IUI.closeInspectorUI.bind(this.IUI), false);
+    closeButton.setAttribute("onclick", "InspectorUI.closeInspectorUI(false);");
 
     aParent.appendChild(closeButton);
   },
@@ -237,8 +228,7 @@ Highlighter.prototype = {
     this.highlighterContainer = null;
     this.win = null
     this.browser = null;
-    this.chromeDoc = null;
-    this.IUI = null;
+    this.toolbar = null;
   },
 
   
@@ -317,7 +307,7 @@ Highlighter.prototype = {
       let frameRect = frameWin.frameElement.getBoundingClientRect();
 
       let [offsetTop, offsetLeft] =
-        this.IUI.getIframeContentOffset(frameWin.frameElement);
+        InspectorUI.getIframeContentOffset(frameWin.frameElement);
 
       rect.top += frameRect.top + offsetTop;
       rect.left += frameRect.left + offsetLeft;
@@ -392,7 +382,7 @@ Highlighter.prototype = {
     this.veilMiddleBox.style.height = 0;
     this.veilTransparentBox.style.width = 0;
     Services.obs.notifyObservers(null,
-      InspectorUI.INSPECTOR_NOTIFICATIONS.UNHIGHLIGHTING, null);
+      INSPECTOR_NOTIFICATIONS.UNHIGHLIGHTING, null);
   },
 
   
@@ -442,7 +432,7 @@ Highlighter.prototype = {
     
     let midpoint = this.midPoint(a, b);
 
-    return this.IUI.elementFromPoint(this.win.document, midpoint.x,
+    return InspectorUI.elementFromPoint(this.win.document, midpoint.x,
       midpoint.y);
   },
 
@@ -454,7 +444,7 @@ Highlighter.prototype = {
 
   isNodeHighlightable: function Highlighter_isNodeHighlightable()
   {
-    if (!this.node || this.node.nodeType != this.node.ELEMENT_NODE) {
+    if (!this.node || this.node.nodeType != Node.ELEMENT_NODE) {
       return false;
     }
     let nodeName = this.node.nodeName.toLowerCase();
@@ -524,7 +514,7 @@ Highlighter.prototype = {
     
     if (aEvent.button == 0) {
       let win = aEvent.target.ownerDocument.defaultView;
-      this.IUI.stopInspecting();
+      InspectorUI.stopInspecting();
       win.focus();
     }
     aEvent.preventDefault();
@@ -539,10 +529,10 @@ Highlighter.prototype = {
 
   handleMouseMove: function Highlighter_handleMouseMove(aEvent)
   {
-    let element = this.IUI.elementFromPoint(aEvent.target.ownerDocument,
+    let element = InspectorUI.elementFromPoint(aEvent.target.ownerDocument,
       aEvent.clientX, aEvent.clientY);
     if (element && element != this.node) {
-      this.IUI.inspectNode(element);
+      InspectorUI.inspectNode(element);
     }
   },
 
@@ -561,29 +551,17 @@ Highlighter.prototype = {
 
 
 
-
-
-
-
-function InspectorUI(aWindow)
-{
-  this.chromeWin = aWindow;
-  this.chromeDoc = aWindow.document;
-  this.tabbrowser = aWindow.gBrowser;
-  this.tools = {};
-  this.toolEvents = {};
-  this.store = new InspectorStore();
-  this.INSPECTOR_NOTIFICATIONS = INSPECTOR_NOTIFICATIONS;
-}
-
-InspectorUI.prototype = {
+var InspectorUI = {
   browser: null,
-  tools: null,
-  toolEvents: null,
+  tools: {},
+  toolEvents: {},
   inspecting: false,
   treePanelEnabled: true,
+  get enabled()
+  {
+    return gPrefService.getBoolPref("devtools.inspector.enabled");
+  },
   isDirty: false,
-  store: null,
 
   
 
@@ -666,19 +644,16 @@ InspectorUI.prototype = {
                                false);
     }
     
-    this.browser = this.tabbrowser.selectedBrowser;
+    this.browser = gBrowser.selectedBrowser;
     this.win = this.browser.contentWindow;
     this.winID = this.getWindowID(this.win);
-    this.toolbar = this.chromeDoc.getElementById("inspector-toolbar");
-    this.inspectMenuitem = this.chromeDoc.getElementById("Tools:Inspect");
-    this.inspectToolbutton =
-      this.chromeDoc.getElementById("inspector-inspect-toolbutton");
+    this.toolbar = document.getElementById("inspector-toolbar");
 
     this.initTools();
 
     if (!this.TreePanel && this.treePanelEnabled) {
       Cu.import("resource:///modules/TreePanel.jsm", this);
-      this.treePanel = new this.TreePanel(this.chromeWin, this);
+      this.treePanel = new this.TreePanel(window, this);
     }
 
     this.toolbar.hidden = false;
@@ -686,7 +661,7 @@ InspectorUI.prototype = {
 
     this.isDirty = false;
 
-    this.progressListener = new InspectorProgressListener(this);
+    gBrowser.addProgressListener(InspectorProgressListener);
 
     
     this.initializeHighlighter();
@@ -700,12 +675,12 @@ InspectorUI.prototype = {
     
     if (Services.prefs.getBoolPref("devtools.styleinspector.enabled") &&
         !this.toolRegistered("styleinspector")) {
-      let stylePanel = StyleInspector.createPanel(true);
+      let stylePanel = this.StyleInspector.createPanel(true);
       this.registerTool({
         id: "styleinspector",
-        label: StyleInspector.l10n("style.highlighter.button.label"),
-        tooltiptext: StyleInspector.l10n("style.highlighter.button.tooltip"),
-        accesskey: StyleInspector.l10n("style.highlighter.accesskey"),
+        label: InspectorUI.StyleInspector.l10n("style.highlighter.button.label"),
+        tooltiptext: InspectorUI.StyleInspector.l10n("style.highlighter.button.tooltip"),
+        accesskey: InspectorUI.StyleInspector.l10n("style.highlighter.accesskey"),
         context: stylePanel,
         get isOpen() stylePanel.isOpen(),
         onSelect: stylePanel.selectNode,
@@ -724,7 +699,7 @@ InspectorUI.prototype = {
 
   initializeHighlighter: function IUI_initializeHighlighter()
   {
-    this.highlighter = new Highlighter(this);
+    this.highlighter = new Highlighter(this.browser);
     this.highlighterReady();
   },
 
@@ -734,23 +709,22 @@ InspectorUI.prototype = {
   initializeStore: function IUI_initializeStore()
   {
     
-    if (this.store.isEmpty()) {
-      this.tabbrowser.tabContainer.addEventListener("TabSelect", this, false);
-    }
+    if (InspectorStore.isEmpty())
+      gBrowser.tabContainer.addEventListener("TabSelect", this, false);
 
     
-    if (this.store.hasID(this.winID)) {
-      let selectedNode = this.store.getValue(this.winID, "selectedNode");
+    if (InspectorStore.hasID(this.winID)) {
+      let selectedNode = InspectorStore.getValue(this.winID, "selectedNode");
       if (selectedNode) {
         this.inspectNode(selectedNode);
       }
-      this.isDirty = this.store.getValue(this.winID, "isDirty");
+      this.isDirty = InspectorStore.getValue(this.winID, "isDirty");
     } else {
       
-      this.store.addStore(this.winID);
-      this.store.setValue(this.winID, "selectedNode", null);
-      this.store.setValue(this.winID, "inspecting", true);
-      this.store.setValue(this.winID, "isDirty", this.isDirty);
+      InspectorStore.addStore(this.winID);
+      InspectorStore.setValue(this.winID, "selectedNode", null);
+      InspectorStore.setValue(this.winID, "inspecting", true);
+      InspectorStore.setValue(this.winID, "isDirty", this.isDirty);
       this.win.addEventListener("pagehide", this, true);
     }
   },
@@ -779,24 +753,23 @@ InspectorUI.prototype = {
     this.closing = true;
     this.toolbar.hidden = true;
 
-    this.progressListener.destroy();
-    delete this.progressListener;
+    gBrowser.removeProgressListener(InspectorProgressListener);
 
     if (!aKeepStore) {
-      this.store.deleteStore(this.winID);
+      InspectorStore.deleteStore(this.winID);
       this.win.removeEventListener("pagehide", this, true);
     } else {
       
       if (this.selection) {
-        this.store.setValue(this.winID, "selectedNode",
+        InspectorStore.setValue(this.winID, "selectedNode",
           this.selection);
       }
-      this.store.setValue(this.winID, "inspecting", this.inspecting);
-      this.store.setValue(this.winID, "isDirty", this.isDirty);
+      InspectorStore.setValue(this.winID, "inspecting", this.inspecting);
+      InspectorStore.setValue(this.winID, "isDirty", this.isDirty);
     }
 
-    if (this.store.isEmpty()) {
-      this.tabbrowser.tabContainer.removeEventListener("TabSelect", this, false);
+    if (InspectorStore.isEmpty()) {
+      gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
     }
 
     this.stopInspecting();
@@ -904,7 +877,7 @@ InspectorUI.prototype = {
     
     this.initializeStore();
 
-    if (this.store.getValue(this.winID, "inspecting")) {
+    if (InspectorStore.getValue(this.winID, "inspecting")) {
       this.startInspecting();
     }
 
@@ -928,28 +901,27 @@ InspectorUI.prototype = {
 
     switch (event.type) {
       case "TabSelect":
-        winID = this.getWindowID(this.tabbrowser.selectedBrowser.contentWindow);
+        winID = this.getWindowID(gBrowser.selectedBrowser.contentWindow);
         if (this.isInspectorOpen && winID != this.winID) {
           this.closeInspectorUI(true);
           inspectorClosed = true;
         }
 
-        if (winID && this.store.hasID(winID)) {
+        if (winID && InspectorStore.hasID(winID)) {
           if (inspectorClosed && this.closing) {
             Services.obs.addObserver(function reopenInspectorForTab() {
               Services.obs.removeObserver(reopenInspectorForTab,
                 INSPECTOR_NOTIFICATIONS.CLOSED, false);
 
-              this.openInspectorUI();
-            }.bind(this), INSPECTOR_NOTIFICATIONS.CLOSED, false);
+              InspectorUI.openInspectorUI();
+            }, INSPECTOR_NOTIFICATIONS.CLOSED, false);
           } else {
             this.openInspectorUI();
           }
         }
 
-        if (this.store.isEmpty()) {
-          this.tabbrowser.tabContainer.removeEventListener("TabSelect", this,
-                                                         false);
+        if (InspectorStore.isEmpty()) {
+          gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
         }
         break;
       case "pagehide":
@@ -963,18 +935,17 @@ InspectorUI.prototype = {
 
         winID = this.getWindowID(win);
         if (winID && winID != this.winID) {
-          this.store.deleteStore(winID);
+          InspectorStore.deleteStore(winID);
         }
 
-        if (this.store.isEmpty()) {
-          this.tabbrowser.tabContainer.removeEventListener("TabSelect", this,
-                                                         false);
+        if (InspectorStore.isEmpty()) {
+          gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
         }
         break;
       case "keypress":
         switch (event.keyCode) {
-          case this.chromeWin.KeyEvent.DOM_VK_RETURN:
-          case this.chromeWin.KeyEvent.DOM_VK_ESCAPE:
+          case KeyEvent.DOM_VK_RETURN:
+          case KeyEvent.DOM_VK_ESCAPE:
             if (this.inspecting) {
               this.stopInspecting();
               event.preventDefault();
@@ -1035,7 +1006,7 @@ InspectorUI.prototype = {
   {
     let node = aDocument.elementFromPoint(aX, aY);
     if (node && node.contentDocument) {
-      if (node instanceof Ci.nsIDOMHTMLIFrameElement) {
+      if (node instanceof HTMLIFrameElement) {
         let rect = node.getBoundingClientRect();
 
         
@@ -1049,8 +1020,8 @@ InspectorUI.prototype = {
           return node;
         }
       }
-      if (node instanceof Ci.nsIDOMHTMLIFrameElement ||
-          node instanceof Ci.nsIDOMHTMLFrameElement) {
+      if (node instanceof HTMLIFrameElement ||
+          node instanceof HTMLFrameElement) {
         let subnode = this.elementFromPoint(node.contentDocument, aX, aY);
         if (subnode) {
           node = subnode;
@@ -1184,8 +1155,8 @@ InspectorUI.prototype = {
 
     this.tools[aRegObj.id] = aRegObj;
 
-    let buttonContainer = this.chromeDoc.getElementById("inspector-tools");
-    let btn = this.chromeDoc.createElement("toolbarbutton");
+    let buttonContainer = document.getElementById("inspector-tools");
+    let btn = document.createElement("toolbarbutton");
     let buttonId = this.getToolbarButtonId(aRegObj.id);
     btn.setAttribute("id", buttonId);
     btn.setAttribute("label", aRegObj.label);
@@ -1200,9 +1171,10 @@ InspectorUI.prototype = {
 
 
 
-    let toolEvents = this.toolEvents;
-    function bindToolEvent(aWidget, aEvent, aCallback) {
-      toolEvents[aWidget.id + "_" + aEvent] = aCallback;
+    function bindToolEvent(aWidget, aEvent, aCallback)
+    {
+      let toolEvent = aWidget.id + "_" + aEvent;
+      InspectorUI.toolEvents[toolEvent] = aCallback;
       aWidget.addEventListener(aEvent, aCallback, false);
     }
 
@@ -1230,7 +1202,7 @@ InspectorUI.prototype = {
   toolShow: function IUI_toolShow(aTool)
   {
     aTool.show.call(aTool.context, this.selection);
-    this.chromeDoc.getElementById(this.getToolbarButtonId(aTool.id)).checked = true;
+    document.getElementById(this.getToolbarButtonId(aTool.id)).checked = true;
   },
 
   
@@ -1240,7 +1212,7 @@ InspectorUI.prototype = {
   toolHide: function IUI_toolHide(aTool)
   {
     aTool.hide.call(aTool.context);
-    this.chromeDoc.getElementById(this.getToolbarButtonId(aTool.id)).checked = false;
+    document.getElementById(this.getToolbarButtonId(aTool.id)).checked = false;
   },
 
   
@@ -1251,21 +1223,24 @@ InspectorUI.prototype = {
 
   unregisterTool: function IUI_unregisterTool(aRegObj)
   {
-    let button = this.chromeDoc.getElementById(this.getToolbarButtonId(aRegObj.id));
+    let button = document.getElementById(this.getToolbarButtonId(aRegObj.id));
 
     
 
 
 
-
-    let toolEvents = this.toolEvents;
-    function unbindToolEvent(aWidget, aEvent) {
+    function unbindToolEvent(aWidget, aEvent)
+    {
       let toolEvent = aWidget.id + "_" + aEvent;
-      aWidget.removeEventListener(aEvent, toolEvents[toolEvent], false);
-      delete toolEvents[toolEvent]
-    };
+      if (!InspectorUI.toolEvents[toolEvent]) {
+        return;
+      }
 
-    let buttonContainer = this.chromeDoc.getElementById("inspector-tools");
+      aWidget.removeEventListener(aEvent, InspectorUI.toolEvents[toolEvent], false);
+      delete InspectorUI.toolEvents[toolEvent]
+    }
+
+    let buttonContainer = document.getElementById("inspector-tools");
     unbindToolEvent(button, "click");
 
     if (aRegObj.panel)
@@ -1292,7 +1267,7 @@ InspectorUI.prototype = {
         openTools[aTool.id] = true;
       }
     });
-    this.store.setValue(aWinID, "openTools", openTools);
+    InspectorStore.setValue(aWinID, "openTools", openTools);
   },
 
   
@@ -1303,7 +1278,7 @@ InspectorUI.prototype = {
 
   restoreToolState: function IUI_restoreToolState(aWinID)
   {
-    let openTools = this.store.getValue(aWinID, "openTools");
+    let openTools = InspectorStore.getValue(aWinID, "openTools");
     if (openTools) {
       this.toolsDo(function IUI_toolsOnShow(aTool) {
         if (aTool.id in openTools) {
@@ -1321,10 +1296,9 @@ InspectorUI.prototype = {
 
   toolsSelect: function IUI_toolsSelect(aScroll)
   {
-    let selection = this.selection;
     this.toolsDo(function IUI_toolsOnSelect(aTool) {
       if (aTool.isOpen) {
-        aTool.onSelect.call(aTool.context, selection, aScroll);
+        aTool.onSelect.call(aTool.context, InspectorUI.selection, aScroll);
       }
     });
   },
@@ -1361,33 +1335,13 @@ InspectorUI.prototype = {
   {
     return aId in this.tools;
   },
-
-  
-
-
-
-  destroy: function IUI_destroy()
-  {
-    if (this.isInspectorOpen) {
-      this.closeInspectorUI();
-    }
-
-    delete this.store;
-    delete this.chromeDoc;
-    delete this.chromeWin;
-    delete this.tabbrowser;
-  },
 };
 
 
 
 
-
-function InspectorStore()
-{
-  this.store = {};
-}
-InspectorStore.prototype = {
+var InspectorStore = {
+  store: {},
   length: 0,
 
   
@@ -1517,23 +1471,13 @@ InspectorStore.prototype = {
 
 
 
-
-
-
-
-function InspectorProgressListener(aInspector)
-{
-  this.IUI = aInspector;
-  this.IUI.tabbrowser.addProgressListener(this);
-}
-
-InspectorProgressListener.prototype = {
+var InspectorProgressListener = {
   onStateChange:
   function IPL_onStateChange(aProgress, aRequest, aFlag, aStatus)
   {
     
-    if (!this.IUI.isInspectorOpen) {
-      this.destroy();
+    if (!InspectorUI.isInspectorOpen) {
+      gBrowser.removeProgressListener(InspectorProgressListener);
       return;
     }
 
@@ -1544,14 +1488,14 @@ InspectorProgressListener.prototype = {
 
     
     
-    if (aProgress.DOMWindow != this.IUI.win) {
+    if (aProgress.DOMWindow != InspectorUI.win) {
       return;
     }
 
-    if (this.IUI.isDirty) {
+    if (InspectorUI.isDirty) {
       this.showNotification(aRequest);
     } else {
-      this.IUI.closeInspectorUI();
+      InspectorUI.closeInspectorUI();
     }
   },
 
@@ -1567,7 +1511,7 @@ InspectorProgressListener.prototype = {
   {
     aRequest.suspend();
 
-    let notificationBox = this.IUI.tabbrowser.getNotificationBox(this.IUI.browser);
+    let notificationBox = gBrowser.getNotificationBox(InspectorUI.browser);
     let notification = notificationBox.
       getNotificationWithValue("inspector-page-navigation");
 
@@ -1592,29 +1536,29 @@ InspectorProgressListener.prototype = {
     let buttons = [
       {
         id: "inspector.confirmNavigationAway.buttonLeave",
-        label: this.IUI.strings.
+        label: InspectorUI.strings.
           GetStringFromName("confirmNavigationAway.buttonLeave"),
-        accessKey: this.IUI.strings.
+        accessKey: InspectorUI.strings.
           GetStringFromName("confirmNavigationAway.buttonLeaveAccesskey"),
         callback: function onButtonLeave() {
           if (aRequest) {
             aRequest.resume();
             aRequest = null;
-            this.IUI.closeInspectorUI();
+            InspectorUI.closeInspectorUI();
           }
-        }.bind(this),
+        },
       },
       {
         id: "inspector.confirmNavigationAway.buttonStay",
-        label: this.IUI.strings.
+        label: InspectorUI.strings.
           GetStringFromName("confirmNavigationAway.buttonStay"),
-        accessKey: this.IUI.strings.
+        accessKey: InspectorUI.strings.
           GetStringFromName("confirmNavigationAway.buttonStayAccesskey"),
         callback: cancelRequest
       },
     ];
 
-    let message = this.IUI.strings.
+    let message = InspectorUI.strings.
       GetStringFromName("confirmNavigationAway.message");
 
     notification = notificationBox.appendNotification(message,
@@ -1625,36 +1569,25 @@ InspectorProgressListener.prototype = {
     
     notification.persistence = -1;
   },
-
-  
-
-
-  destroy: function IPL_destroy()
-  {
-    this.IUI.tabbrowser.removeProgressListener(this);
-
-    let notificationBox = this.IUI.tabbrowser.getNotificationBox(this.IUI.browser);
-    let notification = notificationBox.
-      getNotificationWithValue("inspector-page-navigation");
-
-    if (notification) {
-      notificationBox.removeNotification(notification, true);
-    }
-
-    delete this.IUI;
-  },
 };
 
 
 
 
-XPCOMUtils.defineLazyGetter(InspectorUI.prototype, "strings",
-  function () {
-    return Services.strings.
-           createBundle("chrome://browser/locale/inspector.properties");
-  });
+XPCOMUtils.defineLazyGetter(InspectorUI, "inspectMenuitem", function () {
+  return document.getElementById("Tools:Inspect");
+});
 
-XPCOMUtils.defineLazyGetter(this, "StyleInspector", function () {
+XPCOMUtils.defineLazyGetter(InspectorUI, "inspectToolbutton", function () {
+  return document.getElementById("inspector-inspect-toolbutton");
+});
+
+XPCOMUtils.defineLazyGetter(InspectorUI, "strings", function () {
+  return Services.strings.
+         createBundle("chrome://browser/locale/inspector.properties");
+});
+
+XPCOMUtils.defineLazyGetter(InspectorUI, "StyleInspector", function () {
   var obj = {};
   Cu.import("resource:///modules/devtools/StyleInspector.jsm", obj);
   return obj.StyleInspector;
