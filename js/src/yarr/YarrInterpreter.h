@@ -335,7 +335,6 @@ public:
         : m_body(body)
         , m_ignoreCase(pattern.m_ignoreCase)
         , m_multiline(pattern.m_multiline)
-        , m_containsBeginChars(pattern.m_containsBeginChars)
         , m_allocator(allocator)
     {
         newlineCharacterClass = pattern.newlineCharacterClass();
@@ -347,8 +346,6 @@ public:
         
         
         pattern.m_userCharacterClasses.clear();
-
-        m_beginChars.append(pattern.m_beginChars);
     }
 
     ~BytecodePattern()
@@ -360,15 +357,12 @@ public:
     OwnPtr<ByteDisjunction> m_body;
     bool m_ignoreCase;
     bool m_multiline;
-    bool m_containsBeginChars;
     
     
     BumpPointerAllocator* m_allocator;
 
     CharacterClass* newlineCharacterClass;
     CharacterClass* wordcharCharacterClass;
-
-    Vector<BeginChar> m_beginChars;
 
 private:
     Vector<ByteDisjunction*> m_allParenthesesInfo;
