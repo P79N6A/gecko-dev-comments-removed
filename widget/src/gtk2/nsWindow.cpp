@@ -1579,6 +1579,18 @@ nsWindow::GetScreenBounds(nsIntRect &aRect)
     return NS_OK;
 }
 
+NS_IMETHODIMP
+nsWindow::GetClientBounds(nsIntRect &aRect)
+{
+    
+    
+    
+    GetBounds(aRect);
+    aRect.MoveBy(GetClientOffset());
+
+    return NS_OK;
+}
+
 nsIntPoint
 nsWindow::GetClientOffset()
 {
