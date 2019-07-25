@@ -9,6 +9,7 @@
 
 #undef DEBUG
 #include "mozilla/RefPtr.h"
+#include "Zip.h"
 
 
 
@@ -118,6 +119,7 @@ protected:
 
 
   friend class ElfLoader;
+  friend class CustomElf;
   virtual bool IsSystemElf() const { return false; }
 
 private:
@@ -222,6 +224,70 @@ private:
   
   typedef std::vector<LibHandle *> LibHandleList;
   LibHandleList handles;
+
+protected:
+  friend class CustomElf;
+  
+  typedef void (*Destructor)(void *object);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef __ARM_EABI__
+  static int __wrap_aeabi_atexit(void *that, Destructor destructor,
+                                 void *dso_handle);
+#else
+  static int __wrap_cxa_atexit(Destructor destructor, void *that,
+                               void *dso_handle);
+#endif
+
+  static void __wrap_cxa_finalize(void *dso_handle);
+
+  
+
+
+
+  class DestructorCaller {
+  public:
+    DestructorCaller(Destructor destructor, void *object, void *dso_handle)
+    : destructor(destructor), object(object), dso_handle(dso_handle) { }
+
+    
+
+
+
+    void Call();
+
+    
+
+
+    bool IsForHandle(void *handle) const
+    {
+      return handle == dso_handle;
+    }
+
+  private:
+    Destructor destructor;
+    void *object;
+    void *dso_handle;
+  };
+
+private:
+  
+  std::vector<DestructorCaller> destructors;
 };
 
 #endif 

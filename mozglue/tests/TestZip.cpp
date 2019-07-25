@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include "Zip.h"
 
+extern "C" void report_mapping() { }
+
 
 
 

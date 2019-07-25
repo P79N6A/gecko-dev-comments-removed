@@ -6,6 +6,9 @@
 #define Utils_h
 
 #include <stdint.h>
+#include <stddef.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 
 
@@ -90,4 +93,280 @@ private:
   int fd;
 };
 
+
+
+
+
+class MappedPtr
+{
+public:
+  MappedPtr(void *buf, size_t length): buf(buf), length(length) { }
+  MappedPtr(): buf(MAP_FAILED), length(0) { }
+
+  void Init(void *b, size_t len) {
+    buf = b;
+    length = len;
+  }
+
+  ~MappedPtr()
+  {
+    if (buf != MAP_FAILED)
+      munmap(buf, length);
+  }
+
+  operator void *() const
+  {
+    return buf;
+  }
+
+  operator unsigned char *() const
+  {
+    return reinterpret_cast<unsigned char *>(buf);
+  }
+
+  bool operator ==(void *ptr) const {
+    return buf == ptr;
+  }
+
+  bool operator ==(unsigned char *ptr) const {
+    return buf == ptr;
+  }
+
+  void *operator +(off_t offset) const
+  {
+    return reinterpret_cast<char *>(buf) + offset;
+  }
+
+  
+
+
+  bool Contains(void *ptr) const
+  {
+    return (ptr >= buf) && (ptr < reinterpret_cast<char *>(buf) + length);
+  }
+
+private:
+  void *buf;
+  size_t length;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename T>
+class UnsizedArray
+{
+public:
+  typedef size_t idx_t;
+
+  
+
+
+  UnsizedArray(): contents(NULL) { }
+  UnsizedArray(const void *buf): contents(reinterpret_cast<const T *>(buf)) { }
+
+  void Init(const void *buf)
+  {
+    
+    contents = reinterpret_cast<const T *>(buf);
+  }
+
+  
+
+
+  const T &operator[](const idx_t index) const
+  {
+    
+    return contents[index];
+  }
+
+  
+
+
+  operator bool() const
+  {
+    return contents != NULL;
+  }
+private:
+  const T *contents;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename T>
+class Array: public UnsizedArray<T>
+{
+public:
+  typedef typename UnsizedArray<T>::idx_t idx_t;
+
+  
+
+
+  Array(): UnsizedArray<T>(), length(0) { }
+  Array(const void *buf, const idx_t length)
+  : UnsizedArray<T>(buf), length(length) { }
+
+  void Init(const void *buf)
+  {
+    UnsizedArray<T>::Init(buf);
+  }
+
+  void Init(const idx_t len)
+  {
+    
+    length = len;
+  }
+
+  void InitSize(const idx_t size)
+  {
+    Init(size / sizeof(T));
+  }
+
+  void Init(const void *buf, const idx_t len)
+  {
+    UnsizedArray<T>::Init(buf);
+    Init(len);
+  }
+
+  void InitSize(const void *buf, const idx_t size)
+  {
+    UnsizedArray<T>::Init(buf);
+    InitSize(size);
+  }
+
+  
+
+
+  const T &operator[](const idx_t index) const
+  {
+    
+    
+    return UnsizedArray<T>::operator[](index);
+  }
+
+  
+
+
+  idx_t numElements() const
+  {
+    return length;
+  }
+
+  
+
+
+  operator bool() const
+  {
+    return (length > 0) && UnsizedArray<T>::operator bool();
+  }
+
+  
+
+
+
+
+
+
+
+
+  class iterator
+  {
+  public:
+    iterator(): item(NULL) { }
+
+    const T &operator *() const
+    {
+      return *item;
+    }
+
+    const T *operator ->() const
+    {
+      return item;
+    }
+
+    const T &operator ++()
+    {
+      return *(++item);
+    }
+
+    bool operator<(const iterator &other) const
+    {
+      return item < other.item;
+    }
+  protected:
+    friend class Array<T>;
+    iterator(const T &item): item(&item) { }
+
+  private:
+    const T *item;
+  };
+
+  
+
+
+  iterator begin() const {
+    if (length)
+      return iterator(UnsizedArray<T>::operator[](0));
+    return iterator();
+  }
+
+  
+
+
+  iterator end() const {
+    if (length)
+      return iterator(UnsizedArray<T>::operator[](length));
+    return iterator();
+  }
+private:
+  idx_t length;
+};
+
+
+
+
+
+template <typename T>
+void *FunctionPtr(T func)
+{
+  union {
+    void *ptr;
+    T func;
+  } f;
+  f.func = func;
+  return f.ptr;
+}
+
 #endif 
+ 
