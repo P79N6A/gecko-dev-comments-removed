@@ -425,6 +425,23 @@ const ICC_STATUS_ERROR_WRONG_PARAMETERS = 0x6a;
 
 
 
+const ICC_CB_FACILITY_SIM = "SC";
+
+
+
+const ICC_SERVICE_CLASS_NONE = 0; 
+const ICC_SERVICE_CLASS_VOICE = (1 << 0);
+const ICC_SERVICE_CLASS_DATA = (1 << 1);
+const ICC_SERVICE_CLASS_FAX = (1 << 2);
+const ICC_SERVICE_CLASS_SMS = (1 << 3);
+const ICC_SERVICE_CLASS_DATA_SYNC = (1 << 4);
+const ICC_SERVICE_CLASS_DATA_ASYNC = (1 << 5);
+const ICC_SERVICE_CLASS_PACKET = (1 << 6);
+const ICC_SERVICE_CLASS_PAD = (1 << 7);
+const ICC_SERVICE_CLASS_MAX = (1 << 7); 
+
+
+
 
 
 
