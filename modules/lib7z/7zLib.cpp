@@ -700,3 +700,98 @@ int SzExtractSfx(const WCHAR *archiveName, DWORD sfxStubSize,
   }
   return SZ_OK;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+int SzGetSfxArchiveInfo(const WCHAR *archiveName, const DWORD sfxStubSize,
+                        ULONGLONG *pUncompressedSize, DWORD *pNumberOfFiles, DWORD *pNumberOfDirs)
+{
+  if (!archiveName || !pUncompressedSize)
+    return SZ_ERROR_PARAM;
+
+  *pUncompressedSize = 0;
+
+  Initialize7z();
+
+  CMyComPtr<IInArchive> archive;
+  if (CreateArchiver(&CLSID_CFormat7z, &IID_IInArchive, (void **)&archive) != S_OK)
+  {
+    PrintError("Can not get class object");
+    return SZ_ERROR_FAIL;
+  }
+
+  CInFileStream *fileSpec = new CInFileStream;
+  CMyComPtr<IInStream> file = fileSpec;
+  
+  if (!fileSpec->Open(archiveName))
+  {
+    PrintError("Can not open archive file");
+    return SZ_ERROR_NO_ARCHIVE;
+  }
+  if (sfxStubSize > 0)
+    file->Seek(sfxStubSize, STREAM_SEEK_SET, NULL);
+
+  CArchiveOpenCallback *openCallbackSpec = new CArchiveOpenCallback;
+  CMyComPtr<IArchiveOpenCallback> openCallback(openCallbackSpec);
+  openCallbackSpec->PasswordIsDefined = false;
+  
+  if (archive->Open(file, 0, openCallback) != S_OK)
+  {
+    PrintError("Can not open archive");
+    return SZ_ERROR_NO_ARCHIVE;
+  }
+  
+  UInt32 numItems = 0;
+  archive->GetNumberOfItems(&numItems);
+  if (numItems == 0)
+  {
+      PrintError("No files found in the archive");
+      return SZ_ERROR_DATA;
+  }
+
+  if (pNumberOfFiles)
+    *pNumberOfFiles = 0;
+
+  if (pNumberOfDirs)
+    *pNumberOfDirs = 0;
+
+  
+  for (UInt32 i = 0; i < numItems; i++)
+  {
+    bool isDir = false;
+    RINOK(IsArchiveItemFolder(archive, i, isDir));
+    if (isDir)
+    {
+      if (pNumberOfDirs)
+        (*pNumberOfDirs)++;
+      continue;
+    }
+
+    UInt64 unpackSize = 0;
+
+    NWindows::NCOM::CPropVariant prop;
+    if (archive->GetProperty(i, kpidSize, &prop) != S_OK)
+    {
+        PrintError("Cannot get size property value");
+        return SZ_ERROR_DATA;
+    }
+    if (prop.vt != VT_EMPTY)
+      unpackSize = ConvertPropVariantToUInt64(prop);
+
+    (*pUncompressedSize) += unpackSize;
+
+    if (pNumberOfFiles)
+      (*pNumberOfFiles)++;
+  }
+
+  return SZ_OK;
+}
