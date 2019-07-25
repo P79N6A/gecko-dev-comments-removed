@@ -1335,63 +1335,23 @@ namespace js {
 
 
 template<typename T> class AnchorPermitted;
+template<> class AnchorPermitted<JSObject *> { };
+template<> class AnchorPermitted<const JSObject *> { };
+template<> class AnchorPermitted<JSFunction *> { };
+template<> class AnchorPermitted<const JSFunction *> { };
+template<> class AnchorPermitted<JSString *> { };
+template<> class AnchorPermitted<const JSString *> { };
+template<> class AnchorPermitted<jsval> { };
+
 template<typename T>
 class Anchor: AnchorPermitted<T> {
   public:
     Anchor() { }
     explicit Anchor(T t) { hold = t; }
-    ~Anchor() {
-#ifdef __GNUC__
-        
-
-
-
-
-
-
-
-
-
-
-        asm volatile("":: "g" (hold) : "memory");
-#else
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        volatile T sink;
-#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
-        
-
-
-        doAssignment(sink, hold);
-#else
-        sink = hold;
-#endif
-#endif
-    }
-    T &get()      { return hold; }
-    void set(T t) { hold = t; }
-    void clear()  { hold = 0; }
+    inline ~Anchor();
+    T &get() { return hold; }
+    void set(const T &t) { hold = t; }
+    void clear() { hold = 0; }
   private:
     T hold;
     
@@ -1399,44 +1359,71 @@ class Anchor: AnchorPermitted<T> {
     const Anchor &operator=(const Anchor &);
 };
 
+#ifdef __GNUC__
+template<typename T>
+inline Anchor<T>::~Anchor() {
+    
 
 
 
 
-class Anchor_base {
-protected:
+
+
+
+
+
+
+    asm volatile("":: "g" (hold) : "memory");
+}
+#else
+template<typename T>
+inline Anchor<T>::~Anchor() {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    volatile T sink;
+    sink = hold;
+}
+
 #ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
-    template<typename T> void doAssignment(volatile T &lhs, const T &rhs) {
-        lhs = rhs;
-    }
+
+
+
+
+
+
+
+
+
+
+
+template<>
+inline Anchor<jsval>::~Anchor() {
+    volatile jsval sink;
+    sink.asBits = hold.asBits;
+}
 #endif
-};
-template<> class AnchorPermitted<JSObject *> : protected Anchor_base { };
-template<> class AnchorPermitted<const JSObject *> : protected Anchor_base { };
-template<> class AnchorPermitted<JSFunction *> : protected Anchor_base { };
-template<> class AnchorPermitted<const JSFunction *> : protected Anchor_base { };
-template<> class AnchorPermitted<JSString *> : protected Anchor_base { };
-template<> class AnchorPermitted<const JSString *> : protected Anchor_base { };
-template<> class AnchorPermitted<jsval> : protected Anchor_base {
-protected:
-#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
-    void doAssignment(volatile jsval &lhs, const jsval &rhs) {
-        
-
-
-
-
-
-
-
-
-
-
-
-        lhs.asBits = rhs.asBits;
-    }
 #endif
-};
 
 }  
 
