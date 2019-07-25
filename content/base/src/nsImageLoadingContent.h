@@ -53,6 +53,7 @@
 #include "nsContentUtils.h" 
 #include "nsString.h"
 #include "nsEventStates.h"
+#include "mozilla/COMPtrAndFlag.h"
 
 class nsIURI;
 class nsIDocument;
@@ -144,7 +145,8 @@ protected:
 
 
 
-  nsIDocument* GetOurDocument();
+  nsIDocument* GetOurOwnerDoc();
+  nsIDocument* GetOurCurrentDoc();
 
   
 
@@ -184,6 +186,11 @@ protected:
 
 
   virtual CORSMode GetCORSMode();
+
+  
+  void BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                  nsIContent* aBindingParent, bool aCompileEventHandlers);
+  void UnbindFromTree(bool aDeep, bool aNullParent);
 
 private:
   
@@ -273,12 +280,17 @@ protected:
   void CreateStaticImageClone(nsImageLoadingContent* aDest) const;
 
   
+  
+  
+  typedef mozilla::COMPtrAndFlag<imgIRequest> RequestWithState;
+
+  
 
 
 
 
 
-   nsCOMPtr<imgIRequest>& PrepareNextRequest();
+   RequestWithState& PrepareNextRequest();
 
   
 
@@ -292,9 +304,8 @@ protected:
 
 
 
-
-  nsCOMPtr<imgIRequest>& PrepareCurrentRequest();
-  nsCOMPtr<imgIRequest>& PreparePendingRequest();
+  void PrepareCurrentRequest();
+  void PreparePendingRequest();
 
   
 
@@ -313,12 +324,12 @@ protected:
 
 
 
-  nsresult TrackImage(imgIRequest* aImage);
-  nsresult UntrackImage(imgIRequest* aImage);
+  nsresult TrackImage(RequestWithState& aImage);
+  nsresult UntrackImage(RequestWithState& aImage);
 
   
-  nsCOMPtr<imgIRequest> mCurrentRequest;
-  nsCOMPtr<imgIRequest> mPendingRequest;
+  RequestWithState mCurrentRequest;
+  RequestWithState mPendingRequest;
 
   
   

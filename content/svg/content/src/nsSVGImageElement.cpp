@@ -208,6 +208,9 @@ nsSVGImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                   aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsImageLoadingContent::BindToTree(aDocument, aParent, aBindingParent,
+                                    aCompileEventHandlers);
+
   if (mStringAttributes[HREF].IsExplicitlySet()) {
     
     
@@ -218,6 +221,13 @@ nsSVGImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   }
 
   return rv;
+}
+
+void
+nsSVGImageElement::UnbindFromTree(bool aDeep, bool aNullParent)
+{
+  nsImageLoadingContent::UnbindFromTree(aDeep, aNullParent);
+  nsSVGImageElementBase::UnbindFromTree(aDeep, aNullParent);
 }
 
 nsEventStates

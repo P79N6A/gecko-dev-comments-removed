@@ -62,7 +62,6 @@
 #ifdef MOZ_MEDIA
 #include "nsHTMLMediaElement.h"
 #endif 
-#include "nsImageLoadingContent.h"
 #include "jsgc.h"
 #include "nsWrapperCacheInlines.h"
 
@@ -586,13 +585,6 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
       }
     }
 #endif
-
-    
-    if (oldDoc != newDoc) {
-      nsCOMPtr<nsIImageLoadingContent> imageContent(do_QueryInterface(aNode));
-      if (imageContent)
-        imageContent->NotifyOwnerDocumentChanged(oldDoc);
-    }
 
     if (elem) {
       elem->RecompileScriptEventListeners();
