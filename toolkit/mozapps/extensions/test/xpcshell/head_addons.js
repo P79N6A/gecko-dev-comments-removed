@@ -9,9 +9,11 @@ const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
 const XULAPPINFO_CID = Components.ID("{c763b610-9d49-455a-bbd2-ede71682a1ac}");
 
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
+Components.utils.import("resource://gre/modules/AddonRepository.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
 var gInternalManager = null;
 var gAppInfo = null;
@@ -125,6 +127,114 @@ function do_get_addon(aName) {
 
 
 
+
+
+
+function do_check_addons(aActualAddons, aExpectedAddons, aProperties) {
+  do_check_neq(aActualAddons, null);
+  do_check_eq(aActualAddons.length, aExpectedAddons.length);
+  for (let i = 0; i < aActualAddons.length; i++)
+    do_check_addon(aActualAddons[i], aExpectedAddons[i], aProperties);
+}
+
+
+
+
+
+
+
+
+
+
+
+function do_check_addon(aActualAddon, aExpectedAddon, aProperties) {
+  do_check_neq(aActualAddon, null);
+
+  aProperties.forEach(function(aProperty) {
+    let actualValue = aActualAddon[aProperty];
+    let expectedValue = aExpectedAddon[aProperty];
+
+    
+    if (!(aProperty in aExpectedAddon)) {
+      if (actualValue !== undefined && actualValue !== null)
+        do_throw("Unexpected defined/non-null property for add-on " +
+                 aExpectedAddon.id + " (addon[" + aProperty + "] = " + actualValue);
+
+      return;
+    }
+
+    switch (aProperty) {
+      case "creator":
+        do_check_author(actualValue, expectedValue);
+        break;
+
+      case "developers":
+      case "translators":
+      case "contributors":
+        do_check_eq(actualValue.length, expectedValue.length);
+        for (let i = 0; i < actualValue.length; i++)
+          do_check_author(actualValue[i], expectedValue[i]);
+        break;
+
+      case "screenshots":
+        do_check_eq(actualValue.length, expectedValue.length);
+        for (let i = 0; i < actualValue.length; i++)
+          do_check_screenshot(actualValue[i], expectedValue[i]);
+        break;
+
+      case "sourceURI":
+        do_check_eq(actualValue.spec, expectedValue);
+        break;
+
+      case "updateDate":
+        do_check_eq(actualValue.getTime(), expectedValue.getTime());
+        break;
+
+      default:
+        if (actualValue !== expectedValue)
+          do_throw("Failed for " + aProperty + " for add-on " + aExpectedAddon.id +
+                   " (" + actualValue + " === " + expectedValue + ")");
+    }
+  });
+}
+
+
+
+
+
+
+
+
+
+function do_check_author(aActual, aExpected) {
+  do_check_eq(aActual.toString(), aExpected.name);
+  do_check_eq(aActual.name, aExpected.name);
+  do_check_eq(aActual.url, aExpected.url);
+}
+
+
+
+
+
+
+
+
+
+function do_check_screenshot(aActual, aExpected) {
+  do_check_eq(aActual.toString(), aExpected.url);
+  do_check_eq(aActual.url, aExpected.url);
+  do_check_eq(aActual.thumbnailURL, aExpected.thumbnailURL);
+  do_check_eq(aActual.caption, aExpected.caption);
+}
+
+
+
+
+
+
+
+
+
 function startupManager(aAppChanged) {
   if (gInternalManager)
     do_throw("Test attempt to startup manager that was already started.");
@@ -171,9 +281,28 @@ function shutdownManager() {
 
   let obs = AM_Cc["@mozilla.org/observer-service;1"].
             getService(AM_Ci.nsIObserverService);
+
+  let xpiShutdown = false;
+  obs.addObserver({
+    observe: function(aSubject, aTopic, aData) {
+      xpiShutdown = true;
+      obs.removeObserver(this, "xpi-provider-shutdown");
+    }
+  }, "xpi-provider-shutdown", false);
+
+  let repositoryShutdown = false;
+  obs.addObserver({
+    observe: function(aSubject, aTopic, aData) {
+      repositoryShutdown = true;
+      obs.removeObserver(this, "addon-repository-shutdown");
+    }
+  }, "addon-repository-shutdown", false);
+
   obs.notifyObservers(null, "quit-application-granted", null);
   gInternalManager.observe(null, "xpcom-shutdown", null);
   gInternalManager = null;
+
+  AddonRepository.shutdown();
 
   
   loadAddonsList();
@@ -181,43 +310,14 @@ function shutdownManager() {
   
   gAppInfo.annotations = {};
 
-  let dbfile = gProfD.clone();
-  dbfile.append("extensions.sqlite");
-
-  
-  if (!dbfile.exists())
-    return;
-
   let thr = AM_Cc["@mozilla.org/thread-manager;1"].
             getService(AM_Ci.nsIThreadManager).
             mainThread;
 
   
-  let db = null;
-  while (!db) {
-    
-    try {
-      db = Services.storage.openUnsharedDatabase(dbfile);
-    }
-    catch (e) {
-      if (thr.hasPendingEvents())
-        thr.processNextEvent(false);
-    }
-  }
-
-  
-  while (db) {
-    
-    try {
-      db.executeSimpleSQL("PRAGMA user_version = 1");
-      db.executeSimpleSQL("PRAGMA user_version = 0");
-      db.close();
-      db = null;
-    }
-    catch (e) {
-      if (thr.hasPendingEvents())
-        thr.processNextEvent(false);
-    }
+  while (!repositoryShutdown || !xpiShutdown) {
+    if (thr.hasPendingEvents())
+      thr.processNextEvent(false);
   }
 }
 
@@ -796,7 +896,13 @@ Services.prefs.setBoolPref("extensions.logging.enabled", true);
 Services.prefs.setIntPref("extensions.enabledScopes", AddonManager.SCOPE_PROFILE);
 
 
+Services.prefs.setBoolPref("extensions.getAddons.cache.enabled", false);
+
+
 Services.prefs.setBoolPref("extensions.showMismatchUI", false);
+
+
+Services.prefs.setBoolPref("extensions.getAddons.cache.enabled", false);
 
 
 const gTmpD = gProfD.clone();

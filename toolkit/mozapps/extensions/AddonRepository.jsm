@@ -41,12 +41,14 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 
 var EXPORTED_SYMBOLS = [ "AddonRepository" ];
 
+const PREF_GETADDONS_CACHE_ENABLED       = "extensions.getAddons.cache.enabled";
 const PREF_GETADDONS_BROWSEADDONS        = "extensions.getAddons.browseAddons";
 const PREF_GETADDONS_BYIDS               = "extensions.getAddons.get.url";
 const PREF_GETADDONS_BROWSERECOMMENDED   = "extensions.getAddons.recommended.browseURL";
@@ -57,6 +59,32 @@ const PREF_GETADDONS_GETSEARCHRESULTS    = "extensions.getAddons.search.url";
 const XMLURI_PARSE_ERROR  = "http://www.mozilla.org/newlayout/xml/parsererror.xml";
 
 const API_VERSION = "1.5";
+
+const KEY_PROFILEDIR = "ProfD";
+const FILE_DATABASE  = "addons.sqlite";
+const DB_SCHEMA      = 1;
+
+["LOG", "WARN", "ERROR"].forEach(function(aName) {
+  this.__defineGetter__(aName, function() {
+    Components.utils.import("resource://gre/modules/AddonLogging.jsm");
+
+    LogManager.getLogger("addons.repository", this);
+    return this[aName];
+  });
+}, this);
+
+
+
+
+
+const PROP_SINGLE = ["id", "type", "name", "version", "creator", "description",
+                     "fullDescription", "developerComments", "eula", "iconURL",
+                     "homepageURL", "supportURL", "contributionURL",
+                     "contributionAmount", "averageRating", "reviewCount",
+                     "reviewURL", "totalDownloads", "weeklyDownloads",
+                     "dailyUsers", "sourceURI", "repositoryStatus", "size",
+                     "updateDate"];
+const PROP_MULTI = ["developers", "screenshots"]
 
 
 
@@ -83,8 +111,6 @@ const INTEGER_KEY_MAP = {
 
 function AddonSearchResult(aId) {
   this.id = aId;
-  this.screenshots = [];
-  this.developers = [];
 }
 
 AddonSearchResult.prototype = {
@@ -313,60 +339,6 @@ AddonSearchResult.prototype = {
   }
 }
 
-function AddonAuthor(aName, aURL) {
-  this.name = aName;
-  this.url = aURL;
-}
-
-AddonAuthor.prototype = {
-  
-
-
-  name: null,
-
-  
-
-
-  url: null,
-
-  
-
-
-  toString: function() {
-    return this.name || "";
-  }
-}
-
-function AddonScreenshot(aURL, aThumbnailURL, aCaption) {
-  this.url = aURL;
-  this.thumbnailURL = aThumbnailURL;
-  this.caption = aCaption;
-}
-
-AddonScreenshot.prototype = {
-  
-
-
-  url: null,
-
-  
-
-
-  thumbnailURL: null,
-
-  
-
-
-  caption: null,
-
-  
-
-
-  toString: function() {
-    return this.url || "";
-  }
-}
-
 
 
 
@@ -379,6 +351,32 @@ AddonScreenshot.prototype = {
 
 
 var AddonRepository = {
+  
+
+
+  get cacheEnabled() {
+    
+    
+    if (!AddonDatabase.databaseOk)
+      return false;
+
+    let preference = PREF_GETADDONS_CACHE_ENABLED;
+    let enabled = false;
+    try {
+      enabled = Services.prefs.getBoolPref(preference);
+    } catch(e) {
+      WARN("cacheEnabled: Couldn't get pref: " + preference);
+    }
+
+    return enabled;
+  },
+
+  
+  _addons: null,
+
+  
+  _pendingCallbacks: null,
+
   
   _searching: false,
 
@@ -406,6 +404,155 @@ var AddonRepository = {
 
   
   _maxResults: null,
+  
+  
+
+
+  initialize: function() {
+    Services.obs.addObserver(this, "xpcom-shutdown", false);
+  },
+
+  
+
+
+  observe: function (aSubject, aTopic, aData) {
+    if (aTopic == "xpcom-shutdown") {
+      Services.obs.removeObserver(this, "xpcom-shutdown");
+      this.shutdown();
+    }
+  },
+
+  
+
+
+  shutdown: function() {
+    this.cancelSearch();
+
+    this._addons = null;
+    this._pendingCallbacks = null;
+    AddonDatabase.shutdown(function() {
+      Services.obs.notifyObservers(null, "addon-repository-shutdown", null);
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  getCachedAddonByID: function(aId, aCallback) {
+    if (!aId || !this.cacheEnabled) {
+      aCallback(null);
+      return;
+    }
+
+    let self = this;
+    function getAddon(aAddons) {
+      aCallback((aId in aAddons) ? aAddons[aId] : null);
+    }
+
+    if (this._addons == null) {
+      if (this._pendingCallbacks == null) {
+        
+        this._pendingCallbacks = [];
+        this._pendingCallbacks.push(getAddon);
+        AddonDatabase.retrieveStoredData(function(aAddons) {
+          let pendingCallbacks = self._pendingCallbacks;
+
+          
+          if (pendingCallbacks == null)
+            return;
+
+          
+          
+          self._pendingCallbacks = null;
+          self._addons = aAddons;
+
+          pendingCallbacks.forEach(function(aCallback) aCallback(aAddons));
+        });
+
+        return;
+      }
+
+      
+      this._pendingCallbacks.push(getAddon);
+      return;
+    }
+
+    
+    getAddon(this._addons);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  repopulateCache: function(aIds, aCallback) {
+    let self = this;
+
+    
+    if (!this.cacheEnabled) {
+      this._addons = null;
+      this._pendingCallbacks = null;
+      AddonDatabase.delete(aCallback);
+      return;
+    }
+
+    this.getAddonsByIDs(aIds, {
+      searchSucceeded: function(aAddons) {
+        self._addons = {};
+        aAddons.forEach(function(aAddon) { self._addons[aAddon.id] = aAddon; });
+        AddonDatabase.repopulate(aAddons, aCallback);
+      },
+      searchFailed: function() {
+        WARN("Search failed when repopulating cache");
+        if (aCallback)
+          aCallback();
+      }
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  cacheAddons: function(aIds, aCallback) {
+    if (!this.cacheEnabled) {
+      if (aCallback)
+        aCallback();
+      return;
+    }
+
+    let self = this;
+    this.getAddonsByIDs(aIds, {
+      searchSucceeded: function(aAddons) {
+        aAddons.forEach(function(aAddon) { self._addons[aAddon.id] = aAddon; });
+        AddonDatabase.insertAddons(aAddons, aCallback);
+      },
+      searchFailed: function() {
+        WARN("Search failed when adding add-ons to cache");
+        if (aCallback)
+          aCallback();
+      }
+    });
+  },
 
   
 
@@ -471,9 +618,10 @@ var AddonRepository = {
 
 
   getAddonsByIDs: function(aIDs, aCallback) {
+    let ids = aIDs.slice(0);
     let url = this._formatURLPref(PREF_GETADDONS_BYIDS, {
       API_VERSION : API_VERSION,
-      IDS : aIDs.map(encodeURIComponent).join(',')
+      IDS : ids.map(encodeURIComponent).join(',')
     });
 
     let self = this;
@@ -487,20 +635,20 @@ var AddonRepository = {
           continue;
 
         
-        let idIndex = aIDs.indexOf(result.addon.id);
+        let idIndex = ids.indexOf(result.addon.id);
         if (idIndex == -1)
           continue;
 
         results.push(result);
         
-        aIDs.splice(idIndex, 1);
+        ids.splice(idIndex, 1);
       }
 
       
       self._reportSuccess(results, -1);
     }
 
-    this._beginSearch(url, aIDs.length, aCallback, handleResults);
+    this._beginSearch(url, ids.length, aCallback, handleResults);
   },
 
   
@@ -660,7 +808,7 @@ var AddonRepository = {
               addon.type = "theme";
               break;
             default:
-              Cu.reportError("Unknown type id when parsing addon: " + id);
+              WARN("Unknown type id when parsing addon: " + id);
           }
           break;
         case "authors":
@@ -671,11 +819,15 @@ var AddonRepository = {
             if (name == null || link == null)
               return;
 
-            let author = new AddonAuthor(name, link);
+            let author = new AddonManagerPrivate.AddonAuthor(name, link);
             if (addon.creator == null)
               addon.creator = author;
-            else
+            else {
+              if (addon.developers == null)
+                addon.developers = [];
+
               addon.developers.push(author);
+            }
           });
           break;
         case "previews":
@@ -687,7 +839,10 @@ var AddonRepository = {
 
             let thumbnail = self._getDescendantTextContent(aPreviewNode, "thumbnail");
             let caption = self._getDescendantTextContent(aPreviewNode, "caption");
-            let screenshot = new AddonScreenshot(full, thumbnail, caption);
+            let screenshot = new AddonManagerPrivate.AddonScreenshot(full, thumbnail, caption);
+
+            if (addon.screenshots == null)
+              addon.screenshots = [];
 
             if (aPreviewNode.getAttribute("primary") == 1)
               addon.screenshots.unshift(screenshot);
@@ -912,7 +1067,7 @@ var AddonRepository = {
     try {
       url = Services.prefs.getCharPref(aPreference);
     } catch(e) {
-      Cu.reportError("_formatURLPref: Couldn't get pref: " + aPreference);
+      WARN("_formatURLPref: Couldn't get pref: " + aPreference);
       return null;
     }
 
@@ -922,5 +1077,644 @@ var AddonRepository = {
 
     return Services.urlFormatter.formatURL(url);
   }
-}
+};
+AddonRepository.initialize();
 
+var AddonDatabase = {
+  
+  initialized: false,
+  
+  databaseOk: true,
+  
+  statementCache: {},
+
+  
+  statements: {
+    getAllAddons: "SELECT internal_id, id, type, name, version, " +
+                  "creator, creatorURL, description, fullDescription, " +
+                  "developerComments, eula, iconURL, homepageURL, supportURL, " +
+                  "contributionURL, contributionAmount, averageRating, " +
+                  "reviewCount, reviewURL, totalDownloads, weeklyDownloads, " +
+                  "dailyUsers, sourceURI, repositoryStatus, size, updateDate " +
+                  "FROM addon",
+
+    getAllDevelopers: "SELECT addon_internal_id, name, url FROM developer " +
+                      "ORDER BY addon_internal_id, num",
+
+    getAllScreenshots: "SELECT addon_internal_id, url, thumbnailURL, caption " +
+                       "FROM screenshot ORDER BY addon_internal_id, num",
+
+    insertAddon: "INSERT INTO addon VALUES (NULL, :id, :type, :name, :version, " +
+                 ":creator, :creatorURL, :description, :fullDescription, " +
+                 ":developerComments, :eula, :iconURL, :homepageURL, :supportURL, " +
+                 ":contributionURL, :contributionAmount, :averageRating, " +
+                 ":reviewCount, :reviewURL, :totalDownloads, :weeklyDownloads, " +
+                 ":dailyUsers, :sourceURI, :repositoryStatus, :size, :updateDate)",
+
+    insertDeveloper:  "INSERT INTO developer VALUES (:addon_internal_id, " +
+                      ":num, :name, :url)",
+
+    insertScreenshot: "INSERT INTO screenshot VALUES (:addon_internal_id, " +
+                      ":num, :url, :thumbnailURL, :caption)",
+
+    emptyAddon:       "DELETE FROM addon"
+  },
+
+  
+
+
+
+
+
+
+
+  logSQLError: function AD_logSQLError(aError, aErrorString) {
+    ERROR("SQL error " + aError + ": " + aErrorString);
+  },
+
+  
+
+
+
+
+
+  asyncErrorLogger: function AD_asyncErrorLogger(aError) {
+    ERROR("Async SQL error " + aError.result + ": " + aError.message);
+  },
+
+  
+
+
+
+
+
+
+  openConnection: function AD_openConnection(aSecondAttempt) {
+    this.initialized = true;
+    delete this.connection;
+
+    let dbfile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true);
+    let dbMissing = !dbfile.exists();
+
+    try {
+      this.connection = Services.storage.openUnsharedDatabase(dbfile);
+    } catch (e) {
+      this.initialized = false;
+      ERROR("Failed to open database: " + e);
+      if (aSecondAttempt || dbMissing) {
+        this.databaseOk = false;
+        throw e;
+      }
+
+      LOG("Deleting database, and attempting openConnection again");
+      dbfile.remove(false);
+      return this.openConnection(true);
+    }
+
+    this.connection.executeSimpleSQL("PRAGMA locking_mode = EXCLUSIVE");
+    if (dbMissing || this.connection.schemaVersion == 0)
+      this._createSchema();
+
+    return this.connection;
+  },
+
+  
+
+
+  get connection() {
+    return this.openConnection();
+  },
+
+  
+
+
+
+
+
+
+  shutdown: function AD_shutdown(aCallback) {
+    this.databaseOk = true;
+    if (!this.initialized) {
+      if (aCallback)
+        aCallback();
+      return;
+    }
+
+    this.initialized = false;
+
+    for each (let stmt in this.statementCache)
+      stmt.finalize();
+    this.statementCache = {};
+
+    if (this.connection.transactionInProgress) {
+      ERROR("Outstanding transaction, rolling back.");
+      this.connection.rollbackTransaction();
+    }
+
+    let connection = this.connection;
+    delete this.connection;
+
+    
+    
+    this.__defineGetter__("connection", function() {
+      return this.openConnection();
+    });
+
+    connection.asyncClose(aCallback);
+  },
+
+  
+
+
+
+
+
+
+  delete: function AD_delete(aCallback) {
+    this.shutdown(function() {
+      let dbfile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true);
+      if (dbfile.exists())
+        dbfile.remove(false);
+
+      if (aCallback)
+        aCallback();
+    });
+  },
+
+  
+
+
+
+
+
+
+
+  getStatement: function AD_getStatement(aKey) {
+    if (aKey in this.statementCache)
+      return this.statementCache[aKey];
+
+    let sql = this.statements[aKey];
+    try {
+      return this.statementCache[aKey] = this.connection.createStatement(sql);
+    } catch (e) {
+      ERROR("Error creating statement " + aKey + " (" + aSql + ")");
+      throw e;
+    }
+  },
+
+  
+
+
+
+
+
+
+  retrieveStoredData: function AD_retrieveStoredData(aCallback) {
+    let self = this;
+    let addons = {};
+
+    
+    function getAllAddons() {
+      self.getStatement("getAllAddons").executeAsync({
+        handleResult: function(aResults) {
+          let row = null;
+          while (row = aResults.getNextRow()) {
+            let internal_id = row.getResultByName("internal_id");
+            addons[internal_id] = self._makeAddonFromAsyncRow(row);
+          }
+        },
+
+        handleError: self.asyncErrorLogger,
+
+        handleCompletion: function(aReason) {
+          if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+            ERROR("Error retrieving add-ons from database. Returning empty results");
+            aCallback({});
+            return;
+          }
+
+          getAllDevelopers();
+        }
+      });
+    }
+
+    
+    function getAllDevelopers() {
+      self.getStatement("getAllDevelopers").executeAsync({
+        handleResult: function(aResults) {
+          let row = null;
+          while (row = aResults.getNextRow()) {
+            let addon_internal_id = row.getResultByName("addon_internal_id");
+            if (!(addon_internal_id in addons)) {
+              WARN("Found a developer not linked to an add-on in database");
+              continue;
+            }
+
+            let addon = addons[addon_internal_id];
+            if (!addon.developers)
+              addon.developers = [];
+
+            addon.developers.push(self._makeDeveloperFromAsyncRow(row));
+          }
+        },
+
+        handleError: self.asyncErrorLogger,
+
+        handleCompletion: function(aReason) {
+          if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+            ERROR("Error retrieving developers from database. Returning empty results");
+            aCallback({});
+            return;
+          }
+
+          getAllScreenshots();
+        }
+      });
+    }
+
+    
+    function getAllScreenshots() {
+      self.getStatement("getAllScreenshots").executeAsync({
+        handleResult: function(aResults) {
+          let row = null;
+          while (row = aResults.getNextRow()) {
+            let addon_internal_id = row.getResultByName("addon_internal_id");
+            if (!(addon_internal_id in addons)) {
+              WARN("Found a screenshot not linked to an add-on in database");
+              continue;
+            }
+
+            let addon = addons[addon_internal_id];
+            if (!addon.screenshots)
+              addon.screenshots = [];
+            addon.screenshots.push(self._makeScreenshotFromAsyncRow(row));
+          }
+        },
+
+        handleError: self.asyncErrorLogger,
+
+        handleCompletion: function(aReason) {
+          if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+            ERROR("Error retrieving screenshots from database. Returning empty results");
+            aCallback({});
+            return;
+          }
+
+          let returnedAddons = {};
+          for each (addon in addons)
+            returnedAddons[addon.id] = addon;
+          aCallback(returnedAddons);
+        }
+      });
+    }
+
+    
+    getAllAddons();
+  },
+
+  
+
+
+
+
+
+
+
+
+  repopulate: function AD_repopulate(aAddons, aCallback) {
+    let self = this;
+
+    
+    let stmts = [this.getStatement("emptyAddon")];
+
+    this.connection.executeAsync(stmts, stmts.length, {
+      handleResult: function() {},
+      handleError: self.asyncErrorLogger,
+
+      handleCompletion: function(aReason) {
+        if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED)
+          ERROR("Error emptying database. Attempting to continue repopulating database");
+
+        
+        self.insertAddons(aAddons, aCallback);
+      }
+    });
+  },
+
+  
+
+
+
+
+
+
+
+  insertAddons: function AD_insertAddons(aAddons, aCallback) {
+    let self = this;
+    let currentAddon = -1;
+
+    
+    function insertNextAddon() {
+      if (++currentAddon == aAddons.length) {
+        if (aCallback)
+          aCallback();
+        return;
+      }
+
+      self._insertAddon(aAddons[currentAddon], insertNextAddon);
+    }
+
+    insertNextAddon();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _insertAddon: function AD__insertAddon(aAddon, aCallback) {
+    let self = this;
+    let internal_id = null;
+    this.connection.beginTransaction();
+
+    
+    function insertDevelopersAndScreenshots() {
+      let stmts = [];
+
+      
+      function initializeArrayInsert(aStatementKey, aArray, aAddParams) {
+        if (!aArray || aArray.length == 0)
+          return;
+
+        let stmt = self.getStatement(aStatementKey);
+        let params = stmt.newBindingParamsArray();
+        aArray.forEach(function(aElement, aIndex) {
+          aAddParams(params, internal_id, aElement, aIndex);
+        });
+
+        stmt.bindParameters(params);
+        stmts.push(stmt);
+      }
+
+      
+      initializeArrayInsert("insertDeveloper", aAddon.developers,
+                            self._addDeveloperParams);
+      initializeArrayInsert("insertScreenshot", aAddon.screenshots,
+                            self._addScreenshotParams);
+
+      
+      if (stmts.length == 0) {
+        self.connection.commitTransaction();
+        aCallback();
+        return;
+      }
+
+      self.connection.executeAsync(stmts, stmts.length, {
+        handleResult: function() {},
+        handleError: self.asyncErrorLogger,
+        handleCompletion: function(aReason) {
+          if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+            ERROR("Error inserting developers and screenshots into database. Attempting to continue");
+            self.connection.rollbackTransaction();
+          }
+          else {
+            self.connection.commitTransaction();
+          }
+
+          aCallback();
+        }
+      });
+    }
+
+    
+    this._makeAddonStatement(aAddon).executeAsync({
+      handleResult: function() {},
+      handleError: self.asyncErrorLogger,
+
+      handleCompletion: function(aReason) {
+        if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+          ERROR("Error inserting add-ons into database. Attempting to continue.");
+          self.connection.rollbackTransaction();
+          aCallback();
+          return;
+        }
+
+        internal_id = self.connection.lastInsertRowID;
+        insertDevelopersAndScreenshots();
+      }
+    });
+  },
+
+  
+
+
+
+
+
+
+  _makeAddonStatement: function AD__makeAddonStatement(aAddon) {
+    let stmt = this.getStatement("insertAddon");
+    let params = stmt.params;
+
+    PROP_SINGLE.forEach(function(aProperty) {
+      switch (aProperty) {
+        case "sourceURI":
+          params.sourceURI = aAddon.sourceURI ? aAddon.sourceURI.spec : null;
+          break;
+        case "creator":
+          params.creator =  aAddon.creator ? aAddon.creator.name : null;
+          params.creatorURL =  aAddon.creator ? aAddon.creator.url : null;
+          break;
+        case "updateDate":
+          params.updateDate = aAddon.updateDate ? aAddon.updateDate.getTime() : null;
+          break;
+        default:
+          params[aProperty] = aAddon[aProperty];
+      }
+    });
+
+    return stmt;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _addDeveloperParams: function AD__addDeveloperParams(aParams, aInternalID,
+                                                       aDeveloper, aIndex) {
+    let bp = aParams.newBindingParams();
+    bp.bindByName("addon_internal_id", aInternalID);
+    bp.bindByName("num", aIndex);
+    bp.bindByName("name", aDeveloper.name);
+    bp.bindByName("url", aDeveloper.url);
+    aParams.addParams(bp);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _addScreenshotParams: function AD__addScreenshotParams(aParams, aInternalID,
+                                                         aScreenshot, aIndex) {
+    let bp = aParams.newBindingParams();
+    bp.bindByName("addon_internal_id", aInternalID);
+    bp.bindByName("num", aIndex);
+    bp.bindByName("url", aScreenshot.url);
+    bp.bindByName("thumbnailURL", aScreenshot.thumbnailURL);
+    bp.bindByName("caption", aScreenshot.caption);
+    aParams.addParams(bp);
+  },
+
+  
+
+
+
+
+
+
+
+  _makeAddonFromAsyncRow: function AD__makeAddonFromAsyncRow(aRow) {
+    let addon = {};
+
+    PROP_SINGLE.forEach(function(aProperty) {
+      let value = aRow.getResultByName(aProperty);
+
+      switch (aProperty) {
+        case "sourceURI":
+          addon.sourceURI = value ? NetUtil.newURI(value) : null;
+          break;
+        case "creator":
+          let creatorURL = aRow.getResultByName("creatorURL");
+          if (value || creatorURL)
+            addon.creator = new AddonManagerPrivate.AddonAuthor(value, creatorURL);
+          else
+            addon.creator = null;
+          break;
+        case "updateDate":
+          addon.updateDate = value ? new Date(value) : null;
+          break;
+        default:
+          addon[aProperty] = value;
+      }
+    });
+
+    return addon;
+  },
+
+  
+
+
+
+
+
+
+  _makeDeveloperFromAsyncRow: function AD__makeDeveloperFromAsyncRow(aRow) {
+    let name = aRow.getResultByName("name");
+    let url = aRow.getResultByName("url")
+    return new AddonManagerPrivate.AddonAuthor(name, url);
+  },
+
+  
+
+
+
+
+
+
+  _makeScreenshotFromAsyncRow: function AD__makeScreenshotFromAsyncRow(aRow) {
+    let url = aRow.getResultByName("url");
+    let thumbnailURL = aRow.getResultByName("thumbnailURL");
+    let caption =aRow.getResultByName("caption");
+    return new AddonManagerPrivate.AddonScreenshot(url, thumbnailURL, caption);
+  },
+
+  
+
+
+  _createSchema: function AD__createSchema() {
+    LOG("Creating database schema");
+    this.connection.beginTransaction();
+
+    
+    try {
+      this.connection.createTable("addon",
+                                  "internal_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                  "id TEXT UNIQUE, " +
+                                  "type TEXT, " +
+                                  "name TEXT, " +
+                                  "version TEXT, " +
+                                  "creator TEXT, " +
+                                  "creatorURL TEXT, " +
+                                  "description TEXT, " +
+                                  "fullDescription TEXT, " +
+                                  "developerComments TEXT, " +
+                                  "eula TEXT, " +
+                                  "iconURL TEXT, " +
+                                  "homepageURL TEXT, " +
+                                  "supportURL TEXT, " +
+                                  "contributionURL TEXT, " +
+                                  "contributionAmount TEXT, " +
+                                  "averageRating INTEGER, " +
+                                  "reviewCount INTEGER, " +
+                                  "reviewURL TEXT, " +
+                                  "totalDownloads INTEGER, " +
+                                  "weeklyDownloads INTEGER, " +
+                                  "dailyUsers INTEGER, " +
+                                  "sourceURI TEXT, " +
+                                  "repositoryStatus INTEGER, " +
+                                  "size INTEGER, " +
+                                  "updateDate INTEGER");
+
+      this.connection.createTable("developer",
+                                  "addon_internal_id INTEGER, " +
+                                  "num INTEGER, " +
+                                  "name TEXT, " +
+                                  "url TEXT, " +
+                                  "PRIMARY KEY (addon_internal_id, num)");
+
+      this.connection.createTable("screenshot",
+                                  "addon_internal_id INTEGER, " +
+                                  "num INTEGER, " +
+                                  "url TEXT, " +
+                                  "thumbnailURL TEXT, " +
+                                  "caption TEXT, " +
+                                  "PRIMARY KEY (addon_internal_id, num)");
+
+      this.connection.executeSimpleSQL("CREATE TRIGGER delete_addon AFTER DELETE " +
+        "ON addon BEGIN " +
+        "DELETE FROM developer WHERE addon_internal_id=old.internal_id; " +
+        "DELETE FROM screenshot WHERE addon_internal_id=old.internal_id; " +
+        "END");
+
+      this.connection.schemaVersion = DB_SCHEMA;
+      this.connection.commitTransaction();
+    } catch (e) {
+      ERROR("Failed to create database schema");
+      this.logSQLError(this.connection.lastError, this.connection.lastErrorString);
+      this.connection.rollbackTransaction();
+      throw e;
+    }
+  }
+};

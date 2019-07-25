@@ -161,6 +161,56 @@ AsyncObjectCaller.prototype = {
 
 
 
+
+
+
+
+function AddonAuthor(aName, aURL) {
+  this.name = aName;
+  this.url = aURL;
+}
+
+AddonAuthor.prototype = {
+  name: null,
+  url: null,
+
+  
+  toString: function() {
+    return this.name || "";
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+function AddonScreenshot(aURL, aThumbnailURL, aCaption) {
+  this.url = aURL;
+  this.thumbnailURL = aThumbnailURL;
+  this.caption = aCaption;
+}
+
+AddonScreenshot.prototype = {
+  url: null,
+  thumbnailURL: null,
+  caption: null,
+
+  
+  toString: function() {
+    return this.url || "";
+  }
+}
+
+
+
+
+
 var AddonManagerInternal = {
   installListeners: null,
   addonListeners: null,
@@ -277,11 +327,27 @@ var AddonManagerInternal = {
     if (!Services.prefs.getBoolPref(PREF_EM_UPDATE_ENABLED))
       return;
 
+    Services.obs.notifyObservers(null, "addons-background-update-start", null);
+    let pendingUpdates = 1;
+
+    function notifyComplete() {
+      if (--pendingUpdates == 0)
+        Services.obs.notifyObservers(null, "addons-background-update-complete", null);
+    }
+
     let scope = {};
+    Components.utils.import("resource://gre/modules/AddonRepository.jsm", scope);
     Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm", scope);
     scope.LightweightThemeManager.updateCurrentTheme();
 
     this.getAllAddons(function getAddonsCallback(aAddons) {
+      if ("getCachedAddonByID" in scope.AddonRepository) {
+        pendingUpdates++;
+        var ids = [a.id for each (a in aAddons)];
+        scope.AddonRepository.repopulateCache(ids, notifyComplete);
+      }
+
+      pendingUpdates += aAddons.length;
       aAddons.forEach(function BUC_forEachCallback(aAddon) {
         
         
@@ -293,9 +359,13 @@ var AddonManagerInternal = {
                 aAddon.applyBackgroundUpdates) {
               aInstall.install();
             }
-          }
+          },
+
+          onUpdateFinished: notifyComplete
         }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
       });
+
+      notifyComplete();
     });
   },
 
@@ -802,7 +872,11 @@ var AddonManagerPrivate = {
 
   callAddonListeners: function AMP_callAddonListeners(aMethod) {
     AddonManagerInternal.callAddonListeners.apply(AddonManagerInternal, arguments);
-  }
+  },
+
+  AddonAuthor: AddonAuthor,
+
+  AddonScreenshot: AddonScreenshot
 };
 
 

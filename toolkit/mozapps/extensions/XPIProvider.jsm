@@ -45,6 +45,7 @@ var EXPORTED_SYMBOLS = [];
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
+Components.utils.import("resource://gre/modules/AddonRepository.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
@@ -64,10 +65,14 @@ const PREF_EM_UPDATE_URL              = "extensions.update.url";
 const PREF_EM_ENABLED_ADDONS          = "extensions.enabledAddons";
 const PREF_EM_EXTENSION_FORMAT        = "extensions.";
 const PREF_EM_ENABLED_SCOPES          = "extensions.enabledScopes";
+const PREF_EM_SHOW_MISMATCH_UI        = "extensions.showMismatchUI";
+const PREF_EM_DISABLED_ADDONS_LIST    = "extensions.disabledAddons";
 const PREF_XPI_ENABLED                = "xpinstall.enabled";
 const PREF_XPI_WHITELIST_REQUIRED     = "xpinstall.whitelist.required";
 const PREF_XPI_WHITELIST_PERMISSIONS  = "xpinstall.whitelist.add";
 const PREF_XPI_BLACKLIST_PERMISSIONS  = "xpinstall.blacklist.add";
+
+const URI_EXTENSION_UPDATE_DIALOG     = "chrome://mozapps/content/extensions/update.xul";
 
 const DIR_EXTENSIONS                  = "extensions";
 const DIR_STAGE                       = "staged";
@@ -980,9 +985,32 @@ var XPIProvider = {
   
   bootstrapScopes: {},
   
-  enabledAddons: null,
+  extensionsActive: false,
 
   
+  
+  allAppGlobal: true,
+  
+  enabledAddons: null,
+  
+  inactiveAddonIDs: [],
+  
+  
+  
+  
+  startupChanges: {
+    
+    appDisabled: []
+  },
+
+  
+
+
+
+
+
+
+
 
 
   startup: function XPI_startup(aAppChanged) {
@@ -1091,6 +1119,25 @@ var XPIProvider = {
     
     this.applyThemeChange();
 
+    if (Services.prefs.prefHasUserValue(PREF_EM_DISABLED_ADDONS_LIST))
+      Services.prefs.clearUserPref(PREF_EM_DISABLED_ADDONS_LIST);
+
+    
+    
+    
+    if (aAppChanged && !this.allAppGlobal) {
+      
+      if (Prefs.getBoolPref(PREF_EM_SHOW_MISMATCH_UI, true)) {
+        this.showMismatchWindow();
+      }
+      else if (this.startupChanges.appDisabled.length > 0) {
+        
+        
+        Services.prefs.setCharPref(PREF_EM_DISABLED_ADDONS_LIST,
+                                   this.startupChanges.appDisabled.join(","));
+      }
+    }
+
     this.enabledAddons = Prefs.getCharPref(PREF_EM_ENABLED_ADDONS, "");
     if ("nsICrashReporter" in Ci &&
         Services.appinfo instanceof Ci.nsICrashReporter) {
@@ -1128,6 +1175,8 @@ var XPIProvider = {
         Services.obs.removeObserver(this, "quit-application-granted");
       }
     }, "quit-application-granted", false);
+
+    this.extensionsActive = true;
   },
 
   
@@ -1142,6 +1191,12 @@ var XPIProvider = {
     this.bootstrappedAddons = {};
     this.bootstrapScopes = {};
     this.enabledAddons = null;
+    this.allAppGlobal = true;
+
+    for (let type in this.startupChanges)
+      this.startupChanges[type] = [];
+
+    this.inactiveAddonIDs = [];
 
     
     let updates = [i.addon.id for each (i in this.installs)
@@ -1156,11 +1211,17 @@ var XPIProvider = {
       XPIDatabase.writeAddonsList(updates);
       Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, false);
     }
-    XPIDatabase.shutdown();
-    this.installs = null;
 
+    this.installs = null;
     this.installLocations = null;
     this.installLocationsByName = null;
+
+    
+    this.extensionsActive = false;
+
+    XPIDatabase.shutdown(function() {
+      Services.obs.notifyObservers(null, "xpi-provider-shutdown", null);
+    });
   },
 
   
@@ -1183,6 +1244,21 @@ var XPIProvider = {
       ERROR(e);
     }
     Services.prefs.clearUserPref(PREF_DSS_SWITCHPENDING);
+  },
+
+  
+
+
+  showMismatchWindow: function XPI_showMismatchWindow() {
+    var variant = Cc["@mozilla.org/variant;1"].
+                  createInstance(Ci.nsIWritableVariant);
+    variant.setFromVariant(this.inactiveAddonIDs);
+
+    
+    var features = "chrome,centerscreen,dialog,titlebar,modal";
+    var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+             getService(Ci.nsIWindowWatcher);
+    ww.openWindow(null, URI_EXTENSION_UPDATE_DIALOG, "", features, variant);
   },
 
   
@@ -1505,6 +1581,10 @@ var XPIProvider = {
         let isDisabled = appDisabled || userDisabled;
 
         
+        if (aOldAddon.visible && appDisabled && !aOldAddon.appDisabled)
+          XPIProvider.startupChanges.appDisabled.push(aOldAddon.id);
+
+        
         if (appDisabled != aOldAddon.appDisabled ||
             userDisabled != aOldAddon.userDisabled) {
           LOG("Add-on " + aOldAddon.id + " changed appDisabled state to " +
@@ -1652,12 +1732,16 @@ var XPIProvider = {
         return false;
       }
 
-      
       if (newAddon.visible) {
+        
+        if (newAddon._installLocation.name != KEY_APP_GLOBAL)
+          XPIProvider.allAppGlobal = false;
+
         visibleAddons[newAddon.id] = newAddon;
         if (!newAddon.bootstrap)
           return true;
 
+        
         let dir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
         dir.persistentDescriptor = aAddonState.descriptor;
         XPIProvider.callBootstrapMethod(newAddon.id, newAddon.version, dir,
@@ -1697,6 +1781,10 @@ var XPIProvider = {
             delete addonStates[aOldAddon.id];
 
             
+            if (aOldAddon.visible && !aOldAddon.active)
+              XPIProvider.inactiveAddonIDs.push(aOldAddon.id);
+
+            
             
             
             
@@ -1713,6 +1801,8 @@ var XPIProvider = {
                                                          aOldAddon, addonState) ||
                         changed;
             }
+            if (aOldAddon.visible && aOldAddon._installLocation.name != KEY_APP_GLOBAL)
+              XPIProvider.allAppGlobal = false;
           }
           else {
             changed = removeMetadata(installLocation, aOldAddon) || changed;
@@ -1785,11 +1875,14 @@ var XPIProvider = {
 
 
 
+
+
+
   checkForChanges: function XPI_checkForChanges(aAppChanged) {
     LOG("checkForChanges");
 
     
-    if (aAppChanged)
+    if (aAppChanged !== false)
       this.importPermissions();
 
     
@@ -2167,6 +2260,11 @@ var XPIProvider = {
   enableRequiresRestart: function XPI_enableRequiresRestart(aAddon) {
     
     
+    if (!this.extensionsActive)
+      return false;
+
+    
+    
     if (aAddon.type == "theme")
       return aAddon.internalName != this.currentSkin &&
              !Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
@@ -2182,6 +2280,11 @@ var XPIProvider = {
 
 
   disableRequiresRestart: function XPI_disableRequiresRestart(aAddon) {
+    
+    
+    if (!this.extensionsActive)
+      return false;
+
     
     
     
@@ -2202,6 +2305,11 @@ var XPIProvider = {
 
   installRequiresRestart: function XPI_installRequiresRestart(aAddon) {
     
+    
+    if (!this.extensionsActive)
+      return false;
+
+    
     if (aAddon.type == "theme")
       return aAddon.internalName == this.currentSkin ||
              Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
@@ -2217,6 +2325,11 @@ var XPIProvider = {
 
 
   uninstallRequiresRestart: function XPI_uninstallRequiresRestart(aAddon) {
+    
+    
+    if (!this.extensionsActive)
+      return false;
+
     
     if (aAddon.type == "theme")
       return aAddon.internalName == this.currentSkin ||
@@ -2616,9 +2729,17 @@ AsyncAddonListCallback.prototype = {
       this.count++;
       let self = this;
       XPIDatabase.makeAddonFromRowAsync(row, function(aAddon) {
-        self.addons.push(aAddon);
-        if (self.complete && self.addons.length == self.count)
-          self.callback(self.addons);
+        function completeAddon(aRepositoryAddon) {
+          aAddon._repositoryAddon = aRepositoryAddon;
+          self.addons.push(aAddon);
+          if (self.complete && self.addons.length == self.count)
+           self.callback(self.addons);
+        }
+
+        if ("getCachedAddonByID" in AddonRepository)
+          AddonRepository.getCachedAddonByID(aAddon.id, completeAddon);
+        else
+          completeAddon(null);
       });
     }
   },
@@ -2920,7 +3041,7 @@ var XPIDatabase = {
   
 
 
-  shutdown: function XPIDB_shutdown() {
+  shutdown: function XPIDB_shutdown(aCallback) {
     if (this.initialized) {
       for each (let stmt in this.statementCache)
         stmt.finalize();
@@ -2933,8 +3054,8 @@ var XPIDatabase = {
           this.rollbackTransaction();
       }
 
-      this.connection.asyncClose();
       this.initialized = false;
+      let connection = this.connection;
       delete this.connection;
 
       
@@ -2942,6 +3063,12 @@ var XPIDatabase = {
       this.__defineGetter__("connection", function() {
         return this.openConnection();
       });
+
+      connection.asyncClose(aCallback);
+    }
+    else {
+      if (aCallback)
+        aCallback();
     }
   },
 
@@ -3959,6 +4086,8 @@ function AddonInstall(aCallback, aInstallLocation, aUrl, aHash, aName, aType,
       this.loadManifest(function() {
         XPIDatabase.getVisibleAddonForID(self.addon.id, function(aAddon) {
           self.existingAddon = aAddon;
+          self.addon.updateDate = Date.now();
+          self.addon.installDate = aAddon ? aAddon.installDate : self.addon.updateDate;
 
           if (!self.addon.isCompatible) {
             
@@ -4101,6 +4230,14 @@ AddonInstall.prototype = {
         stagedJSON.remove(true);
       this.state = AddonManager.STATE_CANCELLED;
       XPIProvider.removeActiveInstall(this);
+
+      AddonManagerPrivate.callAddonListeners("onOperationCancelled", createWrapper(this.addon));
+
+      if (this.existingAddon) {
+        delete this.existingAddon.pendingUpgrade;
+        this.existingAddon.pendingUpgrade = null;
+      }
+
       AddonManagerPrivate.callInstallListeners("onInstallCancelled",
                                                this.listeners, this.wrapper);
       break;
@@ -4560,6 +4697,8 @@ AddonInstall.prototype = {
     let self = this;
     XPIDatabase.getVisibleAddonForID(this.addon.id, function(aAddon) {
       self.existingAddon = aAddon;
+      self.addon.updateDate = Date.now();
+      self.addon.installDate = aAddon ? aAddon.installDate : self.addon.updateDate;
       self.state = AddonManager.STATE_DOWNLOADED;
       if (AddonManagerPrivate.callInstallListeners("onDownloadEnded",
                                                    self.listeners,
@@ -5245,10 +5384,34 @@ function createWrapper(aAddon) {
 
 
 function AddonWrapper(aAddon) {
+  function chooseValue(aObj, aProp) {
+    let repositoryAddon = aAddon._repositoryAddon;
+    let objValue = aObj[aProp];
+
+    if (repositoryAddon && (aProp in repositoryAddon) &&
+        (objValue === undefined || objValue === null)) {
+      return [repositoryAddon[aProp], true];
+    }
+
+    return [objValue, false];
+  }
+
   ["id", "version", "type", "isCompatible", "isPlatformCompatible",
    "providesUpdatesSecurely", "blocklistState", "appDisabled",
    "userDisabled", "skinnable", "size"].forEach(function(aProp) {
      this.__defineGetter__(aProp, function() aAddon[aProp]);
+  }, this);
+
+  ["fullDescription", "developerComments", "eula", "supportURL",
+   "contributionURL", "contributionAmount", "averageRating", "reviewCount",
+   "reviewURL", "totalDownloads", "weeklyDownloads", "dailyUsers",
+   "repositoryStatus"].forEach(function(aProp) {
+    this.__defineGetter__(aProp, function() {
+      if (aAddon._repositoryAddon)
+        return aAddon._repositoryAddon[aProp];
+
+      return null;
+    });
   }, this);
 
   ["optionsURL", "aboutURL"].forEach(function(aProp) {
@@ -5263,9 +5426,10 @@ function AddonWrapper(aAddon) {
 
   ["sourceURI", "releaseNotesURI"].forEach(function(aProp) {
     this.__defineGetter__(aProp, function() {
-      if (!aAddon[aProp])
+      let target = chooseValue(aAddon, aProp)[0];
+      if (!target)
         return null;
-      return NetUtil.newURI(aAddon[aProp]);
+      return NetUtil.newURI(target);
     });
   }, this);
 
@@ -5276,56 +5440,91 @@ function AddonWrapper(aAddon) {
     if (this.hasResource("icon.png"))
       return this.getResourceURI("icon.png").spec;
 
+    if (aAddon._repositoryAddon)
+      return aAddon._repositoryAddon.iconURL;
+
     return null;
   }, this);
 
   PROP_LOCALE_SINGLE.forEach(function(aProp) {
     this.__defineGetter__(aProp, function() {
+      
+      if (aProp == "creator" &&
+          aAddon._repositoryAddon && aAddon._repositoryAddon.creator) {
+        return aAddon._repositoryAddon.creator;
+      }
+
+      let result = null;
+
       if (aAddon.active) {
         try {
           let pref = PREF_EM_EXTENSION_FORMAT + aAddon.id + "." + aProp;
           let value = Services.prefs.getComplexValue(pref,
                                                      Ci.nsIPrefLocalizedString);
           if (value.data)
-            return value.data;
+            result = value.data;
         }
         catch (e) {
         }
       }
-      return aAddon.selectedLocale[aProp];
+
+      if (result == null)
+        [result, ] = chooseValue(aAddon.selectedLocale, aProp);
+
+      if (aProp == "creator")
+        return result ? new AddonManagerPrivate.AddonAuthor(result) : null;
+
+      return result;
     });
   }, this);
 
   PROP_LOCALE_MULTI.forEach(function(aProp) {
     this.__defineGetter__(aProp, function() {
+      let results = null;
+      let usedRepository = false;
+
       if (aAddon.active) {
         let pref = PREF_EM_EXTENSION_FORMAT + aAddon.id + "." +
                    aProp.substring(0, aProp.length - 1);
         let list = Services.prefs.getChildList(pref, {});
         if (list.length > 0) {
-          let results = [];
+          results = [];
           list.forEach(function(aPref) {
             let value = Services.prefs.getComplexValue(aPref,
                                                        Ci.nsIPrefLocalizedString);
             if (value.data)
               results.push(value.data);
           });
-          return results;
         }
       }
 
-      return aAddon.selectedLocale[aProp];
+      if (results == null)
+        [results, usedRepository] = chooseValue(aAddon.selectedLocale, aProp);
 
+      if (results && !usedRepository) {
+        results = results.map(function(aResult) {
+          return new AddonManagerPrivate.AddonAuthor(aResult);
+        });
+      }
+
+      return results;
     });
   }, this);
 
   this.__defineGetter__("screenshots", function() {
-    let screenshots = [];
+    let repositoryAddon = aAddon._repositoryAddon;
+    if (repositoryAddon && ("screenshots" in repositoryAddon)) {
+      let repositoryScreenshots = repositoryAddon.screenshots;
+      if (repositoryScreenshots && repositoryScreenshots.length > 0)
+        return repositoryScreenshots;
+    }
 
-    if (aAddon.type == "theme" && this.hasResource("preview.png"))
-      screenshots.push(this.getResourceURI("preview.png").spec);
+    if (aAddon.type == "theme" && this.hasResource("preview.png")) {
+      let url = this.getResourceURI("preview.png").spec;
+      return [new AddonManagerPrivate.AddonScreenshot(url)];
+    }
 
-    return screenshots;
+    return null;
   });
 
   this.__defineGetter__("applyBackgroundUpdates", function() {
@@ -5362,10 +5561,17 @@ function AddonWrapper(aAddon) {
 
   this.__defineGetter__("pendingOperations", function() {
     let pending = 0;
-    if (!(aAddon instanceof DBAddonInternal))
-      pending |= AddonManager.PENDING_INSTALL;
-    else if (aAddon.pendingUninstall)
+    if (!(aAddon instanceof DBAddonInternal)) {
+      
+      
+      
+      if (!aAddon._install || aAddon._install.state == AddonManager.STATE_INSTALLING ||
+          aAddon._install.state == AddonManager.STATE_INSTALLED)
+        pending |= AddonManager.PENDING_INSTALL;
+    }
+    else if (aAddon.pendingUninstall) {
       pending |= AddonManager.PENDING_UNINSTALL;
+    }
 
     if (aAddon.active && (aAddon.userDisabled || aAddon.appDisabled))
       pending |= AddonManager.PENDING_DISABLE;
@@ -5507,12 +5713,6 @@ function AddonWrapper(aAddon) {
     return buildJarURI(bundle, aPath);
   }
 }
-
-AddonWrapper.prototype = {
-  get screenshots() {
-    return [];
-  }
-};
 
 
 
