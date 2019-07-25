@@ -2577,7 +2577,7 @@ SessionStoreService.prototype = {
       this._closedWindows = root._closedWindows;
 
     var winData;
-    if (!root.selectedWindow) {
+    if (!root.selectedWindow || root.selectedWindow > root.windows.length) {
       root.selectedWindow = 0;
     } else {
       
