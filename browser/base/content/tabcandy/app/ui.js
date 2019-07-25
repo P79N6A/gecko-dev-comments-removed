@@ -122,22 +122,14 @@ window.Page = {
       if( group && group._children.length == 0 ){
         Page.show();
       }
-      Toolbar.unread = 0;    
       return false;
     });
-    
-    Tabs.onOpen(function(){
-      setTimeout(function(){
-        Toolbar.unread += 1;
-      },100);
-    });
-    
+        
     var lastTab = null;
     Tabs.onFocus(function(){
       
       if( this.contentWindow == window && lastTab != null && lastTab.mirror != null){
         UI.tabBar.hide(false);
-        Toolbar.unread = 0;
         
         
         
