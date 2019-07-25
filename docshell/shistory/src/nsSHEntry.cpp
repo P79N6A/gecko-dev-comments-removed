@@ -1,46 +1,46 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Mozilla browser.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications, Inc.
+ * Portions created by the Initial Developer are Copyright (C) 1999
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Radha Kulkarni <radha@netscape.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifdef DEBUG_bryner
 #define DEBUG_PAGE_CACHE
 #endif
 
-
+// Local Includes
 #include "nsSHEntry.h"
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
@@ -58,13 +58,13 @@
 
 namespace dom = mozilla::dom;
 
-
+// Hardcode this to time out unused content viewers after 30 minutes
 #define CONTENT_VIEWER_TIMEOUT_SECONDS 30*60
 
 typedef nsExpirationTracker<nsSHEntry,3> HistoryTrackerBase;
 class HistoryTracker : public HistoryTrackerBase {
 public:
-  
+  // Expire cached contentviewers after 20-30 minutes in the cache.
   HistoryTracker() : HistoryTrackerBase((CONTENT_VIEWER_TIMEOUT_SECONDS/2)*1000) {}
   
 protected:
@@ -97,9 +97,9 @@ static void StopTrackingEntry(nsSHEntry *aEntry)
   }
 }
 
-
-
-
+//*****************************************************************************
+//***    nsSHEntry: Object Management
+//*****************************************************************************
 
 
 nsSHEntry::nsSHEntry() 
@@ -123,32 +123,32 @@ nsSHEntry::nsSHEntry()
 nsSHEntry::nsSHEntry(const nsSHEntry &other)
   : mURI(other.mURI)
   , mReferrerURI(other.mReferrerURI)
-  
+  // XXX why not copy mDocument?
   , mTitle(other.mTitle)
   , mPostData(other.mPostData)
   , mLayoutHistoryState(other.mLayoutHistoryState)
-  , mLoadType(0)         
+  , mLoadType(0)         // XXX why not copy?
   , mID(other.mID)
   , mDocIdentifier(other.mDocIdentifier)
-  , mScrollPositionX(0)  
-  , mScrollPositionY(0)  
+  , mScrollPositionX(0)  // XXX why not copy?
+  , mScrollPositionY(0)  // XXX why not copy?
   , mIsFrameNavigation(other.mIsFrameNavigation)
   , mSaveLayoutState(other.mSaveLayoutState)
   , mExpired(other.mExpired)
   , mSticky(PR_TRUE)
   , mDynamicallyCreated(other.mDynamicallyCreated)
-  
+  // XXX why not copy mContentType?
   , mCacheKey(other.mCacheKey)
   , mParent(other.mParent)
   , mViewerBounds(0, 0, 0, 0)
   , mOwner(other.mOwner)
-  , mStateData(other.mStateData)
   , mDocShellID(other.mDocShellID)
+  , mStateData(other.mStateData)
 {
 }
 
 static PRBool
-ClearParentPtr(nsISHEntry* aEntry, void* )
+ClearParentPtr(nsISHEntry* aEntry, void* /* aData */)
 {
   if (aEntry) {
     aEntry->SetParent(nsnull);
@@ -160,21 +160,21 @@ nsSHEntry::~nsSHEntry()
 {
   StopTrackingEntry(this);
 
-  
-  
+  // Since we never really remove kids from SHEntrys, we need to null
+  // out the mParent pointers on all our kids.
   mChildren.EnumerateForwards(ClearParentPtr, nsnull);
   mChildren.Clear();
 
   if (mContentViewer) {
-    
-    
+    // RemoveFromBFCacheSync is virtual, so call the nsSHEntry version
+    // explicitly
     nsSHEntry::RemoveFromBFCacheSync();
   }
 
   mEditorData = nsnull;
 
 #ifdef DEBUG
-  
+  // This is not happening as far as I can tell from breakpad as of early November 2007
   nsExpirationTracker<nsSHEntry,3>::Iterator iterator(gHistoryTracker);
   nsSHEntry* elem;
   while ((elem = iterator.Next()) != nsnull) {
@@ -183,16 +183,16 @@ nsSHEntry::~nsSHEntry()
 #endif
 }
 
-
-
-
+//*****************************************************************************
+//    nsSHEntry: nsISupports
+//*****************************************************************************
 
 NS_IMPL_ISUPPORTS5(nsSHEntry, nsISHContainer, nsISHEntry, nsIHistoryEntry,
                    nsIMutationObserver, nsISHEntryInternal)
 
-
-
-
+//*****************************************************************************
+//    nsSHEntry: nsISHEntry
+//*****************************************************************************
 
 NS_IMETHODIMP nsSHEntry::SetScrollPosition(PRInt32 x, PRInt32 y)
 {
@@ -250,8 +250,8 @@ nsSHEntry::SetContentViewer(nsIContentViewer *aViewer)
 
     nsCOMPtr<nsIDOMDocument> domDoc;
     mContentViewer->GetDOMDocument(getter_AddRefs(domDoc));
-    
-    
+    // Store observed document in strong pointer in case it is removed from
+    // the contentviewer
     mDocument = do_QueryInterface(domDoc);
     if (mDocument) {
       mDocument->SetBFCacheEntry(this);
@@ -274,9 +274,9 @@ NS_IMETHODIMP
 nsSHEntry::GetAnyContentViewer(nsISHEntry **aOwnerEntry,
                                nsIContentViewer **aResult)
 {
-  
-  
-  
+  // Find a content viewer in the root node or any of its children,
+  // assuming that there is only one content viewer total in any one
+  // nsSHEntry tree
   GetContentViewer(aResult);
   if (*aResult) {
 #ifdef DEBUG_PAGE_CACHE 
@@ -286,7 +286,7 @@ nsSHEntry::GetAnyContentViewer(nsISHEntry **aOwnerEntry,
     NS_ADDREF(*aOwnerEntry);
     return NS_OK;
   }
-  
+  // The root SHEntry doesn't have a ContentViewer, so check child nodes
   for (PRInt32 i = 0; i < mChildren.Count(); i++) {
     nsISHEntry* child = mChildren[i];
     if (child) {
@@ -318,9 +318,9 @@ nsSHEntry::GetSticky(PRBool *aSticky)
 
 NS_IMETHODIMP nsSHEntry::GetTitle(PRUnichar** aTitle)
 {
-  
+  // Check for empty title...
   if (mTitle.IsEmpty() && mURI) {
-    
+    // Default title is the URL.
     nsCAutoString spec;
     if (NS_SUCCEEDED(mURI->GetSpec(spec)))
       AppendUTF8toUTF16(spec, mTitle);
@@ -397,9 +397,9 @@ NS_IMETHODIMP nsSHEntry::GetDocIdentifier(PRUint64 * aResult)
 
 NS_IMETHODIMP nsSHEntry::SetDocIdentifier(PRUint64 aDocIdentifier)
 {
-  
-  
-  
+  // This ensures that after a session restore, gEntryDocIdentifier is greater
+  // than all SHEntries' docIdentifiers, which ensures that we'll never repeat
+  // a doc identifier.
   if (aDocIdentifier >= gEntryDocIdentifier)
     gEntryDocIdentifier = aDocIdentifier + 1;
 
@@ -494,19 +494,19 @@ nsSHEntry::Create(nsIURI * aURI, const nsAString &aTitle,
   mDocShellID = aDocShellID;
   mDynamicallyCreated = aDynamicCreation;
 
-  
+  // Set the LoadType by default to loadHistory during creation
   mLoadType = (PRUint32) nsIDocShellLoadInfo::loadHistory;
 
-  
-  
-  
+  // By default all entries are set false for subframe flag. 
+  // nsDocShell::CloneAndReplace() which creates entries for
+  // all subframe navigations, sets the flag to true.
   mIsFrameNavigation = PR_FALSE;
 
-  
+  // By default we save LayoutHistoryState
   mSaveLayoutState = PR_TRUE;
   mLayoutHistoryState = aLayoutHistoryState;
 
-  
+  //By default the page is not expired
   mExpired = PR_FALSE;
 
   return NS_OK;
@@ -534,11 +534,11 @@ nsSHEntry::GetParent(nsISHEntry ** aResult)
 NS_IMETHODIMP
 nsSHEntry::SetParent(nsISHEntry * aParent)
 {
-  
-
-
-
-
+  /* parent not Addrefed on purpose to avoid cyclic reference
+   * Null parent is OK
+   *
+   * XXX this method should not be scriptable if this is the case!!
+   */
   mParent = aParent;
   return NS_OK;
 }
@@ -585,9 +585,9 @@ nsSHEntry::SetOwner(nsISupports *aOwner)
   return NS_OK;
 }
 
-
-
-
+//*****************************************************************************
+//    nsSHEntry: nsISHContainer
+//*****************************************************************************
 
 NS_IMETHODIMP 
 nsSHEntry::GetChildCount(PRInt32 * aCount)
@@ -608,15 +608,15 @@ nsSHEntry::AddChild(nsISHEntry * aChild, PRInt32 aOffset)
     return NS_OK;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  //
+  // Bug 52670: Ensure children are added in order.
+  //
+  //  Later frames in the child list may load faster and get appended
+  //  before earlier frames, causing session history to be scrambled.
+  //  By growing the list here, they are added to the right position.
+  //
+  //  Assert that aOffset will not be so high as to grow us a lot.
+  //
   NS_ASSERTION(aOffset < (mChildren.Count()+1023), "Large frames array!\n");
 
   PRBool newChildIsDyn = PR_FALSE;
@@ -624,8 +624,8 @@ nsSHEntry::AddChild(nsISHEntry * aChild, PRInt32 aOffset)
     aChild->IsDynamicallyAdded(&newChildIsDyn);
   }
 
-  
-  
+  // If the new child is dynamically added, try to add it to aOffset, but if
+  // there are non-dynamically added children, the child must be after those.
   if (newChildIsDyn) {
     PRInt32 lastNonDyn = aOffset - 1;
     for (PRInt32 i = aOffset; i < mChildren.Count(); ++i) {
@@ -640,9 +640,9 @@ nsSHEntry::AddChild(nsISHEntry * aChild, PRInt32 aOffset)
         }
       }
     }
-    
-    
-    
+    // InsertObjectAt allows only appending one object.
+    // If aOffset is larger than Count(), we must first manually
+    // set the capacity.
     if (aOffset > mChildren.Count()) {
       mChildren.SetCount(aOffset);
     }
@@ -652,9 +652,9 @@ nsSHEntry::AddChild(nsISHEntry * aChild, PRInt32 aOffset)
       return NS_ERROR_FAILURE;
     }
   } else {
-    
-    
-    
+    // If the new child isn't dynamically added, it should be set to aOffset.
+    // If there are dynamically added children before that, those must be
+    // moved to be after aOffset.
     if (mChildren.Count() > 0) {
       PRInt32 start = PR_MIN(mChildren.Count() - 1, aOffset);
       PRInt32 dynEntryIndex = -1;
@@ -682,7 +682,7 @@ nsSHEntry::AddChild(nsISHEntry * aChild, PRInt32 aOffset)
     }
     
 
-    
+    // Make sure there isn't anything at aOffset.
     if (aOffset < mChildren.Count()) {
       nsISHEntry* oldChild = mChildren[aOffset];
       if (oldChild && oldChild != aChild) {
@@ -726,8 +726,8 @@ nsSHEntry::GetChildAt(PRInt32 aIndex, nsISHEntry ** aResult)
 {
   if (aIndex >= 0 && aIndex < mChildren.Count()) {
     *aResult = mChildren[aIndex];
-    
-    
+    // yes, mChildren can have holes in it.  AddChild's offset parameter makes
+    // that possible.
     NS_IF_ADDREF(*aResult);
   } else {
     *aResult = nsnull;
@@ -775,7 +775,7 @@ NS_IMETHODIMP
 nsSHEntry::SyncPresentationState()
 {
   if (mContentViewer && mWindowState) {
-    
+    // If we have a content viewer and a window state, we should be ok.
     return NS_OK;
   }
 
@@ -810,8 +810,8 @@ nsSHEntry::DropPresentationState()
 void
 nsSHEntry::Expire()
 {
-  
-  
+  // This entry has timed out. If we still have a content viewer, we need to
+  // get it evicted.
   if (!mContentViewer)
     return;
   nsCOMPtr<nsISupports> container;
@@ -819,8 +819,8 @@ nsSHEntry::Expire()
   nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(container);
   if (!treeItem)
     return;
-  
-  
+  // We need to find the root DocShell since only that object has an
+  // SHistory and we need the SHistory to evict content viewers
   nsCOMPtr<nsIDocShellTreeItem> root;
   treeItem->GetSameTypeRootTreeItem(getter_AddRefs(root));
   nsCOMPtr<nsIWebNavigation> webNav = do_QueryInterface(root);
@@ -832,9 +832,9 @@ nsSHEntry::Expire()
   historyInt->EvictExpiredContentViewerForEntry(this);
 }
 
-
-
-
+//*****************************************************************************
+//    nsSHEntry: nsIMutationObserver
+//*****************************************************************************
 
 void
 nsSHEntry::NodeWillBeDestroyed(const nsINode* aNode)
@@ -880,7 +880,7 @@ void
 nsSHEntry::ContentAppended(nsIDocument* aDocument,
                            nsIContent* aContainer,
                            nsIContent* aFirstNewContent,
-                           PRInt32 )
+                           PRInt32 /* unused */)
 {
   RemoveFromBFCacheAsync();
 }
@@ -889,7 +889,7 @@ void
 nsSHEntry::ContentInserted(nsIDocument* aDocument,
                            nsIContent* aContainer,
                            nsIContent* aChild,
-                           PRInt32 )
+                           PRInt32 /* unused */)
 {
   RemoveFromBFCacheAsync();
 }
@@ -937,8 +937,8 @@ nsSHEntry::RemoveFromBFCacheSync()
   nsCOMPtr<nsIContentViewer> viewer = mContentViewer;
   DropPresentationState();
 
-  
-  
+  // Warning! The call to DropPresentationState could have dropped the last
+  // reference to this nsSHEntry, so no accessing members beyond here.
 
   if (viewer) {
     viewer->Destroy();
@@ -951,8 +951,8 @@ nsSHEntry::RemoveFromBFCacheAsync()
   NS_ASSERTION(mContentViewer && mDocument,
                "we're not in the bfcache!");
 
-  
-  
+  // Release the reference to the contentviewer asynchronously so that the
+  // document doesn't get nuked mid-mutation.
 
   nsCOMPtr<nsIRunnable> evt =
       new DestroyViewerEvent(mContentViewer, mDocument);
@@ -961,13 +961,13 @@ nsSHEntry::RemoveFromBFCacheAsync()
     NS_WARNING("failed to dispatch DestroyViewerEvent");
   }
   else {
-    
-    
-    
+    // Drop presentation. Also ensures that we don't post more then one
+    // PLEvent. Only do this if we succeeded in posting the event since
+    // otherwise the document could be torn down mid mutation causing crashes.
     DropPresentationState();
   }
-  
-  
+  // Warning! The call to DropPresentationState could have dropped the last
+  // reference to this nsSHEntry, so no accessing members beyond here.
 }
 
 nsDocShellEditorData*
@@ -992,16 +992,17 @@ nsSHEntry::HasDetachedEditor()
 }
 
 NS_IMETHODIMP
-nsSHEntry::GetStateData(nsAString &aStateData)
+nsSHEntry::GetStateData(nsIStructuredCloneContainer **aContainer)
 {
-  aStateData.Assign(mStateData);
+  NS_ENSURE_ARG_POINTER(aContainer);
+  NS_IF_ADDREF(*aContainer = mStateData);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSHEntry::SetStateData(const nsAString &aDataStr)
+nsSHEntry::SetStateData(nsIStructuredCloneContainer *aContainer)
 {
-  mStateData.Assign(aDataStr);
+  mStateData = aContainer;
   return NS_OK;
 }
 

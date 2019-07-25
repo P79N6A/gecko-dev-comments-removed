@@ -192,6 +192,11 @@ public:
   
 
 
+  static JSContext* GetContextFromDocument(nsIDocument *aDocument);
+
+  
+
+
 
 
 
