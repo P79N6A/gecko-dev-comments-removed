@@ -515,6 +515,16 @@ public:
 
 
 
+  virtual PRUint32 GetPerFrameKey() { return PRUint32(GetType()); }
+  
+
+
+
+
+
+
+
+
 
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) {}
@@ -1500,6 +1510,7 @@ public:
                                    nsRegion* aVisibleRegionBeforeMove);
   virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem);
   NS_DISPLAY_DECL_NAME("Clip", TYPE_CLIP)
+  virtual PRUint32 GetPerFrameKey() { return 0; }
   
   nsRect GetClipRect() { return mClip; }
   void SetClipRect(const nsRect& aRect) { mClip = aRect; }
