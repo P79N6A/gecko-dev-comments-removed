@@ -96,6 +96,26 @@ _cairo_boxes_get_extents (const cairo_box_t *boxes,
 
 
 
+ 
+cairo_bool_t
+_cairo_rectangle_contains (const cairo_rectangle_int_t *containing_rectangle,
+			   const cairo_rectangle_int_t *contained_rectangle)
+{
+    if (containing_rectangle->x > contained_rectangle->x ||
+	containing_rectangle->y > contained_rectangle->y)
+	return FALSE;
+    
+    if (containing_rectangle->x + containing_rectangle->width <
+	contained_rectangle->x + contained_rectangle->width ||
+	containing_rectangle->y + containing_rectangle->height <
+	contained_rectangle->y + contained_rectangle->height)
+	return FALSE;
+
+    return TRUE;
+}
+
+
+
 
 
 
