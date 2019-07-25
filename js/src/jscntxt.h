@@ -277,16 +277,16 @@ struct GlobalState {
 
 
 
-class CallStackSegment
+class StackSegment
 {
     
     JSContext           *cx;
 
     
-    CallStackSegment    *previousInContext;
+    StackSegment        *previousInContext;
 
     
-    CallStackSegment    *previousInMemory;
+    StackSegment        *previousInMemory;
 
     
     JSStackFrame        *initialFrame;
@@ -312,7 +312,7 @@ class CallStackSegment
     JSObject            *initialVarObj;
 
   public:
-    CallStackSegment()
+    StackSegment()
       : cx(NULL), previousInContext(NULL), previousInMemory(NULL),
         initialFrame(NULL), suspendedFrame(NULL),
         suspendedRegsAndSaved(NULL, false), initialArgEnd(NULL),
@@ -358,6 +358,7 @@ class CallStackSegment
     }
 
     
+
     bool isSaved() const {
         JS_ASSERT_IF(suspendedRegsAndSaved.flag(), isSuspended());
         return suspendedRegsAndSaved.flag();
@@ -450,19 +451,19 @@ class CallStackSegment
 
     
 
-    void setPreviousInContext(CallStackSegment *css) {
-        previousInContext = css;
+    void setPreviousInContext(StackSegment *seg) {
+        previousInContext = seg;
     }
 
-    CallStackSegment *getPreviousInContext() const  {
+    StackSegment *getPreviousInContext() const  {
         return previousInContext;
     }
 
-    void setPreviousInThread(CallStackSegment *css) {
-        previousInMemory = css;
+    void setPreviousInMemory(StackSegment *seg) {
+        previousInMemory = seg;
     }
 
-    CallStackSegment *getPreviousInMemory() const  {
+    StackSegment *getPreviousInMemory() const  {
         return previousInMemory;
     }
 
@@ -482,8 +483,8 @@ class CallStackSegment
 
 };
 
-static const size_t VALUES_PER_CALL_STACK = sizeof(CallStackSegment) / sizeof(Value);
-JS_STATIC_ASSERT(sizeof(CallStackSegment) % sizeof(Value) == 0);
+static const size_t VALUES_PER_STACK_SEGMENT = sizeof(StackSegment) / sizeof(Value);
+JS_STATIC_ASSERT(sizeof(StackSegment) % sizeof(Value) == 0);
 
 
 
@@ -494,12 +495,12 @@ class InvokeArgsGuard
 {
     friend class StackSpace;
     JSContext        *cx;
-    CallStackSegment *css;  
+    StackSegment     *seg;  
     Value            *vp;
     uintN            argc;
   public:
-    inline InvokeArgsGuard() : cx(NULL), css(NULL), vp(NULL) {}
-    inline InvokeArgsGuard(Value *vp, uintN argc) : cx(NULL), css(NULL), vp(vp), argc(argc) {}
+    inline InvokeArgsGuard() : cx(NULL), seg(NULL), vp(NULL) {}
+    inline InvokeArgsGuard(Value *vp, uintN argc) : cx(NULL), seg(NULL), vp(vp), argc(argc) {}
     inline ~InvokeArgsGuard();
     Value *getvp() const { return vp; }
     uintN getArgc() const { JS_ASSERT(vp != NULL); return argc; }
@@ -510,7 +511,7 @@ class InvokeFrameGuard
 {
     friend class StackSpace;
     JSContext        *cx;  
-    CallStackSegment *css;
+    StackSegment     *seg;
     JSStackFrame     *fp;
   public:
     InvokeFrameGuard();
@@ -523,7 +524,7 @@ class ExecuteFrameGuard
 {
     friend class StackSpace;
     JSContext        *cx;  
-    CallStackSegment *css;
+    StackSegment     *seg;
     Value            *vp;
     JSStackFrame     *fp;
     JSStackFrame     *down;
@@ -610,13 +611,13 @@ class StackSpace
     mutable Value *commitEnd;
 #endif
     Value *end;
-    CallStackSegment *currentSegment;
+    StackSegment *currentSegment;
 
     
     friend class InvokeArgsGuard;
     JS_REQUIRES_STACK inline void popInvokeArgs(JSContext *cx, Value *vp);
     friend class InvokeFrameGuard;
-    JS_REQUIRES_STACK void popInvokeFrame(JSContext *cx, CallStackSegment *maybecs);
+    JS_REQUIRES_STACK void popInvokeFrame(JSContext *cx, StackSegment *maybecs);
     friend class ExecuteFrameGuard;
     JS_REQUIRES_STACK void popExecuteFrame(JSContext *cx);
 
@@ -626,7 +627,7 @@ class StackSpace
 
     inline void assertIsCurrent(JSContext *cx) const;
 #ifdef DEBUG
-    CallStackSegment *getCurrentSegment() const { return currentSegment; }
+    StackSegment *getCurrentSegment() const { return currentSegment; }
 #endif
 
     
@@ -670,7 +671,7 @@ class StackSpace
     
     static const ptrdiff_t MAX_TRACE_SPACE_VALS =
       MAX_NATIVE_STACK_SLOTS + MAX_CALL_STACK_ENTRIES * VALUES_PER_STACK_FRAME +
-      (VALUES_PER_CALL_STACK + VALUES_PER_STACK_FRAME );
+      (VALUES_PER_STACK_SEGMENT + VALUES_PER_STACK_FRAME );
 
     
     JS_REQUIRES_STACK void mark(JSTracer *trc);
@@ -742,10 +743,10 @@ class StackSpace
 
 
     JS_REQUIRES_STACK
-    void getSynthesizedSlowNativeFrame(JSContext *cx, CallStackSegment *&css, JSStackFrame *&fp);
+    void getSynthesizedSlowNativeFrame(JSContext *cx, StackSegment *&seg, JSStackFrame *&fp);
 
     JS_REQUIRES_STACK
-    void pushSynthesizedSlowNativeFrame(JSContext *cx, CallStackSegment *css, JSStackFrame *fp,
+    void pushSynthesizedSlowNativeFrame(JSContext *cx, StackSegment *seg, JSStackFrame *fp,
                                         JSFrameRegs &regs);
 
     JS_REQUIRES_STACK
@@ -766,7 +767,7 @@ JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);
 
 class FrameRegsIter
 {
-    CallStackSegment  *curcs;
+    StackSegment      *curseg;
     JSStackFrame      *curfp;
     Value             *cursp;
     jsbytecode        *curpc;
@@ -1819,14 +1820,14 @@ struct JSContext
 
   private:
     
-    js::CallStackSegment *currentSegment;
+    js::StackSegment *currentSegment;
 
   public:
     void assertSegmentsInSync() const {
 #ifdef DEBUG
         if (fp) {
             JS_ASSERT(currentSegment->isActive());
-            if (js::CallStackSegment *prev = currentSegment->getPreviousInContext())
+            if (js::StackSegment *prev = currentSegment->getPreviousInContext())
                 JS_ASSERT(!prev->isActive());
         } else {
             JS_ASSERT_IF(currentSegment, !currentSegment->isActive());
@@ -1841,19 +1842,19 @@ struct JSContext
     }
 
     
-    js::CallStackSegment *activeSegment() const {
+    js::StackSegment *activeSegment() const {
         JS_ASSERT(hasActiveSegment());
         return currentSegment;
     }
 
     
-    js::CallStackSegment *getCurrentSegment() const {
+    js::StackSegment *getCurrentSegment() const {
         assertSegmentsInSync();
         return currentSegment;
     }
 
     
-    void pushSegmentAndFrame(js::CallStackSegment *newcs, JSStackFrame *newfp,
+    void pushSegmentAndFrame(js::StackSegment *newseg, JSStackFrame *newfp,
                              JSFrameRegs &regs);
 
     
@@ -1869,7 +1870,7 @@ struct JSContext
 
 
 
-    js::CallStackSegment *containingSegment(const JSStackFrame *target);
+    js::StackSegment *containingSegment(const JSStackFrame *target);
 
     
 
@@ -2156,10 +2157,10 @@ private:
 };
 
 JS_ALWAYS_INLINE JSObject *
-JSStackFrame::varobj(js::CallStackSegment *css) const
+JSStackFrame::varobj(js::StackSegment *seg) const
 {
-    JS_ASSERT(css->contains(this));
-    return fun ? callobj : css->getInitialVarObj();
+    JS_ASSERT(seg->contains(this));
+    return fun ? callobj : seg->getInitialVarObj();
 }
 
 JS_ALWAYS_INLINE JSObject *

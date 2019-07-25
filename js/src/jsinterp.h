@@ -209,7 +209,7 @@ struct JSStackFrame
 
 
 
-    JSObject *varobj(js::CallStackSegment *css) const;
+    JSObject *varobj(js::StackSegment *seg) const;
 
     
     JSObject *varobj(JSContext *cx) const;
