@@ -132,6 +132,10 @@ gfxPattern::SetMatrix(const gfxMatrix& matrix)
     cairo_pattern_set_matrix(mPattern, &mat);
   } else {
     mTransform = ToMatrix(matrix);
+    
+    
+    
+    mTransform.Invert();
   }
 }
 
