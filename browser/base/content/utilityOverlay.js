@@ -111,10 +111,32 @@ function getBoolPref(prefname, def)
 }
 
 
-function openUILink( url, e, ignoreButton, ignoreAlt, allowKeywordFixup, postData, referrerUrl )
-{
-  var where = whereToOpenLink(e, ignoreButton, ignoreAlt);
-  openUILinkIn(url, where, allowKeywordFixup, postData, referrerUrl);
+
+
+
+
+function openUILink(url, event, aIgnoreButton, aIgnoreAlt, aAllowThirdPartyFixup,
+                    aPostData, aReferrerURI) {
+  let params;
+
+  if (aIgnoreButton && typeof aIgnoreButton == "object") {
+    params = aIgnoreButton;
+
+    
+    aIgnoreButton = params.ignoreButton;
+    aIgnoreAlt = params.ignoreAlt;
+    delete params.ignoreButton;
+    delete params.ignoreAlt;
+  } else {
+    params = {
+      allowThirdPartyFixup: aAllowThirdPartyFixup,
+      postData: aPostData,
+      referrerURI: aReferrerURI
+    };
+  }
+
+  let where = whereToOpenLink(event, aIgnoreButton, aIgnoreAlt);
+  openUILinkIn(url, where, params);
 }
 
 
