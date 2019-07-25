@@ -132,8 +132,7 @@ let WeaveGlue = {
       onAbort: function onAbort(aError) {
         self.jpake = null;
 
-        
-        if (!aError || container.hidden)
+        if (aError == "jpake.error.userabort" || container.hidden)
           return;
 
         
