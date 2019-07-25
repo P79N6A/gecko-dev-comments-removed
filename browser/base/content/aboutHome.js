@@ -140,6 +140,10 @@ function loadSnippets()
   if (updateURL && (!lastUpdate ||
                     Date.now() - lastUpdate > SNIPPETS_UPDATE_INTERVAL_MS)) {
     
+    
+    localStorage["snippets-last-update"] = Date.now();
+
+    
     let xhr = new XMLHttpRequest();
     xhr.open('GET', updateURL, true);
     xhr.onerror = function (event) {
@@ -149,7 +153,6 @@ function loadSnippets()
     {
       if (xhr.status == 200) {
         localStorage["snippets"] = xhr.responseText;
-        localStorage["snippets-last-update"] = Date.now();
       }
       showSnippets();
     };
@@ -162,32 +165,39 @@ function loadSnippets()
 function showSnippets()
 {
   let snippets = localStorage["snippets"];
+  
   if (snippets) {
     let snippetsElt = document.getElementById("snippets");
-    snippetsElt.innerHTML = snippets;
     
-    
-    Array.forEach(snippetsElt.getElementsByTagName("script"), function(elt) {
-      let relocatedScript = document.createElement("script");
-      relocatedScript.type = "text/javascript;version=1.8";
-      relocatedScript.text = elt.text;
-      elt.parentNode.replaceChild(relocatedScript, elt);
-    });
-    snippetsElt.hidden = false;
-  } else {
-    
-    let defaultSnippetsElt = document.getElementById("defaultSnippets");
-    let entries = defaultSnippetsElt.querySelectorAll("span");
-    
-    let randIndex = Math.round(Math.random() * (entries.length - 1));
-    let entry = entries[randIndex];
-    
-    if (DEFAULT_SNIPPETS_URLS[randIndex]) {
-      let links = entry.getElementsByTagName("a");
-      if (links.length != 1)
-        return; 
-      links[0].href = DEFAULT_SNIPPETS_URLS[randIndex];
+    try {
+      snippetsElt.innerHTML = snippets;
+      
+      
+      Array.forEach(snippetsElt.getElementsByTagName("script"), function(elt) {
+        let relocatedScript = document.createElement("script");
+        relocatedScript.type = "text/javascript;version=1.8";
+        relocatedScript.text = elt.text;
+        elt.parentNode.replaceChild(relocatedScript, elt);
+      });
+      snippetsElt.hidden = false;
+      return;
+    } catch (ex) {
+      
     }
-    entry.hidden = false;
   }
+
+  
+  let defaultSnippetsElt = document.getElementById("defaultSnippets");
+  let entries = defaultSnippetsElt.querySelectorAll("span");
+  
+  let randIndex = Math.round(Math.random() * (entries.length - 1));
+  let entry = entries[randIndex];
+  
+  if (DEFAULT_SNIPPETS_URLS[randIndex]) {
+    let links = entry.getElementsByTagName("a");
+    if (links.length != 1)
+      return; 
+    links[0].href = DEFAULT_SNIPPETS_URLS[randIndex];
+  }
+  entry.hidden = false;
 }
