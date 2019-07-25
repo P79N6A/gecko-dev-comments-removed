@@ -48,6 +48,8 @@
 
 
 
+"use strict";
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -56,6 +58,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource:///modules/PropertyPanel.jsm");
+Cu.import("resource:///modules/source-editor.jsm");
 
 const SCRATCHPAD_CONTEXT_CONTENT = 1;
 const SCRATCHPAD_CONTEXT_BROWSER = 2;
@@ -63,9 +66,6 @@ const SCRATCHPAD_WINDOW_URL = "chrome://browser/content/scratchpad.xul";
 const SCRATCHPAD_L10N = "chrome://browser/locale/scratchpad.properties";
 const SCRATCHPAD_WINDOW_FEATURES = "chrome,titlebar,toolbar,centerscreen,resizable,dialog=no";
 const DEVTOOLS_CHROME_ENABLED = "devtools.chrome.enabled";
-
-const PREF_TABSIZE = "devtools.editor.tabsize";
-const PREF_EXPANDTAB = "devtools.editor.expandtab";
 
 
 
@@ -87,21 +87,49 @@ var Scratchpad = {
 
 
 
-  get textbox() document.getElementById("scratchpad-textbox"),
-
-  
-
-
-
   get statusbarStatus() document.getElementById("scratchpad-status"),
 
   
 
 
-  get selectedText()
+
+
+
+  get selectedText() this.editor.getSelectedText(),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  getText: function SP_getText(aStart, aEnd)
   {
-    return this.textbox.value.substring(this.textbox.selectionStart,
-                                        this.textbox.selectionEnd);
+    return this.editor.getText(aStart, aEnd);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  setText: function SP_setText(aText, aStart, aEnd)
+  {
+    this.editor.setText(aText, aStart, aEnd);
   },
 
   
@@ -122,11 +150,6 @@ var Scratchpad = {
   {
     let recentWin = this.browserWindow;
     return recentWin ? recentWin.gBrowser : null;
-  },
-
-  insertIntro: function SP_insertIntro()
-  {
-    this.textbox.value = this.strings.GetStringFromName("scratchpadIntro");
   },
 
   
@@ -201,7 +224,7 @@ var Scratchpad = {
 
   deselect: function SP_deselect()
   {
-    this.textbox.selectionEnd = this.textbox.selectionStart;
+    this.editor.dropSelection();
   },
 
   
@@ -214,8 +237,19 @@ var Scratchpad = {
 
   selectRange: function SP_selectRange(aStart, aEnd)
   {
-    this.textbox.selectionStart = aStart;
-    this.textbox.selectionEnd = aEnd;
+    this.editor.setSelection(aStart, aEnd);
+  },
+
+  
+
+
+
+
+
+
+  getSelectionRange: function SP_getSelection()
+  {
+    return this.editor.getSelection();
   },
 
   
@@ -298,7 +332,7 @@ var Scratchpad = {
 
   run: function SP_run()
   {
-    let selection = this.selectedText || this.textbox.value;
+    let selection = this.selectedText || this.getText();
     let result = this.evalForContext(selection);
     this.deselect();
     return [selection, result];
@@ -326,27 +360,22 @@ var Scratchpad = {
 
   display: function SP_display()
   {
-    let selectionStart = this.textbox.selectionStart;
-    let selectionEnd = this.textbox.selectionEnd;
-    if (selectionStart == selectionEnd) {
-      selectionEnd = this.textbox.value.length;
-    }
+    let selection = this.getSelectionRange();
+    let insertionPoint = selection.start != selection.end ?
+                         selection.end : 
+                         this.editor.getCharCount(); 
 
-    let [selection, result] = this.run();
+    let [selectedText, result] = this.run();
     if (!result) {
       return;
     }
 
-    let firstPiece = this.textbox.value.slice(0, selectionEnd);
-    let lastPiece = this.textbox.value.
-                    slice(selectionEnd, this.textbox.value.length);
-
     let newComment = "/*\n" + result.toString() + "\n*/";
 
-    this.textbox.value = firstPiece + newComment + lastPiece;
+    this.setText(newComment, insertionPoint, insertionPoint);
 
     
-    this.selectRange(firstPiece.length, firstPiece.length + newComment.length);
+    this.selectRange(insertionPoint, insertionPoint + newComment.length);
   },
 
   
@@ -442,12 +471,12 @@ var Scratchpad = {
     let fs = Cc["@mozilla.org/network/file-output-stream;1"].
              createInstance(Ci.nsIFileOutputStream);
     let modeFlags = 0x02 | 0x08 | 0x20;
-    fs.init(aFile, modeFlags, 0644, fs.DEFER_OPEN);
+    fs.init(aFile, modeFlags, 420 , fs.DEFER_OPEN);
 
     let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
                     createInstance(Ci.nsIScriptableUnicodeConverter);
     converter.charset = "UTF-8";
-    let input = converter.convertToInputStream(this.textbox.value);
+    let input = converter.convertToInputStream(this.getText());
 
     let self = this;
     NetUtil.asyncCopy(input, fs, function(aStatus) {
@@ -488,7 +517,7 @@ var Scratchpad = {
       if (Components.isSuccessCode(aStatus)) {
         content = NetUtil.readInputStreamToString(aInputStream,
                                                   aInputStream.available());
-        self.textbox.value = content;
+        self.setText(content);
       }
       else if (!aSilentError) {
         window.alert(self.strings.GetStringFromName("openFile.failed"));
@@ -617,8 +646,15 @@ var Scratchpad = {
   
 
 
-  onLoad: function SP_onLoad()
+
+
+
+  onLoad: function SP_onLoad(aEvent)
   {
+    if (aEvent.target != document) {
+      return;
+    }
+
     let chromeContextMenu = document.getElementById("sp-menu-browser");
     let errorConsoleMenu = document.getElementById("sp-menu-errorConsole");
     let errorConsoleCommand = document.getElementById("sp-cmd-errorConsole");
@@ -632,55 +668,107 @@ var Scratchpad = {
       chromeContextCommand.removeAttribute("disabled");
     }
 
-    let tabsize = Services.prefs.getIntPref(PREF_TABSIZE);
-    if (tabsize < 1) {
-      
-      Services.prefs.clearUserPref(PREF_TABSIZE);
-      tabsize = Services.prefs.getIntPref(PREF_TABSIZE);
-    }
+    this.editor = new SourceEditor();
 
-    let expandtab = Services.prefs.getBoolPref(PREF_EXPANDTAB);
-    this._tabCharacter = expandtab ? (new Array(tabsize + 1)).join(" ") : "\t";
-    this.textbox.style.MozTabSize = tabsize;
+    let config = {
+      mode: SourceEditor.MODES.JAVASCRIPT,
+      showLineNumbers: true,
+      placeholderText: this.strings.GetStringFromName("scratchpadIntro"),
+    };
 
-    
-    this.textbox.style.direction = "ltr";
-
-    this.insertIntro();
-
-    
-    this.textbox.addEventListener("keypress", this.onKeypress.bind(this), false);
-
-    this.textbox.focus();
+    let editorPlaceholder = document.getElementById("scratchpad-editor");
+    this.editor.init(editorPlaceholder, config, this.onEditorLoad.bind(this));
   },
 
   
 
 
 
-
-
-  onKeypress: function SP_onKeypress(aEvent)
+  onEditorLoad: function SP_onEditorLoad()
   {
-    if (aEvent.keyCode == aEvent.DOM_VK_TAB) {
-      this.insertTextAtCaret(this._tabCharacter);
-      aEvent.preventDefault();
-    }
+    this.editor.addEventListener(SourceEditor.EVENTS.CONTEXT_MENU,
+                                 this.onContextMenu);
+    this.editor.focus();
+    this.editor.setCaretOffset(this.editor.getCharCount());
   },
 
   
+
 
 
 
 
   insertTextAtCaret: function SP_insertTextAtCaret(aText)
   {
-    let firstPiece = this.textbox.value.substring(0, this.textbox.selectionStart);
-    let lastPiece = this.textbox.value.substring(this.textbox.selectionEnd);
-    this.textbox.value = firstPiece + aText + lastPiece;
+    let caretOffset = this.editor.getCaretOffset();
+    this.setText(aText, caretOffset, caretOffset);
+    this.editor.setCaretOffset(caretOffset + aText.length);
+  },
 
-    let newCaretPosition = firstPiece.length + aText.length;
-    this.selectRange(newCaretPosition, newCaretPosition);
+  
+
+
+
+
+
+
+
+  onContextMenu: function SP_onContextMenu(aEvent)
+  {
+    let menu = document.getElementById("scratchpad-text-popup");
+    if (menu.state == "closed") {
+      menu.openPopupAtScreen(aEvent.screenX, aEvent.screenY, true);
+    }
+  },
+
+  
+
+
+
+
+
+  onEditPopupShowing: function SP_onEditPopupShowing()
+  {
+    let undo = document.getElementById("sp-cmd-undo");
+    undo.setAttribute("disabled", !this.editor.canUndo());
+
+    let redo = document.getElementById("sp-cmd-redo");
+    redo.setAttribute("disabled", !this.editor.canRedo());
+  },
+
+  
+
+
+  undo: function SP_undo()
+  {
+    this.editor.undo();
+  },
+
+  
+
+
+  redo: function SP_redo()
+  {
+    this.editor.redo();
+  },
+
+  
+
+
+
+
+
+  onUnload: function SP_onUnload(aEvent)
+  {
+    if (aEvent.target != document) {
+      return;
+    }
+
+    this.resetContext();
+    this.editor.removeEventListener(SourceEditor.EVENTS.CONTEXT_MENU,
+                                    this.onContextMenu);
+    this.editor.destroy();
+    this.editor = null;
   },
 };
 
@@ -689,4 +777,4 @@ XPCOMUtils.defineLazyGetter(Scratchpad, "strings", function () {
 });
 
 addEventListener("DOMContentLoaded", Scratchpad.onLoad.bind(Scratchpad), false);
-
+addEventListener("unload", Scratchpad.onUnload.bind(Scratchpad), false);
