@@ -655,7 +655,6 @@ png_set_user_transform_info(png_structp png_ptr, png_voidp
         "This version of libpng does not support user transform info");
 #endif
 }
-#endif
 
 
 
@@ -673,4 +672,6 @@ png_get_user_transform_ptr(png_structp png_ptr)
    return (NULL);
 #endif
 }
+#endif 
+
 #endif 

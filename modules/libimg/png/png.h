@@ -334,6 +334,12 @@
 
 
 
+
+
+
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -344,9 +350,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.4.1"
+#define PNG_LIBPNG_VER_STRING "1.4.3"
 #define PNG_HEADER_VERSION_STRING \
-   " libpng version 1.4.1 - February 25, 2010\n"
+   " libpng version 1.4.3 - June 26, 2010\n"
 
 #define PNG_LIBPNG_VER_SONUM   14
 #define PNG_LIBPNG_VER_DLLNUM  14
@@ -354,7 +360,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   4
-#define PNG_LIBPNG_VER_RELEASE 1
+#define PNG_LIBPNG_VER_RELEASE 3
 
 
 
@@ -384,7 +390,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10401 /* 1.4.1 */
+#define PNG_LIBPNG_VER 10403 /* 1.4.3 */
 
 #ifndef PNG_VERSION_INFO_ONLY
 
@@ -1354,13 +1360,13 @@ struct png_struct_def
    png_uint_16 offset_table_count_free PNG_DEPSTRUCT;
 #endif
 
-#ifdef PNG_READ_DITHER_SUPPORTED
+#ifdef PNG_READ_QUANTIZE_SUPPORTED
    png_bytep palette_lookup PNG_DEPSTRUCT; 
-   png_bytep dither_index PNG_DEPSTRUCT;   
+   png_bytep quantize_index PNG_DEPSTRUCT; 
 
 #endif
 
-#if defined(PNG_READ_DITHER_SUPPORTED) || defined(PNG_hIST_SUPPORTED)
+#if defined(PNG_READ_QUANTIZE_SUPPORTED) || defined(PNG_hIST_SUPPORTED)
    png_uint_16p hist PNG_DEPSTRUCT;                
 #endif
 
@@ -1444,9 +1450,9 @@ struct png_struct_def
    png_bytep big_row_buf PNG_DEPSTRUCT;         
 
 
-#ifdef PNG_READ_DITHER_SUPPORTED
+#ifdef PNG_READ_QUANTIZE_SUPPORTED
 
-   png_bytep dither_sort PNG_DEPSTRUCT;            
+   png_bytep quantize_sort PNG_DEPSTRUCT;          
    png_bytep index_to_palette PNG_DEPSTRUCT;       
 
 
@@ -1524,7 +1530,7 @@ struct png_struct_def
 
 
 
-typedef png_structp version_1_4_1;
+typedef png_structp version_1_4_3;
 
 typedef png_struct FAR * FAR * png_structpp;
 
@@ -1550,6 +1556,11 @@ extern PNG_EXPORT(void,png_set_sig_bytes) PNGARG((png_structp png_ptr,
 
 extern PNG_EXPORT(int,png_sig_cmp) PNGARG((png_bytep sig, png_size_t start,
    png_size_t num_to_check));
+
+
+
+
+#define png_check_sig(sig,n) !png_sig_cmp((sig), 0, (n))
 
 
 extern PNG_EXPORT(png_structp,png_create_read_struct)
@@ -1588,8 +1599,10 @@ extern PNG_EXPORT(jmp_buf*, png_set_longjmp_fn)
    (LIBPNG_WAS_COMPILED_WITH__PNG_NO_SETJMP)
 #endif
 
+#ifdef PNG_READ_SUPPORTED
 
 extern PNG_EXPORT(int,png_reset_zstream) PNGARG((png_structp png_ptr));
+#endif
 
 
 #ifdef PNG_USER_MEM_SUPPORTED
@@ -1766,14 +1779,16 @@ extern PNG_EXPORT(void,png_set_background) PNGARG((png_structp png_ptr,
 extern PNG_EXPORT(void,png_set_strip_16) PNGARG((png_structp png_ptr));
 #endif
 
-#ifdef PNG_READ_DITHER_SUPPORTED
+#ifdef PNG_READ_QUANTIZE_SUPPORTED
 
 
 
-extern PNG_EXPORT(void,png_set_dither) PNGARG((png_structp png_ptr,
+extern PNG_EXPORT(void,png_set_quantize) PNGARG((png_structp png_ptr,
    png_colorp palette, int num_palette, int maximum_colors,
-   png_uint_16p histogram, int full_dither));
+   png_uint_16p histogram, int full_quantize));
 #endif
+
+#define png_set_dither png_set_quantize
 
 #ifdef PNG_READ_GAMMA_SUPPORTED
 
