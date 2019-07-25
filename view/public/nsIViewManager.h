@@ -50,8 +50,8 @@ class nsIDeviceContext;
 class nsIViewObserver;
 
 #define NS_IVIEWMANAGER_IID   \
-  { 0x35c07b12, 0x5d96, 0x49f9, \
-   { 0x91, 0xa3, 0x2f, 0xad, 0x3e, 0x84, 0x0c, 0x91 } }
+  { 0x4017112c, 0x64d7, 0x47bc, \
+   { 0xab, 0x66, 0x4e, 0x5f, 0xff, 0x83, 0xec, 0x7c } }
 
 class nsIViewManager : public nsISupports
 {
@@ -144,7 +144,8 @@ public:
 
 
 
-  NS_IMETHOD  UpdateView(nsIView *aView, const nsRect &aRect, PRUint32 aUpdateFlags) = 0;
+  NS_IMETHOD  UpdateViewNoSuppression(nsIView *aView, const nsRect &aRect,
+                                      PRUint32 aUpdateFlags) = 0;
 
   
 
