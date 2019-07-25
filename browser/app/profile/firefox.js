@@ -865,6 +865,9 @@ pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 pref("app.support.baseURL", "http://support.mozilla.com/1/firefox/%VERSION%/%OS%/%LOCALE%/");
 
 
+pref("app.support.updateGraphicsDriverURL", "http://support.mozilla.com/%LOCALE%/kb/how-do-i-upgrade-my-graphics-drivers");
+
+
 pref("security.alternate_certificate_error_page", "certerror");
 
 
