@@ -1198,6 +1198,14 @@ void
 js_FinishGC(JSRuntime *rt)
 {
     
+
+
+
+#ifdef JS_THREADSAFE
+    rt->gcHelperThread.finish();
+#endif
+
+    
     for (CompartmentsIter c(rt); !c.done(); c.next())
         Foreground::delete_(c.get());
     rt->compartments.clear();
@@ -1208,14 +1216,6 @@ js_FinishGC(JSRuntime *rt)
     for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
         Chunk::release(rt, r.front());
     rt->gcChunkSet.clear();
-
-#ifdef JS_THREADSAFE
-    rt->gcHelperThread.finish();
-#endif
-
-    
-
-
 
     rt->gcChunkPool.expireAndFree(rt, true);
 
@@ -2355,6 +2355,9 @@ GCHelperThread::finish()
         AutoLockGC lock(rt);
         if (thread && state != SHUTDOWN) {
             
+
+
+
             JS_ASSERT(state == IDLE || state == SWEEPING);
             if (state == IDLE)
                 PR_NotifyCondVar(wakeup);
