@@ -201,7 +201,7 @@
 #include "nsIGlobalHistory3.h"
 
 #ifdef DEBUG_DOCSHELL_FOCUS
-#include "nsIEventStateManager.h"
+#include "nsEventStateManager.h"
 #endif
 
 #include "nsIFrame.h"
@@ -215,7 +215,6 @@
 #endif
 
 #include "nsPluginError.h"
-#include "nsContentUtils.h"
 
 static NS_DEFINE_CID(kDOMScriptObjectFactoryCID,
                      NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
@@ -8216,6 +8215,33 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     mAllowKeywordFixup =
       (aFlags & INTERNAL_LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP) != 0;
     mURIResultedInDocument = PR_FALSE;  
+   
+    
+    
+    
+    
+    
+    
+    
+    
+    PRBool allowScroll = PR_TRUE;
+    if (!aSHEntry) {
+        allowScroll = (aPostData == nsnull);
+    } else if (mOSHE) {
+        PRUint32 ourPageIdent;
+        mOSHE->GetPageIdentifier(&ourPageIdent);
+        PRUint32 otherPageIdent;
+        aSHEntry->GetPageIdentifier(&otherPageIdent);
+        allowScroll = (ourPageIdent == otherPageIdent);
+#ifdef DEBUG
+        if (allowScroll) {
+            nsCOMPtr<nsIInputStream> currentPostData;
+            mOSHE->GetPostData(getter_AddRefs(currentPostData));
+            NS_ASSERTION(currentPostData == aPostData,
+                         "Different POST data for entries for the same page?");
+        }
+#endif
+    }
 
     if (aLoadType == LOAD_NORMAL ||
         aLoadType == LOAD_STOP_CONTENT ||
@@ -8223,36 +8249,30 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         aLoadType == LOAD_HISTORY ||
         aLoadType == LOAD_LINK) {
 
-        
-        
-        
-        
-        nsCAutoString curBeforeHash, curHash, newBeforeHash, newHash;
-        nsresult splitRv1, splitRv2;
-        splitRv1 = nsContentUtils::SplitURIAtHash(mCurrentURI, curBeforeHash, curHash);
-        splitRv2 = nsContentUtils::SplitURIAtHash(aURI, newBeforeHash, newHash);
+        PRBool wasAnchor = PR_FALSE;
+        PRBool doHashchange = PR_FALSE;
 
-        PRBool sameExceptHashes = NS_SUCCEEDED(splitRv1) &&
-                                  NS_SUCCEEDED(splitRv2) &&
-                                  curBeforeHash.Equals(newBeforeHash);
+        
+        nscoord cx = 0, cy = 0;
+        GetCurScrollPos(ScrollOrientation_X, &cx);
+        GetCurScrollPos(ScrollOrientation_Y, &cy);
 
+        if (allowScroll) {
+            NS_ENSURE_SUCCESS(ScrollIfAnchor(aURI, &wasAnchor, aLoadType,
+                                             &doHashchange),
+                              NS_ERROR_FAILURE);
+        }
+
+        
+        
+        
+        
         PRBool sameDocIdent = PR_FALSE;
         if (mOSHE && aSHEntry) {
-            
-
-            PRUint64 ourDocIdent, otherDocIdent;
-            mOSHE->GetDocIdentifier(&ourDocIdent);
-            aSHEntry->GetDocIdentifier(&otherDocIdent);
-            sameDocIdent = (ourDocIdent == otherDocIdent);
-
-#ifdef DEBUG
-            if (sameDocIdent) {
-                nsCOMPtr<nsIInputStream> currentPostData;
-                mOSHE->GetPostData(getter_AddRefs(currentPostData));
-                NS_ASSERTION(currentPostData == aPostData,
-                             "Different POST data for entries for the same page?");
-            }
-#endif
+          PRUint64 ourDocIdent, otherDocIdent;
+          mOSHE->GetDocIdentifier(&ourDocIdent);
+          aSHEntry->GetDocIdentifier(&otherDocIdent);
+          sameDocIdent = (ourDocIdent == otherDocIdent);
         }
 
         
@@ -8262,42 +8282,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         
         
-        
-        
-        
-        
-        
-        
-        
-        PRBool doShortCircuitedLoad = (sameDocIdent && mOSHE != aSHEntry) ||
-                                      (!aSHEntry && aPostData == nsnull &&
-                                       sameExceptHashes && !newHash.IsEmpty());
-
-        
-        
-        PRBool doHashchange = doShortCircuitedLoad &&
-                              sameExceptHashes &&
-                              !curHash.Equals(newHash);
-
-        if (doShortCircuitedLoad) {
-            
-            nsCOMPtr<nsIURI> oldURI = mCurrentURI;
-
-            
-            nscoord cx = 0, cy = 0;
-            GetCurScrollPos(ScrollOrientation_X, &cx);
-            GetCurScrollPos(ScrollOrientation_Y, &cy);
-
-            
-            if (doHashchange) {
-                
-                
-                nsDependentCSubstring curHashName(curHash, 1);
-                nsDependentCSubstring newHashName(newHash, 1);
-                rv = ScrollToAnchor(curHashName, newHashName, aLoadType);
-                NS_ENSURE_SUCCESS(rv, rv);
-            }
-
+        if (wasAnchor || (sameDocIdent && (mOSHE != aSHEntry))) {
             mLoadType = aLoadType;
             mURIResultedInDocument = PR_TRUE;
 
@@ -8322,7 +8307,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             OnNewURI(aURI, nsnull, owner, mLoadType, PR_TRUE, PR_TRUE, PR_TRUE);
 
             nsCOMPtr<nsIInputStream> postData;
-            PRUint64 docIdent = PRUint64(-1);
+            PRUint32 pageIdent = PR_UINT32_MAX;
             nsCOMPtr<nsISupports> cacheKey;
 
             if (mOSHE) {
@@ -8336,8 +8321,19 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 
                 if (aLoadType & LOAD_CMD_NORMAL) {
                     mOSHE->GetPostData(getter_AddRefs(postData));
-                    mOSHE->GetDocIdentifier(&docIdent);
+                    mOSHE->GetPageIdentifier(&pageIdent);
                     mOSHE->GetCacheKey(getter_AddRefs(cacheKey));
+                }
+
+                if (mLSHE && wasAnchor) {
+                    
+                    
+                    
+                    PRUint64 docIdent;
+                    rv = mOSHE->GetDocIdentifier(&docIdent);
+                    if (NS_SUCCEEDED(rv)) {
+                        mLSHE->SetDocIdentifier(docIdent);
+                    }
                 }
             }
 
@@ -8360,8 +8356,8 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
                 
                 
-                if (docIdent != PRUint64(-1))
-                    mOSHE->SetDocIdentifier(docIdent);
+                if (pageIdent != PR_UINT32_MAX)
+                    mOSHE->SetPageIdentifier(pageIdent);
             }
 
             
@@ -8429,11 +8425,8 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                   window->DispatchSyncPopState();
                 }
 
-                if (doHashchange) {
-                  
-                  
-                  window->DispatchAsyncHashchange(oldURI, aURI);
-                }
+                if (doHashchange)
+                  window->DispatchAsyncHashchange();
             }
 
             return NS_OK;
@@ -9059,9 +9052,20 @@ nsresult nsDocShell::DoChannelLoad(nsIChannel * aChannel,
 }
 
 nsresult
-nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
-                           PRUint32 aLoadType)
+nsDocShell::ScrollIfAnchor(nsIURI * aURI, PRBool * aWasAnchor,
+                           PRUint32 aLoadType, PRBool * aDoHashchange)
 {
+    NS_ASSERTION(aURI, "null uri arg");
+    NS_ASSERTION(aWasAnchor, "null anchor arg");
+    NS_PRECONDITION(aDoHashchange, "null hashchange arg");
+
+    if (!aURI || !aWasAnchor) {
+        return NS_ERROR_FAILURE;
+    }
+
+    *aWasAnchor = PR_FALSE;
+    *aDoHashchange = PR_FALSE;
+
     if (!mCurrentURI) {
         return NS_OK;
     }
@@ -9071,28 +9075,116 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
     if (NS_FAILED(rv) || !shell) {
         
         
+        
         return rv;
+    }
+
+    
+
+    nsCAutoString currentSpec;
+    NS_ENSURE_SUCCESS(mCurrentURI->GetSpec(currentSpec),
+                      NS_ERROR_FAILURE);
+
+    nsCAutoString newSpec;
+    NS_ENSURE_SUCCESS(aURI->GetSpec(newSpec), NS_ERROR_FAILURE);
+
+    
+    
+    
+
+    const char kHash = '#';
+
+    
+    
+    nsACString::const_iterator urlStart, urlEnd, refStart, refEnd;
+    newSpec.BeginReading(urlStart);
+    newSpec.EndReading(refEnd);
+    
+    PRInt32 hashNew = newSpec.FindChar(kHash);
+    if (hashNew == 0) {
+        return NS_OK;           
+    }
+
+    if (hashNew > 0) {
+        
+        urlEnd = urlStart;
+        urlEnd.advance(hashNew);
+        
+        refStart = urlEnd;
+        ++refStart;             
+        
+    }
+    else {
+        
+        urlEnd = refStart = refEnd;
+    }
+    const nsACString& sNewLeft = Substring(urlStart, urlEnd);
+    const nsACString& sNewRef =  Substring(refStart, refEnd);
+                                          
+    
+    nsACString::const_iterator currentLeftStart, currentLeftEnd,
+                               currentRefStart, currentRefEnd;
+    currentSpec.BeginReading(currentLeftStart);
+    currentSpec.EndReading(currentRefEnd);
+
+    PRInt32 hashCurrent = currentSpec.FindChar(kHash);
+    if (hashCurrent == 0) {
+        return NS_OK;           
+    }
+
+    if (hashCurrent > 0) {
+        currentLeftEnd = currentLeftStart;
+        currentLeftEnd.advance(hashCurrent);
+
+        currentRefStart = currentLeftEnd;
+        ++currentRefStart; 
+    }
+    else {
+        
+        currentLeftEnd = currentRefStart = currentRefEnd;
     }
 
     
     
     
     
-    if ((aCurHash.IsEmpty() || aLoadType != LOAD_HISTORY) &&
-        aNewHash.IsEmpty()) {
+    NS_ASSERTION(hashNew != 0 && hashCurrent != 0,
+                 "What happened to the early returns above?");
+    if (hashNew == kNotFound &&
+        (hashCurrent == kNotFound || aLoadType != LOAD_HISTORY)) {
         return NS_OK;
     }
 
     
     
+    
+    
+    
+    
+    
+    
 
-    if (!aNewHash.IsEmpty()) {
+    if (!Substring(currentLeftStart, currentLeftEnd).Equals(sNewLeft)) {
+        return NS_OK;           
+    }
+
+    
+    *aWasAnchor = PR_TRUE;
+
+    
+    
+    *aDoHashchange = !Substring(currentRefStart, currentRefEnd).Equals(sNewRef);
+
+    
+    
+
+    if (!sNewRef.IsEmpty()) {
         
         
         PRBool scroll = aLoadType != LOAD_HISTORY &&
                         aLoadType != LOAD_RELOAD_NORMAL;
 
-        char *str = ToNewCString(aNewHash);
+        char *str = ToNewCString(sNewRef);
         if (!str) {
             return NS_ERROR_OUT_OF_MEMORY;
         }
@@ -9134,7 +9226,7 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
             nsXPIDLString uStr;
 
             rv = textToSubURI->UnEscapeAndConvert(PromiseFlatCString(aCharset).get(),
-                                                  PromiseFlatCString(aNewHash).get(),
+                                                  PromiseFlatCString(sNewRef).get(),
                                                   getter_Copies(uStr));
             NS_ENSURE_SUCCESS(rv, rv);
 

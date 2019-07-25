@@ -124,7 +124,6 @@
 #include "nsIMutableArray.h"
 #include "nsArrayUtils.h"
 #include "nsIEffectiveTLDService.h"
-#include "nsIEventStateManager.h"
 
 #include "nsIPrompt.h"
 
