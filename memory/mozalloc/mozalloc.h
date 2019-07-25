@@ -206,7 +206,8 @@ MOZALLOC_EXPORT void* moz_valloc(size_t size)
 #  define MOZALLOC_EXPORT_NEW
 #endif
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(_MSC_VER)
+
 
 
 
