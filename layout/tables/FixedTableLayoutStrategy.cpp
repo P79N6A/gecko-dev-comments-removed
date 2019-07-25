@@ -105,7 +105,8 @@ FixedTableLayoutStrategy::GetMinWidth(nsIRenderingContext* aRenderingContext)
             
         } else {
             NS_ASSERTION(styleWidth->GetUnit() == eStyleUnit_Auto ||
-                         styleWidth->GetUnit() == eStyleUnit_Enumerated,
+                         styleWidth->GetUnit() == eStyleUnit_Enumerated ||
+                         styleWidth->IsCalcUnit(),
                          "bad width");
 
             
@@ -251,7 +252,8 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
             pctTotal += pct;
         } else {
             NS_ASSERTION(styleWidth->GetUnit() == eStyleUnit_Auto ||
-                         styleWidth->GetUnit() == eStyleUnit_Enumerated,
+                         styleWidth->GetUnit() == eStyleUnit_Enumerated ||
+                         styleWidth->IsCalcUnit(),
                          "bad width");
 
             
@@ -286,6 +288,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
                     colFrame->AddPrefPercent(pct);
                     pctTotal += pct;
                 } else {
+                    
                     
                     colWidth = unassignedMarker;
                 }

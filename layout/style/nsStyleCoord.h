@@ -124,6 +124,16 @@ public:
     return eStyleUnit_Calc <= mUnit && mUnit <= eStyleUnit_Calc_Maximum;
   }
 
+  PRBool IsCoordPercentCalcUnit() const {
+    return mUnit == eStyleUnit_Coord ||
+           mUnit == eStyleUnit_Percent ||
+           IsCalcUnit();
+  }
+
+  
+  
+  PRBool CalcHasPercent() const;
+
   PRBool IsArrayValue() const {
     return IsCalcUnit();
   }

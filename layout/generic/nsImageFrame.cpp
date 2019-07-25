@@ -125,13 +125,8 @@ static PRBool HaveFixedSize(const nsStylePosition* aStylePosition)
   
   
   
-  nsStyleUnit widthUnit = aStylePosition->mWidth.GetUnit();
-  nsStyleUnit heightUnit = aStylePosition->mHeight.GetUnit();
-
-  return ((widthUnit  == eStyleUnit_Coord ||
-           widthUnit  == eStyleUnit_Percent) &&
-          (heightUnit == eStyleUnit_Coord ||
-           heightUnit == eStyleUnit_Percent));
+  return aStylePosition->mWidth.IsCoordPercentCalcUnit() &&
+         aStylePosition->mHeight.IsCoordPercentCalcUnit();
 }
 
 
@@ -146,11 +141,15 @@ inline PRBool HaveFixedSize(const nsHTMLReflowState& aReflowState)
   
   
   
-  nsStyleUnit heightUnit = (*(aReflowState.mStylePosition)).mHeight.GetUnit();
-  nsStyleUnit widthUnit = (*(aReflowState.mStylePosition)).mWidth.GetUnit();
-  return ((eStyleUnit_Percent == heightUnit && NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight()) ||
-          (eStyleUnit_Percent == widthUnit && (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedWidth() ||
-           0 == aReflowState.ComputedWidth())))
+  const nsStyleCoord &height = aReflowState.mStylePosition->mHeight;
+  const nsStyleCoord &width = aReflowState.mStylePosition->mWidth;
+  return (((eStyleUnit_Percent == height.GetUnit() ||
+            (height.IsCalcUnit() && height.CalcHasPercent())) &&
+           NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight()) ||
+          ((eStyleUnit_Percent == width.GetUnit() ||
+            (width.IsCalcUnit() && width.CalcHasPercent())) &&
+           (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedWidth() ||
+            0 == aReflowState.ComputedWidth())))
           ? PR_FALSE
           : HaveFixedSize(aReflowState.mStylePosition); 
 }

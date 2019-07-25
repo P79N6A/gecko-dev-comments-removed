@@ -679,9 +679,16 @@ nsIBox::AddCSSPrefSize(nsIBox* aBox, nsSize& aSize, PRBool &aWidthSet, PRBool &a
     
     
     
-    if (position->mWidth.GetUnit() == eStyleUnit_Coord) {
-        aSize.width = position->mWidth.GetCoordValue();
+    const nsStyleCoord &width = position->mWidth;
+    if (width.GetUnit() == eStyleUnit_Coord) {
+        aSize.width = width.GetCoordValue();
         aWidthSet = PR_TRUE;
+    } else if (width.IsCalcUnit()) {
+        if (!width.CalcHasPercent()) {
+            
+            aSize.width = nsRuleNode::ComputeComputedCalc(width, 0);
+            aWidthSet = PR_TRUE;
+        }
     }
 
     if (position->mHeight.GetUnit() == eStyleUnit_Coord) {

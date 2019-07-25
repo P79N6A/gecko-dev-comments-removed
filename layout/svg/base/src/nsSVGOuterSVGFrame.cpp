@@ -470,13 +470,16 @@ static inline PRBool
 DependsOnIntrinsicSize(const nsIFrame* aEmbeddingFrame)
 {
   const nsStylePosition *pos = aEmbeddingFrame->GetStylePosition();
-  nsStyleUnit widthUnit  = pos->mWidth.GetUnit();
-  nsStyleUnit heightUnit = pos->mHeight.GetUnit();
+  const nsStyleCoord &width = pos->mWidth;
+  const nsStyleCoord &height = pos->mHeight;
 
   
   
   
-  return (widthUnit != eStyleUnit_Coord) || (heightUnit != eStyleUnit_Coord);
+  return (width.GetUnit() != eStyleUnit_Coord &&
+          (!width.IsCalcUnit() || width.CalcHasPercent())) ||
+         (height.GetUnit() != eStyleUnit_Coord &&
+          (!height.IsCalcUnit() || height.CalcHasPercent()));
 }
 
 NS_IMETHODIMP

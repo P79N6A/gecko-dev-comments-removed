@@ -109,6 +109,7 @@
 
 using namespace mozilla::layers;
 using namespace mozilla::dom;
+namespace css = mozilla::css;
 
 
 
@@ -1752,6 +1753,15 @@ static nscoord AddPercents(nsLayoutUtils::IntrinsicWidthType aType,
 
 static PRBool GetAbsoluteCoord(const nsStyleCoord& aStyle, nscoord& aResult)
 {
+  if (aStyle.IsCalcUnit()) {
+    if (aStyle.CalcHasPercent()) {
+      return PR_FALSE;
+    }
+    
+    aResult = nsRuleNode::ComputeComputedCalc(aStyle, 0);
+    return PR_TRUE;
+  }
+
   if (eStyleUnit_Coord != aStyle.GetUnit())
     return PR_FALSE;
 
@@ -2036,12 +2046,21 @@ nsLayoutUtils::IntrinsicForContainer(nsIRenderingContext *aRenderingContext,
                         PROP_WIDTH, w)) {
     result = AddPercents(aType, w + coordOutsideWidth, pctOutsideWidth);
   }
-  else if (aType == MIN_WIDTH && eStyleUnit_Percent == styleWidth.GetUnit() &&
+  else if (aType == MIN_WIDTH &&
+           
+           
+           
+           styleWidth.IsCoordPercentCalcUnit() &&
            aFrame->IsFrameOfType(nsIFrame::eReplaced)) {
     
     result = 0; 
   }
   else {
+    
+    
+    
+    
+    
     result = AddPercents(aType, result, pctTotal);
   }
 
@@ -2138,15 +2157,12 @@ nsLayoutUtils::ComputeWidthValue(
                   "width less than zero");
 
   nscoord result;
-  if (eStyleUnit_Coord == aCoord.GetUnit()) {
-    result = aCoord.GetCoordValue();
-    NS_ASSERTION(result >= 0, "width less than zero");
+  if (aCoord.IsCoordPercentCalcUnit()) {
+    result = nsRuleNode::ComputeCoordPercentCalc(aCoord, aContainingBlockWidth);
+    
+    
+    
     result -= aContentEdgeToBoxSizing;
-  } else if (eStyleUnit_Percent == aCoord.GetUnit()) {
-    NS_ASSERTION(aCoord.GetPercentValue() >= 0.0f, "width less than zero");
-    result = NSToCoordFloorClamped(aContainingBlockWidth *
-                                   aCoord.GetPercentValue()) -
-             aContentEdgeToBoxSizing;
   } else if (eStyleUnit_Enumerated == aCoord.GetUnit()) {
     PRInt32 val = aCoord.GetIntValue();
     switch (val) {
