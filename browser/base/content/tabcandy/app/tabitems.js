@@ -715,17 +715,9 @@ window.TabItems = {
     });
 
     
-    Tabs.onReady(function(evt) {
-      var tab = evt.tab;
-      Utils.timeout(function() { 
-        self.update(tab);
-      }, 1);
-    });
-
     
-    
-    Tabs.onLoad(function(evt) {
-      var tab = evt.tab;
+    Tabs.onChange(function() {
+      let tab = this;
       Utils.timeout(function() { 
         tab.tabItem.okayToHideCache = true;
         self.update(tab);
@@ -741,7 +733,7 @@ window.TabItems = {
     });
 
     
-    Tabs.forEach(function(tab){
+    Tabs.allTabs.forEach(function(tab){
       self.link(tab);
     });
 
@@ -755,13 +747,14 @@ window.TabItems = {
   _heartbeat: function() {
     try {
       var now = Date.now();
-      var count = Tabs.length;
+      let tabs = Tabs.allTabs;
+      let count = tabs.length;
       if (count && this.paintingPaused <= 0) {
         this.heartbeatIndex++;
         if (this.heartbeatIndex >= count)
           this.heartbeatIndex = 0;
 
-        var tab = Tabs[this.heartbeatIndex];
+        let tab = tabs[this.heartbeatIndex];
         var tabItem = tab.tabItem;
         if (tabItem) {
           let iconUrl = tab.image;
