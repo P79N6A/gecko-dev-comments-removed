@@ -60,6 +60,7 @@ using mozilla::gfx::SharedDIBSurface;
 #include "gfxAlphaRecovery.h"
 
 #include "mozilla/ipc/SyncChannel.h"
+#include "mozilla/AutoRestore.h"
 
 using mozilla::ipc::ProcessChild;
 using namespace mozilla::plugins;
@@ -1547,14 +1548,8 @@ PluginInstanceChild::TrackPopupHookProc(HMENU hMenu,
   
   bool isRetCmdCall = (uFlags & TPM_RETURNCMD);
 
-  
-  
-  HWND focusHwnd = SetFocus(surrogateHwnd);
   DWORD res = sUser32TrackPopupMenuStub(hMenu, uFlags|TPM_RETURNCMD, x, y,
                                         nReserved, surrogateHwnd, prcRect);
-  if (IsWindow(focusHwnd)) {
-      SetFocus(focusHwnd);
-  }
 
   if (!isRetCmdCall && res) {
       SendMessage(hWnd, WM_COMMAND, MAKEWPARAM(res, 0), 0);
@@ -1620,6 +1615,8 @@ PluginInstanceChild::WinlessHandleEvent(NPEvent& event)
     
     
     int16_t handled;
+    
+    HWND focusHwnd = NULL;
 
     
     
@@ -1628,11 +1625,22 @@ PluginInstanceChild::WinlessHandleEvent(NPEvent& event)
           (event.event == WM_RBUTTONDOWN || 
            event.event == WM_RBUTTONUP)) {  
       sWinlessPopupSurrogateHWND = mWinlessPopupSurrogateHWND;
+      
+      
+      
+      focusHwnd = SetFocus(mWinlessPopupSurrogateHWND);
     }
+
+    MessageLoop* loop = MessageLoop::current();
+    AutoRestore<bool> modalLoop(loop->os_modal_loop());
 
     handled = mPluginIface->event(&mData, reinterpret_cast<void*>(&event));
 
     sWinlessPopupSurrogateHWND = NULL;
+
+    if (IsWindow(focusHwnd)) {
+      SetFocus(focusHwnd);
+    }
 
     return handled;
 }
