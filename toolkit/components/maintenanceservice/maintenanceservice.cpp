@@ -50,8 +50,9 @@
 
 SERVICE_STATUS gSvcStatus = { 0 }; 
 SERVICE_STATUS_HANDLE gSvcStatusHandle = NULL; 
-HANDLE ghSvcStopEvent = NULL;
-BOOL gServiceStopping = FALSE;
+HANDLE gWorkDoneEvent = NULL;
+HANDLE gThread = NULL;
+bool gServiceControlStopping = false;
 
 
 #define LOGS_TO_KEEP 5
@@ -129,13 +130,13 @@ wmain(int argc, WCHAR **argv)
   }
 
   SERVICE_TABLE_ENTRYW DispatchTable[] = { 
-    { SVC_NAME, (LPSERVICE_MAIN_FUNCTION) SvcMain }, 
+    { SVC_NAME, (LPSERVICE_MAIN_FUNCTIONW) SvcMain }, 
     { NULL, NULL } 
   }; 
 
   
   
-  if (!StartServiceCtrlDispatcher(DispatchTable)) {
+  if (!StartServiceCtrlDispatcherW(DispatchTable)) {
     LOG(("StartServiceCtrlDispatcher failed (%d)\n", GetLastError()));
   }
 
@@ -147,23 +148,9 @@ wmain(int argc, WCHAR **argv)
 
 
 
-DWORD
-WINAPI StartMaintenanceServiceThread(LPVOID param) 
-{
-  ThreadData *threadData = reinterpret_cast<ThreadData*>(param);
-  ExecuteServiceCommand(threadData->argc, threadData->argv);
-  delete threadData;
-  return 0;
-}
-
-
-
-
-
-
 
 BOOL
-GetLogDirectoryPath(WCHAR *path) 
+GetLogDirectoryPath(WCHAR *path)
 {
   HRESULT hr = SHGetFolderPathW(NULL, CSIDL_COMMON_APPDATA, NULL, 
     SHGFP_TYPE_CURRENT, path);
@@ -218,7 +205,7 @@ GetBackupLogPath(LPWSTR path, LPCWSTR basePath, int logNumber)
 
 
 void
-BackupOldLogs(LPCWSTR basePath, int numLogsToKeep) 
+BackupOldLogs(LPCWSTR basePath, int numLogsToKeep)
 {
   WCHAR oldPath[MAX_PATH + 1];
   WCHAR newPath[MAX_PATH + 1];
@@ -231,7 +218,7 @@ BackupOldLogs(LPCWSTR basePath, int numLogsToKeep)
       continue;
     }
 
-    if (!MoveFileEx(oldPath, newPath, MOVEFILE_REPLACE_EXISTING)) {
+    if (!MoveFileExW(oldPath, newPath, MOVEFILE_REPLACE_EXISTING)) {
       continue;
     }
   }
@@ -240,8 +227,42 @@ BackupOldLogs(LPCWSTR basePath, int numLogsToKeep)
 
 
 
-void WINAPI 
-SvcMain(DWORD dwArgc, LPWSTR *lpszArgv)
+
+
+
+
+
+
+
+
+
+
+
+DWORD WINAPI
+EnsureProcessTerminatedThread(LPVOID)
+{
+  Sleep(5000);
+  exit(0);
+  return 0;
+}
+
+void
+StartTerminationThread()
+{
+  
+  
+  HANDLE thread = CreateThread(NULL, 0, EnsureProcessTerminatedThread, 
+                               NULL, 0, NULL);
+  if (thread) {
+    CloseHandle(thread);
+  }
+}
+
+
+
+
+void WINAPI
+SvcMain(DWORD argc, LPWSTR *argv)
 {
   
   WCHAR updatePath[MAX_PATH + 1];
@@ -258,7 +279,9 @@ SvcMain(DWORD dwArgc, LPWSTR *lpszArgv)
   gSvcStatusHandle = RegisterServiceCtrlHandlerW(SVC_NAME, SvcCtrlHandler);
   if (!gSvcStatusHandle) {
     LOG(("RegisterServiceCtrlHandler failed (%d)\n", GetLastError()));
-    return; 
+    ExecuteServiceCommand(argc, argv);  
+    LogFinish();
+    exit(1);
   } 
 
   
@@ -269,40 +292,32 @@ SvcMain(DWORD dwArgc, LPWSTR *lpszArgv)
   ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 3000);
 
   
-  SvcInit(dwArgc, lpszArgv);
-}
-
-
-
-
-void
-SvcInit(DWORD argc, LPWSTR *argv)
-{
   
-  
-  ghSvcStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-  if (NULL == ghSvcStopEvent) {
+  gWorkDoneEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+  if (!gWorkDoneEvent) {
     ReportSvcStatus(SERVICE_STOPPED, 1, 0);
+    StartTerminationThread();
     return;
   }
 
-  ThreadData *threadData = new ThreadData();
-  threadData->argc = argc;
-  threadData->argv = argv;
-
-  DWORD threadID;
-  HANDLE thread = CreateThread(NULL, 0, StartMaintenanceServiceThread, 
-                               threadData, 0, &threadID);
-
+  
   
   ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
 
   
-  for(;;) {
-    
-    WaitForSingleObject(ghSvcStopEvent, INFINITE);
+  
+  
+  ExecuteServiceCommand(argc, argv);  
+  LogFinish();
+
+  SetEvent(gWorkDoneEvent);
+
+  
+  
+  
+  if (!gServiceControlStopping) {
     ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
-    return;
+    StartTerminationThread();
   }
 }
 
@@ -320,15 +335,16 @@ ReportSvcStatus(DWORD currentState,
 {
   static DWORD dwCheckPoint = 1;
 
-  
   gSvcStatus.dwCurrentState = currentState;
   gSvcStatus.dwWin32ExitCode = exitCode;
   gSvcStatus.dwWaitHint = waitHint;
 
-  if (SERVICE_START_PENDING == currentState) {
+  if (SERVICE_START_PENDING == currentState || 
+      SERVICE_STOP_PENDING == currentState) {
     gSvcStatus.dwControlsAccepted = 0;
   } else {
-    gSvcStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+    gSvcStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP | 
+                                    SERVICE_ACCEPT_SHUTDOWN;
   }
 
   if ((SERVICE_RUNNING == currentState) ||
@@ -346,21 +362,54 @@ ReportSvcStatus(DWORD currentState,
 
 
 
+DWORD WINAPI
+StopServiceAndWaitForCommandThread(LPVOID)
+{
+  do {
+    ReportSvcStatus(SERVICE_STOP_PENDING, NO_ERROR, 1000);
+  } while(WaitForSingleObject(gWorkDoneEvent, 100) == WAIT_TIMEOUT);
+  CloseHandle(gWorkDoneEvent);
+  gWorkDoneEvent = NULL;
+  ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+  StartTerminationThread();
+  return 0;
+}
+
+
+
+
+
 void WINAPI
 SvcCtrlHandler(DWORD dwCtrl)
 {
   
+  
+  if (gServiceControlStopping) {
+    return;
+  }
+
+  
   switch(dwCtrl) {
-  case SERVICE_CONTROL_STOP: 
-    ReportSvcStatus(SERVICE_STOP_PENDING, NO_ERROR, 0);
-    
-    SetEvent(ghSvcStopEvent);
-    ReportSvcStatus(gSvcStatus.dwCurrentState, NO_ERROR, 0);
-    LogFinish();
+  case SERVICE_CONTROL_SHUTDOWN:
+  case SERVICE_CONTROL_STOP: {
+      gServiceControlStopping = true;
+      ReportSvcStatus(SERVICE_STOP_PENDING, NO_ERROR, 1000);
+
+      
+      
+      HANDLE thread = CreateThread(NULL, 0, StopServiceAndWaitForCommandThread, 
+                                   NULL, 0, NULL);
+      if (thread) {
+        CloseHandle(thread);
+      } else {
+        
+        
+        
+        StopServiceAndWaitForCommandThread(NULL);
+      }
+    }
     break;
-  case SERVICE_CONTROL_INTERROGATE: 
-    break; 
-  default: 
+  default:
     break;
   }
 }

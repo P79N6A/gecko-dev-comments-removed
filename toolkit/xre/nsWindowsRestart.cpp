@@ -265,13 +265,17 @@ WinLaunchChild(const PRUnichar *exePath,
   si.lpDesktop = L"winsta0\\Default";
   PROCESS_INFORMATION pi = {0};
 
+  DWORD creationFlags = 0;
+#ifdef DEBUG
+  creationFlags |= CREATE_NEW_CONSOLE;
+#endif
   if (userToken == NULL) {
     ok = CreateProcessW(exePath,
                         cl,
                         NULL,  
                         NULL,  
                         FALSE, 
-                        0,     
+                        creationFlags,
                         NULL,  
                         NULL,  
                         &si,

@@ -90,7 +90,7 @@ LPCTSTR UACHelper::PrivsToDisable[] = {
 
 
 BOOL
-UACHelper::IsVistaOrLater() 
+UACHelper::IsVistaOrLater()
 {
   
   OSVERSIONINFO osInfo;
@@ -127,7 +127,7 @@ UACHelper::OpenUserToken(DWORD sessionID)
 
 
 HANDLE
-UACHelper::OpenLinkedToken(HANDLE token) 
+UACHelper::OpenLinkedToken(HANDLE token)
 {
   
   

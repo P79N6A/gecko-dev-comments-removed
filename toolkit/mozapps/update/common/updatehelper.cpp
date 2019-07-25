@@ -42,10 +42,11 @@
 
 
 #include <shlwapi.h>
+
+#include <tlhelp32.h>
 #pragma comment(lib, "shlwapi.lib") 
 
-WCHAR*
-MakeCommandLine(int argc, WCHAR **argv);
+WCHAR* MakeCommandLine(int argc, WCHAR **argv);
 BOOL PathAppendSafe(LPWSTR base, LPCWSTR extra);
 
 
@@ -258,14 +259,9 @@ StartServiceUpdate(int argc, LPWSTR *argv)
   BOOL svcUpdateProcessStarted = CreateProcessW(maintserviceInstallerPath, 
                                                 cmdLine, 
                                                 NULL, NULL, FALSE, 
-                                                CREATE_DEFAULT_ERROR_MODE | 
-                                                CREATE_UNICODE_ENVIRONMENT, 
+                                                0, 
                                                 NULL, argv[2], &si, &pi);
   if (svcUpdateProcessStarted) {
-    
-    
-    
-    WaitForSingleObject(pi.hProcess, INFINITE);
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
   }
@@ -280,44 +276,54 @@ StartServiceUpdate(int argc, LPWSTR *argv)
 
 
 
-BOOL 
-StartServiceCommand(int argc, LPCWSTR* argv) 
+
+
+
+
+DWORD
+StartServiceCommand(int argc, LPCWSTR* argv)
 {
+  DWORD lastState = WaitForServiceStop(SVC_NAME, 5);
+  if (lastState != SERVICE_STOPPED) {
+    return 20000 + lastState;
+  }
+
   
   SC_HANDLE serviceManager = OpenSCManager(NULL, NULL, 
                                            SC_MANAGER_CONNECT | 
                                            SC_MANAGER_ENUMERATE_SERVICE);
   if (!serviceManager)  {
-    return FALSE;
+    return 17001;
   }
 
   
   SC_HANDLE service = OpenServiceW(serviceManager, 
                                    SVC_NAME, 
-                                   SERVICE_QUERY_STATUS | SERVICE_START);
+                                   SERVICE_START);
   if (!service) {
     CloseServiceHandle(serviceManager);
-    return FALSE;
+    return 17002;
   }
 
   
-  SERVICE_STATUS_PROCESS ssp;
-  DWORD bytesNeeded;
-  if (!QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp,
-                            sizeof(SERVICE_STATUS_PROCESS), &bytesNeeded)) {
-    CloseServiceHandle(service);
-    CloseServiceHandle(serviceManager);
-    return FALSE;
-  }
-
   
-  if (ssp.dwCurrentState != SERVICE_STOPPED) {
-    CloseServiceHandle(service);
-    CloseServiceHandle(serviceManager);
-    return FALSE;
+  const DWORD maxWaitMS = 5000;
+  DWORD currentWaitMS = 0;
+  DWORD lastError = ERROR_SUCCESS;
+  while (currentWaitMS < maxWaitMS) {
+    BOOL result = StartServiceW(service, argc, argv);
+    if (result) {
+      lastError = ERROR_SUCCESS;
+      break;
+    } else {
+      lastError = GetLastError();
+    }
+    Sleep(100);
+    currentWaitMS += 100;
   }
-
-  return StartServiceW(service, argc, argv);
+  CloseServiceHandle(service);
+  CloseServiceHandle(serviceManager);
+  return lastError;
 }
 
 
@@ -330,14 +336,14 @@ StartServiceCommand(int argc, LPCWSTR* argv)
 
 
 
-BOOL
+DWORD
 LaunchServiceSoftwareUpdateCommand(DWORD argc, LPCWSTR* argv)
 {
   
   
   
   LPCWSTR *updaterServiceArgv = new LPCWSTR[argc + 2];
-  updaterServiceArgv[0] = L"maintenanceservice.exe";
+  updaterServiceArgv[0] = L"MozillaMaintenance";
   updaterServiceArgv[1] = L"software-update";
 
   for (int i = 0; i < argc; ++i) {
@@ -346,9 +352,9 @@ LaunchServiceSoftwareUpdateCommand(DWORD argc, LPCWSTR* argv)
 
   
   
-  BOOL result = StartServiceCommand(argc + 2, updaterServiceArgv);
+  DWORD ret = StartServiceCommand(argc + 2, updaterServiceArgv);
   delete[] updaterServiceArgv;
-  return result;
+  return ret;
 }
 
 
@@ -405,7 +411,7 @@ WriteStatusPending(LPCWSTR updateDirPath)
 
 
 BOOL
-WriteStatusFailure(LPCWSTR updateDirPath, int errorCode) 
+WriteStatusFailure(LPCWSTR updateDirPath, int errorCode)
 {
   WCHAR updateStatusFilePath[MAX_PATH + 1];
   wcscpy(updateStatusFilePath, updateDirPath);
@@ -439,15 +445,48 @@ WriteStatusFailure(LPCWSTR updateDirPath, int errorCode)
 
 
 
-BOOL
-WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DWORD
+WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds)
 {
+  
+  DWORD lastServiceState = 0x000000CF;
+
   
   SC_HANDLE serviceManager = OpenSCManager(NULL, NULL, 
                                            SC_MANAGER_CONNECT | 
                                            SC_MANAGER_ENUMERATE_SERVICE);
   if (!serviceManager)  {
-    return FALSE;
+    DWORD lastError = GetLastError();
+    switch(lastError) {
+    case ERROR_ACCESS_DENIED:
+      return 0x000000FD;
+    case ERROR_DATABASE_DOES_NOT_EXIST:
+      return 0x000000FE;
+    default:
+      return 0x000000FF;
+    }
   }
 
   
@@ -455,31 +494,140 @@ WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds)
                                    serviceName, 
                                    SERVICE_QUERY_STATUS);
   if (!service) {
+    DWORD lastError = GetLastError();
     CloseServiceHandle(serviceManager);
-    return FALSE;
+    switch(lastError) {
+    case ERROR_ACCESS_DENIED:
+      return 0x000000EB;
+    case ERROR_INVALID_HANDLE:
+      return 0x000000EC;
+    case ERROR_INVALID_NAME:
+      return 0x000000ED;
+    case ERROR_SERVICE_DOES_NOT_EXIST:
+      return 0x000000EE;
+    default:
+      return 0x000000EF;
+    } 
   }
 
-  BOOL gotStop = FALSE;
   DWORD currentWaitMS = 0;
+  SERVICE_STATUS_PROCESS ssp;
+  ssp.dwCurrentState = lastServiceState;
   while (currentWaitMS < maxWaitSeconds * 1000) {
-    
-    SERVICE_STATUS_PROCESS ssp;
     DWORD bytesNeeded;
     if (!QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp,
                               sizeof(SERVICE_STATUS_PROCESS), &bytesNeeded)) {
+      DWORD lastError = GetLastError();
+      switch (lastError) {
+      case ERROR_INVALID_HANDLE:
+        ssp.dwCurrentState = 0x000000D9;
+        break;
+      case ERROR_ACCESS_DENIED:
+        ssp.dwCurrentState = 0x000000DA;
+        break;
+      case ERROR_INSUFFICIENT_BUFFER:
+        ssp.dwCurrentState = 0x000000DB;
+        break;
+      case ERROR_INVALID_PARAMETER:
+        ssp.dwCurrentState = 0x000000DC;
+        break;
+      case ERROR_INVALID_LEVEL:
+        ssp.dwCurrentState = 0x000000DD;
+        break;
+      case ERROR_SHUTDOWN_IN_PROGRESS:
+        ssp.dwCurrentState = 0x000000DE;
+        break;
+      
+      
+      case ERROR_INVALID_SERVICE_CONTROL:
+      case ERROR_SERVICE_CANNOT_ACCEPT_CTRL:
+      case ERROR_SERVICE_NOT_ACTIVE:
+        currentWaitMS += 50;
+        Sleep(50);
+        continue;
+      default:
+        ssp.dwCurrentState = 0x000000DF;
+      }
+
+      
       break;
     }
 
     
     if (ssp.dwCurrentState == SERVICE_STOPPED) {
-      gotStop = TRUE;
       break;
     }
     currentWaitMS += 50;
     Sleep(50);
   }
 
+  lastServiceState = ssp.dwCurrentState;
   CloseServiceHandle(service);
   CloseServiceHandle(serviceManager);
-  return gotStop;
+  return lastServiceState;
+}
+
+
+
+
+
+
+
+
+
+
+DWORD
+IsProcessRunning(LPCWSTR filename)
+{
+  
+  HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (INVALID_HANDLE_VALUE == snapshot) {
+    return GetLastError();
+  }
+  
+  PROCESSENTRY32W processEntry;
+  processEntry.dwSize = sizeof(PROCESSENTRY32W);
+  if (!Process32FirstW(snapshot, &processEntry)) {
+    DWORD lastError = GetLastError();
+    CloseHandle(snapshot);
+    return lastError;
+  }
+
+  do {
+    if (wcsicmp(filename, processEntry.szExeFile) == 0) {
+      CloseHandle(snapshot);
+      return ERROR_SUCCESS;
+    }
+  } while (Process32NextW(snapshot, &processEntry));
+  CloseHandle(snapshot);
+  return ERROR_NOT_FOUND;
+}
+
+
+
+
+
+
+
+
+
+
+
+DWORD
+WaitForProcessExit(LPCWSTR filename, DWORD maxSeconds)
+{
+  DWORD applicationRunningError = WAIT_TIMEOUT;
+  for(DWORD i = 0; i < maxSeconds; i++) {
+    DWORD applicationRunningError = IsProcessRunning(filename);
+    if (ERROR_NOT_FOUND == applicationRunningError) {
+      return ERROR_SUCCESS;
+    }
+    Sleep(1000);
+  }
+
+  if (ERROR_SUCCESS == applicationRunningError) {
+    return WAIT_TIMEOUT;
+  }
+
+  return applicationRunningError;
 }

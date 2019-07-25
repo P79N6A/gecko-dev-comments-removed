@@ -1605,8 +1605,8 @@ int NS_main(int argc, NS_tchar **argv)
 
   bool useService = false;
   bool testOnlyFallbackKeyExists = false;
-  bool noServiceFallback = _wgetenv(L"MOZ_NO_SERVICE_FALLBACK") != NULL;
-  _wputenv(L"MOZ_NO_SERVICE_FALLBACK=");
+  bool noServiceFallback = getenv("MOZ_NO_SERVICE_FALLBACK") != NULL;
+  putenv(const_cast<char*>("MOZ_NO_SERVICE_FALLBACK="));
 
   
   
@@ -1680,9 +1680,10 @@ int NS_main(int argc, NS_tchar **argv)
   
   const int callbackIndex = 5;
 
+  bool usingService = false;
 #if defined(XP_WIN)
-  bool usingService = _wgetenv(L"MOZ_USING_SERVICE") != NULL;
-  _wputenv(L"MOZ_USING_SERVICE=");
+  usingService = getenv("MOZ_USING_SERVICE") != NULL;
+  putenv(const_cast<char*>("MOZ_USING_SERVICE="));
   
   
   
@@ -1783,16 +1784,19 @@ int NS_main(int argc, NS_tchar **argv)
       if (useService) {
         
         
-        useService = LaunchServiceSoftwareUpdateCommand(argc, (LPCWSTR *)argv);
-
+        DWORD ret = LaunchServiceSoftwareUpdateCommand(argc, (LPCWSTR *)argv);
+        useService = (ret == ERROR_SUCCESS);
         
         if (useService) {
-          if (!WaitForServiceStop(SVC_NAME, 600)) {
+          DWORD lastState = WaitForServiceStop(SVC_NAME, 600);
+          if (lastState != SERVICE_STOPPED) {
             
             
             lastFallbackError = FALLBACKKEY_SERVICE_NO_STOP_ERROR;
             useService = false;
           }
+        } else {
+          lastFallbackError = FALLBACKKEY_LAUNCH_ERROR;
         }
       }
 
@@ -1904,7 +1908,11 @@ int NS_main(int argc, NS_tchar **argv)
   if (argc > callbackIndex) {
     
     
+    
+    
+    
     NS_tchar callbackLongPath[MAXPATHLEN];
+    ZeroMemory(callbackLongPath, sizeof(callbackLongPath));
     if (!GetLongPathNameW(argv[callbackIndex], callbackLongPath,
                           sizeof(callbackLongPath)/sizeof(callbackLongPath[0]))) {
       LOG(("NS_main: unable to find callback file: " LOG_S "\n", argv[callbackIndex]));

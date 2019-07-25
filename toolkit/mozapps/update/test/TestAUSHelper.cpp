@@ -7,6 +7,7 @@
 #pragma comment(lib, "crypt32.lib")
 # include <windows.h>
 # include <wintrust.h>
+# include <tlhelp32.h>
 # include <softpub.h>
 # include <direct.h>
 # include <io.h>
@@ -162,14 +163,48 @@ VerifyCertificateTrustForFile(LPCWSTR filePath)
 
 
 
-bool WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DWORD
+WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds)
 {
+  
+  DWORD lastServiceState = 0x000000CF;
+
   
   SC_HANDLE serviceManager = OpenSCManager(NULL, NULL, 
                                            SC_MANAGER_CONNECT | 
                                            SC_MANAGER_ENUMERATE_SERVICE);
   if (!serviceManager)  {
-    return false;
+    DWORD lastError = GetLastError();
+    switch(lastError) {
+    case ERROR_ACCESS_DENIED:
+      return 0x000000FD;
+    case ERROR_DATABASE_DOES_NOT_EXIST:
+      return 0x000000FE;
+    default:
+      return 0x000000FF;
+    }
   }
 
   
@@ -177,33 +212,152 @@ bool WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds)
                                    serviceName, 
                                    SERVICE_QUERY_STATUS);
   if (!service) {
+    DWORD lastError = GetLastError();
     CloseServiceHandle(serviceManager);
-    return false;
+    switch(lastError) {
+    case ERROR_ACCESS_DENIED:
+      return 0x000000EB;
+    case ERROR_INVALID_HANDLE:
+      return 0x000000EC;
+    case ERROR_INVALID_NAME:
+      return 0x000000ED;
+    
+    
+    
+    
+    
+    case ERROR_SERVICE_DOES_NOT_EXIST:
+      if (maxWaitSeconds == 0) {
+        return 0x000000EE;
+      } else {
+        Sleep(1000);
+        return WaitForServiceStop(serviceName, maxWaitSeconds - 1);
+      }
+    default:
+      return 0x000000EF;
+    } 
   }
 
-  bool gotStop = false;
   DWORD currentWaitMS = 0;
+  SERVICE_STATUS_PROCESS ssp;
+  ssp.dwCurrentState = lastServiceState;
   while (currentWaitMS < maxWaitSeconds * 1000) {
-    
-    SERVICE_STATUS_PROCESS ssp;
     DWORD bytesNeeded;
     if (!QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp,
                               sizeof(SERVICE_STATUS_PROCESS), &bytesNeeded)) {
+      DWORD lastError = GetLastError();
+      switch (lastError) {
+      case ERROR_INVALID_HANDLE:
+        ssp.dwCurrentState = 0x000000D9;
+        break;
+      case ERROR_ACCESS_DENIED:
+        ssp.dwCurrentState = 0x000000DA;
+        break;
+      case ERROR_INSUFFICIENT_BUFFER:
+        ssp.dwCurrentState = 0x000000DB;
+        break;
+      case ERROR_INVALID_PARAMETER:
+        ssp.dwCurrentState = 0x000000DC;
+        break;
+      case ERROR_INVALID_LEVEL:
+        ssp.dwCurrentState = 0x000000DD;
+        break;
+      case ERROR_SHUTDOWN_IN_PROGRESS:
+        ssp.dwCurrentState = 0x000000DE;
+        break;
+      
+      
+      case ERROR_INVALID_SERVICE_CONTROL:
+      case ERROR_SERVICE_CANNOT_ACCEPT_CTRL:
+      case ERROR_SERVICE_NOT_ACTIVE:
+        currentWaitMS += 50;
+        Sleep(50);
+        continue;
+      default:
+        ssp.dwCurrentState = 0x000000DF;
+      }
+
+      
       break;
     }
 
     
     if (ssp.dwCurrentState == SERVICE_STOPPED) {
-      gotStop = true;
       break;
     }
     currentWaitMS += 50;
     Sleep(50);
   }
 
+  lastServiceState = ssp.dwCurrentState;
   CloseServiceHandle(service);
   CloseServiceHandle(serviceManager);
-  return gotStop;
+  return lastServiceState;
+}
+
+
+
+
+
+
+
+
+
+
+DWORD
+IsProcessRunning(LPCWSTR filename)
+{
+  
+  HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (INVALID_HANDLE_VALUE == snapshot) {
+    return GetLastError();
+  }
+  
+  PROCESSENTRY32W processEntry;
+  processEntry.dwSize = sizeof(PROCESSENTRY32W);
+  if (!Process32FirstW(snapshot, &processEntry)) {
+    DWORD lastError = GetLastError();
+    CloseHandle(snapshot);
+    return lastError;
+  }
+
+  do {
+    if (wcsicmp(filename, processEntry.szExeFile) == 0) {
+      CloseHandle(snapshot);
+      return ERROR_SUCCESS;
+    }
+  } while (Process32NextW(snapshot, &processEntry));
+  CloseHandle(snapshot);
+  return ERROR_NOT_FOUND;
+}
+
+
+
+
+
+
+
+
+
+
+
+DWORD
+WaitForProcessExit(LPCWSTR filename, DWORD maxSeconds)
+{
+  DWORD applicationRunningError = WAIT_TIMEOUT;
+  for(DWORD i = 0; i < maxSeconds; i++) {
+    DWORD applicationRunningError = IsProcessRunning(filename);
+    if (ERROR_NOT_FOUND == applicationRunningError) {
+      return ERROR_SUCCESS;
+    }
+    Sleep(1000);
+  }
+
+  if (ERROR_SUCCESS == applicationRunningError) {
+    return WAIT_TIMEOUT;
+  }
+
+  return applicationRunningError;
 }
 
 
@@ -258,10 +412,29 @@ int NS_main(int argc, NS_tchar **argv)
 #ifdef XP_WIN
     const int maxWaitSeconds = NS_ttoi(argv[3]);
     LPCWSTR serviceName = argv[2];
-    if (WaitForServiceStop(serviceName, maxWaitSeconds)) {
+    DWORD serviceState = WaitForServiceStop(serviceName, maxWaitSeconds);
+    if (SERVICE_STOPPED == serviceState) {
       return 0;
     } else {
+      return serviceState;
+    }
+#else 
+    
+    return 1;
+#endif
+  }
+
+  if (!NS_tstrcmp(argv[1], NS_T("wait-for-application-exit"))) {
+#ifdef XP_WIN
+    const int maxWaitSeconds = NS_ttoi(argv[3]);
+    LPCWSTR application = argv[2];
+    DWORD ret = WaitForProcessExit(application, maxWaitSeconds);
+    if (ERROR_SUCCESS == ret) {
+      return 0;
+    } else if (WAIT_TIMEOUT == ret) {
       return 1;
+    } else {
+      return 2;
     }
 #else 
     
