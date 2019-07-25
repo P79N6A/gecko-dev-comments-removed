@@ -51,6 +51,16 @@ LoginManagerCrypto_SDR.prototype = {
     classID : Components.ID("{dc6c2976-0f73-4f1f-b9ff-3d72b4e28309}"),
     QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerCrypto]),
 
+    __sdrSlot : null, 
+    get _sdrSlot() {
+        if (!this.__sdrSlot) {
+            let modules = Cc["@mozilla.org/security/pkcs11moduledb;1"].
+                          getService(Ci.nsIPKCS11ModuleDB);
+            this.__sdrSlot = modules.findSlotByName("");
+        }
+        return this.__sdrSlot;
+    },
+
     __decoderRing : null,  
     get _decoderRing() {
         if (!this.__decoderRing)
@@ -73,7 +83,8 @@ LoginManagerCrypto_SDR.prototype = {
         this.__utfConverter = null;
     },
 
-    _debug : false, 
+    _debug  : false, 
+    _uiBusy : false,
 
 
     
@@ -120,6 +131,10 @@ LoginManagerCrypto_SDR.prototype = {
     encrypt : function (plainText) {
         let cipherText = null;
 
+        let wasLoggedIn = this.isLoggedIn;
+        let canceledMP = false;
+
+        this._uiBusy = true;
         try {
             let plainOctet = this._utfConverter.ConvertFromUnicode(plainText);
             plainOctet += this._utfConverter.Finish();
@@ -128,10 +143,19 @@ LoginManagerCrypto_SDR.prototype = {
             this.log("Failed to encrypt string. (" + e.name + ")");
             
             
-            if (e.result == Cr.NS_ERROR_FAILURE)
+            if (e.result == Cr.NS_ERROR_FAILURE) {
+                canceledMP = true;
                 throw Components.Exception("User canceled master password entry", Cr.NS_ERROR_ABORT);
-            else
+            } else {
                 throw Components.Exception("Couldn't encrypt string", Cr.NS_ERROR_FAILURE);
+            }
+        } finally {
+            this._uiBusy = false;
+            
+            if (!wasLoggedIn && this.isLoggedIn)
+                this._notifyObservers("passwordmgr-crypto-login");
+            else if (canceledMP)
+                this._notifyObservers("passwordmgr-crypto-loginCanceled");
         }
         return cipherText;
     },
@@ -148,6 +172,10 @@ LoginManagerCrypto_SDR.prototype = {
     decrypt : function (cipherText) {
         let plainText = null;
 
+        let wasLoggedIn = this.isLoggedIn;
+        let canceledMP = false;
+
+        this._uiBusy = true;
         try {
             let plainOctet;
             if (cipherText.charAt(0) == '~') {
@@ -170,14 +198,55 @@ LoginManagerCrypto_SDR.prototype = {
             
             
             
-            if (e.result == Cr.NS_ERROR_NOT_AVAILABLE)
+            if (e.result == Cr.NS_ERROR_NOT_AVAILABLE) {
+                canceledMP = true;
                 throw Components.Exception("User canceled master password entry", Cr.NS_ERROR_ABORT);
-            else
+            } else {
                 throw Components.Exception("Couldn't decrypt string", Cr.NS_ERROR_FAILURE);
+            }
+        } finally {
+            this._uiBusy = false;
+            
+            if (!wasLoggedIn && this.isLoggedIn)
+                this._notifyObservers("passwordmgr-crypto-login");
+            else if (canceledMP)
+                this._notifyObservers("passwordmgr-crypto-loginCanceled");
         }
 
         return plainText;
-    }
+    },
+
+
+    
+
+
+    get uiBusy() {
+        return this._uiBusy;
+    },
+
+
+    
+
+
+    get isLoggedIn() {
+        let status = this._sdrSlot.status;
+        this.log("SDR slot status is " + status);
+        if (status == Ci.nsIPKCS11Slot.SLOT_READY ||
+            status == Ci.nsIPKCS11Slot.SLOT_LOGGED_IN)
+            return true;
+        if (status == Ci.nsIPKCS11Slot.SLOT_NOT_LOGGED_IN)
+            return false;
+        throw Components.Exception("unexpected slot status: " + status, Cr.NS_ERROR_FAILURE);
+    },
+
+
+    
+
+
+    _notifyObservers : function(topic) {
+        this.log("Prompted for a master password, notifying for " + topic);
+        Services.obs.notifyObservers(null, topic, null);
+     },
 }; 
 
 let component = [LoginManagerCrypto_SDR];

@@ -169,8 +169,6 @@ LoginManager.prototype = {
                        getService(Ci.nsIWebProgress);
         progress.addProgressListener(this._webProgressListener,
                                      Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
-
-
     },
 
 
@@ -347,6 +345,9 @@ LoginManager.prototype = {
                     var [usernameField, passwordField, ignored] =
                         this._pwmgr._getFormFields(acForm, false);
                     if (usernameField == acInputField && passwordField) {
+                        
+                        
+                        
                         this._pwmgr._fillForm(acForm, true, true, true, null);
                     } else {
                         this._pwmgr.log("Oops, form changed before AC invoked");
@@ -520,6 +521,14 @@ LoginManager.prototype = {
     
 
 
+    get uiBusy() {
+        return this._storage.uiBusy;
+    },
+
+
+    
+
+
 
 
     getLoginSavingEnabled : function (host) {
@@ -561,7 +570,7 @@ LoginManager.prototype = {
         
 
         if (!this._remember)
-            return false;
+            return null;
 
         this.log("AutoCompleteSearch invoked. Search is: " + aSearchString);
 
@@ -596,6 +605,9 @@ LoginManager.prototype = {
             var origin = this._getPasswordOrigin(doc.documentURI);
             var actionOrigin = this._getActionOrigin(aElement.form);
 
+            
+            
+            
             var logins = this.findLogins({}, origin, actionOrigin, null);
             var matchingLogins = [];
 
@@ -992,6 +1004,37 @@ LoginManager.prototype = {
         
         if (!this.countLogins(formOrigin, "", null))
             return;
+
+        
+        
+        if (this.uiBusy) {
+            this.log("deferring fillDoc for " + doc.documentURI);
+            let self = this;
+            let observer = {
+                QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupportsWeakReference]),
+
+                observe: function (subject, topic, data) {
+                    self.log("Got deferred fillDoc notification: " + topic);
+                    
+                    Services.obs.removeObserver(this, "passwordmgr-crypto-login");
+                    Services.obs.removeObserver(this, "passwordmgr-crypto-loginCanceled");
+                    if (topic == "passwordmgr-crypto-loginCanceled")
+                        return;
+                    self._fillDocument(doc);
+                },
+                handleEvent : function (event) {
+                    
+                }
+            };
+            
+            
+            
+            
+            Services.obs.addObserver(observer, "passwordmgr-crypto-login", true);
+            Services.obs.addObserver(observer, "passwordmgr-crypto-loginCanceled", true);
+            doc.addEventListener("mozCleverClosureHack", observer, false);
+            return;
+        }
 
         this.log("fillDocument processing " + forms.length +
                  " forms on " + doc.documentURI);
