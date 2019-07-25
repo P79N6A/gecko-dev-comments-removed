@@ -212,9 +212,6 @@ struct JSScript {
     bool            warnedAboutTwoArgumentEval:1; 
 
 
-#ifdef JS_METHODJIT
-    bool            debugMode:1;      
-#endif
 
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
