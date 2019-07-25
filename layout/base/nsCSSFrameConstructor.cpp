@@ -2468,8 +2468,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
       *aNewFrame = frameItems.FirstChild();
       NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
     } else {
-      contentFrame = NS_NewBlockFrame(mPresShell, styleContext,
-        NS_BLOCK_FLOAT_MGR|NS_BLOCK_MARGIN_ROOT);
+      contentFrame = NS_NewBlockFormattingContext(mPresShell, styleContext);
       if (!contentFrame)
         return NS_ERROR_OUT_OF_MEMORY;
       nsFrameItems frameItems;
@@ -3709,6 +3708,11 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
   CHECK_ONLY_ONE_BIT(FCDATA_FUNC_IS_FULL_CTOR, FCDATA_ALLOW_BLOCK_STYLES);
   CHECK_ONLY_ONE_BIT(FCDATA_MAY_NEED_SCROLLFRAME, FCDATA_FORCE_VIEW);
 #undef CHECK_ONLY_ONE_BIT
+  NS_ASSERTION(!(bits & FCDATA_FORCED_NON_SCROLLABLE_BLOCK) ||
+               ((bits & FCDATA_FUNC_IS_FULL_CTOR) &&
+                data->mFullConstructor ==
+                  &nsCSSFrameConstructor::ConstructNonScrollableBlock),
+               "Unexpected FCDATA_FORCED_NON_SCROLLABLE_BLOCK flag");
 
   
   if (aState.mCreatingExtraFrames && aItem.mContent->IsHTML() &&
@@ -4369,16 +4373,21 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
   
   
   
-  
-  
-  
-  
   if (aDisplay->IsBlockInside() &&
       aDisplay->IsScrollableOverflow() &&
-      !propagatedScrollToViewport &&
-      (!mPresShell->GetPresContext()->IsPaginated() ||
-       !aDisplay->IsBlockOutside() ||
-       aContent->IsInNativeAnonymousSubtree())) {
+      !propagatedScrollToViewport) {
+    
+    
+    
+    if (mPresShell->GetPresContext()->IsPaginated() &&
+        aDisplay->IsBlockOutside() &&
+        !aContent->IsInNativeAnonymousSubtree()) {
+      static const FrameConstructionData sForcedNonScrollableBlockData =
+        FULL_CTOR_FCDATA(FCDATA_FORCED_NON_SCROLLABLE_BLOCK,
+                         &nsCSSFrameConstructor::ConstructNonScrollableBlock);
+      return &sForcedNonScrollableBlockData;
+    }
+
     static const FrameConstructionData sScrollableBlockData =
       FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructScrollableBlock);
     return &sScrollableBlockData;
@@ -4504,22 +4513,20 @@ nsCSSFrameConstructor::ConstructNonScrollableBlock(nsFrameConstructorState& aSta
 {
   nsStyleContext* const styleContext = aItem.mStyleContext;
 
+  
+  
+  
+  
+  PRBool clipPaginatedOverflow =
+    (aItem.mFCData->mBits & FCDATA_FORCED_NON_SCROLLABLE_BLOCK) != 0;
   if (aDisplay->IsAbsolutelyPositioned() ||
       aDisplay->IsFloating() ||
       NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay->mDisplay ||
-      
-      
-      
-      
-      
-      
-      
-      (mPresShell->GetPresContext()->IsPaginated() &&
-       aDisplay->IsBlockInside() &&
-       aDisplay->IsScrollableOverflow() &&
-       aDisplay->IsBlockOutside() &&
-       !aItem.mContent->IsInNativeAnonymousSubtree())) {
+      clipPaginatedOverflow) {
     *aNewFrame = NS_NewBlockFormattingContext(mPresShell, styleContext);
+    if (clipPaginatedOverflow) {
+      (*aNewFrame)->AddStateBits(NS_BLOCK_CLIP_PAGINATED_OVERFLOW);
+    }
   } else {
     *aNewFrame = NS_NewBlockFrame(mPresShell, styleContext);
   }

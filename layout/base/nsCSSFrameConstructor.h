@@ -728,6 +728,10 @@ private:
 
 
 #define FCDATA_USE_CHILD_ITEMS 0x20000
+  
+
+
+#define FCDATA_FORCED_NON_SCROLLABLE_BLOCK 0x40000
 
   
 
