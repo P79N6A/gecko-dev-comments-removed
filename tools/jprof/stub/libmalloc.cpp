@@ -93,6 +93,23 @@ static int enableRTCSignals(bool enable);
 
 
 
+
+static void DumpAddressMap();
+
+struct JprofShutdown {
+    JprofShutdown() {}
+    ~JprofShutdown() {
+        DumpAddressMap();
+    }
+};
+
+static void RegisterJprofShutdown() {
+    
+    
+    
+    static JprofShutdown t;
+}
+
 #if defined(i386) || defined(_i386) || defined(__x86_64__)
 JPROF_STATIC void CrawlStack(malloc_log_entry* me,
                              void* stack_top, void* top_instr_ptr)
@@ -458,7 +475,7 @@ NS_EXPORT_(void) setupProfilingStuff(void)
 		    sigset_t mset;
 
 		    
-		    atexit(DumpAddressMap);
+		    RegisterJprofShutdown();
 
 		    main_thread = pthread_self();
                     
