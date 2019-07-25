@@ -136,7 +136,7 @@ var VirtualCursorController = {
     let virtualCursor = this.getVirtualCursor(document);
     let acc = virtualCursor.position;
 
-    if (acc.numActions > 0) {
+    if (acc.actionCount > 0) {
       acc.doAction(0);
     } else {
       

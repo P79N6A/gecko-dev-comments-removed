@@ -33,7 +33,7 @@
         return;
       }
 
-      is(td1Acc.numActions, 0,
+      is(td1Acc.actionCount, 0,
            "Simple table cell shouldn't have any actions");
 
       //////////////////////////////////////////////////////////////////////////
@@ -67,7 +67,7 @@
             this.ID.removeEventListener("click", gClickHandler, false);
 
             // check actions
-            is(getAccessible(this.ID).numActions, 0,
+            is(getAccessible(this.ID).actionCount, 0,
                "td3 shouldn't have actions");
           }
         }

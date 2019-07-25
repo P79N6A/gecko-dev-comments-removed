@@ -1815,7 +1815,7 @@ nsAccessible::NativeRole()
 
 
 NS_IMETHODIMP
-nsAccessible::GetNumActions(PRUint8* aActionCount)
+nsAccessible::GetActionCount(PRUint8* aActionCount)
 {
   NS_ENSURE_ARG_POINTER(aActionCount);
   *aActionCount = 0;
