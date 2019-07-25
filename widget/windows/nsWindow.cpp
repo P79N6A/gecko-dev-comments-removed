@@ -380,6 +380,7 @@ nsWindow::nsWindow() : nsBaseWidget()
   mBorderStyle          = eBorderStyle_default;
   mPopupType            = ePopupTypeAny;
   mOldSizeMode          = nsSizeMode_Normal;
+  mLastSizeMode         = nsSizeMode_Normal;
   mLastPoint.x          = 0;
   mLastPoint.y          = 0;
   mLastSize.width       = 0;
@@ -1568,6 +1569,7 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
     return NS_OK;
 
   
+  mLastSizeMode = mSizeMode;
   rv = nsBaseWidget::SetSizeMode(aMode);
   if (NS_SUCCEEDED(rv) && mIsVisible) {
     int mode;
@@ -1607,7 +1609,7 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
     }
     
     
-    if (mode == SW_RESTORE || mode == SW_MAXIMIZE || mode == SW_SHOW)
+    if (mode == SW_MAXIMIZE || mode == SW_SHOW)
       DispatchFocusToTopLevelWindow(NS_ACTIVATE);
   }
   return rv;
@@ -5569,7 +5571,7 @@ LRESULT nsWindow::ProcessCharMessage(const MSG &aMsg, bool *aEventDispatched)
   
   
   nsModifierKeyState modKeyState;
-  NativeKey nativeKey(gKbdLayout.GetLayout(), this, aMsg);
+  NativeKey nativeKey(gKbdLayout.GetLayout(), mWnd, aMsg);
   return OnChar(aMsg, nativeKey, modKeyState, aEventDispatched);
 }
 
@@ -5910,6 +5912,12 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
     result = DispatchWindowEvent(&event);
 
     
+    
+    
+    if (mLastSizeMode != nsSizeMode_Normal && mSizeMode == nsSizeMode_Normal)
+      DispatchFocusToTopLevelWindow(NS_ACTIVATE);
+
+    
     if (mSizeMode == nsSizeMode_Minimized)
       return;
   }
@@ -6226,6 +6234,16 @@ StringCaseInsensitiveEquals(const PRUnichar* aChars1, const PRUint32 aNumChars1,
   return comp(aChars1, aChars2, aNumChars1, aNumChars2) == 0;
 }
 
+UINT nsWindow::MapFromNativeToDOM(UINT aNativeKeyCode)
+{
+  switch (aNativeKeyCode) {
+    case VK_OEM_1:     return NS_VK_SEMICOLON;     
+    case VK_OEM_PLUS:  return NS_VK_ADD;           
+    case VK_OEM_MINUS: return NS_VK_SUBTRACT;      
+  }
+  return aNativeKeyCode;
+}
+
 
 bool nsWindow::IsRedirectedKeyDownMessage(const MSG &aMsg)
 {
@@ -6248,13 +6266,14 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
                             bool *aEventDispatched,
                             nsFakeCharMessage* aFakeCharMessage)
 {
-  NativeKey nativeKey(gKbdLayout.GetLayout(), this, aMsg);
+  NativeKey nativeKey(gKbdLayout.GetLayout(), mWnd, aMsg);
   UINT virtualKeyCode = nativeKey.GetOriginalVirtualKeyCode();
   gKbdLayout.OnKeyDown(virtualKeyCode);
 
   
   
-  PRUint32 DOMKeyCode = nativeKey.GetDOMKeyCode();
+  UINT DOMKeyCode = nsIMM32Handler::IsComposingOn(this) ?
+                      virtualKeyCode : MapFromNativeToDOM(virtualKeyCode);
 
 #ifdef DEBUG
   
@@ -6597,14 +6616,20 @@ LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
                           nsModifierKeyState &aModKeyState,
                           bool *aEventDispatched)
 {
+  UINT virtualKeyCode = aMsg.wParam;
+
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
-         ("nsWindow::OnKeyUp wParam(VK)=%d\n", aMsg.wParam));
+         ("nsWindow::OnKeyUp VK=%d\n", virtualKeyCode));
+
+  if (!nsIMM32Handler::IsComposingOn(this)) {
+    virtualKeyCode = MapFromNativeToDOM(virtualKeyCode);
+  }
 
   if (aEventDispatched)
     *aEventDispatched = true;
   nsKeyEvent keyupEvent(true, NS_KEY_UP, this);
-  NativeKey nativeKey(gKbdLayout.GetLayout(), this, aMsg);
-  keyupEvent.keyCode = nativeKey.GetDOMKeyCode();
+  keyupEvent.keyCode = virtualKeyCode;
+  NativeKey nativeKey(gKbdLayout.GetLayout(), mWnd, aMsg);
   InitKeyEvent(keyupEvent, nativeKey, aModKeyState);
   return DispatchKeyEvent(keyupEvent, &aMsg);
 }
@@ -6633,17 +6658,19 @@ LRESULT nsWindow::OnChar(const MSG &aMsg,
   if (aModKeyState.mIsAltDown && aModKeyState.mIsControlDown)
     aModKeyState.mIsAltDown = aModKeyState.mIsControlDown = false;
 
+  wchar_t uniChar;
+
   if (nsIMM32Handler::IsComposingOn(this)) {
     ResetInputState();
   }
 
-  wchar_t uniChar;
   if (aModKeyState.mIsControlDown && charCode <= 0x1A) { 
     
     if (aModKeyState.mIsShiftDown)
       uniChar = charCode - 1 + 'A';
     else
       uniChar = charCode - 1 + 'a';
+    charCode = 0;
   }
   else if (aModKeyState.mIsControlDown && charCode <= 0x1F) {
     
@@ -6651,18 +6678,20 @@ LRESULT nsWindow::OnChar(const MSG &aMsg,
     
     
     uniChar = charCode - 1 + 'A';
+    charCode = 0;
   } else { 
     if (charCode < 0x20 || (charCode == 0x3D && aModKeyState.mIsControlDown)) {
       uniChar = 0;
     } else {
       uniChar = charCode;
+      charCode = 0;
     }
   }
 
   
   
   if (uniChar && (aModKeyState.mIsControlDown || aModKeyState.mIsAltDown)) {
-    UINT virtualKeyCode = ::MapVirtualKeyEx(aNativeKey.GetScanCode(),
+    UINT virtualKeyCode = ::MapVirtualKeyEx(WinUtils::GetScanCode(aMsg.lParam),
                                             MAPVK_VSC_TO_VK,
                                             gKbdLayout.GetLayout());
     UINT unshiftedCharCode =
@@ -6685,9 +6714,6 @@ LRESULT nsWindow::OnChar(const MSG &aMsg,
   nsKeyEvent keypressEvent(true, NS_KEY_PRESS, this);
   keypressEvent.flags |= aFlags;
   keypressEvent.charCode = uniChar;
-  if (!keypressEvent.charCode) {
-    keypressEvent.keyCode = aNativeKey.GetDOMKeyCode();
-  }
   InitKeyEvent(keypressEvent, aNativeKey, aModKeyState);
   bool result = DispatchKeyEvent(keypressEvent, &aMsg);
   if (aEventDispatched)
