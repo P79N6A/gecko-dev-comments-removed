@@ -153,8 +153,11 @@ public:
 
 
 
+
+
    static PRBool IsAncestorOf(nsINode *aPossibleAncestorNode,
-                              nsINode *aPossibleDescendantNode);
+                              nsINode *aPossibleDescendantNode,
+                              nsINode *aRootNode = nsnull);
 
   
 
