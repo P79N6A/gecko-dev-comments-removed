@@ -317,6 +317,10 @@ public:
    virtual const char* Name() const { return "OGL"; }
 #endif 
 
+   const nsIntSize& GetWigetSize() {
+     return mWidgetSize;
+   }
+
 private:
   
   nsIWidget *mWidget;

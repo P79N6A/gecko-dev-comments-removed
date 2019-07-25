@@ -530,6 +530,7 @@ LayerManagerOGL::Render()
       mWidgetSize.height != height)
   {
     MakeCurrent(PR_TRUE);
+
     mWidgetSize.width = width;
     mWidgetSize.height = height;
   } else {
@@ -551,8 +552,10 @@ LayerManagerOGL::Render()
   const nsIntRect *clipRect = mRoot->GetClipRect();
 
   if (clipRect) {
-    mGLContext->fScissor(clipRect->x, clipRect->y,
-                         clipRect->width, clipRect->height);
+    nsIntRect r = *clipRect;
+    if (!mGLContext->IsDoubleBuffered())
+      mGLContext->FixWindowCoordinateRect(r, mWidgetSize.height);
+    mGLContext->fScissor(r.x, r.y, r.width, r.height);
   } else {
     mGLContext->fScissor(0, 0, width, height);
   }
@@ -669,8 +672,36 @@ void
 LayerManagerOGL::SetupPipeline(int aWidth, int aHeight)
 {
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   mGLContext->fViewport(0, 0, aWidth, aHeight);
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   gfx3DMatrix viewMatrix;

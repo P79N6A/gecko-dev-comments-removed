@@ -184,6 +184,22 @@ public:
 
 
 
+
+    virtual void Resize(const nsIntSize& aSize) {
+        nsIntRegion r(nsIntRect(0, 0, aSize.width, aSize.height));
+        gfxContext *dummy = BeginUpdate(r);
+        EndUpdate();
+    }
+
+    
+
+
+
+
+
+
+
+
     GLuint Texture() { return mTexture; }
 
     
@@ -202,6 +218,8 @@ public:
     PRBool IsRGB() const { return mIsRGBFormat; }
 
 protected:
+    friend class GLContext;
+
     
 
 
@@ -241,6 +259,7 @@ public:
 
     virtual PRBool InUpdate() const { return !!mUpdateContext; }
 
+    virtual void Resize(const nsIntSize& aSize);
 protected:
     typedef gfxASurface::gfxImageFormat ImageFormat;
 
@@ -342,9 +361,13 @@ public:
 #else
         mIsGLES2(PR_FALSE),
 #endif
+        mIsGlobalSharedContext(PR_FALSE),
+        mWindowOriginBottomLeft(PR_FALSE),
         mCreationFormat(aFormat),
         mSharedContext(aSharedContext),
         mOffscreenTexture(0),
+        mBlitProgram(0),
+        mBlitFramebuffer(0),
         mOffscreenFBO(0),
         mOffscreenDepthRB(0),
         mOffscreenStencilRB(0)
@@ -353,6 +376,7 @@ public:
     }
 
     virtual ~GLContext() {
+        NS_ASSERTION(IsDestroyed(), "GLContext implementation must call MarkDestroyed in destructor!");
 #ifdef DEBUG
         if (mSharedContext) {
             GLContext *tip = mSharedContext;
@@ -433,6 +457,36 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+    PRBool IsWindowOriginBottomLeft() {
+        return mWindowOriginBottomLeft;
+    }
+
+    
+
+
+
+
+    nsIntRect& FixWindowCoordinateRect(nsIntRect& aRect, int aWindowHeight) {
+        if (!mWindowOriginBottomLeft) {
+            aRect.y = aWindowHeight - (aRect.height + aRect.y);
+        }
+        return aRect;
+    }
+
+    
+
+
+
+
     virtual PRBool SwapBuffers() { return PR_FALSE; }
 
     
@@ -498,9 +552,6 @@ public:
 
 
 
-    
-
-
 
 
 
@@ -513,11 +564,15 @@ public:
     
 
 
+
+
     gfxIntSize OffscreenSize() {
         return mOffscreenSize;
     }
 
     
+
+
 
 
 
@@ -530,11 +585,17 @@ public:
 
 
 
+
+
     GLuint GetOffscreenFBO() {
         return mOffscreenFBO;
     }
     GLuint GetOffscreenTexture() {
         return mOffscreenTexture;
+    }
+
+    virtual PRBool TextureImageSupportsGetBackingSurface() {
+        return PR_FALSE;
     }
 
     
@@ -585,6 +646,34 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
+                          TextureImage *aDst, const nsIntRect& aDstRect);
+
+    
+
+
+
+
+
+
     enum GLExtensions {
         EXT_framebuffer_object,
         ARB_framebuffer_object,
@@ -611,6 +700,8 @@ protected:
     PRPackedBool mIsOffscreen;
     PRPackedBool mIsGLES2;
     PRPackedBool mIsGlobalSharedContext;
+    PRPackedBool mWindowOriginBottomLeft;
+
     ContextFormat mCreationFormat;
     nsRefPtr<GLContext> mSharedContext;
 
@@ -620,6 +711,11 @@ protected:
     gfxIntSize mOffscreenSize;
     gfxIntSize mOffscreenActualSize;
     GLuint mOffscreenTexture;
+
+    
+    GLuint mBlitProgram, mBlitFramebuffer;
+    void UseBlitProgram();
+    void SetBlitFramebufferForDestTexture(GLuint aTexture);
 
     
     
@@ -811,8 +907,6 @@ public:
     PFNGLREADPIXELSPROC fReadPixels;
     typedef void (GLAPIENTRY * PFNGLSAMPLECOVERAGEPROC) (GLclampf value, realGLboolean invert);
     PFNGLSAMPLECOVERAGEPROC fSampleCoverage;
-    typedef void (GLAPIENTRY * PFNGLSCISSORPROC) (GLint x, GLint y, GLsizei width, GLsizei height);
-    PFNGLSCISSORPROC fScissor;
     typedef void (GLAPIENTRY * PFNGLSTENCILFUNCPROC) (GLenum func, GLint ref, GLuint mask);
     PFNGLSTENCILFUNCPROC fStencilFunc;
     typedef void (GLAPIENTRY * PFNGLSTENCILFUNCSEPARATEPROC) (GLenum frontfunc, GLenum backfunc, GLint ref, GLuint mask);
@@ -889,8 +983,6 @@ public:
     PFNGLVERTEXATTRIB3FVPROC fVertexAttrib3fv;
     typedef void (GLAPIENTRY * PFNGLVERTEXATTRIB4FVPROC) (GLuint index, const GLfloat* v);
     PFNGLVERTEXATTRIB4FVPROC fVertexAttrib4fv;
-    typedef void (GLAPIENTRY * PFNGLVIEWPORTPROC) (GLint x, GLint y, GLsizei width, GLsizei height);
-    PFNGLVIEWPORTPROC fViewport;
     typedef void (GLAPIENTRY * PFNGLCOMPILESHADERPROC) (GLuint shader);
     PFNGLCOMPILESHADERPROC fCompileShader;
     typedef void (GLAPIENTRY * PFNGLCOPYTEXIMAGE2DPROC) (GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border);
@@ -946,7 +1038,74 @@ public:
         }
     }
 
+    void fScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
+        ScissorRect().SetRect(x, y, width, height);
+        priv_fScissor(x, y, width, height);
+    }
+
+    nsIntRect& ScissorRect() {
+        return mScissorStack[mScissorStack.Length()-1];
+    }
+
+    void PushScissorRect() {
+        mScissorStack.AppendElement(ScissorRect());
+    }
+
+    void PushScissorRect(const nsIntRect& aRect) {
+        mScissorStack.AppendElement(aRect);
+        priv_fScissor(aRect.x, aRect.y, aRect.width, aRect.height);
+    }
+
+    void PopScissorRect() {
+        if (mScissorStack.Length() < 2) {
+            NS_WARNING("PopScissorRect with Length < 2!");
+            return;
+        }
+
+        nsIntRect thisRect = ScissorRect();
+        mScissorStack.TruncateLength(mScissorStack.Length() - 1);
+        if (thisRect != ScissorRect()) {
+            priv_fScissor(ScissorRect().x, ScissorRect().y,
+                          ScissorRect().width, ScissorRect().height);
+        }
+    }
+
+    void fViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
+        ViewportRect().SetRect(x, y, width, height);
+        priv_fViewport(x, y, width, height);
+    }
+
+    nsIntRect& ViewportRect() {
+        return mViewportStack[mViewportStack.Length()-1];
+    }
+
+    void PushViewportRect() {
+        mViewportStack.AppendElement(ViewportRect());
+    }
+
+    void PushViewportRect(const nsIntRect& aRect) {
+        mViewportStack.AppendElement(aRect);
+        priv_fViewport(aRect.x, aRect.y, aRect.width, aRect.height);
+    }
+
+    void PopViewportRect() {
+        if (mViewportStack.Length() < 2) {
+            NS_WARNING("PopViewportRect with Length < 2!");
+            return;
+        }
+
+        nsIntRect thisRect = ViewportRect();
+        mViewportStack.TruncateLength(mViewportStack.Length() - 1);
+        if (thisRect != ViewportRect()) {
+            priv_fViewport(ViewportRect().x, ViewportRect().y,
+                           ViewportRect().width, ViewportRect().height);
+        }
+    }
+
 protected:
+    nsTArray<nsIntRect> mViewportStack;
+    nsTArray<nsIntRect> mScissorStack;
+
     
 
 
@@ -959,6 +1118,16 @@ protected:
     PFNGLDEPTHRANGEPROC priv_fDepthRange;
     typedef void (GLAPIENTRY * PFNGLCLEARDEPTHPROC) (GLclampd);
     PFNGLCLEARDEPTHPROC priv_fClearDepth;
+
+    
+
+
+
+    typedef void (GLAPIENTRY * PFNGLVIEWPORTPROC) (GLint x, GLint y, GLsizei width, GLsizei height);
+    PFNGLVIEWPORTPROC priv_fViewport;
+    typedef void (GLAPIENTRY * PFNGLSCISSORPROC) (GLint x, GLint y, GLsizei width, GLsizei height);
+    PFNGLSCISSORPROC priv_fScissor;
+
 
     
 

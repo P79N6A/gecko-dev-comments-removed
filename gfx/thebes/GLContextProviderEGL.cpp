@@ -523,10 +523,7 @@ public:
 
     ~GLContextEGL()
     {
-        if (mOffscreenFBO) {
-            MakeCurrent();
-            DeleteOffscreenFBO();
-        }
+        MarkDestroyed();
 
         
         
@@ -652,6 +649,11 @@ public:
     PRBool SwapBuffers()
     {
         return sEGLLibrary.fSwapBuffers(EGL_DISPLAY(), mSurface);
+    }
+
+    virtual PRBool TextureImageSupportsGetBackingSurface()
+    {
+        return PR_TRUE;
     }
 
     virtual already_AddRefed<TextureImage>

@@ -51,9 +51,11 @@ using gl::TextureImage;
 
 
 
+
 static void
 BindAndDrawQuadWithTextureRect(LayerProgram *aProg,
                                const nsIntRect& aTexCoordRect,
+                               const nsIntSize& aTexSize,
                                GLContext* aGl)
 {
   GLuint vertAttribIndex =
@@ -74,18 +76,19 @@ BindAndDrawQuadWithTextureRect(LayerProgram *aProg,
     1.0f, 1.0f                  
   };
   aGl->fVertexAttribPointer(vertAttribIndex, 2,
-                                   LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
-                                   quadVertices);
+                            LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
+                            quadVertices);
   DEBUG_GL_ERROR_CHECK(aGl);
 
-  GLfloat w(aTexCoordRect.width), h(aTexCoordRect.height);
-  GLfloat xleft = GLfloat(aTexCoordRect.x) / w;
-  GLfloat ytop = GLfloat(aTexCoordRect.y) / h;
+  GLfloat xleft = GLfloat(aTexCoordRect.x) / GLfloat(aTexSize.width);
+  GLfloat ytop = GLfloat(aTexCoordRect.y) / GLfloat(aTexSize.height);
+  GLfloat w = GLfloat(aTexCoordRect.width) / GLfloat(aTexSize.width);
+  GLfloat h = GLfloat(aTexCoordRect.height) / GLfloat(aTexSize.height);
   GLfloat texCoords[] = {
-    xleft,         ytop,
-    1.0f + xleft,  ytop,
-    xleft,         1.0f + ytop,
-    1.0f + xleft,  1.0f + ytop,
+    xleft,     ytop,
+    w + xleft, ytop,
+    xleft,     h + ytop,
+    w + xleft, h + ytop,
   };
 
   aGl->fVertexAttribPointer(texCoordAttribIndex, 2,
@@ -117,9 +120,8 @@ public:
   typedef TextureImage::ContentType ContentType;
   typedef ThebesLayerBuffer::PaintState PaintState;
 
-  ThebesLayerBufferOGL(ThebesLayerOGL* aLayer, TextureImage* aTexImage)
+  ThebesLayerBufferOGL(ThebesLayerOGL* aLayer)
     : mLayer(aLayer)
-    , mTexImage(aTexImage)
   {}
   virtual ~ThebesLayerBufferOGL() {}
 
@@ -127,8 +129,14 @@ public:
 
   void RenderTo(const nsIntPoint& aOffset, LayerManagerOGL* aManager);
 
+  nsIntSize GetSize() {
+    if (mTexImage)
+      return mTexImage->GetSize();
+    return nsIntSize(0, 0);
+  }
+
 protected:
-  virtual nsIntRect GetTexCoordRectForRepeat() = 0;
+  virtual nsIntPoint GetOriginOffset() = 0;
 
   GLContext* gl() const { return mLayer->gl(); }
 
@@ -140,6 +148,9 @@ void
 ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
                                LayerManagerOGL* aManager)
 {
+  if (!mTexImage)
+    return;
+
   
   
   ColorTextureLayerProgram *program =
@@ -161,8 +172,8 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
   program->SetTextureUnit(0);
   DEBUG_GL_ERROR_CHECK(gl());
 
-  nsIntRect texCoordRect = GetTexCoordRectForRepeat();
-  BindAndDrawQuadWithTextureRect(program, texCoordRect, gl());
+  quadRect.MoveBy(-GetOriginOffset());
+  BindAndDrawQuadWithTextureRect(program, quadRect, mTexImage->GetSize(), gl());
   DEBUG_GL_ERROR_CHECK(gl());
 }
 
@@ -176,12 +187,10 @@ public:
   typedef ThebesLayerBufferOGL::ContentType ContentType;
   typedef ThebesLayerBufferOGL::PaintState PaintState;
 
-  SurfaceBufferOGL(ThebesLayerOGL* aLayer, TextureImage* aTexImage)
-    : ThebesLayerBufferOGL(aLayer, aTexImage)
+  SurfaceBufferOGL(ThebesLayerOGL* aLayer)
+    : ThebesLayerBufferOGL(aLayer)
     , ThebesLayerBuffer(SizedToVisibleBounds)
   {
-    mTmpSurface = mTexImage->GetBackingSurface();
-    NS_ABORT_IF_FALSE(mTmpSurface, "SurfaceBuffer without backing surface??");
   }
   virtual ~SurfaceBufferOGL() {}
 
@@ -198,34 +207,14 @@ public:
   {
     NS_ASSERTION(gfxASurface::CONTENT_ALPHA != aType,"ThebesBuffer has color");
 
-    if (mTmpSurface)
-    {
-      NS_ASSERTION(aSize == mTexImage->GetSize(),
-                   "initial TextureImage is the wrong size");
-      NS_ASSERTION(aType == mTexImage->GetContentType(),
-                   "initial TextureImage has the wrong content type");
-      
-      
-      
-      
-      return mTmpSurface.forget();
-    }
-
     mTexImage = gl()->CreateTextureImage(aSize, aType, LOCAL_GL_REPEAT);
     return mTexImage ? mTexImage->GetBackingSurface() : nsnull;
   }
 
 protected:
-  virtual nsIntRect
-  GetTexCoordRectForRepeat()
-  {
-    
-    
-    return nsIntRect(BufferRotation(), BufferRect().Size());
+  virtual nsIntPoint GetOriginOffset() {
+    return BufferRect().TopLeft() - BufferRotation();
   }
-
-private:
-  nsRefPtr<gfxASurface> mTmpSurface;
 };
 
 
@@ -236,91 +225,199 @@ private:
 class BasicBufferOGL : public ThebesLayerBufferOGL
 {
 public:
-  BasicBufferOGL(ThebesLayerOGL* aLayer, TextureImage* aTexImage)
-    : ThebesLayerBufferOGL(aLayer, aTexImage)
+  BasicBufferOGL(ThebesLayerOGL* aLayer)
+    : ThebesLayerBufferOGL(aLayer)
+    , mBufferRect(0,0,0,0)
+    , mBufferRotation(0,0)
   {}
   virtual ~BasicBufferOGL() {}
 
   virtual PaintState BeginPaint(ContentType aContentType);
 
 protected:
-  virtual nsIntRect
-  GetTexCoordRectForRepeat()
-  {
-    
-    return nsIntRect(nsIntPoint(0, 0), mBufferRect.Size());
+  enum XSide {
+    LEFT, RIGHT
+  };
+  enum YSide {
+    TOP, BOTTOM
+  };
+  nsIntRect GetQuadrantRectangle(XSide aXSide, YSide aYSide);
+
+  virtual nsIntPoint GetOriginOffset() {
+    return mBufferRect.TopLeft() - mBufferRotation;
   }
 
 private:
   nsIntRect mBufferRect;
+  nsIntPoint mBufferRotation;
 };
+
+static void
+WrapRotationAxis(PRInt32* aRotationPoint, PRInt32 aSize)
+{
+  if (*aRotationPoint < 0) {
+    *aRotationPoint += aSize;
+  } else if (*aRotationPoint >= aSize) {
+    *aRotationPoint -= aSize;
+  }
+}
+
+nsIntRect
+BasicBufferOGL::GetQuadrantRectangle(XSide aXSide, YSide aYSide)
+{
+  
+  
+  nsIntPoint quadrantTranslation = -mBufferRotation;
+  quadrantTranslation.x += aXSide == LEFT ? mBufferRect.width : 0;
+  quadrantTranslation.y += aYSide == TOP ? mBufferRect.height : 0;
+  return mBufferRect + quadrantTranslation;
+}
 
 BasicBufferOGL::PaintState
 BasicBufferOGL::BeginPaint(ContentType aContentType)
 {
-  PaintState state;
-  nsIntRect visibleRect = mLayer->GetVisibleRegion().GetBounds();
+  PaintState result;
 
-  if (aContentType != mTexImage->GetContentType() ||
-      visibleRect.Size() != mTexImage->GetSize())
-  {
-    mBufferRect = nsIntRect();
-    mTexImage = gl()->CreateTextureImage(visibleRect.Size(), aContentType,
-                                         LOCAL_GL_REPEAT);
-    DEBUG_GL_ERROR_CHECK(gl());
-    if (!mTexImage) {
-      return state;
-    }
-  }
-  NS_ABORT_IF_FALSE((mTexImage->GetContentType() == aContentType &&
-                     mTexImage->GetSize() == visibleRect.Size()),
-                    "TextureImage matches layer attributes");
+  result.mRegionToDraw.Sub(mLayer->GetVisibleRegion(), mLayer->GetValidRegion());
 
-  state.mRegionToDraw = mLayer->GetVisibleRegion();
-  if (mBufferRect != visibleRect) {
+  if (!mTexImage || mTexImage->GetContentType() != aContentType) {
     
-    state.mRegionToInvalidate = mLayer->GetValidRegion();
-    mBufferRect = visibleRect;
+    
+    
+    
+    
+    
+    
+    
+    
+    result.mRegionToDraw = mLayer->GetVisibleRegion();
+    result.mRegionToInvalidate = mLayer->GetValidRegion();
+    mTexImage = nsnull;
+    mBufferRect.SetRect(0, 0, 0, 0);
+    mBufferRotation.MoveTo(0, 0);
+  }
+
+  if (result.mRegionToDraw.IsEmpty())
+    return result;
+
+  nsIntRect drawBounds = result.mRegionToDraw.GetBounds();
+  nsIntRect visibleBounds = mLayer->GetVisibleRegion().GetBounds();
+  nsRefPtr<TextureImage> destBuffer;
+  nsIntRect destBufferRect;
+
+  if (visibleBounds.Size() <= mBufferRect.Size()) {
+    
+    if (mBufferRect.Contains(visibleBounds)) {
+      
+      destBufferRect = mBufferRect;
+    } else {
+      
+      
+      destBufferRect = nsIntRect(visibleBounds.TopLeft(), mBufferRect.Size());
+    }
+    nsIntRect keepArea;
+    if (keepArea.IntersectRect(destBufferRect, mBufferRect)) {
+      
+      
+      
+      nsIntPoint newRotation = mBufferRotation +
+        (destBufferRect.TopLeft() - mBufferRect.TopLeft());
+      WrapRotationAxis(&newRotation.x, mBufferRect.width);
+      WrapRotationAxis(&newRotation.y, mBufferRect.height);
+      NS_ASSERTION(nsIntRect(nsIntPoint(0,0), mBufferRect.Size()).Contains(newRotation),
+                   "newRotation out of bounds");
+      PRInt32 xBoundary = destBufferRect.XMost() - newRotation.x;
+      PRInt32 yBoundary = destBufferRect.YMost() - newRotation.y;
+      if ((drawBounds.x < xBoundary && xBoundary < drawBounds.XMost()) ||
+          (drawBounds.y < yBoundary && yBoundary < drawBounds.YMost())) {
+        
+        
+        
+        
+        
+        
+        destBufferRect = visibleBounds;
+        destBuffer = gl()->CreateTextureImage(visibleBounds.Size(), aContentType,
+                                              LOCAL_GL_REPEAT);
+        DEBUG_GL_ERROR_CHECK(gl());
+        if (!destBuffer)
+          return result;
+      } else {
+        mBufferRect = destBufferRect;
+        mBufferRotation = newRotation;
+      }
+    } else {
+      
+      
+      
+      mBufferRect = destBufferRect;
+      mBufferRotation = nsIntPoint(0,0);
+    }
   } else {
-    state.mRegionToDraw.Sub(state.mRegionToDraw, mLayer->GetValidRegion());
-  }
-  if (state.mRegionToDraw.IsEmpty()) {
-    return state;
+    
+    destBufferRect = visibleBounds;
+    destBuffer = gl()->CreateTextureImage(visibleBounds.Size(), aContentType,
+                                          LOCAL_GL_REPEAT);
+    DEBUG_GL_ERROR_CHECK(gl());
+    if (!destBuffer)
+      return result;
   }
 
-  
-  
-  
-  
-  
-  
-  state.mRegionToDraw.MoveBy(-visibleRect.TopLeft());
+  if (!destBuffer && !mTexImage) {
+    return result;
+  }
+
+  if (destBuffer) {
+    if (mTexImage) {
+      nsIntRect overlap;
+      overlap.IntersectRect(mBufferRect, destBufferRect);
+
+      nsIntRect srcRect(overlap), dstRect(overlap);
+      srcRect.MoveBy(- mBufferRect.TopLeft() + mBufferRotation);
+      dstRect.MoveBy(- destBufferRect.TopLeft());
+
+      destBuffer->Resize(destBufferRect.Size());
+
+      gl()->BlitTextureImage(mTexImage, srcRect,
+                             destBuffer, dstRect);
+    }
+
+    mTexImage = destBuffer.forget();
+    mBufferRect = destBufferRect;
+    mBufferRotation = nsIntPoint(0,0);
+  }
+
+  nsIntRegion invalidate;
+  invalidate.Sub(mLayer->GetValidRegion(), destBufferRect);
+  result.mRegionToInvalidate.Or(result.mRegionToInvalidate, invalidate);
 
   
+  PRInt32 xBoundary = mBufferRect.XMost() - mBufferRotation.x;
+  PRInt32 yBoundary = mBufferRect.YMost() - mBufferRotation.y;
+  XSide sideX = drawBounds.XMost() <= xBoundary ? RIGHT : LEFT;
+  YSide sideY = drawBounds.YMost() <= yBoundary ? BOTTOM : TOP;
+  nsIntRect quadrantRect = GetQuadrantRectangle(sideX, sideY);
+  NS_ASSERTION(quadrantRect.Contains(drawBounds), "Messed up quadrants");
+
+  nsIntPoint offset = -nsIntPoint(quadrantRect.x, quadrantRect.y);
   
-  state.mContext = mTexImage->BeginUpdate(state.mRegionToDraw);
-  if (!state.mContext) {
+  
+  
+  result.mRegionToDraw.MoveBy(offset);
+  
+  
+  result.mContext = mTexImage->BeginUpdate(result.mRegionToDraw);
+  result.mContext->Translate(-gfxPoint(quadrantRect.x, quadrantRect.y));
+  if (!result.mContext) {
     NS_WARNING("unable to get context for update");
-    return state;
+    return result;
   }
-
   
   
-  state.mRegionToDraw.MoveBy(visibleRect.TopLeft());
-
+  result.mRegionToDraw.MoveBy(-offset);
   
-  
-  state.mContext->Translate(-gfxPoint(visibleRect.x, visibleRect.y));
-
-  
-  if (gfxASurface::CONTENT_COLOR_ALPHA == aContentType) {
-    state.mContext->SetOperator(gfxContext::OPERATOR_CLEAR);
-    state.mContext->Paint();
-    state.mContext->SetOperator(gfxContext::OPERATOR_OVER);
-  }
-  return state;
+  return result;
 }
-
 
 ThebesLayerOGL::ThebesLayerOGL(LayerManagerOGL *aManager)
   : ThebesLayer(aManager, nsnull)
@@ -355,23 +452,11 @@ ThebesLayerOGL::CreateSurface()
     return PR_FALSE;
   }
 
-  nsIntSize visibleSize = mVisibleRegion.GetBounds().Size();
-  TextureImage::ContentType contentType =
-    CanUseOpaqueSurface() ? gfxASurface::CONTENT_COLOR :
-                            gfxASurface::CONTENT_COLOR_ALPHA;
-  nsRefPtr<TextureImage> teximage(
-    gl()->CreateTextureImage(visibleSize, contentType,
-                             LOCAL_GL_CLAMP_TO_EDGE));
-  if (!teximage) {
-    return PR_FALSE;
-  }
-
-  nsRefPtr<gfxASurface> surf = teximage->GetBackingSurface();
-  if (surf) {
+  if (gl()->TextureImageSupportsGetBackingSurface()) {
     
-    mBuffer = new SurfaceBufferOGL(this, teximage);
+    mBuffer = new SurfaceBufferOGL(this);
   } else {
-    mBuffer = new BasicBufferOGL(this, teximage);
+    mBuffer = new BasicBufferOGL(this);
   }
   return PR_TRUE;
 }
@@ -391,7 +476,7 @@ ThebesLayerOGL::InvalidateRegion(const nsIntRegion &aRegion)
 }
 
 void
-ThebesLayerOGL::RenderLayer(int ,
+ThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
                             const nsIntPoint& aOffset)
 {
   if (!mBuffer && !CreateSurface()) {
@@ -419,6 +504,9 @@ ThebesLayerOGL::RenderLayer(int ,
     mValidRegion.Or(mValidRegion, state.mRegionToDraw);
   }
 
+  DEBUG_GL_ERROR_CHECK(gl());
+
+  gl()->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, aPreviousFrameBuffer);
   mBuffer->RenderTo(aOffset, mOGLManager);
   DEBUG_GL_ERROR_CHECK(gl());
 }
