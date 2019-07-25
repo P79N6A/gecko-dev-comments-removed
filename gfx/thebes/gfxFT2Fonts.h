@@ -47,102 +47,26 @@
 #include "gfxFontUtils.h"
 #include "gfxUserFontSet.h"
 
-namespace mozilla {
-    namespace dom {
-        class FontListEntry;
-    };
-};
-using mozilla::dom::FontListEntry;
-
-typedef struct FT_FaceRec_* FT_Face;
-
-
-
-
-
-
-class FontEntry;
-class FontFamily : public gfxFontFamily
-{
-public:
-    FontFamily(const nsAString& aName) :
-        gfxFontFamily(aName) { }
-
-    FontEntry *FindFontEntry(const gfxFontStyle& aFontStyle);
-
-    
-    void AddFacesToFontList(InfallibleTArray<FontListEntry>* aFontList);
-};
-
-class FontEntry : public gfxFontEntry
-{
-public:
-    FontEntry(const nsAString& aFaceName) :
-        gfxFontEntry(aFaceName)
-    {
-        mFTFace = nsnull;
-        mFontFace = nsnull;
-        mFTFontIndex = 0;
-    }
-
-    ~FontEntry();
-
-    const nsString& GetName() const {
-        return Name();
-    }
-
-    
-    static FontEntry* 
-    CreateFontEntry(const gfxProxyFontEntry &aProxyEntry,
-                    const PRUint8 *aFontData, PRUint32 aLength);
-
-    
-    
-    
-    static FontEntry*
-    CreateFontEntry(const FontListEntry& aFLE);
-
-    
-    
-    static FontEntry* 
-    CreateFontEntry(FT_Face aFace, const char *aFilename, PRUint8 aIndex,
-                    const PRUint8 *aFontData = nsnull);
-        
-        
-
-    virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, PRBool aNeedsBold);
-
-    cairo_font_face_t *CairoFontFace();
-    nsresult ReadCMAP();
-
-    nsresult GetFontTable(PRUint32 aTableTag, FallibleTArray<PRUint8>& aBuffer);
-
-    FT_Face mFTFace;
-    cairo_font_face_t *mFontFace;
-
-    nsCString mFilename;
-    PRUint8 mFTFontIndex;
-};
-
+class FT2FontEntry;
 
 class gfxFT2Font : public gfxFT2FontBase {
 public: 
     gfxFT2Font(cairo_scaled_font_t *aCairoFont,
-               FontEntry *aFontEntry,
+               FT2FontEntry *aFontEntry,
                const gfxFontStyle *aFontStyle,
                PRBool aNeedsBold);
     virtual ~gfxFT2Font ();
 
     cairo_font_face_t *CairoFontFace();
 
-    FontEntry *GetFontEntry();
+    FT2FontEntry *GetFontEntry();
 
     static already_AddRefed<gfxFT2Font>
     GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle,
                   PRBool aNeedsBold = PR_FALSE);
 
     static already_AddRefed<gfxFT2Font>
-    GetOrMakeFont(FontEntry *aFontEntry, const gfxFontStyle *aStyle,
+    GetOrMakeFont(FT2FontEntry *aFontEntry, const gfxFontStyle *aStyle,
                   PRBool aNeedsBold = PR_FALSE);
 
     struct CachedGlyphData {
