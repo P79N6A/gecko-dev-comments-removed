@@ -211,6 +211,10 @@ class Sampler {
   
   bool IsActive() const { return active_; }
 
+  
+  bool IsPaused() const { return paused_; }
+  void SetPaused(bool value) { NoBarrier_Store(&paused_, value); }
+
   class PlatformData;
 
   PlatformData* platform_data() { return data_; }
@@ -229,6 +233,7 @@ class Sampler {
 
   const int interval_;
   const bool profiling_;
+  Atomic32 paused_;
   Atomic32 active_;
   PlatformData* data_;  
 };
