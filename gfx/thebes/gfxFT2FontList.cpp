@@ -177,7 +177,11 @@ FT2FontEntry::CreateFontEntry(const gfxProxyFontEntry &aProxyEntry,
         NS_Free((void*)aFontData);
         return nsnull;
     }
-    FT2FontEntry* fe = FT2FontEntry::CreateFontEntry(face, nsnull, 0, aFontData);
+    
+    
+    FT2FontEntry* fe =
+        FT2FontEntry::CreateFontEntry(face, nsnull, 0, aProxyEntry.Name(),
+                                      aFontData);
     if (fe) {
         fe->mItalic = aProxyEntry.mItalic;
         fe->mWeight = aProxyEntry.mWeight;
@@ -230,22 +234,12 @@ FT2FontEntry::CreateFontEntry(const FontListEntry& aFLE)
 FT2FontEntry*
 FT2FontEntry::CreateFontEntry(FT_Face aFace,
                               const char* aFilename, PRUint8 aIndex,
+                              const nsAString& aName,
                               const PRUint8 *aFontData)
 {
     static cairo_user_data_key_t key;
 
-    if (!aFace->family_name) {
-        FT_Done_Face(aFace);
-        return nsnull;
-    }
-    
-    
-    NS_ConvertUTF8toUTF16 fontName(aFace->family_name);
-    if (aFace->style_name && strcmp("Regular", aFace->style_name)) {
-        fontName.AppendLiteral(" ");
-        AppendUTF8toUTF16(aFace->style_name, fontName);
-    }
-    FT2FontEntry *fe = new FT2FontEntry(fontName);
+    FT2FontEntry *fe = new FT2FontEntry(aName);
     fe->mItalic = aFace->style_flags & FT_STYLE_FLAG_ITALIC;
     fe->mFTFace = aFace;
     int flags = gfxPlatform::GetPlatform()->FontHintingEnabled() ?
@@ -281,6 +275,23 @@ FT2FontEntry::CreateFontEntry(FT_Face aFace,
     NS_ASSERTION(fe->mWeight >= 100 && fe->mWeight <= 900, "Invalid final weight in font!");
 
     return fe;
+}
+
+
+
+static FT2FontEntry*
+CreateNamedFontEntry(FT_Face aFace, const char* aFilename, PRUint8 aIndex)
+{
+    if (!aFace->family_name) {
+        return nsnull;
+    }
+    nsAutoString fontName;
+    AppendUTF8toUTF16(aFace->family_name, fontName);
+    if (aFace->style_name && strcmp("Regular", aFace->style_name)) {
+        fontName.AppendLiteral(" ");
+        AppendUTF8toUTF16(aFace->style_name, fontName);
+    }
+    return FT2FontEntry::CreateFontEntry(aFace, aFilename, aIndex, fontName);
 }
 
 FT2FontEntry*
@@ -751,7 +762,7 @@ gfxFT2FontList::AppendFacesFromFontFile(nsCString& aFileName,
                 continue;
             }
             FT2FontEntry* fe =
-                FT2FontEntry::CreateFontEntry(face, aFileName.get(), i);
+                CreateNamedFontEntry(face, aFileName.get(), i);
             if (fe) {
                 NS_ConvertUTF8toUTF16 name(face->family_name);
                 BuildKeyNameFromFontName(name);       
