@@ -1014,8 +1014,9 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   NS_MergeReflowStatusInto(&state.mReflowStatus, fcStatus);
 
   
-  if (state.mFloatContinuations.NotEmpty())
+  if (state.mFloatContinuations.NotEmpty()) {
     mFloats.AppendFrames(nsnull, state.mFloatContinuations);
+  }
 
   
   
@@ -1768,7 +1769,8 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
     
   PRBool needToRecoverState = PR_FALSE;
     
-  PRBool reflowedFloat = mFloats.NotEmpty() && mFloats.FirstChild()->GetPrevInFlow();
+  PRBool reflowedFloat = mFloats.NotEmpty() &&
+    (mFloats.FirstChild()->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION);
   PRBool lastLineMovedUp = PR_FALSE;
   
   PRUint8 inlineFloatBreakType = aState.mFloatBreakType;
@@ -3894,8 +3896,16 @@ nsBlockFrame::SplitFloat(nsBlockReflowState& aState,
                          nsIFrame*           aFloat,
                          nsReflowStatus      aFloatStatus)
 {
-  nsIFrame* nextInFlow = nsnull;
-  if (!aFloat->GetNextInFlow()) {
+  nsIFrame* nextInFlow = aFloat->GetNextInFlow();
+  if (nextInFlow) {
+    nsContainerFrame *oldParent =
+      static_cast<nsContainerFrame*>(nextInFlow->GetParent());
+    nsresult rv = oldParent->StealFrame(aState.mPresContext, nextInFlow);
+    NS_ASSERTION(NS_SUCCEEDED(rv), "StealFrame failed");
+    if (oldParent != this) {
+      ReparentFrame(nextInFlow, oldParent, this);
+    }
+  } else {
     nsresult rv = aState.mPresContext->PresShell()->FrameConstructor()->
       CreateContinuingFrame(aState.mPresContext, aFloat, this, &nextInFlow);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -3916,10 +3926,7 @@ nsBlockFrame::SplitFloat(nsBlockReflowState& aState,
     aState.mFloatManager->SetSplitRightFloatAcrossBreak();
   }
 
-  if (nextInFlow) {
-    
-    aState.AppendFloatContinuation(nextInFlow);
-  }
+  aState.AppendFloatContinuation(nextInFlow);
   return NS_OK;
 }
 
@@ -3936,8 +3943,12 @@ GetLastFloat(nsLineBox* aLine)
 static PRBool
 CheckPlaceholderInLine(nsIFrame* aBlock, nsLineBox* aLine, nsFloatCache* aFC)
 {
-  if (!aFC || aFC->mFloat->GetPrevInFlow())
+  if (!aFC)
     return PR_TRUE;
+  NS_ASSERTION(!aFC->mFloat->GetPrevContinuation(),
+               "float in a line should never be a continuation");
+  NS_ASSERTION(!(aFC->mFloat->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION),
+               "float in a line should never be a pushed float");
   nsIFrame* ph = aBlock->PresContext()->FrameManager()->
                    GetPlaceholderFrameFor(aFC->mFloat->GetFirstInFlow());
   for (nsIFrame* f = ph; f; f = f->GetParent()) {
@@ -4443,45 +4454,48 @@ nsBlockFrame::DrainFloatContinuations(nsBlockReflowState& aState)
   
   
   
-  nsFrameList floatContinuations;
-  nsPresContext* presContext = PresContext();
-  for (nsIFrame* f = mFloats.FirstChild(); f; f = f->GetNextSibling()) {
-    nsIFrame* nif = f->GetNextInFlow();
-    if (!nif) continue;
-    if (nif->GetParent() == this) {
-      NS_ASSERTION(!nif->GetNextInFlow(),
-                   "Unexpected next-in-flow for float continuation");
-      StealFrame(presContext, nif);
-      floatContinuations.AppendFrame(nsnull, nif);
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIFrame *f = mFloats.LastChild();
+  if (f && (f->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION)) {
+    do {
+      f = f->GetPrevSibling();
+    } while (f && (f->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION));
+    aState.SetupFloatContinuationList();
+    
+    nsFrameList floatContinuations = mFloats.RemoveFramesAfter(f);
+    while (floatContinuations.NotEmpty()) {
+      nsIFrame *f = floatContinuations.RemoveFirstChild();
+      if (f->GetPrevContinuation()) {
+        aState.mFloatContinuations.AppendFrame(nsnull, f);
+      } else {
+        f->RemoveStateBits(NS_FRAME_IS_FLOAT_CONTINUATION);
+        mFloats.AppendFrame(nsnull, f);
+      }
     }
   }
-  if (floatContinuations.NotEmpty()) {
-    aState.SetupFloatContinuationList();
-    aState.mFloatContinuations.AppendFrames(nsnull, floatContinuations);
-  }
 
-  
-  
-  
   
   nsBlockFrame* prevBlock = static_cast<nsBlockFrame*>(GetPrevInFlow());
   if (!prevBlock)
     return;
-  for (nsIFrame* pf = prevBlock->mFloats.FirstChild(); pf; pf = pf->GetNextSibling()) {
-    nsIFrame* nif = pf->GetNextInFlow();
-    if (!nif)
-      continue;
-    nsContainerFrame* nifParent = static_cast<nsContainerFrame*>(nif->GetParent());
-    nifParent->StealFrame(presContext, nif);
-    if (nif->GetParent() != this) {
-      NS_ASSERTION(!nif->GetNextInFlow(),
-                   "Unexpected next-in-flow for float continuation");
-      ReparentFrame(nif, nifParent, this);
-    }
-    floatContinuations.AppendFrame(this, nif);
-  }
-  if (floatContinuations.NotEmpty())
+  f = prevBlock->mFloats.LastChild();
+  if (f && (f->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION)) {
+    do {
+      ReparentFrame(f, prevBlock, this);
+      f = f->GetPrevSibling();
+    } while (f && (f->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION));
+
+    
+    nsFrameList floatContinuations = prevBlock->mFloats.RemoveFramesAfter(f);
     mFloats.InsertFrames(nsnull, nsnull, floatContinuations);
+  }
 
 #ifdef DEBUG
   for (nsIFrame* f = mFloats.FirstChild(); f ; f = f->GetNextSibling()) {
@@ -5719,7 +5733,8 @@ nsBlockFrame::ReflowFloatContinuations(nsBlockReflowState& aState,
                                        nsReflowStatus&     aStatus)
 {
   nsresult rv = NS_OK;
-  for (nsIFrame* f = mFloats.FirstChild(); f && f->GetPrevInFlow();
+  for (nsIFrame* f = mFloats.FirstChild();
+       f && (f->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION);
        f = f->GetNextSibling()) {
     if (NS_SUBTREE_DIRTY(f) || aState.mReflowState.ShouldReflowAllKids()) {
       
@@ -6044,7 +6059,7 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (GetPrevInFlow()) {
     DisplayOverflowContainers(aBuilder, aDirtyRect, aLists);
     for (nsIFrame* f = mFloats.FirstChild(); f; f = f->GetNextSibling()) {
-      if (f->GetPrevInFlow())
+      if (f->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION)
          BuildDisplayListForChild(aBuilder, f, aDirtyRect, aLists);
     }
   }
@@ -6664,19 +6679,30 @@ void nsBlockFrame::CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
         aFrame->GetType() == nsGkAtoms::placeholderFrame ?
           nsLayoutUtils::GetFloatFromPlaceholder(aFrame) : nsnull;
       if (outOfFlowFrame) {
-        
-        
-        
-        
-        NS_ASSERTION(outOfFlowFrame->GetParent() == this,
-                     "Out of flow frame doesn't have the expected parent");
-        if (aFromOverflow) {
-          nsAutoOOFFrameList oofs(this);
-          oofs.mList.RemoveFrame(outOfFlowFrame);
+        if (outOfFlowFrame->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION) {
+          if (outOfFlowFrame->GetParent() == this) {
+            nsFrameList* list = GetPropTableFrames(PresContext(),
+                                                   FloatContinuationProperty());
+            if (!list || !list->RemoveFrameIfPresent(outOfFlowFrame)) {
+              mFloats.RemoveFrame(outOfFlowFrame);
+            }
+            aList.AppendFrame(nsnull, outOfFlowFrame);
+          }
         } else {
-          mFloats.RemoveFrame(outOfFlowFrame);
+          
+          
+          
+          
+          NS_ASSERTION(outOfFlowFrame->GetParent() == this,
+                       "Out of flow frame doesn't have the expected parent");
+          if (aFromOverflow) {
+            nsAutoOOFFrameList oofs(this);
+            oofs.mList.RemoveFrame(outOfFlowFrame);
+          } else {
+            mFloats.RemoveFrame(outOfFlowFrame);
+          }
+          aList.AppendFrame(nsnull, outOfFlowFrame);
         }
-        aList.AppendFrame(nsnull, outOfFlowFrame);
       }
 
       CollectFloats(aFrame->GetFirstChild(nsnull), 
@@ -6722,7 +6748,7 @@ nsBlockFrame::CheckFloats(nsBlockReflowState& aState)
   PRBool equal = PR_TRUE;
   PRUint32 i = 0;
   for (nsIFrame* f = mFloats.FirstChild(); f; f = f->GetNextSibling()) {
-    if (f->GetPrevInFlow())
+    if (f->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION)
       continue;
     storedFloats.AppendElement(f);
     if (i < lineFloats.Length() && lineFloats.ElementAt(i) != f) {
