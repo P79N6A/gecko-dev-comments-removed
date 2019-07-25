@@ -186,6 +186,8 @@ WeaveSvc.prototype = {
   
   get nextSync() Svc.Prefs.get("nextSync", 0) * 1000,
   set nextSync(value) Svc.Prefs.set("nextSync", Math.floor(value / 1000)),
+  get nextHeartbeat() Svc.Prefs.get("nextHeartbeat", 0) * 1000,
+  set nextHeartbeat(value) Svc.Prefs.set("nextHeartbeat", Math.floor(value / 1000)),
 
   get syncInterval() {
     
@@ -1057,6 +1059,7 @@ WeaveSvc.prototype = {
     if (this._heartbeatTimer)
       this._heartbeatTimer.clear();
 
+    this.nextHeartbeat = 0;
     let info = null;
     try {
       info = new Resource(this.infoURL).get();
@@ -1090,10 +1093,25 @@ WeaveSvc.prototype = {
 
 
   _scheduleHeartbeat: function WeaveSvc__scheduleNextHeartbeat() {
+    if (this._heartbeatTimer)
+      return;
+
+    let now = Date.now();
+    if (this.nextHeartbeat && this.nextHeartbeat < now) {
+      this._doHeartbeat();
+      return;
+    }
+
+    
     let interval = MULTI_DESKTOP_SYNC;
     if (this.nextSync < Date.now() + interval ||
         Status.enforceBackoff)
       return;
+
+    if (this.nextHeartbeat)
+      interval = this.nextHeartbeat - now;
+    else
+      this.nextHeartbeat = now + interval;
 
     this._log.trace("Setting up heartbeat, next ping in " +
                     Math.ceil(interval / 1000) + " sec.");
@@ -1151,6 +1169,7 @@ WeaveSvc.prototype = {
     
     this._clearSyncTriggers();
     this.nextSync = 0;
+    this.nextHeartbeat = 0;
 
     
     
