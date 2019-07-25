@@ -113,29 +113,6 @@ already_AddRefed<nsIRunnable> newCompletionEvent(
   mozIStorageCompletionCallback *aCallback
 );
 
-
-
-
-
-
-
-
-
-
-int stepStmt(sqlite3_stmt *aStatement);
-
-
-
-
-
-
-
-
-
-
-int prepareStmt(sqlite3 *aDatabase, const nsCString &aSQL,
-                sqlite3_stmt **_stmt);
-
 } 
 } 
 

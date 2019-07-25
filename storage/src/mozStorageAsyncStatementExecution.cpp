@@ -342,7 +342,7 @@ AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
     
     SQLiteMutexAutoLock lockedScope(mDBMutex);
 
-    int rc = stepStmt(aStatement);
+    int rc = ::sqlite3_step(aStatement);
     
     if (rc == SQLITE_DONE)
       return false;
