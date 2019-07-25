@@ -145,13 +145,14 @@ let Storage = {
   
   readGroupItemData: function Storage_readGroupItemData(win) {
     var existingData = {};
+    let data;
     try {
-      existingData = JSON.parse(
-        this._sessionStore.getWindowValue(win, this.GROUP_DATA_IDENTIFIER)
-      );
+      data = this._sessionStore.getWindowValue(win, this.GROUP_DATA_IDENTIFIER);
+      if (data)
+        existingData = JSON.parse(data);
     } catch (e) {
       
-      Utils.log("Error in readGroupItemData: "+e);
+      Utils.log("Error in readGroupItemData: "+e, data);
     }
     return existingData;
   },

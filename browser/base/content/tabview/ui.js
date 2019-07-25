@@ -87,6 +87,17 @@ let UI = {
   
   
   _cleanupFunctions: [],
+  
+  
+  
+  
+  
+  
+  _privateBrowsing: {
+    transitionStage: 0,
+    transitionMode: "",
+    wasInTabView: false 
+  },
 
   
   
@@ -462,6 +473,67 @@ let UI = {
     var self = this;
 
     
+    function srObserver(aSubject, aTopic, aData) {
+      if (aTopic != "sessionstore-browser-state-restored")
+        return;
+        
+      
+      if (self._privateBrowsing.transitionStage == 1)
+        self._privateBrowsing.transitionStage = 2;
+      else if (self._privateBrowsing.transitionStage == 3) {
+        if (self._privateBrowsing.transitionMode == "exit" &&
+            self._privateBrowsing.wasInTabView)
+          self.showTabView(false);
+
+        self._privateBrowsing.transitionStage = 0;
+        self._privateBrowsing.transitionMode = "";
+      }
+    }
+
+    Services.obs.addObserver(srObserver, "sessionstore-browser-state-restored", false);
+
+    this._cleanupFunctions.push(function() {
+      Services.obs.removeObserver(srObserver, "sessionstore-browser-state-restored");
+    });
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    function pbObserver(aSubject, aTopic, aData) {
+      if (aTopic == "private-browsing") {
+        self._privateBrowsing.transitionStage = 3;
+        if (aData == "enter") {
+          
+          self._privateBrowsing.wasInTabView = self._isTabViewVisible();
+          if (self._isTabViewVisible())
+            self.goToTab(gBrowser.selectedTab);
+        }
+      } else if (aTopic == "private-browsing-change-granted") {
+        if (aData == "enter" || aData == "exit") {
+          self._privateBrowsing.transitionStage = 1;
+          self._privateBrowsing.transitionMode = aData;
+        }
+      }
+    }
+
+    Services.obs.addObserver(pbObserver, "private-browsing", false);
+    Services.obs.addObserver(pbObserver, "private-browsing-change-granted", false);
+
+    this._cleanupFunctions.push(function() {
+      Services.obs.removeObserver(pbObserver, "private-browsing");
+      Services.obs.removeObserver(pbObserver, "private-browsing-change-granted");
+    });
+
+    
     this._eventListeners.open = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
@@ -485,6 +557,11 @@ let UI = {
         if (self._currentTab == tab)
           self._closedSelectedTabInTabView = true;
       } else {
+        
+        
+        if (self._privateBrowsing.transitionStage > 0)
+          return; 
+          
         
         if (gBrowser.tabs.length > 1) {
           
