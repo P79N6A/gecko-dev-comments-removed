@@ -162,11 +162,11 @@ private:
                              const PRInt32 aTable[],
                              nsIDOMCSSValue** aResult);
 
-  nsresult GetCSSGradientString(const nsStyleGradient* aGradient,
-                                nsAString& aString);
-  nsresult GetImageRectString(nsIURI* aURI,
-                              const nsStyleSides& aCropRect,
-                              nsString& aString);
+  void GetCSSGradientString(const nsStyleGradient* aGradient,
+                            nsAString& aString);
+  void GetImageRectString(nsIURI* aURI,
+                          const nsStyleSides& aCropRect,
+                          nsString& aString);
 
   
 
@@ -404,8 +404,8 @@ private:
   nsROCSSPrimitiveValue* GetROCSSPrimitiveValue();
   nsDOMCSSValueList* GetROCSSValueList(PRBool aCommaDelimited);
   void SetToRGBAColor(nsROCSSPrimitiveValue* aValue, nscolor aColor);
-  nsresult SetValueToStyleImage(const nsStyleImage& aStyleImage,
-                                nsROCSSPrimitiveValue* aValue);
+  void SetValueToStyleImage(const nsStyleImage& aStyleImage,
+                            nsROCSSPrimitiveValue* aValue);
 
   
 
