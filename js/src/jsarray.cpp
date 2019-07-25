@@ -499,8 +499,21 @@ JS_DEFINE_CALLINFO_3(extern, BOOL, js_EnsureDenseArrayCapacity, CONTEXT, OBJECT,
                      0, nanojit::ACCSET_STORE_ANY & ~tjit::ACCSET_OBJ_CLASP)
 #endif
 
-static JSBool
-DeleteArrayElement(JSContext *cx, JSObject *obj, jsdouble index, JSBool strict)
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int
+DeleteArrayElement(JSContext *cx, JSObject *obj, jsdouble index, bool strict)
 {
     JS_ASSERT(index >= 0);
     if (obj->isDenseArray()) {
@@ -508,21 +521,24 @@ DeleteArrayElement(JSContext *cx, JSObject *obj, jsdouble index, JSBool strict)
             jsuint idx = jsuint(index);
             if (idx < obj->getDenseArrayCapacity()) {
                 obj->setDenseArrayElement(idx, MagicValue(JS_ARRAY_HOLE));
-                return js_SuppressDeletedIndexProperties(cx, obj, idx, idx+1);
+                if (!js_SuppressDeletedIndexProperties(cx, obj, idx, idx+1))
+                    return -1;
             }
         }
-        return JS_TRUE;
+        return 1;
     }
 
     AutoIdRooter idr(cx);
 
     if (!IndexToId(cx, obj, index, NULL, idr.addr()))
-        return JS_FALSE;
+        return -1;
     if (JSID_IS_VOID(idr.id()))
-        return JS_TRUE;
+        return 1;
 
-    Value junk;
-    return obj->deleteProperty(cx, idr.id(), &junk, strict);
+    Value v;
+    if (!obj->deleteProperty(cx, idr.id(), &v, strict))
+        return -1;
+    return v.isTrue() ? 1 : 0;
 }
 
 
@@ -535,7 +551,7 @@ SetOrDeleteArrayElement(JSContext *cx, JSObject *obj, jsdouble index,
 {
     if (hole) {
         JS_ASSERT(v.isUndefined());
-        return DeleteArrayElement(cx, obj, index, true);
+        return DeleteArrayElement(cx, obj, index, true) >= 0;
     }
     return SetArrayElement(cx, obj, index, v);
 }
@@ -632,10 +648,10 @@ array_length_setter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value 
                 obj->setArrayLength(oldlen + 1);
                 return false;
             }
-            if (!DeleteArrayElement(cx, obj, oldlen, true)) {
+            int deletion = DeleteArrayElement(cx, obj, oldlen, strict);
+            if (deletion <= 0) {
                 obj->setArrayLength(oldlen + 1);
-                JS_ClearPendingException(cx);
-                return true;
+                return deletion >= 0;
             }
         } while (oldlen != newlen);
         obj->setArrayLength(newlen);
@@ -1987,7 +2003,7 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
 
     
     while (len > newlen) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx) || !DeleteArrayElement(cx, obj, --len, true))
+        if (!JS_CHECK_OPERATION_LIMIT(cx) || DeleteArrayElement(cx, obj, --len, true) < 0)
             return false;
     }
     vp->setObject(*obj);
@@ -2120,7 +2136,7 @@ array_pop_slowly(JSContext *cx, JSObject* obj, Value *vp)
         
         if (!GetElement(cx, obj, index, &hole, vp))
             return JS_FALSE;
-        if (!hole && !DeleteArrayElement(cx, obj, index, true))
+        if (!hole && DeleteArrayElement(cx, obj, index, true) < 0)
             return JS_FALSE;
     }
     return js_SetLengthProperty(cx, obj, index);
@@ -2140,7 +2156,7 @@ array_pop_dense(JSContext *cx, JSObject* obj, Value *vp)
     index--;
     if (!GetElement(cx, obj, index, &hole, vp))
         return JS_FALSE;
-    if (!hole && !DeleteArrayElement(cx, obj, index, true))
+    if (!hole && DeleteArrayElement(cx, obj, index, true) < 0)
         return JS_FALSE;
     obj->setArrayLength(index);
     return JS_TRUE;
@@ -2203,7 +2219,7 @@ array_shift(JSContext *cx, uintN argc, Value *vp)
         }
 
         
-        if (!hole && !DeleteArrayElement(cx, obj, length, true))
+        if (!hole && DeleteArrayElement(cx, obj, length, true) < 0)
             return JS_FALSE;
     }
     return js_SetLengthProperty(cx, obj, length);
