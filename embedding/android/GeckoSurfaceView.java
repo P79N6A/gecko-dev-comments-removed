@@ -121,8 +121,8 @@ class GeckoSurfaceView
 
         Resources res = getResources();
 
-        File filesDir = new File(GeckoApp.sGREDir, "files");
-        if (filesDir.exists() == false) {
+        File watchDir = new File(GeckoApp.sGREDir, "components");
+        if (watchDir.exists() == false) {
             
             c.drawColor(res.getColor(R.color.splash_background));
             Drawable drawable = res.getDrawable(R.drawable.splash);
