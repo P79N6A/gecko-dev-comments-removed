@@ -344,7 +344,7 @@ public class SyncCryptographer {
   
 
 
-  public KeyBundle getCryptoKeysBundleKeys() {
+  public KeyBundle getCryptoKeysBundleKeys() throws CryptoException {
     return new KeyBundle(username, syncKey);
   }
 
