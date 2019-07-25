@@ -157,9 +157,6 @@ using namespace mozilla;
 using namespace mozilla::widget;
 
 
-bool gDisableNativeTheme = false;
-
-
 static nsRefPtr<gfxASurface> gBufferSurface;
 #ifdef MOZ_HAVE_SHMIMAGE
 
@@ -2597,10 +2594,6 @@ nsresult
 initialize_prefs(void)
 {
     
-    gDisableNativeTheme =
-        Preferences::GetBool("mozilla.widget.disable-native-theme",
-                             gDisableNativeTheme);
-
     return NS_OK;
 }
 

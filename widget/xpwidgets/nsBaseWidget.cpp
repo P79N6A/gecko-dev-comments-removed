@@ -79,6 +79,9 @@ using mozilla::ipc::AsyncChannel;
 nsIContent* nsBaseWidget::mLastRollup = nsnull;
 
 
+bool            gDisableNativeTheme               = false;
+
+
 NS_IMPL_ISUPPORTS1(nsBaseWidget, nsIWidget)
 
 
@@ -204,6 +207,14 @@ void nsBaseWidget::BaseCreate(nsIWidget *aParent,
                               nsDeviceContext *aContext,
                               nsWidgetInitData *aInitData)
 {
+  static bool gDisableNativeThemeCached = false;
+  if (!gDisableNativeThemeCached) {
+    mozilla::Preferences::AddBoolVarCache(&gDisableNativeTheme,
+                                          "mozilla.widget.disable-native-theme",
+                                          gDisableNativeTheme);
+    gDisableNativeThemeCached = true;
+  }
+
   
   mEventCallback = aHandleEventFunction;
   
