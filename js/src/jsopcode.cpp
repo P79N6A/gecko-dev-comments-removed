@@ -1822,7 +1822,7 @@ GetLocal(SprintStack *ss, int i)
 
 
     JSScript *script = ss->printer->script;
-    if (!JSScript::isValidOffset(script->objectsOffset))
+    if (!script->hasObjects())
         return GetStr(ss, i);
 
     

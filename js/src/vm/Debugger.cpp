@@ -2531,7 +2531,7 @@ DebuggerScript_getChildScripts(JSContext *cx, unsigned argc, Value *vp)
     JSObject *result = NewDenseEmptyArray(cx);
     if (!result)
         return false;
-    if (JSScript::isValidOffset(script->objectsOffset)) {
+    if (script->hasObjects()) {
         
 
 
