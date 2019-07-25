@@ -60,7 +60,7 @@
 
 
 
-template<PRBool IsWhitespace(PRUnichar) = nsCRT::IsAsciiSpace>
+template<PRBool IsWhitespace(PRUnichar) = NS_IsAsciiWhitespace>
 class nsCharSeparatedTokenizerTemplate
 {
 public:
