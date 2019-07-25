@@ -217,14 +217,17 @@ var BrowserUI = {
         urlString = "";
       this._edit.value = urlString;
 
-      if (!this._edit.readOnly) {
+      if (!this._edit.readOnly || Util.isPortrait()) {
+        this._edit.readOnly = false;
+
         
         
         this._edit.blur();
         gFocusManager.setFocus(this._edit, Ci.nsIFocusManager.FLAG_NOSCROLL);
       }
-
-      this._edit.readOnly = !isOpened;
+      else {
+        this._edit.readOnly = !isOpened;
+      }
     }
     else if (!aEdit) {
       this._updateToolbar();
