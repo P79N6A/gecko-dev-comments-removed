@@ -561,12 +561,21 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 #endif
 
     if (!activeAnalysis && types.inferenceEnabled) {
-        for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
+        bool ok = true;
+
+        for (JSCList *cursor = scripts.next; ok && cursor != &scripts; cursor = cursor->next) {
             JSScript *script = reinterpret_cast<JSScript *>(cursor);
-            script->condenseTypes(cx);
+            ok = script->condenseTypes(cx);
         }
 
-        types.condense(cx);
+        if (ok)
+            ok = condenseTypes(cx);
+
+        
+
+
+
+        JS_ASSERT(ok == types.inferenceEnabled);
     }
 
     types.sweep(cx);

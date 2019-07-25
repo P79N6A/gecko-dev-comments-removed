@@ -497,6 +497,9 @@ struct JSRuntime {
 
     JSBool              debugMode;
 
+    
+    JSBool              hadOutOfMemory;
+
 #ifdef JS_TRACER
     
     bool debuggerInhibitsJIT() const {

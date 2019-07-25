@@ -582,7 +582,7 @@ struct JSScript {
     
     inline js::types::TypeObject *getTypeNewObject(JSContext *cx, JSProtoKey key);
 
-    void condenseTypes(JSContext *cx);
+    bool condenseTypes(JSContext *cx);
     void sweepAnalysis(JSContext *cx);
 
     
