@@ -376,6 +376,7 @@ struct JSRuntime {
 
     
     js::GCChunkSet      gcChunkSet;
+    js::GCChunkSet      gcSystemChunkSet;
 
     js::RootedValueMap  gcRootsHash;
     js::GCLocks         gcLocksHash;

@@ -308,6 +308,9 @@ nsSystemPrincipal::nsSystemPrincipal()
 {
 }
 
+
+
+
 #define SYSTEM_PRINCIPAL_SPEC "[System Principal]"
 
 nsresult
@@ -320,7 +323,7 @@ nsSystemPrincipal::Init()
         NS_WARNING("Out of memory initializing system principal");
         return NS_ERROR_OUT_OF_MEMORY;
     }
-    
+
     return mJSPrincipals.Init(this, str);
 }
 
