@@ -1,3 +1,39 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const EXPORTED_SYMBOLS = ['HTTPPollingTransport'];
 
 var Cc = Components.classes;
