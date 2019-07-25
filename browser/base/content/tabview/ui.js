@@ -258,7 +258,6 @@ let UI = {
       function domWinClosedObserver(subject, topic, data) {
         if (topic == "domwindowclosed" && subject == gWindow) {
           self.isDOMWindowClosing = true;
-          Storage.saveActiveGroupName(gWindow);
           if (self.isTabViewVisible())
             GroupItems.removeHiddenGroups();
           TabItems.saveAll(true);
@@ -1562,30 +1561,6 @@ let UI = {
     this._save();
     GroupItems.saveAll();
     TabItems.saveAll();
-  },
-
-  
-  
-  
-  shouldLoadFavIcon: function UI_shouldLoadFavIcon(browser) {
-    return !(browser.contentDocument instanceof window.ImageDocument) &&
-            (browser.currentURI.schemeIs("about") ||
-             gBrowser.shouldLoadFavIcon(browser.contentDocument.documentURIObject));
-  },
-
-  
-  
-  
-  getFavIconUrlForTab: function UI_getFavIconUrlForTab(tab) {
-    let url;
-
-    
-    if (tab.image && !(/^https?:/.test(tab.image)))
-      url = tab.image;
-    else
-      url = gFavIconService.getFaviconImageForPage(tab.linkedBrowser.currentURI).spec;
-
-    return url;
   }
 };
 

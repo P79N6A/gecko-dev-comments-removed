@@ -44,9 +44,7 @@ let TabView = {
   _browserKeyHandlerInitialized: false,
   _isFrameLoading: false,
   _initFrameCallbacks: [],
-  _lastSessionGroupName: null,
   VISIBILITY_IDENTIFIER: "tabview-visibility",
-  LAST_SESSION_GROUP_NAME_IDENTIFIER: "tabview-last-session-group-name",
 
   
   get windowTitle() {
@@ -100,10 +98,6 @@ let TabView = {
         };
         gBrowser.tabContainer.addEventListener(
           "TabShow", this._tabShowEventListener, true);
-
-       
-       this._lastSessionGroupName = sessionstore.getWindowValue(window,
-         this.LAST_SESSION_GROUP_NAME_IDENTIFIER);
       }
     }
   },
@@ -222,28 +216,18 @@ let TabView = {
   },
   
   getActiveGroupName: function TabView_getActiveGroupName() {
-    if (!this._window)
-      return this._lastSessionGroupName;
-
     
     
     
     
-    let groupItem = null;
     let activeTab = window.gBrowser.selectedTab;
-    let activeTabItem = activeTab._tabViewTabItem;
-
-    if (activeTab.pinned) {
-      
-      
-      groupItem = this._window.GroupItems.getActiveGroupItem();
-    } else if (activeTabItem) {
-      groupItem = activeTabItem.parent;
+    if (activeTab._tabViewTabItem && activeTab._tabViewTabItem.parent){
+      let groupName = activeTab._tabViewTabItem.parent.getTitle();
+      if (groupName)
+        return groupName;
     }
-
-    
-    return groupItem ? groupItem.getTitle() : "";
-  },
+    return null;
+  },  
 
   
   updateContextMenu: function(tab, popup) {
