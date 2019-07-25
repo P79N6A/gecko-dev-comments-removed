@@ -38,6 +38,9 @@ var Harness = {
   installDisabledCallback: null,
   
   
+  installCancelledCallback: null,
+  
+  
   
   installBlockedCallback: null,
   
@@ -216,9 +219,21 @@ var Harness = {
     ok(!!this.installDisabledCallback, "Installation shouldn't have been disabled");
     if (this.installDisabledCallback)
       this.installDisabledCallback(installInfo);
+    this.expectingCancelled = true;
     installInfo.installs.forEach(function(install) {
       install.cancel();
     });
+    this.expectingCancelled = false;
+    this.endTest();
+  },
+
+  installCancelled: function(installInfo) {
+    if (this.expectingCancelled)
+      return;
+
+    ok(!!this.installCancelledCallback, "Installation shouldn't have been cancelled");
+    if (this.installCancelledCallback)
+      this.installCancelledCallback(installInfo);
     this.endTest();
   },
 
@@ -229,9 +244,11 @@ var Harness = {
       installInfo.install();
     }
     else {
+      this.expectingCancelled = true;
       installInfo.installs.forEach(function(install) {
         install.cancel();
       });
+      this.expectingCancelled = false;
       this.endTest();
     }
   },
@@ -325,6 +342,9 @@ var Harness = {
       break;
     case "addon-install-disabled":
       this.installDisabled(installInfo);
+      break;
+    case "addon-install-cancelled":
+      this.installCancelled(installInfo);
       break;
     case "addon-install-blocked":
       this.installBlocked(installInfo);

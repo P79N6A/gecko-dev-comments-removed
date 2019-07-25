@@ -54,6 +54,8 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
+const URI_XPINSTALL_DIALOG = "chrome://mozapps/content/xpinstall/xpinstallConfirm.xul";
+
 
 const READY_STATES = [
   AddonManager.STATE_AVAILABLE,
@@ -204,8 +206,19 @@ Installer.prototype = {
     args.installs = this.downloads;
     args.wrappedJSObject = args;
 
-    Services.ww.openWindow(this.window, "chrome://mozapps/content/xpinstall/xpinstallConfirm.xul",
-                           null, "chrome,modal,centerscreen", args);
+    try {
+      Services.ww.openWindow(this.window, URI_XPINSTALL_DIALOG,
+                             null, "chrome,modal,centerscreen", args);
+    } catch (e) {
+      this.downloads.forEach(function(aInstall) {
+        aInstall.removeListener(this);
+        
+        
+        aInstall.cancel();
+      }, this);
+      notifyObservers("addon-install-cancelled", this.window, this.url,
+                      this.downloads);
+    }
   },
 
   
