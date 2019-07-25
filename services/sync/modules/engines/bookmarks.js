@@ -55,6 +55,11 @@ Cu.import("resource://weave/syncCores.js");
 Cu.import("resource://weave/stores.js");
 Cu.import("resource://weave/trackers.js");
 
+
+
+
+Cu.import("resource://weave/xmpp/xmppClient.js");
+
 Function.prototype.async = Async.sugar;
 
 function BookmarksEngine(pbeId) {
@@ -86,21 +91,98 @@ BookmarksEngine.prototype = {
     return this.__tracker;
   },
 
+  _startXmppClient: function BmkEngine__startXmppClient() {
+    
+
+    
+    
+    let serverUrl = "http://sm-labs01.mozilla.org:5280/http_poll";
+    let realm = "sm-labs01.mozilla.org";
+    
+    
+    
+    
+    let clientName = ID.get('WeaveID').username;
+    let clientPassword = ID.get('WeaveID').password;
+
+    let transport = new HTTPPollingTransport( serverUrl, false, 15000 );
+    let auth = new PlainAuthenticator(); 
+    
+    
+    this._xmppClient = new XmppClient( clientName,
+                                       realm,
+                                       clientPassword,
+				       transport,
+                                       auth );
+    let self = this;
+    let messageHandler = {
+      handle: function ( messageText, from ) {
+        
+
+
+
+
+
+
+
+
+
+
+ 	let words = messageText.split(" ");
+	let commandWord = words[0];
+	let directoryName = words[1];
+        if ( commandWord == "share" ) {
+	  self._incomingShareOffer( directoryName, from );
+	} else if ( commandWord == "stop" ) {
+	  self._incomingShareWithdrawn( directoryName, from );
+	}
+      }
+    }
+    this._xmppClient.registerMessageHandler( messageHandler );
+    this._xmppClient.connect( realm );
+  },
+
+  _incomingShareOffer: function BmkEngine__incomingShareOffer( dir, user ) {
+    
+
+
+
+
+
+
+
+
+
+
+
+  },
+
+  _incomingShareWithdrawn: function BmkEngine__incomingShareStop( dir, user ) {
+    
+
+
+
+
+
+
+
+  },
+
   _sync: function BmkEngine_sync() {
     
 
     let self = yield;
     this.__proto__.__proto__._sync.async(this, self.cb );
     yield;
-    this.syncMounts(self.cb);
+    this.updateAllIncomingShares(self.cb);
     yield;
     self.done();
   },
 
-  syncMounts: function BmkEngine_syncMounts(onComplete) {
+  updateAllIncomingShares: function BmkEngine_updateAllIncoming(onComplete) {
     this._syncMounts.async(this, onComplete);
   },
-  _syncMounts: function BmkEngine__syncMounts() {
+  _updateAllIncomingShares: function BmkEngine__updateAllIncoming() {
     
 
 
@@ -109,11 +191,11 @@ BookmarksEngine.prototype = {
 
 
     let self = yield;
-    let mounts = this._store.findMounts();
+    let mounts = this._store.findIncomingShares();
 
     for (i = 0; i < mounts.length; i++) {
       try {
-        this._syncOneMount.async(this, self.cb, mounts[i]);
+        this._updateIncomingShare.async(this, self.cb, mounts[i]);
         yield;
       } catch (e) {
         this._log.warn("Could not sync shared folder from " + mounts[i].userid);
@@ -124,7 +206,7 @@ BookmarksEngine.prototype = {
 
   
   
-  _share: function BookmarkEngine__share(guid, username) {
+  _createOutgoingShare: function BmkEngine__createOutgoing(guid, username) {
     let self = yield;
     let prefix = DAV.defaultPrefix;
 
@@ -217,7 +299,7 @@ BookmarksEngine.prototype = {
   },
 
 
-  _syncOneMount: function BmkEngine__syncOneMount(mountData) {
+  _updateIncomingShare: function BmkEngine__updateIncomingShare(mountData) {
     
 
 
@@ -226,8 +308,6 @@ BookmarksEngine.prototype = {
 
 
 
-
-    
 
     let self = yield;
     let user = mountData.userid;
@@ -800,7 +880,7 @@ BookmarksStore.prototype = {
     }
   },
 
-  findMounts: function BStore_findMounts() {
+  findIncomingShares: function BStore_findIncomingShares() {
     
 
     let ret = [];
