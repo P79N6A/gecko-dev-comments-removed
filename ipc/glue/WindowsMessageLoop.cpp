@@ -399,6 +399,13 @@ WindowIsDeferredWindow(HWND hWnd)
   
   
   
+  if (className.EqualsLiteral("__geplugin_bridge_window__")) {
+    return true;
+  }
+
+  
+  
+  
   if (gAppMessageWindowNameLength == 0) {
     nsCOMPtr<nsIXULAppInfo> appInfo =
       do_GetService("@mozilla.org/xre/app-info;1");
