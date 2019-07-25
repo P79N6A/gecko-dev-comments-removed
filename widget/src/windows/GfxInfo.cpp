@@ -72,7 +72,7 @@ GfxInfo::GetDWriteEnabled(PRBool *aEnabled)
 
 
 
-static const nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName, nsAString& destString, int type)
+static nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName, nsAString& destString, int type)
 {
   HKEY key;
   DWORD dwcbData;
@@ -142,7 +142,7 @@ static const nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName
 
 
 
-static const void normalizeDriverId(nsString& driverid) {
+static void normalizeDriverId(nsString& driverid) {
   ToUpperCase(driverid);
   PRInt32 rev = driverid.Find(NS_LITERAL_CSTRING("&REV_"));
   if (rev != -1) {
@@ -526,7 +526,7 @@ static const GfxDriverInfo driverInfo[] = {
   { 0, 0, allDevices, 0 }
 };
 
-static const bool
+static bool
 ParseDriverVersion(nsAString& aVersion, PRUint64 *aNumericVersion)
 {
   int a, b, c, d;
