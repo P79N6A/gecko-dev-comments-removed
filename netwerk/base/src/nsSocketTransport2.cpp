@@ -722,6 +722,7 @@ nsSocketTransport::nsSocketTransport()
     , mInputClosed(true)
     , mOutputClosed(true)
     , mResolving(false)
+    , mNetAddrIsSet(false)
     , mLock("nsSocketTransport.mLock")
     , mFD(nsnull)
     , mFDref(0)
@@ -858,6 +859,7 @@ nsSocketTransport::InitWithConnectedSocket(PRFileDesc *fd, const PRNetAddr *addr
     mPollFlags = (PR_POLL_READ | PR_POLL_WRITE | PR_POLL_EXCEPT);
     mPollTimeout = mTimeouts[TIMEOUT_READ_WRITE];
     mState = STATE_TRANSFERRING;
+    mNetAddrIsSet = true;
 
     mFD = fd;
     mFDref = 1;
@@ -1401,6 +1403,10 @@ nsSocketTransport::OnSocketConnected()
 
     
     
+    mNetAddrIsSet = true;
+
+    
+    
     {
         MutexAutoLock lock(mLock);
         NS_ASSERTION(mFD, "no socket");
@@ -1915,7 +1921,11 @@ nsSocketTransport::GetPeerAddr(PRNetAddr *addr)
     
     
 
-    NS_ENSURE_TRUE(mState == STATE_TRANSFERRING, NS_ERROR_NOT_AVAILABLE);
+    if (!mNetAddrIsSet) {
+        SOCKET_LOG(("nsSocketTransport::GetPeerAddr [this=%p state=%d] "
+                    "NOT_AVAILABLE because not yet connected.", this, mState));
+        return NS_ERROR_NOT_AVAILABLE;
+    }
 
     memcpy(addr, &mNetAddr, sizeof(mNetAddr));
     return NS_OK;
