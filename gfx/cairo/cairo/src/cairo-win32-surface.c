@@ -1714,29 +1714,12 @@ _cairo_win32_surface_show_glyphs (void			*surface,
 
 #undef STACK_GLYPH_SIZE
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-cairo_surface_t *
-cairo_win32_surface_create (HDC hdc)
+static cairo_surface_t *
+cairo_win32_surface_create_internal (HDC hdc, cairo_format_t format)
 {
     cairo_win32_surface_t *surface;
 
-    cairo_format_t format;
     RECT rect;
-
-    
-    format = CAIRO_FORMAT_RGB24;
 
     surface = malloc (sizeof (cairo_win32_surface_t));
     if (surface == NULL)
@@ -1770,7 +1753,48 @@ cairo_win32_surface_create (HDC hdc)
     _cairo_surface_init (&surface->base, &cairo_win32_surface_backend,
 			 _cairo_content_from_format (format));
 
-    return (cairo_surface_t *)surface;
+    return &surface->base;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_surface_t *
+cairo_win32_surface_create (HDC hdc)
+{
+    
+    return cairo_win32_surface_create_internal(hdc, CAIRO_FORMAT_RGB24);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_surface_t *
+cairo_win32_surface_create_with_alpha (HDC hdc)
+{
+    return cairo_win32_surface_create_internal(hdc, CAIRO_FORMAT_ARGB32);
 }
 
 
