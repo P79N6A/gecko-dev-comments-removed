@@ -1497,8 +1497,9 @@ PR_ParseTimeStringToExplodedTime(
           
 
          
-          if (*rest == '-' && ((rest > string && isalpha(rest[-1]) && year < 0)
-              || rest[1] < '0' || rest[1] > '9'))
+          if (*rest == '-' && ((rest > string &&
+              isalpha((unsigned char)rest[-1]) && year < 0) ||
+              rest[1] < '0' || rest[1] > '9'))
                 {
                   rest++;
                   goto SKIP_MORE;
