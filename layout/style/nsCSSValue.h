@@ -101,6 +101,7 @@ enum nsCSSUnit {
   eCSSUnit_DummyInherit = 9,      
                                   
   eCSSUnit_RectIsAuto   = 10,     
+
   eCSSUnit_String       = 11,     
   eCSSUnit_Ident        = 12,     
   eCSSUnit_Families     = 13,     
@@ -108,11 +109,13 @@ enum nsCSSUnit {
   eCSSUnit_Local_Font   = 15,     
   eCSSUnit_Font_Format  = 16,     
   eCSSUnit_Element      = 17,     
+
   eCSSUnit_Array        = 20,     
   eCSSUnit_Counter      = 21,     
   eCSSUnit_Counters     = 22,     
   eCSSUnit_Cubic_Bezier = 23,     
   eCSSUnit_Function     = 24,     
+                                  
                                   
 
   
@@ -139,10 +142,15 @@ enum nsCSSUnit {
   eCSSUnit_URL          = 40,     
   eCSSUnit_Image        = 41,     
   eCSSUnit_Gradient     = 42,     
-  eCSSUnit_Integer      = 50,     
-  eCSSUnit_Enumerated   = 51,     
+
+  eCSSUnit_Pair         = 50,     
+
+  eCSSUnit_Integer      = 70,     
+  eCSSUnit_Enumerated   = 71,     
+
   eCSSUnit_EnumColor    = 80,     
   eCSSUnit_Color        = 81,     
+
   eCSSUnit_Percent      = 90,     
   eCSSUnit_Number       = 91,     
 
@@ -179,6 +187,8 @@ enum nsCSSUnit {
 };
 
 struct nsCSSValueGradient;
+struct nsCSSValuePair;
+struct nsCSSValuePair_heap;
 
 class nsCSSValue {
 public:
@@ -335,6 +345,9 @@ public:
     return mValue.mGradient;
   }
 
+  inline nsCSSValuePair& GetPairValue(); 
+  inline const nsCSSValuePair& GetPairValue() const; 
+
   URL* GetURLStructValue() const
   {
     
@@ -378,6 +391,8 @@ public:
   void SetURLValue(nsCSSValue::URL* aURI);
   void SetImageValue(nsCSSValue::Image* aImage);
   void SetGradientValue(nsCSSValueGradient* aGradient);
+  void SetPairValue(const nsCSSValuePair* aPair);
+  void SetPairValue(const nsCSSValue& xValue, const nsCSSValue& yValue);
   void SetAutoValue();
   void SetInheritValue();
   void SetInitialValue();
@@ -469,6 +484,7 @@ protected:
     URL*       mURL;
     Image*     mImage;
     nsCSSValueGradient* mGradient;
+    nsCSSValuePair_heap* mPair;
   }         mValue;
 };
 
@@ -700,6 +716,34 @@ struct nsCSSValuePair {
   nsCSSValue mXValue;
   nsCSSValue mYValue;
 };
+
+
+
+
+struct nsCSSValuePair_heap : public nsCSSValuePair {
+  
+  nsCSSValuePair_heap(const nsCSSValue& aXValue, const nsCSSValue& aYValue)
+    : nsCSSValuePair(aXValue, aYValue)
+  {}
+
+  NS_INLINE_DECL_REFCOUNTING(nsCSSValuePair_heap)
+};
+
+
+
+inline nsCSSValuePair&
+nsCSSValue::GetPairValue()
+{
+  NS_ASSERTION(mUnit == eCSSUnit_Pair, "not a pair value");
+  return *mValue.mPair;
+}
+
+inline const nsCSSValuePair&
+nsCSSValue::GetPairValue() const
+{
+  NS_ASSERTION(mUnit == eCSSUnit_Pair, "not a pair value");
+  return *mValue.mPair;
+}
 
 
 struct nsCSSValuePairList {
