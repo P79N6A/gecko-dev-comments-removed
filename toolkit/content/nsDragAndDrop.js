@@ -588,7 +588,7 @@ var nsDragAndDrop = {
       
       
       var principal = sourceDoc ? sourceDoc.nodePrincipal
-                                : secMan.getCodebasePrincipal(ioService.newURI("file:///", null, null));
+                                : secMan.getSimpleCodebasePrincipal(ioService.newURI("file:///", null, null));
 
       try {
         secMan.checkLoadURIStrWithPrincipal(principal, aDraggedText,

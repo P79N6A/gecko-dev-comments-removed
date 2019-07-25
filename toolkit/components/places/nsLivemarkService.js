@@ -756,7 +756,7 @@ Livemark.prototype = {
     }
 
     
-    let feedPrincipal = secMan.getCodebasePrincipal(this.feedURI);
+    let feedPrincipal = secMan.getSimpleCodebasePrincipal(this.feedURI);
     try {
       secMan.checkLoadURIWithPrincipal(feedPrincipal, aSiteURI, SEC_FLAGS);
     }
@@ -1090,7 +1090,8 @@ LivemarkLoadListener.prototype = {
 
     try {
       
-      let feedPrincipal = secMan.getCodebasePrincipal(this._livemark.feedURI);
+      let feedPrincipal =
+        secMan.getSimpleCodebasePrincipal(this._livemark.feedURI);
 
       
       if (!aResult || !aResult.doc || aResult.bozo) {

@@ -86,7 +86,7 @@ ContentAreaDropListener.prototype =
 
     
     let principal = sourceNode ? sourceNode.nodePrincipal
-                               : secMan.getCodebasePrincipal(ioService.newURI("file:///", null, null));
+                               : secMan.getSimpleCodebasePrincipal(ioService.newURI("file:///", null, null));
 
     secMan.checkLoadURIStrWithPrincipal(principal, uriString, flags);
 
