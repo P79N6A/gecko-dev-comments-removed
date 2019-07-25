@@ -785,11 +785,16 @@ WeaveSvc.prototype = {
 
     let res = new Resource(url);
     res.authenticator = new NoOpAuthenticator();
-    let data = res.get();
 
-    if (res.lastChannel.responseStatus == 200 && data == "0")
+    let data = "";
+    try {
+      data = res.get();
+      if (res.lastChannel.responseStatus == 200 && data == "0")
         return "available";
+    }
+    catch(ex) {}
 
+    
     return this._errorStr(data);
   },
 
