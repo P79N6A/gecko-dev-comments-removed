@@ -315,7 +315,7 @@ nsHttpConnection::SupportsPipelining(nsHttpResponseHead *responseHead)
     
     
 
-    static const char *bad_servers[26][5] = {
+    static const char *bad_servers[26][6] = {
         { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
         { "EFAServer/", nsnull },                                       
         { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
@@ -325,7 +325,8 @@ nsHttpConnection::SupportsPipelining(nsHttpResponseHead *responseHead)
           "Netscape-Enterprise/5.", "Netscape-Enterprise/6.", nsnull }, 
         { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
         { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
-        { "WebLogic 3.", "WebLogic 4.","WebLogic 5.", "WebLogic 6.", nsnull }, 
+        { "WebLogic 3.", "WebLogic 4.","WebLogic 5.", "WebLogic 6.",
+          "Winstone Servlet Engine v0.", nsnull },                      
         { nsnull }, { nsnull }, { nsnull }                              
     };  
 
