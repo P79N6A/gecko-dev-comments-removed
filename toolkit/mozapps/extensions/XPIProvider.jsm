@@ -5125,6 +5125,7 @@ AddonInstall.prototype = {
   loadGroup: null,
   badCertHandler: null,
   listeners: null,
+  restartDownload: false,
 
   name: null,
   type: null,
@@ -5505,6 +5506,20 @@ AddonInstall.prototype = {
     if (this.state != AddonManager.STATE_DOWNLOADING)
       return;
 
+    if (this.channel) {
+      
+      
+      LOG("Waiting for previous download to complete");
+      this.restartDownload = true;
+      return;
+    }
+
+    this.openChannel();
+  },
+
+  openChannel: function AI_openChannel() {
+    this.restartDownload = false;
+
     try {
       this.file = getTemporaryFile();
       this.ownsTempFile = true;
@@ -5650,6 +5665,8 @@ AddonInstall.prototype = {
     
     if (aStatus == Cr.NS_BINDING_ABORTED) {
       this.removeTemporaryFile();
+      if (this.restartDownload)
+        this.openChannel();
       return;
     }
 
