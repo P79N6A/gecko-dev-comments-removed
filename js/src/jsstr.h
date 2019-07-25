@@ -122,6 +122,11 @@ namespace js { namespace mjit {
 
 
 
+
+
+
+
+
 struct JSString {
     friend class js::TraceRecorder;
     friend class js::mjit::Compiler;
@@ -170,6 +175,8 @@ struct JSString {
 
 
 
+
+
     static const size_t FLAT =          0;
     static const size_t DEPENDENT =     1;
     static const size_t INTERIOR_NODE = 2;
@@ -179,7 +186,7 @@ struct JSString {
     static const size_t ROPE_BIT = JSSTRING_BIT(1);
 
     static const size_t ATOMIZED = JSSTRING_BIT(2);
-    static const size_t MUTABLE = JSSTRING_BIT(3);
+    static const size_t EXTENSIBLE = JSSTRING_BIT(3);
 
     static const size_t FLAGS_LENGTH_SHIFT = 4;
 
@@ -222,8 +229,8 @@ struct JSString {
         return type() == FLAT;
     }
 
-    inline bool isMutable() const {
-        return isFlat() && hasFlag(MUTABLE);
+    inline bool isExtensible() const {
+        return isFlat() && hasFlag(EXTENSIBLE);
     }
 
     inline bool isRope() const {
@@ -280,12 +287,12 @@ struct JSString {
         mChars = chars;
     }
 
-    JS_ALWAYS_INLINE void initFlatMutable(jschar *chars, size_t length, size_t cap) {
+    JS_ALWAYS_INLINE void initFlatExtensible(jschar *chars, size_t length, size_t cap) {
         JS_ASSERT(length <= MAX_LENGTH);
         JS_ASSERT(!isStatic(this));
         e.mBase = NULL;
         e.mCapacity = cap;
-        mLengthAndFlags = (length << FLAGS_LENGTH_SHIFT) | FLAT | MUTABLE;
+        mLengthAndFlags = (length << FLAGS_LENGTH_SHIFT) | FLAT | EXTENSIBLE;
         mChars = chars;
     }
 
@@ -337,21 +344,21 @@ struct JSString {
         JS_ATOMIC_SET_MASK((jsword *)&mLengthAndFlags, ATOMIZED);
     }
 
-    inline void flatSetMutable() {
+    inline void flatSetExtensible() {
         JS_ASSERT(isFlat());
         JS_ASSERT(!isAtomized());
-        mLengthAndFlags |= MUTABLE;
+        mLengthAndFlags |= EXTENSIBLE;
     }
 
-    inline void flatClearMutable() {
+    inline void flatClearExtensible() {
         JS_ASSERT(isFlat());
 
         
 
 
 
-        if (mLengthAndFlags & MUTABLE)
-            mLengthAndFlags &= ~MUTABLE;
+        if (mLengthAndFlags & EXTENSIBLE)
+            mLengthAndFlags &= ~EXTENSIBLE;
     }
 
     
