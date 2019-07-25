@@ -4,12 +4,18 @@
 
 
 
+const kExpectedPageSize = 32768; 
+const kExpectedCacheSize = 128; 
+
 function check_size(db)
 {
   var stmt = db.createStatement("PRAGMA page_size");
   stmt.executeStep();
-  const expected_block_size = 32768; 
-  do_check_eq(stmt.getInt32(0), expected_block_size);
+  do_check_eq(stmt.getInt32(0), kExpectedPageSize);
+  stmt.finalize();
+  stmt = db.createStatement("PRAGMA cache_size");
+  stmt.executeStep();
+  do_check_eq(stmt.getInt32(0), kExpectedCacheSize);
   stmt.finalize();
 }
 

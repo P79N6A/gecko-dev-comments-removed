@@ -72,6 +72,13 @@
 
 #define MIN_AVAILABLE_BYTES_PER_CHUNKED_GROWTH 524288000 // 500 MiB
 
+
+
+#define MAX_CACHE_SIZE_BYTES 4194304 // 4 MiB
+
+
+#define DEFAULT_CACHE_SIZE_PAGES 2000
+
 #ifdef PR_LOGGING
 PRLogModuleInfo* gStorageLog = nsnull;
 #endif
@@ -548,14 +555,37 @@ Connection::initialize(nsIFile *aDatabaseFile,
   PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Opening connection to '%s' (%p)",
                                       leafName.get(), this));
 #endif
+
+  
+  
+  
+  PRInt64 pageSize = DEFAULT_PAGE_SIZE;
+  nsCAutoString pageSizeQuery("PRAGMA page_size = ");
+  pageSizeQuery.AppendInt(pageSize);
+  rv = ExecuteSimpleSQL(pageSizeQuery);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   sqlite3_stmt *stmt;
-  nsCAutoString pageSizeQuery(NS_LITERAL_CSTRING("PRAGMA page_size = "));
-  pageSizeQuery.AppendInt(DEFAULT_PAGE_SIZE);
-  srv = prepareStmt(mDBConn, pageSizeQuery, &stmt);
+  srv = prepareStmt(mDBConn, NS_LITERAL_CSTRING("PRAGMA page_size"), &stmt);
   if (srv == SQLITE_OK) {
-    (void)stepStmt(stmt);
+    if (SQLITE_ROW == stepStmt(stmt)) {
+      PRInt64 pageSize = ::sqlite3_column_int64(stmt, 0);
+    }
     (void)::sqlite3_finalize(stmt);
+  }
+
+  
+  
+  
+  nsCAutoString cacheSizeQuery("PRAGMA cache_size = ");
+  cacheSizeQuery.AppendInt(NS_MIN(DEFAULT_CACHE_SIZE_PAGES,
+                                  PRInt32(MAX_CACHE_SIZE_BYTES / pageSize)));
+  srv = ::sqlite3_exec(mDBConn, cacheSizeQuery.get(), NULL, NULL, NULL);
+  if (srv != SQLITE_OK) {
+    ::sqlite3_close(mDBConn);
+    mDBConn = nsnull;
+    return convertResultCode(srv);
   }
 
   
@@ -571,25 +601,6 @@ Connection::initialize(nsIFile *aDatabaseFile,
   if (srv != SQLITE_OK) {
     ::sqlite3_close(mDBConn);
     mDBConn = nsnull;
-    return convertResultCode(srv);
-  }
-
-  
-  
-  srv = prepareStmt(mDBConn, NS_LITERAL_CSTRING("SELECT * FROM sqlite_master"),
-                    &stmt);
-  if (srv == SQLITE_OK) {
-    srv = stepStmt(stmt);
-
-    if (srv == SQLITE_DONE || srv == SQLITE_ROW)
-        srv = SQLITE_OK;
-    ::sqlite3_finalize(stmt);
-  }
-
-  if (srv != SQLITE_OK) {
-    ::sqlite3_close(mDBConn);
-    mDBConn = nsnull;
-
     return convertResultCode(srv);
   }
 

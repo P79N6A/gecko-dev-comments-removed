@@ -58,6 +58,14 @@ function getCorruptDB()
   return do_get_file("corruptDB.sqlite");
 }
 
+
+
+
+function getFakeDB()
+{
+  return do_get_file("fakeDB.sqlite");
+}
+
 function cleanup()
 {
   
