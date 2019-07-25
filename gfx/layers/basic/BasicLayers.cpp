@@ -37,12 +37,8 @@
 
 
 #ifdef MOZ_IPC
-#  include "gfxSharedImageSurface.h"
-
 #  include "mozilla/layers/PLayerChild.h"
 #  include "mozilla/layers/PLayersChild.h"
-#  include "mozilla/layers/PLayersParent.h"
-#  include "ipc/ShadowLayerChild.h"
 #endif
 
 #include "BasicLayers.h"
@@ -111,7 +107,7 @@ public:
                      void* aCallbackData,
                      float aOpacity) {}
 
-  virtual ShadowableLayer* AsShadowableLayer() { return nsnull; }
+  virtual ShadowableLayer* AsShadowableLayer() { return NULL; }
 };
 
 static BasicImplData*
@@ -227,41 +223,8 @@ BasicContainerLayer::RemoveChildInternal(Layer* aChild)
   NS_RELEASE(aChild);
 }
 
-class BasicThebesLayer;
-class BasicThebesLayerBuffer : public ThebesLayerBuffer {
-  typedef ThebesLayerBuffer Base;
-
-public:
-  BasicThebesLayerBuffer(BasicThebesLayer* aLayer)
-    : Base(ContainsVisibleBounds)
-    , mLayer(aLayer)
-  {}
-
-  virtual ~BasicThebesLayerBuffer()
-  {}
-
-  using Base::BufferRect;
-  using Base::BufferRotation;
-
-  
-
-
-
-
-  void DrawTo(ThebesLayer* aLayer, PRBool aIsOpaqueContent,
-              gfxContext* aTarget, float aOpacity);
-
-  virtual already_AddRefed<gfxASurface>
-  CreateBuffer(ContentType aType, const nsIntSize& aSize);
-
-private:
-  BasicThebesLayer* mLayer;
-};
-
 class BasicThebesLayer : public ThebesLayer, BasicImplData {
 public:
-  typedef BasicThebesLayerBuffer Buffer;
-
   BasicThebesLayer(BasicLayerManager* aLayerManager) :
     ThebesLayer(aLayerManager, static_cast<BasicImplData*>(this)),
     mBuffer(this)
@@ -290,6 +253,36 @@ public:
                      LayerManager::DrawThebesLayerCallback aCallback,
                      void* aCallbackData,
                      float aOpacity);
+
+protected:
+  BasicLayerManager* BasicManager()
+  {
+    return static_cast<BasicLayerManager*>(mManager);
+  }
+
+  class Buffer : public ThebesLayerBuffer {
+  public:
+    Buffer(BasicThebesLayer* aLayer)
+      : ThebesLayerBuffer(ContainsVisibleBounds)
+      , mLayer(aLayer)
+    {}
+
+    
+
+
+
+
+    void DrawTo(PRBool aIsOpaqueContent, gfxContext* aTarget, float aOpacity);
+
+    virtual already_AddRefed<gfxASurface>
+    CreateBuffer(ContentType aType, const nsIntSize& aSize)
+    {
+      return mLayer->CreateBuffer(aType, aSize);
+    }
+
+  private:
+    BasicThebesLayer* mLayer;
+  };
   
   virtual already_AddRefed<gfxASurface>
   CreateBuffer(Buffer::ContentType aType, const nsIntSize& aSize)
@@ -312,24 +305,6 @@ public:
       aType, gfxIntSize(aSize.width, aSize.height));
   }
 
-protected:
-  BasicLayerManager* BasicManager()
-  {
-    return static_cast<BasicLayerManager*>(mManager);
-  }
-
-  virtual void
-  PaintBuffer(gfxContext* aContext,
-              const nsIntRegion& aRegionToDraw,
-              const nsIntRegion& aRegionToInvalidate,
-              LayerManager::DrawThebesLayerCallback aCallback,
-              void* aCallbackData)
-  {
-    aCallback(this, aContext, aRegionToDraw, aRegionToInvalidate,
-              aCallbackData);
-    mValidRegion.Or(mValidRegion, aRegionToDraw);
-  }
-
   Buffer mBuffer;
 };
 
@@ -346,16 +321,6 @@ ClipToContain(gfxContext* aContext, const nsIntRect& aRect)
   aContext->Rectangle(deviceRect);
   aContext->Clip();
   aContext->SetMatrix(currentMatrix);
-}
-
-static void
-InheritContextFlags(gfxContext* aSource, gfxContext* aDest)
-{
-  if (aSource->GetFlags() & gfxContext::FLAG_DESTINED_FOR_SCREEN) {
-    aDest->SetFlag(gfxContext::FLAG_DESTINED_FOR_SCREEN);
-  } else {
-    aDest->ClearFlag(gfxContext::FLAG_DESTINED_FOR_SCREEN);
-  }
 }
 
 void
@@ -404,10 +369,9 @@ BasicThebesLayer::Paint(gfxContext* aContext,
       
       
       state.mRegionToInvalidate.And(state.mRegionToInvalidate, mVisibleRegion);
-      InheritContextFlags(target, state.mContext);
-      PaintBuffer(state.mContext,
-                  state.mRegionToDraw, state.mRegionToInvalidate,
-                  aCallback, aCallbackData);
+      aCallback(this, state.mContext, state.mRegionToDraw,
+                state.mRegionToInvalidate, aCallbackData);
+      mValidRegion.Or(mValidRegion, state.mRegionToDraw);
     } else {
       
       
@@ -416,29 +380,21 @@ BasicThebesLayer::Paint(gfxContext* aContext,
     }
   }
 
-  mBuffer.DrawTo(this, isOpaqueContent, target, aOpacity);
+  mBuffer.DrawTo(isOpaqueContent, target, aOpacity);
 }
 
 void
-BasicThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
-                               PRBool aIsOpaqueContent,
-                               gfxContext* aTarget,
-                               float aOpacity)
+BasicThebesLayer::Buffer::DrawTo(PRBool aIsOpaqueContent,
+                                 gfxContext* aTarget,
+                                 float aOpacity)
 {
   aTarget->Save();
-  ClipToRegion(aTarget, aLayer->GetVisibleRegion());
+  ClipToRegion(aTarget, mLayer->GetVisibleRegion());
   if (aIsOpaqueContent) {
     aTarget->SetOperator(gfxContext::OPERATOR_SOURCE);
   }
   DrawBufferWithRotation(aTarget, aOpacity);
   aTarget->Restore();
-}
-
-already_AddRefed<gfxASurface>
-BasicThebesLayerBuffer::CreateBuffer(ContentType aType, 
-                                     const nsIntSize& aSize)
-{
-  return mLayer->CreateBuffer(aType, aSize);
 }
 
 class BasicImageLayer : public ImageLayer, BasicImplData {
@@ -465,22 +421,11 @@ public:
                      void* aCallbackData,
                      float aOpacity);
 
-  static void PaintContext(gfxPattern* aPattern,
-                           const gfxIntSize& aSize,
-                           float aOpacity,
-                           gfxContext* aContext);
-
 protected:
   BasicLayerManager* BasicManager()
   {
     return static_cast<BasicLayerManager*>(mManager);
   }
-
-  already_AddRefed<gfxPattern>
-  GetAndPaintCurrentImage(gfxContext* aContext,
-                          float aOpacity);
-
-  gfxIntSize mSize;
 };
 
 void
@@ -489,38 +434,22 @@ BasicImageLayer::Paint(gfxContext* aContext,
                        void* aCallbackData,
                        float aOpacity)
 {
-  nsRefPtr<gfxPattern> dontcare = GetAndPaintCurrentImage(aContext, aOpacity);
-}
-
-already_AddRefed<gfxPattern>
-BasicImageLayer::GetAndPaintCurrentImage(gfxContext* aContext,
-                                         float aOpacity)
-{
   if (!mContainer)
-    return nsnull;
+    return;
 
-  nsRefPtr<gfxASurface> surface = mContainer->GetCurrentAsSurface(&mSize);
+  gfxIntSize size;
+  nsRefPtr<gfxASurface> surface = mContainer->GetCurrentAsSurface(&size);
   if (!surface) {
-    return nsnull;
+    return;
   }
 
   nsRefPtr<gfxPattern> pat = new gfxPattern(surface);
   if (!pat) {
-    return nsnull;
+    return;
   }
 
   pat->SetFilter(mFilter);
 
-  PaintContext(pat, mSize, aOpacity, aContext); 
-  return pat.forget();
-}
-
- void
-BasicImageLayer::PaintContext(gfxPattern* aPattern,
-                              const gfxIntSize& aSize,
-                              float aOpacity,
-                              gfxContext* aContext)
-{
   
   
   gfxPattern::GraphicsExtend extend = gfxPattern::EXTEND_PAD;
@@ -535,12 +464,12 @@ BasicImageLayer::PaintContext(gfxPattern* aPattern,
     extend = gfxPattern::EXTEND_NONE;
   }
 
-  aPattern->SetExtend(extend);
+  pat->SetExtend(extend);
 
   
   aContext->NewPath();
   aContext->PixelSnappedRectangleAndSetPattern(
-      gfxRect(0, 0, aSize.width, aSize.height), aPattern);
+      gfxRect(0, 0, size.width, size.height), pat);
   if (aOpacity != 1.0) {
     aContext->Save();
     aContext->Clip();
@@ -701,9 +630,15 @@ BasicCanvasLayer::Updated(const nsIntRect& aRect)
     
     
     
-    mGLContext->ReadPixelsIntoImageSurface(0, 0,
-                                           mBounds.width, mBounds.height,
-                                           isurf);
+#ifndef USE_GLES2
+    mGLContext->fReadPixels(0, 0, mBounds.width, mBounds.height,
+                            LOCAL_GL_BGRA, LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV,
+                            isurf->Data());
+#else
+    mGLContext->fReadPixels(0, 0, mBounds.width, mBounds.height,
+                            LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE,
+                            isurf->Data());
+#endif
 
     
     if (currentFramebuffer != mCanvasFramebuffer)
@@ -855,9 +790,6 @@ BasicLayerManager::BasicLayerManager() :
 BasicLayerManager::~BasicLayerManager()
 {
   NS_ASSERTION(!InTransaction(), "Died during transaction?");
-
-  mRoot = nsnull;
-
   MOZ_COUNT_DTOR(BasicLayerManager);
 }
 
@@ -894,7 +826,6 @@ BasicLayerManager::PushGroupWithCachedSurface(gfxContext *aTarget,
     mCachedSurface.Get(aContent,
                        gfxIntSize(clip.size.width, clip.size.height),
                        currentSurf);
-  InheritContextFlags(aTarget, ctx);
   
   ctx->Translate(-clip.pos);
   *aSavedOffset = clip.pos;
@@ -1142,25 +1073,12 @@ public:
     NS_ABORT_IF_FALSE(!mShadow, "can't have two shadows (yet)");
     mShadow = aShadow;
   }
-
-  virtual void SetBackBuffer(gfxSharedImageSurface* aBuffer)
-  {
-    NS_RUNTIMEABORT("if this default impl is called, |aBuffer| leaks");
-  }
 };
 
 static ShadowableLayer*
 ToShadowable(Layer* aLayer)
 {
   return ToData(aLayer)->AsShadowableLayer();
-}
-
-template<class OpT>
-static BasicShadowableLayer*
-GetBasicShadowable(const OpT& op)
-{
-  return static_cast<BasicShadowableLayer*>(
-    static_cast<const ShadowLayerChild*>(op.layerChild())->layer());
 }
 
 class BasicShadowableContainerLayer : public BasicContainerLayer,
@@ -1195,7 +1113,7 @@ BasicShadowableContainerLayer::InsertAfter(Layer* aChild, Layer* aAfter)
   if (HasShadow()) {
     ShadowManager()->InsertAfter(ShadowManager()->Hold(this),
                                  ShadowManager()->Hold(aChild),
-                                 aAfter ? ShadowManager()->Hold(aAfter) : nsnull);
+                                 aAfter ? ShadowManager()->Hold(aAfter) : NULL);
   }
   BasicContainerLayer::InsertAfter(aChild, aAfter);
 }
@@ -1213,8 +1131,6 @@ BasicShadowableContainerLayer::RemoveChild(Layer* aChild)
 class BasicShadowableThebesLayer : public BasicThebesLayer,
                                    public BasicShadowableLayer
 {
-  typedef BasicThebesLayer Base;
-
 public:
   BasicShadowableThebesLayer(BasicShadowLayerManager* aManager) :
     BasicThebesLayer(aManager)
@@ -1223,8 +1139,6 @@ public:
   }
   virtual ~BasicShadowableThebesLayer()
   {
-    if (mBackBuffer)
-      BasicManager()->ShadowLayerForwarder::DestroySharedSurface(mBackBuffer);
     MOZ_COUNT_DTOR(BasicShadowableThebesLayer);
   }
 
@@ -1235,77 +1149,7 @@ public:
 
   virtual Layer* AsLayer() { return this; }
   virtual ShadowableLayer* AsShadowableLayer() { return this; }
-
-  virtual void SetBackBuffer(gfxSharedImageSurface* aBuffer)
-  {
-    mBackBuffer = aBuffer;
-  }
-
-private:
-  BasicShadowLayerManager* BasicManager()
-  {
-    return static_cast<BasicShadowLayerManager*>(mManager);
-  }
-
-  NS_OVERRIDE virtual void
-  PaintBuffer(gfxContext* aContext,
-              const nsIntRegion& aRegionToDraw,
-              const nsIntRegion& aRegionToInvalidate,
-              LayerManager::DrawThebesLayerCallback aCallback,
-              void* aCallbackData);
-
-  NS_OVERRIDE virtual already_AddRefed<gfxASurface>
-  CreateBuffer(Buffer::ContentType aType, const nsIntSize& aSize);
-
-  nsRefPtr<gfxSharedImageSurface> mBackBuffer;
-  nsIntSize mBufferSize;
 };
- 
-void
-BasicShadowableThebesLayer::PaintBuffer(gfxContext* aContext,
-                                        const nsIntRegion& aRegionToDraw,
-                                        const nsIntRegion& aRegionToInvalidate,
-                                        LayerManager::DrawThebesLayerCallback aCallback,
-                                        void* aCallbackData)
-{
-  NS_ABORT_IF_FALSE(!!mBackBuffer, "should have a back buffer by now");
-
-  Base::PaintBuffer(aContext, aRegionToDraw, aRegionToInvalidate,
-                    aCallback, aCallbackData);
-
-  nsRefPtr<gfxContext> tmpCtx = new gfxContext(mBackBuffer);
-  tmpCtx->DrawSurface(aContext->OriginalSurface(),
-                      gfxIntSize(mBufferSize.width, mBufferSize.height));
-
-  BasicManager()->PaintedThebesBuffer(BasicManager()->Hold(this),
-                                      mBuffer.BufferRect(),
-                                      mBuffer.BufferRotation(),
-                                      mBackBuffer);
-}
-
-already_AddRefed<gfxASurface>
-BasicShadowableThebesLayer::CreateBuffer(Buffer::ContentType aType,
-                                         const nsIntSize& aSize)
-{
-  nsRefPtr<gfxSharedImageSurface> tmpFront;
-  
-  if (!BasicManager()->AllocDoubleBuffer(gfxIntSize(aSize.width, aSize.height),
-                                         gfxASurface::ImageFormatARGB32,
-                                         getter_AddRefs(tmpFront),
-                                         getter_AddRefs(mBackBuffer)))
-    NS_RUNTIMEABORT("creating ThebesLayer 'back buffer' failed!");
-  mBufferSize = aSize;
-
-  BasicManager()->CreatedThebesBuffer(BasicManager()->Hold(this),
-                                      
-                                      
-                                      
-                                      nsIntRect(nsIntPoint(0, 0), aSize),
-                                      tmpFront);
-
-  return Base::CreateBuffer(aType, aSize);
-}
-
 
 class BasicShadowableImageLayer : public BasicImageLayer,
                                   public BasicShadowableLayer
@@ -1318,16 +1162,8 @@ public:
   }
   virtual ~BasicShadowableImageLayer()
   {
-    if (mBackSurface) {
-      BasicManager()->ShadowLayerForwarder::DestroySharedSurface(mBackSurface);
-    }
     MOZ_COUNT_DTOR(BasicShadowableImageLayer);
   }
-
-  virtual void Paint(gfxContext* aContext,
-                     LayerManager::DrawThebesLayerCallback aCallback,
-                     void* aCallbackData,
-                     float aOpacity);
 
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
   {
@@ -1336,54 +1172,7 @@ public:
 
   virtual Layer* AsLayer() { return this; }
   virtual ShadowableLayer* AsShadowableLayer() { return this; }
-
-  virtual void SetBackBuffer(gfxSharedImageSurface* aBuffer)
-  {
-    mBackSurface = aBuffer;
-  }
-
-private:
-  BasicShadowLayerManager* BasicManager()
-  {
-    return static_cast<BasicShadowLayerManager*>(mManager);
-  }
-
-  nsRefPtr<gfxSharedImageSurface> mBackSurface;
 };
- 
-void
-BasicShadowableImageLayer::Paint(gfxContext* aContext,
-                                 LayerManager::DrawThebesLayerCallback aCallback,
-                                 void* aCallbackData,
-                                 float aOpacity)
-{
-  gfxIntSize oldSize = mSize;
-  nsRefPtr<gfxPattern> pat = GetAndPaintCurrentImage(aContext, aOpacity);
-  if (!pat || !HasShadow())
-    return;
-
-  if (oldSize != mSize) {
-    NS_ASSERTION(oldSize == gfxIntSize(0, 0), "video changed size?");
-
-    nsRefPtr<gfxSharedImageSurface> tmpFrontSurface;
-    
-    if (!BasicManager()->AllocDoubleBuffer(
-          mSize, gfxASurface::ImageFormatARGB32,
-          getter_AddRefs(tmpFrontSurface), getter_AddRefs(mBackSurface)))
-      NS_RUNTIMEABORT("creating ImageLayer 'front buffer' failed!");
-
-    BasicManager()->CreatedImageBuffer(BasicManager()->Hold(this),
-                                       nsIntSize(mSize.width, mSize.height),
-                                       tmpFrontSurface);
-  }
-
-  nsRefPtr<gfxContext> tmpCtx = new gfxContext(mBackSurface);
-  PaintContext(pat, mSize, 1.0, tmpCtx);
-
-  BasicManager()->PaintedImage(BasicManager()->Hold(this),
-                               mBackSurface);
-}
-
 
 class BasicShadowableColorLayer : public BasicColorLayer,
                                   public BasicShadowableLayer
@@ -1419,17 +1208,8 @@ public:
   }
   virtual ~BasicShadowableCanvasLayer()
   {
-    if (mBackBuffer) {
-      BasicManager()->ShadowLayerForwarder::DestroySharedSurface(mBackBuffer);
-    }
     MOZ_COUNT_DTOR(BasicShadowableCanvasLayer);
   }
-
-  virtual void Initialize(const Data& aData);
-  virtual void Paint(gfxContext* aContext,
-                     LayerManager::DrawThebesLayerCallback aCallback,
-                     void* aCallbackData,
-                     float aOpacity);
 
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
   {
@@ -1438,93 +1218,6 @@ public:
 
   virtual Layer* AsLayer() { return this; }
   virtual ShadowableLayer* AsShadowableLayer() { return this; }
-
-  virtual void SetBackBuffer(gfxSharedImageSurface* aBuffer)
-  {
-    mBackBuffer = aBuffer;
-  }
-
-private:
-  BasicShadowLayerManager* BasicManager()
-  {
-    return static_cast<BasicShadowLayerManager*>(mManager);
-  }
-
-  nsRefPtr<gfxSharedImageSurface> mBackBuffer;
-};
-
-void
-BasicShadowableCanvasLayer::Initialize(const Data& aData)
-{
-  BasicCanvasLayer::Initialize(aData);
-  if (!HasShadow())
-      return;
-
-  nsRefPtr<gfxSharedImageSurface> tmpFrontBuffer;
-  
-  if (!BasicManager()->AllocDoubleBuffer(
-        gfxIntSize(aData.mSize.width, aData.mSize.height),
-        gfxASurface::ImageFormatARGB32,
-        getter_AddRefs(tmpFrontBuffer), getter_AddRefs(mBackBuffer)))
-    NS_RUNTIMEABORT("creating CanvasLayer back buffer failed!");
-
-  BasicManager()->CreatedCanvasBuffer(BasicManager()->Hold(this),
-                                      aData.mSize,
-                                      tmpFrontBuffer);
-}
-
-void
-BasicShadowableCanvasLayer::Paint(gfxContext* aContext,
-                                  LayerManager::DrawThebesLayerCallback aCallback,
-                                  void* aCallbackData,
-                                  float aOpacity)
-{
-  BasicCanvasLayer::Paint(aContext, aCallback, aCallbackData, aOpacity);
-  if (!HasShadow())
-    return;
-
-  
-  
-  nsRefPtr<gfxContext> tmpCtx = new gfxContext(mBackBuffer);
-  tmpCtx->DrawSurface(mSurface, gfxSize(mBounds.width, mBounds.height));
-
-  BasicManager()->PaintedCanvas(BasicManager()->Hold(this),
-                                mBackBuffer);
-}
-
-class ShadowThebesLayerBuffer : public BasicThebesLayerBuffer
-{
-  typedef BasicThebesLayerBuffer Base;
-
-public:
-  ShadowThebesLayerBuffer()
-    : Base(NULL)
-  {
-    MOZ_COUNT_CTOR(ShadowThebesLayerBuffer);
-  }
-
-  ~ShadowThebesLayerBuffer()
-  {
-    MOZ_COUNT_DTOR(ShadowThebesLayerBuffer);
-  }
-
-  already_AddRefed<gfxSharedImageSurface>
-  Swap(gfxSharedImageSurface* aNewFrontBuffer,
-       const nsIntRect& aBufferRect,
-       const nsIntPoint& aRotation=nsIntPoint(0, 0))
-  {
-    nsRefPtr<gfxASurface> newBackBuffer = SetBuffer(aNewFrontBuffer,
-                                                    aBufferRect, aRotation);
-    return static_cast<gfxSharedImageSurface*>(newBackBuffer.forget().get());
-  }
-
-protected:
-  virtual already_AddRefed<gfxASurface>
-  CreateBuffer(ContentType aType, const nsIntSize& aSize)
-  {
-    NS_RUNTIMEABORT("ShadowThebesLayer can't paint content");
-    return nsnull;
-  }
 };
 
 class BasicShadowThebesLayer : public ShadowThebesLayer, BasicImplData {
@@ -1534,66 +1227,25 @@ public:
   {
     MOZ_COUNT_CTOR(BasicShadowThebesLayer);
   }
-  virtual ~BasicShadowThebesLayer();
+  virtual ~BasicShadowThebesLayer()
+  {
+    MOZ_COUNT_DTOR(BasicShadowThebesLayer);
+  }
 
   virtual already_AddRefed<gfxSharedImageSurface>
   Swap(gfxSharedImageSurface* aNewFront,
        const nsIntRect& aBufferRect,
        const nsIntPoint& aRotation)
-  {
-    return mFrontBuffer.Swap(aNewFront, aBufferRect, aRotation);
-  }
+  { return NULL; }
 
   virtual void Paint(gfxContext* aContext,
                      LayerManager::DrawThebesLayerCallback aCallback,
                      void* aCallbackData,
-                     float aOpacity);
+                     float aOpacity)
+  {}
 
   MOZ_LAYER_DECL_NAME("BasicShadowThebesLayer", TYPE_SHADOW)
-
-private:
-  BasicShadowLayerManager* BasicManager()
-  {
-    return static_cast<BasicShadowLayerManager*>(mManager);
-  }
-
-  ShadowThebesLayerBuffer mFrontBuffer;
 };
-
-BasicShadowThebesLayer::~BasicShadowThebesLayer()
-{
-  nsRefPtr<gfxSharedImageSurface> frontBuffer =
-    mFrontBuffer.Swap(0, nsIntRect());
-  if (frontBuffer) {
-    BasicManager()->ShadowLayerManager::DestroySharedSurface(frontBuffer);
-  }
-
-  MOZ_COUNT_DTOR(BasicShadowThebesLayer);
-}
-
-void
-BasicShadowThebesLayer::Paint(gfxContext* aContext,
-                              LayerManager::DrawThebesLayerCallback aCallback,
-                              void* aCallbackData,
-                              float aOpacity)
-{
-  NS_ASSERTION(BasicManager()->InDrawing(),
-               "Can only draw in drawing phase");
-  NS_ASSERTION(BasicManager()->IsRetained(),
-               "ShadowThebesLayer makes no sense without retained mode");
-
-  gfxContext* target = BasicManager()->GetTarget();
-  NS_ASSERTION(target, "We shouldn't be called if there's no target");
-
-  nsRefPtr<gfxASurface> targetSurface = aContext->CurrentSurface();
-  PRBool isOpaqueContent =
-    (targetSurface->AreSimilarSurfacesSensitiveToContentType() &&
-     aOpacity == 1.0 &&
-     CanUseOpaqueSurface());
-
-  mFrontBuffer.DrawTo(this, isOpaqueContent, target, aOpacity);
-}
-
 
 class BasicShadowImageLayer : public ShadowImageLayer, BasicImplData {
 public:
@@ -1604,62 +1256,24 @@ public:
   }
   virtual ~BasicShadowImageLayer()
   {
-    if (mFrontSurface) {
-      BasicManager()->ShadowLayerManager::DestroySharedSurface(mFrontSurface);
-    }
     MOZ_COUNT_DTOR(BasicShadowImageLayer);
   }
 
-  virtual PRBool Init(gfxSharedImageSurface* front, const nsIntSize& size);
+  virtual PRBool Init(gfxSharedImageSurface* front, const nsIntSize& size)
+  { return PR_TRUE; }
 
   virtual already_AddRefed<gfxSharedImageSurface>
-  Swap(gfxSharedImageSurface* newFront);
+  Swap(gfxSharedImageSurface* newFront)
+  { return NULL; }
 
   virtual void Paint(gfxContext* aContext,
                      LayerManager::DrawThebesLayerCallback aCallback,
                      void* aCallbackData,
-                     float aOpacity);
+                     float aOpacity)
+  {}
 
   MOZ_LAYER_DECL_NAME("BasicShadowImageLayer", TYPE_SHADOW)
-
-protected:
-  BasicShadowLayerManager* BasicManager()
-  {
-    return static_cast<BasicShadowLayerManager*>(mManager);
-  }
-
-  
-  nsRefPtr<gfxSharedImageSurface> mFrontSurface;
-  gfxIntSize mSize;
 };
-
-PRBool
-BasicShadowImageLayer::Init(gfxSharedImageSurface* front,
-                            const nsIntSize& size)
-{
-  mFrontSurface = front;
-  mSize = gfxIntSize(size.width, size.height);
-  return PR_TRUE;
-}
-
-already_AddRefed<gfxSharedImageSurface>
-BasicShadowImageLayer::Swap(gfxSharedImageSurface* newFront)
-{
-  already_AddRefed<gfxSharedImageSurface> tmp = mFrontSurface.forget();
-  mFrontSurface = newFront;
-  return tmp;
-}
-
-void
-BasicShadowImageLayer::Paint(gfxContext* aContext,
-                             LayerManager::DrawThebesLayerCallback aCallback,
-                             void* aCallbackData,
-                             float aOpacity)
-{
-  nsRefPtr<gfxPattern> pat = new gfxPattern(mFrontSurface);
-  pat->SetFilter(mFilter);
-  BasicImageLayer::PaintContext(pat, mSize, aOpacity, aContext);
-}
 
 class BasicShadowCanvasLayer : public ShadowCanvasLayer,
                                BasicImplData
@@ -1672,77 +1286,27 @@ public:
   }
   virtual ~BasicShadowCanvasLayer()
   {
-    if (mFrontSurface) {
-      BasicManager()->ShadowLayerManager::DestroySharedSurface(mFrontSurface);
-    }
     MOZ_COUNT_DTOR(BasicShadowCanvasLayer);
   }
 
-  virtual void Initialize(const Data& aData);
+  virtual void Initialize(const Data& aData)
+  {}
 
   virtual void Updated(const nsIntRect& aRect)
   {}
 
   virtual already_AddRefed<gfxSharedImageSurface>
-  Swap(gfxSharedImageSurface* newFront);
+  Swap(gfxSharedImageSurface* newFront)
+  { return NULL; }
 
   virtual void Paint(gfxContext* aContext,
                      LayerManager::DrawThebesLayerCallback aCallback,
                      void* aCallbackData,
-                     float aOpacity);
+                     float aOpacity)
+  {}
 
   MOZ_LAYER_DECL_NAME("BasicShadowCanvasLayer", TYPE_SHADOW)
-
-private:
-  BasicShadowLayerManager* BasicManager()
-  {
-    return static_cast<BasicShadowLayerManager*>(mManager);
-  }
-
-  nsRefPtr<gfxSharedImageSurface> mFrontSurface;
-  nsIntRect mBounds;
 };
-
-void
-BasicShadowCanvasLayer::Initialize(const Data& aData)
-{
-  NS_ASSERTION(mFrontSurface == nsnull,
-               "BasicCanvasLayer::Initialize called twice!");
-  NS_ASSERTION(aData.mSurface && !aData.mGLContext, "no comprende OpenGL!");
-
-  mFrontSurface = static_cast<gfxSharedImageSurface*>(aData.mSurface);
-  mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
-}
-
-already_AddRefed<gfxSharedImageSurface>
-BasicShadowCanvasLayer::Swap(gfxSharedImageSurface* newFront)
-{
-  already_AddRefed<gfxSharedImageSurface> tmp = mFrontSurface.forget();
-  mFrontSurface = newFront;
-  return tmp;
-}
-
-void
-BasicShadowCanvasLayer::Paint(gfxContext* aContext,
-                              LayerManager::DrawThebesLayerCallback aCallback,
-                              void* aCallbackData,
-                              float aOpacity)
-{
-  MOZ_LAYERS_LOG(("[ShadowLayersChild] %s()", __FUNCTION__));
-
-  NS_ASSERTION(BasicManager()->InDrawing(),
-               "Can only draw in drawing phase");
-
-  nsRefPtr<gfxPattern> pat = new gfxPattern(mFrontSurface);
-
-  pat->SetFilter(mFilter);
-  pat->SetExtend(gfxPattern::EXTEND_PAD);
-
-  gfxRect r(0, 0, mBounds.width, mBounds.height);
-  aContext->NewPath();
-  aContext->PixelSnappedRectangleAndSetPattern(r, pat);
-  aContext->Fill();
-}
 
 
 
@@ -1898,25 +1462,7 @@ BasicShadowLayerManager::EndTransaction(DrawThebesLayerCallback aCallback,
 
   
   nsAutoTArray<EditReply, 10> replies;
-  if (HasShadowManager() && ShadowLayerForwarder::EndTransaction(&replies)) {
-    for (nsTArray<EditReply>::size_type i = 0; i < replies.Length(); ++i) {
-      const EditReply& reply = replies[i];
-
-      switch (reply.type()) {
-      case EditReply::TOpBufferSwap: {
-        MOZ_LAYERS_LOG(("[LayersForwarder] BufferSwap"));
-
-        const OpBufferSwap& obs = reply.get_OpBufferSwap();
-        GetBasicShadowable(obs)->SetBackBuffer(
-          new gfxSharedImageSurface(obs.newBackBuffer()));
-        break;
-      }
-
-      default:
-        NS_RUNTIMEABORT("not reached");
-      }
-    }
-  } else if (HasShadowManager()) {
+  if (HasShadowManager() && !ShadowLayerForwarder::EndTransaction(&replies)) {
     NS_WARNING("failed to forward Layers transaction");
   }
 
