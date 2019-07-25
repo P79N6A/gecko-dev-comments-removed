@@ -226,6 +226,9 @@ SyncEngine.prototype = {
     if (a.depth != b.depth)
       return false;
     
+    if (a.cleartext == null ||
+        b.cleartext == null)
+      return false;
     return Utils.deepEquals(a.cleartext, b.cleartext);
   },
 
