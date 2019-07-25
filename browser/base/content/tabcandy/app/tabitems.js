@@ -628,13 +628,6 @@ window.TabItems = {
   
   
   
-  init: function() {
-
-  },
-
-  
-  
-  
   register: function(item) {
     Utils.assert('item must be a TabItem', item && item.isAnItem);
     Utils.assert('only register once per item', this.items.indexOf(item) == -1);

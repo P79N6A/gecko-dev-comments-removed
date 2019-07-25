@@ -48,14 +48,11 @@
 
 (function(){
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
-
-
-const toString = Object.prototype.toString;
-const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -80,9 +77,6 @@ XPCOMUtils.defineLazyGetter(this, "gTabViewFrame", function() {
   return gWindow.document.getElementById("tab-candy");
 });
 
-var consoleService = Cc["@mozilla.org/consoleservice;1"]
-    .getService(Components.interfaces.nsIConsoleService);
-
 
 
 
@@ -102,6 +96,7 @@ window.Point = function(a, y) {
     this.y = (Utils.isNumber(y) ? y : 0);
   }
 };
+
 window.Point.prototype = {
   
   
@@ -506,7 +501,9 @@ window.Subscribable.prototype = {
 
 
 
-var Utils = {
+window.Utils = {
+  consoleService: null, 
+
   
 
   
@@ -514,8 +511,13 @@ var Utils = {
   
   
   log: function() {
+    if (!this.consoleService) {
+      this.consoleService = Cc["@mozilla.org/consoleservice;1"]
+          .getService(Components.interfaces.nsIConsoleService);
+    }
+    
     var text = this.expandArgumentsForLog(arguments);
-    consoleService.logStringMessage(text);
+    this.consoleService.logStringMessage(text);
   },
 
   
@@ -683,10 +685,13 @@ var Utils = {
     
     
     
-    if ( !obj || toString.call(obj) !== "[object Object]" || obj.nodeType || obj.setInterval ) {
+    if ( !obj || Object.prototype.toString.call(obj) !== "[object Object]" 
+        || obj.nodeType || obj.setInterval ) {
       return false;
     }
 
+    
+    const hasOwnProperty = Object.prototype.hasOwnProperty;
     
     if ( obj.constructor
       && !hasOwnProperty.call(obj, "constructor")
@@ -809,9 +814,6 @@ var Utils = {
       }
     }, delay);
   }
-
 };
-
-window.Utils = Utils;
 
 })();

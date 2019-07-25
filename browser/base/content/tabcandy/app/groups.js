@@ -1429,15 +1429,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
 
 
 window.Groups = {
-
-  
-  
-  
-  init: function() {
-    this.groups = [];
-    this.nextID = 1;
-    this._inited = false;
-  },
+  groups: [],
+  nextID: 1,
+  _inited: false,
 
   
   
@@ -1815,8 +1809,5 @@ window.Groups = {
     return tabItem;
   }
 };
-
-
-Groups.init();
 
 })();

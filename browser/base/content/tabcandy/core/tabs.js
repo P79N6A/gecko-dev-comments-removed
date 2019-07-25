@@ -69,7 +69,6 @@ function EventListenerMixIns(mixInto) {
     if (mixIns)
       mixIns[name].trigger(target, event);
   };
-
 }
 
 
@@ -127,13 +126,12 @@ function EventListenerMixIn(options) {
     options.observe.addEventListener(options.eventName,
                                      onEvent,
                                      options.useCapture);
-
 }
 
 
 
 
-window.TabsManager = Utils.extend(new Subscribable(), {
+window.TabsManager = {
   
   
   
@@ -250,12 +248,7 @@ window.TabsManager = Utils.extend(new Subscribable(), {
            return event;
          }});
     }
-
-    this._sendToSubscribers('load');
   }
-});
-
-
-window.TabsManager.init();
+};
 
 })();

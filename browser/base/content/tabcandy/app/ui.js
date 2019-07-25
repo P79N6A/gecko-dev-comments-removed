@@ -83,21 +83,17 @@ var UIManager = {
   
   
   
-  _currentTab : gBrowser.selectedTab,
+  _currentTab : null,
 
   
   
   
   init: function() {
     try {
-      if (window.Tabs)
-        this._secondaryInit();
-      else {
-        var self = this;
-        TabsManager.addSubscriber(this, "load", function() {
-          self._secondaryInit();
-        });
-      }
+      Storage.init();
+      TabsManager.init();
+      TabMirror.init();
+      this._secondaryInit();
     } catch(e) {
       Utils.log(e);
     }
@@ -111,6 +107,8 @@ var UIManager = {
     try {
       var self = this;
 
+      this._currentTab = gBrowser.selectedTab;
+    
       
       if (this._devMode)
         this._addDevMenu();
@@ -174,8 +172,6 @@ var UIManager = {
       var firstTime = !groupsData || Utils.isEmptyObject(groupsData);
       var groupData = Storage.readGroupData(gWindow);
       Groups.reconstitute(groupsData, groupData);
-
-      TabItems.init();
 
       if (firstTime) {
         var padding = 10;

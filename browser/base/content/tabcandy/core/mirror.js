@@ -133,7 +133,6 @@ TabCanvas.prototype = {
 
 
 function Mirror(tab, manager) {
-
   this.tab = tab;
   this.manager = manager;
 
@@ -161,10 +160,8 @@ function Mirror(tab, manager) {
   this.tabCanvas.attach();
   this.triggerPaint();
 
-
   this.tab.mirror = this;
   this.manager.createTabItem(this);
-
 }
 
 Mirror.prototype = Utils.extend(new Subscribable(), {
@@ -225,23 +222,12 @@ Mirror.prototype = Utils.extend(new Subscribable(), {
 
 
 
-var TabMirror = function() {
-  if (window.Tabs) {
-    this.init();
-  }
-  else {
-    var self = this;
-    TabsManager.addSubscriber(this, 'load', function() {
-      self.init();
-    });
-  }
-};
-
-TabMirror.prototype = {
+window.TabMirror = {
   
   
   
   init: function(){
+    Utils.assert("TabManager must be initialized first", window.Tabs); 
     var self = this;
     
     
@@ -421,12 +407,7 @@ TabMirror.prototype = {
 
       tab.mirror = null;
     }
-  }
-};
-
-
-window.TabMirror = {
-  _private: new TabMirror(),
+  },
 
   
   
@@ -434,7 +415,7 @@ window.TabMirror = {
   
   
   pausePainting: function() {
-    this._private.paintingPaused++;
+    this.paintingPaused++;
   },
 
   
@@ -442,14 +423,14 @@ window.TabMirror = {
   
   
   resumePainting: function() {
-    this._private.paintingPaused--;
+    this.paintingPaused--;
   },
 
   
   
   
   isPaintingPaused: function() {
-    return this._private.paintingPause > 0;
+    return this.paintingPause > 0;
   }
 };
 

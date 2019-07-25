@@ -228,7 +228,6 @@ window.Item.prototype = {
         resizeInfo = null;
       }
     };
-
   },
 
   
@@ -830,12 +829,6 @@ window.Items = {
   
   
   
-  init: function() {
-  },
-
-  
-  
-  
   item: function(el) {
     return iQ(el).data('item');
   },
@@ -1084,6 +1077,3 @@ window.Items = {
     }
   }
 };
-
-window.Items.init();
-
