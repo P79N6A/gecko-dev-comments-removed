@@ -53,44 +53,72 @@ class FrameEntry
     friend class FrameState;
 
   public:
-    bool isConstant() {
+    bool isConstant() const {
         return data.isConstant();
     }
 
-    const jsval_layout &getConstant() {
+    const jsval_layout &getConstant() const {
         JS_ASSERT(isConstant());
         return v_;
     }
 
-    const Value &getValue() {
+    const Value &getValue() const {
         JS_ASSERT(isConstant());
         return Valueify(v_.asBits);
     }
 
-    bool isTypeConstant() {
+    bool isTypeKnown() const {
         return type.isConstant();
     }
 
-    uint32 getTypeTag() {
+    uint32 getTypeTag() const {
         return v_.s.mask32;
     }
 
-    uint32 getPayload32() {
-        JS_ASSERT(!Valueify(v_.asBits).isDouble() || type.synced());
+    uint32 getPayload32() const {
+        
         return v_.s.payload.u32;
     }
 
+  private:
     uint32 copyOf() {
         JS_ASSERT(type.isCopy() || data.isCopy());
         return index_;
     }
 
-  private:
+    void setTypeTag(uint32 u32) {
+        type.setConstant();
+        v_.s.mask32 = u32;
+    }
+
+    
+
+
+    void resetUnsynced() {
+        type.unsync();
+        data.unsync();
+#ifdef DEBUG
+        type.invalidate();
+        data.invalidate();
+#endif
+        copies = 0;
+    }
+
+    
+
+
+    void resetSynced() {
+        type.setMemory();
+        data.setMemory();
+        copies = 0;
+    }
+
+    
+
+
     void setConstant(const jsval &v) {
         type.setConstant();
-        type.unsync();
         data.setConstant();
-        data.unsync();
         v_.asBits = v;
     }
 

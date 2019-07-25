@@ -44,6 +44,7 @@
 #include "jscntxt.h"
 #include "jstl.h"
 #include "MethodJIT.h"
+#include "methodjit/FrameState.h"
 #include "methodjit/nunbox/Assembler.h"
 #include "CodeGenIncludes.h"
 
@@ -72,7 +73,10 @@ class StubCompiler
     FrameState &frame;
     JSScript *script;
     Assembler masm;
-    RegSnapshot snapshot;
+    uint32 generation;
+    uint32 lastGeneration;
+    bool hasJump;
+    Jump lastJump;
 
     
     Vector<CrossPatch, 64, SystemAllocPolicy> exits;
@@ -80,6 +84,8 @@ class StubCompiler
 
   public:
     StubCompiler(JSContext *cx, mjit::Compiler &cc, FrameState &frame, JSScript *script);
+
+    bool init(uint32 nargs);
 
     size_t size() {
         return masm.size();
@@ -95,15 +101,12 @@ class StubCompiler
     }
 
     STUB_CALL_TYPE(JSObjStub);
+    STUB_CALL_TYPE(VoidStub);
 
 #undef STUB_CALL_TYPE
 
     
     void linkExit(Jump j);
-
-    
-
-
 
     void leave();
 

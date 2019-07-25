@@ -48,9 +48,21 @@
 struct RematInfo {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
 
+    enum SyncState {
+        SYNCED,
+        UNSYNCED
+    };
+
+    enum RematType {
+        TYPE,
+        DATA
+    };
+
     
     enum PhysLoc {
         
+
+
         PhysLoc_Memory = 0,
 
         
@@ -61,40 +73,58 @@ struct RematInfo {
 
         
         PhysLoc_Register
+
+#ifdef DEBUG
+        
+        , PhysLoc_Invalid
+#endif
     };
 
     void setRegister(RegisterID reg) {
         reg_ = reg;
         location_ = PhysLoc_Register;
-        synced_ = false;
+    }
+
+    RegisterID reg() const {
+        JS_ASSERT(inRegister());
+        return reg_;
     }
 
     void setMemory() {
-        synced_ = true;
         location_ = PhysLoc_Memory;
+        sync_ = SYNCED;
     }
 
-    void setSynced() { synced_ = true; }
+    void invalidate() {
+#ifdef DEBUG
+        location_ = PhysLoc_Invalid;
+#endif
+    }
+
     void setConstant() { location_ = PhysLoc_Constant; }
 
-    bool isCopy() { return location_ == PhysLoc_Copy; }
-    bool isConstant() { return location_ == PhysLoc_Constant; }
-    bool inRegister() { return location_ == PhysLoc_Register; }
-    bool inMemory() { return location_ == PhysLoc_Memory; }
-    RegisterID reg() { return reg_; }
+    bool isCopy() const { return location_ == PhysLoc_Copy; }
+    bool isConstant() const { return location_ == PhysLoc_Constant; }
+    bool inRegister() const { return location_ == PhysLoc_Register; }
+    bool inMemory() const { return location_ == PhysLoc_Memory; }
+    bool synced() const { return sync_ == SYNCED; }
+    void sync() {
+        JS_ASSERT(!synced());
+        sync_ = SYNCED;
+    }
+    void unsync() {
+        sync_ = UNSYNCED;
+    }
 
-    void unsync() { synced_ = false; }
-    bool synced() { return synced_; }
-    bool needsSync() { return !inMemory() && !synced(); }
-
+  private:
     
     RegisterID reg_;
 
     
-    PhysLoc    location_;
+    PhysLoc location_;
 
     
-    bool       synced_;
+    SyncState sync_;
 };
 
 #endif
