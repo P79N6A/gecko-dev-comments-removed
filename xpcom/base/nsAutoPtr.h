@@ -1049,11 +1049,11 @@ class nsRefPtr
           return get();
         }
 
-      T*
+      nsCOMPtr_base::nsDerivedSafe<T>*
       operator->() const
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsRefPtr with operator->().");
-          return get();
+          return reinterpret_cast<nsCOMPtr_base::nsDerivedSafe<T>*> (get());
         }
 
       

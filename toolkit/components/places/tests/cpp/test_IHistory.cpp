@@ -399,7 +399,8 @@ test_observer_topic_dispatched()
 
   
   nsCOMPtr<Link> visitedLink(new mock_Link(expect_visit, false));
-  NS_ADDREF(visitedLink); 
+  nsCOMPtr<Link> visitedLinkCopy = visitedLink;
+  visitedLinkCopy.forget(); 
   nsCOMPtr<Link> notVisitedLink(new mock_Link(expect_no_visit));
 
   

@@ -1589,8 +1589,8 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
         
         conn->SetIsReusedAfter(950);
 
-        NS_ADDREF(conn);  
-        gHttpHandler->ConnMgr()->OnMsgReclaimConnection(NS_OK, conn);
+        nsRefPtr<nsHttpConnection> copy(conn);  
+        gHttpHandler->ConnMgr()->OnMsgReclaimConnection(NS_OK, conn.forget().get());
     }
 
     return rv;
