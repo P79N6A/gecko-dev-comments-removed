@@ -178,7 +178,10 @@ public:
 
     struct AutoLocalJNIFrame {
         AutoLocalJNIFrame(int nEntries = 128) : mEntries(nEntries) {
-            AndroidBridge::Bridge()->JNI()->PushLocalFrame(mEntries);
+            
+            
+            
+            AndroidBridge::Bridge()->JNI()->PushLocalFrame(mEntries + 1);
         }
         
         
@@ -188,6 +191,12 @@ public:
             AndroidBridge::Bridge()->JNI()->PushLocalFrame(mEntries);
         }
         ~AutoLocalJNIFrame() {
+            jthrowable exception =
+                AndroidBridge::Bridge()->JNI()->ExceptionOccurred();
+            if (exception) {
+                AndroidBridge::Bridge()->JNI()->ExceptionDescribe();
+                AndroidBridge::Bridge()->JNI()->ExceptionClear();
+            }
             AndroidBridge::Bridge()->JNI()->PopLocalFrame(NULL);
         }
         int mEntries;
