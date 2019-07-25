@@ -3572,13 +3572,20 @@ WebGLContext::DOMElementToImageSurface(nsIDOMElement *imageOrCanvas,
     
     
     
+    
     if (res.mPrincipal) {
         PRBool subsumes;
         nsresult rv = HTMLCanvasElement()->NodePrincipal()->Subsumes(res.mPrincipal, &subsumes);
         if (NS_FAILED(rv) || !subsumes) {
-            LogMessageIfVerbose("It is forbidden to load a WebGL texture from a cross-domain element. "
-                                "See https://developer.mozilla.org/en/WebGL/Cross-Domain_Textures");
-            return NS_ERROR_DOM_SECURITY_ERR;
+            PRInt32 corsmode;
+            if (!res.mImageRequest || NS_FAILED(res.mImageRequest->GetCORSMode(&corsmode))) {
+                corsmode = imgIRequest::CORS_NONE;
+            }
+            if (corsmode == imgIRequest::CORS_NONE) {
+                LogMessageIfVerbose("It is forbidden to load a WebGL texture from a cross-domain element that has not been validated with CORS. "
+                                    "See https://developer.mozilla.org/en/WebGL/Cross-Domain_Textures");
+                return NS_ERROR_DOM_SECURITY_ERR;
+            }
         }
     }
 
