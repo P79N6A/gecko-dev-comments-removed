@@ -98,6 +98,12 @@ const size_t ArenaMask = ArenaSize - 1;
 
 
 
+const static uint32 MaxFreeCommittedArenas = (32 << 20) / ArenaSize;
+
+
+
+
+
 
 
 const size_t ArenaCellCount = size_t(1) << (ArenaShift - Cell::CellShift);
@@ -742,14 +748,14 @@ struct Chunk {
     static inline void release(JSRuntime *rt, Chunk *chunk);
 
   private:
-    inline void init();
+    inline void init(JSRuntime *rt);
 
     
     jsuint findDecommittedArenaOffset();
     ArenaHeader* fetchNextDecommittedArena();
 
     
-    inline ArenaHeader* fetchNextFreeArena();
+    inline ArenaHeader* fetchNextFreeArena(JSRuntime *rt);
 };
 
 JS_STATIC_ASSERT(sizeof(Chunk) == ChunkSize);

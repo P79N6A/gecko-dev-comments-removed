@@ -438,6 +438,8 @@ struct JSRuntime
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
     uint32              gcEmptyArenaPoolLifespan;
+    
+    volatile uint32     gcNumFreeArenas;
     uint32              gcNumber;
     js::GCMarker        *gcMarkingTracer;
     bool                gcChunkAllocationSinceLastGC;
