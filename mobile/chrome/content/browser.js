@@ -41,6 +41,7 @@
 
 
 
+
 let Cc = Components.classes;
 let Ci = Components.interfaces;
 let Cu = Components.utils;
@@ -108,14 +109,14 @@ var Browser = {
         return;
 
       let w = window.innerWidth;
-      let h = window.innerHeight;
       let maximize = (document.documentElement.getAttribute("sizemode") == "maximized");
-      if (maximize && window.innerWidth > screen.width)
+      if (maximize && w > screen.width)
         return;
 
+      let h = window.innerHeight;
       
       
-      BrowserUI.sizeControls();
+      BrowserUI.sizeControls(w, h);
 
       
       let containerStyle = browserContainer.style;
@@ -626,7 +627,7 @@ IdentityHandler.prototype = {
 
   getIdentityData: function() {
     var result = {};
-    var status = this._lastStatus.QueryInterface(Components.interfaces.nsISSLStatus);
+    var status = this._lastStatus.QueryInterface(Ci.nsISSLStatus);
     var cert = status.serverCert;
 
     
@@ -664,14 +665,14 @@ IdentityHandler.prototype = {
 
   checkIdentity: function(state, location) {
     var currentStatus = getBrowser().securityUI
-                                .QueryInterface(Components.interfaces.nsISSLStatusProvider)
+                                .QueryInterface(Ci.nsISSLStatusProvider)
                                 .SSLStatus;
     this._lastStatus = currentStatus;
     this._lastLocation = location;
 
-    if (state & Components.interfaces.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
+    if (state & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
       this.setMode(this.IDENTITY_MODE_IDENTIFIED);
-    else if (state & Components.interfaces.nsIWebProgressListener.STATE_SECURE_HIGH)
+    else if (state & Ci.nsIWebProgressListener.STATE_SECURE_HIGH)
       this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
     else
       this.setMode(this.IDENTITY_MODE_UNKNOWN);
@@ -731,8 +732,7 @@ IdentityHandler.prototype = {
 
       
       if (!this._overrideService)
-        this._overrideService = Components.classes["@mozilla.org/security/certoverride;1"]
-                                          .getService(Components.interfaces.nsICertOverrideService);
+        this._overrideService = Cc["@mozilla.org/security/certoverride;1"].getService(Ci.nsICertOverrideService);
 
       
       
@@ -869,7 +869,7 @@ function getIdentityHandler() {
 
 
 const gPopupBlockerObserver = {
-  _kIPM: Components.interfaces.nsIPermissionManager,
+  _kIPM: Ci.nsIPermissionManager,
 
   onUpdatePageReport: function (aEvent)
   {
@@ -930,8 +930,7 @@ const gPopupBlockerObserver = {
   toggleAllowPopupsForSite: function (aEvent)
   {
     var currentURI = Browser.selectedBrowser.webNavigation.currentURI;
-    var pm = Components.classes["@mozilla.org/permissionmanager;1"]
-                       .getService(this._kIPM);
+    var pm = Cc["@mozilla.org/permissionmanager;1"].getService(this._kIPM);
     pm.add(currentURI, "popup", this._kIPM.ALLOW_ACTION);
 
     Browser.getNotificationBox().removeCurrentNotification();
@@ -952,7 +951,7 @@ const gXPInstallObserver = {
     var browserBundle = document.getElementById("bundle_browser");
     switch (aTopic) {
       case "xpinstall-install-blocked":
-        var installInfo = aSubject.QueryInterface(Components.interfaces.nsIXPIInstallInfo);
+        var installInfo = aSubject.QueryInterface(Ci.nsIXPIInstallInfo);
         var host = installInfo.originatingURI.host;
         var brandShortName = brandBundle.getString("brandShortName");
         var notificationName, messageString, buttons;
@@ -1182,9 +1181,9 @@ ProgressController.prototype = {
   },
 
   QueryInterface: function(aIID) {
-    if (aIID.equals(Components.interfaces.nsIWebProgressListener) ||
-        aIID.equals(Components.interfaces.nsISupportsWeakReference) ||
-        aIID.equals(Components.interfaces.nsISupports))
+    if (aIID.equals(Ci.nsIWebProgressListener) ||
+        aIID.equals(Ci.nsISupportsWeakReference) ||
+        aIID.equals(Ci.nsISupports))
       return this;
 
     throw Components.results.NS_ERROR_NO_INTERFACE;
