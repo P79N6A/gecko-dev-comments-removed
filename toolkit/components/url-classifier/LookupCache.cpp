@@ -688,6 +688,26 @@ bool LookupCache::IsPrimed()
   return mPrimed;
 }
 
+#ifdef DEBUG
+template <class T>
+static void EnsureSorted(T* aArray)
+{
+  typename T::elem_type* start = aArray->Elements();
+  typename T::elem_type* end = aArray->Elements() + aArray->Length();
+  typename T::elem_type* iter = start;
+  typename T::elem_type* previous = start;
+
+  while (iter != end) {
+    previous = iter;
+    ++iter;
+    if (iter != end) {
+      MOZ_ASSERT(*previous <= *iter);
+    }
+  }
+  return;
+}
+#endif
+
 nsresult
 LookupCache::ConstructPrefixSet(AddPrefixArray& aAddPrefixes)
 {
@@ -709,8 +729,10 @@ LookupCache::ConstructPrefixSet(AddPrefixArray& aAddPrefixes)
     
     array.AppendElement(0);
   }
+#ifdef DEBUG
   
-  array.Sort();
+  EnsureSorted(&array);
+#endif
 
   
   rv = mPrefixSet->SetPrefixes(array.Elements(), array.Length());
