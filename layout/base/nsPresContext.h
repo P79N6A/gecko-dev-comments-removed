@@ -272,7 +272,7 @@ public:
   {
     if (mShell)
       return mShell->AllocateMisc(aSize);
-    return nullptr;
+    return nsnull;
   }
 
   void FreeToShell(size_t aSize, void* aFreeChunk)
@@ -553,7 +553,7 @@ public:
 
 
 
-  float ScreenWidthInchesForFontInflation(bool* aChanged = nullptr);
+  float ScreenWidthInchesForFontInflation(bool* aChanged = nsnull);
 
   static PRInt32 AppUnitsPerCSSPixel() { return nsDeviceContext::AppUnitsPerCSSPixel(); }
   PRUint32 AppUnitsPerDevPixel() const  { return mDeviceContext->AppUnitsPerDevPixel(); }
@@ -935,7 +935,7 @@ public:
         GetPresShell()->GetDocument() == aContent->GetCurrentDoc()) {
       return aContent->GetPrimaryFrame();
     }
-    return nullptr;
+    return nsnull;
   }
 
   void NotifyDestroyingFrame(nsIFrame* aFrame)
@@ -991,7 +991,7 @@ protected:
   struct LangGroupFontPrefs {
     
     LangGroupFontPrefs()
-      : mLangGroup(nullptr)
+      : mLangGroup(nsnull)
       , mMinimumFontSize(0)
       , mDefaultVariableFont("serif", NS_FONT_STYLE_NORMAL, NS_FONT_VARIANT_NORMAL,
                              NS_FONT_WEIGHT_NORMAL, NS_FONT_STRETCH_NORMAL, 0, 0)
@@ -1050,10 +1050,10 @@ protected:
 
   void ResetCachedFontPrefs() {
     
-    mLangGroupFontPrefs.mNext = nullptr;
+    mLangGroupFontPrefs.mNext = nsnull;
 
     
-    mLangGroupFontPrefs.mLangGroup = nullptr;
+    mLangGroupFontPrefs.mLangGroup = nsnull;
   }
 
   NS_HIDDEN_(void) UpdateCharSet(const nsCString& aCharSet);
@@ -1105,7 +1105,7 @@ protected:
   
   
   
-  nsIAtom*              mLanguage;      
+  nsCOMPtr<nsIAtom>     mLanguage;
 
 public:
   
@@ -1277,7 +1277,7 @@ public:
   {
     if (mNotifyDidPaintTimer) {
       mNotifyDidPaintTimer->Cancel();
-      mNotifyDidPaintTimer = nullptr;
+      mNotifyDidPaintTimer = nsnull;
     }
   }
 
@@ -1375,7 +1375,7 @@ protected:
   class RunWillPaintObservers : public nsRunnable {
   public:
     RunWillPaintObservers(nsRootPresContext* aPresContext) : mPresContext(aPresContext) {}
-    void Revoke() { mPresContext = nullptr; }
+    void Revoke() { mPresContext = nsnull; }
     NS_IMETHOD Run()
     {
       if (mPresContext) {
@@ -1391,7 +1391,7 @@ protected:
   {
     if (mUpdatePluginGeometryTimer) {
       mUpdatePluginGeometryTimer->Cancel();
-      mUpdatePluginGeometryTimer = nullptr;
+      mUpdatePluginGeometryTimer = nsnull;
     }
   }
 
