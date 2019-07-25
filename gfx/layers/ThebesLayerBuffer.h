@@ -182,6 +182,14 @@ protected:
     return tmp.forget();
   }
 
+  
+
+
+
+  already_AddRefed<gfxContext>
+  GetContextForQuadrantUpdate(const nsIntRect& aBounds,
+                              float aXResolution, float aYResolution);
+
 private:
   PRBool BufferSizeOkFor(const nsIntSize& aSize)
   {
