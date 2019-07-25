@@ -40,6 +40,7 @@
 
 
 
+
 const TEST_URI = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/test-console.html";
 const TEST_IMG = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/test-image.png";
 const TEST_ENCODING_ISO_8859_1 = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/test-encoding-ISO-8859-1.html";
@@ -117,6 +118,7 @@ function testGen() {
     networkPanel.panel.removeEventListener("load", onLoad, true);
     testDriver.next();
   }, true);
+
   yield;
 
   checkIsVisible(networkPanel, {
@@ -153,6 +155,7 @@ function testGen() {
   httpActivity.timing.RESPONSE_HEADER = 1000;
   httpActivity.response.status = "999 earthquake win";
   httpActivity.response.header = {
+    "Content-Type": "text/html",
     leaveHouses: "true"
   }
   networkPanel.update();
@@ -213,6 +216,7 @@ function testGen() {
     networkPanel.panel.removeEventListener("load", onLoad, true);
     testDriver.next();
   }, true);
+
   yield;
 
 
@@ -236,13 +240,14 @@ function testGen() {
 
   
   httpActivity.response.header["Content-Type"] = "image/png";
-  httpActivity.url =  TEST_IMG;
+  httpActivity.url = TEST_IMG;
 
   networkPanel = HUDService.openNetworkPanel(filterBox, httpActivity);
   networkPanel.panel.addEventListener("load", function onLoad() {
     networkPanel.panel.removeEventListener("load", onLoad, true);
     testDriver.next();
   }, true);
+
   yield;
 
   checkIsVisible(networkPanel, {
@@ -288,6 +293,7 @@ function testGen() {
     networkPanel.panel.removeEventListener("load", onLoad, true);
     testDriver.next();
   }, true);
+
   yield;
 
   checkIsVisible(networkPanel, {
@@ -318,6 +324,7 @@ function testGen() {
     networkPanel.panel.removeEventListener("load", onLoad, true);
     testDriver.next();
   }, true);
+
   yield;
 
   checkIsVisible(networkPanel, {
@@ -343,6 +350,7 @@ function testGen() {
     networkPanel.panel.removeEventListener("load", onLoad, true);
     testDriver.next();
   }, true);
+
   yield;
 
   checkIsVisible(networkPanel, {
@@ -377,25 +385,93 @@ function testGen() {
   networkPanel = HUDService.openNetworkPanel(filterBox, httpActivity);
   networkPanel.isDoneCallback = function NP_doneCallback() {
     networkPanel.isDoneCallback = null;
+    testDriver.next();
+  }
 
-    checkIsVisible(networkPanel, {
-      requestBody: false,
-      requestFormData: true,
-      requestCookie: true,
-      responseContainer: true,
-      responseBody: false,
-      responseBodyCached: true,
-      responseNoBody: false,
-      responseImage: false,
-      responseImageCached: false
-    });
-
-    checkNodeContent(networkPanel, "responseBodyCachedContent", "<body>\u00fc\u00f6\u00E4</body>");
-    networkPanel.panel.hidePopup();
-
-    
-    finishTest();
-  };
   yield;
-};
 
+  checkIsVisible(networkPanel, {
+    requestBody: false,
+    requestFormData: true,
+    requestCookie: true,
+    responseContainer: true,
+    responseBody: false,
+    responseBodyCached: true,
+    responseNoBody: false,
+    responseImage: false,
+    responseImageCached: false
+  });
+
+  checkNodeContent(networkPanel, "responseBodyCachedContent", "<body>\u00fc\u00f6\u00E4</body>");
+  networkPanel.panel.hidePopup();
+
+  
+  
+  httpActivity.response.header["Content-Type"] = "application/x-shockwave-flash";
+
+  networkPanel = HUDService.openNetworkPanel(filterBox, httpActivity);
+  networkPanel.isDoneCallback = function NP_doneCallback() {
+    networkPanel.isDoneCallback = null;
+    testDriver.next();
+  }
+
+  yield;
+
+  checkIsVisible(networkPanel, {
+    requestBody: false,
+    requestFormData: true,
+    requestCookie: true,
+    responseContainer: true,
+    responseBody: false,
+    responseBodyCached: false,
+    responseBodyUnknownType: true,
+    responseNoBody: false,
+    responseImage: false,
+    responseImageCached: false
+  });
+
+  let responseString = HUDService.getFormatStr("NetworkPanel.responseBodyUnableToDisplay.content", ["application/x-shockwave-flash"]);
+  checkNodeContent(networkPanel, "responseBodyUnknownTypeContent", responseString);
+  networkPanel.panel.hidePopup();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  finishTest();
+}
