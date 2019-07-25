@@ -975,12 +975,19 @@ MockInstall.prototype = {
   install: function() {
     switch (this.state) {
       case AddonManager.STATE_AVAILABLE:
-      case AddonManager.STATE_DOWNLOADED:
-        
+        this.state = AddonManager.STATE_DOWNLOADING;
+        if (!this.callListeners("onDownloadStarted")) {
+          this.state = AddonManager.STATE_CANCELLED;
+          this.callListeners("onDownloadCancelled");
+          return;
+        }
 
+        this.state = AddonManager.STATE_DOWNLOADED;
+        this.callListeners("onDownloadEnded");
+
+      case AddonManager.STATE_DOWNLOADED:
         this.state = AddonManager.STATE_INSTALLING;
         if (!this.callListeners("onInstallStarted")) {
-          
           this.state = AddonManager.STATE_CANCELLED;
           this.callListeners("onInstallCancelled");
           return;
@@ -1048,10 +1055,15 @@ MockInstall.prototype = {
     
     
     this.testListeners.forEach(function(aListener) {
-      if (aMethod in aListener)
-        if (aListener[aMethod].call(aListener, this, this.addon) === false)
-          result = false;
-    });
+      try {
+        if (aMethod in aListener)
+          if (aListener[aMethod].call(aListener, this, this.addon) === false)
+            result = false;
+      }
+      catch (e) {
+        ok(false, "Test listener threw exception: " + e);
+      }
+    }, this);
 
     return result;
   }
