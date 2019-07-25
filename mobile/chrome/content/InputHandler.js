@@ -364,13 +364,13 @@ MouseModule.prototype = {
         break;
       case "contextmenu":
         if (ContextHelper.popupState && this._dragData.dragging)
-          this._doDragStop(0, 0, true);
+          this._doDragStop();
         break;
       case "MozMagnifyGestureStart":
       case "MozMagnifyGesture":
         
         if (this._dragData.dragging)
-          this._doDragStop(0, 0, true);
+          this._doDragStop();
         break;
       case "MozBeforePaint":
         this._waitingForPaint = false;
@@ -426,7 +426,7 @@ MouseModule.prototype = {
     if (dragData.dragging) {
       
       let [sX, sY] = dragData.panPosition();
-      this._doDragStop(sX, sY, !dragData.isPan());
+      this._doDragStop();
     }
     dragData.reset();
 
@@ -487,7 +487,7 @@ MouseModule.prototype = {
     if (dragData.dragging) {
       dragData.setDragPosition(aEvent.screenX, aEvent.screenY);
       let [sX, sY] = dragData.panPosition();
-      this._doDragStop(sX, sY, !dragData.isPan());
+      this._doDragStop();
     }
 
     if (this._targetIsContent(aEvent)) {
@@ -538,7 +538,7 @@ MouseModule.prototype = {
         this._owner.grab(this);
         
         let [sX, sY] = dragData.panPosition();
-        this._doDragMove(sX, sY);
+        this._doDragMove();
 
         
         let clicker = this._clicker;
@@ -568,37 +568,29 @@ MouseModule.prototype = {
   },
 
   
+  _doDragStop: function _doDragStop() {
+    this._dragData.endDrag();
 
-
-
-
-  _doDragStop: function _doDragStop(sX, sY, kineticStop) {
     let dragData = this._dragData;
-    dragData.endDrag();
-
-    if (!kineticStop) {
+    if (!dragData.isPan()) {
       
+      this._dragger.dragStop(0, 0, this._targetScrollInterface);
+    } else {
+      
+      let [sX, sY] = dragData.panPosition();
       let dX = dragData.prevPanX - sX;
       let dY = dragData.prevPanY - sY;
       this._kinetic.addData(-dX, -dY);
       this._kinetic.start();
-    } else {
-      
-      this._dragger.dragStop(0, 0, this._targetScrollInterface);
-
-      if (dragData.isPan()) {
-        let event = document.createEvent("Events");
-        event.initEvent("PanFinished", true, false);
-        this._browserViewContainer.dispatchEvent(event);
-      }
     }
   },
 
   
 
 
-  _doDragMove: function _doDragMove(sX, sY) {
+  _doDragMove: function _doDragMove() {
     let dragData = this._dragData;
+    let [sX, sY] = dragData.panPosition();
     let dX = dragData.prevPanX - sX;
     let dY = dragData.prevPanY - sY;
     this._kinetic.addData(-dX, -dY);
@@ -624,9 +616,14 @@ MouseModule.prototype = {
 
   
   _kineticStop: function _kineticStop() {
-    let dragData = this._dragData;
-    if (!dragData.dragging)
-      this._doDragStop(0, 0, true);
+    
+    
+    if (!dragData.dragging && !dragData.isPan()) {
+      this._dragger.dragStop(0, 0, this._targetScrollInterface);
+      let event = document.createEvent("Events");
+      event.initEvent("PanFinished", true, false);
+      document.dispatchEvent(event);
+    }
   },
 
   
@@ -1121,9 +1118,11 @@ KineticController.prototype = {
   },
 
   end: function end() {
-    if (this._beforeEnd)
-      this._beforeEnd();
-    this._reset();
+    if (this.isActive()) {
+      if (this._beforeEnd)
+        this._beforeEnd();
+      this._reset();
+    }
   },
 
   addData: function addData(dx, dy) {
@@ -1300,11 +1299,16 @@ GestureModule.prototype = {
   },
 
   _pinchStart: function _pinchStart(aEvent) {
-    
-    if (this._pinchZoom || (aEvent.target instanceof XULElement) || !Browser.selectedTab.allowZoom)
+    if (this._pinchZoom)
       return;
 
+    
     this._owner.grab(this);
+
+    if ((aEvent.target instanceof XULElement) || !Browser.selectedTab.allowZoom) {
+      this._owner.ungrab(this);
+      return;
+    }
 
     
     
