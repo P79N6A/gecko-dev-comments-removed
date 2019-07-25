@@ -37,10 +37,9 @@
 
 
 
-#include <new>
-
 #include "jstypes.h"
 #include "jsarena.h"
+#include "jsdhash.h"
 #include "jsprf.h"
 #include "jsapi.h"
 #include "jscntxt.h"
@@ -48,34 +47,102 @@
 #include "jspropertytree.h"
 #include "jsscope.h"
 
-#include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 
 using namespace js;
 
-inline HashNumber
-ShapeHasher::hash(const Lookup l)
+struct PropertyRootKey
 {
-    return l->hash();
+    const JSScopeProperty *firstProp;
+    uint32                emptyShape;
+
+    PropertyRootKey(const JSScopeProperty *child, uint32 shape)
+      : firstProp(child), emptyShape(shape) {}
+
+    static JSDHashNumber hash(JSDHashTable *table, const void *key) {
+        const PropertyRootKey *rkey = (const PropertyRootKey *)key;
+
+        return rkey->firstProp->hash() ^ rkey->emptyShape;
+    }
+};
+
+struct PropertyRootEntry : public JSDHashEntryHdr
+{
+    JSScopeProperty *firstProp;
+    uint32          emptyShape;
+    uint32          newEmptyShape;
+
+    static JSBool match(JSDHashTable *table, const JSDHashEntryHdr *hdr, const void *key) {
+        const PropertyRootEntry *rent = (const PropertyRootEntry *)hdr;
+        const PropertyRootKey *rkey = (const PropertyRootKey *)key;
+
+        return rent->firstProp->matches(rkey->firstProp) &&
+               rent->emptyShape == rkey->emptyShape;
+    }
+};
+
+static const JSDHashTableOps PropertyRootHashOps = {
+    JS_DHashAllocTable,
+    JS_DHashFreeTable,
+    PropertyRootKey::hash,
+    PropertyRootEntry::match,
+    JS_DHashMoveEntryStub,
+    JS_DHashClearEntryStub,
+    JS_DHashFinalizeStub,
+    NULL
+};
+
+static JSDHashNumber
+HashScopeProperty(JSDHashTable *table, const void *key)
+{
+    const JSScopeProperty *sprop = (const JSScopeProperty *)key;
+    return sprop->hash();
 }
 
-inline bool
-ShapeHasher::match(const Key k, const Lookup l)
+static JSBool
+MatchScopeProperty(JSDHashTable *table,
+                   const JSDHashEntryHdr *hdr,
+                   const void *key)
 {
-    return l->matches(k);
+    const JSPropertyTreeEntry *entry = (const JSPropertyTreeEntry *)hdr;
+    const JSScopeProperty *sprop = entry->child;
+    const JSScopeProperty *kprop = (const JSScopeProperty *)key;
+
+    return sprop->matches(kprop);
 }
+
+static const JSDHashTableOps PropertyTreeHashOps = {
+    JS_DHashAllocTable,
+    JS_DHashFreeTable,
+    HashScopeProperty,
+    MatchScopeProperty,
+    JS_DHashMoveEntryStub,
+    JS_DHashClearEntryStub,
+    JS_DHashFinalizeStub,
+    NULL
+};
 
 bool
 PropertyTree::init()
 {
+    if (!JS_DHashTableInit(&hash, &PropertyRootHashOps, NULL,
+                           sizeof(PropertyRootEntry), JS_DHASH_MIN_SIZE)) {
+        hash.ops = NULL;
+        return false;
+    }
     JS_InitArenaPool(&arenaPool, "properties",
-                     256 * sizeof(Shape), sizeof(void *), NULL);
+                     256 * sizeof(JSScopeProperty), sizeof(void *), NULL);
+    emptyShapeChanges = 0;
     return true;
 }
 
 void
 PropertyTree::finish()
 {
+    if (hash.ops) {
+        JS_DHashTableFinish(&hash);
+        hash.ops = NULL;
+    }
     JS_FinishArenaPool(&arenaPool);
 }
 
@@ -83,19 +150,20 @@ PropertyTree::finish()
 
 
 
-Shape *
-PropertyTree::newShape(JSContext *cx, bool gcLocked)
+JSScopeProperty *
+PropertyTree::newScopeProperty(JSContext *cx, bool gcLocked)
 {
-    Shape *shape;
+    JSScopeProperty *sprop;
 
     if (!gcLocked)
         JS_LOCK_GC(cx->runtime);
-    shape = freeList;
-    if (shape) {
-        shape->removeFree();
+    sprop = freeList;
+    if (sprop) {
+        sprop->removeFree();
     } else {
-        JS_ARENA_ALLOCATE_CAST(shape, Shape *, &arenaPool, sizeof(Shape));
-        if (!shape) {
+        JS_ARENA_ALLOCATE_CAST(sprop, JSScopeProperty *, &arenaPool,
+                               sizeof(JSScopeProperty));
+        if (!sprop) {
             JS_UNLOCK_GC(cx->runtime);
             JS_ReportOutOfMemory(cx);
             return NULL;
@@ -106,34 +174,52 @@ PropertyTree::newShape(JSContext *cx, bool gcLocked)
 
     JS_RUNTIME_METER(cx->runtime, livePropTreeNodes);
     JS_RUNTIME_METER(cx->runtime, totalPropTreeNodes);
-    return shape;
+    return sprop;
 }
 
+#define CHUNKY_KIDS_TAG         ((jsuword)1)
+#define KIDS_IS_CHUNKY(kids)    ((jsuword)(kids) & CHUNKY_KIDS_TAG)
+#define KIDS_TO_CHUNK(kids)     ((PropTreeKidsChunk *)                        \
+                                 ((jsuword)(kids) & ~CHUNKY_KIDS_TAG))
+#define CHUNK_TO_KIDS(chunk)    ((JSScopeProperty *)                          \
+                                 ((jsuword)(chunk) | CHUNKY_KIDS_TAG))
+#define MAX_KIDS_PER_CHUNK      10
+#define CHUNK_HASH_THRESHOLD    30
+
+struct PropTreeKidsChunk {
+    JSScopeProperty     *kids[MAX_KIDS_PER_CHUNK];
+    JSDHashTable        *table;
+    PropTreeKidsChunk   *next;
+};
 
 
 
 
-KidsChunk *
-KidsChunk::create(JSContext *cx)
+
+static PropTreeKidsChunk *
+NewPropTreeKidsChunk(JSContext *cx)
 {
-    KidsChunk *chunk;
+    PropTreeKidsChunk *chunk;
 
-    chunk = (KidsChunk *) js_calloc(sizeof *chunk);
+    chunk = (PropTreeKidsChunk *) js_calloc(sizeof *chunk);
     if (!chunk) {
         JS_UNLOCK_GC(cx->runtime);
         JS_ReportOutOfMemory(cx);
         return NULL;
     }
+    JS_ASSERT(((jsuword)chunk & CHUNKY_KIDS_TAG) == 0);
     JS_RUNTIME_METER(cx->runtime, propTreeKidsChunks);
     return chunk;
 }
 
-KidsChunk *
-KidsChunk::destroy(JSContext *cx, KidsChunk *chunk)
+static PropTreeKidsChunk *
+DestroyPropTreeKidsChunk(JSContext *cx, PropTreeKidsChunk *chunk)
 {
     JS_RUNTIME_UNMETER(cx->runtime, propTreeKidsChunks);
+    if (chunk->table)
+        JS_DHashTableDestroy(chunk->table);
 
-    KidsChunk *nextChunk = chunk->next;
+    PropTreeKidsChunk *nextChunk = chunk->next;
     js_free(chunk);
     return nextChunk;
 }
@@ -143,189 +229,213 @@ KidsChunk::destroy(JSContext *cx, KidsChunk *chunk)
 
 
 bool
-PropertyTree::insertChild(JSContext *cx, Shape *parent, Shape *child)
+PropertyTree::insertChild(JSContext *cx, JSScopeProperty *parent,
+                          JSScopeProperty *child)
 {
-    JS_ASSERT(!parent->inDictionary());
+    JS_ASSERT(parent);
     JS_ASSERT(!child->parent);
-    JS_ASSERT(!child->inDictionary());
-    JS_ASSERT(!JSID_IS_VOID(parent->id));
-    JS_ASSERT(!JSID_IS_VOID(child->id));
+    JS_ASSERT(!JSID_IS_NULL(parent->id));
+    JS_ASSERT(!JSID_IS_NULL(child->id));
 
-    child->parent = parent;
+    JSScopeProperty **childp = &parent->kids;
+    if (JSScopeProperty *kids = *childp) {
+        JSScopeProperty *sprop;
+        PropTreeKidsChunk *chunk;
 
-    KidsPointer *kidp = &parent->kids;
-    if (kidp->isNull()) {
-        kidp->setShape(child);
-        return true;
-    }
-
-    Shape *shape;
-
-    if (kidp->isShape()) {
-        shape = kidp->toShape();
-        JS_ASSERT(shape != child);
-        if (shape->matches(child)) {
-            
+        if (!KIDS_IS_CHUNKY(kids)) {
+            sprop = kids;
+            JS_ASSERT(sprop != child);
+            if (sprop->matches(child)) {
+                
 
 
 
-            JS_RUNTIME_METER(cx->runtime, duplicatePropTreeNodes);
-        }
+                JS_RUNTIME_METER(cx->runtime, duplicatePropTreeNodes);
+            }
+            chunk = NewPropTreeKidsChunk(cx);
+            if (!chunk)
+                return false;
+            parent->kids = CHUNK_TO_KIDS(chunk);
+            chunk->kids[0] = sprop;
+            childp = &chunk->kids[1];
+        } else {
+            PropTreeKidsChunk **chunkp;
 
-        KidsChunk *chunk = KidsChunk::create(cx);
-        if (!chunk)
-            return false;
-        parent->kids.setChunk(chunk);
-        chunk->kids[0] = shape;
-        chunk->kids[1] = child;
-        return true;
-    }
-
-    if (kidp->isChunk()) {
-        KidsChunk **chunkp;
-        KidsChunk *chunk = kidp->toChunk();
-
-        do {
-            for (uintN i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
-                shape = chunk->kids[i];
-                if (!shape) {
-                    chunk->kids[i] = child;
-                    return true;
+            chunk = KIDS_TO_CHUNK(kids);
+            if (JSDHashTable *table = chunk->table) {
+                JSPropertyTreeEntry *entry = (JSPropertyTreeEntry *)
+                    JS_DHashTableOperate(table, child, JS_DHASH_ADD);
+                if (!entry) {
+                    JS_UNLOCK_GC(cx->runtime);
+                    JS_ReportOutOfMemory(cx);
+                    return false;
                 }
-
-                JS_ASSERT(shape != child);
-                if (shape->matches(child)) {
-                    
-
-
-
-
-
-                    JS_ASSERT(shape != child);
-                    JS_RUNTIME_METER(cx->runtime, duplicatePropTreeNodes);
+                if (!entry->child) {
+                    entry->child = child;
+                    while (chunk->next)
+                        chunk = chunk->next;
+                    for (uintN i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
+                        childp = &chunk->kids[i];
+                        sprop = *childp;
+                        if (!sprop)
+                            goto insert;
+                    }
+                    chunkp = &chunk->next;
+                    goto new_chunk;
                 }
             }
-            chunkp = &chunk->next;
-        } while ((chunk = *chunkp) != NULL);
 
-        chunk = KidsChunk::create(cx);
-        if (!chunk)
-            return false;
-        *chunkp = chunk;
-        chunk->kids[0] = child;
-        return true;
+            do {
+                for (uintN i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
+                    childp = &chunk->kids[i];
+                    sprop = *childp;
+                    if (!sprop)
+                        goto insert;
+
+                    JS_ASSERT(sprop != child);
+                    if (sprop->matches(child)) {
+                        
+
+
+
+
+
+                        JS_ASSERT(sprop != child);
+                        JS_RUNTIME_METER(cx->runtime, duplicatePropTreeNodes);
+                    }
+                }
+                chunkp = &chunk->next;
+            } while ((chunk = *chunkp) != NULL);
+
+          new_chunk:
+            chunk = NewPropTreeKidsChunk(cx);
+            if (!chunk)
+                return false;
+            *chunkp = chunk;
+            childp = &chunk->kids[0];
+        }
     }
-   
-    KidsHash *hash = kidp->toHash();
-    KidsHash::AddPtr addPtr = hash->lookupForAdd(child);
-    if (!addPtr) {
-        if (!hash->add(addPtr, child))
-            return false;
-    } else {
-        
-    }
+
+  insert:
+    *childp = child;
+    child->parent = parent;
     return true;
 }
 
 
 void
-PropertyTree::removeChild(JSContext *cx, Shape *child)
+PropertyTree::removeChild(JSContext *cx, JSScopeProperty *child)
 {
-    JS_ASSERT(!child->inDictionary());
+    uintN i, j;
+    JSPropertyTreeEntry *entry;
 
-    Shape *parent = child->parent;
+    JSScopeProperty *parent = child->parent;
     JS_ASSERT(parent);
-    JS_ASSERT(!JSID_IS_VOID(parent->id));
+    JS_ASSERT(!JSID_IS_NULL(parent->id));
 
-    KidsPointer *kidp = &parent->kids;
-    if (kidp->isShape()) {
-        Shape *kid = kidp->toShape();
+    JSScopeProperty *kids = parent->kids;
+    if (!KIDS_IS_CHUNKY(kids)) {
+        JSScopeProperty *kid = kids;
         if (kid == child)
-            parent->kids.setNull();
+            parent->kids = NULL;
         return;
     }
 
-    if (kidp->isChunk()) {
-        KidsChunk *list = kidp->toChunk();
-        KidsChunk *chunk = list;
-        KidsChunk **chunkp = &list;
+    PropTreeKidsChunk *list = KIDS_TO_CHUNK(kids);
+    PropTreeKidsChunk *chunk = list;
+    PropTreeKidsChunk **chunkp = &list;
 
-        do {
-            for (uintN i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
-                if (chunk->kids[i] == child) {
-                    KidsChunk *lastChunk = chunk;
-
-                    uintN j;
-                    if (!lastChunk->next) {
-                        j = i + 1;
-                    } else {
-                        j = 0;
-                        do {
-                            chunkp = &lastChunk->next;
-                            lastChunk = *chunkp;
-                        } while (lastChunk->next);
-                    }
-                    for (; j < MAX_KIDS_PER_CHUNK; j++) {
-                        if (!lastChunk->kids[j])
-                            break;
-                    }
-                    --j;
-
-                    if (chunk != lastChunk || j > i)
-                        chunk->kids[i] = lastChunk->kids[j];
-                    lastChunk->kids[j] = NULL;
-                    if (j == 0) {
-                        *chunkp = NULL;
-                        if (!list)
-                            parent->kids.setNull();
-                        KidsChunk::destroy(cx, lastChunk);
-                    }
-                    return;
-                }
-            }
-
-            chunkp = &chunk->next;
-        } while ((chunk = *chunkp) != NULL);
-        return;
-    }
-
-    kidp->toHash()->remove(child);
-}
-
-static KidsHash *
-HashChunks(KidsChunk *chunk, uintN n)
-{
-    void *mem = js_malloc(sizeof(KidsHash));
-    if (!mem)
-        return NULL;
-
-    KidsHash *hash = new (mem) KidsHash();
-    if (!hash->init(n)) {
-        js_free(hash);
-        return NULL;
-    }
+    JSDHashTable *table = chunk->table;
+    PropTreeKidsChunk *freeChunk = NULL;
 
     do {
-        for (uintN i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
-            Shape *shape = chunk->kids[i];
-            if (!shape)
-                break;
-            KidsHash::AddPtr addPtr = hash->lookupForAdd(shape);
-            if (!addPtr) {
-                
-
-
-
-                JS_ALWAYS_TRUE(hash->add(addPtr, shape));
-            } else {
-                
-
-
-
+        for (i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
+            if (chunk->kids[i] == child) {
+                PropTreeKidsChunk *lastChunk = chunk;
+                if (!lastChunk->next) {
+                    j = i + 1;
+                } else {
+                    j = 0;
+                    do {
+                        chunkp = &lastChunk->next;
+                        lastChunk = *chunkp;
+                    } while (lastChunk->next);
+                }
+                for (; j < MAX_KIDS_PER_CHUNK; j++) {
+                    if (!lastChunk->kids[j])
+                        break;
+                }
+                --j;
+                if (chunk != lastChunk || j > i)
+                    chunk->kids[i] = lastChunk->kids[j];
+                lastChunk->kids[j] = NULL;
+                if (j == 0) {
+                    *chunkp = NULL;
+                    if (!list)
+                        parent->kids = NULL;
+                    freeChunk = lastChunk;
+                }
+                goto out;
             }
         }
+
+        chunkp = &chunk->next;
+    } while ((chunk = *chunkp) != NULL);
+
+  out:
+    if (table) {
+        entry = (JSPropertyTreeEntry *)
+                JS_DHashTableOperate(table, child, JS_DHASH_LOOKUP);
+
+        if (entry->child == child)
+            JS_DHashTableRawRemove(table, &entry->hdr);
+    }
+    if (freeChunk)
+        DestroyPropTreeKidsChunk(cx, freeChunk);
+}
+
+void
+PropertyTree::emptyShapeChange(uint32 oldEmptyShape, uint32 newEmptyShape)
+{
+    if (oldEmptyShape == newEmptyShape)
+        return;
+
+    PropertyRootEntry *rent = (PropertyRootEntry *) hash.entryStore;
+    PropertyRootEntry *rend = rent + JS_DHASH_TABLE_SIZE(&hash);
+
+    while (rent < rend) {
+        if (rent->emptyShape == oldEmptyShape)
+            rent->newEmptyShape = newEmptyShape;
+        rent++;
+    }
+
+    ++emptyShapeChanges;
+}
+
+static JSDHashTable *
+HashChunks(PropTreeKidsChunk *chunk, uintN n)
+{
+    JSDHashTable *table;
+    uintN i;
+    JSScopeProperty *sprop;
+    JSPropertyTreeEntry *entry;
+
+    table = JS_NewDHashTable(&PropertyTreeHashOps, NULL,
+                             sizeof(JSPropertyTreeEntry),
+                             JS_DHASH_DEFAULT_CAPACITY(n + 1));
+    if (!table)
+        return NULL;
+    do {
+        for (i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
+            sprop = chunk->kids[i];
+            if (!sprop)
+                break;
+            entry = (JSPropertyTreeEntry *)
+                    JS_DHashTableOperate(table, sprop, JS_DHASH_ADD);
+            entry->child = sprop;
+        }
     } while ((chunk = chunk->next) != NULL);
-    return hash;
+    return table;
 }
 
 
@@ -336,120 +446,184 @@ HashChunks(KidsChunk *chunk, uintN n)
 
 
 
-Shape *
-PropertyTree::getChild(JSContext *cx, Shape *parent, const Shape &child)
+JSScopeProperty *
+PropertyTree::getChild(JSContext *cx, JSScopeProperty *parent, uint32 shape,
+                       const JSScopeProperty &child)
 {
-    Shape *shape;
+    PropertyRootEntry *rent;
+    JSScopeProperty *sprop;
 
-    JS_ASSERT(parent);
-    JS_ASSERT(!JSID_IS_VOID(parent->id));
+    if (!parent) {
+        PropertyRootKey rkey(&child, shape);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    KidsPointer *kidp = &parent->kids;
-    if (!kidp->isNull()) {
-        if (kidp->isShape()) {
-            shape = kidp->toShape();
-            if (shape->matches(&child))
-                return shape;
-        } else if (kidp->isChunk()) {
-            KidsChunk *chunk = kidp->toChunk();
-
-            uintN n = 0;
-            do {
-                for (uintN i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
-                    shape = chunk->kids[i];
-                    if (!shape) {
-                        n += i;
-                        if (n >= CHUNK_HASH_THRESHOLD) {
-                            
-
-
-
-
-                            if (!kidp->isHash()) {
-                                chunk = kidp->toChunk();
-
-                                KidsHash *hash = HashChunks(chunk, n);
-                                if (!hash) {
-                                    JS_ReportOutOfMemory(cx);
-                                    return NULL;
-                                }
-
-                                JS_LOCK_GC(cx->runtime);
-                                if (kidp->isHash()) {
-                                    hash->KidsHash::~KidsHash();
-                                    js_free(hash);
-                                } else {
-                                    
-                                    
-                                    while (chunk)
-                                        chunk = KidsChunk::destroy(cx, chunk);
-                                    kidp->setHash(hash);
-                                }
-                                goto locked_not_found;
-                            }
-                        }
-                        goto not_found;
-                    }
-
-                    if (shape->matches(&child))
-                        return shape;
-                }
-                n += MAX_KIDS_PER_CHUNK;
-            } while ((chunk = chunk->next) != NULL);
-        } else {
-            JS_LOCK_GC(cx->runtime);
-            shape = *kidp->toHash()->lookup(&child);
-            if (shape)
-                goto out;
-            goto locked_not_found;
+        JS_LOCK_GC(cx->runtime);
+        rent = (PropertyRootEntry *) JS_DHashTableOperate(&hash, &rkey, JS_DHASH_ADD);
+        if (!rent) {
+            JS_UNLOCK_GC(cx->runtime);
+            JS_ReportOutOfMemory(cx);
+            return NULL;
         }
+
+        sprop = rent->firstProp;
+        if (sprop)
+            goto out;
+    } else {
+        JS_ASSERT(!JSID_IS_NULL(parent->id));
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        rent = NULL;
+        sprop = parent->kids;
+        if (sprop) {
+            if (!KIDS_IS_CHUNKY(sprop)) {
+                if (sprop->matches(&child))
+                    return sprop;
+            } else {
+                PropTreeKidsChunk *chunk = KIDS_TO_CHUNK(sprop);
+
+                if (JSDHashTable *table = chunk->table) {
+                    JS_LOCK_GC(cx->runtime);
+                    JSPropertyTreeEntry *entry = (JSPropertyTreeEntry *)
+                        JS_DHashTableOperate(table, &child, JS_DHASH_LOOKUP);
+                    sprop = entry->child;
+                    if (sprop)
+                        goto out;
+                    goto locked_not_found;
+                }
+
+                uintN n = 0;
+                do {
+                    for (uintN i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
+                        sprop = chunk->kids[i];
+                        if (!sprop) {
+                            n += i;
+                            if (n >= CHUNK_HASH_THRESHOLD) {
+                                chunk = KIDS_TO_CHUNK(parent->kids);
+                                if (!chunk->table) {
+                                    JSDHashTable *table = HashChunks(chunk, n);
+                                    if (!table) {
+                                        JS_ReportOutOfMemory(cx);
+                                        return NULL;
+                                    }
+
+                                    JS_LOCK_GC(cx->runtime);
+                                    if (chunk->table)
+                                        JS_DHashTableDestroy(table);
+                                    else
+                                        chunk->table = table;
+                                    goto locked_not_found;
+                                }
+                            }
+                            goto not_found;
+                        }
+
+                        if (sprop->matches(&child))
+                            return sprop;
+                    }
+                    n += MAX_KIDS_PER_CHUNK;
+                } while ((chunk = chunk->next) != NULL);
+            }
+        }
+
+      not_found:
+        JS_LOCK_GC(cx->runtime);
     }
 
-  not_found:
-    JS_LOCK_GC(cx->runtime);
-
   locked_not_found:
-    shape = newShape(cx, true);
-    if (!shape)
+    sprop = newScopeProperty(cx, true);
+    if (!sprop)
         return NULL;
 
-    new (shape) Shape(child.id, child.rawGetter, child.rawSetter, child.slot, child.attrs,
-                      child.flags, child.shortid);
-    shape->shape = js_GenerateShape(cx, true);
+    new (sprop) JSScopeProperty(child.id, child.rawGetter, child.rawSetter, child.slot,
+                                child.attrs, child.flags, child.shortid);
+    sprop->parent = sprop->kids = NULL;
+    sprop->shape = js_GenerateShape(cx, true);
 
-    if (!insertChild(cx, parent, shape))
-        return NULL;
+    if (!parent) {
+        rent->firstProp = sprop;
+        rent->emptyShape = shape;
+        rent->newEmptyShape = 0;
+    } else {
+        if (!PropertyTree::insertChild(cx, parent, sprop))
+            return NULL;
+    }
 
   out:
     JS_UNLOCK_GC(cx->runtime);
-    return shape;
+    return sprop;
 }
 
 #ifdef DEBUG
-void
-Shape::dump(JSContext *cx, FILE *fp) const
+
+static void
+MeterKidCount(JSBasicStats *bs, uintN nkids)
 {
-    JS_ASSERT(!JSID_IS_VOID(id));
+    JS_BASIC_STATS_ACCUM(bs, nkids);
+    bs->hist[JS_MIN(nkids, 10)]++;
+}
+
+static void
+MeterPropertyTree(JSBasicStats *bs, JSScopeProperty *node)
+{
+    uintN i, nkids;
+    JSScopeProperty *kids, *kid;
+    PropTreeKidsChunk *chunk;
+
+    nkids = 0;
+    kids = node->kids;
+    if (kids) {
+        if (KIDS_IS_CHUNKY(kids)) {
+            for (chunk = KIDS_TO_CHUNK(kids); chunk; chunk = chunk->next) {
+                for (i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
+                    kid = chunk->kids[i];
+                    if (!kid)
+                        break;
+                    MeterPropertyTree(bs, kid);
+                    nkids++;
+                }
+            }
+        } else {
+            MeterPropertyTree(bs, kids);
+            nkids = 1;
+        }
+    }
+
+    MeterKidCount(bs, nkids);
+}
+
+static JSDHashOperator
+js_MeterPropertyTree(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 number,
+                     void *arg)
+{
+    PropertyRootEntry *rent = (PropertyRootEntry *)hdr;
+    JSBasicStats *bs = (JSBasicStats *)arg;
+
+    MeterPropertyTree(bs, rent->firstProp);
+    return JS_DHASH_NEXT;
+}
+
+void
+JSScopeProperty::dump(JSContext *cx, FILE *fp)
+{
+    JS_ASSERT(!JSID_IS_NULL(id));
 
     if (JSID_IS_INT(id)) {
         fprintf(fp, "[%ld]", (long) JSID_TO_INT(id));
     } else {
         JSString *str;
         if (JSID_IS_ATOM(id)) {
-            str = JSID_TO_STRING(id);
+            str = ATOM_TO_STRING(JSID_TO_ATOM(id));
         } else {
             JS_ASSERT(JSID_IS_OBJECT(id));
             str = js_ValueToString(cx, IdToValue(id));
@@ -496,72 +670,20 @@ Shape::dump(JSContext *cx, FILE *fp) const
 
     fprintf(fp, "shortid %d\n", shortid);
 }
-#endif
-
-#ifdef DEBUG
-
-static void
-MeterKidCount(JSBasicStats *bs, uintN nkids)
-{
-    JS_BASIC_STATS_ACCUM(bs, nkids);
-}
 
 void
-js::PropertyTree::meter(JSBasicStats *bs, Shape *node)
+JSScopeProperty::dumpSubtree(JSContext *cx, int level, FILE *fp)
 {
-    uintN nkids = 0;
-    const KidsPointer &kids = node->kids;
-    if (!kids.isNull()) {
-        if (kids.isShape()) {
-            meter(bs, kids.toShape());
-            nkids = 1;
-        } else if (kids.isChunk()) {
-            for (KidsChunk *chunk = kids.toChunk(); chunk; chunk = chunk->next) {
-                for (uintN i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
-                    Shape *kid = chunk->kids[i];
-                    if (!kid)
-                        break;
-                    meter(bs, kid);
-                    nkids++;
-                }
-            }
-        } else {
-            const KidsHash &hash = *kids.toHash();
-            for (KidsHash::Range range = hash.all(); !range.empty(); range.popFront()) {
-                Shape *kid = range.front();
+    fprintf(fp, "%*sid ", level, "");
+    dump(cx, fp);
 
-                meter(bs, kid);
-                nkids++;
-            }
-        }
-    }
-
-    MeterKidCount(bs, nkids);
-}
-
-void
-Shape::dumpSubtree(JSContext *cx, int level, FILE *fp) const
-{
-    if (!parent) {
-        JS_ASSERT(level == 0);
-        JS_ASSERT(JSID_IS_EMPTY(id));
-        fprintf(fp, "class %s emptyShape %u\n", clasp->name, shape);
-    } else {
-        fprintf(fp, "%*sid ", level, "");
-        dump(cx, fp);
-    }
-
-    if (!kids.isNull()) {
+    if (kids) {
         ++level;
-        if (kids.isShape()) {
-            Shape *kid = kids.toShape();
-            JS_ASSERT(kid->parent == this);
-            kid->dumpSubtree(cx, level, fp);
-        } else if (kids.isChunk()) {
-            KidsChunk *chunk = kids.toChunk();
+        if (KIDS_IS_CHUNKY(kids)) {
+            PropTreeKidsChunk *chunk = KIDS_TO_CHUNK(kids);
             do {
                 for (uintN i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
-                    Shape *kid = chunk->kids[i];
+                    JSScopeProperty *kid = chunk->kids[i];
                     if (!kid)
                         break;
                     JS_ASSERT(kid->parent == this);
@@ -569,114 +691,97 @@ Shape::dumpSubtree(JSContext *cx, int level, FILE *fp) const
                 }
             } while ((chunk = chunk->next) != NULL);
         } else {
-            const KidsHash &hash = *kids.toHash();
-            for (KidsHash::Range range = hash.all(); !range.empty(); range.popFront()) {
-                Shape *kid = range.front();
-
-                JS_ASSERT(kid->parent == this);
-                kid->dumpSubtree(cx, level, fp);
-            }
+            JSScopeProperty *kid = kids;
+            JS_ASSERT(kid->parent == this);
+            kid->dumpSubtree(cx, level, fp);
         }
     }
 }
 
 #endif 
 
-JS_ALWAYS_INLINE void
-js::PropertyTree::orphanKids(JSContext *cx, Shape *shape)
+static void
+OrphanNodeKids(JSContext *cx, JSScopeProperty *sprop)
 {
-    KidsPointer *kidp = &shape->kids;
+    JSScopeProperty *kids = sprop->kids;
 
-    JS_ASSERT(!kidp->isNull());
+    JS_ASSERT(kids);
+    sprop->kids = NULL;
 
     
 
 
 
+    JS_ASSERT(!sprop->parent || !sprop->parent->kids ||
+              KIDS_IS_CHUNKY(sprop->parent->kids));
 
-
-    JS_ASSERT_IF(shape->parent, !shape->parent->kids.isShape());
-
-    if (kidp->isShape()) {
-        Shape *kid = kidp->toShape();
-
-        if (!JSID_IS_VOID(kid->id)) {
-            JS_ASSERT(kid->parent == shape);
-            kid->parent = NULL;
-        }
-    } else if (kidp->isChunk()) {
-        KidsChunk *chunk = kidp->toChunk();
+    if (KIDS_IS_CHUNKY(kids)) {
+        PropTreeKidsChunk *chunk = KIDS_TO_CHUNK(kids);
 
         do {
             for (uintN i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
-                Shape *kid = chunk->kids[i];
+                JSScopeProperty *kid = chunk->kids[i];
                 if (!kid)
                     break;
 
-                if (!JSID_IS_VOID(kid->id)) {
-                    JS_ASSERT(kid->parent == shape);
+                if (!JSID_IS_NULL(kid->id)) {
+                    JS_ASSERT(kid->parent == sprop);
                     kid->parent = NULL;
                 }
             }
-        } while ((chunk = KidsChunk::destroy(cx, chunk)) != NULL);
+        } while ((chunk = DestroyPropTreeKidsChunk(cx, chunk)) != NULL);
     } else {
-        KidsHash *hash = kidp->toHash();
+        JSScopeProperty *kid = kids;
 
-        for (KidsHash::Range range = hash->all(); !range.empty(); range.popFront()) {
-            Shape *kid = range.front();
-            if (!JSID_IS_VOID(kid->id)) {
-                JS_ASSERT(kid->parent == shape);
-                kid->parent = NULL;
-            }
+        if (!JSID_IS_NULL(kid->id)) {
+            JS_ASSERT(kid->parent == sprop);
+            kid->parent = NULL;
         }
-
-        hash->KidsHash::~KidsHash();
-        js_free(hash);
     }
+}
 
-    kidp->setNull();
+JSDHashOperator
+js::RemoveNodeIfDead(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 number, void *arg)
+{
+    PropertyRootEntry *rent = (PropertyRootEntry *)hdr;
+    JSScopeProperty *sprop = rent->firstProp;
+
+    JS_ASSERT(!sprop->parent);
+    if (!sprop->marked()) {
+        if (sprop->kids)
+            OrphanNodeKids((JSContext *)arg, sprop);
+        return JS_DHASH_REMOVE;
+    }
+    return JS_DHASH_NEXT;
 }
 
 void
-js::PropertyTree::sweepShapes(JSContext *cx)
+js::SweepScopeProperties(JSContext *cx)
 {
 #ifdef DEBUG
     JSBasicStats bs;
     uint32 livePropCapacity = 0, totalLiveCount = 0;
     static FILE *logfp;
     if (!logfp) {
-        if (const char *filename = cx->runtime->propTreeStatFilename)
+        if (const char *filename = getenv("JS_PROPTREE_STATFILE"))
             logfp = fopen(filename, "w");
     }
 
     if (logfp) {
         JS_BASIC_STATS_INIT(&bs);
+        MeterKidCount(&bs, JS_PROPERTY_TREE(cx).hash.entryCount);
+        JS_DHashTableEnumerate(&JS_PROPERTY_TREE(cx).hash, js_MeterPropertyTree, &bs);
 
-        uint32 empties;
-        {
-            typedef JSRuntime::EmptyShapeSet HS;
+        double props, nodes, mean, sigma;
 
-            HS &h = cx->runtime->emptyShapes;
-            empties = h.count();
-            MeterKidCount(&bs, empties);
-            for (HS::Range r = h.all(); !r.empty(); r.popFront())
-                meter(&bs, r.front());
-        }
-
-        double props = cx->runtime->liveObjectPropsPreSweep;
-        double nodes = cx->runtime->livePropTreeNodes;
-        double dicts = cx->runtime->liveDictModeNodes;
-
-        
-        JS_ASSERT(nodes - dicts == bs.sum);
-        nodes -= empties;
-
-        double sigma;
-        double mean = JS_MeanAndStdDevBS(&bs, &sigma);
+        props = cx->runtime->liveScopePropsPreSweep;
+        nodes = cx->runtime->livePropTreeNodes;
+        JS_ASSERT(nodes == bs.sum);
+        mean = JS_MeanAndStdDevBS(&bs, &sigma);
 
         fprintf(logfp,
-                "props %g nodes %g (dicts %g) beta %g meankids %g sigma %g max %u\n",
-                props, nodes, dicts, nodes / props, mean, sigma, bs.max);
+                "props %g nodes %g beta %g meankids %g sigma %g max %u\n",
+                props, nodes, nodes / props, mean, sigma, bs.max);
 
         JS_DumpHistogram(&bs, logfp);
     }
@@ -687,14 +792,71 @@ js::PropertyTree::sweepShapes(JSContext *cx)
 
 
 
+
+
+
+
+
+
+    JS_DHashTableEnumerate(&JS_PROPERTY_TREE(cx).hash, RemoveNodeIfDead, cx);
+
+    
+
+
+
+
+
+
+
+    if (JS_PROPERTY_TREE(cx).emptyShapeChanges) {
+        JSDHashTable &oldHash = JS_PROPERTY_TREE(cx).hash;
+        uint32 tableSize = JS_DHASH_TABLE_SIZE(&oldHash);
+        JSDHashTable newHash;
+
+        if (!JS_DHashTableInit(&newHash, &PropertyRootHashOps, NULL,
+                               sizeof(PropertyRootEntry), tableSize)) {
+            cx->runtime->shapeGen |= SHAPE_OVERFLOW_BIT;
+        } else {
+            PropertyRootEntry *rent = (PropertyRootEntry *) oldHash.entryStore;
+            PropertyRootEntry *rend = rent + tableSize;
+
+            while (rent < rend) {
+                if (rent->firstProp) {
+                    uint32 emptyShape = rent->newEmptyShape;
+                    if (emptyShape == 0)
+                        emptyShape = rent->emptyShape;
+
+                    PropertyRootKey rkey(rent->firstProp, emptyShape);
+                    PropertyRootEntry *newRent =
+                        (PropertyRootEntry *) JS_DHashTableOperate(&newHash, &rkey, JS_DHASH_ADD);
+
+                    newRent->firstProp = rent->firstProp;
+                    newRent->emptyShape = emptyShape;
+                    newRent->newEmptyShape = 0;
+                }
+                rent++;
+            }
+
+            JS_ASSERT(newHash.generation == 0);
+            JS_DHashTableFinish(&oldHash);
+            JS_PROPERTY_TREE(cx).hash = newHash;
+            JS_PROPERTY_TREE(cx).emptyShapeChanges = 0;
+        }
+    }
+
+    
+
+
+
+
     JSArena **ap = &JS_PROPERTY_TREE(cx).arenaPool.first.next;
     while (JSArena *a = *ap) {
-        Shape *limit = (Shape *) a->avail;
+        JSScopeProperty *limit = (JSScopeProperty *) a->avail;
         uintN liveCount = 0;
 
-        for (Shape *shape = (Shape *) a->base; shape < limit; shape++) {
+        for (JSScopeProperty *sprop = (JSScopeProperty *) a->base; sprop < limit; sprop++) {
             
-            if (JSID_IS_VOID(shape->id))
+            if (JSID_IS_NULL(sprop->id))
                 continue;
 
             
@@ -705,28 +867,19 @@ js::PropertyTree::sweepShapes(JSContext *cx)
 
 
 
-            if (shape->marked()) {
-                shape->clearMark();
+            if (sprop->marked()) {
+                sprop->clearMark();
                 if (cx->runtime->gcRegenShapes) {
-                    if (shape->hasRegenFlag())
-                        shape->clearRegenFlag();
+                    if (sprop->hasRegenFlag())
+                        sprop->clearRegenFlag();
                     else
-                        shape->shape = js_RegenerateShapeForGC(cx);
+                        sprop->shape = js_RegenerateShapeForGC(cx);
                 }
                 liveCount++;
                 continue;
             }
 
-#ifdef DEBUG
-            if ((shape->flags & Shape::SHARED_EMPTY) &&
-                cx->runtime->meterEmptyShapes()) {
-                cx->runtime->emptyShapes.remove((EmptyShape *) shape);
-            }
-#endif
-
-            if (shape->inDictionary()) {
-                JS_RUNTIME_UNMETER(cx->runtime, liveDictModeNodes);
-            } else {
+            if (!sprop->inDictionary()) {
                 
 
 
@@ -739,30 +892,29 @@ js::PropertyTree::sweepShapes(JSContext *cx)
 
 
 
-                if (shape->parent)
-                    JS_PROPERTY_TREE(cx).removeChild(cx, shape);
+                if (sprop->parent)
+                    JS_PROPERTY_TREE(cx).removeChild(cx, sprop);
 
-                if (!shape->kids.isNull())
-                    orphanKids(cx, shape);
+                if (sprop->kids)
+                    OrphanNodeKids(cx, sprop);
             }
 
             
 
 
 
-            shape->freeTable(cx);
-            shape->insertFree(&JS_PROPERTY_TREE(cx).freeList);
+            sprop->insertFree(JS_PROPERTY_TREE(cx).freeList);
             JS_RUNTIME_UNMETER(cx->runtime, livePropTreeNodes);
         }
 
         
         if (liveCount == 0) {
-            for (Shape *shape = (Shape *) a->base; shape < limit; shape++)
-                shape->removeFree();
+            for (JSScopeProperty *sprop = (JSScopeProperty *) a->base; sprop < limit; sprop++)
+                sprop->removeFree();
             JS_ARENA_DESTROY(&JS_PROPERTY_TREE(cx).arenaPool, a, ap);
         } else {
 #ifdef DEBUG
-            livePropCapacity += limit - (Shape *) a->base;
+            livePropCapacity += limit - (JSScopeProperty *) a->base;
             totalLiveCount += liveCount;
 #endif
             ap = &a->next;
@@ -784,44 +936,38 @@ js::PropertyTree::sweepShapes(JSContext *cx)
 
         fprintf(logfp,
                 "Scope search stats:\n"
-                "  searches:        %6u\n"
-                "  hits:            %6u %5.2f%% of searches\n"
-                "  misses:          %6u %5.2f%%\n"
-                "  hashes:          %6u %5.2f%%\n"
-                "  hashHits:        %6u %5.2f%% (%5.2f%% of hashes)\n"
-                "  hashMisses:      %6u %5.2f%% (%5.2f%%)\n"
-                "  steps:           %6u %5.2f%% (%5.2f%%)\n"
-                "  stepHits:        %6u %5.2f%% (%5.2f%%)\n"
-                "  stepMisses:      %6u %5.2f%% (%5.2f%%)\n"
-                "  initSearches:    %6u\n"
-                "  changeSearches:  %6u\n"
-                "  tableAllocFails: %6u\n"
-                "  toDictFails:     %6u\n"
-                "  wrapWatchFails:  %6u\n"
-                "  adds:            %6u\n"
-                "  addFails:        %6u\n"
-                "  puts:            %6u\n"
-                "  redundantPuts:   %6u\n"
-                "  putFails:        %6u\n"
-                "  changes:         %6u\n"
-                "  changeFails:     %6u\n"
-                "  compresses:      %6u\n"
-                "  grows:           %6u\n"
-                "  removes:         %6u\n"
-                "  removeFrees:     %6u\n"
-                "  uselessRemoves:  %6u\n"
-                "  shrinks:         %6u\n",
+                "  searches:       %6u\n"
+                "  hits:           %6u %5.2f%% of searches\n"
+                "  misses:         %6u %5.2f%%\n"
+                "  hashes:         %6u %5.2f%%\n"
+                "  steps:          %6u %5.2f%% %5.2f%% of hashes\n"
+                "  stepHits:       %6u %5.2f%% %5.2f%%\n"
+                "  stepMisses:     %6u %5.2f%% %5.2f%%\n"
+                "  tableAllocFails %6u\n"
+                "  toDictFails     %6u\n"
+                "  wrapWatchFails  %6u\n"
+                "  adds:           %6u\n"
+                "  addFails:       %6u\n"
+                "  puts:           %6u\n"
+                "  redundantPuts:  %6u\n"
+                "  putFails:       %6u\n"
+                "  changes:        %6u\n"
+                "  changeFails:    %6u\n"
+                "  compresses:     %6u\n"
+                "  grows:          %6u\n"
+                "  removes:        %6u\n"
+                "  removeFrees:    %6u\n"
+                "  uselessRemoves: %6u\n"
+                "  shrinks:        %6u\n",
                 js_scope_stats.searches,
                 js_scope_stats.hits, RATE(hits, searches),
                 js_scope_stats.misses, RATE(misses, searches),
                 js_scope_stats.hashes, RATE(hashes, searches),
-                js_scope_stats.hashHits, RATE(hashHits, searches), RATE(hashHits, hashes),
-                js_scope_stats.hashMisses, RATE(hashMisses, searches), RATE(hashMisses, hashes),
                 js_scope_stats.steps, RATE(steps, searches), RATE(steps, hashes),
-                js_scope_stats.stepHits, RATE(stepHits, searches), RATE(stepHits, hashes),
-                js_scope_stats.stepMisses, RATE(stepMisses, searches), RATE(stepMisses, hashes),
-                js_scope_stats.initSearches,
-                js_scope_stats.changeSearches,
+                js_scope_stats.stepHits,
+                RATE(stepHits, searches), RATE(stepHits, hashes),
+                js_scope_stats.stepMisses,
+                RATE(stepMisses, searches), RATE(stepMisses, hashes),
                 js_scope_stats.tableAllocFails,
                 js_scope_stats.toDictFails,
                 js_scope_stats.wrapWatchFails,
@@ -844,21 +990,22 @@ js::PropertyTree::sweepShapes(JSContext *cx)
         fflush(logfp);
     }
 
-    if (const char *filename = cx->runtime->propTreeDumpFilename) {
+    if (const char *filename = getenv("JS_PROPTREE_DUMPFILE")) {
         char pathname[1024];
         JS_snprintf(pathname, sizeof pathname, "%s.%lu",
                     filename, (unsigned long)cx->runtime->gcNumber);
         FILE *dumpfp = fopen(pathname, "w");
         if (dumpfp) {
-            typedef JSRuntime::EmptyShapeSet HS;
+            PropertyRootEntry *rent = (PropertyRootEntry *) JS_PROPERTY_TREE(cx).hash.entryStore;
+            PropertyRootEntry *rend = rent + JS_DHASH_TABLE_SIZE(&JS_PROPERTY_TREE(cx).hash);
 
-            HS &h = cx->runtime->emptyShapes;
-            for (HS::Range r = h.all(); !r.empty(); r.popFront()) {
-                Shape *empty = r.front();
-                empty->dumpSubtree(cx, 0, dumpfp);
-                putc('\n', dumpfp);
+            while (rent < rend) {
+                if (rent->firstProp) {
+                    fprintf(dumpfp, "emptyShape %u ", rent->emptyShape);
+                    rent->firstProp->dumpSubtree(cx, 0, dumpfp);
+                }
+                rent++;
             }
-
             fclose(dumpfp);
         }
     }

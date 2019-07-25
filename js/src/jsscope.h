@@ -423,7 +423,7 @@ struct JSScope : public JSObjectMap
 
     bool branded()              { JS_ASSERT(!generic()); return flags & BRANDED; }
 
-    bool brand(JSContext *cx, uint32 slot) {
+    bool brand(JSContext *cx, uint32 slot, const js::Value &) {
         JS_ASSERT(!branded());
         generateOwnShape(cx);
         if (js_IsPropertyCacheDisabled(cx))  
@@ -975,14 +975,9 @@ JSScopeProperty::get(JSContext* cx, JSObject *obj, JSObject *pobj, js::Value* vp
     }
 
     
-
-
-
-
-
     if (obj->getClass() == &js_WithClass)
-        obj = obj->thisObject(cx);
-    return getterOp()(cx, obj, SPROP_USERID(this), vp);
+        obj = js_UnwrapWithObject(cx, obj);
+    return setterOp()(cx, obj, SPROP_USERID(this), vp);
 }
 
 inline bool
