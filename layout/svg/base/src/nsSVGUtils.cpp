@@ -36,9 +36,11 @@
 
 
 #include "nsSVGUtils.h"
+
 #include "nsIDOMDocument.h"
 #include "nsIDOMSVGElement.h"
 #include "nsIDOMSVGSVGElement.h"
+#include "nsRenderingContext.h"
 #include "nsStyleCoord.h"
 #include "nsPresContext.h"
 #include "nsSVGSVGElement.h"

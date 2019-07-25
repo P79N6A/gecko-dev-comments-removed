@@ -39,11 +39,26 @@
 #ifndef __NS_SVGGRADIENTFRAME_H__
 #define __NS_SVGGRADIENTFRAME_H__
 
+#include "gfxMatrix.h"
+#include "nsCOMPtr.h"
+#include "nsFrame.h"
+#include "nsLiteralString.h"
 #include "nsSVGPaintServerFrame.h"
-#include "nsSVGElement.h"
-#include "gfxPattern.h"
 
-class nsIDOMSVGStopElement;
+class gfxPattern;
+class nsIAtom;
+class nsIContent;
+class nsIFrame;
+class nsIPresShell;
+class nsStyleContext;
+class nsSVGLinearGradientElement;
+class nsSVGRadialGradientElement;
+
+struct gfxRect;
+
+namespace mozilla {
+class SVGAnimatedTransformList;
+}
 
 typedef nsSVGPaintServerFrame nsSVGGradientFrameBase;
 
@@ -112,15 +127,8 @@ protected:
   {
     return GetEnumValue(aIndex, mContent);
   }
-  PRUint16 GetGradientUnits()
-  {
-    
-    return GetEnumValue(nsSVGGradientElement::GRADIENTUNITS);
-  }
-  PRUint16 GetSpreadMethod()
-  {
-    return GetEnumValue(nsSVGGradientElement::SPREADMETHOD);
-  }
+  PRUint16 GetGradientUnits();
+  PRUint16 GetSpreadMethod();
 
   
   

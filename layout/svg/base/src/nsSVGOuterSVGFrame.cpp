@@ -37,7 +37,9 @@
 
 
 #include "nsSVGOuterSVGFrame.h"
+
 #include "nsIDOMSVGSVGElement.h"
+#include "nsRenderingContext.h"
 #include "nsSVGSVGElement.h"
 #include "nsSVGTextFrame.h"
 #include "DOMSVGTests.h"

@@ -172,6 +172,19 @@ nsSVGGradientFrame::GetEnumValue(PRUint32 aIndex, nsIContent *aDefault)
       mEnumAttributes[aIndex].GetAnimValue();
 }
 
+PRUint16
+nsSVGGradientFrame::GetGradientUnits()
+{
+  
+  return GetEnumValue(nsSVGGradientElement::GRADIENTUNITS);
+}
+
+PRUint16
+nsSVGGradientFrame::GetSpreadMethod()
+{
+  return GetEnumValue(nsSVGGradientElement::SPREADMETHOD);
+}
+
 const SVGAnimatedTransformList*
 nsSVGGradientFrame::GetGradientTransformList(nsIContent* aDefault)
 {
