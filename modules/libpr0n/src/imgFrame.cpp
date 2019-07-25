@@ -50,11 +50,9 @@ static PRBool gDisableOptimize = PR_FALSE;
 
 #include "cairo.h"
 
-#if defined(XP_WIN) || defined(WINCE)
-#include "gfxWindowsPlatform.h"
-#endif
+#if defined(XP_WIN)
 
-#if defined(XP_WIN) && !defined(WINCE)
+#include "gfxWindowsPlatform.h"
 
 
 #define USE_WIN_SURFACE 1
@@ -112,14 +110,7 @@ static PRBool AllowedImageSize(PRInt32 aWidth, PRInt32 aHeight)
 
 static PRBool ShouldUseImageSurfaces()
 {
-#if defined(WINCE)
-  
-  
-  gfxWindowsPlatform::RenderMode rmode = gfxWindowsPlatform::GetPlatform()->GetRenderMode();
-  return rmode != gfxWindowsPlatform::RENDER_DDRAW &&
-      rmode != gfxWindowsPlatform::RENDER_DDRAW_GL;
-
-#elif defined(USE_WIN_SURFACE)
+#if defined(USE_WIN_SURFACE)
   static const DWORD kGDIObjectsHighWaterMark = 7000;
 
   if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
