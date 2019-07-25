@@ -117,6 +117,7 @@ struct nsIntMargin;
 class nsPIDOMWindow;
 class nsIDocumentLoaderFactory;
 class nsIDOMHTMLInputElement;
+class nsTypedSelection;
 
 namespace mozilla {
 
@@ -2027,6 +2028,22 @@ public:
 
   static nsresult IsOnPrefWhitelist(nsPIDOMWindow* aWindow,
                                     const char* aPrefURL, bool *aAllowed);
+
+  
+
+
+
+
+
+
+
+
+
+
+  static void GetSelectionInTextControl(nsTypedSelection* aSelection,
+                                        Element* aRoot,
+                                        PRInt32& aOutStartOffset,
+                                        PRInt32& aOutEndOffset);
   
 private:
   static bool InitializeEventTable();

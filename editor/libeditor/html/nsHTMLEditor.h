@@ -327,13 +327,6 @@ public:
   virtual already_AddRefed<nsIDOMNode> FindUserSelectAllNode(nsIDOMNode* aNode);
 
   
-
-
-  nsresult GetTextSelectionOffsets(nsISelection *aSelection,
-                                   PRInt32 &aStartOffset, 
-                                   PRInt32 &aEndOffset);
-
-  
   
   
   

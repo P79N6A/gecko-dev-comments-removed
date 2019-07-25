@@ -143,6 +143,7 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "nsIDOMHTMLInputElement.h"
 #include "nsParserConstants.h"
 #include "nsIWebNavigation.h"
+#include "nsTypedSelection.h"
 
 #ifdef IBMBIDI
 #include "nsIBidiKeyboard.h"
@@ -6862,4 +6863,58 @@ nsContentUtils::IsOnPrefWhitelist(nsPIDOMWindow* aWindow,
   }
   *aAllowed = allowed;
   return NS_OK;
+}
+
+
+void
+nsContentUtils::GetSelectionInTextControl(nsTypedSelection* aSelection,
+                                          Element* aRoot,
+                                          PRInt32& aOutStartOffset,
+                                          PRInt32& aOutEndOffset)
+{
+  MOZ_ASSERT(aSelection && aRoot);
+
+  if (!aSelection->GetRangeCount()) {
+    
+    aOutStartOffset = aOutEndOffset = 0;
+    return;
+  }
+
+  nsCOMPtr<nsINode> anchorNode = aSelection->GetAnchorNode();
+  PRInt32 anchorOffset = aSelection->GetAnchorOffset();
+  nsCOMPtr<nsINode> focusNode = aSelection->GetFocusNode();
+  PRInt32 focusOffset = aSelection->GetFocusOffset();
+
+  
+  
+  NS_ASSERTION(aRoot->GetChildCount() <= 2, "Unexpected children");
+  nsCOMPtr<nsIContent> firstChild = aRoot->GetFirstChild();
+#ifdef DEBUG
+  nsCOMPtr<nsIContent> lastChild = aRoot->GetLastChild();
+  NS_ASSERTION(anchorNode == aRoot || anchorNode == firstChild ||
+               anchorNode == lastChild, "Unexpected anchorNode");
+  NS_ASSERTION(focusNode == aRoot || focusNode == firstChild ||
+               focusNode == lastChild, "Unexpected focusNode");
+#endif
+  if (!firstChild || !firstChild->IsNodeOfType(nsINode::eTEXT)) {
+    
+    anchorOffset = focusOffset = 0;
+  } else {
+    
+    
+    
+    
+    if ((anchorNode == aRoot && anchorOffset != 0) ||
+        (anchorNode != aRoot && anchorNode != firstChild)) {
+      anchorOffset = firstChild->Length();
+    }
+    if ((focusNode == aRoot && focusOffset != 0) ||
+        (focusNode != aRoot && focusNode != firstChild)) {
+      focusOffset = firstChild->Length();
+    }
+  }
+
+  
+  aOutStartOffset = NS_MIN(anchorOffset, focusOffset);
+  aOutEndOffset = NS_MAX(anchorOffset, focusOffset);
 }
