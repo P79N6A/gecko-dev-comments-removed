@@ -28,7 +28,6 @@ const char *gMemoryDeviceID      = "memory";
 
 nsMemoryCacheDevice::nsMemoryCacheDevice()
     : mInitialized(false),
-      mEvictionThreshold(PR_INT32_MAX),
       mHardLimit(4 * 1024 * 1024),       
       mSoftLimit((mHardLimit * 9) / 10), 
       mTotalSize(0),
