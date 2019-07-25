@@ -183,20 +183,16 @@ IsOfflineAllowed(const nsACString &aDomain)
 
 
 
-
-
 static PRUint32
-GetQuota(const nsACString &aDomain, PRInt32 *aQuota, PRInt32 *aWarnQuota,
-         bool aOverrideQuota)
+GetQuota(const nsACString &aDomain, PRInt32 *aQuota, PRInt32 *aWarnQuota)
 {
   PRUint32 perm = GetOfflinePermission(aDomain);
-  if (IS_PERMISSION_ALLOWED(perm) || aOverrideQuota) {
+  if (IS_PERMISSION_ALLOWED(perm)) {
     
     *aQuota = ((PRInt32)nsContentUtils::GetIntPref(kOfflineAppQuota,
                                                    DEFAULT_OFFLINE_APP_QUOTA) * 1024);
 
-    if (perm == nsIOfflineCacheUpdateService::ALLOW_NO_WARN ||
-        aOverrideQuota) {
+    if (perm == nsIOfflineCacheUpdateService::ALLOW_NO_WARN) {
       *aWarnQuota = -1;
     } else {
       *aWarnQuota = ((PRInt32)nsContentUtils::GetIntPref(kOfflineAppWarnQuota,
@@ -579,7 +575,6 @@ nsDOMStorage::nsDOMStorage(nsDOMStorage& aThat)
   , mScopeDBKey(aThat.mScopeDBKey)
 #endif
   , mEventBroadcaster(nsnull)
-  , mCanUseChromePersist(false)
 {
   mSecurityChecker = this;
   mItems.Init(8);
@@ -682,15 +677,6 @@ nsDOMStorage::InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aD
 #endif
 
   mStorageType = LocalStorage;
-
-  nsCOMPtr<nsIURI> URI;
-  if (NS_SUCCEEDED(aPrincipal->GetURI(getter_AddRefs(URI))) && URI) {
-    PRBool isAbout;
-    mCanUseChromePersist =
-      (NS_SUCCEEDED(URI->SchemeIs("moz-safe-about", &isAbout) && isAbout)) ||
-      (NS_SUCCEEDED(URI->SchemeIs("about", &isAbout), && isAbout));
-  }
-
   return NS_OK;
 }
 
@@ -824,11 +810,6 @@ nsDOMStorage::CacheStoragePermissions()
   return mSecurityChecker->CanAccess(subjectPrincipal);
 }
 
-bool
-nsDOMStorage::CanUseChromePersist()
-{
-  return mCanUseChromePersist;
-}
 
 class ItemCounterState
 {
@@ -1271,8 +1252,7 @@ nsDOMStorage::SetDBValue(const nsAString& aKey,
   PRInt32 offlineAppPermission;
   PRInt32 quota;
   PRInt32 warnQuota;
-  offlineAppPermission = GetQuota(mDomain, &quota, &warnQuota,
-                                  CanUseChromePersist());
+  offlineAppPermission = GetQuota(mDomain, &quota, &warnQuota);
 
   PRInt32 usage;
   rv = gStorageDB->SetKey(this, aKey, aValue, aSecure, quota,

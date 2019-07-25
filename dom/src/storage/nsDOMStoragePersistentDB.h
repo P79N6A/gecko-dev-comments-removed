@@ -54,7 +54,7 @@ public:
   ~nsDOMStoragePersistentDB() {}
 
   nsresult
-  Init(const nsString& aDatabaseName);
+  Init();
 
   
 
