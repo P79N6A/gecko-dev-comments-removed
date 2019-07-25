@@ -821,6 +821,17 @@ nsXULAppInfo::GetReplacedLockTime(PRInt64 *aReplacedLockTime)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsXULAppInfo::GetLastRunCrashID(nsAString &aLastRunCrashID)
+{
+#ifdef MOZ_CRASHREPORTER
+  CrashReporter::GetLastRunCrashID(aLastRunCrashID);
+  return NS_OK;
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
 #ifdef XP_WIN
 
 

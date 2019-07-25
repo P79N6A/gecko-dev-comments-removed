@@ -159,12 +159,24 @@ static XP_CHAR* crashReporterPath;
 static bool doReport = true;
 
 
+static bool headlessClient = false;
+
+
 static bool showOSCrashReporter = false;
 
 
 static time_t lastCrashTime = 0;
 
 static XP_CHAR lastCrashTimeFilename[XP_PATH_MAX] = {0};
+
+
+
+static XP_CHAR crashMarkerFilename[XP_PATH_MAX] = {0};
+
+
+static bool lastRunCrashID_checked = false;
+
+static nsString* lastRunCrashID = nsnull;
 
 
 static const char kCrashTimeParameter[] = "CrashTime=";
@@ -314,7 +326,7 @@ static cpu_type_t pref_cpu_types[2] = {
 static posix_spawnattr_t spawnattr;
 #endif
 
-#if defined(__ANDROID__)
+#if defined(MOZ_WIDGET_ANDROID)
 
 
 
@@ -416,6 +428,29 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   p = Concat(p, minidump_id, &size);
   Concat(p, extraFileExtension, &size);
 
+  if (headlessClient) {
+    
+#if defined(XP_WIN32)
+    HANDLE hFile = CreateFile(crashMarkerFilename, GENERIC_WRITE, 0,
+                              NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL,
+                              NULL);
+    if(hFile != INVALID_HANDLE_VALUE) {
+      DWORD nBytes;
+      WriteFile(hFile, minidumpPath, 2*wcslen(minidumpPath), &nBytes, NULL);
+      CloseHandle(hFile);
+    }
+#elif defined(XP_UNIX)
+    int fd = sys_open(crashMarkerFilename,
+                      O_WRONLY | O_CREAT | O_TRUNC,
+                      0600);
+    if (fd != -1) {
+      ssize_t ignored = sys_write(fd, minidumpPath, my_strlen(minidumpPath));
+      (void)ignored;
+      sys_close(fd);
+    }
+#endif
+  }
+
   char oomAllocationSizeBuffer[32];
   int oomAllocationSizeBufferLen = 0;
   if (gOOMAllocationSize) {
@@ -471,14 +506,6 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   }
 
 #if defined(XP_WIN32)
-  XP_CHAR cmdLine[CMDLINE_SIZE];
-  size = CMDLINE_SIZE;
-  p = Concat(cmdLine, L"\"", &size);
-  p = Concat(p, crashReporterPath, &size);
-  p = Concat(p, L"\" \"", &size);
-  p = Concat(p, minidumpPath, &size);
-  Concat(p, L"\"", &size);
-
   if (!crashReporterAPIData->IsEmpty()) {
     
     HANDLE hFile = CreateFile(extraDataPath, GENERIC_WRITE, 0,
@@ -538,6 +565,14 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   if (!doReport) {
     return returnValue;
   }
+
+  XP_CHAR cmdLine[CMDLINE_SIZE];
+  size = CMDLINE_SIZE;
+  p = Concat(cmdLine, L"\"", &size);
+  p = Concat(p, crashReporterPath, &size);
+  p = Concat(p, L"\" \"", &size);
+  p = Concat(p, minidumpPath, &size);
+  Concat(p, L"\"", &size);
 
   STARTUPINFO si;
   PROCESS_INFORMATION pi;
@@ -617,7 +652,7 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   if (pid == -1)
     return false;
   else if (pid == 0) {
-#if !defined(__ANDROID__)
+#if !defined(MOZ_WIDGET_ANDROID)
     
     
     unsetenv("LD_LIBRARY_PATH");
@@ -688,8 +723,6 @@ namespace {
 nsresult SetExceptionHandler(nsIFile* aXREDirectory,
                              bool force)
 {
-  nsresult rv;
-
   if (gExceptionHandler)
     return NS_ERROR_ALREADY_INITIALIZED;
 
@@ -697,9 +730,14 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
   if (envvar && *envvar && !force)
     return NS_OK;
 
+#if defined(MOZ_WIDGET_GONK)
+  doReport = false;
+  headlessClient = true;
+#else
   
   
   doReport = ShouldReport();
+#endif
 
   
   crashReporterAPIData = new nsCString();
@@ -719,37 +757,37 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
   notesField = new nsCString();
   NS_ENSURE_TRUE(notesField, NS_ERROR_OUT_OF_MEMORY);
 
-  
-  nsCOMPtr<nsIFile> exePath;
-  rv = aXREDirectory->Clone(getter_AddRefs(exePath));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (!headlessClient) {
+    
+    nsCOMPtr<nsIFile> exePath;
+    nsresult rv = aXREDirectory->Clone(getter_AddRefs(exePath));
+    NS_ENSURE_SUCCESS(rv, rv);
 
 #if defined(XP_MACOSX)
-  exePath->Append(NS_LITERAL_STRING("crashreporter.app"));
-  exePath->Append(NS_LITERAL_STRING("Contents"));
-  exePath->Append(NS_LITERAL_STRING("MacOS"));
+    exePath->Append(NS_LITERAL_STRING("crashreporter.app"));
+    exePath->Append(NS_LITERAL_STRING("Contents"));
+    exePath->Append(NS_LITERAL_STRING("MacOS"));
 #endif
 
-  exePath->AppendNative(NS_LITERAL_CSTRING(CRASH_REPORTER_FILENAME));
+    exePath->AppendNative(NS_LITERAL_CSTRING(CRASH_REPORTER_FILENAME));
 
 #ifdef XP_WIN32
-  nsString crashReporterPath_temp;
+    nsString crashReporterPath_temp;
 
-  exePath->GetPath(crashReporterPath_temp);
-  crashReporterPath = ToNewUnicode(crashReporterPath_temp);
+    exePath->GetPath(crashReporterPath_temp);
+    crashReporterPath = ToNewUnicode(crashReporterPath_temp);
 #elif !defined(__ANDROID__)
-  nsCString crashReporterPath_temp;
+    nsCString crashReporterPath_temp;
 
-  exePath->GetNativePath(crashReporterPath_temp);
-  crashReporterPath = ToNewCString(crashReporterPath_temp);
+    exePath->GetNativePath(crashReporterPath_temp);
+    crashReporterPath = ToNewCString(crashReporterPath_temp);
 #else
-  
-  
-  
-  
-  nsCString package(ANDROID_PACKAGE_NAME "/.CrashReporter");
-  crashReporterPath = ToNewCString(package);
+    
+    
+    nsCString package(ANDROID_PACKAGE_NAME "/.CrashReporter");
+    crashReporterPath = ToNewCString(package);
 #endif
+  }
 
   
 #if defined(XP_WIN32)
@@ -783,7 +821,6 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
   if (!tempenv)
     return NS_ERROR_FAILURE;
   nsCString tempPath(tempenv);
-
 #elif defined(XP_UNIX)
   
   nsCString tempPath = NS_LITERAL_CSTRING("/tmp/");
@@ -897,7 +934,7 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
     showOSCrashReporter = prefValue;
 #endif
 
-#if defined(__ANDROID__)
+#if defined(MOZ_WIDGET_ANDROID)
   for (unsigned int i = 0; i < library_mappings.size(); i++) {
     u_int8_t guid[sizeof(MDGUID)];
     FileIDToGUID(library_mappings[i].debug_id.c_str(), guid);
@@ -1122,6 +1159,34 @@ nsresult SetupExtraData(nsIFile* aAppDataDirectory,
     strncpy(lastCrashTimeFilename, filename.get(), filename.Length());
 #endif
 
+  if (headlessClient) {
+    nsCOMPtr<nsIFile> markerFile;
+    rv = dataDirectory->Clone(getter_AddRefs(markerFile));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = markerFile->AppendNative(NS_LITERAL_CSTRING("LastCrashFilename"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    memset(crashMarkerFilename, 0, sizeof(crashMarkerFilename));
+
+#if defined(XP_WIN32)
+    nsAutoString markerFilename;
+    rv = markerFile->GetPath(markerFilename);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (markerFilename.Length() < XP_PATH_MAX)
+      wcsncpy(crashMarkerFilename, markerFilename.get(),
+              markerFilename.Length());
+#else
+    nsCAutoString markerFilename;
+    rv = markerFile->GetNativePath(markerFilename);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (markerFilename.Length() < XP_PATH_MAX)
+      strncpy(crashMarkerFilename, markerFilename.get(),
+              markerFilename.Length());
+#endif
+  }
+
   return NS_OK;
 }
 
@@ -1152,6 +1217,9 @@ nsresult UnsetExceptionHandler()
 
   delete notesField;
   notesField = nsnull;
+
+  delete lastRunCrashID;
+  lastRunCrashID = nsnull;
 
   if (pendingDirectory) {
     NS_Free(pendingDirectory);
@@ -1695,6 +1763,33 @@ nsresult SetSubmitReports(bool aSubmitReports)
     return NS_OK;
 }
 
+static void
+FindPendingDir()
+{
+  if (pendingDirectory)
+    return;
+
+  nsCOMPtr<nsIFile> pendingDir;
+  nsresult rv = NS_GetSpecialDirectory("UAppData", getter_AddRefs(pendingDir));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Couldn't get the user appdata directory, crash dumps will go in an unusual location");
+  }
+  else {
+    pendingDir->Append(NS_LITERAL_STRING("Crash Reports"));
+    pendingDir->Append(NS_LITERAL_STRING("pending"));
+
+#ifdef XP_WIN
+    nsString path;
+    pendingDir->GetPath(path);
+    pendingDirectory = ToNewUnicode(path);
+#else
+    nsCString path;
+    pendingDir->GetNativePath(path);
+    pendingDirectory = ToNewCString(path);
+#endif
+  }
+}
+
 
 
 
@@ -1944,7 +2039,7 @@ OnChildProcessDumpRequested(void* aContext,
 #endif
                      getter_AddRefs(minidump));
 
-#if defined(__ANDROID__)
+#if defined(MOZ_WIDGET_ANDROID)
   
   
   MappingMap::const_iterator iter = 
@@ -2045,7 +2140,7 @@ OOPInit()
 
   const std::string dumpPath = gExceptionHandler->dump_path();
   bool generateDumps = true;
-#if defined(__ANDROID__)
+#if defined(MOZ_WIDGET_ANDROID)
   
   
   generateDumps = false;
@@ -2081,25 +2176,7 @@ OOPInit()
 
   dumpMapLock = new Mutex("CrashReporter::dumpMapLock");
 
-  nsCOMPtr<nsIFile> pendingDir;
-  nsresult rv = NS_GetSpecialDirectory("UAppData", getter_AddRefs(pendingDir));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Couldn't get the user appdata directory, crash dumps will go in an unusual location");
-  }
-  else {
-    pendingDir->Append(NS_LITERAL_STRING("Crash Reports"));
-    pendingDir->Append(NS_LITERAL_STRING("pending"));
-
-#ifdef XP_WIN
-    nsString path;
-    pendingDir->GetPath(path);
-    pendingDirectory = ToNewUnicode(path);
-#else
-    nsCString path;
-    pendingDir->GetNativePath(path);
-    pendingDirectory = ToNewCString(path);
-#endif
-  }
+  FindPendingDir();
 }
 
 static void
@@ -2206,6 +2283,77 @@ UnregisterInjectorCallback(DWORD processID)
 }
 
 #endif 
+
+bool
+CheckForLastRunCrash()
+{
+  if (lastRunCrashID)
+    return true;
+
+  
+  
+  nsCOMPtr<nsIFile> lastCrashFile;
+  CreateFileFromPath(crashMarkerFilename,
+                     getter_AddRefs(lastCrashFile));
+
+  bool exists;
+  if (NS_FAILED(lastCrashFile->Exists(&exists)) || !exists) {
+    return false;
+  }
+
+  nsCAutoString lastMinidump_contents;
+  if (NS_FAILED(GetFileContents(lastCrashFile, lastMinidump_contents))) {
+    return false;
+  }
+  lastCrashFile->Remove(false);
+
+#ifdef XP_WIN
+  
+  nsDependentString lastMinidump(
+      reinterpret_cast<const PRUnichar*>(lastMinidump_contents.get()));
+#else
+  nsCAutoString lastMinidump = lastMinidump_contents;
+#endif
+  nsCOMPtr<nsIFile> lastMinidumpFile;
+  CreateFileFromPath(lastMinidump.get(),
+                      getter_AddRefs(lastMinidumpFile));
+
+  if (NS_FAILED(lastMinidumpFile->Exists(&exists)) || !exists) {
+    return false;
+  }
+
+  nsCOMPtr<nsIFile> lastExtraFile;
+  if (!GetExtraFileForMinidump(lastMinidumpFile,
+                               getter_AddRefs(lastExtraFile))) {
+    return false;
+  }
+
+  FindPendingDir();
+
+  
+  if (!MoveToPending(lastMinidumpFile, lastExtraFile)) {
+    return false;
+  }
+
+  lastRunCrashID = new nsString();
+  return GetIDFromMinidump(lastMinidumpFile, *lastRunCrashID);
+}
+
+bool
+GetLastRunCrashID(nsAString& id)
+{
+  if (!lastRunCrashID_checked) {
+    CheckForLastRunCrash();
+    lastRunCrashID_checked = true;
+  }
+
+  if (!lastRunCrashID) {
+    return false;
+  }
+
+  id = *lastRunCrashID;
+  return true;
+}
 
 #if defined(XP_WIN)
 
@@ -2479,7 +2627,7 @@ UnsetRemoteExceptionHandler()
   return true;
 }
 
-#if defined(__ANDROID__)
+#if defined(MOZ_WIDGET_ANDROID)
 void AddLibraryMapping(const char* library_name,
                        const char* file_id,
                        uintptr_t   start_address,
