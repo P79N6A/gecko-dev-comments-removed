@@ -39,9 +39,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-
 var gLibrary = null;
 
 function test() {

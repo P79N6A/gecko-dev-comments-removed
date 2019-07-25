@@ -39,9 +39,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-
 let toolbar = document.getElementById("PersonalToolbar");
 let wasCollapsed = toolbar.collapsed;
 
