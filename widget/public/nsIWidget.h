@@ -262,6 +262,19 @@ class nsIWidget : public nsISupports {
   public:
     typedef mozilla::layers::LayerManager LayerManager;
 
+    
+    struct ThemeGeometry {
+      
+      PRUint8 mWidgetType;
+      
+      nsIntRect mRect;
+
+      ThemeGeometry(PRUint8 aWidgetType, const nsIntRect& aRect)
+       : mWidgetType(aWidgetType)
+       , mRect(aRect)
+      { }
+    };
+
     NS_DECLARE_STATIC_IID_ACCESSOR(NS_IWIDGET_IID)
 
     nsIWidget()
@@ -1407,6 +1420,20 @@ class nsIWidget_MOZILLA_2_0_BRANCH : public nsIWidget {
 
 
     virtual void DrawOver(LayerManager* aManager, nsIntRect aRect) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    virtual void UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget_MOZILLA_2_0_BRANCH, NS_IWIDGET_MOZILLA_2_0_BRANCH_IID)

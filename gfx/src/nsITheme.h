@@ -104,23 +104,6 @@ public:
   
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   virtual void RegisterWidgetGeometry(nsIWidget* aWindow,
                                       PRUint8 aWidgetType,
                                       const nsIntRect& aRect) {}

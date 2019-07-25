@@ -262,6 +262,17 @@ nsDisplayListBuilder::LeavePresShell(nsIFrame* aReferenceFrame,
   }
 
   
+  
+  if (mIsPaintingToWindow && mPresShellStates.Length() == 1) {
+    nsIWidget* widget = aReferenceFrame->GetNearestWidget();
+    if (widget) {
+      nsIWidget_MOZILLA_2_0_BRANCH* widget2 =
+        static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(widget);
+      widget2->UpdateThemeGeometries(CurrentPresShellState()->mThemeGeometries);
+    }
+  }
+
+  
   PRUint32 firstFrameForShell = CurrentPresShellState()->mFirstFrameMarkedForDisplay;
   for (PRUint32 i = firstFrameForShell;
        i < mFramesMarkedForDisplay.Length(); ++i) {
@@ -715,19 +726,9 @@ void nsDisplaySolidColor::Paint(nsDisplayListBuilder* aBuilder,
 }
 
 static void
-RegisterThemeWidgetGeometry(nsIFrame* aFrame)
+RegisterThemeGeometry(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
 {
-  nsPresContext* presContext = aFrame->PresContext();
-  nsITheme* theme = presContext->GetTheme();
-  if (!theme)
-    return;
-
   nsIFrame* displayRoot = nsLayoutUtils::GetDisplayRootFrame(aFrame);
-  nsIWidget* widget = displayRoot->GetNearestWidget();
-  
-  
-  if (!widget)
-    return;
 
   for (nsIFrame* f = aFrame; f; f = f->GetParent()) {
     
@@ -739,9 +740,8 @@ RegisterThemeWidgetGeometry(nsIFrame* aFrame)
   }
 
   nsRect borderBox(aFrame->GetOffsetTo(displayRoot), aFrame->GetSize());
-  theme->RegisterWidgetGeometry(widget,
-      aFrame->GetStyleDisplay()->mAppearance,
-      borderBox.ToNearestPixels(presContext->AppUnitsPerDevPixel()));
+  aBuilder->RegisterThemeGeometry(aFrame->GetStyleDisplay()->mAppearance,
+      borderBox.ToNearestPixels(aFrame->PresContext()->AppUnitsPerDevPixel()));
 }
 
 nsDisplayBackground::nsDisplayBackground(nsDisplayListBuilder* aBuilder,
@@ -757,7 +757,7 @@ nsDisplayBackground::nsDisplayBackground(nsDisplayListBuilder* aBuilder,
   if (mIsThemed &&
       (disp->mAppearance == NS_THEME_MOZ_MAC_UNIFIED_TOOLBAR ||
        disp->mAppearance == NS_THEME_TOOLBAR)) {
-    RegisterThemeWidgetGeometry(aFrame);
+    RegisterThemeGeometry(aBuilder, aFrame);
   }
 }
 

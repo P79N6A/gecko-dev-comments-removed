@@ -127,6 +127,7 @@ class nsDisplayListBuilder {
 public:
   typedef mozilla::FramePropertyDescriptor FramePropertyDescriptor;
   typedef mozilla::FrameLayerBuilder FrameLayerBuilder;
+  typedef nsIWidget::ThemeGeometry ThemeGeometry;
 
   
 
@@ -371,7 +372,29 @@ public:
       (aFrame->GetStateBits() & NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO) ||
       GetIncludeAllOutOfFlows();
   }
+
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void RegisterThemeGeometry(PRUint8 aWidgetType,
+                             const nsIntRect& aRect) {
+    if (mIsPaintingToWindow) {
+      ThemeGeometry geometry(aWidgetType, aRect);
+      CurrentPresShellState()->mThemeGeometries.AppendElement(geometry);
+    }
+  }
+
   
 
 
@@ -434,6 +457,7 @@ private:
     nsIFrame*     mCaretFrame;
     PRUint32      mFirstFrameMarkedForDisplay;
     PRPackedBool  mIsBackgroundOnly;
+    nsAutoTArray<ThemeGeometry,2> mThemeGeometries;
   };
   PresShellState* CurrentPresShellState() {
     NS_ASSERTION(mPresShellStates.Length() > 0,
