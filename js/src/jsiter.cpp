@@ -72,6 +72,7 @@
 #include "jsxml.h"
 #endif
 
+#include "ds/Sort.h"
 #include "frontend/TokenStream.h"
 #include "vm/GlobalObject.h"
 
@@ -256,6 +257,36 @@ EnumerateDenseArrayProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uint
     return true;
 }
 
+#ifdef JS_MORE_DETERMINISTIC
+
+struct SortComparatorIds
+{
+    JSContext   *const cx;
+
+    SortComparatorIds(JSContext *cx)
+      : cx(cx) {}
+
+    bool operator()(jsid a, jsid b, bool *lessOrEqualp)
+    {
+        
+        JSString *astr = IdToString(cx, a);
+	if (!astr)
+	    return false;
+        JSString *bstr = IdToString(cx, b);
+        if (!bstr)
+            return false;
+
+        int32 result;
+        if (!CompareStrings(cx, astr, bstr, &result))
+            return false;
+
+        *lessOrEqualp = (result <= 0);
+        return true;
+    }
+};
+
+#endif 
+
 static bool
 Snapshot(JSContext *cx, JSObject *obj, uintN flags, AutoIdVector *props)
 {
@@ -321,6 +352,35 @@ Snapshot(JSContext *cx, JSObject *obj, uintN flags, AutoIdVector *props)
         if ((flags & JSITER_OWNONLY) || pobj->isXML())
             break;
     } while ((pobj = pobj->getProto()) != NULL);
+
+#ifdef JS_MORE_DETERMINISTIC
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    jsid *ids = props->begin();
+    size_t n = props->length();
+
+    Vector<jsid> tmp(cx);
+    if (!tmp.resizeUninitialized(n))
+        return false;
+
+    if (!MergeSort(ids, n, tmp.begin(), SortComparatorIds(cx)))
+        return false;
+
+#endif 
 
     return true;
 }
