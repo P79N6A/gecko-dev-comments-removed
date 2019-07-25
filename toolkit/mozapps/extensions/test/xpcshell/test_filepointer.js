@@ -209,7 +209,9 @@ function run_test_4() {
 
 
 function run_test_5() {
-  writeInstallRDFForExtension(addon1, sourceDir);
+  var dest = writeInstallRDFForExtension(addon1, sourceDir);
+  
+  setExtensionModifiedTime(dest, dest.lastModifiedTime - 5000);
   writePointer(addon1.id);
 
   restartManager();
@@ -218,9 +220,7 @@ function run_test_5() {
     do_check_neq(a1, null);
     do_check_eq(a1.version, "1.0");
 
-    var dest = writeInstallRDFForExtension(addon2, sourceDir, addon1.id);
-    
-    setExtensionModifiedTime(dest, dest.lastModifiedTime - 5000);
+    writeInstallRDFForExtension(addon2, sourceDir, addon1.id);
 
     restartManager();
 
@@ -244,7 +244,9 @@ function run_test_5() {
 
 
 function run_test_6() {
-  writeInstallRDFForExtension(addon1, sourceDir);
+  var dest = writeInstallRDFForExtension(addon1, sourceDir);
+  
+  setExtensionModifiedTime(dest, dest.lastModifiedTime - 5000);
   writePointer(addon1.id);
 
   restartManager();
@@ -308,9 +310,7 @@ function run_test_8() {
     do_check_neq(a1, null);
     do_check_eq(a1.version, "1.0");
 
-    var dest = writeInstallRDFForExtension(addon1_2, sourceDir);
-    
-    setExtensionModifiedTime(dest, dest.lastModifiedTime - 5000);
+    writeInstallRDFForExtension(addon1_2, sourceDir);
 
     restartManager();
 
