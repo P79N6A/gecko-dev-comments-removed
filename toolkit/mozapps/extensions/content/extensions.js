@@ -2422,8 +2422,7 @@ var gListView = {
       return;
 
     let prop = aIsInstall ? "mInstall" : "mAddon";
-    for (let i = 0; i < this._listBox.itemCount; i++) {
-      let item = this._listBox.childNodes[i];
+    for (let item of this._listBox.childNodes) {
       if (item[prop] == aObj)
         return;
     }
@@ -2436,8 +2435,7 @@ var gListView = {
   removeItem: function gListView_removeItem(aObj, aIsInstall) {
     let prop = aIsInstall ? "mInstall" : "mAddon";
 
-    for (let i = 0; i < this._listBox.itemCount; i++) {
-      let item = this._listBox.childNodes[i];
+    for (let item of this._listBox.childNodes) {
       if (item[prop] == aObj) {
         this._listBox.removeChild(item);
         this.showEmptyNotice(this._listBox.itemCount == 0);
@@ -2653,19 +2651,22 @@ var gDetailView = {
       !gViewController.commands.cmd_showItemPreferences.isEnabled(aAddon);
     
     var gridRows = document.querySelectorAll("#detail-grid rows row");
-    for (var i = 0, first = true; i < gridRows.length; ++i) {
-      if (first && window.getComputedStyle(gridRows[i], null).getPropertyValue("display") != "none") {
-        gridRows[i].setAttribute("first-row", true);
+    let first = true;
+    for (let gridRow of gridRows) {
+      if (first && window.getComputedStyle(gridRow, null).getPropertyValue("display") != "none") {
+        gridRow.setAttribute("first-row", true);
         first = false;
       } else {
-        gridRows[i].removeAttribute("first-row");
+        gridRow.removeAttribute("first-row");
       }
     }
 
-    this.fillSettingsRows(aScrollToPreferences, (function updateView_fillSettingsRows() {
-      this.updateState();
-      gViewController.notifyViewChanged();
-    }).bind(this));
+    this.fillSettingsRows(aScrollToPreferences);
+
+    this.updateState();
+
+    gViewController.updateCommands();
+    gViewController.notifyViewChanged();
   },
 
   show: function gDetailView_show(aAddonId, aRequest) {
@@ -2817,13 +2818,10 @@ var gDetailView = {
       rows.removeChild(rows.lastChild);
   },
 
-  fillSettingsRows: function gDetailView_fillSettingsRows(aScrollToPreferences, aCallback) {
+  fillSettingsRows: function gDetailView_fillSettingsRows(aScrollToPreferences) {
     this.emptySettingsRows();
-    if (this._addon.optionsType != AddonManager.OPTIONS_TYPE_INLINE) {
-      if (aCallback)
-        aCallback();
+    if (this._addon.optionsType != AddonManager.OPTIONS_TYPE_INLINE)
       return;
-    }
 
     
     
@@ -2843,65 +2841,49 @@ var gDetailView = {
 
     var rows = document.getElementById("detail-downloads").parentNode;
 
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", this._addon.optionsURL, true);
-      xhr.responseType = "xml";
-      xhr.onload = (function fillSettingsRows_onload() {
-        var xml = xhr.responseXML;
-        var settings = xml.querySelectorAll(":root > setting");
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", this._addon.optionsURL, false);
+    xhr.send();
 
-        var firstSetting = null;
-        for (let setting of settings) {
+    var xml = xhr.responseXML;
+    var settings = xml.querySelectorAll(":root > setting");
 
-          var desc = stripTextNodes(setting).trim();
-          if (!setting.hasAttribute("desc"))
-            setting.setAttribute("desc", desc);
+    var firstSetting = null;
+    for (let setting of settings) {
 
-          var type = setting.getAttribute("type");
-          if (type == "file" || type == "directory")
-            setting.setAttribute("fullpath", "true");
+      var desc = stripTextNodes(setting).trim();
+      if (!setting.hasAttribute("desc"))
+        setting.setAttribute("desc", desc);
 
-          rows.appendChild(setting);
-          var visible = window.getComputedStyle(setting, null).getPropertyValue("display") != "none";
-          if (!firstSetting && visible) {
-            setting.setAttribute("first-row", true);
-            firstSetting = setting;
-          }
-        }
+      var type = setting.getAttribute("type");
+      if (type == "file" || type == "directory")
+        setting.setAttribute("fullpath", "true");
 
-        
-        
-        if (gViewController.viewPort.selectedPanel.hasAttribute("loading")) {
-          gDetailView.node.addEventListener("ViewChanged", function viewChangedEventListener() {
-            gDetailView.node.removeEventListener("ViewChanged", viewChangedEventListener, false);
-            if (firstSetting)
-              firstSetting.clientTop;
-            Services.obs.notifyObservers(document, "addon-options-displayed", gDetailView._addon.id);
-            if (aScrollToPreferences)
-              gDetailView.scrollToPreferencesRows();
-          }, false);
-        } else {
-          if (firstSetting)
-            firstSetting.clientTop;
-          Services.obs.notifyObservers(document, "addon-options-displayed", this._addon.id);
-          if (aScrollToPreferences)
-            gDetailView.scrollToPreferencesRows();
-        }
-        if (aCallback)
-          aCallback();
-      }).bind(this);
-      xhr.onerror = function fillSettingsRows_onerror(aEvent) {
-        Cu.reportError("Error " + aEvent.target.status +
-                       " occurred while receiving " + this._addon.optionsURL);
-        if (aCallback)
-          aCallback();
-      };
-      xhr.send();
-    } catch(e) {
-      Cu.reportError(e);
-      if (aCallback)
-        aCallback();
+      rows.appendChild(setting);
+      var visible = window.getComputedStyle(setting, null).getPropertyValue("display") != "none";
+      if (!firstSetting && visible) {
+        setting.setAttribute("first-row", true);
+        firstSetting = setting;
+      }
+    }
+
+    
+    
+    if (gViewController.viewPort.selectedPanel.hasAttribute("loading")) {
+      gDetailView.node.addEventListener("ViewChanged", function viewChangedEventListener() {
+        gDetailView.node.removeEventListener("ViewChanged", viewChangedEventListener, false);
+        if (firstSetting)
+          firstSetting.clientTop;
+        Services.obs.notifyObservers(document, "addon-options-displayed", gDetailView._addon.id);
+        if (aScrollToPreferences)
+          gDetailView.scrollToPreferencesRows();
+      }, false);
+    } else {
+      if (firstSetting)
+        firstSetting.clientTop;
+      Services.obs.notifyObservers(document, "addon-options-displayed", this._addon.id);
+      if (aScrollToPreferences)
+        gDetailView.scrollToPreferencesRows();
     }
   },
 
