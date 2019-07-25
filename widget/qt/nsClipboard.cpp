@@ -2,6 +2,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <QApplication>
 #include <QMimeData>
 #include <QString>
@@ -35,10 +73,10 @@ NS_IMPL_ISUPPORTS1(nsClipboard, nsIClipboard)
 
 
 nsClipboard::nsClipboard() : nsIClipboard(),
-                             mSelectionOwner(nullptr),
-                             mGlobalOwner(nullptr),
-                             mSelectionTransferable(nullptr),
-                             mGlobalTransferable(nullptr)
+                             mSelectionOwner(nsnull),
+                             mGlobalOwner(nsnull),
+                             mSelectionTransferable(nsnull),
+                             mGlobalTransferable(nsnull)
 {
     
 }
@@ -73,7 +111,7 @@ NS_IMETHODIMP
 nsClipboard::SetNativeClipboardData( nsITransferable *aTransferable,
                                      QClipboard::Mode clipboardMode )
 {
-    if (nullptr == aTransferable)
+    if (nsnull == aTransferable)
     {
         NS_WARNING("nsClipboard::SetNativeClipboardData(): no transferable!");
         return NS_ERROR_FAILURE;
@@ -93,11 +131,11 @@ nsClipboard::SetNativeClipboardData( nsITransferable *aTransferable,
     QClipboard *cb = QApplication::clipboard();
     QMimeData *mimeData = new QMimeData;
 
-    uint32_t flavorCount = 0;
+    PRUint32 flavorCount = 0;
     flavorList->Count(&flavorCount);
     bool imageAdded = false;
 
-    for (uint32_t i = 0; i < flavorCount; ++i)
+    for (PRUint32 i = 0; i < flavorCount; ++i)
     {
         nsCOMPtr<nsISupports> genericFlavor;
         flavorList->GetElementAt(i,getter_AddRefs(genericFlavor));
@@ -112,7 +150,7 @@ nsClipboard::SetNativeClipboardData( nsITransferable *aTransferable,
             
             nsCOMPtr<nsISupports> clip;
             
-            uint32_t len;
+            PRUint32 len;
 
             
             if (!strcmp(flavorStr.get(), kUnicodeMime))
@@ -153,15 +191,14 @@ nsClipboard::SetNativeClipboardData( nsITransferable *aTransferable,
                      && (!strcmp(flavorStr.get(), kNativeImageMime)
                      ||  !strcmp(flavorStr.get(), kPNGImageMime)
                      ||  !strcmp(flavorStr.get(), kJPEGImageMime)
-                     ||  !strcmp(flavorStr.get(), kJPGImageMime)
                      ||  !strcmp(flavorStr.get(), kGIFImageMime))
                     )
             {
                 
                 static const char* const imageMimeTypes[] = {
-                    kNativeImageMime, kPNGImageMime, kJPEGImageMime, kJPGImageMime, kGIFImageMime };
+                    kNativeImageMime, kPNGImageMime, kJPEGImageMime, kGIFImageMime };
                 nsCOMPtr<nsISupportsInterfacePointer> ptrPrimitive;
-                for (uint32_t i = 0; !ptrPrimitive && i < ArrayLength(imageMimeTypes); i++)
+                for (PRUint32 i = 0; !ptrPrimitive && i < ArrayLength(imageMimeTypes); i++)
                 {
                     aTransferable->GetTransferData(imageMimeTypes[i], getter_AddRefs(clip), &len);
                     ptrPrimitive = do_QueryInterface(clip);
@@ -200,7 +237,7 @@ nsClipboard::SetNativeClipboardData( nsITransferable *aTransferable,
                 if (!clip || NS_FAILED(rv))
                     continue;
 
-                void *primitive_data = nullptr;
+                void *primitive_data = nsnull;
                 nsPrimitiveHelpers::CreateDataFromPrimitive(flavorStr.get(), clip,
                                                             &primitive_data, len);
 
@@ -230,7 +267,7 @@ NS_IMETHODIMP
 nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
                                     QClipboard::Mode clipboardMode)
 {
-    if (nullptr == aTransferable)
+    if (nsnull == aTransferable)
     {
         NS_WARNING("GetNativeClipboardData: Transferable is null!");
         return NS_ERROR_FAILURE;
@@ -252,11 +289,11 @@ nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
     const QMimeData *mimeData = cb->mimeData(clipboardMode);
 
     
-    uint32_t flavorCount;
+    PRUint32 flavorCount;
     flavorList->Count(&flavorCount);
-    nsAutoCString foundFlavor;
+    nsCAutoString foundFlavor;
 
-    for (uint32_t i = 0; i < flavorCount; ++i)
+    for (PRUint32 i = 0; i < flavorCount; ++i)
     {
         nsCOMPtr<nsISupports> genericFlavor;
         flavorList->GetElementAt(i,getter_AddRefs(genericFlavor));
@@ -273,13 +310,13 @@ nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
             {
                 
                 
-                foundFlavor = nsAutoCString(flavorStr);
+                foundFlavor = nsCAutoString(flavorStr);
 
                 
                 QString text = mimeData->text();
                 const QChar *unicode = text.unicode();
                 
-                uint32_t len = (uint32_t) 2*text.size();
+                PRUint32 len = (PRUint32) 2*text.size();
 
                 
                 nsCOMPtr<nsISupports> genericDataWrapper;
@@ -300,13 +337,13 @@ nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
             {
                 
                 
-                foundFlavor = nsAutoCString(flavorStr);
+                foundFlavor = nsCAutoString(flavorStr);
 
                 
                 QString html = mimeData->html();
                 const QChar *unicode = html.unicode();
                 
-                uint32_t len = (uint32_t) 2*html.size();
+                PRUint32 len = (PRUint32) 2*html.size();
 
                 
                 nsCOMPtr<nsISupports> genericDataWrapper;
@@ -324,7 +361,6 @@ nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
 
             
             if ((  !strcmp(flavorStr.get(), kJPEGImageMime)
-                || !strcmp(flavorStr.get(), kJPGImageMime)
                 || !strcmp(flavorStr.get(), kPNGImageMime)
                 || !strcmp(flavorStr.get(), kGIFImageMime))
                 && mimeData->hasImage())
@@ -336,7 +372,7 @@ nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
 
                 
                 QByteArray imageFormat;
-                if (!strcmp(flavorStr.get(), kJPEGImageMime) || !strcmp(flavorStr.get(), kJPGImageMime))
+                if (!strcmp(flavorStr.get(), kJPEGImageMime))
                     imageFormat = "jpeg";
                 else if (!strcmp(flavorStr.get(), kPNGImageMime))
                     imageFormat = "png";
@@ -392,8 +428,8 @@ nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
 }
 
 NS_IMETHODIMP
-nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
-                                    int32_t aWhichClipboard, bool *_retval)
+nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, PRUint32 aLength,
+                                    PRInt32 aWhichClipboard, bool *_retval)
 {
     *_retval = false;
     if (aWhichClipboard != kGlobalClipboard)
@@ -404,7 +440,7 @@ nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
     const QMimeData *mimeData = cb->mimeData();
     const char *flavor=NULL;
     QStringList formats = mimeData->formats();
-    for (uint32_t i = 0; i < aLength; ++i)
+    for (PRUint32 i = 0; i < aLength; ++i)
     {
         flavor = aFlavorList[i];
         if (flavor)
@@ -436,7 +472,7 @@ nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
 NS_IMETHODIMP
 nsClipboard::SetData(nsITransferable *aTransferable,
                      nsIClipboardOwner *aOwner,
-                     int32_t aWhichClipboard)
+                     PRInt32 aWhichClipboard)
 {
     
     if (
@@ -487,9 +523,9 @@ nsClipboard::SetData(nsITransferable *aTransferable,
 
 
 NS_IMETHODIMP
-nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
+nsClipboard::GetData(nsITransferable *aTransferable, PRInt32 aWhichClipboard)
 {
-    if (nullptr != aTransferable)
+    if (nsnull != aTransferable)
     {
         QClipboard::Mode mode;
         if (kGlobalClipboard == aWhichClipboard)
@@ -510,25 +546,25 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
 }
 
 NS_IMETHODIMP
-nsClipboard::EmptyClipboard(int32_t aWhichClipboard)
+nsClipboard::EmptyClipboard(PRInt32 aWhichClipboard)
 {
     if (aWhichClipboard == kSelectionClipboard)
     {
         if (mSelectionOwner)
         {
             mSelectionOwner->LosingOwnership(mSelectionTransferable);
-            mSelectionOwner = nullptr;
+            mSelectionOwner = nsnull;
         }
-        mSelectionTransferable = nullptr;
+        mSelectionTransferable = nsnull;
     }
     else
     {
         if (mGlobalOwner)
         {
             mGlobalOwner->LosingOwnership(mGlobalTransferable);
-            mGlobalOwner = nullptr;
+            mGlobalOwner = nsnull;
         }
-        mGlobalTransferable = nullptr;
+        mGlobalTransferable = nsnull;
     }
 
     return NS_OK;

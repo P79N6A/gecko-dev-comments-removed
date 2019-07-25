@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <ole2.h>
 #include <oleidl.h>
 #include <shlobj.h>
@@ -46,7 +81,7 @@
 
 
 nsDragService::nsDragService()
-  : mDataObject(nullptr), mSentLocalDropEvent(false)
+  : mNativeDragSrc(nsnull), mNativeDragTarget(nsnull), mDataObject(nsnull), mSentLocalDropEvent(false)
 {
 }
 
@@ -57,6 +92,8 @@ nsDragService::nsDragService()
 
 nsDragService::~nsDragService()
 {
+  NS_IF_RELEASE(mNativeDragSrc);
+  NS_IF_RELEASE(mNativeDragTarget);
   NS_IF_RELEASE(mDataObject);
 }
 
@@ -82,7 +119,7 @@ nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
   if (!surface)
     return false;
 
-  uint32_t bmWidth = dragRect.width, bmHeight = dragRect.height;
+  PRUint32 bmWidth = dragRect.width, bmHeight = dragRect.height;
 
   if (bmWidth == 0 || bmHeight == 0)
     return false;
@@ -107,7 +144,7 @@ nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
   memset((void*)&bmih, 0, sizeof(BITMAPV5HEADER));
   bmih.bV5Size        = sizeof(BITMAPV5HEADER);
   bmih.bV5Width       = bmWidth;
-  bmih.bV5Height      = -(int32_t)bmHeight; 
+  bmih.bV5Height      = -bmHeight; 
   bmih.bV5Planes      = 1;
   bmih.bV5BitCount    = 32;
   bmih.bV5Compression = BI_BITFIELDS;
@@ -131,10 +168,10 @@ nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
 
     
     if (mScreenX == -1 || mScreenY == -1) {
-      psdi->ptOffset.x = (uint32_t)((float)bmWidth/2.0f);
-      psdi->ptOffset.y = (uint32_t)((float)bmHeight/2.0f);
+      psdi->ptOffset.x = (PRUint32)((float)bmWidth/2.0f);
+      psdi->ptOffset.y = (PRUint32)((float)bmHeight/2.0f);
     } else {
-      int32_t sx = mScreenX, sy = mScreenY;
+      PRInt32 sx = mScreenX, sy = mScreenY;
       ConvertToUnscaledDevPixels(pc, &sx, &sy);
       psdi->ptOffset.x = sx - dragRect.x;
       psdi->ptOffset.y = sy - dragRect.y;
@@ -151,7 +188,7 @@ NS_IMETHODIMP
 nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
                                  nsISupportsArray *anArrayTransferables,
                                  nsIScriptableRegion *aRegion,
-                                 uint32_t aActionType)
+                                 PRUint32 aActionType)
 {
   nsresult rv = nsBaseDragService::InvokeDragSession(aDOMNode,
                                                      anArrayTransferables,
@@ -160,14 +197,14 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsIURI *uri = nullptr;
+  nsIURI *uri = nsnull;
 
   nsCOMPtr<nsIDocument> doc(do_QueryInterface(mSourceDocument));
   if (doc) {
     uri = doc->GetDocumentURI();
   }
 
-  uint32_t numItemsToDrag = 0;
+  PRUint32 numItemsToDrag = 0;
   rv = anArrayTransferables->Count(&numItemsToDrag);
   if (!numItemsToDrag)
     return NS_ERROR_FAILURE;
@@ -185,7 +222,7 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
     if (!dataObjCollection)
       return NS_ERROR_OUT_OF_MEMORY;
     itemToDrag = dataObjCollection;
-    for (uint32_t i=0; i<numItemsToDrag; ++i) {
+    for (PRUint32 i=0; i<numItemsToDrag; ++i) {
       nsCOMPtr<nsISupports> supports;
       anArrayTransferables->GetElementAt(i, getter_AddRefs(supports));
       nsCOMPtr<nsITransferable> trans(do_QueryInterface(supports));
@@ -233,12 +270,17 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
 
 NS_IMETHODIMP
 nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
-                                        uint32_t aActionType)
+                                        PRUint32 aActionType)
 {
   
   
-  nsRefPtr<nsNativeDragSource> nativeDragSrc =
-    new nsNativeDragSource(mDataTransfer);
+  nsNativeDragSource* nativeDragSource = new nsNativeDragSource(mDataTransfer);
+  if (!nativeDragSource)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  NS_IF_RELEASE(mNativeDragSrc);
+  mNativeDragSrc = (IDropSource *)nativeDragSource;
+  mNativeDragSrc->AddRef();
 
   
   DWORD winDropRes;
@@ -272,12 +314,12 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   }
 
   
-  HRESULT res = ::DoDragDrop(aDataObj, nativeDragSrc, effects, &winDropRes);
+  HRESULT res = ::DoDragDrop(aDataObj, mNativeDragSrc, effects, &winDropRes);
 
   
   
   if (!mSentLocalDropEvent) {
-    uint32_t dropResult;
+    PRUint32 dropResult;
     
     if (winDropRes & DROPEFFECT_COPY)
         dropResult = DRAGDROP_ACTION_COPY;
@@ -288,15 +330,18 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
     else
         dropResult = DRAGDROP_ACTION_NONE;
     
-    if (mDataTransfer) {
+    nsCOMPtr<nsIDOMNSDataTransfer> dataTransfer =
+      do_QueryInterface(mDataTransfer);
+
+    if (dataTransfer) {
       if (res == DRAGDROP_S_DROP) 
-        mDataTransfer->SetDropEffectInt(dropResult);
+        dataTransfer->SetDropEffectInt(dropResult);
       else
-        mDataTransfer->SetDropEffectInt(DRAGDROP_ACTION_NONE);
+        dataTransfer->SetDropEffectInt(DRAGDROP_ACTION_NONE);
     }
   }
 
-  mUserCancelled = nativeDragSrc->UserCancelled();
+  mUserCancelled = nativeDragSource->UserCancelled();
 
   
   
@@ -318,7 +363,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
 nsDataObjCollection*
 nsDragService::GetDataObjCollection(IDataObject* aDataObj)
 {
-  nsDataObjCollection * dataObjCol = nullptr;
+  nsDataObjCollection * dataObjCol = nsnull;
   if (aDataObj) {
     nsIDataObjCollection* dataObj;
     if (aDataObj->QueryInterface(IID_IDataObjCollection,
@@ -333,7 +378,7 @@ nsDragService::GetDataObjCollection(IDataObject* aDataObj)
 
 
 NS_IMETHODIMP
-nsDragService::GetNumDropItems(uint32_t * aNumItems)
+nsDragService::GetNumDropItems(PRUint32 * aNumItems)
 {
   if (!mDataObject) {
     *aNumItems = 0;
@@ -367,9 +412,6 @@ nsDragService::GetNumDropItems(uint32_t * aNumItems)
         *aNumItems = ::DragQueryFileW(hdrop, 0xFFFFFFFF, NULL, 0);
         ::GlobalUnlock(stm.hGlobal);
         ::ReleaseStgMedium(&stm);
-        
-        if (*aNumItems == 0)
-          *aNumItems = 1;
       }
       else
         *aNumItems = 1;
@@ -383,7 +425,7 @@ nsDragService::GetNumDropItems(uint32_t * aNumItems)
 
 
 NS_IMETHODIMP
-nsDragService::GetData(nsITransferable * aTransferable, uint32_t anItem)
+nsDragService::GetData(nsITransferable * aTransferable, PRUint32 anItem)
 {
   
   
@@ -396,10 +438,10 @@ nsDragService::GetData(nsITransferable * aTransferable, uint32_t anItem)
   if (IsCollectionObject(mDataObject)) {
     
     nsDataObjCollection * dataObjCol = GetDataObjCollection(mDataObject);
-    uint32_t cnt = dataObjCol->GetNumDataObjects();
+    PRUint32 cnt = dataObjCol->GetNumDataObjects();
     if (anItem >= 0 && anItem < cnt) {
       IDataObject * dataObj = dataObjCol->GetDataObjectAt(anItem);
-      dataFound = nsClipboard::GetDataFromDataObject(dataObj, 0, nullptr,
+      dataFound = nsClipboard::GetDataFromDataObject(dataObj, 0, nsnull,
                                                      aTransferable);
     }
     else
@@ -409,14 +451,14 @@ nsDragService::GetData(nsITransferable * aTransferable, uint32_t anItem)
     
     if (anItem == 0) {
        dataFound = nsClipboard::GetDataFromDataObject(mDataObject, anItem,
-                                                      nullptr, aTransferable);
+                                                      nsnull, aTransferable);
     } else {
       
       FORMATETC fe2;
       SET_FORMATETC(fe2, CF_HDROP, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL);
       if (mDataObject->QueryGetData(&fe2) == S_OK)
         dataFound = nsClipboard::GetDataFromDataObject(mDataObject, anItem,
-                                                       nullptr, aTransferable);
+                                                       nsnull, aTransferable);
       else
         NS_WARNING("Reqesting non-zero index, but clipboard data is not a collection!");
     }
@@ -454,7 +496,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
   if (!aDataFlavor || !mDataObject || !_retval)
     return NS_ERROR_FAILURE;
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (strcmp(aDataFlavor, kTextMime) == 0)
     NS_WARNING("DO NOT USE THE text/plain DATA FLAVOR ANY MORE. USE text/unicode INSTEAD");
 #endif
@@ -474,8 +516,8 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
     
     nsDataObjCollection* dataObjCol = GetDataObjCollection(mDataObject);
     if (dataObjCol) {
-      uint32_t cnt = dataObjCol->GetNumDataObjects();
-      for (uint32_t i=0;i<cnt;++i) {
+      PRUint32 cnt = dataObjCol->GetNumDataObjects();
+      for (PRUint32 i=0;i<cnt;++i) {
         IDataObject * dataObj = dataObjCol->GetDataObjectAt(i);
         if (S_OK == dataObj->QueryGetData(&fe))
           *_retval = true;             

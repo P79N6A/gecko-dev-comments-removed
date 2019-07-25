@@ -1,7 +1,41 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Josh Aas <josh@mozilla.com>
+ *   Thomas K. Dyas <tom.dyas@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include <objc/objc-runtime.h>
 
@@ -9,9 +43,9 @@
 #include "nsMenuX.h"
 #include "nsMenuItemX.h"
 #include "nsMenuUtilsX.h"
-#include "nsCocoaFeatures.h"
 #include "nsCocoaUtils.h"
 #include "nsCocoaWindow.h"
+#include "nsToolkit.h"
 #include "nsChildView.h"
 
 #include "nsCOMPtr.h"
@@ -29,7 +63,7 @@
 #include "nsIDOMElement.h"
 
 NativeMenuItemTarget* nsMenuBarX::sNativeEventTarget = nil;
-nsMenuBarX* nsMenuBarX::sLastGeckoMenuBarPainted = nullptr;
+nsMenuBarX* nsMenuBarX::sLastGeckoMenuBarPainted = nsnull;
 NSMenu* sApplicationMenu = nil;
 BOOL gSomeMenuBarPainted = NO;
 
@@ -37,10 +71,10 @@ BOOL gSomeMenuBarPainted = NO;
 // will be from the hidden window. We use these when the document for the current
 // window does not have a quit or pref item. We don't need strong refs here because
 // these items are always strong ref'd by their owning menu bar (instance variable).
-static nsIContent* sAboutItemContent  = nullptr;
-static nsIContent* sUpdateItemContent = nullptr;
-static nsIContent* sPrefItemContent   = nullptr;
-static nsIContent* sQuitItemContent   = nullptr;
+static nsIContent* sAboutItemContent  = nsnull;
+static nsIContent* sUpdateItemContent = nsnull;
+static nsIContent* sPrefItemContent   = nsnull;
+static nsIContent* sQuitItemContent   = nsnull;
 
 NS_IMPL_ISUPPORTS1(nsNativeMenuServiceX, nsINativeMenuService)
 
@@ -56,7 +90,7 @@ NS_IMETHODIMP nsNativeMenuServiceX::CreateNativeMenuBar(nsIWidget* aParent, nsIC
 }
 
 nsMenuBarX::nsMenuBarX()
-: nsMenuGroupOwnerX(), mParentWindow(nullptr)
+: nsMenuGroupOwnerX(), mParentWindow(nsnull)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
@@ -70,18 +104,18 @@ nsMenuBarX::~nsMenuBarX()
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
   if (nsMenuBarX::sLastGeckoMenuBarPainted == this)
-    nsMenuBarX::sLastGeckoMenuBarPainted = nullptr;
+    nsMenuBarX::sLastGeckoMenuBarPainted = nsnull;
 
   // the quit/pref items of a random window might have been used if there was no
   // hidden window, thus we need to invalidate the weak references.
   if (sAboutItemContent == mAboutItemContent)
-    sAboutItemContent = nullptr;
+    sAboutItemContent = nsnull;
   if (sUpdateItemContent == mUpdateItemContent)
-    sUpdateItemContent = nullptr;
+    sUpdateItemContent = nsnull;
   if (sQuitItemContent == mQuitItemContent)
-    sQuitItemContent = nullptr;
+    sQuitItemContent = nsnull;
   if (sPrefItemContent == mPrefItemContent)
-    sPrefItemContent = nullptr;
+    sPrefItemContent = nsnull;
 
   // make sure we unregister ourselves as a content observer
   UnregisterForContentChanges(mContent);
@@ -123,8 +157,8 @@ nsresult nsMenuBarX::Create(nsIWidget* aParent, nsIContent* aContent)
 
 void nsMenuBarX::ConstructNativeMenus()
 {
-  uint32_t count = mContent->GetChildCount();
-  for (uint32_t i = 0; i < count; i++) { 
+  PRUint32 count = mContent->GetChildCount();
+  for (PRUint32 i = 0; i < count; i++) { 
     nsIContent *menuContent = mContent->GetChildAt(i);
     if (menuContent &&
         menuContent->Tag() == nsGkAtoms::menu &&
@@ -141,7 +175,7 @@ void nsMenuBarX::ConstructNativeMenus()
   }  
 }
 
-uint32_t nsMenuBarX::GetMenuCount()
+PRUint32 nsMenuBarX::GetMenuCount()
 {
   return mMenuArray.Length();
 }
@@ -156,7 +190,7 @@ bool nsMenuBarX::MenuContainsAppMenu()
   NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(false);
 }
 
-nsresult nsMenuBarX::InsertMenuAtIndex(nsMenuX* aMenu, uint32_t aIndex)
+nsresult nsMenuBarX::InsertMenuAtIndex(nsMenuX* aMenu, PRUint32 aIndex)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -190,7 +224,7 @@ nsresult nsMenuBarX::InsertMenuAtIndex(nsMenuX* aMenu, uint32_t aIndex)
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
-void nsMenuBarX::RemoveMenuAtIndex(uint32_t aIndex)
+void nsMenuBarX::RemoveMenuAtIndex(PRUint32 aIndex)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
@@ -217,7 +251,7 @@ void nsMenuBarX::ObserveAttributeChanged(nsIDocument* aDocument,
 
 void nsMenuBarX::ObserveContentRemoved(nsIDocument* aDocument,
                                        nsIContent* aChild, 
-                                       int32_t aIndexInContainer)
+                                       PRInt32 aIndexInContainer)
 {
   RemoveMenuAtIndex(aIndexInContainer);
 }
@@ -247,7 +281,7 @@ void nsMenuBarX::ForceUpdateNativeMenuAt(const nsAString& indexString)
   nsMenuX* currentMenu = NULL;
   int targetIndex = [[indexes objectAtIndex:0] intValue];
   int visible = 0;
-  uint32_t length = mMenuArray.Length();
+  PRUint32 length = mMenuArray.Length();
   // first find a menu in the menu bar
   for (unsigned int i = 0; i < length; i++) {
     nsMenuX* menu = mMenuArray[i];
@@ -304,7 +338,7 @@ void nsMenuBarX::ForceNativeMenuReload()
   ConstructNativeMenus();
 }
 
-nsMenuX* nsMenuBarX::GetMenuAt(uint32_t aIndex)
+nsMenuX* nsMenuBarX::GetMenuAt(PRUint32 aIndex)
 {
   if (mMenuArray.Length() <= aIndex) {
     NS_ERROR("Requesting menu at invalid index!");
@@ -317,7 +351,7 @@ nsMenuX* nsMenuBarX::GetXULHelpMenu()
 {
   // The Help menu is usually (always?) the last one, so we start there and
   // count back.
-  for (int32_t i = GetMenuCount() - 1; i >= 0; --i) {
+  for (PRInt32 i = GetMenuCount() - 1; i >= 0; --i) {
     nsMenuX* aMenu = GetMenuAt(i);
     if (aMenu && nsMenuX::IsXULHelpMenu(aMenu->Content()))
       return aMenu;
@@ -331,7 +365,7 @@ nsMenuX* nsMenuBarX::GetXULHelpMenu()
 // This resolves bugs 489196 and 539317.
 void nsMenuBarX::SetSystemHelpMenu()
 {
-  if (!nsCocoaFeatures::OnSnowLeopardOrLater())
+  if (!nsToolkit::OnSnowLeopardOrLater())
     return;
   nsMenuX* xulHelpMenu = GetXULHelpMenu();
   if (xulHelpMenu) {
@@ -433,36 +467,36 @@ void nsMenuBarX::AquifyMenuBar()
   nsCOMPtr<nsIDOMDocument> domDoc(do_QueryInterface(mContent->GetDocument()));
   if (domDoc) {
     // remove the "About..." item and its separator
-    HideItem(domDoc, NS_LITERAL_STRING("aboutSeparator"), nullptr);
+    HideItem(domDoc, NS_LITERAL_STRING("aboutSeparator"), nsnull);
     HideItem(domDoc, NS_LITERAL_STRING("aboutName"), getter_AddRefs(mAboutItemContent));
     if (!sAboutItemContent)
       sAboutItemContent = mAboutItemContent;
 
     // Hide the software update menu item, since it belongs in the application
     // menu on Mac OS X.
-    HideItem(domDoc, NS_LITERAL_STRING("updateSeparator"), nullptr);
+    HideItem(domDoc, NS_LITERAL_STRING("updateSeparator"), nsnull);
     HideItem(domDoc, NS_LITERAL_STRING("checkForUpdates"), getter_AddRefs(mUpdateItemContent));
     if (!sUpdateItemContent)
       sUpdateItemContent = mUpdateItemContent;
 
     // remove quit item and its separator
-    HideItem(domDoc, NS_LITERAL_STRING("menu_FileQuitSeparator"), nullptr);
+    HideItem(domDoc, NS_LITERAL_STRING("menu_FileQuitSeparator"), nsnull);
     HideItem(domDoc, NS_LITERAL_STRING("menu_FileQuitItem"), getter_AddRefs(mQuitItemContent));
     if (!sQuitItemContent)
       sQuitItemContent = mQuitItemContent;
     
     // remove prefs item and its separator, but save off the pref content node
     // so we can invoke its command later.
-    HideItem(domDoc, NS_LITERAL_STRING("menu_PrefsSeparator"), nullptr);
+    HideItem(domDoc, NS_LITERAL_STRING("menu_PrefsSeparator"), nsnull);
     HideItem(domDoc, NS_LITERAL_STRING("menu_preferences"), getter_AddRefs(mPrefItemContent));
     if (!sPrefItemContent)
       sPrefItemContent = mPrefItemContent;
 
     // hide items that we use for the Application menu
-    HideItem(domDoc, NS_LITERAL_STRING("menu_mac_services"), nullptr);
-    HideItem(domDoc, NS_LITERAL_STRING("menu_mac_hide_app"), nullptr);
-    HideItem(domDoc, NS_LITERAL_STRING("menu_mac_hide_others"), nullptr);
-    HideItem(domDoc, NS_LITERAL_STRING("menu_mac_show_all"), nullptr);
+    HideItem(domDoc, NS_LITERAL_STRING("menu_mac_services"), nsnull);
+    HideItem(domDoc, NS_LITERAL_STRING("menu_mac_hide_app"), nsnull);
+    HideItem(domDoc, NS_LITERAL_STRING("menu_mac_hide_others"), nsnull);
+    HideItem(domDoc, NS_LITERAL_STRING("menu_mac_show_all"), nsnull);
   }
 }
 
@@ -513,7 +547,7 @@ NSMenuItem* nsMenuBarX::CreateNativeAppMenuItem(nsMenuX* inMenu, const nsAString
       // now grab the key equivalent modifiers
       nsAutoString modifiersStr;
       keyContent->GetAttr(kNameSpaceID_None, nsGkAtoms::modifiers, modifiersStr);
-      uint8_t geckoModifiers = nsMenuUtilsX::GeckoModifiersForNodeAttribute(modifiersStr);
+      PRUint8 geckoModifiers = nsMenuUtilsX::GeckoModifiersForNodeAttribute(modifiersStr);
       macKeyModifiers = nsMenuUtilsX::MacModifiersForGeckoModifiers(geckoModifiers);
     }
   }
@@ -836,7 +870,7 @@ static BOOL gMenuItemsExecuteCommands = YES;
   if (!menuGroupOwner)
     return;
 
-  nsMenuBarX* menuBar = nullptr;
+  nsMenuBarX* menuBar = nsnull;
   if (menuGroupOwner->MenuObjectType() == eMenuBarObjectType)
     menuBar = static_cast<nsMenuBarX*>(menuGroupOwner);
 
@@ -892,7 +926,7 @@ static BOOL gMenuItemsExecuteCommands = YES;
   // given the commandID, look it up in our hashtable and dispatch to
   // that menu item.
   if (menuGroupOwner) {
-    nsMenuItemX* menuItem = menuGroupOwner->GetMenuItemForCommandID(static_cast<uint32_t>(tag));
+    nsMenuItemX* menuItem = menuGroupOwner->GetMenuItemForCommandID(static_cast<PRUint32>(tag));
     if (menuItem)
       menuItem->DoCommand();
   }

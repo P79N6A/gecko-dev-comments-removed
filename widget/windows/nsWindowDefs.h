@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef WindowDefs_h__
 #define WindowDefs_h__
 
@@ -31,16 +64,9 @@
 #define MOZ_WM_MOUSEHWHEEL                (WM_APP+0x0311)
 #define MOZ_WM_VSCROLL                    (WM_APP+0x0312)
 #define MOZ_WM_HSCROLL                    (WM_APP+0x0313)
-#define MOZ_WM_MOUSEWHEEL_FIRST           MOZ_WM_MOUSEVWHEEL
-#define MOZ_WM_MOUSEWHEEL_LAST            MOZ_WM_HSCROLL
-
 
 
 #define MOZ_WM_ENSUREVISIBLE              (WM_APP + 14159)
-
-#ifndef SM_CXPADDEDBORDER
-#define SM_CXPADDEDBORDER                 92
-#endif
 
 #ifndef WM_THEMECHANGED
 #define WM_THEMECHANGED                   0x031A
@@ -74,8 +100,6 @@
 #define MAPVK_VK_TO_VSC                   0
 #define MAPVK_VSC_TO_VK                   1
 #define MAPVK_VK_TO_CHAR                  2
-#define MAPVK_VSC_TO_VK_EX                3
-#define MAPVK_VK_TO_VSC_EX                4
 #endif
 
 
@@ -186,14 +210,14 @@ typedef enum
 
 
 
-const uint32_t kMaxClassNameLength   = 40;
+const PRUint32 kMaxClassNameLength   = 40;
 const char kClassNameHidden[]        = "MozillaHiddenWindowClass";
 const char kClassNameGeneral[]       = "MozillaWindowClass";
 const char kClassNameDialog[]        = "MozillaDialogClass";
 const char kClassNameDropShadow[]    = "MozillaDropShadowWindowClass";
 const char kClassNameTemp[]          = "MozillaTempWindowClass";
 
-static const uint32_t sModifierKeyMap[][3] = {
+static const PRUint32 sModifierKeyMap[][3] = {
   { nsIWidget::CAPS_LOCK, VK_CAPITAL, 0 },
   { nsIWidget::NUM_LOCK,  VK_NUMLOCK, 0 },
   { nsIWidget::SHIFT_L,   VK_SHIFT,   VK_LSHIFT },
@@ -215,13 +239,12 @@ struct nsAlternativeCharCode;
 struct nsFakeCharMessage {
   UINT mCharCode;
   UINT mScanCode;
-  bool mIsDeadKey;
 
   MSG GetCharMessage(HWND aWnd)
   {
     MSG msg;
     msg.hwnd = aWnd;
-    msg.message = mIsDeadKey ? WM_DEADCHAR : WM_CHAR;
+    msg.message = WM_CHAR;
     msg.wParam = static_cast<WPARAM>(mCharCode);
     msg.lParam = static_cast<LPARAM>(mScanCode);
     msg.time = 0;
@@ -231,14 +254,29 @@ struct nsFakeCharMessage {
 };
 
 
-struct KeyPair {
-  uint8_t mGeneral;
-  uint8_t mSpecific;
-  KeyPair(uint32_t aGeneral, uint32_t aSpecific)
-    : mGeneral(uint8_t(aGeneral)), mSpecific(uint8_t(aSpecific)) {}
+struct nsModifierKeyState {
+  bool mIsShiftDown;
+  bool mIsControlDown;
+  bool mIsAltDown;
+
+  nsModifierKeyState();
+  nsModifierKeyState(bool aIsShiftDown, bool aIsControlDown,
+                     bool aIsAltDown) :
+    mIsShiftDown(aIsShiftDown), mIsControlDown(aIsControlDown),
+    mIsAltDown(aIsAltDown)
+  {
+  }
 };
 
-#if (WINVER < 0x0600)
+
+struct KeyPair {
+  PRUint8 mGeneral;
+  PRUint8 mSpecific;
+  KeyPair(PRUint32 aGeneral, PRUint32 aSpecific)
+    : mGeneral(PRUint8(aGeneral)), mSpecific(PRUint8(aSpecific)) {}
+};
+
+#ifndef TITLEBARINFOEX
 struct TITLEBARINFOEX
 {
     DWORD cbSize;

@@ -5,11 +5,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
-#include <sys/utsname.h>
 #include "nsCRTGlue.h"
 #include "prenv.h"
 
@@ -34,15 +65,12 @@ pid_t glxtest_pid = 0;
 nsresult
 GfxInfo::Init()
 {
-    mGLMajorVersion = 0;
     mMajorVersion = 0;
     mMinorVersion = 0;
     mRevisionVersion = 0;
     mIsMesa = false;
     mIsNVIDIA = false;
     mIsFGLRX = false;
-    mIsNouveau = false;
-    mIsIntel = false;
     mHasTextureFromPixmap = false;
     return GfxInfoBase::Init();
 }
@@ -66,7 +94,6 @@ GfxInfo::GetData()
     glxtest_pipe = 0;
 
     
-    
     if (bytesread < 0)
         bytesread = 0;
 
@@ -79,20 +106,13 @@ GfxInfo::GetData()
     int glxtest_status = 0;
     bool wait_for_glxtest_process = true;
     bool waiting_for_glxtest_process_failed = false;
-    int waitpid_errno = 0;
     while(wait_for_glxtest_process) {
         wait_for_glxtest_process = false;
         if (waitpid(glxtest_pid, &glxtest_status, 0) == -1) {
-            waitpid_errno = errno;
-            if (waitpid_errno == EINTR) {
+            if (errno == EINTR)
                 wait_for_glxtest_process = true;
-            } else {
-                
-                
-                
-                
-                waiting_for_glxtest_process_failed = (waitpid_errno != ECHILD);
-            }
+            else
+                waiting_for_glxtest_process_failed = true;
         }
     }
 
@@ -105,7 +125,7 @@ GfxInfo::GetData()
     bool error = waiting_for_glxtest_process_failed || exited_with_error_code || received_signal;
 
     nsCString textureFromPixmap; 
-    nsCString *stringToFill = nullptr;
+    nsCString *stringToFill = nsnull;
     char *bufptr = buf;
     if (!error) {
         while(true) {
@@ -114,7 +134,7 @@ GfxInfo::GetData()
                 break;
             if (stringToFill) {
                 stringToFill->Assign(line);
-                stringToFill = nullptr;
+                stringToFill = nsnull;
             }
             else if(!strcmp(line, "VENDOR"))
                 stringToFill = &mVendor;
@@ -130,15 +150,6 @@ GfxInfo::GetData()
     if (!strcmp(textureFromPixmap.get(), "TRUE"))
         mHasTextureFromPixmap = true;
 
-    
-    
-    struct utsname unameobj;
-    if (!uname(&unameobj))
-    {
-      mOS.Assign(unameobj.sysname);
-      mOSRelease.Assign(unameobj.release);
-    }
-
     const char *spoofedVendor = PR_GetEnv("MOZ_GFX_SPOOF_GL_VENDOR");
     if (spoofedVendor)
         mVendor.Assign(spoofedVendor);
@@ -148,23 +159,15 @@ GfxInfo::GetData()
     const char *spoofedVersion = PR_GetEnv("MOZ_GFX_SPOOF_GL_VERSION");
     if (spoofedVersion)
         mVersion.Assign(spoofedVersion);
-    const char *spoofedOS = PR_GetEnv("MOZ_GFX_SPOOF_OS");
-    if (spoofedOS)
-        mOS.Assign(spoofedOS);
-    const char *spoofedOSRelease = PR_GetEnv("MOZ_GFX_SPOOF_OS_RELEASE");
-    if (spoofedOSRelease)
-        mOSRelease.Assign(spoofedOSRelease);
 
     if (error ||
         mVendor.IsEmpty() ||
         mRenderer.IsEmpty() ||
-        mVersion.IsEmpty() ||
-        mOS.IsEmpty() ||
-        mOSRelease.IsEmpty())
+        mVersion.IsEmpty())
     {
         mAdapterDescription.AppendLiteral("GLXtest process failed");
         if (waiting_for_glxtest_process_failed)
-            mAdapterDescription.AppendPrintf(" (waitpid failed with errno=%d for pid %d)", waitpid_errno, glxtest_pid);
+            mAdapterDescription.AppendLiteral(" (waitpid failed)");
         if (exited_with_error_code)
             mAdapterDescription.AppendPrintf(" (exited with status %d)", WEXITSTATUS(glxtest_status));
         if (received_signal)
@@ -184,7 +187,7 @@ GfxInfo::GetData()
     mAdapterDescription.AppendLiteral(" -- ");
     mAdapterDescription.Append(mRenderer);
 
-    nsAutoCString note;
+    nsCAutoString note;
     note.Append("OpenGL: ");
     note.Append(mAdapterDescription);
     note.Append(" -- ");
@@ -197,21 +200,14 @@ GfxInfo::GetData()
 #endif
 
     
-    mGLMajorVersion = strtol(mVersion.get(), 0, 10);
-
     
-    
-    const char *whereToReadVersionNumbers = nullptr;
+    const char *whereToReadVersionNumbers = nsnull;
     const char *Mesa_in_version_string = strstr(mVersion.get(), "Mesa");
     if (Mesa_in_version_string) {
         mIsMesa = true;
         
         
         whereToReadVersionNumbers = Mesa_in_version_string + strlen("Mesa");
-        if (strcasestr(mVendor.get(), "nouveau"))
-            mIsNouveau = true;
-        if (strcasestr(mRenderer.get(), "intel")) 
-            mIsIntel = true;
     } else if (strstr(mVendor.get(), "NVIDIA Corporation")) {
         mIsNVIDIA = true;
         
@@ -249,9 +245,9 @@ GfxInfo::GetData()
     }
 }
 
-static inline uint64_t version(uint32_t major, uint32_t minor, uint32_t revision = 0)
+static inline PRUint64 version(PRUint32 major, PRUint32 minor, PRUint32 revision = 0)
 {
-    return (uint64_t(major) << 32) + (uint64_t(minor) << 16) + uint64_t(revision);
+    return (PRUint64(major) << 32) + (PRUint64(minor) << 16) + PRUint64(revision);
 }
 
 const nsTArray<GfxDriverInfo>&
@@ -265,29 +261,19 @@ GfxInfo::GetGfxDriverInfo()
 }
 
 nsresult
-GfxInfo::GetFeatureStatusImpl(int32_t aFeature, 
-                              int32_t *aStatus, 
+GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, 
+                              PRInt32 *aStatus, 
                               nsAString & aSuggestedDriverVersion, 
                               const nsTArray<GfxDriverInfo>& aDriverInfo, 
                               OperatingSystem* aOS )
 
 {
-  GetData();
-
   NS_ENSURE_ARG_POINTER(aStatus);
   *aStatus = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
   aSuggestedDriverVersion.SetIsVoid(true);
   OperatingSystem os = DRIVER_OS_LINUX;
   if (aOS)
     *aOS = os;
-
-  if (mGLMajorVersion == 1) {
-    
-    
-    
-    *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
-    return NS_OK;
-  }
 
 #ifdef MOZ_PLATFORM_MAEMO
   *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
@@ -301,6 +287,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
     if (aFeature == nsIGfxInfo::FEATURE_OPENGL_LAYERS ||
         aFeature == nsIGfxInfo::FEATURE_WEBGL_OPENGL ||
         aFeature == nsIGfxInfo::FEATURE_WEBGL_MSAA) {
+      GetData();
 
       
       if (aFeature == nsIGfxInfo::FEATURE_OPENGL_LAYERS && !mHasTextureFromPixmap) {
@@ -323,20 +310,10 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
       }
 
       if (mIsMesa) {
-        if (mIsNouveau && version(mMajorVersion, mMinorVersion) < version(8,0)) {
-          *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
-          aSuggestedDriverVersion.AssignLiteral("Mesa 8.0");
-        } else if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(7,10,3)) {
+        if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(7,10,3)) {
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
           aSuggestedDriverVersion.AssignLiteral("Mesa 7.10.3");
         }
-        if (aFeature == nsIGfxInfo::FEATURE_WEBGL_MSAA)
-        {
-          if (mIsIntel && version(mMajorVersion, mMinorVersion) < version(8,1))
-            *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
-            aSuggestedDriverVersion.AssignLiteral("Mesa 8.1");
-        }
-
       } else if (mIsNVIDIA) {
         if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(257,21)) {
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
@@ -347,14 +324,6 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         
         if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(3, 0)) {
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
-          aSuggestedDriverVersion.AssignLiteral("<Something recent>");
-        }
-        
-        bool unknownOS = mOS.IsEmpty() || mOSRelease.IsEmpty();
-        bool badOS = mOS.Find("Linux", true) != -1 &&
-                     mOSRelease.Find("2.6.32") != -1;
-        if (unknownOS || badOS) {
-          *aStatus = nsIGfxInfo::FEATURE_BLOCKED_OS_VERSION;
         }
       } else {
         
@@ -376,6 +345,12 @@ GfxInfo::GetD2DEnabled(bool *aEnabled)
 
 NS_IMETHODIMP
 GfxInfo::GetDWriteEnabled(bool *aEnabled)
+{
+  return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+GfxInfo::GetAzureEnabled(bool *aEnabled)
 {
   return NS_ERROR_FAILURE;
 }
@@ -537,7 +512,7 @@ NS_IMETHODIMP GfxInfo::SpoofDriverVersion(const nsAString & aDriverVersion)
 }
 
 
-NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion)
+NS_IMETHODIMP GfxInfo::SpoofOSVersion(PRUint32 aVersion)
 {
   
   return NS_OK;

@@ -54,6 +54,54 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/ipc/RPCChannel.h"
 
 
@@ -61,12 +109,10 @@
 
 #include "nsWindow.h"
 
-#include <shellapi.h>
 #include <windows.h>
 #include <process.h>
 #include <commctrl.h>
 #include <unknwn.h>
-#include <psapi.h>
 
 #include "prlog.h"
 #include "prtime.h"
@@ -86,7 +132,7 @@
 #include "nsIServiceManager.h"
 #include "nsIClipboard.h"
 #include "nsIMM32Handler.h"
-#include "WinMouseScrollHandler.h"
+#include "nsILocalFile.h"
 #include "nsFontMetrics.h"
 #include "nsIFontEnumerator.h"
 #include "nsGUIEvent.h"
@@ -95,6 +141,7 @@
 #include "nsThreadUtils.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsGkAtoms.h"
+#include "nsUnicharUtils.h"
 #include "nsCRT.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsXPIDLString.h"
@@ -115,8 +162,6 @@
 #include "nsISound.h"
 #include "WinTaskbar.h"
 #include "WinUtils.h"
-#include "WidgetUtils.h"
-#include "nsIWidgetListener.h"
 
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
@@ -139,7 +184,6 @@
 #if defined(ACCESSIBILITY)
 #include "oleidl.h"
 #include <winuser.h>
-#include "nsAccessibilityService.h"
 #include "nsIAccessibleDocument.h"
 #if !defined(WINABLEAPI)
 #include <winable.h>
@@ -185,12 +229,12 @@ using namespace mozilla;
 
 
 bool            nsWindow::sDropShadowEnabled      = true;
-uint32_t        nsWindow::sInstanceCount          = 0;
+PRUint32        nsWindow::sInstanceCount          = 0;
 bool            nsWindow::sSwitchKeyboardLayout   = false;
 BOOL            nsWindow::sIsOleInitialized       = FALSE;
 HCURSOR         nsWindow::sHCursor                = NULL;
-imgIContainer*  nsWindow::sCursorImgContainer     = nullptr;
-nsWindow*       nsWindow::sCurrentWindow          = nullptr;
+imgIContainer*  nsWindow::sCursorImgContainer     = nsnull;
+nsWindow*       nsWindow::sCurrentWindow          = nsnull;
 bool            nsWindow::sJustGotDeactivate      = false;
 bool            nsWindow::sJustGotActivate        = false;
 bool            nsWindow::sIsInMouseCapture       = false;
@@ -210,8 +254,8 @@ HWND            nsWindow::sRollupMsgWnd           = NULL;
 UINT            nsWindow::sHookTimerId            = 0;
 
 
-nsIRollupListener* nsWindow::sRollupListener      = nullptr;
-nsIWidget*      nsWindow::sRollupWidget           = nullptr;
+nsIRollupListener* nsWindow::sRollupListener      = nsnull;
+nsIWidget*      nsWindow::sRollupWidget           = nsnull;
 bool            nsWindow::sRollupConsumeEvent     = false;
 
 
@@ -226,19 +270,46 @@ BYTE            nsWindow::sLastMouseButton        = 0;
 int             nsWindow::sTrimOnMinimize         = 2;
 
 
+bool            nsWindow::sDefaultTrackPointHack  = false;
+
 const char*     nsWindow::sDefaultMainWindowClass = kClassNameGeneral;
+
+bool            nsWindow::sUseElantechSwipeHack  = false;
+
+bool            nsWindow::sUseElantechPinchHack  = false;
 
 
 bool            nsWindow::sAllowD3D9              = false;
 
 TriStateBool nsWindow::sHasBogusPopupsDropShadowOnMultiMonitor = TRI_UNKNOWN;
 
+#ifdef ACCESSIBILITY
+BOOL            nsWindow::sIsAccessibilityOn      = FALSE;
+
+HINSTANCE       nsWindow::sAccLib                 = 0;
+LPFNLRESULTFROMOBJECT 
+                nsWindow::sLresultFromObject      = 0;
+#endif 
+
 
 const PRUnichar* kOOPPPluginFocusEventId   = L"OOPP Plugin Focus Widget Event";
-uint32_t        nsWindow::sOOPPPluginFocusEvent   =
+PRUint32        nsWindow::sOOPPPluginFocusEvent   =
                   RegisterWindowMessageW(kOOPPPluginFocusEventId);
 
 MSG             nsWindow::sRedirectedKeyDown;
+
+bool            nsWindow::sEnablePixelScrolling = true;
+bool            nsWindow::sNeedsToInitMouseWheelSettings = true;
+ULONG           nsWindow::sMouseWheelScrollLines  = 0;
+ULONG           nsWindow::sMouseWheelScrollChars  = 0;
+
+HWND            nsWindow::sLastMouseWheelWnd = NULL;
+PRInt32         nsWindow::sRemainingDeltaForScroll = 0;
+PRInt32         nsWindow::sRemainingDeltaForPixel = 0;
+bool            nsWindow::sLastMouseWheelDeltaIsPositive = false;
+bool            nsWindow::sLastMouseWheelOrientationIsVertical = false;
+bool            nsWindow::sLastMouseWheelUnitIsPage = false;
+PRUint32        nsWindow::sLastMouseWheelTime = 0;
 
 
 
@@ -249,11 +320,15 @@ MSG             nsWindow::sRedirectedKeyDown;
 static const char *sScreenManagerContractID       = "@mozilla.org/gfx/screenmanager;1";
 
 #ifdef PR_LOGGING
-PRLogModuleInfo* gWindowsLog                      = nullptr;
+PRLogModuleInfo* gWindowsLog                      = nsnull;
 #endif
 
 
 static KeyboardLayout gKbdLayout;
+
+
+
+bool            gDisableNativeTheme               = false;
 
 
 static bool     gWindowsVisible                   = false;
@@ -268,14 +343,8 @@ static WindowsDllInterceptor sUser32Intercept;
 
 
 
+static const PRInt32 kGlassMarginAdjustment = 2;
 
-static const int32_t kGlassMarginAdjustment = 2;
-
-
-
-
-
-static const int32_t kResizableBorderMinSize = 3;
 
 
 
@@ -310,12 +379,10 @@ nsWindow::nsWindow() : nsBaseWidget()
   }
 #endif
 
-  mIconSmall            = nullptr;
-  mIconBig              = nullptr;
-  mWnd                  = nullptr;
-  mPaintDC              = nullptr;
-  mPrevWndProc          = nullptr;
-  mNativeDragTarget     = nullptr;
+  mWnd                  = nsnull;
+  mPaintDC              = nsnull;
+  mPrevWndProc          = nsnull;
+  mNativeDragTarget     = nsnull;
   mInDtor               = false;
   mIsVisible            = false;
   mIsTopWidgetWindow    = false;
@@ -330,8 +397,8 @@ nsWindow::nsWindow() : nsBaseWidget()
   mPickerDisplayCount   = 0;
   mWindowType           = eWindowType_child;
   mBorderStyle          = eBorderStyle_default;
+  mPopupType            = ePopupTypeAny;
   mOldSizeMode          = nsSizeMode_Normal;
-  mLastSizeMode         = nsSizeMode_Normal;
   mLastPoint.x          = 0;
   mLastPoint.y          = 0;
   mLastSize.width       = 0;
@@ -340,45 +407,57 @@ nsWindow::nsWindow() : nsBaseWidget()
   mOldExStyle           = 0;
   mPainting             = 0;
   mLastKeyboardLayout   = 0;
+  mAssumeWheelIsZoomUntil = 0;
   mBlurSuppressLevel    = 0;
-  mLastPaintEndTime     = TimeStamp::Now();
 #ifdef MOZ_XUL
-  mTransparentSurface   = nullptr;
-  mMemoryDC             = nullptr;
+  mTransparentSurface   = nsnull;
+  mMemoryDC             = nsnull;
   mTransparencyMode     = eTransparencyOpaque;
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   memset(&mGlassMargins, 0, sizeof mGlassMargins);
+#endif 
 #endif
   mBackground           = ::GetSysColor(COLOR_BTNFACE);
   mBrush                = ::CreateSolidBrush(NSRGB_2_COLOREF(mBackground));
   mForeground           = ::GetSysColor(COLOR_WINDOWTEXT);
 
-  mTaskbarPreview = nullptr;
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
+  mTaskbarPreview = nsnull;
   mHasTaskbarIconBeenCreated = false;
+#endif
 
   
   if (!sInstanceCount) {
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
     
     
     mozilla::widget::WinTaskbar::RegisterAppUserModelID();
+#endif
+
     gKbdLayout.LoadLayout(::GetKeyboardLayout(0));
+
     
     nsIMM32Handler::Initialize();
+
 #ifdef NS_ENABLE_TSF
     nsTextStore::Initialize();
 #endif
-    if (SUCCEEDED(::OleInitialize(NULL))) {
+
+    if (SUCCEEDED(::OleInitialize(NULL)))
       sIsOleInitialized = TRUE;
-    }
     NS_ASSERTION(sIsOleInitialized, "***** OLE is not initialized!\n");
-    MouseScrollHandler::Initialize();
+
+    InitInputWorkaroundPrefDefaults();
+
     
     nsUXThemeData::InitTitlebarInfo();
     
     nsUXThemeData::UpdateNativeThemeInfo();
+
     ForgetRedirectedKeyDownMessage();
   } 
 
-  mIdleService = nullptr;
+  mIdleService = nsnull;
 
   sInstanceCount++;
 }
@@ -393,13 +472,6 @@ nsWindow::~nsWindow()
   
   if (NULL != mWnd)
     Destroy();
-
-  
-  if (mIconSmall)
-    ::DestroyIcon(mIconSmall);
-
-  if (mIconBig)
-    ::DestroyIcon(mIconBig);
 
   sInstanceCount--;
 
@@ -433,7 +505,7 @@ NS_IMPL_ISUPPORTS_INHERITED0(nsWindow, nsBaseWidget)
 
 
 
-int32_t nsWindow::GetHeight(int32_t aProposedHeight)
+PRInt32 nsWindow::GetHeight(PRInt32 aProposedHeight)
 {
   return aProposedHeight;
 }
@@ -443,6 +515,7 @@ nsresult
 nsWindow::Create(nsIWidget *aParent,
                  nsNativeWidget aNativeParent,
                  const nsIntRect &aRect,
+                 EVENT_CALLBACK aHandleEventFunction,
                  nsDeviceContext *aContext,
                  nsWidgetInitData *aInitData)
 {
@@ -455,15 +528,15 @@ nsWindow::Create(nsIWidget *aParent,
   nsIWidget *baseParent = aInitData->mWindowType == eWindowType_dialog ||
                           aInitData->mWindowType == eWindowType_toplevel ||
                           aInitData->mWindowType == eWindowType_invisible ?
-                          nullptr : aParent;
+                          nsnull : aParent;
 
-  mIsTopWidgetWindow = (nullptr == baseParent);
+  mIsTopWidgetWindow = (nsnull == baseParent);
   mBounds = aRect;
 
   
   nsToolkit::GetToolkit();
 
-  BaseCreate(baseParent, aRect, aContext, aInitData);
+  BaseCreate(baseParent, aRect, aHandleEventFunction, aContext, aInitData);
 
   HWND parent;
   if (aParent) { 
@@ -472,9 +545,10 @@ nsWindow::Create(nsIWidget *aParent,
   } else { 
     parent = (HWND)aNativeParent;
     mParent = aNativeParent ?
-      WinUtils::GetNSWindowPtr((HWND)aNativeParent) : nullptr;
+      WinUtils::GetNSWindowPtr((HWND)aNativeParent) : nsnull;
   }
 
+  mPopupType = aInitData->mPopupHint;
   mIsRTL = aInitData->mRTL;
 
   DWORD style = WindowStyle();
@@ -533,14 +607,16 @@ nsWindow::Create(nsIWidget *aParent,
     return NS_ERROR_FAILURE;
   }
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   if (mIsRTL && nsUXThemeData::dwmSetWindowAttributePtr) {
     DWORD dwAttribute = TRUE;    
     nsUXThemeData::dwmSetWindowAttributePtr(mWnd, DWMWA_NONCLIENT_RTL_LAYOUT, &dwAttribute, sizeof dwAttribute);
   }
+#endif
 
   if (mWindowType != eWindowType_plugin &&
       mWindowType != eWindowType_invisible &&
-      MouseScrollHandler::Device::IsFakeScrollableWindowNeeded()) {
+      UseTrackPointHack()) {
     
     
     
@@ -587,6 +663,9 @@ nsWindow::Create(nsIWidget *aParent,
     ::SetWindowLongPtrW(scrollableWnd, GWLP_USERDATA, (LONG_PTR)oldWndProc);
   }
 
+  
+
+  DispatchStandardEvent(NS_CREATE);
   SubclassWindow(TRUE);
 
   
@@ -603,6 +682,8 @@ nsWindow::Create(nsIWidget *aParent,
         (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION)) ? 1 : 0;
     sSwitchKeyboardLayout =
       Preferences::GetBool("intl.keyboard.per_window_layout", false);
+    gDisableNativeTheme =
+      Preferences::GetBool("mozilla.widget.disable-native-theme", false);
   }
 
   return NS_OK;
@@ -631,7 +712,7 @@ NS_METHOD nsWindow::Destroy()
   if (mLayerManager) {
     mLayerManager->Destroy();
   }
-  mLayerManager = nullptr;
+  mLayerManager = nsnull;
 
   
 
@@ -854,41 +935,32 @@ DWORD nsWindow::WindowExStyle()
 
 void nsWindow::SubclassWindow(BOOL bState)
 {
-  if (bState) {
-    if (!mWnd || !IsWindow(mWnd)) {
+  if (NULL != mWnd) {
+    
+    if (!::IsWindow(mWnd)) {
       NS_ERROR("Invalid window handle");
     }
 
-    if (mUnicodeWidget) {
-      mPrevWndProc =
-        reinterpret_cast<WNDPROC>(
-          SetWindowLongPtrW(mWnd,
-                            GWLP_WNDPROC,
-                            reinterpret_cast<LONG_PTR>(nsWindow::WindowProc)));
-    } else {
-      mPrevWndProc =
-        reinterpret_cast<WNDPROC>(
-          SetWindowLongPtrA(mWnd,
-                            GWLP_WNDPROC,
-                            reinterpret_cast<LONG_PTR>(nsWindow::WindowProc)));
+    if (bState) {
+      
+      if (mUnicodeWidget)
+        mPrevWndProc = (WNDPROC)::SetWindowLongPtrW(mWnd, GWLP_WNDPROC,
+                                                (LONG_PTR)nsWindow::WindowProc);
+      else
+        mPrevWndProc = (WNDPROC)::SetWindowLongPtrA(mWnd, GWLP_WNDPROC,
+                                                (LONG_PTR)nsWindow::WindowProc);
+      NS_ASSERTION(mPrevWndProc, "Null standard window procedure");
+      
+      WinUtils::SetNSWindowPtr(mWnd, this);
     }
-    NS_ASSERTION(mPrevWndProc, "Null standard window procedure");
-    
-    WinUtils::SetNSWindowPtr(mWnd, this);
-  } else {
-    if (IsWindow(mWnd)) {
-      if (mUnicodeWidget) {
-        SetWindowLongPtrW(mWnd,
-                          GWLP_WNDPROC,
-                          reinterpret_cast<LONG_PTR>(mPrevWndProc));
-      } else {
-        SetWindowLongPtrA(mWnd,
-                          GWLP_WNDPROC,
-                          reinterpret_cast<LONG_PTR>(mPrevWndProc));
-      }
+    else {
+      if (mUnicodeWidget)
+        ::SetWindowLongPtrW(mWnd, GWLP_WNDPROC, (LONG_PTR)mPrevWndProc);
+      else
+        ::SetWindowLongPtrA(mWnd, GWLP_WNDPROC, (LONG_PTR)mPrevWndProc);
+      WinUtils::SetNSWindowPtr(mWnd, NULL);
+      mPrevWndProc = NULL;
     }
-    WinUtils::SetNSWindowPtr(mWnd, NULL);
-    mPrevWndProc = NULL;
   }
 }
 
@@ -918,7 +990,7 @@ NS_IMETHODIMP nsWindow::SetParent(nsIWidget *aNewParent)
   }
   if (mWnd) {
     
-    VERIFY(::SetParent(mWnd, nullptr));
+    VERIFY(::SetParent(mWnd, nsnull));
   }
   return NS_OK;
 }
@@ -967,22 +1039,22 @@ nsWindow* nsWindow::GetParentWindow(bool aIncludeOwner)
     
     
     
-    return nullptr;
+    return nsnull;
   }
 
   
   
   
   if (mInDtor || mOnDestroyCalled)
-    return nullptr;
+    return nsnull;
 
 
   
   
   
-  nsWindow* widget = nullptr;
+  nsWindow* widget = nsnull;
   if (mWnd) {
-    HWND parent = nullptr;
+    HWND parent = nsnull;
     if (aIncludeOwner)
       parent = ::GetParent(mWnd);
     else
@@ -994,7 +1066,7 @@ nsWindow* nsWindow::GetParentWindow(bool aIncludeOwner)
         
         
         if (widget->mInDtor) {
-          widget = nullptr;
+          widget = nsnull;
         }
       }
     }
@@ -1153,11 +1225,6 @@ NS_METHOD nsWindow::Show(bool bState)
         ::SendMessageW(mWnd, WM_CHANGEUISTATE, MAKEWPARAM(UIS_INITIALIZE, UISF_HIDEFOCUS | UISF_HIDEACCEL), 0);
       }
     } else {
-      
-      
-      if (wasVisible && mTransparencyMode == eTransparencyTransparent) {
-        ClearTranslucentWindow();
-      }
       if (mWindowType != eWindowType_dialog) {
         ::ShowWindow(mWnd, SW_HIDE);
       } else {
@@ -1168,12 +1235,8 @@ NS_METHOD nsWindow::Show(bool bState)
   }
   
 #ifdef MOZ_XUL
-  if (!wasVisible && bState) {
-    Invalidate();
-    if (syncInvalidate) {
-      ::UpdateWindow(mWnd);
-    }
-  }
+  if (!wasVisible && bState)
+    Invalidate(syncInvalidate);
 #endif
 
   return NS_OK;
@@ -1188,9 +1251,10 @@ NS_METHOD nsWindow::Show(bool bState)
 
 
 
-bool nsWindow::IsVisible() const
+NS_METHOD nsWindow::IsVisible(bool & bState)
 {
-  return mIsVisible;
+  bState = mIsVisible;
+  return NS_OK;
 }
 
 
@@ -1206,8 +1270,7 @@ bool nsWindow::IsVisible() const
 
 void nsWindow::ClearThemeRegion()
 {
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
-      !HasGlass() &&
+  if (nsUXThemeData::sIsVistaOrLater && !HasGlass() &&
       (mWindowType == eWindowType_popup && !IsPopupWithTitleBar() &&
        (mPopupType == ePopupTypeTooltip || mPopupType == ePopupTypePanel))) {
     SetWindowRgn(mWnd, NULL, false);
@@ -1221,15 +1284,14 @@ void nsWindow::SetThemeRegion()
   
   
   
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
-      !HasGlass() &&
+  if (nsUXThemeData::sIsVistaOrLater && !HasGlass() &&
       (mWindowType == eWindowType_popup && !IsPopupWithTitleBar() &&
        (mPopupType == ePopupTypeTooltip || mPopupType == ePopupTypePanel))) {
-    HRGN hRgn = nullptr;
+    HRGN hRgn = nsnull;
     RECT rect = {0,0,mBounds.width,mBounds.height};
     
     HDC dc = ::GetDC(mWnd);
-    GetThemeBackgroundRegion(nsUXThemeData::GetTheme(eUXTooltip), dc, TTP_STANDARD, TS_NORMAL, &rect, &hRgn);
+    nsUXThemeData::getThemeBackgroundRegion(nsUXThemeData::GetTheme(eUXTooltip), dc, TTP_STANDARD, TS_NORMAL, &rect, &hRgn);
     if (hRgn) {
       if (!SetWindowRgn(mWnd, hRgn, false)) 
         DeleteObject(hRgn);
@@ -1284,20 +1346,8 @@ BOOL CALLBACK nsWindow::UnregisterTouchForDescendants(HWND aWnd, LPARAM aMsg) {
 
 
 
-void
-nsWindow::SetSizeConstraints(const SizeConstraints& aConstraints)
-{
-  SizeConstraints c = aConstraints;
-  if (mWindowType != eWindowType_popup) {
-    c.mMinSize.width = NS_MAX(int32_t(::GetSystemMetrics(SM_CXMINTRACK)), c.mMinSize.width);
-    c.mMinSize.height = NS_MAX(int32_t(::GetSystemMetrics(SM_CYMINTRACK)), c.mMinSize.height);
-  }
 
-  nsBaseWidget::SetSizeConstraints(c);
-}
-
-
-NS_METHOD nsWindow::Move(int32_t aX, int32_t aY)
+NS_METHOD nsWindow::Move(PRInt32 aX, PRInt32 aY)
 {
   if (mWindowType == eWindowType_toplevel ||
       mWindowType == eWindowType_dialog) {
@@ -1348,7 +1398,7 @@ NS_METHOD nsWindow::Move(int32_t aX, int32_t aY)
     
     
     if (mWindowType == eWindowType_plugin &&
-        (!mLayerManager || mLayerManager->GetBackendType() == LAYERS_D3D9) &&
+        (!mLayerManager || mLayerManager->GetBackendType() == LayerManager::LAYERS_D3D9) &&
         mClipRects &&
         (mClipRectCount != 1 || !mClipRects[0].IsEqualInterior(nsIntRect(0, 0, mBounds.width, mBounds.height)))) {
       flags |= SWP_NOCOPYBITS;
@@ -1357,24 +1407,18 @@ NS_METHOD nsWindow::Move(int32_t aX, int32_t aY)
 
     SetThemeRegion();
   }
-  NotifyRollupGeometryChange(sRollupListener);
   return NS_OK;
 }
 
 
-NS_METHOD nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
+NS_METHOD nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
 {
   NS_ASSERTION((aWidth >=0 ) , "Negative width passed to nsWindow::Resize");
   NS_ASSERTION((aHeight >=0 ), "Negative height passed to nsWindow::Resize");
-  ConstrainSize(&aWidth, &aHeight);
 
   
-  if (mBounds.width == aWidth && mBounds.height == aHeight) {
-    if (aRepaint) {
-      Invalidate();
-    }
+  if (mBounds.width == aWidth && mBounds.height == aHeight && !aRepaint)
     return NS_OK;
-  }
 
 #ifdef MOZ_XUL
   if (eTransparencyTransparent == mTransparencyMode)
@@ -1398,27 +1442,21 @@ NS_METHOD nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
   }
 
   if (aRepaint)
-    Invalidate();
+    Invalidate(false);
 
-  NotifyRollupGeometryChange(sRollupListener);
   return NS_OK;
 }
 
 
-NS_METHOD nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight, bool aRepaint)
+NS_METHOD nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
 {
   NS_ASSERTION((aWidth >=0 ),  "Negative width passed to nsWindow::Resize");
   NS_ASSERTION((aHeight >=0 ), "Negative height passed to nsWindow::Resize");
-  ConstrainSize(&aWidth, &aHeight);
 
   
   if (mBounds.x == aX && mBounds.y == aY &&
-      mBounds.width == aWidth && mBounds.height == aHeight) {
-    if (aRepaint) {
-      Invalidate();
-    }
+      mBounds.width == aWidth && mBounds.height == aHeight && !aRepaint)
     return NS_OK;
-  }
 
 #ifdef MOZ_XUL
   if (eTransparencyTransparent == mTransparencyMode)
@@ -1443,14 +1481,13 @@ NS_METHOD nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeig
   }
 
   if (aRepaint)
-    Invalidate();
+    Invalidate(false);
 
-  NotifyRollupGeometryChange(sRollupListener);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindow::BeginResizeDrag(nsGUIEvent* aEvent, int32_t aHorizontal, int32_t aVertical)
+nsWindow::BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical)
 {
   NS_ENSURE_ARG_POINTER(aEvent);
 
@@ -1547,7 +1584,7 @@ NS_METHOD nsWindow::PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
 }
 
 
-NS_IMETHODIMP nsWindow::SetSizeMode(int32_t aMode) {
+NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
 
   nsresult rv;
 
@@ -1558,7 +1595,6 @@ NS_IMETHODIMP nsWindow::SetSizeMode(int32_t aMode) {
     return NS_OK;
 
   
-  mLastSizeMode = mSizeMode;
   rv = nsBaseWidget::SetSizeMode(aMode);
   if (NS_SUCCEEDED(rv) && mIsVisible) {
     int mode;
@@ -1597,15 +1633,16 @@ NS_IMETHODIMP nsWindow::SetSizeMode(int32_t aMode) {
       ::ShowWindow(mWnd, mode);
     }
     
-    if (mode == SW_MAXIMIZE || mode == SW_SHOW)
-      DispatchFocusToTopLevelWindow(true);
+    
+    if (mode == SW_RESTORE || mode == SW_MAXIMIZE || mode == SW_SHOW)
+      DispatchFocusToTopLevelWindow(NS_ACTIVATE);
   }
   return rv;
 }
 
 
 NS_METHOD nsWindow::ConstrainPosition(bool aAllowSlop,
-                                      int32_t *aX, int32_t *aY)
+                                      PRInt32 *aX, PRInt32 *aY)
 {
   if (!mIsTopWidgetWindow) 
     return NS_OK;
@@ -1619,7 +1656,7 @@ NS_METHOD nsWindow::ConstrainPosition(bool aAllowSlop,
   nsCOMPtr<nsIScreenManager> screenmgr = do_GetService(sScreenManagerContractID);
   if (screenmgr) {
     nsCOMPtr<nsIScreen> screen;
-    int32_t left, top, width, height;
+    PRInt32 left, top, width, height;
 
     
     width = mBounds.width > 0 ? mBounds.width : 1;
@@ -1704,11 +1741,11 @@ NS_METHOD nsWindow::Enable(bool bState)
 }
 
 
-bool nsWindow::IsEnabled() const
+NS_METHOD nsWindow::IsEnabled(bool *aState)
 {
-  return !mWnd ||
-         (::IsWindowEnabled(mWnd) &&
-          ::IsWindowEnabled(::GetAncestor(mWnd, GA_ROOT)));
+  NS_ENSURE_ARG_POINTER(aState);
+  *aState = !mWnd || (::IsWindowEnabled(mWnd) && ::IsWindowEnabled(::GetAncestor(mWnd, GA_ROOT)));
+  return NS_OK;
 }
 
 
@@ -1910,7 +1947,7 @@ nsWindow::GetNonClientMargins(nsIntMargin &margins)
   margins.top = GetSystemMetrics(SM_CYCAPTION);
   margins.bottom = GetSystemMetrics(SM_CYFRAME);
   margins.top += margins.bottom;
-  margins.left = margins.right = GetSystemMetrics(SM_CXFRAME);
+  margins.left = margins.right = GetSystemMetrics(SM_CYFRAME);
 
   return NS_OK;
 }
@@ -1935,7 +1972,7 @@ nsWindow::ResetLayout()
   OnResize(evRect);
 
   
-  Invalidate();
+  Invalidate(false);
 }
 
 
@@ -1986,177 +2023,77 @@ nsWindow::UpdateGetWindowInfoCaptionStatus(bool aActiveCaption)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 bool
-nsWindow::UpdateNonClientMargins(int32_t aSizeMode, bool aReflowWindow)
+nsWindow::UpdateNonClientMargins(PRInt32 aSizeMode, bool aReflowWindow)
 {
   if (!mCustomNonClient)
     return false;
 
-  if (aSizeMode == -1) {
+  mNonClientOffset.top = mNonClientOffset.bottom =
+    mNonClientOffset.left = mNonClientOffset.right = 0;
+
+  if (aSizeMode == -1)
     aSizeMode = mSizeMode;
+
+  if (aSizeMode == nsSizeMode_Minimized ||
+      aSizeMode == nsSizeMode_Fullscreen) {
+    mCaptionHeight = mVertResizeMargin = mHorResizeMargin = 0;
+    return true;
   }
 
-  bool hasCaption = (mBorderStyle
-                    & (eBorderStyle_all
-                     | eBorderStyle_title
-                     | eBorderStyle_menu
-                     | eBorderStyle_default));
+  
+  
+  
+  mCaptionHeight = GetSystemMetrics(SM_CYCAPTION);
+  mHorResizeMargin = GetSystemMetrics(SM_CXFRAME);
+  mVertResizeMargin = GetSystemMetrics(SM_CYFRAME);
+
+  mCaptionHeight += mVertResizeMargin;
 
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  mCaptionHeight = GetSystemMetrics(SM_CYFRAME)
-                 + (hasCaption ? GetSystemMetrics(SM_CYCAPTION)
-                                 + GetSystemMetrics(SM_CXPADDEDBORDER)
-                               : 0);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  mHorResizeMargin = GetSystemMetrics(SM_CXFRAME)
-                   + (hasCaption ? GetSystemMetrics(SM_CXPADDEDBORDER) : 0);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  mVertResizeMargin = GetSystemMetrics(SM_CYFRAME)
-                    + (hasCaption ? GetSystemMetrics(SM_CXPADDEDBORDER) : 0);
-
-  if (aSizeMode == nsSizeMode_Minimized) {
-    
-    mNonClientOffset.top = 0;
-    mNonClientOffset.left = 0;
-    mNonClientOffset.right = 0;
-    mNonClientOffset.bottom = 0;
-  } else if (aSizeMode == nsSizeMode_Fullscreen) {
-    
-    
-    
-    
+  if (!mNonClientMargins.top)
     mNonClientOffset.top = mCaptionHeight;
-    mNonClientOffset.bottom = mVertResizeMargin;
+  else if (mNonClientMargins.top > 0)
+    mNonClientOffset.top = mCaptionHeight - mNonClientMargins.top;
+
+  if (!mNonClientMargins.left)
     mNonClientOffset.left = mHorResizeMargin;
+  else if (mNonClientMargins.left > 0)
+    mNonClientOffset.left = mHorResizeMargin - mNonClientMargins.left;
+ 
+  if (!mNonClientMargins.right)
     mNonClientOffset.right = mHorResizeMargin;
-  } else if (aSizeMode == nsSizeMode_Maximized) {
-    
-    
-    
-    
-    
-    
-    
-    
-    mNonClientOffset.top = mCaptionHeight;
-    mNonClientOffset.bottom = 0;
-    mNonClientOffset.left = 0;
-    mNonClientOffset.right = 0;
+  else if (mNonClientMargins.right > 0)
+    mNonClientOffset.right = mHorResizeMargin - mNonClientMargins.right;
 
-    APPBARDATA appBarData;
-    appBarData.cbSize = sizeof(appBarData);
-    UINT taskbarState = SHAppBarMessage(ABM_GETSTATE, &appBarData);
-    if (ABS_AUTOHIDE & taskbarState) {
-      UINT edge = -1;
-      appBarData.hWnd = FindWindow(L"Shell_TrayWnd", NULL);
-      if (appBarData.hWnd) {
-        HMONITOR taskbarMonitor = ::MonitorFromWindow(appBarData.hWnd,
-                                                      MONITOR_DEFAULTTOPRIMARY);
-        HMONITOR windowMonitor = ::MonitorFromWindow(mWnd,
-                                                     MONITOR_DEFAULTTONEAREST);
-        if (taskbarMonitor == windowMonitor) {
-          SHAppBarMessage(ABM_GETTASKBARPOS, &appBarData);
-          edge = appBarData.uEdge;
-        }
+  if (!mNonClientMargins.bottom)
+    mNonClientOffset.bottom = mVertResizeMargin;
+  else if (mNonClientMargins.bottom > 0)
+    mNonClientOffset.bottom = mVertResizeMargin - mNonClientMargins.bottom;
+
+  if (aSizeMode == nsSizeMode_Maximized) {
+    
+    
+    
+    MONITORINFO info = {sizeof(MONITORINFO)};
+    if (::GetMonitorInfo(::MonitorFromWindow(mWnd, MONITOR_DEFAULTTOPRIMARY),
+                         &info)) {
+      RECT r;
+      if (::GetWindowRect(mWnd, &r)) {
+        
+        r.top += mVertResizeMargin - mNonClientOffset.top;
+        r.left += mHorResizeMargin - mNonClientOffset.left;
+        r.bottom -= mVertResizeMargin - mNonClientOffset.bottom;
+        r.right -= mHorResizeMargin - mNonClientOffset.right;
+        
+        if (r.top <= info.rcMonitor.top &&
+            r.left <= info.rcMonitor.left && 
+            r.right >= info.rcMonitor.right &&
+            r.bottom >= info.rcMonitor.bottom)
+          mNonClientOffset.bottom -= r.bottom - info.rcMonitor.bottom + 1;
       }
-
-      if (ABE_LEFT == edge) {
-        mNonClientOffset.left -= 1;
-      } else if (ABE_RIGHT == edge) {
-        mNonClientOffset.right -= 1;
-      } else if (ABE_BOTTOM == edge || ABE_TOP == edge) {
-        mNonClientOffset.bottom -= 1;
-      }
-    }
-  } else {
-    bool glass = nsUXThemeData::CheckForCompositor();
-
-    
-    
-    
-    
-    
-    
-    
-
-    if (mNonClientMargins.top > 0 && glass) {
-      mNonClientOffset.top = NS_MIN(mCaptionHeight, mNonClientMargins.top);
-    } else if (mNonClientMargins.top == 0) {
-      mNonClientOffset.top = mCaptionHeight;
-    } else {
-      mNonClientOffset.top = 0;
-    }
-
-    if (mNonClientMargins.bottom > 0 && glass) {
-      mNonClientOffset.bottom = NS_MIN(mVertResizeMargin, mNonClientMargins.bottom);
-    } else if (mNonClientMargins.bottom == 0) {
-      mNonClientOffset.bottom = mVertResizeMargin;
-    } else {
-      mNonClientOffset.bottom = 0;
-    }
-
-    if (mNonClientMargins.left > 0 && glass) {
-      mNonClientOffset.left = NS_MIN(mHorResizeMargin, mNonClientMargins.left);
-    } else if (mNonClientMargins.left == 0) {
-      mNonClientOffset.left = mHorResizeMargin;
-    } else {
-      mNonClientOffset.left = 0;
-    }
-
-    if (mNonClientMargins.right > 0 && glass) {
-      mNonClientOffset.right = NS_MIN(mHorResizeMargin, mNonClientMargins.right);
-    } else if (mNonClientMargins.right == 0) {
-      mNonClientOffset.right = mHorResizeMargin;
-    } else {
-      mNonClientOffset.right = 0;
     }
   }
 
@@ -2197,7 +2134,7 @@ nsWindow::SetNonClientMargins(nsIntMargin &margins)
   mCustomNonClient = true;
   if (!UpdateNonClientMargins()) {
     NS_WARNING("UpdateNonClientMargins failed!");
-    return NS_OK;
+    return false;
   }
 
   return NS_OK;
@@ -2451,15 +2388,15 @@ NS_METHOD nsWindow::SetCursor(nsCursor aCursor)
 
 
 NS_IMETHODIMP nsWindow::SetCursor(imgIContainer* aCursor,
-                                  uint32_t aHotspotX, uint32_t aHotspotY)
+                                  PRUint32 aHotspotX, PRUint32 aHotspotY)
 {
   if (sCursorImgContainer == aCursor && sHCursor) {
     ::SetCursor(sHCursor);
     return NS_OK;
   }
 
-  int32_t width;
-  int32_t height;
+  PRInt32 width;
+  PRInt32 height;
 
   nsresult rv;
   rv = aCursor->GetWidth(&width);
@@ -2518,7 +2455,7 @@ static const nsIntRegion
 RegionFromArray(const nsTArray<nsIntRect>& aRects)
 {
   nsIntRegion region;
-  for (uint32_t i = 0; i < aRects.Length(); ++i) {
+  for (PRUint32 i = 0; i < aRects.Length(); ++i) {
     region.Or(region, aRects[i]);
   }
   return region;
@@ -2526,6 +2463,7 @@ RegionFromArray(const nsTArray<nsIntRect>& aRects)
 
 void nsWindow::UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion)
 {
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   if (!HasGlass() || GetParent())
     return;
 
@@ -2558,7 +2496,7 @@ void nsWindow::UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion)
     if (mCustomNonClient) {
       
       
-      largest.y = NS_MAX<uint32_t>(largest.y,
+      largest.y = NS_MAX<PRUint32>(largest.y,
                          nsUXThemeData::sCommandButtons[CMDBUTTONIDX_BUTTONBOX].cy);
     }
     margins.cyTopHeight = largest.y;
@@ -2569,10 +2507,12 @@ void nsWindow::UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion)
     mGlassMargins = margins;
     UpdateGlass();
   }
+#endif 
 }
 
 void nsWindow::UpdateGlass()
 {
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   MARGINS margins = mGlassMargins;
 
   
@@ -2605,6 +2545,7 @@ void nsWindow::UpdateGlass()
     nsUXThemeData::dwmExtendFrameIntoClientAreaPtr(mWnd, &margins);
     nsUXThemeData::dwmSetWindowAttributePtr(mWnd, DWMWA_NCRENDERING_POLICY, &policy, sizeof policy);
   }
+#endif 
 }
 #endif
 
@@ -2667,7 +2608,8 @@ NS_IMETHODIMP nsWindow::HideWindowChrome(bool aShouldHide)
 
 
 
-NS_METHOD nsWindow::Invalidate(bool aEraseBackground, 
+NS_METHOD nsWindow::Invalidate(bool aIsSynchronous, 
+                               bool aEraseBackground, 
                                bool aUpdateNCArea,
                                bool aIncludeChildren)
 {
@@ -2678,14 +2620,18 @@ NS_METHOD nsWindow::Invalidate(bool aEraseBackground,
 #ifdef WIDGET_DEBUG_OUTPUT
   debug_DumpInvalidate(stdout,
                        this,
-                       nullptr,
-                       nsAutoCString("noname"),
-                       (int32_t) mWnd);
+                       nsnull,
+                       aIsSynchronous,
+                       nsCAutoString("noname"),
+                       (PRInt32) mWnd);
 #endif 
 
   DWORD flags = RDW_INVALIDATE;
   if (aEraseBackground) {
     flags |= RDW_ERASE;
+  }
+  if (aIsSynchronous) {
+    flags |= RDW_UPDATENOW;
   }
   if (aUpdateNCArea) {
     flags |= RDW_FRAME;
@@ -2699,7 +2645,7 @@ NS_METHOD nsWindow::Invalidate(bool aEraseBackground,
 }
 
 
-NS_METHOD nsWindow::Invalidate(const nsIntRect & aRect)
+NS_METHOD nsWindow::Invalidate(const nsIntRect & aRect, bool aIsSynchronous)
 {
   if (mWnd)
   {
@@ -2707,8 +2653,9 @@ NS_METHOD nsWindow::Invalidate(const nsIntRect & aRect)
     debug_DumpInvalidate(stdout,
                          this,
                          &aRect,
-                         nsAutoCString("noname"),
-                         (int32_t) mWnd);
+                         aIsSynchronous,
+                         nsCAutoString("noname"),
+                         (PRInt32) mWnd);
 #endif 
 
     RECT rect;
@@ -2719,6 +2666,10 @@ NS_METHOD nsWindow::Invalidate(const nsIntRect & aRect)
     rect.bottom = aRect.y + aRect.height;
 
     VERIFY(::InvalidateRect(mWnd, &rect, FALSE));
+
+    if (aIsSynchronous) {
+      VERIFY(::UpdateWindow(mWnd));
+    }
   }
   return NS_OK;
 }
@@ -2758,7 +2709,7 @@ nsWindow::MakeFullScreen(bool aFullScreen)
 
   if (visible) {
     Show(true);
-    Invalidate();
+    Invalidate(false);
   }
 
   
@@ -2766,8 +2717,31 @@ nsWindow::MakeFullScreen(bool aFullScreen)
     taskbarInfo->PrepareFullScreenHWND(mWnd, FALSE);
   }
 
-  if (mWidgetListener)
-    mWidgetListener->SizeModeChanged(mSizeMode);
+  
+  nsSizeModeEvent event(true, NS_SIZEMODE, this);
+  event.mSizeMode = mSizeMode;
+  InitEvent(event);
+  DispatchWindowEvent(&event);
+
+  return rv;
+}
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP nsWindow::Update()
+{
+  nsresult rv = NS_OK;
+
+  
+  
+  if (mWnd)
+    VERIFY(::UpdateWindow(mWnd));
 
   return rv;
 }
@@ -2784,7 +2758,7 @@ nsWindow::MakeFullScreen(bool aFullScreen)
 
 
 
-void* nsWindow::GetNativeData(uint32_t aDataType)
+void* nsWindow::GetNativeData(PRUint32 aDataType)
 {
   nsAutoString className;
   switch (aDataType) {
@@ -2833,7 +2807,7 @@ void* nsWindow::GetNativeData(uint32_t aDataType)
 }
 
 
-void nsWindow::FreeNativeData(void * data, uint32_t aDataType)
+void nsWindow::FreeNativeData(void * data, PRUint32 aDataType)
 {
   switch (aDataType)
   {
@@ -2881,7 +2855,7 @@ NS_METHOD nsWindow::SetIcon(const nsAString& aIconSpec)
 {
   
 
-  nsCOMPtr<nsIFile> iconFile;
+  nsCOMPtr<nsILocalFile> iconFile;
   ResolveIconName(aIconSpec, NS_LITERAL_STRING(".ico"),
                   getter_AddRefs(iconFile));
   if (!iconFile)
@@ -2911,7 +2885,6 @@ NS_METHOD nsWindow::SetIcon(const nsAString& aIconSpec)
     HICON icon = (HICON) ::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_BIG, (LPARAM)bigIcon);
     if (icon)
       ::DestroyIcon(icon);
-    mIconBig = bigIcon;
   }
 #ifdef DEBUG_SetIcon
   else {
@@ -2925,7 +2898,6 @@ NS_METHOD nsWindow::SetIcon(const nsAString& aIconSpec)
     HICON icon = (HICON) ::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM)smallIcon);
     if (icon)
       ::DestroyIcon(icon);
-    mIconSmall = smallIcon;
   }
 #ifdef DEBUG_SetIcon
   else {
@@ -2957,7 +2929,7 @@ nsIntPoint nsWindow::WidgetToScreenOffset()
 
 nsIntSize nsWindow::ClientToWindowSize(const nsIntSize& aClientSize)
 {
-  if (mWindowType == eWindowType_popup && !IsPopupWithTitleBar())
+  if (!IsPopupWithTitleBar())
     return aClientSize;
 
   
@@ -2985,7 +2957,7 @@ NS_METHOD nsWindow::EnableDragDrop(bool aEnable)
 
   nsresult rv = NS_ERROR_FAILURE;
   if (aEnable) {
-    if (nullptr == mNativeDragTarget) {
+    if (nsnull == mNativeDragTarget) {
        mNativeDragTarget = new nsNativeDragTarget(this);
        if (NULL != mNativeDragTarget) {
          mNativeDragTarget->AddRef();
@@ -2997,7 +2969,7 @@ NS_METHOD nsWindow::EnableDragDrop(bool aEnable)
        }
     }
   } else {
-    if (nullptr != mWnd && NULL != mNativeDragTarget) {
+    if (nsnull != mWnd && NULL != mNativeDragTarget) {
       ::RevokeDragDrop(mWnd);
       if (S_OK == ::CoLockObjectExternal((LPUNKNOWN)mNativeDragTarget, FALSE, TRUE)) {
         rv = NS_OK;
@@ -3064,7 +3036,7 @@ NS_IMETHODIMP nsWindow::CaptureRollupEvents(nsIRollupListener * aListener,
     }
     sProcessHook = true;
   } else {
-    sRollupListener = nullptr;
+    sRollupListener = nsnull;
     NS_IF_RELEASE(sRollupWidget);
     sProcessHook = false;
     UnregisterSpecialDropdownHooks();
@@ -3083,7 +3055,7 @@ NS_IMETHODIMP nsWindow::CaptureRollupEvents(nsIRollupListener * aListener,
 
 
 NS_IMETHODIMP
-nsWindow::GetAttention(int32_t aCycleCount)
+nsWindow::GetAttention(PRInt32 aCycleCount)
 {
   
   if (!mWnd)
@@ -3194,13 +3166,6 @@ GetLayerManagerPrefs(LayerManagerPrefs* aManagerPrefs)
     aManagerPrefs->mDisableAcceleration || safeMode;
 }
 
-bool
-nsWindow::UseOffMainThreadCompositing()
-{
-  
-  return false;
-}
-
 LayerManager*
 nsWindow::GetLayerManager(PLayersChild* aShadowManager,
                           LayersBackend aBackendHint,
@@ -3213,17 +3178,16 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 
 #ifdef MOZ_ENABLE_D3D10_LAYER
   if (mLayerManager) {
-    if (mLayerManager->GetBackendType() == LAYERS_D3D10)
+    if (mLayerManager->GetBackendType() ==
+        mozilla::layers::LayerManager::LAYERS_D3D10)
     {
-      LayerManagerD3D10 *layerManagerD3D10 =
-        static_cast<LayerManagerD3D10*>(mLayerManager.get());
+      mozilla::layers::LayerManagerD3D10 *layerManagerD3D10 =
+        static_cast<mozilla::layers::LayerManagerD3D10*>(mLayerManager.get());
       if (layerManagerD3D10->device() !=
           gfxWindowsPlatform::GetPlatform()->GetD3D10Device())
       {
-        MOZ_ASSERT(!mLayerManager->IsInTransaction());
-
         mLayerManager->Destroy();
-        mLayerManager = nullptr;
+        mLayerManager = nsnull;
       }
     }
   }
@@ -3234,7 +3198,8 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 
   if (!mLayerManager ||
       (!sAllowD3D9 && aPersistence == LAYER_MANAGER_PERSISTENT &&
-        mLayerManager->GetBackendType() == LAYERS_BASIC)) {
+        mLayerManager->GetBackendType() == 
+        mozilla::layers::LayerManager::LAYERS_BASIC)) {
     
     
     LayerManagerPrefs prefs;
@@ -3253,8 +3218,6 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 
     if (mUseAcceleratedRendering) {
       if (aPersistence == LAYER_MANAGER_PERSISTENT && !sAllowD3D9) {
-        MOZ_ASSERT(!mLayerManager || !mLayerManager->IsInTransaction());
-
         
         
         nsToolkit::StartAllowingD3D9();
@@ -3262,33 +3225,33 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 
 #ifdef MOZ_ENABLE_D3D10_LAYER
       if (!prefs.mPreferD3D9 && !prefs.mPreferOpenGL) {
-        nsRefPtr<LayerManagerD3D10> layerManager =
-          new LayerManagerD3D10(this);
-        if (layerManager->Initialize(prefs.mForceAcceleration)) {
+        nsRefPtr<mozilla::layers::LayerManagerD3D10> layerManager =
+          new mozilla::layers::LayerManagerD3D10(this);
+        if (layerManager->Initialize()) {
           mLayerManager = layerManager;
         }
       }
 #endif
 #ifdef MOZ_ENABLE_D3D9_LAYER
       if (!prefs.mPreferOpenGL && !mLayerManager && sAllowD3D9) {
-        nsRefPtr<LayerManagerD3D9> layerManager =
-          new LayerManagerD3D9(this);
-        if (layerManager->Initialize(prefs.mForceAcceleration)) {
+        nsRefPtr<mozilla::layers::LayerManagerD3D9> layerManager =
+          new mozilla::layers::LayerManagerD3D9(this);
+        if (layerManager->Initialize()) {
           mLayerManager = layerManager;
         }
       }
 #endif
       if (!mLayerManager && prefs.mPreferOpenGL) {
         nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
-        int32_t status = nsIGfxInfo::FEATURE_NO_INFO;
+        PRInt32 status = nsIGfxInfo::FEATURE_NO_INFO;
 
         if (gfxInfo && !prefs.mForceAcceleration) {
           gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_OPENGL_LAYERS, &status);
         }
 
         if (status == nsIGfxInfo::FEATURE_NO_INFO) {
-          nsRefPtr<LayerManagerOGL> layerManager =
-            new LayerManagerOGL(this);
+          nsRefPtr<mozilla::layers::LayerManagerOGL> layerManager =
+            new mozilla::layers::LayerManagerOGL(this);
           if (layerManager->Initialize()) {
             mLayerManager = layerManager;
           }
@@ -3300,18 +3263,8 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
     }
 
     
-    if (!mLayerManager) {
-      
-      if (UseOffMainThreadCompositing()) {
-        
-        
-        NS_ASSERTION(aShadowManager == nullptr, "Async Compositor not supported with e10s");
-        CreateCompositor();
-      }
-
-      if (!mLayerManager)
-        mLayerManager = CreateBasicLayerManager();
-    }
+    if (!mLayerManager)
+      mLayerManager = CreateBasicLayerManager();
   }
 
   NS_ASSERTION(mLayerManager, "Couldn't provide a valid layer manager.");
@@ -3349,7 +3302,7 @@ gfxASurface *nsWindow::GetThebesSurface()
     return (new gfxD2DSurface(mWnd, content));
   } else {
 #endif
-    uint32_t flags = gfxWindowsSurface::FLAG_TAKE_DC;
+    PRUint32 flags = gfxWindowsSurface::FLAG_TAKE_DC;
     if (mTransparencyMode != eTransparencyOpaque) {
         flags |= gfxWindowsSurface::FLAG_IS_TRANSPARENT;
     }
@@ -3412,18 +3365,18 @@ nsWindow::OnDefaultButtonLoaded(const nsIntRect &aButtonRect)
 }
 
 NS_IMETHODIMP
-nsWindow::OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
+nsWindow::OverrideSystemMouseScrollSpeed(PRInt32 aOriginalDelta,
                                          bool aIsHorizontal,
-                                         int32_t &aOverriddenDelta)
+                                         PRInt32 &aOverriddenDelta)
 {
   
   
-  const uint32_t kSystemDefaultScrollingSpeed = 3;
+  const PRUint32 kSystemDefaultScrollingSpeed = 3;
 
-  int32_t absOriginDelta = NS_ABS(aOriginalDelta);
+  PRInt32 absOriginDelta = NS_ABS(aOriginalDelta);
 
   
-  int32_t absComputedOverriddenDelta;
+  PRInt32 absComputedOverriddenDelta;
   nsresult rv =
     nsBaseWidget::OverrideSystemMouseScrollSpeed(absOriginDelta, aIsHorizontal,
                                                  absComputedOverriddenDelta);
@@ -3465,7 +3418,7 @@ nsWindow::OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
   
   
   
-  int32_t absDeltaLimit;
+  PRInt32 absDeltaLimit;
   rv =
     nsBaseWidget::OverrideSystemMouseScrollSpeed(kSystemDefaultScrollingSpeed,
                                                  aIsHorizontal, absDeltaLimit);
@@ -3506,7 +3459,7 @@ nsWindow::OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
 
 void nsWindow::InitEvent(nsGUIEvent& event, nsIntPoint* aPoint)
 {
-  if (nullptr == aPoint) {     
+  if (nsnull == aPoint) {     
     
     if (mWnd != NULL) {
 
@@ -3550,21 +3503,45 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
   debug_DumpEvent(stdout,
                   event->widget,
                   event,
-                  nsAutoCString("something"),
-                  (int32_t) mWnd);
+                  nsCAutoString("something"),
+                  (PRInt32) mWnd);
 #endif 
 
   aStatus = nsEventStatus_eIgnore;
 
   
+  if (event->message == NS_DEACTIVATE && BlurEventsSuppressed())
+    return NS_OK;
+
   
   
   
-  if (mAttachedWidgetListener) {
-    aStatus = mAttachedWidgetListener->HandleEvent(event, mUseAttachedEvents);
+  
+  if (mViewCallback) {
+    
+    switch(event->message) {
+      
+      case NS_UISTATECHANGED:
+      case NS_DESTROY:
+      case NS_SETZLEVEL:
+      case NS_XUL_CLOSE:
+      case NS_MOVE:
+        (*mEventCallback)(event); 
+        return NS_OK;
+
+      
+      case NS_SIZE:
+      case NS_DEACTIVATE:
+      case NS_ACTIVATE:
+      case NS_SIZEMODE:
+        (*mEventCallback)(event); 
+        break;
+    };
+    
+    aStatus = (*mViewCallback)(event);
   }
-  else if (mWidgetListener) {
-    aStatus = mWidgetListener->HandleEvent(event, mUseAttachedEvents);
+  else if (mEventCallback) {
+    aStatus = (*mEventCallback)(event);
   }
 
   
@@ -3575,7 +3552,7 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
   return NS_OK;
 }
 
-bool nsWindow::DispatchStandardEvent(uint32_t aMsg)
+bool nsWindow::DispatchStandardEvent(PRUint32 aMsg)
 {
   nsGUIEvent event(true, aMsg, this);
   InitEvent(event);
@@ -3596,33 +3573,69 @@ bool nsWindow::DispatchWindowEvent(nsGUIEvent* event, nsEventStatus &aStatus) {
   return ConvertStatus(aStatus);
 }
 
-void nsWindow::InitKeyEvent(nsKeyEvent& aKeyEvent,
-                            const NativeKey& aNativeKey,
-                            const ModifierKeyState &aModKeyState)
-{
-  nsIntPoint point(0, 0);
-  InitEvent(aKeyEvent, &point);
-  aKeyEvent.location = aNativeKey.GetKeyLocation();
-  aModKeyState.InitInputEvent(aKeyEvent);
-}
-
-bool nsWindow::DispatchKeyEvent(nsKeyEvent& aKeyEvent,
-                                const MSG *aMsgSentToPlugin)
+bool nsWindow::DispatchKeyEvent(PRUint32 aEventType, WORD aCharCode,
+                   const nsTArray<nsAlternativeCharCode>* aAlternativeCharCodes,
+                   UINT aVirtualCharCode, const MSG *aMsg,
+                   const nsModifierKeyState &aModKeyState,
+                   PRUint32 aFlags)
 {
   UserActivity();
 
+  nsKeyEvent event(true, aEventType, this);
+  nsIntPoint point(0, 0);
+
+  InitEvent(event, &point); 
+
+  event.flags |= aFlags;
+  event.charCode = aCharCode;
+  if (aAlternativeCharCodes)
+    event.alternativeCharCodes.AppendElements(*aAlternativeCharCodes);
+  event.keyCode  = aVirtualCharCode;
+
+#ifdef KE_DEBUG
+  static cnt=0;
+  PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
+         ("%d DispatchKE Type: %s charCode %d  keyCode %d ", cnt++, 
+          NS_KEY_PRESS == aEventType ? "PRESS : 
+                                       (aEventType == NS_KEY_UP ? "Up" : "Down"),
+          event.charCode, event.keyCode));
+
+  PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
+         ("Shift: %s Control %s Alt: %s \n", (mIsShiftDown ? "D" : "U"), 
+         (mIsControlDown ? "D" : "U"), (mIsAltDown ? "D" : "U")));
+
+  PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
+         ("[%c][%c][%c] <==   [%c][%c][%c][ space bar ][%c][%c][%c]\n",
+          IS_VK_DOWN(NS_VK_SHIFT) ? 'S' : ' ',
+          IS_VK_DOWN(NS_VK_CONTROL) ? 'C' : ' ',
+          IS_VK_DOWN(NS_VK_ALT) ? 'A' : ' ',
+          IS_VK_DOWN(VK_LSHIFT) ? 'S' : ' ',
+          IS_VK_DOWN(VK_LCONTROL) ? 'C' : ' ',
+          IS_VK_DOWN(VK_LMENU) ? 'A' : ' ',
+          IS_VK_DOWN(VK_RMENU) ? 'A' : ' ',
+          IS_VK_DOWN(VK_RCONTROL) ? 'C' : ' ',
+          IS_VK_DOWN(VK_RSHIFT) ? 'S' : ' '));
+#endif
+
+  event.isShift   = aModKeyState.mIsShiftDown;
+  event.isControl = aModKeyState.mIsControlDown;
+  event.isMeta    = false;
+  event.isAlt     = aModKeyState.mIsAltDown;
+
   NPEvent pluginEvent;
-  if (aMsgSentToPlugin && PluginHasFocus()) {
-    pluginEvent.event = aMsgSentToPlugin->message;
-    pluginEvent.wParam = aMsgSentToPlugin->wParam;
-    pluginEvent.lParam = aMsgSentToPlugin->lParam;
-    aKeyEvent.pluginEvent = (void *)&pluginEvent;
+  if (aMsg && PluginHasFocus()) {
+    pluginEvent.event = aMsg->message;
+    pluginEvent.wParam = aMsg->wParam;
+    pluginEvent.lParam = aMsg->lParam;
+    event.pluginEvent = (void *)&pluginEvent;
   }
 
-  return DispatchWindowEvent(&aKeyEvent);
+  bool result = DispatchWindowEvent(&event);
+
+  return result;
 }
 
-bool nsWindow::DispatchCommandEvent(uint32_t aEventCommand)
+bool nsWindow::DispatchCommandEvent(PRUint32 aEventCommand)
 {
   nsCOMPtr<nsIAtom> command;
   switch (aEventCommand) {
@@ -3692,15 +3705,13 @@ void nsWindow::DispatchPendingEvents()
   
   static int recursionBlocker = 0;
   if (recursionBlocker++ == 0) {
-    NS_ProcessPendingEvents(nullptr, PR_MillisecondsToInterval(100));
+    NS_ProcessPendingEvents(nsnull, PR_MillisecondsToInterval(100));
     --recursionBlocker;
   }
 
   
   
-  
-  if (::GetQueueStatus(QS_PAINT) &&
-      ((TimeStamp::Now() - mLastPaintEndTime).ToMilliseconds() >= 50)) {
+  if (::GetQueueStatus(QS_PAINT)) {
     
     HWND topWnd = WinUtils::GetTopLevelHWND(mWnd);
 
@@ -3758,15 +3769,15 @@ void nsWindow::RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg,
 }
 
 
-bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
+bool nsWindow::DispatchMouseEvent(PRUint32 aEventType, WPARAM wParam,
                                     LPARAM lParam, bool aIsContextMenuKey,
-                                    int16_t aButton, uint16_t aInputSource)
+                                    PRInt16 aButton, PRUint16 aInputSource)
 {
   bool result = false;
 
   UserActivity();
 
-  if (!mWidgetListener) {
+  if (!mEventCallback) {
     return result;
   }
 
@@ -3804,8 +3815,10 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
     InitEvent(event, &eventPoint);
   }
 
-  ModifierKeyState modifierKeyState;
-  modifierKeyState.InitInputEvent(event);
+  event.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
+  event.isControl = IS_VK_DOWN(NS_VK_CONTROL);
+  event.isMeta    = false;
+  event.isAlt     = IS_VK_DOWN(NS_VK_ALT);
   event.button    = aButton;
   event.inputSource = aInputSource;
 
@@ -3949,7 +3962,7 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
   event.pluginEvent = (void *)&pluginEvent;
 
   
-  if (mWidgetListener) {
+  if (nsnull != mEventCallback) {
     if (nsToolkit::gMouseTrailer)
       nsToolkit::gMouseTrailer->Disable();
     if (aEventType == NS_MOUSE_MOVE) {
@@ -3963,7 +3976,7 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
 
       if (rect.Contains(event.refPoint)) {
         if (sCurrentWindow == NULL || sCurrentWindow != this) {
-          if ((nullptr != sCurrentWindow) && (!sCurrentWindow->mInDtor)) {
+          if ((nsnull != sCurrentWindow) && (!sCurrentWindow->mInDtor)) {
             LPARAM pos = sCurrentWindow->lParamToClient(lParamToScreen(lParam));
             sCurrentWindow->DispatchMouseEvent(NS_MOUSE_EXIT, wParam, pos, false, 
                                                nsMouseEvent::eLeftButton, aInputSource);
@@ -3978,7 +3991,7 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
       }
     } else if (aEventType == NS_MOUSE_EXIT) {
       if (sCurrentWindow == this) {
-        sCurrentWindow = nullptr;
+        sCurrentWindow = nsnull;
       }
     }
 
@@ -3996,17 +4009,34 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
   return result;
 }
 
-void nsWindow::DispatchFocusToTopLevelWindow(bool aIsActivate)
+
+#ifdef ACCESSIBILITY
+nsAccessible*
+nsWindow::DispatchAccessibleEvent(PRUint32 aEventType)
 {
-  if (aIsActivate)
+  if (nsnull == mEventCallback) {
+    return nsnull;
+  }
+
+  nsAccessibleEvent event(true, aEventType, this);
+  InitEvent(event, nsnull);
+
+  event.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
+  event.isControl = IS_VK_DOWN(NS_VK_CONTROL);
+  event.isMeta    = false;
+  event.isAlt     = IS_VK_DOWN(NS_VK_ALT);
+
+  DispatchWindowEvent(&event);
+
+  return event.mAccessible;
+}
+#endif
+
+bool nsWindow::DispatchFocusToTopLevelWindow(PRUint32 aEventType)
+{
+  if (aEventType == NS_ACTIVATE)
     sJustGotActivate = false;
   sJustGotDeactivate = false;
-
-  if (!aIsActivate && BlurEventsSuppressed())
-    return;
-
-  if (!mWidgetListener)
-    return;
 
   
   HWND curWnd = mWnd;
@@ -4027,13 +4057,47 @@ void nsWindow::DispatchFocusToTopLevelWindow(bool aIsActivate)
 
   if (toplevelWnd) {
     nsWindow *win = WinUtils::GetNSWindowPtr(toplevelWnd);
-    if (win) {
-      if (aIsActivate)
-        mWidgetListener->WindowActivated();
-      else
-        mWidgetListener->WindowDeactivated();
-    }
+    if (win)
+      return win->DispatchFocus(aEventType);
   }
+
+  return false;
+}
+
+
+bool nsWindow::DispatchFocus(PRUint32 aEventType)
+{
+  
+  if (mEventCallback) {
+    nsGUIEvent event(true, aEventType, this);
+    InitEvent(event);
+
+    
+    event.refPoint.x = 0;
+    event.refPoint.y = 0;
+
+    NPEvent pluginEvent;
+
+    switch (aEventType)
+    {
+      case NS_ACTIVATE:
+        pluginEvent.event = WM_SETFOCUS;
+        break;
+      case NS_DEACTIVATE:
+        pluginEvent.event = WM_KILLFOCUS;
+        break;
+      case NS_PLUGIN_ACTIVATE:
+        pluginEvent.event = WM_KILLFOCUS;
+        break;
+      default:
+        break;
+    }
+
+    event.pluginEvent = (void *)&pluginEvent;
+
+    return DispatchWindowEvent(&event);
+  }
+  return false;
 }
 
 bool nsWindow::IsTopLevelMouseExit(HWND aWnd)
@@ -4222,7 +4286,7 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
 
 
 static bool
-DisplaySystemMenu(HWND hWnd, nsSizeMode sizeMode, bool isRtl, int32_t x, int32_t y)
+DisplaySystemMenu(HWND hWnd, nsSizeMode sizeMode, bool isRtl, PRInt32 x, PRInt32 y)
 {
   HMENU hMenu = GetSystemMenu(hWnd, FALSE);
   if (hMenu) {
@@ -4319,7 +4383,7 @@ LRESULT CALLBACK nsWindow::WindowProcInternal(HWND hWnd, UINT msg, WPARAM wParam
 
   
   
-  if (nullptr == someWindow) {
+  if (nsnull == someWindow) {
     NS_ASSERTION(someWindow, "someWindow is null, cannot call any CallWindowProc");
     return ::DefWindowProcW(hWnd, msg, wParam, lParam);
   }
@@ -4427,6 +4491,24 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
                                 LRESULT *aRetValue)
 {
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mAssumeWheelIsZoomUntil) {
+    LONG msgTime = ::GetMessageTime();
+    if ((mAssumeWheelIsZoomUntil >= 0x3fffffffu && DWORD(msgTime) < 0x40000000u) ||
+        (mAssumeWheelIsZoomUntil < DWORD(msgTime))) {
+      mAssumeWheelIsZoomUntil = 0;
+    }
+  }
+
+  
   if (mWindowHook.Notify(mWnd, msg, wParam, lParam, aRetValue))
     return true;
 
@@ -4442,11 +4524,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     return mWnd ? eatMessage : true;
   }
 
-  if (MouseScrollHandler::ProcessMessage(this, msg, wParam, lParam, aRetValue,
-                                         eatMessage)) {
-    return mWnd ? eatMessage : true;
-  }
-
   if (PluginHasFocus()) {
     bool callDefaultWndProc;
     MSG nativeMsg = WinUtils::InitMSG(msg, wParam, lParam);
@@ -4458,6 +4535,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   bool result = false;    
   *aRetValue = 0;
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   
   LRESULT dwmHitResult;
   if (mCustomNonClient &&
@@ -4466,6 +4544,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     *aRetValue = dwmHitResult;
     return true;
   }
+#endif 
 
   switch (msg) {
     
@@ -4480,7 +4559,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         nsCOMPtr<nsISupportsPRBool> cancelQuit =
           do_CreateInstance(NS_SUPPORTS_PRBOOL_CONTRACTID);
         cancelQuit->SetData(false);
-        obsServ->NotifyObservers(cancelQuit, "quit-application-requested", nullptr);
+        obsServ->NotifyObservers(cancelQuit, "quit-application-requested", nsnull);
 
         bool abortQuit;
         cancelQuit->GetData(&abortQuit);
@@ -4501,12 +4580,12 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         nsCOMPtr<nsIObserverService> obsServ =
           mozilla::services::GetObserverService();
         NS_NAMED_LITERAL_STRING(context, "shutdown-persist");
-        obsServ->NotifyObservers(nullptr, "quit-application-granted", nullptr);
-        obsServ->NotifyObservers(nullptr, "quit-application-forced", nullptr);
-        obsServ->NotifyObservers(nullptr, "quit-application", nullptr);
-        obsServ->NotifyObservers(nullptr, "profile-change-net-teardown", context.get());
-        obsServ->NotifyObservers(nullptr, "profile-change-teardown", context.get());
-        obsServ->NotifyObservers(nullptr, "profile-before-change", context.get());
+        obsServ->NotifyObservers(nsnull, "quit-application-granted", nsnull);
+        obsServ->NotifyObservers(nsnull, "quit-application-forced", nsnull);
+        obsServ->NotifyObservers(nsnull, "quit-application", nsnull);
+        obsServ->NotifyObservers(nsnull, "profile-change-net-teardown", context.get());
+        obsServ->NotifyObservers(nsnull, "profile-change-teardown", context.get());
+        obsServ->NotifyObservers(nsnull, "profile-before-change", context.get());
         
         _exit(0);
       }
@@ -4514,9 +4593,29 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       result = true;
       break;
 
+    case WM_DISPLAYCHANGE:
+      DispatchStandardEvent(NS_DISPLAYCHANGED);
+      break;
+
     case WM_SYSCOLORCHANGE:
       OnSysColorChanged();
       break;
+
+    case WM_NOTIFY:
+      
+    {
+      LPNMHDR pnmh = (LPNMHDR) lParam;
+
+        switch (pnmh->code) {
+          case TCN_SELCHANGE:
+          {
+            DispatchStandardEvent(NS_TABCHANGE);
+            result = true;
+          }
+          break;
+        }
+    }
+    break;
 
     case WM_THEMECHANGED:
     {
@@ -4525,11 +4624,11 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       nsUXThemeData::InitTitlebarInfo();
       nsUXThemeData::UpdateNativeThemeInfo();
 
-      NotifyThemeChanged();
+      DispatchStandardEvent(NS_THEMECHANGED);
 
       
       
-      Invalidate(true, true, true);
+      Invalidate(true, true, true, true);
     }
     break;
 
@@ -4552,7 +4651,18 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
     case WM_NCCALCSIZE:
     {
+      
+      
+      
+      
+      
       if (mCustomNonClient) {
+        if (!wParam) {
+          result = true;
+          *aRetValue = 0;
+          break;
+        }
+
         
         
         
@@ -4563,23 +4673,15 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         
         
         
-        
-        
-        
-        
-        
-        
-        
-        RECT *clientRect = wParam
-                         ? &(reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam))->rgrc[0]
-                         : (reinterpret_cast<RECT*>(lParam));
-        clientRect->top      += (mCaptionHeight - mNonClientOffset.top);
-        clientRect->left     += (mHorResizeMargin - mNonClientOffset.left);
-        clientRect->right    -= (mHorResizeMargin - mNonClientOffset.right);
-        clientRect->bottom   -= (mVertResizeMargin - mNonClientOffset.bottom);
+        NCCALCSIZE_PARAMS *pncsp = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+        LRESULT res = CallWindowProcW(GetPrevWindowProc(), mWnd, msg, wParam, lParam);
+        pncsp->rgrc[0].top      -= mNonClientOffset.top;
+        pncsp->rgrc[0].left     -= mNonClientOffset.left;
+        pncsp->rgrc[0].right    += mNonClientOffset.right;
+        pncsp->rgrc[0].bottom   += mNonClientOffset.bottom;
 
         result = true;
-        *aRetValue = 0;
+        *aRetValue = res;
       }
       break;
     }
@@ -4634,9 +4736,11 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       if (!mCustomNonClient)
         break;
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
       
       if(nsUXThemeData::CheckForCompositor())
         break;
+#endif
 
       if (wParam == TRUE) {
         
@@ -4668,9 +4772,11 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       if (!mCustomNonClient)
         break;
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
       
       if(nsUXThemeData::CheckForCompositor())
         break;
+#endif
 
       HRGN paintRgn = ExcludeNonClientFromPaintRegion((HRGN)wParam);
       LRESULT res = CallWindowProcW(GetPrevWindowProc(), mWnd,
@@ -4705,8 +4811,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     break;
 
     case WM_CLOSE: 
-      if (mWidgetListener)
-        mWidgetListener->RequestWindowClose(this);
+      DispatchStandardEvent(NS_XUL_CLOSE);
       result = true; 
       break;
 
@@ -4740,7 +4845,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     case WM_CHAR:
     {
       MSG nativeMsg = WinUtils::InitMSG(msg, wParam, lParam);
-      result = ProcessCharMessage(nativeMsg, nullptr);
+      result = ProcessCharMessage(nativeMsg, nsnull);
       DispatchPendingEvents();
     }
     break;
@@ -4750,7 +4855,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     {
       MSG nativeMsg = WinUtils::InitMSG(msg, wParam, lParam);
       nativeMsg.time = ::GetMessageTime();
-      result = ProcessKeyUpMessage(nativeMsg, nullptr);
+      result = ProcessKeyUpMessage(nativeMsg, nsnull);
       DispatchPendingEvents();
     }
     break;
@@ -4759,7 +4864,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     case WM_KEYDOWN:
     {
       MSG nativeMsg = WinUtils::InitMSG(msg, wParam, lParam);
-      result = ProcessKeyDownMessage(nativeMsg, nullptr);
+      result = ProcessKeyDownMessage(nativeMsg, nsnull);
       DispatchPendingEvents();
     }
     break;
@@ -4953,7 +5058,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
     case WM_EXITSIZEMOVE:
       if (!sIsInMouseCapture) {
-        NotifySizeMoveDone();
+        DispatchStandardEvent(NS_DONESIZEMOVE);
       }
       break;
 
@@ -4970,7 +5075,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
     case WM_APPCOMMAND:
     {
-      uint32_t appCommand = GET_APPCOMMAND_LPARAM(lParam);
+      PRUint32 appCommand = GET_APPCOMMAND_LPARAM(lParam);
 
       switch (appCommand)
       {
@@ -4991,6 +5096,19 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     }
     break;
 
+    case WM_HSCROLL:
+    case WM_VSCROLL:
+      *aRetValue = 0;
+      result = OnScroll(msg, wParam, lParam);
+      break;
+
+    case MOZ_WM_HSCROLL:
+    case MOZ_WM_VSCROLL:
+      *aRetValue = 0;
+      OnScrollInternal(WinUtils::GetNativeMessage(msg), wParam, lParam);
+      
+      return true;
+
     
     
     
@@ -4998,14 +5116,15 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     
     
     case WM_ACTIVATE:
-      if (mWidgetListener) {
-        int32_t fActive = LOWORD(wParam);
+      if (mEventCallback) {
+        PRInt32 fActive = LOWORD(wParam);
 
         if (WA_INACTIVE == fActive) {
           
           
+          
           if (HIWORD(wParam))
-            DispatchFocusToTopLevelWindow(false);
+            result = DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
           else
             sJustGotDeactivate = true;
 
@@ -5019,8 +5138,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
           nsMouseEvent event(true, NS_MOUSE_ACTIVATE, this,
                              nsMouseEvent::eReal);
           InitEvent(event);
-          ModifierKeyState modifierKeyState;
-          modifierKeyState.InitInputEvent(event);
           DispatchWindowEvent(&event);
           if (sSwitchKeyboardLayout && mLastKeyboardLayout)
             ActivateKeyboardLayout(mLastKeyboardLayout, 0);
@@ -5049,22 +5166,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     }
     break;
 
-    case WM_GETMINMAXINFO:
-    {
-      MINMAXINFO* mmi = (MINMAXINFO*)lParam;
-      
-      
-      mmi->ptMinTrackSize.x =
-        NS_MIN((int32_t)mmi->ptMaxTrackSize.x,
-               NS_MAX((int32_t)mmi->ptMinTrackSize.x, mSizeConstraints.mMinSize.width));
-      mmi->ptMinTrackSize.y =
-        NS_MIN((int32_t)mmi->ptMaxTrackSize.y,
-        NS_MAX((int32_t)mmi->ptMinTrackSize.y, mSizeConstraints.mMinSize.height));
-      mmi->ptMaxTrackSize.x = NS_MIN((int32_t)mmi->ptMaxTrackSize.x, mSizeConstraints.mMaxSize.width);
-      mmi->ptMaxTrackSize.y = NS_MIN((int32_t)mmi->ptMaxTrackSize.y, mSizeConstraints.mMaxSize.height);
-    }
-    break;
-
     case WM_SETFOCUS:
       
       
@@ -5072,13 +5173,24 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         ForgetRedirectedKeyDownMessage();
       }
       if (sJustGotActivate) {
-        DispatchFocusToTopLevelWindow(true);
+        result = DispatchFocusToTopLevelWindow(NS_ACTIVATE);
       }
+
+#ifdef ACCESSIBILITY
+      if (nsWindow::sIsAccessibilityOn) {
+        
+        nsAccessible *rootAccessible = GetRootAccessible();
+      }
+#endif
       break;
 
     case WM_KILLFOCUS:
-      if (sJustGotDeactivate) {
-        DispatchFocusToTopLevelWindow(false);
+      if (sJustGotDeactivate || !wParam) {
+        
+        
+        
+        
+        result = DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
       }
       break;
 
@@ -5088,6 +5200,15 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       OnWindowPosChanged(wp, result);
     }
     break;
+
+    case WM_SETTINGCHANGE:
+      switch (wParam) {
+        case SPI_SETWHEELSCROLLLINES:
+        case SPI_SETWHEELSCROLLCHARS:
+          sNeedsToInitMouseWheelSettings = true;
+          break;
+      }
+      break;
 
     case WM_INPUTLANGCHANGEREQUEST:
       *aRetValue = TRUE;
@@ -5117,7 +5238,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       
       DWORD objId = static_cast<DWORD>(lParam);
       if (objId == OBJID_CLIENT) { 
-        Accessible* rootAccessible = GetRootAccessible(); 
+        nsAccessible *rootAccessible = GetRootAccessible(); 
         if (rootAccessible) {
           IAccessible *msaaAccessible = NULL;
           rootAccessible->GetNativeInterface((void**)&msaaAccessible); 
@@ -5152,6 +5273,30 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     }
     break;
 
+  case WM_MOUSEWHEEL:
+  case WM_MOUSEHWHEEL:
+    OnMouseWheel(msg, wParam, lParam, aRetValue);
+    
+    
+    
+    return true;
+
+  case MOZ_WM_MOUSEVWHEEL:
+  case MOZ_WM_MOUSEHWHEEL:
+    {
+      UINT nativeMessage = WinUtils::GetNativeMessage(msg);
+      
+      
+      
+      
+      
+      
+      OnMouseWheelInternal(nativeMessage, wParam, lParam, aRetValue);
+      
+      return true;
+    }
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   case WM_DWMCOMPOSITIONCHANGED:
     
     
@@ -5160,10 +5305,11 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     UpdateNonClientMargins();
     RemovePropW(mWnd, kManageWindowInfoProperty);
     BroadcastMsg(mWnd, WM_DWMCOMPOSITIONCHANGED);
-    NotifyThemeChanged();
+    DispatchStandardEvent(NS_THEMECHANGED);
     UpdateGlass();
-    Invalidate(true, true, true);
+    Invalidate(true, true, true, true);
     break;
+#endif
 
   case WM_UPDATEUISTATE:
   {
@@ -5172,16 +5318,15 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     
     
     
-    int32_t action = LOWORD(wParam);
+    PRInt32 action = LOWORD(wParam);
     if (action == UIS_SET || action == UIS_CLEAR) {
-      int32_t flags = HIWORD(wParam);
-      UIStateChangeType showAccelerators = UIStateChangeType_NoChange;
-      UIStateChangeType showFocusRings = UIStateChangeType_NoChange;
+      nsUIStateChangeEvent event(true, NS_UISTATECHANGED, this);
+      PRInt32 flags = HIWORD(wParam);
       if (flags & UISF_HIDEACCEL)
-        showAccelerators = (action == UIS_SET) ? UIStateChangeType_Clear : UIStateChangeType_Set;
+        event.showAccelerators = (action == UIS_SET) ? UIStateChangeType_Clear : UIStateChangeType_Set;
       if (flags & UISF_HIDEFOCUS)
-        showFocusRings = (action == UIS_SET) ? UIStateChangeType_Clear : UIStateChangeType_Set;
-      NotifyUIStateChanged(showAccelerators, showFocusRings);
+        event.showFocusRings = (action == UIS_SET) ? UIStateChangeType_Clear : UIStateChangeType_Set;
+      DispatchWindowEvent(&event);
     }
 
     break;
@@ -5195,12 +5340,14 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     *aRetValue = TABLET_ROTATE_GESTURE_ENABLE;
     break;
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
   case WM_TOUCH:
     result = OnTouch(wParam, lParam);
     if (result) {
       *aRetValue = 0;
     }
     break;
+#endif
 
   case WM_GESTURE:
     result = OnGesture(wParam, lParam);
@@ -5320,8 +5467,10 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         nsTextStore::OnTextChangeMsg();
       }
 #endif 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
       if (msg == nsAppShell::GetTaskbarButtonCreatedMessage())
         SetHasTaskbarIconBeenCreated();
+#endif
       if (msg == sOOPPPluginFocusEvent) {
         if (wParam == 1) {
           
@@ -5332,7 +5481,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         } else {
           
           if (sJustGotDeactivate) {
-            DispatchFocusToTopLevelWindow(false);
+            DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
           }
         }
       }
@@ -5391,14 +5540,9 @@ BOOL CALLBACK nsWindow::BroadcastMsg(HWND aTopWindow, LPARAM aMsg)
 
 
 
-int32_t
-nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my)
+PRInt32
+nsWindow::ClientMarginHitTestPoint(PRInt32 mx, PRInt32 my)
 {
-  if (mSizeMode == nsSizeMode_Minimized ||
-      mSizeMode == nsSizeMode_Fullscreen) {
-    return HTCLIENT;
-  }
-
   
   RECT winRect;
   GetWindowRect(mWnd, &winRect);
@@ -5414,92 +5558,74 @@ nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my)
   
   
 
-  int32_t testResult = HTCLIENT;
-
-  bool isResizable = (mBorderStyle & (eBorderStyle_all |
-                                      eBorderStyle_resizeh |
-                                      eBorderStyle_default)) > 0 ? true : false;
-  if (mSizeMode == nsSizeMode_Maximized)
-    isResizable = false;
+  PRInt32 testResult = HTCLIENT;
 
   bool top    = false;
   bool bottom = false;
   bool left   = false;
   bool right  = false;
 
-  int topOffset = NS_MAX(mCaptionHeight - mNonClientOffset.top,
-                         kResizableBorderMinSize);
-  int bottomOffset = NS_MAX(mVertResizeMargin - mNonClientOffset.bottom,
-                            kResizableBorderMinSize);
-  int topBounds = winRect.top + topOffset;
-  int bottomBounds = winRect.bottom - bottomOffset;
-
-  if (my >= winRect.top && my < topBounds)
+  if (my >= winRect.top && my <
+      (winRect.top + mVertResizeMargin + (mCaptionHeight - mNonClientOffset.top)))
     top = true;
-  else if (my <= winRect.bottom && my > bottomBounds)
+  else if (my < winRect.bottom && my >= (winRect.bottom - mVertResizeMargin))
     bottom = true;
 
-  int leftOffset = NS_MAX(mHorResizeMargin - mNonClientOffset.left,
-                          kResizableBorderMinSize);
-  int rightOffset = NS_MAX(mHorResizeMargin - mNonClientOffset.right,
-                           kResizableBorderMinSize);
-  
-  int leftBounds = winRect.left +
-                   (bottom ? (2*leftOffset) : leftOffset);
-  int rightBounds = winRect.right -
-                    (bottom ? (2*rightOffset) : rightOffset);
-
-  if (mx >= winRect.left && mx < leftBounds)
+  if (mx >= winRect.left && mx < (winRect.left +
+                                  (bottom ? (2*mHorResizeMargin) : mHorResizeMargin)))
     left = true;
-  else if (mx <= winRect.right && mx > rightBounds)
+  else if (mx < winRect.right && mx >= (winRect.right -
+                                        (bottom ? (2*mHorResizeMargin) : mHorResizeMargin)))
     right = true;
 
-  if (isResizable) {
-    if (top) {
-      testResult = HTTOP;
-      if (left)
-        testResult = HTTOPLEFT;
-      else if (right)
-        testResult = HTTOPRIGHT;
-    } else if (bottom) {
-      testResult = HTBOTTOM;
-      if (left)
-        testResult = HTBOTTOMLEFT;
-      else if (right)
-        testResult = HTBOTTOMRIGHT;
-    } else {
-      if (left)
-        testResult = HTLEFT;
-      if (right)
-        testResult = HTRIGHT;
-    }
+  if (top) {
+    testResult = HTTOP;
+    if (left)
+      testResult = HTTOPLEFT;
+    else if (right)
+      testResult = HTTOPRIGHT;
+  } else if (bottom) {
+    testResult = HTBOTTOM;
+    if (left)
+      testResult = HTBOTTOMLEFT;
+    else if (right)
+      testResult = HTBOTTOMRIGHT;
   } else {
-    if (top)
-      testResult = HTCAPTION;
-    else if (bottom || left || right)
-      testResult = HTBORDER;
+    if (left)
+      testResult = HTLEFT;
+    if (right)
+      testResult = HTRIGHT;
   }
 
   bool contentOverlap = true;
 
-  if (mSizeMode != nsSizeMode_Maximized) {
-    contentOverlap = mx >= winRect.left + leftOffset &&
-                     mx <= winRect.right - rightOffset &&
-                     my >= winRect.top + topOffset &&
-                     my <= winRect.bottom - bottomOffset;
+  if (mSizeMode == nsSizeMode_Maximized) {
+    
+    if (testResult == HTTOP) {
+      testResult = HTCAPTION;
+    }
+  } else {
+    PRInt32 leftMargin   = mNonClientMargins.left   == -1 ? mHorResizeMargin  : mNonClientMargins.left;
+    PRInt32 rightMargin  = mNonClientMargins.right  == -1 ? mHorResizeMargin  : mNonClientMargins.right;
+    PRInt32 topMargin    = mNonClientMargins.top    == -1 ? mVertResizeMargin : mNonClientMargins.top;
+    PRInt32 bottomMargin = mNonClientMargins.bottom == -1 ? mVertResizeMargin : mNonClientMargins.bottom;
+
+    contentOverlap = mx >= winRect.left + leftMargin &&
+                     mx <= winRect.right - rightMargin &&
+                     my >= winRect.top + topMargin &&
+                     my <= winRect.bottom - bottomMargin;
   }
 
   if (!sIsInMouseCapture &&
       contentOverlap &&
       (testResult == HTCLIENT ||
        testResult == HTTOP ||
-       testResult == HTBORDER ||
        testResult == HTTOPLEFT ||
        testResult == HTCAPTION)) {
     LPARAM lParam = MAKELPARAM(mx, my);
     LPARAM lParamClient = lParamToClient(lParam);
     bool result = DispatchMouseEvent(NS_MOUSE_MOZHITTEST, 0, lParamClient,
-                                     false, nsMouseEvent::eLeftButton, MOUSE_INPUT_SOURCE());
+                                       false, nsMouseEvent::eLeftButton, MOUSE_INPUT_SOURCE());
     if (result) {
       
       testResult = testResult == HTCLIENT ? HTCAPTION : testResult;
@@ -5524,8 +5650,8 @@ void nsWindow::PostSleepWakeNotification(const bool aIsSleepMode)
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
   if (observerService)
-    observerService->NotifyObservers(nullptr,
-      aIsSleepMode ? "sleep_notification" : "wake_notification", nullptr);
+    observerService->NotifyObservers(nsnull,
+      aIsSleepMode ? "sleep_notification" : "wake_notification", nsnull);
 }
 
 
@@ -5558,9 +5684,8 @@ LRESULT nsWindow::ProcessCharMessage(const MSG &aMsg, bool *aEventDispatched)
 
   
   
-  ModifierKeyState modKeyState;
-  NativeKey nativeKey(gKbdLayout, this, aMsg);
-  return OnChar(aMsg, nativeKey, modKeyState, aEventDispatched);
+  nsModifierKeyState modKeyState;
+  return OnChar(aMsg, modKeyState, aEventDispatched);
 }
 
 LRESULT nsWindow::ProcessKeyUpMessage(const MSG &aMsg, bool *aEventDispatched)
@@ -5571,7 +5696,7 @@ LRESULT nsWindow::ProcessKeyUpMessage(const MSG &aMsg, bool *aEventDispatched)
          ("%s VK=%d\n", aMsg.message == WM_SYSKEYDOWN ?
                         "WM_SYSKEYUP" : "WM_KEYUP", aMsg.wParam));
 
-  ModifierKeyState modKeyState;
+  nsModifierKeyState modKeyState;
 
   
   
@@ -5583,7 +5708,7 @@ LRESULT nsWindow::ProcessKeyUpMessage(const MSG &aMsg, bool *aEventDispatched)
   
 
   
-  if (modKeyState.IsAlt() && !modKeyState.IsControl() &&
+  if (modKeyState.mIsAltDown && !modKeyState.mIsControlDown &&
       IS_VK_DOWN(NS_VK_SPACE)) {
     return FALSE;
   }
@@ -5615,7 +5740,7 @@ LRESULT nsWindow::ProcessKeyDownMessage(const MSG &aMsg,
   
   AutoForgetRedirectedKeyDownMessage forgetRedirectedMessage(this, aMsg);
 
-  ModifierKeyState modKeyState;
+  nsModifierKeyState modKeyState;
 
   
   
@@ -5627,22 +5752,22 @@ LRESULT nsWindow::ProcessKeyDownMessage(const MSG &aMsg,
   
 
   
-  if (modKeyState.IsAlt() && !modKeyState.IsControl() &&
+  if (modKeyState.mIsAltDown && !modKeyState.mIsControlDown &&
       IS_VK_DOWN(NS_VK_SPACE))
     return FALSE;
 
   LRESULT result = 0;
-  if (modKeyState.IsAlt() && nsIMM32Handler::IsStatusChanged()) {
+  if (modKeyState.mIsAltDown && nsIMM32Handler::IsStatusChanged()) {
     nsIMM32Handler::NotifyEndStatusChange();
   } else if (!nsIMM32Handler::IsComposingOn(this)) {
-    result = OnKeyDown(aMsg, modKeyState, aEventDispatched, nullptr);
+    result = OnKeyDown(aMsg, modKeyState, aEventDispatched, nsnull);
     
     
     forgetRedirectedMessage.mCancel = true;
   }
 
   if (aMsg.wParam == VK_MENU ||
-      (aMsg.wParam == VK_F10 && !modKeyState.IsShift())) {
+      (aMsg.wParam == VK_F10 && !modKeyState.mIsShiftDown)) {
     
     
     
@@ -5664,32 +5789,16 @@ LRESULT nsWindow::ProcessKeyDownMessage(const MSG &aMsg,
 }
 
 nsresult
-nsWindow::SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
-                                   int32_t aNativeKeyCode,
-                                   uint32_t aModifierFlags,
+nsWindow::SynthesizeNativeKeyEvent(PRInt32 aNativeKeyboardLayout,
+                                   PRInt32 aNativeKeyCode,
+                                   PRUint32 aModifierFlags,
                                    const nsAString& aCharacters,
                                    const nsAString& aUnmodifiedCharacters)
 {
-  UINT keyboardLayoutListCount = ::GetKeyboardLayoutList(0, NULL);
-  NS_ASSERTION(keyboardLayoutListCount > 0,
-               "One keyboard layout must be installed at least");
-  HKL keyboardLayoutListBuff[50];
-  HKL* keyboardLayoutList =
-    keyboardLayoutListCount < 50 ? keyboardLayoutListBuff :
-                                   new HKL[keyboardLayoutListCount];
-  keyboardLayoutListCount =
-    ::GetKeyboardLayoutList(keyboardLayoutListCount, keyboardLayoutList);
-  NS_ASSERTION(keyboardLayoutListCount > 0,
-               "Failed to get all keyboard layouts installed on the system");
-
   nsPrintfCString layoutName("%08x", aNativeKeyboardLayout);
   HKL loadedLayout = LoadKeyboardLayoutA(layoutName.get(), KLF_NOTELLSHELL);
-  if (loadedLayout == NULL) {
-    if (keyboardLayoutListBuff != keyboardLayoutList) {
-      delete [] keyboardLayoutList;
-    }
+  if (loadedLayout == NULL)
     return NS_ERROR_NOT_AVAILABLE;
-  }
 
   
   BYTE originalKbdState[256];
@@ -5702,160 +5811,57 @@ nsWindow::SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
   HKL oldLayout = gKbdLayout.GetLayout();
   gKbdLayout.LoadLayout(loadedLayout);
 
-  uint8_t argumentKeySpecific = 0;
-  switch (aNativeKeyCode) {
-    case VK_SHIFT:
-      aModifierFlags &= ~(nsIWidget::SHIFT_L | nsIWidget::SHIFT_R);
-      argumentKeySpecific = VK_LSHIFT;
-      break;
-    case VK_LSHIFT:
-      aModifierFlags &= ~nsIWidget::SHIFT_L;
-      argumentKeySpecific = aNativeKeyCode;
-      aNativeKeyCode = VK_SHIFT;
-      break;
-    case VK_RSHIFT:
-      aModifierFlags &= ~nsIWidget::SHIFT_R;
-      argumentKeySpecific = aNativeKeyCode;
-      aNativeKeyCode = VK_SHIFT;
-      break;
-    case VK_CONTROL:
-      aModifierFlags &= ~(nsIWidget::CTRL_L | nsIWidget::CTRL_R);
-      argumentKeySpecific = VK_LCONTROL;
-      break;
-    case VK_LCONTROL:
-      aModifierFlags &= ~nsIWidget::CTRL_L;
-      argumentKeySpecific = aNativeKeyCode;
-      aNativeKeyCode = VK_CONTROL;
-      break;
-    case VK_RCONTROL:
-      aModifierFlags &= ~nsIWidget::CTRL_R;
-      argumentKeySpecific = aNativeKeyCode;
-      aNativeKeyCode = VK_CONTROL;
-      break;
-    case VK_MENU:
-      aModifierFlags &= ~(nsIWidget::ALT_L | nsIWidget::ALT_R);
-      argumentKeySpecific = VK_LMENU;
-      break;
-    case VK_LMENU:
-      aModifierFlags &= ~nsIWidget::ALT_L;
-      argumentKeySpecific = aNativeKeyCode;
-      aNativeKeyCode = VK_MENU;
-      break;
-    case VK_RMENU:
-      aModifierFlags &= ~nsIWidget::ALT_R;
-      argumentKeySpecific = aNativeKeyCode;
-      aNativeKeyCode = VK_MENU;
-      break;
-    case VK_CAPITAL:
-      aModifierFlags &= ~nsIWidget::CAPS_LOCK;
-      argumentKeySpecific = VK_CAPITAL;
-      break;
-    case VK_NUMLOCK:
-      aModifierFlags &= ~nsIWidget::NUM_LOCK;
-      argumentKeySpecific = VK_NUMLOCK;
-      break;
-  }
-
   nsAutoTArray<KeyPair,10> keySequence;
   SetupKeyModifiersSequence(&keySequence, aModifierFlags);
   NS_ASSERTION(aNativeKeyCode >= 0 && aNativeKeyCode < 256,
                "Native VK key code out of range");
-  keySequence.AppendElement(KeyPair(aNativeKeyCode, argumentKeySpecific));
+  keySequence.AppendElement(KeyPair(aNativeKeyCode, 0));
 
   
-  for (uint32_t i = 0; i < keySequence.Length(); ++i) {
-    uint8_t key = keySequence[i].mGeneral;
-    uint8_t keySpecific = keySequence[i].mSpecific;
+  for (PRUint32 i = 0; i < keySequence.Length(); ++i) {
+    PRUint8 key = keySequence[i].mGeneral;
+    PRUint8 keySpecific = keySequence[i].mSpecific;
     kbdState[key] = 0x81; 
     if (keySpecific) {
       kbdState[keySpecific] = 0x81;
     }
     ::SetKeyboardState(kbdState);
-    ModifierKeyState modKeyState;
-    UINT scanCode = ::MapVirtualKeyEx(argumentKeySpecific ?
-                                        argumentKeySpecific : aNativeKeyCode,
-                                      MAPVK_VK_TO_VSC, gKbdLayout.GetLayout());
-    LPARAM lParam = static_cast<LPARAM>(scanCode << 16);
-    
-    
-    if (keySpecific == VK_RCONTROL || keySpecific == VK_RMENU) {
-      lParam |= 0x1000000;
-    }
-    MSG msg = WinUtils::InitMSG(WM_KEYDOWN, key, lParam);
-    if (i == keySequence.Length() - 1) {
-      bool makeDeadCharMessage =
-        gKbdLayout.IsDeadKey(key, modKeyState) && aCharacters.IsEmpty();
-      nsAutoString chars(aCharacters);
-      if (makeDeadCharMessage) {
-        UniCharsAndModifiers deadChars =
-          gKbdLayout.GetUniCharsAndModifiers(key, modKeyState);
-        chars = deadChars.ToString();
-        NS_ASSERTION(chars.Length() == 1,
-                     "Dead char must be only one character");
-      }
-      if (chars.IsEmpty()) {
-        OnKeyDown(msg, modKeyState, nullptr, nullptr);
-      } else {
-        nsFakeCharMessage fakeMsg = { chars.CharAt(0), scanCode,
-                                      makeDeadCharMessage };
-        OnKeyDown(msg, modKeyState, nullptr, &fakeMsg);
-        for (uint32_t j = 1; j < chars.Length(); j++) {
-          nsFakeCharMessage fakeMsg = { chars.CharAt(j), scanCode, false };
-          MSG msg = fakeMsg.GetCharMessage(mWnd);
-          NativeKey nativeKey(gKbdLayout, this, msg);
-          OnChar(msg, nativeKey, modKeyState, nullptr);
-        }
-      }
+    nsModifierKeyState modKeyState;
+    MSG msg = WinUtils::InitMSG(WM_KEYDOWN, key, 0);
+    if (i == keySequence.Length() - 1 && aCharacters.Length() > 0) {
+      UINT scanCode = ::MapVirtualKeyEx(aNativeKeyCode, MAPVK_VK_TO_VSC,
+                                        gKbdLayout.GetLayout());
+      nsFakeCharMessage fakeMsg = { aCharacters.CharAt(0), scanCode };
+      OnKeyDown(msg, modKeyState, nsnull, &fakeMsg);
     } else {
-      OnKeyDown(msg, modKeyState, nullptr, nullptr);
+      OnKeyDown(msg, modKeyState, nsnull, nsnull);
     }
   }
-  for (uint32_t i = keySequence.Length(); i > 0; --i) {
-    uint8_t key = keySequence[i - 1].mGeneral;
-    uint8_t keySpecific = keySequence[i - 1].mSpecific;
+  for (PRUint32 i = keySequence.Length(); i > 0; --i) {
+    PRUint8 key = keySequence[i - 1].mGeneral;
+    PRUint8 keySpecific = keySequence[i - 1].mSpecific;
     kbdState[key] = 0; 
     if (keySpecific) {
       kbdState[keySpecific] = 0;
     }
     ::SetKeyboardState(kbdState);
-    ModifierKeyState modKeyState;
-    UINT scanCode = ::MapVirtualKeyEx(argumentKeySpecific ?
-                                        argumentKeySpecific : aNativeKeyCode,
-                                      MAPVK_VK_TO_VSC, gKbdLayout.GetLayout());
-    LPARAM lParam = static_cast<LPARAM>(scanCode << 16);
-    
-    
-    if (keySpecific == VK_RCONTROL || keySpecific == VK_RMENU) {
-      lParam |= 0x1000000;
-    }
-    MSG msg = WinUtils::InitMSG(WM_KEYUP, key, lParam);
-    OnKeyUp(msg, modKeyState, nullptr);
+    nsModifierKeyState modKeyState;
+    MSG msg = WinUtils::InitMSG(WM_KEYUP, key, 0);
+    OnKeyUp(msg, modKeyState, nsnull);
   }
 
   
   ::SetKeyboardState(originalKbdState);
-  gKbdLayout.LoadLayout(oldLayout, true);
+  gKbdLayout.LoadLayout(oldLayout);
 
-  
-  for (uint32_t i = 0; i < keyboardLayoutListCount; i++) {
-    if (keyboardLayoutList[i] == loadedLayout) {
-      loadedLayout = 0;
-      break;
-    }
-  }
-  if (keyboardLayoutListBuff != keyboardLayoutList) {
-    delete [] keyboardLayoutList;
-  }
-  if (loadedLayout) {
-    ::UnloadKeyboardLayout(loadedLayout);
-  }
+  UnloadKeyboardLayout(loadedLayout);
   return NS_OK;
 }
 
 nsresult
 nsWindow::SynthesizeNativeMouseEvent(nsIntPoint aPoint,
-                                     uint32_t aNativeMessage,
-                                     uint32_t aModifierFlags)
+                                     PRUint32 aNativeMessage,
+                                     PRUint32 aModifierFlags)
 {
   RECT r;
   ::GetWindowRect(mWnd, &r);
@@ -5869,22 +5875,6 @@ nsWindow::SynthesizeNativeMouseEvent(nsIntPoint aPoint,
   ::SendInput(1, &input, sizeof(INPUT));
 
   return NS_OK;
-}
-
-nsresult
-nsWindow::SynthesizeNativeMouseScrollEvent(nsIntPoint aPoint,
-                                           uint32_t aNativeMessage,
-                                           double aDeltaX,
-                                           double aDeltaY,
-                                           double aDeltaZ,
-                                           uint32_t aModifierFlags,
-                                           uint32_t aAdditionalFlags)
-{
-  return MouseScrollHandler::SynthesizeNativeMouseScrollEvent(
-           this, aPoint, aNativeMessage,
-           (aNativeMessage == WM_MOUSEWHEEL || aNativeMessage == WM_VSCROLL) ?
-             static_cast<int32_t>(aDeltaY) : static_cast<int32_t>(aDeltaX),
-           aModifierFlags, aAdditionalFlags);
 }
 
 
@@ -5907,7 +5897,7 @@ BOOL nsWindow::OnInputLangChange(HKL aHKL)
 
 void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
 {
-  if (wp == nullptr)
+  if (wp == nsnull)
     return;
 
 #ifdef WINSTATE_DEBUG_OUTPUT
@@ -5948,32 +5938,36 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
     if (mSizeMode == nsSizeMode_Minimized && (wp->flags & SWP_NOACTIVATE))
       return;
 
+    nsSizeModeEvent event(true, NS_SIZEMODE, this);
+
     WINDOWPLACEMENT pl;
     pl.length = sizeof(pl);
     ::GetWindowPlacement(mWnd, &pl);
 
-    
-    
-    
-    
-    
-    
-    
     if (pl.showCmd == SW_SHOWMAXIMIZED)
-      mSizeMode = (mFullscreenMode ? nsSizeMode_Fullscreen : nsSizeMode_Maximized);
+      event.mSizeMode = (mFullscreenMode ? nsSizeMode_Fullscreen : nsSizeMode_Maximized);
     else if (pl.showCmd == SW_SHOWMINIMIZED)
-      mSizeMode = nsSizeMode_Minimized;
+      event.mSizeMode = nsSizeMode_Minimized;
     else if (mFullscreenMode)
-      mSizeMode = nsSizeMode_Fullscreen;
+      event.mSizeMode = nsSizeMode_Fullscreen;
     else
-      mSizeMode = nsSizeMode_Normal;
+      event.mSizeMode = nsSizeMode_Normal;
 
     
     
     
     
     
-    if (!sTrimOnMinimize && nsSizeMode_Minimized == mSizeMode)
+    
+    
+    mSizeMode = event.mSizeMode;
+
+    
+    
+    
+    
+    
+    if (!sTrimOnMinimize && nsSizeMode_Minimized == event.mSizeMode)
       ActivateOtherWindowHelper(mWnd);
 
 #ifdef WINSTATE_DEBUG_OUTPUT
@@ -5996,14 +5990,9 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
     };
 #endif
 
-    if (mWidgetListener)
-      mWidgetListener->SizeModeChanged(mSizeMode);
+    InitEvent(event);
 
-    
-    
-    
-    if (mLastSizeMode != nsSizeMode_Normal && mSizeMode == nsSizeMode_Normal)
-      DispatchFocusToTopLevelWindow(true);
+    result = DispatchWindowEvent(&event);
 
     
     if (mSizeMode == nsSizeMode_Minimized)
@@ -6013,7 +6002,7 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
   
   if (!(wp->flags & SWP_NOSIZE)) {
     RECT r;
-    int32_t newWidth, newHeight;
+    PRInt32 newWidth, newHeight;
 
     ::GetWindowRect(mWnd, &r);
 
@@ -6073,6 +6062,8 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
 #endif
     
     
+    
+    
     if (mSizeMode == nsSizeMode_Maximized) {
       if (UpdateNonClientMargins(nsSizeMode_Maximized, true)) {
         
@@ -6128,7 +6119,7 @@ void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info)
     WINDOWPLACEMENT pl;
     pl.length = sizeof(pl);
     ::GetWindowPlacement(mWnd, &pl);
-    nsSizeMode sizeMode;
+    PRInt32 sizeMode;
     if (pl.showCmd == SW_SHOWMAXIMIZED)
       sizeMode = (mFullscreenMode ? nsSizeMode_Fullscreen : nsSizeMode_Maximized);
     else if (pl.showCmd == SW_SHOWMINIMIZED)
@@ -6138,8 +6129,11 @@ void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info)
     else
       sizeMode = nsSizeMode_Normal;
 
-    if (mWidgetListener)
-      mWidgetListener->SizeModeChanged(sizeMode);
+    nsSizeModeEvent event(true, NS_SIZEMODE, this);
+
+    InitEvent(event);
+    event.mSizeMode = static_cast<nsSizeMode>(sizeMode);
+    DispatchWindowEvent(&event);
 
     UpdateNonClientMargins(sizeMode, false);
   }
@@ -6147,32 +6141,37 @@ void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info)
   
   if (!(info->flags & SWP_NOZORDER)) {
     HWND hwndAfter = info->hwndInsertAfter;
-
+    
+    nsZLevelEvent event(true, NS_SETZLEVEL, this);
     nsWindow *aboveWindow = 0;
-    nsWindowZ placement;
+
+    InitEvent(event);
 
     if (hwndAfter == HWND_BOTTOM)
-      placement = nsWindowZBottom;
+      event.mPlacement = nsWindowZBottom;
     else if (hwndAfter == HWND_TOP || hwndAfter == HWND_TOPMOST || hwndAfter == HWND_NOTOPMOST)
-      placement = nsWindowZTop;
+      event.mPlacement = nsWindowZTop;
     else {
-      placement = nsWindowZRelative;
+      event.mPlacement = nsWindowZRelative;
       aboveWindow = WinUtils::GetNSWindowPtr(hwndAfter);
     }
+    event.mReqBelow = aboveWindow;
+    event.mActualBelow = nsnull;
 
-    if (mWidgetListener) {
-      nsCOMPtr<nsIWidget> actualBelow = nullptr;
-      if (mWidgetListener->ZLevelChanged(false, &placement,
-                                         aboveWindow, getter_AddRefs(actualBelow))) {
-        if (placement == nsWindowZBottom)
-          info->hwndInsertAfter = HWND_BOTTOM;
-        else if (placement == nsWindowZTop)
-          info->hwndInsertAfter = HWND_TOP;
-        else {
-          info->hwndInsertAfter = (HWND)actualBelow->GetNativeData(NS_NATIVE_WINDOW);
-        }
+    event.mImmediate = false;
+    event.mAdjusted = false;
+    DispatchWindowEvent(&event);
+
+    if (event.mAdjusted) {
+      if (event.mPlacement == nsWindowZBottom)
+        info->hwndInsertAfter = HWND_BOTTOM;
+      else if (event.mPlacement == nsWindowZTop)
+        info->hwndInsertAfter = HWND_TOP;
+      else {
+        info->hwndInsertAfter = (HWND)event.mActualBelow->GetNativeData(NS_NATIVE_WINDOW);
       }
     }
+    NS_IF_RELEASE(event.mActualBelow);
   }
   
   if (mWindowType == eWindowType_invisible)
@@ -6188,18 +6187,19 @@ void nsWindow::UserActivity()
 
   
   if (mIdleService) {
-    mIdleService->ResetIdleTimeOut(0);
+    mIdleService->ResetIdleTimeOut();
   }
 }
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
 bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
 {
-  uint32_t cInputs = LOWORD(wParam);
+  PRUint32 cInputs = LOWORD(wParam);
   PTOUCHINPUT pInputs = new TOUCHINPUT[cInputs];
 
   if (mGesture.GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs)) {
-    for (uint32_t i = 0; i < cInputs; i++) {
-      uint32_t msg;
+    for (PRUint32 i = 0; i < cInputs; i++) {
+      PRUint32 msg;
       if (pInputs[i].dwFlags & TOUCHEVENTF_MOVE) {
         msg = NS_MOZTOUCH_MOVE;
       } else if (pInputs[i].dwFlags & TOUCHEVENTF_DOWN) {
@@ -6216,8 +6216,6 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
       touchPoint.ScreenToClient(mWnd);
 
       nsMozTouchEvent touchEvent(true, msg, this, pInputs[i].dwID);
-      ModifierKeyState modifierKeyState;
-      modifierKeyState.InitInputEvent(touchEvent);
       touchEvent.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
       touchEvent.refPoint = touchPoint;
 
@@ -6230,45 +6228,46 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
   mGesture.CloseTouchInputHandle((HTOUCHINPUT)lParam);
   return true;
 }
-
-static int32_t RoundDown(double aDouble)
-{
-  return aDouble > 0 ? static_cast<int32_t>(floor(aDouble)) :
-                       static_cast<int32_t>(ceil(aDouble));
-}
+#endif
 
 
 bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
 {
   
   if (mGesture.IsPanEvent(lParam)) {
+    nsMouseScrollEvent event(true, NS_MOUSE_PIXEL_SCROLL, this);
+
     if ( !mGesture.ProcessPanMessage(mWnd, wParam, lParam) )
       return false; 
 
     nsEventStatus status;
 
-    WheelEvent wheelEvent(true, NS_WHEEL_WHEEL, this);
-
-    ModifierKeyState modifierKeyState;
-    modifierKeyState.InitInputEvent(wheelEvent);
-
-    wheelEvent.button      = 0;
-    wheelEvent.time        = ::GetMessageTime();
-    wheelEvent.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
+    event.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
+    event.isControl = IS_VK_DOWN(NS_VK_CONTROL);
+    event.isMeta    = false;
+    event.isAlt     = IS_VK_DOWN(NS_VK_ALT);
+    event.button    = 0;
+    event.time      = ::GetMessageTime();
+    event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
 
     bool endFeedback = true;
 
-    if (mGesture.PanDeltaToPixelScroll(wheelEvent)) {
-      DispatchEvent(&wheelEvent, status);
+    PRInt32 scrollOverflowX = 0;
+    PRInt32 scrollOverflowY = 0;
+
+    if (mGesture.PanDeltaToPixelScrollX(event)) {
+      DispatchEvent(&event, status);
+      scrollOverflowX = event.scrollOverflow;
+    }
+
+    if (mGesture.PanDeltaToPixelScrollY(event)) {
+      DispatchEvent(&event, status);
+      scrollOverflowY = event.scrollOverflow;
     }
 
     if (mDisplayPanFeedback) {
-      mGesture.UpdatePanFeedbackX(mWnd,
-                                  NS_ABS(RoundDown(wheelEvent.overflowDeltaX)),
-                                  endFeedback);
-      mGesture.UpdatePanFeedbackY(mWnd,
-                                  NS_ABS(RoundDown(wheelEvent.overflowDeltaY)),
-                                  endFeedback);
+      mGesture.UpdatePanFeedbackX(mWnd, scrollOverflowX, endFeedback);
+      mGesture.UpdatePanFeedbackY(mWnd, scrollOverflowY, endFeedback);
       mGesture.PanFeedbackFinalize(mWnd, endFeedback);
     }
 
@@ -6284,8 +6283,10 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
   }
   
   
-  ModifierKeyState modifierKeyState;
-  modifierKeyState.InitInputEvent(event);
+  event.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
+  event.isControl = IS_VK_DOWN(NS_VK_CONTROL);
+  event.isMeta    = false;
+  event.isAlt     = IS_VK_DOWN(NS_VK_ALT);
   event.button    = 0;
   event.time      = ::GetMessageTime();
   event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
@@ -6302,6 +6303,298 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
   return true; 
 }
 
+ void
+nsWindow::InitMouseWheelScrollData()
+{
+  if (!sNeedsToInitMouseWheelSettings) {
+    return;
+  }
+  sNeedsToInitMouseWheelSettings = false;
+  ResetRemainingWheelDelta();
+
+  if (!::SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0,
+                              &sMouseWheelScrollLines, 0)) {
+    NS_WARNING("Failed to get SPI_GETWHEELSCROLLLINES");
+    sMouseWheelScrollLines = 3;
+  } else if (sMouseWheelScrollLines > WHEEL_DELTA) {
+    
+    
+    
+    
+    
+    
+    sMouseWheelScrollLines = WHEEL_PAGESCROLL;
+  }
+
+  if (!::SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0,
+                              &sMouseWheelScrollChars, 0)) {
+    NS_ASSERTION(!nsUXThemeData::sIsVistaOrLater,
+                 "Failed to get SPI_GETWHEELSCROLLCHARS");
+    sMouseWheelScrollChars = 1;
+  } else if (sMouseWheelScrollChars > WHEEL_DELTA) {
+    
+    sMouseWheelScrollChars = WHEEL_PAGESCROLL;
+  }
+
+  sEnablePixelScrolling =
+    Preferences::GetBool("mousewheel.enable_pixel_scrolling", true);
+}
+
+
+void
+nsWindow::ResetRemainingWheelDelta()
+{
+  sRemainingDeltaForPixel = 0;
+  sRemainingDeltaForScroll = 0;
+  sLastMouseWheelWnd = NULL;
+}
+
+static PRInt32 RoundDelta(double aDelta)
+{
+  return aDelta >= 0 ? (PRInt32)floor(aDelta) : (PRInt32)ceil(aDelta);
+}
+
+
+
+
+
+
+void
+nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
+                               LRESULT *aRetValue)
+{
+  InitMouseWheelScrollData();
+
+  bool isVertical = (aMessage == WM_MOUSEWHEEL);
+  if ((isVertical && sMouseWheelScrollLines == 0) ||
+      (!isVertical && sMouseWheelScrollChars == 0)) {
+    
+    
+    
+    ResetRemainingWheelDelta();
+    *aRetValue = isVertical ? TRUE : FALSE; 
+    return;
+  }
+
+  PRInt32 nativeDelta = (short)HIWORD(aWParam);
+  if (!nativeDelta) {
+    *aRetValue = isVertical ? TRUE : FALSE; 
+    ResetRemainingWheelDelta();
+    return; 
+  }
+
+  bool isPageScroll =
+    ((isVertical && sMouseWheelScrollLines == WHEEL_PAGESCROLL) ||
+     (!isVertical && sMouseWheelScrollChars == WHEEL_PAGESCROLL));
+
+  
+  
+  
+  PRUint32 now = PR_IntervalToMilliseconds(PR_IntervalNow());
+  if (sLastMouseWheelWnd &&
+      (sLastMouseWheelWnd != mWnd ||
+       sLastMouseWheelDeltaIsPositive != (nativeDelta > 0) ||
+       sLastMouseWheelOrientationIsVertical != isVertical ||
+       sLastMouseWheelUnitIsPage != isPageScroll ||
+       now - sLastMouseWheelTime > 1500)) {
+    ResetRemainingWheelDelta();
+  }
+  sLastMouseWheelWnd = mWnd;
+  sLastMouseWheelDeltaIsPositive = (nativeDelta > 0);
+  sLastMouseWheelOrientationIsVertical = isVertical;
+  sLastMouseWheelUnitIsPage = isPageScroll;
+  sLastMouseWheelTime = now;
+
+  *aRetValue = isVertical ? FALSE : TRUE; 
+  nsModifierKeyState modKeyState;
+
+  
+  
+  
+  PRInt32 orienter = isVertical ? -1 : 1;
+
+  
+  
+  
+  bool isControl;
+  if (mAssumeWheelIsZoomUntil &&
+      static_cast<DWORD>(::GetMessageTime()) < mAssumeWheelIsZoomUntil) {
+    isControl = true;
+  } else {
+    isControl = modKeyState.mIsControlDown;
+  }
+
+  
+  nsMouseScrollEvent scrollEvent(true, NS_MOUSE_SCROLL, this);
+
+  
+  
+  InitEvent(scrollEvent);
+  scrollEvent.isShift     = modKeyState.mIsShiftDown;
+  scrollEvent.isControl   = isControl;
+  scrollEvent.isMeta      = false;
+  scrollEvent.isAlt       = modKeyState.mIsAltDown;
+
+  
+  
+  bool dispatchPixelScrollEvent = false;
+  bool reversePixelScrollDirection = false;
+  PRInt32 actualScrollAction = nsQueryContentEvent::SCROLL_ACTION_NONE;
+  PRInt32 pixelsPerUnit = 0;
+  
+  PRInt32 computedScrollAmount = isPageScroll ? 1 :
+    (isVertical ? sMouseWheelScrollLines : sMouseWheelScrollChars);
+
+  if (sEnablePixelScrolling) {
+    nsMouseScrollEvent testEvent(true, NS_MOUSE_SCROLL, this);
+    InitEvent(testEvent);
+    testEvent.scrollFlags = isPageScroll ? nsMouseScrollEvent::kIsFullPage : 0;
+    testEvent.scrollFlags |= isVertical ? nsMouseScrollEvent::kIsVertical :
+                                          nsMouseScrollEvent::kIsHorizontal;
+    testEvent.isShift     = scrollEvent.isShift;
+    testEvent.isControl   = scrollEvent.isControl;
+    testEvent.isMeta      = scrollEvent.isMeta;
+    testEvent.isAlt       = scrollEvent.isAlt;
+
+    testEvent.delta       = computedScrollAmount;
+    if ((isVertical && sLastMouseWheelDeltaIsPositive) ||
+        (!isVertical && !sLastMouseWheelDeltaIsPositive)) {
+      testEvent.delta *= -1;
+    }
+    nsQueryContentEvent queryEvent(true, NS_QUERY_SCROLL_TARGET_INFO, this);
+    InitEvent(queryEvent);
+    queryEvent.InitForQueryScrollTargetInfo(&testEvent);
+    DispatchWindowEvent(&queryEvent);
+    
+    
+    if (queryEvent.mSucceeded) {
+      actualScrollAction = queryEvent.mReply.mComputedScrollAction;
+      if (actualScrollAction == nsQueryContentEvent::SCROLL_ACTION_PAGE) {
+        if (isVertical) {
+          pixelsPerUnit = queryEvent.mReply.mPageHeight;
+        } else {
+          pixelsPerUnit = queryEvent.mReply.mPageWidth;
+        }
+      } else {
+        pixelsPerUnit = queryEvent.mReply.mLineHeight;
+      }
+      computedScrollAmount = queryEvent.mReply.mComputedScrollAmount;
+      if (pixelsPerUnit > 0 && computedScrollAmount != 0 &&
+          actualScrollAction != nsQueryContentEvent::SCROLL_ACTION_NONE) {
+        dispatchPixelScrollEvent = true;
+        
+        
+        reversePixelScrollDirection =
+          (testEvent.delta > 0 && computedScrollAmount < 0) ||
+          (testEvent.delta < 0 && computedScrollAmount > 0);
+        
+        computedScrollAmount = NS_ABS(computedScrollAmount);
+      }
+    }
+  }
+
+  
+  
+  scrollEvent.scrollFlags =
+    dispatchPixelScrollEvent ? nsMouseScrollEvent::kHasPixels : 0;
+
+  PRInt32 nativeDeltaForScroll = nativeDelta + sRemainingDeltaForScroll;
+
+  
+  
+  if (isPageScroll) {
+    scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
+    if (isVertical) {
+      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsVertical;
+    } else {
+      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsHorizontal;
+    }
+    scrollEvent.delta = nativeDeltaForScroll * orienter / WHEEL_DELTA;
+    PRInt32 recomputedNativeDelta = scrollEvent.delta * orienter / WHEEL_DELTA;
+    sRemainingDeltaForScroll = nativeDeltaForScroll - recomputedNativeDelta;
+  } else {
+    double deltaPerUnit;
+    if (isVertical) {
+      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsVertical;
+      deltaPerUnit = (double)WHEEL_DELTA / sMouseWheelScrollLines;
+    } else {
+      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsHorizontal;
+      deltaPerUnit = (double)WHEEL_DELTA / sMouseWheelScrollChars;
+    }
+    scrollEvent.delta =
+      RoundDelta((double)nativeDeltaForScroll * orienter / deltaPerUnit);
+    PRInt32 recomputedNativeDelta =
+      (PRInt32)(scrollEvent.delta * orienter * deltaPerUnit);
+    sRemainingDeltaForScroll = nativeDeltaForScroll - recomputedNativeDelta;
+  }
+
+  if (scrollEvent.delta) {
+    DispatchWindowEvent(&scrollEvent);
+    if (mOnDestroyCalled) {
+      ResetRemainingWheelDelta();
+      return;
+    }
+  }
+
+  
+  if (!dispatchPixelScrollEvent) {
+    sRemainingDeltaForPixel = 0;
+    return;
+  }
+
+  nsMouseScrollEvent pixelEvent(true, NS_MOUSE_PIXEL_SCROLL, this);
+  InitEvent(pixelEvent);
+  pixelEvent.scrollFlags = nsMouseScrollEvent::kAllowSmoothScroll;
+  pixelEvent.scrollFlags |= isVertical ?
+    nsMouseScrollEvent::kIsVertical : nsMouseScrollEvent::kIsHorizontal;
+  if (actualScrollAction == nsQueryContentEvent::SCROLL_ACTION_PAGE) {
+    pixelEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
+  }
+  
+  pixelEvent.isShift     = scrollEvent.isShift;
+  pixelEvent.isControl   = scrollEvent.isControl;
+  pixelEvent.isMeta      = scrollEvent.isMeta;
+  pixelEvent.isAlt       = scrollEvent.isAlt;
+
+  PRInt32 nativeDeltaForPixel = nativeDelta + sRemainingDeltaForPixel;
+  
+  
+  PRInt32 orienterForPixel = reversePixelScrollDirection ? -orienter : orienter;
+
+  double deltaPerPixel =
+    (double)WHEEL_DELTA / computedScrollAmount / pixelsPerUnit;
+  pixelEvent.delta =
+    RoundDelta((double)nativeDeltaForPixel * orienterForPixel / deltaPerPixel);
+  PRInt32 recomputedNativeDelta =
+    (PRInt32)(pixelEvent.delta * orienterForPixel * deltaPerPixel);
+  sRemainingDeltaForPixel = nativeDeltaForPixel - recomputedNativeDelta;
+  if (pixelEvent.delta != 0) {
+    DispatchWindowEvent(&pixelEvent);
+  }
+  return;
+}
+
+static bool
+StringCaseInsensitiveEquals(const PRUnichar* aChars1, const PRUint32 aNumChars1,
+                            const PRUnichar* aChars2, const PRUint32 aNumChars2)
+{
+  if (aNumChars1 != aNumChars2)
+    return false;
+
+  nsCaseInsensitiveStringComparator comp;
+  return comp(aChars1, aChars2, aNumChars1, aNumChars2) == 0;
+}
+
+UINT nsWindow::MapFromNativeToDOM(UINT aNativeKeyCode)
+{
+  switch (aNativeKeyCode) {
+    case VK_OEM_1:     return NS_VK_SEMICOLON;     
+    case VK_OEM_PLUS:  return NS_VK_ADD;           
+    case VK_OEM_MINUS: return NS_VK_SUBTRACT;      
+  }
+  return aNativeKeyCode;
+}
+
 
 bool nsWindow::IsRedirectedKeyDownMessage(const MSG &aMsg)
 {
@@ -6309,6 +6602,37 @@ bool nsWindow::IsRedirectedKeyDownMessage(const MSG &aMsg)
          (sRedirectedKeyDown.message == aMsg.message &&
           WinUtils::GetScanCode(sRedirectedKeyDown.lParam) ==
             WinUtils::GetScanCode(aMsg.lParam));
+}
+
+void
+nsWindow::PerformElantechSwipeGestureHack(UINT& aVirtualKeyCode,
+                                          nsModifierKeyState& aModKeyState)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if ((aVirtualKeyCode == VK_NEXT || aVirtualKeyCode == VK_PRIOR) &&
+      (IS_VK_DOWN(0xFF) || IS_VK_DOWN(0xCC))) {
+    aModKeyState.mIsAltDown = true;
+    aVirtualKeyCode = aVirtualKeyCode == VK_NEXT ? VK_RIGHT : VK_LEFT;
+  }
 }
 
 
@@ -6320,18 +6644,22 @@ bool nsWindow::IsRedirectedKeyDownMessage(const MSG &aMsg)
 
 
 LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
-                            const ModifierKeyState &aModKeyState,
+                            nsModifierKeyState &aModKeyState,
                             bool *aEventDispatched,
                             nsFakeCharMessage* aFakeCharMessage)
 {
-  NativeKey nativeKey(gKbdLayout, this, aMsg);
-  UINT virtualKeyCode = nativeKey.GetOriginalVirtualKeyCode();
-  UniCharsAndModifiers inputtingChars =
-    gKbdLayout.OnKeyDown(virtualKeyCode, aModKeyState);
+  UINT virtualKeyCode =
+    aMsg.wParam != VK_PROCESSKEY ? aMsg.wParam : ::ImmGetVirtualKey(mWnd);
+  gKbdLayout.OnKeyDown(virtualKeyCode);
+
+  if (sUseElantechSwipeHack) {
+    PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
+  }
 
   
   
-  uint32_t DOMKeyCode = nativeKey.GetDOMKeyCode();
+  UINT DOMKeyCode = nsIMM32Handler::IsComposingOn(this) ?
+                      virtualKeyCode : MapFromNativeToDOM(virtualKeyCode);
 
 #ifdef DEBUG
   
@@ -6341,10 +6669,8 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   bool noDefault;
   if (aFakeCharMessage || !IsRedirectedKeyDownMessage(aMsg)) {
     nsIMEContext IMEContext(mWnd);
-    nsKeyEvent keydownEvent(true, NS_KEY_DOWN, this);
-    keydownEvent.keyCode = DOMKeyCode;
-    InitKeyEvent(keydownEvent, nativeKey, aModKeyState);
-    noDefault = DispatchKeyEvent(keydownEvent, &aMsg);
+    noDefault =
+      DispatchKeyEvent(NS_KEY_DOWN, 0, nsnull, DOMKeyCode, &aMsg, aModKeyState);
     if (aEventDispatched) {
       *aEventDispatched = true;
     }
@@ -6414,21 +6740,18 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
     case NS_VK_ALT:
     case NS_VK_CAPS_LOCK:
     case NS_VK_NUM_LOCK:
-    case NS_VK_SCROLL_LOCK:
-    case NS_VK_WIN:
-      return noDefault;
+    case NS_VK_SCROLL_LOCK: return noDefault;
   }
 
-  bool isDeadKey = gKbdLayout.IsDeadKey(virtualKeyCode, aModKeyState);
-  uint32_t extraFlags = (noDefault ? NS_EVENT_FLAG_NO_DEFAULT : 0);
+  PRUint32 extraFlags = (noDefault ? NS_EVENT_FLAG_NO_DEFAULT : 0);
   MSG msg;
   BOOL gotMsg = aFakeCharMessage ||
     ::PeekMessageW(&msg, mWnd, WM_KEYFIRST, WM_KEYLAST, PM_NOREMOVE | PM_NOYIELD);
   
   
   if (DOMKeyCode == NS_VK_RETURN || DOMKeyCode == NS_VK_BACK ||
-      ((aModKeyState.IsControl() || aModKeyState.IsAlt() || aModKeyState.IsWin())
-       && !isDeadKey && KeyboardLayout::IsPrintableCharKey(virtualKeyCode)))
+      ((aModKeyState.mIsControlDown || aModKeyState.mIsAltDown)
+       && !gKbdLayout.IsDeadKey() && KeyboardLayout::IsPrintableCharKey(virtualKeyCode)))
   {
     
     
@@ -6466,29 +6789,9 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
             msg.message == WM_CHAR || msg.message == WM_SYSCHAR || msg.message == WM_DEADCHAR)) {
     if (aFakeCharMessage) {
       MSG msg = aFakeCharMessage->GetCharMessage(mWnd);
-      if (msg.message == WM_DEADCHAR) {
-        return false;
-      }
-#ifdef DEBUG
-      if (KeyboardLayout::IsPrintableCharKey(virtualKeyCode)) {
-        nsPrintfCString log(
-          "virtualKeyCode=0x%02X, inputtingChar={ mChars=[ 0x%04X, 0x%04X, "
-          "0x%04X, 0x%04X, 0x%04X ], mLength=%d }, wParam=0x%04X",
-          virtualKeyCode, inputtingChars.mChars[0], inputtingChars.mChars[1],
-          inputtingChars.mChars[2], inputtingChars.mChars[3],
-          inputtingChars.mChars[4], inputtingChars.mLength, msg.wParam);
-        if (!inputtingChars.mLength) {
-          log.Insert("length is zero: ", 0);
-          NS_ERROR(log.get());
-          NS_ABORT();
-        } else if (inputtingChars.mChars[0] != msg.wParam) {
-          log.Insert("character mismatch: ", 0);
-          NS_ERROR(log.get());
-          NS_ABORT();
-        }
-      }
-#endif 
-      return OnChar(msg, nativeKey, aModKeyState, nullptr, extraFlags);
+      return OnCharRaw(aFakeCharMessage->mCharCode,
+                       aFakeCharMessage->mScanCode,
+                       aModKeyState, extraFlags, &msg);
     }
 
     
@@ -6508,172 +6811,180 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
             msg.message == WM_SYSCHAR ? "WM_SYSCHAR" : "WM_CHAR",
             msg.wParam, HIWORD(msg.lParam) & 0xFF));
 
-    BOOL result = OnChar(msg, nativeKey, aModKeyState, nullptr, extraFlags);
+    BOOL result = OnChar(msg, aModKeyState, nsnull, extraFlags);
     
     
     if (!result && msg.message == WM_SYSCHAR)
       ::DefWindowProcW(mWnd, msg.message, msg.wParam, msg.lParam);
     return result;
   }
-  else if (!aModKeyState.IsControl() && !aModKeyState.IsAlt() &&
-            !aModKeyState.IsWin() &&
-            KeyboardLayout::IsPrintableCharKey(virtualKeyCode)) {
+  else if (!aModKeyState.mIsControlDown && !aModKeyState.mIsAltDown &&
+             (KeyboardLayout::IsPrintableCharKey(virtualKeyCode) ||
+              KeyboardLayout::IsNumpadKey(virtualKeyCode)))
+  {
     
     
     
     return PluginHasFocus() && noDefault;
   }
 
-  if (isDeadKey) {
+  if (gKbdLayout.IsDeadKey ())
     return PluginHasFocus() && noDefault;
-  }
 
-  UniCharsAndModifiers shiftedChars;
-  UniCharsAndModifiers unshiftedChars;
-  uint32_t shiftedLatinChar = 0;
-  uint32_t unshiftedLatinChar = 0;
+  PRUint8 shiftStates[5];
+  PRUnichar uniChars[5];
+  PRUnichar shiftedChars[5] = {0, 0, 0, 0, 0};
+  PRUnichar unshiftedChars[5] = {0, 0, 0, 0, 0};
+  PRUnichar shiftedLatinChar = 0;
+  PRUnichar unshiftedLatinChar = 0;
+  PRUint32 numOfUniChars = 0;
+  PRUint32 numOfShiftedChars = 0;
+  PRUint32 numOfUnshiftedChars = 0;
+  PRUint32 numOfShiftStates = 0;
 
-  if (!KeyboardLayout::IsPrintableCharKey(virtualKeyCode)) {
-    inputtingChars.Clear();
-  }
-
-  if (aModKeyState.IsControl() ^ aModKeyState.IsAlt()) {
-    widget::ModifierKeyState capsLockState(
-      aModKeyState.GetModifiers() & MODIFIER_CAPSLOCK);
-    unshiftedChars =
-      gKbdLayout.GetUniCharsAndModifiers(virtualKeyCode, capsLockState);
-    capsLockState.Set(MODIFIER_SHIFT);
-    shiftedChars =
-      gKbdLayout.GetUniCharsAndModifiers(virtualKeyCode, capsLockState);
-
+  switch (virtualKeyCode) {
     
-    
-    
-    capsLockState.Unset(MODIFIER_SHIFT);
-    WidgetUtils::GetLatinCharCodeForKeyCode(DOMKeyCode,
-                                            capsLockState.GetModifiers(),
-                                            &unshiftedLatinChar,
-                                            &shiftedLatinChar);
-
-    
-    if (shiftedLatinChar) {
-      
-      
-      
-      if (unshiftedLatinChar == unshiftedChars.mChars[0] &&
-          shiftedLatinChar == shiftedChars.mChars[0]) {
-        shiftedLatinChar = unshiftedLatinChar = 0;
+    case VK_ADD:       uniChars [0] = '+';  numOfUniChars = 1;  break;
+    case VK_SUBTRACT:  uniChars [0] = '-';  numOfUniChars = 1;  break;
+    case VK_DIVIDE:    uniChars [0] = '/';  numOfUniChars = 1;  break;
+    case VK_MULTIPLY:  uniChars [0] = '*';  numOfUniChars = 1;  break;
+    case VK_NUMPAD0:
+    case VK_NUMPAD1:
+    case VK_NUMPAD2:
+    case VK_NUMPAD3:
+    case VK_NUMPAD4:
+    case VK_NUMPAD5:
+    case VK_NUMPAD6:
+    case VK_NUMPAD7:
+    case VK_NUMPAD8:
+    case VK_NUMPAD9:
+      uniChars [0] = virtualKeyCode - VK_NUMPAD0 + '0';
+      numOfUniChars = 1;
+      break;
+    default:
+      if (KeyboardLayout::IsPrintableCharKey(virtualKeyCode)) {
+        numOfUniChars = numOfShiftStates =
+          gKbdLayout.GetUniChars(uniChars, shiftStates,
+                                 ArrayLength(uniChars));
       }
-    } else if (unshiftedLatinChar) {
-      
-      
-      
-      
-      
-      
-      
-      if (unshiftedLatinChar == unshiftedChars.mChars[0] ||
-          unshiftedLatinChar == shiftedChars.mChars[0]) {
-        unshiftedLatinChar = 0;
-      }
-    }
 
-    
-    
-    
-    
-    
-    if (aModKeyState.IsControl()) {
-      uint32_t ch =
-        aModKeyState.IsShift() ? shiftedLatinChar : unshiftedLatinChar;
-      if (ch &&
-          (!inputtingChars.mLength ||
-           inputtingChars.UniCharsCaseInsensitiveEqual(
-             aModKeyState.IsShift() ? shiftedChars : unshiftedChars))) {
-        inputtingChars.Clear();
-        inputtingChars.Append(ch, aModKeyState.GetModifiers());
-      }
-    }
-  }
+      if (aModKeyState.mIsControlDown ^ aModKeyState.mIsAltDown) {
+        PRUint8 capsLockState = (::GetKeyState(VK_CAPITAL) & 1) ? eCapsLock : 0;
+        numOfUnshiftedChars =
+          gKbdLayout.GetUniCharsWithShiftState(virtualKeyCode, capsLockState,
+                       unshiftedChars, ArrayLength(unshiftedChars));
+        numOfShiftedChars =
+          gKbdLayout.GetUniCharsWithShiftState(virtualKeyCode,
+                       capsLockState | eShift,
+                       shiftedChars, ArrayLength(shiftedChars));
 
-  if (inputtingChars.mLength ||
-      shiftedChars.mLength || unshiftedChars.mLength) {
-    uint32_t num = NS_MAX(inputtingChars.mLength,
-                          NS_MAX(shiftedChars.mLength, unshiftedChars.mLength));
-    uint32_t skipUniChars = num - inputtingChars.mLength;
-    uint32_t skipShiftedChars = num - shiftedChars.mLength;
-    uint32_t skipUnshiftedChars = num - unshiftedChars.mLength;
-    UINT keyCode = !inputtingChars.mLength ? DOMKeyCode : 0;
-    for (uint32_t cnt = 0; cnt < num; cnt++) {
-      uint16_t uniChar, shiftedChar, unshiftedChar;
-      uniChar = shiftedChar = unshiftedChar = 0;
-      ModifierKeyState modKeyState(aModKeyState);
-      if (skipUniChars <= cnt) {
-        if (cnt - skipUniChars  < inputtingChars.mLength) {
-          
-          
-          
-          
-          
-          
-          modKeyState.Unset(MODIFIER_SHIFT | MODIFIER_CONTROL | MODIFIER_ALT |
-                            MODIFIER_ALTGRAPH | MODIFIER_CAPSLOCK);
-          modKeyState.Set(inputtingChars.mModifiers[cnt - skipUniChars]);
+        
+        
+        
+        if (NS_VK_A <= DOMKeyCode && DOMKeyCode <= NS_VK_Z) {
+          shiftedLatinChar = unshiftedLatinChar = DOMKeyCode;
+          if (capsLockState)
+            shiftedLatinChar += 0x20;
+          else
+            unshiftedLatinChar += 0x20;
+          if (unshiftedLatinChar == unshiftedChars[0] &&
+              shiftedLatinChar == shiftedChars[0]) {
+              shiftedLatinChar = unshiftedLatinChar = 0;
+          }
+        } else {
+          PRUint16 ch = 0;
+          if (NS_VK_0 <= DOMKeyCode && DOMKeyCode <= NS_VK_9) {
+            ch = DOMKeyCode;
+          } else {
+            switch (virtualKeyCode) {
+              case VK_OEM_PLUS:   ch = '+'; break;
+              case VK_OEM_MINUS:  ch = '-'; break;
+            }
+          }
+          if (ch && unshiftedChars[0] != ch && shiftedChars[0] != ch) {
+            
+            
+            
+            
+            
+            unshiftedLatinChar = ch;
+          }
         }
-        uniChar = inputtingChars.mChars[cnt - skipUniChars];
+
+        
+        
+        
+        
+        
+        if (aModKeyState.mIsControlDown) {
+          PRUint8 currentState = eCtrl;
+          if (aModKeyState.mIsShiftDown)
+            currentState |= eShift;
+
+          PRUint32 ch =
+            aModKeyState.mIsShiftDown ? shiftedLatinChar : unshiftedLatinChar;
+          if (ch &&
+              (numOfUniChars == 0 ||
+               StringCaseInsensitiveEquals(uniChars, numOfUniChars,
+                 aModKeyState.mIsShiftDown ? shiftedChars : unshiftedChars,
+                 aModKeyState.mIsShiftDown ? numOfShiftedChars :
+                                             numOfUnshiftedChars))) {
+            numOfUniChars = numOfShiftStates = 1;
+            uniChars[0] = ch;
+            shiftStates[0] = currentState;
+          }
+        }
+      }
+  }
+
+  if (numOfUniChars > 0 || numOfShiftedChars > 0 || numOfUnshiftedChars > 0) {
+    PRUint32 num = NS_MAX(numOfUniChars,
+                          NS_MAX(numOfShiftedChars, numOfUnshiftedChars));
+    PRUint32 skipUniChars = num - numOfUniChars;
+    PRUint32 skipShiftedChars = num - numOfShiftedChars;
+    PRUint32 skipUnshiftedChars = num - numOfUnshiftedChars;
+    UINT keyCode = numOfUniChars == 0 ? DOMKeyCode : 0;
+    for (PRUint32 cnt = 0; cnt < num; cnt++) {
+      PRUint16 uniChar, shiftedChar, unshiftedChar;
+      uniChar = shiftedChar = unshiftedChar = 0;
+      if (skipUniChars <= cnt) {
+        if (cnt - skipUniChars  < numOfShiftStates) {
+          
+          
+          
+          
+          
+          
+          aModKeyState.mIsShiftDown =
+            (shiftStates[cnt - skipUniChars] & eShift) != 0;
+          aModKeyState.mIsControlDown =
+            (shiftStates[cnt - skipUniChars] & eCtrl) != 0;
+          aModKeyState.mIsAltDown =
+            (shiftStates[cnt - skipUniChars] & eAlt) != 0;
+        }
+        uniChar = uniChars[cnt - skipUniChars];
       }
       if (skipShiftedChars <= cnt)
-        shiftedChar = shiftedChars.mChars[cnt - skipShiftedChars];
+        shiftedChar = shiftedChars[cnt - skipShiftedChars];
       if (skipUnshiftedChars <= cnt)
-        unshiftedChar = unshiftedChars.mChars[cnt - skipUnshiftedChars];
+        unshiftedChar = unshiftedChars[cnt - skipUnshiftedChars];
       nsAutoTArray<nsAlternativeCharCode, 5> altArray;
 
       if (shiftedChar || unshiftedChar) {
         nsAlternativeCharCode chars(unshiftedChar, shiftedChar);
         altArray.AppendElement(chars);
       }
-      if (cnt == num - 1) {
-        if (unshiftedLatinChar || shiftedLatinChar) {
-          nsAlternativeCharCode chars(unshiftedLatinChar, shiftedLatinChar);
-          altArray.AppendElement(chars);
-        }
-
-        
-        
-        
-        
-        
-        
-        PRUnichar charForOEMKeyCode = 0;
-        switch (virtualKeyCode) {
-          case VK_OEM_PLUS:   charForOEMKeyCode = '+'; break;
-          case VK_OEM_COMMA:  charForOEMKeyCode = ','; break;
-          case VK_OEM_MINUS:  charForOEMKeyCode = '-'; break;
-          case VK_OEM_PERIOD: charForOEMKeyCode = '.'; break;
-        }
-        if (charForOEMKeyCode &&
-            charForOEMKeyCode != unshiftedChars.mChars[0] &&
-            charForOEMKeyCode != shiftedChars.mChars[0] &&
-            charForOEMKeyCode != unshiftedLatinChar &&
-            charForOEMKeyCode != shiftedLatinChar) {
-          nsAlternativeCharCode OEMChars(charForOEMKeyCode, charForOEMKeyCode);
-          altArray.AppendElement(OEMChars);
-        }
+      if (cnt == num - 1 && (unshiftedLatinChar || shiftedLatinChar)) {
+        nsAlternativeCharCode chars(unshiftedLatinChar, shiftedLatinChar);
+        altArray.AppendElement(chars);
       }
 
-      nsKeyEvent keypressEvent(true, NS_KEY_PRESS, this);
-      keypressEvent.flags |= extraFlags;
-      keypressEvent.charCode = uniChar;
-      keypressEvent.alternativeCharCodes.AppendElements(altArray);
-      InitKeyEvent(keypressEvent, nativeKey, modKeyState);
-      DispatchKeyEvent(keypressEvent, nullptr);
+      DispatchKeyEvent(NS_KEY_PRESS, uniChar, &altArray,
+                       keyCode, nsnull, aModKeyState, extraFlags);
     }
   } else {
-    nsKeyEvent keypressEvent(true, NS_KEY_PRESS, this);
-    keypressEvent.flags |= extraFlags;
-    keypressEvent.keyCode = DOMKeyCode;
-    InitKeyEvent(keypressEvent, nativeKey, aModKeyState);
-    DispatchKeyEvent(keypressEvent, nullptr);
+    DispatchKeyEvent(NS_KEY_PRESS, 0, nsnull, DOMKeyCode, nsnull, aModKeyState,
+                     extraFlags);
   }
 
   return noDefault;
@@ -6681,84 +6992,122 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
 
 
 LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
-                          const ModifierKeyState &aModKeyState,
+                          nsModifierKeyState &aModKeyState,
                           bool *aEventDispatched)
 {
-  
+  UINT virtualKeyCode = aMsg.wParam;
+
+  if (sUseElantechSwipeHack) {
+    PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
+  }
+
+  if (sUseElantechPinchHack) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (virtualKeyCode == VK_CONTROL && aMsg.time == 10) {
+      
+      
+      
+      mAssumeWheelIsZoomUntil = ::GetTickCount() & 0x7FFFFFFF;
+    }
+  }
+
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
-         ("nsWindow::OnKeyUp wParam(VK)=%d\n", aMsg.wParam));
+         ("nsWindow::OnKeyUp VK=%d\n", virtualKeyCode));
+
+  if (!nsIMM32Handler::IsComposingOn(this)) {
+    virtualKeyCode = MapFromNativeToDOM(virtualKeyCode);
+  }
 
   if (aEventDispatched)
     *aEventDispatched = true;
-  nsKeyEvent keyupEvent(true, NS_KEY_UP, this);
-  NativeKey nativeKey(gKbdLayout, this, aMsg);
-  keyupEvent.keyCode = nativeKey.GetDOMKeyCode();
-  InitKeyEvent(keyupEvent, nativeKey, aModKeyState);
-  return DispatchKeyEvent(keyupEvent, &aMsg);
+  return DispatchKeyEvent(NS_KEY_UP, 0, nsnull, virtualKeyCode, &aMsg,
+                          aModKeyState);
 }
 
 
-LRESULT nsWindow::OnChar(const MSG &aMsg,
-                         const NativeKey& aNativeKey,
-                         const ModifierKeyState &aModKeyState,
-                         bool *aEventDispatched, uint32_t aFlags)
+LRESULT nsWindow::OnChar(const MSG &aMsg, nsModifierKeyState &aModKeyState,
+                         bool *aEventDispatched, PRUint32 aFlags)
+{
+  return OnCharRaw(aMsg.wParam, HIWORD(aMsg.lParam) & 0xFF, aModKeyState,
+                   aFlags, &aMsg, aEventDispatched);
+}
+
+
+LRESULT nsWindow::OnCharRaw(UINT charCode, UINT aScanCode,
+                            nsModifierKeyState &aModKeyState, PRUint32 aFlags,
+                            const MSG *aMsg, bool *aEventDispatched)
 {
   
-  if (aModKeyState.IsAlt() && !aModKeyState.IsControl() &&
+  if (aModKeyState.mIsAltDown && !aModKeyState.mIsControlDown &&
       IS_VK_DOWN(NS_VK_SPACE)) {
     return FALSE;
   }
-
-  uint32_t charCode = aMsg.wParam;
   
-  if (aModKeyState.IsControl() && charCode == 0xA) {
+  
+  if (aModKeyState.mIsControlDown && charCode == 0xA) {
     return FALSE;
   }
 
   
-  ModifierKeyState modKeyState(aModKeyState);
-  if (modKeyState.IsAlt() && modKeyState.IsControl()) {
-    modKeyState.Unset(MODIFIER_ALT | MODIFIER_CONTROL);
-  }
+  bool saveIsAltDown = aModKeyState.mIsAltDown;
+  bool saveIsControlDown = aModKeyState.mIsControlDown;
+  if (aModKeyState.mIsAltDown && aModKeyState.mIsControlDown)
+    aModKeyState.mIsAltDown = aModKeyState.mIsControlDown = false;
+
+  wchar_t uniChar;
 
   if (nsIMM32Handler::IsComposingOn(this)) {
     ResetInputState();
   }
 
-  wchar_t uniChar;
-  
-  if (modKeyState.IsControl() && charCode <= 0x1A) {
+  if (aModKeyState.mIsControlDown && charCode <= 0x1A) { 
     
-    if (modKeyState.IsShift()) {
+    if (aModKeyState.mIsShiftDown)
       uniChar = charCode - 1 + 'A';
-    } else {
+    else
       uniChar = charCode - 1 + 'a';
-    }
-  } else if (modKeyState.IsControl() && charCode <= 0x1F) {
+    charCode = 0;
+  }
+  else if (aModKeyState.mIsControlDown && charCode <= 0x1F) {
     
     
     
     
     uniChar = charCode - 1 + 'A';
+    charCode = 0;
   } else { 
-    if (charCode < 0x20 || (charCode == 0x3D && modKeyState.IsControl())) {
+    if (charCode < 0x20 || (charCode == 0x3D && aModKeyState.mIsControlDown)) {
       uniChar = 0;
     } else {
       uniChar = charCode;
+      charCode = 0;
     }
   }
 
   
   
-  if (uniChar && (modKeyState.IsControl() || modKeyState.IsAlt())) {
-    UINT virtualKeyCode = ::MapVirtualKeyEx(aNativeKey.GetScanCode(),
-                                            MAPVK_VSC_TO_VK,
+  if (uniChar && (aModKeyState.mIsControlDown || aModKeyState.mIsAltDown)) {
+    UINT virtualKeyCode = ::MapVirtualKeyEx(aScanCode, MAPVK_VSC_TO_VK,
                                             gKbdLayout.GetLayout());
     UINT unshiftedCharCode =
       virtualKeyCode >= '0' && virtualKeyCode <= '9' ? virtualKeyCode :
-        modKeyState.IsShift() ? ::MapVirtualKeyEx(virtualKeyCode,
-                                                  MAPVK_VK_TO_CHAR,
-                                                  gKbdLayout.GetLayout()) : 0;
+        aModKeyState.mIsShiftDown ? ::MapVirtualKeyEx(virtualKeyCode,
+                                        MAPVK_VK_TO_CHAR,
+                                        gKbdLayout.GetLayout()) : 0;
     
     if ((INT)unshiftedCharCode > 0)
       uniChar = unshiftedCharCode;
@@ -6767,80 +7116,27 @@ LRESULT nsWindow::OnChar(const MSG &aMsg,
   
   
   
-  if (!modKeyState.IsShift() &&
-      (aModKeyState.IsAlt() || aModKeyState.IsControl())) {
+  if (!aModKeyState.mIsShiftDown && (saveIsAltDown || saveIsControlDown)) {
     uniChar = towlower(uniChar);
   }
 
-  nsKeyEvent keypressEvent(true, NS_KEY_PRESS, this);
-  keypressEvent.flags |= aFlags;
-  keypressEvent.charCode = uniChar;
-  if (!keypressEvent.charCode) {
-    keypressEvent.keyCode = aNativeKey.GetDOMKeyCode();
-  }
-  InitKeyEvent(keypressEvent, aNativeKey, modKeyState);
-  bool result = DispatchKeyEvent(keypressEvent, &aMsg);
+  bool result = DispatchKeyEvent(NS_KEY_PRESS, uniChar, nsnull,
+                                   charCode, aMsg, aModKeyState, aFlags);
   if (aEventDispatched)
     *aEventDispatched = true;
+  aModKeyState.mIsAltDown = saveIsAltDown;
+  aModKeyState.mIsControlDown = saveIsControlDown;
   return result;
 }
 
 void
-nsWindow::SetupKeyModifiersSequence(nsTArray<KeyPair>* aArray, uint32_t aModifiers)
+nsWindow::SetupKeyModifiersSequence(nsTArray<KeyPair>* aArray, PRUint32 aModifiers)
 {
-  for (uint32_t i = 0; i < ArrayLength(sModifierKeyMap); ++i) {
-    const uint32_t* map = sModifierKeyMap[i];
+  for (PRUint32 i = 0; i < ArrayLength(sModifierKeyMap); ++i) {
+    const PRUint32* map = sModifierKeyMap[i];
     if (aModifiers & map[0]) {
       aArray->AppendElement(KeyPair(map[1], map[2]));
     }
-  }
-}
-
-static BOOL WINAPI EnumFirstChild(HWND hwnd, LPARAM lParam)
-{
-  *((HWND*)lParam) = hwnd;
-  return FALSE;
-}
-
-static void InvalidatePluginAsWorkaround(nsWindow *aWindow, const nsIntRect &aRect)
-{
-  aWindow->Invalidate(aRect);
-
-  
-  
-  
-  
-  
-  
-  HWND current = (HWND)aWindow->GetNativeData(NS_NATIVE_WINDOW);
-
-  RECT windowRect;
-  RECT parentRect;
-
-  ::GetWindowRect(current, &parentRect);
-        
-  HWND next = current;
-
-  do {
-    current = next;
-
-    ::EnumChildWindows(current, &EnumFirstChild, (LPARAM)&next);
-
-    ::GetWindowRect(next, &windowRect);
-    
-    
-    windowRect.left -= parentRect.left;
-    windowRect.top -= parentRect.top;
-  } while (next != current && windowRect.top == 0 && windowRect.left == 0);
-
-  if (windowRect.top == 0 && windowRect.left == 0) {
-    RECT rect;
-    rect.left   = aRect.x;
-    rect.top    = aRect.y;
-    rect.right  = aRect.XMost();
-    rect.bottom = aRect.YMost();
-
-    ::InvalidateRect(next, &rect, FALSE);
   }
 }
 
@@ -6850,7 +7146,7 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
   
   
   
-  for (uint32_t i = 0; i < aConfigurations.Length(); ++i) {
+  for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
     const Configuration& configuration = aConfigurations[i];
     nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
     NS_ASSERTION(w->GetParent() == this,
@@ -6869,7 +7165,7 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 
       if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
           gfxWindowsPlatform::RENDER_DIRECT2D ||
-          GetLayerManager()->GetBackendType() != LAYERS_BASIC) {
+          GetLayerManager()->GetBackendType() != LayerManager::LAYERS_BASIC) {
         
         
         
@@ -6877,9 +7173,7 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
         r.Sub(bounds, configuration.mBounds);
         r.MoveBy(-bounds.x,
                  -bounds.y);
-        nsIntRect toInvalidate = r.GetBounds();
-
-        InvalidatePluginAsWorkaround(w, toInvalidate);
+        w->Invalidate(r.GetBounds(), false);
       }
     }
     rv = w->SetWindowClipRegion(configuration.mClipRegion, false);
@@ -6891,8 +7185,8 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 static HRGN
 CreateHRGNFromArray(const nsTArray<nsIntRect>& aRects)
 {
-  int32_t size = sizeof(RGNDATAHEADER) + sizeof(RECT)*aRects.Length();
-  nsAutoTArray<uint8_t,100> buf;
+  PRInt32 size = sizeof(RGNDATAHEADER) + sizeof(RECT)*aRects.Length();
+  nsAutoTArray<PRUint8,100> buf;
   if (!buf.SetLength(size))
     return NULL;
   RGNDATA* data = reinterpret_cast<RGNDATA*>(buf.Elements());
@@ -6901,7 +7195,7 @@ CreateHRGNFromArray(const nsTArray<nsIntRect>& aRects)
   data->rdh.iType = RDH_RECTANGLES;
   data->rdh.nCount = aRects.Length();
   nsIntRect bounds;
-  for (uint32_t i = 0; i < aRects.Length(); ++i) {
+  for (PRUint32 i = 0; i < aRects.Length(); ++i) {
     const nsIntRect& r = aRects[i];
     bounds.UnionRect(bounds, r);
     ::SetRect(&rects[i], r.x, r.y, r.XMost(), r.YMost());
@@ -6974,11 +7268,9 @@ nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
   
   if(mWindowType == eWindowType_plugin) {
     if(NULLREGION == ::CombineRgn(dest, dest, dest, RGN_OR)) {
-      ::ShowWindow(mWnd, SW_HIDE);
       ::EnableWindow(mWnd, FALSE);
     } else {
       ::EnableWindow(mWnd, TRUE);
-      ::ShowWindow(mWnd, SW_SHOW);
     }
   }
   if (!::SetWindowRgn(mWnd, dest, TRUE)) {
@@ -6998,11 +7290,10 @@ void nsWindow::OnDestroy()
   
   
   if (!mInDtor)
-    NotifyWindowDestroyed();
+    DispatchStandardEvent(NS_DESTROY);
 
   
-  mWidgetListener = nullptr;
-  mAttachedWidgetListener = nullptr;
+  mEventCallback = nsnull;
 
   
   
@@ -7011,7 +7302,7 @@ void nsWindow::OnDestroy()
   
   
   if (sCurrentWindow == this)
-    sCurrentWindow = nullptr;
+    sCurrentWindow = nsnull;
 
   
   nsBaseWidget::Destroy();
@@ -7023,7 +7314,7 @@ void nsWindow::OnDestroy()
   
   
   
-  mParent = nullptr;
+  mParent = nsnull;
 
   
   EnableDragDrop(false);
@@ -7033,7 +7324,7 @@ void nsWindow::OnDestroy()
   if ( this == sRollupWidget ) {
     if ( sRollupListener )
       sRollupListener->Rollup(0);
-    CaptureRollupEvents(nullptr, false, true);
+    CaptureRollupEvents(nsnull, false, true);
   }
 
   
@@ -7046,7 +7337,7 @@ void nsWindow::OnDestroy()
       mtrailer->DestroyTimer();
 
     if (mtrailer->GetCaptureWindow() == mWnd)
-      mtrailer->SetCaptureWindow(nullptr);
+      mtrailer->SetCaptureWindow(nsnull);
   }
 
   
@@ -7055,6 +7346,15 @@ void nsWindow::OnDestroy()
     mBrush = NULL;
   }
 
+  
+  HICON icon;
+  icon = (HICON) ::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_BIG, (LPARAM) 0);
+  if (icon)
+    ::DestroyIcon(icon);
+
+  icon = (HICON) ::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM) 0);
+  if (icon)
+    ::DestroyIcon(icon);
 
   
   if (mCursor == -1)
@@ -7074,12 +7374,17 @@ void nsWindow::OnDestroy()
 }
 
 
-bool nsWindow::OnMove(int32_t aX, int32_t aY)
+bool nsWindow::OnMove(PRInt32 aX, PRInt32 aY)
 {
   mBounds.x = aX;
   mBounds.y = aY;
 
-  return mWidgetListener ? mWidgetListener->WindowMoved(this, aX, aY) : false;
+  nsGUIEvent event(true, NS_MOVE, this);
+  InitEvent(event);
+  event.refPoint.x = aX;
+  event.refPoint.y = aY;
+
+  return DispatchWindowEvent(&event);
 }
 
 
@@ -7088,24 +7393,303 @@ bool nsWindow::OnResize(nsIntRect &aWindowRect)
 #ifdef CAIRO_HAS_D2D_SURFACE
   if (mD2DWindowSurface) {
     mD2DWindowSurface = NULL;
-    Invalidate();
+    Invalidate(false);
   }
 #endif
 
-  bool result = mWidgetListener ?
-                mWidgetListener->WindowResized(this, aWindowRect.width, aWindowRect.height) : false;
-
   
-  if (mAttachedWidgetListener) {
-    return mAttachedWidgetListener->WindowResized(this, aWindowRect.width, aWindowRect.height);
+  if (mEventCallback) {
+    nsSizeEvent event(true, NS_SIZE, this);
+    InitEvent(event);
+    event.windowSize = &aWindowRect;
+    RECT r;
+    if (::GetWindowRect(mWnd, &r)) {
+      event.mWinWidth  = PRInt32(r.right - r.left);
+      event.mWinHeight = PRInt32(r.bottom - r.top);
+    } else {
+      event.mWinWidth  = 0;
+      event.mWinHeight = 0;
+    }
+
+#if 0
+    PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
+           ("[%X] OnResize: client:(%d x %d x %d x %d) window:(%d x %d)\n", this,
+            aWindowRect.x, aWindowRect.y, aWindowRect.width, aWindowRect.height,
+            event.mWinWidth, event.mWinHeight));
+#endif
+
+    return DispatchWindowEvent(&event);
   }
 
-  return result;
+  return false;
 }
 
 bool nsWindow::OnHotKey(WPARAM wParam, LPARAM lParam)
 {
   return true;
+}
+
+typedef DWORD (WINAPI *GetProcessImageFileNameProc)(HANDLE, LPWSTR, DWORD);
+
+
+
+
+
+static bool IsElantechHelperWindow(HWND aHWND)
+{
+  static HMODULE hPSAPI = ::LoadLibraryW(L"psapi.dll");
+  static GetProcessImageFileNameProc pGetProcessImageFileName =
+    reinterpret_cast<GetProcessImageFileNameProc>(::GetProcAddress(hPSAPI, "GetProcessImageFileNameW"));
+
+  if (!pGetProcessImageFileName) {
+    return false;
+  }
+
+  const PRUnichar* filenameSuffix = L"\\etdctrl.exe";
+  const int filenameSuffixLength = 12;
+
+  DWORD pid;
+  ::GetWindowThreadProcessId(aHWND, &pid);
+
+  bool result = false;
+
+  HANDLE hProcess = ::OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+  if (hProcess) {
+    PRUnichar path[256] = {L'\0'};
+    if (pGetProcessImageFileName(hProcess, path, ArrayLength(path))) {
+      int pathLength = lstrlenW(path);
+      if (pathLength >= filenameSuffixLength) {
+        if (lstrcmpiW(path + pathLength - filenameSuffixLength, filenameSuffix) == 0) {
+          result = true;
+        }
+      }
+    }
+    ::CloseHandle(hProcess);
+  }
+
+  return result;
+}
+
+
+
+
+
+
+
+void
+nsWindow::OnMouseWheel(UINT aMsg, WPARAM aWParam, LPARAM aLParam,
+                       LRESULT *aRetValue)
+{
+  *aRetValue = (aMsg != WM_MOUSEHWHEEL) ? TRUE : FALSE;
+
+  POINT point;
+  DWORD dwPoints = ::GetMessagePos();
+  point.x = GET_X_LPARAM(dwPoints);
+  point.y = GET_Y_LPARAM(dwPoints);
+
+  static bool sMayBeUsingLogitechMouse = false;
+  if (aMsg == WM_MOUSEHWHEEL) {
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!sMayBeUsingLogitechMouse && aLParam == 0 && (DWORD)aLParam != dwPoints &&
+        ::InSendMessage()) {
+      sMayBeUsingLogitechMouse = true;
+    } else if (sMayBeUsingLogitechMouse && aLParam != 0 && ::InSendMessage()) {
+      
+      
+      sMayBeUsingLogitechMouse = false;
+    }
+    
+    
+    
+    if (sMayBeUsingLogitechMouse && aLParam == 0 && dwPoints == 0) {
+      ::GetCursorPos(&point);
+    }
+  }
+
+  HWND underCursorWnd = ::WindowFromPoint(point);
+  if (!underCursorWnd) {
+    return;
+  }
+
+  if (sUseElantechPinchHack && IsElantechHelperWindow(underCursorWnd)) {
+    
+    
+    
+    
+    underCursorWnd = WinUtils::FindOurWindowAtPoint(point);
+    if (!underCursorWnd) {
+      return;
+    }
+  }
+
+  
+  
+  
+  if (WinUtils::IsOurProcessWindow(underCursorWnd)) {
+    nsWindow* destWindow = WinUtils::GetNSWindowPtr(underCursorWnd);
+    if (!destWindow) {
+      NS_WARNING("We're not sure what cause this is.");
+      HWND wnd = ::GetParent(underCursorWnd);
+      for (; wnd; wnd = ::GetParent(wnd)) {
+        destWindow = WinUtils::GetNSWindowPtr(wnd);
+        if (destWindow) {
+          break;
+        }
+      }
+      if (!wnd) {
+        return;
+      }
+    }
+
+    NS_ASSERTION(destWindow, "destWindow must not be NULL");
+    
+    
+    
+    
+    
+    if (destWindow->mWindowType == eWindowType_plugin) {
+      destWindow = destWindow->GetParentWindow(false);
+      NS_ENSURE_TRUE(destWindow, );
+    }
+    UINT internalMessage = WinUtils::GetInternalMessage(aMsg);
+    ::PostMessage(destWindow->mWnd, internalMessage, aWParam, aLParam);
+    return;
+  }
+
+  
+  
+  
+  HWND pluginWnd = WinUtils::FindOurProcessWindow(underCursorWnd);
+  if (!pluginWnd) {
+    
+    
+    
+    return;
+  }
+
+  
+  
+  
+  
+  
+  if (mWindowType == eWindowType_plugin && pluginWnd == mWnd) {
+    nsWindow* destWindow = GetParentWindow(false);
+    NS_ENSURE_TRUE(destWindow, );
+    UINT internalMessage = WinUtils::GetInternalMessage(aMsg);
+    ::PostMessage(destWindow->mWnd, internalMessage, aWParam, aLParam);
+    return;
+  }
+
+  
+  ::PostMessage(underCursorWnd, aMsg, aWParam, aLParam);
+}
+
+
+
+
+
+bool
+nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
+{
+  static PRInt8 sMouseWheelEmulation = -1;
+  if (sMouseWheelEmulation < 0) {
+    bool emulate =
+      Preferences::GetBool("mousewheel.emulate_at_wm_scroll", false);
+    sMouseWheelEmulation = PRInt8(emulate);
+  }
+
+  if (aLParam || sMouseWheelEmulation) {
+    
+    
+    LRESULT retVal;
+    OnMouseWheel(aMsg, aWParam, aLParam, &retVal);
+    
+    
+    return true;
+  }
+
+  
+  nsContentCommandEvent command(true, NS_CONTENT_COMMAND_SCROLL, this);
+
+  command.mScroll.mIsHorizontal = (aMsg == WM_HSCROLL);
+
+  switch (LOWORD(aWParam))
+  {
+    case SB_LINEUP:   
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Line;
+      command.mScroll.mAmount = -1;
+      break;
+    case SB_LINEDOWN: 
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Line;
+      command.mScroll.mAmount = 1;
+      break;
+    case SB_PAGEUP:   
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Page;
+      command.mScroll.mAmount = -1;
+      break;
+    case SB_PAGEDOWN: 
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Page;
+      command.mScroll.mAmount = 1;
+      break;
+    case SB_TOP:      
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Whole;
+      command.mScroll.mAmount = -1;
+      break;
+    case SB_BOTTOM:   
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Whole;
+      command.mScroll.mAmount = 1;
+      break;
+    default:
+      return false;
+  }
+  
+  
+  DispatchWindowEvent(&command);
+  return true;
+}
+
+
+
+
+
+
+
+void
+nsWindow::OnScrollInternal(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
+{
+  nsMouseScrollEvent scrollevent(true, NS_MOUSE_SCROLL, this);
+  scrollevent.scrollFlags = (aMsg == WM_VSCROLL) 
+                            ? nsMouseScrollEvent::kIsVertical
+                            : nsMouseScrollEvent::kIsHorizontal;
+  switch (LOWORD(aWParam)) {
+    case SB_PAGEDOWN:
+      scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
+    case SB_LINEDOWN:
+      scrollevent.delta = 1;
+      break;
+    case SB_PAGEUP:
+      scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
+    case SB_LINEUP:
+      scrollevent.delta = -1;
+      break;
+    default:
+      return;
+  }
+  scrollevent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
+  scrollevent.isControl = IS_VK_DOWN(NS_VK_CONTROL);
+  scrollevent.isMeta    = false;
+  scrollevent.isAlt     = IS_VK_DOWN(NS_VK_ALT);
+  InitEvent(scrollevent);
+  if (mEventCallback) {
+    DispatchWindowEvent(&scrollevent);
+  }
 }
 
 
@@ -7178,7 +7762,7 @@ nsWindow::HasBogusPopupsDropShadowOnMultiMonitor() {
       if (!prefs.mDisableAcceleration && !prefs.mPreferOpenGL) {
         nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
         if (gfxInfo) {
-          int32_t status;
+          PRInt32 status;
           if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT3D_9_LAYERS, &status))) {
             if (status == nsIGfxInfo::FEATURE_NO_INFO || prefs.mForceAcceleration)
             {
@@ -7204,7 +7788,7 @@ nsWindow::OnSysColorChanged()
     
     
     
-    NotifySysColorChanged();
+    DispatchStandardEvent(NS_SYSCOLORCHANGED);
   }
 }
 
@@ -7300,7 +7884,7 @@ NS_IMETHODIMP nsWindow::CancelIMEComposition()
 }
 
 NS_IMETHODIMP
-nsWindow::GetToggledKeyState(uint32_t aKeyCode, bool* aLEDState)
+nsWindow::GetToggledKeyState(PRUint32 aKeyCode, bool* aLEDState)
 {
 #ifdef DEBUG_KBSTATE
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS, ("GetToggledKeyState\n"));
@@ -7322,9 +7906,9 @@ nsWindow::OnIMEFocusChange(bool aFocus)
 }
 
 NS_IMETHODIMP
-nsWindow::OnIMETextChange(uint32_t aStart,
-                          uint32_t aOldEnd,
-                          uint32_t aNewEnd)
+nsWindow::OnIMETextChange(PRUint32 aStart,
+                          PRUint32 aOldEnd,
+                          PRUint32 aNewEnd)
 {
   return nsTextStore::OnTextChange(aStart, aOldEnd, aNewEnd);
 }
@@ -7376,7 +7960,8 @@ bool nsWindow::AssociateDefaultIMC(bool aAssociate)
 
 #ifdef DEBUG_WMGETOBJECT
 #define NS_LOG_WMGETOBJECT_WNDACC(aWnd)                                        \
-  Accessible* acc = aWnd ? aWind->GetAccessible() : nullptr;                   \
+  nsAccessible* acc = aWnd ?                                                   \
+    aWnd->DispatchAccessibleEvent(NS_GETACCESSIBLE) : nsnull;                  \
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS, ("     acc: %p", acc));                   \
   if (acc) {                                                                   \
     nsAutoString name;                                                         \
@@ -7384,7 +7969,7 @@ bool nsWindow::AssociateDefaultIMC(bool aAssociate)
     PR_LOG(gWindowsLog, PR_LOG_ALWAYS,                                         \
            (", accname: %s", NS_ConvertUTF16toUTF8(name).get()));              \
     nsCOMPtr<nsIAccessibleDocument> doc = do_QueryObject(acc);                 \
-    void *hwnd = nullptr;                                                      \
+    void *hwnd = nsnull;                                                       \
     doc->GetWindowHandle(&hwnd);                                               \
     PR_LOG(gWindowsLog, PR_LOG_ALWAYS, (", acc hwnd: %d", hwnd));              \
   }
@@ -7414,21 +7999,59 @@ bool nsWindow::AssociateDefaultIMC(bool aAssociate)
 #define NS_LOG_WMGETOBJECT_WND(aMsg, aHwnd)
 #endif 
 
-Accessible*
+nsAccessible*
 nsWindow::GetRootAccessible()
 {
   
-  if (a11y::PlatformDisabledState() == a11y::ePlatformIsDisabled)
-    return nullptr;
+  
+  
+  
+  
+  
+  
+  static int accForceDisable = -1;
+
+  if (accForceDisable == -1) {
+    const char* kPrefName = "accessibility.win32.force_disabled";
+    if (Preferences::GetBool(kPrefName, false)) {
+      accForceDisable = 1;
+    } else {
+      accForceDisable = 0;
+    }
+  }
+
+  
+  if (accForceDisable)
+      return nsnull;
+
+  nsWindow::sIsAccessibilityOn = TRUE;
 
   if (mInDtor || mOnDestroyCalled || mWindowType == eWindowType_invisible) {
-    return nullptr;
+    return nsnull;
   }
 
   NS_LOG_WMGETOBJECT_THISWND
   NS_LOG_WMGETOBJECT_WND("This Window", mWnd);
 
-  return GetAccessible();
+  return DispatchAccessibleEvent(NS_GETACCESSIBLE);
+}
+
+STDMETHODIMP_(LRESULT)
+nsWindow::LresultFromObject(REFIID riid, WPARAM wParam, LPUNKNOWN pAcc)
+{
+  
+  if (!sAccLib)
+    sAccLib =::LoadLibraryW(L"OLEACC.DLL");
+
+  if (sAccLib) {
+    if (!sLresultFromObject)
+      sLresultFromObject = (LPFNLRESULTFROMOBJECT)GetProcAddress(sAccLib,"LresultFromObject");
+
+    if (sLresultFromObject)
+      return sLresultFromObject(riid,wParam,pAcc);
+  }
+
+  return 0;
 }
 #endif
 
@@ -7444,7 +8067,7 @@ nsWindow::GetRootAccessible()
 
 #ifdef MOZ_XUL
 
-void nsWindow::ResizeTranslucentWindow(int32_t aNewWidth, int32_t aNewHeight, bool force)
+void nsWindow::ResizeTranslucentWindow(PRInt32 aNewWidth, PRInt32 aNewHeight, bool force)
 {
   if (!force && aNewWidth == mBounds.width && aNewHeight == mBounds.height)
     return;
@@ -7455,7 +8078,7 @@ void nsWindow::ResizeTranslucentWindow(int32_t aNewWidth, int32_t aNewHeight, bo
     nsRefPtr<gfxD2DSurface> newSurface =
       new gfxD2DSurface(gfxIntSize(aNewWidth, aNewHeight), gfxASurface::ImageFormatARGB32);
     mTransparentSurface = newSurface;
-    mMemoryDC = nullptr;
+    mMemoryDC = nsnull;
   } else
 #endif
   {
@@ -7513,8 +8136,10 @@ void nsWindow::SetWindowTranslucencyInner(nsTransparencyMode aMode)
   ::SetWindowLongPtrW(hWnd, GWL_STYLE, style);
   ::SetWindowLongPtrW(hWnd, GWL_EXSTYLE, exStyle);
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   if (HasGlass())
     memset(&mGlassMargins, 0, sizeof mGlassMargins);
+#endif 
   mTransparencyMode = aMode;
 
   SetupTranslucentWindowMemoryBitmap(aMode);
@@ -7526,19 +8151,9 @@ void nsWindow::SetupTranslucentWindowMemoryBitmap(nsTransparencyMode aMode)
   if (eTransparencyTransparent == aMode) {
     ResizeTranslucentWindow(mBounds.width, mBounds.height, true);
   } else {
-    mTransparentSurface = nullptr;
+    mTransparentSurface = nsnull;
     mMemoryDC = NULL;
   }
-}
-
-void nsWindow::ClearTranslucentWindow()
-{
-  if (mTransparentSurface) {
-    nsRefPtr<gfxContext> thebesContext = new gfxContext(mTransparentSurface);
-    thebesContext->SetOperator(gfxContext::OPERATOR_CLEAR);
-    thebesContext->Paint();
-    UpdateTranslucentWindow();
- }
 }
 
 nsresult nsWindow::UpdateTranslucentWindow()
@@ -7820,10 +8435,10 @@ void
 nsWindow::ClearCachedResources()
 {
 #ifdef CAIRO_HAS_D2D_SURFACE
-    mD2DWindowSurface = nullptr;
+    mD2DWindowSurface = nsnull;
 #endif
     if (mLayerManager &&
-        mLayerManager->GetBackendType() == LAYERS_BASIC) {
+        mLayerManager->GetBackendType() == LayerManager::LAYERS_BASIC) {
       static_cast<BasicLayerManager*>(mLayerManager.get())->
         ClearCachedResources();
     }
@@ -7884,12 +8499,12 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
 
       
       
-      uint32_t popupsToRollup = PR_UINT32_MAX;
+      PRUint32 popupsToRollup = PR_UINT32_MAX;
       if (rollup) {
         if ( sRollupListener ) {
           nsAutoTArray<nsIWidget*, 5> widgetChain;
-          uint32_t sameTypeCount = sRollupListener->GetSubmenuWidgetChain(&widgetChain);
-          for ( uint32_t i = 0; i < widgetChain.Length(); ++i ) {
+          PRUint32 sameTypeCount = sRollupListener->GetSubmenuWidgetChain(&widgetChain);
+          for ( PRUint32 i = 0; i < widgetChain.Length(); ++i ) {
             nsIWidget* widget = widgetChain[i];
             if ( nsWindow::EventIsInsideWindow(inMsg, (nsWindow*)widget) ) {
               
@@ -7993,6 +8608,15 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
 
 
 
+nsModifierKeyState::nsModifierKeyState()
+{
+  mIsShiftDown   = IS_VK_DOWN(NS_VK_SHIFT);
+  mIsControlDown = IS_VK_DOWN(NS_VK_CONTROL);
+  mIsAltDown     = IS_VK_DOWN(NS_VK_ALT);
+}
+
+
+
 
 
 
@@ -8060,6 +8684,132 @@ void nsWindow::GetMainWindowClass(nsAString& aClass)
   if (NS_FAILED(rv) || aClass.IsEmpty()) {
     aClass.AssignASCII(sDefaultMainWindowClass);
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+bool nsWindow::GetInputWorkaroundPref(const char* aPrefName,
+                                        bool aValueIfAutomatic)
+{
+  if (!aPrefName) {
+    return aValueIfAutomatic;
+  }
+
+  PRInt32 lHackValue = 0;
+  if (NS_SUCCEEDED(Preferences::GetInt(aPrefName, &lHackValue))) {
+    switch (lHackValue) {
+      case 0: 
+        return false;
+      case 1: 
+        return true;
+      default: 
+        break;
+    }
+  }
+  return aValueIfAutomatic;
+}
+
+bool nsWindow::UseTrackPointHack()
+{
+  return GetInputWorkaroundPref("ui.trackpoint_hack.enabled",
+                                sDefaultTrackPointHack);
+}
+
+static bool
+HasRegistryKey(HKEY aRoot, PRUnichar* aName)
+{
+  HKEY key;
+  LONG result = ::RegOpenKeyExW(aRoot, aName, 0, KEY_READ | KEY_WOW64_32KEY, &key);
+  if (result != ERROR_SUCCESS) {
+    result = ::RegOpenKeyExW(aRoot, aName, 0, KEY_READ | KEY_WOW64_64KEY, &key);
+    if (result != ERROR_SUCCESS)
+      return false;
+  }
+  ::RegCloseKey(key);
+  return true;
+}
+
+static bool
+IsObsoleteSynapticsDriver()
+{
+  PRUnichar buf[40];
+  bool foundKey = WinUtils::GetRegistryKey(HKEY_LOCAL_MACHINE,
+                                           L"Software\\Synaptics\\SynTP\\Install",
+                                           L"DriverVersion",
+                                           buf,
+                                           sizeof buf);
+  if (!foundKey)
+    return false;
+
+  int majorVersion = wcstol(buf, NULL, 10);
+  int minorVersion = 0;
+  PRUnichar* p = wcschr(buf, L'.');
+  if (p) {
+    minorVersion = wcstol(p + 1, NULL, 10);
+  }
+  return majorVersion < 15 || majorVersion == 15 && minorVersion == 0;
+}
+
+static PRInt32
+GetElantechDriverMajorVersion()
+{
+  PRUnichar buf[40];
+  
+  bool foundKey = WinUtils::GetRegistryKey(HKEY_CURRENT_USER,
+                                           L"Software\\Elantech\\MainOption",
+                                           L"DriverVersion",
+                                           buf,
+                                           sizeof buf);
+  if (!foundKey)
+    foundKey = WinUtils::GetRegistryKey(HKEY_CURRENT_USER,
+                                        L"Software\\Elantech",
+                                        L"DriverVersion",
+                                        buf,
+                                        sizeof buf);
+
+  if (!foundKey)
+    return false;
+
+  
+  
+  for (PRUnichar* p = buf; *p; p++) {
+    if (*p >= L'0' && *p <= L'9' && (p == buf || *(p - 1) == L' ')) {
+      return wcstol(p, NULL, 10);
+    }
+  }
+
+  return 0;
+}
+
+void nsWindow::InitInputWorkaroundPrefDefaults()
+{
+  PRUint32 elantechDriverVersion = GetElantechDriverMajorVersion();
+
+  if (HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Lenovo\\TrackPoint")) {
+    sDefaultTrackPointHack = true;
+  } else if (HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Lenovo\\UltraNav")) {
+    sDefaultTrackPointHack = true;
+  } else if (HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Alps\\Apoint\\TrackPoint")) {
+    sDefaultTrackPointHack = true;
+  } else if ((HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Synaptics\\SynTPEnh\\UltraNavUSB") ||
+              HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Synaptics\\SynTPEnh\\UltraNavPS2")) &&
+              IsObsoleteSynapticsDriver()) {
+    sDefaultTrackPointHack = true;
+  }
+
+  bool useElantechGestureHacks =
+    GetInputWorkaroundPref("ui.elantech_gesture_hacks.enabled",
+                           elantechDriverVersion != 0);
+  sUseElantechSwipeHack = useElantechGestureHacks && elantechDriverVersion <= 7;
+  sUseElantechPinchHack = useElantechGestureHacks && elantechDriverVersion <= 8;
 }
 
 LPARAM nsWindow::lParamToScreen(LPARAM lParam)

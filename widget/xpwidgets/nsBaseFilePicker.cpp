@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShell.h"
@@ -16,11 +50,10 @@
 #include "nsXPIDLString.h"
 #include "nsIServiceManager.h"
 #include "nsCOMArray.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsEnumeratorUtils.h"
 #include "mozilla/Services.h"
 #include "WidgetUtils.h"
-#include "nsThreadUtils.h"
 
 #include "nsBaseFilePicker.h"
 
@@ -28,45 +61,6 @@ using namespace mozilla::widget;
 
 #define FILEPICKER_TITLES "chrome://global/locale/filepicker.properties"
 #define FILEPICKER_FILTERS "chrome://global/content/filepicker.properties"
-
-
-
-
-
-class AsyncShowFilePicker : public nsRunnable
-{
-public:
-  AsyncShowFilePicker(nsIFilePicker *aFilePicker,
-                      nsIFilePickerShownCallback *aCallback) :
-    mFilePicker(aFilePicker),
-    mCallback(aCallback)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    NS_ASSERTION(NS_IsMainThread(),
-                 "AsyncShowFilePicker should be on the main thread!");
-
-    
-    
-    
-    int16_t result = nsIFilePicker::returnCancel;
-    nsresult rv = mFilePicker->Show(&result);
-    if (NS_FAILED(rv)) {
-      NS_ERROR("FilePicker's Show() implementation failed!");
-    }
-
-    if (mCallback) {
-      mCallback->Done(result);
-    }
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<nsIFilePicker> mFilePicker;
-  nsRefPtr<nsIFilePickerShownCallback> mCallback;
-};
 
 nsBaseFilePicker::nsBaseFilePicker() :
   mAddToRecentDocs(true)
@@ -81,7 +75,7 @@ nsBaseFilePicker::~nsBaseFilePicker()
 
 NS_IMETHODIMP nsBaseFilePicker::Init(nsIDOMWindow *aParent,
                                      const nsAString& aTitle,
-                                     int16_t aMode)
+                                     PRInt16 aMode)
 {
   NS_PRECONDITION(aParent, "Null parent passed to filepicker, no file "
                   "picker for you!");
@@ -93,16 +87,9 @@ NS_IMETHODIMP nsBaseFilePicker::Init(nsIDOMWindow *aParent,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsBaseFilePicker::Open(nsIFilePickerShownCallback *aCallback)
-{
-  nsCOMPtr<nsIRunnable> filePickerEvent =
-    new AsyncShowFilePicker(this, aCallback);
-  return NS_DispatchToMainThread(filePickerEvent);
-}
 
 NS_IMETHODIMP
-nsBaseFilePicker::AppendFilters(int32_t aFilterMask)
+nsBaseFilePicker::AppendFilters(PRInt32 aFilterMask)
 {
   nsCOMPtr<nsIStringBundleService> stringService =
     mozilla::services::GetStringBundleService();
@@ -173,13 +160,13 @@ nsBaseFilePicker::AppendFilters(int32_t aFilterMask)
 }
 
 
-NS_IMETHODIMP nsBaseFilePicker::GetFilterIndex(int32_t *aFilterIndex)
+NS_IMETHODIMP nsBaseFilePicker::GetFilterIndex(PRInt32 *aFilterIndex)
 {
   *aFilterIndex = 0;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsBaseFilePicker::SetFilterIndex(int32_t aFilterIndex)
+NS_IMETHODIMP nsBaseFilePicker::SetFilterIndex(PRInt32 aFilterIndex)
 {
   return NS_OK;
 }
@@ -187,17 +174,18 @@ NS_IMETHODIMP nsBaseFilePicker::SetFilterIndex(int32_t aFilterIndex)
 NS_IMETHODIMP nsBaseFilePicker::GetFiles(nsISimpleEnumerator **aFiles)
 {
   NS_ENSURE_ARG_POINTER(aFiles);
-  nsCOMArray <nsIFile> files;
+  nsCOMArray <nsILocalFile> files;
   nsresult rv;
 
   
   
   
-  nsCOMPtr <nsIFile> file;
+  nsCOMPtr <nsILocalFile> file;
   rv = GetFile(getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv,rv);
 
-  files.AppendObject(file);
+  rv = files.AppendObject(file);
+  NS_ENSURE_SUCCESS(rv,rv);
 
   return NS_NewArrayEnumerator(aFiles, files);
 }
@@ -205,10 +193,10 @@ NS_IMETHODIMP nsBaseFilePicker::GetFiles(nsISimpleEnumerator **aFiles)
 #ifdef BASEFILEPICKER_HAS_DISPLAYDIRECTORY
 
 
-NS_IMETHODIMP nsBaseFilePicker::SetDisplayDirectory(nsIFile *aDirectory)
+NS_IMETHODIMP nsBaseFilePicker::SetDisplayDirectory(nsILocalFile *aDirectory)
 {
   if (!aDirectory) {
-    mDisplayDirectory = nullptr;
+    mDisplayDirectory = nsnull;
     return NS_OK;
   }
   nsCOMPtr<nsIFile> directory;
@@ -220,9 +208,9 @@ NS_IMETHODIMP nsBaseFilePicker::SetDisplayDirectory(nsIFile *aDirectory)
 }
 
 
-NS_IMETHODIMP nsBaseFilePicker::GetDisplayDirectory(nsIFile **aDirectory)
+NS_IMETHODIMP nsBaseFilePicker::GetDisplayDirectory(nsILocalFile **aDirectory)
 {
-  *aDirectory = nullptr;
+  *aDirectory = nsnull;
   if (!mDisplayDirectory)
     return NS_OK;
   nsCOMPtr<nsIFile> directory;

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsToolkit.h"
 #include "nsAppShell.h"
 #include "nsWindow.h"
@@ -20,9 +53,14 @@
 
 #include <unknwn.h>
 
-nsToolkit* nsToolkit::gToolkit = nullptr;
+nsToolkit* nsToolkit::gToolkit = nsnull;
 HINSTANCE nsToolkit::mDllInstance = 0;
 static const unsigned long kD3DUsageDelay = 5000;
+
+
+nsToolkit::SHCreateItemFromParsingNamePtr nsToolkit::createItemFromParsingName = nsnull;
+const PRUnichar nsToolkit::kSehllLibraryName[] =  L"shell32.dll";
+HMODULE nsToolkit::sShellDll = nsnull;
 
 static void
 StartAllowingD3D9(nsITimer *aTimer, void *aClosure)
@@ -63,7 +101,7 @@ nsToolkit::nsToolkit()
 nsToolkit::~nsToolkit()
 {
     MOZ_COUNT_DTOR(nsToolkit);
-    gMouseTrailer = nullptr;
+    gMouseTrailer = nsnull;
 }
 
 void
@@ -77,7 +115,7 @@ void
 nsToolkit::Shutdown()
 {
     delete gToolkit;
-    gToolkit = nullptr;
+    gToolkit = nsnull;
 }
 
 void
@@ -85,6 +123,24 @@ nsToolkit::StartAllowingD3D9()
 {
   nsToolkit::GetToolkit()->mD3D9Timer->Cancel();
   nsWindow::StartAllowingD3D9(false);
+}
+
+
+bool
+nsToolkit::VistaCreateItemFromParsingNameInit()
+{
+  if (createItemFromParsingName)
+    return true;
+  if (sShellDll)
+    return false;
+  sShellDll = LoadLibraryW(kSehllLibraryName);
+  if (!sShellDll)
+    return false;
+  createItemFromParsingName = (SHCreateItemFromParsingNamePtr)
+    GetProcAddress(sShellDll, "SHCreateItemFromParsingName");
+  if (createItemFromParsingName == nsnull)
+    return false;
+  return true;
 }
 
 
@@ -108,7 +164,7 @@ nsToolkit* nsToolkit::GetToolkit()
 
 
 
-MouseTrailer::MouseTrailer() : mMouseTrailerWindow(nullptr), mCaptureWindow(nullptr),
+MouseTrailer::MouseTrailer() : mMouseTrailerWindow(nsnull), mCaptureWindow(nsnull),
   mIsInCaptureMode(false), mEnabled(true)
 {
 }
@@ -128,7 +184,7 @@ void MouseTrailer::SetMouseTrailerWindow(HWND aWnd)
 {
   if (mMouseTrailerWindow != aWnd && mTimer) {
     
-    TimerProc(nullptr, nullptr);
+    TimerProc(nsnull, nsnull);
   }
   mMouseTrailerWindow = aWnd;
   CreateTimer();
@@ -160,7 +216,7 @@ nsresult MouseTrailer::CreateTimer()
   mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return mTimer->InitWithFuncCallback(TimerProc, nullptr, 200,
+  return mTimer->InitWithFuncCallback(TimerProc, nsnull, 200,
                                       nsITimer::TYPE_REPEATING_SLACK);
 }
 
@@ -172,7 +228,7 @@ void MouseTrailer::DestroyTimer()
 {
   if (mTimer) {
     mTimer->Cancel();
-    mTimer = nullptr;
+    mTimer = nsnull;
   }
 }
 
@@ -199,7 +255,7 @@ void MouseTrailer::TimerProc(nsITimer* aTimer, void* aClosure)
       
       
       
-      mtrailer->mMouseTrailerWindow = nullptr;
+      mtrailer->mMouseTrailerWindow = nsnull;
       mtrailer->mIsInCaptureMode = false;
       return;
     }
@@ -217,11 +273,11 @@ void MouseTrailer::TimerProc(nsITimer* aTimer, void* aClosure)
 
       
       mtrailer->DestroyTimer();
-      mtrailer->mMouseTrailerWindow = nullptr;
+      mtrailer->mMouseTrailerWindow = nsnull;
     }
   } else {
     mtrailer->DestroyTimer();
-    mtrailer->mMouseTrailerWindow = nullptr;
+    mtrailer->mMouseTrailerWindow = nsnull;
   }
 }
 

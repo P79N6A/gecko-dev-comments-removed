@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsIRollupListener_h__
 #define __nsIRollupListener_h__
 
@@ -24,7 +59,7 @@ class nsIRollupListener {
 
 
 
-  virtual nsIContent* Rollup(uint32_t aCount, bool aGetLastRolledUp = false) = 0;
+  virtual nsIContent* Rollup(PRUint32 aCount, bool aGetLastRolledUp = false) = 0;
 
   
 
@@ -44,12 +79,7 @@ class nsIRollupListener {
 
 
 
-  virtual uint32_t GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain) = 0;
-
-  
-
-
-  virtual void NotifyGeometryChange() = 0;
+  virtual PRUint32 GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain) = 0;
 };
 
 #endif 

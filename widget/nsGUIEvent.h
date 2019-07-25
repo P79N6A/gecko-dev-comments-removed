@@ -3,10 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGUIEvent_h__
 #define nsGUIEvent_h__
 
-#include "nsCOMArray.h"
 #include "nsPoint.h"
 #include "nsRect.h"
 #include "nsRegion.h"
@@ -16,10 +51,8 @@
 #include "nsIAtom.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMMouseEvent.h"
-#include "nsIDOMWheelEvent.h"
 #include "nsIDOMDataTransfer.h"
 #include "nsIDOMEventTarget.h"
-#include "nsIDOMTouchEvent.h"
 #include "nsWeakPtr.h"
 #include "nsIWidget.h"
 #include "nsTArray.h"
@@ -27,7 +60,6 @@
 #include "nsITransferable.h"
 #include "nsIVariant.h"
 #include "nsStyleConsts.h"
-#include "nsAutoPtr.h"
 
 namespace mozilla {
 namespace dom {
@@ -39,6 +71,9 @@ namespace plugins {
 }
 }
 
+#ifdef ACCESSIBILITY
+class nsAccessible;
+#endif
 class nsRenderingContext;
 class nsIMenuItem;
 class nsIContent;
@@ -64,6 +99,7 @@ class nsHashKey;
 #define NS_MOUSE_SCROLL_EVENT             16
 #define NS_SCROLLPORT_EVENT               18
 #define NS_MUTATION_EVENT                 19 // |nsMutationEvent| in content
+#define NS_ACCESSIBLE_EVENT               20
 #define NS_FORM_EVENT                     21
 #define NS_FOCUS_EVENT                    22
 #define NS_POPUP_EVENT                    23
@@ -85,10 +121,9 @@ class nsHashKey;
 #define NS_SELECTION_EVENT                38
 #define NS_CONTENT_COMMAND_EVENT          39
 #define NS_GESTURENOTIFY_EVENT            40
+#define NS_UISTATECHANGE_EVENT            41
 #define NS_MOZTOUCH_EVENT                 42
 #define NS_PLUGIN_EVENT                   43
-#define NS_TOUCH_EVENT                    44
-#define NS_WHEEL_EVENT                    45
 
 
 
@@ -129,8 +164,6 @@ class nsHashKey;
 
 #define NS_EVENT_FLAG_STOP_DISPATCH_IMMEDIATELY 0x80000
 
-#define NS_EVENT_FLAG_DONT_FORWARD_CROSS_PROCESS 0x100000
-
 #define NS_EVENT_CAPTURE_MASK             (~(NS_EVENT_FLAG_BUBBLE | NS_EVENT_FLAG_NO_CONTENT_DISPATCH))
 #define NS_EVENT_BUBBLE_MASK              (~(NS_EVENT_FLAG_CAPTURE | NS_EVENT_FLAG_NO_CONTENT_DISPATCH))
 
@@ -146,13 +179,60 @@ class nsHashKey;
 #define NS_WINDOW_START                 100
 
 
+#define NS_CREATE                       (NS_WINDOW_START)
+
 #define NS_XUL_CLOSE                    (NS_WINDOW_START + 1)
+
+#define NS_DESTROY                      (NS_WINDOW_START + 2)
+
+#define NS_SIZE                         (NS_WINDOW_START + 3)
+
+#define NS_SIZEMODE                     (NS_WINDOW_START + 4)
+
+#define NS_ACTIVATE                     (NS_WINDOW_START + 7)
+
+#define NS_DEACTIVATE                   (NS_WINDOW_START + 8)
+
+#define NS_SETZLEVEL                    (NS_WINDOW_START + 9)
+
+
+#define NS_DID_PAINT                   (NS_WINDOW_START + 28)
+
+#define NS_WILL_PAINT                   (NS_WINDOW_START + 29)
+
+#define NS_PAINT                        (NS_WINDOW_START + 30)
 
 #define NS_KEY_PRESS                    (NS_WINDOW_START + 31)
 
 #define NS_KEY_UP                       (NS_WINDOW_START + 32)
 
 #define NS_KEY_DOWN                     (NS_WINDOW_START + 33)
+
+
+#define NS_MOVE                         (NS_WINDOW_START + 34) 
+
+
+#define NS_TABCHANGE                    (NS_WINDOW_START + 35)
+
+#define NS_OS_TOOLBAR                   (NS_WINDOW_START + 36)
+
+
+#define NS_DISPLAYCHANGED                (NS_WINDOW_START + 40)
+
+
+#define NS_THEMECHANGED                 (NS_WINDOW_START + 41)
+
+
+
+
+#define NS_SYSCOLORCHANGED              (NS_WINDOW_START + 42)
+
+
+
+#define NS_UISTATECHANGED               (NS_WINDOW_START + 43)
+
+
+#define NS_DONESIZEMOVE                 (NS_WINDOW_START + 44)
 
 #define NS_RESIZE_EVENT                 (NS_WINDOW_START + 60)
 #define NS_SCROLL_EVENT                 (NS_WINDOW_START + 61)
@@ -169,10 +249,6 @@ class nsHashKey;
 
 
 #define NS_BEFORERESIZE_EVENT            (NS_WINDOW_START + 66)
-
-
-#define NS_MOZ_USER_IDLE                 (NS_WINDOW_START + 67)
-#define NS_MOZ_USER_ACTIVE               (NS_WINDOW_START + 68)
 
 #define NS_MOUSE_MESSAGE_START          300
 #define NS_MOUSE_MOVE                   (NS_MOUSE_MESSAGE_START)
@@ -191,6 +267,13 @@ class nsHashKey;
 
 #define NS_CONTEXTMENU_MESSAGE_START    500
 #define NS_CONTEXTMENU                  (NS_CONTEXTMENU_MESSAGE_START)
+
+#define NS_SCROLLBAR_MESSAGE_START      1000
+#define NS_SCROLLBAR_POS                (NS_SCROLLBAR_MESSAGE_START)
+#define NS_SCROLLBAR_PAGE_NEXT          (NS_SCROLLBAR_MESSAGE_START + 1)
+#define NS_SCROLLBAR_PAGE_PREV          (NS_SCROLLBAR_MESSAGE_START + 2)
+#define NS_SCROLLBAR_LINE_NEXT          (NS_SCROLLBAR_MESSAGE_START + 3)
+#define NS_SCROLLBAR_LINE_PREV          (NS_SCROLLBAR_MESSAGE_START + 4)
 
 #define NS_STREAM_EVENT_START           1100
 #define NS_LOAD                         (NS_STREAM_EVENT_START)
@@ -249,8 +332,13 @@ class nsHashKey;
 #define NS_SCROLLPORT_START           1700
 #define NS_SCROLLPORT_UNDERFLOW       (NS_SCROLLPORT_START)
 #define NS_SCROLLPORT_OVERFLOW        (NS_SCROLLPORT_START+1)
+#define NS_SCROLLPORT_OVERFLOWCHANGED (NS_SCROLLPORT_START+2)
 
 
+
+
+#define NS_ACCESSIBLE_START           1900
+#define NS_GETACCESSIBLE              (NS_ACCESSIBLE_START)
 
 #define NS_USER_DEFINED_EVENT         2000
  
@@ -331,6 +419,12 @@ class nsHashKey;
 #define NS_QUERY_DOM_WIDGET_HITTEST     (NS_QUERY_CONTENT_EVENT_START + 9)
 
 
+
+
+
+#define NS_QUERY_SCROLL_TARGET_INFO     (NS_QUERY_CONTENT_EVENT_START + 99)
+
+
 #define NS_MEDIA_EVENT_START            3300
 #define NS_LOADSTART           (NS_MEDIA_EVENT_START)
 #define NS_PROGRESS            (NS_MEDIA_EVENT_START+1)
@@ -369,7 +463,6 @@ class nsHashKey;
 #define NS_SIMPLE_GESTURE_ROTATE         (NS_SIMPLE_GESTURE_EVENT_START+6)
 #define NS_SIMPLE_GESTURE_TAP            (NS_SIMPLE_GESTURE_EVENT_START+7)
 #define NS_SIMPLE_GESTURE_PRESSTAP       (NS_SIMPLE_GESTURE_EVENT_START+8)
-#define NS_SIMPLE_GESTURE_EDGEUI         (NS_SIMPLE_GESTURE_EVENT_START+9)
 
 
 #define NS_PLUGIN_EVENT_START            3600
@@ -445,9 +538,6 @@ class nsHashKey;
 #define NS_DEVICE_ORIENTATION_START  4900
 #define NS_DEVICE_ORIENTATION        (NS_DEVICE_ORIENTATION_START)
 #define NS_DEVICE_MOTION             (NS_DEVICE_ORIENTATION_START+1)
-#define NS_DEVICE_PROXIMITY          (NS_DEVICE_ORIENTATION_START+2)
-#define NS_USER_PROXIMITY            (NS_DEVICE_ORIENTATION_START+3)
-#define NS_DEVICE_LIGHT              (NS_DEVICE_ORIENTATION_START+4)
 
 #define NS_SHOW_EVENT                5000
 
@@ -455,22 +545,6 @@ class nsHashKey;
 #define NS_FULL_SCREEN_START         5100
 #define NS_FULLSCREENCHANGE          (NS_FULL_SCREEN_START)
 #define NS_FULLSCREENERROR           (NS_FULL_SCREEN_START + 1)
-
-#define NS_TOUCH_EVENT_START         5200
-#define NS_TOUCH_START               (NS_TOUCH_EVENT_START)
-#define NS_TOUCH_MOVE                (NS_TOUCH_EVENT_START+1)
-#define NS_TOUCH_END                 (NS_TOUCH_EVENT_START+2)
-#define NS_TOUCH_ENTER               (NS_TOUCH_EVENT_START+3)
-#define NS_TOUCH_LEAVE               (NS_TOUCH_EVENT_START+4)
-#define NS_TOUCH_CANCEL              (NS_TOUCH_EVENT_START+5)
-
-
-#define NS_POINTERLOCK_START         5300
-#define NS_POINTERLOCKCHANGE         (NS_POINTERLOCK_START)
-#define NS_POINTERLOCKERROR          (NS_POINTERLOCK_START + 1)
-
-#define NS_WHEEL_EVENT_START         5400
-#define NS_WHEEL_WHEEL               (NS_WHEEL_EVENT_START)
 
 
 
@@ -493,11 +567,10 @@ enum nsWindowZ {
 class nsEvent
 {
 protected:
-  nsEvent(bool isTrusted, uint32_t msg, uint8_t structType)
+  nsEvent(bool isTrusted, PRUint32 msg, PRUint8 structType)
     : eventStructType(structType),
       message(msg),
       refPoint(0, 0),
-      lastRefPoint(0, 0),
       time(0),
       flags(isTrusted ? NS_EVENT_FLAG_TRUSTED : NS_EVENT_FLAG_NONE),
       userType(0)
@@ -507,15 +580,13 @@ protected:
 
   nsEvent()
   {
-    MOZ_COUNT_CTOR(nsEvent);
   }
 
 public:
-  nsEvent(bool isTrusted, uint32_t msg)
+  nsEvent(bool isTrusted, PRUint32 msg)
     : eventStructType(NS_EVENT),
       message(msg),
       refPoint(0, 0),
-      lastRefPoint(0, 0),
       time(0),
       flags(isTrusted ? NS_EVENT_FLAG_TRUSTED : NS_EVENT_FLAG_NONE),
       userType(0)
@@ -528,27 +599,19 @@ public:
     MOZ_COUNT_DTOR(nsEvent);
   }
 
-  nsEvent(const nsEvent& aOther)
-  {
-    MOZ_COUNT_CTOR(nsEvent);
-    *this = aOther;
-  }
-
   
-  uint8_t     eventStructType;
+  PRUint8     eventStructType;
   
-  uint32_t    message;
+  PRUint32    message;
   
   
   nsIntPoint  refPoint;
   
-  nsIntPoint  lastRefPoint;
+  
+  PRUint64    time;
   
   
-  uint64_t    time;
-  
-  
-  uint32_t    flags;
+  PRUint32    flags;
   
   nsCOMPtr<nsIAtom>     userType;
   
@@ -564,21 +627,21 @@ public:
 class nsGUIEvent : public nsEvent
 {
 protected:
-  nsGUIEvent(bool isTrusted, uint32_t msg, nsIWidget *w, uint8_t structType)
+  nsGUIEvent(bool isTrusted, PRUint32 msg, nsIWidget *w, PRUint8 structType)
     : nsEvent(isTrusted, msg, structType),
-      widget(w), pluginEvent(nullptr)
+      widget(w), pluginEvent(nsnull)
   {
   }
 
   nsGUIEvent()
-    : pluginEvent(nullptr)
+    : pluginEvent(nsnull)
   {
   }
 
 public:
-  nsGUIEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
+  nsGUIEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsEvent(isTrusted, msg, NS_GUI_EVENT),
-      widget(w), pluginEvent(nullptr)
+      widget(w), pluginEvent(nsnull)
   {
   }
 
@@ -596,15 +659,91 @@ public:
 class nsScriptErrorEvent : public nsEvent
 {
 public:
-  nsScriptErrorEvent(bool isTrusted, uint32_t msg)
+  nsScriptErrorEvent(bool isTrusted, PRUint32 msg)
     : nsEvent(isTrusted, msg, NS_SCRIPT_ERROR_EVENT),
-      lineNr(0), errorMsg(nullptr), fileName(nullptr)
+      lineNr(0), errorMsg(nsnull), fileName(nsnull)
   {
   }
 
-  int32_t           lineNr;
+  PRInt32           lineNr;
   const PRUnichar*  errorMsg;
   const PRUnichar*  fileName;
+};
+
+
+
+
+
+class nsSizeEvent : public nsGUIEvent
+{
+public:
+  nsSizeEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
+    : nsGUIEvent(isTrusted, msg, w, NS_SIZE_EVENT),
+      windowSize(nsnull), mWinWidth(0), mWinHeight(0)
+  {
+  }
+
+  
+  nsIntRect       *windowSize;
+  
+  PRInt32         mWinWidth;    
+  
+  PRInt32         mWinHeight;    
+};
+
+
+
+
+
+class nsSizeModeEvent : public nsGUIEvent
+{
+public:
+  nsSizeModeEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
+    : nsGUIEvent(isTrusted, msg, w, NS_SIZEMODE_EVENT),
+      mSizeMode(nsSizeMode_Normal)
+  {
+  }
+
+  nsSizeMode      mSizeMode;
+};
+
+
+
+
+
+class nsZLevelEvent : public nsGUIEvent
+{
+public:
+  nsZLevelEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
+    : nsGUIEvent(isTrusted, msg, w, NS_ZLEVEL_EVENT),
+      mPlacement(nsWindowZTop), mReqBelow(nsnull), mActualBelow(nsnull),
+      mImmediate(false), mAdjusted(false)
+  {
+  }
+
+  nsWindowZ  mPlacement;
+  nsIWidget *mReqBelow,    
+            *mActualBelow; 
+  bool       mImmediate,   
+             mAdjusted;    
+};
+
+
+
+
+
+class nsPaintEvent : public nsGUIEvent
+{
+public:
+  nsPaintEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
+    : nsGUIEvent(isTrusted, msg, w, NS_PAINT_EVENT),
+      willSendDidPaint(false)
+  {
+  }
+
+  
+  nsIntRegion region;
+  bool willSendDidPaint;
 };
 
 
@@ -614,14 +753,14 @@ public:
 class nsScrollbarEvent : public nsGUIEvent
 {
 public:
-  nsScrollbarEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
+  nsScrollbarEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsGUIEvent(isTrusted, msg, w, NS_SCROLLBAR_EVENT),
       position(0)
   {
   }
 
   
-  uint32_t        position; 
+  PRUint32        position; 
 };
 
 class nsScrollPortEvent : public nsGUIEvent
@@ -633,7 +772,7 @@ public:
     both       = 2
   };
 
-  nsScrollPortEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
+  nsScrollPortEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsGUIEvent(isTrusted, msg, w, NS_SCROLLPORT_EVENT),
       orient(vertical)
   {
@@ -645,7 +784,7 @@ public:
 class nsScrollAreaEvent : public nsGUIEvent
 {
 public:
-  nsScrollAreaEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
+  nsScrollAreaEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsGUIEvent(isTrusted, msg, w, NS_SCROLLAREA_EVENT)
   {
   }
@@ -656,10 +795,10 @@ public:
 class nsInputEvent : public nsGUIEvent
 {
 protected:
-  nsInputEvent(bool isTrusted, uint32_t msg, nsIWidget *w,
-               uint8_t structType)
+  nsInputEvent(bool isTrusted, PRUint32 msg, nsIWidget *w,
+               PRUint8 structType)
     : nsGUIEvent(isTrusted, msg, w, structType),
-      modifiers(0)
+      isShift(false), isControl(false), isAlt(false), isMeta(false)
   {
   }
 
@@ -668,94 +807,20 @@ protected:
   }
 
 public:
-  nsInputEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
+  nsInputEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsGUIEvent(isTrusted, msg, w, NS_INPUT_EVENT),
-      modifiers(0)
+      isShift(false), isControl(false), isAlt(false), isMeta(false)
   {
   }
 
   
-  bool IsShift() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_SHIFT) != 0);
-  }
+  bool            isShift;        
   
-  bool IsControl() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_CONTROL) != 0);
-  }
+  bool            isControl;      
   
-  bool IsAlt() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_ALT) != 0);
-  }
+  bool            isAlt;          
   
-  bool IsMeta() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_META) != 0);
-  }
-  
-  
-  bool IsOS() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_OS) != 0);
-  }
-  
-  
-  
-  bool IsAltGraph() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_ALTGRAPH) != 0);
-  }
-  
-  bool IsCapsLocked() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_CAPSLOCK) != 0);
-  }
-  
-  bool IsNumLocked() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_NUMLOCK) != 0);
-  }
-  
-  bool IsScrollLocked() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_SCROLLLOCK) != 0);
-  }
-
-  
-  
-  bool IsFn() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_FN) != 0);
-  }
-  
-  bool IsSymbolLocked() const
-  {
-    return ((modifiers & mozilla::widget::MODIFIER_SYMBOLLOCK) != 0);
-  }
-
-  void InitBasicModifiers(bool aCtrlKey,
-                          bool aAltKey,
-                          bool aShiftKey,
-                          bool aMetaKey)
-  {
-    modifiers = 0;
-    if (aCtrlKey) {
-      modifiers |= mozilla::widget::MODIFIER_CONTROL;
-    }
-    if (aAltKey) {
-      modifiers |= mozilla::widget::MODIFIER_ALT;
-    }
-    if (aShiftKey) {
-      modifiers |= mozilla::widget::MODIFIER_SHIFT;
-    }
-    if (aMetaKey) {
-      modifiers |= mozilla::widget::MODIFIER_META;
-    }
-  }
-
-  mozilla::widget::Modifiers modifiers;
+  bool            isMeta;
 };
 
 
@@ -774,22 +839,21 @@ public:
   {
   }
 
-  nsMouseEvent_base(bool isTrusted, uint32_t msg, nsIWidget *w, uint8_t type)
-    : nsInputEvent(isTrusted, msg, w, type), button(0), buttons(0),
-      pressure(0), inputSource(nsIDOMMouseEvent::MOZ_SOURCE_MOUSE) {}
+  nsMouseEvent_base(bool isTrusted, PRUint32 msg, nsIWidget *w, PRUint8 type)
+    : nsInputEvent(isTrusted, msg, w, type), button(0), pressure(0)
+    , inputSource(nsIDOMMouseEvent::MOZ_SOURCE_MOUSE) {}
 
   
   nsCOMPtr<nsISupports> relatedTarget;
 
-  int16_t               button;
-  int16_t               buttons;
+  PRInt16               button;
 
   
   
   float                 pressure;
 
   
-  uint16_t              inputSource;
+  PRUint16              inputSource;
 };
 
 class nsMouseEvent : public nsMouseEvent_base
@@ -800,15 +864,6 @@ private:
 
 public:
   enum buttonType  { eLeftButton = 0, eMiddleButton = 1, eRightButton = 2 };
-  enum buttonsFlag { eLeftButtonFlag   = 0x01,
-                     eRightButtonFlag  = 0x02,
-                     eMiddleButtonFlag = 0x04,
-                     
-                     
-                     e4thButtonFlag    = 0x08,
-                     
-                     
-                     e5thButtonFlag    = 0x10 };
   enum reasonType  { eReal, eSynthesized };
   enum contextType { eNormal, eContextMenuKey };
   enum exitType    { eChild, eTopLevel };
@@ -818,8 +873,8 @@ public:
   }
 
 protected:
-  nsMouseEvent(bool isTrusted, uint32_t msg, nsIWidget *w,
-               uint8_t structType, reasonType aReason)
+  nsMouseEvent(bool isTrusted, PRUint32 msg, nsIWidget *w,
+               PRUint8 structType, reasonType aReason)
     : nsMouseEvent_base(isTrusted, msg, w, structType),
       acceptActivation(false), ignoreRootScrollFrame(false),
       reason(aReason), context(eNormal), exit(eChild), clickCount(0)
@@ -839,7 +894,7 @@ protected:
 
 public:
 
-  nsMouseEvent(bool isTrusted, uint32_t msg, nsIWidget *w,
+  nsMouseEvent(bool isTrusted, PRUint32 msg, nsIWidget *w,
                reasonType aReason, contextType aContext = eNormal)
     : nsMouseEvent_base(isTrusted, msg, w, NS_MOUSE_EVENT),
       acceptActivation(false), ignoreRootScrollFrame(false),
@@ -861,7 +916,7 @@ public:
     }
   }
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   ~nsMouseEvent() {
     NS_WARN_IF_FALSE(message != NS_CONTEXTMENU ||
                      button ==
@@ -882,7 +937,7 @@ public:
   exitType     exit;
 
   
-  uint32_t     clickCount;
+  PRUint32     clickCount;
 };
 
 
@@ -892,7 +947,7 @@ public:
 class nsDragEvent : public nsMouseEvent
 {
 public:
-  nsDragEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
+  nsDragEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsMouseEvent(isTrusted, msg, w, NS_DRAG_EVENT, eReal),
       userCancelled(false)
   {
@@ -907,18 +962,36 @@ public:
   bool userCancelled;
 };
 
+#ifdef ACCESSIBILITY
+
+
+
+
+class nsAccessibleEvent : public nsInputEvent
+{
+public:
+  nsAccessibleEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
+    : nsInputEvent(isTrusted, msg, w, NS_ACCESSIBLE_EVENT),
+      mAccessible(nsnull)
+  {
+  }
+
+  nsAccessible *mAccessible;
+};
+#endif
+
 
 
 
 
 struct nsAlternativeCharCode {
-  nsAlternativeCharCode(uint32_t aUnshiftedCharCode,
-                        uint32_t aShiftedCharCode) :
+  nsAlternativeCharCode(PRUint32 aUnshiftedCharCode,
+                        PRUint32 aShiftedCharCode) :
     mUnshiftedCharCode(aUnshiftedCharCode), mShiftedCharCode(aShiftedCharCode)
   {
   }
-  uint32_t mUnshiftedCharCode;
-  uint32_t mShiftedCharCode;
+  PRUint32 mUnshiftedCharCode;
+  PRUint32 mShiftedCharCode;
 };
 
 class nsKeyEvent : public nsInputEvent
@@ -932,19 +1005,16 @@ public:
   {
   }
 
-  nsKeyEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
+  nsKeyEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsInputEvent(isTrusted, msg, w, NS_KEY_EVENT),
-      keyCode(0), charCode(0),
-      location(nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD), isChar(0)
+      keyCode(0), charCode(0), isChar(0)
   {
   }
 
   
-  uint32_t        keyCode;   
+  PRUint32        keyCode;   
   
-  uint32_t        charCode;
-  
-  uint32_t        location;
+  PRUint32        charCode;
   
   
   nsTArray<nsAlternativeCharCode> alternativeCharCodes;
@@ -1047,8 +1117,8 @@ struct nsTextRangeStyle
     return Equals(aOther);
   }
 
-  uint8_t mDefinedStyles;
-  uint8_t mLineStyle;        
+  PRUint8 mDefinedStyles;
+  PRUint8 mLineStyle;        
 
   bool mIsBoldLine;  
 
@@ -1064,9 +1134,9 @@ struct nsTextRange
   {
   }
 
-  uint32_t mStartOffset;
-  uint32_t mEndOffset;
-  uint32_t mRangeType;
+  PRUint32 mStartOffset;
+  PRUint32 mEndOffset;
+  PRUint32 mRangeType;
 
   nsTextRangeStyle mRangeStyle;
 };
@@ -1085,17 +1155,17 @@ private:
   }
 
 public:
-  uint32_t seqno;
+  PRUint32 seqno;
 
 public:
-  nsTextEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
+  nsTextEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsInputEvent(isTrusted, msg, w, NS_TEXT_EVENT),
-      rangeCount(0), rangeArray(nullptr), isChar(false)
+      rangeCount(0), rangeArray(nsnull), isChar(false)
   {
   }
 
   nsString          theText;
-  uint32_t          rangeCount;
+  PRUint32          rangeCount;
   
   
   
@@ -1114,10 +1184,10 @@ private:
   }
 
 public:
-  uint32_t seqno;
+  PRUint32 seqno;
 
 public:
-  nsCompositionEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
+  nsCompositionEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsGUIEvent(isTrusted, msg, w, NS_COMPOSITION_EVENT)
   {
     
@@ -1135,131 +1205,85 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class nsMouseScrollEvent : public nsMouseEvent_base
-{
-private:
-  nsMouseScrollEvent()
-  {
-  }
-
-public:
-  nsMouseScrollEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
-    : nsMouseEvent_base(isTrusted, msg, w, NS_MOUSE_SCROLL_EVENT),
-      delta(0), isHorizontal(false)
-  {
-  }
-
-  int32_t               delta;
-  bool                  isHorizontal;
-};
-
-
-
-
-
-namespace mozilla {
-namespace widget {
-
-class WheelEvent : public nsMouseEvent_base
 {
 private:
   friend class mozilla::dom::PBrowserParent;
   friend class mozilla::dom::PBrowserChild;
 
-  WheelEvent()
+  nsMouseScrollEvent()
   {
   }
 
 public:
-  WheelEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget) :
-    nsMouseEvent_base(aIsTrusted, aMessage, aWidget, NS_WHEEL_EVENT),
-    deltaX(0.0), deltaY(0.0), deltaZ(0.0),
-    deltaMode(nsIDOMWheelEvent::DOM_DELTA_PIXEL),
-    customizedByUserPrefs(false), isMomentum(false), isPixelOnlyDevice(false),
-    lineOrPageDeltaX(0), lineOrPageDeltaY(0), scrollType(SCROLL_DEFAULT),
-    overflowDeltaX(0.0), overflowDeltaY(0.0)
-  {
-  }
-
-  
-  
-  
-  
-  double deltaX;
-  double deltaY;
-  double deltaZ;
-
-  
-  uint32_t deltaMode;
-
-  
-
-  
-  
-  bool customizedByUserPrefs;
-
-  
-  bool isMomentum;
-
-  
-  
-  
-  
-  bool isPixelOnlyDevice;
-
-  
-  
-  
-  int32_t lineOrPageDeltaX;
-  int32_t lineOrPageDeltaY;
-
-  
-  
-  int32_t GetPreferredIntDelta()
-  {
-    if (!lineOrPageDeltaX && !lineOrPageDeltaY) {
-      return 0;
-    }
-    if (lineOrPageDeltaY && !lineOrPageDeltaX) {
-      return lineOrPageDeltaY;
-    }
-    if (lineOrPageDeltaX && !lineOrPageDeltaY) {
-      return lineOrPageDeltaX;
-    }
-    if ((lineOrPageDeltaX < 0 && lineOrPageDeltaY > 0) ||
-        (lineOrPageDeltaX > 0 && lineOrPageDeltaY < 0)) {
-      return 0; 
-    }
-    return (NS_ABS(lineOrPageDeltaX) > NS_ABS(lineOrPageDeltaY)) ?
-             lineOrPageDeltaX : lineOrPageDeltaY;
-  }
-
-  
-  
-  
-  enum ScrollType {
-    SCROLL_DEFAULT,
-    SCROLL_SYNCHRONOUSLY,
-    SCROLL_ASYNCHRONOUSELY,
-    SCROLL_SMOOTHLY
+  enum nsMouseScrollFlags {
+    kIsFullPage =   1 << 0,
+    kIsVertical =   1 << 1,
+    kIsHorizontal = 1 << 2,
+    kHasPixels =    1 << 3, 
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+    kNoLines =      1 << 4, 
+                            
+                            
+                            
+                            
+    kNoDefer =      1 << 5, 
+                            
+    kIsMomentum =   1 << 6, 
+                            
+                            
+    kAllowSmoothScroll = 1 << 7 
+                                
   };
-  ScrollType scrollType;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  double overflowDeltaX;
-  double overflowDeltaY;
+  nsMouseScrollEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
+    : nsMouseEvent_base(isTrusted, msg, w, NS_MOUSE_SCROLL_EVENT),
+      scrollFlags(0), delta(0), scrollOverflow(0)
+  {
+  }
+
+  PRInt32               scrollFlags;
+  PRInt32               delta;
+  PRInt32               scrollOverflow;
 };
-
-} 
-} 
 
 
 
@@ -1285,7 +1309,7 @@ public:
   ePanDirection panDirection;
   bool          displayPanFeedback;
   
-  nsGestureNotifyEvent(bool aIsTrusted, uint32_t aMsg, nsIWidget *aWidget):
+  nsGestureNotifyEvent(bool aIsTrusted, PRUint32 aMsg, nsIWidget *aWidget):
     nsGUIEvent(aIsTrusted, aMsg, aWidget, NS_GESTURENOTIFY_EVENT),
     panDirection(ePanNone),
     displayPanFeedback(false)
@@ -1301,18 +1325,18 @@ private:
 
   nsQueryContentEvent()
   {
-    mReply.mContentsRoot = nullptr;
-    mReply.mFocusedWidget = nullptr;
+    mReply.mContentsRoot = nsnull;
+    mReply.mFocusedWidget = nsnull;
   }
 
 public:
-  nsQueryContentEvent(bool aIsTrusted, uint32_t aMsg, nsIWidget *aWidget) :
+  nsQueryContentEvent(bool aIsTrusted, PRUint32 aMsg, nsIWidget *aWidget) :
     nsGUIEvent(aIsTrusted, aMsg, aWidget, NS_QUERY_CONTENT_EVENT),
     mSucceeded(false), mWasAsync(false)
   {
   }
 
-  void InitForQueryTextContent(uint32_t aOffset, uint32_t aLength)
+  void InitForQueryTextContent(PRUint32 aOffset, PRUint32 aLength)
   {
     NS_ASSERTION(message == NS_QUERY_TEXT_CONTENT,
                  "wrong initializer is called");
@@ -1320,14 +1344,14 @@ public:
     mInput.mLength = aLength;
   }
 
-  void InitForQueryCaretRect(uint32_t aOffset)
+  void InitForQueryCaretRect(PRUint32 aOffset)
   {
     NS_ASSERTION(message == NS_QUERY_CARET_RECT,
                  "wrong initializer is called");
     mInput.mOffset = aOffset;
   }
 
-  void InitForQueryTextRect(uint32_t aOffset, uint32_t aLength)
+  void InitForQueryTextRect(PRUint32 aOffset, PRUint32 aLength)
   {
     NS_ASSERTION(message == NS_QUERY_TEXT_RECT,
                  "wrong initializer is called");
@@ -1342,14 +1366,21 @@ public:
     refPoint = aPoint;
   }
 
-  uint32_t GetSelectionStart(void) const
+  void InitForQueryScrollTargetInfo(nsMouseScrollEvent* aEvent)
+  {
+    NS_ASSERTION(message == NS_QUERY_SCROLL_TARGET_INFO,
+                 "wrong initializer is called");
+    mInput.mMouseScrollEvent = aEvent;
+  }
+
+  PRUint32 GetSelectionStart(void) const
   {
     NS_ASSERTION(message == NS_QUERY_SELECTED_TEXT,
                  "not querying selection");
     return mReply.mOffset + (mReply.mReversed ? mReply.mString.Length() : 0);
   }
 
-  uint32_t GetSelectionEnd(void) const
+  PRUint32 GetSelectionEnd(void) const
   {
     NS_ASSERTION(message == NS_QUERY_SELECTED_TEXT,
                  "not querying selection");
@@ -1359,12 +1390,14 @@ public:
   bool mSucceeded;
   bool mWasAsync;
   struct {
-    uint32_t mOffset;
-    uint32_t mLength;
+    PRUint32 mOffset;
+    PRUint32 mLength;
+    
+    nsMouseScrollEvent* mMouseScrollEvent;
   } mInput;
   struct {
     void* mContentsRoot;
-    uint32_t mOffset;
+    PRUint32 mOffset;
     nsString mString;
     nsIntRect mRect; 
     
@@ -1374,6 +1407,18 @@ public:
     bool mWidgetIsHit; 
     
     nsCOMPtr<nsITransferable> mTransferable;
+    
+    PRInt32 mLineHeight;
+    PRInt32 mPageWidth;
+    PRInt32 mPageHeight;
+    
+    
+    
+    
+    
+    
+    PRInt32 mComputedScrollAmount;
+    PRInt32 mComputedScrollAction;
   } mReply;
 
   enum {
@@ -1391,7 +1436,7 @@ public:
 class nsFocusEvent : public nsEvent
 {
 public:
-  nsFocusEvent(bool isTrusted, uint32_t msg)
+  nsFocusEvent(bool isTrusted, PRUint32 msg)
     : nsEvent(isTrusted, msg, NS_FOCUS_EVENT),
       fromRaise(false),
       isRefocus(false)
@@ -1413,17 +1458,17 @@ private:
   }
 
 public:
-  uint32_t seqno;
+  PRUint32 seqno;
 
 public:
-  nsSelectionEvent(bool aIsTrusted, uint32_t aMsg, nsIWidget *aWidget) :
+  nsSelectionEvent(bool aIsTrusted, PRUint32 aMsg, nsIWidget *aWidget) :
     nsGUIEvent(aIsTrusted, aMsg, aWidget, NS_SELECTION_EVENT),
     mExpandToClusterBoundary(true), mSucceeded(false)
   {
   }
 
-  uint32_t mOffset; 
-  uint32_t mLength; 
+  PRUint32 mOffset; 
+  PRUint32 mLength; 
   bool mReversed; 
   bool mExpandToClusterBoundary; 
   bool mSucceeded;
@@ -1432,7 +1477,7 @@ public:
 class nsContentCommandEvent : public nsGUIEvent
 {
 public:
-  nsContentCommandEvent(bool aIsTrusted, uint32_t aMsg, nsIWidget *aWidget,
+  nsContentCommandEvent(bool aIsTrusted, PRUint32 aMsg, nsIWidget *aWidget,
                         bool aOnlyEnabledCheck = false) :
     nsGUIEvent(aIsTrusted, aMsg, aWidget, NS_CONTENT_COMMAND_EVENT),
     mOnlyEnabledCheck(bool(aOnlyEnabledCheck)),
@@ -1457,8 +1502,8 @@ public:
     {
     }
 
-    int32_t      mAmount;                                  
-    uint8_t      mUnit;                                    
+    PRInt32      mAmount;                                  
+    PRUint8      mUnit;                                    
     bool mIsHorizontal;                            
   } mScroll;
 
@@ -1471,44 +1516,14 @@ public:
 class nsMozTouchEvent : public nsMouseEvent_base
 {
 public:
-  nsMozTouchEvent(bool isTrusted, uint32_t msg, nsIWidget* w,
-                  uint32_t streamIdArg)
+  nsMozTouchEvent(bool isTrusted, PRUint32 msg, nsIWidget* w,
+                  PRUint32 streamIdArg)
     : nsMouseEvent_base(isTrusted, msg, w, NS_MOZTOUCH_EVENT),
       streamId(streamIdArg)
   {
   }
 
-  uint32_t streamId;
-};
-
-class nsTouchEvent : public nsInputEvent
-{
-public:
-  nsTouchEvent()
-  {
-  }
-  nsTouchEvent(bool isTrusted, nsTouchEvent *aEvent)
-    : nsInputEvent(isTrusted,
-                   aEvent->message,
-                   aEvent->widget,
-                   NS_TOUCH_EVENT)
-  {
-    modifiers = aEvent->modifiers;
-    time = aEvent->time;
-    touches.AppendElements(aEvent->touches);
-    MOZ_COUNT_CTOR(nsTouchEvent);
-  }
-  nsTouchEvent(bool isTrusted, uint32_t msg, nsIWidget* w)
-    : nsInputEvent(isTrusted, msg, w, NS_TOUCH_EVENT)
-  {
-    MOZ_COUNT_CTOR(nsTouchEvent);
-  }
-  ~nsTouchEvent()
-  {
-    MOZ_COUNT_DTOR(nsTouchEvent);
-  }
-
-  nsTArray<nsCOMPtr<nsIDOMTouch> > touches;
+  PRUint32 streamId;
 };
 
 
@@ -1521,9 +1536,9 @@ public:
 class nsFormEvent : public nsEvent
 {
 public:
-  nsFormEvent(bool isTrusted, uint32_t msg)
+  nsFormEvent(bool isTrusted, PRUint32 msg)
     : nsEvent(isTrusted, msg, NS_FORM_EVENT),
-      originator(nullptr)
+      originator(nsnull)
   {
   }
 
@@ -1556,13 +1571,13 @@ public:
 class nsUIEvent : public nsEvent
 {
 public:
-  nsUIEvent(bool isTrusted, uint32_t msg, int32_t d)
+  nsUIEvent(bool isTrusted, PRUint32 msg, PRInt32 d)
     : nsEvent(isTrusted, msg, NS_UI_EVENT),
       detail(d)
   {
   }
 
-  int32_t detail;
+  PRInt32 detail;
 };
 
 
@@ -1571,29 +1586,28 @@ public:
 class nsSimpleGestureEvent : public nsMouseEvent_base
 {
 public:
-  nsSimpleGestureEvent(bool isTrusted, uint32_t msg, nsIWidget* w,
-                         uint32_t directionArg, double deltaArg)
+  nsSimpleGestureEvent(bool isTrusted, PRUint32 msg, nsIWidget* w,
+                         PRUint32 directionArg, PRFloat64 deltaArg)
     : nsMouseEvent_base(isTrusted, msg, w, NS_SIMPLE_GESTURE_EVENT),
-      direction(directionArg), delta(deltaArg), clickCount(0)
+      direction(directionArg), delta(deltaArg)
   {
   }
 
   nsSimpleGestureEvent(const nsSimpleGestureEvent& other)
     : nsMouseEvent_base((other.flags & NS_EVENT_FLAG_TRUSTED) != 0,
                         other.message, other.widget, NS_SIMPLE_GESTURE_EVENT),
-      direction(other.direction), delta(other.delta), clickCount(0)
+      direction(other.direction), delta(other.delta)
   {
   }
 
-  uint32_t direction;   
-  double delta;         
-  uint32_t clickCount;  
+  PRUint32 direction;   
+  PRFloat64 delta;      
 };
 
 class nsTransitionEvent : public nsEvent
 {
 public:
-  nsTransitionEvent(bool isTrusted, uint32_t msg,
+  nsTransitionEvent(bool isTrusted, PRUint32 msg,
                     const nsString &propertyNameArg, float elapsedTimeArg)
     : nsEvent(isTrusted, msg, NS_TRANSITION_EVENT),
       propertyName(propertyNameArg), elapsedTime(elapsedTimeArg)
@@ -1607,7 +1621,7 @@ public:
 class nsAnimationEvent : public nsEvent
 {
 public:
-  nsAnimationEvent(bool isTrusted, uint32_t msg,
+  nsAnimationEvent(bool isTrusted, PRUint32 msg,
                    const nsString &animationNameArg, float elapsedTimeArg)
     : nsEvent(isTrusted, msg, NS_ANIMATION_EVENT),
       animationName(animationNameArg), elapsedTime(elapsedTimeArg)
@@ -1618,6 +1632,20 @@ public:
   float elapsedTime;
 };
 
+class nsUIStateChangeEvent : public nsGUIEvent
+{
+public:
+  nsUIStateChangeEvent(bool isTrusted, PRUint32 msg, nsIWidget* w)
+    : nsGUIEvent(isTrusted, msg, w, NS_UISTATECHANGE_EVENT),
+      showAccelerators(UIStateChangeType_NoChange),
+      showFocusRings(UIStateChangeType_NoChange)
+  {
+  }
+
+  UIStateChangeType showAccelerators;
+  UIStateChangeType showFocusRings;
+};
+
 
 
 
@@ -1625,7 +1653,7 @@ public:
 class nsPluginEvent : public nsGUIEvent
 {
 public:
-  nsPluginEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
+  nsPluginEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsGUIEvent(isTrusted, msg, w, NS_PLUGIN_EVENT),
       retargetToFocusedDocument(false)
   {
@@ -1649,16 +1677,6 @@ enum nsDragDropEventStatus {
   nsDragDropEventStatus_eDrop  
 };
 
-#define NS_IS_INPUT_EVENT(evnt) \
-       (((evnt)->eventStructType == NS_INPUT_EVENT) || \
-        ((evnt)->eventStructType == NS_MOUSE_EVENT) || \
-        ((evnt)->eventStructType == NS_KEY_EVENT) || \
-        ((evnt)->eventStructType == NS_TEXT_EVENT) || \
-        ((evnt)->eventStructType == NS_TOUCH_EVENT) || \
-        ((evnt)->eventStructType == NS_DRAG_EVENT) || \
-        ((evnt)->eventStructType == NS_MOUSE_SCROLL_EVENT) || \
-        ((evnt)->eventStructType == NS_MOZTOUCH_EVENT) || \
-        ((evnt)->eventStructType == NS_SIMPLE_GESTURE_EVENT))
 
 #define NS_IS_MOUSE_EVENT(evnt) \
        (((evnt)->message == NS_MOUSE_BUTTON_DOWN) || \
@@ -1711,7 +1729,9 @@ enum nsDragDropEventStatus {
         ((evnt)->message == NS_COMPOSITION_UPDATE))
 
 #define NS_IS_ACTIVATION_EVENT(evnt) \
-        (((evnt)->message == NS_PLUGIN_ACTIVATE) || \
+       (((evnt)->message == NS_ACTIVATE) || \
+        ((evnt)->message == NS_DEACTIVATE) || \
+        ((evnt)->message == NS_PLUGIN_ACTIVATE) || \
         ((evnt)->message == NS_PLUGIN_FOCUS))
 
 #define NS_IS_QUERY_CONTENT_EVENT(evnt) \
@@ -1757,7 +1777,8 @@ enum nsDragDropEventStatus {
 
 #define NS_IS_IME_RELATED_EVENT(evnt) \
   (NS_IS_IME_EVENT(evnt) || \
-   NS_IS_QUERY_CONTENT_EVENT(evnt) || \
+   (NS_IS_QUERY_CONTENT_EVENT(evnt) && \
+    evnt->message != NS_QUERY_SCROLL_TARGET_INFO) || \
    NS_IS_SELECTION_EVENT(evnt))
 
 
@@ -1767,11 +1788,145 @@ enum nsDragDropEventStatus {
 
 
 
-enum {
-#define NS_DEFINE_VK(aDOMKeyName, aDOMKeyCode) NS_##aDOMKeyName = aDOMKeyCode
-#include "nsVKList.h"
-#undef NS_DEFINE_VK
-};
+#define NS_VK_CANCEL         nsIDOMKeyEvent::DOM_VK_CANCEL
+#define NS_VK_HELP           nsIDOMKeyEvent::DOM_VK_HELP
+#define NS_VK_BACK           nsIDOMKeyEvent::DOM_VK_BACK_SPACE
+#define NS_VK_TAB            nsIDOMKeyEvent::DOM_VK_TAB
+#define NS_VK_CLEAR          nsIDOMKeyEvent::DOM_VK_CLEAR
+#define NS_VK_RETURN         nsIDOMKeyEvent::DOM_VK_RETURN
+#define NS_VK_ENTER          nsIDOMKeyEvent::DOM_VK_ENTER
+#define NS_VK_SHIFT          nsIDOMKeyEvent::DOM_VK_SHIFT
+#define NS_VK_CONTROL        nsIDOMKeyEvent::DOM_VK_CONTROL
+#define NS_VK_ALT            nsIDOMKeyEvent::DOM_VK_ALT
+#define NS_VK_PAUSE          nsIDOMKeyEvent::DOM_VK_PAUSE
+#define NS_VK_CAPS_LOCK      nsIDOMKeyEvent::DOM_VK_CAPS_LOCK
+#define NS_VK_KANA           nsIDOMKeyEvent::DOM_VK_KANA
+#define NS_VK_HANGUL         nsIDOMKeyEvent::DOM_VK_HANGUL
+#define NS_VK_JUNJA          nsIDOMKeyEvent::DOM_VK_JUNJA
+#define NS_VK_FINAL          nsIDOMKeyEvent::DOM_VK_FINAL
+#define NS_VK_HANJA          nsIDOMKeyEvent::DOM_VK_HANJA
+#define NS_VK_KANJI          nsIDOMKeyEvent::DOM_VK_KANJI
+#define NS_VK_ESCAPE         nsIDOMKeyEvent::DOM_VK_ESCAPE
+#define NS_VK_CONVERT        nsIDOMKeyEvent::DOM_VK_CONVERT
+#define NS_VK_NONCONVERT     nsIDOMKeyEvent::DOM_VK_NONCONVERT
+#define NS_VK_ACCEPT         nsIDOMKeyEvent::DOM_VK_ACCEPT
+#define NS_VK_MODECHANGE     nsIDOMKeyEvent::DOM_VK_MODECHANGE
+#define NS_VK_SPACE          nsIDOMKeyEvent::DOM_VK_SPACE
+#define NS_VK_PAGE_UP        nsIDOMKeyEvent::DOM_VK_PAGE_UP
+#define NS_VK_PAGE_DOWN      nsIDOMKeyEvent::DOM_VK_PAGE_DOWN
+#define NS_VK_END            nsIDOMKeyEvent::DOM_VK_END
+#define NS_VK_HOME           nsIDOMKeyEvent::DOM_VK_HOME
+#define NS_VK_LEFT           nsIDOMKeyEvent::DOM_VK_LEFT
+#define NS_VK_UP             nsIDOMKeyEvent::DOM_VK_UP
+#define NS_VK_RIGHT          nsIDOMKeyEvent::DOM_VK_RIGHT
+#define NS_VK_DOWN           nsIDOMKeyEvent::DOM_VK_DOWN
+#define NS_VK_SELECT         nsIDOMKeyEvent::DOM_VK_SELECT
+#define NS_VK_PRINT          nsIDOMKeyEvent::DOM_VK_PRINT
+#define NS_VK_EXECUTE        nsIDOMKeyEvent::DOM_VK_EXECUTE
+#define NS_VK_PRINTSCREEN    nsIDOMKeyEvent::DOM_VK_PRINTSCREEN
+#define NS_VK_INSERT         nsIDOMKeyEvent::DOM_VK_INSERT
+#define NS_VK_DELETE         nsIDOMKeyEvent::DOM_VK_DELETE
+
+
+#define NS_VK_0              nsIDOMKeyEvent::DOM_VK_0
+#define NS_VK_1              nsIDOMKeyEvent::DOM_VK_1
+#define NS_VK_2              nsIDOMKeyEvent::DOM_VK_2
+#define NS_VK_3              nsIDOMKeyEvent::DOM_VK_3
+#define NS_VK_4              nsIDOMKeyEvent::DOM_VK_4
+#define NS_VK_5              nsIDOMKeyEvent::DOM_VK_5
+#define NS_VK_6              nsIDOMKeyEvent::DOM_VK_6
+#define NS_VK_7              nsIDOMKeyEvent::DOM_VK_7
+#define NS_VK_8              nsIDOMKeyEvent::DOM_VK_8
+#define NS_VK_9              nsIDOMKeyEvent::DOM_VK_9
+
+#define NS_VK_SEMICOLON      nsIDOMKeyEvent::DOM_VK_SEMICOLON
+#define NS_VK_EQUALS         nsIDOMKeyEvent::DOM_VK_EQUALS
+
+
+#define NS_VK_A              nsIDOMKeyEvent::DOM_VK_A
+#define NS_VK_B              nsIDOMKeyEvent::DOM_VK_B
+#define NS_VK_C              nsIDOMKeyEvent::DOM_VK_C
+#define NS_VK_D              nsIDOMKeyEvent::DOM_VK_D
+#define NS_VK_E              nsIDOMKeyEvent::DOM_VK_E
+#define NS_VK_F              nsIDOMKeyEvent::DOM_VK_F
+#define NS_VK_G              nsIDOMKeyEvent::DOM_VK_G
+#define NS_VK_H              nsIDOMKeyEvent::DOM_VK_H
+#define NS_VK_I              nsIDOMKeyEvent::DOM_VK_I
+#define NS_VK_J              nsIDOMKeyEvent::DOM_VK_J
+#define NS_VK_K              nsIDOMKeyEvent::DOM_VK_K
+#define NS_VK_L              nsIDOMKeyEvent::DOM_VK_L
+#define NS_VK_M              nsIDOMKeyEvent::DOM_VK_M
+#define NS_VK_N              nsIDOMKeyEvent::DOM_VK_N
+#define NS_VK_O              nsIDOMKeyEvent::DOM_VK_O
+#define NS_VK_P              nsIDOMKeyEvent::DOM_VK_P
+#define NS_VK_Q              nsIDOMKeyEvent::DOM_VK_Q
+#define NS_VK_R              nsIDOMKeyEvent::DOM_VK_R
+#define NS_VK_S              nsIDOMKeyEvent::DOM_VK_S
+#define NS_VK_T              nsIDOMKeyEvent::DOM_VK_T
+#define NS_VK_U              nsIDOMKeyEvent::DOM_VK_U
+#define NS_VK_V              nsIDOMKeyEvent::DOM_VK_V
+#define NS_VK_W              nsIDOMKeyEvent::DOM_VK_W
+#define NS_VK_X              nsIDOMKeyEvent::DOM_VK_X
+#define NS_VK_Y              nsIDOMKeyEvent::DOM_VK_Y
+#define NS_VK_Z              nsIDOMKeyEvent::DOM_VK_Z
+
+#define NS_VK_CONTEXT_MENU   nsIDOMKeyEvent::DOM_VK_CONTEXT_MENU
+#define NS_VK_SLEEP          nsIDOMKeyEvent::DOM_VK_SLEEP
+
+#define NS_VK_NUMPAD0        nsIDOMKeyEvent::DOM_VK_NUMPAD0
+#define NS_VK_NUMPAD1        nsIDOMKeyEvent::DOM_VK_NUMPAD1
+#define NS_VK_NUMPAD2        nsIDOMKeyEvent::DOM_VK_NUMPAD2
+#define NS_VK_NUMPAD3        nsIDOMKeyEvent::DOM_VK_NUMPAD3
+#define NS_VK_NUMPAD4        nsIDOMKeyEvent::DOM_VK_NUMPAD4
+#define NS_VK_NUMPAD5        nsIDOMKeyEvent::DOM_VK_NUMPAD5
+#define NS_VK_NUMPAD6        nsIDOMKeyEvent::DOM_VK_NUMPAD6
+#define NS_VK_NUMPAD7        nsIDOMKeyEvent::DOM_VK_NUMPAD7
+#define NS_VK_NUMPAD8        nsIDOMKeyEvent::DOM_VK_NUMPAD8
+#define NS_VK_NUMPAD9        nsIDOMKeyEvent::DOM_VK_NUMPAD9
+#define NS_VK_MULTIPLY       nsIDOMKeyEvent::DOM_VK_MULTIPLY
+#define NS_VK_ADD            nsIDOMKeyEvent::DOM_VK_ADD
+#define NS_VK_SEPARATOR      nsIDOMKeyEvent::DOM_VK_SEPARATOR
+#define NS_VK_SUBTRACT       nsIDOMKeyEvent::DOM_VK_SUBTRACT
+#define NS_VK_DECIMAL        nsIDOMKeyEvent::DOM_VK_DECIMAL
+#define NS_VK_DIVIDE         nsIDOMKeyEvent::DOM_VK_DIVIDE
+#define NS_VK_F1             nsIDOMKeyEvent::DOM_VK_F1
+#define NS_VK_F2             nsIDOMKeyEvent::DOM_VK_F2
+#define NS_VK_F3             nsIDOMKeyEvent::DOM_VK_F3
+#define NS_VK_F4             nsIDOMKeyEvent::DOM_VK_F4
+#define NS_VK_F5             nsIDOMKeyEvent::DOM_VK_F5
+#define NS_VK_F6             nsIDOMKeyEvent::DOM_VK_F6
+#define NS_VK_F7             nsIDOMKeyEvent::DOM_VK_F7
+#define NS_VK_F8             nsIDOMKeyEvent::DOM_VK_F8
+#define NS_VK_F9             nsIDOMKeyEvent::DOM_VK_F9
+#define NS_VK_F10            nsIDOMKeyEvent::DOM_VK_F10
+#define NS_VK_F11            nsIDOMKeyEvent::DOM_VK_F11
+#define NS_VK_F12            nsIDOMKeyEvent::DOM_VK_F12
+#define NS_VK_F13            nsIDOMKeyEvent::DOM_VK_F13
+#define NS_VK_F14            nsIDOMKeyEvent::DOM_VK_F14
+#define NS_VK_F15            nsIDOMKeyEvent::DOM_VK_F15
+#define NS_VK_F16            nsIDOMKeyEvent::DOM_VK_F16
+#define NS_VK_F17            nsIDOMKeyEvent::DOM_VK_F17
+#define NS_VK_F18            nsIDOMKeyEvent::DOM_VK_F18
+#define NS_VK_F19            nsIDOMKeyEvent::DOM_VK_F19
+#define NS_VK_F20            nsIDOMKeyEvent::DOM_VK_F20
+#define NS_VK_F21            nsIDOMKeyEvent::DOM_VK_F21
+#define NS_VK_F22            nsIDOMKeyEvent::DOM_VK_F22
+#define NS_VK_F23            nsIDOMKeyEvent::DOM_VK_F23
+#define NS_VK_F24            nsIDOMKeyEvent::DOM_VK_F24
+
+#define NS_VK_NUM_LOCK       nsIDOMKeyEvent::DOM_VK_NUM_LOCK
+#define NS_VK_SCROLL_LOCK    nsIDOMKeyEvent::DOM_VK_SCROLL_LOCK
+
+#define NS_VK_COMMA          nsIDOMKeyEvent::DOM_VK_COMMA
+#define NS_VK_PERIOD         nsIDOMKeyEvent::DOM_VK_PERIOD
+#define NS_VK_SLASH          nsIDOMKeyEvent::DOM_VK_SLASH
+#define NS_VK_BACK_QUOTE     nsIDOMKeyEvent::DOM_VK_BACK_QUOTE
+#define NS_VK_OPEN_BRACKET   nsIDOMKeyEvent::DOM_VK_OPEN_BRACKET
+#define NS_VK_BACK_SLASH     nsIDOMKeyEvent::DOM_VK_BACK_SLASH
+#define NS_VK_CLOSE_BRACKET  nsIDOMKeyEvent::DOM_VK_CLOSE_BRACKET
+#define NS_VK_QUOTE          nsIDOMKeyEvent::DOM_VK_QUOTE
+
+#define NS_VK_META           nsIDOMKeyEvent::DOM_VK_META
 
 
 #define NS_TEXTRANGE_CARETPOSITION         0x01
@@ -1790,7 +1945,8 @@ inline bool NS_IsEventUsingCoordinates(nsEvent* aEvent)
   return !NS_IS_KEY_EVENT(aEvent) && !NS_IS_IME_RELATED_EVENT(aEvent) &&
          !NS_IS_CONTEXT_MENU_KEY(aEvent) && !NS_IS_ACTIVATION_EVENT(aEvent) &&
          !NS_IS_PLUGIN_EVENT(aEvent) &&
-         !NS_IS_CONTENT_COMMAND_EVENT(aEvent);
+         !NS_IS_CONTENT_COMMAND_EVENT(aEvent) &&
+         aEvent->eventStructType != NS_ACCESSIBLE_EVENT;
 }
 
 
@@ -1831,32 +1987,4 @@ inline bool NS_IsEventTargetedAtFocusedContent(nsEvent* aEvent)
          NS_IS_RETARGETED_PLUGIN_EVENT(aEvent);
 }
 
-
-
-
-inline bool NS_IsAllowedToDispatchDOMEvent(nsEvent* aEvent)
-{
-  switch (aEvent->eventStructType) {
-    case NS_MOUSE_EVENT:
-      
-      
-      
-      
-      
-      return static_cast<nsMouseEvent*>(aEvent)->reason == nsMouseEvent::eReal;
-
-    case NS_WHEEL_EVENT: {
-      
-      
-      mozilla::widget::WheelEvent* wheelEvent =
-        static_cast<mozilla::widget::WheelEvent*>(aEvent);
-      return wheelEvent->deltaX != 0.0 || wheelEvent->deltaY != 0.0 ||
-             wheelEvent->deltaZ != 0.0;
-    }
-
-    default:
-      return true;
-  }
-}
-
-#endif 
+#endif

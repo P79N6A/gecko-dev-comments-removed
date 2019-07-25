@@ -356,6 +356,9 @@ public:
     
     
     static void AppendPrefLang(eFontPrefLang aPrefLangs[], PRUint32& aLen, eFontPrefLang aAddLang);
+
+    
+    static bool UseAzureContentDrawing();
     
     
 

@@ -5,8 +5,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __mozilla_widget_TaskbarWindowPreview_h__
 #define __mozilla_widget_TaskbarWindowPreview_h__
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
 
 #include "nsITaskbarWindowPreview.h"
 #include "nsITaskbarProgress.h"
@@ -43,7 +79,7 @@ private:
   virtual nsresult Enable();
   virtual nsresult Disable();
   virtual void DetachFromNSWindow();
-  nsresult UpdateButton(uint32_t index);
+  nsresult UpdateButton(PRUint32 index);
   nsresult UpdateButtons();
 
   
@@ -79,6 +115,8 @@ private:
 
 } 
 } 
+
+#endif 
 
 #endif 
 

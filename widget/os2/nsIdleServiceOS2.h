@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIdleServiceOS2_h__
 #define nsIdleServiceOS2_h__
 
@@ -15,30 +47,19 @@
 class nsIdleServiceOS2 : public nsIdleService
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_ISUPPORTS
+
+  nsIdleServiceOS2();
+  ~nsIdleServiceOS2();
 
   
-  bool PollIdleTime(uint32_t *aIdleTime);
+  bool PollIdleTime(PRUint32 *aIdleTime);
 
-  static already_AddRefed<nsIdleServiceOS2> GetInstance()
-  {
-    nsIdleServiceOS2* idleService =
-      static_cast<nsIdleServiceOS2*>(nsIdleService::GetInstance().get());
-    if (!idleService) {
-      idleService = new nsIdleServiceOS2();
-      NS_ADDREF(idleService);
-    }
-    
-    return idleService;
-  }
-  
 private:
   HMODULE mHMod; 
   bool mInitialized; 
 
 protected:
-  nsIdleServiceOS2();
-  ~nsIdleServiceOS2();
   bool UsePollMode();
 };
 

@@ -3,10 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/Util.h"
 
-#include "mozilla/layers/CompositorChild.h"
-#include "mozilla/layers/CompositorParent.h"
 #include "nsBaseWidget.h"
 #include "nsDeviceContext.h"
 #include "nsCOMPtr.h"
@@ -22,19 +53,8 @@
 #include "BasicLayers.h"
 #include "LayerManagerOGL.h"
 #include "nsIXULRuntime.h"
-#include "nsIXULWindow.h"
-#include "nsIBaseWindow.h"
-#include "nsEventStateManager.h"
-#include "nsIWidgetListener.h"
 #include "nsIGfxInfo.h"
 #include "npapi.h"
-#include "base/thread.h"
-#include "prenv.h"
-#include "mozilla/Attributes.h"
-
-#ifdef ACCESSIBILITY
-#include "nsAccessibilityService.h"
-#endif
 
 #ifdef DEBUG
 #include "nsIObserver.h"
@@ -45,18 +65,13 @@ static bool debug_InSecureKeyboardInputMode = false;
 #endif
 
 #ifdef NOISY_WIDGET_LEAKS
-static int32_t gNumWidgets;
+static PRInt32 gNumWidgets;
 #endif
 
 using namespace mozilla::layers;
 using namespace mozilla;
-using base::Thread;
-using mozilla::ipc::AsyncChannel;
 
-nsIContent* nsBaseWidget::mLastRollup = nullptr;
-
-
-bool            gDisableNativeTheme               = false;
+nsIContent* nsBaseWidget::mLastRollup = nsnull;
 
 
 NS_IMPL_ISUPPORTS1(nsBaseWidget, nsIWidget)
@@ -84,24 +99,23 @@ nsAutoRollup::~nsAutoRollup()
 
 
 nsBaseWidget::nsBaseWidget()
-: mWidgetListener(nullptr)
-, mAttachedWidgetListener(nullptr)
-, mContext(nullptr)
+: mClientData(nsnull)
+, mViewWrapperPtr(nsnull)
+, mEventCallback(nsnull)
+, mViewCallback(nsnull)
+, mContext(nsnull)
 , mCursor(eCursor_standard)
 , mWindowType(eWindowType_child)
 , mBorderStyle(eBorderStyle_none)
 , mOnDestroyCalled(false)
 , mUseAcceleratedRendering(false)
-, mForceLayersAcceleration(false)
 , mTemporarilyUseBasicLayerManager(false)
-, mUseAttachedEvents(false)
 , mBounds(0,0,0,0)
-, mOriginalBounds(nullptr)
+, mOriginalBounds(nsnull)
 , mClipRectCount(0)
 , mZIndex(0)
 , mSizeMode(nsSizeMode_Normal)
 , mPopupLevel(ePopupLevelTop)
-, mPopupType(ePopupTypeAny)
 {
 #ifdef NOISY_WIDGET_LEAKS
   gNumWidgets++;
@@ -109,40 +123,10 @@ nsBaseWidget::nsBaseWidget()
 #endif
 
 #ifdef DEBUG
-  debug_RegisterPrefCallbacks();
+    debug_RegisterPrefCallbacks();
 #endif
 }
 
-
-static void DeferredDestroyCompositor(CompositorParent* aCompositorParent,
-                              CompositorChild* aCompositorChild)
-{
-    aCompositorChild->Destroy();
-    aCompositorParent->Release();
-    aCompositorChild->Release();
-}
-
-void nsBaseWidget::DestroyCompositor() 
-{
-  if (mCompositorChild) {
-    mCompositorChild->SendWillStop();
-
-    
-    
-    
-    
-    
-    
-    
-    MessageLoop::current()->PostTask(FROM_HERE,
-               NewRunnableFunction(DeferredDestroyCompositor, mCompositorParent,
-                                   mCompositorChild));
-    
-    
-    mCompositorParent.forget();
-    mCompositorChild.forget();
-  }
-}
 
 
 
@@ -152,16 +136,13 @@ void nsBaseWidget::DestroyCompositor()
 nsBaseWidget::~nsBaseWidget()
 {
   if (mLayerManager &&
-      mLayerManager->GetBackendType() == LAYERS_BASIC) {
+      mLayerManager->GetBackendType() == LayerManager::LAYERS_BASIC) {
     static_cast<BasicLayerManager*>(mLayerManager.get())->ClearRetainerWidget();
   }
 
   if (mLayerManager) {
     mLayerManager->Destroy();
-    mLayerManager = nullptr;
   }
-
-  DestroyCompositor();
 
 #ifdef NOISY_WIDGET_LEAKS
   gNumWidgets--;
@@ -180,17 +161,13 @@ nsBaseWidget::~nsBaseWidget()
 
 void nsBaseWidget::BaseCreate(nsIWidget *aParent,
                               const nsIntRect &aRect,
+                              EVENT_CALLBACK aHandleEventFunction,
                               nsDeviceContext *aContext,
                               nsWidgetInitData *aInitData)
 {
-  static bool gDisableNativeThemeCached = false;
-  if (!gDisableNativeThemeCached) {
-    Preferences::AddBoolVarCache(&gDisableNativeTheme,
-                                 "mozilla.widget.disable-native-theme",
-                                 gDisableNativeTheme);
-    gDisableNativeThemeCached = true;
-  }
-
+  
+  mEventCallback = aHandleEventFunction;
+  
   
   if (aContext) {
     mContext = aContext;
@@ -199,14 +176,13 @@ void nsBaseWidget::BaseCreate(nsIWidget *aParent,
   else {
     mContext = new nsDeviceContext();
     NS_ADDREF(mContext);
-    mContext->Init(nullptr);
+    mContext->Init(nsnull);
   }
 
-  if (nullptr != aInitData) {
+  if (nsnull != aInitData) {
     mWindowType = aInitData->mWindowType;
     mBorderStyle = aInitData->mBorderStyle;
     mPopupLevel = aInitData->mPopupLevel;
-    mPopupType = aInitData->mPopupHint;
   }
 
   if (aParent) {
@@ -225,31 +201,34 @@ NS_IMETHODIMP nsBaseWidget::CaptureMouse(bool aCapture)
 
 
 
-nsIWidgetListener* nsBaseWidget::GetWidgetListener()
+NS_IMETHODIMP nsBaseWidget::GetClientData(void*& aClientData)
 {
-  return mWidgetListener;
+  aClientData = mClientData;
+  return NS_OK;
 }
 
-void nsBaseWidget::SetWidgetListener(nsIWidgetListener* aWidgetListener)
+NS_IMETHODIMP nsBaseWidget::SetClientData(void* aClientData)
 {
-  mWidgetListener = aWidgetListener;
+  mClientData = aClientData;
+  return NS_OK;
 }
 
 already_AddRefed<nsIWidget>
 nsBaseWidget::CreateChild(const nsIntRect  &aRect,
+                          EVENT_CALLBACK   aHandleEventFunction,
                           nsDeviceContext *aContext,
                           nsWidgetInitData *aInitData,
                           bool             aForceUseIWidgetParent)
 {
   nsIWidget* parent = this;
-  nsNativeWidget nativeParent = nullptr;
+  nsNativeWidget nativeParent = nsnull;
 
   if (!aForceUseIWidgetParent) {
     
     
     
-    nativeParent = parent ? parent->GetNativeData(NS_NATIVE_WIDGET) : nullptr;
-    parent = nativeParent ? nullptr : parent;
+    nativeParent = parent ? parent->GetNativeData(NS_NATIVE_WIDGET) : nsnull;
+    parent = nativeParent ? nsnull : parent;
     NS_ABORT_IF_FALSE(!parent || !nativeParent, "messed up logic");
   }
 
@@ -263,16 +242,17 @@ nsBaseWidget::CreateChild(const nsIntRect  &aRect,
 
   if (widget &&
       NS_SUCCEEDED(widget->Create(parent, nativeParent, aRect,
+                                  aHandleEventFunction,
                                   aContext, aInitData))) {
     return widget.forget();
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
 NS_IMETHODIMP
-nsBaseWidget::AttachViewToTopLevel(bool aUseAttachedEvents,
+nsBaseWidget::AttachViewToTopLevel(EVENT_CALLBACK aViewEventFunction,
                                    nsDeviceContext *aContext)
 {
   NS_ASSERTION((mWindowType == eWindowType_toplevel ||
@@ -281,7 +261,7 @@ nsBaseWidget::AttachViewToTopLevel(bool aUseAttachedEvents,
                 mWindowType == eWindowType_child),
                "Can't attach to window of that type");
 
-  mUseAttachedEvents = aUseAttachedEvents;
+  mViewCallback = aViewEventFunction;
 
   if (aContext) {
     if (mContext) {
@@ -294,14 +274,15 @@ nsBaseWidget::AttachViewToTopLevel(bool aUseAttachedEvents,
   return NS_OK;
 }
 
-nsIWidgetListener* nsBaseWidget::GetAttachedWidgetListener()
+ViewWrapper* nsBaseWidget::GetAttachedViewPtr()
  {
-   return mAttachedWidgetListener;
+   return mViewWrapperPtr;
  }
  
-void nsBaseWidget::SetAttachedWidgetListener(nsIWidgetListener* aListener)
+NS_IMETHODIMP nsBaseWidget::SetAttachedViewPtr(ViewWrapper* aViewWrapper)
  {
-   mAttachedWidgetListener = aListener;
+   mViewWrapperPtr = aViewWrapper;
+   return NS_OK;
  }
 
 
@@ -341,7 +322,7 @@ NS_IMETHODIMP nsBaseWidget::SetParent(nsIWidget* aNewParent)
 
 nsIWidget* nsBaseWidget::GetParent(void)
 {
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -351,7 +332,7 @@ nsIWidget* nsBaseWidget::GetParent(void)
 
 nsIWidget* nsBaseWidget::GetTopLevelWidget()
 {
-  nsIWidget *topLevelWidget = nullptr, *widget = this;
+  nsIWidget *topLevelWidget = nsnull, *widget = this;
   while (widget) {
     topLevelWidget = widget;
     widget = widget->GetParent();
@@ -366,7 +347,7 @@ nsIWidget* nsBaseWidget::GetTopLevelWidget()
 
 nsIWidget* nsBaseWidget::GetSheetWindowParent(void)
 {
-  return nullptr;
+  return nsnull;
 }
 
 float nsBaseWidget::GetDPI()
@@ -429,8 +410,8 @@ void nsBaseWidget::RemoveChild(nsIWidget* aChild)
     next->SetPrevSibling(prev);
   }
   
-  aChild->SetNextSibling(nullptr);
-  aChild->SetPrevSibling(nullptr);
+  aChild->SetNextSibling(nsnull);
+  aChild->SetPrevSibling(nsnull);
 }
 
 
@@ -439,7 +420,7 @@ void nsBaseWidget::RemoveChild(nsIWidget* aChild)
 
 
 
-NS_IMETHODIMP nsBaseWidget::SetZIndex(int32_t aZIndex)
+NS_IMETHODIMP nsBaseWidget::SetZIndex(PRInt32 aZIndex)
 {
   
   
@@ -454,7 +435,7 @@ NS_IMETHODIMP nsBaseWidget::SetZIndex(int32_t aZIndex)
     
     nsIWidget* sib = parent->GetFirstChild();
     for ( ; sib; sib = sib->GetNextSibling()) {
-      int32_t childZIndex;
+      PRInt32 childZIndex;
       if (NS_SUCCEEDED(sib->GetZIndex(&childZIndex))) {
         if (aZIndex < childZIndex) {
           
@@ -488,7 +469,7 @@ NS_IMETHODIMP nsBaseWidget::SetZIndex(int32_t aZIndex)
 
 
 
-NS_IMETHODIMP nsBaseWidget::GetZIndex(int32_t* aZIndex)
+NS_IMETHODIMP nsBaseWidget::GetZIndex(PRInt32* aZIndex)
 {
   *aZIndex = mZIndex;
   return NS_OK;
@@ -511,7 +492,7 @@ NS_IMETHODIMP nsBaseWidget::PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
 
 
 
-NS_IMETHODIMP nsBaseWidget::SetSizeMode(int32_t aMode)
+NS_IMETHODIMP nsBaseWidget::SetSizeMode(PRInt32 aMode)
 {
   if (aMode == nsSizeMode_Normal ||
       aMode == nsSizeMode_Minimized ||
@@ -529,7 +510,7 @@ NS_IMETHODIMP nsBaseWidget::SetSizeMode(int32_t aMode)
 
 
 
-NS_IMETHODIMP nsBaseWidget::GetSizeMode(int32_t* aMode)
+NS_IMETHODIMP nsBaseWidget::GetSizeMode(PRInt32* aMode)
 {
   *aMode = mSizeMode;
   return NS_OK;
@@ -596,7 +577,7 @@ NS_METHOD nsBaseWidget::SetCursor(nsCursor aCursor)
 }
 
 NS_IMETHODIMP nsBaseWidget::SetCursor(imgIContainer* aCursor,
-                                      uint32_t aHotspotX, uint32_t aHotspotY)
+                                      PRUint32 aHotspotX, PRUint32 aHotspotY)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -656,7 +637,7 @@ nsBaseWidget::GetWindowClipRegion(nsTArray<nsIntRect>* aRects)
 
 
 
-NS_IMETHODIMP nsBaseWidget::SetWindowShadowStyle(int32_t aMode)
+NS_IMETHODIMP nsBaseWidget::SetWindowShadowStyle(PRInt32 aMode)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -695,7 +676,7 @@ NS_IMETHODIMP nsBaseWidget::MakeFullScreen(bool aFullScreen)
                                    mOriginalBounds->width, mOriginalBounds->height,
                                    getter_AddRefs(screen));
       if (screen) {
-        int32_t left, top, width, height;
+        PRInt32 left, top, width, height;
         if (NS_SUCCEEDED(screen->GetRect(&left, &top, &width, &height))) {
           Resize(left, top, width, height, true);
         }
@@ -712,16 +693,15 @@ NS_IMETHODIMP nsBaseWidget::MakeFullScreen(bool aFullScreen)
 
 nsBaseWidget::AutoLayerManagerSetup::AutoLayerManagerSetup(
     nsBaseWidget* aWidget, gfxContext* aTarget,
-    BufferMode aDoubleBuffering, ScreenRotation aRotation)
+    BasicLayerManager::BufferMode aDoubleBuffering)
   : mWidget(aWidget)
 {
   BasicLayerManager* manager =
     static_cast<BasicLayerManager*>(mWidget->GetLayerManager());
   if (manager) {
-    NS_ASSERTION(manager->GetBackendType() == LAYERS_BASIC,
+    NS_ASSERTION(manager->GetBackendType() == LayerManager::LAYERS_BASIC,
       "AutoLayerManagerSetup instantiated for non-basic layer backend!");
-    manager->SetDefaultTarget(aTarget);
-    manager->SetDefaultTargetConfiguration(aDoubleBuffering, aRotation);
+    manager->SetDefaultTarget(aTarget, aDoubleBuffering);
   }
 }
 
@@ -730,10 +710,9 @@ nsBaseWidget::AutoLayerManagerSetup::~AutoLayerManagerSetup()
   BasicLayerManager* manager =
     static_cast<BasicLayerManager*>(mWidget->GetLayerManager());
   if (manager) {
-    NS_ASSERTION(manager->GetBackendType() == LAYERS_BASIC,
+    NS_ASSERTION(manager->GetBackendType() == LayerManager::LAYERS_BASIC,
       "AutoLayerManagerSetup instantiated for non-basic layer backend!");
-    manager->SetDefaultTarget(nullptr);
-    manager->SetDefaultTargetConfiguration(mozilla::layers::BUFFER_NONE, ROTATION_0);
+    manager->SetDefaultTarget(nsnull, BasicLayerManager::BUFFER_NONE);
   }
 }
 
@@ -751,21 +730,43 @@ nsBaseWidget::AutoUseBasicLayerManager::~AutoUseBasicLayerManager()
 bool
 nsBaseWidget::GetShouldAccelerate()
 {
-#if defined(XP_WIN) || defined(ANDROID) || (MOZ_PLATFORM_MAEMO > 5) || \
-    defined(MOZ_GL_PROVIDER) || defined(XP_MACOSX)
+#if defined(XP_WIN) || defined(ANDROID) || (MOZ_PLATFORM_MAEMO > 5)
   bool accelerateByDefault = true;
+#elif defined(XP_MACOSX)
+
+
+# if defined(NP_NO_QUICKDRAW)
+  bool accelerateByDefault = true;
+
+  
+  
+  
+  
+  
+  SInt32 major, minor, bugfix;
+  OSErr err1 = ::Gestalt(gestaltSystemVersionMajor, &major);
+  OSErr err2 = ::Gestalt(gestaltSystemVersionMinor, &minor);
+  OSErr err3 = ::Gestalt(gestaltSystemVersionBugFix, &bugfix);
+  if (err1 == noErr && err2 == noErr && err3 == noErr) {
+    if (major == 10 && minor == 6) {
+      if (bugfix <= 2) {
+        accelerateByDefault = false;
+      }
+    }
+  }
+
+# else
+  bool accelerateByDefault = false;
+# endif
+
 #else
   bool accelerateByDefault = false;
 #endif
 
   
-  
-  bool isSmallPopup = ((mWindowType == eWindowType_popup) && 
-                      (mPopupType != ePopupTypePanel));
-  
-  bool disableAcceleration = isSmallPopup || 
+  bool disableAcceleration =
     Preferences::GetBool("layers.acceleration.disabled", false);
-  mForceLayersAcceleration =
+  bool forceAcceleration =
     Preferences::GetBool("layers.acceleration.force-enabled", false);
 
   const char *acceleratedEnv = PR_GetEnv("MOZ_ACCELERATED");
@@ -787,7 +788,7 @@ nsBaseWidget::GetShouldAccelerate()
     
     gfxInfo->GetData();
 
-    int32_t status;
+    PRInt32 status;
     if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_OPENGL_LAYERS, &status))) {
       if (status == nsIGfxInfo::FEATURE_NO_INFO) {
         whitelisted = true;
@@ -798,15 +799,11 @@ nsBaseWidget::GetShouldAccelerate()
   if (disableAcceleration || safeMode)
     return false;
 
-  if (mForceLayersAcceleration)
+  if (forceAcceleration)
     return true;
   
   if (!whitelisted) {
     NS_WARNING("OpenGL-accelerated layers are not supported on this system.");
-#ifdef MOZ_JAVA_COMPOSITOR
-    NS_RUNTIMEABORT("OpenGL-accelerated layers are a hard requirement on this platform. "
-                    "Cannot continue without support for them.");
-#endif
     return false;
   }
 
@@ -815,57 +812,6 @@ nsBaseWidget::GetShouldAccelerate()
 
   
   return mUseAcceleratedRendering;
-}
-
-void nsBaseWidget::CreateCompositor()
-{
-  bool renderToEGLSurface = false;
-#ifdef MOZ_JAVA_COMPOSITOR
-  renderToEGLSurface = true;
-#endif
-  nsIntRect rect;
-  GetBounds(rect);
-  mCompositorParent =
-    new CompositorParent(this, renderToEGLSurface, rect.width, rect.height);
-  LayerManager* lm = CreateBasicLayerManager();
-  MessageLoop *childMessageLoop = CompositorParent::CompositorLoop();
-  mCompositorChild = new CompositorChild(lm);
-  AsyncChannel *parentChannel = mCompositorParent->GetIPCChannel();
-  AsyncChannel::Side childSide = mozilla::ipc::AsyncChannel::Child;
-  mCompositorChild->Open(parentChannel, childMessageLoop, childSide);
-  int32_t maxTextureSize;
-  PLayersChild* shadowManager;
-  mozilla::layers::LayersBackend backendHint =
-    mUseAcceleratedRendering ? mozilla::layers::LAYERS_OPENGL : mozilla::layers::LAYERS_BASIC;
-  mozilla::layers::LayersBackend parentBackend;
-  shadowManager = mCompositorChild->SendPLayersConstructor(
-    backendHint, 0, &parentBackend, &maxTextureSize);
-
-  if (shadowManager) {
-    ShadowLayerForwarder* lf = lm->AsShadowForwarder();
-    if (!lf) {
-      delete lm;
-      mCompositorChild = nullptr;
-      return;
-    }
-    lf->SetShadowManager(shadowManager);
-    lf->SetParentBackendType(parentBackend);
-    lf->SetMaxTextureSize(maxTextureSize);
-
-    mLayerManager = lm;
-  } else {
-    
-    NS_RUNTIMEABORT("failed to construct LayersChild");
-    delete lm;
-    mCompositorChild = nullptr;
-  }
-}
-
-bool nsBaseWidget::UseOffMainThreadCompositing()
-{
-  bool isSmallPopup = ((mWindowType == eWindowType_popup) && 
-                      (mPopupType != ePopupTypePanel));
-  return CompositorParent::CompositorLoop() && !isSmallPopup;
 }
 
 LayerManager* nsBaseWidget::GetLayerManager(PLayersChild* aShadowManager,
@@ -877,28 +823,17 @@ LayerManager* nsBaseWidget::GetLayerManager(PLayersChild* aShadowManager,
 
     mUseAcceleratedRendering = GetShouldAccelerate();
 
-    
-    if (UseOffMainThreadCompositing()) {
-      
-      
-      NS_ASSERTION(aShadowManager == nullptr, "Async Compositor not supported with e10s");
-      CreateCompositor();
-    }
-
     if (mUseAcceleratedRendering) {
-      if (!mLayerManager) {
-        nsRefPtr<LayerManagerOGL> layerManager = new LayerManagerOGL(this);
-        
+      nsRefPtr<LayerManagerOGL> layerManager = new LayerManagerOGL(this);
+      
 
 
 
 
 
 
-
-        if (layerManager->Initialize(mForceLayersAcceleration)) {
-          mLayerManager = layerManager;
-        }
+      if (layerManager->Initialize()) {
+        mLayerManager = layerManager;
       }
     }
     if (!mLayerManager) {
@@ -940,7 +875,7 @@ gfxASurface *nsBaseWidget::GetThebesSurface()
 {
   
   
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -960,7 +895,7 @@ NS_METHOD nsBaseWidget::SetWindowClass(const nsAString& xulWinType)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_METHOD nsBaseWidget::MoveClient(int32_t aX, int32_t aY)
+NS_METHOD nsBaseWidget::MoveClient(PRInt32 aX, PRInt32 aY)
 {
   nsIntPoint clientOffset(GetClientOffset());
   aX -= clientOffset.x;
@@ -968,8 +903,8 @@ NS_METHOD nsBaseWidget::MoveClient(int32_t aX, int32_t aY)
   return Move(aX, aY);
 }
 
-NS_METHOD nsBaseWidget::ResizeClient(int32_t aWidth,
-                                     int32_t aHeight,
+NS_METHOD nsBaseWidget::ResizeClient(PRInt32 aWidth,
+                                     PRInt32 aHeight,
                                      bool aRepaint)
 {
   NS_ASSERTION((aWidth >=0) , "Negative width passed to ResizeClient");
@@ -983,10 +918,10 @@ NS_METHOD nsBaseWidget::ResizeClient(int32_t aWidth,
   return Resize(aWidth, aHeight, aRepaint);
 }
 
-NS_METHOD nsBaseWidget::ResizeClient(int32_t aX,
-                                     int32_t aY,
-                                     int32_t aWidth,
-                                     int32_t aHeight,
+NS_METHOD nsBaseWidget::ResizeClient(PRInt32 aX,
+                                     PRInt32 aY,
+                                     PRInt32 aWidth,
+                                     PRInt32 aHeight,
                                      bool aRepaint)
 {
   NS_ASSERTION((aWidth >=0) , "Negative width passed to ResizeClient");
@@ -1074,7 +1009,7 @@ NS_METHOD nsBaseWidget::SetModal(bool aModal)
 }
 
 NS_IMETHODIMP
-nsBaseWidget::GetAttention(int32_t aCycleCount) {
+nsBaseWidget::GetAttention(PRInt32 aCycleCount) {
     return NS_OK;
 }
 
@@ -1153,9 +1088,9 @@ NS_METHOD nsBaseWidget::UnregisterTouchWindow()
 }
 
 NS_IMETHODIMP
-nsBaseWidget::OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
+nsBaseWidget::OverrideSystemMouseScrollSpeed(PRInt32 aOriginalDelta,
                                              bool aIsHorizontal,
-                                             int32_t &aOverriddenDelta)
+                                             PRInt32 &aOverriddenDelta)
 {
   aOverriddenDelta = aOriginalDelta;
 
@@ -1167,7 +1102,7 @@ nsBaseWidget::OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
     return NS_OK;
   }
 
-  nsAutoCString factorPrefName(
+  nsCAutoString factorPrefName(
     "mousewheel.system_scroll_override_on_root_content.");
   if (aIsHorizontal) {
     factorPrefName.AppendLiteral("horizontal.");
@@ -1175,14 +1110,14 @@ nsBaseWidget::OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
     factorPrefName.AppendLiteral("vertical.");
   }
   factorPrefName.AppendLiteral("factor");
-  int32_t iFactor = Preferences::GetInt(factorPrefName.get(), 0);
+  PRInt32 iFactor = Preferences::GetInt(factorPrefName.get(), 0);
   
   
   if (iFactor <= 100) {
     return NS_OK;
   }
   double factor = (double)iFactor / 100;
-  aOverriddenDelta = int32_t(NS_round((double)aOriginalDelta * factor));
+  aOverriddenDelta = PRInt32(NS_round((double)aOriginalDelta * factor));
 
   return NS_OK;
 }
@@ -1194,7 +1129,7 @@ nsBaseWidget::OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
 
 
 static bool
-ResolveIconNameHelper(nsIFile *aFile,
+ResolveIconNameHelper(nsILocalFile *aFile,
                       const nsAString &aIconName,
                       const nsAString &aIconSuffix)
 {
@@ -1216,9 +1151,9 @@ ResolveIconNameHelper(nsIFile *aFile,
 void
 nsBaseWidget::ResolveIconName(const nsAString &aIconName,
                               const nsAString &aIconSuffix,
-                              nsIFile **aResult)
+                              nsILocalFile **aResult)
 { 
-  *aResult = nullptr;
+  *aResult = nsnull;
 
   nsCOMPtr<nsIProperties> dirSvc = do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID);
   if (!dirSvc)
@@ -1236,7 +1171,7 @@ nsBaseWidget::ResolveIconName(const nsAString &aIconName,
       dirs->GetNext(getter_AddRefs(element));
       if (!element)
         continue;
-      nsCOMPtr<nsIFile> file = do_QueryInterface(element);
+      nsCOMPtr<nsILocalFile> file = do_QueryInterface(element);
       if (!file)
         continue;
       if (ResolveIconNameHelper(file, aIconName, aIconSuffix)) {
@@ -1248,15 +1183,15 @@ nsBaseWidget::ResolveIconName(const nsAString &aIconName,
 
   
 
-  nsCOMPtr<nsIFile> file;
-  dirSvc->Get(NS_APP_CHROME_DIR, NS_GET_IID(nsIFile),
+  nsCOMPtr<nsILocalFile> file;
+  dirSvc->Get(NS_APP_CHROME_DIR, NS_GET_IID(nsILocalFile),
               getter_AddRefs(file));
   if (file && ResolveIconNameHelper(file, aIconName, aIconSuffix))
     NS_ADDREF(*aResult = file);
 }
 
 NS_IMETHODIMP 
-nsBaseWidget::BeginResizeDrag(nsGUIEvent* aEvent, int32_t aHorizontal, int32_t aVertical)
+nsBaseWidget::BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -1266,124 +1201,6 @@ nsBaseWidget::BeginMoveDrag(nsMouseEvent* aEvent)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
-
-uint32_t
-nsBaseWidget::GetGLFrameBufferFormat()
-{
-  if (mLayerManager &&
-      mLayerManager->GetBackendType() == LAYERS_OPENGL) {
-    
-    
-    return LOCAL_GL_RGBA;
-  }
-  return LOCAL_GL_NONE;
-}
-
-void nsBaseWidget::SetSizeConstraints(const SizeConstraints& aConstraints)
-{
-  mSizeConstraints = aConstraints;
-  
-  
-}
-
-const widget::SizeConstraints& nsBaseWidget::GetSizeConstraints() const
-{
-  return mSizeConstraints;
-}
-
-void
-nsBaseWidget::NotifyWindowDestroyed()
-{
-  if (!mWidgetListener)
-    return;
-
-  nsCOMPtr<nsIXULWindow> window = mWidgetListener->GetXULWindow();
-  nsCOMPtr<nsIBaseWindow> xulWindow(do_QueryInterface(window));
-  if (xulWindow) {
-    xulWindow->Destroy();
-  }
-}
-
-void
-nsBaseWidget::NotifySizeMoveDone()
-{
-  if (!mWidgetListener || mWidgetListener->GetXULWindow())
-    return;
-
-  nsIPresShell* presShell = mWidgetListener->GetPresShell();
-  if (presShell) {
-    presShell->WindowSizeMoveDone();
-  }
-}
-
-void
-nsBaseWidget::NotifySysColorChanged()
-{
-  if (!mWidgetListener || mWidgetListener->GetXULWindow())
-    return;
-
-  nsIPresShell* presShell = mWidgetListener->GetPresShell();
-  if (presShell) {
-    presShell->SysColorChanged();
-  }
-}
-
-void
-nsBaseWidget::NotifyThemeChanged()
-{
-  if (!mWidgetListener || mWidgetListener->GetXULWindow())
-    return;
-
-  nsIPresShell* presShell = mWidgetListener->GetPresShell();
-  if (presShell) {
-    presShell->ThemeChanged();
-  }
-}
-
-void
-nsBaseWidget::NotifyUIStateChanged(UIStateChangeType aShowAccelerators,
-                                   UIStateChangeType aShowFocusRings)
-{
-  if (!mWidgetListener)
-    return;
-
-  nsIPresShell* presShell = mWidgetListener->GetPresShell();
-  nsIDocument* doc = presShell->GetDocument();
-  if (doc) {
-    nsPIDOMWindow* win = doc->GetWindow();
-    if (win) {
-      win->SetKeyboardIndicators(aShowAccelerators, aShowFocusRings);
-    }
-  }
-}
-
-#ifdef ACCESSIBILITY
-
-Accessible*
-nsBaseWidget::GetAccessible()
-{
-  NS_ENSURE_TRUE(mWidgetListener, nullptr);
-
-  nsIPresShell* presShell = mWidgetListener->GetPresShell();
-  NS_ENSURE_TRUE(presShell, nullptr);
-
-  
-  
-  nsPresContext* presContext = presShell->GetPresContext();
-  nsCOMPtr<nsISupports> container = presContext->GetContainer();
-  NS_ENSURE_TRUE(container, nullptr);
-
-  
-  
-  nsCOMPtr<nsIAccessibilityService> accService = services::GetAccessibilityService();
-  if (accService) {
-    return accService->GetRootDocumentAccessible(presShell, nsContentUtils::IsSafeToRunScript());
-  }
-
-  return nullptr;
-}
-
-#endif
 
 #ifdef DEBUG
 
@@ -1399,7 +1216,7 @@ nsBaseWidget::GetAccessible()
  nsAutoString
 nsBaseWidget::debug_GuiEventToString(nsGUIEvent * aGuiEvent)
 {
-  NS_ASSERTION(nullptr != aGuiEvent,"cmon, null gui event.");
+  NS_ASSERTION(nsnull != aGuiEvent,"cmon, null gui event.");
 
   nsAutoString eventName(NS_LITERAL_STRING("UNKNOWN"));
 
@@ -1409,6 +1226,8 @@ case _value: eventName.AssignLiteral(_name) ; break
   switch(aGuiEvent->message)
   {
     _ASSIGN_eventName(NS_BLUR_CONTENT,"NS_BLUR_CONTENT");
+    _ASSIGN_eventName(NS_CREATE,"NS_CREATE");
+    _ASSIGN_eventName(NS_DESTROY,"NS_DESTROY");
     _ASSIGN_eventName(NS_DRAGDROP_GESTURE,"NS_DND_GESTURE");
     _ASSIGN_eventName(NS_DRAGDROP_DROP,"NS_DND_DROP");
     _ASSIGN_eventName(NS_DRAGDROP_ENTER,"NS_DND_ENTER");
@@ -1432,6 +1251,7 @@ case _value: eventName.AssignLiteral(_name) ; break
     _ASSIGN_eventName(NS_MOUSE_CLICK,"NS_MOUSE_CLICK");
     _ASSIGN_eventName(NS_MOUSE_DOUBLECLICK,"NS_MOUSE_DBLCLICK");
     _ASSIGN_eventName(NS_MOUSE_MOVE,"NS_MOUSE_MOVE");
+    _ASSIGN_eventName(NS_MOVE,"NS_MOVE");
     _ASSIGN_eventName(NS_LOAD,"NS_LOAD");
     _ASSIGN_eventName(NS_POPSTATE,"NS_POPSTATE");
     _ASSIGN_eventName(NS_BEFORE_SCRIPT_EXECUTE,"NS_BEFORE_SCRIPT_EXECUTE");
@@ -1439,8 +1259,15 @@ case _value: eventName.AssignLiteral(_name) ; break
     _ASSIGN_eventName(NS_PAGE_UNLOAD,"NS_PAGE_UNLOAD");
     _ASSIGN_eventName(NS_HASHCHANGE,"NS_HASHCHANGE");
     _ASSIGN_eventName(NS_READYSTATECHANGE,"NS_READYSTATECHANGE");
+    _ASSIGN_eventName(NS_PAINT,"NS_PAINT");
     _ASSIGN_eventName(NS_XUL_BROADCAST, "NS_XUL_BROADCAST");
     _ASSIGN_eventName(NS_XUL_COMMAND_UPDATE, "NS_XUL_COMMAND_UPDATE");
+    _ASSIGN_eventName(NS_SCROLLBAR_LINE_NEXT,"NS_SB_LINE_NEXT");
+    _ASSIGN_eventName(NS_SCROLLBAR_LINE_PREV,"NS_SB_LINE_PREV");
+    _ASSIGN_eventName(NS_SCROLLBAR_PAGE_NEXT,"NS_SB_PAGE_NEXT");
+    _ASSIGN_eventName(NS_SCROLLBAR_PAGE_PREV,"NS_SB_PAGE_PREV");
+    _ASSIGN_eventName(NS_SCROLLBAR_POS,"NS_SB_POS");
+    _ASSIGN_eventName(NS_SIZE,"NS_SIZE");
 
 #undef _ASSIGN_eventName
 
@@ -1482,9 +1309,9 @@ static PrefPair debug_PrefValues[] =
 bool
 nsBaseWidget::debug_GetCachedBoolPref(const char * aPrefName)
 {
-  NS_ASSERTION(nullptr != aPrefName,"cmon, pref name is null.");
+  NS_ASSERTION(nsnull != aPrefName,"cmon, pref name is null.");
 
-  for (uint32_t i = 0; i < ArrayLength(debug_PrefValues); i++)
+  for (PRUint32 i = 0; i < ArrayLength(debug_PrefValues); i++)
   {
     if (strcmp(debug_PrefValues[i].name, aPrefName) == 0)
     {
@@ -1497,9 +1324,9 @@ nsBaseWidget::debug_GetCachedBoolPref(const char * aPrefName)
 
 static void debug_SetCachedBoolPref(const char * aPrefName,bool aValue)
 {
-  NS_ASSERTION(nullptr != aPrefName,"cmon, pref name is null.");
+  NS_ASSERTION(nsnull != aPrefName,"cmon, pref name is null.");
 
-  for (uint32_t i = 0; i < ArrayLength(debug_PrefValues); i++)
+  for (PRUint32 i = 0; i < ArrayLength(debug_PrefValues); i++)
   {
     if (strcmp(debug_PrefValues[i].name, aPrefName) == 0)
     {
@@ -1513,7 +1340,7 @@ static void debug_SetCachedBoolPref(const char * aPrefName,bool aValue)
 }
 
 
-class Debug_PrefObserver MOZ_FINAL : public nsIObserver {
+class Debug_PrefObserver : public nsIObserver {
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIOBSERVER
@@ -1545,7 +1372,7 @@ debug_RegisterPrefCallbacks()
   once = false;
 
   nsCOMPtr<nsIObserver> obs(new Debug_PrefObserver());
-  for (uint32_t i = 0; i < ArrayLength(debug_PrefValues); i++) {
+  for (PRUint32 i = 0; i < ArrayLength(debug_PrefValues); i++) {
     
     debug_PrefValues[i].value =
       Preferences::GetBool(debug_PrefValues[i].name, false);
@@ -1557,10 +1384,10 @@ debug_RegisterPrefCallbacks()
   }
 }
 
-static int32_t
+static PRInt32
 _GetPrintCount()
 {
-  static int32_t sCount = 0;
+  static PRInt32 sCount = 0;
   
   return ++sCount;
 }
@@ -1575,9 +1402,13 @@ nsBaseWidget::debug_WantPaintFlashing()
 nsBaseWidget::debug_DumpEvent(FILE *                aFileOut,
                               nsIWidget *           aWidget,
                               nsGUIEvent *          aGuiEvent,
-                              const nsAutoCString & aWidgetName,
-                              int32_t               aWindowID)
+                              const nsCAutoString & aWidgetName,
+                              PRInt32               aWindowID)
 {
+  
+  if (aGuiEvent->message == NS_PAINT)
+    return;
+
   if (aGuiEvent->message == NS_MOUSE_MOVE)
   {
     if (!debug_GetCachedBoolPref("nglayout.debug.motion_event_dumping"))
@@ -1610,17 +1441,18 @@ nsBaseWidget::debug_DumpEvent(FILE *                aFileOut,
  void
 nsBaseWidget::debug_DumpPaintEvent(FILE *                aFileOut,
                                    nsIWidget *           aWidget,
-                                   const nsIntRegion &   aRegion,
-                                   const nsAutoCString & aWidgetName,
-                                   int32_t               aWindowID)
+                                   nsPaintEvent *        aPaintEvent,
+                                   const nsCAutoString & aWidgetName,
+                                   PRInt32               aWindowID)
 {
-  NS_ASSERTION(nullptr != aFileOut,"cmon, null output FILE");
-  NS_ASSERTION(nullptr != aWidget,"cmon, the widget is null");
+  NS_ASSERTION(nsnull != aFileOut,"cmon, null output FILE");
+  NS_ASSERTION(nsnull != aWidget,"cmon, the widget is null");
+  NS_ASSERTION(nsnull != aPaintEvent,"cmon, the paint event is null");
 
   if (!debug_GetCachedBoolPref("nglayout.debug.paint_dumping"))
     return;
   
-  nsIntRect rect = aRegion.GetBounds();
+  nsIntRect rect = aPaintEvent->region.GetBounds();
   fprintf(aFileOut,
           "%4d PAINT      widget=%p name=%-12s id=%-8p bounds-rect=%3d,%-3d %3d,%-3d", 
           _GetPrintCount(),
@@ -1637,14 +1469,15 @@ nsBaseWidget::debug_DumpPaintEvent(FILE *                aFileOut,
 nsBaseWidget::debug_DumpInvalidate(FILE *                aFileOut,
                                    nsIWidget *           aWidget,
                                    const nsIntRect *     aRect,
-                                   const nsAutoCString & aWidgetName,
-                                   int32_t               aWindowID)
+                                   bool                  aIsSynchronous,
+                                   const nsCAutoString & aWidgetName,
+                                   PRInt32               aWindowID)
 {
   if (!debug_GetCachedBoolPref("nglayout.debug.invalidate_dumping"))
     return;
 
-  NS_ASSERTION(nullptr != aFileOut,"cmon, null output FILE");
-  NS_ASSERTION(nullptr != aWidget,"cmon, the widget is null");
+  NS_ASSERTION(nsnull != aFileOut,"cmon, null output FILE");
+  NS_ASSERTION(nsnull != aWidget,"cmon, the widget is null");
 
   fprintf(aFileOut,
           "%4d Invalidate widget=%p name=%-12s id=%-8p",
@@ -1668,10 +1501,14 @@ nsBaseWidget::debug_DumpInvalidate(FILE *                aFileOut,
             " rect=%-15s",
             "none");
   }
+
+  fprintf(aFileOut,
+          " sync=%s",
+          (const char *) (aIsSynchronous ? "yes" : "no "));
   
   fprintf(aFileOut,"\n");
 }
 
 
-#endif
+#endif 
 

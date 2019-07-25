@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/Util.h"
 
 #include "nsDeviceContextSpecWin.h"
@@ -36,6 +68,7 @@
 #include "nsNativeCharsetUtils.h"
 
 
+#include "nsILocalFile.h"
 #include "nsIFile.h"
 #include "nsIFilePicker.h"
 #include "nsIStringBundle.h"
@@ -64,11 +97,11 @@ public:
 
   void FreeGlobalPrinters();
 
-  bool         PrintersAreAllocated() { return mPrinters != nullptr; }
-  LPWSTR       GetItemFromList(int32_t aInx) { return mPrinters?mPrinters->ElementAt(aInx):nullptr; }
+  bool         PrintersAreAllocated() { return mPrinters != nsnull; }
+  LPWSTR       GetItemFromList(PRInt32 aInx) { return mPrinters?mPrinters->ElementAt(aInx):nsnull; }
   nsresult     EnumeratePrinterList();
   void         GetDefaultPrinterName(nsString& aDefaultPrinterName);
-  uint32_t     GetNumPrinters() { return mPrinters?mPrinters->Length():0; }
+  PRUint32     GetNumPrinters() { return mPrinters?mPrinters->Length():0; }
 
 protected:
   GlobalPrinters() {}
@@ -81,7 +114,7 @@ protected:
 
 
 GlobalPrinters    GlobalPrinters::mGlobalPrinters;
-nsTArray<LPWSTR>* GlobalPrinters::mPrinters = nullptr;
+nsTArray<LPWSTR>* GlobalPrinters::mPrinters = nsnull;
 
 
 
@@ -138,13 +171,13 @@ const NativePaperSizes kPaperSizes[] = {
   {DMPAPER_FANFOLD_STD_GERMAN, 8.5, 12.0, true},  
   {DMPAPER_FANFOLD_LGL_GERMAN, 8.5, 13.0, true},  
 };
-const int32_t kNumPaperSizes = 41;
+const PRInt32 kNumPaperSizes = 41;
 
 
 nsDeviceContextSpecWin::nsDeviceContextSpecWin()
 {
-  mDriverName    = nullptr;
-  mDeviceName    = nullptr;
+  mDriverName    = nsnull;
+  mDeviceName    = nsnull;
   mDevMode       = NULL;
 
 }
@@ -156,14 +189,14 @@ NS_IMPL_ISUPPORTS1(nsDeviceContextSpecWin, nsIDeviceContextSpec)
 
 nsDeviceContextSpecWin::~nsDeviceContextSpecWin()
 {
-  SetDeviceName(nullptr);
-  SetDriverName(nullptr);
+  SetDeviceName(nsnull);
+  SetDriverName(nsnull);
   SetDevMode(NULL);
 
   nsCOMPtr<nsIPrintSettingsWin> psWin(do_QueryInterface(mPrintSettings));
   if (psWin) {
-    psWin->SetDeviceName(nullptr);
-    psWin->SetDriverName(nullptr);
+    psWin->SetDeviceName(nsnull);
+    psWin->SetDriverName(nsnull);
     psWin->SetDevMode(NULL);
   }
 
@@ -282,7 +315,7 @@ GetFileNameForPrintSettings(nsIPrintSettings* aPS)
   if (fileName) {
     if (*fileName) {
       nsAutoString leafName;
-      nsCOMPtr<nsIFile> file(do_CreateInstance("@mozilla.org/file/local;1"));
+      nsCOMPtr<nsILocalFile> file(do_CreateInstance("@mozilla.org/file/local;1"));
       if (file) {
         rv = file->InitWithPath(nsDependentString(fileName));
         if (NS_SUCCEEDED(rv)) {
@@ -298,14 +331,14 @@ GetFileNameForPrintSettings(nsIPrintSettings* aPS)
     nsMemory::Free(fileName);
   }
 
-  int16_t dialogResult;
+  PRInt16 dialogResult;
   filePicker->Show(&dialogResult);
 
   if (dialogResult == nsIFilePicker::returnCancel) {
     return NS_ERROR_ABORT;
   }
 
-  nsCOMPtr<nsIFile> localFile;
+  nsCOMPtr<nsILocalFile> localFile;
   rv = filePicker->GetFile(getter_AddRefs(localFile));
   NS_ENSURE_SUCCESS(rv, rv);
   
@@ -400,7 +433,7 @@ NS_IMETHODIMP nsDeviceContextSpecWin::Init(nsIWidget* aWidget,
         SetDevMode(devMode);
 
         if (!aIsPrintPreview) {
-          rv = CheckForPrintToFile(mPrintSettings, deviceName, nullptr);
+          rv = CheckForPrintToFile(mPrintSettings, deviceName, nsnull);
           if (NS_FAILED(rv)) {
             nsCRT::free(deviceName);
             nsCRT::free(driverName);
@@ -425,7 +458,7 @@ NS_IMETHODIMP nsDeviceContextSpecWin::Init(nsIWidget* aWidget,
   }
 
   
-  PRUnichar * printerName = nullptr;
+  PRUnichar * printerName = nsnull;
   if (mPrintSettings) {
     mPrintSettings->GetPrinterName(&printerName);
   }
@@ -439,7 +472,7 @@ NS_IMETHODIMP nsDeviceContextSpecWin::Init(nsIWidget* aWidget,
   if (!printerName || !*printerName) return rv;
 
   if (!aIsPrintPreview) {
-    CheckForPrintToFile(mPrintSettings, nullptr, printerName);
+    CheckForPrintToFile(mPrintSettings, nsnull, printerName);
   }
  
   return GetDataFromPrinter(printerName, mPrintSettings);
@@ -449,17 +482,17 @@ NS_IMETHODIMP nsDeviceContextSpecWin::Init(nsIWidget* aWidget,
 
 static void CleanAndCopyString(PRUnichar*& aStr, const PRUnichar* aNewStr)
 {
-  if (aStr != nullptr) {
-    if (aNewStr != nullptr && wcslen(aStr) > wcslen(aNewStr)) { 
+  if (aStr != nsnull) {
+    if (aNewStr != nsnull && wcslen(aStr) > wcslen(aNewStr)) { 
       wcscpy(aStr, aNewStr);
       return;
     } else {
       PR_Free(aStr);
-      aStr = nullptr;
+      aStr = nsnull;
     }
   }
 
-  if (nullptr != aNewStr) {
+  if (nsnull != aNewStr) {
     aStr = (PRUnichar *)PR_Malloc(sizeof(PRUnichar)*(wcslen(aNewStr) + 1));
     wcscpy(aStr, aNewStr);
   }
@@ -471,7 +504,7 @@ NS_IMETHODIMP nsDeviceContextSpecWin::GetSurfaceForPrinter(gfxASurface **surface
 
   nsRefPtr<gfxASurface> newSurface;
 
-  int16_t outputFormat = 0;
+  PRInt16 outputFormat = 0;
   if (mPrintSettings) {
     mPrintSettings->GetOutputFormat(&outputFormat);
   }
@@ -486,7 +519,7 @@ NS_IMETHODIMP nsDeviceContextSpecWin::GetSurfaceForPrinter(gfxASurface **surface
     width  /= TWIPS_PER_POINT_FLOAT;
     height /= TWIPS_PER_POINT_FLOAT;
 
-    nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1");
+    nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1");
     nsresult rv = file->InitWithPath(filename);
     if (NS_FAILED(rv))
       return rv;
@@ -513,7 +546,7 @@ NS_IMETHODIMP nsDeviceContextSpecWin::GetSurfaceForPrinter(gfxASurface **surface
     return NS_OK;
   }
 
-  *surface = nullptr;
+  *surface = nsnull;
   return NS_ERROR_FAILURE;
 }
 
@@ -550,7 +583,7 @@ nsDeviceContextSpecWin::GetDevMode(LPDEVMODEW &aDevMode)
 
 static void 
 MapPaperSizeToNativeEnum(LPDEVMODEW aDevMode,
-                         int16_t   aType, 
+                         PRInt16   aType, 
                          double    aW, 
                          double    aH)
 {
@@ -562,7 +595,7 @@ MapPaperSizeToNativeEnum(LPDEVMODEW aDevMode,
   BOOL doingPaperWidth  = aDevMode->dmFields & DM_PAPERWIDTH;
 #endif
 
-  for (int32_t i=0;i<kNumPaperSizes;i++) {
+  for (PRInt32 i=0;i<kNumPaperSizes;i++) {
     if (kPaperSizes[i].mWidth == aW && kPaperSizes[i].mHeight == aH) {
       aDevMode->dmPaperSize = kPaperSizes[i].mPaperSize;
       aDevMode->dmFields &= ~DM_PAPERLENGTH;
@@ -603,17 +636,17 @@ SetupDevModeFromSettings(LPDEVMODEW aDevMode, nsIPrintSettings* aPrintSettings)
 {
   
   if (aPrintSettings) {
-    int16_t type;
+    PRInt16 type;
     aPrintSettings->GetPaperSizeType(&type);
     if (type == nsIPrintSettings::kPaperSizeNativeData) {
-      int16_t paperEnum;
+      PRInt16 paperEnum;
       aPrintSettings->GetPaperData(&paperEnum);
       aDevMode->dmPaperSize = paperEnum;
       aDevMode->dmFields &= ~DM_PAPERLENGTH;
       aDevMode->dmFields &= ~DM_PAPERWIDTH;
       aDevMode->dmFields |= DM_PAPERSIZE;
     } else {
-      int16_t unit;
+      PRInt16 unit;
       double width, height;
       aPrintSettings->GetPaperSizeUnit(&unit);
       aPrintSettings->GetPaperWidth(&width);
@@ -622,13 +655,13 @@ SetupDevModeFromSettings(LPDEVMODEW aDevMode, nsIPrintSettings* aPrintSettings)
     }
 
     
-    int32_t orientation;
+    PRInt32 orientation;
     aPrintSettings->GetOrientation(&orientation);
     aDevMode->dmOrientation = orientation == nsIPrintSettings::kPortraitOrientation?DMORIENT_PORTRAIT:DMORIENT_LANDSCAPE;
     aDevMode->dmFields |= DM_ORIENTATION;
 
     
-    int32_t copies;
+    PRInt32 copies;
     aPrintSettings->GetNumCopies(&copies);
     aDevMode->dmCopies = copies;
     aDevMode->dmFields |= DM_COPIES;
@@ -733,7 +766,7 @@ nsresult
 nsDeviceContextSpecWin::SetPrintSettingsFromDevMode(nsIPrintSettings* aPrintSettings, 
                                                     LPDEVMODEW         aDevMode)
 {
-  if (aPrintSettings == nullptr) {
+  if (aPrintSettings == nsnull) {
     return NS_ERROR_FAILURE;
   }
   aPrintSettings->SetIsInitializedFromPrinter(true);
@@ -745,14 +778,14 @@ nsDeviceContextSpecWin::SetPrintSettingsFromDevMode(nsIPrintSettings* aPrintSett
   BOOL doingPaperWidth  = aDevMode->dmFields & DM_PAPERWIDTH;
 
   if (doingOrientation) {
-    int32_t orientation  = aDevMode->dmOrientation == DMORIENT_PORTRAIT?
-      int32_t(nsIPrintSettings::kPortraitOrientation):nsIPrintSettings::kLandscapeOrientation;
+    PRInt32 orientation  = aDevMode->dmOrientation == DMORIENT_PORTRAIT?
+      PRInt32(nsIPrintSettings::kPortraitOrientation):nsIPrintSettings::kLandscapeOrientation;
     aPrintSettings->SetOrientation(orientation);
   }
 
   
   if (doingNumCopies) {
-    aPrintSettings->SetNumCopies(int32_t(aDevMode->dmCopies));
+    aPrintSettings->SetNumCopies(PRInt32(aDevMode->dmCopies));
   }
 
   if (aDevMode->dmFields & DM_SCALE) {
@@ -768,23 +801,23 @@ nsDeviceContextSpecWin::SetPrintSettingsFromDevMode(nsIPrintSettings* aPrintSett
   if (doingPaperSize) {
     aPrintSettings->SetPaperSizeType(nsIPrintSettings::kPaperSizeNativeData);
     aPrintSettings->SetPaperData(aDevMode->dmPaperSize);
-    for (int32_t i=0;i<kNumPaperSizes;i++) {
+    for (PRInt32 i=0;i<kNumPaperSizes;i++) {
       if (kPaperSizes[i].mPaperSize == aDevMode->dmPaperSize) {
         aPrintSettings->SetPaperSizeUnit(kPaperSizes[i].mIsInches
-          ?int16_t(nsIPrintSettings::kPaperSizeInches):nsIPrintSettings::kPaperSizeMillimeters);
+          ?PRInt16(nsIPrintSettings::kPaperSizeInches):nsIPrintSettings::kPaperSizeMillimeters);
         break;
       }
     }
 
   } else if (doingPaperLength && doingPaperWidth) {
     bool found = false;
-    for (int32_t i=0;i<kNumPaperSizes;i++) {
+    for (PRInt32 i=0;i<kNumPaperSizes;i++) {
       if (kPaperSizes[i].mPaperSize == aDevMode->dmPaperSize) {
         aPrintSettings->SetPaperSizeType(nsIPrintSettings::kPaperSizeDefined);
         aPrintSettings->SetPaperWidth(kPaperSizes[i].mWidth);
         aPrintSettings->SetPaperHeight(kPaperSizes[i].mHeight);
         aPrintSettings->SetPaperSizeUnit(kPaperSizes[i].mIsInches
-          ?int16_t(nsIPrintSettings::kPaperSizeInches):nsIPrintSettings::kPaperSizeMillimeters);
+          ?PRInt16(nsIPrintSettings::kPaperSizeInches):nsIPrintSettings::kPaperSizeMillimeters);
         found = true;
         break;
       }
@@ -867,7 +900,7 @@ NS_IMETHODIMP
 nsPrinterEnumeratorWin::GetPrinterNameList(nsIStringEnumerator **aPrinterNameList)
 {
   NS_ENSURE_ARG_POINTER(aPrinterNameList);
-  *aPrinterNameList = nullptr;
+  *aPrinterNameList = nsnull;
 
   nsresult rv = GlobalPrinters::GetInstance()->EnumeratePrinterList();
   if (NS_FAILED(rv)) {
@@ -875,12 +908,12 @@ nsPrinterEnumeratorWin::GetPrinterNameList(nsIStringEnumerator **aPrinterNameLis
     return rv;
   }
 
-  uint32_t numPrinters = GlobalPrinters::GetInstance()->GetNumPrinters();
+  PRUint32 numPrinters = GlobalPrinters::GetInstance()->GetNumPrinters();
   nsTArray<nsString> *printers = new nsTArray<nsString>(numPrinters);
   if (!printers)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  uint32_t printerInx = 0;
+  PRUint32 printerInx = 0;
   while( printerInx < numPrinters ) {
     LPWSTR name = GlobalPrinters::GetInstance()->GetItemFromList(printerInx++);
     printers->AppendElement(nsDependentString(name));
@@ -917,12 +950,12 @@ GlobalPrinters::ReallocatePrinters()
 void 
 GlobalPrinters::FreeGlobalPrinters()
 {
-  if (mPrinters != nullptr) {
-    for (uint32_t i=0;i<mPrinters->Length();i++) {
+  if (mPrinters != nsnull) {
+    for (PRUint32 i=0;i<mPrinters->Length();i++) {
       free(mPrinters->ElementAt(i));
     }
     delete mPrinters;
-    mPrinters = nullptr;
+    mPrinters = nsnull;
   }
 }
 
@@ -1006,7 +1039,7 @@ GlobalPrinters::EnumeratePrinterList()
 
   
   if (!defPrinterName.IsEmpty()) {
-    for (uint32_t i=0;i<mPrinters->Length();i++) {
+    for (PRUint32 i=0;i<mPrinters->Length();i++) {
       LPWSTR name = mPrinters->ElementAt(i);
       if (defPrinterName.Equals(name)) {
         if (i > 0) {

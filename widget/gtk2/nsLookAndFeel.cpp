@@ -6,20 +6,40 @@
 
 
 
-#include <stdlib.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsLookAndFeel.h"
-
 #include <gtk/gtk.h>
-#include <gdk/gdk.h>
-
-#ifdef MOZ_PANGO
-#include <pango/pango.h>
-#include <pango/pango-fontmap.h>
-#endif
-
-#include <fontconfig/fontconfig.h>
-#include "gfxPlatformGtk.h"
 
 #include "gtkdrawing.h"
 #include "nsStyleConsts.h"
@@ -29,8 +49,6 @@
 #include "nsIPropertyBag2.h"
 #include "nsLiteralString.h"
 #endif
-
-using mozilla::LookAndFeel;
 
 #define GDK_COLOR_TO_NS_RGB(c) \
     ((nscolor) NS_RGB(c.red>>8, c.green>>8, c.blue>>8))
@@ -55,12 +73,14 @@ PRUnichar nsLookAndFeel::sInvisibleCharacter = PRUnichar('*');
 float     nsLookAndFeel::sCaretRatio = 0;
 bool      nsLookAndFeel::sMenuSupportsDrag = false;
 
-nsLookAndFeel::nsLookAndFeel()
-    : nsXPLookAndFeel(),
-      mStyle(nullptr),
-      mDefaultFontCached(false), mButtonFontCached(false),
-      mFieldFontCached(false), mMenuFontCached(false)
+
+
+
+
+
+nsLookAndFeel::nsLookAndFeel() : nsXPLookAndFeel()
 {
+    mStyle = nsnull;
     InitWidget();
 
     static bool sInitialized = false;
@@ -346,13 +366,13 @@ static void darken_gdk_color(GdkColor *src, GdkColor *dest)
     dest->blue = blue * 65535.0;
 }
 
-static int32_t CheckWidgetStyle(GtkWidget* aWidget, const char* aStyle, int32_t aResult) {
+static PRInt32 CheckWidgetStyle(GtkWidget* aWidget, const char* aStyle, PRInt32 aResult) {
     gboolean value = FALSE;
     gtk_widget_style_get(aWidget, aStyle, &value, NULL);
     return value ? aResult : 0;
 }
 
-static int32_t ConvertGTKStepperStyleToMozillaScrollArrowStyle(GtkWidget* aWidget)
+static PRInt32 ConvertGTKStepperStyleToMozillaScrollArrowStyle(GtkWidget* aWidget)
 {
     if (!aWidget)
         return mozilla::LookAndFeel::eScrollArrowStyle_Single;
@@ -369,7 +389,7 @@ static int32_t ConvertGTKStepperStyleToMozillaScrollArrowStyle(GtkWidget* aWidge
 }
 
 nsresult
-nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
+nsLookAndFeel::GetIntImpl(IntID aID, PRInt32 &aResult)
 {
     nsresult res = NS_OK;
 
@@ -407,7 +427,7 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
                           NULL);
  
             if (blink)
-                aResult = (int32_t) blink_time;
+                aResult = (PRInt32) blink_time;
             else
                 aResult = 0;
             break;
@@ -448,7 +468,7 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
 
             settings = gtk_settings_get_default ();
             g_object_get (settings, "gtk-menu-popup-delay", &delay, NULL);
-            aResult = (int32_t) delay;
+            aResult = (PRInt32) delay;
             break;
         }
     case eIntID_TooltipDelay:
@@ -595,189 +615,6 @@ nsLookAndFeel::GetFloatImpl(FloatID aID, float &aResult)
         res = NS_ERROR_FAILURE;
     }
     return res;
-}
-
-#ifdef MOZ_PANGO
-static void
-GetSystemFontInfo(GtkWidget *aWidget,
-                  nsString *aFontName,
-                  gfxFontStyle *aFontStyle)
-{
-    GtkSettings *settings = gtk_widget_get_settings(aWidget);
-
-    aFontStyle->style       = NS_FONT_STYLE_NORMAL;
-
-    gchar *fontname;
-    g_object_get(settings, "gtk-font-name", &fontname, NULL);
-
-    PangoFontDescription *desc;
-    desc = pango_font_description_from_string(fontname);
-
-    aFontStyle->systemFont = true;
-
-    g_free(fontname);
-
-    NS_NAMED_LITERAL_STRING(quote, "\"");
-    NS_ConvertUTF8toUTF16 family(pango_font_description_get_family(desc));
-    *aFontName = quote + family + quote;
-
-    aFontStyle->weight = pango_font_description_get_weight(desc);
-
-    
-    aFontStyle->stretch = NS_FONT_STRETCH_NORMAL;
-
-    float size = float(pango_font_description_get_size(desc)) / PANGO_SCALE;
-
-    
-
-    if (!pango_font_description_get_size_is_absolute(desc)) {
-        
-        size *= float(gfxPlatformGtk::GetDPI()) / POINTS_PER_INCH_FLOAT;
-    }
-
-    
-
-    aFontStyle->size = size;
-
-    pango_font_description_free(desc);
-}
-
-static void
-GetSystemFontInfo(LookAndFeel::FontID aID,
-                  nsString *aFontName,
-                  gfxFontStyle *aFontStyle)
-{
-    if (aID == LookAndFeel::eFont_Widget) {
-        GtkWidget *label = gtk_label_new("M");
-        GtkWidget *parent = gtk_fixed_new();
-        GtkWidget *window = gtk_window_new(GTK_WINDOW_POPUP);
-
-        gtk_container_add(GTK_CONTAINER(parent), label);
-        gtk_container_add(GTK_CONTAINER(window), parent);
-
-        gtk_widget_ensure_style(label);
-        GetSystemFontInfo(label, aFontName, aFontStyle);
-        gtk_widget_destroy(window);  
-
-    } else if (aID == LookAndFeel::eFont_Button) {
-        GtkWidget *label = gtk_label_new("M");
-        GtkWidget *parent = gtk_fixed_new();
-        GtkWidget *button = gtk_button_new();
-        GtkWidget *window = gtk_window_new(GTK_WINDOW_POPUP);
-
-        gtk_container_add(GTK_CONTAINER(button), label);
-        gtk_container_add(GTK_CONTAINER(parent), button);
-        gtk_container_add(GTK_CONTAINER(window), parent);
-
-        gtk_widget_ensure_style(label);
-        GetSystemFontInfo(label, aFontName, aFontStyle);
-        gtk_widget_destroy(window);  
-
-    } else if (aID == LookAndFeel::eFont_Field) {
-        GtkWidget *entry = gtk_entry_new();
-        GtkWidget *parent = gtk_fixed_new();
-        GtkWidget *window = gtk_window_new(GTK_WINDOW_POPUP);
-
-        gtk_container_add(GTK_CONTAINER(parent), entry);
-        gtk_container_add(GTK_CONTAINER(window), parent);
-
-        gtk_widget_ensure_style(entry);
-        GetSystemFontInfo(entry, aFontName, aFontStyle);
-        gtk_widget_destroy(window);  
-
-    } else {
-        NS_ABORT_IF_FALSE(aID == LookAndFeel::eFont_Menu, "unexpected font ID");
-        GtkWidget *accel_label = gtk_accel_label_new("M");
-        GtkWidget *menuitem = gtk_menu_item_new();
-        GtkWidget *menu = gtk_menu_new();
-        g_object_ref_sink(GTK_OBJECT(menu));
-
-        gtk_container_add(GTK_CONTAINER(menuitem), accel_label);
-        gtk_menu_shell_append((GtkMenuShell *)GTK_MENU(menu), menuitem);
-
-        gtk_widget_ensure_style(accel_label);
-        GetSystemFontInfo(accel_label, aFontName, aFontStyle);
-        g_object_unref(menu);
-    }
-}
-
-#else 
-
-static void
-GetSystemFontInfo(LookAndFeel::FontID ,
-                  nsString *aFontName,
-                  gfxFontStyle *aFontStyle)
-{
-    
-    aFontStyle->style      = NS_FONT_STYLE_NORMAL;
-    aFontStyle->weight     = NS_FONT_WEIGHT_NORMAL;
-    aFontStyle->size       = 40/3;
-    aFontStyle->stretch    = NS_FONT_STRETCH_NORMAL;
-    aFontStyle->systemFont = true;
-    aFontName->AssignLiteral("\"Sans\"");
-}
-
-#endif 
-
-bool
-nsLookAndFeel::GetFontImpl(FontID aID, nsString& aFontName,
-                           gfxFontStyle& aFontStyle)
-{
-  nsString *cachedFontName = NULL;
-  gfxFontStyle *cachedFontStyle = NULL;
-  bool *isCached = NULL;
-
-  switch (aID) {
-    case eFont_Menu:         
-    case eFont_PullDownMenu: 
-      cachedFontName = &mMenuFontName;
-      cachedFontStyle = &mMenuFontStyle;
-      isCached = &mMenuFontCached;
-      aID = eFont_Menu;
-      break;
-
-    case eFont_Field:        
-    case eFont_List:         
-      cachedFontName = &mFieldFontName;
-      cachedFontStyle = &mFieldFontStyle;
-      isCached = &mFieldFontCached;
-      aID = eFont_Field;
-      break;
-
-    case eFont_Button:       
-      cachedFontName = &mButtonFontName;
-      cachedFontStyle = &mButtonFontStyle;
-      isCached = &mButtonFontCached;
-      break;
-
-    case eFont_Caption:      
-    case eFont_Icon:         
-    case eFont_MessageBox:   
-    case eFont_SmallCaption: 
-    case eFont_StatusBar:    
-    case eFont_Window:       
-    case eFont_Document:     
-    case eFont_Workspace:    
-    case eFont_Desktop:      
-    case eFont_Info:         
-    case eFont_Dialog:       
-    case eFont_Tooltips:     
-    case eFont_Widget:       
-      cachedFontName = &mDefaultFontName;
-      cachedFontStyle = &mDefaultFontStyle;
-      isCached = &mDefaultFontCached;
-      aID = eFont_Widget;
-      break;
-  }
-
-  if (!*isCached) {
-    GetSystemFontInfo(aID, cachedFontName, cachedFontStyle);
-    *isCached = true;
-  }
-
-  aFontName = *cachedFontName;
-  aFontStyle = *cachedFontStyle;
-  return true;
 }
 
 void
@@ -962,31 +799,6 @@ nsLookAndFeel::InitLookAndFeel()
     gtk_widget_destroy(window);
 }
 
-void
-nsLookAndFeel::InitWidget()
-{
-    NS_ASSERTION(!mStyle, "already initialized");
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    GtkWidget *widget = gtk_invisible_new();
-    g_object_ref_sink(widget); 
-
-    gtk_widget_ensure_style(widget);
-    mStyle = gtk_style_copy(gtk_widget_get_style(widget));
-
-    gtk_widget_destroy(widget);
-    g_object_unref(widget);
-}
-
 
 PRUnichar
 nsLookAndFeel::GetPasswordCharacterImpl()
@@ -999,14 +811,9 @@ nsLookAndFeel::RefreshImpl()
 {
     nsXPLookAndFeel::RefreshImpl();
 
-    mDefaultFontCached = false;
-    mButtonFontCached = false;
-    mFieldFontCached = false;
-    mMenuFontCached = false;
-
     g_object_unref(mStyle);
-    mStyle = nullptr;
-
+    mStyle = nsnull;
+ 
     InitWidget();
     InitLookAndFeel();
 }

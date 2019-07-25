@@ -1,59 +1,128 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Mozilla GNOME integration code.
+ *
+ * The Initial Developer of the Original Code is
+ * IBM Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2004
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *  Brian Ryner <bryner@brianryner.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#include "mozilla/Util.h"
 #include "nsGConfService.h"
 #include "nsStringAPI.h"
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIMutableArray.h"
+#include "prlink.h"
 
 #include <gconf/gconf-client.h>
+
+using namespace mozilla;
+
+#define GCONF_FUNCTIONS \
+  FUNC(gconf_client_get_default, GConfClient*, (void)) \
+  FUNC(gconf_client_get_bool, gboolean, (GConfClient*, const gchar*, GError**)) \
+  FUNC(gconf_client_get_string, gchar*, (GConfClient*, const gchar*, GError**)) \
+  FUNC(gconf_client_get_int, gint, (GConfClient*, const gchar*, GError**)) \
+  FUNC(gconf_client_get_float, gdouble, (GConfClient*, const gchar*, GError**)) \
+  FUNC(gconf_client_get_list, GSList*, (GConfClient*, const gchar*, GConfValueType, GError**)) \
+  FUNC(gconf_client_set_bool, gboolean, (GConfClient*, const gchar*, gboolean, GError**)) \
+  FUNC(gconf_client_set_string, gboolean, (GConfClient*, const gchar*, const gchar*, GError**)) \
+  FUNC(gconf_client_set_int, gboolean, (GConfClient*, const gchar*, gint, GError**)) \
+  FUNC(gconf_client_set_float, gboolean, (GConfClient*, const gchar*, gdouble, GError**)) \
+  FUNC(gconf_client_unset, gboolean, (GConfClient*, const gchar*, GError**))
+
+#define FUNC(name, type, params) \
+  typedef type (*_##name##_fn) params; \
+  static _##name##_fn _##name;
+
+GCONF_FUNCTIONS
+
+#undef FUNC
+
+#define gconf_client_get_default _gconf_client_get_default
+#define gconf_client_get_bool _gconf_client_get_bool
+#define gconf_client_get_string _gconf_client_get_string
+#define gconf_client_get_int _gconf_client_get_int
+#define gconf_client_get_float _gconf_client_get_float
+#define gconf_client_get_list _gconf_client_get_list
+#define gconf_client_set_bool _gconf_client_set_bool
+#define gconf_client_set_string _gconf_client_set_string
+#define gconf_client_set_int _gconf_client_set_int
+#define gconf_client_set_float _gconf_client_set_float
+#define gconf_client_unset _gconf_client_unset
+
+static PRLibrary *gconfLib = nsnull;
+
+typedef void (*nsGConfFunc)();
+struct nsGConfDynamicFunction {
+  const char *functionName;
+  nsGConfFunc *function;
+};
 
 nsGConfService::~nsGConfService()
 {
   if (mClient)
     g_object_unref(mClient);
+
+  // We don't unload gconf here because liborbit uses atexit(). In addition to
+  // this, it's not a good idea to unload any gobject based library, as it
+  // leaves types registered in glib's type system
 }
 
 nsresult
 nsGConfService::Init()
 {
+#define FUNC(name, type, params) { #name, (nsGConfFunc *)&_##name },
+  static const nsGConfDynamicFunction kGConfSymbols[] = {
+    GCONF_FUNCTIONS
+  };
+#undef FUNC
+
+  if (!gconfLib) {
+    gconfLib = PR_LoadLibrary("libgconf-2.so.4");
+    if (!gconfLib)
+      return NS_ERROR_FAILURE;
+  }
+
+  for (PRUint32 i = 0; i < ArrayLength(kGConfSymbols); i++) {
+    *kGConfSymbols[i].function =
+      PR_FindFunctionSymbol(gconfLib, kGConfSymbols[i].functionName);
+    if (!*kGConfSymbols[i].function) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+
   mClient = gconf_client_get_default();
   return mClient ? NS_OK : NS_ERROR_FAILURE;
 }
@@ -88,8 +157,8 @@ nsGConfService::GetString(const nsACString &aKey, nsACString &aResult)
     return NS_ERROR_FAILURE;
   }
 
-  
-  
+  // We do a string copy here so that the caller doesn't need to worry about
+  // freeing the string with g_free().
 
   aResult.Assign(result);
   g_free(result);

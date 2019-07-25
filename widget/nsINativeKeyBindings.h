@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsINativeKeyBindings_h_
 #define nsINativeKeyBindings_h_
 
@@ -18,8 +51,8 @@
 struct nsNativeKeyEvent
 {
   nsEvent *nativeEvent; 
-  uint32_t keyCode;
-  uint32_t charCode;
+  PRUint32 keyCode;
+  PRUint32 charCode;
   bool     altKey;
   bool     ctrlKey;
   bool     shiftKey;

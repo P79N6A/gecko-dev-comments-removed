@@ -1364,6 +1364,11 @@ HUD_SERVICE.prototype =
   
 
 
+  lastInputValue: "",
+
+  
+
+
 
 
 

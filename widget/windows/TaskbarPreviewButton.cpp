@@ -5,6 +5,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
+
 #include <windows.h>
 #include <strsafe.h>
 
@@ -18,7 +53,7 @@ namespace widget {
 
 NS_IMPL_ISUPPORTS2(TaskbarPreviewButton, nsITaskbarPreviewButton, nsISupportsWeakReference)
 
-TaskbarPreviewButton::TaskbarPreviewButton(TaskbarWindowPreview* preview, uint32_t index)
+TaskbarPreviewButton::TaskbarPreviewButton(TaskbarWindowPreview* preview, PRUint32 index)
   : mPreview(preview), mIndex(index)
 {
 }
@@ -142,4 +177,6 @@ TaskbarPreviewButton::Update() {
 
 } 
 } 
+
+#endif 
 

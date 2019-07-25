@@ -1,8 +1,41 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=2 sw=2 et tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Japan.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Masayuki Nakano <masayuki@d-toybox.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "mozilla/Util.h"
 
@@ -18,7 +51,6 @@
 #include "nsBidiUtils.h"
 #include "nsToolkit.h"
 #include "nsCocoaUtils.h"
-#include "WidgetUtils.h"
 #include "nsPrintfCString.h"
 
 #ifdef __LP64__
@@ -39,7 +71,7 @@ using namespace mozilla::widget;
 
 #ifdef PR_LOGGING
 
-PRLogModuleInfo* gLog = nullptr;
+PRLogModuleInfo* gLog = nsnull;
 
 static const char*
 OnOrOff(bool aBool)
@@ -57,129 +89,68 @@ static const char*
 GetKeyNameForNativeKeyCode(unsigned short aNativeKeyCode)
 {
   switch (aNativeKeyCode) {
-    case kVK_Escape:              return "Escape";
-    case kVK_RightCommand:        return "Right-Command";
-    case kVK_Command:             return "Command";
-    case kVK_Shift:               return "Shift";
-    case kVK_CapsLock:            return "CapsLock";
-    case kVK_Option:              return "Option";
-    case kVK_Control:             return "Control";
-    case kVK_RightShift:          return "Right-Shift";
-    case kVK_RightOption:         return "Right-Option";
-    case kVK_RightControl:        return "Right-Control";
-    case kVK_ANSI_KeypadClear:    return "Clear";
+    case kEscapeKeyCode:          return "Escape";
+    case kRCommandKeyCode:        return "Right-Command";
+    case kCommandKeyCode:         return "Command";
+    case kShiftKeyCode:           return "Shift";
+    case kCapsLockKeyCode:        return "CapsLock";
+    case kOptionkeyCode:          return "Option";
+    case kControlKeyCode:         return "Control";
+    case kRShiftKeyCode:          return "Right-Shift";
+    case kROptionKeyCode:         return "Right-Option";
+    case kRControlKeyCode:        return "Right-Control";
+    case kClearKeyCode:           return "Clear";
 
-    case kVK_F1:                  return "F1";
-    case kVK_F2:                  return "F2";
-    case kVK_F3:                  return "F3";
-    case kVK_F4:                  return "F4";
-    case kVK_F5:                  return "F5";
-    case kVK_F6:                  return "F6";
-    case kVK_F7:                  return "F7";
-    case kVK_F8:                  return "F8";
-    case kVK_F9:                  return "F9";
-    case kVK_F10:                 return "F10";
-    case kVK_F11:                 return "F11";
-    case kVK_F12:                 return "F12";
-    case kVK_F13:                 return "F13/PrintScreen";
-    case kVK_F14:                 return "F14/ScrollLock";
-    case kVK_F15:                 return "F15/Pause";
+    case kF1KeyCode:              return "F1";
+    case kF2KeyCode:              return "F2";
+    case kF3KeyCode:              return "F3";
+    case kF4KeyCode:              return "F4";
+    case kF5KeyCode:              return "F5";
+    case kF6KeyCode:              return "F6";
+    case kF7KeyCode:              return "F7";
+    case kF8KeyCode:              return "F8";
+    case kF9KeyCode:              return "F9";
+    case kF10KeyCode:             return "F10";
+    case kF11KeyCode:             return "F11";
+    case kF12KeyCode:             return "F12";
+    case kF13KeyCode:             return "F13/PrintScreen";
+    case kF14KeyCode:             return "F14/ScrollLock";
+    case kF15KeyCode:             return "F15/Pause";
 
-    case kVK_ANSI_Keypad0:        return "NumPad-0";
-    case kVK_ANSI_Keypad1:        return "NumPad-1";
-    case kVK_ANSI_Keypad2:        return "NumPad-2";
-    case kVK_ANSI_Keypad3:        return "NumPad-3";
-    case kVK_ANSI_Keypad4:        return "NumPad-4";
-    case kVK_ANSI_Keypad5:        return "NumPad-5";
-    case kVK_ANSI_Keypad6:        return "NumPad-6";
-    case kVK_ANSI_Keypad7:        return "NumPad-7";
-    case kVK_ANSI_Keypad8:        return "NumPad-8";
-    case kVK_ANSI_Keypad9:        return "NumPad-9";
+    case kKeypad0KeyCode:         return "NumPad-0";
+    case kKeypad1KeyCode:         return "NumPad-1";
+    case kKeypad2KeyCode:         return "NumPad-2";
+    case kKeypad3KeyCode:         return "NumPad-3";
+    case kKeypad4KeyCode:         return "NumPad-4";
+    case kKeypad5KeyCode:         return "NumPad-5";
+    case kKeypad6KeyCode:         return "NumPad-6";
+    case kKeypad7KeyCode:         return "NumPad-7";
+    case kKeypad8KeyCode:         return "NumPad-8";
+    case kKeypad9KeyCode:         return "NumPad-9";
 
-    case kVK_ANSI_KeypadMultiply: return "NumPad-*";
-    case kVK_ANSI_KeypadPlus:     return "NumPad-+";
-    case kVK_ANSI_KeypadMinus:    return "NumPad--";
-    case kVK_ANSI_KeypadDecimal:  return "NumPad-.";
-    case kVK_ANSI_KeypadDivide:   return "NumPad-/";
-    case kVK_ANSI_KeypadEquals:   return "NumPad-=";
-    case kVK_ANSI_KeypadEnter:    return "NumPad-Enter";
-    case kVK_Return:              return "Return";
-    case kVK_Powerbook_KeypadEnter: return "NumPad-EnterOnPowerBook";
+    case kKeypadMultiplyKeyCode:  return "NumPad-*";
+    case kKeypadAddKeyCode:       return "NumPad-+";
+    case kKeypadSubtractKeyCode:  return "NumPad--";
+    case kKeypadDecimalKeyCode:   return "NumPad-.";
+    case kKeypadDivideKeyCode:    return "NumPad-/";
+    case kKeypadEqualsKeyCode:    return "NumPad-=";
+    case kEnterKeyCode:           return "NumPad-Enter";
+    case kReturnKeyCode:          return "NumPad-Return";
+    case kPowerbookEnterKeyCode:  return "NumPad-EnterOnPowerBook";
 
-    case kVK_PC_Insert:           return "Insert/Help";
-    case kVK_PC_Delete:           return "Delete";
-    case kVK_Tab:                 return "Tab";
-    case kVK_PC_Backspace:        return "Backspace";
-    case kVK_Home:                return "Home";
-    case kVK_End:                 return "End";
-    case kVK_PageUp:              return "PageUp";
-    case kVK_PageDown:            return "PageDown";
-    case kVK_LeftArrow:           return "LeftArrow";
-    case kVK_RightArrow:          return "RightArrow";
-    case kVK_UpArrow:             return "UpArrow";
-    case kVK_DownArrow:           return "DownArrow";
-
-    case kVK_Function:            return "Function";
-    case kVK_VolumeUp:            return "VolumeUp";
-    case kVK_VolumeDown:          return "VolumeDown";
-    case kVK_Mute:                return "Mute";
-
-    case kVK_ISO_Section:         return "ISO_Section";
-
-    case kVK_JIS_Yen:             return "JIS_Yen";
-    case kVK_JIS_Underscore:      return "JIS_Underscore";
-    case kVK_JIS_KeypadComma:     return "JIS_KeypadComma";
-    case kVK_JIS_Eisu:            return "JIS_Eisu";
-    case kVK_JIS_Kana:            return "JIS_Kana";
-
-    case kVK_ANSI_A:              return "A";
-    case kVK_ANSI_B:              return "B";
-    case kVK_ANSI_C:              return "C";
-    case kVK_ANSI_D:              return "D";
-    case kVK_ANSI_E:              return "E";
-    case kVK_ANSI_F:              return "F";
-    case kVK_ANSI_G:              return "G";
-    case kVK_ANSI_H:              return "H";
-    case kVK_ANSI_I:              return "I";
-    case kVK_ANSI_J:              return "J";
-    case kVK_ANSI_K:              return "K";
-    case kVK_ANSI_L:              return "L";
-    case kVK_ANSI_M:              return "M";
-    case kVK_ANSI_N:              return "N";
-    case kVK_ANSI_O:              return "O";
-    case kVK_ANSI_P:              return "P";
-    case kVK_ANSI_Q:              return "Q";
-    case kVK_ANSI_R:              return "R";
-    case kVK_ANSI_S:              return "S";
-    case kVK_ANSI_T:              return "T";
-    case kVK_ANSI_U:              return "U";
-    case kVK_ANSI_V:              return "V";
-    case kVK_ANSI_W:              return "W";
-    case kVK_ANSI_X:              return "X";
-    case kVK_ANSI_Y:              return "Y";
-    case kVK_ANSI_Z:              return "Z";
-
-    case kVK_ANSI_1:              return "1";
-    case kVK_ANSI_2:              return "2";
-    case kVK_ANSI_3:              return "3";
-    case kVK_ANSI_4:              return "4";
-    case kVK_ANSI_5:              return "5";
-    case kVK_ANSI_6:              return "6";
-    case kVK_ANSI_7:              return "7";
-    case kVK_ANSI_8:              return "8";
-    case kVK_ANSI_9:              return "9";
-    case kVK_ANSI_0:              return "0";
-    case kVK_ANSI_Equal:          return "Equal";
-    case kVK_ANSI_Minus:          return "Minus";
-    case kVK_ANSI_RightBracket:   return "RightBracket";
-    case kVK_ANSI_LeftBracket:    return "LeftBracket";
-    case kVK_ANSI_Quote:          return "Quote";
-    case kVK_ANSI_Semicolon:      return "Semicolon";
-    case kVK_ANSI_Backslash:      return "Backslash";
-    case kVK_ANSI_Comma:          return "Comma";
-    case kVK_ANSI_Slash:          return "Slash";
-    case kVK_ANSI_Period:         return "Period";
-    case kVK_ANSI_Grave:          return "Grave";
+    case kInsertKeyCode:          return "Insert/Help";
+    case kDeleteKeyCode:          return "Delete";
+    case kTabKeyCode:             return "Tab";
+    case kTildeKeyCode:           return "Tilde";
+    case kBackspaceKeyCode:       return "Backspace";
+    case kHomeKeyCode:            return "Home";
+    case kEndKeyCode:             return "End";
+    case kPageUpKeyCode:          return "PageUp";
+    case kPageDownKeyCode:        return "PageDown";
+    case kLeftArrowKeyCode:       return "LeftArrow";
+    case kRightArrowKeyCode:      return "RightArrow";
+    case kUpArrowKeyCode:         return "UpArrow";
+    case kDownArrowKeyCode:       return "DownArrow";
 
     default:                      return "undefined";
   }
@@ -195,7 +166,7 @@ GetCharacters(const NSString* aString)
   }
 
   nsAutoString escapedStr;
-  for (uint32_t i = 0; i < str.Length(); i++) {
+  for (PRUint32 i = 0; i < str.Length(); i++) {
     PRUnichar ch = str[i];
     if (ch < 0x20) {
       nsPrintfCString utf8str("(U+%04X)", ch);
@@ -244,7 +215,7 @@ GetGeckoKeyEventType(const nsEvent &aEvent)
 }
 
 static const char*
-GetRangeTypeName(uint32_t aRangeType)
+GetRangeTypeName(PRUint32 aRangeType)
 {
   switch (aRangeType) {
     case NS_TEXTRANGE_RAWINPUT:
@@ -315,7 +286,7 @@ GetWindowLevelName(NSInteger aWindowLevel)
 
 #endif // #ifdef PR_LOGGING
 
-static uint32_t gHandlerInstanceCount = 0;
+static PRUint32 gHandlerInstanceCount = 0;
 static TISInputSourceWrapper gCurrentKeyboardLayout;
 
 static void
@@ -412,7 +383,7 @@ TISInputSourceWrapper::TranslateToString(UInt32 aKeyCode, UInt32 aModifiers,
   return true;
 }
 
-uint32_t
+PRUint32
 TISInputSourceWrapper::TranslateToChar(UInt32 aKeyCode, UInt32 aModifiers,
                                        UInt32 aKbType)
 {
@@ -421,7 +392,7 @@ TISInputSourceWrapper::TranslateToChar(UInt32 aKeyCode, UInt32 aModifiers,
       str.Length() != 1) {
     return 0;
   }
-  return static_cast<uint32_t>(str.CharAt(0));
+  return static_cast<PRUint32>(str.CharAt(0));
 }
 
 void
@@ -477,20 +448,14 @@ TISInputSourceWrapper::InitByLayoutID(SInt32 aLayoutID,
     case 0:
       InitByInputSourceID("com.apple.keylayout.US");
       break;
-    case 1:
+    case -18944:
       InitByInputSourceID("com.apple.keylayout.Greek");
       break;
-    case 2:
+    case 3:
       InitByInputSourceID("com.apple.keylayout.German");
       break;
-    case 3:
+    case 224:
       InitByInputSourceID("com.apple.keylayout.Swedish-Pro");
-      break;
-    case 4:
-      InitByInputSourceID("com.apple.keylayout.DVORAK-QWERTYCMD");
-      break;
-    case 5:
-      InitByInputSourceID("com.apple.keylayout.Thai");
       break;
     default:
       Clear();
@@ -544,7 +509,7 @@ TISInputSourceWrapper::InitByLanguage(CFStringRef aLanguage)
 const UCKeyboardLayout*
 TISInputSourceWrapper::GetUCKeyboardLayout()
 {
-  NS_ENSURE_TRUE(mInputSource, nullptr);
+  NS_ENSURE_TRUE(mInputSource, nsnull);
   if (mUCKeyboardLayout) {
     return mUCKeyboardLayout;
   }
@@ -553,7 +518,7 @@ TISInputSourceWrapper::GetUCKeyboardLayout()
                                 kTISPropertyUnicodeKeyLayoutData));
 
   // We should be always able to get the layout here.
-  NS_ENSURE_TRUE(uchr, nullptr);
+  NS_ENSURE_TRUE(uchr, nsnull);
   mUCKeyboardLayout =
     reinterpret_cast<const UCKeyboardLayout*>(CFDataGetBytePtr(uchr));
   return mUCKeyboardLayout;
@@ -573,7 +538,7 @@ TISInputSourceWrapper::GetStringProperty(const CFStringRef aKey,
 {
   aStr = static_cast<CFStringRef>(
     ::TISGetInputSourceProperty(mInputSource, aKey));
-  return aStr != nullptr;
+  return aStr != nsnull;
 }
 
 bool
@@ -613,7 +578,7 @@ TISInputSourceWrapper::GetLanguageList(CFArrayRef &aLanguageList)
   aLanguageList = static_cast<CFArrayRef>(
     ::TISGetInputSourceProperty(mInputSource,
                                 kTISPropertyInputSourceLanguages));
-  return aLanguageList != nullptr;
+  return aLanguageList != nsnull;
 }
 
 bool
@@ -626,7 +591,7 @@ TISInputSourceWrapper::GetPrimaryLanguage(CFStringRef &aPrimaryLanguage)
     return false;
   aPrimaryLanguage =
     static_cast<CFStringRef>(::CFArrayGetValueAtIndex(langList, 0));
-  return aPrimaryLanguage != nullptr;
+  return aPrimaryLanguage != nsnull;
 }
 
 bool
@@ -677,171 +642,57 @@ TISInputSourceWrapper::Clear()
   if (mInputSourceList) {
     ::CFRelease(mInputSourceList);
   }
-  mInputSourceList = nullptr;
-  mInputSource = nullptr;
+  mInputSourceList = nsnull;
+  mInputSource = nsnull;
   mIsRTL = -1;
-  mUCKeyboardLayout = nullptr;
+  mUCKeyboardLayout = nsnull;
   mOverrideKeyboard = false;
 }
 
 void
 TISInputSourceWrapper::InitKeyEvent(NSEvent *aNativeKeyEvent,
-                                    nsKeyEvent& aKeyEvent,
-                                    const nsAString *aInsertString)
+                                    nsKeyEvent& aKeyEvent)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
   PR_LOG(gLog, PR_LOG_ALWAYS,
-    ("%p TISInputSourceWrapper::InitKeyEvent, aNativeKeyEvent=%p, "
-     "aKeyEvent.message=%s, aInsertString=%p",
-     this, aNativeKeyEvent, GetGeckoKeyEventType(aKeyEvent), aInsertString));
+    ("%p TISInputSourceWrapper::InitKeyEvent, aNativeKeyEvent=%p"
+     "aKeyEvent.message=%s",
+     this, aNativeKeyEvent, GetGeckoKeyEventType(aKeyEvent)));
 
   NS_ENSURE_TRUE(aNativeKeyEvent, );
 
-  nsCocoaUtils::InitInputEvent(aKeyEvent, aNativeKeyEvent);
+  aKeyEvent.time = PR_IntervalNow();
+
+  NSUInteger modifiers = [aNativeKeyEvent modifierFlags];
+  aKeyEvent.isShift   = ((modifiers & NSShiftKeyMask) != 0);
+  aKeyEvent.isControl = ((modifiers & NSControlKeyMask) != 0);
+  aKeyEvent.isAlt     = ((modifiers & NSAlternateKeyMask) != 0);
+  aKeyEvent.isMeta    = ((modifiers & NSCommandKeyMask) != 0);
 
   aKeyEvent.refPoint = nsIntPoint(0, 0);
+  aKeyEvent.isChar = false; // XXX not used in XP level
 
-  // If a keyboard layout override is set, we also need to force the keyboard
-  // type to something ANSI to avoid test failures on machines with JIS
-  // keyboards (since the pair of keyboard layout and physical keyboard type
-  // form the actual key layout).  This assumes that the test setting the
-  // override was written assuming an ANSI keyboard.
-  UInt32 kbType = mOverrideKeyboard ? eKbdType_ANSI : ::LMGetKbdType();
-
-  UInt32 nativeKeyCode = [aNativeKeyEvent keyCode];
-
-  bool isPrintableKey = !TextInputHandler::IsSpecialGeckoKey(nativeKeyCode);
-  if (isPrintableKey &&
-      [aNativeKeyEvent type] != NSKeyDown &&
-      [aNativeKeyEvent type] != NSKeyUp) {
-    NS_WARNING("Why the printable key doesn't cause NSKeyDown or NSKeyUp?");
-    isPrintableKey = false;
+  NSString* str = nil;
+  if ([aNativeKeyEvent type] != NSFlagsChanged) {
+    str = [aNativeKeyEvent charactersIgnoringModifiers];
   }
-
-  // Decide what string will be input.
-  nsAutoString insertString;
-  if (aInsertString) {
-    // If the caller expects that the aInsertString will be input, we shouldn't
-    // change it.
-    insertString = *aInsertString;
-  } else if (isPrintableKey) {
-    // If the caller isn't sure what string will be input, let's use characters
-    // of NSEvent.
-    // XXX This is wrong at Hiragana or Katakana with Kana-Nyuryoku mode or
-    //     Chinese or Koran IME modes.  We should use ASCII characters at that
-    //     time.
-    nsCocoaUtils::GetStringForNSString([aNativeKeyEvent characters],
-                                       insertString);
-    // If control key is pressed and the eventChars is a non-printable control
-    // character, we should convert it to ASCII alphabet.
-    if (aKeyEvent.IsControl() &&
-        !insertString.IsEmpty() && insertString[0] <= PRUnichar(26)) {
-      insertString = (aKeyEvent.IsShift() ^ aKeyEvent.IsCapsLocked()) ?
-        static_cast<PRUnichar>(insertString[0] + ('A' - 1)) :
-        static_cast<PRUnichar>(insertString[0] + ('a' - 1));
-    }
-    // If Meta key is pressed, it may cause to switch the keyboard layout like
-    // Arabic, Russian, Hebrew, Greek and Dvorak-QWERTY.
-    else if (aKeyEvent.IsMeta() &&
-             !(aKeyEvent.IsControl() || aKeyEvent.IsAlt())) {
-      UInt32 numLockState =
-        aKeyEvent.IsNumLocked() ? kEventKeyModifierNumLockMask : 0;
-      UInt32 capsLockState = aKeyEvent.IsCapsLocked() ? alphaLock : 0;
-      UInt32 shiftState = aKeyEvent.IsShift() ? shiftKey : 0;
-      uint32_t uncmdedChar =
-        TranslateToChar(nativeKeyCode, numLockState, kbType);
-      uint32_t cmdedChar =
-        TranslateToChar(nativeKeyCode, cmdKey | numLockState, kbType);
-      // If we can make a good guess at the characters that the user would
-      // expect this key combination to produce (with and without Shift) then
-      // use those characters.  This also corrects for CapsLock.
-      uint32_t ch = 0;
-      if (uncmdedChar == cmdedChar) {
-        // The characters produced with Command seem similar to those without
-        // Command.
-        ch = TranslateToChar(nativeKeyCode,
-                             shiftState | capsLockState | numLockState, kbType);
-      } else {
-        TISInputSourceWrapper USLayout("com.apple.keylayout.US");
-        uint32_t uncmdedUSChar =
-          USLayout.TranslateToChar(nativeKeyCode, numLockState, kbType);
-        // If it looks like characters from US keyboard layout when Command key
-        // is pressed, we should compute a character in the layout.
-        if (uncmdedUSChar == cmdedChar) {
-          ch = USLayout.TranslateToChar(nativeKeyCode,
-                          shiftState | capsLockState | numLockState, kbType);
-        }
-      }
-
-      // If there is a more preferred character for the commanded key event,
-      // we should use it.
-      if (ch) {
-        insertString = ch;
-      }
-    }
-  }
-
   aKeyEvent.keyCode =
-    ComputeGeckoKeyCode(nativeKeyCode, kbType, aKeyEvent.IsMeta());
-
-  switch (nativeKeyCode) {
-    case kVK_Command:
-    case kVK_Shift:
-    case kVK_Option:
-    case kVK_Control:
-      aKeyEvent.location = nsIDOMKeyEvent::DOM_KEY_LOCATION_LEFT;
-      break;
-
-    case kVK_RightCommand:
-    case kVK_RightShift:
-    case kVK_RightOption:
-    case kVK_RightControl:
-      aKeyEvent.location = nsIDOMKeyEvent::DOM_KEY_LOCATION_RIGHT;
-      break;
-
-    case kVK_ANSI_Keypad0:
-    case kVK_ANSI_Keypad1:
-    case kVK_ANSI_Keypad2:
-    case kVK_ANSI_Keypad3:
-    case kVK_ANSI_Keypad4:
-    case kVK_ANSI_Keypad5:
-    case kVK_ANSI_Keypad6:
-    case kVK_ANSI_Keypad7:
-    case kVK_ANSI_Keypad8:
-    case kVK_ANSI_Keypad9:
-    case kVK_ANSI_KeypadMultiply:
-    case kVK_ANSI_KeypadPlus:
-    case kVK_ANSI_KeypadMinus:
-    case kVK_ANSI_KeypadDecimal:
-    case kVK_ANSI_KeypadDivide:
-    case kVK_ANSI_KeypadEquals:
-    case kVK_ANSI_KeypadEnter:
-    case kVK_Powerbook_KeypadEnter:
-      aKeyEvent.location = nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
-      break;
-
-    default:
-      aKeyEvent.location = nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD;
-      break;
-  }
+    TextInputHandler::ComputeGeckoKeyCode([aNativeKeyEvent keyCode], str);
 
   PR_LOG(gLog, PR_LOG_ALWAYS,
     ("%p TISInputSourceWrapper::InitKeyEvent, "
      "shift=%s, ctrl=%s, alt=%s, meta=%s",
-     this, OnOrOff(aKeyEvent.IsShift()), OnOrOff(aKeyEvent.IsControl()),
-     OnOrOff(aKeyEvent.IsAlt()), OnOrOff(aKeyEvent.IsMeta())));
+     this, OnOrOff(aKeyEvent.isShift), OnOrOff(aKeyEvent.isControl),
+     OnOrOff(aKeyEvent.isAlt), OnOrOff(aKeyEvent.isMeta)));
 
   if (aKeyEvent.message == NS_KEY_PRESS &&
-      (isPrintableKey || !insertString.IsEmpty())) {
-    InitKeyPressEvent(aNativeKeyEvent,
-                      insertString.IsEmpty() ? 0 : insertString[0],
-                      aKeyEvent, kbType);
+      !TextInputHandler::IsSpecialGeckoKey([aNativeKeyEvent keyCode])) {
+    InitKeyPressEvent(aNativeKeyEvent, aKeyEvent);
     return;
   }
 
   aKeyEvent.charCode = 0;
-  aKeyEvent.isChar = false; // XXX not used in XP level
 
   PR_LOG(gLog, PR_LOG_ALWAYS,
     ("%p TISInputSourceWrapper::InitKeyEvent, keyCode=0x%X charCode=0x0",
@@ -852,34 +703,29 @@ TISInputSourceWrapper::InitKeyEvent(NSEvent *aNativeKeyEvent,
 
 void
 TISInputSourceWrapper::InitKeyPressEvent(NSEvent *aNativeKeyEvent,
-                                         PRUnichar aInsertChar,
-                                         nsKeyEvent& aKeyEvent,
-                                         UInt32 aKbType)
+                                         nsKeyEvent& aKeyEvent)
 {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
-  
   NS_ASSERTION(aKeyEvent.message == NS_KEY_PRESS,
                "aKeyEvent must be NS_KEY_PRESS event");
 
-#ifdef PR_LOGGING
-  if (PR_LOG_TEST(gLog, PR_LOG_ALWAYS)) {
-    nsAutoString chars;
-    nsCocoaUtils::GetStringForNSString([aNativeKeyEvent characters], chars);
-    NS_ConvertUTF16toUTF8 utf8Chars(chars);
-    PRUnichar expectedChar = static_cast<PRUnichar>(aInsertChar);
-    NS_ConvertUTF16toUTF8 utf8ExpectedChar(&expectedChar, 1);
-    PR_LOG(gLog, PR_LOG_ALWAYS,
-      ("%p TISInputSourceWrapper::InitKeyPressEvent, aNativeKeyEvent=%p, "
-       "[aNativeKeyEvent characters]=\"%s\", aInsertChar=0x%X(%s), "
-       "aKeyEvent.message=%s, aKbType=0x%X, IsOpenedIMEMode()=%s",
-       this, aNativeKeyEvent, utf8Chars.get(), aInsertChar,
-       utf8ExpectedChar.get(), GetGeckoKeyEventType(aKeyEvent), aKbType,
-       TrueOrFalse(IsOpenedIMEMode())));
-  }
-#endif // #ifdef PR_LOGGING
+  PR_LOG(gLog, PR_LOG_ALWAYS,
+    ("%p TISInputSourceWrapper::InitKeyPressEvent, aNativeKeyEvent=%p"
+     "aKeyEvent.message=%s",
+     this, aNativeKeyEvent, GetGeckoKeyEventType(aKeyEvent)));
 
   aKeyEvent.isChar = true; // this is not a special key  XXX not used in XP
-  aKeyEvent.charCode = aInsertChar;
+
+  aKeyEvent.charCode = 0;
+  NSString* chars = [aNativeKeyEvent characters];
+  if ([chars length] > 0) {
+    aKeyEvent.charCode = [chars characterAtIndex:0];
+  }
+
+  // convert control-modified charCode to raw charCode (with appropriate case)
+  if (aKeyEvent.isControl && aKeyEvent.charCode <= 26) {
+    aKeyEvent.charCode += (aKeyEvent.isShift) ? ('A' - 1) : ('a' - 1);
+  }
+
   if (aKeyEvent.charCode != 0) {
     aKeyEvent.keyCode = 0;
   }
@@ -889,12 +735,19 @@ TISInputSourceWrapper::InitKeyPressEvent(NSEvent *aNativeKeyEvent,
      "aKeyEvent.keyCode=0x%X, aKeyEvent.charCode=0x%X",
      this, aKeyEvent.keyCode, aKeyEvent.charCode));
 
-  if (!aKeyEvent.IsControl() && !aKeyEvent.IsMeta() && !aKeyEvent.IsAlt()) {
+  if (!aKeyEvent.isControl && !aKeyEvent.isMeta && !aKeyEvent.isAlt) {
     return;
   }
 
   TISInputSourceWrapper USLayout("com.apple.keylayout.US");
   bool isRomanKeyboardLayout = IsASCIICapable();
+
+  // If a keyboard layout override is set, we also need to force the
+  // keyboard type to something ANSI to avoid test failures on machines
+  // with JIS keyboards (since the pair of keyboard layout and physical
+  // keyboard type form the actual key layout).  This assumes that the
+  // test setting the override was written assuming an ANSI keyboard.
+  UInt32 kbType = mOverrideKeyboard ? eKbdType_ANSI : ::LMGetKbdType();
 
   UInt32 key = [aNativeKeyEvent keyCode];
 
@@ -909,29 +762,29 @@ TISInputSourceWrapper::InitKeyPressEvent(NSEvent *aNativeKeyEvent,
 
   PR_LOG(gLog, PR_LOG_ALWAYS,
     ("%p TISInputSourceWrapper::InitKeyPressEvent, "
-     "isRomanKeyboardLayout=%s, key=0x%X",
-     this, TrueOrFalse(isRomanKeyboardLayout), aKbType, key));
+     "isRomanKeyboardLayout=%s, kbType=0x%X, key=0x%X",
+     this, TrueOrFalse(isRomanKeyboardLayout), kbType, key));
 
   nsString str;
 
   // normal chars
-  uint32_t unshiftedChar = TranslateToChar(key, lockState, aKbType);
+  PRUint32 unshiftedChar = TranslateToChar(key, lockState, kbType);
   UInt32 shiftLockMod = shiftKey | lockState;
-  uint32_t shiftedChar = TranslateToChar(key, shiftLockMod, aKbType);
+  PRUint32 shiftedChar = TranslateToChar(key, shiftLockMod, kbType);
 
   // characters generated with Cmd key
   // XXX we should remove CapsLock state, which changes characters from
   //     Latin to Cyrillic with Russian layout on 10.4 only when Cmd key
   //     is pressed.
   UInt32 numState = (lockState & ~alphaLock); // only num lock state
-  uint32_t uncmdedChar = TranslateToChar(key, numState, aKbType);
+  PRUint32 uncmdedChar = TranslateToChar(key, numState, kbType);
   UInt32 shiftNumMod = numState | shiftKey;
-  uint32_t uncmdedShiftChar = TranslateToChar(key, shiftNumMod, aKbType);
-  uint32_t uncmdedUSChar = USLayout.TranslateToChar(key, numState, aKbType);
+  PRUint32 uncmdedShiftChar = TranslateToChar(key, shiftNumMod, kbType);
+  PRUint32 uncmdedUSChar = USLayout.TranslateToChar(key, numState, kbType);
   UInt32 cmdNumMod = cmdKey | numState;
-  uint32_t cmdedChar = TranslateToChar(key, cmdNumMod, aKbType);
+  PRUint32 cmdedChar = TranslateToChar(key, cmdNumMod, kbType);
   UInt32 cmdShiftNumMod = shiftKey | cmdNumMod;
-  uint32_t cmdedShiftChar = TranslateToChar(key, cmdShiftNumMod, aKbType);
+  PRUint32 cmdedShiftChar = TranslateToChar(key, cmdShiftNumMod, kbType);
 
   // Is the keyboard layout changed by Cmd key?
   // E.g., Arabic, Russian, Hebrew, Greek and Dvorak-QWERTY.
@@ -945,7 +798,7 @@ TISInputSourceWrapper::InitKeyPressEvent(NSEvent *aNativeKeyEvent,
   // normal characters.  These are the characters that the user is most
   // likely to associate with this key.
   if ((unshiftedChar || shiftedChar) &&
-      (!aKeyEvent.IsMeta() || !isDvorakQWERTY)) {
+      (!aKeyEvent.isMeta || !isDvorakQWERTY)) {
     nsAlternativeCharCode altCharCodes(unshiftedChar, shiftedChar);
     aKeyEvent.alternativeCharCodes.AppendElement(altCharCodes);
   }
@@ -953,7 +806,7 @@ TISInputSourceWrapper::InitKeyPressEvent(NSEvent *aNativeKeyEvent,
     ("%p TISInputSourceWrapper::InitKeyPressEvent, "
      "aKeyEvent.isMeta=%s, isDvorakQWERTY=%s, "
      "unshiftedChar=U+%X, shiftedChar=U+%X",
-     this, OnOrOff(aKeyEvent.IsMeta()), TrueOrFalse(isDvorakQWERTY),
+     this, OnOrOff(aKeyEvent.isMeta), TrueOrFalse(isDvorakQWERTY),
      unshiftedChar, shiftedChar));
 
   // Most keyboard layouts provide the same characters in the NSEvents
@@ -972,7 +825,7 @@ TISInputSourceWrapper::InitKeyPressEvent(NSEvent *aNativeKeyEvent,
   // we'll send it as an alternative char.
   bool hasCmdShiftOnlyChar =
     cmdedChar != cmdedShiftChar && uncmdedShiftChar != cmdedShiftChar;
-  uint32_t originalCmdedShiftChar = cmdedShiftChar;
+  PRUint32 originalCmdedShiftChar = cmdedShiftChar;
 
   // If we can make a good guess at the characters that the user would
   // expect this key combination to produce (with and without Shift) then
@@ -990,24 +843,41 @@ TISInputSourceWrapper::InitKeyPressEvent(NSEvent *aNativeKeyEvent,
   } else if (uncmdedUSChar == cmdedChar) {
     // It looks like characters from a US layout are provided when Command
     // is down.
-    uint32_t ch = USLayout.TranslateToChar(key, lockState, aKbType);
+    PRUint32 ch = USLayout.TranslateToChar(key, lockState, kbType);
     if (ch) {
       cmdedChar = ch;
     }
-    ch = USLayout.TranslateToChar(key, shiftLockMod, aKbType);
+    ch = USLayout.TranslateToChar(key, shiftLockMod, kbType);
     if (ch) {
       cmdedShiftChar = ch;
     }
   }
 
+  // Only charCode (not alternativeCharCodes) is available to javascript,
+  // so attempt to set this to the most likely intended (or most useful)
+  // character.  Note that cmdedChar and cmdedShiftChar are usually
+  // Latin/ASCII characters and that is what is wanted here as accel
+  // keys are expected to be Latin characters.
+  //
+  // XXX We should do something similar when Control is down (bug 429510).
+  if (aKeyEvent.isMeta && !(aKeyEvent.isControl || aKeyEvent.isAlt)) {
+    // The character to use for charCode.
+    PRUint32 preferredCharCode = 0;
+    preferredCharCode = aKeyEvent.isShift ? cmdedShiftChar : cmdedChar;
+
+    if (preferredCharCode) {
+      aKeyEvent.charCode = preferredCharCode;
+      PR_LOG(gLog, PR_LOG_ALWAYS,
+        ("%p TISInputSourceWrapper::InitKeyPressEvent, "
+         "aKeyEvent.charCode=U+%X",
+         this, aKeyEvent.charCode));
+    }
+  }
+
   // If the current keyboard layout is switched by the Cmd key,
   // we should append cmdedChar and shiftedCmdChar that are
-  // Latin char for the key.
-  // If the keyboard layout is Dvorak-QWERTY, we should append them only when
-  // command key is pressed because when command key isn't pressed, uncmded
-  // chars have been appended already.
-  if ((cmdedChar || cmdedShiftChar) && isCmdSwitchLayout &&
-      (aKeyEvent.IsMeta() || !isDvorakQWERTY)) {
+  // Latin char for the key. But don't append at Dvorak-QWERTY.
+  if ((cmdedChar || cmdedShiftChar) && isCmdSwitchLayout && !isDvorakQWERTY) {
     nsAlternativeCharCode altCharCodes(cmdedChar, cmdedShiftChar);
     aKeyEvent.alternativeCharCodes.AppendElement(altCharCodes);
   }
@@ -1027,165 +897,6 @@ TISInputSourceWrapper::InitKeyPressEvent(NSEvent *aNativeKeyEvent,
     ("%p TISInputSourceWrapper::InitKeyPressEvent, "
      "hasCmdShiftOnlyChar=%s, originalCmdedShiftChar=U+%X",
      this, TrueOrFalse(hasCmdShiftOnlyChar), originalCmdedShiftChar));
-
-  NS_OBJC_END_TRY_ABORT_BLOCK
-}
-
-uint32_t
-TISInputSourceWrapper::ComputeGeckoKeyCode(UInt32 aNativeKeyCode,
-                                           UInt32 aKbType,
-                                           bool aCmdIsPressed)
-{
-  PR_LOG(gLog, PR_LOG_ALWAYS,
-    ("%p TISInputSourceWrapper::ComputeGeckoKeyCode, aNativeKeyCode=0x%X, "
-     "aKbType=0x%X, aCmdIsPressed=%s, IsOpenedIMEMode()=%s, "
-     "IsASCIICapable()=%s",
-     this, aNativeKeyCode, aKbType, TrueOrFalse(aCmdIsPressed),
-     TrueOrFalse(IsOpenedIMEMode()), TrueOrFalse(IsASCIICapable())));
-
-  switch (aNativeKeyCode) {
-    case kVK_Space:             return NS_VK_SPACE;
-    case kVK_Escape:            return NS_VK_ESCAPE;
-
-    // modifiers
-    case kVK_RightCommand:
-    case kVK_Command:           return NS_VK_META;
-    case kVK_RightShift:
-    case kVK_Shift:             return NS_VK_SHIFT;
-    case kVK_CapsLock:          return NS_VK_CAPS_LOCK;
-    case kVK_RightControl:
-    case kVK_Control:           return NS_VK_CONTROL;
-    case kVK_RightOption:
-    case kVK_Option:            return NS_VK_ALT;
-
-    case kVK_ANSI_KeypadClear:  return NS_VK_CLEAR;
-
-    // function keys
-    case kVK_F1:                return NS_VK_F1;
-    case kVK_F2:                return NS_VK_F2;
-    case kVK_F3:                return NS_VK_F3;
-    case kVK_F4:                return NS_VK_F4;
-    case kVK_F5:                return NS_VK_F5;
-    case kVK_F6:                return NS_VK_F6;
-    case kVK_F7:                return NS_VK_F7;
-    case kVK_F8:                return NS_VK_F8;
-    case kVK_F9:                return NS_VK_F9;
-    case kVK_F10:               return NS_VK_F10;
-    case kVK_F11:               return NS_VK_F11;
-    case kVK_F12:               return NS_VK_F12;
-    // case kVK_F13:               return NS_VK_F13;  // clash with the 3 below
-    // case kVK_F14:               return NS_VK_F14;
-    // case kVK_F15:               return NS_VK_F15;
-    case kVK_F16:               return NS_VK_F16;
-    case kVK_F17:               return NS_VK_F17;
-    case kVK_F18:               return NS_VK_F18;
-    case kVK_F19:               return NS_VK_F19;
-
-    case kVK_PC_Pause:          return NS_VK_PAUSE;
-    case kVK_PC_ScrollLock:     return NS_VK_SCROLL_LOCK;
-    case kVK_PC_PrintScreen:    return NS_VK_PRINTSCREEN;
-
-    // keypad
-    case kVK_ANSI_Keypad0:      return NS_VK_NUMPAD0;
-    case kVK_ANSI_Keypad1:      return NS_VK_NUMPAD1;
-    case kVK_ANSI_Keypad2:      return NS_VK_NUMPAD2;
-    case kVK_ANSI_Keypad3:      return NS_VK_NUMPAD3;
-    case kVK_ANSI_Keypad4:      return NS_VK_NUMPAD4;
-    case kVK_ANSI_Keypad5:      return NS_VK_NUMPAD5;
-    case kVK_ANSI_Keypad6:      return NS_VK_NUMPAD6;
-    case kVK_ANSI_Keypad7:      return NS_VK_NUMPAD7;
-    case kVK_ANSI_Keypad8:      return NS_VK_NUMPAD8;
-    case kVK_ANSI_Keypad9:      return NS_VK_NUMPAD9;
-
-    case kVK_ANSI_KeypadMultiply: return NS_VK_MULTIPLY;
-    case kVK_ANSI_KeypadPlus:     return NS_VK_ADD;
-    case kVK_ANSI_KeypadMinus:    return NS_VK_SUBTRACT;
-    case kVK_ANSI_KeypadDecimal:  return NS_VK_DECIMAL;
-    case kVK_ANSI_KeypadDivide:   return NS_VK_DIVIDE;
-
-    // IME keys
-    case kVK_JIS_Eisu:          return NS_VK_EISU;
-    case kVK_JIS_Kana:          return NS_VK_KANA;
-
-    // these may clash with forward delete and help
-    case kVK_PC_Insert:         return NS_VK_INSERT;
-    case kVK_PC_Delete:         return NS_VK_DELETE;
-
-    case kVK_PC_Backspace:      return NS_VK_BACK;
-    case kVK_Tab:               return NS_VK_TAB;
-
-    case kVK_Home:              return NS_VK_HOME;
-    case kVK_End:               return NS_VK_END;
-
-    case kVK_PageUp:            return NS_VK_PAGE_UP;
-    case kVK_PageDown:          return NS_VK_PAGE_DOWN;
-
-    case kVK_LeftArrow:         return NS_VK_LEFT;
-    case kVK_RightArrow:        return NS_VK_RIGHT;
-    case kVK_UpArrow:           return NS_VK_UP;
-    case kVK_DownArrow:         return NS_VK_DOWN;
-
-    case kVK_ANSI_1:            return NS_VK_1;
-    case kVK_ANSI_2:            return NS_VK_2;
-    case kVK_ANSI_3:            return NS_VK_3;
-    case kVK_ANSI_4:            return NS_VK_4;
-    case kVK_ANSI_5:            return NS_VK_5;
-    case kVK_ANSI_6:            return NS_VK_6;
-    case kVK_ANSI_7:            return NS_VK_7;
-    case kVK_ANSI_8:            return NS_VK_8;
-    case kVK_ANSI_9:            return NS_VK_9;
-    case kVK_ANSI_0:            return NS_VK_0;
-
-    case kVK_ANSI_KeypadEnter:
-    case kVK_Return:
-    case kVK_Powerbook_KeypadEnter: return NS_VK_RETURN;
-  }
-
-  // If Cmd key is pressed, that causes switching keyboard layout temporarily.
-  // E.g., Dvorak-QWERTY.  Therefore, if Cmd key is pressed, we should honor it.
-  UInt32 modifiers = aCmdIsPressed ? cmdKey : 0;
-
-  uint32_t charCode = TranslateToChar(aNativeKeyCode, modifiers, aKbType);
-
-  // Special case for Mac.  Mac inputs Yen sign (U+00A5) directly instead of
-  // Back slash (U+005C).  We should return NS_VK_BACK_SLASH for compatibility
-  // with other platforms.
-  // XXX How about Won sign (U+20A9) which has same problem as Yen sign?
-  if (charCode == 0x00A5) {
-    return NS_VK_BACK_SLASH;
-  }
-
-  uint32_t keyCode = WidgetUtils::ComputeKeyCodeFromChar(charCode);
-  if (keyCode) {
-    return keyCode;
-  }
-
-  // If the unshifed char isn't an ASCII character, use shifted char.
-  charCode = TranslateToChar(aNativeKeyCode, modifiers | shiftKey, aKbType);
-  keyCode = WidgetUtils::ComputeKeyCodeFromChar(charCode);
-  if (keyCode) {
-    return keyCode;
-  }
-
-  // If this is ASCII capable, give up to compute it.
-  if (IsASCIICapable()) {
-    return 0;
-  }
-
-  // Retry with ASCII capable keyboard layout.
-  TISInputSourceWrapper currentKeyboardLayout;
-  currentKeyboardLayout.InitByCurrentASCIICapableKeyboardLayout();
-  NS_ENSURE_TRUE(mInputSource != currentKeyboardLayout.mInputSource, 0);
-  keyCode = currentKeyboardLayout.ComputeGeckoKeyCode(aNativeKeyCode, aKbType,
-                                                      aCmdIsPressed);
-
-  // However, if keyCode isn't for an alphabet keys or a numeric key, we should
-  // ignore it.  For example, comma key of Thai layout is same as close-square-
-  // bracket key of US layout and an unicode character key of Thai layout is
-  // same as comma key of US layout.  If we return NS_VK_COMMA for latter key,
-  // web application developers cannot distinguish with the former key.
-  return ((keyCode >= NS_VK_A && keyCode <= NS_VK_Z) ||
-          (keyCode >= NS_VK_0 && keyCode <= NS_VK_9)) ? keyCode : 0;
 }
 
 
@@ -1333,7 +1044,8 @@ TextInputHandler::HandleKeyDownEvent(NSEvent* aNativeEvent)
       nsMouseEvent contextMenuEvent(true, NS_CONTEXTMENU,
                                     [mView widget], nsMouseEvent::eReal,
                                     nsMouseEvent::eContextMenuKey);
-      contextMenuEvent.modifiers = 0;
+      contextMenuEvent.isShift = contextMenuEvent.isControl =
+        contextMenuEvent.isAlt = contextMenuEvent.isMeta = false;
 
       bool cmEventHandled = DispatchEvent(contextMenuEvent);
       PR_LOG(gLog, PR_LOG_ALWAYS,
@@ -1479,7 +1191,7 @@ TextInputHandler::HandleFlagsChanged(NSEvent* aNativeEvent)
   // CapsLock state and other modifier states are different:
   // CapsLock state does not revert when the CapsLock key goes up, as the
   // modifier state does for other modifier keys on key up.
-  if ([aNativeEvent keyCode] == kVK_CapsLock) {
+  if ([aNativeEvent keyCode] == kCapsLockKeyCode) {
     // Fire key down event for caps lock.
     DispatchKeyEventForFlagsChanged(aNativeEvent, true);
     if (Destroyed()) {
@@ -1494,9 +1206,9 @@ TextInputHandler::HandleFlagsChanged(NSEvent* aNativeEvent)
     const NSUInteger kModifierMaskTable[] =
       { NSShiftKeyMask, NSControlKeyMask,
         NSAlternateKeyMask, NSCommandKeyMask };
-    const uint32_t kModifierCount = ArrayLength(kModifierMaskTable);
+    const PRUint32 kModifierCount = ArrayLength(kModifierMaskTable);
 
-    for (uint32_t i = 0; i < kModifierCount; i++) {
+    for (PRUint32 i = 0; i < kModifierCount; i++) {
       NSUInteger modifierBit = kModifierMaskTable[i];
       if ((modifiers & modifierBit) != (sLastModifierState & modifierBit)) {
         bool isKeyDown = ((modifiers & modifierBit) != 0);
@@ -1540,7 +1252,7 @@ TextInputHandler::DispatchKeyEventForFlagsChanged(NSEvent* aNativeEvent,
     return;
   }
 
-  uint32_t message = aDispatchKeyDown ? NS_KEY_DOWN : NS_KEY_UP;
+  PRUint32 message = aDispatchKeyDown ? NS_KEY_DOWN : NS_KEY_UP;
 
 #ifndef NP_NO_CARBON
   EventRecord carbonEvent;
@@ -1588,7 +1300,7 @@ TextInputHandler::InsertText(NSAttributedString *aAttrString)
      "keyevent=%p, keypressDispatched=%s",
      this, GetCharacters([aAttrString string]), TrueOrFalse(IsIMEComposing()),
      TrueOrFalse(IgnoreIMEComposition()),
-     currentKeyEvent ? currentKeyEvent->mKeyEvent : nullptr,
+     currentKeyEvent ? currentKeyEvent->mKeyEvent : nsnull,
      currentKeyEvent ?
        TrueOrFalse(currentKeyEvent->mKeyPressDispatched) : "N/A"));
 
@@ -1596,7 +1308,7 @@ TextInputHandler::InsertText(NSAttributedString *aAttrString)
     return;
   }
 
-  nsAutoString str;
+  nsString str;
   nsCocoaUtils::GetStringForNSString([aAttrString string], str);
   if (!IsIMEComposing() && str.IsEmpty()) {
     return; // nothing to do
@@ -1617,7 +1329,10 @@ TextInputHandler::InsertText(NSAttributedString *aAttrString)
 
   // Dispatch keypress event with char instead of textEvent
   nsKeyEvent keypressEvent(true, NS_KEY_PRESS, mWidget);
-  keypressEvent.isChar = IsPrintableChar(str.CharAt(0));
+  keypressEvent.time      = PR_IntervalNow();
+  keypressEvent.charCode  = str.CharAt(0);
+  keypressEvent.keyCode   = 0;
+  keypressEvent.isChar    = true;
 
   // Don't set other modifiers from the current event, because here in
   // -insertText: they've already been taken into account in creating
@@ -1630,7 +1345,6 @@ TextInputHandler::InsertText(NSAttributedString *aAttrString)
 
   if (currentKeyEvent) {
     NSEvent* keyEvent = currentKeyEvent->mKeyEvent;
-    InitKeyEvent(keyEvent, keypressEvent, &str);
 
     // XXX The ASCII characters inputting mode of egbridge (Japanese IME)
     // might send the keyDown event with wrong keyboard layout if other
@@ -1646,20 +1360,22 @@ TextInputHandler::InsertText(NSAttributedString *aAttrString)
     if (currentKeyEvent->mKeyDownHandled) {
       keypressEvent.flags |= NS_EVENT_FLAG_NO_DEFAULT;
     }
-  } else {
-    nsCocoaUtils::InitInputEvent(keypressEvent, static_cast<NSEvent*>(nullptr));
-    // Note that insertText is not called only at key pressing.
-    if (!keypressEvent.charCode) {
+
+    keypressEvent.isShift = ([keyEvent modifierFlags] & NSShiftKeyMask) != 0;
+    if (!IsPrintableChar(keypressEvent.charCode)) {
       keypressEvent.keyCode =
-        WidgetUtils::ComputeKeyCodeFromChar(keypressEvent.charCode);
+        ComputeGeckoKeyCode([keyEvent keyCode],
+                            [keyEvent charactersIgnoringModifiers]);
+      keypressEvent.charCode = 0;
+    }
+  } else {
+    // Note that insertText is not called only at key pressing.
+    if (!IsPrintableChar(keypressEvent.charCode)) {
+      keypressEvent.keyCode =
+        ComputeGeckoKeyCodeFromChar(keypressEvent.charCode);
+      keypressEvent.charCode = 0;
     }
   }
-
-  // Remove basic modifiers from keypress event because if they are included,
-  // nsPlaintextEditor ignores the event.
-  keypressEvent.modifiers &= ~(widget::MODIFIER_CONTROL |
-                               widget::MODIFIER_ALT |
-                               widget::MODIFIER_META);
 
   // TODO:
   // If mCurrentKeyEvent.mKeyEvent is null and when we implement textInput
@@ -1724,8 +1440,8 @@ TextInputHandler::DoCommandBySelector(const char* aSelector)
  ******************************************************************************/
 
 bool IMEInputHandler::sStaticMembersInitialized = false;
-CFStringRef IMEInputHandler::sLatestIMEOpenedModeInputSourceID = nullptr;
-IMEInputHandler* IMEInputHandler::sFocusedIMEHandler = nullptr;
+CFStringRef IMEInputHandler::sLatestIMEOpenedModeInputSourceID = nsnull;
+IMEInputHandler* IMEInputHandler::sFocusedIMEHandler = nsnull;
 
 // static
 void
@@ -1766,7 +1482,7 @@ IMEInputHandler::OnCurrentTextInputSourceChange(CFNotificationCenterRef aCenter,
 
 #ifdef PR_LOGGING
   if (PR_LOG_TEST(gLog, PR_LOG_ALWAYS)) {
-    static CFStringRef sLastTIS = nullptr;
+    static CFStringRef sLastTIS = nsnull;
     CFStringRef newTIS;
     tis.GetInputSourceID(newTIS);
     if (!sLastTIS ||
@@ -2049,7 +1765,7 @@ IMEInputHandler::ExecutePendingMethods()
 
   if (mTimer) {
     mTimer->Cancel();
-    mTimer = nullptr;
+    mTimer = nsnull;
   }
 
   if (![[NSApplication sharedApplication] isActive]) {
@@ -2058,7 +1774,7 @@ IMEInputHandler::ExecutePendingMethods()
     return;
   }
 
-  uint32_t pendingMethods = mPendingMethods;
+  PRUint32 pendingMethods = mPendingMethods;
   // First, reset the pending method flags because if each methods cannot
   // run now, they can reentry to the pending flags by theirselves.
   mPendingMethods = 0;
@@ -2084,8 +1800,8 @@ IMEInputHandler::ExecutePendingMethods()
  *
  ******************************************************************************/
 
-uint32_t
-IMEInputHandler::ConvertToTextRangeType(uint32_t aUnderlineStyle,
+PRUint32
+IMEInputHandler::ConvertToTextRangeType(PRUint32 aUnderlineStyle,
                                         NSRange& aSelectedRange)
 {
   PR_LOG(gLog, PR_LOG_ALWAYS,
@@ -2120,14 +1836,14 @@ IMEInputHandler::ConvertToTextRangeType(uint32_t aUnderlineStyle,
   }
 }
 
-uint32_t
+PRUint32
 IMEInputHandler::GetRangeCount(NSAttributedString *aAttrString)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
 
   // Iterate through aAttrString for the NSUnderlineStyleAttributeName and
   // count the different segments adjusting limitRange as we go.
-  uint32_t count = 0;
+  PRUint32 count = 0;
   NSRange effectiveRange;
   NSRange limitRange = NSMakeRange(0, [aAttrString length]);
   while (limitRange.length > 0) {
@@ -2162,8 +1878,8 @@ IMEInputHandler::SetTextRangeList(nsTArray<nsTextRange>& aTextRangeList,
   // Gecko IME textrange attributes.  We may need to change the code here if
   // we change the implementation of validAttributesForMarkedText.
   NSRange limitRange = NSMakeRange(0, [aAttrString length]);
-  uint32_t rangeCount = GetRangeCount(aAttrString);
-  for (uint32_t i = 0; i < rangeCount && limitRange.length > 0; i++) {
+  PRUint32 rangeCount = GetRangeCount(aAttrString);
+  for (PRUint32 i = 0; i < rangeCount && limitRange.length > 0; i++) {
     NSRange effectiveRange;
     id attributeValue = [aAttrString attribute:NSUnderlineStyleAttributeName
                                        atIndex:limitRange.location
@@ -2656,7 +2372,7 @@ IMEInputHandler::GetValidAttributesForMarkedText()
 IMEInputHandler::IMEInputHandler(nsChildView* aWidget,
                                  NSView<mozView> *aNativeView) :
   PluginTextInputHandler(aWidget, aNativeView),
-  mPendingMethods(0), mIMECompositionString(nullptr),
+  mPendingMethods(0), mIMECompositionString(nsnull),
   mIsIMEComposing(false), mIsIMEEnabled(true),
   mIsASCIICapableOnly(false), mIgnoreIMECommit(false),
   mIsInFocusProcessing(false)
@@ -2671,10 +2387,10 @@ IMEInputHandler::~IMEInputHandler()
 {
   if (mTimer) {
     mTimer->Cancel();
-    mTimer = nullptr;
+    mTimer = nsnull;
   }
   if (sFocusedIMEHandler == this) {
-    sFocusedIMEHandler = nullptr;
+    sFocusedIMEHandler = nsnull;
   }
 }
 
@@ -2692,7 +2408,7 @@ IMEInputHandler::OnFocusChangeInGecko(bool aFocus)
   // improve the nsIMEStateManager implementation.
   if (!aFocus) {
     if (sFocusedIMEHandler == this)
-      sFocusedIMEHandler = nullptr;
+      sFocusedIMEHandler = nsnull;
     return;
   }
 
@@ -2791,7 +2507,7 @@ IMEInputHandler::OnEndIMEComposition()
 
   if (mIMECompositionString) {
     [mIMECompositionString release];
-    mIMECompositionString = nullptr;
+    mIMECompositionString = nsnull;
   }
 
   mLastDispatchedCompositionString.Truncate();
@@ -3114,7 +2830,7 @@ PluginTextInputHandler::ConvertUnicodeToCharCode(PRUnichar aUniChar,
   TextEncoding      systemEncoding;
   Str255            convertedString;
 
-  *aOutChar = '\0';
+  *aOutChar = nsnull;
 
   OSStatus err =
     ::UpgradeScriptInfoToTextEncoding(smSystemScript,
@@ -3349,31 +3065,14 @@ PluginTextInputHandler::HandleCarbonPluginKeyEvent(EventRef aKeyEvent)
                                &modifiers);
   NS_ENSURE_TRUE(status == noErr, );
 
-  NSUInteger cocoaModifiers = 0;
-  if (modifiers & shiftKey) {
-    cocoaModifiers |= NSShiftKeyMask;
-  }
-  if (modifiers & controlKey) {
-    cocoaModifiers |= NSControlKeyMask;
-  }
-  if (modifiers & optionKey) {
-    cocoaModifiers |= NSAlternateKeyMask;
-  }
-  if (modifiers & cmdKey) { // Should never happen
-    cocoaModifiers |= NSCommandKeyMask;
-  }
-
   UInt32 macKeyCode;
   status = ::GetEventParameter(aKeyEvent, kEventParamKeyCode,
                                typeUInt32, NULL, sizeof(macKeyCode), NULL,
                                &macKeyCode);
   NS_ENSURE_TRUE(status == noErr, );
 
-  TISInputSourceWrapper currentKeyboardLayout;
-  currentKeyboardLayout.InitByCurrentKeyboardLayout();
-
   EventRef cloneEvent = ::CopyEvent(aKeyEvent);
-  for (uint32_t i = 0; i < numCharCodes; ++i) {
+  for (PRUint32 i = 0; i < numCharCodes; ++i) {
     status = ::SetEventParameter(cloneEvent, kEventParamKeyMacCharCodes,
                                  typeChar, 1, charCodes.Elements() + i);
     NS_ENSURE_TRUE(status == noErr, );
@@ -3381,22 +3080,22 @@ PluginTextInputHandler::HandleCarbonPluginKeyEvent(EventRef aKeyEvent)
     EventRecord eventRec;
     if (::ConvertEventRefToEventRecord(cloneEvent, &eventRec)) {
       nsKeyEvent keydownEvent(true, NS_KEY_DOWN, mWidget);
-      nsCocoaUtils::InitInputEvent(keydownEvent, cocoaModifiers);
 
-      uint32_t keyCode =
-        currentKeyboardLayout.ComputeGeckoKeyCode(macKeyCode, ::LMGetKbdType(),
-                                                  keydownEvent.IsMeta());
-      uint32_t charCode(charCodes.ElementAt(i));
+      PRUint32 keyCode = ComputeGeckoKeyCode(macKeyCode, @"");
+      PRUint32 charCode(charCodes.ElementAt(i));
 
       keydownEvent.time = PR_IntervalNow();
       keydownEvent.pluginEvent = &eventRec;
       if (IsSpecialGeckoKey(macKeyCode)) {
         keydownEvent.keyCode = keyCode;
       } else {
-        // XXX This is wrong. charCode must be 0 for keydown event.
         keydownEvent.charCode = charCode;
         keydownEvent.isChar   = true;
       }
+      keydownEvent.isShift   = ((modifiers & shiftKey) != 0);
+      keydownEvent.isControl = ((modifiers & controlKey) != 0);
+      keydownEvent.isAlt     = ((modifiers & optionKey) != 0);
+      keydownEvent.isMeta = ((modifiers & cmdKey) != 0); // Should never happen
       DispatchEvent(keydownEvent);
       if (Destroyed()) {
         break;
@@ -3788,7 +3487,7 @@ TextInputHandlerBase::OnDestroyWidget(nsChildView* aDestroyingWidget)
     return false;
   }
 
-  mWidget = nullptr;
+  mWidget = nsnull;
   return true;
 }
 
@@ -3797,7 +3496,7 @@ TextInputHandlerBase::DispatchEvent(nsGUIEvent& aEvent)
 {
   if (aEvent.message == NS_KEY_PRESS) {
     nsInputEvent& inputEvent = static_cast<nsInputEvent&>(aEvent);
-    if (!inputEvent.IsMeta()) {
+    if (!inputEvent.isMeta) {
       PR_LOG(gLog, PR_LOG_ALWAYS,
         ("%p TextInputHandlerBase::DispatchEvent, hiding mouse cursor", this));
       [NSCursor setHiddenUntilMouseMoves:YES];
@@ -3808,8 +3507,7 @@ TextInputHandlerBase::DispatchEvent(nsGUIEvent& aEvent)
 
 void
 TextInputHandlerBase::InitKeyEvent(NSEvent *aNativeKeyEvent,
-                                   nsKeyEvent& aKeyEvent,
-                                   const nsAString* aInsertString)
+                                   nsKeyEvent& aKeyEvent)
 {
   NS_ASSERTION(aNativeKeyEvent, "aNativeKeyEvent must not be NULL");
 
@@ -3819,20 +3517,20 @@ TextInputHandlerBase::InitKeyEvent(NSEvent *aNativeKeyEvent,
   } else {
     tis.InitByCurrentKeyboardLayout();
   }
-  tis.InitKeyEvent(aNativeKeyEvent, aKeyEvent, aInsertString);
+  tis.InitKeyEvent(aNativeKeyEvent, aKeyEvent);
 }
 
 nsresult
 TextInputHandlerBase::SynthesizeNativeKeyEvent(
-                        int32_t aNativeKeyboardLayout,
-                        int32_t aNativeKeyCode,
-                        uint32_t aModifierFlags,
+                        PRInt32 aNativeKeyboardLayout,
+                        PRInt32 aNativeKeyCode,
+                        PRUint32 aModifierFlags,
                         const nsAString& aCharacters,
                         const nsAString& aUnmodifiedCharacters)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
-  static const uint32_t sModifierFlagMap[][2] = {
+  static const PRUint32 sModifierFlagMap[][2] = {
     { nsIWidget::CAPS_LOCK,       NSAlphaShiftKeyMask },
     { nsIWidget::SHIFT_L,         NSShiftKeyMask },
     { nsIWidget::SHIFT_R,         NSShiftKeyMask },
@@ -3847,8 +3545,8 @@ TextInputHandlerBase::SynthesizeNativeKeyEvent(
     { nsIWidget::FUNCTION,        NSFunctionKeyMask }
   };
 
-  uint32_t modifierFlags = 0;
-  for (uint32_t i = 0; i < ArrayLength(sModifierFlagMap); ++i) {
+  PRUint32 modifierFlags = 0;
+  for (PRUint32 i = 0; i < ArrayLength(sModifierFlagMap); ++i) {
     if (aModifierFlags & sModifierFlagMap[i][0]) {
       modifierFlags |= sModifierFlagMap[i][1];
     }
@@ -3896,6 +3594,156 @@ TextInputHandlerBase::IsPrintableChar(PRUnichar aChar)
   return (aChar >= 0x20 && aChar <= 0x7E) || aChar >= 0xA0;
 }
 
+/* static */ PRUint32
+TextInputHandlerBase::ComputeGeckoKeyCodeFromChar(PRUnichar aChar)
+{
+  // We don't support the key code for non-ASCII characters
+  if (aChar > 0x7E) {
+    return 0;
+  }
+
+  // lowercase
+  if (aChar >= 'a' && aChar <= 'z') {
+    return PRUint32(toupper(aChar));
+  }
+  // uppercase
+  if (aChar >= 'A' && aChar <= 'Z') {
+    return PRUint32(aChar);
+  }
+  // numeric
+  if (aChar >= '0' && aChar <= '9') {
+    return PRUint32(aChar - '0' + NS_VK_0);
+  }
+
+  switch (aChar) {
+    case kReturnCharCode:
+    case kEnterCharCode:
+    case '\n':
+      return NS_VK_RETURN;
+    case '{':
+    case '[':
+      return NS_VK_OPEN_BRACKET;
+    case '}':
+    case ']':
+      return NS_VK_CLOSE_BRACKET;
+    case '\'':
+    case '"':
+      return NS_VK_QUOTE;
+
+    case '\\':                  return NS_VK_BACK_SLASH;
+    case ' ':                   return NS_VK_SPACE;
+    case ';':                   return NS_VK_SEMICOLON;
+    case '=':                   return NS_VK_EQUALS;
+    case ',':                   return NS_VK_COMMA;
+    case '.':                   return NS_VK_PERIOD;
+    case '/':                   return NS_VK_SLASH;
+    case '`':                   return NS_VK_BACK_QUOTE;
+    case '\t':                  return NS_VK_TAB;
+    case '-':                   return NS_VK_SUBTRACT;
+    case '+':                   return NS_VK_ADD;
+
+    default:
+      if (!IsPrintableChar(aChar)) {
+        NS_WARNING("ComputeGeckoKeyCodeFromChar() has failed.");
+      }
+      return 0;
+  }
+}
+
+/* static */ PRUint32
+TextInputHandlerBase::ComputeGeckoKeyCode(UInt32 aNativeKeyCode,
+                                          NSString *aCharacters)
+{
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
+
+  switch (aNativeKeyCode) {
+    // modifiers. We don't get separate events for these
+    case kEscapeKeyCode:        return NS_VK_ESCAPE;
+    case kRCommandKeyCode:
+    case kCommandKeyCode:       return NS_VK_META;
+    case kRShiftKeyCode:
+    case kShiftKeyCode:         return NS_VK_SHIFT;
+    case kCapsLockKeyCode:      return NS_VK_CAPS_LOCK;
+    case kRControlKeyCode:
+    case kControlKeyCode:       return NS_VK_CONTROL;
+    case kROptionKeyCode:
+    case kOptionkeyCode:        return NS_VK_ALT;
+    case kClearKeyCode:         return NS_VK_CLEAR;
+
+    // function keys
+    case kF1KeyCode:            return NS_VK_F1;
+    case kF2KeyCode:            return NS_VK_F2;
+    case kF3KeyCode:            return NS_VK_F3;
+    case kF4KeyCode:            return NS_VK_F4;
+    case kF5KeyCode:            return NS_VK_F5;
+    case kF6KeyCode:            return NS_VK_F6;
+    case kF7KeyCode:            return NS_VK_F7;
+    case kF8KeyCode:            return NS_VK_F8;
+    case kF9KeyCode:            return NS_VK_F9;
+    case kF10KeyCode:           return NS_VK_F10;
+    case kF11KeyCode:           return NS_VK_F11;
+    case kF12KeyCode:           return NS_VK_F12;
+    // case kF13KeyCode:           return NS_VK_F13;  // clash with the 3 below
+    // case kF14KeyCode:           return NS_VK_F14;
+    // case kF15KeyCode:           return NS_VK_F15;
+    case kPauseKeyCode:         return NS_VK_PAUSE;
+    case kScrollLockKeyCode:    return NS_VK_SCROLL_LOCK;
+    case kPrintScreenKeyCode:   return NS_VK_PRINTSCREEN;
+
+    // keypad
+    case kKeypad0KeyCode:       return NS_VK_NUMPAD0;
+    case kKeypad1KeyCode:       return NS_VK_NUMPAD1;
+    case kKeypad2KeyCode:       return NS_VK_NUMPAD2;
+    case kKeypad3KeyCode:       return NS_VK_NUMPAD3;
+    case kKeypad4KeyCode:       return NS_VK_NUMPAD4;
+    case kKeypad5KeyCode:       return NS_VK_NUMPAD5;
+    case kKeypad6KeyCode:       return NS_VK_NUMPAD6;
+    case kKeypad7KeyCode:       return NS_VK_NUMPAD7;
+    case kKeypad8KeyCode:       return NS_VK_NUMPAD8;
+    case kKeypad9KeyCode:       return NS_VK_NUMPAD9;
+
+    case kKeypadMultiplyKeyCode:  return NS_VK_MULTIPLY;
+    case kKeypadAddKeyCode:       return NS_VK_ADD;
+    case kKeypadSubtractKeyCode:  return NS_VK_SUBTRACT;
+    case kKeypadDecimalKeyCode:   return NS_VK_DECIMAL;
+    case kKeypadDivideKeyCode:    return NS_VK_DIVIDE;
+
+    // these may clash with forward delete and help
+    case kInsertKeyCode:        return NS_VK_INSERT;
+    case kDeleteKeyCode:        return NS_VK_DELETE;
+
+    case kBackspaceKeyCode:     return NS_VK_BACK;
+    case kTabKeyCode:           return NS_VK_TAB;
+    case kHomeKeyCode:          return NS_VK_HOME;
+    case kEndKeyCode:           return NS_VK_END;
+    case kPageUpKeyCode:        return NS_VK_PAGE_UP;
+    case kPageDownKeyCode:      return NS_VK_PAGE_DOWN;
+    case kLeftArrowKeyCode:     return NS_VK_LEFT;
+    case kRightArrowKeyCode:    return NS_VK_RIGHT;
+    case kUpArrowKeyCode:       return NS_VK_UP;
+    case kDownArrowKeyCode:     return NS_VK_DOWN;
+    case kVK_ANSI_1:            return NS_VK_1;
+    case kVK_ANSI_2:            return NS_VK_2;
+    case kVK_ANSI_3:            return NS_VK_3;
+    case kVK_ANSI_4:            return NS_VK_4;
+    case kVK_ANSI_5:            return NS_VK_5;
+    case kVK_ANSI_6:            return NS_VK_6;
+    case kVK_ANSI_7:            return NS_VK_7;
+    case kVK_ANSI_8:            return NS_VK_8;
+    case kVK_ANSI_9:            return NS_VK_9;
+    case kVK_ANSI_0:            return NS_VK_0;
+
+    default:
+      // if we haven't gotten the key code already, look at the char code
+      if ([aCharacters length] > 0) {
+        return ComputeGeckoKeyCodeFromChar([aCharacters characterAtIndex:0]);
+      }
+  }
+
+  return 0;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(0);
+}
 
 /* static */ bool
 TextInputHandlerBase::IsSpecialGeckoKey(UInt32 aNativeKeyCode)
@@ -3904,58 +3752,51 @@ TextInputHandlerBase::IsSpecialGeckoKey(UInt32 aNativeKeyCode)
   // generate a charCode
   switch (aNativeKeyCode) {
     // modifiers - we don't get separate events for these yet
-    case kVK_Escape:
-    case kVK_Shift:
-    case kVK_RightShift:
-    case kVK_Command:
-    case kVK_RightCommand:
-    case kVK_CapsLock:
-    case kVK_Control:
-    case kVK_RightControl:
-    case kVK_Option:
-    case kVK_RightOption:
-    case kVK_ANSI_KeypadClear:
+    case kEscapeKeyCode:
+    case kShiftKeyCode:
+    case kRShiftKeyCode:
+    case kCommandKeyCode:
+    case kRCommandKeyCode:
+    case kCapsLockKeyCode:
+    case kControlKeyCode:
+    case kRControlKeyCode:
+    case kOptionkeyCode:
+    case kROptionKeyCode:
+    case kClearKeyCode:
 
     // function keys
-    case kVK_F1:
-    case kVK_F2:
-    case kVK_F3:
-    case kVK_F4:
-    case kVK_F5:
-    case kVK_F6:
-    case kVK_F7:
-    case kVK_F8:
-    case kVK_F9:
-    case kVK_F10:
-    case kVK_F11:
-    case kVK_F12:
-    case kVK_PC_Pause:
-    case kVK_PC_ScrollLock:
-    case kVK_PC_PrintScreen:
-    case kVK_F16:
-    case kVK_F17:
-    case kVK_F18:
-    case kVK_F19:
+    case kF1KeyCode:
+    case kF2KeyCode:
+    case kF3KeyCode:
+    case kF4KeyCode:
+    case kF5KeyCode:
+    case kF6KeyCode:
+    case kF7KeyCode:
+    case kF8KeyCode:
+    case kF9KeyCode:
+    case kF10KeyCode:
+    case kF11KeyCode:
+    case kF12KeyCode:
+    case kPauseKeyCode:
+    case kScrollLockKeyCode:
+    case kPrintScreenKeyCode:
 
-    case kVK_PC_Insert:
-    case kVK_PC_Delete:
-    case kVK_Tab:
-    case kVK_PC_Backspace:
+    case kInsertKeyCode:
+    case kDeleteKeyCode:
+    case kTabKeyCode:
+    case kBackspaceKeyCode:
 
-    case kVK_JIS_Eisu:
-    case kVK_JIS_Kana:
-
-    case kVK_Home:
-    case kVK_End:
-    case kVK_PageUp:
-    case kVK_PageDown:
-    case kVK_LeftArrow:
-    case kVK_RightArrow:
-    case kVK_UpArrow:
-    case kVK_DownArrow:
-    case kVK_Return:
-    case kVK_ANSI_KeypadEnter:
-    case kVK_Powerbook_KeypadEnter:
+    case kHomeKeyCode:
+    case kEndKeyCode:
+    case kPageUpKeyCode:
+    case kPageDownKeyCode:
+    case kLeftArrowKeyCode:
+    case kRightArrowKeyCode:
+    case kUpArrowKeyCode:
+    case kDownArrowKeyCode:
+    case kReturnKeyCode:
+    case kEnterKeyCode:
+    case kPowerbookEnterKeyCode:
       return true;
   }
   return false;
@@ -3965,7 +3806,7 @@ TextInputHandlerBase::IsSpecialGeckoKey(UInt32 aNativeKeyCode)
 TextInputHandlerBase::IsNormalCharInputtingEvent(const nsKeyEvent& aKeyEvent)
 {
   // this is not character inputting event, simply.
-  if (!aKeyEvent.isChar || !aKeyEvent.charCode || aKeyEvent.IsMeta()) {
+  if (!aKeyEvent.isChar || !aKeyEvent.charCode || aKeyEvent.isMeta) {
     return false;
   }
   // if this is unicode char inputting event, we don't need to check
@@ -3974,22 +3815,22 @@ TextInputHandlerBase::IsNormalCharInputtingEvent(const nsKeyEvent& aKeyEvent)
     return true;
   }
   // ASCII chars should be inputted without ctrl/alt/command keys
-  return !aKeyEvent.IsControl() && !aKeyEvent.IsAlt();
+  return !aKeyEvent.isControl && !aKeyEvent.isAlt;
 }
 
 /* static */ bool
 TextInputHandlerBase::IsModifierKey(UInt32 aNativeKeyCode)
 {
   switch (aNativeKeyCode) {
-    case kVK_CapsLock:
-    case kVK_RightCommand:
-    case kVK_Command:
-    case kVK_Shift:
-    case kVK_Option:
-    case kVK_Control:
-    case kVK_RightShift:
-    case kVK_RightOption:
-    case kVK_RightControl:
+    case kCapsLockKeyCode:
+    case kRCommandKeyCode:
+    case kCommandKeyCode:
+    case kShiftKeyCode:
+    case kOptionkeyCode:
+    case kControlKeyCode:
+    case kRShiftKeyCode:
+    case kROptionKeyCode:
+    case kRControlKeyCode:
       return true;
   }
   return false;

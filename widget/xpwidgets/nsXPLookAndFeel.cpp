@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/Util.h"
 
 #include "nscore.h"
@@ -47,9 +79,6 @@ nsLookAndFeelIntPref nsXPLookAndFeel::sIntPrefs[] =
     false, 0 },
   { "ui.menusCanOverlapOSBar",
     eIntID_MenusCanOverlapOSBar,
-    false, 0 },
-  { "ui.showHideScrollbars",
-    eIntID_ShowHideScrollbars,
     false, 0 },
   { "ui.skipNavigatingDisabledMenuItem",
     eIntID_SkipNavigatingDisabledMenuItem,
@@ -215,13 +244,13 @@ const char nsXPLookAndFeel::sColorPrefs[][38] =
   "ui.-moz-combobox"
 };
 
-int32_t nsXPLookAndFeel::sCachedColors[LookAndFeel::eColorID_LAST_COLOR] = {0};
-int32_t nsXPLookAndFeel::sCachedColorBits[COLOR_CACHE_SIZE] = {0};
+PRInt32 nsXPLookAndFeel::sCachedColors[LookAndFeel::eColorID_LAST_COLOR] = {0};
+PRInt32 nsXPLookAndFeel::sCachedColorBits[COLOR_CACHE_SIZE] = {0};
 
 bool nsXPLookAndFeel::sInitialized = false;
 bool nsXPLookAndFeel::sUseNativeColors = true;
 
-nsLookAndFeel* nsXPLookAndFeel::sInstance = nullptr;
+nsLookAndFeel* nsXPLookAndFeel::sInstance = nsnull;
 bool nsXPLookAndFeel::sShutdown = false;
 
 
@@ -232,7 +261,7 @@ nsXPLookAndFeel::GetInstance()
     return sInstance;
   }
 
-  NS_ENSURE_TRUE(!sShutdown, nullptr);
+  NS_ENSURE_TRUE(!sShutdown, nsnull);
 
   sInstance = new nsLookAndFeel();
   return sInstance;
@@ -247,7 +276,7 @@ nsXPLookAndFeel::Shutdown()
   }
   sShutdown = true;
   delete sInstance;
-  sInstance = nullptr;
+  sInstance = nsnull;
 }
 
 nsXPLookAndFeel::nsXPLookAndFeel() : LookAndFeel()
@@ -262,7 +291,7 @@ nsXPLookAndFeel::IntPrefChanged(nsLookAndFeelIntPref *data)
     return;
   }
 
-  int32_t intpref;
+  PRInt32 intpref;
   nsresult rv = Preferences::GetInt(data->name, &intpref);
   if (NS_FAILED(rv)) {
     return;
@@ -282,7 +311,7 @@ nsXPLookAndFeel::FloatPrefChanged(nsLookAndFeelFloatPref *data)
     return;
   }
 
-  int32_t intpref;
+  PRInt32 intpref;
   nsresult rv = Preferences::GetInt(data->name, &intpref);
   if (NS_FAILED(rv)) {
     return;
@@ -307,11 +336,11 @@ nsXPLookAndFeel::ColorPrefChanged (unsigned int index, const char *prefName)
     nscolor thecolor;
     if (colorStr[0] == PRUnichar('#')) {
       if (NS_HexToRGB(nsDependentString(colorStr, 1), &thecolor)) {
-        int32_t id = NS_PTR_TO_INT32(index);
+        PRInt32 id = NS_PTR_TO_INT32(index);
         CACHE_COLOR(id, thecolor);
       }
     } else if (NS_ColorNameToRGB(colorStr, &thecolor)) {
-      int32_t id = NS_PTR_TO_INT32(index);
+      PRInt32 id = NS_PTR_TO_INT32(index);
       CACHE_COLOR(id, thecolor);
 #ifdef DEBUG_akkana
       printf("====== Changed color pref %s to 0x%lx\n",
@@ -321,7 +350,7 @@ nsXPLookAndFeel::ColorPrefChanged (unsigned int index, const char *prefName)
   } else {
     
     
-    int32_t id = NS_PTR_TO_INT32(index);
+    PRInt32 id = NS_PTR_TO_INT32(index);
     CLEAR_COLOR_CACHE(id);
   }
 }
@@ -329,7 +358,7 @@ nsXPLookAndFeel::ColorPrefChanged (unsigned int index, const char *prefName)
 void
 nsXPLookAndFeel::InitFromPref(nsLookAndFeelIntPref* aPref)
 {
-  int32_t intpref;
+  PRInt32 intpref;
   nsresult rv = Preferences::GetInt(aPref->name, &intpref);
   if (NS_SUCCEEDED(rv)) {
     aPref->isSet = true;
@@ -340,7 +369,7 @@ nsXPLookAndFeel::InitFromPref(nsLookAndFeelIntPref* aPref)
 void
 nsXPLookAndFeel::InitFromPref(nsLookAndFeelFloatPref* aPref)
 {
-  int32_t intpref;
+  PRInt32 intpref;
   nsresult rv = Preferences::GetInt(aPref->name, &intpref);
   if (NS_SUCCEEDED(rv)) {
     aPref->isSet = true;
@@ -349,7 +378,7 @@ nsXPLookAndFeel::InitFromPref(nsLookAndFeelFloatPref* aPref)
 }
 
 void
-nsXPLookAndFeel::InitColorFromPref(int32_t i)
+nsXPLookAndFeel::InitColorFromPref(PRInt32 i)
 {
   nsAutoString colorStr;
   nsresult rv = Preferences::GetString(sColorPrefs[i], &colorStr);
@@ -443,7 +472,7 @@ nsXPLookAndFeel::~nsXPLookAndFeel()
 {
   NS_ASSERTION(sInstance == this,
                "This destroying instance isn't the singleton instance");
-  sInstance = nullptr;
+  sInstance = nsnull;
 }
 
 bool
@@ -608,7 +637,7 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, nscolor &aResult)
          !IsSpecialColor(aID, aResult)) {
       qcms_transform *transform = gfxPlatform::GetCMSInverseRGBTransform();
       if (transform) {
-        uint8_t color[3];
+        PRUint8 color[3];
         color[0] = NS_GET_R(aResult);
         color[1] = NS_GET_G(aResult);
         color[2] = NS_GET_B(aResult);
@@ -625,7 +654,7 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, nscolor &aResult)
 }
   
 nsresult
-nsXPLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
+nsXPLookAndFeel::GetIntImpl(IntID aID, PRInt32 &aResult)
 {
   if (!sInitialized)
     Init();
@@ -680,7 +709,7 @@ void
 nsXPLookAndFeel::RefreshImpl()
 {
   
-  uint32_t i;
+  PRUint32 i;
   for (i = 0; i < eColorID_LAST_COLOR; i++)
     sCachedColors[i] = 0;
   for (i = 0; i < COLOR_CACHE_SIZE; i++)
@@ -698,7 +727,7 @@ LookAndFeel::GetColor(ColorID aID, nscolor* aResult)
 
 
 nsresult
-LookAndFeel::GetInt(IntID aID, int32_t* aResult)
+LookAndFeel::GetInt(IntID aID, PRInt32* aResult)
 {
   return nsLookAndFeel::GetInstance()->GetIntImpl(aID, *aResult);
 }
@@ -708,13 +737,6 @@ nsresult
 LookAndFeel::GetFloat(FloatID aID, float* aResult)
 {
   return nsLookAndFeel::GetInstance()->GetFloatImpl(aID, *aResult);
-}
-
-
-bool
-LookAndFeel::GetFont(FontID aID, nsString& aName, gfxFontStyle& aStyle)
-{
-  return nsLookAndFeel::GetInstance()->GetFontImpl(aID, aName, aStyle);
 }
 
 
@@ -729,13 +751,6 @@ bool
 LookAndFeel::GetEchoPassword()
 {
   return nsLookAndFeel::GetInstance()->GetEchoPasswordImpl();
-}
-
-
-uint32_t
-LookAndFeel::GetPasswordMaskDelay()
-{
-  return nsLookAndFeel::GetInstance()->GetPasswordMaskDelayImpl();
 }
 
 

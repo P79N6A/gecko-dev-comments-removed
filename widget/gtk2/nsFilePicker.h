@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFilePicker_h__
 #define nsFilePicker_h__
 
@@ -14,7 +46,7 @@
 #include "nsCOMArray.h"
 
 class nsIWidget;
-class nsIFile;
+class nsILocalFile;
 
 class nsFilePicker : public nsBaseFilePicker
 {
@@ -25,22 +57,20 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_IMETHOD Open(nsIFilePickerShownCallback *aCallback);
-  NS_IMETHODIMP AppendFilters(int32_t aFilterMask);
+  NS_IMETHODIMP AppendFilters(PRInt32 aFilterMask);
   NS_IMETHODIMP AppendFilter(const nsAString& aTitle, const nsAString& aFilter);
   NS_IMETHODIMP SetDefaultString(const nsAString& aString);
   NS_IMETHODIMP GetDefaultString(nsAString& aString);
   NS_IMETHODIMP SetDefaultExtension(const nsAString& aExtension);
   NS_IMETHODIMP GetDefaultExtension(nsAString& aExtension);
-  NS_IMETHODIMP GetFilterIndex(int32_t *aFilterIndex);
-  NS_IMETHODIMP SetFilterIndex(int32_t aFilterIndex);
-  NS_IMETHODIMP GetFile(nsIFile **aFile);
+  NS_IMETHODIMP GetFilterIndex(PRInt32 *aFilterIndex);
+  NS_IMETHODIMP SetFilterIndex(PRInt32 aFilterIndex);
+  NS_IMETHODIMP GetFile(nsILocalFile **aFile);
   NS_IMETHODIMP GetFileURL(nsIURI **aFileURL);
   NS_IMETHODIMP GetFiles(nsISimpleEnumerator **aFiles);
-  NS_IMETHODIMP Show(int16_t *aReturn);
+  NS_IMETHODIMP Show(PRInt16 *aReturn);
 
-  
-  virtual void InitNative(nsIWidget *aParent, const nsAString& aTitle, int16_t aMode);
+  virtual void InitNative(nsIWidget *aParent, const nsAString& aTitle, PRInt16 aMode);
 
   static void Shutdown();
 
@@ -48,19 +78,11 @@ protected:
 
   void ReadValuesFromFileChooser(GtkWidget *file_chooser);
 
-  static void OnResponse(GtkWidget* dialog, gint response_id,
-                         gpointer user_data);
-  static void OnDestroy(GtkWidget* dialog, gpointer user_data);
-  void Done(GtkWidget* dialog, gint response_id);
-
   nsCOMPtr<nsIWidget>    mParentWidget;
-  nsCOMPtr<nsIFilePickerShownCallback> mCallback;
-  nsCOMArray<nsIFile> mFiles;
+  nsCOMArray<nsILocalFile> mFiles;
 
-  int16_t   mMode;
-  int16_t   mSelectedType;
-  int16_t   mResult;
-  bool      mRunning;
+  PRInt16   mMode;
+  PRInt16   mSelectedType;
   bool      mAllowURLs;
   nsCString mFileURL;
   nsString  mTitle;
@@ -71,7 +93,7 @@ protected:
   nsTArray<nsCString> mFilterNames;
 
 private:
-  static nsIFile *mPrevDisplayDirectory;
+  static nsILocalFile *mPrevDisplayDirectory;
 };
 
 #endif

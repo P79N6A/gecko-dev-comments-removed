@@ -7,6 +7,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -30,7 +68,7 @@ NS_IMPL_ISUPPORTS2(nsSound, nsISound, nsIStreamLoaderObserver)
 
 typedef struct _ARGBUFFER
 {
-  uint32_t  bufLen;
+  PRUint32  bufLen;
   char      buffer[1];
 } ARGBUFFER;
 
@@ -58,7 +96,7 @@ static ULONG  (*APIENTRY _mciSendCommand)(USHORT, USHORT, ULONG, PVOID, USHORT);
 static void   initSounds(void);
 static bool initDlls(void);
 static void   playSound(void *aArgs);
-static FOURCC determineFourCC(uint32_t aDataLen, const char *aData);
+static FOURCC determineFourCC(PRUint32 aDataLen, const char *aData);
 
 
 
@@ -116,8 +154,8 @@ NS_IMETHODIMP nsSound::Play(nsIURL *aURL)
 NS_IMETHODIMP nsSound::OnStreamComplete(nsIStreamLoader *aLoader,
                                         nsISupports *context,
                                         nsresult aStatus,
-                                        uint32_t dataLen,
-                                        const uint8_t *data)
+                                        PRUint32 dataLen,
+                                        const PRUint8 *data)
 {
   if (NS_FAILED(aStatus)) {
 #ifdef DEBUG
@@ -130,7 +168,7 @@ NS_IMETHODIMP nsSound::OnStreamComplete(nsIStreamLoader *aLoader,
         if (channel) {
           channel->GetURI(getter_AddRefs(uri));
           if (uri) {
-            nsAutoCString uriSpec;
+            nsCAutoString uriSpec;
             uri->GetSpec(uriSpec);
             fprintf(stderr, "nsSound::OnStreamComplete:  failed to load %s\n",
                     uriSpec.get());
@@ -180,7 +218,7 @@ NS_IMETHODIMP nsSound::PlaySystemSound(const nsAString &aSoundAlias)
     DBG_MSG("nsISound::playSystemSound was called with \"_moz_\" events, "
                "they are obsolete, use nsISound::playEventSound instead");
 
-    uint32_t eventId;
+    PRUint32 eventId;
     if (aSoundAlias.Equals(NS_SYSSOUND_MAIL_BEEP)) {
       eventId = EVENT_NEW_MAIL_RECEIVED;
     } else if (aSoundAlias.Equals(NS_SYSSOUND_ALERT_DIALOG)) {
@@ -211,7 +249,7 @@ NS_IMETHODIMP nsSound::PlaySystemSound(const nsAString &aSoundAlias)
 
 
 
-NS_IMETHODIMP nsSound::PlayEventSound(uint32_t aEventId)
+NS_IMETHODIMP nsSound::PlayEventSound(PRUint32 aEventId)
 {
   if (!sDllError &&
       aEventId < EVENT_CNT &&
@@ -246,7 +284,7 @@ NS_IMETHODIMP nsSound::PlayEventSound(uint32_t aEventId)
 
 nsresult nsSound::PlaySoundFile(const nsAString &aSoundFile)
 {
-  nsAutoCString buf;
+  nsCAutoString buf;
   nsresult rv = NS_CopyUnicodeToNative(aSoundFile, buf);
   NS_ENSURE_SUCCESS(rv,rv);
 
@@ -260,7 +298,7 @@ nsresult nsSound::PlaySoundFile(const nsAString &aSoundFile)
 nsresult nsSound::PlaySoundFile(const nsACString &aSoundFile)
 {
   nsresult rv;
-  nsCOMPtr <nsIFile> soundFile;
+  nsCOMPtr <nsILocalFile> soundFile;
   rv = NS_NewNativeLocalFile(aSoundFile, false, 
                              getter_AddRefs(soundFile));
   NS_ENSURE_SUCCESS(rv,rv);
@@ -485,7 +523,7 @@ static void playSound(void * aArgs)
 
 
 
-static FOURCC determineFourCC(uint32_t aDataLen, const char *aData)
+static FOURCC determineFourCC(PRUint32 aDataLen, const char *aData)
 {
   FOURCC fcc = 0;
 

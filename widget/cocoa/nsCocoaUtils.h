@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCocoaUtils_h_
 #define nsCocoaUtils_h_
 
@@ -144,7 +179,7 @@ class nsCocoaUtils
 
 
   
-  static nsresult CreateNSImageFromImageContainer(imgIContainer *aImage, uint32_t aWhichFrame, NSImage **aResult);
+  static nsresult CreateNSImageFromImageContainer(imgIContainer *aImage, PRUint32 aWhichFrame, NSImage **aResult);
 
   
 
@@ -178,18 +213,6 @@ class nsCocoaUtils
 
   static void InitPluginEvent(nsPluginEvent &aPluginEvent,
                               NPCocoaEvent &aCocoaEvent);
-  
-
-
-  static void InitInputEvent(nsInputEvent &aInputEvent,
-                             NSEvent* aNativeEvent);
-  static void InitInputEvent(nsInputEvent &aInputEvent,
-                             NSUInteger aModifiers);
-
-  
-
-
-  static NSUInteger GetCurrentModifiers();
 };
 
 #endif 

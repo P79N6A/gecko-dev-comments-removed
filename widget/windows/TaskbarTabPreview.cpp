@@ -5,6 +5,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
+
 #include "TaskbarTabPreview.h"
 #include "nsWindowGfx.h"
 #include "nsUXThemeData.h"
@@ -190,7 +225,7 @@ TaskbarTabPreview::WndProc(UINT nMsg, WPARAM wParam, LPARAM lParam) {
 
 LRESULT CALLBACK
 TaskbarTabPreview::GlobalWndProc(HWND hWnd, UINT nMsg, WPARAM wParam, LPARAM lParam) {
-  TaskbarTabPreview *preview(nullptr);
+  TaskbarTabPreview *preview(nsnull);
   if (nMsg == WM_CREATE) {
     CREATESTRUCT *cs = reinterpret_cast<CREATESTRUCT*>(lParam);
     preview = reinterpret_cast<TaskbarTabPreview*>(cs->lpCreateParams);
@@ -355,3 +390,4 @@ TaskbarTabPreview::UpdateNext() {
 } 
 } 
 
+#endif 

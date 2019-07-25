@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsWindow_h__
 #define __nsWindow_h__
 
@@ -31,7 +63,7 @@
 #endif 
 
 #ifdef ACCESSIBILITY
-#include "mozilla/a11y/Accessible.h"
+#include "nsAccessible.h"
 #endif
 
 #include "nsGtkIMModule.h"
@@ -63,7 +95,6 @@ extern PRLogModuleInfo *gWidgetDrawLog;
 
 #endif 
 
-class nsDragService;
 #if defined(MOZ_X11) && defined(MOZ_HAVE_SHAREDMEMORYSYSV)
 #  define MOZ_HAVE_SHMIMAGE
 
@@ -83,8 +114,11 @@ public:
     void CommonCreate(nsIWidget *aParent, bool aListenForResizes);
     
     
+    void InitKeyEvent(nsKeyEvent &aEvent, GdkEventKey *aGdkEvent);
+
     void DispatchActivateEvent(void);
     void DispatchDeactivateEvent(void);
+    void DispatchResizeEvent(nsIntRect &aRect, nsEventStatus &aStatus);
 
     virtual nsresult DispatchEvent(nsGUIEvent *aEvent, nsEventStatus &aStatus);
     
@@ -98,6 +132,7 @@ public:
     NS_IMETHOD         Create(nsIWidget        *aParent,
                               nsNativeWidget   aNativeParent,
                               const nsIntRect  &aRect,
+                              EVENT_CALLBACK   aHandleEventFunction,
                               nsDeviceContext *aContext,
                               nsWidgetInitData *aInitData);
     NS_IMETHOD         Destroy(void);
@@ -105,30 +140,29 @@ public:
     virtual float      GetDPI();
     virtual nsresult   SetParent(nsIWidget* aNewParent);
     NS_IMETHOD         SetModal(bool aModal);
-    virtual bool       IsVisible() const;
+    NS_IMETHOD         IsVisible(bool & aState);
     NS_IMETHOD         ConstrainPosition(bool aAllowSlop,
-                                         int32_t *aX,
-                                         int32_t *aY);
-    virtual void       SetSizeConstraints(const SizeConstraints& aConstraints);
-    NS_IMETHOD         Move(int32_t aX,
-                            int32_t aY);
+                                         PRInt32 *aX,
+                                         PRInt32 *aY);
+    NS_IMETHOD         Move(PRInt32 aX,
+                            PRInt32 aY);
     NS_IMETHOD         Show             (bool aState);
-    NS_IMETHOD         Resize           (int32_t aWidth,
-                                         int32_t aHeight,
+    NS_IMETHOD         Resize           (PRInt32 aWidth,
+                                         PRInt32 aHeight,
                                          bool    aRepaint);
-    NS_IMETHOD         Resize           (int32_t aX,
-                                         int32_t aY,
-                                         int32_t aWidth,
-                                         int32_t aHeight,
+    NS_IMETHOD         Resize           (PRInt32 aX,
+                                         PRInt32 aY,
+                                         PRInt32 aWidth,
+                                         PRInt32 aHeight,
                                          bool     aRepaint);
-    virtual bool       IsEnabled() const;
+    NS_IMETHOD         IsEnabled        (bool *aState);
 
 
     NS_IMETHOD         PlaceBehind(nsTopLevelWidgetZPlacement  aPlacement,
                                    nsIWidget                  *aWidget,
                                    bool                        aActivate);
-    NS_IMETHOD         SetZIndex(int32_t aZIndex);
-    NS_IMETHOD         SetSizeMode(int32_t aMode);
+    NS_IMETHOD         SetZIndex(PRInt32 aZIndex);
+    NS_IMETHOD         SetSizeMode(PRInt32 aMode);
     NS_IMETHOD         Enable(bool aState);
     NS_IMETHOD         SetFocus(bool aRaise = false);
     NS_IMETHOD         GetScreenBounds(nsIntRect &aRect);
@@ -138,9 +172,11 @@ public:
     NS_IMETHOD         SetBackgroundColor(const nscolor &aColor);
     NS_IMETHOD         SetCursor(nsCursor aCursor);
     NS_IMETHOD         SetCursor(imgIContainer* aCursor,
-                                 uint32_t aHotspotX, uint32_t aHotspotY);
-    NS_IMETHOD         Invalidate(const nsIntRect &aRect);
-    virtual void*      GetNativeData(uint32_t aDataType);
+                                 PRUint32 aHotspotX, PRUint32 aHotspotY);
+    NS_IMETHOD         Invalidate(const nsIntRect &aRect,
+                                  bool             aIsSynchronous);
+    NS_IMETHOD         Update();
+    virtual void*      GetNativeData(PRUint32 aDataType);
     NS_IMETHOD         SetTitle(const nsAString& aTitle);
     NS_IMETHOD         SetIcon(const nsAString& aIconSpec);
     NS_IMETHOD         SetWindowClass(const nsAString& xulWinType);
@@ -150,18 +186,12 @@ public:
     NS_IMETHOD         CaptureRollupEvents(nsIRollupListener *aListener,
                                            bool aDoCapture,
                                            bool aConsumeRollupEvent);
-    NS_IMETHOD         GetAttention(int32_t aCycleCount);
+    NS_IMETHOD         GetAttention(PRInt32 aCycleCount);
 
     virtual bool       HasPendingInputEvent();
 
     NS_IMETHOD         MakeFullScreen(bool aFullScreen);
     NS_IMETHOD         HideWindowChrome(bool aShouldHide);
-
-    
-
-
-
-    static guint32     GetLastUserInputTime();
 
     
     
@@ -204,6 +234,22 @@ public:
                                                GdkEventVisibility *aEvent);
     void               OnWindowStateEvent(GtkWidget *aWidget,
                                           GdkEventWindowState *aEvent);
+    gboolean           OnDragMotionEvent(GtkWidget       *aWidget,
+                                         GdkDragContext  *aDragContext,
+                                         gint             aX,
+                                         gint             aY,
+                                         guint            aTime,
+                                         gpointer         aData);
+    void               OnDragLeaveEvent(GtkWidget *      aWidget,
+                                        GdkDragContext   *aDragContext,
+                                        guint            aTime,
+                                        gpointer         aData);
+    gboolean           OnDragDropEvent(GtkWidget        *aWidget,
+                                       GdkDragContext   *aDragContext,
+                                       gint             aX,
+                                       gint             aY,
+                                       guint            aTime,
+                                       gpointer         aData);
     void               OnDragDataReceivedEvent(GtkWidget       *aWidget,
                                                GdkDragContext  *aDragContext,
                                                gint             aX,
@@ -212,27 +258,27 @@ public:
                                                guint            aInfo,
                                                guint            aTime,
                                                gpointer         aData);
+    void               OnDragLeave(void);
+    void               OnDragEnter(nscoord aX, nscoord aY);
 
-private:
-    void               NativeResize(int32_t aWidth,
-                                    int32_t aHeight,
+    virtual void       NativeResize(PRInt32 aWidth,
+                                    PRInt32 aHeight,
                                     bool    aRepaint);
 
-    void               NativeResize(int32_t aX,
-                                    int32_t aY,
-                                    int32_t aWidth,
-                                    int32_t aHeight,
+    virtual void       NativeResize(PRInt32 aX,
+                                    PRInt32 aY,
+                                    PRInt32 aWidth,
+                                    PRInt32 aHeight,
                                     bool    aRepaint);
 
-    void               NativeShow  (bool    aAction);
+    virtual void       NativeShow  (bool    aAction);
     void               SetHasMappedToplevel(bool aState);
     nsIntSize          GetSafeWindowSize(nsIntSize aSize);
 
     void               EnsureGrabs  (void);
-    void               GrabPointer  (guint32 aTime);
+    void               GrabPointer  (void);
     void               ReleaseGrabs (void);
 
-public:
     enum PluginType {
         PluginType_NONE = 0,   
         PluginType_XEMBED,     
@@ -247,27 +293,25 @@ public:
 
     void               ThemeChanged(void);
 
+    void CheckNeedDragLeaveEnter(nsWindow* aInnerMostWidget,
+                                 nsIDragService* aDragService,
+                                 GdkDragContext *aDragContext,
+                                 nscoord aX, nscoord aY);
+
 #ifdef MOZ_X11
     Window             mOldFocusWindow;
 #endif 
 
     static guint32     sLastButtonPressTime;
+    static guint32     sLastButtonReleaseTime;
 
-    NS_IMETHOD         BeginResizeDrag(nsGUIEvent* aEvent, int32_t aHorizontal, int32_t aVertical);
+    NS_IMETHOD         BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical);
     NS_IMETHOD         BeginMoveDrag(nsMouseEvent* aEvent);
 
     MozContainer*      GetMozContainer() { return mContainer; }
-    
-    
-    GtkWidget*         GetMozContainerWidget();
     GdkWindow*         GetGdkWindow() { return mGdkWindow; }
     bool               IsDestroyed() { return mIsDestroyed; }
 
-    void               DispatchDragEvent(uint32_t aMsg,
-                                         const nsIntPoint& aRefPoint,
-                                         guint aTime);
-    static void        UpdateDragStatus (GdkDragContext *aDragContext,
-                                         nsIDragService *aDragService);
     
     
     bool               DispatchKeyDownEvent(GdkEventKey *aEvent,
@@ -279,15 +323,15 @@ public:
     NS_IMETHOD_(InputContext) GetInputContext();
     NS_IMETHOD CancelIMEComposition();
     NS_IMETHOD OnIMEFocusChange(bool aFocus);
-    NS_IMETHOD GetToggledKeyState(uint32_t aKeyCode, bool* aLEDState);
+    NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, bool* aLEDState);
 
-   void                ResizeTransparencyBitmap(int32_t aNewWidth, int32_t aNewHeight);
+   void                ResizeTransparencyBitmap(PRInt32 aNewWidth, PRInt32 aNewHeight);
    void                ApplyTransparencyBitmap();
    virtual void        SetTransparencyMode(nsTransparencyMode aMode);
    virtual nsTransparencyMode GetTransparencyMode();
    virtual nsresult    ConfigureChildren(const nsTArray<Configuration>& aConfigurations);
    nsresult            UpdateTranslucentWindowAlphaInternal(const nsIntRect& aRect,
-                                                            uint8_t* aAlphas, int32_t aStride);
+                                                            PRUint8* aAlphas, PRInt32 aStride);
 
 #if defined(MOZ_WIDGET_GTK2)
     gfxASurface       *GetThebesSurface();
@@ -299,13 +343,9 @@ public:
 #endif
     NS_IMETHOD         ReparentNativeWidget(nsIWidget* aNewParent);
 
-    virtual nsresult SynthesizeNativeMouseEvent(nsIntPoint aPoint,
-                                                uint32_t aNativeMessage,
-                                                uint32_t aModifierFlags);
-
-    virtual nsresult SynthesizeNativeMouseMove(nsIntPoint aPoint)
-    { return SynthesizeNativeMouseEvent(aPoint, GDK_MOTION_NOTIFY, 0); }
-
+#ifdef ACCESSIBILITY
+    static bool        sAccessibilityEnabled;
+#endif
 protected:
     
     void ReparentNativeWidgetInternal(nsIWidget* aNewParent,
@@ -337,13 +377,14 @@ protected:
 private:
     void               DestroyChildWindows();
     void               GetToplevelWidget(GtkWidget **aWidget);
+    GtkWidget         *GetMozContainerWidget();
     nsWindow          *GetContainerWindow();
     void               SetUrgencyHint(GtkWidget *top_window, bool state);
     void              *SetupPluginPort(void);
     void               SetDefaultIcon(void);
     void               InitButtonEvent(nsMouseEvent &aEvent, GdkEventButton *aGdkEvent);
     bool               DispatchCommandEvent(nsIAtom* aCommand);
-    bool               DispatchContentCommandEvent(int32_t aMsg);
+    bool               DispatchContentCommandEvent(PRInt32 aMsg);
     void               SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
                                            bool aIntersectWithExisting);
     bool               GetDragInfo(nsMouseEvent* aMouseEvent,
@@ -357,15 +398,15 @@ private:
 
     GtkWindowGroup     *mWindowGroup;
 
-    uint32_t            mHasMappedToplevel : 1,
+    PRUint32            mHasMappedToplevel : 1,
                         mIsFullyObscured : 1,
                         mRetryPointerGrab : 1;
     GtkWindow          *mTransientParent;
-    nsSizeMode          mSizeState;
+    PRInt32             mSizeState;
     PluginType          mPluginType;
 
-    int32_t             mTransparencyBitmapWidth;
-    int32_t             mTransparencyBitmapHeight;
+    PRInt32             mTransparencyBitmapWidth;
+    PRInt32             mTransparencyBitmapHeight;
 
 #ifdef MOZ_HAVE_SHMIMAGE
     
@@ -374,7 +415,7 @@ private:
     nsRefPtr<gfxASurface> mThebesSurface;
 
 #ifdef ACCESSIBILITY
-    nsRefPtr<Accessible> mRootAccessible;
+    nsRefPtr<nsAccessible> mRootAccessible;
 
     
 
@@ -385,8 +426,14 @@ private:
 
 
 
+    nsAccessible       *DispatchAccessibleEvent();
 
-    void                DispatchEventToRootAccessible(uint32_t aEventType);
+    
+
+
+
+
+    void                DispatchEventToRootAccessible(PRUint32 aEventType);
 
     
 
@@ -430,15 +477,25 @@ private:
     gchar*       mTransparencyBitmap;
  
     
+    
+    static nsWindow    *sLastDragMotionWindow;
     void   InitDragEvent         (nsDragEvent &aEvent);
+    void   UpdateDragStatus      (GdkDragContext *aDragContext,
+                                  nsIDragService *aDragService);
 
+    nsCOMPtr<nsITimer> mDragLeaveTimer;
     float              mLastMotionPressure;
 
     
     
     nsSizeMode         mLastSizeMode;
 
+    static bool        sIsDraggingOutOf;
+    
     static bool DragInProgress(void);
+
+    void         FireDragLeaveTimer       (void);
+    static void  DragLeaveTimerCallback  (nsITimer *aTimer, void *aClosure);
 
     void DispatchMissedButtonReleases(GdkEventCrossing *aGdkEvent);
 
@@ -464,4 +521,4 @@ public:
     ~nsChildWindow();
 };
 
-#endif
+#endif 

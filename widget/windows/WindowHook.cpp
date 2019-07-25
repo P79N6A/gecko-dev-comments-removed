@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "WindowHook.h"
 #include "nsWindow.h"
 
@@ -18,7 +51,7 @@ WindowHook::AddHook(UINT nMsg, Callback callback, void *context) {
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  NS_ENSURE_TRUE(nullptr == data->hook.cb, NS_ERROR_UNEXPECTED);
+  NS_ENSURE_TRUE(nsnull == data->hook.cb, NS_ERROR_UNEXPECTED);
 
   data->hook = CallbackData(callback, context);
 
@@ -68,7 +101,7 @@ WindowHook::Lookup(UINT nMsg) {
     if (data.nMsg == nMsg)
       return &data;
   }
-  return nullptr;
+  return nsnull;
 }
 
 WindowHook::MessageData *
@@ -78,7 +111,7 @@ WindowHook::LookupOrCreate(UINT nMsg) {
     data = mMessageData.AppendElement();
 
     if (!data)
-      return nullptr;
+      return nsnull;
 
     data->nMsg = nMsg;
   }
@@ -104,8 +137,8 @@ WindowHook::Notify(HWND hWnd, UINT nMsg, WPARAM wParam, LPARAM lParam,
   if (!data)
     return false;
 
-  uint32_t length = data->monitors.Length();
-  for (uint32_t midx = 0; midx < length; midx++) {
+  PRUint32 length = data->monitors.Length();
+  for (PRUint32 midx = 0; midx < length; midx++) {
     data->monitors[midx].Invoke(hWnd, nMsg, wParam, lParam, aResult);
   }
 

@@ -1,7 +1,41 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Pierre Phaneuf <pp@ludusdesign.com>
+ *   Mats Palmgren <matpal@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "nsHTMLFormatConverter.h"
 
@@ -15,9 +49,15 @@
 #include "nsITransferable.h" // for mime defs, this is BAD
 
 // HTML convertor stuff
+#include "nsIParser.h"
+#include "nsIDTD.h"
+#include "nsParserCIID.h"
+#include "nsIContentSink.h"
 #include "nsPrimitiveHelpers.h"
 #include "nsIDocumentEncoder.h"
-#include "nsContentUtils.h"
+#include "nsIHTMLToTextSink.h"
+
+static NS_DEFINE_CID(kCParserCID, NS_PARSER_CID);
 
 nsHTMLFormatConverter::nsHTMLFormatConverter()
 {
@@ -160,18 +200,18 @@ nsHTMLFormatConverter::CanConvert(const char *aFromDataFlavor, const char *aToDa
 //XXX unicode out of the string. Lame lame lame.
 //
 NS_IMETHODIMP
-nsHTMLFormatConverter::Convert(const char *aFromDataFlavor, nsISupports *aFromData, uint32_t aDataLen, 
-                               const char *aToDataFlavor, nsISupports **aToData, uint32_t *aDataToLen)
+nsHTMLFormatConverter::Convert(const char *aFromDataFlavor, nsISupports *aFromData, PRUint32 aDataLen, 
+                               const char *aToDataFlavor, nsISupports **aToData, PRUint32 *aDataToLen)
 {
   if ( !aToData || !aDataToLen )
     return NS_ERROR_INVALID_ARG;
 
   nsresult rv = NS_OK;
-  *aToData = nullptr;
+  *aToData = nsnull;
   *aDataToLen = 0;
 
   if ( !nsCRT::strcmp(aFromDataFlavor, kHTMLMime) ) {
-    nsAutoCString toFlavor ( aToDataFlavor );
+    nsCAutoString toFlavor ( aToDataFlavor );
 
     // HTML on clipboard is going to always be double byte so it will be in a primitive
     // class of nsISupportsString. Also, since the data is in two byte chunks the 
@@ -188,7 +228,7 @@ nsHTMLFormatConverter::Convert(const char *aFromDataFlavor, nsISupports *aFromDa
     if ( toFlavor.Equals(kHTMLMime) || toFlavor.Equals(kUnicodeMime) ) {
       nsresult res;
       if (toFlavor.Equals(kHTMLMime)) {
-        int32_t dataLen = dataStr.Length() * 2;
+        PRInt32 dataLen = dataStr.Length() * 2;
         nsPrimitiveHelpers::CreatePrimitiveForData ( toFlavor.get(), (void*)dataStr.get(), dataLen, aToData );
         if ( *aToData )
           *aDataToLen = dataLen;
@@ -196,7 +236,7 @@ nsHTMLFormatConverter::Convert(const char *aFromDataFlavor, nsISupports *aFromDa
         nsAutoString outStr;
         res = ConvertFromHTMLToUnicode(dataStr, outStr);
         if (NS_SUCCEEDED(res)) {
-          int32_t dataLen = outStr.Length() * 2;
+          PRInt32 dataLen = outStr.Length() * 2;
           nsPrimitiveHelpers::CreatePrimitiveForData ( toFlavor.get(), (void*)outStr.get(), dataLen, aToData );
           if ( *aToData ) 
             *aDataToLen = dataLen;
@@ -206,7 +246,7 @@ nsHTMLFormatConverter::Convert(const char *aFromDataFlavor, nsISupports *aFromDa
     else if ( toFlavor.Equals(kAOLMailMime) ) {
       nsAutoString outStr;
       if ( NS_SUCCEEDED(ConvertFromHTMLToAOLMail(dataStr, outStr)) ) {
-        int32_t dataLen = outStr.Length() * 2;
+        PRInt32 dataLen = outStr.Length() * 2;
         nsPrimitiveHelpers::CreatePrimitiveForData ( toFlavor.get(), (void*)outStr.get(), dataLen, aToData );
         if ( *aToData ) 
           *aDataToLen = dataLen;
@@ -232,13 +272,36 @@ nsHTMLFormatConverter::Convert(const char *aFromDataFlavor, nsISupports *aFromDa
 NS_IMETHODIMP
 nsHTMLFormatConverter::ConvertFromHTMLToUnicode(const nsAutoString & aFromStr, nsAutoString & aToStr)
 {
-  return nsContentUtils::ConvertToPlainText(aFromStr,
-    aToStr,
+  // create the parser to do the conversion.
+  aToStr.SetLength(0);
+  nsresult rv;
+  nsCOMPtr<nsIParser> parser = do_CreateInstance(kCParserCID, &rv);
+  if ( !parser )
+    return rv;
+
+  // convert it!
+  nsCOMPtr<nsIContentSink> sink;
+
+  sink = do_CreateInstance(NS_PLAINTEXTSINK_CONTRACTID);
+  NS_ENSURE_TRUE(sink, NS_ERROR_FAILURE);
+
+  nsCOMPtr<nsIHTMLToTextSink> textSink(do_QueryInterface(sink));
+  NS_ENSURE_TRUE(textSink, NS_ERROR_FAILURE);
+
+  // We set OutputNoScriptContent and OutputNoFramesContent unconditionally
+  // here because |aFromStr| is already filtered based on user preferences.
+  PRUint32 flags =
     nsIDocumentEncoder::OutputSelectionOnly |
     nsIDocumentEncoder::OutputAbsoluteLinks |
     nsIDocumentEncoder::OutputNoScriptContent |
-    nsIDocumentEncoder::OutputNoFramesContent,
-    0);
+    nsIDocumentEncoder::OutputNoFramesContent;
+  textSink->Initialize(&aToStr, flags, 0);
+
+  parser->SetContentSink(sink);
+
+  parser->Parse(aFromStr, 0, NS_LITERAL_CSTRING("text/html"), true, eDTDMode_fragment);
+  
+  return NS_OK;
 } // ConvertFromHTMLToUnicode
 
 

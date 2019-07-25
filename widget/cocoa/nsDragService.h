@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDragService_h_
 #define nsDragService_h_
 
@@ -23,13 +56,13 @@ public:
 
   
   NS_IMETHOD InvokeDragSession(nsIDOMNode *aDOMNode, nsISupportsArray * anArrayTransferables,
-                               nsIScriptableRegion * aRegion, uint32_t aActionType);
+                               nsIScriptableRegion * aRegion, PRUint32 aActionType);
   NS_IMETHOD EndDragSession(bool aDoneDrag);
 
   
-  NS_IMETHOD GetData(nsITransferable * aTransferable, uint32_t aItemIndex);
+  NS_IMETHOD GetData(nsITransferable * aTransferable, PRUint32 aItemIndex);
   NS_IMETHOD IsDataFlavorSupported(const char *aDataFlavor, bool *_retval);
-  NS_IMETHOD GetNumDropItems(uint32_t * aNumItems);
+  NS_IMETHOD GetNumDropItems(PRUint32 * aNumItems);
 
 private:
 

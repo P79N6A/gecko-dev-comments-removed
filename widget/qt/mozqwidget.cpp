@@ -4,14 +4,42 @@
 
 
 
-#include <QGraphicsSceneHoverEvent>
-#include <QGraphicsSceneMouseEvent>
-#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
-#include <QInputContext>
-#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <QtGui/QInputContext>
+#include <QtGui/QGraphicsSceneHoverEvent>
+#include <QtGui/QGraphicsSceneMouseEvent>
 #include <QtCore/QTimer>
 
-#define GLdouble_defined 1
 #include "mozqwidget.h"
 #include "nsWindow.h"
 
@@ -556,7 +584,7 @@ void MozQWidget::showVKB()
 
     gPendingVKBOpen = false;
 
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)) && (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
     QWidget* focusWidget = qApp->focusWidget();
 
     if (focusWidget) {
@@ -594,7 +622,7 @@ void MozQWidget::hideVKB()
         return;
     }
 
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)) && (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
     QInputContext *inputContext = qApp->inputContext();
     if (!inputContext) {
         NS_WARNING("Closing SIP: but no input context");
@@ -625,7 +653,7 @@ MozQWidget::NotifyVKB(const QRect& rect)
     if (observerService) {
         QString rect = QString("{\"left\": %1, \"top\": %2, \"right\": %3, \"bottom\": %4}")
                                .arg(bounds.x()).arg(bounds.y()).arg(bounds.width()).arg(bounds.height());
-        observerService->NotifyObservers(nullptr, "softkb-change", rect.utf16());
+        observerService->NotifyObservers(nsnull, "softkb-change", rect.utf16());
     }
 }
 
@@ -634,7 +662,7 @@ void MozQWidget::SwitchToForeground()
     nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
     if (!os)
         return;
-    os->NotifyObservers(nullptr, "application-foreground", nullptr);
+    os->NotifyObservers(nsnull, "application-foreground", nsnull);
 }
 
 void MozQWidget::SwitchToBackground()
@@ -642,6 +670,6 @@ void MozQWidget::SwitchToBackground()
     nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
     if (!os)
         return;
-    os->NotifyObservers(nullptr, "application-background", nullptr);
+    os->NotifyObservers(nsnull, "application-background", nsnull);
 }
 

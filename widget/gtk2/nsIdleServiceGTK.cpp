@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIdleServiceGTK.h"
 #include "nsIServiceManager.h"
 #include "nsDebug.h"
@@ -13,7 +46,7 @@
 
 
 #ifdef PR_LOGGING
-static PRLogModuleInfo* sIdleLog = nullptr;
+static PRLogModuleInfo* sIdleLog = nsnull;
 #endif
 
 typedef bool (*_XScreenSaverQueryExtension_fn)(Display* dpy, int* event_base,
@@ -25,11 +58,11 @@ typedef void (*_XScreenSaverQueryInfo_fn)(Display* dpy, Drawable drw,
                                           XScreenSaverInfo *info);
 
 static bool sInitialized = false;
-static _XScreenSaverQueryExtension_fn _XSSQueryExtension = nullptr;
-static _XScreenSaverAllocInfo_fn _XSSAllocInfo = nullptr;
-static _XScreenSaverQueryInfo_fn _XSSQueryInfo = nullptr;
+static _XScreenSaverQueryExtension_fn _XSSQueryExtension = nsnull;
+static _XScreenSaverAllocInfo_fn _XSSAllocInfo = nsnull;
+static _XScreenSaverQueryInfo_fn _XSSQueryInfo = nsnull;
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsIdleServiceGTK, nsIdleService)
+NS_IMPL_ISUPPORTS2(nsIdleServiceGTK, nsIdleService, nsIIdleService)
 
 static void Initialize()
 {
@@ -62,7 +95,7 @@ static void Initialize()
 }
 
 nsIdleServiceGTK::nsIdleServiceGTK()
-    : mXssInfo(nullptr)
+    : mXssInfo(nsnull)
 {
 #ifdef PR_LOGGING
     if (!sIdleLog)
@@ -83,13 +116,13 @@ nsIdleServiceGTK::~nsIdleServiceGTK()
 #if 0
     if (xsslib) {
         PR_UnloadLibrary(xsslib);
-        xsslib = nullptr;
+        xsslib = nsnull;
     }
 #endif
 }
 
 bool
-nsIdleServiceGTK::PollIdleTime(uint32_t *aIdleTime)
+nsIdleServiceGTK::PollIdleTime(PRUint32 *aIdleTime)
 {
     if (!sInitialized) {
         

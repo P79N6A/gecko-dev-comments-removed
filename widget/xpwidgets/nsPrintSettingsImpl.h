@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPrintSettingsImpl_h__
 #define nsPrintSettingsImpl_h__
 
@@ -42,8 +75,8 @@ protected:
   } nsHeaderFooterEnum;
 
 
-  nsresult GetMarginStrs(PRUnichar * *aTitle, nsHeaderFooterEnum aType, int16_t aJust);
-  nsresult SetMarginStrs(const PRUnichar * aTitle, nsHeaderFooterEnum aType, int16_t aJust);
+  nsresult GetMarginStrs(PRUnichar * *aTitle, nsHeaderFooterEnum aType, PRInt16 aJust);
+  nsresult SetMarginStrs(const PRUnichar * aTitle, nsHeaderFooterEnum aType, PRInt16 aJust);
 
   
   nsWeakPtr     mSession; 
@@ -53,25 +86,25 @@ protected:
   nsIntMargin   mEdge;
   nsIntMargin   mUnwriteableMargin;
 
-  int32_t       mPrintOptions;
+  PRInt32       mPrintOptions;
 
   
-  int16_t       mPrintRange;
-  int32_t       mStartPageNum; 
-  int32_t       mEndPageNum;
+  PRInt16       mPrintRange;
+  PRInt32       mStartPageNum; 
+  PRInt32       mEndPageNum;
   double        mScaling;
   bool          mPrintBGColors;  
   bool          mPrintBGImages;  
 
-  int16_t       mPrintFrameTypeUsage;
-  int16_t       mPrintFrameType;
-  int16_t       mHowToEnableFrameUI;
+  PRInt16       mPrintFrameTypeUsage;
+  PRInt16       mPrintFrameType;
+  PRInt16       mHowToEnableFrameUI;
   bool          mIsCancelled;
   bool          mPrintSilent;
   bool          mPrintPreview;
   bool          mShrinkToFit;
   bool          mShowPrintProgress;
-  int32_t       mPrintPageDelay;
+  PRInt32       mPrintPageDelay;
 
   nsString      mTitle;
   nsString      mURL;
@@ -81,24 +114,24 @@ protected:
 
   nsString      mPaperName;
   nsString      mPlexName;
-  int16_t       mPaperData;
-  int16_t       mPaperSizeType;
+  PRInt16       mPaperData;
+  PRInt16       mPaperSizeType;
   double        mPaperWidth;
   double        mPaperHeight;
-  int16_t       mPaperSizeUnit;
+  PRInt16       mPaperSizeUnit;
 
   bool          mPrintReversed;
   bool          mPrintInColor; 
-  int32_t       mOrientation;  
+  PRInt32       mOrientation;  
   nsString      mColorspace;
   nsString      mResolutionName;
   bool          mDownloadFonts;
   nsString      mPrintCommand;
-  int32_t       mNumCopies;
+  PRInt32       mNumCopies;
   nsXPIDLString mPrinter;
   bool          mPrintToFile;
   nsString      mToFileName;
-  int16_t       mOutputFormat;
+  PRInt16       mOutputFormat;
   bool          mIsInitedFromPrinter;
   bool          mIsInitedFromPrefs;
 

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/Util.h"
 
 #include <windows.h>
@@ -31,7 +64,7 @@ using namespace mozilla::widget;
 NS_IMPL_ISUPPORTS_INHERITED1(GfxInfo, GfxInfoBase, nsIGfxInfoDebug)
 #endif
 
-static const uint32_t allWindowsVersions = 0xffffffff;
+static const PRUint32 allWindowsVersions = 0xffffffff;
 
 #define V(a,b,c,d) GFX_DRIVER_VERSION(a,b,c,d)
 
@@ -59,6 +92,26 @@ GfxInfo::GetDWriteEnabled(bool *aEnabled)
   return NS_OK;
 }
 
+nsresult
+GfxInfo::GetAzureEnabled(bool *aEnabled)
+{
+  *aEnabled = false;
+
+  bool d2dEnabled = 
+    gfxWindowsPlatform::GetPlatform()->GetRenderMode() == gfxWindowsPlatform::RENDER_DIRECT2D;
+
+  if (d2dEnabled) {
+    bool azure = false;
+    nsresult rv = mozilla::Preferences::GetBool("gfx.canvas.azure.enabled", &azure);
+
+    if (NS_SUCCEEDED(rv) && azure) {
+      *aEnabled = true;
+    }
+  }
+
+  return NS_OK;
+}
+
 
 NS_IMETHODIMP
 GfxInfo::GetDWriteVersion(nsAString & aDwriteVersion)
@@ -77,7 +130,7 @@ GfxInfo::GetCleartypeParameters(nsAString & aCleartypeParams)
   nsTArray<ClearTypeParameterInfo> clearTypeParams;
 
   gfxWindowsPlatform::GetPlatform()->GetCleartypeParams(clearTypeParams);
-  uint32_t d, numDisplays = clearTypeParams.Length();
+  PRUint32 d, numDisplays = clearTypeParams.Length();
   bool displayNames = (numDisplays > 1);
   bool foundData = false;
   nsString outStr;
@@ -162,7 +215,7 @@ static nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName, nsAS
       result = RegQueryValueExW(key, keyName, NULL, &resultType, (LPBYTE)&dValue, &dwcbData);
       if (result == ERROR_SUCCESS && resultType == REG_DWORD) {
         dValue = dValue / 1024 / 1024;
-        destString.AppendInt(int32_t(dValue));
+        destString.AppendInt(PRInt32(dValue));
       } else {
         retval = NS_ERROR_FAILURE;
       }
@@ -213,20 +266,45 @@ static nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName, nsAS
 
 static void normalizeDriverId(nsString& driverid) {
   ToUpperCase(driverid);
-  int32_t rev = driverid.Find(NS_LITERAL_CSTRING("&REV_"));
+  PRInt32 rev = driverid.Find(NS_LITERAL_CSTRING("&REV_"));
   if (rev != -1) {
     driverid.Cut(rev, driverid.Length());
   }
 }
 
 
+typedef HDEVINFO (WINAPI*SetupDiGetClassDevsWFunc)(
+  CONST GUID *ClassGuid,
+  PCWSTR Enumerator,
+  HWND hwndParent,
+  DWORD Flags
+);
+typedef BOOL (WINAPI*SetupDiEnumDeviceInfoFunc)(
+  HDEVINFO DeviceInfoSet,
+  DWORD MemberIndex,
+  PSP_DEVINFO_DATA DeviceInfoData
+);
+typedef BOOL (WINAPI*SetupDiGetDeviceRegistryPropertyWFunc)(
+  HDEVINFO DeviceInfoSet,
+  PSP_DEVINFO_DATA DeviceInfoData,
+  DWORD Property,
+  PDWORD PropertyRegDataType,
+  PBYTE PropertyBuffer,
+  DWORD PropertyBufferSize,
+  PDWORD RequiredSize
+);
+typedef BOOL (WINAPI*SetupDiDestroyDeviceInfoListFunc)(
+  HDEVINFO DeviceInfoSet
+);
 
-uint32_t
+
+
+PRUint32
 ParseIDFromDeviceID(const nsAString &key, const char *prefix, int length)
 {
   nsAutoString id(key);
   ToUpperCase(id);
-  int32_t start = id.Find(prefix);
+  PRInt32 start = id.Find(prefix);
   if (start != -1) {
     id.Cut(0, start + strlen(prefix));
     id.Truncate(length);
@@ -284,161 +362,180 @@ GfxInfo::Init()
   mDeviceID = displayDevice.DeviceID;
   mDeviceString = displayDevice.DeviceString;
 
-  
-  HDEVINFO devinfo = SetupDiGetClassDevsW(NULL, mDeviceID.get(), NULL,
-                                          DIGCF_PRESENT | DIGCF_PROFILE | DIGCF_ALLCLASSES);
 
-  if (devinfo != INVALID_HANDLE_VALUE) {
-    HKEY key;
-    LONG result;
-    WCHAR value[255];
-    DWORD dwcbData;
-    SP_DEVINFO_DATA devinfoData;
-    DWORD memberIndex = 0;
+  HMODULE setupapi = LoadLibraryW(L"setupapi.dll");
 
-    devinfoData.cbSize = sizeof(devinfoData);
-    NS_NAMED_LITERAL_STRING(driverKeyPre, "System\\CurrentControlSet\\Control\\Class\\");
-    
-    while (SetupDiEnumDeviceInfo(devinfo, memberIndex++, &devinfoData)) {
+  if (setupapi) {
+    SetupDiGetClassDevsWFunc setupGetClassDevs = (SetupDiGetClassDevsWFunc)
+      GetProcAddress(setupapi, "SetupDiGetClassDevsW");
+    SetupDiEnumDeviceInfoFunc setupEnumDeviceInfo = (SetupDiEnumDeviceInfoFunc)
+      GetProcAddress(setupapi, "SetupDiEnumDeviceInfo");
+    SetupDiGetDeviceRegistryPropertyWFunc setupGetDeviceRegistryProperty = (SetupDiGetDeviceRegistryPropertyWFunc)
+      GetProcAddress(setupapi, "SetupDiGetDeviceRegistryPropertyW");
+    SetupDiDestroyDeviceInfoListFunc setupDestroyDeviceInfoList = (SetupDiDestroyDeviceInfoListFunc)
+      GetProcAddress(setupapi, "SetupDiDestroyDeviceInfoList");
+
+    if (setupGetClassDevs &&
+        setupEnumDeviceInfo &&
+        setupGetDeviceRegistryProperty &&
+        setupDestroyDeviceInfoList) {
       
-      if (SetupDiGetDeviceRegistryPropertyW(devinfo,
-                                            &devinfoData,
-                                            SPDRP_DRIVER,
-                                            NULL,
-                                            (PBYTE)value,
-                                            sizeof(value),
-                                            NULL)) {
-        nsAutoString driverKey(driverKeyPre);
-        driverKey += value;
-        result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, driverKey.BeginReading(), 0, KEY_QUERY_VALUE, &key);
-        if (result == ERROR_SUCCESS) {
-          
-          dwcbData = sizeof(value);
-          result = RegQueryValueExW(key, L"DriverVersion", NULL, NULL, (LPBYTE)value, &dwcbData);
-          if (result == ERROR_SUCCESS)
-            mDriverVersion = value;
-          dwcbData = sizeof(value);
-          result = RegQueryValueExW(key, L"DriverDate", NULL, NULL, (LPBYTE)value, &dwcbData);
-          if (result == ERROR_SUCCESS)
-            mDriverDate = value;
-          RegCloseKey(key); 
-          break;
-        }
-      }
-    }
+      HDEVINFO devinfo = setupGetClassDevs(NULL, mDeviceID.get(), NULL,
+                                           DIGCF_PRESENT | DIGCF_PROFILE | DIGCF_ALLCLASSES);
 
-    SetupDiDestroyDeviceInfoList(devinfo);
-  }
+      if (devinfo != INVALID_HANDLE_VALUE) {
+        HKEY key;
+        LONG result;
+        WCHAR value[255];
+        DWORD dwcbData;
+        SP_DEVINFO_DATA devinfoData;
+        DWORD memberIndex = 0;
 
-  mAdapterVendorID.AppendPrintf("0x%04x", ParseIDFromDeviceID(mDeviceID, "VEN_", 4));
-  mAdapterDeviceID.AppendPrintf("0x%04x", ParseIDFromDeviceID(mDeviceID, "&DEV_", 4));
-  mAdapterSubsysID  = ParseIDFromDeviceID(mDeviceID,  "&SUBSYS_", 8);
-
-  
-
-  
-  CLSID GUID_DISPLAY_DEVICE_ARRIVAL;
-  HRESULT hresult = CLSIDFromString(L"{1CA05180-A699-450A-9A0C-DE4FBE3DDD89}",
-                               &GUID_DISPLAY_DEVICE_ARRIVAL);
-  if (hresult == NOERROR) {
-    devinfo = SetupDiGetClassDevsW(&GUID_DISPLAY_DEVICE_ARRIVAL, NULL, NULL,
-                                   DIGCF_PRESENT | DIGCF_INTERFACEDEVICE);
-
-    if (devinfo != INVALID_HANDLE_VALUE) {
-      HKEY key;
-      LONG result;
-      WCHAR value[255];
-      DWORD dwcbData;
-      SP_DEVINFO_DATA devinfoData;
-      DWORD memberIndex = 0;
-      devinfoData.cbSize = sizeof(devinfoData);
-
-      nsAutoString adapterDriver2;
-      nsAutoString deviceID2;
-      nsAutoString driverVersion2;
-      nsAutoString driverDate2;
-      uint32_t adapterVendorID2;
-      uint32_t adapterDeviceID2;
-
-      NS_NAMED_LITERAL_STRING(driverKeyPre, "System\\CurrentControlSet\\Control\\Class\\");
-      
-      while (SetupDiEnumDeviceInfo(devinfo, memberIndex++, &devinfoData)) {
+        devinfoData.cbSize = sizeof(devinfoData);
+        NS_NAMED_LITERAL_STRING(driverKeyPre, "System\\CurrentControlSet\\Control\\Class\\");
         
-        if (SetupDiGetDeviceRegistryPropertyW(devinfo,
-                                              &devinfoData,
-                                              SPDRP_DRIVER,
-                                              NULL,
-                                              (PBYTE)value,
-                                              sizeof(value),
-                                              NULL)) {
-          nsAutoString driverKey2(driverKeyPre);
-          driverKey2 += value;
-          result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, driverKey2.BeginReading(), 0, KEY_QUERY_VALUE, &key);
-          if (result == ERROR_SUCCESS) {
-            dwcbData = sizeof(value);
-            result = RegQueryValueExW(key, L"MatchingDeviceId", NULL, NULL, (LPBYTE)value, &dwcbData);
-            if (result != ERROR_SUCCESS) {
-              continue;
-            }
-            deviceID2 = value;
-            nsAutoString adapterVendorID2String;
-            nsAutoString adapterDeviceID2String;
-            adapterVendorID2 = ParseIDFromDeviceID(deviceID2, "VEN_", 4);
-            adapterVendorID2String.AppendPrintf("0x%04x", adapterVendorID2);
-            adapterDeviceID2 = ParseIDFromDeviceID(deviceID2, "&DEV_", 4);
-            adapterDeviceID2String.AppendPrintf("0x%04x", adapterDeviceID2);
-            if (mAdapterVendorID == adapterVendorID2String &&
-                mAdapterDeviceID == adapterDeviceID2String) {
-              RegCloseKey(key);
-              continue;
-            }
-
-            
-            
-            if (NS_FAILED(GetKeyValue(driverKey2.BeginReading(), L"InstalledDisplayDrivers",
-                           adapterDriver2, REG_MULTI_SZ))) {
-              RegCloseKey(key);
-              continue;
-            }
-            dwcbData = sizeof(value);
-            result = RegQueryValueExW(key, L"DriverVersion", NULL, NULL, (LPBYTE)value, &dwcbData);
-            if (result != ERROR_SUCCESS) {
-              RegCloseKey(key);
-              continue;
-            }
-            driverVersion2 = value;
-            dwcbData = sizeof(value);
-            result = RegQueryValueExW(key, L"DriverDate", NULL, NULL, (LPBYTE)value, &dwcbData);
-            if (result != ERROR_SUCCESS) {
-              RegCloseKey(key);
-              continue;
-            }
-            driverDate2 = value;
-            dwcbData = sizeof(value);
-            result = RegQueryValueExW(key, L"Device Description", NULL, NULL, (LPBYTE)value, &dwcbData);
-            if (result != ERROR_SUCCESS) {
-              dwcbData = sizeof(value);
-              result = RegQueryValueExW(key, L"DriverDesc", NULL, NULL, (LPBYTE)value, &dwcbData);
-            }
-            RegCloseKey(key);
+        while (setupEnumDeviceInfo(devinfo, memberIndex++, &devinfoData)) {
+          
+          if (setupGetDeviceRegistryProperty(devinfo,
+                                             &devinfoData,
+                                             SPDRP_DRIVER,
+                                             NULL,
+                                             (PBYTE)value,
+                                             sizeof(value),
+                                             NULL)) {
+            nsAutoString driverKey(driverKeyPre);
+            driverKey += value;
+            result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, driverKey.BeginReading(), 0, KEY_QUERY_VALUE, &key);
             if (result == ERROR_SUCCESS) {
-              mHasDualGPU = true;
-              mDeviceString2 = value;
-              mDeviceID2 = deviceID2;
-              mDeviceKey2 = driverKey2;
-              mDriverVersion2 = driverVersion2;
-              mDriverDate2 = driverDate2;
-              mAdapterVendorID2.AppendPrintf("0x%04x", adapterVendorID2);
-              mAdapterDeviceID2.AppendPrintf("0x%04x", adapterDeviceID2);
-              mAdapterSubsysID2 = ParseIDFromDeviceID(mDeviceID2, "&SUBSYS_", 8);
+              
+              dwcbData = sizeof(value);
+              result = RegQueryValueExW(key, L"DriverVersion", NULL, NULL, (LPBYTE)value, &dwcbData);
+              if (result == ERROR_SUCCESS)
+                mDriverVersion = value;
+              dwcbData = sizeof(value);
+              result = RegQueryValueExW(key, L"DriverDate", NULL, NULL, (LPBYTE)value, &dwcbData);
+              if (result == ERROR_SUCCESS)
+                mDriverDate = value;
+              RegCloseKey(key); 
               break;
             }
           }
         }
+
+        setupDestroyDeviceInfoList(devinfo);
       }
 
-      SetupDiDestroyDeviceInfoList(devinfo);
+      mAdapterVendorID.AppendPrintf("0x%04x", ParseIDFromDeviceID(mDeviceID, "VEN_", 4));
+      mAdapterDeviceID.AppendPrintf("0x%04x", ParseIDFromDeviceID(mDeviceID, "&DEV_", 4));
+      mAdapterSubsysID  = ParseIDFromDeviceID(mDeviceID,  "&SUBSYS_", 8);
+
+      
+
+      
+      CLSID GUID_DISPLAY_DEVICE_ARRIVAL;
+      HRESULT hresult = CLSIDFromString(L"{1CA05180-A699-450A-9A0C-DE4FBE3DDD89}",
+                                   &GUID_DISPLAY_DEVICE_ARRIVAL);
+      if (hresult == NOERROR) {
+        devinfo = setupGetClassDevs(&GUID_DISPLAY_DEVICE_ARRIVAL, NULL, NULL,
+                                           DIGCF_PRESENT | DIGCF_INTERFACEDEVICE);
+
+        if (devinfo != INVALID_HANDLE_VALUE) {
+          HKEY key;
+          LONG result;
+          WCHAR value[255];
+          DWORD dwcbData;
+          SP_DEVINFO_DATA devinfoData;
+          DWORD memberIndex = 0;
+          devinfoData.cbSize = sizeof(devinfoData);
+
+          nsAutoString adapterDriver2;
+          nsAutoString deviceID2;
+          nsAutoString driverVersion2;
+          nsAutoString driverDate2;
+          PRUint32 adapterVendorID2;
+          PRUint32 adapterDeviceID2;
+
+          NS_NAMED_LITERAL_STRING(driverKeyPre, "System\\CurrentControlSet\\Control\\Class\\");
+          
+          while (setupEnumDeviceInfo(devinfo, memberIndex++, &devinfoData)) {
+            
+            if (setupGetDeviceRegistryProperty(devinfo,
+                                               &devinfoData,
+                                               SPDRP_DRIVER,
+                                               NULL,
+                                               (PBYTE)value,
+                                               sizeof(value),
+                                               NULL)) {
+              nsAutoString driverKey2(driverKeyPre);
+              driverKey2 += value;
+              result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, driverKey2.BeginReading(), 0, KEY_QUERY_VALUE, &key);
+              if (result == ERROR_SUCCESS) {
+                dwcbData = sizeof(value);
+                result = RegQueryValueExW(key, L"MatchingDeviceId", NULL, NULL, (LPBYTE)value, &dwcbData);
+                if (result != ERROR_SUCCESS) {
+                  continue;
+                }
+                deviceID2 = value;
+                nsAutoString adapterVendorID2String;
+                nsAutoString adapterDeviceID2String;
+                adapterVendorID2 = ParseIDFromDeviceID(deviceID2, "VEN_", 4);
+                adapterVendorID2String.AppendPrintf("0x%04x", adapterVendorID2);
+                adapterDeviceID2 = ParseIDFromDeviceID(deviceID2, "&DEV_", 4);
+                adapterDeviceID2String.AppendPrintf("0x%04x", adapterDeviceID2);
+                if (mAdapterVendorID == adapterVendorID2String &&
+                    mAdapterDeviceID == adapterDeviceID2String) {
+                  RegCloseKey(key);
+                  continue;
+                }
+
+                
+                
+                if (NS_FAILED(GetKeyValue(driverKey2.BeginReading(), L"InstalledDisplayDrivers",
+                               adapterDriver2, REG_MULTI_SZ))) {
+                  RegCloseKey(key);
+                  continue;
+                }
+                dwcbData = sizeof(value);
+                result = RegQueryValueExW(key, L"DriverVersion", NULL, NULL, (LPBYTE)value, &dwcbData);
+                if (result != ERROR_SUCCESS) {
+                  RegCloseKey(key);
+                  continue;
+                }
+                driverVersion2 = value;
+                dwcbData = sizeof(value);
+                result = RegQueryValueExW(key, L"DriverDate", NULL, NULL, (LPBYTE)value, &dwcbData);
+                if (result != ERROR_SUCCESS) {
+                  RegCloseKey(key);
+                  continue;
+                }
+                driverDate2 = value;
+                dwcbData = sizeof(value);
+                result = RegQueryValueExW(key, L"Device Description", NULL, NULL, (LPBYTE)value, &dwcbData);
+                RegCloseKey(key);
+                if (result == ERROR_SUCCESS) {
+                  mHasDualGPU = true;
+                  mDeviceString2 = value;
+                  mDeviceID2 = deviceID2;
+                  mDeviceKey2 = driverKey2;
+                  mDriverVersion2 = driverVersion2;
+                  mDriverDate2 = driverDate2;
+                  mAdapterVendorID2.AppendPrintf("0x%04x", adapterVendorID2);
+                  mAdapterDeviceID2.AppendPrintf("0x%04x", adapterDeviceID2);
+                  mAdapterSubsysID2 = ParseIDFromDeviceID(mDeviceID2, "&SUBSYS_", 8);
+                  break;
+                }
+              }
+            }
+          }
+
+          setupDestroyDeviceInfoList(devinfo);
+        }
+      }
+
+
     }
+
+    FreeLibrary(setupapi);
   }
 
   const char *spoofedDriverVersionString = PR_GetEnv("MOZ_GFX_SPOOF_DRIVER_VERSION");
@@ -463,7 +560,7 @@ GfxInfo::Init()
     nsString dllVersion;
     gfxWindowsPlatform::GetDLLVersion((PRUnichar*)dllFileName, dllVersion);
 
-    uint64_t dllNumericVersion = 0, driverNumericVersion = 0;
+    PRUint64 dllNumericVersion = 0, driverNumericVersion = 0;
     ParseDriverVersion(dllVersion, &dllNumericVersion);
     ParseDriverVersion(mDriverVersion, &driverNumericVersion);
 
@@ -661,7 +758,7 @@ GfxInfo::AddCrashReportAnnotations()
   
   
 
-  nsAutoCString note;
+  nsCAutoString note;
   
   note.Append("AdapterVendorID: ");
   note.Append(narrowVendorID);
@@ -674,9 +771,9 @@ GfxInfo::AddCrashReportAnnotations()
   if (vendorID == GfxDriverInfo::GetDeviceVendor(VendorAll)) {
     
     note.Append(", ");
-    LossyAppendUTF16toASCII(mDeviceID, note);
+    note.AppendWithConversion(mDeviceID);
     note.Append(", ");
-    LossyAppendUTF16toASCII(mDeviceKeyDebug, note);
+    note.AppendWithConversion(mDeviceKeyDebug);
     LossyAppendUTF16toASCII(mDeviceKeyDebug, note);
   }
   note.Append("\n");
@@ -706,9 +803,11 @@ GfxInfo::AddCrashReportAnnotations()
 }
 
 static OperatingSystem
-WindowsVersionToOperatingSystem(int32_t aWindowsVersion)
+WindowsVersionToOperatingSystem(PRInt32 aWindowsVersion)
 {
   switch(aWindowsVersion) {
+    case gfxWindowsPlatform::kWindows2000:
+      return DRIVER_OS_WINDOWS_2000;
     case gfxWindowsPlatform::kWindowsXP:
       return DRIVER_OS_WINDOWS_XP;
     case gfxWindowsPlatform::kWindowsServer2003:
@@ -717,8 +816,6 @@ WindowsVersionToOperatingSystem(int32_t aWindowsVersion)
       return DRIVER_OS_WINDOWS_VISTA;
     case gfxWindowsPlatform::kWindows7:
       return DRIVER_OS_WINDOWS_7;
-    case gfxWindowsPlatform::kWindows8:
-      return DRIVER_OS_WINDOWS_8;
     case gfxWindowsPlatform::kWindowsUnknown:
     default:
       return DRIVER_OS_UNKNOWN;
@@ -837,8 +934,8 @@ GfxInfo::GetGfxDriverInfo()
 }
 
 nsresult
-GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
-                              int32_t *aStatus, 
+GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
+                              PRInt32 *aStatus, 
                               nsAString & aSuggestedDriverVersion, 
                               const nsTArray<GfxDriverInfo>& aDriverInfo,
                               OperatingSystem* aOS )
@@ -862,10 +959,10 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
       return NS_ERROR_FAILURE;
     }
 
-    if (!adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorIntel), nsCaseInsensitiveStringComparator()) &&
-        !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), nsCaseInsensitiveStringComparator()) &&
-        !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorAMD), nsCaseInsensitiveStringComparator()) &&
-        !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorATI), nsCaseInsensitiveStringComparator()) &&
+    if (adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorIntel) &&
+        adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorNVIDIA) &&
+        adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorAMD) &&
+        adapterVendorID != GfxDriverInfo::GetDeviceVendor(VendorATI) &&
         
         
         
@@ -878,7 +975,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
       return NS_OK;
     }
 
-    uint64_t driverVersion;
+    PRUint64 driverVersion;
     if (!ParseDriverVersion(adapterDriverVersionString, &driverVersion)) {
       return NS_ERROR_FAILURE;
     }
@@ -887,11 +984,18 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
     
     
     if (mWindowsVersion == gfxWindowsPlatform::kWindowsXP &&
-        adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), nsCaseInsensitiveStringComparator()) &&
+        adapterVendorID == GfxDriverInfo::GetDeviceVendor(VendorNVIDIA) &&
         adapterDeviceID.LowerCaseEqualsLiteral("0x0861") && 
         driverVersion == V(6,14,11,7756))
     {
       *aStatus = FEATURE_NO_INFO;
+      return NS_OK;
+    }
+
+    if (aFeature == FEATURE_DIRECT3D_9_LAYERS &&
+        mWindowsVersion < gfxWindowsPlatform::kWindowsXP)
+    {
+      *aStatus = FEATURE_BLOCKED_OS_VERSION;
       return NS_OK;
     }
 
@@ -949,7 +1053,7 @@ NS_IMETHODIMP GfxInfo::SpoofDriverVersion(const nsAString & aDriverVersion)
 }
 
 
-NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion)
+NS_IMETHODIMP GfxInfo::SpoofOSVersion(PRUint32 aVersion)
 {
   mWindowsVersion = aVersion;
   return NS_OK;

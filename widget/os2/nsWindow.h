@@ -44,6 +44,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nswindow_h
 #define _nswindow_h
 
@@ -55,7 +88,7 @@
 #define INCL_NLS
 #define INCL_GPI
 #include <os2.h>
-#include <os2im.h>
+
 
 
 
@@ -133,46 +166,48 @@ public:
                                const nsIntRect& aRect,
                                EVENT_CALLBACK aHandleEventFunction,
                                nsDeviceContext* aContext,
-                               nsWidgetInitData* aInitData = nullptr);
+                               nsWidgetInitData* aInitData = nsnull);
   NS_IMETHOD            Destroy();
   virtual nsIWidget*    GetParent();
   virtual float         GetDPI();
   NS_IMETHOD            Enable(bool aState);
-  virtual bool          IsEnabled() const;
+  NS_IMETHOD            IsEnabled(bool* aState);
   NS_IMETHOD            Show(bool aState);
-  virtual bool          IsVisible() const;
+  NS_IMETHOD            IsVisible(bool& aState);
   NS_IMETHOD            SetFocus(bool aRaise);
-  NS_IMETHOD            Invalidate(const nsIntRect& aRect);
+  NS_IMETHOD            Invalidate(const nsIntRect& aRect,
+                                   bool aIsSynchronous);
+  NS_IMETHOD            Update();
   gfxASurface*          GetThebesSurface();
-  virtual void*         GetNativeData(uint32_t aDataType);
-  virtual void          FreeNativeData(void* aDatum, uint32_t aDataType);
+  virtual void*         GetNativeData(PRUint32 aDataType);
+  virtual void          FreeNativeData(void* aDatum, PRUint32 aDataType);
   NS_IMETHOD            CaptureMouse(bool aCapture);
   virtual bool          HasPendingInputEvent();
   NS_IMETHOD            GetBounds(nsIntRect& aRect);
   NS_IMETHOD            GetClientBounds(nsIntRect& aRect);
   virtual nsIntPoint    WidgetToScreenOffset();
-  NS_IMETHOD            Move(int32_t aX, int32_t aY);
-  NS_IMETHOD            Resize(int32_t aWidth, int32_t aHeight,
+  NS_IMETHOD            Move(PRInt32 aX, PRInt32 aY);
+  NS_IMETHOD            Resize(PRInt32 aWidth, PRInt32 aHeight,
                                bool    aRepaint);
-  NS_IMETHOD            Resize(int32_t aX, int32_t aY,
-                               int32_t aWidth, int32_t aHeight,
+  NS_IMETHOD            Resize(PRInt32 aX, PRInt32 aY,
+                               PRInt32 aWidth, PRInt32 aHeight,
                                bool    aRepaint);
   NS_IMETHOD            PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
                                     nsIWidget* aWidget, bool aActivate);
-  NS_IMETHOD            SetZIndex(int32_t aZIndex);
+  NS_IMETHOD            SetZIndex(PRInt32 aZIndex);
   virtual nsresult      ConfigureChildren(const nsTArray<Configuration>& aConfigurations);
-  NS_IMETHOD            SetSizeMode(int32_t aMode);
+  NS_IMETHOD            SetSizeMode(PRInt32 aMode);
   NS_IMETHOD            HideWindowChrome(bool aShouldHide);
   NS_IMETHOD            SetTitle(const nsAString& aTitle); 
   NS_IMETHOD            SetIcon(const nsAString& aIconSpec); 
   NS_IMETHOD            ConstrainPosition(bool aAllowSlop,
-                                          int32_t* aX, int32_t* aY);
+                                          PRInt32* aX, PRInt32* aY);
   NS_IMETHOD            SetCursor(nsCursor aCursor);
   NS_IMETHOD            SetCursor(imgIContainer* aCursor,
-                                  uint32_t aHotspotX, uint32_t aHotspotY);
+                                  PRUint32 aHotspotX, PRUint32 aHotspotY);
   NS_IMETHOD            CaptureRollupEvents(nsIRollupListener* aListener,
                                             bool aDoCapture, bool aConsumeRollupEvent);
-  NS_IMETHOD            GetToggledKeyState(uint32_t aKeyCode,
+  NS_IMETHOD            GetToggledKeyState(PRUint32 aKeyCode,
                                            bool* aLEDState);
   NS_IMETHOD            DispatchEvent(nsGUIEvent* event,
                                       nsEventStatus& aStatus);
@@ -211,13 +246,13 @@ protected:
   void                  SetPluginClipRegion(const Configuration& aConfiguration);
   HWND                  GetPluginClipWindow(HWND aParentWnd);
   void                  ActivateTopLevelWidget();
-  HBITMAP               DataToBitmap(uint8_t* aImageData, uint32_t aWidth,
-                                     uint32_t aHeight, uint32_t aDepth);
-  HBITMAP               CreateBitmapRGB(uint8_t* aImageData,
-                                        uint32_t aWidth, uint32_t aHeight);
+  HBITMAP               DataToBitmap(PRUint8* aImageData, PRUint32 aWidth,
+                                     PRUint32 aHeight, PRUint32 aDepth);
+  HBITMAP               CreateBitmapRGB(PRUint8* aImageData,
+                                        PRUint32 aWidth, PRUint32 aHeight);
   HBITMAP               CreateTransparencyMask(gfxASurface::gfxImageFormat format,
-                                               uint8_t* aImageData,
-                                               uint32_t aWidth, uint32_t aHeight);
+                                               PRUint8* aImageData,
+                                               PRUint32 aWidth, PRUint32 aHeight);
   static bool           EventIsInsideWindow(nsWindow* aWindow); 
   static bool           RollupOnButtonDown(ULONG aMsg);
   static void           RollupOnFocusLost(HWND aFocus);
@@ -227,28 +262,24 @@ protected:
   bool                  OnMouseChord(MPARAM mp1, MPARAM mp2);
   bool                  OnDragDropMsg(ULONG msg, MPARAM mp1, MPARAM mp2,
                                       MRESULT& mr);
-  bool                  CheckDragStatus(uint32_t aAction, HPS* aHps);
+  bool                  CheckDragStatus(PRUint32 aAction, HPS* aHps);
   bool                  ReleaseIfDragHPS(HPS aHps);
   bool                  OnTranslateAccelerator(PQMSG pQmsg);
-  bool                  OnQueryConvertPos(MPARAM mp1, MRESULT& mresult);
-  bool                  ImeResultString(HIMI himi);
-  bool                  ImeConversionString(HIMI himi);
-  bool                  OnImeRequest(MPARAM mp1, MPARAM mp2);
   bool                  DispatchKeyEvent(MPARAM mp1, MPARAM mp2);
   void                  InitEvent(nsGUIEvent& event, nsIntPoint* pt = 0);
   bool                  DispatchWindowEvent(nsGUIEvent* event);
   bool                  DispatchWindowEvent(nsGUIEvent* event,
                                             nsEventStatus& aStatus);
-  bool                  DispatchCommandEvent(uint32_t aEventCommand);
-  bool                  DispatchDragDropEvent(uint32_t aMsg);
-  bool                  DispatchMoveEvent(int32_t aX, int32_t aY);
-  bool                  DispatchResizeEvent(int32_t aClientX, 
-                                            int32_t aClientY);
-  bool                  DispatchMouseEvent(uint32_t aEventType,
+  bool                  DispatchCommandEvent(PRUint32 aEventCommand);
+  bool                  DispatchDragDropEvent(PRUint32 aMsg);
+  bool                  DispatchMoveEvent(PRInt32 aX, PRInt32 aY);
+  bool                  DispatchResizeEvent(PRInt32 aClientX, 
+                                            PRInt32 aClientY);
+  bool                  DispatchMouseEvent(PRUint32 aEventType,
                                            MPARAM mp1, MPARAM mp2, 
                                            bool aIsContextMenuKey = false,
-                                           int16_t aButton = nsMouseEvent::eLeftButton);
-  bool                  DispatchActivationEvent(uint32_t aEventType);
+                                           PRInt16 aButton = nsMouseEvent::eLeftButton);
+  bool                  DispatchActivationEvent(PRUint32 aEventType);
   bool                  DispatchScrollEvent(ULONG msg, MPARAM mp1, MPARAM mp2);
 
   friend MRESULT EXPENTRY fnwpNSWindow(HWND hwnd, ULONG msg,
@@ -260,18 +291,16 @@ protected:
   HWND          mWnd;               
   nsWindow*     mParent;            
   os2FrameWindow* mFrame;           
-  int32_t       mWindowState;       
+  PRInt32       mWindowState;       
   bool          mIsDestroying;      
   bool          mInSetFocus;        
   bool          mNoPaint;           
   HPS           mDragHps;           
-  uint32_t      mDragStatus;        
+  PRUint32      mDragStatus;        
   HWND          mClipWnd;           
   HPOINTER      mCssCursorHPtr;     
   nsCOMPtr<imgIContainer> mCssCursorImg;
   nsRefPtr<gfxOS2Surface> mThebesSurface;
-  bool          mIsComposing;
-  nsString      mLastDispatchedCompositionString;
 #ifdef DEBUG_FOCUS
   int           mWindowIdentifier;  
 #endif

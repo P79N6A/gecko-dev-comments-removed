@@ -226,7 +226,7 @@ JS_XDRFindClassById(JSXDRState *xdr, uint32_t id);
 
 
 
-#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 100)
+#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 101)
 
 
 

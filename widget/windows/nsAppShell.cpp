@@ -3,13 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/ipc/RPCChannel.h"
 #include "nsAppShell.h"
 #include "nsToolkit.h"
 #include "nsThreadUtils.h"
 #include "WinTaskbar.h"
-#include "WinMouseScrollHandler.h"
-#include "nsWindowDefs.h"
 #include "nsString.h"
 #include "nsIMM32Handler.h"
 #include "mozilla/widget/AudioSession.h"
@@ -27,12 +60,14 @@ const PRUnichar* kTaskbarButtonEventId = L"TaskbarButtonCreated";
 
 static UINT sMsgId;
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
 static UINT sTaskbarButtonCreatedMsg;
 
 
 UINT nsAppShell::GetTaskbarButtonCreatedMessage() {
 	return sTaskbarButtonCreatedMsg;
 }
+#endif
 
 namespace mozilla {
 namespace crashreporter {
@@ -46,19 +81,6 @@ using mozilla::crashreporter::LSPAnnotate;
 
 static bool PeekUIMessage(MSG* aMsg)
 {
-  
-  
-  
-  
-  
-  
-  
-  if (mozilla::widget::MouseScrollHandler::IsWaitingInternalMessage() &&
-      ::PeekMessageW(aMsg, NULL, MOZ_WM_MOUSEWHEEL_FIRST,
-                     MOZ_WM_MOUSEWHEEL_LAST, PM_REMOVE)) {
-    return true;
-  }
-
   MSG keyMsg, imeMsg, mouseMsg, *pMsg = 0;
   bool haveKeyMsg, haveIMEMsg, haveMouseMsg;
 
@@ -122,8 +144,10 @@ nsAppShell::Init()
   if (!sMsgId)
     sMsgId = RegisterWindowMessageW(kAppShellEventId);
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
   sTaskbarButtonCreatedMsg = ::RegisterWindowMessageW(kTaskbarButtonEventId);
   NS_ASSERTION(sTaskbarButtonCreatedMsg, "Could not register taskbar button creation message");
+#endif
 
   WNDCLASSW wc;
   HINSTANCE module = GetModuleHandle(NULL);
@@ -189,7 +213,7 @@ CollectNewLoadedModules()
   while (!done) {
     NS_LossyConvertUTF16toASCII moduleName(module.szModule);
     bool found = false;
-    uint32_t i;
+    PRUint32 i;
     for (i = 0; i < NUM_LOADEDMODULEINFO &&
                 sLoadedModules[i].mStartAddr; ++i) {
       if (sLoadedModules[i].mStartAddr == module.modBaseAddr &&
@@ -211,7 +235,7 @@ CollectNewLoadedModules()
     done = !Module32NextW(hModuleSnap, &module);
   }
 
-  uint32_t i;
+  PRUint32 i;
   for (i = 0; i < NUM_LOADEDMODULEINFO &&
               sLoadedModules[i].mStartAddr; ++i) {}
 
@@ -225,16 +249,20 @@ nsAppShell::Run(void)
   memset(modules, 0, sizeof(modules));
   sLoadedModules = modules;	
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   
   
   mozilla::widget::StartAudioSession();
+#endif
 
   nsresult rv = nsBaseAppShell::Run();
 
+#ifdef MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   mozilla::widget::StopAudioSession();
+#endif
 
   
-  sLoadedModules = nullptr;
+  sLoadedModules = nsnull;
 
   return rv;
 }
@@ -268,7 +296,7 @@ nsAppShell::DoProcessMoreGeckoEvents()
   
   
   if (mEventloopNestingLevel < 2) {
-    OnDispatchedEvent(nullptr);
+    OnDispatchedEvent(nsnull);
     mNativeCallbackPending = false;
   } else {
     mNativeCallbackPending = true;
@@ -303,21 +331,15 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
 
   do {
     MSG msg;
-    bool uiMessage = PeekUIMessage(&msg);
-
     
-    if (uiMessage ||
-        PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
+    if (PeekUIMessage(&msg) ||
+        ::PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
       gotMessage = true;
       if (msg.message == WM_QUIT) {
         ::PostQuitMessage(msg.wParam);
         Exit();
       } else {
-        
-        
-        mozilla::HangMonitor::NotifyActivity(
-          uiMessage ? mozilla::HangMonitor::kUIActivity :
-                      mozilla::HangMonitor::kActivityNoUIAVail);
+        mozilla::HangMonitor::NotifyActivity();
         ::TranslateMessage(&msg);
         ::DispatchMessageW(&msg);
       }

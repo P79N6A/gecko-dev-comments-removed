@@ -2,6 +2,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 
 
@@ -30,7 +66,7 @@
 #include "nsPrintSettingsGTK.h"
 
 #include "nsIFileStreams.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsTArray.h"
 
 #include "mozilla/Preferences.h"
@@ -61,10 +97,10 @@ public:
   void      FreeGlobalPrinters();
   nsresult  InitializeGlobalPrinters();
 
-  bool      PrintersAreAllocated()       { return mGlobalPrinterList != nullptr; }
-  uint32_t  GetNumPrinters()
+  bool      PrintersAreAllocated()       { return mGlobalPrinterList != nsnull; }
+  PRUint32  GetNumPrinters()
     { return mGlobalPrinterList ? mGlobalPrinterList->Length() : 0; }
-  nsString* GetStringAt(int32_t aInx)    { return &mGlobalPrinterList->ElementAt(aInx); }
+  nsString* GetStringAt(PRInt32 aInx)    { return &mGlobalPrinterList->ElementAt(aInx); }
   void      GetDefaultPrinterName(PRUnichar **aDefaultPrinterName);
 
 protected:
@@ -86,40 +122,40 @@ public:
   
   void SetSupportsPaperSizeChange( bool aSupportsPaperSizeChange );
   
-  void SetNumPaperSizeRecords( int32_t aCount );
-  void SetPaperRecord( int32_t aIndex, const char *aName, int32_t aWidthMM, int32_t aHeightMM, bool aIsInch );
+  void SetNumPaperSizeRecords( PRInt32 aCount );
+  void SetPaperRecord( PRInt32 aIndex, const char *aName, PRInt32 aWidthMM, PRInt32 aHeightMM, bool aIsInch );
 
   
   void SetCanChangeOrientation( bool aCanSetOrientation );
   
   void SetSupportsOrientationChange( bool aSupportsOrientationChange );
   
-  void SetNumOrientationRecords( int32_t aCount );
-  void SetOrientationRecord( int32_t aIndex, const char *aName );
+  void SetNumOrientationRecords( PRInt32 aCount );
+  void SetOrientationRecord( PRInt32 aIndex, const char *aName );
 
   
   void SetCanChangePlex( bool aCanSetPlex );
   
   void SetSupportsPlexChange( bool aSupportsPlexChange );
   
-  void SetNumPlexRecords( int32_t aCount );
-  void SetPlexRecord( int32_t aIndex, const char *aName );
+  void SetNumPlexRecords( PRInt32 aCount );
+  void SetPlexRecord( PRInt32 aIndex, const char *aName );
 
   
   void SetCanChangeResolutionName( bool aCanSetResolutionName );
   
   void SetSupportsResolutionNameChange( bool aSupportsResolutionChange );
   
-  void SetNumResolutionNameRecords( int32_t aCount );
-  void SetResolutionNameRecord( int32_t aIndex, const char *aName );
+  void SetNumResolutionNameRecords( PRInt32 aCount );
+  void SetResolutionNameRecord( PRInt32 aIndex, const char *aName );
 
   
   void SetCanChangeColorspace( bool aCanSetColorspace );
   
   void SetSupportsColorspaceChange( bool aSupportsColorspace );
   
-  void SetNumColorspaceRecords( int32_t aCount );
-  void SetColorspaceRecord( int32_t aIndex, const char *aName );
+  void SetNumColorspaceRecords( PRInt32 aCount );
+  void SetColorspaceRecord( PRInt32 aIndex, const char *aName );
 
   
   void SetCanChangePrintInColor( bool aCanSetPrintInColor );
@@ -147,7 +183,7 @@ public:
 private:
   
   void SetBoolValue( const char *tagname, bool value );
-  void SetIntValue(  const char *tagname, int32_t value );
+  void SetIntValue(  const char *tagname, PRInt32 value );
   void SetCharValue(  const char *tagname, const char *value );
 
   nsXPIDLCString          mPrinterName;
@@ -155,21 +191,21 @@ private:
 
 void nsPrinterFeatures::SetBoolValue( const char *tagname, bool value )
 {
-  nsPrintfCString prefName(PRINTERFEATURES_PREF ".%s.%s",
+  nsPrintfCString prefName(256, PRINTERFEATURES_PREF ".%s.%s",
                            mPrinterName.get(), tagname);
   Preferences::SetBool(prefName.get(), value);
 }
 
-void nsPrinterFeatures::SetIntValue(  const char *tagname, int32_t value )
+void nsPrinterFeatures::SetIntValue(  const char *tagname, PRInt32 value )
 {
-  nsPrintfCString prefName(PRINTERFEATURES_PREF ".%s.%s",
+  nsPrintfCString prefName(256, PRINTERFEATURES_PREF ".%s.%s",
                            mPrinterName.get(), tagname);
   Preferences::SetInt(prefName.get(), value);
 }
 
 void nsPrinterFeatures::SetCharValue(  const char *tagname, const char *value )
 {
-  nsPrintfCString prefName(PRINTERFEATURES_PREF ".%s.%s",
+  nsPrintfCString prefName(256, PRINTERFEATURES_PREF ".%s.%s",
                            mPrinterName.get(), tagname);
   Preferences::SetCString(prefName.get(), value);
 }
@@ -193,17 +229,17 @@ void nsPrinterFeatures::SetSupportsPaperSizeChange( bool aSupportsPaperSizeChang
 }
 
 
-void nsPrinterFeatures::SetNumPaperSizeRecords( int32_t aCount )
+void nsPrinterFeatures::SetNumPaperSizeRecords( PRInt32 aCount )
 {
   SetIntValue("paper.count", aCount);          
 }
 
-void nsPrinterFeatures::SetPaperRecord(int32_t aIndex, const char *aPaperName, int32_t aWidthMM, int32_t aHeightMM, bool aIsInch)
+void nsPrinterFeatures::SetPaperRecord(PRInt32 aIndex, const char *aPaperName, PRInt32 aWidthMM, PRInt32 aHeightMM, bool aIsInch)
 {
-  SetCharValue(nsPrintfCString("paper.%d.name",      aIndex).get(), aPaperName);
-  SetIntValue( nsPrintfCString("paper.%d.width_mm",  aIndex).get(), aWidthMM);
-  SetIntValue( nsPrintfCString("paper.%d.height_mm", aIndex).get(), aHeightMM);
-  SetBoolValue(nsPrintfCString("paper.%d.is_inch",   aIndex).get(), aIsInch);
+  SetCharValue(nsPrintfCString(256, "paper.%d.name",      aIndex).get(), aPaperName);
+  SetIntValue( nsPrintfCString(256, "paper.%d.width_mm",  aIndex).get(), aWidthMM);
+  SetIntValue( nsPrintfCString(256, "paper.%d.height_mm", aIndex).get(), aHeightMM);
+  SetBoolValue(nsPrintfCString(256, "paper.%d.is_inch",   aIndex).get(), aIsInch);
 }
 
 void nsPrinterFeatures::SetCanChangeOrientation( bool aCanSetOrientation )
@@ -216,14 +252,14 @@ void nsPrinterFeatures::SetSupportsOrientationChange( bool aSupportsOrientationC
   SetBoolValue("supports_orientation_change", aSupportsOrientationChange);
 }
 
-void nsPrinterFeatures::SetNumOrientationRecords( int32_t aCount )
+void nsPrinterFeatures::SetNumOrientationRecords( PRInt32 aCount )
 {
   SetIntValue("orientation.count", aCount);          
 }
 
-void nsPrinterFeatures::SetOrientationRecord( int32_t aIndex, const char *aOrientationName )
+void nsPrinterFeatures::SetOrientationRecord( PRInt32 aIndex, const char *aOrientationName )
 {
-  SetCharValue(nsPrintfCString("orientation.%d.name", aIndex).get(), aOrientationName);
+  SetCharValue(nsPrintfCString(256, "orientation.%d.name", aIndex).get(), aOrientationName);
 }
 
 void nsPrinterFeatures::SetCanChangePlex( bool aCanSetPlex )
@@ -236,14 +272,14 @@ void nsPrinterFeatures::SetSupportsPlexChange( bool aSupportsPlexChange )
   SetBoolValue("supports_plex_change", aSupportsPlexChange);
 }
 
-void nsPrinterFeatures::SetNumPlexRecords( int32_t aCount )
+void nsPrinterFeatures::SetNumPlexRecords( PRInt32 aCount )
 {
   SetIntValue("plex.count", aCount);          
 }
 
-void nsPrinterFeatures::SetPlexRecord( int32_t aIndex, const char *aPlexName )
+void nsPrinterFeatures::SetPlexRecord( PRInt32 aIndex, const char *aPlexName )
 {
-  SetCharValue(nsPrintfCString("plex.%d.name", aIndex).get(), aPlexName);
+  SetCharValue(nsPrintfCString(256, "plex.%d.name", aIndex).get(), aPlexName);
 }
 
 void nsPrinterFeatures::SetCanChangeResolutionName( bool aCanSetResolutionName )
@@ -256,14 +292,14 @@ void nsPrinterFeatures::SetSupportsResolutionNameChange( bool aSupportsResolutio
   SetBoolValue("supports_resolution_change", aSupportsResolutionNameChange);
 }
 
-void nsPrinterFeatures::SetNumResolutionNameRecords( int32_t aCount )
+void nsPrinterFeatures::SetNumResolutionNameRecords( PRInt32 aCount )
 {
   SetIntValue("resolution.count", aCount);          
 }
 
-void nsPrinterFeatures::SetResolutionNameRecord( int32_t aIndex, const char *aResolutionName )
+void nsPrinterFeatures::SetResolutionNameRecord( PRInt32 aIndex, const char *aResolutionName )
 {
-  SetCharValue(nsPrintfCString("resolution.%d.name", aIndex).get(), aResolutionName);
+  SetCharValue(nsPrintfCString(256, "resolution.%d.name", aIndex).get(), aResolutionName);
 }
 
 void nsPrinterFeatures::SetCanChangeColorspace( bool aCanSetColorspace )
@@ -276,14 +312,14 @@ void nsPrinterFeatures::SetSupportsColorspaceChange( bool aSupportsColorspaceCha
   SetBoolValue("supports_colorspace_change", aSupportsColorspaceChange);
 }
 
-void nsPrinterFeatures::SetNumColorspaceRecords( int32_t aCount )
+void nsPrinterFeatures::SetNumColorspaceRecords( PRInt32 aCount )
 {
   SetIntValue("colorspace.count", aCount);          
 }
 
-void nsPrinterFeatures::SetColorspaceRecord( int32_t aIndex, const char *aColorspace )
+void nsPrinterFeatures::SetColorspaceRecord( PRInt32 aIndex, const char *aColorspace )
 {
-  SetCharValue(nsPrintfCString("colorspace.%d.name", aIndex).get(), aColorspace);
+  SetCharValue(nsPrintfCString(256, "colorspace.%d.name", aIndex).get(), aColorspace);
 }
 
 void nsPrinterFeatures::SetCanChangeDownloadFonts( bool aCanSetDownloadFonts )
@@ -336,7 +372,7 @@ void nsPrinterFeatures::SetCanChangeNumCopies( bool aCanSetNumCopies )
 
 
 GlobalPrinters GlobalPrinters::mGlobalPrinters;
-nsTArray<nsString>* GlobalPrinters::mGlobalPrinterList = nullptr;
+nsTArray<nsString>* GlobalPrinters::mGlobalPrinterList = nsnull;
 
 
 nsDeviceContextSpecGTK::nsDeviceContextSpecGTK()
@@ -368,7 +404,7 @@ NS_IMPL_ISUPPORTS1(nsDeviceContextSpecGTK,
 #include "gfxPSSurface.h"
 NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurface)
 {
-  *aSurface = nullptr;
+  *aSurface = nsnull;
 
   const char *path;
   GetPath(&path);
@@ -386,7 +422,7 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
   
   
   gchar *buf;
-  gint fd = g_file_open_tmp("XXXXXX.tmp", &buf, nullptr);
+  gint fd = g_file_open_tmp("XXXXXX.tmp", &buf, nsnull);
   if (-1 == fd)
     return NS_ERROR_GFX_PRINTER_COULD_NOT_OPEN_FILE;
   close(fd);
@@ -408,7 +444,7 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
   if (NS_FAILED(rv))
     return rv;
 
-  int16_t format;
+  PRInt16 format;
   mPrintSettings->GetOutputFormat(&format);
 
   nsRefPtr<gfxASurface> surface;
@@ -431,8 +467,8 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
             (gtk_major_version == 2 && gtk_minor_version >= 24)) {
           format =
             gtk_printer_accepts_pdf(mGtkPrinter) ?
-            static_cast<int16_t>(nsIPrintSettings::kOutputFormatPDF) :
-            static_cast<int16_t>(nsIPrintSettings::kOutputFormatPS);
+            static_cast<PRInt16>(nsIPrintSettings::kOutputFormatPDF) :
+            static_cast<PRInt16>(nsIPrintSettings::kOutputFormatPS);
         } else {
           format = nsIPrintSettings::kOutputFormatPS;
         }
@@ -448,7 +484,7 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
   if (format == nsIPrintSettings::kOutputFormatPDF) {
     surface = new gfxPDFSurface(stream, surfaceSize);
   } else {
-    int32_t orientation;
+    PRInt32 orientation;
     mPrintSettings->GetOrientation(&orientation);
     if (nsIPrintSettings::kPortraitOrientation == orientation) {
       surface = new gfxPSSurface(stream, surfaceSize, gfxPSSurface::PORTRAIT);
@@ -535,17 +571,17 @@ nsresult nsDeviceContextSpecGTK::GetPrintMethod(const char *aPrinter, PrintMetho
 static void
 print_callback(GtkPrintJob *aJob, gpointer aData, GError *aError) {
   g_object_unref(aJob);
-  ((nsIFile*) aData)->Remove(false);
+  ((nsILocalFile*) aData)->Remove(false);
 }
 
 static void
 ns_release_macro(gpointer aData) {
-  nsIFile* spoolFile = (nsIFile*) aData;
+  nsILocalFile* spoolFile = (nsILocalFile*) aData;
   NS_RELEASE(spoolFile);
 }
 
 NS_IMETHODIMP nsDeviceContextSpecGTK::BeginDocument(PRUnichar * aTitle, PRUnichar * aPrintToFileName,
-                                                    int32_t aStartPage, int32_t aEndPage)
+                                                    PRInt32 aStartPage, PRInt32 aEndPage)
 {
   if (mToPrinter) {
     if (!GTK_IS_PRINTER(mGtkPrinter))
@@ -564,7 +600,7 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::EndDocument()
     if (!mPrintJob)
       return NS_OK; 
 
-    if (!gtk_print_job_set_source_file(mPrintJob, mSpoolName.get(), nullptr))
+    if (!gtk_print_job_set_source_file(mPrintJob, mSpoolName.get(), nsnull))
       return NS_ERROR_GFX_PRINTER_COULD_NOT_OPEN_FILE;
 
     NS_ADDREF(mSpoolFile.get());
@@ -572,7 +608,7 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::EndDocument()
   } else {
     
     nsXPIDLString targetPath;
-    nsCOMPtr<nsIFile> destFile;
+    nsCOMPtr<nsILocalFile> destFile;
     mPrintSettings->GetToFileName(getter_Copies(targetPath));
 
     nsresult rv = NS_NewNativeLocalFile(NS_ConvertUTF16toUTF8(targetPath),
@@ -617,7 +653,7 @@ nsresult CopyPrinterCharPref(const char *modulename, const char *printername,
  
   if (printername && modulename) {
     
-    nsPrintfCString name("print.%s.printer_%s.%s", modulename, printername, prefname);
+    nsPrintfCString name(512, "print.%s.printer_%s.%s", modulename, printername, prefname);
     DO_PR_DEBUG_LOG(("trying to get '%s'\n", name.get()));
     rv = Preferences::GetCString(name.get(), &return_buf);
   }
@@ -625,7 +661,7 @@ nsresult CopyPrinterCharPref(const char *modulename, const char *printername,
   if (NS_FAILED(rv)) { 
     if (printername) {
       
-      nsPrintfCString name("print.printer_%s.%s", printername, prefname);
+      nsPrintfCString name(512, "print.printer_%s.%s", printername, prefname);
       DO_PR_DEBUG_LOG(("trying to get '%s'\n", name.get()));
       rv = Preferences::GetCString(name.get(), &return_buf);
     }
@@ -633,14 +669,14 @@ nsresult CopyPrinterCharPref(const char *modulename, const char *printername,
     if (NS_FAILED(rv)) {
       if (modulename) {
         
-        nsPrintfCString name("print.%s.%s", modulename, prefname);
+        nsPrintfCString name(512, "print.%s.%s", modulename, prefname);
         DO_PR_DEBUG_LOG(("trying to get '%s'\n", name.get()));
         rv = Preferences::GetCString(name.get(), &return_buf);
       }
       
       if (NS_FAILED(rv)) {
         
-        nsPrintfCString name("print.%s", prefname);
+        nsPrintfCString name(512, "print.%s", prefname);
         DO_PR_DEBUG_LOG(("trying to get '%s'\n", name.get()));
         rv = Preferences::GetCString(name.get(), &return_buf);
       }
@@ -670,21 +706,21 @@ NS_IMPL_ISUPPORTS1(nsPrinterEnumeratorGTK, nsIPrinterEnumerator)
 NS_IMETHODIMP nsPrinterEnumeratorGTK::GetPrinterNameList(nsIStringEnumerator **aPrinterNameList)
 {
   NS_ENSURE_ARG_POINTER(aPrinterNameList);
-  *aPrinterNameList = nullptr;
+  *aPrinterNameList = nsnull;
   
   nsresult rv = GlobalPrinters::GetInstance()->InitializeGlobalPrinters();
   if (NS_FAILED(rv)) {
     return rv;
   }
 
-  uint32_t numPrinters = GlobalPrinters::GetInstance()->GetNumPrinters();
+  PRUint32 numPrinters = GlobalPrinters::GetInstance()->GetNumPrinters();
   nsTArray<nsString> *printers = new nsTArray<nsString>(numPrinters);
   if (!printers) {
     GlobalPrinters::GetInstance()->FreeGlobalPrinters();
     return NS_ERROR_OUT_OF_MEMORY;
   }
   
-  uint32_t count = 0;
+  PRUint32 count = 0;
   while( count < numPrinters )
   {
     printers->AppendElement(*GlobalPrinters::GetInstance()->GetStringAt(count++));
@@ -733,14 +769,14 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const PRUnich
   if (type == pmPostScript) {
     
 
-    int32_t slash = printerName.FindChar('/');
+    PRInt32 slash = printerName.FindChar('/');
     if (kNotFound != slash)
       printerName.Cut(0, slash + 1);
   }
 
 #ifdef SET_PRINTER_FEATURES_VIA_PREFS
   
-  nsPrintfCString  prefName(
+  nsPrintfCString  prefName(256,
     PRINTERFEATURES_PREF ".%s.has_special_printerfeatures",
     fullPrinterName.get());
   Preferences::SetBool(prefName.get(), false);
@@ -748,15 +784,15 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const PRUnich
 
   
   
-  nsAutoCString filename;
-  if (NS_FAILED(CopyPrinterCharPref(nullptr, printerName, "filename", filename))) {
+  nsCAutoString filename;
+  if (NS_FAILED(CopyPrinterCharPref(nsnull, printerName, "filename", filename))) {
     const char *path;
   
     if (!(path = PR_GetEnv("PWD")))
       path = PR_GetEnv("HOME");
   
     if (path)
-      filename = nsPrintfCString("%s/mozilla.pdf", path);
+      filename = nsPrintfCString(PATH_MAX, "%s/mozilla.pdf", path);
     else
       filename.AssignLiteral("mozilla.pdf");
   }  
@@ -782,7 +818,7 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const PRUnich
     printerFeatures.SetCanChangeOrientation(true);
 #endif 
 
-    nsAutoCString orientation;
+    nsCAutoString orientation;
     if (NS_SUCCEEDED(CopyPrinterCharPref("postscript", printerName,
                                          "orientation", orientation))) {
       if (orientation.LowerCaseEqualsLiteral("portrait")) {
@@ -840,7 +876,7 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const PRUnich
 #ifdef SET_PRINTER_FEATURES_VIA_PREFS
     printerFeatures.SetCanChangePaperSize(true);
 #endif 
-    nsAutoCString papername;
+    nsCAutoString papername;
     if (NS_SUCCEEDED(CopyPrinterCharPref("postscript", printerName,
                                          "paper_size", papername))) {
       nsPaperSizePS paper;
@@ -888,7 +924,7 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const PRUnich
 #endif 
 
     if (hasSpoolerCmd) {
-      nsAutoCString command;
+      nsCAutoString command;
       if (NS_SUCCEEDED(CopyPrinterCharPref("postscript",
             printerName, "print_command", command))) {
         DO_PR_DEBUG_LOG(("setting default print command to '%s'\n",
@@ -929,7 +965,7 @@ nsresult GlobalPrinters::InitializeGlobalPrinters ()
     
     nsTArray<nsCString> printerList;
     psMgr.GetPrinterList(printerList);
-    for (uint32_t i = 0; i < printerList.Length(); i++)
+    for (PRUint32 i = 0; i < printerList.Length(); i++)
     {
       mGlobalPrinterList->AppendElement(NS_ConvertUTF8toUTF16(printerList[i]));
     }
@@ -952,14 +988,14 @@ void GlobalPrinters::FreeGlobalPrinters()
 {
   if (mGlobalPrinterList) {
     delete mGlobalPrinterList;
-    mGlobalPrinterList = nullptr;
+    mGlobalPrinterList = nsnull;
   }  
 }
 
 void 
 GlobalPrinters::GetDefaultPrinterName(PRUnichar **aDefaultPrinterName)
 {
-  *aDefaultPrinterName = nullptr;
+  *aDefaultPrinterName = nsnull;
   
   bool allocate = !GlobalPrinters::GetInstance()->PrintersAreAllocated();
   

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBaseDragService_h__
 #define nsBaseDragService_h__
 
@@ -48,7 +80,7 @@ public:
 
   void SetDragEndPoint(nsIntPoint aEndDragPoint) { mEndDragPoint = aEndDragPoint; }
 
-  uint16_t GetInputSource() { return mInputSource; }
+  PRUint16 GetInputSource() { return mInputSource; }
 
 protected:
 
@@ -75,7 +107,7 @@ protected:
 
   nsresult DrawDrag(nsIDOMNode* aDOMNode,
                     nsIScriptableRegion* aRegion,
-                    int32_t aScreenX, int32_t aScreenY,
+                    PRInt32 aScreenX, PRInt32 aScreenY,
                     nsIntRect* aScreenDragRect,
                     gfxASurface** aSurface,
                     nsPresContext **aPresContext);
@@ -87,7 +119,7 @@ protected:
   nsresult DrawDragForImage(nsPresContext* aPresContext,
                             nsIImageLoadingContent* aImageLoader,
                             nsICanvasElementExternal* aCanvas,
-                            int32_t aScreenX, int32_t aScreenY,
+                            PRInt32 aScreenX, PRInt32 aScreenY,
                             nsIntRect* aScreenDragRect,
                             gfxASurface** aSurface);
 
@@ -96,7 +128,7 @@ protected:
 
   void
   ConvertToUnscaledDevPixels(nsPresContext* aPresContext,
-                             int32_t* aScreenX, int32_t* aScreenY);
+                             PRInt32* aScreenX, PRInt32* aScreenY);
 
   
 
@@ -111,7 +143,7 @@ protected:
   
   bool mUserCancelled;
 
-  uint32_t mDragAction;
+  PRUint32 mDragAction;
   nsSize mTargetSize;
   nsCOMPtr<nsIDOMNode> mSourceNode;
   nsCOMPtr<nsIDOMDocument> mSourceDocument;       
@@ -121,8 +153,8 @@ protected:
   
   nsCOMPtr<nsIDOMNode> mImage;
   
-  int32_t mImageX;
-  int32_t mImageY;
+  PRInt32 mImageX;
+  PRInt32 mImageY;
 
   
   nsCOMPtr<nsISelection> mSelection;
@@ -134,16 +166,16 @@ protected:
   
   
   
-  int32_t mScreenX;
-  int32_t mScreenY;
+  PRInt32 mScreenX;
+  PRInt32 mScreenY;
 
   
   nsIntPoint mEndDragPoint;
 
-  uint32_t mSuppressLevel;
+  PRUint32 mSuppressLevel;
 
   
-  uint16_t mInputSource;
+  PRUint16 mInputSource;
 };
 
 #endif 

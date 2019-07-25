@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsNativeKeyBindings_h_
 #define nsNativeKeyBindings_h_
 
@@ -12,7 +45,6 @@
 #endif
 
 #include "nsINativeKeyBindings.h"
-#include "mozilla/Attributes.h"
 #include <gtk/gtk.h>
 
 enum NativeKeyBindingsType {
@@ -38,7 +70,7 @@ NS_NATIVEKEYBINDINGS_CONTRACTID_PREFIX "textarea"
 #define NS_NATIVEKEYBINDINGSEDITOR_CONTRACTID \
 NS_NATIVEKEYBINDINGS_CONTRACTID_PREFIX "editor"
 
-class nsNativeKeyBindings MOZ_FINAL : public nsINativeKeyBindings
+class nsNativeKeyBindings : public nsINativeKeyBindings
 {
 public:
   NS_HIDDEN_(void) Init(NativeKeyBindingsType aType);
@@ -64,7 +96,7 @@ private:
   bool KeyPressInternal(const nsNativeKeyEvent& aEvent,
                           DoCommandCallback aCallback,
                           void *aCallbackData,
-                          uint32_t aKeyCode);
+                          PRUint32 aKeyCode);
 
   GtkWidget *mNativeTarget;
 };

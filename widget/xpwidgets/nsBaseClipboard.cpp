@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsBaseClipboard.h"
 
 #include "nsIClipboardOwner.h"
@@ -12,8 +44,8 @@
 
 nsBaseClipboard::nsBaseClipboard()
 {
-  mClipboardOwner          = nullptr;
-  mTransferable            = nullptr;
+  mClipboardOwner          = nsnull;
+  mTransferable            = nsnull;
   mIgnoreEmptyNotification = false;
 
 }
@@ -31,7 +63,7 @@ NS_IMPL_ISUPPORTS1(nsBaseClipboard, nsIClipboard)
 
 
 NS_IMETHODIMP nsBaseClipboard::SetData(nsITransferable * aTransferable, nsIClipboardOwner * anOwner,
-                                        int32_t aWhichClipboard)
+                                        PRInt32 aWhichClipboard)
 {
   NS_ASSERTION ( aTransferable, "clipboard given a null transferable" );
 
@@ -70,7 +102,7 @@ NS_IMETHODIMP nsBaseClipboard::SetData(nsITransferable * aTransferable, nsIClipb
 
 
 
-NS_IMETHODIMP nsBaseClipboard::GetData(nsITransferable * aTransferable, int32_t aWhichClipboard)
+NS_IMETHODIMP nsBaseClipboard::GetData(nsITransferable * aTransferable, PRInt32 aWhichClipboard)
 {
   NS_ASSERTION ( aTransferable, "clipboard given a null transferable" );
   
@@ -85,7 +117,7 @@ NS_IMETHODIMP nsBaseClipboard::GetData(nsITransferable * aTransferable, int32_t 
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP nsBaseClipboard::EmptyClipboard(int32_t aWhichClipboard)
+NS_IMETHODIMP nsBaseClipboard::EmptyClipboard(PRInt32 aWhichClipboard)
 {
   bool selectClipPresent;
   SupportsSelectionClipboard(&selectClipPresent);
@@ -107,8 +139,8 @@ NS_IMETHODIMP nsBaseClipboard::EmptyClipboard(int32_t aWhichClipboard)
 
 NS_IMETHODIMP
 nsBaseClipboard::HasDataMatchingFlavors(const char** aFlavorList,
-                                        uint32_t aLength,
-                                        int32_t aWhichClipboard,
+                                        PRUint32 aLength,
+                                        PRInt32 aWhichClipboard,
                                         bool* outResult) 
 {
   *outResult = true;  

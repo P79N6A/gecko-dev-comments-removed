@@ -1,7 +1,44 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla browser.
+ *
+ * The Initial Developer of the Original Code is Netscape
+ * Communications Corporation. Portions created by Netscape are
+ * Copyright (C) 1999 Netscape Communications Corporation. All
+ * Rights Reserved.
+ *
+ * Contributor(s):
+ *   Stuart Parmenter <pavlov@netscape.com>
+ *   Steve Dagley <sdagley@netscape.com>
+ *   David Haas <haasd@cae.wisc.edu>
+ *   Simon Fraser <sfraser@netscape.com>
+ *   Josh Aas <josh@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #import <Cocoa/Cocoa.h>
 
@@ -11,13 +48,13 @@
 #include "nsReadableUtils.h"
 #include "nsNetUtil.h"
 #include "nsIComponentManager.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsILocalFileMac.h"
 #include "nsIURL.h"
 #include "nsArrayEnumerator.h"
 #include "nsIStringBundle.h"
-#include "nsCocoaFeatures.h"
 #include "nsCocoaUtils.h"
+#include "nsToolkit.h"
 #include "mozilla/Preferences.h"
 
 using namespace mozilla;
@@ -101,7 +138,7 @@ nsFilePicker::~nsFilePicker()
 
 void
 nsFilePicker::InitNative(nsIWidget *aParent, const nsAString& aTitle,
-                         int16_t aMode)
+                         PRInt16 aMode)
 {
   mTitle = aTitle;
   mMode = aMode;
@@ -143,8 +180,8 @@ NSView* nsFilePicker::GetAccessoryView()
 
   // set up popup button
   NSPopUpButton* popupButton = [[[NSPopUpButton alloc] initWithFrame:NSMakeRect(0, 0, 0, 0) pullsDown:NO] autorelease];
-  uint32_t numMenuItems = mTitles.Length();
-  for (uint32_t i = 0; i < numMenuItems; i++) {
+  PRUint32 numMenuItems = mTitles.Length();
+  for (PRUint32 i = 0; i < numMenuItems; i++) {
     const nsString& currentTitle = mTitles[i];
     NSString *titleString;
     if (currentTitle.IsEmpty()) {
@@ -159,7 +196,7 @@ NSView* nsFilePicker::GetAccessoryView()
     [popupButton addItemWithTitle:titleString];
     [titleString release];
   }
-  if (mSelectedTypeIndex >= 0 && (uint32_t)mSelectedTypeIndex < numMenuItems)
+  if (mSelectedTypeIndex >= 0 && (PRUint32)mSelectedTypeIndex < numMenuItems)
     [popupButton selectItemAtIndex:mSelectedTypeIndex];
   [popupButton setTag:kSaveTypeControlTag];
   [popupButton sizeToFit]; // we have to do sizeToFit to get the height calculated for us
@@ -191,13 +228,13 @@ NSView* nsFilePicker::GetAccessoryView()
 }
 
 // Display the file dialog
-NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
+NS_IMETHODIMP nsFilePicker::Show(PRInt16 *retval)
 {
   NS_ENSURE_ARG_POINTER(retval);
 
   *retval = returnCancel;
 
-  int16_t userClicksOK = returnCancel;
+  PRInt16 userClicksOK = returnCancel;
 
 // Random questions from DHH:
 //
@@ -210,7 +247,7 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
 // make this look as much like Carbon nsFilePicker as possible.  
 
   mFiles.Clear();
-  nsCOMPtr<nsIFile> theFile;
+  nsCOMPtr<nsILocalFile> theFile;
 
   switch (mMode)
   {
@@ -270,7 +307,7 @@ void UpdatePanelFileTypes(NSOpenPanel* aPanel, NSArray* aFilters)
 - (void) menuChangedItem:(NSNotification *)aSender
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
-  int32_t selectedItem = [mPopUpButton indexOfSelectedItem];
+  PRInt32 selectedItem = [mPopUpButton indexOfSelectedItem];
   if (selectedItem < 0) {
     return;
   }
@@ -283,12 +320,12 @@ void UpdatePanelFileTypes(NSOpenPanel* aPanel, NSArray* aFilters)
 @end
 
 // Use OpenPanel to do a GetFile. Returns |returnOK| if the user presses OK in the dialog. 
-int16_t
-nsFilePicker::GetLocalFiles(const nsString& inTitle, bool inAllowMultiple, nsCOMArray<nsIFile>& outFiles)
+PRInt16
+nsFilePicker::GetLocalFiles(const nsString& inTitle, bool inAllowMultiple, nsCOMArray<nsILocalFile>& outFiles)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
 
-  int16_t retVal = (int16_t)returnCancel;
+  PRInt16 retVal = (PRInt16)returnCancel;
   NSOpenPanel *thePanel = [NSOpenPanel openPanel];
 
   SetShowHiddenFileState(thePanel);
@@ -319,7 +356,7 @@ nsFilePicker::GetLocalFiles(const nsString& inTitle, bool inAllowMultiple, nsCOM
   // are not available on 10.5 and without using them it happens to be buggy.
   int result;
   nsCocoaUtils::PrepareForNativeAppModalDialog();
-  if (mFilters.Length() > 1 && nsCocoaFeatures::OnSnowLeopardOrLater()) {
+  if (mFilters.Length() > 1 && nsToolkit::OnSnowLeopardOrLater()) {
     // [NSURL initWithString:] (below) throws an exception if URLString is nil.
     if (!theDir) {
       theDir = @"";
@@ -367,7 +404,7 @@ nsFilePicker::GetLocalFiles(const nsString& inTitle, bool inAllowMultiple, nsCOM
       continue;
     }
 
-    nsCOMPtr<nsIFile> localFile;
+    nsCOMPtr<nsILocalFile> localFile;
     NS_NewLocalFile(EmptyString(), true, getter_AddRefs(localFile));
     nsCOMPtr<nsILocalFileMac> macLocalFile = do_QueryInterface(localFile);
     if (macLocalFile && NS_SUCCEEDED(macLocalFile->InitWithCFURL((CFURLRef)url))) {
@@ -384,13 +421,13 @@ nsFilePicker::GetLocalFiles(const nsString& inTitle, bool inAllowMultiple, nsCOM
 }
 
 // Use OpenPanel to do a GetFolder. Returns |returnOK| if the user presses OK in the dialog.
-int16_t
-nsFilePicker::GetLocalFolder(const nsString& inTitle, nsIFile** outFile)
+PRInt16
+nsFilePicker::GetLocalFolder(const nsString& inTitle, nsILocalFile** outFile)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
   NS_ASSERTION(outFile, "this protected member function expects a null initialized out pointer");
   
-  int16_t retVal = (int16_t)returnCancel;
+  PRInt16 retVal = (PRInt16)returnCancel;
   NSOpenPanel *thePanel = [NSOpenPanel openPanel];
 
   SetShowHiddenFileState(thePanel);
@@ -419,7 +456,7 @@ nsFilePicker::GetLocalFolder(const nsString& inTitle, nsIFile** outFile)
   // get the path for the folder (we allow just 1, so that's all we get)
   NSURL *theURL = [[thePanel URLs] objectAtIndex:0];
   if (theURL) {
-    nsCOMPtr<nsIFile> localFile;
+    nsCOMPtr<nsILocalFile> localFile;
     NS_NewLocalFile(EmptyString(), true, getter_AddRefs(localFile));
     nsCOMPtr<nsILocalFileMac> macLocalFile = do_QueryInterface(localFile);
     if (macLocalFile && NS_SUCCEEDED(macLocalFile->InitWithCFURL((CFURLRef)theURL))) {
@@ -435,13 +472,13 @@ nsFilePicker::GetLocalFolder(const nsString& inTitle, nsIFile** outFile)
 }
 
 // Returns |returnOK| if the user presses OK in the dialog.
-int16_t
-nsFilePicker::PutLocalFile(const nsString& inTitle, const nsString& inDefaultName, nsIFile** outFile)
+PRInt16
+nsFilePicker::PutLocalFile(const nsString& inTitle, const nsString& inDefaultName, nsILocalFile** outFile)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
   NS_ASSERTION(outFile, "this protected member function expects a null initialized out pointer");
 
-  int16_t retVal = returnCancel;
+  PRInt16 retVal = returnCancel;
   NSSavePanel *thePanel = [NSSavePanel savePanel];
 
   SetShowHiddenFileState(thePanel);
@@ -473,7 +510,7 @@ nsFilePicker::PutLocalFile(const nsString& inTitle, const nsString& inDefaultNam
 
   NSURL* fileURL = [thePanel URL];
   if (fileURL) { 
-    nsCOMPtr<nsIFile> localFile;
+    nsCOMPtr<nsILocalFile> localFile;
     NS_NewLocalFile(EmptyString(), true, getter_AddRefs(localFile));
     nsCOMPtr<nsILocalFileMac> macLocalFile = do_QueryInterface(localFile);
     if (macLocalFile && NS_SUCCEEDED(macLocalFile->InitWithCFURL((CFURLRef)fileURL))) {
@@ -502,7 +539,7 @@ nsFilePicker::GetFilterList()
     return nil;
   }
 
-  if (mFilters.Length() <= (uint32_t)mSelectedTypeIndex) {
+  if (mFilters.Length() <= (PRUint32)mSelectedTypeIndex) {
     NS_WARNING("An out of range index has been selected. Using the first index instead.");
     mSelectedTypeIndex = 0;
   }
@@ -521,7 +558,8 @@ nsFilePicker::GetFilterList()
   NSMutableString* filterString = [[[NSMutableString alloc] initWithString:
                                     [NSString stringWithCharacters:filterWide.get()
 				              length:filterWide.Length()]] autorelease];
-  NSCharacterSet *set = [NSCharacterSet characterSetWithCharactersInString:@". *"];
+  NSCharacterSet *set = [NSCharacterSet characterSetWithCharactersInString:
+                          [NSString stringWithString:@". *"]];
   NSRange range = [filterString rangeOfCharacterFromSet:set];
   while (range.length) {
     [filterString replaceCharactersInRange:range withString:@""];
@@ -546,7 +584,7 @@ nsFilePicker::SetDialogTitle(const nsString& inTitle, id aPanel)
   NS_OBJC_END_TRY_ABORT_BLOCK;
 } 
 
-// Converts path from an nsIFile into a NSString path
+// Converts path from an nsILocalFile into a NSString path
 // If it fails, returns an empty string.
 NSString *
 nsFilePicker::PanelDefaultDirectory()
@@ -564,10 +602,10 @@ nsFilePicker::PanelDefaultDirectory()
   NS_OBJC_END_TRY_ABORT_BLOCK_NIL;
 }
 
-NS_IMETHODIMP nsFilePicker::GetFile(nsIFile **aFile)
+NS_IMETHODIMP nsFilePicker::GetFile(nsILocalFile **aFile)
 {
   NS_ENSURE_ARG_POINTER(aFile);
-  *aFile = nullptr;
+  *aFile = nsnull;
   
   // just return the first file
   if (mFiles.Count() > 0) {
@@ -581,7 +619,7 @@ NS_IMETHODIMP nsFilePicker::GetFile(nsIFile **aFile)
 NS_IMETHODIMP nsFilePicker::GetFileURL(nsIURI **aFileURL)
 {
   NS_ENSURE_ARG_POINTER(aFileURL);
-  *aFileURL = nullptr;
+  *aFileURL = nsnull;
 
   if (mFiles.Count() == 0)
     return NS_OK;
@@ -633,14 +671,14 @@ nsFilePicker::AppendFilter(const nsAString& aTitle, const nsAString& aFilter)
 }
 
 // Get the filter index - do we still need this?
-NS_IMETHODIMP nsFilePicker::GetFilterIndex(int32_t *aFilterIndex)
+NS_IMETHODIMP nsFilePicker::GetFilterIndex(PRInt32 *aFilterIndex)
 {
   *aFilterIndex = mSelectedTypeIndex;
   return NS_OK;
 }
 
 // Set the filter index - do we still need this?
-NS_IMETHODIMP nsFilePicker::SetFilterIndex(int32_t aFilterIndex)
+NS_IMETHODIMP nsFilePicker::SetFilterIndex(PRInt32 aFilterIndex)
 {
   mSelectedTypeIndex = aFilterIndex;
   return NS_OK;

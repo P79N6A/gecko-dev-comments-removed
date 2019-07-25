@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/Util.h"
 
 #include <gtk/gtk.h>
@@ -10,7 +42,7 @@
 #include "nsIFileURL.h"
 #include "nsIURI.h"
 #include "nsIWidget.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIStringBundle.h"
 
 #include "nsArrayEnumerator.h"
@@ -33,18 +65,7 @@ using namespace mozilla;
 
 #define MAX_PREVIEW_SIZE 180
 
-nsIFile *nsFilePicker::mPrevDisplayDirectory = nullptr;
-
-
-
-template<class T> static inline gpointer
-FuncToGpointer(T aFunction)
-{
-    return reinterpret_cast<gpointer>
-        (reinterpret_cast<uintptr_t>
-         
-         (reinterpret_cast<void (*)()>(aFunction)));
-}
+nsILocalFile *nsFilePicker::mPrevDisplayDirectory = nsnull;
 
 
 
@@ -78,7 +99,7 @@ nsFilePicker::Shutdown()
 }
 
 static GtkFileChooserAction
-GetGtkFileChooserAction(int16_t aMode)
+GetGtkFileChooserAction(PRInt16 aMode)
 {
   GtkFileChooserAction action;
 
@@ -157,10 +178,10 @@ UpdateFilePreviewWidget(GtkFileChooser *file_chooser,
   gtk_file_chooser_set_preview_widget_active(file_chooser, TRUE);
 }
 
-static nsAutoCString
+static nsCAutoString
 MakeCaseInsensitiveShellGlob(const char* aPattern) {
   
-  nsAutoCString result;
+  nsCAutoString result;
   unsigned int len = strlen(aPattern);
 
   for (unsigned int i = 0; i < len; i++) {
@@ -188,7 +209,6 @@ NS_IMPL_ISUPPORTS1(nsFilePicker, nsIFilePicker)
 nsFilePicker::nsFilePicker()
   : mMode(nsIFilePicker::modeOpen),
     mSelectedType(0),
-    mRunning(false),
     mAllowURLs(false)
 {
 }
@@ -200,12 +220,12 @@ nsFilePicker::~nsFilePicker()
 void
 ReadMultipleFiles(gpointer filename, gpointer array)
 {
-  nsCOMPtr<nsIFile> localfile;
+  nsCOMPtr<nsILocalFile> localfile;
   nsresult rv = NS_NewNativeLocalFile(nsDependentCString(static_cast<char*>(filename)),
                                       false,
                                       getter_AddRefs(localfile));
   if (NS_SUCCEEDED(rv)) {
-    nsCOMArray<nsIFile>& files = *static_cast<nsCOMArray<nsIFile>*>(array);
+    nsCOMArray<nsILocalFile>& files = *static_cast<nsCOMArray<nsILocalFile>*>(array);
     files.AppendObject(localfile);
   }
 
@@ -232,17 +252,18 @@ nsFilePicker::ReadValuesFromFileChooser(GtkWidget *file_chooser)
   GtkFileFilter *filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(file_chooser));
   GSList *filter_list = gtk_file_chooser_list_filters(GTK_FILE_CHOOSER(file_chooser));
 
-  mSelectedType = static_cast<int16_t>(g_slist_index(filter_list, filter));
+  mSelectedType = static_cast<PRInt16>(g_slist_index(filter_list, filter));
   g_slist_free(filter_list);
 
   
-  nsCOMPtr<nsIFile> file;
+  nsCOMPtr<nsILocalFile> file;
   GetFile(getter_AddRefs(file));
   if (file) {
     nsCOMPtr<nsIFile> dir;
     file->GetParent(getter_AddRefs(dir));
-    if (dir) {
-      dir.swap(mPrevDisplayDirectory);
+    nsCOMPtr<nsILocalFile> localDir(do_QueryInterface(dir));
+    if (localDir) {
+      localDir.swap(mPrevDisplayDirectory);
     }
   }
 }
@@ -250,7 +271,7 @@ nsFilePicker::ReadValuesFromFileChooser(GtkWidget *file_chooser)
 void
 nsFilePicker::InitNative(nsIWidget *aParent,
                          const nsAString& aTitle,
-                         int16_t aMode)
+                         PRInt16 aMode)
 {
   mParentWidget = aParent;
   mTitle.Assign(aTitle);
@@ -258,7 +279,7 @@ nsFilePicker::InitNative(nsIWidget *aParent,
 }
 
 NS_IMETHODIMP
-nsFilePicker::AppendFilters(int32_t aFilterMask)
+nsFilePicker::AppendFilters(PRInt32 aFilterMask)
 {
   mAllowURLs = !!(aFilterMask & filterAllowURLs);
   return nsBaseFilePicker::AppendFilters(aFilterMask);
@@ -272,7 +293,7 @@ nsFilePicker::AppendFilter(const nsAString& aTitle, const nsAString& aFilter)
     return NS_OK;
   }
 
-  nsAutoCString filter, name;
+  nsCAutoString filter, name;
   CopyUTF16toUTF8(aFilter, filter);
   CopyUTF16toUTF8(aTitle, name);
 
@@ -314,7 +335,7 @@ nsFilePicker::GetDefaultExtension(nsAString& aExtension)
 }
 
 NS_IMETHODIMP
-nsFilePicker::GetFilterIndex(int32_t *aFilterIndex)
+nsFilePicker::GetFilterIndex(PRInt32 *aFilterIndex)
 {
   *aFilterIndex = mSelectedType;
 
@@ -322,7 +343,7 @@ nsFilePicker::GetFilterIndex(int32_t *aFilterIndex)
 }
 
 NS_IMETHODIMP
-nsFilePicker::SetFilterIndex(int32_t aFilterIndex)
+nsFilePicker::SetFilterIndex(PRInt32 aFilterIndex)
 {
   mSelectedType = aFilterIndex;
 
@@ -330,11 +351,11 @@ nsFilePicker::SetFilterIndex(int32_t aFilterIndex)
 }
 
 NS_IMETHODIMP
-nsFilePicker::GetFile(nsIFile **aFile)
+nsFilePicker::GetFile(nsILocalFile **aFile)
 {
   NS_ENSURE_ARG_POINTER(aFile);
 
-  *aFile = nullptr;
+  *aFile = nsnull;
   nsCOMPtr<nsIURI> uri;
   nsresult rv = GetFileURL(getter_AddRefs(uri));
   if (!uri)
@@ -353,7 +374,7 @@ nsFilePicker::GetFile(nsIFile **aFile)
 NS_IMETHODIMP
 nsFilePicker::GetFileURL(nsIURI **aFileURL)
 {
-  *aFileURL = nullptr;
+  *aFileURL = nsnull;
   return NS_NewURI(aFileURL, mFileURL);
 }
 
@@ -370,28 +391,9 @@ nsFilePicker::GetFiles(nsISimpleEnumerator **aFiles)
 }
 
 NS_IMETHODIMP
-nsFilePicker::Show(int16_t *aReturn)
+nsFilePicker::Show(PRInt16 *aReturn)
 {
   NS_ENSURE_ARG_POINTER(aReturn);
-
-  nsresult rv = Open(nullptr);
-  if (NS_FAILED(rv))
-    return rv;
-
-  while (mRunning) {
-    g_main_context_iteration(nullptr, TRUE);
-  }
-
-  *aReturn = mResult;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFilePicker::Open(nsIFilePickerShownCallback *aCallback)
-{
-  
-  if (mRunning)
-    return NS_ERROR_NOT_AVAILABLE;
 
   nsXPIDLCString title;
   title.Adopt(ToNewUTF8String(mTitle));
@@ -429,13 +431,8 @@ nsFilePicker::Open(nsIFilePickerShownCallback *aCallback)
     g_signal_connect(file_chooser, "update-preview", G_CALLBACK(UpdateFilePreviewWidget), img_preview);
   }
 
-  GtkWindow *window = GTK_WINDOW(file_chooser);
-  gtk_window_set_modal(window, TRUE);
-  if (parent_widget) {
-    gtk_window_set_destroy_with_parent(window, TRUE);
-    if (parent_widget->group) {
-      gtk_window_group_add_window(parent_widget->group, window);
-    }
+  if (parent_widget && parent_widget->group) {
+    gtk_window_group_add_window(parent_widget->group, GTK_WINDOW(file_chooser));
   }
 
   NS_ConvertUTF16toUTF8 defaultName(mDefault);
@@ -461,11 +458,11 @@ nsFilePicker::Open(nsIFilePickerShownCallback *aCallback)
       
       
       defaultPath->AppendNative(defaultName);
-      nsAutoCString path;
+      nsCAutoString path;
       defaultPath->GetNativePath(path);
       gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(file_chooser), path.get());
     } else {
-      nsAutoCString directory;
+      nsCAutoString directory;
       defaultPath->GetNativePath(directory);
       gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(file_chooser),
                                           directory.get());
@@ -474,8 +471,8 @@ nsFilePicker::Open(nsIFilePickerShownCallback *aCallback)
 
   gtk_dialog_set_default_response(GTK_DIALOG(file_chooser), GTK_RESPONSE_ACCEPT);
 
-  int32_t count = mFilters.Length();
-  for (int32_t i = 0; i < count; ++i) {
+  PRInt32 count = mFilters.Length();
+  for (PRInt32 i = 0; i < count; ++i) {
     
     
 
@@ -486,7 +483,7 @@ nsFilePicker::Open(nsIFilePickerShownCallback *aCallback)
 
     GtkFileFilter *filter = gtk_file_filter_new();
     for (int j = 0; patterns[j] != NULL; ++j) {
-      nsAutoCString caseInsensitiveFilter = MakeCaseInsensitiveShellGlob(g_strstrip(patterns[j]));
+      nsCAutoString caseInsensitiveFilter = MakeCaseInsensitiveShellGlob(g_strstrip(patterns[j]));
       gtk_file_filter_add_pattern(filter, caseInsensitiveFilter.get());
     }
 
@@ -511,51 +508,21 @@ nsFilePicker::Open(nsIFilePickerShownCallback *aCallback)
   }
 
   gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(file_chooser), TRUE);
+  gint response = gtk_dialog_run(GTK_DIALOG(file_chooser));
 
-  mRunning = true;
-  mCallback = aCallback;
-  NS_ADDREF_THIS();
-  g_signal_connect(file_chooser, "response", G_CALLBACK(OnResponse), this);
-  g_signal_connect(file_chooser, "destroy", G_CALLBACK(OnDestroy), this);
-  gtk_widget_show(file_chooser);
-
-  return NS_OK;
-}
-
- void
-nsFilePicker::OnResponse(GtkWidget* file_chooser, gint response_id,
-                         gpointer user_data)
-{
-  static_cast<nsFilePicker*>(user_data)->
-    Done(file_chooser, response_id);
-}
-
- void
-nsFilePicker::OnDestroy(GtkWidget* file_chooser, gpointer user_data)
-{
-  static_cast<nsFilePicker*>(user_data)->
-    Done(file_chooser, GTK_RESPONSE_CANCEL);
-}
-
-void
-nsFilePicker::Done(GtkWidget* file_chooser, gint response)
-{
-  mRunning = false;
-
-  int16_t result;
   switch (response) {
     case GTK_RESPONSE_OK:
     case GTK_RESPONSE_ACCEPT:
     ReadValuesFromFileChooser(file_chooser);
-    result = nsIFilePicker::returnOK;
+    *aReturn = nsIFilePicker::returnOK;
     if (mMode == nsIFilePicker::modeSave) {
-      nsCOMPtr<nsIFile> file;
+      nsCOMPtr<nsILocalFile> file;
       GetFile(getter_AddRefs(file));
       if (file) {
         bool exists = false;
         file->Exists(&exists);
         if (exists)
-          result = nsIFilePicker::returnReplace;
+          *aReturn = nsIFilePicker::returnReplace;
       }
     }
     break;
@@ -563,32 +530,16 @@ nsFilePicker::Done(GtkWidget* file_chooser, gint response)
     case GTK_RESPONSE_CANCEL:
     case GTK_RESPONSE_CLOSE:
     case GTK_RESPONSE_DELETE_EVENT:
-    result = nsIFilePicker::returnCancel;
+    *aReturn = nsIFilePicker::returnCancel;
     break;
 
     default:
     NS_WARNING("Unexpected response");
-    result = nsIFilePicker::returnCancel;
+    *aReturn = nsIFilePicker::returnCancel;
     break;
   }
 
-  
-  g_signal_handlers_disconnect_by_func(file_chooser,
-                                       FuncToGpointer(OnDestroy), this);
-
-  
-  
-  
-  
-  
-  
   gtk_widget_destroy(file_chooser);
 
-  if (mCallback) {
-    mCallback->Done(result);
-    mCallback = nullptr;
-  } else {
-    mResult = result;
-  }
-  NS_RELEASE_THIS();
+  return NS_OK;
 }

@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPrintOptionsImpl.h"
 #include "nsReadableUtils.h"
 #include "nsPrintSettingsImpl.h"
@@ -202,12 +236,12 @@ GetPrefName((_a2), aPrefName), (_a3));
 
 nsresult 
 nsPrintOptions::ReadPrefs(nsIPrintSettings* aPS, const nsAString& aPrinterName,
-                          uint32_t aFlags)
+                          PRUint32 aFlags)
 {
   NS_ENSURE_ARG_POINTER(aPS);
 
   if (aFlags & nsIPrintSettings::kInitSaveMargins) {
-    int32_t halfInch = NS_INCHES_TO_INT_TWIPS(0.5);
+    PRInt32 halfInch = NS_INCHES_TO_INT_TWIPS(0.5);
     nsIntMargin margin(halfInch, halfInch, halfInch, halfInch);
     ReadInchesToTwipsPref(GetPrefName(kMarginTop, aPrinterName), margin.top,
                           kMarginTop);
@@ -260,7 +294,7 @@ nsPrintOptions::ReadPrefs(nsIPrintSettings* aPS, const nsAString& aPrinterName,
 
   bool     b;
   nsAutoString str;
-  int32_t  iVal;
+  PRInt32  iVal;
   double   dbl;
 
 #define GETBOOLPREF(_prefname, _retval)                 \
@@ -293,7 +327,7 @@ nsPrintOptions::ReadPrefs(nsIPrintSettings* aPS, const nsAString& aPrinterName,
 
   
   if (aFlags & nsIPrintSettings::kInitSavePaperSize) {
-    int32_t sizeUnit, sizeType;
+    PRInt32 sizeUnit, sizeType;
     double width, height;
 
     bool success = GETINTPREF(kPrintPaperSizeUnit, &sizeUnit)
@@ -505,7 +539,7 @@ nsPrintOptions::ReadPrefs(nsIPrintSettings* aPS, const nsAString& aPrinterName,
 
 nsresult 
 nsPrintOptions::WritePrefs(nsIPrintSettings *aPS, const nsAString& aPrinterName,
-                           uint32_t aFlags)
+                           PRUint32 aFlags)
 {
   NS_ENSURE_ARG_POINTER(aPS);
 
@@ -565,7 +599,7 @@ nsPrintOptions::WritePrefs(nsIPrintSettings *aPS, const nsAString& aPrinterName,
 
   
   if (aFlags & nsIPrintSettings::kInitSavePaperSize) {
-    int16_t sizeUnit, sizeType;
+    PRInt16 sizeUnit, sizeType;
     double width, height;
     PRUnichar *name;
  
@@ -578,10 +612,10 @@ nsPrintOptions::WritePrefs(nsIPrintSettings *aPS, const nsAString& aPrinterName,
     ) {
       DUMP_INT(kWriteStr, kPrintPaperSizeUnit, sizeUnit);
       Preferences::SetInt(GetPrefName(kPrintPaperSizeUnit, aPrinterName),
-                          int32_t(sizeUnit));
+                          PRInt32(sizeUnit));
       DUMP_INT(kWriteStr, kPrintPaperSizeType, sizeType);
       Preferences::SetInt(GetPrefName(kPrintPaperSizeType, aPrinterName),
-                          int32_t(sizeType));
+                          PRInt32(sizeType));
       DUMP_DBL(kWriteStr, kPrintPaperWidth, width);
       WritePrefDouble(GetPrefName(kPrintPaperWidth, aPrinterName), width);
       DUMP_DBL(kWriteStr, kPrintPaperHeight, height);
@@ -593,8 +627,8 @@ nsPrintOptions::WritePrefs(nsIPrintSettings *aPS, const nsAString& aPrinterName,
 
   bool       b;
   PRUnichar* uStr;
-  int32_t    iVal;
-  int16_t    iVal16;
+  PRInt32    iVal;
+  PRInt16    iVal16;
   double     dbl;
 
   if (aFlags & nsIPrintSettings::kInitSaveOddEvenPages) {
@@ -700,7 +734,7 @@ nsPrintOptions::WritePrefs(nsIPrintSettings *aPS, const nsAString& aPrinterName,
     if (NS_SUCCEEDED(aPS->GetPaperData(&iVal16))) {
       DUMP_INT(kWriteStr, kPrintPaperData, iVal16);
       Preferences::SetInt(GetPrefName(kPrintPaperData, aPrinterName),
-                          int32_t(iVal16));
+                          PRInt32(iVal16));
     }
   }
 
@@ -812,7 +846,7 @@ nsPrintOptions::DisplayJobProperties(const PRUnichar *aPrinter,
   return rv;
 }
 
-NS_IMETHODIMP nsPrintOptions::GetNativeData(int16_t aDataType, void * *_retval)
+NS_IMETHODIMP nsPrintOptions::GetNativeData(PRInt16 aDataType, void * *_retval)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -904,7 +938,7 @@ nsPrintOptions::InitPrintSettingsFromPrinter(const PRUnichar *aPrinterName,
   NS_ENSURE_ARG_POINTER(aPrintSettings);
   NS_ENSURE_ARG_POINTER(aPrinterName);
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   nsXPIDLString printerName;
   aPrintSettings->GetPrinterName(getter_Copies(printerName));
   if (!printerName.Equals(aPrinterName)) {
@@ -944,7 +978,7 @@ GetAdjustedPrinterName(nsIPrintSettings* aPS, bool aUsePNP,
 
   
   
-  PRUnichar* prtName = nullptr;
+  PRUnichar* prtName = nsnull;
 
   nsresult rv = aPS->GetPrinterName(&prtName);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -956,11 +990,11 @@ GetAdjustedPrinterName(nsIPrintSettings* aPS, bool aUsePNP,
   NS_NAMED_LITERAL_STRING(replSubstr, "_");
   const char* replaceStr = " \n\r";
 
-  int32_t x;
-  for (x=0; x < (int32_t)strlen(replaceStr); x++) {
+  PRInt32 x;
+  for (x=0; x < (PRInt32)strlen(replaceStr); x++) {
     PRUnichar uChar = replaceStr[x];
 
-    int32_t i = 0;
+    PRInt32 i = 0;
     while ((i = aPrinterName.FindChar(uChar, i)) != kNotFound) {
       aPrinterName.Replace(i, 1, replSubstr);
       i++;
@@ -971,7 +1005,7 @@ GetAdjustedPrinterName(nsIPrintSettings* aPS, bool aUsePNP,
 
 NS_IMETHODIMP
 nsPrintOptions::GetPrinterPrefInt(nsIPrintSettings *aPrintSettings,
-                                  const PRUnichar *aPrefName, int32_t *_retval)
+                                  const PRUnichar *aPrefName, PRInt32 *_retval)
 {
   NS_ENSURE_ARG_POINTER(aPrintSettings);
   NS_ENSURE_ARG_POINTER(aPrefName);
@@ -986,7 +1020,7 @@ nsPrintOptions::GetPrinterPrefInt(nsIPrintSettings *aPrintSettings,
 
   NS_ENSURE_TRUE(prefName, NS_ERROR_FAILURE);
 
-  int32_t iVal;
+  PRInt32 iVal;
   nsresult rv = Preferences::GetInt(prefName, &iVal);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -996,7 +1030,7 @@ nsPrintOptions::GetPrinterPrefInt(nsIPrintSettings *aPrintSettings,
 
 NS_IMETHODIMP 
 nsPrintOptions::InitPrintSettingsFromPrefs(nsIPrintSettings* aPS,
-                                           bool aUsePNP, uint32_t aFlags)
+                                           bool aUsePNP, PRUint32 aFlags)
 {
   NS_ENSURE_ARG_POINTER(aPS);
 
@@ -1037,7 +1071,7 @@ nsPrintOptions::InitPrintSettingsFromPrefs(nsIPrintSettings* aPS,
 nsresult
 nsPrintOptions::SavePrintSettingsToPrefs(nsIPrintSettings *aPS,
                                          bool aUsePrinterNamePrefix,
-                                         uint32_t aFlags)
+                                         PRUint32 aFlags)
 {
   NS_ENSURE_ARG_POINTER(aPS);
   nsAutoString prtName;
@@ -1059,7 +1093,7 @@ nsPrintOptions::ReadPrefDouble(const char * aPrefId, double& aVal)
 {
   NS_ENSURE_ARG_POINTER(aPrefId);
 
-  nsAutoCString str;
+  nsCAutoString str;
   nsresult rv = Preferences::GetCString(aPrefId, &str);
   if (NS_SUCCEEDED(rv) && !str.IsEmpty()) {
     aVal = atof(str.get());
@@ -1079,7 +1113,7 @@ nsPrintOptions::WritePrefDouble(const char * aPrefId, double aVal)
 }
 
 void
-nsPrintOptions::ReadInchesToTwipsPref(const char * aPrefId, int32_t& aTwips,
+nsPrintOptions::ReadInchesToTwipsPref(const char * aPrefId, PRInt32& aTwips,
                                       const char * aMarginPref)
 {
   nsAutoString str;
@@ -1088,7 +1122,7 @@ nsPrintOptions::ReadInchesToTwipsPref(const char * aPrefId, int32_t& aTwips,
     rv = Preferences::GetString(aMarginPref, &str);
   }
   if (NS_SUCCEEDED(rv) && !str.IsEmpty()) {
-    nsresult errCode;
+    PRInt32 errCode;
     float inches = str.ToFloat(&errCode);
     if (NS_SUCCEEDED(errCode)) {
       aTwips = NS_INCHES_TO_INT_TWIPS(inches);
@@ -1099,20 +1133,20 @@ nsPrintOptions::ReadInchesToTwipsPref(const char * aPrefId, int32_t& aTwips,
 }
 
 void
-nsPrintOptions::WriteInchesFromTwipsPref(const char * aPrefId, int32_t aTwips)
+nsPrintOptions::WriteInchesFromTwipsPref(const char * aPrefId, PRInt32 aTwips)
 {
   double inches = NS_TWIPS_TO_INCHES(aTwips);
-  nsAutoCString inchesStr;
+  nsCAutoString inchesStr;
   inchesStr.AppendFloat(inches);
 
   Preferences::SetCString(aPrefId, inchesStr);
 }
 
 void
-nsPrintOptions::ReadInchesIntToTwipsPref(const char * aPrefId, int32_t& aTwips,
+nsPrintOptions::ReadInchesIntToTwipsPref(const char * aPrefId, PRInt32& aTwips,
                                          const char * aMarginPref)
 {
-  int32_t value;
+  PRInt32 value;
   nsresult rv = Preferences::GetInt(aPrefId, &value);
   if (NS_FAILED(rv)) {
     rv = Preferences::GetInt(aMarginPref, &value);
@@ -1125,15 +1159,15 @@ nsPrintOptions::ReadInchesIntToTwipsPref(const char * aPrefId, int32_t& aTwips,
 }
 
 void
-nsPrintOptions::WriteInchesIntFromTwipsPref(const char * aPrefId, int32_t aTwips)
+nsPrintOptions::WriteInchesIntFromTwipsPref(const char * aPrefId, PRInt32 aTwips)
 {
   Preferences::SetInt(aPrefId,
-                      int32_t(NS_TWIPS_TO_INCHES(aTwips) * 100.0f + 0.5f));
+                      PRInt32(NS_TWIPS_TO_INCHES(aTwips) * 100.0f + 0.5f));
 }
 
 void
-nsPrintOptions::ReadJustification(const char * aPrefId, int16_t& aJust,
-                                  int16_t aInitValue)
+nsPrintOptions::ReadJustification(const char * aPrefId, PRInt16& aJust,
+                                  PRInt16 aInitValue)
 {
   aJust = aInitValue;
   nsAutoString justStr;
@@ -1150,7 +1184,7 @@ nsPrintOptions::ReadJustification(const char * aPrefId, int16_t& aJust,
 
 
 void
-nsPrintOptions::WriteJustification(const char * aPrefId, int16_t aJust)
+nsPrintOptions::WriteJustification(const char * aPrefId, PRInt16 aJust)
 {
   switch (aJust) {
     case nsIPrintSettings::kJustLeft:
@@ -1223,7 +1257,7 @@ Tester::Tester()
 
     struct SettingsType {
       const char* mName;
-      uint32_t    mFlag;
+      PRUint32    mFlag;
     };
     SettingsType gSettings[] = {
       {"OddEven", nsIPrintSettings::kInitSaveOddEvenPages},
@@ -1252,11 +1286,11 @@ Tester::Tester()
       {kPrintPageDelay, nsIPrintSettings::kInitSavePageDelay},
       {"Margins", nsIPrintSettings::kInitSaveMargins},
       {"All", nsIPrintSettings::kInitSaveAll},
-      {nullptr, 0}};
+      {nsnull, 0}};
 
       nsString prefix; prefix.AssignLiteral("Printer Name");
-      int32_t i = 0;
-      while (gSettings[i].mName != nullptr) {
+      PRInt32 i = 0;
+      while (gSettings[i].mName != nsnull) {
         printf("------------------------------------------------\n");
         printf("%d) %s -> 0x%X\n", i, gSettings[i].mName, gSettings[i].mFlag);
         printService->SavePrintSettingsToPrefs(ps, true, gSettings[i].mFlag);

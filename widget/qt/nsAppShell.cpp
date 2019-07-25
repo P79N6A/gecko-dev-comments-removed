@@ -5,6 +5,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAppShell.h"
 #include <qapplication.h>
 #include <unistd.h>
@@ -12,7 +43,6 @@
 #include <errno.h>
 
 #include <qabstracteventdispatcher.h>
-#include <qthread.h>
 
 #include "prenv.h"
 #include "nsQAppInstance.h"
@@ -23,10 +53,10 @@
 #endif
 
 #ifdef PR_LOGGING
-PRLogModuleInfo *gWidgetLog = nullptr;
-PRLogModuleInfo *gWidgetFocusLog = nullptr;
-PRLogModuleInfo *gWidgetIMLog = nullptr;
-PRLogModuleInfo *gWidgetDrawLog = nullptr;
+PRLogModuleInfo *gWidgetLog = nsnull;
+PRLogModuleInfo *gWidgetFocusLog = nsnull;
+PRLogModuleInfo *gWidgetIMLog = nsnull;
+PRLogModuleInfo *gWidgetDrawLog = nsnull;
 #endif
 
 static int sPokeEvent;
@@ -76,7 +106,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     if (mayWait)
         flags |= QEventLoop::WaitForMoreEvents;
 
-    QAbstractEventDispatcher *dispatcher =  QAbstractEventDispatcher::instance(QThread::currentThread());
+    QAbstractEventDispatcher *dispatcher =  QAbstractEventDispatcher::instance(qApp->thread());
     if (!dispatcher)
         return false;
 

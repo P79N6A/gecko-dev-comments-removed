@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNativeThemeGTK.h"
 #include "nsThemeConstants.h"
 #include "gtkdrawing.h"
@@ -11,6 +47,7 @@
 #include "nsIServiceManager.h"
 #include "nsIFrame.h"
 #include "nsIPresShell.h"
+#include "nsIDocument.h"
 #include "nsIContent.h"
 #include "nsIViewManager.h"
 #include "nsINameSpaceManager.h"
@@ -79,27 +116,27 @@ nsNativeThemeGTK::RefreshWidgetWindow(nsIFrame* aFrame)
   if (!vm)
     return;
  
-  vm->InvalidateAllViews();
+  vm->UpdateAllViews(NS_VMREFRESH_NO_SYNC);
 }
 
-static bool IsFrameContentNodeInNamespace(nsIFrame *aFrame, uint32_t aNamespace)
+static bool IsFrameContentNodeInNamespace(nsIFrame *aFrame, PRUint32 aNamespace)
 {
-  nsIContent *content = aFrame ? aFrame->GetContent() : nullptr;
+  nsIContent *content = aFrame ? aFrame->GetContent() : nsnull;
   if (!content)
     return false;
   return content->IsInNamespace(aNamespace);
 }
 
-static bool IsWidgetTypeDisabled(uint8_t* aDisabledVector, uint8_t aWidgetType) {
+static bool IsWidgetTypeDisabled(PRUint8* aDisabledVector, PRUint8 aWidgetType) {
   return (aDisabledVector[aWidgetType >> 3] & (1 << (aWidgetType & 7))) != 0;
 }
 
-static void SetWidgetTypeDisabled(uint8_t* aDisabledVector, uint8_t aWidgetType) {
+static void SetWidgetTypeDisabled(PRUint8* aDisabledVector, PRUint8 aWidgetType) {
   aDisabledVector[aWidgetType >> 3] |= (1 << (aWidgetType & 7));
 }
 
-static inline uint16_t
-GetWidgetStateKey(uint8_t aWidgetType, GtkWidgetState *aWidgetState)
+static inline PRUint16
+GetWidgetStateKey(PRUint8 aWidgetType, GtkWidgetState *aWidgetState)
 {
   return (aWidgetState->active |
           aWidgetState->focused << 1 |
@@ -109,19 +146,19 @@ GetWidgetStateKey(uint8_t aWidgetType, GtkWidgetState *aWidgetState)
           aWidgetType << 5);
 }
 
-static bool IsWidgetStateSafe(uint8_t* aSafeVector,
-                                uint8_t aWidgetType,
+static bool IsWidgetStateSafe(PRUint8* aSafeVector,
+                                PRUint8 aWidgetType,
                                 GtkWidgetState *aWidgetState)
 {
-  uint8_t key = GetWidgetStateKey(aWidgetType, aWidgetState);
+  PRUint8 key = GetWidgetStateKey(aWidgetType, aWidgetState);
   return (aSafeVector[key >> 3] & (1 << (key & 7))) != 0;
 }
 
-static void SetWidgetStateSafe(uint8_t *aSafeVector,
-                               uint8_t aWidgetType,
+static void SetWidgetStateSafe(PRUint8 *aSafeVector,
+                               PRUint8 aWidgetType,
                                GtkWidgetState *aWidgetState)
 {
-  uint8_t key = GetWidgetStateKey(aWidgetType, aWidgetState);
+  PRUint8 key = GetWidgetStateKey(aWidgetType, aWidgetState);
   aSafeVector[key >> 3] |= (1 << (key & 7));
 }
 
@@ -154,7 +191,7 @@ nsNativeThemeGTK::GetTabMarginPixels(nsIFrame* aFrame)
 }
 
 bool
-nsNativeThemeGTK::GetGtkWidgetAndState(uint8_t aWidgetType, nsIFrame* aFrame,
+nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
                                        GtkThemeWidgetType& aGtkWidgetType,
                                        GtkWidgetState* aState,
                                        gint* aWidgetFlags)
@@ -173,7 +210,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(uint8_t aWidgetType, nsIFrame* aFrame,
                      aWidgetType == NS_THEME_CHECKBOX_LABEL ||
                      aWidgetType == NS_THEME_RADIO_LABEL)) {
 
-        nsIAtom* atom = nullptr;
+        nsIAtom* atom = nsnull;
         if (IsFrameContentNodeInNamespace(aFrame, kNameSpaceID_XUL)) {
           if (aWidgetType == NS_THEME_CHECKBOX_LABEL ||
               aWidgetType == NS_THEME_RADIO_LABEL) {
@@ -260,8 +297,8 @@ nsNativeThemeGTK::GetGtkWidgetAndState(uint8_t aWidgetType, nsIFrame* aFrame,
             aWidgetType == NS_THEME_SCROLLBAR_BUTTON_RIGHT) {
           
           
-          int32_t curpos = CheckIntAttr(aFrame, nsGkAtoms::curpos, 0);
-          int32_t maxpos = CheckIntAttr(aFrame, nsGkAtoms::maxpos, 100);
+          PRInt32 curpos = CheckIntAttr(aFrame, nsGkAtoms::curpos, 0);
+          PRInt32 maxpos = CheckIntAttr(aFrame, nsGkAtoms::maxpos, 100);
           if ((curpos == 0 && (aWidgetType == NS_THEME_SCROLLBAR_BUTTON_UP ||
                 aWidgetType == NS_THEME_SCROLLBAR_BUTTON_LEFT)) ||
               (curpos == maxpos &&
@@ -619,19 +656,20 @@ public:
     : mState(aState), mGTKWidgetType(aGTKWidgetType), mFlags(aFlags),
       mDirection(aDirection), mGDKRect(aGDKRect), mGDKClip(aGDKClip) {}
   nsresult DrawWithGDK(GdkDrawable * drawable, gint offsetX, gint offsetY,
-                       GdkRectangle * clipRects, uint32_t numClipRects);
+                       GdkRectangle * clipRects, PRUint32 numClipRects);
 private:
   GtkWidgetState mState;
   GtkThemeWidgetType mGTKWidgetType;
   gint mFlags;
   GtkTextDirection mDirection;
+  GdkWindow* mWindow;
   const GdkRectangle& mGDKRect;
   const GdkRectangle& mGDKClip;
 };
 
 nsresult
 ThemeRenderer::DrawWithGDK(GdkDrawable * drawable, gint offsetX, 
-        gint offsetY, GdkRectangle * clipRects, uint32_t numClipRects)
+        gint offsetY, GdkRectangle * clipRects, PRUint32 numClipRects)
 {
   GdkRectangle gdk_rect = mGDKRect;
   gdk_rect.x += offsetX;
@@ -655,7 +693,7 @@ ThemeRenderer::DrawWithGDK(GdkDrawable * drawable, gint offsetX,
 }
 
 bool
-nsNativeThemeGTK::GetExtraSizeForWidget(nsIFrame* aFrame, uint8_t aWidgetType,
+nsNativeThemeGTK::GetExtraSizeForWidget(nsIFrame* aFrame, PRUint8 aWidgetType,
                                         nsIntMargin* aExtra)
 {
   *aExtra = nsIntMargin(0,0,0,0);
@@ -709,7 +747,7 @@ nsNativeThemeGTK::GetExtraSizeForWidget(nsIFrame* aFrame, uint8_t aWidgetType,
 
       gint gap_height = moz_gtk_get_tab_thickness();
 
-      int32_t extra = gap_height - GetTabMarginPixels(aFrame);
+      PRInt32 extra = gap_height - GetTabMarginPixels(aFrame);
       if (extra <= 0)
         return false;
 
@@ -727,7 +765,7 @@ nsNativeThemeGTK::GetExtraSizeForWidget(nsIFrame* aFrame, uint8_t aWidgetType,
 NS_IMETHODIMP
 nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
                                        nsIFrame* aFrame,
-                                       uint8_t aWidgetType,
+                                       PRUint8 aWidgetType,
                                        const nsRect& aRect,
                                        const nsRect& aDirtyRect)
 {
@@ -771,10 +809,10 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
   }
 
   
-  nsIntRect drawingRect(int32_t(dirtyRect.X()),
-                        int32_t(dirtyRect.Y()),
-                        int32_t(dirtyRect.Width()),
-                        int32_t(dirtyRect.Height()));
+  nsIntRect drawingRect(PRInt32(dirtyRect.X()),
+                        PRInt32(dirtyRect.Y()),
+                        PRInt32(dirtyRect.Width()),
+                        PRInt32(dirtyRect.Height()));
   if (widgetRect.IsEmpty()
       || !drawingRect.IntersectRect(overflowRect, drawingRect))
     return NS_OK;
@@ -794,7 +832,7 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
   
   
   
-  uint32_t rendererFlags = 0;
+  PRUint32 rendererFlags = 0;
   if (GetWidgetTransparency(aFrame, aWidgetType) == eOpaque) {
     rendererFlags |= gfxGdkNativeRenderer::DRAW_IS_OPAQUE;
   }
@@ -856,7 +894,7 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
 
 NS_IMETHODIMP
 nsNativeThemeGTK::GetWidgetBorder(nsDeviceContext* aContext, nsIFrame* aFrame,
-                                  uint8_t aWidgetType, nsIntMargin* aResult)
+                                  PRUint8 aWidgetType, nsIntMargin* aResult)
 {
   GtkTextDirection direction = GetTextDirection(aFrame);
   aResult->top = aResult->left = aResult->right = aResult->bottom = 0;
@@ -903,8 +941,8 @@ nsNativeThemeGTK::GetWidgetBorder(nsDeviceContext* aContext, nsIFrame* aFrame,
   default:
     {
       GtkThemeWidgetType gtkWidgetType;
-      if (GetGtkWidgetAndState(aWidgetType, aFrame, gtkWidgetType, nullptr,
-                               nullptr)) {
+      if (GetGtkWidgetAndState(aWidgetType, aFrame, gtkWidgetType, nsnull,
+                               nsnull)) {
         moz_gtk_get_widget_border(gtkWidgetType, &aResult->left, &aResult->top,
                                   &aResult->right, &aResult->bottom, direction,
                                   IsFrameContentNodeInNamespace(aFrame, kNameSpaceID_XHTML));
@@ -916,7 +954,7 @@ nsNativeThemeGTK::GetWidgetBorder(nsDeviceContext* aContext, nsIFrame* aFrame,
 
 bool
 nsNativeThemeGTK::GetWidgetPadding(nsDeviceContext* aContext,
-                                   nsIFrame* aFrame, uint8_t aWidgetType,
+                                   nsIFrame* aFrame, PRUint8 aWidgetType,
                                    nsIntMargin* aResult)
 {
   switch (aWidgetType) {
@@ -948,8 +986,8 @@ nsNativeThemeGTK::GetWidgetPadding(nsDeviceContext* aContext,
 
         aResult->SizeTo(0, 0, 0, 0);
         GtkThemeWidgetType gtkWidgetType;
-        if (GetGtkWidgetAndState(aWidgetType, aFrame, gtkWidgetType, nullptr,
-                                 nullptr)) {
+        if (GetGtkWidgetAndState(aWidgetType, aFrame, gtkWidgetType, nsnull,
+                                 nsnull)) {
           moz_gtk_get_widget_border(gtkWidgetType, &aResult->left, &aResult->top,
                                     &aResult->right, &aResult->bottom, GetTextDirection(aFrame),
                                     IsFrameContentNodeInNamespace(aFrame, kNameSpaceID_XHTML));
@@ -974,11 +1012,11 @@ nsNativeThemeGTK::GetWidgetPadding(nsDeviceContext* aContext,
 
 bool
 nsNativeThemeGTK::GetWidgetOverflow(nsDeviceContext* aContext,
-                                    nsIFrame* aFrame, uint8_t aWidgetType,
+                                    nsIFrame* aFrame, PRUint8 aWidgetType,
                                     nsRect* aOverflowRect)
 {
   nsMargin m;
-  int32_t p2a;
+  PRInt32 p2a;
   nsIntMargin extraSize;
   if (!GetExtraSizeForWidget(aFrame, aWidgetType, &extraSize))
     return false;
@@ -995,7 +1033,7 @@ nsNativeThemeGTK::GetWidgetOverflow(nsDeviceContext* aContext,
 
 NS_IMETHODIMP
 nsNativeThemeGTK::GetMinimumWidgetSize(nsRenderingContext* aContext,
-                                       nsIFrame* aFrame, uint8_t aWidgetType,
+                                       nsIFrame* aFrame, PRUint8 aWidgetType,
                                        nsIntSize* aResult, bool* aIsOverridable)
 {
   aResult->width = aResult->height = 0;
@@ -1065,7 +1103,7 @@ nsNativeThemeGTK::GetMinimumWidgetSize(nsRenderingContext* aContext,
         moz_gtk_get_scrollbar_metrics(&metrics);
 
         nsRect rect = aFrame->GetParent()->GetRect();
-        int32_t p2a = aFrame->PresContext()->DeviceContext()->
+        PRInt32 p2a = aFrame->PresContext()->DeviceContext()->
                         AppUnitsPerDevPixel();
         nsMargin margin;
 
@@ -1217,7 +1255,7 @@ nsNativeThemeGTK::GetMinimumWidgetSize(nsRenderingContext* aContext,
 }
 
 NS_IMETHODIMP
-nsNativeThemeGTK::WidgetStateChanged(nsIFrame* aFrame, uint8_t aWidgetType, 
+nsNativeThemeGTK::WidgetStateChanged(nsIFrame* aFrame, PRUint8 aWidgetType, 
                                      nsIAtom* aAttribute, bool* aShouldRepaint)
 {
   
@@ -1279,6 +1317,8 @@ nsNativeThemeGTK::WidgetStateChanged(nsIFrame* aFrame, uint8_t aWidgetType,
 NS_IMETHODIMP
 nsNativeThemeGTK::ThemeChanged()
 {
+  nsDeviceContext::ClearCachedSystemFonts();
+
   memset(mDisabledWidgetTypes, 0, sizeof(mDisabledWidgetTypes));
   return NS_OK;
 }
@@ -1286,7 +1326,7 @@ nsNativeThemeGTK::ThemeChanged()
 NS_IMETHODIMP_(bool)
 nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
                                       nsIFrame* aFrame,
-                                      uint8_t aWidgetType)
+                                      PRUint8 aWidgetType)
 {
   if (IsWidgetTypeDisabled(mDisabledWidgetTypes, aWidgetType))
     return false;
@@ -1386,7 +1426,7 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
 }
 
 NS_IMETHODIMP_(bool)
-nsNativeThemeGTK::WidgetIsContainer(uint8_t aWidgetType)
+nsNativeThemeGTK::WidgetIsContainer(PRUint8 aWidgetType)
 {
   
   if (aWidgetType == NS_THEME_DROPDOWN_BUTTON ||
@@ -1403,7 +1443,7 @@ nsNativeThemeGTK::WidgetIsContainer(uint8_t aWidgetType)
 }
 
 bool
-nsNativeThemeGTK::ThemeDrawsFocusForWidget(nsPresContext* aPresContext, nsIFrame* aFrame, uint8_t aWidgetType)
+nsNativeThemeGTK::ThemeDrawsFocusForWidget(nsPresContext* aPresContext, nsIFrame* aFrame, PRUint8 aWidgetType)
 {
    if (aWidgetType == NS_THEME_DROPDOWN ||
       aWidgetType == NS_THEME_BUTTON || 
@@ -1420,7 +1460,7 @@ nsNativeThemeGTK::ThemeNeedsComboboxDropmarker()
 }
 
 nsITheme::Transparency
-nsNativeThemeGTK::GetWidgetTransparency(nsIFrame* aFrame, uint8_t aWidgetType)
+nsNativeThemeGTK::GetWidgetTransparency(nsIFrame* aFrame, PRUint8 aWidgetType)
 {
   switch (aWidgetType) {
   

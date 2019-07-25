@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsToolkit_h__
 #define nsToolkit_h__
 
@@ -11,6 +44,8 @@
 #include "nsITimer.h"
 #include "nsCOMPtr.h"
 #include <windows.h>
+#include <shobjidl.h>
+#include <imm.h>
 
 
 #ifndef GET_X_LPARAM
@@ -78,12 +113,18 @@ public:
     static void Startup(HMODULE hModule);
     static void Shutdown();
     static void StartAllowingD3D9();
+    static bool VistaCreateItemFromParsingNameInit();
+
+    typedef HRESULT (WINAPI * SHCreateItemFromParsingNamePtr)(PCWSTR pszPath, IBindCtx *pbc, REFIID riid, void **ppv);
+    static SHCreateItemFromParsingNamePtr createItemFromParsingName;
 
 protected:
     static nsToolkit* gToolkit;
 
     nsCOMPtr<nsITimer> mD3D9Timer;
     MouseTrailer mMouseTrailer;
+    static const PRUnichar kSehllLibraryName[];
+    static HMODULE sShellDll;
 };
 
 #endif  

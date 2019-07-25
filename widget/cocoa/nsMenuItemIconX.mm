@@ -1,7 +1,41 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is support for icons in native menu items on Mac OS X.
+ *
+ * The Initial Developer of the Original Code is Google Inc.
+ * Portions created by the Initial Developer are Copyright (C) 2006
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *  Mark Mentovai <mark@moxienet.com> (Original Author)
+ *  Josh Aas <josh@mozilla.com>
+ *  Benjamin Frisch <bfrisch@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 /*
  * Retrieves and displays icons in native menu items on Mac OS X.
@@ -29,16 +63,15 @@
 #include "gfxImageSurface.h"
 #include "imgIContainer.h"
 #include "nsCocoaUtils.h"
-#include "nsContentUtils.h"
 
-static const uint32_t kIconWidth = 16;
-static const uint32_t kIconHeight = 16;
-static const uint32_t kIconBitsPerComponent = 8;
-static const uint32_t kIconComponents = 4;
-static const uint32_t kIconBitsPerPixel = kIconBitsPerComponent *
+static const PRUint32 kIconWidth = 16;
+static const PRUint32 kIconHeight = 16;
+static const PRUint32 kIconBitsPerComponent = 8;
+static const PRUint32 kIconComponents = 4;
+static const PRUint32 kIconBitsPerPixel = kIconBitsPerComponent *
                                           kIconComponents;
-static const uint32_t kIconBytesPerRow = kIconWidth * kIconBitsPerPixel / 8;
-static const uint32_t kIconBytes = kIconBytesPerRow * kIconHeight;
+static const PRUint32 kIconBytesPerRow = kIconWidth * kIconBitsPerPixel / 8;
+static const PRUint32 kIconBytes = kIconBytesPerRow * kIconHeight;
 
 typedef NS_STDCALL_FUNCPROTO(nsresult, GetRectSideMethod, nsIDOMRect,
                              GetBottom, (nsIDOMCSSPrimitiveValue**));
@@ -70,9 +103,9 @@ void nsMenuItemIconX::Destroy()
 {
   if (mIconRequest) {
     mIconRequest->CancelAndForgetObserver(NS_BINDING_ABORTED);
-    mIconRequest = nullptr;
+    mIconRequest = nsnull;
   }
-  mMenuObject = nullptr;
+  mMenuObject = nsnull;
   mNativeMenuItem = nil;
 }
 
@@ -109,7 +142,7 @@ nsMenuItemIconX::SetupIcon()
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
-static int32_t
+static PRInt32
 GetDOMRectSide(nsIDOMRect* aRect, GetRectSideMethod aMethod)
 {
   nsCOMPtr<nsIDOMCSSPrimitiveValue> dimensionValue;
@@ -117,7 +150,7 @@ GetDOMRectSide(nsIDOMRect* aRect, GetRectSideMethod aMethod)
   if (!dimensionValue)
     return -1;
 
-  uint16_t primitiveType;
+  PRUint16 primitiveType;
   nsresult rv = dimensionValue->GetPrimitiveType(&primitiveType);
   if (NS_FAILED(rv) || primitiveType != nsIDOMCSSPrimitiveValue::CSS_PX)
     return -1;
@@ -162,7 +195,7 @@ nsMenuItemIconX::GetIconURI(nsIURI** aIconURI)
   nsCOMPtr<nsIDOMCSSValue> cssValue;
   nsCOMPtr<nsIDOMCSSStyleDeclaration> cssStyleDecl;
   nsCOMPtr<nsIDOMCSSPrimitiveValue> primitiveValue;
-  uint16_t primitiveType;
+  PRUint16 primitiveType;
   if (!hasImageAttr) {
     // If the content node has no "image" attribute, get the
     // "list-style-image" property from CSS.
@@ -244,10 +277,10 @@ nsMenuItemIconX::GetIconURI(nsIURI** aIconURI)
     if (imageRegionRect) {
       // Return NS_ERROR_FAILURE if the image region is invalid so the image
       // is not drawn, and behavior is similar to XUL menus.
-      int32_t bottom = GetDOMRectSide(imageRegionRect, &nsIDOMRect::GetBottom);
-      int32_t right = GetDOMRectSide(imageRegionRect, &nsIDOMRect::GetRight);
-      int32_t top = GetDOMRectSide(imageRegionRect, &nsIDOMRect::GetTop);
-      int32_t left = GetDOMRectSide(imageRegionRect, &nsIDOMRect::GetLeft);
+      PRInt32 bottom = GetDOMRectSide(imageRegionRect, &nsIDOMRect::GetBottom);
+      PRInt32 right = GetDOMRectSide(imageRegionRect, &nsIDOMRect::GetRight);
+      PRInt32 top = GetDOMRectSide(imageRegionRect, &nsIDOMRect::GetTop);
+      PRInt32 left = GetDOMRectSide(imageRegionRect, &nsIDOMRect::GetLeft);
 
       if (top < 0 || left < 0 || bottom <= top || right <= left)
         return NS_ERROR_FAILURE;
@@ -267,7 +300,7 @@ nsMenuItemIconX::LoadIcon(nsIURI* aIconURI)
   if (mIconRequest) {
     // Another icon request is already in flight.  Kill it.
     mIconRequest->Cancel(NS_BINDING_ABORTED);
-    mIconRequest = nullptr;
+    mIconRequest = nsnull;
   }
 
   mLoadedIcon = false;
@@ -279,8 +312,10 @@ nsMenuItemIconX::LoadIcon(nsIURI* aIconURI)
   nsCOMPtr<nsILoadGroup> loadGroup = document->GetDocumentLoadGroup();
   if (!loadGroup) return NS_ERROR_FAILURE;
 
-  nsCOMPtr<imgILoader> loader = nsContentUtils::GetImgLoaderForDocument(document);
-  if (!loader) return NS_ERROR_FAILURE;
+  nsresult rv = NS_ERROR_FAILURE;
+  nsCOMPtr<imgILoader> loader = do_GetService("@mozilla.org/image/loader;1",
+                                              &rv);
+  if (NS_FAILED(rv)) return rv;
 
   if (!mSetIcon) {
     // Set a completely transparent 16x16 image as the icon on this menu item
@@ -305,9 +340,9 @@ nsMenuItemIconX::LoadIcon(nsIURI* aIconURI)
 
   // Passing in null for channelPolicy here since nsMenuItemIconX::LoadIcon is
   // not exposed to web content
-  nsresult rv = loader->LoadImage(aIconURI, nullptr, nullptr, nullptr, loadGroup, this,
-                                   nullptr, nsIRequest::LOAD_NORMAL, nullptr, nullptr,
-                                   nullptr, getter_AddRefs(mIconRequest));
+  rv = loader->LoadImage(aIconURI, nsnull, nsnull, nsnull, loadGroup, this,
+                         nsnull, nsIRequest::LOAD_NORMAL, nsnull, nsnull,
+                         nsnull, getter_AddRefs(mIconRequest));
   if (NS_FAILED(rv)) return rv;
 
   // We need to request the icon be decoded (bug 573583, bug 705516).
@@ -323,8 +358,7 @@ nsMenuItemIconX::LoadIcon(nsIURI* aIconURI)
 //
 
 NS_IMETHODIMP
-nsMenuItemIconX::FrameChanged(imgIRequest* aRequest,
-                              imgIContainer*   aContainer,
+nsMenuItemIconX::FrameChanged(imgIContainer*   aContainer,
                               const nsIntRect* aDirtyRect)
 {
   return NS_OK;
@@ -354,7 +388,7 @@ nsMenuItemIconX::OnStartContainer(imgIRequest*   aRequest,
 }
 
 NS_IMETHODIMP
-nsMenuItemIconX::OnStartFrame(imgIRequest* aRequest, uint32_t aFrame)
+nsMenuItemIconX::OnStartFrame(imgIRequest* aRequest, PRUint32 aFrame)
 {
   return NS_OK;
 }
@@ -369,7 +403,7 @@ nsMenuItemIconX::OnDataAvailable(imgIRequest*     aRequest,
 
 NS_IMETHODIMP
 nsMenuItemIconX::OnStopFrame(imgIRequest*    aRequest,
-                             uint32_t        aFrame)
+                             PRUint32        aFrame)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -390,7 +424,7 @@ nsMenuItemIconX::OnStopFrame(imgIRequest*    aRequest,
     return NS_ERROR_FAILURE;
   }
 
-  int32_t origWidth = 0, origHeight = 0;
+  PRInt32 origWidth = 0, origHeight = 0;
   imageContainer->GetWidth(&origWidth);
   imageContainer->GetHeight(&origHeight);
   
@@ -444,7 +478,7 @@ nsMenuItemIconX::OnStopFrame(imgIRequest*    aRequest,
   }
   // The image may not be the right size for a menu icon (16x16).
   // Create a new CGImage for the menu item.
-  uint8_t* bitmap = (uint8_t*)malloc(kIconBytes);
+  PRUint8* bitmap = (PRUint8*)malloc(kIconBytes);
 
   CGColorSpaceRef colorSpace = ::CGColorSpaceCreateDeviceRGB();
 
@@ -514,7 +548,7 @@ nsMenuItemIconX::OnStopRequest(imgIRequest* aRequest,
 {
   if (mIconRequest && mIconRequest == aRequest) {
     mIconRequest->Cancel(NS_BINDING_ABORTED);
-    mIconRequest = nullptr;
+    mIconRequest = nsnull;
   }
   return NS_OK;
 }

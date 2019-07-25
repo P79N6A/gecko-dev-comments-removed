@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
+
 #include "JumpListItem.h"
 
 #include <shellapi.h>
@@ -10,6 +46,7 @@
 #include <propkey.h>
 
 #include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsNetUtil.h"
 #include "nsCRT.h"
 #include "nsNetCID.h"
@@ -18,10 +55,12 @@
 #include "mozIAsyncFavicons.h"
 #include "mozilla/Preferences.h"
 #include "JumpListBuilder.h"
-#include "WinUtils.h"
+#include "nsToolkit.h"
 
 namespace mozilla {
 namespace widget {
+
+const char JumpListItem::kJumpListCacheDir[] = "jumpListCache";
 
 
 NS_IMPL_ISUPPORTS1(JumpListItem,
@@ -53,7 +92,7 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(JumpListShortcut)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(JumpListShortcut)
 
 
-NS_IMETHODIMP JumpListItem::GetType(int16_t *aType)
+NS_IMETHODIMP JumpListItem::GetType(PRInt16 *aType)
 {
   NS_ENSURE_ARG_POINTER(aType);
 
@@ -69,7 +108,7 @@ NS_IMETHODIMP JumpListItem::Equals(nsIJumpListItem *aItem, bool *aResult)
 
   *aResult = false;
 
-  int16_t theType = nsIJumpListItem::JUMPLIST_ITEM_EMPTY;
+  PRInt16 theType = nsIJumpListItem::JUMPLIST_ITEM_EMPTY;
   if (NS_FAILED(aItem->GetType(&theType)))
     return NS_OK;
 
@@ -120,7 +159,7 @@ NS_IMETHODIMP JumpListLink::GetUriHash(nsACString& aUriHash)
   if (!mURI)
     return NS_ERROR_NOT_AVAILABLE;
 
-  return mozilla::widget::FaviconHelper::HashURI(mCryptoHash, mURI, aUriHash);
+  return JumpListItem::HashURI(mCryptoHash, mURI, aUriHash);
 }
 
 
@@ -135,11 +174,11 @@ NS_IMETHODIMP JumpListLink::CompareHash(nsIURI *aUri, bool *aResult)
 
   NS_ENSURE_ARG_POINTER(aUri);
 
-  nsAutoCString hash1, hash2;
+  nsCAutoString hash1, hash2;
 
-  rv = mozilla::widget::FaviconHelper::HashURI(mCryptoHash, mURI, hash1);
+  rv = JumpListItem::HashURI(mCryptoHash, mURI, hash1);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = mozilla::widget::FaviconHelper::HashURI(mCryptoHash, aUri, hash2);
+  rv = JumpListItem::HashURI(mCryptoHash, aUri, hash2);
   NS_ENSURE_SUCCESS(rv, rv);
 
   *aResult = hash1.Equals(hash2);
@@ -156,7 +195,7 @@ NS_IMETHODIMP JumpListLink::Equals(nsIJumpListItem *aItem, bool *aResult)
 
   *aResult = false;
 
-  int16_t theType = nsIJumpListItem::JUMPLIST_ITEM_EMPTY;
+  PRInt16 theType = nsIJumpListItem::JUMPLIST_ITEM_EMPTY;
   if (NS_FAILED(aItem->GetType(&theType)))
     return NS_OK;
 
@@ -213,7 +252,7 @@ NS_IMETHODIMP JumpListShortcut::SetApp(nsILocalHandlerApp *aApp)
 }
 
 
-NS_IMETHODIMP JumpListShortcut::GetIconIndex(int32_t *aIconIndex)
+NS_IMETHODIMP JumpListShortcut::GetIconIndex(PRInt32 *aIconIndex)
 {
   NS_ENSURE_ARG_POINTER(aIconIndex);
 
@@ -221,7 +260,7 @@ NS_IMETHODIMP JumpListShortcut::GetIconIndex(int32_t *aIconIndex)
   return NS_OK;
 }
 
-NS_IMETHODIMP JumpListShortcut::SetIconIndex(int32_t aIconIndex)
+NS_IMETHODIMP JumpListShortcut::SetIconIndex(PRInt32 aIconIndex)
 {
   mIconIndex = aIconIndex;
   return NS_OK;
@@ -250,7 +289,7 @@ NS_IMETHODIMP JumpListShortcut::Equals(nsIJumpListItem *aItem, bool *aResult)
 
   *aResult = false;
 
-  int16_t theType = nsIJumpListItem::JUMPLIST_ITEM_EMPTY;
+  PRInt16 theType = nsIJumpListItem::JUMPLIST_ITEM_EMPTY;
   if (NS_FAILED(aItem->GetType(&theType)))
     return NS_OK;
 
@@ -300,7 +339,7 @@ nsresult JumpListSeparator::GetSeparator(nsRefPtr<IShellLinkW>& aShellLink)
   if (FAILED(hr))
     return NS_ERROR_UNEXPECTED;
 
-  IPropertyStore* pPropStore = nullptr;
+  IPropertyStore* pPropStore = nsnull;
   hr = psl->QueryInterface(IID_IPropertyStore, (LPVOID*)&pPropStore);
   if (FAILED(hr))
     return NS_ERROR_UNEXPECTED;
@@ -320,6 +359,135 @@ nsresult JumpListSeparator::GetSeparator(nsRefPtr<IShellLinkW>& aShellLink)
 }
 
 
+static PRInt32 GetICOCacheSecondsTimeout() {
+
+  
+  
+  
+  
+  
+  const PRInt32 kSecondsPerDay = 86400;
+  static bool alreadyObtained = false;
+  static PRInt32 icoReCacheSecondsTimeout = kSecondsPerDay;
+  if (alreadyObtained) {
+    return icoReCacheSecondsTimeout;
+  }
+
+  
+  const char PREF_ICOTIMEOUT[]  = "browser.taskbar.lists.icoTimeoutInSeconds";
+  icoReCacheSecondsTimeout = Preferences::GetInt(PREF_ICOTIMEOUT, 
+                                                 kSecondsPerDay);
+  alreadyObtained = true;
+  return icoReCacheSecondsTimeout;
+}
+
+
+
+
+
+nsresult JumpListShortcut::ObtainCachedIconFile(nsCOMPtr<nsIURI> aFaviconPageURI,
+                                                nsString &aICOFilePath,
+                                                nsCOMPtr<nsIThread> &aIOThread)
+{
+  
+  nsCOMPtr<nsIFile> icoFile;
+  nsresult rv = GetOutputIconPath(aFaviconPageURI, icoFile);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  bool exists;
+  rv = icoFile->Exists(&exists);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (exists) {
+
+    
+    PRInt64 fileModTime = LL_ZERO;
+    rv = icoFile->GetLastModifiedTime(&fileModTime);
+    fileModTime /= PR_MSEC_PER_SEC;
+    PRInt32 icoReCacheSecondsTimeout = GetICOCacheSecondsTimeout();
+    PRInt64 nowTime = PR_Now() / PRInt64(PR_USEC_PER_SEC);
+
+    
+    
+    
+    if (NS_FAILED(rv) ||
+        (nowTime - fileModTime) > icoReCacheSecondsTimeout) {
+      CacheIconFileFromFaviconURIAsync(aFaviconPageURI, icoFile, aIOThread);
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+  } else {
+
+    
+    
+    CacheIconFileFromFaviconURIAsync(aFaviconPageURI, icoFile, aIOThread);
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  
+  rv = icoFile->GetPath(aICOFilePath);
+  return rv;
+}
+
+
+
+
+nsresult JumpListShortcut::GetOutputIconPath(nsCOMPtr<nsIURI> aFaviconPageURI,
+                                             nsCOMPtr<nsIFile> &aICOFile) 
+{
+  
+  nsCAutoString inputURIHash;
+  nsCOMPtr<nsICryptoHash> cryptoHash;
+  nsresult rv = JumpListItem::HashURI(cryptoHash, aFaviconPageURI,
+                                      inputURIHash);
+  NS_ENSURE_SUCCESS(rv, rv);
+  char* cur = inputURIHash.BeginWriting();
+  char* end = inputURIHash.EndWriting();
+  for (; cur < end; ++cur) {
+    if ('/' == *cur) {
+      *cur = '_';
+    }
+  }
+
+  
+  rv = NS_GetSpecialDirectory("ProfLDS", getter_AddRefs(aICOFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = aICOFile->AppendNative(nsDependentCString(JumpListItem::kJumpListCacheDir));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = aICOFile->Create(nsIFile::DIRECTORY_TYPE, 0777);
+  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS) {
+    return rv;
+  }
+  
+  
+  inputURIHash.Append(".ico");
+  rv = aICOFile->AppendNative(inputURIHash);
+
+  return rv;
+}
+
+
+
+nsresult 
+JumpListShortcut::CacheIconFileFromFaviconURIAsync(nsCOMPtr<nsIURI> aFaviconPageURI,
+                                                   nsCOMPtr<nsIFile> aICOFile,
+                                                   nsCOMPtr<nsIThread> &aIOThread)
+{
+  
+  nsCOMPtr<mozIAsyncFavicons> favIconSvc(
+                      do_GetService("@mozilla.org/browser/favicon-service;1"));
+  NS_ENSURE_TRUE(favIconSvc, NS_ERROR_FAILURE);
+
+  nsCOMPtr<nsIFaviconDataCallback> callback = 
+    new AsyncFaviconDataReady(aFaviconPageURI, aIOThread);
+
+  favIconSvc->GetFaviconDataForPage(aFaviconPageURI, callback);
+  return NS_OK;
+}
+
+
 nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item, 
                                         nsRefPtr<IShellLinkW>& aShellLink,
                                         nsCOMPtr<nsIThread> &aIOThread)
@@ -332,7 +500,7 @@ nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item,
   
   
 
-  int16_t type;
+  PRInt16 type;
   if (NS_FAILED(item->GetType(&type)))
     return NS_ERROR_INVALID_ARG;
 
@@ -354,19 +522,21 @@ nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item,
 
   
   nsAutoString appPath, appTitle, appDescription, appArgs;
-  int32_t appIconIndex = 0;
+  PRInt32 appIconIndex = 0;
 
   
   nsCOMPtr<nsIFile> executable;
   handlerApp->GetExecutable(getter_AddRefs(executable));
+  nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(executable, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = executable->GetPath(appPath);
+  rv = localFile->GetPath(appPath);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  uint32_t count = 0;
+  PRUint32 count = 0;
   handlerApp->GetParameterCount(&count);
-  for (uint32_t idx = 0; idx < count; idx++) {
+  for (PRUint32 idx = 0; idx < count; idx++) {
     if (idx > 0)
       appArgs.Append(NS_LITERAL_STRING(" "));
     nsAutoString param;
@@ -391,7 +561,7 @@ nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item,
 
   
   if (appTitle.Length() > 0) {
-    IPropertyStore* pPropStore = nullptr;
+    IPropertyStore* pPropStore = nsnull;
     hr = psl->QueryInterface(IID_IPropertyStore, (LPVOID*)&pPropStore);
     if (FAILED(hr))
       return NS_ERROR_UNEXPECTED;
@@ -413,10 +583,7 @@ nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item,
 
   if (useUriIcon) {
     nsString icoFilePath;
-    rv = mozilla::widget::FaviconHelper::ObtainCachedIconFile(iconUri, 
-                                                              icoFilePath, 
-                                                              aIOThread,
-                                                              false);
+    rv = ObtainCachedIconFile(iconUri, icoFilePath, aIOThread);
     if (NS_SUCCEEDED(rv)) {
       
       
@@ -449,14 +616,14 @@ static nsresult IsPathInOurIconCache(nsCOMPtr<nsIJumpListShortcut>& aShortcut,
   nsCOMPtr<nsIFile> jumpListCache;
   nsresult rv = NS_GetSpecialDirectory("ProfLDS", getter_AddRefs(jumpListCache));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = jumpListCache->AppendNative(nsDependentCString(FaviconHelper::kJumpListCacheDir));
+  rv = jumpListCache->AppendNative(nsDependentCString(JumpListItem::kJumpListCacheDir));
   NS_ENSURE_SUCCESS(rv, rv);
   nsAutoString jumpListCachePath;
   rv = jumpListCache->GetPath(jumpListCachePath);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsCOMPtr<nsIFile> passedInFile = do_CreateInstance("@mozilla.org/file/local;1");
+  nsCOMPtr<nsILocalFile> passedInFile = do_CreateInstance("@mozilla.org/file/local;1");
   NS_ENSURE_TRUE(passedInFile, NS_ERROR_FAILURE);
   nsAutoString passedInPath(aPath);
   rv = passedInFile->InitWithPath(passedInPath);
@@ -489,7 +656,7 @@ nsresult JumpListShortcut::GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJ
   if (FAILED(hres))
     return NS_ERROR_INVALID_ARG;
 
-  nsCOMPtr<nsIFile> file;
+  nsCOMPtr<nsILocalFile> file;
   nsDependentString filepath(buf);
   rv = NS_NewLocalFile(filepath, false, getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -501,8 +668,8 @@ nsresult JumpListShortcut::GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJ
   hres = pLink->GetArguments((LPWSTR)&buf, MAX_PATH);
   if (SUCCEEDED(hres)) {
     LPWSTR *arglist;
-    int32_t numArgs;
-    int32_t idx;
+    PRInt32 numArgs;
+    PRInt32 idx;
 
     arglist = ::CommandLineToArgvW(buf, &numArgs);
     if(arglist) {
@@ -549,10 +716,10 @@ nsresult JumpListShortcut::GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJ
 
 nsresult JumpListLink::GetShellItem(nsCOMPtr<nsIJumpListItem>& item, nsRefPtr<IShellItem2>& aShellItem)
 {
-  IShellItem2 *psi = nullptr;
+  IShellItem2 *psi = nsnull;
   nsresult rv;
 
-  int16_t type; 
+  PRInt16 type; 
   if (NS_FAILED(item->GetType(&type)))
     return NS_ERROR_INVALID_ARG;
 
@@ -566,21 +733,24 @@ nsresult JumpListLink::GetShellItem(nsCOMPtr<nsIJumpListItem>& item, nsRefPtr<IS
   rv = link->GetUri(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoCString spec;
+  nsCAutoString spec;
   rv = uri->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (FAILED(WinUtils::SHCreateItemFromParsingName(
-               NS_ConvertASCIItoUTF16(spec).get(), NULL, IID_PPV_ARGS(&psi)))) {
+  if (!nsToolkit::VistaCreateItemFromParsingNameInit())
+    return NS_ERROR_UNEXPECTED;
+
+  
+  if (FAILED(nsToolkit::createItemFromParsingName(NS_ConvertASCIItoUTF16(spec).get(),
+             NULL, IID_PPV_ARGS(&psi))))
     return NS_ERROR_INVALID_ARG;
-  }
 
   
   nsAutoString linkTitle;
   link->GetUriTitle(linkTitle);
 
-  IPropertyStore* pPropStore = nullptr;
+  IPropertyStore* pPropStore = nsnull;
   HRESULT hres = psi->GetPropertyStore(GPS_DEFAULT, IID_IPropertyStore, (void**)&pPropStore);
   if (FAILED(hres))
     return NS_ERROR_UNEXPECTED;
@@ -644,6 +814,34 @@ bool JumpListShortcut::ExecutableExists(nsCOMPtr<nsILocalHandlerApp>& handlerApp
   return false;
 }
 
+
+nsresult JumpListItem::HashURI(nsCOMPtr<nsICryptoHash> &aCryptoHash, 
+                               nsIURI *aUri, nsACString& aUriHash)
+{
+  if (!aUri)
+    return NS_ERROR_INVALID_ARG;
+
+  nsCAutoString spec;
+  nsresult rv = aUri->GetSpec(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!aCryptoHash) {
+    aCryptoHash = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  rv = aCryptoHash->Init(nsICryptoHash::MD5);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = aCryptoHash->Update(reinterpret_cast<const PRUint8*>(spec.BeginReading()), 
+                                                            spec.Length());
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = aCryptoHash->Finish(true, aUriHash);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
 } 
 } 
 
+#endif 

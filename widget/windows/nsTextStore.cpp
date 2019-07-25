@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <olectl.h>
 
 #include "nscore.h"
@@ -28,7 +61,7 @@ nsTextStore*  nsTextStore::sTsfTextStore = NULL;
 UINT nsTextStore::sFlushTIPInputMessage  = 0;
 
 #ifdef PR_LOGGING
-PRLogModuleInfo* sTextStoreLog = nullptr;
+PRLogModuleInfo* sTextStoreLog = nsnull;
 #endif
 
 nsTextStore::nsTextStore()
@@ -36,21 +69,21 @@ nsTextStore::nsTextStore()
   mRefCnt = 1;
   mEditCookie = 0;
   mSinkMask = 0;
-  mWindow = nullptr;
+  mWindow = nsnull;
   mLock = 0;
   mLockQueued = 0;
   mTextChange.acpStart = PR_INT32_MAX;
   mTextChange.acpOldEnd = mTextChange.acpNewEnd = 0;
-  mLastDispatchedTextEvent = nullptr;
+  mLastDispatchedTextEvent = nsnull;
 }
 
 nsTextStore::~nsTextStore()
 {
   if (mCompositionTimer) {
     mCompositionTimer->Cancel();
-    mCompositionTimer = nullptr;
+    mCompositionTimer = nsnull;
   }
-  SaveTextEvent(nullptr);
+  SaveTextEvent(nsnull);
 }
 
 bool
@@ -297,10 +330,10 @@ GetRangeExtent(ITfRange* aRange, LONG* aStart, LONG* aLength)
   return rangeACP->GetExtent(aStart, aLength);
 }
 
-static uint32_t
+static PRUint32
 GetGeckoSelectionValue(TF_DISPLAYATTRIBUTE &aDisplayAttr)
 {
-  uint32_t result;
+  PRUint32 result;
   switch (aDisplayAttr.bAttr) {
     case TF_ATTR_TARGET_CONVERTED:
       result = NS_TEXTRANGE_SELECTEDCONVERTEDTEXT;
@@ -329,17 +362,17 @@ GetLogTextFor(const TF_DA_COLOR &aColor, nsACString &aText)
       break;
     case TF_CT_SYSCOLOR: {
       nsPrintfCString tmp("TF_CT_SYSCOLOR, nIndex:0x%08X",
-                          int32_t(aColor.nIndex));
+                          PRInt32(aColor.nIndex));
       aText += tmp;
       break;
     }
     case TF_CT_COLORREF: {
-      nsPrintfCString tmp("TF_CT_COLORREF, cr:0x%08X", int32_t(aColor.cr));
+      nsPrintfCString tmp("TF_CT_COLORREF, cr:0x%08X", PRInt32(aColor.cr));
       aText += tmp;
       break;
     }
     default: {
-      nsPrintfCString tmp("Unknown(%08X)", int32_t(aColor.type));
+      nsPrintfCString tmp("Unknown(%08X)", PRInt32(aColor.type));
       aText += tmp;
       break;
     }
@@ -366,7 +399,7 @@ GetLogTextFor(TF_DA_LINESTYLE aLineStyle, nsACString &aText)
       aText = "TF_LS_SQUIGGLE";
       break;
     default: {
-      nsPrintfCString tmp("Unknown(%08X)", int32_t(aLineStyle));
+      nsPrintfCString tmp("Unknown(%08X)", PRInt32(aLineStyle));
       aText = tmp;
       break;
     }
@@ -399,7 +432,7 @@ GetLogTextFor(TF_DA_ATTR_INFO aAttr, nsACString &aText)
       aText = "TF_ATTR_OTHER";
       break;
     default: {
-      nsPrintfCString tmp("Unknown(%08X)", int32_t(aAttr));
+      nsPrintfCString tmp("Unknown(%08X)", PRInt32(aAttr));
       aText = tmp;
       break;
     }
@@ -409,7 +442,7 @@ GetLogTextFor(TF_DA_ATTR_INFO aAttr, nsACString &aText)
 static nsCString
 GetLogTextFor(const TF_DISPLAYATTRIBUTE &aDispAttr)
 {
-  nsAutoCString str, tmp;
+  nsCAutoString str, tmp;
   str = "crText:{ ";
   GetLogTextFor(aDispAttr.crText, tmp);
   str += tmp;
@@ -506,17 +539,17 @@ nsTextStore::SaveTextEvent(const nsTextEvent* aEvent)
     if (mLastDispatchedTextEvent->rangeArray)
       delete [] mLastDispatchedTextEvent->rangeArray;
     delete mLastDispatchedTextEvent;
-    mLastDispatchedTextEvent = nullptr;
+    mLastDispatchedTextEvent = nsnull;
   }
   if (!aEvent)
     return S_OK;
 
-  mLastDispatchedTextEvent = new nsTextEvent(true, NS_TEXT_TEXT, nullptr);
+  mLastDispatchedTextEvent = new nsTextEvent(true, NS_TEXT_TEXT, nsnull);
   if (!mLastDispatchedTextEvent)
     return E_OUTOFMEMORY;
   mLastDispatchedTextEvent->rangeCount = aEvent->rangeCount;
   mLastDispatchedTextEvent->theText = aEvent->theText;
-  mLastDispatchedTextEvent->rangeArray = nullptr;
+  mLastDispatchedTextEvent->rangeArray = nsnull;
 
   if (aEvent->rangeCount == 0)
     return S_OK;
@@ -526,7 +559,7 @@ nsTextStore::SaveTextEvent(const nsTextEvent* aEvent)
   mLastDispatchedTextEvent->rangeArray = new nsTextRange[aEvent->rangeCount];
   if (!mLastDispatchedTextEvent->rangeArray) {
     delete mLastDispatchedTextEvent;
-    mLastDispatchedTextEvent = nullptr;
+    mLastDispatchedTextEvent = nsnull;
     return E_OUTOFMEMORY;
   }
   memcpy(mLastDispatchedTextEvent->rangeArray, aEvent->rangeArray,
@@ -611,7 +644,7 @@ GetColor(const TF_DA_COLOR &aTSFColor, nscolor &aResult)
 }
 
 static bool
-GetLineStyle(TF_DA_LINESTYLE aTSFLineStyle, uint8_t &aTextRangeLineStyle)
+GetLineStyle(TF_DA_LINESTYLE aTSFLineStyle, PRUint8 &aTextRangeLineStyle)
 {
   switch (aTSFLineStyle) {
     case TF_LS_NONE:
@@ -685,7 +718,7 @@ nsTextStore::SendTextEventForCompositionString()
       continue;
 
     nsTextRange newRange;
-    newRange.mStartOffset = uint32_t(start - mCompositionStart);
+    newRange.mStartOffset = PRUint32(start - mCompositionStart);
     
     
     newRange.mEndOffset = mCompositionString.Length();
@@ -755,7 +788,7 @@ nsTextStore::SendTextEventForCompositionString()
                               mCompositionSelection.acpEnd);
   caretPosition -= mCompositionStart;
   nsTextRange caretRange;
-  caretRange.mStartOffset = caretRange.mEndOffset = uint32_t(caretPosition);
+  caretRange.mStartOffset = caretRange.mEndOffset = PRUint32(caretPosition);
   caretRange.mRangeType = NS_TEXTRANGE_CARETPOSITION;
   textRanges.AppendElement(caretRange);
 
@@ -800,7 +833,7 @@ nsTextStore::SetSelectionInternal(const TS_SELECTION_ACP* pSelection,
           pSelection->acpStart, pSelection->acpEnd));
   if (mCompositionView) {
     if (aDispatchTextEvent) {
-      HRESULT hr = UpdateCompositionExtent(nullptr);
+      HRESULT hr = UpdateCompositionExtent(nsnull);
       NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
     }
     
@@ -815,7 +848,7 @@ nsTextStore::SetSelectionInternal(const TS_SELECTION_ACP* pSelection,
   } else {
     nsSelectionEvent event(true, NS_SELECTION_SET, mWindow);
     event.mOffset = pSelection->acpStart;
-    event.mLength = uint32_t(pSelection->acpEnd - pSelection->acpStart);
+    event.mLength = PRUint32(pSelection->acpEnd - pSelection->acpStart);
     event.mReversed = pSelection->style.ase == TS_AE_START;
     mWindow->InitEvent(event);
     mWindow->DispatchWindowEvent(&event);
@@ -863,7 +896,7 @@ nsTextStore::GetText(LONG acpStart,
     prgRunInfo->uCount = 0;
     prgRunInfo->type = TS_RT_PLAIN;
   }
-  uint32_t length = -1 == acpEnd ? PR_UINT32_MAX : uint32_t(acpEnd - acpStart);
+  PRUint32 length = -1 == acpEnd ? PR_UINT32_MAX : PRUint32(acpEnd - acpStart);
   if (cchPlainReq && cchPlainReq - 1 < length) {
     length = cchPlainReq - 1;
   }
@@ -883,13 +916,13 @@ nsTextStore::GetText(LONG acpStart,
       if (compOldEnd > compNewStart || compNewEnd > compNewStart) {
         NS_ASSERTION(compOldEnd >= mCompositionStart &&
             compNewEnd >= mCompositionStart, "Range end is less than start\n");
-        length = uint32_t(LONG(length) + compOldEnd - compNewEnd);
+        length = PRUint32(LONG(length) + compOldEnd - compNewEnd);
       }
     }
     
     nsQueryContentEvent event(true, NS_QUERY_TEXT_CONTENT, mWindow);
     mWindow->InitEvent(event);
-    event.InitForQueryTextContent(uint32_t(acpStart), length);
+    event.InitForQueryTextContent(PRUint32(acpStart), length);
     mWindow->DispatchWindowEvent(&event);
     NS_ENSURE_TRUE(event.mSucceeded, E_FAIL);
 
@@ -900,7 +933,7 @@ nsTextStore::GetText(LONG acpStart,
       event.mReply.mString.Replace(compNewStart - acpStart,
           compOldEnd - mCompositionStart, compStrStart,
           compNewEnd - mCompositionStart);
-      length = uint32_t(LONG(length) - compOldEnd + compNewEnd);
+      length = PRUint32(LONG(length) - compOldEnd + compNewEnd);
     }
     NS_ENSURE_TRUE(-1 == acpEnd || event.mReply.mString.Length() == length,
                    TS_E_INVALIDPOS);
@@ -1213,7 +1246,7 @@ nsTextStore::InsertTextAtSelection(DWORD dwFlags,
       
       
       
-      mCompositionString.Replace(uint32_t(sel.acpStart - mCompositionStart),
+      mCompositionString.Replace(PRUint32(sel.acpStart - mCompositionStart),
                                  sel.acpEnd - sel.acpStart, pchText, cch);
 
       mCompositionSelection.acpStart += cch;
@@ -1235,13 +1268,20 @@ nsTextStore::InsertTextAtSelection(DWORD dwFlags,
         if (mWindow && !mWindow->Destroyed()) {
           nsTextEvent event(true, NS_TEXT_TEXT, mWindow);
           mWindow->InitEvent(event);
-          event.theText.Assign(pchText, cch);
-          event.theText.ReplaceSubstring(NS_LITERAL_STRING("\r\n"),
-                                         NS_LITERAL_STRING("\n"));
-          mWindow->DispatchWindowEvent(&event);
+          if (!cch) {
+            
+            event.theText = NS_LITERAL_STRING(" ");
+            mWindow->DispatchWindowEvent(&event);
+          }
           if (mWindow && !mWindow->Destroyed()) {
-            compEvent.message = NS_COMPOSITION_END;
-            mWindow->DispatchWindowEvent(&compEvent);
+            event.theText.Assign(pchText, cch);
+            event.theText.ReplaceSubstring(NS_LITERAL_STRING("\r\n"),
+                                           NS_LITERAL_STRING("\n"));
+            mWindow->DispatchWindowEvent(&event);
+            if (mWindow && !mWindow->Destroyed()) {
+              compEvent.message = NS_COMPOSITION_END;
+              mWindow->DispatchWindowEvent(&compEvent);
+            }
           }
         }
       }
@@ -1289,8 +1329,8 @@ nsTextStore::OnStartCompositionInternal(ITfCompositionView* pComposition,
   
   nsSelectionEvent selEvent(true, NS_SELECTION_SET, mWindow);
   mWindow->InitEvent(selEvent);
-  selEvent.mOffset = uint32_t(mCompositionStart);
-  selEvent.mLength = uint32_t(mCompositionLength);
+  selEvent.mOffset = PRUint32(mCompositionStart);
+  selEvent.mLength = PRUint32(mCompositionLength);
   selEvent.mReversed = false;
   mWindow->DispatchWindowEvent(&selEvent);
   NS_ENSURE_TRUE(selEvent.mSucceeded, E_FAIL);
@@ -1313,16 +1353,16 @@ nsTextStore::OnStartCompositionInternal(ITfCompositionView* pComposition,
   return S_OK;
 }
 
-static uint32_t
+static PRUint32
 GetLayoutChangeIntervalTime()
 {
-  static int32_t sTime = -1;
+  static PRInt32 sTime = -1;
   if (sTime > 0)
-    return uint32_t(sTime);
+    return PRUint32(sTime);
 
   sTime = NS_MAX(10,
     Preferences::GetInt("intl.tsf.on_layout_change_interval", 100));
-  return uint32_t(sTime);
+  return PRUint32(sTime);
 }
 
 STDMETHODIMP
@@ -1379,11 +1419,11 @@ nsTextStore::OnEndComposition(ITfCompositionView* pComposition)
          ("TSF: OnEndComposition\n"));
 
   
-  SaveTextEvent(nullptr);
+  SaveTextEvent(nsnull);
 
   if (mCompositionTimer) {
     mCompositionTimer->Cancel();
-    mCompositionTimer = nullptr;
+    mCompositionTimer = nsnull;
   }
 
   if (mCompositionString != mLastDispatchedCompositionString) {
@@ -1403,6 +1443,15 @@ nsTextStore::OnEndComposition(ITfCompositionView* pComposition)
   
   nsTextEvent textEvent(true, NS_TEXT_TEXT, mWindow);
   mWindow->InitEvent(textEvent);
+  if (!mCompositionString.Length()) {
+    
+    
+    
+    
+    
+    textEvent.theText = NS_LITERAL_STRING(" ");
+    mWindow->DispatchWindowEvent(&textEvent);
+  }
   textEvent.theText = mCompositionString;
   textEvent.theText.ReplaceSubstring(NS_LITERAL_STRING("\r\n"),
                                      NS_LITERAL_STRING("\n"));
@@ -1450,9 +1499,9 @@ nsTextStore::OnFocusChange(bool aFocus,
 }
 
 nsresult
-nsTextStore::OnTextChangeInternal(uint32_t aStart,
-                                  uint32_t aOldEnd,
-                                  uint32_t aNewEnd)
+nsTextStore::OnTextChangeInternal(PRUint32 aStart,
+                                  PRUint32 aOldEnd,
+                                  PRUint32 aNewEnd)
 {
   if (!mLock && mSink && 0 != (mSinkMask & TS_AS_TEXT_CHANGE)) {
     mTextChange.acpStart = NS_MIN(mTextChange.acpStart, LONG(aStart));
@@ -1587,7 +1636,7 @@ void
 nsTextStore::SetInputContextInternal(IMEState::Enabled aState)
 {
   PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
-         ("TSF: SetInputContext, state=%ld\n", static_cast<int32_t>(aState)));
+         ("TSF: SetInputContext, state=%ld\n", static_cast<PRInt32>(aState)));
 
   VARIANT variant;
   variant.vt = VT_I4;

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSTEXTSTORE_H_
 #define NSTEXTSTORE_H_
 
@@ -11,7 +44,6 @@
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
 #include "nsIWidget.h"
-#include "mozilla/Attributes.h"
 
 #include <msctf.h>
 #include <textstor.h>
@@ -32,8 +64,8 @@ class nsTextEvent;
 
 
 
-class nsTextStore MOZ_FINAL : public ITextStoreACP,
-                              public ITfContextOwnerCompositionSink
+class nsTextStore : public ITextStoreACP,
+                    public ITfContextOwnerCompositionSink
 {
 public: 
   STDMETHODIMP_(ULONG)  AddRef(void);
@@ -102,9 +134,9 @@ public:
 
   static nsresult OnFocusChange(bool, nsWindow*, IMEState::Enabled);
 
-  static nsresult OnTextChange(uint32_t aStart,
-                               uint32_t aOldEnd,
-                               uint32_t aNewEnd)
+  static nsresult OnTextChange(PRUint32 aStart,
+                               PRUint32 aOldEnd,
+                               PRUint32 aNewEnd)
   {
     if (!sTsfTextStore) return NS_OK;
     return sTsfTextStore->OnTextChangeInternal(aStart, aOldEnd, aNewEnd);
@@ -164,7 +196,7 @@ protected:
   HRESULT  OnStartCompositionInternal(ITfCompositionView*, ITfRange*, bool);
   void     CommitCompositionInternal(bool);
   void     SetInputContextInternal(IMEState::Enabled aState);
-  nsresult OnTextChangeInternal(uint32_t, uint32_t, uint32_t);
+  nsresult OnTextChangeInternal(PRUint32, PRUint32, PRUint32);
   void     OnTextChangeMsgInternal(void);
   nsresult OnSelectionChangeInternal(void);
   HRESULT  GetDisplayAttribute(ITfProperty* aProperty,

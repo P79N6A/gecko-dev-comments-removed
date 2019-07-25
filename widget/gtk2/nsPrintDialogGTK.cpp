@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <gtk/gtk.h>
 #include <gtk/gtkprintunixdialog.h>
 #include <stdlib.h>
@@ -16,7 +49,7 @@
 #include "nsPrintSettingsGTK.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsNetUtil.h"
 #include "nsIStringBundle.h"
 #include "nsIPrintSettingsService.h"
@@ -194,7 +227,7 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsIDOMWindow *aParent, nsIPrintSe
   gtk_container_set_border_width(GTK_CONTAINER(custom_options_tab), 12);
   GtkWidget* tab_label = gtk_label_new(GetUTF8FromBundle("optionsTabLabelGTK").get());
 
-  int16_t frameUIFlag;
+  PRInt16 frameUIFlag;
   aSettings->GetHowToEnableFrameUI(&frameUIFlag);
   radio_as_laid_out = gtk_radio_button_new_with_mnemonic(NULL, GetUTF8FromBundle("asLaidOut").get());
   if (frameUIFlag == nsIPrintSettings::kFrameEnableNone)

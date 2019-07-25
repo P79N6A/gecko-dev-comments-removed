@@ -1,39 +1,39 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla libXUL embedding.
+ *
+ * The Initial Developer of the Original Code is
+ * Benjamin Smedberg <benjamin@smedbergs.us>
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2005
+ * the Mozilla Foundation. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #if defined(MOZ_WIDGET_QT)
 #include "nsQAppInstance.h"
@@ -79,7 +79,6 @@
 #include "mozilla/Omnijar.h"
 #if defined(XP_MACOSX)
 #include "nsVersionComparator.h"
-#include "MacQuirks.h"
 #include "chrome/common/mach_ipc_mac.h"
 #endif
 #include "nsX11ErrorHandler.h"
@@ -106,14 +105,14 @@
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/ipc/XPCShellEnvironment.h"
 
-#include "mozilla/Util.h" 
+#include "mozilla/Util.h" // for DebugOnly
 
 #ifdef MOZ_IPDL_TESTS
 #include "mozilla/_ipdltest/IPDLUnitTests.h"
 #include "mozilla/_ipdltest/IPDLUnitTestProcessChild.h"
 
 using mozilla::_ipdltest::IPDLUnitTestProcessChild;
-#endif  
+#endif  // ifdef MOZ_IPDL_TESTS
 
 using namespace mozilla;
 
@@ -164,14 +163,14 @@ XRE_InitEmbedding2(nsILocalFile *aLibXULDirectory,
 		   nsILocalFile *aAppDirectory,
 		   nsIDirectoryServiceProvider *aAppDirProvider)
 {
-  
+  // Initialize some globals to make nsXREDirProvider happy
   static char* kNullCommandLine[] = { nsnull };
   gArgv = kNullCommandLine;
   gArgc = 0;
 
   NS_ENSURE_ARG(aLibXULDirectory);
 
-  if (++sInitCounter > 1) 
+  if (++sInitCounter > 1) // XXXbsmedberg is this really the right solution?
     return NS_OK;
 
   if (!aAppDirectory)
@@ -179,7 +178,7 @@ XRE_InitEmbedding2(nsILocalFile *aLibXULDirectory,
 
   nsresult rv;
 
-  new nsXREDirProvider; 
+  new nsXREDirProvider; // This sets gDirServiceProvider
   if (!gDirServiceProvider)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -192,11 +191,11 @@ XRE_InitEmbedding2(nsILocalFile *aLibXULDirectory,
   if (NS_FAILED(rv))
     return rv;
 
-  
-  
-  
-  
-  
+  // We do not need to autoregister components here. The CheckCompatibility()
+  // bits in nsAppRunner.cpp check for an invalidation flag in
+  // compatibility.ini.
+  // If the app wants to autoregister every time (for instance, if it's debug),
+  // it can do so after we return from this function.
 
   nsCOMPtr<nsIObserver> startupNotifier
     (do_CreateInstance(NS_APPSTARTUPNOTIFIER_CONTRACTID));
@@ -256,9 +255,9 @@ GeckoProcessType sChildProcessType = GeckoProcessType_Default;
 }
 
 #if defined(MOZ_CRASHREPORTER)
-
-
-
+// FIXME/bug 539522: this out-of-place function is stuck here because
+// IPDL wants access to this crashreporter interface, and
+// crashreporter is built in such a way to make that awkward
 bool
 XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsILocalFile** aDump)
 {
@@ -266,7 +265,7 @@ XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsILocalFile** aDump)
 }
 
 bool
-XRE_SetRemoteExceptionHandler(const char* aPipe)
+XRE_SetRemoteExceptionHandler(const char* aPipe/*= 0*/)
 {
 #if defined(XP_WIN) || defined(XP_MACOSX)
   return CrashReporter::SetRemoteExceptionHandler(nsDependentCString(aPipe));
@@ -276,7 +275,7 @@ XRE_SetRemoteExceptionHandler(const char* aPipe)
 #  error "OOP crash reporter unsupported on this platform"
 #endif
 }
-#endif 
+#endif // if defined(MOZ_CRASHREPORTER)
 
 #if defined(XP_WIN)
 void
@@ -314,14 +313,10 @@ XRE_InitChildProcess(int aArgc,
   NS_ENSURE_ARG_POINTER(aArgv);
   NS_ENSURE_ARG_POINTER(aArgv[0]);
 
-#ifdef XP_MACOSX
-  TriggerQuirks();
-#endif
-
   sChildProcessType = aProcess;
 
-  
-  
+  // Complete 'task_t' exchange for Mac OS X. This structure has the same size
+  // regardless of architecture so we don't have any cross-arch issues here.
 #ifdef XP_MACOSX
   if (aArgc < 1)
     return 1;
@@ -376,26 +371,26 @@ XRE_InitChildProcess(int aArgc,
   const char* const crashReporterArg = aArgv[--aArgc];
   
 #  if defined(XP_WIN) || defined(XP_MACOSX)
-  
-  
-  
+  // on windows and mac, |crashReporterArg| is the named pipe on which the
+  // server is listening for requests, or "-" if crash reporting is
+  // disabled.
   if (0 != strcmp("-", crashReporterArg) && 
       !XRE_SetRemoteExceptionHandler(crashReporterArg)) {
-    
+    // Bug 684322 will add better visibility into this condition
     NS_WARNING("Could not setup crash reporting\n");
   }
 #  elif defined(OS_LINUX)
-  
-  
+  // on POSIX, |crashReporterArg| is "true" if crash reporting is
+  // enabled, false otherwise
   if (0 != strcmp("false", crashReporterArg) && 
       !XRE_SetRemoteExceptionHandler(NULL)) {
-    
+    // Bug 684322 will add better visibility into this condition
     NS_WARNING("Could not setup crash reporting\n");
   }
 #  else
 #    error "OOP crash reporting unsupported on this platform"
 #  endif   
-#endif 
+#endif // if defined(MOZ_CRASHREPORTER)
 
   gArgv = aArgv;
   gArgc = aArgc;
@@ -418,8 +413,8 @@ XRE_InitChildProcess(int aArgc,
 #endif
   }
 
-  
-  
+  // child processes launched by GeckoChildProcessHost get this magic
+  // argument appended to their command lines
   const char* const parentPIDString = aArgv[aArgc-1];
   NS_ABORT_IF_FALSE(parentPIDString, "NULL parent PID");
   --aArgc;
@@ -433,19 +428,19 @@ XRE_InitChildProcess(int aArgc,
   NS_ABORT_IF_FALSE(ok, "can't open handle to parent");
 
 #if defined(XP_WIN)
-  
-  
-  
+  // On Win7+, register the application user model id passed in by
+  // parent. This insures windows created by the container properly
+  // group with the parent app on the Win7 taskbar.
   const char* const appModelUserId = aArgv[aArgc-1];
   --aArgc;
   if (appModelUserId) {
-    
+    // '-' implies no support
     if (*appModelUserId != '-') {
       nsString appId;
       appId.AssignWithConversion(nsDependentCString(appModelUserId));
-      
+      // The version string is encased in quotes
       appId.Trim(NS_LITERAL_CSTRING("\"").get());
-      
+      // Set the id
       SetTaskbarGroupId(appId);
     }
   }
@@ -465,7 +460,7 @@ XRE_InitChildProcess(int aArgc,
   MessageLoop::Type uiLoopType;
   switch (aProcess) {
   case GeckoProcessType_Content:
-      
+      // Content processes need the XPCOM/chromium frankenventloop
       uiLoopType = MessageLoop::TYPE_MOZILLA_CHILD;
       break;
   default:
@@ -474,12 +469,12 @@ XRE_InitChildProcess(int aArgc,
   }
 
   {
-    
-    
-    
-    
+    // This is a lexical scope for the MessageLoop below.  We want it
+    // to go out of scope before NS_LogTerm() so that we don't get
+    // spurious warnings about XPCOM objects being destroyed from a
+    // static context.
 
-    
+    // Associate this thread with a UI MessageLoop
     MessageLoop uiMessageLoop(uiLoopType);
     {
       nsAutoPtr<ProcessChild> process;
@@ -514,11 +509,11 @@ XRE_InitChildProcess(int aArgc,
         return NS_ERROR_FAILURE;
       }
 
-      
+      // Run the UI event loop on the main thread.
       uiMessageLoop.MessageLoop::Run();
 
-      
-      
+      // Allow ProcessChild to clean up after itself before going out of
+      // scope and being deleted
       process->CleanUp();
       mozilla::Omnijar::CleanUp();
     }
@@ -557,7 +552,7 @@ private:
   void* mData;
 };
 
-} 
+} /* anonymous namespace */
 
 NS_IMETHODIMP
 MainFunctionRunnable::Run()
@@ -599,7 +594,7 @@ XRE_InitParentProcess(int aArgc,
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    
+    // Do event loop
     if (NS_FAILED(appShell->Run())) {
       NS_WARNING("Failed to run appshell");
       return NS_ERROR_FAILURE;
@@ -610,8 +605,8 @@ XRE_InitParentProcess(int aArgc,
 }
 
 #ifdef MOZ_IPDL_TESTS
-
-
+//-----------------------------------------------------------------------------
+// IPDL unit test
 
 int
 XRE_RunIPDLTest(int aArgc, char** aArgv)
@@ -630,7 +625,7 @@ XRE_RunIPDLTest(int aArgc, char** aArgv)
 
     return 0;
 }
-#endif  
+#endif  // ifdef MOZ_IPDL_TESTS
 
 nsresult
 XRE_RunAppShell()
@@ -638,34 +633,34 @@ XRE_RunAppShell()
     nsCOMPtr<nsIAppShell> appShell(do_GetService(kAppShellCID));
 #if defined(XP_MACOSX)
     {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+      // In content processes that want XPCOM (and hence want
+      // AppShell), we usually run our hybrid event loop through
+      // MessagePump::Run(), by way of nsBaseAppShell::Run().  The
+      // Cocoa nsAppShell impl, however, implements its own Run()
+      // that's unaware of MessagePump.  That's all rather suboptimal,
+      // but oddly enough not a problem... usually.
+      // 
+      // The problem with this setup comes during startup.
+      // XPCOM-in-subprocesses depends on IPC, e.g. to init the pref
+      // service, so we have to init IPC first.  But, IPC also
+      // indirectly kinda-depends on XPCOM, because MessagePump
+      // schedules work from off-main threads (e.g. IO thread) by
+      // using NS_DispatchToMainThread().  If the IO thread receives a
+      // Message from the parent before nsThreadManager is
+      // initialized, then DispatchToMainThread() will fail, although
+      // MessagePump will remember the task.  This race condition
+      // isn't a problem when appShell->Run() ends up in
+      // MessagePump::Run(), because MessagePump will immediate see it
+      // has work to do.  It *is* a problem when we end up in [NSApp
+      // run], because it's not aware that MessagePump has work that
+      // needs to be processed; that was supposed to be signaled by
+      // nsIRunnable(s).
+      // 
+      // So instead of hacking Cocoa nsAppShell or rewriting the
+      // event-loop system, we compromise here by processing any tasks
+      // that might have been enqueued on MessagePump, *before*
+      // MessagePump::ScheduleWork was able to successfully
+      // DispatchToMainThread().
       MessageLoop* loop = MessageLoop::current();
       bool couldNest = loop->NestableTasksAllowed();
 
@@ -675,7 +670,7 @@ XRE_RunAppShell()
 
       loop->SetNestableTasksAllowed(couldNest);
     }
-#endif  
+#endif  // XP_MACOSX
     return appShell->Run();
 }
 
@@ -694,27 +689,27 @@ XRE_ShutdownChildProcess()
   mozilla::DebugOnly<MessageLoop*> ioLoop = XRE_GetIOMessageLoop();
   NS_ABORT_IF_FALSE(!!ioLoop, "Bad shutdown order");
 
-  
-  
-  
-  
-  
-  
+  // Quit() sets off the following chain of events
+  //  (1) UI loop starts quitting
+  //  (2) UI loop returns from Run() in XRE_InitChildProcess()
+  //  (3) ProcessChild goes out of scope and terminates the IO thread
+  //  (4) ProcessChild joins the IO thread
+  //  (5) exit()
   MessageLoop::current()->Quit();
 #if defined(XP_MACOSX)
   nsCOMPtr<nsIAppShell> appShell(do_GetService(kAppShellCID));
   if (appShell) {
-      
-      
-      
-      
+      // On Mac, we might be only above nsAppShell::Run(), not
+      // MessagePump::Run().  See XRE_RunAppShell(). To account for
+      // that case, we fire off an Exit() here.  If we were indeed
+      // above MessagePump::Run(), this Exit() is just superfluous.
       appShell->Exit();
   }
-#endif 
+#endif // XP_MACOSX
 }
 
 namespace {
-ContentParent* gContentParent; 
+ContentParent* gContentParent; //long-lived, manually refcounted
 TestShellParent* GetOrCreateTestShellParent()
 {
     if (!gContentParent) {

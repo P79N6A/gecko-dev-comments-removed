@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNativeTheme.h"
 #include "nsIWidget.h"
 #include "nsIDocument.h"
@@ -19,7 +52,6 @@
 #include "nsIComponentManager.h"
 #include "nsPIDOMWindow.h"
 #include "nsProgressFrame.h"
-#include "nsMeterFrame.h"
 #include "nsMenuFrame.h"
 #include "mozilla/dom/Element.h"
 
@@ -34,16 +66,16 @@ nsIPresShell *
 nsNativeTheme::GetPresShell(nsIFrame* aFrame)
 {
   if (!aFrame)
-    return nullptr;
+    return nsnull;
 
   
   
   nsPresContext *context = aFrame->GetStyleContext()->GetRuleNode()->GetPresContext();
-  return context ? context->GetPresShell() : nullptr;
+  return context ? context->GetPresShell() : nsnull;
 }
 
 nsEventStates
-nsNativeTheme::GetContentState(nsIFrame* aFrame, uint8_t aWidgetType)
+nsNativeTheme::GetContentState(nsIFrame* aFrame, PRUint8 aWidgetType)
 {
   if (!aFrame)
     return nsEventStates();
@@ -120,16 +152,15 @@ nsNativeTheme::CheckBooleanAttr(nsIFrame* aFrame, nsIAtom* aAtom)
                               NS_LITERAL_STRING("true"), eCaseMatters);
 }
 
-int32_t
-nsNativeTheme::CheckIntAttr(nsIFrame* aFrame, nsIAtom* aAtom, int32_t defaultValue)
+PRInt32
+nsNativeTheme::CheckIntAttr(nsIFrame* aFrame, nsIAtom* aAtom, PRInt32 defaultValue)
 {
   if (!aFrame)
     return defaultValue;
 
   nsAutoString attr;
   aFrame->GetContent()->GetAttr(kNameSpaceID_None, aAtom, attr);
-  nsresult err;
-  int32_t value = attr.ToInteger(&err);
+  PRInt32 err, value = attr.ToInteger(&err);
   if (attr.IsEmpty() || NS_FAILED(err))
     return defaultValue;
 
@@ -212,7 +243,7 @@ nsNativeTheme::GetIndeterminate(nsIFrame* aFrame)
 
 bool
 nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
-                              uint8_t aWidgetType)
+                              PRUint8 aWidgetType)
 {
   
   if (!aFrame)
@@ -246,19 +277,6 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
                                        ? aFrame->GetParent() : aFrame);
     if (progressFrame) {
       return !progressFrame->ShouldUseNativeStyle();
-    }
-  }
-
-  
-
-
-
-  if (aWidgetType == NS_THEME_METERBAR_CHUNK ||
-      aWidgetType == NS_THEME_METERBAR) {
-    nsMeterFrame* meterFrame = do_QueryFrame(aWidgetType == NS_THEME_METERBAR_CHUNK
-                                       ? aFrame->GetParent() : aFrame);
-    if (meterFrame) {
-      return !meterFrame->ShouldUseNativeStyle();
     }
   }
 
@@ -303,7 +321,7 @@ nsNativeTheme::IsFrameRTL(nsIFrame* aFrame)
 }
 
 
-int32_t
+PRInt32
 nsNativeTheme::GetScrollbarButtonType(nsIFrame* aFrame)
 {
   if (!aFrame)
@@ -312,7 +330,7 @@ nsNativeTheme::GetScrollbarButtonType(nsIFrame* aFrame)
   static nsIContent::AttrValuesArray strings[] =
     {&nsGkAtoms::scrollbarDownBottom, &nsGkAtoms::scrollbarDownTop,
      &nsGkAtoms::scrollbarUpBottom, &nsGkAtoms::scrollbarUpTop,
-     nullptr};
+     nsnull};
 
   switch (aFrame->GetContent()->FindAttrValueIn(kNameSpaceID_None,
                                                 nsGkAtoms::sbattr,
@@ -334,7 +352,7 @@ nsNativeTheme::GetTreeSortDirection(nsIFrame* aFrame)
     return eTreeSortDirection_Natural;
 
   static nsIContent::AttrValuesArray strings[] =
-    {&nsGkAtoms::descending, &nsGkAtoms::ascending, nullptr};
+    {&nsGkAtoms::descending, &nsGkAtoms::ascending, nsnull};
   switch (aFrame->GetContent()->FindAttrValueIn(kNameSpaceID_None,
                                                 nsGkAtoms::sortDirection,
                                                 strings, eCaseMatters)) {
@@ -412,7 +430,7 @@ nsNativeTheme::IsHorizontal(nsIFrame* aFrame)
 }
 
 bool
-nsNativeTheme::IsNextToSelectedTab(nsIFrame* aFrame, int32_t aOffset)
+nsNativeTheme::IsNextToSelectedTab(nsIFrame* aFrame, PRInt32 aOffset)
 {
   if (!aFrame)
     return false;
@@ -420,10 +438,10 @@ nsNativeTheme::IsNextToSelectedTab(nsIFrame* aFrame, int32_t aOffset)
   if (aOffset == 0)
     return IsSelectedTab(aFrame);
 
-  int32_t thisTabIndex = -1, selectedTabIndex = -1;
+  PRInt32 thisTabIndex = -1, selectedTabIndex = -1;
 
   nsIFrame* currentTab = aFrame->GetParent()->GetFirstPrincipalChild();
-  for (int32_t i = 0; currentTab; currentTab = currentTab->GetNextSibling()) {
+  for (PRInt32 i = 0; currentTab; currentTab = currentTab->GetNextSibling()) {
     if (currentTab->GetRect().width == 0)
       continue;
     if (aFrame == currentTab)
@@ -461,13 +479,6 @@ nsNativeTheme::IsVerticalProgress(nsIFrame* aFrame)
 {
   return aFrame &&
          aFrame->GetStyleDisplay()->mOrient == NS_STYLE_ORIENT_VERTICAL;
-}
-
-bool
-nsNativeTheme::IsVerticalMeter(nsIFrame* aFrame)
-{
-  NS_PRECONDITION(aFrame, "You have to pass a non-null aFrame");
-  return aFrame->GetStyleDisplay()->mOrient == NS_STYLE_ORIENT_VERTICAL;
 }
 
 
@@ -517,14 +528,14 @@ nsNativeTheme::IsMenuListEditable(nsIFrame *aFrame)
 
 bool
 nsNativeTheme::QueueAnimatedContentForRefresh(nsIContent* aContent,
-                                              uint32_t aMinimumFrameRate)
+                                              PRUint32 aMinimumFrameRate)
 {
   NS_ASSERTION(aContent, "Null pointer!");
   NS_ASSERTION(aMinimumFrameRate, "aMinimumFrameRate must be non-zero!");
   NS_ASSERTION(aMinimumFrameRate <= 1000,
                "aMinimumFrameRate must be less than 1000!");
 
-  uint32_t timeout = 1000 / aMinimumFrameRate;
+  PRUint32 timeout = 1000 / aMinimumFrameRate;
   timeout = NS_MIN(mAnimatedContentTimeout, timeout);
 
   if (!mAnimatedContentTimer) {
@@ -562,8 +573,8 @@ nsNativeTheme::Notify(nsITimer* aTimer)
   
   
 
-  uint32_t count = mAnimatedContentList.Length();
-  for (uint32_t index = 0; index < count; index++) {
+  PRUint32 count = mAnimatedContentList.Length();
+  for (PRUint32 index = 0; index < count; index++) {
     nsIFrame* frame = mAnimatedContentList[index]->GetPrimaryFrame();
     if (frame) {
       frame->InvalidateOverflowRect();
@@ -580,7 +591,7 @@ nsNativeTheme::GetAdjacentSiblingFrameWithSameAppearance(nsIFrame* aFrame,
                                                          bool aNextSibling)
 {
   if (!aFrame)
-    return nullptr;
+    return nsnull;
 
   
   nsIFrame* sibling = aFrame;
@@ -593,6 +604,6 @@ nsNativeTheme::GetAdjacentSiblingFrameWithSameAppearance(nsIFrame* aFrame,
       sibling->GetStyleDisplay()->mAppearance != aFrame->GetStyleDisplay()->mAppearance ||
       (sibling->GetRect().XMost() != aFrame->GetRect().x &&
        aFrame->GetRect().XMost() != sibling->GetRect().x))
-    return nullptr;
+    return nsnull;
   return sibling;
 }

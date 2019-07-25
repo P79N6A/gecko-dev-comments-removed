@@ -3,6 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIMM32Handler_h__
 #define nsIMM32Handler_h__
 
@@ -31,7 +72,7 @@ public:
   {
     if (mIMC) {
       ::ImmReleaseContext(mWnd, mIMC);
-      mIMC = nullptr;
+      mIMC = nsnull;
     }
   }
 
@@ -51,7 +92,7 @@ protected:
     NS_ERROR("Don't create nsIMEContext without window handle");
   }
 
-  nsIMEContext(const nsIMEContext &aSrc) : mWnd(nullptr), mIMC(nullptr)
+  nsIMEContext(const nsIMEContext &aSrc) : mWnd(nsnull), mIMC(nsnull)
   {
     NS_ERROR("Don't copy nsIMEContext");
   }
@@ -220,7 +261,7 @@ protected:
   bool SetIMERelatedWindowsPos(nsWindow* aWindow,
                                  const nsIMEContext &aIMEContext);
   bool GetCharacterRectOfSelectedTextAt(nsWindow* aWindow,
-                                          uint32_t aOffset,
+                                          PRUint32 aOffset,
                                           nsIntRect &aCharRect);
   bool GetCaretRect(nsWindow* aWindow, nsIntRect &aCaretRect);
   void GetCompositionString(const nsIMEContext &aIMEContext, DWORD aIndex);
@@ -236,13 +277,13 @@ protected:
 
 
 
-  bool GetTargetClauseRange(uint32_t *aOffset, uint32_t *aLength = nullptr);
+  bool GetTargetClauseRange(PRUint32 *aOffset, PRUint32 *aLength = nsnull);
   void DispatchTextEvent(nsWindow* aWindow, const nsIMEContext &aIMEContext,
                          bool aCheckAttr = true);
   void SetTextRangeList(nsTArray<nsTextRange> &aTextRangeList);
 
-  nsresult EnsureClauseArray(int32_t aCount);
-  nsresult EnsureAttributeArray(int32_t aCount);
+  nsresult EnsureClauseArray(PRInt32 aCount);
+  nsresult EnsureAttributeArray(PRInt32 aCount);
 
   
 
@@ -282,11 +323,11 @@ protected:
   nsWindow* mComposingWindow;
   nsString  mCompositionString;
   nsString  mLastDispatchedCompositionString;
-  nsTArray<uint32_t> mClauseArray;
-  nsTArray<uint8_t> mAttributeArray;
+  nsTArray<PRUint32> mClauseArray;
+  nsTArray<PRUint8> mAttributeArray;
 
-  int32_t mCursorPosition;
-  uint32_t mCompositionStart;
+  PRInt32 mCursorPosition;
+  PRUint32 mCompositionStart;
 
   bool mIsComposing;
   bool mIsComposingOnPlugin;

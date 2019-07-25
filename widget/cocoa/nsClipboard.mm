@@ -1,7 +1,40 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2006
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *    Josh Aas <josh@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
@@ -15,7 +48,7 @@
 #include "nsXPIDLString.h"
 #include "nsPrimitiveHelpers.h"
 #include "nsMemory.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsStringStream.h"
 #include "nsDragService.h"
 #include "nsEscape.h"
@@ -54,14 +87,14 @@ GetDataFromPasteboard(NSPasteboard* aPasteboard, NSString* aType)
   @try {
     data = [aPasteboard dataForType:aType];
   } @catch (NSException* e) {
-    NS_WARNING(nsPrintfCString("Exception raised while getting data from the pasteboard: \"%s - %s\"", 
+    NS_WARNING(nsPrintfCString(256, "Exception raised while getting data from the pasteboard: \"%s - %s\"", 
                                [[e name] UTF8String], [[e reason] UTF8String]).get());
   }
   return data;
 }
 
 NS_IMETHODIMP
-nsClipboard::SetNativeClipboardData(int32_t aWhichClipboard)
+nsClipboard::SetNativeClipboardData(PRInt32 aWhichClipboard)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -115,10 +148,10 @@ nsClipboard::TransferableFromPasteboard(nsITransferable *aTransferable, NSPasteb
   if (NS_FAILED(rv))
     return NS_ERROR_FAILURE;
 
-  uint32_t flavorCount;
+  PRUint32 flavorCount;
   flavorList->Count(&flavorCount);
 
-  for (uint32_t i = 0; i < flavorCount; i++) {
+  for (PRUint32 i = 0; i < flavorCount; i++) {
     nsCOMPtr<nsISupports> genericFlavor;
     flavorList->GetElementAt(i, getter_AddRefs(genericFlavor));
     nsCOMPtr<nsISupportsCString> currentFlavor(do_QueryInterface(genericFlavor));
@@ -144,7 +177,7 @@ nsClipboard::TransferableFromPasteboard(nsITransferable *aTransferable, NSPasteb
       [stringData getBytes:clipboardDataPtr];
 
       // The DOM only wants LF, so convert from MacOS line endings to DOM line endings.
-      int32_t signedDataLength = dataLength;
+      PRInt32 signedDataLength = dataLength;
       nsLinebreakHelpers::ConvertPlatformToDOMLinebreaks(flavorStr, &clipboardDataPtr, &signedDataLength);
       dataLength = signedDataLength;
 
@@ -165,7 +198,6 @@ nsClipboard::TransferableFromPasteboard(nsITransferable *aTransferable, NSPasteb
       break;
     }
     else if (flavorStr.EqualsLiteral(kJPEGImageMime) ||
-             flavorStr.EqualsLiteral(kJPGImageMime) ||
              flavorStr.EqualsLiteral(kPNGImageMime) ||
              flavorStr.EqualsLiteral(kGIFImageMime)) {
       // Figure out if there's data on the pasteboard we can grab (sanity check)
@@ -180,8 +212,7 @@ nsClipboard::TransferableFromPasteboard(nsITransferable *aTransferable, NSPasteb
 
       // Figure out what type we're converting to
       CFStringRef outputType = NULL; 
-      if (flavorStr.EqualsLiteral(kJPEGImageMime) ||
-          flavorStr.EqualsLiteral(kJPGImageMime))
+      if (flavorStr.EqualsLiteral(kJPEGImageMime))
         outputType = CFSTR("public.jpeg");
       else if (flavorStr.EqualsLiteral(kPNGImageMime))
         outputType = CFSTR("public.png");
@@ -234,7 +265,7 @@ nsClipboard::TransferableFromPasteboard(nsITransferable *aTransferable, NSPasteb
 }
 
 NS_IMETHODIMP
-nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable, int32_t aWhichClipboard)
+nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable, PRInt32 aWhichClipboard)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -251,14 +282,14 @@ nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable, int32_t aWhi
   if (NS_FAILED(rv))
     return NS_ERROR_FAILURE;
 
-  uint32_t flavorCount;
+  PRUint32 flavorCount;
   flavorList->Count(&flavorCount);
 
   // If we were the last ones to put something on the pasteboard, then just use the cached
   // transferable. Otherwise clear it because it isn't relevant any more.
   if (mChangeCount == [cocoaPasteboard changeCount]) {
     if (mTransferable) {
-      for (uint32_t i = 0; i < flavorCount; i++) {
+      for (PRUint32 i = 0; i < flavorCount; i++) {
         nsCOMPtr<nsISupports> genericFlavor;
         flavorList->GetElementAt(i, getter_AddRefs(genericFlavor));
         nsCOMPtr<nsISupportsCString> currentFlavor(do_QueryInterface(genericFlavor));
@@ -269,7 +300,7 @@ nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable, int32_t aWhi
         currentFlavor->ToString(getter_Copies(flavorStr));
 
         nsCOMPtr<nsISupports> dataSupports;
-        uint32_t dataSize = 0;
+        PRUint32 dataSize = 0;
         rv = mTransferable->GetTransferData(flavorStr, getter_AddRefs(dataSupports), &dataSize);
         if (NS_SUCCEEDED(rv)) {
           aTransferable->SetTransferData(flavorStr, dataSupports, dataSize);
@@ -292,8 +323,8 @@ nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable, int32_t aWhi
 
 // returns true if we have *any* of the passed in flavors available for pasting
 NS_IMETHODIMP
-nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
-                                    int32_t aWhichClipboard, bool* outResult)
+nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, PRUint32 aLength,
+                                    PRInt32 aWhichClipboard, bool* outResult)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -307,9 +338,9 @@ nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
     nsCOMPtr<nsISupportsArray> transferableFlavorList;
     nsresult rv = mTransferable->FlavorsTransferableCanImport(getter_AddRefs(transferableFlavorList));
     if (NS_SUCCEEDED(rv)) {
-      uint32_t transferableFlavorCount;
+      PRUint32 transferableFlavorCount;
       transferableFlavorList->Count(&transferableFlavorCount);
-      for (uint32_t j = 0; j < transferableFlavorCount; j++) {
+      for (PRUint32 j = 0; j < transferableFlavorCount; j++) {
         nsCOMPtr<nsISupports> transferableFlavorSupports;
         transferableFlavorList->GetElementAt(j, getter_AddRefs(transferableFlavorSupports));
         nsCOMPtr<nsISupportsCString> currentTransferableFlavor(do_QueryInterface(transferableFlavorSupports));
@@ -318,7 +349,7 @@ nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
         nsXPIDLCString transferableFlavorStr;
         currentTransferableFlavor->ToString(getter_Copies(transferableFlavorStr));
 
-        for (uint32_t k = 0; k < aLength; k++) {
+        for (PRUint32 k = 0; k < aLength; k++) {
           if (transferableFlavorStr.Equals(aFlavorList[k])) {
             *outResult = true;
             return NS_OK;
@@ -330,7 +361,7 @@ nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
 
   NSPasteboard* generalPBoard = [NSPasteboard generalPasteboard];
 
-  for (uint32_t i = 0; i < aLength; i++) {
+  for (PRUint32 i = 0; i < aLength; i++) {
     nsDependentCString mimeType(aFlavorList[i]);
     NSString *pboardType = nil;
 
@@ -341,7 +372,6 @@ nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
         break;
       }
     } else if (!strcmp(aFlavorList[i], kJPEGImageMime) ||
-               !strcmp(aFlavorList[i], kJPGImageMime) ||
                !strcmp(aFlavorList[i], kPNGImageMime) ||
                !strcmp(aFlavorList[i], kGIFImageMime)) {
       NSString* availableType = [generalPBoard availableTypeFromArray:
@@ -376,9 +406,9 @@ nsClipboard::PasteboardDictFromTransferable(nsITransferable* aTransferable)
   if (NS_FAILED(rv))
     return nil;
 
-  uint32_t flavorCount;
+  PRUint32 flavorCount;
   flavorList->Count(&flavorCount);
-  for (uint32_t i = 0; i < flavorCount; i++) {
+  for (PRUint32 i = 0; i < flavorCount; i++) {
     nsCOMPtr<nsISupports> genericFlavor;
     flavorList->GetElementAt(i, getter_AddRefs(genericFlavor));
     nsCOMPtr<nsISupportsCString> currentFlavor(do_QueryInterface(genericFlavor));
@@ -393,8 +423,8 @@ nsClipboard::PasteboardDictFromTransferable(nsITransferable* aTransferable)
     NSString *pboardType = nil;
 
     if (nsClipboard::IsStringType(flavorStr, &pboardType)) {
-      void* data = nullptr;
-      uint32_t dataSize = 0;
+      void* data = nsnull;
+      PRUint32 dataSize = 0;
       nsCOMPtr<nsISupports> genericDataWrapper;
       rv = aTransferable->GetTransferData(flavorStr, getter_AddRefs(genericDataWrapper), &dataSize);
       nsPrimitiveHelpers::CreateDataFromPrimitive(flavorStr, genericDataWrapper, &data, dataSize);
@@ -413,9 +443,8 @@ nsClipboard::PasteboardDictFromTransferable(nsITransferable* aTransferable)
       nsMemory::Free(data);
     }
     else if (flavorStr.EqualsLiteral(kPNGImageMime) || flavorStr.EqualsLiteral(kJPEGImageMime) ||
-             flavorStr.EqualsLiteral(kJPGImageMime) || flavorStr.EqualsLiteral(kGIFImageMime) ||
-             flavorStr.EqualsLiteral(kNativeImageMime)) {
-      uint32_t dataSize = 0;
+             flavorStr.EqualsLiteral(kGIFImageMime) || flavorStr.EqualsLiteral(kNativeImageMime)) {
+      PRUint32 dataSize = 0;
       nsCOMPtr<nsISupports> transferSupports;
       aTransferable->GetTransferData(flavorStr, getter_AddRefs(transferSupports), &dataSize);
       nsCOMPtr<nsISupportsInterfacePointer> ptrPrimitive(do_QueryInterface(transferSupports));
@@ -471,7 +500,7 @@ nsClipboard::PasteboardDictFromTransferable(nsITransferable* aTransferable)
       [pasteboardOutputDict setObject:[NSArray arrayWithObject:@""] forKey:NSFilesPromisePboardType];      
     }
     else if (flavorStr.EqualsLiteral(kURLMime)) {
-      uint32_t len = 0;
+      PRUint32 len = 0;
       nsCOMPtr<nsISupports> genericURL;
       rv = aTransferable->GetTransferData(flavorStr, getter_AddRefs(genericURL), &len);
       nsCOMPtr<nsISupportsString> urlObject(do_QueryInterface(genericURL));
@@ -480,7 +509,7 @@ nsClipboard::PasteboardDictFromTransferable(nsITransferable* aTransferable)
       urlObject->GetData(url);
 
       // A newline embedded in the URL means that the form is actually URL + title.
-      int32_t newlinePos = url.FindChar(PRUnichar('\n'));
+      PRInt32 newlinePos = url.FindChar(PRUnichar('\n'));
       if (newlinePos >= 0) {
         url.Truncate(newlinePos);
 
@@ -499,8 +528,8 @@ nsClipboard::PasteboardDictFromTransferable(nsITransferable* aTransferable)
       // The Finder doesn't like getting random binary data aka
       // Unicode, so change it into an escaped URL containing only
       // ASCII.
-      nsAutoCString utf8Data = NS_ConvertUTF16toUTF8(url.get(), url.Length());
-      nsAutoCString escData;
+      nsCAutoString utf8Data = NS_ConvertUTF16toUTF8(url.get(), url.Length());
+      nsCAutoString escData;
       NS_EscapeURL(utf8Data.get(), utf8Data.Length(), esc_OnlyNonASCII|esc_AlwaysCopy, escData);
 
       // printf("Escaped url is %s, length %d\n", escData.get(), escData.Length());

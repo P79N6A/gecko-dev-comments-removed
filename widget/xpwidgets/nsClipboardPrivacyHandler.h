@@ -3,13 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsClipboardPrivacyHandler_h__
 #define nsClipboardPrivacyHandler_h__
 
 #include "nsIObserver.h"
+#include "nsIPrivateBrowsingService.h"
 #include "nsWeakReference.h"
 #include "nsCOMPtr.h"
-#include "mozilla/Attributes.h"
 
 class nsITransferable;
 
@@ -20,8 +53,8 @@ class nsITransferable;
 
 
 
-class nsClipboardPrivacyHandler MOZ_FINAL : public nsIObserver,
-                                            public nsSupportsWeakReference
+class nsClipboardPrivacyHandler : public nsIObserver,
+                                  public nsSupportsWeakReference
 {
 
 public:
@@ -34,6 +67,13 @@ public:
 
   nsresult Init();
   nsresult PrepareDataForClipboard(nsITransferable * aTransferable);
+
+private:
+
+  bool InPrivateBrowsing();
+
+  nsCOMPtr<nsIPrivateBrowsingService> mPBService;
+
 };
 
 nsresult NS_NewClipboardPrivacyHandler(nsClipboardPrivacyHandler ** aHandler);

@@ -4,12 +4,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsReadableUtils.h"
 #include "nsNetUtil.h"
 #include "nsIServiceManager.h"
 #include "nsIPlatformCharset.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIURL.h"
 #include "nsIStringBundle.h"
 #include "nsEnumeratorUtils.h"
@@ -50,8 +83,8 @@ MRESULT EXPENTRY FileDialogProc( HWND hwndDlg, ULONG msg, MPARAM mp1, MPARAM mp2
 nsFilePicker::nsFilePicker()
 {
   mWnd = NULL;
-  mUnicodeEncoder = nullptr;
-  mUnicodeDecoder = nullptr;
+  mUnicodeEncoder = nsnull;
+  mUnicodeDecoder = nsnull;
   mSelectedType   = 0;
 }
 
@@ -84,14 +117,14 @@ nsFilePicker::ReleaseGlobals()
 
 
 
-NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
+NS_IMETHODIMP nsFilePicker::Show(PRInt16 *retval)
 {
   NS_ENSURE_ARG_POINTER(retval);
 
   bool result = false;
-  nsAutoCString fileBuffer;
+  nsCAutoString fileBuffer;
   char *converted = ConvertToFileSystemCharset(mDefault);
-  if (nullptr == converted) {
+  if (nsnull == converted) {
     LossyCopyUTF16toASCII(mDefault, fileBuffer);
   }
   else {
@@ -100,9 +133,9 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
   }
 
   char *title = ConvertToFileSystemCharset(mTitle);
-  if (nullptr == title)
+  if (nsnull == title)
     title = ToNewCString(mTitle);
-  nsAutoCString initialDir;
+  nsCAutoString initialDir;
   if (mDisplayDirectory)
     mDisplayDirectory->GetNativePath(initialDir);
   
@@ -118,9 +151,7 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
 
   if (mMode == modeGetFolder) {
     PL_strncat(filedlg.szFullFile, initialDir.get(), MAX_PATH);
-    if (filedlg.szFullFile[0] && 
-        filedlg.szFullFile[strlen(filedlg.szFullFile) - 1] != '\\') 
-      PL_strncat(filedlg.szFullFile, "\\", 1);
+    PL_strncat(filedlg.szFullFile, "\\", 1);
     PL_strncat(filedlg.szFullFile, "^", 1);
     filedlg.fl = FDS_OPEN_DIALOG | FDS_CENTER;
     filedlg.pfnDlgProc = DirDialogProc;
@@ -141,9 +172,7 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
   }
   else {
     PL_strncpy(filedlg.szFullFile, initialDir.get(), MAX_PATH);
-    if (filedlg.szFullFile[0] && 
-        filedlg.szFullFile[strlen(filedlg.szFullFile) - 1] != '\\') 
-      PL_strncat(filedlg.szFullFile, "\\", 1);
+    PL_strncat(filedlg.szFullFile, "\\", 1);
     PL_strncat(filedlg.szFullFile, fileBuffer.get(), MAX_PATH);
     filedlg.fl = FDS_CENTER;
     if (mMode == modeSave) {
@@ -158,7 +187,7 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
     filedlg.ulUser = (ULONG)pmydata;
     filedlg.pfnDlgProc = FileDialogProc;
 
-    uint32_t i;
+    PRUint32 i;
 
     PSZ *apszTypeList;
     apszTypeList = (PSZ *)malloc(mTitles.Length()*sizeof(PSZ)+1);
@@ -166,7 +195,7 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
     {
       const nsString& typeWide = mTitles[i];
       nsAutoCharBuffer buffer;
-      int32_t bufLength;
+      PRInt32 bufLength;
       WideCharToMultiByte(0, typeWide.get(), typeWide.Length(),
                           buffer, bufLength);
       apszTypeList[i] = ToNewCString(nsDependentCString(buffer.Elements()));
@@ -261,7 +290,7 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
 
         if (filedlg.papszFQFilename) {
           for (ULONG i=0;i<filedlg.ulFQFCount;i++) {
-            nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
+            nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
             NS_ENSURE_SUCCESS(rv,rv);
 
             rv = file->InitWithNativePath(nsDependentCString(*(filedlg.papszFQFilename)[i]));
@@ -272,7 +301,7 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
           }
           WinFreeFileDlgList(filedlg.papszFQFilename);
         } else {
-          nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
+          nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
           NS_ENSURE_SUCCESS(rv,rv);
 
           rv = file->InitWithNativePath(nsDependentCString(filedlg.szFullFile));
@@ -284,7 +313,7 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
       } else {
         mFile.Assign(filedlg.szFullFile);
       }
-      mSelectedType = (int16_t)pmydata->ulCurExt;
+      mSelectedType = (PRInt16)pmydata->ulCurExt;
     }
 
     for (i = 0; i < mTitles.Length(); i++)
@@ -305,26 +334,29 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
     nsMemory::Free( title );
 
   if (result) {
-    int16_t returnOKorReplace = returnOK;
+    PRInt16 returnOKorReplace = returnOK;
 
     nsresult rv;
     
-    nsCOMPtr<nsIFile> file(do_CreateInstance("@mozilla.org/file/local;1", &rv));
+    nsCOMPtr<nsILocalFile> file(do_CreateInstance("@mozilla.org/file/local;1", &rv));
     NS_ENSURE_SUCCESS(rv, rv);
 
     file->InitWithNativePath(mFile);
     nsCOMPtr<nsIFile> dir;
     if (NS_SUCCEEDED(file->GetParent(getter_AddRefs(dir)))) {
-      nsAutoCString newDir;
-      dir->GetNativePath(newDir);
-      if(!newDir.IsEmpty())
-        PL_strncpyz(mLastUsedDirectory, newDir.get(), MAX_PATH+1);
-      
-      
-      if (!mDisplayDirectory)
-         mDisplayDirectory = do_CreateInstance("@mozilla.org/file/local;1");
-      if (mDisplayDirectory)
-         mDisplayDirectory->InitWithNativePath( nsDependentCString(mLastUsedDirectory) );
+      nsCOMPtr<nsILocalFile> localDir(do_QueryInterface(dir));
+      if (localDir) {
+        nsCAutoString newDir;
+        localDir->GetNativePath(newDir);
+        if(!newDir.IsEmpty())
+          PL_strncpyz(mLastUsedDirectory, newDir.get(), MAX_PATH+1);
+        
+        
+        if (!mDisplayDirectory)
+           mDisplayDirectory = do_CreateInstance("@mozilla.org/file/local;1");
+        if (mDisplayDirectory)
+           mDisplayDirectory->InitWithNativePath( nsDependentCString(mLastUsedDirectory) );
+      }
     }
 
     if (mMode == modeSave) {
@@ -345,14 +377,14 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *retval)
 
 
 
-NS_IMETHODIMP nsFilePicker::GetFile(nsIFile **aFile)
+NS_IMETHODIMP nsFilePicker::GetFile(nsILocalFile **aFile)
 {
   NS_ENSURE_ARG_POINTER(aFile);
 
   if (mFile.IsEmpty())
       return NS_OK;
 
-  nsCOMPtr<nsIFile> file(do_CreateInstance("@mozilla.org/file/local;1"));
+  nsCOMPtr<nsILocalFile> file(do_CreateInstance("@mozilla.org/file/local;1"));
     
   NS_ENSURE_TRUE(file, NS_ERROR_FAILURE);
 
@@ -366,8 +398,8 @@ NS_IMETHODIMP nsFilePicker::GetFile(nsIFile **aFile)
 
 NS_IMETHODIMP nsFilePicker::GetFileURL(nsIURI **aFileURL)
 {
-  *aFileURL = nullptr;
-  nsCOMPtr<nsIFile> file;
+  *aFileURL = nsnull;
+  nsCOMPtr<nsILocalFile> file;
   nsresult rv = GetFile(getter_AddRefs(file));
   if (!file)
     return rv;
@@ -391,8 +423,8 @@ NS_IMETHODIMP nsFilePicker::SetDefaultString(const nsAString& aString)
   mDefault = aString;
 
   
-  int32_t nameLength;
-  int32_t nameIndex = mDefault.RFind("\\");
+  PRInt32 nameLength;
+  PRInt32 nameIndex = mDefault.RFind("\\");
   if (nameIndex == kNotFound)
     nameIndex = 0;
   else
@@ -400,12 +432,12 @@ NS_IMETHODIMP nsFilePicker::SetDefaultString(const nsAString& aString)
   nameLength = mDefault.Length() - nameIndex;
   
   if (nameLength > CCHMAXPATH) {
-    int32_t extIndex = mDefault.RFind(".");
+    PRInt32 extIndex = mDefault.RFind(".");
     if (extIndex == kNotFound)
       extIndex = mDefault.Length();
 
     
-    int32_t charsToRemove = nameLength - CCHMAXPATH;
+    PRInt32 charsToRemove = nameLength - CCHMAXPATH;
     if (extIndex - nameIndex >= charsToRemove) {
       mDefault.Cut(extIndex - charsToRemove, charsToRemove);
     }
@@ -453,13 +485,13 @@ NS_IMETHODIMP nsFilePicker::SetDefaultExtension(const nsAString& aExtension)
 
 
 
-NS_IMETHODIMP nsFilePicker::GetFilterIndex(int32_t *aFilterIndex)
+NS_IMETHODIMP nsFilePicker::GetFilterIndex(PRInt32 *aFilterIndex)
 {
   *aFilterIndex = mSelectedType;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsFilePicker::SetFilterIndex(int32_t aFilterIndex)
+NS_IMETHODIMP nsFilePicker::SetFilterIndex(PRInt32 aFilterIndex)
 {
   mSelectedType = aFilterIndex;
   return NS_OK;
@@ -468,7 +500,7 @@ NS_IMETHODIMP nsFilePicker::SetFilterIndex(int32_t aFilterIndex)
 
 void nsFilePicker::InitNative(nsIWidget *aParent,
                               const nsAString& aTitle,
-                              int16_t aMode)
+                              PRInt16 aMode)
 {
   mWnd = (HWND) ((aParent) ? aParent->GetNativeData(NS_NATIVE_WINDOW) : 0); 
   mTitle.Assign(aTitle);
@@ -479,7 +511,7 @@ void nsFilePicker::InitNative(nsIWidget *aParent,
 
 void nsFilePicker::GetFileSystemCharset(nsCString & fileSystemCharset)
 {
-  static nsAutoCString aCharset;
+  static nsCAutoString aCharset;
   nsresult rv;
 
   if (aCharset.Length() < 1) {
@@ -497,12 +529,12 @@ void nsFilePicker::GetFileSystemCharset(nsCString & fileSystemCharset)
 
 char * nsFilePicker::ConvertToFileSystemCharset(const nsAString& inString)
 {
-  char *outString = nullptr;
+  char *outString = nsnull;
   nsresult rv = NS_OK;
 
   
-  if (nullptr == mUnicodeEncoder) {
-    nsAutoCString fileSystemCharset;
+  if (nsnull == mUnicodeEncoder) {
+    nsCAutoString fileSystemCharset;
     GetFileSystemCharset(fileSystemCharset);
 
     nsCOMPtr<nsICharsetConverterManager> ccm = 
@@ -514,17 +546,17 @@ char * nsFilePicker::ConvertToFileSystemCharset(const nsAString& inString)
 
   
   if (NS_SUCCEEDED(rv)) {
-    int32_t inLength = inString.Length();
+    PRInt32 inLength = inString.Length();
 
     const nsAFlatString& flatInString = PromiseFlatString(inString);
 
-    int32_t outLength;
+    PRInt32 outLength;
     rv = mUnicodeEncoder->GetMaxLength(flatInString.get(), inLength,
                                        &outLength);
     if (NS_SUCCEEDED(rv)) {
       outString = static_cast<char*>(nsMemory::Alloc( outLength+1 ));
-      if (nullptr == outString) {
-        return nullptr;
+      if (nsnull == outString) {
+        return nsnull;
       }
       rv = mUnicodeEncoder->Convert(flatInString.get(), &inLength, outString,
                                     &outLength);
@@ -534,18 +566,18 @@ char * nsFilePicker::ConvertToFileSystemCharset(const nsAString& inString)
     }
   }
   
-  return NS_SUCCEEDED(rv) ? outString : nullptr;
+  return NS_SUCCEEDED(rv) ? outString : nsnull;
 }
 
 
 PRUnichar * nsFilePicker::ConvertFromFileSystemCharset(const char *inString)
 {
-  PRUnichar *outString = nullptr;
+  PRUnichar *outString = nsnull;
   nsresult rv = NS_OK;
 
   
-  if (nullptr == mUnicodeDecoder) {
-    nsAutoCString fileSystemCharset;
+  if (nsnull == mUnicodeDecoder) {
+    nsCAutoString fileSystemCharset;
     GetFileSystemCharset(fileSystemCharset);
 
     nsCOMPtr<nsICharsetConverterManager> ccm = 
@@ -557,13 +589,13 @@ PRUnichar * nsFilePicker::ConvertFromFileSystemCharset(const char *inString)
 
   
   if (NS_SUCCEEDED(rv)) {
-    int32_t inLength = strlen(inString);
-    int32_t outLength;
+    PRInt32 inLength = strlen(inString);
+    PRInt32 outLength;
     rv = mUnicodeDecoder->GetMaxLength(inString, inLength, &outLength);
     if (NS_SUCCEEDED(rv)) {
       outString = static_cast<PRUnichar*>(nsMemory::Alloc( (outLength+1) * sizeof( PRUnichar ) ));
-      if (nullptr == outString) {
-        return nullptr;
+      if (nsnull == outString) {
+        return nsnull;
       }
       rv = mUnicodeDecoder->Convert(inString, &inLength, outString, &outLength);
       if (NS_SUCCEEDED(rv)) {
@@ -573,7 +605,7 @@ PRUnichar * nsFilePicker::ConvertFromFileSystemCharset(const char *inString)
   }
 
   NS_ASSERTION(NS_SUCCEEDED(rv), "error charset conversion");
-  return NS_SUCCEEDED(rv) ? outString : nullptr;
+  return NS_SUCCEEDED(rv) ? outString : nsnull;
 }
 
 

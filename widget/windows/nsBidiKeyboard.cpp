@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdio.h>
 #include "nsBidiKeyboard.h"
 #include "prmem.h"
@@ -24,7 +57,7 @@ nsBidiKeyboard::~nsBidiKeyboard()
 {
 }
 
-NS_IMETHODIMP nsBidiKeyboard::SetLangFromBidiLevel(uint8_t aLevel)
+NS_IMETHODIMP nsBidiKeyboard::SetLangFromBidiLevel(PRUint8 aLevel)
 {
   nsresult result = SetupBidiKeyboards();
   if (NS_FAILED(result))
@@ -117,7 +150,7 @@ nsresult nsBidiKeyboard::SetupBidiKeyboards()
   bool isRTLKeyboardSet = false;
   
   
-  keyboards = ::GetKeyboardLayoutList(0, nullptr);
+  keyboards = ::GetKeyboardLayoutList(0, nsnull);
   if (!keyboards)
     return NS_ERROR_FAILURE;
 

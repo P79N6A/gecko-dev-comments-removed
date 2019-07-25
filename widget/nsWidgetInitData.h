@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsWidgetInitData_h__
 #define nsWidgetInitData_h__
 
@@ -101,8 +133,7 @@ struct nsWidgetInitData {
       mUnicode(true),
       mRTL(false),
       mNoAutoHide(false),
-      mIsDragPopup(false),
-      mIsAnimationSuppressed(false)
+      mIsDragPopup(false)
   {
   }
 
@@ -117,8 +148,6 @@ struct nsWidgetInitData {
   bool          mRTL;
   bool          mNoAutoHide; 
   bool          mIsDragPopup;  
-  bool          mIsAnimationSuppressed;  
-                                         
 };
 
 #endif 

@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDebug.h"
 #include "nsString.h"
 #include "nsCUPSShim.h"
@@ -45,12 +77,12 @@ nsCUPSShim::Init()
         *(symAddr[i]) = PR_FindSymbol(mCupsLib, gSymName[i]);
         if (! *(symAddr[i])) {
 #ifdef DEBUG
-            nsAutoCString msg(gSymName[i]);
+            nsCAutoString msg(gSymName[i]);
             msg.Append(" not found in CUPS library");
             NS_WARNING(msg.get());
 #endif
             PR_UnloadLibrary(mCupsLib);
-            mCupsLib = nullptr;
+            mCupsLib = nsnull;
             return false;
         }
     }

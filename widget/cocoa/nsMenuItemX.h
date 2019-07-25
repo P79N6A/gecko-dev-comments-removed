@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMenuItemX_h_
 #define nsMenuItemX_h_
 
@@ -56,8 +89,6 @@ public:
   void          DoCommand();
   nsresult      DispatchDOMEvent(const nsString &eventName, bool* preventDefaultCalled);
   void          SetupIcon();
-
-  static uint32_t   ConvertGeckoToMacKeyCode(nsAString& aKeyCodeName);
 
 protected:
   void UncheckRadioSiblings(nsIContent* inCheckedElement);

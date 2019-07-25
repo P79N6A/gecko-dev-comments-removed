@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDeviceContextSpecGTK_h___
 #define nsDeviceContextSpecGTK_h___
 
@@ -11,7 +44,6 @@
 #include "nsIPrintOptions.h" 
 #include "nsCOMPtr.h"
 #include "nsString.h"
-#include "mozilla/Attributes.h"
 
 #include "nsCRT.h" 
 
@@ -38,7 +70,7 @@ public:
   NS_IMETHOD GetSurfaceForPrinter(gfxASurface **surface);
 
   NS_IMETHOD Init(nsIWidget *aWidget, nsIPrintSettings* aPS, bool aIsPrintPreview);
-  NS_IMETHOD BeginDocument(PRUnichar * aTitle, PRUnichar * aPrintToFileName, int32_t aStartPage, int32_t aEndPage);
+  NS_IMETHOD BeginDocument(PRUnichar * aTitle, PRUnichar * aPrintToFileName, PRInt32 aStartPage, PRInt32 aEndPage);
   NS_IMETHOD EndDocument();
   NS_IMETHOD BeginPage() { return NS_OK; }
   NS_IMETHOD EndPage() { return NS_OK; }
@@ -58,15 +90,15 @@ protected:
   GtkPrintSettings* mGtkPrintSettings;
   GtkPageSetup*     mGtkPageSetup;
 
-  nsCString         mSpoolName;
-  nsCOMPtr<nsIFile> mSpoolFile;
+  nsCString              mSpoolName;
+  nsCOMPtr<nsILocalFile> mSpoolFile;
 
 };
 
 
 
 
-class nsPrinterEnumeratorGTK MOZ_FINAL : public nsIPrinterEnumerator
+class nsPrinterEnumeratorGTK : public nsIPrinterEnumerator
 {
 public:
   nsPrinterEnumeratorGTK();

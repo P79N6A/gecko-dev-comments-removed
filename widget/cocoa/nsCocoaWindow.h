@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCocoaWindow_h_
 #define nsCocoaWindow_h_
 
@@ -18,32 +52,6 @@
 class nsCocoaWindow;
 class nsChildView;
 class nsMenuBarX;
-
-
-#define CUIDRAW_MAX_AREA 500000
-
-
-
-#if !defined(MAC_OS_X_VERSION_10_7) || \
-    MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_7
-
-enum {
-    NSWindowAnimationBehaviorDefault = 0,
-    NSWindowAnimationBehaviorNone = 2,
-    NSWindowAnimationBehaviorDocumentWindow = 3,
-    NSWindowAnimationBehaviorUtilityWindow = 4,
-    NSWindowAnimationBehaviorAlertPanel = 5,
-    NSWindowCollectionBehaviorFullScreenPrimary = 128, 
-};
-
-typedef NSInteger NSWindowAnimationBehavior;
-
-@interface NSWindow (LionWindowFeatures)
-- (void)setAnimationBehavior:(NSWindowAnimationBehavior)newAnimationBehavior;
-- (void)toggleFullScreen:(id)sender;
-@end
-
-#endif
 
 typedef struct _nsCocoaWindowList {
   _nsCocoaWindowList() : prev(NULL), window(NULL) {}
@@ -151,6 +159,7 @@ typedef struct _nsCocoaWindowList {
 + (void)paintMenubarForWindow:(NSWindow*)aWindow;
 - (id)initWithGeckoWindow:(nsCocoaWindow*)geckoWind;
 - (void)windowDidResize:(NSNotification*)aNotification;
+- (void)sendFocusEvent:(PRUint32)eventType;
 - (nsCocoaWindow*)geckoWidget;
 - (bool)toplevelActiveState;
 - (void)sendToplevelActivateEvents;
@@ -205,66 +214,64 @@ public:
     NS_IMETHOD              Create(nsIWidget* aParent,
                                    nsNativeWidget aNativeParent,
                                    const nsIntRect &aRect,
+                                   EVENT_CALLBACK aHandleEventFunction,
                                    nsDeviceContext *aContext,
-                                   nsWidgetInitData *aInitData = nullptr);
+                                   nsWidgetInitData *aInitData = nsnull);
 
     NS_IMETHOD              Destroy();
 
     NS_IMETHOD              Show(bool aState);
     virtual nsIWidget*      GetSheetWindowParent(void);
     NS_IMETHOD              Enable(bool aState);
-    virtual bool            IsEnabled() const;
+    NS_IMETHOD              IsEnabled(bool *aState);
     NS_IMETHOD              SetModal(bool aState);
-    virtual bool            IsVisible() const;
+    NS_IMETHOD              IsVisible(bool & aState);
     NS_IMETHOD              SetFocus(bool aState=false);
     virtual nsIntPoint WidgetToScreenOffset();
     virtual nsIntPoint GetClientOffset();
     virtual nsIntSize ClientToWindowSize(const nsIntSize& aClientSize);
 
-    virtual void* GetNativeData(uint32_t aDataType) ;
+    virtual void* GetNativeData(PRUint32 aDataType) ;
 
     NS_IMETHOD              ConstrainPosition(bool aAllowSlop,
-                                              int32_t *aX, int32_t *aY);
-    virtual void            SetSizeConstraints(const SizeConstraints& aConstraints);
-    NS_IMETHOD              Move(int32_t aX, int32_t aY);
+                                              PRInt32 *aX, PRInt32 *aY);
+    NS_IMETHOD              Move(PRInt32 aX, PRInt32 aY);
     NS_IMETHOD              PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
                                         nsIWidget *aWidget, bool aActivate);
-    NS_IMETHOD              SetSizeMode(int32_t aMode);
+    NS_IMETHOD              SetSizeMode(PRInt32 aMode);
     NS_IMETHOD              HideWindowChrome(bool aShouldHide);
-    void                    EnteredFullScreen(bool aFullScreen);
     NS_IMETHOD              MakeFullScreen(bool aFullScreen);
-    NS_IMETHOD              Resize(int32_t aWidth,int32_t aHeight, bool aRepaint);
-    NS_IMETHOD              Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight, bool aRepaint);
+    NS_IMETHOD              Resize(PRInt32 aWidth,PRInt32 aHeight, bool aRepaint);
+    NS_IMETHOD              Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight, bool aRepaint);
     NS_IMETHOD              GetClientBounds(nsIntRect &aRect);
     NS_IMETHOD              GetScreenBounds(nsIntRect &aRect);
     void                    ReportMoveEvent();
     void                    ReportSizeEvent();
     NS_IMETHOD              SetCursor(nsCursor aCursor);
-    NS_IMETHOD              SetCursor(imgIContainer* aCursor, uint32_t aHotspotX, uint32_t aHotspotY);
+    NS_IMETHOD              SetCursor(imgIContainer* aCursor, PRUint32 aHotspotX, PRUint32 aHotspotY);
 
     NS_IMETHOD              SetTitle(const nsAString& aTitle);
 
-    NS_IMETHOD Invalidate(const nsIntRect &aRect);
+    NS_IMETHOD Invalidate(const nsIntRect &aRect, bool aIsSynchronous);
+    NS_IMETHOD Update();
     virtual nsresult ConfigureChildren(const nsTArray<Configuration>& aConfigurations);
-    virtual LayerManager* GetLayerManager(PLayersChild* aShadowManager = nullptr,
-                                          LayersBackend aBackendHint = mozilla::layers::LAYERS_NONE,
+    virtual LayerManager* GetLayerManager(PLayersChild* aShadowManager = nsnull,
+                                          LayersBackend aBackendHint = LayerManager::LAYERS_NONE,
                                           LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
-                                          bool* aAllowRetaining = nullptr);
+                                          bool* aAllowRetaining = nsnull);
     NS_IMETHOD DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus) ;
     NS_IMETHOD CaptureRollupEvents(nsIRollupListener * aListener, bool aDoCapture, bool aConsumeRollupEvent);
-    NS_IMETHOD GetAttention(int32_t aCycleCount);
+    NS_IMETHOD GetAttention(PRInt32 aCycleCount);
     virtual bool HasPendingInputEvent();
     virtual nsTransparencyMode GetTransparencyMode();
     virtual void SetTransparencyMode(nsTransparencyMode aMode);
-    NS_IMETHOD SetWindowShadowStyle(int32_t aStyle);
+    NS_IMETHOD SetWindowShadowStyle(PRInt32 aStyle);
     virtual void SetShowsToolbarButton(bool aShow);
-    virtual void SetShowsFullScreenButton(bool aShow);
-    virtual void SetWindowAnimationType(WindowAnimationType aType);
     NS_IMETHOD SetWindowTitlebarColor(nscolor aColor, bool aActive);
     virtual void SetDrawsInTitlebar(bool aState);
     virtual nsresult SynthesizeNativeMouseEvent(nsIntPoint aPoint,
-                                                uint32_t aNativeMessage,
-                                                uint32_t aModifierFlags);
+                                                PRUint32 aNativeMessage,
+                                                PRUint32 aModifierFlags);
 
     void DispatchSizeModeEvent();
 
@@ -304,6 +311,7 @@ protected:
                                           nsBorderStyle aBorderStyle,
                                           bool aRectIsFrameRect);
   nsresult             CreatePopupContentView(const nsIntRect &aRect,
+                                              EVENT_CALLBACK aHandleEventFunction,
                                               nsDeviceContext *aContext);
   void                 DestroyNativeWindow();
   void                 AdjustWindowShadow();
@@ -325,26 +333,18 @@ protected:
   nsRefPtr<nsMenuBarX> mMenuBar;
   NSWindow*            mSheetWindowParent; 
   nsChildView*         mPopupContentView; 
-  int32_t              mShadowStyle;
+  PRInt32              mShadowStyle;
   NSUInteger           mWindowFilter;
-
-  WindowAnimationType  mAnimationType;
 
   bool                 mWindowMadeHere; 
   bool                 mSheetNeedsShow; 
                                         
   bool                 mFullScreen;
-  bool                 mInFullScreenTransition; 
-                                                
   bool                 mModal;
-
-  bool                 mUsesNativeFullScreen; 
-
-  bool                 mIsAnimationSuppressed;
 
   bool                 mInReportMoveEvent; 
 
-  int32_t              mNumModalDescendents;
+  PRInt32              mNumModalDescendents;
   InputContext         mInputContext;
 };
 

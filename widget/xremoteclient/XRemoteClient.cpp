@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "XRemoteClient.h"
 #include "prmem.h"
 #include "prprf.h"
@@ -152,7 +184,7 @@ XRemoteClient::SendCommand (const char *aProgram, const char *aUsername,
   PR_LOG(sRemoteLm, PR_LOG_DEBUG, ("XRemoteClient::SendCommand"));
 
   return SendCommandInternal(aProgram, aUsername, aProfile,
-                             aCommand, 0, nullptr,
+                             aCommand, 0, nsnull,
                              aDesktopStartupID,
                              aResponse, aWindowFound);
 }
@@ -160,14 +192,14 @@ XRemoteClient::SendCommand (const char *aProgram, const char *aUsername,
 nsresult
 XRemoteClient::SendCommandLine (const char *aProgram, const char *aUsername,
                                 const char *aProfile,
-                                int32_t argc, char **argv,
+                                PRInt32 argc, char **argv,
                                 const char* aDesktopStartupID,
                                 char **aResponse, bool *aWindowFound)
 {
   PR_LOG(sRemoteLm, PR_LOG_DEBUG, ("XRemoteClient::SendCommandLine"));
 
   return SendCommandInternal(aProgram, aUsername, aProfile,
-                             nullptr, argc, argv,
+                             nsnull, argc, argv,
                              aDesktopStartupID,
                              aResponse, aWindowFound);
 }
@@ -187,7 +219,7 @@ HandleBadWindow(Display *display, XErrorEvent *event)
 nsresult
 XRemoteClient::SendCommandInternal(const char *aProgram, const char *aUsername,
                                    const char *aProfile, const char *aCommand,
-                                   int32_t argc, char **argv,
+                                   PRInt32 argc, char **argv,
                                    const char* aDesktopStartupID,
                                    char **aResponse, bool *aWindowFound)
 {
@@ -490,7 +522,7 @@ XRemoteClient::FindBestWindow(const char *aProgram, const char *aUsername,
     if (!data_return)
       continue;
 
-    double version = PR_strtod((char*) data_return, nullptr);
+    PRFloat64 version = PR_strtod((char*) data_return, nsnull);
     XFree(data_return);
 
     if (aSupportsCommandLine && !(version >= 5.1 && version < 6))
@@ -652,7 +684,7 @@ XRemoteClient::DoSendCommand(Window aWindow, const char *aCommand,
   
   static char desktopStartupPrefix[] = "\nDESKTOP_STARTUP_ID=";
 
-  int32_t len = strlen(aCommand);
+  PRInt32 len = strlen(aCommand);
   if (aDesktopStartupID) {
     len += sizeof(desktopStartupPrefix) - 1 + strlen(aDesktopStartupID);
   }
@@ -689,7 +721,7 @@ estrcpy(const char* s, char* d)
 }
 
 nsresult
-XRemoteClient::DoSendCommandLine(Window aWindow, int32_t argc, char **argv,
+XRemoteClient::DoSendCommandLine(Window aWindow, PRInt32 argc, char **argv,
                                  const char* aDesktopStartupID,
                                  char **aResponse, bool *aDestroyed)
 {
@@ -707,17 +739,17 @@ XRemoteClient::DoSendCommandLine(Window aWindow, int32_t argc, char **argv,
 
   static char desktopStartupPrefix[] = " DESKTOP_STARTUP_ID=";
 
-  int32_t argvlen = strlen(cwdbuf);
+  PRInt32 argvlen = strlen(cwdbuf);
   for (int i = 0; i < argc; ++i) {
-    int32_t len = strlen(argv[i]);
+    PRInt32 len = strlen(argv[i]);
     if (i == 0 && aDesktopStartupID) {
       len += sizeof(desktopStartupPrefix) - 1 + strlen(aDesktopStartupID);
     }
     argvlen += len;
   }
 
-  int32_t* buffer = (int32_t*) malloc(argvlen + argc + 1 +
-                                      sizeof(int32_t) * (argc + 1));
+  PRInt32* buffer = (PRInt32*) malloc(argvlen + argc + 1 +
+                                      sizeof(PRInt32) * (argc + 1));
   if (!buffer)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -737,7 +769,7 @@ XRemoteClient::DoSendCommandLine(Window aWindow, int32_t argc, char **argv,
   }
 
 #ifdef DEBUG_bsmedberg
-  int32_t   debug_argc   = TO_LITTLE_ENDIAN32(*buffer);
+  PRInt32   debug_argc   = TO_LITTLE_ENDIAN32(*buffer);
   char *debug_workingdir = (char*) (buffer + argc + 1);
 
   printf("Sending command line:\n"
@@ -746,7 +778,7 @@ XRemoteClient::DoSendCommandLine(Window aWindow, int32_t argc, char **argv,
          debug_workingdir,
          debug_argc);
 
-  int32_t  *debug_offset = buffer + 1;
+  PRInt32  *debug_offset = buffer + 1;
   for (int debug_i = 0; debug_i < debug_argc; ++debug_i)
     printf("  argv[%i]:\t%s\n", debug_i,
            ((char*) buffer) + TO_LITTLE_ENDIAN32(debug_offset[debug_i]));

@@ -5,6 +5,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
+
 #include "TaskbarPreview.h"
 #include <nsITaskbarPreviewController.h>
 #include <windows.h>
@@ -42,7 +78,7 @@ namespace {
 nsIDOMCanvasRenderingContext2D* gCtx = NULL;
 
 
-uint32_t gInstCount = 0;
+PRUint32 gInstCount = 0;
 
 
 
@@ -55,13 +91,13 @@ uint32_t gInstCount = 0;
 
 nsresult
 GetRenderingContext(nsIDocShell *shell, gfxASurface *surface,
-                    uint32_t width, uint32_t height) {
+                    PRUint32 width, PRUint32 height) {
   nsresult rv;
   nsCOMPtr<nsIDOMCanvasRenderingContext2D> ctx = gCtx;
 
   if (!ctx) {
     
-    ctx = do_CreateInstance("@mozilla.org/content/canvas-rendering-context;1?id=2d", &rv);
+    ctx = do_CreateInstance("@mozilla.org/content/2dthebes-canvas-rendering-context;1", &rv);
     if (NS_FAILED(rv)) {
       NS_WARNING("Could not create nsICanvasRenderingContext2D for tab previews!");
       return rv;
@@ -91,7 +127,7 @@ ResetRenderingContext() {
     return;
   if (NS_FAILED(ctxI->Reset())) {
     NS_RELEASE(gCtx);
-    gCtx = nullptr;
+    gCtx = nsnull;
   }
 }
 
@@ -116,7 +152,7 @@ TaskbarPreview::TaskbarPreview(ITaskbarList4 *aTaskbar, nsITaskbarPreviewControl
 TaskbarPreview::~TaskbarPreview() {
   
   if (sActivePreview == this)
-    sActivePreview = nullptr;
+    sActivePreview = nsnull;
 
   
   NS_ASSERTION(!mWnd, "TaskbarPreview::DetachFromNSWindow was not called before destruction");
@@ -221,7 +257,7 @@ TaskbarPreview::UpdateTaskbarProperties() {
       if (NS_FAILED(rvActive))
         rv = rvActive;
     } else {
-      sActivePreview = nullptr;
+      sActivePreview = nsnull;
     }
   }
   return rv;
@@ -270,8 +306,8 @@ TaskbarPreview::WndProc(UINT nMsg, WPARAM wParam, LPARAM lParam) {
   switch (nMsg) {
     case WM_DWMSENDICONICTHUMBNAIL:
       {
-        uint32_t width = HIWORD(lParam);
-        uint32_t height = LOWORD(lParam);
+        PRUint32 width = HIWORD(lParam);
+        PRUint32 height = LOWORD(lParam);
         float aspectRatio = width/float(height);
 
         nsresult rv;
@@ -280,13 +316,13 @@ TaskbarPreview::WndProc(UINT nMsg, WPARAM wParam, LPARAM lParam) {
         if (NS_FAILED(rv))
           break;
 
-        uint32_t thumbnailWidth = width;
-        uint32_t thumbnailHeight = height;
+        PRUint32 thumbnailWidth = width;
+        PRUint32 thumbnailHeight = height;
 
         if (aspectRatio > preferredAspectRatio) {
-          thumbnailWidth = uint32_t(thumbnailHeight * preferredAspectRatio);
+          thumbnailWidth = PRUint32(thumbnailHeight * preferredAspectRatio);
         } else {
-          thumbnailHeight = uint32_t(thumbnailWidth / preferredAspectRatio);
+          thumbnailHeight = PRUint32(thumbnailWidth / preferredAspectRatio);
         }
 
         DrawBitmap(thumbnailWidth, thumbnailHeight, false);
@@ -294,7 +330,7 @@ TaskbarPreview::WndProc(UINT nMsg, WPARAM wParam, LPARAM lParam) {
       break;
     case WM_DWMSENDICONICLIVEPREVIEWBITMAP:
       {
-        uint32_t width, height;
+        PRUint32 width, height;
         nsresult rv;
         rv = mController->GetWidth(&width);
         if (NS_FAILED(rv))
@@ -363,7 +399,7 @@ TaskbarPreview::UpdateTooltip() {
 }
 
 void
-TaskbarPreview::DrawBitmap(uint32_t width, uint32_t height, bool isPreview) {
+TaskbarPreview::DrawBitmap(PRUint32 width, PRUint32 height, bool isPreview) {
   nsresult rv;
   nsRefPtr<gfxWindowsSurface> surface = new gfxWindowsSurface(gfxIntSize(width, height), gfxASurface::ImageFormatARGB32);
 
@@ -415,19 +451,20 @@ TaskbarPreview::MainWindowHook(void *aContext,
     preview->mWnd = NULL;
   } else {
     nsWindow *window = WinUtils::GetNSWindowPtr(preview->mWnd);
-    if (window) {
-      window->SetHasTaskbarIconBeenCreated();
+    NS_ASSERTION(window, "Cannot use taskbar previews in an embedded context!");
 
-      if (preview->mVisible)
-        preview->UpdateTaskbarProperties();
-    }
+    window->SetHasTaskbarIconBeenCreated();
+
+    if (preview->mVisible)
+      preview->UpdateTaskbarProperties();
   }
   return false;
 }
 
 TaskbarPreview *
-TaskbarPreview::sActivePreview = nullptr;
+TaskbarPreview::sActivePreview = nsnull;
 
 } 
 } 
 
+#endif 

@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDragService_h__
 #define nsDragService_h__
 
@@ -28,24 +61,24 @@ public:
   NS_IMETHOD InvokeDragSession (nsIDOMNode* aDOMNode,
                                 nsISupportsArray* aTransferables,
                                 nsIScriptableRegion* aRegion,
-                                uint32_t aActionType);
+                                PRUint32 aActionType);
   NS_IMETHOD StartDragSession();
   NS_IMETHOD EndDragSession(bool aDoneDrag);
 
     
-  NS_IMETHOD GetNumDropItems(uint32_t* aNumDropItems);
-  NS_IMETHOD GetData(nsITransferable* aTransferable, uint32_t aItemIndex);
+  NS_IMETHOD GetNumDropItems(PRUint32* aNumDropItems);
+  NS_IMETHOD GetData(nsITransferable* aTransferable, PRUint32 aItemIndex);
   NS_IMETHOD IsDataFlavorSupported(const char* aDataFlavor, bool* _retval);
 
     
-  NS_IMETHOD DragOverMsg(PDRAGINFO pdinfo, MRESULT& mr, uint32_t* dragFlags);
+  NS_IMETHOD DragOverMsg(PDRAGINFO pdinfo, MRESULT& mr, PRUint32* dragFlags);
   NS_IMETHOD GetDragoverResult(MRESULT& mr);
-  NS_IMETHOD DragLeaveMsg(PDRAGINFO pdinfo, uint32_t* dragFlags);
-  NS_IMETHOD DropHelpMsg(PDRAGINFO pdinfo, uint32_t* dragFlags);
-  NS_IMETHOD ExitSession(uint32_t* dragFlags);
-  NS_IMETHOD DropMsg(PDRAGINFO pdinfo, HWND hwnd, uint32_t* dragFlags);
+  NS_IMETHOD DragLeaveMsg(PDRAGINFO pdinfo, PRUint32* dragFlags);
+  NS_IMETHOD DropHelpMsg(PDRAGINFO pdinfo, PRUint32* dragFlags);
+  NS_IMETHOD ExitSession(PRUint32* dragFlags);
+  NS_IMETHOD DropMsg(PDRAGINFO pdinfo, HWND hwnd, PRUint32* dragFlags);
   NS_IMETHOD RenderCompleteMsg(PDRAGTRANSFER pdxfer, USHORT usResult,
-                               uint32_t* dragFlags);
+                               PRUint32* dragFlags);
 
 protected:
     

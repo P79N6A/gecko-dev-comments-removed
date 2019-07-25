@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "LazyIdleThread.h"
 
 #include "nsIObserverService.h"
@@ -29,22 +62,20 @@
 
 namespace mozilla {
 
-LazyIdleThread::LazyIdleThread(uint32_t aIdleTimeoutMS,
-                               const nsCSubstring& aName,
+LazyIdleThread::LazyIdleThread(PRUint32 aIdleTimeoutMS,
                                ShutdownMethod aShutdownMethod,
                                nsIObserver* aIdleObserver)
 : mMutex("LazyIdleThread::mMutex"),
   mOwningThread(NS_GetCurrentThread()),
   mIdleObserver(aIdleObserver),
-  mQueuedRunnables(nullptr),
+  mQueuedRunnables(nsnull),
   mIdleTimeoutMS(aIdleTimeoutMS),
   mPendingEventCount(0),
   mIdleNotificationCount(0),
   mShutdownMethod(aShutdownMethod),
   mShutdown(false),
   mThreadIsShuttingDown(false),
-  mIdleTimeoutEnabled(true),
-  mName(aName)
+  mIdleTimeoutEnabled(true)
 {
   NS_ASSERTION(mOwningThread, "This should never fail!");
 }
@@ -168,8 +199,6 @@ LazyIdleThread::EnsureThread()
 void
 LazyIdleThread::InitThread()
 {
-  PR_SetCurrentThreadName(mName.BeginReading());
-
   
 
   nsCOMPtr<nsIThreadInternal> thread(do_QueryInterface(NS_GetCurrentThread()));
@@ -186,7 +215,7 @@ LazyIdleThread::CleanupThread()
   nsCOMPtr<nsIThreadInternal> thread(do_QueryInterface(NS_GetCurrentThread()));
   NS_ASSERTION(thread, "This should always succeed!");
 
-  if (NS_FAILED(thread->SetObserver(nullptr))) {
+  if (NS_FAILED(thread->SetObserver(nsnull))) {
     NS_WARNING("Failed to set thread observer!");
   }
 
@@ -248,7 +277,7 @@ LazyIdleThread::ShutdownThread()
 
     if (mIdleObserver) {
       mIdleObserver->Observe(static_cast<nsIThread*>(this), IDLE_THREAD_TOPIC,
-                             nullptr);
+                             nsnull);
     }
 
 #ifdef DEBUG
@@ -275,9 +304,9 @@ LazyIdleThread::ShutdownThread()
     }
 
     
-    mQueuedRunnables = nullptr;
+    mQueuedRunnables = nsnull;
 
-    mThread = nullptr;
+    mThread = nsnull;
 
     {
       MutexAutoLock lock(mMutex);
@@ -293,7 +322,7 @@ LazyIdleThread::ShutdownThread()
     rv = mIdleTimer->Cancel();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mIdleTimer = nullptr;
+    mIdleTimer = nsnull;
   }
 
   
@@ -305,7 +334,7 @@ LazyIdleThread::ShutdownThread()
     }
 
     
-    for (uint32_t index = 0; index < queuedRunnables.Length(); index++) {
+    for (PRUint32 index = 0; index < queuedRunnables.Length(); index++) {
       nsCOMPtr<nsIRunnable> runnable;
       runnable.swap(queuedRunnables[index]);
       NS_ASSERTION(runnable, "Null runnable?!");
@@ -363,7 +392,7 @@ NS_IMPL_THREADSAFE_QUERY_INTERFACE5(LazyIdleThread, nsIThread,
 
 NS_IMETHODIMP
 LazyIdleThread::Dispatch(nsIRunnable* aEvent,
-                         uint32_t aFlags)
+                         PRUint32 aFlags)
 {
   ASSERT_OWNING_THREAD();
 
@@ -403,7 +432,7 @@ LazyIdleThread::GetPRThread(PRThread** aPRThread)
     return mThread->GetPRThread(aPRThread);
   }
 
-  *aPRThread = nullptr;
+  *aPRThread = nsnull;
   return NS_ERROR_NOT_AVAILABLE;
 }
 
@@ -417,7 +446,7 @@ LazyIdleThread::Shutdown()
   nsresult rv = ShutdownThread();
   NS_ASSERTION(!mThread, "Should have destroyed this by now!");
 
-  mIdleObserver = nullptr;
+  mIdleObserver = nsnull;
 
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -474,14 +503,14 @@ LazyIdleThread::OnDispatchedEvent(nsIThreadInternal* )
 NS_IMETHODIMP
 LazyIdleThread::OnProcessNextEvent(nsIThreadInternal* ,
                                    bool ,
-                                   uint32_t )
+                                   PRUint32 )
 {
   return NS_OK;
 }
 
 NS_IMETHODIMP
 LazyIdleThread::AfterProcessNextEvent(nsIThreadInternal* ,
-                                      uint32_t )
+                                      PRUint32 )
 {
   bool shouldNotifyIdle;
   {

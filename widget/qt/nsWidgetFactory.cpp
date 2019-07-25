@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsWindow.h"
 #include "nsAppShell.h"
 
@@ -50,15 +86,15 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboard)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboardHelper)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDragService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsBidiKeyboard)
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIdleServiceQt, nsIdleServiceQt::GetInstance)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsIdleServiceQt)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSound)
 
 static nsresult
 nsFilePickerConstructor(nsISupports *aOuter, REFNSIID aIID,
                         void **aResult)
 {
-  *aResult = nullptr;
-  if (aOuter != nullptr) {
+  *aResult = nsnull;
+  if (aOuter != nsnull) {
       return NS_ERROR_NO_AGGREGATION;
   }
   nsCOMPtr<nsIFilePicker> picker;

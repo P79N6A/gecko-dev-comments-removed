@@ -15,6 +15,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _os2framewindow_h
 #define _os2framewindow_h
 
@@ -33,23 +66,23 @@ public:
                                           const nsIntRect& aRect,
                                           nsWindowType aWindowType,
                                           nsBorderStyle aBorderStyle);
-  uint32_t              GetFCFlags(nsWindowType aWindowType,
+  PRUint32              GetFCFlags(nsWindowType aWindowType,
                                    nsBorderStyle aBorderStyle);
   nsresult              Show(bool aState);
   void                  SetWindowListVisibility(bool aState);
   nsresult              GetBounds(nsIntRect& aRect);
-  nsresult              Move(int32_t aX, int32_t aY);
-  nsresult              Resize(int32_t aWidth, int32_t aHeight,
+  nsresult              Move(PRInt32 aX, PRInt32 aY);
+  nsresult              Resize(PRInt32 aWidth, PRInt32 aHeight,
                                bool aRepaint);
-  nsresult              Resize(int32_t aX, int32_t aY, int32_t w, int32_t h,
+  nsresult              Resize(PRInt32 aX, PRInt32 aY, PRInt32 w, PRInt32 h,
                                bool aRepaint);
   void                  ActivateTopLevelWidget();
-  nsresult              SetSizeMode(int32_t aMode);
+  nsresult              SetSizeMode(PRInt32 aMode);
   nsresult              HideWindowChrome(bool aShouldHide);
   nsresult              SetTitle(const nsAString& aTitle); 
   nsresult              SetIcon(const nsAString& aIconSpec); 
   nsresult              ConstrainPosition(bool aAllowSlop,
-                                          int32_t* aX, int32_t* aY);
+                                          PRInt32* aX, PRInt32* aY);
   MRESULT               ProcessFrameMessage(ULONG msg, MPARAM mp1, MPARAM mp2);
   HWND                  GetFrameWnd()       {return mFrameWnd;}
 
@@ -62,7 +95,7 @@ protected:
   HWND          mTitleBar;          
   HWND          mSysMenu;           
   HWND          mMinMax;            
-  uint32_t      mSavedStyle;        
+  PRUint32      mSavedStyle;        
   HPOINTER      mFrameIcon;         
   bool          mChromeHidden;      
   bool          mNeedActivation;    

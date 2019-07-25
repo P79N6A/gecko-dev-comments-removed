@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIWidget_h__
 #define nsIWidget_h__
 
@@ -15,6 +47,7 @@
 #include "nsStringGlue.h"
 
 #include "prthread.h"
+#include "Layers.h"
 #include "nsEvent.h"
 #include "nsCOMPtr.h"
 #include "nsITheme.h"
@@ -22,7 +55,6 @@
 #include "nsWidgetInitData.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
-#include "LayersTypes.h"
 
 
 class   nsFontMetrics;
@@ -35,14 +67,12 @@ class   imgIContainer;
 class   gfxASurface;
 class   nsIContent;
 class   ViewWrapper;
-class   nsIWidgetListener;
 
 namespace mozilla {
 namespace dom {
-class TabChild;
+class PBrowserChild;
 }
 namespace layers {
-class LayerManager;
 class PLayersChild;
 }
 }
@@ -85,13 +115,11 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_NATIVE_TSF_THREAD_MGR       100
 #define NS_NATIVE_TSF_CATEGORY_MGR     101
 #define NS_NATIVE_TSF_DISPLAY_ATTR_MGR 102
-#define NS_NATIVE_ICOREWINDOW          103 // winrt specific
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xb8f43b25, 0x9036, 0x44e7, \
-    { 0xaa, 0xe2, 0x33, 0x76, 0x6c, 0x35, 0x91, 0xfc } }
-
+  { 0x6ca77c11, 0xade7, 0x4715, \
+    { 0x82, 0xe0, 0xfe, 0xae, 0x42, 0xca, 0x5b, 0x1f } }
 
 
 
@@ -102,6 +130,13 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_STYLE_WINDOW_SHADOW_MENU             2
 #define NS_STYLE_WINDOW_SHADOW_TOOLTIP          3
 #define NS_STYLE_WINDOW_SHADOW_SHEET            4
+
+
+
+
+
+#define NS_SUCCESS_IME_NO_UPDATES \
+    NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_WIDGET, 1)
 
 
 
@@ -157,6 +192,7 @@ enum nsTopLevelWidgetZPlacement {
   eZPlacementBelow,       
   eZPlacementTop          
 };
+
 
 
 
@@ -283,9 +319,6 @@ struct InputContext {
   nsString mHTMLInputType;
 
   
-  nsString mHTMLInputInputmode;
-
-  
   nsString mActionHint;
 };
 
@@ -348,27 +381,6 @@ struct InputContextAction {
   }
 };
 
-
-
-
-
-struct SizeConstraints {
-  SizeConstraints()
-    : mMaxSize(NS_MAXSIZE, NS_MAXSIZE)
-  {
-  }
-
-  SizeConstraints(nsIntSize aMinSize,
-                  nsIntSize aMaxSize)
-  : mMinSize(aMinSize),
-    mMaxSize(aMaxSize)
-  {
-  }
-
-  nsIntSize mMinSize;
-  nsIntSize mMaxSize;
-};
-
 } 
 } 
 
@@ -378,25 +390,24 @@ struct SizeConstraints {
 
 class nsIWidget : public nsISupports {
   protected:
-    typedef mozilla::dom::TabChild TabChild;
+    typedef mozilla::dom::PBrowserChild PBrowserChild;
 
   public:
     typedef mozilla::layers::LayerManager LayerManager;
-    typedef mozilla::layers::LayersBackend LayersBackend;
+    typedef LayerManager::LayersBackend LayersBackend;
     typedef mozilla::layers::PLayersChild PLayersChild;
     typedef mozilla::widget::IMEState IMEState;
     typedef mozilla::widget::InputContext InputContext;
     typedef mozilla::widget::InputContextAction InputContextAction;
-    typedef mozilla::widget::SizeConstraints SizeConstraints;
 
     
     struct ThemeGeometry {
       
-      uint8_t mWidgetType;
+      PRUint8 mWidgetType;
       
       nsIntRect mRect;
 
-      ThemeGeometry(uint8_t aWidgetType, const nsIntRect& aRect)
+      ThemeGeometry(PRUint8 aWidgetType, const nsIntRect& aRect)
        : mWidgetType(aWidgetType)
        , mRect(aRect)
       { }
@@ -405,8 +416,8 @@ class nsIWidget : public nsISupports {
     NS_DECLARE_STATIC_IID_ACCESSOR(NS_IWIDGET_IID)
 
     nsIWidget()
-      : mLastChild(nullptr)
-      , mPrevSibling(nullptr)
+      : mLastChild(nsnull)
+      , mPrevSibling(nsnull)
     {}
 
         
@@ -436,11 +447,13 @@ class nsIWidget : public nsISupports {
 
 
 
+
     NS_IMETHOD Create(nsIWidget        *aParent,
                       nsNativeWidget   aNativeParent,
                       const nsIntRect  &aRect,
+                      EVENT_CALLBACK   aHandleEventFunction,
                       nsDeviceContext *aContext,
-                      nsWidgetInitData *aInitData = nullptr) = 0;
+                      nsWidgetInitData *aInitData = nsnull) = 0;
 
     
 
@@ -460,8 +473,9 @@ class nsIWidget : public nsISupports {
 
     virtual already_AddRefed<nsIWidget>
     CreateChild(const nsIntRect  &aRect,
+                EVENT_CALLBACK   aHandleEventFunction,
                 nsDeviceContext  *aContext,
-                nsWidgetInitData *aInitData = nullptr,
+                nsWidgetInitData *aInitData = nsnull,
                 bool             aForceUseIWidgetParent = false) = 0;
 
     
@@ -476,26 +490,23 @@ class nsIWidget : public nsISupports {
 
 
 
-
-
-
-    NS_IMETHOD AttachViewToTopLevel(bool aUseAttachedEvents,
+    NS_IMETHOD AttachViewToTopLevel(EVENT_CALLBACK aViewEventFunction,
                                     nsDeviceContext *aContext) = 0;
 
     
 
 
 
-    virtual void SetAttachedWidgetListener(nsIWidgetListener* aListener) = 0;
-    virtual nsIWidgetListener* GetAttachedWidgetListener() = 0;
+    NS_IMETHOD SetAttachedViewPtr(ViewWrapper* aViewWrapper) = 0;
+    virtual ViewWrapper* GetAttachedViewPtr() = 0;
 
     
 
 
 
     
-    virtual nsIWidgetListener* GetWidgetListener() = 0;
-    virtual void SetWidgetListener(nsIWidgetListener* alistener) = 0;
+    NS_IMETHOD  GetClientData(void*& aClientData) = 0;
+    NS_IMETHOD  SetClientData(void* aClientData) = 0;
     
 
     
@@ -620,7 +631,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual bool IsVisible() const = 0;
+    NS_IMETHOD IsVisible(bool & aState) = 0;
 
     
 
@@ -638,8 +649,8 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD ConstrainPosition(bool aAllowSlop,
-                                 int32_t *aX,
-                                 int32_t *aY) = 0;
+                                 PRInt32 *aX,
+                                 PRInt32 *aY) = 0;
 
     
 
@@ -651,7 +662,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Move(int32_t aX, int32_t aY) = 0;
+    NS_IMETHOD Move(PRInt32 aX, PRInt32 aY) = 0;
 
     
 
@@ -666,7 +677,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD MoveClient(int32_t aX, int32_t aY) = 0;
+    NS_IMETHOD MoveClient(PRInt32 aX, PRInt32 aY) = 0;
 
     
 
@@ -676,9 +687,8 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    NS_IMETHOD Resize(int32_t aWidth,
-                      int32_t aHeight,
+    NS_IMETHOD Resize(PRInt32 aWidth,
+                      PRInt32 aHeight,
                       bool     aRepaint) = 0;
 
     
@@ -691,11 +701,10 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    NS_IMETHOD Resize(int32_t aX,
-                      int32_t aY,
-                      int32_t aWidth,
-                      int32_t aHeight,
+    NS_IMETHOD Resize(PRInt32 aX,
+                      PRInt32 aY,
+                      PRInt32 aWidth,
+                      PRInt32 aHeight,
                       bool     aRepaint) = 0;
 
     
@@ -706,8 +715,8 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD ResizeClient(int32_t aWidth,
-                            int32_t aHeight,
+    NS_IMETHOD ResizeClient(PRInt32 aWidth,
+                            PRInt32 aHeight,
                             bool  aRepaint) = 0;
 
     
@@ -727,21 +736,21 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD ResizeClient(int32_t aX,
-                            int32_t aY,
-                            int32_t aWidth,
-                            int32_t aHeight,
+    NS_IMETHOD ResizeClient(PRInt32 aX,
+                            PRInt32 aY,
+                            PRInt32 aWidth,
+                            PRInt32 aHeight,
                             bool    aRepaint) = 0;
 
     
 
 
-    NS_IMETHOD SetZIndex(int32_t aZIndex) = 0;
+    NS_IMETHOD SetZIndex(PRInt32 aZIndex) = 0;
 
     
 
 
-    NS_IMETHOD GetZIndex(int32_t* aZIndex) = 0;
+    NS_IMETHOD GetZIndex(PRInt32* aZIndex) = 0;
 
     
 
@@ -761,13 +770,13 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetSizeMode(int32_t aMode) = 0;
+    NS_IMETHOD SetSizeMode(PRInt32 aMode) = 0;
 
     
 
 
 
-    NS_IMETHOD GetSizeMode(int32_t* aMode) = 0;
+    NS_IMETHOD GetSizeMode(PRInt32* aMode) = 0;
 
     
 
@@ -780,9 +789,12 @@ class nsIWidget : public nsISupports {
     
 
 
-    virtual bool IsEnabled() const = 0;
+
+    NS_IMETHOD IsEnabled(bool *aState) = 0;
 
     
+
+
 
 
 
@@ -912,7 +924,7 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD SetCursor(imgIContainer* aCursor,
-                         uint32_t aHotspotX, uint32_t aHotspotY) = 0;
+                         PRUint32 aHotspotX, PRUint32 aHotspotY) = 0;
 
     
 
@@ -986,7 +998,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetWindowShadowStyle(int32_t aStyle) = 0;
+    NS_IMETHOD SetWindowShadowStyle(PRInt32 aStyle) = 0;
 
     
 
@@ -995,28 +1007,6 @@ class nsIWidget : public nsISupports {
 
 
     virtual void SetShowsToolbarButton(bool aShow) = 0;
-
-    
-
-
-
-
-
-    virtual void SetShowsFullScreenButton(bool aShow) = 0;
-
-    enum WindowAnimationType {
-      eGenericWindowAnimation,
-      eDocumentWindowAnimation
-    };
-
-    
-
-
-
-
-
-
-    virtual void SetWindowAnimationType(WindowAnimationType aType) = 0;
 
     
 
@@ -1034,7 +1024,18 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Invalidate(const nsIntRect & aRect) = 0;
+
+
+
+    NS_IMETHOD Invalidate(const nsIntRect & aRect, bool aIsSynchronous) = 0;
+
+    
+
+
+
+
+
+     NS_IMETHOD Update() = 0;
 
     enum LayerManagerPersistence
     {
@@ -1049,16 +1050,16 @@ class nsIWidget : public nsISupports {
 
 
 
-    inline LayerManager* GetLayerManager(bool* aAllowRetaining = nullptr)
+    inline LayerManager* GetLayerManager(bool* aAllowRetaining = nsnull)
     {
-        return GetLayerManager(nullptr, mozilla::layers::LAYERS_NONE,
+        return GetLayerManager(nsnull, LayerManager::LAYERS_NONE,
                                LAYER_MANAGER_CURRENT, aAllowRetaining);
     }
 
     inline LayerManager* GetLayerManager(LayerManagerPersistence aPersistence,
-                                         bool* aAllowRetaining = nullptr)
+                                         bool* aAllowRetaining = nsnull)
     {
-        return GetLayerManager(nullptr, mozilla::layers::LAYERS_NONE,
+        return GetLayerManager(nsnull, LayerManager::LAYERS_NONE,
                                aPersistence, aAllowRetaining);
     }
 
@@ -1070,7 +1071,7 @@ class nsIWidget : public nsISupports {
     virtual LayerManager* GetLayerManager(PLayersChild* aShadowManager,
                                           LayersBackend aBackendHint,
                                           LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
-                                          bool* aAllowRetaining = nullptr) = 0;
+                                          bool* aAllowRetaining = nsnull) = 0;
 
     
 
@@ -1078,15 +1079,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void DrawWindowUnderlay(LayerManager* aManager, nsIntRect aRect) = 0;
-
-    
-
-
-
-
-
-    virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) = 0;
+    virtual void DrawOver(LayerManager* aManager, nsIntRect aRect) = 0;
 
     
 
@@ -1107,7 +1100,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion) {}
+    virtual void UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion) {};
 
     
 
@@ -1116,8 +1109,8 @@ class nsIWidget : public nsISupports {
     
     virtual void AddChild(nsIWidget* aChild) = 0;
     virtual void RemoveChild(nsIWidget* aChild) = 0;
-    virtual void* GetNativeData(uint32_t aDataType) = 0;
-    virtual void FreeNativeData(void * data, uint32_t aDataType) = 0;
+    virtual void* GetNativeData(PRUint32 aDataType) = 0;
+    virtual void FreeNativeData(void * data, PRUint32 aDataType) = 0;
 
     
     virtual nsDeviceContext* GetDeviceContext() = 0;
@@ -1205,7 +1198,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetAttention(int32_t aCycleCount) = 0;
+    NS_IMETHOD GetAttention(PRInt32 aCycleCount) = 0;
 
     
 
@@ -1286,7 +1279,7 @@ class nsIWidget : public nsISupports {
     
 
 
-    NS_IMETHOD BeginResizeDrag(nsGUIEvent* aEvent, int32_t aHorizontal, int32_t aVertical) = 0;
+    NS_IMETHOD BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical) = 0;
 
     
 
@@ -1331,9 +1324,9 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
-                                              int32_t aNativeKeyCode,
-                                              uint32_t aModifierFlags,
+    virtual nsresult SynthesizeNativeKeyEvent(PRInt32 aNativeKeyboardLayout,
+                                              PRInt32 aNativeKeyCode,
+                                              PRUint32 aModifierFlags,
                                               const nsAString& aCharacters,
                                               const nsAString& aUnmodifiedCharacters) = 0;
 
@@ -1352,42 +1345,8 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsresult SynthesizeNativeMouseEvent(nsIntPoint aPoint,
-                                                uint32_t aNativeMessage,
-                                                uint32_t aModifierFlags) = 0;
-
-    
-
-
-    virtual nsresult SynthesizeNativeMouseMove(nsIntPoint aPoint) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual nsresult SynthesizeNativeMouseScrollEvent(nsIntPoint aPoint,
-                                                      uint32_t aNativeMessage,
-                                                      double aDeltaX,
-                                                      double aDeltaY,
-                                                      double aDeltaZ,
-                                                      uint32_t aModifierFlags,
-                                                      uint32_t aAdditionalFlags) = 0;
+                                                PRUint32 aNativeMessage,
+                                                PRUint32 aModifierFlags) = 0;
 
     
 
@@ -1466,7 +1425,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetToggledKeyState(uint32_t aKeyCode, bool* aLEDState) = 0;
+    NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, bool* aLEDState) = 0;
 
     
 
@@ -1488,9 +1447,9 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD OnIMETextChange(uint32_t aStart,
-                               uint32_t aOldEnd,
-                               uint32_t aNewEnd) = 0;
+    NS_IMETHOD OnIMETextChange(PRUint32 aStart,
+                               PRUint32 aOldEnd,
+                               PRUint32 aNewEnd) = 0;
 
     
 
@@ -1527,9 +1486,9 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
+    NS_IMETHOD OverrideSystemMouseScrollSpeed(PRInt32 aOriginalDelta,
                                               bool aIsHorizontal,
-                                              int32_t &aOverriddenDelta) = 0;
+                                              PRInt32 &aOverriddenDelta) = 0;
 
     
 
@@ -1554,7 +1513,7 @@ class nsIWidget : public nsISupports {
 
 
     static already_AddRefed<nsIWidget>
-    CreatePuppetWidget(TabChild* aTabChild);
+    CreatePuppetWidget(PBrowserChild *aTabChild);
 
     
 
@@ -1562,66 +1521,6 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD ReparentNativeWidget(nsIWidget* aNewParent) = 0;
-
-    
-
-
-
-    virtual uint32_t GetGLFrameBufferFormat() { return 0;  }
-
-    
-
-
-    virtual bool HasGLContext() { return false; }
-
-    
-
-
-
-
-    virtual bool WidgetPaintsBackground() { return false; }
-
-    virtual bool NeedsPaint() {
-      return true;
-    }
-    
-
-
-
-
-
-
-
-
-
-
-
-    virtual nsIntRect GetNaturalBounds() {
-        nsIntRect bounds;
-        GetBounds(bounds);
-        return bounds;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-    virtual void SetSizeConstraints(const SizeConstraints& aConstraints) = 0;
-
-    
-
-
-
-
-    virtual const SizeConstraints& GetSizeConstraints() const = 0;
-
 protected:
 
     

@@ -5,6 +5,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
+
 #include "WinTaskbar.h"
 #include "TaskbarPreview.h"
 #include <nsITaskbarPreviewController.h>
@@ -78,7 +114,7 @@ SetWindowAppUserModelProp(nsIDOMWindow *aParent,
 
   typedef HRESULT (WINAPI * SHGetPropertyStoreForWindowPtr)
                     (HWND hwnd, REFIID riid, void** ppv);
-  SHGetPropertyStoreForWindowPtr funcGetProStore = nullptr;
+  SHGetPropertyStoreForWindowPtr funcGetProStore = nsnull;
 
   HMODULE hDLL = ::LoadLibraryW(kShellLibraryName);
   funcGetProStore = (SHGetPropertyStoreForWindowPtr)
@@ -119,7 +155,7 @@ SetWindowAppUserModelProp(nsIDOMWindow *aParent,
 
 
 
-class DefaultController MOZ_FINAL : public nsITaskbarPreviewController
+class DefaultController : public nsITaskbarPreviewController
 {
   HWND mWnd;
 public:
@@ -133,7 +169,7 @@ public:
 };
 
 NS_IMETHODIMP
-DefaultController::GetWidth(uint32_t *aWidth)
+DefaultController::GetWidth(PRUint32 *aWidth)
 {
   RECT r;
   ::GetClientRect(mWnd, &r);
@@ -142,7 +178,7 @@ DefaultController::GetWidth(uint32_t *aWidth)
 }
 
 NS_IMETHODIMP
-DefaultController::GetHeight(uint32_t *aHeight)
+DefaultController::GetHeight(PRUint32 *aHeight)
 {
   RECT r;
   ::GetClientRect(mWnd, &r);
@@ -152,7 +188,7 @@ DefaultController::GetHeight(uint32_t *aHeight)
 
 NS_IMETHODIMP
 DefaultController::GetThumbnailAspectRatio(float *aThumbnailAspectRatio) {
-  uint32_t width, height;
+  PRUint32 width, height;
   GetWidth(&width);
   GetHeight(&height);
   if (!height)
@@ -169,7 +205,7 @@ DefaultController::DrawPreview(nsIDOMCanvasRenderingContext2D *ctx, bool *rDrawF
 }
 
 NS_IMETHODIMP
-DefaultController::DrawThumbnail(nsIDOMCanvasRenderingContext2D *ctx, uint32_t width, uint32_t height, bool *rDrawFrame) {
+DefaultController::DrawThumbnail(nsIDOMCanvasRenderingContext2D *ctx, PRUint32 width, PRUint32 height, bool *rDrawFrame) {
   *rDrawFrame = false;
   return NS_OK;
 }
@@ -227,7 +263,7 @@ WinTaskbar::Initialize() {
 }
 
 WinTaskbar::WinTaskbar() 
-  : mTaskbar(nullptr) {
+  : mTaskbar(nsnull) {
 }
 
 WinTaskbar::~WinTaskbar() {
@@ -250,7 +286,7 @@ WinTaskbar::GetAppUserModelID(nsAString & aDefaultGroupId) {
                            getter_AddRefs(profileDir));
     bool exists = false;
     if (profileDir && NS_SUCCEEDED(profileDir->Exists(&exists)) && exists) {
-      nsAutoCString path;
+      nsCAutoString path;
       if (NS_SUCCEEDED(profileDir->GetNativePath(path))) {
         nsAutoString id;
         id.AppendInt(HashString(path));
@@ -328,7 +364,7 @@ WinTaskbar::RegisterAppUserModelID() {
   if (WinUtils::GetWindowsVersion() < WinUtils::WIN7_VERSION)
     return false;
 
-  SetCurrentProcessExplicitAppUserModelIDPtr funcAppUserModelID = nullptr;
+  SetCurrentProcessExplicitAppUserModelIDPtr funcAppUserModelID = nsnull;
   bool retVal = false;
 
   nsAutoString uid;
@@ -494,3 +530,4 @@ WinTaskbar::PrepareFullScreenHWND(void *aHWND, bool aFullScreen) {
 } 
 } 
 
+#endif 

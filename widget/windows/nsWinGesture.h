@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef WinGesture_h__
 #define WinGesture_h__
 
@@ -12,12 +45,10 @@
 
 #include "nsdefs.h"
 #include <winuser.h>
-#include <tpcshrd.h>
 #include "nsPoint.h"
 #include "nsGUIEvent.h"
 
-
-#if WINVER < 0x0602
+#ifndef HGESTUREINFO  
 
 DECLARE_HANDLE(HGESTUREINFO);
 
@@ -125,8 +156,16 @@ typedef struct tagGESTURENOTIFYSTRUCT {
 #define GCF_INCLUDE_ANCESTORS           0x00000001
 
 
+#define WM_TABLET_QUERYSYSTEMGESTURESTATUS 0x02CC
 #define WM_GESTURE                         0x0119
 #define WM_GESTURENOTIFY                   0x011A
+
+
+#define TABLET_ROTATE_GESTURE_ENABLE    0x02000000
+
+#endif 
+
+#ifndef HTOUCHINPUT 
 
 typedef struct _TOUCHINPUT {
   LONG      x;
@@ -165,9 +204,6 @@ typedef HANDLE HTOUCHINPUT;
 
 #endif 
 
-
-#define TABLET_ROTATE_GESTURE_ENABLE    0x02000000
-
 class nsPointWin : public nsIntPoint
 {
 public:
@@ -201,7 +237,7 @@ public:
   bool ShutdownWinGestureSupport();
   bool RegisterTouchWindow(HWND hWnd);
   bool UnregisterTouchWindow(HWND hWnd);
-  bool GetTouchInputInfo(HTOUCHINPUT hTouchInput, uint32_t cInputs, PTOUCHINPUT pInputs);
+  bool GetTouchInputInfo(HTOUCHINPUT hTouchInput, PRUint32 cInputs, PTOUCHINPUT pInputs);
   bool CloseTouchInputHandle(HTOUCHINPUT hTouchInput);
   bool IsAvailable();
   
@@ -211,9 +247,10 @@ public:
   
   bool IsPanEvent(LPARAM lParam);
   bool ProcessPanMessage(HWND hWnd, WPARAM wParam, LPARAM lParam);
-  bool PanDeltaToPixelScroll(mozilla::widget::WheelEvent& aWheelEvent);
-  void UpdatePanFeedbackX(HWND hWnd, int32_t scrollOverflow, bool& endFeedback);
-  void UpdatePanFeedbackY(HWND hWnd, int32_t scrollOverflow, bool& endFeedback);
+  bool PanDeltaToPixelScrollX(nsMouseScrollEvent& evt);
+  bool PanDeltaToPixelScrollY(nsMouseScrollEvent& evt);
+  void UpdatePanFeedbackX(HWND hWnd, PRInt32 scrollOverflow, bool& endFeedback);
+  void UpdatePanFeedbackY(HWND hWnd, PRInt32 scrollOverflow, bool& endFeedback);
   void PanFeedbackFinalize(HWND hWnd, bool endFeedback);
   
 public:
@@ -241,7 +278,7 @@ private:
   typedef BOOL (WINAPI * UpdatePanningFeedbackPtr)(HWND hWnd, LONG offsetX, LONG offsetY, BOOL fInInertia);
   typedef BOOL (WINAPI * RegisterTouchWindowPtr)(HWND hWnd, ULONG flags);
   typedef BOOL (WINAPI * UnregisterTouchWindowPtr)(HWND hWnd);
-  typedef BOOL (WINAPI * GetTouchInputInfoPtr)(HTOUCHINPUT hTouchInput, uint32_t cInputs, PTOUCHINPUT pInputs, int32_t cbSize);
+  typedef BOOL (WINAPI * GetTouchInputInfoPtr)(HTOUCHINPUT hTouchInput, PRUint32 cInputs, PTOUCHINPUT pInputs, PRInt32 cbSize);
   typedef BOOL (WINAPI * CloseTouchInputHandlePtr)(HTOUCHINPUT hTouchInput);
 
   

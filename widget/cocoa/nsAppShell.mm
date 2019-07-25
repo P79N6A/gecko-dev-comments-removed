@@ -1,7 +1,39 @@
 /* -*- Mode: c++; tab-width: 2; indent-tabs-mode: nil; -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is a Cocoa widget run loop and event implementation.
+ *
+ * The Initial Developer of the Original Code is Google Inc.
+ * Portions created by the Initial Developer are Copyright (C) 2006
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *  Mark Mentovai <mark@moxienet.com> (Original Author)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 /*
  * Runs the main native Cocoa run loop, interrupting it as needed to process
@@ -26,13 +58,11 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsIWebBrowserChrome.h"
 #include "nsObjCExceptions.h"
-#include "nsCocoaFeatures.h"
 #include "nsCocoaUtils.h"
 #include "nsChildView.h"
 #include "nsToolkit.h"
 #include "TextInputHandler.h"
 #include "mozilla/HangMonitor.h"
-#include "sampler.h"
 
 #include "npapi.h"
 
@@ -43,7 +73,7 @@ extern nsIRollupListener * gRollupListener;
 extern nsIWidget         * gRollupWidget;
 
 // defined in nsCocoaWindow.mm
-extern int32_t             gXULModalLevel;
+extern PRInt32             gXULModalLevel;
 
 static bool gAppShellMethodsSwizzled = false;
 // List of current Cocoa app-modal windows (nested if more than one).
@@ -141,8 +171,16 @@ bool nsCocoaAppModalWindowList::GeckoModalAboveCocoaModal()
 
   nsCocoaAppModalWindowListItem &topItem = mList.ElementAt(mList.Length() - 1);
 
-  return (topItem.mWidget != nullptr);
+  return (topItem.mWidget != nsnull);
 }
+
+// GeckoNSApplication
+//
+// Subclass of NSApplication for filtering out certain events.
+@interface GeckoNSApplication : NSApplication
+{
+}
+@end
 
 @implementation GeckoNSApplication
 
@@ -204,8 +242,8 @@ nsAppShell::ResumeNative(void)
 }
 
 nsAppShell::nsAppShell()
-: mAutoreleasePools(nullptr)
-, mDelegate(nullptr)
+: mAutoreleasePools(nsnull)
+, mDelegate(nsnull)
 , mCFRunLoop(NULL)
 , mCFRunLoopSource(NULL)
 , mRunningEventLoop(false)
@@ -265,7 +303,7 @@ nsAppShell::Init()
   // by |this|.  CFArray is used instead of NSArray because NSArray wants to
   // retain each object you add to it, and you can't retain an
   // NSAutoreleasePool.
-  mAutoreleasePools = ::CFArrayCreateMutable(nullptr, 0, nullptr);
+  mAutoreleasePools = ::CFArrayCreateMutable(nsnull, 0, nsnull);
   NS_ENSURE_STATE(mAutoreleasePools);
 
   // Get the path of the nib file, which lives in the GRE location
@@ -276,7 +314,7 @@ nsAppShell::Init()
   nibFile->AppendNative(NS_LITERAL_CSTRING("res"));
   nibFile->AppendNative(NS_LITERAL_CSTRING("MainMenu.nib"));
 
-  nsAutoCString nibPath;
+  nsCAutoString nibPath;
   rv = nibFile->GetNativePath(nibPath);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -332,7 +370,7 @@ nsAppShell::Init()
       nsToolkit::SwizzleMethods([NSApplication class], @selector(terminate:),
                                 @selector(nsAppShell_NSApplication_terminate:));
     }
-    if (!nsCocoaFeatures::OnSnowLeopardOrLater()) {
+    if (!nsToolkit::OnSnowLeopardOrLater()) {
       dlopen("/System/Library/Frameworks/Carbon.framework/Frameworks/Print.framework/Versions/Current/Plugins/PrintCocoaUI.bundle/Contents/MacOS/PrintCocoaUI",
              RTLD_LAZY);
       Class PDEPluginCallbackClass = ::NSClassFromString(@"PDEPluginCallback");
@@ -367,7 +405,7 @@ void
 nsAppShell::ProcessGeckoEvents(void* aInfo)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
-  SAMPLE_LABEL("Events", "ProcessGeckoEvents");
+
   nsAppShell* self = static_cast<nsAppShell*> (aInfo);
 
   if (self->mRunningEventLoop) {
@@ -437,7 +475,7 @@ nsAppShell::ProcessGeckoEvents(void* aInfo)
   // make sure not to finish the balancing until all the recursion has been
   // unwound.
   if (self->mTerminated) {
-    int32_t releaseCount = 0;
+    PRInt32 releaseCount = 0;
     if (self->mNativeEventScheduledDepth > self->mNativeEventCallbackDepth) {
       releaseCount = PR_ATOMIC_SET(&self->mNativeEventScheduledDepth,
                                    self->mNativeEventCallbackDepth);
@@ -796,8 +834,8 @@ nsAppShell::Exit(void)
   NS_ASSERTION(!cocoaModal,
                "Don't call nsAppShell::Exit() from a modal event loop!");
   if (cocoaModal)
-    [NSApp stop:nullptr];
-  [NSApp stop:nullptr];
+    [NSApp stop:nsnull];
+  [NSApp stop:nsnull];
 
   // A call to Exit() just after a call to ScheduleNativeEventCallback()
   // prevents the (normally) matching call to ProcessGeckoEvents() from
@@ -806,7 +844,7 @@ nsAppShell::Exit(void)
   // to ScheduleNativeEventCallback() and ProcessGeckoEvents() isn't on the
   // stack, we need to take care of the problem here.
   if (!mNativeEventCallbackDepth && mNativeEventScheduledDepth) {
-    int32_t releaseCount = PR_ATOMIC_SET(&mNativeEventScheduledDepth, 0);
+    PRInt32 releaseCount = PR_ATOMIC_SET(&mNativeEventScheduledDepth, 0);
     while (releaseCount-- > 0)
       NS_RELEASE_THIS();
   }
@@ -828,7 +866,7 @@ nsAppShell::Exit(void)
 // public
 NS_IMETHODIMP
 nsAppShell::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
-                               uint32_t aRecursionDepth)
+                               PRUint32 aRecursionDepth)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -854,7 +892,7 @@ nsAppShell::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
 // public
 NS_IMETHODIMP
 nsAppShell::AfterProcessNextEvent(nsIThreadInternal *aThread,
-                                  uint32_t aRecursionDepth)
+                                  PRUint32 aRecursionDepth)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 

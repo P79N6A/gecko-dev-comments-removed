@@ -5,8 +5,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __mozilla_widget_TaskbarPreview_h__
 #define __mozilla_widget_TaskbarPreview_h__
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
 
 #include <windows.h>
 #include <shobjidl.h>
@@ -78,7 +113,7 @@ private:
 
   
   
-  void DrawBitmap(uint32_t width, uint32_t height, bool isPreview);
+  void DrawBitmap(PRUint32 width, PRUint32 height, bool isPreview);
 
   
   static bool MainWindowHook(void *aContext,
@@ -99,4 +134,7 @@ private:
 } 
 
 #endif 
+
+#endif 
+
 

@@ -3,23 +3,58 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _NSDATAOBJ_H_
 #define _NSDATAOBJ_H_
 
+#ifdef __MINGW32__
+#include <unknwn.h>
+#include <basetyps.h>
+#include <objidl.h>
+#endif
 #include <oleidl.h>
 #include <shldisp.h>
 
 #include "nsCOMPtr.h"
 #include "nsString.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIURI.h"
 #include "nsIInputStream.h"
 #include "nsIStreamListener.h"
 #include "nsIChannel.h"
 #include "nsCOMArray.h"
 #include "nsITimer.h"
-
-class nsIThread;
 
 
 
@@ -76,6 +111,35 @@ IAsyncOperation : public IUnknown
 # define CFSTR_FILEDESCRIPTORW   L"FileGroupDescriptorW"
 #endif
 
+#ifdef __MINGW32__
+# include <w32api.h>
+# if __W32API_MAJOR_VERSION < 3 || (__W32API_MAJOR_VERSION == 3 && __W32API_MINOR_VERSION == 0)
+#  ifndef FILEGROUPDESCRIPTORA
+#   define FILEGROUPDESCRIPTORA    FILEGROUPDESCRIPTOR
+#  endif
+#  ifndef LPFILEGROUPDESCRIPTORA
+#   define LPFILEGROUPDESCRIPTORA  LPFILEGROUPDESCRIPTOR
+#  endif
+typedef struct _FILEDESCRIPTORW {
+   DWORD dwFlags;
+   CLSID clsid;
+   SIZEL sizel;
+   POINTL pointl;
+   DWORD dwFileAttributes;
+   FILETIME ftCreationTime;
+   FILETIME ftLastAccessTime;
+   FILETIME ftLastWriteTime;
+   DWORD nFileSizeHigh;
+   DWORD nFileSizeLow;
+   WCHAR cFileName[MAX_PATH];
+} FILEDESCRIPTORW,*LPFILEDESCRIPTORW;
+typedef struct _FILEGROUPDESCRIPTORW {
+   UINT cItems;
+   FILEDESCRIPTORW fgd[1];
+} FILEGROUPDESCRIPTORW,*LPFILEGROUPDESCRIPTORW;
+# endif 
+#endif 
+
 class CEnumFormatEtc;
 class nsITransferable;
 
@@ -87,13 +151,9 @@ class nsITransferable;
 class nsDataObj : public IDataObject,
                   public IAsyncOperation
 {
-
-protected:
-  nsCOMPtr<nsIThread> mIOThread;
-
   public: 
-    nsDataObj(nsIURI *uri = nullptr);
-    virtual ~nsDataObj();
+    nsDataObj(nsIURI *uri = nsnull);
+    ~nsDataObj();
 
 	public: 
 		STDMETHODIMP_(ULONG) AddRef        ();
@@ -237,10 +297,10 @@ protected:
     class CStream : public IStream, public nsIStreamListener
     {
       nsCOMPtr<nsIChannel> mChannel;
-      nsTArray<uint8_t> mChannelData;
+      nsTArray<PRUint8> mChannelData;
       bool mChannelRead;
       nsresult mChannelResult;
-      uint32_t mStreamRead;
+      PRUint32 mStreamRead;
 
     protected:
       virtual ~CStream();

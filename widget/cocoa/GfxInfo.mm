@@ -1,7 +1,40 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Jonathan Griffin <jgriffin@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/CGLRenderers.h>
@@ -11,7 +44,7 @@
 #include "GfxInfo.h"
 #include "nsUnicharUtils.h"
 #include "mozilla/FunctionTimer.h"
-#include "nsCocoaFeatures.h"
+#include "nsToolkit.h"
 #include "mozilla/Preferences.h"
 
 #import <Foundation/Foundation.h>
@@ -30,7 +63,6 @@
 #define MAC_OS_X_VERSION_10_5_HEX   0x00001050
 #define MAC_OS_X_VERSION_10_6_HEX   0x00001060
 #define MAC_OS_X_VERSION_10_7_HEX   0x00001070
-#define MAC_OS_X_VERSION_10_8_HEX   0x00001080
 
 using namespace mozilla;
 using namespace mozilla::widget;
@@ -44,7 +76,7 @@ GfxInfo::GfxInfo()
 }
 
 static OperatingSystem
-OSXVersionToOperatingSystem(uint32_t aOSXVersion)
+OSXVersionToOperatingSystem(PRUint32 aOSXVersion)
 {
   switch (aOSXVersion & MAC_OS_X_VERSION_MAJOR_MASK) {
     case MAC_OS_X_VERSION_10_5_HEX:
@@ -53,8 +85,6 @@ OSXVersionToOperatingSystem(uint32_t aOSXVersion)
       return DRIVER_OS_OS_X_10_6;
     case MAC_OS_X_VERSION_10_7_HEX:
       return DRIVER_OS_OS_X_10_7;
-    case MAC_OS_X_VERSION_10_8_HEX:
-      return DRIVER_OS_OS_X_10_8;
   }
 
   return DRIVER_OS_UNKNOWN;
@@ -71,12 +101,12 @@ static CFTypeRef SearchPortForProperty(io_registry_entry_t dspPort,
                                          kIORegistryIterateParents);
 }
 
-static uint32_t IntValueOfCFData(CFDataRef d)
+static PRUint32 IntValueOfCFData(CFDataRef d)
 {
-  uint32_t value = 0;
+  PRUint32 value = 0;
 
   if (d) {
-    const uint32_t *vp = reinterpret_cast<const uint32_t*>(CFDataGetBytePtr(d));
+    const PRUint32 *vp = reinterpret_cast<const PRUint32*>(CFDataGetBytePtr(d));
     if (vp != NULL)
       value = *vp;
   }
@@ -146,7 +176,7 @@ GfxInfo::Init()
 
   AddCrashReportAnnotations();
 
-  mOSXVersion = nsCocoaFeatures::OSXVersion();
+  mOSXVersion = nsToolkit::OSXVersion();
 
   return rv;
 }
@@ -155,6 +185,20 @@ NS_IMETHODIMP
 GfxInfo::GetD2DEnabled(bool *aEnabled)
 {
   return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+GfxInfo::GetAzureEnabled(bool *aEnabled)
+{
+  bool azure = false;
+  nsresult rv = mozilla::Preferences::GetBool("gfx.canvas.azure.enabled", &azure);
+  
+  if (NS_SUCCEEDED(rv) && azure) {
+    *aEnabled = true;
+  } else {
+    *aEnabled = false;
+  }
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -294,7 +338,7 @@ GfxInfo::AddCrashReportAnnotations()
 {
 #if defined(MOZ_CRASHREPORTER)
   nsString deviceID, vendorID;
-  nsAutoCString narrowDeviceID, narrowVendorID;
+  nsCAutoString narrowDeviceID, narrowVendorID;
 
   GetAdapterDeviceID(deviceID);
   CopyUTF16toUTF8(deviceID, narrowDeviceID);
@@ -307,7 +351,7 @@ GfxInfo::AddCrashReportAnnotations()
                                      narrowDeviceID);
   /* Add an App Note for now so that we get the data immediately. These
    * can go away after we store the above in the socorro db */
-  nsAutoCString note;
+  nsCAutoString note;
   /* AppendPrintf only supports 32 character strings, mrghh. */
   note.Append("AdapterVendorID: ");
   note.Append(narrowVendorID);
@@ -320,7 +364,7 @@ GfxInfo::AddCrashReportAnnotations()
 // We don't support checking driver versions on Mac.
 #define IMPLEMENT_MAC_DRIVER_BLOCKLIST(os, vendor, device, features, blockOn) \
   APPEND_TO_DRIVER_BLOCKLIST(os, vendor, device, features, blockOn,           \
-                             DRIVER_COMPARISON_IGNORED, V(0,0,0,0), "")
+                             DRIVER_UNKNOWN_COMPARISON, V(0,0,0,0), "")
 
 
 const nsTArray<GfxDriverInfo>&
@@ -341,11 +385,11 @@ GfxInfo::GetGfxDriverInfo()
 }
 
 nsresult
-GfxInfo::GetFeatureStatusImpl(int32_t aFeature, 
-                              int32_t* aStatus,
+GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, 
+                              PRInt32* aStatus,
                               nsAString& aSuggestedDriverVersion,
                               const nsTArray<GfxDriverInfo>& aDriverInfo,
-                              OperatingSystem* aOS /* = nullptr */)
+                              OperatingSystem* aOS /* = nsnull */)
 {
   NS_ENSURE_ARG_POINTER(aStatus);
   aSuggestedDriverVersion.SetIsVoid(true);
@@ -360,7 +404,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
     //   * bug 631258: WebGL shader paints using textures belonging to other processes on Mac OS 10.5
     //   * bug 618848: Post process shaders and texture mapping crash OS X 10.5
     if (aFeature == nsIGfxInfo::FEATURE_WEBGL_OPENGL &&
-        !nsCocoaFeatures::OnSnowLeopardOrLater()) {
+        !nsToolkit::OnSnowLeopardOrLater()) {
       *aStatus = nsIGfxInfo::FEATURE_BLOCKED_OS_VERSION;
       return NS_OK;
     }
@@ -376,7 +420,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
       // Therefore we need to explicitly blacklist non-OpenGL2 hardware, which could result in a software renderer
       // being used.
 
-      for (uint32_t i = 0; i < ArrayLength(mRendererIDs); ++i) {
+      for (PRUint32 i = 0; i < ArrayLength(mRendererIDs); ++i) {
         switch (mRendererIDs[i]) {
           case kCGLRendererATIRage128ID: // non-programmable
           case kCGLRendererATIRadeonID: // non-programmable
@@ -406,7 +450,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
     if (aFeature == nsIGfxInfo::FEATURE_WEBGL_MSAA) {
       // Blacklist all ATI cards on OSX, except for
       // 0x6760 and 0x9488
-      if (mAdapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorATI), nsCaseInsensitiveStringComparator()) && 
+      if (mAdapterVendorID == GfxDriverInfo::GetDeviceVendor(VendorATI) && 
           (mAdapterDeviceID.LowerCaseEqualsLiteral("0x6760") ||
            mAdapterDeviceID.LowerCaseEqualsLiteral("0x9488"))) {
         *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
@@ -444,7 +488,7 @@ NS_IMETHODIMP GfxInfo::SpoofDriverVersion(const nsAString & aDriverVersion)
 }
 
 /* void spoofOSVersion (in unsigned long aVersion); */
-NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion)
+NS_IMETHODIMP GfxInfo::SpoofOSVersion(PRUint32 aVersion)
 {
   mOSXVersion = aVersion;
   return NS_OK;

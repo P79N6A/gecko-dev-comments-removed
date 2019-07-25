@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsNativeDragTarget_h_
 #define _nsNativeDragTarget_h_
 
@@ -11,10 +43,10 @@
 #include <shlobj.h>
 
 #ifndef IDropTargetHelper
+#ifndef __MINGW32__   
 #include <shobjidl.h> 
+#endif  
 #endif
-
-#include "mozilla/Attributes.h"
 
 class nsIDragService;
 class nsIWidget;
@@ -26,10 +58,10 @@ struct IDataObject;
 
 
 
-class nsNativeDragTarget MOZ_FINAL : public IDropTarget
+class nsNativeDragTarget : public IDropTarget
 {
 public:
-  nsNativeDragTarget(nsIWidget * aWidget);
+  nsNativeDragTarget(nsIWidget * aWnd);
   ~nsNativeDragTarget();
 
   
@@ -71,10 +103,10 @@ public:
 protected:
 
   void GetGeckoDragAction(DWORD grfKeyState, LPDWORD pdwEffect, 
-                          uint32_t * aGeckoAction);
-  void ProcessDrag(uint32_t aEventType, DWORD grfKeyState,
+                          PRUint32 * aGeckoAction);
+  void ProcessDrag(PRUint32 aEventType, DWORD grfKeyState,
                    POINTL pt, DWORD* pdwEffect);
-  void DispatchDragDropEvent(uint32_t aType, POINTL pt);
+  void DispatchDragDropEvent(PRUint32 aType, POINTL pt);
   void AddLinkSupportIfCanBeGenerated(LPDATAOBJECT aIDataSource);
 
   
@@ -85,13 +117,9 @@ protected:
   bool             mTookOwnRef;
 
   
-  nsIWidget      * mWidget;
+  nsIWidget      * mWindow;
   nsIDragService * mDragService;
-  
-  IDropTargetHelper * GetDropTargetHelper();
 
-
-private:
   
   IDropTargetHelper * mDropTargetHelper;
 };

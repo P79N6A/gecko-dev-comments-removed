@@ -3,8 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __JumpListItem_h__
 #define __JumpListItem_h__
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
 
 #include <windows.h>
 #include <shobjidl.h>
@@ -32,7 +68,7 @@ public:
    mItemType(nsIJumpListItem::JUMPLIST_ITEM_EMPTY)
   {}
 
-  JumpListItem(int32_t type) :
+  JumpListItem(PRInt32 type) :
    mItemType(type)
   {}
 
@@ -48,6 +84,8 @@ protected:
   short Type() { return mItemType; }
   short mItemType;
 
+  static nsresult HashURI(nsCOMPtr<nsICryptoHash> &aCryptoHash,
+                          nsIURI *aUri, nsACString& aUriHash);
 };
 
 class JumpListSeparator : public JumpListItem, public nsIJumpListSeparator
@@ -58,7 +96,7 @@ public:
   {}
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_IMETHOD GetType(int16_t *aType) { return JumpListItem::GetType(aType); }
+  NS_IMETHOD GetType(PRInt16 *aType) { return JumpListItem::GetType(aType); }
   NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval) { return JumpListItem::Equals(item, _retval); }
 
   static nsresult GetSeparator(nsRefPtr<IShellLinkW>& aShellLink);
@@ -72,7 +110,7 @@ public:
   {}
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_IMETHOD GetType(int16_t *aType) { return JumpListItem::GetType(aType); }
+  NS_IMETHOD GetType(PRInt16 *aType) { return JumpListItem::GetType(aType); }
   NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval);
   NS_DECL_NSIJUMPLISTLINK
 
@@ -94,7 +132,7 @@ public:
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(JumpListShortcut, JumpListItem);
-  NS_IMETHOD GetType(int16_t *aType) { return JumpListItem::GetType(aType); }
+  NS_IMETHOD GetType(PRInt16 *aType) { return JumpListItem::GetType(aType); }
   NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval);
   NS_DECL_NSIJUMPLISTSHORTCUT
 
@@ -106,7 +144,7 @@ public:
                                     nsCOMPtr<nsIFile> &aICOFile);
 
 protected:
-  int32_t mIconIndex;
+  PRInt32 mIconIndex;
   nsCOMPtr<nsIURI> mFaviconPageURI;
   nsCOMPtr<nsILocalHandlerApp> mHandlerApp;
 
@@ -121,5 +159,7 @@ protected:
 
 } 
 } 
+
+#endif 
 
 #endif 

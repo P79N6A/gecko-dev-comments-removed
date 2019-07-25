@@ -5,9 +5,42 @@
 
 
 
-#ifdef MOZ_X11
-#include "mozilla/X11Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined(MOZ_PLATFORM_MAEMO) && defined(MOZ_X11)
+#include <QX11Info>
 #endif
+
 #include "nsIdleServiceQt.h"
 #include "nsIServiceManager.h"
 #include "nsDebug.h"
@@ -22,18 +55,18 @@ typedef XScreenSaverInfo* (*_XScreenSaverAllocInfo_fn)(void);
 typedef void (*_XScreenSaverQueryInfo_fn)(Display* dpy, Drawable drw,
                                           XScreenSaverInfo *info);
 
-static _XScreenSaverQueryExtension_fn _XSSQueryExtension = nullptr;
-static _XScreenSaverAllocInfo_fn _XSSAllocInfo = nullptr;
-static _XScreenSaverQueryInfo_fn _XSSQueryInfo = nullptr;
+static _XScreenSaverQueryExtension_fn _XSSQueryExtension = nsnull;
+static _XScreenSaverAllocInfo_fn _XSSAllocInfo = nsnull;
+static _XScreenSaverQueryInfo_fn _XSSQueryInfo = nsnull;
 #endif
 
 static bool sInitialized = false;
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsIdleServiceQt, nsIdleService)
+NS_IMPL_ISUPPORTS2(nsIdleServiceQt, nsIIdleService, nsIdleService)
 
 nsIdleServiceQt::nsIdleServiceQt()
 #if !defined(MOZ_PLATFORM_MAEMO) && defined(MOZ_X11)
-    : mXssInfo(nullptr)
+    : mXssInfo(nsnull)
 #endif
 {
 }
@@ -70,21 +103,21 @@ nsIdleServiceQt::~nsIdleServiceQt()
 #if 0
     if (xsslib) {
         PR_UnloadLibrary(xsslib);
-        xsslib = nullptr;
+        xsslib = nsnull;
     }
 #endif
 #endif
 }
 
 bool
-nsIdleServiceQt::PollIdleTime(uint32_t *aIdleTime)
+nsIdleServiceQt::PollIdleTime(PRUint32 *aIdleTime)
 {
 #if !defined(MOZ_PLATFORM_MAEMO) && defined(MOZ_X11)
     
     *aIdleTime = 0;
 
     
-    Display *dplay = mozilla::DefaultXDisplay();
+    Display *dplay = QX11Info::display();
     if (!dplay) {
         return false;
     }
@@ -103,7 +136,7 @@ nsIdleServiceQt::PollIdleTime(uint32_t *aIdleTime)
         if (!mXssInfo)
             return false;
 
-        _XSSQueryInfo(dplay, RootWindowOfScreen(DefaultScreenOfDisplay(mozilla::DefaultXDisplay())), mXssInfo);
+        _XSSQueryInfo(dplay, QX11Info::appRootWindow(), mXssInfo);
         *aIdleTime = mXssInfo->idle;
         return true;
     }

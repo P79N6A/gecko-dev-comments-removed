@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsNativeDragSource_h_
 #define _nsNativeDragSource_h_
 
@@ -10,7 +42,6 @@
 #include "nsCOMPtr.h"
 #include <ole2.h>
 #include <oleidl.h>
-#include "mozilla/Attributes.h"
 
 
 
@@ -18,7 +49,7 @@
 
 
 
-class nsNativeDragSource MOZ_FINAL : public IDropSource
+class nsNativeDragSource : public IDropSource
 {
 public:
 
@@ -53,7 +84,7 @@ protected:
   ULONG m_cRef;
 
   
-  nsCOMPtr<nsIDOMDataTransfer> mDataTransfer;
+  nsCOMPtr<nsIDOMNSDataTransfer> mDataTransfer;
 
   
   HCURSOR m_hCursor;

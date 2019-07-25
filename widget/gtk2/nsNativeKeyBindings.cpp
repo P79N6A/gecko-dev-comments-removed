@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/Util.h"
 
 #include "nsNativeKeyBindings.h"
@@ -16,7 +49,6 @@
 #include <gdk/gdk.h>
 
 using namespace mozilla;
-using namespace mozilla::widget;
 
 static nsINativeKeyBindings::DoCommandCallback gCurrentCallback;
 static void *gCurrentCallbackData;
@@ -56,7 +88,7 @@ static const char *const sDeleteCommands[][2] = {
   
   
   
-  { nullptr, nullptr } 
+  { nsnull, nsnull } 
 };
 
 static void
@@ -67,7 +99,7 @@ delete_from_cursor_cb(GtkWidget *w, GtkDeleteType del_type,
   gHandled = true;
 
   bool forward = count > 0;
-  if (uint32_t(del_type) >= ArrayLength(sDeleteCommands)) {
+  if (PRUint32(del_type) >= ArrayLength(sDeleteCommands)) {
     
     return;
   }
@@ -146,8 +178,8 @@ static const char *const sMoveCommands[][2][2] = {
     { "cmd_selectTop", "cmd_selectBottom" }
   },
   { 
-    { nullptr, nullptr },
-    { nullptr, nullptr }
+    { nsnull, nsnull },
+    { nsnull, nsnull }
   }
 };
 
@@ -158,7 +190,7 @@ move_cursor_cb(GtkWidget *w, GtkMovementStep step, gint count,
   g_signal_stop_emission_by_name(w, "move_cursor");
   gHandled = true;
   bool forward = count > 0;
-  if (uint32_t(step) >= ArrayLength(sMoveCommands)) {
+  if (PRUint32(step) >= ArrayLength(sMoveCommands)) {
     
     return;
   }
@@ -245,12 +277,12 @@ bool
 nsNativeKeyBindings::KeyPress(const nsNativeKeyEvent& aEvent,
                               DoCommandCallback aCallback, void *aCallbackData)
 {
-  uint32_t keyCode;
+  PRUint32 keyCode;
 
   if (aEvent.charCode != 0)
     keyCode = gdk_unicode_to_keyval(aEvent.charCode);
   else
-    keyCode = KeymapWrapper::GuessGDKKeyval(aEvent.keyCode);
+    keyCode = DOMKeyCodeToGdkKeyCode(aEvent.keyCode);
 
   if (KeyPressInternal(aEvent, aCallback, aCallbackData, keyCode))
     return true;
@@ -262,8 +294,8 @@ nsNativeKeyBindings::KeyPress(const nsNativeKeyEvent& aEvent,
     return false;
   }
 
-  for (uint32_t i = 0; i < nativeKeyEvent->alternativeCharCodes.Length(); ++i) {
-    uint32_t ch = nativeKeyEvent->IsShift() ?
+  for (PRUint32 i = 0; i < nativeKeyEvent->alternativeCharCodes.Length(); ++i) {
+    PRUint32 ch = nativeKeyEvent->isShift ?
         nativeKeyEvent->alternativeCharCodes[i].mShiftedCharCode :
         nativeKeyEvent->alternativeCharCodes[i].mUnshiftedCharCode;
     if (ch && ch != aEvent.charCode) {
@@ -293,7 +325,7 @@ bool
 nsNativeKeyBindings::KeyPressInternal(const nsNativeKeyEvent& aEvent,
                                       DoCommandCallback aCallback,
                                       void *aCallbackData,
-                                      uint32_t aKeyCode)
+                                      PRUint32 aKeyCode)
 {
   int modifiers = 0;
   if (aEvent.altKey)
@@ -312,8 +344,8 @@ nsNativeKeyBindings::KeyPressInternal(const nsNativeKeyEvent& aEvent,
   gtk_bindings_activate(GTK_OBJECT(mNativeTarget),
                         aKeyCode, GdkModifierType(modifiers));
 
-  gCurrentCallback = nullptr;
-  gCurrentCallbackData = nullptr;
+  gCurrentCallback = nsnull;
+  gCurrentCallbackData = nsnull;
 
   return gHandled;
 }

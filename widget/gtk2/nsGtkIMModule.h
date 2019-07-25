@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsGtkIMModule_h__
 #define __nsGtkIMModule_h__
 
@@ -34,7 +66,7 @@ protected:
 public:
     nsrefcnt AddRef()
     {
-        NS_PRECONDITION(int32_t(mRefCnt) >= 0, "mRefCnt is negative");
+        NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "mRefCnt is negative");
         ++mRefCnt;
         NS_LOG_ADDREF(this, mRefCnt, "nsGtkIMModule", sizeof(*this));
         return mRefCnt;
@@ -131,7 +163,7 @@ protected:
     
     
     
-    uint32_t mCompositionStart;
+    PRUint32 mCompositionStart;
 
     
     
@@ -139,50 +171,14 @@ protected:
 
     
     
-    nsString mSelectedString;
-
-    
-    
     GdkEventKey* mProcessingKeyEvent;
 
+
     
-    enum eCompositionState {
-        eCompositionState_NotComposing,
-        eCompositionState_CompositionStartDispatched,
-        eCompositionState_TextEventDispatched,
-        eCompositionState_CommitTextEventDispatched
-    };
-    eCompositionState mCompositionState;
-
-    bool IsComposing()
-    {
-        return (mCompositionState != eCompositionState_NotComposing);
-    }
-
-    bool EditorHasCompositionString()
-    {
-        return (mCompositionState == eCompositionState_TextEventDispatched);
-    }
-
-#ifdef PR_LOGGING
-    const char* GetCompositionStateName()
-    {
-        switch (mCompositionState) {
-            case eCompositionState_NotComposing:
-                return "NotComposing";
-            case eCompositionState_CompositionStartDispatched:
-                return "CompositionStartDispatched";
-            case eCompositionState_TextEventDispatched:
-                return "TextEventDispatched";
-            case eCompositionState_CommitTextEventDispatched:
-                return "CommitTextEventDispatched";
-            default:
-                return "InvaildState";
-        }
-    }
-#endif 
-
-
+    
+    
+    
+    bool mIsComposing;
     
     
     bool mIsIMFocused;
@@ -270,16 +266,16 @@ protected:
     void SetTextRangeList(nsTArray<nsTextRange> &aTextRangeList);
 
     
-    void SetCursorPosition(uint32_t aTargetOffset);
+    void SetCursorPosition(PRUint32 aTargetOffset);
 
     
-    uint32_t GetSelectionOffset(nsWindow* aWindow);
+    PRUint32 GetSelectionOffset(nsWindow* aWindow);
 
     
-    nsresult GetCurrentParagraph(nsAString& aText, uint32_t& aCursorPos);
+    nsresult GetCurrentParagraph(nsAString& aText, PRUint32& aCursorPos);
 
     
-    nsresult DeleteText(const int32_t aOffset, const uint32_t aNChars);
+    nsresult DeleteText(const PRInt32 aOffset, const PRUint32 aNChars);
 
     
     void InitEvent(nsGUIEvent& aEvent);
@@ -310,7 +306,7 @@ protected:
     
     
     bool DispatchTextEvent(const nsAString& aCompositionString,
-                           bool aIsCommit);
+                             bool aCheckAttr);
 
 };
 

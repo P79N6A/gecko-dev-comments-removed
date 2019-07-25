@@ -12,36 +12,60 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_widget_PuppetWidget_h__
 #define mozilla_widget_PuppetWidget_h__
 
-#include "nsBaseScreen.h"
 #include "nsBaseWidget.h"
-#include "nsIScreenManager.h"
 #include "nsThreadUtils.h"
 #include "nsWeakReference.h"
-#include "mozilla/Attributes.h"
 
 class gfxASurface;
 
 namespace mozilla {
-
-namespace dom {
-class TabChild;
-}
-
 namespace widget {
 
 class PuppetWidget : public nsBaseWidget, public nsSupportsWeakReference
 {
-  typedef mozilla::dom::TabChild TabChild;
   typedef nsBaseWidget Base;
 
   
   static const size_t kMaxDimension;
 
 public:
-  PuppetWidget(TabChild* aTabChild);
+  PuppetWidget(PBrowserChild *aTabChild);
   virtual ~PuppetWidget();
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -49,40 +73,39 @@ public:
   NS_IMETHOD Create(nsIWidget*        aParent,
                     nsNativeWidget    aNativeParent,
                     const nsIntRect&  aRect,
+                    EVENT_CALLBACK    aHandleEventFunction,
                     nsDeviceContext*  aContext,
-                    nsWidgetInitData* aInitData = nullptr);
-
-  void InitIMEState();
+                    nsWidgetInitData* aInitData = nsnull);
 
   virtual already_AddRefed<nsIWidget>
   CreateChild(const nsIntRect  &aRect,
+              EVENT_CALLBACK   aHandleEventFunction,
               nsDeviceContext  *aContext,
-              nsWidgetInitData *aInitData = nullptr,
+              nsWidgetInitData *aInitData = nsnull,
               bool             aForceUseIWidgetParent = false);
 
   NS_IMETHOD Destroy();
 
   NS_IMETHOD Show(bool aState);
-
-  virtual bool IsVisible() const
-  { return mVisible; }
+  NS_IMETHOD IsVisible(bool& aState)
+  { aState = mVisible; return NS_OK; }
 
   NS_IMETHOD ConstrainPosition(bool     ,
-                               int32_t* aX,
-                               int32_t* aY)
+                               PRInt32* aX,
+                               PRInt32* aY)
   { *aX = kMaxDimension;  *aY = kMaxDimension;  return NS_OK; }
 
   
-  NS_IMETHOD Move(int32_t aX, int32_t aY)
+  NS_IMETHOD Move(PRInt32 aX, PRInt32 aY)
   { return NS_OK; }
 
-  NS_IMETHOD Resize(int32_t aWidth,
-                    int32_t aHeight,
+  NS_IMETHOD Resize(PRInt32 aWidth,
+                    PRInt32 aHeight,
                     bool    aRepaint);
-  NS_IMETHOD Resize(int32_t aX,
-                    int32_t aY,
-                    int32_t aWidth,
-                    int32_t aHeight,
+  NS_IMETHOD Resize(PRInt32 aX,
+                    PRInt32 aY,
+                    PRInt32 aWidth,
+                    PRInt32 aHeight,
                     bool    aRepaint)
   
   { return Resize(aWidth, aHeight, aRepaint); }
@@ -91,8 +114,8 @@ public:
   
   NS_IMETHOD Enable(bool aState)
   { mEnabled = aState;  return NS_OK; }
-  virtual bool IsEnabled() const
-  { return mEnabled; }
+  NS_IMETHOD IsEnabled(bool *aState)
+  { *aState = mEnabled;  return NS_OK; }
 
   NS_IMETHOD SetFocus(bool aRaise = false);
 
@@ -100,7 +123,9 @@ public:
   virtual nsresult ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
   { return NS_OK; }
 
-  NS_IMETHOD Invalidate(const nsIntRect& aRect);
+  NS_IMETHOD Invalidate(const nsIntRect& aRect, bool aIsSynchronous);
+
+  NS_IMETHOD Update();
 
   
   virtual void Scroll(const nsIntPoint& aDelta,
@@ -109,7 +134,7 @@ public:
   {  }
 
   
-  virtual void* GetNativeData(uint32_t aDataType);
+  virtual void* GetNativeData(PRUint32 aDataType);
   NS_IMETHOD ReparentNativeWidget(nsIWidget* aNewParent)
   { return NS_ERROR_UNEXPECTED; }
 
@@ -121,7 +146,7 @@ public:
   virtual nsIntPoint WidgetToScreenOffset()
   { return nsIntPoint(0, 0); }
 
-  void InitEvent(nsGUIEvent& event, nsIntPoint* aPoint = nullptr);
+  void InitEvent(nsGUIEvent& event, nsIntPoint* aPoint = nsnull);
 
   NS_IMETHOD DispatchEvent(nsGUIEvent* event, nsEventStatus& aStatus);
 
@@ -133,20 +158,13 @@ public:
   
   
 
-  
-  
-  
-  
-  
-  
-  virtual nsTransparencyMode GetTransparencyMode() MOZ_OVERRIDE
-  { return eTransparencyTransparent; }
 
   virtual LayerManager*
-  GetLayerManager(PLayersChild* aShadowManager = nullptr,
-                  LayersBackend aBackendHint = mozilla::layers::LAYERS_NONE,
+  GetLayerManager(PLayersChild* aShadowManager = nsnull,
+                  LayersBackend aBackendHint = LayerManager::LAYERS_NONE,
                   LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
-                  bool* aAllowRetaining = nullptr);
+                  bool* aAllowRetaining = nsnull);
+
   virtual gfxASurface*      GetThebesSurface();
 
   NS_IMETHOD ResetInputState();
@@ -155,16 +173,11 @@ public:
   NS_IMETHOD_(InputContext) GetInputContext();
   NS_IMETHOD CancelComposition();
   NS_IMETHOD OnIMEFocusChange(bool aFocus);
-  NS_IMETHOD OnIMETextChange(uint32_t aOffset, uint32_t aEnd,
-                             uint32_t aNewEnd);
+  NS_IMETHOD OnIMETextChange(PRUint32 aOffset, PRUint32 aEnd,
+                             PRUint32 aNewEnd);
   NS_IMETHOD OnIMESelectionChange(void);
 
   NS_IMETHOD SetCursor(nsCursor aCursor);
-  NS_IMETHOD SetCursor(imgIContainer* aCursor,
-                       uint32_t aHotspotX, uint32_t aHotspotY)
-  {
-    return nsBaseWidget::SetCursor(aCursor, aHotspotX, aHotspotY);
-  }
 
   
   
@@ -173,7 +186,8 @@ public:
   virtual float GetDPI();
 
 private:
-  nsresult Paint();
+  nsresult DispatchPaintEvent();
+  nsresult DispatchResizeEvent();
 
   void SetChild(PuppetWidget* aChild);
 
@@ -183,7 +197,7 @@ private:
   public:
     NS_DECL_NSIRUNNABLE
     PaintTask(PuppetWidget* widget) : mWidget(widget) {}
-    void Revoke() { mWidget = nullptr; }
+    void Revoke() { mWidget = nsnull; }
   private:
     PuppetWidget* mWidget;
   };
@@ -194,7 +208,7 @@ private:
   
   
   
-  TabChild* mTabChild;
+  PBrowserChild *mTabChild;
   
   
   nsRefPtr<PuppetWidget> mChild;
@@ -209,43 +223,15 @@ private:
   nsIMEUpdatePreference mIMEPreference;
   bool mIMEComposing;
   
-  uint32_t mIMELastReceivedSeqno;
+  PRUint32 mIMELastReceivedSeqno;
   
   
   
   
-  uint32_t mIMELastBlurSeqno;
-  bool mNeedIMEStateInit;
+  PRUint32 mIMELastBlurSeqno;
 
   
   float mDPI;
-};
-
-class PuppetScreen : public nsBaseScreen
-{
-public:
-    PuppetScreen(void* nativeScreen);
-    ~PuppetScreen();
-
-    NS_IMETHOD GetRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight) MOZ_OVERRIDE;
-    NS_IMETHOD GetAvailRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight) MOZ_OVERRIDE;
-    NS_IMETHOD GetPixelDepth(int32_t* aPixelDepth) MOZ_OVERRIDE;
-    NS_IMETHOD GetColorDepth(int32_t* aColorDepth) MOZ_OVERRIDE;
-    NS_IMETHOD GetRotation(uint32_t* aRotation) MOZ_OVERRIDE;
-    NS_IMETHOD SetRotation(uint32_t  aRotation) MOZ_OVERRIDE;
-};
-
-class PuppetScreenManager MOZ_FINAL : public nsIScreenManager
-{
-public:
-    PuppetScreenManager();
-    ~PuppetScreenManager();
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISCREENMANAGER
-
-protected:
-    nsCOMPtr<nsIScreen> mOneScreen;
 };
 
 }  

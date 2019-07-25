@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCUPSShim_h___
 #define nsCUPSShim_h___
 
@@ -66,7 +98,7 @@ class nsCUPSShim {
 
 
 
-        bool IsInitialized() { return nullptr != mCupsLib; }
+        bool IsInitialized() { return nsnull != mCupsLib; }
 
         
 

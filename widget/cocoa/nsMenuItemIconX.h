@@ -7,6 +7,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMenuItemIconX_h_
 #define nsMenuItemIconX_h_
 
@@ -27,7 +60,7 @@ public:
                   nsIContent*    aContent,
                   NSMenuItem*    aNativeMenuItem);
 private:
-  virtual ~nsMenuItemIconX();
+  ~nsMenuItemIconX();
 
 public:
   NS_DECL_ISUPPORTS

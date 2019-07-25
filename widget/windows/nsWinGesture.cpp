@@ -7,37 +7,71 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nscore.h"
 #include "nsWinGesture.h"
 #include "nsUXThemeData.h"
 #include "nsIDOMSimpleGestureEvent.h"
 #include "nsGUIEvent.h"
-#include "nsIDOMWheelEvent.h"
-#include "mozilla/Constants.h"
 #include "mozilla/Preferences.h"
 
 using namespace mozilla;
-using namespace mozilla::widget;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gWindowsLog;
 #endif
 
 const PRUnichar nsWinGesture::kGestureLibraryName[] =  L"user32.dll";
-HMODULE nsWinGesture::sLibraryHandle = nullptr;
-nsWinGesture::GetGestureInfoPtr nsWinGesture::getGestureInfo = nullptr;
-nsWinGesture::CloseGestureInfoHandlePtr nsWinGesture::closeGestureInfoHandle = nullptr;
-nsWinGesture::GetGestureExtraArgsPtr nsWinGesture::getGestureExtraArgs = nullptr;
-nsWinGesture::SetGestureConfigPtr nsWinGesture::setGestureConfig = nullptr;
-nsWinGesture::GetGestureConfigPtr nsWinGesture::getGestureConfig = nullptr;
-nsWinGesture::BeginPanningFeedbackPtr nsWinGesture::beginPanningFeedback = nullptr;
-nsWinGesture::EndPanningFeedbackPtr nsWinGesture::endPanningFeedback = nullptr;
-nsWinGesture::UpdatePanningFeedbackPtr nsWinGesture::updatePanningFeedback = nullptr;
+HMODULE nsWinGesture::sLibraryHandle = nsnull;
+nsWinGesture::GetGestureInfoPtr nsWinGesture::getGestureInfo = nsnull;
+nsWinGesture::CloseGestureInfoHandlePtr nsWinGesture::closeGestureInfoHandle = nsnull;
+nsWinGesture::GetGestureExtraArgsPtr nsWinGesture::getGestureExtraArgs = nsnull;
+nsWinGesture::SetGestureConfigPtr nsWinGesture::setGestureConfig = nsnull;
+nsWinGesture::GetGestureConfigPtr nsWinGesture::getGestureConfig = nsnull;
+nsWinGesture::BeginPanningFeedbackPtr nsWinGesture::beginPanningFeedback = nsnull;
+nsWinGesture::EndPanningFeedbackPtr nsWinGesture::endPanningFeedback = nsnull;
+nsWinGesture::UpdatePanningFeedbackPtr nsWinGesture::updatePanningFeedback = nsnull;
 
-nsWinGesture::RegisterTouchWindowPtr nsWinGesture::registerTouchWindow = nullptr;
-nsWinGesture::UnregisterTouchWindowPtr nsWinGesture::unregisterTouchWindow = nullptr;
-nsWinGesture::GetTouchInputInfoPtr nsWinGesture::getTouchInputInfo = nullptr;
-nsWinGesture::CloseTouchInputHandlePtr nsWinGesture::closeTouchInputHandle = nullptr;
+nsWinGesture::RegisterTouchWindowPtr nsWinGesture::registerTouchWindow = nsnull;
+nsWinGesture::UnregisterTouchWindowPtr nsWinGesture::unregisterTouchWindow = nsnull;
+nsWinGesture::GetTouchInputInfoPtr nsWinGesture::getTouchInputInfo = nsnull;
+nsWinGesture::CloseTouchInputHandlePtr nsWinGesture::closeTouchInputHandle = nsnull;
 
 static bool gEnableSingleFingerPanEvents = false;
 
@@ -80,19 +114,19 @@ bool nsWinGesture::InitLibrary()
 
   if (!getGestureInfo || !closeGestureInfoHandle || !getGestureExtraArgs ||
     !setGestureConfig || !getGestureConfig) {
-    getGestureInfo         = nullptr;
-    closeGestureInfoHandle = nullptr;
-    getGestureExtraArgs    = nullptr;
-    setGestureConfig       = nullptr;
-    getGestureConfig       = nullptr;
+    getGestureInfo         = nsnull;
+    closeGestureInfoHandle = nsnull;
+    getGestureExtraArgs    = nsnull;
+    setGestureConfig       = nsnull;
+    getGestureConfig       = nsnull;
     return false;
   }
   
   if (!registerTouchWindow || !unregisterTouchWindow || !getTouchInputInfo || !closeTouchInputHandle) {
-    registerTouchWindow   = nullptr;
-    unregisterTouchWindow = nullptr;
-    getTouchInputInfo     = nullptr;
-    closeTouchInputHandle = nullptr;
+    registerTouchWindow   = nsnull;
+    unregisterTouchWindow = nsnull;
+    getTouchInputInfo     = nsnull;
+    closeTouchInputHandle = nsnull;
   }
 
   
@@ -103,9 +137,9 @@ bool nsWinGesture::InitLibrary()
   }
 
   if (!beginPanningFeedback || !endPanningFeedback || !updatePanningFeedback) {
-    beginPanningFeedback   = nullptr;
-    endPanningFeedback     = nullptr;
-    updatePanningFeedback  = nullptr;
+    beginPanningFeedback   = nsnull;
+    endPanningFeedback     = nsnull;
+    updatePanningFeedback  = nsnull;
   }
 
   
@@ -174,7 +208,7 @@ bool nsWinGesture::SetWinGestureSupport(HWND hWnd, nsGestureNotifyEvent::ePanDir
 
 bool nsWinGesture::IsAvailable()
 {
-  return getGestureInfo != nullptr;
+  return getGestureInfo != nsnull;
 }
 
 bool nsWinGesture::RegisterTouchWindow(HWND hWnd)
@@ -193,7 +227,7 @@ bool nsWinGesture::UnregisterTouchWindow(HWND hWnd)
   return unregisterTouchWindow(hWnd);
 }
 
-bool nsWinGesture::GetTouchInputInfo(HTOUCHINPUT hTouchInput, uint32_t cInputs, PTOUCHINPUT pInputs)
+bool nsWinGesture::GetTouchInputInfo(HTOUCHINPUT hTouchInput, PRUint32 cInputs, PTOUCHINPUT pInputs)
 {
   if (!getTouchInputInfo)
     return false;
@@ -389,7 +423,6 @@ nsWinGesture::ProcessGestureMessage(HWND hWnd, WPARAM wParam, LPARAM lParam, nsS
       
       
       evt.message = NS_SIMPLE_GESTURE_TAP;
-      evt.clickCount = 1;
     }
     break;
 
@@ -397,7 +430,6 @@ nsWinGesture::ProcessGestureMessage(HWND hWnd, WPARAM wParam, LPARAM lParam, nsS
     {
       
       evt.message = NS_SIMPLE_GESTURE_PRESSTAP;
-      evt.clickCount = 1;
     }
     break;
   }
@@ -444,8 +476,8 @@ nsWinGesture::ProcessPanMessage(HWND hWnd, WPARAM wParam, LPARAM lParam)
       else {
 
 #ifdef DBG_jimm
-        int32_t deltaX = mPanIntermediate.x - coord.x;
-        int32_t deltaY = mPanIntermediate.y - coord.y;
+        PRInt32 deltaX = mPanIntermediate.x - coord.x;
+        PRInt32 deltaY = mPanIntermediate.y - coord.y;
         PR_LOG(gWindowsLog, PR_LOG_ALWAYS, 
                ("coordX=%d coordY=%d deltaX=%d deltaY=%d x:%d y:%d\n", coord.x,
                 coord.y, deltaX, deltaY, mXAxisFeedback, mYAxisFeedback));
@@ -470,7 +502,7 @@ nsWinGesture::ProcessPanMessage(HWND hWnd, WPARAM wParam, LPARAM lParam)
   return true;
 }
 
-inline bool TestTransition(int32_t a, int32_t b)
+inline bool TestTransition(PRInt32 a, PRInt32 b)
 {
   
   
@@ -480,7 +512,7 @@ inline bool TestTransition(int32_t a, int32_t b)
 }
 
 void
-nsWinGesture::UpdatePanFeedbackX(HWND hWnd, int32_t scrollOverflow, bool& endFeedback)
+nsWinGesture::UpdatePanFeedbackX(HWND hWnd, PRInt32 scrollOverflow, bool& endFeedback)
 {
   
   
@@ -495,7 +527,7 @@ nsWinGesture::UpdatePanFeedbackX(HWND hWnd, int32_t scrollOverflow, bool& endFee
   }
   
   if (mXAxisFeedback) {
-    int32_t newOverflow = mPixelScrollOverflow.x - mPixelScrollDelta.x;
+    PRInt32 newOverflow = mPixelScrollOverflow.x - mPixelScrollDelta.x;
 
     
     
@@ -509,7 +541,7 @@ nsWinGesture::UpdatePanFeedbackX(HWND hWnd, int32_t scrollOverflow, bool& endFee
 }
 
 void
-nsWinGesture::UpdatePanFeedbackY(HWND hWnd, int32_t scrollOverflow, bool& endFeedback)
+nsWinGesture::UpdatePanFeedbackY(HWND hWnd, PRInt32 scrollOverflow, bool& endFeedback)
 {
   
   
@@ -524,7 +556,7 @@ nsWinGesture::UpdatePanFeedbackY(HWND hWnd, int32_t scrollOverflow, bool& endFee
   }
   
   if (mYAxisFeedback) {
-    int32_t newOverflow = mPixelScrollOverflow.y - mPixelScrollDelta.y;
+    PRInt32 newOverflow = mPixelScrollOverflow.y - mPixelScrollDelta.y;
 
     
     
@@ -556,29 +588,53 @@ nsWinGesture::PanFeedbackFinalize(HWND hWnd, bool endFeedback)
 }
 
 bool
-nsWinGesture::PanDeltaToPixelScroll(WheelEvent& aWheelEvent)
+nsWinGesture::PanDeltaToPixelScrollX(nsMouseScrollEvent& evt)
 {
-  aWheelEvent.deltaX = aWheelEvent.deltaY = aWheelEvent.deltaZ = 0.0;
-  aWheelEvent.lineOrPageDeltaX = aWheelEvent.lineOrPageDeltaY = 0;
-
-  aWheelEvent.refPoint.x = mPanRefPoint.x;
-  aWheelEvent.refPoint.y = mPanRefPoint.y;
-  aWheelEvent.deltaMode = nsIDOMWheelEvent::DOM_DELTA_PIXEL;
-  aWheelEvent.scrollType = WheelEvent::SCROLL_SYNCHRONOUSLY;
-  aWheelEvent.isPixelOnlyDevice = true;
-
-  aWheelEvent.overflowDeltaX = 0.0;
-  aWheelEvent.overflowDeltaY = 0.0;
+  evt.delta = 0;
+  evt.scrollOverflow = 0;
 
   
   
   
-  if (!mXAxisFeedback) {
-    aWheelEvent.deltaX = mPixelScrollDelta.x;
+  if (mXAxisFeedback)
+    return false;
+
+  if (mPixelScrollDelta.x != 0)
+  {
+    evt.scrollFlags = nsMouseScrollEvent::kIsHorizontal|
+                      nsMouseScrollEvent::kHasPixels|
+                      nsMouseScrollEvent::kNoLines|
+                      nsMouseScrollEvent::kNoDefer;
+    evt.delta = mPixelScrollDelta.x;
+    evt.refPoint.x = mPanRefPoint.x;
+    evt.refPoint.y = mPanRefPoint.y;
+    return true;
   }
-  if (!mYAxisFeedback) {
-    aWheelEvent.deltaY = mPixelScrollDelta.y;
-  }
+  return false;
+}
 
-  return (aWheelEvent.deltaX != 0 || aWheelEvent.deltaY != 0);
+bool
+nsWinGesture::PanDeltaToPixelScrollY(nsMouseScrollEvent& evt)
+{
+  evt.delta = 0;
+  evt.scrollOverflow = 0;
+
+  
+  
+  
+  if (mYAxisFeedback)
+    return false;
+
+  if (mPixelScrollDelta.y != 0)
+  {
+    evt.scrollFlags = nsMouseScrollEvent::kIsVertical|
+                      nsMouseScrollEvent::kHasPixels|
+                      nsMouseScrollEvent::kNoLines|
+                      nsMouseScrollEvent::kNoDefer;
+    evt.delta = mPixelScrollDelta.y;
+    evt.refPoint.x = mPanRefPoint.x;
+    evt.refPoint.y = mPanRefPoint.y;
+    return true;
+  }
+  return false;
 }

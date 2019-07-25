@@ -640,17 +640,23 @@ GetAvailableChunkList(JSCompartment *comp)
 inline void
 Chunk::addToAvailableList(JSCompartment *comp)
 {
-    Chunk **listHeadp = GetAvailableChunkList(comp);
+    insertToAvailableList(GetAvailableChunkList(comp));
+}
+
+inline void
+Chunk::insertToAvailableList(Chunk **insertPoint)
+{
+    JS_ASSERT(hasAvailableArenas());
     JS_ASSERT(!info.prevp);
     JS_ASSERT(!info.next);
-    info.prevp = listHeadp;
-    Chunk *head = *listHeadp;
-    if (head) {
-        JS_ASSERT(head->info.prevp == listHeadp);
-        head->info.prevp = &info.next;
+    info.prevp = insertPoint;
+    Chunk *insertBefore = *insertPoint;
+    if (insertBefore) {
+        JS_ASSERT(insertBefore->info.prevp == insertPoint);
+        insertBefore->info.prevp = &info.next;
     }
-    info.next = head;
-    *listHeadp = this;
+    info.next = insertBefore;
+    *insertPoint = this;
 }
 
 inline void
@@ -2298,6 +2304,22 @@ DecommitArenasFromAvailableList(JSRuntime *rt, Chunk **availableListHeadp)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     JS_ASSERT(chunk->info.prevp == availableListHeadp);
     while (Chunk *next = chunk->info.next) {
         JS_ASSERT(next->info.prevp == &chunk->info.next);
@@ -2306,27 +2328,23 @@ DecommitArenasFromAvailableList(JSRuntime *rt, Chunk **availableListHeadp)
 
     for (;;) {
         while (chunk->info.numArenasFreeCommitted != 0) {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
             ArenaHeader *aheader = chunk->fetchNextFreeArena(rt);
+
+            Chunk **savedPrevp = chunk->info.prevp;
+            if (!chunk->hasAvailableArenas())
+                chunk->removeFromAvailableList();
+
             size_t arenaIndex = Chunk::arenaIndex(aheader->arenaAddress());
             bool ok;
             {
-                Maybe<AutoUnlockGC> maybayUnlock;
-                if (chunk->hasAvailableArenas())
-                    maybayUnlock.construct(rt);
+                
+
+
+
+
+                Maybe<AutoUnlockGC> maybeUnlock;
+                if (!rt->gcRunning)
+                    maybeUnlock.construct(rt);
                 ok = DecommitMemory(aheader->getArena(), ArenaSize);
             }
 
@@ -2335,6 +2353,26 @@ DecommitArenasFromAvailableList(JSRuntime *rt, Chunk **availableListHeadp)
                 chunk->decommittedArenas.set(arenaIndex);
             } else {
                 chunk->addArenaToFreeList(rt, aheader);
+            }
+            JS_ASSERT(chunk->hasAvailableArenas());
+            JS_ASSERT(!chunk->unused());
+            if (chunk->info.numArenasFree == 1) {
+                
+
+
+
+
+
+
+                Chunk **insertPoint = savedPrevp;
+                if (savedPrevp != availableListHeadp) {
+                    Chunk *prev = Chunk::fromPointerToNext(savedPrevp);
+                    if (!prev->hasAvailableArenas())
+                        insertPoint = availableListHeadp;
+                }
+                chunk->insertToAvailableList(insertPoint);
+            } else {
+                JS_ASSERT(chunk->info.prevp);
             }
 
             if (rt->gcChunkAllocationSinceLastGC) {

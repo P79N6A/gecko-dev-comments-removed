@@ -5,10 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "qmimedata.h"
 #include "qwidget.h"
-#include "qapplication.h"
-#include "qthread.h"
 
 #include "nsDragService.h"
 #include "nsISupportsPrimitives.h"
@@ -30,7 +59,7 @@ nsDragService::~nsDragService()
 }
 
 NS_IMETHODIMP
-nsDragService::SetDropActionType( uint32_t aActionType )
+nsDragService::SetDropActionType( PRUint32 aActionType )
 {
     mDropAction = Qt::IgnoreAction;
 
@@ -53,9 +82,9 @@ nsDragService::SetDropActionType( uint32_t aActionType )
 NS_IMETHODIMP
 nsDragService::SetupDragSession(
                                 nsISupportsArray *aTransferables,
-                                uint32_t aActionType)
+                                PRUint32 aActionType)
 {
-    uint32_t itemCount = 0;
+    PRUint32 itemCount = 0;
     aTransferables->Count(&itemCount);
     if (0 == itemCount)
     {
@@ -84,10 +113,10 @@ nsDragService::SetupDragSession(
 
         if (flavorList)
         {
-            uint32_t flavorCount;
+            PRUint32 flavorCount;
             flavorList->Count( &flavorCount );
 
-            for (uint32_t flavor=0; flavor < flavorCount; flavor++)
+            for (PRUint32 flavor=0; flavor < flavorCount; flavor++)
             {
                 nsCOMPtr<nsISupports> genericWrapper;
                 flavorList->GetElementAt(flavor, getter_AddRefs(genericWrapper));
@@ -97,7 +126,7 @@ nsDragService::SetupDragSession(
                 if (currentFlavor)
                 {
                     nsCOMPtr<nsISupports> data;
-                    uint32_t dataLen = 0;
+                    PRUint32 dataLen = 0;
                     nsXPIDLCString flavorStr;
                     currentFlavor->ToString(getter_Copies(flavorStr));
 
@@ -129,11 +158,6 @@ nsDragService::SetupDragSession(
         }
     }
 
-    if (qApp->thread() != QThread::currentThread()) {
-        NS_WARNING("Cannot initialize drag session in non main thread");
-        return NS_OK;
-    }
-
     if (!mHiddenWidget) {
       mHiddenWidget = new QWidget();
     }
@@ -151,7 +175,7 @@ nsDragService::InvokeDragSession(
                                 nsIDOMNode *aDOMNode,
                                 nsISupportsArray *aTransferables,
                                 nsIScriptableRegion *aRegion,
-                                uint32_t aActionType)
+                                PRUint32 aActionType)
 {
     nsBaseDragService::InvokeDragSession( 
                                         aDOMNode,
@@ -167,9 +191,7 @@ nsDragService::InvokeDragSession(
 NS_IMETHODIMP
 nsDragService::ExecuteDrag()
 {
-    if (qApp->thread() == QThread::currentThread()) {
-        mDrag->exec(mDropAction);
-    }
+    Qt::DropAction dropAction = mDrag->exec( mDropAction );
 
     return NS_OK;
 }
@@ -180,10 +202,10 @@ nsDragService::InvokeDragSessionWithImage(
                         nsIDOMNode *aDOMNode,
                         nsISupportsArray*aTransferables,
                         nsIScriptableRegion* aRegion,
-                        uint32_t aActionType,
+                        PRUint32 aActionType,
                         nsIDOMNode* aImage,
-                        int32_t aImageX,
-                        int32_t aImageY,
+                        PRInt32 aImageX,
+                        PRInt32 aImageY,
                         nsIDOMDragEvent* aDragEvent,
                         nsIDOMDataTransfer* aDataTransfer)
 {
@@ -218,7 +240,7 @@ nsDragService::InvokeDragSessionWithImage(
 NS_IMETHODIMP
 nsDragService::InvokeDragSessionWithSelection(nsISelection* aSelection,
                                               nsISupportsArray* aTransferableArray,
-                                              uint32_t aActionType,
+                                              PRUint32 aActionType,
                                               nsIDOMDragEvent* aDragEvent,
                                               nsIDOMDataTransfer* aDataTransfer)
 {
@@ -260,7 +282,7 @@ nsDragService::EndDragSession(bool aDoneDrag)
 
 
 NS_IMETHODIMP
-nsDragService::FireDragEventAtSource(uint32_t aMsg)
+nsDragService::FireDragEventAtSource(PRUint32 aMsg)
 {
     return nsBaseDragService::FireDragEventAtSource(aMsg);
 }
@@ -280,7 +302,7 @@ nsDragService::Unsuppress()
 }
 
 NS_IMETHODIMP
-nsDragService::DragMoved(int32_t aX, int32_t aY)
+nsDragService::DragMoved(PRInt32 aX, PRInt32 aY)
 {
     return nsBaseDragService::DragMoved(aX, aY);
 }

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBaseAppShell_h__
 #define nsBaseAppShell_h__
 
@@ -10,8 +42,8 @@
 #include "nsIThreadInternal.h"
 #include "nsIObserver.h"
 #include "nsIRunnable.h"
+#include "nsCOMArray.h"
 #include "nsCOMPtr.h"
-#include "nsTArray.h"
 #include "prinrval.h"
 
 
@@ -70,45 +102,16 @@ protected:
 
   virtual bool ProcessNextNativeEvent(bool mayWait) = 0;
 
-  int32_t mSuspendNativeCount;
-  uint32_t mEventloopNestingLevel;
+  PRInt32 mSuspendNativeCount;
+  PRUint32 mEventloopNestingLevel;
 
 private:
-  bool DoProcessNextNativeEvent(bool mayWait, uint32_t recursionDepth);
-
-  bool DispatchDummyEvent(nsIThread* target);
+  bool DoProcessNextNativeEvent(bool mayWait);
 
   
 
 
-  void RunSyncSectionsInternal(bool stable, uint32_t threadRecursionLevel);
-
-  void RunSyncSections(bool stable, uint32_t threadRecursionLevel)
-  {
-    if (!mSyncSections.IsEmpty()) {
-      RunSyncSectionsInternal(stable, threadRecursionLevel);
-    }
-  }
-
-  void ScheduleSyncSection(nsIRunnable* runnable, bool stable);
-
-  struct SyncSection {
-    SyncSection()
-    : mStable(false), mEventloopNestingLevel(0), mThreadRecursionLevel(0)
-    { }
-
-    void Forget(SyncSection* other) {
-      other->mStable = mStable;
-      other->mEventloopNestingLevel = mEventloopNestingLevel;
-      other->mThreadRecursionLevel = mThreadRecursionLevel;
-      other->mRunnable = mRunnable.forget();
-    }
-
-    bool mStable;
-    uint32_t mEventloopNestingLevel;
-    uint32_t mThreadRecursionLevel;
-    nsCOMPtr<nsIRunnable> mRunnable;
-  };
+  void RunSyncSections();
 
   nsCOMPtr<nsIRunnable> mDummyEvent;
   
@@ -118,8 +121,8 @@ private:
 
 
   bool *mBlockedWait;
-  int32_t mFavorPerf;
-  int32_t mNativeEventPending;
+  PRInt32 mFavorPerf;
+  PRInt32 mNativeEventPending;
   PRIntervalTime mStarvationDelay;
   PRIntervalTime mSwitchTime;
   PRIntervalTime mLastNativeEventTime;
@@ -129,7 +132,7 @@ private:
     eEventloopOther  
   };
   EventloopNestingState mEventloopNestingState;
-  nsTArray<SyncSection> mSyncSections;
+  nsCOMArray<nsIRunnable> mSyncSections;
   bool mRunning;
   bool mExiting;
   

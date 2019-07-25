@@ -5,6 +5,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/ModuleUtils.h"
 #include "nsWidgetsCID.h"
 #include "nsAppShell.h"
@@ -66,7 +97,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsTransferable)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsBidiKeyboard)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsHTMLFormatConverter)
 #ifdef MOZ_X11
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIdleServiceGTK, nsIdleServiceGTK::GetInstance)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboardHelper)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsClipboard, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDragService)
@@ -110,6 +140,7 @@ nsNativeThemeGTKConstructor(nsISupports *aOuter, REFNSIID aIID,
 #endif
 
 #if defined(MOZ_X11)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsIdleServiceGTK)
 namespace mozilla {
 namespace widget {
 
@@ -130,8 +161,8 @@ static nsresult
 nsFilePickerConstructor(nsISupports *aOuter, REFNSIID aIID,
                         void **aResult)
 {
-  *aResult = nullptr;
-  if (aOuter != nullptr) {
+  *aResult = nsnull;
+  if (aOuter != nsnull) {
     return NS_ERROR_NO_AGGREGATION;
   }
 

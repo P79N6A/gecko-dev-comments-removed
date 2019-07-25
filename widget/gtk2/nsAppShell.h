@@ -5,6 +5,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAppShell_h__
 #define nsAppShell_h__
 
@@ -31,7 +62,7 @@ private:
                                            gpointer data);
 
     int mPipeFDs[2];
-    unsigned mTag;
+    PRUintn mTag;
 };
 
 #endif 

@@ -1,7 +1,40 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Josh Aas <josh@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include <dlfcn.h>
 
@@ -14,7 +47,6 @@
 #include "nsObjCExceptions.h"
 
 #include "nsToolkit.h"
-#include "nsCocoaFeatures.h"
 #include "nsCocoaUtils.h"
 #include "nsCOMPtr.h"
 #include "prinrval.h"
@@ -33,7 +65,7 @@
 #include "nsIComponentManager.h"
 #include "nsIRollupListener.h"
 #include "nsIDOMElement.h"
-#include "nsBindingManager.h"
+#include "nsIXBLService.h"
 #include "nsIServiceManager.h"
 
 #include "jsapi.h"
@@ -48,7 +80,7 @@ extern nsIWidget         * gRollupWidget;
 static bool gConstructingMenu = false;
 static bool gMenuMethodsSwizzled = false;
 
-int32_t nsMenuX::sIndexingMenuLevel = 0;
+PRInt32 nsMenuX::sIndexingMenuLevel = 0;
 
 
 //
@@ -60,7 +92,7 @@ int32_t nsMenuX::sIndexingMenuLevel = 0;
 - (id) initWithMenuGroupOwner:(nsMenuGroupOwnerX *)aMenuGroupOwner
 {
   if ((self = [super init]) != nil) {
-    mMenuGroupOwner = nullptr;
+    mMenuGroupOwner = nsnull;
     [self setMenuGroupOwner:aMenuGroupOwner];
   }
   return self;
@@ -68,7 +100,7 @@ int32_t nsMenuX::sIndexingMenuLevel = 0;
 
 - (void) dealloc
 {
-  [self setMenuGroupOwner:nullptr];
+  [self setMenuGroupOwner:nsnull];
   [super dealloc];
 }
 
@@ -91,7 +123,7 @@ int32_t nsMenuX::sIndexingMenuLevel = 0;
 //
 
 nsMenuX::nsMenuX()
-: mVisibleItemsCount(0), mParent(nullptr), mMenuGroupOwner(nullptr),
+: mVisibleItemsCount(0), mParent(nsnull), mMenuGroupOwner(nsnull),
   mNativeMenu(nil), mNativeMenuItem(nil), mIsEnabled(true),
   mDestroyHandlerCalled(false), mNeedsRebuild(true),
   mConstructed(false), mVisible(true), mXBLAttached(false)
@@ -107,7 +139,7 @@ nsMenuX::nsMenuX()
     // SCTGRLIndex class) is loaded on demand, whenever the user first opens
     // a menu (which normally hasn't happened yet).  So we need to load it
     // here explicitly.
-    if (nsCocoaFeatures::OnSnowLeopardOrLater())
+    if (nsToolkit::OnSnowLeopardOrLater())
       dlopen("/System/Library/PrivateFrameworks/Shortcut.framework/Shortcut", RTLD_LAZY);
     Class SCTGRLIndexClass = ::NSClassFromString(@"SCTGRLIndex");
     nsToolkit::SwizzleMethods(SCTGRLIndexClass, @selector(indexMenuBarDynamically),
@@ -259,22 +291,22 @@ nsresult nsMenuX::AddMenu(nsMenuX* aMenu)
 }
 
 // Includes all items, including hidden/collapsed ones
-uint32_t nsMenuX::GetItemCount()
+PRUint32 nsMenuX::GetItemCount()
 {
   return mMenuObjectsArray.Length();
 }
 
 // Includes all items, including hidden/collapsed ones
-nsMenuObjectX* nsMenuX::GetItemAt(uint32_t aPos)
+nsMenuObjectX* nsMenuX::GetItemAt(PRUint32 aPos)
 {
-  if (aPos >= (uint32_t)mMenuObjectsArray.Length())
+  if (aPos >= (PRUint32)mMenuObjectsArray.Length())
     return NULL;
 
   return mMenuObjectsArray[aPos];
 }
 
 // Only includes visible items
-nsresult nsMenuX::GetVisibleItemCount(uint32_t &aCount)
+nsresult nsMenuX::GetVisibleItemCount(PRUint32 &aCount)
 {
   aCount = mVisibleItemsCount;
   return NS_OK;
@@ -282,10 +314,10 @@ nsresult nsMenuX::GetVisibleItemCount(uint32_t &aCount)
 
 // Only includes visible items. Note that this is provides O(N) access
 // If you need to iterate or search, consider using GetItemAt and doing your own filtering
-nsMenuObjectX* nsMenuX::GetVisibleItemAt(uint32_t aPos)
+nsMenuObjectX* nsMenuX::GetVisibleItemAt(PRUint32 aPos)
 {
   
-  uint32_t count = mMenuObjectsArray.Length();
+  PRUint32 count = mMenuObjectsArray.Length();
   if (aPos >= mVisibleItemsCount || aPos >= count)
     return NULL;
 
@@ -295,8 +327,8 @@ nsMenuObjectX* nsMenuX::GetVisibleItemAt(uint32_t aPos)
 
   // Otherwise, traverse the array until we find the the item we're looking for.
   nsMenuObjectX* item;
-  uint32_t visibleNodeIndex = 0;
-  for (uint32_t i = 0; i < count; i++) {
+  PRUint32 visibleNodeIndex = 0;
+  for (PRUint32 i = 0; i < count; i++) {
     item = mMenuObjectsArray[i];
     if (!nsMenuUtilsX::NodeIsHiddenOrCollapsed(item->Content())) {
       if (aPos == visibleNodeIndex) {
@@ -318,7 +350,7 @@ nsresult nsMenuX::RemoveAll()
     // clear command id's
     int itemCount = [mNativeMenu numberOfItems];
     for (int i = 0; i < itemCount; i++)
-      mMenuGroupOwner->UnregisterCommand((uint32_t)[[mNativeMenu itemAtIndex:i] tag]);
+      mMenuGroupOwner->UnregisterCommand((PRUint32)[[mNativeMenu itemAtIndex:i] tag]);
     // get rid of Cocoa menu items
     for (int i = [mNativeMenu numberOfItems] - 1; i >= 0; i--)
       [mNativeMenu removeItemAtIndex:i];
@@ -352,12 +384,12 @@ nsEventStatus nsMenuX::MenuOpened()
   }
 
   nsEventStatus status = nsEventStatus_eIgnore;
-  nsMouseEvent event(true, NS_XUL_POPUP_SHOWN, nullptr, nsMouseEvent::eReal);
+  nsMouseEvent event(true, NS_XUL_POPUP_SHOWN, nsnull, nsMouseEvent::eReal);
 
   nsCOMPtr<nsIContent> popupContent;
   GetMenuPopupContent(getter_AddRefs(popupContent));
   nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-  dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
+  dispatchTo->DispatchDOMEvent(&event, nsnull, nsnull, &status);
   
   return nsEventStatus_eConsumeNoDefault;
 }
@@ -375,12 +407,12 @@ void nsMenuX::MenuClosed()
     mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::open, true);
 
     nsEventStatus status = nsEventStatus_eIgnore;
-    nsMouseEvent event(true, NS_XUL_POPUP_HIDDEN, nullptr, nsMouseEvent::eReal);
+    nsMouseEvent event(true, NS_XUL_POPUP_HIDDEN, nsnull, nsMouseEvent::eReal);
 
     nsCOMPtr<nsIContent> popupContent;
     GetMenuPopupContent(getter_AddRefs(popupContent));
     nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-    dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
+    dispatchTo->DispatchDOMEvent(&event, nsnull, nsnull, &status);
 
     mDestroyHandlerCalled = true;
     mConstructed = false;
@@ -431,8 +463,8 @@ void nsMenuX::MenuConstruct()
   }
 
   // Iterate over the kids
-  uint32_t count = menuPopup->GetChildCount();
-  for (uint32_t i = 0; i < count; i++) {
+  PRUint32 count = menuPopup->GetChildCount();
+  for (PRUint32 i = 0; i < count; i++) {
     nsIContent *child = menuPopup->GetChildAt(i);
     if (child) {
       // depending on the type, create a menu item, separator, or submenu
@@ -510,7 +542,7 @@ void nsMenuX::LoadMenuItem(nsIContent* inMenuItemContent)
   }
   else {
     static nsIContent::AttrValuesArray strings[] =
-  {&nsGkAtoms::checkbox, &nsGkAtoms::radio, nullptr};
+  {&nsGkAtoms::checkbox, &nsGkAtoms::radio, nsnull};
     switch (inMenuItemContent->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::type,
                                                strings, eCaseMatters)) {
       case 0: itemType = eCheckboxMenuItemType; break;
@@ -560,7 +592,7 @@ void nsMenuX::LoadSubMenu(nsIContent* inMenuContent)
 bool nsMenuX::OnOpen()
 {
   nsEventStatus status = nsEventStatus_eIgnore;
-  nsMouseEvent event(true, NS_XUL_POPUP_SHOWING, nullptr,
+  nsMouseEvent event(true, NS_XUL_POPUP_SHOWING, nsnull,
                      nsMouseEvent::eReal);
   
   nsCOMPtr<nsIContent> popupContent;
@@ -568,7 +600,7 @@ bool nsMenuX::OnOpen()
   
   nsresult rv = NS_OK;
   nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-  rv = dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
+  rv = dispatchTo->DispatchDOMEvent(&event, nsnull, nsnull, &status);
   if (NS_FAILED(rv) || status == nsEventStatus_eConsumeNoDefault)
     return false;
 
@@ -586,8 +618,8 @@ bool nsMenuX::OnOpen()
   if (!domDoc)
     return true;
 
-  uint32_t count = popupContent->GetChildCount();
-  for (uint32_t i = 0; i < count; i++) {
+  PRUint32 count = popupContent->GetChildCount();
+  for (PRUint32 i = 0; i < count; i++) {
     nsIContent *grandChild = popupContent->GetChildAt(i);
     if (grandChild->Tag() == nsGkAtoms::menuitem) {
       // See if we have a command attribute.
@@ -645,7 +677,7 @@ bool nsMenuX::OnClose()
     return true;
 
   nsEventStatus status = nsEventStatus_eIgnore;
-  nsMouseEvent event(true, NS_XUL_POPUP_HIDING, nullptr,
+  nsMouseEvent event(true, NS_XUL_POPUP_HIDING, nsnull,
                      nsMouseEvent::eReal);
 
   nsCOMPtr<nsIContent> popupContent;
@@ -653,7 +685,7 @@ bool nsMenuX::OnClose()
 
   nsresult rv = NS_OK;
   nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-  rv = dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
+  rv = dispatchTo->DispatchDOMEvent(&event, nsnull, nsnull, &status);
   
   mDestroyHandlerCalled = true;
   
@@ -670,12 +702,18 @@ void nsMenuX::GetMenuPopupContent(nsIContent** aResult)
 {
   if (!aResult)
     return;
-  *aResult = nullptr;
+  *aResult = nsnull;
   
+  nsresult rv;
+  nsCOMPtr<nsIXBLService> xblService = do_GetService("@mozilla.org/xbl;1", &rv);
+  if (!xblService)
+    return;
+
   // Check to see if we are a "menupopup" node (if we are a native menu).
   {
-    int32_t dummy;
-    nsCOMPtr<nsIAtom> tag = mContent->OwnerDoc()->BindingManager()->ResolveTag(mContent, &dummy);
+    PRInt32 dummy;
+    nsCOMPtr<nsIAtom> tag;
+    xblService->ResolveTag(mContent, &dummy, getter_AddRefs(tag));
     if (tag == nsGkAtoms::menupopup) {
       *aResult = mContent;
       NS_ADDREF(*aResult);
@@ -685,12 +723,13 @@ void nsMenuX::GetMenuPopupContent(nsIContent** aResult)
 
   // Otherwise check our child nodes.
   
-  uint32_t count = mContent->GetChildCount();
+  PRUint32 count = mContent->GetChildCount();
 
-  for (uint32_t i = 0; i < count; i++) {
-    int32_t dummy;
+  for (PRUint32 i = 0; i < count; i++) {
+    PRInt32 dummy;
     nsIContent *child = mContent->GetChildAt(i);
-    nsCOMPtr<nsIAtom> tag = child->OwnerDoc()->BindingManager()->ResolveTag(child, &dummy);
+    nsCOMPtr<nsIAtom> tag;
+    xblService->ResolveTag(child, &dummy, getter_AddRefs(tag));
     if (tag == nsGkAtoms::menupopup) {
       *aResult = child;
       NS_ADDREF(*aResult);
@@ -802,7 +841,7 @@ void nsMenuX::ObserveAttributeChanged(nsIDocument *aDocument, nsIContent *aConte
 }
 
 void nsMenuX::ObserveContentRemoved(nsIDocument *aDocument, nsIContent *aChild,
-                                    int32_t aIndexInContainer)
+                                    PRInt32 aIndexInContainer)
 {
   if (gConstructingMenu)
     return;
@@ -854,7 +893,7 @@ nsresult nsMenuX::SetupIcon()
   if (!menu || !item || !mGeckoMenu)
     return;
 
-  nsMenuObjectX* target = mGeckoMenu->GetVisibleItemAt((uint32_t)[menu indexOfItem:item]);
+  nsMenuObjectX* target = mGeckoMenu->GetVisibleItemAt((PRUint32)[menu indexOfItem:item]);
   if (target && (target->MenuObjectType() == eMenuItemObjectType)) {
     nsMenuItemX* targetMenuItem = static_cast<nsMenuItemX*>(target);
     bool handlerCalledPreventDefault; // but we don't actually care
@@ -1080,7 +1119,7 @@ static NSMutableDictionary *gShadowKeyEquivDB = nil;
 - (void)nsMenuX_SCTGRLIndex_indexMenuBarDynamically
 {
   // This method appears to be called (once) whenever the OS (re)indexes our
-  // menus.  sIndexingMenuLevel is a int32_t just in case it might be
+  // menus.  sIndexingMenuLevel is a PRInt32 just in case it might be
   // reentered.  As it's running, it spawns calls to two undocumented
   // HIToolbox methods (_SimulateMenuOpening() and _SimulateMenuClosed()),
   // which "simulate" the opening and closing of our menus without actually

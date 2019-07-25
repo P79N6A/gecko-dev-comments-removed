@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __mozilla_widget_nsShmImage_h__
 #define __mozilla_widget_nsShmImage_h__
 
@@ -18,7 +52,6 @@
 #include "nsIWidget.h"
 #include "gfxASurface.h"
 
-#include "mozilla/X11Util.h"
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/XShm.h>
@@ -26,7 +59,8 @@
 #if defined(MOZ_WIDGET_GTK2) || defined(MOZ_WIDGET_GTK3)
 #define DISPLAY gdk_x11_get_default_xdisplay
 #elif defined(MOZ_WIDGET_QT)
-#define DISPLAY mozilla::DefaultXDisplay
+#include "QX11Info"
+#define DISPLAY QX11Info().display
 #endif
 
 class QRect;
@@ -49,7 +83,7 @@ public:
 
     ~nsShmImage() {
         if (mImage) {
-            mozilla::FinishX(DISPLAY());
+            XSync(DISPLAY(), False);
             if (mXAttached) {
                 XShmDetach(DISPLAY(), &mInfo);
             }
@@ -71,7 +105,7 @@ public:
 
 private:
     nsShmImage()
-        : mImage(nullptr)
+        : mImage(nsnull)
         , mXAttached(false)
     { mInfo.shmid = SharedMemorySysV::NULLHandle(); }
 

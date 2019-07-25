@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRemoteClient_h__
 #define nsRemoteClient_h__
 
@@ -73,7 +105,7 @@ public:
 
   virtual nsresult SendCommandLine(const char *aProgram, const char *aUsername,
                                    const char *aProfile,
-                                   int32_t argc, char **argv,
+                                   PRInt32 argc, char **argv,
                                    const char* aDesktopStartupID,
                                    char **aResponse, bool *aSucceeded) = 0;
 };

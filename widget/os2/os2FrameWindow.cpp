@@ -12,6 +12,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsWindow.h"
 #include "os2FrameWindow.h"
 #include "nsIRollupListener.h"
@@ -24,7 +57,7 @@
 extern nsIRollupListener*  gRollupListener;
 extern nsIWidget*          gRollupWidget;
 extern bool                gRollupConsumeRollupEvent;
-extern uint32_t            gOS2Flags;
+extern PRUint32            gOS2Flags;
 
 #ifdef DEBUG_FOCUS
   extern int currentWindowIdentifier;
@@ -82,7 +115,7 @@ HWND os2FrameWindow::CreateFrameWindow(nsWindow* aParent,
 {
   
   HWND hClient;
-  uint32_t fcfFlags = GetFCFlags(aWindowType, aBorderStyle);
+  PRUint32 fcfFlags = GetFCFlags(aWindowType, aBorderStyle);
   mFrameWnd = WinCreateStdWindow(HWND_DESKTOP,
                                  0,
                                  (ULONG*)&fcfFlags,
@@ -118,7 +151,7 @@ HWND os2FrameWindow::CreateFrameWindow(nsWindow* aParent,
                            rcl.xRight-rcl.xLeft, rcl.yTop-rcl.yBottom);
 
   
-  int32_t pmY = WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN)
+  PRInt32 pmY = WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN)
                 - mFrameBounds.y - mFrameBounds.height;
   WinSetWindowPos(mFrameWnd, 0, mFrameBounds.x, pmY,
                   mFrameBounds.width, mFrameBounds.height,
@@ -141,10 +174,10 @@ HWND os2FrameWindow::CreateFrameWindow(nsWindow* aParent,
 
 
 
-uint32_t os2FrameWindow::GetFCFlags(nsWindowType aWindowType,
+PRUint32 os2FrameWindow::GetFCFlags(nsWindowType aWindowType,
                                     nsBorderStyle aBorderStyle)
 {
-  uint32_t style = FCF_TITLEBAR | FCF_SYSMENU | FCF_TASKLIST |
+  PRUint32 style = FCF_TITLEBAR | FCF_SYSMENU | FCF_TASKLIST |
                    FCF_CLOSEBUTTON | FCF_NOBYTEALIGN | FCF_AUTOICON;
 
   if (aWindowType == eWindowType_dialog) {
@@ -214,14 +247,14 @@ uint32_t os2FrameWindow::GetFCFlags(nsWindowType aWindowType,
 
 nsresult os2FrameWindow::Show(bool aState)
 {
-  uint32_t ulFlags;
+  PRUint32 ulFlags;
   if (!aState) {
     ulFlags = SWP_HIDE | SWP_DEACTIVATE;
   } else {
     ulFlags = SWP_SHOW | SWP_ACTIVATE;
 
-    uint32_t ulStyle = WinQueryWindowULong(mFrameWnd, QWL_STYLE);
-    int32_t sizeMode;
+    PRUint32 ulStyle = WinQueryWindowULong(mFrameWnd, QWL_STYLE);
+    PRInt32 sizeMode;
     mOwner->GetSizeMode(&sizeMode);
     if (!(ulStyle & WS_VISIBLE)) {
       if (sizeMode == nsSizeMode_Maximized) {
@@ -272,7 +305,7 @@ nsresult os2FrameWindow::GetBounds(nsIntRect& aRect)
 
 
 
-nsresult os2FrameWindow::Move(int32_t aX, int32_t aY)
+nsresult os2FrameWindow::Move(PRInt32 aX, PRInt32 aY)
 {
   aY = WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN) - mFrameBounds.height - aY;
   WinSetWindowPos(mFrameWnd, 0, aX, aY, 0, 0, SWP_MOVE);
@@ -281,7 +314,7 @@ nsresult os2FrameWindow::Move(int32_t aX, int32_t aY)
 
 
 
-nsresult os2FrameWindow::Resize(int32_t aWidth, int32_t aHeight,
+nsresult os2FrameWindow::Resize(PRInt32 aWidth, PRInt32 aHeight,
                                 bool aRepaint)
 {
   
@@ -293,8 +326,8 @@ nsresult os2FrameWindow::Resize(int32_t aWidth, int32_t aHeight,
 
 
 
-nsresult os2FrameWindow::Resize(int32_t aX, int32_t aY,
-                                int32_t aWidth, int32_t aHeight,
+nsresult os2FrameWindow::Resize(PRInt32 aX, PRInt32 aY,
+                                PRInt32 aWidth, PRInt32 aHeight,
                                 bool aRepaint)
 {
   aY = WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN) - aY - aHeight;
@@ -317,7 +350,7 @@ void os2FrameWindow::ActivateTopLevelWidget()
   
   
   if (mNeedActivation) {
-    int32_t sizeMode;
+    PRInt32 sizeMode;
     mOwner->GetSizeMode(&sizeMode);
     if (sizeMode != nsSizeMode_Minimized) {
       mNeedActivation = false;
@@ -334,9 +367,9 @@ void os2FrameWindow::ActivateTopLevelWidget()
 
 
 
-nsresult os2FrameWindow::SetSizeMode(int32_t aMode)
+nsresult os2FrameWindow::SetSizeMode(PRInt32 aMode)
 {
-  int32_t previousMode;
+  PRInt32 previousMode;
   mOwner->GetSizeMode(&previousMode);
 
   
@@ -436,7 +469,7 @@ nsresult os2FrameWindow::HideWindowChrome(bool aShouldHide)
 nsresult os2FrameWindow::SetTitle(const nsAString& aTitle)
 {
   PRUnichar* uchtemp = ToNewUnicode(aTitle);
-  for (uint32_t i = 0; i < aTitle.Length(); i++) {
+  for (PRUint32 i = 0; i < aTitle.Length(); i++) {
     switch (uchtemp[i]) {
       case 0x2018:
       case 0x2019:
@@ -453,7 +486,7 @@ nsresult os2FrameWindow::SetTitle(const nsAString& aTitle)
   }
 
   nsAutoCharBuffer title;
-  int32_t titleLength;
+  PRInt32 titleLength;
   WideCharToMultiByte(0, uchtemp, aTitle.Length(), title, titleLength);
   if (titleLength > MAX_TITLEBAR_LENGTH) {
     title[MAX_TITLEBAR_LENGTH] = '\0';
@@ -479,13 +512,13 @@ nsresult os2FrameWindow::SetIcon(const nsAString& aIconSpec)
   HPOINTER        hWorkingIcon = 0;
 
   
-  nsCOMPtr<nsIFile> iconFile;
+  nsCOMPtr<nsILocalFile> iconFile;
   mOwner->ResolveIconName(aIconSpec, NS_LITERAL_STRING(".ico"),
                           getter_AddRefs(iconFile));
 
   
   if (iconFile) {
-    nsAutoCString path;
+    nsCAutoString path;
     iconFile->GetNativePath(path);
 
     if (mFrameIcon) {
@@ -515,7 +548,7 @@ nsresult os2FrameWindow::SetIcon(const nsAString& aIconSpec)
 
 
 nsresult os2FrameWindow::ConstrainPosition(bool aAllowSlop,
-                                      int32_t* aX, int32_t* aY)
+                                      PRInt32* aX, PRInt32* aY)
 {
   
   bool doConstrain = false;
@@ -528,7 +561,7 @@ nsresult os2FrameWindow::ConstrainPosition(bool aAllowSlop,
     do_GetService("@mozilla.org/gfx/screenmanager;1");
   if (screenmgr) {
     nsCOMPtr<nsIScreen> screen;
-    int32_t left, top, width, height;
+    PRInt32 left, top, width, height;
 
     
     width = mFrameBounds.width > 0 ? mFrameBounds.width : 1;

@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
 #include "nsCOMPtr.h"
@@ -17,7 +51,7 @@
 #define INCL_WIN
 #include <os2.h>
 
-inline uint32_t RegisterClipboardFormat(PCSZ pcszFormat)
+inline PRUint32 RegisterClipboardFormat(PCSZ pcszFormat)
 {
   ATOM atom = WinFindAtom(WinQuerySystemAtomTable(), pcszFormat);
   if (!atom) {
@@ -34,7 +68,6 @@ nsClipboard::nsClipboard() : nsBaseClipboard()
   RegisterClipboardFormat(kAOLMailMime);
   RegisterClipboardFormat(kPNGImageMime);
   RegisterClipboardFormat(kJPEGImageMime);
-  RegisterClipboardFormat(kJPGImageMime);
   RegisterClipboardFormat(kGIFImageMime);
   RegisterClipboardFormat(kFileMime);
   RegisterClipboardFormat(kURLMime);
@@ -45,7 +78,7 @@ nsClipboard::nsClipboard() : nsBaseClipboard()
 nsClipboard::~nsClipboard()
 {}
 
-nsresult nsClipboard::SetNativeClipboardData(int32_t aWhichClipboard)
+nsresult nsClipboard::SetNativeClipboardData(PRInt32 aWhichClipboard)
 {
   if (aWhichClipboard != kGlobalClipboard)
     return NS_ERROR_FAILURE;
@@ -53,7 +86,7 @@ nsresult nsClipboard::SetNativeClipboardData(int32_t aWhichClipboard)
   return DoClipboardAction(Write);
 }
 
-nsresult nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable, int32_t aWhichClipboard)
+nsresult nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable, PRInt32 aWhichClipboard)
 {
   
   if (!aTransferable || aWhichClipboard != kGlobalClipboard)
@@ -69,7 +102,7 @@ nsresult nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable, int
 
 bool nsClipboard::GetClipboardData(const char *aFlavor)
 {
-  uint32_t ulFormatID = GetFormatID(aFlavor);
+  PRUint32 ulFormatID = GetFormatID(aFlavor);
   
   bool found = GetClipboardDataByID( ulFormatID, aFlavor );
 
@@ -88,10 +121,10 @@ bool nsClipboard::GetClipboardData(const char *aFlavor)
   return found;
 }
 
-bool nsClipboard::GetClipboardDataByID(uint32_t aFormatID, const char *aFlavor)
+bool nsClipboard::GetClipboardDataByID(PRUint32 aFormatID, const char *aFlavor)
 {
   PVOID pDataMem;
-  uint32_t NumOfBytes;
+  PRUint32 NumOfBytes;
   bool TempBufAllocated = false;
 
   PVOID pClipboardData = reinterpret_cast<PVOID>(WinQueryClipbrdData(0, aFormatID));
@@ -105,13 +138,13 @@ bool nsClipboard::GetClipboardDataByID(uint32_t aFormatID, const char *aFlavor)
 
     if (aFormatID == CF_TEXT)     
     {
-      uint32_t NumOfChars = strlen( static_cast<char*>(pDataMem) );
+      PRUint32 NumOfChars = strlen( static_cast<char*>(pDataMem) );
       NumOfBytes = NumOfChars;
 
       if (!strcmp( aFlavor, kUnicodeMime ))  
       {
         nsAutoChar16Buffer buffer;
-        int32_t bufLength;
+        PRInt32 bufLength;
         MultiByteToWideChar(0, static_cast<char*>(pDataMem), NumOfChars,
                             buffer, bufLength);
         pDataMem = ToNewUnicode(nsDependentString(buffer.Elements()));
@@ -122,7 +155,7 @@ bool nsClipboard::GetClipboardDataByID(uint32_t aFormatID, const char *aFlavor)
     }
     else                           
     {
-      uint32_t NumOfChars = UniStrlen( static_cast<UniChar*>(pDataMem) );
+      PRUint32 NumOfChars = UniStrlen( static_cast<UniChar*>(pDataMem) );
       NumOfBytes = NumOfChars * sizeof(UniChar);
       PVOID pTempBuf = nsMemory::Alloc(NumOfBytes);
       memcpy(pTempBuf, pDataMem, NumOfBytes);
@@ -132,14 +165,14 @@ bool nsClipboard::GetClipboardDataByID(uint32_t aFormatID, const char *aFlavor)
 
     
     nsLinebreakHelpers::ConvertPlatformToDOMLinebreaks( aFlavor, &pDataMem,   
-                                                        reinterpret_cast<int32_t*>(&NumOfBytes) );  
+                                                        reinterpret_cast<PRInt32*>(&NumOfBytes) );  
 
   }
   else                             
   {
     if (aFormatID == CF_BITMAP)
     {
-      if (!strcmp( aFlavor, kJPEGImageMime ) || !strcmp( aFlavor, kJPGImageMime ))
+      if (!strcmp( aFlavor, kJPEGImageMime ))
       {
         
 #ifdef DEBUG
@@ -163,8 +196,8 @@ bool nsClipboard::GetClipboardDataByID(uint32_t aFormatID, const char *aFlavor)
     }
     else
     {
-      pDataMem = static_cast<PBYTE>(pClipboardData) + sizeof(uint32_t);
-      NumOfBytes = *(static_cast<uint32_t*>(pClipboardData));
+      pDataMem = static_cast<PBYTE>(pClipboardData) + sizeof(PRUint32);
+      NumOfBytes = *(static_cast<PRUint32*>(pClipboardData));
     }
   }
 
@@ -189,8 +222,8 @@ bool nsClipboard::GetClipboardDataByID(uint32_t aFormatID, const char *aFlavor)
 
 void nsClipboard::SetClipboardData(const char *aFlavor)
 {
-  void *pMozData = nullptr;
-  uint32_t NumOfBytes = 0;
+  void *pMozData = nsnull;
+  PRUint32 NumOfBytes = 0;
 
   
   nsCOMPtr<nsISupports> genericDataWrapper;
@@ -209,15 +242,15 @@ void nsClipboard::SetClipboardData(const char *aFlavor)
     return;
   }
 
-  uint32_t ulFormatID = GetFormatID(aFlavor);
+  PRUint32 ulFormatID = GetFormatID(aFlavor);
 
   if (strstr( aFlavor, "text/" ))  
   {
     if (ulFormatID == CF_TEXT)     
     {
-      char* pByteMem = nullptr;
+      char* pByteMem = nsnull;
 
-      if (DosAllocSharedMem( reinterpret_cast<PPVOID>(&pByteMem), nullptr, NumOfBytes + sizeof(char), 
+      if (DosAllocSharedMem( reinterpret_cast<PPVOID>(&pByteMem), nsnull, NumOfBytes + sizeof(char), 
                              PAG_WRITE | PAG_COMMIT | OBJ_GIVEABLE ) == NO_ERROR)
       {
         memcpy( pByteMem, pMozData, NumOfBytes );       
@@ -234,10 +267,10 @@ void nsClipboard::SetClipboardData(const char *aFlavor)
     }
     else                           
     {
-      UniChar* pUnicodeMem = nullptr;
-      uint32_t NumOfChars = NumOfBytes / sizeof(UniChar);
+      UniChar* pUnicodeMem = nsnull;
+      PRUint32 NumOfChars = NumOfBytes / sizeof(UniChar);
    
-      if (DosAllocSharedMem( reinterpret_cast<PPVOID>(&pUnicodeMem), nullptr, NumOfBytes + sizeof(UniChar), 
+      if (DosAllocSharedMem( reinterpret_cast<PPVOID>(&pUnicodeMem), nsnull, NumOfBytes + sizeof(UniChar), 
                              PAG_WRITE | PAG_COMMIT | OBJ_GIVEABLE ) == NO_ERROR) 
       {
         memcpy( pUnicodeMem, pMozData, NumOfBytes );    
@@ -251,14 +284,14 @@ void nsClipboard::SetClipboardData(const char *aFlavor)
 
       if (!strcmp( aFlavor, kUnicodeMime ))
       {
-        char* pByteMem = nullptr;
+        char* pByteMem = nsnull;
 
-        if (DosAllocSharedMem(reinterpret_cast<PPVOID>(&pByteMem), nullptr,
+        if (DosAllocSharedMem(reinterpret_cast<PPVOID>(&pByteMem), nsnull,
                               NumOfBytes + 1, 
                               PAG_WRITE | PAG_COMMIT | OBJ_GIVEABLE ) == NO_ERROR) 
         {
           PRUnichar* uchtemp = (PRUnichar*)pMozData;
-          for (uint32_t i=0;i<NumOfChars;i++) {
+          for (PRUint32 i=0;i<NumOfChars;i++) {
             switch (uchtemp[i]) {
               case 0x2018:
               case 0x2019:
@@ -275,7 +308,7 @@ void nsClipboard::SetClipboardData(const char *aFlavor)
           }
 
           nsAutoCharBuffer buffer;
-          int32_t bufLength;
+          PRInt32 bufLength;
           WideCharToMultiByte(0, static_cast<PRUnichar*>(pMozData),
                               NumOfBytes, buffer, bufLength);
           memcpy(pByteMem, buffer.Elements(), NumOfBytes);
@@ -292,13 +325,13 @@ void nsClipboard::SetClipboardData(const char *aFlavor)
   }
   else                             
   {
-    PBYTE pBinaryMem = nullptr;
+    PBYTE pBinaryMem = nsnull;
 
-    if (DosAllocSharedMem( reinterpret_cast<PPVOID>(&pBinaryMem), nullptr, NumOfBytes + sizeof(uint32_t), 
+    if (DosAllocSharedMem( reinterpret_cast<PPVOID>(&pBinaryMem), nsnull, NumOfBytes + sizeof(PRUint32), 
                            PAG_WRITE | PAG_COMMIT | OBJ_GIVEABLE ) == NO_ERROR) 
     {
-      *(reinterpret_cast<uint32_t*>(pBinaryMem)) = NumOfBytes;          
-      memcpy( pBinaryMem + sizeof(uint32_t), pMozData, NumOfBytes );  
+      *(reinterpret_cast<PRUint32*>(pBinaryMem)) = NumOfBytes;          
+      memcpy( pBinaryMem + sizeof(PRUint32), pMozData, NumOfBytes );  
 
       WinSetClipbrdData( 0, reinterpret_cast<ULONG>(pBinaryMem), ulFormatID, CFI_POINTER );
     }
@@ -337,10 +370,10 @@ nsresult nsClipboard::DoClipboardAction(ClipboardAction aAction)
     if (NS_FAILED(rc))
       return NS_ERROR_FAILURE;
 
-    uint32_t cFormats = 0;
+    PRUint32 cFormats = 0;
     pFormats->Count(&cFormats);
 
-    for (uint32_t i = 0; i < cFormats; i++) {
+    for (PRUint32 i = 0; i < cFormats; i++) {
 
       nsCOMPtr<nsISupports> genericFlavor;
       pFormats->GetElementAt(i, getter_AddRefs(genericFlavor));
@@ -365,7 +398,7 @@ nsresult nsClipboard::DoClipboardAction(ClipboardAction aAction)
 }
 
 
-uint32_t nsClipboard::GetFormatID(const char *aMimeStr)
+PRUint32 nsClipboard::GetFormatID(const char *aMimeStr)
 {
   if (strcmp(aMimeStr, kTextMime) == 0)
     return CF_TEXT;
@@ -374,17 +407,17 @@ uint32_t nsClipboard::GetFormatID(const char *aMimeStr)
 }
 
 NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(const char** aFlavorList,
-                                                  uint32_t aLength,
-                                                  int32_t aWhichClipboard,
+                                                  PRUint32 aLength,
+                                                  PRInt32 aWhichClipboard,
                                                   bool *_retval)
 {
   *_retval = false;
   if (aWhichClipboard != kGlobalClipboard || !aFlavorList)
     return NS_OK;
 
-  for (uint32_t i = 0; i < aLength; ++i) {
+  for (PRUint32 i = 0; i < aLength; ++i) {
     ULONG fmtInfo = 0;
-    uint32_t format = GetFormatID(aFlavorList[i]);
+    PRUint32 format = GetFormatID(aFlavorList[i]);
 
     if (WinQueryClipbrdFmtInfo(0, format, &fmtInfo)) {
       *_retval = true;
