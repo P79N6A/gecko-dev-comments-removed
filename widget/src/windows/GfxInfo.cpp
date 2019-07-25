@@ -68,13 +68,12 @@ nsresult GfxInfo::GetDWriteEnabled(PRBool *aEnabled)
 
 
 
-static nsresult GetKeyValue(const TCHAR* keyLocation, const TCHAR* keyName, nsAString& destString, int type)
+static nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName, nsAString& destString, int type)
 {
   HKEY key;
   DWORD dwcbData;
-  WCHAR wCharValue[1024];
-  TCHAR tCharValue[1024];
   DWORD dValue;
+  DWORD resultType;
   LONG result;
   nsresult retval = NS_OK;
 
@@ -87,27 +86,47 @@ static nsresult GetKeyValue(const TCHAR* keyLocation, const TCHAR* keyName, nsAS
     case REG_DWORD: {
       
       dwcbData = sizeof(dValue);
-      result = RegQueryValueExW(key, keyName, NULL, NULL, (LPBYTE)&dValue, &dwcbData);
-      if (result != ERROR_SUCCESS) {
+      result = RegQueryValueExW(key, keyName, NULL, &resultType, (LPBYTE)&dValue, &dwcbData);
+      if (result == ERROR_SUCCESS && resultType == REG_DWORD) {
+        dValue = dValue / 1024 / 1024;
+        destString.AppendInt(static_cast<PRInt32>(dValue));
+      } else {
         retval = NS_ERROR_FAILURE;
       }
-      dValue = dValue / 1024 / 1024;
-      destString.AppendInt(static_cast<PRInt32>(dValue));
       break;
     }
     case REG_MULTI_SZ: {
       
-      dwcbData = sizeof(tCharValue);
-      result = RegQueryValueExW(key, keyName, NULL, NULL, (LPBYTE)tCharValue, &dwcbData);
-      if (result != ERROR_SUCCESS) {
+      WCHAR wCharValue[1024];
+      dwcbData = sizeof(wCharValue);
+
+      result = RegQueryValueExW(key, keyName, NULL, &resultType, (LPBYTE)wCharValue, &dwcbData);
+      if (result == ERROR_SUCCESS && resultType == REG_MULTI_SZ) {
+        
+        bool isValid = false;
+
+        DWORD strLen = dwcbData/sizeof(wCharValue[0]);
+        for (DWORD i = 0; i < strLen; i++) {
+          if (wCharValue[i] == '\0') {
+            if (i < strLen - 1 && wCharValue[i + 1] == '\0') {
+              isValid = true;
+              break;
+            } else {
+              wCharValue[i] = ' ';
+            }
+          }
+        }
+
+        
+        wCharValue[strLen-1] = '\0';
+
+        if (isValid)
+          destString = wCharValue;
+
+      } else {
         retval = NS_ERROR_FAILURE;
       }
-      
-      for (DWORD i = 0, len = dwcbData/sizeof(tCharValue[0]); i < len; i++) {
-        if (tCharValue[i] == '\0')
-          tCharValue[i] = ' ';
-      }
-      destString = tCharValue;
+
       break;
     }
   }
@@ -140,44 +159,40 @@ void GfxInfo::Init()
 {
   NS_TIME_FUNCTION;
 
-  DISPLAY_DEVICE lpDisplayDevice;
-  lpDisplayDevice.cb = sizeof(lpDisplayDevice);
+  DISPLAY_DEVICEW displayDevice;
+  displayDevice.cb = sizeof(displayDevice);
   int deviceIndex = 0;
 
-  while (EnumDisplayDevices(NULL, deviceIndex, &lpDisplayDevice, 0)) {
-    if (lpDisplayDevice.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE)
+  while (EnumDisplayDevicesW(NULL, deviceIndex, &displayDevice, 0)) {
+    if (displayDevice.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE)
       break;
     deviceIndex++;
   }
 
   
-  if (wcsncmp(lpDisplayDevice.DeviceKey, DEVICE_KEY_PREFIX, wcslen(DEVICE_KEY_PREFIX)) != 0)
+  
+  if (wcsncmp(displayDevice.DeviceKey, DEVICE_KEY_PREFIX, NS_ARRAY_LENGTH(DEVICE_KEY_PREFIX)-1) != 0)
     return;
 
   
-  size_t i;
-  for (i = 0; i < sizeof(lpDisplayDevice.DeviceKey); i++) {
-    if (lpDisplayDevice.DeviceKey[i] == L'\0')
-      break;
-  }
-
-  if (i == sizeof(lpDisplayDevice.DeviceKey)) {
-      
-      return;
+  if (wcsnlen(displayDevice.DeviceKey, NS_ARRAY_LENGTH(displayDevice.DeviceKey))
+      == NS_ARRAY_LENGTH(displayDevice.DeviceKey)) {
+    
+    return;
   }
 
   
-  mDeviceKey = lpDisplayDevice.DeviceKey + wcslen(DEVICE_KEY_PREFIX);
+  mDeviceKey = displayDevice.DeviceKey + NS_ARRAY_LENGTH(DEVICE_KEY_PREFIX)-1;
 
-  mDeviceID = lpDisplayDevice.DeviceID;
-  mDeviceString = lpDisplayDevice.DeviceString;
+  mDeviceID = displayDevice.DeviceID;
+  mDeviceString = displayDevice.DeviceString;
 
 
   HKEY key, subkey;
   LONG result, enumresult;
   DWORD index = 0;
-  TCHAR subkeyname[64];
-  TCHAR value[128];
+  WCHAR subkeyname[64];
+  WCHAR value[128];
   DWORD dwcbData = sizeof(subkeyname);
 
   
