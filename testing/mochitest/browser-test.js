@@ -199,7 +199,9 @@ Tester.prototype = {
     
     this.waitForWindowsState((function () {
       if (this.done) {
-        this.finish();
+        
+        
+        Cu.schedulePreciseGC(this.finish.bind(this));
         return;
       }
 
