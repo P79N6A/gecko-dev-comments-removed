@@ -1344,11 +1344,13 @@ abstract public class GeckoApp
         Log.i(LOGTAG, "pause");
 
         
-        mMainHandler.postDelayed(new Runnable() {
-          public void run() {
-              rememberLastScreen(false);
-          }
-        }, 500);
+        
+        
+        
+        
+        
+        
+        
 
         GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_PAUSING));
         
