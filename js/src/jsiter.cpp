@@ -123,16 +123,11 @@ NativeIterator::mark(JSTracer *trc)
         MarkObject(trc, obj, "obj");
 }
 
-
-
-
-
 static void
 iterator_finalize(JSContext *cx, JSObject *obj)
 {
     JS_ASSERT(obj->getClass() == &js_IteratorClass);
 
-    
     NativeIterator *ni = obj->getNativeIterator();
     if (ni) {
         cx->free(ni);
@@ -811,8 +806,6 @@ js_CloseIterator(JSContext *cx, JSObject *obj)
             ni->props_cursor = ni->props_array;
             ni->next = *hp;
             *hp = obj;
-        } else {
-            iterator_finalize(cx, obj);
         }
     }
 #if JS_HAS_GENERATORS
