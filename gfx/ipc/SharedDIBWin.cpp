@@ -124,10 +124,12 @@ PRUint32
 SharedDIBWin::SetupBitmapHeader(PRUint32 aWidth, PRUint32 aHeight,
                                 bool aTransparent, BITMAPV4HEADER *aHeader)
 {
+  
+  
   memset((void*)aHeader, 0, sizeof(BITMAPV4HEADER));
   aHeader->bV4Size          = sizeof(BITMAPV4HEADER);
   aHeader->bV4Width         = aWidth;
-  aHeader->bV4Height        = aHeight;
+  aHeader->bV4Height        = -LONG(aHeight); 
   aHeader->bV4Planes        = 1;
   aHeader->bV4BitCount      = 32;
   aHeader->bV4V4Compression = BI_BITFIELDS;
@@ -138,7 +140,7 @@ SharedDIBWin::SetupBitmapHeader(PRUint32 aWidth, PRUint32 aHeight,
   if (aTransparent)
     aHeader->bV4AlphaMask     = 0xFF000000;
 
-  return (sizeof(BITMAPV4HEADER) + (aHeader->bV4Height * aHeader->bV4Width * kBytesPerPixel));
+  return (sizeof(BITMAPV4HEADER) + (-aHeader->bV4Height * aHeader->bV4Width * kBytesPerPixel));
 }
 
 nsresult
