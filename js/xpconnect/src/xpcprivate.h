@@ -1592,6 +1592,7 @@ public:
     IsDyingScope(XPCWrappedNativeScope *scope);
 
     void SetComponents(nsXPCComponents* aComponents);
+    nsXPCComponents *GetComponents();
     void SetGlobal(XPCCallContext& ccx, JSObject* aGlobal, nsISupports* aNative);
 
     static void InitStatics() { gScopes = nsnull; gDyingScopes = nsnull; }
@@ -1641,7 +1642,7 @@ private:
     Native2WrappedNativeMap*         mWrappedNativeMap;
     ClassInfo2WrappedNativeProtoMap* mWrappedNativeProtoMap;
     ClassInfo2WrappedNativeProtoMap* mMainThreadWrappedNativeProtoMap;
-    nsXPCComponents*                 mComponents;
+    nsRefPtr<nsXPCComponents>        mComponents;
     XPCWrappedNativeScope*           mNext;
     
     
@@ -3894,10 +3895,12 @@ public:
     virtual ~nsXPCComponents();
 
 private:
-    nsXPCComponents();
+    nsXPCComponents(XPCWrappedNativeScope* aScope);
     void ClearMembers();
 
 private:
+    friend class XPCWrappedNativeScope;
+    XPCWrappedNativeScope*          mScope;
     nsXPCComponents_Interfaces*     mInterfaces;
     nsXPCComponents_InterfacesByID* mInterfacesByID;
     nsXPCComponents_Classes*        mClasses;
