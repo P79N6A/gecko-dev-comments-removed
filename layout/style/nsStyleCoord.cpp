@@ -82,24 +82,6 @@ nsStyleCoord::nsStyleCoord(float aValue, nsStyleUnit aUnit)
   }
 }
 
-
-
-
-nsStyleCoord& nsStyleCoord::operator=(const nsStyleCoord& aCopy)
-{
-  mUnit = aCopy.mUnit;
-  if ((eStyleUnit_Percent <= mUnit) && (mUnit < eStyleUnit_Coord)) {
-    mValue.mFloat = aCopy.mValue.mFloat;
-  }
-  else if (IsPointerValue()) {
-    mValue.mPointer = aCopy.mValue.mPointer;
-  }
-  else {
-    mValue.mInt = aCopy.mValue.mInt;
-  }
-  return *this;
-}
-
 bool nsStyleCoord::operator==(const nsStyleCoord& aOther) const
 {
   if (mUnit != aOther.mUnit) {
