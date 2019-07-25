@@ -778,7 +778,7 @@ nsHTMLInputElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
          (aName == nsGkAtoms::type && !mForm)) &&
         mType == NS_FORM_INPUT_RADIO &&
         (mForm || !(GET_BOOLBIT(mBitField, BF_PARSER_CREATING)))) {
-      WillRemoveFromRadioGroup(aNotify);
+      WillRemoveFromRadioGroup();
     } else if (aNotify && aName == nsGkAtoms::src &&
                mType == NS_FORM_INPUT_IMAGE) {
       if (aValue) {
@@ -1685,7 +1685,7 @@ nsHTMLInputElement::SetCheckedInternal(PRBool aChecked, PRBool aNotify)
   if (mType == NS_FORM_INPUT_RADIO) {
     
     nsCOMPtr<nsIRadioVisitor> visitor =
-      NS_GetRadioUpdateValueMissingVisitor(aNotify);
+      NS_GetRadioUpdateValueMissingVisitor();
     VisitGroup(visitor, aNotify);
   }
 }
@@ -2518,7 +2518,7 @@ nsHTMLInputElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   
   
   if (!mForm && mType == NS_FORM_INPUT_RADIO) {
-    WillRemoveFromRadioGroup(PR_FALSE);
+    WillRemoveFromRadioGroup();
   }
 
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
@@ -3414,7 +3414,7 @@ nsHTMLInputElement::AddedToRadioGroup(PRBool aNotify)
 }
 
 void
-nsHTMLInputElement::WillRemoveFromRadioGroup(PRBool aNotify)
+nsHTMLInputElement::WillRemoveFromRadioGroup()
 {
   
   
@@ -3447,7 +3447,7 @@ nsHTMLInputElement::WillRemoveFromRadioGroup(PRBool aNotify)
     
     
     nsCOMPtr<nsIRadioVisitor> visitor =
-      NS_GetRadioUpdateValueMissingVisitor(aNotify);
+      NS_GetRadioUpdateValueMissingVisitor();
     VisitGroup(visitor, PR_FALSE);
   }
   
@@ -4161,9 +4161,8 @@ protected:
 
 class nsRadioUpdateValueMissingVisitor : public nsRadioVisitor {
 public:
-  nsRadioUpdateValueMissingVisitor(PRBool aNotify)
+  nsRadioUpdateValueMissingVisitor()
     : nsRadioVisitor()
-    , mNotify(aNotify)
     { }
 
   virtual ~nsRadioUpdateValueMissingVisitor() { };
@@ -4183,12 +4182,9 @@ public:
 
     nsCOMPtr<nsITextControlElement> textCtl(do_QueryInterface(aRadio));
     NS_ASSERTION(textCtl, "Visit() passed a null or non-radio pointer");
-    textCtl->OnValueChanged(mNotify);
+    textCtl->OnValueChanged(PR_TRUE);
     return NS_OK;
   }
-
-protected:
-  PRBool mNotify;
 };
 
 nsresult
@@ -4272,9 +4268,9 @@ NS_GetRadioGetCheckedChangedVisitor(PRBool* aCheckedChanged,
 
 
 nsIRadioVisitor*
-NS_GetRadioUpdateValueMissingVisitor(PRBool aNotify)
+NS_GetRadioUpdateValueMissingVisitor()
 {
-  return new nsRadioUpdateValueMissingVisitor(aNotify);
+  return new nsRadioUpdateValueMissingVisitor();
 }
 
 NS_IMETHODIMP_(PRBool)

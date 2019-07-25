@@ -221,7 +221,7 @@ public:
   void SetCheckedChangedInternal(PRBool aCheckedChanged);
   PRBool GetCheckedChanged();
   void AddedToRadioGroup(PRBool aNotify = PR_TRUE);
-  void WillRemoveFromRadioGroup(PRBool aNotify);
+  void WillRemoveFromRadioGroup();
   
 
 
