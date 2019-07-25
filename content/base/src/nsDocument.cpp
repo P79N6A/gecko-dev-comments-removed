@@ -6226,7 +6226,15 @@ nsDocument::CreateEvent(const nsAString& aEventType, nsIDOMEvent** aReturn)
 void
 nsDocument::FlushPendingNotifications(mozFlushType aType)
 {
-  if ((!IsHTML() || aType > Flush_ContentAndNotify) &&
+  
+  
+  
+  
+  
+  
+  if ((!IsHTML() ||
+       (aType > Flush_ContentAndNotify && mPresShell &&
+        !mPresShell->DidInitialReflow())) &&
       (mParser || mWeakSink)) {
     nsCOMPtr<nsIContentSink> sink;
     if (mParser) {
