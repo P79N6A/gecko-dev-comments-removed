@@ -5793,15 +5793,6 @@ Parser::memberExpr(JSBool allowCallSyntax)
                                                       tokenStream.currentToken().pos.end);
                     if (!nextMember)
                         return NULL;
-
-                    
-
-
-
-
-
-                    if (tc->inFunction() && field == context->runtime->atomState.argumentsAtom)
-                        tc->noteArgumentsPropertyAccess(nextMember);
                 }
             }
 #if JS_HAS_XML_SUPPORT
