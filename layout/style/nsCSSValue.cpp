@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsCSSValue.h"
 
 #include "imgIRequest.h"
@@ -751,14 +752,6 @@ nsCSSValue::AppendToString(nsCSSProperty aProperty, nsAString& aResult) const
     nsCSSValue::Array *array = GetArrayValue();
     bool mark = false;
     for (size_t i = 0, i_end = array->Count(); i < i_end; ++i) {
-      if (aProperty == eCSSProperty_border_image && i >= 5) {
-        if (array->Item(i).GetUnit() == eCSSUnit_Null) {
-          continue;
-        }
-        if (i == 5) {
-          aResult.AppendLiteral(" /");
-        }
-      }
       if (mark && array->Item(i).GetUnit() != eCSSUnit_Null) {
         if (unit == eCSSUnit_Array &&
             eCSSProperty_transition_timing_function != aProperty)
@@ -1211,17 +1204,31 @@ nsCSSRect::AppendToString(nsCSSProperty aProperty, nsAString& aResult) const
                     mTop.GetUnit() != eCSSUnit_Initial,
                     "parser should have used a bare value");
 
-  NS_NAMED_LITERAL_STRING(comma, ", ");
+  if (eCSSProperty_border_image_slice == aProperty ||
+      eCSSProperty_border_image_width == aProperty ||
+      eCSSProperty_border_image_outset == aProperty) {
+    NS_NAMED_LITERAL_STRING(space, " ");
 
-  aResult.AppendLiteral("rect(");
-  mTop.AppendToString(aProperty, aResult);
-  aResult.Append(comma);
-  mRight.AppendToString(aProperty, aResult);
-  aResult.Append(comma);
-  mBottom.AppendToString(aProperty, aResult);
-  aResult.Append(comma);
-  mLeft.AppendToString(aProperty, aResult);
-  aResult.Append(PRUnichar(')'));
+    mTop.AppendToString(aProperty, aResult);
+    aResult.Append(space);
+    mRight.AppendToString(aProperty, aResult);
+    aResult.Append(space);
+    mBottom.AppendToString(aProperty, aResult);
+    aResult.Append(space);
+    mLeft.AppendToString(aProperty, aResult);
+  } else {
+    NS_NAMED_LITERAL_STRING(comma, ", ");
+
+    aResult.AppendLiteral("rect(");
+    mTop.AppendToString(aProperty, aResult);
+    aResult.Append(comma);
+    mRight.AppendToString(aProperty, aResult);
+    aResult.Append(comma);
+    mBottom.AppendToString(aProperty, aResult);
+    aResult.Append(comma);
+    mLeft.AppendToString(aProperty, aResult);
+    aResult.Append(PRUnichar(')'));
+  }
 }
 
 void nsCSSRect::SetAllSidesTo(const nsCSSValue& aValue)

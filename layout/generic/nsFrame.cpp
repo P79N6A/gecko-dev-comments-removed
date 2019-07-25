@@ -4748,7 +4748,30 @@ ComputeOutlineAndEffectsRect(nsIFrame* aFrame, bool* aAnyOutlineOrEffects,
       *aAnyOutlineOrEffects = true;
     }
   }
+
   
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  const nsStyleBorder* styleBorder = aFrame->GetStyleBorder();
+  nsMargin outsetMargin = styleBorder->GetImageOutset();
+
+  if (outsetMargin != nsMargin(0, 0, 0, 0)) {
+    nsRect outsetRect(nsPoint(0, 0), aNewSize);
+    outsetRect.Inflate(outsetMargin);
+    r.UnionRect(r, outsetRect);
+
+    *aAnyOutlineOrEffects = true;
+  }
+
   
   
   

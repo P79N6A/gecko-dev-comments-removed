@@ -2713,7 +2713,7 @@ nsCSSRendering::GetBackgroundLayerRect(nsPresContext* aPresContext,
 
 static void
 DrawBorderImage(nsPresContext*       aPresContext,
-                nsRenderingContext& aRenderingContext,
+                nsRenderingContext&  aRenderingContext,
                 nsIFrame*            aForFrame,
                 const nsRect&        aBorderArea,
                 const nsStyleBorder& aStyleBorder,
@@ -2736,8 +2736,6 @@ DrawBorderImage(nsPresContext*       aPresContext,
   imgIRequest *req = aStyleBorder.GetBorderImage();
 
   
-  
-  
 
   nsCOMPtr<imgIContainer> imgContainer;
   req->GetImage(getter_AddRefs(imgContainer));
@@ -2754,12 +2752,20 @@ DrawBorderImage(nsPresContext*       aPresContext,
   }
 
   
-  nsIntMargin split;
+  
+  nsRect borderImgArea(aBorderArea);
+  borderImgArea.Inflate(aStyleBorder.GetImageOutset());
+
+  
+  
+  nsIntMargin slice;
+  nsMargin border;
   NS_FOR_CSS_SIDES(s) {
-    nsStyleCoord coord = aStyleBorder.mBorderImageSplit.Get(s);
-    PRInt32 imgDimension = ((s == NS_SIDE_TOP || s == NS_SIDE_BOTTOM)
-                            ? imageSize.height
-                            : imageSize.width);
+    nsStyleCoord coord = aStyleBorder.mBorderImageSlice.Get(s);
+    PRInt32 imgDimension = NS_SIDE_IS_VERTICAL(s)
+                           ? imageSize.width : imageSize.height;
+    nscoord borderDimension = NS_SIDE_IS_VERTICAL(s)
+                           ? borderImgArea.width : borderImgArea.height;
     double value;
     switch (coord.GetUnit()) {
       case eStyleUnit_Percent:
@@ -2769,8 +2775,7 @@ DrawBorderImage(nsPresContext*       aPresContext,
         value = coord.GetFactorValue();
         break;
       default:
-        NS_ASSERTION(coord.GetUnit() == eStyleUnit_Null,
-                     "unexpected CSS unit for image split");
+        NS_NOTREACHED("unexpected CSS unit for image slice");
         value = 0;
         break;
     }
@@ -2778,10 +2783,50 @@ DrawBorderImage(nsPresContext*       aPresContext,
       value = 0;
     if (value > imgDimension)
       value = imgDimension;
-    split.Side(s) = NS_lround(value);
+    slice.Side(s) = NS_lround(value);
+
+    nsMargin borderWidths(aStyleBorder.GetActualBorder());
+    coord = aStyleBorder.mBorderImageWidth.Get(s);
+    switch (coord.GetUnit()) {
+      case eStyleUnit_Coord: 
+        value = coord.GetCoordValue();
+        break;
+      case eStyleUnit_Percent:
+        value = coord.GetPercentValue() * borderDimension;
+        break;
+      case eStyleUnit_Factor:
+        value = coord.GetFactorValue() * borderWidths.Side(s);
+        break;
+      case eStyleUnit_Auto:  
+        value = nsPresContext::CSSPixelsToAppUnits(slice.Side(s));
+        break;
+      default:
+        NS_NOTREACHED("unexpected CSS unit for border image area division");
+        value = 0;
+        break;
+    }
+    border.Side(s) = NS_lround(value);
   }
 
-  nsMargin border(aStyleBorder.GetActualBorder());
+  
+  
+  
+  double scaleX = border.left + border.right > borderImgArea.width
+                  ? borderImgArea.width / double(border.left + border.right)
+                  : 1.0;
+  double scaleY = border.top + border.bottom > borderImgArea.height
+                  ? borderImgArea.height / double(border.top + border.bottom)
+                  : 1.0;
+  double scale = NS_MIN(scaleX, scaleY);
+  if (scale < 1.0) {
+    border.left *= scale;
+    border.right *= scale;
+    border.top *= scale;
+    border.bottom *= scale;
+    NS_ASSERTION(border.left + border.right <= borderImgArea.width &&
+                 border.top + border.bottom <= borderImgArea.height,
+                 "rounding error in width reduction???");
+  }
 
   
   
@@ -2792,45 +2837,44 @@ DrawBorderImage(nsPresContext*       aPresContext,
     TOP = LEFT, BOTTOM = RIGHT
   };
   const nscoord borderX[3] = {
-    aBorderArea.x + 0,
-    aBorderArea.x + border.left,
-    aBorderArea.x + aBorderArea.width - border.right,
+    borderImgArea.x + 0,
+    borderImgArea.x + border.left,
+    borderImgArea.x + borderImgArea.width - border.right,
   };
   const nscoord borderY[3] = {
-    aBorderArea.y + 0,
-    aBorderArea.y + border.top,
-    aBorderArea.y + aBorderArea.height - border.bottom,
+    borderImgArea.y + 0,
+    borderImgArea.y + border.top,
+    borderImgArea.y + borderImgArea.height - border.bottom,
   };
   const nscoord borderWidth[3] = {
     border.left,
-    aBorderArea.width - border.left - border.right,
+    borderImgArea.width - border.left - border.right,
     border.right,
   };
   const nscoord borderHeight[3] = {
     border.top,
-    aBorderArea.height - border.top - border.bottom,
+    borderImgArea.height - border.top - border.bottom,
     border.bottom,
   };
-
-  const PRInt32 splitX[3] = {
+  const PRInt32 sliceX[3] = {
     0,
-    split.left,
-    imageSize.width - split.right,
+    slice.left,
+    imageSize.width - slice.right,
   };
-  const PRInt32 splitY[3] = {
+  const PRInt32 sliceY[3] = {
     0,
-    split.top,
-    imageSize.height - split.bottom,
+    slice.top,
+    imageSize.height - slice.bottom,
   };
-  const PRInt32 splitWidth[3] = {
-    split.left,
-    imageSize.width - split.left - split.right,
-    split.right,
+  const PRInt32 sliceWidth[3] = {
+    slice.left,
+    PR_MAX(imageSize.width - slice.left - slice.right, 0),
+    slice.right,
   };
-  const PRInt32 splitHeight[3] = {
-    split.top,
-    imageSize.height - split.top - split.bottom,
-    split.bottom,
+  const PRInt32 sliceHeight[3] = {
+    slice.top,
+    PR_MAX(imageSize.height - slice.top - slice.bottom, 0),
+    slice.bottom,
   };
 
   
@@ -2840,12 +2884,22 @@ DrawBorderImage(nsPresContext*       aPresContext,
   for (int i = LEFT; i <= RIGHT; i++) {
     for (int j = TOP; j <= BOTTOM; j++) {
       nsRect destArea(borderX[i], borderY[j], borderWidth[i], borderHeight[j]);
-      nsIntRect subArea(splitX[i], splitY[j], splitWidth[i], splitHeight[j]);
+      nsIntRect subArea(sliceX[i], sliceY[j], sliceWidth[i], sliceHeight[j]);
 
       PRUint8 fillStyleH, fillStyleV;
       nsSize unitSize;
 
       if (i == MIDDLE && j == MIDDLE) {
+        
+        if (NS_STYLE_BORDER_IMAGE_SLICE_NOFILL ==
+            aStyleBorder.mBorderImageFill) {
+          continue;
+        }
+
+        NS_ASSERTION(NS_STYLE_BORDER_IMAGE_SLICE_FILL ==
+                     aStyleBorder.mBorderImageFill,
+                     "Unexpected border image fill");
+
         
         
         
@@ -2857,57 +2911,57 @@ DrawBorderImage(nsPresContext*       aPresContext,
         
         gfxFloat hFactor, vFactor;
 
-        if (0 < border.left && 0 < split.left)
-          vFactor = gfxFloat(border.left)/split.left;
-        else if (0 < border.right && 0 < split.right)
-          vFactor = gfxFloat(border.right)/split.right;
+        if (0 < border.left && 0 < slice.left)
+          vFactor = gfxFloat(border.left)/slice.left;
+        else if (0 < border.right && 0 < slice.right)
+          vFactor = gfxFloat(border.right)/slice.right;
         else
           vFactor = nsPresContext::CSSPixelsToAppUnits(1);
 
-        if (0 < border.top && 0 < split.top)
-          hFactor = gfxFloat(border.top)/split.top;
-        else if (0 < border.bottom && 0 < split.bottom)
-          hFactor = gfxFloat(border.bottom)/split.bottom;
+        if (0 < border.top && 0 < slice.top)
+          hFactor = gfxFloat(border.top)/slice.top;
+        else if (0 < border.bottom && 0 < slice.bottom)
+          hFactor = gfxFloat(border.bottom)/slice.bottom;
         else
           hFactor = nsPresContext::CSSPixelsToAppUnits(1);
 
-        unitSize.width = splitWidth[i]*hFactor;
-        unitSize.height = splitHeight[j]*vFactor;
-        fillStyleH = aStyleBorder.mBorderImageHFill;
-        fillStyleV = aStyleBorder.mBorderImageVFill;
+        unitSize.width = sliceWidth[i]*hFactor;
+        unitSize.height = sliceHeight[j]*vFactor;
+        fillStyleH = aStyleBorder.mBorderImageRepeatH;
+        fillStyleV = aStyleBorder.mBorderImageRepeatV;
 
       } else if (i == MIDDLE) { 
         
         
         gfxFloat factor;
-        if (0 < borderHeight[j] && 0 < splitHeight[j])
-          factor = gfxFloat(borderHeight[j])/splitHeight[j];
+        if (0 < borderHeight[j] && 0 < sliceHeight[j])
+          factor = gfxFloat(borderHeight[j])/sliceHeight[j];
         else
           factor = nsPresContext::CSSPixelsToAppUnits(1);
 
-        unitSize.width = splitWidth[i]*factor;
+        unitSize.width = sliceWidth[i]*factor;
         unitSize.height = borderHeight[j];
-        fillStyleH = aStyleBorder.mBorderImageHFill;
-        fillStyleV = NS_STYLE_BORDER_IMAGE_STRETCH;
+        fillStyleH = aStyleBorder.mBorderImageRepeatH;
+        fillStyleV = NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH;
 
       } else if (j == MIDDLE) { 
         gfxFloat factor;
-        if (0 < borderWidth[i] && 0 < splitWidth[i])
-          factor = gfxFloat(borderWidth[i])/splitWidth[i];
+        if (0 < borderWidth[i] && 0 < sliceWidth[i])
+          factor = gfxFloat(borderWidth[i])/sliceWidth[i];
         else
           factor = nsPresContext::CSSPixelsToAppUnits(1);
 
         unitSize.width = borderWidth[i];
-        unitSize.height = splitHeight[j]*factor;
-        fillStyleH = NS_STYLE_BORDER_IMAGE_STRETCH;
-        fillStyleV = aStyleBorder.mBorderImageVFill;
+        unitSize.height = sliceHeight[j]*factor;
+        fillStyleH = NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH;
+        fillStyleV = aStyleBorder.mBorderImageRepeatV;
 
       } else {
         
         unitSize.width = borderWidth[i];
         unitSize.height = borderHeight[j];
-        fillStyleH = NS_STYLE_BORDER_IMAGE_STRETCH;
-        fillStyleV = NS_STYLE_BORDER_IMAGE_STRETCH;
+        fillStyleH = NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH;
+        fillStyleV = NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH;
       }
 
       DrawBorderImageComponent(aRenderingContext, aForFrame,
@@ -2920,7 +2974,7 @@ DrawBorderImage(nsPresContext*       aPresContext,
 }
 
 static void
-DrawBorderImageComponent(nsRenderingContext& aRenderingContext,
+DrawBorderImageComponent(nsRenderingContext&  aRenderingContext,
                          nsIFrame*            aForFrame,
                          imgIContainer*       aImage,
                          const nsRect&        aDirtyRect,
@@ -2956,8 +3010,8 @@ DrawBorderImageComponent(nsRenderingContext& aRenderingContext,
 
   
   
-  if ((aHFill == NS_STYLE_BORDER_IMAGE_STRETCH &&
-       aVFill == NS_STYLE_BORDER_IMAGE_STRETCH) ||
+  if ((aHFill == NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH &&
+       aVFill == NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH) ||
       (aUnitSize.width == aFill.width &&
        aUnitSize.height == aFill.height)) {
     nsLayoutUtils::DrawSingleImage(&aRenderingContext, subImage,
@@ -2969,39 +3023,35 @@ DrawBorderImageComponent(nsRenderingContext& aRenderingContext,
   
   nsRect tile;
   switch (aHFill) {
-  case NS_STYLE_BORDER_IMAGE_STRETCH:
+  case NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH:
     tile.x = aFill.x;
     tile.width = aFill.width;
     break;
-  case NS_STYLE_BORDER_IMAGE_REPEAT:
+  case NS_STYLE_BORDER_IMAGE_REPEAT_REPEAT:
     tile.x = aFill.x + aFill.width/2 - aUnitSize.width/2;
     tile.width = aUnitSize.width;
     break;
-
-  case NS_STYLE_BORDER_IMAGE_ROUND:
+  case NS_STYLE_BORDER_IMAGE_REPEAT_ROUND:
     tile.x = aFill.x;
     tile.width = aFill.width / ceil(gfxFloat(aFill.width)/aUnitSize.width);
     break;
-
   default:
     NS_NOTREACHED("unrecognized border-image fill style");
   }
 
   switch (aVFill) {
-  case NS_STYLE_BORDER_IMAGE_STRETCH:
+  case NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH:
     tile.y = aFill.y;
     tile.height = aFill.height;
     break;
-  case NS_STYLE_BORDER_IMAGE_REPEAT:
+  case NS_STYLE_BORDER_IMAGE_REPEAT_REPEAT:
     tile.y = aFill.y + aFill.height/2 - aUnitSize.height/2;
     tile.height = aUnitSize.height;
     break;
-
-  case NS_STYLE_BORDER_IMAGE_ROUND:
+  case NS_STYLE_BORDER_IMAGE_REPEAT_ROUND:
     tile.y = aFill.y;
     tile.height = aFill.height/ceil(gfxFloat(aFill.height)/aUnitSize.height);
     break;
-
   default:
     NS_NOTREACHED("unrecognized border-image fill style");
   }

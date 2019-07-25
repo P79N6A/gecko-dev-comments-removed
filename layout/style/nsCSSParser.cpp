@@ -46,6 +46,7 @@
 
 
 
+
 #include "nsCSSParser.h"
 #include "nsCSSProps.h"
 #include "nsCSSKeywords.h"
@@ -128,6 +129,7 @@ using namespace mozilla;
 
 #define VARIANT_AL   (VARIANT_AUTO | VARIANT_LENGTH)
 #define VARIANT_LP   (VARIANT_LENGTH | VARIANT_PERCENT)
+#define VARIANT_LN   (VARIANT_LENGTH | VARIANT_NUMBER)
 #define VARIANT_AH   (VARIANT_AUTO | VARIANT_INHERIT)
 #define VARIANT_AHLP (VARIANT_AH | VARIANT_LP)
 #define VARIANT_AHI  (VARIANT_AH | VARIANT_INTEGER)
@@ -154,6 +156,8 @@ using namespace mozilla;
 #define VARIANT_HUO  (VARIANT_INHERIT | VARIANT_URL | VARIANT_NONE)
 #define VARIANT_AHUO (VARIANT_AUTO | VARIANT_HUO)
 #define VARIANT_HPN  (VARIANT_INHERIT | VARIANT_PERCENT | VARIANT_NUMBER)
+#define VARIANT_PN   (VARIANT_PERCENT | VARIANT_NUMBER)
+#define VARIANT_ALPN (VARIANT_AL | VARIANT_PN)
 #define VARIANT_HN   (VARIANT_INHERIT | VARIANT_NUMBER)
 #define VARIANT_HON  (VARIANT_HN | VARIANT_NONE)
 #define VARIANT_HOS  (VARIANT_INHERIT | VARIANT_NONE | VARIANT_STRING)
@@ -478,6 +482,15 @@ protected:
   bool ParseBackgroundSizeValues(nsCSSValuePair& aOut);
   bool ParseBorderColor();
   bool ParseBorderColors(nsCSSProperty aProperty);
+  void SetBorderImageInitialValues();
+  bool ParseBorderImageRepeat(bool aAcceptsInherit);
+  
+  
+  
+  
+  bool ParseBorderImageSlice(bool aAcceptsInherit, bool* aConsumedTokens);
+  bool ParseBorderImageWidth(bool aAcceptsInherit);
+  bool ParseBorderImageOutset(bool aAcceptsInherit);
   bool ParseBorderImage();
   bool ParseBorderSpacing();
   bool ParseBorderSide(const nsCSSProperty aPropIDs[],
@@ -551,6 +564,8 @@ protected:
   
   void AppendValue(nsCSSProperty aPropID, const nsCSSValue& aValue);
   bool ParseBoxProperties(const nsCSSProperty aPropIDs[]);
+  bool ParseGroupedBoxProperty(PRInt32 aVariantMask,
+                               nsCSSValue& aValue);
   bool ParseDirectionalBoxProperty(nsCSSProperty aProperty,
                                      PRInt32 aSourceType);
   bool ParseBoxCornerRadius(const nsCSSProperty aPropID);
@@ -5210,6 +5225,40 @@ CSSParserImpl::ParseBoxProperties(const nsCSSProperty aPropIDs[])
   return true;
 }
 
+
+
+bool
+CSSParserImpl::ParseGroupedBoxProperty(PRInt32 aVariantMask,
+                                        nsCSSValue& aValue)
+{
+  nsCSSRect& result = aValue.SetRectValue();
+
+  PRInt32 count = 0;
+  NS_FOR_CSS_SIDES (index) {
+    if (!ParseNonNegativeVariant(result.*(nsCSSRect::sides[index]),
+                                 aVariantMask, nsnull)) {
+      break;
+    }
+    count++;
+  }
+
+  if (count == 0) {
+    return false;
+  }
+
+  
+  switch (count) {
+    case 1: 
+      result.mRight = result.mTop;
+    case 2: 
+      result.mBottom = result.mTop;
+    case 3: 
+      result.mLeft = result.mRight;
+  }
+
+  return true;
+}
+
 bool
 CSSParserImpl::ParseDirectionalBoxProperty(nsCSSProperty aProperty,
                                            PRInt32 aSourceType)
@@ -5433,6 +5482,14 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
   case eCSSProperty_border_right_colors:
   case eCSSProperty_border_top_colors:
     return ParseBorderColors(aPropID);
+  case eCSSProperty_border_image_slice:
+    return ParseBorderImageSlice(true, nsnull);
+  case eCSSProperty_border_image_width:
+    return ParseBorderImageWidth(true);
+  case eCSSProperty_border_image_outset:
+    return ParseBorderImageOutset(true);
+  case eCSSProperty_border_image_repeat:
+    return ParseBorderImageRepeat(true);
   case eCSSProperty_border_image:
     return ParseBorderImage();
   case eCSSProperty_border_width:
@@ -6254,83 +6311,250 @@ CSSParserImpl::ParseBorderColor()
   return ParseBoxProperties(kBorderColorIDs);
 }
 
-bool
-CSSParserImpl::ParseBorderImage()
+void
+CSSParserImpl::SetBorderImageInitialValues()
 {
-  nsCSSValue val;
-  if (ParseVariant(val, VARIANT_INHERIT | VARIANT_NONE, nsnull)) {
-    AppendValue(eCSSProperty_border_image, val);
+  
+  nsCSSValue source;
+  source.SetNoneValue();
+  AppendValue(eCSSProperty_border_image_source, source);
+
+  
+  nsCSSValue sliceBoxValue;
+  nsCSSRect& sliceBox = sliceBoxValue.SetRectValue();
+  sliceBox.SetAllSidesTo(nsCSSValue(1.0f, eCSSUnit_Percent));
+  nsCSSValue slice;
+  nsCSSValueList* sliceList = slice.SetListValue();
+  sliceList->mValue = sliceBoxValue;
+  AppendValue(eCSSProperty_border_image_slice, slice);
+
+  
+  nsCSSValue width;
+  nsCSSRect& widthBox = width.SetRectValue();
+  widthBox.SetAllSidesTo(nsCSSValue(1.0f, eCSSUnit_Number));
+  AppendValue(eCSSProperty_border_image_width, width);
+
+  
+  nsCSSValue outset;
+  nsCSSRect& outsetBox = outset.SetRectValue();
+  outsetBox.SetAllSidesTo(nsCSSValue(0.0f, eCSSUnit_Number));
+  AppendValue(eCSSProperty_border_image_outset, outset);
+
+  
+  nsCSSValue repeat;
+  nsCSSValuePair repeatPair;
+  repeatPair.SetBothValuesTo(nsCSSValue(NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH,
+                                        eCSSUnit_Enumerated));
+  repeat.SetPairValue(&repeatPair);
+  AppendValue(eCSSProperty_border_image_repeat, repeat);
+}
+
+bool
+CSSParserImpl::ParseBorderImageSlice(bool aAcceptsInherit,
+                                     bool* aConsumedTokens)
+{
+  
+  nsCSSValue value;
+
+  if (aConsumedTokens) {
+    *aConsumedTokens = true;
+  }
+
+  if (aAcceptsInherit && ParseVariant(value, VARIANT_INHERIT, nsnull)) {
+    
+    AppendValue(eCSSProperty_border_image_slice, value);
     return true;
   }
 
   
-  
-  nsRefPtr<nsCSSValue::Array> arr = nsCSSValue::Array::Create(11);
-
-  nsCSSValue& url = arr->Item(0);
-  nsCSSValue& splitTop = arr->Item(1);
-  nsCSSValue& splitRight = arr->Item(2);
-  nsCSSValue& splitBottom = arr->Item(3);
-  nsCSSValue& splitLeft = arr->Item(4);
-  nsCSSValue& borderWidthTop = arr->Item(5);
-  nsCSSValue& borderWidthRight = arr->Item(6);
-  nsCSSValue& borderWidthBottom = arr->Item(7);
-  nsCSSValue& borderWidthLeft = arr->Item(8);
-  nsCSSValue& horizontalKeyword = arr->Item(9);
-  nsCSSValue& verticalKeyword = arr->Item(10);
+  nsCSSValue imageSliceFillValue;
+  bool hasFill = ParseEnum(imageSliceFillValue,
+                           nsCSSProps::kBorderImageSliceKTable);
 
   
-  if (!ParseVariant(url, VARIANT_URL, nsnull)) {
+  nsCSSValue imageSliceBoxValue;
+  if (!ParseGroupedBoxProperty(VARIANT_PN, imageSliceBoxValue)) {
+    if (!hasFill && aConsumedTokens) {
+      *aConsumedTokens = false;
+    }
+
     return false;
   }
 
   
-  if (!ParseNonNegativeVariant(splitTop,
-                               VARIANT_NUMBER | VARIANT_PERCENT, nsnull)) {
-    return false;
-  }
-  if (!ParseNonNegativeVariant(splitRight,
-                               VARIANT_NUMBER | VARIANT_PERCENT, nsnull)) {
-    splitRight = splitTop;
-  }
-  if (!ParseNonNegativeVariant(splitBottom,
-                               VARIANT_NUMBER | VARIANT_PERCENT, nsnull)) {
-    splitBottom = splitTop;
-  }
-  if (!ParseNonNegativeVariant(splitLeft,
-                               VARIANT_NUMBER | VARIANT_PERCENT, nsnull)) {
-    splitLeft = splitRight;
+  
+  if (!hasFill) {
+    hasFill = ParseEnum(imageSliceFillValue,
+                        nsCSSProps::kBorderImageSliceKTable);
   }
 
+  nsCSSValueList* borderImageSlice = value.SetListValue();
   
-  if (ExpectSymbol('/', true)) {
+  borderImageSlice->mValue = imageSliceBoxValue;
+
+  if (hasFill) {
     
-    if (!ParseNonNegativeVariant(borderWidthTop, VARIANT_LENGTH, nsnull)) {
-      return false;
-    }
-    if (!ParseNonNegativeVariant(borderWidthRight, VARIANT_LENGTH, nsnull)) {
-      borderWidthRight = borderWidthTop;
-    }
-    if (!ParseNonNegativeVariant(borderWidthBottom, VARIANT_LENGTH, nsnull)) {
-      borderWidthBottom = borderWidthTop;
-    }
-    if (!ParseNonNegativeVariant(borderWidthLeft, VARIANT_LENGTH, nsnull)) {
-      borderWidthLeft = borderWidthRight;
-    }
+    borderImageSlice->mNext = new nsCSSValueList;
+    borderImageSlice->mNext->mValue = imageSliceFillValue;
+  }
+
+  AppendValue(eCSSProperty_border_image_slice, value);
+  return true;
+}
+
+bool
+CSSParserImpl::ParseBorderImageWidth(bool aAcceptsInherit)
+{
+  
+  nsCSSValue value;
+
+  if (aAcceptsInherit && ParseVariant(value, VARIANT_INHERIT, nsnull)) {
+    
+    AppendValue(eCSSProperty_border_image_width, value);
+    return true;
   }
 
   
-  
-  if (ParseEnum(horizontalKeyword, nsCSSProps::kBorderImageKTable)) {
-    (void)ParseEnum(verticalKeyword, nsCSSProps::kBorderImageKTable);
-  }
-
-  if (!ExpectEndProperty()) {
+  if (!ParseGroupedBoxProperty(VARIANT_ALPN, value)) {
     return false;
   }
 
-  val.SetArrayValue(arr, eCSSUnit_Array);
-  AppendValue(eCSSProperty_border_image, val);
+  AppendValue(eCSSProperty_border_image_width, value);
+  return true;
+}
+
+bool
+CSSParserImpl::ParseBorderImageOutset(bool aAcceptsInherit)
+{
+  
+  nsCSSValue value;
+
+  if (aAcceptsInherit && ParseVariant(value, VARIANT_INHERIT, nsnull)) {
+    
+    AppendValue(eCSSProperty_border_image_outset, value);
+    return true;
+  }
+
+  
+  if (!ParseGroupedBoxProperty(VARIANT_LN, value)) {
+    return false;
+  }
+
+  AppendValue(eCSSProperty_border_image_outset, value);
+  return true;
+}
+
+bool
+CSSParserImpl::ParseBorderImageRepeat(bool aAcceptsInherit)
+{
+  nsCSSValue value;
+  if (aAcceptsInherit && ParseVariant(value, VARIANT_INHERIT, nsnull)) {
+    
+    AppendValue(eCSSProperty_border_image_repeat, value);
+    return true;
+  }
+
+  nsCSSValuePair result;
+  if (!ParseEnum(result.mXValue, nsCSSProps::kBorderImageRepeatKTable)) {
+    return false;
+  }
+
+  
+  if (!ParseEnum(result.mYValue, nsCSSProps::kBorderImageRepeatKTable)) {
+    result.mYValue = result.mXValue;
+  }
+
+  value.SetPairValue(&result);
+  AppendValue(eCSSProperty_border_image_repeat, value);
+  return true;
+}
+
+bool
+CSSParserImpl::ParseBorderImage()
+{
+  nsAutoParseCompoundProperty compound(this);
+
+  
+  
+  
+  
+  
+  
+
+  nsCSSValue value;
+  if (ParseVariant(value, VARIANT_INHERIT, nsnull)) {
+    AppendValue(eCSSProperty_border_image_source, value);
+    AppendValue(eCSSProperty_border_image_slice, value);
+    AppendValue(eCSSProperty_border_image_width, value);
+    AppendValue(eCSSProperty_border_image_outset, value);
+    AppendValue(eCSSProperty_border_image_repeat, value);
+    
+    return true;
+  }
+
+  
+  if (CheckEndProperty()) {
+    return false;
+  }
+
+  
+  SetBorderImageInitialValues();
+
+  bool foundSource = false;
+  bool foundSliceWidthOutset = false;
+  bool foundRepeat = false;
+
+  
+  
+  nsCSSValue imageSourceValue;
+  while (!CheckEndProperty()) {
+    
+    if (!foundSource && ParseVariant(imageSourceValue, VARIANT_UO, nsnull)) {
+      AppendValue(eCSSProperty_border_image_source, imageSourceValue);
+      foundSource = true;
+      continue;
+    }
+
+    
+    
+    
+    
+    
+    if (!foundSliceWidthOutset) {
+      bool sliceConsumedTokens = false;
+      if (ParseBorderImageSlice(false, &sliceConsumedTokens)) {
+        foundSliceWidthOutset = true;
+
+        
+        if (ExpectSymbol('/', true)) {
+          ParseBorderImageWidth(false);
+
+          
+          if (ExpectSymbol('/', true)) {
+            if (!ParseBorderImageOutset(false)) {
+              return false;
+            }
+          }
+        }
+
+        continue;
+      } else {
+        
+        
+        if (sliceConsumedTokens) {
+          return false;
+        }
+      }
+    }
+
+    
+    if (!foundRepeat && ParseBorderImageRepeat(false)) {
+      foundRepeat = true;
+      continue;
+    }
+
+    return false;
+  }
 
   return true;
 }
@@ -6423,14 +6647,24 @@ CSSParserImpl::ParseBorderSide(const nsCSSProperty aPropIDs[],
     
     nsCSSValue extraValue;
     switch (values[0].GetUnit()) {
-      case eCSSUnit_Inherit:    extraValue.SetInheritValue();    break;
-      case eCSSUnit_Initial:    extraValue.SetInitialValue();    break;
-      default:                  extraValue.SetNoneValue();       break;
+    case eCSSUnit_Inherit:
+    case eCSSUnit_Initial:
+      extraValue = values[0];
+      
+      AppendValue(eCSSProperty_border_image_source, extraValue);
+      AppendValue(eCSSProperty_border_image_slice, extraValue);
+      AppendValue(eCSSProperty_border_image_width, extraValue);
+      AppendValue(eCSSProperty_border_image_outset, extraValue);
+      AppendValue(eCSSProperty_border_image_repeat, extraValue);
+      break;
+    default:
+      extraValue.SetNoneValue();
+      SetBorderImageInitialValues();
+      break;
     }
     NS_FOR_CSS_SIDES(side) {
       AppendValue(kBorderColorsProps[side], extraValue);
     }
-    AppendValue(eCSSProperty_border_image, extraValue);
   }
   else {
     
