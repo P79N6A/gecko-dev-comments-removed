@@ -208,10 +208,6 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         JSString *str = vp->toString();
 
         
-        if (str->isStaticAtom())
-            return true;
-
-        
         if (str->compartment() == this)
             return true;
 

@@ -65,6 +65,7 @@
 #include "prmjtime.h"
 
 #include "vm/Stack.h"
+#include "vm/String.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -654,6 +655,9 @@ struct JSRuntime {
 
     
     JSAtomState         atomState;
+
+    
+    js::StaticStrings   staticStrings;
 
     JSWrapObjectCallback wrapObjectCallback;
     JSPreWrapCallback    preWrapObjectCallback;

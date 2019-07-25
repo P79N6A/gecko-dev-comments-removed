@@ -49,12 +49,12 @@ class JSExtensibleString;
 class JSExternalString;
 class JSLinearString;
 class JSFixedString;
-class JSStaticAtom;
 class JSRope;
 class JSAtom;
 
 namespace js {
 
+class StaticStrings;
 class PropertyName;
 
 
@@ -75,13 +75,6 @@ enum InternBehavior
 
 extern JSAtom *
 js_AtomizeString(JSContext *cx, JSString *str, js::InternBehavior ib = js::DoNotInternAtom);
-
-
-
-
-
-
-
 
 
 
@@ -258,9 +251,6 @@ class JSString : public js::gc::Cell
     static const size_t ATOM_MASK         = JS_BITMASK(3);
     static const size_t ATOM_FLAGS        = 0x0;
 
-    static const size_t STATIC_ATOM_MASK  = JS_BITMASK(4);
-    static const size_t STATIC_ATOM_FLAGS = 0x0;
-
     static const size_t EXTENSIBLE_FLAGS  = JS_BIT(2) | JS_BIT(3);
     static const size_t NON_STATIC_ATOM   = JS_BIT(3);
 
@@ -398,11 +388,6 @@ class JSString : public js::gc::Cell
     JSAtom &asAtom() const {
         JS_ASSERT(isAtom());
         return *(JSAtom *)this;
-    }
-
-    JS_ALWAYS_INLINE
-    bool isStaticAtom() const {
-        return (d.lengthAndFlags & FLAGS_MASK) == STATIC_ATOM_FLAGS;
     }
 
     
@@ -655,79 +640,9 @@ class JSExternalString : public JSFixedString
 
 JS_STATIC_ASSERT(sizeof(JSExternalString) == sizeof(JSString));
 
-#if !defined(__ia64__)
-
-
-
-
-# define JS_HAS_STATIC_STRINGS
-#endif
-
 class JSAtom : public JSFixedString
 {
   public:
-    
-
-#ifdef JS_HAS_STATIC_STRINGS
-    static const size_t UNIT_STATIC_LIMIT   = 256U;
-    static const size_t SMALL_CHAR_LIMIT    = 128U; 
-    static const size_t NUM_SMALL_CHARS     = 64U;
-    static const size_t INT_STATIC_LIMIT    = 256U;
-    static const size_t NUM_HUNDRED_STATICS = 156U;
-
-# ifdef __SUNPRO_CC
-#  pragma align 8 (__1cGJSAtomPunitStaticTable_, __1cGJSAtomSlength2StaticTable_, __1cGJSAtomShundredStaticTable_)
-# endif
-
-    static const JSString::Data unitStaticTable[];
-    static const JSString::Data length2StaticTable[];
-    static const JSString::Data hundredStaticTable[];
-    static const JSString::Data *const intStaticTable[];
-#endif
-
-  private:
-    
-    static inline bool isUnitString(const void *ptr);
-    static inline bool isLength2String(const void *ptr);
-    static inline bool isHundredString(const void *ptr);
-
-    typedef uint8 SmallChar;
-    static const SmallChar INVALID_SMALL_CHAR = -1;
-
-    static inline bool fitsInSmallChar(jschar c);
-
-    static const jschar fromSmallChar[];
-    static const SmallChar toSmallChar[];
-
-    static void staticAsserts() {
-        JS_STATIC_ASSERT(sizeof(JSString::Data) == sizeof(JSString));
-    }
-
-    static JSStaticAtom &length2Static(jschar c1, jschar c2);
-    static JSStaticAtom &length2Static(uint32 i);
-
-  public:
-    
-
-
-
-    static inline bool isStatic(const void *ptr);
-
-    static inline bool hasUintStatic(uint32 u);
-    static inline JSStaticAtom &uintStatic(uint32 u);
-
-    static inline bool hasIntStatic(int32 i);
-    static inline JSStaticAtom &intStatic(jsint i);
-
-    static inline bool hasUnitStatic(jschar c);
-    static JSStaticAtom &unitStatic(jschar c);
-
-    
-    static inline JSLinearString *getUnitStringForElement(JSContext *cx, JSString *str, size_t index);
-
-    
-    static inline JSStaticAtom *lookupStatic(const jschar *chars, size_t length);
-
     
     inline js::PropertyName *asPropertyName();
 
@@ -756,12 +671,60 @@ class JSShortAtom : public JSShortString
 
 JS_STATIC_ASSERT(sizeof(JSShortAtom) == sizeof(JSShortString));
 
-class JSStaticAtom : public JSAtom
-{};
-
-JS_STATIC_ASSERT(sizeof(JSStaticAtom) == sizeof(JSString));
-
 namespace js {
+
+class StaticStrings
+{
+  private:
+    bool initialized;
+
+    
+    static const size_t SMALL_CHAR_LIMIT    = 128U;
+    static const size_t NUM_SMALL_CHARS     = 64U;
+
+    static const size_t INT_STATIC_LIMIT    = 256U;
+
+    JSAtom *length2StaticTable[NUM_SMALL_CHARS * NUM_SMALL_CHARS];
+    JSAtom *intStaticTable[INT_STATIC_LIMIT];
+
+  public:
+    
+    static const size_t UNIT_STATIC_LIMIT   = 256U;
+    JSAtom *unitStaticTable[UNIT_STATIC_LIMIT];
+
+    StaticStrings() : initialized(false) {}
+
+    bool init(JSContext *cx);
+    void trace(JSTracer *trc);
+
+    static inline bool hasUint(uint32 u);
+    inline JSAtom *getUint(uint32 u);
+
+    static inline bool hasInt(int32 i);
+    inline JSAtom *getInt(jsint i);
+
+    static inline bool hasUnit(jschar c);
+    JSAtom *getUnit(jschar c);
+
+    
+    inline JSLinearString *getUnitStringForElement(JSContext *cx, JSString *str, size_t index);
+
+    static bool isStatic(JSAtom *atom);
+
+    
+    inline JSAtom *lookup(const jschar *chars, size_t length);
+
+  private:
+    typedef uint8 SmallChar;
+    static const SmallChar INVALID_SMALL_CHAR = -1;
+
+    static inline bool fitsInSmallChar(jschar c);
+
+    static const SmallChar toSmallChar[];
+
+    JSAtom *getLength2(jschar c1, jschar c2);
+    JSAtom *getLength2(uint32 i);
+};
 
 
 

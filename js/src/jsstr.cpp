@@ -372,7 +372,7 @@ str_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
     jsint slot = JSID_TO_INT(id);
     if ((size_t)slot < str->length()) {
-        JSString *str1 = JSAtom::getUnitStringForElement(cx, str, size_t(slot));
+        JSString *str1 = cx->runtime->staticStrings.getUnitStringForElement(cx, str, size_t(slot));
         if (!str1)
             return JS_FALSE;
         if (!obj->defineElement(cx, uint32(slot), StringValue(str1), NULL, NULL,
@@ -730,7 +730,7 @@ js_str_charAt(JSContext *cx, uintN argc, Value *vp)
         i = (jsint) d;
     }
 
-    str = JSAtom::getUnitStringForElement(cx, str, size_t(i));
+    str = cx->runtime->staticStrings.getUnitStringForElement(cx, str, size_t(i));
     if (!str)
         return false;
     vp->setString(str);
@@ -2611,7 +2611,7 @@ str_slice(JSContext *cx, uintN argc, Value *vp)
                 str = cx->runtime->emptyString;
             } else {
                 str = (length == 1)
-                      ? JSAtom::getUnitStringForElement(cx, str, begin)
+                      ? cx->runtime->staticStrings.getUnitStringForElement(cx, str, begin)
                       : js_NewDependentString(cx, str, begin, length);
                 if (!str)
                     return JS_FALSE;
@@ -2829,7 +2829,7 @@ js_String_getelem(JSContext* cx, JSString* str, int32 i)
 {
     if ((size_t)i >= str->length())
         return NULL;
-    return JSAtom::getUnitStringForElement(cx, str, size_t(i));
+    return cx->runtime->staticStrings.getUnitStringForElement(cx, str, size_t(i));
 }
 #endif
 
@@ -2893,204 +2893,6 @@ static JSFunctionSpec string_methods[] = {
     JS_FS_END
 };
 
-#ifdef JS_HAS_STATIC_STRINGS
-
-
-
-
-
-
-
-
-#define R2(n)  R(n),   R((n) + (1 << 0)),    R((n) + (2 << 0)),    R((n) + (3 << 0))
-#define R4(n)  R2(n),  R2((n) + (1 << 2)),   R2((n) + (2 << 2)),   R2((n) + (3 << 2))
-#define R6(n)  R4(n),  R4((n) + (1 << 4)),   R4((n) + (2 << 4)),   R4((n) + (3 << 4))
-#define R8(n)  R6(n),  R6((n) + (1 << 6)),   R6((n) + (2 << 6)),   R6((n) + (3 << 6))
-#define R10(n) R8(n),  R8((n) + (1 << 8)),   R8((n) + (2 << 8)),   R8((n) + (3 << 8))
-#define R12(n) R10(n), R10((n) + (1 << 10)), R10((n) + (2 << 10)), R10((n) + (3 << 10))
-
-#define R3(n) R2(n), R2((n) + (1 << 2))
-#define R7(n) R6(n), R6((n) + (1 << 6))
-
-#define BUILD_LENGTH_AND_FLAGS(length, flags)                                 \
-    (((length) << JSString::LENGTH_SHIFT) | (flags))
-
-
-
-
-
-#define R(c) {                                                                \
-    BUILD_LENGTH_AND_FLAGS(1, JSString::STATIC_ATOM_FLAGS),                   \
-    { (jschar *)(uintptr_t(unitStaticTable + (c)) +                           \
-      offsetof(JSString::Data, inlineStorage)) },                             \
-    { {(c), 0x00} } }
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if defined(__SUNPRO_CC) || defined(__xlC__)
-#pragma pack(8)
-#elif defined(__HP_aCC)
-#pragma pack 8
-#elif !defined(lint)
-#pragma pack(push, 8)
-#endif
-
-const JSString::Data JSAtom::unitStaticTable[]
-#if defined(__GNUC__) || defined(__xlC__)
-__attribute__ ((aligned (8)))
-#endif
-= { R8(0) };
-
-#if defined(__SUNPRO_CC)
-#pragma pack(0)
-#elif defined(__HP_aCC)
-#pragma pack
-#elif !defined(lint)
-#pragma pack(pop)
-#endif
-
-#undef R
-
-
-
-
-
-
-#define TO_SMALL_CHAR(c) ((c) >= '0' && (c) <= '9' ? (c) - '0' :              \
-                          (c) >= 'a' && (c) <= 'z' ? (c) - 'a' + 10 :         \
-                          (c) >= 'A' && (c) <= 'Z' ? (c) - 'A' + 36 :         \
-                          JSAtom::INVALID_SMALL_CHAR)
-
-#define R TO_SMALL_CHAR
-
-const JSAtom::SmallChar JSAtom::toSmallChar[] = { R7(0) };
-
-#undef R
-
-
-
-
-
-#define FROM_SMALL_CHAR(c) ((c) + ((c) < 10 ? '0' :      \
-                                   (c) < 36 ? 'a' - 10 : \
-                                   'A' - 36))
-#define R FROM_SMALL_CHAR
-
-const jschar JSAtom::fromSmallChar[] = { R6(0) };
-
-#undef R
-
-
-
-
-
-
-#define R(c) {                                                                \
-    BUILD_LENGTH_AND_FLAGS(2, JSString::STATIC_ATOM_FLAGS),                   \
-    { (jschar *)(uintptr_t(length2StaticTable + (c)) +                        \
-      offsetof(JSString::Data, inlineStorage)) },                             \
-    { {FROM_SMALL_CHAR((c) >> 6), FROM_SMALL_CHAR((c) & 0x3F), 0x00} } }
-
-#if defined(__SUNPRO_CC) || defined(__xlC__)
-#pragma pack(8)
-#elif defined(__HP_aCC)
-#pragma pack 8
-#elif !defined(lint)
-#pragma pack(push, 8)
-#endif
-
-const JSString::Data JSAtom::length2StaticTable[]
-#if defined(__GNUC__) || defined(__xlC__)
-__attribute__ ((aligned (8)))
-#endif
-= { R12(0) };
-
-#if defined(__SUNPRO_CC)
-#pragma pack(0)
-#elif defined(__HP_aCC)
-#pragma pack
-#elif !defined(lint)
-#pragma pack(pop)
-#endif
-
-#undef R
-
-
-
-
-
-
-
-
-#define R(c) {                                                                \
-    BUILD_LENGTH_AND_FLAGS(3, JSString::STATIC_ATOM_FLAGS),                   \
-    { (jschar *)(uintptr_t(hundredStaticTable + ((c) - 100)) +                \
-      offsetof(JSString::Data, inlineStorage)) },                             \
-    { {((c) / 100) + '0', ((c) / 10 % 10) + '0', ((c) % 10) + '0', 0x00} } }
-
-
-JS_STATIC_ASSERT(100 + (1 << 7) + (1 << 4) + (1 << 3) + (1 << 2) == 256);
-
-#if defined(__SUNPRO_CC) || defined(__xlC__)
-#pragma pack(8)
-#elif defined(__HP_aCC)
-#pragma pack 8
-#elif !defined(lint)
-#pragma pack(push, 8)
-#endif
-
-const JSString::Data JSAtom::hundredStaticTable[]
-#if defined(__GNUC__) || defined(__xlC__)
-__attribute__ ((aligned (8)))
-#endif
-= { R7(100), 
-    R4(100 + (1 << 7)), 
-    R3(100 + (1 << 7) + (1 << 4)), 
-    R2(100 + (1 << 7) + (1 << 4) + (1 << 3)) 
-};
-
-#undef R
-
-#define R(c) ((c) < 10 ? JSAtom::unitStaticTable + ((c) + '0') :              \
-              (c) < 100 ? JSAtom::length2StaticTable +                        \
-              ((size_t)TO_SMALL_CHAR(((c) / 10) + '0') << 6) +                \
-              TO_SMALL_CHAR(((c) % 10) + '0') :                               \
-              JSAtom::hundredStaticTable + ((c) - 100))
-
-const JSString::Data *const JSAtom::intStaticTable[] = { R8(0) };
-
-#undef R
-
-#if defined(__SUNPRO_CC)
-#pragma pack(0)
-#elif defined(__HP_aCC)
-#pragma pack
-#elif !defined(lint)
-#pragma pack(pop)
-#endif
-
-#undef R2
-#undef R4
-#undef R6
-#undef R8
-#undef R10
-#undef R12
-
-#undef R3
-#undef R7
-
-#endif  
-
 JSBool
 js_String(JSContext *cx, uintN argc, Value *vp)
 {
@@ -3125,8 +2927,8 @@ str_fromCharCode(JSContext *cx, uintN argc, Value *vp)
         uint16_t code;
         if (!ValueToUint16(cx, argv[0], &code))
             return JS_FALSE;
-        if (JSAtom::hasUnitStatic(code)) {
-            vp->setString(&JSAtom::unitStatic(code));
+        if (StaticStrings::hasUnit(code)) {
+            vp->setString(cx->runtime->staticStrings.getUnit(code));
             return JS_TRUE;
         }
         argv[0].setInt32(code);
@@ -3158,8 +2960,8 @@ String_fromCharCode(JSContext* cx, int32 i)
 {
     JS_ASSERT(JS_ON_TRACE(cx));
     jschar c = (jschar)i;
-    if (JSAtom::hasUnitStatic(c))
-        return &JSAtom::unitStatic(c);
+    if (StaticStrings::hasUnit(c))
+        return cx->runtime->staticStrings.getUnit(c);
     return js_NewStringCopyN(cx, &c, 1);
 }
 #endif
@@ -3375,7 +3177,7 @@ js_NewDependentString(JSContext *cx, JSString *baseArg, size_t start, size_t len
 
     const jschar *chars = base->chars() + start;
 
-    if (JSLinearString *staticStr = JSAtom::lookupStatic(chars, length))
+    if (JSLinearString *staticStr = cx->runtime->staticStrings.lookup(chars, length))
         return staticStr;
 
     JSLinearString *s = JSDependentString::new_(cx, base, chars, length);
