@@ -53,8 +53,6 @@
 #include "jsversion.h"
 #include "jsexn.h"
 #include "jsfun.h"
-#include "jsgc.h"
-#include "jsgcmark.h"
 #include "jsinterp.h"
 #include "jsnum.h"
 #include "jsobj.h"
@@ -64,9 +62,9 @@
 #include "jsstaticcheck.h"
 #include "jswrapper.h"
 
+#include "jscntxtinlines.h"
+#include "jsinterpinlines.h"
 #include "jsobjinlines.h"
-
-#include "vm/Stack-inl.h"
 
 using namespace js;
 using namespace js::gc;
@@ -267,6 +265,7 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     JSErrorReporter older;
     JSExceptionState *state;
     jsid callerid;
+    JSStackFrame *fp, *fpstop;
     size_t stackDepth, valueCount, size;
     JSBool overflow;
     JSExnPrivate *priv;
@@ -292,10 +291,7 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     callerid = ATOM_TO_JSID(cx->runtime->atomState.callerAtom);
     stackDepth = 0;
     valueCount = 0;
-
-    FrameRegsIter firstPass(cx);
-    for (; !firstPass.done(); ++firstPass) {
-        StackFrame *fp = firstPass.fp();
+    for (fp = js_GetTopStackFrame(cx); fp; fp = fp->prev()) {
         if (fp->compartment() != cx->compartment)
             break;
         if (fp->isNonEvalFunctionFrame()) {
@@ -310,6 +306,7 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     }
     JS_RestoreExceptionState(cx, state);
     JS_SetErrorReporter(cx, older);
+    fpstop = fp;
 
     size = offsetof(JSExnPrivate, stackElems);
     overflow = (stackDepth > ((size_t)-1 - size) / sizeof(JSStackTraceElem));
@@ -337,11 +334,10 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
 
     values = GetStackTraceValueBuffer(priv);
     elem = priv->stackElems;
-    for (FrameRegsIter iter(cx); iter != firstPass; ++iter) {
-        StackFrame *fp = iter.fp();
+    for (fp = js_GetTopStackFrame(cx); fp != fpstop; fp = fp->prev()) {
         if (fp->compartment() != cx->compartment)
             break;
-        if (!fp->isNonEvalFunctionFrame()) {
+        if (!fp->isFunctionFrame() || fp->isEvalFrame()) {
             elem->funName = NULL;
             elem->argc = 0;
         } else {
@@ -356,7 +352,8 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
         elem->filename = NULL;
         if (fp->isScriptFrame()) {
             elem->filename = fp->script()->filename;
-            elem->ulineno = js_FramePCToLineNumber(cx, fp, iter.pc());
+            if (fp->pc(cx))
+                elem->ulineno = js_FramePCToLineNumber(cx, fp);
         }
         ++elem;
     }
@@ -693,6 +690,9 @@ FilenameToString(JSContext *cx, const char *filename)
 static JSBool
 Exception(JSContext *cx, uintN argc, Value *vp)
 {
+    JSString *message, *filename;
+    JSStackFrame *fp;
+
     
 
 
@@ -724,7 +724,6 @@ Exception(JSContext *cx, uintN argc, Value *vp)
 
     
     Value *argv = vp + 2;
-    JSString *message;
     if (argc != 0 && !argv[0].isUndefined()) {
         message = js_ValueToString(cx, argv[0]);
         if (!message)
@@ -735,20 +734,16 @@ Exception(JSContext *cx, uintN argc, Value *vp)
     }
 
     
-    FrameRegsIter iter(cx);
-    while (!iter.done() && !iter.fp()->isScriptFrame())
-        ++iter;
-
-    
-    JSString *filename;
     if (argc > 1) {
         filename = js_ValueToString(cx, argv[1]);
         if (!filename)
             return JS_FALSE;
         argv[1].setString(filename);
+        fp = NULL;
     } else {
-        if (!iter.done()) {
-            filename = FilenameToString(cx, iter.fp()->script()->filename);
+        fp = js_GetScriptedCaller(cx, NULL);
+        if (fp) {
+            filename = FilenameToString(cx, fp->script()->filename);
             if (!filename)
                 return JS_FALSE;
         } else {
@@ -762,7 +757,9 @@ Exception(JSContext *cx, uintN argc, Value *vp)
         if (!ValueToECMAUint32(cx, argv[2], &lineno))
             return JS_FALSE;
     } else {
-        lineno = iter.done() ? 0 : js_FramePCToLineNumber(cx, iter.fp(), iter.pc());
+        if (!fp)
+            fp = js_GetScriptedCaller(cx, NULL);
+        lineno = (fp && fp->pc(cx)) ? js_FramePCToLineNumber(cx, fp) : 0;
     }
 
     if (obj->getClass() == &js_ErrorClass &&
@@ -1037,21 +1034,25 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
                                           NULL, NULL);
         if (!proto)
             return NULL;
-        JS_ASSERT(proto->getPrivate() == NULL);
+        JS_ASSERT(proto->privateData == NULL);
 
         if (i == JSEXN_ERR)
             error_proto = proto;
 
         
         JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED | JSRESOLVE_DECLARING);
-        if (!DefineNativeProperty(cx, proto, nameId, StringValue(atom),
-                                  PropertyStub, StrictPropertyStub, 0, 0, 0) ||
-            !DefineNativeProperty(cx, proto, messageId, empty,
-                                  PropertyStub, StrictPropertyStub, 0, 0, 0) ||
-            !DefineNativeProperty(cx, proto, fileNameId, empty,
-                                  PropertyStub, StrictPropertyStub, JSPROP_ENUMERATE, 0, 0) ||
-            !DefineNativeProperty(cx, proto, lineNumberId, Valueify(JSVAL_ZERO),
-                                  PropertyStub, StrictPropertyStub, JSPROP_ENUMERATE, 0, 0)) {
+        if (!js_DefineNativeProperty(cx, proto, nameId, StringValue(atom),
+                                     PropertyStub, StrictPropertyStub,
+                                     0, 0, 0, NULL) ||
+            !js_DefineNativeProperty(cx, proto, messageId, empty,
+                                     PropertyStub, StrictPropertyStub,
+                                     0, 0, 0, NULL) ||
+            !js_DefineNativeProperty(cx, proto, fileNameId, empty,
+                                     PropertyStub, StrictPropertyStub,
+                                     JSPROP_ENUMERATE, 0, 0, NULL) ||
+            !js_DefineNativeProperty(cx, proto, lineNumberId, Valueify(JSVAL_ZERO),
+                                     PropertyStub, StrictPropertyStub,
+                                     JSPROP_ENUMERATE, 0, 0, NULL)) {
             return NULL;
         }
     }

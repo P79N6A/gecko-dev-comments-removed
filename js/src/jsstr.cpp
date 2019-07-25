@@ -61,13 +61,13 @@
 #include "jsbool.h"
 #include "jsbuiltins.h"
 #include "jscntxt.h"
+#include "jsfun.h"      
 #include "jsgc.h"
 #include "jsinterp.h"
 #include "jslock.h"
 #include "jsnum.h"
 #include "jsobj.h"
 #include "jsopcode.h"
-#include "jsprobes.h"
 #include "jsregexp.h"
 #include "jsscope.h"
 #include "jsstaticcheck.h"
@@ -76,19 +76,340 @@
 #include "jsvector.h"
 #include "jsversion.h"
 
-#include "vm/GlobalObject.h"
-
+#include "jscntxtinlines.h"
 #include "jsinterpinlines.h"
 #include "jsobjinlines.h"
 #include "jsregexpinlines.h"
+#include "jsstrinlines.h"
 #include "jsautooplen.h"        
-
-#include "vm/StringObject-inl.h"
-#include "vm/String-inl.h"
 
 using namespace js;
 using namespace js::gc;
-using namespace js::unicode;
+
+#ifdef DEBUG
+bool
+JSString::isShort() const
+{
+    bool is_short = arena()->header()->thingKind == FINALIZE_SHORT_STRING;
+    JS_ASSERT_IF(is_short, isFlat());
+    return is_short;
+}
+
+bool
+JSString::isFixed() const
+{
+    return isFlat() && !isExtensible();
+}
+#endif
+
+static JS_ALWAYS_INLINE JSString *
+Tag(JSRope *str)
+{
+    JS_ASSERT(!(size_t(str) & 1));
+    return (JSString *)(size_t(str) | 1);
+}
+
+static JS_ALWAYS_INLINE bool
+Tagged(JSString *str)
+{
+    return (size_t(str) & 1) != 0;
+}
+
+static JS_ALWAYS_INLINE JSRope *
+Untag(JSString *str)
+{
+    JS_ASSERT((size_t(str) & 1) == 1);
+    return (JSRope *)(size_t(str) & ~size_t(1));
+}
+
+JS_ALWAYS_INLINE void
+JSLinearString::mark(JSTracer *)
+{
+    JSLinearString *str = this;
+    while (!str->isStaticAtom() && str->markIfUnmarked() && str->isDependent())
+        str = str->asDependent().base();
+}
+
+JS_ALWAYS_INLINE void
+JSString::mark(JSTracer *trc)
+{
+    if (isLinear()) {
+        asLinear().mark(trc);
+        return;
+    }
+
+    
+
+
+
+
+
+    JSRope *str = &asRope();
+    JSRope *parent = NULL;
+    first_visit_node: {
+        if (!str->markIfUnmarked())
+            goto finish_node;
+        JS_ASSERT(!Tagged(str->d.u1.left) && !Tagged(str->d.s.u2.right));
+        JSString *left = str->d.u1.left;
+        if (left->isRope()) {
+            str->d.u1.left = Tag(parent);
+            parent = str;
+            str = &left->asRope();
+            goto first_visit_node;
+        }
+        left->asLinear().mark(trc);
+    }
+    visit_right_child: {
+        JSString *right = str->d.s.u2.right;
+        if (right->isRope()) {
+            str->d.s.u2.right = Tag(parent);
+            parent = str;
+            str = &right->asRope();
+            goto first_visit_node;
+        }
+        right->asLinear().mark(trc);
+    }
+    finish_node: {
+        if (!parent)
+            return;
+        if (Tagged(parent->d.u1.left)) {
+            JS_ASSERT(!Tagged(parent->d.s.u2.right));
+            JSRope *nextParent = Untag(parent->d.u1.left);
+            parent->d.u1.left = str;
+            str = parent;
+            parent = nextParent;
+            goto visit_right_child;
+        }
+        JSRope *nextParent = Untag(parent->d.s.u2.right);
+        parent->d.s.u2.right = str;
+        str = parent;
+        parent = nextParent;
+        goto finish_node;
+    }
+}
+
+void
+js::gc::TypedMarker(JSTracer *trc, JSString *str)
+{
+    str->mark(trc);
+}
+
+static JS_ALWAYS_INLINE size_t
+RopeCapacityFor(size_t length)
+{
+    static const size_t ROPE_DOUBLING_MAX = 1024 * 1024;
+
+    
+
+
+
+
+    if (length > ROPE_DOUBLING_MAX)
+        return length + (length / 8);
+    return RoundUpPow2(length);
+}
+
+static JS_ALWAYS_INLINE jschar *
+AllocChars(JSContext *maybecx, size_t wholeCapacity)
+{
+    
+    JS_STATIC_ASSERT(JSString::MAX_LENGTH * sizeof(jschar) < UINT32_MAX);
+    size_t bytes = (wholeCapacity + 1) * sizeof(jschar);
+    if (maybecx)
+        return (jschar *)maybecx->malloc_(bytes);
+    return (jschar *)OffTheBooks::malloc_(bytes);
+}
+
+JSFlatString *
+JSRope::flatten(JSContext *maybecx)
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    const size_t wholeLength = length();
+    size_t wholeCapacity;
+    jschar *wholeChars;
+    JSString *str = this;
+    jschar *pos;
+
+    if (this->leftChild()->isExtensible()) {
+        JSExtensibleString &left = this->leftChild()->asExtensible();
+        size_t capacity = left.capacity();
+        if (capacity >= wholeLength) {
+            wholeCapacity = capacity;
+            wholeChars = const_cast<jschar *>(left.chars());
+            size_t bits = left.d.lengthAndFlags;
+            pos = wholeChars + (bits >> LENGTH_SHIFT);
+            left.d.lengthAndFlags = bits ^ (EXTENSIBLE_FLAGS | DEPENDENT_BIT);
+            left.d.s.u2.base = (JSLinearString *)this;  
+            goto visit_right_child;
+        }
+    }
+
+    wholeCapacity = RopeCapacityFor(wholeLength);
+    wholeChars = AllocChars(maybecx, wholeCapacity);
+    if (!wholeChars)
+        return NULL;
+
+    if (maybecx)
+        maybecx->runtime->stringMemoryUsed += wholeLength * 2;
+
+    pos = wholeChars;
+    first_visit_node: {
+        JSString &left = *str->d.u1.left;
+        str->d.u1.chars = pos;
+        if (left.isRope()) {
+            left.d.s.u3.parent = str;          
+            left.d.lengthAndFlags = 0x200;     
+            str = &left;
+            goto first_visit_node;
+        }
+        size_t len = left.length();
+        PodCopy(pos, left.d.u1.chars, len);
+        pos += len;
+    }
+    visit_right_child: {
+        JSString &right = *str->d.s.u2.right;
+        if (right.isRope()) {
+            right.d.s.u3.parent = str;         
+            right.d.lengthAndFlags = 0x300;    
+            str = &right;
+            goto first_visit_node;
+        }
+        size_t len = right.length();
+        PodCopy(pos, right.d.u1.chars, len);
+        pos += len;
+    }
+    finish_node: {
+        if (str == this) {
+            JS_ASSERT(pos == wholeChars + wholeLength);
+            *pos = '\0';
+            str->d.lengthAndFlags = buildLengthAndFlags(wholeLength, EXTENSIBLE_FLAGS);
+            str->d.u1.chars = wholeChars;
+            str->d.s.u2.capacity = wholeCapacity;
+            return &this->asFlat();
+        }
+        size_t progress = str->d.lengthAndFlags;
+        str->d.lengthAndFlags = buildLengthAndFlags(pos - str->d.u1.chars, DEPENDENT_BIT);
+        str->d.s.u2.base = (JSLinearString *)this;       
+        str = str->d.s.u3.parent;
+        if (progress == 0x200)
+            goto visit_right_child;
+        JS_ASSERT(progress == 0x300);
+        goto finish_node;
+    }
+}
+
+JSString * JS_FASTCALL
+js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
+{
+    JS_ASSERT_IF(!left->isAtom(), left->compartment() == cx->compartment);
+    JS_ASSERT_IF(!right->isAtom(), right->compartment() == cx->compartment);
+
+    size_t leftLen = left->length();
+    if (leftLen == 0)
+        return right;
+
+    size_t rightLen = right->length();
+    if (rightLen == 0)
+        return left;
+
+    size_t wholeLength = leftLen + rightLen;
+
+    if (JSShortString::lengthFits(wholeLength)) {
+        JSShortString *str = js_NewGCShortString(cx);
+        if (!str)
+            return NULL;
+        const jschar *leftChars = left->getChars(cx);
+        if (!leftChars)
+            return NULL;
+        const jschar *rightChars = right->getChars(cx);
+        if (!rightChars)
+            return NULL;
+
+        jschar *buf = str->init(wholeLength);
+        PodCopy(buf, leftChars, leftLen);
+        PodCopy(buf + leftLen, rightChars, rightLen);
+        buf[wholeLength] = 0;
+        return str;
+    }
+
+    if (wholeLength > JSString::MAX_LENGTH) {
+        if (JS_ON_TRACE(cx)) {
+            if (!CanLeaveTrace(cx))
+                return NULL;
+            LeaveTrace(cx);
+        }
+        js_ReportAllocationOverflow(cx);
+        return NULL;
+    }
+
+    return JSRope::new_(cx, left, right, wholeLength);
+}
+
+JSFixedString *
+JSDependentString::undepend(JSContext *cx)
+{
+    JS_ASSERT(isDependent());
+
+    size_t n = length();
+    size_t size = (n + 1) * sizeof(jschar);
+    jschar *s = (jschar *) cx->malloc_(size);
+    if (!s)
+        return NULL;
+
+    cx->runtime->stringMemoryUsed += size;
+
+    PodCopy(s, chars(), n);
+    s[n] = 0;
+
+    d.lengthAndFlags = buildLengthAndFlags(n, FIXED_FLAGS);
+    d.u1.chars = s;
+
+#ifdef DEBUG
+    JSRuntime *rt = cx->runtime;
+    JS_RUNTIME_UNMETER(rt, liveDependentStrings);
+    JS_RUNTIME_UNMETER(rt, totalDependentStrings);
+    JS_LOCK_RUNTIME_VOID(rt,
+        (rt->strdepLengthSum -= (double)n,
+         rt->strdepLengthSquaredSum -= (double)n * (double)n));
+#endif
+
+    return &this->asFixed();
+}
+
+JSStringFinalizeOp JSExternalString::str_finalizers[JSExternalString::TYPE_LIMIT] = {
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+};
 
 #ifdef JS_TRACER
 
@@ -108,7 +429,7 @@ ArgToRootedString(JSContext *cx, uintN argc, Value *vp, uintN arg)
         return cx->runtime->atomState.typeAtoms[JSTYPE_VOID];
     vp += 2 + arg;
 
-    if (!ToPrimitive(cx, JSTYPE_STRING, vp))
+    if (vp->isObject() && !DefaultValue(cx, &vp->toObject(), JSTYPE_STRING, vp))
         return NULL;
 
     JSLinearString *str;
@@ -145,7 +466,7 @@ str_encodeURI(JSContext *cx, uintN argc, Value *vp);
 static JSBool
 str_encodeURI_Component(JSContext *cx, uintN argc, Value *vp);
 
-static const uint32 INVALID_UTF8 = UINT32_MAX;
+static const uint32 OVERLONG_UTF8 = UINT32_MAX;
 
 static uint32
 Utf8ToOneUcs4Char(const uint8 *utf8Buffer, int utf8Length);
@@ -156,11 +477,62 @@ Utf8ToOneUcs4Char(const uint8 *utf8Buffer, int utf8Length);
 
 
 
-static JSBool
-str_escape(JSContext *cx, uintN argc, Value *vp)
+
+
+
+
+
+
+
+
+#define URL_XALPHAS     ((uint8) 1)
+#define URL_XPALPHAS    ((uint8) 2)
+#define URL_PATH        ((uint8) 4)
+
+static const uint8 urlCharType[256] =
+
+
+
+
+
+    
+    {    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,       
+         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,       
+         0,0,0,0,0,0,0,0,0,0,7,4,0,7,7,4,       
+         7,7,7,7,7,7,7,7,7,7,0,0,0,0,0,0,       
+         7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,       
+         7,7,7,7,7,7,7,7,7,7,7,0,0,0,0,7,       
+         0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,       
+         7,7,7,7,7,7,7,7,7,7,7,0,0,0,0,0,       
+         0, };
+
+
+
+#define IS_OK(C, mask) (urlCharType[((uint8) (C))] & (mask))
+
+
+JSBool
+js_str_escape(JSContext *cx, uintN argc, Value *vp, Value *rval)
 {
     const char digits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                            '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
+    jsint mask = URL_XALPHAS | URL_XPALPHAS | URL_PATH;
+    if (argc > 1) {
+        double d;
+        if (!ValueToNumber(cx, vp[3], &d))
+            return JS_FALSE;
+        if (!JSDOUBLE_IS_FINITE(d) ||
+            (mask = (jsint)d) != d ||
+            mask & ~(URL_XALPHAS | URL_XPALPHAS | URL_PATH))
+        {
+            char numBuf[12];
+            JS_snprintf(numBuf, sizeof numBuf, "%lx", (unsigned long) mask);
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                 JSMSG_BAD_STRING_MASK, numBuf);
+            return JS_FALSE;
+        }
+    }
 
     JSLinearString *str = ArgToRootedString(cx, argc, vp, 0);
     if (!str)
@@ -169,38 +541,19 @@ str_escape(JSContext *cx, uintN argc, Value *vp)
     size_t length = str->length();
     const jschar *chars = str->chars();
 
-    static const uint8 shouldPassThrough[256] = {
-         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,       
-         1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,       
-         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,       
-         1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,       
-         0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,       
-         1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,     
-    };
-
-    
-#ifdef DEBUG
-    int count = 0;
-    for (uint i = 0; i < sizeof(shouldPassThrough); i++) {
-        if (shouldPassThrough[i]) {
-            count++;
-        }
-    }
-    JS_ASSERT(count == 69);
-#endif
-
-
     
     size_t newlength = length;
     for (size_t i = 0; i < length; i++) {
-        jschar ch = chars[i];
-        if (ch < 128 && shouldPassThrough[ch])
+        jschar ch;
+        if ((ch = chars[i]) < 128 && IS_OK(ch, mask))
             continue;
-
-        
-        newlength += (ch < 256) ? 2 : 5;
+        if (ch < 256) {
+            if (mask == URL_XPALPHAS && ch == ' ')
+                continue;   
+            newlength += 2; 
+        } else {
+            newlength += 5; 
+        }
 
         
 
@@ -222,13 +575,17 @@ str_escape(JSContext *cx, uintN argc, Value *vp)
         return JS_FALSE;
     size_t i, ni;
     for (i = 0, ni = 0; i < length; i++) {
-        jschar ch = chars[i];
-        if (ch < 128 && shouldPassThrough[ch]) {
+        jschar ch;
+        if ((ch = chars[i]) < 128 && IS_OK(ch, mask)) {
             newchars[ni++] = ch;
         } else if (ch < 256) {
-            newchars[ni++] = '%';
-            newchars[ni++] = digits[ch >> 4];
-            newchars[ni++] = digits[ch & 0xF];
+            if (mask == URL_XPALPHAS && ch == ' ') {
+                newchars[ni++] = '+'; 
+            } else {
+                newchars[ni++] = '%';
+                newchars[ni++] = digits[ch >> 4];
+                newchars[ni++] = digits[ch & 0xF];
+            }
         } else {
             newchars[ni++] = '%';
             newchars[ni++] = 'u';
@@ -246,8 +603,15 @@ str_escape(JSContext *cx, uintN argc, Value *vp)
         cx->free_(newchars);
         return JS_FALSE;
     }
-    vp->setString(retstr);
+    rval->setString(retstr);
     return JS_TRUE;
+}
+#undef IS_OK
+
+static JSBool
+str_escape(JSContext *cx, uintN argc, Value *vp)
+{
+    return js_str_escape(cx, argc, vp, vp);
 }
 
 
@@ -269,7 +633,6 @@ str_unescape(JSContext *cx, uintN argc, Value *vp)
     while (i < length) {
         jschar ch = chars[i++];
         if (ch == '%') {
-            
             if (i + 1 < length &&
                 JS7_ISHEX(chars[i]) && JS7_ISHEX(chars[i + 1]))
             {
@@ -385,7 +748,7 @@ str_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
 Class js_StringClass = {
     js_String_str,
-    JSCLASS_HAS_RESERVED_SLOTS(StringObject::RESERVED_SLOTS) |
+    JSCLASS_HAS_RESERVED_SLOTS(JSObject::STRING_RESERVED_SLOTS) |
     JSCLASS_NEW_RESOLVE | JSCLASS_HAS_CACHED_PROTO(JSProto_String),
     PropertyStub,         
     PropertyStub,         
@@ -405,8 +768,6 @@ Class js_StringClass = {
 static JS_ALWAYS_INLINE JSString *
 ThisToStringForStringProto(JSContext *cx, Value *vp)
 {
-    JS_CHECK_RECURSION(cx, return NULL);
-
     if (vp[1].isString())
         return vp[1].toString();
 
@@ -519,8 +880,11 @@ ValueToIntegerRange(JSContext *cx, const Value &v, int32 *out)
         *out = v.toInt32();
     } else {
         double d;
-        if (!ToInteger(cx, v, &d))
+
+        if (!ValueToNumber(cx, v, &d))
             return false;
+
+        d = js_DoubleToInteger(d);
         if (d > INT32_MAX)
             *out = INT32_MAX;
         else if (d < INT32_MIN)
@@ -589,7 +953,7 @@ js_toLowerCase(JSContext *cx, JSString *str)
     if (!news)
         return NULL;
     for (size_t i = 0; i < n; i++)
-        news[i] = unicode::ToLowerCase(s[i]);
+        news[i] = JS_TOLOWER(s[i]);
     news[n] = 0;
     str = js_NewString(cx, news, n);
     if (!str) {
@@ -640,7 +1004,7 @@ js_toUpperCase(JSContext *cx, JSString *str)
     if (!news)
         return NULL;
     for (size_t i = 0; i < n; i++)
-        news[i] = unicode::ToUpperCase(s[i]);
+        news[i] = JS_TOUPPER(s[i]);
     news[n] = 0;
     str = js_NewString(cx, news, n);
     if (!str) {
@@ -720,9 +1084,14 @@ js_str_charAt(JSContext *cx, uintN argc, Value *vp)
         if (!str)
             return false;
 
-        double d = 0.0;
-        if (argc > 0 && !ToInteger(cx, vp[2], &d))
-            return false;
+        double d;
+        if (argc == 0) {
+            d = 0.0;
+        } else {
+            if (!ValueToNumber(cx, vp[2], &d))
+                return false;
+            d = js_DoubleToInteger(d);
+        }
 
         if (d < 0 || str->length() <= d)
             goto out_of_range;
@@ -755,9 +1124,14 @@ js_str_charCodeAt(JSContext *cx, uintN argc, Value *vp)
         if (!str)
             return false;
 
-        double d = 0.0;
-        if (argc > 0 && !ToInteger(cx, vp[2], &d))
-            return false;
+        double d;
+        if (argc == 0) {
+            d = 0.0;
+        } else {
+            if (!ValueToNumber(cx, vp[2], &d))
+                return false;
+            d = js_DoubleToInteger(d);
+        }
 
         if (d < 0 || str->length() <= d)
             goto out_of_range;
@@ -1092,8 +1466,9 @@ str_indexOf(JSContext *cx, uintN argc, Value *vp)
             }
         } else {
             jsdouble d;
-            if (!ToInteger(cx, vp[3], &d))
-                return false;
+            if (!ValueToNumber(cx, vp[3], &d))
+                return JS_FALSE;
+            d = js_DoubleToInteger(d);
             if (d <= 0) {
                 start = 0;
             } else if (d > textlen) {
@@ -1147,7 +1522,7 @@ str_lastIndexOf(JSContext *cx, uintN argc, Value *vp)
                 i = j;
         } else {
             double d;
-            if (!ToNumber(cx, vp[3], &d))
+            if (!ValueToNumber(cx, vp[3], &d))
                 return false;
             if (!JSDOUBLE_IS_NaN(d)) {
                 d = js_DoubleToInteger(d);
@@ -1202,12 +1577,12 @@ js_TrimString(JSContext *cx, Value *vp, JSBool trimLeft, JSBool trimRight)
     size_t end = length;
 
     if (trimLeft) {
-        while (begin < length && unicode::IsSpace(chars[begin]))
+        while (begin < length && JS_ISSPACE(chars[begin]))
             ++begin;
     }
 
     if (trimRight) {
-        while (end > begin && unicode::IsSpace(chars[end - 1]))
+        while (end > begin && JS_ISSPACE(chars[end-1]))
             --end;
     }
 
@@ -1340,16 +1715,11 @@ class RegExpGuard
 
     
     bool
-    init(uintN argc, Value *vp, bool convertVoid = false)
+    init(uintN argc, Value *vp)
     {
         if (argc != 0 && VALUE_IS_REGEXP(cx, vp[2])) {
             rep.reset(vp[2].toObject());
         } else {
-            if (convertVoid && (argc == 0 || vp[2].isUndefined())) {
-                fm.patstr = cx->runtime->emptyString;
-                return true;
-            }
-            
             fm.patstr = ArgToRootedString(cx, argc, vp, 0);
             if (!fm.patstr)
                 return false;
@@ -1426,7 +1796,7 @@ class RegExpGuard
         }
         JS_ASSERT(patstr);
 
-        AlreadyIncRefed<RegExp> re = RegExp::createFlagged(cx, patstr, opt, NULL);
+        AlreadyIncRefed<RegExp> re = RegExp::createFlagged(cx, patstr, opt);
         if (!re)
             return NULL;
         rep.reset(re);
@@ -1463,8 +1833,8 @@ enum MatchControlFlags {
 
 
 static bool
-DoMatch(JSContext *cx, RegExpStatics *res, JSString *str, const RegExpPair &rep,
-        DoMatchCallback callback, void *data, MatchControlFlags flags, Value *rval)
+DoMatch(JSContext *cx, RegExpStatics *res, Value *vp, JSString *str, const RegExpPair &rep,
+        DoMatchCallback callback, void *data, MatchControlFlags flags)
 {
     RegExp &re = rep.re();
     if (re.global()) {
@@ -1473,9 +1843,9 @@ DoMatch(JSContext *cx, RegExpStatics *res, JSString *str, const RegExpPair &rep,
         if (rep.reobj())
             rep.reobj()->zeroRegExpLastIndex();
         for (size_t count = 0, i = 0, length = str->length(); i <= length; ++count) {
-            if (!re.execute(cx, res, str, &i, testGlobal, rval))
+            if (!re.execute(cx, res, str, &i, testGlobal, vp))
                 return false;
-            if (!Matched(testGlobal, *rval))
+            if (!Matched(testGlobal, *vp))
                 break;
             if (!callback(cx, res, count, data))
                 return false;
@@ -1487,9 +1857,9 @@ DoMatch(JSContext *cx, RegExpStatics *res, JSString *str, const RegExpPair &rep,
         bool testSingle = !!(flags & TEST_SINGLE_BIT),
              callbackOnSingle = !!(flags & CALLBACK_ON_SINGLE_BIT);
         size_t i = 0;
-        if (!re.execute(cx, res, str, &i, testSingle, rval))
+        if (!re.execute(cx, res, str, &i, testSingle, vp))
             return false;
-        if (callbackOnSingle && Matched(testSingle, *rval) && !callback(cx, res, 0, data))
+        if (callbackOnSingle && Matched(testSingle, *vp) && !callback(cx, res, 0, data))
             return false;
     }
     return true;
@@ -1535,8 +1905,11 @@ MatchCallback(JSContext *cx, RegExpStatics *res, size_t count, void *p)
     }
 
     Value v;
-    return res->createLastMatch(cx, &v) &&
-           arrayobj->defineProperty(cx, INT_TO_JSID(count), v);
+    if (!res->createLastMatch(cx, &v))
+        return false;
+
+    JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED | JSRESOLVE_ASSIGNING);
+    return !!arrayobj->setProperty(cx, INT_TO_JSID(count), &v, false);
 }
 
 static JSBool
@@ -1545,9 +1918,9 @@ str_match(JSContext *cx, uintN argc, Value *vp)
     JSString *str = ThisToStringForStringProto(cx, vp);
     if (!str)
         return false;
-    
+
     RegExpGuard g(cx);
-    if (!g.init(argc, vp, true))
+    if (!g.init(argc, vp))
         return false;
     if (const FlatMatch *fm = g.tryFlatMatch(cx, str, 1, argc))
         return BuildFlatMatchArray(cx, str, *fm, vp);
@@ -1561,14 +1934,12 @@ str_match(JSContext *cx, uintN argc, Value *vp)
     AutoObjectRooter array(cx);
     MatchArgType arg = array.addr();
     RegExpStatics *res = cx->regExpStatics();
-    Value rval;
-    if (!DoMatch(cx, res, str, *rep, MatchCallback, arg, MATCH_ARGS, &rval))
+    if (!DoMatch(cx, res, vp, str, *rep, MatchCallback, arg, MATCH_ARGS))
         return false;
 
+    
     if (rep->re().global())
         vp->setObjectOrNull(array.object());
-    else
-        *vp = rval;
     return true;
 }
 
@@ -1580,7 +1951,7 @@ str_search(JSContext *cx, uintN argc, Value *vp)
         return false;
 
     RegExpGuard g(cx);
-    if (!g.init(argc, vp, true))
+    if (!g.init(argc, vp))
         return false;
     if (const FlatMatch *fm = g.tryFlatMatch(cx, str, 1, argc)) {
         vp->setInt32(fm->match());
@@ -1588,7 +1959,6 @@ str_search(JSContext *cx, uintN argc, Value *vp)
     }
     if (cx->isExceptionPending())  
         return false;
-    
     const RegExpPair *rep = g.normalizeRegExp(false, 1, argc, vp);
     if (!rep)
         return false;
@@ -1714,7 +2084,7 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
         if (str->isAtom()) {
             atom = &str->asAtom();
         } else {
-            atom = js_AtomizeString(cx, str);
+            atom = js_AtomizeString(cx, str, 0);
             if (!atom)
                 return false;
         }
@@ -1722,7 +2092,7 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
 
         JSObject *holder;
         JSProperty *prop = NULL;
-        if (!LookupPropertyWithFlags(cx, base, id, JSRESOLVE_QUALIFIED, &holder, &prop))
+        if (js_LookupPropertyWithFlags(cx, base, id, JSRESOLVE_QUALIFIED, &holder, &prop) < 0)
             return false;
 
         
@@ -2045,8 +2415,7 @@ str_replace_regexp(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata)
     rdata.calledBack = false;
 
     RegExpStatics *res = cx->regExpStatics();
-    Value tmp;
-    if (!DoMatch(cx, res, rdata.str, *rep, ReplaceRegExpCallback, &rdata, REPLACE_ARGS, &tmp))
+    if (!DoMatch(cx, res, vp, rdata.str, *rep, ReplaceRegExpCallback, &rdata, REPLACE_ARGS))
         return false;
 
     if (!rdata.calledBack) {
@@ -2081,7 +2450,7 @@ str_replace_flat_lambda(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata
 
     
     static const uint32 lambdaArgc = 3;
-    if (!cx->stack.pushInvokeArgs(cx, lambdaArgc, &rdata.singleShot))
+    if (!cx->stack().pushInvokeArgs(cx, lambdaArgc, &rdata.singleShot))
         return false;
 
     CallArgs &args = rdata.singleShot;
@@ -2093,7 +2462,7 @@ str_replace_flat_lambda(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata
     sp[1].setInt32(fm.match());
     sp[2].setString(rdata.str);
 
-    if (!Invoke(cx, rdata.singleShot))
+    if (!Invoke(cx, rdata.singleShot, 0))
         return false;
 
     JSString *repstr = js_ValueToString(cx, args.rval());
@@ -2130,9 +2499,6 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
         return false;
     static const uint32 optarg = 2;
 
-    if (!rdata.g.init(argc, vp))
-        return false;
-
     
     if (argc >= optarg && js_IsCallable(vp[3])) {
         rdata.lambda = &vp[3].toObject();
@@ -2151,7 +2517,7 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
 
 
 
-                JSScript *script = fun->script();
+                JSScript *script = fun->u.i.script;
                 jsbytecode *pc = script->code;
 
                 Value table = UndefinedValue();
@@ -2187,6 +2553,9 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
         rdata.dollarEnd = fixed->chars() + fixed->length();
         rdata.dollar = js_strchr_limit(fixed->chars(), '$', rdata.dollarEnd);
     }
+
+    if (!rdata.g.init(argc, vp))
+        return false;
 
     
 
@@ -2448,7 +2817,7 @@ str_split(JSContext *cx, uintN argc, Value *vp)
     uint32 limit;
     if (argc > 1 && !vp[3].isUndefined()) {
         jsdouble d;
-        if (!ToNumber(cx, vp[3], &d))
+        if (!ValueToNumber(cx, vp[3], &d))
             return false;
         limit = js_DoubleToECMAUint32(d);
     } else {
@@ -2572,18 +2941,23 @@ str_concat(JSContext *cx, uintN argc, Value *vp)
     if (!str)
         return false;
 
-    Value *argv = JS_ARGV(cx, vp);
-    for (uintN i = 0; i < argc; i++) {
+    
+    vp->setString(str);
+
+    Value *argv;
+    uintN i;
+    for (i = 0, argv = vp + 2; i < argc; i++) {
         JSString *str2 = js_ValueToString(cx, argv[i]);
         if (!str2)
             return false;
+        argv[i].setString(str2);
 
         str = js_ConcatStrings(cx, str, str2);
         if (!str)
             return false;
+        vp->setString(str);
     }
 
-    JS_SET_RVAL(cx, vp, StringValue(str));
     return true;
 }
 
@@ -2619,8 +2993,9 @@ str_slice(JSContext *cx, uintN argc, Value *vp)
     if (argc != 0) {
         double begin, end, length;
 
-        if (!ToInteger(cx, vp[2], &begin))
-            return false;
+        if (!ValueToNumber(cx, vp[2], &begin))
+            return JS_FALSE;
+        begin = js_DoubleToInteger(begin);
         length = str->length();
         if (begin < 0) {
             begin += length;
@@ -2633,8 +3008,9 @@ str_slice(JSContext *cx, uintN argc, Value *vp)
         if (argc == 1 || vp[3].isUndefined()) {
             end = length;
         } else {
-            if (!ToInteger(cx, vp[3], &end))
-                return false;
+            if (!ValueToNumber(cx, vp[3], &end))
+                return JS_FALSE;
+            end = js_DoubleToInteger(end);
             if (end < 0) {
                 end += length;
                 if (end < 0)
@@ -2910,7 +3286,7 @@ static JSFunctionSpec string_methods[] = {
 
 #define R(c) {                                                                \
     BUILD_LENGTH_AND_FLAGS(1, JSString::STATIC_ATOM_FLAGS),                   \
-    { (jschar *)(uintptr_t(unitStaticTable + (c)) +                           \
+    { (jschar *)(((char *)(unitStaticTable + (c))) +                          \
       offsetof(JSString::Data, inlineStorage)) },                             \
     { {(c), 0x00} } }
 
@@ -2986,7 +3362,7 @@ const jschar JSAtom::fromSmallChar[] = { R6(0) };
 
 #define R(c) {                                                                \
     BUILD_LENGTH_AND_FLAGS(2, JSString::STATIC_ATOM_FLAGS),                   \
-    { (jschar *)(uintptr_t(length2StaticTable + (c)) +                        \
+    { (jschar *)(((char *)(length2StaticTable + (c))) +                       \
       offsetof(JSString::Data, inlineStorage)) },                             \
     { {FROM_SMALL_CHAR((c) >> 6), FROM_SMALL_CHAR((c) & 0x3F), 0x00} } }
 
@@ -3023,7 +3399,7 @@ __attribute__ ((aligned (8)))
 
 #define R(c) {                                                                \
     BUILD_LENGTH_AND_FLAGS(3, JSString::STATIC_ATOM_FLAGS),                   \
-    { (jschar *)(uintptr_t(hundredStaticTable + ((c) - 100)) +                \
+    { (jschar *)(((char *)(hundredStaticTable + ((c) - 100))) +               \
       offsetof(JSString::Data, inlineStorage)) },                             \
     { {((c) / 100) + '0', ((c) / 10 % 10) + '0', ((c) % 10) + '0', 0x00} } }
 
@@ -3093,10 +3469,10 @@ js_String(JSContext *cx, uintN argc, Value *vp)
     }
 
     if (IsConstructing(vp)) {
-        StringObject *strobj = StringObject::create(cx, str);
-        if (!strobj)
+        JSObject *obj = NewBuiltinClassInstance(cx, &js_StringClass);
+        if (!obj || !obj->initString(cx, str))
             return false;
-        vp->setObject(*strobj);
+        vp->setObject(*obj);
     } else {
         vp->setString(str);
     }
@@ -3107,7 +3483,7 @@ static JSBool
 str_fromCharCode(JSContext *cx, uintN argc, Value *vp)
 {
     Value *argv = JS_ARGV(cx, vp);
-    JS_ASSERT(argc <= StackSpace::ARGS_LENGTH_MAX);
+    JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
     if (argc == 1) {
         uint16_t code;
         if (!ValueToUint16(cx, argv[0], &code))
@@ -3160,49 +3536,81 @@ static JSFunctionSpec string_static_methods[] = {
 };
 
 const Shape *
-StringObject::assignInitialShape(JSContext *cx)
+JSObject::assignInitialStringShape(JSContext *cx)
 {
     JS_ASSERT(!cx->compartment->initialStringShape);
+    JS_ASSERT(isString());
     JS_ASSERT(nativeEmpty());
 
     return addDataProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom),
-                           LENGTH_SLOT, JSPROP_PERMANENT | JSPROP_READONLY);
+                           JSSLOT_STRING_LENGTH, JSPROP_PERMANENT | JSPROP_READONLY);
 }
 
 JSObject *
-js_InitStringClass(JSContext *cx, JSObject *obj)
+js_InitStringClass(JSContext *cx, JSObject *global)
 {
-    JS_ASSERT(obj->isNative());
-
-    GlobalObject *global = obj->asGlobal();
-
-    JSObject *proto = global->createBlankPrototype(cx, &js_StringClass);
-    if (!proto || !proto->asString()->init(cx, cx->runtime->emptyString))
-        return NULL;
-
-    
-    JSFunction *ctor = global->createConstructor(cx, js_String, &js_StringClass,
-                                                 CLASS_ATOM(cx, String), 1);
-    if (!ctor)
-        return NULL;
-
-    if (!LinkConstructorAndPrototype(cx, ctor, proto))
-        return NULL;
-
-    if (!DefinePropertiesAndBrand(cx, proto, NULL, string_methods) ||
-        !DefinePropertiesAndBrand(cx, ctor, NULL, string_static_methods))
-    {
-        return NULL;
-    }
-
-    if (!DefineConstructorAndPrototype(cx, global, JSProto_String, ctor, proto))
-        return NULL;
+    JS_ASSERT(global->isGlobal());
+    JS_ASSERT(global->isNative());
 
     
 
 
 
     if (!JS_DefineFunctions(cx, global, string_functions))
+        return NULL;
+
+    
+    JSObject *objectProto;
+    if (!js_GetClassPrototype(cx, global, JSProto_Object, &objectProto))
+        return NULL;
+
+    JSObject *proto = NewObject<WithProto::Class>(cx, &js_StringClass, objectProto, global);
+    if (!proto || !proto->initString(cx, cx->runtime->emptyString))
+        return NULL;
+
+    
+    JSAtom *atom = CLASS_ATOM(cx, String);
+    JSFunction *ctor = js_NewFunction(cx, NULL, js_String, 1, JSFUN_CONSTRUCTOR, global, atom);
+    if (!ctor)
+        return NULL;
+
+    
+    FUN_CLASP(ctor) = &js_StringClass;
+
+    
+    if (!ctor->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom),
+                              ObjectValue(*proto), PropertyStub, StrictPropertyStub,
+                              JSPROP_PERMANENT | JSPROP_READONLY) ||
+        !proto->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.constructorAtom),
+                               ObjectValue(*ctor), PropertyStub, StrictPropertyStub, 0))
+    {
+        return NULL;
+    }
+
+    
+    if (!JS_DefineFunctions(cx, proto, string_methods) ||
+        !JS_DefineFunctions(cx, ctor, string_static_methods))
+    {
+        return NULL;
+    }
+
+    
+    proto->brand(cx);
+    ctor->brand(cx);
+
+    
+
+
+
+
+
+
+
+    if (!proto->getEmptyShape(cx, &js_StringClass, FINALIZE_OBJECT0))
+        return NULL;
+
+    
+    if (!DefineConstructorAndPrototype(cx, global, JSProto_String, ctor, proto))
         return NULL;
 
     return proto;
@@ -3214,9 +3622,7 @@ js_NewString(JSContext *cx, jschar *chars, size_t length)
     if (!CheckStringLength(cx, length))
         return NULL;
 
-    JSFixedString *s = JSFixedString::new_(cx, chars, length);
-    Probes::createString(cx, s, length);
-    return s;
+    return JSFixedString::new_(cx, chars, length);
 }
 
 static JS_ALWAYS_INLINE JSFixedString *
@@ -3237,7 +3643,6 @@ NewShortString(JSContext *cx, const jschar *chars, size_t length)
     jschar *storage = str->init(length);
     PodCopy(storage, chars, length);
     storage[length] = 0;
-    Probes::createString(cx, str, length);
     return str;
 }
 
@@ -3256,7 +3661,7 @@ NewShortString(JSContext *cx, const char *chars, size_t length)
 #ifdef DEBUG
         size_t oldLength = length;
 #endif
-        if (!InflateUTF8StringToBuffer(cx, chars, length, storage, &length))
+        if (!js_InflateUTF8StringToBuffer(cx, chars, length, storage, &length))
             return NULL;
         JS_ASSERT(length <= oldLength);
         storage[length] = 0;
@@ -3268,7 +3673,6 @@ NewShortString(JSContext *cx, const char *chars, size_t length)
             *p++ = (unsigned char)*chars++;
         *p = 0;
     }
-    Probes::createString(cx, str, length);
     return str;
 }
 
@@ -3336,7 +3740,7 @@ StringBuffer::finishAtom()
     if (length == 0)
         return cx->runtime->atomState.emptyAtom;
 
-    JSAtom *atom = js_AtomizeChars(cx, cb.begin(), length);
+    JSAtom *atom = js_AtomizeChars(cx, cb.begin(), length, 0);
     cb.clear();
     return atom;
 }
@@ -3359,10 +3763,29 @@ js_NewDependentString(JSContext *cx, JSString *baseArg, size_t start, size_t len
     if (JSLinearString *staticStr = JSAtom::lookupStatic(chars, length))
         return staticStr;
 
-    JSLinearString *s = JSDependentString::new_(cx, base, chars, length);
-    Probes::createString(cx, s, length);
-    return s;
+    return JSDependentString::new_(cx, base, chars, length);
 }
+
+#ifdef DEBUG
+#include <math.h>
+
+void printJSStringStats(JSRuntime *rt)
+{
+    double mean, sigma;
+
+    mean = JS_MeanAndStdDev(rt->totalStrings, rt->lengthSum,
+                            rt->lengthSquaredSum, &sigma);
+
+    fprintf(stderr, "%lu total strings, mean length %g (sigma %g)\n",
+            (unsigned long)rt->totalStrings, mean, sigma);
+
+    mean = JS_MeanAndStdDev(rt->totalDependentStrings, rt->strdepLengthSum,
+                            rt->strdepLengthSquaredSum, &sigma);
+
+    fprintf(stderr, "%lu total dependent strings, mean length %g (sigma %g)\n",
+            (unsigned long)rt->totalDependentStrings, mean, sigma);
+}
+#endif
 
 JSFixedString *
 js_NewStringCopyN(JSContext *cx, const jschar *s, size_t n)
@@ -3387,7 +3810,7 @@ js_NewStringCopyN(JSContext *cx, const char *s, size_t n)
     if (JSShortString::lengthFits(n))
         return NewShortString(cx, s, n);
 
-    jschar *chars = InflateString(cx, s, &n);
+    jschar *chars = js_InflateString(cx, s, &n);
     if (!chars)
         return NULL;
     JSFixedString *str = js_NewString(cx, chars, n);
@@ -3438,7 +3861,7 @@ JSString *
 js_ValueToString(JSContext *cx, const Value &arg)
 {
     Value v = arg;
-    if (!ToPrimitive(cx, JSTYPE_STRING, &v))
+    if (v.isObject() && !DefaultValue(cx, &v.toObject(), JSTYPE_STRING, &v))
         return NULL;
 
     JSString *str;
@@ -3463,7 +3886,7 @@ bool
 js::ValueToStringBufferSlow(JSContext *cx, const Value &arg, StringBuffer &sb)
 {
     Value v = arg;
-    if (!ToPrimitive(cx, JSTYPE_STRING, &v))
+    if (v.isObject() && !DefaultValue(cx, &v.toObject(), JSTYPE_STRING, &v))
         return false;
 
     if (v.isString())
@@ -3481,8 +3904,6 @@ js::ValueToStringBufferSlow(JSContext *cx, const Value &arg, StringBuffer &sb)
 JS_FRIEND_API(JSString *)
 js_ValueToSource(JSContext *cx, const Value &v)
 {
-    JS_CHECK_RECURSION(cx, return NULL);
-
     if (v.isUndefined())
         return cx->runtime->atomState.void0Atom;
     if (v.isString())
@@ -3670,28 +4091,35 @@ js_strchr_limit(const jschar *s, jschar c, const jschar *limit)
     return NULL;
 }
 
-namespace js {
-
 jschar *
-InflateString(JSContext *cx, const char *bytes, size_t *lengthp, FlationCoding fc)
+js_InflateString(JSContext *cx, const char *bytes, size_t *lengthp, bool useCESU8)
 {
-    size_t nchars;
+    size_t nbytes, nchars, i;
     jschar *chars;
-    size_t nbytes = *lengthp;
+#ifdef DEBUG
+    JSBool ok;
+#endif
 
-    if (js_CStringsAreUTF8 || fc == CESU8Encoding) {
-        if (!InflateUTF8StringToBuffer(cx, bytes, nbytes, NULL, &nchars, fc))
+    nbytes = *lengthp;
+    if (js_CStringsAreUTF8 || useCESU8) {
+        if (!js_InflateUTF8StringToBuffer(cx, bytes, nbytes, NULL, &nchars,
+                                          useCESU8))
             goto bad;
         chars = (jschar *) cx->malloc_((nchars + 1) * sizeof (jschar));
         if (!chars)
             goto bad;
-        JS_ALWAYS_TRUE(InflateUTF8StringToBuffer(cx, bytes, nbytes, chars, &nchars, fc));
+#ifdef DEBUG
+        ok =
+#endif
+            js_InflateUTF8StringToBuffer(cx, bytes, nbytes, chars, &nchars,
+                                         useCESU8);
+        JS_ASSERT(ok);
     } else {
         nchars = nbytes;
         chars = (jschar *) cx->malloc_((nchars + 1) * sizeof(jschar));
         if (!chars)
             goto bad;
-        for (size_t i = 0; i < nchars; i++)
+        for (i = 0; i < nchars; i++)
             chars[i] = (unsigned char) bytes[i];
     }
     *lengthp = nchars;
@@ -3711,19 +4139,26 @@ InflateString(JSContext *cx, const char *bytes, size_t *lengthp, FlationCoding f
 
 
 char *
-DeflateString(JSContext *cx, const jschar *chars, size_t nchars)
+js_DeflateString(JSContext *cx, const jschar *chars, size_t nchars)
 {
     size_t nbytes, i;
     char *bytes;
+#ifdef DEBUG
+    JSBool ok;
+#endif
 
     if (js_CStringsAreUTF8) {
-        nbytes = GetDeflatedStringLength(cx, chars, nchars);
+        nbytes = js_GetDeflatedStringLength(cx, chars, nchars);
         if (nbytes == (size_t) -1)
             return NULL;
         bytes = (char *) (cx ? cx->malloc_(nbytes + 1) : OffTheBooks::malloc_(nbytes + 1));
         if (!bytes)
             return NULL;
-        JS_ALWAYS_TRUE(DeflateStringToBuffer(cx, chars, nchars, bytes, &nbytes));
+#ifdef DEBUG
+        ok =
+#endif
+            js_DeflateStringToBuffer(cx, chars, nchars, bytes, &nbytes);
+        JS_ASSERT(ok);
     } else {
         nbytes = nchars;
         bytes = (char *) (cx ? cx->malloc_(nbytes + 1) : OffTheBooks::malloc_(nbytes + 1));
@@ -3737,26 +4172,25 @@ DeflateString(JSContext *cx, const jschar *chars, size_t nchars)
 }
 
 size_t
-GetDeflatedStringLength(JSContext *cx, const jschar *chars, size_t nchars)
+js_GetDeflatedStringLength(JSContext *cx, const jschar *chars, size_t nchars)
 {
     if (!js_CStringsAreUTF8)
         return nchars;
 
-    return GetDeflatedUTF8StringLength(cx, chars, nchars);
+    return js_GetDeflatedUTF8StringLength(cx, chars, nchars);
 }
 
 
 
 
 size_t
-GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
-                                size_t nchars, FlationCoding fc)
+js_GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
+                               size_t nchars, bool useCESU8)
 {
     size_t nbytes;
     const jschar *end;
     uintN c, c2;
     char buffer[10];
-    bool useCESU8 = fc == CESU8Encoding;
 
     nbytes = nchars;
     for (end = chars + nchars; chars != end; chars++) {
@@ -3794,9 +4228,9 @@ GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
     return (size_t) -1;
 }
 
-bool
-DeflateStringToBuffer(JSContext *cx, const jschar *src, size_t srclen,
-                          char *dst, size_t *dstlenp)
+JSBool
+js_DeflateStringToBuffer(JSContext *cx, const jschar *src, size_t srclen,
+                         char *dst, size_t *dstlenp)
 {
     size_t dstlen, i;
 
@@ -3817,22 +4251,20 @@ DeflateStringToBuffer(JSContext *cx, const jschar *src, size_t srclen,
         return JS_TRUE;
     }
 
-    return DeflateStringToUTF8Buffer(cx, src, srclen, dst, dstlenp);
+    return js_DeflateStringToUTF8Buffer(cx, src, srclen, dst, dstlenp);
 }
 
-bool
-DeflateStringToUTF8Buffer(JSContext *cx, const jschar *src, size_t srclen,
-                              char *dst, size_t *dstlenp, FlationCoding fc)
+JSBool
+js_DeflateStringToUTF8Buffer(JSContext *cx, const jschar *src, size_t srclen,
+                             char *dst, size_t *dstlenp, bool useCESU8)
 {
-    size_t i, utf8Len;
+    size_t dstlen, i, origDstlen, utf8Len;
     jschar c, c2;
     uint32 v;
     uint8 utf8buf[6];
 
-    bool useCESU8 = fc == CESU8Encoding;
-    size_t dstlen = *dstlenp;
-    size_t origDstlen = dstlen;
-
+    dstlen = *dstlenp;
+    origDstlen = dstlen;
     while (srclen) {
         c = *src++;
         srclen--;
@@ -3872,7 +4304,7 @@ badSurrogate:
     *dstlenp = (origDstlen - dstlen);
     
     if (cx)
-        GetDeflatedStringLength(cx, src - 1, srclen + 1);
+        js_GetDeflatedStringLength(cx, src - 1, srclen + 1);
     return JS_FALSE;
 
 bufferTooSmall:
@@ -3884,36 +4316,37 @@ bufferTooSmall:
     return JS_FALSE;
 }
 
-bool
-InflateStringToBuffer(JSContext *cx, const char *src, size_t srclen,
-                          jschar *dst, size_t *dstlenp)
+JSBool
+js_InflateStringToBuffer(JSContext *cx, const char *src, size_t srclen,
+                         jschar *dst, size_t *dstlenp)
 {
     size_t dstlen, i;
 
-    if (js_CStringsAreUTF8)
-        return InflateUTF8StringToBuffer(cx, src, srclen, dst, dstlenp);
-
-    if (dst) {
-        dstlen = *dstlenp;
-        if (srclen > dstlen) {
-            for (i = 0; i < dstlen; i++)
-                dst[i] = (unsigned char) src[i];
-            if (cx) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                     JSMSG_BUFFER_TOO_SMALL);
+    if (!js_CStringsAreUTF8) {
+        if (dst) {
+            dstlen = *dstlenp;
+            if (srclen > dstlen) {
+                for (i = 0; i < dstlen; i++)
+                    dst[i] = (unsigned char) src[i];
+                if (cx) {
+                    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                         JSMSG_BUFFER_TOO_SMALL);
+                }
+                return JS_FALSE;
             }
-            return JS_FALSE;
+            for (i = 0; i < srclen; i++)
+                dst[i] = (unsigned char) src[i];
         }
-        for (i = 0; i < srclen; i++)
-            dst[i] = (unsigned char) src[i];
+        *dstlenp = srclen;
+        return JS_TRUE;
     }
-    *dstlenp = srclen;
-    return JS_TRUE;
+
+    return js_InflateUTF8StringToBuffer(cx, src, srclen, dst, dstlenp);
 }
 
-bool
-InflateUTF8StringToBuffer(JSContext *cx, const char *src, size_t srclen,
-                              jschar *dst, size_t *dstlenp, FlationCoding fc)
+JSBool
+js_InflateUTF8StringToBuffer(JSContext *cx, const char *src, size_t srclen,
+                             jschar *dst, size_t *dstlenp, bool useCESU8)
 {
     size_t dstlen, origDstlen, offset, j, n;
     uint32 v;
@@ -3921,7 +4354,6 @@ InflateUTF8StringToBuffer(JSContext *cx, const char *src, size_t srclen,
     dstlen = dst ? *dstlenp : (size_t) -1;
     origDstlen = dstlen;
     offset = 0;
-    bool useCESU8 = fc == CESU8Encoding;
 
     while (srclen) {
         v = (uint8) *src;
@@ -3993,7 +4425,1293 @@ bufferTooSmall:
     return JS_FALSE;
 }
 
-} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const uint8 js_X[] = {
+  0,   1,   2,   3,   4,   5,   6,   7,  
+  8,   9,  10,  11,  12,  13,  14,  15,  
+ 16,  17,  18,  19,  20,  21,  22,  23,  
+ 24,  25,  26,  27,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  29,  30,  31,  32,  
+ 33,  34,  35,  36,  37,  38,  39,  40,  
+ 41,  42,  43,  44,  45,  46,  28,  28,  
+ 47,  48,  49,  50,  51,  52,  53,  28,  
+ 28,  28,  54,  55,  56,  57,  58,  59,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 60,  60,  61,  62,  63,  64,  65,  66,  
+ 67,  68,  69,  70,  71,  72,  73,  74,  
+ 75,  75,  75,  76,  77,  78,  28,  28,  
+ 79,  80,  81,  82,  83,  83,  84,  85,  
+ 86,  85,  28,  28,  87,  88,  89,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 90,  91,  92,  93,  94,  56,  95,  28,  
+ 96,  97,  98,  99,  83, 100,  83, 101,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56, 102,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 28,  28,  28,  28,  28,  28,  28,  28,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56,  56,  56,  
+ 56,  56,  56,  56,  56,  56, 103,  28,  
+104, 104, 104, 104, 104, 104, 104, 104,  
+104, 104, 104, 104, 104, 104, 104, 104,  
+104, 104, 104, 104, 104, 104, 104, 104,  
+104, 104, 104, 104, 104, 104, 104, 104,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105, 105, 105, 105, 105,  
+105, 105, 105, 105,  56,  56,  56,  56,  
+106,  28,  28,  28, 107, 108, 109, 110,  
+ 56,  56,  56,  56, 111, 112, 113, 114,  
+115, 116,  56, 117, 118, 119, 120, 121   
+};
+
+
+
+const uint8 js_Y[] = {
+  0,   0,   0,   0,   0,   0,   0,   0,  
+  0,   1,   1,   1,   1,   1,   0,   0,  
+  0,   0,   0,   0,   0,   0,   0,   0,  
+  0,   0,   0,   0,   0,   0,   0,   0,  
+  2,   3,   3,   3,   4,   3,   3,   3,  
+  5,   6,   3,   7,   3,   8,   3,   3,  
+  9,   9,   9,   9,   9,   9,   9,   9,  
+  9,   9,   3,   3,   7,   7,   7,   3,  
+  3,  10,  10,  10,  10,  10,  10,  10,  
+ 10,  10,  10,  10,  10,  10,  10,  10,  
+ 10,  10,  10,  10,  10,  10,  10,  10,  
+ 10,  10,  10,   5,   3,   6,  11,  12,  
+ 11,  13,  13,  13,  13,  13,  13,  13,  
+ 13,  13,  13,  13,  13,  13,  13,  13,  
+ 13,  13,  13,  13,  13,  13,  13,  13,  
+ 13,  13,  13,   5,   7,   6,   7,   0,  
+  0,   0,   0,   0,   0,   0,   0,   0,  
+  0,   0,   0,   0,   0,   0,   0,   0,  
+  0,   0,   0,   0,   0,   0,   0,   0,  
+  0,   0,   0,   0,   0,   0,   0,   0,  
+  2,   3,   4,   4,   4,   4,  15,  15,  
+ 11,  15,  16,   5,   7,   8,  15,  11,  
+ 15,   7,  17,  17,  11,  16,  15,   3,  
+ 11,  18,  16,   6,  19,  19,  19,   3,  
+ 20,  20,  20,  20,  20,  20,  20,  20,  
+ 20,  20,  20,  20,  20,  20,  20,  20,  
+ 20,  20,  20,  20,  20,  20,  20,   7,  
+ 20,  20,  20,  20,  20,  20,  20,  16,  
+ 21,  21,  21,  21,  21,  21,  21,  21,  
+ 21,  21,  21,  21,  21,  21,  21,  21,  
+ 21,  21,  21,  21,  21,  21,  21,   7,  
+ 21,  21,  21,  21,  21,  21,  21,  22,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 25,  26,  23,  24,  23,  24,  23,  24,  
+ 16,  23,  24,  23,  24,  23,  24,  23,  
+ 24,  23,  24,  23,  24,  23,  24,  23,  
+ 24,  16,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 27,  23,  24,  23,  24,  23,  24,  28,  
+ 16,  29,  23,  24,  23,  24,  30,  23,  
+ 24,  31,  31,  23,  24,  16,  32,  32,  
+ 33,  23,  24,  31,  34,  16,  35,  36,  
+ 23,  24,  16,  16,  35,  37,  16,  38,  
+ 23,  24,  23,  24,  23,  24,  38,  23,  
+ 24,  39,  40,  16,  23,  24,  39,  23,  
+ 24,  41,  41,  23,  24,  23,  24,  42,  
+ 23,  24,  16,  40,  23,  24,  40,  40,  
+ 40,  40,  40,  40,  43,  44,  45,  43,  
+ 44,  45,  43,  44,  45,  23,  24,  23,  
+ 24,  23,  24,  23,  24,  23,  24,  23,  
+ 24,  23,  24,  23,  24,  16,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 16,  43,  44,  45,  23,  24,  46,  46,  
+ 46,  46,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 16,  16,  16,  47,  48,  16,  49,  49,  
+ 50,  50,  16,  51,  16,  16,  16,  16,  
+ 49,  16,  16,  52,  16,  16,  16,  16,  
+ 53,  54,  16,  16,  16,  16,  16,  54,  
+ 16,  16,  55,  16,  16,  16,  16,  16,  
+ 16,  16,  16,  16,  16,  16,  16,  16,  
+ 16,  16,  16,  56,  16,  16,  16,  16,  
+ 56,  16,  57,  57,  16,  16,  16,  16,  
+ 16,  16,  58,  16,  16,  16,  16,  16,  
+ 16,  16,  16,  16,  16,  16,  16,  16,  
+ 16,  16,  16,  16,  16,  16,  16,  16,  
+ 16,  46,  46,  46,  46,  46,  46,  46,  
+ 59,  59,  59,  59,  59,  59,  59,  59,  
+ 59,  11,  11,  59,  59,  59,  59,  59,  
+ 59,  59,  11,  11,  11,  11,  11,  11,  
+ 11,  11,  11,  11,  11,  11,  11,  11,  
+ 59,  59,  11,  11,  11,  11,  11,  11,  
+ 11,  11,  11,  11,  11,  11,  11,  46,  
+ 59,  59,  59,  59,  59,  11,  11,  11,  
+ 11,  11,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 60,  60,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,   3,   3,  46,  46,  
+ 46,  46,  59,  46,  46,  46,   3,  46,  
+ 46,  46,  46,  46,  11,  11,  61,   3,  
+ 62,  62,  62,  46,  63,  46,  64,  64,  
+ 16,  20,  20,  20,  20,  20,  20,  20,  
+ 20,  20,  20,  20,  20,  20,  20,  20,  
+ 20,  20,  46,  20,  20,  20,  20,  20,  
+ 20,  20,  20,  20,  65,  66,  66,  66,  
+ 16,  21,  21,  21,  21,  21,  21,  21,  
+ 21,  21,  21,  21,  21,  21,  21,  21,  
+ 21,  21,  16,  21,  21,  21,  21,  21,  
+ 21,  21,  21,  21,  67,  68,  68,  46,  
+ 69,  70,  38,  38,  38,  71,  72,  46,  
+ 46,  46,  38,  46,  38,  46,  38,  46,  
+ 38,  46,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 73,  74,  16,  40,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  75,  75,  75,  75,  75,  75,  75,  
+ 75,  75,  75,  75,  75,  46,  75,  75,  
+ 20,  20,  20,  20,  20,  20,  20,  20,  
+ 20,  20,  20,  20,  20,  20,  20,  20,  
+ 20,  20,  20,  20,  20,  20,  20,  20,  
+ 20,  20,  20,  20,  20,  20,  20,  20,  
+ 21,  21,  21,  21,  21,  21,  21,  21,  
+ 21,  21,  21,  21,  21,  21,  21,  21,  
+ 21,  21,  21,  21,  21,  21,  21,  21,  
+ 21,  21,  21,  21,  21,  21,  21,  21,  
+ 46,  74,  74,  74,  74,  74,  74,  74,  
+ 74,  74,  74,  74,  74,  46,  74,  74,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  15,  60,  60,  60,  60,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 40,  23,  24,  23,  24,  46,  46,  23,  
+ 24,  46,  46,  23,  24,  46,  46,  46,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  46,  46,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  46,  46,  
+ 23,  24,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  76,  76,  76,  76,  76,  76,  76,  
+ 76,  76,  76,  76,  76,  76,  76,  76,  
+ 76,  76,  76,  76,  76,  76,  76,  76,  
+ 76,  76,  76,  76,  76,  76,  76,  76,  
+ 76,  76,  76,  76,  76,  76,  76,  46,  
+ 46,  59,   3,   3,   3,   3,   3,   3,  
+ 46,  77,  77,  77,  77,  77,  77,  77,  
+ 77,  77,  77,  77,  77,  77,  77,  77,  
+ 77,  77,  77,  77,  77,  77,  77,  77,  
+ 77,  77,  77,  77,  77,  77,  77,  77,  
+ 77,  77,  77,  77,  77,  77,  77,  16,  
+ 46,   3,  46,  46,  46,  46,  46,  46,  
+ 46,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  46,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  46,  60,  60,  60,   3,  60,  
+  3,  60,  60,   3,  60,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  46,  46,  46,  46,  46,  
+ 40,  40,  40,   3,   3,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,   3,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,   3,  46,  46,  46,   3,  
+ 46,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  46,  46,  46,  46,  46,  
+ 59,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 78,  78,  78,  78,  78,  78,  78,  78,  
+ 78,  78,   3,   3,   3,   3,  46,  46,  
+ 60,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 46,  46,  40,  40,  40,  40,  40,  46,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  46,  
+ 40,  40,  40,  40,   3,  40,  60,  60,  
+ 60,  60,  60,  60,  60,  79,  79,  60,  
+ 60,  60,  60,  60,  60,  59,  59,  60,  
+ 60,  15,  60,  60,  60,  60,  46,  46,  
+  9,   9,   9,   9,   9,   9,   9,   9,  
+  9,   9,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  60,  60,  80,  46,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  46,  46,  60,  40,  80,  80,  
+ 80,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  80,  80,  80,  80,  60,  46,  46,  
+ 15,  60,  60,  60,  60,  46,  46,  46,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  60,  60,   3,   3,  81,  81,  
+ 81,  81,  81,  81,  81,  81,  81,  81,  
+  3,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  60,  80,  80,  46,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  46,  46,  40,  
+ 40,  46,  46,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  46,  46,  46,  40,  40,  
+ 40,  40,  46,  46,  60,  46,  80,  80,  
+ 80,  60,  60,  60,  60,  46,  46,  80,  
+ 80,  46,  46,  80,  80,  60,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  80,  
+ 46,  46,  46,  46,  40,  40,  46,  40,  
+ 40,  40,  60,  60,  46,  46,  81,  81,  
+ 81,  81,  81,  81,  81,  81,  81,  81,  
+ 40,  40,   4,   4,  82,  82,  82,  82,  
+ 19,  83,  15,  46,  46,  46,  46,  46,  
+ 46,  46,  60,  46,  46,  40,  40,  40,  
+ 40,  40,  40,  46,  46,  46,  46,  40,  
+ 40,  46,  46,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  40,  46,  40,  40,  46,  
+ 40,  40,  46,  46,  60,  46,  80,  80,  
+ 80,  60,  60,  46,  46,  46,  46,  60,  
+ 60,  46,  46,  60,  60,  60,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  40,  40,  40,  40,  46,  40,  46,  
+ 46,  46,  46,  46,  46,  46,  81,  81,  
+ 81,  81,  81,  81,  81,  81,  81,  81,  
+ 60,  60,  40,  40,  40,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  60,  60,  80,  46,  40,  40,  40,  
+ 40,  40,  40,  40,  46,  40,  46,  40,  
+ 40,  40,  46,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  40,  46,  40,  40,  40,  
+ 40,  40,  46,  46,  60,  40,  80,  80,  
+ 80,  60,  60,  60,  60,  60,  46,  60,  
+ 60,  80,  46,  80,  80,  60,  46,  46,  
+ 15,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 40,  46,  46,  46,  46,  46,  81,  81,  
+ 81,  81,  81,  81,  81,  81,  81,  81,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  60,  80,  80,  46,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  46,  46,  40,  
+ 40,  46,  46,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  40,  46,  46,  40,  40,  
+ 40,  40,  46,  46,  60,  40,  80,  60,  
+ 80,  60,  60,  60,  46,  46,  46,  80,  
+ 80,  46,  46,  80,  80,  60,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  60,  80,  
+ 46,  46,  46,  46,  40,  40,  46,  40,  
+ 40,  40,  46,  46,  46,  46,  81,  81,  
+ 81,  81,  81,  81,  81,  81,  81,  81,  
+ 15,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  60,  80,  46,  40,  40,  40,  
+ 40,  40,  40,  46,  46,  46,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  46,  46,  
+ 46,  40,  40,  46,  40,  46,  40,  40,  
+ 46,  46,  46,  40,  40,  46,  46,  46,  
+ 40,  40,  40,  46,  46,  46,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  46,  40,  
+ 40,  40,  46,  46,  46,  46,  80,  80,  
+ 60,  80,  80,  46,  46,  46,  80,  80,  
+ 80,  46,  80,  80,  80,  60,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  80,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  81,  
+ 81,  81,  81,  81,  81,  81,  81,  81,  
+ 84,  19,  19,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  80,  80,  80,  46,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  46,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  46,  40,  40,  40,  
+ 40,  40,  46,  46,  46,  46,  60,  60,  
+ 60,  80,  80,  80,  80,  46,  60,  60,  
+ 60,  46,  60,  60,  60,  60,  46,  46,  
+ 46,  46,  46,  46,  46,  60,  60,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 40,  40,  46,  46,  46,  46,  81,  81,  
+ 81,  81,  81,  81,  81,  81,  81,  81,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  80,  80,  46,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  46,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  46,  40,  40,  40,  
+ 40,  40,  46,  46,  46,  46,  80,  60,  
+ 80,  80,  80,  80,  80,  46,  60,  80,  
+ 80,  46,  80,  80,  60,  60,  46,  46,  
+ 46,  46,  46,  46,  46,  80,  80,  46,  
+ 46,  46,  46,  46,  46,  46,  40,  46,  
+ 40,  40,  46,  46,  46,  46,  81,  81,  
+ 81,  81,  81,  81,  81,  81,  81,  81,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  80,  80,  46,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  46,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  46,  46,  46,  46,  80,  80,  
+ 80,  60,  60,  60,  46,  46,  80,  80,  
+ 80,  46,  80,  80,  80,  60,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  80,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 40,  40,  46,  46,  46,  46,  81,  81,  
+ 81,  81,  81,  81,  81,  81,  81,  81,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,   3,  
+ 40,  60,  40,  40,  60,  60,  60,  60,  
+ 60,  60,  60,  46,  46,  46,  46,   4,  
+ 40,  40,  40,  40,  40,  40,  59,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  15,  
+  9,   9,   9,   9,   9,   9,   9,   9,  
+  9,   9,   3,   3,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  40,  40,  46,  40,  46,  46,  40,  
+ 40,  46,  40,  46,  46,  40,  46,  46,  
+ 46,  46,  46,  46,  40,  40,  40,  40,  
+ 46,  40,  40,  40,  40,  40,  40,  40,  
+ 46,  40,  40,  40,  46,  40,  46,  40,  
+ 46,  46,  40,  40,  46,  40,  40,   3,  
+ 40,  60,  40,  40,  60,  60,  60,  60,  
+ 60,  60,  46,  60,  60,  40,  46,  46,  
+ 40,  40,  40,  40,  40,  46,  59,  46,  
+ 60,  60,  60,  60,  60,  60,  46,  46,  
+  9,   9,   9,   9,   9,   9,   9,   9,  
+  9,   9,  46,  46,  40,  40,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 15,  15,  15,  15,   3,   3,   3,   3,  
+  3,   3,   3,   3,   3,   3,   3,   3,  
+  3,   3,   3,  15,  15,  15,  15,  15,  
+ 60,  60,  15,  15,  15,  15,  15,  15,  
+ 78,  78,  78,  78,  78,  78,  78,  78,  
+ 78,  78,  85,  85,  85,  85,  85,  85,  
+ 85,  85,  85,  85,  15,  60,  15,  60,  
+ 15,  60,   5,   6,   5,   6,  80,  80,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 46,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  46,  46,  46,  46,  46,  46,  
+ 46,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  80,  
+ 60,  60,  60,  60,  60,   3,  60,  60,  
+ 60,  60,  60,  60,  46,  46,  46,  46,  
+ 60,  60,  60,  60,  60,  60,  46,  60,  
+ 46,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  60,  46,  46,  
+ 46,  60,  60,  60,  60,  60,  60,  60,  
+ 46,  60,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 76,  76,  76,  76,  76,  76,  76,  76,  
+ 76,  76,  76,  76,  76,  76,  76,  76,  
+ 76,  76,  76,  76,  76,  76,  76,  76,  
+ 76,  76,  76,  76,  76,  76,  76,  76,  
+ 76,  76,  76,  76,  76,  76,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 16,  16,  16,  16,  16,  16,  16,  16,  
+ 16,  16,  16,  16,  16,  16,  16,  16,  
+ 16,  16,  16,  16,  16,  16,  16,  16,  
+ 16,  16,  16,  16,  16,  16,  16,  16,  
+ 16,  16,  16,  16,  16,  16,  16,  46,  
+ 46,  46,  46,   3,  46,  46,  46,  46,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  46,  46,  46,  46,  46,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  46,  46,  46,  46,  46,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  46,  46,  46,  46,  46,  46,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  16,  16,  
+ 16,  16,  16,  16,  46,  46,  46,  46,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  23,  24,  23,  24,  23,  24,  
+ 23,  24,  46,  46,  46,  46,  46,  46,  
+ 86,  86,  86,  86,  86,  86,  86,  86,  
+ 87,  87,  87,  87,  87,  87,  87,  87,  
+ 86,  86,  86,  86,  86,  86,  46,  46,  
+ 87,  87,  87,  87,  87,  87,  46,  46,  
+ 86,  86,  86,  86,  86,  86,  86,  86,  
+ 87,  87,  87,  87,  87,  87,  87,  87,  
+ 86,  86,  86,  86,  86,  86,  86,  86,  
+ 87,  87,  87,  87,  87,  87,  87,  87,  
+ 86,  86,  86,  86,  86,  86,  46,  46,  
+ 87,  87,  87,  87,  87,  87,  46,  46,  
+ 16,  86,  16,  86,  16,  86,  16,  86,  
+ 46,  87,  46,  87,  46,  87,  46,  87,  
+ 86,  86,  86,  86,  86,  86,  86,  86,  
+ 87,  87,  87,  87,  87,  87,  87,  87,  
+ 88,  88,  89,  89,  89,  89,  90,  90,  
+ 91,  91,  92,  92,  93,  93,  46,  46,  
+ 86,  86,  86,  86,  86,  86,  86,  86,  
+ 87,  87,  87,  87,  87,  87,  87,  87,  
+ 86,  86,  86,  86,  86,  86,  86,  86,  
+ 87,  87,  87,  87,  87,  87,  87,  87,  
+ 86,  86,  86,  86,  86,  86,  86,  86,  
+ 87,  87,  87,  87,  87,  87,  87,  87,  
+ 86,  86,  16,  94,  16,  46,  16,  16,  
+ 87,  87,  95,  95,  96,  11,  38,  11,  
+ 11,  11,  16,  94,  16,  46,  16,  16,  
+ 97,  97,  97,  97,  96,  11,  11,  11,  
+ 86,  86,  16,  16,  46,  46,  16,  16,  
+ 87,  87,  98,  98,  46,  11,  11,  11,  
+ 86,  86,  16,  16,  16,  99,  16,  16,  
+ 87,  87, 100, 100, 101,  11,  11,  11,  
+ 46,  46,  16,  94,  16,  46,  16,  16,  
+102, 102, 103, 103,  96,  11,  11,  46,  
+  2,   2,   2,   2,   2,   2,   2,   2,  
+  2,   2,   2,   2, 104, 104, 104, 104,  
+  8,   8,   8,   8,   8,   8,   3,   3,  
+  5,   6,   5,   5,   5,   6,   5,   5,  
+  3,   3,   3,   3,   3,   3,   3,   3,  
+105, 106, 104, 104, 104, 104, 104,  46,  
+  3,   3,   3,   3,   3,   3,   3,   3,  
+  3,   5,   6,   3,   3,   3,   3,  12,  
+ 12,   3,   3,   3,   7,   5,   6,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46, 104, 104, 104, 104, 104, 104,  
+ 17,  46,  46,  46,  17,  17,  17,  17,  
+ 17,  17,   7,   7,   7,   5,   6,  16,  
+107, 107, 107, 107, 107, 107, 107, 107,  
+107, 107,   7,   7,   7,   5,   6,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+  4,   4,   4,   4,   4,   4,   4,   4,  
+  4,   4,   4,   4,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 60,  60,  60,  60,  60,  60,  60,  60,  
+ 60,  60,  60,  60,  60,  79,  79,  79,  
+ 79,  60,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 15,  15,  38,  15,  15,  15,  15,  38,  
+ 15,  15,  16,  38,  38,  38,  16,  16,  
+ 38,  38,  38,  16,  15,  38,  15,  15,  
+ 38,  38,  38,  38,  38,  38,  15,  15,  
+ 15,  15,  15,  15,  38,  15,  38,  15,  
+ 38,  15,  38,  38,  38,  38,  16,  16,  
+ 38,  38,  15,  38,  16,  40,  40,  40,  
+ 40,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  19,  19,  19,  19,  19,  
+ 19,  19,  19,  19,  19,  19,  19, 108,  
+109, 109, 109, 109, 109, 109, 109, 109,  
+109, 109, 109, 109, 110, 110, 110, 110,  
+111, 111, 111, 111, 111, 111, 111, 111,  
+111, 111, 111, 111, 112, 112, 112, 112,  
+113, 113, 113,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+  7,   7,   7,   7,   7,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,   7,  15,   7,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,   7,   7,   7,   7,   7,   7,  
+  7,   7,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 15,  46,  15,  15,  15,  15,  15,  15,  
+  7,   7,   7,   7,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+  7,   7,  15,  15,  15,  15,  15,  15,  
+ 15,   5,   6,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  46,  46,  46,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+114, 114, 114, 114, 114, 114, 114, 114,  
+114, 114, 114, 114, 114, 114, 114, 114,  
+114, 114, 114, 114,  82,  82,  82,  82,  
+ 82,  82,  82,  82,  82,  82,  82,  82,  
+ 82,  82,  82,  82,  82,  82,  82,  82,  
+115, 115, 115, 115, 115, 115, 115, 115,  
+115, 115, 115, 115, 115, 115, 115, 115,  
+115, 115, 115, 115,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15, 116, 116,  
+116, 116, 116, 116, 116, 116, 116, 116,  
+116, 116, 116, 116, 116, 116, 116, 116,  
+116, 116, 116, 116, 116, 116, 116, 116,  
+117, 117, 117, 117, 117, 117, 117, 117,  
+117, 117, 117, 117, 117, 117, 117, 117,  
+117, 117, 117, 117, 117, 117, 117, 117,  
+117, 117, 118,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  46,  46,  46,  46,  
+ 46,  46,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 46,  15,  15,  15,  15,  46,  15,  15,  
+ 15,  15,  46,  46,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 46,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  46,  15,  46,  15,  
+ 15,  15,  15,  46,  46,  46,  15,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  46,  
+ 46,  15,  15,  15,  15,  15,  15,  15,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46, 119, 119,  
+119, 119, 119, 119, 119, 119, 119, 119,  
+114, 114, 114, 114, 114, 114, 114, 114,  
+114, 114,  83,  83,  83,  83,  83,  83,  
+ 83,  83,  83,  83,  15,  46,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 46,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  46,  
+  2,   3,   3,   3,  15,  59,   3, 120,  
+  5,   6,   5,   6,   5,   6,   5,   6,  
+  5,   6,  15,  15,   5,   6,   5,   6,  
+  5,   6,   5,   6,   8,   5,   6,   5,  
+ 15, 121, 121, 121, 121, 121, 121, 121,  
+121, 121,  60,  60,  60,  60,  60,  60,  
+  8,  59,  59,  59,  59,  59,  15,  15,  
+ 46,  46,  46,  46,  46,  46,  46,  15,  
+ 46,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  46,  46,  46,  
+ 46,  60,  60,  59,  59,  59,  59,  46,  
+ 46,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,   3,  59,  59,  59,  46,  
+ 46,  46,  46,  46,  46,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  46,  46,  46,  
+ 46,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  46,  
+ 15,  15,  85,  85,  85,  85,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  46,  46,  46,  
+ 85,  85,  85,  85,  85,  85,  85,  85,  
+ 85,  85,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  46,  46,  46,  15,  
+114, 114, 114, 114, 114, 114, 114, 114,  
+114, 114,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  46,  46,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  46,  
+ 46,  46,  46,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  46,  46,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  15,  
+ 15,  15,  15,  15,  15,  15,  15,  46,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+122, 122, 122, 122, 122, 122, 122, 122,  
+122, 122, 122, 122, 122, 122, 122, 122,  
+122, 122, 122, 122, 122, 122, 122, 122,  
+122, 122, 122, 122, 122, 122, 122, 122,  
+122, 122, 122, 122, 122, 122, 122, 122,  
+122, 122, 122, 122, 122, 122, 122, 122,  
+122, 122, 122, 122, 122, 122, 122, 122,  
+122, 122, 122, 122, 122, 122, 122, 122,  
+123, 123, 123, 123, 123, 123, 123, 123,  
+123, 123, 123, 123, 123, 123, 123, 123,  
+123, 123, 123, 123, 123, 123, 123, 123,  
+123, 123, 123, 123, 123, 123, 123, 123,  
+123, 123, 123, 123, 123, 123, 123, 123,  
+123, 123, 123, 123, 123, 123, 123, 123,  
+123, 123, 123, 123, 123, 123, 123, 123,  
+123, 123, 123, 123, 123, 123, 123, 123,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 16,  16,  16,  16,  16,  16,  16,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  16,  16,  16,  16,  16,  
+ 46,  46,  46,  46,  46,  46,  60,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,   7,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  46,  
+ 40,  40,  40,  40,  40,  46,  40,  46,  
+ 40,  40,  46,  40,  40,  46,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,   5,   6,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 46,  46,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 60,  60,  60,  60,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+  3,   8,   8,  12,  12,   5,   6,   5,  
+  6,   5,   6,   5,   6,   5,   6,   5,  
+  6,   5,   6,   5,   6,  46,  46,  46,  
+ 46,   3,   3,   3,   3,  12,  12,  12,  
+  3,   3,   3,  46,   3,   3,   3,   3,  
+  8,   5,   6,   5,   6,   5,   6,   3,  
+  3,   3,   7,   8,   7,   7,   7,  46,  
+  3,   4,   3,   3,  46,  46,  46,  46,  
+ 40,  40,  40,  46,  40,  46,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  46,  46, 104,  
+ 46,   3,   3,   3,   4,   3,   3,   3,  
+  5,   6,   3,   7,   3,   8,   3,   3,  
+  9,   9,   9,   9,   9,   9,   9,   9,  
+  9,   9,   3,   3,   7,   7,   7,   3,  
+  3,  10,  10,  10,  10,  10,  10,  10,  
+ 10,  10,  10,  10,  10,  10,  10,  10,  
+ 10,  10,  10,  10,  10,  10,  10,  10,  
+ 10,  10,  10,   5,   3,   6,  11,  12,  
+ 11,  13,  13,  13,  13,  13,  13,  13,  
+ 13,  13,  13,  13,  13,  13,  13,  13,  
+ 13,  13,  13,  13,  13,  13,  13,  13,  
+ 13,  13,  13,   5,   7,   6,   7,  46,  
+ 46,   3,   5,   6,   3,   3,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 59,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  59,  59,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  40,  
+ 40,  40,  40,  40,  40,  40,  40,  46,  
+ 46,  46,  40,  40,  40,  40,  40,  40,  
+ 46,  46,  40,  40,  40,  40,  40,  40,  
+ 46,  46,  40,  40,  40,  40,  40,  40,  
+ 46,  46,  40,  40,  40,  46,  46,  46,  
+  4,   4,   7,  11,  15,   4,   4,  46,  
+  7,   7,   7,   7,   7,  15,  15,  46,  
+ 46,  46,  46,  46,  46,  46,  46,  46,  
+ 46,  46,  46,  46,  46,  15,  46,  46   
+};
+
+
+
+const uint32 js_A[] = {
+0x0001000F,  
+0x0004000F,  
+0x0004000C,  
+0x00000018,  
+0x0006001A,  
+0x00000015,  
+0x00000016,  
+0x00000019,  
+0x00000014,  
+0x00036089,  
+0x0827FF81,  
+0x0000001B,  
+0x00050017,  
+0x0817FF82,  
+0x0000000C,  
+0x0000001C,  
+0x00070182,  
+0x0000600B,  
+0x0000500B,  
+0x0000800B,  
+0x08270181,  
+0x08170182,  
+0xE1D70182,  
+0x00670181,  
+0x00570182,  
+0xCE670181,  
+0x3A170182,  
+0xE1E70181,  
+0x4B170182,  
+0x34A70181,  
+0x33A70181,  
+0x33670181,  
+0x32A70181,  
+0x32E70181,  
+0x33E70181,  
+0x34E70181,  
+0x34670181,  
+0x35670181,  
+0x00070181,  
+0x36A70181,  
+0x00070185,  
+0x36670181,  
+0x36E70181,  
+0x00AF0181,  
+0x007F0183,  
+0x009F0182,  
+0x00000000,  
+0x34970182,  
+0x33970182,  
+0x33570182,  
+0x32970182,  
+0x32D70182,  
+0x33D70182,  
+0x34570182,  
+0x34D70182,  
+0x35570182,  
+0x36970182,  
+0x36570182,  
+0x36D70182,  
+0x00070084,  
+0x00030086,  
+0x09A70181,  
+0x09670181,  
+0x10270181,  
+0x0FE70181,  
+0x09970182,  
+0x09570182,  
+0x10170182,  
+0x0FD70182,  
+0x0F970182,  
+0x0E570182,  
+0x0BD70182,  
+0x0D970182,  
+0x15970182,  
+0x14170182,  
+0x14270181,  
+0x0C270181,  
+0x0C170182,  
+0x00034089,  
+0x00000087,  
+0x00030088,  
+0x00037489,  
+0x00005A0B,  
+0x00006E0B,  
+0x0000740B,  
+0x0000000B,  
+0xFE170182,  
+0xFE270181,  
+0xED970182,  
+0xEA970182,  
+0xE7170182,  
+0xE0170182,  
+0xE4170182,  
+0xE0970182,  
+0xFDD70182,  
+0xEDA70181,  
+0xFDE70181,  
+0xEAA70181,  
+0xE7270181,  
+0xFE570182,  
+0xE4270181,  
+0xFE670181,  
+0xE0270181,  
+0xE0A70181,  
+0x00010010,  
+0x0004000D,  
+0x0004000E,  
+0x0000400B,  
+0x0000440B,  
+0x0427438A,  
+0x0427818A,  
+0x0417638A,  
+0x0417818A,  
+0x0007818A,  
+0x0000420B,  
+0x0000720B,  
+0x06A0001C,  
+0x0690001C,  
+0x00006C0B,  
+0x0000560B,  
+0x0007738A,  
+0x0007418A,  
+0x00000013,  
+0x00000012   
+};
 
 const jschar js_uriReservedPlusPound_ucstr[] =
     {';', '/', '?', ':', '@', '&', '=', '+', '$', ',', '#', 0};
@@ -4006,6 +5724,27 @@ const jschar js_uriUnescaped_ucstr[] =
      '-', '_', '.', '!', '~', '*', '\'', '(', ')', 0};
 
 #define ____ false
+
+
+
+
+
+const bool js_alnum[] = {
+
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, true, true,
+ true, true, true, true, true, true, true, true, ____, ____,
+ ____, ____, ____, ____, ____, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, ____, ____, ____, ____, true, ____, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, true, true, ____, ____, ____, ____, ____
+};
 
 
 
@@ -4317,28 +6056,32 @@ js_OneUcs4ToUtf8Char(uint8 *utf8Buffer, uint32 ucs4Char)
 static uint32
 Utf8ToOneUcs4Char(const uint8 *utf8Buffer, int utf8Length)
 {
-    JS_ASSERT(1 <= utf8Length && utf8Length <= 4);
-
-    if (utf8Length == 1) {
-        JS_ASSERT(!(*utf8Buffer & 0x80));
-        return *utf8Buffer;
-    }
-
+    uint32 ucs4Char;
+    uint32 minucs4Char;
     
-    static const uint32 minucs4Table[] = { 0x80, 0x800, 0x10000 };
+    static const uint32 minucs4Table[] = {
+        0x00000080, 0x00000800, 0x00010000
+    };
 
-    JS_ASSERT((*utf8Buffer & (0x100 - (1 << (7 - utf8Length)))) ==
-              (0x100 - (1 << (8 - utf8Length))));
-    uint32 ucs4Char = *utf8Buffer++ & ((1 << (7 - utf8Length)) - 1);
-    uint32 minucs4Char = minucs4Table[utf8Length - 2];
-    while (--utf8Length) {
-        JS_ASSERT((*utf8Buffer & 0xC0) == 0x80);
-        ucs4Char = (ucs4Char << 6) | (*utf8Buffer++ & 0x3F);
+    JS_ASSERT(utf8Length >= 1 && utf8Length <= 4);
+    if (utf8Length == 1) {
+        ucs4Char = *utf8Buffer;
+        JS_ASSERT(!(ucs4Char & 0x80));
+    } else {
+        JS_ASSERT((*utf8Buffer & (0x100 - (1 << (7-utf8Length)))) ==
+                  (0x100 - (1 << (8-utf8Length))));
+        ucs4Char = *utf8Buffer++ & ((1<<(7-utf8Length))-1);
+        minucs4Char = minucs4Table[utf8Length-2];
+        while (--utf8Length) {
+            JS_ASSERT((*utf8Buffer & 0xC0) == 0x80);
+            ucs4Char = ucs4Char<<6 | (*utf8Buffer++ & 0x3F);
+        }
+        if (JS_UNLIKELY(ucs4Char < minucs4Char)) {
+            ucs4Char = OVERLONG_UTF8;
+        } else if (ucs4Char == 0xFFFE || ucs4Char == 0xFFFF) {
+            ucs4Char = 0xFFFD;
+        }
     }
-
-    if (JS_UNLIKELY(ucs4Char < minucs4Char || (ucs4Char >= 0xD800 && ucs4Char <= 0xDFFF)))
-        return INVALID_UTF8;
-
     return ucs4Char;
 }
 
