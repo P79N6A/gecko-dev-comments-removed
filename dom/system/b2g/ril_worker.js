@@ -793,6 +793,14 @@ let RIL = {
 
 
 
+
+
+
+
+
+
+
+
   sendSMS: function sendSMS(options) {
     let token = Buf.newParcel(REQUEST_SEND_SMS, options);
     
@@ -801,10 +809,7 @@ let RIL = {
     
     Buf.writeUint32(2);
     Buf.writeString(options.SMSC);
-    GsmPDUHelper.writeMessage(options.number,
-                              options.body,
-                              options.dcs,
-                              options.bodyLengthInOctets);
+    GsmPDUHelper.writeMessage(options);
     Buf.sendParcel();
   },
 
@@ -2167,6 +2172,13 @@ let GsmPDUHelper = {
   
 
 
+  enabledGsmTableTuples: [
+    [PDU_NL_IDENTIFIER_DEFAULT, PDU_NL_IDENTIFIER_DEFAULT],
+  ],
+
+  
+
+
 
 
   readHexNibble: function readHexNibble() {
@@ -2316,33 +2328,46 @@ let GsmPDUHelper = {
     return ret;
   },
 
-  writeStringAsSeptets: function writeStringAsSeptets(message) {
-    let right = 0;
-    for (let i = 0; i < message.length + 1; i++) {
-      let shift = (i % 8);
-      let septet;
-      if (i < message.length) {
-        septet = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT].indexOf(message[i]);
-      } else {
-        septet = 0;
-      }
-      if (septet == -1) {
-        if (DEBUG) debug("Fffff, "  + message[i] + " not in 7 bit alphabet!");
-        septet = 0;
-      }
-      if (shift == 0) {
-        
-        
-        right = septet;
+  writeStringAsSeptets: function writeStringAsSeptets(message, paddingBits, langIndex, langShiftIndex) {
+    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[langIndex];
+    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[langShiftIndex];
+
+    let dataBits = paddingBits;
+    let data = 0;
+    for (let i = 0; i < message.length; i++) {
+      let septet = langTable.indexOf(message[i]);
+      if (septet == PDU_NL_EXTENDED_ESCAPE) {
         continue;
       }
 
-      let left_mask = 0xff >> (8 - shift);
-      let right_mask = (0xff << shift) & 0xff;
-      let left = (septet & left_mask) << (8 - shift);
-      let octet = left | right;
-      this.writeHexOctet(left | right);
-      right = (septet & right_mask) >> shift;
+      if (septet >= 0) {
+        data |= septet << dataBits;
+        dataBits += 7;
+      } else {
+        septet = langShiftTable.indexOf(message[i]);
+        if (septet == -1) {
+          throw new Error(message[i] + " not in 7 bit alphabet "
+                          + langIndex + ":" + langShiftIndex + "!");
+        }
+
+        if (septet == PDU_NL_RESERVED_CONTROL) {
+          continue;
+        }
+
+        data |= PDU_NL_EXTENDED_ESCAPE << dataBits;
+        dataBits += 7;
+        data |= septet << dataBits;
+        dataBits += 7;
+      }
+
+      for (; dataBits >= 8; dataBits -= 8) {
+        this.writeHexOctet(data & 0xFF);
+        data >>>= 8;
+      }
+    }
+
+    if (dataBits != 0) {
+      this.writeHexOctet(data & 0xFF);
     }
   },
 
@@ -2394,24 +2419,139 @@ let GsmPDUHelper = {
 
 
 
+  _calculateLangEncodedLength: function _calculateLangEncodedLength(message, langTable, langShiftTable) {
+    let length = 0;
+    for (let msgIndex = 0; msgIndex < message.length; msgIndex++) {
+      let septet = langTable.indexOf(message.charAt(msgIndex));
+
+      
+      
+      if (septet == PDU_NL_EXTENDED_ESCAPE) {
+        continue;
+      }
+
+      if (septet >= 0) {
+        length++;
+        continue;
+      }
+
+      septet = langShiftTable.indexOf(message.charAt(msgIndex));
+      if (septet == -1) {
+        return -1;
+      }
+
+      
+      
+      
+      if (septet == PDU_NL_RESERVED_CONTROL) {
+        continue;
+      }
+
+      
+      
+      
+      
+      
+      length += 2;
+    }
+
+    return length;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   calculateUserDataLength: function calculateUserDataLength(options) {
     
-    
-    let needUCS2 = false;
-    for (let i = 0; i < options.body.length; ++i) {
-      if (options.body.charCodeAt(i) >= 128) {
-        needUCS2 = true;
-        break;
+    options.dcs = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
+    options.langIndex = PDU_NL_IDENTIFIER_DEFAULT;
+    options.langShiftIndex = PDU_NL_IDENTIFIER_DEFAULT;
+    options.encodedBodyLength = 0;
+    options.userDataHeaderLength = 0;
+
+    let needUCS2 = true;
+    let minUserDataLength = Number.MAX_VALUE;
+    for (let i = 0; i < this.enabledGsmTableTuples.length; i++) {
+      let [langIndex, langShiftIndex] = this.enabledGsmTableTuples[i];
+
+      const langTable = PDU_NL_LOCKING_SHIFT_TABLES[langIndex];
+      const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[langShiftIndex];
+
+      let length = this._calculateLangEncodedLength(options.body,
+                                                    langTable,
+                                                    langShiftTable);
+      if (length < 0) {
+        continue;
+      }
+
+      let headerLen = 0;
+      if (langIndex != PDU_NL_IDENTIFIER_DEFAULT) {
+        headerLen += 3; 
+      }
+      if (langShiftIndex != PDU_NL_IDENTIFIER_DEFAULT) {
+        headerLen += 3; 
+      }
+
+      
+      let userDataLength = length + (headerLen ? headerLen + 1 : 0);
+      if (userDataLength >= minUserDataLength) {
+        continue;
+      }
+
+      needUCS2 = false;
+      minUserDataLength = userDataLength;
+
+      options.encodedBodyLength = length;
+      options.userDataHeaderLength = headerLen;
+      options.langIndex = langIndex;
+      options.langShiftIndex = langShiftIndex;
+
+      if (userDataLength <= options.body.length) {
+        
+        return;
       }
     }
 
     if (needUCS2) {
       options.dcs = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
-      options.bodyLengthInOctets = options.body.length * 2;
-    } else {
-      options.dcs = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
-      options.bodyLengthInOctets = Math.ceil(options.body.length * 7 / 8);
+      options.encodedBodyLength = options.body.length * 2;
+      options.userDataHeaderLength = 0;
+    }
+  },
+
+  writeUserDataHeader: function writeUserDataHeader(options) {
+    this.writeHexOctet(options.userDataHeaderLength);
+
+    if (options.langIndex != PDU_NL_IDENTIFIER_DEFAULT) {
+      this.writeHexOctet(PDU_IEI_NATIONAL_LANGUAGE_LOCKING_SHIFT);
+      this.writeHexOctet(1);
+      this.writeHexOctet(options.langIndex);
+    }
+
+    if (options.langShiftIndex != PDU_NL_IDENTIFIER_DEFAULT) {
+      this.writeHexOctet(PDU_IEI_NATIONAL_LANGUAGE_SINGLE_SHIFT);
+      this.writeHexOctet(1);
+      this.writeHexOctet(options.langShiftIndex);
     }
   },
 
@@ -2605,10 +2745,26 @@ let GsmPDUHelper = {
 
 
 
-  writeMessage: function writeMessage(address,
-                                      userData,
-                                      dcs,
-                                      userDataLengthInOctets) {
+
+
+
+
+
+
+
+
+  writeMessage: function writeMessage(options) {
+    if (DEBUG) {
+      debug("writeMessage: " + JSON.stringify(options));
+    }
+    let address = options.number;
+    let body = options.body;
+    let dcs = options.dcs;
+    let userDataHeaderLength = options.userDataHeaderLength;
+    let encodedBodyLength = options.encodedBodyLength;
+    let langIndex = options.langIndex;
+    let langShiftIndex = options.langShiftIndex;
+
     
     
     
@@ -2627,6 +2783,20 @@ let GsmPDUHelper = {
     }
     
     let validity = 0;
+
+    let headerOctets = (userDataHeaderLength ? userDataHeaderLength + 1 : 0);
+    let paddingBits;
+    let userDataLengthInSeptets;
+    let userDataLengthInOctets;
+    if (dcs == PDU_DCS_MSG_CODING_7BITS_ALPHABET) {
+      let headerSeptets = Math.ceil(headerOctets * 8 / 7);
+      userDataLengthInSeptets = headerSeptets + encodedBodyLength;
+      userDataLengthInOctets = Math.ceil(userDataLengthInSeptets * 7 / 8);
+      paddingBits = headerSeptets * 7 - headerOctets * 8;
+    } else {
+      userDataLengthInOctets = headerOctets + encodedBodyLength;
+      paddingBits = 0;
+    }
 
     let pduOctetLength = 4 + 
                          Math.ceil(address.length / 2) +
@@ -2672,8 +2842,8 @@ let GsmPDUHelper = {
     if (validity) {
       
     }
-    let udhi = ""; 
-    if (udhi) {
+    
+    if (headerOctets) {
       firstOctet |= PDU_UDHI;
     }
     this.writeHexOctet(firstOctet);
@@ -2699,20 +2869,25 @@ let GsmPDUHelper = {
     }
 
     
-    let userDataLength = userData.length;
-    if (dcs == PDU_DCS_MSG_CODING_16BITS_ALPHABET) {
-      userDataLength = userData.length * 2;
+    if (dcs == PDU_DCS_MSG_CODING_7BITS_ALPHABET) {
+      this.writeHexOctet(userDataLengthInSeptets);
+    } else {
+      this.writeHexOctet(userDataLengthInOctets);
     }
-    this.writeHexOctet(userDataLength);
+
+    if (headerOctets) {
+      this.writeUserDataHeader(options);
+    }
+
     switch (dcs) {
       case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
-        this.writeStringAsSeptets(userData);
+        this.writeStringAsSeptets(body, paddingBits, langIndex, langShiftIndex);
         break;
       case PDU_DCS_MSG_CODING_8BITS_ALPHABET:
         
         break;
       case PDU_DCS_MSG_CODING_16BITS_ALPHABET:
-        this.writeUCS2String(userData);
+        this.writeUCS2String(body);
         break;
     }
 
