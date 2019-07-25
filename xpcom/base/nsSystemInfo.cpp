@@ -64,7 +64,7 @@ nsSystemInfo::~nsSystemInfo()
 }
 
 
-static const struct {
+static const struct PropItems {
     const char *name;
     bool (*propfun)(void);
 } cpuPropItems[] = {
