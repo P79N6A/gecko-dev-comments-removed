@@ -86,7 +86,7 @@ private:
 
   
   
-  PRInt64 RoundDownToSample(PRInt64 aBytes) const;
+  PRInt64 RoundDownToFrame(PRInt64 aBytes) const;
   PRInt64 GetDataLength();
   PRInt64 GetPosition();
 
@@ -103,7 +103,7 @@ private:
 
   
   
-  PRUint32 mSampleSize;
+  PRUint32 mFrameSize;
 
   
   nsAudioStream::SampleFormat mSampleFormat;

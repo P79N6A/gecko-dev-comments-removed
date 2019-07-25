@@ -306,8 +306,8 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
 
   if (HasAudio()) {
     
-    PRInt64 targetSample = 0;
-    if (!UsecsToSamples(aTarget, mInfo.mAudioRate, targetSample)) {
+    PRInt64 targetFrame = 0;
+    if (!UsecsToFrames(aTarget, mInfo.mAudioRate, targetFrame)) {
       return NS_ERROR_FAILURE;
     }
     PRBool eof = PR_FALSE;
@@ -324,18 +324,18 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
       const AudioData* audio = mAudioQueue.PeekFront();
       if (!audio)
         break;
-      PRInt64 startSample = 0;
-      if (!UsecsToSamples(audio->mTime, mInfo.mAudioRate, startSample)) {
+      PRInt64 startFrame = 0;
+      if (!UsecsToFrames(audio->mTime, mInfo.mAudioRate, startFrame)) {
         return NS_ERROR_FAILURE;
       }
-      if (startSample + audio->mSamples <= targetSample) {
+      if (startFrame + audio->mFrames <= targetFrame) {
         
         
         delete mAudioQueue.PopFront();
         audio = nsnull;
         continue;
       }
-      if (startSample > targetSample) {
+      if (startFrame > targetFrame) {
         
         
         
@@ -350,30 +350,30 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
       
       
       
-      NS_ASSERTION(targetSample >= startSample, "Target must at or be after data start.");
-      NS_ASSERTION(targetSample < startSample + audio->mSamples, "Data must end after target.");
+      NS_ASSERTION(targetFrame >= startFrame, "Target must at or be after data start.");
+      NS_ASSERTION(targetFrame < startFrame + audio->mFrames, "Data must end after target.");
 
-      PRInt64 samplesToPrune = targetSample - startSample;
-      if (samplesToPrune > audio->mSamples) {
+      PRInt64 framesToPrune = targetFrame - startFrame;
+      if (framesToPrune > audio->mFrames) {
         
         
-        NS_WARNING("Can't prune more samples that we have!");
+        NS_WARNING("Can't prune more frames that we have!");
         break;
       }
-      PRUint32 samples = audio->mSamples - static_cast<PRUint32>(samplesToPrune);
+      PRUint32 frames = audio->mFrames - static_cast<PRUint32>(framesToPrune);
       PRUint32 channels = audio->mChannels;
-      nsAutoArrayPtr<AudioDataValue> audioData(new AudioDataValue[samples * channels]);
+      nsAutoArrayPtr<AudioDataValue> audioData(new AudioDataValue[frames * channels]);
       memcpy(audioData.get(),
-             audio->mAudioData.get() + (samplesToPrune * channels),
-             samples * channels * sizeof(AudioDataValue));
+             audio->mAudioData.get() + (framesToPrune * channels),
+             frames * channels * sizeof(AudioDataValue));
       PRInt64 duration;
-      if (!SamplesToUsecs(samples, mInfo.mAudioRate, duration)) {
+      if (!FramesToUsecs(frames, mInfo.mAudioRate, duration)) {
         return NS_ERROR_FAILURE;
       }
       nsAutoPtr<AudioData> data(new AudioData(audio->mOffset,
                                               aTarget,
                                               duration,
-                                              samples,
+                                              frames,
                                               audioData.forget(),
                                               channels));
       delete mAudioQueue.PopFront();

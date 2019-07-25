@@ -497,11 +497,11 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   LOG(PR_LOG_DEBUG, ("%p Begun audio thread/loop", mDecoder.get()));
   PRInt64 audioDuration = 0;
   PRInt64 audioStartTime = -1;
-  PRInt64 samplesWritten = 0;
+  PRInt64 framesWritten = 0;
   PRUint32 channels, rate;
   double volume = -1;
   PRBool setVolume;
-  PRInt32 minWriteSamples = -1;
+  PRInt32 minWriteFrames = -1;
   {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     mAudioCompleted = PR_FALSE;
@@ -578,8 +578,8 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
     if (setVolume) {
       mAudioStream->SetVolume(volume);
     }
-    if (minWriteSamples == -1) {
-      minWriteSamples = mAudioStream->GetMinWriteSamples();
+    if (minWriteFrames == -1) {
+      minWriteFrames = mAudioStream->GetMinWriteSize();
     }
     NS_ASSERTION(mReader->mAudioQueue.GetSize() > 0,
                  "Should have data to play");
@@ -589,45 +589,45 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
 
     
     
-    PRInt64 playedSamples = 0;
-    if (!UsecsToSamples(audioStartTime, rate, playedSamples)) {
-      NS_WARNING("Int overflow converting playedSamples");
+    PRInt64 playedFrames = 0;
+    if (!UsecsToFrames(audioStartTime, rate, playedFrames)) {
+      NS_WARNING("Int overflow converting playedFrames");
       break;
     }
-    if (!AddOverflow(playedSamples, audioDuration, playedSamples)) {
-      NS_WARNING("Int overflow adding playedSamples");
+    if (!AddOverflow(playedFrames, audioDuration, playedFrames)) {
+      NS_WARNING("Int overflow adding playedFrames");
       break;
     }
 
     
     
     PRInt64 sampleTime = 0;
-    if (!UsecsToSamples(s->mTime, rate, sampleTime)) {
+    if (!UsecsToFrames(s->mTime, rate, sampleTime)) {
       NS_WARNING("Int overflow converting sampleTime");
       break;
     }
-    PRInt64 missingSamples = 0;
-    if (!AddOverflow(sampleTime, -playedSamples, missingSamples)) {
-      NS_WARNING("Int overflow adding missingSamples");
+    PRInt64 missingFrames = 0;
+    if (!AddOverflow(sampleTime, -playedFrames, missingFrames)) {
+      NS_WARNING("Int overflow adding missingFrames");
       break;
     }
 
-    if (missingSamples > 0) {
+    if (missingFrames > 0) {
       
       
       
       
-      missingSamples = NS_MIN(static_cast<PRInt64>(PR_UINT32_MAX), missingSamples);
-      samplesWritten = PlaySilence(static_cast<PRUint32>(missingSamples),
-                                   channels, playedSamples);
+      missingFrames = NS_MIN(static_cast<PRInt64>(PR_UINT32_MAX), missingFrames);
+      framesWritten = PlaySilence(static_cast<PRUint32>(missingFrames),
+                                  channels, playedFrames);
     } else {
-      samplesWritten = PlayFromAudioQueue(sampleTime, channels);
+      framesWritten = PlayFromAudioQueue(sampleTime, channels);
     }
-    audioDuration += samplesWritten;
+    audioDuration += framesWritten;
     {
       ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
       PRInt64 playedUsecs;
-      if (!SamplesToUsecs(audioDuration, rate, playedUsecs)) {
+      if (!FramesToUsecs(audioDuration, rate, playedUsecs)) {
         NS_WARNING("Int overflow calculating playedUsecs");
         break;
       }
@@ -638,7 +638,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
 
       PRInt64 audioAhead = mAudioEndTime - GetMediaTime();
       if (audioAhead > AMPLE_AUDIO_USECS &&
-          samplesWritten > minWriteSamples)
+          framesWritten > minWriteFrames)
       {
         
         
@@ -664,18 +664,18 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
     PRBool seeking = PR_FALSE;
     {
       ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      if (samplesWritten < minWriteSamples) {
+      if (framesWritten < minWriteFrames) {
         
         
         
-        PRInt64 samples = minWriteSamples - samplesWritten;
-        if (samples < PR_UINT32_MAX / channels) {
+        PRInt64 minToWrite = minWriteFrames - framesWritten;
+        if (minToWrite < PR_UINT32_MAX / channels) {
           
           
-          PRUint32 numValues = samples * channels;
-          nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numValues]);
-          memset(buf.get(), 0, sizeof(AudioDataValue) * numValues);
-          mAudioStream->Write(buf, numValues);
+          PRUint32 numSamples = minToWrite * channels;
+          nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numSamples]);
+          memset(buf.get(), 0, numSamples * sizeof(AudioDataValue));
+          mAudioStream->Write(buf, minToWrite);
         }
       }
 
@@ -721,31 +721,31 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   LOG(PR_LOG_DEBUG, ("%p Audio stream finished playing, audio thread exit", mDecoder.get()));
 }
 
-PRUint32 nsBuiltinDecoderStateMachine::PlaySilence(PRUint32 aSamples,
+PRUint32 nsBuiltinDecoderStateMachine::PlaySilence(PRUint32 aFrames,
                                                    PRUint32 aChannels,
-                                                   PRUint64 aSampleOffset)
+                                                   PRUint64 aFrameOffset)
 
 {
   NS_ASSERTION(OnAudioThread(), "Only call on audio thread.");
   NS_ASSERTION(!mAudioStream->IsPaused(), "Don't play when paused");
-  PRUint32 maxSamples = SILENCE_BYTES_CHUNK / aChannels;
-  PRUint32 samples = NS_MIN(aSamples, maxSamples);
-  PRUint32 numValues = samples * aChannels;
-  nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numValues]);
-  memset(buf.get(), 0, sizeof(AudioDataValue) * numValues);
-  mAudioStream->Write(buf, numValues);
+  PRUint32 maxFrames = SILENCE_BYTES_CHUNK / aChannels / sizeof(AudioDataValue);
+  PRUint32 frames = NS_MIN(aFrames, maxFrames);
+  PRUint32 numSamples = frames * aChannels;
+  nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numSamples]);
+  memset(buf.get(), 0, numSamples * sizeof(AudioDataValue));
+  mAudioStream->Write(buf, frames);
   
-  mEventManager.QueueWrittenAudioData(buf.get(), numValues,
-                                      (aSampleOffset + samples) * aChannels);
-  return samples;
+  mEventManager.QueueWrittenAudioData(buf.get(), frames * aChannels,
+                                      (aFrameOffset + frames) * aChannels);
+  return frames;
 }
 
-PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aSampleOffset,
+PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aFrameOffset,
                                                           PRUint32 aChannels)
 {
   NS_ASSERTION(OnAudioThread(), "Only call on audio thread.");
   NS_ASSERTION(!mAudioStream->IsPaused(), "Don't play when paused");
-  nsAutoPtr<AudioData> audioData(mReader->mAudioQueue.PopFront());
+  nsAutoPtr<AudioData> audio(mReader->mAudioQueue.PopFront());
   {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     NS_WARN_IF_FALSE(IsPlaying(), "Should be playing");
@@ -754,7 +754,7 @@ PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aSampleOffset
     mDecoder->GetReentrantMonitor().NotifyAll();
   }
   PRInt64 offset = -1;
-  PRUint32 samples = 0;
+  PRUint32 frames = 0;
   
   
   
@@ -763,24 +763,24 @@ PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aSampleOffset
   
   
   if (!mAudioStream->IsPaused()) {
-    mAudioStream->Write(audioData->mAudioData,
-                        audioData->AudioDataLength());
+    mAudioStream->Write(audio->mAudioData,
+                        audio->mFrames);
 
-    offset = audioData->mOffset;
-    samples = audioData->mSamples;
+    offset = audio->mOffset;
+    frames = audio->mFrames;
 
     
-    mEventManager.QueueWrittenAudioData(audioData->mAudioData.get(),
-                                        audioData->AudioDataLength(),
-                                        (aSampleOffset + samples) * aChannels);
+    mEventManager.QueueWrittenAudioData(audio->mAudioData.get(),
+                                        audio->mFrames * aChannels,
+                                        (aFrameOffset + frames) * aChannels);
   } else {
-    mReader->mAudioQueue.PushFront(audioData);
-    audioData.forget();
+    mReader->mAudioQueue.PushFront(audio);
+    audio.forget();
   }
   if (offset != -1) {
     mDecoder->UpdatePlaybackOffset(offset);
   }
-  return samples;
+  return frames;
 }
 
 nsresult nsBuiltinDecoderStateMachine::Init(nsDecoderStateMachine* aCloneDonor)

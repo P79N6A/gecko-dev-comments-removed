@@ -344,14 +344,14 @@ protected:
   
   
   
-  PRUint32 PlaySilence(PRUint32 aSamples,
+  PRUint32 PlaySilence(PRUint32 aFrames,
                        PRUint32 aChannels,
-                       PRUint64 aSampleOffset);
+                       PRUint64 aFrameOffset);
 
   
   
   
-  PRUint32 PlayFromAudioQueue(PRUint64 aSampleOffset, PRUint32 aChannels);
+  PRUint32 PlayFromAudioQueue(PRUint64 aFrameOffset, PRUint32 aChannels);
 
   
   

@@ -178,10 +178,10 @@ PRBool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
 
 
 
-PRBool SamplesToUsecs(PRInt64 aSamples, PRUint32 aRate, PRInt64& aOutUsecs)
+PRBool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs)
 {
   PRInt64 x;
-  if (!MulOverflow(aSamples, USECS_PER_S, x))
+  if (!MulOverflow(aFrames, USECS_PER_S, x))
     return PR_FALSE;
   aOutUsecs = x / aRate;
   return PR_TRUE;
@@ -189,12 +189,12 @@ PRBool SamplesToUsecs(PRInt64 aSamples, PRUint32 aRate, PRInt64& aOutUsecs)
 
 
 
-PRBool UsecsToSamples(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutSamples)
+PRBool UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutFrames)
 {
   PRInt64 x;
   if (!MulOverflow(aUsecs, aRate, x))
     return PR_FALSE;
-  aOutSamples = x / USECS_PER_S;
+  aOutFrames = x / USECS_PER_S;
   return PR_TRUE;
 }
 

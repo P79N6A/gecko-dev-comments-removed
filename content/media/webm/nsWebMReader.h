@@ -219,7 +219,7 @@ private:
   PRInt64 mAudioStartUsec;
 
   
-  PRUint64 mAudioSamples;
+  PRUint64 mAudioFrames;
 
   
   

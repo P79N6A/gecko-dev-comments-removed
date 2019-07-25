@@ -87,10 +87,8 @@ public:
   
   
   
-  
-  virtual nsresult Write(const void* aBuf, PRUint32 aCount) = 0;
+  virtual nsresult Write(const void* aBuf, PRUint32 aFrames) = 0;
 
-  
   
   virtual PRUint32 Available() = 0;
 
@@ -114,7 +112,7 @@ public:
 
   
   
-  virtual PRInt64 GetSampleOffset() = 0;
+  virtual PRInt64 GetPositionInFrames() = 0;
 
   
   virtual PRBool IsPaused() = 0;
@@ -122,7 +120,7 @@ public:
   
   
   
-  virtual PRInt32 GetMinWriteSamples() = 0;
+  virtual PRInt32 GetMinWriteSize() = 0;
 
 protected:
   nsCOMPtr<nsIThread> mAudioPlaybackThread;

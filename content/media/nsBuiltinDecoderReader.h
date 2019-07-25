@@ -122,28 +122,13 @@ public:
   AudioData(PRInt64 aOffset,
             PRInt64 aTime,
             PRInt64 aDuration,
-            PRUint32 aSamples,
+            PRUint32 aFrames,
             AudioDataValue* aData,
             PRUint32 aChannels)
   : mOffset(aOffset),
     mTime(aTime),
     mDuration(aDuration),
-    mSamples(aSamples),
-    mChannels(aChannels),
-    mAudioData(aData)
-  {
-    MOZ_COUNT_CTOR(AudioData);
-  }
-
-  AudioData(PRInt64 aOffset,
-            PRInt64 aDuration,
-            PRUint32 aSamples,
-            AudioDataValue* aData,
-            PRUint32 aChannels)
-  : mOffset(aOffset),
-    mTime(-1),
-    mDuration(aDuration),
-    mSamples(aSamples),
+    mFrames(aFrames),
     mChannels(aChannels),
     mAudioData(aData)
   {
@@ -155,17 +140,13 @@ public:
     MOZ_COUNT_DTOR(AudioData);
   }
 
-  PRUint32 AudioDataLength() {
-    return mChannels * mSamples;
-  }
-
   
   
   const PRInt64 mOffset;
 
   PRInt64 mTime; 
   const PRInt64 mDuration; 
-  const PRUint32 mSamples;
+  const PRUint32 mFrames;
   const PRUint32 mChannels;
   nsAutoArrayPtr<AudioDataValue> mAudioData;
 };
@@ -362,7 +343,7 @@ template <class T> class MediaQueue : private nsDeque {
 
   PRBool AtEndOfStream() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    return GetSize() == 0 && mEndOfStream;    
+    return GetSize() == 0 && mEndOfStream;
   }
 
   
@@ -370,13 +351,13 @@ template <class T> class MediaQueue : private nsDeque {
   
   PRBool IsFinished() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    return mEndOfStream;    
+    return mEndOfStream;
   }
 
   
   void Finish() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    mEndOfStream = PR_TRUE;    
+    mEndOfStream = PR_TRUE;
   }
 
   
@@ -502,7 +483,7 @@ public:
 
     virtual void* operator()(void* anObject) {
       const AudioData* audioData = static_cast<const AudioData*>(anObject);
-      mResult += audioData->mSamples * audioData->mChannels * sizeof(AudioDataValue);
+      mResult += audioData->mFrames * audioData->mChannels * sizeof(AudioDataValue);
       return nsnull;
     }
 

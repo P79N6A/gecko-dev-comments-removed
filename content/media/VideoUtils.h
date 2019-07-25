@@ -132,13 +132,13 @@ PRBool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
 
 
 
-PRBool SamplesToUsecs(PRInt64 aSamples, PRUint32 aRate, PRInt64& aOutUsecs);
+PRBool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs);
 
 
 
 
 
-PRBool UsecsToSamples(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutSamples);
+PRBool UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutFrames);
 
 
 static const PRInt64 USECS_PER_S = 1000000;
