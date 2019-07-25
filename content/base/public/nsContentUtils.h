@@ -1553,6 +1553,15 @@ public:
   static ViewportInfo GetViewportInfo(nsIDocument* aDocument);
 
   
+  
+  static void EnterMicroTask() { ++sMicroTaskLevel; }
+  static void LeaveMicroTask();
+
+  static bool IsInMicroTask() { return sMicroTaskLevel != 0; }
+  static PRUint32 MicroTaskLevel() { return sMicroTaskLevel; }
+  static void SetMicroTaskLevel(PRUint32 aLevel) { sMicroTaskLevel = aLevel; }
+
+  
 
 
 
@@ -1959,6 +1968,13 @@ public:
   
 
 
+ 
+  static nsresult JSArrayToAtomArray(JSContext* aCx, const JS::Value& aJSArray,
+                                     nsCOMArray<nsIAtom>& aRetVal);
+
+  
+
+
 
 
 
@@ -2082,6 +2098,7 @@ private:
 #ifdef DEBUG
   static PRUint32 sDOMNodeRemovedSuppressCount;
 #endif
+  static PRUint32 sMicroTaskLevel;
   
   static nsTArray< nsCOMPtr<nsIRunnable> >* sBlockedScriptRunners;
   static PRUint32 sRunnersCountAtFirstBlocker;
@@ -2181,6 +2198,19 @@ public:
 #ifdef DEBUG
     --nsContentUtils::sDOMNodeRemovedSuppressCount;
 #endif
+  }
+};
+
+class NS_STACK_CLASS nsAutoMicroTask
+{
+public:
+  nsAutoMicroTask()
+  {
+    nsContentUtils::EnterMicroTask();
+  }
+  ~nsAutoMicroTask()
+  {
+    nsContentUtils::LeaveMicroTask();
   }
 };
 

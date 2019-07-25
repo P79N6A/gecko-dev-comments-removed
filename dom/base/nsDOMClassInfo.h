@@ -1482,6 +1482,24 @@ public:
   NS_DECL_NSIXPCFUNCTIONTHISTRANSLATOR
 };
 
+class nsMutationCallbackThisTranslator : public nsIXPCFunctionThisTranslator
+{
+public:
+  nsMutationCallbackThisTranslator()
+  {
+  }
+
+  virtual ~nsMutationCallbackThisTranslator()
+  {
+  }
+
+  
+  NS_DECL_ISUPPORTS
+
+  
+  NS_DECL_NSIXPCFUNCTIONTHISTRANSLATOR
+};
+
 class nsDOMConstructorSH : public nsDOMGenericSH
 {
 protected:
