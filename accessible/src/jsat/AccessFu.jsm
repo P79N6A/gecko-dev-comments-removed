@@ -202,7 +202,8 @@ var AccessFu = {
           let position = pivot.position;
           let doc = aEvent.DOMNode;
 
-          if (doc instanceof Ci.nsIDOMDocument && position.DOMNode) {
+          if (position && position.DOMNode &&
+              doc instanceof Ci.nsIDOMDocument) {
             
             
             
