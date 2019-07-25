@@ -74,6 +74,8 @@ nsDirectoryService::GetCurrentProcessDirectory(nsIFile** aFile)
     rv = nsDirectoryService::Create(nullptr, 
                                     NS_GET_IID(nsIProperties), 
                                     getter_AddRefs(dirService));  
+    if (NS_FAILED(rv))
+        return rv;
 
     if (dirService)
     {
