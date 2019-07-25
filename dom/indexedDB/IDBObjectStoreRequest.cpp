@@ -209,6 +209,16 @@ public:
   PRUint16 GetSuccessResult(nsIWritableVariant* aResult);
 
 private:
+  struct IndexData
+  {
+    PRInt64 odid;
+    nsString odkey;
+    nsString value;
+  };
+
+  PRUint16 GetDataFromObjectStore(mozIStorageConnection* aConnection,
+                                  nsTArray<IndexData>& _retval);
+
   
   nsString mName;
   nsString mKeyPath;
@@ -1602,6 +1612,8 @@ OpenCursorHelper::GetSuccessResult(nsIWritableVariant* aResult)
 PRUint16
 CreateIndexHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 {
+  Savepoint savepoint(mTransaction);
+
   
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
@@ -1636,16 +1648,58 @@ CreateIndexHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
   (void)aConnection->GetLastInsertRowID(&mId);
 
   
+  nsTArray<IndexData> values;
+  GetDataFromObjectStore(aConnection, values);
+  
 
+  return OK;
+}
 
+PRUint16
+CreateIndexHelper::GetDataFromObjectStore(mozIStorageConnection* aConnection,
+                                          nsTArray<IndexData>& _retval)
+{
+  nsCAutoString table;
+  nsCAutoString columns;
+  if (mAutoIncrement) {
+    table.AssignLiteral("ai_object_data");
+    columns.AssignLiteral("id, data, key_value");
+  }
+  else {
+    table.AssignLiteral("object_data");
+    columns.AssignLiteral("id, data");
+  }
+  nsCAutoString sql;
+  sql.AppendASCII("SELECT ");
+  sql += columns;
+  sql.AppendASCII(" FROM ");
+  sql += table;
+  sql.AppendASCII(" WHERE object_store_id = :osid");
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = aConnection->CreateStatement(sql, getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseException::UNKNOWN_ERR);
 
+  PRBool hasResult;
+  while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
+    IndexData data;
+    data.odid = stmt->AsInt64(0);
+    if (!mAutoIncrement) {
+      
+      rv = stmt->GetString(2, data.odkey);
+      NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseException::UNKNOWN_ERR);
+    }
 
+    nsAutoString json;
+    rv = stmt->GetString(1, json);
+    NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseException::UNKNOWN_ERR);
 
-
-
-
-
-
+    JSContext* cx = nsnull;
+    rv = IDBObjectStoreRequest::GetKeyPathValueFromJSON(json, mKeyPath, &cx,
+                                                        data.value);
+    
+    NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseException::UNKNOWN_ERR);
+    _retval.AppendElement(data);
+  }
 
   return OK;
 }
