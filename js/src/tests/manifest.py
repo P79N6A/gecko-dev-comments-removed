@@ -298,12 +298,15 @@ def load(location, xul_tester, reldir = ''):
 
     for root, basename in _find_all_js_files(location, location):
         
+        if not root:
+            continue
+
+        
         if basename in EXCLUDED:
             continue
 
         
-        if root:
-            filename = os.path.join(root, basename)
+        filename = os.path.join(root, basename)
         fullpath = os.path.join(location, filename)
 
         
