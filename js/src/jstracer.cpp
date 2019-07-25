@@ -6807,6 +6807,7 @@ LeaveTree(TraceMonitor *tm, TracerState& state, VMSideExit* lr)
 
 
 
+
         if (!(bs & BUILTIN_ERROR)) {
             
 
@@ -7323,6 +7324,7 @@ TraceRecorder::monitorRecording(JSOp op)
     if (pendingGuardCondition) {
         LIns* cond = pendingGuardCondition;
         bool expected = true;
+
         
         ensureCond(&cond, &expected);
         guard(expected, cond, STATUS_EXIT);
@@ -8005,6 +8007,21 @@ DeepBail(JSContext *cx)
     state->builtinStatus |= BUILTIN_BAILED;
 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -14863,6 +14880,10 @@ TraceRecorder::record_JSOP_MOREITER()
 
     cond_ins = is_boxed_true(AllocSlotsAddress(vp_ins));
     stack(0, cond_ins);
+
+    
+    
+    stack(-1, iterobj_ins);
 
     return ARECORD_CONTINUE;
 }
