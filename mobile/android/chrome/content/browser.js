@@ -249,6 +249,7 @@ var BrowserApp = {
     
     Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
 
+    let loadParams = {};
     let url = "about:home";
     let forceRestore = false;
     if ("arguments" in window) {
@@ -261,6 +262,9 @@ var BrowserApp = {
       if (window.arguments[3])
         gScreenHeight = window.arguments[3];
     }
+
+    if (url == "about:empty")
+      loadParams.flags = Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY;
 
     
     Services.io.offline = false;
@@ -284,7 +288,7 @@ var BrowserApp = {
 
       
       if (url && url != "about:home") {
-        this.addTab(url);
+        this.addTab(url, loadParams);
       } else {
         
         restoreToFront = true;
@@ -313,7 +317,8 @@ var BrowserApp = {
       
       ss.restoreLastSession(restoreToFront, forceRestore);
     } else {
-      this.addTab(url, { showProgress: url != "about:home" });
+      loadParams.showProgress = (url != "about:home");
+      this.addTab(url, loadParams);
 
       
       this._showTelemetryPrompt();
