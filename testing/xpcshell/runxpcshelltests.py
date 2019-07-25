@@ -69,10 +69,11 @@ class XPCShellTests(object):
   oldcwd = os.getcwd()
 
   def __init__(self, log=sys.stdout):
-    """ Init logging """
+    """ Init logging and node status """
     handler = logging.StreamHandler(log)
     self.log.setLevel(logging.INFO)
     self.log.addHandler(handler)
+    self.nodeProc = None
 
   def buildTestList(self):
     """
@@ -393,6 +394,54 @@ class XPCShellTests(object):
     return ['-e', 'const _TEST_FILE = ["%s"];' %
               replaceBackSlashes(name)]
 
+  def trySetupNode(self):
+    """
+      Run node for SPDY tests, if available, and updates mozinfo as appropriate.
+    """
+    nodeMozInfo = {'hasNode': False} 
+    nodeBin = None
+
+    
+    
+    localPath = os.getenv('MOZ_NODE_PATH', None)
+    if localPath and os.path.exists(localPath) and os.path.isfile(localPath):
+      nodeBin = localPath
+
+    if nodeBin:
+      self.log.info('Found node at %s' % (nodeBin,))
+      myDir = os.path.split(os.path.abspath(__file__))[0]
+      mozSpdyJs = os.path.join(myDir, 'moz-spdy', 'moz-spdy.js')
+
+      if os.path.exists(mozSpdyJs):
+        
+        self.log.info('Found moz-spdy at %s' % (mozSpdyJs,))
+        stdout, stderr = self.getPipes()
+        try:
+          
+          
+          self.nodeProc = Popen([nodeBin, mozSpdyJs], stdin=PIPE, stdout=PIPE,
+                  stderr=STDOUT, env=self.env, cwd=os.getcwd())
+
+          
+          
+          msg = self.nodeProc.stdout.readline()
+          if msg.startswith('SPDY server listening'):
+              nodeMozInfo['hasNode'] = True
+        except OSError, e:
+          
+          self.log.error('Could not run node SPDY server: %s' % (str(e),))
+
+    mozinfo.update(nodeMozInfo)
+
+  def shutdownNode(self):
+    """
+      Shut down our node process, if it exists
+    """
+    if self.nodeProc:
+      self.log.info('Node SPDY server shutting down ...')
+      
+      self.nodeProc.communicate()
+
   def writeXunitResults(self, results, name=None, filename=None, fh=None):
     """
       Write Xunit XML from results.
@@ -597,6 +646,10 @@ class XPCShellTests(object):
         return False
       self.mozInfo = parse_json(open(mozInfoFile).read())
     mozinfo.update(self.mozInfo)
+
+    
+    
+    self.trySetupNode()
     
     pStdout, pStderr = self.getPipes()
 
@@ -768,6 +821,8 @@ class XPCShellTests(object):
           break
 
       xunitResults.append(xunitResult)
+
+    self.shutdownNode()
 
     if self.testCount == 0:
       self.log.error("TEST-UNEXPECTED-FAIL | runxpcshelltests.py | No tests run. Did you pass an invalid --test-path?")
