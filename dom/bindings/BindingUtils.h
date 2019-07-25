@@ -339,6 +339,42 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, const SmartPtr<T>& value,
   return WrapNewBindingObject(cx, scope, value.get(), vp);
 }
 
+template <class T>
+inline bool
+WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope, T* value,
+                                     JS::Value* vp)
+{
+  
+  JSObject* obj;
+  {
+    
+    
+    JSAutoEnterCompartment ac;
+    if (js::IsWrapper(scope)) {
+      scope = xpc::Unwrap(cx, scope, false);
+      if (!scope || !ac.enter(cx, scope)) {
+        return false;
+      }
+    }
+
+    obj = value->WrapObject(cx, scope);
+  }
+
+  
+  
+  *vp = JS::ObjectValue(*obj);
+  return JS_WrapValue(cx, vp);
+}
+
+
+template <template <typename> class SmartPtr, typename T>
+inline bool
+WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope,
+                                     const SmartPtr<T>& value, JS::Value* vp)
+{
+  return WrapNewBindingNonWrapperCachedObject(cx, scope, value.get(), vp);
+}
+
 
 
 
