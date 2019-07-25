@@ -7756,8 +7756,12 @@ nsDocShell::SetDocCurrentStateObj(nsISHEntry *shEntry)
     NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
 
     nsCOMPtr<nsIStructuredCloneContainer> scContainer;
-    nsresult rv = shEntry->GetStateData(getter_AddRefs(scContainer));
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (shEntry) {
+        nsresult rv = shEntry->GetStateData(getter_AddRefs(scContainer));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        
+    }
 
     
     
