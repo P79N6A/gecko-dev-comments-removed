@@ -534,7 +534,7 @@ protected:
   bool ParseListStyle();
   bool ParseMargin();
   bool ParseMarks(nsCSSValue& aValue);
-  bool ParseMozTransform();
+  bool ParseTransform();
   bool ParseOutline();
   bool ParseOverflow();
   bool ParsePadding();
@@ -629,7 +629,7 @@ protected:
                                 InfallibleTArray<nsCSSValue>& aOutput);
 
   
-  bool ParseMozTransformOrigin(bool aPerspective);
+  bool ParseTransformOrigin(bool aPerspective);
 
   
 
@@ -5623,12 +5623,12 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
     return ParseSize();
   case eCSSProperty_text_decoration:
     return ParseTextDecoration();
-  case eCSSProperty__moz_transform:
-    return ParseMozTransform();
-  case eCSSProperty__moz_transform_origin:
-    return ParseMozTransformOrigin(false);
+  case eCSSProperty_transform:
+    return ParseTransform();
+  case eCSSProperty_transform_origin:
+    return ParseTransformOrigin(false);
   case eCSSProperty_perspective_origin:
-    return ParseMozTransformOrigin(true);
+    return ParseTransformOrigin(true);
   case eCSSProperty_transition:
     return ParseTransition();
   case eCSSProperty_animation:
@@ -8060,7 +8060,7 @@ CSSParserImpl::ParseSingleTransform(nsCSSValue& aValue, bool& aIs3D)
 
 
 
-bool CSSParserImpl::ParseMozTransform()
+bool CSSParserImpl::ParseTransform()
 {
   nsCSSValue value;
   if (ParseVariant(value, VARIANT_INHERIT | VARIANT_NONE, nsnull)) {
@@ -8085,17 +8085,17 @@ bool CSSParserImpl::ParseMozTransform()
       cur = cur->mNext;
     }
   }
-  AppendValue(eCSSProperty__moz_transform, value);
+  AppendValue(eCSSProperty_transform, value);
   return true;
 }
 
-bool CSSParserImpl::ParseMozTransformOrigin(bool aPerspective)
+bool CSSParserImpl::ParseTransformOrigin(bool aPerspective)
 {
   nsCSSValuePair position;
   if (!ParseBoxPositionValues(position, true))
     return false;
 
-  nsCSSProperty prop = eCSSProperty__moz_transform_origin;
+  nsCSSProperty prop = eCSSProperty_transform_origin;
   if (aPerspective) {
     if (!ExpectEndProperty()) {
       return false;

@@ -100,6 +100,7 @@
 
 
 
+
 #ifndef CSS_PROP_SHORTHAND
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_)
 #define DEFINED_CSS_PROP_SHORTHAND
@@ -2319,7 +2320,7 @@ CSS_PROP_TEXT(
     eStyleAnimType_None)
 CSS_PROP_DISPLAY(
     -moz-transform,
-    _moz_transform,
+    transform,
     CSS_PROP_DOMPROP_PREFIXED(Transform),
     CSS_PROPERTY_PARSE_FUNCTION,
     0,
@@ -2328,7 +2329,7 @@ CSS_PROP_DISPLAY(
     eStyleAnimType_Custom)
 CSS_PROP_DISPLAY(
     -moz-transform-origin,
-    _moz_transform_origin,
+    transform_origin,
     CSS_PROP_DOMPROP_PREFIXED(TransformOrigin),
     CSS_PROPERTY_PARSE_FUNCTION |
         CSS_PROPERTY_STORES_CALC,
