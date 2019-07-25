@@ -49,9 +49,11 @@
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
 #include "npapi.h"
+#include "nsTArray.h"
 
 struct PRLogModuleInfo;
 class nsChildView;
+struct nsTextRange;
 
 
 
@@ -235,6 +237,21 @@ public:
   void OnUpdateIMEComposition(NSString* aIMECompositionString);
   void OnEndIMEComposition();
 
+  
+
+
+
+
+
+
+
+
+
+  PRBool DispatchTextEvent(const nsString& aText,
+                           NSAttributedString* aAttrString,
+                           NSRange& aSelectedRange,
+                           PRBool aDoCommit);
+
   PRBool IsIMEComposing() { return mIsIMEComposing; }
   PRBool IsIMEOpened();
   PRBool IsIMEEnabled() { return mIsIMEEnabled; }
@@ -321,6 +338,46 @@ private:
                                              CFDictionaryRef aUserInfo);
 
   static void FlushPendingMethods(nsITimer* aTimer, void* aClosure);
+
+  
+
+
+
+
+
+
+
+
+  PRUint32 ConvertToTextRangeType(PRUint32 aUnderlineStyle,
+                                  NSRange& aSelectedRange);
+
+  
+
+
+
+
+
+
+
+
+  PRUint32 GetRangeCount(NSAttributedString *aString);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  void SetTextRangeList(nsTArray<nsTextRange>& aTextRangeList,
+                        NSAttributedString *aAttrString,
+                        NSRange& aSelectedRange);
 
   
   
