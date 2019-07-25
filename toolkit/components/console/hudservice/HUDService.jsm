@@ -4479,13 +4479,17 @@ JSTerm.prototype = {
   init: function JST_init()
   {
     this.createSandbox();
+
     this.inputNode = this.mixins.inputNode;
-    let eventHandlerKeyDown = this.keyDown();
-    this.inputNode.addEventListener('keypress', eventHandlerKeyDown, false);
-    let eventHandlerInput = this.inputEventHandler();
-    this.inputNode.addEventListener('input', eventHandlerInput, false);
     this.outputNode = this.mixins.outputNode;
     this.completeNode = this.mixins.completeNode;
+
+    this.inputNode.addEventListener("keypress",
+      this.keyPress.bind(this), false);
+    this.inputNode.addEventListener("input",
+      this.inputEventHandler.bind(this), false);
+    this.inputNode.addEventListener("keyup",
+      this.inputEventHandler.bind(this), false);
   },
 
   get codeInputString()
@@ -4907,121 +4911,105 @@ JSTerm.prototype = {
     this.resizeInput();
   },
 
-  inputEventHandler: function JSTF_inputEventHandler()
+  
+
+
+
+
+  inputEventHandler: function JSTF_inputEventHandler(aEvent)
   {
-    var self = this;
-    function handleInputEvent(aEvent) {
-      self.resizeInput();
+    if (this.lastInputValue != this.inputNode.value) {
+      this.resizeInput();
+      this.complete(this.COMPLETE_HINT_ONLY);
+      this.lastInputValue = this.inputNode.value;
     }
-    return handleInputEvent;
   },
 
-  keyDown: function JSTF_keyDown(aEvent)
+  
+
+
+
+
+  keyPress: function JSTF_keyPress(aEvent)
   {
-    var self = this;
-    function handleKeyDown(aEvent) {
-      
-      var setTimeout = aEvent.target.ownerDocument.defaultView.setTimeout;
-      var target = aEvent.target;
-      var tmp;
-
-      if (aEvent.ctrlKey) {
-        switch (aEvent.charCode) {
-          case 97:
-            
-            tmp = self.codeInputString;
-            setTimeout(function() {
-              self.setInputValue(tmp);
-              self.inputNode.setSelectionRange(0, 0);
-            }, 0);
-            break;
-          case 101:
-            
-            tmp = self.codeInputString;
-            self.setInputValue("");
-            setTimeout(function(){
-              self.setInputValue(tmp);
-            }, 0);
-            break;
-          default:
-            return;
-        }
-        return;
+    if (aEvent.ctrlKey) {
+      switch (aEvent.charCode) {
+        case 97:
+          
+          this.inputNode.setSelectionRange(0, 0);
+          aEvent.preventDefault();
+          break;
+        case 101:
+          
+          this.inputNode.setSelectionRange(this.inputNode.value.length,
+                                           this.inputNode.value.length);
+          aEvent.preventDefault();
+          break;
+        default:
+          break;
       }
-      else if (aEvent.shiftKey &&
-          aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_RETURN) {
-        
-        
-        return;
-      }
-      else {
-        switch(aEvent.keyCode) {
-          case Ci.nsIDOMKeyEvent.DOM_VK_RETURN:
-            self.execute();
-            aEvent.preventDefault();
-            break;
-
-          case Ci.nsIDOMKeyEvent.DOM_VK_UP:
-            
-            if (self.canCaretGoPrevious()) {
-              let updated = self.historyPeruse(HISTORY_BACK);
-              if (updated && aEvent.cancelable) {
-                aEvent.preventDefault();
-              }
-            }
-            break;
-
-          case Ci.nsIDOMKeyEvent.DOM_VK_DOWN:
-            
-            if (self.canCaretGoNext()) {
-              let updated = self.historyPeruse(HISTORY_FORWARD);
-              if (updated && aEvent.cancelable) {
-                aEvent.preventDefault();
-              }
-            }
-            break;
-
-          case Ci.nsIDOMKeyEvent.DOM_VK_RIGHT:
-            
-            self.acceptProposedCompletion();
-            break;
-
-          case Ci.nsIDOMKeyEvent.DOM_VK_TAB:
-            
-            
-            
-            var completionResult;
-            if (aEvent.shiftKey) {
-              completionResult = self.complete(self.COMPLETE_BACKWARD);
-            }
-            else {
-              completionResult = self.complete(self.COMPLETE_FORWARD);
-            }
-            if (completionResult) {
-              if (aEvent.cancelable) {
-                aEvent.preventDefault();
-              }
-              aEvent.target.focus();
-            }
-            break;
-
-          default:
-            
-            
-            
-            
-            var value = self.inputNode.value;
-            setTimeout(function() {
-              if (self.inputNode.value !== value) {
-                self.complete(self.COMPLETE_HINT_ONLY);
-              }
-            }, 0);
-            break;
-        }
-        return;
-      }
+      return;
     }
-    return handleKeyDown;
+    else if (aEvent.shiftKey &&
+        aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_RETURN) {
+      
+      
+      return;
+    }
+
+    switch(aEvent.keyCode) {
+      case Ci.nsIDOMKeyEvent.DOM_VK_RETURN:
+        this.execute();
+        aEvent.preventDefault();
+        break;
+
+      case Ci.nsIDOMKeyEvent.DOM_VK_UP:
+        
+        if (this.canCaretGoPrevious()) {
+          let updated = this.historyPeruse(HISTORY_BACK);
+          if (updated && aEvent.cancelable) {
+            aEvent.preventDefault();
+          }
+        }
+        break;
+
+      case Ci.nsIDOMKeyEvent.DOM_VK_DOWN:
+        
+        if (this.canCaretGoNext()) {
+          let updated = this.historyPeruse(HISTORY_FORWARD);
+          if (updated && aEvent.cancelable) {
+            aEvent.preventDefault();
+          }
+        }
+        break;
+
+      case Ci.nsIDOMKeyEvent.DOM_VK_RIGHT:
+        
+        this.acceptProposedCompletion();
+        break;
+
+      case Ci.nsIDOMKeyEvent.DOM_VK_TAB:
+        
+        
+        
+        var completionResult;
+        if (aEvent.shiftKey) {
+          completionResult = this.complete(this.COMPLETE_BACKWARD);
+        }
+        else {
+          completionResult = this.complete(this.COMPLETE_FORWARD);
+        }
+        if (completionResult) {
+          if (aEvent.cancelable) {
+            aEvent.preventDefault();
+          }
+          aEvent.target.focus();
+        }
+        break;
+
+      default:
+        break;
+    }
   },
 
   
@@ -5159,6 +5147,7 @@ JSTerm.prototype = {
     let inputValue = inputNode.value;
     
     if (!inputValue) {
+      this.lastCompletion = null;
       this.updateCompleteNode("");
       return false;
     }
