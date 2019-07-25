@@ -144,8 +144,10 @@ BadCertHandler.prototype = {
 
   
   asyncOnChannelRedirect: function(oldChannel, newChannel, flags, callback) {
-    if (this.allowNonBuiltInCerts)
+    if (this.allowNonBuiltInCerts) {
+      callback.onRedirectVerifyCallback(Components.results.NS_OK);
       return;
+    }
 
     
     
@@ -154,7 +156,7 @@ BadCertHandler.prototype = {
       checkCert(oldChannel);
     
     callback.onRedirectVerifyCallback(Components.results.NS_OK);
-    },
+  },
 
   
   notifyCertProblem: function(socketInfo, status, targetSite) {
