@@ -52,6 +52,14 @@ class LayerD3D9;
 class Nv3DVUtils;
 
 
+const int CBmLayerTransform = 0;
+const int CBmProjection = 4;
+const int CBvRenderTargetOffset = 8;
+const int CBvTextureCoords = 9;
+const int CBvLayerQuad = 10;
+const int CBfLayerOpacity = 0;
+
+
 
 
 

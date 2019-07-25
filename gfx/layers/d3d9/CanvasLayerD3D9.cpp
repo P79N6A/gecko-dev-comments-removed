@@ -233,31 +233,20 @@ CanvasLayerD3D9::RenderLayer()
     Updated(mBounds);
   }
 
-  float quadTransform[4][4];
   
 
 
 
 
-
-
-
-  memset(&quadTransform, 0, sizeof(quadTransform));
-  quadTransform[0][0] = (float)mBounds.width;
+  ShaderConstantRect quad(0, 0, mBounds.width, mBounds.height);
   if (mNeedsYFlip) {
-    quadTransform[1][1] = (float)-mBounds.height;
-    quadTransform[3][1] = (float)mBounds.height;
-  } else {
-    quadTransform[1][1] = (float)mBounds.height;
-    quadTransform[3][1] = 0.0f;
+    quad.mHeight = (float)-mBounds.height;
+    quad.mY = (float)mBounds.height;
   }
-  quadTransform[2][2] = 1.0f;
-  quadTransform[3][0] = 0.0f;
-  quadTransform[3][3] = 1.0f;
 
-  device()->SetVertexShaderConstantF(0, &quadTransform[0][0], 4);
+  device()->SetVertexShaderConstantF(CBvLayerQuad, quad, 1);
 
-  device()->SetVertexShaderConstantF(4, &mTransform._11, 4);
+  device()->SetVertexShaderConstantF(CBmLayerTransform, &mTransform._11, 4);
 
   float opacity[4];
   
@@ -265,7 +254,7 @@ CanvasLayerD3D9::RenderLayer()
 
 
   opacity[0] = GetOpacity();
-  device()->SetPixelShaderConstantF(0, opacity, 1);
+  device()->SetPixelShaderConstantF(CBfLayerOpacity, opacity, 1);
 
   mD3DManager->SetShaderMode(DeviceManagerD3D9::RGBALAYER);
 
