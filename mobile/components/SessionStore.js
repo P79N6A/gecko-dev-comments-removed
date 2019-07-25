@@ -119,6 +119,19 @@ SessionStore.prototype = {
     }
   },
 
+  _clearDisk: function ss_clearDisk() {
+    if (this._sessionFile.exists()) {
+      try {
+        this._sessionFile.remove(false);
+      } catch (ex) { dump(ex + '\n'); } 
+    }
+    if (this._sessionFileBackup.exists()) {
+      try {
+        this._sessionFileBackup.remove(false);
+      } catch (ex) { dump(ex + '\n'); } 
+    }
+  },
+
   observe: function ss_observe(aSubject, aTopic, aData) {
     let self = this;
     let observerService = Services.obs;
@@ -128,6 +141,7 @@ SessionStore.prototype = {
         observerService.addObserver(this, "domwindowopened", true);
         observerService.addObserver(this, "domwindowclosed", true);
         observerService.addObserver(this, "browser-lastwindow-close-granted", true);
+        observerService.addObserver(this, "browser:purge-session-history", true);
         observerService.addObserver(this, "quit-application-requested", true);
         observerService.addObserver(this, "quit-application-granted", true);
         observerService.addObserver(this, "quit-application", true);
@@ -174,8 +188,12 @@ SessionStore.prototype = {
         break;
       case "quit-application":
         
-        if (aData == "restart")
+        if (aData == "restart") {
           Services.prefs.setBoolPref("browser.sessionstore.resume_session_once", true);
+
+          
+          Services.obs.removeObserver(this, "browser:purge-session-history");
+        }
 
         
         this._loadState = STATE_QUITTING;
@@ -195,6 +213,25 @@ SessionStore.prototype = {
           this._saveTimer.cancel();
           this._saveTimer = null;
           this.saveState();
+        }
+        break;
+      case "browser:purge-session-history": 
+        this._clearDisk();
+
+        
+        
+        
+        if (this._loadState == STATE_QUITTING)
+          return;
+
+        
+        for (let [ssid, win] in Iterator(this._windows))
+          win.closedTabs = [];
+
+        if (this._loadState == STATE_RUNNING) {
+          
+          this._lastSaveTime -= this._interval;
+          this.saveStateDelayed();
         }
         break;
       case "timer-callback":
