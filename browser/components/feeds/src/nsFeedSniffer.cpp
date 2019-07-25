@@ -313,20 +313,22 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   nsresult rv = ConvertEncodedData(request, data, length);
   if (NS_FAILED(rv))
     return rv;
-  
-  const char* testData = 
-    mDecodedData.IsEmpty() ? (const char*)data : mDecodedData.get();
 
   
   
   
-
-  
-  
-  
-  if (!mDecodedData.IsEmpty()) {
+  const char* testData;
+  if (mDecodedData.IsEmpty()) {
+    testData = (const char*)data;
+    length = NS_MIN(length, MAX_BYTES);
+  } else {
+    testData = mDecodedData.get();
     length = NS_MIN(mDecodedData.Length(), MAX_BYTES);
   }
+
+  
+  
+  
 
   
   nsDependentCSubstring dataString((const char*)testData, length);
