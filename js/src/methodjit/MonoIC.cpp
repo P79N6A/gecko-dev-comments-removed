@@ -942,15 +942,24 @@ class CallCompiler : public BaseCompiler
         types::TypeScript::Monitor(f.cx, f.script(), f.pc(), args.rval());
 
         
+
+
+
+
+
+        if (f.script()->hasFunction) {
+            f.script()->uninlineable = true;
+            MarkTypeObjectFlags(cx, f.script()->function(), types::OBJECT_FLAG_UNINLINEABLE);
+        }
+
+        
         if (monitor.recompiled())
             return true;
 
-        
-        if (ic.fastGuardedNative || ic.hasJsFunCheck)
-            return true;
+        JS_ASSERT(!f.regs.inlined());
 
         
-        if (f.regs.inlined())
+        if (ic.fastGuardedNative || ic.hasJsFunCheck)
             return true;
 
         
