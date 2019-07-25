@@ -1997,7 +1997,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       scrollRange.height > 0) &&
      (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument()));
 
-  if (usingDisplayport || ShouldBuildLayer()) {
+  if (ShouldBuildLayer()) {
     
     
     ScrollLayerWrapper wrapper(mOuter, mScrolledFrame);
@@ -2019,14 +2019,6 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsRect clip;
   clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
-
-  
-  if (usingDisplayport) {
-    if (dirtyRect.width > clip.width)
-      clip.width = dirtyRect.width;
-    if (dirtyRect.height > clip.height)
-      clip.height = dirtyRect.height;
-  }
 
   nscoord radii[8];
   

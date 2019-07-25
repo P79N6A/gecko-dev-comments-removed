@@ -40,14 +40,6 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.fennec.gfx.GeckoSoftwareLayerClient;
-import org.mozilla.fennec.gfx.IntRect;
-import org.mozilla.fennec.gfx.IntSize;
-import org.mozilla.fennec.gfx.LayerController;
-import org.mozilla.fennec.gfx.LayerView;
-import org.mozilla.fennec.gfx.PlaceholderLayerClient;
-import org.mozilla.gecko.Tab.HistoryEntry;
-
 import java.io.*;
 import java.util.*;
 import java.util.zip.*;
@@ -72,7 +64,6 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.widget.*;
 import android.hardware.*;
-import android.location.*;
 
 import android.util.*;
 import android.net.*;
@@ -85,7 +76,7 @@ import android.content.SharedPreferences.*;
 import dalvik.system.*;
 
 abstract public class GeckoApp
-    extends Activity implements GeckoEventListener, SensorEventListener, LocationListener
+    extends Activity implements GeckoEventListener 
 {
     private static final String LOG_NAME = "GeckoApp";
 
@@ -97,6 +88,7 @@ abstract public class GeckoApp
 
     private LinearLayout mMainLayout;
     private RelativeLayout mGeckoLayout;
+    public static GeckoSurfaceView surfaceView;
     public static SurfaceView cameraView;
     public static GeckoApp mAppContext;
     public static boolean mFullscreen = false;
@@ -111,10 +103,6 @@ abstract public class GeckoApp
     private static boolean sIsGeckoReady = false;
     private IntentFilter mBatteryFilter;
     private BroadcastReceiver mBatteryReceiver;
-    private Geocoder mGeocoder;
-    private Address  mLastGeoAddress;
-    private static LayerController mLayerController;
-    private static GeckoSoftwareLayerClient mSoftwareLayerClient;
 
     public interface OnTabsChangedListener {
         public void onTabsChanged();
@@ -135,8 +123,8 @@ abstract public class GeckoApp
 
     static Vector<ExtraMenuItem> sExtraMenuItems = new Vector<ExtraMenuItem>();
 
-    public enum LaunchState {Launching, WaitButton,
-                             Launched, GeckoRunning, GeckoExiting};
+    enum LaunchState {Launching, WaitButton,
+                      Launched, GeckoRunning, GeckoExiting};
     private static LaunchState sLaunchState = LaunchState.Launching;
     private static boolean sTryCatchAttached = false;
 
@@ -144,7 +132,7 @@ abstract public class GeckoApp
     private static final int AWESOMEBAR_REQUEST = 2;
     private static final int CAMERA_CAPTURE_REQUEST = 3;
 
-    public static boolean checkLaunchState(LaunchState checkState) {
+    static boolean checkLaunchState(LaunchState checkState) {
         synchronized(sLaunchState) {
             return sLaunchState == checkState;
         }
@@ -545,40 +533,25 @@ abstract public class GeckoApp
         }
     }
 
-    public String getStartupBitmapFilePath() {
-        File file = new File(Environment.getExternalStorageDirectory(),
-                             "lastScreen.png");
-        return file.toString();
-    }
-
     private void rememberLastScreen(boolean sync) {
+        if (surfaceView == null)
+            return;
         Tab tab = Tabs.getInstance().getSelectedTab();
         if (tab == null)
             return;
 
-        HistoryEntry lastHistoryEntry = tab.getLastHistoryEntry();
-        if (lastHistoryEntry == null)
-            return;
+        Tab.HistoryEntry he = tab.getLastHistoryEntry();
+        if (he != null) {
+            SharedPreferences prefs = getSharedPreferences("GeckoApp", 0);
+            Editor editor = prefs.edit();
+            
+            editor.putString("last-uri", he.mUri);
+            editor.putString("last-title", he.mTitle);
 
-        SharedPreferences prefs = getSharedPreferences("GeckoApp", 0);
-        Editor editor = prefs.edit();
-
-        String uri = lastHistoryEntry.mUri;
-        String title = lastHistoryEntry.mTitle;
-
-        editor.putString("last-uri", uri);
-        editor.putString("last-title", title);
-
-        Log.i(LOG_NAME, "Saving:: " + uri + " " + title);
-        editor.commit();
-
-        GeckoEvent event = new GeckoEvent();
-        event.mType = GeckoEvent.SAVE_STATE;
-        event.mCharacters = getStartupBitmapFilePath();
-        if (sync)
-            GeckoAppShell.sendEventToGeckoSync(event);
-        else
-            GeckoAppShell.sendEventToGecko(event);
+            Log.i(LOG_NAME, "Saving:: " + he.mUri + " " + he.mTitle);
+            editor.commit();
+            surfaceView.saveLast(sync);
+        }
     }
 
     private String getLastUri() {
@@ -749,7 +722,6 @@ abstract public class GeckoApp
                 final int tabId = message.getInt("tabID");
                 final String uri = message.getString("uri");
                 final String title = message.getString("title");
-                final JSONObject jsonPageSize = message.getJSONObject("pageSize");
                 final CharSequence titleText = title;
                 handleContentLoaded(tabId, uri, title);
                 Log.i(LOG_NAME, "URI - " + uri + ", title - " + title);
@@ -822,12 +794,6 @@ abstract public class GeckoApp
                             sMenu.findItem(R.id.preferences).setEnabled(true);
                     }
                 });
-            } else if (event.equals("PanZoom:Ack")) {
-                final IntRect rect = new IntRect(message.getJSONObject("rect"));
-                mSoftwareLayerClient.jsPanZoomCompleted(rect);
-            } else if (event.equals("PanZoom:Resize")) {
-                final IntSize size = new IntSize(message.getJSONObject("size"));
-                mSoftwareLayerClient.setPageSize(size);
             }
         } catch (Exception e) { 
             Log.i(LOG_NAME, "handleMessage throws " + e + " for message: " + event);
@@ -943,6 +909,7 @@ abstract public class GeckoApp
             public void run() {
                 if (Tabs.getInstance().isSelectedTab(tab))
                     mBrowserToolbar.setProgressVisibility(false);
+                surfaceView.hideStartupBitmap();
                 onTabsChanged();
             }
         });
@@ -1099,34 +1066,16 @@ abstract public class GeckoApp
             cameraView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         }
 
-        if (mLayerController == null) {
-            
+        if (surfaceView == null) {
+            surfaceView = new GeckoSurfaceView(this);
+            mGeckoLayout.addView(surfaceView);
+        } else if (mGeckoLayout.getChildCount() == 0) {
+           
+           ((ViewGroup) surfaceView.getParent()).removeAllViews();
+           mGeckoLayout.addView(surfaceView);
+        }
 
-
-
-            mSoftwareLayerClient = new GeckoSoftwareLayerClient(this);
-
-            
-
-
-
-
-
-
-
-
-            PlaceholderLayerClient placeholderClient = PlaceholderLayerClient.createInstance(this);
-            if (placeholderClient != null) {
-                mLayerController = new LayerController(this, placeholderClient);
-                placeholderClient.init();
-            } else {
-                mLayerController = new LayerController(this, null);
-            }
-
-            mGeckoLayout.addView(mLayerController.getView());
-         }
- 
-        
+        surfaceView.loadStartupBitmap();
 
         Log.w(LOGTAG, "zerdatime " + new Date().getTime() + " - UI almost up");
 
@@ -1171,8 +1120,6 @@ abstract public class GeckoApp
         GeckoAppShell.registerGeckoEventListener("Preferences:Data", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Gecko:Ready", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Toast:Show", GeckoApp.mAppContext);
-        GeckoAppShell.registerGeckoEventListener("PanZoom:Ack", GeckoApp.mAppContext);
-        GeckoAppShell.registerGeckoEventListener("PanZoom:Resize", GeckoApp.mAppContext);
 
 
         mConnectivityFilter = new IntentFilter();
@@ -1418,7 +1365,7 @@ abstract public class GeckoApp
             Intent intent = new Intent(action);
             intent.setClassName(getPackageName(),
                                 getPackageName() + ".Restarter");
-            
+            addEnvToIntent(intent);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                             Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             Log.i(LOG_NAME, intent.toString());
@@ -1684,90 +1631,5 @@ abstract public class GeckoApp
         } else {
             GeckoAppShell.sendEventToGecko(new GeckoEvent("Tab:Load", url));
         }
-    }
-
-    public GeckoSoftwareLayerClient getSoftwareLayerClient() { return mSoftwareLayerClient; }
-    public LayerController getLayerController() { return mLayerController; }
-
-    
-    public void onAccuracyChanged(Sensor sensor, int accuracy)
-    {
-    }
-
-    public void onSensorChanged(SensorEvent event)
-    {
-        Log.w(LOGTAG, "onSensorChanged "+event);
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(event));
-    }
-
-    private class GeocoderTask extends AsyncTask<Location, Void, Void> {
-        protected Void doInBackground(Location... location) {
-            try {
-                List<Address> addresses = mGeocoder.getFromLocation(location[0].getLatitude(),
-                                                                    location[0].getLongitude(), 1);
-                
-                
-                
-                mLastGeoAddress = addresses.get(0);
-                GeckoAppShell.sendEventToGecko(new GeckoEvent(location[0], mLastGeoAddress));
-            } catch (Exception e) {
-                Log.w(LOGTAG, "GeocoderTask "+e);
-            }
-            return null;
-        }
-    }
-
-    
-    public void onLocationChanged(Location location)
-    {
-        Log.w(LOGTAG, "onLocationChanged "+location);
-        if (mGeocoder == null)
-            mGeocoder = new Geocoder(mLayerController.getView().getContext(), Locale.getDefault());
-
-        if (mLastGeoAddress == null) {
-            new GeocoderTask().execute(location);
-        }
-        else {
-            float[] results = new float[1];
-            Location.distanceBetween(location.getLatitude(),
-                                     location.getLongitude(),
-                                     mLastGeoAddress.getLatitude(),
-                                     mLastGeoAddress.getLongitude(),
-                                     results);
-            
-            
-            
-            if (results[0] > 100)
-                new GeocoderTask().execute(location);
-        }
-
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(location, mLastGeoAddress));
-    }
-
-    public void onProviderDisabled(String provider)
-    {
-    }
-
-    public void onProviderEnabled(String provider)
-    {
-    }
-
-    public void onStatusChanged(String provider, int status, Bundle extras)
-    {
-    }
-
-    public void connectGeckoLayerClient() {
-        new Timer("Gecko Wait").schedule(new TimerTask() {
-            public void run() {
-                GeckoApp.mAppContext.runOnUiThread(new Runnable() {
-                    public void run() {
-                        LayerController layerController = getLayerController();
-                        layerController.setLayerClient(mSoftwareLayerClient);
-                        mSoftwareLayerClient.init();    
-                        GeckoAppShell.scheduleRedraw();
-                    }
-                });
-            }
-        }, 3000);
     }
 }
