@@ -223,8 +223,8 @@ public:
 
 
 
-  static PRBool ContentIsDescendantOf(nsINode* aPossibleDescendant,
-                                      nsINode* aPossibleAncestor);
+  static PRBool ContentIsDescendantOf(const nsINode* aPossibleDescendant,
+                                      const nsINode* aPossibleAncestor);
 
   
 

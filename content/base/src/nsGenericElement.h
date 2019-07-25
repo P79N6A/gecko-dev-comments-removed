@@ -594,45 +594,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-  static nsresult doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
-                                  PRBool aNotify, nsIContent* aParent,
-                                  nsIDocument* aDocument,
-                                  nsAttrAndChildArray& aChildArray);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult doRemoveChildAt(PRUint32 aIndex, PRBool aNotify,
-                                  nsIContent* aKid, nsIContent* aParent,
-                                  nsIDocument* aDocument,
-                                  nsAttrAndChildArray& aChildArray,
-                                  PRBool aMutationEvent);
-
-  
-
-
-
   static void FireNodeInserted(nsIDocument* aDoc,
                                nsINode* aParent,
                                nsCOMArray<nsIContent>& aNodes);
