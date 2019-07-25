@@ -53,6 +53,13 @@ JS_BEGIN_EXTERN_C
 
 
 
+extern JS_PUBLIC_API(void)
+JS_SetRuntimeDebugMode(JSRuntime *rt, JSBool debug);
+
+
+
+
+
 
 
 

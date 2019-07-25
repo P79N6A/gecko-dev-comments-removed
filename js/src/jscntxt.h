@@ -1416,6 +1416,11 @@ struct JSRuntime {
     
     JSDebugHooks        globalDebugHooks;
 
+    
+
+
+    JSBool              debugMode;
+
 #ifdef JS_TRACER
     
     bool debuggerInhibitsJIT() const {
