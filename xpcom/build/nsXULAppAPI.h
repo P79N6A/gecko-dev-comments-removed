@@ -367,8 +367,7 @@ XRE_API(GeckoProcessType,
 #if defined(MOZ_CRASHREPORTER)
 
 XRE_API(bool,
-        XRE_TakeMinidumpForChild, (PRUint32 aChildPid, nsIFile** aDump,
-                                   PRUint32* aSequence))
+        XRE_TakeMinidumpForChild, (PRUint32 aChildPid, nsIFile** aDump))
 
 
 XRE_API(bool,
