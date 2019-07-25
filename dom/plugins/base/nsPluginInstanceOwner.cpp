@@ -3224,6 +3224,7 @@ nsresult nsPluginInstanceOwner::Init(nsIContent* aContent)
     
     objFrame->PresContext()->EnsureVisible();
   } else {
+    NS_NOTREACHED("Should not be initializing plugin without a frame");
     return NS_ERROR_FAILURE;
   }
 
