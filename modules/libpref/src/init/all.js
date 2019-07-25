@@ -3470,6 +3470,9 @@ pref("geo.enabled", true);
 pref("device.motion.enabled", true);
 
 
+pref("device.storage.enabled", false);
+
+
 pref("html5.offmainthread", true);
 
 
