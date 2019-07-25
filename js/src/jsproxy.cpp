@@ -1480,15 +1480,8 @@ proxy_TraceObject(JSTracer *trc, JSObject *obj)
 
 
 
-
-
             Value key = ObjectValue(*referent);
             WrapperMap::Ptr p = obj->compartment()->crossCompartmentWrappers.lookup(key);
-            if (!p) {
-                key = ObjectValue(*UnwrapObject(referent));
-                p = obj->compartment()->crossCompartmentWrappers.lookup(key);
-                JS_ASSERT(p.found());
-            }
             JS_ASSERT(p->value.get() == ObjectValue(*obj));
         }
     }
