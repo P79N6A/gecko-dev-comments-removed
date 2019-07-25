@@ -1069,6 +1069,15 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JSObject *obj)
 
     NPObject *npobj = (NPObject *)::JS_GetPrivate(obj);
 
+    
+    
+    
+    
+    
+    
+    if (!npobj)
+      return nsnull;
+
     if (LookupNPP(npobj) == npp)
       return _retainobject(npobj);
   }
