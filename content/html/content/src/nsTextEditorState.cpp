@@ -1934,9 +1934,16 @@ nsTextEditorState::ValueWasChanged(bool aNotify)
     return;
   }
 
-  nsAutoString valueString;
-  GetValue(valueString, true);
-  SetPlaceholderClass(valueString.IsEmpty(), aNotify);
+  bool showPlaceholder = false;
+  nsCOMPtr<nsIContent> content = do_QueryInterface(mTextCtrlElement);
+  if (!nsContentUtils::IsFocusedContent(content)) {
+    
+    
+    nsAutoString valueString;
+    GetValue(valueString, true);
+    showPlaceholder = valueString.IsEmpty();
+  }
+  SetPlaceholderClass(showPlaceholder, aNotify);
 }
 
 void
