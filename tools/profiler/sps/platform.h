@@ -171,6 +171,8 @@ class Thread {
   
   void Start();
 
+  void Join();
+
   inline const char* name() const {
     return name_;
   }
