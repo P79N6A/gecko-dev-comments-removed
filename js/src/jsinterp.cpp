@@ -2212,6 +2212,12 @@ IteratorNext(JSContext *cx, JSObject *iterobj, Value *rval)
 static inline bool
 ScriptPrologue(JSContext *cx, JSStackFrame *fp, bool newType)
 {
+    
+
+
+
+    fp->setNativeReturnAddress(NULL);
+
     if (fp->isConstructing()) {
         JSObject *obj = js_CreateThisForFunction(cx, &fp->callee(), newType);
         if (!obj)
