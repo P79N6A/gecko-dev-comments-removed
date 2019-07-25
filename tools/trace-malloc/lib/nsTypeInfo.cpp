@@ -54,6 +54,22 @@
 
 extern "C" const char* nsGetTypeName(void* ptr);
 
+extern "C" void NS_TraceMallocShutdown();
+
+struct TraceMallocShutdown {
+    TraceMallocShutdown() {}
+    ~TraceMallocShutdown() {
+        NS_TraceMallocShutdown();
+    }
+};
+
+extern "C" void RegisterTraceMallocShutdown() {
+    
+    
+    
+    static TraceMallocShutdown t;
+}
+
 class IUnknown {
 public:
     virtual long QueryInterface() = 0;
