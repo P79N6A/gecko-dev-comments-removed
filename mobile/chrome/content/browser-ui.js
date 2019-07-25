@@ -799,6 +799,8 @@ var BrowserUI = {
       case "cmd_sanitize":
       case "cmd_zoomin":
       case "cmd_zoomout":
+      case "cmd_volumeLeft":
+      case "cmd_volumeRight":
       case "cmd_lockscreen":
         isSupported = true;
         break;
@@ -905,6 +907,14 @@ var BrowserUI = {
         break;
       case "cmd_zoomout":
         Browser.zoom(1);
+        break;
+      case "cmd_volumeLeft":
+        
+        Browser.zoom(Util.isPortrait() ? -1 : 1);
+        break;
+      case "cmd_volumeRight":
+        
+        Browser.zoom(Util.isPortrait() ? 1 : -1);
         break;
       case "cmd_lockscreen":
       {
