@@ -55,6 +55,7 @@
 #include "nsTArray.h"
 
 class nsIPrincipal;
+class nsIXPConnectWrappedJS;
 struct nsDOMClassInfoData;
 
 #ifndef BAD_TLS_INDEX
@@ -188,6 +189,15 @@ xpc_UnmarkGrayObject(JSObject *obj)
     if (obj && xpc_IsGrayGCThing(obj))
         xpc_UnmarkGrayObjectRecursive(obj);
 }
+
+
+
+extern void
+xpc_MarkInCCGeneration(nsISupports* aVariant, PRUint32 aGeneration);
+
+
+extern void
+xpc_UnmarkGrayObject(nsIXPConnectWrappedJS* aWrappedJS);
 
 
 
