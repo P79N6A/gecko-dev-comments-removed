@@ -98,8 +98,6 @@ public:
 
   
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
-  virtual PRUint16 NodeType();
-  virtual void NodeName(nsAString& aNodeName);
 
   
   virtual const nsTextFragment* GetText();

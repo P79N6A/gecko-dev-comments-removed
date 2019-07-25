@@ -129,6 +129,20 @@ public:
     return mQualifiedNameCorrectedCase;
   }
 
+  
+
+
+  const nsString& NodeName() const {
+    return mNodeName;
+  }
+
+  
+
+
+  const nsString& LocalName() const {
+    return mLocalName;
+  }
+
 #ifdef MOZILLA_INTERNAL_API
   
 
