@@ -1309,7 +1309,6 @@ GestureModule.prototype = {
 
     
     this._pinchZoomLevel = getBrowser().scale;
-    this._pinchDelta = 0;
     this._ignoreNextUpdate = true; 
 
     
@@ -1323,8 +1322,8 @@ GestureModule.prototype = {
 
     let scrollX = {}, scrollY = {};
     getBrowser().getPosition(scrollX, scrollY);
-    this._pinchStartX += scrollX.value;
-    this._pinchStartY += scrollY.value;
+    this._pinchScrollX = scrollX.value;
+    this._pinchScrollY = scrollY.value;
   },
 
   _pinchUpdate: function _pinchUpdate(aEvent) {
@@ -1332,22 +1331,19 @@ GestureModule.prototype = {
       return;
 
     
-    this._pinchDelta += aEvent.delta;
-
-    
-    let delta = Math.max(-this._maxShrink, Math.min(this._maxGrowth, this._pinchDelta));
+    let delta = Util.clamp(aEvent.delta, -this._maxShrink, this._maxGrowth);
     this._pinchZoomLevel *= (1 + delta / this._scalingFactor);
     this._pinchZoomLevel = Browser.selectedTab.clampZoomLevel(this._pinchZoomLevel);
-    this._pinchDelta = 0;
 
     
     let [pX, pY] =
         Browser.transformClientToBrowser(aEvent.clientX, aEvent.clientY);
 
+    let scale = getBrowser().scale;
     let scrollX = {}, scrollY = {};
     getBrowser().getPosition(scrollX, scrollY);
-    pX += scrollX.value;
-    pY += scrollY.value;
+    pX += (this._pinchScrollX - scrollX.value) / scale;
+    pY += (this._pinchScrollY - scrollY.value) / scale;
 
     
     let rect = Browser._getZoomRectForPoint(2 * this._pinchStartX - pX,
