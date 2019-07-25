@@ -112,6 +112,8 @@ public:
     PRUint32       MaxSocketCount();
 
     bool           IsPersistentHttpsCachingEnabled() { return mEnablePersistentHttpsCaching; }
+    bool           IsTelemetryEnabled() { return mTelemetryEnabled; }
+    bool           AllowExperiments() { return mTelemetryEnabled && mAllowExperiments; }
 
     bool           IsSpdyEnabled() { return mEnableSpdy; }
     bool           CoalesceSpdy() { return mCoalesceSpdy; }
@@ -190,6 +192,9 @@ public:
     nsresult GetIOService(nsIIOService** service);
     nsICookieService * GetCookieService(); 
     nsIStrictTransportSecurityService * GetSTSService();
+
+    
+    PRUint32 Get32BitsOfPseudoRandom();
 
     
     void OnModifyRequest(nsIHttpChannel *chan)
@@ -343,6 +348,12 @@ private:
     
     bool           mDoNotTrackEnabled;
     
+    
+    bool           mTelemetryEnabled;
+
+    
+    bool           mAllowExperiments;
+
     
     bool           mEnableSpdy;
     bool           mCoalesceSpdy;
