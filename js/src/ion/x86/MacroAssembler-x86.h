@@ -53,9 +53,11 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
 {
     
     
-    uint32 stackAdjust_;
-    bool dynamicAlignment_;
     bool inCall_;
+    uint32 args_;
+    uint32 passedArgs_;
+    uint32 stackForCall_;
+    bool dynamicAlignment_;
     bool enoughMemory_;
 
   protected:
@@ -72,22 +74,21 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         return Operand(address.base, address.index, address.scale, address.offset + 4);
     }
 
-    
-    
-    
-    
-    
-    uint32 setupABICall(uint32 arg);
+    void setupABICall(uint32 args);
 
   public:
     using MacroAssemblerX86Shared::Push;
+
+    enum Result {
+        GENERAL,
+        DOUBLE
+    };
 
     typedef MoveResolver::MoveOperand MoveOperand;
     typedef MoveResolver::Move Move;
 
     MacroAssemblerX86()
-      : stackAdjust_(0),
-        inCall_(false),
+      : inCall_(false),
         enoughMemory_(true)
     {
     }
@@ -608,11 +609,12 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     
     
     
-    void setABIArg(uint32 arg, const MoveOperand &from);
-    void setABIArg(uint32 arg, const Register &reg);
+    void passABIArg(const MoveOperand &from);
+    void passABIArg(const Register &reg);
+    void passABIArg(const FloatRegister &reg);
 
     
-    void callWithABI(void *fun);
+    void callWithABI(void *fun, Result result = GENERAL);
 
     
     void handleException();

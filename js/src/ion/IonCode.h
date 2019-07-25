@@ -286,7 +286,7 @@ struct IonScript
         return osrEntryOffset_;
     }
     bool containsCodeAddress(uint8 *addr) const {
-        return method()->raw() <= addr && addr < method()->raw() + method()->instructionsSize();
+        return method()->raw() <= addr && addr <= method()->raw() + method()->instructionsSize();
     }
     bool containsReturnAddress(uint8 *addr) const {
         

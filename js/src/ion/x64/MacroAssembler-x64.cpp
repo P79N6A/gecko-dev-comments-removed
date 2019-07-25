@@ -36,9 +36,6 @@
 
 
 
-
-
-
 #include "MacroAssembler-x64.h"
 #include "ion/MoveEmitter.h"
 #include "ion/IonFrames.h"
@@ -46,80 +43,91 @@
 using namespace js;
 using namespace js::ion;
 
-uint32
+void
 MacroAssemblerX64::setupABICall(uint32 args)
 {
     JS_ASSERT(!inCall_);
     inCall_ = true;
 
-    uint32 stackForArgs = args > NumArgRegs
-                          ? (args - NumArgRegs) * sizeof(void *)
-                          : 0;
-    return stackForArgs;
+    args_ = args;
+    passedIntArgs_ = 0; 
+    passedFloatArgs_ = 0;
+    stackForCall_ = ShadowStackSpace;
 }
 
 void
 MacroAssemblerX64::setupAlignedABICall(uint32 args)
 {
-    
-    
-    
-    uint32 stackForCall = setupABICall(args);
-    uint32 total = stackForCall + ShadowStackSpace;
-    uint32 displacement = total + framePushed_;
-
-    stackAdjust_ = total + ComputeByteAlignment(displacement, StackAlignment);
+    setupABICall(args);
     dynamicAlignment_ = false;
-    reserveStack(stackAdjust_);
 }
 
 void
 MacroAssemblerX64::setupUnalignedABICall(uint32 args, const Register &scratch)
 {
-    uint32 stackForCall = setupABICall(args);
+    setupABICall(args);
+    dynamicAlignment_ = true;
 
-    
-    
-    
-    
     movq(rsp, scratch);
     andq(Imm32(~(StackAlignment - 1)), rsp);
     push(scratch);
-
-    uint32 total = stackForCall + ShadowStackSpace;
-    uint32 displacement = total + STACK_SLOT_SIZE;
-
-    stackAdjust_ = total + ComputeByteAlignment(displacement, StackAlignment);
-    dynamicAlignment_ = true;
-    reserveStack(stackAdjust_);
 }
 
 void
-MacroAssemblerX64::setABIArg(uint32 arg, const MoveOperand &from)
+MacroAssemblerX64::passABIArg(const MoveOperand &from)
 {
     MoveOperand to;
-    Register dest;
-    if (GetArgReg(arg, &dest)) {
-        to = MoveOperand(dest);
+    if (from.isDouble()) {
+        FloatRegister dest;
+        if (GetFloatArgReg(passedIntArgs_, passedFloatArgs_++, &dest)) {
+            to = MoveOperand(dest);
+        } else {
+            to = MoveOperand(StackPointer, stackForCall_);
+            stackForCall_ += sizeof(double);
+        }
+        enoughMemory_ = moveResolver_.addMove(from, to, Move::DOUBLE);
     } else {
-        
-        
-        uint32 disp = GetArgStackDisp(arg);
-        to = MoveOperand(StackPointer, disp);
+        Register dest;
+        if (GetIntArgReg(passedIntArgs_++, passedFloatArgs_, &dest)) {
+            to = MoveOperand(dest);
+        } else {
+            to = MoveOperand(StackPointer, stackForCall_);
+            stackForCall_ += sizeof(int64_t);
+        }
+        enoughMemory_ = moveResolver_.addMove(from, to, Move::GENERAL);
     }
-    enoughMemory_ &= moveResolver_.addMove(from, to, Move::GENERAL);
 }
 
 void
-MacroAssemblerX64::setABIArg(uint32 arg, const Register &reg)
+MacroAssemblerX64::passABIArg(const Register &reg)
 {
-    setABIArg(arg, MoveOperand(reg));
+    passABIArg(MoveOperand(reg));
 }
 
 void
-MacroAssemblerX64::callWithABI(void *fun)
+MacroAssemblerX64::passABIArg(const FloatRegister &reg)
+{
+    passABIArg(MoveOperand(reg));
+}
+
+void
+MacroAssemblerX64::callWithABI(void *fun, Result result)
 {
     JS_ASSERT(inCall_);
+    JS_ASSERT(args_ == passedIntArgs_ + passedFloatArgs_);
+
+    uint32 stackAdjust;
+    if (dynamicAlignment_) {
+        stackAdjust = stackForCall_
+                    + ComputeByteAlignment(stackForCall_ + STACK_SLOT_SIZE,
+                                           StackAlignment);
+    } else {
+        stackAdjust = stackForCall_
+                    + ComputeByteAlignment(stackForCall_ + framePushed_,
+                                           StackAlignment);
+    }
+
+    reserveStack(stackAdjust);
 
     
     {
@@ -145,7 +153,7 @@ MacroAssemblerX64::callWithABI(void *fun)
 
     call(ImmWord(fun));
 
-    freeStack(stackAdjust_);
+    freeStack(stackAdjust);
     if (dynamicAlignment_)
         pop(rsp);
 
@@ -162,7 +170,7 @@ MacroAssemblerX64::handleException()
 
     
     setupUnalignedABICall(1, rcx);
-    setABIArg(0, rax);
+    passABIArg(rax);
     callWithABI(JS_FUNC_TO_DATA_PTR(void *, ion::HandleException));
 
     
