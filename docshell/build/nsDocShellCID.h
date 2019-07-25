@@ -83,6 +83,14 @@
 
 
 
+#define NS_EXTERNALURLHANDLERSERVICE_CONTRACTID "@mozilla.org/uriloader/external-url-handler-service;1"
+
+
+
+
+
+
+
 
 #define NS_WEBNAVIGATION_CREATE "webnavigation-create"
 
