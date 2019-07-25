@@ -345,6 +345,31 @@ bool LockScreenOrientation(const dom::ScreenOrientation& aOrientation);
 
 void UnlockScreenOrientation();
 
+
+
+
+
+
+
+void RegisterSwitchObserver(hal::SwitchDevice aDevice, hal::SwitchObserver *aSwitchObserver);
+
+
+
+
+void UnregisterSwitchObserver(hal::SwitchDevice aDevice, hal::SwitchObserver *aSwitchObserver);
+
+
+
+
+
+
+void NotifySwitchChange(const hal::SwitchEvent& aEvent);
+
+
+
+
+hal::SwitchState GetCurrentSwitchState(hal::SwitchDevice aDevice);
+
 } 
 } 
 

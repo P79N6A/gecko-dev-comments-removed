@@ -37,6 +37,22 @@ enum FlashMode {
     eHalLightFlash_Hardware = 2   
 };
 
+class SwitchEvent;
+
+enum SwitchDevice {
+  SWITCH_DEVICE_UNKNOWN = -1,
+  SWITCH_HEADPHONES,
+  NUM_SWITCH_DEVICE
+};
+
+enum SwitchState {
+  SWITCH_STATE_UNKNOWN = -1,
+  SWITCH_STATE_ON,
+  SWITCH_STATE_OFF,
+  NUM_SWITCH_STATE
+};
+
+typedef Observer<SwitchEvent> SwitchObserver;
 } 
 } 
 
@@ -96,6 +112,27 @@ struct ParamTraits<mozilla::hal::WakeLockControl>
                           mozilla::hal::WAKE_LOCK_REMOVE_ONE,
                           mozilla::hal::WAKE_LOCK_ADD_ONE>
 {};
+
+
+
+
+template <>
+struct ParamTraits<mozilla::hal::SwitchState>:
+  public EnumSerializer<mozilla::hal::SwitchState,
+                        mozilla::hal::SWITCH_STATE_UNKNOWN,
+                        mozilla::hal::NUM_SWITCH_STATE> {
+};
+
+
+
+
+template <>
+struct ParamTraits<mozilla::hal::SwitchDevice>:
+  public EnumSerializer<mozilla::hal::SwitchDevice,
+                        mozilla::hal::SWITCH_DEVICE_UNKNOWN,
+                        mozilla::hal::NUM_SWITCH_DEVICE> {
+};
+
 
 } 
 

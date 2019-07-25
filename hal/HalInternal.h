@@ -87,6 +87,16 @@ void EnableScreenOrientationNotifications();
 
 void DisableScreenOrientationNotifications();
 
+
+
+
+void EnableSwitchNotifications(hal::SwitchDevice aDevice);
+
+
+
+
+void DisableSwitchNotifications(hal::SwitchDevice aDevice);
+
 } 
 } 
 
