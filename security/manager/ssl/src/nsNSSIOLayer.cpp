@@ -379,63 +379,54 @@ nsNSSSocketInfo::EnsureDocShellDependentStuffKnown()
   
   
 
-  nsISecureBrowserUI* secureUI = nsnull;
-#ifdef MOZ_IPC
-  CallGetInterface(proxiedCallbacks.get(), &secureUI);
-#endif
+  nsCOMPtr<nsIDocShell> docshell;
 
-  if (!secureUI)
+  nsCOMPtr<nsIDocShellTreeItem> item(do_GetInterface(proxiedCallbacks));
+  if (item)
   {
-    nsCOMPtr<nsIDocShell> docshell;
+    nsCOMPtr<nsIDocShellTreeItem> proxiedItem;
+    nsCOMPtr<nsIDocShellTreeItem> rootItem;
+    NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                         NS_GET_IID(nsIDocShellTreeItem),
+                         item.get(),
+                         NS_PROXY_SYNC,
+                         getter_AddRefs(proxiedItem));
 
-    nsCOMPtr<nsIDocShellTreeItem> item(do_GetInterface(proxiedCallbacks));
-    if (item)
-    {
-      nsCOMPtr<nsIDocShellTreeItem> proxiedItem;
-      nsCOMPtr<nsIDocShellTreeItem> rootItem;
-      NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
-                           NS_GET_IID(nsIDocShellTreeItem),
-                           item.get(),
-                           NS_PROXY_SYNC,
-                           getter_AddRefs(proxiedItem));
-
-      proxiedItem->GetSameTypeRootTreeItem(getter_AddRefs(rootItem));
-      docshell = do_QueryInterface(rootItem);
-      NS_ASSERTION(docshell, "rootItem do_QI is null");
-    }
-
-    if (docshell)
-    {
-      nsCOMPtr<nsIDocShell> proxiedDocShell;
-      NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
-                           NS_GET_IID(nsIDocShell),
-                           docshell.get(),
-                           NS_PROXY_SYNC,
-                           getter_AddRefs(proxiedDocShell));
-      nsISecureBrowserUI* secureUI = nsnull;
-      if (proxiedDocShell)
-        proxiedDocShell->GetSecurityUI(&secureUI);
-    }
+    proxiedItem->GetSameTypeRootTreeItem(getter_AddRefs(rootItem));
+    docshell = do_QueryInterface(rootItem);
+    NS_ASSERTION(docshell, "rootItem do_QI is null");
   }
 
-  if (secureUI)
+  if (docshell)
   {
-    nsCOMPtr<nsIThread> mainThread(do_GetMainThread());
-    NS_ProxyRelease(mainThread, secureUI, PR_FALSE);
-    mExternalErrorReporting = PR_TRUE;
+    nsCOMPtr<nsIDocShell> proxiedDocShell;
+    NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                         NS_GET_IID(nsIDocShell),
+                         docshell.get(),
+                         NS_PROXY_SYNC,
+                         getter_AddRefs(proxiedDocShell));
+    nsISecureBrowserUI* secureUI = nsnull;
+    if (proxiedDocShell)
+      proxiedDocShell->GetSecurityUI(&secureUI);
+    if (secureUI)
+    {
+      nsCOMPtr<nsIThread> mainThread(do_GetMainThread());
+      NS_ProxyRelease(mainThread, secureUI, PR_FALSE);
+      mExternalErrorReporting = PR_TRUE;
 
-    
-    
-    
-    
-    nsCOMPtr<nsISSLStatusProvider> statprov = do_QueryInterface(secureUI);
-    if (statprov) {
-      nsCOMPtr<nsISupports> isup_stat;
-      statprov->GetSSLStatus(getter_AddRefs(isup_stat));
-      if (isup_stat) {
-        nsCOMPtr<nsISSLStatus> sslstat = do_QueryInterface(isup_stat);
-        if (sslstat) {
-          sslstat->GetServerCert(getter_AddRefs(mPreviousCert));
+      
+      
+      
+      
+      nsCOMPtr<nsISSLStatusProvider> statprov = do_QueryInterface(secureUI);
+      if (statprov) {
+        nsCOMPtr<nsISupports> isup_stat;
+        statprov->GetSSLStatus(getter_AddRefs(isup_stat));
+        if (isup_stat) {
+          nsCOMPtr<nsISSLStatus> sslstat = do_QueryInterface(isup_stat);
+          if (sslstat) {
+            sslstat->GetServerCert(getter_AddRefs(mPreviousCert));
+          }
         }
       }
     }
