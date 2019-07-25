@@ -380,6 +380,10 @@ var Browser = {
       return;
 
     this._currentTab = tab;
+
+    
+    this._currentViewportBounds = { width: 0, height: 0};
+
     this._canvasBrowser.setCurrentBrowser(this.currentBrowser);
     document.getElementById("tabs").selectedItem = tab.content;
 
