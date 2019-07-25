@@ -958,25 +958,25 @@ bool nsHTMLEditor::IsAtEndOfNode(nsIDOMNode *aNode, PRInt32 aOffset)
 
 nsresult
 nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty, 
-                             const nsAString *aAttribute,
-                             const nsAString *aValue,
-                             bool *aFirst, 
-                             bool *aAny, 
-                             bool *aAll,
-                             nsAString *outValue,
-                             bool aCheckDefaults)
+                                    const nsAString *aAttribute,
+                                    const nsAString *aValue,
+                                    bool *aFirst, 
+                                    bool *aAny, 
+                                    bool *aAll,
+                                    nsAString *outValue,
+                                    bool aCheckDefaults)
 {
   NS_ENSURE_TRUE(aProperty, NS_ERROR_NULL_POINTER);
 
   nsresult result;
-  *aAny=false;
-  *aAll=true;
-  *aFirst=false;
-  bool first=true;
+  *aAny = false;
+  *aAll = true;
+  *aFirst = false;
+  bool first = true;
 
   bool useCSS = IsCSSEnabled();
 
-  nsCOMPtr<nsISelection>selection;
+  nsCOMPtr<nsISelection> selection;
   result = GetSelection(getter_AddRefs(selection));
   NS_ENSURE_SUCCESS(result, result);
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
@@ -995,28 +995,26 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
   result = enumerator->CurrentItem(getter_AddRefs(currentItem));
   
   
-  if ((NS_SUCCEEDED(result)) && currentItem)
-  {
+  if (NS_SUCCEEDED(result) && currentItem) {
     bool firstNodeInRange = true; 
     nsCOMPtr<nsIDOMRange> range(do_QueryInterface(currentItem));
 
-    if (isCollapsed)
-    {
+    if (isCollapsed) {
       range->GetStartContainer(getter_AddRefs(collapsedNode));
       NS_ENSURE_TRUE(collapsedNode, NS_ERROR_FAILURE);
       bool isSet, theSetting;
-      if (aAttribute)
-      {
+      if (aAttribute) {
         nsString tString(*aAttribute); 
-        nsString tOutString;
-        mTypeInState->GetTypingState(isSet, theSetting, aProperty, tString, &tOutString);
-        if (outValue)
+        nsString tOutString; 
+        mTypeInState->GetTypingState(isSet, theSetting, aProperty, tString,
+                                     &tOutString);
+        if (outValue) {
           outValue->Assign(tOutString);
-      }
-      else
+        }
+      } else {
         mTypeInState->GetTypingState(isSet, theSetting, aProperty);
-      if (isSet)
-      {
+      }
+      if (isSet) {
         *aFirst = *aAny = *aAll = theSetting;
         return NS_OK;
       }
@@ -1026,17 +1024,18 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
                                    isSet, getter_AddRefs(resultNode), outValue);
         *aFirst = *aAny = *aAll = isSet;
 
-        if (!isSet && aCheckDefaults) 
-        {
+        if (!isSet && aCheckDefaults) {
+          
           
           
           PRInt32 index;
-          if (aAttribute &&
-              TypeInState::FindPropInList(aProperty, *aAttribute, outValue, mDefaultStyles, index))
-          {
+          if (aAttribute && TypeInState::FindPropInList(aProperty, *aAttribute,
+                                                        outValue, mDefaultStyles,
+                                                        index)) {
             *aFirst = *aAny = *aAll = true;
-            if (outValue)
+            if (outValue) {
               outValue->Assign(mDefaultStyles[index]->value);
+            }
           }
         }
         return NS_OK;
@@ -1048,7 +1047,6 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
             do_CreateInstance("@mozilla.org/content/post-content-iterator;1");
     NS_ENSURE_TRUE(iter, NS_ERROR_NULL_POINTER);
 
-    iter->Init(range);
     nsAutoString firstValue, theValue;
 
     nsCOMPtr<nsIDOMNode> endNode;
@@ -1057,106 +1055,94 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
     NS_ENSURE_SUCCESS(result, result);
     result = range->GetEndOffset(&endOffset);
     NS_ENSURE_SUCCESS(result, result);
-    while (!iter->IsDone())
-    {
-      nsCOMPtr<nsIContent> content = do_QueryInterface(iter->GetCurrentNode());
 
+    for (iter->Init(range); !iter->IsDone(); iter->Next()) {
+      nsCOMPtr<nsIContent> content = do_QueryInterface(iter->GetCurrentNode());
       nsCOMPtr<nsIDOMNode> node = do_QueryInterface(content);
 
-      if (node && nsTextEditUtils::IsBody(node))
+      if (node && nsTextEditUtils::IsBody(node)) {
         break;
+      }
 
-      nsCOMPtr<nsIDOMCharacterData>text;
+      nsCOMPtr<nsIDOMCharacterData> text;
       text = do_QueryInterface(content);
       
-      bool skipNode = false;
       
-      
-      if (text && !IsEditable(text))
-      {
-        skipNode = true;
+      if (text && !IsEditable(text)) {
+        continue;
       }
-      else if (text)
-      {
-        if (!isCollapsed && first && firstNodeInRange)
-        {
+      if (text) {
+        if (!isCollapsed && first && firstNodeInRange) {
           firstNodeInRange = false;
           PRInt32 startOffset;
           range->GetStartOffset(&startOffset);
           PRUint32 count;
           text->GetLength(&count);
-          if (startOffset==(PRInt32)count) 
-          {
-            skipNode = true;
+          if (startOffset == (PRInt32)count) {
+            continue;
           }
+        } else if (node == endNode && !endOffset) {
+          continue;
         }
-        else if (node == endNode && !endOffset)
-        {
-          skipNode = true;
-        }
+      } else if (content->IsElement()) {
+        
+        continue;
       }
-      else if (content->IsElement())
-      { 
-        skipNode = true;
-      }
-      if (!skipNode)
-      {
-        if (node)
-        {
-          bool isSet = false;
-          nsCOMPtr<nsIDOMNode>resultNode;
-          if (first)
-          {
-            if (useCSS &&
-                mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
-              
-              
-              if (aValue) firstValue.Assign(*aValue);
-              mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(node, aProperty, aAttribute,
-                                                                 isSet, firstValue,
-                                                                 COMPUTED_STYLE_TYPE);
+      if (node) {
+        bool isSet = false;
+        nsCOMPtr<nsIDOMNode> resultNode;
+        if (first) {
+          if (useCSS &&
+              mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
+            
+            
+            
+            if (aValue) {
+              firstValue.Assign(*aValue);
             }
-            else {
-              IsTextPropertySetByContent(node, aProperty, aAttribute, aValue, isSet,
-                                         getter_AddRefs(resultNode), &firstValue);
-            }
-            *aFirst = isSet;
-            first = false;
-            if (outValue) *outValue = firstValue;
+            mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(node, aProperty, aAttribute,
+                                                               isSet, firstValue,
+                                                               COMPUTED_STYLE_TYPE);
+          } else {
+            IsTextPropertySetByContent(node, aProperty, aAttribute, aValue, isSet,
+                                       getter_AddRefs(resultNode), &firstValue);
           }
-          else
-          {
-            if (useCSS &&
-                mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
-              
-              
-              if (aValue) theValue.Assign(*aValue);
-              mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(node, aProperty, aAttribute,
-                                                                 isSet, theValue,
-                                                                 COMPUTED_STYLE_TYPE);
-            }
-            else {
-              IsTextPropertySetByContent(node, aProperty, aAttribute, aValue, isSet,
-                                         getter_AddRefs(resultNode), &theValue);
-            }
-            if (firstValue != theValue)
-              *aAll = false;
+          *aFirst = isSet;
+          first = false;
+          if (outValue) {
+            *outValue = firstValue;
           }
-          
-          if (isSet) {
-            *aAny = true;
+        } else {
+          if (useCSS &&
+              mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
+            
+            
+            if (aValue) {
+              theValue.Assign(*aValue);
+            }
+            mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(node, aProperty, aAttribute,
+                                                               isSet, theValue,
+                                                               COMPUTED_STYLE_TYPE);
+          } else {
+            IsTextPropertySetByContent(node, aProperty, aAttribute, aValue, isSet,
+                                       getter_AddRefs(resultNode), &theValue);
           }
-          else {
+          if (firstValue != theValue) {
             *aAll = false;
           }
         }
+        
+        if (isSet) {
+          *aAny = true;
+        } else {
+          *aAll = false;
+        }
       }
-
-      iter->Next();
     }
   }
-  if (!*aAny) 
-  { 
+  if (!*aAny) {
+    
+    
     *aAll = false;
   }
   return result;
