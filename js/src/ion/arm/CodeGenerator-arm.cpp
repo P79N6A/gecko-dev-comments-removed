@@ -601,7 +601,7 @@ CodeGeneratorARM::visitShiftOp(LShiftOp *ins)
             
             
             if (ursh->canOverflow()) {
-                masm.ma_cmp(ToRegister(lhs), Imm32(0));
+                masm.ma_cmp(ToRegister(dest), Imm32(0));
                 if (!bailoutIf(Assembler::LessThan, ins->snapshot())) {
                     return false;
                 }
