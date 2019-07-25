@@ -111,8 +111,6 @@ let gStr = {
   stateBlockedParentalControls: "stateBlocked",
   stateBlockedPolicy: "stateBlockedPolicy",
   stateDirty: "stateDirty",
-  yesterday: "yesterday",
-  monthDate: "monthDate",
   downloadsTitleFiles: "downloadsTitleFiles",
   downloadsTitlePercent: "downloadsTitlePercent",
   fileExecutableSecurityWarningTitle: "fileExecutableSecurityWarningTitle",
@@ -1052,51 +1050,10 @@ function updateTime(aItem)
   if (aItem.inProgress)
     return;
 
-  let dts = Cc["@mozilla.org/intl/scriptabledateformat;1"].
-            getService(Ci.nsIScriptableDateFormat);
-
-  
-  let now = new Date();
-  let today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  
   let end = new Date(parseInt(aItem.getAttribute("endTime")));
-
-  
-  let dateTime;
-  if (end >= today) {
-    
-    dateTime = dts.FormatTime("", dts.timeFormatNoSeconds,
-                              end.getHours(), end.getMinutes(), 0);
-  } else if (today - end < (24 * 60 * 60 * 1000)) {
-    
-    dateTime = gStr.yesterday;
-  } else if (today - end < (6 * 24 * 60 * 60 * 1000)) {
-    
-    dateTime = end.toLocaleFormat("%A");
-  } else {
-    
-    let month = end.toLocaleFormat("%B");
-    
-    let date = Number(end.toLocaleFormat("%d"));
-    dateTime = replaceInsert(gStr.monthDate, 1, month);
-    dateTime = replaceInsert(dateTime, 2, date);
-  }
-
-  aItem.setAttribute("dateTime", dateTime);
-
-  
-  let dateTimeTip = dts.FormatDateTime("",
-                                       dts.dateFormatLong,
-                                       dts.timeFormatNoSeconds,
-                                       end.getFullYear(),
-                                       end.getMonth() + 1,
-                                       end.getDate(),
-                                       end.getHours(),
-                                       end.getMinutes(),
-                                       0); 
-
-  aItem.setAttribute("dateTimeTip", dateTimeTip);
+  let [dateCompact, dateComplete] = DownloadUtils.getReadableDates(end);
+  aItem.setAttribute("dateTime", dateCompact);
+  aItem.setAttribute("dateTimeTip", dateComplete);
 }
 
 

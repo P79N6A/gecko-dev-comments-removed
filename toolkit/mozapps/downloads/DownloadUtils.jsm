@@ -63,6 +63,9 @@ var EXPORTED_SYMBOLS = [ "DownloadUtils" ];
 
 
 
+
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -93,6 +96,8 @@ let kStrings = {
   timeLeftDouble: "timeLeftDouble",
   timeFewSeconds: "timeFewSeconds",
   timeUnknown: "timeUnknown",
+  monthDate: "monthDate",
+  yesterday: "yesterday",
   doneScheme: "doneScheme",
   doneFileScheme: "doneFileScheme",
   units: ["bytes", "kilobyte", "megabyte", "gigabyte"],
@@ -318,6 +323,71 @@ let DownloadUtils = {
     }
 
     return [timeLeft, aSeconds];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getReadableDates: function DU_getReadableDates(aDate, aNow)
+  {
+    if (!aNow) {
+      aNow = new Date();
+    }
+
+    let dts = Cc["@mozilla.org/intl/scriptabledateformat;1"]
+              .getService(Ci.nsIScriptableDateFormat);
+
+    
+    let today = new Date(aNow.getFullYear(), aNow.getMonth(), aNow.getDate());
+
+    
+    let dateTimeCompact;
+    if (aDate >= today) {
+      
+      dateTimeCompact = dts.FormatTime("",
+                                       dts.timeFormatNoSeconds,
+                                       aDate.getHours(),
+                                       aDate.getMinutes(),
+                                       0);
+    } else if (today - aDate < (24 * 60 * 60 * 1000)) {
+      
+      dateTimeCompact = gStr.yesterday;
+    } else if (today - aDate < (6 * 24 * 60 * 60 * 1000)) {
+      
+      dateTimeCompact = aDate.toLocaleFormat("%A");
+    } else {
+      
+      let month = aDate.toLocaleFormat("%B");
+      
+      let date = Number(aDate.toLocaleFormat("%d"));
+      dateTimeCompact = replaceInsert(gStr.monthDate, 1, month);
+      dateTimeCompact = replaceInsert(dateTimeCompact, 2, date);
+    }
+
+    let dateTimeFull = dts.FormatDateTime("",
+                                          dts.dateFormatLong,
+                                          dts.timeFormatNoSeconds,
+                                          aDate.getFullYear(),
+                                          aDate.getMonth() + 1,
+                                          aDate.getDate(),
+                                          aDate.getHours(),
+                                          aDate.getMinutes(),
+                                          0);
+
+    return [dateTimeCompact, dateTimeFull];
   },
 
   
