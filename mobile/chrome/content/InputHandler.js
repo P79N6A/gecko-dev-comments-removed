@@ -493,7 +493,6 @@ MouseModule.prototype = {
 
     let targetClicker = this.getClickerFromElement(evInfo.event.target);
 
-    this._movedOutOfRadius = false;
     this._targetScrollInterface = targetScrollInterface;
     this._dragger = (targetScrollInterface) ? (targetScrollbox.customDragger || this._defaultDragger)
                                             : null;
@@ -516,8 +515,7 @@ MouseModule.prototype = {
       let cX = {}, cY = {};
       targetScrollInterface.getScrolledSize(cX, cY);
       let rect = targetScrollbox.getBoundingClientRect();
-    
-      this._dragData.alreadyLocked = ((cX.value > rect.width) != (cY.value > rect.height));
+      this._dragData.locked = ((cX.value > rect.width) != (cY.value > rect.height));
     }
   },
 
@@ -535,20 +533,33 @@ MouseModule.prototype = {
 
     let [sX, sY] = dragData.lockAxis(evInfo.event.screenX, evInfo.event.screenY);
 
-    this._movedOutOfRadius = this._movedOutOfRadius || dragData.isPointOutsideRadius(sX, sY);
-
-    if (dragData.dragging)                               
-      this._doDragStop(sX, sY, evInfo.event.timeStamp);  
+    if (dragData.dragging)
+      this._doDragStop(sX, sY, !dragData.checkPan(sX, sY));
 
     if (this._clicker)
       this._clicker.mouseUp(evInfo.event.clientX, evInfo.event.clientY);
 
     if (this._targetIsContent(evInfo.event)) {
+      
       this._recordEvent(evInfo);
-      this._doClick(this._movedOutOfRadius);
+      let commitToClicker = this._clicker && !dragData.checkPan(sX, sY);
+      if (commitToClicker)
+        
+        this._commitAnotherClick();
+      else
+        
+        
+        
+        this._cleanClickBuffer();    
     }
-    else if (this._dragger && this._movedOutOfRadius && evInfo.event.detail)
-      this._owner.suppressNextClick();
+    else if (dragData.checkPan(sX, sY)) {
+      
+      
+      
+      let generatesClick = evInfo.event.detail;
+      if (generatesClick)
+        this._owner.suppressNextClick();
+    }
 
     this._owner.ungrab(this);
   },
@@ -563,11 +574,10 @@ MouseModule.prototype = {
       let [sX, sY] = dragData.lockAxis(evInfo.event.screenX, evInfo.event.screenY);
       evInfo.event.stopPropagation();
       evInfo.event.preventDefault();
-      this._doDragMove(sX, sY, evInfo.event.timeStamp);
+      if (dragData.checkPan(sX, sY))
+        
+        this._doDragMove(sX, sY);
     }
-
-    this._movedOutOfRadius = this._movedOutOfRadius || 
-      dragData.isPointOutsideRadius(evInfo.event.screenX, evInfo.event.screenY);
   },
 
   
@@ -647,21 +657,6 @@ MouseModule.prototype = {
     dragData.setDragPosition(sX, sY);
 
     return this._dragger.dragMove(dX, dY, this._targetScrollInterface);
-  },
-
-  
-
-
-
-
-  _doClick: function _doClick(movedOutOfRadius) {
-    let commitToClicker = this._clicker && !movedOutOfRadius;
-    if (commitToClicker)
-      this._commitAnotherClick();  
-    else
-      this._cleanClickBuffer();    
-                                   
-                                   
   },
 
   
@@ -855,11 +850,12 @@ DragData.prototype = {
     this.dragging = false;
     this.sX = null;
     this.sY = null;
-    this.alreadyLocked = false;
+    this.locked = false;
     this.lockedX = null;
     this.lockedY = null;
     this._originX = null;
     this._originY = null;
+    this._isPan = false;
   },
 
   setDragPosition: function setDragPosition(screenX, screenY) {
@@ -872,15 +868,26 @@ DragData.prototype = {
     this.sY = this._originY = screenY;
     this.dragging = true;
     this._dragStartTime = Date.now();
-    this.alreadyLocked = false;
+    this.locked = false;
   },
 
   endDrag: function endDrag() {
     this.dragging = false;
   },
 
+  
+  checkPan: function checkPan(sX, sY) {
+    if (this._originX === null)
+      return false;
+    if (this._isPan)
+      return true;
+
+    let distanceSquared = (Math.pow(sX - this._originX, 2) + Math.pow(sY - this._originY, 2));
+    return (this._isPan = (distanceSquared > Math.pow(this._dragRadius, 2)));
+  },
+
   lockAxis: function lockAxis(sX, sY) {
-    if (this.alreadyLocked) {
+    if (this.locked) {
       if (this.lockedX !== null) {
         sX = this.lockedX;
       }
@@ -920,16 +927,9 @@ DragData.prototype = {
     }
 
     
-    this.alreadyLocked = true;
+    this.locked = true;
 
     return [sX, sY];
-  },
-
-  isPointOutsideRadius: function isPointOutsideRadius(sX, sY) {
-    if (this._originX === null)
-      return false;
-    return (Math.pow(sX - this._originX, 2) + Math.pow(sY - this._originY, 2)) >
-      (Math.pow(this._dragRadius, 2));
   },
 
   toString: function toString() {
