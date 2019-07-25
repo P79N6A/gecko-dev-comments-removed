@@ -180,34 +180,6 @@ public class FlexibleGLSurfaceView extends SurfaceView implements SurfaceHolder.
             Log.e(LOGTAG, "### Exception! " + e);
             return null;
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 
     public static class FlexibleGLSurfaceViewException extends RuntimeException {
