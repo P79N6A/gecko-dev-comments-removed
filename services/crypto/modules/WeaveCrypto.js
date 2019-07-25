@@ -173,50 +173,9 @@ WeaveCrypto.prototype = {
                         { len : ctypes.int }]);
         
         
-        this.nss_t.PK11RSAGenParams = ctypes.StructType(
-            "PK11RSAGenParams", [{ keySizeInBits: ctypes.int },
-                                 { pe : ctypes.unsigned_long }]);
-        
-        
-        this.nss_t.SECKEYPrivateKey = ctypes.StructType(
-            "SECKEYPrivateKey", [{ arena:        this.nss_t.PLArenaPool.ptr  },
-                                 { keyType:      this.nss_t.KeyType          },
-                                 { pkcs11Slot:   this.nss_t.PK11SlotInfo.ptr },
-                                 { pkcs11ID:     this.nss_t.CK_OBJECT_HANDLE },
-                                 { pkcs11IsTemp: this.nss_t.PRBool           },
-                                 { wincx:        ctypes.voidptr_t            },
-                                 { staticflags:  ctypes.unsigned_int         }]);
-        
-        
-        this.nss_t.SECKEYRSAPublicKey = ctypes.StructType(
-            "SECKEYRSAPublicKey", [{ arena:          this.nss_t.PLArenaPool.ptr },
-                                   { modulus:        this.nss_t.SECItem         },
-                                   { publicExponent: this.nss_t.SECItem         }]);
-        
-        
-        this.nss_t.SECKEYPublicKey = ctypes.StructType(
-            "SECKEYPublicKey", [{ arena:      this.nss_t.PLArenaPool.ptr    },
-                                { keyType:    this.nss_t.KeyType            },
-                                { pkcs11Slot: this.nss_t.PK11SlotInfo.ptr   },
-                                { pkcs11ID:   this.nss_t.CK_OBJECT_HANDLE   },
-                                { rsa:        this.nss_t.SECKEYRSAPublicKey } ]);
-                                
-                                
-                                
-                                
-                                
-                                
-        
-        
         this.nss_t.SECAlgorithmID = ctypes.StructType(
             "SECAlgorithmID", [{ algorithm:  this.nss_t.SECItem },
                                { parameters: this.nss_t.SECItem }]);
-        
-        
-        this.nss_t.CERTSubjectPublicKeyInfo = ctypes.StructType(
-            "CERTSubjectPublicKeyInfo", [{ arena:            this.nss_t.PLArenaPool.ptr },
-                                         { algorithm:        this.nss_t.SECAlgorithmID  },
-                                         { subjectPublicKey: this.nss_t.SECItem         }]);
 
 
         
@@ -324,19 +283,6 @@ WeaveCrypto.prototype = {
         
         
         
-        this.nss.PK11_GenerateKeyPairWithFlags = nsslib.declare("PK11_GenerateKeyPairWithFlags",
-                                                   ctypes.default_abi, this.nss_t.SECKEYPrivateKey.ptr,
-                                                   this.nss_t.PK11SlotInfo.ptr, this.nss_t.CK_MECHANISM_TYPE, ctypes.voidptr_t,
-                                                   this.nss_t.SECKEYPublicKey.ptr.ptr, this.nss_t.PK11AttrFlags, ctypes.voidptr_t);
-        
-        
-        this.nss.PK11_SetPrivateKeyNickname = nsslib.declare("PK11_SetPrivateKeyNickname",
-                                                             ctypes.default_abi, this.nss_t.SECStatus,
-                                                             this.nss_t.SECKEYPrivateKey.ptr, ctypes.char.ptr);
-        
-        
-        
-        
         this.nss.PK11_CreatePBEV2AlgorithmID = nsslib.declare("PK11_CreatePBEV2AlgorithmID",
                                                               ctypes.default_abi, this.nss_t.SECAlgorithmID.ptr,
                                                               this.nss_t.SECOidTag, this.nss_t.SECOidTag, this.nss_t.SECOidTag, 
@@ -347,60 +293,6 @@ WeaveCrypto.prototype = {
                                                  ctypes.default_abi, this.nss_t.PK11SymKey.ptr,
                                                  this.nss_t.PK11SlotInfo.ptr, this.nss_t.SECAlgorithmID.ptr,
                                                  this.nss_t.SECItem.ptr, this.nss_t.PRBool, ctypes.voidptr_t);
-        
-        
-        
-        
-        this.nss.PK11_WrapPrivKey = nsslib.declare("PK11_WrapPrivKey",
-                                                   ctypes.default_abi, this.nss_t.SECStatus,
-                                                   this.nss_t.PK11SlotInfo.ptr, this.nss_t.PK11SymKey.ptr,
-                                                   this.nss_t.SECKEYPrivateKey.ptr, this.nss_t.CK_MECHANISM_TYPE,
-                                                   this.nss_t.SECItem.ptr, this.nss_t.SECItem.ptr, ctypes.voidptr_t);
-        
-        
-        this.nss.SECKEY_EncodeDERSubjectPublicKeyInfo = nsslib.declare("SECKEY_EncodeDERSubjectPublicKeyInfo",
-                                                                       ctypes.default_abi, this.nss_t.SECItem.ptr,
-                                                                       this.nss_t.SECKEYPublicKey.ptr);
-        
-        
-        this.nss.SECKEY_DecodeDERSubjectPublicKeyInfo = nsslib.declare("SECKEY_DecodeDERSubjectPublicKeyInfo",
-                                                                       ctypes.default_abi, this.nss_t.CERTSubjectPublicKeyInfo.ptr,
-                                                                       this.nss_t.SECItem.ptr);
-        
-        
-        this.nss.SECKEY_ExtractPublicKey = nsslib.declare("SECKEY_ExtractPublicKey",
-                                                          ctypes.default_abi, this.nss_t.SECKEYPublicKey.ptr,
-                                                          this.nss_t.CERTSubjectPublicKeyInfo.ptr);
-        
-        
-        
-        this.nss.PK11_PubWrapSymKey = nsslib.declare("PK11_PubWrapSymKey",
-                                                     ctypes.default_abi, this.nss_t.SECStatus,
-                                                     this.nss_t.CK_MECHANISM_TYPE, this.nss_t.SECKEYPublicKey.ptr,
-                                                     this.nss_t.PK11SymKey.ptr, this.nss_t.SECItem.ptr);
-        
-        
-        
-        
-        
-        
-        
-        this.nss.PK11_UnwrapPrivKey = nsslib.declare("PK11_UnwrapPrivKey",
-                                                     ctypes.default_abi, this.nss_t.SECKEYPrivateKey.ptr,
-                                                     this.nss_t.PK11SlotInfo.ptr, this.nss_t.PK11SymKey.ptr,
-                                                     this.nss_t.CK_MECHANISM_TYPE, this.nss_t.SECItem.ptr,
-                                                     this.nss_t.SECItem.ptr, this.nss_t.SECItem.ptr,
-                                                     this.nss_t.SECItem.ptr, this.nss_t.PRBool,
-                                                     this.nss_t.PRBool, this.nss_t.CK_KEY_TYPE,
-                                                     this.nss_t.CK_ATTRIBUTE_TYPE.ptr, ctypes.int,
-                                                     ctypes.voidptr_t);
-        
-        
-        
-        this.nss.PK11_PubUnwrapSymKey = nsslib.declare("PK11_PubUnwrapSymKey",
-                                                       ctypes.default_abi, this.nss_t.PK11SymKey.ptr,
-                                                       this.nss_t.SECKEYPrivateKey.ptr, this.nss_t.SECItem.ptr,
-                                                       this.nss_t.CK_MECHANISM_TYPE, this.nss_t.CK_ATTRIBUTE_TYPE, ctypes.int);
         
         
         this.nss.PK11_DestroyContext = nsslib.declare("PK11_DestroyContext",
@@ -434,24 +326,9 @@ WeaveCrypto.prototype = {
                                                    this.nss_t.SECItem.ptr, this.nss_t.PRBool);
         
         
-        this.nss.SECKEY_DestroyPublicKey = nsslib.declare("SECKEY_DestroyPublicKey",
-                                                          ctypes.default_abi, ctypes.void_t,
-                                                          this.nss_t.SECKEYPublicKey.ptr);
-        
-        
-        this.nss.SECKEY_DestroyPrivateKey = nsslib.declare("SECKEY_DestroyPrivateKey",
-                                                           ctypes.default_abi, ctypes.void_t,
-                                                           this.nss_t.SECKEYPrivateKey.ptr);
-        
-        
         this.nss.SECOID_DestroyAlgorithmID = nsslib.declare("SECOID_DestroyAlgorithmID",
                                                             ctypes.default_abi, ctypes.void_t,
                                                             this.nss_t.SECAlgorithmID.ptr, this.nss_t.PRBool);
-        
-        
-        this.nss.SECKEY_DestroySubjectPublicKeyInfo = nsslib.declare("SECKEY_DestroySubjectPublicKeyInfo",
-                                                                     ctypes.default_abi, ctypes.void_t,
-                                                                     this.nss_t.CERTSubjectPublicKeyInfo.ptr);
     },
 
 
