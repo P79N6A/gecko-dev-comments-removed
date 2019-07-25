@@ -417,17 +417,21 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
   }
 
   
-  
-  if (aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
+  if (colStyle->mColumnFill == NS_STYLE_COLUMN_FILL_BALANCE) {
     
+
     if (numColumns <= 0) {
       
       
       numColumns = 1;
     }
-    colHeight = NS_MIN(mLastBalanceHeight, GetAvailableContentHeight(aReflowState));
+
+    colHeight = NS_MIN(mLastBalanceHeight,
+                       GetAvailableContentHeight(aReflowState));
   } else {
     
+    
+
     numColumns = PR_INT32_MAX;
   }
 
