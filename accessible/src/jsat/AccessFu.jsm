@@ -26,6 +26,10 @@ var AccessFu = {
 
 
   attach: function attach(aWindow) {
+    if (this.chromeWin)
+      
+      throw new Error('Only one window could be attached to AccessFu');
+
     dump('AccessFu attach!! ' + Services.appinfo.OS + '\n');
     this.chromeWin = aWindow;
     this.presenters = [];
