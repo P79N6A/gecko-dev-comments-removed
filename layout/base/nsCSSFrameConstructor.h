@@ -73,9 +73,6 @@ class nsPageContentFrame;
 struct PendingBinding;
 class nsRefreshDriver;
 
-typedef void (nsLazyFrameConstructionCallback)
-             (nsIContent* aContent, nsIFrame* aFrame, void* aArg);
-
 class nsFrameConstructorState;
 class nsFrameConstructorSaveState;
 
@@ -243,17 +240,7 @@ public:
                                 PRInt32         aStateMask);
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  nsresult AddLazyChildren(nsIContent* aContent,
-                           nsLazyFrameConstructionCallback* aCallback,
-                           void* aArg, PRBool aIsSynch = PR_FALSE);
+  nsresult GenerateChildFrames(nsIFrame* aFrame);
 
   
   
@@ -1808,27 +1795,6 @@ public:
   friend class nsFrameConstructorState;
 
 private:
-
-  class LazyGenerateChildrenEvent;
-  friend class LazyGenerateChildrenEvent;
-
-  
-  class LazyGenerateChildrenEvent : public nsRunnable {
-  public:
-    NS_DECL_NSIRUNNABLE
-    LazyGenerateChildrenEvent(nsIContent *aContent,
-                              nsIPresShell *aPresShell,
-                              nsLazyFrameConstructionCallback* aCallback,
-                              void* aArg)
-      : mContent(aContent), mPresShell(aPresShell), mCallback(aCallback), mArg(aArg)
-    {}
-
-  private:
-    nsCOMPtr<nsIContent> mContent;
-    nsCOMPtr<nsIPresShell> mPresShell;
-    nsLazyFrameConstructionCallback* mCallback;
-    void* mArg;
-  };
 
   nsIDocument*        mDocument;  
   nsIPresShell*       mPresShell; 

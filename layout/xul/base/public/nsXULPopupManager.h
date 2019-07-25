@@ -51,6 +51,7 @@
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "nsITimer.h"
+#include "nsIReflowCallback.h"
 #include "nsThreadUtils.h"
 #include "nsStyleConsts.h"
 
@@ -208,26 +209,19 @@ class nsXULPopupShowingEvent : public nsRunnable
 {
 public:
   nsXULPopupShowingEvent(nsIContent *aPopup,
-                         nsIContent *aMenu,
-                         nsPopupType aPopupType,
                          PRBool aIsContextMenu,
                          PRBool aSelectFirstItem)
     : mPopup(aPopup),
-      mMenu(aMenu),
-      mPopupType(aPopupType),
       mIsContextMenu(aIsContextMenu),
       mSelectFirstItem(aSelectFirstItem)
   {
     NS_ASSERTION(aPopup, "null popup supplied to nsXULPopupShowingEvent constructor");
-    NS_ASSERTION(aMenu, "null menu supplied to nsXULPopupShowingEvent constructor");
   }
 
   NS_IMETHOD Run();
 
 private:
   nsCOMPtr<nsIContent> mPopup;
-  nsCOMPtr<nsIContent> mMenu;
-  nsPopupType mPopupType;
   PRBool mIsContextMenu;
   PRBool mSelectFirstItem;
 };
@@ -665,16 +659,7 @@ protected:
 
 
 
-
-
-
-
-
-
   void FirePopupShowingEvent(nsIContent* aPopup,
-                             nsIContent* aMenu,
-                             nsPresContext* aPresContext,
-                             nsPopupType aPopupType,
                              PRBool aIsContextMenu,
                              PRBool aSelectFirstItem);
 

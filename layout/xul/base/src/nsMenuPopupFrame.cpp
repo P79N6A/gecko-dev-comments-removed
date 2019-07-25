@@ -40,7 +40,6 @@
 
 
 
-
 #include "nsMenuPopupFrame.h"
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
@@ -406,10 +405,26 @@ nsMenuPopupFrame::IsLeaf() const
 void
 nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, PRBool aSizedToPopup)
 {
-  
-  PRBool isOpen = IsOpen();
-  if (!mGeneratedChildren || (!isOpen && !aSizedToPopup))
+  if (!mGeneratedChildren)
     return;
+
+  PRBool shouldPosition = PR_TRUE;
+  PRBool isOpen = IsOpen();
+  if (!isOpen) {
+    
+    
+    shouldPosition = (mPopupState == ePopupShowing);
+    if (!shouldPosition && !aSizedToPopup)
+      return;
+  }
+
+  
+  if (mIsOpenChanged) {
+    nsIScrollableFrame *scrollframe = do_QueryFrame(GetChildBox());
+    if (scrollframe) {
+      scrollframe->ScrollTo(nsPoint(0,0), nsIScrollableFrame::INSTANT);
+    }
+  }
 
   
   
@@ -429,7 +444,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, P
     mPrefSize = prefSize;
   }
 
-  if (isOpen) {
+  if (shouldPosition) {
     SetPopupPosition(aParentMenu, PR_FALSE);
   }
 
@@ -452,48 +467,34 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, P
     }
   }
 
-  if (isOpen) {
-    AdjustView();
-  }
-}
-
-void
-nsMenuPopupFrame::AdjustView()
-{
-  
-  if (mIsOpenChanged) {
-    nsIBox* child = GetChildBox();
-    nsIScrollableFrame *scrollframe = do_QueryFrame(child);
-    if (scrollframe)
-      scrollframe->ScrollTo(nsPoint(0,0), nsIScrollableFrame::INSTANT);
-  }
-
-  nsIView* view = GetView();
-  nsIViewManager* viewManager = view->GetViewManager();
-  nsRect rect = GetRect();
-  rect.x = rect.y = 0;
-
-  
-  
-  
-  
-  
   nsPresContext* pc = PresContext();
-  if (mPopupType == ePopupTypePanel && view) {
-    nsIWidget* widget = view->GetWidget();
-    if (widget) {
-      nsIntSize popupSize = nsIntSize(pc->AppUnitsToDevPixels(rect.width),
-                                      pc->AppUnitsToDevPixels(rect.height));
-      popupSize = widget->ClientToWindowSize(popupSize);
-      rect.width = pc->DevPixelsToAppUnits(popupSize.width);
-      rect.height = pc->DevPixelsToAppUnits(popupSize.height);
-    }
-  }
-  viewManager->ResizeView(view, rect);
+  if (isOpen) {
+    nsIView* view = GetView();
+    nsIViewManager* viewManager = view->GetViewManager();
+    nsRect rect = GetRect();
+    rect.x = rect.y = 0;
 
-  viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
-  mPopupState = ePopupOpenAndVisible;
-  nsContainerFrame::SyncFrameViewProperties(pc, this, nsnull, view, 0);
+    
+    
+    
+    
+    
+    if (mPopupType == ePopupTypePanel && view) {
+      nsIWidget* widget = view->GetWidget();
+      if (widget) {
+        nsIntSize popupSize = nsIntSize(pc->AppUnitsToDevPixels(rect.width),
+                                        pc->AppUnitsToDevPixels(rect.height));
+        popupSize = widget->ClientToWindowSize(popupSize);
+        rect.width = pc->DevPixelsToAppUnits(popupSize.width);
+        rect.height = pc->DevPixelsToAppUnits(popupSize.height);
+      }
+    }
+    viewManager->ResizeView(view, rect);
+
+    viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
+    mPopupState = ePopupOpenAndVisible;
+    nsContainerFrame::SyncFrameViewProperties(pc, this, nsnull, view, 0);
+  }
 
   
   if (mIsOpenChanged) {
@@ -693,43 +694,9 @@ nsMenuPopupFrame::InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
 }
 
 void
-LazyGeneratePopupDone(nsIContent* aPopup, nsIFrame* aFrame, void* aArg)
-{
-  
-  if (aFrame->GetType() == nsGkAtoms::menuPopupFrame) {
-    nsWeakFrame weakFrame(aFrame);
-    nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame*>(aFrame);
-
-    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-    if (pm && popupFrame->IsMenu()) {
-      nsCOMPtr<nsIContent> popup = aPopup;
-      pm->UpdateMenuItems(popup);
-
-      if (!weakFrame.IsAlive())
-        return;
-
-      PRBool selectFirstItem = (PRBool)NS_PTR_TO_INT32(aArg);
-      if (selectFirstItem) {
-        nsMenuFrame* next = pm->GetNextMenuItem(popupFrame, nsnull, PR_TRUE);
-        popupFrame->SetCurrentMenuItem(next);
-      }
-    }
-
-    if (weakFrame.IsAlive()) {
-      popupFrame->PresContext()->PresShell()->
-        FrameNeedsReflow(popupFrame, nsIPresShell::eTreeChange,
-                         NS_FRAME_HAS_DIRTY_CHILDREN);
-    }
-  }
-}
-
-
-PRBool
 nsMenuPopupFrame::ShowPopup(PRBool aIsContextMenu, PRBool aSelectFirstItem)
 {
   mIsContextMenu = aIsContextMenu;
-
-  PRBool hasChildren = PR_FALSE;
 
   if (mPopupState == ePopupShowing) {
     mPopupState = ePopupOpen;
@@ -740,21 +707,14 @@ nsMenuPopupFrame::ShowPopup(PRBool aIsContextMenu, PRBool aSelectFirstItem)
       nsWeakFrame weakFrame(this);
       menuFrame->PopupOpened();
       if (!weakFrame.IsAlive())
-        return PR_FALSE;
+        return;
     }
 
     
     
-    if (mFrames.IsEmpty() && !mGeneratedChildren) {
-      PresContext()->PresShell()->FrameConstructor()->
-        AddLazyChildren(mContent, LazyGeneratePopupDone, NS_INT32_TO_PTR(aSelectFirstItem));
-    }
-    else {
-      hasChildren = PR_TRUE;
-      PresContext()->PresShell()->
-        FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                         NS_FRAME_HAS_DIRTY_CHILDREN);
-    }
+    PresContext()->PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                                                 NS_FRAME_HAS_DIRTY_CHILDREN);
+
     if (mPopupType == ePopupTypeMenu) {
       nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
       if (sound)
@@ -763,7 +723,6 @@ nsMenuPopupFrame::ShowPopup(PRBool aIsContextMenu, PRBool aSelectFirstItem)
   }
 
   mShouldAutoPosition = PR_TRUE;
-  return hasChildren;
 }
 
 void
@@ -1713,10 +1672,12 @@ nsMenuPopupFrame::AttributeChanged(PRInt32 aNameSpaceID,
   if (aAttribute == nsGkAtoms::menugenerated &&
       mFrames.IsEmpty() && !mGeneratedChildren) {
     EnsureWidget();
-    PresContext()->PresShell()->FrameConstructor()->
-      AddLazyChildren(mContent, LazyGeneratePopupDone, nsnull, PR_TRUE);
+
+    
+    mGeneratedChildren = PR_TRUE;
+    PresContext()->PresShell()->FrameConstructor()->GenerateChildFrames(this);
   }
-  
+
   return rv;
 }
 

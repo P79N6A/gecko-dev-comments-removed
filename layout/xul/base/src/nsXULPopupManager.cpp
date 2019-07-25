@@ -364,7 +364,7 @@ nsXULPopupManager::GetFrameOfTypeForContent(nsIContent* aContent,
     if (document) {
       nsCOMPtr<nsIPresShell> presShell = document->GetShell();
       if (presShell)
-        presShell->FlushPendingNotifications(Flush_Frames);
+        presShell->FlushPendingNotifications(Flush_Layout);
     }
   }
 
@@ -540,21 +540,19 @@ nsXULPopupManager::ShowMenu(nsIContent *aMenu,
   else
     position.AssignLiteral("end_before");
 
+  
+  InitTriggerEvent(nsnull, nsnull, nsnull);
   popupFrame->InitializePopup(aMenu, nsnull, position, 0, 0, PR_TRUE);
 
   if (aAsynchronous) {
-    
-    InitTriggerEvent(nsnull, nsnull, nsnull);
     nsCOMPtr<nsIRunnable> event =
-      new nsXULPopupShowingEvent(popupFrame->GetContent(), aMenu, popupFrame->PopupType(),
+      new nsXULPopupShowingEvent(popupFrame->GetContent(),
                                  parentIsContextMenu, aSelectFirstItem);
     NS_DispatchToCurrentThread(event);
   }
   else {
     nsCOMPtr<nsIContent> popupContent = popupFrame->GetContent();
-    FirePopupShowingEvent(popupContent, aMenu,
-                          popupFrame->PresContext(), popupFrame->PopupType(),
-                          parentIsContextMenu, aSelectFirstItem);
+    FirePopupShowingEvent(popupContent, parentIsContextMenu, aSelectFirstItem);
   }
 }
 
@@ -578,8 +576,7 @@ nsXULPopupManager::ShowPopup(nsIContent* aPopup,
   popupFrame->InitializePopup(aAnchorContent, triggerContent, aPosition,
                               aXPos, aYPos, aAttributesOverride);
 
-  FirePopupShowingEvent(aPopup, nsnull, popupFrame->PresContext(),
-                        popupFrame->PopupType(), aIsContextMenu, aSelectFirstItem);
+  FirePopupShowingEvent(aPopup, aIsContextMenu, aSelectFirstItem);
 }
 
 void
@@ -596,9 +593,7 @@ nsXULPopupManager::ShowPopupAtScreen(nsIContent* aPopup,
   InitTriggerEvent(aTriggerEvent, aPopup, getter_AddRefs(triggerContent));
 
   popupFrame->InitializePopupAtScreen(triggerContent, aXPos, aYPos, aIsContextMenu);
-
-  FirePopupShowingEvent(aPopup, nsnull, popupFrame->PresContext(),
-                        popupFrame->PopupType(), aIsContextMenu, PR_FALSE);
+  FirePopupShowingEvent(aPopup, aIsContextMenu, PR_FALSE);
 }
 
 void
@@ -617,9 +612,7 @@ nsXULPopupManager::ShowPopupWithAnchorAlign(nsIContent* aPopup,
 
   popupFrame->InitializePopupWithAnchorAlign(aAnchorContent, aAnchor,
                                              aAlign, aXPos, aYPos);
-
-  FirePopupShowingEvent(aPopup, nsnull, popupFrame->PresContext(),
-                        popupFrame->PopupType(), aIsContextMenu, PR_FALSE);
+  FirePopupShowingEvent(aPopup, aIsContextMenu, PR_FALSE);
 }
 
 static void
@@ -686,7 +679,7 @@ nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
 
   
   nsWeakFrame weakFrame(aPopupFrame);
-  PRBool hasChildren = aPopupFrame->ShowPopup(aIsContextMenu, aSelectFirstItem);
+  aPopupFrame->ShowPopup(aIsContextMenu, aSelectFirstItem);
   ENSURE_TRUE(weakFrame.IsAlive());
 
   
@@ -706,15 +699,13 @@ nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
     SetCaptureState(oldmenu);
   }
 
-  if (hasChildren) {
-    if (aSelectFirstItem) {
-      nsMenuFrame* next = GetNextMenuItem(aPopupFrame, nsnull, PR_TRUE);
-      aPopupFrame->SetCurrentMenuItem(next);
-    }
-
-    if (ismenu)
-      UpdateMenuItems(aPopup);
+  if (aSelectFirstItem) {
+    nsMenuFrame* next = GetNextMenuItem(aPopupFrame, nsnull, PR_TRUE);
+    aPopupFrame->SetCurrentMenuItem(next);
   }
+
+  if (ismenu)
+    UpdateMenuItems(aPopup);
 
   
   
@@ -1081,13 +1072,33 @@ nsXULPopupManager::ExecuteMenu(nsIContent* aMenu, nsXULMenuCommandEvent* aEvent)
 
 void
 nsXULPopupManager::FirePopupShowingEvent(nsIContent* aPopup,
-                                         nsIContent* aMenu,
-                                         nsPresContext* aPresContext,
-                                         nsPopupType aPopupType,
                                          PRBool aIsContextMenu,
                                          PRBool aSelectFirstItem)
 {
-  nsCOMPtr<nsIPresShell> presShell = aPresContext->PresShell();
+  nsCOMPtr<nsIContent> popup = aPopup; 
+
+  nsIFrame* frame = aPopup->GetPrimaryFrame();
+  if (!frame || frame->GetType() != nsGkAtoms::menuPopupFrame)
+    return;
+
+  nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame *>(frame);
+  nsPresContext *presContext = popupFrame->PresContext();
+  nsCOMPtr<nsIPresShell> presShell = presContext->PresShell();
+  nsPopupType popupType = popupFrame->PopupType();
+
+  
+  if (!popupFrame->HasGeneratedChildren()) {
+    popupFrame->SetGeneratedChildren();
+    presShell->FrameConstructor()->GenerateChildFrames(popupFrame);
+  }
+
+  
+  frame = aPopup->GetPrimaryFrame();
+  if (!frame)
+    return;
+
+  presShell->FrameNeedsReflow(frame, nsIPresShell::eTreeChange,
+                              NS_FRAME_HAS_DIRTY_CHILDREN);
 
   
   
@@ -1109,7 +1120,7 @@ nsXULPopupManager::FirePopupShowingEvent(nsIContent* aPopup,
   }
 
   event.refPoint = mCachedMousePoint;
-  nsEventDispatcher::Dispatch(aPopup, aPresContext, &event, nsnull, &status);
+  nsEventDispatcher::Dispatch(popup, presContext, &event, nsnull, &status);
   mCachedMousePoint = nsIntPoint(0, 0);
   mOpeningPopup = nsnull;
 
@@ -1117,12 +1128,12 @@ nsXULPopupManager::FirePopupShowingEvent(nsIContent* aPopup,
   
   
   
-  if (aPopupType == ePopupTypePanel &&
-      !aPopup->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautofocus,
+  if (popupType == ePopupTypePanel &&
+      !popup->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautofocus,
                            nsGkAtoms::_true, eCaseMatters)) {
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
     if (fm) {
-      nsIDocument* doc = aPopup->GetCurrentDoc();
+      nsIDocument* doc = popup->GetCurrentDoc();
 
       
       
@@ -1133,27 +1144,18 @@ nsXULPopupManager::FirePopupShowingEvent(nsIContent* aPopup,
       fm->GetFocusedElement(getter_AddRefs(currentFocusElement));
       nsCOMPtr<nsIContent> currentFocus = do_QueryInterface(currentFocusElement);
       if (doc && currentFocus &&
-          !nsContentUtils::ContentIsCrossDocDescendantOf(currentFocus, aPopup)) {
+          !nsContentUtils::ContentIsCrossDocDescendantOf(currentFocus, popup)) {
         fm->ClearFocus(doc->GetWindow());
       }
     }
   }
 
   
-  
-  
-  
-  
-  nsIDocument *document = aPopup->GetCurrentDoc();
-  if (document)
-    document->FlushPendingNotifications(Flush_Layout);
-
-  
   mRangeParent = nsnull;
   mRangeOffset = 0;
 
   
-  nsIFrame* frame = aPopup->GetPrimaryFrame();
+  frame = aPopup->GetPrimaryFrame();
   if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
     nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame *>(frame);
 
@@ -2160,27 +2162,12 @@ nsXULPopupManager::KeyPress(nsIDOMEvent* aKeyEvent)
   return NS_OK; 
 }
 
-static nsPresContext*
-GetPresContextFor(nsIContent* aContent)
-{
-  nsIDocument *document = aContent->GetCurrentDoc();
-  if (document) {
-    nsIPresShell* presShell = document->GetShell();
-    if (presShell)
-      return presShell->GetPresContext();
-  }
-
-  return nsnull;
-}
-
 NS_IMETHODIMP
 nsXULPopupShowingEvent::Run()
 {
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  nsPresContext* context = GetPresContextFor(mPopup);
-  if (pm && context) {
-    pm->FirePopupShowingEvent(mPopup, mMenu, context, mPopupType,
-                              mIsContextMenu, mSelectFirstItem);
+  if (pm) {
+    pm->FirePopupShowingEvent(mPopup, mIsContextMenu, mSelectFirstItem);
   }
 
   return NS_OK;
@@ -2190,10 +2177,17 @@ NS_IMETHODIMP
 nsXULPopupHidingEvent::Run()
 {
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  nsPresContext* context = GetPresContextFor(mPopup);
-  if (pm && context) {
-    pm->FirePopupHidingEvent(mPopup, mNextPopup, mLastPopup,
-                             context, mPopupType, mDeselectMenu);
+
+  nsIDocument *document = mPopup->GetCurrentDoc();
+  if (pm && document) {
+    nsIPresShell* presShell = document->GetShell();
+    if (presShell) {
+      nsPresContext* context = presShell->GetPresContext();
+      if (context) {
+        pm->FirePopupHidingEvent(mPopup, mNextPopup, mLastPopup,
+                                 context, mPopupType, mDeselectMenu);
+      }
+    }
   }
 
   return NS_OK;

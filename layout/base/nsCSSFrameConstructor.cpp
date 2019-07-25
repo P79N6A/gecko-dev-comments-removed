@@ -4212,17 +4212,6 @@ nsCSSFrameConstructor::FindXULDisplayData(const nsStyleDisplay* aDisplay,
                        sXULDisplayData, NS_ARRAY_LENGTH(sXULDisplayData));
 }
 
-nsresult
-nsCSSFrameConstructor::AddLazyChildren(nsIContent* aContent,
-                                       nsLazyFrameConstructionCallback* aCallback,
-                                       void* aArg, PRBool aIsSynch)
-{
-  nsCOMPtr<nsIRunnable> event =
-    new LazyGenerateChildrenEvent(aContent, mPresShell, aCallback, aArg);
-  return aIsSynch ? event->Run() :
-                    NS_DispatchToCurrentThread(event);
-}
-
 already_AddRefed<nsStyleContext>
 nsCSSFrameConstructor::BeginBuildingScrollFrame(nsFrameConstructorState& aState,
                                                 nsIContent*              aContent,
@@ -11654,61 +11643,33 @@ nsCSSFrameConstructor::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint)
   PostRestyleEventInternal(PR_FALSE);
 }
 
-NS_IMETHODIMP
-nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
+nsresult
+nsCSSFrameConstructor::GenerateChildFrames(nsIFrame* aFrame)
 {
-  mPresShell->GetDocument()->FlushPendingNotifications(Flush_Layout);
+  {
+    nsAutoScriptBlocker scriptBlocker;
+    BeginUpdate();
 
-  
-  nsIFrame* frame = mPresShell->GetPresContext() ?
-    mPresShell->GetPresContext()->GetPrimaryFrameFor(mContent) : nsnull;
-  if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
-    nsWeakFrame weakFrame(frame);
-#ifdef MOZ_XUL
+    nsFrameItems childItems;
+    nsFrameConstructorState state(mPresShell, nsnull, nsnull, nsnull);
     
     
     
-    nsMenuPopupFrame* menuPopupFrame = static_cast<nsMenuPopupFrame *>(frame);
-    if (menuPopupFrame->HasGeneratedChildren()) {
-      if (mCallback)
-        mCallback(mContent, frame, mArg);
-      
-      return NS_OK;
-    }     
-
-    
-    menuPopupFrame->SetGeneratedChildren();
-#endif
-
-   {
-      nsAutoScriptBlocker scriptBlocker;
-      nsCSSFrameConstructor* fc = mPresShell->FrameConstructor();
-      fc->BeginUpdate();
-
-      nsFrameItems childItems;
-      nsFrameConstructorState state(mPresShell, nsnull, nsnull, nsnull);
-      
-      
-      
-      nsresult rv = fc->ProcessChildren(state, mContent, frame->GetStyleContext(),
-                                        frame, PR_FALSE, childItems, PR_FALSE,
-                                        nsnull);
-      if (NS_FAILED(rv)) {
-        fc->EndUpdate();
-        return rv;
-      }
-
-      frame->SetInitialChildList(nsnull, childItems);
-
-      fc->EndUpdate();
+    nsresult rv = ProcessChildren(state, aFrame->GetContent(), aFrame->GetStyleContext(),
+                                  aFrame, PR_FALSE, childItems, PR_FALSE,
+                                  nsnull);
+    if (NS_FAILED(rv)) {
+      EndUpdate();
+      return rv;
     }
 
-    if (mCallback && weakFrame.IsAlive())
-      mCallback(mContent, frame, mArg);
+    aFrame->SetInitialChildList(nsnull, childItems);
 
-    
-    mPresShell->GetDocument()->BindingManager()->ProcessAttachedQueue();
+    EndUpdate();
   }
+
+  
+  mPresShell->GetDocument()->BindingManager()->ProcessAttachedQueue();
 
   return NS_OK;
 }

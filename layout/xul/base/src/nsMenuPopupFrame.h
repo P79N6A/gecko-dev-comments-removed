@@ -71,7 +71,6 @@ class nsIWidget;
 
 
 
-
 enum nsPopupState {
   
   ePopupClosed,
@@ -203,9 +202,6 @@ public:
   
   void LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, PRBool aSizedToPopup);
 
-  
-  void AdjustView();
-
   nsIView* GetRootViewForPopup(nsIFrame* aStartFrame);
 
   
@@ -269,7 +265,7 @@ public:
                                       PRInt32 aXPos, PRInt32 aYPos);
 
   
-  PRBool ShowPopup(PRBool aIsContextMenu, PRBool aSelectFirstItem);
+  void ShowPopup(PRBool aIsContextMenu, PRBool aSelectFirstItem);
   
   
   void HidePopup(PRBool aDeselectMenu, nsPopupState aNewState);

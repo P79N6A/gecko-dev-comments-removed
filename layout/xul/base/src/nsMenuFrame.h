@@ -185,14 +185,11 @@ public:
 
   
 
-  nsresult DestroyPopupFrames(nsPresContext* aPresContext);
-
   virtual PRBool IsOnMenuBar() { return mMenuParent && mMenuParent->IsMenuBar(); }
   virtual PRBool IsOnActiveMenuBar() { return IsOnMenuBar() && mMenuParent->IsActive(); }
   virtual PRBool IsOpen();
   virtual PRBool IsMenu();
   PRBool IsDisabled();
-  PRBool IsGenerated();
   void ToggleMenuState();
 
   
