@@ -746,27 +746,26 @@ let TabItems = {
     this.tempCanvas.height = 112;
 
     
-    this._eventListeners["open"] = function(tab) {
-      if (tab.ownerDocument.defaultView != gWindow || tab.pinned)
-        return;
+    this._eventListeners.open = function (event) {
+      let tab = event.target;
 
-      self.link(tab);
+      if (!tab.pinned)
+        self.link(tab);
     }
     
     
-    this._eventListeners["attrModified"] = function(tab) {
-      if (tab.ownerDocument.defaultView != gWindow || tab.pinned)
-        return;
+    this._eventListeners.attrModified = function (event) {
+      let tab = event.target;
 
-      self.update(tab);
+      if (!tab.pinned)
+        self.update(tab);
     }
     
-    this._eventListeners["close"] = function(tab) {
-      if (tab.ownerDocument.defaultView != gWindow || tab.pinned)
-        return;
+    this._eventListeners.close = function (event) {
+      let tab = event.target;
 
       
-      if (!UI.isDOMWindowClosing)
+      if (!tab.pinned && !UI.isDOMWindowClosing)
         self.unlink(tab);
     }
     for (let name in this._eventListeners) {
@@ -774,8 +773,8 @@ let TabItems = {
     }
 
     
-    AllTabs.tabs.forEach(function(tab) {
-      if (tab.ownerDocument.defaultView != gWindow || tab.pinned)
+    AllTabs.tabs.forEach(function (tab) {
+      if (tab.pinned)
         return;
 
       self.link(tab, {immediately: true});

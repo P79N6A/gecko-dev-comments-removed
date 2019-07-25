@@ -231,7 +231,7 @@ function GroupItem(listOfEls, options) {
     .appendTo(appTabTrayContainer);
 
   AllTabs.tabs.forEach(function(xulTab) {
-    if (xulTab.pinned && xulTab.ownerDocument.defaultView == gWindow)
+    if (xulTab.pinned)
       self.addAppTab(xulTab, {dontAdjustTray: true});
   });
 
@@ -1926,13 +1926,13 @@ let GroupItems = {
     let self = this;
 
     
-    function handleAttrModified(xulTab) {
-      self._handleAttrModified(xulTab);
+    function handleAttrModified(event) {
+      self._handleAttrModified(event.target);
     }
 
     
-    function handleClose(xulTab) {
-      let idx = self._delayedModUpdates.indexOf(xulTab);
+    function handleClose(event) {
+      let idx = self._delayedModUpdates.indexOf(event.target);
       if (idx != -1)
         self._delayedModUpdates.splice(idx, 1);
     }
@@ -2040,7 +2040,7 @@ let GroupItems = {
   
   
   _updateAppTabIcons: function GroupItems__updateAppTabIcons(xulTab) {
-    if (xulTab.ownerDocument.defaultView != gWindow || !xulTab.pinned)
+    if (!xulTab.pinned)
       return;
 
     let iconUrl = this.getAppTabFavIconUrl(xulTab);
