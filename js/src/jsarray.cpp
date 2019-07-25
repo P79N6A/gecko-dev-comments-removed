@@ -1068,6 +1068,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
 
 
+
     JSObjectMap *oldMap = map;
 
     
@@ -1078,6 +1079,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     backfillDenseArrayHoles();
 
     uint32 arrayCapacity = getDenseArrayCapacity();
+    uint32 arrayInitialized = getDenseArrayInitializedLength();
 
     
 
@@ -1095,12 +1097,17 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     clasp = &js_SlowArrayClass;
 
     
+    initializedLength = 0;
+    JS_ASSERT(newType == NULL);
+
+    
 
 
 
     if (!AddLengthProperty(cx, this)) {
         setMap(oldMap);
         capacity = arrayCapacity;
+        initializedLength = arrayInitialized;
         clasp = &js_ArrayClass;
         return false;
     }
@@ -1123,6 +1130,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
         if (!addDataProperty(cx, id, next, JSPROP_ENUMERATE)) {
             setMap(oldMap);
             capacity = arrayCapacity;
+            initializedLength = arrayInitialized;
             clasp = &js_ArrayClass;
             return false;
         }
@@ -1131,10 +1139,6 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     }
 
     clearSlotRange(next, capacity - next);
-
-    
-    initializedLength = 0;
-    JS_ASSERT(newType == NULL);
 
     
 
