@@ -180,7 +180,7 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to, Move:
     
     
     
-    if (to.isDouble()) {
+    if (kind == Move::DOUBLE) {
         if (to.isMemory()) {
             FloatRegister temp = tempFloatReg();
             masm.ma_vldr(toOperand(to, true).toVFPAddr(), temp);
