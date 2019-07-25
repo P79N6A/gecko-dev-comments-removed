@@ -180,6 +180,19 @@
 #  define MOZ_NORETURN
 #endif
 
+
+
+
+
+
+
+#if defined(MOZ_ASAN)
+#  define MOZ_ASAN_BLACKLIST MOZ_NEVER_INLINE __attribute__((no_address_safety_analysis))
+# else
+#  define MOZ_ASAN_BLACKLIST
+#endif
+
+
 #ifdef __cplusplus
 
 
