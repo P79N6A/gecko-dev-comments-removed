@@ -4634,7 +4634,7 @@ NodeHasActiveFrame(nsIDocument* aCurrentDoc, nsINode* aNode)
 
 
 bool
-nsGenericElement::CanSkip(nsINode* aNode)
+nsGenericElement::CanSkip(nsINode* aNode, bool aRemovingAllowed)
 {
   
   if (nsCCUncollectableMarker::sGeneration == 0) {
@@ -4693,7 +4693,7 @@ nsGenericElement::CanSkip(nsINode* aNode)
       }
       
       
-      if (node->IsPurple() && node != aNode) {
+      if (node->IsPurple() && (node != aNode || aRemovingAllowed)) {
         node->RemovePurple();
       }
       MarkNodeChildren(node);
@@ -4730,7 +4730,8 @@ nsGenericElement::CanSkip(nsINode* aNode)
     nsIContent* n = nodesToClear[i];
     MarkNodeChildren(n);
     
-    if (n != aNode && n->IsPurple()) {
+    
+    if ((n != aNode || aRemovingAllowed) && n->IsPurple()) {
       n->RemovePurple();
     }
   }
@@ -4760,7 +4761,7 @@ nsGenericElement::InitCCCallbacks()
 }
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsGenericElement)
-  return nsGenericElement::CanSkip(tmp);
+  return nsGenericElement::CanSkip(tmp, aRemovingAllowed);
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsGenericElement)
