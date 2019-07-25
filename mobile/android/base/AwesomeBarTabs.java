@@ -40,6 +40,7 @@ package org.mozilla.gecko;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Resources;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.graphics.Bitmap;
@@ -71,6 +72,7 @@ import android.widget.TextView;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -100,6 +102,7 @@ public class AwesomeBarTabs extends TabHost {
     private View.OnTouchListener mListTouchListener;
     private JSONArray mSearchEngines;
     private ContentResolver mContentResolver;
+    private ContentObserver mContentObserver;
 
     private AwesomeBarCursorAdapter mAllPagesCursorAdapter;
     private BookmarksListAdapter mBookmarksAdapter;
@@ -247,18 +250,6 @@ public class AwesomeBarTabs extends TabHost {
         }
     }
 
-    
-    
-    public void refreshBookmarks() {
-        Cursor groupCursor = mBookmarksAdapter.getCursor();
-        groupCursor.moveToPosition(-1);
-        while (groupCursor.moveToNext()) {
-            String guid = groupCursor.getString(groupCursor.getColumnIndexOrThrow(Bookmarks.GUID));
-            
-            new RefreshChildrenCursorTask(groupCursor.getPosition()).execute(guid);
-        }
-    }
-
     private class BookmarksQueryTask extends AsyncTask<Void, Void, Cursor> {
         protected Cursor doInBackground(Void... arg0) {
             
@@ -290,6 +281,32 @@ public class AwesomeBarTabs extends TabHost {
                                URLColumns.FAVICON },
                 new int[] { R.id.title, R.id.url, R.id.favicon }
             );
+
+            try {
+                
+                Class cls = Class.forName("android.widget.CursorTreeAdapter"); 
+                Field field = cls.getDeclaredField("mAutoRequery");
+                field.setAccessible(true);
+                field.set(mBookmarksAdapter, false);
+
+                
+                mContentObserver = new ContentObserver(GeckoAppShell.getHandler()) {
+                    public void onChange(boolean selfChange) {
+                        
+                        
+                        Cursor groupCursor = mBookmarksAdapter.getCursor();
+                        groupCursor.moveToPosition(-1);
+                        while (groupCursor.moveToNext()) {
+                            String guid = groupCursor.getString(groupCursor.getColumnIndexOrThrow(Bookmarks.GUID));
+                            
+                            new RefreshChildrenCursorTask(groupCursor.getPosition()).execute(guid);
+                        }
+                    }
+                };
+                BrowserDB.registerBookmarkObserver(mContentResolver, mContentObserver);
+            } catch (Exception e) {
+                Log.e(LOGTAG, "could not disable auto-requery for BookmarksListAdapter");
+            }
 
             mBookmarksAdapter.setViewBinder(new AwesomeCursorViewBinder());
 
@@ -618,6 +635,7 @@ public class AwesomeBarTabs extends TabHost {
         mInflated = false;
         mSearchEngines = new JSONArray();
         mContentResolver = context.getContentResolver();
+        mContentObserver = null;
     }
 
     @Override
@@ -827,6 +845,9 @@ public class AwesomeBarTabs extends TabHost {
             if (bookmarksCursor != null)
                 bookmarksCursor.close();
         }
+
+        if (mContentObserver != null)
+            BrowserDB.unregisterBookmarkObserver(mContentResolver, mContentObserver);
     }
 
     public void filter(String searchTerm) {
