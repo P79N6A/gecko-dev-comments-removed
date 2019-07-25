@@ -173,7 +173,6 @@ class Bindings {
     uint16 nargs;
     uint16 nvars;
     uint16 nupvars;
-    bool hasExtensibleParents;
 
   public:
     inline Bindings(JSContext *cx);
@@ -204,7 +203,7 @@ class Bindings {
     bool hasLocalNames() const { return countLocalNames() > 0; }
 
     
-    inline js::Shape *lastShape() const;
+    inline const js::Shape *lastShape() const;
 
     enum {
         
@@ -303,43 +302,6 @@ class Bindings {
 
 
     void makeImmutable();
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    void setExtensibleParents() { hasExtensibleParents = true; }
-    bool extensibleParents() const { return hasExtensibleParents; }
 
     
 

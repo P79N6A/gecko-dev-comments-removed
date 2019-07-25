@@ -958,7 +958,8 @@ NewCallObject(JSContext *cx, Bindings *bindings, JSObject &scopeChain, JSObject 
         return NULL;
 
     
-    callobj->initCall(cx, bindings, &scopeChain);
+    callobj->init(cx, &js_CallClass, NULL, &scopeChain, NULL, false);
+    callobj->setMap(bindings->lastShape());
 
     
     if (!callobj->ensureInstanceReservedSlots(cx, argsVars))

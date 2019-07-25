@@ -58,7 +58,6 @@
 #include "jscntxt.h"
 #include "jsnum.h"
 #include "jsscopeinlines.h"
-#include "jsscriptinlines.h"
 #include "jsstr.h"
 
 #include "jsgcinlines.h"
@@ -138,59 +137,6 @@ JSObject::finalize(JSContext *cx)
     js::Probes::finalizeObject(this);
 
     finish(cx);
-}
-
-
-
-
-
-inline void
-JSObject::initCall(JSContext *cx, const js::Bindings *bindings, JSObject *parent)
-{
-    init(cx, &js_CallClass, NULL, parent, NULL, false);
-    map = bindings->lastShape();
-
-    
-
-
-
-    if (bindings->extensibleParents())
-        setOwnShape(js_GenerateShape(cx, false));
-    else
-        objShape = map->shape;
-}
-
-
-
-
-
-inline void
-JSObject::initClonedBlock(JSContext *cx, JSObject *proto, JSStackFrame *frame)
-{
-    init(cx, &js_BlockClass, proto, NULL, frame, false);
-
-    
-    JS_ASSERT(!proto->inDictionaryMode() || proto->lastProp->frozen());
-    map = proto->map;
-
-    
-
-
-
-    if (proto->hasOwnShape())
-        setOwnShape(js_GenerateShape(cx, false));
-    else
-        objShape = map->shape;
-}
-
-
-
-
-
-inline void
-JSObject::setBlockOwnShape(JSContext *cx) {
-    JS_ASSERT(isStaticBlock());
-    setOwnShape(js_GenerateShape(cx, false));
 }
 
 
