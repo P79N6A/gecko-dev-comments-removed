@@ -67,17 +67,16 @@ DoesBinaryMatchAllowedCertificates(LPCWSTR basePathForUpdate, LPCWSTR filePath)
   
   
   HKEY baseKeyRaw;
-  LSTATUS retCode = RegOpenKeyExW(HKEY_LOCAL_MACHINE, 
-                                  maintenanceServiceKey, 0, 
-                                  KEY_READ | KEY_WOW64_64KEY, &baseKeyRaw);
+  LONG retCode = RegOpenKeyExW(HKEY_LOCAL_MACHINE, 
+                               maintenanceServiceKey, 0, 
+                               KEY_READ | KEY_WOW64_64KEY, &baseKeyRaw);
   if (retCode != ERROR_SUCCESS) {
     LOG(("Could not open key. (%d)\n", retCode));
     
     
     
     retCode = RegOpenKeyExW(HKEY_LOCAL_MACHINE, 
-                            L"SOFTWARE\\Mozilla\\MaintenanceService"
-                            L"\\3932ecacee736d366d6436db0f55bce4", 0,
+                            TEST_ONLY_FALLBACK_KEY_PATH, 0,
                             KEY_READ | KEY_WOW64_64KEY, &baseKeyRaw);
     if (retCode != ERROR_SUCCESS) {
       LOG(("Could not open fallback key. (%d)\n", retCode));
