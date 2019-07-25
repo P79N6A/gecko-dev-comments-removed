@@ -1,6 +1,5 @@
 (function(){
 
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -11,10 +10,6 @@ function _isIframe(doc){
   return win.parent != win;
 }
 
-function getMilliseconds() {
-	var date = new Date();
-	return date.getTime();
-}     
 
 var TabCanvas = function(tab, canvas){ this.init(tab, canvas) }
 TabCanvas.prototype = {
@@ -22,47 +17,36 @@ TabCanvas.prototype = {
     this.tab = tab;
     this.canvas = canvas;
     this.window = window;
-        
-    this.RATE_LIMIT = 250; 
-    this.lastDraw = null;
-    
+            
     $(canvas).data("link", this);
 
     var w = $(canvas).width();
     var h = $(canvas).height();
     $(canvas).attr({width:w, height:h});
-    
-
-    
+      
     var self = this;
     this.paintIt = function(evt) { 
-      self.onPaint(evt); 
+      
+      self.tab.mirror.triggerPaint();
+
     };
-    
-    
-    
-    
-
-    tab.contentWindow.addEventListener("MozAfterPaint", this.paintIt, false);
-
-
-
-
-
-
-    
-    $(window).unload(function() {
-      self.detach();
-    });
   },
   
+  attach: function() {
+    this.tab.contentWindow.addEventListener("MozAfterPaint", this.paintIt, false);
+  },
+     
   detach: function() {
     this.tab.contentWindow.removeEventListener("MozAfterPaint", this.paintIt, false);
   },
   
   paint: function(evt){
     var $ = this.window.$;
-    if( $ == null ) return;
+    if( $ == null ) {
+      Utils.log('null $ in paint');
+      return;
+    }
+    
     var $canvas = $(this.canvas);
     var ctx = this.canvas.getContext("2d");
   
@@ -70,46 +54,27 @@ TabCanvas.prototype = {
     var h = $canvas.height();
   
     var fromWin = this.tab.contentWindow;
-    if( fromWin == null || fromWin.location.protocol == "chrome:") return;
+    if(fromWin == null) {
+      Utils.log('null fromWin in paint');
+      return;
+    }
+    
+    Utils.assert('chrome windows don\'t get paint (TabCanvas.paint)', 
+      fromWin.location.protocol != "chrome:");
 
     var scaler = w/fromWin.innerWidth;
   
     
-    var now = getMilliseconds();
 
-
-
-
-
-      ctx.save();
-      ctx.scale(scaler, scaler);
-      try{
-        ctx.drawWindow( fromWin, fromWin.scrollX, fromWin.scrollY, w/scaler, h/scaler, "#fff" );
-      } catch(e){
-        
-      }
-      
-      ctx.restore();
-
-
-
-
-
-
-    ctx.restore();      
-  },
-  
-  onPaint: function(evt){
-
-
-
-
-
-    
-    if(!this.tab.mirror.needsPaint) {
-      if(this.tab.contentWindow == null || this.tab.contentWindow.location.protocol != 'chrome:')
-        this.tab.mirror.needsPaint = getMilliseconds();
+    ctx.save();
+    ctx.scale(scaler, scaler);
+    try{
+      ctx.drawWindow( fromWin, fromWin.scrollX, fromWin.scrollY, w/scaler, h/scaler, "#fff" );
+    } catch(e){
+      Utils.error('paint', e);   
     }
+    
+    ctx.restore();
   },
   
   animate: function(options, duration){
@@ -138,31 +103,19 @@ TabCanvas.prototype = {
   }
 }
 
+
 var TabMirror = function( ){ this.init() }
 TabMirror.prototype = {
   init: function(){
-
     var self = this;
     
-
-    
-    Tabs.onOpen(function(evt) {
-      Utils.log('mirror onOpen', evt.tab.url);
-    });
-    
-    Tabs.onLoad(function(evt) {
-      Utils.log('mirror onLoad', evt.tab.url);
-    });
-
     
     Tabs.onReady( function(evt){
-      Utils.log('mirror onready');
       self.update(evt.tab);
     });
     
     
     Tabs.onClose( function(){
-      Utils.log('mirror onclose');
       self.unlink(this);
     });
     
@@ -171,36 +124,53 @@ TabMirror.prototype = {
       self.link(tab);
     });    
      
+    this.paintingPaused = 0;
     this.heartbeatIndex = 0;  
     this._fireNextHeartbeat();    
   },
   
   _heartbeat: function() {
     try {
-      var now = getMilliseconds();
+      var now = Utils.getMilliseconds();
       var count = Tabs.length;
-      if(count) {
+      if(count && this.paintingPaused <= 0) {
         this.heartbeatIndex++;
         if(this.heartbeatIndex >= count)
           this.heartbeatIndex = 0;
           
         var tab = Tabs[this.heartbeatIndex];
         var mirror = tab.mirror; 
-        if(mirror && mirror.needsPaint) {
+        if(mirror) {
+          var iconUrl = tab.raw.linkedBrowser.mIconURL;
+          var label = tab.raw.label;
+          $fav = $(mirror.favEl);
+          $name = $(mirror.nameEl);
+          
+          if(iconUrl != $fav.attr("src")) { 
+            $fav.attr("src", iconUrl);
+            mirror.triggerPaint();
+          }
+            
+          if($name.text() != label) {
+            $name.text(label);
+            mirror.triggerPaint();
+          }
+          
+          if(tab.url != mirror.url) {
+            mirror.url = tab.url;
+            mirror.triggerPaint();
+          }
 
-  
-
-
-
-
-          mirror.tabCanvas.paint();
-  
-
-            mirror.needsPaint = 0;
+          if(mirror.needsPaint) {
+            mirror.tabCanvas.paint();
+            
+            if(Utils.getMilliseconds() - mirror.needsPaint > 5000)
+              mirror.needsPaint = 0;
+          }
         }
       }
     } catch(e) {
-      Utils.error(e);
+      Utils.error('heartbeat', e);
     }
     
     this._fireNextHeartbeat();
@@ -212,107 +182,57 @@ TabMirror.prototype = {
       self._heartbeat();
     }, 100);
   },   
-  
-  _getEl: function(tab){
-    mirror = null;
-    $(".tab").each(function(){
-      if( $(this).data("tab") == tab ){
-        mirror = this;
-        return;
-      }
-    });
-    return mirror;
-  },
-  
+    
   _customize: function(func){
     
     
   },
   
   _createEl: function(tab){
-
     var div = $("<div class='tab'><span class='name'>&nbsp;</span><img class='fav'/><canvas class='thumb'/></div>")
       .data("tab", tab)
       .appendTo("body");
       
-    if( tab.url.match("chrome:") ){
+    if( tab.url.match("chrome:") )
       div.hide();
-    }     
     
     this._customize(div);
     
     tab.mirror = {}; 
     tab.mirror.needsPaint = 0;
     tab.mirror.el = div.get(0);
-
-
-
-
-
-    var self = this;
+    tab.mirror.favEl = $('.fav', div).get(0);
+    tab.mirror.nameEl = $('.name', div).get(0);
+    tab.mirror.canvasEl = $('.thumb', div).get(0);
     
-    function updateAttributes(){
-      var iconUrl = tab.raw.linkedBrowser.mIconURL;
-      var label = tab.raw.label;
-      $fav = $('.fav', div)
-      $name = $('.name', div);
-      
-      if(iconUrl != $fav.attr("src")) $fav.attr("src", iconUrl);
-      if( $name.text() != label ) {
-        $name.text(label);
-
-
-
-
-
-
-        
-
-      }
-    }    
+    tab.mirror.triggerPaint = function() {
+    	var date = new Date();
+    	this.needsPaint = date.getTime();
+    };
     
-    var timer = setInterval( updateAttributes, 500 );
-    div.data("timer", timer);
-    
-    this._updateEl(tab);
-  },
-  
-  _updateEl: function(tab){
-
-    var mirror = tab.mirror;
-
-
-
-
-  
-    if(!mirror.tabCanvas) {     
-      var canvas = $('.thumb', mirror.el).get(0);
-      mirror.tabCanvas = new TabCanvas(tab, canvas);    
+    var doc = tab.contentDocument;
+    if( !_isIframe(doc) ) {
+      tab.mirror.tabCanvas = new TabCanvas(tab, tab.mirror.canvasEl);    
+      tab.mirror.tabCanvas.attach();
+      tab.mirror.triggerPaint();
     }
-    
-    mirror.needsPaint = getMilliseconds();
   },
   
   update: function(tab){
-
-    var doc = tab.contentDocument;
     this.link(tab);
 
-    if( !_isIframe(doc) ){
-      this._updateEl(tab);
-    }
+    if(tab.mirror && tab.mirror.tabCanvas)
+      tab.mirror.triggerPaint();
   },
   
   link: function(tab){
-
     
-    var dup = this._getEl(tab)
-    if( dup ) return false;
+    if(tab.mirror)
+      return false;
     
     
-
-
-
+    if( tab.contentWindow.location.protocol == "chrome:" )
+      return false;
     
     
     this._createEl(tab);
@@ -320,26 +240,40 @@ TabMirror.prototype = {
   },
   
   unlink: function(tab){
-    $(".tab").each(function(){
-      if( $(this).data("tab") == tab ){
-        clearInterval( $(this).data("timer") );
-        $(this).remove();
-      }
-    });    
-  }
-  
-}
+    var mirror = tab.mirror;
+    if(mirror) {
+      var tabCanvas = mirror.tabCanvas;
+      if(tabCanvas)
+        tabCanvas.detach();
+      
+      $(mirror.el).remove();
+      
+      tab.mirror = null;
+    }
+  }  
+};
 
-new TabMirror()
-window.TabMirror = {}
-window.TabMirror.customize = function(func){
+
+window.TabMirror = {
+  _private: new TabMirror(), 
   
+  customize: function(func) {
+    
+    
+    
+    func($("div.tab"));
+    
+    
+    TabMirror.prototype._customize = func;
+  },
+
+  pausePainting: function() {
+    this._private.paintingPaused++;
+  },
   
-  
-  func($("div.tab"));
-  
-  
-  TabMirror.prototype._customize = func;
+  resumePainting: function() {
+    this._private.paintingPaused--;
+  }
 };
 
 })();
