@@ -110,13 +110,19 @@ protected:
 
 
 
-#define DECLARE_AND_ASSIGN_LAZY_STMT(_localStmt, _globalStmt)                  \
+#define DECLARE_AND_ASSIGN_LAZY_STMT_RET(_localStmt, _globalStmt, _ret)            \
   mozIStorageStatement* _localStmt = GetStatement(_globalStmt);                \
-  NS_ENSURE_STATE(_localStmt)
+  NS_ENSURE_TRUE(_localStmt, _ret)
+
+#define DECLARE_AND_ASSIGN_LAZY_STMT(_localStmt, _globalStmt)                  \
+  DECLARE_AND_ASSIGN_LAZY_STMT_RET(_localStmt, _globalStmt, NS_ERROR_UNEXPECTED)
+
+#define DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT_RET(_localStmt, _globalStmt, _ret)     \
+  DECLARE_AND_ASSIGN_LAZY_STMT_RET(_localStmt, _globalStmt, _ret);             \
+  mozStorageStatementScoper scoper(_localStmt)
 
 #define DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(_localStmt, _globalStmt)           \
-  DECLARE_AND_ASSIGN_LAZY_STMT(_localStmt, _globalStmt);                       \
-  mozStorageStatementScoper scoper(_localStmt)
+  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT_RET(_localStmt, _globalStmt, NS_ERROR_UNEXPECTED)
 
 
 

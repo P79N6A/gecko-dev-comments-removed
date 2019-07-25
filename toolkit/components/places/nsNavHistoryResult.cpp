@@ -68,14 +68,17 @@
 #define TO_CONTAINER(_node)                                                   \
     static_cast<nsNavHistoryContainerResultNode*>(_node)
 
-#define NOTIFY_RESULT_OBSERVERS(_result, _method)                             \
+#define NOTIFY_RESULT_OBSERVERS_RET(_result, _method, _ret)                   \
   PR_BEGIN_MACRO                                                              \
-  NS_ENSURE_STATE(_result);                                                   \
+  NS_ENSURE_TRUE(_result, _ret);                                              \
   if (!_result->mSuppressNotifications) {                                     \
     ENUMERATE_WEAKARRAY(_result->mObservers, nsINavHistoryResultObserver,     \
                         _method)                                              \
   }                                                                           \
   PR_END_MACRO
+
+#define NOTIFY_RESULT_OBSERVERS(_result, _method)                             \
+  NOTIFY_RESULT_OBSERVERS_RET(_result, _method, NS_ERROR_UNEXPECTED)
 
 
 
@@ -1643,8 +1646,9 @@ nsNavHistoryContainerResultNode::EnsureItemPosition(PRUint32 aIndex) {
 
   if (AreChildrenVisible()) {
     nsNavHistoryResult* result = GetResult();
-    NOTIFY_RESULT_OBSERVERS(result,
-                            NodeMoved(node, this, aIndex, this, newIndex));
+    NOTIFY_RESULT_OBSERVERS_RET(result,
+                                NodeMoved(node, this, aIndex, this, newIndex),
+                                PR_FALSE);
   }
 
   return PR_TRUE;
@@ -3925,7 +3929,7 @@ nsNavHistoryFolderResultNode::StartIncrementalUpdate()
       return PR_TRUE;
 
     nsNavHistoryResult* result = GetResult();
-    NS_ENSURE_STATE(result);
+    NS_ENSURE_TRUE(result, PR_FALSE);
 
     
     
