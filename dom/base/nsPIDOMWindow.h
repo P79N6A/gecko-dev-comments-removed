@@ -433,24 +433,6 @@ public:
   
 
 
-
-  PRBool HasAudioAvailableEventListeners()
-  {
-    return mMayHaveAudioAvailableEventListener;
-  }
-
-  
-
-
-
-  void SetHasAudioAvailableEventListeners()
-  {
-    mMayHaveAudioAvailableEventListener = PR_TRUE;
-  }
-
-  
-
-
   virtual void InitJavaProperties() = 0;
 
   virtual void* GetCachedXBLPrototypeHandler(nsXBLPrototypeHandler* aKey) = 0;
@@ -587,7 +569,6 @@ protected:
   PRPackedBool           mIsInnerWindow;
   PRPackedBool           mMayHavePaintEventListener;
   PRPackedBool           mMayHaveTouchEventListener;
-  PRPackedBool           mMayHaveAudioAvailableEventListener;
 
   
   

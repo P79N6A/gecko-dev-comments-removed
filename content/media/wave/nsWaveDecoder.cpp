@@ -148,15 +148,6 @@ public:
   float GetDuration();
 
   
-  
-  PRUint32 GetChannels();
-
-  
-  
-  
-  PRUint32 GetSampleRate();
-
-  
   PRBool IsSeeking();
 
   
@@ -478,26 +469,6 @@ nsWaveStateMachine::GetDuration()
     return BytesToTime(GetDataLength());
   }
   return std::numeric_limits<float>::quiet_NaN();
-}
-
-PRUint32
-nsWaveStateMachine::GetChannels()
-{
-  nsAutoMonitor monitor(mMonitor);
-  if (mMetadataValid) {
-    return mChannels;
-  }
-  return 0;
-}
-
-PRUint32
-nsWaveStateMachine::GetSampleRate()
-{
-  nsAutoMonitor monitor(mMonitor);
-  if (mMetadataValid) {
-    return mSampleRate;
-  }
-  return 0;
 }
 
 PRBool
@@ -1401,8 +1372,7 @@ nsWaveDecoder::MetadataLoaded()
   }
 
   if (mElement) {
-    mElement->MetadataLoaded(mPlaybackStateMachine->GetChannels(),
-                             mPlaybackStateMachine->GetSampleRate());
+    mElement->MetadataLoaded();
     mElement->FirstFrameLoaded(mResourceLoaded);
   }
 

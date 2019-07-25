@@ -293,32 +293,11 @@ already_AddRefed<nsIPrincipal> nsBuiltinDecoder::GetCurrentPrincipal()
   return mStream ? mStream->GetCurrentPrincipal() : nsnull;
 }
 
-void nsBuiltinDecoder::AudioAvailable(float* aFrameBuffer,
-                                      PRUint32 aFrameBufferLength,
-                                      PRUint64 aTime)
+void nsBuiltinDecoder::MetadataLoaded()
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-  if (mShuttingDown) {
+  if (mShuttingDown)
     return;
-  }
-
-  if (!mElement->MayHaveAudioAvailableEventListener()) {
-    return;
-  }
-
-  mElement->NotifyAudioAvailable(aFrameBuffer, aFrameBufferLength, aTime);
-}
-
-void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,
-                                      PRUint32 aRate,
-                                      PRUint32 aFrameBufferLength)
-{
-  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-  if (mShuttingDown) {
-    return;
-  }
-
-  mFrameBufferLength = aFrameBufferLength;
 
   
   
@@ -336,7 +315,7 @@ void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,
     
     
     Invalidate();
-    mElement->MetadataLoaded(aChannels, aRate);
+    mElement->MetadataLoaded();
   }
 
   if (!mResourceLoaded) {

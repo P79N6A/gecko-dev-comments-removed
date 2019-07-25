@@ -102,31 +102,6 @@ static const PRUint32 LOW_VIDEO_FRAMES = 1;
 
 static const int AUDIO_DURATION_MS = 40;
 
-class nsAudioMetadataEventRunner : public nsRunnable
-{
-private:
-  nsCOMPtr<nsBuiltinDecoder> mDecoder;
-public:
-  nsAudioMetadataEventRunner(nsBuiltinDecoder* aDecoder, PRUint32 aChannels,
-                             PRUint32 aRate, PRUint32 aFrameBufferLength) :
-    mDecoder(aDecoder),
-    mChannels(aChannels),
-    mRate(aRate),
-    mFrameBufferLength(aFrameBufferLength)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    mDecoder->MetadataLoaded(mChannels, mRate, mFrameBufferLength);
-    return NS_OK;
-  }
-
-  const PRUint32 mChannels;
-  const PRUint32 mRate;
-  const PRUint32 mFrameBufferLength;
-};
-
 nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDecoder,
                                                            nsBuiltinDecoderReader* aReader) :
   mDecoder(aDecoder),
@@ -149,8 +124,7 @@ nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDe
   mAudioCompleted(PR_FALSE),
   mBufferExhausted(PR_FALSE),
   mGotDurationFromHeader(PR_FALSE),
-  mStopDecodeThreads(PR_TRUE),
-  mEventManager(aDecoder)
+  mStopDecodeThreads(PR_TRUE)
 {
   MOZ_COUNT_CTOR(nsBuiltinDecoderStateMachine);
 }
@@ -434,10 +408,9 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
       
       
       missingSamples = NS_MIN(static_cast<PRInt64>(PR_UINT32_MAX), missingSamples);
-      audioDuration += PlaySilence(static_cast<PRUint32>(missingSamples),
-                                   channels, sampleTime);
+      audioDuration += PlaySilence(static_cast<PRUint32>(missingSamples), channels);
     } else {
-      audioDuration += PlayFromAudioQueue(sampleTime, channels);
+      audioDuration += PlayFromAudioQueue();
     }
     {
       MonitorAutoEnter mon(mDecoder->GetMonitor());
@@ -477,8 +450,6 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
     MonitorAutoEnter audioMon(mAudioMonitor);
     if (mAudioStream) {
       mAudioStream->Drain();
-      
-      mEventManager.Drain(mAudioEndTime);
     }
     LOG(PR_LOG_DEBUG, ("%p Reached audio stream end.", mDecoder));
   }
@@ -493,10 +464,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   LOG(PR_LOG_DEBUG, ("Audio stream finished playing, audio thread exit"));
 }
 
-PRUint32 nsBuiltinDecoderStateMachine::PlaySilence(PRUint32 aSamples,
-                                                   PRUint32 aChannels,
-                                                   PRUint64 aSampleOffset)
-
+PRUint32 nsBuiltinDecoderStateMachine::PlaySilence(PRUint32 aSamples, PRUint32 aChannels)
 {
   MonitorAutoEnter audioMon(mAudioMonitor);
   if (mAudioStream->IsPaused()) {
@@ -510,14 +478,10 @@ PRUint32 nsBuiltinDecoderStateMachine::PlaySilence(PRUint32 aSamples,
   nsAutoArrayPtr<float> buf(new float[numFloats]);
   memset(buf.get(), 0, sizeof(float) * numFloats);
   mAudioStream->Write(buf, numFloats, PR_TRUE);
-  
-  mEventManager.QueueWrittenAudioData(buf.get(), numFloats,
-                                      (aSampleOffset + samples) * aChannels);
   return samples;
 }
 
-PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aSampleOffset,
-                                                          PRUint32 aChannels)
+PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue()
 {
   nsAutoPtr<SoundData> sound(mReader->mAudioQueue.PopFront());
   {
@@ -545,14 +509,8 @@ PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aSampleOffset
       mAudioStream->Write(sound->mAudioData,
                           sound->AudioDataLength(),
                           PR_TRUE);
-
       offset = sound->mOffset;
       samples = sound->mSamples;
-
-      
-      mEventManager.QueueWrittenAudioData(sound->mAudioData.get(),
-                                          sound->AudioDataLength(),
-                                          (aSampleOffset + samples) * aChannels);
     } else {
       mReader->mAudioQueue.PushFront(sound);
       sound.forget();
@@ -594,7 +552,6 @@ void nsBuiltinDecoderStateMachine::StopPlayback(eStopMode aMode)
       } else if (aMode == AUDIO_SHUTDOWN) {
         mAudioStream->Shutdown();
         mAudioStream = nsnull;
-        mEventManager.Clear();
       }
     }
   }
@@ -651,9 +608,6 @@ void nsBuiltinDecoderStateMachine::UpdatePlaybackPosition(PRInt64 aTime)
       NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::PlaybackPositionChanged);
     NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
   }
-
-  
-  mEventManager.DispatchPendingEvents(mCurrentFrameTime + mStartTime);
 }
 
 void nsBuiltinDecoderStateMachine::ClearPositionChangeFlag()
@@ -899,14 +853,8 @@ nsresult nsBuiltinDecoderStateMachine::Run()
 
         
         
-        
-        const nsVideoInfo& info = mReader->GetInfo();
-        PRUint32 frameBufferLength = info.mAudioChannels * FRAMEBUFFER_LENGTH_PER_CHANNEL;
-        mEventManager.Init(info.mAudioChannels, info.mAudioRate);
-        mDecoder->RequestFrameBufferLength(frameBufferLength);
         nsCOMPtr<nsIRunnable> metadataLoadedEvent =
-          new nsAudioMetadataEventRunner(mDecoder, info.mAudioChannels,
-                                         info.mAudioRate, frameBufferLength);
+          NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::MetadataLoaded);
         NS_DispatchToMainThread(metadataLoadedEvent, NS_DISPATCH_NORMAL);
 
         if (mState == DECODER_STATE_DECODING_METADATA) {

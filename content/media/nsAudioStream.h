@@ -68,7 +68,7 @@ class nsAudioStream
   
   
   
-  nsresult Init(PRInt32 aNumChannels, PRInt32 aRate, SampleFormat aFormat);
+  void Init(PRInt32 aNumChannels, PRInt32 aRate, SampleFormat aFormat);
 
   
   void Shutdown();
@@ -79,7 +79,7 @@ class nsAudioStream
   
   
   
-  nsresult Write(const void* aBuf, PRUint32 aCount, PRBool aBlocking);
+  void Write(const void* aBuf, PRUint32 aCount, PRBool aBlocking);
 
   
   
@@ -101,10 +101,6 @@ class nsAudioStream
   
   
   PRInt64 GetPosition();
-
-  
-  
-  PRInt64 GetSampleOffset();
 
   
   PRBool IsPaused() { return mPaused; }
