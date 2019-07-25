@@ -363,16 +363,28 @@ BookmarksEngine.prototype = {
   },
 
   _updateOutgoingShare: function BmkEngine__updateOutgoing(folderNode) {
+    
+
+
+
+
     let self = yield;
     let myUserName = ID.get('WeaveID').username;
+    
+    
     let ans = Cc["@mozilla.org/browser/annotation-service;1"].
       getService(Ci.nsIAnnotationService);
     let serverPath = ans.getItemAnnotation(folderNode, SERVER_PATH_ANNO);
+    
+    
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
     let keyring = keyringFile.get();
     let symKey = keyring[ myUserName ];
+    
     let json = this._store._wrapMount( folderNode, myUserName ); 
     
+
+
     
     let bookmarkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
     Crypto.PBEencrypt.async( Crypto, self.cb, json, {password:symKey} );
