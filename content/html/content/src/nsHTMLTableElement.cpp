@@ -68,8 +68,6 @@ public:
   TableRowsCollection(nsHTMLTableElement *aParent);
   virtual ~TableRowsCollection();
 
-  nsresult Init();
-
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIDOMHTMLCOLLECTION
 
@@ -83,13 +81,18 @@ public:
 
 protected:
   
+  nsHTMLTableElement* mParent;
   nsRefPtr<nsContentList> mOrphanRows;  
-  nsHTMLTableElement * mParent;
 };
 
 
 TableRowsCollection::TableRowsCollection(nsHTMLTableElement *aParent)
   : mParent(aParent)
+  , mOrphanRows(new nsContentList(mParent,
+                                  mParent->NodeInfo()->NamespaceID(),
+                                  nsGkAtoms::tr,
+                                  nsGkAtoms::tr,
+                                  PR_FALSE))
 {
 }
 
@@ -117,17 +120,6 @@ NS_INTERFACE_TABLE_HEAD(TableRowsCollection)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(TableRowsCollection)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(HTMLCollection)
 NS_INTERFACE_MAP_END
-
-nsresult
-TableRowsCollection::Init()
-{
-  mOrphanRows = new nsContentList(mParent,
-                                  mParent->NodeInfo()->NamespaceID(),
-                                  nsGkAtoms::tr,
-                                  nsGkAtoms::tr,
-                                  PR_FALSE);
-  return NS_OK;
-}
 
 
 
@@ -499,15 +491,7 @@ NS_IMETHODIMP
 nsHTMLTableElement::GetRows(nsIDOMHTMLCollection** aValue)
 {
   if (!mRows) {
-    
     mRows = new TableRowsCollection(this);
-    NS_ENSURE_TRUE(mRows, NS_ERROR_OUT_OF_MEMORY);
-
-    nsresult rv = mRows->Init();
-    if (NS_FAILED(rv)) {
-      mRows = nsnull;
-      return rv;
-    }
   }
 
   *aValue = mRows;
