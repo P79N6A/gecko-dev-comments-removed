@@ -142,7 +142,7 @@ typedef PRUint32 nsSplittableType;
 
 
 
-typedef PRUint32 nsFrameState;
+typedef PRUint64 nsFrameState;
 
 #define NS_FRAME_STATE_BIT(n_) (nsFrameState(1) << (n_))
 
@@ -262,6 +262,7 @@ enum {
   
   NS_FRAME_IMPL_RESERVED =                      nsFrameState(0xFFF00000),
 
+  
   
   NS_FRAME_RESERVED =                           ~NS_FRAME_IMPL_RESERVED,
 
