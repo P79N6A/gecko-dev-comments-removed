@@ -455,13 +455,28 @@ SpdyStream::ParseHttpRequestHeaders(const char *buf,
   
   
 
-  if (mTransaction->RequestHead()->Method() != nsHttp::Post &&
-      mTransaction->RequestHead()->Method() != nsHttp::Put &&
-      mTransaction->RequestHead()->Method() != nsHttp::Options) {
+  if (mTransaction->RequestHead()->Method() == nsHttp::Get ||
+      mTransaction->RequestHead()->Method() == nsHttp::Connect ||
+      mTransaction->RequestHead()->Method() == nsHttp::Head) {
+    
+    
+
     mSentFinOnData = 1;
     mTxInlineFrame[4] = SpdySession::kFlag_Data_FIN;
   }
-
+  else if (mTransaction->RequestHead()->Method() == nsHttp::Post ||
+           mTransaction->RequestHead()->Method() == nsHttp::Put ||
+           mTransaction->RequestHead()->Method() == nsHttp::Options) {
+    
+    
+  }
+  else if (!mRequestBodyLenRemaining) {
+    
+    
+    mSentFinOnData = 1;
+    mTxInlineFrame[4] = SpdySession::kFlag_Data_FIN;
+  }
+  
   Telemetry::Accumulate(Telemetry::SPDY_SYN_SIZE, mTxInlineFrameUsed - 18);
 
   
