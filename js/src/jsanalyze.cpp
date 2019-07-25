@@ -1421,45 +1421,80 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
             stack[stackDepth - 1] = code->poppedValues[2];
             break;
 
+          
+
+
+
+
+
+
+
+
+          case JSOP_TABLESWITCH:
+          case JSOP_TABLESWITCHX: {
+            jsbytecode *pc2 = pc;
+            unsigned jmplen = (op == JSOP_TABLESWITCH) ? JUMP_OFFSET_LEN : JUMPX_OFFSET_LEN;
+            unsigned defaultOffset = offset + GetJumpOffset(pc, pc2);
+            pc2 += jmplen;
+            jsint low = GET_JUMP_OFFSET(pc2);
+            pc2 += JUMP_OFFSET_LEN;
+            jsint high = GET_JUMP_OFFSET(pc2);
+            pc2 += JUMP_OFFSET_LEN;
+
+            checkBranchTarget(cx, defaultOffset, branchTargets, values, stackDepth);
+
+            for (jsint i = low; i <= high; i++) {
+                unsigned targetOffset = offset + GetJumpOffset(pc, pc2);
+                if (targetOffset != offset)
+                    checkBranchTarget(cx, targetOffset, branchTargets, values, stackDepth);
+                pc2 += jmplen;
+            }
+            break;
+          }
+
+          case JSOP_LOOKUPSWITCH:
+          case JSOP_LOOKUPSWITCHX: {
+            jsbytecode *pc2 = pc;
+            unsigned jmplen = (op == JSOP_LOOKUPSWITCH) ? JUMP_OFFSET_LEN : JUMPX_OFFSET_LEN;
+            unsigned defaultOffset = offset + GetJumpOffset(pc, pc2);
+            pc2 += jmplen;
+            unsigned npairs = GET_UINT16(pc2);
+            pc2 += UINT16_LEN;
+
+            checkBranchTarget(cx, defaultOffset, branchTargets, values, stackDepth);
+
+            while (npairs) {
+                pc2 += INDEX_LEN;
+                unsigned targetOffset = offset + GetJumpOffset(pc, pc2);
+                checkBranchTarget(cx, targetOffset, branchTargets, values, stackDepth);
+                pc2 += jmplen;
+                npairs--;
+            }
+            break;
+          }
+
+          case JSOP_TRY: { 
+            JSTryNote *tn = script->trynotes()->vector;
+            JSTryNote *tnlimit = tn + script->trynotes()->length;
+            for (; tn < tnlimit; tn++) {
+                unsigned startOffset = script->main - script->code + tn->start;
+                if (startOffset == offset + 1) {
+                    unsigned catchOffset = startOffset + tn->length;
+
+                    if (tn->kind != JSTRY_ITER)
+                        checkBranchTarget(cx, catchOffset, branchTargets, values, stackDepth);
+                }
+            }
+            break;
+          }
+
           default:;
         }
 
         uint32 type = JOF_TYPE(js_CodeSpec[op].format);
         if (type == JOF_JUMP || type == JOF_JUMPX) {
             unsigned targetOffset = FollowBranch(script, offset);
-
-            unsigned targetDepth = getCode(targetOffset).stackDepth;
-            JS_ASSERT(targetDepth <= stackDepth);
-
-            
-
-
-
-
-
-            Vector<SlotValue> *&pending = getCode(targetOffset).pendingValues;
-            if (pending) {
-                for (unsigned i = 0; i < pending->length(); i++) {
-                    SlotValue &v = (*pending)[i];
-                    mergeValue(cx, targetOffset, values[v.slot], &v);
-                }
-            } else {
-                JS_ASSERT(targetOffset > offset);
-                pending = cx->new_< Vector<SlotValue> >(cx);
-                if (!pending || !branchTargets.append(targetOffset)) {
-                    setOOM(cx);
-                    return;
-                }
-            }
-
-            
-
-
-
-
-
-            for (unsigned i = 0; i < targetDepth; i++)
-                checkPendingValue(cx, stack[i], StackSlot(script, i), pending);
+            checkBranchTarget(cx, targetOffset, branchTargets, values, stackDepth);
 
             
 
@@ -1541,21 +1576,9 @@ inline void
 ScriptAnalysis::mergeValue(JSContext *cx, uint32 offset, const SSAValue &v, SlotValue *pv)
 {
     
+    JS_ASSERT(v.kind() != SSAValue::EMPTY && pv->value.kind() != SSAValue::EMPTY);
 
-    
-
-
-
-
-
-
-
-
-
-
-    JS_ASSERT(pv->value.kind() != SSAValue::EMPTY);
-
-    if (v.equals(pv->value) || v.kind() == SSAValue::EMPTY)
+    if (v.equals(pv->value))
         return;
 
     if (pv->value.kind() != SSAValue::PHI || pv->value.phiOffset() < offset) {
@@ -1580,10 +1603,47 @@ ScriptAnalysis::checkPendingValue(JSContext *cx, const SSAValue &v, uint32 slot,
             return;
     }
 
-    JS_ASSERT(v.kind() != SSAValue::EMPTY);
-
     if (!pending->append(SlotValue(slot, v)))
         setOOM(cx);
+}
+
+void
+ScriptAnalysis::checkBranchTarget(JSContext *cx, uint32 targetOffset,
+                                  Vector<uint32> &branchTargets,
+                                  SSAValue *values, uint32 stackDepth)
+{
+    unsigned targetDepth = getCode(targetOffset).stackDepth;
+    JS_ASSERT(targetDepth <= stackDepth);
+
+    
+
+
+
+
+    Vector<SlotValue> *&pending = getCode(targetOffset).pendingValues;
+    if (pending) {
+        for (unsigned i = 0; i < pending->length(); i++) {
+            SlotValue &v = (*pending)[i];
+            mergeValue(cx, targetOffset, values[v.slot], &v);
+        }
+    } else {
+        pending = cx->new_< Vector<SlotValue> >(cx);
+        if (!pending || !branchTargets.append(targetOffset)) {
+            setOOM(cx);
+            return;
+        }
+    }
+
+    
+
+
+
+
+
+    for (unsigned i = 0; i < targetDepth; i++) {
+        uint32 slot = StackSlot(script, i);
+        checkPendingValue(cx, values[slot], slot, pending);
+    }
 }
 
 void
