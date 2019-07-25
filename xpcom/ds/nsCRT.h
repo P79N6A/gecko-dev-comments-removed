@@ -212,6 +212,12 @@ public:
 
   
   
+  
+  static const char* memmem(const char* haystack, PRUint32 haystackLen,
+                            const char* needle, PRUint32 needleLen);
+
+  
+  
   static PRUnichar* strdup(const PRUnichar* str);
 
   
