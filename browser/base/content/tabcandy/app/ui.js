@@ -229,7 +229,7 @@ window.Page = {
           break;
         case 49: 
         case 69: 
-          if( Keys.meta ) if( self.getActiveTab() ) self.getActiveTab().zoom();
+          if( Keys.meta ) if( self.getActiveTab() ) self.getActiveTab().zoomIn();
           break;
       }
       
@@ -245,7 +245,7 @@ window.Page = {
       }
       
       if((e.which == 27 || e.which == 13) && iQ(":focus").length == 0 )
-        if( self.getActiveTab() ) self.getActiveTab().zoom();
+        if( self.getActiveTab() ) self.getActiveTab().zoomIn();
       
       
        
@@ -256,8 +256,10 @@ window.Page = {
   
   init: function() {
     var self = this;
-    Utils.homeTab.raw.maxWidth = 60;
-    Utils.homeTab.raw.minWidth = 60;
+
+
+
+
         
     
     
@@ -295,97 +297,52 @@ window.Page = {
       if( focusTab.contentWindow == window ){
         UI.focused = true;
         Page.hideChrome();
-        if(currentTab != null && currentTab.mirror != null) {
-          
-          
-          
-          
-          
-          var mirror = currentTab.mirror;
-          var $tab = iQ(mirror.el);
-          var data = $tab.data('zoomSave');
-          var item = TabItems.getItemByTabElement(mirror.el);
-            
-          TabMirror.pausePainting();
 
-          $tab.animate({
-            left: data.pos.left,
-            top: data.pos.top, 
-            width: data.w,
-            height: data.h
-          }, {
-            duration: 300,
-            easing: 'cubic-bezier',
-            complete: function() { 
-              $tab.removeClass('front');
-              
-              self.setActiveTab(item);
-              var activeGroup = Groups.getActiveGroup();
-              if( activeGroup )
-                activeGroup.reorderBasedOnTabOrder(item);        
-      
-              window.Groups.setActiveGroup(null);
-              TabMirror.resumePainting();        
-              UI.resize(true);
-            }
+        var item = null;
+        if(currentTab && currentTab.mirror)
+          item = TabItems.getItemByTabElement(currentTab.mirror.el);
+        
+        if(item) {
+          
+          
+          
+          
+          
+          item.zoomOut(function() {
+            self.setActiveTab(item);
+            var activeGroup = Groups.getActiveGroup();
+            if( activeGroup )
+              activeGroup.reorderBasedOnTabOrder(item);        
+    
+            window.Groups.setActiveGroup(null);
+            UI.resize(true);
           });
         }
       } else { 
         iQ.timeout(function() { 
           UI.focused = false;
           Page.showChrome();
-          var item = TabItems.getItemByTabElement(focusTab.mirror.el);
-          if(item) 
-            Groups.setActiveGroup(item.parent);
+          
+          var newItem = null;
+          if(focusTab && focusTab.mirror)
+            newItem = TabItems.getItemByTabElement(focusTab.mirror.el);
+
+          if(newItem) 
+            Groups.setActiveGroup(newItem.parent);
             
           UI.tabBar.show();  
           
           
-          var oldItem = TabItems.getItemByTabElement(currentTab.mirror.el);
-          if(item != oldItem) {
-            var data;
-            if(oldItem) {
-              var $oldTab = iQ(oldItem.container);
-              data = $oldTab.data('zoomSave');
-              $oldTab
-                .removeClass('front')
-                .css({
-                  left: data.pos.left,
-                  top: data.pos.top, 
-                  width: data.w,
-                  height: data.h
-                });
-            }                
-  
-            if(item) {
-              var $tab = iQ(item.container);
+          var oldItem = null;
+          if(currentTab && currentTab.mirror)
+            oldItem = TabItems.getItemByTabElement(currentTab.mirror.el);
+            
+          if(newItem != oldItem) {
+            if(oldItem)
+              oldItem.setZoomPrep(false);
 
-              data = {
-                pos: $tab.position(),
-                w: $tab.width(),
-                h: $tab.height()
-              };
-              
-              $tab.data('zoomSave', data);
-
-              
-              
-              
-              
-              
-              
-              
-              
-              var scaleCheat = 2;
-              $tab
-                .addClass('front')
-                .css({
-                  left: data.pos.left * (1-1/scaleCheat),
-                  top: data.pos.top * (1-1/scaleCheat), 
-                  width: window.innerWidth/scaleCheat,
-                  height: data.h * (window.innerWidth / data.w)/scaleCheat
-                });
-            }                
+            if(newItem)
+              newItem.setZoomPrep(true);
           }
         }, 1);
       }

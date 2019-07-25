@@ -71,6 +71,9 @@ window.Group = function(listOfEls, options) {
   this.expanded = null;
   this.locked = (options.locked ? Utils.copy(options.locked) : {});
   this.topChild = null;
+  
+  
+  
   this._activeTab = null;
   
   if(isPoint(options.userSize))  
@@ -289,18 +292,15 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   
-  
-  
   setActiveTab: function(tab){
+    Utils.assert('tab must be a TabItem', tab && tab.isATabItem);
     this._activeTab = tab;
   },
 
   
   
   
-  
-  
-  getActiveTab: function(tab){
+  getActiveTab: function(){
     return this._activeTab;
   },
   
@@ -1053,10 +1053,10 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         
         if( self.isNewTabsGroup() ) return;
         var activeTab = self.getActiveTab();
-        if( activeTab ) TabItems.zoomTo(activeTab)
-        
+        if( activeTab ) 
+          activeTab.zoomIn();
         else if(self.getChild(0))
-          TabItems.zoomTo(self.getChild(0).tab.mirror.el);
+          self.getChild(0).zoomIn();
           
         self._mouseDownLocation = null;
     });
