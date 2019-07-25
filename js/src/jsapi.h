@@ -756,8 +756,6 @@ JS_StringToVersion(const char *string);
                                                    leaving that up to the
                                                    embedding. */
 
-#define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
-
 extern JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx);
 
@@ -1568,8 +1566,10 @@ struct JSExtendedClass {
 
 
 
+
+
 #define JSCLASS_GLOBAL_FLAGS \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 2))
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -3372,14 +3372,15 @@ class Value
 
 
 
-static inline jsval *       Jsvalify(Value *v)       { return (jsval *)v; }
-static inline const jsval * Jsvalify(const Value *v) { return (const jsval *)v; }
-static inline jsval &       Jsvalify(Value &v)       { return (jsval &)v; }
-static inline const jsval & Jsvalify(const Value &v) { return (const jsval &)v; }
-static inline Value *       Valueify(jsval *v)       { return (Value *)v; }
-static inline const Value * Valueify(const jsval *v) { return (const Value *)v; }
-static inline Value &       Valueify(jsval &v)       { return (Value &)v; }
-static inline const Value & Valueify(const jsval &v) { return (const Value &)v; }
+static inline jsval *        Jsvalify(Value *v)        { return (jsval *)v; }
+static inline const jsval *  Jsvalify(const Value *v)  { return (const jsval *)v; }
+static inline jsval &        Jsvalify(Value &v)        { return (jsval &)v; }
+static inline const jsval &  Jsvalify(const Value &v)  { return (const jsval &)v; }
+static inline Value *        Valueify(jsval *v)        { return (Value *)v; }
+static inline const Value *  Valueify(const jsval *v)  { return (const Value *)v; }
+static inline Value **       Valueify(jsval **v)       { return (Value **)v; }
+static inline Value &        Valueify(jsval &v)        { return (Value &)v; }
+static inline const Value &  Valueify(const jsval &v)  { return (const Value &)v; }
 
 
 static inline Value undefinedValue() { return UndefinedTag(); }

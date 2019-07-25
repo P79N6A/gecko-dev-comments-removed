@@ -99,7 +99,7 @@ namespace CType {
   static JSBool CreateArray(JSContext* cx, uintN argc, jsval* vp);
   static JSBool ToString(JSContext* cx, uintN argc, jsval* vp);
   static JSBool ToSource(JSContext* cx, uintN argc, jsval* vp);
-  static JSBool HasInstance(JSContext* cx, JSObject* obj, const jsval *v, JSBool* bp);
+  static JSBool HasInstance(JSContext* cx, JSObject* obj, const jsval* vp, JSBool* bp);
 }
 
 namespace PointerType {
@@ -452,7 +452,6 @@ static JSFunctionSpec sUInt64Functions[] = {
 static JSFunctionSpec sModuleFunctions[] = {
   JS_FN("open", Library::Open, 1, CTYPESFN_FLAGS),
   JS_FN("cast", CData::Cast, 2, CTYPESFN_FLAGS),
-  JS_FN("libraryName", Library::Name, 1, CTYPESFN_FLAGS),
   JS_FS_END
 };
 
@@ -870,8 +869,7 @@ InitTypeClasses(JSContext* cx, JSObject* parent)
 
   
   if (!DefineABIConstant(cx, parent, "default_abi", ABI_DEFAULT) ||
-      !DefineABIConstant(cx, parent, "stdcall_abi", ABI_STDCALL) ||
-      !DefineABIConstant(cx, parent, "winapi_abi", ABI_WINAPI))
+      !DefineABIConstant(cx, parent, "stdcall_abi", ABI_STDCALL))
     return false;
 
   
@@ -928,9 +926,8 @@ JS_InitCTypesClass(JSContext* cx, JSObject* global)
     return false;
 
   if (!JS_DefineProperty(cx, global, "ctypes", OBJECT_TO_JSVAL(ctypes),
-                         JS_PropertyStub, JS_PropertyStub, JSPROP_READONLY | JSPROP_PERMANENT)) {
+         NULL, NULL, JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT))
     return false;
-  }
 
   if (!InitTypeClasses(cx, ctypes))
     return false;
@@ -1257,57 +1254,6 @@ jsvalToFloat(JSContext *cx, jsval val, FloatType* result)
   return false;
 }
 
-template<class IntegerType>
-static bool
-StringToInteger(JSContext* cx, JSString* string, IntegerType* result)
-{
-  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
-
-  const jschar* cp = string->chars();
-  const jschar* end = cp + string->length();
-  if (cp == end)
-    return false;
-
-  IntegerType sign = 1;
-  if (cp[0] == '-') {
-    if (!numeric_limits<IntegerType>::is_signed)
-      return false;
-
-    sign = -1;
-    ++cp;
-  }
-
-  
-  IntegerType base = 10;
-  if (end - cp > 2 && cp[0] == '0' && (cp[1] == 'x' || cp[1] == 'X')) {
-    cp += 2;
-    base = 16;
-  }
-
-  
-  
-  IntegerType i = 0;
-  while (cp != end) {
-    jschar c = *cp++;
-    if (c >= '0' && c <= '9')
-      c -= '0';
-    else if (base == 16 && c >= 'a' && c <= 'f')
-      c = c - 'a' + 10;
-    else if (base == 16 && c >= 'A' && c <= 'F')
-      c = c - 'A' + 10;
-    else
-      return false;
-
-    IntegerType ii = i;
-    i = ii * base + sign * c;
-    if (i / base != ii) 
-      return false;
-  }
-
-  *result = i;
-  return true;
-}
-
 
 
 
@@ -1364,62 +1310,6 @@ static bool
 jsvalToSize(JSContext* cx, jsval val, bool allowString, size_t* result)
 {
   if (!jsvalToBigInteger(cx, val, allowString, result))
-    return false;
-
-  
-  return Convert<size_t>(jsdouble(*result)) == *result;
-}
-
-
-
-
-template<class IntegerType>
-static bool
-jsidToBigInteger(JSContext* cx,
-                  jsid val,
-                  bool allowString,
-                  IntegerType* result)
-{
-  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
-
-  if (JSID_IS_INT(val)) {
-    
-    
-    jsint i = JSID_TO_INT(val);
-    return ConvertExact(i, result);
-  }
-  if (allowString && JSID_IS_STRING(val)) {
-    
-    
-    
-    
-    return StringToInteger(cx, JSID_TO_STRING(val), result);
-  }
-  if (JSID_IS_OBJECT(val)) {
-    
-    JSObject* obj = JSID_TO_OBJECT(val);
-
-    if (UInt64::IsUInt64(cx, obj)) {
-      
-      JSUint64 i = Int64Base::GetInt(cx, obj);
-      return ConvertExact(i, result);
-    }
-
-    if (Int64::IsInt64(cx, obj)) {
-      
-      JSInt64 i = Int64Base::GetInt(cx, obj);
-      return ConvertExact(i, result);
-    }
-  }
-  return false;
-}
-
-
-
-static bool
-jsidToSize(JSContext* cx, jsid val, bool allowString, size_t* result)
-{
-  if (!jsidToBigInteger(cx, val, allowString, result))
     return false;
 
   
@@ -1521,17 +1411,17 @@ jsvalToPtrExplicit(JSContext* cx, jsval val, uintptr_t* result)
   return false;
 }
 
-template<class IntegerType, class CharType, size_t N, class AP>
+template<class IntegerType>
 void
-IntegerToString(IntegerType i, jsuint radix, Vector<CharType, N, AP>& result)
+IntegerToString(IntegerType i, jsuint radix, AutoString& result)
 {
   JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
 
   
   
-  CharType buffer[sizeof(IntegerType) * 8 + 1];
-  CharType* end = buffer + sizeof(buffer) / sizeof(CharType);
-  CharType* cp = end;
+  jschar buffer[sizeof(IntegerType) * 8 + 1];
+  jschar* end = buffer + sizeof(buffer) / sizeof(jschar);
+  jschar* cp = end;
 
   
   
@@ -1549,6 +1439,57 @@ IntegerToString(IntegerType i, jsuint radix, Vector<CharType, N, AP>& result)
 
   JS_ASSERT(cp >= buffer);
   result.append(cp, end);
+}
+
+template<class IntegerType>
+static bool
+StringToInteger(JSContext* cx, JSString* string, IntegerType* result)
+{
+  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
+
+  const jschar* cp = string->chars();
+  const jschar* end = cp + string->length();
+  if (cp == end)
+    return false;
+
+  IntegerType sign = 1;
+  if (cp[0] == '-') {
+    if (!numeric_limits<IntegerType>::is_signed)
+      return false;
+
+    sign = -1;
+    ++cp;
+  }
+
+  
+  IntegerType base = 10;
+  if (end - cp > 2 && cp[0] == '0' && (cp[1] == 'x' || cp[1] == 'X')) {
+    cp += 2;
+    base = 16;
+  }
+
+  
+  
+  IntegerType i = 0;
+  while (cp != end) {
+    jschar c = *cp++;
+    if (c >= '0' && c <= '9')
+      c -= '0';
+    else if (base == 16 && c >= 'a' && c <= 'f')
+      c = c - 'a' + 10;
+    else if (base == 16 && c >= 'A' && c <= 'F')
+      c = c - 'A' + 10;
+    else
+      return false;
+
+    IntegerType ii = i;
+    i = ii * base + sign * c;
+    if (i / base != ii) 
+      return false;
+  }
+
+  *result = i;
+  return true;
 }
 
 template<class CharType>
@@ -1917,11 +1858,11 @@ ImplicitConvert(JSContext* cx,
 
       for (jsuint i = 0; i < sourceLength; ++i) {
         js::AutoValueRooter item(cx);
-        if (!JS_GetElement(cx, sourceArray, i, item.jsval_addr()))
+        if (!JS_GetElement(cx, sourceArray, i, Jsvalify(item.addr())))
           return false;
 
         char* data = intermediate.get() + elementSize * i;
-        if (!ImplicitConvert(cx, item.jsval_value(), baseType, data, false, NULL))
+        if (!ImplicitConvert(cx, Jsvalify(item.value()), baseType, data, false, NULL))
           return false;
       }
 
@@ -1957,29 +1898,29 @@ ImplicitConvert(JSContext* cx,
       while (1) {
         if (!JS_NextProperty(cx, iter, &id))
           return false;
-        if (JSID_IS_VOID(id))
+        if (JSVAL_IS_VOID(id))
           break;
 
         js::AutoValueRooter fieldVal(cx);
-        JS_IdToValue(cx, id, fieldVal.jsval_addr());
-        if (!JSVAL_IS_STRING(fieldVal.jsval_value())) {
+        JS_IdToValue(cx, id, Jsvalify(fieldVal.addr()));
+        if (!fieldVal.value().isString()) {
           JS_ReportError(cx, "property name is not a string");
           return false;
         }
 
         const FieldInfo* field = StructType::LookupField(cx, targetType,
-                                                         JSVAL_TO_STRING(fieldVal.jsval_value()));
+          Jsvalify(fieldVal.value()));
         if (!field)
           return false;
 
-        JSString* name = JSVAL_TO_STRING(fieldVal.jsval_value());
+        JSString* name = fieldVal.value().asString();
         js::AutoValueRooter prop(cx);
-        if (!JS_GetUCProperty(cx, obj, name->chars(), name->length(), prop.jsval_addr()))
+        if (!JS_GetUCProperty(cx, obj, name->chars(), name->length(), Jsvalify(prop.addr())))
           return false;
 
         
         char* fieldData = intermediate.get() + field->mOffset;
-        if (!ImplicitConvert(cx, prop.jsval_value(), field->mType, fieldData, false, NULL))
+        if (!ImplicitConvert(cx, Jsvalify(prop.value()), field->mType, fieldData, false, NULL))
           return false;
 
         ++i;
@@ -2020,7 +1961,7 @@ ExplicitConvert(JSContext* cx, jsval val, JSObject* targetType, void* buffer)
   
   
   js::AutoValueRooter ex(cx);
-  if (!JS_GetPendingException(cx, ex.jsval_addr()))
+  if (!JS_GetPendingException(cx, Jsvalify(ex.addr())))
     return false;
 
   
@@ -2068,7 +2009,7 @@ ExplicitConvert(JSContext* cx, jsval val, JSObject* targetType, void* buffer)
   case TYPE_array:
   case TYPE_struct:
     
-    JS_SetPendingException(cx, ex.jsval_value());
+    JS_SetPendingException(cx, Jsvalify(ex.value()));
     return false;
   case TYPE_void_t:
   case TYPE_function:
@@ -2128,11 +2069,8 @@ BuildTypeName(JSContext* cx, JSObject* typeObj)
       FunctionInfo* fninfo = FunctionType::GetFunctionInfo(cx, typeObj);
 
       
-      ABICode abi = GetABICode(cx, fninfo->mABI);
-      if (abi == ABI_STDCALL)
+      if (GetABICode(cx, fninfo->mABI) == ABI_STDCALL)
         PrependString(result, "__stdcall ");
-      else if (abi == ABI_WINAPI)
-        PrependString(result, "WINAPI ");
 
       
       PrependString(result, "(");
@@ -2220,9 +2158,6 @@ BuildTypeSource(JSContext* cx,
       break;
     case ABI_STDCALL:
       AppendString(result, "ctypes.stdcall_abi, ");
-      break;
-    case ABI_WINAPI:
-      AppendString(result, "ctypes.winapi_abi, ");
       break;
     case INVALID_ABI:
       JS_NOT_REACHED("invalid abi");
@@ -3142,7 +3077,7 @@ CType::ToSource(JSContext* cx, uintN argc, jsval *vp)
 }
 
 JSBool
-CType::HasInstance(JSContext* cx, JSObject* obj, const jsval *v, JSBool* bp)
+CType::HasInstance(JSContext* cx, JSObject* obj, const jsval* vp, JSBool* bp)
 {
   JS_ASSERT(CType::IsCType(cx, obj));
 
@@ -3153,10 +3088,10 @@ CType::HasInstance(JSContext* cx, JSObject* obj, const jsval *v, JSBool* bp)
   JS_ASSERT(JS_GET_CLASS(cx, prototype) == &sCDataProtoClass);
 
   *bp = JS_FALSE;
-  if (JSVAL_IS_PRIMITIVE(*v))
+  if (JSVAL_IS_PRIMITIVE(*vp))
     return JS_TRUE;
 
-  JSObject* proto = JSVAL_TO_OBJECT(*v);
+  JSObject* proto = JSVAL_TO_OBJECT(*vp);
   while ((proto = JS_GetPrototype(cx, proto))) {
     if (proto == prototype) {
       *bp = JS_TRUE;
@@ -3541,8 +3476,8 @@ ArrayType::ConstructData(JSContext* cx,
       
       JSObject* arg = JSVAL_TO_OBJECT(argv[0]);
       js::AutoValueRooter lengthVal(cx);
-      if (!JS_GetProperty(cx, arg, "length", lengthVal.jsval_addr()) ||
-          !jsvalToSize(cx, lengthVal.jsval_value(), false, &length)) {
+      if (!JS_GetProperty(cx, arg, "length", Jsvalify(lengthVal.addr())) ||
+          !jsvalToSize(cx, Jsvalify(lengthVal.value()), false, &length)) {
         JS_ReportError(cx, "argument must be an array object or length");
         return JS_FALSE;
       }
@@ -3748,8 +3683,8 @@ ArrayType::Getter(JSContext* cx, JSObject* obj, jsid idval, jsval* vp)
   
   size_t index;
   size_t length = GetLength(cx, typeObj);
-  bool ok = jsidToSize(cx, idval, true, &index);
-  if (!ok && JSID_IS_STRING(idval)) {
+  bool ok = jsvalToSize(cx, idval, true, &index);
+  if (!ok && JSVAL_IS_STRING(idval)) {
     
     
     return JS_TRUE;
@@ -3783,8 +3718,8 @@ ArrayType::Setter(JSContext* cx, JSObject* obj, jsid idval, jsval* vp)
   
   size_t index;
   size_t length = GetLength(cx, typeObj);
-  bool ok = jsidToSize(cx, idval, true, &index);
-  if (!ok && JSID_IS_STRING(idval)) {
+  bool ok = jsvalToSize(cx, idval, true, &index);
+  if (!ok && JSVAL_IS_STRING(idval)) {
     
     
     return JS_TRUE;
@@ -3874,33 +3809,29 @@ ExtractStructField(JSContext* cx, jsval val, JSObject** typeObj)
   jsid id;
   if (!JS_NextProperty(cx, iter, &id))
     return NULL;
-  if (JSID_IS_VOID(id)) {
-    JS_ReportError(cx, "struct field descriptors require a valid name and type");
-    return NULL;
-  }
 
   js::AutoValueRooter nameVal(cx);
-  JS_IdToValue(cx, id, nameVal.jsval_addr());
-  if (!JSVAL_IS_STRING(nameVal.jsval_value())) {
+  JS_IdToValue(cx, id, Jsvalify(nameVal.addr()));
+  if (!nameVal.value().isString()) {
     JS_ReportError(cx, "struct field descriptors require a valid name and type");
     return NULL;
   }
-  JSString* name = JSVAL_TO_STRING(nameVal.jsval_value());
+  JSString* name = nameVal.value().asString();
 
   
   if (!JS_NextProperty(cx, iter, &id))
     return NULL;
-  if (!JSID_IS_VOID(id)) {
+  if (!JSVAL_IS_VOID(id)) {
     JS_ReportError(cx, "struct field descriptors must contain one property");
     return NULL;
   }
 
   js::AutoValueRooter propVal(cx);
-  if (!JS_GetUCProperty(cx, obj, name->chars(), name->length(), propVal.jsval_addr()))
+  if (!JS_GetUCProperty(cx, obj, name->chars(), name->length(), Jsvalify(propVal.addr())))
     return NULL;
 
   if (propVal.value().isPrimitive() ||
-      !CType::IsCType(cx, JSVAL_TO_OBJECT(propVal.jsval_value()))) {
+      !CType::IsCType(cx, &propVal.value().asObject())) {
     JS_ReportError(cx, "struct field descriptors require a valid name and type");
     return NULL;
   }
@@ -3908,7 +3839,7 @@ ExtractStructField(JSContext* cx, jsval val, JSObject** typeObj)
   
   
   
-  *typeObj = JSVAL_TO_OBJECT(propVal.jsval_value());
+  *typeObj = &propVal.value().asObject();
   size_t size;
   if (!CType::GetSafeSize(cx, *typeObj, &size) || size == 0) {
     JS_ReportError(cx, "struct field types must have defined and nonzero size");
@@ -3922,11 +3853,12 @@ ExtractStructField(JSContext* cx, jsval val, JSObject** typeObj)
 
 static JSBool
 AddFieldToArray(JSContext* cx,
+                JSObject* arrayObj,
                 jsval* element,
                 JSString* name,
                 JSObject* typeObj)
 {
-  JSObject* fieldObj = JS_NewObject(cx, NULL, NULL, NULL);
+  JSObject* fieldObj = JS_NewObject(cx, NULL, NULL, arrayObj);
   if (!fieldObj)
     return false;
 
@@ -4033,11 +3965,11 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj, JSObject* fieldsObj
 
     for (jsuint i = 0; i < len; ++i) {
       js::AutoValueRooter item(cx);
-      if (!JS_GetElement(cx, fieldsObj, i, item.jsval_addr()))
+      if (!JS_GetElement(cx, fieldsObj, i, Jsvalify(item.addr())))
         return JS_FALSE;
 
-      JSObject* fieldType = NULL;
-      JSString* name = ExtractStructField(cx, item.jsval_value(), &fieldType);
+      JSObject* fieldType;
+      JSString* name = ExtractStructField(cx, Jsvalify(item.value()), &fieldType);
       if (!name)
         return JS_FALSE;
 
@@ -4303,11 +4235,12 @@ StructType::GetFieldInfo(JSContext* cx, JSObject* obj)
 }
 
 const FieldInfo*
-StructType::LookupField(JSContext* cx, JSObject* obj, JSString *name)
+StructType::LookupField(JSContext* cx, JSObject* obj, jsval idval)
 {
   JS_ASSERT(CType::IsCType(cx, obj));
   JS_ASSERT(CType::GetTypeCode(cx, obj) == TYPE_struct);
 
+  JSString* name = JSVAL_TO_STRING(idval);
   FieldInfoHash::Ptr ptr = GetFieldInfo(cx, obj)->lookup(name);
   if (ptr)
     return &ptr->value;
@@ -4331,21 +4264,21 @@ StructType::BuildFieldsArray(JSContext* cx, JSObject* obj)
   size_t len = fields->count();
 
   
-  Array<jsval, 16> fieldsVec;
-  if (!fieldsVec.resize(len))
+  jsval* fieldsVec;
+  JSObject* fieldsProp =
+    js_NewArrayObjectWithCapacity(cx, len, Valueify(&fieldsVec));
+  if (!fieldsProp)
     return NULL;
+  js::AutoObjectRooter root(cx, fieldsProp);
+  JS_ASSERT(len == 0 || fieldsVec);
 
   for (FieldInfoHash::Range r = fields->all(); !r.empty(); r.popFront()) {
     const FieldInfoHash::Entry& entry = r.front();
     
-    if (!AddFieldToArray(cx, &fieldsVec[entry.value.mIndex],
-                         entry.key, entry.value.mType))
+    if (!AddFieldToArray(cx, fieldsProp, &fieldsVec[entry.value.mIndex],
+           entry.key, entry.value.mType))
       return NULL;
   }
-
-  JSObject* fieldsProp = JS_NewArrayObject(cx, len, fieldsVec.begin());
-  if (!fieldsProp)
-    return NULL;
 
   
   if (!JS_SealObject(cx, fieldsProp, JS_FALSE))
@@ -4398,7 +4331,7 @@ StructType::FieldGetter(JSContext* cx, JSObject* obj, jsid idval, jsval* vp)
     return JS_FALSE;
   }
 
-  const FieldInfo* field = LookupField(cx, typeObj, JSID_TO_STRING(idval));
+  const FieldInfo* field = LookupField(cx, typeObj, idval);
   if (!field)
     return JS_FALSE;
 
@@ -4420,7 +4353,7 @@ StructType::FieldSetter(JSContext* cx, JSObject* obj, jsid idval, jsval* vp)
     return JS_FALSE;
   }
 
-  const FieldInfo* field = LookupField(cx, typeObj, JSID_TO_STRING(idval));
+  const FieldInfo* field = LookupField(cx, typeObj, idval);
   if (!field)
     return JS_FALSE;
 
@@ -4450,8 +4383,7 @@ StructType::AddressOfField(JSContext* cx, uintN argc, jsval *vp)
     return JS_FALSE;
   }
 
-  const FieldInfo* field = LookupField(cx, typeObj,
-                                       JSVAL_TO_STRING(JS_ARGV(cx, vp)[0]));
+  const FieldInfo* field = LookupField(cx, typeObj, JS_ARGV(cx, vp)[0]);
   if (!field)
     return JS_FALSE;
 
@@ -4490,8 +4422,7 @@ struct AutoValue
 
   bool SizeToType(JSContext* cx, JSObject* type)
   {
-    
-    size_t size = Align(CType::GetSize(cx, type), sizeof(ffi_arg));
+    size_t size = CType::GetSize(cx, type);
     mData = new char[size];
     if (mData)
       memset(mData, 0, size);
@@ -4517,7 +4448,6 @@ GetABI(JSContext* cx, jsval abiType, ffi_abi* result)
     *result = FFI_DEFAULT_ABI;
     return true;
   case ABI_STDCALL:
-  case ABI_WINAPI:
 #if (defined(_WIN32) && !defined(_WIN64)) || defined(_OS2)
     *result = FFI_STDCALL;
     return true;
@@ -4644,47 +4574,6 @@ PrepareCIF(JSContext* cx,
   }
 }
 
-void
-FunctionType::BuildSymbolName(JSContext* cx,
-                              JSString* name,
-                              JSObject* typeObj,
-                              AutoCString& result)
-{
-  FunctionInfo* fninfo = GetFunctionInfo(cx, typeObj);
-
-  switch (GetABICode(cx, fninfo->mABI)) {
-  case ABI_DEFAULT:
-  case ABI_WINAPI:
-    
-    AppendString(result, name);
-    break;
-
-  case ABI_STDCALL: {
-    
-    
-    
-    
-    AppendString(result, "_");
-    AppendString(result, name);
-    AppendString(result, "@");
-
-    
-    size_t size = 0;
-    for (size_t i = 0; i < fninfo->mArgTypes.length(); ++i) {
-      JSObject* argType = fninfo->mArgTypes[i];
-      size += Align(CType::GetSize(cx, argType), sizeof(ffi_arg));
-    }
-
-    IntegerToString(size, 10, result);
-    break;
-  }
-
-  case INVALID_ABI:
-    JS_NOT_REACHED("invalid abi");
-    break;
-  }
-}
-
 static FunctionInfo*
 NewFunctionInfo(JSContext* cx,
                 jsval abiType,
@@ -4798,7 +4687,7 @@ FunctionType::Create(JSContext* cx, uintN argc, jsval* vp)
 
   
   JS_ASSERT(!argTypes.length() || arrayObj);
-  js::AutoArrayRooter items(cx, argTypes.length(), argTypes.begin());
+  js::AutoArrayRooter items(cx, argTypes.length(), Valueify(argTypes.begin()));
   for (jsuint i = 0; i < argTypes.length(); ++i) {
     if (!JS_GetElement(cx, arrayObj, i, &argTypes[i]))
       return JS_FALSE;
@@ -4848,9 +4737,6 @@ FunctionType::CreateInternal(JSContext* cx,
   return typeObj;
 }
 
-
-
-
 JSBool
 FunctionType::ConstructData(JSContext* cx,
                             JSObject* typeObj,
@@ -4865,11 +4751,6 @@ FunctionType::ConstructData(JSContext* cx,
   FunctionInfo* fninfo = FunctionType::GetFunctionInfo(cx, typeObj);
   if (fninfo->mIsVariadic) {
     JS_ReportError(cx, "Can't declare a variadic callback function");
-    return JS_FALSE;
-  }
-  if (GetABICode(cx, fninfo->mABI) == ABI_WINAPI) {
-    JS_ReportError(cx, "Can't declare a ctypes.winapi_abi callback function, "
-                   "use ctypes.stdcall_abi instead");
     return JS_FALSE;
   }
 
@@ -5015,8 +4896,7 @@ FunctionType::Call(JSContext* cx,
 
   
   AutoValue returnValue;
-  TypeCode typeCode = CType::GetTypeCode(cx, fninfo->mReturnType);
-  if (typeCode != TYPE_void_t &&
+  if (CType::GetTypeCode(cx, fninfo->mReturnType) != TYPE_void_t &&
       !returnValue.SizeToType(cx, fninfo->mReturnType)) {
     JS_ReportAllocationOverflow(cx);
     return false;
@@ -5032,25 +4912,6 @@ FunctionType::Call(JSContext* cx,
     reinterpret_cast<void**>(values.begin()));
 
   JS_ResumeRequest(cx, rc);
-
-  
-  
-  switch (typeCode) {
-#define DEFINE_INT_TYPE(name, type, ffiType)                                   \
-  case TYPE_##name:                                                            \
-    if (sizeof(type) < sizeof(ffi_arg)) {                                      \
-      ffi_arg data = *static_cast<ffi_arg*>(returnValue.mData);                \
-      *static_cast<type*>(returnValue.mData) = static_cast<type>(data);        \
-    }                                                                          \
-    break;
-#define DEFINE_WRAPPED_INT_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#define DEFINE_BOOL_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#define DEFINE_CHAR_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#define DEFINE_JSCHAR_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#include "typedefs.h"
-  default:
-    break;
-  }
 
   
   return ConvertToJS(cx, fninfo->mReturnType, NULL, returnValue.mData,
@@ -5095,16 +4956,16 @@ FunctionType::ArgTypesGetter(JSContext* cx, JSObject* obj, jsid idval, jsval* vp
   size_t len = fninfo->mArgTypes.length();
 
   
-  Array<jsval, 16> vec;
-  if (!vec.resize(len))
+  jsval* vec;
+  JSObject* argTypes =
+    js_NewArrayObjectWithCapacity(cx, len, Valueify(&vec));
+  if (!argTypes)
     return JS_FALSE;
+  js::AutoObjectRooter argsroot(cx, argTypes);
+  JS_ASSERT(len == 0 || vec);
 
   for (size_t i = 0; i < len; ++i)
     vec[i] = OBJECT_TO_JSVAL(fninfo->mArgTypes[i]);
-
-  JSObject* argTypes = JS_NewArrayObject(cx, len, vec.begin());
-  if (!argTypes)
-    return JS_FALSE;
 
   
   if (!JS_SealObject(cx, argTypes, JS_FALSE) ||
@@ -5158,8 +5019,6 @@ CClosure::Create(JSContext* cx,
                  JSObject* thisObj,
                  PRFuncPtr* fnptr)
 {
-  JS_ASSERT(fnObj);
-
   JSObject* result = JS_NewObject(cx, &sCClosureClass, NULL, NULL);
   if (!result)
     return NULL;
@@ -5168,7 +5027,6 @@ CClosure::Create(JSContext* cx,
   
   FunctionInfo* fninfo = FunctionType::GetFunctionInfo(cx, typeObj);
   JS_ASSERT(!fninfo->mIsVariadic);
-  JS_ASSERT(GetABICode(cx, fninfo->mABI) != ABI_WINAPI);
 
   AutoPtr<ClosureInfo> cinfo(new ClosureInfo());
   if (!cinfo) {
@@ -5264,10 +5122,9 @@ CClosure::Trace(JSTracer* trc, JSObject* obj)
 
   
   
-  JS_CALL_OBJECT_TRACER(trc, cinfo->typeObj, "typeObj");
-  JS_CALL_OBJECT_TRACER(trc, cinfo->jsfnObj, "jsfnObj");
-  if (cinfo->thisObj)
-    JS_CALL_OBJECT_TRACER(trc, cinfo->thisObj, "thisObj");
+  JS_CALL_TRACER(trc, cinfo->typeObj, JSTRACE_OBJECT, "typeObj");
+  JS_CALL_TRACER(trc, cinfo->thisObj, JSTRACE_OBJECT, "thisObj");
+  JS_CALL_TRACER(trc, cinfo->jsfnObj, JSTRACE_OBJECT, "jsfnObj");
 }
 
 void
@@ -5295,6 +5152,10 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
   JS_ASSERT(userData);
 
   
+  if (cif->rtype != &ffi_type_void)
+    memset(result, 0, cif->rtype->size);
+
+  
   ClosureInfo* cinfo = static_cast<ClosureInfo*>(userData);
   JSContext* cx = cinfo->cx;
   JSObject* typeObj = cinfo->typeObj;
@@ -5311,29 +5172,6 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
   
   FunctionInfo* fninfo = FunctionType::GetFunctionInfo(cx, typeObj);
   JS_ASSERT(cif == &fninfo->mCIF);
-
-  TypeCode typeCode = CType::GetTypeCode(cx, fninfo->mReturnType);
-
-  
-  
-  
-  if (cif->rtype != &ffi_type_void) {
-    size_t size = cif->rtype->size;
-    switch (typeCode) {
-#define DEFINE_INT_TYPE(name, type, ffiType)                                   \
-    case TYPE_##name:
-#define DEFINE_WRAPPED_INT_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#define DEFINE_BOOL_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#define DEFINE_CHAR_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#define DEFINE_JSCHAR_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#include "typedefs.h"
-      size = Align(size, sizeof(ffi_arg));
-      break;
-    default:
-      break;
-    }
-    memset(result, 0, size);
-  }
 
   
   js::AutoObjectRooter root(cx, cinfo->closureObj);
@@ -5369,27 +5207,7 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
   
   
   
-  if (!ImplicitConvert(cx, rval, fninfo->mReturnType, result, false, NULL))
-    return;
-
-  
-  
-  switch (typeCode) {
-#define DEFINE_INT_TYPE(name, type, ffiType)                                   \
-  case TYPE_##name:                                                            \
-    if (sizeof(type) < sizeof(ffi_arg)) {                                      \
-      ffi_arg data = *static_cast<type*>(result);                              \
-      *static_cast<ffi_arg*>(result) = data;                                   \
-    }                                                                          \
-    break;
-#define DEFINE_WRAPPED_INT_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#define DEFINE_BOOL_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#define DEFINE_CHAR_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#define DEFINE_JSCHAR_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
-#include "typedefs.h"
-  default:
-    break;
-  }
+  ImplicitConvert(cx, rval, fninfo->mReturnType, result, false, NULL);
 }
 
 
@@ -5716,7 +5534,6 @@ CData::ReadString(JSContext* cx, uintN argc, jsval *vp)
       return JS_FALSE;
 
     ASSERT_OK(js_InflateUTF8StringToBuffer(cx, bytes, length, dst, &dstlen));
-    dst[dstlen] = 0;
 
     result = JS_NewUCString(cx, dst, dstlen);
     break;
