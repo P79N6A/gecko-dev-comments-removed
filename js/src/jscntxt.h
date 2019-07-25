@@ -220,6 +220,7 @@ struct ThreadData {
     
     
     uint8               *ionTop;
+    JSContext           *ionJSContext;
 
 #ifdef DEBUG
     size_t              noGCOrAllocationCheck;

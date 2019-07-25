@@ -117,13 +117,6 @@ class MacroAssemblerX86Shared : public Assembler
         ucomisd(ScratchFloatReg, reg);
         return truthy ? NonZero : Zero;
     }
-
-    
-    
-    void linkExitFrame(Register scratch) {
-        mov(ImmWord(JS_THREAD_DATA(GetIonContext()->cx)), scratch);
-        mov(StackPointer, Operand(scratch, offsetof(ThreadData, ionTop)));
-    }
 };
 
 } 

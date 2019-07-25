@@ -336,7 +336,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32 frameClass)
     }
     masm.bind(&frameFixupDone);
 
-    masm.linkExitFrame(edx);
+    masm.linkExitFrame();
 
     Label exception;
 
@@ -420,7 +420,7 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
     
     
     
-    masm.linkExitFrame(edx);
+    masm.linkExitFrame();
 
     
     Register argsBase = InvalidReg;
@@ -442,7 +442,7 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
 
     
     Register cxreg = regs.takeAny();
-    masm.movl(ImmWord(cx), cxreg);
+    masm.movl(Operand(&JS_THREAD_DATA(cx)->ionTop), cxreg);
     masm.setABIArg(0, cxreg);
 
     

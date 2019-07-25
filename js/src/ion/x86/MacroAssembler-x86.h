@@ -401,6 +401,13 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         shll(Imm32(FRAMETYPE_BITS), frameSizeReg);
         orl(Imm32(type), frameSizeReg);
     }
+
+    
+    
+    void linkExitFrame() {
+        JSContext *cx = GetIonContext()->cx;
+        movl(StackPointer, Operand(&JS_THREAD_DATA(cx)->ionTop));
+    }
 };
 
 typedef MacroAssemblerX86 MacroAssemblerSpecific;
