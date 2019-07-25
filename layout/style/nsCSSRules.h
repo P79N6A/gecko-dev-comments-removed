@@ -77,6 +77,14 @@ protected:
   ~nsCSSGroupRule();
 
   
+  NS_IMETHOD_(nsrefcnt) AddRef();
+  NS_IMETHOD_(nsrefcnt) Release();
+protected:
+  nsAutoRefCnt mRefCnt;
+  NS_DECL_OWNINGTHREAD
+public:
+
+  
   DECL_STYLE_RULE_INHERIT_NO_DOMRULE
 
   
@@ -254,7 +262,7 @@ class nsCSSFontFaceRule : public nsCSSRule,
                           public nsIDOMCSSFontFaceRule
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_ISUPPORTS
 
   
 #ifdef DEBUG
