@@ -168,8 +168,9 @@ protected:
 
 
 
-
   nsRefPtr<RasterImage> mImage;
+
+private:
   nsCOMPtr<imgIDecoderObserver> mObserver;
 
   PRUint32 mFrameCount; 
