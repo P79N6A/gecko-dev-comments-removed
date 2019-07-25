@@ -2502,6 +2502,7 @@ nsXMLHttpRequest::ChangeStateToDone()
     
     
     mChannel = nsnull;
+    mCORSPreflightChannel = nsnull;
   }
   else if (!(mState & XML_HTTP_REQUEST_GOT_FINAL_STOP)) {
     
