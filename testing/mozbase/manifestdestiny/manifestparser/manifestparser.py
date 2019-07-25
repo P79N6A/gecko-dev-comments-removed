@@ -368,7 +368,7 @@ def read_ini(fp, variables=None, default='DEFAULT',
 
             if strict:
                 
-                assert section not in section_names
+                assert section not in section_names, "Section '%s' already found in '%s'" % (section, section_names)
 
             section_names.add(section)
             current_section = {}
@@ -1005,49 +1005,6 @@ class HelpCLI(CLICommand):
             for command in sorted(commands):
                 print '  %s : %s' % (command, commands[command].__doc__.strip())
 
-class SetupCLI(CLICommand):
-    """
-    setup using setuptools
-    """
-    
-    
-    
-
-    usage = '%prog [options] setup [setuptools options]'
-
-    def __call__(self, options, args):
-        sys.argv = [sys.argv[0]] + args
-        assert setup is not None, "You must have setuptools installed to use SetupCLI"
-        here = os.path.dirname(os.path.abspath(__file__))
-        try:
-            filename = os.path.join(here, 'README.txt')
-            description = file(filename).read()
-        except:
-            description = ''
-        os.chdir(here)
-
-        setup(name='ManifestDestiny',
-              version=version,
-              description="Universal manifests for Mozilla test harnesses",
-              long_description=description,
-              classifiers=[], 
-              keywords='mozilla manifests',
-              author='Jeff Hammel',
-              author_email='jhammel@mozilla.com',
-              url='https://wiki.mozilla.org/Auto-tools/Projects/ManifestDestiny',
-              license='MPL',
-              zip_safe=False,
-              py_modules=['manifestparser'],
-              install_requires=[
-                  
-                  ],
-              entry_points="""
-              [console_scripts]
-              manifestparser = manifestparser:main
-              """,
-              )
-
-
 class UpdateCLI(CLICommand):
     """
     update the tests as listed in a manifest from a directory
@@ -1081,8 +1038,6 @@ commands = { 'create': CreateCLI,
              'help': HelpCLI,
              'update': UpdateCLI,
              'write': WriteCLI }
-if setup is not None:
-    commands['setup'] = SetupCLI
 
 def main(args=sys.argv[1:]):
     """console_script entry point"""
