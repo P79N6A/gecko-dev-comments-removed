@@ -94,6 +94,14 @@ var BrowserApp = {
     let event = document.createEvent("Events");
     event.initEvent("UIReady", true, false);
     window.dispatchEvent(event);
+
+    
+    sendMessageToJava({
+      gecko: {
+        type: "Gecko:Ready"
+      }
+    });
+
   },
 
   shutdown: function shutdown() {
