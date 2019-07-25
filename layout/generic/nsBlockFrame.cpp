@@ -3040,6 +3040,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     clearance = 0;
     nscoord topMargin = 0;
     PRBool mayNeedRetry = PR_FALSE;
+    PRBool clearedFloats = PR_FALSE;
     if (applyTopMargin) {
       
       
@@ -3114,7 +3115,9 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
         nscoord currentY = aState.mY;
         
         aState.mY = aState.ClearFloats(aState.mY, breakType, replacedBlock);
-        
+
+        clearedFloats = aState.mY != currentY;
+
         
         
         
@@ -3146,21 +3149,38 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     nsRect availSpace;
     aState.ComputeBlockAvailSpace(frame, display, floatAvailableSpace,
                                   replacedBlock != nsnull, availSpace);
+
     
+    
+    
+    
+    
+    if ((!aState.mReflowState.mFlags.mIsTopOfPage || clearedFloats) &&
+        availSpace.height < 0) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      aState.mY = startingY;
+      aState.mPrevBottomMargin = incomingMargin;
+      PushLines(aState, aLine.prev());
+      NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
+      *aKeepReflowGoing = PR_FALSE;
+      return NS_OK;
+    }
+
     
     
     aState.mY -= topMargin;
     availSpace.y -= topMargin;
     if (NS_UNCONSTRAINEDSIZE != availSpace.height) {
       availSpace.height += topMargin;
-
-      
-      
-      
-      
-      if (NS_UNCONSTRAINEDSIZE == availSpace.height) {
-        --availSpace.height;
-      }
     }
     
     
