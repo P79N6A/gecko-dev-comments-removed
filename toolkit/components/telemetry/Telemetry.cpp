@@ -581,14 +581,7 @@ TelemetryImpl::RecordSlowStatement(const nsACString &statement,
                                    const nsACString &dbName,
                                    PRUint32 delay)
 {
-  if (!sTelemetry) {
-    
-    nsCOMPtr<nsITelemetry> telemetryService =
-      do_GetService("@mozilla.org/base/telemetry;1");
-    if (!telemetryService || !sTelemetry)
-      return;
-  }
-
+  MOZ_ASSERT(sTelemetry);
   if (!sTelemetry->mCanRecord || !sTelemetry->mTrackedDBs.GetEntry(dbName))
     return;
 
@@ -676,6 +669,14 @@ RecordSlowSQLStatement(const nsACString &statement,
                        PRUint32 delay)
 {
   TelemetryImpl::RecordSlowStatement(statement, dbName, delay);
+}
+
+void Init()
+{
+  
+  nsCOMPtr<nsITelemetry> telemetryService =
+    do_GetService("@mozilla.org/base/telemetry;1");
+  MOZ_ASSERT(telemetryService);
 }
 
 } 

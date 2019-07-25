@@ -62,6 +62,11 @@ HistogramCount
 
 
 
+void Init();
+
+
+
+
 
 
 
