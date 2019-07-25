@@ -1901,13 +1901,10 @@ JSObject::initBoundFunction(JSContext *cx, const Value &thisArg,
     setSlot(JSSLOT_BOUND_FUNCTION_ARGS_COUNT, PrivateUint32Value(argslen));
     if (argslen != 0) {
         
-
-
-
         if (!toDictionaryMode(cx))
             return false;
         JS_ASSERT(slotSpan() == JSSLOT_FREE(&FunctionClass));
-        lastProp->base()->slotSpan += argslen;
+        lastProp->base()->setSlotSpan(slotSpan() + argslen);
 
         if (!ensureInstanceReservedSlots(cx, argslen))
             return false;
