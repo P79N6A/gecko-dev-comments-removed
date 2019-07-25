@@ -68,32 +68,14 @@ var iQ = function(selector, context) {
   quickExpr = /^[^<]*(<[\w\W]+>)[^>]*$|^#([\w-]+)$/,
 
   
-  isSimple = /^.[^:#\[\.,]*$/,
-
-  
-  rnotwhite = /\S/,
-
-  
-  rtrim = /^(\s|\u00A0)+|(\s|\u00A0)+$/g,
-
-  
   rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>)?$/,
 
   
   toString = Object.prototype.toString,
   hasOwnProperty = Object.prototype.hasOwnProperty,
-  push = Array.prototype.push,
-  slice = Array.prototype.slice,
-  indexOf = Array.prototype.indexOf;
 
-var rclass = /[\n\t]/g,
-  rspace = /\s+/,
-  rreturn = /\r/g,
-  rspecialurl = /href|src|style/,
-  rtype = /(button|input)/i,
-  rfocusable = /(button|input|object|select|textarea)/i,
-  rclickable = /^(a|area)$/i,
-  rradiocheck = /radio|checkbox/;
+  rclass = /[\n\t]/g,
+  rspace = /\s+/;
 
 
 
@@ -208,7 +190,7 @@ iQ.fn = iQ.prototype = {
       
       
       if ( selector.length == null || typeof selector === "string" || iQ.isFunction(selector) || (typeof selector !== "function" && selector.setInterval) ) {
-        push.call( ret, selector );
+        Array.prototype.push.call( ret, selector );
       } else {
         iQ.merge( ret, selector );
       }
@@ -228,52 +210,17 @@ iQ.fn = iQ.prototype = {
   
   
   
-  toArray: function() {
-    return slice.call( this, 0 );
-  },
-
-  
-  
   
   
   get: function( num ) {
     return num == null ?
 
       
-      this.toArray() :
+      
+      Array.prototype.slice.call( this, 0 ) :
 
       
-      ( num < 0 ? this.slice(num)[ 0 ] : this[ num ] );
-  },
-
-  
-  
-  
-  
-  pushStack: function( elems, name, selector ) {
-    
-    var ret = iQ();
-
-    if ( iQ.isArray( elems ) ) {
-      push.apply( ret, elems );
-    
-    } else {
-      iQ.merge( ret, elems );
-    }
-
-    
-    ret.prevObject = this;
-
-    ret.context = this.context;
-
-    if ( name === "find" ) {
-      ret.selector = this.selector + (this.selector ? " " : "") + selector;
-    } else if ( name ) {
-      ret.selector = this.selector + "." + name + "(" + selector + ")";
-    }
-
-    
-    return ret;
+      ( num < 0 ? this[ num + this.length ] : this[ num ] );
   },
 
   
@@ -283,13 +230,6 @@ iQ.fn = iQ.prototype = {
   
   each: function( callback, args ) {
     return iQ.each( this, callback, args );
-  },
-  
-  
-  
-  slice: function() {
-    return this.pushStack( slice.apply( this, arguments ),
-      "slice", slice.call(arguments).join(",") );
   },
 
   
@@ -309,7 +249,6 @@ iQ.fn = iQ.prototype = {
         if ( elem.nodeType === 1 ) {
           if ( !elem.className ) {
             elem.className = value;
-
           } else {
             var className = " " + elem.className + " ", setClass = elem.className;
             for ( var c = 0, cl = classNames.length; c < cl; c++ ) {
@@ -317,7 +256,7 @@ iQ.fn = iQ.prototype = {
                 setClass += " " + classNames[c];
               }
             }
-            elem.className = iQ.trim( setClass );
+            elem.className = String.trim( setClass );
           }
         }
       }
@@ -346,7 +285,7 @@ iQ.fn = iQ.prototype = {
             for ( var c = 0, cl = classNames.length; c < cl; c++ ) {
               className = className.replace(" " + classNames[c] + " ", " ");
             }
-            elem.className = iQ.trim( className );
+            elem.className = String.trim( className );
 
           } else {
             elem.className = "";
@@ -881,9 +820,6 @@ iQ.extend({
   
   
   
-  
-  
-  
   isFunction: function( obj ) {
     return toString.call(obj) === "[object Function]";
   },
@@ -951,12 +887,6 @@ iQ.extend({
     return object;
   },
   
-  
-  
-  trim: function( text ) {
-    return (text || "").replace( rtrim, "" );
-  },
-
   
   
   merge: function( first, second ) {
