@@ -56,13 +56,15 @@ class nsIContent;
 class nsIURI;
 class nsIFrameFrame;
 class nsIView;
+class nsIInProcessContentFrameMessageManager;
+class AutoResetInShow;
 
 #ifdef MOZ_IPC
 namespace mozilla {
-  namespace dom {
-    class TabParent;
-    class PIFrameEmbeddingParent;
-  }
+namespace dom {
+class PBrowserParent;
+class TabParent;
+}
 }
 
 #ifdef MOZ_WIDGET_GTK2
@@ -75,6 +77,10 @@ class QX11EmbedContainer;
 
 class nsFrameLoader : public nsIFrameLoader
 {
+  friend class AutoResetInShow;
+  typedef mozilla::dom::PBrowserParent PBrowserParent;
+  typedef mozilla::dom::TabParent TabParent;
+
 protected:
   nsFrameLoader(nsIContent *aOwner) :
     mOwnerContent(aOwner),
@@ -82,11 +88,14 @@ protected:
     mIsTopLevelContent(PR_FALSE),
     mDestroyCalled(PR_FALSE),
     mNeedsAsyncDestroy(PR_FALSE),
-    mInSwap(PR_FALSE)
+    mInSwap(PR_FALSE),
+    mInShow(PR_FALSE),
+    mHideCalled(PR_FALSE)
 #ifdef MOZ_IPC
+    , mDelayRemoteDialogs(PR_FALSE)
     , mRemoteWidgetCreated(PR_FALSE)
     , mRemoteFrame(false)
-    , mChildProcess(nsnull)
+    , mRemoteBrowser(nsnull)
 #if defined(MOZ_WIDGET_GTK2) || defined(MOZ_WIDGET_QT)
     , mRemoteSocket(nsnull)
 #endif
@@ -111,16 +120,16 @@ public:
   nsresult ReallyStartLoading();
   void Finalize();
   nsIDocShell* GetExistingDocShell() { return mDocShell; }
-
+  nsPIDOMEventTarget* GetTabChildGlobalAsEventTarget();
   nsresult CreateStaticClone(nsIFrameLoader* aDest);
 
   
 
 
 
-  bool Show(PRInt32 marginWidth, PRInt32 marginHeight,
-            PRInt32 scrollbarPrefX, PRInt32 scrollbarPrefY,
-            nsIFrameFrame* frame);
+  PRBool Show(PRInt32 marginWidth, PRInt32 marginHeight,
+              PRInt32 scrollbarPrefX, PRInt32 scrollbarPrefY,
+              nsIFrameFrame* frame);
 
   
 
@@ -138,10 +147,12 @@ public:
                                nsRefPtr<nsFrameLoader>& aFirstToSwap,
                                nsRefPtr<nsFrameLoader>& aSecondToSwap);
 
-#ifdef MOZ_IPC
-  mozilla::dom::PIFrameEmbeddingParent* GetChildProcess();
-#endif
+  
+  void DestroyChild();
 
+#ifdef MOZ_IPC
+  PBrowserParent* GetRemoteBrowser();
+#endif
   nsFrameMessageManager* GetFrameMessageManager() { return mMessageManager; }
 
 private:
@@ -155,7 +166,8 @@ private:
 
 
   nsresult MaybeCreateDocShell();
-  void GetURL(nsString& aURL);
+  nsresult EnsureMessageManager();
+  NS_HIDDEN_(void) GetURL(nsString& aURL);
 
   
   NS_HIDDEN_(nsIntSize) GetSubDocumentSize(const nsIFrame *aIFrame);
@@ -179,17 +191,26 @@ private:
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURIToLoad;
   nsIContent *mOwnerContent; 
+public:
+  
+  nsRefPtr<nsFrameMessageManager> mMessageManager;
+  nsCOMPtr<nsIInProcessContentFrameMessageManager> mChildMessageManager;
+private:
   PRPackedBool mDepthTooGreat : 1;
   PRPackedBool mIsTopLevelContent : 1;
   PRPackedBool mDestroyCalled : 1;
   PRPackedBool mNeedsAsyncDestroy : 1;
   PRPackedBool mInSwap : 1;
+  PRPackedBool mInShow : 1;
+  PRPackedBool mHideCalled : 1;
 
 #ifdef MOZ_IPC
+  PRPackedBool mDelayRemoteDialogs : 1;
   PRPackedBool mRemoteWidgetCreated : 1;
   bool mRemoteFrame;
   
-  mozilla::dom::TabParent* mChildProcess;
+  nsCOMPtr<nsIObserver> mChildHost;
+  TabParent* mRemoteBrowser;
 
 #ifdef MOZ_WIDGET_GTK2
   GtkWidget* mRemoteSocket;
@@ -197,7 +218,7 @@ private:
   QX11EmbedContainer* mRemoteSocket;
 #endif
 #endif
-  nsRefPtr<nsFrameMessageManager> mMessageManager;
+
 };
 
 #endif

@@ -37,15 +37,15 @@
 
 
 
-#ifndef dom_tabs_ContentProcessThread_h
-#define dom_tabs_ContentProcessThread_h 1
+#ifndef dom_tabs_ContentThread_h
+#define dom_tabs_ContentThread_h 1
 
 #include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/ipc/ScopedXREEmbed.h"
-#include "ContentProcessChild.h"
+#include "ContentChild.h"
 
 #undef _MOZ_LOG
-#define _MOZ_LOG(s)  printf("[ContentProcessProcess] %s", s)
+#define _MOZ_LOG(s)  printf("[ContentProcess] %s", s)
 
 namespace mozilla {
 namespace dom {
@@ -54,16 +54,16 @@ namespace dom {
 
 
 
-class ContentProcessProcess : public mozilla::ipc::ProcessChild
+class ContentProcess : public mozilla::ipc::ProcessChild
 {
     typedef mozilla::ipc::ProcessChild ProcessChild;
 
 public:
-    ContentProcessProcess(ProcessHandle mParentHandle)
+    ContentProcess(ProcessHandle mParentHandle)
         : ProcessChild(mParentHandle)
     { }
 
-    ~ContentProcessProcess()
+    ~ContentProcess()
     { }
 
     NS_OVERRIDE
@@ -72,10 +72,10 @@ public:
     virtual void CleanUp();
 
 private:
-    ContentProcessChild mContentProcess;
+    ContentChild mContent;
     mozilla::ipc::ScopedXREEmbed mXREEmbed;
 
-    DISALLOW_EVIL_CONSTRUCTORS(ContentProcessProcess);
+    DISALLOW_EVIL_CONSTRUCTORS(ContentProcess);
 };
 
 }  

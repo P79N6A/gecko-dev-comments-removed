@@ -39,7 +39,7 @@
 
 #include "mozilla/ipc/IOThreadChild.h"
 
-#include "ContentProcessProcess.h"
+#include "ContentProcess.h"
 
 using mozilla::ipc::IOThreadChild;
 
@@ -47,9 +47,9 @@ namespace mozilla {
 namespace dom {
 
 bool
-ContentProcessProcess::Init()
+ContentProcess::Init()
 {
-    mContentProcess.Init(IOThreadChild::message_loop(),
+    mContent.Init(IOThreadChild::message_loop(),
                          ParentHandle(),
                          IOThreadChild::channel());
     mXREEmbed.Start();
@@ -58,7 +58,7 @@ ContentProcessProcess::Init()
 }
 
 void
-ContentProcessProcess::CleanUp()
+ContentProcess::CleanUp()
 {
     mXREEmbed.Stop();
 }

@@ -40,13 +40,14 @@ include protocol PBrowser;
 namespace mozilla {
 namespace ipc {
 
-protocol PDocumentRenderer
+protocol PDocumentRendererShmem
 {
   manager PBrowser;
 
 parent:
-    // Returns the width and height, in pixels, of the returned ARGB32 data.
-    __delete__(PRUint32 w, PRUint32 h, nsCString data);
+    // Returns the offset, width and height, in pixels, of the area in the
+    // buffer that was drawn.
+    __delete__(PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h, Shmem data);
 };
 
 } // namespace ipc

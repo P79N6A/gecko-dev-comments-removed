@@ -53,7 +53,7 @@ namespace mozilla {
 namespace net {
 
 
-HttpChannelParent::HttpChannelParent(PIFrameEmbeddingParent* iframeEmbedding)
+HttpChannelParent::HttpChannelParent(PBrowserParent* iframeEmbedding)
 : mIPCClosed(false)
 {
   

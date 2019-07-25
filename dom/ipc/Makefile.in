@@ -56,15 +56,17 @@ EXPORTS_mozilla = \
   $(NULL)
 
 EXPORTS_mozilla/dom = \
-  ContentProcessChild.h \
-  ContentProcessParent.h \
-  ContentProcessThread.h \
+  ContentChild.h \
+  ContentParent.h \
+  ContentProcess.h \
+  TabParent.h \
+  TabChild.h \
   $(NULL)
 
 CPPSRCS = \
-  ContentProcessThread.cpp \
-  ContentProcessParent.cpp \
-  ContentProcessChild.cpp \
+  ContentProcess.cpp \
+  ContentParent.cpp \
+  ContentChild.cpp \
   TabParent.cpp \
   TabChild.cpp \
   TabMessageUtils.cpp \
@@ -77,6 +79,10 @@ include $(topsrcdir)/config/rules.mk
 LOCAL_INCLUDES += \
 		-I$(srcdir)/../../content/base/src \
 		-I$(srcdir)/../../content/events/src \
+		-I$(srcdir)/../src/geolocation \
+		-I$(topsrcdir)/chrome/src \
 		$(NULL)
+
+CXXFLAGS += $(TK_CFLAGS)
 
 DEFINES += -DBIN_SUFFIX='"$(BIN_SUFFIX)"'

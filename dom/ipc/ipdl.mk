@@ -35,7 +35,10 @@
 # ***** END LICENSE BLOCK *****
 
 IPDLSRCS = \
-  PContentProcess.ipdl \
-  PIFrameEmbedding.ipdl \
+  PBrowser.ipdl \
+  PContent.ipdl \
+  PContentDialog.ipdl \
   PDocumentRenderer.ipdl \
+  PDocumentRendererNativeID.ipdl \
+  PDocumentRendererShmem.ipdl \
   $(NULL)
