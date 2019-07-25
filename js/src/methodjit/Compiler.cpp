@@ -351,7 +351,7 @@ mjit::Compiler::generatePrologue()
         
         if (fun->isHeavyweight()) {
             prepareStubCall(Uses(0));
-            INLINE_STUBCALL(stubs::GetCallObject);
+            INLINE_STUBCALL(stubs::CreateFunCallObject);
         }
 
         j.linkTo(masm.label(), &masm);
@@ -2261,10 +2261,10 @@ mjit::Compiler::emitReturn(FrameEntry *fe)
             emitFinalReturn(stubcc.masm);
         }
     } else {
-        if (fp->isEvalFrame() && script->strictModeCode) {
+        if (fp->isStrictEvalFrame()) {
             
             prepareStubCall(Uses(fe ? 1 : 0));
-            INLINE_STUBCALL(stubs::PutStrictEvalCallObject);
+            INLINE_STUBCALL(stubs::PutActivationObjects);
         }
     }
 

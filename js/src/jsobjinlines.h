@@ -172,16 +172,16 @@ JSObject::finalize(JSContext *cx)
 
 
 inline void
-JSObject::initCall(JSContext *cx, const js::Bindings *bindings, JSObject *parent)
+JSObject::initCall(JSContext *cx, const js::Bindings &bindings, JSObject *parent)
 {
     init(cx, &js_CallClass, NULL, parent, NULL, false);
-    map = bindings->lastShape();
+    map = bindings.lastShape();
 
     
 
 
 
-    if (bindings->extensibleParents())
+    if (bindings.extensibleParents())
         setOwnShape(js_GenerateShape(cx));
     else
         objShape = map->shape;

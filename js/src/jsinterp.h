@@ -152,10 +152,6 @@ struct JSStackFrame
 
 
 
-
-
-
-
     bool isFunctionFrame() const {
         return !!(flags_ & JSFRAME_FUNCTION);
     }
@@ -174,9 +170,33 @@ struct JSStackFrame
         return retval;
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
     bool isEvalFrame() const {
         JS_ASSERT_IF(flags_ & JSFRAME_EVAL, isScriptFrame());
         return flags_ & JSFRAME_EVAL;
+    }
+
+    bool isNonEvalFunctionFrame() const {
+        return (flags_ & (JSFRAME_FUNCTION | JSFRAME_EVAL)) == JSFRAME_FUNCTION;
+    }
+
+    bool isStrictEvalFrame() const {
+        return isEvalFrame() && script()->strictModeCode;
+    }
+
+    bool isNonStrictEvalFrame() const {
+        return isEvalFrame() && !script()->strictModeCode;
     }
 
     
@@ -342,7 +362,7 @@ struct JSStackFrame
 
     
     bool hasArgs() const {
-        return isFunctionFrame() && !isEvalFrame();
+        return isNonEvalFunctionFrame();
     }
 
     uintN numFormalArgs() const {
@@ -486,6 +506,12 @@ struct JSStackFrame
 
 
 
+
+
+
+
+
+
     JSObject &scopeChain() const {
         JS_ASSERT_IF(!(flags_ & JSFRAME_HAS_SCOPECHAIN), isFunctionFrame());
         if (!(flags_ & JSFRAME_HAS_SCOPECHAIN)) {
@@ -496,13 +522,14 @@ struct JSStackFrame
     }
 
     bool hasCallObj() const {
-        return !!(flags_ & JSFRAME_HAS_CALL_OBJ);
+        bool ret = !!(flags_ & JSFRAME_HAS_CALL_OBJ);
+        JS_ASSERT_IF(ret, !isNonStrictEvalFrame());
+        return ret;
     }
 
     inline JSObject &callObj() const;
-    inline JSObject *maybeCallObj() const;
     inline void setScopeChainNoCallObj(JSObject &obj);
-    inline void setScopeChainAndCallObj(JSObject &obj);
+    inline void setScopeChainWithOwnCallObj(JSObject &obj);
     inline void clearCallObj();
 
     

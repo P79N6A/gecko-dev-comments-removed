@@ -1495,13 +1495,12 @@ JS_GetFrameCallObject(JSContext *cx, JSStackFrame *fp)
         return NULL;
 
     
-    (void) js_GetArgsObject(cx, fp);
-
-    
 
 
 
-    return js_GetCallObject(cx, fp);
+    if (!fp->hasCallObj() && fp->isNonEvalFunctionFrame())
+        return CreateFunCallObject(cx, fp);
+    return &fp->callObj();
 }
 
 JS_PUBLIC_API(JSBool)
