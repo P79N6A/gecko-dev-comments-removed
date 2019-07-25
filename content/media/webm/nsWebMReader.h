@@ -95,14 +95,13 @@ class PacketQueue : private nsDeque {
   }
 };
 
-
 class nsWebMReader : public nsBuiltinDecoderReader
 {
 public:
   nsWebMReader(nsBuiltinDecoder* aDecoder);
   ~nsWebMReader();
 
-  virtual nsresult Init();
+  virtual nsresult Init(nsBuiltinDecoderReader* aCloneDonor);
   virtual nsresult ResetDecode();
   virtual PRBool DecodeAudioData();
 
@@ -194,18 +193,7 @@ private:
 
   
   
-  PRUint64 mTimecodeScale;
-
-  
-  void CalculateBufferedForRange(nsTimeRanges* aBuffered,
-                                 PRInt64 aStartOffset, PRInt64 aEndOffset);
-
-  
-  
-  nsTArray<nsWebMTimeDataOffset> mTimeMapping;
-
-  
-  nsTArray<nsWebMBufferedParser> mRangeParsers;
+  nsRefPtr<nsWebMBufferedState> mBufferedState;
 
   
   PRPackedBool mHasVideo;

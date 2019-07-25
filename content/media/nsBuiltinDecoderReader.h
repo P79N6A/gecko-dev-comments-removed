@@ -411,7 +411,7 @@ public:
 
   
   
-  virtual nsresult Init() = 0;
+  virtual nsresult Init(nsBuiltinDecoderReader* aCloneDonor) = 0;
 
   
   virtual nsresult ResetDecode();

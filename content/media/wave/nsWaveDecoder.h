@@ -180,7 +180,8 @@ class nsWaveDecoder : public nsMediaDecoder
   
   
   virtual nsresult Load(nsMediaStream* aStream,
-                        nsIStreamListener** aStreamListener);
+                        nsIStreamListener** aStreamListener,
+                        nsMediaDecoder* aCloneDonor);
 
   
   

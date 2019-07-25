@@ -237,7 +237,7 @@ public:
 
   
   
-  virtual nsresult Init() = 0;
+  virtual nsresult Init(nsDecoderStateMachine* aCloneDonor) = 0;
 
   
   
@@ -339,7 +339,8 @@ class nsBuiltinDecoder : public nsMediaDecoder
   virtual float GetCurrentTime();
 
   virtual nsresult Load(nsMediaStream* aStream,
-                        nsIStreamListener** aListener);
+                        nsIStreamListener** aListener,
+                        nsMediaDecoder* aCloneDonor);
 
   virtual nsDecoderStateMachine* CreateStateMachine() = 0;
 

@@ -38,7 +38,10 @@
 #if !defined(nsWebMBufferedParser_h_)
 #define nsWebMBufferedParser_h_
 
+#include "nsISupportsImpl.h"
 #include "nsTArray.h"
+
+class nsTimeRanges;
 
 
 
@@ -202,6 +205,33 @@ private:
   
   
   PRUint32 mSkipBytes;
+};
+
+class nsWebMBufferedState
+{
+  NS_INLINE_DECL_REFCOUNTING(nsWebMBufferedState)
+
+public:
+  nsWebMBufferedState() {
+    MOZ_COUNT_CTOR(nsWebMBufferedState);
+  }
+
+  ~nsWebMBufferedState() {
+    MOZ_COUNT_DTOR(nsWebMBufferedState);
+  }
+
+  void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRUint32 aOffset);
+  void CalculateBufferedForRange(nsTimeRanges* aBuffered,
+                                 PRInt64 aStartOffset, PRInt64 aEndOffset,
+                                 PRUint64 aTimecodeScale);
+
+private:
+  
+  
+  nsTArray<nsWebMTimeDataOffset> mTimeMapping;
+
+  
+  nsTArray<nsWebMBufferedParser> mRangeParsers;
 };
 
 #endif

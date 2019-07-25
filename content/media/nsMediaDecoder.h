@@ -137,7 +137,8 @@ public:
   
   
   virtual nsresult Load(nsMediaStream* aStream,
-                        nsIStreamListener **aListener) = 0;
+                        nsIStreamListener **aListener,
+                        nsMediaDecoder* aCloneDonor) = 0;
 
   
   virtual void ResourceLoaded() = 0;

@@ -148,7 +148,7 @@ public:
   ~nsBuiltinDecoderStateMachine();
 
   
-  virtual nsresult Init();
+  virtual nsresult Init(nsDecoderStateMachine* aCloneDonor);
   State GetState()
   { 
     mDecoder->GetMonitor().AssertCurrentThreadIn();
