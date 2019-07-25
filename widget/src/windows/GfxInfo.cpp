@@ -668,17 +668,6 @@ static const PRUint32 deviceFamilyIntelGMAX3000[] = {
     0
 };
 
-
-static const PRUint32 deviceFamilyIntelBlockDirect2D[] = {
-    0x2982, 
-    0x2983, 
-    0x2A02, 
-    0x2A03, 
-    0x2A12, 
-    0x2A13, 
-    0
-};
-
 static const PRUint32 deviceFamilyIntelGMAX4500HD[] = {
     0x2A42, 
     0x2A43, 
@@ -798,14 +787,6 @@ static const GfxDriverInfo gDriverInfo[] = {
   
 
 
-
-  
-
-
-  GfxDriverInfo( DRIVER_OS_ALL,
-    vendorIntel, (GfxDeviceFamily) deviceFamilyIntelBlockDirect2D,
-    nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-    DRIVER_LESS_THAN, allDriverVersions ),
 
   
 
