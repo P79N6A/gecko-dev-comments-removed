@@ -411,6 +411,8 @@ public:
 
     virtual void FontsPrefsChanged(const char *aPref);
 
+    PRInt32 GetBidiNumeralOption();
+
     
 
 
@@ -437,6 +439,8 @@ protected:
 #ifdef MOZ_GRAPHITE
     PRInt8  mGraphiteShapingEnabled;
 #endif
+
+    PRInt8  mBidiNumeralOption;
 
     
     PRInt32 mUseHarfBuzzScripts;

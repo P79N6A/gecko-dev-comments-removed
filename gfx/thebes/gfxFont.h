@@ -71,6 +71,7 @@ class gfxFontFamily;
 class gfxFontGroup;
 class gfxUserFontSet;
 class gfxUserFontData;
+class gfxShapedWord;
 
 class nsILanguageAtomService;
 
@@ -762,6 +763,115 @@ protected:
     nsTHashtable<HashEntry> mFonts;
 };
 
+class THEBES_API gfxTextRunFactory {
+    NS_INLINE_DECL_REFCOUNTING(gfxTextRunFactory)
+
+public:
+    
+    
+    
+    enum {
+        CACHE_TEXT_FLAGS    = 0xF0000000,
+        USER_TEXT_FLAGS     = 0x0FFF0000,
+        PLATFORM_TEXT_FLAGS = 0x0000F000,
+        TEXTRUN_TEXT_FLAGS  = 0x00000FFF,
+        SETTABLE_FLAGS      = CACHE_TEXT_FLAGS | USER_TEXT_FLAGS,
+
+        
+
+
+
+        TEXT_IS_PERSISTENT           = 0x0001,
+        
+
+
+        TEXT_IS_ASCII                = 0x0002,
+        
+
+
+        TEXT_IS_RTL                  = 0x0004,
+        
+
+
+
+        TEXT_ENABLE_SPACING          = 0x0008,
+        
+
+
+
+        TEXT_ENABLE_HYPHEN_BREAKS    = 0x0010,
+        
+
+
+
+        TEXT_IS_8BIT                 = 0x0020,
+        
+
+
+
+
+
+
+        TEXT_NEED_BOUNDING_BOX       = 0x0040,
+        
+
+
+
+        TEXT_DISABLE_OPTIONAL_LIGATURES = 0x0080,
+        
+
+
+
+
+        TEXT_OPTIMIZE_SPEED          = 0x0100,
+        
+
+
+
+
+
+
+        TEXT_RUN_SIZE_ACCOUNTED      = 0x0200,
+
+        
+
+
+
+
+        TEXT_TRAILING_ARABICCHAR = 0x20000000,
+        
+
+
+
+
+        TEXT_INCOMING_ARABICCHAR = 0x40000000,
+
+        TEXT_UNUSED_FLAGS = 0x90000000
+    };
+
+    
+
+
+    struct Parameters {
+        
+        gfxContext   *mContext;
+        
+        void         *mUserData;
+        
+        
+        
+        gfxSkipChars *mSkipChars;
+        
+        
+        PRUint32     *mInitialBreaks;
+        PRUint32      mInitialBreakCount;
+        
+        PRUint32      mAppUnitsPerDevUnit;
+    };
+
+    virtual ~gfxTextRunFactory() {}
+};
+
 
 
 
@@ -907,12 +1017,9 @@ public:
 
     virtual ~gfxFontShaper() { }
 
-    virtual bool InitTextRun(gfxContext *aContext,
-                               gfxTextRun *aTextRun,
-                               const PRUnichar *aString,
-                               PRUint32 aRunStart,
-                               PRUint32 aRunLength,
-                               PRInt32 aRunScript) = 0;
+    virtual bool ShapeWord(gfxContext *aContext,
+                           gfxShapedWord *aShapedWord,
+                           const PRUnichar *aText) = 0;
 
     gfxFont *GetFont() const { return mFont; }
 
@@ -1252,15 +1359,118 @@ public:
     
     
     
+    template<typename T>
     bool SplitAndInitTextRun(gfxContext *aContext,
-                               gfxTextRun *aTextRun,
-                               const PRUnichar *aString,
-                               PRUint32 aRunStart,
-                               PRUint32 aRunLength,
-                               PRInt32 aRunScript);
+                             gfxTextRun *aTextRun,
+                             const T *aString,
+                             PRUint32 aRunStart,
+                             PRUint32 aRunLength,
+                             PRInt32 aRunScript);
+
+    
+    
+    template<typename T>
+    gfxShapedWord* GetShapedWord(gfxContext *aContext,
+                                 const T *aText,
+                                 PRUint32 aLength,
+                                 PRUint32 aHash,
+                                 PRInt32 aRunScript,
+                                 PRInt32 aAppUnitsPerDevUnit,
+                                 PRUint32 aFlags);
+
+    
+    
+    void InitWordCache() {
+        if (!mWordCache.IsInitialized()) {
+            mWordCache.Init();
+        }
+    }
 
 protected:
+    
+    
+    
+    virtual bool ShapeWord(gfxContext *aContext,
+                           gfxShapedWord *aShapedWord,
+                           const PRUnichar *aText,
+                           bool aPreferPlatformShaping = false);
+
     nsRefPtr<gfxFontEntry> mFontEntry;
+
+    struct CacheHashKey {
+        union {
+            const PRUint8   *mSingle;
+            const PRUnichar *mDouble;
+        }                mText;
+        PRUint32         mLength;
+        PRUint32         mFlags;
+        PRInt32          mScript;
+        PRInt32          mAppUnitsPerDevUnit;
+        PLDHashNumber    mHashKey;
+        bool             mTextIs8Bit;
+
+        CacheHashKey(const PRUint8 *aText, PRUint32 aLength,
+                     PRUint32 aStringHash,
+                     PRInt32 aScriptCode, PRInt32 aAppUnitsPerDevUnit,
+                     PRUint32 aFlags)
+            : mLength(aLength),
+              mFlags(aFlags),
+              mScript(aScriptCode),
+              mAppUnitsPerDevUnit(aAppUnitsPerDevUnit),
+              mHashKey(aStringHash + aScriptCode +
+                  aAppUnitsPerDevUnit * 0x100 + aFlags * 0x10000),
+              mTextIs8Bit(true)
+        {
+            NS_ASSERTION(aFlags & gfxTextRunFactory::TEXT_IS_8BIT,
+                         "8-bit flag should have been set");
+            mText.mSingle = aText;
+        }
+
+        CacheHashKey(const PRUnichar *aText, PRUint32 aLength,
+                     PRUint32 aStringHash,
+                     PRInt32 aScriptCode, PRInt32 aAppUnitsPerDevUnit,
+                     PRUint32 aFlags)
+            : mLength(aLength),
+              mFlags(aFlags),
+              mScript(aScriptCode),
+              mAppUnitsPerDevUnit(aAppUnitsPerDevUnit),
+              mHashKey(aStringHash + aScriptCode +
+                  aAppUnitsPerDevUnit * 0x100 + aFlags * 0x10000),
+              mTextIs8Bit(false)
+        {
+            
+            
+            
+            
+            mText.mDouble = aText;
+        }
+    };
+
+    class CacheHashEntry : public PLDHashEntryHdr {
+    public:
+        typedef const CacheHashKey &KeyType;
+        typedef const CacheHashKey *KeyTypePointer;
+
+        
+        
+        CacheHashEntry(KeyTypePointer aKey) { }
+        CacheHashEntry(const CacheHashEntry& toCopy) { NS_ERROR("Should not be called"); }
+        ~CacheHashEntry() { }
+
+        bool KeyEquals(const KeyTypePointer aKey) const;
+
+        static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
+
+        static PLDHashNumber HashKey(const KeyTypePointer aKey) {
+            return aKey->mHashKey;
+        }
+
+        enum { ALLOW_MEMMOVE = true };
+
+        nsAutoPtr<gfxShapedWord> mShapedWord;
+    };
+
+    nsTHashtable<CacheHashEntry> mWordCache;
 
     bool                       mIsValid;
 
@@ -1313,149 +1523,540 @@ protected:
     
     
     void SanitizeMetrics(gfxFont::Metrics *aMetrics, bool aIsBadUnderlineFont);
-
-    
-    
-    
-    
-    
-    virtual bool InitTextRun(gfxContext *aContext,
-                               gfxTextRun *aTextRun,
-                               const PRUnichar *aString,
-                               PRUint32 aRunStart,
-                               PRUint32 aRunLength,
-                               PRInt32 aRunScript,
-                               bool aPreferPlatformShaping = false);
 };
 
 
 #define DEFAULT_XHEIGHT_FACTOR 0.56f
 
-class THEBES_API gfxTextRunFactory {
-    NS_INLINE_DECL_REFCOUNTING(gfxTextRunFactory)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class gfxShapedWord
+{
 public:
+    static const PRUint32 kMaxLength = 0x7fff;
+
     
     
     
-    enum {
-        CACHE_TEXT_FLAGS    = 0xF0000000,
-        USER_TEXT_FLAGS     = 0x0FFF0000,
-        PLATFORM_TEXT_FLAGS = 0x0000F000,
-        TEXTRUN_TEXT_FLAGS  = 0x00000FFF,
-        SETTABLE_FLAGS      = CACHE_TEXT_FLAGS | USER_TEXT_FLAGS,
+    
+    
+    
+    
+    
+    
+    static gfxShapedWord* Create(const PRUint8 *aText, PRUint32 aLength,
+                                 PRInt32 aRunScript,
+                                 PRInt32 aAppUnitsPerDevUnit,
+                                 PRUint32 aFlags) {
+        NS_ASSERTION(aLength <= kMaxLength, "excessive length for gfxShapedWord!");
 
+        
+        
+        PRUint32 size =
+            offsetof(gfxShapedWord, mCharacterGlyphs) +
+            aLength * (sizeof(CompressedGlyph) + sizeof(PRUint8));
+        void *storage = moz_malloc(size);
+        if (!storage) {
+            return nsnull;
+        }
+
+        
+        return new (storage) gfxShapedWord(aText, aLength, aRunScript,
+                                           aAppUnitsPerDevUnit, aFlags);
+    }
+
+    static gfxShapedWord* Create(const PRUnichar *aText, PRUint32 aLength,
+                                 PRInt32 aRunScript,
+                                 PRInt32 aAppUnitsPerDevUnit,
+                                 PRUint32 aFlags) {
+        NS_ASSERTION(aLength <= kMaxLength, "excessive length for gfxShapedWord!");
+
+        
+        
+        
+        if (aFlags & gfxTextRunFactory::TEXT_IS_8BIT) {
+            nsCAutoString narrowText;
+            LossyAppendUTF16toASCII(nsDependentSubstring(aText, aLength),
+                                    narrowText);
+            return Create((const PRUint8*)(narrowText.BeginReading()),
+                          aLength, aRunScript, aAppUnitsPerDevUnit, aFlags);
+        }
+
+        PRUint32 size =
+            offsetof(gfxShapedWord, mCharacterGlyphs) +
+            aLength * (sizeof(CompressedGlyph) + sizeof(PRUnichar));
+        void *storage = moz_malloc(size);
+        if (!storage) {
+            return nsnull;
+        }
+
+        return new (storage) gfxShapedWord(aText, aLength, aRunScript,
+                                           aAppUnitsPerDevUnit, aFlags);
+    }
+
+    
+    
+    void operator delete(void* p) {
+        moz_free(p);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    class CompressedGlyph {
+    public:
+        CompressedGlyph() { mValue = 0; }
+
+        enum {
+            
+            
+            
+            
+            
+            FLAG_IS_SIMPLE_GLYPH  = 0x80000000U,
+
+            
+            
+            
+            FLAGS_CAN_BREAK_BEFORE = 0x60000000U,
+
+            FLAGS_CAN_BREAK_SHIFT = 29,
+            FLAG_BREAK_TYPE_NONE   = 0,
+            FLAG_BREAK_TYPE_NORMAL = 1,
+            FLAG_BREAK_TYPE_HYPHEN = 2,
+
+            
+            ADVANCE_MASK  = 0x1FFF0000U,
+            ADVANCE_SHIFT = 16,
+
+            GLYPH_MASK = 0x0000FFFFU,
+
+            
+            
+            
+
+            
+            
+            
+            
+            
+            FLAG_NOT_MISSING              = 0x01,
+            FLAG_NOT_CLUSTER_START        = 0x02,
+            FLAG_NOT_LIGATURE_GROUP_START = 0x04,
+            
+            GLYPH_COUNT_MASK = 0x00FFFF00U,
+            GLYPH_COUNT_SHIFT = 8
+        };
+
+        
+        
+        
+        
+
+        
+        static bool IsSimpleGlyphID(PRUint32 aGlyph) {
+            return (aGlyph & GLYPH_MASK) == aGlyph;
+        }
+        
+        
+        static bool IsSimpleAdvance(PRUint32 aAdvance) {
+            return (aAdvance & (ADVANCE_MASK >> ADVANCE_SHIFT)) == aAdvance;
+        }
+
+        bool IsSimpleGlyph() const { return (mValue & FLAG_IS_SIMPLE_GLYPH) != 0; }
+        PRUint32 GetSimpleAdvance() const { return (mValue & ADVANCE_MASK) >> ADVANCE_SHIFT; }
+        PRUint32 GetSimpleGlyph() const { return mValue & GLYPH_MASK; }
+
+        bool IsMissing() const { return (mValue & (FLAG_NOT_MISSING|FLAG_IS_SIMPLE_GLYPH)) == 0; }
+        bool IsClusterStart() const {
+            return (mValue & FLAG_IS_SIMPLE_GLYPH) || !(mValue & FLAG_NOT_CLUSTER_START);
+        }
+        bool IsLigatureGroupStart() const {
+            return (mValue & FLAG_IS_SIMPLE_GLYPH) || !(mValue & FLAG_NOT_LIGATURE_GROUP_START);
+        }
+        bool IsLigatureContinuation() const {
+            return (mValue & FLAG_IS_SIMPLE_GLYPH) == 0 &&
+                (mValue & (FLAG_NOT_LIGATURE_GROUP_START | FLAG_NOT_MISSING)) ==
+                    (FLAG_NOT_LIGATURE_GROUP_START | FLAG_NOT_MISSING);
+        }
+
+        void SetClusterStart(bool aIsClusterStart) {
+            NS_ASSERTION(!IsSimpleGlyph(),
+                         "can't call SetClusterStart on simple glyphs");
+            if (aIsClusterStart) {
+                mValue &= ~FLAG_NOT_CLUSTER_START;
+            } else {
+                mValue |= FLAG_NOT_CLUSTER_START;
+            }
+        }
+
+        PRUint8 CanBreakBefore() const {
+            return (mValue & FLAGS_CAN_BREAK_BEFORE) >> FLAGS_CAN_BREAK_SHIFT;
+        }
+        
+        PRUint32 SetCanBreakBefore(PRUint8 aCanBreakBefore) {
+            NS_ASSERTION(aCanBreakBefore <= 2,
+                         "Bogus break-before value!");
+            PRUint32 breakMask = (PRUint32(aCanBreakBefore) << FLAGS_CAN_BREAK_SHIFT);
+            PRUint32 toggle = breakMask ^ (mValue & FLAGS_CAN_BREAK_BEFORE);
+            mValue ^= toggle;
+            return toggle;
+        }
+
+        CompressedGlyph& SetSimpleGlyph(PRUint32 aAdvanceAppUnits, PRUint32 aGlyph) {
+            NS_ASSERTION(IsSimpleAdvance(aAdvanceAppUnits), "Advance overflow");
+            NS_ASSERTION(IsSimpleGlyphID(aGlyph), "Glyph overflow");
+            mValue = (mValue & FLAGS_CAN_BREAK_BEFORE) |
+                FLAG_IS_SIMPLE_GLYPH |
+                (aAdvanceAppUnits << ADVANCE_SHIFT) | aGlyph;
+            return *this;
+        }
+        CompressedGlyph& SetComplex(bool aClusterStart, bool aLigatureStart,
+                PRUint32 aGlyphCount) {
+            mValue = (mValue & FLAGS_CAN_BREAK_BEFORE) |
+                FLAG_NOT_MISSING |
+                (aClusterStart ? 0 : FLAG_NOT_CLUSTER_START) |
+                (aLigatureStart ? 0 : FLAG_NOT_LIGATURE_GROUP_START) |
+                (aGlyphCount << GLYPH_COUNT_SHIFT);
+            return *this;
+        }
         
 
 
 
-        TEXT_IS_PERSISTENT           = 0x0001,
-        
+        CompressedGlyph& SetMissing(PRUint32 aGlyphCount) {
+            mValue = (mValue & (FLAGS_CAN_BREAK_BEFORE | FLAG_NOT_CLUSTER_START)) |
+                (aGlyphCount << GLYPH_COUNT_SHIFT);
+            return *this;
+        }
+        PRUint32 GetGlyphCount() const {
+            NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
+            return (mValue & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT;
+        }
 
-
-        TEXT_IS_ASCII                = 0x0002,
-        
-
-
-        TEXT_IS_RTL                  = 0x0004,
-        
-
-
-
-        TEXT_ENABLE_SPACING          = 0x0008,
-        
-
-
-
-        TEXT_ENABLE_HYPHEN_BREAKS    = 0x0010,
-        
-
-
-
-        TEXT_IS_8BIT                 = 0x0020,
-        
-
-
-
-
-
-
-        TEXT_NEED_BOUNDING_BOX       = 0x0040,
-        
-
-
-
-        TEXT_DISABLE_OPTIONAL_LIGATURES = 0x0080,
-        
-
-
-
-
-        TEXT_OPTIMIZE_SPEED          = 0x0100,
-        
-
-
-
-
-
-
-        TEXT_RUN_SIZE_ACCOUNTED      = 0x0200,
-
-        
-
-
-
-
-        TEXT_TRAILING_ARABICCHAR = 0x20000000,
-        
-
-
-
-
-        TEXT_INCOMING_ARABICCHAR = 0x40000000,
-
-        TEXT_UNUSED_FLAGS = 0x90000000
+    private:
+        PRUint32 mValue;
     };
 
     
 
 
-    struct Parameters {
+
+    struct DetailedGlyph {
         
-        gfxContext   *mContext;
+
+        PRUint32 mGlyphID;
         
-        void         *mUserData;
-        
-        
-        
-        gfxSkipChars *mSkipChars;
-        
-        
-        PRUint32     *mInitialBreaks;
-        PRUint32      mInitialBreakCount;
-        
-        PRUint32      mAppUnitsPerDevUnit;
+
+
+   
+        PRInt32  mAdvance;
+        float    mXOffset, mYOffset;
     };
 
-    virtual ~gfxTextRunFactory() {}
+    bool IsClusterStart(PRUint32 aPos) {
+        NS_ASSERTION(aPos < Length(), "aPos out of range");
+        return mCharacterGlyphs[aPos].IsClusterStart();
+    }
+
+    bool IsLigatureGroupStart(PRUint32 aPos) {
+        NS_ASSERTION(aPos < Length(), "aPos out of range");
+        return mCharacterGlyphs[aPos].IsLigatureGroupStart();
+    }
+
+    PRUint32 Length() const {
+        return mLength;
+    }
+
+    const PRUint8* Text8Bit() const {
+        NS_ASSERTION(TextIs8Bit(), "invalid use of Text8Bit()");
+        return reinterpret_cast<const PRUint8*>(&mCharacterGlyphs[Length()]);
+    }
+
+    const PRUnichar* TextUnicode() const {
+        NS_ASSERTION(!TextIs8Bit(), "invalid use of TextUnicode()");
+        return reinterpret_cast<const PRUnichar*>(&mCharacterGlyphs[Length()]);
+    }
+
+    PRUnichar GetCharAt(PRUint32 aOffset) const {
+        NS_ASSERTION(aOffset < Length(), "aOffset out of range");
+        return TextIs8Bit() ?
+            PRUnichar(Text8Bit()[aOffset]) : TextUnicode()[aOffset];
+    }
+
+    PRUint32 Flags() const {
+        return mFlags;
+    }
+
+    bool IsRightToLeft() const {
+        return (Flags() & gfxTextRunFactory::TEXT_IS_RTL) != 0;
+    }
+
+    bool DisableLigatures() const {
+        return (Flags() & gfxTextRunFactory::TEXT_DISABLE_OPTIONAL_LIGATURES) != 0;
+    }
+
+    bool TextIs8Bit() const {
+        return (Flags() & gfxTextRunFactory::TEXT_IS_8BIT) != 0;
+    }
+
+    PRInt32 Script() const {
+        return mScript;
+    }
+
+    PRInt32 AppUnitsPerDevUnit() const {
+        return mAppUnitsPerDevUnit;
+    }
+
+    void SetSimpleGlyph(PRUint32 aCharIndex, CompressedGlyph aGlyph) {
+        NS_ASSERTION(aGlyph.IsSimpleGlyph(), "Should be a simple glyph here");
+        if (mCharacterGlyphs) {
+            mCharacterGlyphs[aCharIndex] = aGlyph;
+        }
+    }
+
+    void SetGlyphs(PRUint32 aCharIndex, CompressedGlyph aGlyph,
+                   const DetailedGlyph *aGlyphs);
+
+    void SetMissingGlyph(PRUint32 aIndex, PRUint32 aChar, gfxFont *aFont);
+
+    bool FilterIfIgnorable(PRUint32 aIndex);
+
+    const CompressedGlyph *GetCharacterGlyphs() const {
+        return &mCharacterGlyphs[0];
+    }
+
+    bool HasDetailedGlyphs() const {
+        return mDetailedGlyphs != nsnull;
+    }
+
+    
+    
+    
+    DetailedGlyph *GetDetailedGlyphs(PRUint32 aCharIndex) const {
+        NS_ASSERTION(HasDetailedGlyphs() &&
+                     !mCharacterGlyphs[aCharIndex].IsSimpleGlyph() &&
+                     mCharacterGlyphs[aCharIndex].GetGlyphCount() > 0,
+                     "invalid use of GetDetailedGlyphs; check the caller!");
+        return mDetailedGlyphs->Get(aCharIndex);
+    }
+
+    void AdjustAdvancesForSyntheticBold(float aSynBoldOffset);
+
+    
+    
+    
+    static void
+    SetupClusterBoundaries(CompressedGlyph *aGlyphs,
+                           const PRUnichar *aString, PRUint32 aLength);
+
+private:
+    
+    friend class gfxTextRun;
+
+    
+    gfxShapedWord(const PRUint8 *aText, PRUint32 aLength,
+                  PRInt32 aRunScript, PRInt32 aAppUnitsPerDevUnit,
+                  PRUint32 aFlags)
+        : mLength(aLength)
+        , mFlags(aFlags | gfxTextRunFactory::TEXT_IS_8BIT)
+        , mAppUnitsPerDevUnit(aAppUnitsPerDevUnit)
+        , mScript(aRunScript)
+    {
+        memset(mCharacterGlyphs, 0, aLength * sizeof(CompressedGlyph));
+        PRUint8 *text = reinterpret_cast<PRUint8*>(&mCharacterGlyphs[aLength]);
+        memcpy(text, aText, aLength * sizeof(PRUint8));
+    }
+
+    gfxShapedWord(const PRUnichar *aText, PRUint32 aLength,
+                  PRInt32 aRunScript, PRInt32 aAppUnitsPerDevUnit,
+                  PRUint32 aFlags)
+        : mLength(aLength)
+        , mFlags(aFlags)
+        , mAppUnitsPerDevUnit(aAppUnitsPerDevUnit)
+        , mScript(aRunScript)
+    {
+        memset(mCharacterGlyphs, 0, aLength * sizeof(CompressedGlyph));
+        PRUnichar *text = reinterpret_cast<PRUnichar*>(&mCharacterGlyphs[aLength]);
+        memcpy(text, aText, aLength * sizeof(PRUnichar));
+        SetupClusterBoundaries(&mCharacterGlyphs[0], aText, aLength);
+    }
+
+    
+    DetailedGlyph *AllocateDetailedGlyphs(PRUint32 aCharIndex,
+                                          PRUint32 aCount);
+
+    
+    
+    
+    
+    
+    
+    class DetailedGlyphStore {
+    public:
+        DetailedGlyphStore()
+            : mLastUsed(0)
+        { }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        DetailedGlyph* Get(PRUint32 aOffset) {
+            NS_ASSERTION(mOffsetToIndex.Length() > 0,
+                         "no detailed glyph records!");
+            DetailedGlyph* details = mDetails.Elements();
+            
+            if (mLastUsed < mOffsetToIndex.Length() - 1 &&
+                aOffset == mOffsetToIndex[mLastUsed + 1].mOffset) {
+                ++mLastUsed;
+            } else if (aOffset == mOffsetToIndex[0].mOffset) {
+                mLastUsed = 0;
+            } else if (aOffset == mOffsetToIndex[mLastUsed].mOffset) {
+                
+            } else if (mLastUsed > 0 &&
+                       aOffset == mOffsetToIndex[mLastUsed - 1].mOffset) {
+                --mLastUsed;
+            } else {
+                mLastUsed =
+                    mOffsetToIndex.BinaryIndexOf(aOffset, CompareToOffset());
+            }
+            NS_ASSERTION(mLastUsed != nsTArray<DGRec>::NoIndex,
+                         "detailed glyph record missing!");
+            return details + mOffsetToIndex[mLastUsed].mIndex;
+        }
+
+        DetailedGlyph* Allocate(PRUint32 aOffset, PRUint32 aCount) {
+            PRUint32 detailIndex = mDetails.Length();
+            DetailedGlyph *details = mDetails.AppendElements(aCount);
+            if (!details) {
+                return nsnull;
+            }
+            
+            
+            
+            
+            if (mOffsetToIndex.Length() == 0 ||
+                aOffset > mOffsetToIndex[mOffsetToIndex.Length() - 1].mOffset) {
+                if (!mOffsetToIndex.AppendElement(DGRec(aOffset, detailIndex))) {
+                    return nsnull;
+                }
+            } else {
+                if (!mOffsetToIndex.InsertElementSorted(DGRec(aOffset, detailIndex),
+                                                        CompareRecordOffsets())) {
+                    return nsnull;
+                }
+            }
+            return details;
+        }
+
+        size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) {
+            return aMallocSizeOf(this, sizeof(DetailedGlyphStore)) +
+                mDetails.SizeOfExcludingThis(aMallocSizeOf) +
+                mOffsetToIndex.SizeOfExcludingThis(aMallocSizeOf);
+        }
+
+    private:
+        struct DGRec {
+            DGRec(const PRUint32& aOffset, const PRUint32& aIndex)
+                : mOffset(aOffset), mIndex(aIndex) { }
+            PRUint32 mOffset; 
+            PRUint32 mIndex;  
+        };
+
+        struct CompareToOffset {
+            bool Equals(const DGRec& a, const PRUint32& b) const {
+                return a.mOffset == b;
+            }
+            bool LessThan(const DGRec& a, const PRUint32& b) const {
+                return a.mOffset < b;
+            }
+        };
+
+        struct CompareRecordOffsets {
+            bool Equals(const DGRec& a, const DGRec& b) const {
+                return a.mOffset == b.mOffset;
+            }
+            bool LessThan(const DGRec& a, const DGRec& b) const {
+                return a.mOffset < b.mOffset;
+            }
+        };
+
+        
+        
+        
+        nsTArray<DetailedGlyph>     mDetails;
+
+        
+        
+        
+        nsTArray<DGRec>             mOffsetToIndex;
+
+        
+        
+        
+        nsTArray<DGRec>::index_type mLastUsed;
+    };
+
+    nsAutoPtr<DetailedGlyphStore>   mDetailedGlyphs;
+
+    
+    
+    
+    
+    PRUint32                        mLength;
+
+    PRUint32                        mFlags;
+
+    PRInt32                         mAppUnitsPerDevUnit;
+    PRInt32                         mScript;
+
+    
+    
+    
+    
+    
+    CompressedGlyph                 mCharacterGlyphs[1];
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1478,6 +2079,12 @@ public:
 
 class THEBES_API gfxTextRun {
 public:
+    
+    
+    typedef gfxShapedWord::CompressedGlyph    CompressedGlyph;
+    typedef gfxShapedWord::DetailedGlyph      DetailedGlyph;
+    typedef gfxShapedWord::DetailedGlyphStore DetailedGlyphStore;
+
     virtual ~gfxTextRun();
 
     typedef gfxFont::RunMetrics Metrics;
@@ -1798,162 +2405,6 @@ public:
         const void *aText, PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    class CompressedGlyph {
-    public:
-        CompressedGlyph() { mValue = 0; }
-
-        enum {
-            
-            
-            
-            
-            
-            FLAG_IS_SIMPLE_GLYPH  = 0x80000000U,
-
-            
-            
-            
-            FLAGS_CAN_BREAK_BEFORE = 0x60000000U,
-
-            FLAGS_CAN_BREAK_SHIFT = 29,
-            FLAG_BREAK_TYPE_NONE   = 0,
-            FLAG_BREAK_TYPE_NORMAL = 1,
-            FLAG_BREAK_TYPE_HYPHEN = 2,
-
-            
-            ADVANCE_MASK  = 0x1FFF0000U,
-            ADVANCE_SHIFT = 16,
-
-            GLYPH_MASK = 0x0000FFFFU,
-
-            
-            
-            
-
-            
-            
-            
-            
-            
-            FLAG_NOT_MISSING              = 0x01,
-            FLAG_NOT_CLUSTER_START        = 0x02,
-            FLAG_NOT_LIGATURE_GROUP_START = 0x04,
-            
-            GLYPH_COUNT_MASK = 0x00FFFF00U,
-            GLYPH_COUNT_SHIFT = 8
-        };
-
-        
-        
-        
-        
-
-        
-        static bool IsSimpleGlyphID(PRUint32 aGlyph) {
-            return (aGlyph & GLYPH_MASK) == aGlyph;
-        }
-        
-        
-        static bool IsSimpleAdvance(PRUint32 aAdvance) {
-            return (aAdvance & (ADVANCE_MASK >> ADVANCE_SHIFT)) == aAdvance;
-        }
-
-        bool IsSimpleGlyph() const { return (mValue & FLAG_IS_SIMPLE_GLYPH) != 0; }
-        PRUint32 GetSimpleAdvance() const { return (mValue & ADVANCE_MASK) >> ADVANCE_SHIFT; }
-        PRUint32 GetSimpleGlyph() const { return mValue & GLYPH_MASK; }
-
-        bool IsMissing() const { return (mValue & (FLAG_NOT_MISSING|FLAG_IS_SIMPLE_GLYPH)) == 0; }
-        bool IsClusterStart() const {
-            return (mValue & FLAG_IS_SIMPLE_GLYPH) || !(mValue & FLAG_NOT_CLUSTER_START);
-        }
-        bool IsLigatureGroupStart() const {
-            return (mValue & FLAG_IS_SIMPLE_GLYPH) || !(mValue & FLAG_NOT_LIGATURE_GROUP_START);
-        }
-        bool IsLigatureContinuation() const {
-            return (mValue & FLAG_IS_SIMPLE_GLYPH) == 0 &&
-                (mValue & (FLAG_NOT_LIGATURE_GROUP_START | FLAG_NOT_MISSING)) ==
-                    (FLAG_NOT_LIGATURE_GROUP_START | FLAG_NOT_MISSING);
-        }
-
-        PRUint8 CanBreakBefore() const {
-            return (mValue & FLAGS_CAN_BREAK_BEFORE) >> FLAGS_CAN_BREAK_SHIFT;
-        }
-        
-        PRUint32 SetCanBreakBefore(PRUint8 aCanBreakBefore) {
-            NS_ASSERTION(aCanBreakBefore <= 2,
-                         "Bogus break-before value!");
-            PRUint32 breakMask = (PRUint32(aCanBreakBefore) << FLAGS_CAN_BREAK_SHIFT);
-            PRUint32 toggle = breakMask ^ (mValue & FLAGS_CAN_BREAK_BEFORE);
-            mValue ^= toggle;
-            return toggle;
-        }
-
-        CompressedGlyph& SetSimpleGlyph(PRUint32 aAdvanceAppUnits, PRUint32 aGlyph) {
-            NS_ASSERTION(IsSimpleAdvance(aAdvanceAppUnits), "Advance overflow");
-            NS_ASSERTION(IsSimpleGlyphID(aGlyph), "Glyph overflow");
-            mValue = (mValue & FLAGS_CAN_BREAK_BEFORE) |
-                FLAG_IS_SIMPLE_GLYPH |
-                (aAdvanceAppUnits << ADVANCE_SHIFT) | aGlyph;
-            return *this;
-        }
-        CompressedGlyph& SetComplex(bool aClusterStart, bool aLigatureStart,
-                PRUint32 aGlyphCount) {
-            mValue = (mValue & FLAGS_CAN_BREAK_BEFORE) |
-                FLAG_NOT_MISSING |
-                (aClusterStart ? 0 : FLAG_NOT_CLUSTER_START) |
-                (aLigatureStart ? 0 : FLAG_NOT_LIGATURE_GROUP_START) |
-                (aGlyphCount << GLYPH_COUNT_SHIFT);
-            return *this;
-        }
-        
-
-
-
-        CompressedGlyph& SetMissing(PRUint32 aGlyphCount) {
-            mValue = (mValue & (FLAGS_CAN_BREAK_BEFORE | FLAG_NOT_CLUSTER_START)) |
-                (aGlyphCount << GLYPH_COUNT_SHIFT);
-            return *this;
-        }
-        PRUint32 GetGlyphCount() const {
-            NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
-            return (mValue & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT;
-        }
-
-    private:
-        PRUint32 mValue;
-    };
-
-    
-
-
-
-    struct DetailedGlyph {
-        
-
-        PRUint32 mGlyphID;
-        
-
-
-   
-        PRInt32  mAdvance;
-        float    mXOffset, mYOffset;
-    };
-
-    
     struct GlyphRun {
         nsRefPtr<gfxFont> mFont;   
         PRUint32          mCharacterOffset; 
@@ -2039,6 +2490,17 @@ public:
 
     
     
+    
+    
+    
+    
+    
+    
+    bool SetSpaceGlyphIfSimple(gfxFont *aFont, gfxContext *aContext,
+                               PRUint32 aCharIndex);
+
+    
+    
     bool FilterIfIgnorable(PRUint32 aIndex);
 
     
@@ -2051,7 +2513,7 @@ public:
 
     
     
-    const CompressedGlyph *GetCharacterGlyphs() { return mCharacterGlyphs; }
+    CompressedGlyph *GetCharacterGlyphs() { return mCharacterGlyphs; }
 
     
     
@@ -2073,10 +2535,14 @@ public:
     
     
     PRUint32 FindFirstGlyphRunContaining(PRUint32 aOffset);
+
+    
+    void CopyGlyphDataFrom(const gfxShapedWord *aSource, PRUint32 aStart);
+
     
     
-    virtual void CopyGlyphDataFrom(gfxTextRun *aSource, PRUint32 aStart,
-                                   PRUint32 aLength, PRUint32 aDest);
+    void CopyGlyphDataFrom(gfxTextRun *aSource, PRUint32 aStart,
+                           PRUint32 aLength, PRUint32 aDest);
 
     nsExpirationState *GetExpirationState() { return &mExpirationState; }
 
@@ -2121,11 +2587,6 @@ public:
 #ifdef DEBUG
     void Dump(FILE* aOutput);
 #endif
-
-    
-    void AdjustAdvancesForSyntheticBold(gfxContext *aContext,
-                                        PRUint32 aStart,
-                                        PRUint32 aLength);
 
 protected:
     
@@ -2208,127 +2669,7 @@ private:
     
     
     
-    CompressedGlyph*                               mCharacterGlyphs;
-
-    
-    
-    
-    
-    
-    
-    class DetailedGlyphStore {
-    public:
-        DetailedGlyphStore()
-            : mLastUsed(0)
-        { }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        DetailedGlyph* Get(PRUint32 aOffset) {
-            NS_ASSERTION(mOffsetToIndex.Length() > 0,
-                         "no detailed glyph records!");
-            DetailedGlyph* details = mDetails.Elements();
-            
-            if (mLastUsed < mOffsetToIndex.Length() - 1 &&
-                aOffset == mOffsetToIndex[mLastUsed + 1].mOffset) {
-                ++mLastUsed;
-            } else if (aOffset == mOffsetToIndex[0].mOffset) {
-                mLastUsed = 0;
-            } else if (aOffset == mOffsetToIndex[mLastUsed].mOffset) {
-                
-            } else if (mLastUsed > 0 &&
-                       aOffset == mOffsetToIndex[mLastUsed - 1].mOffset) {
-                --mLastUsed;
-            } else {
-                mLastUsed =
-                    mOffsetToIndex.BinaryIndexOf(aOffset, CompareToOffset());
-            }
-            NS_ASSERTION(mLastUsed != nsTArray<DGRec>::NoIndex,
-                         "detailed glyph record missing!");
-            return details + mOffsetToIndex[mLastUsed].mIndex;
-        }
-
-        DetailedGlyph* Allocate(PRUint32 aOffset, PRUint32 aCount) {
-            PRUint32 detailIndex = mDetails.Length();
-            DetailedGlyph *details = mDetails.AppendElements(aCount);
-            if (!details) {
-                return nsnull;
-            }
-            
-            
-            
-            
-            if (mOffsetToIndex.Length() == 0 ||
-                aOffset > mOffsetToIndex[mOffsetToIndex.Length() - 1].mOffset) {
-                if (!mOffsetToIndex.AppendElement(DGRec(aOffset, detailIndex))) {
-                    return nsnull;
-                }
-            } else {
-                if (!mOffsetToIndex.InsertElementSorted(DGRec(aOffset, detailIndex),
-                                                        CompareRecordOffsets())) {
-                    return nsnull;
-                }
-            }
-            return details;
-        }
-
-        size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) {
-            return aMallocSizeOf(this, sizeof(DetailedGlyphStore)) +
-                mDetails.SizeOfExcludingThis(aMallocSizeOf) +
-                mOffsetToIndex.SizeOfExcludingThis(aMallocSizeOf);
-        }
-
-    private:
-        struct DGRec {
-            DGRec(const PRUint32& aOffset, const PRUint32& aIndex)
-                : mOffset(aOffset), mIndex(aIndex) { }
-            PRUint32 mOffset; 
-            PRUint32 mIndex;  
-        };
-
-        struct CompareToOffset {
-            bool Equals(const DGRec& a, const PRUint32& b) const {
-                return a.mOffset == b;
-            }
-            bool LessThan(const DGRec& a, const PRUint32& b) const {
-                return a.mOffset < b;
-            }
-        };
-
-        struct CompareRecordOffsets {
-            bool Equals(const DGRec& a, const DGRec& b) const {
-                return a.mOffset == b.mOffset;
-            }
-            bool LessThan(const DGRec& a, const DGRec& b) const {
-                return a.mOffset < b.mOffset;
-            }
-        };
-
-        
-        
-        
-        nsTArray<DetailedGlyph>     mDetails;
-
-        
-        
-        
-        nsTArray<DGRec>             mOffsetToIndex;
-
-        
-        
-        
-        nsTArray<DGRec>::index_type mLastUsed;
-    };
+    CompressedGlyph*                mCharacterGlyphs;
 
     nsAutoPtr<DetailedGlyphStore>   mDetailedGlyphs;
 
@@ -2397,8 +2738,9 @@ public:
 
 
 
+    static bool IsInvalidChar(PRUint8 ch);
     static bool IsInvalidChar(PRUnichar ch);
-    
+
     
 
 
@@ -2475,8 +2817,9 @@ public:
 
     virtual already_AddRefed<gfxFont> WhichSystemFontSupportsChar(PRUint32 aCh);
 
+    template<typename T>
     void ComputeRanges(nsTArray<gfxTextRange>& mRanges,
-                       const PRUnichar *aString, PRUint32 begin, PRUint32 end,
+                       const T *aString, PRUint32 aLength,
                        PRInt32 aRunScript);
 
     gfxUserFontSet* GetUserFontSet();
@@ -2538,17 +2881,18 @@ protected:
 
     
     
+    template<typename T>
     void InitTextRun(gfxContext *aContext,
                      gfxTextRun *aTextRun,
-                     const PRUnichar *aString,
+                     const T *aString,
                      PRUint32 aLength);
 
     
     
+    template<typename T>
     void InitScriptRun(gfxContext *aContext,
                        gfxTextRun *aTextRun,
-                       const PRUnichar *aString,
-                       PRUint32 aTotalLength,
+                       const T *aString,
                        PRUint32 aScriptRunStart,
                        PRUint32 aScriptRunEnd,
                        PRInt32 aRunScript);
