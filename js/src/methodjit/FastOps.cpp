@@ -1256,10 +1256,12 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
     ic.objRemat = frame.dataRematInfo(obj);
 
     
+    RESERVE_IC_SPACE(masm);
     ic.fastPathStart = masm.label();
 
     
     
+    RESERVE_OOL_SPACE(stubcc.masm);
     ic.slowPathStart = stubcc.syncExit(Uses(3));
 
     
@@ -1427,9 +1429,11 @@ mjit::Compiler::jsop_getelem(bool isCall)
             ic.id = ValueRemat::FromRegisters(ic.typeReg, dataReg);
     }
 
+    RESERVE_IC_SPACE(masm);
     ic.fastPathStart = masm.label();
 
     
+    RESERVE_OOL_SPACE(stubcc.masm);
     ic.slowPathStart = stubcc.masm.label();
     frame.sync(stubcc.masm, Uses(2));
 

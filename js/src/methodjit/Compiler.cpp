@@ -48,6 +48,7 @@
 #include "StubCalls.h"
 #include "MonoIC.h"
 #include "PolyIC.h"
+#include "ICChecker.h"
 #include "Retcon.h"
 #include "assembler/jit/ExecutableAllocator.h"
 #include "assembler/assembler/LinkBuffer.h"
@@ -642,7 +643,7 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
             stubCode.patch(patch.slowNcodePatch, fullCode.locationOf(patch.joinPoint));
     }
 
-#if defined JS_POLYIC
+#if defined JS_POLYIC_GETELEM
     jit->nGetElems = getElemICs.length();
     if (getElemICs.length()) {
         jit->getElems = (ic::GetElementIC *)cursor;
@@ -675,7 +676,9 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
 
         stubCode.patch(from.paramAddr, &to);
     }
+#endif 
 
+#if defined JS_POLYIC_SETELEM
     jit->nSetElems = setElemICs.length();
     if (setElemICs.length()) {
         jit->setElems = (ic::SetElementIC *)cursor;
@@ -713,12 +716,16 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
         to.inlineHoleGuard = inlineHoleGuard;
         JS_ASSERT(to.inlineHoleGuard == inlineHoleGuard);
 
+        CheckIsStubCall(to.slowPathCall.labelAtOffset(0));
+
         to.volatileMask = from.volatileMask;
         JS_ASSERT(to.volatileMask == from.volatileMask);
 
         stubCode.patch(from.paramAddr, &to);
     }
+#endif 
 
+#if defined JS_POLYIC
     jit->nPICs = pics.length();
     if (pics.length()) {
         jit->pics = (ic::PICInfo *)cursor;
@@ -754,7 +761,7 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
             stubCode.patch(pics[i].paramAddr, &scriptPICs[i]);
         }
     }
-#endif 
+#endif
 
     
     stubcc.fixCrossJumps(result, masm.size(), masm.size() + stubcc.size());

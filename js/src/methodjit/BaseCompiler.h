@@ -266,7 +266,7 @@ class AutoReserveICSpace {
     }
 };
 
-# define RESERVE_IC_SPACE(__masm)       AutoReserveICSpace<80> arics(__masm)
+# define RESERVE_IC_SPACE(__masm)       AutoReserveICSpace<96> arics(__masm)
 
 
 
