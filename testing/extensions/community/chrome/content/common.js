@@ -149,12 +149,11 @@ var qaTools = {
         return newArray;
     },
     writeSafeHTML : function(elementID, htmlstr) {
-        document.getElementById(elementID).innerHTML = "";  
-        var gUnescapeHTML = Components.classes["@mozilla.org/feed-unescapehtml;1"].getService(Components.interfaces.nsIScriptableUnescapeHTML);
+        document.getElementById(elementID).textContent = "";  
+        var utils = Components.classes["@mozilla.org/parserutils;1"].getService(Components.interfaces.nsIParserUtils);
         var context = document.getElementById(elementID);
-        var fragment = gUnescapeHTML.parseFragment(htmlstr, false, null, context);
+        var fragment = utils.parseFragment(htmlstr, 0, false, null, context);
         context.appendChild(fragment);
-
     },
 
     assignLinkHandlers : function(node) {
