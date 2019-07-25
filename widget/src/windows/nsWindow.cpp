@@ -1886,8 +1886,35 @@ nsWindow::GetNonClientMargins(nsIntMargin &margins)
   return NS_OK;
 }
 
+void
+nsWindow::ResetLayout()
+{
+  
+  
+  SetWindowPos(mWnd, 0, 0, 0, 0, 0,
+               SWP_FRAMECHANGED|SWP_NOACTIVATE|SWP_NOMOVE|
+               SWP_NOOWNERZORDER|SWP_NOSIZE|SWP_NOZORDER);
+
+  
+  if (!mIsVisible)
+    return;
+
+  
+  RECT clientRc = {0};
+  GetClientRect(mWnd, &clientRc);
+  nsIntRect evRect(nsWindowGfx::ToIntRect(clientRc));
+  OnResize(evRect);
+
+  
+  Invalidate(PR_FALSE);
+}
+
+
+
+
+
 PRBool
-nsWindow::UpdateNonClientMargins(PRInt32 aSizeMode, PRBool aRefreshWindow)
+nsWindow::UpdateNonClientMargins(PRInt32 aSizeMode, PRBool aReflowWindow)
 {
   if (!mCustomNonClient)
     return PR_FALSE;
@@ -1957,11 +1984,10 @@ nsWindow::UpdateNonClientMargins(PRInt32 aSizeMode, PRBool aRefreshWindow)
   if (mNonClientOffset.bottom < 0)
     mNonClientOffset.bottom = 0;
 
-  if (aRefreshWindow) {
-    SetWindowPos(mWnd, 0, 0, 0, 0, 0,
-                 SWP_FRAMECHANGED|SWP_NOACTIVATE|SWP_NOMOVE|
-                 SWP_NOOWNERZORDER|SWP_NOSIZE|SWP_NOZORDER);
-    UpdateWindow(mWnd);
+  if (aReflowWindow) {
+    
+    
+    ResetLayout();
   }
 
   return PR_TRUE;
@@ -1980,10 +2006,9 @@ nsWindow::SetNonClientMargins(nsIntMargin &margins)
       margins.right == -1 && margins.bottom == -1) {
     mCustomNonClient = PR_FALSE;
     mNonClientMargins = margins;
-    SetWindowPos(mWnd, 0, 0, 0, 0, 0,
-                 SWP_FRAMECHANGED|SWP_NOACTIVATE|SWP_NOMOVE|
-                 SWP_NOOWNERZORDER|SWP_NOSIZE|SWP_NOZORDER);
-    UpdateWindow(mWnd);
+    
+    
+    ResetLayout();
     return NS_OK;
   }
 
