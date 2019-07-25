@@ -3267,7 +3267,18 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
       return 1;
   }
 #endif
-
+#ifdef MOZ_X11
+  
+  
+  
+  
+  
+  
+  
+  if (PR_GetEnv("MOZ_USE_OMTC")) {
+    XInitThreads();
+  }
+#endif
 #if defined(MOZ_WIDGET_GTK2)
   mGdkDisplay = gdk_display_open(display_name);
   if (!mGdkDisplay) {

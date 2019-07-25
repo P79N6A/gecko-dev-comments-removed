@@ -128,7 +128,7 @@ nsWindow::nsWindow()
             NS_RUNTIMEABORT("Failed to create framebufferWatcherThread, aborting...");
         }
 
-        sUsingOMTC = Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
+        sUsingOMTC = UseOffMainThreadCompositing();
 
         
         
