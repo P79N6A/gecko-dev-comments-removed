@@ -487,7 +487,7 @@ public class PanZoomController
         }
 
         mX.setFlingState(Axis.FlingStates.PANNING); mY.setFlingState(Axis.FlingStates.PANNING);
-        mX.displace(); mY.displace();
+        mX.displace(mOverridePanning); mY.displace(mOverridePanning);
         updatePosition();
     }
 
@@ -497,7 +497,7 @@ public class PanZoomController
 
         mX.disableSnap = mY.disableSnap = mOverridePanning;
 
-        mX.displace(); mY.displace();
+        mX.displace(mOverridePanning); mY.displace(mOverridePanning);
         updatePosition();
 
         stopAnimationTimer();
@@ -670,7 +670,7 @@ public class PanZoomController
 
             
             if (flingingX || flingingY) {
-                mX.displace(); mY.displace();
+                mX.displace(mOverridePanning); mY.displace(mOverridePanning);
                 updatePosition();
 
                 
@@ -849,8 +849,8 @@ public class PanZoomController
         }
 
         
-        public void displace() {
-            if (locked || !scrollable())
+        public void displace(boolean panningOverridden) {
+            if (!panningOverridden && (locked || !scrollable()))
                 return;
 
             if (mFlingState == FlingStates.PANNING)
