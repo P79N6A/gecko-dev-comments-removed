@@ -94,7 +94,7 @@ public:
     
     
     
-    virtual nsSimpleURI* StartClone();
+    virtual nsSimpleURI* StartClone(RefHandlingEnum aRefHandlingMode);
     NS_IMETHOD Read(nsIObjectInputStream* aStream);
     NS_IMETHOD Write(nsIObjectOutputStream* aStream);
     NS_IMETHOD GetClassIDNoAlloc(nsCID *aClassIDNoAlloc);
