@@ -860,6 +860,9 @@ RunTracer(VMFrame &f)
     if ((tpa == TPA_RanStuff || tpa == TPA_Recorded) && cx->throwing)
         tpa = TPA_Error;
 
+	
+	f.fp = cx->fp;
+
     switch (tpa) {
       case TPA_Nothing:
         return NULL;
