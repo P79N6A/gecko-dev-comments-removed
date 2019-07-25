@@ -334,7 +334,7 @@ RadioInterfaceConstructor(nsISupports *aOuter, REFNSIID aIID, void **aResult)
     return NS_ERROR_NO_AGGREGATION;
   }
 
-  nsCOMPtr<nsIRadioInterface> inst = RadioManager::GetRadioInterface();
+  nsCOMPtr<nsITelephone> inst = RadioManager::GetTelephone();
   if (NULL == inst) {
     return NS_ERROR_OUT_OF_MEMORY;
   }

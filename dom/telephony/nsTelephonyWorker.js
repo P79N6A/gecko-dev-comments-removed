@@ -61,10 +61,10 @@ nsTelephonyWorker.prototype = {
                                     contractID: TELEPHONYWORKER_CONTRACTID,
                                     classDescription: "TelephonyWorker",
                                     interfaces: [Ci.nsITelephonyWorker,
-                                                 Ci.nsIRadioInterface]}),
+                                                 Ci.nsITelephone]}),
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsITelephonyWorker,
-                                         Ci.nsIRadioInterface]),
+                                         Ci.nsITelephone]),
 
   onerror: function onerror(event) {
     

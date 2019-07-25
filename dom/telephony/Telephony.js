@@ -161,7 +161,7 @@ function TelephonyRadioCallback(telephony) {
 }
 TelephonyRadioCallback.prototype = {
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIRadioCallback]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsITelephoneCallback]),
 
   
 
@@ -215,7 +215,7 @@ Telephony.prototype = {
   init: function init(window) {
     this.window = window;
     this.radioInterface = Cc["@mozilla.org/telephony/radio-interface;1"]
-                            .createInstance(Ci.nsIRadioInterface);
+                            .createInstance(Ci.nsITelephone);
     this.radioCallback = new TelephonyRadioCallback(this);
     window.addEventListener("unload", function onunload(event) {
       this.radioInterface.unregisterCallback(this.radioCallback);
