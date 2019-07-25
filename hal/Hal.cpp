@@ -181,11 +181,14 @@ public:
   void RemoveObserver(Observer<InfoType>* aObserver) {
     
     
-    if (!mObservers) {
-      return;
-    }
+    
+    
+    
 
-    mObservers->RemoveObserver(aObserver);
+    MOZ_ASSERT(mObservers);
+
+    DebugOnly<bool> removed = mObservers->RemoveObserver(aObserver);
+    MOZ_ASSERT(removed);
 
     if (mObservers->Length() == 0) {
       DisableNotifications();
