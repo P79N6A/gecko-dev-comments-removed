@@ -999,14 +999,7 @@ ValueToNumberSlow(JSContext *cx, jsval v, double *out)
             break;
 
         JS_ASSERT(!JSVAL_IS_PRIMITIVE(v));
-        JSObject *obj = JSVAL_TO_OBJECT(v);
-
-        
-
-
-
-
-        if (!obj->defaultValue(cx, JSTYPE_NUMBER, &v))
+        if (!DefaultValue(cx, JSVAL_TO_OBJECT(v), JSTYPE_NUMBER, &v))
             return JSVAL_NULL;
         if (!JSVAL_IS_PRIMITIVE(v))
             break;
