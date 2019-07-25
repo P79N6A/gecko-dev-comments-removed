@@ -11766,6 +11766,42 @@ nsDocShell::GetIsBrowserFrame(bool *aOut)
 NS_IMETHODIMP
 nsDocShell::SetIsBrowserFrame(bool aValue)
 {
+  
+  
+  
+  
+  
+  NS_ENSURE_STATE(!mIsBrowserFrame);
+
+  bool wasBrowserFrame = mIsBrowserFrame;
   mIsBrowserFrame = aValue;
+  if (aValue && !wasBrowserFrame) {
+    nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+    if (os) {
+      os->NotifyObservers(GetAsSupports(this),
+                          "docshell-marked-as-browser-frame", NULL);
+    }
+  }
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::GetContainedInBrowserFrame(bool *aOut)
+{
+    *aOut = false;
+
+    if (mIsBrowserFrame) {
+        *aOut = true;
+        return NS_OK;
+    }
+
+    nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
+    GetSameTypeParent(getter_AddRefs(parentAsItem));
+
+    nsCOMPtr<nsIDocShell> parent = do_QueryInterface(parentAsItem);
+    if (parent) {
+        return parent->GetContainedInBrowserFrame(aOut);
+    }
+
+    return NS_OK;
 }
