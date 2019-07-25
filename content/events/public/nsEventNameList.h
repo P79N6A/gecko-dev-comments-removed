@@ -1,141 +1,141 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is the Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2011
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Boris Zbarsky <bzbarsky@mit.edu>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+/*
+ * This file contains the list of event names that are exposed via IDL
+ * on various objects.  It is designed to be used as inline input to
+ * various consumers through the magic of C preprocessing.
+ *
+ * Each entry consists of 4 pieces of information:
+ * 1) The name of the event
+ * 2) The event ID (see nsGUIEvent.h)
+ * 3) The event type (see the EventNameType enum in nsContentUtils.h)
+ * 4) The event struct type for this event.
+ * Items 2-4 might be empty strings for events for which they don't make sense.
+ *
+ * Event names that are exposed as content attributes on HTML elements
+ * and as IDL attributes on Elements, Documents and Windows and have
+ * no forwarding behavior should be enclosed in the EVENT macro.
+ *
+ * Event names that are exposed as content attributes on HTML elements
+ * and as IDL attributes on Elements, Documents and Windows and are
+ * forwarded from <body> and <frameset> to the Window should be
+ * enclosed in the FORWARDED_EVENT macro.  If this macro is not
+ * defined, it will be defined to be equivalent to EVENT.
+ *
+ * Event names that are exposed as IDL attributes on Windows only
+ * should be enclosed in the WINDOW_ONLY_EVENT macro.  If this macro
+ * is not defined, it will be defined to the empty string.
+ *
+ * Event names that are exposed as content and IDL attributes on
+ * <body> and <frameset>, which forward them to the Window, and are
+ * exposed as IDL attributes on the Window should be enclosed in the
+ * WINDOW_EVENT macro.  If this macro is not defined, it will be
+ * defined to be equivalent to WINDOW_ONLY_EVENT.
+ *
+ * Touch-specific event names should be enclosed in TOUCH_EVENT.  They
+ * are otherwise equivalent to those enclosed in EVENT.  If
+ * TOUCH_EVENT is not defined, it will be defined to the empty string.
+ *
+ * Event names that are only exposed as IDL attributes on Documents
+ * should be enclosed in the DOCUMENT_ONLY_EVENT macro.  If this macro is
+ * not defined, it will be defined to the empty string.
+ *
+ * Event names that are not exposed as IDL attributes at all should be
+ * enclosed in NON_IDL_EVENT.  If NON_IDL_EVENT is not defined, it
+ * will be defined to the empty string.
+ *
+ * If you change which macros event names are enclosed in, please
+ * update the tests for bug 689564 and bug 659350 as needed.
+ */
 
 #ifdef DEFINED_FORWARDED_EVENT
 #error "Don't define DEFINED_FORWARDED_EVENT"
-#endif 
+#endif /* DEFINED_FORWARDED_EVENT */
 
 #ifndef FORWARDED_EVENT
 #define FORWARDED_EVENT EVENT
 #define DEFINED_FORWARDED_EVENT
-#endif 
+#endif /* FORWARDED_EVENT */
 
 #ifdef DEFINED_WINDOW_ONLY_EVENT
 #error "Don't define DEFINED_WINDOW_ONLY_EVENT"
-#endif 
+#endif /* DEFINED_WINDOW_ONLY_EVENT */
 
 #ifndef WINDOW_ONLY_EVENT
 #define WINDOW_ONLY_EVENT(_name, _id, _type, _struct)
 #define DEFINED_WINDOW_ONLY_EVENT
-#endif 
+#endif /* WINDOW_ONLY_EVENT */
 
 #ifdef DEFINED_WINDOW_EVENT
 #error "Don't define DEFINED_WINDOW_EVENT"
-#endif 
+#endif /* DEFINED_WINDOW_EVENT */
 
 #ifndef WINDOW_EVENT
 #define WINDOW_EVENT WINDOW_ONLY_EVENT
 #define DEFINED_WINDOW_EVENT
-#endif 
+#endif /* WINDOW_EVENT */
 
 #ifdef DEFINED_TOUCH_EVENT
 #error "Don't define DEFINED_TOUCH_EVENT"
-#endif 
+#endif /* DEFINED_TOUCH_EVENT */
 
 #ifndef TOUCH_EVENT
 #define TOUCH_EVENT(_name, _id, _type, _struct)
 #define DEFINED_TOUCH_EVENT
-#endif 
+#endif /* TOUCH_EVENT */
 
 #ifdef DEFINED_DOCUMENT_ONLY_EVENT
 #error "Don't define DEFINED_DOCUMENT_ONLY_EVENT"
-#endif 
+#endif /* DEFINED_DOCUMENT_ONLY_EVENT */
 
 #ifndef DOCUMENT_ONLY_EVENT
 #define DOCUMENT_ONLY_EVENT(_name, _id, _type, _struct)
 #define DEFINED_DOCUMENT_ONLY_EVENT
-#endif 
+#endif /* DOCUMENT_ONLY_EVENT */
 
 #ifdef DEFINED_NON_IDL_EVENT
 #error "Don't define DEFINED_NON_IDL_EVENT"
-#endif 
+#endif /* DEFINED_NON_IDL_EVENT */
 
 #ifndef NON_IDL_EVENT
 #define NON_IDL_EVENT(_name, _id, _type, _struct)
 #define DEFINED_NON_IDL_EVENT
-#endif 
+#endif /* NON_IDL_EVENT */
 
 EVENT(abort,
       NS_IMAGE_ABORT,
@@ -161,8 +161,8 @@ EVENT(contextmenu,
       NS_CONTEXTMENU,
       EventNameType_HTMLXUL,
       NS_MOUSE_EVENT)
-
-
+// Not supported yet
+// EVENT(cuechange)
 EVENT(dblclick,
       NS_MOUSE_DOUBLECLICK,
       EventNameType_HTMLXUL,
@@ -275,8 +275,16 @@ EVENT(mozfullscreenerror,
       NS_FULLSCREENERROR,
       EventNameType_HTML,
       NS_EVENT_NULL)
-
-
+EVENT(mozpointerlockchange,
+      NS_POINTERLOCKCHANGE,
+      EventNameType_HTML,
+      NS_EVENT_NULL)
+EVENT(mozpointerlockerror,
+      NS_POINTERLOCKERROR,
+      EventNameType_HTML,
+      NS_EVENT_NULL)
+// Not supported yet; probably never because "wheel" is a better idea.
+// EVENT(mousewheel)
 EVENT(pause,
       NS_PAUSE,
       EventNameType_HTML,
@@ -341,7 +349,7 @@ EVENT(waiting,
       NS_WAITING,
       EventNameType_HTML,
       NS_EVENT_NULL)
-
+// Gecko-specific extensions that apply to elements
 EVENT(copy,
       NS_COPY,
       EventNameType_HTMLXUL,
@@ -424,16 +432,16 @@ WINDOW_EVENT(popstate,
              NS_POPSTATE,
              EventNameType_HTMLXUL,
              NS_EVENT_NULL)
-
-
+// Not supported yet
+// WINDOW_EVENT(redo)
 WINDOW_EVENT(resize,
              NS_RESIZE_EVENT,
              (EventNameType_HTMLXUL | EventNameType_SVGSVG),
              NS_EVENT)
-
-
-
-
+// Not supported yet
+// WINDOW_EVENT(storage)
+// Not supported yet
+// WINDOW_EVENT(undo)
 WINDOW_EVENT(unload,
              NS_PAGE_UNLOAD,
              (EventNameType_HTMLXUL | EventNameType_SVGSVG),
@@ -543,7 +551,7 @@ NON_IDL_EVENT(open,
               EventNameType_None,
               NS_EVENT)
 
-
+// Events that only have on* attributes on XUL elements
 NON_IDL_EVENT(text,
               NS_TEXT_TEXT,
               EventNameType_XUL,
@@ -613,7 +621,7 @@ NON_IDL_EVENT(underflow,
               EventNameType_XUL,
               NS_EVENT_NULL)
 
-
+// Various SVG events
 NON_IDL_EVENT(SVGLoad,
               NS_SVG_LOAD,
               EventNameType_None,
@@ -643,7 +651,7 @@ NON_IDL_EVENT(SVGZoom,
               NS_SVG_ZOOM,
               EventNameType_None,
               NS_SVGZOOM_EVENT)
-
+// This is a bit hackish, but SVG's event names are weird.
 NON_IDL_EVENT(zoom,
               NS_SVG_ZOOM,
               EventNameType_SVGSVG,
@@ -687,7 +695,7 @@ NON_IDL_EVENT(MozScrolledAreaChanged,
               EventNameType_None,
               NS_SCROLLAREA_EVENT)
 
-
+// Simple gesture events
 NON_IDL_EVENT(MozSwipeGesture,
               NS_SIMPLE_GESTURE_SWIPE,
               EventNameType_None,
@@ -758,30 +766,30 @@ NON_IDL_EVENT(animationiteration,
 #ifdef DEFINED_FORWARDED_EVENT
 #undef DEFINED_FORWARDED_EVENT
 #undef FORWARDED_EVENT
-#endif 
+#endif /* DEFINED_FORWARDED_EVENT */
 
 #ifdef DEFINED_WINDOW_EVENT
 #undef DEFINED_WINDOW_EVENT
 #undef WINDOW_EVENT
-#endif 
+#endif /* DEFINED_WINDOW_EVENT */
 
 #ifdef DEFINED_WINDOW_ONLY_EVENT
 #undef DEFINED_WINDOW_ONLY_EVENT
 #undef WINDOW_ONLY_EVENT
-#endif 
+#endif /* DEFINED_WINDOW_ONLY_EVENT */
 
 #ifdef DEFINED_TOUCH_EVENT
 #undef DEFINED_TOUCH_EVENT
 #undef TOUCH_EVENT
-#endif 
+#endif /* DEFINED_TOUCH_EVENT */
 
 #ifdef DEFINED_DOCUMENT_ONLY_EVENT
 #undef DEFINED_DOCUMENT_ONLY_EVENT
 #undef DOCUMENT_ONLY_EVENT
-#endif 
+#endif /* DEFINED_DOCUMENT_ONLY_EVENT */
 
 #ifdef DEFINED_NON_IDL_EVENT
 #undef DEFINED_NON_IDL_EVENT
 #undef NON_IDL_EVENT
-#endif 
+#endif /* DEFINED_NON_IDL_EVENT */
 

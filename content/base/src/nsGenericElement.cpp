@@ -3274,6 +3274,9 @@ nsGenericElement::UnbindFromTree(bool aDeep, bool aNullParent)
       
       nsIDocument::ExitFullScreen(false);
     }
+    if (HasPointerLock()) {
+      nsIDocument::UnlockPointer();
+    }
     if (GetParent()) {
       NS_RELEASE(mParent);
     } else {
@@ -6418,7 +6421,15 @@ nsINode::Contains(nsIDOMNode* aOther, bool* aReturn)
   return NS_OK;
 }
 
-nsresult nsGenericElement::MozRequestFullScreen()
+NS_IMETHODIMP
+nsGenericElement::MozRequestPointerLock()
+{
+  OwnerDoc()->RequestPointerLock(this);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsGenericElement::MozRequestFullScreen()
 {
   
   

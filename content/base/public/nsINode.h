@@ -1330,6 +1330,8 @@ private:
     
     ElementHasLockedStyleStates,
     
+    ElementHasPointerLock,
+    
     BooleanFlagCount
   };
 
@@ -1387,6 +1389,9 @@ public:
   bool IsPurpleRoot() const { return GetBoolFlag(NodeIsPurpleRoot); }
 
   bool HasListenerManager() { return HasFlag(NODE_HAS_LISTENERMANAGER); }
+  bool HasPointerLock() const { return GetBoolFlag(ElementHasPointerLock); }
+  void SetPointerLock() { SetBoolFlag(ElementHasPointerLock); }
+  void ClearPointerLock() { ClearBoolFlag(ElementHasPointerLock); }
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
   void SetInDocument() { SetBoolFlag(IsInDocument); }
