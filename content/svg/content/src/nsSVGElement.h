@@ -222,6 +222,16 @@ public:
   void DidAnimateTransformList();
   void DidAnimateString(PRUint8 aAttrEnum);
 
+  enum {
+    
+
+
+
+
+
+    DO_ALLOCATE = 0x1
+  };
+
   nsSVGLength2* GetAnimatedLength(const nsIAtom *aAttrName);
   void GetAnimatedLengthValues(float *aFirst, ...);
   void GetAnimatedNumberValues(float *aFirst, ...);
@@ -241,8 +251,19 @@ public:
     return nsnull;
   }
   
-  
-  virtual SVGAnimatedTransformList* GetAnimatedTransformList() {
+
+
+
+
+
+
+
+
+
+
+
+  virtual SVGAnimatedTransformList* GetAnimatedTransformList(
+                                                        PRUint32 aFlags = 0) {
     return nsnull;
   }
 

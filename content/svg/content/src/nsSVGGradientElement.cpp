@@ -92,9 +92,10 @@ NS_IMETHODIMP nsSVGGradientElement::GetGradientUnits(nsIDOMSVGAnimatedEnumeratio
 
 NS_IMETHODIMP nsSVGGradientElement::GetGradientTransform(nsIDOMSVGAnimatedTransformList * *aGradientTransform)
 {
-  *aGradientTransform =
-    DOMSVGAnimatedTransformList::GetDOMWrapper(GetAnimatedTransformList(), this)
-    .get();
+  
+  
+  *aGradientTransform = DOMSVGAnimatedTransformList::GetDOMWrapper(
+                          GetAnimatedTransformList(DO_ALLOCATE), this).get();
   return NS_OK;
 }
 
@@ -203,9 +204,9 @@ NS_IMETHODIMP nsSVGLinearGradientElement::GetY2(nsIDOMSVGAnimatedLength * *aY2)
 
 
 SVGAnimatedTransformList*
-nsSVGGradientElement::GetAnimatedTransformList()
+nsSVGGradientElement::GetAnimatedTransformList(PRUint32 aFlags)
 {
-  if (!mGradientTransform) {
+  if (!mGradientTransform && (aFlags & DO_ALLOCATE)) {
     mGradientTransform = new SVGAnimatedTransformList();
   }
   return mGradientTransform;

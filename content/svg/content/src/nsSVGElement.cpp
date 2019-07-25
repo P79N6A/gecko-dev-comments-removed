@@ -544,17 +544,18 @@ nsSVGElement::ParseAttribute(PRInt32 aNamespaceID,
         }
       
       } else if (GetTransformListAttrName() == aAttribute) {
-        SVGAnimatedTransformList *transformList = GetAnimatedTransformList();
-        if (transformList) {
-          rv = transformList->SetBaseValueString(aValue);
-          if (NS_FAILED(rv)) {
-            transformList->ClearBaseValue();
-          } else {
-            aResult.SetTo(transformList->GetBaseValue(), &aValue);
-            didSetResult = true;
-          }
-          foundMatch = true;
+        
+        
+        SVGAnimatedTransformList *transformList =
+          GetAnimatedTransformList(DO_ALLOCATE);
+        rv = transformList->SetBaseValueString(aValue);
+        if (NS_FAILED(rv)) {
+          transformList->ClearBaseValue();
+        } else {
+          aResult.SetTo(transformList->GetBaseValue(), &aValue);
+          didSetResult = true;
         }
+        foundMatch = true;
       }
     }
   }
@@ -2277,8 +2278,10 @@ nsSVGElement::DidChangeTransformList(const nsAttrValue& aEmptyOrOldValue)
   NS_ABORT_IF_FALSE(GetTransformListAttrName(),
                     "Changing non-existent transform list?");
 
+  
+  
   nsAttrValue newValue;
-  newValue.SetTo(GetAnimatedTransformList()->GetBaseValue(), nsnull);
+  newValue.SetTo(GetAnimatedTransformList(DO_ALLOCATE)->GetBaseValue(), nsnull);
 
   DidChangeValue(GetTransformListAttrName(), aEmptyOrOldValue, newValue);
 }
@@ -2466,8 +2469,9 @@ nsSVGElement::GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName)
 
     
     if (GetTransformListAttrName() == aName) {
-      SVGAnimatedTransformList* transformList = GetAnimatedTransformList();
-      return transformList ?  transformList->ToSMILAttr(this) : nsnull;
+      
+      
+      return GetAnimatedTransformList(DO_ALLOCATE)->ToSMILAttr(this);
     }
 
     
