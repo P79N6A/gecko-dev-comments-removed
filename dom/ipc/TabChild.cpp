@@ -103,6 +103,7 @@ TabChild::TabChild(PRUint32 aChromeFlags, bool aIsBrowserElement,
   , mLastBackgroundColor(NS_RGB(255, 255, 255))
   , mDidFakeShow(false)
   , mIsBrowserElement(aIsBrowserElement)
+  , mNotified(false)
   , mAppId(aAppId)
 {
     printf("creating %d!\n", NS_IsMainThread());
@@ -1269,17 +1270,9 @@ TabChild::SetBackgroundColor(const nscolor& aColor)
 void
 TabChild::NotifyPainted()
 {
-    if (UseDirectCompositor()) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
+    if (UseDirectCompositor() && !mNotified) {
         mRemoteFrame->SendNotifyCompositorTransaction();
+        mNotified = true;
     }
 }
 
