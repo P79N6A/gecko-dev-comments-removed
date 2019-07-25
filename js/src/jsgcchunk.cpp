@@ -71,23 +71,11 @@
 #ifdef XP_WIN
 
 static void *
-MapPagesWithFlags(void *addr, size_t size, uint32 flags)
-{
-    void *p = VirtualAlloc(addr, size, flags, PAGE_READWRITE);
-    JS_ASSERT_IF(p && addr, p == addr);
-    return p;
-}
-
-static void *
 MapPages(void *addr, size_t size)
 {
-    return MapPagesWithFlags(addr, size, MEM_COMMIT | MEM_RESERVE);
-}
-
-static void *
-MapPagesUncommitted(void *addr, size_t size)
-{
-    return MapPagesWithFlags(addr, size, MEM_RESERVE);
+    void *p = VirtualAlloc(addr, size, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+    JS_ASSERT_IF(p && addr, p == addr);
+    return p;
 }
 
 static void
@@ -286,12 +274,6 @@ UnmapPages(void *addr, size_t size)
 namespace js {
 namespace gc {
 
-static inline size_t
-ChunkAddrToOffset(void *addr)
-{
-  return reinterpret_cast<uintptr_t>(addr) & ChunkMask;
-}
-
 static inline void *
 FindChunkStart(void *p)
 {
@@ -300,179 +282,58 @@ FindChunkStart(void *p)
     return reinterpret_cast<void *>(addr);
 }
 
-#if defined(JS_GC_HAS_MAP_ALIGN)
-
 void *
 AllocChunk()
-{
-  void *p = MapAlignedPages(ChunkSize, ChunkSize);
-  JS_ASSERT(ChunkAddrToOffset(p) == 0);
-  return p;
-}
-
-#elif defined(XP_WIN)
-
-void *
-AllocChunkSlow()
 {
     void *p;
-    do {
-        
 
-
-
-
-
-
-
-        p = MapPagesUncommitted(NULL, ChunkSize * 2);
-        if (!p)
-            return NULL;
-        UnmapPages(p, ChunkSize * 2);
-        p = MapPages(FindChunkStart(p), ChunkSize);
-
-        
-    } while(!p);
-
-    JS_ASSERT(ChunkAddrToOffset(p) == 0);
-    return p;
-}
-
-void *
-AllocChunk()
-{
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    void *p = MapPages(NULL, ChunkSize);
-    if (!p) {
+#ifdef JS_GC_HAS_MAP_ALIGN
+    p = MapAlignedPages(ChunkSize, ChunkSize);
+    if (!p)
         return NULL;
-    }
-
-    
-    if (ChunkAddrToOffset(p) == 0) {
-        return p;
-    }
-
+#else
     
 
 
 
 
 
-
-
-
-    UnmapPages(p, ChunkSize);
-    p = MapPages(FindChunkStart(p), ChunkSize);
-    if (p) {
-      JS_ASSERT(ChunkAddrToOffset(p) == 0);
-      return p;
-    }
-
-    
-    return AllocChunkSlow();
-}
-
-#else 
-
-inline static void *
-AllocChunkSlow()
-{
-    
-
-
-
-
-    char *p = reinterpret_cast<char*>(MapPages(NULL, ChunkSize * 2));
-    if (p == NULL)
-        return NULL;
-
-    size_t offset = ChunkAddrToOffset(p);
-    if (offset == 0) {
-        
-        UnmapPages(p + ChunkSize, ChunkSize);
-        return p;
-    }
-
-    
-    UnmapPages(p, ChunkSize - offset);
-
-    p += ChunkSize - offset;
-
-    
-    UnmapPages(p + ChunkSize, offset);
-
-    JS_ASSERT(ChunkAddrToOffset(p) == 0);
-    return p;
-}
-
-void *
-AllocChunk()
-{
-    
-
-
-
-
-
-
-
-
-
-
-    
-    char *p = reinterpret_cast<char*>(MapPages(NULL, ChunkSize));
+    p = MapPages(NULL, ChunkSize);
     if (!p)
         return NULL;
 
-    size_t offset = ChunkAddrToOffset(p);
-    if (offset == 0) {
-      
-      return p;
+    if (reinterpret_cast<uintptr_t>(p) & ChunkMask) {
+        UnmapPages(p, ChunkSize);
+        p = MapPages(FindChunkStart(p), ChunkSize);
+        while (!p) {
+            
+
+
+
+
+            p = MapPages(NULL, ChunkSize * 2);
+            if (!p)
+                return 0;
+            UnmapPages(p, ChunkSize * 2);
+            p = MapPages(FindChunkStart(p), ChunkSize);
+
+            
+
+
+
+        }
     }
+#endif 
 
-    
-
-
-
-
-
-    if (MapPages(p + ChunkSize, ChunkSize - offset) != NULL) {
-        
-        UnmapPages(p, ChunkSize - offset);
-        p += ChunkSize - offset;
-        JS_ASSERT(ChunkAddrToOffset(p) == 0);
-        return p;
-    }
-
-    
-
-
-
-    UnmapPages(p, ChunkSize);
-    return AllocChunkSlow();
+    JS_ASSERT(!(reinterpret_cast<uintptr_t>(p) & ChunkMask));
+    return p;
 }
-
-#endif
 
 void
 FreeChunk(void *p)
 {
     JS_ASSERT(p);
-    JS_ASSERT(ChunkAddrToOffset(p) == 0);
+    JS_ASSERT(!(reinterpret_cast<uintptr_t>(p) & ChunkMask));
     UnmapPages(p, ChunkSize);
 }
 
