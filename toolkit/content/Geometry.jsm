@@ -95,262 +95,93 @@ let Util = {
 
 
 
-Util.Rect = function Rect(x, y, w, h) {
-  this.left = x;
-  this.top = y;
-  this.right = x+w;
-  this.bottom = y+h;
-};
+Point = function Point(x, y) {
+  this.set(x, y);
+}
 
-Util.Rect.prototype = {
-  get x() { return this.left; },
-  get y() { return this.top; },
-  get width() { return this.right - this.left; },
-  get height() { return this.bottom - this.top; },
-  set x(v) {
-    let diff = this.left - v;
-    this.left = v;
-    this.right -= diff;
-  },
-  set y(v) {
-    let diff = this.top - v;
-    this.top = v;
-    this.bottom -= diff;
-  },
-  set width(v) { this.right = this.left + v; },
-  set height(v) { this.bottom = this.top + v; },
-
-  setRect: function(x, y, w, h) {
-    this.left = x;
-    this.top = y;
-    this.right = x+w;
-    this.bottom = y+h;
-
-    return this;
-  },
-
-  setBounds: function(t, l, b, r) {
-    this.top = t;
-    this.left = l;
-    this.bottom = b;
-    this.right = r;
-
-    return this;
-  },
-
-  equals: function equals(r) {
-    return (r != null       &&
-            this.top == r.top &&
-            this.left == r.left &&
-            this.bottom == r.bottom &&
-            this.right == r.right);
-  },
-
+Point.prototype = {
   clone: function clone() {
-    return new wsRect(this.left, this.top, this.right - this.left, this.bottom - this.top);
+    return new Point(this.x, this.y);
   },
 
-  center: function center() {
-    return [this.left + (this.right - this.left) / 2,
-            this.top + (this.bottom - this.top) / 2];
-  },
-
-  centerRounded: function centerRounded() {
-    return this.center().map(Math.round);
-  },
-
-  copyFrom: function(r) {
-    this.top = r.top;
-    this.left = r.left;
-    this.bottom = r.bottom;
-    this.right = r.right;
-
+  set: function set(x, y) {
+    this.x = x;
+    this.y = y;
     return this;
   },
-
-  copyFromTLBR: function(r) {
-    this.left = r.left;
-    this.top = r.top;
-    this.right = r.right;
-    this.bottom = r.bottom;
-
-    return this;
-  },
-
-  translate: function(x, y) {
-    this.left += x;
-    this.right += x;
-    this.top += y;
-    this.bottom += y;
-
-    return this;
-  },
-
   
-  union: function(rect) {
-    let l = Math.min(this.left, rect.left);
-    let r = Math.max(this.right, rect.right);
-    let t = Math.min(this.top, rect.top);
-    let b = Math.max(this.bottom, rect.bottom);
-
-    return new wsRect(l, t, r-l, b-t);
+  equals: function equals(x, y) {
+    return this.x == x && this.y == y;
   },
 
-  toString: function() {
-    return "[" + this.x + "," + this.y + "," + this.width + "," + this.height + "]";
+  toString: function toString() {
+    return "(" + this.x + "," + this.y + ")";
   },
 
-  expandBy: function(b) {
-    this.left += b.left;
-    this.right += b.right;
-    this.top += b.top;
-    this.bottom += b.bottom;
+  map: function map(f) {
+    this.x = f.call(this, this.x);
+    this.y = f.call(this, this.y);
     return this;
   },
 
-  contains: function(other) {
-    return !!(other.left >= this.left &&
-              other.right <= this.right &&
-              other.top >= this.top &&
-              other.bottom <= this.bottom);
-  },
-
-  intersect: function(r2) {
-    let xmost1 = this.right;
-    let xmost2 = r2.right;
-
-    let x = Math.max(this.left, r2.left);
-
-    let temp = Math.min(xmost1, xmost2);
-    if (temp <= x)
-      return null;
-
-    let width = temp - x;
-
-    let ymost1 = this.bottom;
-    let ymost2 = r2.bottom;
-    let y = Math.max(this.top, r2.top);
-
-    temp = Math.min(ymost1, ymost2);
-    if (temp <= y)
-      return null;
-
-    let height = temp - y;
-
-    return new wsRect(x, y, width, height);
-  },
-
-  intersects: function(other) {
-    if (!other) debugger;
-
-    let left = this.left;
-    let right = this.right;
-    let otherleft = other.left;
-    let otherright = other.right;
-
-    let xok = (otherleft > left && otherleft < right) ||
-      (otherright > left && otherright < right) ||
-      (otherleft <= left && otherright >= right);
-
-    if (!xok) return false;
-
-    let top = this.top;
-    let bottom = this.bottom;
-    let othertop = other.top;
-    let otherbottom = other.bottom;
-
-    let yok = (othertop > top && othertop < bottom) ||
-      (otherbottom > top && otherbottom < bottom) ||
-      (othertop <= top && otherbottom >= bottom);
-
-    if (!yok) return false;
-
-    return true;
-  },
-
-
-  
-
-
-
-
-  restrictTo: function restrictTo(r2) {
-    let xmost1 = this.right;
-    let xmost2 = r2.right;
-
-    let x = Math.max(this.left, r2.left);
-
-    let temp = Math.min(xmost1, xmost2);
-    if (temp <= x)
-      throw "Intersection is empty but rects cannot be empty";
-
-    let width = temp - x;
-
-    let ymost1 = this.bottom;
-    let ymost2 = r2.bottom;
-    let y = Math.max(this.top, r2.top);
-
-    temp = Math.min(ymost1, ymost2);
-    if (temp <= y)
-      throw "Intersection is empty but rects cannot be empty";
-
-    let height = temp - y;
-
-    return this.setRect(x, y, width, height);
-  },
-
-  
-
-
-
-
-
-
-
-  expandToContain: function extendTo(rect) {
-    let l = Math.min(this.left, rect.left);
-    let r = Math.max(this.right, rect.right);
-    let t = Math.min(this.top, rect.top);
-    let b = Math.max(this.bottom, rect.bottom);
-
-    return this.setRect(l, t, r-l, b-t);
-  },
-
-  round: function round(scale) {
-    if (!scale) scale = 1;
-
-    this.left = Math.floor(this.left * scale) / scale;
-    this.top = Math.floor(this.top * scale) / scale;
-    this.right = Math.ceil(this.right * scale) / scale;
-    this.bottom = Math.ceil(this.bottom * scale) / scale;
-
+  add: function add(x, y) {
+    this.x += x;
+    this.y += y;
     return this;
   },
 
-  scale: function scale(xscl, yscl) {
-    this.left *= xscl;
-    this.right *= xscl;
-    this.top *= yscl;
-    this.bottom *= yscl;
-
+  subtract: function subtract(x, y) {
+    this.x -= x;
+    this.y -= y;
     return this;
+  },
+
+  scale: function scale(s) {
+    this.x *= s;
+    this.y *= s;
+    return this;
+  },
+
+  isZero: function() {
+    return this.x == 0 && this.y == 0;
   }
 };
 
+(function() {
+  function takePointOrArgs(f) {
+    return function(arg1, arg2) {
+      if (arg2 === undefined)
+        return f.call(this, arg1.x, arg1.y);
+      else
+        return f.call(this, arg1, arg2);
+    };
+  }
+
+  for each (let f in ['add', 'subtract', 'equals', 'set'])
+    Point.prototype[f] = takePointOrArgs(Point.prototype[f]);
+})();
 
 
 
 
 
-function wsRect(x, y, w, h) {
+
+
+
+
+
+function Rect(x, y, w, h) {
   this.left = x;
   this.top = y;
   this.right = x+w;
   this.bottom = y+h;
+};
+
+Rect.fromRect = function fromRect(r) {
+  return new Rect(r.left, r.top, r.right - r.left, r.bottom - r.top);
 }
 
-wsRect.prototype = {
-
+Rect.prototype = {
   get x() { return this.left; },
   get y() { return this.top; },
   get width() { return this.right - this.left; },
@@ -367,6 +198,10 @@ wsRect.prototype = {
   },
   set width(v) { this.right = this.left + v; },
   set height(v) { this.bottom = this.top + v; },
+
+  isEmpty: function isEmpty() {
+    return this.left >= this.right || this.top >= this.bottom;
+  },
 
   setRect: function(x, y, w, h) {
     this.left = x;
@@ -386,41 +221,30 @@ wsRect.prototype = {
     return this;
   },
 
-  equals: function equals(r) {
-    return (r != null       &&
-            this.top == r.top &&
-            this.left == r.left &&
-            this.bottom == r.bottom &&
-            this.right == r.right);
+  equals: function equals(other) {
+    return (other != null &&
+            this.top == other.top &&
+            this.left == other.left &&
+            this.bottom == other.bottom &&
+            this.right == other.right);
   },
 
   clone: function clone() {
-    return new wsRect(this.left, this.top, this.right - this.left, this.bottom - this.top);
+    return new Rect(this.left, this.top, this.right - this.left, this.bottom - this.top);
   },
 
   center: function center() {
-    return [this.left + (this.right - this.left) / 2,
-            this.top + (this.bottom - this.top) / 2];
+    if (this.isEmpty())
+      throw "Empty rectangles do not have centers";
+    return new Point(this.left + (this.right - this.left) / 2,
+                          this.top + (this.bottom - this.top) / 2);
   },
 
-  centerRounded: function centerRounded() {
-    return this.center().map(Math.round);
-  },
-
-  copyFrom: function(r) {
-    this.top = r.top;
-    this.left = r.left;
-    this.bottom = r.bottom;
-    this.right = r.right;
-
-    return this;
-  },
-
-  copyFromTLBR: function(r) {
-    this.left = r.left;
-    this.top = r.top;
-    this.right = r.right;
-    this.bottom = r.bottom;
+  copyFrom: function(other) {
+    this.top = other.top;
+    this.left = other.left;
+    this.bottom = other.bottom;
+    this.right = other.right;
 
     return this;
   },
@@ -434,143 +258,74 @@ wsRect.prototype = {
     return this;
   },
 
-  
-  union: function(rect) {
-    let l = Math.min(this.left, rect.left);
-    let r = Math.max(this.right, rect.right);
-    let t = Math.min(this.top, rect.top);
-    let b = Math.max(this.bottom, rect.bottom);
-
-    return new wsRect(l, t, r-l, b-t);
-  },
-
   toString: function() {
     return "[" + this.x + "," + this.y + "," + this.width + "," + this.height + "]";
   },
 
-  expandBy: function(b) {
-    this.left += b.left;
-    this.right += b.right;
-    this.top += b.top;
-    this.bottom += b.bottom;
-    return this;
+  
+  union: function(other) {
+    return this.clone().expandToContain(other);
   },
 
   contains: function(other) {
-    return !!(other.left >= this.left &&
-              other.right <= this.right &&
-              other.top >= this.top &&
-              other.bottom <= this.bottom);
+    if (other.isEmpty()) return true;
+    if (this.isEmpty()) return false;
+
+    return (other.left >= this.left &&
+            other.right <= this.right &&
+            other.top >= this.top &&
+            other.bottom <= this.bottom);
   },
 
-  intersect: function(r2) {
-    let xmost1 = this.right;
-    let xmost2 = r2.right;
-
-    let x = Math.max(this.left, r2.left);
-
-    let temp = Math.min(xmost1, xmost2);
-    if (temp <= x)
-      return null;
-
-    let width = temp - x;
-
-    let ymost1 = this.bottom;
-    let ymost2 = r2.bottom;
-    let y = Math.max(this.top, r2.top);
-
-    temp = Math.min(ymost1, ymost2);
-    if (temp <= y)
-      return null;
-
-    let height = temp - y;
-
-    return new wsRect(x, y, width, height);
+  intersect: function(other) {
+    return this.clone().restrictTo(other);
   },
 
   intersects: function(other) {
-    if (!other) debugger;
+    if (this.isEmpty() || other.isEmpty())
+      return false;
 
-    let left = this.left;
-    let right = this.right;
-    let otherleft = other.left;
-    let otherright = other.right;
-
-    let xok = (otherleft > left && otherleft < right) ||
-      (otherright > left && otherright < right) ||
-      (otherleft <= left && otherright >= right);
-
-    if (!xok) return false;
-
-    let top = this.top;
-    let bottom = this.bottom;
-    let othertop = other.top;
-    let otherbottom = other.bottom;
-
-    let yok = (othertop > top && othertop < bottom) ||
-      (otherbottom > top && otherbottom < bottom) ||
-      (othertop <= top && otherbottom >= bottom);
-
-    if (!yok) return false;
-
-    return true;
+    let x1 = Math.max(this.left, other.left);
+    let x2 = Math.min(this.right, other.right);
+    let y1 = Math.max(this.top, other.top);
+    let y2 = Math.min(this.bottom, other.bottom);
+    return x1 < x2 && y1 < y2;
   },
 
   
+  restrictTo: function restrictTo(other) {
+    if (this.isEmpty() || other.isEmpty())
+      return this.setRect(0, 0, 0, 0);
 
-
-
-
-  restrictTo: function restrictTo(r2) {
-    let xmost1 = this.right;
-    let xmost2 = r2.right;
-
-    let x = Math.max(this.left, r2.left);
-
-    let temp = Math.min(xmost1, xmost2);
-    if (temp <= x)
-      throw "Intersection is empty but rects cannot be empty";
-
-    let width = temp - x;
-
-    let ymost1 = this.bottom;
-    let ymost2 = r2.bottom;
-    let y = Math.max(this.top, r2.top);
-
-    temp = Math.min(ymost1, ymost2);
-    if (temp <= y)
-      throw "Intersection is empty but rects cannot be empty";
-
-    let height = temp - y;
-
-    return this.setRect(x, y, width, height);
+    let x1 = Math.max(this.left, other.left);
+    let x2 = Math.min(this.right, other.right);
+    let y1 = Math.max(this.top, other.top);
+    let y2 = Math.min(this.bottom, other.bottom);
+    
+    return this.setRect(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
   },
 
   
+  expandToContain: function expandToContain(other) {
+    if (this.isEmpty()) return this.copyFrom(other);
+    if (other.isEmpty()) return this;
 
-
-
-
-
-
-
-  expandToContain: function extendTo(rect) {
-    let l = Math.min(this.left, rect.left);
-    let r = Math.max(this.right, rect.right);
-    let t = Math.min(this.top, rect.top);
-    let b = Math.max(this.bottom, rect.bottom);
-
+    let l = Math.min(this.left, other.left);
+    let r = Math.max(this.right, other.right);
+    let t = Math.min(this.top, other.top);
+    let b = Math.max(this.bottom, other.bottom);
     return this.setRect(l, t, r-l, b-t);
   },
 
-  round: function round(scale) {
-    if (!scale) scale = 1;
+  
 
-    this.left = Math.floor(this.left * scale) / scale;
-    this.top = Math.floor(this.top * scale) / scale;
-    this.right = Math.ceil(this.right * scale) / scale;
-    this.bottom = Math.ceil(this.bottom * scale) / scale;
 
+
+  expandToIntegers: function round() {
+    this.left = Math.floor(this.left);
+    this.top = Math.floor(this.top);
+    this.right = Math.ceil(this.right);
+    this.bottom = Math.ceil(this.bottom);
     return this;
   },
 
@@ -579,7 +334,14 @@ wsRect.prototype = {
     this.right *= xscl;
     this.top *= yscl;
     this.bottom *= yscl;
+    return this;
+  },
 
+  map: function map(f) {
+    this.left = f.call(this, this.left);
+    this.top = f.call(this, this.top);
+    this.right = f.call(this, this.right);
+    this.bottom = f.call(this, this.bottom);
     return this;
   }
 };
