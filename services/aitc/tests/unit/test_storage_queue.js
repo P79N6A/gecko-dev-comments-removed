@@ -53,8 +53,11 @@ add_test(function test_queue_multiaddremove() {
   let items = [{test:"object"}, "teststring", 42];
 
   
-  let num = Math.floor(Math.random() * 100 + 1);
-  let rem = Math.floor(Math.random() * num + 1);
+  
+  let num = Math.floor(Math.random() * 100 + 20);
+  let rem = Math.floor(Math.random() * 15 + 5);
+  do_check_true(rem < num);
+  do_check_true(rem > 0);
 
   
   for (let i = 0; i < rem; i++) {
