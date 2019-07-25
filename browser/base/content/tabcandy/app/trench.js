@@ -1,5 +1,44 @@
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var Trench = function(element, xory, type, edge) {
 	this.id = Trenches.nextId++;
 	this.el = element;

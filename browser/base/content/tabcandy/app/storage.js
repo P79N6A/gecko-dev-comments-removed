@@ -1,6 +1,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Storage = {
   GROUP_DATA_IDENTIFIER:  "tabcandy-group",
   GROUPS_DATA_IDENTIFIER: "tabcandy-groups",
