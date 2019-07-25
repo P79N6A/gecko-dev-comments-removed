@@ -334,8 +334,10 @@ public class AboutHomeContent extends ScrollView
         
         final boolean syncIsSetup = isSyncSetup();
 
-        ContentResolver resolver = GeckoApp.mAppContext.getContentResolver();
-        mCursor = BrowserDB.getTopSites(resolver, NUMBER_OF_TOP_SITES_PORTRAIT);
+        final ContentResolver resolver = GeckoApp.mAppContext.getContentResolver();
+        final Cursor oldCursor = mCursor;
+        
+        mCursor = BrowserDB.getTopSites(resolver, NUMBER_OF_TOP_SITES_PORTRAIT);;
 
         GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
             public void run() {
@@ -354,6 +356,10 @@ public class AboutHomeContent extends ScrollView
                 }
 
                 updateLayout(startupMode, syncIsSetup);
+
+                
+                if (oldCursor != null && !oldCursor.isClosed())
+                    oldCursor.close();
             }
         });
     }
