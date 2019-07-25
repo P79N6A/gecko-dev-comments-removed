@@ -382,14 +382,17 @@ GetInstancePrivate(JSContext *cx, JSObject *obj, Class *clasp, Value *argv)
 extern bool
 ValueToId(JSContext *cx, const Value &v, jsid *idp);
 
-} 
+
+
 
 
 
 
 
 extern const js::Value &
-js_GetUpvar(JSContext *cx, uintN level, js::UpvarCookie cookie);
+GetUpvar(JSContext *cx, uintN level, js::UpvarCookie cookie);
+
+} 
 
 
 

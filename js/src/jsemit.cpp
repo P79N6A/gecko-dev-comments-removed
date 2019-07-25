@@ -1909,7 +1909,7 @@ MakeUpvarForEval(JSParseNode *pn, JSCodeGenerator *cg)
         return true;
 
     JS_ASSERT(cg->staticLevel > upvarLevel);
-    if (cg->staticLevel >= JS_DISPLAY_SIZE || upvarLevel >= JS_DISPLAY_SIZE)
+    if (cg->staticLevel >= UpvarCookie::UPVAR_LEVEL_LIMIT)
         return true;
 
     JSAtomListElement *ale = cg->upvarList.lookup(atom);
@@ -2187,7 +2187,7 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         return MakeUpvarForEval(pn, cg);
     }
 
-    uintN skip = cg->staticLevel - level;
+    const uintN skip = cg->staticLevel - level;
     if (skip != 0) {
         JS_ASSERT(cg->inFunction());
         JS_ASSERT_IF(cookie.slot() != UpvarCookie::CALLEE_SLOT, cg->lexdeps.lookup(atom));
@@ -2198,10 +2198,9 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-
         if (op != JSOP_NAME)
             return JS_TRUE;
-        if (level >= JS_DISPLAY_SIZE)
+        if (level >= UpvarCookie::UPVAR_LEVEL_LIMIT)
             return JS_TRUE;
         if (cg->flags & TCF_FUN_HEAVYWEIGHT)
             return JS_TRUE;
