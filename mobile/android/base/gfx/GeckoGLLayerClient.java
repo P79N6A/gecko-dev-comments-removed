@@ -89,7 +89,7 @@ public class GeckoGLLayerClient extends GeckoLayerClient
         VirtualLayer virtualLayer = new VirtualLayer();
         virtualLayer.setListener(this);
         virtualLayer.setSize(getBufferSize());
-        getLayerController().setRoot(virtualLayer);
+        mLayerController.setRoot(virtualLayer);
         mTileLayer = virtualLayer;
 
         sendResizeEventIfNecessary(true);
@@ -121,7 +121,7 @@ public class GeckoGLLayerClient extends GeckoLayerClient
 
     @Override
     protected IntSize getBufferSize() {
-        View view = (View)getLayerController().getView();
+        View view = mLayerController.getView();
         IntSize size = new IntSize(view.getWidth(), view.getHeight());
         Log.e(LOGTAG, "### getBufferSize " + size);
         return size;
@@ -181,9 +181,8 @@ public class GeckoGLLayerClient extends GeckoLayerClient
         
         
 
-        LayerController layerController = getLayerController();
-        synchronized (layerController) {
-            ViewportMetrics viewportMetrics = layerController.getViewportMetrics();
+        synchronized (mLayerController) {
+            ViewportMetrics viewportMetrics = mLayerController.getViewportMetrics();
             PointF viewportOrigin = viewportMetrics.getOrigin();
             Point tileOrigin = mTileLayer.getOrigin();
             float scrollX = viewportOrigin.x; 
@@ -212,8 +211,7 @@ public class GeckoGLLayerClient extends GeckoLayerClient
 
     public void surfaceChanged(int width, int height) {
         compositionPauseRequested();
-        LayerController layerController = getLayerController();
-        layerController.setViewportSize(new FloatSize(width, height));
+        mLayerController.setViewportSize(new FloatSize(width, height));
         compositionResumeRequested();
         renderRequested();
     }
