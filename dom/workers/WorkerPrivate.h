@@ -271,7 +271,9 @@ public:
   void
   TraceInstance(JSTracer* aTrc)
   {
-    AssertIsOnParentThread();
+    
+    
+    
     events::EventTarget::TraceInstance(aTrc);
   }
 
