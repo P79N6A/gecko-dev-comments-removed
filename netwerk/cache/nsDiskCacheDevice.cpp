@@ -86,6 +86,38 @@
 static const char DISK_CACHE_DEVICE_ID[] = { "disk" };
 using namespace mozilla;
 
+class nsDiskCacheDeviceDeactivateEntryEvent : public nsRunnable {
+public:
+    nsDiskCacheDeviceDeactivateEntryEvent(nsDiskCacheDevice *device,
+                                          nsCacheEntry * entry,
+                                          nsDiskCacheBinding * binding)
+        : mCanceled(PR_FALSE),
+          mEntry(entry),
+          mDevice(device),
+          mBinding(binding)
+    {
+    }
+
+    NS_IMETHOD Run()
+    {
+        nsCacheServiceAutoLock lock;
+#ifdef PR_LOGGING
+        CACHE_LOG_DEBUG(("nsDiskCacheDeviceDeactivateEntryEvent[%p]\n", this));
+#endif
+        if (!mCanceled) {
+            (void) mDevice->DeactivateEntry_Private(mEntry, mBinding);
+        }
+        return NS_OK;
+    }
+
+    void CancelEvent() { mCanceled = PR_TRUE; }
+private:
+    PRBool mCanceled;
+    nsCacheEntry *mEntry;
+    nsDiskCacheDevice *mDevice;
+    nsDiskCacheBinding *mBinding;
+};
+
 
 
 
@@ -141,6 +173,12 @@ nsDiskCacheEvictor::VisitRecord(nsDiskCacheRecord *  mapRecord)
     
     nsDiskCacheBinding * binding = mBindery->FindActiveBinding(mapRecord->HashNumber());
     if (binding) {
+        
+        
+        if (binding->mDeactivateEvent) {
+            binding->mDeactivateEvent->CancelEvent();
+            binding->mDeactivateEvent = nsnull;
+        }
         
         
         
@@ -453,39 +491,6 @@ nsDiskCacheDevice::GetDeviceID()
     return DISK_CACHE_DEVICE_ID;
 }
 
-class nsDiskCacheDeviceDeactivateEntryEvent : public nsRunnable {
-public:
-    nsDiskCacheDeviceDeactivateEntryEvent(nsDiskCacheDevice *device,
-                                          nsCacheEntry * entry,
-                                          nsDiskCacheBinding * binding)
-        : mCanceled(PR_FALSE),
-          mEntry(entry),
-          mDevice(device),
-          mBinding(binding)
-    {
-    }
-
-    NS_IMETHOD Run()
-    {
-        nsCacheServiceAutoLock lock;
-#ifdef PR_LOGGING
-        CACHE_LOG_DEBUG(("nsDiskCacheDeviceDeactivateEntryEvent[%p]\n", this));
-#endif
-        if (!mCanceled) {
-            (void) mDevice->DeactivateEntry_Private(mEntry, mBinding);
-        }
-        return NS_OK;
-    }
-    
-    void CancelEvent() { mCanceled = PR_TRUE; }
-private:
-    PRBool mCanceled;
-    nsCacheEntry *mEntry;
-    nsDiskCacheDevice *mDevice;
-    nsDiskCacheBinding *mBinding;
-};
-
-
 
 
 
@@ -635,6 +640,11 @@ nsDiskCacheDevice::BindEntry(nsCacheEntry * entry)
     if (binding) {
         NS_ASSERTION(!binding->mCacheEntry->Key()->Equals(*entry->Key()),
                      "BindEntry called for already bound entry!");
+        
+        if (binding->mDeactivateEvent) {
+            binding->mDeactivateEvent->CancelEvent();
+            binding->mDeactivateEvent = nsnull;
+        }
         nsCacheService::DoomEntry(binding->mCacheEntry);
         binding = nsnull;
     }
@@ -676,6 +686,11 @@ nsDiskCacheDevice::BindEntry(nsCacheEntry * entry)
                 
 
                 if (!oldBinding->mCacheEntry->IsDoomed()) {
+                    
+                    if (oldBinding->mDeactivateEvent) {
+                        oldBinding->mDeactivateEvent->CancelEvent();
+                        oldBinding->mDeactivateEvent = nsnull;
+                    }
                 
                     nsCacheService::DoomEntry(oldBinding->mCacheEntry);
                     
