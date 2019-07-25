@@ -72,7 +72,11 @@ using namespace js;
 JS_FRIEND_API(void)
 js_SetTraceableNativeFailed(JSContext *cx)
 {
-    SetBuiltinError(cx);
+    
+
+
+
+    SetBuiltinError(JS_TRACE_MONITOR_FROM_CONTEXT(cx));
 }
 
 
@@ -167,6 +171,12 @@ js_DoubleToUint32(jsdouble d)
 }
 JS_DEFINE_CALLINFO_1(extern, UINT32, js_DoubleToUint32, DOUBLE, 1, ACCSET_NONE)
 
+
+
+
+
+
+
 jsdouble FASTCALL
 js_StringToNumber(JSContext* cx, JSString* str, JSBool *ok)
 {
@@ -174,7 +184,8 @@ js_StringToNumber(JSContext* cx, JSString* str, JSBool *ok)
     *ok = StringToNumberType<jsdouble>(cx, str, &out);
     return out;
 }
-JS_DEFINE_CALLINFO_3(extern, DOUBLE, js_StringToNumber, CONTEXT, STRING, BOOLPTR, 1, ACCSET_NONE)
+JS_DEFINE_CALLINFO_3(extern, DOUBLE, js_StringToNumber, CONTEXT, STRING, BOOLPTR,
+                     0, ACCSET_STORE_ANY)
 
 int32 FASTCALL
 js_StringToInt32(JSContext* cx, JSString* str, JSBool *ok)
@@ -183,7 +194,8 @@ js_StringToInt32(JSContext* cx, JSString* str, JSBool *ok)
     *ok = StringToNumberType<int32>(cx, str, &out);
     return out;
 }
-JS_DEFINE_CALLINFO_3(extern, INT32, js_StringToInt32, CONTEXT, STRING, BOOLPTR, 1, ACCSET_NONE)
+JS_DEFINE_CALLINFO_3(extern, INT32, js_StringToInt32, CONTEXT, STRING, BOOLPTR,
+                     0, ACCSET_STORE_ANY)
 
 
 static inline JSBool
@@ -273,7 +285,7 @@ JSString* FASTCALL
 js_TypeOfObject(JSContext* cx, JSObject* obj)
 {
     JS_ASSERT(obj);
-    return ATOM_TO_STRING(cx->runtime->atomState.typeAtoms[obj->typeOf(cx)]);
+    return cx->runtime->atomState.typeAtoms[obj->typeOf(cx)];
 }
 JS_DEFINE_CALLINFO_2(extern, STRING, js_TypeOfObject, CONTEXT, OBJECT, 1, ACCSET_NONE)
 
@@ -281,7 +293,7 @@ JSString* FASTCALL
 js_BooleanIntToString(JSContext *cx, int32 unboxed)
 {
     JS_ASSERT(uint32(unboxed) <= 1);
-    return ATOM_TO_STRING(cx->runtime->atomState.booleanAtoms[unboxed]);
+    return cx->runtime->atomState.booleanAtoms[unboxed];
 }
 JS_DEFINE_CALLINFO_2(extern, STRING, js_BooleanIntToString, CONTEXT, INT32, 1, ACCSET_NONE)
 

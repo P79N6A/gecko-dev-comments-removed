@@ -911,7 +911,7 @@ FragProfiling_showResults(TraceMonitor* tm)
 
 
 #ifdef DEBUG
-static JSBool FASTCALL
+JSBool FASTCALL
 PrintOnTrace(char* format, uint32 argc, double *argv)
 {
     union {
@@ -983,15 +983,19 @@ PrintOnTrace(char* format, uint32 argc, double *argv)
                     fprintf(out, "<rope>");
                     break;
                 }
-                const jschar *chars = u.s->nonRopeChars();
-                for (unsigned i = 0; i < length; ++i) {
-                    jschar co = chars[i];
-                    if (co < 128)
-                        putc(co, out);
-                    else if (co < 256)
-                        fprintf(out, "\\u%02x", co);
-                    else
-                        fprintf(out, "\\u%04x", co);
+                if (u.s->isRope()) {
+                    fprintf(out, "<rope: length %d>", (int)u.s->asRope().length());
+                } else {
+                    const jschar *chars = u.s->asLinear().chars();
+                    for (unsigned i = 0; i < length; ++i) {
+                        jschar co = chars[i];
+                        if (co < 128)
+                            putc(co, out);
+                        else if (co < 256)
+                            fprintf(out, "\\u%02x", co);
+                        else
+                            fprintf(out, "\\u%04x", co);
+                    }
                 }
             }
             break;
@@ -1490,6 +1494,7 @@ Unblacklist(JSScript *script, jsbytecode *pc)
     }
 }
 
+#ifdef JS_METHODJIT
 static bool
 IsBlacklisted(jsbytecode* pc)
 {
@@ -1499,6 +1504,7 @@ IsBlacklisted(jsbytecode* pc)
         return *(pc + JSOP_CALL_LENGTH) == JSOP_NOTRACE;
     return false;
 }
+#endif
 
 static void
 Backoff(TraceMonitor *tm, jsbytecode* pc, Fragment* tree = NULL)
@@ -1724,51 +1730,6 @@ static const CallInfo *
 fcallinfo(LIns *ins)
 {
     return ins->isop(LIR_calld) ? ins->callInfo() : NULL;
-}
-
-
-
-
-
-static void
-ChecksRequired(LOpcode op, LIns* op1, LIns* op2,
-               bool* needsOverflowCheck, bool* needsNegZeroCheck)
-{
-    Interval x = Interval::of(op1, 3);
-    Interval y = Interval::of(op2, 3);
-    Interval z(0, 0);
-
-    switch (op) {
-      case LIR_addi:
-        z = Interval::add(x, y);
-        *needsNegZeroCheck = false;
-        break;
-
-      case LIR_subi:
-        z = Interval::sub(x, y);
-        *needsNegZeroCheck = false;
-        break;
-        
-      case LIR_muli: {
-        z = Interval::mul(x, y);
-        
-        
-        
-        
-        
-        
-        
-        
-        *needsNegZeroCheck = (x.canBeZero() && y.canBeNegative()) ||
-                             (y.canBeZero() && x.canBeNegative());
-        break;
-      }
-
-      default:
-        JS_NOT_REACHED("needsOverflowCheck");
-    }
-
-    *needsOverflowCheck = z.hasOverflowed;
 }
 
 
@@ -2802,7 +2763,7 @@ ValueToNative(const Value &v, JSValueType type, double* slot)
         if (LogController.lcbits & LC_TMTracer) {
             char funName[40];
             if (fun->atom)
-                JS_PutEscapedFlatString(funName, sizeof funName, ATOM_TO_STRING(fun->atom), 0);
+                JS_PutEscapedFlatString(funName, sizeof funName, fun->atom, 0);
             else
                 strcpy(funName, "unnamed");
             LogController.printf("function<%p:%s> ", (void*)*(JSObject **)slot, funName);
@@ -3031,7 +2992,7 @@ NativeToValue(JSContext* cx, Value& v, JSValueType type, double* slot)
             JSFunction* fun = GET_FUNCTION_PRIVATE(cx, &v.toObject());
             char funName[40];
             if (fun->atom)
-                JS_PutEscapedFlatString(funName, sizeof funName, ATOM_TO_STRING(fun->atom), 0);
+                JS_PutEscapedFlatString(funName, sizeof funName, fun->atom, 0);
             else
                 strcpy(funName, "unnamed");
             LogController.printf("function<%p:%s> ", (void*) &v.toObject(), funName);
@@ -4480,30 +4441,6 @@ TraceRecorder::guard(bool expected, LIns* cond, ExitType exitType,
                      bool abortIfAlwaysExits)
 {
     return guard(expected, cond, snapshot(exitType), abortIfAlwaysExits);
-}
-
-
-
-
-
-JS_REQUIRES_STACK LIns*
-TraceRecorder::guard_xov(LOpcode op, LIns* d0, LIns* d1, VMSideExit* exit)
-{
-    JS_ASSERT(exit->exitType == OVERFLOW_EXIT);
-
-    GuardRecord* guardRec = createGuardRecord(exit);
-    switch (op) {
-      case LIR_addi:
-        return w.addxovi(d0, d1, guardRec);
-      case LIR_subi:
-        return w.subxovi(d0, d1, guardRec);
-      case LIR_muli:
-        return w.mulxovi(d0, d1, guardRec);
-      default:
-        break;
-    }
-    JS_NOT_REACHED("unexpected opcode");
-    return NULL;
 }
 
 JS_REQUIRES_STACK VMSideExit*
@@ -7073,6 +7010,7 @@ LeaveTree(TraceMonitor *tm, TracerState& state, VMSideExit* lr)
     return NO_DEEP_BAIL;
 }
 
+#if defined(DEBUG) || defined(JS_METHODJIT)
 static jsbytecode *
 GetLoopBottom(JSContext *cx, jsbytecode *pc)
 {
@@ -7083,6 +7021,7 @@ GetLoopBottom(JSContext *cx, jsbytecode *pc)
         return NULL;
     return pc + js_GetSrcNoteOffset(sn, 0);
 }
+#endif
 
 JS_ALWAYS_INLINE void
 TraceRecorder::assertInsideLoop()
@@ -8414,73 +8353,133 @@ TraceRecorder::guardNonNeg(LIns* d0, LIns* d1, VMSideExit* exit)
 }
 
 JS_REQUIRES_STACK LIns*
-TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
+TraceRecorder::tryToDemote(LOpcode op, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
 {
     
 
 
 
 
+
+
+
+
+
+
+
+
+
     if (!oracle || oracle->isInstructionUndemotable(cx->regs->pc) ||
-        !IsPromotedInt32(s0) || !IsPromotedInt32(s1)) {
-    out:
-        if (v == LIR_modd) {
+        !IsPromotedInt32(s0) || !IsPromotedInt32(s1))
+    {
+      undemotable:
+        if (op == LIR_modd) {
+            
+
+
+
             LIns* args[] = { s1, s0 };
             return w.call(&js_dmod_ci, args);
         }
-        LIns* result = w.ins2(v, s0, s1);
+        LIns* result = w.ins2(op, s0, s1);
         JS_ASSERT_IF(s0->isImmD() && s1->isImmD(), result->isImmD());
         return result;
     }
 
-    jsdouble r;
-    switch (v) {
-    case LIR_addd:
-        r = v0 + v1;
-        break;
-    case LIR_subd:
-        r = v0 - v1;
-        break;
-    case LIR_muld:
-        r = v0 * v1;
-        if (r == 0.0 && (v0 < 0.0 || v1 < 0.0))
-            goto out;
-        break;
-#if defined NANOJIT_IA32 || defined NANOJIT_X64
-    case LIR_divd:
-        if (v1 == 0)
-            goto out;
-        r = v0 / v1;
-        break;
-    case LIR_modd:
-        if (v0 < 0 || v1 == 0 || (s1->isImmD() && v1 < 0))
-            goto out;
-        r = js_dmod(v0, v1);
-        break;
-#endif
-    default:
-        goto out;
-    }
-
-    
-
-
-
-    if (jsint(r) != r || JSDOUBLE_IS_NEGZERO(r))
-        goto out;
-
     LIns* d0 = w.demoteToInt32(s0);
     LIns* d1 = w.demoteToInt32(s1);
-
-    
-
-
-
+    jsdouble r = 0;     
     VMSideExit* exit = NULL;
     LIns* result;
-    switch (v) {
+
+    switch (op) {
+      case LIR_addd: {
+        r = v0 + v1;
+        if (jsint(r) != r || JSDOUBLE_IS_NEGZERO(r))
+            goto undemotable;
+
+        Interval i0 = Interval::of(d0, 3);
+        Interval i1 = Interval::of(d1, 3);
+        result = Interval::add(i0, i1).hasOverflowed
+               ? w.addxovi(d0, d1, createGuardRecord(snapshot(OVERFLOW_EXIT)))
+               : w.addi(d0, d1);
+        break;
+      }
+
+      case LIR_subd: {
+        r = v0 - v1;
+        if (jsint(r) != r || JSDOUBLE_IS_NEGZERO(r))
+            goto undemotable;
+
+        Interval i0 = Interval::of(d0, 3);
+        Interval i1 = Interval::of(d1, 3);
+        result = Interval::sub(i0, i1).hasOverflowed
+               ? w.subxovi(d0, d1, createGuardRecord(snapshot(OVERFLOW_EXIT)))
+               : w.subi(d0, d1);
+        break;
+      }
+
+      case LIR_muld: {
+        r = v0 * v1;
+        if (r == 0.0 && (v0 < 0.0 || v1 < 0.0))
+            goto undemotable;
+
+        if (jsint(r) != r || JSDOUBLE_IS_NEGZERO(r))
+            goto undemotable;
+
+        Interval i0 = Interval::of(d0, 3);
+        Interval i1 = Interval::of(d1, 3);
+        if (Interval::mul(i0, i1).hasOverflowed) {
+            exit = snapshot(OVERFLOW_EXIT);
+            result = w.mulxovi(d0, d1, createGuardRecord(exit));
+        } else {
+            result = w.muli(d0, d1);
+        }
+
+        
+
+
+
+
+
+
+
+
+
+        bool needsNegZeroCheck = (i0.canBeZero() && i1.canBeNegative()) ||
+                                 (i1.canBeZero() && i0.canBeNegative());
+        if (needsNegZeroCheck) {
+            
+
+
+
+
+
+            if (v0 < 0.0 || v1 < 0.0 || oracle->isInstructionSlowZeroTest(cx->regs->pc)) {
+                if (!exit)
+                    exit = snapshot(OVERFLOW_EXIT);
+
+                guard(true,
+                      w.eqi0(w.andi(w.eqi0(result),
+                                    w.ori(w.ltiN(d0, 0),
+                                          w.ltiN(d1, 0)))),
+                      exit);
+            } else {
+                guardNonNeg(d0, d1, snapshot(MUL_ZERO_EXIT));
+            }
+        }
+        break;
+      }
+
+      case LIR_divd: {
 #if defined NANOJIT_IA32 || defined NANOJIT_X64
-      case LIR_divd:
+        if (v1 == 0)
+            goto undemotable;
+        r = v0 / v1;
+        if (jsint(r) != r || JSDOUBLE_IS_NEGZERO(r))
+            goto undemotable;
+
+        
         if (d0->isImmI() && d1->isImmI())
             return w.i2d(w.immi(jsint(r)));
 
@@ -8498,11 +8497,9 @@ TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
                                            w.eqiN(d1, -1))), exit);
                 w.label(mbr);
             }
-        } else {
-            if (d1->immI() == -1)
-                guard(false, w.eqiN(d0, 0x80000000), exit);
+        } else if (d1->immI() == -1) {
+            guard(false, w.eqiN(d0, 0x80000000), exit);
         }
-        v = LIR_divi;
         result = w.divi(d0, d1);
 
         
@@ -8510,9 +8507,22 @@ TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
 
         
         guard(false, w.eqi0(result), exit);
+
         break;
+#else
+        goto undemotable;
+#endif
+      }
 
       case LIR_modd: {
+#if defined NANOJIT_IA32 || defined NANOJIT_X64
+        if (v0 < 0 || v1 == 0 || (s1->isImmD() && v1 < 0))
+            goto undemotable;
+        r = js_dmod(v0, v1);
+        if (jsint(r) != r || JSDOUBLE_IS_NEGZERO(r))
+            goto undemotable;
+
+        
         if (d0->isImmI() && d1->isImmI())
             return w.i2d(w.immi(jsint(r)));
 
@@ -8521,66 +8531,33 @@ TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
         
         if (!d1->isImmI())
             guard(false, w.eqi0(d1), exit);
-        v = LIR_modi;
         result = w.modi(w.divi(d0, d1));
 
         
+
+
+
+
         if (MaybeBranch mbr = w.jf(w.eqi0(result))) {
-            
-
-
-
             guard(false, w.ltiN(d0, 0), exit);
             w.label(mbr);
         }
         break;
-      }
+#else
+        goto undemotable;
 #endif
+      }
 
       default:
-        v = arithOpcodeD2I(v);
-        JS_ASSERT(v == LIR_addi || v == LIR_muli || v == LIR_subi);
-
-        
-
-
-
-
-
-
-        bool needsOverflowCheck = true, needsNegZeroCheck = true;
-        ChecksRequired(v, d0, d1, &needsOverflowCheck, &needsNegZeroCheck);
-        if (needsOverflowCheck) {
-            exit = snapshot(OVERFLOW_EXIT);
-            result = guard_xov(v, d0, d1, exit);
-        } else {
-            result = w.ins2(v, d0, d1);
-        }
-        if (needsNegZeroCheck) {
-            JS_ASSERT(v == LIR_muli);
-            
-
-
-
-
-
-            if (v0 < 0.0 || v1 < 0.0
-                || !oracle || oracle->isInstructionSlowZeroTest(cx->regs->pc))
-            {
-                if (!exit)
-                    exit = snapshot(OVERFLOW_EXIT);
-
-                guard(true,
-                      w.eqi0(w.andi(w.eqi0(result),
-                                    w.ori(w.ltiN(d0, 0),
-                                          w.ltiN(d1, 0)))),
-                      exit);
-            } else {
-                guardNonNeg(d0, d1, snapshot(MUL_ZERO_EXIT));
-            }
-        }
+        JS_NOT_REACHED("tryToDemote");
+        result = NULL;
         break;
     }
+
+    
+
+
+
     JS_ASSERT_IF(d0->isImmI() && d1->isImmI(), result->isImmI(jsint(r)));
     return w.i2d(result);
 }
@@ -8886,7 +8863,7 @@ TraceRecorder::incHelper(const Value &v, LIns*& v_ins, Value &v_after,
         AutoValueRooter tvr(cx);
         *tvr.addr() = v;
         ValueToNumber(cx, tvr.value(), &num);
-        v_ins_after = alu(LIR_addd, num, incr, v_ins, w.immd(incr));
+        v_ins_after = tryToDemote(LIR_addd, num, incr, v_ins, w.immd(incr));
         v_after.setDouble(num + incr);
     }
 
@@ -9340,17 +9317,13 @@ TraceRecorder::relational(LOpcode op, bool tryBranchAfterCond)
 }
 
 JS_REQUIRES_STACK RecordingStatus
-TraceRecorder::unary(LOpcode op)
+TraceRecorder::unaryIntOp(LOpcode op)
 {
     Value& v = stackval(-1);
-    bool intop = retTypes[op] == LTy_I;
+    JS_ASSERT(retTypes[op] == LTy_I);
     if (v.isNumber()) {
         LIns* a = get(&v);
-        if (intop)
-            a = d2i(a);
-        a = w.ins1(op, a);
-        if (intop)
-            a = w.i2d(a);
+        a = w.i2d(w.ins1(op, d2i(a)));
         set(&v, a);
         return RECORD_CONTINUE;
     }
@@ -9434,12 +9407,12 @@ TraceRecorder::binary(LOpcode op)
     }
     if (leftIsNumber && rightIsNumber) {
         if (intop) {
-            a = (op == LIR_rshui) ? d2u(a) : d2i(a);
-            b = d2i(b);
+            a = (op == LIR_rshui)
+              ? w.ui2d(w.ins2(op, d2u(a), d2i(b)))
+              : w.i2d(w.ins2(op, d2i(a), d2i(b)));
+        } else {
+            a = tryToDemote(op, lnum, rnum, a, b);
         }
-        a = alu(op, lnum, rnum, a, b);
-        if (intop)
-            a = (op == LIR_rshui) ? w.ui2d(a) : w.i2d(a);
         set(&l, a);
         return RECORD_CONTINUE;
     }
@@ -10857,7 +10830,7 @@ TraceRecorder::record_JSOP_NOT()
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_BITNOT()
 {
-    return InjectStatus(unary(LIR_noti));
+    return InjectStatus(unaryIntOp(LIR_noti));
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus
@@ -10886,7 +10859,7 @@ TraceRecorder::record_JSOP_NEG()
             -v.toNumber() == (int)-v.toNumber())
         {
             VMSideExit* exit = snapshot(OVERFLOW_EXIT);
-            a = guard_xov(LIR_subi, w.immi(0), w.demoteToInt32(a), exit);
+            a = w.subxovi(w.immi(0), w.demoteToInt32(a), createGuardRecord(exit));
             if (!a->isImmI() && a->isop(LIR_subxovi)) {
                 guard(false, w.eqiN(a, 0), exit); 
             }
@@ -11642,7 +11615,7 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
 #ifdef DEBUG
     ci->_name = js_anonymous_str;
     if (fun->atom) {
-        JSAutoByteString bytes(cx, ATOM_TO_STRING(fun->atom));
+        JSAutoByteString bytes(cx, fun->atom);
         if (!!bytes) {
             size_t n = strlen(bytes.ptr()) + 1;
             char *buffer = new (traceAlloc()) char[n];
@@ -12556,7 +12529,7 @@ static inline bool
 RootedStringToId(JSContext* cx, JSString** namep, jsid* idp)
 {
     JSString* name = *namep;
-    if (name->isAtomized()) {
+    if (name->isAtom()) {
         *idp = INTERNED_STRING_TO_JSID(name);
         return true;
     }
@@ -12564,7 +12537,7 @@ RootedStringToId(JSContext* cx, JSString** namep, jsid* idp)
     JSAtom* atom = js_AtomizeString(cx, name, 0);
     if (!atom)
         return false;
-    *namep = ATOM_TO_STRING(atom); 
+    *namep = atom; 
     *idp = ATOM_TO_JSID(atom);
     return true;
 }
@@ -12799,9 +12772,10 @@ GetPropertyWithNativeGetter(JSContext* cx, JSObject* obj, Shape* shape, Value* v
     LeaveTraceIfGlobalObject(cx, obj);
 
 #ifdef DEBUG
+    JSProperty* prop;
     JSObject* pobj;
-    const Shape* shape2;
-    JS_ASSERT_IF(SafeLookup(cx, obj, shape->id, &pobj, &shape2), shape == shape2);
+    JS_ASSERT(obj->lookupProperty(cx, shape->id, &pobj, &prop));
+    JS_ASSERT(prop == (JSProperty*) shape);
 #endif
 
     
@@ -12890,7 +12864,7 @@ TraceRecorder::getCharCodeAt(JSString *str, LIns* str_ins, LIns* idx_ins, LIns**
     if (MaybeBranch mbr = w.jt(w.eqp0(w.andp(lengthAndFlags_ins, w.nameImmw(JSString::ROPE_BIT)))))
     {
         LIns *args[] = { str_ins, cx_ins };
-        LIns *ok_ins = w.call(&js_Flatten_ci, args);
+        LIns *ok_ins = w.call(&js_FlattenOnTrace_ci, args);
         guard(false, w.eqi0(ok_ins), OOM_EXIT);
         w.label(mbr);
     }
@@ -12909,8 +12883,9 @@ JS_REQUIRES_STACK LIns*
 TraceRecorder::getUnitString(LIns* str_ins, LIns* idx_ins)
 {
     LIns *ch_ins = w.getStringChar(str_ins, idx_ins);
-    guard(true, w.ltuiN(ch_ins, UNIT_STRING_LIMIT), MISMATCH_EXIT);
-    return w.addp(w.nameImmpNonGC(JSString::unitStringTable),
+    guard(true, w.ltuiN(ch_ins, JSAtom::UNIT_STATIC_LIMIT), MISMATCH_EXIT);
+    JS_STATIC_ASSERT(sizeof(JSString) == 16 || sizeof(JSString) == 32);
+    return w.addp(w.nameImmpNonGC(JSAtom::unitStaticTable),
                   w.lshpN(w.ui2p(ch_ins), (sizeof(JSString) == 16) ? 4 : 5));
 }
 
@@ -12924,7 +12899,7 @@ TraceRecorder::getCharAt(JSString *str, LIns* str_ins, LIns* idx_ins, JSOp mode,
                                              w.nameImmw(JSString::ROPE_BIT)))))
     {
         LIns *args[] = { str_ins, cx_ins };
-        LIns *ok_ins = w.call(&js_Flatten_ci, args);
+        LIns *ok_ins = w.call(&js_FlattenOnTrace_ci, args);
         guard(false, w.eqi0(ok_ins), OOM_EXIT);
         w.label(mbr);
     }
@@ -17195,10 +17170,10 @@ LoopProfile::profileOperation(JSContext* cx, JSOp op)
         op == JSOP_GETARGPROP || op == JSOP_GETLOCALPROP)
     {
         
-        Value v;
+        Value v = UndefinedValue();
         if (op == JSOP_GETPROP || op == JSOP_CALLPROP) {
             v = cx->regs->sp[-1];
-        } if (op == JSOP_GETARGPROP) {
+        } else if (op == JSOP_GETARGPROP) {
             uint32 slot = GET_ARGNO(pc);
             JS_ASSERT(slot < fp->numFormalArgs());
             v = fp->formalArg(slot);
@@ -17206,6 +17181,8 @@ LoopProfile::profileOperation(JSContext* cx, JSOp op)
             uint32 slot = GET_SLOTNO(pc);
             JS_ASSERT(slot < script->nslots);
             v = fp->slots()[slot];
+        } else {
+            JS_NOT_REACHED("no else");
         }
 
         if (v.isObject()) {

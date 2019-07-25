@@ -49,6 +49,7 @@
 #include "jsscope.h"
 
 #include "jscntxtinlines.h"
+#include "jsobjinlines.h"
 
 inline void
 js::Shape::freeTable(JSContext *cx)
@@ -129,37 +130,6 @@ JSObject::extend(JSContext *cx, const js::Shape *shape, bool isDefinitelyAtom)
     setLastProperty(shape);
     updateFlags(shape, isDefinitelyAtom);
     updateShape(cx);
-}
-
-inline void
-JSObject::trace(JSTracer *trc)
-{
-    if (!isNative())
-        return;
-
-    JSContext *cx = trc->context;
-    js::Shape *shape = lastProp;
-
-    if (IS_GC_MARKING_TRACER(trc) && cx->runtime->gcRegenShapes) {
-        
-
-
-
-        if (!shape->hasRegenFlag()) {
-            shape->shape = js_RegenerateShapeForGC(cx->runtime);
-            shape->setRegenFlag();
-        }
-
-        uint32 newShape = shape->shape;
-        if (hasOwnShape()) {
-            newShape = js_RegenerateShapeForGC(cx->runtime);
-            JS_ASSERT(newShape != shape->shape);
-        }
-        objShape = newShape;
-    }
-
-    
-    js::Shape::trace(trc, shape);
 }
 
 namespace js {

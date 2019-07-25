@@ -188,8 +188,8 @@ struct ClosureVarInfo;
 #define _JS_CTYPE_THIS              _JS_CTYPE(JSObject *,             _JS_PTR,"T", "", INFALLIBLE)
 #define _JS_CTYPE_THIS_DOUBLE       _JS_CTYPE(jsdouble,               _JS_F64,"D", "", INFALLIBLE)
 #define _JS_CTYPE_THIS_STRING       _JS_CTYPE(JSString *,             _JS_PTR,"S", "", INFALLIBLE)
-#define _JS_CTYPE_CALLEE            _JS_CTYPE(JSObject *,             _JS_PTR,"f","",  INFALLIBLE)
-#define _JS_CTYPE_CALLEE_PROTOTYPE  _JS_CTYPE(JSObject *,             _JS_PTR,"p","",  INFALLIBLE)
+#define _JS_CTYPE_CALLEE            _JS_CTYPE(JSObject *,             _JS_PTR,"f", "", INFALLIBLE)
+#define _JS_CTYPE_CALLEE_PROTOTYPE  _JS_CTYPE(JSObject *,             _JS_PTR,"p", "", INFALLIBLE)
 #define _JS_CTYPE_FUNCTION          _JS_CTYPE(JSFunction *,           _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_PC                _JS_CTYPE(jsbytecode *,           _JS_PTR,"P", "", INFALLIBLE)
 #define _JS_CTYPE_VALUEPTR          _JS_CTYPE(js::Value *,            _JS_PTR, --, --, INFALLIBLE)
@@ -233,7 +233,8 @@ struct ClosureVarInfo;
 #define _JS_CTYPE_CVIPTR            _JS_CTYPE(const ClosureVarInfo *, _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_FRAMEINFO         _JS_CTYPE(FrameInfo *,            _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_PICTABLE          _JS_CTYPE(PICTable *,             _JS_PTR, --, --, INFALLIBLE)
-
+#define _JS_CTYPE_UINTN             _JS_CTYPE(uintN,                  _JS_PTR, --, --, INFALLIBLE)
+ 
 
 
 
@@ -627,7 +628,7 @@ JS_DECLARE_CALLINFO(js_String_tn)
 JS_DECLARE_CALLINFO(js_CompareStringsOnTrace)
 JS_DECLARE_CALLINFO(js_ConcatStrings)
 JS_DECLARE_CALLINFO(js_EqualStringsOnTrace)
-JS_DECLARE_CALLINFO(js_Flatten)
+JS_DECLARE_CALLINFO(js_FlattenOnTrace)
 
 
 JS_DECLARE_CALLINFO(js_TypedArray_uint8_clamp_double)

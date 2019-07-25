@@ -174,6 +174,7 @@ class Bindings {
     uint16 nargs;
     uint16 nvars;
     uint16 nupvars;
+    bool hasExtensibleParents;
 
   public:
     inline Bindings(JSContext *cx);
@@ -207,7 +208,7 @@ class Bindings {
     inline bool ensureShape(JSContext *cx);
 
     
-    inline const js::Shape *lastShape() const;
+    inline js::Shape *lastShape() const;
 
     enum {
         
@@ -300,6 +301,54 @@ class Bindings {
 
 
     void makeImmutable();
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void setExtensibleParents() { hasExtensibleParents = true; }
+    bool extensibleParents() const { return hasExtensibleParents; }
 
     
 
@@ -819,13 +868,11 @@ js_CloneScript(JSContext *cx, JSScript *script);
 
 
 
-
-
-
-
+extern JSBool
+js_XDRScript(JSXDRState *xdr, JSScript **scriptp);
 
 extern JSBool
-js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic);
+js_XDRScriptAndSubscripts(JSXDRState *xdr, JSScript **scriptp);
 
 inline bool
 JSObject::isScript() const
