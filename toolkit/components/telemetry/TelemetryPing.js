@@ -83,57 +83,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "idleService",
                                    "@mozilla.org/widget/idleservice;1",
                                    "nsIIdleService");
 
-
-
-
-
-
-
-
-function getHistograms() {
-  let hls = Telemetry.histogramSnapshots;
-  let ret = {};
-
-  for (let key in hls) {
-    let hgram = hls[key];
-    if (!hgram.static)
-      continue;
-
-    let r = hgram.ranges;
-    let c = hgram.counts;
-    let retgram = {
-      range: [r[1], r[r.length - 1]],
-      bucket_count: r.length,
-      histogram_type: hgram.histogram_type,
-      values: {},
-      sum: hgram.sum
-    };
-    let first = true;
-    let last = 0;
-
-    for (let i = 0; i < c.length; i++) {
-      let value = c[i];
-      if (!value)
-        continue;
-
-      
-      if (i && first) {
-        first = false;
-        retgram.values[r[i - 1]] = 0;
-      }
-      first = false;
-      last = i + 1;
-      retgram.values[r[i]] = value;
-    }
-
-    
-    if (last && last < c.length)
-      retgram.values[r[last]] = 0;
-    ret[key] = retgram;
-  }
-  return ret;
-}
-
 function generateUUID() {
   let str = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID().toString();
   
@@ -221,6 +170,63 @@ TelemetryPing.prototype = {
   _histograms: {},
   _initialized: false,
   _prevValues: {},
+  _sqliteOverhead: {},
+
+  
+
+
+
+
+
+
+  getHistograms: function getHistograms() {
+    let hls = Telemetry.histogramSnapshots;
+    let ret = {};
+
+    
+    for (let key in this._sqliteOverhead) {
+      hls[key] = this._sqliteOverhead[key];
+    }
+
+    for (let key in hls) {
+      let hgram = hls[key];
+      if (!hgram.static)
+        continue;
+
+      let r = hgram.ranges;
+      let c = hgram.counts;
+      let retgram = {
+        range: [r[1], r[r.length - 1]],
+        bucket_count: r.length,
+        histogram_type: hgram.histogram_type,
+        values: {},
+        sum: hgram.sum
+      };
+      let first = true;
+      let last = 0;
+
+      for (let i = 0; i < c.length; i++) {
+        let value = c[i];
+        if (!value)
+          continue;
+
+        
+        if (i && first) {
+          first = false;
+          retgram.values[r[i - 1]] = 0;
+        }
+        first = false;
+        last = i + 1;
+        retgram.values[r[i]] = value;
+      }
+
+      
+      if (last && last < c.length)
+        retgram.values[r[last]] = 0;
+      ret[key] = retgram;
+    }
+    return ret;
+  },
 
   addValue: function addValue(name, id, val) {
     let h = this._histograms[name];
@@ -340,6 +346,18 @@ TelemetryPing.prototype = {
   
 
 
+  gatherStartupSqlite: function gatherStartupSqlite() {
+    let hls = Telemetry.histogramSnapshots;
+    let sqlite_re = /SQLITE/;
+    for (let key in hls) {
+      if (sqlite_re.test(key))
+        this._sqliteOverhead["STARTUP_" + key] = hls[key];
+    }
+  },
+
+  
+
+
   send: function send(reason, server) {
     
     this.gatherMemory();
@@ -347,7 +365,7 @@ TelemetryPing.prototype = {
       ver: PAYLOAD_VERSION,
       info: this.getMetadata(reason),
       simpleMeasurements: getSimpleMeasurements(),
-      histograms: getHistograms()
+      histograms: this.getHistograms()
     };
 
     let isTestPing = (reason == "test-ping");
@@ -423,6 +441,7 @@ TelemetryPing.prototype = {
     }
     Services.obs.addObserver(this, "private-browsing", false);
     Services.obs.addObserver(this, "profile-before-change", false);
+    Services.obs.addObserver(this, "sessionstore-windows-restored", false);
 
     
     
@@ -443,6 +462,7 @@ TelemetryPing.prototype = {
 
   uninstall: function uninstall() {
     this.detachObservers()
+    Services.obs.removeObserver(this, "sessionstore-windows-restored");
     Services.obs.removeObserver(this, "profile-before-change");
     Services.obs.removeObserver(this, "private-browsing");
   },
@@ -479,6 +499,9 @@ TelemetryPing.prototype = {
       } else {
         this.attachObservers()
       }
+      break;
+    case "sessionstore-windows-restored":
+      this.gatherStartupSqlite();
       break;
     case "idle-daily":
       
