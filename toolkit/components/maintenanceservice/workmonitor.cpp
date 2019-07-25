@@ -56,6 +56,7 @@
 #include "registrycertificates.h"
 #include "uachelper.h"
 #include "updatehelper.h"
+#include "errors.h"
 
 
 
@@ -65,16 +66,6 @@ PRUnichar* MakeCommandLine(int argc, PRUnichar **argv);
 BOOL WriteStatusFailure(LPCWSTR updateDirPath, int errorCode);
 BOOL PathGetSiblingFilePath(LPWSTR destinationBuffer,  LPCWSTR siblingFilePath, 
                             LPCWSTR newFileName);
-
-
-
-const int SERVICE_UPDATER_COULD_NOT_BE_STARTED = 16000;
-const int SERVICE_NOT_ENOUGH_COMMAND_LINE_ARGS = 16001;
-const int SERVICE_UPDATER_SIGN_ERROR = 16002;
-const int SERVICE_UPDATER_COMPARE_ERROR = 16003;
-const int SERVICE_UPDATER_IDENTITY_ERROR = 16004;
-const int SERVICE_STILL_APPLYING_ON_SUCCESS = 16005;
-const int SERVICE_STILL_APPLYING_ON_FAILURE = 16006;
 
 
 
