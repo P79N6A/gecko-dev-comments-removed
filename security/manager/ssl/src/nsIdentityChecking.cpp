@@ -575,6 +575,18 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
   },
   {
     
+    "1.2.40.0.17.1.22",
+    "A-Trust EV OID",
+    SEC_OID_UNKNOWN,
+    "D3:C0:63:F2:19:ED:07:3E:34:AD:5D:75:0B:32:76:29:FF:D5:9A:F2",
+    "MIGNMQswCQYDVQQGEwJBVDFIMEYGA1UECgw/QS1UcnVzdCBHZXMuIGYuIFNpY2hl"
+    "cmhlaXRzc3lzdGVtZSBpbSBlbGVrdHIuIERhdGVudmVya2VociBHbWJIMRkwFwYD"
+    "VQQLDBBBLVRydXN0LW5RdWFsLTAzMRkwFwYDVQQDDBBBLVRydXN0LW5RdWFsLTAz",
+    "AWwe",
+    nsnull
+  },
+  {
+    
     "0.0.0.0",
     0, 
     SEC_OID_UNKNOWN,
