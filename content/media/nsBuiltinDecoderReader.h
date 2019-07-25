@@ -408,39 +408,6 @@ private:
 
 
 
-class ByteRange {
-public:
-  ByteRange()
-    : mOffsetStart(0),
-      mOffsetEnd(0),
-      mTimeStart(0),
-      mTimeEnd(0)
-  {}
-
-  ByteRange(PRInt64 aOffsetStart,
-            PRInt64 aOffsetEnd,
-            PRInt64 aTimeStart,
-            PRInt64 aTimeEnd)
-    : mOffsetStart(aOffsetStart),
-      mOffsetEnd(aOffsetEnd),
-      mTimeStart(aTimeStart),
-      mTimeEnd(aTimeEnd)
-  {}
-
-  PRBool IsNull() const {
-    return mOffsetStart == 0 &&
-           mOffsetEnd == 0 &&
-           mTimeStart == 0 &&
-           mTimeEnd == 0;
-  }
-
-  PRInt64 mOffsetStart, mOffsetEnd; 
-  PRInt64 mTimeStart, mTimeEnd; 
-};
-
-
-
-
 
 
 
@@ -540,26 +507,6 @@ protected:
     PRBool f = PR_FALSE;
     return DecodeVideoFrame(f, 0);
   }
-
-  
-  
-  
-  
-  nsresult GetBufferedBytes(nsTArray<ByteRange>& aRanges);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  ByteRange GetSeekRange(const nsTArray<ByteRange>& aRanges,
-                         PRInt64 aTarget,
-                         PRInt64 aStartTime,
-                         PRInt64 aEndTime,
-                         PRBool aExact);
 
   
   

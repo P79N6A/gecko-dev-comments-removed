@@ -125,12 +125,46 @@ private:
   
   
   
+  class SeekRange {
+  public:
+    SeekRange()
+      : mOffsetStart(0),
+        mOffsetEnd(0),
+        mTimeStart(0),
+        mTimeEnd(0)
+    {}
+
+    SeekRange(PRInt64 aOffsetStart,
+              PRInt64 aOffsetEnd,
+              PRInt64 aTimeStart,
+              PRInt64 aTimeEnd)
+      : mOffsetStart(aOffsetStart),
+        mOffsetEnd(aOffsetEnd),
+        mTimeStart(aTimeStart),
+        mTimeEnd(aTimeEnd)
+    {}
+
+    PRBool IsNull() const {
+      return mOffsetStart == 0 &&
+             mOffsetEnd == 0 &&
+             mTimeStart == 0 &&
+             mTimeEnd == 0;
+    }
+
+    PRInt64 mOffsetStart, mOffsetEnd; 
+    PRInt64 mTimeStart, mTimeEnd; 
+  };
+
+  
+  
+  
+  
   
   nsresult SeekInBufferedRange(PRInt64 aTarget,
                                PRInt64 aStartTime,
                                PRInt64 aEndTime,
-                               const nsTArray<ByteRange>& aRanges,
-                               const ByteRange& aRange);
+                               const nsTArray<SeekRange>& aRanges,
+                               const SeekRange& aRange);
 
   
   
@@ -141,7 +175,7 @@ private:
   nsresult SeekInUnbuffered(PRInt64 aTarget,
                             PRInt64 aStartTime,
                             PRInt64 aEndTime,
-                            const nsTArray<ByteRange>& aRanges);
+                            const nsTArray<SeekRange>& aRanges);
 
   
   
@@ -179,13 +213,32 @@ private:
   
   
   nsresult SeekBisection(PRInt64 aTarget,
-                         const ByteRange& aRange,
+                         const SeekRange& aRange,
                          PRUint32 aFuzz);
 
   
   
   PRBool IsKnownStream(PRUint32 aSerial);
 
+  
+  
+  
+  
+  nsresult GetSeekRanges(nsTArray<SeekRange>& aRanges);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  SeekRange SelectSeekRange(const nsTArray<SeekRange>& aRanges,
+                            PRInt64 aTarget,
+                            PRInt64 aStartTime,
+                            PRInt64 aEndTime,
+                            PRBool aExact);
 private:
   
   nsClassHashtable<nsUint32HashKey, nsOggCodecState> mCodecStates;
