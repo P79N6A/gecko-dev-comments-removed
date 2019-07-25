@@ -730,8 +730,11 @@ nsresult NS_NewCanvasRenderingContext2DAzure(nsIDOMCanvasRenderingContext2D** aR
 nsresult
 NS_NewCanvasRenderingContext2D(nsIDOMCanvasRenderingContext2D** aResult)
 {
-  if (Preferences::GetBool("gfx.canvas.azure.enabled", PR_FALSE)) {
-    nsresult rv = NS_NewCanvasRenderingContext2DAzure(aResult);
+  PRBool azure = PR_FALSE;
+  nsresult rv = Preferences::GetBool("gfx.canvas.azure.enabled", &azure);
+
+  if (NS_SUCCEEDED(rv) && azure) {
+    rv = NS_NewCanvasRenderingContext2DAzure(aResult);
     
     if (NS_SUCCEEDED(rv)) {
       return rv;
