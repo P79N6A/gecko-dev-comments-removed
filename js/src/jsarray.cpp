@@ -1389,7 +1389,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     elements = emptyObjectElements;
 
     
-    AutoValueArray autoArray(cx, elements, arrayInitialized);
+    AutoValueArray autoArray(cx, elems, arrayInitialized);
 
     
 
