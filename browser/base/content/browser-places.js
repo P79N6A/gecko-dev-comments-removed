@@ -941,6 +941,10 @@ var PlacesStarButton = {
     if (this._hasBookmarksObserver) {
       PlacesUtils.bookmarks.removeObserver(this);
     }
+    if (this._pendingStmt) {
+      this._pendingStmt.cancel();
+      delete this._pendingStmt;
+    }
   },
 
   QueryInterface: XPCOMUtils.generateQI([
@@ -971,15 +975,23 @@ var PlacesStarButton = {
     this._uri = gBrowser.currentURI;
     this._itemIds = [];
 
-    
-    this._ignoreClicks = true;
+    if (this._pendingStmt) {
+      this._pendingStmt.cancel();
+      delete this._pendingStmt;
+    }
 
     
     if (this._uri.spec == "about:blank") {
       return;
     }
 
-    PlacesUtils.asyncGetBookmarkIds(this._uri, function (aItemIds) {
+    this._pendingStmt = PlacesUtils.asyncGetBookmarkIds(this._uri, function (aItemIds, aURI) {
+      
+      if (!aURI.equals(this._uri)) {
+        Components.utils.reportError("PlacesStarButton did not receive current URI");
+        return;
+      }
+
       this._itemIds = aItemIds;
       this._updateStateInternal();
 
@@ -993,8 +1005,7 @@ var PlacesStarButton = {
         }
       }
 
-      
-      this._ignoreClicks = false;
+      delete this._pendingStmt;
     }, this);
   },
 
@@ -1016,7 +1027,8 @@ var PlacesStarButton = {
 
   onClick: function PSB_onClick(aEvent)
   {
-    if (aEvent.button == 0 && !this._ignoreClicks) {
+    
+    if (aEvent.button == 0 && !this._pendingStmt) {
       PlacesCommandHook.bookmarkCurrentPage(this._itemIds.length > 0);
     }
     
