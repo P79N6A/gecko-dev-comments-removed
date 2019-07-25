@@ -61,9 +61,9 @@ DOMWifiManager.prototype = {
     let principal = aWindow.document.nodePrincipal;
     let secMan = Cc["@mozilla.org/scriptsecuritymanager;1"].getService(Ci.nsIScriptSecurityManager);
 
-    let perm = (principal == secMan.getSystemPrincipal()) ?
-                 Ci.nsIPermissionManager.ALLOW_ACTION :
-                 Services.perms.testExactPermission(principal.URI, "wifi-manage");
+    let perm = principal == secMan.getSystemPrincipal()
+                 ? Ci.nsIPermissionManager.ALLOW_ACTION
+                 : Services.perms.testExactPermissionFromPrincipal(principal, "wifi-manage");
 
     
     this._hasPrivileges = perm == Ci.nsIPermissionManager.ALLOW_ACTION;
