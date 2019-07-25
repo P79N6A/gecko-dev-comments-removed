@@ -211,8 +211,12 @@ public class GeckoLayerClient implements GeckoEventResponder,
                 mLayerController.abortPanZoomAnimation();
                 break;
             case PAGE_SIZE:
+                
+                
+                
+                float scaleFactor = oldMetrics.zoomFactor / messageMetrics.getZoomFactor();
                 newMetrics = new ViewportMetrics(oldMetrics);
-                newMetrics.setPageSize(messageMetrics.getPageSize());
+                newMetrics.setPageSize(messageMetrics.getPageSize().scale(scaleFactor));
                 break;
             }
 
