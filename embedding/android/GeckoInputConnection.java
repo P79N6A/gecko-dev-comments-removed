@@ -157,7 +157,7 @@ public class GeckoInputConnection
             GeckoAppShell.sendEventToGecko(
                 new GeckoEvent(GeckoEvent.IME_COMPOSITION_END, 0, 0));
             mComposing = false;
-            mComposingText = null;
+            mComposingText = "";
 
             
             GeckoAppShell.sendEventToGecko(
@@ -532,7 +532,7 @@ public class GeckoInputConnection
 
     public void reset() {
         mComposing = false;
-        mComposingText = null;
+        mComposingText = "";
         mUpdateRequest = null;
     }
 
@@ -578,7 +578,7 @@ public class GeckoInputConnection
     
     boolean mComposing;
     
-    String mComposingText;
+    String mComposingText = "";
     
     int mCompositionStart;
     
