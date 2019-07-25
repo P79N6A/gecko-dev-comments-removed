@@ -761,44 +761,65 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
     if (argc < 2 || vp[3].isNullOrUndefined())
         return js_fun_call(cx, (argc > 0) ? 1 : 0, vp);
 
-    
-
-    
-    if (!vp[3].isObject()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_APPLY_ARGS, js_apply_str);
-        return false;
-    }
-
-    
-
-
-
-    JSObject *aobj = &vp[3].toObject();
-    uint32_t length;
-    if (!js_GetLengthProperty(cx, aobj, &length))
-        return false;
-
-    
-    if (length > StackSpace::ARGS_LENGTH_MAX) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TOO_MANY_FUN_APPLY_ARGS);
-        return false;
-    }
-
     InvokeArgsGuard args;
-    if (!cx->stack.pushInvokeArgs(cx, length, &args))
-        return false;
+    if (vp[3].isMagic(JS_OPTIMIZED_ARGUMENTS)) {
+        
 
-    
-    args.calleev() = fval;
-    args.thisv() = vp[2];
 
-    
-    if (!GetElements(cx, aobj, length, args.array()))
-        return false;
+
+
+
+        
+        unsigned length = cx->fp()->numActualArgs();
+        JS_ASSERT(length <= StackSpace::ARGS_LENGTH_MAX);
+
+        if (!cx->stack.pushInvokeArgs(cx, length, &args))
+            return false;
+
+        
+        args.calleev() = fval;
+        args.thisv() = vp[2];
+
+        
+        cx->fp()->forEachCanonicalActualArg(CopyTo(args.array()));
+    } else {
+        
+        if (!vp[3].isObject()) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_APPLY_ARGS, js_apply_str);
+            return false;
+        }
+
+        
+
+
+
+        JSObject *aobj = &vp[3].toObject();
+        uint32_t length;
+        if (!js_GetLengthProperty(cx, aobj, &length))
+            return false;
+
+        
+        if (length > StackSpace::ARGS_LENGTH_MAX) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TOO_MANY_FUN_APPLY_ARGS);
+            return false;
+        }
+
+        if (!cx->stack.pushInvokeArgs(cx, length, &args))
+            return false;
+
+        
+        args.calleev() = fval;
+        args.thisv() = vp[2];
+
+        
+        if (!GetElements(cx, aobj, length, args.array()))
+            return false;
+    }
 
     
     if (!Invoke(cx, args))
         return false;
+
     *vp = args.rval();
     return true;
 }

@@ -1264,7 +1264,15 @@ stubs::Throw(VMFrame &f)
 void JS_FASTCALL
 stubs::Arguments(VMFrame &f)
 {
-    JS_ASSERT(f.fp()->script()->needsArgsObj());
+    if (!f.fp()->hasArgsObj()) {
+        
+
+
+
+
+        if (!f.fp()->script()->applySpeculationFailed(f.cx))
+            THROW();
+    }
     f.regs.sp[0] = ObjectValue(f.fp()->argsObj());
 }
 
