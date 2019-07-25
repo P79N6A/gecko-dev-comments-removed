@@ -1798,7 +1798,7 @@ window.GroupItems = {
   
   killNewTabGroup: function() {
     this.groupItems.forEach(function(groupItem) {
-      if (groupItem.getTitle() == 'New Tabs') {
+      if (groupItem.getTitle() == 'New Tabs' && groupItem.locked.title) {
         groupItem.removeAll();
         groupItem.close();
       }
