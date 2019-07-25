@@ -269,12 +269,12 @@ var BrowserApp = {
     Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
 
     let url = "about:home";
-    let restoreSession = false;
+    let forceRestore = false;
     if ("arguments" in window) {
       if (window.arguments[0])
         url = window.arguments[0];
       if (window.arguments[1])
-        restoreSession = window.arguments[1];
+        forceRestore = window.arguments[1];
       if (window.arguments[2])
         gScreenWidth = window.arguments[2];
       if (window.arguments[3])
@@ -291,7 +291,7 @@ var BrowserApp = {
 
     
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-    if (restoreSession || ss.shouldRestore()) {
+    if (forceRestore || ss.shouldRestore()) {
       
       let restoreToFront = false;
 
@@ -301,20 +301,22 @@ var BrowserApp = {
       } else {
         
         restoreToFront = true;
-
-        
-        let restoreCleanup = {
-          observe: function(aSubject, aTopic, aData) {
-            Services.obs.removeObserver(restoreCleanup, "sessionstore-windows-restored");
-            if (aData == "fail")
-              BrowserApp.addTab("about:home");
-          }
-        };
-        Services.obs.addObserver(restoreCleanup, "sessionstore-windows-restored", false);
       }
 
       
-      ss.restoreLastSession(restoreToFront);
+      let restoreCleanup = {
+        observe: function(aSubject, aTopic, aData) {
+          Services.obs.removeObserver(restoreCleanup, "sessionstore-windows-restored");
+          if (aData == "fail") {
+            let params = { selected: restoreToFront };
+            BrowserApp.addTab("about:home");
+          }
+        }
+      };
+      Services.obs.addObserver(restoreCleanup, "sessionstore-windows-restored", false);
+
+      
+      ss.restoreLastSession(restoreToFront, forceRestore);
     } else {
       this.addTab(url);
 
