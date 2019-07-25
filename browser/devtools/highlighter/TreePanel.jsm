@@ -577,6 +577,7 @@ TreePanel.prototype = {
     this.editingContext.attrObj.innerHTML = editorInput.value;
 
     this.IUI.isDirty = true;
+    this.IUI.nodeChanged(this.registrationObject);
 
     
     Services.obs.notifyObservers(null, this.IUI.INSPECTOR_NOTIFICATIONS.EDITOR_SAVED,

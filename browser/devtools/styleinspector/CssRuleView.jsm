@@ -121,6 +121,17 @@ ElementStyle.prototype = {
 
 
 
+  _changed: function ElementStyle_changed()
+  {
+    if (this.onChanged) {
+      this.onChanged();
+    }
+  },
+
+  
+
+
+
   _populate: function ElementStyle_populate()
   {
     this.rules = [];
@@ -388,6 +399,7 @@ Rule.prototype = {
       prop.priority = this.style.getPropertyPriority(prop.name);
       prop.updateComputed();
     }
+    this.elementStyle._changed();
 
     this.elementStyle.markOverridden();
   },
@@ -627,7 +639,15 @@ CssRuleView.prototype = {
       return;
     }
 
+    if (this._elementStyle) {
+      delete this._elementStyle.onChanged;
+    }
+
     this._elementStyle = new ElementStyle(aElement);
+    this._elementStyle.onChanged = function() {
+      this._changed();
+    }.bind(this);
+
     this._createEditors();
   },
 
@@ -641,6 +661,17 @@ CssRuleView.prototype = {
     }
     this._viewedElement = null;
     this._elementStyle = null;
+  },
+
+  
+
+
+
+  _changed: function CssRuleView_changed()
+  {
+    var evt = this.doc.createEvent("Events");
+    evt.initEvent("CssRuleViewChanged", true, false);
+    this.element.dispatchEvent(evt);
   },
 
   
@@ -1003,10 +1034,12 @@ TextPropertyEditor.prototype = {
 
   _parseValue: function TextPropertyEditor_parseValue(aValue)
   {
-    let [value, priority] = aValue.split("!", 2);
+    let pieces = aValue.split("!", 2);
+    let value = pieces[0];
+    let priority = pieces.length > 1 ? pieces[1] : "";
     return {
-      value: value.trim(),
-      priority: (priority ? priority.trim() : "")
+      value: pieces[0].trim(),
+      priority: (pieces.length > 1 ? pieces[1].trim() : "")
     };
   },
 
