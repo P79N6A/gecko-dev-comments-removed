@@ -20,7 +20,7 @@ function afterOpen() {
   gBrowser.contentDocument.getElementById("testinput").value = enteredText2;
 
   
-  SetForcedCharset("Shift_JIS");
+  BrowserSetForcedCharacterSet("Shift_JIS");
 }
   
 function afterChangeCharset() {
