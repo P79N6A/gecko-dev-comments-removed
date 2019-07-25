@@ -607,15 +607,8 @@ struct gfxPangoFcFont {
     
     
     
-    
     static nsReturnRef<PangoFont>
     NewFont(gfxFcFont *aGfxFont, FcPattern *aFontPattern);
-
-    
-    
-    
-    
-    void ForgetGfxFont() { mGfxFont = nsnull; }
 
     gfxFcFont *GfxFont() { return mGfxFont; }
 
@@ -641,7 +634,6 @@ gfxPangoFcFont::NewFont(gfxFcFont *aGfxFont, FcPattern *aFontPattern)
     gfxPangoFcFont *font = static_cast<gfxPangoFcFont*>
         (g_object_new(GFX_TYPE_PANGO_FC_FONT, "pattern", aFontPattern, NULL));
 
-    NS_ADDREF(aGfxFont);
     font->mGfxFont = aGfxFont;
     font->SetFontMap();
 
@@ -704,7 +696,6 @@ gfx_pango_fc_font_finalize(GObject *object)
 
     if (self->mCoverage)
         pango_coverage_unref(self->mCoverage);
-    NS_IF_RELEASE(self->mGfxFont);
 
     G_OBJECT_CLASS(gfx_pango_fc_font_parent_class)->finalize(object);
 }
@@ -1907,13 +1898,15 @@ gfxFcFont::MakePangoFont()
     nsAutoRef<PangoFont> pangoFont(gfxPangoFcFont::NewFont(this, mFontPattern));
     mPangoFont = pangoFont;
     g_object_add_toggle_ref(G_OBJECT(mPangoFont), PangoFontToggleNotify, this);
+    
+    
+    NS_ADDREF(this);
 }
 
 gfxFcFont::~gfxFcFont()
 {
     cairo_scaled_font_set_user_data(mScaledFont, &sGfxFontKey, NULL, NULL);
     if (mPangoFont) {
-        GFX_PANGO_FC_FONT(mPangoFont)->ForgetGfxFont();
         g_object_remove_toggle_ref(G_OBJECT(mPangoFont),
                                    PangoFontToggleNotify, this);
     }
