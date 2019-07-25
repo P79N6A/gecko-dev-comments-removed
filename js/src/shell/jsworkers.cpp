@@ -40,8 +40,6 @@
 
 #ifdef JS_THREADSAFE
 
-#include "mozilla/Attributes.h"
-
 #include <string.h>
 #include "prthread.h"
 #include "prlock.h"
@@ -171,7 +169,6 @@ class WorkerParent {
     }
 
     void disposeChildren();
-    void notifyTerminating();
 };
 
 template <class T>
@@ -353,7 +350,7 @@ class Event
 
 typedef ThreadSafeQueue<Event *> EventQueue;
 
-class MainQueue MOZ_FINAL : public EventQueue, public WorkerParent
+class MainQueue : public EventQueue, public WorkerParent
 {
   private:
     ThreadPool *threadPool;
@@ -432,7 +429,7 @@ class MainQueue MOZ_FINAL : public EventQueue, public WorkerParent
 
 
 
-class WorkerQueue MOZ_FINAL : public ThreadSafeQueue<Worker *>
+class WorkerQueue : public ThreadSafeQueue<Worker *>
 {
   private:
     MainQueue *main;
@@ -530,12 +527,11 @@ class ThreadPool
         return ok;
     }
 
-    void terminateAll() {
+    void terminateAll(JSRuntime *rt) {
         
         
         JS_ATOMIC_SET(&terminating, 1);
-        if (mq)
-            mq->notifyTerminating();
+        JS_TriggerAllOperationCallbacks(rt);
     }
 
     
@@ -590,13 +586,12 @@ class ThreadPool
 
 
 
-class Worker MOZ_FINAL : public WorkerParent
+class Worker : public WorkerParent
 {
   private:
     ThreadPool *threadPool;
     WorkerParent *parent;
     JSObject *object;  
-    JSRuntime *runtime;
     JSContext *context;
     JSLock *lock;
     Queue<Event *, SystemAllocPolicy> events;  
@@ -607,7 +602,7 @@ class Worker MOZ_FINAL : public WorkerParent
     static JSClass jsWorkerClass;
 
     Worker()
-        : threadPool(NULL), parent(NULL), object(NULL), runtime(NULL),
+        : threadPool(NULL), parent(NULL), object(NULL),
           context(NULL), lock(NULL), current(NULL), terminated(false), terminateFlag(0) {}
 
     bool init(JSContext *parentcx, WorkerParent *parent, JSObject *obj) {
@@ -620,24 +615,13 @@ class Worker MOZ_FINAL : public WorkerParent
         this->object = obj;
         lock = JS_NEW_LOCK();
         return lock &&
-               createRuntime(parentcx) &&
                createContext(parentcx, parent) &&
                JS_SetPrivate(parentcx, obj, this);
     }
 
-    bool createRuntime(JSContext *parentcx) {
-        runtime = JS_NewRuntime(1L * 1024L * 1024L);
-        if (!runtime) {
-            JS_ReportOutOfMemory(parentcx);
-            return false;
-        }
-        JS_ClearRuntimeThread(runtime);
-        return true;
-    }
-
     bool createContext(JSContext *parentcx, WorkerParent *parent) {
-        JSAutoSetRuntimeThread guard(runtime);
-        context = JS_NewContext(runtime, 8192);
+        JSRuntime *rt = JS_GetRuntime(parentcx);
+        context = JS_NewContext(rt, 8192);
         if (!context)
             return false;
 
@@ -663,19 +647,24 @@ class Worker MOZ_FINAL : public WorkerParent
         
         
         
-        post = JS_GetFunctionObject(JS_DefineFunction(context, global, "postMessage",
-                                                      (JSNative) jsPostMessageToParent, 1, 0));
-        if (!post || !JS_SetReservedSlot(context, post, 0, PRIVATE_TO_JSVAL(this)))
+        post = JS_GetFunctionObject(
+                   js::DefineFunctionWithReserved(context, global, "postMessage",
+                                                  (JSNative) jsPostMessageToParent, 1, 0));
+        if (!post)
             goto bad;
 
-        proto = JS_InitClass(context, global, NULL, &jsWorkerClass, jsConstruct, 1,
-                             NULL, jsMethods, NULL, NULL);
+        js::SetFunctionNativeReserved(post, 0, PRIVATE_TO_JSVAL(this));
+
+        proto = js::InitClassWithReserved(context, global, NULL, &jsWorkerClass, jsConstruct, 1,
+                                          NULL, jsMethods, NULL, NULL);
         if (!proto)
             goto bad;
 
         ctor = JS_GetConstructor(context, proto);
-        if (!ctor || !JS_SetReservedSlot(context, ctor, 0, PRIVATE_TO_JSVAL(this)))
+        if (!ctor)
             goto bad;
+
+        js::SetFunctionNativeReserved(post, 0, PRIVATE_TO_JSVAL(this));
 
         JS_EndRequest(context);
         JS_ClearContextThread(context);
@@ -769,16 +758,10 @@ class Worker MOZ_FINAL : public WorkerParent
             JS_DESTROY_LOCK(lock);
             lock = NULL;
         }
-        if (runtime)
-            JS_SetRuntimeThread(runtime);
         if (context) {
             JS_SetContextThread(context);
             JS_DestroyContextNoGC(context);
             context = NULL;
-        }
-        if (runtime) {
-            JS_DestroyRuntime(runtime);
-            runtime = NULL;
         }
         object = NULL;
 
@@ -818,11 +801,6 @@ class Worker MOZ_FINAL : public WorkerParent
             JS_TriggerOperationCallback(context);
     }
 
-    void notifyTerminating() {
-        setTerminateFlag();
-        WorkerParent::notifyTerminating();
-    }
-
     void processOneEvent();
 
     
@@ -833,23 +811,17 @@ class Worker MOZ_FINAL : public WorkerParent
     }
 
     static bool getWorkerParentFromConstructor(JSContext *cx, JSObject *ctor, WorkerParent **p) {
-        jsval v;
-        if (!JS_GetReservedSlot(cx, ctor, 0, &v))
-            return false;
+        jsval v = js::GetFunctionNativeReserved(ctor, 0);
         if (JSVAL_IS_VOID(v)) {
             
             
             
-            if (!JS_GetReservedSlot(cx, ctor, 1, &v))
-                return false;
+            v = js::GetFunctionNativeReserved(ctor, 1);
             ThreadPool *threadPool = (ThreadPool *) JSVAL_TO_PRIVATE(v);
             if (!threadPool->start(cx))
                 return false;
             WorkerParent *parent = threadPool->getMainQueue();
-            if (!JS_SetReservedSlot(cx, ctor, 0, PRIVATE_TO_JSVAL(parent))) {
-                threadPool->shutdown(cx);
-                return false;
-            }
+            js::SetFunctionNativeReserved(ctor, 0, PRIVATE_TO_JSVAL(parent));
             *p = parent;
             return true;
         }
@@ -888,17 +860,16 @@ class Worker MOZ_FINAL : public WorkerParent
         *objp = threadPool->asObject();
 
         
-        JSObject *proto = JS_InitClass(cx, global, NULL, &jsWorkerClass,
-                                       jsConstruct, 1,
-                                       NULL, jsMethods, NULL, NULL);
+        JSObject *proto = js::InitClassWithReserved(cx, global, NULL, &jsWorkerClass,
+                                                    jsConstruct, 1,
+                                                    NULL, jsMethods, NULL, NULL);
         if (!proto)
             return NULL;
 
         
         
         JSObject *ctor = JS_GetConstructor(cx, proto);
-        if (!JS_SetReservedSlot(cx, ctor, 1, PRIVATE_TO_JSVAL(threadPool)))
-            return NULL;
+        js::SetFunctionNativeReserved(ctor, 1, PRIVATE_TO_JSVAL(threadPool));
 
         return threadPool;
     }
@@ -1001,14 +972,6 @@ WorkerParent::disposeChildren()
         e.front()->dispose();
         e.removeFront();
     }
-}
-
-void
-WorkerParent::notifyTerminating()
-{
-    AutoLock hold(getLock());
-    for (ChildSet::Range r = children.all(); !r.empty(); r.popFront())
-        r.front()->notifyTerminating();
 }
 
 bool
@@ -1144,8 +1107,7 @@ Worker::processOneEvent()
 
     Event::Result result;
     {
-        JSAutoSetRuntimeThread asrt(JS_GetRuntime(context));
-        JSAutoRequest ar(context);
+        JSAutoRequest req(context);
         result = event->process(context);
     }
 
@@ -1161,8 +1123,7 @@ Worker::processOneEvent()
         }
     }
     if (result == Event::fail && !checkTermination()) {
-        JSAutoSetRuntimeThread asrt(JS_GetRuntime(context));
-        JSAutoRequest ar(context);
+        JSAutoRequest req(context);
         Event *err = ErrorEvent::create(context, this);
         if (err && !parent->post(err)) {
             JS_ReportOutOfMemory(context);
@@ -1192,9 +1153,7 @@ Worker::processOneEvent()
 JSBool
 Worker::jsPostMessageToParent(JSContext *cx, uintN argc, jsval *vp)
 {
-    jsval workerval;
-    if (!JS_GetReservedSlot(cx, JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)), 0, &workerval))
-        return false;
+    jsval workerval = js::GetFunctionNativeReserved(JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)), 0);
     Worker *w = (Worker *) JSVAL_TO_PRIVATE(workerval);
 
     {
@@ -1296,9 +1255,9 @@ js::workers::init(JSContext *cx, WorkerHooks *hooks, JSObject *global, JSObject 
 }
 
 void
-js::workers::terminateAll(ThreadPool *tp)
+js::workers::terminateAll(JSRuntime *rt, ThreadPool *tp)
 {
-    tp->terminateAll();
+    tp->terminateAll(rt);
 }
 
 void

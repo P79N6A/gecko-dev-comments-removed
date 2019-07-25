@@ -186,7 +186,7 @@ GeneratePropertyOp(JSContext *cx, JSObject *obj, jsid id, uintN argc, Op pop)
     
     
     JSFunction *fun =
-        JS_NewFunctionById(cx, PropertyOpForwarder<Op>, argc, 0, obj, id);
+        js::NewFunctionByIdWithReserved(cx, PropertyOpForwarder<Op>, argc, 0, obj, id);
     if (!fun)
         return JS_FALSE;
 
