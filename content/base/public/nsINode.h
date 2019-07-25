@@ -345,6 +345,11 @@ public:
   friend class nsAttrAndChildArray;
 
 #ifdef MOZILLA_INTERNAL_API
+#ifdef _MSC_VER
+#pragma warning(push)
+
+#pragma warning(disable:4355)
+#endif
   nsINode(already_AddRefed<nsINodeInfo> aNodeInfo)
   : mNodeInfo(aNodeInfo),
     mParent(nsnull),
@@ -353,10 +358,14 @@ public:
     mNextSibling(nsnull),
     mPreviousSibling(nsnull),
     mFirstChild(nsnull),
+    mSubtreeRoot(this),
     mSlots(nsnull)
   {
   }
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #endif
 
   virtual ~nsINode();
@@ -462,6 +471,12 @@ public:
   {
     return mNodeInfo->GetDocument();
   }
+
+  
+
+
+
+  inline nsINode *OwnerDocAsNode() const;
 
   
 
@@ -759,6 +774,35 @@ public:
   nsINode* GetElementParent() const
   {
     return mParent && mParent->IsElement() ? mParent : nsnull;
+  }
+
+  
+
+
+
+
+  nsINode* SubtreeRoot() const
+  {
+    
+    
+    
+    
+    
+    
+    nsINode* node = IsInDoc() ? OwnerDocAsNode() : mSubtreeRoot;
+    NS_ASSERTION(node, "Should always have a node here!");
+#ifdef DEBUG
+    {
+      const nsINode* slowNode = this;
+      const nsINode* iter = slowNode;
+      while ((iter = iter->GetNodeParent())) {
+        slowNode = iter;
+      }
+
+      NS_ASSERTION(slowNode == node, "These should always be in sync!");
+    }
+#endif
+    return node;
   }
 
   
@@ -1363,6 +1407,18 @@ protected:
   bool HasLockedStyleStates() const
     { return GetBoolFlag(ElementHasLockedStyleStates); }
 
+    void SetSubtreeRootPointer(nsINode* aSubtreeRoot)
+  {
+    NS_ASSERTION(aSubtreeRoot, "aSubtreeRoot can never be null!");
+    NS_ASSERTION(!(IsNodeOfType(eCONTENT) && IsInDoc()), "Shouldn't be here!");
+    mSubtreeRoot = aSubtreeRoot;
+  }
+
+  void ClearSubtreeRootPointer()
+  {
+    mSubtreeRoot = nsnull;
+  }
+
 public:
   
   virtual nsXPCClassInfo* GetClassInfo() = 0;
@@ -1505,6 +1561,14 @@ protected:
   nsIContent* mNextSibling;
   nsIContent* mPreviousSibling;
   nsIContent* mFirstChild;
+
+  union {
+    
+    nsIFrame* mPrimaryFrame;
+
+    
+    nsINode* mSubtreeRoot;
+  };
 
   
   nsSlots* mSlots;

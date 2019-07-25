@@ -525,12 +525,19 @@ nsGenericDOMDataNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   
   if (aDocument) {
     
+    
+    ClearSubtreeRootPointer();
+
+    
     SetInDocument();
     if (mText.IsBidi()) {
       aDocument->SetBidiEnabled();
     }
     
     UnsetFlags(NODE_NEEDS_FRAME | NODE_DESCENDANTS_NEED_FRAMES);
+  } else {
+    
+    SetSubtreeRootPointer(aParent->SubtreeRoot());
   }
 
   nsNodeUtils::ParentChainChanged(this);
@@ -569,6 +576,9 @@ nsGenericDOMDataNode::UnbindFromTree(bool aDeep, bool aNullParent)
     SetParentIsContent(false);
   }
   ClearInDocument();
+
+  
+  SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());
 
   nsDataSlots *slots = GetExistingDataSlots();
   if (slots) {
