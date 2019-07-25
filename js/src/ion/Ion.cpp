@@ -923,10 +923,6 @@ EnterIon(JSContext *cx, StackFrame *fp, CallTarget target, void *jitcode, bool o
         JSAutoResolveFlags rf(cx, RESOLVE_INFER);
 
         
-        if (!cx->compartment->ionCompartment()->getOrCreateInvalidationThunk(cx))
-            return false;
-
-        
         if (osr)
             target.osrPrologue(jitcode, argc, argv, &result, calleeToken, fp);
         else

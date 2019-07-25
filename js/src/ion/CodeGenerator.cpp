@@ -647,7 +647,7 @@ CodeGenerator::generateInvalidateEpilogue()
     
     invalidateEpilogueData_ = masm.pushWithPatch(ImmWord(uintptr_t(-1)));
     IonCode *thunk = gen->cx->compartment->ionCompartment()->getOrCreateInvalidationThunk(gen->cx);
-    masm.call(ImmWord(uintptr_t(thunk->raw())));
+    masm.call(thunk);
 #ifdef DEBUG
     
     
