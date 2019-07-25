@@ -633,10 +633,6 @@ GreedyAllocator::mergeRegisterState(const AnyRegister &reg, LBlock *left, LBlock
     VirtualRegister *vright = blockInfo(right)->in[reg];
 
     
-    if (vleft)
-        vleft->setRegister(vleft->reg());
-
-    
     if (vleft == vright)
         return true;
 
@@ -645,35 +641,40 @@ GreedyAllocator::mergeRegisterState(const AnyRegister &reg, LBlock *left, LBlock
     if (!vright)
         return true;
 
-    
-    if (!vleft) {
+    BlockInfo *rinfo = blockInfo(right);
+
+    if (!vleft && !vright->hasRegister()) {
+        
+        
+        
         assign(vright, reg);
         return true;
     }
 
-    BlockInfo *info = blockInfo(right);
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!vright->hasRegister() && allocatableRegs().empty(vright->isDouble())) {
+        AnyRegister reg;
+        if (!allocate(vright->type(), DISALLOW, &reg))
+            return false;
+        assign(vright, reg);
+    }
 
-    
-    
-    if (allocatableRegs().empty(vright->isDouble())) {
-        
-        
+    if (vright->hasRegister()) {
+        JS_ASSERT(vright->reg() != reg);
+        if (!rinfo->restores.move(vright->reg(), reg))
+            return false;
+    } else {
         if (!allocateStack(vright))
             return false;
-        if (!info->restores.move(vright->backingStack(), reg))
+        if (!rinfo->restores.move(vright->backingStack(), reg))
             return false;
-
-        vright->unsetRegister();
-    } else {
-        
-        
-        AnyRegister newreg;
-        if (!allocate(vright->type(), TEMPORARY, &newreg))
-            return false;
-        if (!info->restores.move(newreg, reg))
-            return false;
-
-        assign(vright, newreg);
     }
 
     return true;
