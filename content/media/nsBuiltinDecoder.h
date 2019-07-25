@@ -605,6 +605,9 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   nsDecoderStateMachine::State GetDecodeState() { return mDecoderStateMachine->GetState(); }
 
+  
+  void ReleaseStateMachine() { mDecoderStateMachine = nsnull; }
+
 public:
   
   void DecodeError();

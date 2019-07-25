@@ -209,23 +209,6 @@ public:
     return IsCurrentThread(GetStateMachineThread());
   }
  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsRefPtr<nsBuiltinDecoder> mDecoder;
-
-  
-  
-  
-  
-  State mState;
-
   nsresult GetBuffered(nsTimeRanges* aBuffered);
 
   PRInt64 VideoQueueMemoryInUse() {
@@ -280,6 +263,9 @@ public:
 
   
   void SetFragmentEndTime(PRInt64 aEndTime);
+
+  
+  void ReleaseDecoder() { mDecoder = nsnull; }
 
 protected:
 
@@ -458,6 +444,23 @@ protected:
   
   
   PRBool IsPausedAndDecoderWaiting();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsRefPtr<nsBuiltinDecoder> mDecoder;
+
+  
+  
+  
+  
+  State mState;
 
   
   

@@ -1389,15 +1389,20 @@ void nsBuiltinDecoderStateMachine::DecodeSeek()
 
 class nsDecoderDisposeEvent : public nsRunnable {
 public:
-  nsDecoderDisposeEvent(already_AddRefed<nsBuiltinDecoder> aDecoder)
-    : mDecoder(aDecoder) {}
+  nsDecoderDisposeEvent(already_AddRefed<nsBuiltinDecoder> aDecoder,
+                        already_AddRefed<nsBuiltinDecoderStateMachine> aStateMachine)
+    : mDecoder(aDecoder), mStateMachine(aStateMachine) {}
   NS_IMETHOD Run() {
     NS_ASSERTION(NS_IsMainThread(), "Must be on main thread.");
+    mStateMachine->ReleaseDecoder();
+    mDecoder->ReleaseStateMachine();
+    mStateMachine = nsnull;
     mDecoder = nsnull;
     return NS_OK;
   }
 private:
   nsRefPtr<nsBuiltinDecoder> mDecoder;
+  nsCOMPtr<nsBuiltinDecoderStateMachine> mStateMachine;
 };
 
 
@@ -1406,15 +1411,17 @@ private:
 
 class nsDispatchDisposeEvent : public nsRunnable {
 public:
-  nsDispatchDisposeEvent(already_AddRefed<nsBuiltinDecoder> aDecoder)
-    : mDecoder(aDecoder) {}
+  nsDispatchDisposeEvent(nsBuiltinDecoder* aDecoder,
+                         nsBuiltinDecoderStateMachine* aStateMachine)
+    : mDecoder(aDecoder), mStateMachine(aStateMachine) {}
   NS_IMETHOD Run() {
-    NS_DispatchToMainThread(new nsDecoderDisposeEvent(mDecoder.forget()),
-                            NS_DISPATCH_NORMAL);
+    NS_DispatchToMainThread(new nsDecoderDisposeEvent(mDecoder.forget(),
+                                                      mStateMachine.forget()));
     return NS_OK;
   }
 private:
   nsRefPtr<nsBuiltinDecoder> mDecoder;
+  nsCOMPtr<nsBuiltinDecoderStateMachine> mStateMachine;
 };
 
 nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
@@ -1432,7 +1439,7 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
       StopAudioThread();
       StopDecodeThread();
       NS_ASSERTION(mState == DECODER_STATE_SHUTDOWN,
-                   "How did we escape from the shutdown state???");
+                   "How did we escape from the shutdown state?");
       
       
       
@@ -1446,8 +1453,7 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
       
       
       
-      NS_DispatchToCurrentThread(
-        new nsDispatchDisposeEvent(mDecoder.forget()));
+      NS_DispatchToCurrentThread(new nsDispatchDisposeEvent(mDecoder, this));
       return NS_OK;
     }
 
