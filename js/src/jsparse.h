@@ -914,6 +914,8 @@ struct LexicalScopeNode : public JSParseNode {
 
 
 
+
+
 #define dn_uses         pn_link
 
 struct JSDefinition : public JSParseNode
