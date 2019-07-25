@@ -49,6 +49,8 @@
 #include "nsGUIEvent.h"
 #include "keysym2ucs.h"
 
+#define MAX_UNICODE 0x10FFFF
+
 struct nsKeyConverter {
     int vkCode; 
     int keysym; 
@@ -334,7 +336,7 @@ PRUint32 nsConvertCharCodeToUnicode(GdkEventKey* aEvent)
 
     
     long ucs = keysym2ucs(aEvent->keyval);
-    if ((ucs != -1) && (ucs < 0x10000))
+    if ((ucs != -1) && (ucs < MAX_UNICODE))
         return ucs;
 
     
