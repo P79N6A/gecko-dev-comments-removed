@@ -4765,6 +4765,19 @@ void
 nsEventStateManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
 {
   
+
+
+
+
+  if (aContent->IsHTML() &&
+      (aContent->Tag() == nsGkAtoms::a || aContent->Tag() == nsGkAtoms::area) &&
+      (aContent->AsElement()->State().HasAtLeastOneOfStates(NS_EVENT_STATE_FOCUS |
+                                                            NS_EVENT_STATE_HOVER))) {
+    nsGenericHTMLElement* element = static_cast<nsGenericHTMLElement*>(aContent);
+    element->LeaveLink(element->GetPresContext());
+  }
+
+  
   
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm)
