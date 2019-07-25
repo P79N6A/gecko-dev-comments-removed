@@ -77,8 +77,9 @@ protected:
   
   
   
-  NS_OVERRIDE virtual PRBool TreatSingleValueAsStatic() const {
-    return PR_TRUE;
+  
+  NS_OVERRIDE virtual PRBool IsToAnimation() const {
+    return PR_FALSE;
   }
   NS_OVERRIDE virtual PRBool             HasAttr(nsIAtom* aAttName) const;
   NS_OVERRIDE virtual const nsAttrValue* GetAttr(nsIAtom* aAttName) const;

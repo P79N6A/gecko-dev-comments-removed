@@ -256,8 +256,8 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
 
   nsSMILValue result;
 
-  if (mSimpleDuration.IsIndefinite() ||
-      (values.Length() == 1 && TreatSingleValueAsStatic())) {
+  if (values.Length() == 1 && !IsToAnimation()) {
+
     
     result = values[0];
 
@@ -379,28 +379,37 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
                                            nsSMILValue& aResult,
                                            nsSMILValue& aBaseValue)
 {
-  nsresult rv = NS_OK;
-  const nsSMILTime& dur = mSimpleDuration.GetMillis();
-
   
-  NS_ABORT_IF_FALSE(mSampleTime >= 0.0f, "Sample time should not be negative");
-  NS_ABORT_IF_FALSE(dur >= 0.0f, "Simple duration should not be negative");
-
-  if (mSampleTime >= dur || mSampleTime < 0.0f) {
-    NS_ERROR("Animation sampled outside interval");
-    return NS_ERROR_FAILURE;
-  }
-
   if ((!IsToAnimation() && aValues.Length() < 2) ||
       (IsToAnimation()  && aValues.Length() != 1)) {
     NS_ERROR("Unexpected number of values");
     return NS_ERROR_FAILURE;
   }
-  
 
   
-  const double simpleProgress = dur > 0.0 ? (double)mSampleTime / dur : 0.0;
+  
+  
+  
+  
+  double simpleProgress = 0.0;
 
+  if (mSimpleDuration.IsResolved()) {
+    nsSMILTime dur = mSimpleDuration.GetMillis();
+
+    NS_ABORT_IF_FALSE(dur >= 0, "Simple duration should not be negative");
+    NS_ABORT_IF_FALSE(mSampleTime >= 0, "Sample time should not be negative");
+
+    if (mSampleTime >= dur || mSampleTime < 0) {
+      NS_ERROR("Animation sampled outside interval");
+      return NS_ERROR_FAILURE;
+    }
+
+    if (dur > 0) {
+      simpleProgress = (double)mSampleTime / dur;
+    } 
+  }
+
+  nsresult rv = NS_OK;
   nsSMILCalcMode calcMode = GetCalcMode();
   if (calcMode != CALC_DISCRETE) {
     
@@ -424,26 +433,25 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
           intervalProgress = ScaleIntervalProgress(scaledSimpleProgress, 0);
         }
       }
-    } else {
-      if (calcMode == CALC_PACED) {
-        rv = ComputePacedPosition(aValues, simpleProgress,
-                                  intervalProgress, from, to);
-        
-        
-        
-        
-      } else { 
-        double scaledSimpleProgress =
-          ScaleSimpleProgress(simpleProgress, calcMode);
-        PRUint32 index = (PRUint32)floor(scaledSimpleProgress *
-                                         (aValues.Length() - 1));
-        from = &aValues[index];
-        to = &aValues[index + 1];
-        intervalProgress =
-          scaledSimpleProgress * (aValues.Length() - 1) - index;
-        intervalProgress = ScaleIntervalProgress(intervalProgress, index);
-      }
+    } else if (calcMode == CALC_PACED) {
+      rv = ComputePacedPosition(aValues, simpleProgress,
+                                intervalProgress, from, to);
+      
+      
+      
+      
+    } else { 
+      double scaledSimpleProgress =
+        ScaleSimpleProgress(simpleProgress, calcMode);
+      PRUint32 index = (PRUint32)floor(scaledSimpleProgress *
+                                       (aValues.Length() - 1));
+      from = &aValues[index];
+      to = &aValues[index + 1];
+      intervalProgress =
+        scaledSimpleProgress * (aValues.Length() - 1) - index;
+      intervalProgress = ScaleIntervalProgress(intervalProgress, index);
     }
+
     if (NS_SUCCEEDED(rv)) {
       NS_ABORT_IF_FALSE(from, "NULL from-value during interpolation");
       NS_ABORT_IF_FALSE(to, "NULL to-value during interpolation");

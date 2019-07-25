@@ -338,14 +338,7 @@ protected:
   void         CheckKeyTimes(PRUint32 aNumValues);
   void         CheckKeySplines(PRUint32 aNumValues);
 
-  
-  
-  
-  virtual PRBool TreatSingleValueAsStatic() const {
-    return HasAttr(nsGkAtoms::values);
-  }
-
-  inline PRBool IsToAnimation() const {
+  virtual PRBool IsToAnimation() const {
     return !HasAttr(nsGkAtoms::values) &&
             HasAttr(nsGkAtoms::to) &&
            !HasAttr(nsGkAtoms::from);
