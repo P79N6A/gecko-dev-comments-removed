@@ -1001,7 +1001,19 @@ public class PanZoomController
     }
 
     @Override
+    public boolean onSingleTapUp(MotionEvent motionEvent) {
+        
+        if (mController.getAllowZoom())
+            return false;
+        sendPointToGecko("Gesture:SingleTap", motionEvent);
+        return true;
+    }
+
+    @Override
     public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
+        
+        if (!mController.getAllowZoom())
+            return false;
         sendPointToGecko("Gesture:SingleTap", motionEvent);
         return true;
     }
