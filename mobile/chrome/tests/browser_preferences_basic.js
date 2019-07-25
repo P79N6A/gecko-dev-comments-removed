@@ -67,8 +67,8 @@ gTests.push({
     let controls = document.getElementById("controls-scrollbox");
 
     
-		initialDragOffset = document.getElementById("tabs-container").getBoundingClientRect().width;
-		finalDragOffset = initialDragOffset + document.getElementById("browser-controls")
+    initialDragOffset = document.getElementById("tabs-container").getBoundingClientRect().width;
+    finalDragOffset = initialDragOffset + document.getElementById("browser-controls")
       .getBoundingClientRect().width;
 
     gCurrentTest._contentScrollbox.getPosition(x,y);
@@ -133,8 +133,9 @@ gTests.push({
     dragElement(prefsList,w/2,h/2,w/2,h/4);
 
     
+    let distance = (h/2) - (h/4);
     gCurrentTest._prefsScrollbox.getPosition(x,y);
-    ok((x.value==0 & y.value==104),"Preferences pane is panned up","Got "+x.value+" "+y.value+", expected 0,104");
+    ok((x.value==0 & y.value==distance),"Preferences pane is panned up","Got "+x.value+" "+y.value+", expected 0," + distance);
 
     
     dragElement(prefsList,w/2,h/4,w/2,h/2);
