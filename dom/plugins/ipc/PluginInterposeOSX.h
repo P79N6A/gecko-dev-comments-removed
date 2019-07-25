@@ -42,6 +42,23 @@ class NSCursor;
 #import <Cocoa/Cocoa.h>
 #endif
 
+
+
+
+
+
+#if !defined(__QUICKDRAWAPI__)
+
+typedef short Bits16[16];
+struct Cursor {
+  Bits16  data;
+  Bits16  mask;
+  Point   hotSpot;
+};
+typedef struct Cursor Cursor;
+
+#endif 
+
 namespace mac_plugin_interposing {
 
 
