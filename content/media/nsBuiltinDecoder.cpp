@@ -47,6 +47,7 @@
 #include "VideoUtils.h"
 #include "nsBuiltinDecoder.h"
 #include "nsBuiltinDecoderStateMachine.h"
+#include "nsTimeRanges.h"
 
 using namespace mozilla;
 
@@ -267,13 +268,82 @@ nsresult nsBuiltinDecoder::Play()
   return NS_OK;
 }
 
+
+
+
+
+
+
+
+static PRBool IsInRanges(nsTimeRanges& aRanges, double aValue, PRInt32& aIntervalIndex) {
+  PRUint32 length;
+  aRanges.GetLength(&length);
+  for (PRUint32 i = 0; i < length; i++) {
+    double start, end;
+    aRanges.Start(i, &start);
+    if (start > aValue) {
+      aIntervalIndex = i - 1;
+      return PR_FALSE;
+    }
+    aRanges.End(i, &end);
+    if (aValue <= end) {
+      aIntervalIndex = i;
+      return PR_TRUE;
+    }
+  }
+  aIntervalIndex = length - 1;
+  return PR_FALSE;
+}
+
 nsresult nsBuiltinDecoder::Seek(double aTime)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
-  if (aTime < 0.0)
-    return NS_ERROR_FAILURE;
+  NS_ABORT_IF_FALSE(aTime >= 0.0, "Cannot seek to a negative value.");
+
+  nsTimeRanges seekable;
+  nsresult res;
+  PRUint32 length = 0;
+  res = GetSeekable(&seekable);
+  NS_ENSURE_SUCCESS(res, NS_OK);
+
+  seekable.GetLength(&length);
+  if (!length) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  
+  
+  PRInt32 range = 0;
+  if (!IsInRanges(seekable, aTime, range)) {
+    if (range != -1) {
+      double leftBound, rightBound;
+      res = seekable.End(range, &leftBound);
+      NS_ENSURE_SUCCESS(res, NS_OK);
+      double distanceLeft = NS_ABS(leftBound - aTime);
+
+      double distanceRight = -1;
+      if (range + 1 < length) {
+        res = seekable.Start(range+1, &rightBound);
+        NS_ENSURE_SUCCESS(res, NS_OK);
+        distanceRight = NS_ABS(rightBound - aTime);
+      }
+
+      if (distanceLeft == distanceRight) {
+        distanceLeft = NS_ABS(leftBound - mCurrentTime);
+        distanceRight = NS_ABS(rightBound - mCurrentTime);
+      } 
+      aTime = (distanceLeft < distanceRight) ? leftBound : rightBound;
+    } else {
+      
+      
+      seekable.Start(0, &aTime);
+    }
+  }
 
   mRequestedSeekTime = aTime;
   mCurrentTime = aTime;
@@ -847,10 +917,25 @@ void nsBuiltinDecoder::SetSeekable(PRBool aSeekable)
   }
 }
 
-PRBool nsBuiltinDecoder::GetSeekable()
+PRBool nsBuiltinDecoder::IsSeekable()
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   return mSeekable;
+}
+
+nsresult nsBuiltinDecoder::GetSeekable(nsTimeRanges* aSeekable)
+{
+  
+  double initialTime = 0.0;
+
+  if (IsSeekable()) {
+    double end = IsInfinite() ? std::numeric_limits<double>::infinity()
+                              : initialTime + GetDuration();
+    aSeekable->Add(initialTime, end);
+    return NS_OK;
+  }
+
+  return GetBuffered(aSeekable);
 }
 
 void nsBuiltinDecoder::Suspend()

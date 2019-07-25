@@ -326,7 +326,7 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo)
     if (mDecoder->GetStateMachine()->GetDuration() == -1 &&
         mDecoder->GetStateMachine()->GetState() != nsDecoderStateMachine::DECODER_STATE_SHUTDOWN &&
         stream->GetLength() >= 0 &&
-        mDecoder->GetStateMachine()->GetSeekable())
+        mDecoder->GetStateMachine()->IsSeekable())
     {
       
       

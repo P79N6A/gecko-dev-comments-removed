@@ -147,6 +147,19 @@ function fileUriToSrc(path, mustExist) {
 }
 
 
+function range_equals(r1, r2) {
+  if (r1.length != r2.length) {
+    return false;
+  }
+  for (var i = 0; i < r1.length; i++) {
+    if (r1.start(i) != r2.start(i) || r1.end(i) != r2.end(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
 
 
 var gInfoLeakTests = [

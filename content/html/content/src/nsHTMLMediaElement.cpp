@@ -1135,6 +1135,19 @@ NS_IMETHODIMP nsHTMLMediaElement::GetDuration(double *aDuration)
 }
 
 
+NS_IMETHODIMP nsHTMLMediaElement::GetSeekable(nsIDOMTimeRanges** aSeekable)
+{
+  nsTimeRanges* ranges = new nsTimeRanges();
+  NS_ADDREF(*aSeekable = ranges);
+
+  if (mDecoder && mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING) {
+    mDecoder->GetSeekable(ranges);
+  }
+  return NS_OK;
+}
+
+
+
 NS_IMETHODIMP nsHTMLMediaElement::GetPaused(PRBool *aPaused)
 {
   *aPaused = mPaused;
@@ -1825,7 +1838,7 @@ nsresult nsHTMLMediaElement::InitializeDecoderAsClone(nsMediaDecoder* aOriginal)
   double duration = aOriginal->GetDuration();
   if (duration >= 0) {
     decoder->SetDuration(duration);
-    decoder->SetSeekable(aOriginal->GetSeekable());
+    decoder->SetSeekable(aOriginal->IsSeekable());
   }
 
   nsMediaStream* stream = originalStream->CloneData(decoder);

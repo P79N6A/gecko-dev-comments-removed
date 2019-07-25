@@ -316,7 +316,7 @@ public:
   
   
   
-  virtual PRBool GetSeekable() = 0;
+  virtual PRBool IsSeekable() = 0;
 
   
   
@@ -433,7 +433,9 @@ class nsBuiltinDecoder : public nsMediaDecoder
   virtual void SetSeekable(PRBool aSeekable);
 
   
-  virtual PRBool GetSeekable();
+  virtual PRBool IsSeekable();
+
+  virtual nsresult GetSeekable(nsTimeRanges* aSeekable);
 
   virtual Statistics GetStatistics();
 

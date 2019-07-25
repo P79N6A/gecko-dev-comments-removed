@@ -291,7 +291,10 @@ public:
   virtual void SetSeekable(PRBool aSeekable) = 0;
 
   
-  virtual PRBool GetSeekable() = 0;
+  virtual PRBool IsSeekable() = 0;
+
+  
+  virtual nsresult GetSeekable(nsTimeRanges* aSeekable) = 0;
 
   
   virtual void Invalidate();
