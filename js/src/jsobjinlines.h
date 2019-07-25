@@ -1720,8 +1720,10 @@ NonGenericMethodGuard(JSContext *cx, CallArgs args, Class *clasp, bool *ok)
     const Value &thisv = args.thisv();
     if (thisv.isObject()) {
         JSObject &obj = thisv.toObject();
-        if (obj.getClass() == clasp)
+        if (obj.getClass() == clasp) {
+            *ok = true;  
             return &obj;
+        }
     }
 
     *ok = HandleNonGenericMethodClassMismatch(cx, args, clasp);
