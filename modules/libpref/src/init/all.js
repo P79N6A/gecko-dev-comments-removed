@@ -2533,7 +2533,7 @@ pref("ui.key.generalAccessKey", -1);
 
 
 pref("ui.key.chromeAccess", 2);
-pref("ui.key.contentAccess", 2);
+pref("ui.key.contentAccess", 6);
 
 
 
