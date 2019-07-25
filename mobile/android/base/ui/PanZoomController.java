@@ -248,25 +248,23 @@ public class PanZoomController
         }
     }
 
-    public void geometryChanged(boolean abortAnimation) {
-        if (abortAnimation) {
+    public void abortAnimation() {
+        
+        
+        
+        
+        switch (mState) {
+        case FLING:
+            mX.velocity = mY.velocity = 0.0f;
+            mState = PanZoomState.NOTHING;
+            
+        case ANIMATED_ZOOM:
             
             
             
-            
-            switch (mState) {
-            case FLING:
-                mX.velocity = mY.velocity = 0.0f;
-                mState = PanZoomState.NOTHING;
-                
-            case ANIMATED_ZOOM:
-                
-                
-                
-            case NOTHING:
-                bounce();
-                break;
-            }
+        case NOTHING:
+            bounce();
+            break;
         }
     }
 
