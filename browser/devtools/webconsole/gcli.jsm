@@ -772,17 +772,6 @@ var BooleanType = require('gcli/types/basic').BooleanType;
 
 
 
-var commands = {};
-
-
-
-
-var commandNames = [];
-
-
-
-
-
 
 
 
@@ -1033,6 +1022,21 @@ canon.Parameter = Parameter;
 
 
 
+var commands = {};
+
+
+
+
+var commandNames = [];
+
+
+
+
+var commandSpecs = {};
+
+
+
+
 
 
 
@@ -1051,6 +1055,8 @@ canon.addCommand = function addCommand(commandSpec) {
   commandNames.push(commandSpec.name);
   commandNames.sort();
 
+  commandSpecs[commandSpec.name] = commandSpec;
+
   canon.onCanonChange();
   return command;
 };
@@ -1066,6 +1072,7 @@ canon.removeCommand = function removeCommand(commandOrName) {
 
   
   delete commands[name];
+  delete commandSpecs[name];
   commandNames = commandNames.filter(function(test) {
     return test !== name;
   });
@@ -1097,6 +1104,14 @@ canon.getCommands = function getCommands() {
 
 canon.getCommandNames = function getCommandNames() {
   return commandNames.slice(0);
+};
+
+
+
+
+
+canon.getCommandSpecs = function getCommandSpecs() {
+  return commandSpecs;
 };
 
 
@@ -6698,9 +6713,21 @@ Output.prototype.toDom = function(element) {
   }
   else {
     if (this.command.returnType === 'terminal') {
-      node = util.createElement(document, 'textarea');
-      node.classList.add('gcli-row-terminal');
-      node.readOnly = true;
+      if (Array.isArray(output)) {
+        node = util.createElement(document, 'div');
+        output.forEach(function() {
+          var child = util.createElement(document, 'textarea');
+          child.classList.add('gcli-row-subterminal');
+          child.readOnly = true;
+
+          node.appendChild(child);
+        });
+      }
+      else {
+        node = util.createElement(document, 'textarea');
+        node.classList.add('gcli-row-terminal');
+        node.readOnly = true;
+      }
     }
     else {
       node = util.createElement(document, 'p');
