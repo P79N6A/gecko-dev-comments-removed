@@ -145,6 +145,8 @@ protected:
 
 
 
+
+
   void GetTextDecorations(nsPresContext* aPresContext, 
                           PRBool aIsBlock,
                           PRUint8& aDecorations, 

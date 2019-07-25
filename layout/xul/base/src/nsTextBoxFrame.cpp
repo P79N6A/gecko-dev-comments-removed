@@ -500,13 +500,15 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
       fontMet->GetUnderline(offset, size);
       gfxFloat offsetPixel = presContext->AppUnitsToGfxUnits(offset);
       gfxFloat sizePixel = presContext->AppUnitsToGfxUnits(size);
-      if (decorations & NS_FONT_DECORATION_UNDERLINE) {
+      if ((decorations & NS_FONT_DECORATION_UNDERLINE) &&
+          underStyle != NS_STYLE_TEXT_DECORATION_STYLE_NONE) {
         nsCSSRendering::PaintDecorationLine(ctx, underColor,
                           pt, gfxSize(width, sizePixel),
                           ascentPixel, offsetPixel,
                           NS_STYLE_TEXT_DECORATION_UNDERLINE, underStyle);
       }
-      if (decorations & NS_FONT_DECORATION_OVERLINE) {
+      if ((decorations & NS_FONT_DECORATION_OVERLINE) &&
+          overStyle != NS_STYLE_TEXT_DECORATION_STYLE_NONE) {
         nsCSSRendering::PaintDecorationLine(ctx, overColor,
                           pt, gfxSize(width, sizePixel),
                           ascentPixel, ascentPixel,
@@ -584,7 +586,8 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
 
     
     
-    if (decorations & NS_FONT_DECORATION_LINE_THROUGH) {
+    if ((decorations & NS_FONT_DECORATION_LINE_THROUGH) &&
+        strikeStyle != NS_STYLE_TEXT_DECORATION_STYLE_NONE) {
       fontMet->GetStrikeout(offset, size);
       gfxFloat offsetPixel = presContext->AppUnitsToGfxUnits(offset);
       gfxFloat sizePixel = presContext->AppUnitsToGfxUnits(size);
