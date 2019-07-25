@@ -1092,6 +1092,7 @@ struct nsCycleCollector
     void SelectPurple(GCGraphBuilder &builder);
     void MarkRoots(GCGraphBuilder &builder);
     void ScanRoots();
+    void ScanWeakMaps();
 
     
     bool CollectWhite(nsICycleCollectorListener *aListener);
@@ -1989,6 +1990,38 @@ struct scanVisitor
     PRUint32 &mWhiteNodeCount;
 };
 
+
+
+void
+nsCycleCollector::ScanWeakMaps()
+{
+    bool anyChanged;
+    do {
+        anyChanged = false;
+        for (PRUint32 i = 0; i < mGraph.mWeakMaps.Length(); i++) {
+            WeakMapping *wm = &mGraph.mWeakMaps[i];
+
+            
+            uint32 mColor = wm->mMap ? wm->mMap->mColor : black;
+            uint32 kColor = wm->mKey ? wm->mKey->mColor : black;
+            PtrInfo *v = wm->mVal;
+
+            
+            
+            
+            
+            NS_ASSERTION(mColor != grey, "Uncolored weak map");
+            NS_ASSERTION(kColor != grey, "Uncolored weak map key");
+            NS_ASSERTION(v->mColor != grey, "Uncolored weak map value");
+
+            if (mColor == black && kColor == black && v->mColor != black) {
+                GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mWhiteNodeCount)).Walk(v);
+                anyChanged = true;
+            }
+        }
+    } while (anyChanged);
+}
+
 void
 nsCycleCollector::ScanRoots()
 {
@@ -1998,6 +2031,8 @@ nsCycleCollector::ScanRoots()
     
     
     GraphWalker<scanVisitor>(scanVisitor(mWhiteNodeCount)).WalkFromRoots(mGraph); 
+
+    ScanWeakMaps();
 
 #ifdef DEBUG_CC
     
