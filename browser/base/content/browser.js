@@ -1381,6 +1381,8 @@ function BrowserStartup() {
 
   gPrivateBrowsingUI.init();
 
+  DownloadsButton.initializePlaceholder();
+
   retrieveToolbarIconsizesFromTheme();
 
   gDelayedStartupTimeoutId = setTimeout(delayedStartup, 0, isLoadingBlank, mustLoadSidebar);
@@ -1628,6 +1630,11 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
     }
 #endif
   }, 10000);
+
+  
+  
+  
+  DownloadsButton.initializeIndicator();
 
 #ifndef XP_MACOSX
   updateEditUIVisibility();
@@ -3251,29 +3258,6 @@ var newWindowButtonObserver = {
   }
 }
 
-var DownloadsButtonDNDObserver = {
-  onDragOver: function (aEvent)
-  {
-    var types = aEvent.dataTransfer.types;
-    if (types.contains("text/x-moz-url") ||
-        types.contains("text/uri-list") ||
-        types.contains("text/plain"))
-      aEvent.preventDefault();
-  },
-
-  onDragExit: function (aEvent)
-  {
-  },
-
-  onDrop: function (aEvent)
-  {
-    let name = { };
-    let url = browserDragAndDrop.drop(aEvent, name);
-    if (url)
-      saveURL(url, name, null, true, true);
-  }
-}
-
 const DOMLinkHandler = {
   handleEvent: function (event) {
     switch (event.type) {
@@ -3688,6 +3672,7 @@ function BrowserCustomizeToolbar()
 
   PlacesToolbarHelper.customizeStart();
   BookmarksMenuButton.customizeStart();
+  DownloadsButton.customizeStart();
 
   TabsInTitlebar.allowedBy("customizing-toolbars", false);
 
@@ -3754,6 +3739,7 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
 
   PlacesToolbarHelper.customizeDone();
   BookmarksMenuButton.customizeDone();
+  DownloadsButton.customizeDone();
 
   
   
@@ -5331,6 +5317,8 @@ function setToolbarVisibility(toolbar, isVisible) {
 
 var TabsOnTop = {
   init: function TabsOnTop_init() {
+    this._initialized = true;
+    this.syncUI();
     Services.prefs.addObserver(this._prefName, this, false);
   },
 
@@ -5343,6 +5331,9 @@ var TabsOnTop = {
   },
 
   syncUI: function () {
+    if (!this._initialized)
+      return;
+
     let userEnabled = Services.prefs.getBoolPref(this._prefName);
     let enabled = userEnabled && gBrowser.tabContainer.visible;
 

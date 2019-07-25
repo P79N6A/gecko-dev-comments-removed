@@ -1,0 +1,253 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"use strict";
+
+
+
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+const Cr = Components.results;
+
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
+                                  "resource:///modules/DownloadsCommon.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "gSessionStartup",
+                                   "@mozilla.org/browser/sessionstartup;1",
+                                   "nsISessionStartup");
+XPCOMUtils.defineLazyServiceGetter(this, "gPrivateBrowsingService",
+                                   "@mozilla.org/privatebrowsing;1",
+                                   "nsIPrivateBrowsingService");
+
+const kObservedTopics = [
+  "sessionstore-windows-restored",
+  "sessionstore-browser-state-restored",
+  "download-manager-initialized",
+  "download-manager-change-retention",
+  "private-browsing-transition-complete",
+  "browser-lastwindow-close-granted",
+  "quit-application",
+  "profile-change-teardown",
+];
+
+
+
+
+const kDownloadsUICid = Components.ID("{4d99321e-d156-455b-81f7-e7aa2308134f}");
+
+
+
+
+const kDownloadsUIContractId = "@mozilla.org/download-manager-ui;1";
+
+
+
+
+function DownloadsStartup() { }
+
+DownloadsStartup.prototype = {
+  classID: Components.ID("{49507fe5-2cee-4824-b6a3-e999150ce9b8}"),
+
+  _xpcom_factory: XPCOMUtils.generateSingletonFactory(DownloadsStartup),
+
+  
+  
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference]),
+
+  
+  
+
+  observe: function DS_observe(aSubject, aTopic, aData)
+  {
+    switch (aTopic) {
+      case "app-startup":
+        kObservedTopics.forEach(
+          function (topic) Services.obs.addObserver(this, topic, true),
+          this);
+
+        
+        
+        
+        Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
+                          .registerFactory(kDownloadsUICid, "",
+                                           kDownloadsUIContractId, null);
+        break;
+
+      case "sessionstore-windows-restored":
+      case "sessionstore-browser-state-restored":
+        
+        
+        
+        
+        if (gSessionStartup.sessionType != Ci.nsISessionStartup.NO_SESSION) {
+          this._recoverAllDownloads = true;
+        }
+        this._ensureDataLoaded();
+        break;
+
+      case "download-manager-initialized":
+        
+        
+        if (this._shuttingDown) {
+          break;
+        }
+
+        
+        
+        
+        DownloadsCommon.data.initializeDataLink(
+                             aSubject.QueryInterface(Ci.nsIDownloadManager));
+
+        this._downloadsServiceInitialized = true;
+
+        
+        
+        
+        Services.tm.mainThread.dispatch(this._ensureDataLoaded.bind(this),
+                                        Ci.nsIThread.DISPATCH_NORMAL);
+        break;
+
+      case "download-manager-change-retention":
+        
+        
+        
+        
+        
+        if (!DownloadsCommon.useToolkitUI) {
+          let removeFinishedDownloads = Services.prefs.getBoolPref(
+                            "browser.download.panel.removeFinishedDownloads");
+          aSubject.QueryInterface(Ci.nsISupportsPRInt32)
+                  .data = removeFinishedDownloads ? 0 : 2;
+        }
+        break;
+
+      case "private-browsing-transition-complete":
+        
+        
+        this._ensureDataLoaded();
+        break;
+
+      case "browser-lastwindow-close-granted":
+        
+        
+        
+        
+        
+        
+        if (this._downloadsServiceInitialized &&
+            !DownloadsCommon.useToolkitUI) {
+          Services.downloads.cleanUp();
+        }
+        break;
+
+      case "quit-application":
+        
+        
+        
+        
+        
+        this._shuttingDown = true;
+        if (!this._downloadsServiceInitialized) {
+          break;
+        }
+
+        DownloadsCommon.data.terminateDataLink();
+
+        
+        
+        if (!DownloadsCommon.useToolkitUI && aData != "restart") {
+          this._cleanupOnShutdown = true;
+        }
+        break;
+
+      case "profile-change-teardown":
+        
+        
+        
+        
+        
+        
+        if (this._cleanupOnShutdown) {
+          Services.downloads.cleanUp();
+        }
+        break;
+    }
+  },
+
+  
+  
+
+  
+
+
+
+  _recoverAllDownloads: false,
+
+  
+
+
+
+
+
+  _downloadsServiceInitialized: false,
+
+  
+
+
+  _shuttingDown: false,
+
+  
+
+
+  _cleanupOnShutdown: false,
+
+  
+
+
+  _ensureDataLoaded: function DS_ensureDataLoaded()
+  {
+    if (!this._downloadsServiceInitialized ||
+        gPrivateBrowsingService.privateBrowsingEnabled) {
+      return;
+    }
+
+    
+    
+    
+    DownloadsCommon.data.ensurePersistentDataLoaded(!this._recoverAllDownloads);
+  },
+
+  
+
+
+  _executeSoon: function DS_executeSoon(aCallbackFn)
+  {
+    let self = this;
+    Services.tm.mainThread.dispatch(
+                           { run: function () aCallbackFn.apply(self) },
+                           Ci.nsIThread.DISPATCH_NORMAL);
+  }
+};
+
+
+
+
+const NSGetFactory = XPCOMUtils.generateNSGetFactory([DownloadsStartup]);
