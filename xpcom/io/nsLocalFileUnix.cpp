@@ -1439,6 +1439,28 @@ nsLocalFile::IsExecutable(PRBool *_retval)
     }
 
     
+#ifdef XP_MACOSX
+    
+    
+    
+    CFURLRef url;
+    if (NS_FAILED(GetCFURL(&url))) {
+        return NS_ERROR_FAILURE;
+    }
+
+    LSRequestedInfo theInfoRequest = kLSRequestAllInfo;
+    LSItemInfoRecord theInfo;
+    OSStatus result = ::LSCopyItemInfoForURL(url, theInfoRequest, &theInfo);
+    ::CFRelease(url);
+    if (result == noErr) {
+        if ((theInfo.flags & kLSItemInfoIsApplication) != 0) {
+            *_retval = PR_TRUE;
+            return NS_OK;
+        }
+    }
+#endif
+
+    
     *_retval = (access(mPath.get(), X_OK) == 0);
 #ifdef SOLARIS
     
