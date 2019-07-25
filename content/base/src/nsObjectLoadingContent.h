@@ -276,9 +276,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
 
 
-
-
-    nsresult OpenChannel(PRInt32 aPolicyType);
+    nsresult OpenChannel();
 
     
 
@@ -299,15 +297,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-
-
-
-
-
-
-    bool CheckURILoad(nsIURI *aURI,
-                      PRInt16 *aContentPolicy,
-                      PRInt32 aContentPolicyType);
+    bool CheckLoadPolicy(PRInt16 *aContentPolicy);
 
     
 
@@ -317,11 +307,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-
-
-
-
-    bool CheckObjectURIs(PRInt16 *aContentPolicy, PRInt32 aContentPolicyType);
+    bool CheckProcessPolicy(PRInt16 *aContentPolicy);
 
     
 
