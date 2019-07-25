@@ -1378,6 +1378,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   OfflineApps.init();
   IndexedDBPromptHelper.init();
   gFormSubmitObserver.init();
+  AddonManager.addAddonListener(AddonsMgrListener);
 
   gBrowser.addEventListener("pageshow", function(evt) { setTimeout(pageShowEventHandlers, 0, evt); }, true);
 
@@ -1641,6 +1642,7 @@ function BrowserShutdown()
   OfflineApps.uninit();
   gPrivateBrowsingUI.uninit();
   IndexedDBPromptHelper.uninit();
+  AddonManager.removeAddonListener(AddonsMgrListener);
 
   var enumerator = Services.wm.getEnumerator(null);
   enumerator.getNext();
@@ -1913,12 +1915,7 @@ function BrowserReloadSkipCache() {
   BrowserReloadWithFlags(reloadFlags);
 }
 
-function BrowserHome()
-{
-  var homePage = gHomeButton.getHomePage();
-  loadOneOrMoreURIs(homePage);
-}
-
+var BrowserHome = BrowserGoHome;
 function BrowserGoHome(aEvent) {
   if (aEvent && "button" in aEvent &&
       aEvent.button == 2) 
@@ -2813,10 +2810,11 @@ function FillInHTMLTooltip(tipElement)
 
   
   
-  if (tipElement instanceof HTMLInputElement ||
-      tipElement instanceof HTMLTextAreaElement ||
-      tipElement instanceof HTMLSelectElement ||
-      tipElement instanceof HTMLButtonElement) {
+  if ((tipElement instanceof HTMLInputElement ||
+       tipElement instanceof HTMLTextAreaElement ||
+       tipElement instanceof HTMLSelectElement ||
+       tipElement instanceof HTMLButtonElement) &&
+      !tipElement.hasAttribute('title')) {
     
     
     titleText = tipElement.validationMessage;
@@ -3984,14 +3982,16 @@ var XULBrowserWindow = {
     this.defaultStatus = status;
   },
 
-  setOverLink: function (link) {
-    
-    
-    link = link.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
+  setOverLink: function (url, anchorElt) {
+    if (gURLBar) {
+      
+      
+      url = url.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
                         encodeURIComponent);
-    gURLBar.setOverLink(link);
+      gURLBar.setOverLink(url);
+    }
   },
-  
+
   
   onBeforeLinkTraversal: function(originalTarget, linkURI, linkNode, isAppTab) {
     
@@ -4188,7 +4188,9 @@ var XULBrowserWindow = {
     else
       this.isImage.setAttribute('disabled', 'true');
 
+    this.hideOverLinkImmediately = true;
     this.setOverLink("", null);
+    this.hideOverLinkImmediately = false;
 
     
     
@@ -4736,6 +4738,9 @@ function updateAppButtonDisplay() {
     document.documentElement.setAttribute("chromemargin", "0,-1,-1,-1");
   else
     document.documentElement.removeAttribute("chromemargin");
+#else
+  document.getElementById("appmenu-toolbar-button").hidden =
+    !displayAppButton;
 #endif
 }
 #endif
@@ -4993,133 +4998,158 @@ function asyncOpenWebPanel(event)
 
 
 
- 
- 
- 
- function contentAreaClick(event, fieldNormalClicks)
- {
-   if (!event.isTrusted || event.getPreventDefault()) {
-     return true;
-   }
 
-   var target = event.target;
-   var linkNode;
 
-   if (target instanceof HTMLAnchorElement ||
-       target instanceof HTMLAreaElement ||
-       target instanceof HTMLLinkElement) {
-     if (target.hasAttribute("href"))
-       linkNode = target;
 
-     
-     
-     
-     var parent = target.parentNode;
-     while (parent) {
-       if (parent instanceof HTMLAnchorElement ||
-           parent instanceof HTMLAreaElement ||
-           parent instanceof HTMLLinkElement) {
-           if (parent.hasAttribute("href"))
-             linkNode = parent;
-       }
-       parent = parent.parentNode;
-     }
-   }
-   else {
-     linkNode = event.originalTarget;
-     while (linkNode && !(linkNode instanceof HTMLAnchorElement))
-       linkNode = linkNode.parentNode;
-     
-     
-     if (linkNode && !linkNode.hasAttribute("href"))
-       linkNode = null;
-   }
-   var wrapper = null;
-   if (linkNode) {
-     wrapper = linkNode;
-     if (event.button == 0 && !event.ctrlKey && !event.shiftKey &&
-         !event.altKey && !event.metaKey) {
-       
-       
-       
-       
-       
-       target = wrapper.getAttribute("target");
-       if (fieldNormalClicks &&
-           (!target || target == "_content" || target  == "_main"))
-         
-       {
-         if (!wrapper.href)
-           return true;
-         if (wrapper.getAttribute("onclick"))
-           return true;
-         
-         if (wrapper.href.substr(0, 11) === "javascript:")
-           return true;
-         
-         if (wrapper.href.substr(0, 5) === "data:")
-           return true;
 
-         try {
-           urlSecurityCheck(wrapper.href, wrapper.ownerDocument.nodePrincipal);
-         }
-         catch(ex) {
-           return false;
-         }
 
-         var postData = { };
-         var url = getShortcutOrURI(wrapper.href, postData);
-         if (!url)
-           return true;
-         loadURI(url, null, postData.value, false);
-         event.preventDefault();
-         return false;
-       }
-       else if (linkNode.getAttribute("rel") == "sidebar") {
-         
-         
-         
-         PlacesUIUtils.showMinimalAddBookmarkUI(makeURI(wrapper.href),
-                                                wrapper.getAttribute("title"),
-                                                null, null, true, true);
-         event.preventDefault();
-         return false;
-       }
-     }
-     else {
-       handleLinkClick(event, wrapper.href, linkNode);
-     }
 
-     return true;
-   } else {
-     
-     var href, realHref, baseURI;
-     linkNode = target;
-     while (linkNode) {
-       if (linkNode.nodeType == Node.ELEMENT_NODE) {
-         wrapper = linkNode;
 
-         realHref = wrapper.getAttributeNS("http://www.w3.org/1999/xlink", "href");
-         if (realHref) {
-           href = realHref;
-           baseURI = wrapper.baseURI
-         }
-       }
-       linkNode = linkNode.parentNode;
-     }
-     if (href) {
-       href = makeURLAbsolute(baseURI, href);
-       handleLinkClick(event, href, null);
-       return true;
-     }
-   }
-   if (event.button == 1 &&
-       gPrefService.getBoolPref("middlemouse.contentLoadURL") &&
-       !gPrefService.getBoolPref("general.autoScroll")) {
-     middleMousePaste(event);
-   }
-   return true;
- }
+
+
+
+function hrefAndLinkNodeForClickEvent(event)
+{
+  function isHTMLLink(aNode)
+  {
+    return aNode instanceof HTMLAnchorElement ||
+           aNode instanceof HTMLAreaElement ||
+           aNode instanceof HTMLLinkElement;
+  }
+
+  let linkNode;
+  if (isHTMLLink(event.target)) {
+    
+    
+    
+    
+    let node = event.target;
+    while (node) {
+      if (isHTMLLink(node) && node.hasAttribute("href"))
+        linkNode = node;
+      node = node.parentNode;
+    }
+  }
+  else {
+    let node = event.originalTarget;
+    while (node && !(node instanceof HTMLAnchorElement)) {
+      node = node.parentNode;
+    }
+    
+    
+    if (node && node.hasAttribute("href"))
+      linkNode = node;
+  }
+
+  if (linkNode)
+    return [linkNode.href, linkNode];
+
+  
+  let href, baseURI;
+  let node = event.target;
+  while (node) {
+    if (node.nodeType == Node.ELEMENT_NODE) {
+      href = node.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+      if (href)
+        baseURI = node.baseURI;
+    }
+    node = node.parentNode;
+  }
+
+  
+  
+  return [href ? makeURLAbsolute(baseURI, href) : null, null];
+}
+
+
+
+
+
+
+
+
+
+
+function contentAreaClick(event, isPanelClick)
+{
+  if (!event.isTrusted || event.getPreventDefault() || event.button == 2)
+    return true;
+
+  let [href, linkNode] = hrefAndLinkNodeForClickEvent(event);
+  if (!href) {
+    
+    if (event.button == 1 &&
+        gPrefService.getBoolPref("middlemouse.contentLoadURL") &&
+        !gPrefService.getBoolPref("general.autoScroll")) {
+      middleMousePaste(event);
+      event.preventDefault();
+    }
+    return true;
+  }
+
+  
+  
+  if (linkNode && event.button == 0 &&
+      !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
+    
+    
+    
+    let target = linkNode.target;
+    let mainTarget = !target || target == "_content" || target  == "_main";
+    if (isPanelClick && mainTarget) {
+      
+      if (linkNode.getAttribute("onclick") ||
+          href.substr(0, 11) === "javascript:" ||
+          href.substr(0, 5) === "data:")
+        return true;
+
+      try {
+        urlSecurityCheck(href, linkNode.ownerDocument.nodePrincipal);
+      }
+      catch(ex) {
+        
+        event.preventDefault();
+        return true;
+      }
+
+      let postData = {};
+      let url = getShortcutOrURI(href, postData);
+      if (!url)
+        return true;
+      loadURI(url, null, postData.value, false);
+      event.preventDefault();
+      return true;
+    }
+
+    if (linkNode.getAttribute("rel") == "sidebar") {
+      
+      
+      
+      PlacesUIUtils.showMinimalAddBookmarkUI(makeURI(href),
+                                             linkNode.getAttribute("title"),
+                                             null, null, true, true);
+      event.preventDefault();
+      return true;
+    }
+  }
+
+  handleLinkClick(event, href, linkNode);
+
+  
+  
+  
+  
+  try {
+    PlacesUIUtils.markPageAsFollowedLink(href);
+  } catch (ex) {  }
+
+  return true;
+}
+
+
+
+
+
 
 function handleLinkClick(event, href, linkNode) {
   if (event.button == 2) 
@@ -5134,6 +5164,7 @@ function handleLinkClick(event, href, linkNode) {
   if (where == "save") {
     saveURL(href, linkNode ? gatherTextUnder(linkNode) : "", null, true,
             true, doc.documentURIObject);
+    event.preventDefault();
     return true;
   }
 
@@ -5141,12 +5172,20 @@ function handleLinkClick(event, href, linkNode) {
   openLinkIn(href, where, { fromContent: true,
                             referrerURI: doc.documentURIObject,
                             charset: doc.characterSet });
-  event.stopPropagation();
+  event.preventDefault();
   return true;
 }
 
 function middleMousePaste(event) {
-  var url = getShortcutOrURI(readFromClipboard());
+  let clipboard = readFromClipboard();
+  if (!clipboard)
+    return;
+
+  
+  
+  clipboard.replace(/\s*\n\s*/g, "");
+
+  let url = getShortcutOrURI(clipboard);
   try {
     makeURI(url);
   } catch (ex) {
@@ -6573,10 +6612,15 @@ var FeedHandler = {
   onFeedButtonClick: function(event) {
     event.stopPropagation();
 
-    if (event.target.hasAttribute("feed") &&
-        event.eventPhase == Event.AT_TARGET &&
+    let feeds = gBrowser.selectedBrowser.feeds || [];
+    
+    
+    if (feeds.length != 1)
+      return;
+
+    if (event.eventPhase == Event.AT_TARGET &&
         (event.button == 0 || event.button == 1)) {
-        this.subscribeToFeed(null, event);
+      this.subscribeToFeed(feeds[0].href, event);
     }
   },
 
@@ -6605,12 +6649,8 @@ var FeedHandler = {
     while (menuPopup.firstChild)
       menuPopup.removeChild(menuPopup.firstChild);
 
-    if (feeds.length == 1) {
-      var feedButton = document.getElementById("feed-button");
-      if (feedButton)
-        feedButton.setAttribute("feed", feeds[0].href);
+    if (feeds.length <= 1)
       return false;
-    }
 
     
     for (var i = 0; i < feeds.length; ++i) {
@@ -6683,35 +6723,30 @@ var FeedHandler = {
 
 
   updateFeeds: function() {
-    var feedButton = document.getElementById("feed-button");
+    clearTimeout(this._updateFeedTimeout);
 
     var feeds = gBrowser.selectedBrowser.feeds;
-    if (!feeds || feeds.length == 0) {
-      if (feedButton) {
-        feedButton.disabled = true;
-        feedButton.removeAttribute("feed");
-      }
+    var haveFeeds = feeds && feeds.length > 0;
+
+    var feedButton = document.getElementById("feed-button");
+    if (feedButton)
+      feedButton.disabled = !haveFeeds;
+
+    if (!haveFeeds) {
       this._feedMenuitem.setAttribute("disabled", "true");
-      this._feedMenupopup.setAttribute("hidden", "true");
       this._feedMenuitem.removeAttribute("hidden");
+      this._feedMenupopup.setAttribute("hidden", "true");
+      return;
+    }
+
+    if (feeds.length > 1) {
+      this._feedMenuitem.setAttribute("hidden", "true");
+      this._feedMenupopup.removeAttribute("hidden");
     } else {
-      if (feedButton)
-        feedButton.disabled = false;
-
-      if (feeds.length > 1) {
-        this._feedMenuitem.setAttribute("hidden", "true");
-        this._feedMenupopup.removeAttribute("hidden");
-        if (feedButton)
-          feedButton.removeAttribute("feed");
-      } else {
-        if (feedButton)
-          feedButton.setAttribute("feed", feeds[0].href);
-
-        this._feedMenuitem.setAttribute("feed", feeds[0].href);
-        this._feedMenuitem.removeAttribute("disabled");
-        this._feedMenuitem.removeAttribute("hidden");
-        this._feedMenupopup.setAttribute("hidden", "true");
-      }
+      this._feedMenuitem.setAttribute("feed", feeds[0].href);
+      this._feedMenuitem.removeAttribute("disabled");
+      this._feedMenuitem.removeAttribute("hidden");
+      this._feedMenupopup.setAttribute("hidden", "true");
     }
   },
 
@@ -6728,10 +6763,13 @@ var FeedHandler = {
 
     browserForLink.feeds.push({ href: link.href, title: link.title });
 
+    
+    
     if (browserForLink == gBrowser.selectedBrowser) {
-      var feedButton = document.getElementById("feed-button");
-      if (feedButton)
-        feedButton.collapsed = false;
+      
+      
+      clearTimeout(this._updateFeedTimeout);
+      this._updateFeedTimeout = setTimeout(this.updateFeeds.bind(this), 100);
     }
   }
 };
@@ -7391,6 +7429,13 @@ function getNotificationBox(aWindow) {
   return null;
 };
 
+function getTabModalPromptBox(aWindow) {
+  var foundBrowser = gBrowser.getBrowserForDocument(aWindow.document);
+  if (foundBrowser)
+    return gBrowser.getTabModalPromptBox(foundBrowser);
+  return null;
+};
+
 
 function getBrowser() gBrowser;
 function getNavToolbox() gNavToolbox;
@@ -7845,17 +7890,11 @@ function switchToTabHavingURI(aURI, aOpenNew, aCallback) {
     for (let i = 0; i < browsers.length; i++) {
       let browser = browsers[i];
       if (browser.currentURI.equals(aURI)) {
-        gURLBar.handleRevert();
-        
-        let prevTab = gBrowser.selectedTab;
         
         aWindow.focus();
         aWindow.gBrowser.tabContainer.selectedIndex = i;
         if (aCallback)
           aCallback(browser);
-        
-        if (isTabEmpty(prevTab))
-          gBrowser.removeTab(prevTab);
         return true;
       }
     }
@@ -8015,3 +8054,33 @@ function duplicateTabIn(aTab, where, historyIndex) {
       break;
   }
 }
+
+
+
+
+
+
+
+let AddonsMgrListener = {
+  get addonBar() document.getElementById("addon-bar"),
+  get statusBar() document.getElementById("status-bar"),
+  getAddonBarItemCount: function() {
+    
+    return this.addonBar.childNodes.length - 1 +
+           this.statusBar.childNodes.length;
+  },
+  onInstalling: function(aAddon) {
+    this.lastAddonBarCount = this.getAddonBarItemCount();
+  },
+  onInstalled: function(aAddon) {
+    if (this.getAddonBarItemCount() > this.lastAddonBarCount)
+      setToolbarVisibility(this.addonBar, true);
+  },
+  onUninstalling: function(aAddon) {
+    this.lastAddonBarCount = this.getAddonBarItemCount();
+  },
+  onUninstalled: function(aAddon) {
+    if (this.lastAddonBarCount > 0 && this.getAddonBarItemCount() == 0)
+      setToolbarVisibility(this.addonBar, false);
+  }
+};
