@@ -44,18 +44,21 @@
 #include "imgContainer.h"
 #include "imgDiscardTracker.h"
 
+namespace mozilla {
+namespace imagelib {
+
 static PRBool sInitialized = PR_FALSE;
 static PRBool sTimerOn = PR_FALSE;
 static PRUint32 sMinDiscardTimeoutMs = 10000; 
 static nsITimer *sTimer = nsnull;
-static struct imgDiscardTrackerNode sHead, sSentinel, sTail;
+static struct DiscardTrackerNode sHead, sSentinel, sTail;
 
 
 
 
 
 nsresult
-imgDiscardTracker::Reset(imgDiscardTrackerNode *node)
+DiscardTracker::Reset(DiscardTrackerNode *node)
 {
   nsresult rv;
 #ifdef DEBUG
@@ -98,7 +101,7 @@ imgDiscardTracker::Reset(imgDiscardTrackerNode *node)
 
 
 void
-imgDiscardTracker::Remove(imgDiscardTrackerNode *node)
+DiscardTracker::Remove(DiscardTrackerNode *node)
 {
   NS_ABORT_IF_FALSE(node != nsnull, "Can't pass null node");
 
@@ -121,7 +124,7 @@ imgDiscardTracker::Remove(imgDiscardTrackerNode *node)
 
 
 nsresult
-imgDiscardTracker::Initialize()
+DiscardTracker::Initialize()
 {
   nsresult rv;
 
@@ -152,7 +155,7 @@ imgDiscardTracker::Initialize()
 
 
 void
-imgDiscardTracker::Shutdown()
+DiscardTracker::Shutdown()
 {
   if (sTimer) {
     sTimer->Cancel();
@@ -165,7 +168,7 @@ imgDiscardTracker::Shutdown()
 
 
 void
-imgDiscardTracker::ReloadTimeout()
+DiscardTracker::ReloadTimeout()
 {
   nsresult rv;
 
@@ -196,7 +199,7 @@ imgDiscardTracker::ReloadTimeout()
 
 
 nsresult
-imgDiscardTracker::TimerOn()
+DiscardTracker::TimerOn()
 {
   
   if (sTimerOn)
@@ -214,7 +217,7 @@ imgDiscardTracker::TimerOn()
 
 
 void
-imgDiscardTracker::TimerOff()
+DiscardTracker::TimerOff()
 {
   
   if (!sTimerOn)
@@ -231,9 +234,9 @@ imgDiscardTracker::TimerOff()
 
 
 void
-imgDiscardTracker::TimerCallback(nsITimer *aTimer, void *aClosure)
+DiscardTracker::TimerCallback(nsITimer *aTimer, void *aClosure)
 {
-  imgDiscardTrackerNode *node;
+  DiscardTrackerNode *node;
 
   
   for (node = sSentinel.prev; node != &sHead; node = sSentinel.prev) {
@@ -250,3 +253,6 @@ imgDiscardTracker::TimerCallback(nsITimer *aTimer, void *aClosure)
   if (sSentinel.prev == &sHead)
     TimerOff();
 }
+
+} 
+} 

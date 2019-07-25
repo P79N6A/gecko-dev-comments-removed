@@ -35,26 +35,29 @@
 
 
 
-#ifndef __imgDiscardTracker_h__
-#define __imgDiscardTracker_h__
+#ifndef mozilla_imagelib_DiscardTracker_h_
+#define mozilla_imagelib_DiscardTracker_h_
 
 #define DISCARD_TIMEOUT_PREF "image.mem.min_discard_timeout_ms"
 
 class imgContainer;
 class nsITimer;
 
+namespace mozilla {
+namespace imagelib {
 
 
 
 
 
-struct imgDiscardTrackerNode
+
+struct DiscardTrackerNode
 {
   
   imgContainer *curr;
 
   
-  imgDiscardTrackerNode *prev, *next;
+  DiscardTrackerNode *prev, *next;
 };
 
 
@@ -66,12 +69,11 @@ struct imgDiscardTrackerNode
 
 
 
-
-class imgDiscardTracker
+class DiscardTracker
 {
   public:
-    static nsresult Reset(struct imgDiscardTrackerNode *node);
-    static void Remove(struct imgDiscardTrackerNode *node);
+    static nsresult Reset(struct DiscardTrackerNode *node);
+    static void Remove(struct DiscardTrackerNode *node);
     static void Shutdown();
     static void ReloadTimeout();
   private:
@@ -80,5 +82,8 @@ class imgDiscardTracker
     static void TimerOff();
     static void TimerCallback(nsITimer *aTimer, void *aClosure);
 };
+
+} 
+} 
 
 #endif 

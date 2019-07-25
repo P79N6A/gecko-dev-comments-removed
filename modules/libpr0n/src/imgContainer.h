@@ -328,14 +328,14 @@ private:
 
   
   PRUint32                   mLockCount;
-  imgDiscardTrackerNode      mDiscardTrackerNode;
+  mozilla::imagelib::DiscardTrackerNode    mDiscardTrackerNode;
 
   
   nsTArray<char>             mSourceData;
   nsCString                  mSourceDataMimeType;
 
   friend class imgDecodeWorker;
-  friend class imgDiscardTracker;
+  friend class mozilla::imagelib::DiscardTracker;
 
   
   nsCOMPtr<imgIDecoder>          mDecoder;
