@@ -51,7 +51,7 @@ const TESTS = [
   },
   { 
     file: "test-bug-595934-workers.html",
-    category: "DOM Worker javascript",
+    category: "Web Worker",
     matchString: "fooBarWorker",
   },
   { 
