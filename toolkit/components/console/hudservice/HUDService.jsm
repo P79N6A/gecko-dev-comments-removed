@@ -1837,18 +1837,6 @@ HeadsUpDisplay.prototype = {
 
 
 
-  clearConsoleOutput: function HUD_clearConsoleOutput()
-  {
-    for each (var node in this.outputNode.childNodes) {
-      this.outputNode.removeChild(node);
-    }
-  },
-
-  
-
-
-
-
   makeHUDNodes: function HUD_makeHUDNodes()
   {
     let self = this;
