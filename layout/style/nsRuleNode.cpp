@@ -2681,70 +2681,73 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
                                  aFont->mLanguage);
 
   
-  nsFont systemFont;
+  PR_STATIC_ASSERT(
+    NS_STYLE_FONT_CAPTION        == LookAndFeel::eFont_Caption &&
+    NS_STYLE_FONT_ICON           == LookAndFeel::eFont_Icon &&
+    NS_STYLE_FONT_MENU           == LookAndFeel::eFont_Menu &&
+    NS_STYLE_FONT_MESSAGE_BOX    == LookAndFeel::eFont_MessageBox &&
+    NS_STYLE_FONT_SMALL_CAPTION  == LookAndFeel::eFont_SmallCaption &&
+    NS_STYLE_FONT_STATUS_BAR     == LookAndFeel::eFont_StatusBar &&
+    NS_STYLE_FONT_WINDOW         == LookAndFeel::eFont_Window &&
+    NS_STYLE_FONT_DOCUMENT       == LookAndFeel::eFont_Document &&
+    NS_STYLE_FONT_WORKSPACE      == LookAndFeel::eFont_Workspace &&
+    NS_STYLE_FONT_DESKTOP        == LookAndFeel::eFont_Desktop &&
+    NS_STYLE_FONT_INFO           == LookAndFeel::eFont_Info &&
+    NS_STYLE_FONT_DIALOG         == LookAndFeel::eFont_Dialog &&
+    NS_STYLE_FONT_BUTTON         == LookAndFeel::eFont_Button &&
+    NS_STYLE_FONT_PULL_DOWN_MENU == LookAndFeel::eFont_PullDownMenu &&
+    NS_STYLE_FONT_LIST           == LookAndFeel::eFont_List &&
+    NS_STYLE_FONT_FIELD          == LookAndFeel::eFont_Field);
+
+  
+  nsFont systemFont = *defaultVariableFont;
   const nsCSSValue* systemFontValue = aRuleData->ValueForSystemFont();
   if (eCSSUnit_Enumerated == systemFontValue->GetUnit()) {
-    nsSystemFontID sysID;
-    switch (systemFontValue->GetIntValue()) {
-      case NS_STYLE_FONT_CAPTION:       sysID = eSystemFont_Caption;      break;    
-      case NS_STYLE_FONT_ICON:          sysID = eSystemFont_Icon;         break;
-      case NS_STYLE_FONT_MENU:          sysID = eSystemFont_Menu;         break;
-      case NS_STYLE_FONT_MESSAGE_BOX:   sysID = eSystemFont_MessageBox;   break;
-      case NS_STYLE_FONT_SMALL_CAPTION: sysID = eSystemFont_SmallCaption; break;
-      case NS_STYLE_FONT_STATUS_BAR:    sysID = eSystemFont_StatusBar;    break;
-      case NS_STYLE_FONT_WINDOW:        sysID = eSystemFont_Window;       break;    
-      case NS_STYLE_FONT_DOCUMENT:      sysID = eSystemFont_Document;     break;
-      case NS_STYLE_FONT_WORKSPACE:     sysID = eSystemFont_Workspace;    break;
-      case NS_STYLE_FONT_DESKTOP:       sysID = eSystemFont_Desktop;      break;
-      case NS_STYLE_FONT_INFO:          sysID = eSystemFont_Info;         break;
-      case NS_STYLE_FONT_DIALOG:        sysID = eSystemFont_Dialog;       break;
-      case NS_STYLE_FONT_BUTTON:        sysID = eSystemFont_Button;       break;
-      case NS_STYLE_FONT_PULL_DOWN_MENU:sysID = eSystemFont_PullDownMenu; break;
-      case NS_STYLE_FONT_LIST:          sysID = eSystemFont_List;         break;
-      case NS_STYLE_FONT_FIELD:         sysID = eSystemFont_Field;        break;
-    }
-
-    
-    
-    
-    systemFont.size = defaultVariableFont->size;
-
-    if (NS_FAILED(aPresContext->DeviceContext()->GetSystemFont(sysID,
-                                                               &systemFont))) {
-        systemFont.name = defaultVariableFont->name;
-    }
-
-    
-    
+    gfxFontStyle fontStyle;
+    LookAndFeel::FontID fontID =
+      (LookAndFeel::FontID)systemFontValue->GetIntValue();
+    if (LookAndFeel::GetFont(fontID, systemFont.name, fontStyle)) {
+      systemFont.style = fontStyle.style;
+      systemFont.systemFont = fontStyle.systemFont;
+      systemFont.variant = NS_FONT_VARIANT_NORMAL;
+      systemFont.weight = fontStyle.weight;
+      systemFont.stretch = fontStyle.stretch;
+      systemFont.decorations = NS_FONT_DECORATION_NONE;
+      systemFont.size = NSFloatPixelsToAppUnits(fontStyle.size,
+                                                aPresContext->DeviceContext()->
+                                                UnscaledAppUnitsPerDevPixel());
+      
+      systemFont.sizeAdjust = fontStyle.sizeAdjust;
 
 #ifdef XP_WIN
-    
-    
-    
-    
-    
-    
-    switch (sysID) {
       
       
       
       
+
       
       
-      case eSystemFont_Field:
-      case eSystemFont_Button:
-      case eSystemFont_List:
+      
+      
+      switch (fontID) {
+        
+        
+        
+        
+        
+        
+      case LookAndFeel::eFont_Field:
+      case LookAndFeel::eFont_Button:
+      case LookAndFeel::eFont_List:
         
         systemFont.size =
-          NS_MAX(defaultVariableFont->size - nsPresContext::CSSPointsToAppUnits(2), 0);
+          NS_MAX(defaultVariableFont->size -
+                 nsPresContext::CSSPointsToAppUnits(2), 0);
         break;
-    }
+      }
 #endif
-  } else {
-    
-    systemFont = *defaultVariableFont;
+    }
   }
-
 
   
   const nsCSSValue* familyValue = aRuleData->ValueForFontFamily();

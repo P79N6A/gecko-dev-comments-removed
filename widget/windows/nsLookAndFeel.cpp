@@ -46,9 +46,11 @@
 #include "nsStyleConsts.h"
 #include "nsUXThemeData.h"
 #include "nsUXThemeConstants.h"
+#include "gfxFont.h"
 #include "WinUtils.h"
 
 using namespace mozilla::widget;
+using mozilla::LookAndFeel;
 
 typedef UINT (CALLBACK *SHAppBarMessagePtr)(DWORD, PAPPBARDATA);
 SHAppBarMessagePtr gSHAppBarMessage = NULL;
@@ -519,6 +521,143 @@ nsLookAndFeel::GetFloatImpl(FloatID aID, float &aResult)
         res = NS_ERROR_FAILURE;
     }
   return res;
+}
+
+static bool
+GetSysFontInfo(HDC aHDC, LookAndFeel::FontID anID,
+               nsString &aFontName,
+               gfxFontStyle &aFontStyle)
+{
+  LOGFONTW* ptrLogFont = NULL;
+  LOGFONTW logFont;
+  NONCLIENTMETRICSW ncm;
+  HGDIOBJ hGDI;
+  PRUnichar name[LF_FACESIZE];
+
+  
+  
+  switch (anID) {
+  case LookAndFeel::eFont_Icon:
+    if (!::SystemParametersInfoW(SPI_GETICONTITLELOGFONT,
+                                 sizeof(logFont), (PVOID)&logFont, 0))
+      return false;
+
+    ptrLogFont = &logFont;
+    break;
+
+  case LookAndFeel::eFont_Menu:
+  case LookAndFeel::eFont_MessageBox:
+  case LookAndFeel::eFont_SmallCaption:
+  case LookAndFeel::eFont_StatusBar:
+  case LookAndFeel::eFont_Tooltips:
+    ncm.cbSize = sizeof(NONCLIENTMETRICSW);
+    if (!::SystemParametersInfoW(SPI_GETNONCLIENTMETRICS,
+                                 sizeof(ncm), (PVOID)&ncm, 0))
+      return false;
+
+    switch (anID) {
+    case LookAndFeel::eFont_Menu:
+      ptrLogFont = &ncm.lfMenuFont;
+      break;
+    case LookAndFeel::eFont_MessageBox:
+      ptrLogFont = &ncm.lfMessageFont;
+      break;
+    case LookAndFeel::eFont_SmallCaption:
+      ptrLogFont = &ncm.lfSmCaptionFont;
+      break;
+    case LookAndFeel::eFont_StatusBar:
+    case LookAndFeel::eFont_Tooltips:
+      ptrLogFont = &ncm.lfStatusFont;
+      break;
+    }
+    break;
+
+  case LookAndFeel::eFont_Widget:
+  case LookAndFeel::eFont_Window:      
+  case LookAndFeel::eFont_Document:
+  case LookAndFeel::eFont_Workspace:
+  case LookAndFeel::eFont_Desktop:
+  case LookAndFeel::eFont_Info:
+  case LookAndFeel::eFont_Dialog:
+  case LookAndFeel::eFont_Button:
+  case LookAndFeel::eFont_PullDownMenu:
+  case LookAndFeel::eFont_List:
+  case LookAndFeel::eFont_Field:
+  case LookAndFeel::eFont_Caption:
+    hGDI = ::GetStockObject(DEFAULT_GUI_FONT);
+    if (!hGDI)
+      return false;
+
+    if (::GetObjectW(hGDI, sizeof(logFont), &logFont) <= 0)
+      return false;
+
+    ptrLogFont = &logFont;
+    break;
+  }
+
+  
+  float mPixelScale = 1.0f;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  float pixelHeight = -ptrLogFont->lfHeight;
+  if (pixelHeight < 0) {
+    HFONT hFont = ::CreateFontIndirectW(ptrLogFont);
+    if (!hFont)
+      return false;
+    HGDIOBJ hObject = ::SelectObject(aHDC, hFont);
+    TEXTMETRIC tm;
+    ::GetTextMetrics(aHDC, &tm);
+    ::SelectObject(aHDC, hObject);
+    ::DeleteObject(hFont);
+    pixelHeight = tm.tmAscent;
+  }
+  pixelHeight *= mPixelScale;
+
+  
+  
+  
+  
+  if (pixelHeight < 12 && ::GetACP() == 936)
+    pixelHeight = 12;
+
+  aFontStyle.size = pixelHeight;
+
+  
+  aFontStyle.style =
+    (ptrLogFont->lfItalic) ? FONT_STYLE_ITALIC : FONT_STYLE_NORMAL;
+
+  
+  aFontStyle.weight =
+    (ptrLogFont->lfWeight == FW_BOLD ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
+
+  
+  aFontStyle.stretch = NS_FONT_STRETCH_NORMAL;
+
+  aFontStyle.systemFont = true;
+
+  name[0] = 0;
+  memcpy(name, ptrLogFont->lfFaceName, LF_FACESIZE*sizeof(PRUnichar));
+  aFontName = name;
+
+  return true;
+}
+
+bool
+nsLookAndFeel::GetFontImpl(FontID anID, nsString &aFontName,
+                           gfxFontStyle &aFontStyle)
+{
+  HDC tdc = GetDC(NULL);
+  bool status = GetSysFontInfo(tdc, anID, aFontName, aFontStyle);
+  ReleaseDC(NULL, tdc);
+  return status;
 }
 
 

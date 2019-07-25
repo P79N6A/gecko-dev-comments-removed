@@ -39,11 +39,20 @@
 
 
 #define INCL_WIN
+#define INCL_WINWINDOWMGR
+#define INCL_WINSHELLDATA
+#define INCL_DOSNLS
+#define INCL_DOSERRORS
 #include <os2.h>
+#include <stdlib.h>
+
 #include "nsLookAndFeel.h"
 #include "nsFont.h"
 #include "nsSize.h"
 #include "nsStyleConsts.h"
+
+static bool bIsDBCS;
+static bool bIsDBCSSet = false;
 
 nsLookAndFeel::nsLookAndFeel() : nsXPLookAndFeel()
 {
@@ -70,7 +79,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         idx = SYSCLR_BUTTONMIDDLE;
         break;
     case eColorID_WidgetForeground:
-        idx = SYSCLR_WINDOWTEXT; 
+        idx = SYSCLR_WINDOWTEXT;
         break;
     case eColorID_WidgetSelectBackground:
         idx = SYSCLR_HILITEBACKGROUND;
@@ -272,7 +281,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
 
   return res;
 }
-  
+
 nsresult
 nsLookAndFeel::GetIntImpl(IntID aID, PRInt32 &aResult)
 {
@@ -383,4 +392,190 @@ nsLookAndFeel::GetFloatImpl(FloatID aID, float &aResult)
         res = NS_ERROR_FAILURE;
   }
   return res;
+}
+
+
+static bool
+IsDBCS()
+{
+  if (!bIsDBCSSet) {
+    APIRET rc;
+    COUNTRYCODE ctrycodeInfo = {0};
+    CHAR        achDBCSInfo[12] = {0};  
+    ctrycodeInfo.country  = 0;          
+    ctrycodeInfo.codepage = 0;          
+
+    rc = DosQueryDBCSEnv(sizeof(achDBCSInfo), &ctrycodeInfo, achDBCSInfo);
+    if (rc == NO_ERROR) {
+      
+      
+      bIsDBCS = (achDBCSInfo[0] != 0 || achDBCSInfo[1] != 0 ||
+                 achDBCSInfo[2] != 0 || achDBCSInfo[3] != 0);
+    } else {
+      bIsDBCS = false;
+    }
+    bIsDBCSSet = true;
+  }
+  return bIsDBCS;
+}
+
+
+static void
+QueryFontFromINI(char* fontType, char* fontName, ULONG ulLength)
+{
+  ULONG ulMaxNameL = ulLength;
+
+  
+  
+  if (PrfQueryProfileData(HINI_USER,
+                          (PCSZ)"PM_SystemFonts",
+                          (PCSZ)fontType,
+                          fontName, &ulMaxNameL)) {
+    
+    fontName[ulMaxNameL] = '\0';
+  } else {
+    
+    
+    if (IsDBCS()) {
+      strcpy(fontName, "9.WarpSans Combined");
+    } else {
+      strcpy(fontName, "9.WarpSans");
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+nsLookAndFeel::GetFont(FontID aID, nsString& aFontName,
+                       gfxFontStyle& aFontStyle)
+{
+  char szFontNameSize[MAXNAMEL];
+
+  switch (aID)
+    {
+    case eFont_Icon:
+      QueryFontFromINI("IconText", szFontNameSize, MAXNAMEL);
+      break;
+
+    case eFont_Menu:
+      QueryFontFromINI("Menus", szFontNameSize, MAXNAMEL);
+      break;
+
+    case eFont_Caption:
+    case eFont_MessageBox:
+    case eFont_SmallCaption:
+    case eFont_StatusBar:
+    case eFont_Tooltips:
+    case eFont_Widget:
+
+    case eFont_Window:      
+    case eFont_Document:
+    case eFont_Workspace:
+    case eFont_Desktop:
+    case eFont_Info:
+    case eFont_Dialog:
+    case eFont_Button:
+    case eFont_PullDownMenu:
+    case eFont_List:
+    case eFont_Field:
+      QueryFontFromINI("WindowText", szFontNameSize, MAXNAMEL);
+      break;
+
+    default:
+      NS_WARNING("None of the listed font types, using WarpSans");
+      if (!IsDBCS()) {
+        strcpy(szFontNameSize, "9.WarpSans");
+      } else {
+        strcpy(szFontNameSize, "9.WarpSans Combined");
+      }
+    }
+
+  char *szFacename = strchr(szFontNameSize, '.');
+  if (!szFacename || (*(szFacename++) == '\0'))
+    return false;
+
+  
+  aFontStyle.size = atof(szFontNameSize);
+
+  
+  
+  HPS ps = WinGetScreenPS(HWND_DESKTOP);
+  HDC dc = GpiQueryDevice(ps);
+  
+  LONG vertScreenRes = 120; 
+  DevQueryCaps(dc, CAPS_VERTICAL_FONT_RES, 1, &vertScreenRes);
+  WinReleasePS(ps);
+
+  
+  aFontStyle.size *= vertScreenRes / 72.0;
+
+  NS_ConvertUTF8toUTF16 fontFace(szFacename);
+  int pos = 0;
+
+  
+  aFontStyle.systemFont = true;
+
+  
+  
+  NS_NAMED_LITERAL_CSTRING(spcBold, " Bold");
+  if ((pos = fontFace.Find(spcBold.get(), false, 0, -1)) > -1) {
+    aFontStyle.weight = FONT_WEIGHT_BOLD;
+    
+    fontFace.Cut(pos, spcBold.Length());
+  } else {
+    aFontStyle.weight = FONT_WEIGHT_NORMAL;
+  }
+
+  
+  aFontStyle.stretch = NS_FONT_STRETCH_NORMAL;
+
+  
+  NS_NAMED_LITERAL_CSTRING(spcItalic, " Italic");
+  NS_NAMED_LITERAL_CSTRING(spcOblique, " Oblique");
+  NS_NAMED_LITERAL_CSTRING(spcObli, " Obli");
+  if ((pos = fontFace.Find(spcItalic.get(), false, 0, -1)) > -1) {
+    aFontStyle.style = FONT_STYLE_ITALIC;
+    fontFace.Cut(pos, spcItalic.Length());
+  } else if ((pos = fontFace.Find(spcOblique.get(), false, 0, -1)) > -1) {
+    
+    
+    aFontStyle.style = FONT_STYLE_OBLIQUE;
+    fontFace.Cut(pos, spcOblique.Length());
+  } else if ((pos = fontFace.Find(spcObli.get(), false, 0, -1)) > -1) {
+    
+    
+    aFontStyle.style = FONT_STYLE_OBLIQUE;
+    
+    
+    
+    fontFace.Cut(pos, fontFace.Length());
+  } else {
+    aFontStyle.style = FONT_STYLE_NORMAL;
+  }
+
+  
+  
+  
+  if ((pos = fontFace.Find(".", false, 0, -1)) > -1) {
+    fontFace.Cut(pos, fontFace.Length());
+  }
+
+  
+  NS_NAMED_LITERAL_STRING(quote, "\"");
+  aFontName = quote + fontFace + quote;
+
+  return true;
 }

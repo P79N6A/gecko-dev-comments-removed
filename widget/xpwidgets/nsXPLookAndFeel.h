@@ -88,6 +88,11 @@ public:
   virtual nsresult GetIntImpl(IntID aID, PRInt32 &aResult);
   virtual nsresult GetFloatImpl(FloatID aID, float &aResult);
 
+  
+  
+  virtual bool GetFontImpl(FontID aID, nsString& aName,
+                           gfxFontStyle& aStyle) = 0;
+
   virtual void RefreshImpl();
 
   virtual PRUnichar GetPasswordCharacterImpl()

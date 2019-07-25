@@ -37,6 +37,7 @@
 
 
 #include "nsLookAndFeel.h"
+#include "gfxFont.h"
 
 nsLookAndFeel::nsLookAndFeel()
     : nsXPLookAndFeel()
@@ -317,3 +318,15 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
 }
 
 
+bool
+nsLookAndFeel::GetFontImpl(FontID aID, nsString& aFontName,
+                           gfxFontStyle& aFontStyle)
+{
+    aFontName.AssignLiteral("\"Droid Sans\"");
+    aFontStyle.style = NS_FONT_STYLE_NORMAL;
+    aFontStyle.weight = NS_FONT_WEIGHT_NORMAL;
+    aFontStyle.stretch = NS_FONT_STRETCH_NORMAL;
+    aFontStyle.size = 9.0 * 96.0f / 72.0f;
+    aFontStyle.systemFont = true;
+    return true;
+}

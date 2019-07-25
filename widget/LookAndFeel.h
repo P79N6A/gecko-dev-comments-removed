@@ -45,8 +45,7 @@
 #include "nsDebug.h"
 #include "nsColor.h"
 
-
-struct nsSize;
+struct gfxFontStyle;
 
 namespace mozilla {
 
@@ -435,6 +434,31 @@ public:
   };
 
   
+  
+  enum FontID {
+    eFont_Caption = 1,     
+    eFont_Icon,
+    eFont_Menu,
+    eFont_MessageBox,
+    eFont_SmallCaption,
+    eFont_StatusBar,
+
+    eFont_Window,          
+    eFont_Document,
+    eFont_Workspace,
+    eFont_Desktop,
+    eFont_Info,
+    eFont_Dialog,
+    eFont_Button,
+    eFont_PullDownMenu,
+    eFont_List,
+    eFont_Field,
+
+    eFont_Tooltips,        
+    eFont_Widget
+  };
+
+  
 
 
 
@@ -488,6 +512,17 @@ public:
     }
     return result;
   }
+
+  
+
+
+
+
+
+
+
+
+  static bool GetFont(FontID aID, nsString& aName, gfxFontStyle& aStyle);
 
   
 
