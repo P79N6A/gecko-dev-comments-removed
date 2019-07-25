@@ -750,34 +750,31 @@ var Browser = {
 
 
 
-
   computeSidebarVisibility: function computeSidebarVisibility(dx, dy) {
-    function visibility(bar, visrect) {
-      let w = bar.width;
-      bar.restrictTo(visrect);
-      return bar.width / w;
+    function visibility(aSidebarRect, aVisibleRect) {
+      let width = aSidebarRect.width;
+      aSidebarRect.restrictTo(aVisibleRect);
+      return aSidebarRect.width / width;
     }
 
     if (!dx) dx = 0;
     if (!dy) dy = 0;
 
-    let leftbarCBR = document.getElementById('tabs-container').getBoundingClientRect();
-    let ritebarCBR = document.getElementById('browser-controls').getBoundingClientRect();
+    let [leftSidebar, rightSidebar] = [Elements.tabs.getBoundingClientRect(), Elements.controls.getBoundingClientRect()];
+    if (leftSidebar.left > rightSidebar.left)
+      [rightSidebar, leftSidebar] = [leftSidebar, rightSidebar]; 
 
-    if (leftbarCBR.left > ritebarCBR.left)
-      [ritebarCBR, leftbarCBR] = [leftbarCBR, ritebarCBR]; 
+    let visibleRect = new Rect(0, 0, window.innerWidth, 1);
+    let leftRect = new Rect(Math.round(leftSidebar.left) - Math.round(dx), 0, Math.round(leftSidebar.width), 1);
+    let rightRect = new Rect(Math.round(rightSidebar.left) - Math.round(dx), 0, Math.round(rightSidebar.width), 1);
 
-    let leftbar = new Rect(Math.round(leftbarCBR.left) - Math.round(dx), 0, Math.round(leftbarCBR.width), 1);
-    let ritebar = new Rect(Math.round(ritebarCBR.left) - Math.round(dx), 0, Math.round(ritebarCBR.width), 1);
-    let leftw = leftbar.width;
-    let ritew = ritebar.width;
+    let leftTotalWidth = leftRect.width;
+    let leftVisibility = visibility(leftRect, visibleRect);
 
-    let visrect = new Rect(0, 0, window.innerWidth, 1);
+    let rightTotalWidth = rightRect.width;
+    let rightVisibility = visibility(rightRect, visibleRect);
 
-    let leftvis = visibility(leftbar, visrect);
-    let ritevis = visibility(ritebar, visrect);
-
-    return [leftvis, ritevis, leftw, ritew];
+    return [leftVisibility, rightVisibility, leftTotalWidth, rightTotalWidth];
   },
 
   
@@ -1900,16 +1897,23 @@ var AlertsHelper = {
   _listener: null,
   _cookie: "",
   _clickable: false,
-  _container: null,
   get container() {
-    if (!this._container) {
-      this._container = document.getElementById("alerts-container");
-      let self = this;
-      this._container.addEventListener("transitionend", function() {
-        self.alertTransitionOver();
-      }, true);
+    delete this.container;
+    let container = document.getElementById("alerts-container");
+
+    
+    let [leftSidebar, rightSidebar] = [Elements.tabs.getBoundingClientRect(), Elements.controls.getBoundingClientRect()];
+    if (leftSidebar.left > rightSidebar.left) {
+      container.removeAttribute("right");
+      container.setAttribute("left", "0");
     }
-    return this._container;
+
+    let self = this;
+    container.addEventListener("transitionend", function() {
+      self.alertTransitionOver();
+    }, true);
+
+    return this.container = container;
   },
 
   showAlertNotification: function ah_show(aImageURL, aTitle, aText, aTextClickable, aCookie, aListener) {
