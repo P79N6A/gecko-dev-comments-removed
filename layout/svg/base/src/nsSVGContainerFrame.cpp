@@ -263,7 +263,7 @@ nsSVGDisplayContainerFrame::GetBBoxContribution(
     if (svgKid) {
       gfxMatrix transform = aToBBoxUserspace;
       nsIContent *content = kid->GetContent();
-      if (content->IsSVG() && !content->IsNodeOfType(nsINode::eTEXT)) {
+      if (content->IsSVG()) {
         transform = static_cast<nsSVGElement*>(content)->
                       PrependLocalTransformsTo(aToBBoxUserspace);
       }
@@ -271,7 +271,7 @@ nsSVGDisplayContainerFrame::GetBBoxContribution(
       
       
       gfxRect childBBox = svgKid->GetBBoxContribution(transform, aFlags);
-      if (firstChild) {
+      if (firstChild && (childBBox.Width() > 0 || childBBox.Height() > 0)) {
         bboxUnion = childBBox;
         firstChild = false;
         continue;
