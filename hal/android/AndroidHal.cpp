@@ -36,6 +36,7 @@
 
 
 #include "Hal.h"
+#include "WindowIdentifier.h"
 #include "AndroidBridge.h"
 
 using mozilla::hal::WindowIdentifier;
