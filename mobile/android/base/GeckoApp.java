@@ -551,7 +551,8 @@ abstract public class GeckoApp
 
         @Override
         public boolean dispatchPopulateAccessibilityEvent (AccessibilityEvent event) {
-            onPopulateAccessibilityEvent(event);
+            if (Build.VERSION.SDK_INT >= 14) 
+                onPopulateAccessibilityEvent(event);
             return true;
         }
     }
