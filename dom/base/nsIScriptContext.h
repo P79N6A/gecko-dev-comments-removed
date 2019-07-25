@@ -76,8 +76,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0xdfaea249, 0xaaad, 0x48bd, \
-  { 0xb8, 0x04, 0x92, 0xad, 0x30, 0x88, 0xd0, 0xc6 } }
+{ 0xf1c8c13e, 0xc23b, 0x434e, \
+  { 0xa4, 0x77, 0xe0, 0x2f, 0xc3, 0x73, 0xf8, 0x71 } }
 
 
 
@@ -91,9 +91,6 @@ class nsIScriptContext : public nsIScriptContextPrincipal
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTCONTEXT_IID)
-
-  
-  virtual PRUint32 GetScriptTypeID() = 0;
 
   virtual void SetGlobalObject(nsIScriptGlobalObject* aGlobalObject) = 0;
 

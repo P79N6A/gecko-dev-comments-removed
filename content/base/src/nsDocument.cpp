@@ -3104,22 +3104,6 @@ nsDocument::SetHeaderData(nsIAtom* aHeaderField, const nsAString& aData)
     CopyUTF16toUTF8(aData, mContentLanguage);
   }
 
-  
-  if (aHeaderField == nsGkAtoms::headerContentScriptType) {
-    Element *root = GetRootElement();
-    if (root) {
-      
-      nsresult rv;
-      nsCOMPtr<nsIScriptRuntime> runtime;
-      rv = NS_GetScriptRuntime(aData, getter_AddRefs(runtime));
-      if (NS_FAILED(rv) || runtime == nsnull) {
-        NS_WARNING("The script-type is unknown");
-      } else {
-        root->SetScriptTypeID(runtime->GetScriptTypeID());
-      }
-    }
-  }
-
   if (aHeaderField == nsGkAtoms::headerDefaultStyle) {
     
     

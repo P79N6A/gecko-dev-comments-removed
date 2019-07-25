@@ -2500,9 +2500,6 @@ nsGenericElement::nsGenericElement(already_AddRefed<nsINodeInfo> aNodeInfo)
                                        kNameSpaceID_None)),
                     "Bad NodeType in aNodeInfo");
 
-  
-  
-  SetFlags((nsIProgrammingLanguage::JAVASCRIPT << NODE_SCRIPT_TYPE_OFFSET));
   SetIsElement();
 }
 
@@ -3722,30 +3719,6 @@ bool
 nsGenericElement::IsNodeOfType(PRUint32 aFlags) const
 {
   return !(aFlags & ~eCONTENT);
-}
-
-
-
-PRUint32
-nsGenericElement::GetScriptTypeID() const
-{
-    PtrBits flags = GetFlags();
-
-    return (flags >> NODE_SCRIPT_TYPE_OFFSET) & NODE_SCRIPT_TYPE_MASK;
-}
-
-NS_IMETHODIMP
-nsGenericElement::SetScriptTypeID(PRUint32 aLang)
-{
-    if ((aLang & NODE_SCRIPT_TYPE_MASK) != aLang) {
-        NS_ERROR("script ID too large!");
-        return NS_ERROR_FAILURE;
-    }
-    
-
-    UnsetFlags(NODE_SCRIPT_TYPE_MASK << NODE_SCRIPT_TYPE_OFFSET);
-    SetFlags(aLang << NODE_SCRIPT_TYPE_OFFSET);
-    return NS_OK;
 }
 
 nsresult
@@ -5162,9 +5135,8 @@ nsGenericElement::AddScriptEventListener(nsIAtom* aEventName,
   }
 
   defer = defer && aDefer; 
-  PRUint32 lang = GetScriptTypeID();
-  manager->AddScriptEventListener(aEventName, aValue, lang, defer,
-                                  !nsContentUtils::IsChromeDoc(ownerDoc));
+  manager->AddScriptEventListener(aEventName, aValue, nsIProgrammingLanguage::JAVASCRIPT,
+                                  defer, !nsContentUtils::IsChromeDoc(ownerDoc));
   return NS_OK;
 }
 
