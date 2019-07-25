@@ -1527,10 +1527,3 @@ WebGLContext::IsContextLost(WebGLboolean *retval)
     *retval = mContextStatus != ContextStable;
     return NS_OK;
 }
-
-
-bool
-WebGLContext::IsContextStable() const
-{
-    return mContextStatus == ContextStable;
-}
