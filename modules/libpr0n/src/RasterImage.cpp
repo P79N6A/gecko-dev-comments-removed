@@ -159,7 +159,6 @@ RasterImage::RasterImage() :
   mDecoder(nsnull),
   mWorker(nsnull),
   mBytesDecoded(0),
-  mDecoderFlags(imgIDecoder::DECODER_FLAG_NONE),
   mHasSize(PR_FALSE),
   mDecodeOnDraw(PR_FALSE),
   mMultipart(PR_FALSE),
@@ -265,12 +264,8 @@ RasterImage::Init(imgIDecoderObserver *aObserver,
   
   
   
-  PRUint32 dFlags = imgIDecoder::DECODER_FLAG_NONE;
-  if (mDecodeOnDraw)
-    dFlags |= imgIDecoder::DECODER_FLAG_HEADERONLY;
-
   
-  nsresult rv = InitDecoder(dFlags);
+  nsresult rv = InitDecoder( mDecodeOnDraw);
   CONTAINER_ENSURE_SUCCESS(rv);
 
   
@@ -1396,7 +1391,7 @@ RasterImage::NewSourceData()
 
   
   
-  rv = InitDecoder(imgIDecoder::DECODER_FLAG_NONE);
+  rv = InitDecoder( false);
   CONTAINER_ENSURE_SUCCESS(rv);
 
   return NS_OK;
@@ -2103,7 +2098,7 @@ RasterImage::StoringSourceData() {
 
 
 nsresult
-RasterImage::InitDecoder(PRUint32 dFlags)
+RasterImage::InitDecoder(bool aDoSizeDecode)
 {
   
   NS_ABORT_IF_FALSE(!mDecoder, "Calling InitDecoder() while already decoding!");
@@ -2143,11 +2138,9 @@ RasterImage::InitDecoder(PRUint32 dFlags)
   }
 
   
-  mDecoderFlags = dFlags;
-
-  
   nsCOMPtr<imgIDecoderObserver> observer(do_QueryReferent(mObserver));
-  nsresult result = mDecoder->Init(this, observer, dFlags);
+  mDecoder->SetSizeDecode(aDoSizeDecode);
+  nsresult result = mDecoder->Init(this, observer);
   CONTAINER_ENSURE_SUCCESS(result);
 
   
@@ -2176,6 +2169,9 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   NS_ABORT_IF_FALSE(mDecoder, "Calling ShutdownDecoder() with no active decoder!");
 
   
+  bool wasSizeDecode = mDecoder->IsSizeDecode();
+
+  
   mInDecoder = PR_TRUE;
   PRUint32 closeFlags = (aIntent == eShutdownIntent_Error)
                           ? (PRUint32) imgIDecoder::CLOSE_FLAG_DONTNOTIFY
@@ -2197,17 +2193,14 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   
   
   PRBool failed = PR_FALSE;
-  if ((mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && !mHasSize)
+  if (wasSizeDecode && !mHasSize)
     failed = PR_TRUE;
-  if (!(mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && !mDecoded)
+  if (!wasSizeDecode && !mDecoded)
     failed = PR_TRUE;
   if ((aIntent == eShutdownIntent_Done) && failed) {
     DoError();
     return NS_ERROR_FAILURE;
   }
-
-  
-  mDecoderFlags = imgIDecoder::DECODER_FLAG_NONE;
 
   
   mBytesDecoded = 0;
@@ -2295,7 +2288,7 @@ RasterImage::RequestDecode()
     return NS_OK;
 
   
-  if (mDecoder && !(mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY))
+  if (mDecoder && !mDecoder->IsSizeDecode())
     return NS_OK;
 
   
@@ -2313,7 +2306,7 @@ RasterImage::RequestDecode()
 
 
   
-  if (mDecoder && (mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)) {
+  if (mDecoder && mDecoder->IsSizeDecode()) {
     rv = ShutdownDecoder(eShutdownIntent_Interrupted);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
@@ -2321,7 +2314,7 @@ RasterImage::RequestDecode()
   
   if (!mDecoder) {
     NS_ABORT_IF_FALSE(mFrames.IsEmpty(), "Trying to decode to non-empty frame-array");
-    rv = InitDecoder(imgIDecoder::DECODER_FLAG_NONE);
+    rv = InitDecoder( false);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
@@ -2360,7 +2353,7 @@ RasterImage::SyncDecode()
   NS_ABORT_IF_FALSE(!mInDecoder, "Yikes, forcing sync in reentrant call!");
 
   
-  if (mDecoder && (mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)) {
+  if (mDecoder && mDecoder->IsSizeDecode()) {
     rv = ShutdownDecoder(eShutdownIntent_Interrupted);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
@@ -2368,7 +2361,7 @@ RasterImage::SyncDecode()
   
   if (!mDecoder) {
     NS_ABORT_IF_FALSE(mFrames.IsEmpty(), "Trying to decode to non-empty frame-array");
-    rv = InitDecoder(imgIDecoder::DECODER_FLAG_NONE);
+    rv = InitDecoder( false);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
@@ -2518,7 +2511,7 @@ RasterImage::IsDecodeFinished()
                     "just shut down on SourceDataComplete!");
 
   
-  if (mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) {
+  if (mDecoder->IsSizeDecode()) {
     if (mHasSize)
       decodeFinished = PR_TRUE;
   }
@@ -2609,8 +2602,7 @@ imgDecodeWorker::Run()
   
   
   
-  PRUint32 maxBytes =
-    (image->mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
+  PRUint32 maxBytes = image->mDecoder->IsSizeDecode()
     ? image->mSourceData.Length() : DECODE_BYTES_AT_A_TIME;
 
   

@@ -71,9 +71,7 @@ public:
 
 
 
-
-  nsresult Init(RasterImage* aImage, imgIDecoderObserver* aObserver,
-                PRUint32 aFlags);
+  nsresult Init(RasterImage* aImage, imgIDecoderObserver* aObserver);
 
   
 
@@ -109,6 +107,20 @@ public:
   
   
 
+  
+
+
+
+  
+  
+  
+  bool IsSizeDecode() { return mSizeDecode; };
+  void SetSizeDecode(bool aSizeDecode)
+  {
+    NS_ABORT_IF_FALSE(!mInitialized, "Can't set size decode after Init()!");
+    mSizeDecode = aSizeDecode;
+  }
+
 protected:
 
   
@@ -127,9 +139,9 @@ protected:
 
   nsRefPtr<RasterImage> mImage;
   nsCOMPtr<imgIDecoderObserver> mObserver;
-  PRUint32 mFlags;
 
   bool mInitialized;
+  bool mSizeDecode;
 };
 
 } 

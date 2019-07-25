@@ -462,7 +462,6 @@ private:
   nsRefPtr<Decoder>              mDecoder;
   nsRefPtr<imgDecodeWorker>      mWorker;
   PRUint32                       mBytesDecoded;
-  PRUint32                       mDecoderFlags;
 
   
   PRPackedBool               mHasSize:1;       
@@ -484,7 +483,7 @@ private:
   
   nsresult WantDecodedFrames();
   nsresult SyncDecode();
-  nsresult InitDecoder(PRUint32 dFlags);
+  nsresult InitDecoder(bool aDoSizeDecode);
   nsresult WriteToDecoder(const char *aBuffer, PRUint32 aCount);
   nsresult DecodeSomeData(PRUint32 aMaxBytes);
   PRBool   IsDecodeFinished();

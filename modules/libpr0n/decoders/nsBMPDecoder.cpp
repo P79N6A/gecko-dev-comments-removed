@@ -87,7 +87,7 @@ nsBMPDecoder::InitInternal()
     PR_LOG(gBMPLog, PR_LOG_DEBUG, ("nsBMPDecoder::Init(%p)\n", mImage.get()));
 
     
-    if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && mObserver)
+    if (!IsSizeDecode() && mObserver)
         mObserver->OnStartDecode(nsnull);
 
     return NS_OK;
@@ -99,7 +99,7 @@ nsBMPDecoder::ShutdownInternal(PRUint32 aFlags)
     PR_LOG(gBMPLog, PR_LOG_DEBUG, ("nsBMPDecoder::Close()\n"));
 
     
-    if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+    if (!IsSizeDecode() &&
         !mError && !(aFlags & CLOSE_FLAG_DONTNOTIFY)) {
         if (mObserver)
             mObserver->OnStopFrame(nsnull, 0);
@@ -222,7 +222,7 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
 
         
         
-        if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
+        if (IsSizeDecode())
             return NS_OK;
 
         

@@ -139,7 +139,7 @@ nsresult
 nsJPEGDecoder::InitInternal()
 {
   
-  if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && mObserver)
+  if (!IsSizeDecode() && mObserver)
     mObserver->OnStartDecode(nsnull);
 
   
@@ -189,7 +189,7 @@ nsJPEGDecoder::ShutdownInternal(PRUint32 aFlags)
 
   if ((mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER) &&
       (mState != JPEG_ERROR) &&
-      !(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+      !IsSizeDecode() &&
       !(aFlags & CLOSE_FLAG_DONTNOTIFY))
     this->Write(nsnull, 0);
 
@@ -206,7 +206,7 @@ nsJPEGDecoder::ShutdownInternal(PRUint32 aFlags)
   
 
   if (!(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
-      !(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+      !IsSizeDecode() &&
       !mNotifiedDone)
     NotifyDone( PR_FALSE);
 
@@ -262,7 +262,7 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
       mObserver->OnStartContainer(nsnull, mImage);
 
     
-    if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
+    if (IsSizeDecode())
       return NS_OK;
 
     
