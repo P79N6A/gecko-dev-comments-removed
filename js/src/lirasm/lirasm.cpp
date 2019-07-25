@@ -64,7 +64,7 @@ using namespace std;
 
 
 void*
-nanojit::Allocator::allocChunk(size_t nbytes)
+nanojit::Allocator::allocChunk(size_t nbytes, bool )
 {
     void *p = malloc(nbytes);
     if (!p)

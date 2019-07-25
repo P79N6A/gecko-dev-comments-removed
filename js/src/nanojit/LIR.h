@@ -2054,8 +2054,9 @@ namespace nanojit
         uint32_t findCall(LIns* ins);
         uint32_t findLoad(LIns* ins);
 
-        void growNL(NLKind kind);
-        void growL(CseAcc cseAcc);
+        
+        bool growNL(NLKind kind);
+        bool growL(CseAcc cseAcc);
 
         void addNLImmISmall(LIns* ins, uint32_t k);
         
@@ -2068,6 +2069,17 @@ namespace nanojit
 
     public:
         CseFilter(LirWriter *out, uint8_t embNumUsedAccs, Allocator&);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        bool initOOM;
 
         LIns* insImmI(int32_t imm);
 #ifdef NANOJIT_64BIT
@@ -2116,12 +2128,12 @@ namespace nanojit
             LIns *state, *param1, *sp, *rp;
             LIns* savedRegs[NumSavedRegs+1]; 
 
-        protected:
-            friend class LirBufWriter;
-
             
 
             static const size_t CHUNK_SZB = 8000;
+
+        protected:
+            friend class LirBufWriter;
 
             
             void        chunkAlloc();
