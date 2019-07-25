@@ -51,7 +51,10 @@ typedef struct {
 
 static void pixmap_free_func (void *);
 
-#define XLIB_IMAGE_SIDE_SIZE_LIMIT 0xffff
+
+
+
+#define XLIB_IMAGE_SIDE_SIZE_LIMIT 0x7fff
 
 gfxXlibSurface::gfxXlibSurface(Display *dpy, Drawable drawable, Visual *visual)
     : mPixmapTaken(PR_FALSE), mDisplay(dpy), mDrawable(drawable)
