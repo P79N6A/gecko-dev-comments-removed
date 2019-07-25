@@ -406,6 +406,13 @@ var SocialSidebar = {
     return Services.prefs.getBoolPref("social.sidebar.open");
   },
 
+  dispatchEvent: function(aType, aDetail) {
+    let sbrowser = document.getElementById("social-sidebar-browser");
+    let evt = sbrowser.contentDocument.createEvent("CustomEvent");
+    evt.initCustomEvent(aType, true, true, aDetail ? aDetail : {});
+    sbrowser.contentDocument.documentElement.dispatchEvent(evt);
+  },
+
   updateSidebar: function SocialSidebar_updateSidebar() {
     
     let command = document.getElementById("Social:ToggleSidebar");
@@ -418,17 +425,29 @@ var SocialSidebar = {
     broadcaster.hidden = hideSidebar;
     command.setAttribute("checked", !hideSidebar);
 
-    
-    
     let sbrowser = document.getElementById("social-sidebar-browser");
-    if (broadcaster.hidden) {
-      sbrowser.removeAttribute("origin");
-      sbrowser.setAttribute("src", "about:blank");
-      return;
+    if (hideSidebar) {
+      this.dispatchEvent("sidebarhide");
+      
+      if (!this.canShow) {
+        sbrowser.removeAttribute("origin");
+        sbrowser.setAttribute("src", "about:blank");
+      }
+    } else {
+      
+      if (sbrowser.getAttribute("origin") != Social.provider.origin) {
+        sbrowser.setAttribute("origin", Social.provider.origin);
+        sbrowser.setAttribute("src", Social.provider.sidebarURL);
+        sbrowser.addEventListener("load", function sidebarOnShow() {
+          sbrowser.removeEventListener("load", sidebarOnShow);
+          
+          setTimeout(function () {
+            SocialSidebar.dispatchEvent("sidebarshow");
+          }, 0);
+        });
+      } else {
+        this.dispatchEvent("sidebarshow");
+      }
     }
-
-    
-    sbrowser.setAttribute("origin", Social.provider.origin);
-    sbrowser.setAttribute("src", Social.provider.sidebarURL);
   }
 }
