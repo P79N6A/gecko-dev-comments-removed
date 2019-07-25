@@ -927,6 +927,7 @@ inDOMView::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer, nsICon
   
   
   inDOMViewNode* parentNode = oldNode->parent;
+  PRBool isOnlyChild = oldNode->previous == nsnull && oldNode->next == nsnull;
   
   
   
@@ -938,8 +939,7 @@ inDOMView::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer, nsICon
   RemoveLink(oldNode);
   RemoveNode(row);
 
-  nsINode* container = NODE_FROM(aContainer, aDocument);
-  if (container->GetChildCount() == 0) {
+  if (isOnlyChild) {
     
     parentNode->isContainer = PR_FALSE;
     parentNode->isOpen = PR_FALSE;
