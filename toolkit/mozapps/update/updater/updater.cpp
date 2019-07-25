@@ -1864,7 +1864,8 @@ int NS_main(int argc, NS_tchar **argv)
 
       CloseHandle(elevatedFileHandle);
 
-      if (!useService && INVALID_HANDLE_VALUE == updateLockFileHandle) {
+      if (!useService && !noServiceFallback &&
+          INVALID_HANDLE_VALUE == updateLockFileHandle) {
         
         
         

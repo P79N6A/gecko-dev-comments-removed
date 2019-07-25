@@ -39,5 +39,9 @@ function run_test() {
 
 function checkUpdateApplied() {
   checkFilesAfterUpdateSuccess();
-  do_test_finished();
+
+  
+  
+  
+  checkCallbackServiceLog();
 }
