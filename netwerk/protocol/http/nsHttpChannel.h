@@ -51,6 +51,7 @@
 #include "nsTArray.h"
 
 #include "nsIHttpEventSink.h"
+#include "nsICacheInfoChannel.h"
 #include "nsICachingChannel.h"
 #include "nsICacheEntryDescriptor.h"
 #include "nsICacheListener.h"
@@ -67,6 +68,7 @@
 
 class nsAHttpConnection;
 class AutoRedirectVetoNotifier;
+class HttpChannelCacheEntryClosePreventer;
 
 using namespace mozilla::net;
 
@@ -76,6 +78,7 @@ using namespace mozilla::net;
 
 class nsHttpChannel : public HttpBaseChannel
                     , public nsIStreamListener
+                    , public nsICacheInfoChannel_GECKO_2_0
                     , public nsICachingChannel
                     , public nsICacheListener
                     , public nsITransportEventSink
@@ -89,6 +92,7 @@ public:
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSISTREAMLISTENER
+    NS_DECL_NSICACHEINFOCHANNEL_GECKO_2_0
     NS_DECL_NSICACHEINFOCHANNEL
     NS_DECL_NSICACHINGCHANNEL
     NS_DECL_NSICACHELISTENER
@@ -229,6 +233,7 @@ private:
     nsresult ShouldUpdateOfflineCacheEntry(PRBool *shouldCacheForOfflineUse);
     nsresult ReadFromCache();
     void     CloseCacheEntry(PRBool doomOnFailure);
+    void     CloseCacheEntryInternal();
     void     CloseOfflineCacheEntry();
     nsresult InitCacheEntry();
     nsresult InitOfflineCacheEntry();
@@ -323,6 +328,10 @@ private:
     PRUint32                          mRedirectType;
 
     
+    
+    PRUint32                          mCacheEntryClosePreventionCount;
+
+    
     PRUint32                          mCachedContentIsValid     : 1;
     PRUint32                          mCachedContentIsPartial   : 1;
     PRUint32                          mTransactionReplaced      : 1;
@@ -345,7 +354,12 @@ private:
     PRUint32                          mWaitingForRedirectCallback : 1;
     
     
-    PRUint32                          mRequestTimeInitialized : 1;
+    PRUint32                          mRequestTimeInitialized   : 1;
+    
+    
+    PRUint32                          mDeferredCacheEntryClose  : 1;
+    
+    PRUint32                          mDoomCacheEntryOnClose    : 1;
 
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 
@@ -354,6 +368,8 @@ private:
     nsresult WaitForRedirectCallback();
     void PushRedirectAsyncFunc(nsContinueRedirectionFunc func);
     void PopRedirectAsyncFunc(nsContinueRedirectionFunc func);
+
+    friend class HttpChannelCacheEntryClosePreventer;
 };
 
 #endif 
