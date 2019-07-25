@@ -1466,32 +1466,39 @@ UpdateThreadFunc(void *param)
 int NS_main(int argc, NS_tchar **argv)
 {
   InitProgressUI(&argc, &argv);
-  
-  
-  
-  
-  
-  
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (argc < 3) {
+    fprintf(stderr, "Usage: updater update-dir apply-to-dir [wait-pid [callback-working-dir callback-path args...]]\n");
+    return 1;
+  }
+
+  
 #ifndef WINCE
-  if (argc < 2) {
-    fprintf(stderr, "Usage: updater <dir-path> [parent-pid [working-dir callback args...]]\n");
-    return 1;
-  }
-#else
-  if (argc < 4) {
-    fprintf(stderr, "Usage: updater <dir-path> parent-pid <working-dir> [callback args...]]\n");
+  if (NS_tchdir(argv[2]) != 0) {
     return 1;
   }
 #endif
 
-  if (argc > 2 ) {
+  
+  if (argc > 3) {
 #ifdef XP_WIN
-    __int64 pid = _wtoi64(argv[2]);
+    __int64 pid = _wtoi64(argv[3]);
 #else
-    int pid = atoi(argv[2]);
+    int pid = atoi(argv[3]);
 #endif
-    if (pid) {
+    if (pid != 0) {
 #ifdef XP_WIN
       HANDLE parent = OpenProcess(SYNCHRONIZE, FALSE, (DWORD) pid);
       
@@ -1508,29 +1515,29 @@ int NS_main(int argc, NS_tchar **argv)
       
       Sleep(50);
 #else
-      int status;
-      waitpid(pid, &status, 0);
+      waitpid(pid, NULL, 0);
 #endif
     }
   }
 
   
-  
-  
-  const int argOffset = 4;
-
   gSourcePath = argv[1];
+
+  
+  
+  
+  const int callbackIndex = 5;
 
 #if defined(XP_WIN) && !defined(WINCE)
   
   
   HANDLE updateLockFileHandle;
   NS_tchar elevatedLockFilePath[MAXPATHLEN];
-  if (argc > argOffset) {
+  if (argc > callbackIndex) {
     NS_tchar updateLockFilePath[MAXPATHLEN];
     NS_tsnprintf(updateLockFilePath,
                  sizeof(updateLockFilePath)/sizeof(updateLockFilePath[0]),
-                 NS_T("%s.update_in_progress.lock"), argv[argOffset]);
+                 NS_T("%s.update_in_progress.lock"), argv[callbackIndex]);
 
     
     
@@ -1602,8 +1609,8 @@ int NS_main(int argc, NS_tchar **argv)
         WriteStatusFile(ELEVATION_CANCELED);
       }
 
-      if (argc > argOffset) {
-        LaunchCallbackApp(argv[3], argc - argOffset, argv + argOffset);
+      if (argc > callbackIndex) {
+        LaunchCallbackApp(argv[4], argc - callbackIndex, argv + callbackIndex);
       }
 
       CloseHandle(elevatedFileHandle);
@@ -1613,35 +1620,30 @@ int NS_main(int argc, NS_tchar **argv)
 #endif
 
   LogInit();
-  LOG(("SOURCE DIRECTORY " LOG_S "\n", gSourcePath));
-
-  
-  
-  if (argc > argOffset - 1) {
-    LOG(("DESTINATION DIRECTORY " LOG_S "\n", argv[3]));
-  }
+  LOG(("SOURCE DIRECTORY " LOG_S "\n", argv[1]));
+  LOG(("DESTINATION DIRECTORY " LOG_S "\n", argv[2]));
 
 #ifdef WINCE
   
   
-  gDestPath = argv[3];
+  gDestPath = argv[2];
 #endif
 
 #ifdef XP_WIN
   HANDLE callbackFile = INVALID_HANDLE_VALUE;
   NS_tchar callbackBackupPath[MAXPATHLEN];
-  if (argc > argOffset) {
+  if (argc > callbackIndex) {
     
     
     
     HANDLE hFindFile;
-    hFindFile = FindFirstFileW(argv[argOffset], &gFFData);
+    hFindFile = FindFirstFileW(argv[callbackIndex], &gFFData);
     if (hFindFile == INVALID_HANDLE_VALUE) {
-      LOG(("NS_main: unable to find callback file: " LOG_S "\n", argv[argOffset]));
+      LOG(("NS_main: unable to find callback file: " LOG_S "\n", argv[callbackIndex]));
       LogFinish();
       WriteStatusFile(WRITE_ERROR);
       EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 1);
-      LaunchCallbackApp(argv[3], argc - argOffset, argv + argOffset);
+      LaunchCallbackApp(argv[4], argc - callbackIndex, argv + callbackIndex);
       return 1;
     }
     FindClose(hFindFile);
@@ -1649,13 +1651,13 @@ int NS_main(int argc, NS_tchar **argv)
     
     NS_tsnprintf(callbackBackupPath,
                  sizeof(callbackBackupPath)/sizeof(callbackBackupPath[0]),
-                 NS_T("%s" CALLBACK_BACKUP_EXT), argv[argOffset]);
+                 NS_T("%s" CALLBACK_BACKUP_EXT), argv[callbackIndex]);
     NS_tremove(callbackBackupPath);
-    CopyFileW(argv[argOffset], callbackBackupPath, FALSE);
+    CopyFileW(argv[callbackIndex], callbackBackupPath, FALSE);
 
     
     
-    callbackFile = CreateFileW(argv[argOffset],
+    callbackFile = CreateFileW(argv[callbackIndex],
 #ifdef WINCE
                                GENERIC_WRITE,
                                FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -1668,12 +1670,12 @@ int NS_main(int argc, NS_tchar **argv)
     
     if (callbackFile == INVALID_HANDLE_VALUE) {
       LOG(("NS_main: file in use - failed to exclusively open executable " \
-           "file: " LOG_S "\n", argv[argOffset]));
+           "file: " LOG_S "\n", argv[callbackIndex]));
       LogFinish();
       WriteStatusFile(WRITE_ERROR);
       NS_tremove(callbackBackupPath);
       EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 1);
-      LaunchCallbackApp(argv[3], argc - argOffset, argv + argOffset);
+      LaunchCallbackApp(argv[4], argc - callbackIndex, argv + callbackIndex);
       return 1;
     }
   }
@@ -1696,7 +1698,8 @@ int NS_main(int argc, NS_tchar **argv)
       NS_tremove(callbackBackupPath);
       EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 1);
 #endif
-      LaunchCallbackApp(argv[3], argc - argOffset, argv + argOffset);
+      if (argc > callbackIndex)
+        LaunchCallbackApp(argv[4], argc - callbackIndex, argv + callbackIndex);
       return 1;
     }
   }
@@ -1711,11 +1714,11 @@ int NS_main(int argc, NS_tchar **argv)
   t.Join();
 
 #ifdef XP_WIN
-  if (argc > argOffset) {
+  if (argc > callbackIndex) {
     CloseHandle(callbackFile);
     
     
-    if (CopyFileW(callbackBackupPath, argv[argOffset], FALSE) != 0) {
+    if (CopyFileW(callbackBackupPath, argv[callbackIndex], FALSE) != 0) {
       NS_tremove(callbackBackupPath);
     }
   }
@@ -1725,19 +1728,19 @@ int NS_main(int argc, NS_tchar **argv)
   free(BigBuffer);
   BigBuffer = NULL;
 
-  if (argc > argOffset) {
+  if (argc > callbackIndex) {
 #if defined(XP_WIN) && !defined(WINCE)
     if (gSucceeded) {
-      LaunchWinPostProcess(argv[argOffset]);
+      LaunchWinPostProcess(argv[callbackIndex]);
     }
     EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 0);
 #endif
 #ifdef XP_MACOSX
     if (gSucceeded) {
-      LaunchMacPostProcess(argv[argOffset]);
+      LaunchMacPostProcess(argv[callbackIndex]);
     }
 #endif 
-    LaunchCallbackApp(argv[3], argc - argOffset, argv + argOffset);
+    LaunchCallbackApp(argv[3], argc - callbackIndex, argv + callbackIndex);
   }
 
   return 0;

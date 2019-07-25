@@ -87,12 +87,6 @@ var gTestFiles = [
 }];
 
 function run_test() {
-  var isOSX = ("nsILocalFileMac" in Components.interfaces);
-  if (isOSX) {
-    dump("INFO | test_0112_general.js | Skipping test on mac, bug 599477")
-    return;
-  }
-
   var testFile;
   
   
