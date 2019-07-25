@@ -1536,14 +1536,25 @@ var FormHelper = {
     return isVisible && isOpaque && (rect.height != 0 || rect.width != 0);
   },
 
+  _getAllDocuments: function formHelper_getAllDocuments(aDocument, aResult) {
+    
+    aResult.push(aDocument);
+    let frames = aDocument.defaultView.frames;
+    if (!frames)
+      return aResult;
+
+    for (let i = 0; i < frames.length; i++)
+      this._getAllDocuments(frames[i].document, aResult);
+
+    return aResult;
+  },
+
   _getAll: function() {
     let elements = [];
 
     
-    let documents = [getBrowser().contentDocument];
-    let iframes = getBrowser().contentDocument.querySelectorAll("iframe, frame");
-    for (let i = 0; i < iframes.length; i++)
-      documents.push(iframes[i].contentDocument);
+    let documents = [];
+    this._getAllDocuments(getBrowser().contentDocument, documents);
 
     for (let i = 0; i < documents.length; i++) {
       let nodes = documents[i].querySelectorAll("input, button, select, textarea, [role=button]");
@@ -1878,7 +1889,7 @@ var FormHelper = {
     
     return null;
   },
-  
+
   _getOffsetForCaret: function formHelper_getOffsetForCaret(aCaretRect, aRect) {
     
     let deltaX = 0;
