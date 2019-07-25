@@ -4225,6 +4225,25 @@ function JSTermHelper(aJSTerm)
   
 
 
+
+
+  Object.defineProperty(aJSTerm.sandbox, "$0", {
+    get: function() {
+      let mw = HUDService.currentContext();
+      try {
+        return mw.InspectorUI.selection;
+      }
+      catch (ex) {
+        aJSTerm.console.error(ex.message);
+      }
+    },
+    enumerable: true,
+    configurable: false
+  });
+
+  
+
+
   aJSTerm.sandbox.clear = function JSTH_clear()
   {
     aJSTerm.helperEvaluated = true;
