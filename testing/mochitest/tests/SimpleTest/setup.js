@@ -70,6 +70,11 @@ var fileLevel =  params.fileLevel || null;
 var consoleLevel = params.consoleLevel || null;
 
 
+if (params.loops) {
+  TestRunner.loops = params.loops;
+} 
+
+
 if (params.closeWhenDone) {
   TestRunner.onComplete = goQuitApplication;
 }
@@ -154,6 +159,7 @@ RunSet.runall = function(e) {
   }
   TestRunner.runTests(my_tests);
 }
+
 RunSet.reloadAndRunAll = function(e) {
   e.preventDefault();
   
@@ -165,8 +171,7 @@ RunSet.reloadAndRunAll = function(e) {
     window.location.href += "&autorun=1";
   } else {
     window.location.href += "?autorun=1";
-  }
-  
+  }  
 };
 
 

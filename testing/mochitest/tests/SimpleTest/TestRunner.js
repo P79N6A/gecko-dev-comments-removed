@@ -37,6 +37,7 @@ var TestRunner = {};
 TestRunner.logEnabled = false;
 TestRunner._currentTest = 0;
 TestRunner.currentTestURL = "";
+TestRunner.originalTestURL = "";
 TestRunner._urls = [];
 
 TestRunner.timeout = 5 * 60 * 1000; 
@@ -88,6 +89,12 @@ TestRunner.requestLongerTimeout = function(factor) {
 
 
 
+TestRunner.loops = 0;
+TestRunner._currentLoop = 0;
+
+
+
+
 TestRunner.onComplete = null;
 
 
@@ -127,7 +134,6 @@ TestRunner._toggle = function(el) {
 
 
 
-
 TestRunner._makeIframe = function (url, retry) {
     var iframe = $('testframe');
     if (url != "about:blank" &&
@@ -163,6 +169,7 @@ TestRunner._makeIframe = function (url, retry) {
 
 TestRunner.runTests = function () {
     TestRunner.log("SimpleTest START");
+    TestRunner.originalTestURL = $("current-test").innerHTML;
 
     SpecialPowers.registerProcessCrashObservers();
 
@@ -173,6 +180,49 @@ TestRunner.runTests = function () {
     $('testframe').focus();
     TestRunner.runNextTest();
 };
+
+
+
+
+
+TestRunner.resetTests = function(listURLs) {
+  TestRunner._currentTest = 0;
+  
+  $("current-test").innerHTML = TestRunner.originalTestURL;
+  if (TestRunner.logEnabled)
+    TestRunner.log("SimpleTest START Loop " + TestRunner._currentLoop);
+
+  TestRunner._urls = listURLs;
+  $('testframe').src="";
+  TestRunner._checkForHangs();
+  window.focus();
+  $('testframe').focus();
+  TestRunner.runNextTest();
+}
+
+
+
+
+TestRunner.loopTest = function(testPath){
+ var numLoops = TestRunner.loops;
+  while(numLoops >= 0){
+    
+    $("current-test-path").innerHTML = testPath;
+    function checkComplete() {
+      var testWindow = window.open(testPath, 'test window');
+      if (testWindow.document.readyState == "complete") {
+        TestRunner.currentTestURL = testPath;
+        TestRunner.updateUI(testWindow.SimpleTest._tests);
+        testWindow.close();
+      } else {
+        setTimeout(checkComplete, 1000);
+      }
+    }
+    checkComplete();
+    numLoops--;
+  }
+}
+
 
 
 
@@ -216,11 +266,27 @@ TestRunner.runNextTest = function() {
         TestRunner.log("Passed: " + $("pass-count").innerHTML);
         TestRunner.log("Failed: " + $("fail-count").innerHTML);
         TestRunner.log("Todo:   " + $("todo-count").innerHTML);
-        TestRunner.log("SimpleTest FINISHED");
+        
+        if (TestRunner.loops == 0)
+          TestRunner.log("SimpleTest FINISHED");
 
-        if (TestRunner.onComplete) {
+        if (TestRunner.loops == 0 && TestRunner.onComplete) {
+             TestRunner.onComplete();
+         }
+ 
+        if (TestRunner._currentLoop < TestRunner.loops){
+          TestRunner._currentLoop++;
+          TestRunner.resetTests(TestRunner._urls);
+        } else {
+          
+          if (TestRunner.logEnabled) {
+            TestRunner.log("TEST-INFO | Ran " + TestRunner._currentLoop + " Loops");
+            TestRunner.log("SimpleTest FINISHED");
+          }
+
+          if (TestRunner.onComplete)
             TestRunner.onComplete();
-        }
+       }
     }
 };
 
@@ -292,6 +358,47 @@ TestRunner.countResults = function(tests) {
   return {"OK": nOK, "notOK": nNotOK, "todo": nTodo};
 }
 
+
+
+
+TestRunner.displayLoopErrors = function(tableName, tests) {
+  if(TestRunner.countResults(tests).notOK >0){
+    var table = $(tableName);
+    var curtest;
+    if (table.rows.length == 0) {
+      
+      var row = table.insertRow(table.rows.length); 
+      var cell = row.insertCell(0);
+      var textNode = document.createTextNode("Test File Name:");
+      cell.appendChild(textNode);
+      cell = row.insertCell(1);
+      textNode = document.createTextNode("Test:");
+      cell.appendChild(textNode);
+      cell = row.insertCell(2);
+      textNode = document.createTextNode("Error message:");
+      cell.appendChild(textNode);
+    }
+  
+    
+    for (var testnum in tests){
+      curtest = tests[testnum];
+      if( !((curtest.todo && !curtest.result) || (curtest.result && !curtest.todo)) ){
+        
+        row = table.insertRow(table.rows.length); 
+        cell = row.insertCell(0);
+        textNode = document.createTextNode(TestRunner.currentTestURL);
+        cell.appendChild(textNode);
+        cell = row.insertCell(1);
+        textNode = document.createTextNode(curtest.name);
+        cell.appendChild(textNode);
+        cell = row.insertCell(2);
+        textNode = document.createTextNode((curtest.diag ? curtest.diag : "" ));
+        cell.appendChild(textNode);
+      }
+    }
+  }
+}
+
 TestRunner.updateUI = function(tests) {
   var results = TestRunner.countResults(tests);
   var passCount = parseInt($("pass-count").innerHTML) + results.OK;
@@ -319,9 +426,14 @@ TestRunner.updateUI = function(tests) {
   var row = $(trID);
   var tds = row.getElementsByTagName("td");
   tds[0].style.backgroundColor = "#0d0";
-  tds[0].innerHTML = results.OK;
+  tds[0].innerHTML = parseInt(tds[0].innerHTML) + parseInt(results.OK);
   tds[1].style.backgroundColor = results.notOK > 0 ? "red" : "#0d0";
-  tds[1].innerHTML = results.notOK;
+  tds[1].innerHTML = parseInt(tds[1].innerHTML) + parseInt(results.notOK);
   tds[2].style.backgroundColor = results.todo > 0 ? "orange" : "#0d0";
-  tds[2].innerHTML = results.todo;
+  tds[2].innerHTML = parseInt(tds[2].innerHTML) + parseInt(results.todo);
+
+  
+  if(TestRunner.loops > 0){
+    TestRunner.displayLoopErrors('fail-table', tests);
+  }
 }
