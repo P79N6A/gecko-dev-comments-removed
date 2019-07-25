@@ -38,125 +38,141 @@
 
 
 
+
+
 #ifndef mozilla_GuardObjects_h
 #define mozilla_GuardObjects_h
 
 #include "mozilla/Assertions.h"
 
-namespace mozilla {
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef __cplusplus
 
 #ifdef DEBUG
-  class GuardObjectNotifier
-  {
+
+namespace mozilla {
+namespace detail {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class GuardObjectNotifier
+{
   private:
-    bool* mStatementDone;
+    bool* statementDone;
+
   public:
-    GuardObjectNotifier() : mStatementDone(NULL) {}
+    GuardObjectNotifier() : statementDone(NULL) {}
 
     ~GuardObjectNotifier() {
-      *mStatementDone = true;
+        *statementDone = true;
     }
 
-    void SetStatementDone(bool *aStatementDone) {
-      mStatementDone = aStatementDone;
+    void setStatementDone(bool* statementIsDone) {
+        statementDone = statementIsDone;
     }
-  };
+};
 
-  class GuardObjectNotificationReceiver
-  {
+class GuardObjectNotificationReceiver
+{
   private:
-    bool mStatementDone;
+    bool statementDone;
+
   public:
-    GuardObjectNotificationReceiver() : mStatementDone(false) {}
+    GuardObjectNotificationReceiver() : statementDone(false) {}
 
     ~GuardObjectNotificationReceiver() {
-      
+        
 
 
 
 
 
-      MOZ_ASSERT(mStatementDone);
+        MOZ_ASSERT(statementDone);
     }
 
-    void Init(const GuardObjectNotifier &aNotifier) {
-      
+    void init(const GuardObjectNotifier& constNotifier) {
+        
 
 
 
-      const_cast<GuardObjectNotifier&>(aNotifier).
-          SetStatementDone(&mStatementDone);
+        GuardObjectNotifier& notifier = const_cast<GuardObjectNotifier&>(constNotifier);
+        notifier.setStatementDone(&statementDone);
     }
-  };
+};
 
-  #define MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER \
-      mozilla::GuardObjectNotificationReceiver _mCheckNotUsedAsTemporary;
-  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM \
-      , const mozilla::GuardObjectNotifier& _notifier = \
-                mozilla::GuardObjectNotifier()
-  #define MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM \
-      const mozilla::GuardObjectNotifier& _notifier = \
-              mozilla::GuardObjectNotifier()
-  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL \
-      , const mozilla::GuardObjectNotifier& _notifier
-  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT \
-      , _notifier
-  #define MOZ_GUARD_OBJECT_NOTIFIER_INIT \
-      PR_BEGIN_MACRO _mCheckNotUsedAsTemporary.Init(_notifier); PR_END_MACRO
-
-#else 
-
-  #define MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM
-  #define MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM
-  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL
-  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT
-  #define MOZ_GUARD_OBJECT_NOTIFIER_INIT PR_BEGIN_MACRO PR_END_MACRO
+} 
+} 
 
 #endif 
 
-} 
+#ifdef DEBUG
+#  define MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER \
+     mozilla::detail::GuardObjectNotificationReceiver _mCheckNotUsedAsTemporary;
+#  define MOZ_GUARD_OBJECT_NOTIFIER_PARAM \
+     , const mozilla::detail::GuardObjectNotifier& _notifier = \
+         mozilla::detail::GuardObjectNotifier()
+#  define MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM \
+     const mozilla::detail::GuardObjectNotifier& _notifier = \
+         mozilla::detail::GuardObjectNotifier()
+#  define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL \
+     , const mozilla::detail::GuardObjectNotifier& _notifier
+#  define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT \
+     , _notifier
+#  define MOZ_GUARD_OBJECT_NOTIFIER_INIT \
+     do { _mCheckNotUsedAsTemporary.init(_notifier); } while (0)
+#else
+#  define MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+#  define MOZ_GUARD_OBJECT_NOTIFIER_PARAM
+#  define MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM
+#  define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL
+#  define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT
+#  define MOZ_GUARD_OBJECT_NOTIFIER_INIT do { } while (0)
+#endif
+
+#endif 
 
 #endif 
