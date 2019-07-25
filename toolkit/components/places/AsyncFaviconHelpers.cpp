@@ -795,36 +795,14 @@ AsyncAssociateIconToPage::Run()
   }
 
   
-  if (mPage.id == 0) {
-    nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
-      "INSERT INTO moz_places (url, rev_host, hidden, favicon_id, frecency, guid) "
-      "VALUES (:page_url, :rev_host, 1, :favicon_id, 0, GENERATE_GUID()) "
-    );
-    NS_ENSURE_STATE(stmt);
-    mozStorageStatementScoper scoper(stmt);
-    rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mPage.spec);
-    NS_ENSURE_SUCCESS(rv, rv);
-    
-    if (mPage.revHost.IsEmpty()) {
-      rv = stmt->BindNullByName(NS_LITERAL_CSTRING("rev_host"));
-    }
-    else {
-      rv = stmt->BindStringByName(NS_LITERAL_CSTRING("rev_host"), mPage.revHost);
-    }
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("favicon_id"), mIcon.id);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = FetchPageInfo(mDB, mPage);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mIcon.status |= ICON_STATUS_ASSOCIATED;
-  }
   
-  else if (mPage.iconId != mIcon.id) {
+  
+  if (mPage.id == 0) {
+    return NS_OK;
+  }
+
+  
+  if (mPage.iconId != mIcon.id) {
     nsCOMPtr<mozIStorageStatement> stmt;
     if (mPage.id) {
       stmt = mDB->GetStatement(
