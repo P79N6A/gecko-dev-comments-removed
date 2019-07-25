@@ -111,6 +111,8 @@ class Array : public Vector<T, N, SystemAllocPolicy>
 
 typedef Vector<jschar,  0, SystemAllocPolicy> String;
 typedef Vector<jschar, 64, SystemAllocPolicy> AutoString;
+typedef Vector<char,    0, SystemAllocPolicy> CString;
+typedef Vector<char,   64, SystemAllocPolicy> AutoCString;
 
 
 template <class T, size_t N, class AP, size_t ArrayLength>
@@ -140,6 +142,20 @@ AppendString(Vector<jschar, N, AP> &v, JSString* str)
 {
   JS_ASSERT(str);
   v.append(str->chars(), str->length());
+}
+
+template <size_t N, class AP>
+void
+AppendString(Vector<char, N, AP> &v, JSString* str)
+{
+  JS_ASSERT(str);
+  size_t vlen = v.length();
+  size_t alen = str->length();
+  if (!v.resize(vlen + alen))
+    return;
+
+  for (size_t i = 0; i < alen; ++i)
+    v[i + vlen] = char(str->chars()[i]);
 }
 
 template <class T, size_t N, class AP, size_t ArrayLength>
@@ -222,9 +238,11 @@ JSBool TypeError(JSContext* cx, const char* expected, jsval actual);
 
 
 
+
 enum ABICode {
   ABI_DEFAULT,
   ABI_STDCALL,
+  ABI_WINAPI,
   INVALID_ABI
 };
 
@@ -319,6 +337,10 @@ struct ClosureInfo
 #endif
 };
 
+bool IsCTypesGlobal(JSContext* cx, JSObject* obj);
+
+JSCTypesCallbacks* GetCallbacks(JSContext* cx, JSObject* obj);
+
 JSBool InitTypeClasses(JSContext* cx, JSObject* parent);
 
 JSBool ConvertToJS(JSContext* cx, JSObject* typeObj, JSObject* dataObj,
@@ -333,6 +355,11 @@ JSBool ExplicitConvert(JSContext* cx, jsval val, JSObject* targetType,
 
 
 
+
+enum CTypesGlobalSlot {
+  SLOT_CALLBACKS = 0, 
+  CTYPESGLOBAL_SLOTS
+};
 
 enum CABISlot {
   SLOT_ABICODE = 0, 
@@ -426,6 +453,7 @@ namespace CType {
   JSString* GetName(JSContext* cx, JSObject* obj);
   JSObject* GetProtoFromCtor(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
   JSObject* GetProtoFromType(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
+  JSCTypesCallbacks* GetCallbacksFromType(JSContext* cx, JSObject* obj);
 }
 
 namespace PointerType {
@@ -462,6 +490,8 @@ namespace FunctionType {
 
   FunctionInfo* GetFunctionInfo(JSContext* cx, JSObject* obj);
   JSObject* GetLibrary(JSContext* cx, JSObject* obj);
+  void BuildSymbolName(JSContext* cx, JSString* name, JSObject* typeObj,
+    AutoCString& result);
 }
 
 namespace CClosure {

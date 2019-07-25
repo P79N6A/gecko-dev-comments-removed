@@ -112,7 +112,7 @@ Library::Name(JSContext* cx, uintN argc, jsval *vp)
 }
 
 JSObject*
-Library::Create(JSContext* cx, jsval aPath)
+Library::Create(JSContext* cx, jsval path, JSCTypesCallbacks* callbacks)
 {
   JSObject* libraryObj = JS_NewObject(cx, &sLibraryClass, NULL, NULL);
   if (!libraryObj)
@@ -127,35 +127,52 @@ Library::Create(JSContext* cx, jsval aPath)
   if (!JS_DefineFunctions(cx, libraryObj, sLibraryFunctions))
     return NULL;
 
-  if (!JSVAL_IS_STRING(aPath)) {
+  if (!JSVAL_IS_STRING(path)) {
     JS_ReportError(cx, "open takes a string argument");
     return NULL;
   }
 
   PRLibSpec libSpec;
+  JSString* pathStr = JSVAL_TO_STRING(path);
 #ifdef XP_WIN
   
   
-  const PRUnichar* path = reinterpret_cast<const PRUnichar*>(
-    JS_GetStringCharsZ(cx, JSVAL_TO_STRING(aPath)));
-  if (!path)
+  const PRUnichar* pathChars = reinterpret_cast<const PRUnichar*>(
+    JS_GetStringCharsZ(cx, pathStr));
+  if (!pathChars)
     return NULL;
 
-  libSpec.value.pathname_u = path;
+  libSpec.value.pathname_u = pathChars;
   libSpec.type = PR_LibSpec_PathnameU;
 #else
   
   
-  
-  const char* path = JS_GetStringBytesZ(cx, JSVAL_TO_STRING(aPath));
-  if (!path)
+  const char* pathBytes;
+  bool requireFree = false;
+  if (callbacks && callbacks->unicodeToNative) {
+    pathBytes = 
+      callbacks->unicodeToNative(cx, pathStr->chars(), pathStr->length());
+    requireFree = true;
+
+  } else {
+    
+    
+    pathBytes = JS_GetStringBytesZ(cx, pathStr);
+  }
+
+  if (!pathBytes)
     return NULL;
 
-  libSpec.value.pathname = path;
+  libSpec.value.pathname = pathBytes;
   libSpec.type = PR_LibSpec_Pathname;
 #endif
 
   PRLibrary* library = PR_LoadLibraryWithFlags(libSpec, 0);
+#ifndef XP_WIN
+  if (requireFree) {
+    JS_free(cx, const_cast<char*>(pathBytes));
+  }
+#endif
   if (!library) {
     JS_ReportError(cx, "couldn't open library");
     return NULL;
@@ -197,12 +214,18 @@ Library::Finalize(JSContext* cx, JSObject* obj)
 JSBool
 Library::Open(JSContext* cx, uintN argc, jsval *vp)
 {
+  JSObject* ctypesObj = JS_THIS_OBJECT(cx, vp);
+  if (!ctypesObj || !IsCTypesGlobal(cx, ctypesObj)) {
+    JS_ReportError(cx, "not a ctypes object");
+    return JS_FALSE;
+  }
+
   if (argc != 1 || JSVAL_IS_VOID(JS_ARGV(cx, vp)[0])) {
     JS_ReportError(cx, "open requires a single argument");
     return JS_FALSE;
   }
 
-  JSObject* library = Create(cx, JS_ARGV(cx, vp)[0]);
+  JSObject* library = Create(cx, JS_ARGV(cx, vp)[0], GetCallbacks(cx, ctypesObj));
   if (!library)
     return JS_FALSE;
 
@@ -214,7 +237,7 @@ JSBool
 Library::Close(JSContext* cx, uintN argc, jsval* vp)
 {
   JSObject* obj = JS_THIS_OBJECT(cx, vp);
-  if (!IsLibrary(cx, obj)) {
+  if (!obj || !IsLibrary(cx, obj)) {
     JS_ReportError(cx, "not a library");
     return JS_FALSE;
   }
@@ -236,7 +259,7 @@ JSBool
 Library::Declare(JSContext* cx, uintN argc, jsval* vp)
 {
   JSObject* obj = JS_THIS_OBJECT(cx, vp);
-  if (!IsLibrary(cx, obj)) {
+  if (!obj || !IsLibrary(cx, obj)) {
     JS_ReportError(cx, "not a library");
     return JS_FALSE;
   }
