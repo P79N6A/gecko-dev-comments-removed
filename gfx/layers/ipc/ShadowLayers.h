@@ -165,10 +165,10 @@ public:
 
   void CreatedImageBuffer(ShadowableLayer* aImage,
                           nsIntSize aSize,
-                          const SurfaceDescriptor& aInitialFrontSurface);
+                          gfxSharedImageSurface* aInitialFrontSurface);
   void CreatedCanvasBuffer(ShadowableLayer* aCanvas,
                            nsIntSize aSize,
-                           const SurfaceDescriptor& aInitialFrontSurface);
+                           gfxSharedImageSurface* aInitialFrontSurface);
 
   
 
@@ -225,9 +225,9 @@ public:
 
 
   void PaintedImage(ShadowableLayer* aImage,
-                    const SurfaceDescriptor& aNewFrontSurface);
+                    gfxSharedImageSurface* aNewFrontSurface);
   void PaintedCanvas(ShadowableLayer* aCanvas,
-                     const SurfaceDescriptor& aNewFrontSurface);
+                     gfxSharedImageSurface* aNewFrontSurface);
 
   
 
@@ -569,7 +569,6 @@ class ShadowCanvasLayer : public ShadowLayer,
                           public CanvasLayer
 {
 public:
-
   
 
 
@@ -577,17 +576,8 @@ public:
 
 
 
-
-  virtual void Init(const SurfaceDescriptor& front, const nsIntSize& aSize) = 0;
-
-  
-
-
-
-
-
-
-  virtual void Swap(const SurfaceDescriptor& aNewFront, SurfaceDescriptor* aNewBack) = 0;
+  virtual already_AddRefed<gfxSharedImageSurface>
+  Swap(gfxSharedImageSurface* aNewFront) = 0;
 
   
 
@@ -619,13 +609,14 @@ public:
 
 
 
-  virtual PRBool Init(const SurfaceDescriptor& front, const nsIntSize& aSize) = 0;
+  virtual PRBool Init(gfxSharedImageSurface* aFront, const nsIntSize& aSize) = 0;
 
   
 
 
 
-  virtual void Swap(const SurfaceDescriptor& aFront, SurfaceDescriptor* aNewBack) = 0;
+  virtual already_AddRefed<gfxSharedImageSurface>
+  Swap(gfxSharedImageSurface* newFront) = 0;
 
   
 
@@ -659,7 +650,6 @@ protected:
   {}
 };
 
-PRBool IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface);
 
 } 
 } 
