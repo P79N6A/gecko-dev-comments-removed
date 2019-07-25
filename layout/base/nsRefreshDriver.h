@@ -181,6 +181,12 @@ public:
   
 
 
+
+  void SetThrottled(bool aThrottled);
+
+  
+
+
   nsPresContext* PresContext() const { return mPresContext; }
 
 #ifdef DEBUG
@@ -210,7 +216,8 @@ private:
   nsPresContext *mPresContext; 
                                
 
-  PRBool mFrozen;
+  bool mFrozen;
+  bool mThrottled;
 
   
   ObserverArray mObservers[3];
