@@ -81,10 +81,10 @@ function onDebugKeyPress(ev) {
 
   
 
-  const a = 65;
+  const a = 65; 
   const b = 66;
   const c = 67;
-  const d = 68;
+  const d = 68; 
   const e = 69;
   const f = 70;  
   const g = 71;
@@ -99,11 +99,11 @@ function onDebugKeyPress(ev) {
   const p = 80;  
   const q = 81;  
   const r = 82;
-  const s = 83;
+  const s = 83; 
   const t = 84;
   const u = 85;
   const v = 86;
-  const w = 87;
+  const w = 87; 
   const x = 88;
   const y = 89;
   const z = 90;
