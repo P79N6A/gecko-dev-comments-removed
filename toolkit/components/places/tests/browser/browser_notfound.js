@@ -1,0 +1,39 @@
+
+
+
+
+function test() {
+  waitForExplicitFinish();
+
+  gBrowser.selectedTab = gBrowser.addTab();
+  registerCleanupFunction(function() {
+    gBrowser.removeCurrentTab();
+  });
+  gBrowser.selectedTab.linkedBrowser.loadURI("http://mochi.test:8888/notFoundPage.html");
+
+  
+  let historyObserver = {
+    onVisit: function (aURI, aVisitID, aTime, aSessionID, aReferringID,
+                      aTransitionType) {
+      PlacesUtils.history.removeObserver(historyObserver);
+      info("Received onVisit: " + aURI.spec);
+      fieldForUrl(aURI, "frecency", function (aFrecency) {
+        is(aFrecency, 0, "Frecency should be 0");
+        fieldForUrl(aURI, "hidden", function (aHidden) {
+          is(aHidden, 0, "Page should not be hidden");
+          waitForClearHistory(finish);
+        });
+      });
+    },
+    onBeginUpdateBatch: function () {},
+    onEndUpdateBatch: function () {},
+    onTitleChanged: function () {},
+    onBeforeDeleteURI: function () {},
+    onDeleteURI: function () {},
+    onClearHistory: function () {},
+    onPageChanged: function () {},
+    onDeleteVisits: function () {},
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsINavHistoryObserver])
+  };
+  PlacesUtils.history.addObserver(historyObserver, false);
+}
