@@ -118,22 +118,6 @@ private:
     nsDiskCacheBinding *mBinding;
 };
 
-class nsEvictDiskCacheEntriesEvent : public nsRunnable {
-public:
-    nsEvictDiskCacheEntriesEvent(nsDiskCacheDevice *device)
-        : mDevice(device) {}
-
-    NS_IMETHOD Run()
-    {
-        nsCacheServiceAutoLock lock;
-        mDevice->EvictDiskCacheEntries(mDevice->mCacheCapacity);
-        return NS_OK;
-    }
-
-private:
-    nsDiskCacheDevice *mDevice;
-};
-
 
 
 
@@ -1136,14 +1120,8 @@ nsDiskCacheDevice::SetCapacity(PRUint32  capacity)
     
     mCacheCapacity = capacity;
     if (Initialized()) {
-        if (NS_IsMainThread()) {
-            
-            nsCacheService::DispatchToCacheIOThread(
-                new nsEvictDiskCacheEntriesEvent(this));
-        } else {
-            
-            EvictDiskCacheEntries(mCacheCapacity);
-        }
+        
+        EvictDiskCacheEntries(mCacheCapacity);
     }
     
     mCacheMap.NotifyCapacityChange(capacity);
