@@ -21,7 +21,9 @@
 
 
 #ifdef MOZILLA_INTERNAL_API
+# define NS_SetThreadName NS_SetThreadName_P
 # define NS_NewThread NS_NewThread_P
+# define NS_NewNamedThread NS_NewNamedThread_P
 # define NS_GetCurrentThread NS_GetCurrentThread_P
 # define NS_GetMainThread NS_GetMainThread_P
 # define NS_IsMainThread NS_IsMainThread_P
@@ -35,6 +37,25 @@
 
 
 
+
+
+
+
+extern NS_COM_GLUE void
+NS_SetThreadName(nsIThread *thread, const nsACString &name);
+
+
+
+
+
+template <size_t LEN>
+inline NS_COM_GLUE void
+NS_SetThreadName(nsIThread *thread, const char (&name)[LEN])
+{
+  MOZ_STATIC_ASSERT(LEN <= 16,
+                    "Thread name must be no more than 16 characters");
+  NS_SetThreadName(thread, nsDependentCString(name));
+}
 
 
 
@@ -53,6 +74,21 @@ extern NS_COM_GLUE NS_METHOD
 NS_NewThread(nsIThread **result,
              nsIRunnable *initialEvent = nsnull,
              PRUint32 stackSize = nsIThreadManager::DEFAULT_STACK_SIZE);
+
+
+
+
+template <size_t LEN>
+inline NS_METHOD
+NS_NewNamedThread(const char (&name)[LEN],
+                  nsIThread **result,
+                  nsIRunnable *initialEvent = nsnull,
+                  PRUint32 stackSize = nsIThreadManager::DEFAULT_STACK_SIZE)
+{
+    nsresult rv = NS_NewThread(result, initialEvent, stackSize);
+    NS_SetThreadName<LEN>(*result, name);
+    return rv;
+}
 
 
 
@@ -432,6 +468,30 @@ private:
   nsRevocableEventPtr& operator=(const nsRevocableEventPtr&);
 
   nsRefPtr<T> mEvent;
+};
+
+
+
+
+
+class nsThreadPoolNaming
+{
+public:
+  nsThreadPoolNaming() : mCounter(0) {}
+
+  
+
+
+
+
+  void SetThreadPoolName(const nsACString & aPoolName,
+                         nsIThread * aThread = nsnull);
+
+private:
+  volatile PRUint32 mCounter;
+
+  nsThreadPoolNaming(const nsThreadPoolNaming &) MOZ_DELETE;
+  void operator=(const nsThreadPoolNaming &) MOZ_DELETE;
 };
 
 #endif  

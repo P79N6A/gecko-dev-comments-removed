@@ -325,6 +325,8 @@ const SECMODModule * SmartCardMonitoringThread::GetModule()
 
 void SmartCardMonitoringThread::LaunchExecute(void *arg)
 {
+  PR_SetCurrentThreadName("SmartCard");
+
   ((SmartCardMonitoringThread*)arg)->Execute();
 }
 

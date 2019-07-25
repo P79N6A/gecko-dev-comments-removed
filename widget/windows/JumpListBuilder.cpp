@@ -56,7 +56,9 @@ JumpListBuilder::JumpListBuilder() :
                    IID_ICustomDestinationList, getter_AddRefs(mJumpListMgr));
 
   
-  mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS, LazyIdleThread::ManualShutdown);
+  mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS,
+                                 NS_LITERAL_CSTRING("Jump List"),
+                                 LazyIdleThread::ManualShutdown);
   Preferences::AddStrongObserver(this, kPrefTaskbarEnabled);
 }
 

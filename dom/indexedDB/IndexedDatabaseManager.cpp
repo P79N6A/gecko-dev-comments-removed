@@ -226,7 +226,8 @@ IndexedDatabaseManager::GetOrCreate()
       
       
       instance->mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS,
-                                                LazyIdleThread::ManualShutdown);
+                                               NS_LITERAL_CSTRING("IndexedDB I/O"),
+                                               LazyIdleThread::ManualShutdown);
 
       
       instance->mQuotaCallbackSingleton = new QuotaCallback();

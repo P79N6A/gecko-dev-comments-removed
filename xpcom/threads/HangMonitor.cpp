@@ -178,6 +178,8 @@ GetChromeHangReport(Telemetry::HangStack &callStack, SharedLibraryInfo &moduleMa
 void
 ThreadMain(void*)
 {
+  PR_SetCurrentThreadName("Hang Monitor");
+
   MonitorAutoLock lock(*gMonitor);
 
   

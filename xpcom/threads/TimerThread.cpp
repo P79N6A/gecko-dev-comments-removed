@@ -216,6 +216,8 @@ void TimerThread::UpdateFilter(PRUint32 aDelay, TimeStamp aTimeout,
 
 NS_IMETHODIMP TimerThread::Run()
 {
+  PR_SetCurrentThreadName("Timer");
+
   MonitorAutoLock lock(mMonitor);
 
   

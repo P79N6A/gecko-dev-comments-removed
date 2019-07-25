@@ -83,6 +83,8 @@ bool sExit = false;
 
 void TracerThread(void *arg)
 {
+  PR_SetCurrentThreadName("Event Tracer");
+
   
   
   

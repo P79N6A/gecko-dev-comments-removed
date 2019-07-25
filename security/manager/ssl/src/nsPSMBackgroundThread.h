@@ -41,11 +41,14 @@ private:
     ePSMThreadStopped = 2
   } mExitState;
 
+  
+  nsCString mName;
+
 public:
   nsPSMBackgroundThread();
   virtual ~nsPSMBackgroundThread();
 
-  nsresult startThread();
+  nsresult startThread(const nsCSubstring & name);
   void requestExit();
 };
 
