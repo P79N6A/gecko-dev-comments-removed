@@ -109,15 +109,20 @@ NS_IMETHODIMP nsHTMLEditor::RemoveAllDefaultProperties()
 }
 
 
-NS_IMETHODIMP nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty, 
-                            const nsAString & aAttribute, 
-                            const nsAString & aValue)
+NS_IMETHODIMP
+nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
+                                const nsAString& aAttribute,
+                                const nsAString& aValue)
 {
-  if (!aProperty) { return NS_ERROR_NULL_POINTER; }
-  if (!mRules) { return NS_ERROR_NOT_INITIALIZED; }
+  if (!aProperty) {
+    return NS_ERROR_NULL_POINTER;
+  }
+  if (!mRules) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
   ForceCompositionEnd();
 
-  nsCOMPtr<nsISelection>selection;
+  nsCOMPtr<nsISelection> selection;
   nsresult res = GetSelection(getter_AddRefs(selection));
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
@@ -125,25 +130,24 @@ NS_IMETHODIMP nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
 
   bool isCollapsed;
   selection->GetIsCollapsed(&isCollapsed);
-  if (isCollapsed)
-  {
+  if (isCollapsed) {
+    
     
     nsString tAttr(aAttribute);
     nsString tVal(aValue);
     return mTypeInState->SetProp(aProperty, tAttr, tVal);
   }
-  
+
   nsAutoEditBatch batchIt(this);
   nsAutoRules beginRulesSniffing(this, kOpInsertElement, nsIEditor::eNext);
   nsAutoSelectionReset selectionResetter(selection, this);
   nsAutoTxnsConserveSelection dontSpazMySelection(this);
-  
+
   bool cancel, handled;
   nsTextRulesInfo ruleInfo(nsTextEditRules::kSetTextProperty);
   res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
-  if (!cancel && !handled)
-  {
+  if (!cancel && !handled) {
     
     nsCOMPtr<nsIEnumerator> enumerator;
     res = selPriv->GetEnumerator(getter_AddRefs(enumerator));
@@ -151,123 +155,112 @@ NS_IMETHODIMP nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
     NS_ENSURE_TRUE(enumerator, NS_ERROR_FAILURE);
 
     
-    enumerator->First(); 
     nsCOMPtr<nsISupports> currentItem;
-    while ((NS_ENUMERATOR_FALSE == enumerator->IsDone()))
-    {
+    for (enumerator->First(); NS_ENUMERATOR_FALSE == enumerator->IsDone();
+         enumerator->Next()) {
       res = enumerator->CurrentItem(getter_AddRefs(currentItem));
       NS_ENSURE_SUCCESS(res, res);
       NS_ENSURE_TRUE(currentItem, NS_ERROR_FAILURE);
-      
-      nsCOMPtr<nsIDOMRange> range( do_QueryInterface(currentItem) );
 
+      nsCOMPtr<nsIDOMRange> range(do_QueryInterface(currentItem));
+
+      
       
       res = PromoteInlineRange(range);
       NS_ENSURE_SUCCESS(res, res);
-      
+
       
       nsCOMPtr<nsIDOMNode> startNode, endNode;
       res = range->GetStartContainer(getter_AddRefs(startNode));
       NS_ENSURE_SUCCESS(res, res);
       res = range->GetEndContainer(getter_AddRefs(endNode));
       NS_ENSURE_SUCCESS(res, res);
-      if ((startNode == endNode) && IsTextNode(startNode))
-      {
+      if (startNode == endNode && IsTextNode(startNode)) {
         PRInt32 startOffset, endOffset;
         range->GetStartOffset(&startOffset);
         range->GetEndOffset(&endOffset);
         nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(startNode);
-        res = SetInlinePropertyOnTextNode(nodeAsText, startOffset, endOffset, aProperty, &aAttribute, &aValue);
+        res = SetInlinePropertyOnTextNode(nodeAsText, startOffset, endOffset,
+                                          aProperty, &aAttribute, &aValue);
         NS_ENSURE_SUCCESS(res, res);
+        continue;
       }
-      else
-      {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
 
-        nsCOMPtr<nsIContentIterator> iter =
-          do_CreateInstance("@mozilla.org/content/subtree-content-iterator;1", &res);
-        NS_ENSURE_SUCCESS(res, res);
-        NS_ENSURE_TRUE(iter, NS_ERROR_FAILURE);
+      
+      
+      
+      
+      
 
-        nsCOMArray<nsIDOMNode> arrayOfNodes;
+      
+      
+      
+      
+
+      nsCOMPtr<nsIContentIterator> iter =
+        do_CreateInstance("@mozilla.org/content/subtree-content-iterator;1", &res);
+      NS_ENSURE_SUCCESS(res, res);
+      NS_ENSURE_TRUE(iter, NS_ERROR_FAILURE);
+
+      nsCOMArray<nsIDOMNode> arrayOfNodes;
+
+      
+      res = iter->Init(range);
+      
+      
+      
+      if (NS_SUCCEEDED(res)) {
         nsCOMPtr<nsIDOMNode> node;
-        
-        
-        res = iter->Init(range);
-        
-        
-        
-        
-        if (NS_SUCCEEDED(res))
-        {
-          while (!iter->IsDone())
-          {
-            node = do_QueryInterface(iter->GetCurrentNode());
-            NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
+        for (; !iter->IsDone(); iter->Next()) {
+          node = do_QueryInterface(iter->GetCurrentNode());
+          NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
 
-            if (IsEditable(node))
-            { 
-              arrayOfNodes.AppendObject(node);
-            }
-
-            iter->Next();
+          if (IsEditable(node)) {
+            arrayOfNodes.AppendObject(node);
           }
         }
-        
-        
-        
-        if (IsTextNode(startNode) && IsEditable(startNode))
-        {
-          nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(startNode);
-          PRInt32 startOffset;
-          PRUint32 textLen;
-          range->GetStartOffset(&startOffset);
-          nodeAsText->GetLength(&textLen);
-          res = SetInlinePropertyOnTextNode(nodeAsText, startOffset, textLen, aProperty, &aAttribute, &aValue);
-          NS_ENSURE_SUCCESS(res, res);
-        }
-        
-        
-        PRInt32 listCount = arrayOfNodes.Count();
-        PRInt32 j;
-        for (j = 0; j < listCount; j++)
-        {
-          node = arrayOfNodes[j];
-          res = SetInlinePropertyOnNode(node, aProperty, &aAttribute, &aValue);
-          NS_ENSURE_SUCCESS(res, res);
-        }
-        arrayOfNodes.Clear();
-        
-        
-        
-        
-        if (IsTextNode(endNode) && IsEditable(endNode))
-        {
-          nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(endNode);
-          PRInt32 endOffset;
-          range->GetEndOffset(&endOffset);
-          res = SetInlinePropertyOnTextNode(nodeAsText, 0, endOffset, aProperty, &aAttribute, &aValue);
-          NS_ENSURE_SUCCESS(res, res);
-        }
       }
-      enumerator->Next();
+      
+      
+      
+      if (IsTextNode(startNode) && IsEditable(startNode)) {
+        nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(startNode);
+        PRInt32 startOffset;
+        PRUint32 textLen;
+        range->GetStartOffset(&startOffset);
+        nodeAsText->GetLength(&textLen);
+        res = SetInlinePropertyOnTextNode(nodeAsText, startOffset, textLen,
+                                          aProperty, &aAttribute, &aValue);
+        NS_ENSURE_SUCCESS(res, res);
+      }
+
+      
+      PRInt32 listCount = arrayOfNodes.Count();
+      PRInt32 j;
+      for (j = 0; j < listCount; j++) {
+        res = SetInlinePropertyOnNode(arrayOfNodes[j], aProperty,
+                                      &aAttribute, &aValue);
+        NS_ENSURE_SUCCESS(res, res);
+      }
+
+      
+      
+      
+      if (IsTextNode(endNode) && IsEditable(endNode)) {
+        nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(endNode);
+        PRInt32 endOffset;
+        range->GetEndOffset(&endOffset);
+        res = SetInlinePropertyOnTextNode(nodeAsText, 0, endOffset,
+                                          aProperty, &aAttribute, &aValue);
+        NS_ENSURE_SUCCESS(res, res);
+      }
     }
   }
-  if (!cancel)
-  {
+  if (!cancel) {
     
-    res = mRules->DidDoAction(selection, &ruleInfo, res);
+    return mRules->DidDoAction(selection, &ruleInfo, res);
   }
-  return res;
+  return NS_OK;
 }
 
 
