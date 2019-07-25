@@ -74,20 +74,6 @@
 
 using namespace mozilla;
 
-class nsAutoEditorKeypressOperation {
-public:
-  nsAutoEditorKeypressOperation(nsEditor *aEditor, nsIDOMNSEvent *aEvent)
-    : mEditor(aEditor) {
-    mEditor->BeginKeypressHandling(aEvent);
-  }
-  ~nsAutoEditorKeypressOperation() {
-    mEditor->EndKeypressHandling();
-  }
-
-private:
-  nsEditor *mEditor;
-};
-
 nsEditorEventListener::nsEditorEventListener() :
   mEditor(nsnull), mCommitText(false),
   mInTransaction(false)
@@ -481,7 +467,7 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
 
   
   nsCOMPtr<nsIDOMNSEvent> NSEvent = do_QueryInterface(aKeyEvent);
-  nsAutoEditorKeypressOperation operation(mEditor, NSEvent);
+  nsEditor::HandlingTrustedAction operation(mEditor, NSEvent);
 
   
   
@@ -636,7 +622,7 @@ nsEditorEventListener::HandleText(nsIDOMEvent* aTextEvent)
 
   
   nsCOMPtr<nsIDOMNSEvent> NSEvent = do_QueryInterface(aTextEvent);
-  nsAutoEditorKeypressOperation operation(mEditor, NSEvent);
+  nsEditor::HandlingTrustedAction operation(mEditor, NSEvent);
 
   return mEditor->UpdateIMEComposition(composedText, textRangeList);
 }
@@ -881,7 +867,7 @@ nsEditorEventListener::HandleEndComposition(nsIDOMEvent* aCompositionEvent)
 
   
   nsCOMPtr<nsIDOMNSEvent> NSEvent = do_QueryInterface(aCompositionEvent);
-  nsAutoEditorKeypressOperation operation(mEditor, NSEvent);
+  nsEditor::HandlingTrustedAction operation(mEditor, NSEvent);
 
   return mEditor->EndIMEComposition();
 }

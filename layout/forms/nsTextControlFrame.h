@@ -49,8 +49,8 @@
 #include "nsITextControlElement.h"
 #include "nsIStatefulFrame.h"
 #include "nsContentUtils.h" 
+#include "nsIEditor.h"
 
-class nsIEditor;
 class nsISelectionController;
 class nsIDOMCharacterData;
 #ifdef ACCESSIBILITY
@@ -191,7 +191,6 @@ public:
 
 
 public: 
-  void FireOnInput(bool aTrusted);
   void SetValueChanged(bool aValueChanged);
   
   nsresult InitFocusedValue();
@@ -210,45 +209,41 @@ public:
   nsresult MaybeBeginSecureKeyboardInput();
   void MaybeEndSecureKeyboardInput();
 
-  class ValueSetter {
+  NS_STACK_CLASS class ValueSetter {
   public:
     ValueSetter(nsTextControlFrame* aFrame,
+                nsIEditor* aEditor,
                 bool aHasFocusValue)
       : mFrame(aFrame)
+      , mEditor(aEditor)
       
       
       
       
       
       , mFocusValueInit(!mFrame->mFireChangeEventState && aHasFocusValue)
-      , mOuterTransaction(false)
-      , mInited(false)
+      , mCanceled(false)
     {
-      NS_ASSERTION(aFrame, "Should pass a valid frame");
+      MOZ_ASSERT(aFrame);
+      MOZ_ASSERT(aEditor);
+
+      
+      
+      
+      mEditor->GetSuppressDispatchingInputEvent(&mOuterTransaction);
     }
     void Cancel() {
-      mInited = false;
+      mCanceled = true;
     }
     void Init() {
-      
-      
-      
-
-      
-      
-      
-      mOuterTransaction = mFrame->mNotifyOnInput;
-      if (mOuterTransaction)
-        mFrame->mNotifyOnInput = false;
-
-      mInited = true;
+      mEditor->SetSuppressDispatchingInputEvent(true);
     }
     ~ValueSetter() {
-      if (!mInited)
-        return;
+      mEditor->SetSuppressDispatchingInputEvent(mOuterTransaction);
 
-      if (mOuterTransaction)
-        mFrame->mNotifyOnInput = true;
+      if (mCanceled) {
+        return;
+      }
 
       if (mFocusValueInit) {
         
@@ -258,9 +253,10 @@ public:
 
   private:
     nsTextControlFrame* mFrame;
+    nsCOMPtr<nsIEditor> mEditor;
     bool mFocusValueInit;
     bool mOuterTransaction;
-    bool mInited;
+    bool mCanceled;
   };
   friend class ValueSetter;
 
@@ -407,10 +403,6 @@ private:
                                  SelectionDirection aDirection = eNone);
 
   
-  bool GetNotifyOnInput() const { return mNotifyOnInput; }
-  void SetNotifyOnInput(bool val) { mNotifyOnInput = val; }
-
-  
 
 
   nsresult GetRootNodeAndInitializeEditor(nsIDOMElement **aRootElement);
@@ -423,7 +415,6 @@ private:
   
   bool mUseEditor;
   bool mIsProcessing;
-  bool mNotifyOnInput;
   
   
   bool mFireChangeEventState;
