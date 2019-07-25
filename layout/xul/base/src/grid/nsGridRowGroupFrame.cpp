@@ -52,7 +52,7 @@ nsGridRowGroupFrame::GetFlex(nsBoxLayoutState& aState)
 
   
   nscoord totalFlex = 0;
-  nsIBox* child = GetChildBox();
+  nsIFrame* child = GetChildBox();
   while (child)
   {
     totalFlex += child->GetFlex(aState);

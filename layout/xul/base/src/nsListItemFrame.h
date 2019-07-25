@@ -3,7 +3,6 @@
 
 
 
-#include "nsBoxFrame.h"
 #include "nsGridRowLeafFrame.h"
 
 nsIFrame* NS_NewListItemFrame(nsIPresShell* aPresShell,
@@ -23,9 +22,8 @@ public:
                                          const nsRect&           aDirtyRect,
                                          const nsDisplayListSet& aLists);
 
-  
   virtual nsSize GetPrefSize(nsBoxLayoutState& aState);
-  
+
 protected:
   nsListItemFrame(nsIPresShell* aPresShell,
                   nsStyleContext *aContext,

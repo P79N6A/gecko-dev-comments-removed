@@ -16,7 +16,6 @@
 class nsBoxLayoutState;
 struct nsSize;
 class nsIFrame;
-typedef class nsIFrame nsIBox;
 
 
 
@@ -38,14 +37,14 @@ public:
     bool        IsCollapsed();
 
 
-    nsIBox*     GetBoxInColumn()             { return mBoxInColumn; }
-    nsIBox*     GetBoxInRow()                { return mBoxInRow; }
-    void        SetBoxInRow(nsIBox* aBox)    { mBoxInRow = aBox; }
-    void        SetBoxInColumn(nsIBox* aBox) { mBoxInColumn = aBox; }
+    nsIFrame*   GetBoxInColumn()               { return mBoxInColumn; }
+    nsIFrame*   GetBoxInRow()                  { return mBoxInRow; }
+    void        SetBoxInRow(nsIFrame* aBox)    { mBoxInRow = aBox; }
+    void        SetBoxInColumn(nsIFrame* aBox) { mBoxInColumn = aBox; }
 
 private:
-    nsIBox* mBoxInColumn;
-    nsIBox* mBoxInRow;
+    nsIFrame* mBoxInColumn;
+    nsIFrame* mBoxInRow;
 };
 
 #endif

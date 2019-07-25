@@ -35,7 +35,6 @@ public:
   NS_IMETHOD  SetInitialChildList(ChildListID     aListID,
                                   nsFrameList&    aChildList);
 
-  
   NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState);
 
   

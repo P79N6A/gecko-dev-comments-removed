@@ -7615,7 +7615,7 @@ nsFrame::GetPrefSize(nsBoxLayoutState& aState)
 
   
   bool widthSet, heightSet;
-  bool completelyRedefined = nsIBox::AddCSSPrefSize(this, size, widthSet, heightSet);
+  bool completelyRedefined = nsIFrame::AddCSSPrefSize(this, size, widthSet, heightSet);
 
   
   if (!completelyRedefined) {
@@ -7652,7 +7652,7 @@ nsFrame::GetMinSize(nsBoxLayoutState& aState)
   
   bool widthSet, heightSet;
   bool completelyRedefined =
-    nsIBox::AddCSSMinSize(aState, this, size, widthSet, heightSet);
+    nsIFrame::AddCSSMinSize(aState, this, size, widthSet, heightSet);
 
   
   if (!completelyRedefined) {
