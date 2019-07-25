@@ -92,13 +92,12 @@ enum ParseNodeKind {
     PNK_PREDECREMENT,
     PNK_POSTDECREMENT,
     PNK_DOT,
-    PNK_LB,
-    PNK_RB,
+    PNK_ELEM,
+    PNK_ARRAY,
     PNK_STATEMENTLIST,
     PNK_XMLCURLYEXPR,
-    PNK_RC,
-    PNK_LP,
-    PNK_RP,
+    PNK_OBJECT,
+    PNK_CALL,
     PNK_NAME,
     PNK_INTRINSICNAME,
     PNK_NUMBER,
@@ -812,7 +811,7 @@ struct ParseNode {
 
 
     bool isGeneratorExpr() const {
-        if (getKind() == PNK_LP) {
+        if (isKind(PNK_CALL)) {
             ParseNode *callee = this->pn_head;
             if (callee->getKind() == PNK_FUNCTION && callee->pn_body->getKind() == PNK_LEXICALSCOPE)
                 return true;
@@ -824,7 +823,7 @@ struct ParseNode {
         JS_ASSERT(isGeneratorExpr());
         ParseNode *callee = this->pn_head;
         ParseNode *body = callee->pn_body;
-        JS_ASSERT(body->getKind() == PNK_LEXICALSCOPE);
+        JS_ASSERT(body->isKind(PNK_LEXICALSCOPE));
         return body->pn_expr;
     }
 #endif
@@ -1171,7 +1170,7 @@ class XMLDoubleColonProperty : public ParseNode {
   public:
     XMLDoubleColonProperty(ParseNode *lhs, ParseNode *rhs,
                            const TokenPtr &begin, const TokenPtr &end)
-      : ParseNode(PNK_LB, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
+      : ParseNode(PNK_ELEM, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
     {
         JS_ASSERT(rhs->isKind(PNK_DBLCOLON));
         pn_u.binary.left = lhs;
@@ -1210,7 +1209,7 @@ class XMLProperty : public ParseNode {
   public:
     XMLProperty(ParseNode *lhs, ParseNode *propertyId,
                 const TokenPtr &begin, const TokenPtr &end)
-      : ParseNode(PNK_LB, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
+      : ParseNode(PNK_ELEM, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
     {
         pn_u.binary.left = lhs;
         pn_u.binary.right = propertyId;
@@ -1256,7 +1255,7 @@ class PropertyByValue : public ParseNode {
   public:
     PropertyByValue(ParseNode *lhs, ParseNode *propExpr,
                     const TokenPtr &begin, const TokenPtr &end)
-      : ParseNode(PNK_LB, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
+      : ParseNode(PNK_ELEM, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
     {
         pn_u.binary.left = lhs;
         pn_u.binary.right = propExpr;

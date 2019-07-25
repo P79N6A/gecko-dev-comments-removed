@@ -29,7 +29,7 @@ class NameResolver
 
     
     bool call(ParseNode *pn) {
-        return pn && pn->isKind(PNK_LP);
+        return pn && pn->isKind(PNK_CALL);
     }
 
     
@@ -75,7 +75,7 @@ class NameResolver
             case PNK_NAME:
                 return buf->append(n->pn_atom);
 
-            case PNK_LB:
+            case PNK_ELEM:
                 return nameExpression(n->pn_left) &&
                        buf->append("[") &&
                        nameExpression(n->pn_right) &&
@@ -151,7 +151,7 @@ class NameResolver
 
 
 
-                    if (pos == 0 || !parents[pos - 1]->isKind(PNK_RC))
+                    if (pos == 0 || !parents[pos - 1]->isKind(PNK_OBJECT))
                         return NULL;
                     pos--;
                     
