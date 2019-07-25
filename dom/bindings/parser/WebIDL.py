@@ -678,7 +678,9 @@ class IDLInterface(IDLObjectWithScope):
                 method = IDLMethod(self.location, identifier, retType, args)
                 
                 
-                method.addExtendedAttributes(["Creator"])
+                
+                
+                method.addExtendedAttributes([("Creator",), ("Throws",)])
                 method.resolve(self)
 
             self._extendedAttrDict[identifier] = attrlist if len(attrlist) else True
