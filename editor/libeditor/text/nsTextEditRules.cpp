@@ -222,6 +222,11 @@ nsTextEditRules::AfterEdit(PRInt32 action, nsIEditor::EDirection aDirection)
     NS_ENSURE_SUCCESS(res, res);
 
     
+    res = RemoveRedundantTrailingBR();
+    if (NS_FAILED(res))
+      return res;
+
+    
     res = CreateBogusNodeIfNeeded(selection);
     NS_ENSURE_SUCCESS(res, res);
     
@@ -1042,6 +1047,66 @@ nsTextEditRules::WillOutputText(nsISelection *aSelection,
 nsresult
 nsTextEditRules::DidOutputText(nsISelection *aSelection, nsresult aResult)
 {
+  return NS_OK;
+}
+
+nsresult
+nsTextEditRules::RemoveRedundantTrailingBR()
+{
+  
+  if (mBogusNode)
+    return NS_OK;
+
+  
+  if (IsSingleLineEditor())
+    return NS_OK;
+
+  nsIDOMNode* body = mEditor->GetRoot();
+  if (!body)
+    return NS_ERROR_NULL_POINTER;
+
+  PRBool hasChildren;
+  nsresult res = body->HasChildNodes(&hasChildren);
+  NS_ENSURE_SUCCESS(res, res);
+
+  if (hasChildren) {
+    nsCOMPtr<nsIDOMNodeList> childList;
+    res = body->GetChildNodes(getter_AddRefs(childList));
+    NS_ENSURE_SUCCESS(res, res);
+
+    if (!childList)
+      return NS_ERROR_NULL_POINTER;
+
+    PRUint32 childCount;
+    res = childList->GetLength(&childCount);
+    NS_ENSURE_SUCCESS(res, res);
+
+    
+    if (childCount != 1)
+      return NS_OK;
+
+    nsCOMPtr<nsIDOMNode> child;
+    res = body->GetFirstChild(getter_AddRefs(child));
+    NS_ENSURE_SUCCESS(res, res);
+
+    if (nsTextEditUtils::IsMozBR(child)) {
+      
+      
+      nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(child);
+      if (elem) {
+        elem->RemoveAttribute(NS_LITERAL_STRING("type"));
+        NS_ENSURE_SUCCESS(res, res);
+
+        
+        mBogusNode = elem;
+ 
+        
+        nsCOMPtr<nsIContent> content = do_QueryInterface(elem);
+        content->SetAttr(kNameSpaceID_None, kMOZEditorBogusNodeAttrAtom,
+                         kMOZEditorBogusNodeValue, PR_FALSE);
+      }
+    }
+  }
   return NS_OK;
 }
 

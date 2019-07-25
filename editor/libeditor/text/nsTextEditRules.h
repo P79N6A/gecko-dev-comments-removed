@@ -205,6 +205,9 @@ protected:
 
 
   
+
+  
+  nsresult RemoveRedundantTrailingBR();
   
   
   nsresult CreateTrailingBRIfNeeded();
