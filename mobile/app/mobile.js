@@ -49,7 +49,7 @@
 
 
 
-pref("toolkit.browser.cacheRatioWidth", 1100);
+pref("toolkit.browser.cacheRatioWidth", 2000);
 pref("toolkit.browser.cacheRatioHeight", 2000);
 
 
