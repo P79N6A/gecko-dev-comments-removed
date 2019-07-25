@@ -77,39 +77,6 @@ extern Class dummy_class;
 
 namespace js {
 
-class NativeIterCache {
-    static const size_t SIZE = size_t(1) << 8;
-    
-    
-    JSObject            *data[SIZE];
-
-    static size_t getIndex(uint32_t key) {
-        return size_t(key) % SIZE;
-    }
-
-  public:
-    
-    JSObject            *last;
-
-    NativeIterCache()
-      : last(NULL) {
-        PodArrayZero(data);
-    }
-
-    void purge() {
-        PodArrayZero(data);
-        last = NULL;
-    }
-
-    JSObject *get(uint32_t key) const {
-        return data[getIndex(key)];
-    }
-
-    void set(uint32_t key, JSObject *iterobj) {
-        data[getIndex(key)] = iterobj;
-    }
-};
-
 
 
 
@@ -305,8 +272,6 @@ struct JSCompartment
     unsigned                     debugModeBits;  
 
   public:
-    js::NativeIterCache          nativeIterCache;
-
     typedef js::Maybe<js::ToSourceCache> LazyToSourceCache;
     LazyToSourceCache            toSourceCache;
 

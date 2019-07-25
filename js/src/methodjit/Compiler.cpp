@@ -5875,7 +5875,7 @@ mjit::Compiler::iter(unsigned flags)
     frame.unpinReg(reg);
 
     
-    masm.loadPtr(&script->compartment()->nativeIterCache.last, ioreg);
+    masm.loadPtr(&cx->runtime->nativeIterCache.last, ioreg);
 
     
     Jump nullIterator = masm.branchTest32(Assembler::Zero, ioreg, ioreg);
