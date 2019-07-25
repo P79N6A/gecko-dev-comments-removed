@@ -108,6 +108,7 @@ DEFAULT_STORE_BATCH_SIZE:              1,
 HISTORY_STORE_BATCH_SIZE:              50, 
 FORMS_STORE_BATCH_SIZE:                50, 
 PASSWORDS_STORE_BATCH_SIZE:            50, 
+APPS_STORE_BATCH_SIZE:                 50, 
 
 
 SINGLE_USER_THRESHOLD:                 1000,
