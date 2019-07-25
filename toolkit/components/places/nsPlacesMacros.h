@@ -62,8 +62,10 @@
     _sInstance = new _className();                                             \
     if (_sInstance) {                                                          \
       NS_ADDREF(_sInstance);                                                   \
-      if (NS_FAILED(_sInstance->Init()))                                       \
+      if (NS_FAILED(_sInstance->Init())) {                                     \
         NS_RELEASE(_sInstance);                                                \
+        _sInstance = nsnull;                                                   \
+      }                                                                        \
     }                                                                          \
     return _sInstance;                                                         \
-  }                                                                            
+  }

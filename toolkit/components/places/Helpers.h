@@ -77,58 +77,6 @@ protected:
 
 
 
-#ifdef DEBUG
-#define RETURN_IF_STMT(_stmt, _sql)                                            \
-  PR_BEGIN_MACRO                                                               \
-  if (address_of(_stmt) == address_of(aStmt)) {                                \
-    if (!_stmt) {                                                              \
-      nsresult rv = mDBConn->CreateStatement(_sql, getter_AddRefs(_stmt));     \
-      if (NS_FAILED(rv)) {                                                     \
-        nsCAutoString err;                                                     \
-        (void)mDBConn->GetLastErrorString(err);                                \
-        (void)fprintf(stderr, "$$$ compiling statement failed with '%s'\n",    \
-                      err.get());                                              \
-      }                                                                        \
-      NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && _stmt, nsnull);                       \
-    }                                                                          \
-    return _stmt.get();                                                        \
-  }                                                                            \
-  PR_END_MACRO
-#else
-#define RETURN_IF_STMT(_stmt, _sql)                                            \
-  PR_BEGIN_MACRO                                                               \
-  if (address_of(_stmt) == address_of(aStmt)) {                                \
-    if (!_stmt) {                                                              \
-      nsresult rv = mDBConn->CreateStatement(_sql, getter_AddRefs(_stmt));     \
-      NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && _stmt, nsnull);                       \
-    }                                                                          \
-    return _stmt.get();                                                        \
-  }                                                                            \
-  PR_END_MACRO
-#endif
-
-
-
-
-#define DECLARE_AND_ASSIGN_LAZY_STMT_RET(_localStmt, _globalStmt, _ret)            \
-  mozIStorageStatement* _localStmt = GetStatement(_globalStmt);                \
-  NS_ENSURE_TRUE(_localStmt, _ret)
-
-#define DECLARE_AND_ASSIGN_LAZY_STMT(_localStmt, _globalStmt)                  \
-  DECLARE_AND_ASSIGN_LAZY_STMT_RET(_localStmt, _globalStmt, NS_ERROR_UNEXPECTED)
-
-#define DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT_RET(_localStmt, _globalStmt, _ret)     \
-  DECLARE_AND_ASSIGN_LAZY_STMT_RET(_localStmt, _globalStmt, _ret);             \
-  mozStorageStatementScoper scoper(_localStmt)
-
-#define DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(_localStmt, _globalStmt)           \
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT_RET(_localStmt, _globalStmt, NS_ERROR_UNEXPECTED)
-
-
-
-
-
-
 
 class URIBinder 
 {
@@ -269,9 +217,7 @@ protected:
 
 
 
-
-
-void ForceWALCheckpoint(mozIStorageConnection* aDBConn);
+void ForceWALCheckpoint();
 
 
 

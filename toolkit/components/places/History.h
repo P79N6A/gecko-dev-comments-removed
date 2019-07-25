@@ -42,6 +42,8 @@
 
 #include "mozilla/IHistory.h"
 #include "mozIAsyncHistory.h"
+#include "Database.h"
+
 #include "mozilla/dom/Link.h"
 #include "nsTHashtable.h"
 #include "nsString.h"
@@ -50,7 +52,6 @@
 #include "nsDeque.h"
 #include "nsIObserver.h"
 #include "mozIStorageConnection.h"
-#include "mozilla/storage/StatementCache.h"
 
 namespace mozilla {
 namespace places {
@@ -127,10 +128,14 @@ public:
 
   static History* GetSingleton();
 
-  
-
-
-  storage::StatementCache<mozIStorageStatement> syncStatements;
+  template<int N>
+  already_AddRefed<mozIStorageStatement>
+  GetStatement(const char (&aQuery)[N])
+  {
+    mozIStorageConnection* dbConn = GetDBConn();
+    NS_ENSURE_TRUE(dbConn, nsnull);
+    return mDB->GetStatement(aQuery);
+  }
 
 private:
   virtual ~History();
@@ -145,9 +150,7 @@ private:
 
 
 
-
-
-  nsCOMPtr<mozIStorageConnection> mDBConn;
+  nsRefPtr<mozilla::places::Database> mDB;
 
   
 

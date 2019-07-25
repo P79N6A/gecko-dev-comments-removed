@@ -247,6 +247,29 @@ public:
   static nsresult create(mozIStorageConnection *aDBConn);
 };
 
+
+
+
+
+
+
+
+
+class GetUnreversedHostFunction : public mozIStorageFunction
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_MOZISTORAGEFUNCTION
+
+  
+
+
+
+
+
+  static nsresult create(mozIStorageConnection *aDBConn);
+};
+
 } 
 } 
 

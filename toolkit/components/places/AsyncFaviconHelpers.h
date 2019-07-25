@@ -39,19 +39,13 @@
 #ifndef AsyncFaviconHelpers_h_
 #define AsyncFaviconHelpers_h_
 
-#include "nsCOMPtr.h"
-#include "nsCOMArray.h"
-#include "nsIURI.h"
-#include "nsThreadUtils.h"
-
-#include "nsFaviconService.h"
-#include "Helpers.h"
-
-#include "mozilla/storage.h"
-
+#include "nsIFaviconService.h"
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIStreamListener.h"
+
+#include "Database.h"
+#include "mozilla/storage.h"
 
 #define ICON_STATUS_UNKNOWN 0
 #define ICON_STATUS_CHANGED 1 << 0
@@ -118,19 +112,14 @@ struct PageData
 
 
 
-
 class AsyncFaviconHelperBase : public nsRunnable
 {
 protected:
-  AsyncFaviconHelperBase(nsCOMPtr<mozIStorageConnection>& aDBConn,
-                         nsRefPtr<nsFaviconService>& aFaviconSvc,
-                         nsCOMPtr<nsIFaviconDataCallback>& aCallback);
+  AsyncFaviconHelperBase(nsCOMPtr<nsIFaviconDataCallback>& aCallback);
 
   virtual ~AsyncFaviconHelperBase();
 
-  nsCOMPtr<mozIStorageConnection>& mDBConn;
-  
-  nsRefPtr<nsFaviconService> mFaviconSvc;
+  nsRefPtr<Database> mDB;
   
   nsCOMPtr<nsIFaviconDataCallback> mCallback;
 };
@@ -157,12 +146,9 @@ public:
 
 
 
-
-
   static nsresult start(nsIURI* aFaviconURI,
                         nsIURI* aPageURI,
                         enum AsyncFaviconFetchMode aFetchMode,
-                        nsCOMPtr<mozIStorageConnection>& aDBConn,
                         nsIFaviconDataCallback* aCallback);
 
   
@@ -175,12 +161,8 @@ public:
 
 
 
-
-
   AsyncFetchAndSetIconForPage(IconData& aIcon,
                               PageData& aPage,
-                              nsCOMPtr<mozIStorageConnection>& aDBConn,
-                              nsRefPtr<nsFaviconService>& aFaviconSvc,
                               nsCOMPtr<nsIFaviconDataCallback>& aCallback);
 
   virtual ~AsyncFetchAndSetIconForPage();
@@ -218,12 +200,8 @@ public:
 
 
 
-
-
   AsyncFetchAndSetIconFromNetwork(IconData& aIcon,
                                   PageData& aPage,
-                                  nsCOMPtr<mozIStorageConnection>& aDBConn,
-                                  nsRefPtr<nsFaviconService>& aFaviconSvc,
                                   nsCOMPtr<nsIFaviconDataCallback>& aCallback);
 
   virtual ~AsyncFetchAndSetIconFromNetwork();
@@ -253,12 +231,8 @@ public:
 
 
 
-
-
   AsyncAssociateIconToPage(IconData& aIcon,
                            PageData& aPage,
-                           nsCOMPtr<mozIStorageConnection>& aDBConn,
-                           nsRefPtr<nsFaviconService>& aFaviconSvc,
                            nsCOMPtr<nsIFaviconDataCallback>& aCallback);
 
   virtual ~AsyncAssociateIconToPage();
@@ -285,10 +259,7 @@ public:
 
 
 
-
-
   static nsresult start(nsIURI* aPageURI,
-                        nsCOMPtr<mozIStorageConnection>& aDBConn,
                         nsIFaviconDataCallback* aCallback);
 
   
@@ -299,13 +270,7 @@ public:
 
 
 
-
-
-
-
   AsyncGetFaviconURLForPage(const nsACString& aPageSpec,
-                            nsCOMPtr<mozIStorageConnection>& aDBConn,
-                            nsRefPtr<nsFaviconService>& aFaviconSvc,
                             nsCOMPtr<nsIFaviconDataCallback>& aCallback);
 
   virtual ~AsyncGetFaviconURLForPage();
@@ -332,10 +297,7 @@ public:
 
 
 
-
-
   static nsresult start(nsIURI* aPageURI,
-                        nsCOMPtr<mozIStorageConnection>& aDBConn,
                         nsIFaviconDataCallback* aCallback);
 
   
@@ -346,13 +308,7 @@ public:
 
 
 
-
-
-
-
   AsyncGetFaviconDataForPage(const nsACString& aPageSpec,
-                             nsCOMPtr<mozIStorageConnection>& aDBConn,
-                             nsRefPtr<nsFaviconService>& aFaviconSvc,
                              nsCOMPtr<nsIFaviconDataCallback>& aCallback);
 
   virtual ~AsyncGetFaviconDataForPage();
@@ -371,8 +327,6 @@ public:
 
   NotifyIconObservers(IconData& aIcon,
                       PageData& aPage,
-                      nsCOMPtr<mozIStorageConnection>& aDBConn,
-                      nsRefPtr<nsFaviconService>& aFaviconSvc,
                       nsCOMPtr<nsIFaviconDataCallback>& aCallback);
   virtual ~NotifyIconObservers();
 
