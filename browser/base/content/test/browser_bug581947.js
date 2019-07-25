@@ -1,14 +1,10 @@
-function check(aElementName, aBarred, aType) {
+function check(aElementName, aBarred) {
   let doc = gBrowser.contentDocument;
   let tooltip = document.getElementById("aHTMLTooltip");
   let content = doc.getElementById('content');
 
   let e = doc.createElement(aElementName);
   content.appendChild(e);
-
-  if (aType) {
-    e.type = aType;
-  }
 
   ok(!FillInHTMLTooltip(e),
      "No tooltip should be shown when the element is valid");
@@ -19,7 +15,7 @@ function check(aElementName, aBarred, aType) {
        "No tooltip should be shown when the element is barred from constraint validation");
   } else {
     ok(FillInHTMLTooltip(e),
-       "A tooltip should be shown when the element isn't valid");
+       e.tagName + " " +"A tooltip should be shown when the element isn't valid");
   }
 
   e.setAttribute('title', '');
@@ -63,18 +59,17 @@ function test () {
 
     let testData = [
     
-      [ 'input',    false, null],
-      [ 'textarea', false, null],
-      [ 'button',   true,  'button'],
-      [ 'button',   false, 'submit' ],
-      [ 'select',   false, null],
-      [ 'output',   true,  null],
-      [ 'fieldset', true,  null],
-      [ 'object', 'false' ],
+      [ 'input',    false ],
+      [ 'textarea', false ],
+      [ 'button',   true ],
+      [ 'select',   false ],
+      [ 'output',   true ],
+      [ 'fieldset', true ],
+      [ 'object',   true ],
     ];
 
     for each (let data in testData) {
-      check(data[0], data[1], data[2]);
+      check(data[0], data[1]);
     }
 
     let todo_testData = [
