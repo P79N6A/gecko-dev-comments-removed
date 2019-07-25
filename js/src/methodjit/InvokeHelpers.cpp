@@ -1360,10 +1360,6 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
         
         RemoveOrphanedNative(cx, fp);
 
-        
-
-
-
         f.regs.pc = nextpc;
         break;
       }
@@ -1581,6 +1577,16 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
     if (nextDepth == uint32(-1))
         nextDepth = analysis->getCode(f.regs.pc).stackDepth;
     f.regs.sp = fp->base() + nextDepth;
+
+    
+
+
+
+
+    if (f.regs.pc == nextpc && (js_CodeSpec[op].format & JOF_TYPESET)) {
+        int which = (js_CodeSpec[op].format & JOF_CALLOP) ? -2 : -1;  
+        types::TypeScript::Monitor(cx, script, pc, f.regs.sp[which]);
+    }
 
     
     JaegerStatus status = skipTrap ? Jaeger_UnfinishedAtTrap : Jaeger_Unfinished;
