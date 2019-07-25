@@ -2094,9 +2094,9 @@ var MenuListHelperUI = {
     for (let i = 0; i < children.length; i++) {
       let child = children[i];
       let item = document.createElement("richlistitem");
-      if (child.selected)
-        item.setAttribute("selected", child.selected);
-      item.setAttribute("class", "menulist-command");
+      
+      
+      item.setAttribute("class", "menulist-command" + (child.selected ? " selected" : ""));
 
       let label = document.createElement("label");
       label.setAttribute("value", child.label);
