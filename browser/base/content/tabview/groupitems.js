@@ -1316,7 +1316,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         {hideTitle:true});
      }
 
-
     
     
     var x = (bb.width - size.x) / 2;
@@ -1325,15 +1324,20 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     var self = this;
     var children = [];
+
+    
+    let topChildPos = childrenToArrange.indexOf(this.topChild);
+    if (topChildPos > 0) {
+      childrenToArrange.splice(topChildPos, 1);
+      childrenToArrange.unshift(this.topChild);
+    }
+
     childrenToArrange.forEach(function GroupItem__stackArrange_order(child) {
       
       child.addClass("stacked");
       child.isStacked = true;
       if (numInPile-- > 0) {
-        if (child == self.topChild)
-          children.unshift(child);
-        else
-          children.push(child);
+        children.push(child);
       } else {
         child.setHidden(true);
       }
