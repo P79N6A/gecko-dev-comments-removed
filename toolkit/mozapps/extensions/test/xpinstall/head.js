@@ -27,7 +27,6 @@ function extractChromeRoot(path) {
 }
 
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
 
 
 
