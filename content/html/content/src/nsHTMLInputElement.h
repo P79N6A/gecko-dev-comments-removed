@@ -215,6 +215,7 @@ public:
   PRBool   IsTooLong();
   PRBool   IsValueMissing();
   PRBool   HasTypeMismatch();
+  PRBool   HasPatternMismatch();
   PRBool   IsBarredFromConstraintValidation();
   nsresult GetValidationMessage(nsAString& aValidationMessage,
                                 ValidationMessageType aType);
@@ -268,6 +269,23 @@ protected:
 
 
   static PRBool IsValidEmailAddressList(const nsAString& aValue);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static PRBool IsPatternMatching(nsAString& aValue, nsAString& aPattern,
+                                  nsIDocument* aDocument);
 
   
   nsresult SetValueInternal(const nsAString& aValue,
@@ -409,6 +427,11 @@ protected:
 
 
   PRBool DoesRequiredApply() const;
+
+  
+
+
+  PRBool DoesPatternApply() const;
 
   void FreeData();
   nsTextEditorState *GetEditorState() const;
