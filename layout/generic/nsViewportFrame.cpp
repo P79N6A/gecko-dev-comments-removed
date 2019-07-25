@@ -235,9 +235,19 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
                  "scrollbars in odd positions");
 
     
+    
+    nscoord width = reflowState.ComputedWidth();
+    nscoord height = reflowState.ComputedHeight();
+    if (aPresContext->PresShell()->IsScrollPositionClampingScrollPortSizeSet()) {
+      nsSize size = aPresContext->PresShell()->
+        GetScrollPositionClampingScrollPortSize();
+      width = size.width;
+      height = size.height;
+    }
+
+    
     rv = GetAbsoluteContainingBlock()->Reflow(this, aPresContext, reflowState, aStatus,
-                                              reflowState.ComputedWidth(),
-                                              reflowState.ComputedHeight(),
+                                              width, height,
                                               false, true, true, 
                                               &aDesiredSize.mOverflowAreas);
   }
