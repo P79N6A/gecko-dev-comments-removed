@@ -20,6 +20,7 @@
 #include "nsIFile.h"
 
 class nsDOMFileList;
+class nsIFilePicker;
 class nsIRadioGroupContainer;
 class nsIRadioGroupVisitor;
 class nsIRadioVisitor;
@@ -232,6 +233,23 @@ public:
 
 
   void     UpdateValueMissingValidityStateForRadio(bool aIgnoreSelf);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker);
 
   
 
@@ -578,6 +596,51 @@ protected:
   bool                     mInhibitRestoration  : 1;
   bool                     mCanShowValidUI      : 1;
   bool                     mCanShowInvalidUI    : 1;
+
+private:
+  struct nsFilePickerFilter {
+    nsFilePickerFilter()
+      : mFilterMask(0), mIsTrusted(false) {}
+
+    nsFilePickerFilter(PRInt32 aFilterMask)
+      : mFilterMask(aFilterMask), mIsTrusted(true) {}
+
+    nsFilePickerFilter(const nsString& aTitle,
+                       const nsString& aFilter,
+                       const bool aIsTrusted = false)
+      : mFilterMask(0), mTitle(aTitle), mFilter(aFilter), mIsTrusted(aIsTrusted) {}
+
+    nsFilePickerFilter(const nsFilePickerFilter& other) {
+      mFilterMask = other.mFilterMask;
+      mTitle = other.mTitle;
+      mFilter = other.mFilter;
+      mIsTrusted = other.mIsTrusted;
+    }
+
+    bool operator== (const nsFilePickerFilter& other) const {
+      if ((mFilter == other.mFilter) && (mFilterMask == other.mFilterMask)) {
+        NS_ASSERTION(mIsTrusted == other.mIsTrusted,
+                     "Filter with similar list of extensions and mask should"
+                     " have the same trusted flag value");
+        return true;
+      } else {
+        return false;
+      }
+    }
+    
+    
+    PRInt32 mFilterMask;
+    
+    
+    nsString mTitle;
+    nsString mFilter;
+    
+    
+    
+    
+    
+    bool mIsTrusted; 
+  };
 };
 
 #endif
