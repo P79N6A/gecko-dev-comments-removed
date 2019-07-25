@@ -185,12 +185,15 @@ bool
 TableSwitchPolicy::respecialize(MInstruction *ins)
 {
     
-    
-    MDefinition *in = ins->getOperand(0);
-    if (in->type() == MIRType_Value)
-        in->useAsType(MIRType_Int32);
-
     return false;
+}
+
+void
+TableSwitchPolicy::specializeInputs(MInstruction *ins, TypeAnalysis *analysis)
+{
+    
+    
+    analysis->preferType(ins->getOperand(0), MIRType_Int32);
 }
 
 bool
@@ -216,12 +219,5 @@ TableSwitchPolicy::adjustInputs(MInstruction *ins)
     ins->block()->insertBefore(ins, replace);
     ins->replaceOperand(0, replace);
 
-    return true;
-}
-
-bool
-TableSwitchPolicy::useSpecializedInput(MInstruction *ins, size_t index, MInstruction *special)
-{
-    
     return true;
 }
