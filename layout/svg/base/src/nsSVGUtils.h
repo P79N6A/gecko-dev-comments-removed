@@ -481,6 +481,17 @@ public:
 
 
 
+  static gfxMatrix GetUserToCanvasTM(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
+
+
 
   static void
   NotifyChildrenOfSVGChange(nsIFrame *aFrame, PRUint32 aFlags);

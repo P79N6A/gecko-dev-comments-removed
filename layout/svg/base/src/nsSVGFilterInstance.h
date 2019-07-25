@@ -78,6 +78,7 @@ public:
                       const gfxRect& aFilterRegion,
                       const nsIntSize& aFilterSpaceSize,
                       const gfxMatrix &aFilterSpaceToDeviceSpaceTransform,
+                      const gfxMatrix &aFilterSpaceToFrameSpaceInCSSPxTransform,
                       const nsIntRect& aTargetBounds,
                       const nsIntRect& aPostFilterDirtyRect,
                       const nsIntRect& aPreFilterDirtyRect,
@@ -87,6 +88,7 @@ public:
     mFilterElement(aFilterElement),
     mTargetBBox(aTargetBBox),
     mFilterSpaceToDeviceSpaceTransform(aFilterSpaceToDeviceSpaceTransform),
+    mFilterSpaceToFrameSpaceInCSSPxTransform(aFilterSpaceToFrameSpaceInCSSPxTransform),
     mFilterRegion(aFilterRegion),
     mFilterSpaceSize(aFilterSpaceSize),
     mSurfaceRect(nsIntPoint(0, 0), aFilterSpaceSize),
@@ -191,6 +193,21 @@ public:
   }
 
   gfxPoint FilterSpaceToUserSpace(const gfxPoint& aPt) const;
+
+  
+
+
+
+
+
+
+  gfxMatrix GetFilterSpaceToFrameSpaceInCSSPxTransform() const {
+    return mFilterSpaceToFrameSpaceInCSSPxTransform;
+  }
+
+  PRInt32 AppUnitsPerCSSPixel() const {
+    return mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
+  }
 
 private:
   typedef nsSVGFE::Image Image;
@@ -364,6 +381,7 @@ private:
   gfxRect                 mTargetBBox;
 
   gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
+  gfxMatrix               mFilterSpaceToFrameSpaceInCSSPxTransform;
   gfxRect                 mFilterRegion;
   nsIntSize               mFilterSpaceSize;
   nsIntRect               mSurfaceRect;

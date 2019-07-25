@@ -12,6 +12,7 @@
 #include "nsGkAtoms.h"
 #include "nsRenderingContext.h"
 #include "nsSVGEffects.h"
+#include "nsSVGElement.h"
 #include "nsSVGFilterElement.h"
 #include "nsSVGFilterInstance.h"
 #include "nsSVGFilterPaintCallback.h"
@@ -30,22 +31,65 @@ NS_IMPL_FRAMEARENA_HELPERS(nsSVGFilterFrame)
 
 
 
+
+
+
 static nsIntRect
-MapDeviceRectToFilterSpace(const gfxMatrix& aMatrix,
-                           const gfxIntSize& aFilterSize,
-                           const nsIntRect* aDeviceRect)
+MapFrameRectToFilterSpace(const nsRect* aRect,
+                          PRInt32 aAppUnitsPerCSSPx,
+                          const gfxMatrix& aFrameSpaceInCSSPxToFilterSpace,
+                          const gfxIntSize& aFilterRes)
 {
-  nsIntRect rect(0, 0, aFilterSize.width, aFilterSize.height);
-  if (aDeviceRect) {
-    gfxRect r = aMatrix.TransformBounds(gfxRect(aDeviceRect->x, aDeviceRect->y,
-                                                aDeviceRect->width, aDeviceRect->height));
-    r.RoundOut();
+  nsIntRect rect(0, 0, aFilterRes.width, aFilterRes.height);
+  if (aRect) {
+    gfxRect rectInCSSPx =
+      nsLayoutUtils::RectToGfxRect(*aRect, aAppUnitsPerCSSPx);
+    gfxRect rectInFilterSpace =
+      aFrameSpaceInCSSPxToFilterSpace.TransformBounds(rectInCSSPx);
+    rectInFilterSpace.RoundOut();
     nsIntRect intRect;
-    if (gfxUtils::GfxRectToIntRect(r, &intRect)) {
+    if (gfxUtils::GfxRectToIntRect(rectInFilterSpace, &intRect)) {
       rect = intRect;
     }
   }
   return rect;
+}
+
+
+
+
+
+
+static gfxMatrix
+GetUserToFrameSpaceInCSSPxTransform(nsIFrame *aFrame)
+{
+  gfxMatrix userToFrameSpaceInCSSPx;
+
+  if ((aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
+    PRInt32 appUnitsPerCSSPx = aFrame->PresContext()->AppUnitsPerCSSPixel();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (aFrame->GetType() == nsGkAtoms::svgInnerSVGFrame) {
+      userToFrameSpaceInCSSPx =
+        static_cast<nsSVGElement*>(aFrame->GetContent())->
+          PrependLocalTransformsTo(gfxMatrix());
+    } else {
+      gfxPoint targetsUserSpaceOffset =
+        nsLayoutUtils::RectToGfxRect(aFrame->GetRect(), appUnitsPerCSSPx).
+                         TopLeft();
+      userToFrameSpaceInCSSPx.Translate(-targetsUserSpaceOffset);
+    }
+  }
+  
+  return userToFrameSpaceInCSSPx;
 }
 
 class nsSVGFilterFrame::AutoFilterReferencer
@@ -71,10 +115,10 @@ public:
   nsAutoFilterInstance(nsIFrame *aTarget,
                        nsSVGFilterFrame *aFilterFrame,
                        nsSVGFilterPaintCallback *aPaint,
-                       const nsIntRect *aPostFilterDirtyRect,
-                       const nsIntRect *aPreFilterDirtyRect,
-                       const gfxRect *aOverrideBBox,
-                       const gfxMatrix *aOverrideUserToDeviceSpace = nsnull);
+                       const nsRect *aPostFilterDirtyRect,
+                       const nsRect *aPreFilterDirtyRect,
+                       const nsRect *aOverridePreFilterVisualOverflowRect,
+                       const gfxRect *aOverrideBBox = nsnull);
   ~nsAutoFilterInstance() {}
 
   
@@ -88,10 +132,10 @@ private:
 nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
                                            nsSVGFilterFrame *aFilterFrame,
                                            nsSVGFilterPaintCallback *aPaint,
-                                           const nsIntRect *aPostFilterDirtyRect,
-                                           const nsIntRect *aPreFilterDirtyRect,
-                                           const gfxRect *aOverrideBBox,
-                                           const gfxMatrix *aOverrideUserToDeviceSpace)
+                                           const nsRect *aPostFilterDirtyRect,
+                                           const nsRect *aPreFilterDirtyRect,
+                                           const nsRect *aPreFilterVisualOverflowRectOverride,
+                                           const gfxRect *aOverrideBBox)
 {
   const nsSVGFilterElement *filter = aFilterFrame->GetFilterContent();
 
@@ -122,6 +166,7 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   XYWH[1] = *aFilterFrame->GetLengthValue(nsSVGFilterElement::Y);
   XYWH[2] = *aFilterFrame->GetLengthValue(nsSVGFilterElement::WIDTH);
   XYWH[3] = *aFilterFrame->GetLengthValue(nsSVGFilterElement::HEIGHT);
+  
   gfxRect filterRegion = nsSVGUtils::GetRelativeRect(filterUnits,
     XYWH, bbox, aTarget);
 
@@ -131,12 +176,8 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
     return;
   }
 
-  gfxMatrix userToDeviceSpace;
-  if (aOverrideUserToDeviceSpace) {
-    userToDeviceSpace = *aOverrideUserToDeviceSpace;
-  } else {
-    userToDeviceSpace = nsSVGUtils::GetCanvasTM(aTarget);
-  }
+  
+  
   
   
   
@@ -184,51 +225,54 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   }
 
   
-  
-
-  
 
   gfxMatrix filterToUserSpace(filterRegion.Width() / filterRes.width, 0.0f,
                               0.0f, filterRegion.Height() / filterRes.height,
                               filterRegion.X(), filterRegion.Y());
-  gfxMatrix filterToDeviceSpace = filterToUserSpace * userToDeviceSpace;
+
   
+  gfxMatrix filterToDeviceSpace;
+  if (aPaint) {
+    filterToDeviceSpace =
+      filterToUserSpace * nsSVGUtils::GetCanvasTM(aTarget);
+  }
+
   
-  gfxMatrix deviceToFilterSpace = filterToDeviceSpace;
-  deviceToFilterSpace.Invert();
+
+  PRInt32 appUnitsPerCSSPx = aTarget->PresContext()->AppUnitsPerCSSPixel();
+
+  gfxMatrix filterToFrameSpaceInCSSPx =
+    filterToUserSpace * GetUserToFrameSpaceInCSSPxTransform(aTarget);
+  
+  gfxMatrix frameSpaceInCSSPxTofilterSpace = filterToFrameSpaceInCSSPx;
+  frameSpaceInCSSPxTofilterSpace.Invert();
 
   nsIntRect postFilterDirtyRect =
-    MapDeviceRectToFilterSpace(deviceToFilterSpace, filterRes, aPostFilterDirtyRect);
+    MapFrameRectToFilterSpace(aPostFilterDirtyRect, appUnitsPerCSSPx,
+                              frameSpaceInCSSPxTofilterSpace, filterRes);
   nsIntRect preFilterDirtyRect =
-    MapDeviceRectToFilterSpace(deviceToFilterSpace, filterRes, aPreFilterDirtyRect);
-  nsIntRect targetBoundsDeviceSpace;
-  nsISVGChildFrame* svgTarget = do_QueryFrame(aTarget);
-  if (svgTarget) {
-    if (aOverrideUserToDeviceSpace) {
-      
-      
-      
-      
-      
-      
-      
-      NS_ASSERTION(aPreFilterDirtyRect, "Who passed aOverrideUserToDeviceSpace?");
-      targetBoundsDeviceSpace = *aPreFilterDirtyRect;
-    } else {
-      targetBoundsDeviceSpace =
-        svgTarget->GetCoveredRegion().ToOutsidePixels(aTarget->
-          PresContext()->AppUnitsPerDevPixel());
-    }
+    MapFrameRectToFilterSpace(aPreFilterDirtyRect, appUnitsPerCSSPx,
+                              frameSpaceInCSSPxTofilterSpace, filterRes);
+  nsIntRect preFilterVisualOverflowRect;
+  if (aPreFilterVisualOverflowRectOverride) {
+    preFilterVisualOverflowRect =
+      MapFrameRectToFilterSpace(aPreFilterVisualOverflowRectOverride,
+                                appUnitsPerCSSPx,
+                                frameSpaceInCSSPxTofilterSpace, filterRes);
+  } else {
+    nsRect preFilterVOR = aTarget->GetPreEffectsVisualOverflowRect();
+    preFilterVisualOverflowRect =
+      MapFrameRectToFilterSpace(&preFilterVOR, appUnitsPerCSSPx,
+                                frameSpaceInCSSPxTofilterSpace, filterRes);
   }
-  nsIntRect targetBoundsFilterSpace =
-    MapDeviceRectToFilterSpace(deviceToFilterSpace, filterRes, &targetBoundsDeviceSpace);
 
   
-  mInstance = new nsSVGFilterInstance(aTarget, aPaint, filter, bbox, filterRegion,
-                                      nsIntSize(filterRes.width, filterRes.height),
-                                      filterToDeviceSpace, targetBoundsFilterSpace,
-                                      postFilterDirtyRect, preFilterDirtyRect,
-                                      primitiveUnits);
+  mInstance =
+    new nsSVGFilterInstance(aTarget, aPaint, filter, bbox, filterRegion,
+                            nsIntSize(filterRes.width, filterRes.height),
+                            filterToDeviceSpace, filterToFrameSpaceInCSSPx,
+                            preFilterVisualOverflowRect, postFilterDirtyRect,
+                            preFilterDirtyRect, primitiveUnits);
 }
 
 PRUint16
@@ -388,13 +432,13 @@ nsresult
 nsSVGFilterFrame::PaintFilteredFrame(nsRenderingContext *aContext,
                                      nsIFrame *aFilteredFrame,
                                      nsSVGFilterPaintCallback *aPaintCallback,
-                                     const nsIntRect *aDirtyArea)
+                                     const nsRect *aDirtyArea)
 {
   nsAutoFilterInstance instance(aFilteredFrame, this, aPaintCallback,
                                 aDirtyArea, nsnull, nsnull);
-  if (!instance.get())
+  if (!instance.get()) {
     return NS_OK;
-
+  }
   nsRefPtr<gfxASurface> result;
   nsresult rv = instance.get()->Render(getter_AddRefs(result));
   if (NS_SUCCEEDED(rv) && result) {
@@ -404,118 +448,75 @@ nsSVGFilterFrame::PaintFilteredFrame(nsRenderingContext *aContext,
   return rv;
 }
 
-
-
-
-
-static nsresult
-TransformFilterSpaceToDeviceSpace(nsSVGFilterInstance *aInstance,
-                                  nsIntRect *aRect)
+static nsRect
+TransformFilterSpaceToFrameSpace(nsSVGFilterInstance *aInstance,
+                                 nsIntRect *aRect)
 {
-  gfxMatrix m = aInstance->GetFilterSpaceToDeviceSpaceTransform();
+  gfxMatrix m = aInstance->GetFilterSpaceToFrameSpaceInCSSPxTransform();
   gfxRect r(aRect->x, aRect->y, aRect->width, aRect->height);
   r = m.TransformBounds(r);
-  r.RoundOut();
-  nsIntRect deviceRect;
-  if (!gfxUtils::GfxRectToIntRect(r, &deviceRect))
-    return NS_ERROR_FAILURE;
-  *aRect = deviceRect;
-  return NS_OK;
+  return nsLayoutUtils::RoundGfxRectToAppRect(r, aInstance->AppUnitsPerCSSPixel());
 }
 
-nsIntRect
+nsRect
 nsSVGFilterFrame::GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
-                                         const nsIntRect& aPreFilterDirtyRect)
+                                         const nsRect& aPreFilterDirtyRect)
 {
-  bool overrideCTM = false;
-  gfxMatrix ctm;
-
-  if (aFilteredFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
-    
-    
-    
-    
-    overrideCTM = true;
-    ctm = nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(aFilteredFrame);
-  }
-
   nsAutoFilterInstance instance(aFilteredFrame, this, nsnull, nsnull,
-                                &aPreFilterDirtyRect, nsnull,
-                                overrideCTM ? &ctm : nsnull);
-  if (!instance.get())
-    return nsIntRect();
-
+                                &aPreFilterDirtyRect, nsnull);
+  if (!instance.get()) {
+    return nsRect();
+  }
   
   
   
   nsIntRect dirtyRect;
   nsresult rv = instance.get()->ComputePostFilterDirtyRect(&dirtyRect);
   if (NS_SUCCEEDED(rv)) {
-    rv = TransformFilterSpaceToDeviceSpace(instance.get(), &dirtyRect);
-    if (NS_SUCCEEDED(rv))
-      return dirtyRect;
+    return TransformFilterSpaceToFrameSpace(instance.get(), &dirtyRect);
   }
-
-  return nsIntRect();
+  return nsRect();
 }
 
-nsIntRect
+nsRect
 nsSVGFilterFrame::GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
-                                         const nsIntRect& aPostFilterDirtyRect)
+                                         const nsRect& aPostFilterDirtyRect)
 {
   nsAutoFilterInstance instance(aFilteredFrame, this, nsnull,
                                 &aPostFilterDirtyRect, nsnull, nsnull);
-  if (!instance.get())
-    return nsIntRect();
-
+  if (!instance.get()) {
+    return nsRect();
+  }
   
   
   nsIntRect neededRect;
   nsresult rv = instance.get()->ComputeSourceNeededRect(&neededRect);
   if (NS_SUCCEEDED(rv)) {
-    rv = TransformFilterSpaceToDeviceSpace(instance.get(), &neededRect);
-    if (NS_SUCCEEDED(rv))
-      return neededRect;
+    return TransformFilterSpaceToFrameSpace(instance.get(), &neededRect);
   }
-
-  return nsIntRect();
+  return nsRect();
 }
 
-nsIntRect
+nsRect
 nsSVGFilterFrame::GetPostFilterBounds(nsIFrame *aFilteredFrame,
                                       const gfxRect *aOverrideBBox,
-                                      const nsIntRect *aPreFilterBounds)
+                                      const nsRect *aPreFilterBounds)
 {
-  bool overrideCTM = false;
-  gfxMatrix ctm;
-
-  if (aFilteredFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
-    
-    
-    
-    
-    overrideCTM = true;
-    ctm = nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(aFilteredFrame);
-  }
-
   nsAutoFilterInstance instance(aFilteredFrame, this, nsnull, nsnull,
-                                aPreFilterBounds, aOverrideBBox,
-                                overrideCTM ? &ctm : nsnull);
-  if (!instance.get())
-    return nsIntRect();
-
+                                aPreFilterBounds, aPreFilterBounds,
+                                aOverrideBBox);
+  if (!instance.get()) {
+    return nsRect();
+  }
   
   
   
   nsIntRect bbox;
   nsresult rv = instance.get()->ComputeOutputBBox(&bbox);
   if (NS_SUCCEEDED(rv)) {
-    rv = TransformFilterSpaceToDeviceSpace(instance.get(), &bbox);
-    if (NS_SUCCEEDED(rv))
-      return bbox;
+    return TransformFilterSpaceToFrameSpace(instance.get(), &bbox);
   }
-  
-  return nsIntRect();
+  return nsRect();
 }
   
 #ifdef DEBUG

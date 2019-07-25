@@ -2303,6 +2303,13 @@ public:
 
 
 
+  nsRect GetPreEffectsVisualOverflowRect() const;
+
+  
+
+
+
+
 
   bool FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
                               nsSize aNewSize);

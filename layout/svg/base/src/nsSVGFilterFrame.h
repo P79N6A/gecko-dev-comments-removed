@@ -45,10 +45,16 @@ public:
                               nsIAtom*        aAttribute,
                               PRInt32         aModType);
 
+  
+
+
+
+
+
   nsresult PaintFilteredFrame(nsRenderingContext *aContext,
                               nsIFrame *aFilteredFrame,
                               nsSVGFilterPaintCallback *aPaintCallback,
-                              const nsIntRect* aDirtyArea);
+                              const nsRect* aDirtyArea);
 
   
 
@@ -56,8 +62,8 @@ public:
 
 
 
-  nsIntRect GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
-                                   const nsIntRect& aPreFilterDirtyRect);
+  nsRect GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
+                                const nsRect& aPreFilterDirtyRect);
 
   
 
@@ -65,8 +71,8 @@ public:
 
 
 
-  nsIntRect GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
-                                   const nsIntRect& aPostFilterDirtyRect);
+  nsRect GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
+                                const nsRect& aPostFilterDirtyRect);
 
   
 
@@ -76,10 +82,9 @@ public:
 
 
 
-
-  nsIntRect GetPostFilterBounds(nsIFrame *aFilteredFrame,
-                                const gfxRect *aOverrideBBox = nsnull,
-                                const nsIntRect *aPreFilterBounds = nsnull);
+  nsRect GetPostFilterBounds(nsIFrame *aFilteredFrame,
+                             const gfxRect *aOverrideBBox = nsnull,
+                             const nsRect *aPreFilterBounds = nsnull);
 
 #ifdef DEBUG
   NS_IMETHOD Init(nsIContent*      aContent,
