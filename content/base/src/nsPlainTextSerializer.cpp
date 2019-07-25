@@ -1411,8 +1411,10 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
         else {
           mCurrentLine.Right(restOfLine, linelength-goodSpace);
         }
+        
+        PRBool breakBySpace = mCurrentLine.CharAt(goodSpace) == ' ';
         mCurrentLine.Truncate(goodSpace); 
-        EndLine(PR_TRUE);
+        EndLine(PR_TRUE, breakBySpace);
         mCurrentLine.Truncate();
         
         if(mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
@@ -1450,7 +1452,7 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
 
 
 void
-nsPlainTextSerializer::EndLine(PRBool aSoftlinebreak)
+nsPlainTextSerializer::EndLine(PRBool aSoftlinebreak, PRBool aBreakBySpace)
 {
   PRUint32 currentlinelength = mCurrentLine.Length();
 
@@ -1482,7 +1484,13 @@ nsPlainTextSerializer::EndLine(PRBool aSoftlinebreak)
     
     
     
-    mCurrentLine.Append(PRUnichar(' '));
+
+    
+    
+    if (mFlags & nsIDocumentEncoder::OutputFormatDelSp && aBreakBySpace)
+      mCurrentLine.Append(NS_LITERAL_STRING("  "));
+    else
+      mCurrentLine.Append(PRUnichar(' '));
   }
 
   if(aSoftlinebreak) {
