@@ -11320,16 +11320,16 @@ nsCSSFrameConstructor::ReframeContainingBlock(nsIFrame* aFrame)
 void
 nsCSSFrameConstructor::RestyleForEmptyChange(Element* aContainer)
 {
-  Element* toRestyle = aContainer;
   
   
   
+  nsRestyleHint hint = eRestyle_Self;
   nsIContent* grandparent = aContainer->GetParent();
   if (grandparent &&
-      (grandparent->GetFlags() & NODE_HAS_SLOW_SELECTOR_NOAPPEND)) {
-    toRestyle = grandparent->AsElement();
+      (grandparent->GetFlags() & NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS)) {
+    hint = nsRestyleHint(hint | eRestyle_LaterSiblings);
   }
-  PostRestyleEvent(toRestyle, eRestyle_Self, NS_STYLE_HINT_NONE);
+  PostRestyleEvent(aContainer, hint, NS_STYLE_HINT_NONE);
 }
 
 void
@@ -11347,7 +11347,7 @@ nsCSSFrameConstructor::RestyleForAppend(Element* aContainer,
 #endif
   PRUint32 selectorFlags =
     aContainer->GetFlags() & (NODE_ALL_SELECTOR_FLAGS &
-                              ~NODE_HAS_SLOW_SELECTOR_NOAPPEND);
+                              ~NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS);
   if (selectorFlags == 0)
     return;
 
@@ -11394,6 +11394,25 @@ nsCSSFrameConstructor::RestyleForAppend(Element* aContainer,
 
 
 
+static void
+RestyleSiblingsStartingWith(nsCSSFrameConstructor *aFrameConstructor,
+                            nsIContent *aStartingSibling )
+{
+  for (nsIContent *sibling = aStartingSibling; sibling;
+       sibling = sibling->GetNextSibling()) {
+    if (sibling->IsElement()) {
+      aFrameConstructor->
+        PostRestyleEvent(sibling->AsElement(),
+                         nsRestyleHint(eRestyle_Self | eRestyle_LaterSiblings),
+                         NS_STYLE_HINT_NONE);
+      break;
+    }
+  }
+}
+
+
+
+
 
 
 
@@ -11431,11 +11450,15 @@ nsCSSFrameConstructor::RestyleForInsertOrChange(Element* aContainer,
     }
   }
 
-  if (selectorFlags & (NODE_HAS_SLOW_SELECTOR |
-                       NODE_HAS_SLOW_SELECTOR_NOAPPEND)) {
+  if (selectorFlags & NODE_HAS_SLOW_SELECTOR) {
     PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
     
     return;
+  }
+
+  if (selectorFlags & NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
+    
+    RestyleSiblingsStartingWith(this, aChild->GetNextSibling());
   }
 
   if (selectorFlags & NODE_HAS_EDGE_CHILD_SELECTOR) {
@@ -11509,11 +11532,15 @@ nsCSSFrameConstructor::RestyleForRemove(Element* aContainer,
     }
   }
 
-  if (selectorFlags & (NODE_HAS_SLOW_SELECTOR |
-                       NODE_HAS_SLOW_SELECTOR_NOAPPEND)) {
+  if (selectorFlags & NODE_HAS_SLOW_SELECTOR) {
     PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
     
     return;
+  }
+
+  if (selectorFlags & NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
+    
+    RestyleSiblingsStartingWith(this, aFollowingSibling);
   }
 
   if (selectorFlags & NODE_HAS_EDGE_CHILD_SELECTOR) {

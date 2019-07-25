@@ -144,13 +144,14 @@ enum {
   
   
   
-  NODE_HAS_SLOW_SELECTOR_NOAPPEND
+  
+  NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS
                                = 0x00010000U,
 
   NODE_ALL_SELECTOR_FLAGS =      NODE_HAS_EMPTY_SELECTOR |
                                  NODE_HAS_SLOW_SELECTOR |
                                  NODE_HAS_EDGE_CHILD_SELECTOR |
-                                 NODE_HAS_SLOW_SELECTOR_NOAPPEND,
+                                 NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS,
 
   NODE_MAY_HAVE_CONTENT_EDITABLE_ATTR
                                = 0x00020000U,
