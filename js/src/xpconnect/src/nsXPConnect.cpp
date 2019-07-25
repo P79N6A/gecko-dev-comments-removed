@@ -1070,7 +1070,8 @@ nsXPConnect::InitClasses(JSContext * aJSContext, JSObject * aGlobalJSObj)
         return UnexpectedFailure(NS_ERROR_FAILURE);
     SaveFrame sf(aJSContext);
 
-    xpc_InitJSxIDClassObjects();
+    if(!xpc_InitJSxIDClassObjects())
+        return UnexpectedFailure(NS_ERROR_FAILURE);
 
     if(!xpc_InitWrappedNativeJSOps())
         return UnexpectedFailure(NS_ERROR_FAILURE);
@@ -2147,6 +2148,15 @@ nsXPConnect::UpdateXOWs(JSContext* aJSContext,
 
     if(!list)
         return NS_OK; 
+
+    if(aWay == nsIXPConnect::XPC_XOW_NAVIGATED)
+    {
+        XPCWrappedNative *wn = static_cast<XPCWrappedNative *>(aObject);
+        NS_ASSERTION(wn->NeedsXOW(), "Window isn't a window");
+
+        XPCCrossOriginWrapper::WindowNavigated(aJSContext, wn);
+        return NS_OK;
+    }
 
     JSAutoRequest req(aJSContext);
 
