@@ -1126,6 +1126,12 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
     
     nsCOMPtr<nsIDOMNode> domNode(do_QueryInterface(mFocusedContent));
     sendFocusEvent = nsContentUtils::CanCallerAccess(domNode);
+    if (!sendFocusEvent && mMouseDownEventHandlingDocument) {
+      
+      
+      domNode = do_QueryInterface(mMouseDownEventHandlingDocument);
+      sendFocusEvent = nsContentUtils::CanCallerAccess(domNode);
+    }
   }
 
   if (sendFocusEvent) {

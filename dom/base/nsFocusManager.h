@@ -91,6 +91,16 @@ public:
   
 
 
+  void SetMouseButtonDownHandlingDocument(nsIDocument* aDocument)
+  {
+    NS_ASSERTION(!aDocument || !mMouseDownEventHandlingDocument,
+                 "Some mouse button down events are nested?");
+    mMouseDownEventHandlingDocument = aDocument;
+  }
+
+  
+
+
 
 
 
@@ -466,6 +476,14 @@ protected:
   
   
   nsTArray<nsDelayedBlurOrFocusEvent> mDelayedBlurFocusEvents;
+
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIDocument> mMouseDownEventHandlingDocument;
 
   
   static nsFocusManager* sInstance;
