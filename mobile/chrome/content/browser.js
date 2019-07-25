@@ -1950,8 +1950,7 @@ const ContentTouchHandler = {
     
     
     this.canCancelPan = (aX >= rect.left + kSafetyX) && (aX <= rect.right - kSafetyX) &&
-                        (aY >= rect.top  + kSafetyY) &&
-                        (bcr.top == 0 || Util.isTablet());
+                        (aY >= rect.top  + kSafetyY);
   },
 
   tapDown: function tapDown(aX, aY) {
