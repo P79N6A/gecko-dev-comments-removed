@@ -1,0 +1,233 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package org.mozilla.gecko.sync;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+
+import org.mozilla.apache.commons.codec.binary.Base64;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+import org.mozilla.gecko.sync.crypto.CryptoException;
+import org.mozilla.gecko.sync.crypto.CryptoInfo;
+import org.mozilla.gecko.sync.crypto.Cryptographer;
+import org.mozilla.gecko.sync.crypto.KeyBundle;
+import org.mozilla.gecko.sync.crypto.MissingCryptoInputException;
+import org.mozilla.gecko.sync.crypto.NoKeyBundleException;
+import org.mozilla.gecko.sync.crypto.Utils;
+import org.mozilla.gecko.sync.repositories.domain.Record;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+public class CryptoRecord extends Record {
+
+  
+  private static final String KEY_ID         = "id";
+  private static final String KEY_COLLECTION = "collection";
+  private static final String KEY_PAYLOAD    = "payload";
+  private static final String KEY_CIPHERTEXT = "ciphertext";
+  private static final String KEY_HMAC       = "hmac";
+  private static final String KEY_IV         = "IV";
+
+  
+
+
+
+
+
+
+
+  private static byte[] decryptPayload(ExtendedJSONObject payload, KeyBundle keybundle) throws CryptoException, UnsupportedEncodingException {
+    byte[] ciphertext = Base64.decodeBase64(((String) payload.get(KEY_CIPHERTEXT)).getBytes("UTF-8"));
+    byte[] iv         = Base64.decodeBase64(((String) payload.get(KEY_IV)).getBytes("UTF-8"));
+    byte[] hmac       = Utils.hex2Byte((String) payload.get(KEY_HMAC));
+    return Cryptographer.decrypt(new CryptoInfo(ciphertext, iv, hmac, keybundle));
+  }
+
+  
+  
+
+  public ExtendedJSONObject payload;
+  public KeyBundle   keyBundle;
+
+  
+
+
+  public CryptoRecord() {
+    super(null, null, 0, false);
+  }
+
+  public CryptoRecord(ExtendedJSONObject payload) {
+    super(null, null, 0, false);
+    if (payload == null) {
+      throw new IllegalArgumentException(
+          "No payload provided to CryptoRecord constructor.");
+    }
+    this.payload = payload;
+  }
+
+  public CryptoRecord(String jsonString) throws IOException, ParseException, NonObjectJSONException {
+    this(ExtendedJSONObject.parseJSONObject(jsonString));
+  }
+
+  
+
+
+
+
+  public CryptoRecord(Record source) {
+    super(source.guid, source.collection, source.lastModified, source.deleted);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  public static CryptoRecord fromJSONRecord(String jsonRecord) throws ParseException, NonObjectJSONException, IOException {
+    return CryptoRecord.fromJSONRecord(CryptoRecord.parseUTF8AsJSONObject(jsonRecord.getBytes("UTF-8")));
+  }
+
+  
+  public static CryptoRecord fromJSONRecord(ExtendedJSONObject jsonRecord) throws IOException, ParseException, NonObjectJSONException {
+    String id = (String) jsonRecord.get(KEY_ID);
+    String collection = (String) jsonRecord.get(KEY_COLLECTION);
+    ExtendedJSONObject payload = jsonRecord.getJSONObject(KEY_PAYLOAD);
+    CryptoRecord record = new CryptoRecord(payload);
+    record.guid = id;
+    record.collection = collection;
+
+    
+    
+    return record;
+  }
+
+  public void setKeyBundle(KeyBundle bundle) {
+    this.keyBundle = bundle;
+  }
+
+  private static ExtendedJSONObject parseUTF8AsJSONObject(byte[] in)
+      throws UnsupportedEncodingException, ParseException, NonObjectJSONException {
+    Object obj = new JSONParser().parse(new String(in, "UTF-8"));
+    if (obj instanceof JSONObject) {
+      return new ExtendedJSONObject((JSONObject) obj);
+    } else {
+      throw new NonObjectJSONException(obj);
+    }
+  }
+
+  public CryptoRecord decrypt() throws CryptoException, IOException, ParseException,
+                       NonObjectJSONException {
+    if (keyBundle == null) {
+      throw new NoKeyBundleException();
+    }
+
+    
+    if (!payload.containsKey(KEY_CIPHERTEXT) ||
+        !payload.containsKey(KEY_IV) ||
+        !payload.containsKey(KEY_HMAC)) {
+      throw new MissingCryptoInputException();
+    }
+
+    
+    
+    byte[] cleartext = decryptPayload(payload, keyBundle);
+    payload = CryptoRecord.parseUTF8AsJSONObject(cleartext);
+    return this;
+  }
+
+  public CryptoRecord encrypt() throws CryptoException, UnsupportedEncodingException {
+    if (this.keyBundle == null) {
+      throw new NoKeyBundleException();
+    }
+    String cleartext = payload.toJSONString();
+    byte[] cleartextBytes = cleartext.getBytes("UTF-8");
+    CryptoInfo info = new CryptoInfo(cleartextBytes, keyBundle);
+    Cryptographer.encrypt(info);
+    String message = new String(Base64.encodeBase64(info.getMessage()));
+    String iv      = new String(Base64.encodeBase64(info.getIV()));
+    String hmac    = Utils.byte2hex(info.getHMAC());
+    ExtendedJSONObject ciphertext = new ExtendedJSONObject();
+    ciphertext.put(KEY_CIPHERTEXT, message);
+    ciphertext.put(KEY_HMAC, hmac);
+    ciphertext.put(KEY_IV, iv);
+    this.payload = ciphertext;
+    return this;
+  }
+
+  @Override
+  public void initFromPayload(CryptoRecord payload) {
+    throw new IllegalStateException("Can't do this with a CryptoRecord.");
+  }
+
+  @Override
+  public CryptoRecord getPayload() {
+    throw new IllegalStateException("Can't do this with a CryptoRecord.");
+  }
+
+  
+  public JSONObject toJSONObject() {
+    ExtendedJSONObject o = new ExtendedJSONObject();
+    o.put(KEY_PAYLOAD, payload.toJSONString());
+    o.put(KEY_ID,      this.guid);
+    return o.object;
+  }
+}

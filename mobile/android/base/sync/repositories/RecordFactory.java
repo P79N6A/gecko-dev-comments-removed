@@ -1,0 +1,46 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package org.mozilla.gecko.sync.repositories;
+
+import org.mozilla.gecko.sync.repositories.domain.Record;
+
+
+
+public abstract class RecordFactory {
+  public abstract Record createRecord(Record record);
+}

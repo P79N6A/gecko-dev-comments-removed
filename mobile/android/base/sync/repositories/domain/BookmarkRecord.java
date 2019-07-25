@@ -1,0 +1,262 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package org.mozilla.gecko.sync.repositories.domain;
+
+import org.json.simple.JSONArray;
+import org.mozilla.gecko.sync.CryptoRecord;
+import org.mozilla.gecko.sync.ExtendedJSONObject;
+import org.mozilla.gecko.sync.Utils;
+import org.mozilla.gecko.sync.repositories.android.RepoUtils;
+
+
+
+
+
+
+public class BookmarkRecord extends Record {
+
+  public static final String COLLECTION_NAME = "bookmarks";
+
+  public BookmarkRecord(String guid, String collection, long lastModified, boolean deleted) {
+    super(guid, collection, lastModified, deleted);
+  }
+  public BookmarkRecord(String guid, String collection, long lastModified) {
+    super(guid, collection, lastModified, false);
+  }
+  public BookmarkRecord(String guid, String collection) {
+    super(guid, collection, 0, false);
+  }
+  public BookmarkRecord(String guid) {
+    super(guid, COLLECTION_NAME, 0, false);
+  }
+  public BookmarkRecord() {
+    super(Utils.generateGuid(), COLLECTION_NAME, 0, false);
+  }
+
+  
+  
+  public String  title;
+  public String  bookmarkURI;
+  public String  description;
+  public String  keyword;
+  public String  parentID;
+  public String  parentName;
+  public long    androidParentID;
+  public String  type;
+  public String  pos;
+  public long    androidPosition;
+
+  public JSONArray children;
+  public JSONArray tags;
+
+  private static boolean getBooleanProperty(ExtendedJSONObject object, String property, boolean defaultValue) {
+    Object val = object.get(property);
+    if (val instanceof Boolean) {
+      return ((Boolean) val).booleanValue();
+    }
+    return defaultValue;
+  }
+
+  @Override
+  public void initFromPayload(CryptoRecord payload) {
+    ExtendedJSONObject p = payload.payload;
+
+    
+    this.type          = (String) p.get("type");
+    this.title         = (String) p.get("title");
+    this.description   = (String) p.get("description");
+    this.parentID      = (String) p.get("parentid");
+    this.parentName    = (String) p.get("parentName");
+
+    
+    if (isBookmark()) {
+      this.bookmarkURI   = (String) p.get("bmkUri");
+      this.keyword       = (String) p.get("keyword");
+      this.tags          = (JSONArray) p.get("tags");
+    }
+    
+    if (isFolder()) {
+      this.children      = (JSONArray) p.get("children");
+    }
+
+    
+    
+    
+
+
+
+
+
+
+
+
+  }
+
+  public boolean isBookmark() {
+    return "bookmark".equals(this.type);
+  }
+
+  public boolean isFolder() {
+    return "folder".equals(this.type);
+  }
+
+  @Override
+  public CryptoRecord getPayload() {
+    CryptoRecord rec = new CryptoRecord(this);
+    rec.payload = new ExtendedJSONObject();
+    rec.payload.put("type", this.type);
+    rec.payload.put("title", this.title);
+    rec.payload.put("description", this.description);
+    rec.payload.put("parentid", this.parentID);
+    rec.payload.put("parentName", this.parentName);
+    if (isBookmark()) {
+      rec.payload.put("bmkUri", bookmarkURI);
+      rec.payload.put("keyword", keyword);
+      rec.payload.put("tags", this.tags);
+    }
+    if (isFolder()) {
+      rec.payload.put("children", this.children);
+    }
+    return rec;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof BookmarkRecord)) {
+      return false;
+    }
+
+    BookmarkRecord other = (BookmarkRecord) o;
+    
+    if (!super.equals(other)) {
+      return false;
+    }
+
+    
+    if (isFolder()) {
+      
+      if (this.children == other.children) {
+        return true;
+      }
+      if (this.children  == null &&
+          other.children != null) {
+        return false;
+      }
+      if (this.children  != null &&
+          other.children == null) {
+        return false;
+      }
+      if (this.children.size() != other.children.size()) {
+        return false;
+      }
+
+      for (int i = 0; i < this.children.size(); i++) {
+        String child = (String) this.children.get(i);
+        if (!other.children.contains(child)) {
+          return false;
+        }
+      }
+    }
+
+    return RepoUtils.stringsEqual(this.title, other.title)
+        && RepoUtils.stringsEqual(this.bookmarkURI, other.bookmarkURI)
+        && RepoUtils.stringsEqual(this.parentID, other.parentID)
+        && RepoUtils.stringsEqual(this.parentName, other.parentName)
+        && RepoUtils.stringsEqual(this.type, other.type)
+        && RepoUtils.stringsEqual(this.description, other.description)
+        && RepoUtils.stringsEqual(this.keyword, other.keyword)
+        && jsonArrayStringsEqual(this.tags, other.tags);
+  }
+  
+  
+  
+  
+  private boolean jsonArrayStringsEqual(JSONArray a, JSONArray b) {
+    
+    if (a == b) return true;
+    if (a == null && b != null) return false;
+    if (a != null && b == null) return false;
+    return RepoUtils.stringsEqual(a.toJSONString(), b.toJSONString());
+  }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
