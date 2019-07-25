@@ -192,12 +192,14 @@ nsSMILAnimationController::RegisterAnimationElement(
   NS_ASSERTION(!mRunningSample, "Registering content during sample.");
   mAnimationElementTable.PutEntry(aAnimationElement);
   if (mDeferredStartSampling) {
-    
-    NS_ABORT_IF_FALSE(mAnimationElementTable.Count() == 1,
-                      "we shouldn't have deferred sampling if we already had "
-                      "animations registered");
     mDeferredStartSampling = PR_FALSE;
-    StartSampling(GetRefreshDriverForDoc(mDocument));
+    if (mChildContainerTable.Count()) {
+      
+      NS_ABORT_IF_FALSE(mAnimationElementTable.Count() == 1,
+                        "we shouldn't have deferred sampling if we already had "
+                        "animations registered");
+      StartSampling(GetRefreshDriverForDoc(mDocument));
+    } 
   }
 }
 
