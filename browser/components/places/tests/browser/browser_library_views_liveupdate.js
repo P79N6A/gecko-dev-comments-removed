@@ -254,7 +254,7 @@ var bookmarksObserver = {
           break;
         }
         
-      case type == PlacesUtils.bookmarks.TYPE_SEPARATOR:
+      case PlacesUtils.bookmarks.TYPE_SEPARATOR:
         is(node, null, "New Places node not added in left pane");
         break;
       default:
