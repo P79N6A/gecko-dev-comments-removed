@@ -1039,6 +1039,18 @@ pref("devtools.hud.height", 0);
 pref("devtools.webconsole.position", "above");
 
 
+pref("devtools.webconsole.filter.network", true);
+pref("devtools.webconsole.filter.networkinfo", true);
+pref("devtools.webconsole.filter.csserror", true);
+pref("devtools.webconsole.filter.cssparser", true);
+pref("devtools.webconsole.filter.exception", true);
+pref("devtools.webconsole.filter.jswarn", true);
+pref("devtools.webconsole.filter.error", true);
+pref("devtools.webconsole.filter.warn", true);
+pref("devtools.webconsole.filter.info", true);
+pref("devtools.webconsole.filter.log", true);
+
+
 
 pref("devtools.hud.loglimit.network", 200);
 pref("devtools.hud.loglimit.cssparser", 200);
