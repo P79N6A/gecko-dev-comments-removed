@@ -396,6 +396,8 @@
 
 
 
+
+
 #  define MOZ_BEGIN_ENUM_CLASS(Name, type) \
      class Name \
      { \
@@ -404,6 +406,7 @@
          {
 #  define MOZ_END_ENUM_CLASS(Name) \
          }; \
+         Name() {} \
          Name(Enum aEnum) : mEnum(aEnum) {} \
          explicit Name(int num) : mEnum((Enum)num) {} \
          operator Enum() const { return mEnum; } \
