@@ -1181,6 +1181,19 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
         return 0;
     }
 
+    
+    
+    
+    
+    
+    switch(message) {    
+      case WM_LBUTTONUP:
+      case WM_MBUTTONUP:
+      case WM_RBUTTONUP:
+      ReleaseCapture();
+      break;
+    }
+
     LRESULT res = CallWindowProc(self->mPluginWndProc, hWnd, message, wParam,
                                  lParam);
 
