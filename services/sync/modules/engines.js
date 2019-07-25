@@ -297,6 +297,9 @@ SyncEngine.prototype = {
       meta.addUnwrappedKey(pubkey, symkey);
       let res = new Resource(meta.uri);
       res.put(meta.serialize());
+
+      
+      CryptoMetas.set(meta.uri, meta);
     }
 
     
