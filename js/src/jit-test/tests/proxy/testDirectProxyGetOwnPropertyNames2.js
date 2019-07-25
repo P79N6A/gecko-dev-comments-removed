@@ -1,0 +1,16 @@
+
+
+
+
+var target = {};
+var called = false;
+var handler = {
+    getOwnPropertyNames: function (target1) {
+        assertEq(this, handler);
+        assertEq(target1, target);
+        called = true;
+        return [];
+    }
+};
+assertEq(Object.getOwnPropertyNames(new Proxy(target, handler)).length, 0);
+assertEq(called, true);

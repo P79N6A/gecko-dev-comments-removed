@@ -168,7 +168,16 @@ struct PropDesc {
 
 
 
-    bool initialize(JSContext* cx, const Value &v, bool checkAccessors = true);
+    bool initialize(JSContext *cx, const Value &v, bool checkAccessors = true);
+
+    
+
+
+
+
+
+
+    void complete();
 
     
 
