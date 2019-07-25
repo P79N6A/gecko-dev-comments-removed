@@ -1105,9 +1105,38 @@ class Assembler
         VFP_LessThan = CC 
     };
 
+    
+    
+    
+    static const int DoubleConditionBitSpecial = 0x1;
+
+    enum DoubleCondition {
+        
+        DoubleOrdered = VFP_NotUnordered,
+        DoubleEqual = VFP_Equal,
+        DoubleNotEqual = VFP_NotEqualOrUnordered | DoubleConditionBitSpecial,
+        DoubleGreaterThan = VFP_GreaterThan,
+        DoubleGreaterThanOrEqual = VFP_GreaterThanOrEqual,
+        DoubleLessThan = VFP_LessThan,
+        DoubleLessThanOrEqual = VFP_LessThanOrEqual,
+        
+        DoubleUnordered = VFP_Unordered,
+        DoubleEqualOrUnordered = VFP_Equal | DoubleConditionBitSpecial,
+        DoubleNotEqualOrUnordered = VFP_NotEqualOrUnordered,
+        DoubleGreaterThanOrUnordered = VFP_GreaterThanOrUnordered,
+        DoubleGreaterThanOrEqualOrUnordered = VFP_GreaterThanOrEqualOrUnordered,
+        DoubleLessThanOrUnordered = VFP_LessThanOrUnordered,
+        DoubleLessThanOrEqualOrUnordered = VFP_LessThanOrEqualOrUnordered
+    };
+
     Condition getCondition(uint32 inst) {
         return (Condition) (0xf0000000 & inst);
     }
+    static inline Condition ConditionFromDoubleCondition(DoubleCondition cond) {
+        JS_ASSERT(!(cond & DoubleConditionBitSpecial));
+        return static_cast<Condition>(cond);
+    }
+
     
     
 

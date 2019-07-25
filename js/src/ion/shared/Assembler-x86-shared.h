@@ -100,6 +100,39 @@ class AssemblerX86Shared
         NoParity = JSC::X86Assembler::ConditionNP
     };
 
+    
+    static const int DoubleConditionBitInvert = 0x10;
+
+    
+    
+    static const int DoubleConditionBitSpecial = 0x20;
+    static const int DoubleConditionBits = DoubleConditionBitInvert | DoubleConditionBitSpecial;
+
+    enum DoubleCondition {
+        
+        DoubleOrdered = NoParity,
+        DoubleEqual = Equal | DoubleConditionBitSpecial,
+        DoubleNotEqual = NotEqual,
+        DoubleGreaterThan = Above,
+        DoubleGreaterThanOrEqual = AboveOrEqual,
+        DoubleLessThan = Above | DoubleConditionBitInvert,
+        DoubleLessThanOrEqual = AboveOrEqual | DoubleConditionBitInvert,
+        
+        DoubleUnordered = Parity,
+        DoubleEqualOrUnordered = Equal,
+        DoubleNotEqualOrUnordered = NotEqual | DoubleConditionBitSpecial,
+        DoubleGreaterThanOrUnordered = Below | DoubleConditionBitInvert,
+        DoubleGreaterThanOrEqualOrUnordered = BelowOrEqual | DoubleConditionBitInvert,
+        DoubleLessThanOrUnordered = Below,
+        DoubleLessThanOrEqualOrUnordered = BelowOrEqual
+    };
+
+    static void staticAsserts() {
+        
+        JS_STATIC_ASSERT(!((Equal | NotEqual | Above | AboveOrEqual | Below |
+                            BelowOrEqual | Parity | NoParity) & DoubleConditionBits));
+    }
+
     AssemblerX86Shared()
       : dataBytesNeeded_(0),
         enoughMemory_(true)
@@ -107,6 +140,10 @@ class AssemblerX86Shared
     }
 
     static Condition InvertCondition(Condition cond);
+
+    static inline Condition ConditionFromDoubleCondition(DoubleCondition cond) {
+        return static_cast<Condition>(cond & ~DoubleConditionBits);
+    }
 
     static void TraceDataRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
 

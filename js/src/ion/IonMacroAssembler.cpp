@@ -248,7 +248,7 @@ MacroAssembler::loadFromTypedArray(int arrayType, const T &src, AnyRegister dest
 
         
         Label notNaN;
-        branchCompareDoubles(Assembler::NoParity, dest.fpu(), dest.fpu(), &notNaN);
+        branchDouble(DoubleOrdered, dest.fpu(), dest.fpu(), &notNaN);
         {
             loadStaticDouble(&js_NaN, dest.fpu());
         }
@@ -339,7 +339,7 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
 
     
     zeroDouble(ScratchFloatReg);
-    j(compareDoubles(JSOP_GT, input, ScratchFloatReg), &positive); 
+    branchDouble(DoubleGreaterThan, input, ScratchFloatReg, &positive);
     {
         move32(Imm32(0), output);
         jump(&done);
@@ -358,7 +358,7 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
     {
         
         convertInt32ToDouble(output, ScratchFloatReg);
-        branchCompareDoubles(Assembler::NotEqual, input, ScratchFloatReg, &done);
+        branchDouble(DoubleNotEqual, input, ScratchFloatReg, &done);
 
         
         
