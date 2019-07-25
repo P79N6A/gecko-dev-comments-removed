@@ -529,6 +529,8 @@ UIClass.prototype = {
   
   init: function() {
     try {
+      Utils.log('TabCandy init --------------------');
+      
       
       
       this.navBar = Navbar;
@@ -617,9 +619,8 @@ UIClass.prototype = {
           box.inset(10, 10);
           let options = {padding: 10};
           Items.arrange(items, box, options);
-        } else
-          TabItems.reconstitute();
-
+        } 
+        
         
         if(data.pageBounds) {
           self.pageBounds = data.pageBounds;

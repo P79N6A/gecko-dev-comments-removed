@@ -56,10 +56,6 @@ Storage = {
     try {
       var win = Utils.getCurrentWindow();
       
-      
-      if (!win)
-      	win = Utils.getCurrentWindow();
-      
       var self = this;
       
       
