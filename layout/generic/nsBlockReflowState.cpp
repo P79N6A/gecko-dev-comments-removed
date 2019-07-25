@@ -51,7 +51,6 @@
 #include "nsIFrame.h"
 #include "nsFrameManager.h"
 #include "mozilla/AutoRestore.h"
-#include "FrameLayerBuilder.h"
 
 #include "nsINameSpaceManager.h"
 
@@ -857,13 +856,9 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   
   
-  PRBool moved = aFloat->GetPosition() != origin;
-  if (moved) {
-    aFloat->SetPosition(origin);
-    nsContainerFrame::PositionFrameView(aFloat);
-    nsContainerFrame::PositionChildViews(aFloat);
-    FrameLayerBuilder::InvalidateThebesLayersInSubtree(aFloat);
-  }
+  aFloat->SetPosition(origin);
+  nsContainerFrame::PositionFrameView(aFloat);
+  nsContainerFrame::PositionChildViews(aFloat);
 
   
   
