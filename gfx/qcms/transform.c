@@ -1078,7 +1078,8 @@ qcms_transform* qcms_transform_precacheLUT_float(qcms_transform *transform, qcms
 	
 	if (src && lut != src) {
 		free(src);
-	} else if (dest && lut != src) {
+	}
+	if (dest && lut != dest) {
 		free(dest);
 	}
 
