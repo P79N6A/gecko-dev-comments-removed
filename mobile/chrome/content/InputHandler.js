@@ -138,10 +138,6 @@ function InputHandler(browserViewContainer) {
   this._suppressNextClick = false;
 
   
-  this.listenFor(window, "URLChanged");
-  this.listenFor(window, "TabSelect");
-
-  
   this.listenFor(window, "mousedown");
   this.listenFor(window, "mouseup");
   this.listenFor(window, "mousemove");
@@ -307,12 +303,6 @@ InputHandler.prototype = {
     
     if (aEvent.view != window)
       return;
-
-    
-    if (aEvent.type == "URLChanged" || aEvent.type == "TabSelect") {
-      this.grab(null);
-      return;
-    }
 
     if (this._suppressNextClick && aEvent.type == "click") {
       this._suppressNextClick = false;
@@ -493,6 +483,11 @@ MouseModule.prototype = {
     
     let [targetScrollbox, targetScrollInterface]
       = this.getScrollboxFromElement(evInfo.event.target);
+
+    
+    let oldInterface = this._targetScrollInterface;
+    if (this._kinetic.isActive() && targetScrollInterface != oldInterface)
+      this._kinetic.end();
 
     let targetClicker = this.getClickerFromElement(evInfo.event.target);
 
