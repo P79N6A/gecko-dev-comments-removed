@@ -581,6 +581,11 @@ let ViewportHandler = {
 
     
     
+    if (Util.isParentProcess())
+      return { defaultZoom: 1.0, autoSize: true, allowZoom: false };
+
+    
+    
     
 
     
