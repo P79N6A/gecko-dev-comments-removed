@@ -1461,9 +1461,10 @@ WeaveSvc.prototype = {
         break;
     }
 
+    
     if (Clients.localCommands) {
       try {
-        if (!(Clients.processIncomingCommands())) {
+        if (!(this.processCommands())) {
           Status.sync = ABORT_SYNC_COMMAND;
           throw "aborting sync, process commands said so";
         }
@@ -1823,13 +1824,11 @@ WeaveSvc.prototype = {
       this.wipeServer(engines);
 
       
-      if (engines) {
-        engines.forEach(function(e) Clients.sendCommand("wipeEngine", [e]), this);
-      }
+      if (engines)
+        engines.forEach(function(e) this.prepCommand("wipeEngine", [e]), this);
       
-      else {
-        Clients.sendCommand("wipeAll", []);
-      }
+      else
+        this.prepCommand("wipeAll", []);
 
       
       Clients.sync();
@@ -1871,6 +1870,94 @@ WeaveSvc.prototype = {
       for each (let engine in engines)
         engine.resetClient();
     }))(),
+
+  
+
+
+
+
+  _commands: [
+    ["resetAll", 0, "Clear temporary local data for all engines"],
+    ["resetEngine", 1, "Clear temporary local data for engine"],
+    ["wipeAll", 0, "Delete all client data for all engines"],
+    ["wipeEngine", 1, "Delete all client data for engine"],
+    ["logout", 0, "Log out client"],
+  ].reduce(function WeaveSvc__commands(commands, entry) {
+    commands[entry[0]] = {};
+    for (let [i, attr] in Iterator(["args", "desc"]))
+      commands[entry[0]][attr] = entry[i + 1];
+    return commands;
+  }, {}),
+
+  
+
+
+
+
+  processCommands: function WeaveSvc_processCommands()
+    this._notify("process-commands", "", function() {
+      
+      let commands = Clients.localCommands;
+      Clients.clearCommands();
+
+      
+      for each ({command: command, args: args} in commands) {
+        this._log.debug("Processing command: " + command + "(" + args + ")");
+
+        let engines = [args[0]];
+        switch (command) {
+          case "resetAll":
+            engines = null;
+            
+          case "resetEngine":
+            this.resetClient(engines);
+            break;
+          case "wipeAll":
+            engines = null;
+            
+          case "wipeEngine":
+            this.wipeClient(engines);
+            break;
+          case "logout":
+            this.logout();
+            return false;
+          default:
+            this._log.debug("Received an unknown command: " + command);
+            break;
+        }
+      }
+
+      return true;
+    })(),
+
+  
+
+
+
+
+
+
+
+
+
+  prepCommand: function WeaveSvc_prepCommand(command, args) {
+    let commandData = this._commands[command];
+    
+    if (commandData == null) {
+      this._log.error("Unknown command to send: " + command);
+      return;
+    }
+    
+    else if (args == null || args.length != commandData.args) {
+      this._log.error("Expected " + commandData.args + " args for '" +
+                      command + "', but got " + args);
+      return;
+    }
+
+    
+    this._log.debug("Sending clients: " + [command, args, commandData.desc]);
+    Clients.sendCommand(command, args);
+  },
 
   
 
