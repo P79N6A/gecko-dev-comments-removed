@@ -295,7 +295,7 @@ void Sampler::Start() {
   
   
   
-  SetActive(true);
+  active_ = true;
   if (pthread_create(
           &data_->signal_sender_thread_, NULL, SenderEntry, data_) == 0) {
     data_->signal_sender_launched_ = true;
@@ -308,7 +308,7 @@ void Sampler::Start() {
 
 
 void Sampler::Stop() {
-  SetActive(false);
+  active_ = false;
 
   
   
