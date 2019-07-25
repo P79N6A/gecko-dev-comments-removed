@@ -2912,7 +2912,7 @@ HUD_SERVICE.prototype =
           !item.classList.contains("hud-filtered-by-string")) {
         let timestampString = ConsoleUtils.timestampString(item.timestamp);
         if (newGroup) {
-          strings.push("\n");
+          strings.push("--");
           newGroup = false;
         }
         strings.push("[" + timestampString + "] " + item.clipboardText);
