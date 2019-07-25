@@ -1702,15 +1702,36 @@ nsObjectFrame::GetImageContainer()
   return mImageContainer;
 }
 
+class AsyncPaintWaitEvent : public nsRunnable
+{
+public:
+  AsyncPaintWaitEvent(nsIContent* aContent, PRBool aFinished) :
+    mContent(aContent), mFinished(aFinished)
+  {
+  }
+
+  NS_IMETHOD Run()
+  {
+    nsContentUtils::DispatchTrustedEvent(mContent->GetOwnerDoc(), mContent,
+        mFinished ? NS_LITERAL_STRING("MozPaintWaitFinished") : NS_LITERAL_STRING("MozPaintWait"),
+        PR_TRUE, PR_TRUE);
+    return NS_OK;
+  }
+
+private:
+  nsCOMPtr<nsIContent> mContent;
+  PRPackedBool         mFinished;
+};
+
 void
 nsPluginInstanceOwner::NotifyPaintWaiter(nsDisplayListBuilder* aBuilder)
 {
   
   if (!mWaitingForPaint && !IsUpToDate() && aBuilder->ShouldSyncDecodeImages()) {
-    nsContentUtils::DispatchTrustedEvent(mContent->GetOwnerDoc(), mContent,
-                                         NS_LITERAL_STRING("MozPaintWait"),
-                                         PR_TRUE, PR_TRUE);
-    mWaitingForPaint = PR_TRUE;
+    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, PR_FALSE);
+    
+    
+    mWaitingForPaint = nsContentUtils::AddScriptRunner(event);
   }
 }
 
@@ -2852,6 +2873,13 @@ nsPluginInstanceOwner::~nsPluginInstanceOwner()
   PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
          ("nsPluginInstanceOwner %p deleted\n", this));
 
+  if (mWaitingForPaint) {
+    
+    
+    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, PR_TRUE);
+    NS_DispatchToMainThread(event);
+  }
+
 #ifdef MAC_CARBON_PLUGINS
   CancelTimer();
 #endif
@@ -3112,9 +3140,16 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetDocument(nsIDocument* *aDocument)
 
 NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
 {
+  if (mWaitingForPaint && IsUpToDate()) {
+    
+    
+    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, PR_TRUE);
+    NS_DispatchToMainThread(event);
+    mWaitingForPaint = false;
+  }
+
   if (!mObjectFrame || !invalidRect || !mWidgetVisible)
     return NS_ERROR_FAILURE;
-
 
   
   
@@ -3122,13 +3157,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
   nsRefPtr<ImageContainer> container = mObjectFrame->GetImageContainer();
   if (container) {
     SetCurrentImage(container);
-  }
-
-  if (mWaitingForPaint && IsUpToDate()) {
-    nsContentUtils::DispatchTrustedEvent(mContent->GetOwnerDoc(), mContent,
-                                         NS_LITERAL_STRING("MozPaintWaitFinished"),
-                                         PR_TRUE, PR_TRUE);
-    mWaitingForPaint = false;
   }
 
 #ifdef MOZ_USE_IMAGE_EXPOSE
