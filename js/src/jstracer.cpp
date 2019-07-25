@@ -15270,9 +15270,7 @@ TraceRecorder::record_JSOP_BINDNAME()
 #endif
 
         
-
-
-
+        
         while (obj->isBlock()) {
             
 #ifdef DEBUG
@@ -15290,17 +15288,11 @@ TraceRecorder::record_JSOP_BINDNAME()
         }
 
         
-
-
-
-        if (obj != globalObj) {
-            JS_ASSERT(obj->isCall());
-            JS_ASSERT(obj->callIsForEval());
-            RETURN_STOP_A("BINDNAME within strict eval code");
-        }
+        
+        
+        JS_ASSERT(obj == globalObj);
 
         
-
 
 
 
