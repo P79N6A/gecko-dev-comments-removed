@@ -137,14 +137,9 @@ PluginModuleChild::~PluginModuleChild()
     if (mLibrary) {
         PR_UnloadLibrary(mLibrary);
     }
-#ifdef MOZ_WIDGET_QT
-    nsQAppInstance::Release();
-    if (sGtkLib) {
-        PR_UnloadLibrary(sGtkLib);
-        sGtkLib = nsnull;
-        s_gtk_init = nsnull;
-    }
-#endif
+
+    DeinitGraphics();
+
     gInstance = nsnull;
 }
 
@@ -557,6 +552,26 @@ PluginModuleChild::InitGraphics()
 #endif
 
     return true;
+}
+
+void
+PluginModuleChild::DeinitGraphics()
+{
+#ifdef MOZ_WIDGET_QT
+    nsQAppInstance::Release();
+    if (sGtkLib) {
+        PR_UnloadLibrary(sGtkLib);
+        sGtkLib = nsnull;
+        s_gtk_init = nsnull;
+    }
+#endif
+
+#if defined(MOZ_X11) && defined(NS_FREE_PERMANENT_DATA)
+    
+    
+    
+    XCloseDisplay(DefaultXDisplay());
+#endif
 }
 
 bool
