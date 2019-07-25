@@ -189,6 +189,11 @@ namespace nanojit
         static void add(CodeList* &code, NIns* start, NIns* end);
 
         
+#ifdef PERFM
+        static size_t size(const CodeList* code);
+#endif
+
+        
         size_t size();
 
         

@@ -428,6 +428,18 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
         }
     }
 
+#ifdef PERFM
+    
+    
+
+    size_t CodeAlloc::size(const CodeList* blocks) {
+        size_t size = 0;
+        for (const CodeList* b = blocks; b != 0; b = b->next)
+            size += int((uintptr_t)b->end - (uintptr_t)b);
+        return size;
+    }
+#endif
+
     size_t CodeAlloc::size() {
         return totalAllocated;
     }
