@@ -114,7 +114,8 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
     
     
-    if (!script->bindings.initWithTemporaryStorage(cx, 0, 0, NULL))
+    InternalHandle<Bindings*> bindings(script, &script->bindings);
+    if (!Bindings::initWithTemporaryStorage(cx, bindings, 0, 0, NULL))
         return NULL;
 
     
@@ -327,7 +328,8 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     if (!script)
         return false;
 
-    if (!funpc.generateFunctionBindings(cx, &script->bindings))
+    InternalHandle<Bindings*> bindings(script, &script->bindings);
+    if (!funpc.generateFunctionBindings(cx, bindings))
         return false;
 
     BytecodeEmitter funbce( NULL, &parser, &funsc, script,  NULL,

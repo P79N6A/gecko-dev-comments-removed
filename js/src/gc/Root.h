@@ -240,6 +240,73 @@ typedef JSObject *                  RawObject;
 typedef JSString *                  RawString;
 typedef Value                       RawValue;
 
+
+
+
+
+
+
+class InternalHandleBase
+{
+  protected:
+    static void * const zeroPointer;
+};
+
+template <typename T>
+class InternalHandle { };
+
+template <typename T>
+class InternalHandle<T*> : public InternalHandleBase
+{
+    void * const *holder;
+    size_t offset;
+
+  public:
+    
+
+
+
+    template<typename H>
+    InternalHandle(const Handle<H> &handle, T *field)
+      : holder((void**)handle.address()), offset(uintptr_t(field) - uintptr_t(handle.get()))
+    {
+    }
+
+    
+
+
+    template<typename R>
+    InternalHandle(const Rooted<R> &root, T *field)
+      : holder((void**)root.address()), offset(uintptr_t(field) - uintptr_t(root.get()))
+    {
+    }
+
+    T *get() const { return reinterpret_cast<T*>(uintptr_t(*holder) + offset); }
+
+    const T& operator *() const { return *get(); }
+    T* operator ->() const { return get(); }
+
+    static InternalHandle<T*> fromMarkedLocation(T *fieldPtr) {
+        return InternalHandle(fieldPtr);
+    }
+
+  private:
+    
+
+
+
+
+
+
+
+
+    InternalHandle(T *field)
+      : holder(reinterpret_cast<void * const *>(&zeroPointer)),
+        offset(uintptr_t(field))
+    {
+    }
+};
+
 extern mozilla::ThreadLocal<JSRuntime *> TlsRuntime;
 
 

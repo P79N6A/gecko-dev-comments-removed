@@ -151,7 +151,7 @@ struct ParseContext
 
 
 
-    bool generateFunctionBindings(JSContext *cx, Bindings *bindings) const;
+    bool generateFunctionBindings(JSContext *cx, InternalHandle<Bindings*> bindings) const;
 
   public:
     ParseNode       *yieldNode;     
