@@ -107,13 +107,13 @@ Utils.lazy(Weave, 'Service', WeaveSvc);
 
 
 
-function WeaveSvc() {}
+function WeaveSvc() {
+  this._notify = Wrap.notify("weave:service:");
+}
 WeaveSvc.prototype = {
 
-  _notify: Wrap.notify,
   _localLock: Wrap.localLock,
   _catchAll: Wrap.catchAll,
-  _osPrefix: "weave:service:",
   _isQuitting: false,
   _loggedIn: false,
   _syncInProgress: false,
@@ -550,7 +550,7 @@ WeaveSvc.prototype = {
     this._keyPair = {};
     ID.get('WeaveID').setTempPassword(null); 
     ID.get('WeaveCryptoID').setTempPassword(null); 
-    this._os.notifyObservers(null, "weave:service:logout:success", "");
+    this._os.notifyObservers(null, "weave:service:logout:finish", "");
   },
 
   serverWipe: function WeaveSvc_serverWipe(onComplete) {

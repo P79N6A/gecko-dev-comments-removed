@@ -42,6 +42,7 @@ const Cr = Components.results;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://weave/ext/Observers.js");
 Cu.import("resource://weave/log4moz.js");
 Cu.import("resource://weave/async.js");
 Cu.import("resource://weave/util.js");
@@ -74,39 +75,35 @@ let Wrap = {
   
   
   
-  notify: function Weave_notify(name, payload, method ) {
-    let savedName = name;
-    let savedPayload = payload;
-    let savedMethod = method;
-    let savedArgs = Array.prototype.slice.call(arguments, 3);
+  
+  notify: function WeaveWrap_notify(prefix) {
+    return function NotifyWrapMaker(name, subject, method) {
+      let savedArgs = Array.prototype.slice.call(arguments, 4);
+      return function NotifyWrap() {
+        let self = yield;
+        let ret;
+        let args = Array.prototype.slice.call(arguments);
 
-    return function WeaveNotifyWrapper() {
-      let self = yield;
-      let ret;
-      let args = Array.prototype.slice.call(arguments);
+        try {
+          this._log.debug("Event: " + prefix + name + ":start");
+          Observers.notify(prefix + name + ":start", subject);
 
-      try {
-        this._log.debug("Event: " + this._osPrefix + savedName + ":start");
-        this._os.notifyObservers(null, this._osPrefix + savedName + ":start", savedPayload);
-        this._os.notifyObservers(null, this._osPrefix + "global:start", savedPayload);
+          args = savedArgs.concat(args);
+          args.unshift(this, method, self.cb);
+          Async.run.apply(Async, args);
+          ret = yield;
 
-        args = savedArgs.concat(args);
-        args.unshift(this, savedMethod, self.cb);
-        Async.run.apply(Async, args);
-        ret = yield;
+          this._log.debug("Event: " + prefix + name + ":finish");
+          let foo = Observers.notify(prefix + name + ":finish", subject);
 
-        this._log.debug("Event: " + this._osPrefix + savedName + ":success");
-        this._os.notifyObservers(null, this._osPrefix + savedName + ":success", savedPayload);
-        this._os.notifyObservers(null, this._osPrefix + "global:success", savedPayload);
+        } catch (e) {
+          this._log.debug("Event: " + prefix + name + ":error");
+          Observers.notify(prefix + name + ":error", subject);
+	  throw e;
+        }
 
-      } catch (e) {
-        this._log.debug("Event: " + this._osPrefix + savedName + ":error");
-        this._os.notifyObservers(null, this._osPrefix + savedName + ":error", savedPayload);
-        this._os.notifyObservers(null, this._osPrefix + "global:error", savedPayload);
-	throw e;
-      }
-
-      self.done(ret);
+        self.done(ret);
+      };
     };
   },
 
