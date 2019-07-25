@@ -28,13 +28,26 @@ function Aitc() {
     Preferences.get("services.aitc.dashboard.url")
   ).prePath;
 
-  this._manager = new AitcManager(this._init.bind(this));
+  let self = this;
+  this._manager = new AitcManager(function managerDone() {
+    CommonUtils.nextTick(self._init, self);
+  });
 }
 Aitc.prototype = {
   
   
-  _init: function init() {
+  
+  _init: function _init() {
     let self = this;
+
+    
+    this._manager.initialSchedule(function queueDone(num) {
+      if (num == -1) {
+        self._log.debug("No initial upload was required");
+        return;
+      }
+      self._log.debug(num + " initial apps queued successfully");
+    });
 
     
     function dashboardLoaded(browser) {

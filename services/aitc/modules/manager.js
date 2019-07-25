@@ -42,7 +42,7 @@ function AitcManager(cb, premadeClient, premadeToken) {
   this._tokenDuration = INITIAL_TOKEN_DURATION;
   this._premadeToken = premadeToken || null;
   this._invalidTokenFlag = false;
-  
+
   this._lastEmail = null;
   this._dashboardWindow = null;
 
@@ -67,13 +67,9 @@ function AitcManager(cb, premadeClient, premadeToken) {
       cb(null, true);
       return;
     }
+
     
-    self._makeClient(function(err, client) {
-      if (!err && client) {
-        self._client = client;
-        self._processQueue();
-      }
-    }, false);
+    
   });
 }
 AitcManager.prototype = {
@@ -176,6 +172,71 @@ AitcManager.prototype = {
 
 
 
+
+
+
+
+
+
+  initialSchedule: function initialSchedule(cb) {
+    let self = this;
+
+    function startProcessQueue(num) {
+      self._makeClient(function(err, client) {
+        if (!err && client) {
+          self._client = client;
+          self._processQueue();
+          return;
+        }
+      });
+      cb(num);
+    }
+
+    
+    
+    if (Preferences.get("services.aitc.client.lastModified", "0") != "0") {
+      if (this._pending.length) {
+        startProcessQueue(-1);
+      } else {
+        cb(-1);
+      }
+      return;
+    }
+
+    DOMApplicationRegistry.getAllWithoutManifests(function gotAllApps(apps) {
+      let done = 0;
+      let appids = Object.keys(apps);
+      let total = appids.length;
+      self._log.info("First run, queuing all local apps: " + total + " found");
+
+      function appQueued(err) {
+        if (err) {
+          self._log.error("Error queuing app " + apps[appids[done]].origin);
+        }
+
+        if (done == total) {
+          self._log.info("Finished queuing all initial local apps");
+          startProcessQueue(total);
+          return;
+        }
+
+        let app = apps[appids[done]];
+        let obj = {type: "install", app: app, retries: 0, lastTime: 0};
+
+        done += 1;
+        self._pending.enqueue(obj, appQueued);
+      }
+      appQueued();
+    });
+  },
+
+  
+
+
+
+
+
+
   _setPoll: function _setPoll() {
     if (this._state == this._ACTIVE && !this._client) {
       throw new Error("_setPoll(ACTIVE) called without client");
@@ -197,7 +258,7 @@ AitcManager.prototype = {
       this._processQueue();
       return;
     }
-    
+
     
     let getFreq;
     if (this._state == this._ACTIVE) {
@@ -481,14 +542,14 @@ AitcManager.prototype = {
         cb(err, null);
         return;
       }
-      
+
       
       self._makeClient(function(err, client) {
         if (err) {
           cb(err, null);
           return;
         }
-      
+
         
         self._client = client;
         self._invalidTokenFlag = false;
@@ -541,7 +602,7 @@ AitcManager.prototype = {
       return;
     }
 
-    let msg = err.name + " in _getToken: " + err.error;
+    let msg = "Error in _getToken: " + err;
     this._log.error(msg);
     cb(msg, null);
   },

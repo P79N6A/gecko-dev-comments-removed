@@ -3,10 +3,13 @@
 
 "use strict";
 
-Cu.import("resource://services-common/utils.js");
-Cu.import("resource://services-common/preferences.js");
+Cu.import("resource://gre/modules/Webapps.jsm");
+
 Cu.import("resource://services-aitc/client.js");
 Cu.import("resource://services-aitc/manager.js");
+Cu.import("resource://services-common/utils.js");
+Cu.import("resource://services-common/preferences.js");
+
 Cu.import("resource://testing-common/services-common/aitcserver.js");
 
 const PREFS = new Preferences("services.aitc.");
@@ -77,6 +80,70 @@ function do_check_lt(a, b) {
   do_check_true(a < b);
 }
 
+add_test(function test_manager_localapps() {
+  
+  let fakeApp1 = get_mock_app();
+  fakeApp1.manifest = {
+    name: "Appasaurus 1",
+    description: "One of the best fake apps ever",
+    launch_path: "/",
+    fullscreen: true,
+    required_features: ["webgl"]
+  };
+
+  let fakeApp2 = get_mock_app();
+  fakeApp2.manifest = {
+    name: "Appasaurus 2",
+    description: "The other best fake app ever",
+    launch_path: "/",
+    fullscreen: true,
+    required_features: ["geolocation"]
+  };
+
+  DOMApplicationRegistry.confirmInstall({app: fakeApp1});
+  DOMApplicationRegistry.confirmInstall({app: fakeApp2});
+
+  
+  
+  
+  let manager = new AitcManager(function() {
+    CommonUtils.nextTick(doInitialUpload);
+  });
+
+  function doInitialUpload() {
+    manager.initialSchedule(function(num) {
+      
+      do_check_eq(num, 2);
+      do_check_eq(manager._pending.length, 2);
+
+      let entry = manager._pending.peek();
+      do_check_eq(entry.type, "install");
+      do_check_eq(entry.app.origin, fakeApp1.origin);
+
+      
+      manager._pending.dequeue(run_next_test);
+    });
+  }
+});
+
+add_test(function test_manager_alreadysynced() {
+  
+  Preferences.set("services.aitc.client.lastModified", "" + Date.now());
+
+  let manager = new AitcManager(function() {
+    CommonUtils.nextTick(doCheck);
+  });
+
+  function doCheck() {
+    manager.initialSchedule(function(num) {
+      do_check_eq(num, -1);
+      do_check_eq(manager._pending.length, 1);
+      
+      manager._pending.dequeue(run_next_test);
+    });
+  }
+});
+
 add_test(function test_401_responses() {
   PREFS.set("client.backoff", "50");
   PREFS.set("manager.putFreq", 50);
@@ -89,19 +156,18 @@ add_test(function test_401_responses() {
     uid: "uid",
     duration: "5000"
   };
+
   let server = get_server_with_user(username);
+  let client = get_client_for_server(username, server);
+
   server.mockStatus = {
     code: 401,
     method: "Unauthorized"
-  }
-  let client = get_client_for_server(username, server);
-  let manager = new AitcManager(function () {}, client, premadeToken);
-  
-  manager._lastTokenTime = Date.now();
+  };
+
   let mockRequestCount = 0;
   let clientFirstToken = null;
-
-  server.onRequest = function mockstatus () {
+  server.onRequest = function mockstatus() {
     mockRequestCount++;
     switch (mockRequestCount) {
       case 1:
@@ -121,7 +187,15 @@ add_test(function test_401_responses() {
     }
   }
 
-  manager.appEvent("install", get_mock_app());
+  let manager = new AitcManager(function() {
+    CommonUtils.nextTick(gotManager);
+  }, client, premadeToken);
+
+  function gotManager() {
+    
+    manager._lastTokenTime = Date.now();
+    manager.appEvent("install", get_mock_app());
+  }
 });
 
 add_test(function test_client_exponential_backoff() {
