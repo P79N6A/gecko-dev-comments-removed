@@ -1009,10 +1009,7 @@ nsDisplayBoxShadowOuter::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   
   
   nscoord twipsRadii[8];
-  PRBool hasBorderRadii = nsIFrame::ComputeBorderRadii(
-                            mFrame->GetStyleBorder()->mBorderRadius,
-                            frameRect.Size(), frameRect.Size(),
-                            mFrame->GetSkipSides(), twipsRadii);
+  PRBool hasBorderRadii = mFrame->GetBorderRadii(twipsRadii);
   if (!hasBorderRadii)
     return PR_FALSE;
 
