@@ -125,9 +125,6 @@
 
 
 
-
-var EXPORTED_SYMBOLS = ["InsideOutBox"];
-
 function InsideOutBox(aView, aBox)
 {
   this.view = aView;
@@ -453,7 +450,7 @@ InsideOutBox.prototype =
           try {
             this.box.removeChild(this.rootObjectBox);
           } catch (exc) {
-            this.view._log("this.box.removeChild(this.rootObjectBox) FAILS " +
+            InspectorUI._log("this.box.removeChild(this.rootObjectBox) FAILS " +
               this.box + " must not contain " + this.rootObjectBox);
           }
         }
@@ -646,18 +643,4 @@ InsideOutBox.prototype =
 
     return node;
   },
-
-  
-
-
-  destroy: function IOBox_destroy()
-  {
-    delete this.view;
-    delete this.box;
-    delete this.rootObject;
-    delete this.rootObjectBox;
-    delete this.selectedObjectBox;
-    delete this.highlightedObjectBox;
-    delete this.scrollIntoView;
-  }
 };

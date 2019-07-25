@@ -25,26 +25,19 @@ function setupEditorTests()
   div.setAttribute("id", "foobar");
   div.setAttribute("class", "barbaz");
   doc.body.appendChild(div);
-
-  Services.obs.addObserver(setupHTMLPanel, INSPECTOR_NOTIFICATIONS.OPENED, false);
+  
+  Services.obs.addObserver(runEditorTests, INSPECTOR_NOTIFICATIONS.OPENED, false);
   InspectorUI.toggleInspectorUI();
-}
-
-function setupHTMLPanel()
-{
-  Services.obs.removeObserver(setupHTMLPanel, INSPECTOR_NOTIFICATIONS.OPENED);
-  Services.obs.addObserver(runEditorTests, INSPECTOR_NOTIFICATIONS.TREEPANELREADY, false);
-  InspectorUI.treePanel.open();
 }
 
 function runEditorTests()
 {
-  Services.obs.removeObserver(runEditorTests, INSPECTOR_NOTIFICATIONS.TREEPANELREADY);
+  Services.obs.removeObserver(runEditorTests, INSPECTOR_NOTIFICATIONS.OPENED, false);
   InspectorUI.stopInspecting();
-
+  
   
   editorTestSteps = doEditorTestSteps();
-
+  
   
   Services.obs.addObserver(doNextStep, INSPECTOR_NOTIFICATIONS.EDITOR_OPENED, false);
   Services.obs.addObserver(doNextStep, INSPECTOR_NOTIFICATIONS.EDITOR_CLOSED, false);
@@ -56,17 +49,16 @@ function runEditorTests()
 
 function doEditorTestSteps()
 {
-  let treePanel = InspectorUI.treePanel;
-  let editor = treePanel.treeBrowserDocument.getElementById("attribute-editor");
-  let editorInput = treePanel.treeBrowserDocument.getElementById("attribute-editor-input");
+  let editor = InspectorUI.treeBrowserDocument.getElementById("attribute-editor");
+  let editorInput = InspectorUI.treeBrowserDocument.getElementById("attribute-editor-input");
 
   
-  let attrValNode_id = treePanel.treeBrowserDocument.querySelectorAll(".nodeValue.editable[data-attributeName='id']")[0];
-  let attrValNode_class = treePanel.treeBrowserDocument.querySelectorAll(".nodeValue.editable[data-attributeName='class']")[0];
+  let attrValNode_id = InspectorUI.treeBrowserDocument.querySelectorAll(".nodeValue.editable[data-attributeName='id']")[0];
+  let attrValNode_class = InspectorUI.treeBrowserDocument.querySelectorAll(".nodeValue.editable[data-attributeName='class']")[0];
 
   is(attrValNode_id.innerHTML, "foobar", "Step 1: we have the correct `id` attribute-value node in the HTML panel");
   is(attrValNode_class.innerHTML, "barbaz", "we have the correct `class` attribute-value node in the HTML panel");
-
+  
   
   executeSoon(function() {
     
@@ -77,7 +69,7 @@ function doEditorTestSteps()
 
 
   
-  ok(InspectorUI.treePanel.editingContext, "Step 2: editor session started");
+  ok(InspectorUI.editingContext, "Step 2: editor session started");
 
   let editorVisible = editor.classList.contains("editing");
   ok(editorVisible, "editor popup visible");
@@ -96,13 +88,13 @@ function doEditorTestSteps()
   let attrValNodeHighlighted = attrValNode_id.classList.contains("editingAttributeValue");
   ok(attrValNodeHighlighted, "`id` attribute-value node is editor-highlighted");
 
-  is(treePanel.editingContext.repObj, div, "editor session has correct reference to div");
-  is(treePanel.editingContext.attrObj, attrValNode_id, "editor session has correct reference to `id` attribute-value node in HTML panel");
-  is(treePanel.editingContext.attrName, "id", "editor session knows correct attribute-name");
+  is(InspectorUI.editingContext.repObj, div, "editor session has correct reference to div");
+  is(InspectorUI.editingContext.attrObj, attrValNode_id, "editor session has correct reference to `id` attribute-value node in HTML panel");
+  is(InspectorUI.editingContext.attrName, "id", "editor session knows correct attribute-name");
 
   editorInput.value = "Hello World";
   editorInput.focus();
-
+  
   
   executeSoon(function() {
     EventUtils.synthesizeKey("VK_RETURN", {}, attrValNode_id.ownerDocument.defaultView);
@@ -114,7 +106,7 @@ function doEditorTestSteps()
 
 
   
-  ok(!treePanel.editingContext, "Step 3: editor session ended");
+  ok(!InspectorUI.editingContext, "Step 3: editor session ended");
   editorVisible = editor.classList.contains("editing");
   ok(!editorVisible, "editor popup hidden");
   attrValNodeHighlighted = attrValNode_id.classList.contains("editingAttributeValue");
@@ -132,16 +124,16 @@ function doEditorTestSteps()
 
 
   
-  ok(treePanel.editingContext, "Step 4: editor session started");
+  ok(InspectorUI.editingContext, "Step 4: editor session started");
   editorVisible = editor.classList.contains("editing");
   ok(editorVisible, "editor popup visible");
-
-  is(treePanel.editingContext.attrObj, attrValNode_class, "editor session has correct reference to `class` attribute-value node in HTML panel");
-  is(treePanel.editingContext.attrName, "class", "editor session knows correct attribute-name");
+  
+  is(InspectorUI.editingContext.attrObj, attrValNode_class, "editor session has correct reference to `class` attribute-value node in HTML panel");
+  is(InspectorUI.editingContext.attrName, "class", "editor session knows correct attribute-name");
 
   editorInput.value = "Hello World";
   editorInput.focus();
-
+  
   
   executeSoon(function() {
     EventUtils.synthesizeKey("VK_ESCAPE", {}, attrValNode_class.ownerDocument.defaultView);
@@ -151,7 +143,7 @@ function doEditorTestSteps()
 
 
   
-  ok(!treePanel.editingContext, "Step 5: editor session ended");
+  ok(!InspectorUI.editingContext, "Step 5: editor session ended");
   editorVisible = editor.classList.contains("editing");
   ok(!editorVisible, "editor popup hidden");
   is(div.getAttribute("class"), "barbaz", "`class` attribute-value *not* updated");
@@ -167,15 +159,15 @@ function doEditorTestSteps()
 
 
   
-  ok(treePanel.editingContext, "Step 6: editor session started");
+  ok(InspectorUI.editingContext, "Step 6: editor session started");
   editorVisible = editor.classList.contains("editing");
   ok(editorVisible, "editor popup visible");
-
+  
   
   executeSoon(function() {
     
     EventUtils.synthesizeMouse(editorInput, 2, 2, {clickCount: 2}, editorInput.ownerDocument.defaultView);
-
+    
     
     
     executeSoon(function() {
@@ -188,10 +180,10 @@ function doEditorTestSteps()
 
   
   
-  ok(treePanel.editingContext, "Step 7: editor session still going");
+  ok(InspectorUI.editingContext, "Step 7: editor session still going");
   editorVisible = editor.classList.contains("editing");
   ok(editorVisible, "editor popup still visible");
-
+  
   editorInput.value = "all your base are belong to us";
 
   
@@ -203,12 +195,12 @@ function doEditorTestSteps()
 
 
   
-  ok(!treePanel.editingContext, "Step 8: editor session ended");
+  ok(!InspectorUI.editingContext, "Step 8: editor session ended");
   editorVisible = editor.classList.contains("editing");
   ok(!editorVisible, "editor popup hidden");
   is(div.getAttribute("id"), "Hello World", "`id` attribute-value *not* updated");
   is(attrValNode_id.innerHTML, "Hello World", "attribute-value node in HTML panel *not* updated");
-
+  
   
 
   
