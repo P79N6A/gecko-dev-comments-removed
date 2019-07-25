@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "Helpers.h"
 #include "mozIStorageError.h"
 #include "plbase64.h"
@@ -36,7 +69,7 @@ AsyncStatementCallback::HandleResult(mozIStorageResultSet *aResultSet)
 }
 
 NS_IMETHODIMP
-AsyncStatementCallback::HandleCompletion(uint16_t aReason)
+AsyncStatementCallback::HandleCompletion(PRUint16 aReason)
 {
   return NS_OK;
 }
@@ -45,14 +78,14 @@ NS_IMETHODIMP
 AsyncStatementCallback::HandleError(mozIStorageError *aError)
 {
 #ifdef DEBUG
-  int32_t result;
+  PRInt32 result;
   nsresult rv = aError->GetResult(&result);
   NS_ENSURE_SUCCESS(rv, rv);
-  nsAutoCString message;
+  nsCAutoString message;
   rv = aError->GetMessage(message);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoCString warnMsg;
+  nsCAutoString warnMsg;
   warnMsg.Append("An error occurred while executing an async statement: ");
   warnMsg.AppendInt(result);
   warnMsg.Append(" ");
@@ -64,7 +97,7 @@ AsyncStatementCallback::HandleError(mozIStorageError *aError)
 }
 
 #define URI_TO_URLCSTRING(uri, spec) \
-  nsAutoCString spec; \
+  nsCAutoString spec; \
   if (NS_FAILED(aURI->GetSpec(spec))) { \
     return NS_ERROR_UNEXPECTED; \
   }
@@ -72,7 +105,7 @@ AsyncStatementCallback::HandleError(mozIStorageError *aError)
 
 nsresult 
 URIBinder::Bind(mozIStorageStatement* aStatement,
-                int32_t aIndex,
+                PRInt32 aIndex,
                 nsIURI* aURI)
 {
   NS_ASSERTION(aStatement, "Must have non-null statement");
@@ -85,7 +118,7 @@ URIBinder::Bind(mozIStorageStatement* aStatement,
 
 nsresult 
 URIBinder::Bind(mozIStorageStatement* aStatement,
-                int32_t index,
+                PRInt32 index,
                 const nsACString& aURLString)
 {
   NS_ASSERTION(aStatement, "Must have non-null statement");
@@ -122,7 +155,7 @@ URIBinder::Bind(mozIStorageStatement* aStatement,
 
 nsresult 
 URIBinder::Bind(mozIStorageBindingParams* aParams,
-                int32_t aIndex,
+                PRInt32 aIndex,
                 nsIURI* aURI)
 {
   NS_ASSERTION(aParams, "Must have non-null statement");
@@ -135,7 +168,7 @@ URIBinder::Bind(mozIStorageBindingParams* aParams,
 
 nsresult 
 URIBinder::Bind(mozIStorageBindingParams* aParams,
-                int32_t index,
+                PRInt32 index,
                 const nsACString& aURLString)
 {
   NS_ASSERTION(aParams, "Must have non-null statement");
@@ -177,7 +210,7 @@ URIBinder::Bind(mozIStorageBindingParams* aParams,
 nsresult
 GetReversedHostname(nsIURI* aURI, nsString& aRevHost)
 {
-  nsAutoCString forward8;
+  nsCAutoString forward8;
   nsresult rv = aURI->GetHost(forward8);
   
   if (NS_FAILED(rv))
@@ -199,24 +232,23 @@ void
 ReverseString(const nsString& aInput, nsString& aReversed)
 {
   aReversed.Truncate(0);
-  for (int32_t i = aInput.Length() - 1; i >= 0; i--) {
+  for (PRInt32 i = aInput.Length() - 1; i >= 0; i--) {
     aReversed.Append(aInput[i]);
   }
 }
 
 static
 nsresult
-Base64urlEncode(const uint8_t* aBytes,
-                uint32_t aNumBytes,
+Base64urlEncode(const PRUint8* aBytes,
+                PRUint32 aNumBytes,
                 nsCString& _result)
 {
   
   
   
   
-  uint32_t length = (aNumBytes + 2) / 3 * 4; 
-  NS_ENSURE_TRUE(_result.SetCapacity(length + 1, fallible_t()),
-                 NS_ERROR_OUT_OF_MEMORY);
+  PRUint32 length = (aNumBytes + 2) / 3 * 4; 
+  NS_ENSURE_TRUE(_result.SetCapacity(length + 1), NS_ERROR_OUT_OF_MEMORY);
   _result.SetLength(length);
   (void)PL_Base64Encode(reinterpret_cast<const char*>(aBytes), aNumBytes,
                         _result.BeginWriting());
@@ -237,8 +269,8 @@ Base64urlEncode(const uint8_t* aBytes,
 
 static
 nsresult
-GenerateRandomBytes(uint32_t aSize,
-                    uint8_t* _buffer)
+GenerateRandomBytes(PRUint32 aSize,
+                    PRUint8* _buffer)
 {
   
 #if defined(XP_WIN)
@@ -257,8 +289,8 @@ GenerateRandomBytes(uint32_t aSize,
   PRFileDesc* urandom = PR_Open("/dev/urandom", PR_RDONLY, 0);
   nsresult rv = NS_ERROR_FAILURE;
   if (urandom) {
-    int32_t bytesRead = PR_Read(urandom, _buffer, aSize);
-    if (bytesRead == static_cast<int32_t>(aSize)) {
+    PRInt32 bytesRead = PR_Read(urandom, _buffer, aSize);
+    if (bytesRead == static_cast<PRInt32>(aSize)) {
       rv = NS_OK;
     }
     (void)PR_Close(urandom);
@@ -269,7 +301,7 @@ GenerateRandomBytes(uint32_t aSize,
     do_GetService("@mozilla.org/security/random-generator;1");
   NS_ENSURE_STATE(rg);
 
-  uint8_t* temp;
+  PRUint8* temp;
   nsresult rv = rg->GenerateRandomBytes(aSize, &temp);
   NS_ENSURE_SUCCESS(rv, rv);
   memcpy(_buffer, temp, aSize);
@@ -285,10 +317,10 @@ GenerateGUID(nsCString& _guid)
 
   
   
-  const uint32_t kRequiredBytesLength =
-    static_cast<uint32_t>(GUID_LENGTH / 4 * 3);
+  const PRUint32 kRequiredBytesLength =
+    static_cast<PRUint32>(GUID_LENGTH / 4 * 3);
 
-  uint8_t buffer[kRequiredBytesLength];
+  PRUint8 buffer[kRequiredBytesLength];
   nsresult rv = GenerateRandomBytes(kRequiredBytesLength, buffer);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -339,14 +371,14 @@ ForceWALCheckpoint()
     );
     if (stmt) {
       nsCOMPtr<mozIStoragePendingStatement> handle;
-      (void)stmt->ExecuteAsync(nullptr, getter_AddRefs(handle));
+      (void)stmt->ExecuteAsync(nsnull, getter_AddRefs(handle));
     }
   }
 }
 
 bool
 GetHiddenState(bool aIsRedirect,
-               uint32_t aTransitionType)
+               PRUint32 aTransitionType)
 {
   return aTransitionType == nsINavHistoryService::TRANSITION_FRAMED_LINK ||
          aTransitionType == nsINavHistoryService::TRANSITION_EMBED ||
@@ -368,18 +400,26 @@ PlacesEvent::Run()
   return NS_OK;
 }
 
+NS_IMETHODIMP
+PlacesEvent::Complete()
+{
+  Notify();
+  return NS_OK;
+}
+
 void
 PlacesEvent::Notify()
 {
   NS_ASSERTION(NS_IsMainThread(), "Must only be used on the main thread!");
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (obs) {
-    (void)obs->NotifyObservers(nullptr, mTopic, nullptr);
+    (void)obs->NotifyObservers(nsnull, mTopic, nsnull);
   }
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(
+NS_IMPL_THREADSAFE_ISUPPORTS2(
   PlacesEvent
+, mozIStorageCompletionCallback
 , nsIRunnable
 )
 
@@ -387,14 +427,14 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(
 
 
 NS_IMETHODIMP
-AsyncStatementCallbackNotifier::HandleCompletion(uint16_t aReason)
+AsyncStatementCallbackNotifier::HandleCompletion(PRUint16 aReason)
 {
   if (aReason != mozIStorageStatementCallback::REASON_FINISHED)
     return NS_ERROR_UNEXPECTED;
 
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (obs) {
-    (void)obs->NotifyObservers(nullptr, mTopic, nullptr);
+    (void)obs->NotifyObservers(nsnull, mTopic, nsnull);
   }
 
   return NS_OK;
@@ -404,7 +444,7 @@ AsyncStatementCallbackNotifier::HandleCompletion(uint16_t aReason)
 
 
 NS_IMETHODIMP
-AsyncStatementTelemetryTimer::HandleCompletion(uint16_t aReason)
+AsyncStatementTelemetryTimer::HandleCompletion(PRUint16 aReason)
 {
   if (aReason == mozIStorageStatementCallback::REASON_FINISHED) {
     Telemetry::AccumulateTimeDelta(mHistogramId, mStart);

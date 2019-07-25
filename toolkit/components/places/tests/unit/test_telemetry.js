@@ -18,15 +18,9 @@ let histograms = {
   PLACES_DATABASE_JOURNALSIZE_MB: function (val) do_check_true(val >= 0),
   PLACES_DATABASE_PAGESIZE_B: function (val) do_check_eq(val, 32768),
   PLACES_DATABASE_SIZE_PER_PAGE_B: function (val) do_check_true(val > 0),
-  PLACES_EXPIRATION_STEPS_TO_CLEAN2: function (val) do_check_true(val > 1),
+  PLACES_EXPIRATION_STEPS_TO_CLEAN: function (val) do_check_true(val > 1),
   
   PLACES_IDLE_FRECENCY_DECAY_TIME_MS: function (val) do_check_true(val > 0),
-  PLACES_IDLE_MAINTENANCE_TIME_MS: function (val) do_check_true(val > 0),
-  PLACES_ANNOS_BOOKMARKS_COUNT: function (val) do_check_eq(val, 1),
-  PLACES_ANNOS_BOOKMARKS_SIZE_KB: function (val) do_check_eq(val, 1),
-  PLACES_ANNOS_PAGES_COUNT: function (val) do_check_eq(val, 1),
-  PLACES_ANNOS_PAGES_SIZE_KB: function (val) do_check_eq(val, 1),
-  PLACES_FRECENCY_CALC_TIME_MS: function (val) do_check_true(val >= 0),
 }
 
 function run_test() {
@@ -44,16 +38,6 @@ function run_test() {
                                                     "moz test");
   PlacesUtils.tagging.tagURI(uri, ["tag"]);
   PlacesUtils.bookmarks.setKeywordForBookmark(itemId, "keyword");
-
-  
-  let content = "";
-  while (content.length < 1024) {
-    content += "0";
-  }
-  PlacesUtils.annotations.setItemAnnotation(itemId, "test-anno", content, 0,
-                                            PlacesUtils.annotations.EXPIRE_NEVER);
-  PlacesUtils.annotations.setPageAnnotation(uri, "test-anno", content, 0,
-                                            PlacesUtils.annotations.EXPIRE_NEVER);
 
   
   Cc["@mozilla.org/places/categoriesStarter;1"]
@@ -114,22 +98,15 @@ function continue_test() {
   
   PlacesUtils.history.QueryInterface(Ci.nsIObserver)
                      .observe(null, "idle-daily", null);
-  PlacesDBUtils.maintenanceOnIdle();
 
-  Services.obs.addObserver(function maintenanceObserver() {
-    Services.obs.removeObserver(maintenanceObserver,
-    "places-maintenance-finished");
-    check_telemetry();
-  }, "places-maintenance-finished", false);
+  waitForAsyncUpdates(check_telemetry);
 }
 
 function check_telemetry() {
   for (let histogramId in histograms) {
     do_log_info("checking histogram " + histogramId);
     let validate = histograms[histogramId];
-    let snapshot = Services.telemetry.getHistogramById(histogramId).snapshot();
-    validate(snapshot.sum);
-    do_check_true(snapshot.counts.reduce(function(a, b) a + b) > 0);
+    validate(Services.telemetry.getHistogramById(histogramId).snapshot().sum);
   }
   do_test_finished();
 }

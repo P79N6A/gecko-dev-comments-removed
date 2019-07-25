@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_places_Helpers_h_
 #define mozilla_places_Helpers_h_
 
@@ -15,7 +48,6 @@
 #include "nsThreadUtils.h"
 #include "nsProxyRelease.h"
 #include "mozilla/Telemetry.h"
-#include "jsapi.h"
 
 namespace mozilla {
 namespace places {
@@ -40,7 +72,7 @@ protected:
 
 #define NS_DECL_ASYNCSTATEMENTCALLBACK \
   NS_IMETHOD HandleResult(mozIStorageResultSet *); \
-  NS_IMETHOD HandleCompletion(uint16_t);
+  NS_IMETHOD HandleCompletion(PRUint16);
 
 
 
@@ -52,11 +84,11 @@ class URIBinder
 public:
   
   static nsresult Bind(mozIStorageStatement* statement,
-                       int32_t index,
+                       PRInt32 index,
                        nsIURI* aURI);
   
   static nsresult Bind(mozIStorageStatement* statement,
-                       int32_t index,
+                       PRInt32 index,
                        const nsACString& aURLString);
   
   static nsresult Bind(mozIStorageStatement* statement,
@@ -68,11 +100,11 @@ public:
                        const nsACString& aURLString);
   
   static nsresult Bind(mozIStorageBindingParams* aParams,
-                       int32_t index,
+                       PRInt32 index,
                        nsIURI* aURI);
   
   static nsresult Bind(mozIStorageBindingParams* aParams,
-                       int32_t index,
+                       PRInt32 index,
                        const nsACString& aURLString);
   
   static nsresult Bind(mozIStorageBindingParams* aParams,
@@ -209,16 +241,18 @@ void ForceWALCheckpoint();
 
 
 bool GetHiddenState(bool aIsRedirect,
-                    uint32_t aTransitionType);
+                    PRUint32 aTransitionType);
 
 
 
 
 class PlacesEvent : public nsRunnable
+                  , public mozIStorageCompletionCallback
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIRUNNABLE
+  NS_DECL_MOZISTORAGECOMPLETIONCALLBACK
 
   PlacesEvent(const char* aTopic);
 protected:
@@ -238,7 +272,7 @@ public:
   {
   }
 
-  NS_IMETHOD HandleCompletion(uint16_t aReason);
+  NS_IMETHOD HandleCompletion(PRUint16 aReason);
 
 private:
   const char* mTopic;
@@ -257,13 +291,12 @@ public:
   {
   }
 
-  NS_IMETHOD HandleCompletion(uint16_t aReason);
+  NS_IMETHOD HandleCompletion(PRUint16 aReason);
 
 private:
   const Telemetry::ID mHistogramId;
   const TimeStamp mStart;
 };
-
 } 
 } 
 
