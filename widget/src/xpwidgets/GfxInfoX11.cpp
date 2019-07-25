@@ -261,12 +261,6 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aS
             *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
             aSuggestedDriverVersion.AssignLiteral("Mesa 7.10");
         }
-        else if (strstr(mRenderer.get(), "Gallium")) {
-            
-            
-            *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
-            aSuggestedDriverVersion.AssignLiteral("<NOT Gallium>");
-        }
     } else if (mIsNVIDIA) {
         if (version(mMajorVersion, mMinorVersion) < version(257,21)) {
             *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
