@@ -81,7 +81,7 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INODEINFO_IID)
 
   nsINodeInfo()
-    : mInner(nsnull, nsnull, kNameSpaceID_None),
+    : mInner(nsnull, nsnull, kNameSpaceID_None, 0, nsnull),
       mOwnerManager(nsnull)
   {
   }
@@ -160,27 +160,32 @@ public:
   
 
 
-
-
-
-
-
-
   virtual nsresult GetNamespaceURI(nsAString& aNameSpaceURI) const = 0;
 
   
 
 
 
-
-
-
-
-
-
   PRInt32 NamespaceID() const
   {
     return mInner.mNamespaceID;
+  }
+
+  
+
+
+
+  PRUint16 NodeType() const
+  {
+    return mInner.mNodeType;
+  }
+
+  
+
+
+  nsIAtom* GetExtraName() const
+  {
+    return mInner.mExtraName;
   }
 
   
@@ -322,24 +327,28 @@ protected:
   public:
     nsNodeInfoInner()
       : mName(nsnull), mPrefix(nsnull), mNamespaceID(kNameSpaceID_Unknown),
-        mNameString(nsnull)
+        mNodeType(0), mNameString(nsnull), mExtraName(nsnull)
     {
     }
-    nsNodeInfoInner(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID)
+    nsNodeInfoInner(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
+                    PRUint16 aNodeType, nsIAtom* aExtraName)
       : mName(aName), mPrefix(aPrefix), mNamespaceID(aNamespaceID),
-        mNameString(nsnull)
+        mNodeType(aNodeType), mNameString(nsnull), mExtraName(aExtraName)
     {
     }
-    nsNodeInfoInner(const nsAString& aTmpName, nsIAtom *aPrefix, PRInt32 aNamespaceID)
+    nsNodeInfoInner(const nsAString& aTmpName, nsIAtom *aPrefix,
+                    PRInt32 aNamespaceID, PRUint16 aNodeType)
       : mName(nsnull), mPrefix(aPrefix), mNamespaceID(aNamespaceID),
-        mNameString(&aTmpName)
+        mNodeType(aNodeType), mNameString(&aTmpName), mExtraName(nsnull)
     {
     }
 
     nsIAtom*            mName;
     nsIAtom*            mPrefix;
     PRInt32             mNamespaceID;
+    PRUint16            mNodeType; 
     const nsAString*    mNameString;
+    nsIAtom*            mExtraName; 
   };
 
   
@@ -361,6 +370,13 @@ protected:
   
   
   nsString mQualifiedNameCorrectedCase;
+
+  
+  nsString mNodeName;
+
+  
+  
+  nsString mLocalName;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsINodeInfo, NS_INODEINFO_IID)
