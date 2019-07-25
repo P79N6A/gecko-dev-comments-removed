@@ -186,7 +186,6 @@ class HeapPtr
 
     
     void init(T *v) {
-        JS_ASSERT(!IsPoisonedPtr<T>(v));
         value = v;
         post();
     }
@@ -211,7 +210,6 @@ class HeapPtr
 
     HeapPtr<T, Unioned> &operator=(T *v) {
         pre();
-        JS_ASSERT(!IsPoisonedPtr<T>(v));
         value = v;
         post();
         return *this;
@@ -219,7 +217,6 @@ class HeapPtr
 
     HeapPtr<T, Unioned> &operator=(const HeapPtr<T> &v) {
         pre();
-        JS_ASSERT(!IsPoisonedPtr<T>(v.value));
         value = v.value;
         post();
         return *this;
