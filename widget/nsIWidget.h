@@ -1589,6 +1589,12 @@ class nsIWidget : public nsISupports {
 
 
     virtual PRUint32 GetGLFrameBufferFormat() { return 0;  }
+
+    
+
+
+    virtual bool HasGLContext() { return false; }
+
 protected:
 
     
