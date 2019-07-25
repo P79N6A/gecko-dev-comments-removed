@@ -1,0 +1,18 @@
+
+textarea:invalid {
+  box-shadow: none;
+}
+
+textarea.notvalid {
+  background-color: green;
+}
+textarea.notvalid:-moz-ui-valid {
+  background-color: red;
+}
+
+textarea.valid {
+  background-color: red;
+}
+textarea.valid:-moz-ui-valid {
+  background-color: green;
+}
