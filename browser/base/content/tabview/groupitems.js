@@ -66,7 +66,6 @@
 
 
 
-
 function GroupItem(listOfEls, options) {
   if (!options)
     options = {};
@@ -690,7 +689,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         GroupItems.setActiveGroupItem(closestTabItem.parent);
       } else {
         GroupItems.setActiveOrphanTab(closestTabItem);
-        GroupItems.setActiveGroupItem(null);
       }
     } else {
       GroupItems.setActiveGroupItem(null);
@@ -1425,7 +1423,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       };
     }
 
-    GroupItems.setActiveGroupItem(self);
     return { shouldZoom: true };
   },
 
@@ -2277,6 +2274,8 @@ let GroupItems = {
   
   
   setActiveOrphanTab: function GroupItems_setActiveOrphanTab(tabItem) {
+    if (tabItem !== null)
+      this.setActiveGroupItem(null);
     this._activeOrphanTab = tabItem;
   },
 
@@ -2305,11 +2304,11 @@ let GroupItems = {
     Utils.assertThrow(tabItem && tabItem.isATabItem, "tabItem must be a TabItem");
 
     let groupItem = tabItem.parent;
-    this.setActiveGroupItem(groupItem);
 
-    if (groupItem)
+    if (groupItem) {
+      this.setActiveGroupItem(groupItem);
       groupItem.setActiveTab(tabItem);
-    else
+    } else
       this.setActiveOrphanTab(tabItem);
 
     this._updateTabBar();
