@@ -138,14 +138,6 @@ bool GRELoadAndLaunch(const char* firefoxDir)
     return false;
   }
 
-  if (!isProfileOverridden) {
-    
-    
-    char programClass[MAXPATHLEN];
-    snprintf(programClass, MAXPATHLEN, "owa-%s", profile);
-    g_set_prgname(programClass);
-  }
-
   
   { 
     ScopedLogging log;
@@ -180,7 +172,12 @@ bool GRELoadAndLaunch(const char* firefoxDir)
 
     if (!isProfileOverridden) {
       SetAllocatedString(webShellAppData->profile, profile);
-      SetAllocatedString(webShellAppData->name, profile);
+      
+      
+      
+      char programClass[MAXPATHLEN];
+      snprintf(programClass, MAXPATHLEN, "owa-%s", profile);
+      SetAllocatedString(webShellAppData->name, programClass);
     }
 
     nsCOMPtr<nsIFile> directory;
