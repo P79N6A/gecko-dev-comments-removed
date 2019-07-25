@@ -92,11 +92,6 @@ public:
   nsresult
   Init();
 
-  nsresult
-  EnsureLoadTemporaryTableForStorage(DOMStorageImpl* aStorage);
-  nsresult
-  FlushAndDeleteTemporaryTableForStorage(DOMStorageImpl* aStorage);
-
   
 
 
@@ -226,6 +221,14 @@ public:
 
 
   void EnsureTempTableFlushTimer();
+
+  
+
+
+
+
+
+  nsresult FlushAndDeleteTemporaryTables(bool force);
 
   
 

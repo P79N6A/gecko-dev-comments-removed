@@ -43,9 +43,14 @@
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
 #include "nsTHashtable.h"
+#include "nsDataHashtable.h"
+#include "mozilla/TimeStamp.h"
 
 class DOMStorageImpl;
 class nsSessionStorageEntry;
+
+using mozilla::TimeStamp;
+using mozilla::TimeDuration;
 
 class nsDOMStoragePersistentDB
 {
@@ -55,11 +60,6 @@ public:
 
   nsresult
   Init(const nsString& aDatabaseName);
-
-  nsresult
-  EnsureLoadTemporaryTableForStorage(DOMStorageImpl* aStorage);
-  nsresult
-  FlushAndDeleteTemporaryTableForStorage(DOMStorageImpl* aStorage);
 
   
 
@@ -162,7 +162,26 @@ public:
 
   nsresult MaybeCommitInsertTransaction();
 
+  
+
+
+  nsresult FlushTemporaryTables(bool force);
+
 protected:
+  
+
+
+
+  nsresult EnsureLoadTemporaryTableForStorage(DOMStorageImpl* aStorage);
+
+  struct FlushTemporaryTableData {
+    nsDOMStoragePersistentDB* mDB;
+    bool mForce;
+    nsresult mRV;
+  };
+  static PLDHashOperator FlushTemporaryTable(nsCStringHashKey::KeyType aKey,
+                                             TimeStamp& aData,
+                                             void* aUserArg);       
 
   nsCOMPtr<mozIStorageConnection> mConnection;
 
@@ -182,6 +201,11 @@ protected:
 
   nsCString mCachedOwner;
   PRInt32 mCachedUsage;
+
+  
+  
+  
+  nsDataHashtable<nsCStringHashKey, TimeStamp> mTempTableLoads; 
 
   friend class nsDOMStorageDBWrapper;
   friend class nsDOMStorageMemoryDB;
