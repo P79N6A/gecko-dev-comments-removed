@@ -2082,17 +2082,6 @@ HUD_SERVICE.prototype =
 
 
 
-  getConsoleOutputNode: function HS_getConsoleOutputNode(aId)
-  {
-    return this.getHudReferenceById(aId).outputNode;
-  },
-
-  
-
-
-
-
-
 
 
   logWarningAboutReplacedAPI:
