@@ -14,6 +14,15 @@ namespace xpc {
 
 ChromeObjectWrapper ChromeObjectWrapper::singleton;
 
+static bool
+PropIsFromStandardPrototype(JSContext *cx, JSPropertyDescriptor *desc)
+{
+    MOZ_ASSERT(desc->obj);
+    JSObject *unwrapped = js::UnwrapObject(desc->obj);
+    JSAutoCompartment ac(cx, unwrapped);
+    return JS_IdentifyClassPrototype(cx, unwrapped) != JSProto_Null;
+}
+
 bool
 ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
                                            jsid id, bool set,
@@ -27,6 +36,12 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
                                                         set, desc)) {
         return false;
     }
+
+    
+    
+    
+    if (desc->obj && PropIsFromStandardPrototype(cx, desc))
+        desc->obj = NULL;
 
     
     JSObject *wrapperProto = JS_GetPrototype(wrapper);
@@ -53,6 +68,7 @@ ChromeObjectWrapper::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
     
     JS_ASSERT(js::IsObjectInContextCompartment(wrapper, cx));
     JSPropertyDescriptor desc;
+    memset(&desc, 0, sizeof(desc));
     if (!JS_GetPropertyDescriptorById(cx, wrapperProto, id, 0, &desc))
         return false;
     *bp = !!desc.obj;
@@ -64,12 +80,30 @@ ChromeObjectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
                          jsid id, js::Value *vp)
 {
     
-    if (!ChromeObjectWrapperBase::get(cx, wrapper, receiver, id, vp))
+    
+    
+    JSPropertyDescriptor desc;
+    memset(&desc, 0, sizeof(desc));
+    if (!ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id, false,
+                                                        &desc)) {
         return false;
+    }
+
+    
+    
+    vp->setUndefined();
+    if (desc.obj && !PropIsFromStandardPrototype(cx, &desc)) {
+        
+        if (!ChromeObjectWrapperBase::get(cx, wrapper, receiver, id, vp))
+            return false;
+        
+        if (!vp->isUndefined())
+            return true;
+    }
 
     
     JSObject *wrapperProto = JS_GetPrototype(wrapper);
-    if (!vp->isUndefined() || !wrapperProto)
+    if (!wrapperProto)
         return true;
 
     
