@@ -120,10 +120,20 @@ private:
                   DrawThebesLayerCallback aCallback,
                   void* aCallbackData);
 
+  already_AddRefed<gfxContext> PushGroupWithCachedSurface(gfxContext *aTarget,
+                                                          gfxASurface::gfxContentType aContent,
+                                                          gfxPoint *aSavedOffset);
+  void PopGroupWithCachedSurface(gfxContext *aTarget,
+                                 const gfxPoint& aSavedOffset);
+
   
   nsRefPtr<gfxContext> mDefaultTarget;
   
   nsRefPtr<gfxContext> mTarget;
+
+  
+  nsRefPtr<gfxASurface> mCachedSurface;
+  gfxIntSize mCachedSurfaceSize;
 
 #ifdef DEBUG
   enum TransactionPhase { PHASE_NONE, PHASE_CONSTRUCTION, PHASE_DRAWING };

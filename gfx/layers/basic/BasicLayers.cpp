@@ -612,6 +612,65 @@ BasicLayerManager::BeginTransaction()
   BeginTransactionWithTarget(mDefaultTarget);
 }
 
+already_AddRefed<gfxContext>
+BasicLayerManager::PushGroupWithCachedSurface(gfxContext *aTarget,
+                                              gfxASurface::gfxContentType aContent,
+                                              gfxPoint *aSavedOffset)
+{
+  gfxContextMatrixAutoSaveRestore saveMatrix(aTarget);
+  aTarget->IdentityMatrix();
+
+  nsRefPtr<gfxASurface> currentSurf = aTarget->CurrentSurface();
+  gfxRect clip = aTarget->GetClipExtents();
+  clip.RoundOut();
+
+  if (mCachedSurface) {
+    
+    if (mCachedSurface->GetContentType() != aContent) {
+      mCachedSurface = nsnull;
+    } else {
+      
+      if (clip.size.width > mCachedSurfaceSize.width ||
+          clip.size.height > mCachedSurfaceSize.height) {
+        mCachedSurface = nsnull;
+      }
+    }
+  }
+  nsRefPtr<gfxContext> ctx;
+  if (mCachedSurface) {
+    ctx = new gfxContext(mCachedSurface);
+    ctx->SetOperator(gfxContext::OPERATOR_CLEAR);
+    ctx->Paint();
+    ctx->SetOperator(gfxContext::OPERATOR_OVER);
+  } else {
+    mCachedSurfaceSize = gfxIntSize(clip.size.width, clip.size.height);
+    mCachedSurface = currentSurf->CreateSimilarSurface(aContent,
+                                                       mCachedSurfaceSize);
+    if (!mCachedSurface)
+      return nsnull;
+    ctx = new gfxContext(mCachedSurface);
+  }
+  
+  ctx->Translate(-clip.pos);
+  *aSavedOffset = clip.pos;
+  ctx->Multiply(saveMatrix.Matrix());
+  return ctx.forget();
+}
+
+void
+BasicLayerManager::PopGroupWithCachedSurface(gfxContext *aTarget,
+                                             const gfxPoint& aSavedOffset)
+{
+  if (!mCachedSurface)
+    return;
+
+  gfxContextMatrixAutoSaveRestore saveMatrix(aTarget);
+  aTarget->IdentityMatrix();
+
+  aTarget->SetSource(mCachedSurface, aSavedOffset);
+  aTarget->Paint();
+}
+
 void
 BasicLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
 {
@@ -633,17 +692,20 @@ BasicLayerManager::EndTransaction(DrawThebesLayerCallback aCallback,
 #endif
 
   if (mTarget) {
+    nsRefPtr<gfxContext> finalTarget = mTarget;
+    gfxPoint cachedSurfaceOffset;
+
     if (mUsingDefaultTarget && mDoubleBuffering != BUFFER_NONE) {
       nsRefPtr<gfxASurface> targetSurface = mTarget->CurrentSurface();
-      mTarget->PushGroup(targetSurface->GetContentType());
+      mTarget = PushGroupWithCachedSurface(mTarget, targetSurface->GetContentType(),
+                                           &cachedSurfaceOffset);
     }
 
     PaintLayer(mRoot, aCallback, aCallbackData);
     
     if (mUsingDefaultTarget && mDoubleBuffering != BUFFER_NONE) {
-      mTarget->PopGroupToSource();
-      mTarget->SetOperator(gfxContext::OPERATOR_SOURCE);
-      mTarget->Paint();
+      finalTarget->SetOperator(gfxContext::OPERATOR_SOURCE);
+      PopGroupWithCachedSurface(finalTarget, cachedSurfaceOffset);
     }
 
     mTarget = nsnull;
