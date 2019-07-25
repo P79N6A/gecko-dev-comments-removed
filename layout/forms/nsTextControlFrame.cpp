@@ -92,6 +92,7 @@
 #include "nsIDOM3EventTarget.h"
 #include "nsIDOMNSEvent.h"
 #include "nsIDOMNSUIEvent.h"
+#include "nsIEventStateManager.h"
 
 #include "nsIDOMFocusListener.h" 
 #include "nsIDOMCharacterData.h" 

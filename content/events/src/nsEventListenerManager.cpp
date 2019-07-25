@@ -56,6 +56,7 @@
 #ifdef MOZ_SVG
 #include "nsGkAtoms.h"
 #endif 
+#include "nsIEventStateManager.h"
 #include "nsPIDOMWindow.h"
 #include "nsIPrivateDOMEvent.h"
 #include "nsIJSEventListener.h"

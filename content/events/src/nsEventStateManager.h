@@ -39,6 +39,7 @@
 #ifndef nsEventStateManager_h__
 #define nsEventStateManager_h__
 
+#include "nsIEventStateManager.h"
 #include "nsEvent.h"
 #include "nsGUIEvent.h"
 #include "nsIContent.h"
@@ -55,7 +56,6 @@
 #include "nsIScrollableFrame.h"
 #include "nsFocusManager.h"
 #include "nsIDocument.h"
-#include "nsEventStates.h"
 
 class nsIPresShell;
 class nsIDocShell;
@@ -75,6 +75,7 @@ class TabParent;
 
 
 class nsEventStateManager : public nsSupportsWeakReference,
+                            public nsIEventStateManager,
                             public nsIObserver
 {
   friend class nsMouseWheelTransaction;
@@ -85,7 +86,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
-  nsresult Init();
+  NS_IMETHOD Init();
   nsresult Shutdown();
 
   
@@ -95,86 +96,44 @@ public:
 
 
 
-  nsresult PreHandleEvent(nsPresContext* aPresContext,
-                          nsEvent *aEvent,
-                          nsIFrame* aTargetFrame,
-                          nsEventStatus* aStatus,
-                          nsIView* aView);
+  NS_IMETHOD PreHandleEvent(nsPresContext* aPresContext,
+                         nsEvent *aEvent,
+                         nsIFrame* aTargetFrame,
+                         nsEventStatus* aStatus,
+                         nsIView* aView);
 
   
 
 
 
 
-  nsresult PostHandleEvent(nsPresContext* aPresContext,
-                           nsEvent *aEvent,
-                           nsIFrame* aTargetFrame,
-                           nsEventStatus* aStatus,
-                           nsIView* aView);
+  NS_IMETHOD PostHandleEvent(nsPresContext* aPresContext,
+                             nsEvent *aEvent,
+                             nsIFrame* aTargetFrame,
+                             nsEventStatus* aStatus,
+                             nsIView* aView);
 
-  void NotifyDestroyPresContext(nsPresContext* aPresContext);
-  void SetPresContext(nsPresContext* aPresContext);
-  void ClearFrameRefs(nsIFrame* aFrame);
+  NS_IMETHOD NotifyDestroyPresContext(nsPresContext* aPresContext);
+  NS_IMETHOD SetPresContext(nsPresContext* aPresContext);
+  NS_IMETHOD ClearFrameRefs(nsIFrame* aFrame);
 
-  nsIFrame* GetEventTarget();
-  already_AddRefed<nsIContent> GetEventTargetContent(nsEvent* aEvent);
-
-  
-
-
-
-
-
-
-
-
+  NS_IMETHOD GetEventTarget(nsIFrame **aFrame);
+  NS_IMETHOD GetEventTargetContent(nsEvent* aEvent, nsIContent** aContent);
 
   virtual nsEventStates GetContentState(nsIContent *aContent,
                                         PRBool aFollowLabels = PR_FALSE);
+  virtual PRBool SetContentState(nsIContent *aContent, nsEventStates aState);
+  NS_IMETHOD ContentRemoved(nsIDocument* aDocument, nsIContent* aContent);
+  NS_IMETHOD EventStatusOK(nsGUIEvent* aEvent, PRBool *aOK);
 
   
+  NS_IMETHOD RegisterAccessKey(nsIContent* aContent, PRUint32 aKey);
+  NS_IMETHOD UnregisterAccessKey(nsIContent* aContent, PRUint32 aKey);
+  NS_IMETHOD GetRegisteredAccessKey(nsIContent* aContent, PRUint32* aKey);
 
-
-
-
-
-
-
-
-
-
-  PRBool SetContentState(nsIContent *aContent, nsEventStates aState);
-  void ContentRemoved(nsIDocument* aDocument, nsIContent* aContent);
-  PRBool EventStatusOK(nsGUIEvent* aEvent);
-
-  
-
-
-
-
-
-
-  void RegisterAccessKey(nsIContent* aContent, PRUint32 aKey);
-
-  
-
-
-
-
-
-  void UnregisterAccessKey(nsIContent* aContent, PRUint32 aKey);
-
-  
-
-
-
-
-
-  PRUint32 GetRegisteredAccessKey(nsIContent* aContent);
-
-  nsresult SetCursor(PRInt32 aCursor, imgIContainer* aContainer,
-                     PRBool aHaveHotspot, float aHotspotX, float aHotspotY,
-                     nsIWidget* aWidget, PRBool aLockCursor); 
+  NS_IMETHOD SetCursor(PRInt32 aCursor, imgIContainer* aContainer,
+                       PRBool aHaveHotspot, float aHotspotX, float aHotspotY,
+                       nsIWidget* aWidget, PRBool aLockCursor);
 
   static void StartHandlingUserInput()
   {
@@ -191,23 +150,16 @@ public:
     return sUserInputEventDepth > 0;
   }
 
-  
-
-
-
-
-
-
   NS_IMETHOD_(PRBool) IsHandlingUserInputExternal() { return IsHandlingUserInput(); }
   
   nsPresContext* GetPresContext() { return mPresContext; }
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsEventStateManager,
-                                           nsIObserver)
+                                           nsIEventStateManager)
 
   static nsIDocument* sMouseOverDocument;
 
-  static nsEventStateManager* GetActiveEventStateManager() { return sActiveESM; }
+  static nsIEventStateManager* GetActiveEventStateManager() { return sActiveESM; }
 
   
   
@@ -536,7 +488,5 @@ private:
   static void* operator new(size_t ) CPP_THROW_NEW { return nsnull; }
   static void operator delete(void* ) {}
 };
-
-#define NS_EVENT_NEEDS_FRAME(event) (!NS_IS_ACTIVATION_EVENT(event))
 
 #endif 

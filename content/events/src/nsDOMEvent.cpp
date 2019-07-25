@@ -316,7 +316,8 @@ nsDOMEvent::GetTargetFromFrame()
   if (!mPresContext) { return nsnull; }
 
   
-  nsIFrame* targetFrame = mPresContext->EventStateManager()->GetEventTarget();
+  nsIFrame* targetFrame = nsnull;
+  mPresContext->EventStateManager()->GetEventTarget(&targetFrame);
   if (!targetFrame) { return nsnull; }
 
   

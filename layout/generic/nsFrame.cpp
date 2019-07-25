@@ -2076,7 +2076,9 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   
   
   
-  if (!aPresContext->EventStateManager()->EventStatusOK(aEvent)) 
+  PRBool eventOK;
+  aPresContext->EventStateManager()->EventStatusOK(aEvent, &eventOK);
+  if (!eventOK) 
     return NS_OK;
 
   nsresult rv;
