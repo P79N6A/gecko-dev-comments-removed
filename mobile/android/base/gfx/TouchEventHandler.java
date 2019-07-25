@@ -165,16 +165,17 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
                 if (mEventQueue.isEmpty()) {
                     mPanZoomController.waitingForTouchListeners(event);
                 }
-                
-                
-                mView.postDelayed(mListenerTimeoutProcessor, EVENT_LISTENER_TIMEOUT);
             } else {
                 
                 
                 
                 
-                mProcessingBalance++;
+                mEventQueue.add(null);
             }
+
+            
+            
+            mView.postDelayed(mListenerTimeoutProcessor, EVENT_LISTENER_TIMEOUT);
         }
 
         
@@ -276,6 +277,11 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
             dispatchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0, 0, 0));
         }
 
+        if (mEventQueue.isEmpty()) {
+            Log.e(LOGTAG, "Unexpected empty event queue in processEventBlock!", new Exception());
+            return;
+        }
+
         
         
         
@@ -285,13 +291,17 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
         while (true) {
             
             
-            if (allowDefaultAction) {
-                dispatchEvent(event);
-            } else if (touchFinished(event)) {
-                mPanZoomController.preventedTouchFinished();
+
+            if (event != null) {
+                
+                
+                if (allowDefaultAction) {
+                    dispatchEvent(event);
+                } else if (touchFinished(event)) {
+                    mPanZoomController.preventedTouchFinished();
+                }
             }
-            event = mEventQueue.peek();
-            if (event == null) {
+            if (mEventQueue.isEmpty()) {
                 
                 
                 
@@ -301,10 +311,13 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
                 mDispatchEvents = allowDefaultAction;
                 break;
             }
-            if (isDownEvent(event)) {
+            event = mEventQueue.peek();
+            if (event == null || isDownEvent(event)) {
                 
                 
-                mPanZoomController.waitingForTouchListeners(event);
+                if (event != null) {
+                    mPanZoomController.waitingForTouchListeners(event);
+                }
                 break;
             }
             
