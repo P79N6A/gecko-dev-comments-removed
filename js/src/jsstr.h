@@ -630,20 +630,13 @@ class JSRopeNodeIterator {
     static const size_t DONE_RIGHT = 0x2;
 
   public:
-    JSRopeNodeIterator(JSString *str)
-      : mUsedFlags(0)
-    {
+    JSRopeNodeIterator()
+      : mStr(NULL), mUsedFlags(0)
+    {}
+
+    JSString *init(JSString *str) {
+        
         mStr = str;
-    }
-    
-    JSString *init() {
-        
-        if (!mStr->isRope()) {
-            JSString *oldStr = mStr;
-            mStr = NULL;
-            return oldStr;
-        }
-        
         while (mStr->isInteriorNode())
             mStr = mStr->interiorNodeParent();
         while (mStr->ropeLeft()->isInteriorNode())
@@ -697,14 +690,9 @@ class JSRopeLeafIterator {
     JSRopeNodeIterator mNodeIterator;
 
   public:
-
-    JSRopeLeafIterator(JSString *topNode) :
-        mNodeIterator(topNode) {
-        JS_ASSERT(topNode->isTopNode());
-    }
-
-    inline JSString *init() {
-        JSString *str = mNodeIterator.init();
+    inline JSString *init(JSString *str) {
+        JS_ASSERT(str->isTopNode());
+        str = mNodeIterator.init(str);
         while (str->isRope()) {
             str = mNodeIterator.next();
             JS_ASSERT(str);

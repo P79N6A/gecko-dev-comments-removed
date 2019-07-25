@@ -351,18 +351,24 @@ TypedMarker(JSTracer *trc, JSShortString *thing)
 }
 
 static JS_ALWAYS_INLINE void
-TypedMarker(JSTracer *trc, JSString *thing)
+TypedMarker(JSTracer *trc, JSString *str)
 {
     
 
 
 
-    JSRopeNodeIterator iter(thing);
-    JSString *str = iter.init();
+    JSRopeNodeIterator iter;
+    if (str->isRope()) {
+        if (str->asCell()->isMarked())
+            return;
+        str = iter.init(str);
+        goto not_static;
+    }
     do {
         for (;;) {
             if (JSString::isStatic(str))
                 break;
+          not_static:
             JS_ASSERT(JSTRACE_STRING == GetFinalizableTraceKind(str->asCell()->arena()->header()->thingKind));
             if (!str->asCell()->markIfUnmarked())
                 break;
