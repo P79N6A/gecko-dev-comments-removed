@@ -102,8 +102,7 @@ js_InitArrayClass(JSContext *cx, JSObject *obj);
 extern bool
 js_InitContextBusyArrayTable(JSContext *cx);
 
-namespace js
-{
+namespace js {
 
 
 extern JSObject * JS_FASTCALL
@@ -136,7 +135,7 @@ NewDenseCopiedArray(JSContext *cx, uint32 length, const Value *vp, JSObject *pro
 extern JSObject *
 NewSlowEmptyArray(JSContext *cx);
 
-}
+} 
 
 extern JSBool
 js_GetLengthProperty(JSContext *cx, JSObject *obj, jsuint *lengthp);
@@ -162,10 +161,7 @@ array_deleteElement(JSContext *cx, JSObject *obj, uint32 index, Value *rval, JSB
 extern bool
 GetElements(JSContext *cx, JSObject *aobj, jsuint length, js::Value *vp);
 
-}
 
-
-namespace js {
 
 extern JSBool
 array_sort(JSContext *cx, uintN argc, js::Value *vp);
@@ -212,8 +208,5 @@ js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, jsid id,
 
 JSBool
 js_Array(JSContext *cx, uintN argc, js::Value *vp);
-
-extern JSBool JS_FASTCALL
-js_EnsureDenseArrayCapacity(JSContext *cx, JSObject *obj, jsint i);
 
 #endif 
