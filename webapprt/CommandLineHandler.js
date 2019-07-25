@@ -30,13 +30,13 @@ CommandLineHandler.prototype = {
     Cu.import("resource://gre/modules/Webapps.jsm");
 
     if (!inTestMode) {
-      startUp();
+      startUp(inTestMode);
     } else {
       
       
       Services.obs.addObserver(function onInstall(subj, topic, data) {
         Services.obs.removeObserver(onInstall, "webapprt-test-did-install");
-        startUp();
+        startUp(inTestMode);
       }, "webapprt-test-did-install", false);
     }
 

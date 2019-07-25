@@ -8,6 +8,28 @@ const Cu = Components.utils;
 
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyGetter(this, "gAppBrowser",
+                            function() document.getElementById("content"));
+
+let progressListener = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                         Ci.nsISupportsWeakReference]),
+  onLocationChange: function onLocationChange(progress, request, location,
+                                              flags) {
+    
+    
+    
+    
+    let title = WebappRT.config.app.manifest.name;
+    let origin = location.prePath;
+    if (origin != WebappRT.config.app.origin) {
+      title = origin + " - " + title;
+    }
+    document.documentElement.setAttribute("title", title);
+  }
+};
 
 function onLoad() {
   window.removeEventListener("load", onLoad, false);
@@ -19,34 +41,50 @@ function onLoad() {
   
   
   if (cmdLineArgs && cmdLineArgs.hasKey("test-mode")) {
+    
+    
+    
+    
+    Services.obs.addObserver(function observeOnce(subj, topic, data) {
+      Services.obs.removeObserver(observeOnce, "webapprt-test-did-install");
+      gAppBrowser.webProgress.
+        addProgressListener(progressListener,Ci.nsIWebProgress.NOTIFY_LOCATION);
+    }, "webapprt-test-did-install", false);
+
+    
     Services.obs.addObserver(function observe(subj, topic, data) {
-      
       initWindow(false);
     }, "webapprt-test-did-install", false);
+
     let testURL = cmdLineArgs.get("test-mode");
     if (testURL) {
-      document.getElementById("content").loadURI(testURL);
+      gAppBrowser.loadURI(testURL);
     }
+
     return;
   }
 
+  gAppBrowser.webProgress.
+    addProgressListener(progressListener, Ci.nsIWebProgress.NOTIFY_LOCATION);
+
   initWindow(!!cmdLineArgs);
 }
-
 window.addEventListener("load", onLoad, false);
 
+function onUnload() {
+  gAppBrowser.removeProgressListener(progressListener);
+}
+window.addEventListener("unload", onUnload, false);
+
 function initWindow(isMainWindow) {
-  
   let manifest = WebappRT.config.app.manifest;
-  document.documentElement.setAttribute("title", manifest.name);
 
   updateMenuItems();
 
   
   
   
-  document.getElementById("content").addEventListener("click", onContentClick,
-                                                      false, true);
+  gAppBrowser.addEventListener("click", onContentClick, false, true);
 
   
   if (isMainWindow) {
@@ -55,7 +93,7 @@ function initWindow(isMainWindow) {
     let url = Services.io.newURI(installRecord.origin, null, null);
     if (manifest.launch_path)
       url = Services.io.newURI(manifest.launch_path, null, url);
-    document.getElementById("content").setAttribute("src", url.spec);
+    gAppBrowser.setAttribute("src", url.spec);
   }
 }
 
