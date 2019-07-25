@@ -150,10 +150,6 @@ class MBasicBlock : public TempObject
     
     bool setVariable(uint32 slot);
 
-    bool hasHeader() const {
-        return instructions_.begin() != instructions_.end();
-    }
-
   public:
     
     
