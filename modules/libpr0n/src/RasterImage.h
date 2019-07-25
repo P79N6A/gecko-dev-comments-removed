@@ -172,6 +172,108 @@ public:
   
   void Discard();
 
+  
+  nsresult SetFrameDisposalMethod(PRUint32 aFrameNum,
+                                  PRInt32 aDisposalMethod);
+  nsresult SetFrameTimeout(PRUint32 aFrameNum, PRInt32 aTimeout);
+  nsresult SetFrameBlendMethod(PRUint32 aFrameNum, PRInt32 aBlendMethod);
+  nsresult SetFrameHasNoAlpha(PRUint32 aFrameNum);
+
+  
+
+
+
+
+  nsresult SetSize(PRInt32 aWidth, PRInt32 aHeight);
+
+  nsresult EnsureCleanFrame(PRUint32 aFramenum, PRInt32 aX, PRInt32 aY,
+                            PRInt32 aWidth, PRInt32 aHeight,
+                            gfxASurface::gfxImageFormat aFormat,
+                            PRUint8** imageData,
+                            PRUint32* imageLength);
+
+  
+
+
+  nsresult AppendFrame(PRInt32 aX, PRInt32 aY,
+                       PRInt32 aWidth, PRInt32 aHeight,
+                       gfxASurface::gfxImageFormat aFormat,
+                       PRUint8** imageData,
+                       PRUint32* imageLength);
+
+  nsresult AppendPalettedFrame(PRInt32 aX, PRInt32 aY,
+                               PRInt32 aWidth, PRInt32 aHeight,
+                               gfxASurface::gfxImageFormat aFormat,
+                               PRUint8 aPaletteDepth,
+                               PRUint8**  imageData,
+                               PRUint32*  imageLength,
+                               PRUint32** paletteData,
+                               PRUint32*  paletteLength);
+
+  nsresult FrameUpdated(PRUint32 aFrameNum, nsIntRect& aUpdatedRect);
+
+  
+  nsresult EndFrameDecode(PRUint32 aFrameNum);
+
+  
+  nsresult DecodingComplete();
+
+  
+
+
+
+  void     SetLoopCount(PRInt32 aLoopCount);
+
+  
+
+
+
+
+
+
+
+  nsresult AddSourceData(const char *aBuffer, PRUint32 aCount);
+
+  
+  virtual nsresult SourceDataComplete();
+
+  
+  virtual nsresult NewSourceData();
+
+  
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult SetSourceSizeHint(PRUint32 sizeHint);
+
+  
+  
+  enum {
+    
+    
+    kBlendSource =  0,
+
+    
+    
+    kBlendOver
+  };
+
+  enum {
+    kDisposeClearAll         = -1, 
+                                   
+    kDisposeNotSpecified,   
+    kDisposeKeep,           
+    kDisposeClear,          
+    kDisposeRestorePrevious 
+  };
+
 private:
   struct Anim
   {

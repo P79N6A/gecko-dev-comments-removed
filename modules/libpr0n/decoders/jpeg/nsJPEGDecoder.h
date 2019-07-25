@@ -41,11 +41,16 @@
 #ifndef nsJPEGDecoder_h__
 #define nsJPEGDecoder_h__
 
+#include "RasterImage.h"
+
+
+
+#undef INT32
+
 #include "imgIDecoder.h"
 
-#include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
 
-#include "imgIContainer.h"
 #include "imgIDecoderObserver.h"
 #include "nsIInputStream.h"
 #include "nsIPipe.h"
@@ -81,6 +86,12 @@ typedef enum {
     JPEG_ERROR    
 } jstate;
 
+namespace mozilla {
+namespace imagelib {
+class RasterImage;
+} 
+} 
+
 class nsJPEGDecoder : public imgIDecoder
 {
 public:
@@ -96,7 +107,7 @@ protected:
   nsresult OutputScanlines(PRBool* suspend);
 
 public:
-  nsCOMPtr<imgIContainer> mImage;
+  nsRefPtr<mozilla::imagelib::RasterImage> mImage;
   nsCOMPtr<imgIDecoderObserver> mObserver;
 
   PRUint32 mFlags;

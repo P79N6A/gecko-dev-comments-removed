@@ -78,20 +78,24 @@ NS_IMETHODIMP imgTools::DecodeImageData(nsIInputStream* aInStr,
                                         imgIContainer **aContainer)
 {
   nsresult rv;
+  RasterImage* image;  
 
   NS_ENSURE_ARG_POINTER(aInStr);
+
   
-  if (!*aContainer) {
-    *aContainer = new RasterImage();
-    if (!*aContainer)
-      return NS_ERROR_OUT_OF_MEMORY;
-    NS_ADDREF(*aContainer);
+  if (*aContainer) {
+    NS_ABORT_IF_FALSE((*aContainer)->GetType() == imgIContainer::TYPE_RASTER,
+                      "wrong type of imgIContainer for decoding into");
+    image = static_cast<RasterImage*>(*aContainer);
+  } else {
+    *aContainer = image = new RasterImage();
+    NS_ADDREF(image);
   }
 
   
   
   nsCString mimeType(aMimeType);
-  rv = (*aContainer)->Init(nsnull, mimeType.get(), imgIContainer::INIT_FLAG_NONE);
+  rv = image->Init(nsnull, mimeType.get(), Image::INIT_FLAG_NONE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIInputStream> inStream = aInStr;
@@ -111,13 +115,13 @@ NS_IMETHODIMP imgTools::DecodeImageData(nsIInputStream* aInStr,
   
   PRUint32 bytesRead;
   rv = inStream->ReadSegments(RasterImage::WriteToContainer,
-                              static_cast<void*>(*aContainer),
+                              static_cast<void*>(image),
                               length, &bytesRead);
   NS_ENSURE_SUCCESS(rv, rv);
 
 
   
-  rv = (*aContainer)->SourceDataComplete();
+  rv = image->SourceDataComplete();
   NS_ENSURE_SUCCESS(rv, rv);
 
   

@@ -87,6 +87,7 @@
 
 #define DISCARD_PREF "image.mem.discardable"
 #define DECODEONDRAW_PREF "image.mem.decodeondraw"
+#define SVG_MIMETYPE "image/svg+xml"
 
 using namespace mozilla::imagelib;
 
@@ -202,6 +203,9 @@ nsresult imgRequest::Init(nsIURI *aURI,
   NS_ABORT_IF_FALSE(aChannel, "No channel");
 
   mProperties = do_CreateInstance("@mozilla.org/properties;1");
+
+  
+  
   nsCOMPtr<imgIContainer> comImg = do_CreateInstance("@mozilla.org/image/rasterimage;1");
   mImage = static_cast<Image*>(comImg.get());
 
@@ -725,10 +729,10 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
                     "Already have an image for non-multipart request");
 
   
-  if (mIsMultiPartChannel && mImage->IsInitialized()) {
-
+  if (mIsMultiPartChannel && mImage->IsInitialized() &&
+      mImage->GetType() == imgIContainer::TYPE_RASTER) {
     
-    mImage->NewSourceData();
+    static_cast<RasterImage*>(mImage.get())->NewSourceData();
   }
 
   
@@ -863,10 +867,11 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   
   
   
-  if (mImage->IsInitialized()) {
+  if (mImage->IsInitialized() &&
+      mImage->GetType() == imgIContainer::TYPE_RASTER) {
 
     
-    nsresult rv = mImage->SourceDataComplete();
+    nsresult rv = static_cast<RasterImage*>(mImage.get())->SourceDataComplete();
 
     
     
@@ -914,7 +919,10 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
 
   nsresult rv;
 
-  if (!mGotData) {
+  PRUint16 imageType;
+  if (mGotData) {
+    imageType = mImage->GetType();
+  } else {
     LOG_SCOPE(gImgLog, "imgRequest::OnDataAvailable |First time through... finding mimetype|");
 
     mGotData = PR_TRUE;
@@ -951,6 +959,10 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
 
       LOG_MSG(gImgLog, "imgRequest::OnDataAvailable", "Got content type from the channel");
     }
+
+    
+    imageType = mContentType.EqualsLiteral(SVG_MIMETYPE) ?
+      imgIContainer::TYPE_VECTOR : imgIContainer::TYPE_RASTER;
 
     
     nsCOMPtr<nsISupportsCString> contentType(do_CreateInstance("@mozilla.org/supports-cstring;1"));
@@ -1026,20 +1038,23 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
       return NS_BINDING_ABORTED;
     }
 
-    
-    if (httpChannel) {
-      nsCAutoString contentLength;
-      rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-length"),
-                                          contentLength);
-      if (NS_SUCCEEDED(rv)) {
-        PRInt32 len = contentLength.ToInteger(&rv);
+    if (imageType == imgIContainer::TYPE_RASTER) {
+      
+      if (httpChannel) {
+        nsCAutoString contentLength;
+        rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-length"),
+                                            contentLength);
+        if (NS_SUCCEEDED(rv)) {
+          PRInt32 len = contentLength.ToInteger(&rv);
 
-        
-        
-        if (len > 0) {
-          PRUint32 sizeHint = (PRUint32) len;
-          sizeHint = PR_MIN(sizeHint, 20000000); 
-          mImage->SetSourceSizeHint(sizeHint);
+          
+          
+          if (len > 0) {
+            PRUint32 sizeHint = (PRUint32) len;
+            sizeHint = PR_MIN(sizeHint, 20000000); 
+            RasterImage* rasterImage = static_cast<RasterImage*>(mImage.get());
+            rasterImage->SetSourceSizeHint(sizeHint);
+          }
         }
       }
     }
