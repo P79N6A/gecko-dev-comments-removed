@@ -7,6 +7,9 @@
 
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
+
+Services.prefs.setBoolPref("lightweightThemes.update.enabled", true);
+
 Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm");
 
 const PARAMS = "?%REQ_VERSION%/%ITEM_ID%/%ITEM_VERSION%/%ITEM_MAXAPPVERSION%/" +
