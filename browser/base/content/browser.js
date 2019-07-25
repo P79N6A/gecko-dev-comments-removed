@@ -1717,26 +1717,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   
-  let enabled = gPrefService.getBoolPref("devtools.debugger.remote-enabled");
-  if (enabled) {
-    document.getElementById("menu_remoteDebugger").hidden = false;
-    document.getElementById("Tools:RemoteDebugger").removeAttribute("disabled");
-#ifdef MENUBAR_CAN_AUTOHIDE
-    document.getElementById("appmenu_remoteDebugger").hidden = false;
-#endif
-  }
-
-  
-  let enabled = gPrefService.getBoolPref("devtools.chrome.enabled");
-  if (enabled) {
-    document.getElementById("menu_chromeDebugger").hidden = false;
-    document.getElementById("Tools:ChromeDebugger").removeAttribute("disabled");
-#ifdef MENUBAR_CAN_AUTOHIDE
-    document.getElementById("appmenu_chromeDebugger").hidden = false;
-#endif
-  }
-
-  
   
   let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled");
   if (consoleEnabled) {
@@ -4456,7 +4436,7 @@ XPCOMUtils.defineLazyGetter(FullScreen, "useLionFullScreen", function() {
   
   
 #ifdef XP_MACOSX
-  return parseFloat(Services.sysinfo.getProperty("version")) >= 11 &&
+  return /^11\./.test(Services.sysinfo.getProperty("version")) &&
          document.documentElement.getAttribute("fullscreenbutton") == "true";
 #else
   return false;
@@ -5201,10 +5181,11 @@ var TabsProgressListener = {
                               aFlags) {
     
     if (aBrowser.contentWindow == aWebProgress.DOMWindow) {
-      
-      aBrowser._clickToPlayDoorhangerShown = false;
-      aBrowser._clickToPlayPluginsActivated = false;
-
+      if (aRequest) {
+        
+        aBrowser._clickToPlayDoorhangerShown = false;
+        aBrowser._clickToPlayPluginsActivated = false;
+      }
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     }
   },
