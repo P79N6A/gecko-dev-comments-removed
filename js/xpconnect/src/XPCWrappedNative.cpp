@@ -17,6 +17,7 @@
 #include "jsproxy.h"
 #include "AccessCheck.h"
 #include "WrapperFactory.h"
+#include "XrayWrapper.h"
 #include "dombindings.h"
 
 #include "nsContentUtils.h"
@@ -1619,6 +1620,12 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 JS_NewObjectWithGivenProto(ccx, NULL, NULL, aNewParent);
             if (!propertyHolder || !JS_CopyPropertiesFrom(ccx, propertyHolder, flat))
                 return NS_ERROR_OUT_OF_MEMORY;
+
+            
+            
+            SetExpandoChain(newobj, nsnull);
+            if (!XrayUtils::CloneExpandoChain(ccx, newobj, flat))
+                return NS_ERROR_FAILURE;
 
             
             
