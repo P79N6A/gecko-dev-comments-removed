@@ -71,7 +71,7 @@
 #include "nsIProgrammingLanguage.h"
 #include "nsIClassInfoImpl.h"
 
-#if defined(XP_WIN) || defined(MOZ_ENABLE_LIBCONIC)
+#if defined(XP_WIN) || defined(MOZ_PLATFORM_MAEMO)
 #include "nsNativeConnectionHelper.h"
 #endif
 
@@ -1272,7 +1272,7 @@ nsSocketTransport::RecoverFromError()
         }
     }
 
-#if defined(XP_WIN) || defined(MOZ_ENABLE_LIBCONIC)
+#if defined(XP_WIN) || defined(MOZ_PLATFORM_MAEMO)
     
     
     if (!tryAgain) {

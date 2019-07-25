@@ -78,7 +78,7 @@
 
 #include "mozilla/FunctionTimer.h"
 
-#if defined(XP_WIN) || defined(MOZ_ENABLE_LIBCONIC)
+#if defined(XP_WIN) || defined(MOZ_PLATFORM_MAEMO)
 #include "nsNativeConnectionHelper.h"
 #endif
 
@@ -1077,7 +1077,7 @@ nsIOService::TrackNetworkLinkStatusForOffline()
         
         
         if (autodialEnabled) {
-#if defined(XP_WIN) || defined(MOZ_ENABLE_LIBCONIC)
+#if defined(XP_WIN) || defined(MOZ_PLATFORM_MAEMO)
             
             
             
