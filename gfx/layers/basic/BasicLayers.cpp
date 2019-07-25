@@ -242,6 +242,23 @@ public:
     mUseIntermediateSurface = GetEffectiveOpacity() != 1.0 && HasMultipleChildren();
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  PRBool ChildrenPartitionVisibleRegion(const nsIntRect& aInRect);
+
+  void ForceIntermediateSurface() { mUseIntermediateSurface = PR_TRUE; }
+
 protected:
   BasicLayerManager* BasicManager()
   {
@@ -256,6 +273,43 @@ BasicContainerLayer::~BasicContainerLayer()
   }
 
   MOZ_COUNT_DTOR(BasicContainerLayer);
+}
+
+PRBool
+BasicContainerLayer::ChildrenPartitionVisibleRegion(const nsIntRect& aInRect)
+{
+  gfxMatrix transform;
+  if (!GetEffectiveTransform().Is2D(&transform) ||
+      transform.HasNonIntegerTranslation())
+    return PR_FALSE;
+
+  nsIntPoint offset(PRInt32(transform.x0), PRInt32(transform.y0));
+  nsIntRect rect = aInRect.Intersect(GetEffectiveVisibleRegion().GetBounds() + offset);
+  nsIntRegion covered;
+
+  for (Layer* l = mFirstChild; l; l = l->GetNextSibling()) {
+    if (ToData(l)->IsHidden())
+      continue;
+
+    gfxMatrix childTransform;
+    if (!l->GetEffectiveTransform().Is2D(&childTransform) ||
+        childTransform.HasNonIntegerTranslation() ||
+        l->GetEffectiveOpacity() != 1.0)
+      return PR_FALSE;
+    nsIntRegion childRegion = l->GetEffectiveVisibleRegion();
+    childRegion.MoveBy(PRInt32(childTransform.x0), PRInt32(childTransform.y0));
+    childRegion.And(childRegion, rect);
+    if (l->GetClipRect()) {
+      childRegion.And(childRegion, *l->GetClipRect() + offset);
+    }
+    nsIntRegion intersection;
+    intersection.And(covered, childRegion);
+    if (!intersection.IsEmpty())
+      return PR_FALSE;
+    covered.Or(covered, childRegion);
+  }
+
+  return covered.Contains(rect);
 }
 
 template<class Container>
@@ -1308,6 +1362,7 @@ TransformIntRect(nsIntRect& aRect, const gfxMatrix& aMatrix,
 
 
 
+
 enum {
     ALLOW_OPAQUE = 0x01,
 };
@@ -1347,8 +1402,9 @@ MarkLayersHidden(Layer* aLayer, const nsIntRect& aClipRect,
   }
 
   BasicImplData* data = ToData(aLayer);
-  Layer* child = aLayer->GetLastChild();
-  if (!child) {
+  data->SetOperator(gfxContext::OPERATOR_OVER);
+
+  if (!aLayer->AsContainerLayer()) {
     gfxMatrix transform;
     if (!aLayer->GetEffectiveTransform().Is2D(&transform)) {
       data->SetHidden(PR_FALSE);
@@ -1375,6 +1431,7 @@ MarkLayersHidden(Layer* aLayer, const nsIntRect& aClipRect,
       }
     }
   } else {
+    Layer* child = aLayer->GetLastChild();
     PRBool allHidden = PR_TRUE;
     for (; child; child = child->GetPrevSibling()) {
       MarkLayersHidden(child, newClipRect, aDirtyRect, aOpaqueRegion, newFlags);
@@ -1383,6 +1440,64 @@ MarkLayersHidden(Layer* aLayer, const nsIntRect& aClipRect,
       }
     }
     data->SetHidden(allHidden);
+  }
+}
+
+
+
+
+
+
+
+
+static void
+ApplyDoubleBuffering(Layer* aLayer, const nsIntRect& aVisibleRect)
+{
+  BasicImplData* data = ToData(aLayer);
+  if (data->IsHidden())
+    return;
+
+  nsIntRect newVisibleRect(aVisibleRect);
+
+  {
+    const nsIntRect* clipRect = aLayer->GetEffectiveClipRect();
+    if (clipRect) {
+      nsIntRect cr = *clipRect;
+      
+      
+      if (aLayer->GetParent()) {
+        gfxMatrix tr;
+        if (aLayer->GetParent()->GetEffectiveTransform().Is2D(&tr)) {
+          NS_ASSERTION(!tr.HasNonIntegerTranslation(),
+                       "Parent can only have an integer translation");
+          cr += nsIntPoint(PRInt32(tr.x0), PRInt32(tr.y0));
+        } else {
+          NS_ERROR("Parent can only have an integer translation");
+        }
+      }
+      newVisibleRect.IntersectRect(newVisibleRect, cr);
+    }
+  }
+
+  BasicContainerLayer* container =
+    static_cast<BasicContainerLayer*>(aLayer->AsContainerLayer());
+  
+  
+  
+  if (!container) {
+    data->SetOperator(gfxContext::OPERATOR_SOURCE);
+  } else {
+    if (container->UseIntermediateSurface() ||
+        !container->ChildrenPartitionVisibleRegion(newVisibleRect)) {
+      
+      data->SetOperator(gfxContext::OPERATOR_SOURCE);
+      container->ForceIntermediateSurface();
+    } else {
+      for (Layer* child = aLayer->GetFirstChild(); child;
+           child = child->GetNextSibling()) {
+        ApplyDoubleBuffering(child, newVisibleRect);
+      }
+    }
   }
 }
 
@@ -1435,44 +1550,16 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
     if (IsRetained()) {
       nsIntRegion region;
       MarkLayersHidden(mRoot, clipRect, clipRect, region, ALLOW_OPAQUE);
-    }
-
-    nsRefPtr<gfxContext> finalTarget = mTarget;
-    gfxPoint cachedSurfaceOffset;
-    nsIntRegion rootRegion;
-    PRBool useDoubleBuffering = mUsingDefaultTarget &&
-      mDoubleBuffering != BUFFER_NONE &&
-      MayHaveOverlappingOrTransparentLayers(mRoot, clipRect, &rootRegion);
-
-    if (useDoubleBuffering) {
-      nsRefPtr<gfxASurface> targetSurface = mTarget->CurrentSurface();
-      mTarget = PushGroupWithCachedSurface(mTarget, targetSurface->GetContentType(),
-                                           &cachedSurfaceOffset);
-      
-      mRoot->ComputeEffectiveTransforms(gfx3DMatrix::From2D(mTarget->CurrentMatrix()));
+      if (mUsingDefaultTarget && mDoubleBuffering != BUFFER_NONE) {
+        ApplyDoubleBuffering(mRoot, deviceSpaceClipExtents);
+      }
     }
 
     PaintLayer(mRoot, aCallback, aCallbackData, nsnull);
 
-    
-    
-    
-    
-    
-    
-    
-    
-    if (useDoubleBuffering && !mTransactionIncomplete) {
-      finalTarget->SetOperator(gfxContext::OPERATOR_SOURCE);
-      PopGroupWithCachedSurface(finalTarget, cachedSurfaceOffset);
-    }
-
     if (!mTransactionIncomplete) {
       
       mTarget = nsnull;
-    } else {
-      
-      mTarget = finalTarget;
     }
   }
 
@@ -1611,11 +1698,22 @@ BasicLayerManager::PaintLayer(Layer* aLayer,
 
   if (needsGroup) {
     mTarget->PopGroupToSource();
-    if (needsClipToVisibleRegion) {
-      gfxUtils::ClipToRegion(mTarget, aLayer->GetEffectiveVisibleRegion());
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!mTransactionIncomplete) {
+      if (needsClipToVisibleRegion) {
+        gfxUtils::ClipToRegion(mTarget, aLayer->GetEffectiveVisibleRegion());
+      }
+      AutoSetOperator setOperator(mTarget, container->GetOperator());
+      mTarget->Paint(aLayer->GetEffectiveOpacity());
     }
-    AutoSetOperator setOperator(mTarget, container->GetOperator());
-    mTarget->Paint(aLayer->GetEffectiveOpacity());
   }
 
   if (pushedTargetOpaqueRect) {
