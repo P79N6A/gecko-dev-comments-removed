@@ -188,12 +188,10 @@ TabMirror.prototype = {
   init: function(){
     var self = this;
     
+    
+    Tabs.onOpen(function() {
 
-
-
-
-
-
+    });
 
     
     Tabs.onReady( function(evt){

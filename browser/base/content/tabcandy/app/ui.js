@@ -53,6 +53,8 @@ Navbar = {
 }
 
 
+
+
 var Tabbar = {
   
   
@@ -101,8 +103,8 @@ var Tabbar = {
     var visibleTabs = [];
     
     
-    for( var i=0; i<UI.tabBar.el.children.length; i++ ){
-      var tab = UI.tabBar.el.children[i];
+    for( var i=0; i<this.el.children.length; i++ ){
+      var tab = this.el.children[i];
       if( tab.collapsed == false )
         visibleTabs.push();
     }
@@ -121,8 +123,8 @@ var Tabbar = {
     
     
     var tabBarTabs = [];
-    for( var i=0; i<UI.tabBar.el.children.length; i++ ){
-      tabBarTabs.push(UI.tabBar.el.children[i]);
+    for( var i=0; i<this.el.children.length; i++ ){
+      tabBarTabs.push(this.el.children[i]);
     }
     
     for each( var tab in tabs ){
@@ -141,9 +143,10 @@ var Tabbar = {
     
     
     
+    var self = this;
     visibleTabs.forEach(function(tab){
       tab.collapsed = false;
-      Utils.activeWindow.gBrowser.moveTabTo(tab, UI.tabBar.el.children.length-1);
+      Utils.activeWindow.gBrowser.moveTabTo(tab, self.el.children.length-1);
     });
   },
 
@@ -151,8 +154,8 @@ var Tabbar = {
   
   
   showAllTabs: function(){
-    for( var i=0; i<UI.tabBar.el.children.length; i++ ){
-      var tab = UI.tabBar.el.children[i];
+    for( var i=0; i<this.el.children.length; i++ ){
+      var tab = this.el.children[i];
       tab.collapsed = false;
     }
   },
@@ -160,6 +163,8 @@ var Tabbar = {
   
   get isHidden(){ return this._hidden; }
 }
+
+
 
 
 window.Page = {
@@ -257,49 +262,65 @@ window.Page = {
       return false;
     });
     
-    var lastTab = null;
     Tabs.onFocus(function(){
       
-      if( this.contentWindow == window && lastTab != null && lastTab.mirror != null){
+      if( this.contentWindow == window){
         var activeGroup = Groups.getActiveGroup();
         if( activeGroup ) activeGroup.reorderBasedOnTabOrder();        
 
-        UI.tabBar.hide(false);
+        if(window.UI)
+          UI.tabBar.hide();
         
-        
-        
-        var $tab = $(lastTab.mirror.el);
-        self.setActiveTab($(lastTab.mirror.el).data().tabItem);
-        
-        var rotation = $tab.css("-moz-transform");
-        var [w,h, pos, z] = [$tab.width(), $tab.height(), $tab.position(), $tab.css("zIndex")];
-        var scale = window.innerWidth / w;
-
-        var overflow = $("body").css("overflow");
-        $("body").css("overflow", "hidden");
-        
-        var mirror = lastTab.mirror;
-        TabMirror.pausePainting();
-        $tab.css({
-            top: 0, left: 0,
-            width: window.innerWidth,
-            height: h * (window.innerWidth/w),
-            zIndex: 999999,
-            '-moz-transform': 'rotate(0deg)'
-        }).animate({
-            top: pos.top, left: pos.left,
-            width: w, height: h
-        },350, '', function() {
+        if(UI.currentTab != null && UI.currentTab.mirror != null) {
+          
+          
+          
+          
+          var mirror = UI.currentTab.mirror;
+          var $tab = $(mirror.el);
+          var item = $tab.data().tabItem;
+          self.setActiveTab(item);
+          
+          var rotation = $tab.css("-moz-transform");
+          var [w,h, pos, z] = [$tab.width(), $tab.height(), $tab.position(), $tab.css("zIndex")];
+          var scale = window.innerWidth / w;
+  
+          var overflow = $("body").css("overflow");
+          $("body").css("overflow", "hidden");
+          
+          TabMirror.pausePainting();
           $tab.css({
-            zIndex: z,
-            '-moz-transform': rotation
+              top: 0, left: 0,
+              width: window.innerWidth,
+              height: h * (window.innerWidth/w),
+              zIndex: 999999,
+              '-moz-transform': 'rotate(0deg)'
+          }).animate({
+              top: pos.top, left: pos.left,
+              width: w, height: h
+          },350, '', function() {
+            $tab.css({
+              zIndex: z,
+              '-moz-transform': rotation
+            });
+            $("body").css("overflow", overflow);
+            window.Groups.setActiveGroup(null);
+            TabMirror.resumePainting();
+
+
+
+
           });
-          $("body").css("overflow", overflow);
-          window.Groups.setActiveGroup(null);
-          TabMirror.resumePainting();
-        });
+        }
+      } else { 
+        var item = TabItems.getItemByTab(Utils.activeTab);
+        if(item) 
+          Groups.setActiveGroup(item.parent);
+          
+        UI.tabBar.show();        
       }
-      lastTab = this;
+      
+      UI.currentTab = this;
     });
   },
   
@@ -421,10 +442,29 @@ ArrangeClass.prototype = {
 }
 
 
+
+
 function UIClass(){ 
+  
+  
   this.navBar = Navbar;
+  
+  
+  
   this.tabBar = Tabbar;
+  
+  
+  
+  
   this.devMode = false;
+  
+  
+  
+  
+  this.currentTab = Utils.activeTab;
+  
+  
+  
   this.focused = (Utils.activeTab == Utils.homeTab);
   
   var self = this;
@@ -455,6 +495,7 @@ function UIClass(){
       if(this.contentWindow.location.host == "tabcandy") {
         self.focused = true;
         self.navBar.hide();
+        self.tabBar.hide();
       } else {
         self.focused = false;
         self.navBar.show();      
