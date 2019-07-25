@@ -2,55 +2,22 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ["openFile", "saveFile", "saveAsFile", "genBoiler", 
                         "getFile", "Copy", "getChromeWindow", "getWindows", "runEditor",
-                        "runFile", "getWindowByTitle", "getWindowByType", "tempfile", 
-                        "getMethodInWindows", "getPreference", "setPreference",
+                        "runFile", "getWindowByTitle", "getWindowByType", "getWindowId",
+                        "tempfile", "getMethodInWindows", "getPreference", "setPreference",
                         "sleep", "assert", "unwrapNode", "TimeoutError", "waitFor",
                         "takeScreenshot",
                        ];
 
-var hwindow = Components.classes["@mozilla.org/appshell/appShellService;1"]
-              .getService(Components.interfaces.nsIAppShellService)
-              .hiddenDOMWindow;
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
 
-var uuidgen = Components.classes["@mozilla.org/uuid-generator;1"]
-    .getService(Components.interfaces.nsIUUIDGenerator);
+var hwindow = Cc["@mozilla.org/appshell/appShellService;1"]
+              .getService(Ci.nsIAppShellService).hiddenDOMWindow;
+
+var uuidgen = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
 
 function Copy (obj) {
   for (var n in obj) {
@@ -59,206 +26,227 @@ function Copy (obj) {
 }
 
 function getChromeWindow(aWindow) {
-  var chromeWin = aWindow
-           .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-           .getInterface(Components.interfaces.nsIWebNavigation)
-           .QueryInterface(Components.interfaces.nsIDocShellTreeItem)
-           .rootTreeItem
-           .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-           .getInterface(Components.interfaces.nsIDOMWindow)
-           .QueryInterface(Components.interfaces.nsIDOMChromeWindow);
+  var chromeWin = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                  .getInterface(Ci.nsIWebNavigation)
+                  .QueryInterface(Ci.nsIDocShellTreeItem)
+                  .rootTreeItem
+                  .QueryInterface(Ci.nsIInterfaceRequestor)
+                  .getInterface(Ci.nsIDOMWindow)
+                  .QueryInterface(Ci.nsIDOMChromeWindow);
+
   return chromeWin;
 }
 
 function getWindows(type) {
   if (type == undefined) {
-      type = "";
+    type = "";
   }
-  var windows = []
-  var enumerator = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                     .getService(Components.interfaces.nsIWindowMediator)
-                     .getEnumerator(type);
-  while(enumerator.hasMoreElements()) {
+
+  var windows = [];
+  var enumerator = Cc["@mozilla.org/appshell/window-mediator;1"]
+                   .getService(Ci.nsIWindowMediator).getEnumerator(type);
+
+  while (enumerator.hasMoreElements()) {
     windows.push(enumerator.getNext());
   }
+
   if (type == "") {
     windows.push(hwindow);
   }
+
   return windows;
 }
 
-function getMethodInWindows (methodName) {
-  for each(w in getWindows()) {
+function getMethodInWindows(methodName) {
+  for each (var w in getWindows()) {
     if (w[methodName] != undefined) {
       return w[methodName];
     }
   }
+
   throw new Error("Method with name: '" + methodName + "' is not in any open window.");
 }
 
 function getWindowByTitle(title) {
-  for each(w in getWindows()) {
+  for each (var w in getWindows()) {
     if (w.document.title && w.document.title == title) {
       return w;
     }
   }
+
+  throw new Error("Window with title: '" + title + "' not found.");
 }
 
 function getWindowByType(type) {
-  var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-           .getService(Components.interfaces.nsIWindowMediator);
+  var wm = Cc["@mozilla.org/appshell/window-mediator;1"]
+           .getService(Ci.nsIWindowMediator);
+
   return wm.getMostRecentWindow(type);
+}
+
+
+
+
+
+
+
+
+function getWindowId(aWindow) {
+  try {
+    
+    return aWindow.QueryInterface(Ci.nsIInterfaceRequestor).
+                   getInterface(Ci.nsIDOMWindowUtils).
+                   outerWindowID;
+  } catch (e) {
+    
+    return aWindow.QueryInterface(Ci.nsISupportsPRUint64).data;
+  }
 }
 
 function tempfile(appention) {
   if (appention == undefined) {
-    var appention = "mozmill.utils.tempfile"
+    appention = "mozmill.utils.tempfile";
   }
-	var tempfile = Components.classes["@mozilla.org/file/directory_service;1"].getService(Components.interfaces.nsIProperties).get("TmpD", Components.interfaces.nsIFile);
-	tempfile.append(uuidgen.generateUUID().toString().replace('-', '').replace('{', '').replace('}',''))
-	tempfile.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0777);
-	tempfile.append(appention);
-	tempfile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0666);
-	
-	return tempfile.clone()
-}
 
-var checkChrome = function() {
-   var loc = window.document.location.href;
-   try {
-       loc = window.top.document.location.href;
-   } catch (e) {}
-
-   if (/^chrome:\/\//.test(loc)) { return true; } 
-   else { return false; }
-}
-
- 
- var runFile = function(w){
-   
-   var nsIFilePicker = Components.interfaces.nsIFilePicker;
-   var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
-   
-   fp.init(w, "Select a File", nsIFilePicker.modeOpen);
-   fp.appendFilter("JavaScript Files","*.js");
-   
-   var res = fp.show();
-   
-   if (res == nsIFilePicker.returnOK){
-     var thefile = fp.file;
-     
-     var paramObj = {};
-     paramObj.files = [];
-     paramObj.files.push(thefile.path);
-   }
- };
- 
- var saveFile = function(w, content, filename){
-   
-   var file = Components.classes["@mozilla.org/file/local;1"]
-                        .createInstance(Components.interfaces.nsILocalFile);
-   
-   file.initWithPath(filename);
-   
-   
-   var foStream = Components.classes["@mozilla.org/network/file-output-stream;1"]
-                            .createInstance(Components.interfaces.nsIFileOutputStream);
-
-   
-   foStream.init(file, 0x02 | 0x08 | 0x20, 0666, 0); 
-   
-   
-   
-   
-   foStream.write(content, content.length);
-   foStream.close();
- };
- 
-  var saveAsFile = function(w, content){
-     
-     var nsIFilePicker = Components.interfaces.nsIFilePicker;
-     var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
-     
-     fp.init(w, "Select a File", nsIFilePicker.modeSave);
-     fp.appendFilter("JavaScript Files","*.js");
-     
-     var res = fp.show();
-     
-     if ((res == nsIFilePicker.returnOK) || (res == nsIFilePicker.returnReplace)){
-       var thefile = fp.file;
-              
-       
-       if (thefile.path.indexOf(".js") == -1){
-         
-         var file = Components.classes["@mozilla.org/file/local;1"]
-                              .createInstance(Components.interfaces.nsILocalFile);
-         
-         file.initWithPath(thefile.path+".js");
-         var thefile = file;
-       }
-       
-       
-       var foStream = Components.classes["@mozilla.org/network/file-output-stream;1"]
-                               .createInstance(Components.interfaces.nsIFileOutputStream);
-
-       
-       foStream.init(thefile, 0x02 | 0x08 | 0x20, 0666, 0); 
-       
-       
-       
-       foStream.write(content, content.length);
-       foStream.close();
-       return thefile.path;
-     }
-  };
+  var tempfile = Cc["@mozilla.org/file/directory_service;1"]
+                 .getService(Ci.nsIProperties).get("TmpD", Ci.nsIFile);
+  tempfile.append(uuidgen.generateUUID().toString().replace('-', '')
+                                                   .replace('{', '')
+                                                   .replace('}',''));
+  tempfile.create(Ci.nsIFile.DIRECTORY_TYPE, 0777);
+  tempfile.append(appention);
+  tempfile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
   
- var openFile = function(w){
-    
-    var nsIFilePicker = Components.interfaces.nsIFilePicker;
-    var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
-    
-    fp.init(w, "Select a File", nsIFilePicker.modeOpen);
-    fp.appendFilter("JavaScript Files","*.js");
-    
-    var res = fp.show();
-    
-    if (res == nsIFilePicker.returnOK){
-      var thefile = fp.file;
-      
-      var data = getFile(thefile.path);
 
-      return {path:thefile.path, data:data};
+  return tempfile.clone();
+}
+
+var checkChrome = function () {
+  var loc = window.document.location.href;
+  try {
+    loc = window.top.document.location.href;
+  } catch (e) {
+  }
+
+  return /^chrome:\/\//.test(loc);
+}
+
+var runFile = function (w) {
+  var nsIFilePicker = Ci.nsIFilePicker;
+
+  
+  var fp = Cc["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+  fp.init(w, "Select a File", nsIFilePicker.modeOpen);
+  fp.appendFilter("JavaScript Files","*.js");
+
+  
+  var res = fp.show();
+  if (res == nsIFilePicker.returnOK) {
+    var thefile = fp.file;
+
+    
+    var paramObj = {};
+    paramObj.files = [];
+    paramObj.files.push(thefile.path);
+  }
+}
+
+var saveFile = function (w, content, filename) {
+  var file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+  file.initWithPath(filename);
+
+  var foStream = Cc["@mozilla.org/network/file-output-stream;1"]
+                 .createInstance(Ci.nsIFileOutputStream);
+
+  
+  foStream.init(file, 0x02 | 0x08 | 0x20, 0666, 0); 
+  
+  
+  
+
+  foStream.write(content, content.length);
+  foStream.close();
+};
+
+var saveAsFile = function (w, content) {
+  var nsIFilePicker = Ci.nsIFilePicker;
+
+  
+  var fp = Cc["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+  fp.init(w, "Select a File", nsIFilePicker.modeSave);
+  fp.appendFilter("JavaScript Files","*.js");
+
+  
+  var res = fp.show();
+  if ((res == nsIFilePicker.returnOK) || (res == nsIFilePicker.returnReplace)) {
+    var thefile = fp.file;
+
+    
+    if (thefile.path.indexOf(".js") == -1){
+      var file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+      file.initWithPath(thefile.path + ".js");
+      var thefile = file;
     }
-  };
+
+    
+    var foStream = Cc["@mozilla.org/network/file-output-stream;1"]
+                   .createInstance(Ci.nsIFileOutputStream);
+
+    
+    foStream.init(thefile, 0x02 | 0x08 | 0x20, 0666, 0); 
+    
+    
+    
+    foStream.write(content, content.length);
+    foStream.close();
+
+    return thefile.path;
+  }
+}
+
+var openFile = function (w) {
+  var nsIFilePicker = Ci.nsIFilePicker;
+
   
- var getFile = function(path){
-   
-   var file = Components.classes["@mozilla.org/file/local;1"]
-                        .createInstance(Components.interfaces.nsILocalFile);
-   
-   file.initWithPath(path);
-   
-   var data = "";
-   var fstream = Components.classes["@mozilla.org/network/file-input-stream;1"]
-                           .createInstance(Components.interfaces.nsIFileInputStream);
-   var sstream = Components.classes["@mozilla.org/scriptableinputstream;1"]
-                           .createInstance(Components.interfaces.nsIScriptableInputStream);
-   fstream.init(file, -1, 0, 0);
-   sstream.init(fstream); 
+  var fp = Cc["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+  fp.init(w, "Select a File", nsIFilePicker.modeOpen);
+  fp.appendFilter("JavaScript Files", "*.js");
 
-   
-   var str = sstream.read(4096);
-   while (str.length > 0) {
-     data += str;
-     str = sstream.read(4096);
-   }
+  
+  var res = fp.show();
+  if (res == nsIFilePicker.returnOK) {
+    var thefile = fp.file;
+    var data = getFile(thefile.path);
 
-   sstream.close();
-   fstream.close();
+    return {path: thefile.path, data: data};
+  }
+}
 
-   
-   return data;
- };
+var getFile = function (path) {
+  var file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+  file.initWithPath(path);
+
+  var data = "";
+  var fstream = Cc["@mozilla.org/network/file-input-stream;1"]
+                .createInstance(Ci.nsIFileInputStream);
+  var sstream = Cc["@mozilla.org/scriptableinputstream;1"]
+                .createInstance(Ci.nsIScriptableInputStream);
+  fstream.init(file, -1, 0, 0);
+  sstream.init(fstream); 
+
+  
+  var str = sstream.read(4096);
+  while (str.length > 0) {
+    data += str;
+    str = sstream.read(4096);
+  }
+
+  sstream.close();
+  fstream.close();
+
+  
+  return data;
+};
  
 
 
@@ -273,8 +261,9 @@ var checkChrome = function() {
 
 function getPreference(aPrefName, aDefaultValue) {
   try {
-    var branch = Components.classes["@mozilla.org/preferences-service;1"].
-                 getService(Components.interfaces.nsIPrefBranch);
+    var branch = Cc["@mozilla.org/preferences-service;1"]
+                 .getService(Ci.nsIPrefBranch);
+
     switch (typeof aDefaultValue) {
       case ('boolean'):
         return branch.getBoolPref(aPrefName);
@@ -285,7 +274,7 @@ function getPreference(aPrefName, aDefaultValue) {
       default:
         return branch.getComplexValue(aPrefName);
     }
-  } catch(e) {
+  } catch (e) {
     return aDefaultValue;
   }
 }
@@ -303,8 +292,9 @@ function getPreference(aPrefName, aDefaultValue) {
 
 function setPreference(aName, aValue) {
   try {
-    var branch = Components.classes["@mozilla.org/preferences-service;1"].
-                 getService(Components.interfaces.nsIPrefBranch);
+    var branch = Cc["@mozilla.org/preferences-service;1"]
+                 .getService(Ci.nsIPrefBranch);
+
     switch (typeof aValue) {
       case ('boolean'):
         branch.setBoolPref(aName, aValue);
@@ -318,7 +308,7 @@ function setPreference(aName, aValue) {
       default:
         branch.setComplexValue(aName, aValue);
     }
-  } catch(e) {
+  } catch (e) {
     return false;
   }
 
@@ -332,14 +322,12 @@ function setPreference(aName, aValue) {
 
 
 function sleep(milliseconds) {
-  
   var timeup = false;
-  function wait() { timeup = true; }
-  hwindow.setTimeout(wait, milliseconds);
 
-  var thread = Components.classes["@mozilla.org/thread-manager;1"].
-               getService().currentThread;
-  while(!timeup) {
+  hwindow.setTimeout(function () { timeup = true; }, milliseconds);
+  var thread = Cc["@mozilla.org/thread-manager;1"]
+               .getService().currentThread;
+  while (!timeup) {
     thread.processNextEvent(true);
   }
 }
@@ -356,7 +344,7 @@ function assert(callback, message, thisObject) {
 
   return true;
 }
-	   
+
 
 
 
@@ -374,6 +362,7 @@ function unwrapNode(aNode) {
       node = node.wrappedJSObject;
     }
   }
+
   return node;
 }
 
@@ -384,13 +373,14 @@ function unwrapNode(aNode) {
 
 function TimeoutError(message, fileName, lineNumber) {
   var err = new Error();
+  this.message = (message === undefined ? err.message : message);
+  this.fileName = (fileName === undefined ? err.fileName : fileName);
+  this.lineNumber = (lineNumber === undefined ? err.lineNumber : lineNumber);
+
   if (err.stack) {
     this.stack = err.stack;
   }
-  this.message = message === undefined ? err.message : message;
-  this.fileName = fileName === undefined ? err.fileName : fileName;
-  this.lineNumber = lineNumber === undefined ? err.lineNumber : lineNumber;
-};
+}
 TimeoutError.prototype = new Error();
 TimeoutError.prototype.constructor = TimeoutError;
 TimeoutError.prototype.name = 'TimeoutError';
@@ -402,7 +392,8 @@ function waitFor(callback, message, timeout, interval, thisObject) {
   timeout = timeout || 5000;
   interval = interval || 100;
 
-  var self = {counter: 0, result: callback.call(thisObject)};
+  var self = {counter: 0,
+              result: callback.call(thisObject)};
 
   function wait() {
     self.counter += interval;
@@ -410,10 +401,10 @@ function waitFor(callback, message, timeout, interval, thisObject) {
   }
 
   var timeoutInterval = hwindow.setInterval(wait, interval);
-  var thread = Components.classes["@mozilla.org/thread-manager;1"].
-               getService().currentThread;
+  var thread = Cc["@mozilla.org/thread-manager;1"]
+               .getService().currentThread;
 
-  while((self.result != true) && (self.counter < timeout))  {
+  while ((self.result != true) && (self.counter < timeout))  {
     thread.processNextEvent(true);
   }
 
@@ -437,6 +428,7 @@ function getChromeOffset(elem) {
   var win = elem.ownerDocument.defaultView;
   
   var chromeWidth = 0;
+
   if (win["name"] != "sidebar") { 
     chromeWidth = win.outerWidth - win.innerWidth;
   }
@@ -447,9 +439,10 @@ function getChromeOffset(elem) {
   if (chromeHeight > 0) {
     
     var addonbar = win.document.getElementById("addon-bar");
-    if (addonbar) { 
+    if (addonbar) {
       chromeHeight -= addonbar.scrollHeight;
     }
+
     var findbar = win.document.getElementById("FindToolbar");
     if (findbar) {
       chromeHeight -= findbar.scrollHeight;
@@ -466,7 +459,8 @@ function takeScreenshot(node, name, highlights) {
   var rect, win, width, height, left, top, needsOffset;
   
   try {
-    win = node.ownerDocument.defaultView;   
+    
+    win = node.ownerDocument.defaultView;
     rect = node.getBoundingClientRect();
     width = rect.width;
     height = rect.height;
@@ -475,7 +469,8 @@ function takeScreenshot(node, name, highlights) {
     
     needsOffset = false;
   } catch (e) {
-    win = node;                             
+    
+    win = node;
     width = win.innerWidth;
     height = win.innerHeight;
     top = 0;
@@ -491,7 +486,7 @@ function takeScreenshot(node, name, highlights) {
   var ctx = canvas.getContext("2d");
   
   ctx.drawWindow(win, left, top, width, height, "rgb(255,255,255)");
-  
+
   
   if (highlights) {
     ctx.lineWidth = "2";
@@ -516,13 +511,11 @@ function takeScreenshot(node, name, highlights) {
       
       ctx.strokeRect(rect.left + offsetX, rect.top + offsetY, rect.width, rect.height);
     }
-  } 
+  }
 
   
-  if (name) {
-    return saveCanvas(canvas, name);
-  } 
-  return canvas.toDataURL("image/png","");
+  return (name ? saveCanvas(canvas, name)
+               : canvas.toDataURL("image/png",""));
 }
 
 
@@ -530,26 +523,24 @@ function takeScreenshot(node, name, highlights) {
 
 
 function saveCanvas(canvas, name) {
-  var file = Components.classes["@mozilla.org/file/directory_service;1"]
-                                .getService(Components.interfaces.nsIProperties)
-                                .get("TmpD", Components.interfaces.nsIFile);
+  var file = Cc["@mozilla.org/file/directory_service;1"]
+             .getService(Ci.nsIProperties).get("TmpD", Ci.nsIFile);
   file.append("mozmill_screens");
   file.append(name + ".png");
-  file.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0666);
+  file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
 
   
-  var io = Components.classes["@mozilla.org/network/io-service;1"]
-                              .getService(Components.interfaces.nsIIOService);
+  var io = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
   var source = io.newURI(canvas.toDataURL("image/png", ""), "UTF8", null);
-  var target = io.newFileURI(file)
- 
-  
-  var persist = Components.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
-                                   .createInstance(Components.interfaces.nsIWebBrowserPersist);
+  var target = io.newFileURI(file);
 
-  persist.persistFlags = Components.interfaces.nsIWebBrowserPersist.PERSIST_FLAGS_REPLACE_EXISTING_FILES;
-  persist.persistFlags |= Components.interfaces.nsIWebBrowserPersist.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
- 
+  
+  var persist = Cc["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
+                .createInstance(Ci.nsIWebBrowserPersist);
+
+  persist.persistFlags = Ci.nsIWebBrowserPersist.PERSIST_FLAGS_REPLACE_EXISTING_FILES;
+  persist.persistFlags |= Ci.nsIWebBrowserPersist.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
+
   
   persist.saveURI(source, null, null, null, null, file);
 

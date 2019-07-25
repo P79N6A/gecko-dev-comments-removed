@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ['trim', 'vslice'];
 
 var arrays = {}; Components.utils.import('resource://mozmill/stdlib/arrays.js', arrays);

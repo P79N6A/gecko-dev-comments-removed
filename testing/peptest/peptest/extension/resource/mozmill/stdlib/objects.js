@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ['getLength', ];
 
 var getLength = function (obj) {
@@ -42,6 +9,7 @@ var getLength = function (obj) {
   for (i in obj) {
     len++;
   }
+
   return len;
 }
 
