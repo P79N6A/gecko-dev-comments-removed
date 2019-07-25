@@ -829,6 +829,7 @@ TokenStream::getTokenInternal()
     Token *tp;
     JSAtom *atom;
     bool hadUnicodeEscape;
+    const jschar *numStart;
 #if JS_HAS_XML_SUPPORT
     JSBool inTarget;
     size_t targetLength;
@@ -1104,98 +1105,111 @@ TokenStream::getTokenInternal()
 
 
 
-    if (JS7_ISDEC(c) || (c == '.' && JS7_ISDEC(peekChar()))) {
-        int radix = 10;
+    if (JS7_ISDECNZ(c) || (c == '.' && JS7_ISDEC(peekChar()))) {
+        numStart = userbuf.addressOfNextRawChar() - 1;
 
-        if (c == '0') {
+      decimal:
+        while (JS7_ISDEC(c))
             c = getChar();
-            if (JS_TOLOWER(c) == 'x') {
-                radix = 16;
+
+        if (c == '.') {
+            do {
                 c = getChar();
-                if (!JS7_ISHEX(c)) {
-                    ungetChar(c);
-                    ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR,
-                                             JSMSG_MISSING_HEXDIGITS);
-                    goto error;
-                }
-            } else if (JS7_ISDEC(c)) {
-                radix = 8;
-            }
+            } while (JS7_ISDEC(c));
         }
-
-        const jschar *numStart = userbuf.addressOfNextRawChar() - 1;
-
-        while (JS7_ISHEX(c)) {
-            if (radix < 16) {
-                if (JS7_ISLET(c))
-                    break;
-
-                if (radix == 8) {
-                    
-                    if (!ReportStrictModeError(cx, this, NULL, NULL, JSMSG_DEPRECATED_OCTAL))
-                        goto error;
-
-                    
-
-
-
-
-                    if (c >= '8') {
-                        if (!ReportCompileErrorNumber(cx, this, NULL, JSREPORT_WARNING,
-                                                      JSMSG_BAD_OCTAL, c == '8' ? "08" : "09")) {
-                            goto error;
-                        }
-                        radix = 10;
-                    }
-                }
-            }
+        if (JS_TOLOWER(c) == 'e') {
             c = getChar();
-        }
-
-        if (radix == 10 && (c == '.' || JS_TOLOWER(c) == 'e')) {
-            if (c == '.') {
-                do {
-                    c = getChar();
-                } while (JS7_ISDEC(c));
-            }
-            if (JS_TOLOWER(c) == 'e') {
+            if (c == '+' || c == '-')
                 c = getChar();
-                if (c == '+' || c == '-')
-                    c = getChar();
-                if (!JS7_ISDEC(c)) {
-                    ungetChar(c);
-                    ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR,
-                                             JSMSG_MISSING_EXPONENT);
-                    goto error;
-                }
-                do {
-                    c = getChar();
-                } while (JS7_ISDEC(c));
+            if (!JS7_ISDEC(c)) {
+                ungetChar(c);
+                ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR,
+                                         JSMSG_MISSING_EXPONENT);
+                goto error;
             }
+            do {
+                c = getChar();
+            } while (JS7_ISDEC(c));
         }
+        ungetChar(c);
 
         if (JS_ISIDSTART(c)) {
             ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_IDSTART_AFTER_NUMBER);
             goto error;
         }
 
-        ungetChar(c);
-
-        jsdouble dval;
-        const jschar *dummy;
         
 
 
 
 
-        if (radix == 10) {
-            if (!js_strtod(cx, numStart, userbuf.addressOfNextRawChar(), &dummy, &dval))
+        jsdouble dval;
+        const jschar *dummy;
+        if (!js_strtod(cx, numStart, userbuf.addressOfNextRawChar(), &dummy, &dval))
+            goto error;
+        tp->t_dval = dval;
+        tt = TOK_NUMBER;
+        goto out;
+    }
+
+    
+
+
+
+    if (c == '0') {
+        int radix;
+        c = getChar();
+        if (JS_TOLOWER(c) == 'x') {
+            radix = 16;
+            c = getChar();
+            if (!JS7_ISHEX(c)) {
+                ungetChar(c);
+                ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_MISSING_HEXDIGITS);
                 goto error;
+            }
+            numStart = userbuf.addressOfNextRawChar() - 1;
+            while (JS7_ISHEX(c))
+                c = getChar();
+        } else if (JS7_ISDEC(c)) {
+            radix = 8;
+            numStart = userbuf.addressOfNextRawChar() - 1;
+            while (JS7_ISDEC(c)) {
+                
+                if (!ReportStrictModeError(cx, this, NULL, NULL, JSMSG_DEPRECATED_OCTAL))
+                    goto error;
+
+                
+
+
+
+
+
+                if (c >= '8') {
+                    if (!ReportCompileErrorNumber(cx, this, NULL, JSREPORT_WARNING,
+                                                  JSMSG_BAD_OCTAL, c == '8' ? "08" : "09")) {
+                        goto error;
+                    }
+                    goto decimal;   
+                }
+                c = getChar();
+            }
         } else {
-            if (!GetPrefixInteger(cx, numStart, userbuf.addressOfNextRawChar(), radix, &dummy,
-                                  &dval))
-                goto error;
+            
+            radix = 10;
+            numStart = userbuf.addressOfNextRawChar() - 1;
+            goto decimal;
         }
+        ungetChar(c);
+
+        if (JS_ISIDSTART(c)) {
+            ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_IDSTART_AFTER_NUMBER);
+            goto error;
+        }
+
+        jsdouble dval;
+        const jschar *dummy;
+        if (!GetPrefixInteger(cx, numStart, userbuf.addressOfNextRawChar(), radix, &dummy, &dval))
+            goto error;
         tp->t_dval = dval;
         tt = TOK_NUMBER;
         goto out;
