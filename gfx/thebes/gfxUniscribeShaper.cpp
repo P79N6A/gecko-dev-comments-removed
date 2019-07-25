@@ -85,7 +85,9 @@ public:
         mNumGlyphs(0), mMaxGlyphs(ESTIMATE_MAX_GLYPHS(aLength)),
         mFontSelected(PR_FALSE), mIVS(aIVS)
     {
-        NS_ASSERTION(mMaxGlyphs < 65535, "UniscribeItem is too big, ScriptShape() will fail!");
+        
+        NS_ASSERTION(mMaxGlyphs < 65535,
+                     "UniscribeItem is too big, ScriptShape() will fail!");
     }
 
     ~UniscribeItem() {
@@ -399,8 +401,6 @@ private:
     PRPackedBool mFontSelected;
 };
 
-#define MAX_ITEM_LENGTH 16384
-
 class Uniscribe
 {
 public:
@@ -409,8 +409,6 @@ public:
               gfxTextRun *aTextRun):
         mString(aString), mLength(aLength), mTextRun(aTextRun)
     {
-    }
-    ~Uniscribe() {
     }
 
     void Init() {
@@ -422,77 +420,7 @@ public:
         mState.fOverrideDirection = PR_TRUE;
     }
 
-private:
-
-
-
-
-
-
-#define MAX_UNISCRIBE_GLYPHS 32767
-
-    
-    
-    nsresult CopyItemSplitOversize(int aIndex, nsTArray<SCRIPT_ITEM> &aDest) {
-        aDest.AppendElement(mItems[aIndex]);
-        const int itemLength =
-            mItems[aIndex+1].iCharPos - mItems[aIndex].iCharPos;
-        if (ESTIMATE_MAX_GLYPHS(itemLength) > MAX_UNISCRIBE_GLYPHS) {
-            
-            
-            
-
-            
-            const int nextItemStart = mItems[aIndex+1].iCharPos;
-            int start = FindNextItemStart(mItems[aIndex].iCharPos,
-                                          nextItemStart);
-
-            while (start < nextItemStart) {
-                SCRIPT_ITEM item = mItems[aIndex];
-                item.iCharPos = start;
-                aDest.AppendElement(item);
-                start = FindNextItemStart(start, nextItemStart);
-            }
-        } 
-        return NS_OK;
-    }
-
-    PRUint32 FindNextItemStart(int aOffset, int aLimit) {
-        if (aOffset + MAX_ITEM_LENGTH >= aLimit) {
-            
-            
-            
-            return aLimit;
-        }
-        
-        
-        PRInt32 off;
-        int boundary = -1;
-        for (off = MAX_ITEM_LENGTH; off > 1; --off) {
-            if (mTextRun->IsClusterStart(off)) {
-                if (off > boundary) {
-                    boundary = off;
-                }
-                if (mString[aOffset+off] == ' ' ||
-                    mString[aOffset+off - 1] == ' ') {
-                    return aOffset+off;
-                }
-            }
-        }
-
-        
-        if (boundary > 0) {
-            return aOffset+boundary;
-        }
-
-        
-        
-        
-        return aOffset + MAX_ITEM_LENGTH;
-    }
-
 public:
-
     int Itemize() {
         HRESULT rv;
 
@@ -514,25 +442,6 @@ public:
             Init();
         }
 
-        if (ESTIMATE_MAX_GLYPHS(mLength) > 65535) {
-            
-            
-            
-            
-            nsTArray<SCRIPT_ITEM> items;
-            for (int i=0; i<mNumItems; i++) {
-                nsresult nrs = CopyItemSplitOversize(i, items);
-                NS_ASSERTION(NS_SUCCEEDED(nrs), "CopyItemSplitOversize() failed");
-            }
-            items.AppendElement(mItems[mNumItems]); 
-
-            mItems = items;
-            mNumItems = items.Length() - 1; 
-        }
-        return mNumItems;
-    }
-
-    PRUint32 ItemsLength() {
         return mNumItems;
     }
 
