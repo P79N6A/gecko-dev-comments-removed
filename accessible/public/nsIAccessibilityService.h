@@ -77,6 +77,17 @@ public:
   
 
 
+
+
+
+
+
+  virtual nsAccessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
+                                                  PRBool aCanCreate) = 0;
+
+  
+
+
   virtual already_AddRefed<nsAccessible>
     CreateHTMLBRAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
   virtual already_AddRefed<nsAccessible>
@@ -170,8 +181,7 @@ public:
 
 
 
-  virtual nsresult FireAccessibleEvent(PRUint32 aEvent,
-                                       nsIAccessible *aTarget) = 0;
+  virtual void FireAccessibleEvent(PRUint32 aEvent, nsAccessible* aTarget) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIAccessibilityService,
