@@ -459,9 +459,10 @@ enum OwnCharsBehavior
 
 
 
+JS_ALWAYS_INLINE
 static JSAtom *
-Atomize(JSContext *cx, const jschar **pchars, size_t length,
-        InternBehavior ib, OwnCharsBehavior ocb = CopyChars)
+AtomizeInline(JSContext *cx, const jschar **pchars, size_t length,
+              InternBehavior ib, OwnCharsBehavior ocb = CopyChars)
 {
     const jschar *chars = *pchars;
 
@@ -510,6 +511,13 @@ Atomize(JSContext *cx, const jschar **pchars, size_t length,
     }
 
     return key->morphAtomizedStringIntoAtom();
+}
+
+static JSAtom *
+Atomize(JSContext *cx, const jschar **pchars, size_t length,
+        InternBehavior ib, OwnCharsBehavior ocb = CopyChars)
+{
+    return AtomizeInline(cx, pchars, length, ib, ocb);
 }
 
 JSAtom *
@@ -595,7 +603,7 @@ js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, InternBehavio
     if (!CheckStringLength(cx, length))
         return NULL;
 
-    return Atomize(cx, &chars, length, ib);
+    return AtomizeInline(cx, &chars, length, ib);
 }
 
 JSAtom *
