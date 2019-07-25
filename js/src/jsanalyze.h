@@ -378,6 +378,9 @@ struct Lifetime
 struct LifetimeLoop
 {
     
+    LifetimeLoop *parent;
+
+    
     uint32 head;
 
     
