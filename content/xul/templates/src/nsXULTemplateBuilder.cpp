@@ -528,6 +528,9 @@ nsXULTemplateBuilder::UpdateResult(nsIXULTemplateResult* aOldResult,
            ("nsXULTemplateBuilder::UpdateResult %p %p %p",
            aOldResult, aNewResult, aQueryNode));
 
+    if (!mRoot || !mQueriesCompiled)
+      return NS_OK;
+
     
     
     
@@ -1023,6 +1026,9 @@ nsXULTemplateBuilder::ResultBindingChanged(nsIXULTemplateResult* aResult)
     
     
     NS_ENSURE_ARG_POINTER(aResult);
+
+    if (!mRoot || !mQueriesCompiled)
+      return NS_OK;
 
     return SynchronizeResult(aResult);
 }
