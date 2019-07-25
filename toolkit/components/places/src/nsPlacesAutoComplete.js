@@ -109,6 +109,12 @@ const kBrowserUrlbarBranch = "browser.urlbar.";
 
 
 
+XPCOMUtils.defineLazyServiceGetter(this, "pb",
+                                   "@mozilla.org/privatebrowsing;1",
+                                   "nsIPrivateBrowsingService");
+
+
+
 
 
 
@@ -147,6 +153,18 @@ function initTempTable(aDatabase)
   stmt.finalize();
 }
 
+
+
+
+function inPrivateBrowsingMode()
+{
+  try {
+    return pb.privateBrowsingEnabled;
+  }
+  catch (ex) {
+    return false;
+  }
+}
 
 
 
@@ -519,6 +537,13 @@ nsPlacesAutoComplete.prototype = {
 
   registerOpenPage: function PAC_registerOpenPage(aURI)
   {
+    
+    
+    
+    if (inPrivateBrowsingMode()) {
+      return;
+    }
+
     let stmt = this._registerOpenPageQuery;
     stmt.params.page_url = aURI.spec;
 
@@ -527,6 +552,13 @@ nsPlacesAutoComplete.prototype = {
 
   unregisterOpenPage: function PAC_unregisterOpenPage(aURI)
   {
+    
+    
+    
+    if (inPrivateBrowsingMode()) {
+      return;
+    }
+
     let stmt = this._unregisterOpenPageQuery;
     stmt.params.page_url = aURI.spec;
 
