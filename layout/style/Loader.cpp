@@ -1528,9 +1528,8 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
 
 
 
-template <typename T>
 nsresult
-Loader::ParseSheet(T& aInput,
+Loader::ParseSheet(const nsAString& aInput,
                    SheetLoadData* aLoadData,
                    PRBool& aCompleted)
 {

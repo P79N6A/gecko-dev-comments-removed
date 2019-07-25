@@ -56,7 +56,6 @@ class nsICSSLoaderObserver;
 class nsCSSStyleSheet;
 class nsIContent;
 class nsIDocument;
-class nsIUnicharInputStream;
 class nsCSSParser;
 class nsMediaList;
 
@@ -443,8 +442,7 @@ private:
   
   
   
-  template <typename T>
-  nsresult ParseSheet(T& aStream,
+  nsresult ParseSheet(const nsAString& aInput,
                       SheetLoadData* aLoadData,
                       PRBool& aCompleted);
 
