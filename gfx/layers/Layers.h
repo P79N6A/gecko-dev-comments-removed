@@ -182,6 +182,13 @@ public:
 
   virtual void BeginTransactionWithTarget(gfxContext* aTarget) = 0;
   
+  enum EndTransactionFlags {
+    END_DEFAULT = 0,
+    END_NO_IMMEDIATE_REDRAW = 1 << 0,  
+    END_NO_COMPOSITE = 1 << 1 
+  };
+
+  
 
 
 
@@ -189,7 +196,7 @@ public:
 
 
 
-  virtual bool EndEmptyTransaction() = 0;
+  virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT) = 0;
 
   
 
@@ -223,12 +230,6 @@ public:
                                            const nsIntRegion& aRegionToInvalidate,
                                            void* aCallbackData);
 
-  enum EndTransactionFlags {
-    END_DEFAULT = 0,
-    END_NO_IMMEDIATE_REDRAW = 1 << 0,  
-    END_NO_COMPOSITE = 1 << 1 
-  };
-
   
 
 
@@ -239,6 +240,9 @@ public:
   virtual void EndTransaction(DrawThebesLayerCallback aCallback,
                               void* aCallbackData,
                               EndTransactionFlags aFlags = END_DEFAULT) = 0;
+
+  virtual bool HasShadowManagerInternal() const { return false; }
+  bool HasShadowManager() const { return HasShadowManagerInternal(); }
 
   bool IsSnappingEffectiveTransforms() { return mSnapEffectiveTransforms; } 
 

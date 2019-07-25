@@ -121,7 +121,7 @@ LayerManagerD3D9::EndConstruction()
 }
 
 bool
-LayerManagerD3D9::EndEmptyTransaction()
+LayerManagerD3D9::EndEmptyTransaction(EndTransactionFlags aFlags)
 {
   
   
@@ -130,7 +130,7 @@ LayerManagerD3D9::EndEmptyTransaction()
   if (!mRoot || mDeviceResetCount != mDeviceManager->GetDeviceResetCount())
     return false;
 
-  EndTransaction(nullptr, nullptr);
+  EndTransaction(nullptr, nullptr, aFlags);
   return true;
 }
 
