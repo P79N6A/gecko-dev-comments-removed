@@ -73,8 +73,7 @@ struct nsCycleCollectionJSRuntime
     
 
 
-
-    virtual void Collect(PRUint32 reason, PRUint32 kind) = 0;
+    virtual void Collect(PRUint32 reason) = 0;
 
     
 
