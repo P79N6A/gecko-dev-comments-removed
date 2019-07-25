@@ -785,7 +785,7 @@ SessionStoreService.prototype = {
     aWindow.__SSi = "window" + Date.now();
 
     
-    this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [], busy: false };
+    this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [] };
     if (!this._isWindowLoaded(aWindow))
       this._windows[aWindow.__SSi]._restoring = true;
     if (!aWindow.toolbar.visible)
@@ -969,9 +969,6 @@ SessionStoreService.prototype = {
       
       if (winData.tabs.length > 1 ||
           (winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0]))) {
-        
-        delete winData.busy;
-
         this._closedWindows.unshift(winData);
         this._capClosedWindows();
       }
@@ -1268,7 +1265,7 @@ SessionStoreService.prototype = {
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
     
     var window = aTab.ownerDocument.defaultView;
-    this._setWindowStateBusy(window);
+    this._sendWindowStateEvent(window, "Busy");
     this.restoreHistoryPrecursor(window, [aTab], [tabState], 0, 0, 0);
   },
 
@@ -1284,7 +1281,7 @@ SessionStoreService.prototype = {
     tabState.index = Math.max(1, Math.min(tabState.index, tabState.entries.length));
     tabState.pinned = false;
 
-    this._setWindowStateBusy(aWindow);
+    this._sendWindowStateEvent(aWindow, "Busy");
     let newTab = aTab == aWindow.gBrowser.selectedTab ?
       aWindow.gBrowser.addTab(null, {relatedToCurrent: true, ownerTab: aTab}) :
       aWindow.gBrowser.addTab();
@@ -1327,7 +1324,7 @@ SessionStoreService.prototype = {
     let closedTab = closedTabs.splice(aIndex, 1).shift();
     let closedTabState = closedTab.state;
 
-    this._setWindowStateBusy(aWindow);
+    this._sendWindowStateEvent(aWindow, "Busy");
     
     let browser = aWindow.gBrowser;
     let tab = browser.addTab();
@@ -2537,7 +2534,7 @@ SessionStoreService.prototype = {
 
     
     
-    this._setWindowStateBusy(aWindow);
+    this._sendWindowStateEvent(aWindow, "Busy");
 
     if (root._closedWindows)
       this._closedWindows = root._closedWindows;
@@ -2724,7 +2721,7 @@ SessionStoreService.prototype = {
     if (aTabs.length == 0) {
       
       
-      this._setWindowStateReady(aWindow);
+      this._sendWindowStateEvent(aWindow, "Ready");
       return;
     }
 
@@ -2869,7 +2866,7 @@ SessionStoreService.prototype = {
     if (aTabs.length == 0) {
       
       
-      this._setWindowStateReady(aWindow);
+      this._sendWindowStateEvent(aWindow, "Ready");
       return; 
     }
     
@@ -4012,42 +4009,6 @@ SessionStoreService.prototype = {
 
     this._browserSetState = false;
     this._restoreCount = -1;
-  },
-
-  
-
-
-
-
-  _setWindowStateBusyValue:
-    function sss__changeWindowStateBusyValue(aWindow, aValue) {
-
-    this._windows[aWindow.__SSi].busy = aValue;
-
-    
-    
-    if (!this._isWindowLoaded(aWindow)) {
-      let stateToRestore = this._statesToRestore[aWindow.__SS_restoreID].windows[0];
-      stateToRestore.busy = aValue;
-    }
-  },
-
-  
-
-
-
-  _setWindowStateReady: function sss__setWindowStateReady(aWindow) {
-    this._setWindowStateBusyValue(aWindow, false);
-    this._sendWindowStateEvent(aWindow, "Ready");
-  },
-
-  
-
-
-
-  _setWindowStateBusy: function sss__setWindowStateBusy(aWindow) {
-    this._setWindowStateBusyValue(aWindow, true);
-    this._sendWindowStateEvent(aWindow, "Busy");
   },
 
   

@@ -361,10 +361,7 @@ function togglePrivateBrowsing(callback) {
 
   Services.obs.addObserver(function observe() {
     Services.obs.removeObserver(observe, topic);
-
-    
-    
-    executeSoon(function () afterAllTabsLoaded(callback));
+    afterAllTabsLoaded(callback);
   }, topic, false);
 
   let pb = Cc["@mozilla.org/privatebrowsing;1"].

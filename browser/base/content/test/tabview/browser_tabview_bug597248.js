@@ -37,20 +37,26 @@ function setupTwo(win) {
     contentWindow.TabItems.update(tabItem.tab);
     tabItem.addSubscriber("savedCachedImageData", function onSaved(item) {
       item.removeSubscriber("savedCachedImageData", onSaved);
-
-      if (!--numTabsToSave)
-        restoreWindow();
+      --numTabsToSave;
     });
   });
 
   
-  let restoreWindow = function() {
+  let xulWindowDestory = function() {
+    Services.obs.removeObserver(
+       xulWindowDestory, "xul-window-destroyed", false);
+
+    
+    
     executeSoon(function() {
       restoredWin = undoCloseWindow();
       restoredWin.addEventListener("load", function onLoad(event) {
         restoredWin.removeEventListener("load", onLoad, false);
 
         registerCleanupFunction(function() restoredWin.close());
+
+        
+        is(numTabsToSave, 0, "All tabs were saved when window was closed.");
         is(restoredWin.gBrowser.tabs.length, 3, "The total number of tabs is 3");
 
         
@@ -97,6 +103,7 @@ function setupTwo(win) {
       }, false);
     });
   };
+  Services.obs.addObserver(xulWindowDestory, "xul-window-destroyed", false);
 
   win.close();
 }

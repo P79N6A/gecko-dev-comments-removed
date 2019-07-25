@@ -125,7 +125,7 @@ let UI = {
   
   
   
-  _storageBusy: false,
+  _storageBusyCount: 0,
 
   
   
@@ -169,10 +169,6 @@ let UI = {
 
       
       Storage.init();
-
-      if (Storage.readWindowBusyState(gWindow))
-        this.storageBusy();
-
       let data = Storage.readUIData(gWindow);
       this._storageSanity(data);
       this._pageBounds = data.pageBounds;
@@ -616,13 +612,12 @@ let UI = {
   
   
   storageBusy: function UI_storageBusy() {
-    if (this._storageBusy)
-      return;
-
-    this._storageBusy = true;
-
-    TabItems.pauseReconnecting();
-    GroupItems.pauseAutoclose();
+    if (!this._storageBusyCount) {
+      TabItems.pauseReconnecting();
+      GroupItems.pauseAutoclose();
+    }
+    
+    this._storageBusyCount++;
   },
   
   
@@ -630,18 +625,16 @@ let UI = {
   
   
   storageReady: function UI_storageReady() {
-    if (!this._storageBusy)
-      return;
-
-    this._storageBusy = false;
-
-    let hasGroupItemsData = GroupItems.load();
-    if (!hasGroupItemsData)
-      this.reset();
-
-    TabItems.resumeReconnecting();
-    GroupItems._updateTabBar();
-    GroupItems.resumeAutoclose();
+    this._storageBusyCount--;
+    if (!this._storageBusyCount) {
+      let hasGroupItemsData = GroupItems.load();
+      if (!hasGroupItemsData)
+        this.reset();
+  
+      TabItems.resumeReconnecting();
+      GroupItems._updateTabBar();
+      GroupItems.resumeAutoclose();
+    }
   },
 
   
@@ -737,7 +730,7 @@ let UI = {
       } else {
         
         
-        if (self._storageBusy)
+        if (self._storageBusyCount)
           return;
 
         
