@@ -40,6 +40,7 @@
 
 #include "filters.h"
 #include "nscore.h"
+#include "nsDocAccessible.h"
 
 
 
@@ -91,6 +92,43 @@ private:
   filters::FilterFuncPtr mFilterFunc;
   PRBool mIsDeep;
   IteratorState *mState;
+};
+
+
+
+
+
+
+class RelatedAccIterator
+{
+public:
+  
+
+
+
+
+
+
+
+
+
+  RelatedAccIterator(nsDocAccessible* aDocument, nsIContent* aDependentContent,
+                     nsIAtom* aRelAttr);
+
+  
+
+
+  nsAccessible* Next();
+
+private:
+  RelatedAccIterator();
+  RelatedAccIterator(const RelatedAccIterator&);
+  RelatedAccIterator& operator = (const RelatedAccIterator&);
+
+  nsIAtom* mRelAttr;
+  nsDocAccessible::AttrRelProviderArray* mProviders;
+  nsIContent* mBindingParent;
+  PRUint32 mIndex;
 };
 
 #endif

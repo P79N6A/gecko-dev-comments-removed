@@ -85,6 +85,16 @@ namespace dom = mozilla::dom;
 
 PRUint32 nsDocAccessible::gLastFocusedAccessiblesState = 0;
 
+static nsIAtom** kRelationAttrs[] =
+{
+  &nsAccessibilityAtoms::aria_labelledby,
+  &nsAccessibilityAtoms::aria_describedby,
+  &nsAccessibilityAtoms::aria_owns,
+  &nsAccessibilityAtoms::aria_controls,
+  &nsAccessibilityAtoms::aria_flowto
+};
+
+static const PRUint32 kRelationAttrsLen = NS_ARRAY_LENGTH(kRelationAttrs);
 
 
 
@@ -95,6 +105,7 @@ nsDocAccessible::
   nsHyperTextAccessibleWrap(aRootContent, aShell),
   mDocument(aDocument), mScrollPositionChangedTicks(0), mIsLoaded(PR_FALSE)
 {
+  mDependentIDsHash.Init();
   
   mAccessibleCache.Init(kDefaultCacheSize);
   mNodeToAccessibleMap.Init(kDefaultCacheSize);
@@ -134,6 +145,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDocAccessible, nsAccessible)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mEventQueue)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSTARRAY(mChildDocuments)
+  tmp->mDependentIDsHash.Clear();
   tmp->mNodeToAccessibleMap.Clear();
   ClearCache(tmp->mAccessibleCache);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
@@ -664,6 +676,7 @@ nsDocAccessible::Shutdown()
 
   mWeakShell = nsnull;  
 
+  mDependentIDsHash.Clear();
   mNodeToAccessibleMap.Clear();
   ClearCache(mAccessibleCache);
 
@@ -933,6 +946,15 @@ nsDocAccessible::AttributeWillChange(nsIDocument *aDocument,
   
   
   
+
+  
+  if (aModType == nsIDOMMutationEvent::MODIFICATION ||
+      aModType == nsIDOMMutationEvent::REMOVAL) {
+    nsAccessible* accessible =
+      GetAccService()->GetAccessibleInWeakShell(aElement, mWeakShell);
+    if (accessible)
+      RemoveDependentIDsFor(accessible, aAttribute);
+  }
 }
 
 void
@@ -942,6 +964,16 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument,
                                   PRInt32 aModType)
 {
   AttributeChangedImpl(aElement, aNameSpaceID, aAttribute);
+
+  
+  if (aModType == nsIDOMMutationEvent::MODIFICATION ||
+      aModType == nsIDOMMutationEvent::ADDITION) {
+    nsAccessible* accessible =
+      GetAccService()->GetAccessibleInWeakShell(aElement, mWeakShell);
+
+    if (accessible)
+      AddDependentIDsFor(accessible, aAttribute);
+  }
 
   
   if (aElement == gLastFocusedNode) {
@@ -1362,6 +1394,7 @@ nsDocAccessible::BindToDocument(nsAccessible* aAccessible,
   }
 
   aAccessible->SetRoleMapEntry(aRoleMapEntry);
+  AddDependentIDsFor(aAccessible);
   return true;
 }
 
@@ -1372,6 +1405,8 @@ nsDocAccessible::UnbindFromDocument(nsAccessible* aAccessible)
   if (aAccessible->IsPrimaryForNode() &&
       mNodeToAccessibleMap.Get(aAccessible->GetNode()) == aAccessible)
     mNodeToAccessibleMap.Remove(aAccessible->GetNode());
+
+  RemoveDependentIDsFor(aAccessible);
 
 #ifdef DEBUG
   NS_ASSERTION(mAccessibleCache.GetWeak(aAccessible->UniqueID()),
@@ -1556,6 +1591,84 @@ nsDocAccessible::RecreateAccessible(nsINode* aNode)
 
 
 
+
+void
+nsDocAccessible::AddDependentIDsFor(nsAccessible* aRelProvider,
+                                    nsIAtom* aRelAttr)
+{
+  for (PRUint32 idx = 0; idx < kRelationAttrsLen; idx++) {
+    nsIAtom* relAttr = *kRelationAttrs[idx];
+    if (aRelAttr && aRelAttr != relAttr)
+      continue;
+
+    IDRefsIterator iter(aRelProvider->GetContent(), relAttr);
+    while (true) {
+      const nsDependentSubstring id = iter.NextID();
+      if (id.IsEmpty())
+        break;
+
+      AttrRelProviderArray* providers = mDependentIDsHash.Get(id);
+      if (!providers) {
+        providers = new AttrRelProviderArray();
+        if (providers) {
+          if (!mDependentIDsHash.Put(id, providers)) {
+            delete providers;
+            providers = nsnull;
+          }
+        }
+      }
+
+      if (providers) {
+        AttrRelProvider* provider =
+          new AttrRelProvider(relAttr, aRelProvider->GetContent());
+        if (provider)
+          providers->AppendElement(provider);
+      }
+    }
+
+    
+    
+    if (aRelAttr)
+      break;
+  }
+}
+
+void
+nsDocAccessible::RemoveDependentIDsFor(nsAccessible* aRelProvider,
+                                       nsIAtom* aRelAttr)
+{
+  for (PRUint32 idx = 0; idx < kRelationAttrsLen; idx++) {
+    nsIAtom* relAttr = *kRelationAttrs[idx];
+    if (aRelAttr && aRelAttr != *kRelationAttrs[idx])
+      continue;
+
+    IDRefsIterator iter(aRelProvider->GetContent(), relAttr);
+    while (true) {
+      const nsDependentSubstring id = iter.NextID();
+      if (id.IsEmpty())
+        break;
+
+      AttrRelProviderArray* providers = mDependentIDsHash.Get(id);
+      if (providers) {
+        for (PRUint32 jdx = 0; jdx < providers->Length(); ) {
+          AttrRelProvider* provider = (*providers)[jdx];
+          if (provider->mRelAttr == relAttr &&
+              provider->mContent == aRelProvider->GetContent())
+            providers->RemoveElement(provider);
+          else
+            jdx++;
+        }
+        if (providers->Length() == 0)
+          mDependentIDsHash.Remove(id);
+      }
+    }
+
+    
+    
+    if (aRelAttr)
+      break;
+  }
+}
 
 void
 nsDocAccessible::FireValueChangeForTextFields(nsAccessible *aAccessible)

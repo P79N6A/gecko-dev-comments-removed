@@ -44,6 +44,8 @@
 #include "nsHyperTextAccessibleWrap.h"
 #include "nsEventShell.h"
 
+#include "nsClassHashtable.h"
+#include "nsDataHashtable.h"
 #include "nsIDocument.h"
 #include "nsIDocumentObserver.h"
 #include "nsIEditor.h"
@@ -267,6 +269,28 @@ protected:
     mChildDocuments.RemoveElement(aChildDocument);
   }
 
+  
+
+
+
+
+
+
+
+  void AddDependentIDsFor(nsAccessible* aRelProvider,
+                          nsIAtom* aRelAttr = nsnull);
+
+  
+
+
+
+
+
+
+
+  void RemoveDependentIDsFor(nsAccessible* aRelProvider,
+                             nsIAtom* aRelAttr = nsnull);
+
     static void ScrollTimerCallback(nsITimer *aTimer, void *aClosure);
 
     
@@ -298,14 +322,6 @@ protected:
     void FireTextChangeEventForText(nsIContent *aContent,
                                     CharacterDataChangeInfo* aInfo,
                                     PRBool aIsInserted);
-
-  
-
-
-  enum EEventFiringType {
-    eNormalEvent,
-    eDelayedEvent
-  };
 
   
 
@@ -347,7 +363,8 @@ protected:
 
 
   nsAccessibleHashtable mAccessibleCache;
-  NodeToAccessibleMap mNodeToAccessibleMap;
+  nsDataHashtable<nsPtrHashKey<const nsINode>, nsAccessible*>
+    mNodeToAccessibleMap;
 
     nsCOMPtr<nsIDocument> mDocument;
     nsCOMPtr<nsITimer> mScrollWatchTimer;
@@ -366,9 +383,35 @@ protected:
     static nsIAtom *gLastFocusedFrameType;
 
   nsTArray<nsRefPtr<nsDocAccessible> > mChildDocuments;
+
+  
+
+
+  class AttrRelProvider
+  {
+  public:
+    AttrRelProvider(nsIAtom* aRelAttr, nsIContent* aContent) :
+      mRelAttr(aRelAttr), mContent(aContent) { }
+
+    nsIAtom* mRelAttr;
+    nsIContent* mContent;
+
+  private:
+    AttrRelProvider();
+    AttrRelProvider(const AttrRelProvider&);
+    AttrRelProvider& operator =(const AttrRelProvider&);
+  };
+
+  
+
+
+  typedef nsTArray<nsAutoPtr<AttrRelProvider> > AttrRelProviderArray;
+  nsClassHashtable<nsStringHashKey, AttrRelProviderArray> mDependentIDsHash;
+
+  friend class RelatedAccIterator;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsDocAccessible,
                               NS_DOCACCESSIBLE_IMPL_CID)
 
-#endif  
+#endif
