@@ -1430,10 +1430,12 @@ JSScript::ReleaseCode(FreeOp *fop, JITScriptHandle *jith)
     
     
 
-    JITScript *jit = jith->getValid();
-    jit->destroy(fop);
-    fop->free_(jit);
-    jith->setEmpty();
+    if (jith->isValid()) {
+        JITScript *jit = jith->getValid();
+        jit->destroy(fop);
+        fop->free_(jit);
+        jith->setEmpty();
+    }
 }
 
 #ifdef JS_METHODJIT_PROFILE_STUBS
