@@ -78,98 +78,327 @@ XBLFinalize(JSFreeOp *fop, JSObject *obj)
   c->Drop();
 }
 
-static JSBool
-XBLResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsigned flags,
-           JSObject **objp)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const uint32_t XBLPROTO_SLOT = 0;
+static const uint32_t FIELD_SLOT = 1;
+
+static bool
+ObjectHasISupportsPrivate(JS::Handle<JSObject*> obj)
 {
+  JSClass* clasp = ::JS_GetClass(obj);
+  const uint32_t HAS_PRIVATE_NSISUPPORTS =
+    JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS;
+  return (clasp->flags & HAS_PRIVATE_NSISUPPORTS) == HAS_PRIVATE_NSISUPPORTS;
+}
+
+
+
+
+
+static JSBool
+InstallXBLField(JSContext* cx,
+                JS::Handle<JSObject*> callee, JS::Handle<JSObject*> thisObj,
+                jsid* idp, bool* installed)
+{
+  *installed = false;
+
+  
   
   
   
-  
-  
-  NS_ASSERTION(*objp, "Must have starting object");
-
-  JSObject* origObj = *objp;
-  *objp = NULL;
-
-  if (!JSID_IS_STRING(id)) {
-    return JS_TRUE;
-  }
-
-  nsDependentJSString fieldName(id);
-
-  jsval slotVal = ::JS_GetReservedSlot(obj, 0);
-  NS_ASSERTION(!JSVAL_IS_VOID(slotVal), "How did that happen?");
-    
-  nsXBLPrototypeBinding* protoBinding =
-    static_cast<nsXBLPrototypeBinding*>(JSVAL_TO_PRIVATE(slotVal));
-  NS_ASSERTION(protoBinding, "Must have prototype binding!");
-
-  nsXBLProtoImplField* field = protoBinding->FindField(fieldName);
-  if (!field) {
-    return JS_TRUE;
-  }
+  MOZ_ASSERT(ObjectHasISupportsPrivate(thisObj));
 
   
-  JSClass* nodeClass = ::JS_GetClass(origObj);
-  if (!nodeClass) {
-    return JS_FALSE;
-  }
   
-  if (~nodeClass->flags &
-      (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) {
-    xpc::Throw(cx, NS_ERROR_UNEXPECTED);
-    return JS_FALSE;
-  }
-
+  
   nsCOMPtr<nsIXPConnectWrappedNative> xpcWrapper =
-    do_QueryInterface(static_cast<nsISupports*>(::JS_GetPrivate(origObj)));
+    do_QueryInterface(static_cast<nsISupports*>(::JS_GetPrivate(thisObj)));
   if (!xpcWrapper) {
     
     
     
     
     
-    return JS_TRUE;
+    
+    return true;
   }
 
-  nsCOMPtr<nsIContent> content = do_QueryWrappedNative(xpcWrapper);
-  if (!content) {
+  nsCOMPtr<nsIContent> xblNode = do_QueryWrappedNative(xpcWrapper);
+  if (!xblNode) {
     xpc::Throw(cx, NS_ERROR_UNEXPECTED);
-    return JS_FALSE;
+    return false;
   }
 
   
-  nsIDocument* doc = content->OwnerDoc();
+  
+  
+  
 
-  nsIScriptGlobalObject* global = doc->GetScriptGlobalObject();
+  
+  
+  
+  
+  
+  
+  
+  nsXBLPrototypeBinding* protoBinding;
+  nsDependentJSString fieldName;
+  {
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, callee)) {
+      return false;
+    }
+
+    JS::Rooted<JSObject*> xblProto(cx);
+    xblProto = &js::GetFunctionNativeReserved(callee, XBLPROTO_SLOT).toObject();
+
+    JS::Value name = js::GetFunctionNativeReserved(callee, FIELD_SLOT);
+    JSFlatString* fieldStr = JS_ASSERT_STRING_IS_FLAT(name.toString());
+    fieldName.init(fieldStr);
+
+    MOZ_ALWAYS_TRUE(JS_ValueToId(cx, name, idp));
+
+    JS::Value slotVal = ::JS_GetReservedSlot(xblProto, 0);
+    protoBinding = static_cast<nsXBLPrototypeBinding*>(slotVal.toPrivate());
+    MOZ_ASSERT(protoBinding);
+  }
+
+  nsXBLProtoImplField* field = protoBinding->FindField(fieldName);
+  MOZ_ASSERT(field);
+
+  
+  nsIScriptGlobalObject* global = xblNode->OwnerDoc()->GetScriptGlobalObject();
   if (!global) {
-    return JS_TRUE;
+    return true;
   }
 
   nsCOMPtr<nsIScriptContext> context = global->GetContext();
   if (!context) {
-    return JS_TRUE;
+    return true;
   }
 
+  nsresult rv = field->InstallField(context, thisObj, xblNode->NodePrincipal(),
+                                    protoBinding->DocURI(), installed);
+  if (NS_SUCCEEDED(rv)) {
+    return true;
+  }
 
-  
-  bool didInstall;
-  nsresult rv = field->InstallField(context, origObj,
-                                    content->NodePrincipal(),
-                                    protoBinding->DocURI(),
-                                    &didInstall);
-  if (NS_FAILED(rv)) {
+  if (!::JS_IsExceptionPending(cx)) {
     xpc::Throw(cx, rv);
-    return JS_FALSE;
+  }
+  return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+inline bool
+FieldAccessorGuard(JSContext *cx, unsigned argc, JS::Value *vp, JSNative native, JSObject **thisObj)
+{
+  JS::Rooted<JSObject*> obj(cx, JS_THIS_OBJECT(cx, vp));
+  if (!obj) {
+    xpc::Throw(cx, NS_ERROR_UNEXPECTED);
+    return false;
   }
 
-  if (didInstall) {
-    *objp = origObj;
+  if (ObjectHasISupportsPrivate(obj)) {
+    *thisObj = obj;
+    return true;
   }
+
   
+  
+  
+  
+  
+  
+  
+  
+  
+  JSClass* protoClass;
+  {
+    JS::Rooted<JSObject*> callee(cx, &JS_CALLEE(cx, vp).toObject());
+    JS::Rooted<JSObject*> xblProto(cx);
+    xblProto = &js::GetFunctionNativeReserved(callee, XBLPROTO_SLOT).toObject();
 
-  return JS_TRUE;
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, xblProto)) {
+      return false;
+    }
+
+    protoClass = ::JS_GetClass(xblProto);
+  }
+
+  *thisObj = NULL;
+  return JS_CallNonGenericMethodOnProxy(cx, argc, vp, native, protoClass);
+}
+
+static JSBool
+FieldGetter(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+  JS::Rooted<JSObject*> thisObj(cx);
+  if (!FieldAccessorGuard(cx, argc, vp, FieldGetter, thisObj.address())) {
+    return false;
+  }
+  if (!thisObj) {
+    return true; 
+  }
+
+  bool installed = false;
+  JS::Rooted<JSObject*> callee(cx, &JS_CALLEE(cx, vp).toObject());
+  JS::Rooted<jsid> id(cx);
+  if (!InstallXBLField(cx, callee, thisObj, id.address(), &installed)) {
+    return false;
+  }
+
+  if (!installed) {
+    JS_SET_RVAL(cx, vp, JS::UndefinedValue());
+    return true;
+  }
+
+  JS::Rooted<JS::Value> v(cx);
+  if (!JS_GetPropertyById(cx, thisObj, id, v.address())) {
+    return false;
+  }
+  JS_SET_RVAL(cx, vp, v);
+  return true;
+}
+
+static JSBool
+FieldSetter(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+  JS::Rooted<JSObject*> thisObj(cx);
+  if (!FieldAccessorGuard(cx, argc, vp, FieldSetter, thisObj.address())) {
+    return false;
+  }
+  if (!thisObj) {
+    return true; 
+  }
+
+  bool installed = false;
+  JS::Rooted<JSObject*> callee(cx, &JS_CALLEE(cx, vp).toObject());
+  JS::Rooted<jsid> id(cx);
+  if (!InstallXBLField(cx, callee, thisObj, id.address(), &installed)) {
+    return false;
+  }
+
+  JS::Rooted<JS::Value> v(cx,
+                          argc > 0 ? JS_ARGV(cx, vp)[0] : JS::UndefinedValue());
+  return JS_SetPropertyById(cx, thisObj, id, v.address());
+}
+
+static JSBool
+XBLResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsigned flags,
+           JSObject **objp)
+{
+  *objp = NULL;
+
+  if (!JSID_IS_STRING(id)) {
+    return true;
+  }
+
+  nsXBLPrototypeBinding* protoBinding =
+    static_cast<nsXBLPrototypeBinding*>(::JS_GetReservedSlot(obj, 0).toPrivate());
+  MOZ_ASSERT(protoBinding);
+
+  
+  
+  
+  nsDependentJSString fieldName(id);
+  nsXBLProtoImplField* field = protoBinding->FindField(fieldName);
+  if (!field || field->IsEmpty()) {
+    return true;
+  }
+
+  
+  
+  JS::Rooted<JSObject*> global(cx, JS_GetGlobalForObject(cx, obj));
+
+  JS::Rooted<JSObject*> get(cx);
+  get = ::JS_GetFunctionObject(js::NewFunctionByIdWithReserved(cx, FieldGetter,
+                                                               0, 0, global,
+                                                               id));
+  if (!get) {
+    return false;
+  }
+  js::SetFunctionNativeReserved(get, XBLPROTO_SLOT, JS::ObjectValue(*obj));
+  js::SetFunctionNativeReserved(get, FIELD_SLOT,
+                                JS::StringValue(JSID_TO_STRING(id)));
+
+  JS::Rooted<JSObject*> set(cx);
+  set = ::JS_GetFunctionObject(js::NewFunctionByIdWithReserved(cx, FieldSetter,
+                                                               1, 0, global,
+                                                               id));
+  if (!set) {
+    return false;
+  }
+  js::SetFunctionNativeReserved(set, XBLPROTO_SLOT, JS::ObjectValue(*obj));
+  js::SetFunctionNativeReserved(set, FIELD_SLOT,
+                                JS::StringValue(JSID_TO_STRING(id)));
+
+  if (!::JS_DefinePropertyById(cx, obj, id, JS::UndefinedValue(),
+                               JS_DATA_TO_FUNC_PTR(JSPropertyOp,
+                                                   get.reference()),
+                               JS_DATA_TO_FUNC_PTR(JSStrictPropertyOp,
+                                                   set.reference()),
+                               field->AccessorAttributes())) {
+    return false;
+  }
+
+  *objp = obj;
+  return true;
+}
+
+static JSBool
+XBLEnumerate(JSContext *cx, JS::Handle<JSObject*> obj)
+{
+  nsXBLPrototypeBinding* protoBinding =
+    static_cast<nsXBLPrototypeBinding*>(::JS_GetReservedSlot(obj, 0).toPrivate());
+  MOZ_ASSERT(protoBinding);
+
+  return protoBinding->ResolveAllFields(cx, obj);
 }
 
 nsXBLJSClass::nsXBLJSClass(const nsAFlatCString& aClassName)
@@ -179,12 +408,12 @@ nsXBLJSClass::nsXBLJSClass(const nsAFlatCString& aClassName)
   name = ToNewCString(aClassName);
   flags =
     JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS |
-    JSCLASS_NEW_RESOLVE | JSCLASS_NEW_RESOLVE_GETS_START |
+    JSCLASS_NEW_RESOLVE |
     
     JSCLASS_HAS_RESERVED_SLOTS(1);
   addProperty = delProperty = getProperty = ::JS_PropertyStub;
   setProperty = ::JS_StrictPropertyStub;
-  enumerate = ::JS_EnumerateStub;
+  enumerate = XBLEnumerate;
   resolve = (JSResolveOp)XBLResolve;
   convert = ::JS_ConvertStub;
   finalize = XBLFinalize;
