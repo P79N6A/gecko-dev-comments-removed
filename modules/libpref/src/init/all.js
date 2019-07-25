@@ -1813,6 +1813,11 @@ pref("ui.trackpoint_hack.enabled", -1);
 
 pref("ui.window_class_override", "");
 
+
+
+
+pref("ui.elantech_gesture_hacks.enabled", -1);
+
 # WINNT
 #endif
 

@@ -300,6 +300,8 @@ PRBool          nsWindow::sDefaultTrackPointHack  = PR_FALSE;
 
 const char*     nsWindow::sDefaultMainWindowClass = kClassNameGeneral;
 
+PRBool          nsWindow::sUseElantechGestureHacks = PR_FALSE;
+
 
 bool            nsWindow::sAllowD3D9              = false;
 
@@ -470,7 +472,7 @@ nsWindow::nsWindow() : nsBaseWidget()
 #endif
 
 #if !defined(WINCE)
-    InitInputHackDefaults();
+    InitInputWorkaroundPrefDefaults();
 #endif
 
     
@@ -6753,6 +6755,37 @@ PRBool nsWindow::IsRedirectedKeyDownMessage(const MSG &aMsg)
           GetScanCode(sRedirectedKeyDown.lParam) == GetScanCode(aMsg.lParam));
 }
 
+void
+nsWindow::PerformElantechSwipeGestureHack(UINT& aVirtualKeyCode,
+                                          nsModifierKeyState& aModKeyState)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if ((aVirtualKeyCode == VK_NEXT || aVirtualKeyCode == VK_PRIOR) &&
+      (IS_VK_DOWN(0xFF) || IS_VK_DOWN(0xCC))) {
+    aModKeyState.mIsAltDown = true;
+    aVirtualKeyCode = aVirtualKeyCode == VK_NEXT ? VK_RIGHT : VK_LEFT;
+  }
+}
+
 
 
 
@@ -6772,6 +6805,10 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
 #ifndef WINCE
   gKbdLayout.OnKeyDown(virtualKeyCode);
 #endif
+
+  if (sUseElantechGestureHacks) {
+    PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
+  }
 
   
   
@@ -7122,6 +7159,10 @@ LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
                           PRBool *aEventDispatched)
 {
   UINT virtualKeyCode = aMsg.wParam;
+
+  if (sUseElantechGestureHacks) {
+    PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
+  }
 
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
          ("nsWindow::OnKeyUp VK=%d\n", virtualKeyCode));
@@ -8821,13 +8862,28 @@ void nsWindow::GetMainWindowClass(nsAString& aClass)
   aClass.AssignASCII(sDefaultMainWindowClass);
 }
 
-PRBool nsWindow::UseTrackPointHack()
+
+
+
+
+
+
+
+
+
+
+PRBool nsWindow::GetInputWorkaroundPref(const char* aPrefName,
+                                        PRBool aValueIfAutomatic)
 {
+  if (!aPrefName) {
+    return aValueIfAutomatic;
+  }
+
   nsresult rv;
   nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
   if (NS_SUCCEEDED(rv) && prefs) {
     PRInt32 lHackValue;
-    rv = prefs->GetIntPref("ui.trackpoint_hack.enabled", &lHackValue);
+    rv = prefs->GetIntPref(aPrefName, &lHackValue);
     if (NS_SUCCEEDED(rv)) {
       switch (lHackValue) {
         case 0: 
@@ -8839,12 +8895,18 @@ PRBool nsWindow::UseTrackPointHack()
       }
     }
   }
-  return sDefaultTrackPointHack;
+  return aValueIfAutomatic;
+}
+
+PRBool nsWindow::UseTrackPointHack()
+{
+  return GetInputWorkaroundPref("ui.trackpoint_hack.enabled",
+                                sDefaultTrackPointHack);
 }
 
 #if !defined(WINCE)
 static PRBool
-HasRegistryKey(HKEY aRoot, LPCWSTR aName)
+HasRegistryKey(HKEY aRoot, PRUnichar* aName)
 {
   HKEY key;
   LONG result = ::RegOpenKeyExW(aRoot, aName, 0, KEY_READ, &key);
@@ -8854,28 +8916,91 @@ HasRegistryKey(HKEY aRoot, LPCWSTR aName)
   return PR_TRUE;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 static PRBool
-IsObsoleteSynapticsDriver()
+GetRegistryKey(HKEY aRoot, PRUnichar* aKeyName, PRUnichar* aValueName, PRUnichar* aBuffer, DWORD aBufferLength)
 {
+  if (!aKeyName) {
+    return PR_FALSE;
+  }
+
   HKEY key;
-  LONG result = ::RegOpenKeyExW(HKEY_LOCAL_MACHINE,
-      L"Software\\Synaptics\\SynTP\\Install", 0, KEY_READ, &key);
+  LONG result = ::RegOpenKeyExW(aRoot, aKeyName, NULL, KEY_READ, &key);
   if (result != ERROR_SUCCESS)
     return PR_FALSE;
   DWORD type;
-  PRUnichar buf[40];
-  DWORD buflen = sizeof(buf);
-  result = ::RegQueryValueExW(key, L"DriverVersion", NULL, &type, (BYTE*)buf, &buflen);
+  result = ::RegQueryValueExW(key, aValueName, NULL, &type, (BYTE*) aBuffer, &aBufferLength);
   ::RegCloseKey(key);
   if (result != ERROR_SUCCESS || type != REG_SZ)
     return PR_FALSE;
-  buf[NS_ARRAY_LENGTH(buf) - 1] = 0;
+  if (aBuffer)
+    aBuffer[aBufferLength - 1] = 0;
+  return PR_TRUE;
+}
+
+static PRBool
+IsObsoleteSynapticsDriver()
+{
+  PRUnichar buf[40];
+  PRBool foundKey = GetRegistryKey(HKEY_LOCAL_MACHINE,
+                                   L"Software\\Synaptics\\SynTP\\Install",
+                                   L"DriverVersion",
+                                   buf,
+                                   sizeof buf);
+  if (!foundKey)
+    return PR_FALSE;
 
   int majorVersion = wcstol(buf, NULL, 10);
   return majorVersion < 15;
 }
 
-void nsWindow::InitInputHackDefaults()
+static PRBool
+IsObsoleteElantechDriver()
+{
+  PRUnichar buf[40];
+  
+  PRBool foundKey = GetRegistryKey(HKEY_CURRENT_USER,
+                                   L"Software\\Elantech\\MainOption",
+                                   L"DriverVersion",
+                                   buf,
+                                   sizeof buf);
+  if (!foundKey)
+    foundKey = GetRegistryKey(HKEY_CURRENT_USER,
+                              L"Software\\Elantech",
+                              L"DriverVersion",
+                              buf,
+                              sizeof buf);
+
+  if (!foundKey)
+    return PR_FALSE;
+
+  
+  
+  for (PRUnichar* p = buf; *p; p++) {
+    if (*p >= L'0' && *p <= L'9' && (p == buf || *(p - 1) == L' ')) {
+      int majorVersion = wcstol(p, NULL, 10);
+      
+      if (majorVersion == 7)
+        return PR_TRUE;
+    }
+  }
+
+  return PR_FALSE;
+}
+
+void nsWindow::InitInputWorkaroundPrefDefaults()
 {
   if (HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Lenovo\\TrackPoint")) {
     sDefaultTrackPointHack = PR_TRUE;
@@ -8888,6 +9013,10 @@ void nsWindow::InitInputHackDefaults()
               IsObsoleteSynapticsDriver()) {
     sDefaultTrackPointHack = PR_TRUE;
   }
+
+  sUseElantechGestureHacks =
+    GetInputWorkaroundPref("ui.elantech_gesture_hacks.enabled",
+                           IsObsoleteElantechDriver());
 }
 #endif 
 
