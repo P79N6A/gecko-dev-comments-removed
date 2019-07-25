@@ -40,67 +40,96 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 var Trench = function(element, xory, type, edge) {
+  
+  
+  
   this.id = Trenches.nextId++;
+
+  
   this.el = element;
-  this.$el = iQ(this.el);
   this.xory = xory; 
   this.type = type; 
   this.edge = edge; 
 
+  this.$el = iQ(this.el);
+
+  
+  
+  
+  
+  
   this.active = false;
   this.gutter = Items.defaultGutter;
 
   
+  
+  
   this.position = 0;
+
+  
+  
   
   this.radius = Trenches.defaultRadius;
 
   
-  this.range = {min: 0, max: 10000};
   
-  this.minRange = {min: 0, max: 0};
   
-  this.activeRange = {min: 0, max: 10000};
+  this.range = new Range(0,10000);
+  
+  this.minRange = new Range(0,0);
+  
+  this.activeRange = new Range(0,10000);
 };
 Trench.prototype = {
   setPosition: function Trench_setPos(position, range, minRange) {
     this.position = position;
     
     
-    if (range && 'min' in range && 'max' in range) {
-      this.range.min = range.min;
-      this.range.max = range.max;
+    if (isRange(range)) {
+      this.range = range;
     }
     
     
-    if (minRange && 'min' in minRange && 'max' in minRange)
+    if (isRange(minRange))
       this.minRange = minRange;
     
     
     if ( this.xory == "x" ) 
-      this.rect = new Rect ( this.position - this.radius, this.range.min, 2 * this.radius, this.range.max - this.range.min );
+      this.rect = new Rect ( this.position - this.radius, this.range.min, 2 * this.radius, this.range.extent );
     else
-      this.rect = new Rect ( this.range.min, this.position - this.radius, this.range.max - this.range.min, 2 * this.radius );
+      this.rect = new Rect ( this.range.min, this.position - this.radius, this.range.extent, 2 * this.radius );
       
     this.show(); 
 
   },
   setActiveRange: function Trench_setActiveRect(activeRange) {
+    if (!isRange(activeRange))
+      return false;
     this.activeRange = activeRange;
     if ( this.xory == "x" ) 
-      this.activeRect = new Rect ( this.position - this.radius, this.activeRange.min, 2 * this.radius, this.activeRange.max - this.activeRange.min );
+      this.activeRect = new Rect ( this.position - this.radius, this.activeRange.min, 2 * this.radius, this.activeRange.extent );
     else
-      this.activeRect = new Rect ( this.activeRange.min, this.position - this.radius, this.activeRange.max - this.activeRange.min, 2 * this.radius );    
+      this.activeRect = new Rect ( this.activeRange.min, this.position - this.radius, this.activeRange.extent, 2 * this.radius );    
   },
   setWithRect: function Trench_setWithRect(rect) {
     
     
     
     if (this.xory == "x")
-      var range = {min: rect.top - this.gutter, max: rect.top + rect.height + this.gutter};
+      var range = new Range(rect.top - this.gutter, rect.top + rect.height + this.gutter);
     else
-      var range = {min: rect.left - this.gutter, max: rect.left + rect.width + this.gutter};
+      var range = new Range(rect.left - this.gutter, rect.left + rect.width + this.gutter);
 
     if (this.type == "border") {
       
@@ -162,8 +191,8 @@ Trench.prototype = {
       this.visibleTrench.remove();
   },
   rectOverlaps: function Trench_rectOverlaps(rect,assumeConstantSize,keepProportional) {
-    var xRange = {min: rect.left, max: rect.left + rect.width};
-    var yRange = {min: rect.top, max: rect.top + rect.height};
+    var xRange = new Range(rect.left, rect.right);
+    var yRange = new Range(rect.top, rect.bottom);
 
     var edgeToCheck;
     if (this.type == "border") {
@@ -225,11 +254,11 @@ Trench.prototype = {
   },
   ruleOverlaps: function Trench_ruleOverlaps(position, range) {
     return (this.position - this.radius <= position && position <= this.position + this.radius
-            && range.min <= this.activeRange.max && this.activeRange.min <= range.max);
+            && this.activeRange.contains(range));
   },
   adjustRangeIfIntercept: function Trench_adjustRangeIfIntercept(position, range) {
     if (this.position - this.radius > range.min && this.position + this.radius < range.max) {
-      var activeRange = {min:this.activeRange.min, max:this.activeRange.max};
+      var activeRange = new Range(this.activeRange.min,this.activeRange.max);
       
       
       
@@ -266,7 +295,7 @@ Trench.prototype = {
       if (trench.el == group.container) 
         return;
       var bounds = group.getBounds();
-      var activeRange;
+      var activeRange = new Range();
       if (trench.xory == 'y') { 
         var yRange = {min: bounds.top, max: bounds.top + bounds.height};
         activeRange = trench.adjustRangeIfIntercept(bounds.left, yRange);
