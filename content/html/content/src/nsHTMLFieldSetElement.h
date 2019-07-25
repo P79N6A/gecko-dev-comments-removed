@@ -95,7 +95,7 @@ private:
 
 
 
-  void NotifyElementsForFirstLegendChange();
+  void NotifyElementsForFirstLegendChange(PRBool aNotify);
 
   
   static PRBool MatchListedElements(nsIContent* aContent, PRInt32 aNamespaceID,

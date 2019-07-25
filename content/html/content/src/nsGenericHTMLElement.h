@@ -864,14 +864,14 @@ public:
 
 
 
-  virtual void FieldSetDisabledChanged(PRInt32 aStates);
+  virtual void FieldSetDisabledChanged(PRInt32 aStates, PRBool aNotify);
 
-  void FieldSetFirstLegendChanged() {
+  void FieldSetFirstLegendChanged(PRBool aNotify) {
     UpdateFieldSet();
 
     
     
-    FieldSetDisabledChanged(0);
+    FieldSetDisabledChanged(0, aNotify);
   }
 
   
