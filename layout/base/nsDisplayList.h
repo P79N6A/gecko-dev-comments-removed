@@ -1841,6 +1841,30 @@ private:
 
 
 
+class nsDisplayScrollInfoLayer : public nsDisplayScrollLayer
+{
+public:
+  nsDisplayScrollInfoLayer(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
+                           nsIFrame* aForFrame, nsIFrame* aViewportFrame);
+  NS_DISPLAY_DECL_NAME("ScrollInfoLayer", TYPE_SCROLL_INFO_LAYER)
+
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayScrollInfoLayer();
+#endif
+
+  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager)
+  {
+    return mozilla::LAYER_ACTIVE_EMPTY;
+  }
+
+};
+
+
+
+
+
+
 class nsDisplayClip : public nsDisplayWrapList {
 public:
   
