@@ -845,8 +845,6 @@ pref("browser.ssl_override_behavior", 2);
 
 
 
-pref("browser.identity.domain_display", 1);
-
 pref("browser.identity.ssl_domain_display", 1);
 
 
