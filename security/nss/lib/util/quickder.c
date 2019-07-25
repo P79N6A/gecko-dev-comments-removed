@@ -858,7 +858,7 @@ static SECStatus DecodeItem(void* dest,
                         
 
                         temp.len = (temp.len-1)*8 - (temp.data[0] & 0x7);
-                        temp.data += 1;
+                        temp.data++;
                         break;
                     }
 
