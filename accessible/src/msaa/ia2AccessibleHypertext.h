@@ -19,9 +19,6 @@ class ia2AccessibleHypertext : public ia2AccessibleText,
 public:
 
   
-  STDMETHODIMP QueryInterface(REFIID, void**);
-
-  
   FORWARD_IACCESSIBLETEXT(ia2AccessibleText)
 
   

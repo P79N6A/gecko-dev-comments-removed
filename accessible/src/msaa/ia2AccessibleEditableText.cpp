@@ -16,25 +16,6 @@
 
 
 STDMETHODIMP
-ia2AccessibleEditableText::QueryInterface(REFIID iid, void** ppv)
-{
-  *ppv = NULL;
-
-  if (IID_IAccessibleEditableText == iid) {
-    nsCOMPtr<nsIAccessibleEditableText> editTextAcc(do_QueryObject(this));
-    if (!editTextAcc)
-      return E_NOINTERFACE;
-    *ppv = static_cast<IAccessibleEditableText*>(this);
-    (reinterpret_cast<IUnknown*>(*ppv))->AddRef(); 
-    return S_OK;
-  }
-
-  return E_NOINTERFACE;
-}
-
-
-
-STDMETHODIMP
 ia2AccessibleEditableText::copyText(long aStartOffset, long aEndOffset)
 {
 __try {

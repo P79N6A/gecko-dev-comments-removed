@@ -18,9 +18,6 @@ class ia2AccessibleEditableText: public IAccessibleEditableText
 public:
 
   
-  STDMETHODIMP QueryInterface(REFIID, void**);
-
-  
   virtual HRESULT STDMETHODCALLTYPE copyText(
        long startOffset,
        long endOffset);
