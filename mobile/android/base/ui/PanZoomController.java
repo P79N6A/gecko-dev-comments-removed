@@ -130,7 +130,7 @@ public class PanZoomController
         mMainThread = GeckoApp.mAppContext.getMainLooper().getThread();
         checkMainThread();
 
-        mState = PanZoomState.NOTHING;
+        setState(PanZoomState.NOTHING);
 
         GeckoAppShell.registerGeckoEventListener(MESSAGE_ZOOM_RECT, this);
         GeckoAppShell.registerGeckoEventListener(MESSAGE_ZOOM_PAGE, this);
@@ -147,6 +147,10 @@ public class PanZoomController
         GeckoAppShell.unregisterGeckoEventListener(MESSAGE_ZOOM_PAGE, this);
         GeckoAppShell.unregisterGeckoEventListener(MESSAGE_PREFS_DATA, this);
         mSubscroller.destroy();
+    }
+
+    private void setState(PanZoomState state) {
+        mState = state;
     }
 
     
@@ -262,7 +266,7 @@ public class PanZoomController
         case ANIMATED_ZOOM:
             
             
-            mState = PanZoomState.NOTHING;
+            setState(PanZoomState.NOTHING);
             
         case NOTHING:
             
@@ -283,7 +287,7 @@ public class PanZoomController
             
             
             
-            mState = PanZoomState.WAITING_LISTENERS;
+            setState(PanZoomState.WAITING_LISTENERS);
         }
     }
 
@@ -294,7 +298,7 @@ public class PanZoomController
             
             
             
-            mState = PanZoomState.NOTHING;
+            setState(PanZoomState.NOTHING);
             bounce();
         }
     }
@@ -375,14 +379,14 @@ public class PanZoomController
             return true;
 
         case PANNING_HOLD_LOCKED:
-            mState = PanZoomState.PANNING_LOCKED;
+            setState(PanZoomState.PANNING_LOCKED);
             
         case PANNING_LOCKED:
             track(event);
             return true;
 
         case PANNING_HOLD:
-            mState = PanZoomState.PANNING;
+            setState(PanZoomState.PANNING);
             
         case PANNING:
             track(event);
@@ -412,7 +416,7 @@ public class PanZoomController
             return false;
 
         case TOUCHING:
-            mState = PanZoomState.NOTHING;
+            setState(PanZoomState.NOTHING);
             
             
             
@@ -423,12 +427,12 @@ public class PanZoomController
         case PANNING_LOCKED:
         case PANNING_HOLD:
         case PANNING_HOLD_LOCKED:
-            mState = PanZoomState.FLING;
+            setState(PanZoomState.FLING);
             fling();
             return true;
 
         case PINCHING:
-            mState = PanZoomState.NOTHING;
+            setState(PanZoomState.NOTHING);
             return true;
         }
         Log.e(LOGTAG, "Unhandled case " + mState + " in onTouchEnd");
@@ -447,7 +451,7 @@ public class PanZoomController
         }
 
         cancelTouch();
-        mState = PanZoomState.NOTHING;
+        setState(PanZoomState.NOTHING);
         
         bounce();
         return false;
@@ -456,7 +460,7 @@ public class PanZoomController
     private void startTouch(float x, float y, long time) {
         mX.startTouch(x);
         mY.startTouch(y);
-        mState = PanZoomState.TOUCHING;
+        setState(PanZoomState.TOUCHING);
         mLastEventTime = time;
     }
 
@@ -474,12 +478,12 @@ public class PanZoomController
 
         if (angle < AXIS_LOCK_ANGLE || angle > (Math.PI - AXIS_LOCK_ANGLE)) {
             mY.setScrollingDisabled(true);
-            mState = PanZoomState.PANNING_LOCKED;
+            setState(PanZoomState.PANNING_LOCKED);
         } else if (Math.abs(angle - (Math.PI / 2)) < AXIS_LOCK_ANGLE) {
             mX.setScrollingDisabled(true);
-            mState = PanZoomState.PANNING_LOCKED;
+            setState(PanZoomState.PANNING_LOCKED);
         } else {
-            mState = PanZoomState.PANNING;
+            setState(PanZoomState.PANNING);
         }
     }
 
@@ -515,13 +519,13 @@ public class PanZoomController
 
         if (stopped()) {
             if (mState == PanZoomState.PANNING) {
-                mState = PanZoomState.PANNING_HOLD;
+                setState(PanZoomState.PANNING_HOLD);
             } else if (mState == PanZoomState.PANNING_LOCKED) {
-                mState = PanZoomState.PANNING_HOLD_LOCKED;
+                setState(PanZoomState.PANNING_HOLD_LOCKED);
             } else {
                 
                 Log.e(LOGTAG, "Impossible case " + mState + " when stopped in track");
-                mState = PanZoomState.PANNING_HOLD_LOCKED;
+                setState(PanZoomState.PANNING_HOLD_LOCKED);
             }
         }
 
@@ -548,7 +552,7 @@ public class PanZoomController
 
         ViewportMetrics bounceStartMetrics = new ViewportMetrics(mController.getViewportMetrics());
         if (bounceStartMetrics.fuzzyEquals(metrics)) {
-            mState = PanZoomState.NOTHING;
+            setState(PanZoomState.NOTHING);
             return;
         }
 
@@ -562,7 +566,7 @@ public class PanZoomController
 
     
     private void bounce() {
-        mState = PanZoomState.BOUNCE;
+        setState(PanZoomState.BOUNCE);
         bounce(getValidViewportMetrics());
     }
 
@@ -686,7 +690,7 @@ public class PanZoomController
             
             finishBounce();
             finishAnimation();
-            mState = PanZoomState.NOTHING;
+            setState(PanZoomState.NOTHING);
         }
 
         
@@ -754,7 +758,7 @@ public class PanZoomController
                 bounce();
             } else {
                 finishAnimation();
-                mState = PanZoomState.NOTHING;
+                setState(PanZoomState.NOTHING);
             }
         }
     }
@@ -866,7 +870,7 @@ public class PanZoomController
         if (!mController.getAllowZoom())
             return false;
 
-        mState = PanZoomState.PINCHING;
+        setState(PanZoomState.PINCHING);
         mLastZoomFocus = new PointF(detector.getFocusX(), detector.getFocusY());
         cancelTouch();
 
@@ -1028,7 +1032,7 @@ public class PanZoomController
 
 
     private boolean animatedZoomTo(RectF zoomToRect) {
-        mState = PanZoomState.ANIMATED_ZOOM;
+        setState(PanZoomState.ANIMATED_ZOOM);
         final float startZoom = mController.getZoomFactor();
 
         RectF viewport = mController.getViewport();
@@ -1070,7 +1074,7 @@ public class PanZoomController
     
     public void abortPanning() {
         checkMainThread();
-        mState = PanZoomState.NOTHING;
+        setState(PanZoomState.NOTHING);
         bounce();
     }
 }
