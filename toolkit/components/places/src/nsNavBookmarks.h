@@ -240,7 +240,15 @@ private:
 
   nsresult GetLastChildId(PRInt64 aFolder, PRInt64* aItemId);
 
+  
+
+
   nsCOMPtr<mozIStorageConnection> mDBConn;
+  
+
+
+
+  nsCOMPtr<mozIStorageConnection> mDBReadOnlyConn;
 
   nsString mGUIDBase;
   nsresult GetGUIDBase(nsAString& aGUIDBase);
