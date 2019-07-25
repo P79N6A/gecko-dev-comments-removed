@@ -512,18 +512,7 @@ public:
         mIsBadUnderlineFamily(false)
         { }
 
-    virtual ~gfxFontFamily() {
-        
-        
-        
-        PRUint32 i = mAvailableFonts.Length();
-        while (i) {
-             gfxFontEntry *fe = mAvailableFonts[--i];
-             if (fe) {
-                 fe->SetFamily(nsnull);
-             }
-        }
-    }
+    virtual ~gfxFontFamily() { }
 
     const nsString& Name() { return mName; }
 
