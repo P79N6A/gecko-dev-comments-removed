@@ -59,6 +59,12 @@ public:
     static PRBool RecoverAlpha (gfxImageSurface *blackSurface,
                                 const gfxImageSurface *whiteSurface,
                                 Analysis *analysis = nsnull);
+
+    
+
+
+    static PRBool RecoverAlphaSSE2 (gfxImageSurface *blackSurface,
+                                    const gfxImageSurface *whiteSurface);
 };
 
 #endif 
