@@ -121,7 +121,7 @@ class ScopeObject : public JSObject
 
 
     inline JSObject &enclosingScope() const;
-    inline bool setEnclosingScope(JSContext *cx, JSObject &obj);
+    inline bool setEnclosingScope(JSContext *cx, HandleObject obj);
 
     
 
@@ -139,7 +139,7 @@ class CallObject : public ScopeObject
     static const uint32_t CALLEE_SLOT = 1;
 
     static CallObject *
-    create(JSContext *cx, JSScript *script, JSObject &enclosing, JSObject *callee);
+    create(JSContext *cx, JSScript *script, HandleObject enclosing, HandleObject callee);
 
   public:
     static const uint32_t RESERVED_SLOTS = 3;
@@ -219,7 +219,7 @@ class WithObject : public NestedScopeObject
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4;
 
     static WithObject *
-    create(JSContext *cx, StackFrame *fp, JSObject &proto, JSObject &enclosing, uint32_t depth);
+    create(JSContext *cx, StackFrame *fp, HandleObject proto, HandleObject enclosing, uint32_t depth);
 
     
     JSObject &withThis() const;

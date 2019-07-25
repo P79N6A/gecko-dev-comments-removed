@@ -58,15 +58,6 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, unsigned scopeIndex, JSObject 
 
 
 
-    if (!pobj->nativeContains(cx, *shape)) {
-        PCMETER(oddfills++);
-        return JS_NO_PROP_CACHE_FILL;
-    }
-
-    
-
-
-
 
 
 

@@ -194,23 +194,23 @@ class Bindings
 
 
 
-    bool add(JSContext *cx, JSAtom *name, BindingKind kind);
+    bool add(JSContext *cx, HandleAtom name, BindingKind kind);
 
     
-    bool addVariable(JSContext *cx, JSAtom *name) {
+    bool addVariable(JSContext *cx, HandleAtom name) {
         return add(cx, name, VARIABLE);
     }
-    bool addConstant(JSContext *cx, JSAtom *name) {
+    bool addConstant(JSContext *cx, HandleAtom name) {
         return add(cx, name, CONSTANT);
     }
-    bool addArgument(JSContext *cx, JSAtom *name, uint16_t *slotp) {
+    bool addArgument(JSContext *cx, HandleAtom name, uint16_t *slotp) {
         JS_ASSERT(name != NULL); 
         *slotp = nargs;
         return add(cx, name, ARGUMENT);
     }
     bool addDestructuring(JSContext *cx, uint16_t *slotp) {
         *slotp = nargs;
-        return add(cx, NULL, ARGUMENT);
+        return add(cx, RootedVarAtom(cx), ARGUMENT);
     }
 
     void noteDup() { hasDup_ = true; }
