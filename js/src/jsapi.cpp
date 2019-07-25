@@ -1577,9 +1577,13 @@ js_InitFunctionAndObjectClasses(JSContext *cx, JSObject *obj)
         return NULL;
 
     
-    if (!fun_proto->getProto())
+
+
+
+
+    if (!fun_proto->getProto() && fun_proto->getType() != cx->getTypeEmpty())
         fun_proto->getType()->splicePrototype(cx, obj_proto);
-    if (!obj->getProto())
+    if (!obj->getProto() && obj->getType() != cx->getTypeEmpty())
         obj->getType()->splicePrototype(cx, obj_proto);
 
     return fun_proto;
