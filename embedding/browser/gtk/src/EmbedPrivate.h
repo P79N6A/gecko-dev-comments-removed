@@ -49,9 +49,6 @@
 #include "nsPIDOMEventTarget.h"
 #include "nsTArray.h"
 
-#include "nsIGenericFactory.h"
-#include "nsIComponentRegistrar.h"
-
 #include "gtkmozembedprivate.h"
 
 class EmbedProgress;
@@ -87,8 +84,6 @@ class EmbedPrivate {
   static void PopStartup      (void);
   static void SetPath         (const char *aPath);
   static void SetCompPath     (const char *aPath);
-  static void SetAppComponents (const nsModuleComponentInfo* aComps,
-                                int aNumComponents);
   static void SetProfilePath  (const char *aDir, const char *aName);
   static void SetDirectoryServiceProvider (nsIDirectoryServiceProvider * appFileLocProvider);
 
@@ -148,9 +143,6 @@ class EmbedPrivate {
   
   static char                   *sCompPath;
   
-  static const nsModuleComponentInfo  *sAppComps;
-  static int                     sNumAppComps;
-  
   static nsIAppShell            *sAppShell;
   
   static nsTArray<EmbedPrivate*> *sWindowList;
@@ -183,7 +175,7 @@ class EmbedPrivate {
   
   nsresult        GetPIDOMWindow   (nsPIDOMWindow **aPIWin);
   
-  static nsresult RegisterAppComponents();
+  static void RegisterAppComponents();
 
   
   static void       EnsureOffscreenWindow(void);
