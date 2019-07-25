@@ -59,6 +59,15 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *obj, JSObject **ret);
 
 
 
+
+extern JS_FRIEND_API(JSBool)
+JS_IsDeadWrapper(JSObject *obj);
+
+
+
+
+
+
 extern JS_FRIEND_API(void)
 JS_TraceShapeCycleCollectorChildren(JSTracer *trc, void *shape);
 
