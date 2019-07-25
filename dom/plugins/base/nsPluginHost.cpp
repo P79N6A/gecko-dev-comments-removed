@@ -3657,6 +3657,12 @@ nsPluginHost::NewPluginNativeWindow(nsPluginNativeWindow ** aPluginNativeWindow)
 }
 
 nsresult
+nsPluginHost::DeletePluginNativeWindow(nsPluginNativeWindow * aPluginNativeWindow)
+{
+  return PLUG_DeletePluginNativeWindow(aPluginNativeWindow);
+}
+
+nsresult
 nsPluginHost::InstantiateDummyJavaPlugin(nsIPluginInstanceOwner *aOwner)
 {
   

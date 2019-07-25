@@ -124,6 +124,8 @@ public:
 
   NPError SetWindowless(PRBool aWindowless);
 
+  NPError SetWindowlessLocal(PRBool aWindowlessLocal);
+
   NPError SetTransparent(PRBool aTransparent);
 
   NPError SetWantsAllNetworkStreams(PRBool aWantsAllNetworkStreams);
@@ -212,6 +214,7 @@ protected:
   
   
   PRPackedBool mWindowless;
+  PRPackedBool mWindowlessLocal;
   PRPackedBool mTransparent;
   PRPackedBool mUsesDOMForCursor;
 
