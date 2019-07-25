@@ -20,6 +20,8 @@
 
 
 
+
+
 window.Item = function() {
   this.isAnItem = true;
   this.bounds = null;
@@ -62,6 +64,11 @@ window.Item.prototype = {
     this.setBounds(new Rect(this.bounds.left, this.bounds.top, width, height), immediately);
   },
 
+  
+  getZ: function() {
+    return parseInt($(this.container).css('zIndex'));
+  },
+    
   
   pushAway: function() {
     var buffer = 10;
