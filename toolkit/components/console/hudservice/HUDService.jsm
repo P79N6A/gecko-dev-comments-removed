@@ -153,6 +153,12 @@ const MIN_HTTP_ERROR_CODE = 400;
 const MAX_HTTP_ERROR_CODE = 600;
 
 
+const HTTP_MOVED_PERMANENTLY = 301;
+const HTTP_FOUND = 302;
+const HTTP_SEE_OTHER = 303;
+const HTTP_TEMPORARY_REDIRECT = 307;
+
+
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 
 
@@ -339,7 +345,7 @@ ResponseListener.prototype =
 
     let data = NetUtil.readInputStreamToString(aInputStream, aCount);
 
-    if (HUDService.saveRequestAndResponseBodies &&
+    if (!this.httpActivity.response.bodyDiscarded &&
         this.receivedData.length < RESPONSE_BODY_LIMIT) {
       this.receivedData += NetworkHelper.
                            convertToUnicode(data, aRequest.contentCharset);
@@ -356,6 +362,25 @@ ResponseListener.prototype =
   onStartRequest: function RL_onStartRequest(aRequest, aContext)
   {
     this.request = aRequest;
+
+    
+    
+    this.httpActivity.response.bodyDiscarded =
+      !HUDService.saveRequestAndResponseBodies;
+
+    
+    if (!this.httpActivity.response.bodyDiscarded &&
+        this.httpActivity.channel instanceof Ci.nsIHttpChannel) {
+      switch (this.httpActivity.channel.responseStatus) {
+        case HTTP_MOVED_PERMANENTLY:
+        case HTTP_FOUND:
+        case HTTP_SEE_OTHER:
+        case HTTP_TEMPORARY_REDIRECT:
+          this.httpActivity.response.bodyDiscarded = true;
+          break;
+      }
+    }
+
     
     this.setAsyncListener(this.sink.inputStream, this);
   },
@@ -377,7 +402,7 @@ ResponseListener.prototype =
     
     let response = null;
     for each (let item in HUDService.openResponseHeaders) {
-      if (item.channel === aRequest) {
+      if (item.channel === this.httpActivity.channel) {
         response = item;
         break;
       }
@@ -410,11 +435,9 @@ ResponseListener.prototype =
     
     this.setAsyncListener(this.sink.inputStream, null);
 
-    if (HUDService.saveRequestAndResponseBodies) {
+    if (!this.httpActivity.response.bodyDiscarded &&
+        HUDService.saveRequestAndResponseBodies) {
       this.httpActivity.response.body = this.receivedData;
-    }
-    else {
-      this.httpActivity.response.bodyDiscarded = true;
     }
 
     if (HUDService.lastFinishedRequestCallback) {
