@@ -212,6 +212,8 @@ public:
 
   static void EndSwapDocShells(nsIContent* aContent, void*);
 
+  nsIWidget* GetWidget() { return mWidget; }
+
 protected:
   nsObjectFrame(nsStyleContext* aContext);
   virtual ~nsObjectFrame();
@@ -276,8 +278,6 @@ protected:
   void ComputeWidgetGeometry(const nsRegion& aRegion,
                              const nsPoint& aPluginOrigin,
                              nsTArray<nsIWidget::Configuration>* aConfigurations);
-
-  nsIWidget* GetWidget() { return mWidget; }
 
   nsresult SetAbsoluteScreenPosition(nsIDOMElement* element,
                                      nsIDOMClientRect* position,
