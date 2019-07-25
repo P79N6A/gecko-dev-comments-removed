@@ -72,6 +72,13 @@ MOZ_Crash()
 
   *((volatile int *) NULL) = 123;
   exit(3);
+#elif defined(ANDROID)
+  
+
+
+
+  *((volatile int *) NULL) = 123;
+  abort();
 #elif defined(__APPLE__)
   
 
