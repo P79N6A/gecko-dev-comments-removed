@@ -291,7 +291,6 @@ var Browser = {
 
         setTimeout(function() { scrollInterface.ensureElementIsVisible(currentElement) }, 0);
       }
-      getBrowser().finishFuzzyZoom();
     }
     window.addEventListener("resize", resizeHandler, false);
 
@@ -2503,13 +2502,17 @@ Tab.prototype = {
 
   restoreViewportPosition: function restoreViewportPosition(aOldWidth, aNewWidth) {
     let browser = this._browser;
-    let view = browser.getRootView();
-    let pos = view.getPosition();
 
     
     let oldScale = browser.scale;
     let newScale = this.clampZoomLevel(oldScale * aNewWidth / aOldWidth);
     let scaleRatio = newScale / oldScale;
+  
+    
+    let view = browser.getRootView();
+    view.scrollBy(0,0);
+
+    let pos = view.getPosition();
     browser.fuzzyZoom(newScale, pos.x * scaleRatio, pos.y * scaleRatio);
   },
 
@@ -2839,8 +2842,10 @@ var ViewableAreaObserver = {
 
       
       
-      if (tab.browser.contentWindowWidth == oldWidth)
+      if (tab.browser.contentWindowWidth == oldWidth) {
         tab.restoreViewportPosition(oldWidth, newWidth);
+        tab.browser.finishFuzzyZoom();
+      }
     }
 
     
