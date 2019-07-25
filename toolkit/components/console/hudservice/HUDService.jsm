@@ -121,6 +121,10 @@ const SEARCH_DELAY = 200;
 const DEFAULT_LOG_LIMIT = 200;
 
 
+const HISTORY_BACK = -1;
+const HISTORY_FORWARD = 1;
+
+
 const RESPONSE_BODY_LIMIT = 1048576; 
 
 const ERRORS = { LOG_MESSAGE_MISSING_ARGS:
@@ -4467,20 +4471,19 @@ JSTerm.prototype = {
             break;
           case 38:
             
-            if (self.caretInFirstLine()){
-              self.historyPeruse(true);
-              if (aEvent.cancelable) {
-                let inputEnd = self.inputNode.value.length;
-                self.inputNode.setSelectionRange(inputEnd, inputEnd);
+            if (self.caretAtStartOfInput()) {
+              let updated = self.historyPeruse(HISTORY_BACK);
+              if (updated && aEvent.cancelable) {
+                self.inputNode.setSelectionRange(0, 0);
                 aEvent.preventDefault();
               }
             }
             break;
           case 40:
             
-            if (self.caretInLastLine()){
-              self.historyPeruse(false);
-              if (aEvent.cancelable) {
+            if (self.caretAtEndOfInput()) {
+              let updated = self.historyPeruse(HISTORY_FORWARD);
+              if (updated && aEvent.cancelable) {
                 let inputEnd = self.inputNode.value.length;
                 self.inputNode.setSelectionRange(inputEnd, inputEnd);
                 aEvent.preventDefault();
@@ -4532,15 +4535,25 @@ JSTerm.prototype = {
     return handleKeyDown;
   },
 
-  historyPeruse: function JST_historyPeruse(aFlag) {
+  
+
+
+
+
+
+
+
+
+  historyPeruse: function JST_historyPeruse(aDirection)
+  {
     if (!this.history.length) {
-      return;
+      return false;
     }
 
     
-    if (aFlag) {
+    if (aDirection == HISTORY_BACK) {
       if (this.historyPlaceHolder <= 0) {
-        return;
+        return false;
       }
 
       let inputVal = this.history[--this.historyPlaceHolder];
@@ -4549,14 +4562,13 @@ JSTerm.prototype = {
       }
     }
     
-    else {
+    else if (aDirection == HISTORY_FORWARD) {
       if (this.historyPlaceHolder == this.history.length - 1) {
         this.historyPlaceHolder ++;
         this.setInputValue("");
-        return;
       }
       else if (this.historyPlaceHolder >= (this.history.length)) {
-        return;
+        return false;
       }
       else {
         let inputVal = this.history[++this.historyPlaceHolder];
@@ -4565,6 +4577,11 @@ JSTerm.prototype = {
         }
       }
     }
+    else {
+      throw new Error("Invalid argument 0");
+    }
+
+    return true;
   },
 
   refocus: function JSTF_refocus()
@@ -4573,17 +4590,28 @@ JSTerm.prototype = {
     this.inputNode.focus();
   },
 
-  caretInFirstLine: function JSTF_caretInFirstLine()
+  
+
+
+
+
+
+  caretAtStartOfInput: function JST_caretAtStartOfInput()
   {
-    var firstLineBreak = this.codeInputString.indexOf("\n");
-    return ((firstLineBreak == -1) ||
-            (this.inputNode.selectionStart <= firstLineBreak));
+    return this.inputNode.selectionStart == this.inputNode.selectionEnd &&
+        this.inputNode.selectionStart == 0;
   },
 
-  caretInLastLine: function JSTF_caretInLastLine()
+  
+
+
+
+
+
+  caretAtEndOfInput: function JST_caretAtEndOfInput()
   {
-    var lastLineBreak = this.codeInputString.lastIndexOf("\n");
-    return (this.inputNode.selectionEnd > lastLineBreak);
+    return this.inputNode.selectionStart == this.inputNode.selectionEnd &&
+        this.inputNode.selectionStart == this.inputNode.value.length;
   },
 
   history: [],
