@@ -91,6 +91,9 @@
     PR_END_MACRO
 
 
+#define COPY_FILE_NO_BUFFERING 0x00001000
+
+
 #ifdef __MINGW32__
 extern "C" {
 unsigned char *_mbsstr( const unsigned char *str,
@@ -1456,18 +1459,29 @@ nsLocalFile::CopySingleFile(nsIFile *sourceFile, nsIFile *destParent,
     if (NS_FAILED(rv))
         return rv;
 
+    
+    
+    
+    
+    
     int copyOK;
-
+    DWORD dwVersion = GetVersion();
+    DWORD dwMajorVersion = (DWORD)(LOBYTE(LOWORD(dwVersion)));
+    DWORD dwCopyFlags = 0;
+    
+    if (dwMajorVersion > 5)
+       dwCopyFlags = COPY_FILE_NO_BUFFERING;
+    
     if (!move)
-        copyOK = ::CopyFileW(filePath.get(), destPath.get(), PR_TRUE);
+        copyOK = ::CopyFileExW(filePath.get(), destPath.get(), NULL, NULL, NULL, dwCopyFlags);
     else {
 #ifndef WINCE
         DWORD status;
         if (FileEncryptionStatusW(filePath.get(), &status)
             && status == FILE_IS_ENCRYPTED)
         {
-            copyOK = CopyFileExW(filePath.get(), destPath.get(), NULL, NULL, NULL,
-                                 COPY_FILE_ALLOW_DECRYPTED_DESTINATION);
+            dwCopyFlags |= COPY_FILE_ALLOW_DECRYPTED_DESTINATION;
+            copyOK = CopyFileExW(filePath.get(), destPath.get(), NULL, NULL, NULL, dwCopyFlags);
 
             if (copyOK)
                 DeleteFileW(filePath.get());
@@ -1476,14 +1490,23 @@ nsLocalFile::CopySingleFile(nsIFile *sourceFile, nsIFile *destParent,
         {
             copyOK = ::MoveFileExW(filePath.get(), destPath.get(),
                                    MOVEFILE_REPLACE_EXISTING |
-                                   MOVEFILE_COPY_ALLOWED |
                                    MOVEFILE_WRITE_THROUGH);
+            
+            
+            
+            if (!copyOK && GetLastError() == ERROR_NOT_SAME_DEVICE)
+            {
+                copyOK = CopyFileExW(filePath.get(), destPath.get(), NULL, NULL, NULL, dwCopyFlags);
+            
+                if (copyOK)
+                    DeleteFile(filePath.get());
+            }
         }
 #else
         DeleteFile(destPath.get());
         copyOK = :: MoveFileW(filePath.get(), destPath.get());
 #endif
-    }
+}
 
     if (!copyOK)  
         rv = ConvertWinError(GetLastError());
