@@ -772,10 +772,8 @@ nsPresContext::GetUserPreferences()
 }
 
 void
-nsPresContext::InvalidateThebesLayers()
+nsPresContext::AppUnitsPerDevPixelChanged()
 {
-  if (!mShell)
-    return;
   nsIFrame* rootFrame = mShell->FrameManager()->GetRootFrame();
   if (rootFrame) {
     
@@ -783,12 +781,6 @@ nsPresContext::InvalidateThebesLayers()
     
     FrameLayerBuilder::InvalidateThebesLayersInSubtree(rootFrame);
   }
-}
-
-void
-nsPresContext::AppUnitsPerDevPixelChanged()
-{
-  InvalidateThebesLayers();
 
   mDeviceContext->FlushFontCache();
 
@@ -876,7 +868,6 @@ nsPresContext::UpdateAfterPreferencesChanged()
     mShell->SetPreferenceStyleRules(PR_TRUE);
   }
 
-  InvalidateThebesLayers();
   mDeviceContext->FlushFontCache();
 
   nsChangeHint hint = nsChangeHint(0);
