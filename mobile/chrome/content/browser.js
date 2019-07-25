@@ -287,11 +287,6 @@ var Browser = {
       Browser.hideTitlebar();
 
       
-      let browser = getBrowser();
-      browser.style.display = "none";
-      browser.style.display = "block";
-
-      
       let currentElement = document.activeElement;
       let [scrollbox, scrollInterface] = ScrollUtils.getScrollboxFromElement(currentElement);
       if (currentElement && (currentElement.id != "inputhandler-overlay") && scrollbox && currentElement != scrollbox) {
