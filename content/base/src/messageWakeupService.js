@@ -68,16 +68,34 @@ MessageWakeupService.prototype =
   },
 
   receiveMessage: function(aMessage) {
-    var data = this.messagesData[aMessage.name];
-    delete this.messagesData[aMessage.name];
-    var service = Cc[data.cid][data.method](Ci[data.iid]).
+    let data = this.messagesData[aMessage.name];
+    
+    
+    
+    let service = Cc[data.cid][data.method](Ci[data.iid]).
                   wrappedJSObject;
 
+    
+    
+    
+    
+    let ret = service.receiveMessage(aMessage);
 
+    if (data.timer) {
+      
+      data.timer.cancel();
+      data.timer = null;
+    }
 
-    this.messageManager.addMessageListener(aMessage.name, service);
-    this.messageManager.removeMessageListener(aMessage.name, this);
-    service.receiveMessage(aMessage);
+    data.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    let self = this;
+    data.timer.initWithCallback(function() {
+      self.messageManager.addMessageListener(aMessage.name, service);
+      self.messageManager.removeMessageListener(aMessage.name, self);
+      delete self.messagesData[aMessage.name];
+    }, 0, Ci.nsITimer.TYPE_ONE_SHOT);
+
+    return ret;
   },
 
   observe: function TM_observe(aSubject, aTopic, aData) {
