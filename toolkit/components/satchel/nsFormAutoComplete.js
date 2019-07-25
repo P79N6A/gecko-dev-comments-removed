@@ -171,6 +171,12 @@ FormAutoComplete.prototype = {
         if (!this._enabled)
             return null;
 
+        
+        if (aInputName == 'searchbar-history' && aField) {
+            this.log('autoCompleteSearch for input name "' + aInputName + '" is denied');
+            return null;
+        }
+
         this.log("AutoCompleteSearch invoked. Search is: " + aUntrimmedSearchString);
         let searchString = aUntrimmedSearchString.trim().toLowerCase();
         let result = null;

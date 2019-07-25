@@ -184,6 +184,11 @@ var satchelFormListener = {
                 if (!name)
                     continue;
 
+                if (name == 'searchbar-history') {
+                    this.log('addEntry for input name "' + name + '" is denied')
+                    continue;
+                }
+
                 
                 if (name.length > 200 || value.length > 200) {
                     this.log("skipping input that has a name/value too large");
