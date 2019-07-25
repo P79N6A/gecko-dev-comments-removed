@@ -56,6 +56,7 @@
 #include "gfxFont.h"
 #include "gfxSkipChars.h"
 #include "gfxContext.h"
+#include "nsDisplayList.h"
 
 class nsTextPaintStyle;
 class PropertyProvider;
@@ -273,15 +274,40 @@ public:
   gfxFloat GetSnappedBaselineY(gfxContext* aContext, gfxFloat aY);
 
   
+
+
+
+
+
+
+
+  bool MeasureCharClippedText(gfxContext* aCtx,
+                              nscoord aLeftEdge, nscoord aRightEdge,
+                              nscoord* aSnappedLeftEdge,
+                              nscoord* aSnappedRightEdge);
+  
+
+
+
+
+
+  bool MeasureCharClippedText(gfxContext* aCtx,
+                              PropertyProvider& aProvider,
+                              nscoord aLeftEdge, nscoord aRightEdge,
+                              PRUint32* aStartOffset, PRUint32* aMaxLength,
+                              nscoord* aSnappedLeftEdge,
+                              nscoord* aSnappedRightEdge);
+  
   
   void PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
-                 const nsRect& aDirtyRect);
+                 const nsRect& aDirtyRect, const nsCharClipDisplayItem& aItem);
   
   void PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
                             const gfxPoint& aFramePt,
                             const gfxPoint& aTextBaselinePt,
                             nsTextPaintStyle& aTextStyle,
                             PropertyProvider& aProvider,
+                            const nsCharClipDisplayItem::ClipEdges& aClipEdges,
                             const nscolor* aOverrideColor = nsnull);
   
   
@@ -291,7 +317,8 @@ public:
                                 const gfxPoint& aTextBaselinePt,
                                 const gfxRect& aDirtyRect,
                                 PropertyProvider& aProvider,
-                                nsTextPaintStyle& aTextPaintStyle);
+                                nsTextPaintStyle& aTextPaintStyle,
+                                const nsCharClipDisplayItem::ClipEdges& aClipEdges);
   
   
   
@@ -428,7 +455,9 @@ protected:
                       const gfxPoint& aFramePt,
                       const gfxPoint& aTextBaselinePt,
                       gfxContext* aCtx,
-                      const nscolor& aForegroundColor);
+                      const nscolor& aForegroundColor,
+                      const nsCharClipDisplayItem::ClipEdges& aClipEdges,
+                      nscoord aLeftSideOffset);
 
   struct TextDecorations {
     PRUint8 mDecorations;

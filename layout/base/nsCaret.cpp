@@ -632,10 +632,30 @@ nsresult nsCaret::PrimeTimer()
   return NS_OK;
 }
 
+void nsCaret::InvalidateTextOverflowBlock()
+{
+  
+  
+  if (mLastContent) {
+    nsIFrame* caretFrame = mLastContent->GetPrimaryFrame();
+    if (caretFrame) {
+      nsIFrame* block = nsLayoutUtils::GetAsBlock(caretFrame) ? caretFrame :
+        nsLayoutUtils::FindNearestBlockAncestor(caretFrame);
+      if (block) {
+        const nsStyleTextReset* style = block->GetStyleTextReset();
+        if (style->mTextOverflow.mType != NS_STYLE_TEXT_OVERFLOW_CLIP) {
+          block->InvalidateOverflowRect();
+        }
+      }
+    }
+  }
+}
 
 
 void nsCaret::StartBlinking()
 {
+  InvalidateTextOverflowBlock();
+
   if (mReadOnly) {
     
     
@@ -659,6 +679,8 @@ void nsCaret::StartBlinking()
 
 void nsCaret::StopBlinking()
 {
+  InvalidateTextOverflowBlock();
+
   if (mDrawn)     
     DrawCaret(PR_TRUE);
 

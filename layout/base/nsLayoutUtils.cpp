@@ -50,6 +50,7 @@
 #include "nsIAtom.h"
 #include "nsCSSPseudoElements.h"
 #include "nsCSSAnonBoxes.h"
+#include "nsCSSColorUtils.h"
 #include "nsIView.h"
 #include "nsPlaceholderFrame.h"
 #include "nsIScrollableFrame.h"
@@ -2788,6 +2789,49 @@ nsLayoutUtils::PrefWidthFromInline(nsIFrame* aFrame,
   aFrame->AddInlinePrefWidth(aRenderingContext, &data);
   data.ForceBreak(aRenderingContext);
   return data.prevLines;
+}
+
+static nscolor
+DarkenColor(nscolor aColor)
+{
+  PRUint16  hue, sat, value;
+  PRUint8 alpha;
+
+  
+  NS_RGB2HSV(aColor, hue, sat, value, alpha);
+
+  
+  
+  
+  
+  
+  
+  if (value > sat) {
+    value = sat;
+    
+    NS_HSV2RGB(aColor, hue, sat, value, alpha);
+  }
+  return aColor;
+}
+
+
+
+
+static PRBool
+ShouldDarkenColors(nsPresContext* aPresContext)
+{
+  return !aPresContext->GetBackgroundColorDraw() &&
+    !aPresContext->GetBackgroundImageDraw();
+}
+
+nscolor
+nsLayoutUtils::GetTextColor(nsIFrame* aFrame)
+{
+  nscolor color = aFrame->GetVisitedDependentColor(eCSSProperty_color);
+  if (ShouldDarkenColors(aFrame->PresContext())) {
+    color = DarkenColor(color);
+  }
+  return color;
 }
 
 void

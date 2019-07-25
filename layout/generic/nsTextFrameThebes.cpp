@@ -3208,39 +3208,6 @@ EnsureDifferentColors(nscolor colorA, nscolor colorB)
 
 
 
-static nscolor
-DarkenColor(nscolor aColor)
-{
-  PRUint16  hue, sat, value;
-  PRUint8 alpha;
-
-  
-  NS_RGB2HSV(aColor, hue, sat, value, alpha);
-
-  
-  
-  
-  
-  
-  
-  if (value > sat) {
-    value = sat;
-    
-    NS_HSV2RGB(aColor, hue, sat, value, alpha);
-  }
-  return aColor;
-}
-
-
-
-
-static PRBool
-ShouldDarkenColors(nsPresContext* aPresContext)
-{
-  return !aPresContext->GetBackgroundColorDraw() &&
-    !aPresContext->GetBackgroundImageDraw();
-}
-
 nsTextPaintStyle::nsTextPaintStyle(nsTextFrame* aFrame)
   : mFrame(aFrame),
     mPresContext(aFrame->PresContext()),
@@ -3279,11 +3246,7 @@ nsTextPaintStyle::EnsureSufficientContrast(nscolor *aForeColor, nscolor *aBackCo
 nscolor
 nsTextPaintStyle::GetTextColor()
 {
-  nscolor color = mFrame->GetVisitedDependentColor(eCSSProperty_color);
-  if (ShouldDarkenColors(mPresContext)) {
-    color = DarkenColor(color);
-  }
-  return color;
+  return nsLayoutUtils::GetTextColor(mFrame);
 }
 
 PRBool
@@ -4169,10 +4132,10 @@ nsTextFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   ClearTextRun(nsnull);
 } 
 
-class nsDisplayText : public nsDisplayItem {
+class nsDisplayText : public nsCharClipDisplayItem {
 public:
   nsDisplayText(nsDisplayListBuilder* aBuilder, nsTextFrame* aFrame) :
-    nsDisplayItem(aBuilder, aFrame),
+    nsCharClipDisplayItem(aBuilder, aFrame),
     mDisableSubpixelAA(PR_FALSE) {
     MOZ_COUNT_CTOR(nsDisplayText);
   }
@@ -4218,7 +4181,9 @@ nsDisplayText::Paint(nsDisplayListBuilder* aBuilder,
 
   gfxContextAutoDisableSubpixelAntialiasing disable(aCtx->ThebesContext(),
                                                     mDisableSubpixelAA);
-  f->PaintText(aCtx, ToReferenceFrame(), extraVisible);
+  NS_ASSERTION(mLeftEdge >= 0, "illegal left edge");
+  NS_ASSERTION(mRightEdge >= 0, "illegal right edge");
+  f->PaintText(aCtx, ToReferenceFrame(), extraVisible, *this);
 }
 
 NS_IMETHODIMP
@@ -4434,12 +4399,14 @@ nsTextFrame::UnionTextDecorationOverflow(nsPresContext* aPresContext,
 }
 
 void 
-nsTextFrame::PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
-                                  const gfxPoint& aFramePt,
-                                  const gfxPoint& aTextBaselinePt,
-                                  nsTextPaintStyle& aTextPaintStyle,
-                                  PropertyProvider& aProvider,
-                                  const nscolor* aOverrideColor)
+nsTextFrame::PaintTextDecorations(
+               gfxContext* aCtx, const gfxRect& aDirtyRect,
+               const gfxPoint& aFramePt,
+               const gfxPoint& aTextBaselinePt,
+               nsTextPaintStyle& aTextPaintStyle,
+               PropertyProvider& aProvider,
+               const nsCharClipDisplayItem::ClipEdges& aClipEdges,
+               const nscolor* aOverrideColor)
 {
   TextDecorations decorations =
     GetTextDecorations(aTextPaintStyle.PresContext());
@@ -4457,8 +4424,11 @@ nsTextFrame::PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
   gfxFloat app = aTextPaintStyle.PresContext()->AppUnitsPerDevPixel();
 
   
-  gfxPoint pt(aFramePt.x / app, (aTextBaselinePt.y - mAscent) / app);
-  gfxSize size(GetRect().width / app, 0);
+  nscoord x = aFramePt.x;
+  nscoord width = GetRect().width;
+  aClipEdges.Intersect(&x, &width);
+  gfxPoint pt(x / app, (aTextBaselinePt.y - mAscent) / app);
+  gfxSize size(width / app, 0);
   gfxFloat ascent = gfxFloat(mAscent) / app;
 
   nscolor lineColor;
@@ -4811,7 +4781,9 @@ nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
                             nsCSSShadowItem* aShadowDetails,
                             PropertyProvider* aProvider, const nsRect& aDirtyRect,
                             const gfxPoint& aFramePt, const gfxPoint& aTextBaselinePt,
-                            gfxContext* aCtx, const nscolor& aForegroundColor)
+                            gfxContext* aCtx, const nscolor& aForegroundColor,
+                            const nsCharClipDisplayItem::ClipEdges& aClipEdges,
+                            nscoord aLeftSideOffset)
 {
   gfxPoint shadowOffset(aShadowDetails->mXOffset, aShadowDetails->mYOffset);
   nscoord blurRadius = NS_MAX(aShadowDetails->mRadius, 0);
@@ -4827,7 +4799,7 @@ nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
   
   
   gfxRect shadowGfxRect = shadowMetrics.mBoundingBox +
-     gfxPoint(aFramePt.x, aTextBaselinePt.y) + shadowOffset;
+    gfxPoint(aFramePt.x + aLeftSideOffset, aTextBaselinePt.y) + shadowOffset;
   nsRect shadowRect(shadowGfxRect.X(), shadowGfxRect.Y(),
                     shadowGfxRect.Width(), shadowGfxRect.Height());
 
@@ -4864,7 +4836,7 @@ nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
   nsTextPaintStyle textPaintStyle(this);
   PaintTextDecorations(shadowContext, dirtyGfxRect, aFramePt + shadowOffset,
                        aTextBaselinePt + shadowOffset,
-                       textPaintStyle, *aProvider, &shadowColor);
+                       textPaintStyle, *aProvider, aClipEdges, &shadowColor);
 
   contextBoxBlur.DoPaint();
   aCtx->Restore();
@@ -5042,7 +5014,8 @@ PRBool
 nsTextFrame::PaintTextWithSelection(gfxContext* aCtx,
     const gfxPoint& aFramePt,
     const gfxPoint& aTextBaselinePt, const gfxRect& aDirtyRect,
-    PropertyProvider& aProvider, nsTextPaintStyle& aTextPaintStyle)
+    PropertyProvider& aProvider, nsTextPaintStyle& aTextPaintStyle,
+    const nsCharClipDisplayItem::ClipEdges& aClipEdges)
 {
   SelectionDetails* details = GetSelectionDetails();
   if (!details)
@@ -5052,7 +5025,7 @@ nsTextFrame::PaintTextWithSelection(gfxContext* aCtx,
   PaintTextWithSelectionColors(aCtx, aFramePt, aTextBaselinePt, aDirtyRect,
                                aProvider, aTextPaintStyle, details, &allTypes);
   PaintTextDecorations(aCtx, aDirtyRect, aFramePt, aTextBaselinePt,
-                       aTextPaintStyle, aProvider);
+                       aTextPaintStyle, aProvider, aClipEdges);
   PRInt32 i;
   
   
@@ -5136,9 +5109,115 @@ nsTextFrame::GetSnappedBaselineY(gfxContext* aContext, gfxFloat aY)
   return aContext->DeviceToUser(putativeRect.TopLeft()).y*appUnitsPerDevUnit;
 }
 
+bool
+nsTextFrame::MeasureCharClippedText(gfxContext* aCtx,
+                                    nscoord aLeftEdge, nscoord aRightEdge,
+                                    nscoord* aSnappedLeftEdge,
+                                    nscoord* aSnappedRightEdge)
+{
+  
+  
+  
+  gfxSkipCharsIterator iter = EnsureTextRun();
+  if (!mTextRun)
+    return false;
+
+  PropertyProvider provider(this, iter);
+  
+  provider.InitializeForDisplay(PR_TRUE);
+
+  PRUint32 startOffset = provider.GetStart().GetSkippedOffset();
+  PRUint32 maxLength = ComputeTransformedLength(provider);
+  return MeasureCharClippedText(aCtx, provider, aLeftEdge, aRightEdge,
+                                &startOffset, &maxLength,
+                                aSnappedLeftEdge, aSnappedRightEdge);
+}
+
+static PRUint32 GetClusterLength(gfxTextRun* aTextRun,
+                                 PRUint32    aStartOffset,
+                                 PRUint32    aMaxLength,
+                                 bool        aIsRTL)
+{
+  PRUint32 clusterLength = aIsRTL ? 0 : 1;
+  while (clusterLength < aMaxLength) {
+    if (aTextRun->IsClusterStart(aStartOffset + clusterLength)) {
+      if (aIsRTL) {
+        ++clusterLength;
+      }
+      break;
+    }
+    ++clusterLength;
+  }
+  return clusterLength;
+}
+
+bool
+nsTextFrame::MeasureCharClippedText(gfxContext* aCtx,
+                                    PropertyProvider& aProvider,
+                                    nscoord aLeftEdge, nscoord aRightEdge,
+                                    PRUint32* aStartOffset,
+                                    PRUint32* aMaxLength,
+                                    nscoord*  aSnappedLeftEdge,
+                                    nscoord*  aSnappedRightEdge)
+{
+  *aSnappedLeftEdge = 0;
+  *aSnappedRightEdge = 0;
+  if (aLeftEdge <= 0 && aRightEdge <= 0) {
+    return true;
+  }
+
+  PRUint32 offset = *aStartOffset;
+  PRUint32 maxLength = *aMaxLength;
+  const nscoord frameWidth = GetSize().width;
+  const PRBool rtl = mTextRun->IsRightToLeft();
+  gfxFloat advanceWidth = 0;
+  const nscoord startEdge = rtl ? aRightEdge : aLeftEdge;
+  if (startEdge > 0) {
+    const gfxFloat maxAdvance = gfxFloat(startEdge);
+    while (maxLength > 0) {
+      PRUint32 clusterLength =
+        GetClusterLength(mTextRun, offset, maxLength, rtl);
+      advanceWidth +=
+        mTextRun->GetAdvanceWidth(offset, clusterLength, &aProvider);
+      maxLength -= clusterLength;
+      offset += clusterLength;
+      if (advanceWidth >= maxAdvance) {
+        break;
+      }
+    }
+    nscoord* snappedStartEdge = rtl ? aSnappedRightEdge : aSnappedLeftEdge;
+    *snappedStartEdge = NSToCoordFloor(advanceWidth);
+    *aStartOffset = offset;
+  }
+
+  const nscoord endEdge = rtl ? aLeftEdge : aRightEdge;
+  if (endEdge > 0) {
+    const gfxFloat maxAdvance = gfxFloat(frameWidth - endEdge);
+    while (maxLength > 0) {
+      PRUint32 clusterLength =
+        GetClusterLength(mTextRun, offset, maxLength, rtl);
+      gfxFloat nextAdvance = advanceWidth +
+        mTextRun->GetAdvanceWidth(offset, clusterLength, &aProvider);
+      if (nextAdvance > maxAdvance) {
+        break;
+      }
+      
+      advanceWidth = nextAdvance;
+      maxLength -= clusterLength;
+      offset += clusterLength;
+    }
+    maxLength = offset - *aStartOffset;
+    nscoord* snappedEndEdge = rtl ? aSnappedLeftEdge : aSnappedRightEdge;
+    *snappedEndEdge = NSToCoordFloor(gfxFloat(frameWidth) - advanceWidth);
+  }
+  *aMaxLength = maxLength;
+  return maxLength != 0;
+}
+
 void
 nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
-                       const nsRect& aDirtyRect)
+                       const nsRect& aDirtyRect,
+                       const nsCharClipDisplayItem& aItem)
 {
   
   
@@ -5147,23 +5226,28 @@ nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
   if (!mTextRun)
     return;
 
-  nsTextPaintStyle textPaintStyle(this);
   PropertyProvider provider(this, iter);
   
   provider.InitializeForDisplay(PR_TRUE);
 
   gfxContext* ctx = aRenderingContext->ThebesContext();
-
+  const PRBool rtl = mTextRun->IsRightToLeft();
+  const nscoord frameWidth = GetSize().width;
   gfxPoint framePt(aPt.x, aPt.y);
-  gfxPoint textBaselinePt(
-      mTextRun->IsRightToLeft() ? gfxFloat(aPt.x + GetSize().width) : framePt.x,
-      GetSnappedBaselineY(ctx, aPt.y));
-
-  gfxRect dirtyRect(aDirtyRect.x, aDirtyRect.y,
-                    aDirtyRect.width, aDirtyRect.height);
-
-  gfxFloat advanceWidth;
-  gfxRGBA foregroundColor = gfxRGBA(textPaintStyle.GetTextColor());
+  gfxPoint textBaselinePt(rtl ? gfxFloat(aPt.x + frameWidth) : framePt.x,
+                          GetSnappedBaselineY(ctx, aPt.y));
+  PRUint32 startOffset = provider.GetStart().GetSkippedOffset();
+  PRUint32 maxLength = ComputeTransformedLength(provider);
+  nscoord snappedLeftEdge, snappedRightEdge;
+  if (!MeasureCharClippedText(ctx, provider, aItem.mLeftEdge, aItem.mRightEdge,
+         &startOffset, &maxLength, &snappedLeftEdge, &snappedRightEdge)) {
+    return;
+  }
+  textBaselinePt.x += rtl ? -snappedRightEdge : snappedLeftEdge;
+  nsCharClipDisplayItem::ClipEdges clipEdges(aItem, snappedLeftEdge,
+                                             snappedRightEdge);
+  nsTextPaintStyle textPaintStyle(this);
+  nscolor foregroundColor = textPaintStyle.GetTextColor();
 
   
   const nsStyleText* textStyle = GetStyleText();
@@ -5171,29 +5255,29 @@ nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
     
     
     for (PRUint32 i = textStyle->mTextShadow->Length(); i > 0; --i) {
-      PaintOneShadow(provider.GetStart().GetSkippedOffset(),
-                     ComputeTransformedLength(provider),
+      PaintOneShadow(startOffset, maxLength,
                      textStyle->mTextShadow->ShadowAt(i - 1), &provider,
                      aDirtyRect, framePt, textBaselinePt, ctx,
-                     textPaintStyle.GetTextColor());
+                     foregroundColor, clipEdges, snappedLeftEdge);
     }
   }
 
+  gfxRect dirtyRect(aDirtyRect.x, aDirtyRect.y,
+                    aDirtyRect.width, aDirtyRect.height);
   
   if (nsLayoutUtils::GetNonGeneratedAncestor(this)->GetStateBits() & NS_FRAME_SELECTED_CONTENT) {
     if (PaintTextWithSelection(ctx, framePt, textBaselinePt,
-                               dirtyRect, provider, textPaintStyle))
+                               dirtyRect, provider, textPaintStyle, clipEdges))
       return;
   }
 
-  ctx->SetColor(foregroundColor);
+  ctx->SetColor(gfxRGBA(foregroundColor));
 
-  DrawText(ctx, textBaselinePt, provider.GetStart().GetSkippedOffset(),
-           ComputeTransformedLength(provider), &dirtyRect,
-           &provider, advanceWidth,
-           (GetStateBits() & TEXT_HYPHEN_BREAK) != 0);
+  gfxFloat advanceWidth;
+  DrawText(ctx, textBaselinePt, startOffset, maxLength, &dirtyRect, &provider,
+           advanceWidth, (GetStateBits() & TEXT_HYPHEN_BREAK) != 0);
   PaintTextDecorations(ctx, dirtyRect, framePt, textBaselinePt,
-                       textPaintStyle, provider);
+                       textPaintStyle, provider, clipEdges);
 }
 
 void

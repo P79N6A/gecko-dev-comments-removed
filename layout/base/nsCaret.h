@@ -204,6 +204,10 @@ protected:
 
     void          StartBlinking();
     void          StopBlinking();
+
+    
+    
+    void          InvalidateTextOverflowBlock();
     
     PRBool        DrawAtPositionWithHint(nsIDOMNode* aNode,
                                          PRInt32 aOffset,

@@ -41,6 +41,7 @@
 #define nsHTMLContainerFrame_h___
 
 #include "nsContainerFrame.h"
+#include "nsDisplayList.h"
 #include "gfxPoint.h"
 
 class nsString;
@@ -177,15 +178,18 @@ protected:
 
 
 
-  virtual void PaintTextDecorationLine(gfxContext* aCtx,
-                                       const nsPoint& aPt,
-                                       nsLineBox* aLine,
-                                       nscolor aColor,
-                                       PRUint8 aStyle,
-                                       gfxFloat aOffset,
-                                       gfxFloat aAscent,
-                                       gfxFloat aSize,
-                                       const PRUint8 aDecoration);
+
+  virtual void PaintTextDecorationLine(
+                 gfxContext* aCtx,
+                 const nsPoint& aPt,
+                 nsLineBox* aLine,
+                 nscolor aColor,
+                 PRUint8 aStyle,
+                 gfxFloat aOffset,
+                 gfxFloat aAscent,
+                 gfxFloat aSize,
+                 const nsCharClipDisplayItem::ClipEdges& aClipEdges,
+                 const PRUint8 aDecoration);
 
   virtual void AdjustForTextIndent(const nsLineBox* aLine,
                                    nscoord& start,

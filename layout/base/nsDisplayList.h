@@ -187,7 +187,7 @@ public:
 
 
 
-  nsIFrame* ReferenceFrame() { return mReferenceFrame; }
+  nsIFrame* ReferenceFrame() const { return mReferenceFrame; }
   
 
 
@@ -195,7 +195,7 @@ public:
 
 
 
-  nsPoint ToReferenceFrame(const nsIFrame* aFrame) {
+  nsPoint ToReferenceFrame(const nsIFrame* aFrame) const {
     return aFrame->GetOffsetToCrossDoc(ReferenceFrame());
   }
   
@@ -636,7 +636,7 @@ public:
 
 
 
-  inline nsIFrame* GetUnderlyingFrame() { return mFrame; }
+  inline nsIFrame* GetUnderlyingFrame() const { return mFrame; }
   
 
 
@@ -813,7 +813,7 @@ public:
   
 
 
-  const nsPoint& ToReferenceFrame() {
+  const nsPoint& ToReferenceFrame() const {
     NS_ASSERTION(mFrame, "No frame?");
     return mToReferenceFrame;
   }
@@ -2185,6 +2185,71 @@ public:
 
 private:
   nsDisplayWrapList mStoredList;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+class nsCharClipDisplayItem : public nsDisplayItem {
+public:
+  nsCharClipDisplayItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
+    : nsDisplayItem(aBuilder, aFrame), mLeftEdge(0), mRightEdge(0) {}
+
+  struct ClipEdges {
+    ClipEdges(const nsDisplayItem& aItem,
+              nscoord aLeftEdge, nscoord aRightEdge) {
+      nsRect r = aItem.GetUnderlyingFrame()->GetScrollableOverflowRect() +
+                 aItem.ToReferenceFrame();
+      mX = aLeftEdge > 0 ? r.x + aLeftEdge : nscoord_MIN;
+      mXMost = aRightEdge > 0 ? NS_MAX(r.XMost() - aRightEdge, mX) : nscoord_MAX;
+    }
+    void Intersect(nscoord* aX, nscoord* aWidth) const {
+      nscoord xmost1 = *aX + *aWidth;
+      *aX = NS_MAX(*aX, mX);
+      *aWidth = NS_MAX(NS_MIN(xmost1, mXMost) - *aX, 0);
+    }
+    nscoord mX;
+    nscoord mXMost;
+  };
+
+  ClipEdges Edges() const { return ClipEdges(*this, mLeftEdge, mRightEdge); }
+
+  static nsCharClipDisplayItem* CheckCast(nsDisplayItem* aItem) {
+    nsDisplayItem::Type t = aItem->GetType();
+    return (t == nsDisplayItem::TYPE_TEXT ||
+            t == nsDisplayItem::TYPE_TEXT_DECORATION ||
+            t == nsDisplayItem::TYPE_TEXT_SHADOW)
+      ? static_cast<nsCharClipDisplayItem*>(aItem) : nsnull;
+  }
+
+  nscoord mLeftEdge;  
+  nscoord mRightEdge; 
+};
+
+
+
+
+
+
+
+class nsDisplayForcePaintOnScroll : public nsDisplayItem
+{
+public:
+  nsDisplayForcePaintOnScroll(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame);
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayForcePaintOnScroll();
+#endif
+  NS_DISPLAY_DECL_NAME("ForcePaintOnScroll", TYPE_FORCEPAINTONSCROLL)
+  virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
+                                                nsIFrame* aFrame);
 };
 
 #endif
