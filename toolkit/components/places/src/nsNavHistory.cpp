@@ -947,12 +947,6 @@ nsNavHistory::InitDB()
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_HISTORYVISITS_AFTERINSERT_TRIGGER);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_HISTORYVISITS_AFTERDELETE_TRIGGER);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
     
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_HISTORYVISITS_FROMVISIT);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -991,6 +985,9 @@ nsresult
 nsNavHistory::InitAdditionalDBItems()
 {
   nsresult rv = InitFunctions();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = InitTriggers();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1105,6 +1102,17 @@ nsNavHistory::InitFunctions()
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = GenerateGUIDFunction::create(mDBConn);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+nsNavHistory::InitTriggers()
+{
+  nsresult rv = mDBConn->ExecuteSimpleSQL(CREATE_HISTORYVISITS_AFTERINSERT_TRIGGER);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mDBConn->ExecuteSimpleSQL(CREATE_HISTORYVISITS_AFTERDELETE_TRIGGER);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -1794,7 +1802,6 @@ nsresult
 nsNavHistory::MigrateV11Up(mozIStorageConnection *aDBConn)
 {
   
-
   
   
   nsresult rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
@@ -1809,34 +1816,6 @@ nsNavHistory::MigrateV11Up(mozIStorageConnection *aDBConn)
       NS_LITERAL_CSTRING(")")
   );
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<mozIStorageStatement> triggerDetection;
-  rv = aDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT name "
-      "FROM sqlite_master "
-      "WHERE type = 'trigger' "
-      "AND name = :trigger_name"),
-    getter_AddRefs(triggerDetection));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  PRBool triggerExists;
-  rv = triggerDetection->BindUTF8StringByName(
-    NS_LITERAL_CSTRING("trigger_name"),
-    NS_LITERAL_CSTRING("moz_historyvisits_afterinsert_v2_trigger")
-  );
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = triggerDetection->ExecuteStep(&triggerExists);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!triggerExists) {
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_HISTORYVISITS_AFTERINSERT_TRIGGER);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_HISTORYVISITS_AFTERDELETE_TRIGGER);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
 
   return NS_OK;
 }
