@@ -506,6 +506,7 @@ Vector<T, N, AllocPolicy>::Vector(MoveRef<Vector> rhs)
 
     if (rhs->usingInlineStorage()) {
         
+        mBegin = (T *)storage.addr();
         Impl::moveConstruct(mBegin, rhs->beginNoCheck(), rhs->endNoCheck());
         
 
