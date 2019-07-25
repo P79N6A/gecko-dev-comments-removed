@@ -413,6 +413,26 @@ XRE_API(nsresult,
         XRE_ParseAppData, (nsILocalFile* aINIFile,
                            nsXREAppData *aAppData))
 
+namespace mozilla {
+namespace dom {
+  class TabParent;
+}
+}
+
+class nsString;
+
+XRE_API(nsresult,
+        XRE_SendParentChromeRegistry, (mozilla::dom::TabParent* aParent))
+
+XRE_API(nsresult,
+        XRE_RegisterChromePackage, (const nsString& aPackage,
+                                    const nsString& aBaseURI,
+                                    const PRUint32& aFlags))
+
+XRE_API(nsresult,
+        XRE_RegisterChromeResource, (const nsString& aPackage,
+                                     const nsString& aResolvedURI))
+
 
 
 
@@ -452,7 +472,7 @@ XRE_API(GeckoProcessType,
 #if defined(MOZ_CRASHREPORTER)
 
 XRE_API(PRBool,
-        XRE_TakeMinidumpForChild, (PRUint32 aChildPid, nsILocalFile** aDump))
+        XRE_GetMinidumpForChild, (PRUint32 aChildPid, nsIFile** aDump))
 
 
 XRE_API(PRBool,
@@ -503,12 +523,6 @@ XRE_API(bool,
         XRE_SendTestShellCommand, (JSContext* aCx,
                                    JSString* aCommand,
                                    void* aCallback))
-struct JSObject;
-
-XRE_API(bool,
-        XRE_GetChildGlobalObject, (JSContext* aCx,
-                                   JSObject** globalp))
-
 XRE_API(bool,
         XRE_ShutdownTestShell, ())
 

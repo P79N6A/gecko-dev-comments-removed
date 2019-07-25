@@ -43,10 +43,7 @@
 
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
-
-struct ChromePackage;
-struct ResourceMapping;
-struct OverrideMapping;
+#include "mozilla/chrome/ChromeTypes.h"
 
 namespace mozilla {
 namespace dom {
@@ -66,22 +63,17 @@ public:
         return sSingleton;
     }
 
-    
-    virtual bool RecvDummy(Shmem& foo) { return true; }
-
     virtual PIFrameEmbeddingChild* AllocPIFrameEmbedding();
     virtual bool DeallocPIFrameEmbedding(PIFrameEmbeddingChild*);
 
     virtual PTestShellChild* AllocPTestShell();
     virtual bool DeallocPTestShell(PTestShellChild*);
-    virtual bool RecvPTestShellConstructor(PTestShellChild*);
 
     virtual PNeckoChild* AllocPNecko();
     virtual bool DeallocPNecko(PNeckoChild*);
 
-    virtual bool RecvRegisterChrome(const nsTArray<ChromePackage>& packages,
-                                    const nsTArray<ResourceMapping>& resources,
-                                    const nsTArray<OverrideMapping>& overrides);
+    virtual bool RecvregisterChrome(const nsTArray<ChromePackage>& packages,
+                                    const nsTArray<ChromeResource>& resources);
 
 private:
     NS_OVERRIDE

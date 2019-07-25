@@ -41,16 +41,13 @@
 
 #include "mozilla/ipc/TestShellChild.h"
 #include "mozilla/net/NeckoChild.h"
-#include "mozilla/ipc/XPCShellEnvironment.h"
-#include "mozilla/jsipc/PContextWrapperChild.h"
 
 #include "nsXULAppAPI.h"
 
 #include "base/message_loop.h"
 #include "base/task.h"
 
-#include "nsChromeRegistryContent.h"
-#include "mozilla/chrome/RegistryMessageUtils.h"
+#include "nsChromeRegistry.h"
 
 using namespace mozilla::ipc;
 using namespace mozilla::net;
@@ -120,13 +117,6 @@ ContentProcessChild::DeallocPTestShell(PTestShellChild* shell)
     return true;
 }
 
-bool
-ContentProcessChild::RecvPTestShellConstructor(PTestShellChild* actor)
-{
-    actor->SendPContextWrapperConstructor()->SendPObjectWrapperConstructor(true);
-    return true;
-}
-
 PNeckoChild* 
 ContentProcessChild::AllocPNecko()
 {
@@ -141,14 +131,11 @@ ContentProcessChild::DeallocPNecko(PNeckoChild* necko)
 }
 
 bool
-ContentProcessChild::RecvRegisterChrome(const nsTArray<ChromePackage>& packages,
-                                        const nsTArray<ResourceMapping>& resources,
-                                        const nsTArray<OverrideMapping>& overrides)
+ContentProcessChild::RecvregisterChrome(const nsTArray<ChromePackage>& packages,
+                                        const nsTArray<ChromeResource>& resources)
 {
-    nsCOMPtr<nsIChromeRegistry> registrySvc = nsChromeRegistry::GetService();
-    nsChromeRegistryContent* chromeRegistry =
-        static_cast<nsChromeRegistryContent*>(registrySvc.get());
-    chromeRegistry->RegisterRemoteChrome(packages, resources, overrides);
+    nsChromeRegistry* chromeRegistry = nsChromeRegistry::GetService();
+    chromeRegistry->RegisterRemoteChrome(packages, resources);
     return true;
 }
 

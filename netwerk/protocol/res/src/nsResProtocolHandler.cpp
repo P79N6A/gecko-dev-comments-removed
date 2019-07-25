@@ -38,10 +38,6 @@
 
 
 
-#ifdef MOZ_IPC
-#include "mozilla/chrome/RegistryMessageUtils.h"
-#endif
-
 #include "nsResProtocolHandler.h"
 #include "nsAutoLock.h"
 #include "nsIURL.h"
@@ -76,6 +72,8 @@ static nsResProtocolHandler *gResHandler = nsnull;
 
 static PRLogModuleInfo *gResLog;
 #endif
+#define LOG(args) PR_LOG(gResLog, PR_LOG_DEBUG, args)
+
 #define kGRE_RESOURCES NS_LITERAL_CSTRING("gre-resources")
 
 
@@ -210,33 +208,12 @@ nsResProtocolHandler::Init()
     return rv;
 }
 
-#ifdef MOZ_IPC
-static PLDHashOperator
-EnumerateSubstitution(const nsACString& aKey,
-                      nsIURI* aURI,
-                      void* aArg)
-{
-    nsTArray<ResourceMapping>* resources =
-            static_cast<nsTArray<ResourceMapping>*>(aArg);
-    SerializedURI uri;
-    if (aURI) {
-        aURI->GetSpec(uri.spec);
-        aURI->GetOriginCharset(uri.charset);
-    }
-
-    ResourceMapping resource = {
-        nsDependentCString(aKey), uri
-    };
-    resources->AppendElement(resource);
-    return (PLDHashOperator)PL_DHASH_NEXT;
-}
-
 void
-nsResProtocolHandler::CollectSubstitutions(nsTArray<ResourceMapping>& aResources)
+nsResProtocolHandler::EnumerateSubstitutions(SubstitutionTable::EnumReadFunction enumFunc,
+                                             void* userArg)
 {
-    mSubstitutions.EnumerateRead(&EnumerateSubstitution, &aResources);
+    mSubstitutions.EnumerateRead(enumFunc, userArg);
 }
-#endif
 
 
 
@@ -443,8 +420,7 @@ nsResProtocolHandler::ResolveURI(nsIURI *uri, nsACString &result)
     if (PR_LOG_TEST(gResLog, PR_LOG_DEBUG)) {
         nsCAutoString spec;
         uri->GetAsciiSpec(spec);
-        PR_LOG(gResLog, PR_LOG_DEBUG,
-               ("%s\n -> %s\n", spec.get(), PromiseFlatCString(result).get()));
+        LOG(("%s\n -> %s\n", spec.get(), PromiseFlatCString(result).get()));
     }
 #endif
     return rv;

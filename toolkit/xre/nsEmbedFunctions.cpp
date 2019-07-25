@@ -55,6 +55,8 @@
 #include "nsIToolkitChromeRegistry.h"
 #include "nsIToolkitProfile.h"
 
+#include "nsChromeRegistry.h"
+
 #if defined(OS_LINUX)
 #  define XP_LINUX
 #endif
@@ -81,7 +83,6 @@
 #include "base/message_loop.h"
 #include "base/process_util.h"
 #include "chrome/common/child_process.h"
-#include "chrome/common/notification_service.h"
 
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/ipc/BrowserProcessSubThread.h"
@@ -91,8 +92,7 @@
 #include "mozilla/dom/ContentProcessThread.h"
 #include "mozilla/dom/ContentProcessParent.h"
 #include "mozilla/dom/ContentProcessChild.h"
-
-#include "mozilla/jsipc/ContextWrapperParent.h"
+#include "mozilla/dom/TabParent.h"
 
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/ipc/XPCShellEnvironment.h"
@@ -113,10 +113,6 @@ using mozilla::plugins::PluginThreadChild;
 using mozilla::dom::ContentProcessThread;
 using mozilla::dom::ContentProcessParent;
 using mozilla::dom::ContentProcessChild;
-
-using mozilla::jsipc::PContextWrapperParent;
-using mozilla::jsipc::ContextWrapperParent;
-
 using mozilla::ipc::TestShellParent;
 using mozilla::ipc::TestShellCommandParent;
 using mozilla::ipc::XPCShellEnvironment;
@@ -206,7 +202,6 @@ XRE_InitEmbedding(nsILocalFile *aLibXULDirectory,
   
   
   
-  
 
   nsCOMPtr<nsIObserver> startupNotifier
     (do_CreateInstance(NS_APPSTARTUPNOTIFIER_CONTRACTID));
@@ -238,6 +233,56 @@ XRE_TermEmbedding()
   NS_ShutdownXPCOM(nsnull);
   delete [] sCombined;
   delete gDirServiceProvider;
+}
+
+static nsresult
+GetChromeRegistry(nsChromeRegistry* *aResult)
+{
+  if(!nsChromeRegistry::gChromeRegistry)
+  {
+    
+    
+    nsCOMPtr<nsIChromeRegistry> reg(do_GetService(NS_CHROMEREGISTRY_CONTRACTID));
+    NS_ENSURE_TRUE(nsChromeRegistry::gChromeRegistry, NS_ERROR_FAILURE);
+  }
+  *aResult = nsChromeRegistry::gChromeRegistry;
+  return NS_OK;
+}
+
+nsresult
+XRE_SendParentChromeRegistry(mozilla::dom::TabParent* aParent)
+{
+  nsChromeRegistry* chromeRegistry = nsnull;
+  nsresult rv = GetChromeRegistry(&chromeRegistry);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  chromeRegistry->SendRegisteredPackages(aParent);
+  return NS_OK;
+}
+
+nsresult
+XRE_RegisterChromePackage(const nsString& aPackage,
+                          const nsString& aBaseURI,
+                          const PRUint32& aFlags)
+{
+  nsChromeRegistry* chromeRegistry = nsnull;
+  nsresult rv = GetChromeRegistry(&chromeRegistry);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  chromeRegistry->RegisterPackage(aPackage, aBaseURI, aFlags);
+  return NS_OK;
+}
+
+nsresult
+XRE_RegisterChromeResource(const nsString& aPackage,
+                           const nsString& aResolvedURI)
+{
+  nsChromeRegistry* chromeRegistry = nsnull;
+  nsresult rv = GetChromeRegistry(&chromeRegistry);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  chromeRegistry->RegisterResource(aPackage, aResolvedURI);
+  return NS_OK;
 }
 
 const char*
@@ -274,12 +319,11 @@ static MessageLoop* sIOMessageLoop;
 
 
 PRBool
-XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsILocalFile** aDump)
+XRE_GetMinidumpForChild(PRUint32 aChildPid, nsIFile** aDump)
 {
-  return CrashReporter::TakeMinidumpForChild(aChildPid, aDump);
+  return CrashReporter::GetMinidumpForChild(aChildPid, aDump);
 }
 
-#if !defined(XP_MACOSX)
 PRBool
 XRE_SetRemoteExceptionHandler(const char* aPipe)
 {
@@ -291,7 +335,6 @@ XRE_SetRemoteExceptionHandler(const char* aPipe)
 #  error "OOP crash reporter unsupported on this platform"
 #endif
 }
-#endif 
 #endif 
 
 nsresult
@@ -339,7 +382,6 @@ XRE_InitChildProcess(int aArgc,
   NS_ABORT_IF_FALSE(ok, "can't open handle to parent");
 
   base::AtExitManager exitManager;
-  NotificationService notificationService;
 
   NS_LogInit();
 
@@ -525,16 +567,6 @@ XRE_ShutdownChildProcess()
 
 namespace {
 TestShellParent* gTestShellParent = nsnull;
-TestShellParent* GetOrCreateTestShellParent()
-{
-    if (!gTestShellParent) {
-        ContentProcessParent* parent = ContentProcessParent::GetSingleton();
-        NS_ENSURE_TRUE(parent, nsnull);
-        gTestShellParent = parent->CreateTestShell();
-        NS_ENSURE_TRUE(gTestShellParent, nsnull);
-    }
-    return gTestShellParent;
-}
 }
 
 bool
@@ -542,30 +574,28 @@ XRE_SendTestShellCommand(JSContext* aCx,
                          JSString* aCommand,
                          void* aCallback)
 {
-    TestShellParent* tsp = GetOrCreateTestShellParent();
-    NS_ENSURE_TRUE(tsp, false);
+    if (!gTestShellParent) {
+        ContentProcessParent* parent = ContentProcessParent::GetSingleton();
+        NS_ENSURE_TRUE(parent, false);
+
+        gTestShellParent = parent->CreateTestShell();
+        NS_ENSURE_TRUE(gTestShellParent, false);
+    }
 
     nsDependentString command((PRUnichar*)JS_GetStringChars(aCommand),
                               JS_GetStringLength(aCommand));
     if (!aCallback) {
-        return tsp->SendExecuteCommand(command);
+        return gTestShellParent->SendExecuteCommand(command);
     }
 
     TestShellCommandParent* callback = static_cast<TestShellCommandParent*>(
-        tsp->SendPTestShellCommandConstructor(command));
+        gTestShellParent->SendPTestShellCommandConstructor(command));
     NS_ENSURE_TRUE(callback, false);
 
     jsval callbackVal = *reinterpret_cast<jsval*>(aCallback);
     NS_ENSURE_TRUE(callback->SetCallback(aCx, callbackVal), false);
 
     return true;
-}
-
-bool
-XRE_GetChildGlobalObject(JSContext* aCx, JSObject** aGlobalP)
-{
-    TestShellParent* tsp = GetOrCreateTestShellParent();
-    return tsp && tsp->GetGlobalJSObject(aCx, aGlobalP);
 }
 
 bool
