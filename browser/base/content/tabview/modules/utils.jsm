@@ -242,7 +242,7 @@ var Utils = {
     
     return null;
   },
-  
+    
   
   getInstallDirectory: function(id) { 
     var file = extensionManager.getInstallLocation(id).getItemFile(id, "install.rdf"); 
