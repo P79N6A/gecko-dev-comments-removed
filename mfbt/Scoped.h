@@ -66,64 +66,35 @@
 
 
 
-template <typename Traits>
+template<typename Traits>
 class Scoped
 {
-public:
-  typedef typename Traits::type Resource;
+  public:
+    typedef typename Traits::type Resource;
 
-  explicit Scoped(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
-    : value(Traits::empty())
-  {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-  }
-  explicit Scoped(const Resource& value
-                  MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    : value(value)
-  {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-  }
-  ~Scoped() {
-    Traits::release(value);
-  }
+    explicit Scoped(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
+      : value(Traits::empty())
+    {
+      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+    explicit Scoped(const Resource& value
+                    MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : value(value)
+    {
+      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+    ~Scoped() {
+      Traits::release(value);
+    }
 
-  
-  operator const Resource&() const { return value; }
-  const Resource& operator->() const { return value; }
-  const Resource& get() const { return value; }
-  
-  Resource& rwget() { return value; }
+    
+    operator const Resource&() const { return value; }
+    const Resource& operator->() const { return value; }
+    const Resource& get() const { return value; }
+    
+    Resource& rwget() { return value; }
 
-  
-
-
-
-
-
-
-
-
-  Resource forget() {
-    Resource tmp = value;
-    value = Traits::empty();
-    return tmp;
-  }
-
-  
-
-
-
-
-  void dispose() {
-    Traits::release(value);
-    value = Traits::empty();
-  }
-
-  bool operator==(const Resource& other) const {
-    return value == other;
-  }
-
-  
+    
 
 
 
@@ -131,22 +102,51 @@ public:
 
 
 
-  Scoped<Traits>& operator=(const Resource& other) {
-    return reset(other);
-  }
-  Scoped<Traits>& reset(const Resource& other) {
-    Traits::release(value);
-    value = other;
-    return *this;
-  }
 
-private:
-  explicit Scoped(const Scoped<Traits>& value) MOZ_DELETE;
-  Scoped<Traits>& operator=(const Scoped<Traits>& value) MOZ_DELETE;
+    Resource forget() {
+      Resource tmp = value;
+      value = Traits::empty();
+      return tmp;
+    }
 
-private:
-  Resource value;
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    
+
+
+
+
+    void dispose() {
+      Traits::release(value);
+      value = Traits::empty();
+    }
+
+    bool operator==(const Resource& other) const {
+      return value == other;
+    }
+
+    
+
+
+
+
+
+
+
+    Scoped<Traits>& operator=(const Resource& other) {
+      return reset(other);
+    }
+    Scoped<Traits>& reset(const Resource& other) {
+      Traits::release(value);
+      value = other;
+      return *this;
+    }
+
+  private:
+    explicit Scoped(const Scoped<Traits>& value) MOZ_DELETE;
+    Scoped<Traits>& operator=(const Scoped<Traits>& value) MOZ_DELETE;
+
+  private:
+    Resource value;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 
@@ -158,25 +158,25 @@ private:
 
 
 #define SCOPED_TEMPLATE(name, Traits)                          \
-template <typename Type>                                       \
+template<typename Type>                                        \
 struct name : public Scoped<Traits<Type> >                     \
 {                                                              \
-  typedef Scoped<Traits<Type> > Super;                         \
-  typedef typename Super::Resource Resource;                   \
-  name& operator=(Resource ptr) {                              \
-    Super::operator=(ptr);                                     \
-    return *this;                                              \
-  }                                                            \
-  explicit name(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)          \
-    : Super(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_TO_PARENT)    \
-  {}                                                           \
-  explicit name(Resource ptr                                   \
-                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)               \
-    : Super(ptr MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT)     \
-  {}                                                           \
-private:                                                       \
-  explicit name(name& source) MOZ_DELETE;                      \
-  name& operator=(name& source) MOZ_DELETE;                    \
+    typedef Scoped<Traits<Type> > Super;                       \
+    typedef typename Super::Resource Resource;                 \
+    name& operator=(Resource ptr) {                            \
+      Super::operator=(ptr);                                   \
+      return *this;                                            \
+    }                                                          \
+    explicit name(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)        \
+      : Super(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_TO_PARENT)  \
+    {}                                                         \
+    explicit name(Resource ptr                                 \
+                  MOZ_GUARD_OBJECT_NOTIFIER_PARAM)             \
+      : Super(ptr MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT)   \
+    {}                                                         \
+  private:                                                     \
+    explicit name(name& source) MOZ_DELETE;                    \
+    name& operator=(name& source) MOZ_DELETE;                  \
 };
 
 
@@ -186,12 +186,12 @@ private:                                                       \
 
 
 
-template <typename T>
+template<typename T>
 struct ScopedFreePtrTraits
 {
-  typedef T* type;
-  static T* empty() { return NULL; }
-  static void release(T* ptr) { free(ptr); }
+    typedef T* type;
+    static T* empty() { return NULL; }
+    static void release(T* ptr) { free(ptr); }
 };
 SCOPED_TEMPLATE(ScopedFreePtr, ScopedFreePtrTraits)
 
@@ -201,9 +201,10 @@ SCOPED_TEMPLATE(ScopedFreePtr, ScopedFreePtrTraits)
 
 
 
-template <typename T>
-struct ScopedDeletePtrTraits : public ScopedFreePtrTraits<T> {
-  static void release(T* ptr) { delete ptr; }
+template<typename T>
+struct ScopedDeletePtrTraits : public ScopedFreePtrTraits<T>
+{
+    static void release(T* ptr) { delete ptr; }
 };
 SCOPED_TEMPLATE(ScopedDeletePtr, ScopedDeletePtrTraits)
 
@@ -213,12 +214,11 @@ SCOPED_TEMPLATE(ScopedDeletePtr, ScopedDeletePtrTraits)
 
 
 
-template <typename T>
+template<typename T>
 struct ScopedDeleteArrayTraits : public ScopedFreePtrTraits<T>
 {
-  static void release(T* ptr) { delete [] ptr; }
+    static void release(T* ptr) { delete [] ptr; }
 };
 SCOPED_TEMPLATE(ScopedDeleteArray, ScopedDeleteArrayTraits)
-
 
 #endif 

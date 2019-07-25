@@ -7,8 +7,9 @@
 
 
 
-#ifndef Likely_h_
-#define Likely_h_
+
+#ifndef mozilla_Likely_h_
+#define mozilla_Likely_h_
 
 #if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ > 2))
 #  define MOZ_LIKELY(x)   (__builtin_expect((x), 1))

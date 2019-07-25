@@ -5,9 +5,8 @@
 
 
 
-
-
 #include "mozilla/HashFunctions.h"
+
 #include <string.h>
 
 namespace mozilla {
@@ -29,9 +28,8 @@ HashBytes(const void* bytes, size_t length)
   }
 
   
-  for (; i < length; i++) {
+  for (; i < length; i++)
     hash = AddToHash(hash, b[i]);
-  }
 
   return hash;
 }

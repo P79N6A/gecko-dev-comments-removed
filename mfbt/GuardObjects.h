@@ -5,7 +5,6 @@
 
 
 
-
 #ifndef mozilla_GuardObjects_h
 #define mozilla_GuardObjects_h
 
@@ -66,20 +65,21 @@ namespace detail {
 
 
 
+
 class MOZ_EXPORT_API(GuardObjectNotifier)
 {
   private:
     bool* statementDone;
 
   public:
-    GuardObjectNotifier() : statementDone(NULL) {}
+    GuardObjectNotifier() : statementDone(NULL) { }
 
     ~GuardObjectNotifier() {
-        *statementDone = true;
+      *statementDone = true;
     }
 
     void setStatementDone(bool* statementIsDone) {
-        statementDone = statementIsDone;
+      statementDone = statementIsDone;
     }
 };
 
@@ -89,25 +89,24 @@ class MOZ_EXPORT_API(GuardObjectNotificationReceiver)
     bool statementDone;
 
   public:
-    GuardObjectNotificationReceiver() : statementDone(false) {}
+    GuardObjectNotificationReceiver() : statementDone(false) { }
 
     ~GuardObjectNotificationReceiver() {
-        
+      
 
 
 
 
-
-        MOZ_ASSERT(statementDone);
+      MOZ_ASSERT(statementDone);
     }
 
     void init(const GuardObjectNotifier& constNotifier) {
-        
+      
 
 
 
-        GuardObjectNotifier& notifier = const_cast<GuardObjectNotifier&>(constNotifier);
-        notifier.setStatementDone(&statementDone);
+      GuardObjectNotifier& notifier = const_cast<GuardObjectNotifier&>(constNotifier);
+      notifier.setStatementDone(&statementDone);
     }
 };
 
