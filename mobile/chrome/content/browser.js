@@ -297,7 +297,8 @@ var Browser = {
 
   translatePhoneNumbers: function() {
     let doc = getBrowser().contentDocument;
-    let textnodes = doc.evaluate("//text()",
+    
+    let textnodes = doc.evaluate('//text()[contains(translate(., "0123456789", "^^^^^^^^^^"), "^^^^")]',
                                  doc,
                                  null,
                                  XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
@@ -406,9 +407,16 @@ ProgressController.prototype = {
     if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
       if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
         aWebProgress.DOMWindow.focus();
-        Browser.translatePhoneNumbers();
+
+        
         this._tabbrowser.updateCanvasState();
+
+        
         this._tabbrowser.updateBrowser(this._browser, true);
+
+        
+        Browser.translatePhoneNumbers();
+
         
       }
     }
