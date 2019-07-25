@@ -262,16 +262,18 @@ struct TokenPos {
     TokenPtr          end;            
 
     static TokenPos make(const TokenPtr &begin, const TokenPtr &end) {
-        JS_ASSERT(begin <= end);
+        
+        
         TokenPos pos = {begin, end};
         return pos;
     }
 
     
     static TokenPos box(const TokenPos &left, const TokenPos &right) {
-        JS_ASSERT(left.begin <= left.end);
-        JS_ASSERT(left.end <= right.begin);
-        JS_ASSERT(right.begin <= right.end);
+        
+        
+        
+        
         TokenPos pos = {left.begin, right.end};
         return pos;
     }
