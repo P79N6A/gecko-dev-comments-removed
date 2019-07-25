@@ -456,7 +456,7 @@ abstract public class GeckoApp
         
         String scheme = Uri.parse(tab.getURL()).getScheme();
         share.setEnabled(!(scheme.equals("about") || scheme.equals("chrome") ||
-                           scheme.equals("file")));
+                           scheme.equals("file") || scheme.equals("resource")));
 
         
         saveAsPDF.setEnabled(!(tab.getURL().equals("about:home") ||
