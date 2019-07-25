@@ -431,11 +431,6 @@ TabTracker.prototype = {
   onTabOpened: function TabTracker_onTabOpened(event) {
     
     
-    
-
-
-
-
     event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
     
     this._score += 50;
@@ -449,11 +444,6 @@ TabTracker.prototype = {
   onTabSelected: function TabTracker_onTabSelected(event) {
     
     
-    
-
-
-
-
     event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
     
     this._score += 10;
@@ -468,10 +458,12 @@ TabTracker.prototype = {
   },
 
   
-  
-  
-  
-  
+
+
+
+
+
+
   get score() {
     return 100;
   }
