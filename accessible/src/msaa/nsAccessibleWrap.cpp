@@ -289,15 +289,12 @@ __try {
   nsresult rv = xpAccessible->GetName(name);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
-    
-  if (name.IsVoid()) {
-    
-    
-    
-    
-    
-    return S_OK;
-  }
+
+  
+  
+  
+  if (name.IsVoid())
+    return S_FALSE;
 
   *pszName = ::SysAllocStringLen(name.get(), name.Length());
   if (!*pszName)
