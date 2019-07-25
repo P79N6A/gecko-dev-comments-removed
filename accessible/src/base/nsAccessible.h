@@ -52,6 +52,7 @@
 #include "nsTArray.h"
 #include "nsRefPtrHashtable.h"
 
+class AccGroupInfo;
 class nsAccessible;
 class nsAccEvent;
 struct nsRoleMapEntry;
@@ -324,7 +325,12 @@ protected:
 
 
   void BindToParent(nsAccessible* aParent, PRUint32 aIndexInParent);
-  void UnbindFromParent() { mParent = nsnull; mIndexInParent = -1; }
+  void UnbindFromParent()
+  {
+    mParent = nsnull;
+    mIndexInParent = -1;
+    mGroupInfo = nsnull;
+  }
 
   
 
@@ -427,6 +433,11 @@ protected:
   
 
 
+  AccGroupInfo* GetGroupInfo();
+
+  
+
+
 
 
 
@@ -439,6 +450,9 @@ protected:
   nsTArray<nsRefPtr<nsAccessible> > mChildren;
   PRBool mAreChildrenInitialized;
   PRInt32 mIndexInParent;
+
+  nsAutoPtr<AccGroupInfo> mGroupInfo;
+  friend class AccGroupInfo;
 
   nsRoleMapEntry *mRoleMapEntry; 
 };

@@ -198,19 +198,6 @@ public:
    static nsAccessible * GetAncestorWithRole(nsAccessible *aDescendant,
                                              PRUint32 aRole);
 
-   
-
-
-
-
-
-
-
-   static void
-     GetARIATreeItemParent(nsIAccessible *aStartTreeItem,
-                           nsIContent *aStartTreeItemContent,
-                           nsIAccessible **aTreeItemParent);
-
   
 
 
