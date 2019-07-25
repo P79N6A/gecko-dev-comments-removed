@@ -137,6 +137,7 @@ XPCOMUtils.defineLazyGetter(this, "Tilt", function() {
 let gInitialPages = [
   "about:blank",
   "about:newtab",
+  "about:home",
   "about:privatebrowsing",
   "about:sessionrestore"
 ];
@@ -1487,9 +1488,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   
-  let enabled = gPrefService.getBoolPref("devtools.chrome.enabled") &&
-                gPrefService.getBoolPref("devtools.debugger.chrome-enabled") &&
-                gPrefService.getBoolPref("devtools.debugger.remote-enabled");
+  let enabled = gPrefService.getBoolPref("devtools.chrome.enabled");
   if (enabled) {
     document.getElementById("menu_chromeDebugger").hidden = false;
     document.getElementById("Tools:ChromeDebugger").removeAttribute("disabled");
