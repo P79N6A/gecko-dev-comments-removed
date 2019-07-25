@@ -56,7 +56,7 @@ function getBrowser() {
   return Browser.selectedBrowser;
 }
 
-const kDefaultBrowserWidth = 800;
+const kDefaultBrowserWidth = 980;
 
 
 window.sizeToContent = function() {
