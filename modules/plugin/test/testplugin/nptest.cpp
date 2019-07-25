@@ -600,7 +600,7 @@ static bool fillPluginFunctionTable(NPPluginFuncs* pFuncs)
 {
   
   
-  if (pFuncs->size < (offsetof(NPPluginFuncs, setvalue) + sizeof(void*)))
+  if (pFuncs->size < (offsetof(NPPluginFuncs, getsiteswithdata) + sizeof(void*)))
     return false;
 
   pFuncs->newp = NPP_New;
