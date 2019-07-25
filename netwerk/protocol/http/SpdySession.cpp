@@ -876,6 +876,15 @@ SpdySession::HandleSettings(SpdySession *self)
   PRUint32 numEntries =
     PR_ntohl(reinterpret_cast<PRUint32 *>(self->mFrameBuffer.get())[2]);
 
+  
+  
+  
+  if ((self->mFrameDataSize - 4) < (numEntries * 8)) {
+    LOG(("SpdySession::HandleSettings %p SETTINGS wrong length data=%d",
+         self, self->mFrameDataSize));
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
+
   LOG(("SpdySession::HandleSettings %p SETTINGS Control Frame with %d entries",
        self, numEntries));
 
