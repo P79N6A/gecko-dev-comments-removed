@@ -326,6 +326,9 @@ private:
 
     
     PRPackedBool   mEnablePersistentHttpsCaching;
+
+    
+    PRPackedBool   mDoNotTrackEnabled;
 };
 
 

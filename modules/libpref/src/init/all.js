@@ -586,6 +586,9 @@ pref("content.sink.pending_event_mode", 0);
 
 pref("privacy.popups.disable_from_plugins", 2);
 
+
+pref("privacy.donottrackheader.enabled",    false);
+
 pref("dom.event.contextmenu.enabled",       true);
 
 pref("javascript.enabled",                  true);
