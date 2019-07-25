@@ -232,8 +232,8 @@ function run_test() {
   dump("Setting up tests\n");
   
   
-  for (var i = 0; i < ADDONS.length; i++)
-    create_addon(ADDONS[i]);
+  for (let addon of ADDONS)
+    create_addon(addon);
 
   
   
@@ -319,8 +319,7 @@ function check_notification_pt2(args) {
   dump("Checking notification pt 2\n");
   do_check_eq(args.list.length, 4);
 
-  for (let i = 0; i < args.list.length; i++) {
-    let addon = args.list[i];
+  for (let addon of args.list) {
     if (addon.item instanceof Ci.nsIPluginTag) {
       switch (addon.item.name) {
         case "test_bug455906_2":
@@ -399,8 +398,7 @@ function check_notification_pt3(args) {
   dump("Checking notification pt 3\n");
   do_check_eq(args.list.length, 6);
 
-  for (let i = 0; i < args.list.length; i++) {
-    let addon = args.list[i];
+  for (let addon of args.list) {
     if (addon.item instanceof Ci.nsIPluginTag) {
       switch (addon.item.name) {
         case "test_bug455906_2":
