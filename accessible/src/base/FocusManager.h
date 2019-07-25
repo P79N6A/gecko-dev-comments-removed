@@ -146,18 +146,7 @@ private:
   
 
 
-  inline nsINode* FocusedDOMNode() const
-  {
-    nsINode* focusedNode = FocusedDOMElm();
-    if (focusedNode)
-      return focusedNode;
-    return FocusedDOMDocument();
-  }
-
-  
-
-
-  nsIContent* FocusedDOMElm() const;
+  nsINode* FocusedDOMNode() const;
 
   
 
