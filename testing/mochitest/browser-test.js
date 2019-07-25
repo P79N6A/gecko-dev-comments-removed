@@ -254,8 +254,10 @@ Tester.prototype = {
         
         
         
-        gBrowser.addTab();
-        gBrowser.removeCurrentTab();
+        if (window.gBrowser) {
+          gBrowser.addTab();
+          gBrowser.removeCurrentTab();
+        }
 
         
         
