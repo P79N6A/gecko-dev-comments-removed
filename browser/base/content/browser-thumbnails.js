@@ -110,6 +110,11 @@ let gBrowserThumbnails = {
 
     let channel = aBrowser.docShell.currentDocumentChannel;
 
+    
+    
+    if (channel.originalURI.schemeIs("about"))
+      return false;
+
     try {
       
       let httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
