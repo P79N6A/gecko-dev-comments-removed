@@ -1473,23 +1473,34 @@ nsAccessible::State()
   
   ApplyARIAState(&state);
 
-  if (mRoleMapEntry && mRoleMapEntry->role == roles::PAGETAB &&
-      !(state & states::SELECTED) &&
+  
+  
+  
+  if (mRoleMapEntry && !(state & states::SELECTED) &&
       !mContent->AttrValueIs(kNameSpaceID_None,
                              nsGkAtoms::aria_selected,
                              nsGkAtoms::_false, eCaseMatters)) {
     
     
-    if (state & states::FOCUSED) {
-      state |= states::SELECTED;
-    } else {
-      
-      Relation rel = RelationByType(nsIAccessibleRelation::RELATION_LABEL_FOR);
-      nsAccessible* relTarget = nsnull;
-      while ((relTarget = rel.Next())) {
-        if (relTarget->Role() == roles::PROPERTYPAGE &&
-            FocusMgr()->IsFocusWithin(relTarget))
-          state |= states::SELECTED;
+    if (mRoleMapEntry->role == roles::PAGETAB) {
+      if (state & states::FOCUSED) {
+        state |= states::SELECTED;
+      } else {
+        
+        Relation rel = RelationByType(nsIAccessibleRelation::RELATION_LABEL_FOR);
+        nsAccessible* relTarget = nsnull;
+        while ((relTarget = rel.Next())) {
+          if (relTarget->Role() == roles::PROPERTYPAGE &&
+              FocusMgr()->IsFocusWithin(relTarget))
+            state |= states::SELECTED;
+        }
+      }
+    } else if (state & states::FOCUSED) {
+      nsAccessible* container = nsAccUtils::GetSelectableContainer(this, state);
+      if (container &&
+          !nsAccUtils::HasDefinedARIAToken(container->GetContent(),
+                                           nsGkAtoms::aria_multiselectable)) {
+        state |= states::SELECTED;
       }
     }
   }
