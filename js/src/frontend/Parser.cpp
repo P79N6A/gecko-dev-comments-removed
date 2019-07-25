@@ -850,38 +850,15 @@ MakeAssignment(ParseNode *pn, ParseNode *rhs, Parser *parser)
     return lhs;
 }
 
-static ParseNode *
+
+static bool
 MakeDefIntoUse(Definition *dn, ParseNode *pn, JSAtom *atom, Parser *parser)
 {
     
-
-
-
-
-    if (dn->canHaveInitializer()) {
-        ParseNode *rhs = dn->expr();
-        if (rhs) {
-            ParseNode *lhs = MakeAssignment(dn, rhs, parser);
-            if (!lhs)
-                return NULL;
-            
-            dn = (Definition *) lhs;
-        }
-
-        dn->setOp((js_CodeSpec[dn->getOp()].format & JOF_SET) ? JSOP_SETNAME : JSOP_NAME);
-    } else if (dn->kind() == Definition::FUNCTION) {
-        JS_ASSERT(dn->isOp(JSOP_NOP));
-        parser->prepareNodeForMutation(dn);
-        dn->setKind(PNK_NAME);
-        dn->setArity(PN_NAME);
-        dn->pn_atom = atom;
-    }
+    parser->tc->decls.updateFirst(atom, (Definition *) pn);
+    pn->setDefn(true);
 
     
-    JS_ASSERT(dn->isKind(PNK_NAME));
-    JS_ASSERT(dn->isArity(PN_NAME));
-    JS_ASSERT(dn->pn_atom == atom);
-
     for (ParseNode *pnu = dn->dn_uses; pnu; pnu = pnu->pn_link) {
         JS_ASSERT(pnu->isUsed());
         JS_ASSERT(!pnu->isDefn());
@@ -891,12 +868,58 @@ MakeDefIntoUse(Definition *dn, ParseNode *pn, JSAtom *atom, Parser *parser)
     pn->pn_dflags |= dn->pn_dflags & PND_USE2DEF_FLAGS;
     pn->dn_uses = dn;
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if (dn->kind() == Definition::FUNCTION) {
+        JS_ASSERT(dn->getKind() == PNK_FUNCTION);
+        JS_ASSERT(dn->isOp(JSOP_NOP));
+        pn->dn_uses = dn->pn_link;
+        parser->prepareNodeForMutation(dn);
+        dn->setKind(PNK_NOP);
+        dn->setArity(PN_NULLARY);
+        return true;
+    }
+
+    
+
+
+
+
+    if (dn->canHaveInitializer()) {
+        if (ParseNode *rhs = dn->expr()) {
+            ParseNode *lhs = MakeAssignment(dn, rhs, parser);
+            if (!lhs)
+                return false;
+            pn->dn_uses = lhs;
+            dn->pn_link = NULL;
+            dn = (Definition *) lhs;
+        }
+    }
+
+    
+    JS_ASSERT(dn->isKind(PNK_NAME));
+    JS_ASSERT(dn->isArity(PN_NAME));
+    JS_ASSERT(dn->pn_atom == atom);
+    dn->setOp((js_CodeSpec[dn->getOp()].format & JOF_SET) ? JSOP_SETNAME : JSOP_NAME);
     dn->setDefn(false);
     dn->setUsed(true);
     dn->pn_lexdef = (Definition *) pn;
     dn->pn_cookie.makeFree();
     dn->pn_dflags &= ~PND_BOUND;
-    return dn;
+    return true;
 }
 
 bool
@@ -1463,14 +1486,16 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
                 }
             }
 
-            if (bodyLevel) {
-                tc->decls.updateFirst(funName, (Definition *) pn);
-                pn->setDefn(true);
-                pn->dn_uses = dn; 
+            
 
-                if (!MakeDefIntoUse(dn, pn, funName, this))
-                    return NULL;
-            }
+
+
+
+
+
+
+            if (bodyLevel && !MakeDefIntoUse(dn, pn, funName, this))
+                return NULL;
         } else if (bodyLevel) {
             
 
@@ -6925,7 +6950,7 @@ Parser::primaryExpr(TokenKind tt, bool afterDoubleDot)
                     if (!js_AtomToPrintableString(context, atom, &name))
                         return NULL;
 
-                    Reporter reporter = 
+                    Reporter reporter =
                         (oldAssignType == VALUE && assignType == VALUE && !tc->sc->needStrictChecks())
                         ? &Parser::reportWarning
                         : (tc->sc->needStrictChecks() ? &Parser::reportStrictModeError : &Parser::reportError);

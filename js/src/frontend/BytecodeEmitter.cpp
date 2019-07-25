@@ -6517,13 +6517,6 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         break;
 
       case PNK_NAME:
-        
-
-
-
-
-        if (pn->isOp(JSOP_NOP))
-            break;
         if (!EmitNameOp(cx, bce, pn, false))
             return false;
         break;
@@ -6645,6 +6638,10 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             return false;
         break;
 #endif 
+
+      case PNK_NOP:
+        JS_ASSERT(pn->getArity() == PN_NULLARY);
+        break;
 
       default:
         JS_ASSERT(0);
