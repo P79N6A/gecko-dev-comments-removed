@@ -159,6 +159,8 @@ public:
   void SendStopDecode(imgRequestProxy* aProxy, nsresult aStatus, const PRUnichar* statusArg);
   void RecordDiscard();
   void SendDiscard(imgRequestProxy* aProxy);
+  void RecordImageIsAnimated();
+  void SendImageIsAnimated(imgRequestProxy *aProxy);
 
   
   void RecordFrameChanged(imgIContainer* aContainer,
