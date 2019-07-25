@@ -6486,6 +6486,12 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
   }
 
   
+  
+  SetCoord(*aRuleData->ValueForFlexBasis(), pos->mFlexBasis, parentPos->mFlexBasis,
+           SETCOORD_LPAEH | SETCOORD_INITIAL_AUTO | SETCOORD_STORE_CALC,
+           aContext, mPresContext, canStoreInRuleTree);
+
+  
   SetDiscrete(*aRuleData->ValueForFlexDirection(),
               pos->mFlexDirection, canStoreInRuleTree,
               SETDSC_ENUMERATED, parentPos->mFlexDirection,
