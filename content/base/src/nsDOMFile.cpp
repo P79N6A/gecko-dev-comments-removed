@@ -71,6 +71,64 @@ using namespace mozilla;
 
 
 
+
+
+
+class DataOwnerAdapter : public nsIInputStream,
+                         public nsISeekableStream {
+  typedef nsDOMMemoryFile::DataOwner DataOwner;
+public:
+  static nsresult Create(DataOwner* aDataOwner,
+                         PRUint32 aStart,
+                         PRUint32 aLength,
+                         nsIInputStream** _retval);
+
+  NS_DECL_ISUPPORTS
+
+  NS_FORWARD_NSIINPUTSTREAM(mStream->)
+
+  NS_FORWARD_NSISEEKABLESTREAM(mSeekableStream->)
+
+private:
+  DataOwnerAdapter(DataOwner* aDataOwner,
+                   nsIInputStream* aStream)
+    : mDataOwner(aDataOwner), mStream(aStream),
+      mSeekableStream(do_QueryInterface(aStream))
+  {
+    NS_ASSERTION(mSeekableStream, "Somebody gave us the wrong stream!");
+  }
+
+  nsRefPtr<DataOwner> mDataOwner;
+  nsCOMPtr<nsIInputStream> mStream;
+  nsCOMPtr<nsISeekableStream> mSeekableStream;
+};
+
+NS_IMPL_THREADSAFE_ISUPPORTS2(DataOwnerAdapter, nsIInputStream, nsISeekableStream)
+
+nsresult DataOwnerAdapter::Create(DataOwner* aDataOwner,
+                                  PRUint32 aStart,
+                                  PRUint32 aLength,
+                                  nsIInputStream** _retval)
+{
+  nsresult rv;
+  NS_ASSERTION(aDataOwner, "Uh ...");
+
+  nsCOMPtr<nsIInputStream> stream;
+
+  rv = NS_NewByteInputStream(getter_AddRefs(stream),
+                             static_cast<const char*>(aDataOwner->mData) +
+                             aStart,
+                             (PRInt32)aLength,
+                             NS_ASSIGNMENT_DEPEND);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  NS_ADDREF(*_retval = new DataOwnerAdapter(aDataOwner, stream));
+
+  return NS_OK;
+}
+
+
+
 DOMCI_DATA(File, nsDOMFile)
 DOMCI_DATA(Blob, nsDOMFile)
 
@@ -585,10 +643,7 @@ nsDOMMemoryFile::GetInternalStream(nsIInputStream **aStream)
   if (mLength > PR_INT32_MAX)
     return NS_ERROR_FAILURE;
 
-  return NS_NewByteInputStream(aStream,
-                               static_cast<const char*>(mDataOwner->mData) +
-                               mStart,
-                               (PRInt32)mLength);
+  return DataOwnerAdapter::Create(mDataOwner, mStart, mLength, aStream);
 }
 
 NS_IMETHODIMP

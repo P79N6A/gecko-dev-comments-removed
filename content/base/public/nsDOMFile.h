@@ -153,6 +153,7 @@ public:
                    const nsAString& aContentType, nsIDOMBlob **aBlob);
 
 protected:
+  friend class DataOwnerAdapter; 
   class DataOwner {
   public:
     NS_INLINE_DECL_REFCOUNTING(DataOwner)
