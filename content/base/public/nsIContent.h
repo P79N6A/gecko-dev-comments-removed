@@ -76,8 +76,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID       \
-{ 0x8331ca9f, 0x8717, 0x4ab4, \
-  { 0xad, 0x17, 0xb4, 0x9d, 0xdc, 0xe8, 0xb6, 0x77 } }
+{ 0x5788c9eb, 0x646a, 0x4285, \
+  { 0xa2, 0x8c, 0xde, 0x0d, 0x43, 0x6b, 0x47, 0x72 } }
 
 
 
@@ -906,7 +906,7 @@ public:
 
   virtual nsISMILAttr* GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName) = 0;
 
-   
+  
 
 
 
@@ -914,7 +914,7 @@ public:
 
 
 
-  virtual nsresult GetSMILOverrideStyle(nsIDOMCSSStyleDeclaration** aStyle) = 0;
+  virtual nsIDOMCSSStyleDeclaration* GetSMILOverrideStyle() = 0;
 
   
 
