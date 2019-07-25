@@ -1010,7 +1010,7 @@ let TabItems = {
 
       
       
-      UI.getFavIconUrlForTab(tab, function TabItems__update_getFavIconUrlCallback(iconUrl) {
+      FavIcons.getFavIconUrlForTab(tab, function TabItems__update_getFavIconUrlCallback(iconUrl) {
         let favImage = tabItem.$favImage[0];
         let fav = tabItem.$fav;
         if (iconUrl) {

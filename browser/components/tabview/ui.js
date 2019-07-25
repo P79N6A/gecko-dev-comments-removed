@@ -52,12 +52,6 @@ let Keys = { meta: false };
 
 let UI = {
   
-  PREF_CHROME_SITE_ICONS: "browser.chrome.site_icons",
-
-  
-  PREF_CHROME_FAVICONS: "browser.chrome.favicons",
-
-  
   
   _frameInitialized: false,
 
@@ -146,12 +140,6 @@ let UI = {
   
   
   _originalSmoothScroll: null,
-
-  
-  _prefSiteIcons: null,
-
-  
-  _prefFavicons: null,
 
   
   
@@ -254,10 +242,6 @@ let UI = {
       this._addTabActionHandlers();
 
       
-      Services.prefs.addObserver(this.PREF_CHROME_SITE_ICONS, this, false);
-      Services.prefs.addObserver(this.PREF_CHROME_FAVICONS, this, false);
-
-      
       GroupItems.init();
       GroupItems.pauseArrange();
       let hasGroupItemsData = GroupItems.load();
@@ -265,6 +249,9 @@ let UI = {
       
       TabItems.init();
       TabItems.pausePainting();
+
+      
+      FavIcons.init();
 
       if (!hasGroupItemsData)
         this.reset();
@@ -330,11 +317,9 @@ let UI = {
     
     TabItems.uninit();
     GroupItems.uninit();
+    FavIcons.uninit();
     Storage.uninit();
     StoragePolicy.uninit();
-
-    Services.prefs.removeObserver(this.PREF_CHROME_SITE_ICONS, this);
-    Services.prefs.removeObserver(this.PREF_CHROME_FAVICONS, this);
 
     this._removeTabActionHandlers();
     this._currentTab = null;
@@ -871,19 +856,6 @@ let UI = {
   _removeTabActionHandlers: function UI__removeTabActionHandlers() {
     for (let name in this._eventListeners)
       AllTabs.unregister(name, this._eventListeners[name]);
-  },
-
-  
-  
-  
-  observe: function UI_observe(subject, topic, data) {
-    if (data == this.PREF_CHROME_SITE_ICONS) {
-      this._prefSiteIcons =
-        Services.prefs.getBoolPref(this.PREF_CHROME_SITE_ICONS);
-    } else if (data == this.PREF_CHROME_FAVICONS) {
-      this._prefFavicons =
-        Services.prefs.getBoolPref(this.PREF_CHROME_FAVICONS);
-    }
   },
 
   
@@ -1653,79 +1625,6 @@ let UI = {
     this._save();
     GroupItems.saveAll();
     TabItems.saveAll();
-  },
-
-  
-  
-  
-  _isImageDocument: function UI__isImageDocument(tab, callback) {
-    let mm = tab.linkedBrowser.messageManager;
-    let message = "Panorama:isImageDocument";
-
-    mm.addMessageListener(message, function onMessage(cx) {
-      mm.removeMessageListener(cx.name, onMessage);
-      callback(cx.json.isImageDocument);
-    });
-    mm.sendAsyncMessage(message);
-  },
-
-  
-  
-  
-  _shouldLoadFavIcon: function UI__shouldLoadFavIcon(tab) {
-    let uri = tab.linkedBrowser.currentURI;
-
-    if (!uri)
-      return false;
-
-    if (this._prefSiteIcons == null)
-      this._prefSiteIcons =
-        Services.prefs.getBoolPref(this.PREF_CHROME_SITE_ICONS);
-
-    if (!this._prefSiteIcons)
-      return false;
-
-    if (this._prefFavicons == null)
-      this._prefFavicons =
-        Services.prefs.getBoolPref(this.PREF_CHROME_FAVICONS);
-
-    return (this._prefFavicons && ("schemeIs" in uri) &&
-            (uri.schemeIs("http") || uri.schemeIs("https")));
-  },
-
-  
-  
-  
-  getFavIconUrlForTab: function UI_getFavIconUrlForTab(tab, callback) {
-    this._isImageDocument(tab, function(isImageDoc) {
-      if (isImageDoc) {
-        callback(tab.pinned ? tab.image : null);
-      } else {
-        let tabImage = tab.image;
-        if (tabImage) {
-          
-          if (/^https?:/.test(tabImage))
-            tabImage = gFavIconService.getFaviconLinkForIcon(gWindow.makeURI(tab.image)).spec;
-
-          callback(tabImage);
-        } else {
-          
-          if (!this._shouldLoadFavIcon(tab)) {
-            callback(null);
-          } else {
-            
-            gFavIconService.getFaviconURLForPage(tab.linkedBrowser.currentURI,
-              function (uri) {
-                if (!uri) {
-                  callback(gFavIconService.defaultFavicon.spec);
-                } else {
-                  callback(gFavIconService.getFaviconLinkForIcon(uri).spec);
-                }
-              });
-          }
-        }
-      }
-    }.bind(this));
   },
 
   
