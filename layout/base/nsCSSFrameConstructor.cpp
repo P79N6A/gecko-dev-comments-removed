@@ -7559,6 +7559,11 @@ UpdateViewsForTree(nsIFrame* aFrame,
           DoApplyRenderingChangeToTree(child, aFrameManager,
                                        aChange);
         } else {  
+          if ((child->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER) &&
+              (aChange & nsChangeHint_RepaintFrame)) {
+            FrameLayerBuilder::InvalidateThebesLayerContents(child,
+              child->GetVisualOverflowRectRelativeToSelf());
+          }
           UpdateViewsForTree(child, aFrameManager, aChange);
         }
       }
@@ -7599,17 +7604,21 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
           nsSVGUtils::InvalidateBounds(aFrame);
         }
       } else {
-        aFrame->InvalidateFrameSubtree();
+        aFrame->InvalidateOverflowRect();
       }
     }
     if (aChange & nsChangeHint_UpdateOpacityLayer) {
       aFrame->MarkLayersActive(nsChangeHint_UpdateOpacityLayer);
+      aFrame->InvalidateLayer(aFrame->GetVisualOverflowRectRelativeToSelf(),
+                              nsDisplayItem::TYPE_OPACITY);
     }
     
     if (aChange & nsChangeHint_UpdateTransformLayer) {
       aFrame->MarkLayersActive(nsChangeHint_UpdateTransformLayer);
+      
+      
+      aFrame->InvalidateTransformLayer();
     }
-    aFrame->SchedulePaint();
   }
 }
 
@@ -11927,14 +11936,15 @@ nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
     return true;
   }
 
-  aFrame->SchedulePaint();
-
   
   if (display->mPosition == NS_STYLE_POSITION_RELATIVE) {
     nsIFrame* cb = aFrame->GetContainingBlock();
     const nsSize size = cb->GetSize();
     const nsPoint oldOffsets = aFrame->GetRelativeOffset();
     nsMargin newOffsets;
+
+    
+    aFrame->InvalidateOverflowRect();
 
     
     nsHTMLReflowState::ComputeRelativeOffsets(
@@ -11945,6 +11955,9 @@ nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
                  "ComputeRelativeOffsets should return valid results");
     aFrame->SetPosition(aFrame->GetPosition() - oldOffsets +
                         nsPoint(newOffsets.left, newOffsets.top));
+
+    
+    aFrame->InvalidateOverflowRect();
 
     return true;
   }
@@ -12018,11 +12031,17 @@ nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
     }
 
     
+    aFrame->InvalidateOverflowRect();
+
+    
     nsPoint pos(parentBorder.left + reflowState.mComputedOffsets.left +
                 reflowState.mComputedMargin.left,
                 parentBorder.top + reflowState.mComputedOffsets.top +
                 reflowState.mComputedMargin.top);
     aFrame->SetPosition(pos);
+
+    
+    aFrame->InvalidateOverflowRect();
 
     return true;
   }

@@ -333,9 +333,13 @@ nsTableRowFrame::DidResize()
 
       
       nsRect cellRect = cellFrame->GetRect();
+      nsRect cellVisualOverflow = cellFrame->GetVisualOverflowRect();
       if (cellRect.height != cellHeight)
       {
         cellFrame->SetSize(nsSize(cellRect.width, cellHeight));
+        nsTableFrame::InvalidateFrame(cellFrame, cellRect,
+                                      cellVisualOverflow,
+                                      false);
       }
 
       
@@ -810,6 +814,9 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
 
     
     nsRect kidRect = kidFrame->GetRect();
+    nsRect kidVisualOverflow = kidFrame->GetVisualOverflowRect();
+    bool firstReflow =
+      (kidFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
 
     if (doReflowChild) {
       
@@ -898,6 +905,9 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
       desiredSize.width = availCellWidth;
 
       FinishReflowChild(kidFrame, aPresContext, nsnull, desiredSize, x, 0, 0);
+
+      nsTableFrame::InvalidateFrame(kidFrame, kidRect, kidVisualOverflow,
+                                    firstReflow);
       
       x += desiredSize.width;  
     }
@@ -992,6 +1002,12 @@ nsTableRowFrame::Reflow(nsPresContext*          aPresContext,
   
   aDesiredSize.width = aReflowState.availableWidth;
 
+  
+  
+  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    CheckInvalidateSizeChange(aDesiredSize);
+  }
+
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
   return rv;
 }
@@ -1038,6 +1054,11 @@ nsTableRowFrame::ReflowCellFrame(nsPresContext*          aPresContext,
     aCellFrame->VerticallyAlignChild(mMaxCellAscent);
   }
   
+  nsTableFrame::InvalidateFrame(aCellFrame, cellRect,
+                                cellVisualOverflow,
+                                (aCellFrame->GetStateBits() &
+                                   NS_FRAME_FIRST_REFLOW) != 0);
+  
   aCellFrame->DidReflow(aPresContext, nsnull, NS_FRAME_REFLOW_FINISHED);
 
   return desiredSize.height;
@@ -1063,6 +1084,8 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
   }
   
   nsRect rowRect = GetRect();
+  nsRect oldRect = rowRect;
+  nsRect oldVisualOverflow = GetVisualOverflowRect();
   
   rowRect.y -= aRowOffset;
   rowRect.width  = aWidth;
@@ -1082,7 +1105,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
       
       
       if (aRowOffset == 0) {
-        InvalidateFrame();
+        Invalidate(cRect);
       }
       cRect.height = 0;
       cellFrame->SetRect(cRect);
@@ -1191,6 +1214,12 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
                                           nsSize(cRect.width, cRect.height));
         nsTableFrame::RePositionViews(cellFrame);
         ConsiderChildOverflow(overflow, cellFrame);
+                
+        if (aRowOffset == 0) {
+          nsTableFrame::InvalidateFrame(cellFrame, oldCellRect,
+                                        oldCellVisualOverflow,
+                                        false);
+        }
       }
       kidFrame = iter.Next(); 
     }
@@ -1201,6 +1230,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
   FinishAndStoreOverflow(overflow, nsSize(rowRect.width, rowRect.height));
 
   nsTableFrame::RePositionViews(this);
+  nsTableFrame::InvalidateFrame(this, oldRect, oldVisualOverflow, false);
   return shift;
 }
 
@@ -1325,14 +1355,6 @@ void nsTableRowFrame::InitHasCellWithStyleHeight(nsTableFrame* aTableFrame)
     }
   }
   RemoveStateBits(NS_ROW_HAS_CELL_WITH_STYLE_HEIGHT);
-}
-  
-void 
-nsTableRowFrame::InvalidateFrame(PRUint32 aFlags)
-{
-  nsIFrame::InvalidateFrame(aFlags);
-  nsTableFrame *tableFrame = nsTableFrame::GetTableFrame(this);
-  tableFrame->InvalidateFrame(aFlags | INVALIDATE_DONT_SCHEDULE_PAINT);
 }
 
 

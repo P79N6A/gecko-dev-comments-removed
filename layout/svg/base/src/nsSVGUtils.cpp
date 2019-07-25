@@ -712,7 +712,7 @@ nsSVGUtils::InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate)
     
     
     nsRect rect = FindFilterInvalidation(aFrame, svgFrame->GetCoveredRegion());
-    outerSVGFrame->InvalidateSVG(rect);
+    outerSVGFrame->Invalidate(rect);
   }
 }
 

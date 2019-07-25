@@ -33,7 +33,6 @@ public:
   NS_IMETHOD  Init(nsIContent* aContent,
                    nsIFrame*   aParent,
                    nsIFrame*   aPrevInFlow);
-  virtual void DestroyFrom(nsIFrame* aDestructRoot);
   NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
                                PRInt32         aModType);
@@ -62,6 +61,10 @@ public:
       ~(nsIFrame::eSVG | nsIFrame::eSVGForeignObject));
   }
 
+  virtual void InvalidateInternal(const nsRect& aDamageRect,
+                                  nscoord aX, nscoord aY, nsIFrame* aForChild,
+                                  PRUint32 aFlags);
+
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const
   {
@@ -82,8 +85,6 @@ public:
 
   gfxMatrix GetCanvasTM();
 
-  nsRect GetInvalidRegion();
-
 protected:
   
   void DoReflow();
@@ -92,11 +93,20 @@ protected:
   
   
   gfxMatrix GetCanvasTMForChildren();
+  void InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
+                           const nsRect& aRect, PRUint32 aFlags);
+  void FlushDirtyRegion(PRUint32 aFlags);
 
   
   bool IsDisabled() const { return mRect.width <= 0 || mRect.height <= 0; }
 
   nsAutoPtr<gfxMatrix> mCanvasTM;
+
+  
+  nsRegion mSameDocDirtyRegion;
+
+  
+  nsRegion mSubDocDirtyRegion;
 
   nsRect mCoveredRegion;
 

@@ -507,6 +507,18 @@ RenderFrameParent::ShadowLayersUpdated(bool isFirstPaint)
     
     return;
   }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsRect rect = nsRect(nsPoint(0, 0), docFrame->GetRect().Size());
+  docFrame->InvalidateWithFlags(rect, nsIFrame::INVALIDATE_NO_THEBES_LAYERS);
 }
 
 already_AddRefed<Layer>

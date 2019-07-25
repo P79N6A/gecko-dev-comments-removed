@@ -168,10 +168,11 @@ public:
   
   virtual Layer* AsLayer() { return this; }
   virtual void InvalidateRegion(const nsIntRegion& aRegion) {
-    mInvalidRegion.Or(mInvalidRegion, aRegion);
-    mInvalidRegion.SimplifyOutward(10);
-    mValidRegion.Sub(mValidRegion, mInvalidRegion);
+    mValidRegion.Sub(mValidRegion, aRegion);
   }
+
+  
+  virtual bool MustRetainContent() { return HasShadow(); }
 
   
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);

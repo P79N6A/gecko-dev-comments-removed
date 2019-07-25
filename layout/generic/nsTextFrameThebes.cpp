@@ -3286,7 +3286,8 @@ NS_IMETHODIMP nsBlinkTimer::Notify(nsITimer *timer)
 
     
     
-    frameData.mFrame->InvalidateFrame();
+    nsRect bounds(nsPoint(0, 0), frameData.mFrame->GetSize());
+    frameData.mFrame->Invalidate(bounds);
   }
   return NS_OK;
 }
@@ -4280,7 +4281,6 @@ nsTextFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
       
       textFrame->AddStateBits(NS_FRAME_IS_DIRTY);
     }
-    textFrame->InvalidateFrame();
 
     
     
@@ -4321,23 +4321,7 @@ nsTextFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
   nsFrame::DidSetStyleContext(aOldStyleContext);
   ClearTextRuns();
-}
-
-class nsDisplayTextGeometry : public nsDisplayItemGenericGeometry
-{
-public:
-  nsDisplayTextGeometry(nsTextFrame* aFrame)
-  {
-    aFrame->GetTextDecorations(aFrame->PresContext(), mDecorations);
-  }
- 
-  
-
-
-
-
-  nsTextFrame::TextDecorations mDecorations;
-};
+} 
 
 class nsDisplayText : public nsCharClipDisplayItem {
 public:
@@ -4354,10 +4338,7 @@ public:
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
     *aSnap = false;
-    nsRect temp = mFrame->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
-    
-    temp.Inflate(mFrame->PresContext()->AppUnitsPerDevPixel());
-    return temp;
+    return mFrame->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
   }
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) {
@@ -4375,37 +4356,6 @@ public:
     return GetBounds(aBuilder, &snap);
   }
 
-  virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder)
-  {
-    nsTextFrame* f = static_cast<nsTextFrame*>(mFrame);
-    nsDisplayTextGeometry* geometry = new nsDisplayTextGeometry(f);
-    bool snap;
-    geometry->mBounds = GetBounds(aBuilder, &snap);
-    geometry->mBorderRect = GetBorderRect();
-    
-    return geometry;
-  }
-
-  virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
-                                         const nsDisplayItemGeometry* aGeometry,
-                                         nsRegion *aInvalidRegion)
-  {
-    const nsDisplayTextGeometry* geometry = static_cast<const nsDisplayTextGeometry*>(aGeometry);
-    nsTextFrame* f = static_cast<nsTextFrame*>(mFrame);
-
-    nsTextFrame::TextDecorations decorations;
-    f->GetTextDecorations(f->PresContext(), decorations);
-
-    bool snap;
-    nsRect newRect = geometry->mBounds;
-    nsRect oldRect = GetBounds(aBuilder, &snap);
-    if (decorations != geometry->mDecorations ||
-        !oldRect.IsEqualInterior(newRect) ||
-        !geometry->mBorderRect.IsEqualInterior(GetBorderRect())) {
-      aInvalidRegion->Or(oldRect, newRect);
-    }
-  }
-  
   virtual void DisableComponentAlpha() { mDisableSubpixelAA = true; }
 
   bool mDisableSubpixelAA;
@@ -5999,7 +5949,7 @@ nsTextFrame::SetSelectedRange(PRUint32 aStart, PRUint32 aEnd, bool aSelected,
       }
     }
     
-    f->InvalidateFrame();
+    f->InvalidateOverflowRect();
 
     f = static_cast<nsTextFrame*>(f->GetNextContinuation());
   }
@@ -7760,7 +7710,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
 
   SetLength(contentLength, &aLineLayout, ALLOW_FRAME_CREATION_AND_DESTRUCTION);
 
-  InvalidateFrame();
+  Invalidate(aMetrics.VisualOverflow());
 
 #ifdef NOISY_REFLOW
   ListTag(stdout);

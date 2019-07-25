@@ -142,6 +142,10 @@ typedef PRUint64 nsFrameState;
 
 
 
+#define NS_FRAME_HAS_CONTAINER_LAYER                NS_FRAME_STATE_BIT(3)
+
+
+
 
 #define NS_FRAME_EXTERNAL_REFERENCE                 NS_FRAME_STATE_BIT(4)
 
@@ -241,11 +245,16 @@ typedef PRUint64 nsFrameState;
 
 
 
-
-#define NS_FRAME_NO_COMPONENT_ALPHA                 NS_FRAME_STATE_BIT(34)
+#define NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT     NS_FRAME_STATE_BIT(34)
 
 
 #define NS_FRAME_HAS_CLIP                           NS_FRAME_STATE_BIT(35)
+
+
+
+
+
+#define NS_FRAME_UPDATE_LAYER_TREE                  NS_FRAME_STATE_BIT(36)
 
 
 #define NS_FRAME_HAS_ABSPOS_CHILDREN                NS_FRAME_STATE_BIT(37)
@@ -278,22 +287,6 @@ typedef PRUint64 nsFrameState;
 
 
 #define NS_FRAME_MAY_HAVE_GENERATED_CONTENT         NS_FRAME_STATE_BIT(44)
-
-
-#define NS_FRAME_NEEDS_PAINT                        NS_FRAME_STATE_BIT(45)
-
-
-
-#define NS_FRAME_DESCENDANT_NEEDS_PAINT             NS_FRAME_STATE_BIT(46)
-
-
-
-
-
-#define NS_FRAME_ALL_DESCENDANTS_NEED_PAINT         NS_FRAME_STATE_BIT(47)
-
-
-#define NS_FRAME_IN_POPUP                           NS_FRAME_STATE_BIT(48)
 
 
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
@@ -1047,13 +1040,6 @@ public:
   virtual const nsFrameList& GetChildList(ChildListID aListID) const = 0;
   const nsFrameList& PrincipalChildList() { return GetChildList(kPrincipalList); }
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const = 0;
-
-  
-
-
-
-  void GetCrossDocChildLists(nsTArray<ChildList>* aLists);
-
   
   nsIFrame* GetFirstChild(ChildListID aListID) const {
     return GetChildList(aListID).FirstChild();
@@ -1374,16 +1360,6 @@ public:
 
   void AddStateBits(nsFrameState aBits) { mState |= aBits; }
   void RemoveStateBits(nsFrameState aBits) { mState &= ~aBits; }
-
-  
-
-
-  bool HasAllStateBits(nsFrameState aBits) { return (mState & aBits) == aBits; }
-  
-  
-
-
-  bool HasAnyStateBits(nsFrameState aBits) { return mState & aBits; }
 
   
 
@@ -2116,6 +2092,78 @@ public:
   
 
 
+  void InvalidateWithFlags(const nsRect& aDamageRect, PRUint32 aFlags);
+
+  
+
+
+
+
+
+
+
+
+
+  void Invalidate(const nsRect& aDamageRect)
+  { return InvalidateWithFlags(aDamageRect, 0); }
+
+  
+
+
+
+
+
+
+
+
+  Layer* InvalidateLayer(const nsRect& aDamageRect, PRUint32 aDisplayItemKey);
+
+  
+
+
+
+
+  void InvalidateTransformLayer();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2123,39 +2171,21 @@ public:
 
 
   enum {
-    INVALIDATE_DONT_SCHEDULE_PAINT
+    INVALIDATE_IMMEDIATE = 0x01,
+    INVALIDATE_CROSS_DOC = 0x02,
+    INVALIDATE_REASON_SCROLL_BLIT = 0x04,
+    INVALIDATE_REASON_SCROLL_REPAINT = 0x08,
+    INVALIDATE_REASON_MASK = INVALIDATE_REASON_SCROLL_BLIT |
+                             INVALIDATE_REASON_SCROLL_REPAINT,
+    INVALIDATE_NO_THEBES_LAYERS = 0x10,
+    INVALIDATE_ONLY_THEBES_LAYERS = 0x20,
+    INVALIDATE_EXCLUDE_CURRENT_PAINT = 0x40,
+    INVALIDATE_NO_UPDATE_LAYER_TREE = 0x80,
+    INVALIDATE_ALREADY_TRANSFORMED = 0x100
   };
-  virtual void InvalidateFrame(PRUint32 aFlags = 0);
-  
-  
-
-
-
-
-
-
-  void InvalidateFrameSubtree(PRUint32 aFlags = 0);
-  
-  
-
-
-
-  bool IsInvalid();
- 
-  
-
-
-
-  bool HasInvalidFrameInSubtree()
-  {
-    return HasAnyStateBits(NS_FRAME_NEEDS_PAINT | NS_FRAME_DESCENDANT_NEEDS_PAINT);
-  }
-
-  
-
-
-
-  void ClearInvalidationStateBits();
+  virtual void InvalidateInternal(const nsRect& aDamageRect,
+                                  nscoord aOffsetX, nscoord aOffsetY,
+                                  nsIFrame* aForChild, PRUint32 aFlags);
 
   
 
@@ -2168,11 +2198,8 @@ public:
 
 
 
-
-  enum {
-    PAINT_COMPOSITE_ONLY
-  };
-  void SchedulePaint(PRUint32 aFlags = 0);
+  void InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
+                                     nscoord aY, PRUint32 aFlags);
 
   
 
@@ -2182,10 +2209,22 @@ public:
 
 
 
+  void InvalidateRectDifference(const nsRect& aR1, const nsRect& aR2);
+
+  
 
 
 
-  Layer* InvalidateLayer(PRUint32 aDisplayItemKey, const nsIntRect* aDamageRect = nsnull);
+
+
+  void InvalidateFrameSubtree();
+
+  
+
+
+
+
+  void InvalidateOverflowRect();
 
   
 
@@ -2635,7 +2674,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   bool IsHorizontal() const { return (mState & NS_STATE_IS_HORIZONTAL) != 0; }
   bool IsNormalDirection() const { return (mState & NS_STATE_IS_DIRECTION_NORMAL) != 0; }
 
-  NS_HIDDEN_(nsresult) Redraw(nsBoxLayoutState& aState);
+  NS_HIDDEN_(nsresult) Redraw(nsBoxLayoutState& aState, const nsRect* aRect = nsnull);
   NS_IMETHOD RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIBox* aChild)=0;
   
   virtual bool GetMouseThrough() const { return false; };
@@ -2683,6 +2722,17 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
 
   CaretPosition GetExtremeCaretPosition(bool aStart);
+
+  
+
+
+
+
+
+
+  void CheckInvalidateSizeChange(const nsRect& aOldRect,
+                                 const nsRect& aOldVisualOverflowRect,
+                                 const nsSize& aNewDesiredSize);
 
   
 
@@ -2825,6 +2875,12 @@ protected:
   } mOverflow;
 
   
+  
+
+
+
+  void InvalidateRoot(const nsRect& aDamageRect, PRUint32 aFlags);
+
   
 
 
