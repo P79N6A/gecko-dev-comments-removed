@@ -429,15 +429,6 @@ WeaveSvc.prototype = {
 
     
     
-    
-    
-    
-    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    timer.initWithCallback({ notify: self.cb }, 0, Ci.nsITimer.TYPE_ONE_SHOT);
-    yield;
-
-    
-    
     ID.get('WeaveID').setTempPassword(password);
     ID.get('WeaveCryptoID').setTempPassword(passphrase);
 
