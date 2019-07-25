@@ -372,6 +372,15 @@ public:
   
 
 
+
+  static nsFrameSelection* GetMouseDownFrameSelection()
+  {
+    return sDraggingFrameSelection;
+  }
+
+  
+
+
   PRBool GetTableCellSelection() const { return mSelectingTableCellMode != 0; }
   void ClearTableCellSelection() { mSelectingTableCellMode = 0; }
 
@@ -598,6 +607,7 @@ public:
 
 
   nsFrameSelection();
+  virtual ~nsFrameSelection();
 
   void StartBatchChanges();
   void EndBatchChanges();
@@ -695,6 +705,8 @@ private:
   nsIContent* GetParentTable(nsIContent *aCellNode) const;
   nsresult CreateAndAddRange(nsINode *aParentNode, PRInt32 aOffset);
   nsresult ClearNormalSelection();
+
+  static nsFrameSelection* sDraggingFrameSelection;
 
   nsCOMPtr<nsINode> mCellParent; 
   nsCOMPtr<nsIContent> mStartSelectedCell;

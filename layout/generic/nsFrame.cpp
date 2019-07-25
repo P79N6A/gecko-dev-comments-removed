@@ -933,18 +933,6 @@ nsFrame::GetChildList(nsIAtom* aListName) const
   return nsFrameList::EmptyList();
 }
 
-static nsIFrame*
-GetActiveSelectionFrame(nsPresContext* aPresContext, nsIFrame* aFrame)
-{
-  nsIContent* capturingContent = nsIPresShell::GetCapturingContent();
-  if (capturingContent) {
-    nsIFrame* activeFrame = aPresContext->GetPrimaryFrameFor(capturingContent);
-    return activeFrame ? activeFrame : aFrame;
-  }
-
-  return aFrame;
-}
-
 PRInt16
 nsFrame::DisplaySelection(nsPresContext* aPresContext, PRBool isOkToTurnOn)
 {
@@ -2048,6 +2036,147 @@ nsFrame::IsSelectable(PRBool* aSelectable, PRUint8* aSelectStyle) const
   return NS_OK;
 }
 
+nsFrameSelection*
+nsFrame::GetFrameSelectionForSelectingByMouse()
+{
+  PRBool selectable;
+  PRUint8 selectStyle;
+  nsresult rv = IsSelectable(&selectable, &selectStyle);
+  NS_ENSURE_SUCCESS(rv, nsnull);
+  if (!selectable) {
+    return nsnull;
+  }
+
+  
+  
+  
+  PRBool useFrameSelection = (selectStyle == NS_STYLE_USER_SELECT_TEXT);
+
+  
+  
+  const nsFrameSelection* frameselection = 
+    (selectStyle == NS_STYLE_USER_SELECT_TEXT) ? GetConstFrameSelection() :
+      PresContext()->PresShell()->ConstFrameSelection();
+
+  return const_cast<nsFrameSelection*>(frameselection);
+}
+
+
+
+
+
+
+static nsIContent*
+GetContentToCaptureForSelection(nsIContent* aSelectionRoot)
+{
+  return aSelectionRoot->FindFirstNonNativeAnonymous();
+}
+
+
+
+
+
+
+static nsIContent*
+GetSelectionRootContentForCapturingContent(nsIPresShell* aPresShell,
+                                           nsIContent* aCapturingContent)
+{
+  if (!aCapturingContent->HasIndependentSelection()) {
+    return aCapturingContent;
+  }
+  return aCapturingContent->GetSelectionRootContent(aPresShell);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static nsIScrollableFrame*
+FindNearestScrollableFrameForSelection(nsIFrame* aFrame,
+                                       nsIContent* aSelectionRoot = nsnull)
+{
+#ifdef DEBUG
+  nsFrameSelection* draggingFrameSelection =
+    nsFrameSelection::GetMouseDownFrameSelection();
+  NS_ASSERTION(!draggingFrameSelection ||
+               draggingFrameSelection == aFrame->GetConstFrameSelection(),
+               "aFrame must be in dragging nsFrameSelection");
+#endif
+  PRBool foundCapturingContent = PR_FALSE;
+  nsIContent* capturingContent = nsIPresShell::GetCapturingContent();
+  
+  
+  
+  if (aSelectionRoot && aSelectionRoot == capturingContent) {
+    nsIFrame* selectionRootFrame = aSelectionRoot->GetPrimaryFrame();
+    NS_ENSURE_TRUE(selectionRootFrame, nsnull);
+    nsIPresShell* ps = selectionRootFrame->PresContext()->PresShell();
+    aSelectionRoot = aSelectionRoot->GetSelectionRootContent(ps);
+  }
+  nsIScrollableFrame* lastScrollableFrame = nsnull;
+  for (nsIFrame* frame = aFrame; frame; frame = frame->GetParent()) {
+    do {
+      nsIScrollableFrame* scrollableFrame = do_QueryFrame(frame);
+      if (!scrollableFrame || !scrollableFrame->GetScrolledFrame()) {
+        break; 
+      }
+
+      if (aSelectionRoot) {
+        
+        
+        nsIContent* content = frame->GetContent();
+        if (!content) {
+          break;
+        }
+        nsIPresShell* ps = frame->PresContext()->PresShell();
+        if (content->GetSelectionRootContent(ps) != aSelectionRoot) {
+          break;
+        }
+      }
+
+      lastScrollableFrame = scrollableFrame;
+
+      
+      
+      if (frame->GetStateBits() & NS_FRAME_INDEPENDENT_SELECTION) {
+        return scrollableFrame;
+      }
+
+      nsRect range = scrollableFrame->GetScrollRange();
+      if (range.width == 0 && range.height == 0) {
+        
+        
+        
+        break;
+      }
+
+      return scrollableFrame;
+    } while (0);
+
+    if (frame->GetContent() == capturingContent) {
+      foundCapturingContent = PR_TRUE;
+    } else if (foundCapturingContent) {
+      break; 
+    }
+  }
+  return lastScrollableFrame;
+}
+
 
 
 
@@ -2094,49 +2223,52 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
     }
   }
 
-  
-  
-  PRBool  selectable;
-  PRUint8 selectStyle;
-  rv = IsSelectable(&selectable, &selectStyle);
-  if (NS_FAILED(rv)) return rv;
-  
-  
-  if (!selectable)
-    return NS_OK;
-
-  
-  
-  PRBool useFrameSelection = (selectStyle == NS_STYLE_USER_SELECT_TEXT);
-
-  
-  
-  
-  
-  
-  if (!nsIPresShell::GetCapturingContent()) {
-    nsIFrame* checkFrame = this;
-    nsIScrollableFrame *scrollFrame = nsnull;
-    while (checkFrame) {
-      scrollFrame = do_QueryFrame(checkFrame);
-      if (scrollFrame) {
-        nsIPresShell::SetCapturingContent(checkFrame->GetContent(), CAPTURE_IGNOREALLOWED);
-        break;
-      }
-      checkFrame = checkFrame->GetParent();
-    }
+  nsFrameSelection* fs = GetFrameSelectionForSelectingByMouse();
+  if (!fs) {
+    return NS_OK; 
   }
 
   
   
-  const nsFrameSelection* frameselection = nsnull;
-  if (useFrameSelection)
-    frameselection = GetConstFrameSelection();
-  else
-    frameselection = shell->ConstFrameSelection();
+  
+  
+  
+  
 
-  if (!frameselection || frameselection->GetDisplaySelection() == nsISelectionController::SELECTION_OFF)
+  
+  
+  
+  nsIContent* capturingContent = nsIPresShell::GetCapturingContent();
+  PRBool captureMouse = !capturingContent;
+  NS_ASSERTION(mContent, "mContent must not be null");
+  nsIContent* selectionRootOfThisFrame =
+    mContent->GetSelectionRootContent(shell);
+  NS_ASSERTION(selectionRootOfThisFrame,
+               "mContent must have a selection root content");
+  if (capturingContent) {
+    nsIFrame* capturingFrame = capturingContent->GetPrimaryFrame();
+    NS_ENSURE_TRUE(capturingFrame, NS_OK);
+    nsIPresShell* capturedPresShell =
+      capturingFrame->PresContext()->PresShell();
+    NS_ASSERTION(capturedPresShell,
+                 "The captured content must have a presShell");
+    nsIContent* selectionRootOfCapturedContent =
+      capturingContent->GetSelectionRootContent(capturedPresShell);
+    NS_ASSERTION(selectionRootOfCapturedContent,
+                 "The captured content must have a selection root content");
+    if (selectionRootOfThisFrame != selectionRootOfCapturedContent) {
+      return NS_OK;
+    }
+  } else {
+    nsIContent* contentToCaptureForSelection =
+      GetContentToCaptureForSelection(selectionRootOfThisFrame);
+    nsIPresShell::SetCapturingContent(contentToCaptureForSelection,
+                                      CAPTURE_IGNOREALLOWED);
+  }
+
+  if (fs->GetDisplaySelection() == nsISelectionController::SELECTION_OFF) {
     return NS_OK;
+  }
 
   nsMouseEvent *me = (nsMouseEvent *)aEvent;
 
@@ -2148,13 +2280,12 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   PRBool control = me->isControl;
 #endif
 
-  nsRefPtr<nsFrameSelection> fc = const_cast<nsFrameSelection*>(frameselection);
   if (me->clickCount >1 )
   {
     
     
-    fc->SetMouseDownState(PR_TRUE);
-    fc->SetMouseDoubleDown(PR_TRUE);
+    fs->SetMouseDownState(PR_TRUE);
+    fs->SetMouseDoubleDown(PR_TRUE);
     return HandleMultiplePress(aPresContext, aEvent, aEventStatus, control);
   }
 
@@ -2168,14 +2299,24 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   nsCOMPtr<nsIContent>parentContent;
   PRInt32  contentOffset;
   PRInt32 target;
-  rv = GetDataForTableSelection(frameselection, shell, me, getter_AddRefs(parentContent), &contentOffset, &target);
+  rv = GetDataForTableSelection(fs, shell, me, getter_AddRefs(parentContent),
+                                &contentOffset, &target);
   if (NS_SUCCEEDED(rv) && parentContent)
   {
-    fc->SetMouseDownState(PR_TRUE);
-    return fc->HandleTableSelection(parentContent, contentOffset, target, me);
+    
+    
+    if (captureMouse) {
+      nsIScrollableFrame* scrollableFrame =
+        FindNearestScrollableFrameForSelection(this);
+      nsIFrame* frame = do_QueryFrame(scrollableFrame);
+      nsIPresShell::SetCapturingContent(frame->GetContent(),
+                                        CAPTURE_IGNOREALLOWED);
+    }
+    fs->SetMouseDownState(PR_TRUE);
+    return fs->HandleTableSelection(parentContent, contentOffset, target, me);
   }
 
-  fc->SetDelayedCaretData(0);
+  fs->SetDelayedCaretData(0);
 
   
   
@@ -2188,8 +2329,8 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   if (isSelected)
   {
     PRBool inSelection = PR_FALSE;
-    details = frameselection->LookUpSelection(offsets.content, 0,
-        offsets.EndOffset(), PR_FALSE);
+    details =
+      fs->LookUpSelection(offsets.content, 0, offsets.EndOffset(), PR_FALSE);
 
     
     
@@ -2221,17 +2362,17 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
     }
 
     if (inSelection) {
-      fc->SetMouseDownState(PR_FALSE);
-      fc->SetDelayedCaretData(me);
+      fs->SetMouseDownState(PR_FALSE);
+      fs->SetDelayedCaretData(me);
       return NS_OK;
     }
   }
 
-  fc->SetMouseDownState(PR_TRUE);
+  fs->SetMouseDownState(PR_TRUE);
 
   
   
-  rv = fc->HandleClick(offsets.content, offsets.StartOffset(),
+  rv = fs->HandleClick(offsets.content, offsets.StartOffset(),
                        offsets.EndOffset(), me->isShift, control,
                        offsets.associateWithNext);
 
@@ -2239,7 +2380,7 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
     return rv;
 
   if (offsets.offset != offsets.secondaryOffset)
-    fc->MaintainSelection();
+    fs->MaintainSelection();
 
   if (isEditor && !me->isShift &&
       (offsets.EndOffset() - offsets.StartOffset()) == 1)
@@ -2249,7 +2390,7 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
     
     
     
-    fc->SetMouseDownState(PR_FALSE);
+    fs->SetMouseDownState(PR_FALSE);
   }
 
   return rv;
@@ -2401,46 +2542,56 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
   return frameSelection->MaintainSelection(aAmountBack);
 }
 
-NS_IMETHODIMP nsFrame::HandleDrag(nsPresContext* aPresContext, 
-                                  nsGUIEvent*     aEvent,
-                                  nsEventStatus*  aEventStatus)
+NS_IMETHODIMP
+nsFrame::HandleDrag(nsPresContext* aPresContext,
+                    nsGUIEvent*    aEvent,
+                    nsEventStatus* aEventStatus)
 {
-  PRBool  selectable;
-  PRUint8 selectStyle;
-  IsSelectable(&selectable, &selectStyle);
-  
-  
-  
-  if (!selectable)
-    return NS_OK;
-  if (DisplaySelection(aPresContext) == nsISelectionController::SELECTION_OFF) {
-    return NS_OK;
+  nsFrame* target;
+  nsRefPtr<nsFrameSelection> fs =
+    FindDraggingFrameSelection(aPresContext->PresShell(), &target);
+  if (!fs || !target || IsSelectionOff()) {
+    return NS_OK; 
   }
-  nsIPresShell *presShell = aPresContext->PresShell();
 
-  nsRefPtr<nsFrameSelection> frameselection = GetFrameSelection();
-  PRBool mouseDown = frameselection->GetMouseDownState();
-  if (!mouseDown)
-    return NS_OK;
+  
+  fs->StopAutoScrollTimer();
 
-  frameselection->StopAutoScrollTimer();
+  return target->ExpandSelectionByMouseMove(fs, fs->GetShell(),
+                                            static_cast<nsMouseEvent*>(aEvent),
+                                            aEventStatus);
+}
+
+nsresult
+nsFrame::ExpandSelectionByMouseMove(nsFrameSelection* aFrameSelection,
+                                    nsIPresShell* aPresShell,
+                                    nsMouseEvent* aEvent,
+                                    nsEventStatus* aEventStatus)
+{
+#ifdef DEBUG
+  nsFrameSelection* draggingFrameSelection =
+    nsFrameSelection::GetMouseDownFrameSelection();
+  NS_ASSERTION(draggingFrameSelection &&
+               draggingFrameSelection == GetConstFrameSelection(),
+               "aFrameSelection must be handling current drag for selection");
+#endif
 
   
   nsCOMPtr<nsIContent> parentContent;
   PRInt32 contentOffset;
   PRInt32 target;
-  nsMouseEvent *me = (nsMouseEvent *)aEvent;
-  nsresult result;
-  result = GetDataForTableSelection(frameselection, presShell, me,
-                                    getter_AddRefs(parentContent),
-                                    &contentOffset, &target);      
+  nsresult rv = GetDataForTableSelection(aFrameSelection, aPresShell,
+                                         aEvent, getter_AddRefs(parentContent),
+                                         &contentOffset, &target);
+  PRBool handleTableSelection = NS_SUCCEEDED(rv) && parentContent;
 
   nsWeakFrame weakThis = this;
-  if (NS_SUCCEEDED(result) && parentContent) {
-    frameselection->HandleTableSelection(parentContent, contentOffset, target, me);
+  if (handleTableSelection) {
+    aFrameSelection->HandleTableSelection(parentContent, contentOffset,
+                                          target, aEvent);
   } else {
     nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this);
-    frameselection->HandleDrag(this, pt);
+    aFrameSelection->HandleDrag(this, pt);
   }
 
   
@@ -2449,175 +2600,312 @@ NS_IMETHODIMP nsFrame::HandleDrag(nsPresContext* aPresContext,
     return NS_OK;
   }
 
+  nsIContent* capturingContent = nsIPresShell::GetCapturingContent();
+  if (!capturingContent) {
+    return NS_OK;  
+  }
+  nsIContent* selectionRoot =
+    GetSelectionRootContentForCapturingContent(aPresShell, capturingContent);
+
+  nsIScrollableFrame* scrollableFrame =
+    FindNearestScrollableFrameForSelection(this, selectionRoot);
   
-  nsIFrame* checkFrame = this;
-  nsIScrollableFrame *scrollFrame = nsnull;
-  while (checkFrame) {
-    scrollFrame = do_QueryFrame(checkFrame);
-    if (scrollFrame) {
-      break;
-    }
-    checkFrame = checkFrame->GetParent();
-  }
-
-  if (scrollFrame) {
-    nsIFrame* capturingFrame = scrollFrame->GetScrolledFrame();
-    if (capturingFrame) {
-      nsPoint pt =
-        nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, capturingFrame);
-      frameselection->StartAutoScrollTimer(capturingFrame, pt, 30);
-    }
-  }
-
-  return NS_OK;
-}
-
-
-
-
-
-static nsresult
-HandleFrameSelection(nsFrameSelection*         aFrameSelection,
-                     nsIFrame::ContentOffsets& aOffsets,
-                     PRBool                    aHandleTableSel,
-                     PRInt32                   aContentOffsetForTableSel,
-                     PRInt32                   aTargetForTableSel,
-                     nsIContent*               aParentContentForTableSel,
-                     nsGUIEvent*               aEvent,
-                     nsEventStatus*            aEventStatus)
-{
-  if (!aFrameSelection) {
+  
+  if (!scrollableFrame) {
     return NS_OK;
   }
 
-  nsresult rv = NS_OK;
+  const PRUint32 kAutoScrollTimerDelay = 30;
 
-  if (nsEventStatus_eConsumeNoDefault != *aEventStatus) {
-    if (!aHandleTableSel) {
-      nsMouseEvent *me = aFrameSelection->GetDelayedCaretData();
-      if (!aOffsets.content || !me) {
-        return NS_ERROR_FAILURE;
+  if (!handleTableSelection) {
+    nsIScrollableFrame* selectionRootScrollableFrame =
+      FindNearestScrollableFrameForSelection(selectionRoot->GetPrimaryFrame());
+    NS_ENSURE_TRUE(selectionRootScrollableFrame, NS_OK);
+    while (scrollableFrame) {
+      
+      
+      
+      
+      if (selectionRootScrollableFrame == scrollableFrame) {
+        break;
       }
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      aFrameSelection->SetMouseDownState(PR_TRUE);
+      nsPoint scrollTo;
+      if (IsOnScrollableFrameEdge(scrollableFrame, aEvent, scrollTo)) {
+        aFrameSelection->StartAutoScrollTimer(
+          scrollableFrame->GetScrolledFrame(), scrollTo, kAutoScrollTimerDelay);
+        return NS_OK;
+      }
 
-      rv = aFrameSelection->HandleClick(aOffsets.content,
-                                        aOffsets.StartOffset(),
-                                        aOffsets.EndOffset(),
-                                        me->isShift, PR_FALSE,
-                                        aOffsets.associateWithNext);
-      if (NS_FAILED(rv)) {
-        return rv;
-      }
-    } else if (aParentContentForTableSel) {
-      aFrameSelection->SetMouseDownState(PR_FALSE);
-      rv = aFrameSelection->HandleTableSelection(aParentContentForTableSel,
-                                                 aContentOffsetForTableSel,
-                                                 aTargetForTableSel,
-                                                 (nsMouseEvent *)aEvent);
-      if (NS_FAILED(rv)) {
-        return rv;
-      }
+      nsIFrame* frame = do_QueryFrame(scrollableFrame);
+      scrollableFrame =
+        FindNearestScrollableFrameForSelection(frame->GetParent(),
+                                               selectionRoot);
     }
-    aFrameSelection->SetDelayedCaretData(0);
+    scrollableFrame = selectionRootScrollableFrame;
   }
 
-  aFrameSelection->SetMouseDownState(PR_FALSE);
-  aFrameSelection->StopAutoScrollTimer();
+  if (!scrollableFrame) {
+    return NS_OK;
+  }
+
+  nsIFrame* scrolledFrame = scrollableFrame->GetScrolledFrame();
+  NS_ASSERTION(scrolledFrame,
+               "The found scrollable frame doesn't have scrolled frame");
+  nsPoint scrollTo =
+    nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, scrolledFrame);
+  aFrameSelection->StartAutoScrollTimer(scrolledFrame, scrollTo,
+                                        kAutoScrollTimerDelay);
 
   return NS_OK;
 }
 
-NS_IMETHODIMP nsFrame::HandleRelease(nsPresContext* aPresContext,
-                                     nsGUIEvent*    aEvent,
-                                     nsEventStatus* aEventStatus)
+nsFrame*
+nsFrame::FindSelectableAncestor(nsIFrame* aFrame,
+                                nsFrameSelection* aFrameSelection)
 {
-  nsIFrame* activeFrame = GetActiveSelectionFrame(aPresContext, this);
+  
+  
+  
+  for (nsIFrame* frame = aFrame; frame;
+       frame = nsLayoutUtils::GetCrossDocParentFrame(frame)) {
+    PRBool selectable = PR_FALSE;
+    if (frame->GetConstFrameSelection() == aFrameSelection &&
+        NS_SUCCEEDED(frame->IsSelectable(&selectable, nsnull)) &&
+        selectable) {
+      nsFrame* result = do_QueryFrame(frame);
+      if (result) {
+        return result;
+      }
+    }
+  }
+  return nsnull;
+}
 
+nsFrameSelection*
+nsFrame::FindDraggingFrameSelection(nsIPresShell* aPresShell,
+                                    nsFrame** aEventTarget)
+{
+  *aEventTarget = nsnull;
+  nsFrameSelection* fs = nsFrameSelection::GetMouseDownFrameSelection();
+  if (!fs) {
+    return nsnull; 
+  }
+  NS_ASSERTION(fs->GetMouseDownState(),
+    "Wrong nsFrameSelection was returned by GetMouseDownFrameSelection()");
+
+  nsIFrame* selectingFrame = this;
+
+  
+  
+  
+  if (mContent == nsIPresShell::GetCapturingContent()) {
+    nsIContent* selectionRoot =
+      GetSelectionRootContentForCapturingContent(aPresShell, mContent);
+    if (selectionRoot) {
+      nsIFrame* frame = selectionRoot->GetPrimaryFrame();
+      if (frame) {
+        selectingFrame = frame;
+      }
+    }
+  }
+  *aEventTarget = FindSelectableAncestor(selectingFrame, fs);
+  if (!*aEventTarget) {
+    *aEventTarget = this;
+  }
+  return fs;
+}
+
+PRBool
+nsFrame::IsOnScrollableFrameEdge(nsIScrollableFrame* aScrollableFrame,
+                                 nsGUIEvent* aEvent,
+                                 nsPoint &aScrollIntoView)
+{
+  nsIFrame* scrollableFrame = do_QueryFrame(aScrollableFrame);
+  nsPoint ptInScrollableFrame =
+    nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, scrollableFrame);
+  nsPoint scrollPosition = aScrollableFrame->GetScrollPosition();
+  nsRect scrollRange = aScrollableFrame->GetScrollRange();
+  nsRect scrollPort = aScrollableFrame->GetScrollPortRect();
+
+  nsIFrame* scrolledFrame = aScrollableFrame->GetScrolledFrame();
+  NS_ENSURE_TRUE(scrolledFrame, PR_FALSE);
+
+  aScrollIntoView =
+    nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, scrolledFrame);
+
+  
+  
+  
+  static const char kPrefName_EdgeWidth[] =
+    "layout.selection.drag.autoscroll.inner_frame.edge_width";
+  nsPresContext* pc = PresContext();
+  PRInt32 edgePixel = Preferences::GetInt(kPrefName_EdgeWidth);
+  nscoord edgeApp = pc->DevPixelsToAppUnits(edgePixel);
+  nscoord onePixel = pc->DevPixelsToAppUnits(1);
+
+  nscoord edgeH = NS_MAX(onePixel, NS_MIN(edgeApp, scrollPort.width / 4));
+  nscoord edgeV = NS_MAX(onePixel, NS_MIN(edgeApp, scrollPort.height / 4));
+
+  
+  
+  
+  static const char kPrefName_ScrollAmount[] =
+    "layout.selection.drag.autoscroll.inner_frame.amount";
+  PRInt32 scrollAmountPixel =
+    NS_MAX(Preferences::GetInt(kPrefName_ScrollAmount), 1);
+  nscoord scrollAmountApp = pc->DevPixelsToAppUnits(scrollAmountPixel);
+
+  nscoord scrollAmountH =
+    NS_MAX(onePixel, NS_MIN(scrollAmountApp, scrollPort.width / 2));
+  nscoord scrollAmountV =
+    NS_MAX(onePixel, NS_MIN(scrollAmountApp, scrollPort.height / 2));
+
+  PRBool isOnEdge = PR_FALSE;
+  if (ptInScrollableFrame.x < scrollPort.x + edgeH) {
+    if (scrollRange.x < scrollPosition.x) {
+      
+      aScrollIntoView.x = scrollPosition.x - scrollAmountH;
+      isOnEdge = PR_TRUE;
+    }
+  } else if (ptInScrollableFrame.x > scrollPort.x + scrollPort.width - edgeH) {
+    if (scrollRange.width > scrollPosition.x) {
+      
+      aScrollIntoView.x = scrollPosition.x + scrollPort.width + scrollAmountH;
+      isOnEdge = PR_TRUE;
+    }
+  }
+
+  if (ptInScrollableFrame.y < scrollPort.y + edgeV) {
+    if (scrollRange.y < scrollPosition.y) {
+      
+      aScrollIntoView.y = scrollPosition.y - scrollAmountV;
+      isOnEdge = PR_TRUE;
+    }
+  } else if (ptInScrollableFrame.y > scrollPort.y + scrollPort.height - edgeV) {
+    if (scrollRange.height > scrollPosition.y) {
+      
+      aScrollIntoView.y = scrollPosition.y + scrollPort.height + scrollAmountV;
+      isOnEdge = PR_TRUE;
+    }
+  }
+  return isOnEdge;
+}
+
+NS_IMETHODIMP
+nsFrame::HandleRelease(nsPresContext* aPresContext,
+                       nsGUIEvent* aEvent,
+                       nsEventStatus* aEventStatus)
+{
   nsCOMPtr<nsIContent> captureContent = nsIPresShell::GetCapturingContent();
 
   
   
   nsIPresShell::SetCapturingContent(nsnull, 0);
 
-  PRBool selectionOff =
-    (DisplaySelection(aPresContext) == nsISelectionController::SELECTION_OFF);
+  nsFrame* targetFrame;
+  nsRefPtr<nsFrameSelection> fs =
+    FindDraggingFrameSelection(aPresContext->PresShell(), &targetFrame);
+  if (!fs) {
+    
+    
+    
+    
+    fs = GetFrameSelectionForSelectingByMouse();
+    if (!fs) {
+      return NS_OK; 
+    }
+    targetFrame = FindSelectableAncestor(this, fs);
+    if (!targetFrame) {
+      
+      targetFrame = this;
+    }
+  }
+  NS_ASSERTION(targetFrame, "targetFrame must be non-null");
 
-  nsRefPtr<nsFrameSelection> frameselection;
-  ContentOffsets offsets;
+  nsMouseEvent* mouseEvent = static_cast<nsMouseEvent*>(aEvent);
+  return targetFrame->EndSelectionChangeByMouse(fs, mouseEvent, aEventStatus);
+}
+
+nsresult
+nsFrame::EndSelectionChangeByMouse(nsFrameSelection* aFrameSelection,
+                                   nsMouseEvent* aMouseEvent,
+                                   nsEventStatus* aEventStatus)
+{
+  PRBool wasMouseDown = aFrameSelection->GetMouseDownState();
+
+  
+  aFrameSelection->SetMouseDownState(PR_FALSE);
+  aFrameSelection->StopAutoScrollTimer();
+
+  if (IsSelectionOff() || nsEventStatus_eConsumeNoDefault == *aEventStatus) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  nsresult rv = NS_OK;
+  nsMouseEvent* delayedEvent = aFrameSelection->GetDelayedCaretData();
+  if (!wasMouseDown && delayedEvent && delayedEvent->clickCount < 2) {
+    nsPoint pt =
+      nsLayoutUtils::GetEventCoordinatesRelativeTo(aMouseEvent, this);
+    ContentOffsets offsets = GetContentOffsetsFromPoint(pt);
+    NS_ENSURE_TRUE(offsets.content, NS_ERROR_FAILURE);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    aFrameSelection->SetMouseDownState(PR_TRUE);
+
+    
+    
+    rv = aFrameSelection->HandleClick(offsets.content,
+                                      offsets.StartOffset(),
+                                      offsets.EndOffset(),
+                                      delayedEvent->isShift,
+                                      PR_FALSE,
+                                      offsets.associateWithNext);
+
+    aFrameSelection->SetMouseDownState(PR_FALSE);
+    aFrameSelection->SetDelayedCaretData(0);
+
+    NS_ENSURE_SUCCESS(rv, rv);
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIContent> parentContent;
   PRInt32 contentOffsetForTableSel = 0;
   PRInt32 targetForTableSel = 0;
-  PRBool handleTableSelection = PR_TRUE;
-
-  if (!selectionOff) {
-    frameselection = GetFrameSelection();
-    if (nsEventStatus_eConsumeNoDefault != *aEventStatus && frameselection) {
-      
-      
-      
-
-      PRBool mouseDown = frameselection->GetMouseDownState();
-      nsMouseEvent *me = frameselection->GetDelayedCaretData();
-
-      if (!mouseDown && me && me->clickCount < 2) {
-        nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this);
-        offsets = GetContentOffsetsFromPoint(pt);
-        handleTableSelection = PR_FALSE;
-      } else {
-        GetDataForTableSelection(frameselection, PresContext()->PresShell(),
-                                 (nsMouseEvent *)aEvent,
-                                 getter_AddRefs(parentContent),
-                                 &contentOffsetForTableSel,
-                                 &targetForTableSel);
-      }
-    }
+  GetDataForTableSelection(aFrameSelection, PresContext()->PresShell(),
+                           aMouseEvent, getter_AddRefs(parentContent),
+                           &contentOffsetForTableSel, &targetForTableSel);
+  if (parentContent) {
+    
+    
+    rv = aFrameSelection->HandleTableSelection(parentContent,
+                                               contentOffsetForTableSel,
+                                               targetForTableSel,
+                                               aMouseEvent);
   }
+  aFrameSelection->SetDelayedCaretData(nsnull);
 
-  
-  
-  
-  nsRefPtr<nsFrameSelection> frameSelection;
-  if (activeFrame != this &&
-      static_cast<nsFrame*>(activeFrame)->DisplaySelection(activeFrame->PresContext())
-        != nsISelectionController::SELECTION_OFF) {
-      frameSelection = activeFrame->GetFrameSelection();
-  }
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
 
-  
-  
-  if (!frameSelection && captureContent) {
-    nsIDocument* doc = captureContent->GetCurrentDoc();
-    if (doc) {
-      nsIPresShell* capturingShell = doc->GetShell();
-      if (capturingShell && capturingShell != PresContext()->GetPresShell()) {
-        frameSelection = capturingShell->FrameSelection();
-      }
-    }
-  }
-
-  if (frameSelection) {
-    frameSelection->SetMouseDownState(PR_FALSE);
-    frameSelection->StopAutoScrollTimer();
-  }
-
-  
-  
-
-  return selectionOff
-    ? NS_OK
-    : HandleFrameSelection(frameselection, offsets, handleTableSelection,
-                           contentOffsetForTableSel, targetForTableSel,
-                           parentContent, aEvent, aEventStatus);
+PRBool
+nsFrame::IsSelectionOff()
+{
+  nsRefPtr<nsFrameSelection> fs = GetFrameSelection();
+  NS_ENSURE_TRUE(fs, PR_TRUE);
+  return (fs->GetDisplaySelection() == nsISelectionController::SELECTION_OFF);
 }
 
 struct NS_STACK_CLASS FrameContentRange {

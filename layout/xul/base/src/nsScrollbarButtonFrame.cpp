@@ -82,11 +82,10 @@ nsScrollbarButtonFrame::HandleEvent(nsPresContext* aPresContext,
     return NS_OK;
   }
 
-  
-  if (aEvent->message == NS_MOUSE_EXIT_SYNTH ||
-      aEvent->message == NS_MOUSE_BUTTON_UP)
-     HandleRelease(aPresContext, aEvent, aEventStatus);
-  
+  if (aEvent->message == NS_MOUSE_EXIT_SYNTH) {
+    Deactivate();
+  }
+
   
   if (!HandleButtonPress(aPresContext, aEvent, aEventStatus))
     return nsButtonBoxFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
@@ -191,10 +190,15 @@ nsScrollbarButtonFrame::HandleRelease(nsPresContext* aPresContext,
                                       nsGUIEvent*     aEvent,
                                       nsEventStatus*  aEventStatus)
 {
-  
+  Deactivate();
+  return nsButtonBoxFrame::HandleRelease(aPresContext, aEvent, aEventStatus);
+}
+
+void
+nsScrollbarButtonFrame::Deactivate()
+{
   mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::active, PR_TRUE);
   StopRepeat();
-  return NS_OK;
 }
 
 void nsScrollbarButtonFrame::Notify()

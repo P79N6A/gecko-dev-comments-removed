@@ -1296,6 +1296,17 @@ pref("layout.selection.caret_style", 0);
 
 
 
+
+
+
+
+
+pref("layout.selection.drag.autoscroll.inner_frame.edge_width", 32);
+pref("layout.selection.drag.autoscroll.inner_frame.amount", 8);
+
+
+
+
 pref("layout.enable_japanese_specific_transform", false);
 
 

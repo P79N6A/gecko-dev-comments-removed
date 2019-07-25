@@ -140,7 +140,7 @@ static void printRange(nsIRange *aDomRange);
 #define DEBUG_OUT_RANGE(x)  
 #endif 
 
-
+nsFrameSelection* nsFrameSelection::sDraggingFrameSelection = nsnull;
 
 
 
@@ -425,7 +425,8 @@ public:
   }
 
   
-  nsresult Start(nsPresContext *aPresContext, nsPoint &aPoint)
+  nsresult Start(nsPresContext *aPresContext, nsIContent *aContent,
+                 nsPoint &aPoint)
   {
     mPoint = aPoint;
 
@@ -433,7 +434,7 @@ public:
     
     mPresContext = aPresContext;
 
-    mContent = nsIPresShell::GetCapturingContent();
+    mContent = aContent;
 
     if (!mTimer)
     {
@@ -747,6 +748,13 @@ nsFrameSelection::nsFrameSelection()
   mSelectionChangeReason = nsISelectionListener::NO_REASON;
 }
 
+nsFrameSelection::~nsFrameSelection()
+{
+  if (this == sDraggingFrameSelection) {
+    sDraggingFrameSelection = nsnull;
+  }
+}
+
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsFrameSelection)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsFrameSelection)
@@ -918,39 +926,8 @@ nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(nsIFrame  *aFrame,
     {
       
       
-      nsIContent* capturedContent = nsIPresShell::GetCapturingContent();
-      if (capturedContent != content)
-      {
-        return NS_OK;
-      }
-
-      
-      
-      
-      nsIFrame* rootFrame = mShell->FrameManager()->GetRootFrame();
-      nsPoint ptInRoot = aPoint + aFrame->GetOffsetTo(rootFrame);
-      nsIFrame* cursorFrame =
-        nsLayoutUtils::GetFrameForPoint(rootFrame, ptInRoot);
-
-      
-      
-      if (cursorFrame && cursorFrame->PresContext()->PresShell() == mShell)
-      {
-        nsIContent* cursorContent = cursorFrame->GetContent();
-        NS_ENSURE_TRUE(cursorContent, NS_ERROR_FAILURE);
-        nsIContent* cursorContentRoot =
-          cursorContent->GetSelectionRootContent(mShell);
-        NS_ENSURE_TRUE(cursorContentRoot, NS_ERROR_UNEXPECTED);
-        if (cursorContentRoot == anchorRoot)
-        {
-          *aRetFrame = cursorFrame;
-          aRetPoint = aPoint + aFrame->GetOffsetTo(cursorFrame);
-          return NS_OK;
-        }
-      }
-      
-      
-      
+      *aRetFrame = aFrame;
+      return NS_OK;
     }
   }
 
@@ -1943,10 +1920,16 @@ nsFrameSelection::SetMouseDownState(PRBool aState)
   if (mMouseDownState == aState)
     return;
 
+  NS_ASSERTION((aState && !sDraggingFrameSelection) ||
+               (!aState && sDraggingFrameSelection),
+               "Unexpected state happened");
+
   mMouseDownState = aState;
-    
-  if (!mMouseDownState)
-  {
+
+  if (mMouseDownState) {
+    sDraggingFrameSelection = this;
+  } else {
+    sDraggingFrameSelection = nsnull;
     mDragSelectingCells = PR_FALSE;
     PostReason(nsISelectionListener::MOUSEUP_REASON);
     NotifySelectionListeners(nsISelectionController::SELECTION_NORMAL); 
@@ -4716,7 +4699,8 @@ nsTypedSelection::DoAutoScroll(nsIFrame *aFrame, nsPoint& aPoint)
   {
     nsPoint presContextPoint = globalPoint -
       presContext->PresShell()->FrameManager()->GetRootFrame()->GetOffsetToCrossDoc(rootmostFrame);
-    mAutoScrollTimer->Start(presContext, presContextPoint);
+    mAutoScrollTimer->Start(presContext, aFrame->GetContent(),
+                            presContextPoint);
   }
 
   return NS_OK;
