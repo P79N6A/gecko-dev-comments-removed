@@ -125,12 +125,20 @@ public:
     {
         return next->asT();
     }
+    const T* getNext() const
+    {
+        return next->asT();
+    }
 
     
 
 
 
     T* getPrevious()
+    {
+        return prev->asT();
+    }
+    const T* getPrevious() const
     {
         return prev->asT();
     }
@@ -173,7 +181,7 @@ public:
     
 
 
-    bool isInList()
+    bool isInList() const
     {
         MOZ_ASSERT((next == this) == (prev == this));
         return next != this;
@@ -207,6 +215,13 @@ private:
             return NULL;
 
         return static_cast<T*>(this);
+    }
+    const T* asT() const
+    {
+        if (isSentinel)
+            return NULL;
+
+        return static_cast<const T*>(this);
     }
 
     
@@ -279,11 +294,19 @@ public:
     {
         return sentinel.getNext();
     }
+    const T* getFirst() const
+    {
+        return sentinel.getNext();
+    }
 
     
 
 
     T* getLast()
+    {
+        return sentinel.getPrevious();
+    }
+    const T* getLast() const
     {
         return sentinel.getPrevious();
     }
@@ -317,7 +340,7 @@ public:
     
 
 
-    bool isEmpty()
+    bool isEmpty() const
     {
         return !sentinel.isInList();
     }
@@ -338,16 +361,16 @@ public:
 
 
 
-    void debugAssertIsSane()
+    void debugAssertIsSane() const
     {
 #ifdef DEBUG
         
 
 
 
-        for (LinkedListElement<T>* slow = sentinel.next,
-                                 * fast1 = sentinel.next->next,
-                                 * fast2 = sentinel.next->next->next;
+        for (const LinkedListElement<T>* slow = sentinel.next,
+                                       * fast1 = sentinel.next->next,
+                                       * fast2 = sentinel.next->next->next;
              slow != sentinel && fast1 != sentinel && fast2 != sentinel;
              slow = slow->next,
              fast1 = fast2->next,
@@ -358,9 +381,9 @@ public:
         }
 
         
-        for (LinkedListElement<T>* slow = sentinel.prev,
-                                 * fast1 = sentinel.prev->prev,
-                                 * fast2 = sentinel.prev->prev->prev;
+        for (const LinkedListElement<T>* slow = sentinel.prev,
+                                       * fast1 = sentinel.prev->prev,
+                                       * fast2 = sentinel.prev->prev->prev;
              slow != sentinel && fast1 != sentinel && fast2 != sentinel;
              slow = slow->prev,
              fast1 = fast2->prev,
@@ -374,7 +397,7 @@ public:
 
 
 
-        for (LinkedListElement<T>* elem = sentinel.next;
+        for (const LinkedListElement<T>* elem = sentinel.next;
              elem != sentinel;
              elem = elem->next) {
 
@@ -382,8 +405,8 @@ public:
         }
 
         
-        LinkedListElement<T>* prev = sentinel;
-        LinkedListElement<T>* cur = sentinel.next;
+        const LinkedListElement<T>* prev = sentinel;
+        const LinkedListElement<T>* cur = sentinel.next;
         do {
             MOZ_ASSERT(cur->prev == prev);
             MOZ_ASSERT(prev->next == cur);
