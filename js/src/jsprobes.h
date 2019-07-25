@@ -141,10 +141,10 @@ bool createString(JSContext *cx, JSString *string, size_t length);
 bool finalizeString(JSString *string);
 
 
-bool compileScriptBegin(JSContext *cx, const char *filename, int lineno);
+bool compileScriptBegin(const char *filename, int lineno);
 
 
-bool compileScriptEnd(JSContext *cx, JSScript *script, const char *filename, int lineno);
+bool compileScriptEnd(const char *filename, int lineno);
 
 
 bool calloutBegin(JSContext *cx, JSFunction *fun);
@@ -536,7 +536,7 @@ Probes::finalizeString(JSString *string)
 }
 
 inline bool
-Probes::compileScriptBegin(JSContext *cx, const char *filename, int lineno)
+Probes::compileScriptBegin(const char *filename, int lineno)
 {
     bool ok = true;
 
@@ -549,7 +549,7 @@ Probes::compileScriptBegin(JSContext *cx, const char *filename, int lineno)
 }
 
 inline bool
-Probes::compileScriptEnd(JSContext *cx, JSScript *script, const char *filename, int lineno)
+Probes::compileScriptEnd(const char *filename, int lineno)
 {
     bool ok = true;
 
