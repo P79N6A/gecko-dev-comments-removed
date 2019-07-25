@@ -242,7 +242,17 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot
 
   mDocWeak = do_GetWeakReference(aDoc);  
   mPresShellWeak = do_GetWeakReference(aPresShell);   
-  mSelConWeak = do_GetWeakReference(aSelCon);   
+  
+  
+  
+  nsCOMPtr<nsISelectionController> selCon;
+  if (aSelCon) {
+    mSelConWeak = do_GetWeakReference(aSelCon);   
+    selCon = aSelCon;
+  } else {
+    selCon = do_QueryInterface(aPresShell);
+  }
+  NS_ASSERTION(selCon, "Selection controller should be available at this point");
 
   nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
   NS_ENSURE_TRUE(ps, NS_ERROR_NOT_INITIALIZED);
@@ -259,10 +269,10 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot
   mIMEBufferLength = 0;
   
   
-  aSelCon->SetCaretReadOnly(PR_FALSE);
-  aSelCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
-  
-  aSelCon->SetSelectionFlags(nsISelectionDisplay::DISPLAY_ALL);
+  selCon->SetCaretReadOnly(PR_FALSE);
+  selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
+
+  selCon->SetSelectionFlags(nsISelectionDisplay::DISPLAY_ALL);
 
   NS_POSTCONDITION(mDocWeak && mPresShellWeak, "bad state");
 
@@ -555,8 +565,14 @@ nsEditor::GetSelectionController(nsISelectionController **aSel)
 {
   NS_ENSURE_TRUE(aSel, NS_ERROR_NULL_POINTER);
   *aSel = nsnull; 
-  NS_PRECONDITION(mSelConWeak, "bad state, null mSelConWeak");
-  nsCOMPtr<nsISelectionController> selCon = do_QueryReferent(mSelConWeak);
+  nsCOMPtr<nsISelectionController> selCon;
+  if (mSelConWeak) {
+    selCon = do_QueryReferent(mSelConWeak);
+  } else {
+    nsCOMPtr<nsIPresShell> presShell;
+    GetPresShell(getter_AddRefs(presShell));
+    selCon = do_QueryInterface(presShell);
+  }
   NS_ENSURE_TRUE(selCon, NS_ERROR_NOT_INITIALIZED);
   NS_ADDREF(*aSel = selCon);
   return NS_OK;
