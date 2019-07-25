@@ -551,11 +551,11 @@ window.Item.prototype = {
   
   
   removeTrenches: function() {
-    for (let edge in this.borderTrenches) {
+    for (var edge in this.borderTrenches) {
       Trenches.unregister(this.borderTrenches[edge]); 
     }
     this.borderTrenches = null;
-    for (let edge in this.guideTrenches) {
+    for (var edge in this.guideTrenches) {
       Trenches.unregister(this.guideTrenches[edge]); 
     }
     this.guideTrenches = null;

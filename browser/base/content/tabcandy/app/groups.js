@@ -910,7 +910,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         
         
         var rightMostRight = 0;
-        for each (let rect in rects) {
+        for each (var rect in rects) {
           if (rect.right > rightMostRight)
             rightMostRight = rect.right;
           else
