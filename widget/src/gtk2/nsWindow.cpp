@@ -286,6 +286,7 @@ UpdateLastInputEventTime()
   }
 }
 
+#ifdef MOZ_HAVE_SHMIMAGE
 
 
 static PRBool gShmAvailable = PR_TRUE;
@@ -293,6 +294,7 @@ static PRBool UseShm()
 {
     return gfxPlatformGtk::UseClientSideRendering() && gShmAvailable;
 }
+#endif
 
 
 nsWindow *nsWindow::mLastDragMotionWindow = NULL;
