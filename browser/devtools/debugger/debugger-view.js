@@ -38,9 +38,7 @@
 
 "use strict";
 
-
 const Cu = Components.utils;
-
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -1077,6 +1075,49 @@ DebuggerView.Scripts = {
 
 
 
+  contains: function DVS_contains(aUrl) {
+    if (this._scripts.getElementsByAttribute("value", aUrl).length > 0) {
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+  isSelected: function DVS_isSelected(aUrl) {
+    if (this._scripts.selectedItem &&
+        this._scripts.selectedItem.value == aUrl) {
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+   selectScript: function DVS_selectScript(aUrl) {
+    for (let i = 0; i < this._scripts.itemCount; i++) {
+      if (this._scripts.getItemAtIndex(i).value == aUrl) {
+        this._scripts.selectedIndex = i;
+        break;
+      }
+    }
+   },
+
+  
+
+
+
+
+
+
 
 
 
@@ -1086,7 +1127,7 @@ DebuggerView.Scripts = {
 
   addScript: function DVS_addScript(aUrl, aSource, aScriptNameText) {
     
-    if (this._scripts.getElementsByAttribute("value", aUrl).length > 0) {
+    if (this.contains(aUrl)) {
       return null;
     }
 
