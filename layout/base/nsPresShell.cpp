@@ -6739,8 +6739,8 @@ PresShell::HandleEvent(nsIView         *aView,
         
         
         if (mCurrentEventContent &&
-            nsContentUtils::IsChromeDoc(gKeyDownTarget->GetCurrentDoc()) &&
-            !nsContentUtils::IsChromeDoc(mCurrentEventContent->GetCurrentDoc())) {
+            nsContentUtils::IsChromeDoc(gKeyDownTarget->GetCurrentDoc()) !=
+            nsContentUtils::IsChromeDoc(mCurrentEventContent->GetCurrentDoc())) {
           mCurrentEventContent = gKeyDownTarget;
         }
 
