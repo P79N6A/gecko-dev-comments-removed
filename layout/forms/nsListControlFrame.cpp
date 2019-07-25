@@ -2210,25 +2210,12 @@ nsListControlFrame::ScrollToFrame(nsIContent* aOptElement)
   
   nsIFrame *childFrame = aOptElement->GetPrimaryFrame();
   if (childFrame) {
-    nsPoint pt = GetScrollPosition();
-    
-    nsRect rect = GetScrollPortRect() + pt;
-    
-    nsRect fRect(childFrame->GetOffsetTo(GetScrolledFrame()),
-                 childFrame->GetSize());
-
-    
-    
-    
-    if (!(rect.y <= fRect.y && fRect.YMost() <= rect.YMost())) {
-      
-      if (fRect.YMost() > rect.YMost()) {
-        pt.y = fRect.y - (rect.height - fRect.height);
-      } else {
-        pt.y = fRect.y;
-      }
-      ScrollTo(nsPoint(fRect.x, pt.y), nsIScrollableFrame::INSTANT);
-    }
+    PresContext()->PresShell()->
+      ScrollFrameRectIntoView(childFrame,
+                              nsRect(nsPoint(0, 0), childFrame->GetSize()),
+                              nsIPresShell::ScrollAxis(), nsIPresShell::ScrollAxis(),
+                              nsIPresShell::SCROLL_OVERFLOW_HIDDEN |
+                              nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY);
   }
   return NS_OK;
 }
