@@ -1310,6 +1310,7 @@ InplaceEditor.prototype = {
       prevent = true;
       this.cancelled = true;
       this.input.blur();
+      aEvent.stopPropagation();
     } else if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_SPACE) {
       
       
