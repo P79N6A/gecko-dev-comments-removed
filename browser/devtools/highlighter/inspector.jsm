@@ -81,6 +81,9 @@ const INSPECTOR_NOTIFICATIONS = {
   CLOSED: "inspector-closed",
 
   
+  DESTROYED: "inspector-destroyed",
+
+  
   STATE_RESTORED: "inspector-state-restored",
 
   
@@ -1046,6 +1049,8 @@ InspectorUI.prototype = {
       return;
     }
 
+    let winId = new String(this.winID); 
+
     this.closing = true;
     this.toolbar.hidden = true;
 
@@ -1104,6 +1109,8 @@ InspectorUI.prototype = {
     delete this.stylePanel;
     delete this.toolbar;
     Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.CLOSED, null);
+    if (!aKeepStore)
+      Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.DESTROYED, winId);
   },
 
   
