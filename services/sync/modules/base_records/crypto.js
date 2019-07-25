@@ -81,9 +81,9 @@ CryptoWrapper.prototype = {
     }
 
     let pubkey = yield PubKeys.getDefaultKey(self.cb);
-    let privkey = yield PrivKeys.get(self.cb, pubkey.privateKeyUri);
+    let privkey = PrivKeys.get(pubkey.privateKeyUri);
 
-    let meta = yield CryptoMetas.get(self.cb, this.encryption);
+    let meta = CryptoMetas.get(this.encryption);
     let symkey = yield meta.getKey(self.cb, privkey, passphrase);
 
     this.ciphertext = Svc.Crypto.encrypt(JSON.stringify([this.cleartext]),
@@ -106,9 +106,9 @@ CryptoWrapper.prototype = {
     }
 
     let pubkey = yield PubKeys.getDefaultKey(self.cb);
-    let privkey = yield PrivKeys.get(self.cb, pubkey.privateKeyUri);
+    let privkey = PrivKeys.get(pubkey.privateKeyUri);
 
-    let meta = yield CryptoMetas.get(self.cb, this.encryption);
+    let meta = CryptoMetas.get(this.encryption);
     let symkey = yield meta.getKey(self.cb, privkey, passphrase);
 
     
@@ -196,7 +196,7 @@ CryptoMeta.prototype = {
 
     
     if (typeof new_pubkey == 'string')
-      new_pubkey = yield PubKeys.get(self.cb, new_pubkey);
+      new_pubkey = PubKeys.get(self.cb, new_pubkey);
 
     
     

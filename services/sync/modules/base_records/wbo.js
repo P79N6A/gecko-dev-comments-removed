@@ -163,28 +163,19 @@ RecordManager.prototype = {
     }
   },
 
-  get: function RegordMgr_get(onComplete, url) {
-    let fn = function RegordMgr__get(url) {
-      let self = yield;
+  get: function RecordMgr_get(url) {
+    
+    
+    
+    
+    
+    let spec = url.spec ? url.spec : url;
+    if (spec in this._records)
+      return this._records[spec];
 
-      let record = null;
-      let spec = url.spec? url.spec : url;
-      
-
-
-
-
-      if (url in this._aliases)
-        url = this._aliases[url];
-      if (spec in this._records)
-        record = this._records[spec];
-
-      if (!record)
-        record = this.import(url);
-
-      self.done(record);
-    };
-    fn.async(this, onComplete, url);
+    if (url in this._aliases)
+      url = this._aliases[url];
+    return this.import(url);
   },
 
   set: function RegordMgr_set(url, record) {
