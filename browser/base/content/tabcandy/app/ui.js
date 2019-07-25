@@ -50,6 +50,7 @@ var Page = {
             
             var [w,h,z] = [$(this).width(), $(this).height(), $(this).css("zIndex")];
             var origPos = $(this).position();
+            var zIndex = $(this).css("zIndex");
             var scale = window.innerWidth/w;
             
             var tab = Tabs.tab(this);
@@ -73,6 +74,7 @@ var Page = {
             
             
             
+
 
 
 
