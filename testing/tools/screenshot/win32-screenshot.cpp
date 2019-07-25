@@ -34,22 +34,14 @@
 
 
 
-
-
-
-
 #undef WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <gdiplus.h>
 
-#pragma comment(lib, "user32.lib")
-#pragma comment(lib, "gdi32.lib")
-#pragma comment(lib, "gdiplus.lib")
-
 using namespace Gdiplus;
 
 
-int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
+static int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
 {
   UINT  num = 0;          
   UINT  size = 0;         
@@ -80,6 +72,9 @@ int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
   return -1;  
 }
 
+#ifdef __MINGW32__
+extern "C"
+#endif
 int wmain(int argc, wchar_t** argv)
 {
   GdiplusStartupInput gdiplusStartupInput;
