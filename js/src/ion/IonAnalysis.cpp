@@ -170,6 +170,9 @@ ion::EliminatePhis(MIRGraph &graph)
             if (iter->isInWorklist()) {
                 iter->setNotInWorklist();
                 iter++;
+            } else if (iter->slot() == 1) {
+                
+                iter++;
             } else {
                 iter->setUnused();
                 iter = block->discardPhiAt(iter);

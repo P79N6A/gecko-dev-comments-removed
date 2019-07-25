@@ -147,7 +147,6 @@ ion::InitializeIon()
 IonCompartment::IonCompartment()
   : execAlloc_(NULL),
     enterJIT_(NULL),
-    osrPrologue_(NULL),
     bailoutHandler_(NULL),
     argumentsRectifier_(NULL),
     invalidator_(NULL),
@@ -179,25 +178,19 @@ IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
     
 
     bool mustMarkEnterJIT = false;
-    bool mustMarkOsrPrologue = false;
     for (IonActivationIterator iter(trc->runtime); iter.more(); ++iter) {
         if (iter.activation()->compartment() != compartment)
             continue;
-        if (iter.activation()->kind() == IonActivation::OSR)
-            mustMarkOsrPrologue = true;
-        else
-            mustMarkEnterJIT = true;
+
+        
+        
+        mustMarkEnterJIT = true;
     }
 
     
     
     if (mustMarkEnterJIT)
         MarkIonCodeRoot(trc, enterJIT_.unsafeGetAddress(), "enterJIT");
-
-    
-    
-    if (mustMarkOsrPrologue)
-        MarkIonCodeRoot(trc, osrPrologue_.unsafeGetAddress(), "osrPrologue");
 
     
     
@@ -208,8 +201,6 @@ IonCompartment::sweep(JSContext *cx)
 {
     if (enterJIT_ && IsAboutToBeFinalized(enterJIT_))
         enterJIT_ = NULL;
-    if (osrPrologue_ && IsAboutToBeFinalized(osrPrologue_))
-        osrPrologue_ = NULL;
     if (bailoutHandler_ && IsAboutToBeFinalized(bailoutHandler_))
         bailoutHandler_ = NULL;
     if (argumentsRectifier_ && IsAboutToBeFinalized(argumentsRectifier_))
@@ -259,7 +250,7 @@ IonCompartment::~IonCompartment()
     Foreground::delete_(functionWrappers_);
 }
 
-IonActivation::IonActivation(JSContext *cx, StackFrame *fp, IonActivation::Kind kind)
+IonActivation::IonActivation(JSContext *cx, StackFrame *fp)
   : cx_(cx),
     compartment_(cx->compartment),
     prev_(cx->runtime->ionActivation),
@@ -267,8 +258,7 @@ IonActivation::IonActivation(JSContext *cx, StackFrame *fp, IonActivation::Kind 
     bailout_(NULL),
     prevIonTop_(cx->runtime->ionTop),
     prevIonJSContext_(cx->runtime->ionJSContext),
-    savedEnumerators_(cx->enumerators),
-    kind_(kind)
+    savedEnumerators_(cx->enumerators)
 {
     fp->setRunningInIon();
     cx->runtime->ionJSContext = cx;
@@ -621,9 +611,8 @@ IonScript::getOsiIndex(uint8 *retAddr) const
 {
     IonSpew(IonSpew_Invalidate, "IonScript %p has method %p raw %p", (void *) this, (void *)
             method(), method()->raw());
-    JS_ASSERT(method()->raw() <= retAddr);
-    JS_ASSERT(retAddr <= method()->raw() + method()->instructionsSize());
 
+    JS_ASSERT(containsCodeAddress(retAddr));
     uint32 disp = retAddr - method()->raw();
     return getOsiIndex(disp);
 }
@@ -792,13 +781,6 @@ CheckFrame(StackFrame *fp)
         return false;
     }
 
-    if (fp->isConstructing()) {
-        
-        
-        IonSpew(IonSpew_Abort, "constructing frame");
-        return false;
-    }
-
     if (fp->hasCallObj()) {
         
         
@@ -903,7 +885,7 @@ ion::CanEnterAtBranch(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecod
         return Method_Skipped;
 
     
-    if (!cx->compartment->ionCompartment()->osrPrologue(cx))
+    if (!cx->compartment->ionCompartment()->enterJIT(cx))
         return Method_Error;
 
     if (!script->ion)
@@ -939,17 +921,13 @@ ion::CanEnter(JSContext *cx, JSScript *script, StackFrame *fp)
     return Method_Compiled;
 }
 
-
-union CallTarget {
-    EnterIonCode enterJIT;
-    DoOsrIonCode osrPrologue;
-};
-
 static bool
-EnterIon(JSContext *cx, StackFrame *fp, CallTarget target, void *jitcode, IonActivation::Kind kind)
+EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
 {
     JS_ASSERT(ion::IsEnabled());
     JS_ASSERT(CheckFrame(fp));
+
+    EnterIonCode enter = cx->compartment->ionCompartment()->enterJITInfallible();
 
     int argc = 0;
     Value *argv = NULL;
@@ -963,18 +941,18 @@ EnterIon(JSContext *cx, StackFrame *fp, CallTarget target, void *jitcode, IonAct
         calleeToken = CalleeToToken(fp->script());
     }
 
+    
+    JS_ASSERT_IF(fp->isConstructing(), fp->functionThis().isObject());
+
     Value result;
     {
         AssertCompartmentUnchanged pcc(cx);
         IonContext ictx(cx, NULL);
-        IonActivation activation(cx, fp, kind);
+        IonActivation activation(cx, fp);
         JSAutoResolveFlags rf(cx, RESOLVE_INFER);
 
         
-        if (kind == IonActivation::OSR)
-            target.osrPrologue(jitcode, argc, argv, &result, calleeToken, fp);
-        else
-            target.enterJIT(jitcode, argc, argv, &result, calleeToken);
+        enter(jitcode, argc, argv, fp, calleeToken, &result);
 
         JS_ASSERT_IF(result.isMagic(), result.isMagic(JS_ION_ERROR));
     }
@@ -987,29 +965,35 @@ EnterIon(JSContext *cx, StackFrame *fp, CallTarget target, void *jitcode, IonAct
     if (fp->isFunctionFrame())
         fp->updateEpilogueFlags();
 
+    
+    if (!result.isMagic() && fp->isConstructing() && fp->returnValue().isPrimitive())
+        fp->setReturnValue(ObjectValue(fp->constructorThis()));
+
     return !result.isMagic();
 }
 
 bool
-ion::Cannon(JSContext *cx, StackFrame *fp)
+ion::Cannon(JSContext *cx, StackFrame *fp, bool newType)
 {
-    CallTarget target;
-    target.enterJIT = cx->compartment->ionCompartment()->enterJITInfallible();
+    
+    if (fp->isConstructing() && fp->functionThis().isPrimitive()) {
+        JSObject *obj = js_CreateThisForFunction(cx, &fp->callee(), newType);
+        if (!obj)
+            return false;
+        fp->functionThis().setObject(*obj);
+    }
 
     JSScript *script = fp->script();
     IonScript *ion = script->ion;
     IonCode *code = ion->method();
     void *jitcode = code->raw();
 
-    return EnterIon(cx, fp, target, jitcode, IonActivation::FUNCTION);
+    return EnterIon(cx, fp, jitcode);
 }
 
 bool
 ion::SideCannon(JSContext *cx, StackFrame *fp, jsbytecode *pc)
 {
-    CallTarget target;
-    target.osrPrologue = cx->compartment->ionCompartment()->osrPrologueInfallible();
-
     JSScript *script = fp->script();
     IonScript *ion = script->ion;
     IonCode *code = ion->method();
@@ -1017,7 +1001,7 @@ ion::SideCannon(JSContext *cx, StackFrame *fp, jsbytecode *pc)
 
     JS_ASSERT(ion->osrPc() == pc);
 
-    return EnterIon(cx, fp, target, osrcode, IonActivation::OSR);
+    return EnterIon(cx, fp, osrcode);
 }
 
 static void

@@ -55,54 +55,31 @@ using namespace js::ion;
 
 
 
-IonCode *
-IonCompartment::generateOsrPrologue(JSContext *cx)
-{
-    MacroAssembler masm(cx);
-
-#if defined(_WIN64)
-    const Operand fp = Operand(rsp, 16 + ShadowStackSpace);
-    masm.movq(fp, OsrFrameReg);
-#else
-    JS_ASSERT(OsrFrameReg == IntArgReg5); 
-#endif
-
-    
-    
-    JS_ASSERT(enterJIT_);
-    masm.jmp(enterJIT_);
-
-    Linker linker(masm);
-    return linker.newCode(cx);
-}
-
-
-
-
-
 
 IonCode *
 IonCompartment::generateEnterJIT(JSContext *cx)
 {
     MacroAssembler masm(cx);
 
-    const Register reg_code = IntArgReg0;
-    const Register reg_argc = IntArgReg1;
-    const Register reg_argv = IntArgReg2;
-    const Register reg_vp   = IntArgReg3;
+    const Register reg_code  = IntArgReg0;
+    const Register reg_argc  = IntArgReg1;
+    const Register reg_argv  = IntArgReg2;
+    const Register reg_frame = IntArgReg3;
+
 #if defined(_WIN64)
-    const Operand token = Operand(rbp, 16 + ShadowStackSpace);
     
+    JS_ASSERT(!"Need to determine correct offsets for generateEnterJIT() args on Win64.");
+    const Operand token  = Operand(rbp, 16 + ShadowStackSpace);
+    const Operand result = Operand(rbp, 24 + ShadowStackSpace);
 #else
-    const Register token = IntArgReg4;
-    
+    const Register token  = IntArgReg4;
+    const Register result = IntArgReg5;
 #endif
 
     
     masm.push(rbp);
     masm.mov(rsp, rbp);
 
-    
     
     
     masm.push(rbx);
@@ -116,7 +93,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 #endif
 
     
-    masm.push(reg_vp);
+    masm.push(result);
 
     
     masm.mov(rsp, r14);
@@ -165,8 +142,12 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
 
     masm.subq(rsp, r14);
-    masm.shlq(Imm32(FRAMETYPE_BITS), r14);
-    masm.orl(Imm32(IonFrame_Entry), r14);
+
+    
+    JS_ASSERT(OsrFrameReg == IntArgReg3);
+
+    
+    masm.makeFrameDescriptor(r14, IonFrame_Entry);
     masm.push(r14);
 
     
@@ -174,7 +155,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
     
     masm.pop(r14);              
-    masm.shrq(Imm32(FRAMETYPE_BITS), r14);
+    masm.shrq(Imm32(FRAMESIZE_SHIFT), r14);
     masm.addq(r14, rsp);        
 
     
@@ -382,8 +363,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     
     masm.subq(rsp, rbp);
-    masm.shlq(Imm32(FRAMETYPE_BITS), rbp);
-    masm.orq(Imm32(IonFrame_Rectifier), rbp);
+    masm.makeFrameDescriptor(rbp, IonFrame_Rectifier);
 
     
     masm.push(rax); 
@@ -399,7 +379,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     
     masm.pop(rbp);            
-    masm.shrq(Imm32(FRAMETYPE_BITS), rbp);
+    masm.shrq(Imm32(FRAMESIZE_SHIFT), rbp);
     masm.pop(r11);            
     masm.addq(rbp, rsp);      
 

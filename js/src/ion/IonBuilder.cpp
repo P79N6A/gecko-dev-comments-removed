@@ -152,34 +152,26 @@ IonBuilder::getSingleCallTarget(uint32 argc, jsbytecode *pc)
 }
 
 bool
-IonBuilder::getInliningTarget(uint32 argc, jsbytecode *pc, JSFunction **out)
+IonBuilder::canInlineTarget(JSFunction *target)
 {
-    *out = NULL;
-
-    JSFunction *fun = getSingleCallTarget(argc, pc);
-    if (!fun) {
-        IonSpew(IonSpew_Inlining, "Cannot inline due to no single, valid call target.");
-        return true;
-    }
-
-    if (!fun->isInterpreted()) {
+    if (!target->isInterpreted()) {
         IonSpew(IonSpew_Inlining, "Cannot inline due to non-interpreted");
-        return true;
+        return false;
     }
 
-    if (fun->getParent() != script->global()) {
+    if (target->getParent() != script->global()) {
         IonSpew(IonSpew_Inlining, "Cannot inline due to scope mismatch");
-        return true;
+        return false;
     }
 
-    JSScript *inlineScript = fun->script();
+    JSScript *inlineScript = target->script();
 
     
     IonBuilder *builder = callerBuilder_;
     while (builder) {
         if (builder->script == inlineScript) {
             IonSpew(IonSpew_Inlining, "Not inlining recursive call");
-            return true;
+            return false;
         }
         builder = builder->callerBuilder_;
     }
@@ -188,11 +180,10 @@ IonBuilder::getInliningTarget(uint32 argc, jsbytecode *pc, JSFunction **out)
 
     if (!canInline) {
         IonSpew(IonSpew_Inlining, "Cannot inline due to oracle veto");
-        return true;
+        return false;
     }
 
     IonSpew(IonSpew_Inlining, "Inlining good to go!");
-    *out = fun;
     return true;
 }
 
@@ -262,6 +253,10 @@ IonBuilder::build()
     
     
     rewriteParameters();
+
+    
+    if (info().fun())
+        current->getSlot(info().thisSlot())->setGuard();
 
     
     
@@ -2294,7 +2289,7 @@ IonBuilder::jsop_notearg()
 }
 
 bool
-IonBuilder::jsop_call_inline(uint32 argc, IonBuilder &inlineBuilder, InliningData *data)
+IonBuilder::jsop_call_inline(uint32 argc, IonBuilder &inlineBuilder)
 {
 #ifdef DEBUG
     uint32 origStackDepth = current->stackDepth();
@@ -2403,96 +2398,168 @@ class AutoAccumulateExits
 };
 
 bool
-IonBuilder::makeInliningDecision(uint32 argc, InliningData *data)
+IonBuilder::makeInliningDecision(JSFunction *target)
 {
-    JS_ASSERT(data->shouldInline == false);
+    if (inliningDepth >= 2)
+        return false;
 
     if (script->getUseCount() < js_IonOptions.usesBeforeInlining) {
         IonSpew(IonSpew_Inlining, "Not inlining, caller is not hot");
-        return true;
+        return false;
     }
 
     if (!oracle->canInlineCall(script, pc)) {
         IonSpew(IonSpew_Inlining, "Cannot inline due to uninlineable call site");
-        return true;
-    }
-
-    JSFunction *inlineFunc = NULL;
-    if (!getInliningTarget(argc, pc, &inlineFunc))
         return false;
-
-    if (!inlineFunc) {
-        IonSpew(IonSpew_Inlining, "Decided not to inline");
-        return true;
     }
 
-    data->shouldInline = true;
-    data->callee = inlineFunc;
+    if (!canInlineTarget(target)) {
+        IonSpew(IonSpew_Inlining, "Decided not to inline");
+        return false;
+    }
+
     return true;
 }
 
-IonBuilder::InliningStatus
-IonBuilder::maybeInline(uint32 argc)
+bool
+IonBuilder::inlineScriptedCall(JSFunction *target, uint32 argc)
 {
-    InliningData data;
-    if (!makeInliningDecision(argc, &data))
-        return InliningStatus_Error;
-
-    if (!data.shouldInline || inliningDepth >= 2)
-        return InliningStatus_NotInlined;
-
     IonSpew(IonSpew_Inlining, "Recursively building");
+
     
     
-    CompileInfo *info = cx->tempLifoAlloc().new_<CompileInfo>(data.callee->script().get(),
-                                                              data.callee, (jsbytecode *)NULL);
+    CompileInfo *info = cx->tempLifoAlloc().new_<CompileInfo>(target->script().get(),
+                                                              target, (jsbytecode *)NULL);
     if (!info)
-        return InliningStatus_Error;
+        return false;
 
     MIRGraphExits exits;
     AutoAccumulateExits aae(graph(), exits);
 
     if (cx->typeInferenceEnabled()) {
         TypeInferenceOracle oracle;
-        if (!oracle.init(cx, data.callee->script()))
-            return InliningStatus_Error;
-        IonBuilder inlineBuilder(cx, NULL, temp(), graph(), &oracle, *info, inliningDepth + 1, loopDepth_);
-        return jsop_call_inline(argc, inlineBuilder, &data)
-             ? InliningStatus_Inlined
-             : InliningStatus_Error;
+        if (!oracle.init(cx, target->script()))
+            return false;
+        IonBuilder inlineBuilder(cx, NULL, temp(), graph(), &oracle,
+                                 *info, inliningDepth + 1, loopDepth_);
+        return jsop_call_inline(argc, inlineBuilder);
     }
 
     DummyOracle oracle;
-    IonBuilder inlineBuilder(cx, NULL, temp(), graph(), &oracle, *info, inliningDepth + 1, loopDepth_);
-    return jsop_call_inline(argc, inlineBuilder, &data)
-         ? InliningStatus_Inlined
-         : InliningStatus_Error;
+    IonBuilder inlineBuilder(cx, NULL, temp(), graph(), &oracle,
+                             *info, inliningDepth + 1, loopDepth_);
+    return jsop_call_inline(argc, inlineBuilder);
+}
+
+MDefinition *
+IonBuilder::createThisNative()
+{
+    
+    MConstant *magic = MConstant::New(MagicValue(JS_IS_CONSTRUCTING));
+    current->add(magic);
+    return magic;
+}
+
+MDefinition *
+IonBuilder::createThisScripted(MDefinition *callee)
+{
+    
+    
+    
+    
+    MCallGetProperty *getProto =
+        MCallGetProperty::New(callee, cx->runtime->atomState.classPrototypeAtom);
+
+    
+    getProto->markUneffectful();
+    current->add(getProto);
+
+    MCreateThis *createThis = MCreateThis::New(callee, getProto, NULL);
+    current->add(createThis);
+
+    return createThis;
+}
+
+JSObject *
+IonBuilder::getSingletonPrototype(JSFunction *target)
+{
+    if (!target->hasSingletonType())
+        return NULL;
+    if (target->getType(cx)->unknownProperties())
+        return NULL;
+
+    jsid protoid = ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom);
+    types::TypeSet *protoTypes = target->getType(cx)->getProperty(cx, protoid, false);
+
+    return protoTypes->getSingleton(cx, true); 
+}
+
+MDefinition *
+IonBuilder::createThisScriptedSingleton(JSFunction *target, JSObject *proto, MDefinition *callee)
+{
+    
+    
+    types::TypeObject *type = proto->getNewType(cx, target);
+    if (!type)
+        return NULL;
+    if (!types::TypeScript::ThisTypes(target->script())->hasType(types::Type::ObjectType(type)))
+        return NULL;
+
+    JSObject *templateObject = js_CreateThisForFunctionWithProto(cx, target, proto);
+    if (!templateObject)
+        return NULL;
+
+    
+    if (templateObject->type()->newScript)
+        types::TypeSet::WatchObjectStateChange(cx, templateObject->type());
+
+    MConstant *protoDef = MConstant::New(ObjectValue(*proto));
+    current->add(protoDef);
+
+    MCreateThis *createThis = MCreateThis::New(callee, protoDef, templateObject);
+    current->add(createThis);
+
+    return createThis;
+}
+
+MDefinition *
+IonBuilder::createThis(JSFunction *target, MDefinition *callee)
+{
+    if (target->isNative()) {
+        if (!target->isNativeConstructor())
+            return NULL;
+        return createThisNative();
+    }
+
+    MDefinition *createThis = NULL;
+    JSObject *proto = getSingletonPrototype(target);
+
+    
+    if (proto)
+        createThis = createThisScriptedSingleton(target, proto, callee);
+
+    
+    if (!createThis)
+        createThis = createThisScripted(callee);
+
+    return createThis;
 }
 
 bool
 IonBuilder::jsop_call(uint32 argc, bool constructing)
 {
-    if (inliningEnabled() && !constructing) {
-        InliningStatus status = maybeInline(argc);
-        switch (status) {
-          case InliningStatus_Error:
-            return false;
-          case InliningStatus_Inlined:
-            return true;
-          case InliningStatus_NotInlined:
-            IonSpew(IonSpew_Inlining, "Building out-of-line call");
-            break;
-        }
-    }
-
-    if (optimizeNativeCall(argc)) {
-        IonSpew(IonSpew_Inlining, "Replace native call.");
-        return true;
-    }
+    
+    JSFunction *target = getSingleCallTarget(argc, pc);
 
     
+    if (inliningEnabled() && !constructing && target) {
+        if (target->isNative() && inlineNativeCall(target, argc))
+            return true;
+        if (makeInliningDecision(target))
+            return inlineScriptedCall(target, argc);
+    }
+
     uint32 targetArgs = argc;
-    JSFunction *target = getSingleCallTarget(argc, pc);
 
     
     
@@ -2520,35 +2587,34 @@ IonBuilder::jsop_call(uint32 argc, bool constructing)
         call->addArg(i, current->pop()->toPassArg());
 
     
-    if (target && target->isNative() && constructing) {
-        if (!target->isNativeConstructor())
-            return abort("New with native non-constructor.");
+    
+    MPrepareCall *start = new MPrepareCall;
+    MPassArg *firstArg = current->peek(-1)->toPassArg();
+    firstArg->block()->insertBefore(firstArg, start);
+    call->initPrepareCall(start);
 
-        MPassArg *oldarg = current->pop()->toPassArg();
+    MPassArg *thisArg = current->pop()->toPassArg();
+    
+    
+    if (constructing && target) {
+        MDefinition *callee = current->peek(-1);
+        MDefinition *create = createThis(target, callee);
+        if (!create)
+            return abort("Failure inlining constructor for call.");
 
-        
-        MConstant *magic = MConstant::New(MagicValue(JS_IS_CONSTRUCTING));
-        oldarg->block()->insertBefore(oldarg, magic);
-        MPassArg *newthis = MPassArg::New(magic);
-        oldarg->block()->insertBefore(oldarg, newthis);
+        MPassArg *newThis = MPassArg::New(create);
 
-        oldarg->block()->discard(oldarg);
-        current->push(newthis);
+        thisArg->block()->discard(thisArg);
+        current->add(newThis);
+        thisArg = newThis;
     }
 
     
-    call->addArg(0, current->pop()->toPassArg());
+    call->addArg(0, thisArg);
     call->initFunction(current->pop());
 
     if (target)
         call->setSingleTarget(target);
-
-    
-    MPrepareCall *start = new MPrepareCall;
-    MPassArg *arg = call->getArg(0)->toPassArg();
-    arg->block()->insertBefore(arg, start);
-
-    call->initPrepareCall(start);
 
     current->add(call);
     current->push(call);
@@ -2875,7 +2941,9 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopHead, jsby
     oracle->getNewTypesAtJoinPoint(script, loopHead, slotTypes);
 
     for (uint32 i = 1; i < osrBlock->stackDepth(); i++) {
-        if (slotTypes[i] != MIRType_Value) {
+        MIRType type = slotTypes[i];
+        
+        if (type != MIRType_Value && type != MIRType_Undefined && type != MIRType_Null) {
             MDefinition *def = osrBlock->getSlot(i);
             JS_ASSERT(def->type() == MIRType_Value);
             MInstruction *actual = MUnbox::New(def, slotTypes[i], MUnbox::Fallible);
@@ -2888,6 +2956,11 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopHead, jsby
     osrBlock->end(MGoto::New(preheader));
     preheader->addPredecessor(osrBlock);
     graph().setOsrBlock(osrBlock);
+
+    
+    
+    if (info().fun())
+        preheader->getSlot(info().thisSlot())->setGuard();
 
     return preheader;
 }

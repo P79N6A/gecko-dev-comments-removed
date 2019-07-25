@@ -75,34 +75,22 @@ GenerateReturn(MacroAssembler &masm, int returnCode)
 
 
 
-IonCode *
-IonCompartment::generateOsrPrologue(JSContext *cx)
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    JS_ASSERT(enterJIT_);
-    return enterJIT_;
-}
-
-
-
-
-
 
 
 
 IonCode *
 IonCompartment::generateEnterJIT(JSContext *cx)
 {
+    const Register reg_code  = r0;
+    const Register reg_argc  = r1;
+    const Register reg_argv  = r2;
+    const Register reg_frame = r3;
+
+    const DTRAddr slot_token = DTRAddr(sp, DtrOffImm(40));
+    const DTRAddr slot_vp    = DTRAddr(sp, DtrOffImm(44));
+
+    JS_ASSERT(OsrFrameReg == reg_frame);
+
     MacroAssembler masm(cx);
     Assembler *aasm = &masm;
 
@@ -110,7 +98,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     
     
     masm.startDataTransferM(IsStore, sp, DB, WriteBack);
-    masm.transferReg(r3); 
+    masm.transferReg(r0); 
     masm.transferReg(r4); 
     masm.transferReg(r5); 
     masm.transferReg(r6); 
@@ -123,18 +111,10 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.transferReg(lr);  
     
     masm.finishDataTransfer();
-    
-    aasm->as_dtr(IsLoad, 32, Offset, r11, DTRAddr(sp, DtrOffImm(40)));
 
     
-    
-    
-    
-    masm.as_dtr(IsLoad, 32, Offset, OsrFrameReg, DTRAddr(sp, DtrOffImm(44)));
-    
-#if 0
-    JS_STATIC_ASSERT(OsrFrameReg == r10);
-#endif
+    aasm->as_dtr(IsLoad, 32, Offset, r11, slot_token);
+
     aasm->as_mov(r9, lsl(r1, 3)); 
     
     
@@ -182,7 +162,9 @@ IonCompartment::generateEnterJIT(JSContext *cx)
         aasm->as_b(&header, Assembler::NonZero);
         masm.bind(&footer);
     }
+
     masm.makeFrameDescriptor(r9, IonFrame_Entry);
+
 #ifdef DEBUG
     masm.ma_mov(Imm32(0xdeadbeef), r8);
 #endif
@@ -192,28 +174,39 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.transferReg(r9);  
     masm.transferReg(r11); 
     masm.finishDataTransfer();
+
     
     aasm->as_dtr(IsStore, 32, Offset, pc, DTRAddr(sp, DtrOffImm(0)));
+
     
     aasm->as_blx(r0);
+
     
     
     
     aasm->as_dtr(IsLoad, 32, Offset, r5, DTRAddr(sp, DtrOffImm(4)));
+
     
-    aasm->as_add(sp, sp, lsr(r5,FRAMETYPE_BITS));
+    aasm->as_add(sp, sp, lsr(r5, FRAMESIZE_SHIFT));
+
     
+    aasm->as_dtr(IsLoad, 32, Offset, r5, slot_vp);
+
     
-    aasm->as_dtr(IsLoad, 32, PostIndex, r5, DTRAddr(sp, DtrOffImm(4)));
+    aasm->as_add(sp, sp, Imm8(4));
+
     
     
     
     ASSERT(JSReturnReg_Type.code() == JSReturnReg_Data.code()+1);
+
     
     ASSERT((JSReturnReg_Data.code() & 1) == 0);
     aasm->as_extdtr(IsStore, 64, true, Offset,
                     JSReturnReg_Data, EDtrAddr(r5, EDtrOffImm(0)));
+
     GenerateReturn(masm, JS_TRUE);
+
     Linker linker(masm);
     return linker.newCode(cx);
 }
@@ -360,6 +353,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     masm.moveValue(UndefinedValue(), r5, r4);
 
     masm.ma_mov(sp, r3); 
+    masm.ma_mov(sp, r7); 
 
     
     {
@@ -386,9 +380,11 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
         masm.ma_sub(r8, Imm32(1), r8, SetCond);
         masm.ma_b(&copyLoopTop, Assembler::Unsigned);
     }
+
     
     masm.ma_add(r6, Imm32(1), r6);
     masm.ma_lsl(Imm32(3), r6, r6);
+
     
     masm.makeFrameDescriptor(r6, IonFrame_Rectifier);
 
@@ -418,7 +414,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     
     
     masm.ma_add(sp, Imm32(8), sp);
-    masm.ma_alu(sp, lsr(r4, FRAMETYPE_BITS), sp, op_add);      
+    masm.ma_alu(sp, lsr(r4, FRAMESIZE_SHIFT), sp, op_add);      
 
     masm.ret();
     Linker linker(masm);

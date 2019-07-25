@@ -1101,7 +1101,7 @@ class MCall
         return target_;
     }
 
-    bool isConstruct() const {
+    bool isConstructing() const {
         return construct_;
     }
 
@@ -1328,8 +1328,15 @@ class MUnbox : public MUnaryInstruction
         mode_(mode)
     {
         JS_ASSERT(ins->type() == MIRType_Value);
+        JS_ASSERT(type == MIRType_Boolean ||
+                  type == MIRType_Int32   ||
+                  type == MIRType_Double  || 
+                  type == MIRType_String  ||
+                  type == MIRType_Object);
+
         setResultType(type);
         setMovable();
+
         if (mode_ == TypeBarrier || mode_ == TypeGuard)
             setGuard();
         if (mode_ == TypeGuard)
@@ -1394,6 +1401,54 @@ class MGuardObject : public MUnaryInstruction, public SingleObjectPolicy
 
 
 
+class MCreateThis
+  : public MAryInstruction<2>,
+    public MixPolicy<ObjectPolicy<0>, ObjectPolicy<1> >
+{
+    
+    JSObject *templateObject_;
+
+    MCreateThis(MDefinition *callee, MDefinition *prototype, JSObject *templateObject)
+      : templateObject_(templateObject)
+    {
+        initOperand(0, callee);
+        initOperand(1, prototype);
+        setResultType(MIRType_Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(CreateThis);
+    static MCreateThis *New(MDefinition *callee, MDefinition *prototype,
+                            JSObject *templateObject)
+    {
+        return new MCreateThis(callee, prototype, templateObject);
+    }
+
+    MDefinition *getCallee() const {
+        return getOperand(0);
+    }
+    MDefinition *getPrototype() const {
+        return getOperand(1);
+    }
+    bool hasTemplateObject() const {
+        return !!templateObject_;
+    }
+    JSObject *getTemplateObject() const {
+        return templateObject_;
+    }
+
+    
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+    TypePolicy *typePolicy() {
+        return this;
+    }
+};
+
+
+
+
 
 
 class MPassArg
@@ -1435,6 +1490,9 @@ class MPassArg
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
+
+    
+    void printOpcode(FILE *fp);
 };
 
 
@@ -3528,9 +3586,11 @@ class MCallGetProperty
     public BoxInputsPolicy
 {
     JSAtom *atom_;
+    bool markEffectful_;
 
     MCallGetProperty(MDefinition *value, JSAtom *atom)
-      : MUnaryInstruction(value), atom_(atom)
+      : MUnaryInstruction(value), atom_(atom),
+        markEffectful_(true)
     {
         setResultType(MIRType_Value);
     }
@@ -3549,6 +3609,18 @@ class MCallGetProperty
     }
     TypePolicy *typePolicy() {
         return this;
+    }
+
+    
+    
+    
+    void markUneffectful() {
+        markEffectful_ = false;
+    }
+    AliasSet getAliasSet() const {
+        if (markEffectful_)
+            return AliasSet::Store(AliasSet::Any);
+        return AliasSet::None();
     }
 };
 
@@ -3916,6 +3988,10 @@ class MResumePoint : public MNode
     
     void setOperand(size_t index, MDefinition *operand) {
         JS_ASSERT(index < stackDepth_);
+        
+        if (operand->isPassArg())
+            operand = operand->toPassArg()->getArgument();
+
         operands_[index] = operand;
     }
 

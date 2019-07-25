@@ -74,30 +74,15 @@ IonBuilder::discardCall(uint32 argc, MDefinitionVector &argv, MBasicBlock *bb)
         return false;
 
     
-    
     bb->pop();
+
     return true;
 }
 
 bool
-IonBuilder::optimizeNativeCall(uint32 argc)
+IonBuilder::inlineNativeCall(JSFunction *target, uint32 argc)
 {
-    
-    types::TypeSet *calleeTypes = oracle->getCallTarget(script, argc, pc);
-    if (!calleeTypes)
-        return false;
-
-    JSObject *funObject = calleeTypes->getSingleton(cx);
-    if (!funObject)
-        return false;
-
-    if (!funObject->isFunction())
-        return false;
-    JSFunction *fun = funObject->toFunction();
-
-    JSNative native = fun->maybeNative();
-    if (!native)
-        return false;
+    JSNative native = target->native();
 
     
 
@@ -125,6 +110,7 @@ IonBuilder::optimizeNativeCall(uint32 argc)
 
     types::TypeSet *arg1Types = oracle->getCallArg(script, argc, 1, pc);
     MIRType arg1Type = MIRTypeFromValueType(arg1Types->getKnownTypeTag(cx));
+
     if (argc == 1) {
         if (native == js_math_abs) {
             

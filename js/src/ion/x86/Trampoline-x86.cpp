@@ -51,28 +51,14 @@
 using namespace js;
 using namespace js::ion;
 
-
-
-
-
-IonCode *
-IonCompartment::generateOsrPrologue(JSContext *cx)
-{
-    MacroAssembler masm(cx);
-
-    
-    masm.movl(Operand(esp, 6 * sizeof(void *)), OsrFrameReg);
-
-    
-    
-    JS_ASSERT(enterJIT_);
-    masm.jmp(enterJIT_);
-
-    Linker linker(masm);
-    return linker.newCode(cx);
-}
-
-
+enum EnterJitEbpArgumentOffset {
+    ARG_JITCODE     = 2 * sizeof(void *),
+    ARG_ARGC        = 3 * sizeof(void *),
+    ARG_ARGV        = 4 * sizeof(void *),
+    ARG_STACKFRAME  = 5 * sizeof(void *),
+    ARG_CALLEETOKEN = 6 * sizeof(void *),
+    ARG_RESULT      = 7 * sizeof(void *)
+};
 
 
 
@@ -82,7 +68,6 @@ IonCode *
 IonCompartment::generateEnterJIT(JSContext *cx)
 {
     MacroAssembler masm(cx);
-    
 
     
     masm.push(ebp);
@@ -96,8 +81,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.push(edi);
 
     
-    
-    masm.movl(Operand(ebp, 12), eax);
+    masm.movl(Operand(ebp, ARG_ARGC), eax);
     masm.shll(Imm32(3), eax);
 
     
@@ -121,7 +105,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
 
     
-    masm.movl(Operand(ebp, 16), ebx);
+    masm.movl(Operand(ebp, ARG_ARGV), ebx);
 
     
     masm.addl(ebx, eax);
@@ -146,14 +130,18 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     }
 
     
-    masm.push(Operand(ebp, 24));
+    masm.push(Operand(ebp, ARG_CALLEETOKEN));
 
     
     
-    masm.movl(Operand(ebp, 12), eax);
+    masm.movl(Operand(ebp, ARG_ARGC), eax);
     masm.shll(Imm32(3), eax);
     masm.addl(eax, ecx);
     masm.addl(Imm32(4), ecx);
+
+    
+    
+    masm.movl(Operand(ebp, ARG_STACKFRAME), OsrFrameReg);
 
     
     masm.makeFrameDescriptor(ecx, IonFrame_Entry);
@@ -163,13 +151,12 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
 
 
-    
-    masm.call(Operand(ebp, 8));
+    masm.call(Operand(ebp, ARG_JITCODE));
 
     
     
     masm.pop(eax);
-    masm.shrl(Imm32(FRAMETYPE_BITS), eax); 
+    masm.shrl(Imm32(FRAMESIZE_SHIFT), eax); 
     masm.addl(eax, esp);
 
     
@@ -180,11 +167,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     
     
     
-    
-    
-    
-    
-    masm.movl(Operand(esp, 32), eax);
+    masm.movl(Operand(esp, ARG_RESULT + 3 * sizeof(void *)), eax);
     masm.storeValue(JSReturnOperand, Operand(eax, 0));
 
     
@@ -396,7 +379,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     
     masm.pop(ebp);            
-    masm.shrl(Imm32(FRAMETYPE_BITS), ebp); 
+    masm.shrl(Imm32(FRAMESIZE_SHIFT), ebp); 
     masm.pop(edi);            
     masm.addl(ebp, esp);      
 
