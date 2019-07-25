@@ -680,7 +680,7 @@ js_BeginJSONParse(JSContext *cx, Value *rootVal, bool suppressErrors )
     if (!cx)
         return NULL;
 
-    JSObject *arr = js_NewArrayObject(cx, 0, NULL);
+    JSObject *arr = NewDenseEmptyArray(cx);
     if (!arr)
         return NULL;
 
@@ -856,7 +856,7 @@ static JSBool
 OpenArray(JSContext *cx, JSONParser *jp)
 {
     
-    JSObject *arr = js_NewArrayObject(cx, 0, NULL);
+    JSObject *arr = NewDenseEmptyArray(cx);
     if (!arr)
         return JS_FALSE;
 

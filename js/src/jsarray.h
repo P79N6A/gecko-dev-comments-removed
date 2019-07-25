@@ -177,12 +177,33 @@ js_InitArrayClass(JSContext *cx, JSObject *obj);
 extern bool
 js_InitContextBusyArrayTable(JSContext *cx);
 
-extern JSObject *
-js_NewArrayObject(JSContext *cx, jsuint length, const js::Value *vector);
+namespace js
+{
+
+
+extern JSObject * JS_FASTCALL
+NewDenseEmptyArray(JSContext *cx, JSObject *proto=NULL);
+
+
+extern JSObject * JS_FASTCALL
+NewDenseAllocatedArray(JSContext *cx, uint length, JSObject *proto=NULL);
+
+
+
+
+
+extern JSObject * JS_FASTCALL
+NewDenseUnallocatedArray(JSContext *cx, uint length, JSObject *proto=NULL);
 
 
 extern JSObject *
-js_NewSlowArrayObject(JSContext *cx);
+NewDenseCopiedArray(JSContext *cx, uint length, Value *vp, JSObject *proto=NULL);
+
+
+extern JSObject *
+NewSlowEmptyArray(JSContext *cx);
+
+}
 
 extern JSBool
 js_GetLengthProperty(JSContext *cx, JSObject *obj, jsuint *lengthp);
@@ -282,25 +303,6 @@ js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, jsid id,
 
 JSBool
 js_Array(JSContext *cx, uintN argc, js::Value *vp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-JS_FRIEND_API(JSObject *)
-js_NewArrayObjectWithCapacity(JSContext *cx, uint32_t capacity, jsval **vector);
 
 
 

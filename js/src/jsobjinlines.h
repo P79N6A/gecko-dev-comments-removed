@@ -934,6 +934,18 @@ namespace WithProto {
 
 
 
+static JS_ALWAYS_INLINE bool
+FindProto(JSContext *cx, js::Class *clasp, JSObject *parent, JSObject ** proto)
+{
+    JSProtoKey protoKey = GetClassProtoKey(clasp);
+    if (!js_GetClassPrototype(cx, parent, protoKey, proto, clasp))
+        return false;
+    if (!(*proto) && !js_GetClassPrototype(cx, parent, JSProto_Object, proto))
+        return false;
+
+    return true;
+}
+
 namespace detail
 {
 template <bool withProto, bool isFunction>
@@ -943,11 +955,8 @@ NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent,
 {
     
     if (withProto == WithProto::Class && !proto) {
-        JSProtoKey protoKey = GetClassProtoKey(clasp);
-        if (!js_GetClassPrototype(cx, parent, protoKey, &proto, clasp))
-            return NULL;
-        if (!proto && !js_GetClassPrototype(cx, parent, JSProto_Object, &proto))
-            return NULL;
+        if (!FindProto (cx, clasp, parent, &proto))
+          return NULL;
     }
 
     
@@ -1026,13 +1035,6 @@ NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent)
 {
     gc::FinalizeKind kind = gc::GetGCObjectKind(JSCLASS_RESERVED_SLOTS(clasp));
     return NewObject<withProto>(cx, clasp, proto, parent, kind);
-}
-
-
-static inline JSObject *
-NewArrayWithKind(JSContext* cx, gc::FinalizeKind kind)
-{
-    return NewNonFunction<WithProto::Class>(cx, &js_ArrayClass, NULL, NULL, kind);
 }
 
 
