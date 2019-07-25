@@ -1583,7 +1583,7 @@ js_CreateThisForFunctionWithProto(JSContext *cx, JSObject *callee, JSObject *pro
 
 
 extern JSObject *
-js_CreateThisForFunction(JSContext *cx, JSObject *callee);
+js_CreateThisForFunction(JSContext *cx, JSObject *callee, bool newType);
 
 
 extern JSObject *

@@ -1713,6 +1713,40 @@ GetScriptConst(JSContext *cx, JSScript *script, const jsbytecode *pc)
     return script->getConst(index);
 }
 
+bool
+UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc)
+{
+    JS_ASSERT(cx->typeInferenceEnabled());
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if (JSOp(*pc) != JSOP_NEW)
+        return false;
+    pc += JSOP_NEW_LENGTH;
+    if (JSOp(*pc) == JSOP_SETPROP) {
+        jsid id = GetAtomId(cx, script, pc, 0);
+        if (id == id_prototype(cx))
+            return true;
+    }
+
+    return false;
+}
+
 void
 TypeCompartment::growPendingArray(JSContext *cx)
 {

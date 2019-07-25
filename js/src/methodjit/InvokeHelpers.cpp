@@ -351,6 +351,9 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
     JSFunction *newfun = callee.getFunctionPrivate();
     JSScript *newscript = newfun->script();
 
+    bool newType = (flags & JSFRAME_CONSTRUCTING) && cx->typeInferenceEnabled() &&
+        types::UseNewType(cx, f.regs.fp->script(), f.regs.pc);
+
     if (argTypes && argc == newfun->nargs) {
         
 
@@ -408,9 +411,14 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
         return false;
 
     
-    if (JITScript *jit = newscript->getJIT(newfp->isConstructing())) {
-        *pret = jit->invokeEntry;
-        return true;
+
+
+
+    if (!newType) {
+        if (JITScript *jit = newscript->getJIT(newfp->isConstructing())) {
+            *pret = jit->invokeEntry;
+            return true;
+        }
     }
 
     

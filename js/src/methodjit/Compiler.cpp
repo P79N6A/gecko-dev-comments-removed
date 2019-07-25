@@ -2905,12 +2905,14 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
 
     bool lowerFunCallOrApply = IsLowerableFunCallOrApply(PC);
 
+    bool newType = callingNew && cx->typeInferenceEnabled() && types::UseNewType(cx, script, PC);
+
     
 
 
 
 #ifdef JS_MONOIC
-    if (debugMode() ||
+    if (debugMode() || newType ||
         origCallee->isConstant() || origCallee->isNotType(JSVAL_TYPE_OBJECT) ||
         (lowerFunCallOrApply &&
          (origThis->isConstant() || origThis->isNotType(JSVAL_TYPE_OBJECT)))) {
