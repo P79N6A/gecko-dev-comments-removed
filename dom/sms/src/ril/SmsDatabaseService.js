@@ -23,6 +23,10 @@ SmsDatabaseService.prototype = {
 
   
 
+  saveReceivedMessage: function saveReceivedMessage(sender, body, date) {
+    return -1;
+  },
+
   saveSentMessage: function saveSentMessage(receiver, body, date) {
     return -1;
   },
