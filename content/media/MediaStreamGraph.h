@@ -371,10 +371,13 @@ class SourceMediaStream : public MediaStream {
 public:
   SourceMediaStream(nsDOMMediaStream* aWrapper) :
     MediaStream(aWrapper), mMutex("mozilla::media::SourceMediaStream"),
-    mUpdateKnownTracksTime(0), mUpdateFinished(false)
+    mUpdateKnownTracksTime(0), mUpdateFinished(false), mDestroyed(false)
   {}
 
   virtual SourceMediaStream* AsSourceStream() { return this; }
+
+  
+  virtual void DestroyImpl();
 
   
   
@@ -467,11 +470,14 @@ protected:
     return nsnull;
   }
 
+  
+  
   Mutex mMutex;
   
   StreamTime mUpdateKnownTracksTime;
   nsTArray<TrackData> mUpdateTracks;
   bool mUpdateFinished;
+  bool mDestroyed;
 };
 
 
