@@ -64,7 +64,7 @@ bool AutoScriptEvaluate::StartEvaluating(JSObject *scope, JSErrorReporter errorR
         return true;
 
     mEvaluated = true;
-    if (!mJSContext->errorReporter) {
+    if (!JS_GetErrorReporter(mJSContext)) {
         JS_SetErrorReporter(mJSContext, errorReporter);
         mErrorReporterSet = true;
     }
@@ -1057,7 +1057,7 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
             
             
             if (reportable && is_js_exception &&
-                cx->errorReporter != xpcWrappedJSErrorReporter) {
+                JS_GetErrorReporter(cx) != xpcWrappedJSErrorReporter) {
                 reportable = !JS_ReportPendingException(cx);
             }
 
