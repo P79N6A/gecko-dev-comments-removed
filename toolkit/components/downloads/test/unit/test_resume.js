@@ -30,7 +30,7 @@ function run_test()
   
 
 
-  var httpserv = new nsHttpServer();
+  var httpserv = new HttpServer();
   var didResumeServer = false;
   httpserv.registerPathHandler("/resume", function(meta, resp) {
     var body = data;
