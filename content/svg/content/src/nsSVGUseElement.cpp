@@ -9,7 +9,6 @@
 #include "nsIDOMSVGGElement.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMDocument.h"
-#include "nsIDOMMutationEvent.h"
 #include "nsSVGSVGElement.h"
 #include "nsIDOMSVGSymbolElement.h"
 #include "nsIDocument.h"
@@ -437,12 +436,6 @@ nsSVGUseElement::TriggerReclone()
   if (!presShell)
     return;
   presShell->PostRecreateFramesFor(this);
-
-  
-  
-  nsNodeUtils::AttributeChanged(this, kNameSpaceID_None,
-                                nsGkAtoms::mozUseChangeDummyAttr,
-                                nsIDOMMutationEvent::MODIFICATION);
 }
 
 void
