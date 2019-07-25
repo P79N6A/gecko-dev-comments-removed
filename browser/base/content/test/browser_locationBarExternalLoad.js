@@ -7,21 +7,15 @@ function test() {
   nextTest();
 }
 
-let gTests = [
-
-
-
-
-
-  {
-    url: "data:text/html,<script>document.write(document.domain);</script>"
-  },
+let urls = [
+  "javascript:'foopy';",
+  "data:text/html,<script>document.write(document.domain);</script>"
 ];
 
 function nextTest() {
-  let test = gTests.shift();
-  if (test)
-    testURL(test.url, nextTest);
+  let url = urls.shift();
+  if (url)
+    testURL(url, nextTest);
   else
     finish();
 }
