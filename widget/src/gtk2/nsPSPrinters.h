@@ -43,8 +43,6 @@
 #include "nsTArray.h"
 #include "prtypes.h"
 
-class nsIPrefService;
-class nsIPrefBranch;
 class nsCUPSShim;
 
 class nsPSPrinterList {
@@ -90,10 +88,6 @@ class nsPSPrinterList {
 
 
         static PrinterType GetPrinterType(const nsACString& aName);
-
-    private:
-        nsCOMPtr<nsIPrefService> mPrefSvc;
-        nsCOMPtr<nsIPrefBranch> mPref;
 };
 
 #endif 
