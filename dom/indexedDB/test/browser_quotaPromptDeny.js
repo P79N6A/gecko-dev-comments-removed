@@ -4,7 +4,7 @@
 
 
 
-const testPageURL = "http://test2.example.org/browser/" +
+const testPageURL = "http://bug704464-2.example.com/browser/" +
   "dom/indexedDB/test/browser_quotaPrompt.html";
 const notificationID = "indexedDB-quota-prompt";
 
