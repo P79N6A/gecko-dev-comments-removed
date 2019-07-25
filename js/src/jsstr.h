@@ -139,14 +139,14 @@ extern const char *
 js_ValueToPrintable(JSContext *cx, const js::Value &,
                     JSAutoByteString *bytes, bool asSource = false);
 
+namespace js {
+
 
 
 
 
 extern JSString *
-js_ValueToString(JSContext *cx, const js::Value &v);
-
-namespace js {
+ToStringSlow(JSContext *cx, const Value &v);
 
 
 
@@ -154,11 +154,11 @@ namespace js {
 
 
 static JS_ALWAYS_INLINE JSString *
-ValueToString_TestForStringInline(JSContext *cx, const Value &v)
+ToString(JSContext *cx, const js::Value &v)
 {
     if (v.isString())
         return v.toString();
-    return js_ValueToString(cx, v);
+    return ToStringSlow(cx, v);
 }
 
 
