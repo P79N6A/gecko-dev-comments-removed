@@ -1,8 +1,10 @@
 
 
 
-Components.utils.import("resource://services-sync/log4moz.js");
-Components.utils.import("resource://gre/modules/FileUtils.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
+Cu.import("resource://services-common/log4moz.js");
 
 let testFormatter = {
   format: function format(message) {

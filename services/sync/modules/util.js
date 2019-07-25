@@ -38,17 +38,15 @@
 const EXPORTED_SYMBOLS = ["XPCOMUtils", "Services", "NetUtil", "PlacesUtils",
                           "FileUtils", "Utils", "Async", "Svc", "Str"];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
+const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
-Cu.import("resource://services-sync/async.js");
+Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-common/preferences.js");
+Cu.import("resource://services-common/stringbundle.js");
+Cu.import("resource://services-common/utils.js");
+Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/constants.js");
-Cu.import("resource://services-sync/ext/Observers.js");
-Cu.import("resource://services-sync/ext/Preferences.js");
-Cu.import("resource://services-sync/ext/StringBundle.js");
-Cu.import("resource://services-sync/log4moz.js");
+Cu.import("resource://services-common/observers.js");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
@@ -60,6 +58,14 @@ Cu.import("resource://gre/modules/FileUtils.jsm");
 
 
 let Utils = {
+  
+  
+  nextTick: CommonUtils.nextTick,
+  namedTimer: CommonUtils.namedTimer,
+  exceptionStr: CommonUtils.exceptionStr,
+  stackTrace: CommonUtils.stackTrace,
+  makeURI: CommonUtils.makeURI,
+
   
 
 
@@ -269,62 +275,18 @@ let Utils = {
     return true;
   },
 
-  exceptionStr: function Weave_exceptionStr(e) {
-    let message = e.message ? e.message : e;
-    return message + " " + Utils.stackTrace(e);
-  },
-  
-  stackTrace: function Weave_stackTrace(e) {
-    
-    if (e.location){
-      let frame = e.location; 
-      let output = [];
-      while (frame) {
-      	
-        
-        
-        let str = "<file:unknown>";
-
-        let file = frame.filename || frame.fileName;
-        if (file){
-          str = file.replace(/^(?:chrome|file):.*?([^\/\.]+\.\w+)$/, "$1");
-        }
-
-        if (frame.lineNumber){
-          str += ":" + frame.lineNumber;
-        }
-        if (frame.name){
-          str = frame.name + "()@" + str;
-        }
-
-        if (str){
-          output.push(str);
-        }
-        frame = frame.caller;
-      }
-      return "Stack trace: " + output.join(" < ");
-    }
-    
-    if (e.stack){
-      return "JS Stack trace: " + e.stack.trim().replace(/\n/g, " < ").
-        replace(/@[^@]*?([^\/\.]+\.\w+:)/g, "@$1");
-    }
-
-    return "No traceback available";
-  },
-  
   
   
   
   throwHMACMismatch: function throwHMACMismatch(shouldBe, is) {
     throw "Record SHA256 HMAC mismatch: should be " + shouldBe + ", is " + is;
   },
-  
+
   isHMACMismatch: function isHMACMismatch(ex) {
     const hmacFail = "Record SHA256 HMAC mismatch: ";
     return ex && ex.indexOf && (ex.indexOf(hmacFail) == 0);
   },
-  
+
   
 
 
@@ -832,18 +794,6 @@ let Utils = {
     return header += ', ext="' + ext +'"';
   },
 
-  makeURI: function Weave_makeURI(URIString) {
-    if (!URIString)
-      return null;
-    try {
-      return Services.io.newURI(URIString, null, null);
-    } catch (e) {
-      let log = Log4Moz.repository.getLogger("Sync.Utils");
-      log.debug("Could not create URI: " + Utils.exceptionStr(e));
-      return null;
-    }
-  },
-
   
 
 
@@ -915,59 +865,6 @@ let Utils = {
         callback.call(that);        
       }
     });
-  },
-
-  
-
-
-
-
-
-
-
-  nextTick: function nextTick(callback, thisObj) {
-    if (thisObj) {
-      callback = callback.bind(thisObj);
-    }
-    Services.tm.currentThread.dispatch(callback, Ci.nsIThread.DISPATCH_NORMAL);
-  },
-
-  
-
-
-
-
-  namedTimer: function delay(callback, wait, thisObj, name) {
-    if (!thisObj || !name) {
-      throw "You must provide both an object and a property name for the timer!";
-    }
-
-    
-    if (name in thisObj && thisObj[name] instanceof Ci.nsITimer) {
-      thisObj[name].delay = wait;
-      return;
-    }
-
-    
-    let timer = {};
-    timer.__proto__ = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-
-    
-    timer.clear = function() {
-      thisObj[name] = null;
-      timer.cancel();
-    };
-
-    
-    timer.initWithCallback({
-      notify: function notify() {
-        
-        timer.clear();
-        callback.call(thisObj, timer);
-      }
-    }, wait, timer.TYPE_ONE_SHOT);
-
-    return thisObj[name] = timer;
   },
 
   getIcon: function(iconUri, defaultIcon) {

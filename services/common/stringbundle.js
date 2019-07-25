@@ -34,12 +34,9 @@
 
 
 
-let EXPORTED_SYMBOLS = ["StringBundle"];
+const EXPORTED_SYMBOLS = ["StringBundle"];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
+const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
 
 

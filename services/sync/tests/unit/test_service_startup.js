@@ -1,7 +1,7 @@
 
 
 
-Cu.import("resource://services-sync/ext/Observers.js");
+Cu.import("resource://services-common/observers.js");
 Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/util.js");

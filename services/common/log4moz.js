@@ -39,10 +39,7 @@
 
 const EXPORTED_SYMBOLS = ['Log4Moz'];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
+const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
 const ONE_BYTE = 1;
 const ONE_KILOBYTE = 1024 * ONE_BYTE;
@@ -373,7 +370,7 @@ BasicFormatter.prototype = {
   __proto__: Formatter.prototype,
 
   format: function BF_format(message) {
-    return message.time + "\t" + message.loggerName + "\t" + message.levelDesc 
+    return message.time + "\t" + message.loggerName + "\t" + message.levelDesc
            + "\t" + message.message + "\n";
   }
 };
@@ -481,7 +478,7 @@ BlockingStreamAppender.prototype = {
       }
       this._converterStream.init(
         this._outputStream, "UTF-8", STREAM_SEGMENT_SIZE,
-        Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);      
+        Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
     }
     return this._converterStream;
   },
@@ -531,7 +528,7 @@ function StorageStreamAppender(formatter) {
   this._name = "StorageStreamAppender";
   BlockingStreamAppender.call(this, formatter);
 }
-StorageStreamAppender.prototype = { 
+StorageStreamAppender.prototype = {
   __proto__: BlockingStreamAppender.prototype,
 
   _ss: null,
