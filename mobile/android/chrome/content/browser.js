@@ -1535,17 +1535,39 @@ var SelectionHandler = {
   
   _sendStartMouseEvents: function sh_sendStartMouseEvents(cwu) {
     let start = this._start.getBoundingClientRect();
+    let x = start.right - this.HANDLE_PADDING;
     
-    cwu.sendMouseEventToWindow("mousedown", start.right - this.HANDLE_PADDING, start.top - 1, 0, 0, 0, true);
-    cwu.sendMouseEventToWindow("mouseup", start.right - this.HANDLE_PADDING, start.top - 1, 0, 0, 0, true);
+    let y = start.top - 1;
+
+    if (!this._shouldSendMouseEvent(x, y))
+      return;
+
+    cwu.sendMouseEventToWindow("mousedown", x, y, 0, 0, 0, true);
+    cwu.sendMouseEventToWindow("mouseup", x, y, 0, 0, 0, true);
   },
 
   
   _sendEndMouseEvents: function sh_sendEndMouseEvents(cwu) {
     let end = this._end.getBoundingClientRect();
+    let x = end.left + this.HANDLE_PADDING;
     
-    cwu.sendMouseEventToWindow("mousedown", end.left + this.HANDLE_PADDING, end.top - 1, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
-    cwu.sendMouseEventToWindow("mouseup", end.left + this.HANDLE_PADDING, end.top - 1, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+    let y = end.top - 1;
+
+    if (!this._shouldSendMouseEvent(x, y))
+      return;
+
+    cwu.sendMouseEventToWindow("mousedown", x, y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+    cwu.sendMouseEventToWindow("mouseup", x, y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+  },
+
+  _shouldSendMouseEvent: function sh_shouldSendMouseEvent(x, y) {
+    let contentWindow = BrowserApp.selectedBrowser.contentWindow;
+    let element = ElementTouchHelper.elementFromPoint(contentWindow, x, y);
+    if (!element)
+      element = ElementTouchHelper.anyElementFromPoint(contentWindow, x, y);
+
+    
+    return !(element instanceof Ci.nsIDOMHTMLHtmlElement);
   },
 
   
