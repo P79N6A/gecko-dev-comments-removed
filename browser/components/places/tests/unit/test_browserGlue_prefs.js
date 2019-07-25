@@ -74,8 +74,6 @@ let gTests = [
     
     Services.prefs.setBoolPref(PREF_IMPORT_BOOKMARKS_HTML, true);
 
-    
-    print("Simulate Places init");
     waitForImportAndSmartBookmarks(function () {
       
       
@@ -87,6 +85,8 @@ let gTests = [
 
       run_next_test();
     });
+    
+    do_log_info("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
@@ -107,8 +107,6 @@ let gTests = [
     Services.prefs.setIntPref(PREF_SMART_BOOKMARKS_VERSION, -1);
     Services.prefs.setBoolPref(PREF_IMPORT_BOOKMARKS_HTML, true);
 
-    
-    print("Simulate Places init");
     waitForImportAndSmartBookmarks(function () {
       
       
@@ -120,6 +118,8 @@ let gTests = [
 
       run_next_test();
     });
+    
+    do_log_info("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
@@ -141,8 +141,6 @@ let gTests = [
     Services.prefs.setBoolPref(PREF_AUTO_EXPORT_HTML, true);
     Services.prefs.setBoolPref(PREF_IMPORT_BOOKMARKS_HTML, true);
 
-    
-    print("Simulate Places init");
     waitForImportAndSmartBookmarks(function () {
       
       
@@ -155,6 +153,8 @@ let gTests = [
 
       run_next_test();
     });
+    
+    do_log_info("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
@@ -176,8 +176,6 @@ let gTests = [
     Services.prefs.setBoolPref(PREF_AUTO_EXPORT_HTML, true);
     Services.prefs.setBoolPref(PREF_IMPORT_BOOKMARKS_HTML, true);
 
-    
-    print("Simulate Places init");
     waitForImportAndSmartBookmarks(function () {
       
       
@@ -191,6 +189,8 @@ let gTests = [
 
       run_next_test();
     });
+    
+    do_log_info("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
@@ -210,8 +210,6 @@ let gTests = [
     
     Services.prefs.setBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS, true);
 
-    
-    print("Simulate Places init");
     waitForImportAndSmartBookmarks(function () {
       
       itemId =
@@ -223,6 +221,8 @@ let gTests = [
 
       run_next_test();
     });
+    
+    do_log_info("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
@@ -244,8 +244,6 @@ let gTests = [
     Services.prefs.setBoolPref(PREF_IMPORT_BOOKMARKS_HTML, true);
     Services.prefs.setBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS, true);
 
-    
-    print("Simulate Places init");
     waitForImportAndSmartBookmarks(function () {
       
       itemId =
@@ -258,6 +256,8 @@ let gTests = [
 
       run_next_test();
     });
+    
+    do_log_info("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
                                               TOPIC_BROWSERGLUE_TEST,
                                               TOPICDATA_FORCE_PLACES_INIT);
