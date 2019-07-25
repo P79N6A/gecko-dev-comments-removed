@@ -207,6 +207,23 @@ public:
 
   MOZ_LAYER_DECL_NAME("ImageLayer", TYPE_IMAGE)
 
+  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  {
+    
+    gfxRect snap(0, 0, 0, 0);
+    if (mContainer) {
+      gfxIntSize size = mContainer->GetCurrentSize();
+      snap.size = gfxSize(size.width, size.height);
+    }
+    
+    
+    
+    
+    mEffectiveTransform =
+        SnapTransform(GetLocalTransform(), snap, nsnull)*
+        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nsnull);
+  }
+
 protected:
   ImageLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData), mFilter(gfxPattern::FILTER_GOOD) {}

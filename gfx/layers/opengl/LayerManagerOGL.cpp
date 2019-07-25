@@ -404,6 +404,10 @@ LayerManagerOGL::EndTransaction(DrawThebesLayerCallback aCallback,
     return;
   }
 
+  
+  
+  mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
+
   mThebesLayerCallback = aCallback;
   mThebesLayerCallbackData = aCallbackData;
 
@@ -591,7 +595,7 @@ LayerManagerOGL::Render()
 
   
   RootLayer()->RenderLayer(mGLContext->IsDoubleBuffered() ? 0 : mBackBufferFBO,
-                           nsIntPoint(0, 0), 1.0, gfx3DMatrix());
+                           nsIntPoint(0, 0));
 
   DEBUG_GL_ERROR_CHECK(mGLContext);
 

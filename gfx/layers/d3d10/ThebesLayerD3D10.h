@@ -59,7 +59,7 @@ public:
 
   
   virtual Layer* GetLayer();
-  virtual void RenderLayer(float aOpacity, const gfx3DMatrix &aTransform);
+  virtual void RenderLayer();
   virtual void Validate();
   virtual void LayerManagerDestroyed();
 

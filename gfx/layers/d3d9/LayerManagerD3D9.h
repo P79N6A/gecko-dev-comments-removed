@@ -251,9 +251,10 @@ public:
 
   virtual Layer* GetLayer() = 0;
 
-  virtual void RenderLayer(float aOpacity, const gfx3DMatrix &aTransform) = 0;
+  virtual void RenderLayer() = 0;
 
   
+
 
 
   virtual void CleanResources() {}
@@ -266,6 +267,22 @@ public:
   void ReportFailure(const nsACString &aMsg, HRESULT aCode) {
     return mD3DManager->ReportFailure(aMsg, aCode);
   }
+
+  void SetShaderTransformAndOpacity()
+  {
+    Layer* layer = GetLayer();
+    const gfx3DMatrix& transform = layer->GetEffectiveTransform();
+    device()->SetVertexShaderConstantF(CBmLayerTransform, &transform._11, 4);
+
+    float opacity[4];
+    
+
+
+
+    opacity[0] = layer->GetEffectiveOpacity();
+    device()->SetPixelShaderConstantF(CBfLayerOpacity, opacity, 1);
+  }
+
 protected:
   LayerManagerD3D9 *mD3DManager;
 };

@@ -236,6 +236,11 @@ LayerManagerD3D10::EndTransaction(DrawThebesLayerCallback aCallback,
 {
   mCurrentCallbackInfo.Callback = aCallback;
   mCurrentCallbackInfo.CallbackData = aCallbackData;
+
+  
+  
+  mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
+
   Render();
   mCurrentCallbackInfo.Callback = nsnull;
   mCurrentCallbackInfo.CallbackData = nsnull;
@@ -462,7 +467,7 @@ LayerManagerD3D10::Render()
     }
     device()->RSSetScissorRects(1, &r);
 
-    static_cast<LayerD3D10*>(mRoot->ImplData())->RenderLayer(1, gfx3DMatrix());
+    static_cast<LayerD3D10*>(mRoot->ImplData())->RenderLayer();
   }
 
   if (mTarget) {

@@ -193,8 +193,7 @@ private:
   
   void PaintLayer(Layer* aLayer,
                   DrawThebesLayerCallback aCallback,
-                  void* aCallbackData,
-                  float aOpacity);
+                  void* aCallbackData);
 
   
   void ClearLayer(Layer* aLayer);

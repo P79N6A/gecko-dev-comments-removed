@@ -229,7 +229,7 @@ public:
     LAYERS_D3D10
   };
 
-  LayerManager() : mDestroyed(PR_FALSE)
+  LayerManager() : mDestroyed(PR_FALSE), mSnapEffectiveTransforms(PR_TRUE)
   {
     InitLog();
   }
@@ -299,6 +299,8 @@ public:
 
   virtual void EndTransaction(DrawThebesLayerCallback aCallback,
                               void* aCallbackData) = 0;
+
+  PRBool IsSnappingEffectiveTransforms() { return mSnapEffectiveTransforms; } 
 
   
 
@@ -425,6 +427,7 @@ protected:
   nsRefPtr<Layer> mRoot;
   LayerUserDataSet mUserData;
   PRPackedBool mDestroyed;
+  PRPackedBool mSnapEffectiveTransforms;
 
   
   
@@ -655,7 +658,33 @@ public:
   
   const nsIntRect* GetEffectiveClipRect();
   const nsIntRegion& GetEffectiveVisibleRegion();
-  const gfx3DMatrix& GetEffectiveTransform();
+  
+
+
+
+  float GetEffectiveOpacity();
+  
+
+
+
+
+
+
+
+  const gfx3DMatrix& GetEffectiveTransform() const { return mEffectiveTransform; }
+
+  
+
+
+
+
+
+
+
+
+
+
+  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface) = 0;
 
   virtual const char* Name() const =0;
   virtual LayerType GetType() const =0;
@@ -719,6 +748,27 @@ protected:
   
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
+  
+
+
+
+  const gfx3DMatrix& GetLocalTransform();
+
+  
+
+
+
+
+
+
+
+
+
+
+  gfx3DMatrix SnapTransform(const gfx3DMatrix& aTransform,
+                            const gfxRect& aSnapRect,
+                            gfxMatrix* aResidualTransform);
+
   LayerManager* mManager;
   ContainerLayer* mParent;
   Layer* mNextSibling;
@@ -727,6 +777,7 @@ protected:
   LayerUserDataSet mUserData;
   nsIntRegion mVisibleRegion;
   gfx3DMatrix mTransform;
+  gfx3DMatrix mEffectiveTransform;
   float mOpacity;
   nsIntRect mClipRect;
   PRUint32 mContentFlags;
@@ -764,6 +815,13 @@ public:
   virtual ThebesLayer* AsThebesLayer() { return this; }
 
   MOZ_LAYER_DECL_NAME("ThebesLayer", TYPE_THEBES)
+
+  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  {
+    
+    gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
+    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), nsnull);
+  }
 
 protected:
   ThebesLayer(LayerManager* aManager, void* aImplData)
@@ -831,16 +889,50 @@ public:
 
   MOZ_LAYER_DECL_NAME("ContainerLayer", TYPE_CONTAINER)
 
+  
+
+
+
+
+
+  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface) = 0;
+
+  
+
+
+
+
+
+  PRBool UseIntermediateSurface() { return mUseIntermediateSurface; }
+
+  
+
+
+  PRBool HasMultipleChildren();
+
 protected:
   ContainerLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData),
-      mFirstChild(nsnull)
+      mFirstChild(nsnull),
+      mUseIntermediateSurface(PR_FALSE)
   {}
+
+  
+
+
+
+  void DefaultComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface);
+
+  
+
+
+  void ComputeEffectiveTransformsForChildren(const gfx3DMatrix& aTransformToSurface);
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
   Layer* mFirstChild;
   FrameMetrics mFrameMetrics;
+  PRPackedBool mUseIntermediateSurface;
 };
 
 
@@ -863,6 +955,13 @@ public:
   virtual const gfxRGBA& GetColor() { return mColor; }
 
   MOZ_LAYER_DECL_NAME("ColorLayer", TYPE_COLOR)
+
+  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  {
+    
+    gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
+    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), nsnull);
+  }
 
 protected:
   ColorLayer(LayerManager* aManager, void* aImplData)
@@ -934,12 +1033,28 @@ public:
 
   MOZ_LAYER_DECL_NAME("CanvasLayer", TYPE_CANVAS)
 
+  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  {
+    
+    
+    
+    
+    mEffectiveTransform =
+        SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.width, mBounds.height),
+                      nsnull)*
+        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nsnull);
+  }
+
 protected:
   CanvasLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData), mFilter(gfxPattern::FILTER_GOOD) {}
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
+  
+
+
+  nsIntRect mBounds;
   gfxPattern::GraphicsFilter mFilter;
 };
 
