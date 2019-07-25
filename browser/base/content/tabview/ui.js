@@ -500,6 +500,9 @@ let UI = {
         self._resize(true);
         dispatchEvent(event);
 
+        
+        GroupItems.flushAppTabUpdates();
+
         TabItems.resumePainting();
       });
     } else {
@@ -508,6 +511,9 @@ let UI = {
 
       self.setActiveTab(null);
       dispatchEvent(event);
+
+      
+      GroupItems.flushAppTabUpdates();
 
       TabItems.resumePainting();
     }
