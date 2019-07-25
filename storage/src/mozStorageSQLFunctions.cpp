@@ -40,6 +40,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "mozStorageSQLFunctions.h"
 #include "nsUnicharUtils.h"
 
@@ -302,6 +304,16 @@ levenshteinDistance(const nsAString &aStringS,
     return SQLITE_OK;
 }
 
+
+
+struct Functions {
+  const char *zName;
+  int nArg;
+  int enc;
+  void *pContext;
+  void (*xFunc)(::sqlite3_context*, int, sqlite3_value**);
+};
+
 } 
 
 
@@ -310,14 +322,6 @@ levenshteinDistance(const nsAString &aStringS,
 int
 registerFunctions(sqlite3 *aDB)
 {
-  struct Functions {
-    const char *zName;
-    int nArg;
-    int enc;
-    void *pContext;
-    void (*xFunc)(::sqlite3_context*, int, sqlite3_value**);
-  };
-  
   Functions functions[] = {
     {"lower",               
       1, 
@@ -374,7 +378,7 @@ registerFunctions(sqlite3 *aDB)
   };
 
   int rv = SQLITE_OK;
-  for (size_t i = 0; SQLITE_OK == rv && i < NS_ARRAY_LENGTH(functions); ++i) {
+  for (size_t i = 0; SQLITE_OK == rv && i < ArrayLength(functions); ++i) {
     struct Functions *p = &functions[i];
     rv = ::sqlite3_create_function(aDB, p->zName, p->nArg, p->enc, p->pContext,
                                    p->xFunc, NULL, NULL);

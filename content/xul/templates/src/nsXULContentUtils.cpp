@@ -1,62 +1,63 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK *****
- *
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
 
 
-/*
 
-  A package of routines shared by the XUL content code.
 
- */
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "mozilla/Util.h"
 
 #include "nsCOMPtr.h"
 #include "nsIContent.h"
@@ -91,9 +92,11 @@
 #include "nsIConsoleService.h"
 #include "nsEscape.h"
 
+using namespace mozilla;
+
 static NS_DEFINE_CID(kRDFServiceCID,        NS_RDFSERVICE_CID);
 
-//------------------------------------------------------------------------
+
 
 nsIRDFService* nsXULContentUtils::gRDF;
 nsIDateTimeFormat* nsXULContentUtils::gFormat;
@@ -109,9 +112,9 @@ extern PRLogModuleInfo* gXULTemplateLog;
 #undef XUL_RESOURCE
 #undef XUL_LITERAL
 
-//------------------------------------------------------------------------
-// Constructors n' stuff
-//
+
+
+
 
 nsresult
 nsXULContentUtils::Init()
@@ -169,7 +172,7 @@ nsXULContentUtils::GetCollation()
     if (!gCollation) {
         nsresult rv;
 
-        // get a locale service 
+        
         nsCOMPtr<nsILocaleService> localeService =
             do_GetService(NS_LOCALESERVICE_CONTRACTID, &rv);
         if (NS_SUCCEEDED(rv)) {
@@ -193,7 +196,7 @@ nsXULContentUtils::GetCollation()
     return gCollation;
 }
 
-//------------------------------------------------------------------------
+
 
 nsresult
 nsXULContentUtils::FindChildByTag(nsIContent* aElement,
@@ -213,28 +216,28 @@ nsXULContentUtils::FindChildByTag(nsIContent* aElement,
     }
 
     *aResult = nsnull;
-    return NS_RDF_NO_VALUE; // not found
+    return NS_RDF_NO_VALUE; 
 }
 
 
 nsresult
 nsXULContentUtils::GetElementResource(nsIContent* aElement, nsIRDFResource** aResult)
 {
-    // Perform a reverse mapping from an element in the content model
-    // to an RDF resource.
+    
+    
     nsresult rv;
 
     PRUnichar buf[128];
-    nsFixedString id(buf, NS_ARRAY_LENGTH(buf), 0);
+    nsFixedString id(buf, ArrayLength(buf), 0);
 
-    // Whoa.  Why the "id" attribute?  What if it's not even a XUL
-    // element?  This is totally bogus!
+    
+    
     aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::id, id);
     if (id.IsEmpty())
         return NS_ERROR_FAILURE;
 
-    // Since the element will store its ID attribute as a document-relative value,
-    // we may need to qualify it first...
+    
+    
     nsCOMPtr<nsIDocument> doc = aElement->GetDocument();
     NS_ASSERTION(doc, "element is not in any document");
     if (! doc)
@@ -247,9 +250,9 @@ nsXULContentUtils::GetElementResource(nsIContent* aElement, nsIRDFResource** aRe
 }
 
 
-/*
-	Note: this routine is similar, yet distinctly different from, nsBookmarksService::GetTextForNode
-*/
+
+
+
 
 nsresult
 nsXULContentUtils::GetTextForNode(nsIRDFNode* aNode, nsAString& aResult)
@@ -261,7 +264,7 @@ nsXULContentUtils::GetTextForNode(nsIRDFNode* aNode, nsAString& aResult)
 
     nsresult rv;
 
-    // Literals are the most common, so try these first.
+    
     nsCOMPtr<nsIRDFLiteral> literal = do_QueryInterface(aNode);
     if (literal) {
         const PRUnichar* p;
@@ -279,7 +282,7 @@ nsXULContentUtils::GetTextForNode(nsIRDFNode* aNode, nsAString& aResult)
         if (NS_FAILED(rv)) return rv;
 
         nsAutoString str;
-        rv = gFormat->FormatPRTime(nsnull /* nsILocale* locale */,
+        rv = gFormat->FormatPRTime(nsnull ,
                                   kDateFormatShort,
                                   kTimeFormatSeconds,
                                   PRTime(value),
@@ -323,8 +326,8 @@ nsXULContentUtils::MakeElementURI(nsIDocument* aDocument,
                                   const nsAString& aElementID,
                                   nsCString& aURI)
 {
-    // Convert an element's ID to a URI that can be used to refer to
-    // the element in the XUL graph.
+    
+    
 
     nsIURI *docURI = aDocument->GetDocumentURI();
     NS_ENSURE_TRUE(docURI, NS_ERROR_UNEXPECTED);
@@ -338,7 +341,7 @@ nsXULContentUtils::MakeElementURI(nsIDocument* aDocument,
         return docURIClone->GetSpec(aURI);
     }
 
-    // docURIClone is apparently immutable. Fine - we can append ref manually.
+    
     rv = docURI->GetSpec(aURI);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -376,8 +379,8 @@ nsXULContentUtils::MakeElementID(nsIDocument* aDocument,
                                  const nsACString& aURI,
                                  nsAString& aElementID)
 {
-    // Convert a URI into an element ID that can be accessed from the
-    // DOM APIs.
+    
+    
     nsCOMPtr<nsIURI> uri;
     nsresult rv = NS_NewURI(getter_AddRefs(uri), aURI,
                             aDocument->GetDocumentCharacterSet().get());
@@ -393,7 +396,7 @@ nsXULContentUtils::MakeElementID(nsIDocument* aDocument,
 nsresult
 nsXULContentUtils::GetResource(PRInt32 aNameSpaceID, nsIAtom* aAttribute, nsIRDFResource** aResult)
 {
-    // construct a fully-qualified URI from the namespace/tag pair.
+    
     NS_PRECONDITION(aAttribute != nsnull, "null ptr");
     if (! aAttribute)
         return NS_ERROR_NULL_POINTER;
@@ -406,23 +409,23 @@ nsXULContentUtils::GetResource(PRInt32 aNameSpaceID, nsIAtom* aAttribute, nsIRDF
 nsresult
 nsXULContentUtils::GetResource(PRInt32 aNameSpaceID, const nsAString& aAttribute, nsIRDFResource** aResult)
 {
-    // construct a fully-qualified URI from the namespace/tag pair.
+    
 
-    // XXX should we allow nodes with no namespace???
-    //NS_PRECONDITION(aNameSpaceID != kNameSpaceID_Unknown, "no namespace");
-    //if (aNameSpaceID == kNameSpaceID_Unknown)
-    //    return NS_ERROR_UNEXPECTED;
+    
+    
+    
+    
 
     nsresult rv;
 
     PRUnichar buf[256];
-    nsFixedString uri(buf, NS_ARRAY_LENGTH(buf), 0);
+    nsFixedString uri(buf, ArrayLength(buf), 0);
     if (aNameSpaceID != kNameSpaceID_Unknown && aNameSpaceID != kNameSpaceID_None) {
         rv = nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNameSpaceID, uri);
-        // XXX ignore failure; treat as "no namespace"
+        
     }
 
-    // XXX check to see if we need to insert a '/' or a '#'. Oy.
+    
     if (!uri.IsEmpty()  && uri.Last() != '#' && uri.Last() != '/' && aAttribute.First() != '#')
         uri.Append(PRUnichar('#'));
 
@@ -439,9 +442,9 @@ nsXULContentUtils::GetResource(PRInt32 aNameSpaceID, const nsAString& aAttribute
 nsresult
 nsXULContentUtils::SetCommandUpdater(nsIDocument* aDocument, nsIContent* aElement)
 {
-    // Deal with setting up a 'commandupdater'. Pulls the 'events' and
-    // 'targets' attributes off of aElement, and adds it to the
-    // document's command dispatcher.
+    
+    
+    
     NS_PRECONDITION(aDocument != nsnull, "null ptr");
     if (! aDocument)
         return NS_ERROR_NULL_POINTER;

@@ -34,6 +34,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "SVGPointList.h"
 #include "SVGAnimatedPointList.h"
 #include "nsSVGElement.h"
@@ -68,7 +70,7 @@ SVGPointList::GetValueAsString(nsAString& aValue) const
   for (PRUint32 i = 0; i < mItems.Length(); ++i) {
     
     
-    nsTextFormatter::snprintf(buf, NS_ARRAY_LENGTH(buf),
+    nsTextFormatter::snprintf(buf, ArrayLength(buf),
                               NS_LITERAL_STRING("%g,%g").get(),
                               double(mItems[i].mX), double(mItems[i].mY));
     

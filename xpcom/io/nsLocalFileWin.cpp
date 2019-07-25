@@ -40,6 +40,7 @@
 
 
 
+#include "mozilla/Util.h"
 
 #include "nsCOMPtr.h"
 #include "nsMemory.h"
@@ -2447,7 +2448,7 @@ nsLocalFile::IsExecutable(bool *_retval)
             "wsf",
             "wsh"};
         nsDependentSubstring ext = Substring(path, dotIdx + 1);
-        for ( int i = 0; i < NS_ARRAY_LENGTH(executableExts); i++ ) {
+        for ( int i = 0; i < ArrayLength(executableExts); i++ ) {
             if ( ext.EqualsASCII(executableExts[i])) {
                 
                 *_retval = PR_TRUE;
@@ -3111,11 +3112,11 @@ nsLocalFile::EnsureShortPath()
 
     WCHAR shortPath[MAX_PATH + 1];
     DWORD lengthNeeded = ::GetShortPathNameW(mWorkingPath.get(), shortPath,
-                                             NS_ARRAY_LENGTH(shortPath));
+                                             ArrayLength(shortPath));
     
     
     
-    if (lengthNeeded != 0 && lengthNeeded < NS_ARRAY_LENGTH(shortPath))
+    if (lengthNeeded != 0 && lengthNeeded < ArrayLength(shortPath))
         mShortWorkingPath.Assign(shortPath);
     else
         mShortWorkingPath.Assign(mWorkingPath);

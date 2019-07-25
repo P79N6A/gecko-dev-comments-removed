@@ -1,38 +1,40 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Mozilla SVG project.
- *
- * The Initial Developer of the Original Code is IBM Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2004
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "mozilla/Util.h"
 
 #include "nsSVGAngle.h"
 #include "prdtoa.h"
@@ -40,22 +42,22 @@
 #include "nsSVGUtils.h"
 #include "nsSVGMarkerElement.h"
 #include "nsMathUtils.h"
-#include "nsContentUtils.h" // NS_ENSURE_FINITE
+#include "nsContentUtils.h" 
 #ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SVGOrientSMILType.h"
-#endif // MOZ_SMIL
+#endif 
 
 using namespace mozilla;
 
-/**
- * Mutable SVGAngle class for SVGSVGElement.createSVGAngle().
- *
- * Note that this class holds its own nsSVGAngle, which therefore can't be
- * animated. This means SVGMarkerElement::setOrientToAngle(angle) must copy
- * any DOMSVGAngle passed in. Perhaps this is wrong and inconsistent with
- * other parts of SVG, but it's how the code works for now.
- */
+
+
+
+
+
+
+
+
 class DOMSVGAngle : public nsIDOMSVGAngle
 {
 public:
@@ -150,14 +152,14 @@ NS_INTERFACE_MAP_END
 
 static nsIAtom** const unitMap[] =
 {
-  nsnull, /* SVG_ANGLETYPE_UNKNOWN */
-  nsnull, /* SVG_ANGLETYPE_UNSPECIFIED */
+  nsnull, 
+  nsnull, 
   &nsGkAtoms::deg,
   &nsGkAtoms::rad,
   &nsGkAtoms::grad
 };
 
-/* Helper functions */
+
 
 static bool
 IsValidUnitType(PRUint16 unit)
@@ -191,7 +193,7 @@ GetUnitTypeForString(const char* unitStr)
                    
   nsCOMPtr<nsIAtom> unitAtom = do_GetAtom(unitStr);
 
-  for (PRUint32 i = 0 ; i < NS_ARRAY_LENGTH(unitMap) ; i++) {
+  for (PRUint32 i = 0 ; i < ArrayLength(unitMap) ; i++) {
     if (unitMap[i] && *unitMap[i] == unitAtom) {
       return i;
     }
@@ -237,7 +239,7 @@ GetValueFromString(const nsAString &aValueAsString,
   return NS_ERROR_DOM_SYNTAX_ERR;
 }
 
-/* static */ float
+ float
 nsSVGAngle::GetDegreesPerUnit(PRUint8 aUnit)
 {
   switch (aUnit) {
@@ -332,7 +334,7 @@ nsSVGAngle::ToDOMAnimVal(nsIDOMSVGAngle **aResult, nsSVGElement *aSVGElement)
   return NS_OK;
 }
 
-/* Implementation */
+
 
 nsresult
 nsSVGAngle::SetBaseValueString(const nsAString &aValueAsString,
@@ -359,9 +361,9 @@ nsSVGAngle::SetBaseValueString(const nsAString &aValueAsString,
   }
 #endif
 
-  // We don't need to call DidChange* here - we're only called by
-  // nsSVGElement::ParseAttribute under nsGenericElement::SetAttr,
-  // which takes care of notifying.
+  
+  
+  
   return NS_OK;
 }
 
@@ -434,15 +436,15 @@ nsSVGAngle::ToSMILAttr(nsSVGElement *aSVGElement)
     nsSVGMarkerElement *marker = static_cast<nsSVGMarkerElement*>(aSVGElement);
     return new SMILOrient(marker->GetOrientType(), this, aSVGElement);
   }
-  // SMILOrient would not be useful for general angle attributes (also,
-  // "orient" is the only animatable <angle>-valued attribute in SVG 1.1).
+  
+  
   NS_NOTREACHED("Trying to animate unknown angle attribute.");
   return nsnull;
 }
 
 nsresult
 nsSVGAngle::SMILOrient::ValueFromString(const nsAString& aStr,
-                                        const nsISMILAnimationElement* /*aSrcElement*/,
+                                        const nsISMILAnimationElement* ,
                                         nsSMILValue& aValue,
                                         bool& aPreventCachingOfSandwich) const
 {
@@ -502,4 +504,4 @@ nsSVGAngle::SMILOrient::SetAnimValue(const nsSMILValue& aValue)
   }
   return NS_OK;
 }
-#endif // MOZ_SMIL
+#endif 

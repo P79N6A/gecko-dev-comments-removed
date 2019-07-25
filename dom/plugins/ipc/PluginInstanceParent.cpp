@@ -38,7 +38,6 @@
 
 
 #include "PluginInstanceParent.h"
-
 #include "BrowserStreamParent.h"
 #include "PluginBackgroundDestroyer.h"
 #include "PluginModuleParent.h"

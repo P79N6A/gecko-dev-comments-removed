@@ -417,6 +417,31 @@ PointerRangeSize(T* begin, T* end)
     return (size_t(end) - size_t(begin)) / sizeof(T);
 }
 
+
+
+
+
+
+
+template<typename T, size_t N>
+size_t
+ArrayLength(T (&arr)[N])
+{
+    return N;
+}
+
+
+
+
+
+
+template<typename T, size_t N>
+T*
+ArrayEnd(T (&arr)[N])
+{
+    return arr + ArrayLength(arr);
+}
+
 } 
 
 #endif 

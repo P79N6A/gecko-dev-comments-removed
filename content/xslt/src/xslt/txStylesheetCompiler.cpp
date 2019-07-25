@@ -1,40 +1,42 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is TransforMiiX XSLT processor code.
- *
- * The Initial Developer of the Original Code is
- * Jonas Sicking.
- * Portions created by the Initial Developer are Copyright (C) 2002
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Jonas Sicking <jonas@sicking.cc>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "mozilla/Util.h"
 
 #include "txStylesheetCompiler.h"
 #include "txStylesheetCompileHandlers.h"
@@ -52,6 +54,8 @@
 #include "nsICategoryManager.h"
 #include "nsServiceManagerUtils.h"
 #include "nsTArray.h"
+
+using namespace mozilla;
 
 txStylesheetCompiler::txStylesheetCompiler(const nsAString& aStylesheetURI,
                                            txACompileObserver* aObserver)
@@ -89,15 +93,15 @@ txStylesheetCompiler::startElement(PRInt32 aNamespaceID, nsIAtom* aLocalName,
                                    PRInt32 aAttrCount)
 {
     if (NS_FAILED(mStatus)) {
-        // ignore content after failure
-        // XXX reevaluate once expat stops on failure
+        
+        
         return NS_OK;
     }
 
     nsresult rv = flushCharacters();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    // look for new namespace mappings
+    
     bool hasOwnNamespaceMap = false;
     PRInt32 i;
     for (i = 0; i < aAttrCount; ++i) {
@@ -134,8 +138,8 @@ txStylesheetCompiler::startElement(const PRUnichar *aName,
                                    PRInt32 aAttrCount, PRInt32 aIDOffset)
 {
     if (NS_FAILED(mStatus)) {
-        // ignore content after failure
-        // XXX reevaluate once expat stops on failure
+        
+        
         return NS_OK;
     }
 
@@ -212,11 +216,11 @@ txStylesheetCompiler::startElementInternal(PRInt32 aNamespaceID,
         ++mInScopeVariables[i]->mLevel;
     }
 
-    // Update the elementcontext if we have special attributes
+    
     for (i = 0; i < aAttrCount; ++i) {
         txStylesheetAttr* attr = aAttributes + i;
 
-        // xml:space
+        
         if (attr->mNamespaceID == kNameSpaceID_XML &&
             attr->mLocalName == nsGkAtoms::space) {
             rv = ensureNewElementContext();
@@ -233,7 +237,7 @@ txStylesheetCompiler::startElementInternal(PRInt32 aNamespaceID,
             }
         }
 
-        // xml:base
+        
         if (attr->mNamespaceID == kNameSpaceID_XML &&
             attr->mLocalName == nsGkAtoms::base &&
             !attr->mValue.IsEmpty()) {
@@ -245,7 +249,7 @@ txStylesheetCompiler::startElementInternal(PRInt32 aNamespaceID,
             mElementContext->mBaseURI = uri;
         }
 
-        // extension-element-prefixes
+        
         if ((attr->mNamespaceID == kNameSpaceID_XSLT &&
              attr->mLocalName == nsGkAtoms::extensionElementPrefixes &&
              aNamespaceID != kNameSpaceID_XSLT) ||
@@ -274,7 +278,7 @@ txStylesheetCompiler::startElementInternal(PRInt32 aNamespaceID,
             attr->mLocalName = nsnull;
         }
 
-        // version
+        
         if ((attr->mNamespaceID == kNameSpaceID_XSLT &&
              attr->mLocalName == nsGkAtoms::version &&
              aNamespaceID != kNameSpaceID_XSLT) ||
@@ -295,7 +299,7 @@ txStylesheetCompiler::startElementInternal(PRInt32 aNamespaceID,
         }
     }
 
-    // Find the right elementhandler and execute it
+    
     MBool isInstruction = MB_FALSE;
     PRInt32 count = mElementContext->mInstructionNamespaces.Length();
     for (i = 0; i < count; ++i) {
@@ -306,10 +310,10 @@ txStylesheetCompiler::startElementInternal(PRInt32 aNamespaceID,
     }
 
     if (mEmbedStatus == eNeedEmbed) {
-        // handle embedded stylesheets
+        
         if (aIDOffset >= 0 && aAttributes[aIDOffset].mValue.Equals(mTarget)) {
-            // We found the right ID, signal to compile the 
-            // embedded stylesheet.
+            
+            
             mEmbedStatus = eInEmbed;
         }
     }
@@ -332,7 +336,7 @@ txStylesheetCompiler::startElementInternal(PRInt32 aNamespaceID,
                 (attr.mNamespaceID == kNameSpaceID_XSLT ||
                  (aNamespaceID == kNameSpaceID_XSLT &&
                   attr.mNamespaceID == kNameSpaceID_None))) {
-                // XXX ErrorReport: unknown attribute
+                
                 return NS_ERROR_XSLT_PARSE_FAILURE;
             }
         }
@@ -350,8 +354,8 @@ nsresult
 txStylesheetCompiler::endElement()
 {
     if (NS_FAILED(mStatus)) {
-        // ignore content after failure
-        // XXX reevaluate once expat stops on failure
+        
+        
         return NS_OK;
     }
 
@@ -380,7 +384,7 @@ txStylesheetCompiler::endElement()
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (!--mElementContext->mDepth) {
-        // this will delete the old object
+        
         mElementContext = static_cast<txElementContext*>(popObject());
     }
 
@@ -391,8 +395,8 @@ nsresult
 txStylesheetCompiler::characters(const nsAString& aStr)
 {
     if (NS_FAILED(mStatus)) {
-        // ignore content after failure
-        // XXX reevaluate once expat stops on failure
+        
+        
         return NS_OK;
     }
 
@@ -431,8 +435,8 @@ txStylesheetCompiler::cancel(nsresult aError, const PRUnichar *aErrorText,
 
     if (mObserver) {
         mObserver->onDoneCompiling(this, mStatus, aErrorText, aParam);
-        // This will ensure that we don't call onDoneCompiling twice. Also
-        // ensures that we don't keep the observer alive longer then necessary.
+        
+        
         mObserver = nsnull;
     }
 }
@@ -478,8 +482,8 @@ txStylesheetCompiler::onDoneCompiling(txStylesheetCompiler* aCompiler,
 nsresult
 txStylesheetCompiler::flushCharacters()
 {
-    // Bail if we don't have any characters. The handler will detect
-    // ignoreable whitespace
+    
+    
     if (mCharacters.IsEmpty()) {
         return NS_OK;
     }
@@ -500,7 +504,7 @@ txStylesheetCompiler::flushCharacters()
 nsresult
 txStylesheetCompiler::ensureNewElementContext()
 {
-    // Do we already have a new context?
+    
     if (!mElementContext->mDepth) {
         return NS_OK;
     }
@@ -535,17 +539,17 @@ txStylesheetCompiler::maybeDoneCompiling()
     
     if (mObserver) {
         mObserver->onDoneCompiling(this, mStatus);
-        // This will ensure that we don't call onDoneCompiling twice. Also
-        // ensures that we don't keep the observer alive longer then necessary.
+        
+        
         mObserver = nsnull;
     }
 
     return NS_OK;
 }
 
-/**
- * txStylesheetCompilerState
- */
+
+
+
 
 
 txStylesheetCompilerState::txStylesheetCompilerState(txACompileObserver* aObserver)
@@ -559,8 +563,8 @@ txStylesheetCompilerState::txStylesheetCompilerState(txACompileObserver* aObserv
       mNextInstrPtr(nsnull),
       mToplevelIterator(nsnull)
 {
-    // Embedded stylesheets have another handler, which is set in
-    // txStylesheetCompiler::init if the baseURI has a fragment identifier.
+    
+    
     mHandlerTable = gTxRootHandler;
 
 }
@@ -573,13 +577,13 @@ txStylesheetCompilerState::init(const nsAString& aStylesheetURI,
     NS_ASSERTION(!aStylesheet || aInsertPosition,
                  "must provide insertposition if loading subsheet");
     mStylesheetURI = aStylesheetURI;
-    // Check for fragment identifier of an embedded stylesheet.
+    
     PRInt32 fragment = aStylesheetURI.FindChar('#') + 1;
     if (fragment > 0) {
         PRInt32 fragmentLength = aStylesheetURI.Length() - fragment;
         if (fragmentLength > 0) {
-            // This is really an embedded stylesheet, not just a
-            // "url#". We may want to unescape the fragment.
+            
+            
             mTarget = Substring(aStylesheetURI, (PRUint32)fragment,
                                 fragmentLength);
             mEmbedStatus = eNeedEmbed;
@@ -601,7 +605,7 @@ txStylesheetCompilerState::init(const nsAString& aStylesheetURI,
         
         mToplevelIterator =
             txListIterator(&mStylesheet->mRootFrame->mToplevelItems);
-        mToplevelIterator.next(); // go to the end of the list
+        mToplevelIterator.next(); 
         mIsTopCompiler = PR_TRUE;
     }
    
@@ -609,7 +613,7 @@ txStylesheetCompilerState::init(const nsAString& aStylesheetURI,
     NS_ENSURE_TRUE(mElementContext && mElementContext->mMappings,
                    NS_ERROR_OUT_OF_MEMORY);
 
-    // Push the "old" txElementContext
+    
     rv = pushObject(0);
     NS_ENSURE_SUCCESS(rv, rv);
     
@@ -679,7 +683,7 @@ txStylesheetCompilerState::pushChooseGotoList()
 void
 txStylesheetCompilerState::popChooseGotoList()
 {
-    // this will delete the old value
+    
     mChooseGotoList = static_cast<txList*>(popObject());
 }
 
@@ -775,7 +779,7 @@ txStylesheetCompilerState::loadIncludedStylesheet(const nsAString& aURI)
     
     item.forget();
 
-    // step back to the dummy-item
+    
     mToplevelIterator.previous();
     
     txACompileObserver* observer = static_cast<txStylesheetCompiler*>(this);
@@ -785,7 +789,7 @@ txStylesheetCompilerState::loadIncludedStylesheet(const nsAString& aURI)
                                  observer);
     NS_ENSURE_TRUE(compiler, NS_ERROR_OUT_OF_MEMORY);
 
-    // step forward before calling the observer in case of syncronous loading
+    
     mToplevelIterator.next();
 
     if (mChildCompilerList.AppendElement(compiler) == nsnull) {
@@ -813,7 +817,7 @@ txStylesheetCompilerState::loadImportedStylesheet(const nsAString& aURI,
     NS_ENSURE_TRUE(mObserver, NS_ERROR_NOT_IMPLEMENTED);
 
     txListIterator iter(&aFrame->mToplevelItems);
-    iter.next(); // go to the end of the list
+    iter.next(); 
 
     txACompileObserver* observer = static_cast<txStylesheetCompiler*>(this);
 
@@ -867,10 +871,10 @@ txStylesheetCompilerState::resolveNamespacePrefix(nsIAtom* aPrefix,
     return (aID != kNameSpaceID_Unknown) ? NS_OK : NS_ERROR_FAILURE;
 }
 
-/**
- * Error Function to be used for unknown extension functions.
- *
- */
+
+
+
+
 class txErrorFunctionCall : public FunctionCall
 {
 public:
@@ -899,16 +903,16 @@ txErrorFunctionCall::evaluate(txIEvalContext* aContext,
 Expr::ResultType
 txErrorFunctionCall::getReturnType()
 {
-    // It doesn't really matter what we return here, but it might
-    // be a good idea to try to keep this as unoptimizable as possible
+    
+    
     return ANY_RESULT;
 }
 
 bool
 txErrorFunctionCall::isSensitiveTo(ContextSensitivity aContext)
 {
-    // It doesn't really matter what we return here, but it might
-    // be a good idea to try to keep this as unoptimizable as possible
+    
+    
     return PR_TRUE;
 }
 
@@ -1021,7 +1025,7 @@ findFunction(nsIAtom* aName, PRInt32 aNamespaceID,
 {
     if (kExtensionFunctions[0].mNamespaceID == kNameSpaceID_Unknown) {
         PRUint32 i;
-        for (i = 0; i < NS_ARRAY_LENGTH(kExtensionFunctions); ++i) {
+        for (i = 0; i < ArrayLength(kExtensionFunctions); ++i) {
             txFunctionFactoryMapping& mapping = kExtensionFunctions[i];
             NS_ConvertASCIItoUTF16 namespaceURI(mapping.mNamespaceURI);
             mapping.mNamespaceID =
@@ -1030,7 +1034,7 @@ findFunction(nsIAtom* aName, PRInt32 aNamespaceID,
     }
 
     PRUint32 i;
-    for (i = 0; i < NS_ARRAY_LENGTH(kExtensionFunctions); ++i) {
+    for (i = 0; i < ArrayLength(kExtensionFunctions); ++i) {
         const txFunctionFactoryMapping& mapping = kExtensionFunctions[i];
         if (mapping.mNamespaceID == aNamespaceID) {
             return mapping.mFactory(aName, aNamespaceID, aState, aResult);
@@ -1123,10 +1127,10 @@ txStylesheetCompilerState::caseInsensitiveNameTests()
 void
 txStylesheetCompilerState::SetErrorOffset(PRUint32 aOffset)
 {
-    // XXX implement me
+    
 }
 
-/* static */
+
 void
 txStylesheetCompilerState::shutdown()
 {

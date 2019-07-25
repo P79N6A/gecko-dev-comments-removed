@@ -1,38 +1,40 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla SVG Project code.
- *
- * The Initial Developer of the Original Code is the Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "mozilla/Util.h"
 
 #include "DOMSVGPathSeg.h"
 #include "DOMSVGPathSegList.h"
@@ -42,17 +44,17 @@
 #include "nsIDOMSVGPathSeg.h"
 #include "nsDOMError.h"
 
-// See the architecture comment in DOMSVGPathSegList.h.
+
 
 using namespace mozilla;
 
-// We could use NS_IMPL_CYCLE_COLLECTION_1, except that in Unlink() we need to
-// clear our list's weak ref to us to be safe. (The other option would be to
-// not unlink and rely on the breaking of the other edges in the cycle, as
-// NS_SVG_VAL_IMPL_CYCLE_COLLECTION does.)
+
+
+
+
 NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGPathSeg)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGPathSeg)
-  // We may not belong to a list, so we must null check tmp->mList.
+  
   if (tmp->mList) {
     tmp->mList->ItemAt(tmp->mListIndex) = nsnull;
   }
@@ -68,7 +70,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(DOMSVGPathSeg)
 DOMCI_DATA(SVGPathSeg, DOMSVGPathSeg)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMSVGPathSeg)
-  NS_INTERFACE_MAP_ENTRY(DOMSVGPathSeg) // pseudo-interface
+  NS_INTERFACE_MAP_ENTRY(DOMSVGPathSeg) 
   NS_INTERFACE_MAP_ENTRY(nsIDOMSVGPathSeg)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
@@ -81,7 +83,7 @@ DOMSVGPathSeg::DOMSVGPathSeg(DOMSVGPathSegList *aList,
   , mListIndex(aListIndex)
   , mIsAnimValItem(aIsAnimValItem)
 {
-  // These shifts are in sync with the members in the header.
+  
   NS_ABORT_IF_FALSE(aList &&
                     aListIndex <= MaxListIndex(), "bad arg");
 
@@ -127,7 +129,7 @@ void
 DOMSVGPathSeg::RemovingFromList()
 {
   PRUint32 argCount = SVGPathSegUtils::ArgCountForType(Type());
-  // InternalItem() + 1, because the args come after the encoded seg type
+  
   memcpy(PtrToMemberArgs(), InternalItem() + 1, argCount * sizeof(float));
   mList = nsnull;
   mIsAnimValItem = PR_FALSE;
@@ -139,11 +141,11 @@ DOMSVGPathSeg::ToSVGPathSegEncodedData(float* aRaw)
   NS_ABORT_IF_FALSE(aRaw, "null pointer");
   PRUint32 argCount = SVGPathSegUtils::ArgCountForType(Type());
   if (IsInList()) {
-    // 1 + argCount, because we're copying the encoded seg type and args
+    
     memcpy(aRaw, InternalItem(), (1 + argCount) * sizeof(float));
   } else {
     aRaw[0] = SVGPathSegUtils::EncodeType(Type());
-    // aRaw + 1, because the args go after the encoded seg type
+    
     memcpy(aRaw + 1, PtrToMemberArgs(), argCount * sizeof(float));
   }
 }
@@ -168,11 +170,11 @@ DOMSVGPathSeg::IndexIsValid()
 #endif
 
 
-////////////////////////////////////////////////////////////////////////
-// Implementation of DOMSVGPathSeg sub-classes below this point
+
+
 
 #define CHECK_ARG_COUNT_IN_SYNC(segType)                                      \
-          NS_ABORT_IF_FALSE(NS_ARRAY_LENGTH(mArgs) ==                         \
+          NS_ABORT_IF_FALSE(ArrayLength(mArgs) ==                         \
             SVGPathSegUtils::ArgCountForType(PRUint32(segType)) ||            \
             PRUint32(segType) == nsIDOMSVGPathSeg::PATHSEG_CLOSEPATH,         \
             "Arg count/array size out of sync")
@@ -254,16 +256,16 @@ DOMSVGPathSeg::IndexIsValid()
     return NS_OK;                                                             \
   }
 
-// For float, the normal type of arguments
+
 #define IMPL_FLOAT_PROP(segName, propName, index) \
   IMPL_PROP_WITH_TYPE(segName, propName, index, float)
 
-// For the boolean flags in arc commands
+
 #define IMPL_BOOL_PROP(segName, propName, index) \
   IMPL_PROP_WITH_TYPE(segName, propName, index, bool)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegClosePath
   : public DOMSVGPathSeg
@@ -280,16 +282,16 @@ public:
   IMPL_SVGPATHSEG_SUBCLASS_COMMON(ClosePath, PATHSEG_CLOSEPATH)
 
 protected:
-  // To allow IMPL_SVGPATHSEG_SUBCLASS_COMMON above to compile we need an
-  // mArgs, but since C++ doesn't allow zero-sized arrays we need to give it
-  // one (unused) element.
+  
+  
+  
   float mArgs[1];
 };
 
 IMPL_NSISUPPORTS_SVGPATHSEG_SUBCLASS(ClosePath)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegMovetoAbs
   : public DOMSVGPathSeg
@@ -317,7 +319,7 @@ IMPL_FLOAT_PROP(MovetoAbs, X, 0)
 IMPL_FLOAT_PROP(MovetoAbs, Y, 1)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegMovetoRel
   : public DOMSVGPathSeg
@@ -346,7 +348,7 @@ IMPL_FLOAT_PROP(MovetoRel, Y, 1)
 
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegLinetoAbs
   : public DOMSVGPathSeg
@@ -374,7 +376,7 @@ IMPL_FLOAT_PROP(LinetoAbs, X, 0)
 IMPL_FLOAT_PROP(LinetoAbs, Y, 1)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegLinetoRel
   : public DOMSVGPathSeg
@@ -402,7 +404,7 @@ IMPL_FLOAT_PROP(LinetoRel, X, 0)
 IMPL_FLOAT_PROP(LinetoRel, Y, 1)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegCurvetoCubicAbs
   : public DOMSVGPathSeg
@@ -440,7 +442,7 @@ IMPL_FLOAT_PROP(CurvetoCubicAbs, X, 4)
 IMPL_FLOAT_PROP(CurvetoCubicAbs, Y, 5)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegCurvetoCubicRel
   : public DOMSVGPathSeg
@@ -478,7 +480,7 @@ IMPL_FLOAT_PROP(CurvetoCubicRel, X, 4)
 IMPL_FLOAT_PROP(CurvetoCubicRel, Y, 5)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegCurvetoQuadraticAbs
   : public DOMSVGPathSeg
@@ -511,7 +513,7 @@ IMPL_FLOAT_PROP(CurvetoQuadraticAbs, X, 2)
 IMPL_FLOAT_PROP(CurvetoQuadraticAbs, Y, 3)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegCurvetoQuadraticRel
   : public DOMSVGPathSeg
@@ -544,7 +546,7 @@ IMPL_FLOAT_PROP(CurvetoQuadraticRel, X, 2)
 IMPL_FLOAT_PROP(CurvetoQuadraticRel, Y, 3)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegArcAbs
   : public DOMSVGPathSeg
@@ -584,7 +586,7 @@ IMPL_FLOAT_PROP(ArcAbs, X, 5)
 IMPL_FLOAT_PROP(ArcAbs, Y, 6)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegArcRel
   : public DOMSVGPathSeg
@@ -624,7 +626,7 @@ IMPL_FLOAT_PROP(ArcRel, X, 5)
 IMPL_FLOAT_PROP(ArcRel, Y, 6)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegLinetoHorizontalAbs
   : public DOMSVGPathSeg
@@ -650,7 +652,7 @@ IMPL_NSISUPPORTS_SVGPATHSEG_SUBCLASS(LinetoHorizontalAbs)
 IMPL_FLOAT_PROP(LinetoHorizontalAbs, X, 0)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegLinetoHorizontalRel
   : public DOMSVGPathSeg
@@ -676,7 +678,7 @@ IMPL_NSISUPPORTS_SVGPATHSEG_SUBCLASS(LinetoHorizontalRel)
 IMPL_FLOAT_PROP(LinetoHorizontalRel, X, 0)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegLinetoVerticalAbs
   : public DOMSVGPathSeg
@@ -702,7 +704,7 @@ IMPL_NSISUPPORTS_SVGPATHSEG_SUBCLASS(LinetoVerticalAbs)
 IMPL_FLOAT_PROP(LinetoVerticalAbs, Y, 0)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegLinetoVerticalRel
   : public DOMSVGPathSeg
@@ -728,7 +730,7 @@ IMPL_NSISUPPORTS_SVGPATHSEG_SUBCLASS(LinetoVerticalRel)
 IMPL_FLOAT_PROP(LinetoVerticalRel, Y, 0)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegCurvetoCubicSmoothAbs
   : public DOMSVGPathSeg
@@ -761,7 +763,7 @@ IMPL_FLOAT_PROP(CurvetoCubicSmoothAbs, X, 2)
 IMPL_FLOAT_PROP(CurvetoCubicSmoothAbs, Y, 3)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegCurvetoCubicSmoothRel
   : public DOMSVGPathSeg
@@ -794,7 +796,7 @@ IMPL_FLOAT_PROP(CurvetoCubicSmoothRel, X, 2)
 IMPL_FLOAT_PROP(CurvetoCubicSmoothRel, Y, 3)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegCurvetoQuadraticSmoothAbs
   : public DOMSVGPathSeg
@@ -822,7 +824,7 @@ IMPL_FLOAT_PROP(CurvetoQuadraticSmoothAbs, X, 0)
 IMPL_FLOAT_PROP(CurvetoQuadraticSmoothAbs, Y, 1)
 
 
-////////////////////////////////////////////////////////////////////////
+
 
 class DOMSVGPathSegCurvetoQuadraticSmoothRel
   : public DOMSVGPathSeg
@@ -851,8 +853,8 @@ IMPL_FLOAT_PROP(CurvetoQuadraticSmoothRel, Y, 1)
 
 
 
-// This must come after DOMSVGPathSegClosePath et. al. have been declared.
-/* static */ DOMSVGPathSeg*
+
+ DOMSVGPathSeg*
 DOMSVGPathSeg::CreateFor(DOMSVGPathSegList *aList,
                          PRUint32 aListIndex,
                          bool aIsAnimValItem)
@@ -945,9 +947,9 @@ NS_NewSVGPathSegCurvetoCubicAbs(float x, float y,
                                 float x1, float y1,
                                 float x2, float y2)
 {
-  // Note that we swap from DOM API argument order to the argument order used
-  // in the <path> element's 'd' attribute (i.e. we put the arguments for the
-  // end point of the segment last instead of first).
+  
+  
+  
 
   return new DOMSVGPathSegCurvetoCubicAbs(x1, y1, x2, y2, x, y);
 }
@@ -957,7 +959,7 @@ NS_NewSVGPathSegCurvetoCubicRel(float x, float y,
                                 float x1, float y1,
                                 float x2, float y2)
 {
-  // See comment in NS_NewSVGPathSegCurvetoCubicAbs!
+  
 
   return new DOMSVGPathSegCurvetoCubicRel(x1, y1, x2, y2, x, y);
 }
@@ -966,7 +968,7 @@ nsIDOMSVGPathSeg*
 NS_NewSVGPathSegCurvetoQuadraticAbs(float x, float y,
                                     float x1, float y1)
 {
-  // See comment in NS_NewSVGPathSegCurvetoCubicAbs!
+  
 
   return new DOMSVGPathSegCurvetoQuadraticAbs(x1, y1, x, y);
 }
@@ -975,7 +977,7 @@ nsIDOMSVGPathSeg*
 NS_NewSVGPathSegCurvetoQuadraticRel(float x, float y,
                                     float x1, float y1)
 {
-  // See comment in NS_NewSVGPathSegCurvetoCubicAbs!
+  
 
   return new DOMSVGPathSegCurvetoQuadraticRel(x1, y1, x, y);
 }
@@ -985,7 +987,7 @@ NS_NewSVGPathSegArcAbs(float x, float y,
                        float r1, float r2, float angle,
                        bool largeArcFlag, bool sweepFlag)
 {
-  // See comment in NS_NewSVGPathSegCurvetoCubicAbs!
+  
 
   return new DOMSVGPathSegArcAbs(r1, r2, angle, largeArcFlag, sweepFlag, x, y);
 }
@@ -995,7 +997,7 @@ NS_NewSVGPathSegArcRel(float x, float y,
                        float r1, float r2, float angle,
                        bool largeArcFlag, bool sweepFlag)
 {
-  // See comment in NS_NewSVGPathSegCurvetoCubicAbs!
+  
 
   return new DOMSVGPathSegArcRel(r1, r2, angle, largeArcFlag, sweepFlag, x, y);
 }
@@ -1028,7 +1030,7 @@ nsIDOMSVGPathSeg*
 NS_NewSVGPathSegCurvetoCubicSmoothAbs(float x, float y,
                                       float x2, float y2)
 {
-  // See comment in NS_NewSVGPathSegCurvetoCubicAbs!
+  
 
   return new DOMSVGPathSegCurvetoCubicSmoothAbs(x2, y2, x, y);
 }
@@ -1037,7 +1039,7 @@ nsIDOMSVGPathSeg*
 NS_NewSVGPathSegCurvetoCubicSmoothRel(float x, float y,
                                       float x2, float y2)
 {
-  // See comment in NS_NewSVGPathSegCurvetoCubicAbs!
+  
 
   return new DOMSVGPathSegCurvetoCubicSmoothRel(x2, y2, x, y);
 }

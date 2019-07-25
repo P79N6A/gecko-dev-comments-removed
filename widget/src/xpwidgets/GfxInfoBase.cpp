@@ -37,6 +37,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "GfxInfoBase.h"
 
 #include "GfxInfoWebGL.h"
@@ -57,6 +59,8 @@
 #if defined(MOZ_CRASHREPORTER)
 #include "nsExceptionHandler.h"
 #endif
+
+using namespace mozilla;
 
 extern "C" {
   void StoreSpline(int ax, int ay, int bx, int by, int cx, int cy, int dx, int dy);
@@ -636,7 +640,7 @@ NS_IMETHODIMP_(void)
 GfxInfoBase::LogFailure(const nsACString &failure)
 {
   
-  if (mFailureCount < NS_ARRAY_LENGTH(mFailures)) {
+  if (mFailureCount < ArrayLength(mFailures)) {
     mFailures[mFailureCount++] = failure;
 
     

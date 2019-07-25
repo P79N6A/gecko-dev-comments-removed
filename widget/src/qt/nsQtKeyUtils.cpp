@@ -37,10 +37,15 @@
 
 
 
+
+#include "mozilla/Util.h"
+
 #include "nsWindow.h"
 #include "nsQtKeyUtils.h"
 
 #include "nsGUIEvent.h"
+
+using namespace mozilla;
 
 struct nsKeyConverter
 {
@@ -196,7 +201,7 @@ QtKeyCodeToDOMKeyCode(int aKeysym)
 
 
     
-    for (i = 0; i < NS_ARRAY_LENGTH(nsKeycodes); i++) {
+    for (i = 0; i < ArrayLength(nsKeycodes); i++) {
         if (nsKeycodes[i].keysym == aKeysym)
             return(nsKeycodes[i].vkCode);
     }
@@ -234,7 +239,7 @@ DOMKeyCodeToQtKeyCode(int aKeysym)
     }
 
     
-    for (i = 0; i < NS_ARRAY_LENGTH(nsKeycodes); ++i) {
+    for (i = 0; i < ArrayLength(nsKeycodes); ++i) {
       if (nsKeycodes[i].vkCode == aKeysym) {
         return nsKeycodes[i].keysym;
       }

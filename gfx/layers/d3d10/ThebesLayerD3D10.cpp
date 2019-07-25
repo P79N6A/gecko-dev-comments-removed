@@ -36,6 +36,10 @@
 
 
 #include "mozilla/layers/PLayers.h"
+
+
+#include "mozilla/Util.h"
+
 #include "ThebesLayerD3D10.h"
 #include "gfxPlatform.h"
 
@@ -364,7 +368,7 @@ ThebesLayerD3D10::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode)
     FillSurface(mD2DSurface, aRegion, visibleRect.TopLeft(), gfxRGBA(0.0, 0.0, 0.0, 1.0));
     FillSurface(mD2DSurfaceOnWhite, aRegion, visibleRect.TopLeft(), gfxRGBA(1.0, 1.0, 1.0, 1.0));
     gfxASurface* surfaces[2] = { mD2DSurface.get(), mD2DSurfaceOnWhite.get() };
-    destinationSurface = new gfxTeeSurface(surfaces, NS_ARRAY_LENGTH(surfaces));
+    destinationSurface = new gfxTeeSurface(surfaces, ArrayLength(surfaces));
     
     
     

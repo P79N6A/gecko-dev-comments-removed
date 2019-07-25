@@ -1,41 +1,43 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Peter Van der Beken.
- * Portions created by the Initial Developer are Copyright (C) 2003
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Peter Van der Beken <peterv@propagandism.org>
- *
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "mozilla/Util.h"
 
 #include "nsIAtom.h"
 #include "nsGkAtoms.h"
@@ -54,11 +56,13 @@
 #include "nsIDOMDocumentFragment.h"
 #include "txMozillaXMLOutput.h"
 
+using namespace mozilla;
+
 class txStylesheetCompilerState;
 
-// ------------------------------------------------------------------
-// Utility functions
-// ------------------------------------------------------------------
+
+
+
 
 static nsresult
 convertRtfToNode(txIEvalContext *aContext, txResultTreeFragment *aRtf)
@@ -88,7 +92,7 @@ convertRtfToNode(txIEvalContext *aContext, txResultTreeFragment *aRtf)
     rv = mozHandler.closePrevious(PR_TRUE);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    // The txResultTreeFragment will own this.
+    
     const txXPathNode* node = txXPathNativeNode::createXPathNode(domFragment,
                                                                  PR_TRUE);
     NS_ENSURE_TRUE(node, NS_ERROR_OUT_OF_MEMORY);
@@ -184,8 +188,8 @@ createAndAddToResult(nsIAtom* aName, const nsSubstring& aValue,
     return NS_OK;
 }
 
-// Need to update this array if types are added to the ResultType enum in
-// txAExprResult.
+
+
 static const char * const sTypes[] = {
   "node-set",
   "boolean",
@@ -194,9 +198,9 @@ static const char * const sTypes[] = {
   "RTF"
 };
 
-// ------------------------------------------------------------------
-// Function implementations
-// ------------------------------------------------------------------
+
+
+
 
 struct txEXSLTFunctionDescriptor
 {
@@ -214,36 +218,36 @@ static const char kEXSLTStringsNS[] = "http://exslt.org/strings";
 static const char kEXSLTMathNS[] = "http://exslt.org/math";
 static const char kEXSLTDatesAndTimesNS[] = "http://exslt.org/dates-and-times";
 
-// The order of this table must be the same as the
-// txEXSLTFunctionCall::eType enum
+
+
 static txEXSLTFunctionDescriptor descriptTable[] =
 {
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::nodeSet, 0, kEXSLTCommonNS }, // NODE_SET
-    { 1, 1, Expr::STRING_RESULT,  &nsGkAtoms::objectType, 0, kEXSLTCommonNS }, // OBJECT_TYPE
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::difference, 0, kEXSLTSetsNS }, // DIFFERENCE
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::distinct, 0, kEXSLTSetsNS }, // DISTINCT
-    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::hasSameNode, 0, kEXSLTSetsNS }, // HAS_SAME_NODE
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::intersection, 0, kEXSLTSetsNS }, // INTERSECTION
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::leading, 0, kEXSLTSetsNS }, // LEADING
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::trailing, 0, kEXSLTSetsNS }, // TRAILING
-    { 1, 1, Expr::STRING_RESULT,  &nsGkAtoms::concat, 0, kEXSLTStringsNS }, // CONCAT
-    { 1, 2, Expr::STRING_RESULT,  &nsGkAtoms::split, 0, kEXSLTStringsNS }, // SPLIT
-    { 1, 2, Expr::STRING_RESULT,  &nsGkAtoms::tokenize, 0, kEXSLTStringsNS }, // TOKENIZE
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::max, 0, kEXSLTMathNS }, // MAX
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::min, 0, kEXSLTMathNS }, // MIN
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::highest, 0, kEXSLTMathNS }, // HIGHEST
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::lowest, 0, kEXSLTMathNS }, // LOWEST
-    { 0, 0, Expr::STRING_RESULT,  &nsGkAtoms::dateTime, 0, kEXSLTDatesAndTimesNS }, // DATE_TIME
+    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::nodeSet, 0, kEXSLTCommonNS }, 
+    { 1, 1, Expr::STRING_RESULT,  &nsGkAtoms::objectType, 0, kEXSLTCommonNS }, 
+    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::difference, 0, kEXSLTSetsNS }, 
+    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::distinct, 0, kEXSLTSetsNS }, 
+    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::hasSameNode, 0, kEXSLTSetsNS }, 
+    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::intersection, 0, kEXSLTSetsNS }, 
+    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::leading, 0, kEXSLTSetsNS }, 
+    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::trailing, 0, kEXSLTSetsNS }, 
+    { 1, 1, Expr::STRING_RESULT,  &nsGkAtoms::concat, 0, kEXSLTStringsNS }, 
+    { 1, 2, Expr::STRING_RESULT,  &nsGkAtoms::split, 0, kEXSLTStringsNS }, 
+    { 1, 2, Expr::STRING_RESULT,  &nsGkAtoms::tokenize, 0, kEXSLTStringsNS }, 
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::max, 0, kEXSLTMathNS }, 
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::min, 0, kEXSLTMathNS }, 
+    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::highest, 0, kEXSLTMathNS }, 
+    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::lowest, 0, kEXSLTMathNS }, 
+    { 0, 0, Expr::STRING_RESULT,  &nsGkAtoms::dateTime, 0, kEXSLTDatesAndTimesNS }, 
 
 };
 
 class txEXSLTFunctionCall : public FunctionCall
 {
 public:
-    // The order of this enum must be the same as the descriptTable
-    // table above
+    
+    
     enum eType {
-        // Set functions
+        
         NODE_SET,
         OBJECT_TYPE,
         DIFFERENCE,
@@ -508,7 +512,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         case SPLIT:
         case TOKENIZE:
         {
-            // Evaluate parameters
+            
             nsAutoString string;
             rv = mParams[0]->evaluateToString(aContext, string);
             NS_ENSURE_SUCCESS(rv, rv);
@@ -525,7 +529,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
                 pattern.AssignLiteral("\t\r\n ");
             }
 
-            // Set up holders for the result
+            
             nsCOMPtr<nsIContent> docFrag;
             rv = createDocFragment(aContext, getter_AddRefs(docFrag));
             NS_ENSURE_SUCCESS(rv, rv);
@@ -536,7 +540,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
 
             PRUint32 tailIndex;
 
-            // Start splitting
+            
             if (pattern.IsEmpty()) {
                 nsString::const_char_iterator start = string.BeginReading();
                 nsString::const_char_iterator end = string.EndReading();
@@ -585,7 +589,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
                 tailIndex = start;
             }
 
-            // Add tail if needed
+            
             if (tailIndex != (PRUint32)string.Length()) {
                 rv = createAndAddToResult(nsGkAtoms::token,
                                           Substring(string, tailIndex),
@@ -679,8 +683,8 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         }
         case DATE_TIME:
         {
-            // http://exslt.org/date/functions/date-time/
-            // format: YYYY-MM-DDTTHH:MM:SS.sss+00:00
+            
+            
             char formatstr[] = "%04hd-%02ld-%02ldT%02ld:%02ld:%02ld.%03ld%c%02ld:%02ld";
             const size_t max = sizeof("YYYY-MM-DDTHH:MM:SS.sss+00:00");
             
@@ -745,7 +749,7 @@ TX_ConstructEXSLTFunction(nsIAtom *aName,
                           FunctionCall **aResult)
 {
     PRUint32 i;
-    for (i = 0; i < NS_ARRAY_LENGTH(descriptTable); ++i) {
+    for (i = 0; i < ArrayLength(descriptTable); ++i) {
         txEXSLTFunctionDescriptor& desc = descriptTable[i];
         if (aName == *desc.mName && aNamespaceID == desc.mNamespaceID) {
             *aResult = new txEXSLTFunctionCall(
@@ -762,7 +766,7 @@ extern bool
 TX_InitEXSLTFunction()
 {
     PRUint32 i;
-    for (i = 0; i < NS_ARRAY_LENGTH(descriptTable); ++i) {
+    for (i = 0; i < ArrayLength(descriptTable); ++i) {
         txEXSLTFunctionDescriptor& desc = descriptTable[i];
         NS_ConvertASCIItoUTF16 namespaceURI(desc.mNamespaceURI);
         desc.mNamespaceID =

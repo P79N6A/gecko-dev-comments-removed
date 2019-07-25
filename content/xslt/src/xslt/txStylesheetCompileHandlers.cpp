@@ -1,40 +1,42 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is TransforMiiX XSLT processor code.
- *
- * The Initial Developer of the Original Code is
- * Jonas Sicking.
- * Portions created by the Initial Developer are Copyright (C) 2002
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Jonas Sicking <jonas@sicking.cc>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "mozilla/Util.h"
 
 #include "txStylesheetCompiler.h"
 #include "txStylesheetCompileHandlers.h"
@@ -49,6 +51,8 @@
 #include "txNamespaceMap.h"
 #include "txURIUtils.h"
 #include "txXSLTFunctions.h"
+
+using namespace mozilla;
 
 txHandlerTable* gTxIgnoreHandler = 0;
 txHandlerTable* gTxRootHandler = 0;
@@ -109,7 +113,7 @@ getStyleAttr(txStylesheetAttr* aAttributes,
     *aAttr = nsnull;
     
     if (aRequired) {
-        // XXX ErrorReport: missing required attribute
+        
         return NS_ERROR_XSLT_PARSE_FAILURE;
     }
     
@@ -161,7 +165,7 @@ parseExcludeResultPrefixes(txStylesheetAttr* aAttributes,
         return rv;
     }
 
-    // XXX Needs to be implemented.
+    
 
     return NS_OK;
 }
@@ -211,7 +215,7 @@ getExprAttr(txStylesheetAttr* aAttributes,
     rv = txExprParser::createExpr(attr->mValue, &aState,
                                   getter_Transfers(aExpr));
     if (NS_FAILED(rv) && aState.fcp()) {
-        // use default value in fcp for not required exprs
+        
         if (aRequired) {
             aExpr = new txErrorExpr(
 #ifdef TX_TO_STRING
@@ -248,7 +252,7 @@ getAVTAttr(txStylesheetAttr* aAttributes,
     rv = txExprParser::createAVT(attr->mValue, &aState,
                                  getter_Transfers(aAVT));
     if (NS_FAILED(rv) && aState.fcp()) {
-        // use default value in fcp for not required exprs
+        
         if (aRequired) {
             aAVT = new txErrorExpr(
 #ifdef TX_TO_STRING
@@ -284,7 +288,7 @@ getPatternAttr(txStylesheetAttr* aAttributes,
 
     aPattern = txPatternParser::createPattern(attr->mValue, &aState);
     if (!aPattern && (aRequired || !aState.fcp())) {
-        // XXX ErrorReport: XSLT-Pattern parse failure
+        
         return NS_ERROR_XPATH_PARSE_FAILURE;
     }
 
@@ -309,7 +313,7 @@ getNumberAttr(txStylesheetAttr* aAttributes,
 
     aNumber = Double::toDouble(attr->mValue);
     if (Double::isNaN(aNumber) && (aRequired || !aState.fcp())) {
-        // XXX ErrorReport: number parse failure
+        
         return NS_ERROR_XSLT_PARSE_FAILURE;
     }
 
@@ -361,7 +365,7 @@ getYesNoAttr(txStylesheetAttr* aAttributes,
         aRes = eFalse;
     }
     else if (aRequired || !aState.fcp()) {
-        // XXX ErrorReport: unknown values
+        
         return NS_ERROR_XSLT_PARSE_FAILURE;
     }
 
@@ -376,7 +380,7 @@ getCharAttr(txStylesheetAttr* aAttributes,
             txStylesheetCompilerState& aState,
             PRUnichar& aChar)
 {
-    // Don't reset aChar since it contains the default value
+    
     txStylesheetAttr* attr = nsnull;
     nsresult rv = getStyleAttr(aAttributes, aAttrCount, kNameSpaceID_None,
                                aName, aRequired, &attr);
@@ -388,7 +392,7 @@ getCharAttr(txStylesheetAttr* aAttributes,
         aChar = attr->mValue.CharAt(0);
     }
     else if (aRequired || !aState.fcp()) {
-        // XXX ErrorReport: not a character
+        
         return NS_ERROR_XSLT_PARSE_FAILURE;
     }
 
@@ -396,9 +400,9 @@ getCharAttr(txStylesheetAttr* aAttributes,
 }
 
 
-/**
- * Ignore and error handlers
- */
+
+
+
 static nsresult
 txFnTextIgnore(const nsAString& aStr, txStylesheetCompilerState& aState)
 {
@@ -485,9 +489,9 @@ txFnEndElementError(txStylesheetCompilerState& aState)
 }
 
 
-/**
- * Root handlers
- */
+
+
+
 static nsresult
 txFnStartStylesheet(PRInt32 aNamespaceID,
                     nsIAtom* aLocalName,
@@ -496,8 +500,8 @@ txFnStartStylesheet(PRInt32 aNamespaceID,
                     PRInt32 aAttrCount,
                     txStylesheetCompilerState& aState)
 {
-    // extension-element-prefixes is handled in
-    // txStylesheetCompiler::startElementInternal
+    
+    
 
     txStylesheetAttr* attr;
     nsresult rv = getStyleAttr(aAttributes, aAttrCount, kNameSpaceID_None,
@@ -621,9 +625,9 @@ txFnEndEmbed(txStylesheetCompilerState& aState)
 }
 
 
-/**
- * Top handlers
- */
+
+
+
 static nsresult
 txFnStartOtherTop(PRInt32 aNamespaceID,
                   nsIAtom* aLocalName,
@@ -648,7 +652,7 @@ txFnEndOtherTop(txStylesheetCompilerState& aState)
 }
 
 
-// xsl:attribute-set
+
 static nsresult
 txFnStartAttributeSet(PRInt32 aNamespaceID,
                       nsIAtom* aLocalName,
@@ -696,7 +700,7 @@ txFnEndAttributeSet(txStylesheetCompilerState& aState)
 }
 
 
-// xsl:decimal-format
+
 static nsresult
 txFnStartDecimalFormat(PRInt32 aNamespaceID,
                        nsIAtom* aLocalName,
@@ -777,7 +781,7 @@ txFnEndDecimalFormat(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-// xsl:import
+
 static nsresult
 txFnStartImport(PRInt32 aNamespaceID,
                 nsIAtom* aLocalName,
@@ -819,7 +823,7 @@ txFnEndImport(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-// xsl:include
+
 static nsresult
 txFnStartInclude(PRInt32 aNamespaceID,
                  nsIAtom* aLocalName,
@@ -850,7 +854,7 @@ txFnEndInclude(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-// xsl:key
+
 static nsresult
 txFnStartKey(PRInt32 aNamespaceID,
              nsIAtom* aLocalName,
@@ -889,7 +893,7 @@ txFnEndKey(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-// xsl:namespace-alias
+
 static nsresult
 txFnStartNamespaceAlias(PRInt32 aNamespaceID,
              nsIAtom* aLocalName,
@@ -907,7 +911,7 @@ txFnStartNamespaceAlias(PRInt32 aNamespaceID,
                       nsGkAtoms::resultPrefix, PR_TRUE, &attr);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    // XXX Needs to be implemented.
+    
 
     return aState.pushHandlerTable(gTxIgnoreHandler);
 }
@@ -920,7 +924,7 @@ txFnEndNamespaceAlias(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-// xsl:output
+
 static nsresult
 txFnStartOutput(PRInt32 aNamespaceID,
                 nsIAtom* aLocalName,
@@ -941,8 +945,8 @@ txFnStartOutput(PRInt32 aNamespaceID,
 
     if (!methodExpName.isNull()) {
         if (methodExpName.mNamespaceID != kNameSpaceID_None) {
-            // The spec doesn't say what to do here so we'll just ignore the
-            // value. We could possibly warn.
+            
+            
         }
         else if (methodExpName.mLocalName == nsGkAtoms::html) {
             item->mFormat.mMethod = eHTMLOutput;
@@ -1038,7 +1042,7 @@ txFnEndOutput(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-// xsl:strip-space/xsl:preserve-space
+
 static nsresult
 txFnStartStripSpace(PRInt32 aNamespaceID,
                     nsIAtom* aLocalName,
@@ -1065,18 +1069,18 @@ txFnStartStripSpace(PRInt32 aNamespaceID,
         rv = XMLUtils::splitQName(name, getter_AddRefs(prefix),
                                   getter_AddRefs(localName));
         if (NS_FAILED(rv)) {
-            // check for "*" or "prefix:*"
+            
             PRUint32 length = name.Length();
             const PRUnichar* c;
             name.BeginReading(c);
             if (length == 2 || c[length-1] != '*') {
-                // these can't work
+                
                 return NS_ERROR_XSLT_PARSE_FAILURE;
             }
             if (length > 1) {
-                // Check for a valid prefix, that is, the returned prefix
-                // should be empty and the real prefix is returned in
-                // localName.
+                
+                
+                
                 if (c[length-2] != ':') {
                     return NS_ERROR_XSLT_PARSE_FAILURE;
                 }
@@ -1084,7 +1088,7 @@ txFnStartStripSpace(PRInt32 aNamespaceID,
                                           getter_AddRefs(prefix),
                                           getter_AddRefs(localName));
                 if (NS_FAILED(rv) || prefix) {
-                    // bad chars or two ':'
+                    
                     return NS_ERROR_XSLT_PARSE_FAILURE;
                 }
                 prefix = localName;
@@ -1121,7 +1125,7 @@ txFnEndStripSpace(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-// xsl:template
+
 static nsresult
 txFnStartTemplate(PRInt32 aNamespaceID,
                   nsIAtom* aLocalName,
@@ -1179,7 +1183,7 @@ txFnEndTemplate(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-// xsl:variable, xsl:param
+
 static nsresult
 txFnStartTopVariable(PRInt32 aNamespaceID,
                      nsIAtom* aLocalName,
@@ -1208,7 +1212,7 @@ txFnStartTopVariable(PRInt32 aNamespaceID,
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (var->mValue) {
-        // XXX should be gTxErrorHandler?
+        
         rv = aState.pushHandlerTable(gTxIgnoreHandler);
         NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -1233,14 +1237,14 @@ txFnEndTopVariable(txStylesheetCompilerState& aState)
     txVariableItem* var = static_cast<txVariableItem*>(aState.popPtr());
 
     if (prev == gTxTopVariableHandler) {
-        // No children were found.
+        
         NS_ASSERTION(!var->mValue,
                      "There shouldn't be a select-expression here");
         var->mValue = new txLiteralExpr(EmptyString());
         NS_ENSURE_TRUE(var->mValue, NS_ERROR_OUT_OF_MEMORY);
     }
     else if (!var->mValue) {
-        // If we don't have a select-expression there mush be children.
+        
         nsAutoPtr<txInstruction> instr(new txReturn());
         NS_ENSURE_TRUE(instr, NS_ERROR_OUT_OF_MEMORY);
 
@@ -1276,19 +1280,19 @@ txFnTextStartTopVar(const nsAString& aStr, txStylesheetCompilerState& aState)
     return NS_XSLT_GET_NEW_HANDLER;
 }
 
-/**
- * Template Handlers
- */
 
-/*
-  LRE
 
-  txStartLREElement
-  txInsertAttrSet        one for each qname in xsl:use-attribute-sets
-  txLREAttribute         one for each attribute
-  [children]
-  txEndElement
-*/
+
+
+
+
+
+
+
+
+
+
+
 static nsresult
 txFnStartLRE(PRInt32 aNamespaceID,
              nsIAtom* aLocalName,
@@ -1353,11 +1357,11 @@ txFnEndLRE(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  "LRE text"
 
-  txText
-*/
+
+
+
+
 static nsresult
 txFnText(const nsAString& aStr, txStylesheetCompilerState& aState)
 {
@@ -1372,12 +1376,12 @@ txFnText(const nsAString& aStr, txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:apply-imports
 
-  txApplyImportsStart
-  txApplyImportsEnd
-*/
+
+
+
+
+
 static nsresult
 txFnStartApplyImports(PRInt32 aNamespaceID,
                       nsIAtom* aLocalName,
@@ -1411,16 +1415,16 @@ txFnEndApplyImports(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:apply-templates
 
-  txPushParams
-  [params]
-  txPushNewContext    -+   (holds <xsl:sort>s)
-  txApplyTemplate <-+  |
-  txLoopNodeSet    -+  |
-  txPopParams        <-+
-*/
+
+
+
+
+
+
+
+
+
 static nsresult
 txFnStartApplyTemplates(PRInt32 aNamespaceID,
                         nsIAtom* aLocalName,
@@ -1487,13 +1491,13 @@ txFnEndApplyTemplates(txStylesheetCompilerState& aState)
 
     txPushNewContext* pushcontext =
         static_cast<txPushNewContext*>(aState.popObject());
-    nsAutoPtr<txInstruction> instr(pushcontext); // txPushNewContext
+    nsAutoPtr<txInstruction> instr(pushcontext); 
     nsresult rv = aState.addInstruction(instr);
     NS_ENSURE_SUCCESS(rv, rv);
 
     aState.popSorter();
 
-    instr = static_cast<txInstruction*>(aState.popObject()); // txApplyTemplates
+    instr = static_cast<txInstruction*>(aState.popObject()); 
     nsAutoPtr<txLoopNodeSet> loop(new txLoopNodeSet(instr));
     NS_ENSURE_TRUE(loop, NS_ERROR_OUT_OF_MEMORY);
 
@@ -1514,13 +1518,13 @@ txFnEndApplyTemplates(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:attribute
 
-  txPushStringHandler
-  [children]
-  txAttribute
-*/
+
+
+
+
+
+
 static nsresult
 txFnStartAttribute(PRInt32 aNamespaceID,
                    nsIAtom* aLocalName,
@@ -1555,8 +1559,8 @@ txFnStartAttribute(PRInt32 aNamespaceID,
 
     instr.forget();
 
-    // We need to push the template-handler since the current might be
-    // the attributeset-handler
+    
+    
     return aState.pushHandlerTable(gTxTemplateHandler);
 }
 
@@ -1572,14 +1576,14 @@ txFnEndAttribute(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:call-template
 
-  txPushParams
-  [params]
-  txCallTemplate
-  txPopParams
-*/
+
+
+
+
+
+
+
 static nsresult
 txFnStartCallTemplate(PRInt32 aNamespaceID,
                       nsIAtom* aLocalName,
@@ -1617,7 +1621,7 @@ txFnEndCallTemplate(txStylesheetCompilerState& aState)
 {
     aState.popHandlerTable();
 
-    // txCallTemplate
+    
     nsAutoPtr<txInstruction> instr(static_cast<txInstruction*>(aState.popObject()));
     nsresult rv = aState.addInstruction(instr);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1631,20 +1635,20 @@ txFnEndCallTemplate(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:choose
 
-  txCondotionalGoto      --+        \
-  [children]               |         | one for each xsl:when
-  txGoTo           --+     |        /
-                     |     |
-  txCondotionalGoto  |   <-+  --+
-  [children]         |          |
-  txGoTo           --+          |
-                     |          |
-  [children]         |        <-+      for the xsl:otherwise, if there is one
-                   <-+
-*/
+
+
+
+
+
+
+
+
+
+
+
+
+
 static nsresult
 txFnStartChoose(PRInt32 aNamespaceID,
                  nsIAtom* aLocalName,
@@ -1676,13 +1680,13 @@ txFnEndChoose(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:comment
 
-  txPushStringHandler
-  [children]
-  txComment
-*/
+
+
+
+
+
+
 static nsresult
 txFnStartComment(PRInt32 aNamespaceID,
                  nsIAtom* aLocalName,
@@ -1712,15 +1716,15 @@ txFnEndComment(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:copy
 
-  txCopy          -+
-  txInsertAttrSet  |     one for each qname in use-attribute-sets
-  [children]       |
-  txEndElement     |
-                 <-+
-*/
+
+
+
+
+
+
+
+
 static nsresult
 txFnStartCopy(PRInt32 aNamespaceID,
               nsIAtom* aLocalName,
@@ -1761,11 +1765,11 @@ txFnEndCopy(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:copy-of
 
-  txCopyOf
-*/
+
+
+
+
 static nsresult
 txFnStartCopyOf(PRInt32 aNamespaceID,
                 nsIAtom* aLocalName,
@@ -1797,14 +1801,14 @@ txFnEndCopyOf(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:element
 
-  txStartElement
-  txInsertAttrSet        one for each qname in use-attribute-sets
-  [children]
-  txEndElement
-*/
+
+
+
+
+
+
+
 static nsresult
 txFnStartElement(PRInt32 aNamespaceID,
                  nsIAtom* aLocalName,
@@ -1850,11 +1854,11 @@ txFnEndElement(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-    xsl:fallback
 
-    [children]
-*/
+
+
+
+
 static nsresult
 txFnStartFallback(PRInt32 aNamespaceID,
                   nsIAtom* aLocalName,
@@ -1878,15 +1882,15 @@ txFnEndFallback(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:for-each
 
-  txPushNewContext            -+    (holds <xsl:sort>s)
-  txPushNullTemplateRule  <-+  |
-  [children]                |  |
-  txLoopNodeSet            -+  |
-                             <-+
-*/
+
+
+
+
+
+
+
+
 static nsresult
 txFnStartForEach(PRInt32 aNamespaceID,
                  nsIAtom* aLocalName,
@@ -1932,7 +1936,7 @@ txFnEndForEach(txStylesheetCompilerState& aState)
 {
     aState.popHandlerTable();
 
-    // This is a txPushNullTemplateRule
+    
     txInstruction* pnullrule =
         static_cast<txInstruction*>(aState.popPtr());
 
@@ -1972,13 +1976,13 @@ txFnTextContinueTemplate(const nsAString& aStr,
     return NS_XSLT_GET_NEW_HANDLER;
 }
 
-/*
-  xsl:if
 
-  txConditionalGoto  -+
-  [children]          |
-                    <-+
-*/
+
+
+
+
+
+
 static nsresult
 txFnStartIf(PRInt32 aNamespaceID,
             nsIAtom* aLocalName,
@@ -2015,13 +2019,13 @@ txFnEndIf(txStylesheetCompilerState& aState)
     return aState.addGotoTarget(&condGoto->mTarget);
 }
 
-/*
-  xsl:message
 
-  txPushStringHandler
-  [children]
-  txMessage
-*/
+
+
+
+
+
+
 static nsresult
 txFnStartMessage(PRInt32 aNamespaceID,
                  nsIAtom* aLocalName,
@@ -2062,11 +2066,11 @@ txFnEndMessage(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:number
 
-  txNumber
-*/
+
+
+
+
 static nsresult
 txFnStartNumber(PRInt32 aNamespaceID,
                 nsIAtom* aLocalName,
@@ -2152,11 +2156,11 @@ txFnEndNumber(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-    xsl:otherwise
-    
-    (see xsl:choose)
-*/
+
+
+
+
+
 static nsresult
 txFnStartOtherwise(PRInt32 aNamespaceID,
                    nsIAtom* aLocalName,
@@ -2172,20 +2176,20 @@ static nsresult
 txFnEndOtherwise(txStylesheetCompilerState& aState)
 {
     aState.popHandlerTable();
-    aState.mHandlerTable = gTxIgnoreHandler; // XXX should be gTxErrorHandler
+    aState.mHandlerTable = gTxIgnoreHandler; 
 
     return NS_OK;
 }
 
-/*
-    xsl:param
-    
-    txCheckParam    --+
-    txPushRTFHandler  |  --- (for RTF-parameters)
-    [children]        |  /
-    txSetVariable     |
-                    <-+
-*/
+
+
+
+
+
+
+
+
+
 static nsresult
 txFnStartParam(PRInt32 aNamespaceID,
                nsIAtom* aLocalName,
@@ -2220,7 +2224,7 @@ txFnStartParam(PRInt32 aNamespaceID,
     NS_ENSURE_TRUE(var, NS_ERROR_OUT_OF_MEMORY);
 
     if (var->mValue) {
-        // XXX should be gTxErrorHandler?
+        
         rv = aState.pushHandlerTable(gTxIgnoreHandler);
         NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -2246,7 +2250,7 @@ txFnEndParam(txStylesheetCompilerState& aState)
     aState.popHandlerTable();
 
     if (prev == gTxVariableHandler) {
-        // No children were found.
+        
         NS_ASSERTION(!var->mValue,
                      "There shouldn't be a select-expression here");
         var->mValue = new txLiteralExpr(EmptyString());
@@ -2266,13 +2270,13 @@ txFnEndParam(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:processing-instruction
 
-  txPushStringHandler
-  [children]
-  txProcessingInstruction
-*/
+
+
+
+
+
+
 static nsresult
 txFnStartPI(PRInt32 aNamespaceID,
             nsIAtom* aLocalName,
@@ -2314,11 +2318,11 @@ txFnEndPI(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-    xsl:sort
-    
-    (no instructions)
-*/
+
+
+
+
+
 static nsresult
 txFnStartSort(PRInt32 aNamespaceID,
               nsIAtom* aLocalName,
@@ -2379,11 +2383,11 @@ txFnEndSort(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:text
 
-  [children]     (only txText)
-*/
+
+
+
+
 static nsresult
 txFnStartText(PRInt32 aNamespaceID,
               nsIAtom* aLocalName,
@@ -2426,11 +2430,11 @@ txFnTextText(const nsAString& aStr, txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-  xsl:value-of
 
-  txValueOf
-*/
+
+
+
+
 static nsresult
 txFnStartValueOf(PRInt32 aNamespaceID,
                  nsIAtom* aLocalName,
@@ -2468,13 +2472,13 @@ txFnEndValueOf(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-    xsl:variable
-    
-    txPushRTFHandler     --- (for RTF-parameters)
-    [children]           /
-    txSetVariable      
-*/
+
+
+
+
+
+
+
 static nsresult
 txFnStartVariable(PRInt32 aNamespaceID,
                   nsIAtom* aLocalName,
@@ -2499,7 +2503,7 @@ txFnStartVariable(PRInt32 aNamespaceID,
     NS_ENSURE_TRUE(var, NS_ERROR_OUT_OF_MEMORY);
 
     if (var->mValue) {
-        // XXX should be gTxErrorHandler?
+        
         rv = aState.pushHandlerTable(gTxIgnoreHandler);
         NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -2526,7 +2530,7 @@ txFnEndVariable(txStylesheetCompilerState& aState)
     aState.popHandlerTable();
 
     if (prev == gTxVariableHandler) {
-        // No children were found.
+        
         NS_ASSERTION(!var->mValue,
                      "There shouldn't be a select-expression here");
         var->mValue = new txLiteralExpr(EmptyString());
@@ -2578,11 +2582,11 @@ txFnTextStartRTF(const nsAString& aStr, txStylesheetCompilerState& aState)
     return NS_XSLT_GET_NEW_HANDLER;
 }
 
-/*
-    xsl:when
-    
-    (see xsl:choose)
-*/
+
+
+
+
+
 static nsresult
 txFnStartWhen(PRInt32 aNamespaceID,
               nsIAtom* aLocalName,
@@ -2633,13 +2637,13 @@ txFnEndWhen(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-    xsl:with-param
-    
-    txPushRTFHandler   -- for RTF-parameters
-    [children]         /
-    txSetParam
-*/
+
+
+
+
+
+
+
 static nsresult
 txFnStartWithParam(PRInt32 aNamespaceID,
                    nsIAtom* aLocalName,
@@ -2664,7 +2668,7 @@ txFnStartWithParam(PRInt32 aNamespaceID,
     NS_ENSURE_TRUE(var, NS_ERROR_OUT_OF_MEMORY);
 
     if (var->mValue) {
-        // XXX should be gTxErrorHandler?
+        
         rv = aState.pushHandlerTable(gTxIgnoreHandler);
         NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -2689,7 +2693,7 @@ txFnEndWithParam(txStylesheetCompilerState& aState)
     aState.popHandlerTable();
 
     if (prev == gTxVariableHandler) {
-        // No children were found.
+        
         NS_ASSERTION(!var->mValue,
                      "There shouldn't be a select-expression here");
         var->mValue = new txLiteralExpr(EmptyString());
@@ -2703,13 +2707,13 @@ txFnEndWithParam(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/*
-    Unknown instruction
 
-    [fallbacks]           if one or more xsl:fallbacks are found
-    or
-    txErrorInstruction    otherwise
-*/
+
+
+
+
+
+
 static nsresult
 txFnStartUnknownInstruction(PRInt32 aNamespaceID,
                             nsIAtom* aLocalName,
@@ -2748,9 +2752,9 @@ txFnEndUnknownInstruction(txStylesheetCompilerState& aState)
     return NS_OK;
 }
 
-/**
- * Table Datas
- */
+
+
+
 
 struct txHandlerTableData {
     txElementHandler mOtherHandler;
@@ -2759,11 +2763,11 @@ struct txHandlerTableData {
 };
 
 const txHandlerTableData gTxIgnoreTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementIgnore, txFnEndElementIgnore },
-  // LRE
+  
   { 0, 0, txFnStartElementIgnore, txFnEndElementIgnore },
-  // Text
+  
   txFnTextIgnore
 };
 
@@ -2773,20 +2777,20 @@ const txElementHandler gTxRootElementHandlers[] = {
 };
 
 const txHandlerTableData gTxRootTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementError, txFnEndElementError },
-  // LRE
+  
   { 0, 0, txFnStartLREStylesheet, txFnEndLREStylesheet },
-  // Text
+  
   txFnTextError
 };
 
 const txHandlerTableData gTxEmbedTableData = {
-  // Other
+  
   { 0, 0, txFnStartEmbed, txFnEndEmbed },
-  // LRE
+  
   { 0, 0, txFnStartElementIgnore, txFnEndElementIgnore },
-  // Text
+  
   txFnTextIgnore
 };
 
@@ -2806,11 +2810,11 @@ const txElementHandler gTxTopElementHandlers[] = {
 };
 
 const txHandlerTableData gTxTopTableData = {
-  // Other
+  
   { 0, 0, txFnStartOtherTop, txFnEndOtherTop },
-  // LRE
+  
   { 0, 0, txFnStartOtherTop, txFnEndOtherTop },
-  // Text
+  
   txFnTextIgnore
 };
 
@@ -2836,20 +2840,20 @@ const txElementHandler gTxTemplateElementHandlers[] = {
 };
 
 const txHandlerTableData gTxTemplateTableData = {
-  // Other
+  
   { 0, 0, txFnStartUnknownInstruction, txFnEndUnknownInstruction },
-  // LRE
+  
   { 0, 0, txFnStartLRE, txFnEndLRE },
-  // Text
+  
   txFnText
 };
 
 const txHandlerTableData gTxTextTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementError, txFnEndElementError },
-  // LRE
+  
   { 0, 0, txFnStartElementError, txFnEndElementError },
-  // Text
+  
   txFnTextText
 };
 
@@ -2859,11 +2863,11 @@ const txElementHandler gTxApplyTemplatesElementHandlers[] = {
 };
 
 const txHandlerTableData gTxApplyTemplatesTableData = {
-  // Other
-  { 0, 0, txFnStartElementSetIgnore, txFnEndElementSetIgnore }, // should this be error?
-  // LRE
+  
+  { 0, 0, txFnStartElementSetIgnore, txFnEndElementSetIgnore }, 
+  
   { 0, 0, txFnStartElementSetIgnore, txFnEndElementSetIgnore },
-  // Text
+  
   txFnTextIgnore
 };
 
@@ -2872,20 +2876,20 @@ const txElementHandler gTxCallTemplateElementHandlers[] = {
 };
 
 const txHandlerTableData gTxCallTemplateTableData = {
-  // Other
-  { 0, 0, txFnStartElementSetIgnore, txFnEndElementSetIgnore }, // should this be error?
-  // LRE
+  
+  { 0, 0, txFnStartElementSetIgnore, txFnEndElementSetIgnore }, 
+  
   { 0, 0, txFnStartElementSetIgnore, txFnEndElementSetIgnore },
-  // Text
+  
   txFnTextIgnore
 };
 
 const txHandlerTableData gTxVariableTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementStartRTF, 0 },
-  // LRE
+  
   { 0, 0, txFnStartElementStartRTF, 0 },
-  // Text
+  
   txFnTextStartRTF
 };
 
@@ -2894,20 +2898,20 @@ const txElementHandler gTxForEachElementHandlers[] = {
 };
 
 const txHandlerTableData gTxForEachTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementContinueTemplate, 0 },
-  // LRE
+  
   { 0, 0, txFnStartElementContinueTemplate, 0 },
-  // Text
+  
   txFnTextContinueTemplate
 };
 
 const txHandlerTableData gTxTopVariableTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementStartTopVar, 0 },
-  // LRE
+  
   { 0, 0, txFnStartElementStartTopVar, 0 },
-  // Text
+  
   txFnTextStartTopVar
 };
 
@@ -2917,11 +2921,11 @@ const txElementHandler gTxChooseElementHandlers[] = {
 };
 
 const txHandlerTableData gTxChooseTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementError, 0 },
-  // LRE
+  
   { 0, 0, txFnStartElementError, 0 },
-  // Text
+  
   txFnTextError
 };
 
@@ -2930,11 +2934,11 @@ const txElementHandler gTxParamElementHandlers[] = {
 };
 
 const txHandlerTableData gTxParamTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementContinueTemplate, 0 },
-  // LRE
+  
   { 0, 0, txFnStartElementContinueTemplate, 0 },
-  // Text
+  
   txFnTextContinueTemplate
 };
 
@@ -2943,12 +2947,12 @@ const txElementHandler gTxImportElementHandlers[] = {
 };
 
 const txHandlerTableData gTxImportTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementContinueTopLevel, 0 },
-  // LRE
-  { 0, 0, txFnStartOtherTop, txFnEndOtherTop }, // XXX what should we do here?
-  // Text
-  txFnTextIgnore  // XXX what should we do here?
+  
+  { 0, 0, txFnStartOtherTop, txFnEndOtherTop }, 
+  
+  txFnTextIgnore  
 };
 
 const txElementHandler gTxAttributeSetElementHandlers[] = {
@@ -2956,11 +2960,11 @@ const txElementHandler gTxAttributeSetElementHandlers[] = {
 };
 
 const txHandlerTableData gTxAttributeSetTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementError, 0 },
-  // LRE
+  
   { 0, 0, txFnStartElementError, 0 },
-  // Text
+  
   txFnTextError
 };
 
@@ -2969,19 +2973,19 @@ const txElementHandler gTxFallbackElementHandlers[] = {
 };
 
 const txHandlerTableData gTxFallbackTableData = {
-  // Other
+  
   { 0, 0, txFnStartElementSetIgnore, txFnEndElementSetIgnore },
-  // LRE
+  
   { 0, 0, txFnStartElementSetIgnore, txFnEndElementSetIgnore },
-  // Text
+  
   txFnTextIgnore
 };
 
 
 
-/**
- * txHandlerTable
- */
+
+
+
 txHandlerTable::txHandlerTable(const HandleTextFn aTextHandler,
                                const txElementHandler* aLREHandler,
                                const txElementHandler* aOtherHandler)
@@ -3031,7 +3035,7 @@ txHandlerTable::find(PRInt32 aNamespaceID, nsIAtom* aLocalName)
     INIT_HANDLER(_name);                                             \
                                                                      \
     rv = gTx##_name##Handler->init(gTx##_name##ElementHandlers,      \
-                                   NS_ARRAY_LENGTH(gTx##_name##ElementHandlers)); \
+                                   ArrayLength(gTx##_name##ElementHandlers)); \
     if (NS_FAILED(rv))                                               \
         return PR_FALSE
 
@@ -3039,7 +3043,7 @@ txHandlerTable::find(PRInt32 aNamespaceID, nsIAtom* aLocalName)
     delete gTx##_name##Handler;                                      \
     gTx##_name##Handler = nsnull
 
-// static
+
 MBool
 txHandlerTable::init()
 {
@@ -3065,7 +3069,7 @@ txHandlerTable::init()
     return MB_TRUE;
 }
 
-// static
+
 void
 txHandlerTable::shutdown()
 {

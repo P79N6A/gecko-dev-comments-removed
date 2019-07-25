@@ -37,6 +37,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "nsCache.h"
 #include "nsDiskCache.h"
 #include "nsDiskCacheDeviceSQL.h"
@@ -66,6 +68,8 @@
 #include "nsISeekableStream.h"
 
 #include "mozilla/FunctionTimer.h"
+
+using namespace mozilla;
 
 static const char OFFLINE_CACHE_DEVICE_ID[] = { "offline" };
 static NS_DEFINE_CID(kCacheServiceCID, NS_CACHESERVICE_CID);
@@ -1002,6 +1006,16 @@ nsOfflineCacheDevice::GetInstance()
   return cacheService->mOfflineDevice;
 }
 
+
+
+
+struct StatementSql {
+    nsCOMPtr<mozIStorageStatement> &statement;
+    const char *sql;
+    StatementSql (nsCOMPtr<mozIStorageStatement> &aStatement, const char *aSql):
+      statement (aStatement), sql (aSql) {}
+};
+
 nsresult
 nsOfflineCacheDevice::Init()
 {
@@ -1129,12 +1143,7 @@ nsOfflineCacheDevice::Init()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  struct StatementSql {
-    nsCOMPtr<mozIStorageStatement> &statement;
-    const char *sql;
-    StatementSql (nsCOMPtr<mozIStorageStatement> &aStatement, const char *aSql):
-      statement (aStatement), sql (aSql) {}
-  } prepared[] = {
+  StatementSql prepared[] = {
     StatementSql ( mStatement_CacheSize,         "SELECT Sum(DataSize) from moz_cache;" ),
     StatementSql ( mStatement_ApplicationCacheSize, "SELECT Sum(DataSize) from moz_cache WHERE ClientID = ?;" ),
     StatementSql ( mStatement_EntryCount,        "SELECT count(*) from moz_cache;" ),
@@ -1169,7 +1178,7 @@ nsOfflineCacheDevice::Init()
     StatementSql ( mStatement_InsertNamespaceEntry,  "INSERT INTO moz_cache_namespaces (ClientID, NameSpace, Data, ItemType) VALUES(?, ?, ?, ?);"),
     StatementSql ( mStatement_EnumerateGroups,       "SELECT GroupID, ActiveClientID FROM moz_cache_groups;")
   };
-  for (PRUint32 i = 0; NS_SUCCEEDED(rv) && i < NS_ARRAY_LENGTH(prepared); ++i)
+  for (PRUint32 i = 0; NS_SUCCEEDED(rv) && i < ArrayLength(prepared); ++i)
   {
     LOG(("Creating statement: %s\n", prepared[i].sql));
 

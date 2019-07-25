@@ -39,6 +39,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #if defined(XP_UNIX)
 
 #ifdef MOZ_WIDGET_GTK2
@@ -1788,16 +1790,20 @@ static const EGLint kEGLConfigAttribsRGBA32[] = {
 
 
 
+struct EGLAttribs {
+    gfxASurface::gfxImageFormat mFormat;
+    const EGLint* mAttribs;
+};
+
+
+
 
 
 
 static bool
 CreateConfig(EGLConfig* aConfig)
 {
-    struct EGLAttribs {
-        gfxASurface::gfxImageFormat mFormat;
-        const EGLint* mAttribs;
-    } attribsToTry[] = {
+    EGLAttribs attribsToTry[] = {
 #ifdef MOZ_GFX_OPTIMIZE_MOBILE
         
         
@@ -1807,9 +1813,9 @@ CreateConfig(EGLConfig* aConfig)
     };
 
     EGLConfig configs[64];
-    for (unsigned i = 0; i < NS_ARRAY_LENGTH(attribsToTry); ++i) {
+    for (unsigned i = 0; i < ArrayLength(attribsToTry); ++i) {
         const EGLAttribs& attribs = attribsToTry[i];
-        EGLint ncfg = NS_ARRAY_LENGTH(configs);
+        EGLint ncfg = ArrayLength(configs);
 
         if (!sEGLLibrary.fChooseConfig(EGL_DISPLAY(), attribs.mAttribs,
                                        configs, ncfg, &ncfg) ||

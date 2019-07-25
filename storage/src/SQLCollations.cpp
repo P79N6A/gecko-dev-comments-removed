@@ -37,6 +37,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "SQLCollations.h"
 
 namespace mozilla {
@@ -124,6 +126,14 @@ localeCollationHelper16(void *aService,
   return serv->localeCompareStrings(str1, str2, aComparisonStrength);
 }
 
+
+
+struct Collations {
+  const char *zName;
+  int enc;
+  int(*xCompare)(void*, int, const void*, int, const void*);
+};
+
 } 
 
 
@@ -133,11 +143,7 @@ int
 registerCollations(sqlite3 *aDB,
                    Service *aService)
 {
-  struct Collations {
-    const char *zName;
-    int enc;
-    int(*xCompare)(void*, int, const void*, int, const void*);
-  } collations[] = {
+  Collations collations[] = {
     {"locale",
      SQLITE_UTF8,
      localeCollation8},
@@ -165,7 +171,7 @@ registerCollations(sqlite3 *aDB,
   };
 
   int rv = SQLITE_OK;
-  for (size_t i = 0; SQLITE_OK == rv && i < NS_ARRAY_LENGTH(collations); ++i) {
+  for (size_t i = 0; SQLITE_OK == rv && i < ArrayLength(collations); ++i) {
     struct Collations *p = &collations[i];
     rv = ::sqlite3_create_collation(aDB, p->zName, p->enc, aService,
                                     p->xCompare);
