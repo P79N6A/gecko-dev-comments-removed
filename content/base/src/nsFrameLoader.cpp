@@ -1344,32 +1344,15 @@ nsFrameLoader::ShouldUseRemoteProcess()
   
   
 
-  if (PR_GetEnv("MOZ_DISABLE_OOP_TABS")) {
+  if (PR_GetEnv("MOZ_DISABLE_OOP_TABS") ||
+      Preferences::GetBool("dom.ipc.tabs.disabled", PR_FALSE)) {
     return false;
   }
 
-  PRBool remoteDisabled =
-    Preferences::GetBool("dom.ipc.tabs.disabled", PR_FALSE);
-  if (remoteDisabled) {
-    return false;
-  }
-
-  static nsIAtom* const *const remoteValues[] = {
-    &nsGkAtoms::_false,
-    &nsGkAtoms::_true,
-    nsnull
-  };
-
-  switch (mOwnerContent->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::Remote,
-                                         remoteValues, eCaseMatters)) {
-  case 0:
-    return false;
-  case 1:
-    return true;
-  }
-
-  PRBool remoteEnabled = Preferences::GetBool("dom.ipc.tabs.enabled", PR_FALSE);
-  return (bool) remoteEnabled;
+  return (bool) mOwnerContent->AttrValueIs(kNameSpaceID_None,
+                                           nsGkAtoms::Remote,
+                                           nsGkAtoms::_true,
+                                           eCaseMatters);
 }
 
 nsresult
