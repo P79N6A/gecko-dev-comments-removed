@@ -63,7 +63,6 @@
 #include "nsIProxyInfo.h"
 #include "nsEscape.h"
 #include "nsNetCID.h"
-#include "nsIRecyclingAllocator.h"
 #include "nsISocketTransport.h"
 #include "nsCRT.h"
 #include "nsSimpleNestedURI.h"
@@ -85,6 +84,9 @@
 #define PORT_PREF(x)               PORT_PREF_PREFIX x
 #define AUTODIAL_PREF              "network.autodial-helper.enabled"
 #define MANAGE_OFFLINE_STATUS_PREF "network.manage-offline-status"
+
+
+
 
 #define NECKO_BUFFER_CACHE_COUNT_PREF "network.buffer.cache.count"
 #define NECKO_BUFFER_CACHE_SIZE_PREF  "network.buffer.cache.size"
@@ -167,7 +169,6 @@ static const char kProfileChangeNetRestoreTopic[] = "profile-change-net-restore"
 static const char kProfileDoChange[] = "profile-do-change";
 
 
-nsIMemory* nsIOService::gBufferCache = nsnull;
 PRUint32   nsIOService::gDefaultSegmentSize = 4096;
 PRUint32   nsIOService::gDefaultSegmentCount = 24;
 
@@ -244,24 +245,6 @@ nsIOService::Init()
         NS_WARNING("failed to get observer service");
         
     NS_TIME_FUNCTION_MARK("Registered observers");
-
-    
-    if (!gBufferCache) {
-        nsresult rv = NS_OK;
-        nsCOMPtr<nsIRecyclingAllocator> recyclingAllocator =
-            do_CreateInstance(NS_RECYCLINGALLOCATOR_CONTRACTID, &rv);
-
-        if (NS_FAILED(rv))
-            return rv;
-        rv = recyclingAllocator->Init(gDefaultSegmentCount,
-                                      (15 * 60), 
-                                      "necko");
-
-        NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Was unable to allocate.  No gBufferCache.");
-        CallQueryInterface(recyclingAllocator, &gBufferCache);
-    }
-
-    NS_TIME_FUNCTION_MARK("Set up the recycling allocator");
 
     gIOService = this;
 
@@ -924,7 +907,7 @@ nsIOService::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
 
             if (size > 0 && size < 1024*1024)
                 gDefaultSegmentSize = size;
-        NS_WARN_IF_FALSE( (!(size & (size - 1))) , "network buffer cache size is not a power of 2!");
+        NS_WARN_IF_FALSE( (!(size & (size - 1))) , "network segment size is not a power of 2!");
     }
 }
 

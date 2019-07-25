@@ -3094,6 +3094,9 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
   
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel));
   if (httpChannel) {
+    rv = httpChannel->SetReferrer(doc->GetDocumentURI());  
+    NS_ENSURE_SUCCESS(rv,rv);
+      
     if (aPostStream) {
       
       
@@ -3109,8 +3112,10 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
       uploadChannel->SetUploadStream(aPostStream, EmptyCString(), -1);
     }
 
-    if (aHeadersData)
+    if (aHeadersData) {
       rv = AddHeadersToChannel(aHeadersData, aHeadersDataLen, httpChannel);
+      NS_ENSURE_SUCCESS(rv,rv);
+    }
   }
   rv = channel->AsyncOpen(listenerPeer, nsnull);
   if (NS_SUCCEEDED(rv))

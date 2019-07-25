@@ -127,7 +127,7 @@ public:
   nsXFormsContainerAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
 
   
   

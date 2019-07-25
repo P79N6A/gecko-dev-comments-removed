@@ -58,7 +58,7 @@ public:
   nsXULColumnsAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 };
 
@@ -76,7 +76,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -102,7 +102,7 @@ public:
   NS_IMETHOD GetValue(nsAString& aValue);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -136,7 +136,7 @@ public:
   
   virtual void Description(nsString& aDesc);
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
                                           PRInt32 *aSetSize);
@@ -172,7 +172,7 @@ public:
 
   
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
 };
 
 #endif

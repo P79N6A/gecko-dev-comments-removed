@@ -200,7 +200,7 @@ nsIdleService::AddIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTime)
   }
 
   
-  CheckAwayState(false);
+  CheckAwayState(true);
 
   return NS_OK;
 }
@@ -228,18 +228,11 @@ nsIdleService::RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aTime)
 void
 nsIdleService::ResetIdleTimeOut()
 {
-  
-  
-  bool calledBefore = mLastIdleReset != 0;
   mLastIdleReset = PR_IntervalToSeconds(PR_IntervalNow());
   if (!mLastIdleReset) mLastIdleReset = 1;
 
   
-  
-  
-  
-  
-  CheckAwayState(calledBefore);
+  CheckAwayState(false);
 }
 
 NS_IMETHODIMP
@@ -306,7 +299,7 @@ nsIdleService::IdleTimerCallback(nsITimer* aTimer, void* aClosure)
 }
 
 void
-nsIdleService::CheckAwayState(bool aNoTimeReset)
+nsIdleService::CheckAwayState(bool aNewObserver)
 {
   
 
@@ -315,6 +308,15 @@ nsIdleService::CheckAwayState(bool aNoTimeReset)
 
   PRUint32 curTime = static_cast<PRUint32>(PR_Now() / PR_USEC_PER_SEC);
   PRUint32 lastTime = curTime - mLastHandledActivity;
+  bool bootstrapTimer =  mLastHandledActivity == 0;
+
+  
+
+
+
+  if (!lastTime && !aNewObserver) {
+    return;
+  }
 
   
   PRUint32 idleTime;
@@ -331,48 +333,114 @@ nsIdleService::CheckAwayState(bool aNoTimeReset)
   idleTime /= 1000;
 
   
-  nsAutoString timeStr;
-  timeStr.AppendInt(idleTime);
-
-  
   mLastHandledActivity = curTime - idleTime;
 
   
 
 
 
+  bool userActivity = lastTime > idleTime;
+
+  if (userActivity) {
+    if (TryNotifyBackState(idleTime) || idleTime) {
+      RescheduleIdleTimer(idleTime);
+    }
+  }
+
+  if (!userActivity || aNewObserver || bootstrapTimer) {
+    TryNotifyIdleState(idleTime);
+    RescheduleIdleTimer(idleTime);
+  }
+}
+
+bool
+nsIdleService::TryNotifyBackState(PRUint32 aIdleTime)
+{
   nsCOMArray<nsIObserver> notifyList;
 
-  if (lastTime > idleTime) {
-    
-    for (PRUint32 i = 0; i < mArrayListeners.Length(); i++) {
-      IdleListener& curListener = mArrayListeners.ElementAt(i);
+  
+  for (PRUint32 i = 0; i < mArrayListeners.Length(); i++) {
+    IdleListener& curListener = mArrayListeners.ElementAt(i);
 
-      if (curListener.isIdle) {
+    if (curListener.isIdle) {
+      notifyList.AppendObject(curListener.observer);
+      curListener.isIdle = false;
+    }
+  }
+
+  PRInt32 numberOfPendingNotifications = notifyList.Count();
+
+  
+  if(!numberOfPendingNotifications) {
+    return false;
+  }
+
+  
+  nsAutoString timeStr;
+  timeStr.AppendInt(aIdleTime);
+
+  
+  while(numberOfPendingNotifications--) {
+    notifyList[numberOfPendingNotifications]->Observe(this,
+                                                      OBSERVER_TOPIC_BACK,
+                                                      timeStr.get());
+  }
+
+  
+  return true;
+}
+
+bool
+nsIdleService::TryNotifyIdleState(PRUint32 aIdleTime)
+{
+  
+
+
+
+
+
+  nsCOMArray<nsIObserver> notifyList;
+
+  for (PRUint32 i = 0; i < mArrayListeners.Length(); i++) {
+    IdleListener& curListener = mArrayListeners.ElementAt(i);
+
+    
+    if (!curListener.isIdle) {
+      
+      if (curListener.reqIdleTime <= aIdleTime) {
+        
+        
         notifyList.AppendObject(curListener.observer);
-        curListener.isIdle = false;
+        
+        curListener.isIdle = true;
       }
     }
+  }
 
-    
-    for (PRInt32 i = 0; i < notifyList.Count(); i++) {
-      notifyList[i]->Observe(this, OBSERVER_TOPIC_BACK, timeStr.get());
-    }
+  PRInt32 numberOfPendingNotifications = notifyList.Count();
+
+  
+  if(!numberOfPendingNotifications) {
+    return false;
   }
 
   
-
-
-
-
+  nsAutoString timeStr;
+  timeStr.AppendInt(aIdleTime);
 
   
-  notifyList.Clear();
-
-  
-  if (aNoTimeReset) {
-    return;
+  while(numberOfPendingNotifications--) {
+    notifyList[numberOfPendingNotifications]->Observe(this,
+                                                      OBSERVER_TOPIC_IDLE,
+                                                      timeStr.get());
   }
+
+  return true;
+}
+
+void
+nsIdleService::RescheduleIdleTimer(PRUint32 aIdleTime)
+{
   
 
 
@@ -392,18 +460,9 @@ nsIdleService::CheckAwayState(bool aNoTimeReset)
 
     
     if (!curListener.isIdle) {
-      
-      if (curListener.reqIdleTime <= idleTime) {
-        
-        
-        notifyList.AppendObject(curListener.observer);
-        
-        curListener.isIdle = true;
-      } else {
         
         
         nextWaitTime = NS_MIN(nextWaitTime, curListener.reqIdleTime);
-      }
     }
 
     
@@ -413,11 +472,8 @@ nsIdleService::CheckAwayState(bool aNoTimeReset)
 
   
   
-  nextWaitTime -= idleTime;
-
-  
-  for (PRInt32 i = 0; i < notifyList.Count(); i++) {
-    notifyList[i]->Observe(this, OBSERVER_TOPIC_IDLE, timeStr.get());
+  if (PR_UINT32_MAX != nextWaitTime) {
+    nextWaitTime -= aIdleTime;
   }
 
   

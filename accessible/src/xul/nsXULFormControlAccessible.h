@@ -71,7 +71,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -107,7 +107,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -128,7 +128,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -147,7 +147,7 @@ public:
   nsXULGroupboxAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual Relation RelationByType(PRUint32 aRelationType);
 };
@@ -179,7 +179,7 @@ public:
   nsXULRadioGroupAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -197,7 +197,7 @@ public:
   nsXULStatusBarAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
 };
 
 
@@ -225,7 +225,7 @@ public:
   nsXULToolbarAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual nsresult GetNameInternal(nsAString& aName);
 };
 
@@ -239,7 +239,7 @@ public:
                                   nsIWeakReference *aShell);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 };
 
@@ -265,7 +265,7 @@ public:
 
   
   virtual void ApplyARIAState(PRUint64* aState);
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual bool GetAllowsAnonChildAccessibles();
 

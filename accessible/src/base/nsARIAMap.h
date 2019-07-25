@@ -40,6 +40,7 @@
 #ifndef _nsARIAMap_H_
 #define _nsARIAMap_H_
 
+#include "mozilla/a11y/Role.h"
 #include "prtypes.h"
 
 class nsIAtom;
@@ -273,7 +274,7 @@ struct nsRoleMapEntry
   const char *roleString;
   
   
-  PRUint32 role;
+  mozilla::a11y::role role;
   
   
   bool roleRule;
