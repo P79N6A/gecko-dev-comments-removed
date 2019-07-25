@@ -123,15 +123,6 @@ public:
   
 
 
-
-
-  const nsString& QualifiedNameCorrectedCase() const {
-    return mQualifiedNameCorrectedCase;
-  }
-
-  
-
-
   const nsString& NodeName() const {
     return mNodeName;
   }
@@ -380,10 +371,6 @@ protected:
 
   
   nsString mQualifiedName;
-
-  
-  
-  nsString mQualifiedNameCorrectedCase;
 
   
   nsString mNodeName;
