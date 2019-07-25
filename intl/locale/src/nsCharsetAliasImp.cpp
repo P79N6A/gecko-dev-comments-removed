@@ -42,7 +42,6 @@
 
 #include "nsIPlatformCharset.h"
 
-#include "nsUConvDll.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsUConvPropertySearch.h"
