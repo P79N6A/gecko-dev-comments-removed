@@ -83,11 +83,11 @@ typedef union jsdpun {
 #endif
     } s;
     uint64_t u64;
-    double d;
+    jsdouble d;
 } jsdpun;
 
 static inline int
-JSDOUBLE_IS_NaN(double d)
+JSDOUBLE_IS_NaN(jsdouble d)
 {
     jsdpun u;
     u.d = d;
@@ -96,7 +96,7 @@ JSDOUBLE_IS_NaN(double d)
 }
 
 static inline int
-JSDOUBLE_IS_FINITE(double d)
+JSDOUBLE_IS_FINITE(jsdouble d)
 {
     
     jsdpun u;
@@ -105,7 +105,7 @@ JSDOUBLE_IS_FINITE(double d)
 }
 
 static inline int
-JSDOUBLE_IS_INFINITE(double d)
+JSDOUBLE_IS_INFINITE(jsdouble d)
 {
     jsdpun u;
     u.d = d;
@@ -113,7 +113,7 @@ JSDOUBLE_IS_INFINITE(double d)
 }
 
 static inline bool
-JSDOUBLE_IS_NEG(double d)
+JSDOUBLE_IS_NEG(jsdouble d)
 {
     jsdpun u;
     u.d = d;
@@ -121,16 +121,16 @@ JSDOUBLE_IS_NEG(double d)
 }
 
 static inline uint32_t
-JS_HASH_DOUBLE(double d)
+JS_HASH_DOUBLE(jsdouble d)
 {
     jsdpun u;
     u.d = d;
     return u.s.lo ^ u.s.hi;
 }
 
-extern double js_NaN;
-extern double js_PositiveInfinity;
-extern double js_NegativeInfinity;
+extern jsdouble js_NaN;
+extern jsdouble js_PositiveInfinity;
+extern jsdouble js_NegativeInfinity;
 
 namespace js {
 
@@ -168,7 +168,7 @@ js_IntToString(JSContext *cx, jsint i);
 
 
 extern JSString * JS_FASTCALL
-js_NumberToString(JSContext *cx, double d);
+js_NumberToString(JSContext *cx, jsdouble d);
 
 namespace js {
 
@@ -181,7 +181,7 @@ NumberValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb);
 
 
 extern JSFixedString *
-NumberToString(JSContext *cx, double d);
+NumberToString(JSContext *cx, jsdouble d);
 
 extern JSFixedString *
 IndexToString(JSContext *cx, uint32_t index);
@@ -213,7 +213,7 @@ struct ToCStringBuf
 
 
 extern char *
-NumberToCString(JSContext *cx, ToCStringBuf *cbuf, double d, jsint base = 10);
+NumberToCString(JSContext *cx, ToCStringBuf *cbuf, jsdouble d, jsint base = 10);
 
 
 
@@ -235,7 +235,7 @@ const double DOUBLE_INTEGRAL_PRECISION_LIMIT = uint64_t(1) << 53;
 
 extern bool
 GetPrefixInteger(JSContext *cx, const jschar *start, const jschar *end, int base,
-                 const jschar **endp, double *dp);
+                 const jschar **endp, jsdouble *dp);
 
 
 JS_ALWAYS_INLINE bool
@@ -341,7 +341,7 @@ num_parseInt(JSContext *cx, uintN argc, Value *vp);
 
 
 static inline int32_t
-js_DoubleToECMAInt32(double d)
+js_DoubleToECMAInt32(jsdouble d)
 {
 #if defined(__i386__) || defined(__i386) || defined(__x86_64__) || \
     defined(_M_IX86) || defined(_M_X64)
@@ -539,13 +539,13 @@ js_DoubleToECMAInt32(double d)
     return i;
 #else
     int32_t i;
-    double two32, two31;
+    jsdouble two32, two31;
 
     if (!JSDOUBLE_IS_FINITE(d))
         return 0;
 
     i = (int32_t) d;
-    if ((double) i == d)
+    if ((jsdouble) i == d)
         return i;
 
     two32 = 4294967296.0;
@@ -557,7 +557,7 @@ js_DoubleToECMAInt32(double d)
 }
 
 inline uint32_t
-js_DoubleToECMAUint32(double d)
+js_DoubleToECMAUint32(jsdouble d)
 {
     return uint32_t(js_DoubleToECMAInt32(d));
 }
@@ -566,8 +566,8 @@ js_DoubleToECMAUint32(double d)
 
 
 
-static inline double
-js_DoubleToInteger(double d)
+static inline jsdouble
+js_DoubleToInteger(jsdouble d)
 {
     if (d == 0)
         return d;
@@ -596,7 +596,7 @@ js_DoubleToInteger(double d)
 
 extern JSBool
 js_strtod(JSContext *cx, const jschar *s, const jschar *send,
-          const jschar **ep, double *dp);
+          const jschar **ep, jsdouble *dp);
 
 extern JSBool
 js_num_valueOf(JSContext *cx, uintN argc, js::Value *vp);
@@ -641,7 +641,7 @@ IsDefinitelyIndex(const Value &v, uint32_t *indexp)
 
 
 static inline bool
-ToInteger(JSContext *cx, const js::Value &v, double *dp)
+ToInteger(JSContext *cx, const js::Value &v, jsdouble *dp)
 {
     if (v.isInt32()) {
         *dp = v.toInt32();

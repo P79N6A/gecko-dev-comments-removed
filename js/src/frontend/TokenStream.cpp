@@ -1732,7 +1732,7 @@ TokenStream::getTokenInternal()
 
 
 
-        double dval;
+        jsdouble dval;
         const jschar *dummy;
         if (!hasFracOrExp) {
             if (!GetPrefixInteger(cx, numStart, userbuf.addressOfNextRawChar(), 10, &dummy, &dval))
@@ -1823,7 +1823,7 @@ TokenStream::getTokenInternal()
             goto error;
         }
 
-        double dval;
+        jsdouble dval;
         const jschar *dummy;
         if (!GetPrefixInteger(cx, numStart, userbuf.addressOfNextRawChar(), radix, &dummy, &dval))
             goto error;

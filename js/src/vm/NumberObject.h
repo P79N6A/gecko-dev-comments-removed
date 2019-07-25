@@ -59,20 +59,20 @@ class NumberObject : public JSObject
 
 
 
-    static inline NumberObject *create(JSContext *cx, double d);
+    static inline NumberObject *create(JSContext *cx, jsdouble d);
 
     
 
 
 
-    static inline NumberObject *createWithProto(JSContext *cx, double d, JSObject &proto);
+    static inline NumberObject *createWithProto(JSContext *cx, jsdouble d, JSObject &proto);
 
     double unbox() const {
         return getFixedSlot(PRIMITIVE_VALUE_SLOT).toNumber();
     }
 
   private:
-    inline void setPrimitiveValue(double d) {
+    inline void setPrimitiveValue(jsdouble d) {
         setFixedSlot(PRIMITIVE_VALUE_SLOT, NumberValue(d));
     }
 
