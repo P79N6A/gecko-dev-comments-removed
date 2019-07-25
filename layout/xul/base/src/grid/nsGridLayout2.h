@@ -60,7 +60,7 @@ class nsGridLayout2 : public nsStackLayout,
 {
 public:
 
-  friend nsresult NS_NewGridLayout2(nsIPresShell* aPresShell, nsIBoxLayout** aNewLayout);
+  friend nsresult NS_NewGridLayout2(nsIPresShell* aPresShell, nsBoxLayout** aNewLayout);
 
   NS_DECL_ISUPPORTS_INHERITED
 

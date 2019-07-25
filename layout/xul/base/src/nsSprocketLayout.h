@@ -89,13 +89,13 @@ public:
 
 #define SET_COORD(aX, aY, coord, isHorizontal) if (isHorizontal) { aX = (coord); } else { aY  = (coord); }
 
-nsresult NS_NewSprocketLayout(nsIPresShell* aPresShell, nsCOMPtr<nsIBoxLayout>& aNewLayout);
+nsresult NS_NewSprocketLayout(nsIPresShell* aPresShell, nsCOMPtr<nsBoxLayout>& aNewLayout);
 
 class nsSprocketLayout : public nsBoxLayout {
 
 public:
 
-  friend nsresult NS_NewSprocketLayout(nsIPresShell* aPresShell, nsCOMPtr<nsIBoxLayout>& aNewLayout);
+  friend nsresult NS_NewSprocketLayout(nsIPresShell* aPresShell, nsCOMPtr<nsBoxLayout>& aNewLayout);
   static void Shutdown();
 
   NS_IMETHOD Layout(nsIBox* aBox, nsBoxLayoutState& aState);
@@ -163,7 +163,7 @@ private:
 
   
   
-  static nsIBoxLayout* gInstance;
+  static nsBoxLayout* gInstance;
 
 };
 

@@ -128,7 +128,7 @@ nsGridRowLayout::GetGrid(nsIBox* aBox, PRInt32* aIndex, nsGridRowLayout* aReques
      
      nsIBox* childBox = nsGrid::GetScrolledBox(child);
 
-     nsIBoxLayout* layout = childBox->GetLayoutManager();
+     nsBoxLayout* layout = childBox->GetLayoutManager();
      nsIGridPart* gridRow = nsGrid::GetPartFromBox(childBox);
      if (gridRow) 
      {

@@ -54,7 +54,7 @@ class nsGridRowGroupLayout : public nsGridRowLayout
 {
 public:
 
-  friend already_AddRefed<nsIBoxLayout> NS_NewGridRowGroupLayout();
+  friend already_AddRefed<nsBoxLayout> NS_NewGridRowGroupLayout();
 
   virtual nsGridRowGroupLayout* CastToRowGroupLayout() { return this; }
   virtual nsSize GetMinSize(nsIBox* aBox, nsBoxLayoutState& aBoxLayoutState);
