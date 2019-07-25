@@ -530,22 +530,36 @@ nsSVGOuterSVGFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                      PRInt32  aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
-      !(GetStateBits() & NS_FRAME_FIRST_REFLOW) &&
-      (aAttribute == nsGkAtoms::width || aAttribute == nsGkAtoms::height)) {
-    nsIFrame* embeddingFrame;
-    if (IsRootOfReplacedElementSubDoc(&embeddingFrame) && embeddingFrame) {
-      if (DependsOnIntrinsicSize(embeddingFrame)) {
-        
-        
-        embeddingFrame->PresContext()->PresShell()->
-          FrameNeedsReflow(embeddingFrame, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
-      }
+      !(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    if (aAttribute == nsGkAtoms::viewBox ||
+        aAttribute == nsGkAtoms::preserveAspectRatio ||
+        aAttribute == nsGkAtoms::transform) {
+
       
-    } else {
-      
-      
-      PresContext()->PresShell()->
-        FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+      mCanvasTM = nsnull;
+
+      nsSVGUtils::NotifyChildrenOfSVGChange(
+          this, aAttribute == nsGkAtoms::viewBox ?
+                  TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED : TRANSFORM_CHANGED);
+
+    } else if (aAttribute == nsGkAtoms::width ||
+               aAttribute == nsGkAtoms::height) {
+
+        nsIFrame* embeddingFrame;
+        if (IsRootOfReplacedElementSubDoc(&embeddingFrame) && embeddingFrame) {
+          if (DependsOnIntrinsicSize(embeddingFrame)) {
+            
+            
+            embeddingFrame->PresContext()->PresShell()->
+              FrameNeedsReflow(embeddingFrame, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+          }
+          
+        } else {
+          
+          
+          PresContext()->PresShell()->
+            FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+        }
     }
   }
 
