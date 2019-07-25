@@ -205,9 +205,7 @@ function run_test() {
 
   
   
-  var dest = profileDir.clone();
-  dest.append("addon1@tests.mozilla.org");
-  writeInstallRDFToDir({
+  var dest = writeInstallRDFForExtension({
     id: "addon1@tests.mozilla.org",
     version: "1.0",
     targetApplications: [{
@@ -216,7 +214,7 @@ function run_test() {
       maxVersion: "1"
     }],
     name: "Test Addon 1",
-  }, dest);
+  }, profileDir);
 
   startupManager();
 

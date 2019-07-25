@@ -71,6 +71,7 @@ const PREF_XPI_ENABLED                = "xpinstall.enabled";
 const PREF_XPI_WHITELIST_REQUIRED     = "xpinstall.whitelist.required";
 const PREF_XPI_WHITELIST_PERMISSIONS  = "xpinstall.whitelist.add";
 const PREF_XPI_BLACKLIST_PERMISSIONS  = "xpinstall.blacklist.add";
+const PREF_XPI_UNPACK                 = "extensions.alwaysUnpack";
 const PREF_INSTALL_REQUIREBUILTINCERTS = "extensions.install.requireBuiltInCerts";
 
 const URI_EXTENSION_UPDATE_DIALOG     = "chrome://mozapps/content/extensions/update.xul";
@@ -113,7 +114,7 @@ const REQ_VERSION                     = 2;
 
 const PROP_METADATA      = ["id", "version", "type", "internalName", "updateURL",
                             "updateKey", "optionsURL", "aboutURL", "iconURL",
-                            "icon64URL"]
+                            "icon64URL"];
 const PROP_LOCALE_SINGLE = ["name", "description", "creator", "homepageURL"];
 const PROP_LOCALE_MULTI  = ["developers", "translators", "contributors"];
 const PROP_TARGETAPP     = ["id", "minVersion", "maxVersion"];
@@ -163,7 +164,7 @@ var gIDTest = /^(\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\
 
 
 function getLocale() {
-  if (Prefs.getBoolPref(PREF_MATCH_OS_LOCALE), false)
+  if (Prefs.getBoolPref(PREF_MATCH_OS_LOCALE, false))
     return Services.locale.getLocaleComponentForUserAgent();
   return Prefs.getCharPref(PREF_SELECTED_LOCALE, "en-US");
 }
@@ -414,6 +415,7 @@ function loadManifestFromRDF(aUri, aStream) {
   PROP_METADATA.forEach(function(aProp) {
     addon[aProp] = getRDFProperty(ds, root, aProp);
   });
+  addon.unpack = getRDFProperty(ds, root, "unpack") == "true";
 
   if (!addon.type) {
     addon.type = addon.internalName ? "theme" : "extension";
@@ -1155,9 +1157,9 @@ var XPIProvider = {
     }
 
     for (let id in this.bootstrappedAddons) {
-      let dir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
-      dir.persistentDescriptor = this.bootstrappedAddons[id].descriptor;
-      this.callBootstrapMethod(id, this.bootstrappedAddons[id].version, dir,
+      let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+      file.persistentDescriptor = this.bootstrappedAddons[id].descriptor;
+      this.callBootstrapMethod(id, this.bootstrappedAddons[id].version, file,
                                "startup", BOOTSTRAP_REASONS.APP_STARTUP);
     }
 
@@ -1168,10 +1170,10 @@ var XPIProvider = {
         Services.prefs.setCharPref(PREF_BOOTSTRAP_ADDONS,
                                    JSON.stringify(XPIProvider.bootstrappedAddons));
         for (let id in XPIProvider.bootstrappedAddons) {
-          let dir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
-          dir.persistentDescriptor = XPIProvider.bootstrappedAddons[id].descriptor;
+          let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+          file.persistentDescriptor = XPIProvider.bootstrappedAddons[id].descriptor;
           XPIProvider.callBootstrapMethod(id, XPIProvider.bootstrappedAddons[id].version,
-                                          dir, "shutdown",
+                                          file, "shutdown",
                                           BOOTSTRAP_REASONS.APP_SHUTDOWN);
         }
         Services.obs.removeObserver(this, "quit-application-granted");
@@ -1293,11 +1295,11 @@ var XPIProvider = {
 
   getAddonStates: function XPI_getAddonStates(aLocation) {
     let addonStates = {};
-    aLocation.addonLocations.forEach(function(dir) {
-      let id = aLocation.getIDForLocation(dir);
+    aLocation.addonLocations.forEach(function(file) {
+      let id = aLocation.getIDForLocation(file);
       addonStates[id] = {
-        descriptor: dir.persistentDescriptor,
-        mtime: dir.lastModifiedTime
+        descriptor: file.persistentDescriptor,
+        mtime: file.lastModifiedTime
       };
     });
 
@@ -1356,37 +1358,44 @@ var XPIProvider = {
       while (entries.hasMoreElements()) {
         let stageDirEntry = entries.getNext().QueryInterface(Ci.nsILocalFile);
 
-        
+        let id = stageDirEntry.leafName;
         if (!stageDirEntry.isDirectory()) {
-          WARN("Ignoring file: " + stageDirEntry.path);
-          continue;
+          if (id.substring(id.length - 4).toLowerCase() == ".xpi") {
+            id = id.substring(0, id.length - 4);
+          }
+          else {
+            if (id.substring(id.length - 5).toLowerCase() != ".json")
+              WARN("Ignoring file: " + stageDirEntry.path);
+            continue;
+          }
         }
 
         
-        let id = stageDirEntry.leafName;
         if (!gIDTest.test(id)) {
           WARN("Ignoring directory whose name is not a valid add-on ID: " +
                stageDirEntry.path);
           continue;
         }
 
-        
-        let manifest = stageDirEntry.clone();
-        manifest.append(FILE_INSTALL_MANIFEST);
-
-        
-        
-        if (!manifest.exists()) {
-          LOG("Processing uninstall of " + id + " in " + aLocation.name);
-          aLocation.uninstallAddon(id);
+        if (stageDirEntry.isDirectory()) {
           
-          changed = true;
-          continue;
+          let manifest = stageDirEntry.clone();
+          manifest.append(FILE_INSTALL_MANIFEST);
+
+          
+          
+          if (!manifest.exists()) {
+            LOG("Processing uninstall of " + id + " in " + aLocation.name);
+            aLocation.uninstallAddon(id);
+            
+            changed = true;
+            continue;
+          }
         }
 
         LOG("Processing install of " + id + " in " + aLocation.name);
         try {
-          var addonInstallDir = aLocation.installAddon(id, stageDirEntry);
+          var addonInstallLocation = aLocation.installAddon(id, stageDirEntry);
         }
         catch (e) {
           ERROR("Failed to install staged add-on " + id + " in " + aLocation.name +
@@ -1412,7 +1421,7 @@ var XPIProvider = {
             fis.init(jsonfile, -1, 0, 0);
             aManifests[aLocation.name][id] = json.decodeFromStream(fis,
                                                                    jsonfile.fileSize);
-            aManifests[aLocation.name][id]._sourceBundle = addonInstallDir;
+            aManifests[aLocation.name][id]._sourceBundle = addonInstallLocation;
           }
           catch (e) {
             ERROR("Unable to read add-on manifest for " + id + " in " +
@@ -1479,8 +1488,11 @@ var XPIProvider = {
       try {
         
         if (!newAddon) {
-          let dir = aInstallLocation.getLocationForID(aOldAddon.id);
-          newAddon = loadManifestFromDir(dir);
+          let file = aInstallLocation.getLocationForID(aOldAddon.id);
+          if (file.isFile())
+            newAddon = loadManifestFromZipFile(file);
+          else
+            newAddon = loadManifestFromDir(file);
         }
 
         
@@ -1679,8 +1691,13 @@ var XPIProvider = {
 
       try {
         
-        if (!newAddon)
-          newAddon = loadManifestFromDir(aInstallLocation.getLocationForID(aId));
+        if (!newAddon) {
+          let file = aInstallLocation.getLocationForID(aId);
+          if (file.isFile())
+            newAddon = loadManifestFromZipFile(file);
+          else
+            newAddon = loadManifestFromDir(file);
+        }
         
         if (newAddon.id != aId)
           throw new Error("Incorrect id in install manifest");
@@ -1744,9 +1761,9 @@ var XPIProvider = {
           return true;
 
         
-        let dir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
-        dir.persistentDescriptor = aAddonState.descriptor;
-        XPIProvider.callBootstrapMethod(newAddon.id, newAddon.version, dir,
+        let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+        file.persistentDescriptor = aAddonState.descriptor;
+        XPIProvider.callBootstrapMethod(newAddon.id, newAddon.version, file,
                                         "install",
                                         BOOTSTRAP_REASONS.ADDON_INSTALL);
         if (!newAddon.active)
@@ -2399,12 +2416,12 @@ var XPIProvider = {
 
 
 
-  loadBootstrapScope: function XPI_loadBootstrapScope(aId, aDir, aVersion) {
-    LOG("Loading bootstrap scope from " + aDir.path);
+  loadBootstrapScope: function XPI_loadBootstrapScope(aId, aFile, aVersion) {
+    LOG("Loading bootstrap scope from " + aFile.path);
     
     this.bootstrappedAddons[aId] = {
       version: aVersion,
-      descriptor: aDir.persistentDescriptor
+      descriptor: aFile.persistentDescriptor
     };
     this.addAddonsToCrashReporter();
 
@@ -2412,15 +2429,23 @@ var XPIProvider = {
                     createInstance(Ci.nsIPrincipal);
     this.bootstrapScopes[aId] = new Components.utils.Sandbox(principal);
 
-    let bootstrap = aDir.clone();
-    bootstrap.append("bootstrap.js");
-    if (bootstrap.exists()) {
+    let bootstrap = aFile.clone();
+    let name = aFile.leafName;
+    let spec;
+
+    if (bootstrap.isDirectory()) {
+      bootstrap.append("bootstrap.js");
       let uri = Services.io.newFileURI(bootstrap);
+      spec = uri.spec;
+    } else {
+      spec = buildJarURI(bootstrap, "bootstrap.js").spec;
+    }
+    if (bootstrap.exists()) {
       let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
                    createInstance(Ci.mozIJSSubScriptLoader);
 
       try {
-        loader.loadSubScript(uri.spec, this.bootstrapScopes[aId]);
+        loader.loadSubScript(spec, this.bootstrapScopes[aId]);
       }
       catch (e) {
         WARN("Error loading bootstrap.js for " + aId + ": " + e);
@@ -2462,11 +2487,11 @@ var XPIProvider = {
 
 
 
-  callBootstrapMethod: function XPI_callBootstrapMethod(aId, aVersion, aDir,
+  callBootstrapMethod: function XPI_callBootstrapMethod(aId, aVersion, aFile,
                                                         aMethod, aReason) {
     
     if (!(aId in this.bootstrapScopes))
-      this.loadBootstrapScope(aId, aDir, aVersion);
+      this.loadBootstrapScope(aId, aFile, aVersion);
 
     if (!(aMethod in this.bootstrapScopes[aId])) {
       WARN("Add-on " + aId + " is missing bootstrap method " + aMethod);
@@ -2476,7 +2501,7 @@ var XPIProvider = {
     let params = {
       id: aId,
       version: aVersion,
-      installPath: aDir.clone()
+      installPath: aFile.clone()
     };
 
     LOG("Calling bootstrap method " + aMethod + " on " + aId + " version " +
@@ -2565,8 +2590,8 @@ var XPIProvider = {
         XPIDatabase.updateAddonActive(aAddon);
         if (isDisabled) {
           if (aAddon.bootstrap) {
-            let dir = aAddon._installLocation.getLocationForID(aAddon.id);
-            this.callBootstrapMethod(aAddon.id, aAddon.version, dir, "shutdown",
+            let file = aAddon._installLocation.getLocationForID(aAddon.id);
+            this.callBootstrapMethod(aAddon.id, aAddon.version, file, "shutdown",
                                      BOOTSTRAP_REASONS.ADDON_DISABLE);
             this.unloadBootstrapScope(aAddon.id);
           }
@@ -2574,8 +2599,8 @@ var XPIProvider = {
         }
         else {
           if (aAddon.bootstrap) {
-            let dir = aAddon._installLocation.getLocationForID(aAddon.id);
-            this.callBootstrapMethod(aAddon.id, aAddon.version, dir, "startup",
+            let file = aAddon._installLocation.getLocationForID(aAddon.id);
+            this.callBootstrapMethod(aAddon.id, aAddon.version, file, "startup",
                                      BOOTSTRAP_REASONS.ADDON_ENABLE);
           }
           AddonManagerPrivate.callAddonListeners("onEnabled", wrapper);
@@ -2631,12 +2656,12 @@ var XPIProvider = {
 
     if (!requiresRestart) {
       if (aAddon.bootstrap) {
-        let dir = aAddon._installLocation.getLocationForID(aAddon.id);
+        let file = aAddon._installLocation.getLocationForID(aAddon.id);
         if (aAddon.active) {
-          this.callBootstrapMethod(aAddon.id, aAddon.version, dir, "shutdown",
+          this.callBootstrapMethod(aAddon.id, aAddon.version, file, "shutdown",
                                    BOOTSTRAP_REASONS.ADDON_UNINSTALL);
         }
-        this.callBootstrapMethod(aAddon.id, aAddon.version, dir, "uninstall",
+        this.callBootstrapMethod(aAddon.id, aAddon.version, file, "uninstall",
                                  BOOTSTRAP_REASONS.ADDON_UNINSTALL);
         this.unloadBootstrapScope(aAddon.id);
       }
@@ -4780,11 +4805,24 @@ AddonInstall.prototype = {
     try {
       
       let stagedJSON = stagedAddon.clone();
-      stagedAddon.append(this.addon.id);
-      if (stagedAddon.exists())
-        stagedAddon.remove(true);
-      stagedAddon.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
-      extractFiles(this.file, stagedAddon);
+      if (this.addon.unpack || Prefs.getBoolPref(PREF_XPI_UNPACK, false)) {
+        LOG("Addon " + this.addon.id + " will be installed as " +
+            "an unpacked directory");
+        stagedAddon.append(this.addon.id);
+        if (stagedAddon.exists())
+          stagedAddon.remove(true);
+        stagedAddon.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+        extractFiles(this.file, stagedAddon);
+      }
+      else {
+        LOG("Addon " + this.addon.id + " will be installed as " +
+            "a packed xpi");
+        stagedAddon.append(this.addon.id + ".xpi");
+        if (stagedAddon.exists())
+          stagedAddon.remove(true);
+        this.file.copyTo(this.installLocation.getStagingDir(),
+                         this.addon.id + ".xpi");
+      }
 
       if (requiresRestart) {
         
@@ -4838,16 +4876,16 @@ AddonInstall.prototype = {
             reason = BOOTSTRAP_REASONS.ADDON_DOWNGRADE;
 
           if (this.existingAddon.bootstrap) {
-            let dir = this.existingAddon._installLocation
-                          .getLocationForID(this.existingAddon.id);
+            let file = this.existingAddon._installLocation
+                           .getLocationForID(this.existingAddon.id);
             if (this.existingAddon.active) {
               XPIProvider.callBootstrapMethod(this.existingAddon.id,
                                               this.existingAddon.version,
-                                              dir, "shutdown", reason);
+                                              file, "shutdown", reason);
             }
             XPIProvider.callBootstrapMethod(this.existingAddon.id,
                                             this.existingAddon.version,
-                                            dir, "uninstall", reason);
+                                            file, "uninstall", reason);
             XPIProvider.unloadBootstrapScope(this.existingAddon.id);
           }
 
@@ -4861,19 +4899,19 @@ AddonInstall.prototype = {
         }
 
         
-        let dir = this.installLocation.installAddon(this.addon.id, stagedAddon);
+        let file = this.installLocation.installAddon(this.addon.id, stagedAddon);
 
         
         this.addon._installLocation = this.installLocation;
-        this.addon.updateDate = dir.lastModifiedTime;
+        this.addon.updateDate = file.lastModifiedTime;
         this.addon.visible = true;
         if (isUpgrade) {
           XPIDatabase.updateAddonMetadata(this.existingAddon, this.addon,
-                                          dir.persistentDescriptor);
+                                          file.persistentDescriptor);
         }
         else {
           this.addon.installDate = this.addon.updateDate;
-          XPIDatabase.addAddonMetadata(this.addon, dir.persistentDescriptor);
+          XPIDatabase.addAddonMetadata(this.addon, file.persistentDescriptor);
         }
 
         
@@ -4883,10 +4921,10 @@ AddonInstall.prototype = {
           self.addon = a;
           if (self.addon.bootstrap) {
             XPIProvider.callBootstrapMethod(self.addon.id, self.addon.version,
-                                            dir, "install", reason);
+                                            file, "install", reason);
             if (self.addon.active) {
               XPIProvider.callBootstrapMethod(self.addon.id, self.addon.version,
-                                              dir, "startup", reason);
+                                              file, "startup", reason);
             }
             else {
               XPIProvider.unloadBootstrapScope(self.addon.id);
@@ -5792,8 +5830,8 @@ function DirectoryInstallLocation(aName, aDirectory, aScope, aLocked) {
   this.locked = aLocked;
   this._directory = aDirectory;
   this._scope = aScope
-  this._IDToDirMap = {};
-  this._DirToIDMap = {};
+  this._IDToFileMap = {};
+  this._FileToIDMap = {};
 
   if (!aDirectory.exists())
     return;
@@ -5806,8 +5844,8 @@ function DirectoryInstallLocation(aName, aDirectory, aScope, aLocked) {
 DirectoryInstallLocation.prototype = {
   _name       : "",
   _directory   : null,
-  _IDToDirMap : null,  
-  _DirToIDMap : null,  
+  _IDToFileMap : null,  
+  _FileToIDMap : null,  
 
   
 
@@ -5877,22 +5915,20 @@ DirectoryInstallLocation.prototype = {
         continue;
       }
 
-      
-      entry = this._directory.clone().QueryInterface(Ci.nsILocalFile);
-      entry.append(id);
       if (entry.isFile()) {
-        newEntry = this._readDirectoryFromFile(entry);
-        if (!newEntry)
-          continue;
-        entry = newEntry;
-      }
-      else if (!entry.isDirectory()) {
-        LOG("Ignoring entry which isn't a directory: " + entry.path);
-        continue;
+        if (id.substring(id.length - 4).toLowerCase() == ".xpi") {
+          id = id.substring(0, id.length - 4);
+        }
+        else {
+          newEntry = this._readDirectoryFromFile(entry);
+          if (!newEntry)
+            continue;
+          entry = newEntry;
+        }
       }
 
-      this._IDToDirMap[id] = entry;
-      this._DirToIDMap[entry.path] = id;
+      this._IDToFileMap[id] = entry;
+      this._FileToIDMap[entry.path] = id;
     }
     entries.close();
   },
@@ -5916,8 +5952,8 @@ DirectoryInstallLocation.prototype = {
 
   get addonLocations() {
     let locations = [];
-    for (let id in this._IDToDirMap) {
-      locations.push(this._IDToDirMap[id].clone()
+    for (let id in this._IDToFileMap) {
+      locations.push(this._IDToFileMap[id].clone()
                          .QueryInterface(Ci.nsILocalFile));
     }
     return locations;
@@ -5945,17 +5981,27 @@ DirectoryInstallLocation.prototype = {
 
 
   installAddon: function DirInstallLocation_installAddon(aId, aSource) {
-    let dir = this._directory.clone().QueryInterface(Ci.nsILocalFile);
-    dir.append(aId);
-    if (dir.exists())
-      dir.remove(true);
+    let file = this._directory.clone().QueryInterface(Ci.nsILocalFile);
+    file.append(aId);
+    if (file.exists())
+      file.remove(true);
 
-    aSource = aSource.clone();
-    aSource.moveTo(this._directory, aId);
-    this._DirToIDMap[dir.path] = aId;
-    this._IDToDirMap[aId] = dir;
+    file = this._directory.clone().QueryInterface(Ci.nsILocalFile);
+    file.append(aId + ".xpi");
+    if (file.exists()) {
+      Services.obs.notifyObservers(file, "flush-cache-entry", null);
+      file.remove(true);
+    }
 
-    return dir;
+    aSource = aSource.clone().QueryInterface(Ci.nsILocalFile);
+    if (aSource.isFile())
+      Services.obs.notifyObservers(aSource, "flush-cache-entry", null);
+    aSource.moveTo(this._directory, aSource.leafName);
+    aSource.lastModifiedTime = Date.now();
+    this._FileToIDMap[aSource.path] = aId;
+    this._IDToFileMap[aId] = aSource;
+
+    return aSource;
   },
 
   
@@ -5966,19 +6012,25 @@ DirectoryInstallLocation.prototype = {
 
 
   uninstallAddon: function DirInstallLocation_uninstallAddon(aId) {
-    let dir = this._directory.clone();
-    dir.append(aId);
-
-    delete this._DirToIDMap[dir.path];
-    delete this._IDToDirMap[aId];
-
-    if (!dir.exists()) {
-      WARN("Attempted to remove the directory for " + aId + " from " +
+    let file = this._IDToFileMap[aId];
+    if (!file) {
+      WARN("Attempted to remove " + aId + " from " +
            this._name + " but it was already gone");
       return;
     }
 
-    dir.remove(true);
+    delete this._FileToIDMap[file.path];
+    delete this._IDToFileMap[aId];
+
+    if (!file.exists()) {
+      WARN("Attempted to remove " + aId + " from " +
+           this._name + " but it was already gone");
+      return;
+    }
+
+    if (file.isFile())
+      Services.obs.notifyObservers(file, "flush-cache-entry", null);
+    file.remove(true);
   },
 
   
@@ -5989,10 +6041,10 @@ DirectoryInstallLocation.prototype = {
 
 
 
-  getIDForLocation: function DirInstallLocation_getIDForLocation(aDir) {
-    if (aDir.path in this._DirToIDMap)
-      return this._DirToIDMap[aDir.path];
-    throw new Error("Unknown add-on location " + aDir.path);
+  getIDForLocation: function DirInstallLocation_getIDForLocation(aFile) {
+    if (aFile.path in this._FileToIDMap)
+      return this._FileToIDMap[aFile.path];
+    throw new Error("Unknown add-on location " + aFile.path);
   },
 
   
@@ -6004,8 +6056,8 @@ DirectoryInstallLocation.prototype = {
 
 
   getLocationForID: function DirInstallLocation_getLocationForID(aId) {
-    if (aId in this._IDToDirMap)
-      return this._IDToDirMap[aId].clone().QueryInterface(Ci.nsILocalFile);
+    if (aId in this._IDToFileMap)
+      return this._IDToFileMap[aId].clone().QueryInterface(Ci.nsILocalFile);
     throw new Error("Unknown add-on ID " + aId);
   }
 };
@@ -6028,8 +6080,8 @@ function WinRegInstallLocation(aName, aRootKey, aScope) {
   this._name = aName;
   this._rootKey = aRootKey;
   this._scope = aScope;
-  this._IDToDirMap = {};
-  this._DirToIDMap = {};
+  this._IDToFileMap = {};
+  this._FileToIDMap = {};
 
   let path = this._appKeyPath + "\\Extensions";
   let key = Cc["@mozilla.org/windows-registry-key;1"].
@@ -6052,8 +6104,8 @@ WinRegInstallLocation.prototype = {
   _name       : "",
   _rootKey    : null,
   _scope      : null,
-  _IDToDirMap : null,  
-  _DirToIDMap : null,  
+  _IDToFileMap : null,  
+  _FileToIDMap : null,  
 
   
 
@@ -6087,17 +6139,15 @@ WinRegInstallLocation.prototype = {
     for (let i = 0; i < count; ++i) {
       let id = aKey.getValueName(i);
 
-      let dir = Cc["@mozilla.org/file/local;1"].
+      let file = Cc["@mozilla.org/file/local;1"].
                 createInstance(Ci.nsILocalFile);
-      dir.initWithPath(aKey.readStringValue(id));
+      file.initWithPath(aKey.readStringValue(id));
 
-      if (dir.exists() && dir.isDirectory()) {
-        this._IDToDirMap[id] = dir;
-        this._DirToIDMap[dir.path] = id;
-      }
-      else {
-        WARN("Ignoring missing add-on in " + dir.path);
-      }
+      if (!file.exists())
+        WARN("Ignoring missing add-on in " + file.path);
+
+      this._IDToFileMap[id] = file;
+      this._FileToIDMap[file.path] = id;
     }
   },
 
@@ -6120,8 +6170,8 @@ WinRegInstallLocation.prototype = {
 
   get addonLocations() {
     let locations = [];
-    for (let id in this._IDToDirMap) {
-      locations.push(this._IDToDirMap[id].clone()
+    for (let id in this._IDToFileMap) {
+      locations.push(this._IDToFileMap[id].clone()
                          .QueryInterface(Ci.nsILocalFile));
     }
     return locations;
@@ -6136,8 +6186,8 @@ WinRegInstallLocation.prototype = {
 
 
   getIDForLocation: function RegInstallLocation_getIDForLocation(aFile) {
-    if (aFile.path in this._DirToIDMap)
-      return this._DirToIDMap[aFile.path];
+    if (aFile.path in this._FileToIDMap)
+      return this._FileToIDMap[aFile.path];
     throw new Error("Unknown add-on location");
   },
 
@@ -6149,8 +6199,8 @@ WinRegInstallLocation.prototype = {
 
 
   getLocationForID: function RegInstallLocation_getLocationForID(aId) {
-    if (aId in this._IDToDirMap)
-      return this._IDToDirMap[aId].clone().QueryInterface(Ci.nsILocalFile);
+    if (aId in this._IDToFileMap)
+      return this._IDToFileMap[aId].clone().QueryInterface(Ci.nsILocalFile);
     throw new Error("Unknown add-on ID");
   }
 };

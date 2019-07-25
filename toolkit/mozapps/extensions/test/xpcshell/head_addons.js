@@ -126,6 +126,31 @@ function do_get_addon(aName) {
 
 
 
+function do_get_addon_root_uri(aProfileDir, aId) {
+  let path = aProfileDir.clone();
+  path.append(aId);
+  if (!path.exists()) {
+    path.leafName += ".xpi";
+    return "jar:" + Services.io.newFileURI(path).spec + "!/";
+  }
+  else {
+    return Services.io.newFileURI(path).spec;
+  }
+}
+
+function do_get_expected_addon_name(aId) {
+  if (Services.prefs.getBoolPref("extensions.alwaysUnpack"))
+    return aId;
+  return aId + ".xpi";
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -361,8 +386,13 @@ function loadAddonsList() {
 function isItemInAddonsList(aType, aDir, aId) {
   var path = aDir.clone();
   path.append(aId);
+  var xpiPath = aDir.clone();
+  xpiPath.append(aId + ".xpi");
   for (var i = 0; i < gAddonsList[aType].length; i++) {
-    if (gAddonsList[aType][i].equals(path))
+    let file = gAddonsList[aType][i];
+    if (file.isDirectory() && file.equals(path))
+      return true;
+    if (file.isFile() && file.equals(xpiPath))
       return true;
   }
   return false;
@@ -408,19 +438,7 @@ function writeLocaleStrings(aData) {
   return rdf;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-function writeInstallRDFToDir(aData, aDir) {
+function createInstallRDF(aData) {
   var rdf = '<?xml version="1.0"?>\n';
   rdf += '<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n' +
          '     xmlns:em="http://www.mozilla.org/2004/em-rdf#">\n';
@@ -466,7 +484,25 @@ function writeInstallRDFToDir(aData, aDir) {
   }
 
   rdf += "</Description>\n</RDF>\n";
+  return rdf;
+}
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function writeInstallRDFToDir(aData, aDir, aExtraFile) {
+  var rdf = createInstallRDF(aData);
   if (!aDir.exists())
     aDir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, 0755);
   var file = aDir.clone();
@@ -480,6 +516,60 @@ function writeInstallRDFToDir(aData, aDir) {
            FileUtils.PERMS_FILE, 0);
   fos.write(rdf, rdf.length);
   fos.close();
+
+  if (!aExtraFile)
+    return;
+
+  file = aDir.clone();
+  file.append(aExtraFile);
+  file.create(AM_Ci.nsIFile.NORMAL_FILE_TYPE, 0644);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function writeInstallRDFForExtension(aData, aDir, aId, aExtraFile) {
+  var id = aId ? aId : aData.id
+
+  var dir = aDir.clone();
+
+  if (Services.prefs.getBoolPref("extensions.alwaysUnpack")) {
+    dir.append(id);
+    writeInstallRDFToDir(aData, dir, aExtraFile);
+    return dir;
+  }
+
+  if (!dir.exists())
+    dir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, 0755);
+  dir.append(id + ".xpi");
+  var rdf = createInstallRDF(aData);
+  var stream = AM_Cc["@mozilla.org/io/string-input-stream;1"].
+               createInstance(AM_Ci.nsIStringInputStream);
+  stream.setData(rdf, -1);
+  var zipW = AM_Cc["@mozilla.org/zipwriter;1"].
+             createInstance(AM_Ci.nsIZipWriter);
+  zipW.open(dir, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE | FileUtils.MODE_TRUNCATE);
+  zipW.addEntryStream("install.rdf", 0, AM_Ci.nsIZipWriter.COMPRESSION_NONE,
+                      stream, false);
+  if (aExtraFile)
+    zipW.addEntryStream(aExtraFile, 0, AM_Ci.nsIZipWriter.COMPRESSION_NONE,
+                        stream, false);
+  zipW.close();
+  return dir;
 }
 
 function registerDirectory(aKey, aDir) {
