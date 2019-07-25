@@ -60,6 +60,79 @@ namespace mozilla {
 namespace widget {
 
 
+enum
+{
+  kEscapeKeyCode      = 0x35,
+  kRCommandKeyCode    = 0x36, 
+  kCommandKeyCode     = 0x37,
+  kShiftKeyCode       = 0x38,
+  kCapsLockKeyCode    = 0x39,
+  kOptionkeyCode      = 0x3A,
+  kControlKeyCode     = 0x3B,
+  kRShiftKeyCode      = 0x3C, 
+  kROptionKeyCode     = 0x3D, 
+  kRControlKeyCode    = 0x3E, 
+  kClearKeyCode       = 0x47,
+
+  
+  kF1KeyCode          = 0x7A,
+  kF2KeyCode          = 0x78,
+  kF3KeyCode          = 0x63,
+  kF4KeyCode          = 0x76,
+  kF5KeyCode          = 0x60,
+  kF6KeyCode          = 0x61,
+  kF7KeyCode          = 0x62,
+  kF8KeyCode          = 0x64,
+  kF9KeyCode          = 0x65,
+  kF10KeyCode         = 0x6D,
+  kF11KeyCode         = 0x67,
+  kF12KeyCode         = 0x6F,
+  kF13KeyCode         = 0x69,
+  kF14KeyCode         = 0x6B,
+  kF15KeyCode         = 0x71,
+
+  kPrintScreenKeyCode = kF13KeyCode,
+  kScrollLockKeyCode  = kF14KeyCode,
+  kPauseKeyCode       = kF15KeyCode,
+
+  
+  kKeypad0KeyCode     = 0x52,
+  kKeypad1KeyCode     = 0x53,
+  kKeypad2KeyCode     = 0x54,
+  kKeypad3KeyCode     = 0x55,
+  kKeypad4KeyCode     = 0x56,
+  kKeypad5KeyCode     = 0x57,
+  kKeypad6KeyCode     = 0x58,
+  kKeypad7KeyCode     = 0x59,
+  kKeypad8KeyCode     = 0x5B,
+  kKeypad9KeyCode     = 0x5C,
+
+  kKeypadMultiplyKeyCode  = 0x43,
+  kKeypadAddKeyCode       = 0x45,
+  kKeypadSubtractKeyCode  = 0x4E,
+  kKeypadDecimalKeyCode   = 0x41,
+  kKeypadDivideKeyCode    = 0x4B,
+  kKeypadEqualsKeyCode    = 0x51, 
+  kEnterKeyCode           = 0x4C,
+  kReturnKeyCode          = 0x24,
+  kPowerbookEnterKeyCode  = 0x34, 
+
+  kInsertKeyCode          = 0x72, 
+  kDeleteKeyCode          = 0x75, 
+  kTabKeyCode             = 0x30,
+  kTildeKeyCode           = 0x32,
+  kBackspaceKeyCode       = 0x33,
+  kHomeKeyCode            = 0x73, 
+  kEndKeyCode             = 0x77,
+  kPageUpKeyCode          = 0x74,
+  kPageDownKeyCode        = 0x79,
+  kLeftArrowKeyCode       = 0x7B,
+  kRightArrowKeyCode      = 0x7C,
+  kUpArrowKeyCode         = 0x7E,
+  kDownArrowKeyCode       = 0x7D
+};
+
+
 
 
 
@@ -101,7 +174,25 @@ public:
   void InitByInputSourceID(const char* aID);
   void InitByInputSourceID(const nsAFlatString &aID);
   void InitByInputSourceID(const CFStringRef aID);
-  void InitByLayoutID(SInt32 aLayoutID);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void InitByLayoutID(SInt32 aLayoutID, PRBool aOverrideKeyboard = PR_FALSE);
   void InitByCurrentInputSource();
   void InitByCurrentKeyboardLayout();
   void InitByCurrentASCIICapableInputSource();
@@ -188,16 +279,62 @@ public:
     eKbdType_ANSI = 40
   };
 
-  PRBool TranslateToString(UInt32 aKeyCode, UInt32 aModifiers, UInt32 aKbdType,
-                           nsAString &aStr);
-
   void Select();
   void Clear();
 
+  
+
+
+
+
+
+
+
+  void InitKeyEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent);
+
 protected:
-  static PRBool UCKeyTranslateToString(const UCKeyboardLayout* aHandle,
-                                       UInt32 aKeyCode, UInt32 aModifiers,
-                                       UInt32 aKbType, nsAString &aStr);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  PRBool TranslateToString(UInt32 aKeyCode, UInt32 aModifiers,
+                           UInt32 aKbType, nsAString &aStr);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  PRUint32 TranslateToChar(UInt32 aKeyCode, UInt32 aModifiers, UInt32 aKbdType);
+
+  
+
+
+
+
+
+
+
+
+
+  void InitKeyPressEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent);
 
   PRBool GetBoolProperty(const CFStringRef aKey);
   PRBool GetStringProperty(const CFStringRef aKey, CFStringRef &aStr);
@@ -207,6 +344,8 @@ protected:
   CFArrayRef mInputSourceList;
   const UCKeyboardLayout* mUCKeyboardLayout;
   PRInt8 mIsRTL;
+
+  PRPackedBool mOverrideKeyboard;
 };
 
 
@@ -238,6 +377,106 @@ public:
     return mRefCnt;
   }
 
+  
+
+
+
+
+
+
+  PRBool DispatchEvent(nsGUIEvent& aEvent);
+
+  
+
+
+
+
+
+
+
+  void InitKeyEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent);
+
+  
+
+
+
+
+  nsresult SynthesizeNativeKeyEvent(PRInt32 aNativeKeyboardLayout,
+                                    PRInt32 aNativeKeyCode,
+                                    PRUint32 aModifierFlags,
+                                    const nsAString& aCharacters,
+                                    const nsAString& aUnmodifiedCharacters);
+
+  
+
+
+
+
+
+
+
+
+
+
+  static PRBool IsPrintableChar(PRUnichar aChar);
+
+  
+
+
+
+
+
+
+
+  static PRUint32 ComputeGeckoKeyCodeFromChar(PRUnichar aChar);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static PRUint32 ComputeGeckoKeyCode(UInt32 aNativeKeyCode,
+                                      NSString *aCharacters);
+
+  
+
+
+
+
+
+
+
+  static PRBool IsSpecialGeckoKey(UInt32 aNativeKeyCode);
+
+  
+
+
+
+
+
+
+  static PRBool IsNormalCharInputtingEvent(const nsKeyEvent& aKeyEvent);
+
+  
+
+
+
+
+
+
+  static PRBool IsModifierKey(UInt32 aNativeKeyCode);
+
 protected:
   nsAutoRefCnt mRefCnt;
 
@@ -267,6 +506,19 @@ protected:
   virtual ~TextInputHandlerBase();
 
   PRBool Destroyed() { return !mWidget; }
+
+private:
+  struct KeyboardLayoutOverride {
+    PRInt32 mKeyboardLayout;
+    PRBool mOverrideEnabled;
+
+    KeyboardLayoutOverride() :
+      mKeyboardLayout(0), mOverrideEnabled(PR_FALSE)
+    {
+    }
+  };
+
+  KeyboardLayoutOverride mKeyboardOverride;
 };
 
 
