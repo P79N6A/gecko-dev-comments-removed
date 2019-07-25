@@ -472,7 +472,7 @@ RPCChannel::BlockOnParent()
         NS_RUNTIMEABORT("attempt to block child when it's already blocked");
 
     mBlockedOnParent = true;
-    while (1) {
+    do {
         
         
         
@@ -502,12 +502,7 @@ RPCChannel::BlockOnParent()
                 AsyncChannel::OnDispatchMessage(recvd);
             }
         }
-        
-        
-        
-        if (!mBlockedOnParent)
-            break;
-    }
+    } while (mBlockedOnParent);
 
     EnqueuePendingMessages();
 }
