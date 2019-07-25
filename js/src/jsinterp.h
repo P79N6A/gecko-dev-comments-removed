@@ -468,7 +468,7 @@ struct JSStackFrame
 
 
 
-    js::Value &calleeValue() const {
+    js::Value &calleev() const {
         JS_ASSERT(isFunctionFrame());
         if (isEvalFrame())
             return ((js::Value *)this)[-2];
@@ -477,7 +477,7 @@ struct JSStackFrame
 
     JSObject &callee() const {
         JS_ASSERT(isFunctionFrame());
-        return calleeValue().toObject();
+        return calleev().toObject();
     }
 
     JSObject *maybeCallee() const {
@@ -934,27 +934,6 @@ BoxThisForVp(JSContext *cx, js::Value *vp);
 
 
 
-struct CallArgs
-{
-    Value *argv_;
-    uintN argc_;
-  protected:
-    CallArgs() {}
-    CallArgs(Value *argv, uintN argc) : argv_(argv), argc_(argc) {}
-  public:
-    Value *base() const { return argv_ - 2; }
-    Value &callee() const { return argv_[-2]; }
-    Value &thisv() const { return argv_[-1]; }
-    Value &operator[](unsigned i) const { JS_ASSERT(i < argc_); return argv_[i]; }
-    Value *argv() const { return argv_; }
-    uintN argc() const { return argc_; }
-    Value &rval() const { return argv_[-2]; }
-};
-
-
-
-
-
 
 
 
@@ -1063,7 +1042,7 @@ DirectEval(JSContext *cx, JSFunction *evalfun, uint32 argc, Value *vp);
 
 
 extern JS_FORCES_STACK bool
-Execute(JSContext *cx, JSObject *chain, JSScript *script,
+Execute(JSContext *cx, JSObject &chain, JSScript *script,
         JSStackFrame *prev, uintN flags, Value *result);
 
 

@@ -1369,6 +1369,17 @@ struct JSObject : js::gc::Cell {
 
 JS_STATIC_ASSERT(sizeof(JSObject) % sizeof(js::Value) == 0);
 
+
+
+
+
+
+static JS_ALWAYS_INLINE bool
+operator==(const JSObject &lhs, const JSObject &rhs)
+{
+    return &lhs == &rhs;
+}
+
 inline js::Value*
 JSObject::fixedSlots() const {
     return (js::Value*) (jsuword(this) + sizeof(JSObject));
@@ -1984,7 +1995,7 @@ enum EvalType { INDIRECT_EVAL, DIRECT_EVAL };
 
 extern bool
 EvalKernel(JSContext *cx, uintN argc, js::Value *vp, EvalType evalType, JSStackFrame *caller,
-           JSObject *scopeobj);
+           JSObject &scopeobj);
 
 
 
