@@ -387,17 +387,17 @@ public class PanZoomController
             angle = Math.abs(angle); 
             if (angle < AXIS_LOCK_ANGLE || angle > (Math.PI - AXIS_LOCK_ANGLE)) {
                 
-                mX.setLocked(false);
-                mY.setLocked(true);
+                mX.setScrollingDisabled(false);
+                mY.setScrollingDisabled(true);
             } else if (Math.abs(angle - (Math.PI / 2)) < AXIS_LOCK_ANGLE) {
                 
-                mX.setLocked(true);
-                mY.setLocked(false);
+                mX.setScrollingDisabled(true);
+                mY.setScrollingDisabled(false);
             } else {
                 
                 mState = PanZoomState.PANNING;
-                mX.setLocked(false);
-                mY.setLocked(false);
+                mX.setScrollingDisabled(false);
+                mY.setScrollingDisabled(false);
                 angle = Math.abs(angle - (Math.PI / 2));  
             }
         }

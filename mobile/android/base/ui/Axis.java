@@ -88,7 +88,7 @@ abstract class Axis {
     private float mTouchPos;                
     private float mLastTouchPos;            
     private float mVelocity;                
-    private boolean mLocked;                
+    public boolean mScrollingDisabled;      
     private boolean mDisableSnap;           
     private float mDisplacement;
 
@@ -108,7 +108,7 @@ abstract class Axis {
 
     void startTouch(float pos) {
         mVelocity = 0.0f;
-        mLocked = false;
+        mScrollingDisabled = false;
         mFirstTouchPos = mTouchPos = mLastTouchPos = pos;
     }
 
@@ -116,8 +116,8 @@ abstract class Axis {
         return currentPos - mFirstTouchPos;
     }
 
-    void setLocked(boolean locked) {
-        mLocked = locked;
+    void setScrollingDisabled(boolean disabled) {
+        mScrollingDisabled = disabled;
     }
 
     void saveTouchPos() {
@@ -176,7 +176,8 @@ abstract class Axis {
 
 
     private boolean scrollable() {
-        return getViewportLength() <= getPageLength() - MIN_SCROLLABLE_DISTANCE;
+        return getViewportLength() <= getPageLength() - MIN_SCROLLABLE_DISTANCE &&
+               !mScrollingDisabled;
     }
 
     
@@ -195,7 +196,7 @@ abstract class Axis {
 
     
     float getRealVelocity() {
-        return (mLocked || !scrollable()) ? 0.0f : mVelocity;
+        return scrollable() ? mVelocity : 0f;
     }
 
     void startPan() {
@@ -253,7 +254,7 @@ abstract class Axis {
 
     
     void displace() {
-        if (!mSubscroller.scrolling() && (mLocked || !scrollable()))
+        if (!mSubscroller.scrolling() && !scrollable())
             return;
 
         if (mFlingState == FlingStates.PANNING)
