@@ -936,10 +936,14 @@ DragInfo.prototype = {
   stop: function() {
     this.$el.data('isDragging', false);    
 
-    if(this.parent && !this.parent.locked && this.parent != this.item.parent 
-        && this.parent._children.length == 1 && !this.parent.getTitle()) {
-      this.parent.remove(this.parent._children[0]);
-    }
+    
+    
+    
+    
+
+
+
+
      
     if(this.item && !this.$el.hasClass('willGroup') && !this.item.parent) {
       this.item.setZ(drag.zIndex);
