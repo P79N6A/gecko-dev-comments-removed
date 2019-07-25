@@ -587,6 +587,12 @@ PRBool nsOggReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
   MonitorAutoEnter mon(mMonitor);
   NS_ASSERTION(mDecoder->OnStateMachineThread() || mDecoder->OnDecodeThread(),
                "Should be on state machine or AV thread.");
+
+  
+  
+  PRUint32 parsed = 0, decoded = 0;
+  nsMediaDecoder::AutoNotifyDecoded autoNotify(mDecoder, parsed, decoded);
+
   
   
   
@@ -613,6 +619,7 @@ PRBool nsOggReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
         mVideoQueue.Finish();
         return PR_FALSE;
       }
+      parsed++;
 
       if (packet.granulepos > 0) {
         
@@ -699,6 +706,7 @@ PRBool nsOggReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
       mVideoQueue.Finish();
       return PR_FALSE;
     }
+    parsed++;
 
     endOfStream = packet.e_o_s != 0;
 
@@ -751,6 +759,7 @@ PRBool nsOggReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
 
     if (!aKeyframeSkip) {
       mVideoQueue.Push(data.forget());
+      decoded++;
     }
   }
 

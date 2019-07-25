@@ -47,6 +47,7 @@
 #include "gfxRect.h"
 #include "nsITimer.h"
 #include "ImageLayers.h"
+#include "mozilla/Monitor.h"
 
 class nsHTMLMediaElement;
 class nsMediaStream;
@@ -87,6 +88,7 @@ public:
   typedef mozilla::TimeDuration TimeDuration;
   typedef mozilla::layers::ImageContainer ImageContainer;
   typedef mozilla::layers::Image Image;
+  typedef mozilla::Monitor Monitor;
 
   nsMediaDecoder();
   virtual ~nsMediaDecoder();
@@ -182,9 +184,96 @@ public:
 
   
   
+  class FrameStatistics {
+  public:
+    
+    FrameStatistics() :
+        mMonitor("nsMediaDecoder::FrameStats"),
+        mParsedFrames(0),
+        mDecodedFrames(0),
+        mPresentedFrames(0) {}
+
+    
+    
+    PRUint32 GetParsedFrames() {
+      mozilla::MonitorAutoEnter mon(mMonitor);
+      return mParsedFrames;
+    }
+
+    
+    
+    PRUint32 GetDecodedFrames() {
+      mozilla::MonitorAutoEnter mon(mMonitor);
+      return mDecodedFrames;
+    }
+
+    
+    
+    
+    PRUint32 GetPresentedFrames() {
+      mozilla::MonitorAutoEnter mon(mMonitor);
+      return mPresentedFrames;
+    }
+
+    
+    
+    void NotifyDecodedFrames(PRUint32 aParsed, PRUint32 aDecoded) {
+      if (aParsed == 0 && aDecoded == 0)
+        return;
+      mozilla::MonitorAutoEnter mon(mMonitor);
+      mParsedFrames += aParsed;
+      mDecodedFrames += aDecoded;
+    }
+
+    
+    
+    void NotifyPresentedFrame() {
+      mozilla::MonitorAutoEnter mon(mMonitor);
+      ++mPresentedFrames;
+    }
+
+  private:
+
+    
+    Monitor mMonitor;
+
+    
+    
+    PRUint32 mParsedFrames;
+
+    
+    
+    PRUint32 mDecodedFrames;
+
+    
+    
+    PRUint32 mPresentedFrames;
+  };
+
+  
+  
+  
+  class AutoNotifyDecoded {
+  public:
+    AutoNotifyDecoded(nsMediaDecoder* aDecoder, PRUint32& aParsed, PRUint32& aDecoded)
+      : mDecoder(aDecoder), mParsed(aParsed), mDecoded(aDecoded) {}
+    ~AutoNotifyDecoded() {
+      mDecoder->GetFrameStatistics().NotifyDecodedFrames(mParsed, mDecoded);
+    }
+  private:
+    nsMediaDecoder* mDecoder;
+    PRUint32& mParsed;
+    PRUint32& mDecoded;
+  };
+
+  
+  
   
   
   virtual Statistics GetStatistics() = 0;
+  
+  
+  FrameStatistics& GetFrameStatistics() { return mFrameStats; }
 
   
   
@@ -305,7 +394,6 @@ protected:
   
   void UnpinForSeek();
 
-protected:
   
   nsCOMPtr<nsITimer> mProgressTimer;
 
@@ -316,6 +404,9 @@ protected:
 
   PRInt32 mRGBWidth;
   PRInt32 mRGBHeight;
+
+  
+  FrameStatistics mFrameStats;
 
   nsRefPtr<ImageContainer> mImageContainer;
 

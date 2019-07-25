@@ -614,6 +614,11 @@ PRBool nsWebMReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
   NS_ASSERTION(mDecoder->OnStateMachineThread() || mDecoder->OnDecodeThread(),
                "Should be on state machine or decode thread.");
 
+  
+  
+  PRUint32 parsed = 0, decoded = 0;
+  nsMediaDecoder::AutoNotifyDecoded autoNotify(mDecoder, parsed, decoded);
+
   nsAutoRef<NesteggPacketHolder> holder(NextPacket(VIDEO));
   if (!holder) {
     mVideoQueue.Finish();
@@ -680,6 +685,7 @@ PRBool nsWebMReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
     vpx_codec_peek_stream_info(&vpx_codec_vp8_dx_algo, data, length, &si);
     if ((aKeyframeSkip && !si.is_kf) || (aKeyframeSkip && si.is_kf && tstamp_ms < aTimeThreshold)) {
       aKeyframeSkip = PR_TRUE;
+      parsed++; 
       break;
     }
 
@@ -687,7 +693,7 @@ PRBool nsWebMReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
       aKeyframeSkip = PR_FALSE;
     }
 
-    if(vpx_codec_decode(&mVP8, data, length, NULL, 0)) {
+    if (vpx_codec_decode(&mVP8, data, length, NULL, 0)) {
       return PR_FALSE;
     }
 
@@ -695,13 +701,14 @@ PRBool nsWebMReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
     
     
     if (tstamp_ms < aTimeThreshold) {
+      parsed++; 
       continue;
     }
 
     vpx_codec_iter_t  iter = NULL;
     vpx_image_t      *img;
 
-    while((img = vpx_codec_get_frame(&mVP8, &iter))) {
+    while ((img = vpx_codec_get_frame(&mVP8, &iter))) {
       NS_ASSERTION(img->fmt == IMG_FMT_I420, "WebM image format is not I420");
 
       
@@ -732,6 +739,10 @@ PRBool nsWebMReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
       if (!v) {
         return PR_FALSE;
       }
+      parsed++;
+      decoded++;
+      NS_ASSERTION(decoded <= parsed,
+        "Expect only 1 frame per chunk per packet in WebM...");
       mVideoQueue.Push(v);
     }
   }
