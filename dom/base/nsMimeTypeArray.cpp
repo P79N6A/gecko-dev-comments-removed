@@ -311,14 +311,7 @@ nsMimeType::GetEnabledPlugin(nsIDOMPlugin** aEnabledPlugin)
   nsAutoString type;
   GetType(type);
 
-  PRBool disabled = PR_FALSE;
-
-  if (type.Length() == 1 && type.First() == '*') {
-    
-    disabled = nsContentUtils::GetBoolPref("plugin.default_plugin_disabled");
-  }
-
-  *aEnabledPlugin = disabled ? nsnull : mPlugin;
+  *aEnabledPlugin = mPlugin;
 
   NS_IF_ADDREF(*aEnabledPlugin);
 
